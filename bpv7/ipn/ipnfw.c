@@ -98,7 +98,7 @@ static void	shutDown(int signum)
 /*		CGR override functions.					*/
 
 static int	applyRoutingOverride(Bundle *bundle, Object bundleObj,
-			uvast nodeNbr)
+			uvast fqnn)
 {
 	Sdr		sdr = getIonsdr();
 	char		eid[MAX_EID_LEN + 1];
@@ -187,7 +187,7 @@ static int	initializeHIRR(CgrRtgObject *routingObj)
 
 			if (sdr_list_insert_last(sdr,
 					routingObj->viaPassageways,
-					member->nodeNbr) == 0)
+					member->fqnn) == 0)
 			{
 				putErrmsg("Can't note passageway.", NULL);
 				return -1;
@@ -367,7 +367,7 @@ static int	enqueueToEntryNode(CgrRoute *route, Bundle *bundle,
 		return 0;	/*	Reached forwarding limit.	*/
 	}
 
-	bundle->xmitCopies[bundle->xmitCopiesCount] = route->toNodeNbr;
+	bundle->xmitCopies[bundle->xmitCopiesCount] = route->toFqnn;
 	bundle->xmitCopiesCount++;
 	bundle->dlvConfidence = cgr_get_dlv_confidence(bundle, route);
 
@@ -419,7 +419,7 @@ static int	enqueueToEntryNode(CgrRoute *route, Bundle *bundle,
 	 *	into limbo at this point.				*/
 
 	isprintf(neighborEid, sizeof neighborEid, "ipn:" UVAST_FIELDSPEC ".0",
-			route->toNodeNbr);
+			route->toFqnn);
 	findPlan(neighborEid, &vplan, &vplanElt);
 	CHKERR(vplanElt);
 	if (bpEnqueue(vplan, bundle, bundleObj) < 0)
@@ -537,7 +537,7 @@ static int	manageOverbooking(CgrRoute *route, Bundle *newBundle,
 	int		eccc;
 
 	isprintf(neighborEid, sizeof neighborEid, "ipn:" UVAST_FIELDSPEC ".0",
-			route->toNodeNbr);
+			route->toFqnn);
 	priority = newBundle->priority;
 	if (priority == 0)
 	{
@@ -636,13 +636,13 @@ static int	manageOverbooking(CgrRoute *route, Bundle *newBundle,
 }
 #endif
 
-static int	proxNodeRedundant(Bundle *bundle, vast nodeNbr)
+static int	proxNodeRedundant(Bundle *bundle, vast fqnn)
 {
 	int	i;
 
 	for (i = 0; i < bundle->xmitCopiesCount; i++)
 	{
-		if (bundle->xmitCopies[i] == nodeNbr)
+		if (bundle->xmitCopies[i] == fqnn)
 		{
 			return 1;
 		}
@@ -674,7 +674,7 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 			continue;
 		}
 
-		if (proxNodeRedundant(bundle, route->toNodeNbr))
+		if (proxNodeRedundant(bundle, route->toFqnn))
 		{
 			continue;
 		}
@@ -706,8 +706,8 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 
 	lyst_destroy(bestRoutes);
 	if (bundle->dlvConfidence >= MIN_NET_DELIVERY_CONFIDENCE
-	|| bundle->id.source.ssp.ipn.nodeNbr
-			== bundle->destination.ssp.ipn.nodeNbr)
+	|| bundle->id.source.ssp.ipn.fqnn
+			== bundle->destination.ssp.ipn.fqnn)
 	{
 		return 0;	/*	Potential future fwd unneeded.	*/
 	}
@@ -742,7 +742,7 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 	return 0;
 }
 
-static unsigned char	initializeSnw(unsigned int ttl, uvast toNode)
+static unsigned char	initializeSnw(unsigned int ttl, uvast toFqnn)
 {
 	/*	Compute spray-and-wait "L" value.  The only required
 	 *	parameters are the required expected delay "aEDopt"
@@ -780,7 +780,7 @@ static int	forwardOkay(CgrRoute *route, Bundle *bundle)
 	if (bundle->permits == 0)	/*	Not sprayed yet.	*/
 	{
 		bundle->permits = initializeSnw(bundle->timeToLive,
-				contact->toNode);
+				contact->toFqnn);
 	}
 
 	if (bundle->permits < 2)	/*	(Should never be 0.)	*/
@@ -789,7 +789,7 @@ static int	forwardOkay(CgrRoute *route, Bundle *bundle)
 		 *	can only be forwarded to the final destination
 		 *	node.						*/
 
-		if (contact->toNode != bundle->destination.ssp.ipn.nodeNbr)
+		if (contact->toFqnn != bundle->destination.ssp.ipn.fqnn)
 		{
 			return 0;
 		}
@@ -834,7 +834,7 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 	 *	forwarding station.		 			*/
 
 	CHKERR(bundle && bundleObj && terminusNode);
-	TRACE(CgrBuildRoutes, terminusNode->nodeNbr, bundle->payload.length,
+	TRACE(CgrBuildRoutes, terminusNode->fqnn, bundle->payload.length,
 			(unsigned int) atTime);
 
 	if (ionvdb->lastEditTime.tv_sec > cgrvdb->lastLoadTime.tv_sec
@@ -868,7 +868,7 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 		 *	must backtrack.					*/
 
 		if (lyst_insert_last(excludedNodes, (void *)
-			((uaddr) bundle->clDossier.senderNodeNbr)) == NULL)
+			((uaddr) bundle->clDossier.senderFqnn)) == NULL)
 		{
 			putErrmsg("Can't exclude sender from routes.", NULL);
 			lyst_destroy(excludedNodes);
@@ -917,7 +917,7 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 	if (elt)
 	{
 		route = (CgrRoute *) lyst_data_set(elt, NULL);
-		TRACE(CgrUseRoute, route->toNodeNbr);
+		TRACE(CgrUseRoute, route->toFqnn);
 		if (!preview && forwardOkay(route, bundle))
 		{
 			if (enqueueToEntryNode(route, bundle, bundleObj,
@@ -946,8 +946,8 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 
 	lyst_destroy(bestRoutes);
 	if (bundle->dlvConfidence >= MIN_NET_DELIVERY_CONFIDENCE
-	|| bundle->id.source.ssp.ipn.nodeNbr
-			== bundle->destination.ssp.ipn.nodeNbr)
+	|| bundle->id.source.ssp.ipn.fqnn
+			== bundle->destination.ssp.ipn.fqnn)
 	{
 		return 0;	/*	Potential future fwd unneeded.	*/
 	}
@@ -985,7 +985,7 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 /*		Contingency functions for when CGR and IRF don't work.	*/
 
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
-			uvast nodeNbr)
+			uvast fqnn)
 {
 	Sdr		sdr = getIonsdr();
 	char		eid[MAX_EID_LEN + 1];
@@ -993,7 +993,7 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 	PsmAddress	vplanElt;
 	BpPlan		plan;
 
-	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
+	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", fqnn);
 	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)
 	{
@@ -1035,7 +1035,7 @@ static int	openCgr()
 		return 0;
 	}
 
-	if (cgr_start_SAP(getOwnNodeNbr(), ionReferenceTime(NULL), &sap) < 0)
+	if (cgr_start_SAP(getOwnFqnn(), ionReferenceTime(NULL), &sap) < 0)
 	{
 		putErrmsg("Failed starting CGR SAP", NULL);
 		return -1;
@@ -1062,7 +1062,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
-	uvast		nodeNbr;
+	uvast		fqnn;
 	IonNode		*node;
 	PsmAddress	nextNode;
 	uint32_t	regionNbr;
@@ -1099,12 +1099,12 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 		return -1;
 	}
 
-	nodeNbr = metaEid.elementNbr;
+	fqnn = metaEid.elementNbr;
 	restoreEidString(&metaEid);
 
 	/*	Apply routing override, if any.				*/
 
-	if (applyRoutingOverride(bundle, bundleObj, nodeNbr) < 0)
+	if (applyRoutingOverride(bundle, bundleObj, fqnn) < 0)
 	{
 		putErrmsg("Can't send bundle to override neighbor.", NULL);
 		return -1;
@@ -1122,10 +1122,10 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 
 	/*	No applicable override.  Try dynamic routing.		*/
 
-	node = findNode(ionvdb, nodeNbr, &nextNode);
+	node = findNode(ionvdb, fqnn, &nextNode);
 	if (node == NULL)
 	{
-		node = addNode(ionvdb, nodeNbr);
+		node = addNode(ionvdb, fqnn);
 		if (node == NULL)
 		{
 			putErrmsg("Can't add node.", NULL);
@@ -1133,7 +1133,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 		}
 	}
 
-	if (ionRegionOf(nodeNbr, 0, &regionNbr) < 0)
+	if (ionRegionOf(fqnn, 0, &regionNbr) < 0)
 	{
 		/*	Terminus node is not in any region that
 		 *	the local node is in.  Send via passageway(s).	*/
@@ -1171,7 +1171,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 	 *	destination node is a neighbor (not identified in the
 	 *	contact plan); if so, enqueue for direct transmission.	*/
 
-	if (enqueueToNeighbor(bundle, bundleObj, nodeNbr) < 0)
+	if (enqueueToNeighbor(bundle, bundleObj, fqnn) < 0)
 	{
 		putErrmsg("Can't send bundle to neighbor.", NULL);
 		return -1;
@@ -1189,7 +1189,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 	 *	route (node range, i.e., "exit") and forward to the
 	 *	prescribed "via" endpoint for that exit.		*/
 
-	if (ipn_lookupExit(nodeNbr, eid) == 1)
+	if (ipn_lookupExit(fqnn, eid) == 1)
 	{
 		/*	Found applicable exit; forward via the
 		 *	indicated endpoint.				*/
@@ -1203,7 +1203,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 	 *	materialize, we place the bundle in limbo and hope
 	 *	for the best.						*/
 
-	if (cgr_prospect(nodeNbr, bundle->expirationTime) > 0)
+	if (cgr_prospect(fqnn, bundle->expirationTime) > 0)
 	{
 		if (enqueueToLimbo(bundle, bundleObj) < 0)
 		{
@@ -1309,8 +1309,8 @@ int	main(int argc, char *argv[])
 		bundle.ordinal = bundle.ancillaryData.ordinal;
 		bundle.qosFlags = bundle.ancillaryData.flags;
 		if (ipn_lookupOvrd(bundle.ancillaryData.dataLabel,
-				bundle.destination.ssp.ipn.nodeNbr, 
-				bundle.id.source.ssp.ipn.nodeNbr, &ovrdAddr))
+				bundle.destination.ssp.ipn.fqnn, 
+				bundle.id.source.ssp.ipn.fqnn, &ovrdAddr))
 		{
 			sdr_read(sdr, (char *) &ovrd, ovrdAddr,
 					sizeof(IpnOverride));

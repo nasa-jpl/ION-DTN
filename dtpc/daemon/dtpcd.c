@@ -38,7 +38,7 @@ static void	*getBundles(void *parm)
 	unsigned char		*cursor;
 
 	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%d",
-			getOwnNodeNbr(), DTPC_RECV_SVC_NBR);
+			getOwnFqnn(), DTPC_RECV_SVC_NBR);
 	if (bp_open(ownEid, &(parms->rxSap)) < 0)
 	{
 		putErrmsg("DTPC can't open own 'recv' endpoint.", ownEid);
@@ -213,7 +213,7 @@ int	main(int argc, char **argv)
 	}
 
 	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%d",
-			getOwnNodeNbr(), DTPC_SEND_SVC_NBR);
+			getOwnFqnn(), DTPC_SEND_SVC_NBR);
 	if (bp_open_source(ownEid, &txSap, 1) < 0)
 	{
 		putErrmsg("DTPC can't open own 'send' endpoint.", ownEid);

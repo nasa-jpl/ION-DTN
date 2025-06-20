@@ -82,8 +82,8 @@ typedef struct
  *	contents are propagated into the IonVdb lists of IonNodes and
  *	IonNeighbors.
  *
- *	Additionally, IonContacts for which either the fromNode or the
- *	toNode is the local node's own node number are used in
+ *	Additionally, IonContacts for which either the fromFqnn or the
+ *	toFqnn is the local node's own node number are used in
  *	congestion forecasting, by computation of maximum scheduled
  *	bundle space occupancy.	
  *
@@ -198,8 +198,8 @@ typedef struct
 {
 	time_t		fromTime;	/*	As from time(2).	*/
 	time_t		toTime;		/*	As from time(2).	*/
-	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
-	uvast		toNode;		/*	... BP nodeNbr.		*/
+	uvast		fromFqnn;	/*	LTP engineID, a.k.a.	*/
+	uvast		toFqnn;		/*	... BP ipn-scheme fqnn.	*/
 	size_t		xmitRate;	/*	In bytes per second.	*/
 	float		confidence;	/*	Confidence in contact.	*/
 	ContactType	type;		/*	For disambiguation.	*/
@@ -210,8 +210,8 @@ typedef struct
 {
 	time_t		fromTime;	/*	As from time(2).	*/
 	time_t		toTime;		/*	As from time(2).	*/
-	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
-	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
+	uvast		fromFqnn;	/*	LTP engineID, a.k.a.	*/
+	uvast		toFqnn;		/*	... BP ipn-scheme fqnn.	*/
 	unsigned int	owlt;		/*	In seconds.		*/
 } IonRange;
 
@@ -223,7 +223,7 @@ typedef struct
 
 typedef struct
 {
-	uvast		nodeNbr;
+	uvast		fqnn;
 	uint32_t	homeRegionNbr;
 	uint32_t	outerRegionNbr;
 } RegionMember;
@@ -245,8 +245,8 @@ typedef struct
 	/*	We represent contact and range removal notices by
 	 *	setting toTime to zero.					*/
 
-	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
-	uvast		toNode;		/*	... BP nodeNbr.		*/
+	uvast		fromFqnn;	/*	LTP engineID, a.k.a.	*/
+	uvast		toFqnn;		/*	... BP ipn-scheme fqnn.	*/
 	size_t		magnitude;
 
 	/*	magnitude is xmit rate in bytes/sec for contact
@@ -259,7 +259,7 @@ typedef struct
 
 typedef struct
 {
-	uvast		ownNodeNbr;
+	uvast		ownFqnn;
 	IonRegion	regions[2];	/*	Home, outer.		*/
 	Object		rolodex;	/*	SDR list: RegionMember	*/
 	Object		cpsNotices;	/*	SDR list: CpsNotice	*/
@@ -316,21 +316,21 @@ typedef struct
 
 typedef struct
 {
-	uvast		nodeNbr;	/*	Of the embargoed node.	*/
+	uvast		fqnn;	/*	Of the embargoed node.	*/
 	int		probeIsDue;	/*	Boolean.		*/
 } Embargo;		/*	An uncooperative neighboring node.	*/
 
 typedef struct
 {
-	uvast		nodeNbr;	/*	As from IonContact.	*/
+	uvast		fqnn;	/*	As from IonContact.	*/
 	PsmAddress	embargoes;	/*	SM list: Embargo	*/
 	PsmAddress	routingObject;	/*	Routing-dependent.	*/
 } IonNode;		/*	A potential bundle destination node.	*/
 
 typedef struct
 {
-	uvast		destNodeNbr;
-	uvast		neighborNodeNbr;
+	uvast		destFqnn;
+	uvast		neighborFqnn;
 	time_t		time;
 } IonProbe;
 
@@ -348,7 +348,7 @@ typedef struct
 
 typedef struct
 {
-	uvast		nodeNbr;	/*	As from IonContact.	*/
+	uvast		fqnn;		/*	As from IonContact.	*/
 	size_t		xmitRate;	/*	Xmit *to* neighbor.	*/
 	size_t		fireRate;	/*	Xmit *from* neighbor.	*/
 	size_t		recvRate;	/*	Recv from neighbor.	*/
@@ -362,8 +362,8 @@ typedef struct
 
 typedef struct
 {
-	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
-	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
+	uvast		fromFqnn;	/*	LTP engineID, a.k.a.	*/
+	uvast		toFqnn;		/*	... BP ipn-scheme fqnn.	*/
 	time_t		fromTime;	/*	As from time(2).	*/
 	time_t		toTime;		/*	As from time(2).	*/
 	unsigned int	owlt;		/*	Current, in seconds.	*/
@@ -373,8 +373,8 @@ typedef struct
 typedef struct
 {
 	uint32_t	regionNbr;	/*	ID of network region	*/
-	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
-	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
+	uvast		fromFqnn;	/*	LTP engineID, a.k.a.	*/
+	uvast		toFqnn;		/*	... BP ipn-scheme fqnn.	*/
 	time_t		fromTime;	/*	As from time(2).	*/
 	time_t		toTime;		/*	As from time(2).	*/
 	size_t		xmitRate;	/*	In bytes per second.	*/
@@ -473,18 +473,18 @@ extern void		*ionMemAtoP(uaddr);
 extern uaddr		ionMemPtoA(void *);
 
 extern int		ionInitialize(	IonParms *parms,
-					uvast ownNodeNbr);
+					uvast ownFqnn);
 extern int		ionAttach();
 extern void		ionDetach();
-extern void		ionProd(	uvast fromNode,
-					uvast toNode,
+extern void		ionProd(	uvast fromFqnn,
+					uvast toFqnn,
 					size_t xmitRate,
 					unsigned int owlt);
 extern void		ionTerminate(int shutdown);
 
 extern int		ionPickRegion(uint32_t regionNbr);
-extern int		ionRegionOf(uvast nodeNbrA,
-					uvast nodeNbrB,
+extern int		ionRegionOf(uvast fqnnA,
+					uvast fqnnB,
 					uint32_t *regionNbr);
 
 extern int		ionStartAttendant(ReqAttendant *attendant);
@@ -527,7 +527,7 @@ extern PsmPartition	getIonwm();
 extern int		getIonMemoryMgr();
 extern IonVdb		*getIonVdb();
 extern char		*getIonWorkingDirectory();
-extern uvast		getOwnNodeNbr();
+extern uvast		getOwnFqnn();
 
 extern int		startIonMemTrace(size_t size);
 extern void		printIonMemTrace(int verbose);

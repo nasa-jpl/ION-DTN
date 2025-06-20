@@ -47,8 +47,8 @@ static int	handleCpsNotice(BpDelivery *dlv, unsigned char *cursor,
 	uint32_t	regionNbr;
 	time_t		fromTime;
 	time_t		toTime;
-	uvast		fromNode;
-	uvast		toNode;
+	uvast		fromFqnn;
+	uvast		toFqnn;
 	size_t		magnitude;
 	float		confidence;
 	int		result;
@@ -83,14 +83,14 @@ static int	handleCpsNotice(BpDelivery *dlv, unsigned char *cursor,
 		return 0;
 	}
 
-	fromNode = uvtemp;
+	fromFqnn = uvtemp;
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
 		writeMemo("[?] Can't decode CPS notice From node.");
 		return 0;
 	}
 
-	toNode = uvtemp;
+	toFqnn = uvtemp;
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
 		writeMemo("[?] Can't decode CPS notice magnitude.");
@@ -125,7 +125,7 @@ static int	handleCpsNotice(BpDelivery *dlv, unsigned char *cursor,
 	{
 		if (toTime == 0)	/*	Delete Range.		*/
 		{
-			result = rfx_remove_range(&fromTime, fromNode, toNode,
+			result = rfx_remove_range(&fromTime, fromFqnn, toFqnn,
 					0);
 			switch(result)
 			{
@@ -144,8 +144,8 @@ static int	handleCpsNotice(BpDelivery *dlv, unsigned char *cursor,
 		}
 		else			/*	Add Range.		*/
 		{
-			result = rfx_insert_range(fromTime, toTime, fromNode,
-					toNode, magnitude, &xaddr, 0);
+			result = rfx_insert_range(fromTime, toTime, fromFqnn,
+					toFqnn, magnitude, &xaddr, 0);
 			switch(result)
 			{
 			case -1:
@@ -170,7 +170,7 @@ static int	handleCpsNotice(BpDelivery *dlv, unsigned char *cursor,
 		if (toTime == 0)	/*	Unregister node.	*/
 		{
 			result = rfx_remove_contact(regionNbr, &fromTime,
-					fromNode, toNode, 0);
+					fromFqnn, toFqnn, 0);
 			switch(result)
 			{
 			case -1:
@@ -189,7 +189,7 @@ static int	handleCpsNotice(BpDelivery *dlv, unsigned char *cursor,
 		else			/*	Register node.		*/
 		{
 			result = rfx_insert_contact(regionNbr, fromTime,
-					toTime, fromNode, toNode, magnitude,
+					toTime, fromFqnn, toFqnn, magnitude,
 					confidence, &xaddr, 0);
 			switch(result)
 			{
@@ -213,7 +213,7 @@ static int	handleCpsNotice(BpDelivery *dlv, unsigned char *cursor,
 	if (revisingContact)
 	{
 		result = rfx_revise_contact(regionNbr, fromTime,
-				fromNode, toNode, magnitude, confidence, 0);
+				fromFqnn, toFqnn, magnitude, confidence, 0);
 		switch(result)
 		{
 		case -1:
@@ -233,7 +233,7 @@ static int	handleCpsNotice(BpDelivery *dlv, unsigned char *cursor,
 	if (toTime == 0)		/*	Delete contact.		*/
 	{
 		result = rfx_remove_contact(regionNbr, &fromTime,
-				fromNode, toNode, 0);
+				fromFqnn, toFqnn, 0);
 		switch(result)
 		{
 		case -1:
@@ -252,8 +252,8 @@ static int	handleCpsNotice(BpDelivery *dlv, unsigned char *cursor,
 
 	/*	Adding a scheduled contact.			*/
 
-	result = rfx_insert_contact(regionNbr, fromTime, toTime, fromNode,
-			toNode, magnitude, confidence, &xaddr, 0);
+	result = rfx_insert_contact(regionNbr, fromTime, toTime, fromFqnn,
+			toFqnn, magnitude, confidence, &xaddr, 0);
 	switch(result)
 	{
 	case -1:
@@ -507,12 +507,12 @@ int	main(int argc, char *argv[])
 
 			/*	Then From node.				*/
 
-			uvtemp = notice.fromNode;
+			uvtemp = notice.fromFqnn;
 			oK(cbor_encode_integer(uvtemp, &cursor));
 
 			/*	Then To node.				*/
 
-			uvtemp = notice.toNode;
+			uvtemp = notice.toFqnn;
 			oK(cbor_encode_integer(uvtemp, &cursor));
 
 			/*	Then magnitude.				*/

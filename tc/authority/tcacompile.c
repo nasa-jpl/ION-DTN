@@ -80,7 +80,7 @@ static int	publishBulletin(Sdr sdr, TcaDB *db, BpSAP sap)
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, TcaRecord, rec, sdr_list_data(sdr, elt));
-		recLen = tc_serialize(cursor, bytesRemaining, rec->nodeNbr,
+		recLen = tc_serialize(cursor, bytesRemaining, rec->fqnn,
 				rec->effectiveTime, rec->assertionTime,
 				rec->datLength, rec->datValue);
 		if (recLen < 0)
@@ -196,7 +196,7 @@ int	main(int argc, char *argv[])
 	}
 
 	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
+			getOwnFqnn());
 	if (bp_open_source(ownEid, &sap, 0) < 0)
 	{
 		putErrmsg("Can't open own endpoint.", ownEid);

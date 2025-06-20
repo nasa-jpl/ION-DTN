@@ -50,7 +50,7 @@ typedef struct
 
 typedef struct
 {
-	uvast		nodeNbr;
+	uvast		fqnn;
 	time_t		effectiveTime;
 	time_t		assertionTime;
 	int		length;
@@ -59,7 +59,7 @@ typedef struct
 
 typedef struct
 {
-	uvast		nodeNbr;
+	uvast		fqnn;
 	time_t		effectiveTime;
 	Object		publicKeyElt;	/*	Ref. to PublicKey.	*/
 } PubKeyRef;				/*	Not used for Own keys.	*/
@@ -95,11 +95,11 @@ extern SecVdb	*getSecVdb();
 
 /*	*	Functions for managing public keys.			*/
 
-extern void	sec_findPublicKey(uvast nodeNbr, time_t effectiveTime,
+extern void	sec_findPublicKey(uvast fqnn, time_t effectiveTime,
 			Object *keyAddr, Object *eltp);
-extern int	sec_addPublicKey(uvast nodeNbr, time_t effectiveTime,
+extern int	sec_addPublicKey(uvast fqnn, time_t effectiveTime,
 			time_t assertionTime, int datLen, unsigned char *data);
-extern int	sec_removePublicKey(uvast nodeNbr, time_t effectiveTime);
+extern int	sec_removePublicKey(uvast fqnn, time_t effectiveTime);
 extern int	sec_addOwnPublicKey(time_t effectiveTime, int datLen,
 			unsigned char *data);
 extern int	sec_removeOwnPublicKey(time_t effectiveTime);
@@ -107,11 +107,11 @@ extern int	sec_addPrivateKey(time_t effectiveTime, int datLen,
 			unsigned char *data);
 extern int	sec_removePrivateKey(time_t effectiveTime);
 
-extern int	sec_get_public_key(uvast nodeNbr, time_t effectiveTime,
+extern int	sec_get_public_key(uvast fqnn, time_t effectiveTime,
 			int *datBufferLen, unsigned char *datBuffer);
 		/*	Retrieves the value of the public key that
 		 *	was valid at "effectiveTime" for the node
-		 *	identified by "nodeNbr" (which must not be
+		 *	identified by "fqnn" (which must not be
 		 *	the local node).  The value is written into
 		 *	datBuffer unless its length exceeds the length
 		 *	of the buffer, which must be supplied in

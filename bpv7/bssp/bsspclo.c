@@ -61,14 +61,14 @@ static int	isInOrder(Lyst streams, Bundle *bundle)
 	for (elt = lyst_first(streams); elt; elt = lyst_next(elt))
 	{
 		stream = lyst_data(elt);
-		if (stream->source.ssp.ipn.nodeNbr
-				< bundle->id.source.ssp.ipn.nodeNbr)
+		if (stream->source.ssp.ipn.fqnn
+				< bundle->id.source.ssp.ipn.fqnn)
 		{
 			continue;
 		}
 
-		if (stream->source.ssp.ipn.nodeNbr
-				> bundle->id.source.ssp.ipn.nodeNbr)
+		if (stream->source.ssp.ipn.fqnn
+				> bundle->id.source.ssp.ipn.fqnn)
 		{
 			break;
 		}
@@ -85,14 +85,14 @@ static int	isInOrder(Lyst streams, Bundle *bundle)
 			break;
 		}
 
-		if (stream->dest.ssp.ipn.nodeNbr
-				< bundle->destination.ssp.ipn.nodeNbr)
+		if (stream->dest.ssp.ipn.fqnn
+				< bundle->destination.ssp.ipn.fqnn)
 		{
 			continue;
 		}
 
-		if (stream->dest.ssp.ipn.nodeNbr
-				> bundle->destination.ssp.ipn.nodeNbr)
+		if (stream->dest.ssp.ipn.fqnn
+				> bundle->destination.ssp.ipn.fqnn)
 		{
 			break;
 		}
@@ -149,10 +149,10 @@ static int	isInOrder(Lyst streams, Bundle *bundle)
 		return 0;
 	}
 
-	stream->source.ssp.ipn.nodeNbr = bundle->id.source.ssp.ipn.nodeNbr;
+	stream->source.ssp.ipn.fqnn = bundle->id.source.ssp.ipn.fqnn;
 	stream->source.ssp.ipn.serviceNbr
 			= bundle->id.source.ssp.ipn.serviceNbr;
-	stream->dest.ssp.ipn.nodeNbr = bundle->destination.ssp.ipn.nodeNbr;
+	stream->dest.ssp.ipn.fqnn = bundle->destination.ssp.ipn.fqnn;
 	stream->dest.ssp.ipn.serviceNbr
 			= bundle->destination.ssp.ipn.serviceNbr;
 	stream->lastBundle.msec = bundle->id.creationTime.msec;

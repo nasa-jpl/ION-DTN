@@ -126,7 +126,7 @@ static void	detectCurrentTopologyChanges(Sdr sdr)
 		if (neighbor->xmitRate != neighbor->prevXmitRate)
 		{
 #ifndef ION_NOSTATS
-			if (neighbor->nodeNbr != getOwnNodeNbr())
+			if (neighbor->fqnn != getOwnFqnn())
 			{
 				/*	We report transmission
 				 *	statistics as necessary.	*/
@@ -151,7 +151,7 @@ static void	detectCurrentTopologyChanges(Sdr sdr)
 		if (neighbor->recvRate != neighbor->prevRecvRate)
 		{
 #ifndef ION_NOSTATS
-			if (neighbor->nodeNbr != getOwnNodeNbr())
+			if (neighbor->fqnn != getOwnFqnn())
 			{
 				/*	We report transmission
 				 *	statistics as necessary.	*/

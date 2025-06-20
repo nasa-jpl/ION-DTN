@@ -86,12 +86,12 @@ static int	orderKeyRefs(PsmPartition wm, PsmAddress refData,
 
 	ref = (PubKeyRef *) psp(wm, refData);
 	argRef = (PubKeyRef *) dataBuffer;
-	if (ref->nodeNbr < argRef->nodeNbr)
+	if (ref->fqnn < argRef->fqnn)
 	{
 		return -1;
 	}
 
-	if (ref->nodeNbr > argRef->nodeNbr)
+	if (ref->fqnn > argRef->fqnn)
 	{
 		return 1;
 	}
@@ -132,7 +132,7 @@ static int	loadPublicKey(PsmPartition wm, PsmAddress rbt, PublicKey *key,
 
 	ref = (PubKeyRef *) psp(wm, refAddr);
 	CHKERR(ref);
-	ref->nodeNbr = key->nodeNbr;
+	ref->fqnn = key->fqnn;
 	ref->effectiveTime = key->effectiveTime;
 	ref->publicKeyElt = elt;
 	if (sm_rbt_insert(wm, rbt, refAddr, orderKeyRefs, ref) == 0)
@@ -379,7 +379,7 @@ SecVdb	*getSecVdb()
 	return _secvdb(NULL);
 }
 
-static Object	locatePublicKey(uvast nodeNbr, time_t effectiveTime,
+static Object	locatePublicKey(uvast fqnn, time_t effectiveTime,
 			PubKeyRef *argRef)
 {
 	SecDB		*secdb = _secConstants();
@@ -397,9 +397,9 @@ static Object	locatePublicKey(uvast nodeNbr, time_t effectiveTime,
 	}
 
 	CHKZERO(vdb);
-	isprintf(keyId, sizeof keyId, UVAST_FIELDSPEC ":%lu", nodeNbr,
+	isprintf(keyId, sizeof keyId, UVAST_FIELDSPEC ":%lu", fqnn,
 			effectiveTime);
-	argRef->nodeNbr = nodeNbr;
+	argRef->fqnn = fqnn;
 	argRef->effectiveTime = effectiveTime;
 	rbtNode = sm_rbt_search(wm, vdb->publicKeys, orderKeyRefs, argRef,
 			&successor);
@@ -416,7 +416,7 @@ static Object	locatePublicKey(uvast nodeNbr, time_t effectiveTime,
 	return ref->publicKeyElt;
 }
 
-void	sec_findPublicKey(uvast nodeNbr, time_t effectiveTime, Object *keyAddr,
+void	sec_findPublicKey(uvast fqnn, time_t effectiveTime, Object *keyAddr,
 		Object *eltp)
 {
 	Sdr		sdr = getIonsdr();
@@ -430,7 +430,7 @@ void	sec_findPublicKey(uvast nodeNbr, time_t effectiveTime, Object *keyAddr,
 	CHKVOID(eltp);
 	*eltp = 0;
 	CHKVOID(sdr_begin_xn(sdr));
-	elt = locatePublicKey(nodeNbr, effectiveTime, &argRef);
+	elt = locatePublicKey(fqnn, effectiveTime, &argRef);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
@@ -442,13 +442,13 @@ void	sec_findPublicKey(uvast nodeNbr, time_t effectiveTime, Object *keyAddr,
 	*eltp = elt;
 }
 
-int	sec_addPublicKey(uvast nodeNbr, time_t effectiveTime,
+int	sec_addPublicKey(uvast fqnn, time_t effectiveTime,
 		time_t assertionTime, int keyLen, unsigned char *keyValue)
 {
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = _secConstants();
 	PsmPartition	wm = getIonwm();
-	uvast		localNodeNbr = getOwnNodeNbr();
+	uvast		localFqnn = getOwnFqnn();
 	SecVdb		*vdb = getSecVdb();
 	char		keyId[32];
 	PubKeyRef	argRef;
@@ -466,18 +466,18 @@ int	sec_addPublicKey(uvast nodeNbr, time_t effectiveTime,
 		return 0;
 	}
 
-	if (nodeNbr == localNodeNbr)
+	if (fqnn == localFqnn)
 	{
 		return 0;	/*	Own public key added elsewhere.	*/
 	}
 
 	CHKERR(vdb);
-	CHKERR(nodeNbr > 0);
+	CHKERR(fqnn > 0);
 	CHKERR(keyLen > 0);
 	CHKERR(keyValue);
-	isprintf(keyId, sizeof keyId, UVAST_FIELDSPEC ":%lu", nodeNbr,
+	isprintf(keyId, sizeof keyId, UVAST_FIELDSPEC ":%lu", fqnn,
 			effectiveTime);
-	argRef.nodeNbr = nodeNbr;
+	argRef.fqnn = fqnn;
 	argRef.effectiveTime = effectiveTime;
 	CHKERR(sdr_begin_xn(sdr));
 	rbtNode = sm_rbt_search(wm, vdb->publicKeys, orderKeyRefs, &argRef,
@@ -491,7 +491,7 @@ int	sec_addPublicKey(uvast nodeNbr, time_t effectiveTime,
 
 	/*	New key may be added.					*/
 
-	newPublicKey.nodeNbr = nodeNbr;
+	newPublicKey.fqnn = fqnn;
 	newPublicKey.effectiveTime = effectiveTime;
 	newPublicKey.assertionTime = assertionTime;
 	newPublicKey.length = keyLen;
@@ -537,7 +537,7 @@ int	sec_addPublicKey(uvast nodeNbr, time_t effectiveTime,
 	return 1;
 }
 
-int	sec_removePublicKey(uvast nodeNbr, time_t effectiveTime)
+int	sec_removePublicKey(uvast fqnn, time_t effectiveTime)
 {
 	Sdr		sdr = getIonsdr();
 	SecVdb		*vdb = getSecVdb();
@@ -547,7 +547,7 @@ int	sec_removePublicKey(uvast nodeNbr, time_t effectiveTime)
 	PublicKey	publicKey;
 
 	CHKERR(sdr_begin_xn(sdr));
-	elt = locatePublicKey(nodeNbr, effectiveTime, &argRef);
+	elt = locatePublicKey(fqnn, effectiveTime, &argRef);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
@@ -841,7 +841,7 @@ int	sec_removePrivateKey(time_t effectiveTime)
 	return 0;
 }
 
-int	sec_get_public_key(uvast nodeNbr, time_t effectiveTime,
+int	sec_get_public_key(uvast fqnn, time_t effectiveTime,
 		int *keyBufferLen, unsigned char *keyValueBuffer)
 {
 	Sdr		sdr = getIonsdr();
@@ -865,7 +865,7 @@ int	sec_get_public_key(uvast nodeNbr, time_t effectiveTime,
 	CHKERR(keyBufferLen);
 	CHKERR(*keyBufferLen > 0);
 	CHKERR(keyValueBuffer);
-	argRef.nodeNbr = nodeNbr;
+	argRef.fqnn = fqnn;
 	argRef.effectiveTime = effectiveTime;
 	CHKERR(sdr_begin_xn(sdr));
 	rbtNode = sm_rbt_search(wm, vdb->publicKeys, orderKeyRefs, &argRef,
@@ -890,7 +890,7 @@ int	sec_get_public_key(uvast nodeNbr, time_t effectiveTime,
 
 	refAddr = sm_rbt_data(wm, rbtNode);
 	ref = (PubKeyRef *) psp(wm, refAddr);
-	if (ref->nodeNbr != nodeNbr)
+	if (ref->fqnn != fqnn)
 	{
 		sdr_exit_xn(sdr);
 		return 0;		/*	No such key.		*/

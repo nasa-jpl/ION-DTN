@@ -551,7 +551,7 @@ static int	raiseScheme(Object schemeElt, BpVdb *bpvdb)
 	case ipn:
 		isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
 			"%.8s:" UVAST_FIELDSPEC ".0", vscheme->name,
-			getOwnNodeNbr());
+			getOwnFqnn());
 		break;
 
 	default:	/*	Assume it's dtn.			*/
@@ -817,7 +817,7 @@ static int	raisePlan(Object planElt, BpVdb *bpvdb)
 	vplan->stats = plan.stats;
 	vplan->updateStats = plan.updateStats;
 	istrcpy(vplan->neighborEid, plan.neighborEid, sizeof plan.neighborEid);
-	vplan->neighborNodeNbr = plan.neighborNodeNbr;
+	vplan->neighborFqnn = plan.neighborFqnn;
 	vplan->semaphore = SM_SEM_NONE;
 	vplan->xmitThrottle.nominalRate = plan.nominalRate;
 	vplan->xmitThrottle.capacity = plan.nominalRate;
@@ -1971,12 +1971,12 @@ Throttle	*applicableThrottle(VPlan *vplan)
 	CHKNULL(ionLocked());
 	planObj = sdr_list_data(sdr, vplan->planElt);
 	GET_OBJ_POINTER(sdr, BpPlan, plan, planObj);
-	if (plan->neighborNodeNbr == 0)	/*	No nbr for assigned node.*/
+	if (plan->neighborFqnn == 0)	/*	No nbr for assigned node.*/
 	{
 		return &(vplan->xmitThrottle);
 	}
 
-	neighbor = findNeighbor(getIonVdb(), plan->neighborNodeNbr, &nextElt);
+	neighbor = findNeighbor(getIonVdb(), plan->neighborFqnn, &nextElt);
 	if (neighbor == NULL)	/*	Neighbor isn't in contact plan.	*/
 	{
 		return &(vplan->xmitThrottle);
@@ -2110,6 +2110,10 @@ void	computePriorClaims(BpPlan *plan, Bundle *bundle, Scalar *priorClaims,
 int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 		PsmAddress *vschemeElt)
 {
+	unsigned long	allocatorNbr;
+	unsigned long	nodeNbr;
+	unsigned long	groupNbr;
+
 	/*	parseEidString is a Boolean function, returning 1 if
 	 *	the EID string was successfully parsed.			*/
 
@@ -2132,7 +2136,7 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 		return 1;
 	}
 
-	/*	EID string does not identify the null endpoint.		*/
+	/*	EID string does not identify the special null endpoint.	*/
 
 	metaEid->colon = strchr(eidString, ':');
 	if (metaEid->colon == NULL)
@@ -2180,8 +2184,15 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 		return 1;
 
 	case ipn:
-		if (sscanf(metaEid->nss, UVAST_FIELDSPEC ".%u",
-			&(metaEid->elementNbr), &(metaEid->serviceNbr)) < 2)
+		if (sscanf(metaEid->nss, "%lu.%lu.%lu", &allocatorNbr,
+			&nodeNbr, &(metaEid->serviceNbr)) == 3)
+		{
+			metaEid->elementNbr = ((allocatorNbr << 32)
+				& 0xffffffff00000000) +
+				(nodeNbr & 0x00000000ffffffff);
+		}
+		else if (sscanf(metaEid->nss, UVAST_FIELDSPEC ".%lu",
+			&(metaEid->elementNbr), &(metaEid->serviceNbr)) != 2)
 		{
 			*(metaEid->colon) = ':';
 			writeMemoNote("[?] Malformed URI", eidString);
@@ -2196,7 +2207,14 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 		return 1;
 
 	case imc:
-		if (sscanf(metaEid->nss, UVAST_FIELDSPEC ".%u",
+		if (sscanf(metaEid->nss, "%lu.%lu.%lu", &allocatorNbr,
+			&groupNbr, &(metaEid->serviceNbr)) == 3)
+		{
+			metaEid->elementNbr = ((allocatorNbr << 32)
+				& 0xffffffff00000000) +
+				(groupNbr & 0x00000000ffffffff);
+		}
+		else if (sscanf(metaEid->nss, UVAST_FIELDSPEC ".%lu",
 			&(metaEid->elementNbr), &(metaEid->serviceNbr)) < 2)
 		{
 			*(metaEid->colon) = ':';
@@ -2307,12 +2325,12 @@ int	recordEid(EndpointId *eid, MetaEid *meid, EidMode mode)
 		}
 
 	case ipn:
-		eid->ssp.ipn.nodeNbr = meid->elementNbr;
+		eid->ssp.ipn.fqnn = meid->elementNbr;
 		eid->ssp.ipn.serviceNbr = meid->serviceNbr;
 		return 0;
 
 	case imc:
-		eid->ssp.imc.groupNbr = meid->elementNbr;
+		eid->ssp.imc.fqgn = meid->elementNbr;
 		eid->ssp.imc.serviceNbr = meid->serviceNbr;
 		return 0;
 
@@ -2356,12 +2374,12 @@ void	eraseEid(EndpointId *eid)
 		break;
 
 	case ipn:
-		eid->ssp.ipn.nodeNbr = 0;
+		eid->ssp.ipn.fqnn = 0;
 		eid->ssp.ipn.serviceNbr = 0;
 		break;
 
 	case imc:
-		eid->ssp.imc.groupNbr = 0;
+		eid->ssp.imc.fqgn = 0;
 		eid->ssp.imc.serviceNbr = 0;
 		break;
 
@@ -2457,18 +2475,22 @@ static void	readDtnEid(DtnSSP *ssp, char **buffer)
 
 static void	readIpnEid(IpnSSP *ssp, char **buffer)
 {
-	char	*eidString;
-	int	eidLength = 36;
+	char		*eidString;
+	int		eidLength = 47;
+	unsigned long	allocatorNbr;
+	unsigned long	nodeNbr;
 
 	/*	Printed EID string is
 	 *
-	 *	   ipn:<nodenbr>.<servicenbr>\0
+	 *	   ipn:[allocatornbr.]<nodenbr>.<servicenbr>\0
 	 *
 	 *	So max EID string length is 3 for "ipn" plus 1 for
-	 *	':' plus max length of nodenbr (which is a 64-bit
-	 *	number, so 20 digits) plus 1 for '.' plus max length
-	 *	of servicenbr (which is a 32-bit number, so 10 digits)
-	 *	plus 1 for the terminating NULL.			*/
+	 *	':' plus max length of allocatornbr (which is a
+	 *	32-bit number, so 10 digits) plus 1 for '.' plus max
+	 *	length of nodenbr (which is a 32-bit number, so 10
+	 *	digits) plus 1 for '.' plus max length of servicenbr
+	 *	(which is a 64-bit number, so 20 digits) plus 1 for
+	 *	the terminating NULL.					*/
 
 	eidString = MTAKE(eidLength);
 	if (eidString == NULL)
@@ -2477,14 +2499,25 @@ static void	readIpnEid(IpnSSP *ssp, char **buffer)
 		return;
 	}
 
-	if (ssp->nodeNbr == 0 && ssp->serviceNbr == 0)
+	if (ssp->fqnn == 0 && ssp->serviceNbr == 0)
 	{
 		istrcpy(eidString, _nullEid(), eidLength);
 	}
 	else
 	{
-		isprintf(eidString, eidLength, "ipn:" UVAST_FIELDSPEC ".%u",
-				ssp->nodeNbr, ssp->serviceNbr);
+		allocatorNbr = (ssp->fqnn) >> 32 & 0xffffffff;
+		if (allocatorNbr > 0)
+		{
+			nodeNbr = ssp->fqnn & 0xffffffff;
+			isprintf(eidString, eidLength, "ipn:%lu.%lu.%lu",
+				allocatorNbr, nodeNbr, ssp->serviceNbr);
+		}
+		else
+		{
+			isprintf(eidString, eidLength,
+				"ipn:" UVAST_FIELDSPEC ".%lu", ssp->fqnn,
+				ssp->serviceNbr);
+		}
 	}
 
 	*buffer = eidString;
@@ -2492,18 +2525,22 @@ static void	readIpnEid(IpnSSP *ssp, char **buffer)
 
 static void	readImcEid(ImcSSP *ssp, char **buffer)
 {
-	char	*eidString;
-	int	eidLength = 36;
+	char		*eidString;
+	int		eidLength = 47;
+	unsigned long	allocatorNbr;
+	unsigned long	groupNbr;
 
 	/*	Printed EID string is
 	 *
-	 *	   imc:<groupnbr>.<servicenbr>\0
+	 *	   imc:[allocatornbr.]<groupnbr>.<servicenbr>\0
 	 *
 	 *	So max EID string length is 3 for "imc" plus 1 for
-	 *	':' plus max length of groupnbr (which is a 64-bit
-	 *	number, so 20 digits) plus 1 for '.' plus max length
-	 *	of servicenbr (which is a 32-bit number, so 10 digits)
-	 *	plus 1 for the terminating NULL.			*/
+	 *	':' plus max length of allocatornbr (which is a
+	 *	32-bit number, so 10 digits) plus 1 for '.' plus max
+	 *	length of groupnbr (which is a 32-bit number, so 10
+	 *	digits) plus 1 for '.' plus max length of servicenbr
+	 *	(which is a 64-bit number, so 20 digits) plus 1 for
+	 *	the terminating NULL.					*/
 
 	eidString = MTAKE(eidLength);
 	if (eidString == NULL)
@@ -2512,8 +2549,20 @@ static void	readImcEid(ImcSSP *ssp, char **buffer)
 		return;
 	}
 
-	isprintf(eidString, eidLength, "imc:" UVAST_FIELDSPEC ".%u",
-			ssp->groupNbr, ssp->serviceNbr);
+	allocatorNbr = (ssp->fqgn) >> 32 & 0xffffffff;
+	if (allocatorNbr > 0)
+	{
+		groupNbr = ssp->fqgn & 0xffffffff;
+		isprintf(eidString, eidLength, "ipn:%lu.%lu.%lu",
+			allocatorNbr, groupNbr, ssp->serviceNbr);
+	}
+	else
+	{
+		isprintf(eidString, eidLength,
+			"imc:" UVAST_FIELDSPEC ".%lu", ssp->fqgn,
+			ssp->serviceNbr);
+	}
+
 	*buffer = eidString;
 }
 
@@ -2936,8 +2985,11 @@ incomplete bundle.", NULL);
 #if defined (EWCHAR)
 				char ewchar[256];
 				/* spec is for 64 bit, non-Window */
-				isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)!",bundle.id.source.ssp.ipn.nodeNbr, 
-		     bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.count);
+				isprintf(ewchar,sizeof(ewchar),
+					"(" UVAST_FIELDSPEC ",%lu,%u)!",
+					bundle.id.source.ssp.ipn.fqnn,
+					bundle.id.source.ssp.ipn.serviceNbr,
+					bundle.id.creationTime.count);
 				iwatch_str(ewchar);
 #else
 				iwatch('!');
@@ -3586,8 +3638,8 @@ static int	addEndpoint_IMC(VScheme *vscheme, char *eid)
 	 *	parsed earlier in addEndpoint.				*/
 
 	CHKERR(parseEidString(eid, &metaEid, &vscheme, &elt));
-	petition.groupNbr = metaEid.elementNbr;
-	if (petition.groupNbr == 0)	/*	Pan-regional dispatch.	*/
+	petition.fqgn = metaEid.elementNbr;
+	if (petition.fqgn == 0)		/*	Pan-regional dispatch.	*/
 	{
 		return 0;
 	}
@@ -3768,7 +3820,7 @@ static int	removeEndpoint_IMC(VScheme *vscheme, char *eid)
 	 *	parsed earlier in removeEndpoint.			*/
 
 	CHKERR(parseEidString(eid, &metaEid, &vscheme, &elt));
-	petition.groupNbr = metaEid.elementNbr;
+	petition.fqgn = metaEid.elementNbr;
 	petition.isMember = 0;
 	result = imcSendPetition(&petition, 0);
 	restoreEidString(&metaEid);
@@ -3930,7 +3982,7 @@ int	addPlan(char *eidIn, unsigned int nominalRate)
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 	char		eid[SDRSTRING_BUFSZ];
-	uvast		neighborNodeNbr = 0;
+	uvast		neighborFqnn = 0;
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
@@ -3972,7 +4024,7 @@ int	addPlan(char *eidIn, unsigned int nominalRate)
 
 	if (metaEid.schemeCodeNbr == ipn)
 	{
-		neighborNodeNbr = metaEid.elementNbr;
+		neighborFqnn = metaEid.elementNbr;
 	}
 
 	restoreEidString(&metaEid);
@@ -3981,7 +4033,7 @@ int	addPlan(char *eidIn, unsigned int nominalRate)
 
 	memset((char *) &planBuf, 0, sizeof(BpPlan));
 	istrcpy(planBuf.neighborEid, eid, sizeof planBuf.neighborEid);
-	planBuf.neighborNodeNbr = neighborNodeNbr;
+	planBuf.neighborFqnn = neighborFqnn;
 	planBuf.nominalRate = nominalRate;
 	planBuf.stats = sdr_malloc(sdr, sizeof(PlanStats));
 	if (planBuf.stats)
@@ -5412,8 +5464,8 @@ static int	findIncomplete(Bundle *bundle, VEndpoint *vpoint,
 		}
 		else	/*	Source EID scheme must be ipn.		*/
 		{
-			if (fragment->id.source.ssp.ipn.nodeNbr !=
-					bundle->id.source.ssp.ipn.nodeNbr
+			if (fragment->id.source.ssp.ipn.fqnn !=
+					bundle->id.source.ssp.ipn.fqnn
 			|| fragment->id.source.ssp.ipn.serviceNbr !=
 					bundle->id.source.ssp.ipn.serviceNbr)
 			{
@@ -5665,7 +5717,7 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	Object		elt;
-	uvast		nodeNbr;
+	uvast		fqnn;
 
 	CHKERR(oldBundle && newBundle && newBundleObj);
 	if (oldBundle->payload.content == 0)
@@ -5798,9 +5850,9 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 		for (elt = sdr_list_first(sdr, oldBundle->destinations); elt;
 				elt = sdr_list_next(sdr, elt))
 		{
-			nodeNbr = (uvast) sdr_list_data(sdr, elt);
+			fqnn = (uvast) sdr_list_data(sdr, elt);
 			if (sdr_list_insert_last(sdr, newBundle->destinations,
-					nodeNbr) == 0)
+					fqnn) == 0)
 			{
 				putErrmsg("Can't copy IMC destination.", NULL);
 				return -1;
@@ -6590,8 +6642,12 @@ when asking for status reports.");
 #if defined (EWCHAR)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
-		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u," UVAST_FIELDSPEC ",%u)a",bundle.id.source.ssp.ipn.nodeNbr,
-		   bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.msec, bundle.id.creationTime.count);
+		isprintf(ewchar,sizeof(ewchar),
+			"(" UVAST_FIELDSPEC ",%lu," UVAST_FIELDSPEC ",%u)a",
+			bundle.id.source.ssp.ipn.fqnn,
+			bundle.id.source.ssp.ipn.serviceNbr,
+			bundle.id.creationTime.msec,
+			bundle.id.creationTime.count);
 		iwatch_str(ewchar);
 #else
 		iwatch('a');
@@ -6645,12 +6701,12 @@ void	lookUpEndpoint(EndpointId *eid, VScheme *vscheme, VEndpoint **vpoint)
 
 	case ipn:
 		isprintf(nssBuf, sizeof nssBuf, UVAST_FIELDSPEC ".%u",
-				eid->ssp.ipn.nodeNbr, eid->ssp.ipn.serviceNbr);
+				eid->ssp.ipn.fqnn, eid->ssp.ipn.serviceNbr);
 		break;
 
 	case imc:
 		isprintf(nssBuf, sizeof nssBuf, UVAST_FIELDSPEC ".%u",
-				eid->ssp.imc.groupNbr, eid->ssp.imc.serviceNbr);
+				eid->ssp.imc.fqgn, eid->ssp.imc.serviceNbr);
 		break;
 
 	default:
@@ -6952,8 +7008,12 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 #if defined (EWCHAR)
 			char ewchar[256];
 			/* spec is for 64 bit, non-Window */
-			isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u," UVAST_FIELDSPEC ",%u)z",bundle->id.source.ssp.ipn.nodeNbr, 
-	    		bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.msec, bundle->id.creationTime.count);
+			isprintf(ewchar,sizeof(ewchar),
+			"(" UVAST_FIELDSPEC ",%lu," UVAST_FIELDSPEC ",%u)z",
+				bundle->id.source.ssp.ipn.fqnn,
+				bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->id.creationTime.msec,
+				bundle->id.creationTime.count);
 			iwatch_str(ewchar);
 #else
 			iwatch('z');
@@ -6961,7 +7021,7 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 		}
 
 		if (bundle->destination.schemeCodeNbr != imc
-		|| bundle->clDossier.senderNodeNbr == getOwnNodeNbr())
+		|| bundle->clDossier.senderFqnn == getOwnFqnn())
 		{
 				/*	This is not a multicast bundle.
 				 *	So we now write the bundle state
@@ -7006,7 +7066,7 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 	else	/*	Not deliverable at this node.			*/
 	{
 		if (bundle->destination.schemeCodeNbr == ipn
-		&& bundle->destination.ssp.ipn.nodeNbr == getOwnNodeNbr())
+		&& bundle->destination.ssp.ipn.fqnn == getOwnFqnn())
 		{
 			/*	Destination is known to be the
 			 *	local bundle agent.  Since the
@@ -7584,9 +7644,12 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 	int		additionalInfo;
 	char		eidString[300];
 	uvast		sspLen;
-	uvast		nodeNbr;
-	unsigned int	serviceNbr;
-	uvast		groupNbr;
+	unsigned long	allocatorNbr;
+	unsigned long	nodeNbr = 0;
+	uvast		fqnn = 0;
+	unsigned long	serviceNbr;
+	unsigned long	groupNbr = 0;
+	uvast		fqgn = 0;
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	elt;
@@ -7681,7 +7744,7 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 		break;
 
 	case ipn:
-		arrayLength = 2;	/*	Decode array of 2.	*/
+		arrayLength = 0;	/*	Decode array of 2 or 3.	*/
 		length = cbor_decode_array_open(&arrayLength, cursor,
 				bytesRemaining);
        		if (length < 1)
@@ -7691,18 +7754,65 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 		}
 
 		totalLength += length;
-
-		/*	Acquire the node number.			*/
-
-		length = cbor_decode_integer(&nodeNbr, CborAny, cursor,
-				bytesRemaining);
-		if (length < 1)
+		if (arrayLength == 3)		/*	Has allocator.	*/
 		{
-			writeMemo("[?] Can't decode node number.");
+			/*	Acquire allocator number.		*/
+
+			length = cbor_decode_integer(&allocatorNbr, CborAny,
+					cursor, bytesRemaining);
+			if (length < 1)
+			{
+				writeMemo("[?] Can't decode allocator nbr.");
+				return 0;
+			}
+
+			totalLength += length;
+			if (uvtemp > 4294967295UL)
+			{
+				writeMemo("[?] Allocator number too large.");
+				return 0;
+			}
+
+			allocatorNbr = uvtemp;
+
+			/*	Acquire node number.			*/
+
+			length = cbor_decode_integer(&uvtemp, CborAny, cursor,
+					bytesRemaining);
+			if (length < 1)
+			{
+				writeMemo("[?] Can't decode node number.");
+				return 0;
+			}
+
+			totalLength += length;
+			if (uvtemp > 4294967295UL)
+			{
+				writeMemo("[?] Node number too large.");
+				return 0;
+			}
+
+			nodeNbr = uvtemp;
+		}
+		else if (arrayLength == 2)	/*	No allocator.	*/
+		{
+			/*	Acquire fully qualified node number.	*/
+
+			length = cbor_decode_integer(&fqnn, CborAny, cursor,
+					bytesRemaining);
+			if (length < 1)
+			{
+				writeMemo("[?] Can't decode FQNN.");
+				return 0;
+			}
+
+			totalLength += length;
+		}
+		else	/*	Invalid CBOR array length for ipn EID.	*/
+		{
+			writeMemo("[?] Can't decode ipn SSP.");
 			return 0;
 		}
-
-		totalLength += length;
 
 		/*	Acquire the service number.			*/
 
@@ -7715,23 +7825,33 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 		}
 
 		totalLength += length;
-
-		/*	Validate service number, compose EID string.	*/
-
 		if (uvtemp > 4294967295UL)
 		{
 			writeMemo("[?] Service number too large.");
 			return 0;
-
 		}
 
 		serviceNbr = uvtemp;
-		isprintf(eidString, sizeof eidString, "ipn:" UVAST_FIELDSPEC
-".%lu", nodeNbr, serviceNbr);
+
+		/*	Compose EID string.				*/
+
+		if (arrayLength == 3)
+		{
+			isprintf(eidString, sizeof eidString,
+				"ipn:%lu.%lu.%lu", allocatorNbr, nodeNbr,
+				serviceNbr);
+		}
+		else
+		{
+			isprintf(eidString, sizeof eidString,
+				"ipn:" UVAST_FIELDSPEC ".%lu", fqnn,
+				serviceNbr);
+		}
+
 		break;
 
 	case imc:
-		arrayLength = 2;	/*	Decode array of 2.	*/
+		arrayLength = 0;	/*	Decode array of 2 or 3.	*/
 		length = cbor_decode_array_open(&arrayLength, cursor,
 				bytesRemaining);
        		if (length < 1)
@@ -7741,18 +7861,65 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 		}
 
 		totalLength += length;
-
-		/*	Acquire the group number.			*/
-
-		length = cbor_decode_integer(&groupNbr, CborAny, cursor,
-				bytesRemaining);
-		if (length < 1)
+		if (arrayLength == 3)		/*	Has allocator.	*/
 		{
-			writeMemo("[?] Can't decode group number.");
+			/*	Acquire allocator number.		*/
+
+			length = cbor_decode_integer(&allocatorNbr, CborAny,
+					cursor, bytesRemaining);
+			if (length < 1)
+			{
+				writeMemo("[?] Can't decode allocator nbr.");
+				return 0;
+			}
+
+			totalLength += length;
+			if (uvtemp > 4294967295UL)
+			{
+				writeMemo("[?] Allocator number too large.");
+				return 0;
+			}
+
+			allocatorNbr = uvtemp;
+
+			/*	Acquire group number.			*/
+
+			length = cbor_decode_integer(&uvtemp, CborAny, cursor,
+					bytesRemaining);
+			if (length < 1)
+			{
+				writeMemo("[?] Can't decode group number.");
+				return 0;
+			}
+
+			totalLength += length;
+			if (uvtemp > 4294967295UL)
+			{
+				writeMemo("[?] Group number too large.");
+				return 0;
+			}
+
+			groupNbr = uvtemp;
+		}
+		else if (arrayLength == 2)	/*	No allocator.	*/
+		{
+			/*	Acquire fully qualified group number.	*/
+
+			length = cbor_decode_integer(&fqgn, CborAny, cursor,
+					bytesRemaining);
+			if (length < 1)
+			{
+				writeMemo("[?] Can't decode FQGN.");
+				return 0;
+			}
+
+			totalLength += length;
+		}
+		else	/*	Invalid CBOR array length for imc EID.	*/
+		{
+			writeMemo("[?] Can't decode imc SSP.");
 			return 0;
 		}
-
-		totalLength += length;
 
 		/*	Acquire the service number.			*/
 
@@ -7765,9 +7932,6 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 		}
 
 		totalLength += length;
-
-		/*	Validate service number, compose EID string.	*/
-
 		if (uvtemp > 4294967295UL)
 		{
 			writeMemo("[?] Service number too large.");
@@ -7776,8 +7940,22 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 		}
 
 		serviceNbr = uvtemp;
-		isprintf(eidString, sizeof eidString,
-			"imc:" UVAST_FIELDSPEC ".%lu", groupNbr, serviceNbr);
+
+		/*	Compose EID string.				*/
+
+		if (arrayLength == 3)
+		{
+			isprintf(eidString, sizeof eidString,
+				"imc:%lu.%lu.%lu", allocatorNbr, groupNbr,
+				serviceNbr);
+		}
+		else
+		{
+			isprintf(eidString, sizeof eidString,
+				"imc:" UVAST_FIELDSPEC ".%lu", fqgn,
+				serviceNbr);
+		}
+
 		break;
 
 	default:
@@ -9216,7 +9394,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 			return -1;
 		}
 
-		bundle->clDossier.senderNodeNbr = senderMetaEid.elementNbr;
+		bundle->clDossier.senderFqnn = senderMetaEid.elementNbr;
 		if (writeEid(&bundle->clDossier.senderEid, &senderMetaEid) < 0)
 		{
 			restoreEidString(&senderMetaEid);
@@ -9300,8 +9478,12 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 #if defined (EWCHAR)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
-		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u," UVAST_FIELDSPEC ",%u)y",bundle->id.source.ssp.ipn.nodeNbr, 
-		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.msec, bundle->id.creationTime.count);
+		isprintf(ewchar,sizeof(ewchar),
+			"(" UVAST_FIELDSPEC ",%u," UVAST_FIELDSPEC ",%u)y",
+			bundle->id.source.ssp.ipn.fqnn,
+			bundle->id.source.ssp.ipn.serviceNbr,
+			bundle->id.creationTime.msec,
+			bundle->id.creationTime.count);
 		iwatch_str(ewchar);
 #else
 		iwatch('y');
@@ -10024,6 +10206,9 @@ int	serializeEid(EndpointId *eid, unsigned char *buffer)
 	unsigned char	*cursor = buffer;
 	char		*eidbuf;
 	char		*nss;
+	unsigned long	allocatorNbr;
+	unsigned long	nodeNbr;
+	unsigned long	groupNbr;
 
 	uvtemp = 2;
 	oK(cbor_encode_array_open(uvtemp, &cursor));
@@ -10054,18 +10239,48 @@ int	serializeEid(EndpointId *eid, unsigned char *buffer)
 		break;
 
 	case ipn:
+		allocatorNbr = (eid->ssp.ipn.fqnn >> 32) & 0xffffffff;
+		if (allocatorNbr > 0)
+		{
+			nodeNbr = eid->ssp.ipn.fqnn & 0xffffffff;
+			uvtemp = 3;
+			oK(cbor_encode_array_open(uvtemp, &cursor));
+			uvtemp = allocatorNbr;
+			oK(cbor_encode_integer(uvtemp, &cursor));
+			uvtemp = nodeNbr;
+			oK(cbor_encode_integer(uvtemp, &cursor));
+			uvtemp = eid->ssp.ipn.serviceNbr;
+			oK(cbor_encode_integer(uvtemp, &cursor));
+			break;
+		}
+
 		uvtemp = 2;
 		oK(cbor_encode_array_open(uvtemp, &cursor));
-		uvtemp = eid->ssp.ipn.nodeNbr;
+		uvtemp = eid->ssp.ipn.fqnn;
 		oK(cbor_encode_integer(uvtemp, &cursor));
 		uvtemp = eid->ssp.ipn.serviceNbr;
 		oK(cbor_encode_integer(uvtemp, &cursor));
 		break;
 
 	case imc:
+		allocatorNbr = (eid->ssp.imc.fqgn >> 32) & 0xffffffff;
+		if (allocatorNbr > 0)
+		{
+			groupNbr = eid->ssp.imc.fqgn & 0xffffffff;
+			uvtemp = 3;
+			oK(cbor_encode_array_open(uvtemp, &cursor));
+			uvtemp = allocatorNbr;
+			oK(cbor_encode_integer(uvtemp, &cursor));
+			uvtemp = groupNbr;
+			oK(cbor_encode_integer(uvtemp, &cursor));
+			uvtemp = eid->ssp.ipn.serviceNbr;
+			oK(cbor_encode_integer(uvtemp, &cursor));
+			break;
+		}
+
 		uvtemp = 2;
 		oK(cbor_encode_array_open(uvtemp, &cursor));
-		uvtemp = eid->ssp.imc.groupNbr;
+		uvtemp = eid->ssp.imc.fqgn;
 		oK(cbor_encode_integer(uvtemp, &cursor));
 		uvtemp = eid->ssp.imc.serviceNbr;
 		oK(cbor_encode_integer(uvtemp, &cursor));
@@ -10848,8 +11063,10 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 #if defined (EWCHAR)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
-		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)b",bundle->id.source.ssp.ipn.nodeNbr, 
-		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.count);
+		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)b",
+			bundle->id.source.ssp.ipn.fqnn, 
+			bundle->id.source.ssp.ipn.serviceNbr,
+			bundle->id.creationTime.count);
 		iwatch_str(ewchar);
 #else
 		iwatch('b');
@@ -10902,13 +11119,15 @@ int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
 	if ((_bpvdb(NULL))->watching & WATCH_limbo)
 	{
 #if defined (EWCHAR)
-				char ewchar[256];
-				/* spec is for 64 bit, non-Window */
-				isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)j", bundle->id.source.ssp.ipn.nodeNbr, 
-		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.count);
-				iwatch_str(ewchar);
+		char ewchar[256];
+		/* spec is for 64 bit, non-Window */
+		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)j",
+				bundle->id.source.ssp.ipn.fqnn, 
+		     		bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->id.creationTime.count);
+		iwatch_str(ewchar);
 #else
-				iwatch('j');
+		iwatch('j');
 #endif
 	}
 
@@ -11076,13 +11295,15 @@ int	releaseFromLimbo(Object xmitElt, int resuming)
 	if ((_bpvdb(NULL))->watching & WATCH_delimbo)
 	{
 #if defined (EWCHAR)
-				char ewchar[256];
-				/* spec is for 64 bit, non-Window */
-				isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)k",bundle.id.source.ssp.ipn.nodeNbr, 
-		     bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.count);
-				iwatch_str(ewchar);
+		char ewchar[256];
+		/* spec is for 64 bit, non-Window */
+		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)k",
+			bundle.id.source.ssp.ipn.fqnn, 
+			bundle.id.source.ssp.ipn.serviceNbr,
+			bundle.id.creationTime.count);
+		iwatch_str(ewchar);
 #else
-				iwatch('k');
+		iwatch('k');
 #endif
 	}
 
@@ -11203,13 +11424,15 @@ int	bpAbandon(Object bundleObj, Bundle *bundle, int reason)
 	if ((_bpvdb(NULL))->watching & WATCH_abandon)
 	{
 #if defined (EWCHAR)
-				char ewchar[256];
-				/* spec is for 64 bit, non-Window */
-				isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)~", bundle->id.source.ssp.ipn.nodeNbr, 
-		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.count);
-				iwatch_str(ewchar);
+		char ewchar[256];
+		/* spec is for 64 bit, non-Window */
+		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)~",
+			bundle->id.source.ssp.ipn.fqnn,
+			bundle->id.source.ssp.ipn.serviceNbr,
+			bundle->id.creationTime.count);
+		iwatch_str(ewchar);
 #else
-				iwatch('~');
+		iwatch('~');
 #endif
 	}
 
@@ -12071,13 +12294,15 @@ int	bpHandleXmitFailure(Object bundleZco)
 	if ((_bpvdb(NULL))->watching & WATCH_clfail)
 	{
 #if defined (EWCHAR)
-				char ewchar[256];
-				/* spec is for 64 bit, non-Window */
-				isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)#",bundle.id.source.ssp.ipn.nodeNbr, 
-		     bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.count);
-				iwatch_str(ewchar);
+		char ewchar[256];
+		/* spec is for 64 bit, non-Window */
+		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)#",
+			bundle.id.source.ssp.ipn.fqnn,
+			bundle.id.source.ssp.ipn.serviceNbr,
+			bundle.id.creationTime.count);
+		iwatch_str(ewchar);
 #else
-				iwatch('#');
+		iwatch('#');
 #endif
 	}
 

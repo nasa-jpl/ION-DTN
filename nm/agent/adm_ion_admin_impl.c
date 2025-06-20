@@ -130,8 +130,8 @@ tbl_t *dtn_ion_ionadmin_tblt_contacts(ari_t *id)
 		{
 		  tnvc_insert(cur_row, tnv_from_tv(contact->fromTime));
 		  tnvc_insert(cur_row, tnv_from_tv(contact->toTime));
-		  tnvc_insert(cur_row, tnv_from_uint(contact->fromNode));
-		  tnvc_insert(cur_row, tnv_from_uint(contact->toNode));
+		  tnvc_insert(cur_row, tnv_from_uint(contact->fromFqnn));
+		  tnvc_insert(cur_row, tnv_from_uint(contact->toFqnn));
 		  tnvc_insert(cur_row, tnv_from_uvast(contact->xmitRate));
 		  tnvc_insert(cur_row, tnv_from_uvast(contact->confidence));
 		  
@@ -199,8 +199,8 @@ tbl_t *dtn_ion_ionadmin_tblt_ranges(ari_t *id)
 		{
 			tnvc_insert(cur_row, tnv_from_tv(range->fromTime));
 			tnvc_insert(cur_row, tnv_from_tv(range->toTime));
-			tnvc_insert(cur_row, tnv_from_uint(range->fromNode));
-			tnvc_insert(cur_row, tnv_from_uint(range->toNode));
+			tnvc_insert(cur_row, tnv_from_uint(range->fromFqnn));
+			tnvc_insert(cur_row, tnv_from_uint(range->toFqnn));
 			tnvc_insert(cur_row, tnv_from_uint(range->owlt));
 
 			tbl_add_row(table, cur_row);
@@ -468,7 +468,7 @@ tnv_t *dtn_ion_ionadmin_get_number(tnvc_t *parms)
 
 	CHKNULL(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	result = tnv_from_uvast(iondb.ownNodeNbr);
+	result = tnv_from_uvast(iondb.ownFqnn);
 	sdr_end_xn(sdr);
 
 	/*
@@ -942,8 +942,8 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 
 	time_t      fromTime = 0;
 	time_t      toTime = 0;
-	uvast       fromNodeNbr = 0;
-	uvast       toNodeNbr = 0;
+	uvast       fromFqnn = 0;
+	uvast       toFqnn = 0;
 	uint32_t       regionNbr;
 	PsmAddress  xaddr;
 	uvast    	xmitRate;
@@ -964,12 +964,12 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 
 	if(success)
 	{
-		fromNodeNbr = adm_get_parm_uvast(parms, 2, &success);
+		fromFqnn = adm_get_parm_uvast(parms, 2, &success);
 	}
 
 	if(success)
 	{
-		toNodeNbr = adm_get_parm_uvast(parms, 3, &success);
+		toFqnn = adm_get_parm_uvast(parms, 3, &success);
 	}
 
 	if(success)
@@ -985,7 +985,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 	if(success)
 	{
 	    /* Sanity checks for contacts. */
-	    if((fromNodeNbr <= 0) || (toNodeNbr <= 0))
+	    if((fromFqnn <= 0) || (toFqnn <= 0))
 	    {
 	        AMP_DEBUG_ERR("dtn_ion_ionadmin_ctrl_node_contact_add","Node number must be greater than 0", NULL);
 	    }
@@ -1000,7 +1000,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 
 	    // TODO: Need to accept region number.
         if (rfx_insert_contact(1,fromTime, toTime,
-                fromNodeNbr, toNodeNbr, xmitRate, confidence,
+                fromFqnn, toFqnn, xmitRate, confidence,
                 &xaddr, 0) == 0)
         {
             *status = CTRL_SUCCESS;
@@ -1033,8 +1033,8 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_del(eid_t *def_mgr, tnvc_t *parms, int
 	 */
 
 	time_t  timestamp = 0;
-	uvast   fromNodeNbr = 0;
-	uvast   toNodeNbr = 0;
+	uvast   fromFqnn = 0;
+	uvast   toFqnn = 0;
 	int 	success = 0;
 	uint32_t	regionNbr;
 
@@ -1042,11 +1042,11 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_del(eid_t *def_mgr, tnvc_t *parms, int
 
 	if(success)
 	{
-		fromNodeNbr = adm_get_parm_uint(parms, 1, &success);
+		fromFqnn = adm_get_parm_uint(parms, 1, &success);
 	}
 	if(success)
 	{
-		toNodeNbr = adm_get_parm_uint(parms, 2, &success);
+		toFqnn = adm_get_parm_uint(parms, 2, &success);
 	}
 
 	if(success)
@@ -1057,8 +1057,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_del(eid_t *def_mgr, tnvc_t *parms, int
 		}
 
 		// TODO accept region...
-		if(rfx_remove_contact(1, &timestamp, fromNodeNbr,
-				toNodeNbr, 0) == 0)
+		if(rfx_remove_contact(1, &timestamp, fromFqnn, toFqnn, 0) == 0)
 		{
 			// TODO _forecastNeeded(1);
 			*status = CTRL_SUCCESS;

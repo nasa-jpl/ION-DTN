@@ -1,8 +1,34 @@
 /*
  	ipnfw.h:	definitions supporting the implementation
-			of the forwarding infrastructure for endpoint
-			ID schemes conforming to the Compressed Bundle
-			Header Encoding conventions.
+			of the forwarding infrastructure for the "ipn"
+			endpoint ID scheme as originally developed
+			to support the Compressed Bundle Header
+			Encoding conventions.
+
+			Prior to RFC 9758 the scheme-specific part
+			of an ipn-scheme endpoint ID was of the form
+
+				"node_number.service_number" 
+
+			where node_number was constrained to be a
+			64-bit unsigned integer.  RFC 9758 revised
+			the scheme-specific part of the ipn scheme:
+			the revised SSP is of the form
+
+				"[allocator_number.]node_number.service_number"
+
+			where both allocator_number and node_number
+			are constrained to be 32-bit unsigned integers.
+			The concatenation of the allocator_number and
+			the node_number constitutes a 64-bit unsigned
+			integer which is termed a "fully-qualified
+			node number" or FQNN.  ION has been modified
+			to support the external representations (both
+			in text and on-the-wire) of ipn-scheme EIDs
+			in this new form, but internally ION continues
+			to represent every ipn-scheme EID as a tuple
+			comprising its FQNN (formerly called "node
+			number" in all ION code) and service number.
 
 	Author: Scott Burleigh, JPL
 
@@ -45,8 +71,8 @@ extern "C" {
 
 typedef struct
 {
-	uvast		firstNodeNbr;		/*	in range	*/
-	uvast		lastNodeNbr;		/*	in range	*/
+	uvast		firstFqnn;		/*	in range	*/
+	uvast		lastFqnn;		/*	in range	*/
 	Object		eid;			/*	Send via.	*/
 } IpnExit;
 
@@ -59,11 +85,11 @@ typedef struct
 	/*	dataLabel = -1 indicates "all others"			*/
 	unsigned int	dataLabel;
 
-	/*	destNodeNbr = -1 indicates "all others"			*/
-	uvast		destNodeNbr;
+	/*	destFqnn = -1 indicates "all others"			*/
+	uvast		destFqnn;
 
-	/*	sourceNodeNbr = -1 indicates "all others"		*/
-	uvast		sourceNodeNbr;
+	/*	sourceFqnn = -1 indicates "all others"		*/
+	uvast		sourceFqnn;
 
 	/*	Routing override stuff.					*/
 
@@ -90,8 +116,8 @@ extern Object		getIpnDbObject();
 extern IpnDB		*getIpnConstants();
 
 extern int		ipn_setOvrd(unsigned int dataLabel,
-				uvast destNodeNbr,
-				uvast sourceNodeNbr,
+				uvast destFqnn,
+				uvast sourceFqnn,
 			/*	neighbor = -2 indicates
 			 		"no change from current value"	*/
 				uvast neighbor,
@@ -103,35 +129,35 @@ extern int		ipn_setOvrd(unsigned int dataLabel,
 				unsigned char qosFlags);
 
 extern int		ipn_lookupOvrd(unsigned int dataLabel,
-				uvast destNodeNbr,
-				uvast sourceNodeNbr,
+				uvast destFqnn,
+				uvast sourceFqnn,
 				Object *ovrdAddr);
 
-extern void		ipn_findExit(uvast firstNodeNbr,
-				uvast lastNodeNbr,
+extern void		ipn_findExit(uvast firstFqnn,
+				uvast lastFqnn,
 				Object *exitAddr, Object *elt);
 
-extern int		ipn_addExit(uvast firstNodeNbr,
-				uvast lastNodeNbr, char *viaEid);
-extern int		ipn_updateExit(uvast firstNodeNbr,
-				uvast lastNodeNbr, char *viaEid);
-extern int		ipn_removeExit(uvast firstNodeNbr,
-				uvast lastNodeNbr);
+extern int		ipn_addExit(uvast firstFqnn,
+				uvast lastFqnn, char *viaEid);
+extern int		ipn_updateExit(uvast firstFqnn,
+				uvast lastFqnn, char *viaEid);
+extern int		ipn_removeExit(uvast firstFqnn,
+				uvast lastFqnn);
 
-extern int		ipn_lookupExit(uvast nodeNbr, char *eid);
+extern int		ipn_lookupExit(uvast fqnn, char *eid);
 
 /*	Egress plans are actually non-scheme-specific and are defined
  *	in BP.  But convenience functions for the ipn scheme are
  *	provided here.							*/
 
-extern void		ipn_findPlan(uvast nodeNbr, Object *planAddr,
+extern void		ipn_findPlan(uvast fqnn, Object *planAddr,
 				Object *elt);
 
-extern int		ipn_addPlan(uvast nodeNbr, unsigned int nominalRate);
-extern int		ipn_addPlanDuct(uvast nodeNbr, char *ductExpression);
-extern int		ipn_updatePlan(uvast nodeNbr, unsigned int nominalRate);
-extern int		ipn_removePlanDuct(uvast nodeNbr, char *ductExpression);
-extern int		ipn_removePlan(uvast nodeNbr);
+extern int		ipn_addPlan(uvast fqnn, unsigned int nominalRate);
+extern int		ipn_addPlanDuct(uvast fqnn, char *ductExpression);
+extern int		ipn_updatePlan(uvast fqnn, unsigned int nominalRate);
+extern int		ipn_removePlanDuct(uvast fqnn, char *ductExpression);
+extern int		ipn_removePlan(uvast fqnn);
 #ifdef __cplusplus
 }
 #endif

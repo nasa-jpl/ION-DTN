@@ -415,7 +415,7 @@ int	main(int argc, char *argv[])
 
 	/*	All command-line arguments are now validated.		*/
 
-	if (dgr_open(getOwnNodeNbr(), 1, 0, 0, NULL, &dgrSap, &rc)
+	if (dgr_open(getOwnFqnn(), 1, 0, 0, NULL, &dgrSap, &rc)
 	|| rc == DgrFailed)
 	{
 		putErrmsg("dgrclo can't open DGR service access point.", NULL);

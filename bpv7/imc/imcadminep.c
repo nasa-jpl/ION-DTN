@@ -10,7 +10,7 @@
 									*/
 #include "imcfw.h"
 
-static int	briefNewNode(uvast nodeNbr)
+static int	briefNewNode(uvast fqnn)
 {
 	Sdr		sdr = getIonsdr();
 	ImcDB		*imcConstants = getImcConstants();
@@ -28,16 +28,16 @@ static int	briefNewNode(uvast nodeNbr)
 	unsigned char	*cursor;
 	uvast		uvtemp;
 	LystElt		elt2;
-	uvast		groupNbr;
+	uvast		fqgn;
 	int		aduLength;
 	Object		aduObj;
 	Object		aduZco;
 
 	isprintf(ownEid, sizeof(ownEid), "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
+			getOwnFqnn());
 	oK(parseEidString(ownEid, &sourceMetaEid, &vscheme, &vschemeElt));
 	isprintf(destEid, sizeof(destEid), "ipn:" UVAST_FIELDSPEC ".0",
-			nodeNbr);
+			fqnn);
 	ownGroups = lyst_create_using(getIonMemoryMgr());
 	if (ownGroups == NULL)
 	{
@@ -53,7 +53,7 @@ static int	briefNewNode(uvast nodeNbr)
 		if (group.isMember)
 		{
 			if (lyst_insert_last(ownGroups, (void *)
-					((uaddr) group.groupNbr)) == NULL)
+					((uaddr) group.fqgn)) == NULL)
 			{
 				sdr_exit_xn(sdr);
 				lyst_destroy(ownGroups);
@@ -99,8 +99,8 @@ static int	briefNewNode(uvast nodeNbr)
 
 	for (elt2 = lyst_first(ownGroups); elt2; elt2 = lyst_next(elt2))
 	{
-		groupNbr = (uaddr) lyst_data(elt2);
-		oK(cbor_encode_integer(groupNbr, &cursor));
+		fqgn = (uaddr) lyst_data(elt2);
+		oK(cbor_encode_integer(fqgn, &cursor));
 	}
 
 	lyst_destroy(ownGroups);
@@ -146,7 +146,7 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 			unsigned int unparsedBytes)
 {
 	Sdr		sdr = getIonsdr();
-	uvast		ownNodeNbr = getOwnNodeNbr();
+	uvast		ownFqnn = getOwnFqnn();
 	uvast		uvtemp;
 	ImcPetition	petition;
 	MetaEid		metaEid;
@@ -156,7 +156,7 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 	Object		groupElt;
 	ImcGroup	group;
 	Object		elt;
-	uvast		nodeNbr;
+	uvast		fqnn;
 	Object		iondbObj;
 	IonDB		iondb;
 	int		sourceRegionIdx;
@@ -171,7 +171,7 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 		return 0;
 	}
 
-	petition.groupNbr = uvtemp;
+	petition.fqgn = uvtemp;
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
 		writeMemo("[?] Can't decode IMC petition membership switch.");
@@ -196,13 +196,13 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 
 #if IMCDEBUG
 printf("Handling type-%d petition from " UVAST_FIELDSPEC " at node "
-UVAST_FIELDSPEC ".\n", petition.isMember, metaEid.elementNbr, ownNodeNbr);
+UVAST_FIELDSPEC ".\n", petition.isMember, metaEid.elementNbr, ownFqnn);
 fflush(stdout);
 #endif
 	oK(sdr_begin_xn(sdr));
-	imcFindGroup(petition.groupNbr, &groupAddr, &groupElt);
+	imcFindGroup(petition.fqgn, &groupAddr, &groupElt);
 #if IMCDEBUG
-printf("Seeking multicast group for group number " UVAST_FIELDSPEC ".\n", petition.groupNbr);
+printf("Seeking multicast group for group number " UVAST_FIELDSPEC ".\n", petition.fqgn);
 #endif
 	if (groupElt == 0)	/*	System failure.			*/
 	{
@@ -212,7 +212,7 @@ puts("Group not found.");
 		if (petition.isMember)	/*	(Else nothing to do.)	*/
 		{
 			writeMemoNote("Can't handle IMC Join petition",
-					itoa(petition.groupNbr));
+					itoa(petition.fqgn));
 		}
 
 		/*	Nothing to propagate even if node is a
@@ -237,13 +237,13 @@ printf("Adding node " UVAST_FIELDSPEC " to this group.\n", metaEid.elementNbr);
 		for (elt = sdr_list_first(sdr, group.members); elt;
 				elt = sdr_list_next(sdr, elt))
 		{
-			nodeNbr = sdr_list_data(sdr, elt);
-			if (nodeNbr < metaEid.elementNbr)
+			fqnn = sdr_list_data(sdr, elt);
+			if (fqnn < metaEid.elementNbr)
 			{
 				continue;
 			}
 
-			if (nodeNbr == metaEid.elementNbr)
+			if (fqnn == metaEid.elementNbr)
 			{
 #if IMCDEBUG
 puts("Ignoring redundant Join.");
@@ -266,7 +266,7 @@ fflush(stdout);
 
 		/*	Must add new member of group at this point.	*/
 #if IMCDEBUG
-printf("Adding node " UVAST_FIELDSPEC " to group " UVAST_FIELDSPEC ".\n", metaEid.elementNbr, petition.groupNbr);
+printf("Adding node " UVAST_FIELDSPEC " to group " UVAST_FIELDSPEC ".\n", metaEid.elementNbr, petition.fqgn);
 fflush(stdout);
 #endif
 		if (elt)
@@ -280,12 +280,12 @@ fflush(stdout);
 					metaEid.elementNbr));
 		}
 
-		if (metaEid.elementNbr == ownNodeNbr)
+		if (metaEid.elementNbr == ownFqnn)
 		{
 			group.isMember = 1;
 		}
 
-		if (metaEid.elementNbr != ownNodeNbr)
+		if (metaEid.elementNbr != ownFqnn)
 		{
 #if IMCDEBUG
 printf("Should be sending a briefing to node " UVAST_FIELDSPEC ".\n", metaEid.elementNbr);
@@ -317,13 +317,13 @@ fflush(stdout);
 		for (elt = sdr_list_first(sdr, group.members); elt;
 				elt = sdr_list_next(sdr, elt))
 		{
-			nodeNbr = sdr_list_data(sdr, elt);
-			if (nodeNbr < metaEid.elementNbr)
+			fqnn = sdr_list_data(sdr, elt);
+			if (fqnn < metaEid.elementNbr)
 			{
 				continue;
 			}
 
-			if (nodeNbr > metaEid.elementNbr)
+			if (fqnn > metaEid.elementNbr)
 			{
 #if IMCDEBUG
 puts("Ignoring Leave by non-member.");
@@ -352,7 +352,7 @@ fflush(stdout);
 		if (elt)	/*	Source node is a member.	*/
 		{
 			sdr_list_delete(sdr, elt, NULL, NULL);
-			if (metaEid.elementNbr == ownNodeNbr)
+			if (metaEid.elementNbr == ownFqnn)
 			{
 				group.isMember = 0;
 			}
@@ -382,7 +382,7 @@ fflush(stdout);
 		/*	Node is a passageway between its home region
 		 *	and the immediate encompassing region.		*/
 
-		sourceRegionIdx = ionRegionOf(metaEid.elementNbr, ownNodeNbr,
+		sourceRegionIdx = ionRegionOf(metaEid.elementNbr, ownFqnn,
 				&sourceRegionNbr);
 		if (sourceRegionIdx < 0)
 		{

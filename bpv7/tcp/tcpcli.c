@@ -1204,7 +1204,7 @@ static int	sendContactHeader(TcpclSession *session)
 	keepaliveInterval = htons(keepaliveInterval);
 	memcpy(contactHeader + len, (char *) &keepaliveInterval, 2);
 	len += 2;
-	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", getOwnNodeNbr());
+	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", getOwnFqnn());
 	eidLength = istrlen(eid, MAX_EID_LEN);
 	encodeSdnv(&eidLengthSdnv, eidLength);
 	memcpy(contactHeader + len, eidLengthSdnv.text, eidLengthSdnv.length);
@@ -2720,7 +2720,7 @@ static void	*handleEvents(void *parm)
 			if (neighbor->vplan)
 			{
 				ionNeighbor = findNeighbor(ionvdb,
-					neighbor->vplan->neighborNodeNbr,
+					neighbor->vplan->neighborFqnn,
 					&nextNeighbor);
 				if (ionNeighbor)
 				{

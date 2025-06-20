@@ -46,7 +46,7 @@ static void	shutDown()	/*	Commands tcarecv termination.	*/
 	state->running = 0;
 }
 
-static unsigned short	fetchRecord(Object recordsList, uvast nodeNbr,
+static unsigned short	fetchRecord(Object recordsList, uvast fqnn,
 				time_t effectiveTime, Object *recordElt,
 				Object *nextRecordElt)
 {
@@ -55,7 +55,7 @@ static unsigned short	fetchRecord(Object recordsList, uvast nodeNbr,
 	TcaRecord	record;
 
 	CHKERR(recordsList);
-	CHKERR(nodeNbr);
+	CHKERR(fqnn);
 	CHKERR(effectiveTime);
 	CHKERR(recordElt);
 	*recordElt = 0;			/*	Not found.  (Default)	*/
@@ -69,12 +69,12 @@ static unsigned short	fetchRecord(Object recordsList, uvast nodeNbr,
 	{
 		sdr_read(sdr, (char *) &record, sdr_list_data(sdr, elt),
 				TC_HDR_LEN);
-		if (record.nodeNbr < nodeNbr)
+		if (record.fqnn < fqnn)
 		{
 			continue;
 		}
 		
-		if (record.nodeNbr > nodeNbr)
+		if (record.fqnn > fqnn)
 		{
 			break;
 		}
@@ -148,7 +148,7 @@ writeMemoNote("tcarecv: Got record from", itoa(metaEid.elementNbr));
 	recordLength = zco_receive_source(sdr, &reader, TC_MAX_REC, buffer);
 	len = recordLength;
 	if (tc_deserialize(&cursor, &len, TC_MAX_DATLEN, 
-			&(record.nodeNbr), &(record.effectiveTime),
+			&(record.fqnn), &(record.effectiveTime),
 			&(record.assertionTime), &(record.datLength),
 			record.datValue) == 0)
 	{
@@ -188,7 +188,7 @@ client", src);
 	{
 		/*	Nodes may only submit records for themselves.	*/
 
-		if (record.nodeNbr != metaEid.elementNbr)
+		if (record.fqnn != metaEid.elementNbr)
 		{
 			restoreEidString(&metaEid);
 			writeMemoNote("[?] TCA record posted from unauthorized \
@@ -198,7 +198,7 @@ EID", src);
 	}
 
 	restoreEidString(&metaEid);
-	if (fetchRecord(db->pendingRecords, record.nodeNbr,
+	if (fetchRecord(db->pendingRecords, record.fqnn,
 			record.effectiveTime, &recordElt, &nextRecordElt))
 	{
 #if TC_DEBUG
@@ -210,7 +210,7 @@ writeMemo("tcarecv: Record already pending; ignored.");
 	/*	Record not previously submitted in this cycle.  Was
 	 *	it submitted in an earlier cycle?			*/
 
-	if (fetchRecord(db->currentRecords, record.nodeNbr,
+	if (fetchRecord(db->currentRecords, record.fqnn,
 			record.effectiveTime, &recordElt, NULL))
 	{
 #if TC_DEBUG

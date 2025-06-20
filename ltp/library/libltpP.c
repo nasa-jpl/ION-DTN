@@ -999,7 +999,7 @@ int	ltpInit(int estMaxExportSessions)
 		/*	Initialize the non-volatile database.		*/
 
 		memset((char *) &ltpdbBuf, 0, sizeof(LtpDB));
-		ltpdbBuf.ownEngineId = iondb.ownNodeNbr;
+		ltpdbBuf.ownEngineId = iondb.ownFqnn;
 		encodeSdnv(&(ltpdbBuf.ownEngineIdSdnv), ltpdbBuf.ownEngineId);
 		ltpdbBuf.maxBacklog = 10;
 		ltpdbBuf.deliverables = sdr_list_create(sdr);

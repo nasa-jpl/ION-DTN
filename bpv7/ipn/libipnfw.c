@@ -247,8 +247,8 @@ int	ipn_removePlan(uvast nodeNbr)
 	return removePlan(eid);
 }
 
-static Object	locateOvrd(unsigned int dataLabel, uvast destNodeNbr,
-			uvast sourceNodeNbr, Object *nextOvrd)
+static Object	locateOvrd(unsigned int dataLabel, uvast destFqnn,
+			uvast sourceFqnn, Object *nextOvrd)
 {
 	Sdr		sdr = getIonsdr();
 	Object		elt;
@@ -278,23 +278,23 @@ static Object	locateOvrd(unsigned int dataLabel, uvast destNodeNbr,
 			break;		/*	Same as end of list.	*/
 		}
 
-		if (ovrd.destNodeNbr < destNodeNbr)
+		if (ovrd.destFqnn < destFqnn)
 		{
 			continue;
 		}
 
-		if (ovrd.destNodeNbr > destNodeNbr)
+		if (ovrd.destFqnn > destFqnn)
 		{
 			if (nextOvrd) *nextOvrd = elt;
 			break;		/*	Same as end of list.	*/
 		}
 
-		if (ovrd.sourceNodeNbr < sourceNodeNbr)
+		if (ovrd.sourceFqnn < sourceFqnn)
 		{
 			continue;
 		}
 
-		if (ovrd.sourceNodeNbr > sourceNodeNbr)
+		if (ovrd.sourceFqnn > sourceFqnn)
 		{
 			if (nextOvrd) *nextOvrd = elt;
 			break;		/*	Same as end of list.	*/
@@ -308,8 +308,8 @@ static Object	locateOvrd(unsigned int dataLabel, uvast destNodeNbr,
 	return 0;
 }
 
-int	ipn_setOvrd(unsigned int dataLabel, uvast destNodeNbr,
-		uvast sourceNodeNbr, uvast neighbor,
+int	ipn_setOvrd(unsigned int dataLabel, uvast destFqnn,
+		uvast sourceFqnn, uvast neighbor,
 		char *ovrdDuctExpression, unsigned char priority,
 		unsigned char ordinal, unsigned char qosFlags)
 {
@@ -325,13 +325,13 @@ int	ipn_setOvrd(unsigned int dataLabel, uvast destNodeNbr,
 		return 0;
 	}
 
-	if (destNodeNbr == 0)
+	if (destFqnn == 0)
 	{
 		writeMemo("[?] Destination node number for override is 0.");
 		return 0;
 	}
 
-	if (sourceNodeNbr == 0)
+	if (sourceFqnn == 0)
 	{
 		writeMemo("[?] Source node number for override is 0.");
 		return 0;
@@ -344,15 +344,15 @@ int	ipn_setOvrd(unsigned int dataLabel, uvast destNodeNbr,
 	}
 
 	CHKERR(sdr_begin_xn(sdr));
-	elt = locateOvrd(dataLabel, destNodeNbr, sourceNodeNbr, &nextElt);
+	elt = locateOvrd(dataLabel, destFqnn, sourceFqnn, &nextElt);
 	if (elt == 0)
 	{
 		/*	Override doesn't exist, so add it.		*/
 
 		memset((char *) &ovrd, 0, sizeof(IpnOverride));
 		ovrd.dataLabel = dataLabel;
-		ovrd.destNodeNbr = destNodeNbr;
-		ovrd.sourceNodeNbr = sourceNodeNbr;
+		ovrd.destFqnn = destFqnn;
+		ovrd.sourceFqnn = sourceFqnn;
 		ovrd.neighbor = (uvast) -1;
 		ovrd.priority = (unsigned char) -1;
 		addr = sdr_malloc(sdr, sizeof(IpnOverride));
@@ -438,8 +438,8 @@ int	ipn_setOvrd(unsigned int dataLabel, uvast destNodeNbr,
 	return 0;
 }
 
-int	ipn_lookupOvrd(unsigned int dataLabel, uvast destNodeNbr,
-		uvast sourceNodeNbr, Object *addr)
+int	ipn_lookupOvrd(unsigned int dataLabel, uvast destFqnn,
+		uvast sourceFqnn, Object *addr)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -473,26 +473,26 @@ int	ipn_lookupOvrd(unsigned int dataLabel, uvast destNodeNbr,
 
 		/*	Data label matches.				*/
 
-		if (ovrd->destNodeNbr < destNodeNbr)
+		if (ovrd->destFqnn < destFqnn)
 		{
 			continue;
 		}
 
-		if (ovrd->destNodeNbr != destNodeNbr
-		&& ovrd->destNodeNbr != (uvast) -1)
+		if (ovrd->destFqnn != destFqnn
+		&& ovrd->destFqnn != (uvast) -1)
 		{
 			continue;
 		}
 
 		/*	Destination node number matches.		*/
 
-		if (ovrd->sourceNodeNbr < sourceNodeNbr)
+		if (ovrd->sourceFqnn < sourceFqnn)
 		{
 			continue;
 		}
 
-		if (ovrd->sourceNodeNbr != sourceNodeNbr
-		&& ovrd->sourceNodeNbr != (uvast) -1)
+		if (ovrd->sourceFqnn != sourceFqnn
+		&& ovrd->sourceFqnn != (uvast) -1)
 		{
 			continue;
 		}
@@ -510,7 +510,7 @@ int	ipn_lookupOvrd(unsigned int dataLabel, uvast destNodeNbr,
 	return 1;
 }
 
-static Object	locateExit(uvast firstNodeNbr, uvast lastNodeNbr,
+static Object	locateExit(uvast firstFqnn, uvast lastFqnn,
 			Object *nextExit)
 {
 	Sdr	sdr = getIonsdr();
@@ -525,12 +525,12 @@ static Object	locateExit(uvast firstNodeNbr, uvast lastNodeNbr,
 	 *	should be inserted.					*/
 
 	if (nextExit) *nextExit = 0;	/*	Default.		*/
-	targetSize = lastNodeNbr - firstNodeNbr;
+	targetSize = lastFqnn - firstFqnn;
 	for (elt = sdr_list_first(sdr, (_ipnConstants())->exits); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, IpnExit, exit, sdr_list_data(sdr, elt));
-		exitSize = exit->lastNodeNbr - exit->firstNodeNbr;
+		exitSize = exit->lastFqnn - exit->firstFqnn;
 		if (exitSize < targetSize)
 		{
 			continue;
@@ -542,12 +542,12 @@ static Object	locateExit(uvast firstNodeNbr, uvast lastNodeNbr,
 			break;		/*	Same as end of list.	*/
 		}
 
-		if (exit->firstNodeNbr < firstNodeNbr)
+		if (exit->firstFqnn < firstFqnn)
 		{
 			continue;
 		}
 
-		if (exit->firstNodeNbr > firstNodeNbr)
+		if (exit->firstFqnn > firstFqnn)
 		{
 			if (nextExit) *nextExit = elt;
 			break;		/*	Same as end of list.	*/
@@ -561,7 +561,7 @@ static Object	locateExit(uvast firstNodeNbr, uvast lastNodeNbr,
 	return 0;
 }
 
-void	ipn_findExit(uvast firstNodeNbr, uvast lastNodeNbr, Object *exitAddr,
+void	ipn_findExit(uvast firstFqnn, uvast lastFqnn, Object *exitAddr,
 		Object *eltp)
 {
 	Sdr	sdr = getIonsdr();
@@ -572,20 +572,20 @@ void	ipn_findExit(uvast firstNodeNbr, uvast lastNodeNbr, Object *exitAddr,
 
 	CHKVOID(ionLocked());
 	CHKVOID(exitAddr && eltp);
-	if (firstNodeNbr == 0)
+	if (firstFqnn == 0)
 	{
 		writeMemo("[?] First node number for exit is 0.");
 		return;
 	}
 
-	if (firstNodeNbr > lastNodeNbr)
+	if (firstFqnn > lastFqnn)
 	{
 		writeMemo("[?] First node number for exit greater than last.");
 		return;
 	}
 
 	*eltp = 0;
-	elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);
+	elt = locateExit(firstFqnn, lastFqnn, NULL);
 	if (elt == 0)
 	{
 		return;
@@ -595,7 +595,7 @@ void	ipn_findExit(uvast firstNodeNbr, uvast lastNodeNbr, Object *exitAddr,
 	*eltp = elt;
 }
 
-int	ipn_addExit(uvast firstNodeNbr, uvast lastNodeNbr, char *viaEid)
+int	ipn_addExit(uvast firstFqnn, uvast lastFqnn, char *viaEid)
 {
 	Sdr	sdr = getIonsdr();
 	Object	nextExit;
@@ -603,13 +603,13 @@ int	ipn_addExit(uvast firstNodeNbr, uvast lastNodeNbr, char *viaEid)
 	Object	addr;
 
 	CHKERR(viaEid);
-	if (firstNodeNbr == 0)
+	if (firstFqnn == 0)
 	{
 		writeMemo("[?] First node number for exit is 0.");
 		return 0;
 	}
 
-	if (firstNodeNbr > lastNodeNbr)
+	if (firstFqnn > lastFqnn)
 	{
 		writeMemo("[?] First node number for exit greater than last.");
 		return 0;
@@ -623,18 +623,18 @@ int	ipn_addExit(uvast firstNodeNbr, uvast lastNodeNbr, char *viaEid)
 	}
 
 	CHKERR(sdr_begin_xn(sdr));
-	if (locateExit(firstNodeNbr, lastNodeNbr, &nextExit) != 0)
+	if (locateExit(firstFqnn, lastFqnn, &nextExit) != 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Duplicate exit", utoa(firstNodeNbr));
+		writeMemoNote("[?] Duplicate exit", utoa(firstFqnn));
 		return 0;
 	}
 
 	/*	All parameters validated, okay to add the exit.	*/
 
 	memset((char *) &exit, 0, sizeof(IpnExit));
-	exit.firstNodeNbr = firstNodeNbr;
-	exit.lastNodeNbr = lastNodeNbr;
+	exit.firstFqnn = firstFqnn;
+	exit.lastFqnn = lastFqnn;
 	exit.eid = sdr_string_create(sdr, viaEid);
 	addr = sdr_malloc(sdr, sizeof(IpnExit));
 	if (addr)
@@ -661,7 +661,7 @@ int	ipn_addExit(uvast firstNodeNbr, uvast lastNodeNbr, char *viaEid)
 	return 1;
 }
 
-int	ipn_updateExit(uvast firstNodeNbr, uvast lastNodeNbr, char *viaEid)
+int	ipn_updateExit(uvast firstFqnn, uvast lastFqnn, char *viaEid)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -677,11 +677,11 @@ int	ipn_updateExit(uvast firstNodeNbr, uvast lastNodeNbr, char *viaEid)
 	}
 
 	CHKERR(sdr_begin_xn(sdr));
-	elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);
+	elt = locateExit(firstFqnn, lastFqnn, NULL);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Unknown exit", utoa(firstNodeNbr));
+		writeMemoNote("[?] Unknown exit", utoa(firstFqnn));
 		return 0;
 	}
 
@@ -701,7 +701,7 @@ int	ipn_updateExit(uvast firstNodeNbr, uvast lastNodeNbr, char *viaEid)
 	return 1;
 }
 
-int	ipn_removeExit(uvast firstNodeNbr, uvast lastNodeNbr)
+int	ipn_removeExit(uvast firstFqnn, uvast lastFqnn)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -709,11 +709,11 @@ int	ipn_removeExit(uvast firstNodeNbr, uvast lastNodeNbr)
 		OBJ_POINTER(IpnExit, exit);
 
 	CHKERR(sdr_begin_xn(sdr));
-	elt = locateExit(firstNodeNbr, lastNodeNbr, NULL);
+	elt = locateExit(firstFqnn, lastFqnn, NULL);
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Unknown exit", utoa(firstNodeNbr));
+		writeMemoNote("[?] Unknown exit", utoa(firstFqnn));
 		return 0;
 	}
 
@@ -763,7 +763,7 @@ int	ipn_lookupExit(uvast nodeNbr, char *eid)
 	{
 		addr = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &exit, addr, sizeof(IpnExit));
-		if (exit.lastNodeNbr < nodeNbr || exit.firstNodeNbr > nodeNbr)
+		if (exit.lastFqnn < nodeNbr || exit.firstFqnn > nodeNbr)
 		{
 			continue;
 		}

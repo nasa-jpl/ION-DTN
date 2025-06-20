@@ -178,14 +178,14 @@ typedef struct
 
 typedef struct
 {
-	uvast		nodeNbr;
-	unsigned int	serviceNbr;
+	uvast		fqnn;		/*	Fully-qualified nodeNbr	*/
+	unsigned long	serviceNbr;
 } IpnSSP;
 
 typedef struct
 {
-	uvast		groupNbr;
-	unsigned int	serviceNbr;
+	uvast		fqgn;		/*	Fully-qualified groupNo */
+	unsigned long	serviceNbr;
 } ImcSSP;
 
 typedef union
@@ -212,8 +212,8 @@ typedef struct
 	char		*nodeName;
 	char		*delimiter;
 	char		*demux;
-	uvast		elementNbr;	/*	Node nbr or group nbr.	*/
-	unsigned int	serviceNbr;
+	uvast		elementNbr;	/*	FQNN or group nbr.	*/
+	unsigned long	serviceNbr;
 	char		nullEndpoint;	/*	Boolean.		*/
 } MetaEid;
 
@@ -299,7 +299,7 @@ typedef struct
 {
 	int		authentic;	/*	Boolean.		*/
 	EndpointId	senderEid;
-	uvast		senderNodeNbr;	/*	If ipn endpoint.	*/
+	uvast		senderFqnn;	/*	If ipn endpoint.	*/
 } ClDossier;
 
 /*	Bundle processing flags						*/
@@ -361,7 +361,7 @@ typedef struct
 
 	/*	Stuff in the IPN Multicast extension block.		*/
 
-	Object		destinations;	/*	SDR list of node nbrs.	*/
+	Object		destinations;	/*	SDR list of FQNNs.	*/
 
 	/*	Stuff in Payload block.					*/
 
@@ -395,7 +395,7 @@ typedef struct
 	BpStatusRpt	statusRpt;	/*	For response per SRRs.	*/
 	ClDossier	clDossier;	/*	Processing hints.	*/
 	Object		stations;	/*	Stack of EIDs (route).	*/
-	uvast		ovrdNeighbor;	/*	Node number.		*/
+	uvast		ovrdNeighbor;	/*	FQNN.			*/
 
 	/*	Stuff for opportunistic forwarding.  A "copy" is the
 	 *	ID of a node to which CGR has decided to forward a
@@ -589,7 +589,7 @@ typedef struct
 
 	/*	Note: neighborEid may be a wildcarded EID string.	*/
 
-	uvast		neighborNodeNbr;/*	If neighborEid is ipn.	*/
+	uvast		neighborFqnn;	/*	If neighborEid is ipn.	*/
 
 	/*	If the plan for bundles destined for this neighbor is
 	 *	to relay them via some other EID, then that "via"
@@ -623,7 +623,7 @@ typedef struct
 	Object		stats;		/*	PlanStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
 	char		neighborEid[MAX_EID_LEN];
-	uvast		neighborNodeNbr;/*	If neighborEid is ipn.	*/
+	uvast		neighborFqnn;	/*	If neighborEid is ipn.	*/
 	int		clmPid;		/*	For stopping the CLM.	*/
 	sm_SemId	semaphore;	/*	Queue non-empty.	*/
 	Throttle	xmitThrottle;	/*	For rate control.	*/
@@ -718,8 +718,8 @@ typedef struct
 
 typedef struct
 {
-	uvast		fromNode;	/*	CBHE node number	*/
-	uvast		toNode;		/*	CBHE node number	*/
+	uvast		fromFqnn;	/*	ipn-scheme node FQNN	*/
+	uvast		toFqnn;		/*	ipn-scheme node FQNN	*/
 	time_t		fromTime;	/*	As from getCtime()	*/
 	time_t		toTime;		/*	As from getCtime()	*/
 	size_t		xmitRate;	/*	In bytes per second.	*/

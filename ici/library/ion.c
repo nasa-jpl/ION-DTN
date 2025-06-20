@@ -463,7 +463,7 @@ static void	ionRedirectWatchCharacters()
 }
 #endif
 
-static int	checkNodeListParms(IonParms *parms, char *wdName, uvast nodeNbr)
+static int	checkNodeListParms(IonParms *parms, char *wdName, uvast fqnn)
 {
 	char		*nodeListDir;
 	sm_SemId	nodeListMutex;
@@ -472,7 +472,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName, uvast nodeNbr)
 	int		lineNbr = 0;
 	int		lineLen;
 	char		lineBuf[256];
-	uvast		lineNodeNbr;
+	uvast		lineFqnn;
 	int		lineWmKey;
 	char		lineSdrName[MAX_SDR_NAME + 1];
 	char		lineWdName[256];
@@ -521,7 +521,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName, uvast nodeNbr)
 
 	isprintf(nodeListFileName, sizeof nodeListFileName, "%.255s%cion_nodes",
 			nodeListDir, ION_PATH_DELIMITER);
-	if (nodeNbr == 0)	/*	Just attaching.			*/
+	if (fqnn == 0)	/*	Just attaching.			*/
 	{
 		nodeListFile = iopen(nodeListFileName, O_RDONLY, 0);
 	}
@@ -557,7 +557,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName, uvast nodeNbr)
 
 		lineNbr++;
 		if (sscanf(lineBuf, UVAST_FIELDSPEC " %d %31s %255s",
-			&lineNodeNbr, &lineWmKey, lineSdrName, lineWdName) < 4)
+			&lineFqnn, &lineWmKey, lineSdrName, lineWdName) < 4)
 		{
 			close(nodeListFile);
 			sm_SemGive(nodeListMutex);
@@ -567,9 +567,9 @@ static int	checkNodeListParms(IonParms *parms, char *wdName, uvast nodeNbr)
 			return -1;
 		}
 
-		if (lineNodeNbr == nodeNbr)		/*	Match.	*/
+		if (lineFqnn == fqnn)		/*	Match.	*/
 		{
-			/*	lineNodeNbr can't be zero (we never
+			/*	lineFqnn can't be zero (we never
 			 *	write such lines to the file), so this
 			 *	must be matching non-zero node numbers.
 			 *	So we are re-initializing this node.	*/
@@ -619,14 +619,14 @@ static int	checkNodeListParms(IonParms *parms, char *wdName, uvast nodeNbr)
 			return 0;
 		}
 
-		/*	lineNodeNbr does not match nodeNbr (which may
+		/*	lineFqnn does not match fqnn (which may
 		 *	be zero).					*/
 
 		if (strcmp(lineWdName, wdName) == 0)	/*	Match.	*/
 		{
 			close(nodeListFile);
 			sm_SemGive(nodeListMutex);
-			if (nodeNbr == 0)	/*	Attaching.	*/
+			if (fqnn == 0)	/*	Attaching.	*/
 			{
 				parms->wmKey = lineWmKey;
 				istrcpy(parms->sdrName, lineSdrName,
@@ -636,7 +636,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName, uvast nodeNbr)
 
 			/*	Reinitialization conflict.		*/
 
-			putErrmsg("NodeNbr conflict at line#", itoa(lineNbr));
+			putErrmsg("Fqnn conflict at line#", itoa(lineNbr));
 			writeMemoNote("[?] Repair ion_nodes file.",
 					nodeListFileName);
 			return -1;
@@ -647,7 +647,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName, uvast nodeNbr)
 
 	/*	No matching lines in file.				*/
 
-	if (nodeNbr == 0)	/*	Attaching to existing node.	*/
+	if (fqnn == 0)	/*	Attaching to existing node.	*/
 	{
 		close(nodeListFile);
 		sm_SemGive(nodeListMutex);
@@ -670,7 +670,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName, uvast nodeNbr)
 	}
 
 	isprintf(lineBuf, sizeof lineBuf, UVAST_FIELDSPEC " %d %.31s %.255s\n",
-			nodeNbr, parms->wmKey, parms->sdrName, wdName);
+			fqnn, parms->wmKey, parms->sdrName, wdName);
 	result = iputs(nodeListFile, lineBuf);
 	close(nodeListFile);
 	sm_SemGive(nodeListMutex);
@@ -706,7 +706,7 @@ static DWORD WINAPI	waitForSigterm(LPVOID parm)
 }
 #endif
 
-int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
+int	ionInitialize(IonParms *parms, uvast ownFqnn)
 {
 	char		wdname[256];
 	Sdr		ionsdr;
@@ -720,7 +720,7 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 	IonVdb		*ionvdb;
 
 	CHKERR(parms);
-	CHKERR(ownNodeNbr);
+	CHKERR(ownFqnn);
 
 	if (sm_ipc_init() < 0)
 	{
@@ -745,7 +745,7 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 		parms->sdrWmSize = 1000000;	/*	Default.	*/
 	}
 
-	if (checkNodeListParms(parms, wdname, ownNodeNbr) < 0)
+	if (checkNodeListParms(parms, wdname, ownFqnn) < 0)
 	{
 		putErrmsg("Failed checking node list parms.", NULL);
 		return -1;
@@ -786,16 +786,16 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 		return -1;
 
 	case 0:			/*	Not found; must create new DB.	*/
-		if (ownNodeNbr == 0)
+		if (ownFqnn == 0)
 		{
 			sdr_cancel_xn(ionsdr);
-			putErrmsg("Must supply non-zero node number.", NULL);
+			putErrmsg("Must supply non-zero FQ node number.", NULL);
 			return -1;
 		}
 
 		memset((char *) &iondbBuf, 0, sizeof(IonDB));
 		memcpy(iondbBuf.workingDirectoryName, wdname, 256);
-		iondbBuf.ownNodeNbr = ownNodeNbr;
+		iondbBuf.ownFqnn = ownFqnn;
 		iondbBuf.rolodex = sdr_list_create(ionsdr);
 		iondbBuf.cpsNotices = sdr_list_create(ionsdr);
 		iondbBuf.ranges = sdr_list_create(ionsdr);
@@ -1285,7 +1285,7 @@ int	ionPickRegion(uint32_t regionNbr)
 	return -1;
 }
 
-int	ionRegionOf(uvast nodeNbrA, uvast nodeNbrB, uint32_t *regionNbr)
+int	ionRegionOf(uvast fqnnA, uvast fqnnB, uint32_t *regionNbr)
 {
 	/*	This function determines the region in which nodeA
 	 *	and nodeB both reside; if nodeB is zero, it just
@@ -1304,7 +1304,7 @@ int	ionRegionOf(uvast nodeNbrA, uvast nodeNbrB, uint32_t *regionNbr)
 	Object		addr;
 			OBJ_POINTER(RegionMember, member);
 
-	CHKERR(nodeNbrA > 0);
+	CHKERR(fqnnA > 0);
 	CHKERR(regionNbr);
 	*regionNbr = 0;		/*	Default.			*/
 	memset((char *) &nodeA, 0, sizeof(RegionMember));
@@ -1319,13 +1319,13 @@ int	ionRegionOf(uvast nodeNbrA, uvast nodeNbrB, uint32_t *regionNbr)
 	{
 		addr = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, RegionMember, member, addr);
-		if (member->nodeNbr == nodeNbrA)
+		if (member->fqnn == fqnnA)
 		{
 			memcpy((char *) &nodeA, (char *) member,
 					sizeof(RegionMember));
 		}
 
-		if (member->nodeNbr == nodeNbrB)
+		if (member->fqnn == fqnnB)
 		{
 			memcpy((char *) &nodeB, (char *) member,
 					sizeof(RegionMember));
@@ -1346,7 +1346,7 @@ int	ionRegionOf(uvast nodeNbrA, uvast nodeNbrB, uint32_t *regionNbr)
 	if (nodeA.homeRegionNbr == localHomeRegion
 	|| nodeA.outerRegionNbr == localHomeRegion)
 	{
-		if (nodeNbrB == 0
+		if (fqnnB == 0
 		|| nodeB.homeRegionNbr == localHomeRegion
 		|| nodeB.outerRegionNbr == localHomeRegion)
 		{
@@ -1362,7 +1362,7 @@ int	ionRegionOf(uvast nodeNbrA, uvast nodeNbrB, uint32_t *regionNbr)
 	if (nodeA.homeRegionNbr == localOuterRegion
 	|| nodeA.outerRegionNbr == localOuterRegion)
 	{
-		if (nodeNbrB == 0
+		if (fqnnB == 0
 		|| nodeB.homeRegionNbr == localOuterRegion)
 		{
 			*regionNbr = localOuterRegion;
@@ -1420,7 +1420,7 @@ char	*getIonWorkingDirectory()
 	return snapshot->workingDirectoryName;
 }
 
-uvast	getOwnNodeNbr()
+uvast	getOwnFqnn()
 {
 	IonDB	*snapshot = _ionConstants();
 
@@ -1429,7 +1429,7 @@ uvast	getOwnNodeNbr()
 		return 0;
 	}
 
-	return snapshot->ownNodeNbr;
+	return snapshot->ownFqnn;
 }
 
 int	ionClockIsSynchronized()

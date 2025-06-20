@@ -59,7 +59,7 @@ typedef struct
 
 typedef struct
 {
-	uvast		nodeNbr;
+	uvast		fqnn;
 	unsigned int	firstPrimaryShare;	/*	share number	*/
 	unsigned int	lastPrimaryShare;	/*	share number	*/
 	unsigned int	firstBackupShare;	/*	share number	*/

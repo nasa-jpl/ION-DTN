@@ -194,12 +194,12 @@ in bytes per second> [confidence in occurrence]");
 
 static int	initializeNode(int tokenCount, char **tokens)
 {
-	char		*ownNodeNbrString = tokens[1];
+	char		*ownFqnnString = tokens[1];
 	char		*configFileName = tokens[2];
 	IonParms	parms;
 	PsmAddress	xaddr;
 
-	if (tokenCount < 2 || *ownNodeNbrString == '\0')
+	if (tokenCount < 2 || *ownFqnnString == '\0')
 	{
 		writeMemo("[?] No node number, can't initialize node.");
 		return 1;
@@ -211,7 +211,7 @@ static int	initializeNode(int tokenCount, char **tokens)
 		return 1;
 	}
 
-	if (ionInitialize(&parms, strtouvast(ownNodeNbrString)) < 0)
+	if (ionInitialize(&parms, strtouvast(ownFqnnString)) < 0)
 	{
 		putErrmsg("ionadmin can't initialize ION.", NULL);
 		return 1;
@@ -220,18 +220,18 @@ static int	initializeNode(int tokenCount, char **tokens)
 	/*	Initially register the node in the designated region.	*/
 
 	return rfx_insert_contact(_regionNbr(NULL), MAX_POSIX_TIME,
-			MAX_POSIX_TIME, getOwnNodeNbr(), getOwnNodeNbr(),
+			MAX_POSIX_TIME, getOwnFqnn(), getOwnFqnn(),
 			0, 1.0, &xaddr, _announce(NULL));
 }
 
 void	executeAdd(int tokenCount, char **tokens)
 {
-	uvast		ownNodeNbr = getOwnNodeNbr();
+	uvast		ownFqnn = getOwnFqnn();
 	time_t		refTime;
 	time_t		fromTime;
 	time_t		toTime;
-	uvast		fromNodeNbr;
-	uvast		toNodeNbr;
+	uvast		fromFqnnNbr;
+	uvast		toFqnnNbr;
 	PsmAddress	xaddr;
 	unsigned int	xmitRate;
 	float		confidence;
@@ -259,15 +259,15 @@ void	executeAdd(int tokenCount, char **tokens)
 	}
 
 	refTime = _referenceTime(NULL);
-	fromNodeNbr = strtouvast(tokens[4]);
-	toNodeNbr = strtouvast(tokens[5]);
-	if (fromNodeNbr <= 0)
+	fromFqnnNbr = strtouvast(tokens[4]);
+	toFqnnNbr = strtouvast(tokens[5]);
+	if (fromFqnnNbr <= 0)
 	{
 		printText("'From' node number must be greater than zero.");
 		return;
 	}
 
-	if (toNodeNbr <= 0)
+	if (toFqnnNbr <= 0)
 	{
 		printText("'To' node number must be greater than zero.");
 		return;
@@ -311,7 +311,7 @@ void	executeAdd(int tokenCount, char **tokens)
 		{
 			/*	Must be a registration contact.		*/
 
-			if (fromNodeNbr != toNodeNbr)
+			if (fromFqnnNbr != toFqnnNbr)
 			{
 				printText("For registration contact, from \
 and to nodes must be identical.");
@@ -325,9 +325,8 @@ and to nodes must be identical.");
 		{
 			/*	Must be a hypothetical contact.		*/
 
-			if (fromNodeNbr == toNodeNbr
-			|| (fromNodeNbr != ownNodeNbr
-				&& toNodeNbr != ownNodeNbr))
+			if (fromFqnnNbr == toFqnnNbr
+			|| (fromFqnnNbr != ownFqnn && toFqnnNbr != ownFqnn))
 			{
 				printText("For hypothetical contact, either \
 from or to node must be the local node and the other must not.");
@@ -350,7 +349,7 @@ than start time and earlier than 19 January 2038.");
 		}
 
 		if (rfx_insert_contact(_regionNbr(NULL), fromTime, toTime,
-				fromNodeNbr, toNodeNbr, xmitRate, confidence,
+				fromFqnnNbr, toFqnnNbr, xmitRate, confidence,
 				&xaddr, _announce(NULL)) == 0)
 		{
 			oK(_forecastNeeded(1));
@@ -371,8 +370,8 @@ time and earlier than 19 January 2038.");
 		}
 
 		owlt = strtol(tokens[6], NULL, 0);
-		oK(rfx_insert_range(fromTime, toTime, fromNodeNbr,
-				toNodeNbr, owlt, &xaddr, _announce(NULL)));
+		oK(rfx_insert_range(fromTime, toTime, fromFqnnNbr,
+				toFqnnNbr, owlt, &xaddr, _announce(NULL)));
 		return;
 	}
 
@@ -383,8 +382,8 @@ void	executeChange(int tokenCount, char **tokens)
 {
 	time_t		refTime;
 	time_t		fromTime;
-	uvast		fromNodeNbr;
-	uvast		toNodeNbr;
+	uvast		fromFqnnNbr;
+	uvast		toFqnnNbr;
 	unsigned int	xmitRate;
 	float		confidence;
 
@@ -423,11 +422,11 @@ void	executeChange(int tokenCount, char **tokens)
 		return;
 	}
 
-	fromNodeNbr = strtouvast(tokens[3]);
-	toNodeNbr = strtouvast(tokens[4]);
+	fromFqnnNbr = strtouvast(tokens[3]);
+	toFqnnNbr = strtouvast(tokens[4]);
 	xmitRate = strtol(tokens[5], NULL, 0);
-	oK(rfx_revise_contact(_regionNbr(NULL), fromTime, fromNodeNbr,
-			toNodeNbr, xmitRate, confidence, _announce(NULL)));
+	oK(rfx_revise_contact(_regionNbr(NULL), fromTime, fromFqnnNbr,
+			toFqnnNbr, xmitRate, confidence, _announce(NULL)));
 }
 
 void	executeDelete(int tokenCount, char **tokens)
@@ -435,8 +434,8 @@ void	executeDelete(int tokenCount, char **tokens)
 	time_t	refTime;
 	time_t	fromTime;
 	time_t	*scope = &fromTime;
-	uvast	fromNodeNbr;
-	uvast	toNodeNbr;
+	uvast	fromFqnnNbr;
+	uvast	toFqnnNbr;
 
 	if (tokenCount < 2)
 	{
@@ -473,19 +472,19 @@ void	executeDelete(int tokenCount, char **tokens)
 		}
 	}
 
-	fromNodeNbr = strtouvast(tokens[3]);
-	toNodeNbr = strtouvast(tokens[4]);
+	fromFqnnNbr = strtouvast(tokens[3]);
+	toFqnnNbr = strtouvast(tokens[4]);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
-		oK(rfx_remove_contact(_regionNbr(NULL), scope, fromNodeNbr,
-				toNodeNbr, _announce(NULL)));
+		oK(rfx_remove_contact(_regionNbr(NULL), scope, fromFqnnNbr,
+				toFqnnNbr, _announce(NULL)));
 		oK(_forecastNeeded(1));
 		return;
 	}
 
 	if (strcmp(tokens[1], "range") == 0)
 	{
-		oK(rfx_remove_range(scope, fromNodeNbr, toNodeNbr,
+		oK(rfx_remove_range(scope, fromFqnnNbr, toFqnnNbr,
 				_announce(NULL)));
 		return;
 	}
@@ -500,8 +499,8 @@ static void	executeInfo(int tokenCount, char **tokens)
 	IonVdb		*vdb = getIonVdb();
 	time_t		refTime;
 	time_t		fromTime;
-	uvast		fromNode;
-	uvast		toNode;
+	uvast		fromFqnn;
+	uvast		toFqnn;
 	IonCXref	arg1;
 	PsmAddress	elt;
 	PsmAddress	addr;
@@ -535,14 +534,14 @@ static void	executeInfo(int tokenCount, char **tokens)
 		fromTime = readTimestampUTC(tokens[2], refTime);
 	}
 
-	fromNode = strtouvast(tokens[3]);
-	toNode = strtouvast(tokens[4]);
+	fromFqnn = strtouvast(tokens[3]);
+	toFqnn = strtouvast(tokens[4]);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
 		memset((char *) &arg1, 0, sizeof(IonCXref));
-		oK(ionRegionOf(fromNode, toNode, &arg1.regionNbr));
-		arg1.fromNode = fromNode;
-		arg1.toNode = toNode;
+		oK(ionRegionOf(fromFqnn, toFqnn, &arg1.regionNbr));
+		arg1.fromFqnn = fromFqnn;
+		arg1.toFqnn = toFqnn;
 		arg1.fromTime = fromTime;
 		CHKVOID(sdr_begin_xn(sdr));
 		elt = sm_rbt_search(ionwm, vdb->contactIndex,
@@ -565,8 +564,8 @@ static void	executeInfo(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "range") == 0)
 	{
 		memset((char *) &arg2, 0, sizeof(IonRXref));
-		arg2.fromNode = fromNode;
-		arg2.toNode = toNode;
+		arg2.fromFqnn = fromFqnn;
+		arg2.toFqnn = toFqnn;
 		arg2.fromTime = fromTime;
 		CHKVOID(sdr_begin_xn(sdr));
 		elt = sm_rbt_search(ionwm, vdb->rangeIndex,

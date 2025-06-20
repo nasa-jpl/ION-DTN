@@ -125,7 +125,7 @@ ImcDB	*getImcConstants()
 
 /*	*	*	Multicast group mgt functions	*	*	*/
 
-static Object	createGroup(uvast groupNbr, Object nextGroup)
+static Object	createGroup(uvast fqgn, Object nextGroup)
 {
 	Sdr		sdr = getIonsdr();
 	ImcDB		*db = _imcConstants();
@@ -134,10 +134,10 @@ static Object	createGroup(uvast groupNbr, Object nextGroup)
 	Object		elt = 0;	/*	Default.		*/
 
 #if IMCDEBUG
-printf("Creating group (" UVAST_FIELDSPEC ").\n", groupNbr);
+printf("Creating group (" UVAST_FIELDSPEC ").\n", fqgn);
 fflush(stdout);
 #endif
-	group.groupNbr = groupNbr;
+	group.fqgn = fqgn;
 	group.secUntilDelete = -1;
 	group.isMember = 0;
 	group.members = sdr_list_create(sdr);
@@ -160,7 +160,7 @@ fflush(stdout);
 	return elt;
 }
 
-static Object	locateGroup(uvast groupNbr, Object *nextGroup)
+static Object	locateGroup(uvast fqgn, Object *nextGroup)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -175,12 +175,12 @@ static Object	locateGroup(uvast groupNbr, Object *nextGroup)
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, ImcGroup, group, sdr_list_data(sdr, elt));
-		if (group->groupNbr < groupNbr)
+		if (group->fqgn < fqgn)
 		{
 			continue;
 		}
 
-		if (group->groupNbr > groupNbr)
+		if (group->fqgn > fqgn)
 		{
 			if (nextGroup)
 			{
@@ -196,7 +196,7 @@ static Object	locateGroup(uvast groupNbr, Object *nextGroup)
 	return 0;
 }
 
-void	imcFindGroup(uvast groupNbr, Object *addr, Object *eltp)
+void	imcFindGroup(uvast fqgn, Object *addr, Object *eltp)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -206,10 +206,10 @@ void	imcFindGroup(uvast groupNbr, Object *addr, Object *eltp)
 	CHKVOID(eltp);
 	CHKVOID(ionLocked());
 	*eltp = 0;			/*	Default.		*/
-	elt = locateGroup(groupNbr, &nextGroupElt);
+	elt = locateGroup(fqgn, &nextGroupElt);
 	if (elt == 0)			/*	Not found.		*/
 	{
-		elt = createGroup(groupNbr, nextGroupElt);
+		elt = createGroup(fqgn, nextGroupElt);
 	       	if (elt == 0)
 		{
 			putErrmsg("Can't create multicast group.", NULL);
@@ -231,12 +231,12 @@ int	imcHandleBriefing(BpDelivery *dlv, unsigned char *cursor,
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	uvast		arrayLength;
-	uvast		groupNbr;
+	uvast		fqgn;
 	Object		groupAddr;
 	Object		groupElt;
 	ImcGroup	group;
 	Object		elt;
-	uvast		nodeNbr;
+	uvast		fqnn;
 	Object		iondbObj;
 	IonDB		iondb;
 	int		sourceRegion;
@@ -256,7 +256,7 @@ puts("Handling briefing.");
 	if (parseEidString(dlv->bundleSourceEid, &metaEid, &vscheme,
 			&vschemeElt) == 0 || vscheme->codeNumber != ipn)
 	{
-		/*	Can't determine sending node number.		*/
+		/*	Can't determine sending node's ID.		*/
 
 		writeMemoNote("[?] Invalid sender of IMC briefing",
 				dlv->bundleSourceEid);
@@ -275,7 +275,7 @@ puts("Handling briefing.");
 	while (arrayLength > 0)
 	{
 		arrayLength--;
-		if (cbor_decode_integer(&groupNbr, CborAny, &cursor,
+		if (cbor_decode_integer(&fqgn, CborAny, &cursor,
 				&unparsedBytes) < 1)
 		{
 			writeMemo("[?] Can't decode IMC briefing group nbr.");
@@ -283,7 +283,7 @@ puts("Handling briefing.");
 		}
 
 		CHKERR(sdr_begin_xn(sdr));
-		imcFindGroup(groupNbr, &groupAddr, &groupElt);
+		imcFindGroup(fqgn, &groupAddr, &groupElt);
 		if (groupElt == 0)	/*	System failure.		*/
 		{
 			sdr_cancel_xn(sdr);
@@ -291,12 +291,12 @@ puts("Handling briefing.");
 		}
 		
 		sdr_stage(sdr, (char *) &group, groupAddr, sizeof(ImcGroup));
-		nodeNbr = 0;
+		fqnn = 0;
 		for (elt = sdr_list_first(sdr, group.members); elt;
 				elt = sdr_list_next(sdr, elt))
 		{
-			nodeNbr = sdr_list_data(sdr, elt);
-			if (nodeNbr < metaEid.elementNbr)
+			fqnn = sdr_list_data(sdr, elt);
+			if (fqnn < metaEid.elementNbr)
 			{
 				continue;
 			}
@@ -305,7 +305,7 @@ puts("Handling briefing.");
 			break;	/*	Insertion point for node.	*/
 		}
 
-		if (nodeNbr == metaEid.elementNbr)
+		if (fqnn == metaEid.elementNbr)
 		{
 			/*	Duplicate group number in briefing.	*/
 
@@ -315,7 +315,7 @@ puts("Handling briefing.");
 
 		/*	Must add new member of group at this point.	*/
 #if IMCDEBUG
-printf("Adding node " UVAST_FIELDSPEC " to group " UVAST_FIELDSPEC ".\n", metaEid.elementNbr, groupNbr);
+printf("Adding node " UVAST_FIELDSPEC " to group " UVAST_FIELDSPEC ".\n", metaEid.elementNbr, fqgn);
 fflush(stdout);
 #endif
 		if (elt)
@@ -341,7 +341,7 @@ fflush(stdout);
 		 *	the immediate encompassing region.		*/
 
 			sourceRegion = ionRegionOf(metaEid.elementNbr,
-					getOwnNodeNbr(), &sourceRegionNbr);
+					getOwnFqnn(), &sourceRegionNbr);
 			if (sourceRegion < 0)
 			{
 				putErrmsg("IMC system error.", NULL);
@@ -353,7 +353,7 @@ fflush(stdout);
 			group.count[sourceRegion] += 1;
 			if (group.count[sourceRegion] == 1)
 			{
-				petition.groupNbr = groupNbr;
+				petition.fqgn = fqgn;
 				petition.isMember = 1;
 				if (imcSendPetition(&petition,
 						destinationRegion) < 0)
@@ -394,7 +394,7 @@ int	imcSendDispatch(char *destEid, uint32_t toRegion, unsigned char *buffer,
 
 	ancillary.imcRegionNbr = toRegion;
 	isprintf(sourceEid, sizeof sourceEid, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
+			getOwnFqnn());
 	CHKERR(parseEidString(sourceEid, &sourceMetaEid, &vscheme,
 			&vschemeElt));
 	CHKERR(sdr_begin_xn(sdr));
@@ -478,7 +478,7 @@ int	imcSendPetition(ImcPetition *petition, uint32_t toRegion)
 	int		result = 0;
 
 #if IMCDEBUG
-printf("Sending petition for group " UVAST_FIELDSPEC ".\n", petition->groupNbr);
+printf("Sending petition for group " UVAST_FIELDSPEC ".\n", petition->fqgn);
 #endif
 	if (imcInit() < 0)
 	{
@@ -497,7 +497,7 @@ printf("Sending petition for group " UVAST_FIELDSPEC ".\n", petition->groupNbr);
 
 	/*	First item of array (petition) is the group number.	*/
 
-	uvtemp = petition->groupNbr;
+	uvtemp = petition->fqgn;
 	oK(cbor_encode_integer(uvtemp, &cursor));
 
 	/*	Second item of array is the membership switch.		*/

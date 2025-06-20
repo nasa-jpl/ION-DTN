@@ -49,7 +49,7 @@ static size_t	maxPayloadLengthKnown(VPlan *vplan, size_t *maxPayloadLength)
 	size_t	xmitRate;
 
 	*maxPayloadLength = 0;		/*	Default: unlimited.	*/
-	if (vplan->neighborNodeNbr)	/*	Known neighbor node.	*/
+	if (vplan->neighborFqnn)	/*	Known neighbor node.	*/
 	{
 		/*	If neighbor node number is known, we may be
 		 *	able to limit bundle size to the remaining
@@ -57,7 +57,7 @@ static size_t	maxPayloadLengthKnown(VPlan *vplan, size_t *maxPayloadLength)
 		 *	if the contact plan contains contacts for
 		 *	transmission to this node.			*/
 
-		rfx_contact_state(vplan->neighborNodeNbr, &secRemaining,
+		rfx_contact_state(vplan->neighborFqnn, &secRemaining,
 				&xmitRate);
 		if (secRemaining == 0)	/*	No current contact.	*/
 		{
@@ -303,8 +303,8 @@ static int	outductSelected(BpPlan *plan, Object planObj, Bundle *bundle,
 	if (bundle->ovrdNeighbor)	/*	Routing override.	*/
 	{
 		if (ipn_lookupOvrd(bundle->ancillaryData.dataLabel,
-			bundle->destination.ssp.ipn.nodeNbr,
-			bundle->id.source.ssp.ipn.nodeNbr, &ovrdAddr) == 0)
+			bundle->destination.ssp.ipn.fqnn,
+			bundle->id.source.ssp.ipn.fqnn, &ovrdAddr) == 0)
 		{
 			writeMemo("[?] Routing override removed, bundle must \
 be redirected.");
@@ -701,7 +701,7 @@ int	main(int argc, char *argv[])
 #if defined (EWCHAR)
 			char ewchar[256];
 			/* spec is for 64 bit, non-Window */
-			isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)c",bundle.id.source.ssp.ipn.nodeNbr, 
+			isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)c",bundle.id.source.ssp.ipn.fqnn, 
 		     bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.count);
 			iwatch_str(ewchar);
 #else

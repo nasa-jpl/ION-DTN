@@ -654,7 +654,7 @@ int	bsspInit(int estMaxExportSessions)
 		/*	Initialize the non-volatile database.		*/
 
 		memset((char *) &bsspdbBuf, 0, sizeof(BsspDB));
-		bsspdbBuf.ownEngineId = iondb.ownNodeNbr;
+		bsspdbBuf.ownEngineId = iondb.ownFqnn;
 		encodeSdnv(&(bsspdbBuf.ownEngineIdSdnv), bsspdbBuf.ownEngineId);
 		bsspdbBuf.estMaxExportSessions = estMaxExportSessions;
 		bsspdbBuf.ownQtime = 1;		/*	Default.	*/

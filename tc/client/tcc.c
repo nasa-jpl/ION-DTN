@@ -485,7 +485,7 @@ static uvast	getAuthNodeNbr(TccDB *db, int idx)
 
 		sdr_read(sdr, (char *) &auth, sdr_list_data(sdr, elt),
 				sizeof(TccAuthority));
-		return auth.nodeNbr;
+		return auth.fqnn;
 	}
 
 	return ((uvast) -1);
@@ -728,7 +728,7 @@ static int	acquireBlock(Sdr sdr, Object dbobj, TccDB *db, TccVdb *vdb,
 	{
 		authObj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &auth, authObj, sizeof(TccAuthority));
-		if (metaEid.elementNbr == auth.nodeNbr)
+		if (metaEid.elementNbr == auth.fqnn)
 		{
 			break;
 		}
@@ -790,7 +790,7 @@ if (header.sharenum >= db->fec_K)
 #if TC_DEBUG
 isprintf(msgbuf, sizeof msgbuf, "tcc: Block %d out of range for authority %d.  \
 Authority node nbr " UVAST_FIELDSPEC ", primary %d - %d, backup %d - %d.\n",
-header.sharenum, i, auth.nodeNbr, auth.firstPrimaryShare, auth.lastPrimaryShare,
+header.sharenum, i, auth.fqnn, auth.firstPrimaryShare, auth.lastPrimaryShare,
 auth.firstBackupShare, auth.lastBackupShare);
 writeMemo(msgbuf);
 #endif

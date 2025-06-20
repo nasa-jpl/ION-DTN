@@ -307,7 +307,7 @@ static void	executeEnable(int tokenCount, char **tokens)
 	Object		dbobj = getTcaDBObject(_blocksGroupNbr(NULL));
 	int		idx;
 	int		i;
-	uvast		nodeNbr;
+	uvast		fqnn;
 	TcaDB		db;
 	Object		elt;
 	Object		authObj;
@@ -328,8 +328,8 @@ static void	executeEnable(int tokenCount, char **tokens)
 	}
 
 	idx = atoi(tokens[1]);
-	nodeNbr = strtouvast(tokens[2]);
-	if (nodeNbr < 1)
+	fqnn = strtouvast(tokens[2]);
+	if (fqnn < 1)
 	{
 		putErrmsg("authority node number invalid.", tokens[2]);
 		return;
@@ -355,8 +355,8 @@ static void	executeEnable(int tokenCount, char **tokens)
 	authObj = sdr_list_data(sdr, elt);
 	sdr_stage(sdr, (char *) &auth, authObj, sizeof(TcaAuthority));
 	auth.inService = 1;
-	auth.nodeNbr = nodeNbr;
-	if (auth.nodeNbr == getOwnNodeNbr())
+	auth.fqnn = fqnn;
+	if (auth.fqnn == getOwnFqnn())
 	{
 		db.ownAuthIdx = idx;
 		sdr_write(sdr, dbobj, (char *) &db, sizeof(TcaDB));
@@ -407,7 +407,7 @@ static void	executeDisable(int tokenCount, char **tokens)
 	authObj = sdr_list_data(sdr, elt);
 	sdr_stage(sdr, (char *) &auth, authObj, sizeof(TcaAuthority));
 	auth.inService = 0;
-	if (auth.nodeNbr == getOwnNodeNbr())
+	if (auth.fqnn == getOwnFqnn())
 	{
 		db.ownAuthIdx = -1;
 		sdr_write(sdr, dbobj, (char *) &db, sizeof(TcaDB));
@@ -424,7 +424,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
 	Object		dbobj = getTcaDBObject(_blocksGroupNbr(NULL));
-	uvast		nodeNbr;
+	uvast		fqnn;
 	TcaDB		db;
 	Object		elt;
 	uvast		client;
@@ -435,8 +435,8 @@ static void	executeAdd(int tokenCount, char **tokens)
 		return;
 	}
 
-	nodeNbr = strtouvast(tokens[1]);
-	if (nodeNbr < 1)
+	fqnn = strtouvast(tokens[1]);
+	if (fqnn < 1)
 	{
 		putErrmsg("client node number invalid.", tokens[1]);
 		return;
@@ -459,7 +459,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 			elt = sdr_list_next(sdr, elt))
 	{
 		client = (uvast) sdr_list_data(sdr, elt);
-		if (client < nodeNbr)
+		if (client < fqnn)
 		{
 			continue;
 		}
@@ -469,19 +469,19 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 	if (elt)
 	{
-		if (client == nodeNbr)
+		if (client == fqnn)
 		{
 			printText("Client is already authorized.");
 			return;
 		}
 
-		/*	Client must be > nodeNbr.			*/
+		/*	Client must be > fqnn.			*/
 
-		sdr_list_insert_before(sdr, elt, nodeNbr);
+		sdr_list_insert_before(sdr, elt, fqnn);
 	}
 	else
 	{
-		sdr_list_insert_last(sdr, db.validClients, nodeNbr);
+		sdr_list_insert_last(sdr, db.validClients, fqnn);
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -494,7 +494,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
 	Object		dbobj = getTcaDBObject(_blocksGroupNbr(NULL));
-	uvast		nodeNbr;
+	uvast		fqnn;
 	TcaDB		db;
 	Object		elt;
 	uvast		client;
@@ -505,8 +505,8 @@ static void	executeDelete(int tokenCount, char **tokens)
 		return;
 	}
 
-	nodeNbr = strtouvast(tokens[1]);
-	if (nodeNbr < 1)
+	fqnn = strtouvast(tokens[1]);
+	if (fqnn < 1)
 	{
 		putErrmsg("client node number invalid.", tokens[1]);
 		return;
@@ -525,7 +525,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 			elt = sdr_list_next(sdr, elt))
 	{
 		client = (uvast) sdr_list_data(sdr, elt);
-		if (client < nodeNbr)
+		if (client < fqnn)
 		{
 			continue;
 		}
@@ -533,7 +533,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 		break;
 	}
 
-	if (elt && client == nodeNbr)
+	if (elt && client == fqnn)
 	{
 		sdr_list_delete(sdr, elt, NULL, NULL);
 	}
@@ -616,7 +616,7 @@ interval=%u, consensus interval=%u", db.bulletinsGroupNbr, db.recordsGroupNbr,
 		authObj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &auth, authObj, sizeof(TcaAuthority));
 		isprintf(buffer, sizeof buffer, "\t%d\t%d\t" UVAST_FIELDSPEC,
-				i, auth.inService, auth.nodeNbr);
+				i, auth.inService, auth.fqnn);
 		printText(buffer);
 	}
 

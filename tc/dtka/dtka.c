@@ -89,8 +89,9 @@ static int writeAddPubKeyCmd(time_t effectiveTime,
 		return -1;
 	}
 
-	len = _isprintf(cmdbuf, sizeof cmdbuf, "a pubkey " UVAST_FIELDSPEC " %d %d %d ", getOwnNodeNbr(), effectiveTime,
-					getCtime(), publicKeyLen);
+	len = _isprintf(cmdbuf, sizeof cmdbuf,
+			"a pubkey " UVAST_FIELDSPEC " %d %d %d ",
+			getOwnFqnn(), effectiveTime, getCtime(), publicKeyLen);
 	cursor += len;
 	bytesRemaining -= len;
 	cmdLen += len;
@@ -288,7 +289,7 @@ static int generateKeyPair(BpSAP sap, DtkaDB *db, char *keyType, int keySize)
 
 	sdr_exit_xn(sdr);
 #else /*	For regression testing only.			*/
-	srand((unsigned int)currentTime / getOwnNodeNbr());
+	srand((unsigned int)currentTime / getOwnFqnn());
 	key = rand();
 	memcpy(pubKeyBuf, (char *)&key, sizeof key);
 	publicKey = pubKeyBuf;
@@ -330,8 +331,8 @@ static int generateKeyPair(BpSAP sap, DtkaDB *db, char *keyType, int keySize)
 	/*	Publish new public key declaration record.		*/
 
 	recordLen = tc_serialize(recordBuffer, sizeof recordBuffer,
-							 getOwnNodeNbr(), effectiveTime, currentTime,
-							 publicKeyLen, publicKey);
+			 getOwnFqnn(), effectiveTime, currentTime,
+			 publicKeyLen, publicKey);
 	if (recordLen < 0)
 	{
 		putErrmsg("Can't serialize key declaration record.", NULL);
@@ -447,7 +448,7 @@ static void *generateKeys(void *parm)
 	/*	Now prepare for re-keying cycle.			*/
 
 	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
-			 getOwnNodeNbr());
+			 getOwnFqnn());
 	if (bp_open_source(ownEid, &sap, 0) < 0)
 	{
 		putErrmsg("Can't open own endpoint.", ownEid);

@@ -28,12 +28,12 @@ static int	rfx_order_nodes(PsmPartition partition, PsmAddress nodeData,
 
 	node = (IonNode *) psp(partition, nodeData);
 	argNode = (IonNode *) dataBuffer;
-	if (node->nodeNbr < argNode->nodeNbr)
+	if (node->fqnn < argNode->fqnn)
 	{
 		return -1;
 	}
 
-	if (node->nodeNbr > argNode->nodeNbr)
+	if (node->fqnn > argNode->fqnn)
 	{
 		return 1;
 	}
@@ -51,12 +51,12 @@ static int	rfx_order_neighbors(PsmPartition partition, PsmAddress nodeData,
 
 	neighbor = (IonNeighbor *) psp(partition, nodeData);
 	argNeighbor = (IonNeighbor *) dataBuffer;
-	if (neighbor->nodeNbr < argNeighbor->nodeNbr)
+	if (neighbor->fqnn < argNeighbor->fqnn)
 	{
 		return -1;
 	}
 
-	if (neighbor->nodeNbr > argNeighbor->nodeNbr)
+	if (neighbor->fqnn > argNeighbor->fqnn)
 	{
 		return 1;
 	}
@@ -81,24 +81,24 @@ int	rfx_order_ranges(PsmPartition partition, PsmAddress nodeData,
 
 	range = (IonRXref *) psp(partition, nodeData);
 	argRange = (IonRXref *) dataBuffer;
-	if (range->fromNode < argRange->fromNode)
+	if (range->fromFqnn < argRange->fromFqnn)
 	{
 		return -1;
 	}
 
-	if (range->fromNode > argRange->fromNode)
+	if (range->fromFqnn > argRange->fromFqnn)
 	{
 		return 1;
 	}
 
 	/*	Matching "from" node number.				*/
 
-	if (range->toNode < argRange->toNode)
+	if (range->toFqnn < argRange->toFqnn)
 	{
 		return -1;
 	}
 
-	if (range->toNode > argRange->toNode)
+	if (range->toFqnn > argRange->toFqnn)
 	{
 		return 1;
 	}
@@ -147,24 +147,24 @@ int	rfx_order_contacts(PsmPartition partition, PsmAddress nodeData,
 
 	/*	Matching region.					*/
 
-	if (contact->fromNode < argContact->fromNode)
+	if (contact->fromFqnn < argContact->fromFqnn)
 	{
 		return -1;
 	}
 
-	if (contact->fromNode > argContact->fromNode)
+	if (contact->fromFqnn > argContact->fromFqnn)
 	{
 		return 1;
 	}
 
 	/*	Matching "from" node number.				*/
 
-	if (contact->toNode < argContact->toNode)
+	if (contact->toFqnn < argContact->toFqnn)
 	{
 		return -1;
 	}
 
-	if (contact->toNode > argContact->toNode)
+	if (contact->toFqnn > argContact->toFqnn)
 	{
 		return 1;
 	}
@@ -251,7 +251,7 @@ int	rfx_system_is_started()
 	return (vdb && vdb->clockPid != ERROR);
 }
 
-IonNeighbor	*findNeighbor(IonVdb *ionvdb, uvast nodeNbr,
+IonNeighbor	*findNeighbor(IonVdb *ionvdb, uvast fqnn,
 			PsmAddress *nextElt)
 {
 	PsmPartition	ionwm = getIonwm();
@@ -261,7 +261,7 @@ IonNeighbor	*findNeighbor(IonVdb *ionvdb, uvast nodeNbr,
 	CHKNULL(ionvdb);
 	CHKNULL(nextElt);
 	memset((char *) &arg, 0, sizeof(IonNeighbor));
-	arg.nodeNbr = nodeNbr;
+	arg.fqnn = fqnn;
 	elt = sm_rbt_search(ionwm, ionvdb->neighbors, rfx_order_neighbors,
 			&arg, nextElt);
 	if (elt)
@@ -272,7 +272,7 @@ IonNeighbor	*findNeighbor(IonVdb *ionvdb, uvast nodeNbr,
 	return NULL;
 }
 
-IonNeighbor	*addNeighbor(IonVdb *ionvdb, uvast nodeNbr)
+IonNeighbor	*addNeighbor(IonVdb *ionvdb, uvast fqnn)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonNode		*node;
@@ -281,10 +281,10 @@ IonNeighbor	*addNeighbor(IonVdb *ionvdb, uvast nodeNbr)
 	PsmAddress	elt;
 	IonNeighbor	*neighbor;
 
-	node = findNode(ionvdb, nodeNbr, &nextElt);
+	node = findNode(ionvdb, fqnn, &nextElt);
 	if (node == NULL)
 	{
-		node = addNode(ionvdb, nodeNbr);
+		node = addNode(ionvdb, fqnn);
 		if (node == NULL)
 		{
 			putErrmsg("Can't add neighboring node.", NULL);
@@ -302,7 +302,7 @@ IonNeighbor	*addNeighbor(IonVdb *ionvdb, uvast nodeNbr)
 	neighbor = (IonNeighbor *) psp(ionwm, addr);
 	CHKNULL(neighbor);
 	memset((char *) neighbor, 0, sizeof(IonNeighbor));
-	neighbor->nodeNbr = nodeNbr;
+	neighbor->fqnn = fqnn;
 	neighbor->node = psa(ionwm, node);
 	elt = sm_rbt_insert(ionwm, ionvdb->neighbors, addr, rfx_order_neighbors,
 			neighbor);
@@ -316,21 +316,21 @@ IonNeighbor	*addNeighbor(IonVdb *ionvdb, uvast nodeNbr)
 	return neighbor;
 }
 
-IonNeighbor	*getNeighbor(IonVdb *vdb, uvast nodeNbr)
+IonNeighbor	*getNeighbor(IonVdb *vdb, uvast fqnn)
 {
 	IonNeighbor	*neighbor;
 	PsmAddress	next;
 
-	neighbor = findNeighbor(vdb, nodeNbr, &next);
+	neighbor = findNeighbor(vdb, fqnn, &next);
 	if (neighbor == NULL)
 	{
-		neighbor = addNeighbor(vdb, nodeNbr);
+		neighbor = addNeighbor(vdb, fqnn);
 	}
 
 	return neighbor;
 }
 
-IonNode	*findNode(IonVdb *ionvdb, uvast nodeNbr, PsmAddress *nextElt)
+IonNode	*findNode(IonVdb *ionvdb, uvast fqnn, PsmAddress *nextElt)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonNode		arg;
@@ -339,7 +339,7 @@ IonNode	*findNode(IonVdb *ionvdb, uvast nodeNbr, PsmAddress *nextElt)
 	CHKNULL(ionvdb);
 	CHKNULL(nextElt);
 	memset((char *) &arg, 0, sizeof(IonNode));
-	arg.nodeNbr = nodeNbr;
+	arg.fqnn = fqnn;
 	elt = sm_rbt_search(ionwm, ionvdb->nodes, rfx_order_nodes, &arg,
 			nextElt);
 	if (elt)
@@ -350,7 +350,7 @@ IonNode	*findNode(IonVdb *ionvdb, uvast nodeNbr, PsmAddress *nextElt)
 	return NULL;
 }
 
-IonNode	*addNode(IonVdb *ionvdb, uvast nodeNbr)
+IonNode	*addNode(IonVdb *ionvdb, uvast fqnn)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	addr;
@@ -367,7 +367,7 @@ IonNode	*addNode(IonVdb *ionvdb, uvast nodeNbr)
 	node = (IonNode *) psp(ionwm, addr);
 	CHKNULL(node);
 	memset((char *) node, 0, sizeof(IonNode));
-	node->nodeNbr = nodeNbr;
+	node->fqnn = fqnn;
 	elt = sm_rbt_insert(ionwm, ionvdb->nodes, addr, rfx_order_nodes, node);
 	if (elt == 0)
 	{
@@ -380,7 +380,7 @@ IonNode	*addNode(IonVdb *ionvdb, uvast nodeNbr)
 	return node;
 }
 
-int	addEmbargo(IonNode *node, uvast neighborNodeNbr)
+int	addEmbargo(IonNode *node, uvast neighborFqnn)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	nextElt;
@@ -397,12 +397,12 @@ int	addEmbargo(IonNode *node, uvast neighborNodeNbr)
 	{
 		embargo = (Embargo *) psp(ionwm, sm_list_data(ionwm, elt));
 		CHKERR(embargo);
-		if (embargo->nodeNbr < neighborNodeNbr)
+		if (embargo->fqnn < neighborFqnn)
 		{
 			continue;
 		}
 
-		if (embargo->nodeNbr > neighborNodeNbr)
+		if (embargo->fqnn > neighborFqnn)
 		{
 			nextElt = elt;
 			break;	/*	Have found insertion point.	*/
@@ -436,13 +436,13 @@ int	addEmbargo(IonNode *node, uvast neighborNodeNbr)
 
 	embargo = (Embargo *) psp(ionwm, addr);
 	CHKERR(embargo);
-	embargo->nodeNbr = neighborNodeNbr;
+	embargo->fqnn = neighborFqnn;
 	embargo->probeIsDue = 0;
 	postProbeEvent(node, embargo);	/*	Initial probe event.	*/
 	return 0;
 }
 
-void	removeEmbargo(IonNode *node, uvast neighborNodeNbr)
+void	removeEmbargo(IonNode *node, uvast neighborFqnn)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	elt;
@@ -456,12 +456,12 @@ void	removeEmbargo(IonNode *node, uvast neighborNodeNbr)
 		addr = sm_list_data(ionwm, elt);
 		embargo = (Embargo *) psp(ionwm, addr);
 		CHKVOID(embargo);
-		if (embargo->nodeNbr < neighborNodeNbr)
+		if (embargo->fqnn < neighborFqnn)
 		{
 			continue;
 		}
 
-		if (embargo->nodeNbr > neighborNodeNbr)
+		if (embargo->fqnn > neighborFqnn)
 		{
 			return;	/*	Embargo not found.		*/
 		}
@@ -503,8 +503,8 @@ PsmAddress	postProbeEvent(IonNode *node, Embargo *embargo)
 	probe = (IonProbe *) psp(ionwm, addr);
 	CHKZERO(probe);
 	probe->time = getCtime();
-	probe->destNodeNbr = node->nodeNbr;
-	probe->neighborNodeNbr = embargo->nodeNbr;
+	probe->destFqnn = node->fqnn;
+	probe->neighborFqnn = embargo->fqnn;
 
 	/*	Schedule next probe of this embargoed neighbor for the
 	 *	time that is the current time plus 2x the round-trip
@@ -512,7 +512,7 @@ PsmAddress	postProbeEvent(IonNode *node, Embargo *embargo)
 	 *	at least 6 seconds).					*/
 	 
 	ionvdb = getIonVdb();
-	neighbor = findNeighbor(ionvdb, embargo->nodeNbr, &nextElt);
+	neighbor = findNeighbor(ionvdb, embargo->fqnn, &nextElt);
 	if (neighbor)
 	{
 		rtlt = (neighbor->owltOutbound + neighbor->owltInbound) << 1;
@@ -540,7 +540,7 @@ PsmAddress	postProbeEvent(IonNode *node, Embargo *embargo)
 /*	*	RFX contact list management functions	*	*	*/
 
 static void	postCpsNotice(uint32_t regionNbr, time_t fromTime,
-			time_t toTime, uvast fromNode, uvast toNode,
+			time_t toTime, uvast fromFqnn, uvast toFqnn,
 			size_t xmitRate, float confidence)
 {
 	Sdr		sdr = getIonsdr();
@@ -558,9 +558,9 @@ static void	postCpsNotice(uint32_t regionNbr, time_t fromTime,
 	 *
 	 *	If fromTime is -1 (a registration contact)
 	 *		If toTime is 0
-	 *			Unregister fromNode in region (regionNbr)
+	 *			Unregister fromFqnn in region (regionNbr)
 	 *		Else (toTime is -1)
-	 *			Register fromNode in region (regionNbr)
+	 *			Register fromFqnn in region (regionNbr)
 	 *	Else (scheduled contact)
 	 *		If toTime is 0
 	 *			Delete contact (per fromTime and node nbrs)
@@ -583,8 +583,8 @@ static void	postCpsNotice(uint32_t regionNbr, time_t fromTime,
 	notice.regionNbr = regionNbr;
 	notice.fromTime = fromTime;
 	notice.toTime = toTime;
-	notice.fromNode = fromNode;
-	notice.toNode = toNode;
+	notice.fromFqnn = fromFqnn;
+	notice.toFqnn = toFqnn;
 	notice.magnitude = xmitRate;
 	notice.confidence = confidence;
 	noticeObj = sdr_malloc(sdr, sizeof(CpsNotice));
@@ -614,8 +614,8 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 
 	memset((char *) &arg, 0, sizeof(IonCXref));
 	arg.regionNbr = cxref->regionNbr;
-	arg.fromNode = cxref->fromNode;
-	arg.toNode = cxref->toNode;
+	arg.fromFqnn = cxref->fromFqnn;
+	arg.toFqnn = cxref->toFqnn;
 	arg.fromTime = cxref->fromTime;
 	cxelt = sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
 			&arg, &nextElt);
@@ -627,20 +627,20 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 
 	/*	New CXref, so load the affected nodes.			*/
 
-	node = findNode(vdb, cxref->toNode, &nextElt);
+	node = findNode(vdb, cxref->toFqnn, &nextElt);
 	if (node == NULL)
 	{
-		node = addNode(vdb, cxref->toNode);
+		node = addNode(vdb, cxref->toFqnn);
 		if (node == NULL)
 		{
 			return 0;
 		}
 	}
 
-	node = findNode(vdb, cxref->fromNode, &nextElt);
+	node = findNode(vdb, cxref->fromFqnn, &nextElt);
 	if (node == NULL)
 	{
-		node = addNode(vdb, cxref->fromNode);
+		node = addNode(vdb, cxref->fromFqnn);
 		if (node == NULL)
 		{
 			return 0;
@@ -661,7 +661,7 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 	sdr_read(getIonsdr(), (char *) &iondb, iondbObj, sizeof(IonDB));
 	if (cxref->type == CtScheduled)
 	{
-		if (cxref->fromNode == getOwnNodeNbr())
+		if (cxref->fromFqnn == getOwnFqnn())
 		{
 			/*	Be a little slow to start transmission,
 			 *	and a little quick to stop, to ensure
@@ -673,7 +673,7 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 			cxref->stopXmit = cxref->toTime - iondb.maxClockError;
 		}
 
-		if (cxref->toNode == getOwnNodeNbr())
+		if (cxref->toFqnn == getOwnFqnn())
 		{
 			/*	Be a little slow to resume timers,
 			 *	and a little quick to suspend them,
@@ -812,8 +812,8 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 }
 
 static void	insertContact(int regionIdx, IonDB *iondb, Object iondbObj,
-			time_t fromTime, time_t toTime, uvast fromNode,
-			uvast toNode, size_t xmitRate, float confidence,
+			time_t fromTime, time_t toTime, uvast fromFqnn,
+			uvast toFqnn, size_t xmitRate, float confidence,
 			ContactType contactType, PsmAddress *cxaddr)
 {
 	Sdr		sdr = getIonsdr();
@@ -826,8 +826,8 @@ static void	insertContact(int regionIdx, IonDB *iondb, Object iondbObj,
 
 	contact.fromTime = fromTime;
 	contact.toTime = toTime;
-	contact.fromNode = fromNode;
-	contact.toNode = toNode;
+	contact.fromFqnn = fromFqnn;
+	contact.toFqnn = toFqnn;
 	contact.xmitRate = xmitRate;
 	contact.confidence = confidence;
 	contact.type = contactType;
@@ -853,8 +853,8 @@ static void	insertContact(int regionIdx, IonDB *iondb, Object iondbObj,
 	newCx.regionNbr = regionNbr;
 	newCx.fromTime = fromTime;
 	newCx.toTime = toTime;
-	newCx.fromNode = fromNode;
-	newCx.toNode = toNode;
+	newCx.fromFqnn = fromFqnn;
+	newCx.toFqnn = toFqnn;
 	newCx.xmitRate = xmitRate;
 	newCx.confidence = confidence;
 	newCx.type = contactType;
@@ -956,7 +956,7 @@ static void	deleteContact(PsmAddress cxaddr)
 
 	if (currentTime >= cxref->startXmit && currentTime <= cxref->stopXmit)
 	{
-		neighbor = findNeighbor(vdb, cxref->toNode, &nextElt);
+		neighbor = findNeighbor(vdb, cxref->toFqnn, &nextElt);
 		if (neighbor)
 		{
 			neighbor->xmitRate = 0;
@@ -965,7 +965,7 @@ static void	deleteContact(PsmAddress cxaddr)
 
 	if (currentTime >= cxref->startFire && currentTime <= cxref->stopFire)
 	{
-		neighbor = findNeighbor(vdb, cxref->fromNode, &nextElt);
+		neighbor = findNeighbor(vdb, cxref->fromFqnn, &nextElt);
 		if (neighbor)
 		{
 			neighbor->fireRate = 0;
@@ -974,7 +974,7 @@ static void	deleteContact(PsmAddress cxaddr)
 
 	if (currentTime >= cxref->startRecv && currentTime <= cxref->stopRecv)
 	{
-		neighbor = findNeighbor(vdb, cxref->fromNode, &nextElt);
+		neighbor = findNeighbor(vdb, cxref->fromFqnn, &nextElt);
 		if (neighbor)
 		{
 			neighbor->recvRate = 0;
@@ -1043,8 +1043,8 @@ static void	vacateRegion(IonDB *iondb, Object iondbObj, int regionIdx,
 		sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
 		memset((char *) &arg, 0, sizeof(IonCXref));
 		arg.regionNbr = regionNbr;
-		arg.fromNode = contact.fromNode;
-		arg.toNode = contact.toNode;
+		arg.fromFqnn = contact.fromFqnn;
+		arg.toFqnn = contact.toFqnn;
 		arg.fromTime = contact.fromTime;
 		oK(sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
 				&arg, &cxelt));
@@ -1167,7 +1167,7 @@ static void	vacateRegion(IonDB *iondb, Object iondbObj, int regionIdx,
 
 	if (announce)
 	{
-		postCpsNotice(regionNbr, MAX_POSIX_TIME, 0, contact.fromNode,
+		postCpsNotice(regionNbr, MAX_POSIX_TIME, 0, contact.fromFqnn,
 				0, 0, 0.0);
 	}
 }
@@ -1200,7 +1200,7 @@ static void	purgePassageways(uint32_t regionNbr, IonDB *iondb,
 		 *	node's outer region.  Must note that it is no
 		 *	longer registered in that former outer region.	*/
 
-		if (member.nodeNbr == getOwnNodeNbr())
+		if (member.fqnn == getOwnFqnn())
 		{
 			vacateRegion(iondb, iondbObj, 1, announce);
 		}
@@ -1211,7 +1211,7 @@ static void	purgePassageways(uint32_t regionNbr, IonDB *iondb,
 	}
 }
 
-static void	registerInRegion(uint32_t regionNbr, uvast nodeNbr,
+static void	registerInRegion(uint32_t regionNbr, uvast fqnn,
 			IonDB *iondb, Object iondbObj, int announce)
 {
 	Sdr		sdr = getIonsdr();
@@ -1225,12 +1225,12 @@ static void	registerInRegion(uint32_t regionNbr, uvast nodeNbr,
 		memberObj = sdr_list_data(sdr, elt);
 		sdr_stage(sdr, (char *) &member, memberObj,
 				sizeof(RegionMember));
-		if (member.nodeNbr < nodeNbr)
+		if (member.fqnn < fqnn)
 		{
 			continue;
 		}
 
-		if (member.nodeNbr > nodeNbr)
+		if (member.fqnn > fqnn)
 		{
 			/*	Node is not in the membership list.	*/
 
@@ -1287,7 +1287,7 @@ static void	registerInRegion(uint32_t regionNbr, uvast nodeNbr,
 	 *	registration in another region will force the
 	 *	adjustment.						*/
 
-	member.nodeNbr = nodeNbr;
+	member.fqnn = fqnn;
 	member.homeRegionNbr = regionNbr;
 	member.outerRegionNbr = 0;
 	memberObj = sdr_malloc(sdr, sizeof(RegionMember));
@@ -1353,10 +1353,10 @@ static void	registerSelf(uint32_t regionNbr, IonDB *iondb, Object iondbObj,
 				(Address) regionNbr);
 	}
 
-	registerInRegion(regionNbr, getOwnNodeNbr(), iondb, iondbObj, announce);
+	registerInRegion(regionNbr, getOwnFqnn(), iondb, iondbObj, announce);
 }
 
-static void	handleRegistrationContact(uint32_t regionNbr, uvast nodeNbr,
+static void	handleRegistrationContact(uint32_t regionNbr, uvast fqnn,
 			IonDB *iondb, Object iondbObj, PsmAddress *cxaddr,
 			int announce)
 {
@@ -1369,8 +1369,8 @@ static void	handleRegistrationContact(uint32_t regionNbr, uvast nodeNbr,
 	int		regionIdx;
 
 	arg.regionNbr = regionNbr;
-	arg.fromNode = nodeNbr;
-	arg.toNode = nodeNbr;
+	arg.fromFqnn = fqnn;
+	arg.toFqnn = fqnn;
 	arg.fromTime = MAX_POSIX_TIME;
 	cxelt = sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
 			&arg, &nextElt);
@@ -1379,7 +1379,7 @@ static void	handleRegistrationContact(uint32_t regionNbr, uvast nodeNbr,
 		return;
 	}
 
-       	if (nodeNbr == getOwnNodeNbr())
+       	if (fqnn == getOwnFqnn())
 	{
 		/*	Registering self in a region.			*/
 
@@ -1387,7 +1387,7 @@ static void	handleRegistrationContact(uint32_t regionNbr, uvast nodeNbr,
 	}
 	else	/*	Registering some other node.			*/
 	{
-		registerInRegion(regionNbr, nodeNbr, iondb, iondbObj, announce);
+		registerInRegion(regionNbr, fqnn, iondb, iondbObj, announce);
 	}
 
 	/*	Post node registration announcement.			*/
@@ -1395,7 +1395,7 @@ static void	handleRegistrationContact(uint32_t regionNbr, uvast nodeNbr,
 	if (announce)
 	{
 		postCpsNotice(regionNbr, MAX_POSIX_TIME, MAX_POSIX_TIME,
-				nodeNbr, nodeNbr, 0, 1.0);
+				fqnn, fqnn, 0, 1.0);
 	}
 
 	/*	Add the registration contact.				*/
@@ -1404,18 +1404,18 @@ static void	handleRegistrationContact(uint32_t regionNbr, uvast nodeNbr,
 	regionIdx = ionPickRegion(regionNbr);
 	CHKVOID(regionIdx == 0 || regionIdx == 1);
 	insertContact(regionIdx, iondb, iondbObj, MAX_POSIX_TIME,
-			MAX_POSIX_TIME, nodeNbr, nodeNbr, 0, 1.0,
+			MAX_POSIX_TIME, fqnn, fqnn, 0, 1.0,
 			CtRegistration, cxaddr);
 }
 
 int	rfx_insert_contact(uint32_t regionNbr, time_t fromTime, time_t toTime,
-		uvast fromNode, uvast toNode, size_t xmitRate, float confidence,
+		uvast fromFqnn, uvast toFqnn, size_t xmitRate, float confidence,
 		PsmAddress *cxaddr, int announce)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb 		*vdb = getIonVdb();
-	uvast		ownNodeNbr = getOwnNodeNbr();
+	uvast		ownFqnn = getOwnFqnn();
 	ContactType	contactType;
 	Object		iondbObj;
 	IonDB		iondb;
@@ -1436,13 +1436,13 @@ int	rfx_insert_contact(uint32_t regionNbr, time_t fromTime, time_t toTime,
 		return 1;
 	}
 
-	if (fromNode == 0)
+	if (fromFqnn == 0)
 	{
 		writeMemo("[?] Can't insert contact From node 0.");
 		return 2;
 	}
 
-	if (toNode == 0)
+	if (toFqnn == 0)
 	{
 		writeMemo("[?] Can't insert contact To node 0.");
 		return 3;
@@ -1465,7 +1465,7 @@ between 0.0 and 1.0.");
 
 	if (fromTime == MAX_POSIX_TIME)	/*	Registration.		*/
 	{
-		CHKZERO(fromNode == toNode);
+		CHKZERO(fromFqnn == toFqnn);
 		toTime = MAX_POSIX_TIME;
 		xmitRate = 0;
 		confidence = 1.0;
@@ -1473,8 +1473,8 @@ between 0.0 and 1.0.");
 	}
 	else if (fromTime == 0)		/*	Hypothetical.		*/
 	{
-		CHKZERO(fromNode != toNode);
-		CHKZERO(fromNode == ownNodeNbr || toNode == ownNodeNbr);
+		CHKZERO(fromFqnn != toFqnn);
+		CHKZERO(fromFqnn == ownFqnn || toFqnn == ownFqnn);
 		toTime = MAX_POSIX_TIME;
 		xmitRate = 0;
 		confidence = 0.0;
@@ -1490,7 +1490,7 @@ between 0.0 and 1.0.");
 
 		if (fromTime == toTime)	/*	Predicted.		*/
 		{
-			CHKZERO(fromNode != ownNodeNbr && toNode != ownNodeNbr);
+			CHKZERO(fromFqnn != ownFqnn && toFqnn != ownFqnn);
 			fromTime = getCtime();	/*	Now.		*/
 			contactType = CtPredicted;
 		}
@@ -1519,7 +1519,7 @@ must be later than From time.");
 
 	if (contactType == CtRegistration)
 	{
-		handleRegistrationContact(regionNbr, fromNode, &iondb, iondbObj,
+		handleRegistrationContact(regionNbr, fromFqnn, &iondb, iondbObj,
 				cxaddr, announce);
 		return sdr_end_xn(sdr);
 	}
@@ -1549,8 +1549,8 @@ must be later than From time.");
 	*cxaddr = 0;	/*	Default.				*/
 	memset((char *) &arg, 0, sizeof(IonCXref));
 	arg.regionNbr = regionNbr;
-	arg.fromNode = fromNode;
-	arg.toNode = toNode;
+	arg.fromFqnn = fromFqnn;
+	arg.toFqnn = toFqnn;
 	cxelt = sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
 			&arg, &nextElt);
 
@@ -1589,7 +1589,7 @@ must be later than From time.");
 		
 		*cxaddr = sm_rbt_data(ionwm, cxelt);
 		cxref = (IonCXref *) psp(ionwm, *cxaddr);
-		if (cxref->fromNode != fromNode || cxref->toNode != toNode)
+		if (cxref->fromFqnn != fromFqnn || cxref->toFqnn != toFqnn)
 		{
 			break;	/*	No more contacts for node pair.	*/
 		}
@@ -1618,8 +1618,8 @@ hypothetical contact, as that contact is now discovered.");
 
 					if (rfx_remove_contact(cxref->regionNbr,
 							&cxref->fromTime,
-							cxref->fromNode,
-							cxref->toNode, 0) < 0)
+							cxref->fromFqnn,
+							cxref->toFqnn, 0) < 0)
 					{
 						sdr_cancel_xn(sdr);
 						return -1;
@@ -1673,8 +1673,8 @@ hypothetical contact, as that contact is now discovered.");
 			 *	contact is overridden.			*/
 
 			if (rfx_remove_contact(cxref->regionNbr,
-					&cxref->fromTime, cxref->fromNode,
-					cxref->toNode, 0) < 0)
+					&cxref->fromTime, cxref->fromFqnn,
+					cxref->toFqnn, 0) < 0)
 			{
 				sdr_cancel_xn(sdr);
 				return -1;
@@ -1702,7 +1702,7 @@ hypothetical contact, as that contact is now discovered.");
 		writeTimestampUTC(toTime, buf2);
 		isprintf(contactIdString, sizeof contactIdString,
 				"from %s until %s, %lu->%lu", buf1, buf2,
-				fromNode, toNode);
+				fromFqnn, toFqnn);
 		writeMemoNote("[?] Overlapping contact ignored",
 				contactIdString);
 		if (sdr_end_xn(sdr) < 0)
@@ -1720,17 +1720,17 @@ hypothetical contact, as that contact is now discovered.");
 	 *	automatically members of the indicated region even
 	 *	if no registration contacts were previously posted.	*/
 
-	registerInRegion(regionNbr, fromNode, &iondb, iondbObj, announce);
-	registerInRegion(regionNbr, toNode, &iondb, iondbObj, announce);
+	registerInRegion(regionNbr, fromFqnn, &iondb, iondbObj, announce);
+	registerInRegion(regionNbr, toFqnn, &iondb, iondbObj, announce);
 	regionIdx = ionPickRegion(regionNbr);
-	insertContact(regionIdx, &iondb, iondbObj, fromTime, toTime, fromNode,
-			toNode, xmitRate, confidence, contactType, cxaddr);
+	insertContact(regionIdx, &iondb, iondbObj, fromTime, toTime, fromFqnn,
+			toFqnn, xmitRate, confidence, contactType, cxaddr);
 
 	/*	Notify other nodes in the region if necessary.		*/
 
 	if (announce)
 	{
-		postCpsNotice(regionNbr, fromTime, toTime, fromNode, toNode,
+		postCpsNotice(regionNbr, fromTime, toTime, fromFqnn, toFqnn,
 				xmitRate, confidence);
 	}
 
@@ -1750,13 +1750,13 @@ char	*rfx_print_contact(PsmAddress cxaddr, char *buffer)
 	writeTimestampUTC(contact->toTime, toTimeBuffer);
 	isprintf(buffer, RFX_NOTE_LEN, "From %20s to %20s the xmit rate from \
 node " UVAST_FIELDSPEC " to node " UVAST_FIELDSPEC " is %10lu bytes/sec, \
-confidence %f.", fromTimeBuffer, toTimeBuffer, contact->fromNode,
-		contact->toNode, contact->xmitRate, contact->confidence);
+confidence %f.", fromTimeBuffer, toTimeBuffer, contact->fromFqnn,
+		contact->toFqnn, contact->xmitRate, contact->confidence);
 	return buffer;
 }
 
-int	rfx_revise_contact(uint32_t regionNbr, time_t fromTime, uvast fromNode,
-		uvast toNode, size_t xmitRate, float confidence, int announce)
+int	rfx_revise_contact(uint32_t regionNbr, time_t fromTime, uvast fromFqnn,
+		uvast toFqnn, size_t xmitRate, float confidence, int announce)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -1774,8 +1774,8 @@ int	rfx_revise_contact(uint32_t regionNbr, time_t fromTime, uvast fromNode,
 	CHKERR(confidence <= 1.0);
 	memset((char *) &arg, 0, sizeof(IonCXref));
 	arg.regionNbr = regionNbr;
-	arg.fromNode = fromNode;
-	arg.toNode = toNode;
+	arg.fromFqnn = fromFqnn;
+	arg.toFqnn = toFqnn;
 	arg.fromTime = fromTime;
 	CHKERR(sdr_begin_xn(sdr));
 	cxelt = sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
@@ -1816,7 +1816,7 @@ int	rfx_revise_contact(uint32_t regionNbr, time_t fromTime, uvast fromNode,
 
 	if (currentTime >= cxref->startXmit && currentTime <= cxref->stopXmit)
 	{
-		neighbor = findNeighbor(vdb, cxref->toNode, &nextElt);
+		neighbor = findNeighbor(vdb, cxref->toFqnn, &nextElt);
 		if (neighbor)
 		{
 			neighbor->xmitRate = xmitRate;
@@ -1825,7 +1825,7 @@ int	rfx_revise_contact(uint32_t regionNbr, time_t fromTime, uvast fromNode,
 
 	if (currentTime >= cxref->startFire && currentTime <= cxref->stopFire)
 	{
-		neighbor = findNeighbor(vdb, cxref->fromNode, &nextElt);
+		neighbor = findNeighbor(vdb, cxref->fromFqnn, &nextElt);
 		if (neighbor)
 		{
 			neighbor->fireRate = xmitRate;
@@ -1834,7 +1834,7 @@ int	rfx_revise_contact(uint32_t regionNbr, time_t fromTime, uvast fromNode,
 
 	if (currentTime >= cxref->startRecv && currentTime <= cxref->stopRecv)
 	{
-		neighbor = findNeighbor(vdb, cxref->fromNode, &nextElt);
+		neighbor = findNeighbor(vdb, cxref->fromFqnn, &nextElt);
 		if (neighbor)
 		{
 			neighbor->recvRate = xmitRate;
@@ -1849,13 +1849,13 @@ int	rfx_revise_contact(uint32_t regionNbr, time_t fromTime, uvast fromNode,
 		if (confidence < 0.0)	/*	No change.		*/
 		{
 			postCpsNotice(regionNbr, cxref->fromTime, cxref->toTime,
-				cxref->fromNode, cxref->toNode,
+				cxref->fromFqnn, cxref->toFqnn,
 				cxref->xmitRate, 4.0);
 		}
 		else	/*	Encode confidence to indicate revision.	*/
 		{
 			postCpsNotice(regionNbr, cxref->fromTime, cxref->toTime,
-				cxref->fromNode, cxref->toNode,
+				cxref->fromFqnn, cxref->toFqnn,
 				cxref->xmitRate, cxref->confidence + 2.0);
 		}
 	}
@@ -1869,8 +1869,8 @@ int	rfx_revise_contact(uint32_t regionNbr, time_t fromTime, uvast fromNode,
 	return 0;
 }
 
-static void	removeAllContacts(uint32_t regionNbr, uvast fromNode,
-			uvast toNode, int announce)
+static void	removeAllContacts(uint32_t regionNbr, uvast fromFqnn,
+			uvast toFqnn, int announce)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb 		*vdb = getIonVdb();
@@ -1882,8 +1882,8 @@ static void	removeAllContacts(uint32_t regionNbr, uvast fromNode,
 
 	memset((char *) &arg, 0, sizeof(IonCXref));
 	arg.regionNbr = regionNbr;
-	arg.fromNode = fromNode;
-	arg.toNode = toNode;
+	arg.fromFqnn = fromFqnn;
+	arg.toFqnn = toFqnn;
 
 	/*	Get first contact for this to/from node pair.		*/
 
@@ -1896,8 +1896,8 @@ static void	removeAllContacts(uint32_t regionNbr, uvast fromNode,
 	{
 		cxaddr = sm_rbt_data(ionwm, cxelt);
 		cxref = (IonCXref *) psp(ionwm, cxaddr);
-		if (cxref->fromNode > fromNode
-		|| cxref->toNode > toNode)
+		if (cxref->fromFqnn > fromFqnn
+		|| cxref->toFqnn > toFqnn)
 		{
 			break;	/*	No more matches.		*/
 		}
@@ -1906,7 +1906,7 @@ static void	removeAllContacts(uint32_t regionNbr, uvast fromNode,
 		if (announce)
 		{
 			postCpsNotice(regionNbr, cxref->fromTime, 0,
-				cxref->fromNode, cxref->toNode, 0, 0.0);
+				cxref->fromFqnn, cxref->toFqnn, 0, 0.0);
 		}
 
 		deleteContact(cxaddr);
@@ -1921,15 +1921,15 @@ static void	removeAllContacts(uint32_t regionNbr, uvast fromNode,
 		cxaddr = sm_rbt_data(ionwm, nextElt);
 		cxref = (IonCXref *) psp(ionwm, cxaddr);
 		arg.regionNbr = regionNbr;
-		arg.fromNode = cxref->fromNode;
-		arg.toNode = cxref->toNode;
+		arg.fromFqnn = cxref->fromFqnn;
+		arg.toFqnn = cxref->toFqnn;
 		arg.fromTime = cxref->fromTime;
 		cxelt = sm_rbt_search(ionwm, vdb->contactIndex,
 				rfx_order_contacts, &arg, &nextElt);
 	}
 }
 
-static void	unregisterFromRegion(uvast fromNode, IonCXref *cxref,
+static void	unregisterFromRegion(uvast fromFqnn, IonCXref *cxref,
 			uint32_t regionNbr, int announce)
 {
 	Sdr		sdr = getIonsdr();
@@ -1950,7 +1950,7 @@ static void	unregisterFromRegion(uvast fromNode, IonCXref *cxref,
 	iondbObj = getIonDbObject();
 	CHKVOID(iondbObj);
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	if (fromNode == getOwnNodeNbr())
+	if (fromFqnn == getOwnFqnn())
 	{
 		/*	Local node is being removed from region.	*/
 
@@ -1994,13 +1994,13 @@ static void	unregisterFromRegion(uvast fromNode, IonCXref *cxref,
 		nextElt = sdr_list_next(sdr, elt);
 		obj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
-		if (contact.fromNode == fromNode
-		|| contact.toNode == fromNode)
+		if (contact.fromFqnn == fromFqnn
+		|| contact.toFqnn == fromFqnn)
 		{
 			memset((char *) &arg, 0, sizeof(IonCXref));
 			arg.regionNbr = regionNbr;
-			arg.fromNode = contact.fromNode;
-			arg.toNode = contact.toNode;
+			arg.fromFqnn = contact.fromFqnn;
+			arg.toFqnn = contact.toFqnn;
 			arg.fromTime = contact.fromTime;
 			oK(sm_rbt_search(ionwm, vdb->contactIndex,
 					rfx_order_contacts, &arg, &cxelt));
@@ -2017,12 +2017,12 @@ static void	unregisterFromRegion(uvast fromNode, IonCXref *cxref,
 		nextElt = sdr_list_next(sdr, elt);
 		obj = sdr_list_data(sdr, elt);
 		sdr_stage(sdr, (char *) &member, obj, sizeof(RegionMember));
-		if (member.nodeNbr < fromNode)
+		if (member.fqnn < fromFqnn)
 		{
 			continue;
 		}
 
-		if (member.nodeNbr > fromNode)
+		if (member.fqnn > fromFqnn)
 		{
 			break;		/*	Node not found.		*/
 		}
@@ -2072,7 +2072,7 @@ static void	unregisterFromRegion(uvast fromNode, IonCXref *cxref,
 }
 
 static void	removeOneContact(uint32_t regionNbr, time_t fromTime,
-			uvast fromNode, uvast toNode, int announce)
+			uvast fromFqnn, uvast toFqnn, int announce)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb 		*vdb = getIonVdb();
@@ -2084,8 +2084,8 @@ static void	removeOneContact(uint32_t regionNbr, time_t fromTime,
 
 	memset((char *) &arg, 0, sizeof(IonCXref));
 	arg.regionNbr = regionNbr;
-	arg.fromNode = fromNode;
-	arg.toNode = toNode;
+	arg.fromFqnn = fromFqnn;
+	arg.toFqnn = toFqnn;
 	arg.fromTime = fromTime;
 
 	/*	Get the contact.					*/
@@ -2105,22 +2105,22 @@ static void	removeOneContact(uint32_t regionNbr, time_t fromTime,
 		 *	the node from the region.  The registration
 		 *	contact itself is deleted in the process.	*/
 
-		unregisterFromRegion(fromNode, cxref, regionNbr, announce);
+		unregisterFromRegion(fromFqnn, cxref, regionNbr, announce);
 	}
 	else	/*	Ordinary contact removal.			*/
 	{
 		if (announce)
 		{
 			postCpsNotice(regionNbr, cxref->fromTime, 0,
-				cxref->fromNode, cxref->toNode, 0, 0.0);
+				cxref->fromFqnn, cxref->toFqnn, 0, 0.0);
 		}
 
 		deleteContact(cxaddr);
 	}
 }
 
-int	rfx_remove_contact(uint32_t regionNbr, time_t *fromTime, uvast fromNode,
-		uvast toNode, int announce)
+int	rfx_remove_contact(uint32_t regionNbr, time_t *fromTime, uvast fromFqnn,
+		uvast toFqnn, int announce)
 {
 	Sdr	sdr = getIonsdr();
 
@@ -2133,12 +2133,12 @@ int	rfx_remove_contact(uint32_t regionNbr, time_t *fromTime, uvast fromNode,
 	CHKERR(sdr_begin_xn(sdr));
 	if (fromTime)		/*	Not a wild-card deletion.	*/
 	{
-		removeOneContact(regionNbr, *fromTime, fromNode, toNode,
+		removeOneContact(regionNbr, *fromTime, fromFqnn, toFqnn,
 				announce);
 	}
 	else		/*	Wild-card deletion, start at time zero.	*/
 	{
-		removeAllContacts(regionNbr, fromNode, toNode, announce);
+		removeAllContacts(regionNbr, fromFqnn, toFqnn, announce);
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -2216,7 +2216,7 @@ void	rfx_brief_contacts(uint32_t regionNbr)
 		writeTimestampUTC(contact->toTime, toTimeBuffer);
 		isprintf(buffer, sizeof buffer, "a contact %20s %20s "
 UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %lu %f\n", fromTimeBuffer, toTimeBuffer,
-				contact->fromNode, contact->toNode,
+				contact->fromFqnn, contact->toFqnn,
 				contact->xmitRate, contact->confidence);
        		textLen = strlen(buffer);
 		if (write(briefingFile, buffer, textLen) < 0)
@@ -2252,7 +2252,7 @@ UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %lu %f\n", fromTimeBuffer, toTimeBuffer,
 		writeTimestampUTC(contact->toTime, toTimeBuffer);
 		isprintf(buffer, sizeof buffer, "a contact %20s %20s "
 UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %lu %f\n", fromTimeBuffer, toTimeBuffer,
-				contact->fromNode, contact->toNode,
+				contact->fromFqnn, contact->toFqnn,
 				contact->xmitRate, contact->confidence);
        		textLen = strlen(buffer);
 		if (write(briefingFile, buffer, textLen) < 0)
@@ -2269,7 +2269,7 @@ UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %lu %f\n", fromTimeBuffer, toTimeBuffer,
 	return;
 }
 
-void	rfx_contact_state(uvast nodeNbr, size_t *secRemaining, size_t *xmitRate)
+void	rfx_contact_state(uvast fqnn, size_t *secRemaining, size_t *xmitRate)
 {
 	int		regionIdx;
 	uint32_t	regionNbr;
@@ -2283,7 +2283,7 @@ void	rfx_contact_state(uvast nodeNbr, size_t *secRemaining, size_t *xmitRate)
 
 	*secRemaining = 0;		/*	Default.		*/
 	*xmitRate = ((size_t) -1);	/*	Default.		*/
-	regionIdx = ionRegionOf(getOwnNodeNbr(), nodeNbr, &regionNbr);
+	regionIdx = ionRegionOf(getOwnFqnn(), fqnn, &regionNbr);
 	if (regionIdx < 0)	/*	Node not in known contact plan.	*/
 	{
 		return;
@@ -2291,19 +2291,19 @@ void	rfx_contact_state(uvast nodeNbr, size_t *secRemaining, size_t *xmitRate)
 
 	memset((char *) &arg, 0, sizeof(IonCXref));
 	arg.regionNbr = regionNbr;
-	arg.fromNode = getOwnNodeNbr();
+	arg.fromFqnn = getOwnFqnn();
 	for (oK(sm_rbt_search(ionwm, ionvdb->contactIndex, rfx_order_contacts,
 			&arg, &elt)); elt; elt = sm_rbt_next(ionwm, elt))
 	{
 		contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, elt));
-		if (contact->fromNode > arg.fromNode)
+		if (contact->fromFqnn > arg.fromFqnn)
 		{
 			/*	No more candidate contacts.		*/
 
 			break;
 		}
 
-		if (contact->toNode != nodeNbr)
+		if (contact->toFqnn != fqnn)
 		{
 			continue;	/*	Wrong node.		*/
 		}
@@ -2357,8 +2357,8 @@ static PsmAddress	insertRXref(IonRXref *rxref)
 	/*	If the RXref already exists, just return its address.	*/
 
 	memset((char *) &arg, 0, sizeof(IonRXref));
-	arg.fromNode = rxref->fromNode;
-	arg.toNode = rxref->toNode;
+	arg.fromFqnn = rxref->fromFqnn;
+	arg.toFqnn = rxref->toFqnn;
 	arg.fromTime = rxref->fromTime;
 	rxelt = sm_rbt_search(ionwm, vdb->rangeIndex, rfx_order_ranges, &arg,
 			&nextElt);
@@ -2370,20 +2370,20 @@ static PsmAddress	insertRXref(IonRXref *rxref)
 
 	/*	New RXref, so load the affected nodes.			*/
 
-	node = findNode(vdb, rxref->toNode, &nextElt);
+	node = findNode(vdb, rxref->toFqnn, &nextElt);
 	if (node == NULL)
 	{
-		node = addNode(vdb, rxref->toNode);
+		node = addNode(vdb, rxref->toFqnn);
 		if (node == NULL)
 		{
 			return 0;
 		}
 	}
 
-	node = findNode(vdb, rxref->fromNode, &nextElt);
+	node = findNode(vdb, rxref->fromFqnn, &nextElt);
 	if (node == NULL)
 	{
-		node = addNode(vdb, rxref->fromNode);
+		node = addNode(vdb, rxref->fromFqnn);
 		if (node == NULL)
 		{
 			return 0;
@@ -2446,7 +2446,7 @@ static PsmAddress	insertRXref(IonRXref *rxref)
 		getCurrentTime(&(vdb->lastEditTime));
 	}
 
-	if (rxref->fromNode > rxref->toNode)
+	if (rxref->fromFqnn > rxref->toFqnn)
 	{
 		/*	This is a non-canonical range assertion,
 		 *	indicating an override of the normal
@@ -2461,8 +2461,8 @@ static PsmAddress	insertRXref(IonRXref *rxref)
 	 *	assertion as well.  Is the reverse range already
 	 *	asserted?						*/
 
-	arg.fromNode = rxref->toNode;
-	arg.toNode = rxref->fromNode;
+	arg.fromFqnn = rxref->toFqnn;
+	arg.toFqnn = rxref->fromFqnn;
 	arg.fromTime = rxref->fromTime;
 	rxelt = sm_rbt_search(ionwm, vdb->rangeIndex, rfx_order_ranges,
 			&arg, &nextElt);
@@ -2482,8 +2482,8 @@ static PsmAddress	insertRXref(IonRXref *rxref)
 	}
 
 	rxref2 = (IonRXref *) psp(ionwm, rxaddr2);
-	rxref2->fromNode = rxref->toNode;	/*	Reversed.	*/
-	rxref2->toNode = rxref->fromNode;	/*	Reversed.	*/
+	rxref2->fromFqnn = rxref->toFqnn;	/*	Reversed.	*/
+	rxref2->toFqnn = rxref->fromFqnn;	/*	Reversed.	*/
 	rxref2->fromTime = rxref->fromTime;
 	rxref2->toTime = rxref->toTime;
 	rxref2->owlt = rxref->owlt;
@@ -2536,8 +2536,8 @@ static PsmAddress	insertRXref(IonRXref *rxref)
 	return rxaddr;
 }
 
-int	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromNode,
-		uvast toNode, unsigned int owlt, PsmAddress *rxaddr,
+int	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromFqnn,
+		uvast toFqnn, unsigned int owlt, PsmAddress *rxaddr,
 		int announce)
 {
 	Sdr		sdr = getIonsdr();
@@ -2583,8 +2583,8 @@ int	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromNode,
 	}
 
 	CHKERR(toTime > fromTime);
-	CHKERR(fromNode);
-	CHKERR(toNode);
+	CHKERR(fromFqnn);
+	CHKERR(toFqnn);
 	CHKERR(rxaddr);
 	CHKERR(sdr_begin_xn(sdr));
 
@@ -2593,8 +2593,8 @@ int	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromNode,
 
 	*rxaddr = 0;
 	memset((char *) &arg1, 0, sizeof(IonRXref));
-	arg1.fromNode = fromNode;
-	arg1.toNode = toNode;
+	arg1.fromFqnn = fromFqnn;
+	arg1.toFqnn = toFqnn;
 	arg1.fromTime = fromTime;
 	arg1.toTime = toTime;
 	arg1.owlt = owlt;
@@ -2636,7 +2636,7 @@ int	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromNode,
 
 			isprintf(rangeIdString, sizeof rangeIdString,
 					"from %lu, %lu->%lu", fromTime,
-					fromNode, toNode);
+					fromFqnn, toFqnn);
 			if (rxref->owlt == owlt)
 			{
 				writeMemoNote("[?] This range is already \
@@ -2658,12 +2658,12 @@ asserted", rangeIdString);
 	{
 		prevElt = sm_rbt_prev(ionwm, nextElt);
 		rxref = (IonRXref *) psp(ionwm, sm_rbt_data(ionwm, nextElt));
-		if (fromNode == rxref->fromNode
-		&& toNode == rxref->toNode
+		if (fromFqnn == rxref->fromFqnn
+		&& toFqnn == rxref->toFqnn
 		&& toTime > rxref->fromTime)
 		{
 			writeMemoNote("[?] Overlapping end of range for node",
-					utoa(fromNode));
+					utoa(fromFqnn));
 			sdr_exit_xn(sdr);
 			return 3;
 		}
@@ -2676,12 +2676,12 @@ asserted", rangeIdString);
 	if (prevElt)
 	{
 		rxref = (IonRXref *) psp(ionwm, sm_rbt_data(ionwm, prevElt));
-		if (fromNode == rxref->fromNode
-		&& toNode == rxref->toNode
+		if (fromFqnn == rxref->fromFqnn
+		&& toFqnn == rxref->toFqnn
 		&& fromTime < rxref->toTime)
 		{
 			writeMemoNote("[?] Overlapping start of range for node",
-					utoa(fromNode));
+					utoa(fromFqnn));
 			sdr_exit_xn(sdr);
 			return 4;
 		}
@@ -2691,8 +2691,8 @@ asserted", rangeIdString);
 
 	range.fromTime = fromTime;
 	range.toTime = toTime;
-	range.fromNode = fromNode;
-	range.toNode = toNode;
+	range.fromFqnn = fromFqnn;
+	range.toFqnn = toFqnn;
 	range.owlt = owlt;
 	obj = sdr_malloc(sdr, sizeof(IonRange));
 	if (obj)
@@ -2714,7 +2714,7 @@ asserted", rangeIdString);
 				if (announce)
 				{
 					postCpsNotice(0, fromTime, toTime,
-						fromNode, toNode, owlt, 1.0);
+						fromFqnn, toFqnn, owlt, 1.0);
 				}
 			}
 		}
@@ -2742,8 +2742,8 @@ char	*rfx_print_range(PsmAddress rxaddr, char *buffer)
 	writeTimestampUTC(range->toTime, toTimeBuffer);
 	isprintf(buffer, RFX_NOTE_LEN, "From %20s to %20s the OWLT from \
 node " UVAST_FIELDSPEC " to node " UVAST_FIELDSPEC " is %10u seconds.",
-			fromTimeBuffer, toTimeBuffer, range->fromNode,
-			range->toNode, range->owlt);
+			fromTimeBuffer, toTimeBuffer, range->fromFqnn,
+			range->toFqnn, range->owlt);
 	return buffer;
 }
 
@@ -2808,18 +2808,18 @@ static void	deleteRange(PsmAddress rxaddr, int retainIfAsserted)
 
 	if (currentTime >= rxref->fromTime && currentTime <= rxref->toTime)
 	{
-		if (rxref->fromNode == getOwnNodeNbr())
+		if (rxref->fromFqnn == getOwnFqnn())
 		{
-			neighbor = findNeighbor(vdb, rxref->toNode, &nextElt);
+			neighbor = findNeighbor(vdb, rxref->toFqnn, &nextElt);
 			if (neighbor)
 			{
 				neighbor->owltOutbound = 0;
 			}
 		}
 
-		if (rxref->toNode == getOwnNodeNbr())
+		if (rxref->toFqnn == getOwnFqnn())
 		{
-			neighbor = findNeighbor(vdb, rxref->fromNode, &nextElt);
+			neighbor = findNeighbor(vdb, rxref->fromFqnn, &nextElt);
 			if (neighbor)
 			{
 				neighbor->owltInbound = 0;
@@ -2838,7 +2838,7 @@ static void	deleteRange(PsmAddress rxaddr, int retainIfAsserted)
 			rfx_erase_data, NULL);
 }
 
-static void	removeAllRanges(uvast fromNode, uvast toNode, IonRXref *arg,
+static void	removeAllRanges(uvast fromFqnn, uvast toFqnn, IonRXref *arg,
 			int retainIfAsserted, int announce)
 {
 	PsmPartition	ionwm = getIonwm();
@@ -2859,8 +2859,8 @@ static void	removeAllRanges(uvast fromNode, uvast toNode, IonRXref *arg,
 	{
 		rxaddr = sm_rbt_data(ionwm, rxelt);
 		rxref = (IonRXref *) psp(ionwm, rxaddr);
-		if (rxref->fromNode > fromNode
-		|| rxref->toNode > toNode)
+		if (rxref->fromFqnn > fromFqnn
+		|| rxref->toFqnn > toFqnn)
 		{
 			break;	/*	No more matches.		*/
 		}
@@ -2868,7 +2868,7 @@ static void	removeAllRanges(uvast fromNode, uvast toNode, IonRXref *arg,
 		nextElt = sm_rbt_next(ionwm, rxelt); 
 		if (announce)
 		{
-			postCpsNotice(0, rxref->fromTime, 0, fromNode, toNode,
+			postCpsNotice(0, rxref->fromTime, 0, fromFqnn, toFqnn,
 					0, 0.0);
 		}
 
@@ -2883,15 +2883,15 @@ static void	removeAllRanges(uvast fromNode, uvast toNode, IonRXref *arg,
 
 		rxaddr = sm_rbt_data(ionwm, nextElt);
 		rxref = (IonRXref *) psp(ionwm, rxaddr);
-		arg->fromNode = rxref->fromNode;
-		arg->toNode = rxref->toNode;
+		arg->fromFqnn = rxref->fromFqnn;
+		arg->toFqnn = rxref->toFqnn;
 		arg->fromTime = rxref->fromTime;
 		rxelt = sm_rbt_search(ionwm, vdb->rangeIndex, rfx_order_ranges,
 				arg, &nextElt);
 	}
 }
 
-int	rfx_remove_range(time_t *fromTime, uvast fromNode, uvast toNode,
+int	rfx_remove_range(time_t *fromTime, uvast fromFqnn, uvast toFqnn,
 		int announce)
 {
 	Sdr		sdr = getIonsdr();
@@ -2908,8 +2908,8 @@ int	rfx_remove_range(time_t *fromTime, uvast fromNode, uvast toNode,
 	 *	these two nodes".					*/
 
 	memset((char *) &arg, 0, sizeof(IonRXref));
-	arg.fromNode = fromNode;
-	arg.toNode = toNode;
+	arg.fromFqnn = fromFqnn;
+	arg.toFqnn = toFqnn;
 	CHKERR(sdr_begin_xn(sdr));
 	if (fromTime)		/*	Not a wild-card deletion.	*/
 	{
@@ -2921,7 +2921,7 @@ int	rfx_remove_range(time_t *fromTime, uvast fromNode, uvast toNode,
 			rxaddr = sm_rbt_data(ionwm, rxelt);
 			if (announce)
 			{
-				postCpsNotice(0, *fromTime, 0, fromNode, toNode,
+				postCpsNotice(0, *fromTime, 0, fromFqnn, toFqnn,
 						0, 0.0);
 			}
 
@@ -2930,10 +2930,10 @@ int	rfx_remove_range(time_t *fromTime, uvast fromNode, uvast toNode,
 	}
 	else		/*	Wild-card deletion, start at time zero.	*/
 	{
-		removeAllRanges(fromNode, toNode, &arg, 0, announce);
+		removeAllRanges(fromFqnn, toFqnn, &arg, 0, announce);
 	}
 
-	if (fromNode > toNode)
+	if (fromFqnn > toFqnn)
 	{
 		/*	This is either an imputed range or else
 		 *	a non-canonical range assertion,
@@ -2953,8 +2953,8 @@ int	rfx_remove_range(time_t *fromTime, uvast fromNode, uvast toNode,
 	/*	Canonical range assertion(s); delete corresponding
 	 *	imputed range(s) as well.				*/
 
-	arg.fromNode = toNode;	/*	Reverse direction.		*/
-	arg.toNode = fromNode;	/*	Reverse direction.		*/
+	arg.fromFqnn = toFqnn;	/*	Reverse direction.		*/
+	arg.toFqnn = fromFqnn;	/*	Reverse direction.		*/
 	if (fromTime)		/*	Not a wild-card deletion.	*/
 	{
 		arg.fromTime = *fromTime;
@@ -2965,8 +2965,8 @@ int	rfx_remove_range(time_t *fromTime, uvast fromNode, uvast toNode,
 			rxaddr = sm_rbt_data(ionwm, rxelt);
 			if (announce)
 			{
-				postCpsNotice(0, *fromTime, 0, fromNode,
-						toNode, 0, 0.0);
+				postCpsNotice(0, *fromTime, 0, fromFqnn,
+						toFqnn, 0, 0.0);
 			}
 
 			deleteRange(rxaddr, 1);
@@ -2974,7 +2974,7 @@ int	rfx_remove_range(time_t *fromTime, uvast fromNode, uvast toNode,
 	}
 	else		/*	Wild-card deletion, start at time zero.	*/
 	{
-		removeAllRanges(fromNode, toNode, &arg, 1, announce);
+		removeAllRanges(fromFqnn, toFqnn, &arg, 1, announce);
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -3023,7 +3023,7 @@ void	rfx_brief_ranges()
 		writeTimestampUTC(range->toTime, toTimeBuffer);
 		isprintf(buffer, sizeof buffer, "a range %20s %20s "
 UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %u\n", fromTimeBuffer, toTimeBuffer,
-				range->fromNode, range->toNode, range->owlt);
+				range->fromFqnn, range->toFqnn, range->owlt);
        		textLen = strlen(buffer);
 		if (write(briefingFile, buffer, textLen) < 0)
 		{
@@ -3178,8 +3178,8 @@ static int	loadRange(Object elt)
 
 	/*	Load range list entry.					*/
 
-	rxref.fromNode = range.fromNode;
-	rxref.toNode = range.toNode;
+	rxref.fromFqnn = range.fromFqnn;
+	rxref.toFqnn = range.toFqnn;
 	rxref.fromTime = range.fromTime;
 	rxref.toTime = range.toTime;
 	rxref.owlt = range.owlt;
@@ -3206,8 +3206,8 @@ static int	loadContact(Object elt, uint32_t regionNbr)
 
 	memset((char *) &cxref, 0, sizeof(IonCXref));
 	cxref.regionNbr = regionNbr;
-	cxref.fromNode = contact.fromNode;
-	cxref.toNode = contact.toNode;
+	cxref.fromFqnn = contact.fromFqnn;
+	cxref.toFqnn = contact.toFqnn;
 	cxref.fromTime = contact.fromTime;
 	cxref.toTime = contact.toTime;
 	cxref.xmitRate = contact.xmitRate;

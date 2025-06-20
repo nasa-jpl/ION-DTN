@@ -41,8 +41,8 @@ static void	shutDown(int signum)	/*	Stops rfxclock.	*/
 	oK(_running(&stop));	/*	Terminates rfxclock.		*/
 }
 
-static int	setProbeIsDue(unsigned long destNodeNbr,
-			unsigned long neighborNodeNbr)
+static int	setProbeIsDue(unsigned long destFqnn,
+			unsigned long neighborFqnn)
 {
 	IonNode		*node;
 	PsmAddress	nextElt;
@@ -50,7 +50,7 @@ static int	setProbeIsDue(unsigned long destNodeNbr,
 	PsmAddress	elt;
 	Embargo		*embargo;
 
-	node = findNode(getIonVdb(), destNodeNbr, &nextElt);
+	node = findNode(getIonVdb(), destFqnn, &nextElt);
 	if (node == NULL)
 	{
 		return 0;	/*	Weird, but let it go.		*/
@@ -62,7 +62,7 @@ static int	setProbeIsDue(unsigned long destNodeNbr,
 	{
 		embargo = (Embargo *) psp(ionwm, sm_list_data(ionwm, elt));
 		CHKERR(embargo);
-		if (embargo->nodeNbr == neighborNodeNbr)
+		if (embargo->fqnn == neighborFqnn)
 		{
 			embargo->probeIsDue = 1;
 			if (postProbeEvent(node, embargo) == 0)
@@ -104,14 +104,14 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		 *	this function.					*/
 
 		return rfx_remove_range(&(rxref->fromTime),
-				rxref->fromNode, rxref->toNode, 0);
+				rxref->fromFqnn, rxref->toFqnn, 0);
 
 	case IonStopXmit:
 		cxref = (IonCXref *) psp(ionwm, event->ref);
-		if (cxref->fromNode == getOwnNodeNbr()
+		if (cxref->fromFqnn == getOwnFqnn()
 		&& cxref->type != CtSuppressed)
 		{
-			neighbor = getNeighbor(vdb, cxref->toNode);
+			neighbor = getNeighbor(vdb, cxref->toFqnn);
 			CHKERR(neighbor);
 			neighbor->xmitRate = 0;
 			*forecastNeeded = 1;
@@ -123,10 +123,10 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 
 	case IonStopFire:
 		cxref = (IonCXref *) psp(ionwm, event->ref);
-		if (cxref->toNode == getOwnNodeNbr()
+		if (cxref->toFqnn == getOwnFqnn()
 		&& cxref->type != CtSuppressed)
 		{
-			neighbor = getNeighbor(vdb, cxref->fromNode);
+			neighbor = getNeighbor(vdb, cxref->fromFqnn);
 			CHKERR(neighbor);
 			neighbor->fireRate = 0;
 		}
@@ -137,10 +137,10 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 
 	case IonStopRecv:
 		cxref = (IonCXref *) psp(ionwm, event->ref);
-		if (cxref->toNode == getOwnNodeNbr()
+		if (cxref->toFqnn == getOwnFqnn()
 		&& cxref->type != CtSuppressed)
 		{
-			neighbor = getNeighbor(vdb, cxref->fromNode);
+			neighbor = getNeighbor(vdb, cxref->fromFqnn);
 			CHKERR(neighbor);
 			neighbor->recvRate = 0;
 			*forecastNeeded = 1;
@@ -153,18 +153,18 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 	case IonStartImputedRange:
 	case IonStartAssertedRange:
 		rxref = (IonRXref *) psp(ionwm, event->ref);
-		if (rxref->fromNode == getOwnNodeNbr())
+		if (rxref->fromFqnn == getOwnFqnn())
 		{
-			neighbor = getNeighbor(vdb, rxref->toNode);
+			neighbor = getNeighbor(vdb, rxref->toFqnn);
 			if (neighbor)
 			{
 				neighbor->owltOutbound = rxref->owlt;
 			}
 		}
 
-		if (rxref->toNode == getOwnNodeNbr())
+		if (rxref->toFqnn == getOwnFqnn())
 		{
-			neighbor = getNeighbor(vdb, rxref->fromNode);
+			neighbor = getNeighbor(vdb, rxref->fromFqnn);
 			if (neighbor)
 			{
 				neighbor->owltInbound = rxref->owlt;
@@ -177,10 +177,10 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 
 	case IonStartXmit:
 		cxref = (IonCXref *) psp(ionwm, event->ref);
-		if (cxref->fromNode == getOwnNodeNbr()
+		if (cxref->fromFqnn == getOwnFqnn()
 		&& cxref->type != CtSuppressed)
 		{
-			neighbor = getNeighbor(vdb, cxref->toNode);
+			neighbor = getNeighbor(vdb, cxref->toFqnn);
 			CHKERR(neighbor);
 			neighbor->xmitRate = cxref->xmitRate;
 			*forecastNeeded = 1;
@@ -192,9 +192,9 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 
 	case IonStartFire:
 		cxref = (IonCXref *) psp(ionwm, event->ref);
-		if (cxref->toNode == getOwnNodeNbr())
+		if (cxref->toFqnn == getOwnFqnn())
 		{
-			neighbor = getNeighbor(vdb, cxref->fromNode);
+			neighbor = getNeighbor(vdb, cxref->fromFqnn);
 			CHKERR(neighbor);
 			if (cxref->type != CtSuppressed)
 			{
@@ -286,10 +286,10 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 
 	case IonStartRecv:
 		cxref = (IonCXref *) psp(ionwm, event->ref);
-		if (cxref->toNode == getOwnNodeNbr()
+		if (cxref->toFqnn == getOwnFqnn()
 		&& cxref->type != CtSuppressed)
 		{
-			neighbor = getNeighbor(vdb, cxref->fromNode);
+			neighbor = getNeighbor(vdb, cxref->fromFqnn);
 			CHKERR(neighbor);
 			neighbor->recvRate = cxref->xmitRate;
 			*forecastNeeded = 1;
@@ -307,7 +307,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		 *	this function.					*/
 
 		return rfx_remove_contact(cxref->regionNbr, &(cxref->fromTime),
-				cxref->fromNode, cxref->toNode, 0);
+				cxref->fromFqnn, cxref->toFqnn, 0);
 
 	case IonAlarmTimeout:
 		alarmAddr = event->ref;
@@ -441,8 +441,8 @@ int	main(int argc, char *argv[])
 	PsmAddress	elt;
 	PsmAddress	addr;
 	IonProbe	*probe;
-	int		destNodeNbr;
-	int		neighborNodeNbr;
+	int		destFqnn;
+	int		neighborFqnn;
 	int		forecastNeeded;
 	IonEvent	*event;
 	int		i;
@@ -503,10 +503,10 @@ int	main(int argc, char *argv[])
 			/*	Destroy this probe and post the next.	*/
 
 			oK(sm_list_delete(ionwm, elt, NULL, NULL));
-			destNodeNbr = probe->destNodeNbr;
-			neighborNodeNbr = probe->neighborNodeNbr;
+			destFqnn = probe->destFqnn;
+			neighborFqnn = probe->neighborFqnn;
 			psm_free(ionwm, addr);
-			if (setProbeIsDue(destNodeNbr, neighborNodeNbr) < 0)
+			if (setProbeIsDue(destFqnn, neighborFqnn) < 0)
 			{
 				putErrmsg("Can't enable probes.", NULL);
 				sdr_cancel_xn(sdr);

@@ -315,15 +315,15 @@ static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
 	/*	This is a scheduled contact; need to know the OWLT.	*/
 
 	memset((char *) &arg, 0, sizeof(IonRXref));
-	arg.fromNode = contact->fromNode;
-	arg.toNode = contact->toNode;
+	arg.fromFqnn = contact->fromFqnn;
+	arg.toFqnn = contact->toFqnn;
 	for (oK(sm_rbt_search(ionwm, ionvdb->rangeIndex, rfx_order_ranges,
 			&arg, &elt)); elt; elt = sm_rbt_next(ionwm, elt))
 	{
 		range = (IonRXref *) psp(ionwm, sm_rbt_data(ionwm, elt));
 		CHKERR(range);
-		if (range->fromNode > arg.fromNode
-		|| range->toNode > arg.toNode)
+		if (range->fromFqnn > arg.fromFqnn
+		|| range->toFqnn > arg.toFqnn)
 		{
 			break;
 		}
@@ -458,7 +458,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	TRACE(CgrBeginRoute);
 	current = rootContact;
 	currentWork = rootWork;
-	oK(ionRegionOf(current->toNode, terminusNode->nodeNbr, &regionNbr));
+	oK(ionRegionOf(current->toFqnn, terminusNode->fqnn, &regionNbr));
 
 	/*	Perform this outer loop until either the best
 	 *	route to the end vertex has been identified or else
@@ -484,10 +484,10 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 		 *	best-case arrival time for a bundle that might
 		 *	be transmitted during that contact.		*/
 
-		TRACE(CgrConsiderRoot, current->fromNode, current->toNode);
+		TRACE(CgrConsiderRoot, current->fromFqnn, current->toFqnn);
 		memset((char *) &arg, 0, sizeof(IonCXref));
 		arg.regionNbr = regionNbr;
-		arg.fromNode = current->toNode;
+		arg.fromFqnn = current->toFqnn;
 		for (oK(sm_rbt_search(ionwm, ionvdb->contactIndex,
 				rfx_order_contacts, &arg, &elt));
 				elt; elt = sm_rbt_next(ionwm, elt))
@@ -507,19 +507,19 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 				continue;
 			}
 
-			/*	Note: contact->fromNode can't be less
-			 *	than current->toNode: we started at
+			/*	Note: contact->fromFqnn can't be less
+			 *	than current->toFqnn: we started at
 			 *	that node with sm_rbt_search.		*/
 
-			if (contact->fromNode > current->toNode)
+			if (contact->fromFqnn > current->toFqnn)
 			{
 				/*	No more relevant contacts.	*/
 
 				break;
 			}
 
-			TRACE(CgrConsiderContact, contact->fromNode,
-					contact->toNode);
+			TRACE(CgrConsiderContact, contact->fromFqnn,
+					contact->toFqnn);
 			CHKERR(work = getWorkArea(ionwm, contact));
 			if (work->suppressed)
 			{
@@ -713,7 +713,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 		current = nextCurrentContact;
 		currentWork = (CgrContactNote *)
 				psp(ionwm, current->routingObject);
-		if (current->toNode == terminusNode->nodeNbr)
+		if (current->toFqnn == terminusNode->fqnn)
 		{
 			earliestFinalArrivalTime = currentWork->arrivalTime;
 			finalContact = current;
@@ -757,7 +757,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 
 			route->arrivalConfidence *= contact->confidence;
 			addr = psa(ionwm, contact);
-			TRACE(CgrHop, contact->fromNode, contact->toNode);
+			TRACE(CgrHop, contact->fromFqnn, contact->toFqnn);
 			citation = sm_list_insert_first(ionwm, route->hops,
 					addr);
 
@@ -806,7 +806,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 		/*	Now use the first contact in the route to
 		 *	characterize the route.				*/
 
-		route->toNodeNbr = firstContact->toNode;
+		route->toFqnn = firstContact->toFqnn;
 		route->fromTime = firstContact->fromTime;
 		route->toTime = earliestEndTime;
 	}
@@ -833,7 +833,7 @@ static int	computeRoute(PsmPartition ionwm, PsmAddress rootContactElt,
 //puts("*** Starting at a waypoint of the last selected route. ***");
 		rootContact = (IonCXref *) psp(ionwm, sm_list_data(ionwm,
 				rootContactElt));
-		if (rootContact->toNode == terminusNode->nodeNbr)
+		if (rootContact->toFqnn == terminusNode->fqnn)
 		{
 			/*	No forwarding from destination.		*/
 
@@ -849,7 +849,7 @@ static int	computeRoute(PsmPartition ionwm, PsmAddress rootContactElt,
 //puts("*** Starting at root of contact graph. ***");
 
 		memset((char *) &graphRoot, 0, sizeof graphRoot);
-		graphRoot.fromNode = graphRoot.toNode = getOwnNodeNbr();
+		graphRoot.fromFqnn = graphRoot.toFqnn = getOwnFqnn();
 		rootContact = &graphRoot;
 		memset((char *) &graphRootWork, 0, sizeof graphRootWork);
 		graphRootWork.arrivalTime = currentTime;
@@ -883,7 +883,7 @@ static int	computeRoute(PsmPartition ionwm, PsmAddress rootContactElt,
 		return -1;
 	}
 
-	if (route->toNodeNbr == 0)
+	if (route->toFqnn == 0)
 	{
 		TRACE(CgrNoMoreRoutes);
 
@@ -899,7 +899,7 @@ static int	computeRoute(PsmPartition ionwm, PsmAddress rootContactElt,
 	}
 	else
 	{
-		TRACE(CgrProposeRoute, route->toNodeNbr,
+		TRACE(CgrProposeRoute, route->toFqnn,
 				(unsigned int)(route->fromTime),
 				(unsigned int)(route->arrivalTime));
 
@@ -1019,7 +1019,7 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 
 			work->arrivalTime = contact->fromTime + owlt;
 			work->suppressed = 1;
-//debugPrint("*** Suppressing contact to node " UVAST_FIELDSPEC " on root path. ***\n", contact->toNode);
+//debugPrint("*** Suppressing contact to node " UVAST_FIELDSPEC " on root path. ***\n", contact->toFqnn);
 			contactElt = sm_list_prev(ionwm, contactElt);
 		}
 	}
@@ -1084,7 +1084,7 @@ excluded edge.", NULL);
 						}
 
 //contact = (IonCXref *) psp(ionwm, contactAddr);
-//printf("*** Suppressing contact to node " UVAST_FIELDSPEC " after end of root path. ***\n", contact->toNode);
+//printf("*** Suppressing contact to node " UVAST_FIELDSPEC " after end of root path. ***\n", contact->toFqnn);
 					}
 				}
 
@@ -1158,7 +1158,7 @@ excluded edge.", NULL);
 //puts("*** Prepending a contact from trunk to spur route. ***");
 		contactAddr = sm_list_data(ionwm, contactElt);
 		contact = (IonCXref *) psp(ionwm, contactAddr);
-		TRACE(CgrHop, contact->fromNode, contact->toNode);
+		TRACE(CgrHop, contact->fromFqnn, contact->toFqnn);
 		if (sm_list_insert_first(ionwm, newRoute->hops, contactAddr)
 				== 0)
 		{
@@ -1176,7 +1176,7 @@ excluded edge.", NULL);
 
 	if (contact)
 	{
-		route->toNodeNbr = contact->toNode;
+		route->toFqnn = contact->toFqnn;
 		route->fromTime = contact->fromTime;
 	}
 
@@ -1321,13 +1321,13 @@ static int	computeAnotherRoute(IonNode *terminusNode,
 
 /*	Functions for selecting which node(s) to forward a bundle to.	*/
 
-static int	isExcluded(uvast nodeNbr, Lyst excludedNodes)
+static int	isExcluded(uvast fqnn, Lyst excludedNodes)
 {
 	LystElt	elt;
 
 	for (elt = lyst_first(excludedNodes); elt; elt = lyst_next(elt))
 	{
-		if (((uaddr) lyst_data(elt)) == nodeNbr)
+		if (((uaddr) lyst_data(elt)) == fqnn)
 		{
 			return 1;	/*	Node is in the list.	*/
 		}
@@ -1342,7 +1342,7 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
-	uvast		ownNodeNbr = getOwnNodeNbr();
+	uvast		ownNodeNbr = getOwnFqnn();
 	Scalar		priorClaims;
 	Scalar		totalBacklog;
 	IonCXref	arg;
@@ -1383,15 +1383,15 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 	loadScalar(&allotment, 0);
 	loadScalar(&volume, 0);
 	memset((char *) &arg, 0, sizeof(IonCXref));
-	oK(ionRegionOf(ownNodeNbr, route->toNodeNbr, &arg.regionNbr));
-	arg.fromNode = ownNodeNbr;
-	arg.toNode = route->toNodeNbr;
+	oK(ionRegionOf(ownNodeNbr, route->toFqnn, &arg.regionNbr));
+	arg.fromFqnn = ownNodeNbr;
+	arg.toFqnn = route->toFqnn;
 	for (oK(sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
 			&arg, &elt)); elt; elt = sm_rbt_next(ionwm, elt))
 	{
 		contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, elt));
-		if (contact->fromNode > ownNodeNbr
-		|| contact->toNode > route->toNodeNbr
+		if (contact->fromFqnn > ownNodeNbr
+		|| contact->toFqnn > route->toFqnn
 		|| contact->fromTime > route->fromTime)
 		{
 			/*	The first contact on this route no
@@ -1740,7 +1740,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	CgrRoute	*candidateRoute;
 
 	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0",
-			route->toNodeNbr);
+			route->toFqnn);
 	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)
 	{
@@ -1843,8 +1843,8 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 				}
 				else	/*	Same termination time.	*/
 				{
-					if (candidateRoute->toNodeNbr <
-							route->toNodeNbr)
+					if (candidateRoute->toFqnn <
+							route->toFqnn)
 					{
 						/*	Current better.	*/
 
@@ -2004,7 +2004,7 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 		return 1;
 	}
 
-	TRACE(CgrCheckRoute, route->toNodeNbr, (unsigned int)(route->fromTime),
+	TRACE(CgrCheckRoute, route->toFqnn, (unsigned int)(route->fromTime),
 			(unsigned int)(route->arrivalTime));
 	if (route->toTime <= currentTime)
 	{
@@ -2054,7 +2054,7 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 
 	if (viaNodeNbr)	/*	Looking for route via this node.	*/
 	{
-		if (route->toNodeNbr != viaNodeNbr)
+		if (route->toFqnn != viaNodeNbr)
 		{
 			TRACE(CgrWrongViaNode);
 			*elt = nextElt;
@@ -2085,11 +2085,11 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 	/*	Never route to self unless self is the final
 	 *	destination.						*/
 
-	if (route->toNodeNbr == getOwnNodeNbr())
+	if (route->toFqnn == getOwnFqnn())
 	{
 		/*	Okay if and only if self is the destination.	*/
 
-		if (route->toNodeNbr != terminusNode->nodeNbr)
+		if (route->toFqnn != terminusNode->fqnn)
 		{
 			/*	Can't route to a remote node via self
 			 *	-- would be a routing loop.		*/
@@ -2103,7 +2103,7 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 	/*	Is the neighbor that receives bundles during this
 	 *	route's initial contact excluded for any reason?	*/
 
-	if (isExcluded(route->toNodeNbr, excludedNodes))
+	if (isExcluded(route->toFqnn, excludedNodes))
 	{
 		TRACE(CgrExcludeRoute, CgrInitialContactExcluded);
 		*elt = nextElt;
@@ -2171,7 +2171,7 @@ static int	loadBestRoutesList(IonNode *terminusNode, uvast viaNodeNbr,
 
 		default:
 			putErrmsg("Failed checking route to node.",
-					utoa(terminusNode->nodeNbr));
+					utoa(terminusNode->fqnn));
 			return -1;
 		}
 	}
@@ -2183,12 +2183,12 @@ static int	loadCriticalBestRoutesList(IonNode *terminusNode,
 			CgrRtgObject *routingObj)
 {
 	PsmPartition	ionwm = getIonwm();
-	uvast		ownNodeNbr = getOwnNodeNbr();
+	uvast		ownNodeNbr = getOwnFqnn();
 	IonVdb		*ionvdb = getIonVdb();
 	PsmAddress	elt;
 	IonCXref	*contact;
 	PsmAddress	elt2;
-	uvast		nodeNbr;
+	uvast		fqnn;
 	Lyst		routes;
 
 	if (routingObj->proximateNodes == 0)
@@ -2197,7 +2197,7 @@ static int	loadCriticalBestRoutesList(IonNode *terminusNode,
 		if (routingObj->proximateNodes == 0)
 		{
 			putErrmsg("Can't build list of proximate nodes.",
-					utoa(terminusNode->nodeNbr));
+					utoa(terminusNode->fqnn));
 			return -1;
 		}
 
@@ -2216,7 +2216,7 @@ static int	loadCriticalBestRoutesList(IonNode *terminusNode,
 		{
 			contact = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm,
 						elt));
-			if (contact->fromNode != ownNodeNbr)
+			if (contact->fromFqnn != ownNodeNbr)
 			{
 				continue;
 			}
@@ -2233,8 +2233,8 @@ static int	loadCriticalBestRoutesList(IonNode *terminusNode,
 					routingObj->proximateNodes); elt2;
 				       	elt2 = sm_list_next(ionwm, elt2))
 			{
-				nodeNbr = (uvast) sm_list_data(ionwm, elt2);
-				if (nodeNbr < contact->toNode)
+				fqnn = (uvast) sm_list_data(ionwm, elt2);
+				if (fqnn < contact->toFqnn)
 				{
 					continue;
 				}
@@ -2246,17 +2246,17 @@ static int	loadCriticalBestRoutesList(IonNode *terminusNode,
 			{
 				if (sm_list_insert_last(ionwm,
 					routingObj->proximateNodes,
-					(PsmAddress) (contact->toNode)) == 0)
+					(PsmAddress) (contact->toFqnn)) == 0)
 				{
 					putErrmsg("Can't insert prox node.",
-						utoa(terminusNode->nodeNbr));
+						utoa(terminusNode->fqnn));
 					return -1;
 				}
 
 				continue;	/*	Next contact.	*/
 			}
 
-			if (nodeNbr == contact->toNode)
+			if (fqnn == contact->toFqnn)
 			{
 				/*	Prox node is already in list.	*/
 
@@ -2266,10 +2266,10 @@ static int	loadCriticalBestRoutesList(IonNode *terminusNode,
 			/*	This node number must be inserted here.	*/
 
 			if (sm_list_insert_before(ionwm, elt2,
-					(PsmAddress) (contact->toNode)) == 0)
+					(PsmAddress) (contact->toFqnn)) == 0)
 			{
 				putErrmsg("Can't insert prox node.",
-						utoa(terminusNode->nodeNbr));
+						utoa(terminusNode->fqnn));
 				return -1;
 			}
 		}
@@ -2283,20 +2283,20 @@ static int	loadCriticalBestRoutesList(IonNode *terminusNode,
 	if (routes == NULL)
 	{
 		putErrmsg("Can't create routes list.",
-				utoa(terminusNode->nodeNbr));
+				utoa(terminusNode->fqnn));
 		return -1;
 	}
 
 	for (elt2 = sm_list_first(ionwm, routingObj->proximateNodes); elt2;
 			elt2 = sm_list_next(ionwm, elt2))
 	{
-		nodeNbr = (uvast) sm_list_data(ionwm, elt2);
-		if (loadBestRoutesList(terminusNode, nodeNbr, bundle,
+		fqnn = (uvast) sm_list_data(ionwm, elt2);
+		if (loadBestRoutesList(terminusNode, fqnn, bundle,
 				excludedNodes, trace, routes, currentTime,
 				deadline, routingObj) < 0)
 		{
 			putErrmsg("Can't find best route via node.",
-					utoa(nodeNbr));
+					utoa(fqnn));
 			return -1;
 		}
 
@@ -2310,7 +2310,7 @@ static int	loadCriticalBestRoutesList(IonNode *terminusNode,
 					lyst_data(lyst_last(routes))) == NULL)
 			{
 				putErrmsg("Can't insert best route via node.",
-						utoa(nodeNbr));
+						utoa(fqnn));
 				return -1;
 			}
 
@@ -2400,7 +2400,7 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 				currentTime, deadline, routingObj) < 0)
 		{
 			putErrmsg("Can't find all best routes to destination.",
-					utoa(terminusNode->nodeNbr));
+					utoa(terminusNode->fqnn));
 			return -1;
 		}
 	}
@@ -2411,7 +2411,7 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 				currentTime, deadline, routingObj) < 0)
 		{
 			putErrmsg("Can't find best route to destination.",
-					utoa(terminusNode->nodeNbr));
+					utoa(terminusNode->fqnn));
 			return -1;
 		}
 	}
@@ -2569,14 +2569,14 @@ const char	*cgr_tracepoint_text(CgrTraceType traceType)
 	[CgrInvalidTerminusNode] = "    INVALID terminus node",
 
 	[CgrBeginRoute] = "  ROUTE",
-	[CgrConsiderRoot] = "    ROOT fromNode:" UVAST_FIELDSPEC
-		" toNode:" UVAST_FIELDSPEC,
-	[CgrConsiderContact] = "      CONTACT fromNode:" UVAST_FIELDSPEC
-		" toNode:" UVAST_FIELDSPEC,
+	[CgrConsiderRoot] = "    ROOT fromFqnn:" UVAST_FIELDSPEC
+		" toFqnn:" UVAST_FIELDSPEC,
+	[CgrConsiderContact] = "      CONTACT fromFqnn:" UVAST_FIELDSPEC
+		" toFqnn:" UVAST_FIELDSPEC,
 	[CgrIgnoreContact] = "        IGNORE",
 
 	[CgrCost] = "        COST transmitTime:%u owlt:%u arrivalTime:%u",
-	[CgrHop] = "    HOP fromNode:" UVAST_FIELDSPEC " toNode:"
+	[CgrHop] = "    HOP fromFqnn:" UVAST_FIELDSPEC " toFqnn:"
 		UVAST_FIELDSPEC,
 
 	[CgrProposeRoute] = "    PROPOSE firstHop to:" UVAST_FIELDSPEC

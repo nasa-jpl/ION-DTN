@@ -20,8 +20,8 @@
 #define IMAGE_FILENAME    "route.svg.base64"
 
 typedef struct {
-	uvast fromNode;
-	uvast toNode;
+	uvast fromFqnn;
+	uvast toFqnn;
 } Hop;
 
 typedef struct {
@@ -178,8 +178,8 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 	case CgrHop:
 		// Create a new hop and add to the current route.
 		hop = MTAKE(sizeof(Hop));
-		hop->fromNode = va_arg(args, uvast);
-		hop->toNode = va_arg(args, uvast);
+		hop->fromFqnn = va_arg(args, uvast);
+		hop->toFqnn = va_arg(args, uvast);
 
 		// Hops are traced from destination node to local node, so
 		// insert in reverse order.
@@ -329,8 +329,8 @@ static int contactIsHop(const IonCXref *contact, Route *route)
 	{
 		hop = lyst_data(hopElt);
 
-		if (contact->fromNode == hop->fromNode &&
-		    contact->toNode == hop->toNode)
+		if (contact->fromFqnn == hop->fromFqnn &&
+		    contact->toFqnn == hop->toFqnn)
 		{
 			return 1;
 		}
@@ -350,8 +350,8 @@ static IonRXref *findRange(const IonCXref *contact)
 	static IonRXref discovery;
 
 	IonRXref arg = {
-		.fromNode = contact->fromNode,
-		.toNode = contact->toNode,
+		.fromFqnn = contact->fromFqnn,
+		.toFqnn = contact->toFqnn,
 	};
 
 	if (contact->type == CtDiscovered || contact->confidence < 1.0)
@@ -366,8 +366,8 @@ static IonRXref *findRange(const IonCXref *contact)
 	{
 		range = psp(ionwm, sm_rbt_data(ionwm, rangeElt));
 
-		if (range->fromNode > contact->fromNode
-		|| range->toNode > contact->toNode)
+		if (range->fromFqnn > contact->fromFqnn
+		|| range->toFqnn > contact->toFqnn)
 		{
 			break;
 		}
@@ -417,7 +417,7 @@ static void output_json(Lyst routes, time_t dispatchTime,
 
 	ionwm = getIonwm();
 	ionvdb = getIonVdb();
-	localNode = getOwnNodeNbr();
+	localNode = getOwnFqnn();
 
 	fprintf(outputFile,
 		"{"
@@ -481,7 +481,7 @@ static void output_json(Lyst routes, time_t dispatchTime,
 			fprintf(f,
 				UVAST_FIELDSPEC " -> " UVAST_FIELDSPEC
 				,
-				contact->fromNode, contact->toNode);
+				contact->fromFqnn, contact->toFqnn);
 
 			if (contact->fromTime > route->deliveryTime ||
 			    contact->toTime < route->fromTime)
@@ -566,7 +566,7 @@ static void run_cgrfetch(void)
 
 	Lyst routes;
 
-	localNode = getOwnNodeNbr();
+	localNode = getOwnFqnn();
 
 	nowTime = time(NULL);
 	dispatchTime = nowTime + dispatchOffset;
@@ -582,7 +582,7 @@ static void run_cgrfetch(void)
 		},
 		.returnToSender = 0,
 		.clDossier = {
-			.senderNodeNbr = localNode,
+			.senderFqnn = localNode,
 		},
 		.expirationTime = expirationTime,
 		.extensionsLength = 0,

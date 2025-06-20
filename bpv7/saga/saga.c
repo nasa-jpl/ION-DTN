@@ -27,8 +27,8 @@ typedef struct
 {
 	uvast	duration;
 	uvast	capacity;
-	uvast	fromNode;
-	uvast	toNode;
+	uvast	fromFqnn;
+	uvast	toFqnn;
 	time_t	fromTime;
 	time_t	toTime;
 	size_t	xmitRate;
@@ -62,7 +62,7 @@ static int	removePredictedContacts(int regionIdx)
 		/*	This is a predicted contact.		*/
 
 		if (rfx_remove_contact(regionNbr, &contact.fromTime,
-				contact.fromNode, contact.toNode, 0) < 0)
+				contact.fromFqnn, contact.toFqnn, 0) < 0)
 		{
 			putErrmsg("Failure in rfx_remove_contact.", NULL);
 			break;
@@ -101,7 +101,7 @@ writeTimestampLocal(encounter->fromTime, buf1);
 writeTimestampLocal(encounter->toTime, buf2);
 printf("Inserting contact into prediction base, from "
 UVAST_FIELDSPEC " to " UVAST_FIELDSPEC ", start %s, stop %s.\n",
-encounter->fromNode, encounter->toNode, buf1, buf2);
+encounter->fromFqnn, encounter->toFqnn, buf1, buf2);
 #endif
 	duration = encounter.toTime - encounter.fromTime;
 	if (duration <= 0 || encounter.xmitRate == 0)
@@ -115,22 +115,22 @@ encounter->fromNode, encounter->toNode, buf1, buf2);
 	for (pbElt = lyst_first(pb); pbElt; pbElt = lyst_next(pbElt))
 	{
 		contact = (PbContact *) lyst_data(pbElt);
-		if (contact->fromNode < encounter.fromNode)
+		if (contact->fromFqnn < encounter.fromFqnn)
 		{
 			continue;
 		}
 
-		if (contact->fromNode > encounter.fromNode)
+		if (contact->fromFqnn > encounter.fromFqnn)
 		{
 			break;
 		}
 
-		if (contact->toNode < encounter.toNode)
+		if (contact->toFqnn < encounter.toFqnn)
 		{
 			continue;
 		}
 
-		if (contact->toNode > encounter.toNode)
+		if (contact->toFqnn > encounter.toFqnn)
 		{
 			break;
 		}
@@ -165,8 +165,8 @@ encounter->fromNode, encounter->toNode, buf1, buf2);
 
 	contact->duration = duration;
 	contact->capacity = duration * encounter.xmitRate;
-	contact->fromNode = encounter.fromNode;
-	contact->toNode = encounter.toNode;
+	contact->fromFqnn = encounter.fromFqnn;
+	contact->toFqnn = encounter.toFqnn;
 	contact->fromTime = encounter.fromTime;
 	contact->toTime = encounter.toTime;
 	contact->xmitRate = encounter.xmitRate;
@@ -233,8 +233,8 @@ static int	processSequence(LystElt start, LystElt end, time_t currentTime,
 	BpDB		db;
 	Object		iondbObj = getIonDbObject();
 	IonDB		iondb;
-	uvast		fromNode;
-	uvast		toNode;
+	uvast		fromFqnn;
+	uvast		toFqnn;
 	time_t		horizon;
 	LystElt		elt;
 	PbContact	*contact;
@@ -277,8 +277,8 @@ char	buf[255];
 
 	sdr_read(sdr, (char *) &db, dbobj, sizeof(BpDB));
 	contact = (PbContact *) lyst_data(start);
-	fromNode = contact->fromNode;
-	toNode = contact->toNode;
+	fromFqnn = contact->fromFqnn;
+	toFqnn = contact->toFqnn;
 	horizon = currentTime + (currentTime - contact->fromTime);
 #ifdef SAGA_DEBUG
 writeTimestampLocal(currentTime, buf);
@@ -428,7 +428,7 @@ printf("Net confidence %f.\n", netConfidence);
 	if (xmitRate > 1)
 	{
 		if (rfx_insert_contact(iondb.regions[regionIdx].regionNbr,
-				horizon, horizon, fromNode, toNode,
+				horizon, horizon, fromFqnn, toFqnn,
 				xmitRate, netConfidence, &cxaddr, 0) < 0
 		|| cxaddr == 0)
 		{
@@ -448,8 +448,8 @@ static int	predictContacts(int idx)
 	PbContact	*contact;
 	LystElt		startOfSequence = NULL;
 	LystElt	 	endOfSequence = NULL;
-	uvast		sequenceFromNode = 0;
-	uvast		sequenceToNode = 0;
+	uvast		sequenceFromFqnn = 0;
+	uvast		sequenceToFqnn = 0;
 	int		result = 0;
 
 	/*	First, construct a prediction base from the current
@@ -470,8 +470,8 @@ static int	predictContacts(int idx)
 	for (elt = lyst_first(predictionBase); elt; elt = lyst_next(elt))
 	{
 		contact = (PbContact *) lyst_data(elt);
-		if (contact->fromNode > sequenceFromNode
-		|| contact->toNode > sequenceToNode)
+		if (contact->fromFqnn > sequenceFromFqnn
+		|| contact->toFqnn > sequenceToFqnn)
 		{
 			if (processSequence(startOfSequence, endOfSequence,
 					currentTime, idx) < 0)
@@ -483,8 +483,8 @@ static int	predictContacts(int idx)
 
 			/*	Note start of new sequence.		*/
 
-			sequenceFromNode = contact->fromNode;
-			sequenceToNode = contact->toNode;
+			sequenceFromFqnn = contact->fromFqnn;
+			sequenceToFqnn = contact->toFqnn;
 			startOfSequence = elt;
 		}
 
@@ -508,8 +508,8 @@ static int	predictContacts(int idx)
 
 /*	*	Saga management functions	*	*	*	*/
 
-void	saga_insert(time_t fromTime, time_t toTime, uvast fromNode,
-		uvast toNode, size_t xmitRate, int idx)
+void	saga_insert(time_t fromTime, time_t toTime, uvast fromFqnn,
+		uvast toFqnn, size_t xmitRate, int idx)
 {
 	Sdr		sdr = getIonsdr();
 	Object		dbobj = getBpDbObject();
@@ -525,7 +525,7 @@ writeTimestampLocal(fromTime, buf1);
 writeTimestampLocal(toTime, buf2);
 printf("Inserting new encounter into saga, from "
 UVAST_FIELDSPEC " to " UVAST_FIELDSPEC ", start %s, stop %s.\n",
-fromNode, toNode, buf1, buf2);
+fromFqnn, toFqnn, buf1, buf2);
 #endif
 	/*	Saga is not sorted in any way and might contain
 	 *	duplicate encounters.  Construction of the
@@ -540,8 +540,8 @@ fromNode, toNode, buf1, buf2);
 	saga = db.saga[idx];
 	encounter.fromTime = fromTime;
 	encounter.toTime = toTime;
-	encounter.fromNode = fromNode;
-	encounter.toNode = toNode;
+	encounter.fromFqnn = fromFqnn;
+	encounter.toFqnn = toFqnn;
 	encounter.xmitRate = xmitRate;
 	encounterObj = sdr_malloc(sdr, sizeof(Encounter));
 	if (encounterObj)
@@ -573,7 +573,7 @@ int	saga_ingest(int regionIdx)
 	return 0;
 }
 
-int	saga_send(uvast destinationNodeNbr, int regionIdx)
+int	saga_send(uvast destinationFqnn, int regionIdx)
 {
 	Sdr		sdr = getIonsdr();
 	BpDB		*bpConstants = getBpConstants();
@@ -597,10 +597,10 @@ int	saga_send(uvast destinationNodeNbr, int regionIdx)
 	Object		aduZco;
 
 	isprintf(ownEid, sizeof(ownEid), "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
+			getOwnFqnn());
 	oK(parseEidString(ownEid, &ownMetaEid, &vscheme, &vschemeElt));
 	isprintf(destEid, sizeof(destEid), "ipn:" UVAST_FIELDSPEC ".0",
-			destinationNodeNbr);
+			destinationFqnn);
 
 	/*	Set cutoff to current time minus 30 days.		*/
 
@@ -667,9 +667,9 @@ int	saga_send(uvast destinationNodeNbr, int regionIdx)
 
 		uvtemp = 5;
 		oK(cbor_encode_array_open(uvtemp, &cursor));
-		uvtemp = encounter.fromNode;
+		uvtemp = encounter.fromFqnn;
 		oK(cbor_encode_integer(uvtemp, &cursor));
-		uvtemp = encounter.toNode;
+		uvtemp = encounter.toFqnn;
 		oK(cbor_encode_integer(uvtemp, &cursor));
 		uvtemp = encounter.fromTime;
 		oK(cbor_encode_integer(uvtemp, &cursor));
@@ -737,8 +737,8 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 	int		additionalInfo;
 	time_t		fromTime;
 	time_t		toTime;
-	uvast		fromNode;
-	uvast		toNode;
+	uvast		fromFqnn;
+	uvast		toFqnn;
 	size_t		xmitRate;
 	BpDB		*bpConstants = getBpConstants();
 	Object		bundleElt;
@@ -812,19 +812,19 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
 				&unparsedBytes) < 0)
 		{
-			writeMemo("[?] Can't decode encounter fromNode.");
+			writeMemo("[?] Can't decode encounter fromFqnn.");
 			return 0;
 		}
 
-		fromNode = uvtemp;
+		fromFqnn = uvtemp;
 		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
 				&unparsedBytes) < 0)
 		{
-			writeMemo("[?] Can't decode encounter toNode.");
+			writeMemo("[?] Can't decode encounter toFqnn.");
 			return 0;
 		}
 
-		toNode = uvtemp;
+		toFqnn = uvtemp;
 		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
 				&unparsedBytes) < 0)
 		{
@@ -833,7 +833,7 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 		}
 
 		xmitRate = uvtemp;
-		saga_insert(fromTime, toTime, fromNode, toNode, xmitRate,
+		saga_insert(fromTime, toTime, fromFqnn, toFqnn, xmitRate,
 				regionIdx);
 	}
 

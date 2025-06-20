@@ -40,8 +40,8 @@ extern void	rfx_erase_data(PsmPartition partition, PsmAddress nodeData,
 extern int		rfx_insert_contact(uint32_t regionNbr,
 				time_t fromTime,
 				time_t toTime,
-				uvast fromNode,
-				uvast toNode,
+				uvast fromFqnn,
+				uvast toFqnn,
 				size_t xmitRate,
 				float confidence,
 				PsmAddress *cxaddr,
@@ -87,8 +87,8 @@ extern void		rfx_brief_contacts(uint32_t regionNbr);
 
 extern int		rfx_revise_contact(uint32_t regionNbr,
 				time_t fromTime,
-				uvast fromNode,
-				uvast toNode,
+				uvast fromFqnn,
+				uvast toFqnn,
 				size_t xmitRate,
 				float confidence,
 				int announce);
@@ -101,8 +101,8 @@ extern int		rfx_revise_contact(uint32_t regionNbr,
 
 extern int		rfx_remove_contact(uint32_t regionNbr,
 				time_t *fromTime,
-				uvast fromNode,
-				uvast toNode,
+				uvast fromFqnn,
+				uvast toFqnn,
 				int announce);
 			/*	Removes the indicated IonContact
 				object from the time-ordered contacts
@@ -116,8 +116,8 @@ extern int		rfx_remove_contact(uint32_t regionNbr,
 
 extern int		rfx_insert_range(time_t fromTime,
 				time_t toTime,
-				uvast fromNode,
-				uvast toNode,
+				uvast fromFqnn,
+				uvast toFqnn,
 				unsigned int owlt,
 				PsmAddress *rxaddr,
 				int announce);
@@ -150,8 +150,8 @@ extern void		rfx_brief_ranges();
 			 *	The file's name will be 'ranges.ionrc'.	*/
 
 extern int		rfx_remove_range(time_t *fromTime,
-				uvast fromNode,
-				uvast toNode,
+				uvast fromFqnn,
+				uvast toFqnn,
 				int announce);
 			/*	Removes the indicated IonRange
 				object from the time-ordered ranges
@@ -191,24 +191,24 @@ extern void		rfx_stop();
 
 /*	*	Additional database management functions.		*/
 
-extern void		rfx_contact_state(uvast nodeNbr, size_t *secRemaining,
+extern void		rfx_contact_state(uvast fqnn, size_t *secRemaining,
 				size_t *xmitRate);
 
-extern IonNeighbor	*findNeighbor(IonVdb *ionvdb, uvast nodeNbr,
+extern IonNeighbor	*findNeighbor(IonVdb *ionvdb, uvast fqnn,
 				PsmAddress *nextElt);
 
-extern IonNeighbor	*addNeighbor(IonVdb *ionvdb, uvast nodeNbr);
+extern IonNeighbor	*addNeighbor(IonVdb *ionvdb, uvast fqnn);
 
-extern IonNeighbor	*getNeighbor(IonVdb *ionvdb, uvast nodeNbr);
+extern IonNeighbor	*getNeighbor(IonVdb *ionvdb, uvast fqnn);
 
-extern IonNode		*findNode(IonVdb *ionvdb, uvast nodeNbr,
+extern IonNode		*findNode(IonVdb *ionvdb, uvast fqnn,
 				PsmAddress *nextElt);
 
-extern IonNode		*addNode(IonVdb *ionvdb, uvast nodeNbr);
+extern IonNode		*addNode(IonVdb *ionvdb, uvast fqnn);
 
-extern int		addEmbargo(IonNode *node, uvast neighborNodeNbr);
+extern int		addEmbargo(IonNode *node, uvast neighborFqnn);
 
-extern void		removeEmbargo(IonNode *node, uvast neighborNodeNbr);
+extern void		removeEmbargo(IonNode *node, uvast neighborFqnn);
 
 extern PsmAddress	postProbeEvent(IonNode *node, Embargo *embargo);
 

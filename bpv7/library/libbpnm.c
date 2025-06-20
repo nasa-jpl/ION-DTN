@@ -200,7 +200,7 @@ void	bpnm_node_get(NmbpNode *buf)
 
 	CHKVOID(buf);
 	isprintf(buf->nodeID, sizeof buf->nodeID, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
+			getOwnFqnn());
 	isprintf(buf->bpVersionNbr, sizeof buf->bpVersionNbr, "%d", BP_VERSION);
 	CHKVOID(sdr_begin_xn(sdr));
 	buf->avblStorage =

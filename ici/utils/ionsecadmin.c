@@ -295,7 +295,7 @@ static void	printPubKey(Object keyAddr)
 	}
 
 	isprintf(buf, sizeof buf, "node " UVAST_FIELDSPEC " effective %s \
-asserted %s data length %d data %s", key->nodeNbr, effectiveTime, assertionTime,
+asserted %s data length %d data %s", key->fqnn, effectiveTime, assertionTime,
 			key->length, datValueDisplay);
 	printText(buf);
 }

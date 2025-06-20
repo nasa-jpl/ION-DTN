@@ -136,7 +136,7 @@ static void	manageAuthority(int tokenCount, char **tokens)
 	Sdr		sdr = getIonsdr();
 	Object		dbobj = getTccDBObj(_blocksGroupNbr(NULL));
 	int		idx;
-	uvast		nodeNbr;
+	uvast		fqnn;
 	TccDB		db;
 	int		i;
 	Object		elt;
@@ -150,8 +150,8 @@ static void	manageAuthority(int tokenCount, char **tokens)
 	}
 
 	idx = atoi(tokens[2]);
-	nodeNbr = strtouvast(tokens[3]);
-	if (nodeNbr < 1)
+	fqnn = strtouvast(tokens[3]);
+	if (fqnn < 1)
 	{
 		putErrmsg("authority node number invalid.", tokens[3]);
 		return;
@@ -177,7 +177,7 @@ static void	manageAuthority(int tokenCount, char **tokens)
 
 	authObj = sdr_list_data(sdr, elt);
 	sdr_stage(sdr, (char *) &auth, authObj, sizeof(TccAuthority));
-	auth.nodeNbr = nodeNbr;
+	auth.fqnn = fqnn;
 	sdr_write(sdr, authObj, (char *) &auth, sizeof(TccAuthority));
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -222,7 +222,7 @@ static void	executeInfo()
 		authObj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char  *) &auth, authObj, sizeof(TccAuthority));
 		isprintf(buffer, sizeof buffer, "\t%d\t" UVAST_FIELDSPEC, i,
-				auth.nodeNbr);
+				auth.fqnn);
 		printText(buffer);
 	}
 

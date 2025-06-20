@@ -21,7 +21,7 @@ extern "C" {
 
 typedef struct
 {
-	uvast		nodeNbr;
+	uvast		fqnn;
 	time_t		effectiveTime;
 	Object		acknowledged;		/*	array of char	*/
 	time_t		assertionTime;
@@ -33,7 +33,7 @@ typedef struct
 
 typedef struct
 {
-	uvast		nodeNbr;
+	uvast		fqnn;
 	unsigned int	inService;	/*	Boolean.		*/
 } TcaAuthority;
 

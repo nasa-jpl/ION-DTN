@@ -290,10 +290,10 @@ int main(int argc, char *argv[])
 
 		if (neighbor == NULL)
 		{
-			if (planObj && plan.neighborNodeNbr)
+			if (planObj && plan.neighborFqnn)
 			{
 				neighbor = findNeighbor(getIonVdb(),
-				                plan.neighborNodeNbr, &nextElt);
+					plan.neighborFqnn, &nextElt);
 			}
 		}
 

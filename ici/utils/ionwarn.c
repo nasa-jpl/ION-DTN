@@ -32,7 +32,7 @@ static char	*_cannotForecast()
 	return "Can't complete congestion forecast.";
 }
 
-static IonNeighbor	*retrieveNeighbor(uvast nodeNbr, Lyst neighbors)
+static IonNeighbor	*retrieveNeighbor(uvast fqnn, Lyst neighbors)
 {
 	LystElt		elt3;
 	IonNeighbor	*np = NULL;
@@ -40,7 +40,7 @@ static IonNeighbor	*retrieveNeighbor(uvast nodeNbr, Lyst neighbors)
 	for (elt3 = lyst_first(neighbors); elt3; elt3 = lyst_next(elt3))
 	{
 		np = (IonNeighbor *) lyst_data(elt3);
-		if (np->nodeNbr == nodeNbr)
+		if (np->fqnn == fqnn)
 		{
 			break;
 		}
@@ -56,7 +56,7 @@ static IonNeighbor	*retrieveNeighbor(uvast nodeNbr, Lyst neighbors)
 		}
 
 		memset((char *) np, 0, sizeof(IonNeighbor));
-		np->nodeNbr = nodeNbr;
+		np->fqnn = fqnn;
 		if (lyst_insert_last(neighbors, np) == NULL)
 		{
 			putErrmsg(_cannotForecast() , NULL);
@@ -248,7 +248,7 @@ int	checkForCongestion()
 		if (event->type == IonStartXmit)
 		{
 			contact = (IonCXref *) psp(ionwm, event->ref);
-			if (contact->fromNode == contact->toNode)
+			if (contact->fromFqnn == contact->toFqnn)
 			{
 				/*	This is a loopback contact,
 				 *	which has no net effect on
@@ -257,14 +257,14 @@ int	checkForCongestion()
 				continue;
 			}
 			
-			if (contact->fromNode != iondb.ownNodeNbr)
+			if (contact->fromFqnn != iondb.ownFqnn)
 			{
 				continue;	/*	Not relevant.	*/
 			}
 
 			/*	Find affected neighbor; add if nec.	*/
 
-			np = retrieveNeighbor(contact->toNode, neighbors);
+			np = retrieveNeighbor(contact->toFqnn, neighbors);
 			if (np == NULL)
 			{
 				sdr_cancel_xn(sdr);
@@ -287,7 +287,7 @@ int	checkForCongestion()
 		if (event->type == IonStopXmit)
 		{
 			contact = (IonCXref *) psp(ionwm, event->ref);
-			if (contact->fromNode == contact->toNode)
+			if (contact->fromFqnn == contact->toFqnn)
 			{
 				/*	This is a loopback contact,
 				 *	which has no net effect on
@@ -296,14 +296,14 @@ int	checkForCongestion()
 				continue;
 			}
 			
-			if (contact->fromNode != iondb.ownNodeNbr)
+			if (contact->fromFqnn != iondb.ownFqnn)
 			{
 				continue;	/*	Not relevant.	*/
 			}
 
 			/*	Find affected neighbor; add if nec.	*/
 
-			np = retrieveNeighbor(contact->toNode, neighbors);
+			np = retrieveNeighbor(contact->toFqnn, neighbors);
 			if (np == NULL)
 			{
 				sdr_cancel_xn(sdr);
@@ -326,7 +326,7 @@ int	checkForCongestion()
 		if (event->type == IonStartRecv)
 		{
 			contact = (IonCXref *) psp(ionwm, event->ref);
-			if (contact->fromNode == contact->toNode)
+			if (contact->fromFqnn == contact->toFqnn)
 			{
 				/*	This is a loopback contact,
 				 *	which has no net effect on
@@ -335,14 +335,14 @@ int	checkForCongestion()
 				continue;
 			}
 			
-			if (contact->toNode != iondb.ownNodeNbr)
+			if (contact->toFqnn != iondb.ownFqnn)
 			{
 				continue;	/*	Not relevant.	*/
 			}
 
 			/*	Find affected neighbor; add if nec.	*/
 
-			np = retrieveNeighbor(contact->fromNode, neighbors);
+			np = retrieveNeighbor(contact->fromFqnn, neighbors);
 			if (np == NULL)
 			{
 				sdr_cancel_xn(sdr);
@@ -365,7 +365,7 @@ int	checkForCongestion()
 		if (event->type == IonStopRecv)
 		{
 			contact = (IonCXref *) psp(ionwm, event->ref);
-			if (contact->fromNode == contact->toNode)
+			if (contact->fromFqnn == contact->toFqnn)
 			{
 				/*	This is a loopback contact,
 				 *	which has no net effect on
@@ -374,14 +374,14 @@ int	checkForCongestion()
 				continue;
 			}
 			
-			if (contact->toNode != iondb.ownNodeNbr)
+			if (contact->toFqnn != iondb.ownFqnn)
 			{
 				continue;	/*	Not relevant.	*/
 			}
 
 			/*	Find affected neighbor; add if nec.	*/
 
-			np = retrieveNeighbor(contact->fromNode, neighbors);
+			np = retrieveNeighbor(contact->fromFqnn, neighbors);
 			if (np == NULL)
 			{
 				sdr_cancel_xn(sdr);

@@ -498,7 +498,7 @@ int	cfdpInit()
 		memset((char *) &cfdpdbBuf, 0, sizeof(CfdpDB));
 		sdr_read(sdr, (char *) &iondb, getIonDbObject(),
 				sizeof(IonDB));
-		cfdpdbBuf.ownEntityId = iondb.ownNodeNbr;
+		cfdpdbBuf.ownEntityId = iondb.ownFqnn;
 		cfdp_compress_number(&cfdpdbBuf.ownEntityNbr,
 				cfdpdbBuf.ownEntityId);
 
@@ -1155,7 +1155,7 @@ Object	addEntity(uvast entityId, char *protocolName, char *endpointName,
 	if (strcmp(protocolName, "bp") == 0)
 	{
 		entity.utLayer = UtBp;
-		entity.bpNodeNbr = entityId;
+		entity.bpFqnn = entityId;
 	}
 	else if (strcmp(protocolName, "ltp") == 0)
 	{
@@ -1235,7 +1235,7 @@ int	changeEntity(uvast entityId, char *protocolName, char *endpointName,
 	if (strcmp(protocolName, "bp") == 0)
 	{
 		entity.utLayer = UtBp;
-		entity.bpNodeNbr = entityId;
+		entity.bpFqnn = entityId;
 	}
 	else if (strcmp(protocolName, "ltp") == 0)
 	{

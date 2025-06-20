@@ -20,7 +20,7 @@ extern "C" {
 
 typedef struct
 {
-	uvast		reportToNodeNbr;
+	uvast		reportToFqnn;
 	int		lifespan;
 	int		classOfService;
 	BpCustodySwitch	custodySwitch;

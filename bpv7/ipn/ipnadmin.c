@@ -109,8 +109,8 @@ static void	executeAdd(int tokenCount, char **tokens)
 	char		*spec;
 	char		*ovrdDuctExpression;
 	unsigned int	dataLabel;
-	uvast		destNodeNbr;
-	uvast		sourceNodeNbr;
+	uvast		destFqnn;
+	uvast		sourceFqnn;
 	uvast		neighbor;
 	int		maxQosFlags =  (BP_MINIMUM_LATENCY |
 					BP_BEST_EFFORT |
@@ -186,20 +186,20 @@ static void	executeAdd(int tokenCount, char **tokens)
 			dataLabel = (unsigned int) -1;
 		}
 
-		destNodeNbr = strtouvast(tokens[3]);
-		if (destNodeNbr == 0)
+		destFqnn = strtouvast(tokens[3]);
+		if (destFqnn == 0)
 		{
-			destNodeNbr = (uvast) -1;
+			destFqnn = (uvast) -1;
 		}
 
-		sourceNodeNbr = strtouvast(tokens[4]);
-		if (sourceNodeNbr == 0)
+		sourceFqnn = strtouvast(tokens[4]);
+		if (sourceFqnn == 0)
 		{
-			sourceNodeNbr = (uvast) -1;
+			sourceFqnn = (uvast) -1;
 		}
 
 		neighbor = strtouvast(tokens[5]);
-		ipn_setOvrd(dataLabel, destNodeNbr, sourceNodeNbr, neighbor,
+		ipn_setOvrd(dataLabel, destFqnn, sourceFqnn, neighbor,
 				ovrdDuctExpression, (unsigned char) -2, 0, 0);
 		return;
 	}
@@ -233,21 +233,21 @@ static void	executeAdd(int tokenCount, char **tokens)
 			dataLabel = (unsigned int) -1;
 		}
 
-		destNodeNbr = strtouvast(tokens[3]);
-		if (destNodeNbr == 0)
+		destFqnn = strtouvast(tokens[3]);
+		if (destFqnn == 0)
 		{
-			destNodeNbr = (uvast) -1;
+			destFqnn = (uvast) -1;
 		}
 
-		sourceNodeNbr = strtouvast(tokens[4]);
-		if (sourceNodeNbr == 0)
+		sourceFqnn = strtouvast(tokens[4]);
+		if (sourceFqnn == 0)
 		{
-			sourceNodeNbr = (uvast) -1;
+			sourceFqnn = (uvast) -1;
 		}
 
 		priority = atoi(tokens[5]);
 		ordinal = atoi(tokens[6]);
-		ipn_setOvrd(dataLabel, destNodeNbr, sourceNodeNbr, (uvast) -2,
+		ipn_setOvrd(dataLabel, destFqnn, sourceFqnn, (uvast) -2,
 				NULL, priority, ordinal, flags);
 		return;
 	}
@@ -260,8 +260,8 @@ static void	executeChange(int tokenCount, char **tokens)
 	unsigned int	nominalRate = 0;
 	char		*ovrdDuctExpression;
 	unsigned int	dataLabel;
-	uvast		destNodeNbr;
-	uvast		sourceNodeNbr;
+	uvast		destFqnn;
+	uvast		sourceFqnn;
 	uvast		neighbor;
 	int		maxQosFlags =  (BP_MINIMUM_LATENCY |
 					BP_BEST_EFFORT |
@@ -328,20 +328,20 @@ static void	executeChange(int tokenCount, char **tokens)
 			dataLabel = (unsigned int) -1;
 		}
 
-		destNodeNbr = strtouvast(tokens[3]);
-		if (destNodeNbr == 0)
+		destFqnn = strtouvast(tokens[3]);
+		if (destFqnn == 0)
 		{
-			destNodeNbr = (uvast) -1;
+			destFqnn = (uvast) -1;
 		}
 
-		sourceNodeNbr = strtouvast(tokens[4]);
-		if (sourceNodeNbr == 0)
+		sourceFqnn = strtouvast(tokens[4]);
+		if (sourceFqnn == 0)
 		{
-			sourceNodeNbr = (uvast) -1;
+			sourceFqnn = (uvast) -1;
 		}
 
 		neighbor = strtouvast(tokens[5]);
-		ipn_setOvrd(dataLabel, destNodeNbr, sourceNodeNbr, neighbor,
+		ipn_setOvrd(dataLabel, destFqnn, sourceFqnn, neighbor,
 				ovrdDuctExpression, (unsigned char) -2, 0, 0);
 		return;
 	}
@@ -375,21 +375,21 @@ static void	executeChange(int tokenCount, char **tokens)
 			dataLabel = (unsigned int) -1;
 		}
 
-		destNodeNbr = strtouvast(tokens[3]);
-		if (destNodeNbr == 0)
+		destFqnn = strtouvast(tokens[3]);
+		if (destFqnn == 0)
 		{
-			destNodeNbr = (uvast) -1;
+			destFqnn = (uvast) -1;
 		}
 
-		sourceNodeNbr = strtouvast(tokens[4]);
-		if (sourceNodeNbr == 0)
+		sourceFqnn = strtouvast(tokens[4]);
+		if (sourceFqnn == 0)
 		{
-			sourceNodeNbr = (uvast) -1;
+			sourceFqnn = (uvast) -1;
 		}
 
 		priority = atoi(tokens[5]);
 		ordinal = atoi(tokens[6]);
-		ipn_setOvrd(dataLabel, destNodeNbr, sourceNodeNbr,
+		ipn_setOvrd(dataLabel, destFqnn, sourceFqnn,
 				(uvast) -2, NULL, priority, ordinal, flags);
 		return;
 	}
@@ -400,8 +400,8 @@ static void	executeChange(int tokenCount, char **tokens)
 static void	executeDelete(int tokenCount, char **tokens)
 {
 	unsigned int	dataLabel;
-	uvast		destNodeNbr;
-	uvast		sourceNodeNbr;
+	uvast		destFqnn;
+	uvast		sourceFqnn;
 	uvast		neighbor = (uvast) -1;;
 	unsigned char	priority = (unsigned char) -1;
 
@@ -450,19 +450,19 @@ static void	executeDelete(int tokenCount, char **tokens)
 			dataLabel = (unsigned int) -1;
 		}
 
-		destNodeNbr = strtouvast(tokens[3]);
-		if (destNodeNbr == 0)
+		destFqnn = strtouvast(tokens[3]);
+		if (destFqnn == 0)
 		{
-			destNodeNbr = (uvast) -1;
+			destFqnn = (uvast) -1;
 		}
 
-		sourceNodeNbr = strtouvast(tokens[4]);
-		if (sourceNodeNbr == 0)
+		sourceFqnn = strtouvast(tokens[4]);
+		if (sourceFqnn == 0)
 		{
-			sourceNodeNbr = (uvast) -1;
+			sourceFqnn = (uvast) -1;
 		}
 
-		ipn_setOvrd(strtouvast(tokens[2]), destNodeNbr, sourceNodeNbr,
+		ipn_setOvrd(strtouvast(tokens[2]), destFqnn, sourceFqnn,
 				neighbor, NULL, priority, 0, 0);
 		return;
 	}
@@ -501,14 +501,14 @@ static void	printPlan(BpPlan *plan)
 	}
 
 	isprintf(buffer, sizeof buffer, UVAST_FIELDSPEC " %s %s xmit rate: %lu",
-			plan->neighborNodeNbr, action, spec, plan->nominalRate);
+			plan->neighborFqnn, action, spec, plan->nominalRate);
 	printText(buffer);
 }
 
 static void	infoPlan(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	int	nodeNbr;
+	int	fqnn;
 	Object	planAddr;
 	Object	elt;
 		OBJ_POINTER(BpPlan, plan);
@@ -519,9 +519,9 @@ static void	infoPlan(int tokenCount, char **tokens)
 		return;
 	}
 
-	nodeNbr = strtouvast(tokens[2]);
+	fqnn = strtouvast(tokens[2]);
 	CHKVOID(sdr_begin_xn(sdr));
-	ipn_findPlan(nodeNbr, &planAddr, &elt);
+	ipn_findPlan(fqnn, &planAddr, &elt);
 	if (elt == 0)
 	{
 		printText("Unknown node.");
@@ -543,15 +543,15 @@ static void	printExit(IpnExit *exit)
 	sdr_string_read(getIonsdr(), eidString, exit->eid);
 	isprintf(buffer, sizeof buffer, "From " UVAST_FIELDSPEC " \
 through " UVAST_FIELDSPEC ", forward via %.256s.",
-			exit->firstNodeNbr, exit->lastNodeNbr, eidString);
+			exit->firstFqnn, exit->lastFqnn, eidString);
 	printText(buffer);
 }
 
 static void	infoExit(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
-	uvast	firstNodeNbr;
-	uvast	lastNodeNbr;
+	uvast	firstFqnn;
+	uvast	lastFqnn;
 	Object	elt;
 		OBJ_POINTER(IpnExit, exit);
 
@@ -561,9 +561,9 @@ static void	infoExit(int tokenCount, char **tokens)
 		return;
 	}
 
-	firstNodeNbr = strtouvast(tokens[2]);
-	lastNodeNbr = strtouvast(tokens[3]);
-	if (lastNodeNbr < firstNodeNbr)
+	firstFqnn = strtouvast(tokens[2]);
+	lastFqnn = strtouvast(tokens[3]);
+	if (lastFqnn < firstFqnn)
 	{
 		printText("Unknown exit.");
 		return;
@@ -574,8 +574,8 @@ static void	infoExit(int tokenCount, char **tokens)
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, IpnExit, exit, sdr_list_data(sdr, elt));
-		if (exit->firstNodeNbr == firstNodeNbr
-		&& exit->lastNodeNbr == lastNodeNbr)
+		if (exit->firstFqnn == firstFqnn
+		&& exit->lastFqnn == lastFqnn)
 		{
 			printExit(exit);
 			break;
@@ -593,28 +593,28 @@ static void	infoExit(int tokenCount, char **tokens)
 static void	printOverride(IpnOverride *ovrd)
 {
 	char	buffer[384];
-	uvast	destNodeNbr;
-	uvast	sourceNodeNbr;
+	uvast	destFqnn;
+	uvast	sourceFqnn;
 	char	neighbor[32];
 	char	priority[8];
 	char	ordinal[8];
 
-	if (ovrd->destNodeNbr == (uvast) -1)
+	if (ovrd->destFqnn == (uvast) -1)
 	{
-		destNodeNbr = 0;
+		destFqnn = 0;
 	}
 	else
 	{
-		destNodeNbr = ovrd->destNodeNbr;
+		destFqnn = ovrd->destFqnn;
 	}
 
-	if (ovrd->sourceNodeNbr == (uvast) -1)
+	if (ovrd->sourceFqnn == (uvast) -1)
 	{
-		sourceNodeNbr = 0;
+		sourceFqnn = 0;
 	}
 	else
 	{
-		sourceNodeNbr = ovrd->sourceNodeNbr;
+		sourceFqnn = ovrd->sourceFqnn;
 	}
 
 	if (ovrd->neighbor == (uvast) -1)
@@ -642,7 +642,7 @@ static void	printOverride(IpnOverride *ovrd)
 
 	isprintf(buffer, sizeof buffer, "For data label %u, destination node "
 UVAST_FIELDSPEC ", source node " UVAST_FIELDSPEC ", overrides are: neighbor \
-%s, priority %s, ordinal %s.", ovrd->dataLabel, destNodeNbr, sourceNodeNbr,
+%s, priority %s, ordinal %s.", ovrd->dataLabel, destFqnn, sourceFqnn,
 			neighbor, priority, ordinal);
 	printText(buffer);
 }
@@ -651,8 +651,8 @@ static void	infoOverride(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
 	unsigned int	dataLabel;
-	uvast		destNodeNbr;
-	uvast		sourceNodeNbr;
+	uvast		destFqnn;
+	uvast		sourceFqnn;
 	Object		elt;
 			OBJ_POINTER(IpnOverride, ovrd);
 
@@ -663,16 +663,16 @@ static void	infoOverride(int tokenCount, char **tokens)
 	}
 
 	dataLabel = strtouvast(tokens[2]);
-	destNodeNbr = strtouvast(tokens[3]);
-	if (destNodeNbr == 0)
+	destFqnn = strtouvast(tokens[3]);
+	if (destFqnn == 0)
 	{
-		destNodeNbr = (uvast) -1;
+		destFqnn = (uvast) -1;
 	}
 
-	sourceNodeNbr = strtouvast(tokens[4]);
-	if (sourceNodeNbr == 0)
+	sourceFqnn = strtouvast(tokens[4]);
+	if (sourceFqnn == 0)
 	{
-		sourceNodeNbr = (uvast) -1;
+		sourceFqnn = (uvast) -1;
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));
@@ -682,8 +682,8 @@ static void	infoOverride(int tokenCount, char **tokens)
 		GET_OBJ_POINTER(sdr, IpnOverride, ovrd,
 				sdr_list_data(sdr, elt));
 		if (ovrd->dataLabel == dataLabel
-		&& ovrd->destNodeNbr == destNodeNbr
-		&& ovrd->sourceNodeNbr == sourceNodeNbr)
+		&& ovrd->destFqnn == destFqnn
+		&& ovrd->sourceFqnn == sourceFqnn)
 		{
 			printOverride(ovrd);
 			break;
@@ -739,7 +739,7 @@ static void	listPlans()
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, BpPlan, plan, sdr_list_data(sdr, elt));
-		if (plan->neighborNodeNbr == 0)	/*	Not CBHE.	*/
+		if (plan->neighborFqnn == 0)	/*	Not ipn-scheme.	*/
 		{
 			continue;
 		}

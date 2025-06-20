@@ -40,7 +40,7 @@ static void	*receivePdus(void *parm)
 	}
 
 	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%u",
-			getOwnNodeNbr(), CFDP_RECV_SVC_NBR);
+			getOwnFqnn(), CFDP_RECV_SVC_NBR);
 	if (bp_open(ownEid, &(parms->rxSap)) < 0)
 	{
 		MRELEASE(buffer);
@@ -149,7 +149,7 @@ int	main(int argc, char **argv)
 	FinishPdu	fpdu;
 	int		direction;
 	BpUtParms	utParms;
-	uvast		destinationNodeNbr;
+	uvast		destinationFqnn;
 	char		destEid[64];
 	char		reportToEidBuf[64];
 	char		*reportToEid;
@@ -163,7 +163,7 @@ int	main(int argc, char **argv)
 
 	ionversion = getIonVersionNbr();
 	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%u",
-			getOwnNodeNbr(), CFDP_SEND_SVC_NBR);
+			getOwnFqnn(), CFDP_SEND_SVC_NBR);
 	if (bp_open_source(ownEid, &txSap, 1) < 0)
 	{
 		putErrmsg("CFDP can't open own 'send' endpoint.", ownEid);
@@ -228,7 +228,7 @@ terminating.");
 		else
 		{
 			memset((char *) &utParms, 0, sizeof(BpUtParms));
-			utParms.reportToNodeNbr = 0;
+			utParms.reportToFqnn = 0;
 			utParms.lifespan = 86400;	/*	1 day.	*/
 			utParms.classOfService = BP_STD_PRIORITY;
 			utParms.custodySwitch = NoCustodyRequested;
@@ -242,16 +242,16 @@ terminating.");
 
 		if (direction == 0)
 		{
-			cfdp_decompress_number(&destinationNodeNbr,
+			cfdp_decompress_number(&destinationFqnn,
 					&fduBuffer.destinationEntityNbr);
 		}
 		else
 		{
-			cfdp_decompress_number(&destinationNodeNbr,
+			cfdp_decompress_number(&destinationFqnn,
 					&fpdu.transactionId.sourceEntityNbr);
 		}
 
-		if (destinationNodeNbr == 0)
+		if (destinationFqnn == 0)
 		{
 			writeMemo("[?] bputa declining to send to node 0.");
 			if (deletePdu(pduZco) < 0)
@@ -265,8 +265,8 @@ terminating.");
 		}
 
 		isprintf(destEid, sizeof destEid, "ipn:" UVAST_FIELDSPEC ".%u",
-				destinationNodeNbr, CFDP_RECV_SVC_NBR);
-		if (utParms.reportToNodeNbr == 0)
+				destinationFqnn, CFDP_RECV_SVC_NBR);
+		if (utParms.reportToFqnn == 0)
 		{
 			reportToEid = NULL;
 		}
@@ -274,7 +274,7 @@ terminating.");
 		{
 			isprintf(reportToEidBuf, sizeof reportToEidBuf,
 					"ipn:" UVAST_FIELDSPEC ".%u",
-					utParms.reportToNodeNbr,
+					utParms.reportToFqnn,
 					CFDP_RECV_SVC_NBR);
 			reportToEid = reportToEidBuf;
 		}

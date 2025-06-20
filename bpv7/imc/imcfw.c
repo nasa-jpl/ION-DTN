@@ -151,24 +151,24 @@ static void	*imcClock(void *parm)
 
 /*	*	imcfw main thread functions	*	*	*	*/
 
-static int	loadDestination(Bundle *bundle, uvast newNodeNbr)
+static int	loadDestination(Bundle *bundle, uvast newFqnn)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
-	uvast	nodeNbr;
+	uvast	fqnn;
 
 	/*	Ensure no duplication in destinations list.		*/
 
 	for (elt = sdr_list_first(sdr, bundle->destinations); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
-		nodeNbr = sdr_list_data(sdr, elt);
-		if (nodeNbr < newNodeNbr)
+		fqnn = sdr_list_data(sdr, elt);
+		if (fqnn < newFqnn)
 		{
 			continue;
 		}
 
-		if (nodeNbr == newNodeNbr)	/*	Duplicate.	*/
+		if (fqnn == newFqnn)		/*	Duplicate.	*/
 		{
 			return 0;
 		}
@@ -178,7 +178,7 @@ static int	loadDestination(Bundle *bundle, uvast newNodeNbr)
 
 	if (elt)
 	{
-		if (sdr_list_insert_before(sdr, elt, newNodeNbr) == 0)
+		if (sdr_list_insert_before(sdr, elt, newFqnn) == 0)
 		{
 			putErrmsg("Can't add node to destinations.", NULL);
 			return -1;
@@ -186,7 +186,7 @@ static int	loadDestination(Bundle *bundle, uvast newNodeNbr)
 	}
 	else
 	{
-		if (sdr_list_insert_last(sdr, bundle->destinations, newNodeNbr)
+		if (sdr_list_insert_last(sdr, bundle->destinations, newFqnn)
 				== 0)
 		{
 			putErrmsg("Can't add node to destinations.", NULL);
@@ -260,11 +260,11 @@ static uvast 	getBestEntryNode(Bundle *bundle, IonNode *terminusNode,
 	/*	Must exclude sender of bundle from consideration as
 	 *	a station on the route, to minimize routing loops.  	*/
 
-	if (bundle->clDossier.senderNodeNbr != 0
-	&& bundle->clDossier.senderNodeNbr != getOwnNodeNbr())
+	if (bundle->clDossier.senderFqnn != 0
+	&& bundle->clDossier.senderFqnn != getOwnFqnn())
 	{
 		if (lyst_insert_last(excludedNodes, (void *)
-			((uaddr) bundle->clDossier.senderNodeNbr)) == NULL)
+			((uaddr) bundle->clDossier.senderFqnn)) == NULL)
 		{
 			putErrmsg("Can't exclude sender from routes.", NULL);
 			lyst_destroy(excludedNodes);
@@ -303,31 +303,31 @@ static uvast 	getBestEntryNode(Bundle *bundle, IonNode *terminusNode,
 		route = (CgrRoute *) lyst_data_set(elt, NULL);
 		lyst_destroy(bestRoutes);
 #if IMCDEBUG
-printf("Computed best route to " UVAST_FIELDSPEC " begins with transmission to " UVAST_FIELDSPEC ".\n", terminusNode->nodeNbr, route->toNodeNbr);
+printf("Computed best route to " UVAST_FIELDSPEC " begins with transmission to " UVAST_FIELDSPEC ".\n", terminusNode->fqnn, route->toFqnn);
 #endif
-		return route->toNodeNbr;
+		return route->toFqnn;
 	}
 
 	lyst_destroy(bestRoutes);
 	return 0;
 }
 
-static uvast	getViaNode(Bundle *bundle, uvast destinationNodeNbr)
+static uvast	getViaNode(Bundle *bundle, uvast destinationFqnn)
 {
 	Sdr		sdr = getIonsdr();
 	IonVdb		*ionvdb = getIonVdb();
 	IonNode		*node;
 	PsmAddress	nextNode;
-	uvast		viaNodeNbr;
+	uvast		viaFqnn;
 	char		eid[MAX_EID_LEN + 1];
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 	BpPlan		plan;
 
-	node = findNode(ionvdb, destinationNodeNbr, &nextNode);
+	node = findNode(ionvdb, destinationFqnn, &nextNode);
 	if (node == NULL)
 	{
-		node = addNode(ionvdb, destinationNodeNbr);
+		node = addNode(ionvdb, destinationFqnn);
 		if (node == NULL)
 		{
 			putErrmsg("Can't add node.", NULL);
@@ -335,10 +335,10 @@ static uvast	getViaNode(Bundle *bundle, uvast destinationNodeNbr)
 		}
 	}
 
-	viaNodeNbr = getBestEntryNode(bundle, node, getCtime());
-	if (viaNodeNbr)
+	viaFqnn = getBestEntryNode(bundle, node, getCtime());
+	if (viaFqnn)
 	{
-		return viaNodeNbr;
+		return viaFqnn;
 	}
 
 	/*	No luck using the contact graph to compute a route
@@ -347,7 +347,7 @@ static uvast	getViaNode(Bundle *bundle, uvast destinationNodeNbr)
 	 *	if so, direct transmission works.			*/
 
 	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0",
-			destinationNodeNbr);
+			destinationFqnn);
 	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)
 	{
@@ -361,7 +361,7 @@ static uvast	getViaNode(Bundle *bundle, uvast destinationNodeNbr)
 		return 0;
 	}
 
-	return destinationNodeNbr;
+	return destinationFqnn;
 }
 
 static void	deleteGang(LystElt elt, void *userData)
@@ -372,7 +372,7 @@ static void	deleteGang(LystElt elt, void *userData)
 	MRELEASE(gang);
 }
 
-static int	addNodeToGang(Lyst gangs, uvast viaNode, uvast nodeNbr)
+static int	addNodeToGang(Lyst gangs, uvast viaNode, uvast fqnn)
 {
 	LystElt	elt;
 	ImcGang	*gang;
@@ -390,7 +390,7 @@ static int	addNodeToGang(Lyst gangs, uvast viaNode, uvast nodeNbr)
 			/*	Join this gang.				*/
 
 			if (lyst_insert_last(gang->members,
-					(void *) ((uaddr) nodeNbr)) == NULL)
+					(void *) ((uaddr) fqnn)) == NULL)
 			{
 				return -1;
 			}
@@ -435,7 +435,7 @@ static int	addNodeToGang(Lyst gangs, uvast viaNode, uvast nodeNbr)
 
 	/*	Now have got gang that this node can join.		*/
 
-	if (lyst_insert_last(gang->members, (void *) ((uaddr) nodeNbr)) == NULL)
+	if (lyst_insert_last(gang->members, (void *) ((uaddr) fqnn)) == NULL)
 	{
 		return -1;
 	}
@@ -443,14 +443,13 @@ static int	addNodeToGang(Lyst gangs, uvast viaNode, uvast nodeNbr)
 	return 0;
 }
 
-static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
-			uvast nodeNbr)
+static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj, uvast fqnn)
 {
 	char		eid[MAX_EID_LEN + 1];
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 
-	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
+	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", fqnn);
 #if IMCDEBUG
 printf("Preparing to send to neighbor '%s'.\n", eid);
 #endif
@@ -472,11 +471,11 @@ puts("Sending to neighbor.");
 	return 0;
 }
 
-static int	enqueueBundle(Bundle *bundle, Object bundleObj, uvast nodeNbr)
+static int	enqueueBundle(Bundle *bundle, Object bundleObj, uvast fqnn)
 {
 	/*	Entry node for Gang must be a neighbor.			*/
 
-	if (enqueueToNeighbor(bundle, bundleObj, nodeNbr) < 0)
+	if (enqueueToNeighbor(bundle, bundleObj, fqnn) < 0)
 	{
 		putErrmsg("Can't send bundle to neighbor.", NULL);
 		return -1;
@@ -493,7 +492,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, uvast nodeNbr)
 	 *	must give up on forwarding it.				*/
 
 #if IMCDEBUG
-printf("enqueueBundle to node" UVAST_FIELDSPEC ".\n", nodeNbr);
+printf("enqueueBundle to node" UVAST_FIELDSPEC ".\n", fqnn);
 #endif
 	return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 }
@@ -502,10 +501,10 @@ static int	forwardImcBundle(Bundle *bundle, Object bundleAddr)
 {
 	Sdr		sdr = getIonsdr();
 	unsigned int	memmgr = getIonMemoryMgr();
-	uvast		ownNodeNbr = getOwnNodeNbr();
+	uvast		ownFqnn = getOwnFqnn();
 	Lyst		gangs;
 	Object		elt;
-	uvast		nodeNbr;
+	uvast		fqnn;
 	int		regionIdx;
 	uint32_t	regionNbr;
 	uvast		viaNode = 0;
@@ -533,11 +532,11 @@ static int	forwardImcBundle(Bundle *bundle, Object bundleAddr)
 	for (elt = sdr_list_first(sdr, bundle->destinations); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
-		nodeNbr = sdr_list_data(sdr, elt);
+		fqnn = sdr_list_data(sdr, elt);
 #if IMCDEBUG
-printf("Outbound destination is " UVAST_FIELDSPEC ".\n", nodeNbr);
+printf("Outbound destination is " UVAST_FIELDSPEC ".\n", fqnn);
 #endif
-		regionIdx = ionRegionOf(nodeNbr, ownNodeNbr, &regionNbr);
+		regionIdx = ionRegionOf(fqnn, ownFqnn, &regionNbr);
 		if (regionIdx < 0)
 		{
 			/*	Some other node will be forwarding
@@ -550,7 +549,7 @@ puts("No common region.");
 			continue;
 		}
 
-		viaNode = getViaNode(bundle, nodeNbr);
+		viaNode = getViaNode(bundle, fqnn);
 		if (viaNode == 0)
 		{
 			/*	No way to get the bundle to this
@@ -564,7 +563,7 @@ puts("No via node.");
 		/*	Add this node to the gang headed by this
 		 *	viaNode.					*/
 
-		if (addNodeToGang(gangs, viaNode, nodeNbr) < 0)
+		if (addNodeToGang(gangs, viaNode, fqnn) < 0)
 		{
 			putErrmsg("Can't add node to gang.", NULL);
 			lyst_destroy(gangs);
@@ -599,11 +598,11 @@ puts("No via node.");
 		for (elt3 = lyst_first(gang->members); elt3;
 				elt3 = lyst_next(elt3))
 		{
-			nodeNbr = (uaddr) lyst_data(elt3);
+			fqnn = (uaddr) lyst_data(elt3);
 #if IMCDEBUG
-printf("Loading destination " UVAST_FIELDSPEC ".\n", nodeNbr);
+printf("Loading destination " UVAST_FIELDSPEC ".\n", fqnn);
 #endif
-			if (loadDestination(&newBundle, nodeNbr) < 0)
+			if (loadDestination(&newBundle, fqnn) < 0)
 			{
 				putErrmsg("Failed loading destination.", NULL);
 				lyst_destroy(gangs);
@@ -635,11 +634,11 @@ static int	relayImcBundle(Bundle *bundle, Object bundleAddr,
 			ExtensionBlock *imcblock, Object imcblkAddr)
 {
 	Sdr		sdr = getIonsdr();
-	uvast		ownNodeNbr = getOwnNodeNbr();
+	uvast		ownFqnn = getOwnFqnn();
 	int		destinationsCount;
-	char		*nodeNbrsArray;
+	char		*fqnnsArray;
 	int		i;
-	uvast		*nodeNbrPtr;
+	uvast		*fqnnPtr;
 
 	/*	Load the bundle's list of destinations from the
 	 *	array of gang members in the bundle's IMC extension
@@ -656,19 +655,19 @@ puts("no destinations");
 		return 0;
 	}
 
-	nodeNbrsArray = MTAKE(imcblock->size);
-	if (nodeNbrsArray == NULL)
+	fqnnsArray = MTAKE(imcblock->size);
+	if (fqnnsArray == NULL)
 	{
 		putErrmsg("Can't read node numbers array.",
 				itoa(destinationsCount));
 		return -1;
 	}
 
-	sdr_read(sdr, nodeNbrsArray, imcblock->object, imcblock->size);
-	nodeNbrPtr = (uvast *) nodeNbrsArray;
-	for (i = 0; i < destinationsCount; i++, nodeNbrPtr++)
+	sdr_read(sdr, fqnnsArray, imcblock->object, imcblock->size);
+	fqnnPtr = (uvast *) fqnnsArray;
+	for (i = 0; i < destinationsCount; i++, fqnnPtr++)
 	{
-		if (*nodeNbrPtr == ownNodeNbr)
+		if (*fqnnPtr == ownFqnn)
 		{
 			/*	Omit self from destinations list.	*/
 
@@ -677,15 +676,15 @@ puts("no destinations");
 
 		/*	Load this destination into the bundle.		*/
 
-		if (loadDestination(bundle, *nodeNbrPtr) < 0)
+		if (loadDestination(bundle, *fqnnPtr) < 0)
 		{
-			MRELEASE(nodeNbrsArray);
+			MRELEASE(fqnnsArray);
 			putErrmsg("Can't load from IMC extension block.", NULL);
 			return -1;
 		}
 	}
 
-	MRELEASE(nodeNbrsArray);
+	MRELEASE(fqnnsArray);
 
 	/*	Reinitialize the IMC extension block.			*/
 
@@ -730,7 +729,7 @@ static int	loadRegionMembers(Bundle *bundle, uint32_t regionNbr, IonDB *db)
 		if (member.homeRegionNbr == regionNbr
 		|| member.outerRegionNbr == regionNbr)
 		{
-			if (loadDestination(bundle, member.nodeNbr) < 0)
+			if (loadDestination(bundle, member.fqnn) < 0)
 			{
 				putErrmsg("Can't add region member.", NULL);
 				return -1;
@@ -748,20 +747,20 @@ static int	originateImcBundle(Bundle *bundle, Object bundleAddr)
 	IonDB		iondb;
 	uint32_t	regionNbr;
 	int		regionIdx;
-	uvast		groupNbr;
+	uvast		fqgn;
 	Object		groupAddr;
 	Object		groupElt;
 	ImcGroup	group;
 	Object		elt;
-	uvast		nodeNbr;
+	uvast		fqnn;
 
-	groupNbr = bundle->destination.ssp.imc.groupNbr;
+	fqgn = bundle->destination.ssp.imc.fqgn;
 
 	/*	Load the bundle's list of destinations, either from
 	 *	region membership (for a petition) or from group
 	 *	membership (for an application multicast message).	*/
 
-	if (groupNbr == 0)	/*	Broadcast to region members.	*/
+	if (fqgn == 0)	/*	Broadcast to region members.	*/
 	{
 
 		regionNbr = bundle->ancillaryData.imcRegionNbr;
@@ -803,7 +802,7 @@ static int	originateImcBundle(Bundle *bundle, Object bundleAddr)
 	}
 	else			/*	Multicast to group members.	*/
 	{
-		imcFindGroup(groupNbr, &groupAddr, &groupElt);
+		imcFindGroup(fqgn, &groupAddr, &groupElt);
 		if (groupElt == 0)
 		{
 			/*	Nobody subscribes to bundles destined
@@ -821,8 +820,8 @@ puts("no such group");
 		for (elt = sdr_list_first(sdr, group.members); elt;
 				elt = sdr_list_next(sdr, elt))
 		{
-			nodeNbr = sdr_list_data(sdr, elt);
-			if (loadDestination(bundle, nodeNbr) < 0)
+			fqnn = sdr_list_data(sdr, elt);
+			if (loadDestination(bundle, fqnn) < 0)
 			{
 				putErrmsg("Can't add IMC group member.", NULL);
 				return -1;
@@ -845,7 +844,7 @@ int	main(int argc, char *argv[])
 #endif
 	int		running = 1;
 	Sdr		sdr;
-	uvast		ownNodeNbr;
+	uvast		ownFqnn;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	Scheme		scheme;
@@ -870,7 +869,7 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	ownNodeNbr = getOwnNodeNbr();
+	ownFqnn = getOwnFqnn();
 	findScheme("imc", &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
 	{
@@ -976,9 +975,9 @@ puts("IMC extension block missing");
 		}
 		else	/*	Received from some node, possibly self.	*/
 		{
-			if (bundle.id.source.ssp.ipn.nodeNbr == ownNodeNbr)
+			if (bundle.id.source.ssp.ipn.fqnn == ownFqnn)
 			{
-				if (bundle.clDossier.senderNodeNbr == 0)
+				if (bundle.clDossier.senderFqnn == 0)
 				{
 					/*	Received from unknown
 					 *	node, can't safely

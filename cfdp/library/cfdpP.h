@@ -198,7 +198,7 @@ typedef struct
 	char			protocolName[32];
 	char			endpointName[256];
 	UtLayer			utLayer;
-	uvast			bpNodeNbr;
+	uvast			bpFqnn;
 	uvast			ltpEngineNbr;
 	unsigned int		ipAddress;
 	unsigned short		portNbr;

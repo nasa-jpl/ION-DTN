@@ -124,8 +124,8 @@ tbl_t *dtn_ion_ipnadmin_tblt_exits(ari_t *id)
 		/* (uint) FirstNode (UINT) last node (STR) gatewaye EID */
 		if((cur_row = tnvc_create(4)) != NULL)
 		{
-			tnvc_insert(cur_row, tnv_from_uvast(exit->firstNodeNbr));
-			tnvc_insert(cur_row, tnv_from_uvast(exit->lastNodeNbr));
+			tnvc_insert(cur_row, tnv_from_uvast(exit->firstFqnn));
+			tnvc_insert(cur_row, tnv_from_uvast(exit->lastFqnn));
 			tnvc_insert(cur_row, tnv_from_str(eidString));
 
 			tbl_add_row(table, cur_row);
@@ -182,7 +182,7 @@ tbl_t *dtn_ion_ipnadmin_tblt_plans(ari_t *id)
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, BpPlan, plan, sdr_list_data(sdr, elt));
-		if (plan->neighborNodeNbr == 0)	/*	Not CBHE.	*/
+		if (plan->neighborFqnn == 0)	/*	Not CBHE.	*/
 		{
 			continue;
 		}
@@ -209,7 +209,7 @@ tbl_t *dtn_ion_ipnadmin_tblt_plans(ari_t *id)
 		/* (uint) FirstNode (UINT) last node (STR) gatewaye EID */
 		if((cur_row = tnvc_create(3)) != NULL)
 		{
-			tnvc_insert(cur_row, tnv_from_uvast(plan->neighborNodeNbr));
+			tnvc_insert(cur_row, tnv_from_uvast(plan->neighborFqnn));
 			tnvc_insert(cur_row, tnv_from_str(action));
 			tnvc_insert(cur_row, tnv_from_str(spec));
 
@@ -271,19 +271,19 @@ tnv_t *dtn_ion_ipnadmin_ctrl_exit_add(eid_t *def_mgr, tnvc_t *parms, int8_t *sta
 	 * +-------------------------------------------------------------------------+
 	 */
 	int success = 0;
-	uvast firstNodeNbr = 0;
-	uvast lastNodeNbr = 0;
+	uvast firstFqnn = 0;
+	uvast lastFqnn = 0;
 	char *endpointId = NULL;
 
-	firstNodeNbr = adm_get_parm_uvast(parms,0,&success);
+	firstFqnn = adm_get_parm_uvast(parms,0,&success);
 	if(success){
-		lastNodeNbr = adm_get_parm_uvast(parms,1,&success);
+		lastFqnn = adm_get_parm_uvast(parms,1,&success);
 	}
 	if(success){
 		endpointId = adm_get_parm_obj(parms, 2, AMP_TYPE_STR);
 	}
 	if(success){
-		if(ipn_addExit(firstNodeNbr,lastNodeNbr,endpointId) > 0)
+		if(ipn_addExit(firstFqnn,lastFqnn,endpointId) > 0)
 		{
 			*status = CTRL_SUCCESS;
 		}
@@ -299,7 +299,7 @@ tnv_t *dtn_ion_ipnadmin_ctrl_exit_add(eid_t *def_mgr, tnvc_t *parms, int8_t *sta
 
 
 /*
- * This control changes the gateway node number for the exit identified by firstNodeNbr and lastNodeNbr
+ * This control changes the gateway node number for the exit identified by firstFqnn and lastFqnn
  * .
  */
 tnv_t *dtn_ion_ipnadmin_ctrl_exit_change(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
@@ -312,19 +312,19 @@ tnv_t *dtn_ion_ipnadmin_ctrl_exit_change(eid_t *def_mgr, tnvc_t *parms, int8_t *
 	 * +-------------------------------------------------------------------------+
 	 */
 	int success = 0;
-	uvast firstNodeNbr = 0;
-	uvast lastNodeNbr = 0;
+	uvast firstFqnn = 0;
+	uvast lastFqnn = 0;
 	char *endpointId = NULL;
 
-	firstNodeNbr = adm_get_parm_uvast(parms,0,&success);
+	firstFqnn = adm_get_parm_uvast(parms,0,&success);
 	if(success){
-		lastNodeNbr = adm_get_parm_uvast(parms,1,&success);
+		lastFqnn = adm_get_parm_uvast(parms,1,&success);
 	}
 	if(success){
 		endpointId = adm_get_parm_obj(parms, 2, AMP_TYPE_STR);
 	}
 	if(success){
-		if(ipn_updateExit(firstNodeNbr,lastNodeNbr,endpointId) > 0)
+		if(ipn_updateExit(firstFqnn,lastFqnn,endpointId) > 0)
 		{
 			*status = CTRL_SUCCESS;
 		}
@@ -339,7 +339,7 @@ tnv_t *dtn_ion_ipnadmin_ctrl_exit_change(eid_t *def_mgr, tnvc_t *parms, int8_t *
 
 
 /*
- * This control deletes the exit identified by firstNodeNbr and lastNodeNbr.
+ * This control deletes the exit identified by firstFqnn and lastFqnn.
  */
 tnv_t *dtn_ion_ipnadmin_ctrl_exit_del(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
@@ -351,15 +351,15 @@ tnv_t *dtn_ion_ipnadmin_ctrl_exit_del(eid_t *def_mgr, tnvc_t *parms, int8_t *sta
 	 * +-------------------------------------------------------------------------+
 	 */
 	int success = 0;
-	uvast firstNodeNbr = 0;
-	uvast lastNodeNbr = 0;
+	uvast firstFqnn = 0;
+	uvast lastFqnn = 0;
 
-	firstNodeNbr = adm_get_parm_uvast(parms,0,&success);
+	firstFqnn = adm_get_parm_uvast(parms,0,&success);
 	if(success){
-		lastNodeNbr = adm_get_parm_uvast(parms,1,&success);
+		lastFqnn = adm_get_parm_uvast(parms,1,&success);
 	}
 	if(success){
-		if(ipn_removeExit(firstNodeNbr,lastNodeNbr) > 0)
+		if(ipn_removeExit(firstFqnn,lastFqnn) > 0)
 		{
 			*status = CTRL_SUCCESS;
 		}

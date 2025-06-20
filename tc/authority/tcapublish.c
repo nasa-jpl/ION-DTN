@@ -93,12 +93,12 @@ static int	handleProposedBulletin(Sdr sdr, TcaDB *db, char *src,
 	char		*cursor;
 	int		len;
 	int		recordLength;
-	uvast		nodeNbr;
+	uvast		fqnn;
 	time_t		effectiveTime;
 	time_t		assertionTime;
 	unsigned short	datLength;
 	unsigned char	datValue[TC_MAX_DATLEN];
-	uvast		priorNodeNbr = 0;
+	uvast		priorFqnn = 0;
 	time_t		priorEffTime = 0;
 
 	parsedOkay = parseEidString(src, &metaEid, &vscheme, &schemeElt);
@@ -112,7 +112,7 @@ source of proposed bulletin: '%s'.", src);
 		return 0;
 	}
 
-	if (metaEid.elementNbr == getOwnNodeNbr())
+	if (metaEid.elementNbr == getOwnFqnn())
 	{
 		/*	This is loopback multicast, which we ignore.	*/
 
@@ -131,7 +131,7 @@ itoa(metaEid.elementNbr));
 	{
 		authObj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &auth, authObj, sizeof(TcaAuthority));
-		if (metaEid.elementNbr == auth.nodeNbr)
+		if (metaEid.elementNbr == auth.fqnn)
 		{
 			break;
 		}
@@ -219,7 +219,7 @@ bulletin only contains bulletin ID: %s.", timestamp1);
 		cursor = buffer;
 		len = bytesBuffered;
 		recordLength = tc_deserialize(&cursor, &len, TC_MAX_DATLEN,
-				&nodeNbr, &effectiveTime, &assertionTime,
+				&fqnn, &effectiveTime, &assertionTime,
 				&datLength, datValue);
 		if (recordLength == 0)
 		{
@@ -229,12 +229,12 @@ bulletin only contains bulletin ID: %s.", timestamp1);
 		}
 
 #if TC_DEBUG
-writeMemoNote("tcapublish: Got record for node", itoa(nodeNbr));
+writeMemoNote("tcapublish: Got record for node", itoa(fqnn));
 #endif
 		/*	Check record order in bulletin.			*/
 
-		if (nodeNbr < priorNodeNbr
-		|| (nodeNbr == priorNodeNbr && (effectiveTime < priorEffTime)))
+		if (fqnn < priorFqnn
+		|| (fqnn == priorFqnn && (effectiveTime < priorEffTime)))
 		{
 			isprintf(msgBuffer, sizeof msgBuffer, "tcapublish: \
 Malformed bulletin (order): '%s'.", src);
@@ -247,12 +247,12 @@ Malformed bulletin (order): '%s'.", src);
 
 		for (; elt; elt = nextPendingRecord(sdr, elt, &obj, &record))
 		{
-			if (record.nodeNbr < nodeNbr)
+			if (record.fqnn < fqnn)
 			{
 				continue;
 			}
 
-			if (record.nodeNbr > nodeNbr)
+			if (record.fqnn > fqnn)
 			{
 				break;
 			}
@@ -299,7 +299,7 @@ writeMemo("tcapublish: Agree on data.");
 
 		/*	Now consider the next record in the bulletin.	*/
 
-		priorNodeNbr = nodeNbr;
+		priorFqnn = fqnn;
 		priorEffTime = effectiveTime;
 
 		/*	Move any residual buffered bytes to the front
@@ -333,8 +333,7 @@ static void	noteNoConsensus(TcaDB *db, TcaRecord *rec)
 	int	len;
 
 	len = _isprintf(cursor, bytesRemaining, UVAST_FIELDSPEC " %lu %lu ",
-			rec->nodeNbr, rec->assertionTime,
-			rec->effectiveTime);
+			rec->fqnn, rec->assertionTime, rec->effectiveTime);
 	cursor += len;
 	bytesRemaining -= len;
 	if (rec->datLength == 0)
@@ -421,9 +420,9 @@ int	n;
 		authObj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &auth, authObj, sizeof(TcaAuthority));
 		isprintf(msgbuf, sizeof msgbuf, "\t%d\t" UVAST_FIELDSPEC "\t%u",
-				i, auth.nodeNbr, auth.inService);
+				i, auth.fqnn, auth.inService);
 		writeMemo(msgbuf);
-		if (auth.nodeNbr == getOwnNodeNbr())
+		if (auth.fqnn == getOwnFqnn())
 		{
 			fec_x = i;
 		}
@@ -432,7 +431,7 @@ int	n;
 	if (fec_x == auths)
 	{
 		isprintf(msgbuf, sizeof msgbuf, "tcapublish: Can't send \
-bulletin: not a declared authority -- " UVAST_FIELDSPEC, getOwnNodeNbr());
+bulletin: not a declared authority -- " UVAST_FIELDSPEC, getOwnFqnn());
 		writeMemo(msgbuf);
 		return 0;
 	}
@@ -544,11 +543,11 @@ writeMemo("tcapublish: No records to publish.");
 		}
 #if TC_DEBUG
 isprintf(msgbuf, sizeof msgbuf, "tcapublish: Appending record to bulletin \
-for node " UVAST_FIELDSPEC ", effective time %lu.", rec->nodeNbr,
+for node " UVAST_FIELDSPEC ", effective time %lu.", rec->fqnn,
 rec->effectiveTime);
 writeMemo(msgbuf);
 #endif
-		recLen = tc_serialize(cursor, bytesRemaining, rec->nodeNbr,
+		recLen = tc_serialize(cursor, bytesRemaining, rec->fqnn,
 				rec->effectiveTime, rec->assertionTime,
 				rec->datLength, rec->datValue);
 		if (recLen < 0)
@@ -808,7 +807,7 @@ int	main(int argc, char *argv[])
 	}
 
 	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
+			getOwnFqnn());
 	if (bp_open_source(ownEid, &sendSAP, 0) < 0)
 	{
 		putErrmsg("Can't open own transmission endpoint.", ownEid);

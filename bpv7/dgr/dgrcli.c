@@ -302,7 +302,7 @@ int	main(int argc, char *argv[])
 		portNbr = DGRCLA_PORT_NBR;
 	}
 
-	if (dgr_open(getOwnNodeNbr(), 1, portNbr, hostNbr, NULL, &dgrSap, &rc)
+	if (dgr_open(getOwnFqnn(), 1, portNbr, hostNbr, NULL, &dgrSap, &rc)
 	|| rc == DgrFailed)
 	{
 		putErrmsg("dgrcli can't open DGR service access point.", NULL);

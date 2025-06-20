@@ -247,7 +247,7 @@ static void	printEntity(Entity *entity)
 	case  UtBp:
 		isprintf(buffer, sizeof buffer,
 				"\tBP node number " UVAST_FIELDSPEC,
-				entity->bpNodeNbr);
+				entity->bpFqnn);
 		printText(buffer);
 		break;
 
