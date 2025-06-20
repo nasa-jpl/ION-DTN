@@ -7,44 +7,44 @@
 ACS=""
 if [[ $BP_VERSION == "bpv6" ]] ; then
 echo "Looking for acsadmin"
-	which acsadmin
-	if [ $? -eq 0 ] ; then
-		ACS="found"
-		CONFIGFILES=" \
-		./config/host1-acs.rc \
-		"
-	else
-		CONFIGFILES=" \
-		./config/host1.rc \
-		"
-	fi
+    which acsadmin
+    if [ $? -eq 0 ] ; then
+        ACS="found"
+        CONFIGFILES=" \
+        ./config/host1-acs.rc \
+        "
+    else
+        CONFIGFILES=" \
+        ./config/host1.rc \
+        "
+    fi
 else
-	CONFIGFILES=" \
-	./config/host1.rc \
-	"
+    CONFIGFILES=" \
+    ./config/host1.rc \
+    "
 fi
 echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: Testing the basic functionality of the bpchat application.
-	Described in issue 192, bpchat is a simple utility which sends and
-	receives bundles on the terminal."
+    Described in issue 192, bpchat is a simple utility which sends and
+    receives bundles on the terminal."
 echo
 echo "CONFIG: Custom loopback configuration: "
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Bpchat and bpecho are used to ensure that bpchat can send and
-	receive text messages in bundles.  The time required to close the
-	bpchat program is also tested. ERROR messages are given on failure.
-	No explicit PASS messages are given, but the overall test return
-	value will reflect test success."
+    receive text messages in bundles.  The time required to close the
+    bpchat program is also tested. ERROR messages are given on failure.
+    No explicit PASS messages are given, but the overall test return
+    value will reflect test success."
 echo
 echo "########################################"
 
@@ -62,9 +62,9 @@ echo "Starting ION..."
 srcdir=`pwd`
 CONFIGDIR="config"
 if [[ $ACS == "found" ]] ; then
-	"ionstart" -I "${CONFIGDIR}/host1-acs.rc"
+    "ionstart" -I "${CONFIGDIR}/host1-acs.rc"
 else
-	"ionstart" -I "${CONFIGDIR}/host1.rc"
+    "ionstart" -I "${CONFIGDIR}/host1.rc"
 fi
 
 echo "Start a bpecho."
@@ -74,15 +74,45 @@ echo "Start a bpchat, and send it the bpchatinput file without closing bpchat's
 STDIN.  This allows bpchat to wait to receive some bundles before closing."
 mkfifo bpchatinfifo
 bpchat ipn:1.2 ipn:1.1 < bpchatinfifo > bpchatoutput & BPCHATPID=$!
-exec 7> bpchatinfifo
-cat bpchatinput >&7
 
-echo "Wait to allow ION and bpecho to reflect the bundles back to bpchat."
-sleep 10
+exec 7> bpchatinfifo   # Open file descriptor 7 to the fifo
+cat bpchatinput >&7    # Send the input. Keep file descriptor 7 open so bpchat won't quit.
+
+echo "Checking if bpecho and bpchat are running..."
+ps aux | grep bpecho | grep -v grep
+ps aux | grep bpchat | grep -v grep
+
+echo "Wait for bpchatoutput to contain the expected data (polling with timeout)."
+
+MAX_WAIT_TIME=30
+POLL_INTERVAL=1
+
+WAIT_START_TIME=$SECONDS
+while true; do
+    if diff bpchatinput bpchatoutput > /dev/null; then
+        echo "Bpchat output matches bpchatinput. Bundles received."
+        break
+    fi
+
+    CURRENT_WAIT_TIME=$((SECONDS - WAIT_START_TIME))
+    if [ $CURRENT_WAIT_TIME -ge $MAX_WAIT_TIME ]; then
+        echo "ERROR: Timeout waiting for bpchatoutput to match bpchatinput."
+        FAIL=1
+        break # Timeout, exit the loop
+    fi
+
+    echo "Waiting for bundles... ($CURRENT_WAIT_TIME/$MAX_WAIT_TIME seconds)"
+    sleep $POLL_INTERVAL
+done
+
+# Wait until the end of polling to send EOF to bpchat's stdin
+exec 7>&-
 
 echo "Close bpchat and bpecho.  Time how long it takes bpchat to close."
 SECONDS=0
-kill $BPECHOPID $BPCHATPID
+# Give bpchat a small moment to process the EOF and exit gracefully
+sleep 1
+kill $BPECHOPID $BPCHATPID # Killing bpchat is a backup in case it hangs
 wait $BPCHATPID
 FINISHSECONDS=$SECONDS
 wait $BPECHOPID
@@ -94,7 +124,7 @@ if [ $FINISHSECONDS -ge 2 ]; then
 fi
 
 if ! diff bpchatinput bpchatoutput > /dev/null; then
-    echo "ERROR: Bpchat didn't give expected output"
+    echo "ERROR: Bpchat didn't give expected output after waiting."
     diff bpchatinput bpchatoutput
     FAIL=1
 fi
