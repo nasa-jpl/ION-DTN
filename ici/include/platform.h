@@ -405,11 +405,6 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 
 typedef void			(*SignalHandler)(int);
 
-typedef struct
-{
-	uvast			opaque[12];
-} ResourceLock;
-
 #ifdef TORNADO_2_0_2
 #define isprintf(buffer, bufsize, format, args...)	\
 oK(_isprintf(buffer, bufsize, format, args))
@@ -903,6 +898,23 @@ int pthread_setname_np(const char *name);
 #ifndef	MAX_SRC_FILE_NAME
 #define MAX_SRC_FILE_NAME	255
 #endif
+
+/**
+ * ResourceLock: A platform-independent recursive mutex.
+ *
+ * For multithreaded builds, it holds a native pthread_mutex_t. For
+ * other targets (e.g. VXWorks), it provides an opaque memory buffer 
+ * that the underlying implementation casts to a platform-specific lock.
+ */
+typedef struct
+{
+#ifdef _MULTITHREADED
+	pthread_mutex_t mutex;
+	int		initialized;
+#else
+	uvast	opaque[12];
+#endif
+} ResourceLock;
 
 /*	Prototypes for standard ION platform functions.			*/
 
