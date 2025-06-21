@@ -51,6 +51,17 @@ check_process_running() {
         wait "$pid_to_check" 2>/dev/null
         return 1 # NOT RUNNING
     fi
+
+    # CASE 2: The 'ps' command found the PID (it's a zombie).
+    # The output of 'ps' can sometimes have whitespace, so we check if it CONTAINS 'Z'.
+    if [[ "$process_state" == *"Z"* ]]; then
+        # It's a zombie. Reap it to be a good citizen, then report it's not running.
+        wait "$pid_to_check" 2>/dev/null
+        return 1 # NOT RUNNING: Process was a zombie.
+    fi
+
+    # CASE 3: The PID exists and it is not a zombie. It is still running.
+    return 0 # STILL RUNNING.
 }
 
 
@@ -98,7 +109,11 @@ while check_process_running && [ "$TIMER" -lt 30 ]; do
     echo -e "Listening for published AMS messages..."
 done
 
+<<<<<<< HEAD
 # If the timer exceeded 30 seconds, kill the process.
+=======
+# If the timer exceeded 120 seconds, kill the process.
+>>>>>>> d632d03a... Update bench-ams for improved stability on some hosts
 if check_process_running; then
     echo -e "Error: amsbenchr process hung or messages not delivered. Terminating..."
     kill $BENCHR_PID
