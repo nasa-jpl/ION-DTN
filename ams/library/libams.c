@@ -4423,7 +4423,7 @@ static int	ams_unregister2(AmsSAP *sap)
 	return 0;
 }
 
-int ams_unregister(AmsSAP *sap)
+int	ams_unregister(AmsSAP *sap)
 {
 	int result;
 
