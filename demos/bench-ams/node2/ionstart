@@ -8,6 +8,8 @@ cp init.petition.log 9.petition.log
 
 ionadmin	bench.ionrc
 sleep 1
+ionadmin	../global.ionrc
+sleep 1
 ionsecadmin	bench.ionsecrc
 sleep 1
 bpadmin		bench.bprc

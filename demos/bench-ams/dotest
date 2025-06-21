@@ -1,26 +1,30 @@
 #!/usr/bin/env bash
 # AMS Benchtest script (for simple AMS two-node demo)
 
+
 # Benchtest variables-------------------------------------------------
-# 
 COUNT=1000
 MESSAGE_SIZE=1000
+
 
 # Shut down routine---------------------------------------------------
 function stop_and_exit() {
     local retval=$1  # 0 for success, 1 for failure
 
     echo "Stopping ION..."
-    cd ../node2
-    ./shutdown_proc
-    cd ../node3
-    ./shutdown_proc    
+
+    # Call the shutdown script (redundant: in case ionstop or killm fails)
+    "${ION_NODE_LIST_DIR}/shutdown_proc"
+
+    # Use killm as a final, forceful cleanup for any remaining ION daemons.
     killm
 
     if [ "$retval" -eq 0 ]; then
         echo -e "AMS benchtest successfully completed."
         echo -e "SUCCESS SUCCESS SUCCESS SUCCESS SUCCESS SUCCESS SUCCESS SUCCESS\n"
-        cat bench.log
+        
+        # The ION_NODE_LIST_DIR variable should point to the test's root directory.
+        cat "${ION_NODE_LIST_DIR}/node3/bench.log"
     else
         echo -e "FAILURE FAILURE FAILURE FAILURE FAILURE FAILURE FAILURE FAILURE\n"
     fi
@@ -30,30 +34,47 @@ function stop_and_exit() {
 
 # Process check -------------------------------------------------------
 check_process_running() {
-    if [ "$1" = "windows" ]; then
-        if [ -n "${BENCHR_PID:-}" ] && ps -p "$BENCHR_PID" > /dev/null 2>&1; then
-            return 0  # Process is running
-        else
-            return 1  # Process is not running or PID is unset
-        fi
-    else
-        if [ -n "${BENCHR_PID:-}" ] && kill -0 "$BENCHR_PID" >/dev/null 2>&1; then
-            return 0  # Process is running
-        else
-            return 1  # Process is not running or PID is unset
-        fi
+    local pid_to_check="${BENCHR_PID:-}"
+
+    if [ -z "$pid_to_check" ]; then
+        return 1 # NOT RUNNING: PID is unset.
     fi
+
+    # Use ps to get the process state.
+    # It will return an empty string if the PID no longer exists.
+    local process_state
+    process_state=$(ps -p "$pid_to_check" -o state=)
+
+    # CASE 1: The 'ps' command returned nothing.
+    # The process has been fully reaped and is gone.
+    if [ -z "$process_state" ]; then
+        return 1 # NOT RUNNING: Process does not exist.
+    fi
+
+    # CASE 2: The 'ps' command found the PID (it's a zombie).
+    # The output of 'ps' can sometimes have whitespace, so we check if it CONTAINS 'Z'.
+    if [[ "$process_state" == *"Z"* ]]; then
+        # It's a zombie. Reap it to be a good citizen, then report it's not running.
+        wait "$pid_to_check" 2>/dev/null
+        return 1 # NOT RUNNING: Process was a zombie.
+    fi
+
+    # CASE 3: The PID exists and it is not a zombie. It is still running.
+    return 0 # STILL RUNNING.
 }
 
 
 
-# Ensure cleanup prior to execution
+# START TEST --------------------------------------------------------
+# -------------------------------------------------------------------
+
+# Cleanup prior to execution
 killm
 ./cleanup
 
 export ION_NODE_LIST_DIR=$PWD
 
-# Start nodes
+# Start nodes --------------------------------------------------------
 cd node2
 ./ionstart
 cd ../node3
@@ -79,7 +100,7 @@ echo -e "Starting amsbench sender:"
 amsbenchs $COUNT $MESSAGE_SIZE 2>/dev/null &
 sleep 3
 
-# Wait for the receiver to finish or timeout after 2 minutes
+# Wait for the receiver to finish or timeout -------------------------
 TIMER=0
 while check_process_running && [ "$TIMER" -lt 120 ]; do
     TIMER=$((TIMER + 1))
@@ -87,23 +108,36 @@ while check_process_running && [ "$TIMER" -lt 120 ]; do
     echo -e "Listening for published AMS messages..."
 done
 
-# If the timer exceeded 120 seconds, kill the hanging process
+# If the timer exceeded 120 seconds, kill the process.
 if check_process_running; then
     echo -e "Error: amsbenchr process hung or messages not delivered. Terminating..."
     kill $BENCHR_PID
     stop_and_exit 1
 fi
 
-# Verify delivery of bench messages
+# Verify delivery of messages ----------------------------------------
 cd ../node3
+echo "Reading bench.log for message delivery confirmation..."
 
-# Allow a few more seconds for write to bench.log
-sleep 3
+# Wait up to 10 seconds for the log file to be flushed to disk.
+verification_timer=0
+while [ "$verification_timer" -lt 10 ]; do
+    if grep -q "Received $COUNT messages" bench.log 2>/dev/null; then
+        # Success message found, break the loop immediately.
+        break
+    fi
+    sleep 1
+    verification_timer=$((verification_timer + 1))
+done
 
+
+# Determine test results ---------------------------------------------
 if grep -q "Received $COUNT messages" bench.log; then
     echo -e "\nSuccess: delivery of $COUNT messages verified."
     stop_and_exit 0
 else
-    echo -e "\nFailure: message delivery failure!"
+    echo -e "\nFailure: Log verification timed out. The final messages were not found in bench.log."
+    echo "Dumping contents of bench.log for debugging:"
+    cat bench.log
     stop_and_exit 1
 fi
