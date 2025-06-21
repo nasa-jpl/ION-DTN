@@ -1882,11 +1882,11 @@ specs.", NULL);
 	return mib;
 }
 
-void	unloadMib()
+void unloadMib()
 {
-	AmsMib			*mib;
+	AmsMib				*mib;
 	AmsMibParameters	parms = { 0, NULL, NULL, NULL };
-
+	int					destroy = 0;
 	lockMib();
 	mib = _mib(NULL);
 	if (mib)
@@ -1894,9 +1894,21 @@ void	unloadMib()
 		mib->users -= 1;
 		if (mib->users <= 0)
 		{
-			oK(_mib(&parms));		/*	Erase.	*/
+			destroy = 1;
 		}
 	}
-
+	
+	/*
+	* Always unlock before attempting to destroy the MIB.
+	*/
 	unlockMib();
+
+	if (destroy)
+	{
+		/*
+		* Now that the lock is released, it is safe to erase the
+		* MIB and destroy the associated mutex.
+		*/
+		oK(_mib(&parms));       /* Erase.  */
+	}
 }

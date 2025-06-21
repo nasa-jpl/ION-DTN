@@ -171,7 +171,7 @@ typedef struct amssapst
 {
 	AmsSapState	state;
 	pthread_t	primeThread;
-	int		transportServiceCount;
+	int			transportServiceCount;
 	TransSvc	*transportServices[TS_INDEX_LIMIT + 1];
 	AmsEventMgt	eventMgtRules;
 	pthread_t	eventMgr;
@@ -179,27 +179,29 @@ typedef struct amssapst
 
 	Venture		*venture;
 	Unit		*unit;
-	AppRole		*role;			/*	In application.	*/
-	MamsEndpoint	*csEndpoint;		/*	Config. server.	*/
+	AppRole		*role;				/*	In application.	*/
+	MamsEndpoint	*csEndpoint;	/*	Config. server.	*/
 	LystElt		csEndpointElt;
-	MamsEndpoint	*rsEndpoint;		/*	Registrar.	*/
-	int		moduleNbr;
-	int		heartbeatsMissed;	/*	From registrar.	*/
+	MamsEndpoint	*rsEndpoint;	/*	Registrar.	*/
+	int			moduleNbr;
+	int			heartbeatsMissed;	/*	From registrar.	*/
 	Lyst		delivVectors;		/*	(D...Vector *)	*/
 	Lyst		subscriptions;		/*	(MsgRule *)	*/
 	Lyst		invitations;		/*	(MsgRule *)	*/
 
 	pthread_t	heartbeatThread;
-	int		haveHeartbeatThread;
+	int			haveHeartbeatThread;
 	pthread_t	mamsThread;
-	int		haveMamsThread;
+	int			haveMamsThread;
+	sem_t		isRegistered;		/* Guarantees setup is complete */
+	volatile int	terminating;
 
-	Lyst		mamsEvents;		/*	(AmsEvt *)	*/
+	Lyst		mamsEvents;			/*	(AmsEvt *)	*/
 	struct llcv_str	mamsEventsCV_str;
 	Llcv		mamsEventsCV;		/*	Inbound.	*/
 	MamsInterface	mamsTsif;
 
-	Lyst		amsEvents;		/*	(AmsEvt *)	*/
+	Lyst		amsEvents;			/*	(AmsEvt *)	*/
 	struct llcv_str	amsEventsCV_str;
 	Llcv		amsEventsCV;		/*	Inbound.	*/
 	AmsInterface	amsTsifs[TS_INDEX_LIMIT + 1];

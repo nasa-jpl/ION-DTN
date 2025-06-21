@@ -25,6 +25,7 @@
 
 #include "amscommon.h"
 
+
 #define EPOCH_OFFSET_1958	(378691200)
 #define	MAX_GW_EID		(255)
 
@@ -601,28 +602,61 @@ continuum number as ION node number.");
 	return 0;
 }
 
-static void	_mibLock(int lock)
+/*
+ * This is the one-time-initialization control variable for the mibLock.
+ * PTHREAD_ONCE_INIT is the standard macro to declare it.
+ */
+static pthread_once_t   mibLockIsInitialized = PTHREAD_ONCE_INIT;
+static ResourceLock     mibLock;
+
+/*
+ * This function will be called by pthread_once() exactly one time,
+ * the first time any thread enters the _mibLock function.
+ */
+static void initializeMibLock(void)
 {
-	static ResourceLock	mibLock;
-
-	/*	The MIB is shared among threads, so access to it must
-	 *	be mutexed.						*/
-
-	if (initResourceLock(&mibLock) == 0)
+	if (initResourceLock(&mibLock) < 0)
 	{
-		switch (lock)
-		{
-		case -1:
-			killResourceLock(&mibLock);
-			break;
+		putErrmsg("Can't initialize mibLock.", NULL);
+	/* 
+		* If this fails, something is catastrophically wrong. 
+		* It is appropriate to abort. 
+		*/
+		sm_Abort();
+	}
+}
 
-		case 0:
-			unlockResource(&mibLock);
-			break;
+static void _mibLock(int lock)
+{
+	/*
+	* The MIB is shared among threads, so access to it must
+	* be mutexed.
+	*/
 
-		default:
-			lockResource(&mibLock);
-		}
+	/*
+	* This guarantees that initializeMibLock() is called by exactly
+	* one thread, exactly once. After the first call, all subsequent
+	* calls to pthread_once with this control variable do nothing
+	* and return immediately with negligible overhead.
+	*/
+	pthread_once(&mibLockIsInitialized, initializeMibLock);
+
+	/*
+	* Because we now know the lock is initialized, we can proceed
+	* directly to the lock, unlock, or kill operation.
+	*/
+	switch (lock)
+	{
+	case -1:
+		killResourceLock(&mibLock);
+		break;
+
+	case 0:
+		unlockResource(&mibLock);
+		break;
+
+	default:
+		lockResource(&mibLock);
 	}
 }
 
@@ -2182,24 +2216,24 @@ int	sendMamsMsg(MamsEndpoint *endpoint, MamsInterface *tsif,
 		MamsPduType type, unsigned int memo,
 		unsigned short supplementLength, char *supplement)
 {
-	Venture		*venture;
-	Unit		*unit;
-	char		*authName;
-	char		authKey[32];
-	int		authKeyLen = sizeof authKey; 
-	int		authNameLen;
-	int		nonce;
+	Venture			*venture;
+	Unit			*unit;
+	char			*authName;
+	char			authKey[32];
+	int				authKeyLen = sizeof authKey; 
+	int				authNameLen;
+	int				nonce;
 	unsigned char	authenticator[AUTHENTICAT_LEN];
-	int		encryptLength;
-	int		authenticatorLength = 0;
-	time_t		unixTime;
+	int				encryptLength;
+	int				authenticatorLength = 0;
+	time_t			unixTime;
 	unsigned int	u4;
 	unsigned char	timeTag[5];
-	int		msgLength;
+	int				msgLength;
 	unsigned char	*msg;
 	unsigned short	u2;
 	unsigned short	checksum;
-	int		result;
+	int				result;
 
 	CHKERR(endpoint);
 	CHKERR(tsif);
@@ -2309,10 +2343,18 @@ int	sendMamsMsg(MamsEndpoint *endpoint, MamsInterface *tsif,
 
 	/*	Send the message.					*/
 
-	lockMib();
+	/*
+	 * To prevent a lock-order-inversion deadlock, temporarily
+	 * release the MIB lock before calling the transport-layer
+	 * send function, which may acquire its own locks. The lock
+	 * is re-acquired immediately after to restore state for the
+	 * calling function, which expects the lock to be held.
+	 */
+
+	unlockMib();
 	result = (_mib(NULL))->pts->sendMamsFn(endpoint, tsif, (char *) msg,
 			msgLength);
-	unlockMib();
+	lockMib();
 	MRELEASE(msg);
 	return result;
 }
@@ -2393,27 +2435,27 @@ int	enqueueMamsEvent(Llcv eventsQueue, AmsEvt *evt, char *ancillaryBlock,
 int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 {
 	unsigned int	preamble;	/*	Describes time tag.	*/
-	int		timeCode;
-	int		coarseTimeLength;
-	int		fineTimeLength;
-	int		expectedLength;
+	int				timeCode;
+	int				coarseTimeLength;
+	int				fineTimeLength;
+	int				expectedLength;
 	unsigned int	u4;
 	unsigned char	*cursor;
-	MamsMsg		msg;
+	MamsMsg			msg;
 	unsigned short	checksum;
 	unsigned short	u2;
-	int		authenticatorLength;
+	int				authenticatorLength;
 	unsigned char	*authenticator = NULL;
 	unsigned char	*supplement;
-	Venture		*venture;
-	Unit		*unit;
-	char		*authName;
-	char		authKey[32];
-	int		authKeyLen = sizeof authKey;
-	int		authNameLen;
+	Venture			*venture;
+	Unit			*unit;
+	char			*authName;
+	char			authKey[32];
+	int				authKeyLen = sizeof authKey;
+	int				authNameLen;
 	unsigned char	nonce[4];
-	int		decryptLength;
-	AmsEvt		*evt;
+	int				decryptLength;
+	AmsEvt			*evt;
 
 	CHKERR(eventsQueue);
 	CHKERR(length >= 0);
