@@ -1902,6 +1902,7 @@ void unloadMib()
 	AmsMib				*mib;
 	AmsMibParameters	parms = { 0, NULL, NULL, NULL };
 	int					destroy = 0;
+	
 	lockMib();
 	mib = _mib(NULL);
 	if (mib)
