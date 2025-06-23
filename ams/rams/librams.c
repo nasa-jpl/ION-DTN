@@ -7,7 +7,7 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
 
 	Modified by Sky DeBaun	
-	Jet Propulsion Laboratory 2021
+	Jet Propulsion Laboratory 2023
 
 	Modifications address the following issues:
 
@@ -20,9 +20,14 @@
 	   	Modifications include switching arrays and for-loops using the 
 	   	MAX_CONTIN_NBR to use ici's lyst (managed linked list)
 
+	3.) Resolution of multiple TSan data race and thread safety issues.
+
 */
 
 #include "ramscommon.h"
+
+/*	Global flag for graceful shutdown on receipt of SIGTERM.	*/
+volatile sig_atomic_t g_ramsgate_interrupted = 0;
 
 #if RAMSDEBUG
 static void	PrintGatewayState(RamsGateway *gWay);
@@ -152,7 +157,11 @@ static int	RehandlePetition(RamsNetProtocol protocol, char *gwEid,
 		ErrMsg("Can't find sending node.");
 		return -1;
 	}
-
+	
+	/* This function is called during startup, before multiple threads
+	 * are running, so lock is not strictly necessary but is good practice.
+	 */
+	pthread_mutex_lock(&gWay->gwayStateMutex);
 	switch (cc)
 	{
 	case PetitionAssertion:
@@ -160,6 +169,7 @@ static int	RehandlePetition(RamsNetProtocol protocol, char *gwEid,
 		{
 			if (NoteDeclaration(fromNode, gWay) < 0)
 			{
+				pthread_mutex_unlock(&gWay->gwayStateMutex);
 				return -1;
 			}
 		}
@@ -168,14 +178,18 @@ static int	RehandlePetition(RamsNetProtocol protocol, char *gwEid,
 			if (Look_Up_DeclaredNeighbor(gWay,
 					fromNode->continuumNbr) == NULL)
 			{
-				ErrMsg("Can't find declared source gateway.");
-				return -1;
+				/* Can't handle this assertion yet; it will be
+				 * asserted again by the neighbor when this
+				 * gateway declares itself.			*/
+				pthread_mutex_unlock(&gWay->gwayStateMutex);
+				return 0;
 			}
 		}
 
 		if (HandlePetitionAssertion(fromNode, gWay, sub,
 				domainContinuum, domainUnit, domainRole, 1))
 		{
+			pthread_mutex_unlock(&gWay->gwayStateMutex);
 			return -1;
 		}
 
@@ -185,16 +199,19 @@ static int	RehandlePetition(RamsNetProtocol protocol, char *gwEid,
 		if (HandlePetitionCancellation(fromNode, gWay, sub,
 				domainContinuum, domainUnit, domainRole, 1))
 		{
+			pthread_mutex_unlock(&gWay->gwayStateMutex);
 			return -1;
 		}
 
 		break;
 
 	default:
+		pthread_mutex_unlock(&gWay->gwayStateMutex);
 		ErrMsg("Invalid cc in petition log line.");
 		return -1;
 	}
 
+	pthread_mutex_unlock(&gWay->gwayStateMutex);
 	return 0;
 }
 
@@ -318,61 +335,53 @@ static int	_petitionLog(char *logLine, int ventureNbr)
 
 /*	*	*	RAMS gateway main line	*	*	*	*/
 
+/*	Called by main thread to tell the manager thread to stop.	*/
+static void	KillGateway()
+{
+	RamsGateway	*gWay = _gWay(NULL);
+
+	if (gWay == NULL)
+	{
+		return;
+	}
+
+	/* This function now signals the final shutdown for the manager thread.
+	 * It does not set g_ramsgate_interrupted. Use a mutex to protect
+	 * the shutdown flag from concurrent access.
+	 */
+	pthread_mutex_lock(&gWay->bpQueueMutex);
+	gWay->final_shutdown = 1;
+	pthread_mutex_unlock(&gWay->bpQueueMutex);
+
+
+	if (gWay->netProtocol == RamsBp)
+	{
+		/*	Unblock bp_receive() in the manager thread so it
+		 *	can see the final_shutdown flag.		*/
+		if (gWay->sap)
+		{
+			bp_interrupt(gWay->sap);
+		}
+	}
+	else	/*	Must make sure recvfrom is interrupted for UDP.	*/
+	{
 #ifdef mingw
-static void	KillGateway()
-{
-	RamsGateway	*gWay = _gWay(NULL);
-
-	gWay->stopping = 1;
-	if (gWay->netProtocol == RamsBp)
-	{
-		bp_interrupt(gWay->sap);
-	}
-	else	/*	Must make sure recvfrom is interrupted.		*/
-	{
 		shutdown(gWay->ownUdpFd, SD_BOTH);
-	}
-}
 #else
-static pthread_t	_mainThread()
-{
-	static pthread_t	mainThread;
-	static int		haveMainThread = 0;
-
-	if (haveMainThread == 0)
-	{
-		mainThread = pthread_self();
-		haveMainThread = 1;
-	}
-
-	return mainThread;
-}
-
-static void	KillGateway()
-{
-	RamsGateway	*gWay = _gWay(NULL);
-	pthread_t	mainThread;
-
-	gWay->stopping = 1;
-	if (gWay->netProtocol == RamsBp)
-	{
-		bp_interrupt(gWay->sap);
-	}
-	else	/*	Must make sure recvfrom is interrupted.		*/
-	{
-		mainThread = _mainThread();
+		pthread_t	mainThread = gWay->primeThread;
 		if (!pthread_equal(mainThread, pthread_self()))
 		{
 			pthread_kill(mainThread, SIGTERM);
 		}
+#endif
 	}
 }
-#endif
 
+/*	Signal handler: just set the flag and return.			*/
 static void	InterruptGateway(int signum)
 {
 	isignal(SIGTERM, InterruptGateway);
-	KillGateway();
+	g_ramsgate_interrupted = 1;
 }
 
 static int	HandleBundle(BpDelivery *dlv, char *buffer)
@@ -432,13 +441,15 @@ enclosureLength, fromNode->continuumNbr);
 	}
 
 	/*	Handle RAMS PDU from remote RAMS gateway.		*/
-
+	pthread_mutex_lock(&gWay->gwayStateMutex);
 	if (HandleRPDU(fromNode, gWay, buffer) < 0)
 	{
+		pthread_mutex_unlock(&gWay->gwayStateMutex);
 		ErrMsg("Can't receive RPDU.");
 		return -1;
 	}
 
+	pthread_mutex_unlock(&gWay->gwayStateMutex);
 	return 0;
 }
 
@@ -505,13 +516,15 @@ printf("Datagram has truncated enclosure: %d.\n", datagramLength);
 	}
 
 	/*	 Handle RAMS PDU from remote RAMS gateway.		*/
-
+	pthread_mutex_lock(&gWay->gwayStateMutex);
 	if (HandleRPDU(fromNode, gWay, buffer))
 	{
+		pthread_mutex_unlock(&gWay->gwayStateMutex);
 		ErrMsg("Can't receive RPDU.");
 		return -1;
 	}
 
+	pthread_mutex_unlock(&gWay->gwayStateMutex);
 	return 0;
 }
 
@@ -540,6 +553,174 @@ static void	DeleteInvitation(Invitation *inv)
 	MRELEASE(inv);
 }
 
+/*	The dedicated BP Manager Thread functions.			*/
+
+/*	This function contains the logic to actually send a bundle.
+ *	It is only ever called by the bpManagerThread.			*/
+static int _sendQueuedRpdu(RamsGateway *gWay, BpOutboundRpdu *rpdu)
+{
+	Sdr		sdr = getIonsdr();
+	int		classOfService;
+	BpAncillaryData	ancillaryData = { 0, 0, 0 };
+	Object		extent;
+	Object		bundleZco;
+	Object		newBundle;
+	char		errorMsg[128];
+
+	classOfService = rpdu->flowLabel & 0x03;
+	ancillaryData.flags = (rpdu->flowLabel >> 2) & 0x03;
+
+	if (sdr_begin_xn(sdr) < 0)
+	{
+		putErrmsg("Failed to start SDR transaction for send.", NULL);
+		return -1;
+	}
+
+	extent = sdr_insert(sdr, rpdu->envelope, rpdu->envelopeLength);
+	if (extent == 0)
+	{
+		sdr_cancel_xn(sdr);
+		putErrmsg("Can't write msg to SDR for send.", NULL);
+		return -1;
+	}
+
+	bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, rpdu->envelopeLength,
+		classOfService, ancillaryData.ordinal, ZcoOutbound, NULL);
+
+	if (sdr_end_xn(sdr) < 0 || bundleZco == (Object) ERROR || bundleZco == 0)
+	{
+		putErrmsg("Failed creating message ZCO.", NULL);
+		return -1;
+	}
+
+	if (bp_send(gWay->sap, rpdu->destEid, "dtn:none", rpdu->ttl,
+		classOfService, NoCustodyRequested, 0, 0, &ancillaryData,
+		bundleZco, &newBundle) < 1)
+	{
+		isprintf(errorMsg, sizeof errorMsg,
+				"Cannot send message to %s.", rpdu->destEid);
+		putErrmsg(errorMsg, NULL);
+		/*	bp_send consumes the ZCO even on failure.	*/
+		return -1;
+	}
+
+	return 0;
+}
+
+/*	Main function for the BP Manager thread. It is the ONLY thread
+ *	that calls bp_receive and bp_send.				*/
+static void *_bpManagerThread(void *args)
+{
+	RamsGateway	*gWay = (RamsGateway *) args;
+	Sdr		sdr = getIonsdr();
+	char		*buffer;
+	BpDelivery	dlv;
+	LystElt		elt;
+	BpOutboundRpdu	*outRpdu;
+	int shutdown_flag;
+
+
+	buffer = MTAKE(65534);
+	if (buffer == NULL)
+	{
+		putErrmsg("BP manager can't allocate RPDU buffer.", NULL);
+		g_ramsgate_interrupted = 1; /* Signal main thread to stop */
+		return NULL;
+	}
+
+	/*	This is the main loop for the BP Manager. It blocks waiting
+	 *	for an incoming bundle. It can be interrupted by a call to
+	 *	bp_interrupt(), which signals that there are queued outgoing
+	 *	bundles to process or that shutdown is beginning.	*/
+	
+	pthread_mutex_lock(&gWay->bpQueueMutex);
+	shutdown_flag = gWay->final_shutdown;
+	pthread_mutex_unlock(&gWay->bpQueueMutex);
+
+	while (!shutdown_flag)
+	{
+		/* 1. Block until a bundle arrives or bp_interrupt() is called. */
+		if (bp_receive(gWay->sap, &dlv, BP_BLOCKING) < 0)
+		{
+			putErrmsg("RAMS bundle reception failed.", NULL);
+			g_ramsgate_interrupted = 1; /* Signal main thread */
+			continue;
+		}
+
+		/* 2. After waking up, ALWAYS drain the send queue first.
+		 * This handles messages that were enqueued while we were
+		 * receiving, and services the wake-up from bp_interrupt(). */
+		pthread_mutex_lock(&gWay->bpQueueMutex);
+		while ((elt = lyst_first(gWay->bpSendQueue)) != NULL)
+		{
+			outRpdu = (BpOutboundRpdu *) lyst_data(elt);
+			lyst_delete(elt);
+			
+			pthread_mutex_unlock(&gWay->bpQueueMutex);
+
+			if (_sendQueuedRpdu(gWay, outRpdu) < 0)
+			{
+				putErrmsg("Failed to send queued RPDU.", NULL);
+			}
+
+			MRELEASE(outRpdu->destEid);
+			MRELEASE(outRpdu->envelope);
+			MRELEASE(outRpdu);
+
+			pthread_mutex_lock(&gWay->bpQueueMutex);
+		}
+		pthread_mutex_unlock(&gWay->bpQueueMutex);
+		
+		/* 3. Now process the result of the bp_receive() call. */
+		if (dlv.result == BpEndpointStopped)
+		{
+			/* This was likely a planned interruption to send, or
+			 * the start of shutdown. The loop condition will
+			 * handle shutdown. Otherwise, just loop. */
+			bp_release_delivery(&dlv, 1);
+		}
+		
+		if (dlv.result == BpPayloadPresent)
+		{
+			if (sdr_begin_xn(sdr) < 0)
+			{
+				putErrmsg("Can't start transaction for bundle.", NULL);
+				g_ramsgate_interrupted = 1;
+			}
+			else
+			{
+				if (HandleBundle(&dlv, buffer) < 0)
+				{
+					sdr_cancel_xn(sdr);
+					putErrmsg("Failed to handle incoming bundle.", NULL);
+					g_ramsgate_interrupted = 1;
+				}
+				else if (sdr_end_xn(sdr) < 0)
+				{
+					putErrmsg("Can't end transaction for bundle.", NULL);
+					g_ramsgate_interrupted = 1;
+				}
+			}
+			bp_release_delivery(&dlv, 1);
+		}
+		
+		pthread_mutex_lock(&gWay->bpQueueMutex);
+		shutdown_flag = gWay->final_shutdown;
+		pthread_mutex_unlock(&gWay->bpQueueMutex);
+	}
+
+	/* The manager thread owns the SAP, so it must be the one to close it. */
+	if (gWay->sap)
+	{
+		bp_close(gWay->sap);
+	}
+
+	MRELEASE(buffer);
+	writeMemo("[i] BP Manager thread stopping.");
+	return NULL;
+}
+
+
 int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 		char *authorityName, char *unitName, char *roleName,
 		long lifetime)
@@ -550,12 +731,18 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	short			ownContinuumNbr;
 	Subject			*ownMsgspace = NULL;
 	RamsGateway		*gWay;
-	Sdr			sdr;
 	LystElt			elt;
-	BpDelivery		dlv;
-	char    		*buffer;
 	unsigned char		envelope[ENVELOPELENGTH];
 	RamsNode		*ramsNode;
+	Lyst			msgspaces;
+	Subject			*temp;
+	long			cId;
+	Petition		*pet;
+	AmsEventMgt		rules;
+	int			ownPseudoSubject;
+	pthread_t		checkThread = 0;	/* For UDP */
+
+	/* For UDP only */
 	char			gwEid[256];
 	unsigned short		portNbr;
 	unsigned int		ipAddress;
@@ -563,21 +750,9 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	struct sockaddr_in	*inetName = (struct sockaddr_in *) &socketName;
 	socklen_t		nameLength;
 	int			datagramLength;
-	Lyst			msgspaces;
-	Subject			*temp; /* sky modifies type of var */
-	long			cId;
-	Petition		*pet;
-	AmsEventMgt		rules;
-	short			ownPseudoSubject;
-	pthread_t		checkThread;
+	char			*buffer = NULL; /* For UDP only */
 
 	PUTS("RAMS version 1.0");
-
-	/*	Either the gateway net protocol will be BP, and we'll
-	 *	set sdr to the ION sdr, or using SDR will correctly
-	 *	generate an assertion error.				*/
-
-	sdr = 0;
 
 	/*	Register as an AMS module.				*/
 
@@ -589,11 +764,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	}
 
 	mib = _mib(NULL);
-	ownContinuumNbr = mib->localContinuumNbr;
-	
-	/* sky modifies to use new lyst function instead of array */
-	ownMsgspace = getMsgSpaceByNbr(amsModule->venture, ownContinuumNbr);
-
+	ownMsgspace = getMsgSpaceByNbr(amsModule->venture, mib->localContinuumNbr);
 	amsMemory = getIonMemoryMgr();
 
 	/*	Construct RAMS gateway state.				*/
@@ -602,15 +773,14 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	if (gWay == NULL)
 	{
 		putErrmsg("Can't create RamsGateway object.", NULL);
+		ams_unregister(amsModule);
 		return -1;
 	}
+	memset(gWay, 0, sizeof(RamsGateway));
 
 	gWay->amsModule = amsModule;
 	gWay->primeThread = pthread_self();
-	gWay->petitionReceiveThread = pthread_self();
 	gWay->amsMib = mib;
-	gWay->neighborsCount = 0;
-	gWay->declaredNeighborsCount = 0;
 	gWay->petitionSet = lyst_create_using(amsMemory);
 	gWay->registerSet = lyst_create_using(amsMemory);
 	gWay->invitationSet = lyst_create_using(amsMemory);
@@ -623,6 +793,17 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	|| gWay->declaredNeighbors == NULL)
 	{
 		putErrmsg("Can't initialize RAMS gateway object.", NULL);
+		TerminateGateway(gWay);
+		oK(_gWay(gWay));
+		return -1;
+	}
+
+	/* Initialize gateway state mutex */
+	if (pthread_mutex_init(&gWay->gwayStateMutex, NULL) != 0)
+	{
+		putSysErrmsg("Can't initialize RAMS gateway state mutex.", NULL);
+		TerminateGateway(gWay);
+		oK(_gWay(gWay));
 		return -1;
 	}
 
@@ -639,20 +820,12 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 
 	/*	Load list of all neighboring nodes in the RAMS network.	*/
 
-#if RAMSDEBUG
-printf("continuum lyst:");
-#endif	
-	
 	msgspaces = ams_list_msgspaces(amsModule);
-	
 	for (elt = lyst_first(msgspaces); elt; elt = lyst_next(elt))
 	{
-		temp = (Subject *) lyst_data(elt); /* sky modifies type */
-		cId = 0 - temp->nbr; /* sky accounts for pseudonumber */
+		temp = (Subject *) lyst_data(elt);
+		cId = 0 - temp->nbr;
 
-#if RAMSDEBUG
-printf(" %ld", cId);		
-#endif
 		if (cId == gWay->amsMib->localContinuumNbr)
 		{
 			continue;
@@ -667,66 +840,48 @@ printf(" %ld", cId);
 		if (ramsNode == NULL)
 		{
 			putErrmsg("Can't create RAMS neighbor object.", NULL);
+			TerminateGateway(gWay);
+			oK(_gWay(gWay));
 			return -1;
 		}
 
 		memset(ramsNode, 0, sizeof(RamsNode));
 		ramsNode->continuumNbr = cId;
 		ramsNode->protocol = amsModule->venture->gwProtocol;
-		
-		/* sky modifies to use lyst instead of array */
-		Subject *my_msgspace = getMsgSpaceByNbr(amsModule->venture, cId);
-		ramsNode->gwEid = my_msgspace->gwEid;
+		ramsNode->gwEid = getMsgSpaceByNbr(amsModule->venture, cId)->gwEid;
 
-
-		if (lyst_insert_last(gWay->ramsNeighbors, ramsNode)
-				== NULL)
+		if (lyst_insert_last(gWay->ramsNeighbors, ramsNode) == NULL)
 		{
 			putErrmsg("Can't note RAMS neighbor.", NULL);
+			MRELEASE(ramsNode);
+			TerminateGateway(gWay);
+			oK(_gWay(gWay));
 			return -1;
 		}
-
 		gWay->neighborsCount++;
-#if RAMSDEBUG
-printf("[neighbor]");
-#endif
 	}
-
-#if RAMSDEBUG
-printf("\n");
-#endif	
-						 
 
 	/*	Load AMS event management rules and spawn AMS event
 	 *	management thread.					*/
 
 	rules.registrationHandler = HandleRegistration;
 	rules.registrationHandlerUserData = gWay;
-	
 	rules.unregistrationHandler = HandleUnregistration;
 	rules.unregistrationHandlerUserData = gWay;
-	
 	rules.invitationHandler = HandleInvitation;
 	rules.invitationHandlerUserData = gWay;
-	
 	rules.disinvitationHandler = HandleDisinvitation;
 	rules.disinvitationHandlerUserData = gWay;
-	
 	rules.subscriptionHandler = HandleSubscription;
 	rules.subscriptionHandlerUserData = gWay;
-	
 	rules.unsubscriptionHandler = HandleUnsubscription;
 	rules.unsubscriptionHandlerUserData = gWay;
-    
 	rules.userEventHandler = HandleUserEvent;
-	rules.userEventHandlerUserData = gWay;	
-    
+	rules.userEventHandlerUserData = gWay;
 	rules.errHandler = HandleAamsError;
 	rules.errHandlerUserData = gWay;
-
 	rules.msgHandler = HandleAamsMessage;
 	rules.msgHandlerUserData = gWay;
-
 	ams_set_event_mgr(amsModule, &rules);	
 
 	/*	Subscribe to message on the pseudo-subject for the
@@ -738,39 +893,56 @@ printf("\n");
 	{
 		putErrmsg("Can't subscribe to local continuum pseudo-subject.",
 				itoa(ownPseudoSubject));
+		TerminateGateway(gWay);
+		oK(_gWay(gWay));
 		return -1;
 	}
 
-#if RAMSDEBUG
-printf("subscribed to %d\n", ownPseudoSubject);
-#endif
 	/*	Insert self into RAMS network.				*/
 
 	gWay->netProtocol = amsModule->venture->gwProtocol;
 	switch (gWay->netProtocol)
 	{
 	case RamsBp:
-#if RAMSDEBUG
-printf("ownEid for bp_open is '%s'.\n", ownMsgspace->gwEid);
-#endif
 		gWay->ttl = lifetime;
 		if (bp_attach() < 0)
 		{
-			ErrMsg("Can't attach to BP.");
+			putErrmsg("Can't attach to BP.", NULL);
+			TerminateGateway(gWay);
+			oK(_gWay(gWay));
 			return -1;
 		}
-#if RAMSDEBUG
-printf("bp_attach succeeds.\n");
-#endif
 		if (bp_open(ownMsgspace->gwEid, &gWay->sap) < 0)
 		{
-			ErrMsg("Can't open own BP endpoint.");
+			putErrmsg("Can't open own BP endpoint.", NULL);
+			bp_detach();
+			TerminateGateway(gWay);
+			oK(_gWay(gWay));
 			return -1;
 		}
-#if RAMSDEBUG
-printf("bp_open succeeds.\n");
-#endif
-		sdr = getIonsdr();
+		
+		/* Initialize the thread-safe queue for BP */
+		gWay->bpSendQueue = lyst_create_using(amsMemory);
+		CHKERR(gWay->bpSendQueue);
+		if (pthread_mutex_init(&gWay->bpQueueMutex, NULL) != 0)
+		{
+			putSysErrmsg("Can't initialize BP queue mutex.", NULL);
+			bp_close(gWay->sap);
+			bp_detach();
+			TerminateGateway(gWay);
+			oK(_gWay(gWay));
+			return -1;
+		}
+		if (pthread_cond_init(&gWay->bpQueueCond, NULL) != 0)
+		{
+			putSysErrmsg("Can't initialize BP queue cond var.", NULL);
+			pthread_mutex_destroy(&gWay->bpQueueMutex);
+			bp_close(gWay->sap);
+			bp_detach();
+			TerminateGateway(gWay);
+			oK(_gWay(gWay));
+			return -1;
+		}
 		break;
 
 	case RamsUdp:
@@ -782,6 +954,8 @@ printf("bp_open succeeds.\n");
 			NULL, "librams_check"))
 		{
 			putSysErrmsg("Can't create check thread", NULL);
+			TerminateGateway(gWay);
+			oK(_gWay(gWay));
 			return -1;
 		}
 
@@ -798,6 +972,8 @@ printf("bp_open succeeds.\n");
 		if (gWay->ownUdpFd < 0)
 		{
 			putSysErrmsg("Can't create UDP socket", NULL);
+			TerminateGateway(gWay);
+			oK(_gWay(gWay));
 			return -1;
 		}
 
@@ -807,28 +983,33 @@ printf("bp_open succeeds.\n");
 		|| getsockname(gWay->ownUdpFd, &socketName, &nameLength) < 0)
 		{
 			putSysErrmsg("Can't open own UDP endpoint", NULL);
+			closesocket(gWay->ownUdpFd);
+			TerminateGateway(gWay);
+			oK(_gWay(gWay));
 			return -1;
 		}
-
 		break;
 
 	default:
-		ErrMsg("No valid RAMS network protocol selected.");
+		putErrmsg("No valid RAMS network protocol selected.", NULL);
+		TerminateGateway(gWay);
+		oK(_gWay(gWay));
 		return -1;
 	}
 
 	/*	Declare self to all RAMS network neighbors.		*/
+	pthread_mutex_lock(&gWay->gwayStateMutex);
 
-#if RAMSDEBUG
-printf("Gateway declares itself to all RAMS network neighbors ....\n");
-#endif
 	ConstructEnvelope(envelope, 0, 0, 0, 0, ownPseudoSubject, 0, NULL,
 			PetitionAssertion);
 	pet = ConstructPetitionFromEnvelope((char *) envelope);
 	CHKERR(pet);
 	if (SendRPDU(gWay, 0, 1, (char *) envelope, ENVELOPELENGTH))
 	{
+		pthread_mutex_unlock(&gWay->gwayStateMutex);
 		ErrMsg("Failed sending initial declaration.");
+		DeletePetition(pet);
+		/* Should do more cleanup before exiting. */
 		return -1;
 	}
 
@@ -842,6 +1023,7 @@ printf("Gateway declares itself to all RAMS network neighbors ....\n");
 	    		if (lyst_insert_last(pet->SourceNodeSet, ramsNode)
 					== NULL)
 			{
+				pthread_mutex_unlock(&gWay->gwayStateMutex);
 				ErrMsg("Failed adding node to SGS");
 				return -1;
 			}
@@ -856,9 +1038,12 @@ printf("Gateway declares itself to all RAMS network neighbors ....\n");
 			LookupModule(ams_get_unit_nbr(amsModule),
 			ams_get_module_nbr(amsModule), gWay)) == NULL)
 	{
+		pthread_mutex_unlock(&gWay->gwayStateMutex);
 		ErrMsg("Failed adding petition for initial declaration.");
 		return -1;
 	}
+	pthread_mutex_unlock(&gWay->gwayStateMutex);
+
 
 	if (_petitionLog(NULL, amsModule->venture->nbr) < 0)
 	{
@@ -866,67 +1051,40 @@ printf("Gateway declares itself to all RAMS network neighbors ....\n");
 		return -1;
 	}
 
-	/*	This is the RPDU handling thread, the operational main
-	 *	loop for the RAMS gateway module.			*/
-
-	buffer = MTAKE(65534);
-	if (buffer == NULL)
-	{
-		ErrMsg("Can't allocate RPDU buffer.");
-		return -1;
-	}
-
-#ifndef mingw
-	oK(_mainThread());
-#endif
 	isignal(SIGTERM, InterruptGateway);
-	while (gWay->stopping == 0)
+	writeMemo("[i] RAMS gateway is running.");
+
+	/*	Start the appropriate network handling loop.		*/
+	if (gWay->netProtocol == RamsBp)
 	{
-		switch (gWay->netProtocol)
+		/*	Start the dedicated BP manager thread.		*/
+		if (pthread_begin(&gWay->bpManagerThread, NULL, _bpManagerThread,
+					gWay, "ramsgate_bp_mgr"))
 		{
-		case RamsBp:
-#if RAMSDEBUG
-printf("Before bp_receive...\n");
-#endif
-    			if (bp_receive(gWay->sap, &dlv, BP_BLOCKING) < 0)
+			putSysErrmsg("Can't start BP manager thread.", NULL);
+			g_ramsgate_interrupted = 1;
+		}
+		else
+		{
+			/*	Main thread waits for shutdown signal.	*/
+			while (!g_ramsgate_interrupted)
 			{
-				ErrMsg("RAMS bundle reception failed.");
-				gWay->stopping = 1;
-				continue;
+				snooze(1);
 			}
-
-			switch (dlv.result)
-			{
-			case BpEndpointStopped:
-				gWay->stopping = 1;
-				break;
-
-			case BpPayloadPresent:
-				CHKERR(sdr_begin_xn(sdr));
-				if (HandleBundle(&dlv, buffer) < 0)
-				{
-					sdr_cancel_xn(sdr);
-					gWay->stopping = 1;
-				}
-				else
-				{
-					if (sdr_end_xn(sdr) < 0)
-					{
-						ErrMsg("Can't handle bundle.");
-						gWay->stopping = 1;
-					}
-				}
-
-				break;
-
-			default:
-				break;
-			}
-
-			bp_release_delivery(&dlv, 1);
-			continue;
-
-		case RamsUdp:
+		}
+	}
+	else /* RamsUdp */
+	{
+		/*	UDP receive logic remains in main thread.	*/
+		buffer = MTAKE(65534);
+		if (buffer == NULL)
+		{
+			ErrMsg("Can't allocate RPDU buffer for UDP.");
+			g_ramsgate_interrupted = 1;
+		}
+		
+		while(!g_ramsgate_interrupted)
+		{
 			nameLength = sizeof(struct sockaddr_in);
 			datagramLength = recvfrom(gWay->ownUdpFd, buffer,
 					65534, 0, &socketName, &nameLength);
@@ -940,47 +1098,63 @@ printf("Before bp_receive...\n");
 
 				putSysErrmsg("RAMS datagram reception failed",
 						NULL);
-
 				/*	Intentional fall-through.	*/
-
 			case 0:		/*	Peer socket closed.	*/
-				gWay->stopping = 1;
+				g_ramsgate_interrupted = 1;
 				continue;
-
 			default:
 				if (HandleDatagram(inetName, datagramLength,
 						buffer) < 0)
 				{
 					ErrMsg("Can't handle datagram.");
-					gWay->stopping = 1;
+					g_ramsgate_interrupted = 1;
 				}
 			}
-
-			continue;
-
-		default:
-			ErrMsg("No RAMS network protocol.");
-			gWay->stopping = 1;
 		}
 	}
 
-	MRELEASE(buffer);		/*	Release RPDU buffer.	*/
+	/*	--- Shutdown Sequence ---				*/
+	writeMemo("[i] Stopping RAMS gateway...");
+	
+	/* 1. Gracefully shut down application logic. This will queue
+	 * final cancellation messages. The manager thread is still
+	 * running to process them.					*/
+	TerminateGateway(gWay);
+
+	/* 2. Tell the manager and other threads to exit and wait for them. */
+	if (gWay->netProtocol == RamsBp)
+	{
+		KillGateway(); /* Signals final shutdown to manager. */
+		if (gWay->bpManagerThread)
+		{
+			pthread_join(gWay->bpManagerThread, NULL);
+		}
+	}
+	
 	if (gWay->netProtocol == RamsUdp)
 	{
-		pthread_end(checkThread);
-		pthread_join(checkThread, NULL);
+		MRELEASE(buffer);
+		if (checkThread)
+		{
+			pthread_kill(checkThread, SIGTERM);
+			pthread_join(checkThread, NULL);
+		}
 	}
 
-	TerminateGateway(gWay);
-	oK(_gWay(gWay));//cleanup before calling bp_detach()
-
+	/*	3. Final network detachment.				*/
 	if (gWay->netProtocol == RamsBp)
 	{
 		bp_detach();
-	}
 
-	oK(_petitionLog(NULL, 0));	/*	Close the petition log.	*/
-	writeMemo("[i] Stopping RAMS gateway.");
+		/*	Destroy queue resources AFTER manager thread is joined. */
+		pthread_mutex_destroy(&gWay->bpQueueMutex);
+		pthread_cond_destroy(&gWay->bpQueueCond);
+	}
+	
+	pthread_mutex_destroy(&gWay->gwayStateMutex);
+	oK(_petitionLog(NULL, 0));	/*	Close petition log.	*/
+	oK(_gWay(gWay));		/*	Release gateway singleton. */
+	writeMemo("[i] RAMS gateway stopped.");
 	return 0;
 }
 
@@ -995,6 +1169,8 @@ static void	TerminateGateway(RamsGateway *gWay)
 
 	/*	First cancel petitions as necessary.  To do so, begin
 	 *	by locating the local continuum's declaration petition.	*/
+	
+	pthread_mutex_lock(&gWay->gwayStateMutex);
 
 	ownPseudoSubject = 0 - gWay->amsMib->localContinuumNbr;
 #if RAMSDEBUG
@@ -1049,17 +1225,40 @@ ownPseudoSubject, node->continuumNbr);
 			lyst_delete(sgsElt);
 		}
 	}
+	
+	pthread_mutex_unlock(&gWay->gwayStateMutex);
 
-	/*	Wait 2 seconds for all retraction RPDUs to be sent.	*/
+	/*	Wait up to 2 seconds for all retraction RPDUs to be sent.
+	 *	This relies on the BP manager thread (if applicable)
+	 *	still running to process the queue.			*/
+	if (gWay->netProtocol == RamsBp)
+	{
+		int	i;
+		for (i = 0; i < 20; i++)
+		{
+			pthread_mutex_lock(&gWay->bpQueueMutex);
+			int queue_len = lyst_length(gWay->bpSendQueue);
+			pthread_mutex_unlock(&gWay->bpQueueMutex);
+			if (queue_len == 0)
+			{
+				break;
+			}
+			microsnooze(100000); /* 100ms */
+		}
+	}
+	else
+	{
+		snooze(2);
+	}
 
-	snooze(2);
 
-	/*	Now extract self from RAMS network.			*/
+	/*	Now extract self from RAMS network. The BP SAP is closed
+	 *	by the manager thread itself, not here.			*/
 
 	switch (gWay->netProtocol)
 	{
 	case RamsBp:
-		bp_close(gWay->sap);
+		/* bp_close() is now handled by the manager thread. */
 		break;
 
 	case RamsUdp:
@@ -1071,8 +1270,38 @@ ownPseudoSubject, node->continuumNbr);
 	}
 
 	/*	Now release gateway state resources.			*/
-
+	lockMib();
 	ams_unregister(gWay->amsModule);
+	/* ams_unregister releases MIB lock internally. */
+	
+	/* Clean up state lists, now under mutex protection. */
+	pthread_mutex_lock(&gWay->gwayStateMutex);
+
+	/*	Clean up any remaining items in BP send queue.		*/
+	if (gWay->netProtocol == RamsBp && gWay->bpSendQueue)
+	{
+		LystElt q_elt;
+		BpOutboundRpdu *rpdu;
+		
+		/* The bpSendQueue is protected by a different mutex */
+		pthread_mutex_unlock(&gWay->gwayStateMutex);
+		pthread_mutex_lock(&gWay->bpQueueMutex);
+
+		while ((q_elt = lyst_first(gWay->bpSendQueue)) != NULL)
+		{
+			rpdu = (BpOutboundRpdu *) lyst_data(q_elt);
+			MRELEASE(rpdu->destEid);
+			MRELEASE(rpdu->envelope);
+			MRELEASE(rpdu);
+			lyst_delete(q_elt);
+		}
+		lyst_destroy(gWay->bpSendQueue);
+		gWay->bpSendQueue = NULL;
+
+		pthread_mutex_unlock(&gWay->bpQueueMutex);
+		pthread_mutex_lock(&gWay->gwayStateMutex);
+	}
+
 	for (elt = lyst_first(gWay->petitionSet); elt; elt = lyst_next(elt))
 	{
 		pet = (Petition *) lyst_data(elt);
@@ -1100,6 +1329,8 @@ ownPseudoSubject, node->continuumNbr);
 	{
 		lyst_destroy(gWay->udpRpdus);
 	}
+	
+	pthread_mutex_unlock(&gWay->gwayStateMutex);
 }
 
 #if RAMSDEBUG
@@ -1200,8 +1431,9 @@ sub=%d\n", inv->inviteSpecification->domainUnitNbr,
 
 static void	HandleAamsError(void *userData, AmsEvent *event)
 {
-	ErrMsg("AAMS error.");
-	KillGateway();
+	putErrmsg("AAMS error.", NULL);
+	/*	This just signals the main thread to begin shutdown.	*/
+	g_ramsgate_interrupted = 1;
 }
 
 static void	HandleSubscription(AmsModule module, void *userData,
@@ -1222,9 +1454,11 @@ subjectNbr=%d\n", moduleNbr, subjectNbr);
 	sourceModule = LookupModule(unitNbr, moduleNbr, gWay);
 	if (domainContinuumNbr != gWay->amsMib->localContinuumNbr
 	&& !ModuleIsMyself(sourceModule, gWay))
-	{				
+	{		
+		pthread_mutex_lock(&gWay->gwayStateMutex);
 		AddPetitioner(sourceModule, gWay, domainRoleNbr,
 				domainContinuumNbr, domainUnitNbr, subjectNbr);
+		pthread_mutex_unlock(&gWay->gwayStateMutex);
 	}
 }
 
@@ -1245,8 +1479,10 @@ moduleNbr, subjectNbr);
 	if (domainContinuumNbr != gWay->amsMib->localContinuumNbr
 	&& !ModuleIsMyself(sourceModule, gWay))
 	{		
+		pthread_mutex_lock(&gWay->gwayStateMutex);
 		RemovePetitioner(sourceModule, gWay, domainRoleNbr,
 				domainContinuumNbr, domainUnitNbr, subjectNbr);
+		pthread_mutex_unlock(&gWay->gwayStateMutex);
 	}
 }
 
@@ -1260,6 +1496,7 @@ static void	HandleRegistration(AmsModule module, void *userData,
 #if RAMSDEBUG
 PUTS("in HandleRegistration");
 #endif
+	pthread_mutex_lock(&gWay->gwayStateMutex);
 	sourceModule = LookupModule(unitNbr, moduleNbr, gWay);
 	if (ModuleSetMember(sourceModule, gWay->registerSet) == NULL)
 	{
@@ -1271,6 +1508,7 @@ PUTS("in HandleRegistration");
 printf("<HandleRegistration> add module (unit=%d Id=%d)\n", unitNbr, moduleNbr);
 #endif
 	}
+	pthread_mutex_unlock(&gWay->gwayStateMutex);
 }
 
 static void	HandleUnregistration(AmsModule module, void *userData,
@@ -1290,6 +1528,7 @@ PUTS("in HandleUnregistration");
 		return;
 	}
 
+	pthread_mutex_lock(&gWay->gwayStateMutex);
 	sourceModule = LookupModule(unitNbr, moduleNbr, gWay);
 	if ((elt = ModuleSetMember(sourceModule, gWay->registerSet)) != NULL)
 	{
@@ -1299,6 +1538,7 @@ printf("<HandlUnregistration> remove module (unit=%d Id=%d)\n",
 ams_get_unit_nbr(module), ams_get_module_nbr(module));
 #endif
 	}
+	pthread_mutex_unlock(&gWay->gwayStateMutex);
 }
 
 static void	HandleInvitation(AmsModule module, void *userData,
@@ -1324,9 +1564,11 @@ domainUnitNbr);
 		return;
 	}
 
+	pthread_mutex_lock(&gWay->gwayStateMutex);
 	sourceModule = LookupModule(unitNbr, moduleNbr, gWay);
 	if (ModuleIsMyself(sourceModule, gWay))
 	{
+		pthread_mutex_unlock(&gWay->gwayStateMutex);
 		return;
 	}
 
@@ -1358,6 +1600,7 @@ domainUnitNbr);
 			CHKVOID(elt);
 		}
 	}
+	pthread_mutex_unlock(&gWay->gwayStateMutex);
 #if RAMSDEBUG
 PrintInvitationList(gWay);
 #endif
@@ -1379,9 +1622,11 @@ printf("in HandleDisinvitation subjectNbr=%d from unit=%d module=%d to \
 domain role=%d domain cont = %d domain Unit=%d\n", subjectNbr, unitNbr,
 moduleNbr, domainRoleNbr, domainContinuumNbr, domainUnitNbr);
 #endif
+	pthread_mutex_lock(&gWay->gwayStateMutex);
 	sourceModule = LookupModule(unitNbr, moduleNbr, gWay);
 	if (ModuleIsMyself(sourceModule, gWay))
 	{
+		pthread_mutex_unlock(&gWay->gwayStateMutex);
 		return;
 	}
 
@@ -1401,6 +1646,7 @@ moduleNbr, domainRoleNbr, domainContinuumNbr, domainUnitNbr);
 			}
 		}
 	}
+	pthread_mutex_unlock(&gWay->gwayStateMutex);
 #if RAMSDEBUG
 PrintInvitationList(gWay);
 #endif
@@ -1432,16 +1678,18 @@ printf("in HandleAamsMessage, subject = %d\n", subjectNbr);
 		 *	module in the local message space.  Destination
 		 *	continuum is the additive inverse of the subject
 		 *	number.  Message content is an envelope.	*/
-
+		pthread_mutex_lock(&gWay->gwayStateMutex);
 		ForwardTargetedMessage(gWay, flowLabel, content, contentLength);
+		pthread_mutex_unlock(&gWay->gwayStateMutex);
 	} 
 	else if (subjectNbr > 0)
 	{
 		/*	This is a message that was published by a module
 		 *	in the local message space.  Pass the entire
 		 *	event structure to message forwarding logic.	*/
-
+		pthread_mutex_lock(&gWay->gwayStateMutex);
 		ForwardPublishedMessage(gWay, *eventRef);
+		pthread_mutex_unlock(&gWay->gwayStateMutex);
 	}
 }
 
@@ -1739,6 +1987,7 @@ static int	HandlePetitionAssertion(RamsNode *fromNode, RamsGateway *gWay,
 	LystElt		nodeElt;
 	Lyst		assertionSet;
 	Petition	*aPet;	
+	int		result;
 
 #if RAMSDEBUG
 PUTS("<handle petition assertion> receive petition assertion RPDU (2)");
@@ -1753,7 +2002,7 @@ domainContinuum, domainUnit, domainRole);
 	{
 		pet = (Petition *) lyst_data(elt);
 		if (PetitionMatchesDomain(pet, domainContinuum,
-				domainRole, domainUnit, subjectNbr))
+				 domainRole, domainUnit, subjectNbr))
 		{
 			/*	This petition already exists.  If
 			 *	this neighbor has already asserted
@@ -1822,9 +2071,15 @@ PUTS("<handle petition assertion> create new petition");
 		if (domainContinuum == 0
 		|| domainContinuum == gWay->amsMib->localContinuumNbr)
 		{
-			if (ams_subscribe(gWay->amsModule, domainRole,
+			/* Release gateway lock before calling ams_subscribe to
+			 * prevent lock-order-inversion deadlock. */
+			pthread_mutex_unlock(&gWay->gwayStateMutex);
+			result = ams_subscribe(gWay->amsModule, domainRole,
 				domainContinuum, domainUnit, subjectNbr, 10,
-				0, AmsTransmissionOrder, AmsAssured) < 0)
+				0, AmsTransmissionOrder, AmsAssured);
+			pthread_mutex_lock(&gWay->gwayStateMutex);
+
+			if (result < 0)
 			{
 				ErrMsg("Can't subscribe for newly asserted \
 petition.");

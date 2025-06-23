@@ -10,7 +10,7 @@
 
 
 	Modified by Sky DeBaun	
-	Jet Propulsion Laboratory 2022
+	Jet Propulsion Laboratory 2023
 
 	Modifications address the following issues:
 
@@ -22,6 +22,8 @@
 
 		Modifications include changing arrays and for-loops using the 
 		MAX_CONTIN_NBR to use ici's lyst (managed linked list) instead.
+	
+	2.) Resolution of multiple TSan data race and thread safety issues.
 									
 */
 
@@ -32,7 +34,7 @@
  *	that is implemented in most of the rest of ION: returning a
  *	value of -1 from an AMS function normally does NOT mean that
  *	an unrecoverable system error has been encountered and the
- *	task or process should terminate -- it simply means that the
+	*	task or process should terminate -- it simply means that the
  *	function encountered a condition that prevented its nominal
  *	and successful completion.
  *
@@ -58,6 +60,9 @@ static int	ams_invite2(AmsSAP *sap, int roleNbr, short continuumNbr,
 			int unitNbr, short subjectNbr, int priority,
 			unsigned char flowLabel, AmsSequence sequence,
 			AmsDiligence diligence);
+
+/* Add forward declaration to fix implicit declaration build error. */
+static void	ams_remove_event_mgr2(AmsSAP *sap);
 
 /*			Privately defined event types.			*/
 #define ACCEPTED_EVT	32
@@ -277,32 +282,25 @@ static void	eraseSAP(AmsSAP *sap)
 	}
 
 	sap->state = AmsSapClosed;
+	sap->shutdown_imminent = 1;
 
-	/*	Stop heartbeat, MAMS handler, and MAMS rcvr threads.	*/
-
+	/* Stop heartbeat, MAMS handler, and transport receiver threads. */
+	
+	/* Signal all threads to stop and interrupt any blocking calls. */
 	if (sap->haveHeartbeatThread)
 	{
 		pthread_end(sap->heartbeatThread);
-		pthread_join(sap->heartbeatThread, NULL);
 	}
 
 	if (sap->haveMamsThread)
 	{
 		llcv_signal_while_locked(sap->mamsEventsCV, time_to_stop);
-		pthread_join(sap->mamsThread, NULL);
 	}
 
 	if (sap->mamsTsif.ts)
 	{
 		sap->mamsTsif.ts->shutdownFn(sap->mamsTsif.sap);
-		pthread_join(sap->mamsTsif.receiver, NULL);
-		if (sap->mamsTsif.ept)
-		{
-			MRELEASE(sap->mamsTsif.ept);
-		}
 	}
-
-	/*	Stop all AMS message interfaces.			*/
 
 	for (i = 0; i < sap->transportServiceCount; i++)
 	{
@@ -310,14 +308,55 @@ static void	eraseSAP(AmsSAP *sap)
 		if (tsif->ts)
 		{
 			tsif->ts->shutdownFn(tsif->sap);
-			pthread_join(tsif->receiver, NULL);
-			if (tsif->ept)
-			{
-				MRELEASE(tsif->ept);
-			}
 		}
 	}
 
+	/* Join all threads to ensure they have terminated. */
+	if (sap->haveHeartbeatThread)
+	{
+		pthread_join(sap->heartbeatThread, NULL);
+		sap->haveHeartbeatThread = 0;
+	}
+
+	if (sap->haveMamsThread)
+	{
+		pthread_join(sap->mamsThread, NULL);
+		sap->haveMamsThread = 0;
+	}
+	
+	if (sap->mamsTsif.ts)
+	{
+		pthread_join(sap->mamsTsif.receiver, NULL);
+		sap->mamsTsif.ts = NULL;
+	}
+
+	for (i = 0; i < sap->transportServiceCount; i++)
+	{
+		tsif = &(sap->amsTsifs[i]);
+		if (tsif->ts)
+		{
+			pthread_join(tsif->receiver, NULL);
+			tsif->ts = NULL;
+		}
+	}
+
+	/* Now that all threads are stopped, clean up remaining resources. */
+	if (sap->mamsTsif.ept)
+	{
+		MRELEASE(sap->mamsTsif.ept);
+		sap->mamsTsif.ept = NULL;
+	}
+
+	for (i = 0; i < sap->transportServiceCount; i++)
+	{
+		tsif = &(sap->amsTsifs[i]);
+		if (tsif->ept)
+		{
+			MRELEASE(tsif->ept);
+			tsif->ept = NULL;
+		}
+	}
+	
 	/*	Clean up the rest of the SAP.				*/
 
 	if (sap->amsEvents)
@@ -4310,12 +4349,22 @@ static int	ams_unregister2(AmsSAP *sap)
 		return -1;
 	}
 
-	unlockMib();
-	ams_remove_event_mgr(sap);
-	lockMib();
+	/* Must stop the event manager thread first to prevent it from
+	 * accessing resources that are about to be cleaned up and to
+	 * avoid deadlocks with other shutdown procedures.
+	 */
+	ams_remove_event_mgr2(sap);
+
 	result = enqueueMsgToRegistrar(sap, I_am_stopping,
 		computeModuleId(sap->role->nbr, sap->unit->nbr, sap->moduleNbr),
 		0, NULL);
+	
+	if(result < 0)
+	{
+		/* Cannot enqueue message, but must continue shutdown. */
+		putErrmsg("Could not enqueue I_am_stopping to registrar.", NULL);
+	}
+
 
 	/*	Wait for MAMS thread to finish dealing with all
 	 *	currently enqueued events, then complete shutdown.	*/
@@ -4332,13 +4381,15 @@ static int	ams_unregister2(AmsSAP *sap)
 		unlockMib();
 		result = llcv_wait(sap->amsEventsCV, llcv_lyst_not_empty,
 					LLCV_BLOCKING);
+		lockMib(); /* Re-acquire lock after wait */
+
 		if (result < 0)
 		{
 			putErrmsg("Crashed AMS service.", NULL);
 			return 0;
 		}
 
-		lockMib();
+		
 		llcv_lock(sap->amsEventsCV);
 		elt = lyst_first(sap->amsEvents);
 		if (elt == NULL)
@@ -4360,7 +4411,6 @@ static int	ams_unregister2(AmsSAP *sap)
 		/*	MAMS thread has caught up; time to stop.	*/
 
 		recycleEvent(evt);
-		unlockMib();
 		break;
 	}
 
@@ -4371,33 +4421,33 @@ int ams_unregister(AmsSAP *sap)
 {
 	int result;
 
+	if (sap == NULL)
+	{
+		return 0;
+	}
+
 	lockMib();
 	result = ams_unregister2(sap);
 
+	/* ams_unregister2 unlocks MIB before waiting and re-locks it
+	 * before returning, so the lock is held here.
+	 */
+
 	if (result < 0)
 	{
-		/* ams_unregister2 failed and is known to leak the lock
-		 * on this specific failure path. We must unlock here
-		 * to prevent a permanent lockup. 
-		 */
 		unlockMib();
-	}
-	else
-	{
-		/*
-		 * On success, ams_unregister2 has already unlocked the MIB.
-		 * We must re-acquire the lock here to protect eraseSAP()
-		 * from data races during shutdown.
-		 */
-		lockMib();
-		eraseSAP(sap);
-		unlockMib();
-
-		writeMemo("[i] AMS service terminated.");
-		unloadMib();
+		return -1;
 	}
 
-	return result;
+	/* To prevent deadlock, release the high-level MIB lock
+	 * before calling eraseSAP, which may take its own lower-level
+	 * transport locks during thread shutdown.
+	 */
+	unlockMib();
+	eraseSAP(sap);
+	unloadMib();
+	writeMemo("[i] AMS service terminated.");
+	return 0;
 }
 
 static int	validSap(AmsSAP *sap)
@@ -6652,8 +6702,7 @@ void	ams_remove_event_mgr(AmsSAP *sap)
 {
 	if (validSap(sap))
 	{
-		lockMib();
+		/* Do not hold MIB lock while joining a thread. */
 		ams_remove_event_mgr2(sap);
-		unlockMib();
 	}
 }

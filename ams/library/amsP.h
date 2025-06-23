@@ -195,6 +195,7 @@ typedef struct amssapst
 	int			haveMamsThread;
 	sem_t		isRegistered;		/* Guarantees setup is complete */
 	volatile int	terminating;
+	volatile int shutdown_imminent;
 
 	Lyst		mamsEvents;			/*	(AmsEvt *)	*/
 	struct llcv_str	mamsEventsCV_str;

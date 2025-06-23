@@ -26,11 +26,14 @@
 		now initialized and loaded using '@' character (as specified
 		in man pages). 
 		
-		Additional modifications include removal of nested (redundant)
-		checks for the NULL argument (as relates to the MIB filename).
-		This update provides a more clearly delineated path for the
-		desired functionality (i.e. consolidating the parameter check
-		to a single logical location).
+		Additional modifications include removal of nested (redundant) checks 
+		for the NULL argument (as relates to the MIB filename). This update 
+		provides a more clearly delineated path for the desired functionality 
+		(i.e. consolidating the parameter check to a single logical location)
+	
+	3.) Resolution of multiple TSan data race and thread safety issues.
+	
+	4.) Fixed conditional compilation error when building with NOEXPAT.
 
 */
 
@@ -1819,6 +1822,7 @@ AmsMib	*loadMib(char *mibSource)
 	int			i;
 	TransSvc		*ts;
 	AmsMibParameters	parms = { 0, NULL, NULL, NULL };
+	char			*sourceToUse;
 
 	lockMib();
 	mib = _mib(NULL);
@@ -1829,14 +1833,25 @@ AmsMib	*loadMib(char *mibSource)
 		return mib;	/*	MIB is already loaded.		*/
 	}
 	
-	//load in-memory test MIB if '@' specified
-	if (*mibSource == '@')
+	if (mibSource == NULL)
 	{
+		/* Use default file name based on parsing library in use. */
+#ifdef NOEXPAT
+		sourceToUse = "mib.amsrc";
+		result = loadMibFromRcSource(sourceToUse);
+#else
+		sourceToUse = "amsmib.xml";
+		result = loadMibFromXmlSource(sourceToUse);
+#endif
+	}
+	else if (strcmp(mibSource, "@") == 0)
+	{
+		/* load in-memory test MIB if '@' specified */
 		result = loadTestMib();
 	}
 	else
 	{
-/* load the specified MIB or use default filename (if NULL argument) */
+		/* load the specified MIB */
 #ifdef NOEXPAT
 		result = loadMibFromRcSource(mibSource);
 #else
@@ -1887,6 +1902,7 @@ void unloadMib()
 	AmsMib				*mib;
 	AmsMibParameters	parms = { 0, NULL, NULL, NULL };
 	int					destroy = 0;
+	
 	lockMib();
 	mib = _mib(NULL);
 	if (mib)

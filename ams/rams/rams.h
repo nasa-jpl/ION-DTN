@@ -21,6 +21,7 @@
 #include "bp.h"
 #include "sdr.h"
 #include "zco.h"
+#include <signal.h>
 
 #ifdef _cplusplus
 extern "C" {
@@ -53,6 +54,16 @@ typedef struct decl_s
 	int		envelopeLength;
 } UdpRpdu;
 
+/*	New structure for queued outbound BP messages.			*/
+typedef struct
+{
+	char		*destEid;
+	int		ttl;
+	unsigned char	flowLabel;
+	char		*envelope;
+	int		envelopeLength;
+} BpOutboundRpdu;
+
 /*	RamsGateway is the module's RAMS Gateway operational state.	*/
 typedef  struct ramsgateway
 {
@@ -63,16 +74,14 @@ typedef  struct ramsgateway
 	Lyst		invitationSet;	/* list of (Invitation *)	*/
 	Lyst		registerSet;	/* list of registered modules	*/
 	
-	pthread_t	primeThread;   
-	pthread_t	petitionReceiveThread;
-	pthread_t	amsReceiveThread;
+	pthread_t	primeThread;
+	pthread_t	bpManagerThread; /* New BP Manager Thread ID.	*/
+	pthread_t	amsReceiveThread; /* Started by ams_set_event_mgr */
 
 	Lyst		ramsNeighbors;	/*	expected neighbors	*/
 	int		neighborsCount;
 	Lyst		declaredNeighbors;
 	int		declaredNeighborsCount;
-
-	int		stopping;
 
 	RAMSNetworkType	netType;
 	RamsNetProtocol	netProtocol;
@@ -86,6 +95,13 @@ typedef  struct ramsgateway
 
 	BpSAP		sap;
 	int		ttl;
+
+	/*	New thread-safe queue for outbound BP RPDUs.		*/
+	Lyst		bpSendQueue;
+	pthread_mutex_t	bpQueueMutex;
+	pthread_cond_t	bpQueueCond;
+	volatile int	final_shutdown; /* Flag to signal manager thread to exit. */
+	pthread_mutex_t	gwayStateMutex; /* Protects gateway shared state. */
 } RamsGateway, *RamsGate;
 
 typedef struct
@@ -174,6 +190,9 @@ typedef enum
 	Enc_SubjectNbr = 4,
 	Enc_ChecksumFlag = 5
 } EnclosureField;
+
+/*	Global shutdown flag. Set by signal handler.			*/
+extern volatile sig_atomic_t g_ramsgate_interrupted;
 
 extern int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 			char *authorityName, char *unitName, char *roleName,

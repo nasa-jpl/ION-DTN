@@ -7,10 +7,11 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
 
 	Modified by Sky DeBaun	
-	Jet Propulsion Laboratory 2021
+	Jet Propulsion Laboratory 2023
 
-	Modifications include the following issue:
+	Modifications include the following issues:
 	1.) Changed SourceCustodyRequired to NoCustodyRequested in bp_send()
+	2.) Resolution of multiple TSan data race and thread safety issues.
 */
 
 #include "ramscommon.h"
@@ -178,7 +179,7 @@ char	*EnvelopeContent(char *envelope, int contentLength)
 
 	return NULL;
 }
-
+/* NOTE: Callers of Look_Up_Neighbor must hold the gwayStateMutex */
 RamsNode	*Look_Up_Neighbor(RamsGateway *gWay, char *gwEid)
 {
 	LystElt		elt;
@@ -199,6 +200,7 @@ RamsNode	*Look_Up_Neighbor(RamsGateway *gWay, char *gwEid)
 	return NULL;
 }
 
+/* NOTE: Callers of Look_Up_DeclaredNeighbor must hold the gwayStateMutex */
 RamsNode	*Look_Up_DeclaredNeighbor(RamsGateway *gWay, int ramsNbr)
 {
 	LystElt		elt;
@@ -218,8 +220,7 @@ RamsNode	*Look_Up_DeclaredNeighbor(RamsGateway *gWay, int ramsNbr)
 	return NULL;
 }
 
-/* 
-Sky deprecates this for the following reasons:
+/* Sky deprecates this for the following reasons:
 1.) examination shows this function is never called
 2.) the bitmasks do not align with the masks seen in ConstructEnclosure()
 3.) is incomplete and has several obvious redundancies
@@ -990,51 +991,70 @@ static int	SendRPDUviaBp(RamsGateway *gWay, RamsNode *ramsNode,
 			unsigned char flowLabel, char* envelope,
 			int envelopeLength)
 {
-	Sdr		sdr = getIonsdr();
-	int		classOfService;
-	BpAncillaryData	ancillaryData = { 0, 0, 0 };
-	Object		extent;
-	Object		bundleZco;
-	Object		newBundle;
-	char		errorMsg[128];
+	BpOutboundRpdu *outRpdu;
+	int destEidLen;
+	
+	CHKERR(gWay);
+	CHKERR(ramsNode);
+	CHKERR(envelope);
 
-	while (gWay->sap == NULL)
-	{
-		PUTS("Gateway not registered in network yet.");
-		snooze(1);
-	}
+	/*	This function queues the RPDU for the BP manager
+	 *	thread to send. It no longer calls bp_send directly.
+	 */
 
-	classOfService = flowLabel & 0x03;
-	ancillaryData.flags = (flowLabel >> 2) & 0x03;
-	CHKERR(sdr_begin_xn(sdr));
-	extent = sdr_insert(sdr, envelope, envelopeLength);
-	if (extent == 0)
+	/*	Allocate and populate the outbound RPDU structure.	*/
+	outRpdu = (BpOutboundRpdu *) MTAKE(sizeof(BpOutboundRpdu));
+	if (outRpdu == NULL)
 	{
-		sdr_cancel_xn(sdr);
-		ErrMsg("Can't write msg to SDR.");
+		putErrmsg("Can't allocate space for outbound RPDU.", NULL);
 		return -1;
 	}
 
-	bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, envelopeLength,
-		classOfService, ancillaryData.ordinal, ZcoOutbound, NULL);
-	if (sdr_end_xn(sdr) < 0 || bundleZco == (Object) ERROR
-	|| bundleZco == 0)
+	destEidLen = strlen(ramsNode->gwEid) + 1;
+	outRpdu->destEid = MTAKE(destEidLen);
+	if (outRpdu->destEid == NULL)
 	{
-		ErrMsg("Failed creating message.");
+		MRELEASE(outRpdu);
+		putErrmsg("Can't allocate space for dest EID.", NULL);
 		return -1;
 	}
-	/* 	Sky changes SourceCustodyRequired to NoCustodyRequested 
-		here per Scott Burleigh */
-	if (bp_send(gWay->sap, ramsNode->gwEid, "dtn:none", gWay->ttl,
-		classOfService, NoCustodyRequested, 0, 0, &ancillaryData,
-		bundleZco, &newBundle) < 1)
-	{
-		isprintf(errorMsg, sizeof errorMsg,
-				"Cannot send message to %s.", ramsNode->gwEid);
-		ErrMsg(errorMsg);
-		return -1;
-	}
+	istrcpy(outRpdu->destEid, ramsNode->gwEid, destEidLen);
 
+	outRpdu->envelope = MTAKE(envelopeLength);
+	if (outRpdu->envelope == NULL)
+	{
+		MRELEASE(outRpdu->destEid);
+		MRELEASE(outRpdu);
+		putErrmsg("Can't allocate space for envelope copy.", NULL);
+		return -1;
+	}
+	memcpy(outRpdu->envelope, envelope, envelopeLength);
+
+	outRpdu->envelopeLength = envelopeLength;
+	outRpdu->ttl = gWay->ttl;
+	outRpdu->flowLabel = flowLabel;
+
+	/*	Lock the queue and add the new RPDU.			*/
+	pthread_mutex_lock(&gWay->bpQueueMutex);
+	if (lyst_insert_last(gWay->bpSendQueue, outRpdu) == NULL)
+	{
+		pthread_mutex_unlock(&gWay->bpQueueMutex);
+		putErrmsg("Can't enqueue outbound RPDU.", NULL);
+		MRELEASE(outRpdu->destEid);
+		MRELEASE(outRpdu->envelope);
+		MRELEASE(outRpdu);
+		return -1;
+	}
+	pthread_mutex_unlock(&gWay->bpQueueMutex);
+	
+	/*	Signal the BP manager thread that new data is available
+	 *	by interrupting its blocking bp_receive() call.	This is
+	 *	the standard way to wake up an I/O thread.		*/
+	if (gWay->sap)
+	{
+		bp_interrupt(gWay->sap);
+	}
+	
 	return 0;
 }
 
@@ -1172,13 +1192,28 @@ protocol.", itoa(ramsNode->continuumNbr));
 	ramsNode = Look_Up_DeclaredNeighbor(gWay, destContinuumNbr);
 	if (ramsNode == NULL)
 	{
-		isprintf(errorMsg, sizeof errorMsg, "Continuum %d has not \
-declared itself.", destContinuumNbr);
-		ErrMsg(errorMsg);
-#if RAMSDEBUG
-printf("<SendRPDU> continuum %d not declared.\n", destContinuumNbr);
-#endif
-		return -1;
+		/*
+		 *	This function is called to send initial declarations
+		 *	before neighbors have declared themselves. We must
+		 *	find the neighbor in the main neighbor list.
+		 */
+		for (elt = lyst_first(gWay->ramsNeighbors); elt; elt = lyst_next(elt))
+		{
+			RamsNode *neighbor = (RamsNode *) lyst_data(elt);
+			if (neighbor->continuumNbr == destContinuumNbr)
+			{
+				ramsNode = neighbor;
+				break;
+			}
+		}
+
+		if (ramsNode == NULL)
+		{
+			isprintf(errorMsg, sizeof errorMsg, "Continuum %d is not \
+a configured neighbor.", destContinuumNbr);
+			ErrMsg(errorMsg);
+			return -1;
+		}
 	}
 
 	switch (ramsNode->protocol)
@@ -1251,6 +1286,7 @@ void	*CheckUdpRpdus(void *parm)
 	while (1)
 	{
 		snooze(1);
+		/* Note: g_ramsgate_interrupted should be checked here for UDP */
 		currentTime = time(NULL);
 		for (elt = lyst_first(gWay->udpRpdus); elt; elt = nextElt)
 		{
