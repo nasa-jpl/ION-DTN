@@ -109,11 +109,7 @@ while check_process_running && [ "$TIMER" -lt 30 ]; do
     echo -e "Listening for published AMS messages..."
 done
 
-<<<<<<< HEAD
 # If the timer exceeded 30 seconds, kill the process.
-=======
-# If the timer exceeded 120 seconds, kill the process.
->>>>>>> d632d03a... Update bench-ams for improved stability on some hosts
 if check_process_running; then
     echo -e "Error: amsbenchr process hung or messages not delivered. Terminating..."
     kill $BENCHR_PID
