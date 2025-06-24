@@ -743,6 +743,17 @@ static int	sendMsgToCS(RsState *rsState, AmsEvt *evt)
 			}
 		}
 
+		/*
+		 * The check below ensures that 'rsState->csEndpointElt'
+		 * is valid before it is passed to 'lyst_data', preventing
+		 * an assertion failure.
+		 */
+		if (rsState->csEndpointElt == NULL)
+		{
+			writeMemo("[?] Failed to acquire CS endpoint; list may be empty.");
+			return -1;
+		}
+
 		ep = (MamsEndpoint *) lyst_data(rsState->csEndpointElt);
 		result = sendMamsMsg(ep, &(rsState->tsif), msg->type, msg->memo,
 				msg->supplementLength, msg->supplement);
