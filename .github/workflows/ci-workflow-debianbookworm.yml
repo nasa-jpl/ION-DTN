@@ -31,7 +31,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: [self-hosted, linux, x64, debianpodman]
+    runs-on: [self-hosted, linux, x64, debianbookworm]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
