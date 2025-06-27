@@ -1,0 +1,187 @@
+/*
+	sppclo.c:	BP Space Packet Protocol-based convergence-layer output
+			daemon.
+
+	Author: Gregory Miles JPL
+
+	Copyright (c) 2025, California Institute of Technology.
+	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
+	acknowledged.
+	
+									*/
+#include "sppcla.h"
+
+static sm_SemId		sppcloSemaphore(sm_SemId *semid)
+{
+	static sm_SemId	semaphore = -1;
+	
+	if (semid)
+	{
+		semaphore = *semid;
+	}
+
+	return semaphore;
+}
+
+static void	shutDownClo(int signum)
+{
+	sm_SemEnd(sppcloSemaphore(NULL));
+}
+
+/*	*	*	Main thread functions	*	*	*	*/
+
+/*static unsigned long	getUsecTimestamp()
+{
+	struct timeval	tv;
+
+	getCurrentTime(&tv);
+	return ((tv.tv_sec * 1000000) + tv.tv_usec);
+	}*/
+
+#if defined (ION_LWT)
+int	sppclo(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
+{
+	char			*ductBPConfig = (char *) a2;
+	char			*endpointSpec = (char *) a1;
+#else
+int	main(int argc, char *argv[])
+{
+	char			*endpointSpec = (argc > 1 ? argv[1] : NULL);
+	char			*ductBPConfig = (argc > 2 ? argv[2] : NULL);
+#endif
+	unsigned char		*buffer;
+	VOutduct		*vduct;
+	PsmAddress		vductElt;
+	Sdr			sdr;
+	Outduct			outduct;
+	Object			planDuctList;
+	Object			planObj = 0;
+	BpPlan			plan;
+	//IonNeighbor		*neighbor = NULL;
+	//PsmAddress		nextElt;
+	Object			bundleZco;
+	BpAncillaryData		ancillaryData;
+	unsigned int		bundleLength;
+	int			bytesSent;
+
+	if (endpointSpec == NULL)
+	{
+	    PUTS("Usage: sppclo {<remote node IPN> | \
+@} [:<BP reliability]");
+	}
+			return 0;
+	if (ductBPConfig == NULL)
+	{
+	    ancillaryData.flags |= BP_BEST_EFFORT;
+	}
+
+	if (bpAttach() < 0)
+	{
+		putErrmsg("sppclo can't attach to BP.", NULL);
+		return -1;
+	}
+
+	buffer = MTAKE(SPPCLA_BUFSZ);
+	if (buffer == NULL)
+	{
+		putErrmsg("No memory for SPP buffer in sppclo.", NULL);
+		return -1;
+	}
+
+	findOutduct("spp", endpointSpec, &vduct, &vductElt);
+	if (vductElt == 0)
+	{
+	    putErrmsg("No such spp duct.",endpointSpec);
+		MRELEASE(buffer);
+		return -1;
+	}
+
+	if (vduct->cloPid != ERROR && vduct->cloPid != sm_TaskIdSelf())
+	{
+		putErrmsg("CLO task is already started for this duct.",
+				itoa(vduct->cloPid));
+		MRELEASE(buffer);
+		return -1;
+	}
+
+	/*	All command-line arguments are now validated.		*/
+
+	//neighbor = NULL;
+	sdr = getIonsdr();
+	CHKZERO(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr, vduct->outductElt),
+			sizeof(Outduct));
+	if (outduct.planDuctListElt)
+	{
+		planDuctList = sdr_list_list(sdr, outduct.planDuctListElt);
+		planObj = sdr_list_user_data(sdr, planDuctList);
+		if (planObj)
+		{
+			sdr_read(sdr, (char *) &plan, planObj, sizeof(BpPlan));
+		}
+	}
+
+	sdr_exit_xn(sdr);
+
+	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
+
+	oK(sppcloSemaphore(&(vduct->semaphore)));
+	isignal(SIGTERM, shutDownClo);
+
+	/*	Can now begin transmitting to remote duct.		*/
+
+	{
+		char	memoBuf[1024];
+
+		isprintf(memoBuf, sizeof(memoBuf),
+				"[i] sppclo is running, spec = '%s'",
+				endpointSpec);
+		writeMemo(memoBuf);
+	}
+
+	while (!(sm_SemEnded(vduct->semaphore)))
+	{
+		if (bpDequeue(vduct, &bundleZco, &ancillaryData, 0) < 0)
+		{
+			putErrmsg("Can't dequeue bundle.", NULL);
+			break;
+		}
+
+		if (bundleZco == 0)	/*	Outduct closed.		*/
+		{
+			writeMemo("[i] sppclo outduct closed.");
+			sm_SemEnd(sppcloSemaphore(NULL));/*	Stop.	*/
+			continue;
+		}
+
+		if (bundleZco == 1)	/*	Got a corrupt bundle.	*/
+		{
+			continue;	/*	Get next bundle.	*/
+		}
+
+		CHKZERO(sdr_begin_xn(sdr));
+		bundleLength = zco_length(sdr, bundleZco);
+		sdr_exit_xn(sdr);
+		/* put sendBundleBySPP here */
+		
+		if (bytesSent < bundleLength)
+		{
+			sm_SemEnd(sppcloSemaphore(NULL));/*	Stop.	*/
+			continue;
+		}
+
+		/* Take out rate control for now... */
+
+
+		/*	Make sure other tasks have a chance to run.	*/
+
+		sm_TaskYield();
+	}
+
+	writeErrmsgMemos();
+	writeMemo("[i] sppclo duct has ended.");
+	MRELEASE(buffer);
+	ionDetach();
+	return 0;
+}

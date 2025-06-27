@@ -1761,7 +1761,8 @@ bpbin = \
 	tcpclo \
 	udpcli \
 	udpclo \
-        sppcli
+        sppcli \
+        sppclo
 
 #Uncomment if you want to build killm.exe
 #if WINDOWS
@@ -2266,6 +2267,10 @@ udpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 sppcli_SOURCES = bpv7/spp/sppcli.c
 sppcli_LDADD = libici.la $(bplib) $(PTHREAD_LIBS)
 sppcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+sppclo_SOURCES = bpv7/spp/sppclo.c
+sppclo_LDADD = libici.la $(bplib)
+sppclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- BIBE Executables --- #
 
