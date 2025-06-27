@@ -132,7 +132,7 @@ else
     wait "$SUDO_PID";  SUDO_RESULT=$? # stop watchdog quietly
 
     kill "$WATCH_PID" 2>/dev/null && wait "$WATCH_PID" 2>/dev/null
-    stty sane 2>/dev/null || :# restore echo just in case
+    stty sane 2>/dev/null || : # restore echo just in case
 
     if [ "$SUDO_RESULT" -ne 0 ]; then
         printf '%s\n' \
