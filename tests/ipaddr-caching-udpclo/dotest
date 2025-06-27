@@ -190,6 +190,7 @@ echo "Step 1: Destination host not in DNS database or hosts file."
 echo ""
 
 cd ../2.bench.udp
+sleep 10
 # Check ion.log for initialization DNS lookup error report
 LINE_NUM=$(search_log_after_line "$LOG_FILE" "$SEARCH_STRING1" "$LINE_NUM")
 return_code=$?
@@ -203,7 +204,9 @@ fi
 #
 # Step 2: Sending bundle with invalid address
 #
-
+echo ""
+echo "Step 2: Sending bundle with invalid address."
+echo ""
 echo "Send 1 message..."
 echo ""
 
@@ -211,6 +214,7 @@ bptrace ipn:2.1 ipn:3.1 dtn:none 300 0.1 "Hello!"
 sleep 10
 
 bpstats
+sleep 10
 cat ion.log | grep xmt
 
 echo ""

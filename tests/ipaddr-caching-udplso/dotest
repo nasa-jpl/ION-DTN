@@ -178,6 +178,7 @@ echo "Step 1: Destination host not in DNS database or hosts file."
 echo ""
 
 cd ../2.bench.ltp
+sleep 10
 
 # Check ion.log for DNS lookup report
 LINE_NUM=$(search_log_after_line "$LOG_FILE" "$SEARCH_STRING1" "$LINE_NUM")
