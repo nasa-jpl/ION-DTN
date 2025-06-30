@@ -94,7 +94,7 @@ typedef struct
 	/*	Routing override stuff.					*/
 
 	/*	neighbor = -1 indicates "no routing override"		*/
-	uvast		neighbor;
+	uvast		neighborFqnn;
 	Object		ductExpression;		/*	sdrstring	*/
 
 	/*	QoS override stuff.					*/
@@ -120,7 +120,7 @@ extern int		ipn_setOvrd(unsigned int dataLabel,
 				uvast sourceFqnn,
 			/*	neighbor = -2 indicates
 			 		"no change from current value"	*/
-				uvast neighbor,
+				uvast neighborFqnn,
 				char *ovrdDuctExpression,
 			/*	priority = -2 indicates
 			 		"no change from current value"	*/

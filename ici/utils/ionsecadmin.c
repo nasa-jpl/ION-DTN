@@ -85,13 +85,13 @@ static void	printUsage()
 	PUTS("\t   1");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a key <key name> <name of file containing key value>");
-	PUTS("\t   a pubkey <node nbr> <eff. time sec> <key len> <key>");
+	PUTS("\t   a pubkey <node> <effective time sec> <key len> <key>");
 	PUTS("\tc\tChange");
 	PUTS("\t   c key <key name> <name of file containing key value>");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} key <key name>");
-	PUTS("\t   {d|i} pubkey <node nbr> <eff. time sec>");
+	PUTS("\t   {d|i} pubkey <node> <effective time sec>");
 	PUTS("\tl\tList");
 	PUTS("\t   l key");
 	PUTS("\t   l pubkey");
@@ -117,7 +117,7 @@ static void	initializeIonSecurity(int tokenCount, char **tokens)
 
 static void	executeAdd(int tokenCount, char **tokens)
 {
-	uvast		nodeNbr;
+	uvast		fqnn;
 	time_t		effectiveTime;
 	time_t		assertionTime;
 	unsigned short	datLen;
@@ -153,7 +153,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 			return;
 		}
 
-		nodeNbr = strtouvast(tokens[2]);
+		fqnn = getFqn(tokens[2]);
 		effectiveTime = strtoul(tokens[3], NULL, 0);
 		assertionTime = strtoul(tokens[4], NULL, 0);
 		datLen = atoi(tokens[5]);
@@ -173,7 +173,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 			cursor += 2;
 		}
 
-		sec_addPublicKey(nodeNbr, effectiveTime, assertionTime,
+		sec_addPublicKey(fqnn, effectiveTime, assertionTime,
 				datLen, datValue);
 		return;
 	}
@@ -206,7 +206,7 @@ static void	executeChange(int tokenCount, char **tokens)
 
 static void	executeDelete(int tokenCount, char **tokens)
 {
-	uvast	nodeNbr;
+	uvast	fqnn;
 	time_t	effectiveTime;
 
 	if (tokenCount < 3)
@@ -235,9 +235,9 @@ static void	executeDelete(int tokenCount, char **tokens)
 			return;
 		}
 
-		nodeNbr = strtouvast(tokens[2]);
+		fqnn = getFqn(tokens[2]);
 		effectiveTime = strtoul(tokens[3], NULL, 0);
-		sec_removePublicKey(nodeNbr, effectiveTime);
+		sec_removePublicKey(fqnn, effectiveTime);
 		return;
 	}
 
@@ -268,6 +268,7 @@ static void	printPubKey(Object keyAddr)
 	char		*cursor = datValueDisplay;
 	int		bytesRemaining = sizeof datValueDisplay;
 	int		i;
+	char		fqnBuf[FQN_MAX_LENGTH];
 	char		buf[(sizeof datValueDisplay) * 2];
 
 	GET_OBJ_POINTER(sdr, PublicKey, key, keyAddr);
@@ -294,9 +295,10 @@ static void	printPubKey(Object keyAddr)
 		bytesRemaining -= 2;
 	}
 
-	isprintf(buf, sizeof buf, "node " UVAST_FIELDSPEC " effective %s \
-asserted %s data length %d data %s", key->fqnn, effectiveTime, assertionTime,
-			key->length, datValueDisplay);
+	putFqn(fqnBuf, key->fqnn);
+	isprintf(buf, sizeof buf, "node %s effective %s asserted %s data \
+length %d data %s", fqnBuf, effectiveTime, assertionTime, key->length,
+			datValueDisplay);
 	printText(buf);
 }
 
@@ -305,7 +307,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 	Sdr		sdr = getIonsdr();
 	Object		addr;
 	Object		elt;
-	uvast		nodeNbr;
+	uvast		fqnn;
 	time_t		effectiveTime;
 
 	if (tokenCount < 2)
@@ -346,9 +348,9 @@ static void	executeInfo(int tokenCount, char **tokens)
 		}
 
 		CHKVOID(sdr_begin_xn(sdr));
-		nodeNbr = strtouvast(tokens[2]);
+		fqnn = getFqn(tokens[2]);
 		effectiveTime = strtoul(tokens[3], NULL, 0);
-		sec_findPublicKey(nodeNbr, effectiveTime, &addr, &elt);
+		sec_findPublicKey(fqnn, effectiveTime, &addr, &elt);
 		if (elt == 0)
 		{
 			printText("Public key not found.");

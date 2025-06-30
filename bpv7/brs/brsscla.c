@@ -51,7 +51,7 @@ typedef struct
 	int			bundleSocket;
 	pthread_t		receiverThread;
 	int			*running;
-	unsigned int		nodeNbr;
+	unsigned int		fqnn;
 	int			*authenticated;
 	pthread_t		senderThread;
 	int			hasSender;
@@ -217,7 +217,7 @@ static int	startSendingThread(ReceiverThreadParms *rtp)
 	/*	Attach automatic Outduct to egress plan.		*/
 
 	isprintf(rtp->stp.eid, sizeof rtp->stp.eid,
-			"ipn:" UVAST_FIELDSPEC ".0", rtp->nodeNbr);
+			"ipn:" UVAST_FIELDSPEC ".0", rtp->fqnn);
 	findPlan(rtp->stp.eid, &vplan, &vplanElt);
 	if (vplanElt == 0)	/*	Client initial connection.	*/
 	{
@@ -272,7 +272,7 @@ static void	*receiveBundles(void *parm)
 	time_t			currentTime;
 	unsigned char		sdnvText[10];
 	int			sdnvLength = 0;
-	unsigned int		nodeNbr;
+	unsigned int		fqnn;
 	uvast			val;
 	char			registration[24];
 	time_t			timeTag;
@@ -329,9 +329,9 @@ static void	*receiveBundles(void *parm)
 	}
 
 	oK(decodeSdnv(&val, sdnvText));
-	nodeNbr = val;
-	parms->nodeNbr = nodeNbr;
-	isprintf(keyName, sizeof keyName, "%u.brs", nodeNbr);
+	fqnn = val;
+	parms->fqnn = fqnn;
+	isprintf(keyName, sizeof keyName, "%u.brs", fqnn);
 	keyLen = sec_get_key(keyName, &keyBufLen, key);
 	if (keyLen == 0)
 	{
@@ -586,7 +586,7 @@ static void	*spawnReceivers(void *parm)
 		receiverParms->bundleSocket = newSocket;
 		authenticated = 0;		/*	Unknown.	*/
 		receiverParms->authenticated = &authenticated;
-		receiverParms->nodeNbr = (unsigned int) -1;
+		receiverParms->fqnn = (unsigned int) -1;
 		receiverParms->running = &(atp->running);
 		if (pthread_begin(&(receiverParms->receiverThread), NULL,
 				receiveBundles, receiverParms))

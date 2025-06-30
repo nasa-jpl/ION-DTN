@@ -66,7 +66,7 @@ int	main(int argc, char *argv[])
 
 	if (ductName == NULL)
 	{
-		PUTS("Usage: ltpclo <destination engine number>");
+		PUTS("Usage: ltpclo <destination node identifier>");
 		return 0;
 	}
 

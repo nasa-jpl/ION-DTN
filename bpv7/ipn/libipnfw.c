@@ -126,9 +126,10 @@ IpnDB	*getIpnConstants()
 	return _ipnConstants();
 }
 
-void	ipn_findPlan(uvast nodeNbr, Object *planAddr, Object *eltp)
+void	ipn_findPlan(uvast fqnn, Object *planAddr, Object *eltp)
 {
 	Sdr		sdr = getIonsdr();
+	char		nbrBuf[FQN_MAX_LENGTH];
 	char		eid[MAX_EID_LEN + 1];
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
@@ -139,12 +140,13 @@ void	ipn_findPlan(uvast nodeNbr, Object *planAddr, Object *eltp)
 	CHKVOID(ionLocked());
 	CHKVOID(planAddr && eltp);
 	*eltp = 0;			/*	Default.		*/
-	if (nodeNbr == 0)
+	if (fqnn == 0)
 	{
 		return;
 	}
 
-	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
+	putFqn(nbrBuf, fqnn);
+	isprintf(eid, sizeof eid, "ipn:%s.0", nbrBuf);
 	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)
 	{
@@ -155,12 +157,14 @@ void	ipn_findPlan(uvast nodeNbr, Object *planAddr, Object *eltp)
 	*eltp = vplan->planElt;
 }
 
-int	ipn_addPlan(uvast nodeNbr, unsigned int nominalRate)
+int	ipn_addPlan(uvast fqnn, unsigned int nominalRate)
 {
+	char	nbrBuf[FQN_MAX_LENGTH];
 	char	eid[MAX_EID_LEN + 1];
 	int	result;
 
-	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
+	putFqn(nbrBuf, fqnn);
+	isprintf(eid, sizeof eid, "ipn:%s.0", nbrBuf);
 	result = addPlan(eid, nominalRate);
 	if (result == 1)
 	{
@@ -170,14 +174,16 @@ int	ipn_addPlan(uvast nodeNbr, unsigned int nominalRate)
 	return result;
 }
 
-int	ipn_addPlanDuct(uvast nodeNbr, char *ductExpression)
+int	ipn_addPlanDuct(uvast fqnn, char *ductExpression)
 {
+	char		nbrBuf[FQN_MAX_LENGTH];
 	char		eid[MAX_EID_LEN + 1];
 	char		*cursor;
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
 
-	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
+	putFqn(nbrBuf, fqnn);
+	isprintf(eid, sizeof eid, "ipn:%s.0", nbrBuf);
 	cursor = strchr(ductExpression, '/');
 	if (cursor == NULL)
 	{
@@ -200,23 +206,27 @@ int	ipn_addPlanDuct(uvast nodeNbr, char *ductExpression)
 	return attachPlanDuct(eid, vduct->outductElt);
 }
 
-int	ipn_updatePlan(uvast nodeNbr, unsigned int nominalRate)
+int	ipn_updatePlan(uvast fqnn, unsigned int nominalRate)
 {
+	char	nbrBuf[FQN_MAX_LENGTH];
 	char	eid[MAX_EID_LEN + 1];
 
-	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
+	putFqn(nbrBuf, fqnn);
+	isprintf(eid, sizeof eid, "ipn:%s.0", nbrBuf);
 	return updatePlan(eid, nominalRate);
 }
 
-int	ipn_removePlanDuct(uvast nodeNbr, char *ductExpression)
+int	ipn_removePlanDuct(uvast fqnn, char *ductExpression)
 {
+	char		nbrBuf[FQN_MAX_LENGTH];
 	char		eid[MAX_EID_LEN + 1];
 	char		*cursor;
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
 
 	CHKERR(ductExpression);
-	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
+	putFqn(nbrBuf, fqnn);
+	isprintf(eid, sizeof eid, "ipn:%s.0", nbrBuf);
 	cursor = strchr(ductExpression, '/');
 	if (cursor == NULL)
 	{
@@ -239,11 +249,13 @@ int	ipn_removePlanDuct(uvast nodeNbr, char *ductExpression)
 	return detachPlanDuct(vduct->outductElt);
 }
 
-int	ipn_removePlan(uvast nodeNbr)
+int	ipn_removePlan(uvast fqnn)
 {
+	char	nbrBuf[FQN_MAX_LENGTH];
 	char	eid[MAX_EID_LEN + 1];
 
-	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
+	putFqn(nbrBuf, fqnn);
+	isprintf(eid, sizeof eid, "ipn:%s.0", nbrBuf);
 	return removePlan(eid);
 }
 
@@ -309,7 +321,7 @@ static Object	locateOvrd(unsigned int dataLabel, uvast destFqnn,
 }
 
 int	ipn_setOvrd(unsigned int dataLabel, uvast destFqnn,
-		uvast sourceFqnn, uvast neighbor,
+		uvast sourceFqnn, uvast neighborFqnn,
 		char *ovrdDuctExpression, unsigned char priority,
 		unsigned char ordinal, unsigned char qosFlags)
 {
@@ -327,13 +339,13 @@ int	ipn_setOvrd(unsigned int dataLabel, uvast destFqnn,
 
 	if (destFqnn == 0)
 	{
-		writeMemo("[?] Destination node number for override is 0.");
+		writeMemo("[?] Destination node for override is 0.");
 		return 0;
 	}
 
 	if (sourceFqnn == 0)
 	{
-		writeMemo("[?] Source node number for override is 0.");
+		writeMemo("[?] Source node for override is 0.");
 		return 0;
 	}
 
@@ -353,7 +365,7 @@ int	ipn_setOvrd(unsigned int dataLabel, uvast destFqnn,
 		ovrd.dataLabel = dataLabel;
 		ovrd.destFqnn = destFqnn;
 		ovrd.sourceFqnn = sourceFqnn;
-		ovrd.neighbor = (uvast) -1;
+		ovrd.neighborFqnn = (uvast) -1;
 		ovrd.priority = (unsigned char) -1;
 		addr = sdr_malloc(sdr, sizeof(IpnOverride));
 		if (addr == 0)
@@ -382,9 +394,9 @@ int	ipn_setOvrd(unsigned int dataLabel, uvast destFqnn,
 
 	addr = (Object) sdr_list_data(sdr, elt);
 	sdr_stage(sdr, (char *) &ovrd, addr, sizeof(IpnOverride));
-	if (neighbor != (uvast) -2)
+	if (neighborFqnn != (uvast) -2)
 	{
-		ovrd.neighbor = neighbor;
+		ovrd.neighborFqnn = neighborFqnn;
 		if (ovrdDuctExpression)
 		{
 			if (ovrd.ductExpression)
@@ -410,7 +422,7 @@ int	ipn_setOvrd(unsigned int dataLabel, uvast destFqnn,
 		ovrd.qosFlags = qosFlags;
 	}
 
-	if (ovrd.neighbor == (uvast) -1
+	if (ovrd.neighborFqnn == (uvast) -1
 	&& ovrd.priority == (unsigned char) -1)
 	{
 		/*	Override is moot, so delete it.		*/
@@ -574,13 +586,13 @@ void	ipn_findExit(uvast firstFqnn, uvast lastFqnn, Object *exitAddr,
 	CHKVOID(exitAddr && eltp);
 	if (firstFqnn == 0)
 	{
-		writeMemo("[?] First node number for exit is 0.");
+		writeMemo("[?] First node for exit is 0.");
 		return;
 	}
 
 	if (firstFqnn > lastFqnn)
 	{
-		writeMemo("[?] First node number for exit greater than last.");
+		writeMemo("[?] First node for exit greater than last.");
 		return;
 	}
 
@@ -605,20 +617,19 @@ int	ipn_addExit(uvast firstFqnn, uvast lastFqnn, char *viaEid)
 	CHKERR(viaEid);
 	if (firstFqnn == 0)
 	{
-		writeMemo("[?] First node number for exit is 0.");
+		writeMemo("[?] First node for exit is 0.");
 		return 0;
 	}
 
 	if (firstFqnn > lastFqnn)
 	{
-		writeMemo("[?] First node number for exit greater than last.");
+		writeMemo("[?] First node for exit greater than last.");
 		return 0;
 	}
 
 	if (strlen(viaEid) > MAX_SDRSTRING)
 	{
-		writeMemoNote("[?] Exit's gateway EID is too long",
-				viaEid);
+		writeMemoNote("[?] Exit's gateway EID is too long", viaEid);
 		return 0;
 	}
 
@@ -671,8 +682,7 @@ int	ipn_updateExit(uvast firstFqnn, uvast lastFqnn, char *viaEid)
 	CHKERR(viaEid);
 	if (strlen(viaEid) > MAX_SDRSTRING)
 	{
-		writeMemoNote("[?] Exit's gateway EID is too long",
-				viaEid);
+		writeMemoNote("[?] Exit's gateway EID is too long", viaEid);
 		return 0;
 	}
 
@@ -734,7 +744,7 @@ int	ipn_removeExit(uvast firstFqnn, uvast lastFqnn)
 	return 1;
 }
 
-int	ipn_lookupExit(uvast nodeNbr, char *eid)
+int	ipn_lookupExit(uvast fqnn, char *eid)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -746,9 +756,9 @@ int	ipn_lookupExit(uvast nodeNbr, char *eid)
 
 	CHKERR(ionLocked());
 	CHKERR(eid);
-	if (nodeNbr == 0)
+	if (fqnn == 0)
 	{
-		writeMemo("[?] Node number for exit is 0.");
+		writeMemo("[?] Node for exit is 0.");
 		return 0;
 	}
 
@@ -763,7 +773,7 @@ int	ipn_lookupExit(uvast nodeNbr, char *eid)
 	{
 		addr = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &exit, addr, sizeof(IpnExit));
-		if (exit.lastFqnn < nodeNbr || exit.firstFqnn > nodeNbr)
+		if (exit.lastFqnn < fqnn || exit.firstFqnn > fqnn)
 		{
 			continue;
 		}

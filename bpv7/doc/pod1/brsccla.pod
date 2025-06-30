@@ -4,7 +4,7 @@ brsccla - BRSC-based BP convergence layer adapter (input and output) task
 
 =head1 SYNOPSIS
 
-B<brsccla> I<server_hostname>[:I<server_port_nbr>]_I<own_node_nbr>
+B<brsccla> I<server_hostname>[:I<server_port_nbr>]_I<duct_nbr>
 
 =head1 DESCRIPTION
 
@@ -24,7 +24,7 @@ handles BRSC protocol input from the connected server.
 
 The output thread connects to the server's TCP socket at I<server_hostname>
 and I<server_port_nbr>, sends over the connected socket the client's
-I<own_node_nbr> (in SDNV representation) followed by a 32-bit time tag
+I<duct_nbr> (in SDNV representation) followed by a 32-bit time tag
 and a 160-bit HMAC-SHA1 digest of that time tag, to authenticate
 itself; checks the authenticity of the 160-bit countersign returned by
 the server; spawns the keepalive and receiver threads; and then begins
@@ -86,7 +86,7 @@ B<bpadmin> has not yet initialized Bundle Protocol operations.
 
 =item No such brsc induct.
 
-No BRSC induct with duct name matching I<server_hostname>, I<own_node_nbr>,
+No BRSC induct with duct name matching I<server_hostname>, I<duct_nbr>,
 and I<server_port_nbr> has been added to the BP database.  Use B<bpadmin>
 to stop the BRSC convergence-layer protocol, add the induct, and then
 restart the BRSC protocol.
@@ -97,7 +97,7 @@ Redundant initiation of B<brsccla>.
 
 =item No such brsc outduct.
 
-No BRSC outduct with duct name matching I<server_hostname>, I<own_node_nbr>,
+No BRSC outduct with duct name matching I<server_hostname>, I<duct_nbr>,
 and I<server_port_nbr> has been added to the BP database.  Use B<bpadmin>
 to stop the BRSC convergence-layer protocol, add the outduct, and then
 restart the BRSC protocol.

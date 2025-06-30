@@ -4,7 +4,7 @@ ltpcli - LTP-based BP convergence layer input task
 
 =head1 SYNOPSIS
 
-B<ltpcli> I<local_node_nbr>
+B<ltpcli> I<local_node_identifier>
 
 =head1 DESCRIPTION
 
@@ -59,7 +59,7 @@ B<bpadmin> has not yet initialized Bundle Protocol operations.
 
 =item No such ltp duct.
 
-No LTP induct matching I<local_node_nbr> has been added to the BP
+No LTP induct matching I<local_node_identifier> has been added to the BP
 database.  Use B<bpadmin> to stop the LTP convergence-layer protocol,
 add the induct, and then restart the LTP protocol.
 

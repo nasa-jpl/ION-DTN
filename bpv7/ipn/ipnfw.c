@@ -101,6 +101,7 @@ static int	applyRoutingOverride(Bundle *bundle, Object bundleObj,
 			uvast fqnn)
 {
 	Sdr		sdr = getIonsdr();
+	char		nbrBuf[FQN_MAX_LENGTH];
 	char		eid[MAX_EID_LEN + 1];
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
@@ -113,8 +114,8 @@ static int	applyRoutingOverride(Bundle *bundle, Object bundleObj,
 
 	/*	Must forward to override neighbor.			*/
 
-	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0",
-			bundle->ovrdNeighbor);
+	putFqn(nbrBuf, bundle->ovrdNeighbor);
+	isprintf(eid, sizeof eid, "ipn:%s.0", nbrBuf);
 	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)	/*	Not a usable override.		*/
 	{
@@ -348,6 +349,7 @@ static int	enqueueToEntryNode(CgrRoute *route, Bundle *bundle,
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	BpEvent		event;
+	char		nbrBuf[FQN_MAX_LENGTH];
 	char		neighborEid[MAX_EID_LEN + 1];
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
@@ -418,8 +420,8 @@ static int	enqueueToEntryNode(CgrRoute *route, Bundle *bundle,
 	 *	be in the list of best routes), the bundle can't go
 	 *	into limbo at this point.				*/
 
-	isprintf(neighborEid, sizeof neighborEid, "ipn:" UVAST_FIELDSPEC ".0",
-			route->toFqnn);
+	putFqn(nbrBuf, route->toFqnn);
+	isprintf(neighborEid, sizeof neighborEid, "ipn: %s.0", nbrBuf);
 	findPlan(neighborEid, &vplan, &vplanElt);
 	CHKERR(vplanElt);
 	if (bpEnqueue(vplan, bundle, bundleObj) < 0)
@@ -520,6 +522,7 @@ static int	manageOverbooking(CgrRoute *route, Bundle *newBundle,
 			CgrTrace *trace)
 {
 	Sdr		sdr = getIonsdr();
+	char		nbrBuf[FQN_MAX_LENGTH];
 	char		neighborEid[MAX_EID_LEN + 1];
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
@@ -536,8 +539,8 @@ static int	manageOverbooking(CgrRoute *route, Bundle *newBundle,
 	Bundle		bundle;
 	int		eccc;
 
-	isprintf(neighborEid, sizeof neighborEid, "ipn:" UVAST_FIELDSPEC ".0",
-			route->toFqnn);
+	putFqn(nbrBuf, route->toFqnn);
+	isprintf(neighborEid, sizeof neighborEid, "ipn:%s.0", nbrBuf);
 	priority = newBundle->priority;
 	if (priority == 0)
 	{
@@ -988,12 +991,14 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 			uvast fqnn)
 {
 	Sdr		sdr = getIonsdr();
+	char		nbrBuf[FQN_MAX_LENGTH];
 	char		eid[MAX_EID_LEN + 1];
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 	BpPlan		plan;
 
-	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", fqnn);
+	putFqn(nbrBuf, fqnn);
+	isprintf(eid, sizeof eid, "ipn:%s.0", nbrBuf);
 	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)
 	{
@@ -1323,9 +1328,9 @@ int	main(int argc, char *argv[])
 				bundle.qosFlags = ovrd.qosFlags;
 			}
 
-			if (ovrd.neighbor)
+			if (ovrd.neighborFqnn)
 			{
-				bundle.ovrdNeighbor = ovrd.neighbor;
+				bundle.ovrdNeighbor = ovrd.neighborFqnn;
 			}
 		}
 

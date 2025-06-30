@@ -1,6 +1,6 @@
 /*
 
-	ionadmin.c:	contact list adminstration interface.
+	ionadmin.c:	contact plan adminstration interface.
 
 									*/
 /*	Copyright (c) 2007, California Institute of Technology.		*/
@@ -127,7 +127,7 @@ static void	printUsage()
 	PUTS("\t?\tHelp");
 	PUTS("\tv\tPrint version of ION.");
 	PUTS("\t1\tInitialize");
-	PUTS("\t   1 <own node number> { \"\" | <configuration file name> }");
+	PUTS("\t   1 <own node> { \"\" | <configuration file name> }");
 	PUTS("\t@\tAt");
 	PUTS("\t   @ <reference time>");
 	PUTS("\t\tTime format is either +ss or yyyy/mm/dd-hh:mm:ss,");
@@ -141,21 +141,21 @@ contact operations pertain.");
 	PUTS("\t\tThe ! command enables/disable announcement of contact and \
 range commands to the region.  Default is 0 (disable).");
 	PUTS("\ta\tAdd");
-	PUTS("\t   a contact <from time> <until time> <from node#> <to node#> \
+	PUTS("\t   a contact <from time> <until time> <from node> <to node> \
 <xmit rate in bytes per second> [confidence in occurrence; default is 1.0]");
 	PUTS("\t\tTime format is either +ss or yyyy/mm/dd-hh:mm:ss,");
 	PUTS("\t\texcept time '0' indicates a hypothetical contact");
 	PUTS("\t\tand time '-1' indicates a 'registration' contact.");
-	PUTS("\t   a range <from time> <until time> <from node#> <to node#> \
+	PUTS("\t   a range <from time> <until time> <from node> <to node> \
 <OWLT, i.e., range in light seconds>");
 	PUTS("\tc\tChange");
-	PUTS("\t   c contact <from time> <from node#> <to node#> <xmit rate \
+	PUTS("\t   c contact <from time> <from node> <to node> <xmit rate \
 in bytes per second> [confidence in occurrence]");
 	PUTS("\t\tNot applicable for hypothetical and registration contacts.");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
-	PUTS("\t   {d|i} contact <from time> <from node#> <to node#>");
-	PUTS("\t   {d|i} range <from time> <from node#> <to node#>");
+	PUTS("\t   {d|i} contact <from time> <from node> <to node>");
+	PUTS("\t   {d|i} range <from time> <from node> <to node>");
 	PUTS("\t\tTo delete all contacts or ranges for some pair of nodes,");
 	PUTS("\t\tuse '*' as <from time>.");
 	PUTS("\tl\tList");
@@ -201,7 +201,7 @@ static int	initializeNode(int tokenCount, char **tokens)
 
 	if (tokenCount < 2 || *ownFqnnString == '\0')
 	{
-		writeMemo("[?] No node number, can't initialize node.");
+		writeMemo("[?] No node specified, can't initialize node.");
 		return 1;
 	}
 
@@ -211,7 +211,7 @@ static int	initializeNode(int tokenCount, char **tokens)
 		return 1;
 	}
 
-	if (ionInitialize(&parms, strtouvast(ownFqnnString)) < 0)
+	if (ionInitialize(&parms, getFqn(ownFqnnString)) < 0)
 	{
 		putErrmsg("ionadmin can't initialize ION.", NULL);
 		return 1;
@@ -259,8 +259,8 @@ void	executeAdd(int tokenCount, char **tokens)
 	}
 
 	refTime = _referenceTime(NULL);
-	fromFqnnNbr = strtouvast(tokens[4]);
-	toFqnnNbr = strtouvast(tokens[5]);
+	fromFqnnNbr = getFqn(tokens[4]);
+	toFqnnNbr = getFqn(tokens[5]);
 	if (fromFqnnNbr <= 0)
 	{
 		printText("'From' node number must be greater than zero.");
@@ -422,8 +422,8 @@ void	executeChange(int tokenCount, char **tokens)
 		return;
 	}
 
-	fromFqnnNbr = strtouvast(tokens[3]);
-	toFqnnNbr = strtouvast(tokens[4]);
+	fromFqnnNbr = getFqn(tokens[3]);
+	toFqnnNbr = getFqn(tokens[4]);
 	xmitRate = strtol(tokens[5], NULL, 0);
 	oK(rfx_revise_contact(_regionNbr(NULL), fromTime, fromFqnnNbr,
 			toFqnnNbr, xmitRate, confidence, _announce(NULL)));
@@ -472,8 +472,8 @@ void	executeDelete(int tokenCount, char **tokens)
 		}
 	}
 
-	fromFqnnNbr = strtouvast(tokens[3]);
-	toFqnnNbr = strtouvast(tokens[4]);
+	fromFqnnNbr = getFqn(tokens[3]);
+	toFqnnNbr = getFqn(tokens[4]);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
 		oK(rfx_remove_contact(_regionNbr(NULL), scope, fromFqnnNbr,
@@ -534,8 +534,8 @@ static void	executeInfo(int tokenCount, char **tokens)
 		fromTime = readTimestampUTC(tokens[2], refTime);
 	}
 
-	fromFqnn = strtouvast(tokens[3]);
-	toFqnn = strtouvast(tokens[4]);
+	fromFqnn = getFqn(tokens[3]);
+	toFqnn = getFqn(tokens[4]);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
 		memset((char *) &arg1, 0, sizeof(IonCXref));
@@ -1534,12 +1534,12 @@ static int	runIonadmin(char *cmdFileName)
 				/* received input */
 				if (len > 0) 
 				{
-            		add_history(input);
-        		}
+            				add_history(input);
+        			}
 				
 				if (len > sizeof(line) - 1 ) 
 				{
-					printf("\nInput is too long. Ignored.\n");
+					printf("\nInput too long. Ignored.\n");
 					fflush(stdout);
 					continue;
 				}
@@ -1557,7 +1557,6 @@ static int	runIonadmin(char *cmdFileName)
 			 * input sized already checked */
 
 			strcpy(line, input);
-
 			if (processLine(line, len, &rc))
 			{
 				free(input);

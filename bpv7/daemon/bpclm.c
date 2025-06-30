@@ -313,11 +313,11 @@ be redirected.");
 		}
 
 		sdr_read(sdr, (char *) &ovrd, ovrdAddr, sizeof(IpnOverride));
-		if (ovrd.neighbor != bundle->ovrdNeighbor)
+		if (ovrd.neighborFqnn != bundle->ovrdNeighbor)
 		{
 			writeMemo("[?] Routing override changed, bundle must \
 be redirected.");
-			bundle->ovrdNeighbor = ovrd.neighbor;
+			bundle->ovrdNeighbor = ovrd.neighborFqnn;
 			return 0;
 		}
 

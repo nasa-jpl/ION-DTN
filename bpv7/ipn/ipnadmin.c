@@ -71,28 +71,31 @@ static void	printUsage()
 	PUTS("\t?\tHelp");
 	PUTS("\tv\tPrint version of ION.");
 	PUTS("\ta\tAdd");
-	PUTS("\t   a plan <node nbr> <duct expression> [<xmit rate>]");
-	PUTS("\t   a exit <first node nbr> <last node nbr> <endpoint ID>");
-	PUTS("\t   a rtovrd <data label> <dest node#> <src node#> <neighbor \
-node#> [<ductExpression>]");
-	PUTS("\t\tFor all destinations or all sources use node number 0.");
-	PUTS("\t   a cosovrd <data label> <dest node> <src node> <p#> <o#> \
-[<QoS flags>]");
+	PUTS("\t   a plan <node identifier> <duct expression> [<xmit rate>]");
+	PUTS("\t   a exit <first node identifier> <last node identifier> \
+<endpoint ID>");
+	PUTS("\t   a rtovrd <data label> <dest identifier> <src identifier> \
+<neighbor identifier> [<ductExpression>]");
+	PUTS("\t\tFor all destinations or all sources use node identifier 0.");
+	PUTS("\t   a cosovrd <data label> <dest node identifier> <src node \
+identifier> <p#> <o#> [<QoS flags>]");
 	PUTS("\t\tClass of service override: <p#> is overriding CoS");
 	PUTS("\t\t\tand <o#> is overriding ordinal");
-	PUTS("\t\tFor all destinations or all sources use node number 0.");
+	PUTS("\t\tFor all destinations or all sources use node identifier 0.");
 	PUTS("\tc\tChange");
-	PUTS("\t   c plan <node nbr> <xmit rate>");
-	PUTS("\t   c exit <first node nbr> <last node nbr> <endpoint ID>");
-	PUTS("\t   c rtovrd <data label> <dest node#> <src node#> <neighbor \
-node#> [<ductExpression>]");
-	PUTS("\t   c cosovrd <data label> <dest node> <src node> <p#> <o#> \
-[<QoS flags>]");
+	PUTS("\t   c plan <node identifier> <xmit rate>");
+	PUTS("\t   c exit <first node identifier> <last node identifier> \
+<endpoint ID>");
+	PUTS("\t   c rtovrd <data label> <dest identifier> <src identifier> \
+<neighbor node identifier> [<ductExpression>]");
+	PUTS("\t   c cosovrd <data label> <dest node identifier> <src node \
+identifier> <p#> <o#> [<QoS flags>]");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
-	PUTS("\t   {d|i} plan <node nbr>");
-	PUTS("\t   {d|i} exit <first node nbr> <last node nbr>");
-	PUTS("\t   {d|i} ovrd <data label> <dest node> <source node>");
+	PUTS("\t   {d|i} plan <node identifier>");
+	PUTS("\t   {d|i} exit <first node identifier> <last node identifier>");
+	PUTS("\t   {d|i} ovrd <data label> <dest node identifier> <source \
+node identifier>");
 	PUTS("\tl\tList");
 	PUTS("\t   l exit");
 	PUTS("\t   l plan");
@@ -111,7 +114,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 	unsigned int	dataLabel;
 	uvast		destFqnn;
 	uvast		sourceFqnn;
-	uvast		neighbor;
+	uvast		neighborFqnn;
 	int		maxQosFlags =  (BP_MINIMUM_LATENCY |
 					BP_BEST_EFFORT |
 					BP_RELIABLE);
@@ -142,8 +145,8 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 
 		spec = tokens[3];
-		ipn_addPlan(strtouvast(tokens[2]), nominalRate);
-		ipn_addPlanDuct(strtouvast(tokens[2]), spec);
+		ipn_addPlan(getFqn(tokens[2]), nominalRate);
+		ipn_addPlanDuct(getFqn(tokens[2]), spec);
 		return;
 	}
 
@@ -156,8 +159,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 			return;
 		}
 
-		ipn_addExit(strtouvast(tokens[2]), strtouvast(tokens[3]),
-				tokens[4]);
+		ipn_addExit(getFqn(tokens[2]), getFqn(tokens[3]), tokens[4]);
 		return;
 	}
 
@@ -186,20 +188,20 @@ static void	executeAdd(int tokenCount, char **tokens)
 			dataLabel = (unsigned int) -1;
 		}
 
-		destFqnn = strtouvast(tokens[3]);
+		destFqnn = getFqn(tokens[3]);
 		if (destFqnn == 0)
 		{
 			destFqnn = (uvast) -1;
 		}
 
-		sourceFqnn = strtouvast(tokens[4]);
+		sourceFqnn = getFqn(tokens[4]);
 		if (sourceFqnn == 0)
 		{
 			sourceFqnn = (uvast) -1;
 		}
 
-		neighbor = strtouvast(tokens[5]);
-		ipn_setOvrd(dataLabel, destFqnn, sourceFqnn, neighbor,
+		neighborFqnn = getFqn(tokens[5]);
+		ipn_setOvrd(dataLabel, destFqnn, sourceFqnn, neighborFqnn,
 				ovrdDuctExpression, (unsigned char) -2, 0, 0);
 		return;
 	}
@@ -233,13 +235,13 @@ static void	executeAdd(int tokenCount, char **tokens)
 			dataLabel = (unsigned int) -1;
 		}
 
-		destFqnn = strtouvast(tokens[3]);
+		destFqnn = getFqn(tokens[3]);
 		if (destFqnn == 0)
 		{
 			destFqnn = (uvast) -1;
 		}
 
-		sourceFqnn = strtouvast(tokens[4]);
+		sourceFqnn = getFqn(tokens[4]);
 		if (sourceFqnn == 0)
 		{
 			sourceFqnn = (uvast) -1;
@@ -262,7 +264,7 @@ static void	executeChange(int tokenCount, char **tokens)
 	unsigned int	dataLabel;
 	uvast		destFqnn;
 	uvast		sourceFqnn;
-	uvast		neighbor;
+	uvast		neighborFqnn;
 	int		maxQosFlags =  (BP_MINIMUM_LATENCY |
 					BP_BEST_EFFORT |
 					BP_RELIABLE);
@@ -285,7 +287,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		}
 
 		nominalRate = atoi(tokens[3]);
-		ipn_updatePlan(strtouvast(tokens[2]), nominalRate);
+		ipn_updatePlan(getFqn(tokens[2]), nominalRate);
 		return;
 	}
 
@@ -298,8 +300,7 @@ static void	executeChange(int tokenCount, char **tokens)
 			return;
 		}
 
-		ipn_updateExit(strtouvast(tokens[2]), strtouvast(tokens[3]),
-				tokens[4]);
+		ipn_updateExit(getFqn(tokens[2]), getFqn(tokens[3]), tokens[4]);
 		return;
 	}
 
@@ -328,20 +329,20 @@ static void	executeChange(int tokenCount, char **tokens)
 			dataLabel = (unsigned int) -1;
 		}
 
-		destFqnn = strtouvast(tokens[3]);
+		destFqnn = getFqn(tokens[3]);
 		if (destFqnn == 0)
 		{
 			destFqnn = (uvast) -1;
 		}
 
-		sourceFqnn = strtouvast(tokens[4]);
+		sourceFqnn = getFqn(tokens[4]);
 		if (sourceFqnn == 0)
 		{
 			sourceFqnn = (uvast) -1;
 		}
 
-		neighbor = strtouvast(tokens[5]);
-		ipn_setOvrd(dataLabel, destFqnn, sourceFqnn, neighbor,
+		neighborFqnn = getFqn(tokens[5]);
+		ipn_setOvrd(dataLabel, destFqnn, sourceFqnn, neighborFqnn,
 				ovrdDuctExpression, (unsigned char) -2, 0, 0);
 		return;
 	}
@@ -375,13 +376,13 @@ static void	executeChange(int tokenCount, char **tokens)
 			dataLabel = (unsigned int) -1;
 		}
 
-		destFqnn = strtouvast(tokens[3]);
+		destFqnn = getFqn(tokens[3]);
 		if (destFqnn == 0)
 		{
 			destFqnn = (uvast) -1;
 		}
 
-		sourceFqnn = strtouvast(tokens[4]);
+		sourceFqnn = getFqn(tokens[4]);
 		if (sourceFqnn == 0)
 		{
 			sourceFqnn = (uvast) -1;
@@ -402,7 +403,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 	unsigned int	dataLabel;
 	uvast		destFqnn;
 	uvast		sourceFqnn;
-	uvast		neighbor = (uvast) -1;;
+	uvast		neighborFqnn = (uvast) -1;;
 	unsigned char	priority = (unsigned char) -1;
 
 	if (tokenCount < 2)
@@ -419,7 +420,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 			return;
 		}
 
-		ipn_removePlan(strtouvast(tokens[2]));
+		ipn_removePlan(getFqn(tokens[2]));
 		return;
 	}
 
@@ -432,7 +433,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 			return;
 		}
 
-		ipn_removeExit(strtouvast(tokens[2]), strtouvast(tokens[3]));
+		ipn_removeExit(getFqn(tokens[2]), getFqn(tokens[3]));
 		return;
 	}
 
@@ -450,20 +451,20 @@ static void	executeDelete(int tokenCount, char **tokens)
 			dataLabel = (unsigned int) -1;
 		}
 
-		destFqnn = strtouvast(tokens[3]);
+		destFqnn = getFqn(tokens[3]);
 		if (destFqnn == 0)
 		{
 			destFqnn = (uvast) -1;
 		}
 
-		sourceFqnn = strtouvast(tokens[4]);
+		sourceFqnn = getFqn(tokens[4]);
 		if (sourceFqnn == 0)
 		{
 			sourceFqnn = (uvast) -1;
 		}
 
 		ipn_setOvrd(strtouvast(tokens[2]), destFqnn, sourceFqnn,
-				neighbor, NULL, priority, 0, 0);
+				neighborFqnn, NULL, priority, 0, 0);
 		return;
 	}
 
@@ -479,6 +480,7 @@ static void	printPlan(BpPlan *plan)
 	Object	ductElt;
 	Object	outductElt;
 	Outduct	outduct;
+	char	neighborBuf[FQN_MAX_LENGTH];
 	char	buffer[1024];
 
 	if (plan->viaEid)
@@ -500,7 +502,8 @@ static void	printPlan(BpPlan *plan)
 		}
 	}
 
-	isprintf(buffer, sizeof buffer, UVAST_FIELDSPEC " %s %s xmit rate: %lu",
+	putFqn(neighborBuf, plan->neighborFqnn);
+	isprintf(buffer, sizeof buffer, "%s %s %s xmit rate: %lu",
 			plan->neighborFqnn, action, spec, plan->nominalRate);
 	printText(buffer);
 }
@@ -519,7 +522,7 @@ static void	infoPlan(int tokenCount, char **tokens)
 		return;
 	}
 
-	fqnn = strtouvast(tokens[2]);
+	fqnn = getFqn(tokens[2]);
 	CHKVOID(sdr_begin_xn(sdr));
 	ipn_findPlan(fqnn, &planAddr, &elt);
 	if (elt == 0)
@@ -561,8 +564,8 @@ static void	infoExit(int tokenCount, char **tokens)
 		return;
 	}
 
-	firstFqnn = strtouvast(tokens[2]);
-	lastFqnn = strtouvast(tokens[3]);
+	firstFqnn = getFqn(tokens[2]);
+	lastFqnn = getFqn(tokens[3]);
 	if (lastFqnn < firstFqnn)
 	{
 		printText("Unknown exit.");
@@ -595,9 +598,11 @@ static void	printOverride(IpnOverride *ovrd)
 	char	buffer[384];
 	uvast	destFqnn;
 	uvast	sourceFqnn;
-	char	neighbor[32];
+	char	neighborIdentifier[32];
 	char	priority[8];
 	char	ordinal[8];
+	char	destBuf[FQN_MAX_LENGTH];
+	char	sourceBuf[FQN_MAX_LENGTH];
 
 	if (ovrd->destFqnn == (uvast) -1)
 	{
@@ -617,20 +622,19 @@ static void	printOverride(IpnOverride *ovrd)
 		sourceFqnn = ovrd->sourceFqnn;
 	}
 
-	if (ovrd->neighbor == (uvast) -1)
+	if (ovrd->neighborFqnn == (uvast) -1)
 	{
-		istrcpy(neighbor, "<none>", sizeof neighbor);
+		strcpy(neighborIdentifier, "<none>");
 	}
 	else
 	{
-		isprintf(neighbor, sizeof neighbor, UVAST_FIELDSPEC,
-				ovrd->neighbor);
+		putFqn(neighborIdentifier, ovrd->neighborFqnn);
 	}
 
 	if (ovrd->priority == (unsigned char) -1)
 	{
-		istrcpy(priority, "<none>", sizeof(priority));
-		istrcpy(ordinal, "<none>", sizeof(ordinal));
+		strcpy(priority, "<none>");
+		strcpy(ordinal, "<none>");
 	}
 	else
 	{
@@ -640,10 +644,12 @@ static void	printOverride(IpnOverride *ovrd)
 				(unsigned int) (ovrd->ordinal));
 	}
 
-	isprintf(buffer, sizeof buffer, "For data label %u, destination node "
-UVAST_FIELDSPEC ", source node " UVAST_FIELDSPEC ", overrides are: neighbor \
-%s, priority %s, ordinal %s.", ovrd->dataLabel, destFqnn, sourceFqnn,
-			neighbor, priority, ordinal);
+	putFqn(destBuf, destFqnn);
+	putFqn(sourceBuf, sourceFqnn);
+	isprintf(buffer, sizeof buffer, "For data label %u, destination \
+node %s, source node %s, overrides are: neighbor %s, priority %s, ordinal %s.",
+			ovrd->dataLabel, destBuf, sourceBuf, neighborIdentifier,
+			priority, ordinal);
 	printText(buffer);
 }
 
@@ -663,13 +669,13 @@ static void	infoOverride(int tokenCount, char **tokens)
 	}
 
 	dataLabel = strtouvast(tokens[2]);
-	destFqnn = strtouvast(tokens[3]);
+	destFqnn = getFqn(tokens[3]);
 	if (destFqnn == 0)
 	{
 		destFqnn = (uvast) -1;
 	}
 
-	sourceFqnn = strtouvast(tokens[4]);
+	sourceFqnn = getFqn(tokens[4]);
 	if (sourceFqnn == 0)
 	{
 		sourceFqnn = (uvast) -1;

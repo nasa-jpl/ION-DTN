@@ -1257,6 +1257,46 @@ void	ionTerminate(int shutdown)
 	oK(_ionvdb(&ionvdbName));
 }
 
+/*	Functions for operating on fully-qualified node/group numbers.	*/
+
+uvast	getFqn(char *fromBuffer)
+{
+	char	*delimiter;
+	uvast	fqn;
+
+	CHKZERO(fromBuffer);
+	delimiter = strchr(fromBuffer, '.');
+	if (delimiter)		/*	Allocator number is explicit.	*/
+	{
+		*delimiter = 0;
+		fqn = (atol(fromBuffer) << 32) + atol(delimiter + 1);
+		*delimiter = '.';
+	}
+	else			/*	Implicit allocator number.	*/
+	{
+		fqn = atoll(fromBuffer);
+	}
+
+	return fqn;
+}
+
+void	putFqn(char *toBuffer, uvast fqn)
+{
+	unsigned long	allocatorNbr;
+
+	CHKVOID(toBuffer);
+	allocatorNbr = (fqn >> 32) & 0xffffffff;
+	if (allocatorNbr > 0)	/*	Must delimit allocator number.	*/
+	{
+		isprintf(toBuffer, FQN_MAX_LENGTH, "%lu.%lu", allocatorNbr,
+				fqn & 0xffffffff);
+	}
+	else
+	{
+		isprintf(toBuffer, FQN_MAX_LENGTH, UVAST_FIELDSPEC, fqn);
+	}
+}
+
 /*	Functions for interrogating region membership.			*/
 
 int	ionPickRegion(uint32_t regionNbr)

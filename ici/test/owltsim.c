@@ -389,9 +389,11 @@ int	main(int argc, char *argv[])
 		puts("Each line of config file must be of this form:");
 		puts("\t<to> <from> <my port#> <dest hostname> <dest port#> \
 <OWLT in seconds> <modulus>");
-		puts("where <to> and <from> are ION node numbers.  These node");
-		puts("numbers are intended to make the configuration file");
-		puts("somewhat self-documenting.  <from> may be '*' if 'all'.");
+		puts("where <to> and <from> are ipn-scheme node numbers");
+		puts("(ipn-scheme allocator number zero is always implicit).");
+		puts("These node numbers are intended to make the");
+	       	puts("configuration file somewhat self-documenting.  <from>");
+		puts("may be '*' if 'all'.");
 		puts("Normally <modulus> should always be zero.  If you use");
 		puts("a value greater than 0 for <modulus> then owltsim will");
 		puts("randomly discard one out of every <modulus> datagrams");

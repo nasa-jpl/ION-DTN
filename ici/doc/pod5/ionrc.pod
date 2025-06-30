@@ -55,18 +55,19 @@ be logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
 Version number.  Prints out the version of ION currently installed.  HINT:
 combine with B<e 1> command to log the version number at startup.
 
-=item B<1> I<node_number> [ { I<ion_config_filename> | '.' | '' } ]
+=item B<1> I<node> [ { I<ion_config_filename> | '.' | '' } ]
 
 The B<initialize> command.  Until this command is executed, the local ION
 node does not exist and most I<ionadmin> commands will fail.
 
-The command configures the local node to be identified by I<node_number>, a
-CBHE node number which uniquely identifies the node in the delay-tolerant
-network.  It also configures ION's data space (SDR) and shared working-memory
-region.  For this purpose it uses a set of default settings if no argument
-follows I<node_number> or if the argument following I<node_number> is '';
-otherwise it uses the configuration settings found in a configuration
-file.  If configuration file name '.' is provided, then the configuration
+The command configures the local node to be identified by I<node>, an
+ipn-scheme node identifier which uniquely identifies the node in the
+delay-tolerant network.  It also configures ION's data space (SDR)
+and shared working-memory region.  For this purpose it uses a set
+of default settings if no argument follows I<node_number> or if
+the argument following I<node_number> is ''; otherwise it uses
+the configuration settings found in a configuration file.  If
+configuration file name '.' is provided, then the configuration
 file's name is implicitly "I<hostname>.ionconfig"; otherwise,
 I<ion_config_filename> is taken to be the explicit configuration file name.
 Please see ionconfig(5) for details of the configuration settings.
@@ -76,8 +77,8 @@ For example:
 	1 19 ''
 
 would initialize ION on the local computer, assigning the local ION node the
-node number 19 and using default values to configure the data space and
-shared working-memory region.
+node number 19 (allocator number zero) and using default values to configure
+the data space and shared working-memory region.
 
 =item B<@> I<time>
 

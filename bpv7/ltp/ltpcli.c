@@ -469,7 +469,7 @@ int	main(int argc, char *argv[])
 
 	if (ductName == NULL)
 	{
-		PUTS("Usage: ltpcli <local engine number>]");
+		PUTS("Usage: ltpcli <local node identifier>]");
 		return 0;
 	}
 

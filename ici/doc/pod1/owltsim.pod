@@ -8,7 +8,7 @@ B<owltsim> I<config_filename> [-v]
 
 =head1 DESCRIPTION
 
-B<owltsim> delays delivery of data between pairs of ION nodes by specified
+B<owltsim> delays delivery of data between pairs of BP nodes by specified
 lengths of time, simulating the signal propagation delay imposed by distance
 between the nodes.
 
@@ -29,16 +29,18 @@ I<to> I<from> I<my_port#> I<dest_host> I<dest_port#> I<owlt> I<modulus>
 
 =over 4
 
-=item I<to> identifies the receiving node.
+=item I<to> identifies the receiving node, an ipn-scheme node number.
 
 This parameter is purely informational, intended to make B<owltsim>'s
-printed messages more helpful to the user.
+printed messages more helpful to the user.  The ipn-scheme allocator
+number for this node is always implicitly zero.
 
 =item I<from> identifies the sending node.
 
 A value of '*' may be used to indicate "all nodes".  Again, this parameter
 is purely informational, intended to make B<owltsim>'s printed messages
-more helpful to the user.
+more helpful to the user, and again the ipn-scheme allocator
+number for this parameter is always implicitly zero.
 
 =item I<my_port#> identifies B<owltsim>'s receiving port for this traffic.
 
@@ -94,13 +96,13 @@ Here is a sample owltsim configuration file:
 
 =back
 
-This file indicates that B<owltsim> will receive on port 5502 the ION
+This file indicates that B<owltsim> will receive on port 5502 the BP
 traffic from node 2 that is destined for node 7, which will receive it at
 port 5001 on the computer named ptl07.jpl.nasa.gov; 75 seconds of delay
 (simulating a distance of 75 light seconds) will be imposed on this
 transmission activity, and B<owltsim> will not simulate any random data loss.
 
-In the reverse direction, B<owltsim> will receive on port 5507 the ION
+In the reverse direction, B<owltsim> will receive on port 5507 the BP
 traffic from node 7 that is destined for node 2, which will receive it at
 port 5001 on the computer named ptl02.jpl.nasa.gov; 75 seconds of delay
 will again be imposed on this transmission activity, and B<owltsim> will

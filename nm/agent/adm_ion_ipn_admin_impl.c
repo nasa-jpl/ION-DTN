@@ -387,15 +387,15 @@ tnv_t *dtn_ion_ipnadmin_ctrl_plan_add(eid_t *def_mgr, tnvc_t *parms, int8_t *sta
 	 * +-------------------------------------------------------------------------+
 	 */
 	int success = 0;
-	uvast nodeNbr = 0;
+	uvast fqnn = 0;
 	unsigned int xmitRate = 0;
 
-	nodeNbr = adm_get_parm_uvast(parms,0,&success);
+	fqnn = adm_get_parm_uvast(parms,0,&success);
 	if(success){
 		xmitRate = adm_get_parm_uint(parms, 1, &success);
 	}
 	if(success){
-		if(ipn_addPlan(nodeNbr,xmitRate) > 0)
+		if(ipn_addPlan(fqnn,xmitRate) > 0)
 		{
 			*status = CTRL_SUCCESS;
 		}

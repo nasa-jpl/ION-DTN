@@ -196,11 +196,12 @@ void	bpnm_node_get(NmbpNode *buf)
 {
 	Sdr	sdr = getIonsdr();
 	Object	bpDbObject = getBpDbObject();
+	char	idBuf[FQN_MAX_LENGTH];
 	BpDB	bpdb;
 
 	CHKVOID(buf);
-	isprintf(buf->nodeID, sizeof buf->nodeID, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnFqnn());
+	putFqn(idBuf, getOwnFqnn());
+	isprintf(buf->nodeID, sizeof buf->nodeID, "ipn:%s.0", idBuf);
 	isprintf(buf->bpVersionNbr, sizeof buf->bpVersionNbr, "%d", BP_VERSION);
 	CHKVOID(sdr_begin_xn(sdr));
 	buf->avblStorage =

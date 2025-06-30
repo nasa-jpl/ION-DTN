@@ -482,6 +482,10 @@ extern void		ionProd(	uvast fromFqnn,
 					unsigned int owlt);
 extern void		ionTerminate(int shutdown);
 
+#define	FQN_MAX_LENGTH	(22)
+extern uvast		getFqn(char *fromBuffer);
+extern void		putFqn(char *toBuffer, uvast fqn);
+
 extern int		ionPickRegion(uint32_t regionNbr);
 extern int		ionRegionOf(uvast fqnnA,
 					uvast fqnnB,
