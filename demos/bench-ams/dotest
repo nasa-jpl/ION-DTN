@@ -57,11 +57,8 @@ check_process_running() {
     if [[ "$process_state" == *"Z"* ]]; then
         # It's a zombie. Reap it to be a good citizen, then report it's not running.
         wait "$pid_to_check" 2>/dev/null
-        return 1 # NOT RUNNING: Process was a zombie.
+        return 1 # NOT RUNNING
     fi
-
-    # CASE 3: The PID exists and it is not a zombie. It is still running.
-    return 0 # STILL RUNNING.
 }
 
 
