@@ -40,27 +40,17 @@ check_process_running() {
         return 1 # NOT RUNNING: PID is unset.
     fi
 
-    # Use ps to get the process state.
-    # It will return an empty string if the PID no longer exists.
-    local process_state
-    process_state=$(ps -p "$pid_to_check" -o state=)
-
-    # CASE 1: The 'ps' command returned nothing.
-    # The process has been fully reaped and is gone.
-    if [ -z "$process_state" ]; then
-        return 1 # NOT RUNNING: Process does not exist.
-    fi
-
-    # CASE 2: The 'ps' command found the PID (it's a zombie).
-    # The output of 'ps' can sometimes have whitespace, so we check if it CONTAINS 'Z'.
-    if [[ "$process_state" == *"Z"* ]]; then
-        # It's a zombie. Reap it to be a good citizen, then report it's not running.
+    # Use 'kill -0' to check if the process is alive and not a zombie.
+    # This is the most portable method and avoids parsing 'ps' output.
+    # It returns 0 if the process exists, non-zero otherwise.
+    if kill -0 "$pid_to_check" 2>/dev/null; then
+        return 0 # STILL RUNNING
+    else
+        # The process is gone or is a zombie.
+        # We can attempt a non-blocking wait to clean up a potential zombie.
         wait "$pid_to_check" 2>/dev/null
-        return 1 # NOT RUNNING: Process was a zombie.
+        return 1 # NOT RUNNING
     fi
-
-    # CASE 3: The PID exists and it is not a zombie. It is still running.
-    return 0 # STILL RUNNING.
 }
 
 
