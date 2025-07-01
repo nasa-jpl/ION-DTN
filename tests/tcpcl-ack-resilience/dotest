@@ -62,7 +62,7 @@ else
     printf '%s\n\n' \
       "Hint: use  sudo -E  if you need to preserve ION_RUN_EXPERT."
 
-    sudo -n true 2>/dev/null & SUDO_PID=$!
+    sudo -n -v 2>/dev/null & SUDO_PID=$!
     
     # start watchdog
     ( sleep 15 && kill -s TERM "$SUDO_PID" 2>/dev/null && \
@@ -71,7 +71,7 @@ else
     wait "$SUDO_PID";  SUDO_RESULT=$? # stop watchdog quietly
 
     kill "$WATCH_PID" 2>/dev/null && wait "$WATCH_PID" 2>/dev/null
-    stty sane 2>/dev/null || :# restore echo just in case
+    stty sane 2>/dev/null || : # restore echo just in case
 
     if [ "$SUDO_RESULT" -ne 0 ]; then
         printf '%s\n' \

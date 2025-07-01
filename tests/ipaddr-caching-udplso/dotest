@@ -123,7 +123,7 @@ else
     printf '%s\n\n' \
       "Hint: use  sudo -E  if you need to preserve ION_RUN_EXPERT."
 
-    sudo -n true 2>/dev/null & SUDO_PID=$!
+    sudo -n -v 2>/dev/null & SUDO_PID=$!
     
     # start watchdog
     ( sleep 15 && kill -s TERM "$SUDO_PID" 2>/dev/null && \
