@@ -127,7 +127,7 @@ LINE_NUM=1
 # --- sudo-availability check (non-interactive, max 15 s) -------------
 if [ "$(id -u)" -eq 0 ]; then
     printf '%s\n\n' "Running as root — skipping sudo availability check."
-    s() { "$@"; }          # run command directly, no sudo needed
+    snpwd() { "$@"; }          # run command directly, no sudo needed
 else
     printf '%s\n' "This test requires sudo privileges: checking now…"
     printf '%s\n\n' \
@@ -150,7 +150,7 @@ else
         exit 2
     fi
     printf '%s\n\n' "Sudo privileges confirmed: continuing test."
-    s() { sudo -n "$@"; }             # carry -n to every sudo call
+    snpwd() { sudo -n "$@"; }             # carry -n to every sudo call
 fi
 
 # Clean up
@@ -158,7 +158,7 @@ fi
 
 # Backup /etc/hosts
 printf 'Backing up %s → %s …\n' "$HOSTS_FILE" "$BACKUP_FILE"
-s cp -- "$HOSTS_FILE" "$BACKUP_FILE" ||
+snpwd cp -- "$HOSTS_FILE" "$BACKUP_FILE" ||
     { printf '%s\n' 'Lost sudo privileges; aborting.' >&2; exit 2; }
 
 # Start ION nodes
@@ -240,7 +240,7 @@ echo ""
 
 # Append test3.local to hosts file
 echo "Appending entry '$ENTRY' to $HOSTS_FILE..."
-echo "$ENTRY" | s tee -a "$HOSTS_FILE" >/dev/null
+echo "$ENTRY" | snpwd tee -a "$HOSTS_FILE" >/dev/null
 
 # Verify the entry was added
 if grep -Fx "$ENTRY" "$HOSTS_FILE" >/dev/null; then
