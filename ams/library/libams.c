@@ -3663,7 +3663,12 @@ static void	*mamsMain(void *parm)
 
 		/*	Not registered yet.  Wait a while, try again.	*/
 
-		microsnooze(N1_INTERVAL * 1000000);
+#if defined(__sun)
+	/* On Solaris, use sleep() to resolve pathological timing issue here */
+	sleep(N1_INTERVAL);
+#else
+	microsnooze(N1_INTERVAL * 1000000);
+#endif
 	}
 
 	/*	The MAMS thread has now entered Registered state.	*/
