@@ -61,7 +61,7 @@ enable resumption of operation until it is safe to reboot ION.
 
 I<max_nbr_of__sessions> constitutes, in effect, the local BSSP engine's
 retransmission "window" for this span.  The retransmission windows of the
-spans impose flow control on BSSP transmission, reducing the chance ofx
+spans impose flow control on BSSP transmission, reducing the chance of
 allocation of all available space in the ION node's data store to BSSP
 transmission sessions.
 

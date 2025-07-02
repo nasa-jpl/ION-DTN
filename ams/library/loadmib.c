@@ -13,22 +13,27 @@
 
 	Modifications address the following issues:
 
-	1.) Allow for SANA range of node numbers (see MAX_CONTIN_NBR directive)
-		Note: this is currently constrained by the 16 bit field width in AMS' 
-		constructMessage() header array.
+	1.) Allow for SANA range of ipn-scheme fully-qualified node numbers
+		serving as continuum numbers (see MAX_CONTIN_NBR directive).
+		Note: this is currently constrained by the 16 bit field width
+		in AMS' constructMessage() header array.  Moreover, large
+		FQNNs (uvast) may be truncated when used as continuum numbers
+		(int).
 		
 		See MAX_CONTIN_NBR directive in amscommon.h 
 
 		Modifications include switching arrays and for-loops
-		using the MAX_CONTIN_NBR to use ici's lyst
+		using the MAX_CONTIN_NBR to use ici's lyst.
 
-	2.) Modified loadMib() to align with documentation. The 'test MIB' is now 
-		initialized and loaded using '@' character (as specified in man pages). 
+	2.) Modified loadMib() to align with documentation. The 'test MIB' is
+		now initialized and loaded using '@' character (as specified
+		in man pages). 
 		
-		Additional modifications include removal of nested (redundant) checks 
-		for the NULL argument (as relates to the MIB filename). This update 
-		provides a more clearly delineated path for the desired functionality 
-		(i.e. consolidating the parameter check to a single logical location)
+		Additional modifications include removal of nested (redundant)
+		checks for the NULL argument (as relates to the MIB filename).
+		This update provides a more clearly delineated path for the
+		desired functionality (i.e. consolidating the parameter check
+		to a single logical location).
 
 */
 

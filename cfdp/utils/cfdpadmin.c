@@ -237,6 +237,7 @@ static void	printEntity(Entity *entity)
 {
 	Sdr	sdr = getIonsdr();
 	char	dottedString[16];
+	char	nbrBuf[FQN_MAX_LENGTH];
 	char	buffer[256];
 
 	CHKVOID(sdr_begin_xn(sdr));
@@ -245,9 +246,9 @@ static void	printEntity(Entity *entity)
 	switch (entity->utLayer)
 	{
 	case  UtBp:
-		isprintf(buffer, sizeof buffer,
-				"\tBP node number " UVAST_FIELDSPEC,
-				entity->bpFqnn);
+		putFqn(nbrBuf, entity->bpFqnn);
+		isprintf(buffer, sizeof buffer, "\tBP node identifier %s",
+				nbrBuf);
 		printText(buffer);
 		break;
 

@@ -12,9 +12,12 @@
 	Jet Propulsion Laboratory 2022
 	
 	Modifications address the following:
-	1.) Allow for SANA range of node numbers (see MAX_CONTIN_NBR directive)
-		Note: this is currently constrained by the 16 bit field width in AMS' 
-		constructMessage() header array
+	1.) Allow for SANA range of ipn-scheme fully qualified node numbers
+       		serving as continuum numbers (see MAX_CONTIN_NBR directive).
+		Note: this is currently constrained by the 16 bit field width
+		in AMS' constructMessage() header array.  Moreover, large
+		FQNNs (uvast) may be truncated when used as continuum numbers
+		(int).
 
 		See MAX_CONTIN_NBR directive in amscommon.h
 

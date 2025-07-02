@@ -35,8 +35,8 @@ all data eventually received on the "reliable" channel.
 
 The BSSP notion of B<engine ID> corresponds closely to the Internet notion of
 a host, and in ION engine IDs are normally indistinguishable from node numbers
-including the node numbers in Bundle Protocol endpoint IDs conforming to
-the "ipn" scheme.
+including the fully qualified node numbers (FQNNs) expressed by Bundle
+Protocol endpoint IDs conforming to the "ipn" scheme.
 
 The BSSP notion of B<client ID> corresponds closely to the Internet notion of
 "protocol number" as used in the Internet Protocol.  It enables data from

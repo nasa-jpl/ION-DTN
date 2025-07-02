@@ -72,6 +72,116 @@ typedef enum
 
 /*	Note: BP_CUSTODY_RPT no longer has any effect.			*/
 
+/*	*	*	Scheme structures	*	*	*	*/
+
+#define MAX_SCHEME_NAME_LEN	(15)
+#define	MAX_NSS_LEN		(63)
+#define	MAX_EID_LEN		(MAX_SCHEME_NAME_LEN + MAX_NSS_LEN + 2)
+
+typedef enum
+{
+	unknown = 0,
+	dtn = 1,
+	ipn = 2,
+	imc = 3
+} SchemeCodeNbr;
+
+/*	Scheme objects are used to encapsulate knowledge about how to
+ *	forward bundles.  						*/
+
+typedef struct
+{
+	char		name[MAX_SCHEME_NAME_LEN + 1];
+	int		nameLength;
+	SchemeCodeNbr	codeNumber;
+	Object		fwdCmd; 	/*	For starting forwarder.	*/
+	Object		admAppCmd; 	/*	For starting admin app.	*/
+	Object		forwardQueue;	/*	SDR list of Bundles	*/
+	Object		endpoints;	/*	SDR list of Endpoints	*/
+	Object		bclas;		/*	SDR list of BIBE CLAs	*/
+} Scheme;
+
+typedef struct
+{
+	Object		schemeElt;	/*	Reference to scheme.	*/
+
+	/*	Copied from Scheme.					*/
+
+	char		name[MAX_SCHEME_NAME_LEN + 1];
+	int		nameLength;
+	SchemeCodeNbr	codeNumber;
+
+	/*	Volatile administrative stuff.				*/
+
+	char		adminEid[MAX_EID_LEN];
+	int		adminNSSLength;
+	int		fwdPid;		/*	For stopping forwarder.	*/
+	int		admAppPid;	/*	For stopping admin app.	*/
+	sm_SemId	semaphore;	/*	For dispatch notices.	*/
+	PsmAddress	endpoints;	/*	SM list: VEndpoint.	*/
+} VScheme;
+
+typedef enum
+{
+	EidNV = 0,			/*	Non-volatile.		*/
+	EidV,				/*	Volatile.		*/
+	EidS				/*	Null-terminated string.	*/
+} EidMode;
+
+typedef union
+{
+	Object		nv;		/*	Recorded in SDR heap.	*/
+	PsmAddress	v;		/*	Recorded in wm.		*/
+	char		*s;		/*	Temporary string in RAM.*/
+} EndpointName;
+
+typedef struct
+{
+	EndpointName	endpointName;
+	int		nssLength;	/*	+ for nv, - for v.	*/
+} DtnSSP;
+
+typedef struct
+{
+	uvast		fqnn;		/*	Fully-qualified nodeNbr	*/
+	unsigned long	serviceNbr;
+} IpnSSP;
+
+typedef struct
+{
+	uvast		fqgn;		/*	Fully-qualified groupNo */
+	unsigned long	serviceNbr;
+} ImcSSP;
+
+typedef union
+{
+	DtnSSP		dtn;
+	IpnSSP		ipn;
+	ImcSSP		imc;
+} SSP;
+
+typedef struct
+{
+	SchemeCodeNbr	schemeCodeNbr;
+	SSP		ssp;
+} EndpointId;
+
+typedef struct
+{
+	char		*schemeName;
+	int		schemeNameLength;
+	SchemeCodeNbr	schemeCodeNbr;
+	char		*colon;
+	char		*nss;
+	int		nssLength;
+	char		*nodeName;
+	char		*delimiter;
+	char		*demux;
+	uvast		elementNbr;	/*	FQNN or group nbr.	*/
+	unsigned long	serviceNbr;
+	char		nullEndpoint;	/*	Boolean.		*/
+} MetaEid;
+
 #ifndef BP_MAX_METADATA_LEN
 #define	BP_MAX_METADATA_LEN	(30)
 #endif
@@ -284,6 +394,19 @@ extern int		bp_parse_quality_of_service(const char *token,
 			 *
 			 *  Returns 1 on success or 0 on parsing failure.
 			 *  On failure, no arguments have been modified.*/
+
+extern int		parseEidString(char *eidString, MetaEid *metaEid,
+				VScheme **scheme, PsmAddress *schemeElt);
+extern void		restoreEidString(MetaEid *metaEid);
+extern int		recordEid(EndpointId *eid, MetaEid *meid, EidMode mode);
+
+#define writeEid(eid, meid)	recordEid(eid, meid, EidNV)
+#define noteEid(eid, meid)	recordEid(eid, meid, EidV)
+#define jotEid(eid, meid)	recordEid(eid, meid, EidS)
+
+extern void		eraseEid(EndpointId *eid);
+extern void		readEid(EndpointId *eid, char **str);
+extern char		*_nullEid();
 
 extern int		bp_send(	BpSAP sap,
 					char *destEid,

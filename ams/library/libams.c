@@ -14,11 +14,14 @@
 
 	Modifications address the following issues:
 
-	1.) Code reformatted to allow for the SANA range of node numbers
-		Note: this is currently constrained by the 16 bit field width in AMS' 
-		constructMessage() header array.
+	1.) Code reformatted to allow for the SANA range of ipn-scheme fully
+		qualified node numbers serving as continuum numbers.
+		Note: this is currently constrained by the 16 bit field width
+		in AMS' constructMessage() header array.  Moreover, large
+		FQNNs (uvast) may be truncated when used as continuum numbers
+		(int).
 	
-		See MAX_CONTIN_NBR directive in amscommon.h for more information.
+		See MAX_CONTIN_NBR directive in amscommon.h for more info.
 
 		Modifications include changing arrays and for-loops using the 
 		MAX_CONTIN_NBR to use ici's lyst (managed linked list) instead.

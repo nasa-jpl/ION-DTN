@@ -158,8 +158,11 @@ In the ION implementation of RAMS, the "RAMS network protocol" may be either
 the DTN Bundle Protocol (RFC 5050) or -- mainly for testing purposes -- the
 User Datagram Protocol (RFC 768).  BP is the default.  When BP is used as
 the RAMS network protocol, endpoints are by default assumed to conform to
-the "ipn" endpoint identifier scheme with B<node number> set to the AMS
-B<continuum number> and B<service number> set to the AMS B<venture number>.
+the "ipn" endpoint identifier scheme with B<node identifier> set to the fully
+qualified node number that is equal to the AMS B<continuum number> and
+B<service number> set to the AMS B<venture number>.  NOTE that AMS continuum
+numbers are currently expressed as signed 32-bit integers; FQNNs may be
+truncated when used as continuum numbers.
 
 Note that RAMS functionality is enabled by instantiating a B<ramsgate> daemon,
 which is simply an AMS application program that acts as a gateway between the

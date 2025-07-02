@@ -2816,21 +2816,26 @@ int	parseInAdus(Sdr sdr)
 int	handleAck(Sdr sdr, BpDelivery *dlv, unsigned int profNum,
 		Scalar seqNum)
 {
-	DtpcDB	*dtpcConstants = _dtpcConstants();
-	Object	aggrElt;
-	Object	aduElt;
-	char	dstEid[SDRSTRING_BUFSZ];
-	char	srcEid[64];
-	uvast	nodeNbr;
-		OBJ_POINTER(OutAggregator, outAggr);
-		OBJ_POINTER(OutAdu, outAdu);
+	DtpcDB		*dtpcConstants = _dtpcConstants();
+	MetaEid		metaEid;
+	VScheme		*vscheme;
+	PsmAddress	elt;
+	char		nbrBuf[FQN_MAX_LENGTH];
+	Object		aggrElt;
+	Object		aduElt;
+	char		dstEid[SDRSTRING_BUFSZ];
+	char		srcEid[64];
+			OBJ_POINTER(OutAggregator, outAggr);
+			OBJ_POINTER(OutAdu, outAdu);
 
 	CHKERR(sdr_begin_xn(sdr));
 	zco_destroy(sdr, dlv->adu);	/*	The ZCO is not needed.	*/
-	if (sscanf(dlv->bundleSourceEid, "%*[^:]:" UVAST_FIELDSPEC ".",
-			&nodeNbr) < 1)
+	CHKERR(parseEidString(dlv->bundleSourceEid, &metaEid, &vscheme, &elt));
+	if (metaEid.schemeCodeNbr != ipn
+	|| metaEid.nssLength < 1
+	|| metaEid.elementNbr == 0)
 	{
-		writeMemo("[?] Can't scan srcEid node number. Will not \
+		writeMemo("[?] Can't scan srcEid node identifier. Will not \
 process ACK.");
 		if (sdr_end_xn(sdr) < 0)
 		{
@@ -2841,8 +2846,8 @@ process ACK.");
 		return 0;
 	}
 
-	isprintf(srcEid, sizeof srcEid, "ipn:" UVAST_FIELDSPEC ".%d", nodeNbr,
-			DTPC_RECV_SVC_NBR);
+	putFqn(nbrBuf, metaEid.elementNbr);
+	isprintf(srcEid, sizeof srcEid, "ipn:%s.%d", nbrBuf, DTPC_RECV_SVC_NBR);
 
 	/*	Look for the OutAggregator, for this Profile, whose
 	 *	dstEid is equal to the srcEid of the ACK.		*/
@@ -2914,6 +2919,10 @@ int	sendAck(BpSAP sap, unsigned int profileID, Scalar seqNum,
 {
 	Sdr		sdr = getIonsdr();
 	DtpcVdb		*vdb = getDtpcVdb();
+	MetaEid		metaEid;
+	VScheme		*vscheme;
+	char		nbrBuf[FQN_MAX_LENGTH];
+	PsmAddress	elt;
 	Sdnv		profileIdSdnv;
 	Sdnv		seqNumSdnv;
 	char		type;
@@ -2931,18 +2940,19 @@ int	sendAck(BpSAP sap, unsigned int profileID, Scalar seqNum,
 	int		lifetime;
 	int		priority = 0;
 	char		dstEid[64];
-	uvast		nodeNbr;
 
-	if (sscanf(dlv->bundleSourceEid, "%*[^:]:" UVAST_FIELDSPEC ".",
-			&nodeNbr) < 1)
+	CHKERR(parseEidString(dlv->bundleSourceEid, &metaEid, &vscheme, &elt));
+	if (metaEid.schemeCodeNbr != ipn
+	|| metaEid.nssLength < 1
+	|| metaEid.elementNbr == 0)
 	{
-		writeMemo("[?] Can't scan srcEid node number. Will not \
+		writeMemo("[?] Can't scan srcEid node identifier. Will not \
 send ACK.");
 		return 0;
 	}
 
-	isprintf(dstEid, sizeof dstEid, "ipn:" UVAST_FIELDSPEC ".%d", nodeNbr,
-			DTPC_RECV_SVC_NBR);
+	putFqn(nbrBuf, metaEid.elementNbr);
+	isprintf(dstEid, sizeof dstEid, "ipn:%s.%d", nbrBuf, DTPC_RECV_SVC_NBR);
 	CHKERR(sdr_begin_xn(sdr));
 
 	/*	Find profile.						*/

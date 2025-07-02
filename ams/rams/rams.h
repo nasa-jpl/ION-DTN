@@ -39,7 +39,7 @@ typedef enum
 
 typedef struct
 {
-	int		continuumNbr;
+	int		continuumNbr;	/*	For BP, an FQNN.	*/
 	RamsNetProtocol	protocol;
 	char		*gwEid;
 } RamsNode;

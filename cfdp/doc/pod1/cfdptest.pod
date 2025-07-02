@@ -50,7 +50,7 @@ command.  This is provided for use in test scripting.
 
 The B<destination> command.  This command establishes the CFDP entity
 to which the next file transmission operation will be directed.  CFDP entity
-numbers in ION are, by convention, the same as BP node numbers.
+numbers in ION are, by convention, the same as BP fully qualified node numbers.
 
 =item B<f> <source file path name>
 

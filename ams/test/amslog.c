@@ -82,7 +82,7 @@ static void	logToStderr(char *text)
 }
 
 static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
-			int continuumNbr, int unitNbr, int nodeNbr,
+			int continuumNbr, int unitNbr, int moduleNbr,
 			int subjectNbr, int contentLength, char *content,
 			int context, AmsMsgType msgType, int priority,
 			unsigned char flowLabel)

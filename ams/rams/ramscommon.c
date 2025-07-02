@@ -718,7 +718,7 @@ void	SubtractNodeSets(Lyst set1, Lyst set2)
 	CHKVOID(set2);
 	for (elt = lyst_first(set1); elt != NULL; )
 	{
-		node = (RamsNode *)lyst_data(elt);
+		node = (RamsNode *) lyst_data(elt);
 		nextElt = lyst_next(elt);
 		if (NodeSetMember(node, set2))
 		{
@@ -738,7 +738,7 @@ void	AddNodeSets(Lyst set1, Lyst set2)
 	CHKVOID(set2);
 	for (elt = lyst_first(set2); elt != NULL; elt = lyst_next(elt))
 	{
-		node = (RamsNode *)lyst_data(elt);
+		node = (RamsNode *) lyst_data(elt);
 		if (!NodeSetMember(node, set1))
 		{
 			if (lyst_insert_last(set1, node) == NULL)
