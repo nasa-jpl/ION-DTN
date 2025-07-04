@@ -282,7 +282,6 @@ static void	eraseSAP(AmsSAP *sap)
 	}
 
 	sap->state = AmsSapClosed;
-	sap->shutdown_imminent = 1;
 
 	/* Stop heartbeat, MAMS handler, and transport receiver threads. */
 
