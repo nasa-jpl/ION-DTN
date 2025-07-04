@@ -282,15 +282,10 @@ static void	eraseSAP(AmsSAP *sap)
 	}
 
 	sap->state = AmsSapClosed;
-	sap->shutdown_imminent = 1;
 
 	/* Stop heartbeat, MAMS handler, and transport receiver threads. */
-	
-	/* Signal all threads to stop and interrupt any blocking calls. */
-	if (sap->haveHeartbeatThread)
-	{
-		pthread_end(sap->heartbeatThread);
-	}
+
+	sap->terminating = 1; 
 
 	if (sap->haveMamsThread)
 	{
@@ -3791,7 +3786,7 @@ static void	*heartbeatMain(void *parm)
 	 * main thread calls sem_post() in ams_register(), which signals
 	 * that all initialization is complete.
 	 */
-    sem_wait(&sap->isRegistered);
+	sem_wait(&sap->isRegistered);
 
 	if (pthread_mutex_init(&mutex, NULL))
 	{
@@ -3820,6 +3815,12 @@ static void	*heartbeatMain(void *parm)
 		pthread_mutex_lock(&mutex);
 		result = pthread_cond_timedwait(&cv, &mutex, &deadline);
 		pthread_mutex_unlock(&mutex);
+
+		if (sap->terminating)
+		{
+			break;
+		}
+
 		if (result)
 		{
 			errno = result;
