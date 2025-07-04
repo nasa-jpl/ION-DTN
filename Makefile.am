@@ -89,50 +89,45 @@ EXTRA_DIST = 	\
 all-local: $(bin_PROGRAMS) $(lib_LTLIBRARIES)
 	@if test -f configure && [ ! -f .build_finished ]; then \
 		echo ""; \
-		echo "✅ Build Complete"; \
-		echo "========================================================================"; \
-		echo "||"; \
-		echo "||  Next Step: Install the software using the following command:"; \
-		echo "||"; \
-		echo "||      sudo make install"; \
-		echo "||"; \
-		echo "========================================================================"; \
+		echo '    ┌───────────────────────────────────────────────────────────┐'; \
+		echo '    │                                                           │'; \
+		echo '    │   BUILD COMPLETE.                                         │'; \
+		echo '    │                                                           │'; \
+		echo '    │   Next, install ION-DTN by running:                       │'; \
+		echo '    │                                                           │'; \
+		echo '    │   [sudo] make install                                     │'; \
+		echo '    │                                                           │'; \
+		echo '    └───────────────────────────────────────────────────────────┘'; \
 		echo ""; \
 		touch .build_finished; \
 	fi
 
 # This hook contains the final message after a successful installation.
 install-data-hook:
+	@echo '    ───────────────────────────────────────────────────────────'
 	@echo
-	@echo '██╗ ██████╗ ███╗   ██╗         ██████╗ ████████╗███╗   ██╗'
-	@echo '██║██╔═══██╗████╗  ██║         ██╔══██╗╚══██╔══╝████╗  ██║'
-	@echo '██║██║   ██║██╔██╗ ██║ ██████╗ ██║  ██║   ██║   ██╔██╗ ██║'
-	@echo '██║██║   ██║██║╚██╗██║ ╚═════╝ ██║  ██║   ██║   ██║╚██╗██║'
-	@echo '██║╚██████╔╝██║ ╚████║         ██████╔╝   ██║   ██║ ╚████║'
-	@echo '╚═╝ ╚═════╝ ╚═╝  ╚═══╝         ╚═════╝    ╚═╝   ╚═╝  ╚═══╝'
+	@echo '    ██╗ ██████╗ ███╗   ██╗         ██████╗ ████████╗███╗   ██╗'
+	@echo '    ██║██╔═══██╗████╗  ██║         ██╔══██╗╚══██╔══╝████╗  ██║'
+	@echo '    ██║██║   ██║██╔██╗ ██║ ██████╗ ██║  ██║   ██║   ██╔██╗ ██║'
+	@echo '    ██║██║   ██║██║╚██╗██║ ╚═════╝ ██║  ██║   ██║   ██║╚██╗██║'
+	@echo '    ██║╚██████╔╝██║ ╚████║         ██████╔╝   ██║   ██║ ╚████║'
+	@echo '    ╚═╝ ╚═════╝ ╚═╝  ╚═══╝         ╚═════╝    ╚═╝   ╚═╝  ╚═══╝'
 	@echo
-	@echo "✅ Installation Complete"
-	@echo "========================================================================"
-	@echo "||"
-	@echo "||  Next Steps: Final system configuration is required."
-	@echo "||"
-	@echo "========================================================================"
+	@echo '    INSTALLATION SUCCESSFUL.'
 	@echo
-	@echo "--- For Linux Systems ---"
-	@echo "To register the new libraries, run the following command:"
+	@echo '    [ Linux ]'
+	@echo '    To register the new ION libraries, run:'
+	@echo '    sudo ldconfig'
 	@echo
-	@echo "    sudo ldconfig"
+	@echo '    [ macOS ]'
+	@echo '    If you have runtime loading issues, run:'
+	@echo '    sudo update_dyld_shared_cache -force'
 	@echo
-	@echo "--- For macOS Systems ---"
-	@echo "If you experience runtime errors, update the shared library cache with:"
+	@echo '    To fix mbedtls library paths specifically, run:'
+	@echo '    fix-macos-mbedtls-lib-links.sh'
 	@echo
-	@echo "    sudo update_dyld_shared_cache -force"
+	@echo '    ───────────────────────────────────────────────────────────'
 	@echo
-	@echo "Alternatively, to fix links for the mbedtls library, you can run:"
-	@echo
-	@echo "    fix-macos-mbedtls-lib-links.sh"
-	@echo
-	@echo "========================================================================"
 
 if ENABLE_GCOV
 cov-clean:
