@@ -84,21 +84,34 @@ EXTRA_DIST = 	\
 #	$(twonodestcp_DATA) \
 #	$(threenodestcpltp_DATA)
 
+# This hook is now empty because it runs before the installation is complete.
 install-exec-hook:
-	@echo
-	@echo "You should now run 'sudo ldconfig' if available."
-	@echo
-	@echo "For macOS, you may run 'sudo update_dyld_shared_cache -force' if there are runtime loading issue with library."
-	@echo "    You can also use 'fix-macos-mbedtls-lib-links.sh' script to force update the mbedtls library path."
-	@echo
 
+# This is the final hook to run, making it the correct place for the message.
 install-data-hook:
 	@echo
-	@echo "You should now run 'sudo ldconfig' if available."
+	@echo "✅ Installation Complete"
+	@echo "========================================================================"
+	@echo "||"
+	@echo "||  Next Steps: Final system configuration is required."
+	@echo "||"
+	@echo "========================================================================"
 	@echo
-	@echo "For macOS, you may run 'sudo update_dyld_shared_cache -force' if there are runtime loading issue with library."
-	@echo "    You can also use the 'fix-macos-mbedtls-lib-links.sh' script to force update the mbedtls library path."
+	@echo "--- For Linux Systems ---"
+	@echo "To register the new libraries, run the following command:"
 	@echo
+	@echo "    sudo ldconfig"
+	@echo
+	@echo "--- For macOS Systems ---"
+	@echo "If you experience runtime errors, update the shared library cache with:"
+	@echo
+	@echo "    sudo update_dyld_shared_cache -force"
+	@echo
+	@echo "Alternatively, to fix links for the mbedtls library, you can run:"
+	@echo
+	@echo "    fix-macos-mbedtls-lib-links.sh"
+	@echo
+	@echo "========================================================================"
 
 if ENABLE_GCOV
 cov-clean:
