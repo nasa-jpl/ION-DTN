@@ -84,11 +84,32 @@ EXTRA_DIST = 	\
 #	$(twonodestcp_DATA) \
 #	$(threenodestcpltp_DATA)
 
-# This hook is now empty because it runs before the installation is complete.
-install-exec-hook:
+# This hook now explicitly depends on the completion of all programs and
+# libraries. It checks for a flag file to ensure it only runs ONCE per build.
+all-local: $(bin_PROGRAMS) $(lib_LTLIBRARIES)
+	@if test -f configure && [ ! -f .build_finished ]; then \
+		echo ""; \
+		echo "✅ Build Complete"; \
+		echo "========================================================================"; \
+		echo "||"; \
+		echo "||  Next Step: Install the software using the following command:"; \
+		echo "||"; \
+		echo "||      sudo make install"; \
+		echo "||"; \
+		echo "========================================================================"; \
+		echo ""; \
+		touch .build_finished; \
+	fi
 
-# This is the final hook to run, making it the correct place for the message.
+# This hook contains the final message after a successful installation.
 install-data-hook:
+	@echo
+	@echo '██╗ ██████╗ ███╗   ██╗         ██████╗ ████████╗███╗   ██╗'
+	@echo '██║██╔═══██╗████╗  ██║         ██╔══██╗╚══██╔══╝████╗  ██║'
+	@echo '██║██║   ██║██╔██╗ ██║ ██████╗ ██║  ██║   ██║   ██╔██╗ ██║'
+	@echo '██║██║   ██║██║╚██╗██║ ╚═════╝ ██║  ██║   ██║   ██║╚██╗██║'
+	@echo '██║╚██████╔╝██║ ╚████║         ██████╔╝   ██║   ██║ ╚████║'
+	@echo '╚═╝ ╚═════╝ ╚═╝  ╚═══╝         ╚═════╝    ╚═╝   ╚═╝  ╚═══╝'
 	@echo
 	@echo "✅ Installation Complete"
 	@echo "========================================================================"
@@ -166,6 +187,7 @@ distclean-local:
 
 # clean-local refers to existing documents.
 clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local amsclean-local cfdpclean-local
+	@rm -f .build_finished
 
 build-man-directories:
 	mkdir -p $(top_builddir)/ici/doc
