@@ -90,11 +90,14 @@ this parameter is intended to relax the degree to which the system
 clocks of all members of the collective authority for this TC
 application must be in agreement.  The default value is 60 (1 minute).
 
-=item B<+> I<authority_array_index> I<node_number>
+=item B<+> I<authority_array_index> I<node_identifier>
 
 This command asserts that the trusted Nth member of the collective authority
 for the selected TC application, where N is the I<authority_array_index>
-value, is the node identified by I<node_number>.
+value, is the node identified by I<node_identifer>.
+
+NOTE: "node_identifier" is the node-identifying string that would appear
+in the BP node ID for this node as formed in the ipn URI scheme.
 
 =item B<-> I<authority_array_index>
 
@@ -103,18 +106,18 @@ the selected TC application, where N is the I<authority_array_index> value,
 is no longer trusted; bulletins received from this collective authority
 member must be discarded.
 
-=item B<a> I<node_number>
+=item B<a> I<node_identifier>
 
-This command adds the node identified by I<node_number> to the list of nodes
-hosting B<authorized_clients> for the selected TC application.  Once this
+This command adds the node identified by I<node_identifier> to the list of
+nodes hosting B<authorized_clients> for the selected TC application.  Once this
 list has been populated, TC records for this application that are received
 from clients residing on nodes that are not in the list are automatically
 discarded by the authority function residing on the local node.
 
-=item B<d> I<node_number>
+=item B<d> I<node_identifier>
 
-This command deletes the node identified by I<node_number> from the list of
-nodes hosting B<authorized_clients> for the selected TC application.
+This command deletes the node identified by I<node_identifier> from the list
+of nodes hosting B<authorized_clients> for the selected TC application.
 
 =item B<l>
 

@@ -84,7 +84,7 @@ typedef struct
 	int		fec_Q;
 	int		ownAuthIdx;	/*	Own position in list.	*/
 	Object		authorities;	/*	SDR list: TcaAuthority	*/
-	Object		validClients;	/*	SDR list: node numbers	*/
+	Object		validClients;	/*	SDR list: node FQNNs	*/
 	Object		currentRecords;	/*	SDR list: TcaRecord	*/
 	Object		pendingRecords;	/*	SDR list: TcaRecord	*/
 } TcaDB;

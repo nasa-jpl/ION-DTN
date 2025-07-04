@@ -3,7 +3,7 @@
 									*/
 /*	Copyright (c) 2020, California Institute of Technology.		*/
 /*	All rights reserved.						*/
-/*	Nodeor: Scott Burleigh, Jet Propulsion Laboratory		*/
+/*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 
 #include "tccP.h"
 
@@ -76,7 +76,7 @@ static void	printUsage()
 	PUTS("\t\tK is blocks per bulletin, defaulting to 50");
 	PUTS("\t\tR is redundancy, 0.0 < R < 1.0, defaulting to .2");
 	PUTS("\tm\tManage");
-	PUTS("\t   m authority <authority array index> <node number>");
+	PUTS("\t   m authority <authority array index> <node identifier>");
 	PUTS("\ti\tInfo");
 	PUTS("\t   i");
 	PUTS("\ts\tStart");
@@ -150,10 +150,10 @@ static void	manageAuthority(int tokenCount, char **tokens)
 	}
 
 	idx = atoi(tokens[2]);
-	fqnn = strtouvast(tokens[3]);
+	fqnn = getFqn(tokens[3]);
 	if (fqnn < 1)
 	{
-		putErrmsg("authority node number invalid.", tokens[3]);
+		putErrmsg("authority node identifier invalid.", tokens[3]);
 		return;
 	}
 

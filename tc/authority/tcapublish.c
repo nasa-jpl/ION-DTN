@@ -69,6 +69,9 @@ static int	handleProposedBulletin(Sdr sdr, TcaDB *db, char *src,
 {
 	int		parsedOkay;
 	MetaEid		metaEid;
+#if TC_DEBUG
+char	nbrBuf[FQN_MAX_LENGTH];
+#endif
 	VScheme		*vscheme;
 	PsmAddress	schemeElt;
 	char		msgBuffer[256];
@@ -120,8 +123,8 @@ source of proposed bulletin: '%s'.", src);
 	}
 
 #if TC_DEBUG
-writeMemoNote("tcapublish: Got proposed bulletin from node",
-itoa(metaEid.elementNbr));
+putFqn(nbrBuf, metaEid.elementNbr);
+writeMemoNote("tcapublish: Got proposed bulletin from node", nbrBuf);
 #endif
 	/*	Determine sending authority's position within array.	*/
 
@@ -229,7 +232,8 @@ bulletin only contains bulletin ID: %s.", timestamp1);
 		}
 
 #if TC_DEBUG
-writeMemoNote("tcapublish: Got record for node", itoa(fqnn));
+putFqn(nbrBuf, fqnn);
+writeMemoNote("tcapublish: Got record for node", nbrBuf);
 #endif
 		/*	Check record order in bulletin.			*/
 
@@ -405,6 +409,7 @@ static int	publishConsensusBulletin(Sdr sdr, TcaDB *db, BpSAP sap)
 	Object		zco;
 	Object		newBundle;
 #if TC_DEBUG
+char	nbrBuf[FQN_MAX_LENGTH];
 char	bytes[256];
 char	*byte;
 int	n;
@@ -542,9 +547,9 @@ writeMemo("tcapublish: No records to publish.");
 			rec->effectiveTime = 0;
 		}
 #if TC_DEBUG
+putFqn(nbrBuf, fqnn);
 isprintf(msgbuf, sizeof msgbuf, "tcapublish: Appending record to bulletin \
-for node " UVAST_FIELDSPEC ", effective time %lu.", rec->fqnn,
-rec->effectiveTime);
+for node %s, effective time %lu.", nbrBuf, rec->effectiveTime);
 writeMemo(msgbuf);
 #endif
 		recLen = tc_serialize(cursor, bytesRemaining, rec->fqnn,

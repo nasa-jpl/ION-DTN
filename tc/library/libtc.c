@@ -11,25 +11,24 @@
 									*/
 #include "tc.h"
 
-int	tc_serialize(char *buffer, unsigned int buflen,
-		uvast nodeNbr, time_t effectiveTime,
-		time_t assertionTime, unsigned short datLength,
-		unsigned char *datValue)
+int	tc_serialize(char *buffer, unsigned int buflen, uvast fqnn,
+		time_t effectiveTime, time_t assertionTime,
+		unsigned short datLength, unsigned char *datValue)
 {
 	int	length = 0;
 	char	*cursor;
-	Sdnv	nodeNbrSdnv;
+	Sdnv	fqnnSdnv;
 	uint32_t u4;
 	uint16_t u2;
 
 	CHKERR(buffer);
 	CHKERR(buflen);
 	cursor = buffer;
-	encodeSdnv(&nodeNbrSdnv, nodeNbr);
-	CHKERR(buflen > nodeNbrSdnv.length + 14 + datLength);
-	memcpy(cursor, nodeNbrSdnv.text, nodeNbrSdnv.length);
-	cursor += nodeNbrSdnv.length;
-	length += nodeNbrSdnv.length;
+	encodeSdnv(&fqnnSdnv, fqnn);
+	CHKERR(buflen > fqnnSdnv.length + 14 + datLength);
+	memcpy(cursor, fqnnSdnv.text, fqnnSdnv.length);
+	cursor += fqnnSdnv.length;
+	length += fqnnSdnv.length;
 	u4 = effectiveTime;
 	u4 = htonl(u4);
 	memcpy(cursor, (char *) &u4, 4);
@@ -56,7 +55,7 @@ int	tc_serialize(char *buffer, unsigned int buflen,
 }
 
 int	tc_deserialize(char **cursor, int *bytesRemaining,
-		unsigned short maxDatLength, uvast *nodeNbr,
+		unsigned short maxDatLength, uvast *fqnn,
 		time_t *effectiveTime, time_t *assertionTime,
 		unsigned short *datLength, unsigned char *datValue) 
 {
@@ -68,12 +67,12 @@ int	tc_deserialize(char **cursor, int *bytesRemaining,
 	CHKERR(cursor);
 	CHKERR(bytesRemaining);
 	originalBytesRemaining = *bytesRemaining;
-	CHKERR(nodeNbr);
+	CHKERR(fqnn);
 	CHKERR(effectiveTime);
 	CHKERR(assertionTime);
 	CHKERR(datLength);
 	CHKERR(datValue);
-	extractSdnv(nodeNbr, cursor, bytesRemaining);
+	extractSdnv(fqnn, cursor, bytesRemaining);
 	if (*bytesRemaining < 10)	/*	Times and data length.	*/
 	{
 		writeMemo("Malformed TC record: too short.");

@@ -1,6 +1,5 @@
 /*
-	dtka.c:	public/private key pair generator for ION
-			nodes.
+	dtka.c:	public/private key pair generator for ION nodes.
 
 		NOTE: this program utilizes functions provided by
 		cryptography software that is not distributed with
@@ -69,18 +68,18 @@ static void shutDown() /*	Commands dtka termination.	*/
 
 /*	*	*	Clock thread functions	*	*	*	*/
 
-static int writeAddPubKeyCmd(time_t effectiveTime,
-							 unsigned short publicKeyLen, unsigned char *publicKey)
+static int	writeAddPubKeyCmd(time_t effectiveTime, unsigned short
+			publicKeyLen, unsigned char *publicKey)
 {
-	int fd;
-	char cmdbuf[2048];
-	char *cursor = cmdbuf;
-	int bytesRemaining = sizeof cmdbuf;
-	int cmdLen = 0;
-	int len;
-	int i;
-	unsigned char *keyCursor;
-	int val;
+	int		fd;
+	char		cmdbuf[2048];
+	char		*cursor = cmdbuf;
+	int		bytesRemaining = sizeof cmdbuf;
+	int		cmdLen = 0;
+	int		len;
+	int		i;
+	unsigned char	*keyCursor;
+	int		val;
 
 	fd = iopen("dtka.ionsecrc", O_WRONLY | O_CREAT | O_APPEND, 0777);
 	if (fd < 0)
@@ -117,18 +116,18 @@ static int writeAddPubKeyCmd(time_t effectiveTime,
 }
 
 #ifdef CRYPTO_SOFTWARE_INSTALLED
-int generateAESKey(int keysize, unsigned char *buf)
+int	generateAESKey(int keysize, unsigned char *buf)
 {
-	mbedtls_ctr_drbg_context ctr_drbg;
-	mbedtls_entropy_context entropy;
-	int result;
-	const char *pers = "aes_genkey";
+	mbedtls_ctr_drbg_context	ctr_drbg;
+	mbedtls_entropy_context		entropy;
+	int				result;
+	const char			*pers = "aes_genkey";
 
 	mbedtls_entropy_init(&entropy);
 	mbedtls_ctr_drbg_init(&ctr_drbg);
 
 	mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
-						  (const unsigned char *)pers, strlen(pers));
+			  (const unsigned char *)pers, strlen(pers));
 
 	result = mbedtls_ctr_drbg_random(&ctr_drbg, buf, keysize);
 
@@ -137,14 +136,14 @@ int generateAESKey(int keysize, unsigned char *buf)
 	return result;
 }
 
-int generateHMACKey(int keysize, unsigned char *buf)
+int	generateHMACKey(int keysize, unsigned char *buf)
 {
-	mbedtls_entropy_context entropy;
-	mbedtls_hmac_drbg_context hmac_drbg;
-	const mbedtls_md_info_t *md_info;
-	mbedtls_md_type_t md_type;
-	int result;
-	const char *pers = "hmac_genkey";
+	mbedtls_entropy_context		entropy;
+	mbedtls_hmac_drbg_context	hmac_drbg;
+	const mbedtls_md_info_t		*md_info;
+	mbedtls_md_type_t		md_type;
+	int				result;
+	const char			*pers = "hmac_genkey";
 
 	if (keysize == 32)
 	{
@@ -166,8 +165,8 @@ int generateHMACKey(int keysize, unsigned char *buf)
 	md_info = mbedtls_md_info_from_type(md_type);
 	mbedtls_entropy_init(&entropy);
 	mbedtls_hmac_drbg_init(&hmac_drbg);
-	mbedtls_hmac_drbg_seed(&hmac_drbg, md_info, mbedtls_entropy_func, &entropy,
-						   (const unsigned char *)pers, strlen(pers));
+	mbedtls_hmac_drbg_seed(&hmac_drbg, md_info, mbedtls_entropy_func,
+			&entropy, (const unsigned char *)pers, strlen(pers));
 
 	result = mbedtls_hmac_drbg_random(&hmac_drbg, buf, keysize);
 
@@ -177,15 +176,16 @@ int generateHMACKey(int keysize, unsigned char *buf)
 }
 
 /* buf and private_buf should be at least keysize bytes in size */
-int generateECDSAKey(int keysize, unsigned char *buf, unsigned char *private_buf)
+int	generateECDSAKey(int keysize, unsigned char *buf,
+		unsigned char *private_buf)
 {
-	mbedtls_ecdsa_context ecdsa_context;
-	mbedtls_ctr_drbg_context ctr_drbg;
-	mbedtls_entropy_context entropy;
-	mbedtls_ecp_group_id curve;
-	int result;
-	size_t len;
-	const char *pers = "ecdsa_genkey";
+	mbedtls_ecdsa_context		ecdsa_context;
+	mbedtls_ctr_drbg_context	ctr_drbg;
+	mbedtls_entropy_context		entropy;
+	mbedtls_ecp_group_id		curve;
+	int				result;
+	size_t				len;
+	const char			*pers = "ecdsa_genkey";
 
 	if (keysize == 32)
 	{
@@ -203,15 +203,15 @@ int generateECDSAKey(int keysize, unsigned char *buf, unsigned char *private_buf
 	mbedtls_entropy_init(&entropy);
 	mbedtls_ctr_drbg_init(&ctr_drbg);
 	mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
-						  (const unsigned char *)pers, strlen(pers));
+			(const unsigned char *)pers, strlen(pers));
 
 	mbedtls_ecdsa_init(&ecdsa_context);
 	result = mbedtls_ecdsa_genkey(&ecdsa_context, curve,
-								  mbedtls_ctr_drbg_random, &ctr_drbg);
+			mbedtls_ctr_drbg_random, &ctr_drbg);
 
 	// Extract keys from context
 	mbedtls_ecp_point_write_binary(&ecdsa_context.grp, &ecdsa_context.Q,
-								   MBEDTLS_ECP_PF_UNCOMPRESSED, &len, buf, keysize);
+			MBEDTLS_ECP_PF_UNCOMPRESSED, &len, buf, keysize);
 	mbedtls_ecp_write_key(&ecdsa_context, private_buf, keysize);
 
 	mbedtls_entropy_free(&entropy);
@@ -221,30 +221,31 @@ int generateECDSAKey(int keysize, unsigned char *buf, unsigned char *private_buf
 }
 #endif
 
-static int generateKeyPair(BpSAP sap, DtkaDB *db, char *keyType, int keySize)
+static int	generateKeyPair(BpSAP sap, DtkaDB *db, char *keyType,
+			int keySize)
 {
-	time_t currentTime = getCtime();
-	Sdr sdr = getIonsdr();
-	time_t effectiveTime;
+	time_t	currentTime = getCtime();
+	Sdr	sdr = getIonsdr();
+	time_t	effectiveTime;
 #ifdef CRYPTO_SOFTWARE_INSTALLED
-	int result;
+	int	result;
 	// char test[5];
 
 #else /*	For regression testing only.			*/
-	int key;
+	int	key;
 #endif
-	unsigned char *pubKeyBuf = malloc(keySize);
-	unsigned short publicKeyLen;
-	unsigned char *publicKey;
-	unsigned char *privKeyBuf = malloc(keySize);
-	unsigned short privateKeyLen;
-	unsigned char *privateKey;
-	char recordBuffer[TC_MAX_REC];
-	int recordLen;
-	Object extent;
-	Object bundleZco;
-	char destEid[32];
-	Object newBundle;
+	unsigned char	*pubKeyBuf = malloc(keySize);
+	unsigned short	publicKeyLen;
+	unsigned char	*publicKey;
+	unsigned char	*privKeyBuf = malloc(keySize);
+	unsigned short	privateKeyLen;
+	unsigned char	*privateKey;
+	char		recordBuffer[TC_MAX_REC];
+	int		recordLen;
+	Object		extent;
+	Object		bundleZco;
+	char		destEid[32];
+	Object		newBundle;
 
 	effectiveTime = currentTime + db->effectiveLeadTime;
 #ifdef CRYPTO_SOFTWARE_INSTALLED
@@ -353,7 +354,7 @@ static int generateKeyPair(BpSAP sap, DtkaDB *db, char *keyType, int keySize)
 	}
 
 	bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, recordLen,
-							 BP_STD_PRIORITY, 0, ZcoOutbound, NULL);
+		BP_STD_PRIORITY, 0, ZcoOutbound, NULL);
 	if (bundleZco == 0 || bundleZco == (Object)-1)
 	{
 		putErrmsg("Can't create ZCO.", NULL);
@@ -362,7 +363,7 @@ static int generateKeyPair(BpSAP sap, DtkaDB *db, char *keyType, int keySize)
 
 	isprintf(destEid, sizeof destEid, "imc:%d.0", DTKA_DECLARE);
 	if (bp_send(sap, destEid, NULL, 432000, BP_STD_PRIORITY,
-				NoCustodyRequested, 0, 0, NULL, bundleZco, &newBundle) < 1)
+		NoCustodyRequested, 0, 0, NULL, bundleZco, &newBundle) < 1)
 	{
 		putErrmsg("Can't publish key declaration bundle.", NULL);
 		return -1;
@@ -374,18 +375,18 @@ static int generateKeyPair(BpSAP sap, DtkaDB *db, char *keyType, int keySize)
 	return 0;
 }
 
-static void *generateKeys(void *parm)
+static void	*generateKeys(void *parm)
 {
-	char *procName = "dtka";
-	Sdr sdr;
-	Object dbobj;
-	DtkaDB db;
-	time_t currentTime;
-	char ownEid[32];
-	char keyType[6];
-	int keySize;
-	BpSAP sap;
-	saddr state = 1;
+	char	*procName = "dtka";
+	Sdr	sdr;
+	Object	dbobj;
+	DtkaDB	db;
+	time_t	currentTime;
+	char	ownEid[32];
+	char	keyType[6];
+	int	keySize;
+	BpSAP	sap;
+	saddr	state = 1;
 
 	/*	Main loop for DTKA key generation.			*/
 
@@ -514,18 +515,18 @@ static void *generateKeys(void *parm)
 /*	*	Functions for main loop of dtka.	*	*	*/
 
 #if TC_DEBUG
-static void printRecord(uvast nodeNbr, time_t effectiveTime,
-						time_t assertionTime, unsigned short datLength,
-						unsigned char *datValue)
+static void	printRecord(uvast fqnn, time_t effectiveTime,
+			time_t assertionTime, unsigned short datLength,
+			unsigned char *datValue)
 {
-	char msgbuf[1024];
-	char *cursor = msgbuf;
-	int bytesRemaining = sizeof msgbuf;
-	int i;
-	int len;
+	char	msgbuf[1024];
+	char	*cursor = msgbuf;
+	int	bytesRemaining = sizeof msgbuf;
+	int	i;
+	int	len;
 
 	len = _isprintf(cursor, bytesRemaining, UVAST_FIELDSPEC " %lu %lu ",
-					nodeNbr, assertionTime, effectiveTime);
+			fqnn, assertionTime, effectiveTime);
 	cursor += len;
 	bytesRemaining -= len;
 	if (datLength == 0)
@@ -539,7 +540,7 @@ static void printRecord(uvast nodeNbr, time_t effectiveTime,
 		for (i = 0; i < datLength; i++)
 		{
 			len = _isprintf(cursor, bytesRemaining, "%02x",
-							datValue[i]);
+					datValue[i]);
 			cursor += len;
 			bytesRemaining -= len;
 		}
@@ -549,43 +550,43 @@ static void printRecord(uvast nodeNbr, time_t effectiveTime,
 }
 #endif
 
-static int handleBulletin(char *buffer, int bufSize)
+static int	handleBulletin(char *buffer, int bufSize)
 {
-	char *cursor = buffer;
-	int bytesRemaining = bufSize;
-	uvast nodeNbr;
-	time_t effectiveTime;
-	time_t assertionTime;
-	unsigned short datLength;
-	unsigned char datValue[TC_MAX_DATLEN];
+	char		*cursor = buffer;
+	int		bytesRemaining = bufSize;
+	uvast		fqnn;
+	time_t		effectiveTime;
+	time_t		assertionTime;
+	unsigned short	datLength;
+	unsigned char	datValue[TC_MAX_DATLEN];
 #if TC_DEBUG
-	int recCount = 0;
-	char msgbuf[72];
+	int		recCount = 0;
+	char		msgbuf[72];
 	writeMemo("---DTKA: Bulletin received---");
 #endif
 	while (bytesRemaining >= 14)
 	{
 		if (tc_deserialize(&cursor, &bytesRemaining, TC_MAX_DATLEN,
-						   &nodeNbr, &effectiveTime, &assertionTime,
+						   &fqnn, &effectiveTime, &assertionTime,
 						   &datLength, datValue) == 0)
 		{
 			writeMemo("[?] DTKA bulletin malformed, discarded.");
 			break;
 		}
 
-		if (nodeNbr == 0) /*	Block padding bytes.	*/
+		if (fqnn == 0) /*	Block padding bytes.	*/
 		{
 			break;
 		}
 
 #if TC_DEBUG
 		recCount++;
-		printRecord(nodeNbr, effectiveTime, assertionTime, datLength,
+		printRecord(fqnn, effectiveTime, assertionTime, datLength,
 					datValue);
 #endif
 		if (datLength == 0)
 		{
-			if (sec_removePublicKey(nodeNbr, effectiveTime) < 0)
+			if (sec_removePublicKey(fqnn, effectiveTime) < 0)
 			{
 				putErrmsg("Failed handling bulletin.", NULL);
 				MRELEASE(buffer);
@@ -595,8 +596,8 @@ static int handleBulletin(char *buffer, int bufSize)
 			continue;
 		}
 
-		if (sec_addPublicKey(nodeNbr, effectiveTime, assertionTime,
-							 datLength, datValue) < 0)
+		if (sec_addPublicKey(fqnn, effectiveTime, assertionTime,
+				datLength, datValue) < 0)
 		{
 			putErrmsg("Failed handling bulletin.", NULL);
 			MRELEASE(buffer);
@@ -621,11 +622,11 @@ int dtka(int a1, int a2, int a3, int a4, int a5,
 int main(int argc, char *argv[])
 {
 #endif
-	saddr state = 1;
-	pthread_t clockThread;
-	int result;
-	char *bulletinContent;
-	int length;
+	saddr		state = 1;
+	pthread_t	clockThread;
+	int		result;
+	char		*bulletinContent;
+	int		length;
 
 	oK(_running(&state));
 	if (dtkaAttach() < 0)
@@ -647,7 +648,8 @@ int main(int argc, char *argv[])
 
 	while (_running(NULL))
 	{
-		if (tcc_getBulletin(DTKA_ANNOUNCE, &bulletinContent, &length) < 0)
+		if (tcc_getBulletin(DTKA_ANNOUNCE, &bulletinContent, &length)
+				< 0)
 		{
 			putErrmsg("Failed getting bulletin content.", NULL);
 			state = 0;

@@ -94,10 +94,10 @@ described below.
 
 =over 4
 
-=item int tc_serialize(char *buffer, unsigned int buflen, uvast nodeNbr, time_t effectiveTime, time_t assertionTime, unsigned short datLength, unsigned char *datValue)
+=item int tc_serialize(char *buffer, unsigned int buflen, uvast fqnn, time_t effectiveTime, time_t assertionTime, unsigned short datLength, unsigned char *datValue)
 
 Forms in I<buffer> a serialized TC record, ready for transmission as a BP
-application data unit, that contains the indicated node number, effective time,
+application data unit, that contains the indicated node's fqnn, effective time,
 assertion time, application data length, and application data.  Returns the
 length of the record, or -1 on any missing arguments.
 
@@ -112,10 +112,10 @@ indicates that the function was interrupted and must be repeated.
 Note that the calling function MUST B<MRELEASE> the bulletin content buffer
 when processing is complete.  Failure to do so will introduce a memory leak.
 
-=item int tc_deserialize(char **buffer, int *buflen, unsigned short maxDatLength, uvast *nodeNbr, time_t *effectiveTime, time_t *assertionTime, unsigned short *datLength, unsigned char *datValue)
+=item int tc_deserialize(char **buffer, int *buflen, unsigned short maxDatLength, uvast *fqnn, time_t *effectiveTime, time_t *assertionTime, unsigned short *datLength, unsigned char *datValue)
 
 Parses out of the bulletin in I<buffer> the data elements of a single
-serialized TC record: node number, effective time, assertion time,
+serialized TC record: the node's fqnn, effective time, assertion time,
 application data length, and application data.  Returns -1 on any missing
 arguments, 0 on any record malformation, record length otherwise.
 

@@ -84,13 +84,13 @@ group number for TC records> <nbr of authorities in collective> [ <K> [ <R> ]]")
 	PUTS("\t   m hijack { 0 | 1 }");
 	PUTS("\t\tSets 'hijacked' flag, for testing purposes only.");
 	PUTS("\t+\tEnable authority");
-	PUTS("\t   + <authority array index> <node number>");
+	PUTS("\t   + <authority array index> <node identifier>");
 	PUTS("\t-\tDisable authority");
 	PUTS("\t   - <authority array index>");
 	PUTS("\ta\tAdd authorized client");
-	PUTS("\t   a <node number>");
+	PUTS("\t   a <node identifier>");
 	PUTS("\td\tDelete authorized client");
-	PUTS("\t   d <node number>");
+	PUTS("\t   d <node identifier>");
 	PUTS("\tl\tList authorized clients");
 	PUTS("\t   l");
 	PUTS("\ti\tInfo");
@@ -321,17 +321,17 @@ static void	executeEnable(int tokenCount, char **tokens)
 		}
 		else
 		{
-			printText("What node number for this authority?");
+			printText("What node identifier for this authority?");
 		}
 
 		return;
 	}
 
 	idx = atoi(tokens[1]);
-	fqnn = strtouvast(tokens[2]);
+	fqnn = getFqn(tokens[2]);
 	if (fqnn < 1)
 	{
-		putErrmsg("authority node number invalid.", tokens[2]);
+		putErrmsg("authority node identifier invalid.", tokens[2]);
 		return;
 	}
 
@@ -435,10 +435,10 @@ static void	executeAdd(int tokenCount, char **tokens)
 		return;
 	}
 
-	fqnn = strtouvast(tokens[1]);
+	fqnn = getFqn(tokens[1]);
 	if (fqnn < 1)
 	{
-		putErrmsg("client node number invalid.", tokens[1]);
+		putErrmsg("client node identifier invalid.", tokens[1]);
 		return;
 	}
 
@@ -505,10 +505,10 @@ static void	executeDelete(int tokenCount, char **tokens)
 		return;
 	}
 
-	fqnn = strtouvast(tokens[1]);
+	fqnn = getFqn(tokens[1]);
 	if (fqnn < 1)
 	{
-		putErrmsg("client node number invalid.", tokens[1]);
+		putErrmsg("client node identifier invalid.", tokens[1]);
 		return;
 	}
 
@@ -555,6 +555,7 @@ static void	executeList(int tokenCount, char **tokens)
 	TcaDB		db;
 	Object		elt;
 	uvast		client;
+	char		nbrBuf[FQN_MAX_LENGTH];
 	char		buffer[32];
 
 	if (tokenCount != 1)
@@ -577,7 +578,8 @@ static void	executeList(int tokenCount, char **tokens)
 			elt = sdr_list_next(sdr, elt))
 	{
 		client = (uvast) sdr_list_data(sdr, elt);
-		isprintf(buffer, sizeof buffer, "\t" UVAST_FIELDSPEC, client);
+		putFqn(nbrBuf, client);
+		isprintf(buffer, sizeof buffer, "\t%s", nbrBuf);
 		printText(buffer);
 	}
 
@@ -596,6 +598,7 @@ static void	executeInfo()
 	Object		elt;
 	Object		authObj;
 	TcaAuthority	auth;
+	char		nbrBuf[FQN_MAX_LENGTH];
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	dbobj = getTcaDBObject(_blocksGroupNbr(NULL));
@@ -615,8 +618,9 @@ interval=%u, consensus interval=%u", db.bulletinsGroupNbr, db.recordsGroupNbr,
 	{
 		authObj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &auth, authObj, sizeof(TcaAuthority));
-		isprintf(buffer, sizeof buffer, "\t%d\t%d\t" UVAST_FIELDSPEC,
-				i, auth.inService, auth.fqnn);
+		putFqn(nbrBuf, auth.fqnn);
+		isprintf(buffer, sizeof buffer, "\t%d\t%d\t%s",
+				i, auth.inService, nbrBuf);
 		printText(buffer);
 	}
 

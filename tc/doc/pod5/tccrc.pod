@@ -64,11 +64,14 @@ recognizes.
 The B<start> command.  This command starts the client daemon (B<tcc>)
 for the selected TC application.
 
-=item B<m authority> I<authority_array_index> I<node_number>
+=item B<m authority> I<authority_array_index> I<node_identifier>
 
 This command asserts that the Nth member of the collective authority for
 the selected TC application, where N is the I<authority_array_index> value,
-is the node identified by I<node_number>.
+is the node identified by I<node_identifier>.
+
+NOTE: "node_identifier" is the node-identifying string that would appear
+in the BP node ID for this node as formed in the ipn URI scheme.
 
 =item B<x>
 

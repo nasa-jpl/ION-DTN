@@ -503,6 +503,7 @@ static int	reconstructBulletin(TccDB *db, TccVdb *vdb,
 	char		**outputBlocks;
 	fec_t		*fec;
 	int		auths;
+	char		nbrBuf[FQN_MAX_LENGTH];
 	int		i;
 	int		j;
 	int		k;
@@ -608,8 +609,8 @@ writeMemo("tcc: First K blocks don't work.");
 			return -1;
 
 		case 1:
-			writeMemoNote("[?] Compromised TC authority",
-					itoa(getAuthNodeNbr(db, j)));
+			putFqn(nbrBuf, getAuthNodeNbr(db, j));
+			writeMemoNote("[?] Compromised TC authority", nbrBuf);
 			fec_free(fec);
 			MRELEASE(inputBuffer);
 			MRELEASE(inputBlocks);
@@ -652,10 +653,12 @@ writeMemo("tcc: Can't be just one compromised authority.");
 				return -1;
 
 			case 1:
+				putFqn(nbrBuf, getAuthNodeNbr(db, j));
 				writeMemoNote("[?] Compromised TC authority",
-					itoa(getAuthNodeNbr(db, j)));
+						nbrBuf);
+				putFqn(nbrBuf, getAuthNodeNbr(db, k));
 				writeMemoNote("[?] Compromised TC authority",
-					itoa(getAuthNodeNbr(db, k)));
+						nbrBuf);
 				fec_free(fec);
 				MRELEASE(inputBuffer);
 				MRELEASE(inputBlocks);
@@ -713,7 +716,8 @@ static int	acquireBlock(Sdr sdr, Object dbobj, TccDB *db, TccVdb *vdb,
 	int		reconstructionResult;
 	int		j;
 #if TC_DEBUG
-	char		msgbuf[1024];
+char	msgbuf[1024];
+char	nbrBuf[FQN_MAX_LENGTH];
 #endif
 
 	parsedOkay = parseEidString(src, &metaEid, &vscheme, &schemeElt);
@@ -788,9 +792,10 @@ if (header.sharenum >= db->fec_K)
 	if (blockIdx < 0)
 	{
 #if TC_DEBUG
+putFqn(nbrBuf, auth.fqnn);
 isprintf(msgbuf, sizeof msgbuf, "tcc: Block %d out of range for authority %d.  \
-Authority node nbr " UVAST_FIELDSPEC ", primary %d - %d, backup %d - %d.\n",
-header.sharenum, i, auth.fqnn, auth.firstPrimaryShare, auth.lastPrimaryShare,
+Authority node %s, primary %d - %d, backup %d - %d.\n",
+header.sharenum, i, nbrBuf, auth.firstPrimaryShare, auth.lastPrimaryShare,
 auth.firstBackupShare, auth.lastBackupShare);
 writeMemo(msgbuf);
 #endif
