@@ -2825,7 +2825,7 @@ printf("Parsing new subscription with %d bytes remaining.\n", bytesRemaining);
 			if (roleNbr < 1 || roleNbr > MAX_ROLE_NBR
 					|| unitNbr > MAX_UNIT_NBR
 					|| moduleNbr < 1
-					|| moduleNbr < MAX_MODULE_NBR)
+					|| moduleNbr > MAX_MODULE_NBR)
 			{
 				putErrmsg("module_status module ID invalid.",
 						NULL);
