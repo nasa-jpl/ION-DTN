@@ -116,36 +116,36 @@ void dtn_ion_ipnadmin_init_ctrl()
 	adm_add_ctrldef_ari(id, 3, NULL);
 	meta = meta_add_ctrl(id, ADM_ENUM_DTN_ION_IPNADMIN, "exit_add", "This control establishes an exit for static default routing.");
 
-	meta_add_parm(meta, "first_node_nbr", AMP_TYPE_UINT);
-	meta_add_parm(meta, "last_node_nbr", AMP_TYPE_UINT);
+	meta_add_parm(meta, "first_node", AMP_TYPE_STR);
+	meta_add_parm(meta, "last_node", AMP_TYPE_STR);
 	meta_add_parm(meta, "gateway_endpoint_id", AMP_TYPE_STR);
 
 	/* EXIT_CHANGE */
 
 	id = adm_build_ari(AMP_TYPE_CTRL, 1, g_dtn_ion_ipnadmin_idx[ADM_CTRL_IDX], DTN_ION_IPNADMIN_CTRL_EXIT_CHANGE);
 	adm_add_ctrldef_ari(id, 3, NULL);
-	meta = meta_add_ctrl(id, ADM_ENUM_DTN_ION_IPNADMIN, "exit_change", "This control changes the gateway node number for the exit identified by firstNodeNbr and lastNodeNbr.");
+	meta = meta_add_ctrl(id, ADM_ENUM_DTN_ION_IPNADMIN, "exit_change", "This control changes the gateway node number for the exit identified by first_node and last_node.");
 
-	meta_add_parm(meta, "first_node_nbr", AMP_TYPE_UINT);
-	meta_add_parm(meta, "last_node_nbr", AMP_TYPE_UINT);
+	meta_add_parm(meta, "first_node", AMP_TYPE_STR);
+	meta_add_parm(meta, "last_node", AMP_TYPE_STR);
 	meta_add_parm(meta, "gatewayEndpointId", AMP_TYPE_STR);
 
 	/* EXIT_DEL */
 
 	id = adm_build_ari(AMP_TYPE_CTRL, 1, g_dtn_ion_ipnadmin_idx[ADM_CTRL_IDX], DTN_ION_IPNADMIN_CTRL_EXIT_DEL);
 	adm_add_ctrldef_ari(id, 2, NULL);
-	meta = meta_add_ctrl(id, ADM_ENUM_DTN_ION_IPNADMIN, "exit_del", "This control deletes the exit identified by firstNodeNbr and lastNodeNbr.");
+	meta = meta_add_ctrl(id, ADM_ENUM_DTN_ION_IPNADMIN, "exit_del", "This control deletes the exit identified by first_node and last_node.");
 
-	meta_add_parm(meta, "first_node_nbr", AMP_TYPE_UINT);
-	meta_add_parm(meta, "last_node_nbr", AMP_TYPE_UINT);
+	meta_add_parm(meta, "first_node", AMP_TYPE_STR);
+	meta_add_parm(meta, "last_node", AMP_TYPE_STR);
 
 	/* PLAN_ADD */
 
 	id = adm_build_ari(AMP_TYPE_CTRL, 1, g_dtn_ion_ipnadmin_idx[ADM_CTRL_IDX], DTN_ION_IPNADMIN_CTRL_PLAN_ADD);
 	adm_add_ctrldef_ari(id, 2, NULL);
-	meta = meta_add_ctrl(id, ADM_ENUM_DTN_ION_IPNADMIN, "plan_add", "This control establishes an egress plan for the bundles that must be transmitted to the neighboring node that is identified by it's nodeNbr.");
+	meta = meta_add_ctrl(id, ADM_ENUM_DTN_ION_IPNADMIN, "plan_add", "This control establishes an egress plan for the bundles that must be transmitted to the neighboring node that is identified by node.");
 
-	meta_add_parm(meta, "node_nbr", AMP_TYPE_UVAST);
+	meta_add_parm(meta, "node", AMP_TYPE_STR);
 	meta_add_parm(meta, "xmit_rate", AMP_TYPE_UINT);
 
 	/* PLAN_CHANGE */
@@ -154,16 +154,16 @@ void dtn_ion_ipnadmin_init_ctrl()
 	adm_add_ctrldef_ari(id, 2, NULL);
 	meta = meta_add_ctrl(id, ADM_ENUM_DTN_ION_IPNADMIN, "plan_change", "This control changes the duct expression for the indicated plan.");
 
-	meta_add_parm(meta, "node_nbr", AMP_TYPE_UINT);
+	meta_add_parm(meta, "node", AMP_TYPE_STR);
 	meta_add_parm(meta, "default_duct_expression", AMP_TYPE_STR);
 
 	/* PLAN_DEL */
 
 	id = adm_build_ari(AMP_TYPE_CTRL, 1, g_dtn_ion_ipnadmin_idx[ADM_CTRL_IDX], DTN_ION_IPNADMIN_CTRL_PLAN_DEL);
 	adm_add_ctrldef_ari(id, 1, NULL);
-	meta = meta_add_ctrl(id, ADM_ENUM_DTN_ION_IPNADMIN, "plan_del", "This control deletes the egress plan for the node that is identified by it's nodeNbr.");
+	meta = meta_add_ctrl(id, ADM_ENUM_DTN_ION_IPNADMIN, "plan_del", "This control deletes the egress plan for the node that is identified by node.");
 
-	meta_add_parm(meta, "node_nbr", AMP_TYPE_UINT);
+	meta_add_parm(meta, "node", AMP_TYPE_STR);
 }
 
 void dtn_ion_ipnadmin_init_mac()
@@ -184,8 +184,8 @@ void dtn_ion_ipnadmin_init_tblt()
 	/* EXITS */
 
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_dtn_ion_ipnadmin_idx[ADM_TBLT_IDX], DTN_ION_IPNADMIN_TBLT_EXITS), NULL);
-	tblt_add_col(def, AMP_TYPE_UVAST, "first_node_nbr");
-	tblt_add_col(def, AMP_TYPE_UVAST, "last_node_nbr");
+	tblt_add_col(def, AMP_TYPE_STR, "first_node");
+	tblt_add_col(def, AMP_TYPE_STR, "last_node");
 	tblt_add_col(def, AMP_TYPE_STR, "gateway_endpoint_id");
 	adm_add_tblt(def);
 	meta_add_tblt(def->id, ADM_ENUM_DTN_ION_IPNADMIN, "exits", "This table lists all of the exits that are defined in the IPN database for the local node.");
@@ -193,7 +193,7 @@ void dtn_ion_ipnadmin_init_tblt()
 	/* PLANS */
 
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_dtn_ion_ipnadmin_idx[ADM_TBLT_IDX], DTN_ION_IPNADMIN_TBLT_PLANS), NULL);
-	tblt_add_col(def, AMP_TYPE_UVAST, "node_nbr");
+	tblt_add_col(def, AMP_TYPE_STR, "node");
 	tblt_add_col(def, AMP_TYPE_STR, "action");
 	tblt_add_col(def, AMP_TYPE_STR, "spec");
 	adm_add_tblt(def);

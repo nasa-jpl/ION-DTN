@@ -137,8 +137,8 @@ void dtn_ion_ionadmin_init_tblt()
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_dtn_ion_ionadmin_idx[ADM_TBLT_IDX], DTN_ION_IONADMIN_TBLT_CONTACTS), dtn_ion_ionadmin_tblt_contacts);
 	tblt_add_col(def, AMP_TYPE_TV, "start_time");
 	tblt_add_col(def, AMP_TYPE_TV, "stop_time");
-	tblt_add_col(def, AMP_TYPE_UINT, "source_node");
-	tblt_add_col(def, AMP_TYPE_UINT, "dest_node");
+	tblt_add_col(def, AMP_TYPE_STR, "source_node");
+	tblt_add_col(def, AMP_TYPE_STR, "dest_node");
 	tblt_add_col(def, AMP_TYPE_UVAST, "xmit_data");
 	tblt_add_col(def, AMP_TYPE_UVAST, "confidence");
 	adm_add_tblt(def);
@@ -148,8 +148,8 @@ void dtn_ion_ionadmin_init_tblt()
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_dtn_ion_ionadmin_idx[ADM_TBLT_IDX], DTN_ION_IONADMIN_TBLT_RANGES), dtn_ion_ionadmin_tblt_ranges);
 	tblt_add_col(def, AMP_TYPE_TV, "start");
 	tblt_add_col(def, AMP_TYPE_TV, "stop");
-	tblt_add_col(def, AMP_TYPE_UINT, "node");
-	tblt_add_col(def, AMP_TYPE_UINT, "other_node");
+	tblt_add_col(def, AMP_TYPE_STR, "node");
+	tblt_add_col(def, AMP_TYPE_STR, "other_node");
 	tblt_add_col(def, AMP_TYPE_UINT, "distance");
 	adm_add_tblt(def);
 }

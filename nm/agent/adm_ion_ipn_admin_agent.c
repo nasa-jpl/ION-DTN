@@ -113,15 +113,15 @@ void dtn_ion_ipnadmin_init_tblt()
 	/* EXITS */
 
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_dtn_ion_ipnadmin_idx[ADM_TBLT_IDX], DTN_ION_IPNADMIN_TBLT_EXITS), dtn_ion_ipnadmin_tblt_exits);
-	tblt_add_col(def, AMP_TYPE_UVAST, "first_node_nbr");
-	tblt_add_col(def, AMP_TYPE_UVAST, "last_node_nbr");
+	tblt_add_col(def, AMP_TYPE_STR, "first_node_nbr");
+	tblt_add_col(def, AMP_TYPE_STR, "last_node_nbr");
 	tblt_add_col(def, AMP_TYPE_STR, "gateway_endpoint_id");
 	adm_add_tblt(def);
 
 	/* PLANS */
 
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_dtn_ion_ipnadmin_idx[ADM_TBLT_IDX], DTN_ION_IPNADMIN_TBLT_PLANS), dtn_ion_ipnadmin_tblt_plans);
-	tblt_add_col(def, AMP_TYPE_UVAST, "node_nbr");
+	tblt_add_col(def, AMP_TYPE_STR, "node_nbr");
 	tblt_add_col(def, AMP_TYPE_STR, "action");
 	tblt_add_col(def, AMP_TYPE_STR, "spec");
 	adm_add_tblt(def);

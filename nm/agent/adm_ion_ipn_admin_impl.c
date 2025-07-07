@@ -112,6 +112,8 @@ tbl_t *dtn_ion_ipnadmin_tblt_exits(ari_t *id)
 	OBJ_POINTER(IpnExit, exit);
 	char	eidString[SDRSTRING_BUFSZ];
 	tnvc_t  *cur_row = NULL;
+	char	firstBuf[FQN_MAX_LENGTH];
+	char	lastBuf[FQN_MAX_LENGTH];
 
 	CHKNULL(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, (getIpnConstants())->exits); elt;
@@ -124,8 +126,10 @@ tbl_t *dtn_ion_ipnadmin_tblt_exits(ari_t *id)
 		/* (uint) FirstNode (UINT) last node (STR) gatewaye EID */
 		if((cur_row = tnvc_create(4)) != NULL)
 		{
-			tnvc_insert(cur_row, tnv_from_uvast(exit->firstFqnn));
-			tnvc_insert(cur_row, tnv_from_uvast(exit->lastFqnn));
+			putFqn(firstBuf, exit->firstFqnn);
+			tnvc_insert(cur_row, tnv_from_str(firstBuf));
+			putFqn(lastBuf, exit->lastFqnn);
+			tnvc_insert(cur_row, tnv_from_str(lastBuf));
 			tnvc_insert(cur_row, tnv_from_str(eidString));
 
 			tbl_add_row(table, cur_row);
@@ -175,6 +179,7 @@ tbl_t *dtn_ion_ipnadmin_tblt_plans(ari_t *id)
 	Object	outductElt;
 	Outduct	outduct;
 	tnvc_t  *cur_row = NULL;
+	char	nbrBuf[FQN_MAX_LENGTH];
 
 
 	CHKNULL(sdr_begin_xn(sdr));
@@ -182,7 +187,7 @@ tbl_t *dtn_ion_ipnadmin_tblt_plans(ari_t *id)
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, BpPlan, plan, sdr_list_data(sdr, elt));
-		if (plan->neighborFqnn == 0)	/*	Not CBHE.	*/
+		if (plan->neighborFqnn == 0)	/*	Not ipn-scheme.	*/
 		{
 			continue;
 		}
@@ -209,7 +214,8 @@ tbl_t *dtn_ion_ipnadmin_tblt_plans(ari_t *id)
 		/* (uint) FirstNode (UINT) last node (STR) gatewaye EID */
 		if((cur_row = tnvc_create(3)) != NULL)
 		{
-			tnvc_insert(cur_row, tnv_from_uvast(plan->neighborFqnn));
+			putFqn(nbrBuf, plan->neighborFqnn);
+			tnvc_insert(cur_row, tnv_from_str(nbrBuf));
 			tnvc_insert(cur_row, tnv_from_str(action));
 			tnvc_insert(cur_row, tnv_from_str(spec));
 
@@ -275,12 +281,15 @@ tnv_t *dtn_ion_ipnadmin_ctrl_exit_add(eid_t *def_mgr, tnvc_t *parms, int8_t *sta
 	uvast lastFqnn = 0;
 	char *endpointId = NULL;
 
-	firstFqnn = adm_get_parm_uvast(parms,0,&success);
+	firstFqnn = getFqn(adm_get_parm_obj(parms,0,AMP_TYPE_STR));
+	if (firstFqnn == 0) success = 0;
 	if(success){
-		lastFqnn = adm_get_parm_uvast(parms,1,&success);
+		lastFqnn = getFqn(adm_get_parm_obj(parms,1,AMP_TYPE_STR));
+		if (lastFqnn == 0) success = 0;
 	}
 	if(success){
 		endpointId = adm_get_parm_obj(parms, 2, AMP_TYPE_STR);
+		if (endpointId == NULL) success = 0;
 	}
 	if(success){
 		if(ipn_addExit(firstFqnn,lastFqnn,endpointId) > 0)
@@ -316,12 +325,15 @@ tnv_t *dtn_ion_ipnadmin_ctrl_exit_change(eid_t *def_mgr, tnvc_t *parms, int8_t *
 	uvast lastFqnn = 0;
 	char *endpointId = NULL;
 
-	firstFqnn = adm_get_parm_uvast(parms,0,&success);
+	firstFqnn = getFqn(adm_get_parm_obj(parms,0,AMP_TYPE_STR));
+	if (firstFqnn == 0) success = 0;
 	if(success){
-		lastFqnn = adm_get_parm_uvast(parms,1,&success);
+		lastFqnn = getFqn(adm_get_parm_obj(parms,1,AMP_TYPE_STR));
+		if (lastFqnn == 0) success = 0;
 	}
 	if(success){
 		endpointId = adm_get_parm_obj(parms, 2, AMP_TYPE_STR);
+		if (endpointId == NULL) success = 0;
 	}
 	if(success){
 		if(ipn_updateExit(firstFqnn,lastFqnn,endpointId) > 0)
@@ -354,9 +366,11 @@ tnv_t *dtn_ion_ipnadmin_ctrl_exit_del(eid_t *def_mgr, tnvc_t *parms, int8_t *sta
 	uvast firstFqnn = 0;
 	uvast lastFqnn = 0;
 
-	firstFqnn = adm_get_parm_uvast(parms,0,&success);
+	firstFqnn = getFqn(adm_get_parm_obj(parms,0,AMP_TYPE_STR));
+	if (firstFqnn == 0) success = 0;
 	if(success){
-		lastFqnn = adm_get_parm_uvast(parms,1,&success);
+		lastFqnn = getFqn(adm_get_parm_obj(parms,1,AMP_TYPE_STR));
+		if (lastFqnn == 0) success = 0;
 	}
 	if(success){
 		if(ipn_removeExit(firstFqnn,lastFqnn) > 0)
@@ -390,7 +404,8 @@ tnv_t *dtn_ion_ipnadmin_ctrl_plan_add(eid_t *def_mgr, tnvc_t *parms, int8_t *sta
 	uvast fqnn = 0;
 	unsigned int xmitRate = 0;
 
-	fqnn = adm_get_parm_uvast(parms,0,&success);
+	fqnn = getFqn(adm_get_parm_obj(parms,0,AMP_TYPE_STR));
+	if (fqnn == 0) success = 0;
 	if(success){
 		xmitRate = adm_get_parm_uint(parms, 1, &success);
 	}
@@ -422,15 +437,16 @@ tnv_t *dtn_ion_ipnadmin_ctrl_plan_change(eid_t *def_mgr, tnvc_t *parms, int8_t *
 	 * +-------------------------------------------------------------------------+
 	 */
 	int success = 0;
-	uvast nodeNbr = 0;
+	uvast fqnn = 0;
 	unsigned int xmitRate = 0;
 
-	nodeNbr = adm_get_parm_uvast(parms,0,&success);
+	fqnn = getFqn(adm_get_parm_obj(parms,0,AMP_TYPE_STR));
+	if (fqnn == 0) success = 0;
 	if(success){
 		xmitRate = adm_get_parm_uint(parms, 1, &success);
 	}
 	if(success){
-		if(ipn_updatePlan(nodeNbr,xmitRate) > 0)
+		if(ipn_updatePlan(fqnn,xmitRate) > 0)
 		{
 			*status = CTRL_SUCCESS;
 		}
@@ -446,7 +462,7 @@ tnv_t *dtn_ion_ipnadmin_ctrl_plan_change(eid_t *def_mgr, tnvc_t *parms, int8_t *
 
 
 /*
- * This control deletes the egress plan for the node that is identified by it's nodeNbr.
+ * This control deletes the egress plan for the node that is identified by its nodeNbr.
  */
 tnv_t *dtn_ion_ipnadmin_ctrl_plan_del(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
@@ -458,11 +474,12 @@ tnv_t *dtn_ion_ipnadmin_ctrl_plan_del(eid_t *def_mgr, tnvc_t *parms, int8_t *sta
 	 * +-------------------------------------------------------------------------+
 	 */
 	int success;
-	uvast nodeNbr = 0;
+	uvast fqnn = 0;
 
-	nodeNbr = adm_get_parm_uvast(parms,0,&success);
+	fqnn = getFqn(adm_get_parm_obj(parms,0,AMP_TYPE_STR));
+	if (fqnn == 0) success = 0;
 	if(success){
-		if(ipn_removePlan(nodeNbr) > 0)
+		if(ipn_removePlan(fqnn) > 0)
 		{
 			*status = CTRL_SUCCESS;
 		}

@@ -107,9 +107,9 @@ extern "C" {
  * |                     |he default heap limit is 20% of the SD|       |
  * |                     |R data space's total heap size.       |UINT   |
  * +---------------------+--------------------------------------+-------+
- * |number               |This is a CBHE node number which uniqu|       |
- * |                     |ely identifies the node in the delay-t|       |
- * |                     |olerant network.                      |UINT   |
+ * |number               |This is an ipn-scheme node identifier |	|
+ * |			 |which uniquely identifies the node in |	|
+ * |			 |the delay-tolerant network.           |UINT   |
  * +---------------------+--------------------------------------+-------+
  * |outbound_file_system_|This is the maximum number of megabyte|       |
  * |                     |s of storage space in ION's local file|       |
@@ -214,11 +214,12 @@ extern "C" {
  * |                     |cal ION node does not exist and most i|       |
  * |                     |onadmin controls will fail. The contro|       |
  * |                     |l configures the local node to be iden|       |
- * |                     |tified by node_number, a CBHE node num|       |
- * |                     |ber which uniquely identifies the node|       |
- * |                     | in the delay-tolerant network.  It al|       |
- * |                     |so configures ION's data space (SDR) a|       |
- * |                     |nd shared working-memory region.  For |       |
+ * |                     |tified by node_number, an ipn-scheme  |	|
+ * |			 |node identifier that uniquely identifi|       |
+ * |                     |es the node in the delay-tolerant netw|	|
+ * |			 |ork.  It also configures ION's data sp|	|
+ * |			 |ace (SDR) and shared working-memory re|	|
+ * |			 |gion.  For 				|       |
  * |                     |this purpose it uses a set of default |       |
  * |                     |settings if no argument follows node_n|       |
  * |                     |umber or if the argument following nod|       |

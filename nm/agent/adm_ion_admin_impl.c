@@ -111,6 +111,8 @@ tbl_t *dtn_ion_ionadmin_tblt_contacts(ari_t *id)
 	PsmAddress      addr;
 	IonCXref        *contact;
 	tnvc_t *cur_row = NULL;
+	char		fromBuf[FQN_MAX_LENGTH];
+	char		toBuf[FQN_MAX_LENGTH];
 
 	CHKNULL(sdr_begin_xn(sdr));
 	for (elt = sm_rbt_first(ionwm, vdb->contactIndex); elt;
@@ -125,13 +127,15 @@ tbl_t *dtn_ion_ionadmin_tblt_contacts(ari_t *id)
 		  continue;
 		}
 
-		 /* Table is: (TV)Start, (TV)Stop, (UINT)Src Node, (UINT)Dest Node, (UVAST)Xmit, (UVAST)Confidence */
+		 /* Table is: (TV)Start, (TV)Stop, (STR)From Node, (STR)To Node, (UVAST)Xmit, (UVAST)Confidence */
 		if((cur_row = tnvc_create(6)) != NULL)
 		{
 		  tnvc_insert(cur_row, tnv_from_tv(contact->fromTime));
 		  tnvc_insert(cur_row, tnv_from_tv(contact->toTime));
-		  tnvc_insert(cur_row, tnv_from_uint(contact->fromFqnn));
-		  tnvc_insert(cur_row, tnv_from_uint(contact->toFqnn));
+		  putFqn(fromBuf, contact->fromFqnn);
+		  tnvc_insert(cur_row, tnv_from_str(fromBuf));
+		  putFqn(fromBuf, contact->toFqnn);
+		  tnvc_insert(cur_row, tnv_from_str(toBuf));
 		  tnvc_insert(cur_row, tnv_from_uvast(contact->xmitRate));
 		  tnvc_insert(cur_row, tnv_from_uvast(contact->confidence));
 		  
@@ -179,6 +183,8 @@ tbl_t *dtn_ion_ionadmin_tblt_ranges(ari_t *id)
 	PsmAddress      addr;
 	IonRXref        *range = NULL;
 	tnvc_t *cur_row = NULL;
+	char		fromBuf[FQN_MAX_LENGTH];
+	char		toBuf[FQN_MAX_LENGTH];
 
 
 	CHKNULL(sdr_begin_xn(sdr));
@@ -194,13 +200,15 @@ tbl_t *dtn_ion_ionadmin_tblt_ranges(ari_t *id)
 			continue;
 		}
 
-		 /* Table is: (TV)Start, (TV)Stop, (UINT) Node, (UINT)Other Node, (UINT) Dist */
+		 /* Table is: (TV)Start, (TV)Stop, (STR) Node, (STR)Other Node, (UINT) Dist */
 		if((cur_row = tnvc_create(5)) != NULL)
 		{
 			tnvc_insert(cur_row, tnv_from_tv(range->fromTime));
 			tnvc_insert(cur_row, tnv_from_tv(range->toTime));
-			tnvc_insert(cur_row, tnv_from_uint(range->fromFqnn));
-			tnvc_insert(cur_row, tnv_from_uint(range->toFqnn));
+		  	putFqn(fromBuf, range->fromFqnn);
+		  	tnvc_insert(cur_row, tnv_from_str(fromBuf));
+		  	putFqn(fromBuf, range->toFqnn);
+		  	tnvc_insert(cur_row, tnv_from_str(toBuf));
 			tnvc_insert(cur_row, tnv_from_uint(range->owlt));
 
 			tbl_add_row(table, cur_row);
@@ -964,12 +972,12 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 
 	if(success)
 	{
-		fromFqnn = adm_get_parm_uvast(parms, 2, &success);
+		fromFqnn = getFqn(adm_get_parm_obj(parms, 2, AMP_TYPE_STR));
 	}
 
 	if(success)
 	{
-		toFqnn = adm_get_parm_uvast(parms, 3, &success);
+		toFqnn = getFqn(adm_get_parm_obj(parms, 3, AMP_TYPE_STR));
 	}
 
 	if(success)
@@ -987,7 +995,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 	    /* Sanity checks for contacts. */
 	    if((fromFqnn <= 0) || (toFqnn <= 0))
 	    {
-	        AMP_DEBUG_ERR("dtn_ion_ionadmin_ctrl_node_contact_add","Node number must be greater than 0", NULL);
+	        AMP_DEBUG_ERR("dtn_ion_ionadmin_ctrl_node_contact_add","Each node number must be greater than 0", NULL);
 	    }
 	    else if((confidence < 0.0 || confidence > 1.0))
 	    {
@@ -999,15 +1007,13 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 	    }
 
 	    // TODO: Need to accept region number.
-        if (rfx_insert_contact(1,fromTime, toTime,
+            if (rfx_insert_contact(1,fromTime, toTime,
                 fromFqnn, toFqnn, xmitRate, confidence,
                 &xaddr, 0) == 0)
-        {
-            *status = CTRL_SUCCESS;
-        }
+            {
+                *status = CTRL_SUCCESS;
+            }
 	}
-
-
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1042,11 +1048,14 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_del(eid_t *def_mgr, tnvc_t *parms, int
 
 	if(success)
 	{
-		fromFqnn = adm_get_parm_uint(parms, 1, &success);
+		fromFqnn = getFqn(adm_get_parm_obj(parms, 1, AMP_TYPE_STR));
+		if (fromFqnn == 0) success = 0;
 	}
+
 	if(success)
 	{
-		toFqnn = adm_get_parm_uint(parms, 2, &success);
+		toFqnn = getFqn(adm_get_parm_obj(parms, 2, AMP_TYPE_STR));
+		if (toFqnn == 0) success = 0;
 	}
 
 	if(success)
@@ -1170,8 +1179,8 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_range_add(eid_t *def_mgr, tnvc_t *parms, int8_
 
 	time_t  start = 0;
 	time_t  stop  = 0;
-	uint32_t    from_node = 0;
-	uint32_t    to_node   = 0;
+	uint32_t    fromFqnn = 0;
+	uint32_t    toFqnn   = 0;
 	uint32_t    distance  = 0;
 	int 	success   = 0;
 	PsmAddress xaddr;
@@ -1184,11 +1193,13 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_range_add(eid_t *def_mgr, tnvc_t *parms, int8_
 	}
 	if(success)
 	{
-	  from_node = adm_get_parm_uint(parms, 2, &success);
+	  fromFqnn = getFqn(adm_get_parm_obj(parms, 2, AMP_TYPE_STR));
+	  if (fromFqnn == 0) success = 0;
 	}
 	if(success)
 	{
-	  to_node = adm_get_parm_uint(parms, 3, &success);
+	  toFqnn = getFqn(adm_get_parm_obj(parms, 3, AMP_TYPE_STR));
+	  if (fromFqnn == 0) success = 0;
 	}
 	if(success)
 	{
@@ -1202,7 +1213,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_range_add(eid_t *def_mgr, tnvc_t *parms, int8_
 	    return NULL;
 	  }
 
-	  if (rfx_insert_range(start, stop, from_node, to_node, distance,
+	  if (rfx_insert_range(start, stop, fromFqnn, toFqnn, distance,
 			&xaddr, 0) >= 0 && xaddr != 0)
 	  {
 	    *status = CTRL_SUCCESS;
@@ -1233,8 +1244,8 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_range_del(eid_t *def_mgr, tnvc_t *parms, int8_
 	 */
 
 	time_t  start = 0;
-	uint32_t    from_node = 0;
-	uint32_t    to_node   = 0;
+	uvast    fromFqnn = 0;
+	uvast    toFqnn   = 0;
 	int 	success   = 0;
 	PsmAddress xaddr;
 
@@ -1242,16 +1253,18 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_range_del(eid_t *def_mgr, tnvc_t *parms, int8_
 
 	if(success)
 	{
-	  from_node = adm_get_parm_uint(parms, 1, &success);
+	  fromFqnn = getFqn(adm_get_parm_obj(parms, 1, AMP_TYPE_STR));
+	  if (fromFqnn == 0) success = 0;
 	}
 	if(success)
 	{
-	  to_node = adm_get_parm_uint(parms, 2, &success);
+	  toFqnn = getFqn(adm_get_parm_obj(parms, 2, AMP_TYPE_STR));
+	  if (toFqnn == 0) success = 0;
 	}
 
 	if(success)
 	{
-	  if(rfx_remove_range(&start, from_node, to_node, 0) >= 0)
+	  if(rfx_remove_range(&start, fromFqnn, toFqnn, 0) >= 0)
 	  {
 	    *status = CTRL_SUCCESS;
 	  }

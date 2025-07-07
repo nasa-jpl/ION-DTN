@@ -421,7 +421,7 @@ static int	enqueueToEntryNode(CgrRoute *route, Bundle *bundle,
 	 *	into limbo at this point.				*/
 
 	putFqn(nbrBuf, route->toFqnn);
-	isprintf(neighborEid, sizeof neighborEid, "ipn: %s.0", nbrBuf);
+	isprintf(neighborEid, sizeof neighborEid, "ipn:%s.0", nbrBuf);
 	findPlan(neighborEid, &vplan, &vplanElt);
 	CHKERR(vplanElt);
 	if (bpEnqueue(vplan, bundle, bundleObj) < 0)

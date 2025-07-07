@@ -116,7 +116,7 @@ void dtn_ion_ionadmin_init_edd()
 
 	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_ion_ionadmin_idx[ADM_EDD_IDX], DTN_ION_IONADMIN_EDD_NUMBER);
 	adm_add_edd(id, NULL);
-	meta_add_edd(AMP_TYPE_UINT, id, ADM_ENUM_DTN_ION_IONADMIN, "number", "This is a CBHE node number which uniquely identifies the node in the delay-tolerant network.");
+	meta_add_edd(AMP_TYPE_UINT, id, ADM_ENUM_DTN_ION_IONADMIN, "number", "This is an ipn-scheme node identifier which uniquely identifies the node in the delay-tolerant network.");
 
 	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_ion_ionadmin_idx[ADM_EDD_IDX], DTN_ION_IONADMIN_EDD_OUTBOUND_FILE_SYSTEM_OCCUPANCY_LIMIT);
 	adm_add_edd(id, NULL);
@@ -166,9 +166,9 @@ void dtn_ion_ionadmin_init_ctrl()
 
 	id = adm_build_ari(AMP_TYPE_CTRL, 1, g_dtn_ion_ionadmin_idx[ADM_CTRL_IDX], DTN_ION_IONADMIN_CTRL_NODE_INIT);
 	adm_add_ctrldef_ari(id, 2, NULL);
-	meta = meta_add_ctrl(id, ADM_ENUM_DTN_ION_IONADMIN, "node_init", "Until this control is executed, the local ION node does not exist and most ionadmin controls will fail. The control configures the local node to be identified by node_number, a CBHE node number which uniquely identifies the node in the delay-tolerant network.  It also configures ION's data space (SDR) and shared working-memory region.  For this purpose it uses a set of default settings if no argument follows node_number or if the argument following node_number is ''; otherwise it uses the configuration settings found in a configuration file.  If configuration file name is provided, then the configuration file's name is implicitly 'hostname.ionconfig'; otherwise, ion_config_filename is taken to be the explicit configuration file name.");
+	meta = meta_add_ctrl(id, ADM_ENUM_DTN_ION_IONADMIN, "node_init", "Until this control is executed, the local ION node does not exist and most ionadmin controls will fail. The control configures the local node to be identified by number, an ipn-scheme node identifier which uniquely identifies the node in the delay-tolerant network.  It also configures ION's data space (SDR) and shared working-memory region.  For this purpose it uses a set of default settings if no argument follows number or if the argument following number is ''; otherwise it uses the configuration settings found in a configuration file.  If configuration file name is provided, then the configuration file's name is implicitly 'hostname.ionconfig'; otherwise, ion_config_filename is taken to be the explicit configuration file name.");
 
-	meta_add_parm(meta, "node_nbr", AMP_TYPE_UINT);
+	meta_add_parm(meta, "number", AMP_TYPE_STR);
 	meta_add_parm(meta, "config_file", AMP_TYPE_STR);
 
 	/* NODE_CLOCK_ERROR_SET */
@@ -215,12 +215,12 @@ void dtn_ion_ionadmin_init_ctrl()
 
 	id = adm_build_ari(AMP_TYPE_CTRL, 1, g_dtn_ion_ionadmin_idx[ADM_CTRL_IDX], DTN_ION_IONADMIN_CTRL_NODE_CONTACT_ADD);
 	adm_add_ctrldef_ari(id, 6, NULL);
-	meta = meta_add_ctrl(id, ADM_ENUM_DTN_ION_IONADMIN, "node_contact_add", "This control schedules a period of data transmission from source_node to dest_node. The period of transmission will begin at start_time and end at stop_time, and the rate of data transmission will be xmit_data_rate bytes/second. Our confidence in the contact defaults to 1.0, indicating that the contact is scheduled - not that non-occurrence of the contact is impossible, just that occurrence of the contact is planned and scheduled rather than merely imputed from past node behavior. In the latter case, confidence indicates our estimation of the likelihood of this potential contact.");
+	meta = meta_add_ctrl(id, ADM_ENUM_DTN_ION_IONADMIN, "node_contact_add", "This control schedules a period of data transmission from from_node to to_node. The period of transmission will begin at start_time and end at stop_time, and the rate of data transmission will be xmit_data_rate bytes/second. Our confidence in the contact defaults to 1.0, indicating that the contact is scheduled - not that non-occurrence of the contact is impossible, just that occurrence of the contact is planned and scheduled rather than merely imputed from past node behavior. In the latter case, confidence indicates our estimation of the likelihood of this potential contact.");
 
 	meta_add_parm(meta, "start", AMP_TYPE_TV);
 	meta_add_parm(meta, "stop", AMP_TYPE_TV);
-	meta_add_parm(meta, "from_node_id", AMP_TYPE_UINT);
-	meta_add_parm(meta, "to_node_id", AMP_TYPE_UINT);
+	meta_add_parm(meta, "from_node", AMP_TYPE_STR);
+	meta_add_parm(meta, "to_node", AMP_TYPE_STR);
 	meta_add_parm(meta, "data_rate", AMP_TYPE_UVAST);
 	meta_add_parm(meta, "prob", AMP_TYPE_UVAST);
 
@@ -228,11 +228,11 @@ void dtn_ion_ionadmin_init_ctrl()
 
 	id = adm_build_ari(AMP_TYPE_CTRL, 1, g_dtn_ion_ionadmin_idx[ADM_CTRL_IDX], DTN_ION_IONADMIN_CTRL_NODE_CONTACT_DEL);
 	adm_add_ctrldef_ari(id, 3, NULL);
-	meta = meta_add_ctrl(id, ADM_ENUM_DTN_ION_IONADMIN, "node_contact_del", "This control deletes the scheduled period of data transmission from source_node to dest_node starting at start_time. To delete all contacts between some pair of nodes, use '*' as start_time.");
+	meta = meta_add_ctrl(id, ADM_ENUM_DTN_ION_IONADMIN, "node_contact_del", "This control deletes the scheduled period of data transmission from from_node to to_node starting at start_time. To delete all contacts between some pair of nodes, use '*' as start_time.");
 
 	meta_add_parm(meta, "start", AMP_TYPE_TV);
-	meta_add_parm(meta, "node_id", AMP_TYPE_UINT);
-	meta_add_parm(meta, "dest", AMP_TYPE_STR);
+	meta_add_parm(meta, "from_node", AMP_TYPE_STR);
+	meta_add_parm(meta, "to_node", AMP_TYPE_STR);
 
 	/* NODE_INBOUND_HEAP_OCCUPANCY_LIMIT_SET */
 
@@ -268,8 +268,8 @@ void dtn_ion_ionadmin_init_ctrl()
 
 	meta_add_parm(meta, "start", AMP_TYPE_TV);
 	meta_add_parm(meta, "stop", AMP_TYPE_TV);
-	meta_add_parm(meta, "node", AMP_TYPE_UINT);
-	meta_add_parm(meta, "other_node", AMP_TYPE_UINT);
+	meta_add_parm(meta, "node", AMP_TYPE_STR);
+	meta_add_parm(meta, "other_node", AMP_TYPE_STR);
 	meta_add_parm(meta, "distance", AMP_TYPE_UINT);
 
 	/* NODE_RANGE_DEL */
@@ -279,8 +279,8 @@ void dtn_ion_ionadmin_init_ctrl()
 	meta = meta_add_ctrl(id, ADM_ENUM_DTN_ION_IONADMIN, "node_range_del", "This control deletes the predicted period of constant distance between node and other_node starting at start_time. To delete all ranges between some pair of nodes, use '*' as start_time.");
 
 	meta_add_parm(meta, "start", AMP_TYPE_TV);
-	meta_add_parm(meta, "node", AMP_TYPE_UINT);
-	meta_add_parm(meta, "other_node", AMP_TYPE_UINT);
+	meta_add_parm(meta, "node", AMP_TYPE_STR);
+	meta_add_parm(meta, "other_node", AMP_TYPE_STR);
 
 	/* NODE_REF_TIME_SET */
 
@@ -319,8 +319,8 @@ void dtn_ion_ionadmin_init_tblt()
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_dtn_ion_ionadmin_idx[ADM_TBLT_IDX], DTN_ION_IONADMIN_TBLT_CONTACTS), NULL);
 	tblt_add_col(def, AMP_TYPE_TV, "start_time");
 	tblt_add_col(def, AMP_TYPE_TV, "stop_time");
-	tblt_add_col(def, AMP_TYPE_UINT, "source_node");
-	tblt_add_col(def, AMP_TYPE_UINT, "dest_node");
+	tblt_add_col(def, AMP_TYPE_STR, "from_node");
+	tblt_add_col(def, AMP_TYPE_STR, "to_node");
 	tblt_add_col(def, AMP_TYPE_UVAST, "xmit_data");
 	tblt_add_col(def, AMP_TYPE_UVAST, "confidence");
 	adm_add_tblt(def);
@@ -331,8 +331,8 @@ void dtn_ion_ionadmin_init_tblt()
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_dtn_ion_ionadmin_idx[ADM_TBLT_IDX], DTN_ION_IONADMIN_TBLT_RANGES), NULL);
 	tblt_add_col(def, AMP_TYPE_TV, "start");
 	tblt_add_col(def, AMP_TYPE_TV, "stop");
-	tblt_add_col(def, AMP_TYPE_UINT, "node");
-	tblt_add_col(def, AMP_TYPE_UINT, "other_node");
+	tblt_add_col(def, AMP_TYPE_STR, "node");
+	tblt_add_col(def, AMP_TYPE_STR, "other_node");
 	tblt_add_col(def, AMP_TYPE_UINT, "distance");
 	adm_add_tblt(def);
 	meta_add_tblt(def->id, ADM_ENUM_DTN_ION_IONADMIN, "ranges", "This table shows all predicted periods of constant distance between nodes.");
