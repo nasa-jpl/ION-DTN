@@ -382,6 +382,10 @@ static void	eraseSAP(AmsSAP *sap)
 	}
 
 	sem_destroy(&sap->isRegistered);
+	/*
+	 * FIX: Destroy the new mutex.
+	 */
+	pthread_mutex_destroy(&sap->sapStateMutex);
 	MRELEASE(sap);
 }
 
@@ -2471,8 +2475,13 @@ printf("Module '%d' got msg of type %d.\n", sap->role->nbr, msg->type);
 	switch (msg->type)
 	{
 	case heartbeat:
-
+		/*
+		 * FIX: Protect the write to heartbeatsMissed with the SAP state
+		 * mutex to prevent a data race with the heartbeatMain thread.
+		 */
+		pthread_mutex_lock(&sap->sapStateMutex);
 		sap->heartbeatsMissed = 0;
+		pthread_mutex_unlock(&sap->sapStateMutex);
 		return;
 
 	case you_are_dead:
@@ -3837,14 +3846,27 @@ static void	*heartbeatMain(void *parm)
 		}
 
 		lockMib();
+		
+		/*
+		 * FIX: Lock the SAP state mutex to safely read sap->heartbeatsMissed,
+		 * then lock it again to safely increment the value. This two-lock
+		 * pattern prevents holding the lock across the potentially blocking
+		 * enqueueMsgToRegistrar() call, avoiding deadlocks.
+		 */
+		pthread_mutex_lock(&sap->sapStateMutex);
 		if (sap->heartbeatsMissed == N6_COUNT)
 		{
 			clearMamsEndpoint(sap->rsEndpoint);
 		}
+		pthread_mutex_unlock(&sap->sapStateMutex);
 
 		result = enqueueMsgToRegistrar(sap, heartbeat, sap->moduleNbr,
 				0, NULL);
+		
+		pthread_mutex_lock(&sap->sapStateMutex);
 		sap->heartbeatsMissed++;
+		pthread_mutex_unlock(&sap->sapStateMutex);
+		
 		unlockMib();
 		if (result < 0)
 		{
@@ -3912,6 +3934,17 @@ static int	ams_register2(char *applicationName, char *authorityName,
 	memset((char *) sap, 0, sizeof(AmsSAP));
 
 	/*
+	 * FIX: Initialize the new mutex for protecting SAP state.
+	 */
+	if (pthread_mutex_init(&sap->sapStateMutex, NULL) != 0)
+	{
+		putSysErrmsg("Can't initialize SAP state mutex", NULL);
+		MRELEASE(sap);
+		*module = NULL;
+		return -1;
+	}
+
+	/*
 	 * Initialize the semaphore. The second argument '0' indicates it is
 	 * shared between threads of this process. The initial value '0'
 	 * means the semaphore is "taken". Any thread that calls sem_wait()
@@ -3921,6 +3954,7 @@ static int	ams_register2(char *applicationName, char *authorityName,
 	{
 		putSysErrmsg("Can't initialize SAP semaphore", NULL);
 		/* No threads have been started, so MRELEASE is safe. */
+		pthread_mutex_destroy(&sap->sapStateMutex);
 		MRELEASE(sap);
 		*module = NULL;
 		return -1;

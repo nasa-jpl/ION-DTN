@@ -196,6 +196,8 @@ typedef struct amssapst
 	sem_t		isRegistered;		/* Guarantees setup is complete */
 	volatile int	terminating;	/* Signal thread cleanup routine */
 
+	pthread_mutex_t	sapStateMutex;
+
 	Lyst		mamsEvents;			/*	(AmsEvt *)	*/
 	struct llcv_str	mamsEventsCV_str;
 	Llcv		mamsEventsCV;		/*	Inbound.	*/
