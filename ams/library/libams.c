@@ -3315,60 +3315,6 @@ static int	sendMsgToRegistrar(AmsSAP *sap, AmsEvt *evt)
 	int	result;
 	MamsMsg	*msg = (MamsMsg *) (evt->value);
 
-	/*	If registrar is unknown:
-	 *		If configuration server is known:
-	 *			Send registrar query to configuration server.
-	 *			If no answer comes back
-	 *				Configuration server is unknown.
-	 *				Give up for now.
-	 *		Else
-	 *			Send registrar query to a candidate
-	 *					configuration server.
-	 *			If an answer comes back
-	 *				Configuration server is known.
-	 *			Else
-	 *				Give up for now.
-	 *		If answer from CS identified the registrar
-	 *			Registrar is known.
-	 *		Else
-	 *			Give up for now.
-	 *		Send reconnect to registrar.
-	 *		If refused or no answer
-	 *			Registrar is unknown.
-	 *			Give up for now.
-	 *	Send message to known registrar.			*/
-
-
-	if (sap->rsEndpoint->ept == NULL)	/*	Lost registrar.	*/
-	{
-		if (locateRegistrar(sap) < 0)
-		{
-			putErrmsg("Can't locate registrar.", NULL);
-			return -1;
-		}
-
-		/*	Found it?					*/
-
-		if (sap->rsEndpoint->ept == NULL)
-		{
-			return 0;
-		}
-
-		if (reconnectToRegistrar(sap) < 0)
-		{
-			putErrmsg("Can't reconnect to registrar.", NULL);
-			return -1;
-		}
-
-		/*	Reconnected?					*/
-
-		if (sap->heartbeatsMissed > 0)
-		{
-			clearMamsEndpoint(sap->rsEndpoint);
-			return 0;
-		}
-	}
-
 	if (msg->type == I_am_stopping)
 	{
 		/*	If stopping, we sleep for .5 second to give
@@ -3624,6 +3570,7 @@ static void	*mamsMain(void *parm)
 	LystElt		elt;
 	AmsEvt		*evt;
 	int		result;
+	int		lostRegistrar;
 #ifndef mingw
 	sigset_t	signals;
 
@@ -3660,10 +3607,13 @@ static void	*mamsMain(void *parm)
 
 		/*	Was registration attempt successful?		*/
 
+		pthread_mutex_lock(&sap->sapStateMutex);
 		if (sap->moduleNbr != 0)
 		{
+			pthread_mutex_unlock(&sap->sapStateMutex);
 			break;
 		}
+		pthread_mutex_unlock(&sap->sapStateMutex);
 
 		/*	Not registered yet.  Wait a while, try again.	*/
 
@@ -3713,13 +3663,17 @@ static void	*mamsMain(void *parm)
 			 *	MAMS message handling pending the
 			 *	prime thread's unregistration.		*/
 
+			pthread_mutex_lock(&sap->sapStateMutex);
 			sap->state = AmsSapCrashed;
+			pthread_mutex_unlock(&sap->sapStateMutex);
 			recycleEvent(evt);
 			continue;
 
 		case MAMS_MSG_EVT:
+			pthread_mutex_lock(&sap->sapStateMutex);
 			if (sap->state == AmsSapOpen)
 			{
+				pthread_mutex_unlock(&sap->sapStateMutex);
 				lockMib();
 				processMamsMsg(sap, evt);
 				unlockMib();
@@ -3729,21 +3683,62 @@ static void	*mamsMain(void *parm)
 				 * receiving 'you_are_dead', we must now exit
 				 * the loop to terminate the thread cleanly.
 				 */
+				pthread_mutex_lock(&sap->sapStateMutex);
 				if (sap->terminating)
 				{
+					pthread_mutex_unlock(&sap->sapStateMutex);
 					recycleEvent(evt);
 					break;
 				}
+				pthread_mutex_unlock(&sap->sapStateMutex);
+			}
+			else
+			{
+				pthread_mutex_unlock(&sap->sapStateMutex);
 			}
 
 			recycleEvent(evt);
 			continue;
 
 		case MSG_TO_SEND_EVT:
+			/*
+			 * FIX: This is the refactored locking strategy to prevent
+			 * data races and double-unlock errors.
+			 */
+			lostRegistrar = 0;
+			pthread_mutex_lock(&sap->sapStateMutex);
+			if (sap->rsEndpoint->ept == NULL)
+			{
+				lostRegistrar = 1;
+			}
+			pthread_mutex_unlock(&sap->sapStateMutex);
+
+			if (lostRegistrar)
+			{
+				lockMib();
+				result = locateRegistrar(sap);
+				unlockMib();
+				if (result < 0 || sap->rsEndpoint->ept == NULL)
+				{
+					putErrmsg("Can't locate registrar.", NULL);
+					recycleEvent(evt);
+					continue;
+				}
+
+				lockMib();
+				result = reconnectToRegistrar(sap);
+				unlockMib();
+				if (result < 0)
+				{
+					putErrmsg("Can't reconnect to registrar.", NULL);
+					recycleEvent(evt);
+					continue;
+				}
+			}
+
+			/* Now it is safe to send the message. */
 			lockMib();
-
 			result = sendMsgToRegistrar(sap, evt);
-
 			unlockMib();
 			if (result < 0)
 			{
@@ -3825,8 +3820,14 @@ static void	*heartbeatMain(void *parm)
 		result = pthread_cond_timedwait(&cv, &mutex, &deadline);
 		pthread_mutex_unlock(&mutex);
 
+		/*
+		 * FIX: All checks of shared SAP state variables must be
+		 * protected by the sapStateMutex.
+		 */
+		pthread_mutex_lock(&sap->sapStateMutex);
 		if (sap->terminating)
 		{
+			pthread_mutex_unlock(&sap->sapStateMutex);
 			break;
 		}
 
@@ -3836,39 +3837,29 @@ static void	*heartbeatMain(void *parm)
 			if (errno != ETIMEDOUT)
 			{
 				putSysErrmsg("heartbeat failure", NULL);
+				pthread_mutex_unlock(&sap->sapStateMutex);
 				break;
 			}
 		}
 
 		if (sap->state != AmsSapOpen)
 		{
+			pthread_mutex_unlock(&sap->sapStateMutex);
 			continue;
 		}
 
-		lockMib();
-		
-		/*
-		 * FIX: Lock the SAP state mutex to safely read sap->heartbeatsMissed,
-		 * then lock it again to safely increment the value. This two-lock
-		 * pattern prevents holding the lock across the potentially blocking
-		 * enqueueMsgToRegistrar() call, avoiding deadlocks.
-		 */
-		pthread_mutex_lock(&sap->sapStateMutex);
 		if (sap->heartbeatsMissed == N6_COUNT)
 		{
+			/* This function is safe to call while holding sapStateMutex,
+			 * as it only affects sap->rsEndpoint state. */
 			clearMamsEndpoint(sap->rsEndpoint);
 		}
-		pthread_mutex_unlock(&sap->sapStateMutex);
-
-		result = enqueueMsgToRegistrar(sap, heartbeat, sap->moduleNbr,
-				0, NULL);
 		
-		pthread_mutex_lock(&sap->sapStateMutex);
 		sap->heartbeatsMissed++;
 		pthread_mutex_unlock(&sap->sapStateMutex);
-		
-		unlockMib();
-		if (result < 0)
+
+		if (enqueueMsgToRegistrar(sap, heartbeat, sap->moduleNbr,
+				0, NULL) < 0)
 		{
 			break;
 		}
