@@ -240,6 +240,16 @@ esac
 ##Process user flags
 
 #
+# Disable installation messaging
+#
+AC_ARG_ENABLE([install-messages],
+  [AS_HELP_STRING([--disable-install-messages], [disable extraneous messages on install])],
+  [enable_install_messages=$enableval],
+  [enable_install_messages=yes])
+
+AM_CONDITIONAL([ENABLE_INSTALL_MESSAGES], [test "$enable_install_messages" = yes])
+
+#
 # allow the user running configure to disable ACS when using bpv6
 #
 AC_ARG_ENABLE(
@@ -248,7 +258,6 @@ AC_ARG_ENABLE(
     [ENABLE_BPACS=yes],
     [ENABLE_BPACS=no])
 AM_CONDITIONAL(ENABLE_BPACS, test "x$ENABLE_BPACS" = "xyes")
-
 
 #
 # allow the user running configure to build bpv6
@@ -278,7 +287,6 @@ AC_ARG_ENABLE(
      echo "Building ION with BP version 7"])
 AM_CONDITIONAL(BUILD_BPv7, test x$BUILD_BPv7 = xtrue)
 AM_CONDITIONAL(BUILD_BPv6, test x$BUILD_BPv6 = xtrue)
-
 
 #
 # allow the user running configure to disable IMC

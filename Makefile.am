@@ -86,7 +86,8 @@ EXTRA_DIST = 	\
 
 # This hook now explicitly depends on the completion of all programs and
 # libraries. It checks for a flag file to ensure it only runs ONCE per build.
-all-local: $(bin_PROGRAMS) $(lib_LTLIBRARIES)
+all-local: $(bin_PROGRAMS) $(lib_LTLIBRARIES) $(man_MANS)
+if ENABLE_INSTALL_MESSAGES
 	@if test -f configure && [ ! -f .build_finished ]; then \
 		echo ""; \
 		echo '    ┌───────────────────────────────────────────────────────────┐'; \
@@ -101,9 +102,11 @@ all-local: $(bin_PROGRAMS) $(lib_LTLIBRARIES)
 		echo ""; \
 		touch .build_finished; \
 	fi
+endif
 
 # This hook contains the final message after a successful installation.
 install-data-hook:
+if ENABLE_INSTALL_MESSAGES
 	@echo '    ───────────────────────────────────────────────────────────'
 	@echo
 	@echo '    ██╗ ██████╗ ███╗   ██╗         ██████╗ ████████╗███╗   ██╗'
@@ -128,6 +131,7 @@ install-data-hook:
 	@echo
 	@echo '    ───────────────────────────────────────────────────────────'
 	@echo
+endif
 
 if ENABLE_GCOV
 cov-clean:
