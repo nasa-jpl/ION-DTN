@@ -419,6 +419,15 @@ int	createFile(const char *filename, int flags)
 
 #ifdef _MULTITHREADED
 
+typedef struct rlock_str
+{
+	pthread_mutex_t mutex;
+	int		initialized;
+} Rlock;		/*	Private-memory semaphore.		*/ 
+
+/* the next line won't compile if the mutex structure isn't large enough -  increase size of ResourceLock in platform.h */
+int verify_sufficient_semaphore_space[(sizeof(Rlock) <= sizeof(ResourceLock))?1:-1];    /* compile-time assertion check */
+
 /*
  * This global "meta-lock" is the core of the thread-safe
  * initialization pattern for all ResourceLock instances. It prevents
@@ -438,9 +447,10 @@ static pthread_mutex_t  g_ResourceLockInitMutex = PTHREAD_MUTEX_INITIALIZER;
  */
 int initResourceLock(ResourceLock *rl)
 {
+	Rlock   *lock = (Rlock *) rl;
 	pthread_mutexattr_t attr;
 
-	if (rl == NULL)
+	if (lock == NULL)
 	{
 		/* Cannot initialize a NULL lock. */
 		return -1;
@@ -456,7 +466,7 @@ int initResourceLock(ResourceLock *rl)
 	/*
 	* Now that we hold the meta-lock, it is safe to check the flag.
 	*/
-	if (rl->initialized)
+	if (lock->initialized)
 	{
 		/* This lock is already initialized. Nothing more to do. */
 		pthread_mutex_unlock(&g_ResourceLockInitMutex);
@@ -481,7 +491,7 @@ int initResourceLock(ResourceLock *rl)
 	}
 
 	/* Initialize the 'mutex' member. */
-	if (pthread_mutex_init(&rl->mutex, &attr) != 0)
+	if (pthread_mutex_init(&lock->mutex, &attr) != 0)
 	{
 		pthread_mutexattr_destroy(&attr);
 		pthread_mutex_unlock(&g_ResourceLockInitMutex);
@@ -492,7 +502,7 @@ int initResourceLock(ResourceLock *rl)
 	pthread_mutexattr_destroy(&attr);
 
 	/* Mark this lock as initialized BEFORE releasing the meta-lock. */
-	rl->initialized = 1;
+	lock->initialized = 1;
 
 	/* Release the global initialization lock. */
 	pthread_mutex_unlock(&g_ResourceLockInitMutex);
@@ -502,7 +512,9 @@ int initResourceLock(ResourceLock *rl)
 
 void killResourceLock(ResourceLock *rl)
 {
-	if (rl == NULL || rl->initialized == 0)
+	Rlock   *lock = (Rlock *) rl;
+
+	if (lock == NULL || lock->initialized == 0)
 	{
 		return;
 	}
@@ -511,17 +523,17 @@ void killResourceLock(ResourceLock *rl)
 	* pthread_mutex_destroy has undefined behavior if the mutex
 	* is locked. A trylock can safely check this.
 	*/
-	if (pthread_mutex_trylock(&rl->mutex) == 0)
+	if (pthread_mutex_trylock(&lock->mutex) == 0)
 	{
 		/*
 		 * We successfully acquired the lock, proving it was not held by another
 		 * thread. We must release it before destroying it.
 		 */
-		pthread_mutex_unlock(&rl->mutex);
-		pthread_mutex_destroy(&rl->mutex);
+		pthread_mutex_unlock(&lock->mutex);
+		pthread_mutex_destroy(&lock->mutex);
 
 		/* Reset the state. */
-		rl->initialized = 0;
+		lock->initialized = 0;
 	}
 	else
 	{
@@ -533,22 +545,26 @@ void killResourceLock(ResourceLock *rl)
 
 void lockResource(ResourceLock *rl)
 {
-	if (rl == NULL || rl->initialized == 0)
+	Rlock   *lock = (Rlock *) rl;
+
+	if (lock == NULL || lock->initialized == 0)
 	{
 		return;
 	}
 
-	pthread_mutex_lock(&rl->mutex);
+	pthread_mutex_lock(&lock->mutex);
 }
 
 void unlockResource(ResourceLock *rl)
 {
-	if (rl == NULL || rl->initialized == 0)
+	Rlock   *lock = (Rlock *) rl;
+
+	if (lock == NULL || lock->initialized == 0)
 	{
 		return;
 	}
 
-	pthread_mutex_unlock(&rl->mutex);
+	pthread_mutex_unlock(&lock->mutex);
 }
 
 #else	/*	Only one thread of control in address space.		*/
