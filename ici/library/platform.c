@@ -423,7 +423,7 @@ typedef struct rlock_str
 {
 	pthread_mutex_t mutex;
 	int		initialized;
-} Rlock;		/*	Private-memory semaphore.		*/ 
+} Rlock;
 
 /* the next line won't compile if the mutex structure isn't large enough -  increase size of ResourceLock in platform.h */
 int verify_sufficient_semaphore_space[(sizeof(Rlock) <= sizeof(ResourceLock))?1:-1];    /* compile-time assertion check */
