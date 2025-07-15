@@ -1704,7 +1704,7 @@ size_t	sdr_heap_size(Sdr sdrv)
 	return sdrv->sdr->heapSize;
 }
 
-void	sdr_stop_using(Sdr sdrv)
+void	sdr_stop_using(Sdr sdrv, int shutdown)
 {
 	PsmPartition	sdrwm = _sdrwm(NULL);
 
@@ -1752,14 +1752,22 @@ void	sdr_stop_using(Sdr sdrv)
 	memset((char *) sdrv, 0, sizeof(SdrView));
 	psm_free(sdrwm, psa(sdrwm, sdrv));
 
-	/*  Detach from SDR Working Memory */
-	sm_ShmDetach(sdrwm->space);
+	/*	Shut down SDR system if specified, otherwise leave SDR
+		system intact but detach this process from SDR system	*/
+	if (shutdown)
+	{
+		sdr_shutdown();
+	}
+	else
+	{
+		/*  Detach from SDR Working Memory */
+		sm_ShmDetach(sdrwm->space);
 
-	/*  Reset sdrwm database */
-	sm_WmParms reset;
-	reset.wmKey = -11111; 	/* use key value of -11111 to reset database */
-	oK(_sdrwm(&reset));
-
+		/*  Reset sdrwm database */
+		sm_WmParms reset;
+		reset.wmKey = -11111; 	/* use key value of -11111 to reset database */
+		oK(_sdrwm(&reset));
+	}
 }
 
 void	sdr_abort(Sdr sdrv)
@@ -1772,7 +1780,7 @@ void	sdr_abort(Sdr sdrv)
 	sdr_shutdown();
 }
 
-void	sdr_destroy(Sdr sdrv)
+void	sdr_destroy(Sdr sdrv, int shutdown)
 {
 	sm_SemId	lock = _sdrlock(0);
 	SdrState	*sdr;
@@ -1807,7 +1815,7 @@ void	sdr_destroy(Sdr sdrv)
 
 	/*	Destroy local access handle to this SDR.		*/
 
-	sdr_stop_using(sdrv);
+	sdr_stop_using(sdrv, shutdown);
 }
 
 /*	*	Low-level transaction functions		*	*	*/

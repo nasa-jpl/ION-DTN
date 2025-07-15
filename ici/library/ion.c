@@ -721,6 +721,13 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 
 	CHKERR(parms);
 	CHKERR(ownNodeNbr);
+
+	if (sm_ipc_init() < 0)
+	{
+		putErrmsg("Can't initialize IPC system.", NULL);
+		return -1;
+	}
+
 #ifdef mingw
 	if (_winsock(0) < 0)
 	{
@@ -1137,7 +1144,7 @@ void	ionDetach()
 		/* sdr_stop_using(): detach from sdr & cleans up	*
 		 * sdr in file, sh mem, log file, log in sh 		*
 		 * mem, and detach from working memory      		*/
-		sdr_stop_using(ionsdr);
+		sdr_stop_using(ionsdr, 0);
 		ionsdr = NULL;		/*	Reset ionsdr database to NULL.	*/
 		oK(_ionsdr(&ionsdr));
 
@@ -1221,7 +1228,7 @@ void	ionEject()
 	sdr_eject_xn(_ionsdr(NULL));
 }
 
-void	ionTerminate()
+void	ionTerminate(int shutdown)
 {
 	Sdr		sdr = _ionsdr(NULL);
 	Object		obj = 0;
@@ -1230,7 +1237,7 @@ void	ionTerminate()
 
 	if (sdr)
 	{
-		sdr_destroy(sdr);
+		sdr_destroy(sdr, shutdown);
 		sdr = NULL;
 		oK(_ionsdr(&sdr));	/*	To reset to NULL.	*/
 	}

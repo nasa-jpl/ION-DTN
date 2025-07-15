@@ -91,7 +91,7 @@ static int	run_sdrwatch(char *sdrName, char *mode, int interval,
 	sdr_exit_xn(sdr);
 	if (interval == 0)	/*	One-time poll.			*/
 	{
-		sdr_stop_using(sdr);
+		sdr_stop_using(sdr, 0);
 		return 0;
 	}
 
@@ -102,7 +102,7 @@ static int	run_sdrwatch(char *sdrName, char *mode, int interval,
 		if (sdr_start_trace(sdr, 20000000, NULL) < 0)
 		{
 			putErrmsg("Can't start trace.", NULL);
-			sdr_stop_using(sdr);
+			sdr_stop_using(sdr, 0);
 			writeErrmsgMemos();
 			return 0;
 		}
@@ -156,7 +156,7 @@ static int	run_sdrwatch(char *sdrName, char *mode, int interval,
 		sdr_stop_trace(sdr);
 	}
 
-	sdr_stop_using(sdr);
+	sdr_stop_using(sdr, 0);
 	writeErrmsgMemos();
 	return 0;
 }
