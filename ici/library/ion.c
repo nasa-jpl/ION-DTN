@@ -1150,7 +1150,10 @@ void	ionDetach()
 
 		/* 	Now detach from ION working memory */
 		PsmPartition	ionwm = _ionwm(NULL);
-		sm_ShmDetach(ionwm->space);
+		if (ionwm)
+		{
+			sm_ShmDetach(ionwm->space);
+		}
 
 		/* 	Now reset the ION working memory database */
 		sm_WmParms reset;
