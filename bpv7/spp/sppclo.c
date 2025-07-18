@@ -10,6 +10,7 @@
 	
 									*/
 #include "sppcla.h"
+#include <dlfcn.h>
 
 static sm_SemId		sppcloSemaphore(sm_SemId *semid)
 {
@@ -28,6 +29,17 @@ static void	shutDownClo(int signum)
 	sm_SemEnd(sppcloSemaphore(NULL));
 }
 
+static int openSharedLibrary(char* sharedLibPath, void* handle)
+{
+    handle = dlopen(sharedLibPath, RTLD_LAZY);
+    if (!handle)
+    {
+	putErrmsg("Error opening dlopen.", dlerror());
+	return -1;
+    }
+    return 0;
+}
+
 /*	*	*	Main thread functions	*	*	*	*/
 
 /*static unsigned long	getUsecTimestamp()
@@ -42,13 +54,15 @@ static void	shutDownClo(int signum)
 int	sppclo(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-	char			*ductBPConfig = (char *) a2;
 	char			*endpointSpec = (char *) a1;
+	char                    *sharedLibPath = (char *) a2;
+	char			*ductBPConfig = (char *) a3;
 #else
 int	main(int argc, char *argv[])
 {
 	char			*endpointSpec = (argc > 1 ? argv[1] : NULL);
-	char			*ductBPConfig = (argc > 2 ? argv[2] : NULL);
+	char                    *sharedLibPath = (argc > 2 ? argv[2] : NULL);
+	char			*ductBPConfig = (argc > 3 ? argv[2] : NULL);
 #endif
 	unsigned char		*buffer;
 	VOutduct		*vduct;
@@ -63,14 +77,22 @@ int	main(int argc, char *argv[])
 	Object			bundleZco;
 	BpAncillaryData		ancillaryData;
 	unsigned int		bundleLength;
-	int			bytesSent;
+	int			bytesSent = 0;
+	void                    *funcHandle;
 
-	if (endpointSpec == NULL)
+	if (endpointSpec == NULL || sharedLibPath == NULL)
 	{
 	    PUTS("Usage: sppclo {<remote node IPN> | \
-@} [:<BP reliability]");
+@} {shared library path} [:<BP reliability]");
+	    return 0;
 	}
-			return 0;
+	
+	if (openSharedLibrary(sharedLibPath, funcHandle) == -1)
+	{
+	    putErrmsg("sppclo can not open shared protocol library.",sharedLibPath);
+	    return -1;
+	}
+	
 	if (ductBPConfig == NULL)
 	{
 	    ancillaryData.flags |= BP_BEST_EFFORT;
@@ -112,6 +134,7 @@ int	main(int argc, char *argv[])
 	CHKZERO(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
+	
 	if (outduct.planDuctListElt)
 	{
 		planDuctList = sdr_list_list(sdr, outduct.planDuctListElt);
@@ -165,6 +188,10 @@ int	main(int argc, char *argv[])
 		sdr_exit_xn(sdr);
 		/* put sendBundleBySPP here */
 		
+		//sendBundleBySPP(int fd, unsigned int bundleLength,
+		//	Object bundleZco, unsigned char *buffer);
+
+		/* Remove this and add in a function call to mark bundles as abandoned*/
 		if (bytesSent < bundleLength)
 		{
 			sm_SemEnd(sppcloSemaphore(NULL));/*	Stop.	*/
