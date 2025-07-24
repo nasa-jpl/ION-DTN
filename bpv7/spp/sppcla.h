@@ -27,11 +27,21 @@ extern "C" {
 #endif
 
 #define SPPCLA_BUFSZ		(65536)
+typedef char (*build_space_packet_ptr)(int, int, const char*,int, int, size_t*);
+typedef char (*packet_request_ptr)(char*,int);
+struct SppConfig {
+    int             apid;
+    int             seq_count;
+    int             packet_type;
+    int             sec_header_flag;
+    build_space_packet_ptr build_space_packet;
+    packet_request_ptr packet_request;
+};
 
-extern int	sendBytesBySPP(int fd, char *from, int length);
-extern int	sendBundleBySPP(int fd, unsigned int bundleLength,
-				Object bundleZco, unsigned char *buffer);
-extern int	receiveBytesBySPP(int fd,char *into, int length);
+extern int	sendBytesBySPP(char *from, int length, unsigned char *buffer, struct SppConfig *sppcfg);
+extern int	sendBundleBySPP(unsigned int bundleLength, Object bundleZco, 
+				unsigned char *buffer,struct SppConfig *sppcfg);
+extern int	receiveBytesBySPP(int fd,char *into, int length);    
 
 #ifdef __cplusplus
 }

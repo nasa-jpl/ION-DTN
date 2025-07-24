@@ -40,6 +40,16 @@ static int openSharedLibrary(char* sharedLibPath, void* handle)
     return 0;
 }
 
+static int openSPPFunctions(struct SppConfig* sppconfig,void *handle)
+{
+
+    // load two functions, one to build space packet and  packet request
+    // any configuration will be handled by service provider
+    sppconfig->build_space_packet = (build_space_packet_ptr)dlsym(handle,"build_space_packet");
+    sppconfig->packet_request = (packet_request_ptr)dlsym(handle,"packet_request");
+    return 0;
+}
+
 /*	*	*	Main thread functions	*	*	*	*/
 
 /*static unsigned long	getUsecTimestamp()
@@ -56,13 +66,15 @@ int	sppclo(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 {
 	char			*endpointSpec = (char *) a1;
 	char                    *sharedLibPath = (char *) a2;
+	char                    *spacePacketConfigStr = (char *)a2;
 	char			*ductBPConfig = (char *) a3;
 #else
 int	main(int argc, char *argv[])
 {
 	char			*endpointSpec = (argc > 1 ? argv[1] : NULL);
 	char                    *sharedLibPath = (argc > 2 ? argv[2] : NULL);
-	char			*ductBPConfig = (argc > 3 ? argv[2] : NULL);
+	char                    *spacePacketConfigStr = (argc > 3 ? argv[2] : NULL);
+	char			*ductBPConfig = (argc > 4 ? argv[2] : NULL);
 #endif
 	unsigned char		*buffer;
 	VOutduct		*vduct;
@@ -78,7 +90,15 @@ int	main(int argc, char *argv[])
 	BpAncillaryData		ancillaryData;
 	unsigned int		bundleLength;
 	int			bytesSent = 0;
-	void                    *funcHandle;
+	void                    *funcHandle = NULL;
+	int                     parsed_count;
+	int                     apid = 123;
+	int                     seq_count = 0;
+	int                     packet_type = 0;
+	int                     sec_header_flag = 0;
+	struct SppConfig *sppcfg;
+	struct SppConfig sppcfgdefaults = {123,0,0,0,NULL,NULL};
+	sppcfg = &sppcfgdefaults;
 
 	if (endpointSpec == NULL || sharedLibPath == NULL)
 	{
@@ -92,6 +112,22 @@ int	main(int argc, char *argv[])
 	    putErrmsg("sppclo can not open shared protocol library.",sharedLibPath);
 	    return -1;
 	}
+	openSPPFunctions(sppcfg,funcHandle);
+	/*
+	  apid
+	  seq_count
+	  packet_type
+	  sec_header_flag
+	*/
+
+	parsed_count = sscanf(spacePacketConfigStr,"%d%*[,]%d%*[,]%d%*[,]%d",&apid,&seq_count,&packet_type,&sec_header_flag);
+
+	if (parsed_count != 4 || parsed_count != 0)
+	{
+	    putErrmsg("Space Packet Configuration must be four values in the format %d,%d,%d,%d or omitted.",sharedLibPath);
+	    return -1;
+	}
+	
 	
 	if (ductBPConfig == NULL)
 	{
@@ -128,6 +164,8 @@ int	main(int argc, char *argv[])
 	}
 
 	/*	All command-line arguments are now validated.		*/
+
+	
 
 	//neighbor = NULL;
 	sdr = getIonsdr();
@@ -186,9 +224,14 @@ int	main(int argc, char *argv[])
 		CHKZERO(sdr_begin_xn(sdr));
 		bundleLength = zco_length(sdr, bundleZco);
 		sdr_exit_xn(sdr);
-		/* put sendBundleBySPP here */
+		/* put sendBundleBySPP here */		
+		/*if (sendBundleBySPP() < -1)
+		{
+		    putErrmsg("Unable to sendBundleBySPP",NULL);
+		    return -1;
+		    }*/
 		
-		//sendBundleBySPP(int fd, unsigned int bundleLength,
+		//sendBundleBySPP(bundleLength,sppcfg,bundleZco,buffer);
 		//	Object bundleZco, unsigned char *buffer);
 
 		/* Remove this and add in a function call to mark bundles as abandoned*/
