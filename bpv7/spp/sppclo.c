@@ -73,8 +73,8 @@ int	main(int argc, char *argv[])
 {
 	char			*endpointSpec = (argc > 1 ? argv[1] : NULL);
 	char                    *sharedLibPath = (argc > 2 ? argv[2] : NULL);
-	char                    *spacePacketConfigStr = (argc > 3 ? argv[2] : NULL);
-	char			*ductBPConfig = (argc > 4 ? argv[2] : NULL);
+	char                    *spacePacketConfigStr = (argc > 3 ? argv[3] : NULL);
+	char			*ductBPConfig = (argc > 4 ? argv[4] : NULL);
 #endif
 	unsigned char		*buffer;
 	VOutduct		*vduct;
@@ -103,7 +103,7 @@ int	main(int argc, char *argv[])
 	if (endpointSpec == NULL || sharedLibPath == NULL)
 	{
 	    PUTS("Usage: sppclo {<remote node IPN> | \
-@} {shared library path} [:<BP reliability]");
+@} {shared library path} {space packet config} [:<BP reliability]");
 	    return 0;
 	}
 	
@@ -122,7 +122,7 @@ int	main(int argc, char *argv[])
 
 	parsed_count = sscanf(spacePacketConfigStr,"%d%*[,]%d%*[,]%d%*[,]%d",&apid,&seq_count,&packet_type,&sec_header_flag);
 
-	if (parsed_count != 4 || parsed_count != 0)
+	if (parsed_count != 4 || parsed_count == 0)
 	{
 	    putErrmsg("Space Packet Configuration must be four values in the format %d,%d,%d,%d or omitted.",sharedLibPath);
 	    return -1;
@@ -224,15 +224,12 @@ int	main(int argc, char *argv[])
 		CHKZERO(sdr_begin_xn(sdr));
 		bundleLength = zco_length(sdr, bundleZco);
 		sdr_exit_xn(sdr);
-		/* put sendBundleBySPP here */		
-		/*if (sendBundleBySPP() < -1)
+		/* put sendBundleBySPP here */
+		if (sendBundleBySPP(bundleLength,bundleZco,buffer,sppcfg) < -1)
 		{
 		    putErrmsg("Unable to sendBundleBySPP",NULL);
 		    return -1;
-		    }*/
-		
-		//sendBundleBySPP(bundleLength,sppcfg,bundleZco,buffer);
-		//	Object bundleZco, unsigned char *buffer);
+		}		
 
 		/* Remove this and add in a function call to mark bundles as abandoned*/
 		if (bytesSent < bundleLength)
