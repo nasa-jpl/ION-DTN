@@ -5611,7 +5611,7 @@ static int	loadEids(Bundle *bundle, MetaEid *destMetaEid,
 		putErrmsg("Can't load destination EID.", NULL);
 		return -1;
 	}
-		
+
 	if (sourceMetaEid == NULL)	/*	Anonymous.		*/
 	{
 		sourceMetaEid = &nullMetaEid;
@@ -5973,7 +5973,7 @@ when asking for status reports.");
 
 	sdr_stage(sdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
 
-	/*	Set source primary and payload block CRC type			*/
+	/*	Set source primary and payload block CRC type		*/
 
 	bundle.primaryBlkCrcType = bpdb.sourcePrimaryCrcType;
 	bundle.payload.crcType = bpdb.sourcePayloadCrcType;
@@ -6184,6 +6184,7 @@ void	lookUpEndpoint(EndpointId *eid, VScheme *vscheme, VEndpoint **vpoint)
 	PsmPartition	wm = getIonwm();
 	unsigned int	nssLength;
 	char		nssBuf[MAX_NSS_LEN + 1];
+	char		nbrBuf[FQN_MAX_LENGTH];
 	PsmAddress	elt;
 
 	CHKVOID(eid && vscheme && vpoint);
@@ -6213,13 +6214,15 @@ void	lookUpEndpoint(EndpointId *eid, VScheme *vscheme, VEndpoint **vpoint)
 		break;
 
 	case ipn:
-		isprintf(nssBuf, sizeof nssBuf, UVAST_FIELDSPEC ".%u",
-				eid->ssp.ipn.fqnn, eid->ssp.ipn.serviceNbr);
+		putFqn(nbrBuf, eid->ssp.ipn.fqnn);
+		isprintf(nssBuf, sizeof nssBuf, "%s.%u", nbrBuf,
+				eid->ssp.ipn.serviceNbr);
 		break;
 
 	case imc:
-		isprintf(nssBuf, sizeof nssBuf, UVAST_FIELDSPEC ".%u",
-				eid->ssp.imc.fqgn, eid->ssp.imc.serviceNbr);
+		putFqn(nbrBuf, eid->ssp.imc.fqgn);
+		isprintf(nssBuf, sizeof nssBuf, "%s.%u", nbrBuf,
+				eid->ssp.imc.serviceNbr);
 		break;
 
 	default:
@@ -7157,7 +7160,7 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 	int		additionalInfo;
 	char		eidString[300];
 	uvast		sspLen;
-	unsigned long	allocatorNbr;
+	unsigned long	allocatorNbr = 0;
 	unsigned long	nodeNbr = 0;
 	uvast		fqnn = 0;
 	unsigned long	serviceNbr;
@@ -7271,7 +7274,7 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 		{
 			/*	Acquire allocator number.		*/
 
-			length = cbor_decode_integer(&allocatorNbr, CborAny,
+			length = cbor_decode_integer(&uvtemp, CborAny,
 					cursor, bytesRemaining);
 			if (length < 1)
 			{
@@ -7378,7 +7381,7 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 		{
 			/*	Acquire allocator number.		*/
 
-			length = cbor_decode_integer(&allocatorNbr, CborAny,
+			length = cbor_decode_integer(&uvtemp, CborAny,
 					cursor, bytesRemaining);
 			if (length < 1)
 			{

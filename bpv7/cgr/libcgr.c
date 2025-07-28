@@ -961,6 +961,7 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 			PsmAddress rootOfSpur, CgrRtgObject *routingObj,
 			CgrTrace *trace)
 {
+//	char		nbrBuf[FQN_MAX_LENGTH];
 	PsmAddress	rootOfSpurAddr;
 	PsmAddress	excludedEdges;
 	PsmAddress	contactElt;
@@ -1019,7 +1020,7 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 
 			work->arrivalTime = contact->fromTime + owlt;
 			work->suppressed = 1;
-//debugPrint("*** Suppressing contact to node " UVAST_FIELDSPEC " on root path. ***\n", contact->toFqnn);
+//putFqn(nbrBuf, contact->toFqnn); debugPrint("*** Suppressing contact to node %s on root path. ***\n", nbrBuf);
 			contactElt = sm_list_prev(ionwm, contactElt);
 		}
 	}
@@ -1084,7 +1085,7 @@ excluded edge.", NULL);
 						}
 
 //contact = (IonCXref *) psp(ionwm, contactAddr);
-//printf("*** Suppressing contact to node " UVAST_FIELDSPEC " after end of root path. ***\n", contact->toFqnn);
+//putFqn(nbrBuf, contact->toFqnn); printf("*** Suppressing contact to node %s after end of root path. ***\n", nbrBuf);
 					}
 				}
 
@@ -1730,6 +1731,7 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	wm = getIonwm();
+	char		nbrBuf[FQN_MAX_LENGTH];
 	char		eid[SDRSTRING_BUFSZ];
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
@@ -1739,8 +1741,8 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 	LystElt		candidateElt;
 	CgrRoute	*candidateRoute;
 
-	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0",
-			route->toFqnn);
+	putFqn(nbrBuf, route->toFqnn);
+	isprintf(eid, sizeof eid, "ipn:%s.0", nbrBuf);
 	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)
 	{

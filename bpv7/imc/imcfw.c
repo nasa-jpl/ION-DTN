@@ -319,6 +319,7 @@ static uvast	getViaNode(Bundle *bundle, uvast destinationFqnn)
 	IonNode		*node;
 	PsmAddress	nextNode;
 	uvast		viaFqnn;
+	char		nbrBuf[FQN_MAX_LENGTH];
 	char		eid[MAX_EID_LEN + 1];
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
@@ -346,8 +347,8 @@ static uvast	getViaNode(Bundle *bundle, uvast destinationFqnn)
 	 *	is a neighbor (not identified in the contact plan);
 	 *	if so, direct transmission works.			*/
 
-	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0",
-			destinationFqnn);
+	putFqn(nbrBuf, destinationFqnn);
+	isprintf(eid, sizeof eid, "ipn:%s.0", nbrBuf);
 	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)
 	{
@@ -445,11 +446,13 @@ static int	addNodeToGang(Lyst gangs, uvast viaNode, uvast fqnn)
 
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj, uvast fqnn)
 {
+	char		nbrBuf[FQN_MAX_LENGTH];
 	char		eid[MAX_EID_LEN + 1];
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 
-	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", fqnn);
+	putFqn(nbrBuf, fqnn);
+	isprintf(eid, sizeof eid, "ipn:%s.0", nbrBuf);
 #if IMCDEBUG
 printf("Preparing to send to neighbor '%s'.\n", eid);
 #endif

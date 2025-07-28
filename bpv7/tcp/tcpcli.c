@@ -1185,6 +1185,7 @@ static int	sendContactHeader(TcpclSession *session)
 	char	contactHeader[11 + MAX_EID_LEN];
 	int	flagsByte;
 	short	keepaliveInterval;
+	char	nbrBuf[FQN_MAX_LENGTH];
 	char	eid[MAX_EID_LEN];
 	size_t	eidLength;
 	Sdnv	eidLengthSdnv;
@@ -1204,7 +1205,8 @@ static int	sendContactHeader(TcpclSession *session)
 	keepaliveInterval = htons(keepaliveInterval);
 	memcpy(contactHeader + len, (char *) &keepaliveInterval, 2);
 	len += 2;
-	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", getOwnFqnn());
+	putFqn(nbrBuf, getOwnFqnn());
+	isprintf(eid, sizeof eid, "ipn:%s.0", nbrBuf);
 	eidLength = istrlen(eid, MAX_EID_LEN);
 	encodeSdnv(&eidLengthSdnv, eidLength);
 	memcpy(contactHeader + len, eidLengthSdnv.text, eidLengthSdnv.length);

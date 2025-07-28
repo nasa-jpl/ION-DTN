@@ -227,6 +227,13 @@ declaration.  A range command in which the node number of the first
 cited node is numerically greater than that of the second cited node
 implies B<ABSOLUTELY NOTHING> about the distance in the reverse direction.
 
+B<NOTE> (this is really important): the enhanced ipn endpoint ID scheme
+is supported in the range commands.  This may result in behavior that is
+not necessarily intuitive to anyone who is used to the original ipn scheme:
+the node identifier "1.1" is numerically much greater than the node identifier
+"638", so the range from node 1.1 to node 638 says absolutely nothing about
+the range from 638 to 1.1.
+
 =item B<d range> I<start_time> I<one_node> I<the_other_node>
 
 The B<delete range> command.  This command deletes the predicted period of

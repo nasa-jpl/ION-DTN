@@ -192,6 +192,7 @@ static void	terminateReceiverThread(ReceiverThreadParms *parms)
 static int	startSendingThread(ReceiverThreadParms *rtp)
 {
 	PsmAddress	vductElt;
+	char		nbrBuf[FQN_MAX_LENGTH];
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 
@@ -216,8 +217,8 @@ static int	startSendingThread(ReceiverThreadParms *rtp)
 
 	/*	Attach automatic Outduct to egress plan.		*/
 
-	isprintf(rtp->stp.eid, sizeof rtp->stp.eid,
-			"ipn:" UVAST_FIELDSPEC ".0", rtp->fqnn);
+	putFqn(nbrBuf, rtp->fqnn);
+	isprintf(rtp->stp.eid, sizeof rtp->stp.eid, "ipn:%s.0", nbrBuf);
 	findPlan(rtp->stp.eid, &vplan, &vplanElt);
 	if (vplanElt == 0)	/*	Client initial connection.	*/
 	{

@@ -109,7 +109,7 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 	else
 	{
 		isprintf(progressText, sizeof progressText, "[i] bpsendfile \
-is sending '%s', size %d.", fileName, aduLength);
+is sending '%s', size %d, to %s.", fileName, aduLength, destEid);
 		writeMemo(progressText);
 		if (bp_send(sap, destEid, NULL, ttl, priority, custodySwitch,
 			0, 0, &ancillaryData, bundleZco, &newBundle) <= 0)

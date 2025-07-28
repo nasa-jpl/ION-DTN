@@ -700,9 +700,12 @@ int	main(int argc, char *argv[])
 		{
 #if defined (EWCHAR)
 			char ewchar[256];
+			char nbrBuf[FQN_MAX_LENGTH];
 			/* spec is for 64 bit, non-Window */
-			isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)c",bundle.id.source.ssp.ipn.fqnn, 
-		     bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.count);
+			putFqn(nbrBuf, bundle.id.source.ssp.ipn.fqnn);
+			isprintf(ewchar,sizeof(ewchar),"(%s,%lu,%u)c",nbrBuf,
+				bundle.id.source.ssp.ipn.serviceNbr,
+				bundle.id.creationTime.count);
 			iwatch_str(ewchar);
 #else
 			iwatch('c');

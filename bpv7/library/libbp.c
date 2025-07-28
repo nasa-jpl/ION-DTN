@@ -680,8 +680,7 @@ static void	readIpnEid(IpnSSP *ssp, char **buffer)
 {
 	char		*eidString;
 	int		eidLength = 47;
-	unsigned long	allocatorNbr;
-	unsigned long	nodeNbr;
+	char		nbrBuf[FQN_MAX_LENGTH];
 
 	/*	Printed EID string is
 	 *
@@ -708,19 +707,9 @@ static void	readIpnEid(IpnSSP *ssp, char **buffer)
 	}
 	else
 	{
-		allocatorNbr = (ssp->fqnn) >> 32 & 0xffffffff;
-		if (allocatorNbr > 0)
-		{
-			nodeNbr = ssp->fqnn & 0xffffffff;
-			isprintf(eidString, eidLength, "ipn:%lu.%lu.%lu",
-				allocatorNbr, nodeNbr, ssp->serviceNbr);
-		}
-		else
-		{
-			isprintf(eidString, eidLength,
-				"ipn:" UVAST_FIELDSPEC ".%lu", ssp->fqnn,
+		putFqn(nbrBuf, ssp->fqnn);
+		isprintf(eidString, eidLength, "ipn:%s.%lu", nbrBuf,
 				ssp->serviceNbr);
-		}
 	}
 
 	*buffer = eidString;
@@ -730,8 +719,7 @@ static void	readImcEid(ImcSSP *ssp, char **buffer)
 {
 	char		*eidString;
 	int		eidLength = 47;
-	unsigned long	allocatorNbr;
-	unsigned long	groupNbr;
+	char		nbrBuf[FQN_MAX_LENGTH];
 
 	/*	Printed EID string is
 	 *
@@ -752,20 +740,9 @@ static void	readImcEid(ImcSSP *ssp, char **buffer)
 		return;
 	}
 
-	allocatorNbr = (ssp->fqgn) >> 32 & 0xffffffff;
-	if (allocatorNbr > 0)
-	{
-		groupNbr = ssp->fqgn & 0xffffffff;
-		isprintf(eidString, eidLength, "ipn:%lu.%lu.%lu",
-			allocatorNbr, groupNbr, ssp->serviceNbr);
-	}
-	else
-	{
-		isprintf(eidString, eidLength,
-			"imc:" UVAST_FIELDSPEC ".%lu", ssp->fqgn,
+	putFqn(nbrBuf, ssp->fqgn);
+	isprintf(eidString, eidLength, "ipn:%s.%lu", nbrBuf,
 			ssp->serviceNbr);
-	}
-
 	*buffer = eidString;
 }
 
