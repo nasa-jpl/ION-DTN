@@ -64,17 +64,13 @@ static int openSPPFunctions(struct SppConfig* sppconfig,void *handle)
 int	sppclo(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-	char			*endpointSpec = (char *) a1;
-	char                    *sharedLibPath = (char *) a2;
-	char                    *spacePacketConfigStr = (char *)a2;
-	char			*ductBPConfig = (char *) a3;
+    //char                    *endpointSpec = (char *)a1;
+	char                    *sppCLAConfigStr = (char *)a1;
 #else
 int	main(int argc, char *argv[])
 {
-	char			*endpointSpec = (argc > 1 ? argv[1] : NULL);
-	char                    *sharedLibPath = (argc > 2 ? argv[2] : NULL);
-	char                    *spacePacketConfigStr = (argc > 3 ? argv[3] : NULL);
-	char			*ductBPConfig = (argc > 4 ? argv[4] : NULL);
+    //char                    *endpointSpec = (argc > 1 ? argv[1] : NULL);
+	char                    *sppCLAConfigStr = (argc > 1 ? argv[1] : NULL);
 #endif
 	unsigned char		*buffer;
 	VOutduct		*vduct;
@@ -91,20 +87,52 @@ int	main(int argc, char *argv[])
 	unsigned int		bundleLength;
 	int			bytesSent = 0;
 	void                    *funcHandle = NULL;
-	int                     parsed_count;
+	int                     parsed_count = 0;
 	int                     apid = 123;
 	int                     seq_count = 0;
 	int                     packet_type = 0;
 	int                     sec_header_flag = 0;
+	char                    *spacePacketConfigStr = NULL;
+        char                    *endpointSpec = NULL;
+	char                    *sharedLibPath = NULL;
+	char                    *ductBPConfig = NULL;
+	const char              *delim = ";";
+	char                    *tok = NULL;
 	struct SppConfig *sppcfg;
 	struct SppConfig sppcfgdefaults = {123,0,0,0,NULL,NULL};
 	sppcfg = &sppcfgdefaults;
 
-	if (endpointSpec == NULL || sharedLibPath == NULL)
+	if (sppCLAConfigStr == NULL)
 	{
 	    PUTS("Usage: sppclo {<remote node IPN> | \
-@} {shared library path} {space packet config} [:<BP reliability]");
+@};{shared library path};{space packet config};[:<BP reliability]");
 	    return 0;
+	}
+	tok = strtok(sppCLAConfigStr,delim);
+	while (tok != NULL) {
+	    parsed_count++;
+	    switch (parsed_count)
+	    {
+	    case 1:
+		endpointSpec = tok;
+		break;
+	    case 2:
+		sharedLibPath = tok;
+		break;
+	    case 3:
+		spacePacketConfigStr = tok;
+		break;
+	    case 4:
+		ductBPConfig = tok;
+		break;
+	    }
+	    tok = strtok(NULL,delim);
+	}
+	
+	if (parsed_count != 3 && parsed_count != 4)
+	{
+	    putErrmsg("Space Packet CLA Configuration must be 3 strings of end point, shared library path, space packet configuration and optionally BP reliability.",sharedLibPath);
+	    return -1;
 	}
 	
 	if (openSharedLibrary(sharedLibPath, funcHandle) == -1)
@@ -126,8 +154,7 @@ int	main(int argc, char *argv[])
 	{
 	    putErrmsg("Space Packet Configuration must be four values in the format %d,%d,%d,%d or omitted.",sharedLibPath);
 	    return -1;
-	}
-	
+	}	
 	
 	if (ductBPConfig == NULL)
 	{
