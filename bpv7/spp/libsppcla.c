@@ -13,19 +13,24 @@
 
 /*	*	*	Sender functions	*	*	*	*/
 
-int	sendBytesBySPP(int fd, char *from, int length)
+int	sendBytesBySPP(int length,unsigned char *buffer, struct SppConfig *sppcfg)
 {
     int	bytesWritten = 0;
+
+    bytesWritten = sppcfg->packet_request((char*)buffer,sppcfg->apid,
+					  sppcfg->seq_count,sppcfg->packet_type,sppcfg->sec_header_flag);
+    
+    
     return bytesWritten;
 }
 
-int	sendBundleBySPP(int fd, unsigned int bundleLength,
-			Object bundleZco, unsigned char *buffer)
+int	sendBundleBySPP(unsigned int bundleLength, Object bundleZco, 
+			unsigned char *buffer, struct SppConfig *sppcfg)
 {
     Sdr		sdr;
     ZcoReader	reader;
     int		bytesToSend;
-    int		bytesSent;
+    int		bytesSent = 0;
 
     if (bundleLength > SPPCLA_BUFSZ)
     {
@@ -46,7 +51,7 @@ int	sendBundleBySPP(int fd, unsigned int bundleLength,
 	return -1;
     }
 
-    bytesSent = sendBytesBySPP(fd, (char *) buffer, bytesToSend);
+    bytesSent = sendBytesBySPP(bundleLength ,buffer, sppcfg);
 
     if (bytesSent < 0)
     {

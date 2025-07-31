@@ -29,24 +29,22 @@ static void	shutDownClo(int signum)
 	sm_SemEnd(sppcloSemaphore(NULL));
 }
 
-static int openSharedLibrary(char* sharedLibPath, void* handle)
-{
-    handle = dlopen(sharedLibPath, RTLD_LAZY);
-    if (!handle)
-    {
-	putErrmsg("Error opening dlopen.", dlerror());
-	return -1;
-    }
-    return 0;
-}
 
 static int openSPPFunctions(struct SppConfig* sppconfig,void *handle)
 {
 
-    // load two functions, one to build space packet and  packet request
-    // any configuration will be handled by service provider
-    sppconfig->build_space_packet = (build_space_packet_ptr)dlsym(handle,"build_space_packet");
-    sppconfig->packet_request = (packet_request_ptr)dlsym(handle,"packet_request");
+    char *error = NULL;
+
+    dlerror();
+
+    *(void **)(&sppconfig->packet_request) = dlsym(handle,"packet_request");
+    if ((error = dlerror()) != NULL && handle != NULL)
+    {
+	fprintf(stderr, "%s\n", error);
+	dlclose(handle);
+	return -1;
+    }
+
     return 0;
 }
 
@@ -64,13 +62,13 @@ static int openSPPFunctions(struct SppConfig* sppconfig,void *handle)
 int	sppclo(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-    //char                    *endpointSpec = (char *)a1;
-	char                    *sppCLAConfigStr = (char *)a1;
+    char                    *endpointSpec = (char *)a1;
+    char                    *sppCLAConfigStr = (char *)a1;
 #else
 int	main(int argc, char *argv[])
 {
-    //char                    *endpointSpec = (argc > 1 ? argv[1] : NULL);
-	char                    *sppCLAConfigStr = (argc > 1 ? argv[1] : NULL);
+    char                    *endpointSpec = (argc > 1 ? argv[1] : NULL);
+    char                    *sppCLAConfigStr = (argc > 2 ? argv[2] : NULL);
 #endif
 	unsigned char		*buffer;
 	VOutduct		*vduct;
@@ -93,7 +91,7 @@ int	main(int argc, char *argv[])
 	int                     packet_type = 0;
 	int                     sec_header_flag = 0;
 	char                    *spacePacketConfigStr = NULL;
-        char                    *endpointSpec = NULL;
+//        char                    *endpointSpec = NULL;
 	char                    *sharedLibPath = NULL;
 	char                    *ductBPConfig = NULL;
 	const char              *delim = ";";
@@ -113,33 +111,38 @@ int	main(int argc, char *argv[])
 	    parsed_count++;
 	    switch (parsed_count)
 	    {
+
 	    case 1:
-		endpointSpec = tok;
-		break;
-	    case 2:
 		sharedLibPath = tok;
 		break;
-	    case 3:
+	    case 2:
 		spacePacketConfigStr = tok;
 		break;
-	    case 4:
+	    case 3:
 		ductBPConfig = tok;
 		break;
 	    }
 	    tok = strtok(NULL,delim);
 	}
+
+	if (sharedLibPath != NULL && spacePacketConfigStr != NULL)
+	    printf("using shared library %s %s\n",sharedLibPath,spacePacketConfigStr);
+
 	
-	if (parsed_count != 3 && parsed_count != 4)
+	if (parsed_count != 2 && parsed_count != 3)
 	{
-	    putErrmsg("Space Packet CLA Configuration must be 3 strings of end point, shared library path, space packet configuration and optionally BP reliability.",sharedLibPath);
+	    putErrmsg("Space Packet CLA Configuration must be 2 strings of end point, shared library path, space packet configuration and optionally BP reliability.",sharedLibPath);
 	    return -1;
 	}
-	
-	if (openSharedLibrary(sharedLibPath, funcHandle) == -1)
+
+	funcHandle = dlopen(sharedLibPath, RTLD_NOW);
+
+	if (funcHandle == NULL)
 	{
 	    putErrmsg("sppclo can not open shared protocol library.",sharedLibPath);
 	    return -1;
 	}
+
 	openSPPFunctions(sppcfg,funcHandle);
 	/*
 	  apid
@@ -154,7 +157,7 @@ int	main(int argc, char *argv[])
 	{
 	    putErrmsg("Space Packet Configuration must be four values in the format %d,%d,%d,%d or omitted.",sharedLibPath);
 	    return -1;
-	}	
+	}
 	
 	if (ductBPConfig == NULL)
 	{
@@ -175,6 +178,7 @@ int	main(int argc, char *argv[])
 	}
 
 	findOutduct("spp", endpointSpec, &vduct, &vductElt);
+
 	if (vductElt == 0)
 	{
 	    putErrmsg("No such spp duct.",endpointSpec);
@@ -252,11 +256,20 @@ int	main(int argc, char *argv[])
 		bundleLength = zco_length(sdr, bundleZco);
 		sdr_exit_xn(sdr);
 		/* put sendBundleBySPP here */
+		{
+		    char	memoBuf[1024];
+
+		    isprintf(memoBuf, sizeof(memoBuf),
+			     "[i] sending bundle or trying to sppclo",
+			     endpointSpec);
+		    writeMemo(memoBuf);
+		}
+
 		if (sendBundleBySPP(bundleLength,bundleZco,buffer,sppcfg) < -1)
 		{
 		    putErrmsg("Unable to sendBundleBySPP",NULL);
 		    return -1;
-		}		
+		}
 
 		/* Remove this and add in a function call to mark bundles as abandoned*/
 		if (bytesSent < bundleLength)
@@ -272,7 +285,10 @@ int	main(int argc, char *argv[])
 
 		sm_TaskYield();
 	}
-
+	if (funcHandle != NULL)
+	{
+	    dlclose(funcHandle);
+	}
 	writeErrmsgMemos();
 	writeMemo("[i] sppclo duct has ended.");
 	MRELEASE(buffer);
