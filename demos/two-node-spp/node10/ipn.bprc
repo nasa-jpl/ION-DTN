@@ -40,18 +40,20 @@ a endpoint ipn:10.65 x
 # for payload, and 100 bytes for overhead.
 a protocol spp 1400 100
 
+
+# Replace path_to_spp_library with your path to a shared library which conforms to the function parameters.
 #-----------------------------------------------------------------
 # Add inducts.
-a induct spp 12 {sppcli 12 /ion_tests/SPPtests/SPP-UCP/build/libspp_protocol.so}
+a induct spp 12 {sppcli 12 /path_to_spp_library/libspp_protocol.so}
 
 #-----------------------------------------------------------------
 # Add outducts.
 
 # Node10 -> Node10 (LOOPBACK)
-a outduct spp 10 {sppclo 10 /ion_tests/SPPtests/SPP-UCP/build/libspp_protocol.so 123,0,0,0}
+a outduct spp 10 {sppclo 10 /path_to_spp_library/libspp_protocol.so 123,0,0,0}
 
 # Node10 -> Node12
-a outduct spp 12 {sppclo 12 /ion_tests/SPPtests/SPP-UCP/build/libspp_protocol.so 123,0,0,0}
+a outduct spp 12 {sppclo 12 /path_to_spp_library/libspp_protocol.so 123,0,0,0}
 
 #-----------------------------------------------------------------
 # Load egress plan.
