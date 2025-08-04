@@ -1,0 +1,67 @@
+#-----------------------------------------------------------------
+# Initialization command (command 1).
+1
+
+#-----------------------------------------------------------------
+# Add an EID scheme. Note use of 'bssfw' in place of 'ipnfw'
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+#-----------------------------------------------------------------
+# Add endpoints.
+a endpoint ipn:10.0 x
+a endpoint ipn:10.1 x
+a endpoint ipn:10.2 x
+a endpoint ipn:10.3 x
+a endpoint ipn:10.4 x
+a endpoint ipn:10.5 x
+a endpoint ipn:10.6 x
+a endpoint ipn:10.7 x
+a endpoint ipn:10.8 x
+a endpoint ipn:10.9 x
+a endpoint ipn:10.10 x
+a endpoint ipn:10.11 x
+a endpoint ipn:10.12 x
+a endpoint ipn:10.13 x
+a endpoint ipn:10.14 x
+a endpoint ipn:10.15 x
+a endpoint ipn:10.16 x
+a endpoint ipn:10.17 x
+a endpoint ipn:10.18 x
+a endpoint ipn:10.19 x
+a endpoint ipn:10.20 x
+
+# Add endpoints for CFDP: ipn:x.64 and ipn:x.65
+a endpoint ipn:10.64 x
+a endpoint ipn:10.65 x
+
+#-----------------------------------------------------------------
+# Add a protocol for external nodes.
+# Estimate transmission capacity assuming 1400 bytes of each frame 
+# for payload, and 100 bytes for overhead.
+a protocol spp 1400 100
+
+#-----------------------------------------------------------------
+# Add inducts.
+a induct spp 12 {sppcli 12 /ion_tests/SPPtests/SPP-UCP/build/libspp_protocol.so}
+
+#-----------------------------------------------------------------
+# Add outducts.
+
+# Node10 -> Node10 (LOOPBACK)
+a outduct spp 10 {sppclo 10 /ion_tests/SPPtests/SPP-UCP/build/libspp_protocol.so 123,0,0,0}
+
+# Node10 -> Node12
+a outduct spp 12 {sppclo 12 /ion_tests/SPPtests/SPP-UCP/build/libspp_protocol.so 123,0,0,0}
+
+#-----------------------------------------------------------------
+# Load egress plan.
+r 'ipnadmin ipn.ipnrc'
+
+#-----------------------------------------------------------------
+# Select level of BP watch activities
+# 0 = None; 1 = All
+w 1
+
+#-----------------------------------------------------------------
+# Start all declared schemes and protocols on the local node
+s
