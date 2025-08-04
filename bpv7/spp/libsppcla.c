@@ -13,13 +13,14 @@
 
 /*	*	*	Sender functions	*	*	*	*/
 
-int	sendBytesBySPP(int length,unsigned char *buffer, struct SppConfig *sppcfg)
+int	sendBytesBySPP(int length,unsigned char *buffer, struct SppConfig *sppcfg, size_t toSendBytes)
 {
-    int	bytesWritten = 0;
-
-    bytesWritten = sppcfg->packet_request((char*)buffer,sppcfg->apid,
-					  sppcfg->seq_count,sppcfg->packet_type,sppcfg->sec_header_flag);
+    size_t  bytesWritten = 0;
+    size_t  sppheadersize = 6;
     
+    toSendBytes+=sppheadersize;
+    bytesWritten = sppcfg->packet_request(buffer,sppcfg->apid,
+					  sppcfg->seq_count,sppcfg->packet_type,sppcfg->sec_header_flag,toSendBytes);
     
     return bytesWritten;
 }
@@ -31,6 +32,7 @@ int	sendBundleBySPP(unsigned int bundleLength, Object bundleZco,
     ZcoReader	reader;
     int		bytesToSend;
     int		bytesSent = 0;
+    int         sppHeaderBytes = 6;
 
     if (bundleLength > SPPCLA_BUFSZ)
     {
@@ -45,14 +47,16 @@ int	sendBundleBySPP(unsigned int bundleLength, Object bundleZco,
     zco_track_file_offset(&reader);
     CHKERR(sdr_begin_xn(sdr));
     bytesToSend = zco_transmit(sdr, &reader, SPPCLA_BUFSZ, (char *) buffer);
+
     if (sdr_end_xn(sdr) < 0 || bytesToSend < 0)
     {
 	putErrmsg("Can't issue from ZCO.", NULL);
 	return -1;
     }
-
-    bytesSent = sendBytesBySPP(bundleLength ,buffer, sppcfg);
-
+    
+    bytesSent = sendBytesBySPP(bundleLength ,buffer, sppcfg,(size_t)bytesToSend);
+    bytesSent -= sppHeaderBytes;
+	
     if (bytesSent < 0)
     {
 	if (bpHandleXmitFailure(bundleZco) < 0)
@@ -71,18 +75,4 @@ int	sendBundleBySPP(unsigned int bundleLength, Object bundleZco,
     }
     
     return bytesSent;
-}
-
-/*	*	*	Receiver functions	*	*	*	*/
-
-int	receiveBytesBySPP(int fd, char *into, int length)
-{
-    	int		bytesRead = 0;
-
-	bytesRead = read(fd, into, length);
-
-	// Actually here have to add the functions to de-packet from the space packets
-	// space packets will be read into "into" buffer
-
-	return bytesRead;
 }

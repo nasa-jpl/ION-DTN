@@ -24,7 +24,7 @@
 //}
 
 /*	*	*	Main thread functions	*	*	*	*/
-typedef char (*packet_recv_ptr)(char*,int);
+typedef size_t (*packet_recv_ptr)(char*,int);
 
 typedef struct
 {
@@ -48,7 +48,7 @@ static void	*handleSpacePackets(void *parm)
 	char			*procName = "sppcli";
 	AcqWorkArea		*work;
 	char			*buffer = NULL;
-	int                     bundleLength;
+	size_t                     bundleLength;
 
 	snooze(1);	/*	Let main thread become interruptible.	*/
 	work = bpGetAcqArea(rtp->vduct);
@@ -70,9 +70,7 @@ static void	*handleSpacePackets(void *parm)
 
 	while (rtp->running)
 	{
-	    printf("Got bundle now recv via spp\n");
-	    bundleLength = rtp->packet_indication(buffer,rtp->apid);
-
+	    bundleLength = (size_t)rtp->packet_indication(buffer,rtp->apid);
 	    switch (bundleLength)
 	    {
 	    case -1:
@@ -233,19 +231,13 @@ int	main(int argc, char *argv[])
 	isignal(SIGTERM, interruptThread);
 
 	/*	Start the receiver thread.				*/
-
-
-	printf("Starting spp cli threads\n");
 	rtp.running = 1;
-	// Replace this with receiving function
+	
 	if (pthread_begin(&receiverThread, NULL, handleSpacePackets, &rtp))
 	{
 		putSysErrmsg("sppcli can't create receiver thread", NULL);
 		return -1;
 	}
-
-	/*	Now sleep until interrupted by SIGTERM, at which point
-	 *	it's time to stop the induct.				*/
 
 	{
 		char	txt[500];

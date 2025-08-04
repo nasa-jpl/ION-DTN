@@ -68,7 +68,9 @@ int	sppclo(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 int	main(int argc, char *argv[])
 {
     char                    *endpointSpec = (argc > 1 ? argv[1] : NULL);
-    char                    *sppCLAConfigStr = (argc > 2 ? argv[2] : NULL);
+    char                    *sharedLibPath = (argc > 2 ? argv[2] : NULL);
+    char                    *spacePacketConfigStr = (argc > 3 ? argv[3] : NULL);
+    char                    *ductBPConfig = (argc > 4 ? argv[4] : NULL);
 #endif
 	unsigned char		*buffer;
 	VOutduct		*vduct;
@@ -78,8 +80,6 @@ int	main(int argc, char *argv[])
 	Object			planDuctList;
 	Object			planObj = 0;
 	BpPlan			plan;
-	//IonNeighbor		*neighbor = NULL;
-	//PsmAddress		nextElt;
 	Object			bundleZco;
 	BpAncillaryData		ancillaryData;
 	unsigned int		bundleLength;
@@ -90,50 +90,12 @@ int	main(int argc, char *argv[])
 	int                     seq_count = 0;
 	int                     packet_type = 0;
 	int                     sec_header_flag = 0;
-	char                    *spacePacketConfigStr = NULL;
-//        char                    *endpointSpec = NULL;
-	char                    *sharedLibPath = NULL;
-	char                    *ductBPConfig = NULL;
-	const char              *delim = ";";
-	char                    *tok = NULL;
 	struct SppConfig *sppcfg;
-	struct SppConfig sppcfgdefaults = {123,0,0,0,NULL,NULL};
+	struct SppConfig sppcfgdefaults = {123,0,0,0,NULL};
 	sppcfg = &sppcfgdefaults;
 
-	if (sppCLAConfigStr == NULL)
-	{
-	    PUTS("Usage: sppclo {<remote node IPN> | \
-@};{shared library path};{space packet config};[:<BP reliability]");
-	    return 0;
-	}
-	tok = strtok(sppCLAConfigStr,delim);
-	while (tok != NULL) {
-	    parsed_count++;
-	    switch (parsed_count)
-	    {
-
-	    case 1:
-		sharedLibPath = tok;
-		break;
-	    case 2:
-		spacePacketConfigStr = tok;
-		break;
-	    case 3:
-		ductBPConfig = tok;
-		break;
-	    }
-	    tok = strtok(NULL,delim);
-	}
-
 	if (sharedLibPath != NULL && spacePacketConfigStr != NULL)
-	    printf("using shared library %s %s\n",sharedLibPath,spacePacketConfigStr);
-
-	
-	if (parsed_count != 2 && parsed_count != 3)
-	{
-	    putErrmsg("Space Packet CLA Configuration must be 2 strings of end point, shared library path, space packet configuration and optionally BP reliability.",sharedLibPath);
-	    return -1;
-	}
+	    printf("using shared library %s %s\n",sharedLibPath,spacePacketConfigStr);	
 
 	funcHandle = dlopen(sharedLibPath, RTLD_NOW);
 
@@ -158,6 +120,11 @@ int	main(int argc, char *argv[])
 	    putErrmsg("Space Packet Configuration must be four values in the format %d,%d,%d,%d or omitted.",sharedLibPath);
 	    return -1;
 	}
+
+	sppcfg->apid = apid;
+	sppcfg->seq_count = seq_count;
+	sppcfg->sec_header_flag = sec_header_flag;
+	sppcfg->packet_type = packet_type;
 	
 	if (ductBPConfig == NULL)
 	{
@@ -197,8 +164,6 @@ int	main(int argc, char *argv[])
 	/*	All command-line arguments are now validated.		*/
 
 	
-
-	//neighbor = NULL;
 	sdr = getIonsdr();
 	CHKZERO(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr, vduct->outductElt),
@@ -265,10 +230,10 @@ int	main(int argc, char *argv[])
 		    writeMemo(memoBuf);
 		}
 
-		if (sendBundleBySPP(bundleLength,bundleZco,buffer,sppcfg) < -1)
+		if ((bytesSent = sendBundleBySPP(bundleLength,bundleZco,buffer,sppcfg)) < -1)
 		{
 		    putErrmsg("Unable to sendBundleBySPP",NULL);
-		    return -1;
+		    continue;
 		}
 
 		/* Remove this and add in a function call to mark bundles as abandoned*/
@@ -277,8 +242,6 @@ int	main(int argc, char *argv[])
 			sm_SemEnd(sppcloSemaphore(NULL));/*	Stop.	*/
 			continue;
 		}
-
-		/* Take out rate control for now... */
 
 
 		/*	Make sure other tasks have a chance to run.	*/
