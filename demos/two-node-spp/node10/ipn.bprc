@@ -36,9 +36,9 @@ a endpoint ipn:10.65 x
 
 #-----------------------------------------------------------------
 # Add a protocol for external nodes.
-# Estimate transmission capacity assuming 1400 bytes of each frame 
-# for payload, and 100 bytes for overhead.
-a protocol spp 1400 100
+# The user needs to signal to BP how the underlying space packet protocol layer is transferrred. If it is reliable it is 8, if it is unreliable it can be left blank. i.e. for reliable:
+# a protocol spp 82
+a protocol spp
 
 
 # Replace path_to_spp_library with your path to a shared library which conforms to the function parameters.
