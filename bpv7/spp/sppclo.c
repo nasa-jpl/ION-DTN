@@ -70,7 +70,6 @@ int	main(int argc, char *argv[])
     char                    *endpointSpec = (argc > 1 ? argv[1] : NULL);
     char                    *sharedLibPath = (argc > 2 ? argv[2] : NULL);
     char                    *spacePacketConfigStr = (argc > 3 ? argv[3] : NULL);
-    char                    *ductBPConfig = (argc > 4 ? argv[4] : NULL);
 #endif
 	unsigned char		*buffer;
 	VOutduct		*vduct;
@@ -125,11 +124,6 @@ int	main(int argc, char *argv[])
 	sppcfg->seq_count = seq_count;
 	sppcfg->sec_header_flag = sec_header_flag;
 	sppcfg->packet_type = packet_type;
-	
-	if (ductBPConfig == NULL)
-	{
-	    ancillaryData.flags |= BP_BEST_EFFORT;
-	}
 
 	if (bpAttach() < 0)
 	{
