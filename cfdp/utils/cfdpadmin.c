@@ -160,7 +160,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 
 		CHKVOID(sdr_begin_xn(sdr));
-		entityNbr = strtouvast(tokens[2]);
+		entityNbr = getFqn(tokens[2]);
 		oK(addEntity(entityNbr, tokens[3], tokens[4],
 				strtol(tokens[5], NULL, 0),
 				strtol(tokens[6], NULL, 0),
@@ -192,7 +192,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		}
 
 		CHKVOID(sdr_begin_xn(sdr));
-		entityNbr = strtouvast(tokens[2]);
+		entityNbr = getFqn(tokens[2]);
 		oK(changeEntity(entityNbr, tokens[3], tokens[4],
 				strtol(tokens[5], NULL, 0),
 				strtol(tokens[6], NULL, 0),
@@ -224,7 +224,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 
 		CHKVOID(sdr_begin_xn(sdr));
-		entityNbr = strtouvast(tokens[2]);
+		entityNbr = getFqn(tokens[2]);
 		oK(removeEntity(entityNbr));
 		oK(sdr_end_xn(sdr));
 		return;
@@ -253,9 +253,9 @@ static void	printEntity(Entity *entity)
 		break;
 
 	case  UtLtp:
-		isprintf(buffer, sizeof buffer,
-				"\tLTP engine number " UVAST_FIELDSPEC,
-				entity->ltpEngineNbr);
+		putFqn(nbrBuf, entity->ltpEngineNbr);
+		isprintf(buffer, sizeof buffer, "\tLTP engine number %s",
+				nbrBuf);
 		printText(buffer);
 		break;
 
@@ -284,7 +284,7 @@ static void	infoEntity(int tokenCount, char **tokens)
 		return;
 	}
 
-	entityNbr = strtouvast(tokens[2]);
+	entityNbr = getFqn(tokens[2]);
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	if (findEntity(entityNbr, &entity) == 0)
 	{

@@ -283,25 +283,25 @@ int	dccplso(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char	*endpointSpec = (char *) a1;
-	uvast	remoteEngineId = a2 != 0 ? strtouvast((char *) a2) : 0;
+	uvast	remoteEngineId = a2 != 0 ? getFqn((char *) a2) : 0;
 #else
 int	main(int argc, char *argv[])
 {
 	char	*endpointSpec = argc > 1 ? argv[1] : NULL;
-	uvast	remoteEngineId = argc > 2 ? strtouvast(argv[2]) : 0;
+	uvast	remoteEngineId = argc > 2 ? getFqn(argv[2]) : 0;
 #endif
-	Sdr					sdr;
-	LtpVspan			*vspan;
-	PsmAddress			vspanElt;
+	Sdr			sdr;
+	LtpVspan		*vspan;
+	PsmAddress		vspanElt;
 	unsigned short		portNbr = 0;
 	unsigned int		ipAddress = 0;
-	int					running = 1;
-	int					segmentLength;
-	char				*segment;
+	int			running = 1;
+	int			segmentLength;
+	char			*segment;
 	struct sockaddr_in	*inetName;
-	int					bytesSent;
-	pthread_t			keepalive_thread;
-	lso_state			itp;
+	int			bytesSent;
+	pthread_t		keepalive_thread;
+	lso_state		itp;
 
 	if (remoteEngineId == 0 || endpointSpec == NULL)
 	{

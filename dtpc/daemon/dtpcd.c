@@ -23,6 +23,7 @@ typedef struct
 static void	*getBundles(void *parm)
 {
 	RxThreadParms		*parms = (RxThreadParms *) parm;
+	char			nbrBuf[FQN_MAX_LENGTH];
 	char			ownEid[64];
 	Sdr			sdr = getIonsdr();
 	BpDelivery		dlv;
@@ -37,8 +38,8 @@ static void	*getBundles(void *parm)
 	int			sdnvLength;
 	unsigned char		*cursor;
 
-	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%d",
-			getOwnFqnn(), DTPC_RECV_SVC_NBR);
+	putFqn(nbrBuf, getOwnFqnn());
+	isprintf(ownEid, sizeof ownEid, "ipn:%s.%d", nbrBuf, DTPC_RECV_SVC_NBR);
 	if (bp_open(ownEid, &(parms->rxSap)) < 0)
 	{
 		putErrmsg("DTPC can't open own 'recv' endpoint.", ownEid);
@@ -201,6 +202,7 @@ int	dtpcd(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 int	main(int argc, char **argv)
 {
 #endif
+	char		nbrBuf[FQN_MAX_LENGTH];
 	char		ownEid[64];
 	BpSAP		txSap;
 	RxThreadParms	parms;
@@ -212,8 +214,8 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
-	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%d",
-			getOwnFqnn(), DTPC_SEND_SVC_NBR);
+	putFqn(nbrBuf, getOwnFqnn());
+	isprintf(ownEid, sizeof ownEid, "ipn:%s.%d", nbrBuf, DTPC_SEND_SVC_NBR);
 	if (bp_open_source(ownEid, &txSap, 1) < 0)
 	{
 		putErrmsg("DTPC can't open own 'send' endpoint.", ownEid);

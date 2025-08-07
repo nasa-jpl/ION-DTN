@@ -414,7 +414,7 @@ int open_remote_dir(char *host, char *dir)
 	}
 
 	/*Setup parameters*/
-	entityId=strtouvast(host);
+	entityId=getFqn(host);
 	cfdp_compress_number(&parms.destinationEntityNbr, entityId);
 
 	/*Pick a temp file name*/

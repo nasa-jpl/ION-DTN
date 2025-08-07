@@ -490,6 +490,7 @@ void	computeRetransmissionLimits(LtpVspan *vspan)
 	float	pBitOk;
 	float	pSegmentOk;
 	float	pDlvFailure;
+	char	nbrBuf[FQN_MAX_LENGTH];
 	char	buf[256];
 
 	GET_OBJ_POINTER(getIonsdr(), LtpDB, ltpdb, getLtpDbObject());
@@ -531,10 +532,11 @@ void	computeRetransmissionLimits(LtpVspan *vspan)
 	}
 
 	vspan->maxTimeouts *= SIGNAL_REDUNDANCY;
-	isprintf(buf, sizeof buf, "[i] Span to engine " UVAST_FIELDSPEC " \
-(max BER %f, max xmit segment size %d, max recv segment size %d): xmit segment \
-loss rate %f, recv segment loss rate %f, max timeouts %d.", vspan->engineId,
-			maxBER, vspan->maxXmitSegSize, vspan->maxRecvSegSize,
+	putFqn(nbrBuf, vspan->engineId);
+	isprintf(buf, sizeof buf, "[i] Span to engine %s (max BER %f, max \
+xmit segment size %d, max recv segment size %d): xmit segment loss rate %f, \
+recv segment loss rate %f, max timeouts %d.", nbrBuf, maxBER,
+			vspan->maxXmitSegSize, vspan->maxRecvSegSize,
 			vspan->xmitSegLossRate, vspan->recvSegLossRate,
 			vspan->maxTimeouts);
 	writeMemo(buf);
@@ -746,21 +748,19 @@ static void	startSpan(LtpVspan *vspan)
 {
 	Sdr	sdr = getIonsdr();
 	LtpSpan	span;
+	char	nbrBuf[FQN_MAX_LENGTH];
 	char	ltpmeterCmdString[64];
 	char	cmd[SDRSTRING_BUFSZ];
-	char	engineIdString[11];
 	char	lsoCmdString[SDRSTRING_BUFSZ + 64];
 
 	sdr_read(sdr, (char *) &span, sdr_list_data(sdr, vspan->spanElt),
 			sizeof(LtpSpan));
-	isprintf(ltpmeterCmdString, sizeof ltpmeterCmdString,
-			"ltpmeter " UVAST_FIELDSPEC, span.engineId);
+	putFqn(nbrBuf, span.engineId);
+	isprintf(ltpmeterCmdString, sizeof ltpmeterCmdString, "ltpmeter %s",
+			nbrBuf);
 	vspan->meterPid = pseudoshell(ltpmeterCmdString);
 	sdr_string_read(sdr, cmd, span.lsoCmd);
-	isprintf(engineIdString, sizeof engineIdString, UVAST_FIELDSPEC,
-			span.engineId);
-	isprintf(lsoCmdString, sizeof lsoCmdString, "%s %s", cmd,
-			engineIdString);
+	isprintf(lsoCmdString, sizeof lsoCmdString, "%s %s", cmd, nbrBuf);
 	vspan->lsoPid = pseudoshell(lsoCmdString);
 }
 
@@ -3507,6 +3507,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 	Object				spanObj;
 	LtpSpan				spanBuf;
 	Object				elt;
+	char				nbrBuf[FQN_MAX_LENGTH];
 	char				memo[64];
 	Object				segRefAddr;
 	LtpXmitSegRef			segRef;
@@ -3545,15 +3546,15 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 		if (sm_SemTake(vspan->segSemaphore) < 0)
 		{
 			putErrmsg("LSO can't take segment semaphore.",
-					itoa(vspan->engineId));
+				itoa(vspan->engineId));
 			return -1;
 		}
 
 		if (sm_SemEnded(vspan->segSemaphore))
 		{
+			putFqn(nbrBuf, vspan->engineId);
 			isprintf(memo, sizeof memo,
-			"[i] LSO to engine " UVAST_FIELDSPEC " is stopped.",
-					vspan->engineId);
+				"[i] LSO to engine %s is stopped.", nbrBuf);
 			writeMemo(memo);
 			return 0;
 		}
@@ -3976,7 +3977,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 
 /*	*	Control segment construction functions		*	*/
 
-static void	signalLso(unsigned int engineId)
+static void	signalLso(uvast engineId)
 {
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
@@ -4496,7 +4497,8 @@ static int	constructRs(LtpXmitSeg *rs, int claimCount,
 	signalLso(span->engineId);
 #if LTPDEBUG
 char	buf[256];
-sprintf(buf, "Sending RS: %u to %u, ckpt %u, rpt %u.", rs->pdu.lowerBound,
+sprintf(buf, "Sending RS: to " UVAST_FIELDSPEC ", %u to %u, ckpt %u, rpt %u.",
+rs->remoteEngineId, rs->pdu.lowerBound,
 rs->pdu.upperBound, rs->pdu.ckptSerialNbr, rs->pdu.rptSerialNbr);
 putErrmsg(buf, itoa(session->sessionNbr));
 #endif
@@ -5032,6 +5034,7 @@ static int	createBlockFile(LtpSpan *span, Object sessionObj,
 {
 	Sdr	sdr = getIonsdr();
 	char	cwd[200];
+	char	nbrBuf[FQN_MAX_LENGTH];
 	char	name[256];
 	int	fd;
 
@@ -5041,9 +5044,9 @@ static int	createBlockFile(LtpSpan *span, Object sessionObj,
 		return -1;
 	}
 
-	isprintf(name, sizeof name, "%s%cltpblock." UVAST_FIELDSPEC ".%u",
-			cwd, ION_PATH_DELIMITER, span->engineId,
-			session->sessionNbr);
+	putFqn(nbrBuf, span->engineId);
+	isprintf(name, sizeof name, "%s%cltpblock.%s.%u", cwd,
+			ION_PATH_DELIMITER, nbrBuf, session->sessionNbr);
 	fd = iopen(name, O_WRONLY | O_CREAT, 0666);
 	if (fd < 0)
 	{
@@ -6384,11 +6387,13 @@ static int	constructDataSegment(Sdr sdr, LtpExportSession *session,
 #endif
 	signalLso(span->engineId);
 #if LTPDEBUG
+char	nbrBuf[FQN_MAX_LENGTH];
 char	buf[256];
 if (segment.pdu.segTypeCode > 0)
 {
-sprintf(buf, "Sending checkpoint: ckpt %u rpt %u to node " UVAST_FIELDSPEC ".",
-segment.pdu.ckptSerialNbr, segment.pdu.rptSerialNbr, segment.remoteEngineId);
+putFqn(nbrBuf, segment.remoteEngineId);
+sprintf(buf, "Sending checkpoint: ckpt %u rpt %u to engine %s.",
+segment.pdu.ckptSerialNbr, segment.pdu.rptSerialNbr, nbrBuf);
 putErrmsg(buf, itoa(session->sessionNbr));
 }
 #endif

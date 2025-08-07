@@ -11,7 +11,7 @@
 
 typedef struct
 {
-	unsigned int	entityId;
+	uvast		entityId;
 	unsigned int	ipAddress;
 	unsigned short	portNbr;
 } EntityAddr;
@@ -25,7 +25,7 @@ typedef struct
 
 /*	*	*	Utility functions	*	*	*	*/
 
-static int	lookUpEntity(unsigned int entityId, unsigned int *ipAddress,
+static int	lookUpEntity(uvast entityId, unsigned int *ipAddress,
 			unsigned short *portNbr)
 {
 	Sdr	sdr = getIonsdr();
@@ -235,15 +235,17 @@ static void	*receivePdus(void *parm)
 static int	connectToPeerEntity(uvast destinationEntityNbr,
 			uvast *currentPeerEntity, int *xmitSocket)
 {
+	char			nbrBuf[FQN_MAX_LENGTH];
 	unsigned int		ipAddress;
 	unsigned short		portNbr;
 	struct sockaddr		socketName;
 	struct sockaddr_in	*inetName = (struct sockaddr_in *) &socketName;
 
+	putFqn(nbrBuf, destinationEntityNbr);
 	if (lookUpEntity(destinationEntityNbr, &ipAddress, &portNbr) == 0)
 	{
 		writeMemoNote("[?] tcputa has no address for this entity",
-				itoa(destinationEntityNbr));
+				nbrBuf);
 		return 0;
 	}
 
@@ -287,14 +289,13 @@ static int	connectToPeerEntity(uvast destinationEntityNbr,
 		case EBADF:
 		case ETIMEDOUT:
 			writeMemoNote("[?] tcputa can't connect to this entity",
-					itoa(destinationEntityNbr));
+					nbrBuf);
 			closesocket(*xmitSocket);
 			*xmitSocket = -1;
 			return 0;
 
 		default:
-			putSysErrmsg("tcputa connection failed",
-					itoa(destinationEntityNbr));
+			putSysErrmsg("tcputa connection failed", nbrBuf);
 			closesocket(*xmitSocket);
 			*xmitSocket = -1;
 			return -1;

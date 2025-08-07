@@ -503,6 +503,7 @@ static int	raiseScheme(Object schemeElt, BpVdb *bpvdb)
 	Scheme		scheme;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
+	char		nbrBuf[FQN_MAX_LENGTH];
 	PsmAddress	addr;
 	char		hostNameBuf[MAXHOSTNAMELEN + 1];
 	Object		elt;
@@ -544,9 +545,9 @@ static int	raiseScheme(Object schemeElt, BpVdb *bpvdb)
 		break;
 
 	case ipn:
+		putFqn(nbrBuf, getOwnFqnn());
 		isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
-			"%.8s:" UVAST_FIELDSPEC ".0", vscheme->name,
-			getOwnFqnn());
+			"%.8s:%s.0", vscheme->name, nbrBuf);
 		break;
 
 	default:	/*	Assume it's dtn.			*/
@@ -2496,11 +2497,12 @@ incomplete bundle.", NULL);
 			if ((_bpvdb(NULL))->watching & WATCH_expire)
 			{
 #if defined (EWCHAR)
-				char ewchar[256];
+				char	ewchar[256];
+				char	nbrBuf[FQN_MAX_LENGTH];
 				/* spec is for 64 bit, non-Window */
+				putFqn(nbrBuf, bundle.id.source.ssp.ipn.fqnn);
 				isprintf(ewchar,sizeof(ewchar),
-					"(" UVAST_FIELDSPEC ",%lu,%u)!",
-					bundle.id.source.ssp.ipn.fqnn,
+					"(%s,%lu,%u)!", nbrBuf,
 					bundle.id.source.ssp.ipn.serviceNbr,
 					bundle.id.creationTime.count);
 				iwatch_str(ewchar);

@@ -17,11 +17,11 @@
 int	ltpmeter(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-	uvast	remoteEngineId = a1 == 0 ? 0 : strtouvast((char *) a1);
+	uvast	remoteEngineId = a1 == 0 ? 0 : getFqn((char *) a1);
 #else
 int	main(int argc, char *argv[])
 {
-	uvast	remoteEngineId = argc > 1 ? strtouvast(argv[1]) : 0;
+	uvast	remoteEngineId = argc > 1 ? getFqn(argv[1]) : 0;
 #endif
 	Sdr			sdr;
 	LtpVdb			*vdb;
@@ -30,6 +30,7 @@ int	main(int argc, char *argv[])
 	Object			spanObj;
 	LtpSpan			span;
 	int			returnCode = 0;
+	char			nbrBuf[FQN_MAX_LENGTH];
 	char			memo[64];
 	LtpExportSession	session;
 	Lyst			extents;
@@ -108,8 +109,9 @@ int	main(int argc, char *argv[])
 
 			if (sm_SemEnded(vspan->bufClosedSemaphore))
 			{
+				putFqn(nbrBuf, remoteEngineId);
 				isprintf(memo, sizeof memo, "[i] LTP meter to \
-engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
+engine %s is stopped.", nbrBuf);
 				writeMemo(memo);
 				break;		/*	Outer loop.	*/
 			}

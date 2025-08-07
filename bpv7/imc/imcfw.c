@@ -646,8 +646,15 @@ static int	relayImcBundle(Bundle *bundle, Object bundleAddr,
 	/*	Load the bundle's list of destinations from the
 	 *	array of gang members in the bundle's IMC extension
 	 *	block, except for self.					*/
+#if IMCDEBUG
+puts("Relaying IMC bundle");
+if (bundle->destination.ssp.imc.fqgn == 0) puts("...dispatch to region members");
+#endif
 
 	destinationsCount = imcblock->size / sizeof(uvast);
+#if IMCDEBUG
+printf("Bundle has %d destinations.\n", destinationsCount);
+#endif
 	if (destinationsCount < 1)
 	{
 		writeMemo("[?] IMC block has no destinations.");
@@ -679,6 +686,9 @@ puts("no destinations");
 
 		/*	Load this destination into the bundle.		*/
 
+#if IMCDEBUG
+printf("Loading: Bundle has %d destinations.\n", destinationsCount);
+#endif
 		if (loadDestination(bundle, *fqnnPtr) < 0)
 		{
 			MRELEASE(fqnnsArray);
@@ -765,7 +775,9 @@ static int	originateImcBundle(Bundle *bundle, Object bundleAddr)
 
 	if (fqgn == 0)	/*	Broadcast to region members.	*/
 	{
-
+#if IMCDEBUG
+puts("Bundle is a dispatch to region members");
+#endif
 		regionNbr = bundle->ancillaryData.imcRegionNbr;
 		iondbObj = getIonDbObject();
 		sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
@@ -966,6 +978,9 @@ puts("IMC extension block missing");
 				sizeof(ExtensionBlock));
 		if (imcblock.object == 0)
 		{
+#if IMCDEBUG
+puts("IMC bundle originated.");
+#endif
 			/*	Bundle was never previously forwarded.	*/
 
 			if (originateImcBundle(&bundle, bundleAddr) < 0)
@@ -978,6 +993,9 @@ puts("IMC extension block missing");
 		}
 		else	/*	Received from some node, possibly self.	*/
 		{
+#if IMCDEBUG
+puts("Forwarded IMC bundle received.");
+#endif
 			if (bundle.id.source.ssp.ipn.fqnn == ownFqnn)
 			{
 				if (bundle.clDossier.senderFqnn == 0)
@@ -1006,7 +1024,9 @@ puts("received from unknown node");
 					*	in which case relaying
 					*	would introduce a
 					*	routing loop.		*/
-
+#if IMCDEBUG
+puts("destroying bundle to prevent routing loop");
+#endif
 					oK(bpDestroyBundle(bundleAddr, 2));
 				}
 			}

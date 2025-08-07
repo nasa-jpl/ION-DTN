@@ -164,6 +164,7 @@ int	main(int argc, char *argv[])
 {
 	int	blocksGroupNbr = (argc > 1 ? atoi(argv[1]) : -1);
 #endif
+	char	nbrBuf[FQN_MAX_LENGTH];
 	char	ownEid[32];
 	BpSAP	sap;
 	Sdr	sdr;
@@ -195,8 +196,8 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnFqnn());
+	putFqn(nbrBuf, getOwnFqnn());
+	isprintf(ownEid, sizeof ownEid, "ipn:%s.0", nbrBuf);
 	if (bp_open_source(ownEid, &sap, 0) < 0)
 	{
 		putErrmsg("Can't open own endpoint.", ownEid);

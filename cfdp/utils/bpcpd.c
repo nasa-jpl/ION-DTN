@@ -127,8 +127,9 @@ void poll_cfdp_messages()
 	unsigned char		usrmsgBuf[256];
 	MetadataList		filestoreResponses;
 	unsigned int closureRequested;
-	uvast 		TID11;
-	uvast		TID12;
+	uvast 			TID11;
+	uvast			TID12;
+	char			nbrBuf[FQN_MAX_LENGTH];
 
 	/*Main Event loop*/
 	while (running) {
@@ -157,9 +158,10 @@ void poll_cfdp_messages()
 		cfdp_decompress_number(&TID12,&transactionId.transactionNbr);
 
 		/*Print Event type if debugging*/
+		putFqn(nbrBuf, TID11);
 		dbgprintf(1,"\nEvent: type %d, '%s', From Node: %ull, Transaction ID: %ull.%ull.\n", type,
 				(type > 0 && type < 12) ? eventTypes[type]
-				: "(unknown)",TID11, TID11, TID12);
+				: "(unknown)",nbrBuf, TID11, TID12);
 
 		/*Parse Messages to User to get directory information*/
 		while (messagesToUser)

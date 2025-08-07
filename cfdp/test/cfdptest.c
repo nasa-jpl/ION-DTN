@@ -439,7 +439,7 @@ static void	setDestinationEntityNbr(int tokenCount, char **tokens,
 		return;
 	}
 
-	entityId = strtol(tokens[1], NULL, 0);
+	entityId = getFqn(tokens[1]);
 	cfdp_compress_number(destinationEntityNbr, entityId);
 }
 

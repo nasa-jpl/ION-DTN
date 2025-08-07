@@ -72,6 +72,7 @@ static int	writeAddPubKeyCmd(time_t effectiveTime, unsigned short
 			publicKeyLen, unsigned char *publicKey)
 {
 	int		fd;
+	char		nbrBuf[FQN_MAX_LENGTH];
 	char		cmdbuf[2048];
 	char		*cursor = cmdbuf;
 	int		bytesRemaining = sizeof cmdbuf;
@@ -88,9 +89,9 @@ static int	writeAddPubKeyCmd(time_t effectiveTime, unsigned short
 		return -1;
 	}
 
-	len = _isprintf(cmdbuf, sizeof cmdbuf,
-			"a pubkey " UVAST_FIELDSPEC " %d %d %d ",
-			getOwnFqnn(), effectiveTime, getCtime(), publicKeyLen);
+	putFqn(nbrBuf, getOwnFqnn());
+	len = _isprintf(cmdbuf, sizeof cmdbuf, "a pubkey %s %d %d %d ",
+			nbrBuf, effectiveTime, getCtime(), publicKeyLen);
 	cursor += len;
 	bytesRemaining -= len;
 	cmdLen += len;
@@ -382,6 +383,7 @@ static void	*generateKeys(void *parm)
 	Object	dbobj;
 	DtkaDB	db;
 	time_t	currentTime;
+	char	nbrBuf[FQN_MAX_LENGTH];
 	char	ownEid[32];
 	char	keyType[6];
 	int	keySize;
@@ -448,8 +450,8 @@ static void	*generateKeys(void *parm)
 
 	/*	Now prepare for re-keying cycle.			*/
 
-	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
-			 getOwnFqnn());
+	putFqn(nbrBuf, getOwnFqnn());
+	isprintf(ownEid, sizeof ownEid, "ipn:%s.0", nbrBuf);
 	if (bp_open_source(ownEid, &sap, 0) < 0)
 	{
 		putErrmsg("Can't open own endpoint.", ownEid);
@@ -519,14 +521,16 @@ static void	printRecord(uvast fqnn, time_t effectiveTime,
 			time_t assertionTime, unsigned short datLength,
 			unsigned char *datValue)
 {
+	char	nbrBuf[FQN_MAX_LENGTH];
 	char	msgbuf[1024];
 	char	*cursor = msgbuf;
 	int	bytesRemaining = sizeof msgbuf;
 	int	i;
 	int	len;
 
-	len = _isprintf(cursor, bytesRemaining, UVAST_FIELDSPEC " %lu %lu ",
-			fqnn, assertionTime, effectiveTime);
+	putFqn(nbrBuf, fqnn);
+	len = _isprintf(cursor, bytesRemaining, "%s %lu %lu ", nbrBuf,
+			assertionTime, effectiveTime);
 	cursor += len;
 	bytesRemaining -= len;
 	if (datLength == 0)

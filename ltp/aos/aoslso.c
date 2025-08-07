@@ -56,15 +56,17 @@ int	aoslso(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 	       saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char		*endpointSpec = (char *) a1;
-	unsigned int	txbps = (a2 != 0 ? strtoul((char *) a2, NULL, 0) : 0);
-	uvast		remoteEngineId = a3 != 0 ?  strtouvast((char *) a3) : 0;
+	uvast		remoteEngineId = a3 != 0 ? getFqn((char *) a3) :
+					(a2 != 0 ? getFqn((char *) a2) : 0);
+
 #else
 int	main(int argc, char *argv[])
 {
 	char		*endpointSpec = argc > 1 ? argv[1] : NULL;
-	unsigned int	txbps = (argc > 2 ? strtoul(argv[2], NULL, 0) : 0);
-	uvast		remoteEngineId = argc > 3 ?  strtouvast(argv[3]) : 0;
+	uvast		remoteEngineId = argc > 3 ? getFqn(argv[3]) :
+					(argc > 2 ? getFqn(argv[2]) : 0);
 #endif
+	uvast			txbps = 0;
 	Sdr			sdr;
 	LtpVspan		*vspan;
 	PsmAddress		vspanElt;
@@ -79,12 +81,6 @@ int	main(int argc, char *argv[])
 	int			linkSocket;
 	int			bytesSent = 0;
 
-	if( txbps != 0 && remoteEngineId == 0 )
-	{
-		remoteEngineId = txbps;
-		txbps = 0;
-	}
-
 	if (remoteEngineId == 0 || endpointSpec == NULL)
 	{
 		PUTS("Usage: aoslso {<remote engine's host name> | @}[:\
@@ -93,7 +89,7 @@ int	main(int argc, char *argv[])
 	}
 
 	/*	Note that ltpadmin must be run before the first
-	 *	invocation of ltplso, to initialize the LTP database
+	 *	invocation of aoslso, to initialize the LTP database
 	 *	(as necessary) and dynamic database.			*/
 
 	if (ltpInit(0) < 0)

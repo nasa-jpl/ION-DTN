@@ -75,7 +75,7 @@ static void	printUsage()
 	PUTS("\t1\tInitialize");
 	PUTS("\t   1 <est. max number of sessions>");
 	PUTS("\ta\tAdd");
-	PUTS("\t   a span <engine ID#> <max export sessions> \
+	PUTS("\t   a span <engine ID> <max export sessions> \
 <max import sessions> <max segment size> <aggregation size threshold> \
 <aggregation time limit> '<LSO command>' [queuing latency, in seconds]");
 	PUTS("\t\tIf queuing latency is negative, the absolute value of this \
@@ -83,12 +83,12 @@ number is used as the actual queuing latency and session purging is enabled.  \
 See man(5) for ltprc.");
 	PUTS("\t   a seat '<LSI command>'");
 	PUTS("\tc\tChange");
-	PUTS("\t   c span <engine ID#> <max export sessions> \
+	PUTS("\t   c span <engine ID> <max export sessions> \
 <max import sessions> <max segment size> <aggregation size threshold> \
 <aggregation time limit> '<LSO command>' [queuing latency, in seconds]");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
-	PUTS("\t   {d|i} span <engine ID#>");
+	PUTS("\t   {d|i} span <engine ID>");
 	PUTS("\t   {d|i} seat '<LSI command>'");
 	PUTS("\tl\tList");
 	PUTS("\t   l span");
@@ -259,7 +259,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 			return;
 		}
 
-		engineId = strtouvast(tokens[2]);
+		engineId = getFqn(tokens[2]);
 		oK(addSpan(engineId, strtol(tokens[3], NULL, 0),
 				strtol(tokens[4], NULL, 0),
 				strtol(tokens[5], NULL, 0),
@@ -327,7 +327,7 @@ static void	executeChange(int tokenCount, char **tokens)
 			return;
 		}
 
-		engineId = strtouvast(tokens[2]);
+		engineId = getFqn(tokens[2]);
 		oK(updateSpan(engineId, strtol(tokens[3], NULL, 0),
 				strtol(tokens[4], NULL, 0),
 				strtol(tokens[5], NULL, 0),
@@ -372,7 +372,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 			return;
 		}
 
-		engineId = strtouvast(tokens[2]);
+		engineId = getFqn(tokens[2]);
 		oK(removeSpan(engineId));
 		return;
 	}
@@ -399,15 +399,16 @@ static void	printSpan(LtpVspan *vspan)
 {
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(LtpSpan, span);
+	char	nbrBuf[FQN_MAX_LENGTH];
 	char	cmd[SDRSTRING_BUFSZ];
 	char	buffer[256];
 
 	CHKVOID(sdr_begin_xn(sdr));
 	GET_OBJ_POINTER(sdr, LtpSpan, span, sdr_list_data(sdr, vspan->spanElt));
+	putFqn(nbrBuf, vspan->engineId);
 	sdr_string_read(sdr, cmd, span->lsoCmd);
-	isprintf(buffer, sizeof buffer,
-			UVAST_FIELDSPEC "  pid: %d  cmd: '%.128s'",
-			vspan->engineId, vspan->lsoPid, cmd);
+	isprintf(buffer, sizeof buffer, "%s pid: %d  cmd: '%.128s'", nbrBuf,
+			vspan->lsoPid, cmd);
 	printText(buffer);
 	isprintf(buffer, sizeof buffer, "\tmax export sessions: %u",
 			span->maxExportSessions);
@@ -467,7 +468,7 @@ static void	infoSpan(int tokenCount, char **tokens)
 		return;
 	}
 
-	engineId = strtouvast(tokens[2]);
+	engineId = getFqn(tokens[2]);
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	findSpan(engineId, &vspan, &vspanElt);
 	sdr_exit_xn(sdr);
@@ -535,6 +536,7 @@ static void	listSpans(int tokenCount, char **tokens)
 	PsmPartition	ionwm = getIonwm();
 	Object		ltpdbObj = getLtpDbObject();
 			OBJ_POINTER(LtpDB, ltpdb);
+	char		nbrBuf[FQN_MAX_LENGTH];
 	char		buffer[128];
 	PsmAddress	elt;
 	LtpVspan	*vspan;
@@ -547,8 +549,9 @@ static void	listSpans(int tokenCount, char **tokens)
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	GET_OBJ_POINTER(sdr, LtpDB, ltpdb, ltpdbObj);
-	isprintf(buffer, sizeof buffer,"(Engine " UVAST_FIELDSPEC "  Queuing \
-latency: %u)", ltpdb->ownEngineId, ltpdb->ownQtime);
+	putFqn(nbrBuf, ltpdb->ownEngineId);
+	isprintf(buffer, sizeof buffer,"(Engine %s Queuing latency: %u)",
+			nbrBuf, ltpdb->ownQtime);
 	printText(buffer);
 	for (elt = sm_list_first(ionwm, vdb->spans); elt;
 			elt = sm_list_next(ionwm, elt))

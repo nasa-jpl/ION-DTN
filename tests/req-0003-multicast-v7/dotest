@@ -39,22 +39,18 @@ rm -f ./ion_nodes
 
 # Start all nodes
 cd 1.ipn.ltp
-rm testfile*
 ./ionstart >& node1.stdout &
 sleep 2
 
 cd ../2.ipn.ltp
-rm testfile*
 ./ionstart >& node2.stdout &
 sleep 2
 
 cd ../3.ipn.ltp
-rm testfile*
 ./ionstart >& node3.stdout &
 sleep 2
 
 cd ../4.ipn.ltp
-rm testfile*
 ./ionstart >& node4.stdout &
 
 #give nodes enough time to start

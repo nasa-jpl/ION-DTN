@@ -1,0 +1,6 @@
+wmKey 2
+sdrName ion5
+sdrWmSize 10000000
+wmSize 20000000
+configFlags 1
+heapWords 80000

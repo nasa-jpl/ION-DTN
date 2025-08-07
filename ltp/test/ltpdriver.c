@@ -199,7 +199,7 @@ static int	run_ltpdriver(uvast destEngineId, int clientId,
 int	ltpdriver(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-	uvast		destEngineId = (uvast) a1;
+	uvast		destEngineId = getFqn(a1);
 	int		clientId = a2;
 	int		cycles = a3;
 	int		greenLen = a4;
@@ -229,7 +229,7 @@ int	main(int argc, char **argv)
 		clientId = strtol(argv[2], NULL, 0);
 
 	case 2:
-		destEngineId = strtouvast(argv[1]);
+		destEngineId = getFqn(argv[1]);
 
 	default:
 		break;

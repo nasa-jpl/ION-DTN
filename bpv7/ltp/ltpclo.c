@@ -98,7 +98,7 @@ int	main(int argc, char *argv[])
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
 	sdr_exit_xn(sdr);			/*	Unlock.		*/
-	destEngineNbr = strtouvast(ductName);
+	destEngineNbr = getFqn(ductName);
 	if (ltp_attach() < 0)
 	{
 		putErrmsg("ltpclo can't initialize LTP.", NULL);

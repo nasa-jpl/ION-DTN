@@ -678,9 +678,9 @@ static void	readDtnEid(DtnSSP *ssp, char **buffer)
 
 static void	readIpnEid(IpnSSP *ssp, char **buffer)
 {
-	char		*eidString;
-	int		eidLength = 47;
-	char		nbrBuf[FQN_MAX_LENGTH];
+	char	*eidString;
+	int	eidLength = 47;
+	char	nbrBuf[FQN_MAX_LENGTH];
 
 	/*	Printed EID string is
 	 *
@@ -741,7 +741,7 @@ static void	readImcEid(ImcSSP *ssp, char **buffer)
 	}
 
 	putFqn(nbrBuf, ssp->fqgn);
-	isprintf(eidString, eidLength, "ipn:%s.%lu", nbrBuf,
+	isprintf(eidString, eidLength, "imc:%s.%lu", nbrBuf,
 			ssp->serviceNbr);
 	*buffer = eidString;
 }

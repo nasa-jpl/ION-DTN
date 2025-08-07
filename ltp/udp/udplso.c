@@ -221,14 +221,14 @@ int	udplso(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 	       saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char		*endpointSpec = (char *) a1;
-	uvast		txbps = (a2 != 0 ?  strtoul((char *) a2, NULL, 0) : 0);
-	uvast		remoteEngineId = a3 != 0 ?  strtouvast((char *) a3) : 0;
+	uvast		remoteEngineId = a3 != 0 ? getFqn((char *) a3) :
+	       				(a2 != 0 ? getFqn((char *) a2) : 0);
 #else
 int	main(int argc, char *argv[])
 {
 	char		*endpointSpec = argc > 1 ? argv[1] : NULL;
-	uvast		txbps = (argc > 2 ?  strtoul(argv[2], NULL, 0) : 0);
-	uvast		remoteEngineId = argc > 3 ? strtouvast(argv[3]) : 0;
+	uvast		remoteEngineId = argc > 3 ? getFqn(argv[3]) :
+					(argc > 2 ? getFqn(argv[2]) : 0);
 #endif
 	Sdr			sdr;
 	LtpVspan		*vspan;
@@ -240,6 +240,7 @@ int	main(int argc, char *argv[])
 	char			ownHostName[MAXHOSTNAMELEN];
 	struct sockaddr		ownSockName;
 	struct sockaddr_in	*ownInetName;
+	unsigned short		ownPortNbr = 0;
 	socklen_t		nameLength;
 	static udp_ReceiverThreadParms rtp;  /* Don't create on main's stack */
 	pthread_t		receiverThread;
@@ -266,25 +267,11 @@ int	main(int argc, char *argv[])
 	/* Initialize the mutex.  */
 
 	pthread_mutex_init(&rtp.lock, NULL); 
-
-	if (txbps != 0 && remoteEngineId == 0)	/*	Now nominal.	*/
-	{
-		remoteEngineId = txbps;
-		txbps = 0;
-	}
-
 	if (remoteEngineId == 0 || endpointSpec == NULL)
 	{
 		PUTS("Usage: udplso {<remote engine's host name> | @}\
 [:<its port number>] <remote engine ID>");
 		return 0;
-	}
-
-	if (txbps != 0)
-	{
-		PUTS("NOTE: udplso now gets transmission data rate from \
-the contact plan.  txbps is still accepted on the command line, for backward \
-compatibility, but it is ignored.");
 	}
 
 	/*	Note that ltpadmin must be run before the first
@@ -322,10 +309,11 @@ compatibility, but it is ignored.");
 
 	{
 		int retries = UDPLSO_DNS_RETRY_COUNT;
-		while (retries > 0 && parseSocketSpec(endpointSpec, &portNbr, &ipAddress) != 0)
+		while (retries > 0 && parseSocketSpec(endpointSpec, &portNbr,
+				&ipAddress) != 0)
 		{
 			char memoBuf[256];
-			isprintf(memoBuf, sizeof(memoBuf), "udplso: initial DNS resolution failed for %s, retrying %d more times, retry interval %d second(s).", \
+			isprintf(memoBuf, sizeof(memoBuf), "udplso: initial DNS resolution failed for %s, retrying %d more times, retry interval %d second(s).",
 			   endpointSpec, retries - 1, UDPLSO_DNS_RETRY_DELAY);
 			writeMemoNote("[i] udplso", memoBuf);
 			snooze(UDPLSO_DNS_RETRY_DELAY);
@@ -363,19 +351,19 @@ compatibility, but it is ignored.");
 	 *	than to the advertised link service inpud socket.	*/
 
 	ipAddress = INADDR_ANY;
-	portNbr = 0;	/*	Let O/S choose it.			*/
+	ownPortNbr = 0;	/*	Let O/S choose it.			*/
 
 	/*	This socket needs to be bound to the local socket
 	 *	address (just as in udplsi), so that the udplso
 	 *	main thread can send a 1-byte datagram to that
 	 *	socket to shut down the datagram handling thread.	*/
 
-	portNbr = htons(portNbr);
+	ownPortNbr = htons(ownPortNbr);
 	ipAddress = htonl(ipAddress);
 	memset((char *) &ownSockName, 0, sizeof ownSockName);
 	ownInetName = (struct sockaddr_in *) &ownSockName;
 	ownInetName->sin_family = AF_INET;
-	ownInetName->sin_port = portNbr;
+	ownInetName->sin_port = ownPortNbr;
 	memcpy((char *) &(ownInetName->sin_addr.s_addr),
 			(char *) &ipAddress, 4);
 
@@ -428,9 +416,9 @@ compatibility, but it is ignored.");
 		char	memoBuf[1024];
 
 		isprintf(memoBuf, sizeof(memoBuf),
-			"[i] udplso is running, spec=[%s:%d], rengine=%d.",
+	"[i] udplso is running, spec=[%s:%d], rengine=" UVAST_FIELDSPEC,
 			(char *) inet_ntoa(peerInetName->sin_addr),
-			ntohs(portNbr), (int) remoteEngineId);
+			ntohs(portNbr), remoteEngineId);
 		writeMemo(memoBuf);
 	}
 
@@ -502,7 +490,8 @@ compatibility, but it is ignored.");
 		if (now - lastDnsCheck >= UDPLSO_DNS_RECHECK_INTERVAL)
 		{
 			unsigned int newIpAddress = ipAddress;
-			if (parseSocketSpec(endpointSpec, &portNbr, &newIpAddress) != 0)
+			if (parseSocketSpec(endpointSpec, &portNbr,
+					&newIpAddress) != 0)
 			{
 				char memoBuf[256];
 				isprintf(memoBuf, sizeof(memoBuf), "Periodic DNS resolution failed for %s", endpointSpec);
@@ -654,7 +643,8 @@ segment batch.", NULL);
 		if (now - lastDnsCheck >= UDPLSO_DNS_RECHECK_INTERVAL)
 		{
 			unsigned int newIpAddress = ipAddress;
-			if (parseSocketSpec(endpointSpec, &portNbr, &newIpAddress) != 0)
+			if (parseSocketSpec(endpointSpec, &portNbr,
+					&newIpAddress) != 0)
 			{
 				char memoBuf[256];
 				isprintf(memoBuf, sizeof(memoBuf), "udplso: Periodic DNS resolution failed for %s", endpointSpec);

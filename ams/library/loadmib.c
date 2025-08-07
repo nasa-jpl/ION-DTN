@@ -210,6 +210,7 @@ static void	handle_load_start(LoadMibState *state, const char **atts)
 static void	handle_init_start(LoadMibState *state, const char **atts)
 {
 	AmsMib			*mib;
+	uvast			fqnn;
 	int			cnbr = 0;
 	char			*ptsname = NULL;
 	char			*pubkeyname = NULL;
@@ -240,7 +241,17 @@ static void	handle_init_start(LoadMibState *state, const char **atts)
 		value = *att;
 		if (strcmp(name, "continuum_nbr") == 0)
 		{
-			cnbr = atoi(value);
+			fqnn = getFqn(value);
+			if (fqnn >> 31 > 0)
+			{
+				/*	Won't fit into a signed int:
+				 *	has allocator or is negative.	*/
+
+				noteLoadError(state, "continuum_nbr too big.");
+				return;
+			}
+
+			cnbr = fqnn;
 		}
 		else if (strcmp(name, "ptsname") == 0)
 		{

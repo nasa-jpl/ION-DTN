@@ -24,6 +24,7 @@ typedef struct
 static void	*receivePdus(void *parm)
 {
 	RxThreadParms	*parms = (RxThreadParms *) parm;
+	char		nbrBuf[FQN_MAX_LENGTH];
 	char		ownEid[64];
 	Sdr		sdr;
 	BpDelivery	dlv;
@@ -39,8 +40,8 @@ static void	*receivePdus(void *parm)
 		return NULL;
 	}
 
-	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%u",
-			getOwnFqnn(), CFDP_RECV_SVC_NBR);
+	putFqn(nbrBuf, getOwnFqnn());
+	isprintf(ownEid, sizeof ownEid, "ipn:%s.%u", nbrBuf, CFDP_RECV_SVC_NBR);
 	if (bp_open(ownEid, &(parms->rxSap)) < 0)
 	{
 		MRELEASE(buffer);
@@ -138,6 +139,7 @@ int	main(int argc, char **argv)
 {
 #endif
 	const char	*ionversion;
+	char		nbrBuf[FQN_MAX_LENGTH];
 	char		ownEid[64];
 	BpSAP		txSap;
 	RxThreadParms	parms;
@@ -162,8 +164,8 @@ int	main(int argc, char **argv)
 	}
 
 	ionversion = getIonVersionNbr();
-	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%u",
-			getOwnFqnn(), CFDP_SEND_SVC_NBR);
+	putFqn(nbrBuf, getOwnFqnn());
+	isprintf(ownEid, sizeof ownEid, "ipn:%s.%u", nbrBuf, CFDP_SEND_SVC_NBR);
 	if (bp_open_source(ownEid, &txSap, 1) < 0)
 	{
 		putErrmsg("CFDP can't open own 'send' endpoint.", ownEid);
@@ -264,18 +266,18 @@ terminating.");
 			continue;
 		}
 
-		isprintf(destEid, sizeof destEid, "ipn:" UVAST_FIELDSPEC ".%u",
-				destinationFqnn, CFDP_RECV_SVC_NBR);
+		putFqn(nbrBuf, destinationFqnn);
+		isprintf(destEid, sizeof destEid, "ipn:%s.%u", nbrBuf,
+				CFDP_RECV_SVC_NBR);
 		if (utParms.reportToFqnn == 0)
 		{
 			reportToEid = NULL;
 		}
 		else
 		{
+			putFqn(nbrBuf, utParms.reportToFqnn);
 			isprintf(reportToEidBuf, sizeof reportToEidBuf,
-					"ipn:" UVAST_FIELDSPEC ".%u",
-					utParms.reportToFqnn,
-					CFDP_RECV_SVC_NBR);
+					"ipn:%s.%u", nbrBuf, CFDP_RECV_SVC_NBR);
 			reportToEid = reportToEidBuf;
 		}
 

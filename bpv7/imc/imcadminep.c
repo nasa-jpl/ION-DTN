@@ -14,6 +14,7 @@ static int	briefNewNode(uvast fqnn)
 {
 	Sdr		sdr = getIonsdr();
 	ImcDB		*imcConstants = getImcConstants();
+	char		nbrBuf[FQN_MAX_LENGTH];
 	char		ownEid[32];
 	MetaEid		sourceMetaEid;
 	VScheme		*vscheme;
@@ -33,11 +34,11 @@ static int	briefNewNode(uvast fqnn)
 	Object		aduObj;
 	Object		aduZco;
 
-	isprintf(ownEid, sizeof(ownEid), "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnFqnn());
+	putFqn(nbrBuf, getOwnFqnn());
+	isprintf(ownEid, sizeof(ownEid), "ipn:%s.0", nbrBuf);
 	oK(parseEidString(ownEid, &sourceMetaEid, &vscheme, &vschemeElt));
-	isprintf(destEid, sizeof(destEid), "ipn:" UVAST_FIELDSPEC ".0",
-			fqnn);
+	putFqn(nbrBuf, fqnn);
+	isprintf(destEid, sizeof(destEid), "ipn:%s.0", nbrBuf);
 	ownGroups = lyst_create_using(getIonMemoryMgr());
 	if (ownGroups == NULL)
 	{

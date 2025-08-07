@@ -330,14 +330,16 @@ static void	noteNoConsensus(TcaDB *db, TcaRecord *rec)
 	Sdr	sdr = getIonsdr();
 	int	auths;
 	char	*acknowledged;
+	char	nbrBuf[FQN_MAX_LENGTH];
 	char	msgbuf[3072];
 	char	*cursor = msgbuf;
 	int	bytesRemaining = sizeof msgbuf;
 	int	i;
 	int	len;
 
-	len = _isprintf(cursor, bytesRemaining, UVAST_FIELDSPEC " %lu %lu ",
-			rec->fqnn, rec->assertionTime, rec->effectiveTime);
+	putFqn(nbrBuf, rec->fqnn);
+	len = _isprintf(cursor, bytesRemaining, "%s %lu %lu ", nbrBuf,
+			rec->assertionTime, rec->effectiveTime);
 	cursor += len;
 	bytesRemaining -= len;
 	if (rec->datLength == 0)
@@ -375,6 +377,7 @@ static void	noteNoConsensus(TcaDB *db, TcaRecord *rec)
 
 static int	publishConsensusBulletin(Sdr sdr, TcaDB *db, BpSAP sap)
 {
+	char		nbrBuf[FQN_MAX_LENGTH];
 	char		destEid[32];
 	Object		elt;
 	int		i;
@@ -415,7 +418,8 @@ char	*byte;
 int	n;
 #endif
 
-	isprintf(destEid, 32, "imc:%d.0", db->blocksGroupNbr);
+	putFqn(nbrBuf, db->blocksGroupNbr);
+	isprintf(destEid, 32, "imc:%s.0", nbrBuf);
 	fec_x = auths = sdr_list_length(sdr, db->authorities);
 	writeMemo("tcapublish: ---Consensus bulletin report---");
 	writeMemo("tcapublish: Authorities:");
@@ -424,8 +428,9 @@ int	n;
 	{
 		authObj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &auth, authObj, sizeof(TcaAuthority));
-		isprintf(msgbuf, sizeof msgbuf, "\t%d\t" UVAST_FIELDSPEC "\t%u",
-				i, auth.fqnn, auth.inService);
+		putFqn(nbrBuf, auth.fqnn);
+		isprintf(msgbuf, sizeof msgbuf, "\t%d\t%s\t%u", i, nbrBuf,
+				auth.inService);
 		writeMemo(msgbuf);
 		if (auth.fqnn == getOwnFqnn())
 		{
@@ -435,8 +440,9 @@ int	n;
 
 	if (fec_x == auths)
 	{
+		putFqn(nbrBuf, getOwnFqnn());
 		isprintf(msgbuf, sizeof msgbuf, "tcapublish: Can't send \
-bulletin: not a declared authority -- " UVAST_FIELDSPEC, getOwnFqnn());
+bulletin: not a declared authority -- %s", nbrBuf);
 		writeMemo(msgbuf);
 		return 0;
 	}
@@ -547,7 +553,7 @@ writeMemo("tcapublish: No records to publish.");
 			rec->effectiveTime = 0;
 		}
 #if TC_DEBUG
-putFqn(nbrBuf, fqnn);
+putFqn(nbrBuf, req->fqnn);
 isprintf(msgbuf, sizeof msgbuf, "tcapublish: Appending record to bulletin \
 for node %s, effective time %lu.", nbrBuf, rec->effectiveTime);
 writeMemo(msgbuf);
@@ -770,6 +776,7 @@ int	main(int argc, char *argv[])
 {
 	int	blocksGroupNbr = (argc > 1 ? atoi(argv[1]) : -1);
 #endif
+	char		nbrBuf[FQN_MAX_LENGTH];
 	char		ownEid[32];
 	TcaPublishState	state = { NULL, 1 };
 	BpSAP		sendSAP;
@@ -811,8 +818,8 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnFqnn());
+	putFqn(nbrBuf, getOwnFqnn());
+	isprintf(ownEid, sizeof ownEid, "ipn:%s.0", nbrBuf);
 	if (bp_open_source(ownEid, &sendSAP, 0) < 0)
 	{
 		putErrmsg("Can't open own transmission endpoint.", ownEid);

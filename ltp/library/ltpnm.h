@@ -73,10 +73,10 @@ typedef struct
 
 extern void	ltpnm_resources(unsigned long *heapBytesReserved, 
 			unsigned long *heapBytesOccupied);
-extern void	ltpnm_spanEngineIds_get(unsigned int engineIds[], int *numIds);
-extern void	ltpnm_span_get(unsigned int engineId, NmltpSpan *stats,
+extern void	ltpnm_spanEngineIds_get(uvast engineIds[], int *numIds);
+extern void	ltpnm_span_get(uvast engineId, NmltpSpan *stats,
 			int *success);
-extern void	ltpnm_span_reset(unsigned int engineId, int *success);
+extern void	ltpnm_span_reset(uvast engineId, int *success);
 
 #ifdef __cplusplus
 }

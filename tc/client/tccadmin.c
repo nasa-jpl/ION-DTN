@@ -207,6 +207,7 @@ static void	executeInfo()
 	Sdr		sdr = getIonsdr();
 	Object		dbobj = getTccDBObj(_blocksGroupNbr(NULL));
 	TccDB		db;
+	char		nbrBuf[FQN_MAX_LENGTH];
 	char		buffer[256];
 	int		i;
 	Object		elt;
@@ -221,8 +222,8 @@ static void	executeInfo()
 	{
 		authObj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char  *) &auth, authObj, sizeof(TccAuthority));
-		isprintf(buffer, sizeof buffer, "\t%d\t" UVAST_FIELDSPEC, i,
-				auth.fqnn);
+		putFqn(nbrBuf, auth.fqnn);
+		isprintf(buffer, sizeof buffer, "\t%d\t%s", i, nbrBuf);
 		printText(buffer);
 	}
 

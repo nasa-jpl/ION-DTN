@@ -44,7 +44,7 @@ void ltpnm_resources (unsigned long *heapBytesReserved,
      
    The routine below will modify each of these 2 parameters.
 */
-void ltpnm_spanEngineIds_get (unsigned int IdArray [], int * numIds)
+void ltpnm_spanEngineIds_get (uvast IdArray [], int * numIds)
 {
     Sdr             sdr = getIonsdr();
     int             maxEngines;
@@ -113,9 +113,9 @@ static void memset_IncFillPat (char * destPtr, char basePattern, int numBytes)
      3) an integer flag that indicates whether the buffer contains data.
         (0 = data not updated, 1 = data has been updated
 */   
-void ltpnm_span_get (unsigned int   engineIdWanted,  
-                     NmltpSpan    * results,
-                     int          * success)
+void ltpnm_span_get (uvast	engineIdWanted,  
+                     NmltpSpan	* results,
+                     int	* success)
 {
     Sdr            	sdr = getIonsdr();
     Object         	sdrElt;
@@ -216,7 +216,7 @@ void ltpnm_span_get (unsigned int   engineIdWanted,
 }
 
 /****************************************************************************/
-void ltpnm_span_reset (unsigned int engineIdWanted, int * success)
+void ltpnm_span_reset (uvast engineIdWanted, int * success)
 {
     Sdr             sdr = getIonsdr();
     Object          sdrElt;

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+echo "Cleaning up old ION..."
+rm -f ion_nodes 
+rm -f *.ipn.ltp/ion.log 
+rm -f *.ipn.ltp/receivedFile 
+rm -f *.ipn.ltp/*.stdout 
+rm -f *.ipn.ltp/ltpblock.*
