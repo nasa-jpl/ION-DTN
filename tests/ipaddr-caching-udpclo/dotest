@@ -264,6 +264,7 @@ bptrace ipn:2.1 ipn:3.1 dtn:none 300 0.1 "Hello4!"
 sleep 1
 
 bpstats
+sleep 10
 cat ion.log | grep xmt
 
 echo ""
@@ -284,6 +285,7 @@ fi
 # Check log on the receiving side
 cd ../3.bench.udp
 bpstats
+sleep 10
 cat ion.log | grep rcv
 echo ""
 echo "Receiver bpstats should show 3 recived bundles."
