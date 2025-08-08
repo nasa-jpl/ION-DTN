@@ -349,6 +349,12 @@ then
 elif [[ "$version" == *"Solaris"* ]] || [[ "$version" == *"SunOS"* ]]
 then
         OS_VERSION=solaris;
+elif [[ "$version" == *"FreeBSD"* ]] || [[ "$version" == *"OpenBSD"* ]]
+then
+    OS_VERSION=freebsd;
+else
+    echo "runtests: Unknown OS type, cannot run tests."
+    exit 1
 fi
 
 #Determine BP version for exclustion of tests
