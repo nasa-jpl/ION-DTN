@@ -582,8 +582,6 @@ extern int	irecvfrom(int sockfd, char *buf, int len, int flags,
 
 #ifdef unix			/****	All UNIX platforms	     ****/
 
-#define __GNU_SOURCE		/****	Needed for Linux & Darwin    ****/
-
 /*
 ** *NIX Headers: Common to All Supported *NIX Platforms
 */
