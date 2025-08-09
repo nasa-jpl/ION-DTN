@@ -44,6 +44,8 @@ function testvolume () {
     else
         applyrelativevolume $1 $2
     fi
+    # sleep for contact volume to reflect in routing decision
+    sleep 1
     echo -e "$IONMESSAGE $1 $2\n!" | bpsource ipn:1.1 &
     BPSOURCEPID=$!
 
