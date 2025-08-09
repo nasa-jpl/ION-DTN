@@ -15,12 +15,7 @@
 	    Note: required two restarts to revert petition state
 	
 	2.) Refactoring for SANA range of ipn-scheme fully qualified node
-		numbers serving as continuum numbers, possibly truncated
-		(see MAX_CONTIN_NBR directive).
-		Note: this is currently constrained by the 16 bit field width
-		in AMS' constructMessage() header array.
-		
-		See MAX_CONTIN_NBR directive in amscommon.h
+		numbers in gateway ID.
 
 	   	Modifications include switching arrays and for-loops using the 
 	   	MAX_CONTIN_NBR to use ici's lyst (managed linked list)
@@ -42,11 +37,13 @@ static int	CancelPetition(RamsGateway *gWay, Petition *pet);
 
 static int	NoteDeclaration(RamsNode *fromNode, RamsGateway *gWay);
 static int	HandlePetitionAssertion(RamsNode *fromNode,
-			RamsGateway *gWay, int subjectNbr, int domainContinuum,
-			int domainUnit, int domainRole, int fromPlayback);
+			RamsGateway *gWay, short subjectNbr,
+			short domainContinuum, int domainUnit, int domainRole,
+			int fromPlayback);
 static int	HandlePetitionCancellation(RamsNode *fromNode,
-			RamsGateway *gWay, int subjectNbr, int domainContinuum,
-			int domainUnit, int domainRole, int fromPlayback);
+			RamsGateway *gWay, short subjectNbr,
+			short domainContinuum, int domainUnit, int domainRole,
+			int fromPlayback);
 static int	HandlePublishedMessage(RamsNode *fromNode, RamsGateway *gWay,
 			char *msg);
 static int	HandlePrivateMessage(RamsGateway *gWay, char *msg);
@@ -55,11 +52,11 @@ static int	HandleAnnouncedMessage(RamsNode *fromNode,
 static int	HandleRPDU(RamsNode *fromNode, RamsGateway *gWay, char *msg);
 
 static int	AddPetitioner(Module *sourceModule,  RamsGateway *gWay,
-			int domainRole, int domainContinuum, int domainUnit,
-			int subjectNbr);
+			int domainRole, short domainContinuum, int domainUnit,
+			short subjectNbr);
 static int	RemovePetitioner(Module *sourceModule,  RamsGateway *gWay,
-			int domainRole, int domainContinuum, int domainUnit,
-			int subjectNbr);
+			int domainRole, short domainContinuum, int domainUnit,
+			short subjectNbr);
 static int	ForwardPublishedMessage(RamsGateway *gWay, AmsEvent amsEvent);
 static int	ForwardTargetedMessage(RamsGateway *gWay,
 			unsigned char flowLabel, char* content,
@@ -73,9 +70,9 @@ static void	HandleSubscription(AmsModule module,
 					int unitNbr,
 					int moduleNbr,
 					int domainRoleNbr,
-					int domainContinuumNbr,
+					short domainContinuumNbr,
 					int domainUnitNbr,
-					int subjectNbr,
+					short subjectNbr,
 					int priority,
 					unsigned char flowLabel,
 					AmsSequence sequence,
@@ -86,9 +83,9 @@ static void	HandleUnsubscription(AmsModule module,
 					int unitNbr,
 					int moduleNbr,
 					int domainRoleNbr,
-					int domainContinuumNbr,
+					short domainContinuumNbr,
 					int domainUnitNbr,
-					int subjectNbr);
+					short subjectNbr);
 static void	HandleRegistration(AmsModule module,
 					void *userData,
 					AmsEvent *eventRef,
@@ -106,9 +103,9 @@ static void	HandleInvitation(AmsModule module,
 					int unitNbr,
 					int moduleNbr,
 					int domainRoleNbr,
-					int domainContinuumNbr,
+					short domainContinuumNbr,
 					int domainUnitNbr,
-					int subjectNbr,
+					short subjectNbr,
 					int priority,
 					unsigned char flowLabel,
 					AmsSequence sequence,
@@ -119,9 +116,9 @@ static void	HandleDisinvitation(AmsModule module,
 					int unitNbr,
 					int moduleNbr,
 					int domainRoleNbr,
-					int domainContinuumNbr,
+					short domainContinuumNbr,
 					int domainUnitNbr,
-					int subjectNbr);
+					short subjectNbr);
 static void	HandleUserEvent(AmsModule module,
 					void *userData,
 					AmsEvent *eventRef,
@@ -131,10 +128,10 @@ static void	HandleUserEvent(AmsModule module,
 static void	HandleAamsMessage(AmsModule module,
 					void *userData,
 					AmsEvent *eventRef,
-					int continuumNbr,
+					short continuumNbr,
 					int unitNbr,
 					int moduleNbr,
-					int subjectNbr,
+					short subjectNbr,
 					int contentLength,
 					char *content,
 					int context,
@@ -143,7 +140,7 @@ static void	HandleAamsMessage(AmsModule module,
 					unsigned char flowLabel);
 
 static int	RehandlePetition(RamsNetProtocol protocol, char *gwEid,
-			int cc, int sub, int domainContinuum, int domainUnit,
+			int cc, int sub, short domainContinuum, int domainUnit,
 			int domainRole)
 {
 	RamsGateway	*gWay = _gWay(NULL);
@@ -208,8 +205,8 @@ static int	PlaybackPetitionLog(int petitionLog)
 	RamsNetProtocol	protocol;
 	char		gwEid[256];
 	unsigned int	cc;
-	int		sub;
-	unsigned int	domainContinuum;
+	short		sub;
+	short		domainContinuum;
 	unsigned int	domainUnit;
 	unsigned int	domainRole;
 
@@ -232,7 +229,7 @@ static int	PlaybackPetitionLog(int petitionLog)
 			return -1;
 		}
 
-		if (sscanf(buffer, "%u %255s %u %d %u %u %u",
+		if (sscanf(buffer, "%u %255s %u %hd %hd %u %u",
 			(unsigned int *) &protocol, gwEid, &cc, &sub,
 			&domainContinuum, &domainUnit, &domainRole) == 7)
 		{
@@ -550,7 +547,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	int			amsMemory;
 	AmsModule		amsModule;
 	AmsMib			*mib;
-	int			ownContinuumNbr;
+	short			ownContinuumNbr;
 	Subject			*ownMsgspace = NULL;
 	RamsGateway		*gWay;
 	Sdr			sdr;
@@ -571,7 +568,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	long			cId;
 	Petition		*pet;
 	AmsEventMgt		rules;
-	int			ownPseudoSubject;
+	short			ownPseudoSubject;
 	pthread_t		checkThread;
 
 	PUTS("RAMS version 1.0");
@@ -989,7 +986,7 @@ printf("Before bp_receive...\n");
 
 static void	TerminateGateway(RamsGateway *gWay)
 {
-	int		ownPseudoSubject;
+	short		ownPseudoSubject;
 	LystElt		elt;
 	LystElt		sgsElt;
 	RamsNode	*node;
@@ -1209,8 +1206,8 @@ static void	HandleAamsError(void *userData, AmsEvent *event)
 
 static void	HandleSubscription(AmsModule module, void *userData,
 			AmsEvent *eventRef, int unitNbr, int moduleNbr,
-			int domainRoleNbr, int domainContinuumNbr,
-			int domainUnitNbr, int subjectNbr, int priority,
+			int domainRoleNbr, short domainContinuumNbr,
+			int domainUnitNbr, short subjectNbr, int priority,
 			unsigned char flowLabel, AmsSequence sequence,
 			AmsDiligence diligence)
 {
@@ -1233,8 +1230,8 @@ subjectNbr=%d\n", moduleNbr, subjectNbr);
 
 static void	HandleUnsubscription(AmsModule module, void *userData,
 			AmsEvent *eventRef, int unitNbr, int moduleNbr,
-			int domainRoleNbr, int domainContinuumNbr,
-			int domainUnitNbr, int subjectNbr)
+			int domainRoleNbr, short domainContinuumNbr,
+			int domainUnitNbr, short subjectNbr)
 {
 	RamsGateway	*gWay;
 	Module		*sourceModule;
@@ -1306,8 +1303,8 @@ ams_get_unit_nbr(module), ams_get_module_nbr(module));
 
 static void	HandleInvitation(AmsModule module, void *userData,
 			AmsEvent *eventRef, int unitNbr, int moduleNbr,
-			int domainRoleNbr, int domainContinuumNbr,
-			int domainUnitNbr, int subjectNbr, int priority,
+			int domainRoleNbr, short domainContinuumNbr,
+			int domainUnitNbr, short subjectNbr, int priority,
 			unsigned char flowLabel, AmsSequence sequence,
 			AmsDiligence diligence)
 {
@@ -1368,8 +1365,8 @@ PrintInvitationList(gWay);
 
 static void	HandleDisinvitation(AmsModule module, void *userData,
 			AmsEvent *eventRef, int unitNbr, int moduleNbr,
-			int domainRoleNbr, int domainContinuumNbr,
-			int domainUnitNbr, int subjectNbr)
+			int domainRoleNbr, short domainContinuumNbr,
+			int domainUnitNbr, short subjectNbr)
 {
 	RamsGateway	*gWay = (RamsGateway *)userData;
 	LystElt		invElt;
@@ -1419,8 +1416,8 @@ PUTS("in HandleUserEvent");
 }
 
 static void	HandleAamsMessage(AmsModule module, void *userData,
-			AmsEvent *eventRef, int continuumNbr, int unitNbr,
-			int moduleNbr, int subjectNbr, int contentLength,
+			AmsEvent *eventRef, short continuumNbr, int unitNbr,
+			int moduleNbr, short subjectNbr, int contentLength,
 			char *content, int context, AmsMsgType msgType,
 			int priority, unsigned char flowLabel)
 {
@@ -1453,8 +1450,8 @@ printf("in HandleAamsMessage, subject = %d\n", subjectNbr);
 static int	HandleRPDU(RamsNode *fromNode, RamsGateway *gWay, char *msg)
 {
 	int		cc;
-	int		sub;
-	int		domainContinuum;
+	short		sub;
+	short		domainContinuum;
 	int		domainUnit;
 	int		domainRole;
 	RamsNode	*declaredNode;
@@ -1624,10 +1621,10 @@ EnvelopeHeader(env, Env_SubjectNbr));
 
 static int	CancelPetition(RamsGateway *gWay, Petition *pet)
 {
-	int		continuumNbr;
+	short		continuumNbr;
 	int		unitNbr;
 	int		sourceId;
-	int		subjectNbr;
+	short		subjectNbr;
 	LystElt		sgsElt;
 	LystElt		nextElt;
 	RamsNode	*node;
@@ -1734,7 +1731,7 @@ fromNode->continuumNbr);
 }
 
 static int	HandlePetitionAssertion(RamsNode *fromNode, RamsGateway *gWay,
-			int subjectNbr, int domainContinuum, int domainUnit,
+			short subjectNbr, short domainContinuum, int domainUnit,
 			int domainRole, int fromPlayback)
 {
 	LystElt		elt;
@@ -1942,18 +1939,19 @@ PrintGatewayState(gWay);
 }
 
 static int	HandlePetitionCancellation(RamsNode *fromNode,
-			RamsGateway *gWay, int petSubject, int domainContinuum,
-			int domainUnit, int domainRole, int fromPlayback)
+			RamsGateway *gWay, short petSubject,
+			short domainContinuum, int domainUnit,
+			int domainRole, int fromPlayback)
 {
 	LystElt		elt;
 	LystElt		dgsElt;
 	LystElt		sgsElt;
 	Petition	*pet;
 	Petition	*aPet;
-	int		continuumNbr;
+	short		continuumNbr;
 	int		unitNbr;
 	int		sourceId;
-	int		subjectNbr;
+	short		subjectNbr;
 
 #if RAMSDEBUG
 PUTS("<handle petition cancellation> receive petition cancellation RPDU (3)");
@@ -2182,7 +2180,7 @@ static int	HandlePublishedMessage(RamsNode *fromNode, RamsGateway *gWay,
 	Module		*module;
 	RamsNode	*ramsNode;
 	Petition	*pet;
-	int		localcn = gWay->amsMib->localContinuumNbr;
+	short		localcn = gWay->amsMib->localContinuumNbr;
 
 #if RAMSDEBUG
 PUTS("<handle published message> receive published message RPDU (4)");
@@ -2300,7 +2298,7 @@ PUTS("<handle published message> sending to module failed");
 
 static int	HandlePrivateMessage(RamsGateway *gWay, char *msg)
 {
-	int		destinationContinuumNbr;
+	short		destinationContinuumNbr;
 	RamsNode	*ramsNode;
 	int		unitNbr;
 	int		moduleNbr;
@@ -2384,7 +2382,7 @@ EnvelopeHeader(msg, Env_SubjectNbr));
 static int	HandleAnnouncedMessage(RamsNode* fromNode,
 			RamsGateway *gWay, char *msg)
 {
-	int		destinationContinuumNbr;
+	short		destinationContinuumNbr;
 	int		domainRole;
 	int		domainUnit;
 	LystElt		elt;
@@ -2561,8 +2559,8 @@ PUTS("<handle announced message> sending to module failed");
 /*	*	Utility functions for AMS event handlers	*	*/
 	
 static int	AddPetitioner(Module *sourceModule, RamsGateway *gWay,
-			int domainRole, int domainContinuum, int domainUnit,
-			int subjectNbr)
+			int domainRole, short domainContinuum, int domainUnit,
+			short subjectNbr)
 {
 	LystElt		elt;
 	Petition	*pet;
@@ -2634,8 +2632,8 @@ PrintGatewayState(gWay);
 }
 
 static int	RemovePetitioner(Module *sourceModule, RamsGateway *gWay,
-			int domainRole, int domainContinuum, int domainUnit,
-			int subjectNbr)
+			int domainRole, short domainContinuum, int domainUnit,
+			short subjectNbr)
 {
 	 LystElt	elt;
 	 LystElt	modulesElt;
@@ -2697,10 +2695,10 @@ static int	ForwardPublishedMessage(RamsGateway *gWay, AmsEvent amsEvent)
 	Petition	*pet;
 	char		*content;
 	AmsMsgType	msgType;
-	int		continuumNbr;
+	short		continuumNbr;
 	int		unitNbr;
 	int		moduleNbr;
-	int		subjectNbr;
+	short		subjectNbr;
 	int		contentLen;
 	int		context;
 	int		priority;
@@ -2794,7 +2792,7 @@ static int	ForwardTargetedMessage(RamsGateway *gWay,
 			unsigned char flowLabel, char* content,
 			int contentLength)
 {
-	int		destinationContinuumNbr;
+	short		destinationContinuumNbr;
 	LystElt		elt;
 	RamsNode	*ramsNode;
 

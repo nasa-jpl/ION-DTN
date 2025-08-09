@@ -17,7 +17,7 @@ int	amssub(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 	char		*authorityName = (char *) a2;
 	char		*subjectName = (char *) a3;
 	AmsModule	me;
-	int		subjectNbr;
+	short		subjectNbr;
 	AmsEvent	event;
 	int		cn, un, nn, sn, len, ct, pr, fl;
 	char		*txt;
@@ -86,7 +86,7 @@ int	amspub(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 	char		*subjectName = (char *) a3;
 	char		*msgText = (char *) a4;
 	AmsModule	me;
-	int		subjectNbr;
+	short		subjectNbr;
 
 	if (applicationName == NULL
 	|| authorityName == NULL

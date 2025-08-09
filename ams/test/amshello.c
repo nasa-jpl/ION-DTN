@@ -21,17 +21,19 @@ amsd @ @ amsdemo test "" &
 
 static int	runPitcher()
 {
-	AmsModule	    me;
-	AmsEvent	    evt;
+	AmsModule	me;
+	AmsEvent	evt;
 	AmsStateType	state;
 	AmsChangeType	change;
-	int		        zn, nn, rn, dcn, dzn, sn, pr, textlen;
+	short		sn, dcn;
+	int	        zn, nn, rn, dzn, pr, textlen;
 	unsigned char	fl;
-	AmsSequence	    sequence;
+	AmsSequence	sequence;
 	AmsDiligence	diligence;
-	char		    buffer[80];
+	char		buffer[80];
 
-	isprintf(buffer, sizeof buffer, "Hello from process %d", (int) getpid());
+	isprintf(buffer, sizeof buffer, "Hello from process %d",
+			(int) getpid());
 	textlen = strlen(buffer) + 1;
 
 	//register pitch module using default in-memory MIB (i.e. @)
@@ -40,13 +42,14 @@ static int	runPitcher()
 	while (1)
 	{
 		if (ams_get_event(me, AMS_BLOCKING, &evt) < 0) return 0;
-			ams_parse_notice(evt, &state, &change, &zn, &nn, &rn, &dcn,
-					&dzn, &sn, &pr, &fl, &sequence, &diligence);
-			ams_recycle_event(evt);
+		ams_parse_notice(evt, &state, &change, &zn, &nn, &rn, &dcn,
+				&dzn, &sn, &pr, &fl, &sequence, &diligence);
+		ams_recycle_event(evt);
 
 		if (state == AmsInvitationState && sn == 1)
 		{
-			printf("Process %d sending:  '%s'\n", (int) getpid(), buffer);
+			printf("Process %d sending:  '%s'\n", (int) getpid(),
+					buffer);
 			fflush(stdout);
 			ams_send(me, -1, zn, nn, 1, 0, 0, textlen, buffer, 0);
 			ams_unregister(me); return 0;
@@ -56,12 +59,13 @@ static int	runPitcher()
 
 static int	runCatcher()
 {
-	AmsModule	    me;
-	AmsEvent	    evt;
-	int		        cn, zn, nn, sn, len, ct, pr;
+	AmsModule	me;
+	AmsEvent	evt;
+	short		cn, sn;
+	int		zn, nn, len, ct, pr;
 	unsigned char	fl;
-	AmsMsgType	    mt;
-	char		    *txt;
+	AmsMsgType	mt;
+	char		*txt;
 
 	//register catch module using default in-memory MIB (i.e. @)
 	oK(ams_register("@", NULL, "amsdemo", "test", "", "catch", &me));

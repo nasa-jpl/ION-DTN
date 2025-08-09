@@ -38,7 +38,7 @@ int	main(int argc, char **argv)
 	char		*buffer;
 	AmsModule	me;
 	AmsEventMgt	rules;
-	int		subjectNbr;
+	short		subjectNbr;
 	int		content;
 
 	if (count < 1 || size < sizeof(int) || size > 65535)

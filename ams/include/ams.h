@@ -76,10 +76,10 @@ typedef enum
 typedef void		(*AmsMsgHandler)(AmsModule module,
 					void *userData,
 					AmsEvent *eventRef,
-					int continuumNbr,
+					short continuumNbr,
 					int unitNbr,
 					int moduleNbr,
-					int subjectNbr,
+					short subjectNbr,
 					int contentLength,
 					char *content,
 					int context,
@@ -106,9 +106,9 @@ typedef void		(*AmsInvitationHandler)(AmsModule module,
 					int unitNbr,
 					int moduleNbr,
 					int domainRoleNbr,
-					int domainContinuumNbr,
+					short domainContinuumNbr,
 					int domainUnitNbr,
-					int subjectNbr,
+					short subjectNbr,
 					int priority,
 					unsigned char flowLabel,
 					AmsSequence sequence,
@@ -120,9 +120,9 @@ typedef void		(*AmsDisinvitationHandler)(AmsModule module,
 					int unitNbr,
 					int moduleNbr,
 					int domainRoleNbr,
-					int domainContinuumNbr,
+					short domainContinuumNbr,
 					int domainUnitNbr,
-					int subjectNbr);
+					short subjectNbr);
 
 typedef void		(*AmsSubscriptionHandler)(AmsModule module,
 					void *userData,
@@ -130,9 +130,9 @@ typedef void		(*AmsSubscriptionHandler)(AmsModule module,
 					int unitNbr,
 					int moduleNbr,
 					int domainRoleNbr,
-					int domainContinuumNbr,
+					short domainContinuumNbr,
 					int domainUnitNbr,
-					int subjectNbr,
+					short subjectNbr,
 					int priority,
 					unsigned char flowLabel,
 					AmsSequence sequence,
@@ -144,9 +144,9 @@ typedef void		(*AmsUnsubscriptionHandler)(AmsModule module,
 					int unitNbr,
 					int moduleNbr,
 					int domainRoleNbr,
-					int domainContinuumNbr,
+					short domainContinuumNbr,
 					int domainUnitNbr,
-					int subjectNbr);
+					short subjectNbr);
 
 typedef void		(*AmsUserEventHandler)(AmsModule module,
 					void *userData,
@@ -225,12 +225,12 @@ extern int		ams_get_unit_nbr(AmsModule module);
 
 extern Lyst		ams_list_msgspaces(AmsModule module);
 
-extern int		ams_get_continuum_nbr();
+extern short		ams_get_continuum_nbr();
 
 extern int		ams_rams_net_is_tree(AmsModule module);
 
 extern int		ams_msgspace_is_neighbor(AmsModule module,
-					int continuumNbr);
+					short continuumNbr);
 
 extern char		*ams_get_role_name(AmsModule module,
 					int unitNbr,
@@ -246,10 +246,10 @@ extern int		ams_lookup_unit_nbr(AmsModule module,
 extern int		ams_lookup_role_nbr(AmsModule module,
 					char *roleName);
 
-extern int		ams_lookup_subject_nbr(AmsModule module,
+extern short		ams_lookup_subject_nbr(AmsModule module,
 					char *subjectName);
 
-extern int		ams_lookup_continuum_nbr(AmsModule module,
+extern short		ams_lookup_continuum_nbr(AmsModule module,
 					char *continuumName);
 
 extern char		*ams_lookup_unit_name(AmsModule module,
@@ -259,16 +259,16 @@ extern char		*ams_lookup_role_name(AmsModule module,
 					int roleNbr);
 
 extern char		*ams_lookup_subject_name(AmsModule module,
-					int subjectNbr);
+					short subjectNbr);
 
 extern char		*ams_lookup_continuum_name(AmsModule module,
-					int continuumNbr);
+					short continuumNbr);
 
 extern int		ams_invite(	AmsModule module,
 					int roleNbr,
-					int continuumNbr,
+					short continuumNbr,
 					int unitNbr,
-					int subjectNbr,
+					short subjectNbr,
 					int priority,
 					unsigned char flowLabel,
 					AmsSequence sequence,
@@ -276,15 +276,15 @@ extern int		ams_invite(	AmsModule module,
 
 extern int		ams_disinvite(	AmsModule module,
 					int roleNbr,
-					int continuumNbr,
+					short continuumNbr,
 					int unitNbr,
-					int subjectNbr);
+					short subjectNbr);
 
 extern int		ams_subscribe(	AmsModule module,
 					int roleNbr,
-					int continuumNbr,
+					short continuumNbr,
 					int unitNbr,
-					int subjectNbr,
+					short subjectNbr,
 					int priority,
 					unsigned char flowLabel,
 					AmsSequence sequence,
@@ -292,12 +292,12 @@ extern int		ams_subscribe(	AmsModule module,
 
 extern int		ams_unsubscribe(AmsModule module,
 					int roleNbr,
-					int continuumNbr,
+					short continuumNbr,
 					int unitNbr,
-					int subjectNbr);
+					short subjectNbr);
 
 extern int		ams_publish(	AmsModule module,
-					int subjectNbr,
+					short subjectNbr,
 					int priority,
 					unsigned char flowLabel,
 					int contentLength,
@@ -305,10 +305,10 @@ extern int		ams_publish(	AmsModule module,
 					int context);
 
 extern int		ams_send(	AmsModule module,
-					int continuumNbr,
+					short continuumNbr,
 					int unitNbr,
 					int moduleNbr,
-					int subjectNbr,
+					short subjectNbr,
 					int priority,
 					unsigned char flowLabel,
 					int contentLength,
@@ -316,10 +316,10 @@ extern int		ams_send(	AmsModule module,
 					int context);
 
 extern int		ams_query(	AmsModule module,
-					int continuumNbr,
+					short continuumNbr,
 					int unitNbr,
 					int moduleNbr,
-					int subjectNbr,
+					short subjectNbr,
 					int priority,
 					unsigned char flowLabel,
 					int contentLength,
@@ -330,7 +330,7 @@ extern int		ams_query(	AmsModule module,
 
 extern int		ams_reply(	AmsModule module,
 					AmsEvent msg,
-					int subjectNbr,
+					short subjectNbr,
 					int priority,
 					unsigned char flowLabel,
 					int contentLength,
@@ -338,9 +338,9 @@ extern int		ams_reply(	AmsModule module,
 
 extern int		ams_announce(	AmsModule module,
 					int roleNbr,
-					int continuumNbr,
+					short continuumNbr,
 					int unitNbr,
-					int subjectNbr,
+					short subjectNbr,
 					int priority,
 					unsigned char flowLabel,
 					int contentLength,
@@ -360,10 +360,10 @@ extern int		ams_get_event(	AmsModule module,
 extern int		ams_get_event_type(AmsEvent event);
 
 extern int		ams_parse_msg(	AmsEvent event,
-					int *continuumNbr,
+					short *continuumNbr,
 					int *unitNbr,
 					int *moduleNbr,
-					int *subjectNbr,
+					short *subjectNbr,
 					int *contentLength,
 					char **content,
 					int *context,
@@ -377,9 +377,9 @@ extern int		ams_parse_notice(AmsEvent event,
 					int *unitNbr,
 					int *moduleNbr,
 					int *roleNbr,
-					int *domainContinuumNbr,
+					short *domainContinuumNbr,
 					int *domainUnitNbr,
-					int *subjectNbr,
+					short *subjectNbr,
 					int *priority,
 					unsigned char *flowLabel,
 					AmsSequence *sequence,

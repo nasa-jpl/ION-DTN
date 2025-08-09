@@ -30,9 +30,10 @@ extern RamsNode		*Look_Up_DeclaredNeighbor(RamsGateway *gWay,
 				int ramsNbr);
 
 extern void		ConstructEnvelope(unsigned char *envelope,
-				int continuumNbr, int unitNbr, int sourceId,
-				int destId, int subjectNbr, int enclosureLength,
-				char *enclosure, int controlCode);
+				short continuumNbr, int unitNbr, int sourceId,
+				int destId, short subjectNbr,
+				int enclosureLength, char *enclosure,
+				int controlCode);
 extern int		EnvelopeHeader(char *envelope, EnvelopeField conId);
 extern char		*EnvelopeContent(char *envelope, int contentLength);
 /* 
@@ -41,16 +42,17 @@ extern void		GetEnvelopeSpecification(char* env, int *continuumNbr,
 				int *unitNbr, int *roleNbr); 
 */
 
-extern Enclosure	*ConstructEnclosure(int continuumNbr, int unitNbr,
-				int moduleNbr, int subjectNbr,
+extern Enclosure	*ConstructEnclosure(short continuumNbr, int unitNbr,
+				int moduleNbr, short subjectNbr,
 				int contentLength, char *content, int context,
 				AmsMsgType msgType, int priority,
 				unsigned char flowLabel);
 extern int		EnclosureHeader(char *enc, EnclosureField encId);
 extern void		DeleteEnclosure(Enclosure *enc);
 
-extern Petition		*ConstructPetition(int domainContinuum, int domainRole,
-				int domainUnit, int subNbr, int cCode);
+extern Petition		*ConstructPetition(short domainContinuum,
+				int domainRole, int domainUnit, int subNbr,
+				int cCode);
 extern Petition		*ConstructPetitionFromEnvelope(char* envelope);
 extern void		DeletePetition(Petition *pet);
 
@@ -58,18 +60,18 @@ extern int		RoleNumber(AmsModule module, int unitNbr,
 				int moduleNbr);
 extern int		SamePetition(Petition *pet1, Petition *pet2);
 extern int		PetitionMatchesDomain(Petition *pet,
-				int domainContinuum, int domainRole,
+				short domainContinuum, int domainRole,
 				int domainUnit, int subNbr);
 extern int		EnclosureSatisfiesPetition(AmsModule module,
 				char *rpdu, Petition *pet);
 extern int		EnclosureSatisfiesInvitation(RamsGateway *gWay,
 				char *rpdu, Invitation *inv);
-extern int		MessageSatisfiesPetition(AmsModule module, int msgCont,
-				int msgUnit, int msgModule, int subjectNbr,
+extern int		MessageSatisfiesPetition(AmsModule module, short msgCont,
+				int msgUnit, int msgModule, short subjectNbr,
 				Petition *pet);
 
 extern LystElt		ModuleSetMember(Module *module, Lyst lyst);
-extern LystElt		InvitationSetMember(int dUnit, int dRole, int dCont,
+extern LystElt		InvitationSetMember(int dUnit, int dRole, short dCont,
 				int sub, Lyst lyst);
 extern LystElt		NodeSetMember(RamsNode *fromGWay, Lyst lyst);
 
@@ -78,7 +80,7 @@ extern Module		*LookupModule(int unitNbr, int moduleNbr,
 				RamsGateway *gWay);
 extern void		SubtractNodeSets(Lyst set1, Lyst set2);
 extern void		AddNodeSets(Lyst set1, Lyst set2);
-extern RamsNode		*GetConduitForContinuum(int cId, RamsGateway *gWay);
+extern RamsNode		*GetConduitForContinuum(short cId, RamsGateway *gWay);
 extern int		PetitionIsAssertable(RamsGateway *gWay, Petition *pet);
 extern Lyst		AssertionSet(RamsGateway *gWay, Petition *pet);
 
@@ -86,13 +88,13 @@ extern int		MessageIsInvited(RamsGateway *gWay, char *msg);
 extern int		ModuleIsInAnnouncementDomain(RamsGateway *gWay,
 				Module *module, int dUnit, int dRole);
 
-extern int		SendRPDU(RamsGateway *gWay, int destContinuumNbr,
+extern int		SendRPDU(RamsGateway *gWay, short destContinuumNbr,
 				unsigned char flowLabel, char *envelope,
 				int envelopeLength);
-extern int		SendNewRPDU(RamsGateway *gWay, int destContinuumNbr,
+extern int		SendNewRPDU(RamsGateway *gWay, short destContinuumNbr,
 				unsigned char flowLabel, Enclosure *enclosure,
-				int continuumNbr, int unitNbr, int sourceId,
-				int destId, int controlCode, int subjectNbr);
+				short continuumNbr, int unitNbr, int sourceId,
+				int destId, int controlCode, short subjectNbr);
 extern void		*CheckUdpRpdus(void *threadParm);
 #ifdef __cplusplus
 }

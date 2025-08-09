@@ -22,9 +22,10 @@ int	main(int argc, char **argv)
 {
 #endif
 	AmsModule	me;
-	int		subjectNbr;
+	short		subjectNbr;
 	AmsEvent	event;
-	int		cn, zn, nn, sn, len, ct, pr;
+	short		cn, sn;
+	int		zn, nn, len, ct, pr;
 	unsigned char	fl;
 	AmsMsgType	mt;
 	char		*txt;

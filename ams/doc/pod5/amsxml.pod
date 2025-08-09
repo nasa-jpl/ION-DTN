@@ -50,7 +50,7 @@ in order for the file to be parsed successfully by expat.
 
 		<application name="amsdemo" />
 
-		<venture nbr="1" appname="amsdemo" authname="test">
+		<venture nbr="1" appname="amsdemo" authname="test" gweid="bp@ipn:2.1">
 
 			<role nbr="2" name="shell"/>
 

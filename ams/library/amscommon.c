@@ -13,18 +13,15 @@
 
 	Modifications address the following issue:
 	1.) Allow for SANA range of ipn-scheme fully qualified node numbers
-		serving as continuum numbers (see MAX_CONTIN_NBR directive).
-		Note: this is currently constrained by the 16 bit field width
-		in AMS' constructMessage() header array.  Moreover, large
-		FQNNs (uvast) may be truncated when used as continuum numbers
-		(int).
-		
-		See MAX_CONTIN_NBR directive in amscommon.h 
+		in the gateway IDs corresponding to (and implicitly
+		identifying) message spaces. Note that continuum numbers
+		function as ION node identifiers (FQNNs) when and only when
+		ION is initialized from within AMS.
 
-		Modifications include switching arrays and for-loops 
-		using the MAX_CONTIN_NBR to use ici's lyst (managed linked list)
+		Modifications include changing arrays and for-loops using the
+		MAX_CONTIN_NBR to use ici's lyst (managed linked list) instead.
 
-	*/
+*/
 
 #include "amscommon.h"
 
@@ -478,7 +475,7 @@ static void	addTs(AmsMib *mib, TsLoadFn loadTs)
 	mib->transportServiceCount++;
 }
 
-static int	initializeMib(AmsMib *mib, int continuumNbr, char *ptsName,
+static int	initializeMib(AmsMib *mib, short continuumNbr, char *ptsName,
 			char *pubkeyname, char *privkeyname)
 {
 	int			amsMemory = getIonMemoryMgr();
@@ -576,7 +573,7 @@ static int	initializeMib(AmsMib *mib, int continuumNbr, char *ptsName,
 	return 0;
 }
 
-static int	initializeMemMgt(int continuumNbr)
+static int	initializeMemMgt(short continuumNbr)
 {
 	IonParms	ionParms;
 
@@ -585,7 +582,8 @@ static int	initializeMemMgt(int continuumNbr)
 		return 0;		/*	ION is already started.	*/
 	}
 
-	writeMemo("[i] ION not started yet.  Starting ION from inside AMS.");
+	writeMemo("[i] ION not started yet.  Starting ION from AMS, using \
+continuum number as ION node number.");
 	if (readIonParms(NULL, &ionParms) < 0)
 	{
 		putErrmsg("AMS can't load ION parameters.", NULL);
@@ -924,16 +922,19 @@ Unit	*lookUpUnit(Venture *venture, char *unitName)
 	return NULL;
 }
 
-Subject *getMsgSpaceByNbr(Venture *myVenture, int continuum_nbr)
+Subject *getMsgSpaceByNbr(Venture *myVenture, short continuum_nbr)
 {
-	Subject *myMsgSpace = NULL;
-	LystElt		elt = NULL;
+	Subject	*myMsgSpace = NULL;
+	LystElt	elt = NULL;
 
-	for (elt = lyst_first(myVenture->msgspace_lyst); elt; elt = lyst_next(elt))
+	for (elt = lyst_first(myVenture->msgspace_lyst); elt;
+			elt = lyst_next(elt))
 	{
 		myMsgSpace = (Subject *) lyst_data(elt);
 
-		/*Msg spaces are stored in pseudonumber notation (i.e. negative..)*/
+		/*	Msg spaces are stored in pseudonumber
+		 *	notation (i.e. negative..)			*/
+
 		if (0 - myMsgSpace->nbr == continuum_nbr) 
 		{
 			/* We have a match */		
@@ -944,13 +945,14 @@ Subject *getMsgSpaceByNbr(Venture *myVenture, int continuum_nbr)
 	return NULL;
 }
 
-Continuum	*getContinuaByNbr(int contnbr)
+Continuum	*getContinuaByNbr(short contnbr)
 {
 	Continuum 	*myContinuum = NULL;
 	LystElt		elt = NULL;
 
 	
-	for (elt = lyst_first(_mib(NULL)->continuum_lyst); elt; elt = lyst_next(elt))
+	for (elt = lyst_first(_mib(NULL)->continuum_lyst); elt;
+			elt = lyst_next(elt))
 	{
 		myContinuum = (Continuum *) lyst_data(elt);
 
@@ -964,23 +966,23 @@ Continuum	*getContinuaByNbr(int contnbr)
 	return NULL;
 }
 
-int	lookUpContinuum(char *contName)
+short	lookUpContinuum(char *contName)
 {
 	lockMib();
 	
 	Continuum 	*myContinuum = NULL;
 	LystElt		elt;
 
-		for (elt = lyst_first(_mib(NULL)->continuum_lyst); elt; elt = lyst_next(elt))
+	for (elt = lyst_first(_mib(NULL)->continuum_lyst); elt;
+			elt = lyst_next(elt))
+	{
+		myContinuum = (Continuum *) lyst_data(elt);
+		if (strcmp(myContinuum->name, contName) == 0)
 		{
-			myContinuum = (Continuum *) lyst_data(elt);
-			
-			if (strcmp(myContinuum->name, contName) == 0)
-			{
-				unlockMib();
-				return myContinuum->nbr;
-			}	
+			unlockMib();
+			return myContinuum->nbr;
 		}	
+	}	
 
 	unlockMib();
 	return -1;
@@ -1201,7 +1203,7 @@ static void	destroyFanModule(LystElt elt, void *userdata)
 	MRELEASE(fan);
 }
 
-Subject	*createSubject(Venture *venture, int nbr, char *name,
+Subject	*createSubject(Venture *venture, short nbr, char *name,
 		char *description, char *symmetricKeyName,
 		char *marshalFnName, char *unmarshalFnName)
 {
@@ -1480,22 +1482,21 @@ LystElt	createApp(char *name, char *publicKeyName, char *privateKeyName)
 	return elt;
 }
 
-Subject	*createMsgspace(Venture *venture, int continNbr, int isNeighbor,
+Subject	*createMsgspace(Venture *venture, short continNbr, int isNeighbor,
 		char *gwEidString, char *symmetricKeyName)
 {
-	int			amsMemory = getIonMemoryMgr();
+	int		amsMemory = getIonMemoryMgr();
 	Subject		*msgspace;
 	RamsNetProtocol	ramsProtocol;
 	char		*gwEid;
 	char		gwEidBuffer[MAX_GW_EID + 1];
-	int			length;
+	int		length;
 	LystElt 	elt;
-	
 
 	CHKNULL(venture);
 	CHKNULL(continNbr > 0);
 	CHKNULL(continNbr <= MAX_CONTIN_NBR);
-		
+
 	/* return null if no match */
 	if(getContinuaByNbr((_mib(NULL), continNbr)) == NULL ) 
 	{
@@ -1515,10 +1516,15 @@ Subject	*createMsgspace(Venture *venture, int continNbr, int isNeighbor,
 	ramsProtocol = parseGwEid(gwEidString, &gwEid, gwEidBuffer);
 	if (ramsProtocol == RamsNoProtocol)
 	{
+#if 0
 		ramsProtocol = RamsBp;
 		isprintf(gwEidBuffer, sizeof gwEidBuffer, "ipn:%d.%d",
 				continNbr, venture->nbr);
 		gwEid = gwEidBuffer;
+#endif
+		writeMemoNote("[?] AMS: invalid gateway ID for msgspace",
+				gwEidString);
+		return NULL;
 	}
 
 	length = strlen(gwEid) + 1;
@@ -1753,6 +1759,7 @@ static Venture	*createVenture2(int nbr, char *appname, char *authname,
 	RamsNetProtocol	ramsProtocol;
 	char		*gwEid;
 	char		gwEidBuffer[MAX_GW_EID + 1];
+	char		nbrBuf[FQN_MAX_LENGTH];
 	AppRole		*gatewayRole;
 	AppRole		*shutdownRole;
 	Subject		*allSubjects;
@@ -1803,7 +1810,14 @@ static Venture	*createVenture2(int nbr, char *appname, char *authname,
 	ramsProtocol = parseGwEid(gwEidString, &gwEid, gwEidBuffer);
 	if (ramsProtocol == RamsNoProtocol)
 	{
+		/*	Construct BP gateway ID using the node
+		 *	identifier of the local BP node.		*/
+
 		ramsProtocol = RamsBp;
+		putFqn(nbrBuf, getOwnFqnn());
+		isprintf(gwEidBuffer, sizeof gwEidBuffer, "bp@ipn:%s.%d",
+				nbrBuf, venture->nbr);
+		gwEidString = gwEidBuffer;
 	}
 
 	venture->gwProtocol = ramsProtocol;
@@ -1886,10 +1900,10 @@ static Continuum	*createContinuum2(int nbr, char *name,
 				char *description)
 {
 	AmsMib		*mib = _mib(NULL); /* Note: createContinuum has lock */
-	int			length;
+	int		length;
 	Continuum	*contin;
-	int			nameLen;
-	int			descLen = 0;
+	int		nameLen;
+	int		descLen = 0;
 	LystElt		elt;
 
 	CHKNULL(nbr > 0);
@@ -1925,7 +1939,7 @@ static Continuum	*createContinuum2(int nbr, char *name,
 	return contin;
 }
 
-Continuum	*createContinuum(int nbr, char *name, char *description)
+Continuum	*createContinuum(short nbr, char *name, char *description)
 {
 	Continuum	*result;
 

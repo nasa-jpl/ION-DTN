@@ -1932,7 +1932,7 @@ static void	enqueueRegistrarStop(RsState *rsState)
 static void	*dmMain(void *parm)
 {
 	DmState		*dmState = (DmState *) parm;
-	int		amsstopSubj;
+	short		amsstopSubj;
 	int		amsstopRole;
 	AmsEvent	event;
 	int		eventType;

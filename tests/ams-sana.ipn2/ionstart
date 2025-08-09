@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+#start ion---------------------------------------------
+ionadmin	amroc.ionrc
+sleep 1
+ionadmin	global.ionrc
+sleep 1
+ionsecadmin	amroc.ionsecrc
+sleep 1
+ltpadmin	amroc.ltprc
+sleep 1
+bpadmin		amroc.bprc
+sleep 1
+
+
+#ams daemon as config server and registrar--------------
+#note that @ here implies PTS default (i.e. localhost:2357)
+amsd mib.amsrc @ amsdemo test "" &
+sleep 3
+
+echo "Waiting for AMS cell census (9 seconds left)..."
+sleep 3
+echo "Waiting for AMS cell census (6 seconds left)..."
+sleep 3
+echo "Waiting for AMS cell census (3 seconds left)..."
+sleep 3
+
+#start ramsgate-----------------------------------------
+# test sometimes fails.. adding some extra delay here
+sleep 2
+ramsgate amsdemo test &
+sleep 5

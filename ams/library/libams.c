@@ -14,19 +14,16 @@
 
 	Modifications address the following issues:
 
-	1.) Code reformatted to allow for the SANA range of ipn-scheme fully
-		qualified node numbers serving as continuum numbers.
-		Note: this is currently constrained by the 16 bit field width
-		in AMS' constructMessage() header array.  Moreover, large
-		FQNNs (uvast) may be truncated when used as continuum numbers
-		(int).
-	
-		See MAX_CONTIN_NBR directive in amscommon.h for more info.
+	1.) Allow for SANA range of ipn-scheme fully qualified node numbers
+		in the gateway IDs corresponding to (and implicitly
+		identifying) message spaces.  Note that continuum numbers
+		function as ION node identifiers (FQNNs) when and only when
+		ION is initialized from within AMS.
 
 		Modifications include changing arrays and for-loops using the 
 		MAX_CONTIN_NBR to use ici's lyst (managed linked list) instead.
 									
-	*/
+*/
 
 #include "amsP.h"
 
@@ -57,8 +54,8 @@
  *	of the user application.  Most other failures are simply
  *	reported and ignored.						*/
 
-static int	ams_invite2(AmsSAP *sap, int roleNbr, int continuumNbr,
-			int unitNbr, int subjectNbr, int priority,
+static int	ams_invite2(AmsSAP *sap, int roleNbr, short continuumNbr,
+			int unitNbr, short subjectNbr, int priority,
 			unsigned char flowLabel, AmsSequence sequence,
 			AmsDiligence diligence);
 
@@ -469,8 +466,8 @@ static int	subunitOf(AmsSAP *sap, int argUnitNbr, int refUnitNbr)
 	return 0;
 }
 
-static LystElt	getMsgRule(AmsSAP *sap, Lyst rules, int subjectNbr, int roleNbr,
-			int continuumNbr, int unitNbr)
+static LystElt	getMsgRule(AmsSAP *sap, Lyst rules, short subjectNbr,
+			int roleNbr, short continuumNbr, int unitNbr)
 {
 	LystElt	elt;
 	MsgRule	*rule;
@@ -950,7 +947,7 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 			int *contentLength, unsigned char *header,
 			AmsMsgType msgType)
 {
-	int              myContinNbr = (_mib(NULL))->localContinuumNbr;
+	short            myContinNbr = (_mib(NULL))->localContinuumNbr;
 	unsigned long    u8 = 0;
 	unsigned char    u1 = 0;
 	short       i2 = 0;
@@ -1135,7 +1132,7 @@ static int	getDeclarationLength(AmsSAP *sap)
 }
 
 static void	loadAssertion(char **cursor, int ruleType, unsigned char
-			roleNbr, unsigned int continuumNbr, unsigned short
+			roleNbr, short continuumNbr, unsigned short
 			unitNbr, short subjectNbr, int vectorNbr, int priority,
 			unsigned char flowLabel)
 {
@@ -1350,7 +1347,7 @@ void	destroyAmsEndpoint(LystElt elt, void *userdata)
 
 static int	subjectIsValid(AmsSAP *sap, int subjectNbr, Subject **subject)
 {
-	int	pseudoSubjectNbr;
+	short	pseudoSubjectNbr;
 
 	if (subjectNbr > 0)
 	{
@@ -1459,7 +1456,7 @@ static LystElt	findFanModule(AmsSAP *sap, Subject *subject, Module *module,
 }
 
 static LystElt	findXmitRule(AmsSAP *sap, Lyst rules, int domainRoleNbr,
-			int domainContinuumNbr, int domainUnitNbr,
+			short domainContinuumNbr, int domainUnitNbr,
 			LystElt *nextRule)
 {
 	LystElt		elt;
@@ -1525,8 +1522,8 @@ static LystElt	findXmitRule(AmsSAP *sap, Lyst rules, int domainRoleNbr,
 
 static int	enqueueNotice(AmsSAP *sap, AmsStateType stateType,
 			AmsChangeType changeType, int unitNbr,
-			int moduleNbr, int roleNbr, int domainContinuumNbr,
-			int domainUnitNbr, int subjectNbr, int priority,
+			int moduleNbr, int roleNbr, short domainContinuumNbr,
+			int domainUnitNbr, short subjectNbr, int priority,
 			unsigned char flowLabel, AmsSequence sequence,
 			AmsDiligence diligence)
 {
@@ -1561,8 +1558,8 @@ static int	enqueueNotice(AmsSAP *sap, AmsStateType stateType,
 }
 
 static int	logCancellation(AmsSAP *sap, Module *module, int domainRoleNbr,
-			int domainContinuumNbr, int domainUnitNbr,
-			int subjectNbr, int ruleType)
+			short domainContinuumNbr, int domainUnitNbr,
+			short subjectNbr, int ruleType)
 {
 	AmsStateType	stateType;
 
@@ -1579,7 +1576,7 @@ static int	logCancellation(AmsSAP *sap, Module *module, int domainRoleNbr,
 }
 
 static int	noteAssertion(AmsSAP *sap, Module *module, Subject *subject,
-			int domainRoleNbr, int domainContinuumNbr,
+			int domainRoleNbr, short domainContinuumNbr,
 			int domainUnitNbr, int priority, int flowLabel,
 			AmsEndpoint *point, int ruleType, int flag)
 {
@@ -1753,8 +1750,8 @@ printf("...inserted rule in rules list %lu...\n", (unsigned long) rules);
 }
 
 static int	logAssertion(AmsSAP *sap, Module *module, int domainRoleNbr,
-			int domainContinuumNbr, int domainUnitNbr,
-			int subjectNbr, int priority, unsigned char flowLabel,
+			short domainContinuumNbr, int domainUnitNbr,
+			short subjectNbr, int priority, unsigned char flowLabel,
 			AmsSequence sequence, AmsDiligence diligence,
 			int ruleType)
 {
@@ -1773,12 +1770,12 @@ static int	logAssertion(AmsSAP *sap, Module *module, int domainRoleNbr,
 	return 0;
 }
 
-static int	processAssertion(AmsSAP *sap, Module *module, int subjectNbr,
-			int domainRoleNbr, int domainContinuumNbr,
+static int	processAssertion(AmsSAP *sap, Module *module, short subjectNbr,
+			int domainRoleNbr, short domainContinuumNbr,
 			int domainUnitNbr, int priority, unsigned char
 			flowLabel, int vectorNbr, int ruleType, int flag)
 {
-	int		myContinNbr = (_mib(NULL))->localContinuumNbr;
+	short		myContinNbr = (_mib(NULL))->localContinuumNbr;
 	Subject		*subject;
 	LystElt		elt;
 	AmsEndpoint	*point;
@@ -1861,8 +1858,8 @@ static int	parseAssertion(AmsSAP *sap, Module *module, int *bytesRemaining,
 	int		bytesNeeded;
 	short		i2;
 	unsigned short	u2;
-	int		subjectNbr;
-	int		domainContinuumNbr;
+	short		subjectNbr;
+	short		domainContinuumNbr;
 	int		domainUnitNbr;
 	int		domainRoleNbr;
 	unsigned char	u1;
@@ -2037,9 +2034,10 @@ printf("Parsing decl invitation with %d bytes remaining.\n", bytesRemaining);
 	return 0;
 }
 
-static int	processCancellation(AmsSAP *sap, Module *module, int subjectNbr,
-			int domainRoleNbr, int domainContinuumNbr,
-			int domainUnitNbr, int ruleType)
+static int	processCancellation(AmsSAP *sap, Module *module,
+			short subjectNbr, int domainRoleNbr,
+			short domainContinuumNbr, int domainUnitNbr,
+			int ruleType)
 {
 	Subject		*subject;
 	LystElt		elt;
@@ -2406,8 +2404,8 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 	int		u4;
 	short	i2;
 	unsigned short	u2;
-	int		subjectNbr;
-	int		domainContinuumNbr;
+	short		subjectNbr;
+	short		domainContinuumNbr;
 	int		domainUnitNbr;
 	int		domainRoleNbr;
 	int		moduleCount;
@@ -4370,7 +4368,7 @@ Lyst	ams_list_msgspaces(AmsSAP *sap)
 	return msgspaces;
 }
 
-int	ams_msgspace_is_neighbor(AmsSAP *sap, int continuumNbr)
+int	ams_msgspace_is_neighbor(AmsSAP *sap, short continuumNbr)
 {
 	Subject	*msgspace;
 
@@ -4390,7 +4388,7 @@ int	ams_msgspace_is_neighbor(AmsSAP *sap, int continuumNbr)
 	return msgspace->isNeighbor;
 }
 
-int	ams_get_continuum_nbr()
+short	ams_get_continuum_nbr()
 {
 	return (_mib(NULL))->localContinuumNbr;
 }
@@ -4547,7 +4545,7 @@ static int	sendToSubscribers(AmsSAP *sap, Subject *subject,
 	return 0;
 }
 
-static int	ams_publish2(AmsSAP *sap, int subjectNbr, int priority,
+static int	ams_publish2(AmsSAP *sap, short subjectNbr, int priority,
 			unsigned char flowLabel, int contentLength,
 			char *content, int context)
 {
@@ -4604,7 +4602,7 @@ static int	ams_publish2(AmsSAP *sap, int subjectNbr, int priority,
 	return result;
 }
 
-int	ams_publish(AmsSAP *sap, int subjectNbr, int priority,
+int	ams_publish(AmsSAP *sap, short subjectNbr, int priority,
 		unsigned char flowLabel, int contentLength, char *content,
 		int context)
 {
@@ -4643,8 +4641,8 @@ static DeliveryVector	*lookUpDeliveryVector(AmsSAP *sap, AmsSequence sequence,
 	return NULL;
 }
 
-static LystElt	findMsgRule(AmsSAP *sap, Lyst rules, int subjectNbr,
-			int roleNbr, int continuumNbr, int unitNbr,
+static LystElt	findMsgRule(AmsSAP *sap, Lyst rules, short subjectNbr,
+			int roleNbr, short continuumNbr, int unitNbr,
 			LystElt *nextRule)
 {
 	LystElt	elt;
@@ -4722,7 +4720,7 @@ static LystElt	findMsgRule(AmsSAP *sap, Lyst rules, int subjectNbr,
 }
 
 static int	addMsgRule(AmsSAP *sap, int ruleType, Subject *subject,
-			int roleNbr, int continuumNbr, int unitNbr,
+			int roleNbr, short continuumNbr, int unitNbr,
 			int priority, int flowLabel, DeliveryVector *vector,
 			LystElt *ruleElt)
 {
@@ -4773,12 +4771,12 @@ static int	addMsgRule(AmsSAP *sap, int ruleType, Subject *subject,
 	return 0;
 }
 
-static int	ams_invite2(AmsSAP *sap, int roleNbr, int continuumNbr,
-			int unitNbr, int subjectNbr, int priority,
+static int	ams_invite2(AmsSAP *sap, int roleNbr, short continuumNbr,
+			int unitNbr, short subjectNbr, int priority,
 			unsigned char flowLabel, AmsSequence sequence,
 			AmsDiligence diligence)
 {
-	int		myContinNbr = (_mib(NULL))->localContinuumNbr;
+	short		myContinNbr = (_mib(NULL))->localContinuumNbr;
 	Subject		*subject;
 	DeliveryVector	*vector;
 	LystElt		elt;
@@ -4856,8 +4854,8 @@ limited to local continuum", itoa(continuumNbr));
 			diligence);
 }
 
-int	ams_invite(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
-		int subjectNbr, int priority, unsigned char flowLabel,
+int	ams_invite(AmsSAP *sap, int roleNbr, short continuumNbr, int unitNbr,
+		short subjectNbr, int priority, unsigned char flowLabel,
 		AmsSequence sequence, AmsDiligence diligence)
 {
 	int	result = -1;
@@ -4874,7 +4872,7 @@ int	ams_invite(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
 }
 
 static int	removeMsgRule(AmsSAP *sap, int ruleType, Subject *subject,
-			int roleNbr, int continuumNbr, int unitNbr)
+			int roleNbr, short continuumNbr, int unitNbr)
 {
 	Lyst	rules;
 	LystElt	elt;
@@ -4893,8 +4891,8 @@ static int	removeMsgRule(AmsSAP *sap, int ruleType, Subject *subject,
 	return 0;
 }
 
-static int	ams_disinvite2(AmsSAP *sap, int roleNbr, int continuumNbr,
-			int unitNbr, int subjectNbr)
+static int	ams_disinvite2(AmsSAP *sap, int roleNbr, short continuumNbr,
+			int unitNbr, short subjectNbr)
 {
 	Subject		*subject;
 	unsigned char	*cancellation;
@@ -4938,8 +4936,8 @@ static int	ams_disinvite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 			unitNbr, subjectNbr, 0, 0, 0, 0);
 }
 
-int	ams_disinvite(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
-		int subjectNbr)
+int	ams_disinvite(AmsSAP *sap, int roleNbr, short continuumNbr, int unitNbr,
+		short subjectNbr)
 {
 	int	result = -1;
 
@@ -4954,9 +4952,9 @@ int	ams_disinvite(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
 	return result;
 }
 
-static void	constructEnvelope(unsigned char *envelope, int continuumNbr,
+static void	constructEnvelope(unsigned char *envelope, short continuumNbr,
 			int unitNbr, int sourceIdNbr, int destinationIdNbr,
-			int subjectNbr, int enclosureHdrLength,
+			short subjectNbr, int enclosureHdrLength,
 			char *enclosureHdr, int enclosureContentLength,
 			char *enclosureContent, int controlCode)
 {
@@ -4985,12 +4983,12 @@ static void	constructEnvelope(unsigned char *envelope, int continuumNbr,
 	}
 }
 
-static int	ams_subscribe2(AmsSAP *sap, int roleNbr, int continuumNbr,
-			int unitNbr, int subjectNbr, int priority,
+static int	ams_subscribe2(AmsSAP *sap, int roleNbr, short continuumNbr,
+			int unitNbr, short subjectNbr, int priority,
 			unsigned char flowLabel, AmsSequence sequence,
 			AmsDiligence diligence)
 {
-	int		myContinNbr = (_mib(NULL))->localContinuumNbr;
+	short		myContinNbr = (_mib(NULL))->localContinuumNbr;
 	Subject		*subject;
 	DeliveryVector	*vector;
 	LystElt		elt;
@@ -5068,8 +5066,8 @@ limited to local continuum", itoa(continuumNbr));
 			diligence);
 }
 
-int	ams_subscribe(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
-		int subjectNbr, int priority, unsigned char flowLabel,
+int	ams_subscribe(AmsSAP *sap, int roleNbr, short continuumNbr, int unitNbr,
+		short subjectNbr, int priority, unsigned char flowLabel,
 		AmsSequence sequence, AmsDiligence diligence)
 {
 	int	result = -1;
@@ -5085,8 +5083,8 @@ int	ams_subscribe(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
 	return result;
 }
 
-static int	ams_unsubscribe2(AmsSAP *sap, int roleNbr, int continuumNbr,
-			int unitNbr, int subjectNbr)
+static int	ams_unsubscribe2(AmsSAP *sap, int roleNbr, short continuumNbr,
+			int unitNbr, short subjectNbr)
 {
 	Subject		*subject;
 	unsigned char	*cancellation;
@@ -5130,8 +5128,8 @@ static int	ams_unsubscribe2(AmsSAP *sap, int roleNbr, int continuumNbr,
 			unitNbr, subjectNbr, 0, 0, 0, 0);
 }
 
-int	ams_unsubscribe(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
-		int subjectNbr)
+int	ams_unsubscribe(AmsSAP *sap, int roleNbr, short continuumNbr,
+		int unitNbr, short subjectNbr)
 {
 	int	result = -1;
 
@@ -5146,12 +5144,12 @@ int	ams_unsubscribe(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
 	return result;
 }
 
-static int	publishInEnvelope(AmsSAP *sap, int continuumNbr, int unitNbr,
-			int sourceIdNbr, int destinationIdNbr, int subjectNbr,
+static int	publishInEnvelope(AmsSAP *sap, short continuumNbr, int unitNbr,
+			int sourceIdNbr, int destinationIdNbr, short subjectNbr,
 			char *amsHeader, int amsHdrLength, char *content,
 			int contentLength, int controlCode)
 {
-	int		subject = 0 - continuumNbr;
+	short		subject = 0 - continuumNbr;
 	int		envelopeLength = 12 + amsHdrLength + contentLength;
 	unsigned char	*envelope;
 	int		result;
@@ -5172,12 +5170,12 @@ static int	publishInEnvelope(AmsSAP *sap, int continuumNbr, int unitNbr,
 	return result;
 }
 
-static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr,
-			int moduleNbr, int subjectNbr, int priority,
+static int	sendMsg(AmsSAP *sap, short continuumNbr, int unitNbr,
+			int moduleNbr, short subjectNbr, int priority,
 			unsigned char flowLabel, int contentLength,
 			char *content, int context, AmsMsgType msgType)
 {
-	int		myContinNbr = (_mib(NULL))->localContinuumNbr;
+	short		myContinNbr = (_mib(NULL))->localContinuumNbr;
 	Subject		*subject;
 	char		amsHeader[16];
 	int		headerLength = sizeof amsHeader;
@@ -5362,8 +5360,8 @@ fflush(stdout);
 	return result;
 }
 
-static int	ams_send2(AmsSAP *sap, int continuumNbr, int unitNbr,
-			int moduleNbr, int subjectNbr, int priority,
+static int	ams_send2(AmsSAP *sap, short continuumNbr, int unitNbr,
+			int moduleNbr, short subjectNbr, int priority,
 			unsigned char flowLabel, int contentLength,
 			char *content, int context)
 {
@@ -5372,8 +5370,8 @@ static int	ams_send2(AmsSAP *sap, int continuumNbr, int unitNbr,
 			context, AmsMsgUnary);
 }
 
-int	ams_send(AmsSAP *sap, int continuumNbr, int unitNbr, int moduleNbr,
-		int subjectNbr, int priority, unsigned char flowLabel,
+int	ams_send(AmsSAP *sap, short continuumNbr, int unitNbr, int moduleNbr,
+		short subjectNbr, int priority, unsigned char flowLabel,
 		int contentLength, char *content, int context)
 {
 	int	result = -1;
@@ -5476,9 +5474,9 @@ static void	handleNoticeEvent(AmsSAP *sap, AmsEvent *event)
 	int		unitNbr;
 	int		moduleNbr;
 	int		roleNbr;
-	int		domainContinuumNbr;
+	short		domainContinuumNbr;
 	int		domainUnitNbr;
-	int		subjectNbr;
+	short		subjectNbr;
 	int		priority;
 	unsigned char	flowLabel;
 	AmsSequence	sequence;
@@ -5591,10 +5589,10 @@ static void	*eventMgrMain(void *parm)
 	AmsSAP		*sap = (AmsSAP *) parm;
 	AmsEventMgt	*rules = &(sap->eventMgtRules);
 	AmsEvt		*evt;
-	int		continuumNbr;
+	short		continuumNbr;
 	int		unitNbr;
 	int		moduleNbr;
-	int		subjectNbr;
+	short		subjectNbr;
 	int		contentLength;
 	char		*content;
 	int		context;
@@ -5714,8 +5712,8 @@ static void	stopEventMgr(AmsSAP *sap)
 	sap->eventMgr = sap->authorizedEventMgr;
 }
 
-static int	ams_query2(AmsSAP *sap, int continuumNbr, int unitNbr,
-			int moduleNbr, int subjectNbr, int priority,
+static int	ams_query2(AmsSAP *sap, short continuumNbr, int unitNbr,
+			int moduleNbr, short subjectNbr, int priority,
 			unsigned char flowLabel, int contentLength,
 			char *content, int context, int term, AmsEvent *event)
 {
@@ -5791,8 +5789,8 @@ static int	ams_query2(AmsSAP *sap, int continuumNbr, int unitNbr,
 	return result;
 }
 
-int	ams_query(AmsSAP *sap, int continuumNbr, int unitNbr, int moduleNbr,
-		int subjectNbr, int priority, unsigned char flowLabel,
+int	ams_query(AmsSAP *sap, short continuumNbr, int unitNbr, int moduleNbr,
+		short subjectNbr, int priority, unsigned char flowLabel,
 		int contentLength, char *content, int context, int term,
 		AmsEvent *event)
 {
@@ -5810,7 +5808,7 @@ int	ams_query(AmsSAP *sap, int continuumNbr, int unitNbr, int moduleNbr,
 	return result;
 }
 
-static int	ams_reply2(AmsSAP *sap, AmsEvt *evt, int subjectNbr,
+static int	ams_reply2(AmsSAP *sap, AmsEvt *evt, short subjectNbr,
 			int priority, unsigned char flowLabel,
 			int contentLength, char *content)
 {
@@ -5826,7 +5824,7 @@ static int	ams_reply2(AmsSAP *sap, AmsEvt *evt, int subjectNbr,
 	return result;
 }
 
-int	ams_reply(AmsSAP *sap, AmsEvt *evt, int subjectNbr, int priority,
+int	ams_reply(AmsSAP *sap, AmsEvt *evt, short subjectNbr, int priority,
 		unsigned char flowLabel, int contentLength, char *content)
 {
 	int	result = -1;
@@ -5842,12 +5840,12 @@ int	ams_reply(AmsSAP *sap, AmsEvt *evt, int subjectNbr, int priority,
 	return result;
 }
 
-static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
-			int unitNbr, int subjectNbr, int priority,
+static int	ams_announce2(AmsSAP *sap, int roleNbr, short continuumNbr,
+			int unitNbr, short subjectNbr, int priority,
 			unsigned char flowLabel, int contentLength,
 			char *content, int context)
 {
-	int		myContinNbr = (_mib(NULL))->localContinuumNbr;
+	short		myContinNbr = (_mib(NULL))->localContinuumNbr;
 	Subject		*subject;
 	char		amsHeader[16];
 	int		headerLength = sizeof amsHeader;
@@ -6053,8 +6051,8 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 	return 0;
 }
 
-int	ams_announce(AmsSAP *sap, int roleNbr, int continuumNbr, int unitNbr,
-		int subjectNbr, int priority, unsigned char flowLabel,
+int	ams_announce(AmsSAP *sap, int roleNbr, short continuumNbr, int unitNbr,
+		short subjectNbr, int priority, unsigned char flowLabel,
 		int contentLength, char *content, int context)
 {
 	int	result = -1;
@@ -6145,8 +6143,8 @@ int	ams_get_event_type(AmsEvent event)
 	return event->type;
 }
 
-int	ams_parse_msg(AmsEvent event, int *continuumNbr, int *unitNbr,
-		int *moduleNbr, int *subjectNbr, int *contentLength,
+int	ams_parse_msg(AmsEvent event, short *continuumNbr, int *unitNbr,
+		int *moduleNbr, short *subjectNbr, int *contentLength,
 		char **content, int *context, AmsMsgType *msgType,
 		int *priority, unsigned char *flowLabel)
 {
@@ -6251,7 +6249,7 @@ static int	ams_lookup_subject_nbr2(AmsSAP *sap, char *subjectName)
 	return -1;
 }
 
-int	ams_lookup_subject_nbr(AmsSAP *sap, char *subjectName)
+short	ams_lookup_subject_nbr(AmsSAP *sap, char *subjectName)
 {
 	int	result = -1;
 
@@ -6265,9 +6263,9 @@ int	ams_lookup_subject_nbr(AmsSAP *sap, char *subjectName)
 	return result;
 }
 
-int	ams_lookup_continuum_nbr(AmsSAP *sap, char *continuumName)
+short	ams_lookup_continuum_nbr(AmsSAP *sap, char *continuumName)
 {
-	int	result = -1;
+	short	result = -1;
 
 	if (continuumName && validSap(sap))
 	{
@@ -6339,7 +6337,7 @@ char	*ams_lookup_role_name(AmsSAP *sap, int roleNbr)
 	return result;
 }
 
-static char	*ams_lookup_subject_name2(AmsSAP *sap, int subjectNbr)
+static char	*ams_lookup_subject_name2(AmsSAP *sap, short subjectNbr)
 {
 	Subject	*subject;
 
@@ -6355,7 +6353,7 @@ static char	*ams_lookup_subject_name2(AmsSAP *sap, int subjectNbr)
 	return NULL;
 }
 
-char	*ams_lookup_subject_name(AmsSAP *sap, int subjectNbr)
+char	*ams_lookup_subject_name(AmsSAP *sap, short subjectNbr)
 {
 	char	*result = NULL;
 
@@ -6369,7 +6367,7 @@ char	*ams_lookup_subject_name(AmsSAP *sap, int subjectNbr)
 	return result;
 }
 
-static char	*ams_lookup_continuum_name2(AmsSAP *sap, int continuumNbr)
+static char	*ams_lookup_continuum_name2(AmsSAP *sap, short continuumNbr)
 {	
 	Continuum 	*myContinuum;
 	AmsMib		*mib = _mib(NULL);
@@ -6398,7 +6396,7 @@ static char	*ams_lookup_continuum_name2(AmsSAP *sap, int continuumNbr)
 	return NULL;
 }
 
-char	*ams_lookup_continuum_name(AmsSAP *sap, int continuumNbr)
+char	*ams_lookup_continuum_name(AmsSAP *sap, short continuumNbr)
 {
 	char	*result = NULL;
 
@@ -6414,8 +6412,8 @@ char	*ams_lookup_continuum_name(AmsSAP *sap, int continuumNbr)
 
 int	ams_parse_notice(AmsEvent event, AmsStateType *state,
 		AmsChangeType *change, int *unitNbr, int *moduleNbr,
-		int *roleNbr, int *domainContinuumNbr, int *domainUnitNbr,
-		int *subjectNbr, int *priority, unsigned char *flowLabel,
+		int *roleNbr, short *domainContinuumNbr, int *domainUnitNbr,
+		short *subjectNbr, int *priority, unsigned char *flowLabel,
 		AmsSequence *sequence, AmsDiligence *diligence)
 {
 	AmsNotice	*notice;

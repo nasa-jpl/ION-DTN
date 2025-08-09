@@ -13,13 +13,13 @@
 	
 	Modifications address the following:
 	1.) Allow for SANA range of ipn-scheme fully qualified node numbers
-       		serving as continuum numbers (see MAX_CONTIN_NBR directive).
-		Note: this is currently constrained by the 16 bit field width
-		in AMS' constructMessage() header array.  Moreover, large
-		FQNNs (uvast) may be truncated when used as continuum numbers
-		(int).
+		in the gateway IDs corresponding to (and implicitly
+		identifying) message spaces.  Note that continuum numbers
+		function as ION node identifiers (FQNNS) when and only when
+		ION is initialized from within AMS.
 
-		See MAX_CONTIN_NBR directive in amscommon.h
+		Modifications include changing arrays and for-loops using the
+		MAX_CONTIN_NBR to use ici's lyst (managed linked list) instead.
 
 	2.) New associated function definitions for: 
 		getContinuaByNbr() and getMsgSpaceByNbr()
@@ -30,7 +30,7 @@
 		Note: Cell Census Period derived from: 
 		(N6_COUNT x N4_INTERVAL) + (N6_COUNT * N3_INTERVAL)
 	
-	*/
+*/
 
 #ifndef _AMSCOMMON_H_
 #define _AMSCOMMON_H_
@@ -83,7 +83,7 @@ extern "C" {
 #define	TS_INDEX_LIMIT	5
 
 #ifndef MAX_CONTIN_NBR
-#define	MAX_CONTIN_NBR	32767 /* Constrained by size of short - for MacOS*/
+#define	MAX_CONTIN_NBR	32767 /*	As constrained by AMS Blue Book.*/
 #endif
 
 #ifndef MAX_VENTURE_NBR
@@ -152,7 +152,7 @@ typedef struct amsevtst
 
 typedef struct
 {
-	int		continuumNbr;
+	short		continuumNbr;
 	char		*ptsName;
 	char		*publicKeyName;
 	char		*privateKeyName;
@@ -167,7 +167,7 @@ typedef enum
 
 typedef struct
 {
-	int		nbr;
+	short		nbr;
 	char		*name;
 	char		*description;
 } Continuum;
@@ -323,7 +323,7 @@ typedef struct
 
 typedef struct subjst
 {
-	int		nbr;
+	short		nbr;
 	char		*name;
 	char		*description;
 	Lyst		authorizedSenders;	/*	(AppRole *)	*/
@@ -393,7 +393,7 @@ typedef struct ventstr
 	Lyst		subjLysts[SUBJ_LIST_CT];/*	hash table	*/
 	Unit		*units[MAX_UNIT_NBR + 1];
 	RamsNetProtocol	gwProtocol;
-	int			ramsNetIsTree;		/*	Boolean.	*/
+	int			ramsNetIsTree;		/*	Boolean.*/
 	Lyst 		msgspace_lyst; /* Collection of msgspaces (Subject*) */
 } Venture;
 
@@ -412,7 +412,7 @@ typedef struct
 	Lyst		applications;		/*	(AmsApp *)	*/
 	Venture		*ventures[MAX_VENTURE_NBR + 1];
 	Lyst		csEndpoints;		/*	(MamsEndpoint *)*/
-	int		localContinuumNbr;
+	short		localContinuumNbr;
 	char		*csPublicKeyName;
 	char		*csPrivateKeyName;	/*	Only for CS MIB.*/
 	int		users;			/*	Reference count.*/
@@ -493,14 +493,14 @@ extern Venture	*lookUpVenture(char *appName, char *authName);
 extern Subject	*lookUpSubject(Venture *venture, char *subjectName);
 extern AppRole	*lookUpRole(Venture *venture, char *roleName);
 extern Unit	*lookUpUnit(Venture *venture, char *unitName);
-extern int	lookUpContinuum(char *continuumName);
-extern Continuum *getContinuaByNbr(int contnbr);
-extern Subject * getMsgSpaceByNbr(Venture *venture, int continuum_nbr);
+extern short	lookUpContinuum(char *continuumName);
+extern Continuum *getContinuaByNbr(short contnbr);
+extern Subject	*getMsgSpaceByNbr(Venture *venture, short continuum_nbr);
 extern void	eraseApp(AmsApp *app);
 extern LystElt	createApp(char *name, char *publicKeyName,
 			char *privateKeyName);
 extern void	eraseSubject(Venture *venture, Subject *subj);
-extern Subject	*createSubject(Venture *venture, int nbr, char *name,
+extern Subject	*createSubject(Venture *venture, short nbr, char *name,
 			char *description, char *symmetricKeyName,
 			char *marshalFnName, char *unmarshalFnName);
 extern void	eraseRole(Venture *venture, AppRole *role);
@@ -513,8 +513,9 @@ extern void	deleteAuthorizedReceiver(Subject *subj, char *receiverRoleName);
 extern int	addAuthorizedReceiver(Venture *venture, Subject *subj,
 			char *receiverRoleName);
 extern void	eraseMsgspace(Venture *venture, Subject *subj);
-extern Subject	*createMsgspace(Venture *venture, int continNbr, int isNeighbor,
-			char *gwEidString, char *symmetricKeyName);
+extern Subject	*createMsgspace(Venture *venture, short continNbr,
+			int isNeighbor, char *gwEidString,
+			char *symmetricKeyName);
 extern void	eraseUnit(Venture *venture, Unit *unit);
 extern Unit	*createUnit(Venture *venture, int nbr, char *name,
 			int resyncPeriod);
@@ -523,7 +524,7 @@ extern Venture	*createVenture(int nbr, char *appname, char *authname,
 			char *gwEidString, int ramsNetIsTree,
 			int rootCellResyncPeriod);
 extern Continuum
-		*createContinuum(int nbr, char *name, char *description);
+		*createContinuum(short nbr, char *name, char *description);
 extern LystElt	createCsEndpoint(char *endpointSpec, LystElt nextElt);
 extern LystElt	createAmsEpspec(char *tsname, char *endpointSpec);
 

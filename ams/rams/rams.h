@@ -39,9 +39,9 @@ typedef enum
 
 typedef struct
 {
-	int		continuumNbr;	/*	For BP, an FQNN.	*/
+	short		continuumNbr;
 	RamsNetProtocol	protocol;
-	char		*gwEid;
+	char		*gwEid;		/*	For BP, an EID.		*/
 } RamsNode;
 
 typedef struct decl_s
@@ -91,11 +91,11 @@ typedef  struct ramsgateway
 typedef struct
 {
 	int		controlCode;
-	int		continuumNbr;
+	short		continuumNbr;
 	int		unitNbr;
 	int		moduleNbr;
 	int		roleNbr;
-	int		subjectNbr;
+	short		subjectNbr;
 	int		enclosureLength;
 	char		*enclosure;
 } Envelope;
@@ -110,7 +110,7 @@ typedef struct
 {
 	char		*envelope;
 	int		envelopeLength;
-	int		toContinuumNbr;
+	short		toContinuumNbr;
 } PetitionSpec;
 
 typedef struct
@@ -124,10 +124,10 @@ typedef struct
 
 typedef struct 
 {
-	int		domainContNbr;
+	short		domainContNbr;
 	int		domainUnitNbr;
 	int		domainRoleNbr;
-	int		subjectNbr;
+	short		subjectNbr;
 } InvitationSpec;
 
 typedef struct

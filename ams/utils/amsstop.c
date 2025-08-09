@@ -22,7 +22,7 @@ int	main(int argc, char **argv)
 	char		*applicationName = (argc > 1 ? argv[1] : NULL);
 	char		*authorityName = (argc > 2 ? argv[2] : NULL);
 #endif
-	int		amsstopSubj;
+	short		amsstopSubj;
 	AmsModule	me;
 
 	if (applicationName == NULL || authorityName == NULL)

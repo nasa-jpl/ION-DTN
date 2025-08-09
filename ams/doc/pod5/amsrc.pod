@@ -267,9 +267,7 @@ this venture's message space in the local continuum.  Gateway endpoint
 ID is expressed as <protocol_name>@<eid_string> where I<protocol_name>
 is either "bp" or "udp".  If protocol name is "bp" then I<eid_string>
 must be a valid Bundle Protocol endpoint ID; otherwise, I<eid_string>
-must be of the form <hostname>:<port_number>.  If the gweid attribute
-is omitted, the RAMS gateway module's RAMS network endpoint ID defaults
-to "bp@ipn:<local_continuum_number>.<venture_number>".
+must be of the form <hostname>:<port_number>.
 
 =item net_config
 
@@ -478,9 +476,7 @@ this message space.  Gateway endpoint ID is expressed as
 <protocol_name>@<eid_string> where I<protocol_name> is either "bp"
 or "udp".  If protocol name is "bp" then I<eid_string> must be a
 valid Bundle Protocol endpoint ID; otherwise, I<eid_string> must be
-of the form <hostname>:<port_number>.  If the gweid attribute is omitted,
-the RAMS network endpoint ID of the message space's RAMS gateway
-module defaults to "bp@ipn:<remote_continuum_number>.<venture_number>".
+of the form <hostname>:<port_number>.
 
 =item symkey
 
@@ -515,7 +511,7 @@ is omitted the default value is 1.
 
 *application name=amsdemo
 
-+venture nbr=1 appname=amsdemo authname=test
++venture nbr=1 appname=amsdemo authname=test gweid="bp@ipn:2.1"
 
 *role nbr=2 name=shell
 

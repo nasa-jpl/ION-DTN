@@ -77,7 +77,7 @@ static void	handleQuit(int signum)
 
 static void	handleCommand(AmsModule me, char *mode)
 {
-	static int	continuumNbr = 0;
+	static short	continuumNbr = 0;
 	static int	unitNbr = 0;
 	static int	moduleNbr = 0;
 	static int	roleNbr = 0;
@@ -90,12 +90,12 @@ static void	handleCommand(AmsModule me, char *mode)
 	int		subjectNameLength;
 	char		*content;
 	int		contentLength;
-	int		subjectNbr;
+	short		subjectNbr;
 	AmsEvent	event;
-	int		cn;
+	short		cn;
 	int		un;
 	int		nn;
-	int		sn;
+	short		sn;
 	int		cl;
 	char		*rc;
 	int		context;

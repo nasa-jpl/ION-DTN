@@ -15,9 +15,9 @@
 static void	announceMibUpdate(AmsModule me, char *roleName,
 			char *continuumName, char *unitName, char *fileName)
 {
-	int	amsmibSubj;
+	short	amsmibSubj;
 	int	domainRole;
-	int	domainContinuum;
+	short	domainContinuum;
 	int	domainUnit;
 	int	fd;
 	off_t	fileLength;

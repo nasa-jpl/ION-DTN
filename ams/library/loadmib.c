@@ -14,14 +14,11 @@
 	Modifications address the following issues:
 
 	1.) Allow for SANA range of ipn-scheme fully-qualified node numbers
-		serving as continuum numbers (see MAX_CONTIN_NBR directive).
-		Note: this is currently constrained by the 16 bit field width
-		in AMS' constructMessage() header array.  Moreover, large
-		FQNNs (uvast) may be truncated when used as continuum numbers
-		(int).
+		in the gateway IDs corresponding to (and implicitly
+		identifying) message spaces.  Note that continuum number
+		function as ION node identifiers (FQNNs) when and only when
+		ION is initialized from within AMS.
 		
-		See MAX_CONTIN_NBR directive in amscommon.h 
-
 		Modifications include switching arrays and for-loops
 		using the MAX_CONTIN_NBR to use ici's lyst.
 
@@ -210,8 +207,8 @@ static void	handle_load_start(LoadMibState *state, const char **atts)
 static void	handle_init_start(LoadMibState *state, const char **atts)
 {
 	AmsMib			*mib;
-	uvast			fqnn;
-	int			cnbr = 0;
+	vast			temp;
+	short			cnbr = 0;
 	char			*ptsname = NULL;
 	char			*pubkeyname = NULL;
 	char			*privkeyname = NULL;
@@ -241,17 +238,14 @@ static void	handle_init_start(LoadMibState *state, const char **atts)
 		value = *att;
 		if (strcmp(name, "continuum_nbr") == 0)
 		{
-			fqnn = getFqn(value);
-			if (fqnn >> 31 > 0)
+			temp = strtovast(value);
+			if (temp < 0 || temp > MAX_CONTIN_NBR)
 			{
-				/*	Won't fit into a signed int:
-				 *	has allocator or is negative.	*/
-
-				noteLoadError(state, "continuum_nbr too big.");
+				noteLoadError(state, "Invalid continuum nbr.");
 				return;
 			}
 
-			cnbr = fqnn;
+			cnbr = temp;
 		}
 		else if (strcmp(name, "ptsname") == 0)
 		{
@@ -297,7 +291,8 @@ static void	handle_op_start(LoadMibState *state, LoadMibOp op)
 
 static void	handle_continuum_start(LoadMibState *state, const char **atts)
 {
-	int		contnbr = 0;
+	vast		temp;
+	short		contnbr = 0;
 	char		*contname = NULL;
 	char		*desc = NULL;
 	char		**att;
@@ -314,7 +309,14 @@ static void	handle_continuum_start(LoadMibState *state, const char **atts)
 		value = *att;
 		if (strcmp(name, "nbr") == 0)
 		{
-			contnbr = atoi(value);
+			temp = strtovast(value);
+			if (temp < 0 || temp > MAX_CONTIN_NBR)
+			{
+				noteLoadError(state, "Invalid continuum nbr.");
+				return;
+			}
+
+			contnbr = temp;
 		}
 		else if (strcmp(name, "name") == 0)
 		{
@@ -827,7 +829,8 @@ static void	handle_role_start(LoadMibState *state, const char **atts)
 
 static void	handle_subject_start(LoadMibState *state, const char **atts)
 {
-	int	subjnbr = 0;
+	vast	temp;
+	short	subjnbr = 0;
 	char	*subjname = NULL;
 	char	*desc = NULL;
 	char	*symkeyname = NULL;
@@ -857,7 +860,14 @@ static void	handle_subject_start(LoadMibState *state, const char **atts)
 		value = *att;
 		if (strcmp(name, "nbr") == 0)
 		{
-			subjnbr = atoi(value);
+			temp = strtovast(value);
+			if (temp < 0 || temp > MAX_CONTIN_NBR)
+			{
+				noteLoadError(state, "Invalid subject nbr.");
+				return;
+			}
+
+			subjnbr = temp;
 		}
 		else if (strcmp(name, "name") == 0)
 		{
@@ -1142,7 +1152,8 @@ static void	handle_unit_start(LoadMibState *state, const char **atts)
 
 static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 {
-	int		contnbr = 0;
+	vast		temp;
+	short		contnbr = 0;
 	char		*gwEid = NULL;
 	char		*symkeyname = NULL;
 	int		isNeighbor = 1;
@@ -1172,7 +1183,14 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 		value = *att;
 		if (strcmp(name, "nbr") == 0)
 		{
-			contnbr = atoi(value);
+			temp = strtovast(value);
+			if (temp < 0 || temp > MAX_CONTIN_NBR)
+			{
+				noteLoadError(state, "Invalid continuum nbr.");
+				return;
+			}
+
+			contnbr = temp;
 		}
 		else if (strcmp(name, "neighbor") == 0)
 		{

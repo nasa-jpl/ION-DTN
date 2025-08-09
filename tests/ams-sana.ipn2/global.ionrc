@@ -1,0 +1,6 @@
+m horizon  +0
+a range    +0 +70		1.2 1.2   1
+a range    +0 +70		1.2 1.3   1
+a contact  +0 +70		1.2 1.2   16384
+a contact  +0 +70		1.2 1.3   16384
+a contact  +0 +70		1.3 1.2   16384

@@ -42,8 +42,8 @@ RamsGateway	*_gWay(RamsGateway *currentGateway)
 	return gWay;
 }
 
-void	ConstructEnvelope(unsigned char *envelope, int destContinuumNbr,
-		int unitNbr, int sourceID, int destID, int subjectNbr,
+void	ConstructEnvelope(unsigned char *envelope, short destContinuumNbr,
+		int unitNbr, int sourceID, int destID, short subjectNbr,
 		int enclosureLength, char *enclosure, int controlCode)
 {
 	short	i2;
@@ -242,8 +242,8 @@ void	GetEnvelopeSpecification(char *envelope, int *continuumNbr,
 } 
 */
 
-Enclosure	*ConstructEnclosure(int continuumNbr, int unitNbr,
-			int moduleNbr, int subjectNbr, int contentLength,
+Enclosure	*ConstructEnclosure(short continuumNbr, int unitNbr,
+			int moduleNbr, short subjectNbr, int contentLength,
 			char *content, int context, AmsMsgType msgType,
 			int priority, unsigned char flowLabel)
 {
@@ -302,7 +302,7 @@ void	DeleteEnclosure(Enclosure *enc)
 	MRELEASE(enc);
 }
 
-Petition	*ConstructPetition(int domainContinuum, int domainRole,
+Petition	*ConstructPetition(short domainContinuum, int domainRole,
 			int domainUnit, int subNbr, int cCode)
 {
 	int		amsMemory = getIonMemoryMgr();
@@ -391,7 +391,7 @@ int	SamePetition(Petition *pet1, Petition *pet2)
 	return 0;
 }
 
-int	PetitionMatchesDomain(Petition *pet, int domainContinuum,
+int	PetitionMatchesDomain(Petition *pet, short domainContinuum,
 		int domainRole, int domainUnit, int subNbr)
 {
 	char	*env;
@@ -414,7 +414,7 @@ int	EnclosureSatisfiesPetition(AmsModule module, char *rpdu, Petition *pet)
 {
 	char	*enc;
 	char	*env;
-	int	petCont;
+	short	petCont;
 	int	petUnit;
 	int	petRole;
 
@@ -571,11 +571,11 @@ int	RoleNumber(AmsModule module, int unitNbr, int moduleNbr)
    	return ams_lookup_role_nbr(module, roleName);
 }
 
-int	MessageSatisfiesPetition(AmsModule module, int msgCont, int msgUnit,
-		int msgModule, int subjectNbr, Petition* pet)
+int	MessageSatisfiesPetition(AmsModule module, short msgCont, int msgUnit,
+		int msgModule, short subjectNbr, Petition* pet)
 {
 	char	*env;
-	int	petCont;
+	short	petCont;
 	int	petUnit;
 	int	petRole;
 
@@ -637,7 +637,8 @@ LystElt	ModuleSetMember(Module *module, Lyst lyst)
 	return NULL;
 }
 
-LystElt InvitationSetMember(int dUnit, int dRole, int dCont, int sub, Lyst lyst)
+LystElt InvitationSetMember(int dUnit, int dRole, short dCont, int sub,
+		Lyst lyst)
 {
 	LystElt		elt;
 	Invitation	*inv; 
@@ -750,7 +751,7 @@ void	AddNodeSets(Lyst set1, Lyst set2)
 	}
 }
 
-RamsNode	*GetConduitForContinuum(int continuumNbr, RamsGateway *gWay)
+RamsNode	*GetConduitForContinuum(short continuumNbr, RamsGateway *gWay)
 {
 	LystElt		elt;
 	Petition	*pet; 
@@ -800,7 +801,7 @@ int	PetitionIsAssertable(RamsGateway *gWay, Petition *pet)
 Lyst	AssertionSet(RamsGateway *gWay, Petition *pet)
 {
 	Lyst		assertionSet; 
-	int		domainCont;
+	short		domainCont;
 	LystElt		elt;
 	RamsNode	*node;
 
@@ -1102,7 +1103,7 @@ static int	SendRPDUviaUdp(RamsGateway *gWay, RamsNode *ramsNode,
 	}
 }
 
-int	SendRPDU(RamsGateway *gWay, int destContinuumNbr,
+int	SendRPDU(RamsGateway *gWay, short destContinuumNbr,
 		unsigned char flowLabel, char *envelope, int envelopeLength)
 {
 	char		errorMsg[128];
@@ -1196,10 +1197,10 @@ printf("<SendRPDU> continuum %d not declared.\n", destContinuumNbr);
 	}
 }
 
-int	SendNewRPDU(RamsGateway *gWay, int destContinuumNbr,
+int	SendNewRPDU(RamsGateway *gWay, short destContinuumNbr,
 		unsigned char flowLabel, Enclosure *enclosure,
-		int continuumNbr, int unitNbr, int sourceID, int destID,
-		int controlCode, int subjectNbr)
+		short continuumNbr, int unitNbr, int sourceID, int destID,
+		int controlCode, short subjectNbr)
 {
 	char	*envelope;
 	int	encLength;

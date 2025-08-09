@@ -82,8 +82,8 @@ static void	logToStderr(char *text)
 }
 
 static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
-			int continuumNbr, int unitNbr, int moduleNbr,
-			int subjectNbr, int contentLength, char *content,
+			short continuumNbr, int unitNbr, int moduleNbr,
+			short subjectNbr, int contentLength, char *content,
 			int context, AmsMsgType msgType, int priority,
 			unsigned char flowLabel)
 {
@@ -216,10 +216,10 @@ int	main(int argc, char **argv)
 	char		unitName[33];
 	char		roleName[33];
 	char		continName[33];			// CW, 5/1/06
-	int		subjectNbr;              
+	short		subjectNbr;              
 	int		unitNbr;
 	int		roleNbr;
-	int		continNbr;			// CW, 5/1/06
+	short		continNbr;			// CW, 5/1/06
 
 	if (ownUnitName == NULL || ownRoleName == NULL
 	|| applicationName == NULL || authorityName == NULL

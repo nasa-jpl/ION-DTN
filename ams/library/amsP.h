@@ -71,7 +71,7 @@ typedef struct
 	SubjOfInterest	*subject;	/*	Back-reference.		*/
 	FanModule	*module;	/*	Back-reference.		*/
 	int		roleNbr;	/*	Msg source constraint.	*/
-	int		continuumNbr;	/*	Msg source constraint.	*/
+	short		continuumNbr;	/*	Msg source constraint.	*/
 	int		unitNbr;	/*	Msg source constraint.	*/
 	int		priority;	/*	Requested by module.	*/
 	unsigned char	flowLabel;	/*	Requested by module.	*/
@@ -151,7 +151,7 @@ typedef struct
 {
 	Subject		*subject;
 	int		roleNbr;	/*	Msg source constraint.	*/
-	int		continuumNbr;	/*	Msg source constraint.	*/
+	short		continuumNbr;	/*	Msg source constraint.	*/
 	int		unitNbr;	/*	Msg source constraint.	*/
 	int		priority;	/*	Requested by module.	*/
 	int		flowLabel;	/*	Requested by module.	*/
@@ -210,7 +210,7 @@ typedef struct amssapst
 
 typedef struct
 {
-	int		continuumNbr;
+	short		continuumNbr;
 	int		unitNbr;
 	short		moduleNbr;
 	short		subjectNbr;
