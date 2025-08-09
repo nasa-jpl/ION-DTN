@@ -116,7 +116,7 @@ typedef struct
 typedef struct			/*	Global view in shared memory.	*/
 {
 	PsmAddress	directory;
-	u_int		status;
+	unsigned int	status;
 	sm_SemId	semaphore;
 	int		ownerTask;	/*	Last took the semaphore.*/
 	pthread_t	ownerThread;	/*	Last took the semaphore.*/
