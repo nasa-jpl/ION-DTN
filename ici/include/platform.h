@@ -739,9 +739,9 @@ typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
 
 #include <asm/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <sys/param.h>		/****	...to get MAXPATHLEN	     ****/
-#ifndef uClibc			/****	uClibc subset of Linux	     ****/
+#ifdef HAVE_EXECINFO_H
 #include <execinfo.h>		/****	...to get backtrace	     ****/
-#endif				/*	End of #ifndef uClibc	     ****/
+#endif				/*	End of #ifndef HAVE_EXECINFO_H  */
 #endif				/****	End of #ifdef bionic	     ****/
 
 #define	_MULTITHREADED

@@ -783,7 +783,21 @@ CFLAGS="$CFLAGS $CUSTOM_CFLAGS"
 AC_HEADER_DIRENT
 
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([fcntl.h malloc.h netdb.h netinet/in.h stddef.h stdlib.h string.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h unistd.h])
+AC_CHECK_HEADERS([
+  execinfo.h
+  fcntl.h
+  malloc.h
+  etdb.h
+  netinet/in.h
+  stddef.h
+  stdlib.h
+  string.h
+  sys/ioctl.h
+  sys/param.h
+  sys/socket.h
+  sys/time.h
+  unistd.h
+])
 
 # Check for <time.h> and <sys/time.h>, and whether they can be included together 
 # This supports older builds while removing obsolete macros
