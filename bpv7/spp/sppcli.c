@@ -30,7 +30,6 @@ typedef struct
 {
 	VInduct		*vduct;
 	int		running;
-        int             apid;
         packet_recv_ptr packet_indication;
 } ReceiverThreadParms;
 
@@ -48,7 +47,8 @@ static void	*handleSpacePackets(void *parm)
 	char			*procName = "sppcli";
 	AcqWorkArea		*work;
 	char			*buffer = NULL;
-	size_t                     bundleLength;
+	size_t              	bundleLength;
+	int             	received_apid;
 
 	snooze(1);	/*	Let main thread become interruptible.	*/
 	work = bpGetAcqArea(rtp->vduct);
@@ -70,7 +70,7 @@ static void	*handleSpacePackets(void *parm)
 
 	while (rtp->running)
 	{
-	    bundleLength = (size_t)rtp->packet_indication(buffer,rtp->apid);
+	    bundleLength = (size_t)rtp->packet_indication(buffer, &received_apid);
 	    switch (bundleLength)
 	    {
 	    case -1:
@@ -134,12 +134,12 @@ int	sppcli(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
         char	                *ductName = (char *)a1;
-	char                    *sppCLAConfigStr = (char *) a2;
+	char                    *sharedLibPath = (char *) a2;
 #else
 int	main(int argc, char *argv[])
 {
-    	char                    *ductName = (argc > 1 ? argv[1] : NULL);
-	char                    *sppCLAConfigStr = (argc > 2 ? argv[2] : NULL);
+	char 			*ductName = (argc > 1 ? argv[1] : NULL);
+	char 			*sharedLibPath = (argc > 2 ? argv[2] : NULL);
 #endif
 	VInduct			*vduct;
 	PsmAddress		vductElt;
@@ -148,34 +148,13 @@ int	main(int argc, char *argv[])
 	ClProtocol		protocol;
 	ReceiverThreadParms	rtp;
 	pthread_t		receiverThread;
-	int                     parsed_count = 0;
-//	char	                *ductName = NULL;
-	char                    *sharedLibPath = NULL;
-	const char              *delim = ";";
 	void                    *funcHandle = NULL;
-	char                    *tok = NULL;
-	int                     apid = 0;
 
-	if (sppCLAConfigStr == NULL)
+	// Argument Check and Usage Message
+	if (argc < 3)
 	{
-		PUTS("Usage: sppcli {<remote node IPN> | \
-@};{shared library path};{space packet config}");
+		PUTS("Usage: sppcli <duct_name> <shared_library_path>");
 		return 0;
-	}
-
-	tok = strtok(sppCLAConfigStr,delim);
-	while (tok != NULL) {
-	    parsed_count++;
-	    switch (parsed_count)
-	    {
-	    case 1:
-		sharedLibPath = tok;
-		break;
-	    case 2:
-		apid = atoi(tok);
-		break;
-	    }
-	    tok = strtok(NULL,delim);
 	}
 	
 	if (bpAttach() < 0)
@@ -241,9 +220,9 @@ int	main(int argc, char *argv[])
 
 	{
 		char	txt[500];
-
+		
 		isprintf(txt, sizeof(txt),
-			"[i] sppcli is running, APID [%d].", apid);
+			"[i] sppcli is running for duct '%s'.", ductName);
 		writeMemo(txt);
 	}
 

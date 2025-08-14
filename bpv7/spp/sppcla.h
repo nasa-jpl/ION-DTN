@@ -27,6 +27,9 @@ extern "C" {
 #endif
 
 #define SPPCLA_BUFSZ		(65536)
+// Declare initialization, finalization and request calls
+typedef void (*init_spp_sender_ptr)();
+typedef void (*finalize_spp_sender_ptr)();
 typedef int (*packet_request_ptr)(unsigned char*,int, int, int, int, size_t);
     
 struct SppConfig {
@@ -35,6 +38,8 @@ struct SppConfig {
     int             packet_type;
     int             sec_header_flag;
     packet_request_ptr packet_request;
+    init_spp_sender_ptr init_sender;
+    finalize_spp_sender_ptr finalize_sender;
 };
 
   extern int	sendBytesBySPP(int length, unsigned char *buffer, struct SppConfig *sppcfg,size_t);

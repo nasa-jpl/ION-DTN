@@ -35,8 +35,27 @@ static int openSPPFunctions(struct SppConfig* sppconfig,void *handle)
 
     char *error = NULL;
 
-    dlerror();
+    dlerror(); // Clear existing error
 
+    // Look up the init function
+    *(void **)(&sppconfig->init_sender) = dlsym(handle, "init_space_packet_sender");
+    if ((error = dlerror()) != NULL)
+    {
+        fprintf(stderr, "dlsym error for init_space_packet_sender: %s\n", error);
+        dlclose(handle);
+        return -1;
+    }
+
+    // Look up the finalize function
+    *(void **)(&sppconfig->finalize_sender) = dlsym(handle, "finalize_space_packet_sender");
+    if ((error = dlerror()) != NULL)
+    {
+        fprintf(stderr, "dlsym error for finalize_space_packet_sender: %s\n", error);
+        dlclose(handle);
+        return -1;
+    }
+    
+    // Look up the packet_request function
     *(void **)(&sppconfig->packet_request) = dlsym(handle,"packet_request");
     if ((error = dlerror()) != NULL && handle != NULL)
     {
@@ -90,27 +109,25 @@ int	main(int argc, char *argv[])
 	int                     packet_type = 0;
 	int                     sec_header_flag = 0;
 	struct SppConfig *sppcfg;
-	struct SppConfig sppcfgdefaults = {123,0,0,0,NULL};
+	struct SppConfig sppcfgdefaults = {123,0,0,0,NULL,NULL,NULL};
 	sppcfg = &sppcfgdefaults;
 
 	if (sharedLibPath != NULL && spacePacketConfigStr != NULL)
 	    printf("using shared library %s %s\n",sharedLibPath,spacePacketConfigStr);	
 
+	// Open SPP library
 	funcHandle = dlopen(sharedLibPath, RTLD_NOW);
-
 	if (funcHandle == NULL)
 	{
 	    putErrmsg("sppclo can not open shared protocol library.",sharedLibPath);
 	    return -1;
 	}
 
-	openSPPFunctions(sppcfg,funcHandle);
-	/*
-	  apid
-	  seq_count
-	  packet_type
-	  sec_header_flag
-	*/
+	if (openSPPFunctions(sppcfg, funcHandle) != 0)
+	{
+		putErrmsg("sppclo could not link to all required SPP functions.", NULL);
+		return -1;
+	}
 
 	parsed_count = sscanf(spacePacketConfigStr,"%d%*[,]%d%*[,]%d%*[,]%d",&apid,&seq_count,&packet_type,&sec_header_flag);
 
@@ -175,8 +192,10 @@ int	main(int argc, char *argv[])
 
 	sdr_exit_xn(sdr);
 
-	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
+	// Call the init function pointer before starting the main loop.
+	sppcfg->init_sender();
 
+	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 	oK(sppcloSemaphore(&(vduct->semaphore)));
 	isignal(SIGTERM, shutDownClo);
 
@@ -242,6 +261,10 @@ int	main(int argc, char *argv[])
 
 		sm_TaskYield();
 	}
+
+	// Call the finalize function pointer after the loop ends.
+	sppcfg->finalize_sender();
+	
 	if (funcHandle != NULL)
 	{
 	    dlclose(funcHandle);
