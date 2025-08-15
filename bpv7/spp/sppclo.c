@@ -233,20 +233,23 @@ int	main(int argc, char *argv[])
 		CHKZERO(sdr_begin_xn(sdr));
 		bundleLength = zco_length(sdr, bundleZco);
 		sdr_exit_xn(sdr);
-		/* put sendBundleBySPP here */
-		{
-		    char	memoBuf[1024];
 
-		    isprintf(memoBuf, sizeof(memoBuf),
-			     "[i] sending bundle or trying to sppclo",
-			     endpointSpec);
-		    writeMemo(memoBuf);
-		}
-
-		if ((bytesSent = sendBundleBySPP(bundleLength,bundleZco,buffer,sppcfg)) < -1)
+		if ((bytesSent = sendBundleBySPP(bundleLength,bundleZco,buffer,sppcfg)) < 0)
 		{
 		    putErrmsg("Unable to sendBundleBySPP",NULL);
+			sm_SemEnd(sppcloSemaphore(NULL)); /*	Stop.	*/
 		    continue;
+		}
+
+		// Increment the sequence count for the next packet.
+		sppcfg->seq_count++;
+
+		// Check if the sequence count has exceeded the 14-bit limit.
+		if (sppcfg->seq_count > SPP_MAX_SEQ_COUNT)
+		{
+			// Reset to 0 and log the wrap-around.
+			sppcfg->seq_count = 0;
+			writeMemo("[i] SPP sequence count wrapped around to 0.");
 		}
 
 		/* Remove this and add in a function call to mark bundles as abandoned*/
@@ -256,9 +259,7 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
-
 		/*	Make sure other tasks have a chance to run.	*/
-
 		sm_TaskYield();
 	}
 

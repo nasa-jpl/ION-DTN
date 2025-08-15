@@ -26,6 +26,8 @@
 extern "C" {
 #endif
 
+// Maximum sequence number limit for Space Packet Protocol
+#define SPP_MAX_SEQ_COUNT   (16383) 
 #define SPPCLA_BUFSZ		(65536)
 // Declare initialization, finalization and request calls
 typedef void (*init_spp_sender_ptr)();
