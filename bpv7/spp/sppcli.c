@@ -24,7 +24,7 @@
 //}
 
 /*	*	*	Main thread functions	*	*	*	*/
-typedef size_t (*packet_recv_ptr)(char*,int);
+typedef size_t (*packet_recv_ptr)(char*,int*);
 
 typedef struct
 {
