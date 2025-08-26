@@ -42,20 +42,160 @@ static char *eventTypes[] = {
 	"abandoned"
 };
 
-static void 	reportCfdpEvent(CfdpEventType type, char *statusReportBuf)
+static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf, 
+                           CfdpCondition condition, CfdpDeliveryCode deliveryCode, 
+                           CfdpFileStatus fileStatus, uvast progress)
 {
 	if (type < 0)
 	{	
-		printf("\nCFDP Event:CFDP access had ended.\n");
+		printf("\nCFDP Event: CFDP access had ended.\n");
 		return;
 	}
 
-	printf("CFDP Event: Type = %d: %s\n", type, eventTypes[type]);
+	printf("\nCFDP Event: Type = %d: %s\n", type, eventTypes[type]);
     
+	/* Display condition for all events */
+	printf("  Condition: %d ", condition);
+	switch(condition) {
+		case CfdpNoError: 
+			printf("(No Error)"); 
+			if (type == CfdpTransactionFinishedInd) {
+				printf(" -> FINISH PDU RECEIVED SUCCESSFULLY!");
+			}
+			break;
+		case CfdpAckLimitReached: printf("(Ack Limit Reached)"); break;
+		case CfdpKeepaliveLimitReached: printf("(Keepalive Limit Reached)"); break;
+		case CfdpInvalidTransmissionMode: printf("(Invalid Transmission Mode)"); break;
+		case CfdpFilestoreRejection: printf("(Filestore Rejection)"); break;
+		case CfdpChecksumFailure: printf("(Checksum Failure)"); break;
+		case CfdpFileSizeError: printf("(File Size Error)"); break;
+		case CfdpNakLimitReached: printf("(NAK Limit Reached)"); break;
+		case CfdpInactivityDetected: printf("(Inactivity Detected)"); break;
+		case CfdpInvalidFileStructure: printf("(Invalid File Structure)"); break;
+		case CfdpCheckLimitReached: 
+			printf("(Check Limit Reached)");
+			if (type == CfdpTransactionFinishedInd) {
+				printf(" -> FINISH PDU TIMEOUT - NOT RECEIVED!");
+			}
+			break;
+		case CfdpUnsupportedChecksumType: printf("(Unsupported Checksum Type)"); break;
+		case CfdpSuspendRequested: printf("(Suspend Requested)"); break;
+		case CfdpCancelRequested: printf("(Cancel Requested)"); break;
+		default: printf("(Unknown: %d)", condition); break;
+	}
+	printf("\n");
+	
+	/* For TransactionFinished Event, show detailed Finish PDU analysis */
+	if (type == CfdpTransactionFinishedInd) {
+		printf("  ================== TRANSACTION COMPLETION ANALYSIS ==================\n");
+		
+		if (condition == CfdpNoError) {
+			printf("  ✓ FINISH PDU RECEIVED AND PROCESSED\n");
+			printf("  FINISH PDU CONTENTS FROM RECEIVER:\n");
+			
+			printf("    -> Delivery Status: %s\n", 
+				   deliveryCode == CfdpDataComplete ? 
+				   "✓ COMPLETE - All data delivered successfully" : 
+				   "✗ INCOMPLETE - Some data missing or corrupted");
+			
+			printf("    -> File Status: ");
+			switch(fileStatus) {
+				case CfdpFileRetained: 
+					printf("✓ FILE SUCCESSFULLY RETAINED - Transfer succeeded!\n"); 
+					break;
+				case CfdpFileDiscarded: 
+					printf("✗ FILE DISCARDED - Receiver rejected the file\n"); 
+					break;
+				case CfdpFileRejected: 
+					printf("✗ FILE REJECTED - Receiver could not accept file\n"); 
+					break;
+				case CfdpFileStatusUnreported: 
+					printf("? STATUS NOT REPORTED - Unknown receiver state\n"); 
+					break;
+			}
+			
+			/* Overall success determination */
+			if (deliveryCode == CfdpDataComplete && fileStatus == CfdpFileRetained) {
+				printf("  RESULT: COMPLETE SUCCESS!\n");
+			} else {
+				printf("  RESULT: Transfer completed but with issues - check above\n");
+			}
+		} else if (condition == CfdpCheckLimitReached) {
+			printf("  ✗ FINISH PDU NEVER RECEIVED\n");
+			printf("  -> Timeout waiting for receiver acknowledgment\n");
+			printf("  -> This could mean:\n");
+			printf("     • Receiver is unreachable or offline\n");
+			printf("     • Network connectivity issues\n");
+			printf("     • Receiver processed file but Finish PDU was lost\n");
+			printf("  OVERALL RESULT: UNKNOWN - File may or may not have been delivered\n");
+		} else {
+			printf("  ✗ TRANSACTION FAILED\n");
+			printf("  -> Failure occurred before or during transmission\n");
+			printf("  OVERALL RESULT: FAILED - File was not delivered\n");
+		}
+		printf("  ====================================================================\n");
+	} else {
+		/* Display delivery code and file status for non-finished events */
+		printf("  Delivery Code: %d (%s)\n", deliveryCode,
+			deliveryCode == CfdpDataComplete ? "Complete" : "Incomplete");
+		
+		printf("  File Status: %d ", fileStatus);
+		switch(fileStatus) {
+			case CfdpFileDiscarded: printf("(File Discarded)"); break;
+			case CfdpFileRejected: printf("(File Rejected)"); break;
+			case CfdpFileRetained: printf("(File Retained)"); break;
+			case CfdpFileStatusUnreported: printf("(Status Unreported)"); break;
+			default: printf("(Unknown: %d)", fileStatus); break;
+		}
+		printf("\n");
+	}
+	
+	/* Display progress for all events */
+	printf("  Progress: " UVAST_FIELDSPEC " bytes\n", progress);
+
+	/* Add event-specific additional information */
+	switch(type) {
+		case CfdpTransactionInd:
+			printf("  -> Transaction started - preparing file transfer\n");
+			break;
+		case CfdpEofSentInd:
+			printf("  -> EOF sent - all file data transmitted, waiting for confirmation\n");
+			break;
+		case CfdpMetadataRecvInd:
+			printf("  -> Metadata received - incoming file transfer detected\n");
+			break;
+		case CfdpFileSegmentRecvInd:
+			printf("  -> File data segment received - transfer in progress\n");
+			break;
+		case CfdpEofRecvInd:
+			printf("  -> EOF received - checking file completeness and integrity\n");
+			break;
+		case CfdpSuspendedInd:
+			printf("  -> Transaction suspended - transfer paused\n");
+			break;
+		case CfdpResumedInd:
+			printf("  -> Transaction resumed - transfer restarted\n");
+			break;
+		case CfdpReportInd:
+			printf("  -> Status report generated\n");
+			break;
+		case CfdpFaultInd:
+			printf("  -> !!FAULT OCCURRED - CHECK CONDITION CODE!\n");
+			break;
+		case CfdpAbandonedInd:
+			printf("  -> Transaction abandoned due to unrecoverable fault\n");
+			break;
+		default:
+			break;
+	}
+
+	/* Display status report if available */
 	if (statusReportBuf && strlen(statusReportBuf) > 0)
 	{
-		printf("...CFDP Status Report: %s\n", statusReportBuf);
+		printf("  Status Report: %s\n", statusReportBuf);
 	}
+	
+	printf("  ----------------------------------------\n");
 }
 
 static int	noteSegmentTime(uvast fileOffset, unsigned int recordOffset,
@@ -762,7 +902,7 @@ static void	*handleEvents(void *parm)
 			return NULL;
 		}
 
-		reportCfdpEvent(type,statusReportBuf);
+		reportCfdpEvent(type, statusReportBuf, condition, deliveryCode, fileStatus, progress);
 
 		if (type == CfdpAccessEnded)
 		{
