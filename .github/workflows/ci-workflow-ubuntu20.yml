@@ -39,7 +39,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: [self-hosted, linux, x64, ubuntu20podman]
+    runs-on: [self-hosted, linux, x64, ubuntu20]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

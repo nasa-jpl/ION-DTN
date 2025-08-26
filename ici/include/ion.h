@@ -480,7 +480,7 @@ extern void		ionProd(	uvast fromNode,
 					uvast toNode,
 					size_t xmitRate,
 					unsigned int owlt);
-extern void		ionTerminate();
+extern void		ionTerminate(int shutdown);
 
 extern int		ionPickRegion(uint32_t regionNbr);
 extern int		ionRegionOf(uvast nodeNbrA,

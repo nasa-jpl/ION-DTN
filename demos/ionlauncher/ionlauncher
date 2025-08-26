@@ -43,20 +43,18 @@ help() {
 filename=""
 stem=""
 nodename=""
-clipath="/home/${USER}/ionconfig-4.8.1/cli/bin"
+clipath="/home/${USER}/ionconfig-4.8.2/cli/bin"
 launcherdir=$PWD
 
-while getopts ":h:n:m:d" opt; do
-    case "$opt" in
+while getopts "hn:m:d:" opt; do
+    case $opt in
         \?)
             echo "Unrecognized argument"
             help
-            exit 0
-            ;;
+            exit;;
         h)
             help
-            exit 0
-            ;;
+            exit;;
         n)
             nodename=$OPTARG
             ;;
@@ -80,12 +78,12 @@ if [ "$modeldir" != "." ]; then
     cd $modeldir
 fi
 
-# Check if ION configuration folder already exists, 
+# Check if ION configuration folder already exists,
 # Give warning and chance to stop
 if [ -d "${stem}-ion" ]; then
 # Prompt the user for confirmation
     read -p "ION configuration folder of same name exists, overwrite? (y or Y to proceed, other key to exit) " user_input
-    
+
     # Check user input
     if [[ $user_input == "y" || $user_input == "Y" ]]; then
         echo "Proceeding with ionlauncher..."

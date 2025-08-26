@@ -1184,28 +1184,6 @@ static void	destroySdr(SdrState *sdr)
 
 	memset((char *) sdr, 0, sizeof(SdrState));
 	psm_free(sdrwm, psa(sdrwm, sdr));
-
-	// Before setting _sdrwm to NULL below, mark the SDR working memory
-	// segment for deletion
-	sm_SemGive(lock);
-
-	sm_WmParms	wmparms;
-	wmparms.wmKey = 0;
-	wmparms.wmSize = 0;
-	wmparms.wmAddress = NULL;
-	wmparms.wmName = NULL;
-	oK(_sdrwm(&wmparms));
-
-	sm_SemTake(lock);
-
-	/*  Detach from SDR Working Memory */
-	sm_ShmDetach(sdrwm->space);
-
-	/*  Reset sdrwm database */
-	sm_WmParms reset;
-	reset.wmKey = -11111; 	/* use key value of -11111 to reset database */
-	oK(_sdrwm(&reset));
-
 	sm_SemGive(lock);
 }
 
@@ -1726,7 +1704,7 @@ size_t	sdr_heap_size(Sdr sdrv)
 	return sdrv->sdr->heapSize;
 }
 
-void	sdr_stop_using(Sdr sdrv)
+void	sdr_stop_using(Sdr sdrv, int shutdown)
 {
 	PsmPartition	sdrwm = _sdrwm(NULL);
 
@@ -1773,6 +1751,23 @@ void	sdr_stop_using(Sdr sdrv)
 
 	memset((char *) sdrv, 0, sizeof(SdrView));
 	psm_free(sdrwm, psa(sdrwm, sdrv));
+
+	/*	Shut down SDR system if specified, otherwise leave SDR
+		system intact but detach this process from SDR system	*/
+	if (shutdown)
+	{
+		sdr_shutdown();
+	}
+	else
+	{
+		/*  Detach from SDR Working Memory */
+		sm_ShmDetach(sdrwm->space);
+
+		/*  Reset sdrwm database */
+		sm_WmParms reset;
+		reset.wmKey = -11111; 	/* use key value of -11111 to reset database */
+		oK(_sdrwm(&reset));
+	}
 }
 
 void	sdr_abort(Sdr sdrv)
@@ -1785,7 +1780,7 @@ void	sdr_abort(Sdr sdrv)
 	sdr_shutdown();
 }
 
-void	sdr_destroy(Sdr sdrv)
+void	sdr_destroy(Sdr sdrv, int shutdown)
 {
 	sm_SemId	lock = _sdrlock(0);
 	SdrState	*sdr;
@@ -1802,14 +1797,11 @@ void	sdr_destroy(Sdr sdrv)
 	}
 #endif
 
-	/*	Destroy local access handle to this SDR.		*/
-
 	sdr = sdrv->sdr;
 	sm_SemEnd(sdr->sdrSemaphore);		/*	Interrupt.	*/
 	microsnooze(50000);
 	sm_SemDelete(sdr->sdrSemaphore);
 	sdr->sdrSemaphore = SM_SEM_NONE;
-	sdr_stop_using(sdrv);
 
 	/*	Now destroy the SDR itself.				*/
 
@@ -1820,6 +1812,10 @@ void	sdr_destroy(Sdr sdrv)
 	}
 
 	destroySdr(sdr);			/*	Releases lock.	*/
+
+	/*	Destroy local access handle to this SDR.		*/
+
+	sdr_stop_using(sdrv, shutdown);
 }
 
 /*	*	Low-level transaction functions		*	*	*/

@@ -5,91 +5,226 @@ NASA JPL's Interplanetary Overlay Network (ION)
 
 =head1 SYNOPSIS
 
-B<bpcp> [-dqr | -v] [-L I<bundle_lifetime>] [-C I<custody_on/off>] 
-[-S I<class_of_service>] [I<host1>:]I<file1> ... [I<host2>:]I<file2>	
+B<bpcp> [OPTIONS] [I<source_host>:]I<source_file_or_directory> ... [I<destination_host>:]I<destination_file_or_directory>
 
 =head1 DESCRIPTION
 
-B<bpcp> copies files between hosts utilizing NASA JPL's Interplanetary
-Overlay Network (ION) to provide a delay tolerant network. File copies
-from local to remote, remote to local, or remote to remote are permitted.
-B<bpcp> depends on ION to do any authentication or encryption of file transfers.
-All covergence layers over which B<bpcp> runs MUST be reliable.
+B<bpcp> copies files and directories between hosts utilizing NASA JPL's Interplanetary
+Overlay Network (ION) to provide a delay tolerant network. File copies from local to 
+remote, remote to local, or remote to remote are permitted. B<bpcp> depends on ION to 
+do any authentication or encryption of file transfers. All convergence layers over 
+which B<bpcp> runs MUST be reliable.
 
-The options are permitted as follows:
+The command-line options are as follows:
 
 =over 5
 
-=item B< -d>	Debug output. Repeat for increased verbosity.
+=item B< -d>
 
-=item B< -q>	Quiet. Do not output status messages.
+Enable debug output. This option can be repeated (e.g., `-dd`) to increase
+the verbosity level of debug messages.
 
-=item B< -r>	Recursive.
+=item B< -q>
 
-=item B< -v>	Display version information.
+Quiet mode. Suppress all standard status and progress messages. Only error
+messages will be displayed.
+
+=item B< -r>
+
+Recursive mode. If a source path is a directory, B<bpcp> will recursively
+copy its contents to the destination. If this option is not used and a source
+is a directory, it will be omitted with a warning message.
+
+=item B< -v>
+
+Display the B<bpcp> version information and then exit.
 
 =item B< -L> I<bundle_lifetime>
 
-Bundle lifetime in seconds. Default is 86400 seconds (1 day).
+Specify the Bundle Protocol (BP) bundle lifetime in seconds. This value
+determines how long a bundle will be stored in the network before being
+discarded if it cannot be delivered. The default value is 86400 seconds (1 day).
+A value of 0 results in the default lifetime.
 
-=item B< -C> I<BP_custody>
+=item B< -C> I<custody_transfer_setting>
 
-Acceptable values are ON/OFF,YES/NO,1/0. Default is OFF.
-
-=item B< -S> I<class_of_service>
-
-Bundle Protocol Class of Service for this transfer. Available options are:
+Control whether CFDP custody transfer is requested for the file transfer.
+Custody transfer ensures that the bundle is acknowledged by each hop in the
+path. Acceptable values (case-insensitive) are:
 
 =over 4
 
-=item 0	Bulk Priority
-	
-=item 1	Standard Priority
+=item B<ON>, B<YES>, B<Y>, B<1> 
 
-=item 2	Expedited Priority
+To enable custody transfer.
 
-=back
-	
-Default is Standard Priority.
+=item B<OFF>, B<NO>, B<N>, B<0> 
+
+To disable custody transfer.
 
 =back
 
-B<bpcp> utilizes CFDP to preform the actual file transfers. This has several
-important implications. First, ION's CFDP implementation requires that reliable
-convergence layers be used to transfer the data. Second, file permissions are
-not transferred. Files will be made executable on copy. Third, symbolic links
-are ignored for local to remote transfers and their target is copied for remote
-transfers. Fourth, all hosts must be specified using ION's IPN naming scheme.
+The default is B<OFF>. Custody transfer may not be provided if the underlying
+Bundle Protocol does not offer the service, e.g., BPv7.
 
-In order to preform remote to local transfers or remote to remote transfers,
-B<bpcpd> must be running on the remote hosts. However, B<bpcp> should NOT
-be run simultaneously with B<bpcpd> or B<cfdptest>.
+=item B< -S> I<class_of_service>
+
+Specify the Bundle Protocol Class of Service for this transfer. This influences
+the priority and handling of the bundle within the BP network. Available options are:
+
+=over 4
+
+=item B<0> (Bulk Priority)
+
+=item B<1> (Standard Priority)
+
+=item B<2> (Expedited Priority)
+
+=back
+
+The default is Standard Priority.
+
+=back
+
+=head1 FILE ARGUMENTS
+
+The file arguments specify the source(s) and destination for the copy operation.
+Each path can be either local or remote.
+
+=over 5
+
+=item B<Local Paths>
+
+A local path is a standard file system path on the machine where B<bpcp> is
+executed (e.g., C</home/user/my_file.txt> or C<./documents/report.pdf>).
+
+=item B<Remote Paths>
+
+A remote path specifies a file or directory on another ION node. It is
+formatted as I<host>B<:>I<remote_path>. The I<host> is the numeric ION node
+number (e.g., C<1> for a node with Endpoint ID 'ipn:1.0'). The I<remote_path>
+is the absolute or relative file system path on the remote host (e.g.,
+C<1:/remote/data/file.bin> or C<1:./data/file.bin>).
+
+If no path is specified after the colon (e.g., C<1:> ), the remote
+host's current working directory (C<.>) is assumed as the source or destination.
+
+=back
+
+=head2 Copying Behavior
+
+=over 5
+
+=item B<Single Source Copy>
+
+When two arguments are provided (e.g., B<bpcp> I<source> I<destination>):
+
+=over 4
+
+=item 
+
+If I<destination> is an existing directory, I<source> will be copied
+into that directory, retaining its original filename.
+
+=item 
+
+If I<destination> does not exist or is a file, I<source> will be copied
+to I<destination> with the specified name.
+
+=back
+
+=item B<Multiple Source Copy>
+
+When more than two arguments are provided (e.g., B<bpcp> I<source1> I<source2> ... I<destination>):
+
+=over 4
+
+=item 
+
+The last argument is always interpreted as the I<destination directory>.
+
+=item 
+
+All preceding I<source> arguments (files or directories) will be copied
+into this I<destination directory>.
+
+=item 
+
+If the I<destination directory> does not exist locally, B<bpcp> will
+report an error. If it is a remote destination, B<bpcp> will attempt to create
+it if CFDP supports it, but typically it expects the remote directory to exist
+or will copy files into the specified remote path as if it were a file name.
+
+=back
+
+=back
+
+=head2 Important Considerations
+
+
+B<bpcp> utilizes CFDP (CCSDS File Delivery Protocol) for actual file transfers.
+This implies:
+
+=over 4
+
+=item
+
+1. ION's CFDP implementation requires the use of reliable convergence layers. 
+
+=item
+
+2. File permissions are NOT transferred. Copied files will typically be made
+executable on the destination system. 
+
+=item
+
+3. Symbolic links are handled differently: for local-to-remote transfers,
+symbolic links are ignored; for remote-to-local or remote-to-remote transfers,
+the target of the symbolic link is copied, not the link itself.
+
+=item
+
+4. All hosts must be specified using ION's IPN naming scheme (e.g., 
+`ipn:node_number.service_number`).
+
+=item
+
+5. To perform remote-to-local or remote-to-remote transfers, the B<bpcpd> daemon
+MUST be running on the remote hosts involved in the transfer.
+
+=item
+
+6. B<bpcp> should NOT be run simultaneously with B<bpcpd> or B<cfdptest> on
+the same system, as they may interfere with each other's CFDP operations.
+
+=back
 
 =head1 EXIT STATUS
 
 =over 4
 
-=item "0"
+=item B<0>
 
-B<bpcp> terminated normally.
+B<bpcp> terminated normally, indicating successful completion of the copy operations.
 
-=item "1"
+=item B<1>
 
-B<bpcp> terminated abnormally. Check console and the B<ion.log> file for error messages.
+B<bpcp> terminated abnormally, indicating an error occurred. Refer to the console
+output and the B<ion.log> file for specific error messages and details.
 
 =back
 
 =head1 FILES
 
-No configuration files are needed.
+No configuration files are needed for B<bpcp>.
 
 =head1 ENVIRONMENT
 
-No environment variables apply.
+No environment variables directly apply to B<bpcp>'s operation.
 
 =head1 BUGS
 
-Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
+Report bugs to F<https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 

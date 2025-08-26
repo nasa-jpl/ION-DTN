@@ -1,0 +1,138 @@
+=head1 NAME
+
+secrypt - cryptographic library for authenticated encryption and decryption
+
+=head1 SYNOPSIS
+
+#include "secrypt.h"
+
+Use these utilities for secure cryptographic operations, leveraging the Mbed TLS
+library (2.28.x) for implementing authenticated encryption using an
+Encrypt-then-MAC scheme with derived keys.
+
+=head1 DESCRIPTION
+
+The secrypt library offers a comprehensive suite of cryptographic functions
+designed to facilitate secure authenticated encryption of data buffers.
+It implements a robust B<Encrypt-then-MAC> scheme to provide both
+confidentiality (encryption) and integrity/authenticity (message authentication code).
+
+This implementation leverages the power of the Mbed TLS library and adheres to
+modern cryptographic best practices. Key security features include the use of the
+standard HMAC-based Key Derivation Function (B<HKDF>, RFC 5869) to derive separate,
+single-use keys for encryption and authentication from a master secret. This
+prevents key reuse and ensures a strong separation between cryptographic
+operations.
+
+B<For detailed, source-level documentation of each function and its
+parameters, see the comments in the F<secrypt.h> header file.>
+
+=head2 Utility and Debugging Functions
+
+=over 4
+
+=item B<print_hex>(const unsigned char *data, uvast length)
+
+Prints binary data as hexadecimal. Useful for debugging and verifying data integrity.
+
+B<Returns:>
+
+This function does not return a value.
+
+=item B<print_encrypted_data>(const unsigned char *data, uvast length)
+
+Prints encrypted data in a safe, human-readable format. Aids in verifying encryption operations.
+
+B<Returns:>
+
+This function does not return a value.
+
+=back
+
+=head2 Cryptographic Operations
+
+=over 4
+
+=item B<entropy_init>(mbedtls_entropy_context *entropy)
+
+Initializes the entropy context for secure random number generation.
+
+B<Returns:>
+
+=over 4
+
+=item *
+0 on success.
+
+=item *
+-1 on failure.
+
+=back
+
+=back
+
+=head2 Encryption/Decryption and Hashing
+
+=over 4
+
+=item B<crypt_and_hash_buffer>(int mode, unsigned char *personalization_string, unsigned char *input_buffer, uvast *input_length, unsigned char **my_output_buffer, uvast *my_output_length, char *cipher, char *md, char *my_key)
+
+Performs authenticated encryption or decryption on a data buffer.
+
+B<Returns:>
+
+=over 4
+
+=item *
+0 on success.
+
+=item *
+A non-zero error code on failure.
+
+=back
+
+=back
+
+=head2 Features
+
+=over 4
+
+=item *
+
+B<Standard-Based Key Derivation:> Employs the HMAC-based Key Derivation Function (HKDF, RFC 5869) to derive strong, separate keys for encryption and authentication from a single master secret.
+
+=item *
+
+B<Key Separation:> Enforces a strict separation between encryption and authentication keys, a critical best practice to prevent cryptographic interactions.
+
+=item *
+
+B<Secure IV Generation:> Creates a unique and unpredictable Initialization Vector (IV) for each encryption operation using a Cryptographically Secure Pseudo-Random Number Generator (CSPRNG).
+
+=item *
+
+B<Authenticated Encryption:> Provides confidentiality and integrity through a robust Encrypt-then-MAC scheme.
+
+=item *
+
+B<Timing Attack Resistance:> Uses a constant-time comparison for HMAC verification during decryption to protect against timing side-channel attacks.
+
+=back
+
+=head1 NOTES
+
+Proper use of these cryptographic functions is crucial for maintaining data security. Familiarize yourself with cryptographic principles and Mbed TLS specifics to ensure the security of your data. The master key material provided should have sufficient entropy.
+
+=head1 WARNING
+
+Keep your Mbed TLS library and cryptographic standards updated to maintain security efficacy over time.
+
+=head1 BUGS
+
+Report bugs to L<https://github.com/nasa-jpl/ION-DTN/issues>.
+
+=head1 SEE ALSO
+
+L<hmackeys(1)>, L<ionsecadmin(1)>, L<poll_entropy_src(3)>, L<ionsecrc(5)>
+
+=cut

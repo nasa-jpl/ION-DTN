@@ -152,7 +152,7 @@ static void	printPayload(Sdr sdr, Bundle *bundle)
 	MRELEASE(buf);
 
 	isprintf(outbuf, sizeof outbuf,
-		"- payload CRC type:    	%d", (int) bundle->payload.crcType);
+		"- payload crc type:    	%d", (int) bundle->payload.crcType);
 	PUTS(outbuf);
 }
 
@@ -211,6 +211,7 @@ static void	printBundle(Object bundleObj)
 	char	*eid;
 	char	buf[300];
 	int	priority;
+	uvast expirationTimeDtnMsec;
 
 	GET_OBJ_POINTER(sdr, Bundle, bundle, bundleObj);
 
@@ -241,7 +242,7 @@ static void	printBundle(Object bundleObj)
 	}
 
 	isprintf(buf, sizeof buf,
-			"Creation msec   " UVAST_FIELDSPEC "   count %10lu   \
+			"Creation msec (Epoch 2000)   " UVAST_FIELDSPEC "   count %10lu   \
 frag offset %10lu", bundle->id.creationTime.msec, bundle->id.creationTime.count,
 			bundle->id.fragmentOffset);
 	PUTS(buf);
@@ -285,7 +286,11 @@ frag offset %10lu", bundle->id.creationTime.msec, bundle->id.creationTime.count,
 			& BP_MINIMUM_LATENCY ? 1 : 0);
 	PUTS(buf);
 	isprintf(buf, sizeof buf,
-			"Expiration sec %10lu", bundle->expirationTime);
+			"Expiration (Unix Epoch 1970) sec %10lu", bundle->expirationTime);
+	PUTS(buf);
+	expirationTimeDtnMsec = ((uvast)bundle->expirationTime - EPOCH_2000_SEC) * 1000;
+	isprintf(buf, sizeof buf,
+			"Expiration (DTN Epoch 2000) msec " UVAST_FIELDSPEC, expirationTimeDtnMsec);
 	PUTS(buf);
 	isprintf(buf, sizeof buf,
 			"Total ADU len  %10lu", bundle->totalAduLength);

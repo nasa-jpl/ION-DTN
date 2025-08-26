@@ -7,8 +7,8 @@
 
 
 
-AC_PREREQ(2.69)
-AC_INIT(ion, open source 4.1.3s, https://github.com/nasa-jpl/ION-DTN/issues)
+AC_PREREQ([2.60])
+AC_INIT([ion],[open source 4.1.3s],[https://github.com/nasa-jpl/ION-DTN/issues])
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
 #  all of the portability warnings introduced by autoconf v2.69 and
@@ -18,7 +18,7 @@ AM_INIT_AUTOMAKE([subdir-objects -Wall foreign])
 
 # some source file that will ensure that you are in the right directory.
 AC_CONFIG_SRCDIR([ici/include/ion.h])
-AC_CONFIG_HEADER([config.h])
+AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
 
@@ -56,16 +56,50 @@ SUB3="WSL2";
 
 
 
-# Checks for programs.
-AC_PROG_CC
-AM_PROG_CC_C_O
-#Automake v1.12 wants AM_PROG_AR, but it doesn't exist <v1.12 so do this
-m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
-AC_PROG_LIBTOOL
+dnl =============================================================
+dnl Baseline tool checks
+dnl =============================================================
+AC_PROG_CC               dnl find a C compiler and set $CC
+AM_PROG_CC_C_O           dnl enable “-c -o file.o file.c” portability
+m4_ifdef([AM_PROG_AR],   dnl Automake ≥ 1.12 wants this
+          [AM_PROG_AR])  dnl (harmless no-op on older Automake)
+
+
+dnl =============================================================
+dnl  Prefer ISO C11, fall back to ISO C99  (portable  ≥ Autoconf 2.60)
+dnl =============================================================
+AC_CACHE_CHECK([whether $CC supports C11], [ac_cv_c11],
+  [save_CFLAGS="$CFLAGS"
+   CFLAGS="$CFLAGS -std=c11"
+   AC_COMPILE_IFELSE(
+     [AC_LANG_SOURCE([[#include <stdatomic.h> int main() { return 0; }]])],
+     [ac_cv_c11=yes],
+     [ac_cv_c11=no])
+   CFLAGS="$save_CFLAGS"])
+
+if test "$ac_cv_c11" = yes; then
+  AM_CFLAGS="$AM_CFLAGS -std=c11"
+else
+  AC_CACHE_CHECK([whether $CC supports C99], [ac_cv_c99],
+    [save_CFLAGS="$CFLAGS"
+     CFLAGS="$CFLAGS -std=c99"
+     AC_COMPILE_IFELSE(
+       [AC_LANG_SOURCE([[#include <stdint.h> int main() { return 0; }]])],
+       [ac_cv_c99=yes],
+       [ac_cv_c99=no])
+     CFLAGS="$save_CFLAGS"])
+  if test "$ac_cv_c99" = yes; then
+    AM_CFLAGS="$AM_CFLAGS -std=c99"
+  else
+    AC_MSG_ERROR([Your compiler does not support ISO C11 or C99.])
+  fi
+fi
+
+
+LT_INIT
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 LT_INIT
-
 
 
 # Check for library functions
@@ -73,7 +107,7 @@ AC_CHECK_FUNCS([pow])
 
 
 # Check Platform and Architecture
-m4_include([./dccp_macro.m4])
+m4_include([m4/dccp_macro.m4])
 AM_CFLAGS=""
 AM_LDFLAGS=""
 AM_LIBTOOLFLAGS=""
@@ -147,7 +181,17 @@ case $host_os in
 	solaris*)
 		PLATFORM="solaris"
 		build_solaris=yes
-		AM_CFLAGS="$AM_CFLAGS -std=gnu99"
+		
+		# ISO C standard flags already selected above; avoid gnu99
+		# If using non-GCC Solaris compilers (e.g., Solaris Studio), add -xc99=all
+		if test "$GCC" != "yes"; then
+			AC_MSG_NOTICE([Non-GCC Solaris compiler detected, using -xc99=all])
+			AM_CFLAGS="$AM_CFLAGS -xc99=all"
+		else
+			AC_MSG_NOTICE([GCC on Solaris: relying on earlier -std=c11/c99 detection])
+		fi
+
+		
 		if test "$BUILD_32_ON_64_SOLARIS" = "1"; then
 			if test "$CC" = "gcc"; then
 				AC_MSG_ERROR([You must compile with Solaris Studio CC when building 32-bit on 64-bit Solaris (configure with CC={path to Solaris Studio CC})])
@@ -196,22 +240,31 @@ esac
 ##Process user flags
 
 #
+# Disable installation messaging
+#
+AC_ARG_ENABLE([install-messages],
+  [AS_HELP_STRING([--disable-install-messages], [disable extraneous messages on install])],
+  [enable_install_messages=$enableval],
+  [enable_install_messages=yes])
+
+AM_CONDITIONAL([ENABLE_INSTALL_MESSAGES], [test "$enable_install_messages" = yes])
+
+#
 # allow the user running configure to disable ACS when using bpv6
 #
 AC_ARG_ENABLE(
     acs,
-    [AC_HELP_STRING([--enable-acs], [enable Aggregate Custody Signals])],
+    [AS_HELP_STRING([--enable-acs],[enable Aggregate Custody Signals])],
     [ENABLE_BPACS=yes],
     [ENABLE_BPACS=no])
 AM_CONDITIONAL(ENABLE_BPACS, test "x$ENABLE_BPACS" = "xyes")
-
 
 #
 # allow the user running configure to build bpv6
 #
 AC_ARG_ENABLE(
     bpv6,
-    [AC_HELP_STRING([--enable-bpv6], [force build of bpv6])],
+    [AS_HELP_STRING([--enable-bpv6],[force build of bpv6])],
     [VER="4.1.3s"
      VER="-DVNAME=ION-OPEN-SOURCE-$VER"
      AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv6"
@@ -235,13 +288,12 @@ AC_ARG_ENABLE(
 AM_CONDITIONAL(BUILD_BPv7, test x$BUILD_BPv7 = xtrue)
 AM_CONDITIONAL(BUILD_BPv6, test x$BUILD_BPv6 = xtrue)
 
-
 #
 # allow the user running configure to disable IMC
 #
 AC_ARG_ENABLE(
     imc,
-    [AC_HELP_STRING([--disable-imc], [disable Interplanetary Multicast])],
+    [AS_HELP_STRING([--disable-imc],[disable Interplanetary Multicast])],
     [],
     [AM_CFLAGS="$AM_CFLAGS -DENABLE_IMC"
      ENABLE_IMC=yes])
@@ -252,7 +304,7 @@ AM_CONDITIONAL(ENABLE_IMC, test "x$ENABLE_IMC" = "xyes")
 #
 AC_ARG_ENABLE(
     ams-industrial,
-    [AC_HELP_STRING([--enable-ams-industrial], [enable AMS_INDUSTRIAL])],
+    [AS_HELP_STRING([--enable-ams-industrial],[enable AMS_INDUSTRIAL])],
     [ENABLE_AMS_INDUSTRIAL=yes
 	 AM_CFLAGS="$AM_CFLAGS -DAMS_INDUSTRIAL"],
     [ENABLE_AMS_INDUSTRIAL=no])
@@ -263,7 +315,7 @@ AM_CONDITIONAL(ENABLE_AMS_INDUSTRIAL, test "x$ENABLE_AMS_INDUSTRIAL" = "xyes")
 #
 AC_ARG_ENABLE(
     ewchar,
-    [AC_HELP_STRING([--enable-ewchar], [enable enhanced watch characters])],
+    [AS_HELP_STRING([--enable-ewchar],[enable enhanced watch characters])],
     [ENABLE_EWCHAR=yes
 	 AM_CFLAGS="$AM_CFLAGS -DEWCHAR"],
     [ENABLE_EWCHAR=no])
@@ -274,7 +326,7 @@ AM_CONDITIONAL(ENABLE_EWCHAR, test "x$ENABLE_EWCHAR" = "xyes")
 #
 AC_ARG_ENABLE(
     commandline-history,
-    [AC_HELP_STRING([--enable-commandline-history], [enable command line history])],
+    [AS_HELP_STRING([--enable-commandline-history],[enable command line history])],
     [AC_CHECK_PROG([readline_present], [readline], [1], [0])
 	 if test "$readline_present" = 1; then
 		ENABLE_CMD_HIST=yes
@@ -294,7 +346,7 @@ AM_CONDITIONAL(ENABLE_CMD_HIST, test "x$ENABLE_CMD_HIST" = "xyes")
 #
 AC_ARG_ENABLE(
     high-speed,
-    [AC_HELP_STRING([--enable-high-speed], [Enable high-speed ION, increases memory usage.])],
+    [AS_HELP_STRING([--enable-high-speed],[Enable high-speed ION, increases memory usage.])],
     [AM_CFLAGS="$AM_CFLAGS -DENABLE_HIGH_SPEED"
      ENABLE_HIGH_SPEED=yes],
     [])
@@ -305,8 +357,7 @@ AM_CONDITIONAL(ENABLE_HIGH_SPEED, test x$ENABLE_HIGH_SPEED = xyes)
 # otherwise recommended system. This might not produce a running system on some platforms
 AC_ARG_ENABLE(
     force-posix-named-semaphores,
-    [AC_HELP_STRING([--enable-force-posix-named-semaphores],
-		[Force the use of Posix Named Semaphores, which are faster then SVR4, but might not work on this platform])],
+    [AS_HELP_STRING([--enable-force-posix-named-semaphores],[Force the use of Posix Named Semaphores, which are faster then SVR4, but might not work on this platform])],
 	[AM_CFLAGS="$AM_CFLAGS -DFORCE_POSIX_NAMED_SEMAPHORES"
 		ENABLE_FORCE_POSIX_NAMED_SEMAPHORES=yes],
     [])
@@ -316,8 +367,7 @@ AC_ARG_ENABLE(
 # otherwise recommended system. They are supported on all process-based platforms
 AC_ARG_ENABLE(
     force-svr4-semaphores,
-    [AC_HELP_STRING([--enable-force-svr4-semaphores],
-		[Force the use of SVR4 Semaphores, which are supported on most platforms, but might be slower])],
+    [AS_HELP_STRING([--enable-force-svr4-semaphores],[Force the use of SVR4 Semaphores, which are supported on most platforms, but might be slower])],
 	[AM_CFLAGS="$AM_CFLAGS -DFORCE_SVR4_SEMAPHORES"
 		ENABLE_FORCE_SVR4_SEMAPHORES=yes],
     [])
@@ -327,7 +377,7 @@ AC_ARG_ENABLE(
 #
 AC_ARG_ENABLE(
     bpsec-debugging,
-    [AC_HELP_STRING([--enable-bpsec-debugging], [Enable bpsec debugging. Defaults to level 4, use "--enable-bpsec-debugging=num" to choose level.])],
+    [AS_HELP_STRING([--enable-bpsec-debugging],[Enable bpsec debugging. Defaults to level 4, use "--enable-bpsec-debugging=num" to choose level.])],
     [case "${enableval}" in
 		1) echo "BPSEC Debugging enabled. Using level 1."
 		   AM_CFLAGS="$AM_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=1 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
@@ -352,7 +402,7 @@ AC_ARG_ENABLE(
 #
 AC_ARG_ENABLE(
     dccp,
-    [AC_HELP_STRING([--enable-dccp], [Enable Support for DCCP as a convergence layer])],
+    [AS_HELP_STRING([--enable-dccp], [Enable Support for DCCP as a convergence layer])],
     [AC_DEFINE([build_dccp],[1],[DCCP only supported on Linux >=3.2.0])],
     [])
 
@@ -361,7 +411,7 @@ AC_ARG_ENABLE(
 #
 AC_ARG_ENABLE(
     unibo-cgr,
-    [AC_HELP_STRING([--enable-unibo-cgr], [enable University of Bologna CGR])],
+    [AS_HELP_STRING([--enable-unibo-cgr], [enable University of Bologna CGR])],
     [if test "$BUILD_BPv7" == "true" ; then
         # Check if bpv7/cgr/Unibo-CGR directory exists and is non-empty
         AC_MSG_CHECKING([for Unibo-CGR directory under bpv7/cgr])
@@ -388,7 +438,7 @@ AM_CONDITIONAL(UNIBO_CGR, test "x$UNIBO_CGR" = "xyes")
 #
 AC_ARG_ENABLE(
     manpages,
-    [AC_HELP_STRING([--disable-manpages], [disable manpage creation])],
+    [AS_HELP_STRING([--disable-manpages],[disable manpage creation])],
     [],
     [AM_CFLAGS="$AM_CFLAGS -DENABLE_MANPAGES"
      ENABLE_MANPAGES=yes])
@@ -399,7 +449,7 @@ AM_CONDITIONAL(ENABLE_MANPAGES, test "x$ENABLE_MANPAGES" = "xyes")
 #
 AC_ARG_ENABLE(
 	contrib,
-	[AC_HELP_STRING([--disable-contrib],[Disable building third-party contributed utilities])],
+	[AS_HELP_STRING([--disable-contrib],[Disable building third-party contributed utilities])],
 	[case "${enableval}" in
 		yes) BUILD_CONTRIB=yes;;
 		no)  BUILD_CONTRIB=no;;
@@ -414,7 +464,7 @@ AM_CONDITIONAL(BUILD_CONTRIB, test "x$BUILD_CONTRIB" = "xyes")
 # To Enable crypto, use "./configure --enable-crypto-mbedtls"
 AC_ARG_ENABLE(
 	crypto-mbedtls,
-	[AC_HELP_STRING([--enable-crypto-mbedtls],[Turn on cryptography using MBEDTLS])],
+	[AS_HELP_STRING([--enable-crypto-mbedtls],[Turn on cryptography using MBEDTLS])],
 	[CRYPTO_MBEDTLS=true
 	 AM_CFLAGS="$AM_CFLAGS -DMBEDTLS_CRYPTO_SUITES"],
 	[echo "MBEDTLS Crypto disabled, building with NULL SUITES."
@@ -512,7 +562,7 @@ AM_CONDITIONAL([ENABLE_EXPAT], [test "x$expat" = "xyes"])
 #
 # If valgrind is present, allow special MTAKE/MRELEASE valgrind tutors.
 #
-AC_ARG_ENABLE([valgrind], AC_HELP_STRING([--enable-valgrind],[Enable valgrind debugging [default=check]]),
+AC_ARG_ENABLE([valgrind], AS_HELP_STRING([--enable-valgrind],[Enable valgrind debugging [default=check]]),
               [ enable_valgrind=yes], [ enable_valgrind=check ])
 
 if test "x$enable_valgrind" != xno; then
@@ -549,8 +599,7 @@ if test "x$enable_valgrind" != xno; then
   fi
 fi
 
-AC_ARG_ENABLE([sysctl-check], AC_HELP_STRING([--disable-sysctl-check],
-                  [Disable checking sysctl configuration on OSX and FreeBSD]),
+AC_ARG_ENABLE([sysctl-check], AS_HELP_STRING([--disable-sysctl-check],[Disable checking sysctl configuration on OSX and FreeBSD]),
               [], [enable_sysctl_check=yes])
 
 if test "x$enable_sysctl_check" = xyes; then
@@ -563,6 +612,12 @@ if test "x$enable_sysctl_check" = xyes; then
         exit 1
     fi
 fi
+
+# AMP default (user can specify version N using this command: "AMP_VERSION=N ./configure")
+# This addition resolves the prior GNU "AMP_VERSION ?= 8" lines in Makefile.am
+AC_ARG_VAR([AMP_VERSION], [AMP version number])
+test -z "$AMP_VERSION" && AMP_VERSION=8
+AC_SUBST([AMP_VERSION])
 
 AC_ARG_WITH([mysql],
 [AS_HELP_STRING([--with-mysql], [Enable MYSQL support for NM MGR])],
@@ -591,7 +646,7 @@ AM_CONDITIONAL([ENABLE_NCURSES], [test "x$ncurses" = "xyes"])
 
 AC_ARG_ENABLE(
         nmrest,
-        [AC_HELP_STRING([--enable-nmrest], [Enable REST API for NM Mgr])],
+        [AS_HELP_STRING([--enable-nmrest],[Enable REST API for NM Mgr])],
         [BUILD_NM_REST=true],
         [BUILD_NM_REST=false]
         )
@@ -602,7 +657,7 @@ AM_CONDITIONAL([BUILD_NM_REST], [test "x$BUILD_NM_REST" = "xtrue"])
 #
 AC_ARG_ENABLE(
 	musl,
-	[AC_HELP_STRING([--enable-musl], [declare that the platform is MUSL])],
+	[AS_HELP_STRING([--enable-musl],[declare that the platform is MUSL])],
 	[AM_CFLAGS="$AM_CFLAGS -DMUSL"
 	 MUSL=yes],
 	[]
@@ -617,7 +672,7 @@ AM_CONDITIONAL([MUSL], [test "x$MUSL" = "xyes"])
 #
 AC_ARG_ENABLE(
 	tcpcl-low-cycle,
-	[AC_HELP_STRING([--enable-tcpcl-low-cycle], [enable TCPCL_LOW_CYCLE option])],
+	[AS_HELP_STRING([--enable-tcpcl-low-cycle],[enable TCPCL_LOW_CYCLE option])],
 	[AM_CFLAGS="$AM_CFLAGS -DTCPCL_LOW_CYCLE"
 	 TCPCL_LOW_CYCLE=yes],
 	[]
@@ -726,29 +781,52 @@ CFLAGS="$CFLAGS $CUSTOM_CFLAGS"
 
 # Checks for header files.
 AC_HEADER_DIRENT
-AC_HEADER_STDC
+
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS([fcntl.h malloc.h netdb.h netinet/in.h stddef.h stdlib.h string.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h unistd.h])
 
+# Check for <time.h> and <sys/time.h>, and whether they can be included together 
+# This supports older builds while removing obsolete macros
+AC_CHECK_HEADERS([time.h sys/time.h])
+AC_CACHE_CHECK([can include <time.h> and <sys/time.h> together],
+  [ac_cv_time_with_sys_time],
+  [AC_COMPILE_IFELSE(
+     [AC_LANG_PROGRAM([[#include <time.h>
+#include <sys/time.h>]], [[return 0;]])],
+     [ac_cv_time_with_sys_time=yes],
+     [ac_cv_time_with_sys_time=no])])
+if test "$ac_cv_time_with_sys_time" = yes; then
+  AC_DEFINE([TIME_WITH_SYS_TIME],[1],
+            [Define if <time.h> and <sys/time.h> can be included together])
+fi
+
+
 AC_C_CONST
 AC_TYPE_SIZE_T
-AC_HEADER_TIME
+
 AC_STRUCT_TM
 AC_TYPE_UID_T
+
+# Determine whether signal handlers return void or int
+# This supports older builds while removing obsolete macros
+AC_RUN_IFELSE(
+  [AC_LANG_PROGRAM([#include <signal.h>], [return 0;])],
+  [AC_DEFINE([RETSIGTYPE],[void],[Return type of signal handlers])],
+  [AC_DEFINE([RETSIGTYPE],[int],[Return type of signal handlers])])
 
 # Checks for library functions.
 # commented out library functions that should exist everywhere.
 # otherwise, autoconf insisted that malloc.c, mktime.c were included in distro...
 AC_FUNC_FORK
-AC_PROG_GCC_TRADITIONAL
+#AC_PROG_GCC_TRADITIONAL
 #AC_FUNC_MALLOC
 #AC_FUNC_MEMCMP
 #AC_FUNC_MKTIME
 #AC_FUNC_SELECT_ARGTYPES
-AC_TYPE_SIGNAL
+
 #AC_FUNC_STAT
 #AC_FUNC_STRFTIME
-AC_CHECK_FUNCS([alarm ftruncate getcwd gethostbyaddr gethostbyname gethostname gettimeofday memset mkdir mkfifo rmdir select socket strcasecmp strchr strerror strncasecmp strstr strtoul uname])
+AC_CHECK_FUNCS([alarm ftruncate getcwd gethostbyaddr gethostbyname gethostname gettimeofday memset mkdir mkfifo rmdir select socket strcasecmp strchr strerror strncasecmp])
 
 #Write AM_* flag variables
 AC_SUBST([AM_LDFLAGS],"$AM_LDFLAGS")
@@ -762,4 +840,88 @@ AM_CONDITIONAL([SOLARIS], [test "$build_solaris" = "yes"])
 #Output!
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([contrib/Makefile])
+
+dnl ===============================================================
+dnl  Guard: create empty stubs so depfiles never fail
+dnl ===============================================================
+AC_CONFIG_COMMANDS_PRE([
+  AS_MKDIR_P([tests])
+  : > tests/testrules.mk      dnl portable “touch” 0-byte file
+  : > pstrules.mk
+  : > man-lists.mk
+])
+
+dnl ===============================================================
+dnl  Autogenerate explicit man‑page rules (ISO‑C, no GNU % rules)
+dnl ===============================================================
+
+dnl ---- helper macro --------------------------------------------
+m4_define([ADD_PODMAN],[
+  AC_CONFIG_COMMANDS([$1/doc/podman.mk],[
+      AS_MKDIR_P([$1/doc])
+      $srcdir/generate-podman-rules.sh $1 > $1/doc/podman.mk
+    ],[srcdir=$srcdir])
+])dnl -------------------------------------------------------------
+
+
+dnl ---------- Always‑built sub‑modules ----------------------------
+ADD_PODMAN(ici)
+ADD_PODMAN(ltp)
+ADD_PODMAN(dgr)
+ADD_PODMAN(nm)
+ADD_PODMAN(bpv7)
+ADD_PODMAN(tc)
+ADD_PODMAN(ams)
+ADD_PODMAN(cfdp)
+ADD_PODMAN(bss)
+ADD_PODMAN(bssp)
+ADD_PODMAN(dtpc)
+
+dnl ---------- Optional bpv6 ---------------------------------------
+ADD_PODMAN(bpv6)
+
+
+
+
+dnl ===============================================================
+dnl  Autogenerate explicit test-<set> rules
+dnl ===============================================================
+AC_CONFIG_COMMANDS([tests/testrules.mk],[
+    AS_MKDIR_P([tests])                       dnl ← create dir
+    $srcdir/generate-test-rules.sh "$srcdir/tests" > tests/testrules.mk
+  ],[srcdir=$srcdir])
+
+dnl ===============================================================
+dnl  Autogenerate explicit PS conversion rules
+dnl ===============================================================
+AC_CONFIG_COMMANDS([pstrules.mk],[
+    :                                           dnl (in top dir already)
+    $srcdir/generate-ps-rules.sh "$srcdir" > pstrules.mk
+  ],[srcdir=$srcdir])
+
+dnl ===============================================================
+dnl  Autogenerate static man-page lists
+dnl ===============================================================
+AC_CONFIG_COMMANDS([man-lists.mk],[
+    AS_MKDIR_P([$builddir])                   dnl ← “build” dir for out-of-tree
+    "$srcdir/generate-man-lists.sh" "$srcdir" "$builddir"
+  ],[srcdir=$srcdir builddir=$PWD])
+
+
+dnl ===============================================================
+dnl  Ensure required included *.mk files exist (POSIX make needs them)
+dnl ===============================================================
+AC_CONFIG_COMMANDS([podman-stubs], [
+  for f in \
+    pstrules.mk \
+    man-lists.mk \
+    tests/testrules.mk \
+    ici/doc/podman.mk ltp/doc/podman.mk dgr/doc/podman.mk \
+    nm/doc/podman.mk bpv7/doc/podman.mk tc/doc/podman.mk \
+    ams/doc/podman.mk cfdp/doc/podman.mk bss/doc/podman.mk \
+    bssp/doc/podman.mk dtpc/doc/podman.mk bpv6/doc/podman.mk; do
+    test -f "$f" || echo "# stub" > "$f"
+  done
+])
+
 AC_OUTPUT

@@ -22,9 +22,36 @@ missing
 stamp-h1
 .DS_Store
 __pycache__/
+.build_finished
 
-# Temp macro directory
-/m4
+# Keep empty m4/ macro dir but ignore temp files inside it
+m4/*
+!m4/dccp_macro.m4
+!m4/.gitkeep
+
+# Temp mod directory (Podman)
+mod/
+
+# Generated man‑page rules produced by configure
+*/doc/podman.mk
+
+# Generated at configure time for ps and test rules
+/tests/testrules.mk
+/pstrules.mk
+/man-lists.mk
+/ici/doc/podman.mk
+/ltp/doc/podman.mk
+/dgr/doc/podman.mk
+/nm/doc/podman.mk
+/bpv7/doc/podman.mk
+/tc/doc/podman.mk
+/ams/doc/podman.mk
+/cfdp/doc/podman.mk
+/bss/doc/podman.mk
+/bssp/doc/podman.mk
+/dtpc/doc/podman.mk
+/bpv6/doc/podman.mk
+
 
 # VsCode
 .vscode
@@ -439,7 +466,8 @@ tests/loopback-*-dccp/dccptest.txt
 demos/bench-ams/node*/9.petition.log
 demos/bench-ams/node*/bench.log
 
-
+# entropy test utility binary
+ici/test/entropy/entropy_test
 
 # psmwatch and sdrwatch log
 psmwatch.log
@@ -473,4 +501,9 @@ tests/bug-0015-tcpclo-bpcp-sig-handling/test
 tests/crc_relay/5.ipn.ltp/case1_out.txt
 tests/crc_relay/5.ipn.ltp/case2_out.txt
 tests/crc_relay/5.ipn.ltp/case3_out.txt
+
+# ignore test artifacts
+tests/issue-352-bpcp-stcp/1.ipn.cfdp.bp.stcp/test2
+tests/issue-352-bpcp-stcp/2.ipn.cfdp.bp.stcp/test3
+tests/issue-352-bpcp-stcp/3.ipn.cfdp.bp.stcp/test1
 

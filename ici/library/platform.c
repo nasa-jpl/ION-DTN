@@ -421,19 +421,30 @@ int	createFile(const char *filename, int flags)
 
 typedef struct rlock_str
 {
-	pthread_mutex_t	semaphore;
-	short           count;  /* # of threads currently holding it. */
-	unsigned char	init;		/*	Boolean.		*/
-} Rlock;		/*	Private-memory semaphore.		*/ 
+	pthread_mutex_t mutex;
+	int		initialized;
+} Rlock;
 
-/* the next line won't compile if the semaphore structure isn't large enough -  increase size of ResourceLock in platform.h */
+/* the next line won't compile if the mutex structure isn't large enough -  increase size of ResourceLock in platform.h */
 int verify_sufficient_semaphore_space[(sizeof(Rlock) <= sizeof(ResourceLock))?1:-1];    /* compile-time assertion check */
 
-/*--------------------------------------------------------------
- * initResourceLock
- *   Initializes the given ResourceLock as a POSIX recursive mutex,
- *   if not already initialized.
- *--------------------------------------------------------------*/
+/*
+ * This global "meta-lock" is the core of the thread-safe
+ * initialization pattern for all ResourceLock instances. It prevents
+ * a race condition where multiple threads attempt to initialize the 
+ * same lock simultaneously.
+ *
+ * By acquiring this mutex first, the check for the 'init' flag
+ * and subsequent calls to pthread_mutex_init() become an atomic
+ * operation. It is initialized statically using PTHREAD_MUTEX_INITIALIZER,
+ * which is guaranteed by the POSIX standard to be thread-safe.
+ */
+static pthread_mutex_t  g_ResourceLockInitMutex = PTHREAD_MUTEX_INITIALIZER;
+
+
+/*
+ * Initialize the given ResourceLock as a POSIX recursive mutex.
+ */
 int initResourceLock(ResourceLock *rl)
 {
 	Rlock   *lock = (Rlock *) rl;
@@ -441,123 +452,119 @@ int initResourceLock(ResourceLock *rl)
 
 	if (lock == NULL)
 	{
-		ABORT_AS_REQD;
-		return ERROR;
+		/* Cannot initialize a NULL lock. */
+		return -1;
 	}
 
-	if (lock->init)
+	/*
+	 * Acquire the global initialization lock. This creates a critical
+	 * section, ensuring only one thread can check the 'initialized'
+	 * flag and initialize the mutex at any given time.
+	 */
+	pthread_mutex_lock(&g_ResourceLockInitMutex);
+
+	/*
+	* Now that we hold the meta-lock, it is safe to check the flag.
+	*/
+	if (lock->initialized)
 	{
+		/* This lock is already initialized. Nothing more to do. */
+		pthread_mutex_unlock(&g_ResourceLockInitMutex);
 		return 0;
 	}
 
-    /* Zero out everything, just to be safe. */
-    memset(lock, 0, sizeof(Rlock));
+	/*
+	* If we are here, we are the first thread to initialize this
+	* specific lock. Proceed with recursive mutex initialization.
+	*/
+	if (pthread_mutexattr_init(&attr) != 0)
+	{
+		pthread_mutex_unlock(&g_ResourceLockInitMutex);
+		return -1;
+	}
 
-    /* Create a recursive mutex. */
-    if (pthread_mutexattr_init(&attr))
-    {
-        writeErrMemo("pthread_mutexattr_init failed");
-        return -1;
-    }
+	if (pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE) != 0)
+	{
+		pthread_mutexattr_destroy(&attr);
+		pthread_mutex_unlock(&g_ResourceLockInitMutex);
+		return -1;
+	}
 
-    if (pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE))
-    {
-        writeErrMemo("pthread_mutexattr_settype(RECURSIVE) failed");
-        pthread_mutexattr_destroy(&attr);
-        return -1;
-    }
+	/* Initialize the 'mutex' member. */
+	if (pthread_mutex_init(&lock->mutex, &attr) != 0)
+	{
+		pthread_mutexattr_destroy(&attr);
+		pthread_mutex_unlock(&g_ResourceLockInitMutex);
+		return -1;
+	}
 
-    if (pthread_mutex_init(&(lock->semaphore), &attr))
-    {
-        writeErrMemo("pthread_mutex_init (recursive) failed");
-        pthread_mutexattr_destroy(&attr);
-        return -1;
-    }
+	/* The attributes object is no longer needed after initialization. */
+	pthread_mutexattr_destroy(&attr);
 
-	/* Clear the pthread_mutexattr_t structure */
-    pthread_mutexattr_destroy(&attr);
+	/* Mark this lock as initialized BEFORE releasing the meta-lock. */
+	lock->initialized = 1;
 
-    lock->init = 1;
-    lock->count = 0;
-	
-    return 0;
+	/* Release the global initialization lock. */
+	pthread_mutex_unlock(&g_ResourceLockInitMutex);
+
+	return 0;
 }
 
-/*--------------------------------------------------------------
- * killResourceLock
- *   Destroys the underlying recursive mutex (if count == 0).
- *   If the lock is still in use, returns an error (or you could block).
- *--------------------------------------------------------------*/
 void killResourceLock(ResourceLock *rl)
 {
 	Rlock   *lock = (Rlock *) rl;
 
-    if (lock == NULL || lock->init == 0)
-    {
-        return;  /* Nothing to destroy. */
-    }
+	if (lock == NULL || lock->initialized == 0)
+	{
+		return;
+	}
 
-    /* 1) Lock the mutex to safely check count. */
-    pthread_mutex_lock(&lock->semaphore);
+	/*
+	* pthread_mutex_destroy has undefined behavior if the mutex
+	* is locked. A trylock can safely check this.
+	*/
+	if (pthread_mutex_trylock(&lock->mutex) == 0)
+	{
+		/*
+		 * We successfully acquired the lock, proving it was not held by another
+		 * thread. We must release it before destroying it.
+		 */
+		pthread_mutex_unlock(&lock->mutex);
+		pthread_mutex_destroy(&lock->mutex);
 
-    if (lock->count > 0)
-    {
-        /* Some thread(s) are still using it; can't destroy now. */
-        pthread_mutex_unlock(&lock->semaphore);
-
-        /* Still in use, unlock but do not destroy. */
-        return;
-    }
-
-    /* 2) Unlock before destroying the mutex. */
-    pthread_mutex_unlock(&lock->semaphore);
-
-    /* 3) Now it's safe to destroy (Small race window is possible 
-	if new threads can call initResourceLock/lockResource again)
-
-	A global lock of flag is needed to avoid entirely!!! */
-    pthread_mutex_destroy(&lock->semaphore);
-    lock->init = 0;
+		/* Reset the state. */
+		lock->initialized = 0;
+	}
+	else
+	{
+		/* The mutex is currently locked by another thread. It is unsafe 
+		 * to destroy it. We will just leave it. */
+		writeMemo("[!] killResourceLock: Attempted to destroy a locked mutex.");
+	}
 }
 
-/*--------------------------------------------------------------
- * lockResource
- *   Locks the mutex, increments count.  Because this mutex
- *   is recursive, multiple locks by the same thread are permitted.
- *--------------------------------------------------------------*/
 void lockResource(ResourceLock *rl)
 {
 	Rlock   *lock = (Rlock *) rl;
 
-    if (lock == NULL || lock->init == 0)
-    {
-        return;
-    }
+	if (lock == NULL || lock->initialized == 0)
+	{
+		return;
+	}
 
-    pthread_mutex_lock(&lock->semaphore);
-
-    /* count is protected by the mutex. */
-    lock->count++;
+	pthread_mutex_lock(&lock->mutex);
 }
 
-
-/*--------------------------------------------------------------
- * unlockResource
- *   Decrements count and unlocks the mutex.
- *--------------------------------------------------------------*/
 void unlockResource(ResourceLock *rl)
 {
 	Rlock   *lock = (Rlock *) rl;
 
-    if (lock == NULL || lock->init == 0)
-    {
-        return;
-    }
+	if (lock == NULL || lock->initialized == 0)
+	{
+		return;
+	}
 
-    /* count must be decremented before we unlock. */
-    lock->count--;
-
-    pthread_mutex_unlock(&lock->semaphore);
+	pthread_mutex_unlock(&lock->mutex);
 }
 
 #else	/*	Only one thread of control in address space.		*/
@@ -1155,27 +1162,42 @@ char	*getNameOfUser(char *buffer)
 #include "fswlan.c"
 #endif
 #else
-unsigned int	getInternetAddress(char *hostName)
+/* use getaddrinfo for Linux, FreeBSD, macOS, RTEMS */
+unsigned int getInternetAddress(char *hostName)
 {
-	struct hostent	*hostInfo;
-	unsigned int	hostInetAddress;
+    struct addrinfo hints, *res;
+    unsigned int hostInetAddress = BAD_HOST_NAME;
+    int status;
 
-	CHKZERO(hostName);
-	hostInfo = gethostbyname(hostName);
-	if (hostInfo == NULL)
-	{
-		putSysErrmsg("can't get host info", hostName);
-		return BAD_HOST_NAME;
-	}
+    CHKZERO(hostName);
 
-	if (hostInfo->h_length != sizeof hostInetAddress)
-	{
-		putErrmsg("Address length invalid in host info.", hostName);
-		return BAD_HOST_NAME;
-	}
+    /* Set up hints for IPv4-only resolution */
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_INET;      /* IPv4 only */
+    hints.ai_socktype = SOCK_STREAM; /* TCP, consistent with existing usage */
+    hints.ai_flags = 0;
 
-	memcpy((char *) &hostInetAddress, hostInfo->h_addr, 4);
-	return ntohl(hostInetAddress);
+    /* Resolve hostname */
+    status = getaddrinfo(hostName, NULL, &hints, &res);
+    if (status != 0)
+    {
+        putSysErrmsg("can't get address for host", gai_strerror(status));
+        return BAD_HOST_NAME;
+    }
+
+    /* Extract IPv4 address from first result */
+    if (res->ai_addrlen >= sizeof(struct sockaddr_in))
+    {
+        struct sockaddr_in *addr = (struct sockaddr_in *) res->ai_addr;
+        hostInetAddress = ntohl(addr->sin_addr.s_addr);
+    }
+    else
+    {
+        putErrmsg("Address length invalid.", hostName);
+    }
+
+    freeaddrinfo(res);
+    return hostInetAddress;
 }
 
 char	*getInternetHostName(unsigned int hostNbr, char *buffer)
@@ -2576,91 +2598,109 @@ char	*addressToString(struct in_addr address, char *buffer)
 #endif	/*	ION_NO_DNS						*/
 
 #if (defined(FSWLAN) || !(defined(ION_NO_DNS)))
-int	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
-		unsigned int *ipAddress)
+int parseSocketSpec(char *socketSpec, unsigned short *portNbr,
+	unsigned int *ipAddress)
 {
-	char		*delimiter;
-	char		*hostname;
-	char		hostnameBuf[MAXHOSTNAMELEN + 1];
-	unsigned int	i4;
+char		*delimiter;
+char		*hostname;
+char		hostnameBuf[MAXHOSTNAMELEN + 1];
+unsigned int	i4;
+int		portValid = 0;
+int		ipValid = 0;
 
-	CHKERR(portNbr);
-	CHKERR(ipAddress);
-	*portNbr = 0;			/*	Use default port nbr.	*/
-	*ipAddress = INADDR_ANY;	/*	Use local host address.	*/
+CHKERR(portNbr);
+CHKERR(ipAddress);
+*portNbr = 0;			/*	Use default port nbr.	*/
+*ipAddress = INADDR_ANY;	/*	Use local host address.	*/
 
-	if (socketSpec == NULL || *socketSpec == '\0')
-	{
-		return 0;		/*	Use defaults.		*/
-	}
+if (socketSpec == NULL || *socketSpec == '\0')
+{
+	writeMemoNote("[?] parseSocketSpec: Empty or NULL socketSpec", socketSpec);
+	return -1;		/*	Error: invalid input.	*/
+}
 
-	delimiter = strchr(socketSpec, ':');
-	if (delimiter)
-	{
-		*delimiter = '\0';	/*	Delimit host name.	*/
-	}
+/*	Parse port number first, so it's set even if DNS fails.	*/
 
-	/*	First figure out the IP address.  @ is local host.	*/
-
-	hostname = socketSpec;
-	if (strlen(hostname) != 0)
-	{
-		if (strcmp(hostname, "0.0.0.0") == 0)
-		{
-			*ipAddress = INADDR_ANY;
-		}
-		else
-		{
-			if (strcmp(hostname, "@") == 0)
-			{
-				getNameOfHost(hostnameBuf, sizeof hostnameBuf);
-				hostname = hostnameBuf;
-			}
-
-			i4 = getInternetAddress(hostname);
-			if (i4 < 1)	/*	Invalid hostname.	*/
-			{
-				writeMemoNote("[?] Can't get IP address",
-						hostname);
-				if (delimiter)
-				{
-					/*	Back out the parsing
-					 *	of the socket spec.	*/
-
-					*delimiter = ':';
-				}
-
-				return -1;
-			}
-			else
-			{
-				*ipAddress = i4;
-			}
-		}
-	}
-
-	/*	Now pick out the port number, if requested.		*/
-
-	if (delimiter == NULL)		/*	No port number.		*/
-	{
-		return 0;		/*	All done.		*/
-	}
-
-	*delimiter = ':';		/*	Back out the parsing.	*/
+delimiter = strchr(socketSpec, ':');
+if (delimiter)
+{
+	*delimiter = '\0';	/*	Delimit host name.	*/
+	hostname = socketSpec;	/*	Hostname without port.	*/
 	i4 = atoi(delimiter + 1);	/*	Get port number.	*/
-	if (i4 != 0)
+	if (i4 == 0)
 	{
-		if (i4 < 1024 || i4 > 65535)
+		writeMemoNote("[?] parseSocketSpec: Non-numeric or missing port", socketSpec);
+	}
+	else if (i4 < 1024 || i4 > 65535)
+	{
+		writeMemoNote("[?] parseSocketSpec: Invalid port number", utoa(i4));
+	}
+	else
+	{
+		*portNbr = i4;
+		portValid = 1;
+	}
+}
+else
+{
+	hostname = socketSpec;	/*	No port, use full string.	*/
+	writeMemoNote("[?] parseSocketSpec: No port specified", socketSpec);
+}
+
+/*	Now figure out the IP address.  @ is local host.	*/
+
+if (strlen(hostname) != 0)
+{
+	if (strcmp(hostname, "0.0.0.0") == 0)
+	{
+		*ipAddress = INADDR_ANY;
+		ipValid = 1;
+	}
+	else if (strcmp(hostname, "@") == 0)
+	{
+		getNameOfHost(hostnameBuf, sizeof hostnameBuf);
+		hostname = hostnameBuf;
+		i4 = getInternetAddress(hostname);
+		if (i4 < 1)	/*	Invalid hostname.	*/
 		{
-			writeMemoNote("[?] Invalid port number.", utoa(i4));
-			return -1;
+			writeMemoNote("[?] parseSocketSpec: Can't get IP address", hostname);
+			*ipAddress = BAD_HOST_NAME;
 		}
 		else
 		{
-			*portNbr = i4;
+			*ipAddress = i4;
+			ipValid = 1;
 		}
 	}
+	else
+	{
+		i4 = getInternetAddress(hostname);
+		if (i4 < 1)	/*	Invalid hostname.	*/
+		{
+			writeMemoNote("[?] parseSocketSpec: Can't get IP address", hostname);
+			*ipAddress = BAD_HOST_NAME;
+		}
+		else
+		{
+			*ipAddress = i4;
+			ipValid = 1;
+		}
+	}
+}
 
+/*	Restore socketSpec for logging and caller.	*/
+if (delimiter)
+{
+	*delimiter = ':';
+}
+
+/*	Return -1 if either port or IP parsing failed.	*/
+if (!portValid || !ipValid)
+{
+	return -1;
+}
+
+	writeMemoNote("[i] parseSocketSpec: Parsed", socketSpec);
 	return 0;
 }
 #else

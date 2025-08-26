@@ -31,7 +31,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: [self-hosted, macOS, ARM64, 14.7]
+    runs-on: [self-hosted, macOS, ARM64]
     steps:
       - name: Clean up workspace
         run: |

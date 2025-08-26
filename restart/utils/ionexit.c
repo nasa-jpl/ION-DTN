@@ -162,24 +162,19 @@ int	main(int argc, char **argv)
          if( deletesdr )
          {
             printText("Deleting SDR");
-            ionTerminate();
+            ionTerminate(1);
          }
 
-         printText("Shutting down SDR");
-
-         sdr_shutdown();
-
-         printText("Calling sm_ipc_stop()");
+         printText("Shutting down the IPC system");
 
          sm_ipc_stop();
       }
 
-
-      //ionDetach();
    }
    else
+   {
       printText("Unable to attach to ION");
-
+   }
 
 
    printText("Stopping ionexit.");

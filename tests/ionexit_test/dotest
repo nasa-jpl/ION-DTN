@@ -8,6 +8,17 @@
 # added for the non-Linux platforms, or some platform-agnostic verification
 # approach is found.
 
+#Check for the test binary (skips if not present)
+if ! [ -e ./checksemaphores ]; then
+	echo
+	echo "The checksemaphores test program is not present!"
+	sleep 1 # delay for user feedback
+	echo ">>> Please run 'make test' to build test binaries <<<"
+	echo
+	sleep 1 # delay for user feedback
+	exit 2
+fi
+
 OS=$1
 echo "OS is $OS"
 echo

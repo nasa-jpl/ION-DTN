@@ -39,7 +39,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: [self-hosted, linux, x64, ol8podman]
+    runs-on: [self-hosted, linux, x64, ol8]
     steps:
       - name: Clean up workspace
         run: |

@@ -193,21 +193,24 @@ extern char		*sdr_name(Sdr sdr);
 extern size_t		sdr_heap_size(Sdr sdr);
 			/*	Returns total size of heap, in bytes.	*/
 
-extern void		sdr_stop_using(Sdr sdr);
+extern void		sdr_stop_using(Sdr sdr, int shutdown);
 			/*	Ends access to the SDR via this
 				Sdr handle; other users of the SDR
-				are unaffected.				*/
+				are unaffected unless shutdown is
+				non-zero, in which case the entire
+				SDR system is shut down.		*/
 
 extern void		sdr_abort(Sdr sdr);
 			/*	Terminates the task.  In flight
 				configuration, also terminates all
 				use of the sdr system by all tasks.	*/
 
-extern void		sdr_destroy(Sdr sdr);
+extern void		sdr_destroy(Sdr sdr, int shutdown);
 			/*	Ends all access to this SDR, erases
 				the SDR from memory and file system,
 				and unloads the SDR's profile from
-				the sdrs list.				*/
+				the sdrs list. If shutdown is 1,
+				shuts down the entire SDR system.	*/
 
 /*		Basic, low-level SDR transaction functions.		*/
 

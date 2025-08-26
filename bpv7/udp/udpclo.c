@@ -39,6 +39,30 @@ static unsigned long	getUsecTimestamp()
 	return ((tv.tv_sec * 1000000) + tv.tv_usec);
 }
 
+/* Define the caching interval macro (default: 1 minute) */
+#ifndef ADDRESS_CACHE_INTERVAL_MINUTES
+#define ADDRESS_CACHE_INTERVAL_MINUTES 1
+#endif
+
+/* Convert minutes to microseconds for comparison */
+#define CACHE_INTERVAL_USEC (ADDRESS_CACHE_INTERVAL_MINUTES * 60 * 1000000UL)
+
+/* Define the maximum number of failed lookups before stopping (default: 100) */
+#ifndef MAX_FAILED_LOOKUPS
+#define MAX_FAILED_LOOKUPS 100
+#endif
+
+/* Add variables for caching and hostname storage */
+static char *remoteHostName = NULL;
+static char *endpointSpecCopy = NULL;
+static unsigned long lastLookupTime = 0; /* Timestamp of last successful lookup */
+static int isAddressValid = 0; /* Boolean: is the cached address valid? */
+static unsigned short cachedPortNbr = 0; /* Store port number for reuse */
+static unsigned long lastErrorLogTime = 0; /* Timestamp of last error log */
+static unsigned int failedLookupCount = 0; /* Count of consecutive failed lookups */
+static const unsigned int maxFailedLookups = MAX_FAILED_LOOKUPS; /* Max retries */
+static int lastLookupFailed = 0; /* Boolean: was the last lookup attempt a failure? */
+
 #if defined (ION_LWT)
 int	udpclo(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
@@ -91,7 +115,7 @@ int	main(int argc, char *argv[])
 		if (rttString == NULL)
 		{
 			PUTS("Usage: udpclo {<remote node's host name> | \
-@} [:<its port number>]");
+				@} [:<its port number>]");
 			return 0;
 		}
 		else
@@ -100,50 +124,117 @@ int	main(int argc, char *argv[])
 		}
 	}
 
-	parseSocketSpec(endpointSpec, &portNbr, &hostNbr);
-	if (portNbr == 0)
-	{
-		portNbr = BpUdpDefaultPortNbr;
-	}
-
-	portNbr = htons(portNbr);
-	if (hostNbr == 0)		/*	Default to local host.	*/
-	{
-		hostNbr = getAddressOfHost();
-	}
-
-	hostNbr = htonl(hostNbr);
-	memset((char *) &socketName, 0, sizeof socketName);
-	inetName = (struct sockaddr_in *) &socketName;
-	inetName->sin_family = AF_INET;
-	inetName->sin_port = portNbr;
-	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &hostNbr, 4);
+	/* Attach to ION */
 	if (bpAttach() < 0)
 	{
 		putErrmsg("udpclo can't attach to BP.", NULL);
 		return -1;
 	}
 
+	/* Store endpointSpec and extract hostname */
+
+	endpointSpecCopy = MTAKE(strlen(endpointSpec) + 1);
+	
+	if (endpointSpecCopy == NULL) 
+	{
+		putErrmsg("udpclo: No memory for endpointSpec copy.", NULL);
+		return -1;
+	}
+
+	strcpy(endpointSpecCopy, endpointSpec);
+
+	/* Parse endpointSpec to get port and hostname */
+	if (parseSocketSpec(endpointSpec, &portNbr, &hostNbr) < 0)
+	{
+		putErrmsg("udpclo: Failed to parse endpointSpec", endpointSpec);
+	}
+	else if (portNbr == 0)
+	{
+		writeMemoNote("[i] udpclo: No port specified in endpointSpec, using default: ", iToa(BpUdpDefaultPortNbr));
+		portNbr = BpUdpDefaultPortNbr; // 4556
+	}
+	
+	cachedPortNbr = portNbr;
+	
+	/* Check for IP Address validity */
+	isAddressValid = (hostNbr != BAD_HOST_NAME);
+	lastLookupTime = getUsecTimestamp(); /* Record initial lookup time */
+
+	/* Extract hostname for periodic re-resolve */
+	char *delimiter = strchr(endpointSpec, ':');
+	int hostnameLen = delimiter ? (delimiter - endpointSpec) : strlen(endpointSpec);
+	remoteHostName = MTAKE(hostnameLen + 1);
+
+	if (remoteHostName == NULL) 
+	{
+		putErrmsg("udpclo: No memory for remoteHostName.", NULL);
+		MRELEASE(endpointSpecCopy);
+		return -1;
+	}
+
+	strncpy(remoteHostName, endpointSpec, hostnameLen);
+	remoteHostName[hostnameLen] = '\0';
+	
+	if (strcmp(remoteHostName, "@") == 0) 
+	{
+		/* Replace '@' with local hostname */
+		char hostnameBuf[MAXHOSTNAMELEN + 1];
+		getNameOfHost(hostnameBuf, sizeof(hostnameBuf));
+		MRELEASE(remoteHostName);
+		remoteHostName = MTAKE(strlen(hostnameBuf) + 1);
+
+		if (remoteHostName == NULL) 
+		{
+			putErrmsg("udpclo: No memory for local hostname.", NULL);
+			MRELEASE(endpointSpecCopy);
+			return -1;
+		}
+	
+		strcpy(remoteHostName, hostnameBuf);
+	}
+
+	/* Perform initialization */
+	portNbr = htons(cachedPortNbr);
+	hostNbr = htonl(hostNbr);
+	memset((char *) &socketName, 0, sizeof socketName);
+	inetName = (struct sockaddr_in *) &socketName;
+	inetName->sin_family = AF_INET;
+	inetName->sin_port = portNbr;
+	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &hostNbr, 4);
+
+	if (!isAddressValid) 
+	{
+		putErrmsg("udpclo: Initial hostname resolution failed.", remoteHostName);
+		failedLookupCount = 1;
+		lastErrorLogTime = lastLookupTime;
+		lastLookupFailed = 1;
+	}
+	
 	buffer = MTAKE(UDPCLA_BUFSZ);
 	if (buffer == NULL)
 	{
-		putErrmsg("No memory for UDP buffer in udpclo.", NULL);
+		putErrmsg("udpclo: No memory for UDP buffer in udpclo.", NULL);
+		MRELEASE(endpointSpecCopy);
+		MRELEASE(remoteHostName);
 		return -1;
 	}
 
 	findOutduct("udp", endpointSpec, &vduct, &vductElt);
 	if (vductElt == 0)
 	{
-		putErrmsg("No such udp duct.", endpointSpec);
+		putErrmsg("udpclo: No such udp duct.", endpointSpec);
 		MRELEASE(buffer);
+		MRELEASE(endpointSpecCopy);
+		MRELEASE(remoteHostName);
 		return -1;
 	}
 
 	if (vduct->cloPid != ERROR && vduct->cloPid != sm_TaskIdSelf())
 	{
-		putErrmsg("CLO task is already started for this duct.",
-				itoa(vduct->cloPid));
+		putErrmsg("udpclo: CLO task is already started for this duct.", itoa(vduct->cloPid));
 		MRELEASE(buffer);
+		MRELEASE(endpointSpecCopy);
+		MRELEASE(remoteHostName);
 		return -1;
 	}
 
@@ -183,57 +274,127 @@ int	main(int argc, char *argv[])
 	}
 
 	startTimestamp = getUsecTimestamp();
+	
+	/* Main Loop */
 	while (!(sm_SemEnded(vduct->semaphore)))
-	{
+    	{
+		unsigned long currentTime = getUsecTimestamp();
+
 		if (bpDequeue(vduct, &bundleZco, &ancillaryData, 0) < 0)
 		{
-			putErrmsg("Can't dequeue bundle.", NULL);
+			putErrmsg("udpclo: Can't dequeue bundle.", NULL);
 			break;
 		}
 
-		if (bundleZco == 0)	/*	Outduct closed.		*/
+		if (bundleZco == 0) /* Outduct closed. */
 		{
 			writeMemo("[i] udpclo outduct closed.");
-			sm_SemEnd(udpcloSemaphore(NULL));/*	Stop.	*/
+			sm_SemEnd(udpcloSemaphore(NULL)); /* Stop. */
 			continue;
 		}
 
-		if (bundleZco == 1)	/*	Got a corrupt bundle.	*/
+		if (bundleZco == 1) /* Got a corrupt bundle. */
 		{
-			continue;	/*	Get next bundle.	*/
+			continue; /* Get next bundle. */
 		}
 
+		/* Get bundle length */
 		CHKZERO(sdr_begin_xn(sdr));
 		bundleLength = zco_length(sdr, bundleZco);
-		sdr_exit_xn(sdr);
-		bytesSent = sendBundleByUDP(&socketName, &ductSocket,
-				bundleLength, bundleZco, buffer);
+		sdr_exit_xn(sdr);  /* Short transaction, no nested calls expected */
+
+		/* Check if address needs re-resolution */
+		if (remoteHostName) 
+		{
+			if (!isAddressValid || (currentTime - lastLookupTime >= CACHE_INTERVAL_USEC)) 
+			{
+				unsigned int newHostNbr = getInternetAddress(remoteHostName);
+				if (newHostNbr == BAD_HOST_NAME) 
+				{
+					failedLookupCount++;
+					if (failedLookupCount >= maxFailedLookups) 
+					{
+						putErrmsg("udpclo: Maximum failed lookup attempts reached, stopping daemon.", remoteHostName);
+						/* Destroy the ZCO containing the serialized bundle */
+						zco_destroy(sdr, bundleZco);
+						sm_SemEnd(udpcloSemaphore(NULL)); /* Stop. */
+						break;
+					}
+
+					isAddressValid = 0;
+					lastLookupTime = currentTime;
+					lastLookupFailed = 1;
+				} 
+				else 
+				{
+					failedLookupCount = 0;
+					newHostNbr = htonl(newHostNbr);
+					portNbr = htons(cachedPortNbr);
+					memset((char *) &socketName, 0, sizeof socketName);
+					inetName = (struct sockaddr_in *) &socketName;
+					inetName->sin_family = AF_INET;
+					inetName->sin_port = portNbr;
+					memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &newHostNbr, 4);
+					isAddressValid = 1;
+					lastLookupTime = currentTime;
+					/* log success and reset socket */
+					if (lastLookupFailed) 
+					{
+						writeMemoNote("[i] udpclo: Successfully resolved hostname", remoteHostName);
+						if (ductSocket != -1)
+						{
+							closesocket(ductSocket);
+							ductSocket = -1; /* Force reopen */
+							writeMemo("[i] udpclo: Closed socket for reinitialization");
+						}
+                			}
+					lastLookupFailed = 0;
+				}
+			}
+		}
+
+		/* abandon transmitting bundle if address is invalid */
+		if (!isAddressValid) 
+		{
+		
+			/* Begin SDR transaction to destory the serialized bundle
+			 * For UDPCL, the original bundle has already been destroyed
+			 * upon dequeueing due to lack of stewardship. */
+			if (sdr_begin_xn(sdr) < 0)
+			{
+				putErrmsg("udpclo: Can't start SDR transaction to destroy serialized bundle.", NULL);
+				sm_SemEnd(udpcloSemaphore(NULL));  /* Stop daemon */
+				continue;
+			}
+
+			/* Destroy the ZCO containing the serialized bundle */
+			zco_destroy(sdr, bundleZco);
+
+			/* End the SDR transaction */
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("udpclo: Failed to commit SDR transaction for bundle abandonment.", NULL);
+				sm_SemEnd(udpcloSemaphore(NULL));  /* Stop daemon */
+				continue;
+			}
+
+			continue;  /* Proceed to next bundle */
+		}
+
+		/* Let sendBundleByUDP handle invalid IP address */
+		bytesSent = sendBundleByUDP(&socketName, &ductSocket, bundleLength, bundleZco, buffer);
 		if (bytesSent < bundleLength)
 		{
-			sm_SemEnd(udpcloSemaphore(NULL));/*	Stop.	*/
+			sm_SemEnd(udpcloSemaphore(NULL)); /* Stop. */
 			continue;
 		}
 
-		/*	Rate control calculation is based on treating
-		 *	elapsed time as a currency, the price you
-		 *	pay (by microsnooze) for sending a segment
-		 *	of a given size.  All cost figures are
-		 *	expressed in microseconds except the computed
-		 *	totalCostSecs of the segment.			*/
-
+		/* Rate control calculation */
 		totalPaid = getUsecTimestamp() - startTimestamp;
-
-		/*	Start clock for next bill.			*/
-
 		startTimestamp = getUsecTimestamp();
-
-		/*	Compute time balance due.			*/
 
 		if (totalPaid >= prevPaid)
 		{
-		/*	This should always be true provided that
-		 *	clock_gettime() is supported by the O/S.	*/
-
 			currentPaid = totalPaid - prevPaid;
 		}
 		else
@@ -241,14 +402,12 @@ int	main(int argc, char *argv[])
 			currentPaid = 0;
 		}
 
-		/*	Get current time cost, in seconds, per byte.	*/
-
 		if (neighbor == NULL)
 		{
 			if (planObj && plan.neighborNodeNbr)
 			{
 				neighbor = findNeighbor(getIonVdb(),
-						plan.neighborNodeNbr, &nextElt);
+				plan.neighborNodeNbr, &nextElt);
 			}
 		}
 
@@ -256,13 +415,14 @@ int	main(int argc, char *argv[])
 		{
 			timeCostPerByte = 1.0 / (neighbor->xmitRate);
 		}
-		else	/*	No link service rate control.		*/ 
+		else
 		{
 			timeCostPerByte = 0.0;
 		}
 
 		totalCostSecs = timeCostPerByte * computeECCC(bundleLength);
-		totalCost = totalCostSecs * 1000000.0;	/*	usec.	*/
+		totalCost = totalCostSecs * 1000000.0;
+
 		if (totalCost > currentPaid)
 		{
 			balanceDue = totalCost - currentPaid;
@@ -278,20 +438,20 @@ int	main(int argc, char *argv[])
 		}
 
 		prevPaid = balanceDue;
-
-		/*	Make sure other tasks have a chance to run.	*/
-
 		sm_TaskYield();
 	}
 
+  	/* Clean up */
 	if (ductSocket != -1)
 	{
-		closesocket(ductSocket);
+        	closesocket(ductSocket);
 	}
 
 	writeErrmsgMemos();
 	writeMemo("[i] udpclo duct has ended.");
 	MRELEASE(buffer);
+	MRELEASE(endpointSpecCopy);
+	MRELEASE(remoteHostName);
 	ionDetach();
 	return 0;
 }

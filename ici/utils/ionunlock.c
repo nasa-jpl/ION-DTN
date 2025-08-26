@@ -52,7 +52,7 @@ int	main(int argc, char **argv)
 	sdrv->sdr->sdrOwnerThread = pthread_self();
 	sdrv->sdr->xnDepth = 1;
 	sdr_cancel_xn(sdrv);
-	sdr_stop_using(sdrv);
+	sdr_stop_using(sdrv, 0);
 	writeMemo("[i] ionunlock: finished unlocking ION.");
 	return 0;
 }

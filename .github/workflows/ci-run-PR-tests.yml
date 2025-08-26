@@ -20,15 +20,6 @@ on:
 
 
 jobs:
-  check-user:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Restrict Trigger Access
-        if: "!contains(fromJson('[\"iondev33\", \"type6six\"]'), github.actor)"
-        run: |
-          echo "Error: User ${{ github.actor }} is not authorized to trigger this workflow."
-          exit 1
-          
   ubuntu-latest:
     uses: ./.github/workflows/ci-workflow-ubuntu.yml
     with:
@@ -73,6 +64,13 @@ jobs:
     
   ol8:
     uses: ./.github/workflows/ci-workflow-ol8.yml
+    with:
+      pr_number: ${{ inputs.pr_number }}
+      tests_to_run: ${{ inputs.tests_to_run }}
+      env_vars: ${{ inputs.env_vars }}
+
+  solaris:
+    uses: ./.github/workflows/ci-workflow-solaris.yml
     with:
       pr_number: ${{ inputs.pr_number }}
       tests_to_run: ${{ inputs.tests_to_run }}

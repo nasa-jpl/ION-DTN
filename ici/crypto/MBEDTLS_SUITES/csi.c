@@ -15,6 +15,8 @@
  **  --------  ------------   ---------------------------------------------
  **  02/05/16  E. Birrane     Initial Implementation [Secure DTN
  **                           implementation (NASA: NNX14CS58P)]
+ **
+ **  12/11/24  S. DeBaun      Updated to use strong entropy source
  *****************************************************************************/
 
 
@@ -31,6 +33,7 @@
 #include "csi_hsha.h"
 #include "csi_ecdsa.h"
 #include "csi_gcm.h"
+#include "entropy_src.h"
 
 /*****************************************************************************
  *                         NULL Crypto Functions                             *
@@ -415,8 +418,15 @@ void csi_cipherparms_free(csi_cipherparms_t parms)
 	MRELEASE(parms.aad.contents);
 }
 
+/* 
+*  Sky marks csi_entropy_poll for deprecation as it does not generate 
+*  cryptographically suitable material. 
+*
+*  It is replaced by: ici/crypto/entropy_src.c/poll_entropy_src().*  
+*  Am leaving in place for tracking purposes.
+*/
 
-int csi_entropy_poll( void *data,
+/* int csi_entropy_poll( void *data,
                       unsigned char *output, size_t len, size_t *olen )
 {
 	size_t i = 0;
@@ -428,7 +438,7 @@ int csi_entropy_poll( void *data,
 	*olen = len;
 
 	return (0);
-}
+} */
 
 // 2/21
 int csi_init()
@@ -438,10 +448,10 @@ int csi_init()
 	g_csi_init = 1;
 
 	mbedtls_entropy_init(&g_csi_entropy );
-
+ 
+	/* Sky updates to use strong entropy source - 2024 */
 	mbedtls_entropy_add_source(&g_csi_entropy,
-							   csi_entropy_poll, NULL, 0, MBEDTLS_ENTROPY_SOURCE_STRONG);
-
+			poll_entropy_src, NULL, 0, MBEDTLS_ENTROPY_SOURCE_STRONG);
 
 	if(gcm_init(&g_csi_entropy) != 1)
 	{
@@ -1772,25 +1782,3 @@ csi_val_t  csi_crypt_update(csi_csid_t suite, void *context, csi_svcid_t svc, cs
 	CSI_DEBUG_PROC("- csi_crypt_update -> result (len = %d)", result.len);
 	return result;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
