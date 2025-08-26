@@ -1907,7 +1907,8 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 		CfdpCondition *condition, uvast *progress,
 		CfdpFileStatus *fileStatus, CfdpDeliveryCode *deliveryCode,
 		CfdpTransactionId *originatingTransactionId,
-		char *statusReportBuf, MetadataList *filestoreResponses)
+		char *statusReportBuf, MetadataList *filestoreResponses,
+		unsigned int *closureRequested)
 {
 	Sdr		sdr = getIonsdr();
 	CfdpVdb		*vdb = getCfdpVdb();
@@ -2049,6 +2050,8 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 	{
 		return sdr_end_xn(sdr);
 	}
+
+	*closureRequested = event.closureRequested;
 
 	/*	This FDU might be a standard User Operations FDU.	*/
 

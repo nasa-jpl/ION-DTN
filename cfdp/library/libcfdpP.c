@@ -5012,6 +5012,7 @@ will not match", stringBuf);
 
 	memset((char *) &event, 0, sizeof(CfdpEvent));
 	event.type = CfdpMetadataRecvInd;
+	event.closureRequested = fdu->closureRequested;
 	memcpy((char *) &event.transactionId, (char *) &fdu->transactionId,
 			sizeof(CfdpTransactionId));
 	if (fdu->sourceFileName)

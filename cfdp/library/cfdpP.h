@@ -58,6 +58,7 @@ typedef struct
 	uvast			offset;
 	unsigned int		length;
 	unsigned int		recordBoundsRespected;
+	unsigned int        closureRequested;
 	CfdpContinuationState	continuationState;
 	unsigned int		segMetadataLength;
 	char			segMetadata[63];

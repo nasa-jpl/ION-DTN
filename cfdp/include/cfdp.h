@@ -329,7 +329,8 @@ extern int	cfdp_get_event(CfdpEventType	*type,
 			CfdpDeliveryCode	*deliveryCode,
 			CfdpTransactionId	*originatingTransactionId,
 			char			*statusReportBuf,
-			MetadataList		*filestoreResponses);
+			MetadataList		*filestoreResponses,
+			unsigned int 	*closureRequested);
 		/*	Populates return value fields with data
 		 *	from the oldest CFDP event not yet delivered
 		 *	to the application.  On application error,
