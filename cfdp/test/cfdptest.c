@@ -86,61 +86,77 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
 	printf("\n");
 	
 	/* For TransactionFinished Event, show detailed Finish PDU analysis */
-	if (type == CfdpTransactionFinishedInd) {
+	
+	/* For TransactionFinished Event analysis */
+	if (type == CfdpTransactionFinishedInd) 
+	{
 		printf("  ================== TRANSACTION COMPLETION ANALYSIS ==================\n");
 		
-		if (condition == CfdpNoError) {
-			printf("  ✓ FINISH PDU RECEIVED AND PROCESSED\n");
-			printf("  FINISH PDU CONTENTS FROM RECEIVER:\n");
+		if (condition == CfdpNoError) 
+		{
+			/* We need to determine if this is sender or receiver side
+			* Unfortunately, we can't easily tell from the event data alone
+			* But we can infer from context or modify the message */
+			
+			printf("  ✓ TRANSACTION COMPLETED SUCCESSFULLY\n");
+			printf("  TRANSACTION RESULTS:\n");
 			
 			printf("    -> Delivery Status: %s\n", 
-				   deliveryCode == CfdpDataComplete ? 
-				   "✓ COMPLETE - All data delivered successfully" : 
-				   "✗ INCOMPLETE - Some data missing or corrupted");
+				deliveryCode == CfdpDataComplete ? 
+				"✓ COMPLETE - All data processed successfully" : 
+				"✗ INCOMPLETE - Some data missing or corrupted");
 			
 			printf("    -> File Status: ");
 			switch(fileStatus) {
 				case CfdpFileRetained: 
-					printf("✓ FILE SUCCESSFULLY RETAINED - Transfer succeeded!\n"); 
+					printf("✓ FILE SUCCESSFULLY RETAINED\n"); 
 					break;
 				case CfdpFileDiscarded: 
-					printf("✗ FILE DISCARDED - Receiver rejected the file\n"); 
+					printf("✗ FILE DISCARDED\n"); 
 					break;
 				case CfdpFileRejected: 
-					printf("✗ FILE REJECTED - Receiver could not accept file\n"); 
+					printf("✗ FILE REJECTED\n"); 
 					break;
 				case CfdpFileStatusUnreported: 
-					printf("? STATUS NOT REPORTED - Unknown receiver state\n"); 
+					printf("? STATUS NOT REPORTED\n"); 
 					break;
 			}
 			
-			/* Overall success determination */
-			if (deliveryCode == CfdpDataComplete && fileStatus == CfdpFileRetained) {
-				printf("  RESULT: COMPLETE SUCCESS!\n");
-			} else {
-				printf("  RESULT: Transfer completed but with issues - check above\n");
+			/* Give context about what this means */
+			if (deliveryCode == CfdpDataComplete && fileStatus == CfdpFileRetained) 
+			{
+				printf("  OVERALL RESULT: TRANSACTION SUCCESS!\n");
+				printf("  NOTE: On sender side, this means Finish PDU was received.\n");
+				printf("        On receiver side, this means file was processed successfully.\n");
 			}
-		} else if (condition == CfdpCheckLimitReached) {
-			printf("  ✗ FINISH PDU NEVER RECEIVED\n");
+    	} 
+		else if (condition == CfdpCheckLimitReached) 
+		{
+			printf("  FINISH PDU NEVER RECEIVED\n");
 			printf("  -> Timeout waiting for receiver acknowledgment\n");
 			printf("  -> This could mean:\n");
 			printf("     • Receiver is unreachable or offline\n");
 			printf("     • Network connectivity issues\n");
 			printf("     • Receiver processed file but Finish PDU was lost\n");
 			printf("  OVERALL RESULT: UNKNOWN - File may or may not have been delivered\n");
-		} else {
-			printf("  ✗ TRANSACTION FAILED\n");
+		} 
+		else 
+		{
+			printf("  TRANSACTION FAILED\n");
 			printf("  -> Failure occurred before or during transmission\n");
 			printf("  OVERALL RESULT: FAILED - File was not delivered\n");
 		}
 		printf("  ====================================================================\n");
-	} else {
+	} 
+	else 
+	{
 		/* Display delivery code and file status for non-finished events */
 		printf("  Delivery Code: %d (%s)\n", deliveryCode,
 			deliveryCode == CfdpDataComplete ? "Complete" : "Incomplete");
 		
 		printf("  File Status: %d ", fileStatus);
-		switch(fileStatus) {
+		switch(fileStatus) 
+		{
 			case CfdpFileDiscarded: printf("(File Discarded)"); break;
 			case CfdpFileRejected: printf("(File Rejected)"); break;
 			case CfdpFileRetained: printf("(File Retained)"); break;
