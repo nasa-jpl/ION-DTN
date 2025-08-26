@@ -1,7 +1,5 @@
 /*
-
 	cfdptest.c:	CFDP test shell program.
-
 									*/
 /*	Copyright (c) 2009, California Institute of Technology.		*/
 /*	All rights reserved.						*/
@@ -42,176 +40,274 @@ static char *eventTypes[] = {
 	"abandoned"
 };
 
+/* Transaction tracking for closure request detection */
+typedef struct {
+    CfdpTransactionId transactionId;
+    int closureRequested;
+    int isReceiver;
+    time_t startTime;
+} TransactionTracker;
+
+#define MAX_TRACKED_TRANSACTIONS 10
+static TransactionTracker trackedTransactions[MAX_TRACKED_TRANSACTIONS];
+static int numTrackedTransactions = 0;
+
+// Forward declarations for functions used in reportCfdpEvent
+static void addTransactionTracker(CfdpTransactionId *transId, int isReceiver, int closureRequested);
+static TransactionTracker* findTransactionTracker(CfdpTransactionId *transId);
+static void inferClosureRequest(CfdpEventType type, CfdpTransactionId *transId, 
+                               CfdpCondition condition, CfdpDeliveryCode deliveryCode);
+static char* getClosureRequestStatus(CfdpTransactionId *transId);
+
 static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf, 
                            CfdpCondition condition, CfdpDeliveryCode deliveryCode, 
-                           CfdpFileStatus fileStatus, uvast progress)
+                           CfdpFileStatus fileStatus, uvast progress,
+                           CfdpTransactionId *transactionId)
 {
-	if (type < 0)
-	{	
-		printf("\nCFDP Event: CFDP access had ended.\n");
-		return;
-	}
+    if (type < 0)
+    {	
+        printf("\nCFDP Event: CFDP access had ended.\n");
+        return;
+    }
 
-	printf("\nCFDP Event: Type = %d: %s\n", type, eventTypes[type]);
+    /* Update transaction tracking */
+    inferClosureRequest(type, transactionId, condition, deliveryCode);
+
+    printf("\nCFDP Event: Type = %d: %s\n", type, eventTypes[type]);
+    printf("  Transaction: %s\n", getClosureRequestStatus(transactionId));
     
-	/* Display condition for all events */
-	printf("  Condition: %d ", condition);
-	switch(condition) {
-		case CfdpNoError: 
-			printf("(No Error)"); 
-			if (type == CfdpTransactionFinishedInd) {
-				printf(" -> FINISH PDU RECEIVED SUCCESSFULLY!");
-			}
-			break;
-		case CfdpAckLimitReached: printf("(Ack Limit Reached)"); break;
-		case CfdpKeepaliveLimitReached: printf("(Keepalive Limit Reached)"); break;
-		case CfdpInvalidTransmissionMode: printf("(Invalid Transmission Mode)"); break;
-		case CfdpFilestoreRejection: printf("(Filestore Rejection)"); break;
-		case CfdpChecksumFailure: printf("(Checksum Failure)"); break;
-		case CfdpFileSizeError: printf("(File Size Error)"); break;
-		case CfdpNakLimitReached: printf("(NAK Limit Reached)"); break;
-		case CfdpInactivityDetected: printf("(Inactivity Detected)"); break;
-		case CfdpInvalidFileStructure: printf("(Invalid File Structure)"); break;
-		case CfdpCheckLimitReached: 
-			printf("(Check Limit Reached)");
-			if (type == CfdpTransactionFinishedInd) {
-				printf(" -> FINISH PDU TIMEOUT - NOT RECEIVED!");
-			}
-			break;
-		case CfdpUnsupportedChecksumType: printf("(Unsupported Checksum Type)"); break;
-		case CfdpSuspendRequested: printf("(Suspend Requested)"); break;
-		case CfdpCancelRequested: printf("(Cancel Requested)"); break;
-		default: printf("(Unknown: %d)", condition); break;
-	}
-	printf("\n");
-	
-	/* For TransactionFinished Event, show detailed Finish PDU analysis */
-	
-	/* For TransactionFinished Event analysis */
-	if (type == CfdpTransactionFinishedInd) 
-	{
-		printf("  ================== TRANSACTION COMPLETION ANALYSIS ==================\n");
-		
-		if (condition == CfdpNoError) 
-		{
-			/* We need to determine if this is sender or receiver side
-			* Unfortunately, we can't easily tell from the event data alone
-			* But we can infer from context or modify the message */
-			
-			printf("  ✓ TRANSACTION COMPLETED SUCCESSFULLY\n");
-			printf("  TRANSACTION RESULTS:\n");
-			
-			printf("    -> Delivery Status: %s\n", 
-				deliveryCode == CfdpDataComplete ? 
-				"✓ COMPLETE - All data processed successfully" : 
-				"✗ INCOMPLETE - Some data missing or corrupted");
-			
-			printf("    -> File Status: ");
-			switch(fileStatus) {
-				case CfdpFileRetained: 
-					printf("✓ FILE SUCCESSFULLY RETAINED\n"); 
-					break;
-				case CfdpFileDiscarded: 
-					printf("✗ FILE DISCARDED\n"); 
-					break;
-				case CfdpFileRejected: 
-					printf("✗ FILE REJECTED\n"); 
-					break;
-				case CfdpFileStatusUnreported: 
-					printf("? STATUS NOT REPORTED\n"); 
-					break;
-			}
-			
-			/* Give context about what this means */
-			if (deliveryCode == CfdpDataComplete && fileStatus == CfdpFileRetained) 
-			{
-				printf("  OVERALL RESULT: TRANSACTION SUCCESS!\n");
-				printf("  NOTE: On sender side, this means Finish PDU was received.\n");
-				printf("        On receiver side, this means file was processed successfully.\n");
-			}
-    	} 
-		else if (condition == CfdpCheckLimitReached) 
-		{
-			printf("  FINISH PDU NEVER RECEIVED\n");
-			printf("  -> Timeout waiting for receiver acknowledgment\n");
-			printf("  -> This could mean:\n");
-			printf("     • Receiver is unreachable or offline\n");
-			printf("     • Network connectivity issues\n");
-			printf("     • Receiver processed file but Finish PDU was lost\n");
-			printf("  OVERALL RESULT: UNKNOWN - File may or may not have been delivered\n");
-		} 
-		else 
-		{
-			printf("  TRANSACTION FAILED\n");
-			printf("  -> Failure occurred before or during transmission\n");
-			printf("  OVERALL RESULT: FAILED - File was not delivered\n");
-		}
-		printf("  ====================================================================\n");
-	} 
-	else 
-	{
-		/* Display delivery code and file status for non-finished events */
-		printf("  Delivery Code: %d (%s)\n", deliveryCode,
-			deliveryCode == CfdpDataComplete ? "Complete" : "Incomplete");
-		
-		printf("  File Status: %d ", fileStatus);
-		switch(fileStatus) 
-		{
-			case CfdpFileDiscarded: printf("(File Discarded)"); break;
-			case CfdpFileRejected: printf("(File Rejected)"); break;
-			case CfdpFileRetained: printf("(File Retained)"); break;
-			case CfdpFileStatusUnreported: printf("(Status Unreported)"); break;
-			default: printf("(Unknown: %d)", fileStatus); break;
-		}
-		printf("\n");
-	}
-	
-	/* Display progress for all events */
-	printf("  Progress: " UVAST_FIELDSPEC " bytes\n", progress);
+    /* Display condition for all events */
+    printf("  Condition: %d ", condition);
+    switch(condition) {
+        case CfdpNoError: 
+            printf("(No Error)"); 
+            if (type == CfdpTransactionFinishedInd) {
+                printf(" -> TRANSACTION COMPLETED SUCCESSFULLY!");
+                TransactionTracker *tracker = findTransactionTracker(transactionId);
+                if (tracker && tracker->isReceiver) {
+                    printf("\n  >> Role: RECEIVER - transaction completion");
+                    printf("\n  >> Next: Determine if Finish PDU should be sent based on closure request");
+                }
+            }
+            break;
+        case CfdpAckLimitReached:
+            printf("(ACK Limit Reached)"); break;
+        case CfdpKeepaliveLimitReached:
+            printf("(Keepalive Limit Reached)"); break;
+        case CfdpInvalidTransmissionMode:
+            printf("(Invalid Transmission Mode)"); break;
+        case CfdpFilestoreRejection:
+            printf("(Filestore Rejection)"); break;
+        case CfdpChecksumFailure:
+            printf("(Checksum Failure)"); break;
+        case CfdpFileSizeError:
+            printf("(File Size Error)"); break;
+        case CfdpNakLimitReached:
+            printf("(NAK Limit Reached)"); break;
+        case CfdpInactivityDetected:
+            printf("(Inactivity Detected)"); break;
+        case CfdpInvalidFileStructure:
+            printf("(Invalid File Structure)"); break;
+        case CfdpCheckLimitReached:
+            printf("(Check Limit Reached)"); break;
+        case CfdpUnsupportedChecksumType:
+            printf("(Unsupported Checksum Type)"); break;
+        case CfdpSuspendRequested:
+            printf("(Suspend Requested - not a fault)"); break;
+        case CfdpCancelRequested:
+            printf("(Cancel Requested - not a fault)"); break;
+        default:
+            printf("(Unknown condition)"); break;
+    }
+    printf("\n");
+    
+    /* Display delivery code */
+    printf("  Delivery: %d ", deliveryCode);
+    switch(deliveryCode) {
+        case CfdpDataComplete:
+            printf("(Data Complete)"); break;
+        case CfdpDataIncomplete:
+            printf("(Data Incomplete)"); break;
+        default:
+            printf("(Unknown delivery code)"); break;
+    }
+    printf("\n");
+    
+    /* Display file status */
+    printf("  File Status: %d ", fileStatus);
+    switch(fileStatus) {
+        case CfdpFileDiscarded:
+            printf("(File Discarded)"); break;
+        case CfdpFileRejected:
+            printf("(File Rejected)"); break;
+        case CfdpFileRetained:
+            printf("(File Retained)"); break;
+        case CfdpFileStatusUnreported:
+            printf("(Status Unreported)"); break;
+        default:
+            printf("(Unknown file status)"); break;
+    }
+    printf("\n");
+    
+    printf("  Progress: %lu bytes\n", (unsigned long)progress);
+    
+    /* Special handling for specific event types */
+    switch(type) {
+        case CfdpTransactionInd:
+            printf("  🚀 TRANSACTION INITIATED\n");
+            printf("  📊 Role: SENDER - starting file transmission\n");
+            break;
+            
+        case CfdpMetadataRecvInd:
+            printf("  📩 METADATA RECEIVED\n");
+            printf("  📊 Role: RECEIVER - preparing transaction completion\n");
+            {
+                TransactionTracker *tracker = findTransactionTracker(transactionId);
+                if (tracker && tracker->isReceiver) {
+                    printf("  🎯 Next: Determine if Finish PDU should be sent based on closure request\n");
+                }
+            }
+            break;
+            
+        case CfdpTransactionFinishedInd:
+            {
+                TransactionTracker *tracker = findTransactionTracker(transactionId);
+                printf("  ================== TRANSACTION COMPLETION ANALYSIS ==================\n");
+                
+                if (tracker && tracker->isReceiver) {
+                    printf("  📊 RECEIVER SIDE COMPLETION\n");
+                    if (condition == CfdpNoError && deliveryCode == CfdpDataComplete && fileStatus == CfdpFileRetained) {
+                        printf("  ✅ SUCCESSFUL FILE RECEPTION AND PROCESSING\n");
+                        printf("  🎯 CLOSURE REQUEST DETECTION:\n");
+                        printf("      → File processed successfully with complete delivery\n");
+                        printf("      → This indicates sender likely requested acknowledgment\n");
+                        printf("      → A Finish PDU has been (or will be) sent back to sender\n");
+                        printf("      → Sender should receive TransactionFinished with condition=0\n");
+                        tracker->closureRequested = 1;
+                    } else {
+                        printf("  ⚠️  FILE RECEPTION COMPLETED WITH ISSUES\n");
+                        printf("  🎯 CLOSURE REQUEST DETECTION:\n");
+                        printf("      → Transaction may be in unacknowledged mode\n");
+                        printf("      → Or issues occurred during processing\n");
+                        tracker->closureRequested = 0;
+                    }
+                } else {
+                    printf("  📊 SENDER SIDE COMPLETION\n");
+                    if (condition == CfdpNoError) {
+                        printf("  ✅ SUCCESSFUL FILE TRANSMISSION\n");
+                        printf("  🎯 If closure was requested, expecting Finish PDU from receiver\n");
+                    } else {
+                        printf("  ❌ FILE TRANSMISSION COMPLETED WITH ERRORS\n");
+                    }
+                }
+                
+                printf("  ======================================================================\n");
+            }
+            break;
+            
+        case CfdpEofSentInd:
+            printf("  📤 EOF PDU SENT - File transmission completed\n");
+            printf("  🎯 If closure requested, waiting for Finish PDU response\n");
+            break;
+            
+        case CfdpEofRecvInd:
+            printf("  📥 EOF PDU RECEIVED - File reception completed\n");
+            printf("  🎯 Processing file and determining if Finish PDU should be sent\n");
+            break;
+            
+        default:
+            break;
+    }
+    
+    if (statusReportBuf && strlen(statusReportBuf) > 0) {
+        printf("  Status Report: %s\n", statusReportBuf);
+    }
+}
 
-	/* Add event-specific additional information */
-	switch(type) {
-		case CfdpTransactionInd:
-			printf("  -> Transaction started - preparing file transfer\n");
-			break;
-		case CfdpEofSentInd:
-			printf("  -> EOF sent - all file data transmitted, waiting for confirmation\n");
-			break;
-		case CfdpMetadataRecvInd:
-			printf("  -> Metadata received - incoming file transfer detected\n");
-			break;
-		case CfdpFileSegmentRecvInd:
-			printf("  -> File data segment received - transfer in progress\n");
-			break;
-		case CfdpEofRecvInd:
-			printf("  -> EOF received - checking file completeness and integrity\n");
-			break;
-		case CfdpSuspendedInd:
-			printf("  -> Transaction suspended - transfer paused\n");
-			break;
-		case CfdpResumedInd:
-			printf("  -> Transaction resumed - transfer restarted\n");
-			break;
-		case CfdpReportInd:
-			printf("  -> Status report generated\n");
-			break;
-		case CfdpFaultInd:
-			printf("  -> !!FAULT OCCURRED - CHECK CONDITION CODE!\n");
-			break;
-		case CfdpAbandonedInd:
-			printf("  -> Transaction abandoned due to unrecoverable fault\n");
-			break;
-		default:
-			break;
-	}
+// Implementation of transaction tracking functions
+static void addTransactionTracker(CfdpTransactionId *transId, int isReceiver, int closureRequested)
+{
+    if (numTrackedTransactions >= MAX_TRACKED_TRANSACTIONS) {
+        /* Remove oldest transaction */
+        memmove(&trackedTransactions[0], &trackedTransactions[1], 
+                (MAX_TRACKED_TRANSACTIONS-1) * sizeof(TransactionTracker));
+        numTrackedTransactions--;
+    }
+    
+    memcpy(&trackedTransactions[numTrackedTransactions].transactionId, transId, sizeof(CfdpTransactionId));
+    trackedTransactions[numTrackedTransactions].isReceiver = isReceiver;
+    trackedTransactions[numTrackedTransactions].closureRequested = closureRequested;
+    trackedTransactions[numTrackedTransactions].startTime = time(NULL);
+    numTrackedTransactions++;
+}
 
-	/* Display status report if available */
-	if (statusReportBuf && strlen(statusReportBuf) > 0)
-	{
-		printf("  Status Report: %s\n", statusReportBuf);
-	}
-	
-	printf("  ----------------------------------------\n");
+static TransactionTracker* findTransactionTracker(CfdpTransactionId *transId)
+{
+    int i;
+    for (i = 0; i < numTrackedTransactions; i++) {
+        if (memcmp(&trackedTransactions[i].transactionId.sourceEntityNbr,
+                   &transId->sourceEntityNbr, sizeof(CfdpNumber)) == 0 &&
+            memcmp(&trackedTransactions[i].transactionId.transactionNbr,
+                   &transId->transactionNbr, sizeof(CfdpNumber)) == 0) {
+            return &trackedTransactions[i];
+        }
+    }
+    return NULL;
+}
+
+static void inferClosureRequest(CfdpEventType type, CfdpTransactionId *transId, 
+                               CfdpCondition condition, CfdpDeliveryCode deliveryCode)
+{
+    TransactionTracker *tracker;
+    
+    switch (type) {
+        case CfdpTransactionInd:
+            /* This is a sender-initiated transaction */
+            addTransactionTracker(transId, 0, -1); /* -1 = unknown closure request */
+            break;
+            
+        case CfdpMetadataRecvInd:
+            /* This is a receiver getting metadata - we can't directly determine
+             * closure request here, but we'll infer it later */
+            addTransactionTracker(transId, 1, -1); /* -1 = will determine later */
+            break;
+            
+        case CfdpTransactionFinishedInd:
+            tracker = findTransactionTracker(transId);
+            if (tracker && tracker->isReceiver) {
+                /* Receiver side completion - infer closure request */
+                if (condition == CfdpNoError && deliveryCode == CfdpDataComplete) {
+                    /* Successful completion suggests closure was likely requested */
+                    tracker->closureRequested = 1;
+                } else {
+                    /* We can't be sure, but mark as likely unacknowledged */
+                    tracker->closureRequested = 0;
+                }
+            }
+            break;
+            
+        default:
+            break;
+    }
+}
+
+static char* getClosureRequestStatus(CfdpTransactionId *transId)
+{
+    TransactionTracker *tracker = findTransactionTracker(transId);
+    if (!tracker) {
+        return "Unknown Transaction";
+    }
+    
+    if (tracker->isReceiver) {
+        switch (tracker->closureRequested) {
+            case 1: return "Closure Requested (Acknowledged Mode)";
+            case 0: return "No Closure Request (Unacknowledged Mode)";
+            case -1: return "Closure Request Status: Determining...";
+            default: return "Unknown";
+        }
+    } else {
+        return "Sender Side Transaction";
+    }
 }
 
 static int	noteSegmentTime(uvast fileOffset, unsigned int recordOffset,
@@ -918,7 +1014,7 @@ static void	*handleEvents(void *parm)
 			return NULL;
 		}
 
-		reportCfdpEvent(type, statusReportBuf, condition, deliveryCode, fileStatus, progress);
+		reportCfdpEvent(type, statusReportBuf, condition, deliveryCode, fileStatus, progress, &transactionId);
 
 		if (type == CfdpAccessEnded)
 		{
