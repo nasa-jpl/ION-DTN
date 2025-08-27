@@ -45,6 +45,82 @@ static char *eventTypes[] = {
 	"abandoned"
 };
 
+/* Simple transaction tracker for sender-side closure latency */
+typedef struct {
+    CfdpTransactionId transactionId;
+    unsigned int senderClosureLatency;  /* Store original closureLatency from cfdp_put() */
+    time_t timestamp;
+} SenderTransaction;
+
+#define MAX_SENDER_TRANSACTIONS 50  /* Increased for busy systems */
+static SenderTransaction senderTransactions[MAX_SENDER_TRANSACTIONS];
+static int numSenderTransactions = 0;
+
+/* Function to store sender transaction closure info */
+static void storeSenderTransaction(CfdpTransactionId *transId, unsigned int closureLatency)
+{
+    int i;
+    
+    /* Check if transaction already exists (update it) */
+    for (i = 0; i < numSenderTransactions; i++) {
+        if (memcmp(&senderTransactions[i].transactionId.sourceEntityNbr,
+                   &transId->sourceEntityNbr, sizeof(CfdpNumber)) == 0 &&
+            memcmp(&senderTransactions[i].transactionId.transactionNbr,
+                   &transId->transactionNbr, sizeof(CfdpNumber)) == 0) {
+            senderTransactions[i].senderClosureLatency = closureLatency;
+            senderTransactions[i].timestamp = time(NULL);
+            return;
+        }
+    }
+    
+    /* Add new transaction (remove oldest if full) */
+    if (numSenderTransactions >= MAX_SENDER_TRANSACTIONS) {
+        memmove(&senderTransactions[0], &senderTransactions[1], 
+                (MAX_SENDER_TRANSACTIONS-1) * sizeof(SenderTransaction));
+        numSenderTransactions--;
+    }
+    
+    memcpy(&senderTransactions[numSenderTransactions].transactionId, transId, sizeof(CfdpTransactionId));
+    senderTransactions[numSenderTransactions].senderClosureLatency = closureLatency;
+    senderTransactions[numSenderTransactions].timestamp = time(NULL);
+    numSenderTransactions++;
+}
+
+/* Function to clean up completed transactions */
+static void cleanupCompletedTransaction(CfdpTransactionId *transId)
+{
+    int i, j;
+    for (i = 0; i < numSenderTransactions; i++) {
+        if (memcmp(&senderTransactions[i].transactionId.sourceEntityNbr,
+                   &transId->sourceEntityNbr, sizeof(CfdpNumber)) == 0 &&
+            memcmp(&senderTransactions[i].transactionId.transactionNbr,
+                   &transId->transactionNbr, sizeof(CfdpNumber)) == 0) {
+            /* Remove this transaction by shifting remaining ones down */
+            for (j = i; j < numSenderTransactions - 1; j++) {
+                memcpy(&senderTransactions[j], &senderTransactions[j + 1],
+                       sizeof(SenderTransaction));
+            }
+            numSenderTransactions--;
+            break;
+        }
+    }
+}
+
+/* Function to get sender closure info */
+static int getSenderClosureLatency(CfdpTransactionId *transId)
+{
+    int i;
+    for (i = 0; i < numSenderTransactions; i++) {
+        if (memcmp(&senderTransactions[i].transactionId.sourceEntityNbr,
+                   &transId->sourceEntityNbr, sizeof(CfdpNumber)) == 0 &&
+            memcmp(&senderTransactions[i].transactionId.transactionNbr,
+                   &transId->transactionNbr, sizeof(CfdpNumber)) == 0) {
+            return senderTransactions[i].senderClosureLatency;
+        }
+    }
+    return -1; /* Not found */
+}
+
 /* Helper functions for field name translation */
 static char *getConditionName(CfdpCondition condition)
 {
@@ -93,7 +169,6 @@ static char *getFileStatusName(CfdpFileStatus fileStatus)
     }
 }
 
-/* SIMPLIFIED reportCfdpEvent function - DROP-IN REPLACEMENT */
 static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf, 
                            CfdpCondition condition, CfdpDeliveryCode deliveryCode, 
                            CfdpFileStatus fileStatus, uvast progress,
@@ -102,6 +177,14 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
 {
     uvast srcEntityNbr, txnNbr;
     char *ackMode;
+    int isReliableAckMode = 0;  /* Flag to indicate if we have reliable ack mode info */
+
+	/* DEBUG: Show what CFDP engine is actually providing */
+    cfdp_decompress_number(&srcEntityNbr, &transactionId->sourceEntityNbr);
+    cfdp_decompress_number(&txnNbr, &transactionId->transactionNbr);
+    printf("[DEBUG] Event %d for " UVAST_FIELDSPEC "." UVAST_FIELDSPEC 
+           ": progress=" UVAST_FIELDSPEC ", closureRequested=%u\n",
+           type, srcEntityNbr, txnNbr, progress, closureRequested);
     
     /* Handle special cases */
     if (type < 0) {	
@@ -117,8 +200,24 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
     cfdp_decompress_number(&srcEntityNbr, &transactionId->sourceEntityNbr);
     cfdp_decompress_number(&txnNbr, &transactionId->transactionNbr);
     
-    /* Determine acknowledge mode */
-    ackMode = closureRequested ? "Acknowledged" : "Unacknowledged";
+    /* Determine acknowledge mode with enhanced reliability */
+    if (type == CfdpMetadataRecvInd) {
+        /* MOST RELIABLE: Receiver side during metadata reception */
+        ackMode = closureRequested ? "Acknowledged" : "Unacknowledged";
+        isReliableAckMode = 1;
+    } else {
+        /* For other events, try to get stored sender closure info first */
+        int senderClosureLatency = getSenderClosureLatency(transactionId);
+        if (senderClosureLatency >= 0) {
+            /* We have definitive sender closure info */
+            ackMode = (senderClosureLatency > 0) ? "Acknowledged" : "Unacknowledged";
+            isReliableAckMode = 1;
+        } else {
+            /* Fall back to API parameter */
+            ackMode = closureRequested ? "Acknowledged" : "Unacknowledged";
+            isReliableAckMode = 0;
+        }
+    }
     
     /* Display basic event information */
     printf("\n=== CFDP EVENT ===\n");
@@ -126,11 +225,13 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
            (type >= 0 && type < 12) ? eventTypes[type] : "unknown", type);
     printf("Transaction: " UVAST_FIELDSPEC "." UVAST_FIELDSPEC, srcEntityNbr, txnNbr);
     
-    /* Show acknowledge mode - most reliable on receiver side with metadata events */
+    /* Show acknowledge mode with confidence indicator */
     if (type == CfdpMetadataRecvInd) {
-        printf(" (%s mode - receiver side)", ackMode);
+        printf(" (%s mode - receiver side, definitive)", ackMode);
+    } else if (isReliableAckMode) {
+        printf(" (%s mode - confirmed)", ackMode);
     } else {
-        printf(" (%s mode)", ackMode);
+        printf(" (%s mode - from CFDP API)", ackMode);
     }
     printf("\n");
     
@@ -140,6 +241,7 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
         case CfdpEofSentInd:              // Event 2  
         case CfdpMetadataRecvInd:         // Event 4
         case CfdpFileSegmentRecvInd:      // Event 5
+		case CfdpEofRecvInd:		  	// Event 6
         case CfdpSuspendedInd:            // Event 7
         case CfdpResumedInd:              // Event 8
             /* For these events, only show condition if it indicates an error */
@@ -147,13 +249,8 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
                 printf("Condition: %s (%d)\n", getConditionName(condition), condition);
             }
             break;
-            
-        case CfdpEofRecvInd:              // Event 6 - All fields meaningful
-            printf("Condition: %s (%d)\n", getConditionName(condition), condition);
-            printf("Delivery: %s (%d)\n", getDeliveryCodeName(deliveryCode), deliveryCode);
-            printf("File Status: %s (%d)\n", getFileStatusName(fileStatus), fileStatus);
-            break;
-            
+
+		/* Deliver Code and File status are only applicable at the conclusion of a transaction */    
         case CfdpTransactionFinishedInd:  // Event 3 - ALL FIELDS CRITICAL
         case CfdpFaultInd:                // Event 10 - ALL FIELDS CRITICAL
         case CfdpAbandonedInd:            // Event 11 - ALL FIELDS CRITICAL
@@ -177,10 +274,8 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
             }
             break;
             
-        case CfdpReportInd:               // Event 9 - All fields meaningful (status snapshot)
+        case CfdpReportInd:             // Display report detail
             printf("Condition: %s (%d)\n", getConditionName(condition), condition);
-            printf("Delivery: %s (%d)\n", getDeliveryCodeName(deliveryCode), deliveryCode);
-            printf("File Status: %s (%d)\n", getFileStatusName(fileStatus), fileStatus);
             if (statusReportBuf && strlen(statusReportBuf) > 0) {
                 printf("Report Details: %s\n", statusReportBuf);
             }
@@ -197,6 +292,11 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
     /* Always show progress for meaningful events */
     printf("Progress: " UVAST_FIELDSPEC " bytes\n", progress);
     printf("==================\n");
+    
+    /* Clean up completed transactions to prevent memory buildup */
+    if (type == CfdpTransactionFinishedInd || type == CfdpAbandonedInd) {
+        cleanupCompletedTransaction(transactionId);
+    }
 }
 
 static int	noteSegmentTime(uvast fileOffset, unsigned int recordOffset,
@@ -732,6 +832,9 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 				return -1;
 			}
 
+			/* Store closure latency for robust sender-side tracking */
+			storeSenderTransaction(&(parms->transactionId), parms->closureLatency);
+
 			parms->msgsToUser = 0;
 			parms->fsRequests = 0;
 			return 0;
@@ -756,6 +859,9 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 				putErrmsg("Can't put FDU.", NULL);
 				return -1;
 			}
+
+			/* Store closure info for robust sender-side tracking */
+			storeSenderTransaction(&(parms->transactionId), task.closureRequested ? 1 : 0);
 
 			parms->msgsToUser = 0;
 			parms->fsRequests = 0;
