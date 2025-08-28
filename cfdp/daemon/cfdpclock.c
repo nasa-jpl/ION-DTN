@@ -151,6 +151,7 @@ static int	handleFinishOverdue(Sdr sdr, Object fduObj)
 	event.condition = CfdpCheckLimitReached;
 	event.deliveryCode = CfdpDataIncomplete;
 	event.fileStatus = CfdpFileStatusUnreported;
+	event.progress = fdu.progress;
 	if (enqueueCfdpEvent(&event) < 0)
 	{
 		putErrmsg("CFDP can't report on Finish overdue.", NULL);
@@ -263,6 +264,7 @@ static int	enqueueIndications(Sdr sdr, OutFdu *fdu)
 	memcpy((char *) &event.transactionId, (char *) &fdu->transactionId,
 			sizeof(CfdpTransactionId));
 	event.reqNbr = fdu->reqNbr;
+	event.progress = fdu->progress;
 	if (enqueueCfdpEvent(&event) < 0)
 	{
 		putErrmsg("CFDP can't report on EOF sent.", NULL);
@@ -288,6 +290,7 @@ static int	enqueueIndications(Sdr sdr, OutFdu *fdu)
 	memcpy((char *) &event.transactionId, (char *) &fdu->transactionId,
 			sizeof(CfdpTransactionId));
 	event.reqNbr = fdu->reqNbr;
+	event.progress = fdu->progress;
 	if (enqueueCfdpEvent(&event) < 0)
 	{
 		putErrmsg("CFDP can't report on EOF sent.", NULL);

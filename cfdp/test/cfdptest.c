@@ -179,12 +179,13 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
     char *ackMode;
     int isReliableAckMode = 0;  /* Flag to indicate if we have reliable ack mode info */
 
-	/* DEBUG: Show what CFDP engine is actually providing */
+	/* DEBUG: Show what CFDP engine is actually providing
     cfdp_decompress_number(&srcEntityNbr, &transactionId->sourceEntityNbr);
     cfdp_decompress_number(&txnNbr, &transactionId->transactionNbr);
     printf("[DEBUG] Event %d for " UVAST_FIELDSPEC "." UVAST_FIELDSPEC 
            ": progress=" UVAST_FIELDSPEC ", closureRequested=%u\n",
            type, srcEntityNbr, txnNbr, progress, closureRequested);
+	*/
     
     /* Handle special cases */
     if (type < 0) {	
@@ -260,16 +261,16 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
             
             /* Add simple visual indicators for critical conditions */
             if (type == CfdpFaultInd) {
-                printf("⚠️  FAULT DETECTED\n");
+                printf("  FAULT DETECTED\n");
             } else if (type == CfdpAbandonedInd) {
-                printf("❌ TRANSACTION ABANDONED\n");
+                printf(" TRANSACTION ABANDONED\n");
             } else if (type == CfdpTransactionFinishedInd) {
                 if (condition == CfdpNoError && deliveryCode == 0 && fileStatus == 2) {
-                    printf("✅ SUCCESS: File delivered and retained\n");
+                    printf(" SUCCESS: File delivered and retained\n");
                 } else if (condition == CfdpNoError && deliveryCode == 1 && fileStatus == 3) {
-                    printf("⚪ COMPLETED: Unacknowledged mode (status unknown)\n");
+                    printf(" COMPLETED: Unacknowledged mode (status unknown)\n");
                 } else {
-                    printf("❌ FAILED: Check conditions above\n");
+                    printf(" FAILED: Check conditions above\n");
                 }
             }
             break;
