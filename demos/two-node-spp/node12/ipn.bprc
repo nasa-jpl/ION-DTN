@@ -1,0 +1,65 @@
+#-----------------------------------------------------------------
+# Initialization command (command 1).
+1
+
+#-----------------------------------------------------------------
+# Add an EID scheme. Note use of 'bssfw' in place of 'ipnfw'
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+#-----------------------------------------------------------------
+# Add endpoints.
+a endpoint ipn:12.0 x
+a endpoint ipn:12.1 x
+a endpoint ipn:12.2 x
+a endpoint ipn:12.3 x
+a endpoint ipn:12.4 x
+a endpoint ipn:12.5 x
+a endpoint ipn:12.6 x
+a endpoint ipn:12.7 x
+a endpoint ipn:12.8 x
+a endpoint ipn:12.9 x
+a endpoint ipn:12.10 x
+a endpoint ipn:12.11 x
+a endpoint ipn:12.12 x
+a endpoint ipn:12.13 x
+a endpoint ipn:12.14 x
+a endpoint ipn:12.15 x
+a endpoint ipn:12.16 x
+a endpoint ipn:12.17 x
+a endpoint ipn:12.18 x
+a endpoint ipn:12.19 x
+a endpoint ipn:12.20 x
+
+# Add endpoints for CFDP: ipn:x.64 and ipn:x.65
+a endpoint ipn:12.64 x
+a endpoint ipn:12.65 x
+
+#-----------------------------------------------------------------
+# Add a protocol for external nodes.
+# The user needs to signal to BP how the underlying space packet protocol layer is transferrred. If it is reliable it is 8, if it is unreliable it can be left blank. i.e. for reliable:
+# a protocol spp 82
+a protocol spp
+
+# Replace path_to_spp_library with your path to a shared library which conforms to the function parameters.
+#-----------------------------------------------------------------
+# Add inducts.
+a induct spp 12 {sppcli 12 /path_to_spp_library/libspp_protocol_name.so}
+
+#-----------------------------------------------------------------
+# Add outducts.
+
+# Node12 -> Node10
+a outduct spp 10 {sppclo 10 /path_to_spp_library/libspp_protocol_name.so 123,0,0,0}
+
+#-----------------------------------------------------------------
+# Load egress plan.
+r 'ipnadmin ipn.ipnrc'
+
+#-----------------------------------------------------------------
+# Select level of BP watch activities
+# 0 = None; 1 = All
+w 1
+
+#-----------------------------------------------------------------
+# Start all declared schemes and protocols on the local node
+s

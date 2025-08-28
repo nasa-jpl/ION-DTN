@@ -80,6 +80,7 @@ nav:
     - Platform Macros & Error Reporting: Platform-Macros-Error-Reporting.md
     - ION Utility Programs: ION-Utilities.md
     - ION Coding Guide: ION-Coding-Guide.md
+    - SPP CLA Prototype Description: SPP-CLA-Prototype-Description.md
   - Man Pages:
     - Man Pages: Man-Page-Introduction.md
     - Asychronous Messaging System (AMS): man/ams/index.md

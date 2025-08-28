@@ -214,6 +214,8 @@ tcpbso
 tcputa
 udpbsi
 udpbso
+sppclo
+sppcli
 
 
 # Compiled manpages (not the pod sources)
@@ -504,3 +506,4 @@ tests/crc_relay/5.ipn.ltp/case3_out.txt
 tests/issue-352-bpcp-stcp/1.ipn.cfdp.bp.stcp/test2
 tests/issue-352-bpcp-stcp/2.ipn.cfdp.bp.stcp/test3
 tests/issue-352-bpcp-stcp/3.ipn.cfdp.bp.stcp/test1
+

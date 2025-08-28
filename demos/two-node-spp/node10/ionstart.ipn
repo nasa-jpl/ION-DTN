@@ -1,0 +1,10 @@
+#!/bin/bash
+# shell script to get ION node running
+echo "Starting ION node ipn:10 on `uname -n` from `pwd`"
+ionadmin	ipn.ionrc
+sleep 1
+ionsecadmin     ipn.ionsecrc
+sleep 1
+bpadmin		ipn.bprc
+sleep 1
+echo "Startup of ION node ipn:10 on `uname -n` is complete!"

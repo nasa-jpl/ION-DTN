@@ -1,0 +1,22 @@
+# Shell script to remove all node IPC keys
+#!/bin/bash
+
+kill -9 `pgrep sppcli`
+killall ltpadmin
+killall bpadmin
+killall ionadmin
+killall cfdpadmin
+killall udplsi
+
+ltpadmin	.
+sleep 1
+bpadmin         .
+sleep 1
+ionadmin        .
+sleep 1
+cfdpadmin       .
+sleep 1
+for Q in `ipcs -c -q | grep $USER | awk '{ print $1 }'`; do ipcrm msg $Q; done
+for M in `ipcs -c -m | grep $USER | awk '{ print $1 }'`; do ipcrm shm $M; done
+for S in `ipcs -c -s | grep $USER | awk '{ print $1 }'`; do ipcrm sem $S; done
+

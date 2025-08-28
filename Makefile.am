@@ -1789,7 +1789,9 @@ bpbin = \
 	tcpcli \
 	tcpclo \
 	udpcli \
-	udpclo
+	udpclo \
+        sppcli \
+        sppclo
 
 #Uncomment if you want to build killm.exe
 #if WINDOWS
@@ -1814,7 +1816,8 @@ bplib = \
 	libbp.la \
 	libcgr.la \
 	libstcpcla.la \
-	libudpcla.la
+	libudpcla.la \
+        libsppcla.la
 
 bpinclude = \
 	bpv7/include/bp.h \
@@ -1839,7 +1842,8 @@ bpnoinst = \
 	bpv7/ltp/ltpcla.h \
 	bpv7/saga/saga.h \
 	bpv7/stcp/stcpcla.h \
-	bpv7/udp/udpcla.h
+	bpv7/udp/udpcla.h \
+        bpv7/spp/sppcla.h
 
 bpextra = \
 	bpv7/README.txt \
@@ -2105,6 +2109,10 @@ libudpcla_la_SOURCES = bpv7/udp/libudpcla.c
 libudpcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libudpcla_la_LIBADD = libbp.la libici.la
 
+libsppcla_la_SOURCES = bpv7/spp/libsppcla.c
+libsppcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+libsppcla_la_LIBADD = libbp.la libici.la
+
 # --- libmetadata --- #
 
 metadatalib = libmetadata.la
@@ -2271,6 +2279,16 @@ udpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 udpclo_SOURCES = bpv7/udp/udpclo.c
 udpclo_LDADD = libici.la $(bplib)
 udpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+# --- SPP Executables --- #
+
+sppcli_SOURCES = bpv7/spp/sppcli.c
+sppcli_LDADD = libici.la $(bplib) $(PTHREAD_LIBS) $(LIBS)
+sppcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+sppclo_SOURCES = bpv7/spp/sppclo.c
+sppclo_LDADD = libici.la $(bplib) $(LIBS)
+sppclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- BIBE Executables --- #
 
