@@ -2283,11 +2283,11 @@ udpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 # --- SPP Executables --- #
 
 sppcli_SOURCES = bpv7/spp/sppcli.c
-sppcli_LDADD = libici.la $(bplib) $(PTHREAD_LIBS)
+sppcli_LDADD = libici.la $(bplib) $(PTHREAD_LIBS) $(LIBS)
 sppcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 sppclo_SOURCES = bpv7/spp/sppclo.c
-sppclo_LDADD = libici.la $(bplib)
+sppclo_LDADD = libici.la $(bplib) $(LIBS)
 sppclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- BIBE Executables --- #

@@ -698,6 +698,12 @@ AC_CHECK_LIB(
 	[ AM_LDFLAGS="$AM_LDFLAGS -lpthread" ],
 	[AC_MSG_ERROR([You need pthread library.]) ]
 )
+
+# Check for the dynamic linking library (libdl)
+AC_SEARCH_LIBS([dlopen], [dl], [], [
+  AC_MSG_ERROR([required library dl not found])
+])
+
 CFLAGS="$ORIGCFLAGS"
 
 AC_CHECK_LIB(
