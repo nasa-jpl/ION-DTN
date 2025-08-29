@@ -233,6 +233,38 @@ The B<user message> command.  This command adds a user message to the
 metadata that will be issued when the next file transmission operation
 is commanded.
 
+=item B<L> <remote directory path> <local temp filename>
+
+The B<list remote directory> command (ION extension).  This command requests
+a directory listing from the remote CFDP entity specified by the most recent
+B<d> command. The directory contents will be stored in the specified local
+temporary file. Upon successful completion, the directory contents are
+automatically displayed.
+
+B<IMPORTANT:> This feature requires the remote CFDP entity to support the
+ION directory listing extension. The remote node must be running either
+B<bpcpd> (CFDP remote copy daemon) or an enhanced version of B<cfdptest>
+that includes directory listing server capabilities. Standard CFDP daemons
+(such as the basic ION CFDP implementation) do not support this extension
+and will ignore directory listing requests.
+
+B<Example Usage:>
+
+  d 2                           # Set destination entity
+  L /etc /tmp/etc_listing.txt   # Request /etc directory listing
+  # Directory contents will be auto-displayed upon completion
+
+=item B<D> <local directory listing filename>
+
+The B<display directory listing> command (ION extension).  This command
+displays the contents of a previously received directory listing file.
+The file should contain directory entries in the format produced by the
+B<L> command.
+
+B<Example Usage:>
+
+  D /tmp/etc_listing.txt        # Display contents of directory listing file
+
 =item B<&>
 
 The B<send> command.  This command initiates file transmission as configured
@@ -295,6 +327,42 @@ For ION 4.1.4 or higher, B<cfdptest> will spawn a CFDP event handling thread
 for both interactive and scripted mode, this event thread receives CFDP service 
 indications and simply prints lines of text to stdout to announce them.
 
+=head1 DIRECTORY LISTING EXTENSION
+
+The directory listing functionality (B<L> and B<D> commands) is an ION-specific
+extension to the CFDP protocol and is not part of the standard CFDP specification.
+This extension uses CFDP's "messages to user" mechanism to implement remote
+directory operations.
+
+B<Server Requirements:>
+
+For directory listing to work, the remote CFDP entity must support the ION
+directory listing extension by running one of the following:
+
+=over 4
+
+=item *
+
+B<bpcpd> - The CFDP remote copy daemon, which includes full directory listing
+server capabilities.
+
+=item *
+
+An enhanced version of B<cfdptest> or another application that implements the
+directory listing message handlers.
+
+=back
+
+Standard CFDP daemons (such as the basic ION CFDP implementation) will ignore
+directory listing requests, resulting in empty or invalid directory listing files.
+
+B<Protocol Details:>
+
+Directory listing requests are sent as special "messages to user" with a
+specific format. The remote entity processes these messages, executes the
+directory listing operation, and responds with both the directory contents
+(as a file transfer) and a status message indicating success or failure.
+
 =head1 EXIT STATUS
 
 =over 4
@@ -339,6 +407,18 @@ additional diagnostic messages from the CFDP library.
 The attempt to retrieve a CFDP service indication failed.  See the ION log for
 additional diagnostic messages from the CFDP library.
 
+=item Can't request directory listing.
+
+The attempt to initiate a directory listing request failed. This may indicate
+that the ION installation was compiled without directory listing support
+(NO_DIRLIST defined) or that required libraries are missing.
+
+=item Cannot open directory listing file...
+
+The specified directory listing file could not be opened for display. This
+may indicate that the file doesn't exist, the directory listing request failed,
+or there are insufficient permissions to read the file.
+
 =back
 
 =head1 BUGS
@@ -347,4 +427,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-cfdpadmin(1), cfdp(3)
+cfdpadmin(1), cfdp(3), bpcp(1), bpcpd(1)

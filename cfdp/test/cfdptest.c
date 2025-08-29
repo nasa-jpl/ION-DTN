@@ -13,6 +13,11 @@
 #include "cfdp.h"
 #include "bputa.h"
 
+/* check directory listing extension */
+#ifndef NO_DIRLIST
+#include "cfdpops.h"
+#endif
+
 typedef struct
 {
 	CfdpHandler		faultHandlers[16];
@@ -63,6 +68,11 @@ typedef struct {
 #define MAX_SENDER_TRANSACTIONS 50  /* Increased for busy systems */
 static SenderTransaction senderTransactions[MAX_SENDER_TRANSACTIONS];
 static int numSenderTransactions = 0;
+static void	handleQuit(int signum);
+static void	printUsage(void);
+#ifndef NO_DIRLIST
+static void	displayDirListing(const char *filename);  // <-- Add this
+#endif
 
 /* Function to store sender transaction closure info */
 static void storeSenderTransaction(CfdpTransactionId *transId, unsigned int closureLatency)
@@ -181,7 +191,7 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
                            CfdpCondition condition, CfdpDeliveryCode deliveryCode, 
                            CfdpFileStatus fileStatus, uvast progress,
                            CfdpTransactionId *transactionId,
-                           unsigned int closureRequested)
+                           unsigned int closureRequested, char *destFileNameBuf)
 {
     uvast srcEntityNbr, txnNbr;
     char *ackMode;
@@ -361,7 +371,7 @@ custody transfer>");
 	PUTS("\t   flags, separated by commas, with no embedded whitespace.");
 	PUTS("\t   Each flag must be one of: rcv, ct, fwd, dlv, del.");
 	PUTS("\tr\tAdd filestore request");
-	PUTS("\t   r <action code nbr> <first path name> <second path name>");
+	PUTS("\t   r <action code nbr> <first path name> [second path name]");
 	PUTS("\t\t\tAction code numbers are:");
 	PUTS("\t\t\t\t0 = create file");
 	PUTS("\t\t\t\t1 = delete file");
@@ -374,6 +384,8 @@ custody transfer>");
 	PUTS("\t\t\t\t8 = deny directory");
 	PUTS("\tu\tAdd message to user");
 	PUTS("\t   u '<message text>'");
+	PUTS("\tL <remote_dir> <local_file>\tList remote directory (ION extension).");
+	PUTS("\tD <local_file>\t\tDisplay directory listing file (ION extension).");
 	PUTS("\t&\tSend file per specified parameters");
 	PUTS("\t   &");
 	PUTS("\t^\tCancel the current file transmission");
@@ -719,6 +731,92 @@ static void	addFilestoreRequest(int tokenCount, char **tokens,
 	oK(cfdp_add_fsreq(*fsRequests, action, firstPathName, secondPathName));
 }
 
+#ifndef NO_DIRLIST
+static void	requestDirListing(int tokenCount, char **tokens, CfdpReqParms *parms)
+{
+	CfdpDirListTask	task;
+	
+	if (tokenCount != 3)
+	{
+		PUTS("Syntax: L <remote_directory> <local_temp_file>");
+		return;
+	}
+	
+	task.directoryName = tokens[1];
+	task.destFileName = tokens[2];
+	
+	if (cfdp_rls(&(parms->destinationEntityNbr),
+			sizeof(BpUtParms),
+			(unsigned char *) &(parms->utParms),
+			NULL, NULL, NULL, NULL, 0, NULL, 0,
+			parms->msgsToUser,
+			parms->fsRequests,
+			&task,
+			&(parms->transactionId)) < 0)
+	{
+		putErrmsg("Can't request directory listing.", NULL);
+		return;
+	}
+	
+	PUTS_FMT("Directory listing requested for: %s -> %s", tokens[1], tokens[2]);
+	parms->msgsToUser = 0;
+	parms->fsRequests = 0;
+}
+
+static void	displayDirListing(const char *filename)
+{
+	int fd;
+	char buffer[256];
+	char entry[256];
+	int pos = 0;
+	int entryPos = 0;
+	ssize_t bytesRead;
+	int entryCount = 0;
+	
+	fd = iopen(filename, O_RDONLY, 0);
+	if (fd < 0)
+	{
+		PUTS_FMT("Cannot open directory listing file: %s", filename);
+		return;
+	}
+	
+	PUTS_FMT("Directory contents from: %s", filename);
+	PUTS("   Entries:");
+	
+	while ((bytesRead = read(fd, buffer, sizeof(buffer))) > 0)
+	{
+		for (pos = 0; pos < bytesRead; pos++)
+		{
+			if (buffer[pos] == '\0')
+			{
+				if (entryPos > 0)
+				{
+					entry[entryPos] = '\0';
+					entryCount++;
+					PUTS_FMT("   %3d. %s", entryCount, entry);
+					entryPos = 0;
+				}
+			}
+			else if (entryPos < sizeof(entry) - 1)
+			{
+				entry[entryPos++] = buffer[pos];
+			}
+		}
+	}
+	
+	if (entryCount == 0)
+	{
+		PUTS("   (empty directory)");
+	}
+	else
+	{
+		PUTS_FMT("   Total: %d entries", entryCount);
+	}
+	
+	close(fd);
+}
+#endif
+
 static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 {
 	int		tokenCount;
@@ -835,6 +933,21 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 			addFilestoreRequest(tokenCount, tokens,
 					&(parms->fsRequests));
 			return 0;
+
+#ifndef NO_DIRLIST
+		case 'L':
+			requestDirListing(tokenCount, tokens, parms);
+			return 0;
+			
+		case 'D':
+			if (tokenCount != 2)
+			{
+				PUTS("What's the directory listing filename?");
+				return 0;
+			}
+			displayDirListing(tokens[1]);
+			return 0;
+#endif
 
 		case '&':
 			if (cfdp_put(&(parms->destinationEntityNbr),
@@ -1013,7 +1126,7 @@ static void	*handleEvents(void *parm)
 	char			firstPathName[256];
 	char			secondPathName[256];
 	char			msgBuf[256];
-	unsigned int		closureRequested;  // ✅ NEW VARIABLE FOR YOUR ENHANCED API
+	unsigned int		closureRequested;
 
 	while (*running)
 	{
@@ -1025,13 +1138,15 @@ static void	*handleEvents(void *parm)
 				&condition, &progress, &fileStatus,
 				&deliveryCode, &originatingTransactionId,
 				statusReportBuf, &filestoreResponses,
-				&closureRequested) < 0)  // ✅ YOUR ENHANCED API PARAMETER
+				&closureRequested) < 0)
 		{
 			putErrmsg("Failed getting CFDP event.", NULL);
 			return NULL;
 		}
 
-		reportCfdpEvent(type, statusReportBuf, condition, deliveryCode, fileStatus, progress, &transactionId, closureRequested);
+		reportCfdpEvent(type, statusReportBuf, condition, deliveryCode, 
+			fileStatus, progress, &transactionId, closureRequested, 
+			destFileNameBuf);
 
 		if (type == CfdpAccessEnded)
 		{
@@ -1060,20 +1175,32 @@ static void	*handleEvents(void *parm)
 				return NULL;
 			}
 
-			if (length > 0)
+			if (length >= 5 && strncmp((char *) usrmsgBuf, "cfdp", 4) == 0)
 			{
-				usrmsgBuf[length] = '\0';
-				/* Check if this is a CFDP proxy message or regular text */
-				if (length >= 5 && strncmp((char *) usrmsgBuf, "cfdp", 4) == 0)
+				/* This is a CFDP proxy message */
+				unsigned int msgType = usrmsgBuf[4];
+				if (msgType == 17) /* Directory listing response */
 				{
-					/* This is a CFDP proxy message */
-					PUTS_FMT("\tCFDP Message: %s", getMessageText(usrmsgBuf, length));
+					unsigned char responseCode = usrmsgBuf[5];
+					if (responseCode < 128)
+					{
+						PUTS_FMT("\tDirectory Listing: SUCCESS (code %d)", responseCode);
+						PUTS_FMT("\t   Check destination file: %s", destFileNameBuf);
+					}
+					else
+					{
+						PUTS_FMT("\tDirectory Listing: FAILED (code %d)", responseCode);
+					}
 				}
 				else
 				{
-					/* This is a regular user message - display the actual text */
-					PUTS_FMT("\tUser Message: '%s'", (char *) usrmsgBuf);
+					PUTS_FMT("\tCFDP Message: %s", getMessageText(usrmsgBuf, length));
 				}
+			}
+			else
+			{
+				/* This is a regular user message - display the actual text */
+				PUTS_FMT("\tUser Message: '%s'", (char *) usrmsgBuf);
 			}
 		}
 
