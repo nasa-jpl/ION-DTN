@@ -291,16 +291,9 @@ The B<quit> command.  Terminates the cfdptest program.
 
 =back
 
-B<cfdptest> in interactive mode also spawns a CFDP event handling thread.  The
-event thread receives CFDP service indications and simply prints lines of
-text to stdout to announce them.
-
-B<NOTE> that when B<cfdptest> runs in scripted mode it does B<not> spawn an
-event handling thread, which makes it possible for the CFDP events queue to
-grow indefinitely unless some other task consumes and reports on the events.
-One simple solution is to run an interactive B<cfdptest> task in background,
-simply to keep the event queue cleared, while scripted non-interactive
-B<cfdptest> tasks are run in the foreground.
+For ION 4.1.4 or higher, B<cfdptest> will spawn a CFDP event handling thread 
+for both interactive and scripted mode, this event thread receives CFDP service 
+indications and simply prints lines of text to stdout to announce them.
 
 =head1 EXIT STATUS
 
