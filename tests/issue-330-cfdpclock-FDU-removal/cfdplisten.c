@@ -56,6 +56,7 @@ void poll_cfdp_messages()
 	uvast			offset;
 	unsigned int		length;
 	unsigned int		recordBoundsRespected;
+	unsigned int 		closureRequested;
 	CfdpContinuationState	continuationState;
 	unsigned int		segMetadataLength;
 	char			segMetadata[63];
@@ -81,7 +82,7 @@ void poll_cfdp_messages()
 						&segMetadataLength, segMetadata, &condition,
 						&progress, &fileStatus, &deliveryCode,
 						&originatingTransactionId, statusReportBuf,
-						&filestoreResponses) < 0){
+						&filestoreResponses, &closureRequested) < 0){
 					fprintf(stderr, "Error: Failed getting CFDP event.");
 					exit(1);
 				}
