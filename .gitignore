@@ -222,6 +222,8 @@ sppcli
 *.1
 *.3
 *.5
+# exempt configuration files
+!*.bprc.1
 
 # Compiled documentation
 .*/doc/.*\.1.ps

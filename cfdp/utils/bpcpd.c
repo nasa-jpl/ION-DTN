@@ -159,7 +159,7 @@ void poll_cfdp_messages()
 
 		/*Print Event type if debugging*/
 		putFqn(nbrBuf, TID11);
-		dbgprintf(1,"\nEvent: type %d, '%s', From Node: %ull, Transaction ID: %ull.%ull.\n", type,
+		dbgprintf(1,"\nEvent: type %d, '%s', From Node: %s, Transaction ID: %ull.%ull.\n", type,
 				(type > 0 && type < 12) ? eventTypes[type]
 				: "(unknown)",nbrBuf, TID11, TID12);
 

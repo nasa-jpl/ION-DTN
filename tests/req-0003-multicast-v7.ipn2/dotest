@@ -85,14 +85,17 @@ echo "Starting bprecvfile, both unicast and multicast, on all nodes..."
 cd ../1.ipn.ltp
 bprecvfile ipn:1.1 &
 bprecvfile imc:19.0 &
+
 # node 2 set recvfile to max of 3 before leaving multicast group
 cd ../2.ipn.ltp
 bprecvfile ipn:2.1 &
 bprecvfile imc:19.0 3 &
+
 cd ../3.ipn.ltp
 bprecvfile ipn:1.3.1 &
 bprecvfile imc:19.0 &
-# node 4 set recvfile to max of 3 before leaving multicast group
+
+# node 4 set recvfile to max of 4 before leaving multicast group
 cd ../4.ipn.ltp
 bprecvfile ipn:4.1 &
 bprecvfile imc:19.0 4 &
@@ -138,17 +141,18 @@ mv testfile3 testfile03
 
 sleep 2
 cd ../3.ipn.ltp
-echo "Sending 300-byte file from ipn:1,3.2 to imc:19.0 (multicast)...."
+echo "Sending 300-byte file from ipn:1.3.2 to imc:19.0 (multicast)...."
 bpsendfile ipn:1.3.2 imc:19.0 file300
 #read -p "Step 6 done: Press any key to continue... " -n1 -s
 
-sleep 2
+sleep 5
 cd ../4.ipn.ltp
 echo "Node 4 unregisters from imc:19.0"
 bpadmin unregister.bprc
 mv testfile1 testfile01
 mv testfile2 testfile02
 mv testfile3 testfile03
+mv testfile4 testfile04
 #read -p "Step 7 done: Press any key to continue... " -n1 -s
 
 sleep 2
