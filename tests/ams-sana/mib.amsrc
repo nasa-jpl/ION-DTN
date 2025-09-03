@@ -23,6 +23,6 @@
 *subject nbr=88 name=amsstop desc='shutdown cmd'
 *subject nbr=89 name=amsmib desc='reconfig cmd'
 *unit nbr=1 name=orbiters
-*msgspace nbr=32767
+*msgspace nbr=32767 gweid='bp@ipn:32767.19'
 -venture
 -ams_mib_add
