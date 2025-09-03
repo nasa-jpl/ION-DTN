@@ -361,6 +361,30 @@ int	bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
 		}
 	}
 
+	/* PICS-16: Enforce node number constraint at the point of transmission. */
+	/* If a source EID is provided, its node number must match the local node. */
+	
+	if (sourceMetaEid)	/*	Only check non-anonymous sources. */
+	{
+		uvast localNodeNbr = getOwnNodeNbr();
+
+		if (sourceMetaEid->elementNbr != 0 &&
+				sourceMetaEid->elementNbr != localNodeNbr)
+		{
+			char	errorMsg[512];
+
+			isprintf(errorMsg, sizeof(errorMsg),
+				"[?] Bundle source EID's node number (" UVAST_FIELDSPEC \
+				") is not owned by this node (" UVAST_FIELDSPEC ").",
+				(uvast) sourceMetaEid->elementNbr,
+				(uvast) localNodeNbr);
+			writeMemo(errorMsg);
+
+			/* Abort the send and return an error to the application. */
+			return -1;
+		}
+	}
+	
 	/*	Note: lifespan must be converted from seconds to
 	 *	millisecnods for BP processing.				*/
 
