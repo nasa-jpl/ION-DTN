@@ -95,7 +95,9 @@ static int  processLine(char *line, int lineLength, int keyLen)
 
     /* --- Use cross-platform entropy source for secure key material --- */
     uvast bytes_generated = 0;
-    result = poll_entropy_src(NULL, key, keyLen, &bytes_generated);
+    size_t temp_bytes_generated;
+    result = poll_entropy_src(NULL, key, keyLen, &temp_bytes_generated);
+    bytes_generated = temp_bytes_generated;
     if (result < 0 || bytes_generated != (uvast)keyLen)
     {
         fprintf(stderr, "Could not generate key material: %s\n",
