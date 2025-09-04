@@ -33,7 +33,7 @@ follows:
 =item B<?>
 
 The B<help> command.  This will display a listing of the commands and their
-formats.  It is the same as the B<h> command.
+formats.  It is the same as the B<h> command.  
 
 =item B<h>
 
@@ -193,13 +193,15 @@ exist.
 
 B<Syntax:> r 7 <filename>
 
-Ensures the specified file is deleted but okay if it does not exist.
+Ensures the specified file is deleted if it exists.
 
 =item 8 = deny directory
 
 B<Syntax:> r 8 <directory_name>
 
-Ensures the specified directory is removed but okay if it does not exist.
+Ensures the specified directory is removed if it exists.
+
+=back
 
 B<Size Limitations:>
 
@@ -224,8 +226,6 @@ B<Example Usage:>
   r 4 old_config.txt new_config.txt       # Replace with new content  
   r 1 new_config.txt                      # Clean up source file
   &                                       # Execute transfer with operations
-
-=back
 
 =item B<u> '<message text>'
 
@@ -322,10 +322,6 @@ file transmission.
 The B<quit> command.  Terminates the cfdptest program.
 
 =back
-
-For ION 4.1.4 or higher, B<cfdptest> will spawn a CFDP event handling thread 
-for both interactive and scripted mode, this event thread receives CFDP service 
-indications and simply prints lines of text to stdout to announce them.
 
 =head1 DIRECTORY LISTING EXTENSION
 
