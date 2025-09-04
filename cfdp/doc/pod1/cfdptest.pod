@@ -223,7 +223,7 @@ B<Example Usage:>
   r 2 old_config.txt old_config.backup    # Backup existing file
   r 4 old_config.txt new_config.txt       # Replace with new content  
   r 1 new_config.txt                      # Clean up source file
-  &                                        # Execute transfer with operations
+  &                                       # Execute transfer with operations
 
 =back
 
