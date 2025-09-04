@@ -37,6 +37,8 @@ on:
         type: string
         default: ''
 
+permissions:
+  contents: read
 jobs:
   build-and-test:
     runs-on: [self-hosted, linux, x64, debiantrixie]
