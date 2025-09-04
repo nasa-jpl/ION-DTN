@@ -1,17 +1,12 @@
 #!/usr/bin/env bash
 #
-# Samuel Jero  
+# Samuel Jero
 # Ohio University
 # December 30, 2011
 #
 # This test pertains to issue #330 "cfdpclock will remove unsent FDUs without
 # file data". This test confirms that cfdpclock will no longer remove these FDUs
 # without file data.
-
-# MODIFIED: Handle both cfdptest and cfdplisten output formats to avoid race condition issues.
-# Updated cfdptest will monitor CFDP events and log EOF sent messages. Therefore, we need to check both outputs.
-# This ensures that we capture the EOF sent event regardless of which utility logs it first.
-# Updated August 2025 by iondev33
 
 function end(){
 # Shut down ION processes.
@@ -72,7 +67,7 @@ fi
 echo "Creating test file..."
 dd if=/dev/zero of=./testfile bs=1024 count=512
 
-#Starting Listener - Keep original approach but with better event parsing
+#Starting Listener
 echo "Starting CFDP message listener..."
 # Check if the test utility exists and is executable
 TESTUTIL="../cfdplisten"
@@ -104,7 +99,7 @@ echo "Starting transfer of large file..."
 cfdptest ../cfdp_cmds1 > cfdptest1_output &
 CFDPTEST1_PID=$!
 
-#Start transfer 2  
+#Start transfer 2
 echo "Starting transfer of User Message FDU..."
 cfdptest ../cfdp_cmds2 > cfdptest2_output &
 CFDPTEST2_PID=$!
@@ -149,7 +144,6 @@ else
     end
 fi
 
-#MODIFIED: Test for EOF sent messages in BOTH formats
 RESULTS1=`grep "type 2" output | wc -l`           # cfdplisten format
 RESULTS2=`grep "EOF sent (2)" output | wc -l`     # cfdptest format  
 TOTAL=$((RESULTS1 + RESULTS2))
