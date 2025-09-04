@@ -132,7 +132,7 @@ the metadata that will be issued when the next file transmission operation
 is commanded. Multiple filestore requests may be added to a single file
 transfer and will be executed B<sequentially> in the order specified,
 B<after> the file transfer has completed successfully. These filestore
-requests operates on the B<remote> destination.
+requests operate on the B<remote> destination.
 
 B<IMPORTANT:> Filestore operations require a non-empty carrier file to be
 transmitted. Empty files or /dev/null may not reliably trigger filestore
