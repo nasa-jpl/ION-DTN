@@ -1,10 +1,6 @@
 /*
 	cfdptest.c:	CFDP test shell program.
-	
-	ENHANCED VERSION: Works with modified CFDP API that exposes 
-	closure request information immediately upon metadata reception.
-	
-	API Enhancement: cfdp_get_event() now includes closureRequested parameter
+
 									*/
 /*	Copyright (c) 2009, California Institute of Technology.		*/
 /*	All rights reserved.						*/
@@ -71,7 +67,7 @@ static int numSenderTransactions = 0;
 static void	handleQuit(int signum);
 static void	printUsage(void);
 #ifndef NO_DIRLIST
-static void	displayDirListing(const char *filename);  // <-- Add this
+static void	displayDirListing(const char *filename);
 #endif
 
 /* Function to store sender transaction closure info */
@@ -280,7 +276,7 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
             
             /* Add simple visual indicators for critical conditions */
             if (type == CfdpFaultInd) {
-                PUTS("  FAULT DETECTED");
+                PUTS(" FAULT DETECTED");
             } else if (type == CfdpAbandonedInd) {
                 PUTS(" TRANSACTION ABANDONED");
             } else if (type == CfdpTransactionFinishedInd) {
