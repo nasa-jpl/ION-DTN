@@ -427,4 +427,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-cfdpadmin(1), cfdp(3), bpcp(1), bpcpd(1)
+bpcp(1), bpcpd(1), cfdpadmin(1), cfdp(3)
