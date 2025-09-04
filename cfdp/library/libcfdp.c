@@ -1757,7 +1757,6 @@ static int	resumeOutFdu(CfdpTransactionId *transactionId)
 			sizeof(CfdpTransactionId));
 	event.progress = fduBuf.progress;
 	event.reqNbr = getReqNbr();
-	event.progress = fduBuf.progress;
 	if (enqueueCfdpEvent(&event) < 0)
 	{
 		putErrmsg("CFDP can't report on transaction resumption.", NULL);
