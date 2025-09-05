@@ -1760,6 +1760,7 @@ bpbin = \
 	bpsource \
 	bpstats \
 	bptrace \
+	bptracker \
 	bptransit \
 	bpversion \
 	brsccla \
@@ -1887,6 +1888,7 @@ bpextra = \
 	bpv7/doc/pod1/bpstats.pod \
 	bpv7/doc/pod1/bpstats2.pod \
 	bpv7/doc/pod1/bptrace.pod \
+	bpv7/doc/pod1/bptracker.pod \
 	bpv7/doc/pod1/bptransit.pod \
 	bpv7/doc/pod1/bpversion.pod \
 	bpv7/doc/pod1/bpcrash.pod \
@@ -1973,6 +1975,7 @@ bpmans = \
 	bpv7/doc/bpstats.1 \
 	bpv7/doc/bpstats2.1 \
 	bpv7/doc/bptrace.1 \
+	bpv7/doc/bptracker.1 \
 	bpv7/doc/bptransit.1 \
 	bpv7/doc/brsccla.1 \
 	bpv7/doc/brsscla.1 \
@@ -2387,6 +2390,10 @@ bpsource_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpstats2_SOURCES = bpv7/test/bpstats2.c
 bpstats2_LDADD = libici.la $(bplib)
 bpstats2_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bptracker_SOURCES = bpv7/utils/bptracker.c
+bptracker_LDADD = libici.la $(bplib) $(PTHREAD_LIBS)
+bptracker_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 cgrfetch_SOURCES = bpv7/utils/cgrfetch.c
 cgrfetch_LDADD = libici.la $(bplib)

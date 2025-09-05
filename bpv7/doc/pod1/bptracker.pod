@@ -1,0 +1,301 @@
+=head1 NAME
+
+bptracker - ION Bundle Protocol transmission tracker and management utility
+
+=head1 SYNOPSIS
+
+B<bptracker> I<source_eid> I<dest_eid> I<payload_size> I<num_bundles>
+
+=head1 DESCRIPTION
+
+B<bptracker> is an interactive Bundle Protocol utility that sends multiple bundles 
+with detention enabled and provides real-time tracking and management capabilities. 
+It allows users to monitor bundle transmission status, suspend and resume bundle 
+transmission, and manually release bundles from detention.
+
+The utility creates bundles with test payload data and tracks them through their 
+complete lifecycle from creation to transmission completion. All bundles are sent 
+with detention enabled, meaning they remain in local storage until explicitly 
+released, allowing for detailed inspection and control.
+
+B<bptracker> operates in two phases:
+
+=over 4
+
+=item *
+
+B<Bundle Creation and Transmission>: Creates the specified number of bundles with 
+test payloads and sends them to the destination endpoint.
+
+=item *
+
+B<Interactive Monitoring>: Provides an interactive command interface for real-time 
+bundle management and status monitoring.
+
+=back
+
+=head1 PARAMETERS
+
+=over 4
+
+=item I<source_eid>
+
+Source endpoint identifier (e.g., ipn:1.1). Must be a valid EID that the local 
+node can open as a source endpoint.
+
+=item I<dest_eid>
+
+Destination endpoint identifier (e.g., ipn:2.1). Target endpoint for bundle transmission.
+
+=item I<payload_size>
+
+Size of bundle payload in bytes. Must be between 1 and 65536 bytes. Each bundle 
+will contain a test pattern payload of this size.
+
+=item I<num_bundles>
+
+Number of bundles to send. Must be between 1 and 10 bundles.
+
+=back
+
+=head1 INTERACTIVE COMMANDS
+
+Once bundles are sent, B<bptracker> enters interactive mode with the following commands:
+
+=over 4
+
+=item B<q>, B<quit>
+
+Release all detained bundles and exit the program.
+
+=item B<s>, B<status>
+
+Display current tracker status including active bundles, completion statistics, 
+and success rates.
+
+=item B<l>, B<list>
+
+List all active bundles with detailed information including bundle ID, status, 
+age, and queue information.
+
+=item B<r> I<id>, B<release> I<id>
+
+Release a specific bundle by ID from detention, allowing it to be deleted when 
+all retention constraints are removed.
+
+=item B<ra>, B<release-all>
+
+Release all currently detained bundles from detention.
+
+=item B<suspend> I<id>, B<sp> I<id>
+
+Suspend transmission of a specific bundle by ID. Only works for bundles still 
+in local storage that haven't been transmitted yet.
+
+=item B<resume> I<id>, B<res> I<id>
+
+Resume transmission of a previously suspended bundle by ID.
+
+=item B<h>, B<help>
+
+Display help information about available commands.
+
+=back
+
+=head1 BUNDLE STATES
+
+B<bptracker> tracks bundles through the following states:
+
+=over 4
+
+=item B<PENDING>
+
+Bundle is awaiting transmission or currently being processed for transmission.
+
+=item B<SUSPENDED>
+
+Bundle transmission has been manually suspended and is held in ION's limbo queue.
+
+=item B<COMPLETED>
+
+Bundle has been successfully transmitted and forwarded.
+
+=item B<RELEASED>
+
+Bundle has been manually released from detention.
+
+=item B<CANCELED>
+
+Bundle has been explicitly canceled (not currently used by bptracker).
+
+=back
+
+=head1 PAYLOAD FORMAT
+
+Each bundle contains a test payload filled with a repeating byte pattern where 
+each byte contains the value (byte_position % 256). This creates a predictable 
+test pattern useful for verifying payload integrity.
+
+=head1 BUNDLE DETENTION
+
+B<bptracker> uses BP detention to retain bundles in local storage even after 
+transmission. This allows for:
+
+=over 4
+
+=item *
+
+Real-time status monitoring of transmitted bundles
+
+=item *
+
+Manual control over bundle lifecycle management
+
+=item *
+
+Detailed inspection of bundle transmission behavior
+
+=item *
+
+Testing of bundle suspension and resumption capabilities
+
+=back
+
+Detained bundles must be explicitly released to be eligible for deletion from 
+the bundle database.
+
+=head1 SIGNAL HANDLING
+
+B<bptracker> handles SIGINT (Ctrl+C) and SIGTERM signals gracefully by:
+
+=over 4
+
+=item *
+
+Releasing all detained bundles
+
+=item *
+
+Cleaning up tracking data structures
+
+=item *
+
+Closing the Bundle Protocol SAP
+
+=item *
+
+Detaching from ION
+
+=back
+
+=head1 THREADING
+
+The utility uses multiple threads:
+
+=over 4
+
+=item *
+
+Main thread: Bundle status monitoring and application control
+
+=item *
+
+Input thread: Interactive command processing
+
+=back
+
+Thread synchronization ensures safe access to shared tracking data.
+
+=head1 EXAMPLES
+
+=over 4
+
+=item Send 5 bundles of 1024 bytes each:
+
+    % bptracker ipn:1.1 ipn:2.1 1024 5
+
+=item Interactive session example:
+
+    > list              # Show all bundles with status
+    > suspend 2         # Suspend bundle 2 (if still local)
+    > status            # Check current statistics
+    > resume 2          # Resume bundle 2
+    > release 3         # Release bundle 3 from detention
+    > quit              # Release all and exit
+
+=back
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item B<0>
+
+Successful completion.
+
+=item B<1>
+
+Invalid command line arguments or initialization failure.
+
+=back
+
+=head1 FILES
+
+None.
+
+=head1 ENVIRONMENT
+
+No environment dependencies.
+
+=head1 DIAGNOSTICS
+
+B<bptracker> reports various diagnostic messages:
+
+=over 4
+
+=item Bundle tracking messages
+
+Real-time updates on bundle status changes, suspension, resumption, and release operations.
+
+=item Error conditions
+
+ION system errors, memory allocation failures, and invalid operations are reported 
+through ION's standard error reporting mechanism.
+
+=item Status summaries
+
+Periodic and on-demand statistics about bundle transmission success rates and 
+current active bundle counts.
+
+=back
+
+=head1 BUGS
+
+=over 4
+
+=item *
+
+Bundle suspension and resumption only work for bundles still in local storage. 
+Once bundles have been forwarded to the next hop, they cannot be suspended or resumed.
+
+=item *
+
+The utility is limited to sending a maximum of 10 bundles to prevent resource 
+exhaustion during testing.
+
+=item *
+
+Critical bundles (those with BP_MINIMUM_LATENCY flag) cannot be suspended by 
+ION's design.
+
+=back
+
+Report bugs to ION development team.
+
+=head1 SEE ALSO
+
+bpsource(1), bpsink(1), bpdriver(1), bpsendtest(1), bprecvtest(1), bpadmin(1), bp(3)
+
+=head1 AUTHOR
+
+ION Bundle Protocol implementation.
