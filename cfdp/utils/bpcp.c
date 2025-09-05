@@ -1410,6 +1410,7 @@ void* rcv_msg_thread(void* param)
 	CfdpTransactionId	originatingTransactionId;
 	char			statusReportBuf[256];
 	MetadataList		filestoreResponses;
+	unsigned int	closureRequested;
 	unsigned char		usrmsgBuf[256];
 	CfdpDirListingResponse	dir_list_rsp;
 	uvast 			TID11;
@@ -1428,7 +1429,7 @@ void* rcv_msg_thread(void* param)
 				&segMetadataLength, segMetadata,
 				&condition, &progress, &fileStatus,
 				&deliveryCode, &originatingTransactionId,
-				statusReportBuf, &filestoreResponses) < 0)
+				statusReportBuf, &filestoreResponses, &closureRequested) < 0)
 		{
 			dbgprintf(0, "Error: Failed getting CFDP event.", NULL);
 			exit(1);

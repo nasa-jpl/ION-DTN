@@ -1475,6 +1475,7 @@ int	suspendOutFdu(CfdpTransactionId *transactionId, CfdpCondition condition,
 			sizeof(CfdpTransactionId));
 	event.condition = condition;
 	event.reqNbr = reqNbr;
+	event.progress = fduBuf.progress;
 	if (enqueueCfdpEvent(&event) < 0)
 	{
 		putErrmsg("CFDP can't suspend transaction.", NULL);
@@ -1521,6 +1522,7 @@ int	cancelOutFdu(CfdpTransactionId *transactionId, CfdpCondition condition,
 	}
 
 	event.reqNbr = reqNbr;
+	event.progress = fduBuf.progress;
 	if (enqueueCfdpEvent(&event) < 0)
 	{
 		putErrmsg("CFDP can't cancel transaction.", NULL);
@@ -2629,6 +2631,7 @@ int	completeInFdu(InFdu *fduBuf, Object fduObj, Object fduElt,
 			sizeof(CfdpTransactionId));
 	event.condition = condition;
 	event.reqNbr = reqNbr;
+	event.progress = fduBuf->progress;
 	switch (condition)
 	{
 	case CfdpNoError:
@@ -2736,6 +2739,8 @@ int	completeInFdu(InFdu *fduBuf, Object fduObj, Object fduElt,
 		putErrmsg("CFDP can't complete inbound transaction.", NULL);
 		return -1;
 	}
+
+	event.progress = fduBuf->progress;
 
 	if (fduBuf->closureRequested)
 	{
@@ -3700,6 +3705,7 @@ static int	handleFinishPdu(unsigned char *cursor, int bytesRemaining,
 	bytesRemaining--;
 	event.filestoreResponses =
 			createMetadataList((getCfdpConstants())->fsrespLists);
+	event.progress = fdu->progress;
 	while (bytesRemaining > 0)
 	{
 		if (parseFinishPduTLV(&event, &cursor, &bytesRemaining) < 0)
@@ -3952,6 +3958,8 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 
 	if (bytesRemaining == 0)		/*	No file data.	*/
 	{
+		/* no file data, report current progress */
+		event.progress = fdu->progress;
 		return 0;			/*	Nothing to do.	*/
 	}
 
@@ -4407,13 +4415,14 @@ printf("Written final hunk of segment data. After writing " VAST_FIELDSPEC " byt
 	cfdpvdb->currentFdu = 0;
 #endif
 	/*	Deliver File-Segment-Recv indication.			*/
+	event.progress = fdu->progress;
 
 	if (enqueueCfdpEvent(&event) < 0)
 	{
 		putErrmsg("Can't post File-Segment-Recv indication.", NULL);
 		return -1;
 	}
-
+	
 	sdr_write(sdr, fduObj, (char *) fdu, sizeof(InFdu));
 	return checkInFduComplete(fdu, fduObj, fduElt);
 }
@@ -4818,6 +4827,7 @@ static int	handleEofPdu(unsigned char *cursor, int bytesRemaining,
 	event.fileSize = fdu->fileSize;
 	memcpy((char *) &event.transactionId, (char *) &fdu->transactionId,
 			sizeof(CfdpTransactionId));
+	event.progress = fdu->progress;
 	if (enqueueCfdpEvent(&event) < 0)
 	{
 		putErrmsg("Can't post EOF-Recv indication.", NULL);
@@ -5012,6 +5022,7 @@ will not match", stringBuf);
 
 	memset((char *) &event, 0, sizeof(CfdpEvent));
 	event.type = CfdpMetadataRecvInd;
+	event.closureRequested = fdu->closureRequested;
 	memcpy((char *) &event.transactionId, (char *) &fdu->transactionId,
 			sizeof(CfdpTransactionId));
 	if (fdu->sourceFileName)
@@ -5040,6 +5051,7 @@ will not match", stringBuf);
 	 *	deleted twice.						*/
 
 	fdu->messagesToUser = 0;
+	event.progress = fdu->progress; 
 	if (enqueueCfdpEvent(&event) < 0)
 	{
 		putErrmsg("Can't post Metadata-Recv indication.", NULL);

@@ -126,6 +126,7 @@ void poll_cfdp_messages()
 	char			statusReportBuf[256];
 	unsigned char		usrmsgBuf[256];
 	MetadataList		filestoreResponses;
+	unsigned int closureRequested;
 	uvast 		TID11;
 	uvast		TID12;
 
@@ -140,7 +141,7 @@ void poll_cfdp_messages()
 				&segMetadataLength, segMetadata,
 				&condition, &progress, &fileStatus,
 				&deliveryCode, &originatingTransactionId,
-				statusReportBuf, &filestoreResponses) < 0)
+				statusReportBuf, &filestoreResponses, &closureRequested) < 0)
 		{
 			dbgprintf(0, "Error: Failed getting CFDP event.", NULL);
 			exit(1);

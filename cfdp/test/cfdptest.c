@@ -1,5 +1,4 @@
 /*
-
 	cfdptest.c:	CFDP test shell program.
 
 									*/
@@ -9,6 +8,11 @@
 
 #include "cfdp.h"
 #include "bputa.h"
+
+/* check directory listing extension */
+#ifndef NO_DIRLIST
+#include "cfdpops.h"
+#endif
 
 typedef struct
 {
@@ -42,20 +46,275 @@ static char *eventTypes[] = {
 	"abandoned"
 };
 
-static void 	reportCfdpEvent(CfdpEventType type, char *statusReportBuf)
-{
-	if (type < 0)
-	{	
-		printf("\nCFDP Event:CFDP access had ended.\n");
-		return;
-	}
+/* Helper macros to use PUTS with formatted output */
+#define PUTS_FMT(fmt, ...) do { \
+    char _buf[1024]; \
+    snprintf(_buf, sizeof(_buf), fmt, __VA_ARGS__); \
+    PUTS(_buf); \
+    fflush(stdout); \
+} while(0)
 
-	printf("CFDP Event: Type = %d: %s\n", type, eventTypes[type]);
+/* Simple transaction tracker for sender-side closure latency */
+typedef struct {
+    CfdpTransactionId transactionId;
+    unsigned int senderClosureLatency;  /* Store original closureLatency from cfdp_put() */
+    time_t timestamp;
+} SenderTransaction;
+
+#define MAX_SENDER_TRANSACTIONS 50  /* Increased for busy systems */
+static SenderTransaction senderTransactions[MAX_SENDER_TRANSACTIONS];
+static int numSenderTransactions = 0;
+static void	handleQuit(int signum);
+static void	printUsage(void);
+#ifndef NO_DIRLIST
+static void	displayDirListing(const char *filename);
+#endif
+
+/* Function to store sender transaction closure info */
+static void storeSenderTransaction(CfdpTransactionId *transId, unsigned int closureLatency)
+{
+    int i;
     
-	if (statusReportBuf && strlen(statusReportBuf) > 0)
-	{
-		printf("...CFDP Status Report: %s\n", statusReportBuf);
-	}
+    /* Check if transaction already exists (update it) */
+    for (i = 0; i < numSenderTransactions; i++) {
+        if (memcmp(&senderTransactions[i].transactionId.sourceEntityNbr,
+                   &transId->sourceEntityNbr, sizeof(CfdpNumber)) == 0 &&
+            memcmp(&senderTransactions[i].transactionId.transactionNbr,
+                   &transId->transactionNbr, sizeof(CfdpNumber)) == 0) {
+            senderTransactions[i].senderClosureLatency = closureLatency;
+            senderTransactions[i].timestamp = time(NULL);
+            return;
+        }
+    }
+    
+    /* Add new transaction (remove oldest if full) */
+    if (numSenderTransactions >= MAX_SENDER_TRANSACTIONS) {
+        memmove(&senderTransactions[0], &senderTransactions[1], 
+                (MAX_SENDER_TRANSACTIONS-1) * sizeof(SenderTransaction));
+        numSenderTransactions--;
+    }
+    
+    memcpy(&senderTransactions[numSenderTransactions].transactionId, transId, sizeof(CfdpTransactionId));
+    senderTransactions[numSenderTransactions].senderClosureLatency = closureLatency;
+    senderTransactions[numSenderTransactions].timestamp = time(NULL);
+    numSenderTransactions++;
+}
+
+/* Function to clean up completed transactions */
+static void cleanupCompletedTransaction(CfdpTransactionId *transId)
+{
+    int i, j;
+    for (i = 0; i < numSenderTransactions; i++) {
+        if (memcmp(&senderTransactions[i].transactionId.sourceEntityNbr,
+                   &transId->sourceEntityNbr, sizeof(CfdpNumber)) == 0 &&
+            memcmp(&senderTransactions[i].transactionId.transactionNbr,
+                   &transId->transactionNbr, sizeof(CfdpNumber)) == 0) {
+            /* Remove this transaction by shifting remaining ones down */
+            for (j = i; j < numSenderTransactions - 1; j++) {
+                memcpy(&senderTransactions[j], &senderTransactions[j + 1],
+                       sizeof(SenderTransaction));
+            }
+            numSenderTransactions--;
+            break;
+        }
+    }
+}
+
+/* Function to get sender closure info */
+static int getSenderClosureLatency(CfdpTransactionId *transId)
+{
+    int i;
+    for (i = 0; i < numSenderTransactions; i++) {
+        if (memcmp(&senderTransactions[i].transactionId.sourceEntityNbr,
+                   &transId->sourceEntityNbr, sizeof(CfdpNumber)) == 0 &&
+            memcmp(&senderTransactions[i].transactionId.transactionNbr,
+                   &transId->transactionNbr, sizeof(CfdpNumber)) == 0) {
+            return senderTransactions[i].senderClosureLatency;
+        }
+    }
+    return -1; /* Not found */
+}
+
+/* Helper functions for field name translation */
+static char *getConditionName(CfdpCondition condition)
+{
+    static char *conditionNames[] = {
+        "NoError",           // 0
+        "AckLimitReached",   // 1
+        "KeepaliveLimitReached", // 2
+        "InvalidTransmissionMode", // 3
+        "FilestoreRejection", // 4
+        "ChecksumFailure",   // 5
+        "FileSizeError",     // 6
+        "NakLimitReached",   // 7
+        "InactivityDetected", // 8
+        "InvalidFileStructure", // 9
+        "CheckLimitReached", // 10
+        "UnsupportedChecksumType", // 11
+        "Reserved12",        // 12
+        "Reserved13",        // 13
+        "SuspendRequested",  // 14
+        "CancelRequested"    // 15
+    };
+    
+    if (condition <= 15) {
+        return conditionNames[condition];
+    }
+    return "Unknown";
+}
+
+static char *getDeliveryCodeName(CfdpDeliveryCode deliveryCode)
+{
+    switch (deliveryCode) {
+        case 0: return "Complete";
+        case 1: return "Incomplete";
+        default: return "Unknown";
+    }
+}
+
+static char *getFileStatusName(CfdpFileStatus fileStatus)
+{
+    switch (fileStatus) {
+        case 0: return "Discarded";
+        case 1: return "Rejected";
+        case 2: return "Retained";
+        case 3: return "Unreported";
+        default: return "Unknown";
+    }
+}
+
+static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf, 
+                           CfdpCondition condition, CfdpDeliveryCode deliveryCode, 
+                           CfdpFileStatus fileStatus, uvast progress,
+                           CfdpTransactionId *transactionId,
+                           unsigned int closureRequested, char *destFileNameBuf)
+{
+    uvast srcEntityNbr, txnNbr;
+    char *ackMode;
+    int isReliableAckMode = 0;  /* Flag to indicate if we have reliable ack mode info */
+
+	/* DEBUG: Show what CFDP engine is actually providing
+    cfdp_decompress_number(&srcEntityNbr, &transactionId->sourceEntityNbr);
+    cfdp_decompress_number(&txnNbr, &transactionId->transactionNbr);
+    printf("[DEBUG] Event %d for " UVAST_FIELDSPEC "." UVAST_FIELDSPEC 
+           ": progress=" UVAST_FIELDSPEC ", closureRequested=%u\n",
+           type, srcEntityNbr, txnNbr, progress, closureRequested);
+	*/
+    
+    /* Handle special cases */
+    if (type < 0) {	
+        PUTS("CFDP Event: CFDP access had ended.");
+		fflush(stdout);
+        return;
+    }
+    
+    if (type == CfdpNoEvent) {
+        return;  /* Skip NoEvent - just an interrupt signal */
+    }
+    
+    /* Decompress transaction ID */
+    cfdp_decompress_number(&srcEntityNbr, &transactionId->sourceEntityNbr);
+    cfdp_decompress_number(&txnNbr, &transactionId->transactionNbr);
+    
+    /* Determine acknowledge mode with enhanced reliability */
+    if (type == CfdpMetadataRecvInd) {
+        /* MOST RELIABLE: Receiver side during metadata reception */
+        ackMode = closureRequested ? "Acknowledged" : "Unacknowledged";
+        isReliableAckMode = 1;
+    } else {
+        /* For other events, try to get stored sender closure info first */
+        int senderClosureLatency = getSenderClosureLatency(transactionId);
+        if (senderClosureLatency >= 0) {
+            /* We have definitive sender closure info */
+            ackMode = (senderClosureLatency > 0) ? "Acknowledged" : "Unacknowledged";
+            isReliableAckMode = 1;
+        } else {
+            /* Fall back to API parameter */
+            ackMode = closureRequested ? "Acknowledged" : "Unacknowledged";
+            isReliableAckMode = 0;
+        }
+    }
+    
+    /* Display basic event information */
+    PUTS("=== CFDP EVENT ===");
+    PUTS_FMT("Event: %s (%d)", 
+           (type >= 0 && type < 12) ? eventTypes[type] : "unknown", type);
+    PUTS_FMT("Transaction: " UVAST_FIELDSPEC "." UVAST_FIELDSPEC, srcEntityNbr, txnNbr);
+    
+    /* Show acknowledge mode with confidence indicator */
+    if (type == CfdpMetadataRecvInd) {
+        PUTS_FMT(" (%s mode - receiver side, definitive)", ackMode);
+    } else if (isReliableAckMode) {
+        PUTS_FMT(" (%s mode - confirmed)", ackMode);
+    } else {
+        PUTS_FMT(" (%s mode - from CFDP API)", ackMode);
+    }
+	fflush(stdout);
+    
+    /* Display event-specific critical parameters based on field applicability analysis */
+    switch (type) {
+        case CfdpTransactionInd:           // Event 1
+        case CfdpEofSentInd:              // Event 2  
+        case CfdpMetadataRecvInd:         // Event 4
+        case CfdpFileSegmentRecvInd:      // Event 5
+		case CfdpEofRecvInd:		  	// Event 6
+        case CfdpSuspendedInd:            // Event 7
+        case CfdpResumedInd:              // Event 8
+            /* For these events, only show condition if it indicates an error */
+            if (condition != CfdpNoError) {
+                PUTS_FMT("Condition: %s (%d)", getConditionName(condition), condition);
+            }
+            break;
+
+		/* Deliver Code and File status are only applicable at the conclusion of a transaction */    
+        case CfdpTransactionFinishedInd:  // Event 3 - ALL FIELDS CRITICAL
+        case CfdpFaultInd:                // Event 10 - ALL FIELDS CRITICAL
+        case CfdpAbandonedInd:            // Event 11 - ALL FIELDS CRITICAL
+            PUTS_FMT("Condition: %s (%d)", getConditionName(condition), condition);
+            PUTS_FMT("Delivery: %s (%d)", getDeliveryCodeName(deliveryCode), deliveryCode);
+            PUTS_FMT("File Status: %s (%d)", getFileStatusName(fileStatus), fileStatus);
+            
+            /* Add simple visual indicators for critical conditions */
+            if (type == CfdpFaultInd) {
+                PUTS(" FAULT DETECTED");
+            } else if (type == CfdpAbandonedInd) {
+                PUTS(" TRANSACTION ABANDONED");
+            } else if (type == CfdpTransactionFinishedInd) {
+                if (condition == CfdpNoError && deliveryCode == 0 && fileStatus == 2) {
+                    PUTS(" SUCCESS: File delivered and retained");
+                } else if (condition == CfdpNoError && deliveryCode == 1 && fileStatus == 3) {
+                    PUTS(" COMPLETED: Unacknowledged mode (status unknown)");
+                } else {
+                    PUTS(" FAILED: Check conditions above");
+                }
+            }
+			fflush(stdout);
+            break;
+            
+        case CfdpReportInd:             // Display report detail
+            PUTS_FMT("Condition: %s (%d)", getConditionName(condition), condition);
+            if (statusReportBuf && strlen(statusReportBuf) > 0) {
+                PUTS_FMT("Report Details: %s", statusReportBuf);
+            }
+            break;
+            
+        default:
+            /* Unknown event type - show condition if there's an error */
+            if (condition != CfdpNoError) {
+                PUTS_FMT("Condition: %s (%d)", getConditionName(condition), condition);
+            }
+            break;
+    }
+    
+    /* Always show progress for meaningful events */
+    PUTS_FMT("Progress: " UVAST_FIELDSPEC " bytes", progress);
+    PUTS("==================");
+	fflush(stdout);
+    
+    /* Clean up completed transactions to prevent memory buildup */
+    if (type == CfdpTransactionFinishedInd || type == CfdpAbandonedInd) {
+        cleanupCompletedTransaction(transactionId);
+    }
 }
 
 static int	noteSegmentTime(uvast fileOffset, unsigned int recordOffset,
@@ -68,6 +327,7 @@ static int	noteSegmentTime(uvast fileOffset, unsigned int recordOffset,
 static void	handleQuit(int signum)
 {
 	PUTS("cfdptest interrupted.");
+	fflush(stdout);
 }
 
 static void	printUsage()
@@ -107,7 +367,7 @@ custody transfer>");
 	PUTS("\t   flags, separated by commas, with no embedded whitespace.");
 	PUTS("\t   Each flag must be one of: rcv, ct, fwd, dlv, del.");
 	PUTS("\tr\tAdd filestore request");
-	PUTS("\t   r <action code nbr> <first path name> <second path name>");
+	PUTS("\t   r <action code nbr> <first path name> [second path name]");
 	PUTS("\t\t\tAction code numbers are:");
 	PUTS("\t\t\t\t0 = create file");
 	PUTS("\t\t\t\t1 = delete file");
@@ -120,6 +380,8 @@ custody transfer>");
 	PUTS("\t\t\t\t8 = deny directory");
 	PUTS("\tu\tAdd message to user");
 	PUTS("\t   u '<message text>'");
+	PUTS("\tL <remote_dir> <local_file>\tList remote directory (ION extension).");
+	PUTS("\tD <local_file>\t\tDisplay directory listing file (ION extension).");
 	PUTS("\t&\tSend file per specified parameters");
 	PUTS("\t   &");
 	PUTS("\t^\tCancel the current file transmission");
@@ -132,6 +394,7 @@ custody transfer>");
 	PUTS("\t   #");
 	PUTS("\t|\tGet file: send request for file per specified parameters");
 	PUTS("\t   |");
+	fflush(stdout);
 }
 
 static int      _echo(int *newValue)
@@ -161,6 +424,7 @@ static void     printText(char *text)
         }
 
         PUTS(text);
+		fflush(stdout);
 }
 
 static void	setDestinationEntityNbr(int tokenCount, char **tokens,
@@ -171,6 +435,7 @@ static void	setDestinationEntityNbr(int tokenCount, char **tokens,
 	if (tokenCount != 2)
 	{
 		PUTS("What's the destination entity number?");
+		fflush(stdout);
 		return;
 	}
 
@@ -184,6 +449,7 @@ static void	setSourceFileName(int tokenCount, char **tokens,
 	if (tokenCount != 2)
 	{
 		PUTS("What's the source file name?");
+		fflush(stdout);
 		return;
 	}
 
@@ -197,6 +463,7 @@ static void	setDestFileName(int tokenCount, char **tokens,
 	if (tokenCount != 2)
 	{
 		PUTS("What's the destination file name?");
+		fflush(stdout);
 		return;
 	}
 
@@ -212,6 +479,7 @@ static void	setClassOfService(int tokenCount, char **tokens,
 	if (tokenCount != 2)
 	{
 		PUTS("What's the priority?");
+		fflush(stdout);
 		return;
 	}
 
@@ -226,6 +494,7 @@ static void	setOrdinal(int tokenCount, char **tokens, BpUtParms *utParms)
 	if (tokenCount != 2)
 	{
 		PUTS("What's the ordinal?");
+		fflush(stdout);
 		return;
 	}
 
@@ -240,6 +509,7 @@ static void	setMode(int tokenCount, char **tokens, BpUtParms *utParms)
 	if (tokenCount != 2)
 	{
 		PUTS("What's the mode?");
+		fflush(stdout);
 		return;
 	}
 
@@ -457,6 +727,92 @@ static void	addFilestoreRequest(int tokenCount, char **tokens,
 	oK(cfdp_add_fsreq(*fsRequests, action, firstPathName, secondPathName));
 }
 
+#ifndef NO_DIRLIST
+static void	requestDirListing(int tokenCount, char **tokens, CfdpReqParms *parms)
+{
+	CfdpDirListTask	task;
+	
+	if (tokenCount != 3)
+	{
+		PUTS("Syntax: L <remote_directory> <local_temp_file>");
+		return;
+	}
+	
+	task.directoryName = tokens[1];
+	task.destFileName = tokens[2];
+	
+	if (cfdp_rls(&(parms->destinationEntityNbr),
+			sizeof(BpUtParms),
+			(unsigned char *) &(parms->utParms),
+			NULL, NULL, NULL, NULL, 0, NULL, 0,
+			parms->msgsToUser,
+			parms->fsRequests,
+			&task,
+			&(parms->transactionId)) < 0)
+	{
+		putErrmsg("Can't request directory listing.", NULL);
+		return;
+	}
+	
+	PUTS_FMT("Directory listing requested for: %s -> %s", tokens[1], tokens[2]);
+	parms->msgsToUser = 0;
+	parms->fsRequests = 0;
+}
+
+static void	displayDirListing(const char *filename)
+{
+	int fd;
+	char buffer[256];
+	char entry[256];
+	int pos = 0;
+	int entryPos = 0;
+	ssize_t bytesRead;
+	int entryCount = 0;
+	
+	fd = iopen(filename, O_RDONLY, 0);
+	if (fd < 0)
+	{
+		PUTS_FMT("Cannot open directory listing file: %s", filename);
+		return;
+	}
+	
+	PUTS_FMT("Directory contents from: %s", filename);
+	PUTS("   Entries:");
+	
+	while ((bytesRead = read(fd, buffer, sizeof(buffer))) > 0)
+	{
+		for (pos = 0; pos < bytesRead; pos++)
+		{
+			if (buffer[pos] == '\0')
+			{
+				if (entryPos > 0)
+				{
+					entry[entryPos] = '\0';
+					entryCount++;
+					PUTS_FMT("   %3d. %s", entryCount, entry);
+					entryPos = 0;
+				}
+			}
+			else if (entryPos < sizeof(entry) - 1)
+			{
+				entry[entryPos++] = buffer[pos];
+			}
+		}
+	}
+	
+	if (entryCount == 0)
+	{
+		PUTS("   (empty directory)");
+	}
+	else
+	{
+		PUTS_FMT("   Total: %d entries", entryCount);
+	}
+	
+	close(fd);
+}
+#endif
+
 static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 {
 	int		tokenCount;
@@ -495,7 +851,7 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 
 	if (*cursor != '\0')
 	{
-		PUTS("Too many tokens.");
+		PUTS("Too many tokens.\n");
 		return 0;
 	}
 
@@ -574,6 +930,21 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 					&(parms->fsRequests));
 			return 0;
 
+#ifndef NO_DIRLIST
+		case 'L':
+			requestDirListing(tokenCount, tokens, parms);
+			return 0;
+			
+		case 'D':
+			if (tokenCount != 2)
+			{
+				PUTS("What's the directory listing filename?");
+				return 0;
+			}
+			displayDirListing(tokens[1]);
+			return 0;
+#endif
+
 		case '&':
 			if (cfdp_put(&(parms->destinationEntityNbr),
 					sizeof(BpUtParms),
@@ -590,6 +961,9 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 				putErrmsg("Can't put FDU.", NULL);
 				return -1;
 			}
+
+			/* Store closure latency for robust sender-side tracking */
+			storeSenderTransaction(&(parms->transactionId), parms->closureLatency);
 
 			parms->msgsToUser = 0;
 			parms->fsRequests = 0;
@@ -615,6 +989,9 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 				putErrmsg("Can't put FDU.", NULL);
 				return -1;
 			}
+
+			/* Store closure info for robust sender-side tracking */
+			storeSenderTransaction(&(parms->transactionId), task.closureRequested ? 1 : 0);
 
 			parms->msgsToUser = 0;
 			parms->fsRequests = 0;
@@ -718,7 +1095,6 @@ static char	*getMessageText(unsigned char *buf, unsigned int length)
 static void	*handleEvents(void *parm)
 {
 	int			*running = (int *) parm;
-	/* also uses eventTypes defined as static */
 	CfdpEventType		type;
 	time_t			time;
 	int			reqNbr;
@@ -746,6 +1122,7 @@ static void	*handleEvents(void *parm)
 	char			firstPathName[256];
 	char			secondPathName[256];
 	char			msgBuf[256];
+	unsigned int		closureRequested;
 
 	while (*running)
 	{
@@ -756,13 +1133,16 @@ static void	*handleEvents(void *parm)
 				&segMetadataLength, segMetadata,
 				&condition, &progress, &fileStatus,
 				&deliveryCode, &originatingTransactionId,
-				statusReportBuf, &filestoreResponses) < 0)
+				statusReportBuf, &filestoreResponses,
+				&closureRequested) < 0)
 		{
 			putErrmsg("Failed getting CFDP event.", NULL);
 			return NULL;
 		}
 
-		reportCfdpEvent(type,statusReportBuf);
+		reportCfdpEvent(type, statusReportBuf, condition, deliveryCode, 
+			fileStatus, progress, &transactionId, closureRequested, 
+			destFileNameBuf);
 
 		if (type == CfdpAccessEnded)
 		{
@@ -778,7 +1158,7 @@ static void	*handleEvents(void *parm)
 		{
 			if (segMetadataLength > 0)
 			{
-				printf("...Seg metadata '%s'\n", segMetadata);
+				PUTS_FMT("...Seg metadata '%s'", segMetadata);
 			}
 		}
 
@@ -791,11 +1171,32 @@ static void	*handleEvents(void *parm)
 				return NULL;
 			}
 
-			if (length > 0)
+			if (length >= 5 && strncmp((char *) usrmsgBuf, "cfdp", 4) == 0)
 			{
-				usrmsgBuf[length] = '\0';
-				printf("\tMessage to user: %s\n",
-					getMessageText(usrmsgBuf, length));
+				/* This is a CFDP proxy message */
+				unsigned int msgType = usrmsgBuf[4];
+				if (msgType == 17) /* Directory listing response */
+				{
+					unsigned char responseCode = usrmsgBuf[5];
+					if (responseCode < 128)
+					{
+						PUTS_FMT("\tDirectory Listing: SUCCESS (code %d)", responseCode);
+						PUTS_FMT("\t   Check destination file: %s", destFileNameBuf);
+					}
+					else
+					{
+						PUTS_FMT("\tDirectory Listing: FAILED (code %d)", responseCode);
+					}
+				}
+				else
+				{
+					PUTS_FMT("\tCFDP Message: %s", getMessageText(usrmsgBuf, length));
+				}
+			}
+			else
+			{
+				/* This is a regular user message - display the actual text */
+				PUTS_FMT("\tUser Message: '%s'", (char *) usrmsgBuf);
 			}
 		}
 
@@ -811,7 +1212,7 @@ static void	*handleEvents(void *parm)
 
 			if (action != ((CfdpAction) -1))
 			{
-				printf("\tResponse %d %d '%s' '%s' '%s'\n",
+				PUTS_FMT("\tResponse %d %d '%s' '%s' '%s'",
 						action, status, firstPathName,
 						secondPathName, msgBuf);
 			}
@@ -923,6 +1324,17 @@ int	main(int argc, char **argv)
 	parms.utParms.custodySwitch = NoCustodyRequested;
 	if (cmdFileName != NULL)	/*	Scripted.	*/
 	{
+		pthread_t	receiverThread;
+    	int		running = 1;
+
+		/*	Start the receiver thread for script mode so event can be captured.	*/
+		if (pthread_begin(&receiverThread, NULL, handleEvents, &running))
+		{
+			putSysErrmsg("cfdptest can't create receiver thread", NULL);
+			ionDetach();
+			return 1;
+		}
+
 		cmdFile = open(cmdFileName, O_RDONLY, 0777);
 		if (cmdFile < 0)
 		{
@@ -957,6 +1369,12 @@ int	main(int argc, char **argv)
 			}
 
 			close(cmdFile);
+
+			/*	Wait for events, then stop receiver thread	*/
+			snooze(2);
+			running = 0;
+			cfdp_interrupt();
+			pthread_join(receiverThread, NULL);
 		}
 	}
 

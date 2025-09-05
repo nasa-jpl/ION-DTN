@@ -4,21 +4,15 @@
 # Ohio University
 # December 30, 2011
 #
-# This test pertains to issue #330 "cfdpclock will remove unsent FDUs without 
+# This test pertains to issue #330 "cfdpclock will remove unsent FDUs without
 # file data". This test confirms that cfdpclock will no longer remove these FDUs
 # without file data.
-
-# utility required for this test (requires 'make test' in ion root dir to build)
-TESTUTIL="../cfdplisten"
 
 function end(){
 # Shut down ION processes.
 echo "Stopping ION..."
-#./ionstop &
 cd ../
-#sleep 5
 killm
-
 echo "cfdpclock unsent FDU removal test done."
 exit $RETVAL
 }
@@ -42,10 +36,10 @@ echo "CONFIG: 1 node custom:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo
@@ -63,12 +57,11 @@ cd 1.cfdp.ipn.bp.ltp.udp
 
 if [ "$?" -eq 4 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node not started: Aborting Test"
-	exit 1
+    echo "Node not started: Aborting Test"
+    exit 1
 fi
-
 
 #Create large file to send
 echo "Creating test file..."
@@ -76,8 +69,8 @@ dd if=/dev/zero of=./testfile bs=1024 count=512
 
 #Starting Listener
 echo "Starting CFDP message listener..."
-
 # Check if the test utility exists and is executable
+TESTUTIL="../cfdplisten"
 if [ ! -x "$TESTUTIL" ]; then
   echo -e "\nError: $TESTUTIL does not exist: Skipping test."
   echo -e "Please run 'make test' in ION root to generate test binaries and scripts.\n"
@@ -87,22 +80,29 @@ if [ ! -x "$TESTUTIL" ]; then
 else
   echo -e " \n$TESTUTIL utility found, starting now.\n"
   # If the file exists, run it in the background and redirect output
-  "$TESTUTIL" > output &
+  "$TESTUTIL" > cfdplisten_output &
   CFDPLISTEN_PID=$!
 fi
 
-
 #End bputa to hold transfers in queue
 echo "Stopping bputa..."
-ps -e | grep "bputa" | grep -v "grep" | awk '{print $1}' | xargs kill
+BPUTA_PIDS=$(ps -e | grep "bputa" | grep -v "grep" | awk '{print $1}')
+if [ -n "$BPUTA_PIDS" ]; then
+    kill $BPUTA_PIDS
+    echo "Stopped bputa processes: $BPUTA_PIDS"
+else
+    echo "No bputa processes found to stop"
+fi
 
 #Start transfer 1
 echo "Starting transfer of large file..."
-cfdptest ../cfdp_cmds1
+cfdptest ../cfdp_cmds1 > cfdptest1_output &
+CFDPTEST1_PID=$!
 
 #Start transfer 2
 echo "Starting transfer of User Message FDU..."
-cfdptest ../cfdp_cmds2
+cfdptest ../cfdp_cmds2 > cfdptest2_output &
+CFDPTEST2_PID=$!
 
 #Give cfdpclock time to process the queue
 echo "Waiting for cfdpclock to run..."
@@ -116,41 +116,59 @@ bputa &
 echo "Waiting 60 seconds for transfers to complete..."
 sleep 60
 
-#Kill cfdptest
+#Kill all processes
 kill -2 $CFDPLISTEN_PID >/dev/null 2>&1
-sleep 1 
+kill -2 $CFDPTEST1_PID >/dev/null 2>&1  
+kill -2 $CFDPTEST2_PID >/dev/null 2>&1
+sleep 1
 kill -9 $CFDPLISTEN_PID >/dev/null 2>&1
+kill -9 $CFDPTEST1_PID >/dev/null 2>&1
+kill -9 $CFDPTEST2_PID >/dev/null 2>&1
+
+# Combine all output files
+cat cfdplisten_output cfdptest1_output cfdptest2_output > output 2>/dev/null
 
 #Test for User Message
 RESULTS=`grep "samueljero" output`
 if [ -n "$RESULTS" ]; then
-	echo "The FDU was sent. Yay!"
-	echo ""
-	RETVAL=0
+    echo "The FDU was sent. Yay!"
+    echo ""
+    RETVAL=0
 else
-	echo "The FDU was not sent.  FAILURE!"
-	echo ""
-	echo `ls -al`
-	cat ion.log
-	cat output
-	RETVAL=1
-	end
+    echo "The FDU was not sent.  FAILURE!"
+    echo ""
+    echo `ls -al`
+    cat ion.log
+    cat output
+    RETVAL=1
+    end
 fi
 
-#Test for EOF sent messages
-RESULTS=`grep "type 2" output | wc -l`
-if [ "$RESULTS" -eq 2 ]; then
-	echo "EOF Sent Message was logged. SUCCESS!"
-	echo ""
-	RETVAL=0
+RESULTS1=`grep "type 2" output | wc -l`           # cfdplisten format
+RESULTS2=`grep "EOF sent (2)" output | wc -l`     # cfdptest format  
+TOTAL=$((RESULTS1 + RESULTS2))
+
+echo "Debug: Found $RESULTS1 'type 2' messages and $RESULTS2 'EOF sent (2)' messages, total: $TOTAL"
+
+if [ "$TOTAL" -eq 2 ]; then
+    echo "EOF Sent Message was logged. SUCCESS!"
+    echo ""
+    RETVAL=0
 else
-	echo "EOF Sent Message was not logged.  FAILURE!"
-	echo ""
-	echo `ls -al`
-	cat ion.log
-	cat output
-	RETVAL=1
-	end
+    echo "EOF Sent Message was not logged.  FAILURE!"
+    echo ""
+    echo "Expected 2 EOF sent messages total, found: $TOTAL"
+    echo "cfdplisten format ('type 2'): $RESULTS1"  
+    echo "cfdptest format ('EOF sent (2)'): $RESULTS2"
+    echo `ls -al`
+    cat ion.log
+    echo "=== COMBINED OUTPUT CONTENT ==="
+    cat output
+    RETVAL=1
+    end
 fi
+
+# Cleanup temp files
+rm -f cfdplisten_output cfdptest1_output cfdptest2_output
 
 end

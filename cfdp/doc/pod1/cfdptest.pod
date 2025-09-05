@@ -33,7 +33,7 @@ follows:
 =item B<?>
 
 The B<help> command.  This will display a listing of the commands and their
-formats.  It is the same as the B<h> command.
+formats.  It is the same as the B<h> command.  
 
 =item B<h>
 
@@ -125,33 +125,107 @@ The B<criticality> command.  This command establishes the criticality
 for all subsequently issued bundles containing CFDP PDUs.  Valid values
 are 0 (not critical) and 1 (critical).  If not specified, criticality is 0.
 
-=item B<r> <action code nbr> <first path name> <second path name>
+=item B<r> <action code> <first path name> [<second path name>]
 
-The B<filestore request> command.  This command adds a filestore request to
+The B<filestore request> command. This command adds a filestore request to
 the metadata that will be issued when the next file transmission operation
-is commanded.  Action code numbers are:
+is commanded. Multiple filestore requests may be added to a single file
+transfer and will be executed B<sequentially> in the order specified,
+B<after> the file transfer has completed successfully. These filestore
+requests operate on the B<remote> destination.
+
+B<IMPORTANT:> Filestore operations require a non-empty carrier file to be
+transmitted. Empty files or /dev/null may not reliably trigger filestore
+execution. Use a small file (even 1 byte) as the carrier. The carrier
+file can be deleted automatically by including a delete file command in the
+set of filestore actions.
+
+B<Action code numbers and syntax:>
 
 =over 4
 
 =item 0 = create file
 
+B<Syntax:> r 0 <filename>
+
+Creates an empty file with the specified name.
+
 =item 1 = delete file
+
+B<Syntax:> r 1 <filename>
+
+Deletes the specified file. Fails if the file does not exist.
 
 =item 2 = rename file
 
+B<Syntax:> r 2 <old_filename> <new_filename>
+
+Renames a file from old_filename to new_filename.
+
 =item 3 = append file
+
+B<Syntax:> r 3 <destination_file> <source_file>
+
+Appends the contents of source_file to the end of destination_file.
+Both files must exist.
 
 =item 4 = replace file
 
+B<Syntax:> r 4 <target_file> <source_file>
+
+Replaces the contents of target_file with the contents of source_file
+(truncates target_file and copies source_file into it). Both files must exist.
+
 =item 5 = create directory
+
+B<Syntax:> r 5 <directory_name>
+
+Creates a directory with the specified name.
 
 =item 6 = remove directory
 
+B<Syntax:> r 6 <directory_name>
+
+Removes the specified directory (must be empty). Fails if directory does not 
+exist.
+
 =item 7 = deny file
+
+B<Syntax:> r 7 <filename>
+
+Ensures the specified file is deleted if it exists.
 
 =item 8 = deny directory
 
+B<Syntax:> r 8 <directory_name>
+
+Ensures the specified directory is removed if it exists.
+
 =back
+
+B<Size Limitations:>
+
+Each individual filestore request is limited to 255 bytes total, including
+overhead (3 bytes) plus the length of both filenames. All filestore requests
+for a single transfer must fit within the metadata PDU size limit of 65,535
+bytes (64KB). With typical filename lengths of 30 characters each, approximately
+1,000 filestore requests can be included in a single transfer. Longer filenames
+reduce this limit proportionally.
+
+B<Execution Behavior:>
+
+Filestore requests execute sequentially after successful file transfer completion.
+If any request fails, subsequent requests may be skipped with status code 15
+(request aborted). Use relative paths when possible to minimize metadata size.
+All paths are resolved relative to the ION working directory unless specified
+as absolute paths.
+
+B<Example Usage:>
+
+  r 2 old_config.txt old_config.backup    # Backup existing file
+  r 4 old_config.txt new_config.txt       # Replace with new content  
+  r 1 new_config.txt                      # Clean up source file
+  &                                       # Execute transfer with operations
 
 =item B<u> '<message text>'
 
@@ -159,10 +233,54 @@ The B<user message> command.  This command adds a user message to the
 metadata that will be issued when the next file transmission operation
 is commanded.
 
+=item B<L> <remote directory path> <local temp filename>
+
+The B<list remote directory> command (ION extension).  This command requests
+a directory listing from the remote CFDP entity specified by the most recent
+B<d> command. The directory contents will be stored in the specified local
+temporary file. Upon successful completion, the directory contents are
+automatically displayed.
+
+B<IMPORTANT:> This feature requires the remote CFDP entity to support the
+ION directory listing extension. The remote node must be running either
+B<bpcpd> (CFDP remote copy daemon) or an enhanced version of B<cfdptest>
+that includes directory listing server capabilities. Standard CFDP daemons
+(such as the basic ION CFDP implementation) do not support this extension
+and will ignore directory listing requests.
+
+B<Example Usage:>
+
+  d 2                           # Set destination entity
+  L /etc /tmp/etc_listing.txt   # Request /etc directory listing
+  # Directory contents will be auto-displayed upon completion
+
+=item B<D> <local directory listing filename>
+
+The B<display directory listing> command (ION extension).  This command
+displays the contents of a previously received directory listing file.
+The file should contain directory entries in the format produced by the
+B<L> command.
+
+B<Example Usage:>
+
+  D /tmp/etc_listing.txt        # Display contents of directory listing file
+
 =item B<&>
 
 The B<send> command.  This command initiates file transmission as configured
-by the most recent preceding B<d>, B<f>, B<t>, and B<a> commands.
+by the most recent preceding B<d>, B<f>, B<t>, and B<a> commands. If a remote
+file exists with the same filename as specified in the B<t> command, the 
+delivered file is stored as a temporary file typically name B<cfdp.x.y> where
+B<x.y> is the transaction number. 
+
+For acknowledged mode, e.g., non-zero closure latency, this will lead to 
+failure on the receiving side due to timeout, which is controlled by the B<maxtimeouts> 
+and the B<ckperiod> configuration parameter in the .cfdprc configuration file.
+The sender side will not receive a CFDP FINISHED PDU, even if the file transfer
+has completed without error. The temporary file could contain a complete file 
+and still be viable. However it is advised that if one must replace the remote 
+file to use the filestore command to replace the file after initially transmitting
+under a temporarily different name. 
 
 =item B<|>
 
@@ -205,16 +323,41 @@ The B<quit> command.  Terminates the cfdptest program.
 
 =back
 
-B<cfdptest> in interactive mode also spawns a CFDP event handling thread.  The
-event thread receives CFDP service indications and simply prints lines of
-text to stdout to announce them.
+=head1 DIRECTORY LISTING EXTENSION
 
-B<NOTE> that when B<cfdptest> runs in scripted mode it does B<not> spawn an
-event handling thread, which makes it possible for the CFDP events queue to
-grow indefinitely unless some other task consumes and reports on the events.
-One simple solution is to run an interactive B<cfdptest> task in background,
-simply to keep the event queue cleared, while scripted non-interactive
-B<cfdptest> tasks are run in the foreground.
+The directory listing functionality (B<L> and B<D> commands) is an ION-specific
+extension to the CFDP protocol and is not part of the standard CFDP specification.
+This extension uses CFDP's "messages to user" mechanism to implement remote
+directory operations.
+
+B<Server Requirements:>
+
+For directory listing to work, the remote CFDP entity must support the ION
+directory listing extension by running one of the following:
+
+=over 4
+
+=item *
+
+B<bpcpd> - The CFDP remote copy daemon, which includes full directory listing
+server capabilities.
+
+=item *
+
+An enhanced version of B<cfdptest> or another application that implements the
+directory listing message handlers.
+
+=back
+
+Standard CFDP daemons (such as the basic ION CFDP implementation) will ignore
+directory listing requests, resulting in empty or invalid directory listing files.
+
+B<Protocol Details:>
+
+Directory listing requests are sent as special "messages to user" with a
+specific format. The remote entity processes these messages, executes the
+directory listing operation, and responds with both the directory contents
+(as a file transfer) and a status message indicating success or failure.
 
 =head1 EXIT STATUS
 
@@ -260,6 +403,18 @@ additional diagnostic messages from the CFDP library.
 The attempt to retrieve a CFDP service indication failed.  See the ION log for
 additional diagnostic messages from the CFDP library.
 
+=item Can't request directory listing.
+
+The attempt to initiate a directory listing request failed. This may indicate
+that the ION installation was compiled without directory listing support
+(NO_DIRLIST defined) or that required libraries are missing.
+
+=item Cannot open directory listing file...
+
+The specified directory listing file could not be opened for display. This
+may indicate that the file doesn't exist, the directory listing request failed,
+or there are insufficient permissions to read the file.
+
 =back
 
 =head1 BUGS
@@ -268,4 +423,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-cfdpadmin(1), cfdp(3)
+bpcp(1), bpcpd(1), cfdpadmin(1), cfdp(3)

@@ -1605,6 +1605,7 @@ too long.", sourceFileName);
 	memcpy((char *) transactionId, (char *) &fdu.transactionId,
 				sizeof(CfdpTransactionId));
 	event.reqNbr = fdu.reqNbr;
+	event.progress = fdu.progress;
 	if (enqueueCfdpEvent(&event) < 0)
 	{
 		putErrmsg("CFDP can't report on new transaction.", NULL);
@@ -1817,6 +1818,7 @@ UVAST_FIELDSPEC "  progress " UVAST_FIELDSPEC, (unsigned int) fduBuf.state,
 			fduBuf.fileSize, fduBuf.progress);
 	event.statusReport = sdr_string_create(sdr, reportBuffer);
 	event.reqNbr = getReqNbr();
+	event.progress = fduBuf.progress;
 	if (enqueueCfdpEvent(&event) < 0)
 	{
 		putErrmsg("CFDP can't report on transaction.", NULL);
@@ -1859,6 +1861,7 @@ UVAST_FIELDSPEC "  size " UVAST_FIELDSPEC "  progress " UVAST_FIELDSPEC,
 			fduBuf.bytesReceived, fduBuf.fileSize, fduBuf.progress);
 	event.statusReport = sdr_string_create(sdr, reportBuffer);
 	event.reqNbr = getReqNbr();
+	event.progress = fduBuf.progress;
 	if (enqueueCfdpEvent(&event) < 0)
 	{
 		putErrmsg("CFDP can't report on transaction.", NULL);
@@ -1907,7 +1910,8 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 		CfdpCondition *condition, uvast *progress,
 		CfdpFileStatus *fileStatus, CfdpDeliveryCode *deliveryCode,
 		CfdpTransactionId *originatingTransactionId,
-		char *statusReportBuf, MetadataList *filestoreResponses)
+		char *statusReportBuf, MetadataList *filestoreResponses,
+		unsigned int *closureRequested)
 {
 	Sdr		sdr = getIonsdr();
 	CfdpVdb		*vdb = getCfdpVdb();
@@ -2049,6 +2053,8 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 	{
 		return sdr_end_xn(sdr);
 	}
+
+	*closureRequested = event.closureRequested;
 
 	/*	This FDU might be a standard User Operations FDU.	*/
 
