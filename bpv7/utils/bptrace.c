@@ -545,7 +545,7 @@ static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 	curTime = timeoutTime;
 	if (!(rtt > 0)) rtt = ttl*2;// allow <ttl> seconds for travel of the packet sent and the returning status reports.
 	timeoutTime.tv_sec += rtt; 
-	printDBG(2, "current time: %lu timeouttime: %lu\n", curTime.tv_sec, timeoutTime.tv_sec);
+	printDBG(2, "current time: %lld timeouttime: %lld\n", (long long)curTime.tv_sec, (long long)timeoutTime.tv_sec);
 	
 	if (bp_attach() < 0)
 	{

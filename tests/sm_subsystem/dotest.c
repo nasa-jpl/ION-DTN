@@ -539,7 +539,7 @@ int main(int argc, char **argv)
 	if (!semaphore_churn())
 		passed = 0;
 	time(&time_stop);
-	printf("\nElapsed time: %ld seconds\n", time_stop - time_start);
+	printf("\nElapsed time: %lld seconds\n", (long long)(time_stop - time_start));
 
 	printf("\n####################################################\n");
 	printf("Testing simple critical sections with multiple threads in one process ...\n\n");
@@ -547,7 +547,7 @@ int main(int argc, char **argv)
 	if (!multi_thread_semtest())
 		passed = 0;
 	time(&time_stop);
-	printf("\nElapsed time: %ld seconds\n", time_stop - time_start);
+	printf("\nElapsed time: %lld seconds\n", (long long)(time_stop - time_start));
 
 	printf("\n####################################################\n");
 	printf("Testing simple critical sections with multiple child processes ...\n\n");
@@ -555,7 +555,7 @@ int main(int argc, char **argv)
 	if (!multi_process_semtest())
 		passed = 0;
 	time(&time_stop);
-	printf("\nElapsed time: %ld seconds\n", time_stop - time_start);
+	printf("\nElapsed time: %lld seconds\n", (long long)(time_stop - time_start));
 
 	printf("\n####################################################\n");
 	printf("Testing get_unique_key()\n\n");
@@ -563,7 +563,7 @@ int main(int argc, char **argv)
 	if (!check_unique_keys())
 		passed = 0;
 	time(&time_stop);
-	printf("\nElapsed time: %ld seconds\n", time_stop - time_start);
+	printf("\nElapsed time: %lld seconds\n", (long long)(time_stop - time_start));
 
 	printf("\n####################################################\n");
 	printf("Testing semaphore error handling ...\n\n");
@@ -572,7 +572,7 @@ int main(int argc, char **argv)
 	if (!sem_errors())
 		passed = 0;
 	time(&time_stop);
-	printf("\nElapsed time: %ld seconds\n", time_stop - time_start);
+	printf("\nElapsed time: %lld seconds\n", (long long)(time_stop - time_start));
 
 	printf("\n####################################################\n");
 
