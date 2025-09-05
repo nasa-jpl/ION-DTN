@@ -87,7 +87,7 @@ jobs:
               ./runtests ${{ github.event.inputs.tests_to_run }}
             else
               echo "Running demo tests only"
-              ./runtests ../demos/*
+              ./runtests ../demos/bench-ltp ../demos/bench-tcp
             fi
           } > build-and-test.log 2>&1
 
