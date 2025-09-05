@@ -41,7 +41,7 @@ permissions:
   contents: read
 jobs:
   build-and-test:
-    runs-on: [self-hosted, linux, x64, debiantrixie]
+    runs-on: [self-hosted, linux, ARM, debiantrixie]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
