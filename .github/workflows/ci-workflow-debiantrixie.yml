@@ -119,6 +119,6 @@ jobs:
       - name: Clean up ION build
         if: ${{ always() }}
         run: |
-          sudo make uninstall
+          make uninstall
           make clean
           rm -rf $GITHUB_WORKSPACE/*
