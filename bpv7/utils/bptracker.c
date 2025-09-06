@@ -3,7 +3,7 @@
 #include <signal.h>
 #include <pthread.h>
 
-/*	Enhanced tracking with source info */
+/*	Enhanced tracking with simple queue status */
 typedef struct {
     Object      bundleObj;          /* ION bundle object reference */
     Object      trackingElt;        /* SDR list element for tracking */
@@ -21,7 +21,14 @@ typedef struct {
     /* Bundle creation info */
     uvast       creationTimeMsec;   /* Bundle creation time (msec since epoch 2000) */
     unsigned int creationTimeCount; /* Bundle creation sequence count */
-    int         inQueues;           /* Boolean: still in transmission queues */
+    
+    /* Simple queue status - boolean flags */
+    int         inPlanQueue;        /* Boolean: in egress plan queue */
+    int         inDuctQueue;        /* Boolean: in outduct queue */
+    int         inFwdQueue;         /* Boolean: in forwarding queue */
+    int         inDlvQueue;         /* Boolean: in delivery queue */
+    int         isDetained;         /* Boolean: bundle is detained */
+    
     time_t      transmitTime;       /* When transmission completed */
 } TrackedBundle;
 
@@ -70,6 +77,41 @@ void formatCreationTime(uvast msec, unsigned int count, char *buffer, size_t buf
                 (int)(msec % 1000), count);
     } else {
         snprintf(buffer, bufSize, UVAST_FIELDSPEC ".%u", msec, count);
+    }
+}
+
+/*	Simple queue status string - safe approach	*/
+void getSimpleQueueStatus(TrackedBundle *tbundle, char *buffer, size_t bufSize)
+{
+    /* Build simple status using safe individual checks */
+    buffer[0] = '\0';  /* Start with empty string */
+    
+    if (tbundle->inPlanQueue) {
+        strncat(buffer, "PLAN ", bufSize - strlen(buffer) - 1);
+    }
+    if (tbundle->inDuctQueue) {
+        strncat(buffer, "DUCT ", bufSize - strlen(buffer) - 1);
+    }
+    if (tbundle->inFwdQueue) {
+        strncat(buffer, "FWD ", bufSize - strlen(buffer) - 1);
+    }
+    if (tbundle->inDlvQueue) {
+        strncat(buffer, "DLV ", bufSize - strlen(buffer) - 1);
+    }
+    if (tbundle->isDetained) {
+        strncat(buffer, "DETAINED ", bufSize - strlen(buffer) - 1);
+    }
+    
+    /* If no queues, show CLEAR */
+    if (strlen(buffer) == 0) {
+        strncpy(buffer, "CLEAR", bufSize - 1);
+        buffer[bufSize - 1] = '\0';
+    } else {
+        /* Remove trailing space */
+        size_t len = strlen(buffer);
+        if (len > 0 && buffer[len - 1] == ' ') {
+            buffer[len - 1] = '\0';
+        }
     }
 }
 
@@ -324,13 +366,12 @@ int sendTrackedBundle(BundleTracker *tracker, Object adu, int lifespan, int bund
     printf("DEBUG: Creating enhanced tracking record for bundle %d\n", bundleId);
     fflush(stdout);
     
-    /* Initialize tracking data with source info */
+    /* Initialize tracking data with source info and initial queue status */
     tbundle.bundleObj = bundleObj;
     tbundle.sendTime = time(NULL);
     tbundle.transmitTime = 0;  /* Not transmitted yet */
     tbundle.status = BUNDLE_PENDING;
     tbundle.bundleId = bundleId;
-    tbundle.inQueues = 1;      /* Assume in queues initially */
     
     /* Store destination EID */
     strncpy(tbundle.destEid, tracker->destEid, sizeof(tbundle.destEid) - 1);
@@ -343,6 +384,18 @@ int sendTrackedBundle(BundleTracker *tracker, Object adu, int lifespan, int bund
     /* Store creation time */
     tbundle.creationTimeMsec = bundle.id.creationTime.msec;
     tbundle.creationTimeCount = bundle.id.creationTime.count;
+    
+    /* Initialize simple queue status flags */
+    tbundle.inPlanQueue = (bundle.planXmitElt != 0) ? 1 : 0;
+    tbundle.inDuctQueue = (bundle.ductXmitElt != 0) ? 1 : 0;
+    tbundle.inFwdQueue = (bundle.fwdQueueElt != 0) ? 1 : 0;
+    tbundle.inDlvQueue = (bundle.dlvQueueElt != 0) ? 1 : 0;
+    tbundle.isDetained = (bundle.detained != 0) ? 1 : 0;
+    
+    printf("DEBUG: Initial queue status - Plan:%d Duct:%d Fwd:%d Dlv:%d Detained:%d\n",
+           tbundle.inPlanQueue, tbundle.inDuctQueue, tbundle.inFwdQueue, 
+           tbundle.inDlvQueue, tbundle.isDetained);
+    fflush(stdout);
     
     /* Clean up source EID string */
     if (sourceEidString) {
@@ -388,7 +441,7 @@ int sendTrackedBundle(BundleTracker *tracker, Object adu, int lifespan, int bund
     return 0;
 }
 
-/*	Check status of all tracked bundles - with suspend/resume awareness	*/
+/*	Check status of all tracked bundles with queue status	*/
 int checkBundleStatus(BundleTracker *tracker)
 {
     Sdr sdr = getIonsdr();
@@ -399,7 +452,7 @@ int checkBundleStatus(BundleTracker *tracker)
     int bundlesActive = 0;
     time_t currentTime = time(NULL);
     
-    printf("DEBUG: Checking bundle status (enhanced version)...\n");
+    printf("DEBUG: Checking bundle status (with queue status)...\n");
     fflush(stdout);
     
     if (sdr_begin_xn(sdr) < 0) {
@@ -456,18 +509,27 @@ int checkBundleStatus(BundleTracker *tracker)
         printf("DEBUG: Bundle %d object read successfully\n", tbundle.bundleId);
         fflush(stdout);
         
-        /* Check queue status - simplified version */
-        int wasInQueues = tbundle.inQueues;
-        tbundle.inQueues = (bundle.planXmitElt != 0 || bundle.ductXmitElt != 0 || 
-                           bundle.fwdQueueElt != 0 || bundle.dlvQueueElt != 0);
+        /* Update simple queue status flags */
+        int wasInAnyQueue = (tbundle.inPlanQueue || tbundle.inDuctQueue || 
+                            tbundle.inFwdQueue || tbundle.inDlvQueue);
         
-        printf("DEBUG: Bundle %d queue check: wasInQueues=%d, nowInQueues=%d\n", 
-               tbundle.bundleId, wasInQueues, tbundle.inQueues);
+        tbundle.inPlanQueue = (bundle.planXmitElt != 0) ? 1 : 0;
+        tbundle.inDuctQueue = (bundle.ductXmitElt != 0) ? 1 : 0;
+        tbundle.inFwdQueue = (bundle.fwdQueueElt != 0) ? 1 : 0;
+        tbundle.inDlvQueue = (bundle.dlvQueueElt != 0) ? 1 : 0;
+        tbundle.isDetained = (bundle.detained != 0) ? 1 : 0;
+        
+        int nowInAnyQueue = (tbundle.inPlanQueue || tbundle.inDuctQueue || 
+                            tbundle.inFwdQueue || tbundle.inDlvQueue);
+        
+        printf("DEBUG: Bundle %d queue update - Plan:%d Duct:%d Fwd:%d Dlv:%d Detained:%d\n",
+               tbundle.bundleId, tbundle.inPlanQueue, tbundle.inDuctQueue, 
+               tbundle.inFwdQueue, tbundle.inDlvQueue, tbundle.isDetained);
         fflush(stdout);
         
         /* Detect transmission completion */
-        if (wasInQueues && !tbundle.inQueues && tbundle.status == BUNDLE_PENDING) {
-            printf("Bundle %d transmission completed (enhanced tracking)\n", tbundle.bundleId);
+        if (wasInAnyQueue && !nowInAnyQueue && tbundle.status == BUNDLE_PENDING) {
+            printf("Bundle %d transmission completed (with queue status)\n", tbundle.bundleId);
             fflush(stdout);
             
             printf("DEBUG: About to update bundle %d status to TRANSMITTED\n", tbundle.bundleId);
@@ -485,7 +547,7 @@ int checkBundleStatus(BundleTracker *tracker)
             printf("DEBUG: Bundle %d status update completed\n", tbundle.bundleId);
             fflush(stdout);
         } else {
-            /* Just update the inQueues status */
+            /* Just update the queue status */
             printf("DEBUG: Updating bundle %d queue status only\n", tbundle.bundleId);
             fflush(stdout);
             
@@ -513,7 +575,7 @@ int checkBundleStatus(BundleTracker *tracker)
     return bundlesActive;
 }
 
-/*	List all tracked bundles with enhanced info	*/
+/*	List all tracked bundles with enhanced info and simple queue status	*/
 void listActiveBundles(BundleTracker *tracker)
 {
     Sdr sdr = getIonsdr();
@@ -523,12 +585,13 @@ void listActiveBundles(BundleTracker *tracker)
     time_t currentTime = time(NULL);
     int totalCount = 0;
     char creationTimeStr[64];
+    char queueStatusStr[32];
     
-    printf("\n=== Tracked Bundles (Enhanced with Source Info) ===\n");
-    printf("%-3s %-12s %-7s %-20s %-20s\n", 
-           "ID", "Status", "Age(s)", "Source_EID", "Creation_Time");
-    printf("%-3s %-12s %-7s %-20s %-20s\n", 
-           "---", "------------", "-------", "--------------------", "--------------------");
+    printf("\n=== Tracked Bundles (With Queue Status) ===\n");
+    printf("%-3s %-12s %-7s %-20s %-20s %-15s\n", 
+           "ID", "Status", "Age(s)", "Source_EID", "Creation_Time", "Queue_Status");
+    printf("%-3s %-12s %-7s %-20s %-20s %-15s\n", 
+           "---", "------------", "-------", "--------------------", "--------------------", "---------------");
     
     if (sdr_begin_xn(sdr) < 0) {
         printf("ERROR: Can't begin list transaction\n");
@@ -548,12 +611,16 @@ void listActiveBundles(BundleTracker *tracker)
         formatCreationTime(tbundle.creationTimeMsec, tbundle.creationTimeCount, 
                           creationTimeStr, sizeof(creationTimeStr));
         
-        printf("%-3d %-12s %-7ld %-20s %-20s\n", 
+        /* Get simple queue status */
+        getSimpleQueueStatus(&tbundle, queueStatusStr, sizeof(queueStatusStr));
+        
+        printf("%-3d %-12s %-7ld %-20s %-20s %-15s\n", 
                tbundle.bundleId, 
                statusToString(tbundle.status),
                currentTime - tbundle.sendTime,
                tbundle.sourceEid,
-               creationTimeStr);
+               creationTimeStr,
+               queueStatusStr);
         
         /* Show additional info for transmitted bundles */
         if (tbundle.status == BUNDLE_TRANSMITTED && tbundle.transmitTime > 0) {
@@ -576,13 +643,13 @@ void listActiveBundles(BundleTracker *tracker)
 void printStatus(BundleTracker *tracker)
 {
     int active = checkBundleStatus(tracker);
-    printf("\n=== Bundle Tracker Status (Enhanced) ===\n");
+    printf("\n=== Bundle Tracker Status (With Queue Status) ===\n");
     printf("Destination: %s\n", tracker->destEid);
     printf("Total sent: %d\n", tracker->totalSent);
     printf("Transmitted (detained): %d\n", tracker->totalTransmitted);
     printf("Manually released: %d\n", tracker->totalCompleted);
     printf("Still active: %d\n", active);
-    printf("=========================================\n\n");
+    printf("==================================================\n\n");
 }
 
 void* inputHandler(void* arg)
@@ -631,6 +698,13 @@ void* inputHandler(void* arg)
             printf("Enhanced Bundle Information:\n");
             printf("  Source_EID      - Original source endpoint of bundle\n");
             printf("  Creation_Time   - When bundle was created (YYYY-MM-DD HH:MM:SS.mmm.count)\n");
+            printf("  Queue_Status    - Current ION queue location:\n");
+            printf("    PLAN          - In egress plan queue\n");
+            printf("    DUCT          - In outduct transmission queue\n");
+            printf("    FWD           - In forwarding queue\n");
+            printf("    DLV           - In delivery queue\n");
+            printf("    DETAINED      - Held in detention post-transmission\n");
+            printf("    CLEAR         - Not in any queues (transmission complete)\n");
             printf("  Age(s)          - Seconds since we sent the bundle\n\n");
             printf("Bundle Status Meanings:\n");
             printf("  PENDING       - Bundle queued for transmission\n");
@@ -666,7 +740,7 @@ int main(int argc, char *argv[])
     payloadSize = atoi(argv[3]);
     numBundles = atoi(argv[4]);
     
-    printf("Enhanced Bundle Tracker with Source Info Starting...\n");
+    printf("Bundle Tracker with Queue Status Starting...\n");
     printf("Source: %s -> Destination: %s\n", sourceEid, destEid);
     printf("Payload size: %d bytes, Bundles: %d\n", payloadSize, numBundles);
     fflush(stdout);
