@@ -19,7 +19,7 @@
 *subject nbr=4 name=textreturn desc='return receipt for text'
 *subject nbr=5 name=video desc='video stream'
 *unit nbr=1 name=orbiters
-*msgspace nbr=3 neighbor=1
+*msgspace nbr=3 neighbor=1 gweid='bp@ipn:3.9'
 -venture
 -ams_mib_add
 -ams_mib_load

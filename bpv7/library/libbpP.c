@@ -8870,6 +8870,10 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		return abortBundleAcq(work);
 	}
 
+#ifdef TENANCY
+#include "tenancy_check.c"
+#endif
+
 	/*	Unintelligible extension headers don't make a bundle
 	 *	malformed (though we count it that way), but they may
 	 *	make it necessary to discard the bundle.		*/
