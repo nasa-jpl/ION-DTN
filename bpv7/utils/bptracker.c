@@ -102,16 +102,14 @@ void getSimpleQueueStatus(TrackedBundle *tbundle, char *buffer, size_t bufSize)
         strncat(buffer, "DETAINED ", bufSize - strlen(buffer) - 1);
     }
     
-    /* If no queues, show CLEAR */
+    /* If no queues, show CLEAR or RELEASED based on bundle status */
     if (strlen(buffer) == 0) {
-        strncpy(buffer, "CLEAR", bufSize - 1);
-        buffer[bufSize - 1] = '\0';
-    } else {
-        /* Remove trailing space */
-        size_t len = strlen(buffer);
-        if (len > 0 && buffer[len - 1] == ' ') {
-            buffer[len - 1] = '\0';
+        if (tbundle->status == BUNDLE_COMPLETED) {
+            strncpy(buffer, "RELEASED", bufSize - 1);
+        } else {
+            strncpy(buffer, "CLEAR", bufSize - 1);
         }
+        buffer[bufSize - 1] = '\0';
     }
 }
 
@@ -246,6 +244,129 @@ int resumeBundle(BundleTracker *tracker, int bundleId)
     }
     
     return 1;
+}
+
+/*	Release a specific bundle by ID	*/
+int releaseBundle(BundleTracker *tracker, int bundleId)
+{
+    Sdr sdr = getIonsdr();
+    Object elt, nextElt;
+    Object tbundleObj;
+    TrackedBundle tbundle;
+    int found = 0;
+    
+    printf("DEBUG: Attempting to release bundle %d\n", bundleId);
+    fflush(stdout);
+    
+    if (sdr_begin_xn(sdr) < 0) {
+        printf("ERROR: Can't begin release transaction\n");
+        return -1;
+    }
+    
+    for (elt = sdr_list_first(sdr, tracker->trackedBundles); elt; elt = nextElt) {
+        nextElt = sdr_list_next(sdr, elt);
+        tbundleObj = sdr_list_data(sdr, elt);
+        
+        if (tbundleObj == 0) {
+            sdr_list_delete(sdr, elt, NULL, NULL);
+            continue;
+        }
+        
+        sdr_read(sdr, (char *) &tbundle, tbundleObj, sizeof(TrackedBundle));
+        
+        if (tbundle.bundleId == bundleId) {
+            found = 1;
+            printf("DEBUG: Found bundle %d for release\n", bundleId);
+            fflush(stdout);
+            
+            if (tbundle.status == BUNDLE_COMPLETED) {
+                printf("Bundle %d is already completed/released\n", bundleId);
+            } else if (tbundle.bundleObj != 0) {
+                printf("Releasing bundle %d from detention\n", bundleId);
+                fflush(stdout);
+                
+                bp_release(tbundle.bundleObj);
+                
+                tbundle.status = BUNDLE_COMPLETED;
+                tracker->totalCompleted++;
+                /* Clear queue status since bundle is no longer in ION */
+                tbundle.inPlanQueue = 0;
+                tbundle.inDuctQueue = 0;
+                tbundle.inFwdQueue = 0;
+                tbundle.inDlvQueue = 0;
+                tbundle.isDetained = 0;
+                sdr_write(sdr, tbundleObj, (char *) &tbundle, sizeof(TrackedBundle));
+                
+                printf("DEBUG: Bundle %d released successfully\n", bundleId);
+                fflush(stdout);
+            }
+            break;
+        }
+    }
+    
+    if (sdr_end_xn(sdr) < 0) {
+        printf("ERROR: Can't complete release transaction\n");
+        return -1;
+    }
+    
+    if (!found) {
+        printf("Bundle %d not found\n", bundleId);
+        return 0;
+    }
+    
+    return 1;
+}
+
+/*	Release all bundles	*/
+void releaseAllBundles(BundleTracker *tracker)
+{
+    Sdr sdr = getIonsdr();
+    Object elt, nextElt;
+    Object tbundleObj;
+    TrackedBundle tbundle;
+    int released = 0;
+    
+    printf("Releasing all detained bundles...\n");
+    fflush(stdout);
+    
+    if (sdr_begin_xn(sdr) < 0) {
+        printf("ERROR: Can't begin release-all transaction\n");
+        return;
+    }
+    
+    for (elt = sdr_list_first(sdr, tracker->trackedBundles); elt; elt = nextElt) {
+        nextElt = sdr_list_next(sdr, elt);
+        tbundleObj = sdr_list_data(sdr, elt);
+        
+        if (tbundleObj != 0) {
+            sdr_read(sdr, (char *) &tbundle, tbundleObj, sizeof(TrackedBundle));
+            
+            if (tbundle.bundleObj != 0 && tbundle.status != BUNDLE_COMPLETED) {
+                printf("Releasing bundle %d (%s)\n", tbundle.bundleId, 
+                       statusToString(tbundle.status));
+                fflush(stdout);
+                
+                bp_release(tbundle.bundleObj);
+                tbundle.status = BUNDLE_COMPLETED;
+                tracker->totalCompleted++;
+                /* Clear queue status since bundle is no longer in ION */
+                tbundle.inPlanQueue = 0;
+                tbundle.inDuctQueue = 0;
+                tbundle.inFwdQueue = 0;
+                tbundle.inDlvQueue = 0;
+                tbundle.isDetained = 0;
+                sdr_write(sdr, tbundleObj, (char *) &tbundle, sizeof(TrackedBundle));
+                released++;
+            }
+        }
+    }
+    
+    if (sdr_end_xn(sdr) < 0) {
+        printf("ERROR: Can't complete release-all transaction\n");
+    }
+    
+    printf("Released %d bundles.\n", released);
+    fflush(stdout);
 }
 
 /*	Create a payload of specified size	*/
@@ -687,6 +808,11 @@ void* inputHandler(void* arg)
         } else if (sscanf(input, "resume %d", &bundleId) == 1 ||
                    sscanf(input, "res %d", &bundleId) == 1) {
             resumeBundle(tracker, bundleId);
+        } else if (sscanf(input, "release %d", &bundleId) == 1 ||
+           sscanf(input, "r %d", &bundleId) == 1) {
+            releaseBundle(tracker, bundleId);
+        } else if (strcmp(input, "release-all") == 0 || strcmp(input, "ra") == 0) {
+            releaseAllBundles(tracker);
         } else if (strcmp(input, "h") == 0 || strcmp(input, "help") == 0) {
             printf("\nAvailable commands:\n");
             printf("  q, quit                  - Quit program\n");
@@ -694,6 +820,8 @@ void* inputHandler(void* arg)
             printf("  l, list                  - List all bundles with detailed info\n");
             printf("  suspend <id>, sp <id>    - Suspend specific bundle by ID\n");
             printf("  resume <id>, res <id>    - Resume specific bundle by ID\n");
+            printf("  release <id>, r <id>     - Release specific bundle from detention\n");
+            printf("  release-all, ra          - Release all bundles from detention\n");
             printf("  h, help                  - Show this help\n\n");
             printf("Enhanced Bundle Information:\n");
             printf("  Source_EID      - Original source endpoint of bundle\n");
