@@ -3,7 +3,7 @@
 #include <signal.h>
 #include <pthread.h>
 
-/*	Application data structure for tracking bundles	*/
+/*	Intermediate tracking with suspend/resume added */
 typedef struct {
     Object      bundleObj;          /* ION bundle object reference */
     Object      trackingElt;        /* SDR list element for tracking */
@@ -13,24 +13,44 @@ typedef struct {
     enum {
         BUNDLE_PENDING,             /* Awaiting transmission */
         BUNDLE_SUSPENDED,           /* Transmission suspended */
-        BUNDLE_COMPLETED,           /* Successfully transmitted */
-        BUNDLE_RELEASED,            /* Manually released */
-        BUNDLE_CANCELED             /* Explicitly canceled */
+        BUNDLE_TRANSMITTED,         /* Successfully transmitted, now detained */
+        BUNDLE_COMPLETED            /* Manually released */
     } status;
+    
+    /* Add just a few more fields gradually */
+    int         inQueues;           /* Boolean: still in transmission queues */
+    time_t      transmitTime;       /* When transmission completed */
 } TrackedBundle;
 
 typedef struct {
     BpSAP       sap;               /* Bundle Protocol SAP */
     Object      trackedBundles;    /* SDR list of TrackedBundle objects */
     int         totalSent;         /* Total bundles sent */
-    int         totalCompleted;    /* Total bundles completed */
-    int         totalReleased;     /* Total bundles manually released */
+    int         totalTransmitted;  /* Total bundles transmitted (not released) */
+    int         totalCompleted;    /* Total bundles manually released */
     char        destEid[64];       /* Target destination EID */
 } BundleTracker;
 
-/* Global tracker for signal handling */
-static BundleTracker *g_tracker = NULL;
 static volatile int g_quit = 0;
+
+void signalHandler(int sig)
+{
+    printf("\nReceived signal %d. Shutting down...\n", sig);
+    fflush(stdout);
+    g_quit = 1;
+}
+
+/*	Convert bundle status to string	*/
+const char *statusToString(int status)
+{
+    switch (status) {
+        case BUNDLE_PENDING:     return "PENDING";
+        case BUNDLE_SUSPENDED:   return "SUSPENDED";
+        case BUNDLE_TRANSMITTED: return "TRANSMITTED";
+        case BUNDLE_COMPLETED:   return "COMPLETED";
+        default:                 return "UNKNOWN";
+    }
+}
 
 /*	Suspend a specific bundle by ID	*/
 int suspendBundle(BundleTracker *tracker, int bundleId)
@@ -41,7 +61,13 @@ int suspendBundle(BundleTracker *tracker, int bundleId)
     TrackedBundle tbundle;
     int found = 0;
     
-    CHKERR(sdr_begin_xn(sdr));
+    printf("DEBUG: Attempting to suspend bundle %d\n", bundleId);
+    fflush(stdout);
+    
+    if (sdr_begin_xn(sdr) < 0) {
+        printf("ERROR: Can't begin suspend transaction\n");
+        return -1;
+    }
     
     for (elt = sdr_list_first(sdr, tracker->trackedBundles); elt; 
          elt = sdr_list_next(sdr, elt)) {
@@ -53,15 +79,22 @@ int suspendBundle(BundleTracker *tracker, int bundleId)
         
         if (tbundle.bundleId == bundleId) {
             found = 1;
+            printf("DEBUG: Found bundle %d for suspension\n", bundleId);
+            fflush(stdout);
             
-            if (tbundle.status == BUNDLE_COMPLETED || tbundle.status == BUNDLE_RELEASED) {
-                printf("Bundle %d is already processed\n", bundleId);
+            if (tbundle.status == BUNDLE_COMPLETED) {
+                printf("Bundle %d is already completed\n", bundleId);
             } else if (tbundle.status == BUNDLE_SUSPENDED) {
                 printf("Bundle %d is already suspended\n", bundleId);
+            } else if (tbundle.status == BUNDLE_TRANSMITTED) {
+                printf("Bundle %d is already transmitted (cannot suspend)\n", bundleId);
             } else if (tbundle.bundleObj != 0) {
+                printf("DEBUG: Calling bp_suspend for bundle %d\n", bundleId);
+                fflush(stdout);
+                
                 /* Use ION's built-in suspend function */
                 if (bp_suspend(tbundle.bundleObj) == 0) {
-                    printf("Bundle %d suspended\n", bundleId);
+                    printf("Bundle %d suspended successfully\n", bundleId);
                     tbundle.status = BUNDLE_SUSPENDED;
                     sdr_write(sdr, tbundleObj, (char *) &tbundle, sizeof(TrackedBundle));
                 } else {
@@ -73,7 +106,7 @@ int suspendBundle(BundleTracker *tracker, int bundleId)
     }
     
     if (sdr_end_xn(sdr) < 0) {
-        putErrmsg("Can't suspend bundle", NULL);
+        printf("ERROR: Can't complete suspend transaction\n");
         return -1;
     }
     
@@ -94,7 +127,13 @@ int resumeBundle(BundleTracker *tracker, int bundleId)
     TrackedBundle tbundle;
     int found = 0;
     
-    CHKERR(sdr_begin_xn(sdr));
+    printf("DEBUG: Attempting to resume bundle %d\n", bundleId);
+    fflush(stdout);
+    
+    if (sdr_begin_xn(sdr) < 0) {
+        printf("ERROR: Can't begin resume transaction\n");
+        return -1;
+    }
     
     for (elt = sdr_list_first(sdr, tracker->trackedBundles); elt; 
          elt = sdr_list_next(sdr, elt)) {
@@ -106,15 +145,23 @@ int resumeBundle(BundleTracker *tracker, int bundleId)
         
         if (tbundle.bundleId == bundleId) {
             found = 1;
+            printf("DEBUG: Found bundle %d for resumption\n", bundleId);
+            fflush(stdout);
             
-            if (tbundle.status == BUNDLE_COMPLETED || tbundle.status == BUNDLE_RELEASED) {
-                printf("Bundle %d is already processed\n", bundleId);
+            if (tbundle.status == BUNDLE_COMPLETED) {
+                printf("Bundle %d is already completed\n", bundleId);
+            } else if (tbundle.status == BUNDLE_TRANSMITTED) {
+                printf("Bundle %d is already transmitted (cannot resume)\n", bundleId);
             } else if (tbundle.status != BUNDLE_SUSPENDED) {
-                printf("Bundle %d is not suspended\n", bundleId);
+                printf("Bundle %d is not suspended (status: %s)\n", 
+                       bundleId, statusToString(tbundle.status));
             } else if (tbundle.bundleObj != 0) {
+                printf("DEBUG: Calling bp_resume for bundle %d\n", bundleId);
+                fflush(stdout);
+                
                 /* Use ION's built-in resume function */
                 if (bp_resume(tbundle.bundleObj) == 0) {
-                    printf("Bundle %d resumed\n", bundleId);
+                    printf("Bundle %d resumed successfully\n", bundleId);
                     tbundle.status = BUNDLE_PENDING;
                     sdr_write(sdr, tbundleObj, (char *) &tbundle, sizeof(TrackedBundle));
                 } else {
@@ -126,7 +173,7 @@ int resumeBundle(BundleTracker *tracker, int bundleId)
     }
     
     if (sdr_end_xn(sdr) < 0) {
-        putErrmsg("Can't resume bundle", NULL);
+        printf("ERROR: Can't complete resume transaction\n");
         return -1;
     }
     
@@ -138,75 +185,6 @@ int resumeBundle(BundleTracker *tracker, int bundleId)
     return 1;
 }
 
-/*	Signal handler for graceful shutdown	*/
-void signalHandler(int sig)
-{
-    printf("\nReceived signal %d. Initiating graceful shutdown...\n", sig);
-    g_quit = 1;
-}
-
-/*	Print usage information	*/
-void printUsage(const char *progName)
-{
-    printf("Usage: %s <source_eid> <dest_eid> <payload_size> <num_bundles>\n\n", progName);
-    printf("Parameters:\n");
-    printf("  source_eid     - Source endpoint ID (e.g., ipn:1.1)\n");
-    printf("  dest_eid       - Destination endpoint ID (e.g., ipn:2.1)\n");
-    printf("  payload_size   - Size of bundle payload in bytes (1-65536)\n");
-    printf("  num_bundles    - Number of bundles to send (1-10)\n\n");
-    printf("Interactive Commands (while running):\n");
-    printf("  'q' or 'quit'     - Release all bundles and quit\n");
-    printf("  's' or 'status'   - Show current status\n");
-    printf("  'r <id>' or 'release <id>' - Release specific bundle by ID\n");
-    printf("  'ra' or 'release-all'      - Release all bundles\n");
-    printf("  'l' or 'list'     - List all active bundles\n");
-    printf("  'h' or 'help'     - Show this help\n\n");
-    printf("Examples:\n");
-    printf("  %s ipn:1.1 ipn:2.1 1024 5\n", progName);
-    printf("  (Send 5 bundles of 1024 bytes each from ipn:1.1 to ipn:2.1)\n\n");
-    printf("Interactive usage:\n");
-    printf("  > list              # Show all bundles with LOCAL/REMOTE status\n");
-    printf("  > suspend 2         # Suspend bundle 2 (if LOCAL)\n");
-    printf("  > resume 2          # Resume bundle 2\n");
-    printf("  > release 3         # Release bundle 3 from detention\n");
-    printf("  > quit              # Release all and exit\n");
-}
-
-/*	Initialize bundle tracking system	*/
-int initializeBundleTracker(BundleTracker *tracker, const char *sourceEid, 
-                           const char *destEid)
-{
-    Sdr sdr = getIonsdr();
-    
-    /* Open SAP with detention enabled */
-    if (bp_open_source((char*)sourceEid, &(tracker->sap), 1) < 0) {
-        putErrmsg("Can't open source endpoint with detention", sourceEid);
-        return -1;
-    }
-    
-    /* Create SDR list to track bundles */
-    CHKERR(sdr_begin_xn(sdr));
-    tracker->trackedBundles = sdr_list_create(sdr);
-    if (tracker->trackedBundles == 0) {
-        sdr_cancel_xn(sdr);
-        putErrmsg("Can't create tracked bundles list", NULL);
-        return -1;
-    }
-    
-    tracker->totalSent = 0;
-    tracker->totalCompleted = 0;
-    tracker->totalReleased = 0;
-    strncpy(tracker->destEid, destEid, sizeof(tracker->destEid) - 1);
-    tracker->destEid[sizeof(tracker->destEid) - 1] = '\0';
-    
-    if (sdr_end_xn(sdr) < 0) {
-        putErrmsg("Can't initialize bundle tracker", NULL);
-        return -1;
-    }
-    
-    return 0;
-}
-
 /*	Create a payload of specified size	*/
 Object createPayload(int payloadSize)
 {
@@ -215,14 +193,17 @@ Object createPayload(int payloadSize)
     char *buffer;
     int i;
     
+    printf("DEBUG: Creating payload of size %d\n", payloadSize);
+    fflush(stdout);
+    
     if (payloadSize <= 0 || payloadSize > 65536) {
-        putErrmsg("Invalid payload size", itoa(payloadSize));
+        printf("ERROR: Invalid payload size %d\n", payloadSize);
         return 0;
     }
     
     buffer = malloc(payloadSize);
     if (buffer == NULL) {
-        putErrmsg("Can't allocate payload buffer", NULL);
+        printf("ERROR: Can't allocate payload buffer\n");
         return 0;
     }
     
@@ -231,12 +212,17 @@ Object createPayload(int payloadSize)
         buffer[i] = (char)(i % 256);
     }
     
-    CHKZERO(sdr_begin_xn(sdr));
+    if (sdr_begin_xn(sdr) < 0) {
+        free(buffer);
+        printf("ERROR: Can't begin payload transaction\n");
+        return 0;
+    }
+    
     payloadObj = sdr_malloc(sdr, payloadSize);
     if (payloadObj == 0) {
         sdr_cancel_xn(sdr);
         free(buffer);
-        putErrmsg("No SDR space for payload", NULL);
+        printf("ERROR: No SDR space for payload\n");
         return 0;
     }
     
@@ -245,11 +231,13 @@ Object createPayload(int payloadSize)
     
     if (sdr_end_xn(sdr) < 0 || payloadObj == 0) {
         free(buffer);
-        putErrmsg("Can't create payload ZCO", NULL);
+        printf("ERROR: Can't create payload ZCO\n");
         return 0;
     }
     
     free(buffer);
+    printf("DEBUG: Payload created successfully\n");
+    fflush(stdout);
     return payloadObj;
 }
 
@@ -262,29 +250,44 @@ int sendTrackedBundle(BundleTracker *tracker, Object adu, int lifespan, int bund
     Object tbundleObj;
     Object trackingElt;
     
+    printf("DEBUG: Sending bundle %d\n", bundleId);
+    fflush(stdout);
+    
     /* Send bundle with detention */
     if (bp_send(tracker->sap, tracker->destEid, NULL, lifespan, 0, 
                 NoCustodyRequested, 0, 0, NULL, adu, &bundleObj) != 1) {
-        putErrmsg("Failed to send bundle", tracker->destEid);
+        printf("ERROR: Failed to send bundle to %s\n", tracker->destEid);
         return -1;
     }
     
-    CHKERR(sdr_begin_xn(sdr));
+    printf("DEBUG: Bundle %d sent successfully (obj: " ADDR_FIELDSPEC ")\n", 
+           bundleId, bundleObj);
+    fflush(stdout);
+    
+    if (sdr_begin_xn(sdr) < 0) {
+        printf("ERROR: Can't begin tracking transaction\n");
+        return -1;
+    }
     
     /* Create tracking bundle object */
     tbundleObj = sdr_malloc(sdr, sizeof(TrackedBundle));
     if (tbundleObj == 0) {
         sdr_cancel_xn(sdr);
-        putErrmsg("No space for tracked bundle", NULL);
-        bp_cancel(bundleObj);  /* Clean up the bundle */
+        printf("ERROR: No space for tracked bundle\n");
+        bp_cancel(bundleObj);
         return -1;
     }
+    
+    printf("DEBUG: Creating tracking record for bundle %d\n", bundleId);
+    fflush(stdout);
     
     /* Initialize tracking data */
     tbundle.bundleObj = bundleObj;
     tbundle.sendTime = time(NULL);
+    tbundle.transmitTime = 0;  /* Not transmitted yet */
     tbundle.status = BUNDLE_PENDING;
     tbundle.bundleId = bundleId;
+    tbundle.inQueues = 1;      /* Assume in queues initially */
     strncpy(tbundle.destEid, tracker->destEid, sizeof(tbundle.destEid) - 1);
     tbundle.destEid[sizeof(tbundle.destEid) - 1] = '\0';
     
@@ -292,7 +295,7 @@ int sendTrackedBundle(BundleTracker *tracker, Object adu, int lifespan, int bund
     trackingElt = sdr_list_insert_last(sdr, tracker->trackedBundles, tbundleObj);
     if (trackingElt == 0) {
         sdr_cancel_xn(sdr);
-        putErrmsg("Can't add bundle to tracking list", NULL);
+        printf("ERROR: Can't add bundle to tracking list\n");
         sdr_free(sdr, tbundleObj);
         bp_cancel(bundleObj);
         return -1;
@@ -301,10 +304,13 @@ int sendTrackedBundle(BundleTracker *tracker, Object adu, int lifespan, int bund
     tbundle.trackingElt = trackingElt;
     sdr_write(sdr, tbundleObj, (char *) &tbundle, sizeof(TrackedBundle));
     
+    printf("DEBUG: Registering bundle tracking with ION\n");
+    fflush(stdout);
+    
     /* Register tracking with ION */
     if (bp_track(bundleObj, trackingElt) < 0) {
         sdr_cancel_xn(sdr);
-        putErrmsg("Can't register bundle tracking", NULL);
+        printf("ERROR: Can't register bundle tracking\n");
         sdr_list_delete(sdr, trackingElt, NULL, NULL);
         sdr_free(sdr, tbundleObj);
         bp_cancel(bundleObj);
@@ -314,17 +320,17 @@ int sendTrackedBundle(BundleTracker *tracker, Object adu, int lifespan, int bund
     tracker->totalSent++;
     
     if (sdr_end_xn(sdr) < 0) {
-        putErrmsg("Can't complete tracked bundle send", NULL);
+        printf("ERROR: Can't complete tracked bundle send\n");
         return -1;
     }
     
-    printf("Bundle %d sent to %s (object: " ADDR_FIELDSPEC ")\n", 
-           bundleId, tracker->destEid, bundleObj);
+    printf("DEBUG: Bundle %d tracking completed\n", bundleId);
+    fflush(stdout);
     
     return 0;
 }
 
-/*	Check status of all tracked bundles	*/
+/*	Check status of all tracked bundles - with suspend/resume awareness	*/
 int checkBundleStatus(BundleTracker *tracker)
 {
     Sdr sdr = getIonsdr();
@@ -333,140 +339,140 @@ int checkBundleStatus(BundleTracker *tracker)
     TrackedBundle tbundle;
     Bundle bundle;
     int bundlesActive = 0;
+    time_t currentTime = time(NULL);
     
-    CHKZERO(sdr_begin_xn(sdr));
+    printf("DEBUG: Checking bundle status (with suspend/resume)...\n");
+    fflush(stdout);
+    
+    if (sdr_begin_xn(sdr) < 0) {
+        printf("ERROR: Can't begin status check transaction\n");
+        return -1;
+    }
     
     for (elt = sdr_list_first(sdr, tracker->trackedBundles); elt; elt = nextElt) {
         nextElt = sdr_list_next(sdr, elt);
         tbundleObj = sdr_list_data(sdr, elt);
         
-        /* Check if tracking element still exists (bundle not destroyed) */
         if (tbundleObj == 0) {
-            /* Bundle was destroyed, remove from our list */
+            printf("DEBUG: Found null tracking object, removing\n");
+            fflush(stdout);
             sdr_list_delete(sdr, elt, NULL, NULL);
             continue;
         }
         
         sdr_read(sdr, (char *) &tbundle, tbundleObj, sizeof(TrackedBundle));
         
+        printf("DEBUG: Checking bundle %d (status=%s)\n", 
+               tbundle.bundleId, statusToString(tbundle.status));
+        fflush(stdout);
+        
         /* Skip already processed bundles */
-        if (tbundle.status == BUNDLE_COMPLETED || tbundle.status == BUNDLE_RELEASED) {
+        if (tbundle.status == BUNDLE_COMPLETED) {
+            continue;
+        }
+        
+        /* Skip suspended bundles - don't check transmission status */
+        if (tbundle.status == BUNDLE_SUSPENDED) {
+            bundlesActive++;
             continue;
         }
         
         /* Try to read bundle object to check if it still exists */
         if (tbundle.bundleObj == 0) {
-            /* Bundle was destroyed */
-            printf("Bundle %d completed/destroyed\n", tbundle.bundleId);
+            printf("DEBUG: Bundle %d object is null - marking completed\n", tbundle.bundleId);
+            fflush(stdout);
             tbundle.status = BUNDLE_COMPLETED;
             tracker->totalCompleted++;
-            
-            /* Clean up tracking */
             sdr_free(sdr, tbundleObj);
             sdr_list_delete(sdr, elt, NULL, NULL);
             continue;
         }
         
+        printf("DEBUG: Reading bundle %d object details\n", tbundle.bundleId);
+        fflush(stdout);
+        
         /* Read bundle to check current status */
+        memset(&bundle, 0, sizeof(Bundle));
         sdr_read(sdr, (char *) &bundle, tbundle.bundleObj, sizeof(Bundle));
         
-        /* Check various bundle states */
-        if (bundle.planXmitElt == 0 && bundle.ductXmitElt == 0 && 
-            bundle.fwdQueueElt == 0 && bundle.dlvQueueElt == 0) {
-            /* Bundle appears to be transmitted successfully */
-            if (tbundle.status == BUNDLE_PENDING) {
-                printf("Bundle %d appears to be transmitted\n", tbundle.bundleId);
-                tbundle.status = BUNDLE_COMPLETED;
-                tracker->totalCompleted++;
-                
-                /* Release the bundle */
-                bp_release(tbundle.bundleObj);
-                
-                /* Clean up tracking */
-                sdr_free(sdr, tbundleObj);
-                sdr_list_delete(sdr, elt, NULL, NULL);
-                continue;
-            }
+        printf("DEBUG: Bundle %d object read successfully\n", tbundle.bundleId);
+        fflush(stdout);
+        
+        /* Check queue status - simplified version */
+        int wasInQueues = tbundle.inQueues;
+        tbundle.inQueues = (bundle.planXmitElt != 0 || bundle.ductXmitElt != 0 || 
+                           bundle.fwdQueueElt != 0 || bundle.dlvQueueElt != 0);
+        
+        printf("DEBUG: Bundle %d queue check: wasInQueues=%d, nowInQueues=%d\n", 
+               tbundle.bundleId, wasInQueues, tbundle.inQueues);
+        fflush(stdout);
+        
+        /* Detect transmission completion */
+        if (wasInQueues && !tbundle.inQueues && tbundle.status == BUNDLE_PENDING) {
+            printf("Bundle %d transmission completed (with suspend/resume)\n", tbundle.bundleId);
+            fflush(stdout);
+            
+            printf("DEBUG: About to update bundle %d status to TRANSMITTED\n", tbundle.bundleId);
+            fflush(stdout);
+            
+            tbundle.status = BUNDLE_TRANSMITTED;
+            tbundle.transmitTime = currentTime;
+            tracker->totalTransmitted++;
+            
+            printf("DEBUG: Updating bundle %d tracking record\n", tbundle.bundleId);
+            fflush(stdout);
+            
+            sdr_write(sdr, tbundleObj, (char *) &tbundle, sizeof(TrackedBundle));
+            
+            printf("DEBUG: Bundle %d status update completed\n", tbundle.bundleId);
+            fflush(stdout);
+        } else {
+            /* Just update the inQueues status */
+            printf("DEBUG: Updating bundle %d queue status only\n", tbundle.bundleId);
+            fflush(stdout);
+            
+            sdr_write(sdr, tbundleObj, (char *) &tbundle, sizeof(TrackedBundle));
         }
         
         /* Count active bundles */
-        if (tbundle.status == BUNDLE_PENDING || tbundle.status == BUNDLE_SUSPENDED) {
+        if (tbundle.status == BUNDLE_PENDING || tbundle.status == BUNDLE_SUSPENDED || 
+            tbundle.status == BUNDLE_TRANSMITTED) {
             bundlesActive++;
         }
-        
-        /* Update tracking object */
-        sdr_write(sdr, tbundleObj, (char *) &tbundle, sizeof(TrackedBundle));
     }
     
-    sdr_exit_xn(sdr);
-    return bundlesActive;
-}
-
-/*	Release a specific bundle by ID	*/
-int releaseBundle(BundleTracker *tracker, int bundleId)
-{
-    Sdr sdr = getIonsdr();
-    Object elt, nextElt;
-    Object tbundleObj;
-    TrackedBundle tbundle;
-    int found = 0;
-    
-    CHKERR(sdr_begin_xn(sdr));
-    
-    for (elt = sdr_list_first(sdr, tracker->trackedBundles); elt; elt = nextElt) {
-        nextElt = sdr_list_next(sdr, elt);
-        tbundleObj = sdr_list_data(sdr, elt);
-        
-        if (tbundleObj == 0) {
-            sdr_list_delete(sdr, elt, NULL, NULL);
-            continue;
-        }
-        
-        sdr_read(sdr, (char *) &tbundle, tbundleObj, sizeof(TrackedBundle));
-        
-        if (tbundle.bundleId == bundleId) {
-            found = 1;
-            
-            if (tbundle.status == BUNDLE_COMPLETED || tbundle.status == BUNDLE_RELEASED) {
-                printf("Bundle %d is already processed\n", bundleId);
-            } else if (tbundle.bundleObj != 0) {
-                printf("Releasing bundle %d\n", bundleId);
-                bp_release(tbundle.bundleObj);
-                tbundle.status = BUNDLE_RELEASED;
-                tracker->totalReleased++;
-                sdr_write(sdr, tbundleObj, (char *) &tbundle, sizeof(TrackedBundle));
-            }
-            break;
-        }
-    }
+    printf("DEBUG: About to end status check transaction\n");
+    fflush(stdout);
     
     if (sdr_end_xn(sdr) < 0) {
-        putErrmsg("Can't release bundle", NULL);
+        printf("ERROR: Can't end status check transaction\n");
         return -1;
     }
     
-    if (!found) {
-        printf("Bundle %d not found\n", bundleId);
-        return 0;
-    }
+    printf("DEBUG: Status check completed successfully, active bundles: %d\n", bundlesActive);
+    fflush(stdout);
     
-    return 1;
+    return bundlesActive;
 }
 
-/*	List all active bundles	*/
+/*	List all tracked bundles	*/
 void listActiveBundles(BundleTracker *tracker)
 {
     Sdr sdr = getIonsdr();
     Object elt;
     Object tbundleObj;
     TrackedBundle tbundle;
-    Bundle bundle;
     time_t currentTime = time(NULL);
-    int activeCount = 0;
+    int totalCount = 0;
     
-    printf("\n=== Active Bundles ===\n");
+    printf("\n=== Tracked Bundles (With Suspend/Resume) ===\n");
+    printf("%-3s %-12s %-7s %-15s\n", "ID", "Status", "Age(s)", "Object_Addr");
+    printf("%-3s %-12s %-7s %-15s\n", "---", "------------", "-------", "---------------");
     
-    CHKVOID(sdr_begin_xn(sdr));
+    if (sdr_begin_xn(sdr) < 0) {
+        printf("ERROR: Can't begin list transaction\n");
+        return;
+    }
     
     for (elt = sdr_list_first(sdr, tracker->trackedBundles); elt; 
          elt = sdr_list_next(sdr, elt)) {
@@ -475,166 +481,71 @@ void listActiveBundles(BundleTracker *tracker)
         if (tbundleObj == 0) continue;
         
         sdr_read(sdr, (char *) &tbundle, tbundleObj, sizeof(TrackedBundle));
+        totalCount++;
         
-        if (tbundle.status == BUNDLE_COMPLETED || tbundle.status == BUNDLE_RELEASED) {
-            continue;
+        printf("%-3d %-12s %-7ld " ADDR_FIELDSPEC "\n", 
+               tbundle.bundleId, 
+               statusToString(tbundle.status),
+               currentTime - tbundle.sendTime,
+               tbundle.bundleObj);
+        
+        /* Show additional info for transmitted bundles */
+        if (tbundle.status == BUNDLE_TRANSMITTED && tbundle.transmitTime > 0) {
+            printf("    └─ Transmitted: %ld seconds ago\n", 
+                   currentTime - tbundle.transmitTime);
         }
-        
-        activeCount++;
-        printf("Bundle %d: ", tbundle.bundleId);
-        
-        if (tbundle.bundleObj == 0) {
-            printf("Status: DESTROYED\n");
-            continue;
-        }
-        
-        /* Read bundle details */
-        sdr_read(sdr, (char *) &bundle, tbundle.bundleObj, sizeof(Bundle));
-        
-        printf("Status: ");
-        switch (tbundle.status) {
-            case BUNDLE_PENDING:
-                printf("PENDING");
-                break;
-            case BUNDLE_SUSPENDED:
-                printf("SUSPENDED");
-                break;
-            default:
-                printf("UNKNOWN");
-        }
-        
-        printf(", Age: %ld seconds", currentTime - tbundle.sendTime);
-        printf(", Object: " ADDR_FIELDSPEC "", tbundle.bundleObj);
-        
-        /* Show queue status */
-        if (bundle.planXmitElt != 0 || bundle.ductXmitElt != 0) {
-            printf(", In queues");
-        }
-        
-        printf("\n");
     }
     
     sdr_exit_xn(sdr);
     
-    if (activeCount == 0) {
-        printf("No active bundles\n");
+    if (totalCount == 0) {
+        printf("No bundles tracked\n");
     }
-    printf("======================\n\n");
+    printf("=== Total: %d bundles ===\n\n", totalCount);
 }
 
 /*	Print current status	*/
 void printStatus(BundleTracker *tracker)
 {
     int active = checkBundleStatus(tracker);
-    printf("\n=== Bundle Tracker Status ===\n");
+    printf("\n=== Bundle Tracker Status (With Suspend/Resume) ===\n");
     printf("Destination: %s\n", tracker->destEid);
-    printf("Active bundles: %d\n", active);
-    printf("Completed bundles: %d\n", tracker->totalCompleted);
-    printf("Released bundles: %d\n", tracker->totalReleased);
     printf("Total sent: %d\n", tracker->totalSent);
-    if (tracker->totalSent > 0) {
-        printf("Success rate: %.1f%%\n", 
-               (100.0 * tracker->totalCompleted) / tracker->totalSent);
-    }
-    printf("=============================\n\n");
+    printf("Transmitted (detained): %d\n", tracker->totalTransmitted);
+    printf("Manually released: %d\n", tracker->totalCompleted);
+    printf("Still active: %d\n", active);
+    printf("====================================================\n\n");
 }
 
-/*	Release all bundles	*/
-void releaseAllBundles(BundleTracker *tracker)
-{
-    Sdr sdr = getIonsdr();
-    Object elt, nextElt;
-    Object tbundleObj;
-    TrackedBundle tbundle;
-    int released = 0;
-    
-    printf("Releasing all detained bundles...\n");
-    
-    if (sdr_begin_xn(sdr) < 0) {
-        putErrmsg("Can't begin release transaction", NULL);
-        return;
-    }
-    
-    /* Release all remaining bundles */
-    for (elt = sdr_list_first(sdr, tracker->trackedBundles); elt; elt = nextElt) {
-        nextElt = sdr_list_next(sdr, elt);
-        tbundleObj = sdr_list_data(sdr, elt);
-        
-        if (tbundleObj != 0) {
-            sdr_read(sdr, (char *) &tbundle, tbundleObj, sizeof(TrackedBundle));
-            
-            if (tbundle.bundleObj != 0 && tbundle.status != BUNDLE_COMPLETED && 
-                tbundle.status != BUNDLE_RELEASED) {
-                printf("Releasing bundle %d\n", tbundle.bundleId);
-                bp_release(tbundle.bundleObj);
-                tracker->totalReleased++;
-                released++;
-            }
-            
-            sdr_free(sdr, tbundleObj);
-        }
-        
-        sdr_list_delete(sdr, elt, NULL, NULL);
-    }
-    
-    /* Destroy the tracking list */
-    sdr_list_destroy(sdr, tracker->trackedBundles, NULL, NULL);
-    
-    if (sdr_end_xn(sdr) < 0) {
-        putErrmsg("Can't complete release", NULL);
-    }
-    
-    printf("Released %d bundles.\n", released);
-}
-
-/*	Cleanup and close tracker	*/
-void cleanupBundleTracker(BundleTracker *tracker)
-{
-    /* Release any remaining bundles */
-    releaseAllBundles(tracker);
-    
-    /* Close the SAP */
-    bp_close(tracker->sap);
-    
-    printf("Bundle tracker cleanup completed.\n");
-    printf("Final stats: %d sent, %d completed, %d released\n",
-           tracker->totalSent, tracker->totalCompleted, tracker->totalReleased);
-}
-
-/*	Thread function for user input	*/
 void* inputHandler(void* arg)
 {
     char input[100];
     int bundleId;
     BundleTracker *tracker = (BundleTracker*)arg;
     
-    printf("\nInteractive mode enabled. Type 'h' for help.\n");
+    sleep(2);  /* Let main thread settle */
     
     while (!g_quit) {
         printf("> ");
         fflush(stdout);
         
         if (fgets(input, sizeof(input), stdin) == NULL) {
-            break;
+            if (g_quit) break;
+            sleep(1);
+            continue;
         }
         
-        /* Remove newline */
         input[strcspn(input, "\n")] = 0;
         
         if (strcmp(input, "q") == 0 || strcmp(input, "quit") == 0) {
             printf("Quitting...\n");
+            fflush(stdout);
             g_quit = 1;
             break;
         } else if (strcmp(input, "s") == 0 || strcmp(input, "status") == 0) {
             printStatus(tracker);
         } else if (strcmp(input, "l") == 0 || strcmp(input, "list") == 0) {
             listActiveBundles(tracker);
-        } else if (strcmp(input, "ra") == 0 || strcmp(input, "release-all") == 0) {
-            releaseAllBundles(tracker);
-            printf("All bundles have been released.\n");
-        } else if (sscanf(input, "r %d", &bundleId) == 1 || 
-                   sscanf(input, "release %d", &bundleId) == 1) {
-            releaseBundle(tracker, bundleId);
         } else if (sscanf(input, "suspend %d", &bundleId) == 1 ||
                    sscanf(input, "sp %d", &bundleId) == 1) {
             suspendBundle(tracker, bundleId);
@@ -643,25 +554,27 @@ void* inputHandler(void* arg)
             resumeBundle(tracker, bundleId);
         } else if (strcmp(input, "h") == 0 || strcmp(input, "help") == 0) {
             printf("\nAvailable commands:\n");
-            printf("  q, quit                  - Release all bundles and quit\n");
+            printf("  q, quit                  - Quit program\n");
             printf("  s, status                - Show current status\n");
-            printf("  l, list                  - List all active bundles\n");
-            printf("  r <id>, release <id>     - Release specific bundle by ID\n");
-            printf("  ra, release-all          - Release all bundles\n");
+            printf("  l, list                  - List all bundles with status\n");
             printf("  suspend <id>, sp <id>    - Suspend specific bundle by ID\n");
             printf("  resume <id>, res <id>    - Resume specific bundle by ID\n");
             printf("  h, help                  - Show this help\n\n");
-            printf("Note: Suspend/resume only works for bundles still in local storage.\n");
-            printf("Use 'list' to see which bundles can be suspended or resumed.\n\n");
+            printf("Bundle Status Meanings:\n");
+            printf("  PENDING       - Bundle queued for transmission\n");
+            printf("  SUSPENDED     - Bundle transmission suspended\n");
+            printf("  TRANSMITTED   - Bundle transmitted by CLA, now detained\n");
+            printf("  COMPLETED     - Bundle destroyed/completed\n\n");
+            fflush(stdout);
         } else if (strlen(input) > 0) {
             printf("Unknown command: %s (type 'h' for help)\n", input);
+            fflush(stdout);
         }
     }
     
     return NULL;
 }
 
-/*	Main application	*/
 int main(int argc, char *argv[])
 {
     BundleTracker tracker;
@@ -671,9 +584,8 @@ int main(int argc, char *argv[])
     int i;
     pthread_t inputThread;
     
-    /* Parse command line arguments */
     if (argc != 5) {
-        printUsage(argv[0]);
+        printf("Usage: %s <source_eid> <dest_eid> <payload_size> <num_bundles>\n", argv[0]);
         return 1;
     }
     
@@ -682,24 +594,17 @@ int main(int argc, char *argv[])
     payloadSize = atoi(argv[3]);
     numBundles = atoi(argv[4]);
     
-    /* Validate arguments */
-    if (payloadSize < 1 || payloadSize > 65536) {
-        fprintf(stderr, "Error: Payload size must be between 1 and 65536 bytes\n");
-        return 1;
-    }
-    
-    if (numBundles < 1 || numBundles > 10) {
-        fprintf(stderr, "Error: Number of bundles must be between 1 and 10\n");
-        return 1;
-    }
-    
-    printf("ION Bundle Tracker Starting...\n");
+    printf("Bundle Tracker with Suspend/Resume Starting...\n");
     printf("Source: %s -> Destination: %s\n", sourceEid, destEid);
-    printf("Payload size: %d bytes, Bundles: %d\n\n", payloadSize, numBundles);
+    printf("Payload size: %d bytes, Bundles: %d\n", payloadSize, numBundles);
+    fflush(stdout);
     
-    /* Attach to BP */
+    /* Initialize Bundle Protocol */
+    printf("DEBUG: Attaching to Bundle Protocol\n");
+    fflush(stdout);
+    
     if (bpAttach() < 0) {
-        putErrmsg("Can't attach to ION", NULL);
+        printf("ERROR: Can't attach to Bundle Protocol\n");
         return 1;
     }
     
@@ -707,87 +612,126 @@ int main(int argc, char *argv[])
     signal(SIGINT, signalHandler);
     signal(SIGTERM, signalHandler);
     
-    /* Initialize bundle tracker */
-    if (initializeBundleTracker(&tracker, sourceEid, destEid) < 0) {
-        putErrmsg("Can't initialize bundle tracker", NULL);
+    /* Open SAP with detention */
+    printf("DEBUG: Opening SAP with detention enabled\n");
+    fflush(stdout);
+    
+    if (bp_open_source(sourceEid, &(tracker.sap), 1) < 0) {
+        printf("ERROR: Can't open source endpoint with detention\n");
         bpDetach();
         return 1;
     }
     
-    g_tracker = &tracker;
+    /* Initialize tracker */
+    Sdr sdr = getIonsdr();
+    if (sdr_begin_xn(sdr) < 0) {
+        printf("ERROR: Can't begin tracker init transaction\n");
+        bp_close(tracker.sap);
+        bpDetach();
+        return 1;
+    }
+    
+    tracker.trackedBundles = sdr_list_create(sdr);
+    if (tracker.trackedBundles == 0) {
+        sdr_cancel_xn(sdr);
+        printf("ERROR: Can't create tracked bundles list\n");
+        bp_close(tracker.sap);
+        bpDetach();
+        return 1;
+    }
+    
+    tracker.totalSent = 0;
+    tracker.totalTransmitted = 0;
+    tracker.totalCompleted = 0;
+    strncpy(tracker.destEid, destEid, sizeof(tracker.destEid) - 1);
+    tracker.destEid[sizeof(tracker.destEid) - 1] = '\0';
+    
+    if (sdr_end_xn(sdr) < 0) {
+        printf("ERROR: Can't complete tracker initialization\n");
+        bp_close(tracker.sap);
+        bpDetach();
+        return 1;
+    }
     
     /* Create payloads */
     payloads = malloc(numBundles * sizeof(Object));
     if (payloads == NULL) {
-        putErrmsg("Can't allocate payload array", NULL);
-        cleanupBundleTracker(&tracker);
+        printf("ERROR: Can't allocate payload array\n");
+        bp_close(tracker.sap);
         bpDetach();
         return 1;
     }
     
-    printf("Creating %d payloads of %d bytes each...\n", numBundles, payloadSize);
+    printf("DEBUG: Creating %d payloads\n", numBundles);
+    fflush(stdout);
+    
     for (i = 0; i < numBundles; i++) {
         payloads[i] = createPayload(payloadSize);
         if (payloads[i] == 0) {
-            fprintf(stderr, "Failed to create payload %d\n", i + 1);
-            /* Clean up already created payloads */
-            for (int j = 0; j < i; j++) {
-                if (payloads[j] != 0) {
-                    Sdr sdr = getIonsdr();
-                    CHKERR(sdr_begin_xn(sdr));
-                    zco_destroy(sdr, payloads[j]);
-                    oK(sdr_end_xn(sdr));
-                }
-            }
+            printf("ERROR: Failed to create payload %d\n", i + 1);
             free(payloads);
-            cleanupBundleTracker(&tracker);
+            bp_close(tracker.sap);
             bpDetach();
             return 1;
         }
     }
     
     /* Send bundles */
-    printf("\nSending %d bundles...\n", numBundles);
+    printf("DEBUG: Sending %d bundles with detention enabled\n", numBundles);
+    fflush(stdout);
+    
     for (i = 0; i < numBundles; i++) {
         if (sendTrackedBundle(&tracker, payloads[i], 300, i + 1) < 0) {
-            fprintf(stderr, "Failed to send bundle %d\n", i + 1);
+            printf("ERROR: Failed to send bundle %d\n", i + 1);
+            g_quit = 1;
+            break;
         }
         usleep(100000);  /* 100ms delay between sends */
     }
     
     free(payloads);
     
+    if (g_quit) {
+        printf("ERROR: Exiting due to send failure\n");
+        bp_close(tracker.sap);
+        bpDetach();
+        return 1;
+    }
+    
     /* Start input handler thread */
+    printf("DEBUG: Starting input thread\n");
+    fflush(stdout);
+    
     if (pthread_create(&inputThread, NULL, inputHandler, &tracker) != 0) {
-        putErrmsg("Can't create input thread", NULL);
+        printf("ERROR: Can't create input thread\n");
         g_quit = 1;
     }
     
     /* Monitor bundle status */
-    printf("\nMonitoring bundle status (Ctrl+C or type 'quit' to exit)...\n");
-    printf("Use interactive commands to manage bundles.\n");
+    printf("DEBUG: Entering monitoring loop\n");
+    fflush(stdout);
     
     while (!g_quit) {
-        int active = checkBundleStatus(&tracker);
-        
-        if (active == 0 && tracker.totalCompleted + tracker.totalReleased == tracker.totalSent) {
-            printf("\nAll bundles processed. Type 'quit' to exit or continue monitoring.\n");
+        int result = checkBundleStatus(&tracker);
+        if (result < 0) {
+            printf("ERROR: Status check failed, continuing...\n");
+            fflush(stdout);
         }
-        
         sleep(5);  /* Check every 5 seconds */
     }
     
-    /* Wait for input thread to finish */
-    if (!g_quit) {
-        g_quit = 1;
-    }
+    /* Cleanup */
+    printf("DEBUG: Cleaning up\n");
+    fflush(stdout);
+    
+    if (!g_quit) g_quit = 1;
     pthread_cancel(inputThread);
     pthread_join(inputThread, NULL);
     
-    /* Cleanup */
-    printf("\nShutting down...\n");
-    cleanupBundleTracker(&tracker);
+    bp_close(tracker.sap);
     bpDetach();
     
+    printf("DEBUG: Program completed\n");
+    fflush(stdout);
     return 0;
 }
