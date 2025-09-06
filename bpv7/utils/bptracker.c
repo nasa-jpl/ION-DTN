@@ -3,11 +3,12 @@
 #include <signal.h>
 #include <pthread.h>
 
-/*	Intermediate tracking with suspend/resume added */
+/*	Enhanced tracking with source info */
 typedef struct {
     Object      bundleObj;          /* ION bundle object reference */
     Object      trackingElt;        /* SDR list element for tracking */
     char        destEid[64];        /* Destination endpoint ID */
+    char        sourceEid[64];      /* Source endpoint ID from bundle */
     time_t      sendTime;           /* When bundle was sent */
     int         bundleId;           /* Sequential bundle identifier */
     enum {
@@ -17,7 +18,9 @@ typedef struct {
         BUNDLE_COMPLETED            /* Manually released */
     } status;
     
-    /* Add just a few more fields gradually */
+    /* Bundle creation info */
+    uvast       creationTimeMsec;   /* Bundle creation time (msec since epoch 2000) */
+    unsigned int creationTimeCount; /* Bundle creation sequence count */
     int         inQueues;           /* Boolean: still in transmission queues */
     time_t      transmitTime;       /* When transmission completed */
 } TrackedBundle;
@@ -49,6 +52,24 @@ const char *statusToString(int status)
         case BUNDLE_TRANSMITTED: return "TRANSMITTED";
         case BUNDLE_COMPLETED:   return "COMPLETED";
         default:                 return "UNKNOWN";
+    }
+}
+
+/*	Convert creation time to readable string	*/
+void formatCreationTime(uvast msec, unsigned int count, char *buffer, size_t bufSize)
+{
+    /* ION epoch is January 1, 2000, 00:00:00 UTC */
+    /* Convert ION time (milliseconds since 2000) to Unix time */
+    time_t unixTime = (time_t)(msec / 1000) + 946684800;  /* Add seconds from 1970 to 2000 */
+    
+    struct tm *tm_info = gmtime(&unixTime);
+    if (tm_info) {
+        snprintf(buffer, bufSize, "%04d-%02d-%02d %02d:%02d:%02d.%03d.%u",
+                tm_info->tm_year + 1900, tm_info->tm_mon + 1, tm_info->tm_mday,
+                tm_info->tm_hour, tm_info->tm_min, tm_info->tm_sec,
+                (int)(msec % 1000), count);
+    } else {
+        snprintf(buffer, bufSize, UVAST_FIELDSPEC ".%u", msec, count);
     }
 }
 
@@ -241,7 +262,7 @@ Object createPayload(int payloadSize)
     return payloadObj;
 }
 
-/*	Send a bundle with tracking	*/
+/*	Send a bundle with enhanced tracking	*/
 int sendTrackedBundle(BundleTracker *tracker, Object adu, int lifespan, int bundleId)
 {
     Sdr sdr = getIonsdr();
@@ -249,6 +270,8 @@ int sendTrackedBundle(BundleTracker *tracker, Object adu, int lifespan, int bund
     TrackedBundle tbundle;
     Object tbundleObj;
     Object trackingElt;
+    Bundle bundle;
+    char *sourceEidString = NULL;
     
     printf("DEBUG: Sending bundle %d\n", bundleId);
     fflush(stdout);
@@ -269,27 +292,62 @@ int sendTrackedBundle(BundleTracker *tracker, Object adu, int lifespan, int bund
         return -1;
     }
     
+    /* Read the bundle to get source EID and creation time */
+    printf("DEBUG: Reading bundle %d to extract source info\n", bundleId);
+    fflush(stdout);
+    
+    memset(&bundle, 0, sizeof(Bundle));
+    sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
+    
+    /* Extract source EID string */
+    readEid(&bundle.id.source, &sourceEidString);
+    if (sourceEidString == NULL) {
+        printf("WARNING: Can't read source EID for bundle %d\n", bundleId);
+        sourceEidString = strdup("unknown");
+    }
+    
+    printf("DEBUG: Bundle %d source EID: %s, creation time: " UVAST_FIELDSPEC ".%u\n", 
+           bundleId, sourceEidString, 
+           bundle.id.creationTime.msec, bundle.id.creationTime.count);
+    fflush(stdout);
+    
     /* Create tracking bundle object */
     tbundleObj = sdr_malloc(sdr, sizeof(TrackedBundle));
     if (tbundleObj == 0) {
         sdr_cancel_xn(sdr);
         printf("ERROR: No space for tracked bundle\n");
+        if (sourceEidString) MRELEASE(sourceEidString);
         bp_cancel(bundleObj);
         return -1;
     }
     
-    printf("DEBUG: Creating tracking record for bundle %d\n", bundleId);
+    printf("DEBUG: Creating enhanced tracking record for bundle %d\n", bundleId);
     fflush(stdout);
     
-    /* Initialize tracking data */
+    /* Initialize tracking data with source info */
     tbundle.bundleObj = bundleObj;
     tbundle.sendTime = time(NULL);
     tbundle.transmitTime = 0;  /* Not transmitted yet */
     tbundle.status = BUNDLE_PENDING;
     tbundle.bundleId = bundleId;
     tbundle.inQueues = 1;      /* Assume in queues initially */
+    
+    /* Store destination EID */
     strncpy(tbundle.destEid, tracker->destEid, sizeof(tbundle.destEid) - 1);
     tbundle.destEid[sizeof(tbundle.destEid) - 1] = '\0';
+    
+    /* Store source EID */
+    strncpy(tbundle.sourceEid, sourceEidString, sizeof(tbundle.sourceEid) - 1);
+    tbundle.sourceEid[sizeof(tbundle.sourceEid) - 1] = '\0';
+    
+    /* Store creation time */
+    tbundle.creationTimeMsec = bundle.id.creationTime.msec;
+    tbundle.creationTimeCount = bundle.id.creationTime.count;
+    
+    /* Clean up source EID string */
+    if (sourceEidString) {
+        MRELEASE(sourceEidString);
+    }
     
     /* Add to tracking list */
     trackingElt = sdr_list_insert_last(sdr, tracker->trackedBundles, tbundleObj);
@@ -324,7 +382,7 @@ int sendTrackedBundle(BundleTracker *tracker, Object adu, int lifespan, int bund
         return -1;
     }
     
-    printf("DEBUG: Bundle %d tracking completed\n", bundleId);
+    printf("DEBUG: Bundle %d enhanced tracking completed\n", bundleId);
     fflush(stdout);
     
     return 0;
@@ -341,7 +399,7 @@ int checkBundleStatus(BundleTracker *tracker)
     int bundlesActive = 0;
     time_t currentTime = time(NULL);
     
-    printf("DEBUG: Checking bundle status (with suspend/resume)...\n");
+    printf("DEBUG: Checking bundle status (enhanced version)...\n");
     fflush(stdout);
     
     if (sdr_begin_xn(sdr) < 0) {
@@ -409,7 +467,7 @@ int checkBundleStatus(BundleTracker *tracker)
         
         /* Detect transmission completion */
         if (wasInQueues && !tbundle.inQueues && tbundle.status == BUNDLE_PENDING) {
-            printf("Bundle %d transmission completed (with suspend/resume)\n", tbundle.bundleId);
+            printf("Bundle %d transmission completed (enhanced tracking)\n", tbundle.bundleId);
             fflush(stdout);
             
             printf("DEBUG: About to update bundle %d status to TRANSMITTED\n", tbundle.bundleId);
@@ -455,7 +513,7 @@ int checkBundleStatus(BundleTracker *tracker)
     return bundlesActive;
 }
 
-/*	List all tracked bundles	*/
+/*	List all tracked bundles with enhanced info	*/
 void listActiveBundles(BundleTracker *tracker)
 {
     Sdr sdr = getIonsdr();
@@ -464,10 +522,13 @@ void listActiveBundles(BundleTracker *tracker)
     TrackedBundle tbundle;
     time_t currentTime = time(NULL);
     int totalCount = 0;
+    char creationTimeStr[64];
     
-    printf("\n=== Tracked Bundles (With Suspend/Resume) ===\n");
-    printf("%-3s %-12s %-7s %-15s\n", "ID", "Status", "Age(s)", "Object_Addr");
-    printf("%-3s %-12s %-7s %-15s\n", "---", "------------", "-------", "---------------");
+    printf("\n=== Tracked Bundles (Enhanced with Source Info) ===\n");
+    printf("%-3s %-12s %-7s %-20s %-20s\n", 
+           "ID", "Status", "Age(s)", "Source_EID", "Creation_Time");
+    printf("%-3s %-12s %-7s %-20s %-20s\n", 
+           "---", "------------", "-------", "--------------------", "--------------------");
     
     if (sdr_begin_xn(sdr) < 0) {
         printf("ERROR: Can't begin list transaction\n");
@@ -483,16 +544,23 @@ void listActiveBundles(BundleTracker *tracker)
         sdr_read(sdr, (char *) &tbundle, tbundleObj, sizeof(TrackedBundle));
         totalCount++;
         
-        printf("%-3d %-12s %-7ld " ADDR_FIELDSPEC "\n", 
+        /* Format creation time */
+        formatCreationTime(tbundle.creationTimeMsec, tbundle.creationTimeCount, 
+                          creationTimeStr, sizeof(creationTimeStr));
+        
+        printf("%-3d %-12s %-7ld %-20s %-20s\n", 
                tbundle.bundleId, 
                statusToString(tbundle.status),
                currentTime - tbundle.sendTime,
-               tbundle.bundleObj);
+               tbundle.sourceEid,
+               creationTimeStr);
         
         /* Show additional info for transmitted bundles */
         if (tbundle.status == BUNDLE_TRANSMITTED && tbundle.transmitTime > 0) {
-            printf("    └─ Transmitted: %ld seconds ago\n", 
-                   currentTime - tbundle.transmitTime);
+            printf("    └─ Transmitted: %ld seconds ago, Object: " ADDR_FIELDSPEC "\n", 
+                   currentTime - tbundle.transmitTime, tbundle.bundleObj);
+        } else if (tbundle.bundleObj != 0) {
+            printf("    └─ Object: " ADDR_FIELDSPEC "\n", tbundle.bundleObj);
         }
     }
     
@@ -508,13 +576,13 @@ void listActiveBundles(BundleTracker *tracker)
 void printStatus(BundleTracker *tracker)
 {
     int active = checkBundleStatus(tracker);
-    printf("\n=== Bundle Tracker Status (With Suspend/Resume) ===\n");
+    printf("\n=== Bundle Tracker Status (Enhanced) ===\n");
     printf("Destination: %s\n", tracker->destEid);
     printf("Total sent: %d\n", tracker->totalSent);
     printf("Transmitted (detained): %d\n", tracker->totalTransmitted);
     printf("Manually released: %d\n", tracker->totalCompleted);
     printf("Still active: %d\n", active);
-    printf("====================================================\n\n");
+    printf("=========================================\n\n");
 }
 
 void* inputHandler(void* arg)
@@ -556,10 +624,14 @@ void* inputHandler(void* arg)
             printf("\nAvailable commands:\n");
             printf("  q, quit                  - Quit program\n");
             printf("  s, status                - Show current status\n");
-            printf("  l, list                  - List all bundles with status\n");
+            printf("  l, list                  - List all bundles with detailed info\n");
             printf("  suspend <id>, sp <id>    - Suspend specific bundle by ID\n");
             printf("  resume <id>, res <id>    - Resume specific bundle by ID\n");
             printf("  h, help                  - Show this help\n\n");
+            printf("Enhanced Bundle Information:\n");
+            printf("  Source_EID      - Original source endpoint of bundle\n");
+            printf("  Creation_Time   - When bundle was created (YYYY-MM-DD HH:MM:SS.mmm.count)\n");
+            printf("  Age(s)          - Seconds since we sent the bundle\n\n");
             printf("Bundle Status Meanings:\n");
             printf("  PENDING       - Bundle queued for transmission\n");
             printf("  SUSPENDED     - Bundle transmission suspended\n");
@@ -594,7 +666,7 @@ int main(int argc, char *argv[])
     payloadSize = atoi(argv[3]);
     numBundles = atoi(argv[4]);
     
-    printf("Bundle Tracker with Suspend/Resume Starting...\n");
+    printf("Enhanced Bundle Tracker with Source Info Starting...\n");
     printf("Source: %s -> Destination: %s\n", sourceEid, destEid);
     printf("Payload size: %d bytes, Bundles: %d\n", payloadSize, numBundles);
     fflush(stdout);
