@@ -653,21 +653,6 @@ AC_ARG_ENABLE(
 AM_CONDITIONAL([BUILD_NM_REST], [test "x$BUILD_NM_REST" = "xtrue"])
 
 #
-# allow the user running configure to declare that the platform is musl
-#
-AC_ARG_ENABLE(
-	musl,
-	[AS_HELP_STRING([--enable-musl],[declare that the platform is MUSL])],
-	[AM_CFLAGS="$AM_CFLAGS -DMUSL"
-	 MUSL=yes],
-	[]
-)
-if test "x$MUSL" = "xyes" ; then
-	echo "Building for MUSL... yes"
-fi
-AM_CONDITIONAL([MUSL], [test "x$MUSL" = "xyes"])
-
-#
 # allow the user running configure to choose the TCPCL_LOW_CYCLE option
 #
 AC_ARG_ENABLE(
@@ -793,6 +778,7 @@ AC_HEADER_DIRENT
 
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS([fcntl.h malloc.h netdb.h netinet/in.h stddef.h stdlib.h string.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h unistd.h])
+AC_CHECK_HEADERS([execinfo.h])
 
 # Check for <time.h> and <sys/time.h>, and whether they can be included together 
 # This supports older builds while removing obsolete macros

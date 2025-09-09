@@ -685,7 +685,7 @@ static int DecodeDateEpoch(QCBORItem *pDecodedItem)
       case QCBOR_TYPE_DOUBLE:
          {
             const double d = pDecodedItem->val.dfnum;
-            if(d > INT64_MAX) {
+            if(d > (double)(INT64_MAX - 0x7ff)) {
                nReturn = QCBOR_ERR_DATE_OVERFLOW;
                goto Done;
             }

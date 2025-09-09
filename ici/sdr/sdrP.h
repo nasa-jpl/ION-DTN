@@ -136,7 +136,7 @@ typedef struct
 typedef struct	/*	Non-volatile state at front of SDR.		*/
 {
 	Object		catalogue;		/*	partition root	*/
-	u_int		status;			/*	INITIALIZED?	*/
+	unsigned int	status;			/*	INITIALIZED?	*/
 	size_t		dsSize;			/*	Map + heap.	*/
 	size_t		heapSize;
 

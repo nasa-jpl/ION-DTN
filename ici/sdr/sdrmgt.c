@@ -483,10 +483,10 @@ Object	_sdrzalloc(Sdr sdrv, size_t nbytes)
 	return result;
 }
 
-static int	computeBucket(u_int userDataSize)
+static int	computeBucket(unsigned int userDataSize)
 {
-	u_int	highOrderBits;
-	int	bucket;
+	unsigned int highOrderBits;
+	int	     bucket;
 
 	highOrderBits = userDataSize >> (LARGE_ORDER1 + 1);
 	bucket = 0;
