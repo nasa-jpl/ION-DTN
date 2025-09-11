@@ -224,24 +224,29 @@ void msg_encoding_tests()
    fail_unless(test_msg_grp("2.2: Verify endpoint report received for selected endpoint", "8200582701816769706e3a312e31818353c7182d41014d83054112486769706e3a312e311a5d79808c4180"));
 
 #else // New AMPv7 Tests
-   fail_unless(test_simple_ari("ari:/IANA:Amp.Agent/Ctrl.gen_rpts([ari:/IANA:DTN.bpsec/Rptt.source_report(ipn:1.1.1)],[])", "c11541050502252381c7185541010501126769706e3a312e3100", AMP_TYPE_CTRL));
+   //fail_unless(test_simple_ari("ari:/IANA:Amp.Agent/Ctrl.gen_rpts([ari:/IANA:DTN.bpsec/Rptt.source_report(ipn:1.1.1)],[])", "c11541050502252381c7185541010501126769706e3a312e3100", AMP_TYPE_CTRL));
+   fail_unless(test_simple_ari("ari:/IANA:Amp.Agent/Ctrl.gen_rpts([ari:/IANA:DTN.bpsec/Rptt.source_report(ipn:100.25.1)],[])", 
+                               "c11541050502252381c7185541010501126c69706e3a3130302e32352e3100", 
+                               AMP_TYPE_CTRL));
 
    fail_unless(test_simple_ari("ari:/IANA:DTN.bp_agent/CTRL.reset_all_counts()", "8118294100", AMP_TYPE_CTRL));
-   
+
+
    fail_unless(test_simple_ari("ari:/IANA:Amp.agent/CTRL.gen_rpts([ari:/ADM:dtn.bp_agent/rptt.full_report],[])",
                                "c11541050502252381374b66756c6c5f7265706f72744341444d4c64746e2e62705f6167656e7400",
                              AMP_TYPE_CTRL));
 
 
-   fail_unless(test_simple_ari("ari:/IANA:Amp.Agent/Ctrl.gen_rpts([ari:/IANA:dtn.bp_agent/rptt.endpoint_report(\"ipn:1.1.1\"), ari:/IANA:dtn.bp_agent/rptt.endpoint_report(\"ipn:1.1.2\")], [])",
-                               "c11541050502252382c7182d4101050112692269706e3a312e3122c7182d4101050112692269706e3a312e322200",
+   //fail_unless(test_simple_ari("ari:/IANA:Amp.Agent/Ctrl.gen_rpts([ari:/IANA:dtn.bp_agent/rptt.endpoint_report(\"ipn:1.1.1\"), ari:/IANA:dtn.bp_agent/rptt.endpoint_report(\"ipn:1.1.2\")], [])",
+   //                            "c11541050502252382c7182d4101050112692269706e3a312e3122c7182d4101050112692269706e3a312e322200",
+   //                            AMP_TYPE_CTRL));
+   fail_unless(test_simple_ari("ari:/IANA:Amp.Agent/Ctrl.gen_rpts([ari:/IANA:dtn.bp_agent/rptt.endpoint_report(\"ipn:100.25.1\"), ari:/IANA:dtn.bp_agent/rptt.endpoint_report(\"ipn:100.25.2\")], [])",
+                               "c11541050502252382c7182d41010501126e2269706e3a3130302e32352e3122c7182d41010501126e2269706e3a3130302e32352e322200",
                                AMP_TYPE_CTRL));
 
    fail_unless(test_simple_ari("ari:/IANA:Amp.Agent/Ctrl.add_tbr(ari:/test:/TBR.t1, 0, 10, 20, [ari:/IANA:amp.agent/ctrl.gen_rpts([ari:/IANA:DTN.bp_agent/rptt.full_report],[])], TBR1)",
                                "c115410a05062420201625122b4274314474657374000a1481c1154105050225238187182d4100006454425231",
                                AMP_TYPE_CTRL));
-
-   
 
    fail_unless(test_simple_ari("ari:/IANA:Amp.Agent/Ctrl.add_sbr(ari:/test:/SBR.s1, 0, (BOOL)[ari:/test:/VAR.y, UINT.4, ari:/IANA/Amp.Agent/Op.greaterEqual], 20, 10, [ari:/IANA:amp.agent/ctrl.gen_rpts([ari:/IANA:DTN.bp_agent/rptt.full_report],[])], STR.SBR1)",
                                "c115410b0507242026161625122842733144746573740010832c417944746573744304851818412f140A81c1154105050225238187182D4100006453425231",

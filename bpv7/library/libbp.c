@@ -679,7 +679,7 @@ static void	readDtnEid(DtnSSP *ssp, char **buffer)
 static void	readIpnEid(IpnSSP *ssp, char **buffer)
 {
 	char	*eidString;
-	int	eidLength = 47;
+	int	eidLength = MAX_EID_LEN;
 	char	nbrBuf[FQN_MAX_LENGTH];
 
 	/*	Printed EID string is
@@ -718,7 +718,7 @@ static void	readIpnEid(IpnSSP *ssp, char **buffer)
 static void	readImcEid(ImcSSP *ssp, char **buffer)
 {
 	char		*eidString;
-	int		eidLength = 47;
+	int		eidLength = MAX_EID_LEN;
 	char		nbrBuf[FQN_MAX_LENGTH];
 
 	/*	Printed EID string is
@@ -830,7 +830,7 @@ int	bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
 	
 	if (sourceMetaEid)	/*	Only check non-anonymous sources. */
 	{
-		uvast localNodeNbr = getOwnNodeNbr();
+		uvast localNodeNbr = getOwnFqnn();
 
 		if (sourceMetaEid->elementNbr != 0 &&
 				sourceMetaEid->elementNbr != localNodeNbr)

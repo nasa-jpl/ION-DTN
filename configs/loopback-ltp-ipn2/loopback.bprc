@@ -1,0 +1,13 @@
+1
+
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+a endpoint ipn:100.25.1 q
+a endpoint ipn:100.25.2 q
+
+a protocol ltp 1400 100
+
+a induct ltp 100.25 ltpcli
+a outduct ltp 100.25 ltpclo
+
+s

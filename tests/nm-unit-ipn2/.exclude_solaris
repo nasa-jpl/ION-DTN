@@ -1,0 +1,1 @@
+This test fails on Solaris due to errors decoding CBOR on big endian machines. The test will be updated by APL for ION 4.2.
