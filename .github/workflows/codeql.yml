@@ -92,7 +92,7 @@ jobs:
         autoreconf -fi
         echo '  ./configure'
         ./configure
-        echo '  make -j4'
+        echo '  make'
         make
         echo '  make buildcheck'
         make buildcheck
