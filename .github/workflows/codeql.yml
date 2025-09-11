@@ -93,7 +93,7 @@ jobs:
         echo '  ./configure'
         ./configure
         echo '  make -j4'
-        make -j4
+        make
         echo '  make buildcheck'
         make buildcheck
 
