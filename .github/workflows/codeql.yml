@@ -43,18 +43,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - language: actions
-          build-mode: none
         - language: c-cpp
           build-mode: manual
-        - language: java-kotlin
-          build-mode: none # This mode only analyzes Java. Set this to 'autobuild' or 'manual' to analyze Kotlin too.
-        - language: javascript-typescript
-          build-mode: none
-        - language: python
-          build-mode: none
-        - language: ruby
-          build-mode: none
         # CodeQL supports the following values keywords for 'language': 'actions', 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'rust', 'swift'
         # Use `c-cpp` to analyze code written in C, C++ or both
         # Use 'java-kotlin' to analyze code written in Java, Kotlin or both
@@ -95,9 +85,9 @@ jobs:
     - if: matrix.build-mode == 'manual'
       shell: bash
       run: |
-        echo 'If you are using a "manual" build mode for one or more of the' \
-          'languages you are analyzing, replace this with the commands to build' \
-          'your code, for example:'
+        echo '  install dependencies'
+        sudo apt-get update
+        sudo apt-get install -y autoconf automake libtool bash python3 gcc make
         echo '  autoreconf -fi'
         autoreconf -fi
         echo '  ./configure'
@@ -106,7 +96,6 @@ jobs:
         make -j4
         echo '  make buildcheck'
         make buildcheck
-        exit 1
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
