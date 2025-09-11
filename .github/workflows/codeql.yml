@@ -18,6 +18,7 @@ on:
     branches: [ "integration" ]
   schedule:
     - cron: '41 15 * * 1'
+  workflow_dispatch:
 
 jobs:
   analyze:
