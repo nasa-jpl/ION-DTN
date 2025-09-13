@@ -86,16 +86,10 @@ jobs:
     - if: matrix.build-mode == 'manual'
       shell: bash
       run: |
-        echo '  install dependencies'
-        sudo apt-get update
-        sudo apt-get install -y autoconf automake libtool bash python3 gcc make
-        echo '  autoreconf -fi'
+        echo 'Building ION...'
         autoreconf -fi
-        echo '  ./configure'
         ./configure
-        echo '  make'
-        make
-        echo '  make buildcheck'
+        make -j4
         make buildcheck
 
     - name: Perform CodeQL Analysis
