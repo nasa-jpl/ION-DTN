@@ -1,0 +1,1 @@
+Exclude macOS from the use of /etc/gai.conf to control DNS resolution preference between IPv4 and IPv6.

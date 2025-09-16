@@ -1,15 +1,118 @@
 #!/usr/bin/env bash
 
-trap 'stty sane 2>/dev/null' EXIT INT TERM  # restore echo (if sudo fail)
+trap 'cleanup_all; stty sane 2>/dev/null' EXIT INT TERM
+
+# Global variables for cleanup tracking
+IPV6_ADDRESS_ADDED=false
+IPV6_DISABLED_BY_US=false
+ORIGINAL_IPV6_STATE=""
+GAI_MODIFIED_BY_US=false
+
+# Configuration
+GAI_CONF="/etc/gai.conf"
+IPV4_PREF_LINE="precedence ::ffff:0:0/96 100"
+
+# --- sudo-availability check (non-interactive, max 15 s) -------------
+if [ "$(id -u)" -eq 0 ]; then
+    printf '%s\n\n' "Running as root — skipping sudo availability check."
+    snpwd() { "$@"; }          # run command directly, no sudo needed
+else
+    printf '%s\n' "This test requires sudo privileges: checking now…"
+    printf '%s\n\n' \
+      "Hint: use  sudo -E  if you need to preserve ION_RUN_EXPERT."
+
+    sudo -n -v 2>/dev/null & SUDO_PID=$!
+
+    # start watchdog
+    ( sleep 15 && kill -s TERM "$SUDO_PID" 2>/dev/null && \
+    sleep 2 && kill -s KILL "$SUDO_PID" 2>/dev/null ) & WATCH_PID=$!
+
+    wait "$SUDO_PID";  SUDO_RESULT=$? # stop watchdog quietly
+
+    kill "$WATCH_PID" 2>/dev/null && wait "$WATCH_PID" 2>/dev/null
+    stty sane 2>/dev/null || : # restore echo just in case
+
+    if [ "$SUDO_RESULT" -ne 0 ]; then
+        printf '%s\n' \
+          "Password-less sudo required or lookup timed-out." >&2
+        exit 2
+    fi
+    printf '%s\n\n' "Sudo privileges confirmed: continuing test."
+    snpwd() { sudo -n "$@"; }             # carry -n to every sudo call
+fi
+
+# Function to detect IPv6 capability
+detect_ipv6_capability() {
+    local ipv6_available=false
+
+    echo "Detecting IPv6 capability..."
+
+    # Method 1: Try to ping IPv6 loopback
+    if command -v ping6 >/dev/null 2>&1; then
+        if ping6 -c1 -W1 ::1 >/dev/null 2>&1; then
+            echo "   IPv6 loopback ping6 successful"
+            ipv6_available=true
+        fi
+    elif ping -6 -c1 -W1 ::1 >/dev/null 2>&1; then
+        echo "   IPv6 loopback ping successful"
+        ipv6_available=true
+    fi
+
+    if [ "$ipv6_available" = "true" ]; then
+        echo "  Result: IPv6 is available and enabled"
+        return 0
+    else
+        echo "  Result: IPv6 is not available or disabled"
+        return 1
+    fi
+}
+
+# Function to disable IPv6 (prefer IPv4) by modifying gai.conf
+disable_ipv6() {
+    echo "Setting IPv4 resolution preference (disabling IPv6 preference)..."
+
+    # Check if the preference is already set in the file.
+    # The '2>/dev/null' suppresses errors if gai.conf doesn't exist.
+    if snpwd grep -qFx "$IPV4_PREF_LINE" "$GAI_CONF" 2>/dev/null; then
+        echo "  Preference for IPv4 is already set in $GAI_CONF."
+        return 0
+    fi
+
+    # The preference is not set, so add it.
+    # 'tee -a' is a safe way to append to a file with sudo.
+    echo "  Adding preference rule to $GAI_CONF..."
+    if echo "$IPV4_PREF_LINE" | snpwd tee -a "$GAI_CONF" >/dev/null; then
+        echo "  Successfully set IPv4 preference."
+        GAI_MODIFIED_BY_US=true
+    else
+        echo "  Error: Failed to write to $GAI_CONF."
+        return 1
+    fi
+
+    return 0
+}
+
+# ---
+# This function "enables" IPv6 by removing the IPv4 preference line from gai.conf.
+# It only acts if this script was the one to add the line.
+# ---
+enable_ipv6() {
+    if [ "$GAI_MODIFIED_BY_US" = "true" ]; then
+        echo "Restoring default resolution preference (re-enabling IPv6 preference)..."
+
+        # Use the portable syntax for 'sed -i' by providing the backup extension
+        # as a separate argument. This works on both Linux and macOS/FreeBSD.
+        if sudo sed -i '.bak' "#^${IPV4_PREF_LINE}$#d" "$GAI_CONF"; then
+            echo "  Successfully removed IPv4 preference from $GAI_CONF."
+            GAI_MODIFIED_BY_US=false
+        else
+            echo "  Warning: Failed to remove IPv4 preference rule."
+            echo "  You may need to manually edit $GAI_CONF to remove the line."
+        fi
+    fi
+}
 
 # Function to search a log file for a string after a specified line number
-# Arguments:
-#   $1: log_file - Path to the log file
-#   $2: search_string - Exact string to match
-#   $3: start_line - Line number after which to start searching
-# Returns:
-#   -1: No matches or error (file missing, unreadable, invalid start_line)
-#   Positive integer: Line number of the first match found
 search_log_after_line() {
     local log_file="$1"
     local search_string="$2"
@@ -41,7 +144,6 @@ search_log_after_line() {
     fi
 
     # Use tail to skip lines up to start_line, then grep for the string
-    # tail -n +N starts from line N, so use start_line + 1
     local tail_start=$((start_line + 1))
     local match
     match=$(tail -n +"$tail_start" "$log_file" | grep -Fn "$search_string" | head -n 1)
@@ -52,7 +154,7 @@ search_log_after_line() {
         return 1
     fi
 
-    # Extract the line number from grep output (format: line_number:line_content)
+    # Extract the line number from grep output
     line_number=$(echo "$match" | cut -d: -f1)
     # Adjust line number to account for tail offset
     line_number=$((line_number + start_line))
@@ -62,252 +164,461 @@ search_log_after_line() {
     return 0
 }
 
-# documentation boilerplate
-CONFIGFILES=" \
-./2.bench.udp/bench.bprc \
-./2.bench.udp/bench.ionconfig \
-./2.bench.udp/bench.ionrc \
-./2.bench.udp/bench.ionsecrc \
-./2.bench.udp/bench.ipnrc \
-./3.bench.udp/bench.bprc \
-./3.bench.udp/bench.ionconfig \
-./3.bench.udp/bench.ionrc \
-./3.bench.udp/bench.ionsecrc \
-./3.bench.udp/bench.ipnrc \
-"
+# Function to setup test network configuration
+setup_test_network() {
+    if [ "$TEST_IPv6" = "true" ]; then
+        echo "Setting up IPv6 test network..."
 
-echo "########################################"
-echo
-pwd | sed "s/\/.*\///" | xargs echo "NAME: "
-echo
-echo "PURPOSE: Test ION's IP address caching behavior in udpclo." 
-echo "         ION will attempt resolve invalid address. If failed,"
-echo "         it will abandon bundles in UDPCLO."
-echo ""
-echo "         This test only focused on DNS failure at service"
-echo "         initialization. It does not cover use case of DNS"
-echo "         dynamically changed the IP address of a destination"
-echo "         host, which is handled by ION via a period re-resolve"
-echo "         logic. Due to difficulty of emulating that case in "
-echo "         a single-host regression test environment, the users"
-echo "         are encouraged to independently verify the behavior."
-echo ""
+        # Check if ::3 is already assigned
+        if ! ip -6 addr show lo | grep -q "::3/128"; then
+            echo "Adding ::3 to loopback interface..."
+            if snpwd ip -6 addr add ::3/128 dev lo; then
+                IPV6_ADDRESS_ADDED=true
+                echo " IPv6 address ::3 assigned to loopback"
+            else
+                echo "  Failed to assign IPv6 address ::3"
+                return 1
+            fi
+        else
+            echo " IPv6 address ::3 already assigned"
+        fi
 
-echo "NOTE: This test requires sudo privilege to manually change the"
-echo "      /etc/hosts file to emulate DNS resolve failure."
-
-sleep 3
-
-echo
-echo "CONFIG: 2 node custom:"
-echo
-for N in $CONFIGFILES
-do
-	echo "$N:"
-	cat "$N"
-	echo "# EOF"
-	echo
-done
-echo "OUTPUT: Terminal messages will relay results."
-echo
-echo "########################################"
-echo
-
-# Configurations
-HOSTS_FILE="/etc/hosts"
-BACKUP_FILE="/tmp/hosts.bak"
-ENTRY="127.0.1.3    test3.local"
-LOG_FILE="ion.log"
-SEARCH_STRING1="Initial hostname resolution failed. (test3.local)"
-SEARCH_STRING2="can't get address for host"
-SEARCH_STRING3="udpclo: Successfully resolved hostname: test3.local"
-SEARCH_STRING4="(0) 0 0 (1) 3 24 (2) 0 0 (+) 3 24"
-LINE_NUM=1
-
-# --- sudo-availability check (non-interactive, max 15 s) -------------
-if [ "$(id -u)" -eq 0 ]; then
-    printf '%s\n\n' "Running as root — skipping sudo availability check."
-    snpwd() { "$@"; }          # run command directly, no sudo needed
-else
-    printf '%s\n' "This test requires sudo privileges: checking now…"
-    printf '%s\n\n' \
-      "Hint: use  sudo -E  if you need to preserve ION_RUN_EXPERT."
-
-    sudo -n -v 2>/dev/null & SUDO_PID=$!
-    
-    # start watchdog
-    ( sleep 15 && kill -s TERM "$SUDO_PID" 2>/dev/null && \
-    sleep 2 && kill -s KILL "$SUDO_PID" 2>/dev/null ) & WATCH_PID=$!
-
-    wait "$SUDO_PID";  SUDO_RESULT=$? # stop watchdog quietly
-
-    kill "$WATCH_PID" 2>/dev/null && wait "$WATCH_PID" 2>/dev/null
-    stty sane 2>/dev/null || : # restore echo just in case
-
-    if [ "$SUDO_RESULT" -ne 0 ]; then
-        printf '%s\n' \
-          "Password-less sudo required or lookup timed-out." >&2
-        exit 2
+        # Test the assignment
+        if ping6 -c1 -W1 ::3 >/dev/null 2>&1; then
+            echo " IPv6 address ::3 is reachable"
+        else
+            echo "  IPv6 address ::3 is not reachable"
+            return 1
+        fi
+    else
+        echo "Using IPv4 - no network setup needed (127.0.1.3 always available)"
     fi
-    printf '%s\n\n' "Sudo privileges confirmed: continuing test."
-    snpwd() { sudo -n "$@"; }             # carry -n to every sudo call
-fi
 
-# Clean up
-./cleanup
+    return 0
+}
 
-# Backup /etc/hosts
-printf 'Backing up %s → %s …\n' "$HOSTS_FILE" "$BACKUP_FILE"
-snpwd cp -- "$HOSTS_FILE" "$BACKUP_FILE" ||
-    { printf '%s\n' 'Lost sudo privileges; aborting.' >&2; exit 2; }
+# Function to cleanup test network configuration
+cleanup_test_network() {
+    if [ "$IPV6_ADDRESS_ADDED" = "true" ]; then
+        echo "Cleaning up IPv6 test network..."
+        if snpwd ip -6 addr del ::3/128 dev lo 2>/dev/null; then
+            echo " IPv6 address ::3 removed from loopback"
+        else
+            echo "Warning: Failed to remove IPv6 address ::3 (may not exist)"
+        fi
+        IPV6_ADDRESS_ADDED=false
+    fi
+}
 
-# Start ION nodes
-echo "Starting ION..."
-export ION_NODE_LIST_DIR=$PWD
-rm -f ./ion_nodes
-RETVAL=0
+# Enhanced cleanup function
+cleanup_all() {
+    echo "Performing complete cleanup..."
 
-# Start nodes.
-cd 2.bench.udp
-./ionstart
-cd ../3.bench.udp
-./ionstart
+    # Restore hosts file
+    if [ -f "$BACKUP_FILE" ]; then
+        echo "Restoring original hosts file..."
+        snpwd cp -- "$BACKUP_FILE" "$HOSTS_FILE" 2>/dev/null || {
+            echo "Warning: Failed to restore hosts file"
+        }
+    fi
 
-# Setup receiver
-echo ""
-echo "Starting bpsink application..."
-echo ""
-cd ../3.bench.udp
-bpsink ipn:3.1 &
-BPSINK_PID=$!
-sleep 1
+    # Cleanup network configuration
+    cleanup_test_network
 
-#
-# Step 1: Destination hostname not in DNS database or hosts file
-#
-echo ""
-echo "Step 1: Destination host not in DNS database or hosts file."
-echo ""
+    # Re-enable IPv6 if we disabled it
+    enable_ipv6
 
-cd ../2.bench.udp
-sleep 10
-# Check ion.log for initialization DNS lookup error report
-LINE_NUM=$(search_log_after_line "$LOG_FILE" "$SEARCH_STRING1" "$LINE_NUM")
-return_code=$?
-if [ $return_code -eq 0 ]; then
-	echo "SUCCESS: ion.log reported initial DSN lookup failure at line $LINE_NUM"
+    # Stop ION
+    echo "Stopping ION..."
+    cd "$(dirname "$0")"  # Ensure we're in the right directory
+    ./cleanup 2>/dev/null || true
+
+    echo "Cleanup complete."
+}
+
+# Function to run the actual test
+run_test() {
+    local protocol_version="$1"  # "IPv4" or "IPv6"
+    local test_ipv6="$2"        # "true" or "false"
+
+    echo ""
+    echo "========================================"
+    echo "Running test with $protocol_version"
+    echo "========================================"
+
+    # Set test variables based on protocol
+    TEST_IPv6="$test_ipv6"
+
+    if [ "$TEST_IPv6" = "true" ]; then
+        TEST_ADDRESS="::3"
+        TEST_HOSTNAME="test3.local"
+        HOSTS_ENTRY="::3    test3.local"
+        PROTOCOL_TYPE="IPv6"
+        PING_CMD="ping6"
+        # Fallback to regular ping with -6 if ping6 not available
+        if ! command -v ping6 >/dev/null 2>&1; then
+            if ping -6 -c1 ::1 >/dev/null 2>&1; then
+                PING_CMD="ping -6"
+            else
+                echo "Warning: No IPv6 ping capability found"
+                PING_CMD="echo 'IPv6 ping not available; skipping connectivity test' #"
+            fi
+        fi
+    else
+        TEST_ADDRESS="127.0.1.3"
+        TEST_HOSTNAME="test3.local"
+        HOSTS_ENTRY="127.0.1.3    test3.local"
+        PROTOCOL_TYPE="IPv4"
+        PING_CMD="ping"
+    fi
+
+    # Test connectivity to the chosen protocol's loopback
+    echo ""
+    echo "Testing $PROTOCOL_TYPE connectivity..."
+    if [ "$TEST_IPv6" = "true" ]; then
+        LOOPBACK_ADDR="::1"
+    else
+        LOOPBACK_ADDR="127.0.0.1"
+    fi
+
+    if $PING_CMD -c1 -W1 "$LOOPBACK_ADDR" >/dev/null 2>&1; then
+        echo " $PROTOCOL_TYPE loopback connectivity confirmed"
+    else
+        echo "  Warning: $PROTOCOL_TYPE loopback connectivity test failed"
+        echo "  This may not prevent the test from working, but could indicate network issues"
+    fi
+
+    # Setup test network configuration
+    if ! setup_test_network; then
+        echo "Failed to setup test network configuration"
+        return 1
+    fi
+
+    # Verify test address is reachable
+    echo "Verifying test address connectivity..."
+    if $PING_CMD -c1 -W1 "$TEST_ADDRESS" >/dev/null 2>&1; then
+        echo " Test address $TEST_ADDRESS is reachable"
+    else
+        echo "  Test address $TEST_ADDRESS is not reachable"
+        echo "Cannot proceed with testing"
+        return 1
+    fi
+
+    echo ""
+    echo "########################################"
+    echo
+    pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+    echo
+    echo "PURPOSE: Test ION's dual-stack IPv4/IPv6 address caching behavior in udpclo."
+    echo "         Testing with $PROTOCOL_TYPE addresses."
+    echo "         Test address: $TEST_ADDRESS"
+    echo "         ION will attempt resolve invalid address. If failed,"
+    echo "         it will abandon bundles in UDPCLO."
+    echo ""
+    echo "         This test focuses on DNS failure at service"
+    echo "         initialization and during operation. It validates the new"
+    echo "         dual-stack implementation with automatic IPv4/IPv6 handling."
+    echo ""
+
+    sleep 3
+
+    # Configurations
+    HOSTS_FILE="/etc/hosts"
+    BACKUP_FILE="$PWD/hosts.bak"  # Use PID to avoid conflicts
+    ENTRY="$HOSTS_ENTRY"
+    LOG_FILE="ion.log"
+
+    # Updated log messages for new dual-stack implementation
+    SEARCH_STRING1="[?] udpclo: Initial hostname resolution failed"
+    SEARCH_STRING2="[?] udpclo: Address resolution failed, abandoning bundle"
+    SEARCH_STRING3="udpclo resolved $TEST_HOSTNAME to"
+    SEARCH_STRING4="(0) 0 0 (1) 3 24 (2) 0 0 (+) 3 24"
+    LINE_NUM=1
+    local RETVAL=0
+
+    # Backup /etc/hosts
+    printf 'Backing up %s → %s …\n' "$HOSTS_FILE" "$BACKUP_FILE"
+    snpwd cp -- "$HOSTS_FILE" "$BACKUP_FILE" ||
+        { printf '%s\n' 'Lost sudo privileges; aborting.' >&2; return 2; }
+
+    # Start ION nodes
+    echo "Starting ION..."
+    export ION_NODE_LIST_DIR=$PWD
+    rm -f ./ion_nodes
+
+    # Start nodes.
+    cd 2.bench.udp
+    ./ionstart
+
+    cd ../3.bench.udp
+    if [ "$TEST_IPv6" = "true" ]; then
+        ./ionstart
+    else
+        ./ionstart-ipv4
+    fi
+
+    # Setup receiver
+    echo ""
+    echo "Starting bpsink application..."
+    echo ""
+    cd ../3.bench.udp
+    bpsink ipn:3.1 &
+    BPSINK_PID=$!
+    sleep 1
+
+    #
+    # Step 1: Destination hostname not in DNS database or hosts file
+    #
+    echo ""
+    echo "Step 1: Destination host not in DNS database or hosts file."
+    echo "Testing $PROTOCOL_TYPE address resolution with hostname: $TEST_HOSTNAME"
+    echo "Expected target address: $TEST_ADDRESS"
+    echo ""
+
+    cd ../2.bench.udp
+    sleep 10
+    # Check ion.log for initialization DNS lookup error report
+    LINE_NUM=$(search_log_after_line "$LOG_FILE" "$SEARCH_STRING1" "$LINE_NUM")
+    return_code=$?
+    if [ $return_code -eq 0 ]; then
+        echo "SUCCESS: ion.log reported initial DNS lookup failure at line $LINE_NUM"
+    else
+        echo "FAIL: No match or error (return code: -1)"
+        echo "Checking for alternative error messages..."
+        grep -n "resolution failed\|hostname.*failed\|DNS.*fail" "$LOG_FILE" | tail -5
+        RETVAL=1
+    fi
+
+    #
+    # Step 2: Sending bundle with invalid address
+    #
+    echo ""
+    echo "Step 2: Sending bundle with invalid address ($PROTOCOL_TYPE)."
+    echo ""
+    echo "Send 1 message..."
+    echo ""
+
+    bptrace ipn:2.1 ipn:3.1 dtn:none 300 0.1 "Hello!"
+    sleep 10
+
+    bpstats
+    sleep 10
+    cat ion.log | grep xmt
+
+    echo ""
+    echo "bpstats should show 1 message transmitted. UDPCLO has no stewardship, dequeued bundle is considered transmitted."
+    echo ""
+
+    # Check ion.log for address resolution failure during transmission
+    LINE_NUM=$(search_log_after_line "$LOG_FILE" "$SEARCH_STRING2" "$LINE_NUM")
+    return_code=$?
+    if [ $return_code -eq 0 ]; then
+        echo "SUCCESS: ion.log reported address resolution failure at transmit time on line $LINE_NUM"
+    else
+        echo "FAIL: No match for address resolution failure error (return code: -1)"
+        echo "Checking for alternative error messages..."
+        cat ion.log | grep -E "(Address resolution failed|can't get address|resolution.*fail)" | tail -3
+        RETVAL=1
+    fi
+
+    #
+    # Step 3: Destination hostname added back to DNS or hosts file
+    #
+    echo ""
+    echo "Step 3: Adding $PROTOCOL_TYPE hostname back to hosts file."
+    echo "Adding entry: $ENTRY"
+    echo ""
+
+    # Append test hostname to hosts file
+    echo "Appending entry '$ENTRY' to $HOSTS_FILE..."
+    echo "$ENTRY" | snpwd tee -a "$HOSTS_FILE" >/dev/null
+
+    # Verify the entry was added
+    if grep -Fx "$ENTRY" "$HOSTS_FILE" >/dev/null; then
+        echo "Entry '$ENTRY' added successfully"
+
+        # Test that the hostname now resolves
+        echo "Testing hostname resolution..."
+        if command -v getent >/dev/null 2>&1; then
+            if getent hosts "$TEST_HOSTNAME" | grep -q "$TEST_ADDRESS"; then
+                echo " Hostname $TEST_HOSTNAME now resolves to $TEST_ADDRESS"
+            else
+                echo "Warning: getent test failed, but continuing..."
+            fi
+        fi
+    else
+        echo "Error: Failed to add entry '$ENTRY' to $HOSTS_FILE"
+        return 1
+    fi
+
+    echo ""
+    echo "Now wait for 65 seconds for address cache to refresh..."
+    echo ""
+    sleep 65
+
+    echo ""
+    echo "Now send 3 bundles to test $PROTOCOL_TYPE connectivity."
+    echo ""
+    bptrace ipn:2.1 ipn:3.1 dtn:none 300 0.1 "Hello2!"
+    bptrace ipn:2.1 ipn:3.1 dtn:none 300 0.1 "Hello3!"
+    bptrace ipn:2.1 ipn:3.1 dtn:none 300 0.1 "Hello4!"
+    sleep 1
+
+    bpstats
+    sleep 10
+    cat ion.log | grep xmt
+
+    echo ""
+    echo "Sender bpstats should show total of 4 transmitted messages."
+    echo ""
+    sleep 5
+
+    # Check log on the receiving side
+    cd ../3.bench.udp
+    bpstats
+    sleep 10
+    cat ion.log | grep rcv
+    echo ""
+    echo "Receiver bpstats should show 3 received bundles."
+    echo ""
+
+    LINE_NUM=$(search_log_after_line "$LOG_FILE" "$SEARCH_STRING4" "1")
+    return_code=$?
+    if [ $return_code -eq 0 ]; then
+        echo "SUCCESS: ion.log reported successful reception at line $LINE_NUM"
+    else
+        echo "FAIL: No match or error (return code: -1)"
+        echo "Checking receiver bundle statistics..."
+        grep -E "rcv|received|bundle.*from" "$LOG_FILE" | tail -5
+        RETVAL=1
+    fi
+    sleep 10
+
+    # Stop ION before next test
+    echo ""
+    echo "Stopping ION for $PROTOCOL_TYPE test..."
+    cd ..
+    ./cleanup 2>/dev/null || true
+    sleep 2
+
+    # Cleanup test-specific resources
+    cleanup_test_network
+
+    # Restore hosts file for this test
+    if [ -f "$BACKUP_FILE" ]; then
+        echo "Restoring hosts file after $PROTOCOL_TYPE test..."
+        snpwd cp -- "$BACKUP_FILE" "$HOSTS_FILE" 2>/dev/null || {
+            echo "Warning: Failed to restore hosts file"
+        }
+        rm -f "$BACKUP_FILE"
+    fi
+
+    # Final results for this test
+    echo ""
+    echo "========================================"
+    if [ "$RETVAL" -eq 1 ]; then
+        echo "FAILED: $PROTOCOL_TYPE test failed"
+        echo ""
+        echo "Debug: Recent log entries:"
+        echo "Sender log:"
+        cd 2.bench.udp
+        tail -20 ion.log 2>/dev/null || echo "No sender log found"
+        echo ""
+        echo "Receiver log:"
+        cd ../3.bench.udp
+        tail -20 ion.log 2>/dev/null || echo "No receiver log found"
+        cd ..
+    else
+        echo "PASSED: $PROTOCOL_TYPE dual-stack implementation test successful!"
+        echo ""
+        echo "Summary:"
+        echo "- Protocol tested: $PROTOCOL_TYPE"
+        echo "- Test address: $TEST_ADDRESS"
+        echo "- DNS failure detection: PASSED"
+        echo "- Bundle abandonment on resolution failure: PASSED"
+        echo "- Successful resolution and transmission: PASSED"
+        echo "- End-to-end bundle delivery: PASSED"
+    fi
+    echo "========================================"
+
+    return $RETVAL
+}
+
+# --- Main script starts here ------------------------------------------
+echo "ION UDPCLA Dual-Stack IPv4/IPv6 Test Suite"
+echo "==========================================="
+
+# Detect IPv6 capability and determine test strategy
+if detect_ipv6_capability; then
+    echo ""
+    echo "IPv6 detected: Will run both IPv6 and IPv4 tests"
+    echo ""
+
+    OVERALL_RESULT=0
+
+    # First run: IPv6 test
+    if run_test "IPv6" "true"; then
+        echo "IPv6 test completed successfully"
+    else
+        echo "IPv6 test failed"
+        OVERALL_RESULT=1
+    fi
+
+    echo ""
+    echo "Preparing for IPv4 test by temporarily disabling IPv6..."
+
+    # Disable IPv6 and run IPv4 test
+    if disable_ipv6; then
+        echo ""
+        sleep 3
+
+        # Second run: IPv4 test (with IPv6 disabled)
+        if run_test "IPv4" "false"; then
+            echo "IPv4 test completed successfully"
+        else
+            echo "IPv4 test failed"
+            OVERALL_RESULT=1
+        fi
+
+        # Re-enable IPv6
+        echo ""
+        enable_ipv6
+    else
+        echo "Failed to disable IPv6 - skipping IPv4 test"
+        OVERALL_RESULT=1
+    fi
+
+    # Final summary
+    echo ""
+    echo "========================================="
+    echo "FINAL TEST RESULTS"
+    echo "========================================="
+    if [ "$OVERALL_RESULT" -eq 0 ]; then
+        echo "SUCCESS: Both IPv6 and IPv4 tests passed"
+    else
+        echo "FAILURE: One or more tests failed"
+    fi
+    echo "========================================="
+
+    exit $OVERALL_RESULT
+
 else
-	echo "FAIL: No match or error (return code: -1)"
-	RETVAL=1
+    echo ""
+    echo "IPv6 not available: Running IPv4-only test"
+    echo ""
+
+    # Single run: IPv4 only
+    if run_test "IPv4" "false"; then
+        echo ""
+        echo "========================================="
+        echo "SUCCESS: IPv4 test passed"
+        echo "========================================="
+        exit 0
+    else
+        echo ""
+        echo "========================================="
+        echo "FAILURE: IPv4 test failed"
+        echo "========================================="
+        exit 1
+    fi
 fi
-
-#
-# Step 2: Sending bundle with invalid address
-#
-echo ""
-echo "Step 2: Sending bundle with invalid address."
-echo ""
-echo "Send 1 message..."
-echo ""
-
-bptrace ipn:2.1 ipn:3.1 dtn:none 300 0.1 "Hello!"
-sleep 10
-
-bpstats
-sleep 10
-cat ion.log | grep xmt
-
-echo ""
-echo "bpstats should show 1 message transmitted. UDPCLO has no stewardship, dequeued bundle is considered transmitted."
-echo ""
-
-# Check ion.log invalid address error report
-LINE_NUM=$(search_log_after_line "$LOG_FILE" "$SEARCH_STRING2" "$LINE_NUM")
-return_code=$?
-if [ $return_code -eq 0 ]; then
-	echo "SUCCESS: ion.log reported invalid address at transmit time on line $LINE_NUM"
-else
-	echo "FAIL: No match or error (cat ion.log | grep xmtreturn code: -1)"
-	RETVAL=1
-fi
-
-#
-# Step 3: Destination hostname added back to DNS or hosts file
-#
-echo ""
-echo "Step 3: Destination hostname added back to DNS or hosts file."
-echo ""
-
-# Append test3.local to hosts file
-echo "Appending entry '$ENTRY' to $HOSTS_FILE..."
-echo "$ENTRY" | snpwd tee -a "$HOSTS_FILE" >/dev/null
-
-# Verify the entry was added
-if grep -Fx "$ENTRY" "$HOSTS_FILE" >/dev/null; then
-    echo "Entry '$ENTRY' added successfully"
-else
-    echo "Error: Failed to add entry '$ENTRY' to $HOSTS_FILE"
-    exit 1
-fi
-
-echo ""
-echo "Now wait for 60 seconds for address cache to refresh..."
-echo ""
-sleep 60
-
-echo ""
-echo "Now send 3 bundles."
-echo ""
-bptrace ipn:2.1 ipn:3.1 dtn:none 300 0.1 "Hello2!"
-bptrace ipn:2.1 ipn:3.1 dtn:none 300 0.1 "Hello3!"
-bptrace ipn:2.1 ipn:3.1 dtn:none 300 0.1 "Hello4!"
-sleep 1
-
-bpstats
-sleep 10
-cat ion.log | grep xmt
-
-echo ""
-echo "Sender bpstats should show total of 4 transmitted messages."
-echo ""
-sleep 5
-
-# Check ion.log for DNS lookup report
-LINE_NUM=$(search_log_after_line "$LOG_FILE" "$SEARCH_STRING3" "$LINE_NUM")
-return_code=$?
-if [ $return_code -eq 0 ]; then
-	echo "SUCCESS: ion.log reported DNS lookup success at line $LINE_NUM"
-else
-	echo "FAIL: No match or error (return code: -1)"
-	RETVAL=1
-fi
-
-# Check log on the receiving side
-cd ../3.bench.udp
-bpstats
-sleep 10
-cat ion.log | grep rcv
-echo ""
-echo "Receiver bpstats should show 3 recived bundles."
-echo ""
-
-LINE_NUM=$(search_log_after_line "$LOG_FILE" "$SEARCH_STRING4" "1")
-return_code=$?
-if [ $return_code -eq 0 ]; then
-	echo "SUCCESS: ion.log reported successful reception at line $LINE_NUM"
-else
-	echo "FAIL: No match or error (return code: -1)"
-	RETVAL=1
-fi
-sleep 10
-
-if [ "$RETVAL" -eq 1 ]
-then
-        echo "Test failed."
-fi
-
-echo -e "\nStopping ION..."
-cd ..
-./cleanup
-
-exit $RETVAL

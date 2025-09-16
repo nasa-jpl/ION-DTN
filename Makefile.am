@@ -458,7 +458,8 @@ iciinclude = \
 	ici/include/cbor.h \
 	ici/include/crc.h \
 	ici/include/bulk.h \
-	ici/include/csi.h
+	ici/include/csi.h \
+	ici/include/ion_network.h
 
 icinoinst = \
 	ici/library/lystP.h \
@@ -568,6 +569,7 @@ libici_la_SOURCES =	\
 	ici/library/cbor.c \
 	ici/library/crc.c \
 	ici/library/ion.c \
+	ici/library/ion_network.c \
 	ici/library/ionsec.c \
 	ici/library/libicinm.c \
 	ici/library/llcv.c \
