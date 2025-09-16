@@ -1,0 +1,99 @@
+# .clang-format file based on clang-format 20.1.0
+---
+AlignAfterOpenBracket: DontAlign
+AlignConsecutiveAssignments:
+  Enabled: false
+AlignConsecutiveDeclarations:
+  Enabled: true
+  AcrossComments: true
+AlignConsecutiveMacros:
+  Enabled: true
+  AcrossEmptyLines: true
+  AcrossComments: true
+AlignEscapedNewlines: Left
+AlignOperands: DontAlign
+AlignTrailingComments:
+  Kind: Always
+  OverEmptyLines: 2
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakBeforeMultilineStrings: false
+BinPackArguments: true
+BinPackParameters: true
+BraceWrapping:
+  AfterCaseLabel: true
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterExternBlock: false
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterUnion: true
+  BeforeElse: true
+  BeforeWhile: false
+  IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+BracedInitializerIndentWidth: 8
+BreakAdjacentStringLiterals: true
+BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeBraces: Custom
+BreakBeforeTernaryOperators: false
+BreakStringLiterals: false
+ColumnLimit: 80
+ContinuationIndentWidth: 16
+Cpp11BracedListStyle: false
+DerivePointerAlignment: false
+DisableFormat: false
+IncludeBlocks: Merge
+IncludeCategories:
+  - Regex: ^<[^/].*\.h
+    Priority: 1
+    SortPriority: 10
+  - Regex: ^\".*\.h\"
+    Priority: 2
+    SortPriority: 20
+IndentCaseBlocks: false
+IndentCaseLabels: false
+IndentExternBlock: NoIndent
+IndentGotoLabels: false
+IndentPPDirectives: None
+IndentWidth: 8
+IndentWrappedFunctionNames: true
+InsertBraces: false
+InsertNewlineAtEOF: true
+Language: Cpp
+LineEnding: LF
+MaxEmptyLinesToKeep: 1
+PenaltyBreakAssignment: 5
+PenaltyBreakBeforeFirstCallParameter: 5
+PenaltyBreakComment: 5
+PenaltyBreakFirstLessLess: 0
+PenaltyBreakOpenParenthesis: 300
+PenaltyBreakString: 5
+PenaltyExcessCharacter: 10
+PenaltyReturnTypeOnItsOwnLine: 300
+PointerAlignment: Right
+QualifierAlignment: Left
+ReflowComments: IndentOnly
+SeparateDefinitionBlocks: Leave
+SkipMacroDefinitionBody: false
+SortIncludes: CaseSensitive
+SpaceAfterCStyleCast: true
+SpaceAfterLogicalNot: false
+SpaceAroundPointerQualifiers: Default
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCaseColon: false
+SpaceBeforeParens: ControlStatements
+SpaceBeforeSquareBrackets: false
+SpacesBeforeTrailingComments: 1
+SpacesInParens: Never
+SpacesInSquareBrackets: false
+TabWidth: 8
+UseTab: ForIndentation
