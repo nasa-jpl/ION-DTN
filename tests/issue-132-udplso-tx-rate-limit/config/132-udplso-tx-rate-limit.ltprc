@@ -42,7 +42,7 @@
 #       tx datarate is set to 750kbits/sec so the 1 megabyte data file will take
 #       at least 10 secs, which is how we verify rate limiting works
 #
-a span 1 2 1250000 2 1250000 1024 1024 1 'udplso localhost:1113 750000'
+a span 1 2 1250000 2 1250000 1024 1024 1 'udplso localhost:1113'
 
 # Start command.
 #	This command actually runs the link service output commands

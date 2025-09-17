@@ -414,7 +414,7 @@ a endpoint ipn:2.64 x
 a endpoint ipn:2.65 x
 a protocol udp 1400 100
 a induct udp 127.0.0.1:2113 udpcli
-a outduct udp 127.0.0.1:3113 'udpclo 1'
+a outduct udp 127.0.0.1:3113 udpclo
 r 'ipnadmin bench.ipnrc'
 s
 ```

@@ -7,7 +7,7 @@ a endpoint ipn:3.64 x
 a endpoint ipn:3.65 x
 a protocol udp 1400 100
 a induct udp 127.0.0.1:3113 udpcli
-a outduct udp 127.0.0.1:2113 'udpclo 2'
+a outduct udp 127.0.0.1:2113 udpclo
 r 'ipnadmin amroc.ipnrc'
 w 1
 s
