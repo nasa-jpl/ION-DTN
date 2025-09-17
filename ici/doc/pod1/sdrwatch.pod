@@ -15,7 +15,7 @@ space utilization, 't' (the default) to call the sdr_print_trace() function
 (see sdr(3)) to report on SDR data storage management activity in the SDR
 data store identified by I<sdr_name> during that interval.  If the optional
 B<verbose> parameter is specified, the printed SDR activity trace will be
-verbose as described in sdr(3).
+verbose as described in sdr(3). The 's', 'r' and 'z' modes do not enable tracing.
 
 If I<interval> is zero, B<sdrwatch> just performs the indicated operation
 once (for 't', it merely prints a current usage summary for the indicated

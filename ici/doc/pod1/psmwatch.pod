@@ -11,8 +11,8 @@ B<psmwatch> I<shared_memory_key> I<memory_size> I<partition_name> I<interval> I<
 For I<count> interations, B<psmwatch> sleeps I<interval> seconds and then
 invokes the psm_print_trace() function (see psm(3)) to report on PSM dynamic
 memory management activity in the PSM-managed shared memory partition
-identified by I<shared_memory_key> during that interval.  If the optional
-B<verbose> parameter is specified, the printed PSM activity trace will be
+identified by I<shared_memory_key> (hexidecimal or decimal) during that interval. 
+If the optional B<verbose> parameter is specified, the printed PSM activity trace will be
 verbose as described in psm(3).
 
 To prevent confusion, the specified I<memory_size> and I<partition_name> are
@@ -20,7 +20,9 @@ compared to those declared when this shared memory partition was initially
 managed; if they don't match, B<psmwatch> immediately terminates.
 
 If I<interval> is zero, B<psmwatch> merely prints a current usage summary
-for the indicated shared-memory partition and terminates.
+for the indicated shared-memory partition and terminates. If negative, B<psmwatch>
+will repeat with intervals of -I<interval> seconds until interrupted but
+will disable any memory tracing.
 
 B<psmwatch> is helpful for detecting and diagnosing memory leaks.  For
 debugging the ION protocol stack:

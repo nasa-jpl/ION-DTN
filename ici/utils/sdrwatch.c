@@ -166,11 +166,16 @@ static void	printUsage()
 	PUTS("Usage: sdrwatch <sdr name> [ -t | -s | -r | -z ] [<interval> \
 [<count> [verbose]]]");
 	PUTS("\t-t to print a trace of space allocation and release (default)");
-	PUTS("\t-s to print stats for current transaction");
+	PUTS("\t-s to print stats for current transaction, no tracing");
 	PUTS("\t-r to reset log length high-water mark and then print stats \
-for current transaction");
+for current transaction, no tracing");
 	PUTS("\t-z to print stats for current transaction and print ZCO \
-status after that transaction ends");
+status after that transaction ends, no tracing");
+	PUTS("   sdr name: name of the SDR to monitor, e.g., 'ion'");
+	PUTS("   interval: polling interval in seconds");
+	PUTS("   count: number of polls");
+	PUTS("   verbose: enable verbose output, tracing all allocations, \
+			does not remove log entries for freed blocks.");
 }
 
 #if defined (ION_LWT)
