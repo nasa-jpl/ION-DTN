@@ -15,12 +15,6 @@ CONFIGFILES=" \
 ./configs/loopback.bprc \
 ./configs/loopback.ipnrc"
 
-source ../../setacs.sh
-
-if [ "$ACS" = "found" ] ; then
-	CONFIGFILES=$CONFIGFILES" ./configs/loopback.acsrc"
-fi
-
 echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
@@ -47,11 +41,7 @@ killm
 
 echo "Starting ION..."
 cd ./configs
-if [ "$ACS" = "found" ] ; then
-	./ionstart-acs
-else
-	./ionstart
-fi
+./ionstart
 sleep 10
 
 # create the test message in a sent file

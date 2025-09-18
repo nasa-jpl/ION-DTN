@@ -57,8 +57,6 @@ killm
 ./cleanup
 sleep 1
 
-source ../setacs.sh
-
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
@@ -67,11 +65,7 @@ RETVAL=0
 
 # Start nodes.
 cd 3.ipn.tcp
-if [[ "$ACS" == "found" ]] ; then
-	./ionstart-acs
-else
-	./ionstart
-fi
+./ionstart
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -eq 2 ]
@@ -83,11 +77,7 @@ else
 fi
 
 cd ../5.ipn.tcp
-if [[ "$ACS" == "found" ]] ; then
-	./ionstart-acs
-else
-	./ionstart
-fi
+./ionstart
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -eq 2 ]
@@ -99,11 +89,7 @@ else
 fi
 
 cd ../2.ipn.tcp
-if [[ "$ACS" == "found" ]] ; then
-	./ionstart-acs
-else
-	./ionstart
-fi
+./ionstart
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -eq 2 ]

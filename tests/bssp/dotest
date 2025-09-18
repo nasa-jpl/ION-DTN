@@ -15,8 +15,6 @@ CONFIGFILES=" \
 ./1.ipn.bssp/amroc.ipnrc \
 "
 
-source ../setacs.sh
-
 CONFIGFILES=$CONFIGFILES"
 ./2.ipn.bssp/amroc.bprc \
 ./2.ipn.bssp/amroc.bssprc \

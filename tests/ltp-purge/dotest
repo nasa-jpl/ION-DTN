@@ -14,12 +14,6 @@ CONFIGFILES=" \
 ./2.ipn.ltp/amroc.ipnrc \
 "
 
-source ../setacs.sh
-
-if [[ "$ACS" == "found" ]] ; then
-	CONFIGFILES=$CONFIGFILES"  ./2.ipn.ltp/amroc.acsrc"
-fi
-
 CONFIGFILES=$CONFIGFILES"
 ./5.ipn.ltp/amroc.ltprc \
 ./5.ipn.ltp/amroc.bprc \
@@ -29,10 +23,6 @@ CONFIGFILES=$CONFIGFILES"
 ./5.ipn.ltp/amroc.ipnrc \
 "
 
-if [[ "$ACS" == "found" ]] ; then
-	CONFIGFILES=$CONFIGFILES" ./5.ipn.ltp/amroc.acsrc"
-fi
-
 CONFIGFILES=$CONFIGFILES"
 ./3.ipn.ltp/amroc.ltprc \
 ./3.ipn.ltp/amroc.bprc \
@@ -41,10 +31,6 @@ CONFIGFILES=$CONFIGFILES"
 ./3.ipn.ltp/amroc.ionsecrc \
 ./3.ipn.ltp/amroc.ipnrc \
 "
-
-if [[ "$ACS" == "found" ]] ; then
-	CONFIGFILES=$CONFIGFILES" ./3.ipn.ltp/amroc.acsrc"
-fi
 
 echo "########################################"
 echo
@@ -91,15 +77,6 @@ cd ../3.ipn.ltp
 ionadmin amroc.ionrc
 cd ../5.ipn.ltp
 ionadmin amroc.ionrc
-
-if [[ "$ACS" == "found" ]] ; then
-	cd ../2.ipn.ltp
-	acsadmin amroc.acsrc
-	cd ../3.ipn.ltp
-	acsadmin amroc.acsrc
-	cd ../5.ipn.ltp
-	acsadmin amroc.acsrc
-fi
 
 cd ../2.ipn.ltp
 ionadmin ../global.ionrc 

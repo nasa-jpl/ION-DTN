@@ -11,11 +11,6 @@ CONFIGFILES=" \
 ./amroc.ionsecrc \
 ./amroc.ipnrc
 "
-source ../setacs.sh
-
-if [[ "$ACS" == "found" ]] ; then
-	CONFIGFILES=$CONFIGFILES"  ./amroc.acsrc"
-fi
 
 echo "########################################"
 echo
@@ -45,11 +40,7 @@ echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
 
 # Start node 9, with 20-second loopback range.
-if [[ "$ACS" == "found" ]] ; then
-	./ionstart-acs
-else
-	./ionstart
-fi
+./ionstart
 ../../system_up -i "p 30" -l "p 30" -b "p 30"
 
 if [ $? -eq 3 ]

@@ -89,8 +89,6 @@ RECEIVER_PORT=4556
 # Detect OS and set firewall
 detect_os_and_firewall
 
-source ../setacs.sh
-
 echo "Cleaning up old ION ..."
 killm
 ./cleanup
@@ -117,11 +115,7 @@ export ION_NODE_LIST_DIR=$PWD
 
 # Set up node 1
 cd 1.ipn.tcp/
-if [ "$ACS" = "found" ] ; then
-    ./ionstart-acs
-else
-    ./ionstart
-fi
+./ionstart
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ "$?" -ne 2 ]; then
@@ -131,11 +125,7 @@ fi
 
 # Set up node 2
 cd ../2.ipn.tcp/
-if [ "$ACS" = "found" ] ; then
-    ./ionstart-acs
-else
-    ./ionstart
-fi
+./ionstart
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ "$?" -ne 2 ]; then

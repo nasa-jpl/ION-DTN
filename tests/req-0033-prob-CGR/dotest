@@ -102,7 +102,6 @@
 #	-	All nodes shut down.
 
 ./cleanup
-source ../setacs.sh
 
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
@@ -121,11 +120,7 @@ sleep 1
 echo "Starting all nodes..."
 
 cd 2.ipn.tcp
-if [[ "$ACS" == "found" ]] ; then
-	./ionstart-acs
-else
-	./ionstart
-fi
+./ionstart
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -eq 2 ]
@@ -137,11 +132,7 @@ else
 fi
 
 cd ../3.ipn.tcp
-if [[ "$ACS" == "found" ]] ; then
-	./ionstart-acs
-else
-	./ionstart
-fi
+./ionstart
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -eq 2 ]
@@ -153,11 +144,7 @@ else
 fi
 
 cd ../5.ipn.tcp
-if [[ "$ACS" == "found" ]] ; then
-	./ionstart-acs
-else
-	./ionstart
-fi
+./ionstart
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -eq 2 ]
@@ -169,11 +156,7 @@ else
 fi
 
 cd ../6.ipn.tcp
-if [[ "$ACS" == "found" ]] ; then
-	./ionstart-acs
-else
-	./ionstart
-fi
+./ionstart
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -eq 2 ]
@@ -187,11 +170,7 @@ fi
 bprecvfile ipn:6.1 &
 
 cd ../7.ipn.tcp
-if [[ "$ACS" == "found" ]] ; then
-	./ionstart-acs
-else
-	./ionstart
-fi
+./ionstart
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -eq 2 ]

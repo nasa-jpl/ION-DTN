@@ -14,11 +14,6 @@ CONFIGFILES=" \
 ./2.ipn.ltp/amroc.ionsecrc \
 ./2.ipn.ltp/amroc.ipnrc \
 "
-source ../setacs.sh
-
-if [[ "$ACS" == "found" ]] ; then
-	CONFIGFILES=$CONFIGFILES" ./2.ipn.ltp/amroc.acsrc"
-fi
 
 CONFIGFILES=$CONFIGFILES"
 ./3.ipn.ltp/amroc.ltprc \
@@ -29,10 +24,6 @@ CONFIGFILES=$CONFIGFILES"
 ./3.ipn.ltp/amroc.ionsecrc \
 ./3.ipn.ltp/amroc.ipnrc \
 "
-
-if [ $ACS == "found" ] ; then
-	CONFIGFILES=$CONFIGFILES" ./3.ipn.ltp/amroc.acsrc"
-fi
 
 echo "########################################"
 echo
@@ -69,11 +60,7 @@ rm -f ./ion_nodes
 
 # Start nodes.
 cd 2.ipn.ltp
-if [[ "$ACS" == "found" ]] ; then
-	./ionstart-acs >& node2.stdout
-else
-	./ionstart >& node2.stdout
-fi
+./ionstart >& node2.stdout
 ../../../system_up -i "p 30" -l "p 30" -b "p 30"
 
 if [ $? -eq 3 ]
@@ -85,11 +72,7 @@ else
 fi
 
 cd ../3.ipn.ltp
-if [[ "$ACS" == "found" ]] ; then
-	./ionstart-acs >& node3.stdout
-else
-	./ionstart >& node3.stdout
-fi
+./ionstart >& node3.stdout
 ../../../system_up -i "p 30" -l "p 30" -b "p 30"
 
 if [ $? -eq 3 ]

@@ -44,12 +44,6 @@ CONFIGFILES=" \
 ./config.bprc \
 ./config.ipnrc"
 
-source ../../setacs.sh
-
-if [[ "$ACS" == "found" ]] ; then
-	CONFIGFILES=$CONFIGFILES" ./1.ipn.tcp/config.acsrc"
-fi
-
 echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
@@ -81,9 +75,6 @@ echo ""
 echo "Starting ION..."
 ionadmin config.ionrc
 sleep 1
-if [ "$ACS" = "found" ] ; then
-	acsadmin config.acsrc
-fi
 ionsecadmin config.ionsecrc
 sleep 1
 bpadmin config.bprc

@@ -16,7 +16,6 @@
 killm
 ./cleanup
 sleep 1
-source ../setacs.sh
 
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
@@ -24,11 +23,7 @@ rm -f ./ion_nodes
 
 # Start nodes.
 cd 2.ipn.ltp
-if [[ "$ACS" == "found" ]] ; then
-	./ionstart-acs > node2.stdout 
-else
-	./ionstart > node2.stdout 
-fi
+./ionstart > node2.stdout
 ../../../system_up -i "p 30" -l "p 30" -b "p 30"
 
 if [ $? -eq 3 ]
@@ -40,11 +35,7 @@ else
 fi
 
 cd ../3.ipn.ltp
-if [[ "$ACS" == "found" ]] ; then
-	./ionstart-acs > node3.stdout 
-else
-	./ionstart > node3.stdout 
-fi
+./ionstart > node3.stdout 
 ../../../system_up -i "p 30" -l "p 30" -b "p 30"
 
 if [ $? -eq 3 ]

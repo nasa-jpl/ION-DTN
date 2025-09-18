@@ -515,3 +515,5 @@ tests/tcpcl-dos/2.ipn.tcp/ion.log
 tests/tcpcl-dos/2.ipn.tcp/ionreceivefile.txt
 
 bptracker
+tests/issue-260-teach-valgrind-mtake/valgrind-output
+demos/bench-ltp/global.ionrc

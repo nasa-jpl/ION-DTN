@@ -13,11 +13,6 @@ CONFIGFILES=" \
 ./1.ipn.cfdp.bp.tcp/host1.bprc \
 ./1.ipn.cfdp.bp.tcp/host1.ionsecrc \
 "
-source ../setacs.sh
-
-if [[ "$ACS" == "found" ]] ; then
-	CONFIGFILES=$CONFIGFILES" ./1.ipn.cfdp.bp.tcp/host1.acsrc"
-fi
 
 CONFIGFILES=$CONFIGFILES"
 ./3.ipn.cfdp.bp.tcp/host3.ipnrc \
@@ -28,11 +23,6 @@ CONFIGFILES=$CONFIGFILES"
 ./3.ipn.cfdp.bp.tcp/host3.ionconfig \
 "
 
-if [[ "$ACS" == "found" ]] ; then
-	CONFIGFILES=$CONFIGFILES" ./2.ipn.cfdp.bp.tcp/host2.acsrc \
-	"
-fi
-
 CONFIGFILES=$CONFIGFILES"
 ./2.ipn.cfdp.bp.tcp/host2.ionrc \
 ./2.ipn.cfdp.bp.tcp/host2.ionsecrc \
@@ -41,11 +31,6 @@ CONFIGFILES=$CONFIGFILES"
 ./2.ipn.cfdp.bp.tcp/host2.bprc \
 ./2.ipn.cfdp.bp.tcp/host2.cfdprc \
 "
-
-if [[ "$ACS" == "found" ]] ; then
-	CONFIGFILES=$CONFIGFILES" ./3.ipn.cfdp.bp.tcp/host3.acsrc \
-	"
-fi
 
 echo "########################################"
 echo
@@ -76,11 +61,7 @@ export ION_NODE_LIST_DIR=$PWD
 
 # Start nodes.
 cd 1.ipn.cfdp.bp.tcp
-if [ $ACS == "found" ] ; then
-	./ionstart-acs
-else
-	./ionstart
-fi
+./ionstart
 ../../../system_up -i "p 30" -c "p 30" -b "p 30"
 
 if [ $? -eq 3 ]
@@ -91,11 +72,7 @@ else
 	exit 1
 fi
 cd ../2.ipn.cfdp.bp.tcp
-if [[ "$ACS" == "found" ]] ; then
-	./ionstart-acs
-else
-	./ionstart
-fi
+./ionstart
 ../../../system_up -i "p 30" -c "p 30" -b "p 30"
 
 if [ $? -eq 3 ]
@@ -106,11 +83,7 @@ else
 	exit 1
 fi
 cd ../3.ipn.cfdp.bp.tcp
-if [[ "$ACS" == "found" ]] ; then
-	./ionstart-acs
-else
-	./ionstart
-fi
+./ionstart
 ../../../system_up -i "p 30" -c "p 30" -b "p 30"
 
 if [ $? -eq 3 ]

@@ -19,12 +19,6 @@ CONFIGFILES=" \
 ./config/132-udplso-tx-rate-limit.ltprc \
 "
 
-source ../setacs.sh
-
-if [[ "$ACS" == "found" ]] ; then
-	CONFIGFILES=$CONFIGFILES" ./config/132-udplso-tx-rate-limit.acsrc"
-fi
-
 echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
@@ -53,22 +47,12 @@ IONRECEIVEFILE=./testfile1
 
 echo "Starting ION..."
 CONFIGDIR="./config"
-if [[ "$ACS" == "found" ]] ; then
-ionstart                           \
-    -i ${CONFIGDIR}/132-udplso-tx-rate-limit.ionrc \
-    -a ${CONFIGDIR}/132-udplso-tx-rate-limit.acsrc \
-    -l ${CONFIGDIR}/132-udplso-tx-rate-limit.ltprc \
-    -b ${CONFIGDIR}/132-udplso-tx-rate-limit.bprc  \
-    -s ${CONFIGDIR}/132-udplso-tx-rate-limit.ionsecrc \
-    -p ${CONFIGDIR}/132-udplso-tx-rate-limit.ipnrc
-else
 ionstart                           \
     -i ${CONFIGDIR}/132-udplso-tx-rate-limit.ionrc \
     -l ${CONFIGDIR}/132-udplso-tx-rate-limit.ltprc \
     -b ${CONFIGDIR}/132-udplso-tx-rate-limit.bprc  \
     -s ${CONFIGDIR}/132-udplso-tx-rate-limit.ionsecrc \
     -p ${CONFIGDIR}/132-udplso-tx-rate-limit.ipnrc
-fi
 
 
 # receive the message and store it in a file via test bundle sink

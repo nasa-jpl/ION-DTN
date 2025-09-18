@@ -6,17 +6,9 @@
 #
 # documentation boilerplate
 
-source ../../setacs.sh
-
-if [[ "$ACS" == "found" ]] ; then
-	CONFIGFILES=" \
-	${CONFIGSROOT}/loopback-ltp/loopback-acs.rc \
-	"
-else
-	CONFIGFILES=" \
+CONFIGFILES=" \
 	${CONFIGSROOT}/loopback-ltp/loopback.rc \
 	"
-fi
 
 ./cleanup
 killm
@@ -51,11 +43,7 @@ IONRECEIVEFILE=./ionreceivefile.txt
 EXPECTEDCOUNT=3
 
 echo "Starting ION..."
-if [[ "$ACS" == "found" ]] ; then
-	ionstart -I ${CONFIGSROOT}/loopback-ltp/loopback-acs.rc
-else
-	ionstart -I ${CONFIGSROOT}/loopback-ltp/loopback.rc
-fi
+ionstart -I ${CONFIGSROOT}/loopback-ltp/loopback.rc
 
 #The sample config adds contacts we don't care about
 deleteallvolumes

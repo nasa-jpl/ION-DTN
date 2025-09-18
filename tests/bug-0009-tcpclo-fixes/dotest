@@ -12,11 +12,6 @@ CONFIGFILES=" \
 ./1.ipn.tcp/config.bprc \
 ./1.ipn.tcp/config.ipnrc \
 "
-source ../setacs.sh
-
-if [[ "$ACS" == "found" ]] ; then
-	CONFIGFILES=$CONFIGFILES" ./1.ipn.tcp/config.acsrc"
-fi
 
 CONFIGFILES=$CONFIGFILES"
 ./2.ipn.tcp/config.ionrc \
@@ -25,10 +20,6 @@ CONFIGFILES=$CONFIGFILES"
 ./2.ipn.tcp/config.bprc \
 ./2.ipn.tcp/config.ipnrc \
 "
-
-if [[ "$ACS" == "found" ]] ; then
-	CONFIGFILES=$CONFIGFILES" ./2.ipn.tcp/config.acsrc"
-fi
 
 
 echo "########################################"
@@ -58,11 +49,9 @@ killm
 echo
 echo "Starting node 1..."
 cd 1.ipn.tcp/
-if [[ "$ACS" == "found" ]] ; then
-	./ionstart-acs
-else
-	./ionstart
-fi
+
+./ionstart
+
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -eq 2 ]
@@ -87,11 +76,7 @@ sleep 5
 echo
 echo "Starting node 2..."
 cd ../2.ipn.tcp/
-if [[ "$ACS" == "found" ]] ; then
-	./ionstart-acs
-else
-	./ionstart
-fi
+./ionstart
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -eq 2 ]
