@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-echo "Cleaning up old ION..."
-rm -f ion.log
-killm

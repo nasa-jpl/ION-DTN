@@ -250,44 +250,17 @@ AC_ARG_ENABLE([install-messages],
 AM_CONDITIONAL([ENABLE_INSTALL_MESSAGES], [test "$enable_install_messages" = yes])
 
 #
-# allow the user running configure to disable ACS when using bpv6
+# ION will build BPv7 only
 #
-AC_ARG_ENABLE(
-    acs,
-    [AS_HELP_STRING([--enable-acs],[enable Aggregate Custody Signals])],
-    [ENABLE_BPACS=yes],
-    [ENABLE_BPACS=no])
-AM_CONDITIONAL(ENABLE_BPACS, test "x$ENABLE_BPACS" = "xyes")
 
-#
-# allow the user running configure to build bpv6
-#
-AC_ARG_ENABLE(
-    bpv6,
-    [AS_HELP_STRING([--enable-bpv6],[force build of bpv6])],
-    [VER="4.1.3s"
-     VER="-DVNAME=ION-OPEN-SOURCE-$VER"
-     AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv6"
-     BUILD_BPv6=true
-     BP_DIR="bpv6"
-     AC_SUBST([BP_DIR])
-     case "${ENABLE_BPACS}" in
-		yes) AM_CFLAGS="$AM_CFLAGS -DENABLE_BPACS"
-			 echo "Building ION with ACS";;
-		no)  ENABLE_BPACS=no;;
-     esac
-     echo "Building ION with BP version 6"],
-    [VER="4.1.3s"
-     VER="-DVNAME=ION-OPEN-SOURCE-$VER"
-     AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv7"
-     BUILD_BPv7=true
-     BP_DIR="bpv7"
-     AC_SUBST([BP_DIR])
-     ENABLE_BPACS=no
-     echo "Building ION with BP version 7"])
+VER="4.1.3s"
+VER="-DVNAME=ION-OPEN-SOURCE-$VER"
+AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv7"
+BUILD_BPv7=true
+BP_DIR="bpv7"
+AC_SUBST([BP_DIR])
+echo "Building ION with BP version 7"
 AM_CONDITIONAL(BUILD_BPv7, test x$BUILD_BPv7 = xtrue)
-AM_CONDITIONAL(BUILD_BPv6, test x$BUILD_BPv6 = xtrue)
-
 #
 # allow the user running configure to disable IMC
 #
@@ -872,9 +845,6 @@ ADD_PODMAN(bss)
 ADD_PODMAN(bssp)
 ADD_PODMAN(dtpc)
 
-dnl ---------- Optional bpv6 ---------------------------------------
-ADD_PODMAN(bpv6)
-
 
 
 
@@ -914,7 +884,7 @@ AC_CONFIG_COMMANDS([podman-stubs], [
     ici/doc/podman.mk ltp/doc/podman.mk dgr/doc/podman.mk \
     nm/doc/podman.mk bpv7/doc/podman.mk tc/doc/podman.mk \
     ams/doc/podman.mk cfdp/doc/podman.mk bss/doc/podman.mk \
-    bssp/doc/podman.mk dtpc/doc/podman.mk bpv6/doc/podman.mk; do
+    bssp/doc/podman.mk dtpc/doc/podman.mk; do
     test -f "$f" || echo "# stub" > "$f"
   done
 ])

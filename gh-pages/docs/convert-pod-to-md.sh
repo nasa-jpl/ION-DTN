@@ -6,7 +6,6 @@ set -e  # Exit immediately if a command exits with a non-zero status.
 # Format: "search_directory link_directory"
 DIR_PAIRS=(
   "../../ams man/ams"
-  "../../bpv6 man/bpv6"
   "../../bpv7 man/bpv7"
   "../../bss man/bss"
   "../../bssp man/bssp"

@@ -10,12 +10,7 @@
 #include "adm_ion_ltp_admin.h"
 #include "adm_ltp_agent.h"
 #include "adm_ion_bp_admin.h"
-
-#ifdef BUILD_BPv6
-#include "adm_sbsp.h"
-#else
 #include "adm_bpsec.h"
-#endif
 
 /******************************************************************************
  *
@@ -54,12 +49,7 @@ void adm_init()
 	dtn_ion_ltpadmin_init();
 	dtn_ltp_agent_init();
 	dtn_ion_bpadmin_init();
-	
-#ifdef BUILD_BPv6
-	dtn_sbsp_init();
-#else
 	dtn_bpsec_init();
-#endif
 
 #endif
 	AMP_DEBUG_EXIT("adm_init","->.", NULL);

@@ -149,9 +149,9 @@ If you want to set additional compile-time switches for a build, the place to do
 
 `./configure -h`
 
-By default, Bundle Protocol V7 will be built and installed, but BPv6 source code is still available. The BPv6 implementation is essentially the same as that of ION 3.7.4, with only critical bugs being updated going forward. All users are encouraged to switch to BPV7.
+By default, Bundle Protocol V7 will be built and installed, but BPv6 source code is still available in ION 4.1.3s. The BPv6 implementation is essentially the same as that of ION 3.7.4, with only critical bugs being updated going forward. All users need to switch to BPV7 for ION 4.1.4 or later.
 
-To build BPv6, run
+To build BPv6 (ION 4.1.3s or earlier)
 
 `./configure --enable-bpv6`
 

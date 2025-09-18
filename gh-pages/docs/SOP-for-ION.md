@@ -135,7 +135,7 @@ If the user plans to install multiple versions of ION in different directories, 
     * If the Makefile already reflects the configuration you wanted, say from a previous `./configure` run, you don't need to do it again. Skip to the next step.
     * Run `./configure --help` to see a list of options.
     * For Solaris OS, it is recommended to add the argument `MAKE=gmake`.
-    * If you want to install bundle protocol version 6 (BPv6) instead of the most current BPv7 implementation, then include the `--enable-bpv6` option.
+    * If you want to install bundle protocol version 6 (BPv6) instead of the most current BPv7 implementation, then include the `--enable-bpv6` option (only ION 4.1.3s or earlier).
     * Check the execution path to make sure where you intend to install ION is in the `PATH` variable or will be added later.
     * To install ION to a directory other than the default of `/usr/local`, use the `--prefix` option.
 

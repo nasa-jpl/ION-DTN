@@ -2969,13 +2969,6 @@ transmission, which is the default. Instead, bandwidth is shared between
 the priority-1 and priority-0 queues on a 2:1 ratio whenever there is no
 priority-2 traffic.
 
-`ENABLE_BPACS`
-
-This option causes Aggregate Custody Signaling source code to be
-included in the build. ACS is alternative custody transfer signaling
-mechanism that sharply reduces the volume of custody acknowledgment
-traffic.
-
 `ENABLE_IMC`
 
 This option causes IPN Multicast source code to be included in the

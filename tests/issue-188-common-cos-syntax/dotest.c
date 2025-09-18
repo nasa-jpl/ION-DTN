@@ -8,11 +8,7 @@
 #include "check.h"
 #include "testutil.h"
 
-#ifdef BUILD_BPv6
-    unsigned int BPV_SPECIFIC_FLAGS = BP_DATA_LABEL_PRESENT;
-#else
-    unsigned int BPV_SPECIFIC_FLAGS = 0;
-#endif
+unsigned int BPV_SPECIFIC_FLAGS = 0;
 
 static void run_cos_case(const char *token, BpAncillaryData desiredAncillaryData,
 		BpCustodySwitch desiredCustodySwitch, int desiredPriority)

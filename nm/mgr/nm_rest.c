@@ -185,9 +185,7 @@ static int versionHandler(struct mg_connection *conn, void *cbdata)
 	cJSON_AddStringToObject(obj, "amp_version_str", AMP_VERSION_STR);
     
     cJSON_AddStringToObject(obj, "bp_version",
-#ifdef BUILD_BPv6
-                            "6"
-#elif defined(BUILD_BPv7)
+#if defined(BUILD_BPv7)
                             "7"
 #else
                             "?"

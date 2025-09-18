@@ -676,9 +676,7 @@ int ui_automator_parse_input(char *str)
              __DATE__, __TIME__,
              AMP_VERSION_STR,
              
-#ifdef BUILD_BPv6
-                            "6"
-#elif defined(BUILD_BPv7)
+#if defined(BUILD_BPv7)
                             "7"
 #else
                             "?"
