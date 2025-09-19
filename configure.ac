@@ -617,14 +617,6 @@ else
 fi
 AM_CONDITIONAL([ENABLE_NCURSES], [test "x$ncurses" = "xyes"])
 
-AC_ARG_ENABLE(
-        nmrest,
-        [AS_HELP_STRING([--enable-nmrest],[Enable REST API for NM Mgr])],
-        [BUILD_NM_REST=true],
-        [BUILD_NM_REST=false]
-        )
-AM_CONDITIONAL([BUILD_NM_REST], [test "x$BUILD_NM_REST" = "xtrue"])
-
 #
 # allow the user running configure to choose the TCPCL_LOW_CYCLE option
 #

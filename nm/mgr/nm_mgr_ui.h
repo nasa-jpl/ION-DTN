@@ -204,17 +204,9 @@ typedef enum ui_cb_return_values_t
 typedef struct ui_print_cfg_t
 {
    FILE *fd;
-#ifdef USE_CIVETWEB
-   struct mg_connection *conn;
-#endif
 } ui_print_cfg_t;
 
-#ifdef USE_CIVETWEB
-#define INIT_UI_PRINT_CFG_FD(fd) {fd, NULL};
-#define INIT_UI_PRINT_CFG_CONN(conn) { NULL, conn };
-#else
 #define INIT_UI_PRINT_CFG_FD(fd) {fd};
-#endif
 
 /** Callback function prototype for ui_menu_listing
  * @param[in] idx Index into the menu listing configuration for the currently selected item.

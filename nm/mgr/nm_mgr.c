@@ -33,10 +33,6 @@
 #include "nm_mgr_ui.h"
 #include "metadata.h"
 
-#ifdef USE_CIVETWEB
-#include "nm_rest.h"
-#endif
-
 #include "agents.h"
 
 #include "../shared/primitives/rules.h"
@@ -153,10 +149,6 @@ int main(int argc, char *argv[])
     }
 #endif
 
-#ifdef USE_CIVETWEB
-    nm_rest_start();
-#endif
-
     if (pthread_join(rx_thr, NULL))
     {
         AMP_DEBUG_ERR("main","Can't join pthread %s. Errnor = %s",
@@ -169,10 +161,6 @@ int main(int argc, char *argv[])
         		         ui_thr_name, strerror(errno));
         exit(EXIT_FAILURE);
     }
-
-#ifdef USE_CIVETWEB
-    nm_rest_stop();
-#endif
     
 #ifdef HAVE_MYSQL
     if (pthread_join(db_thr, NULL))

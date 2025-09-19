@@ -11,5 +11,5 @@ This directory contains a collection of utilities and third party libraries.  Re
 
 ## Third-party libraries
 - QCBOR - An open-source CBOR library.  https://github.com/laurencelundblade/QCBOR
-- CivetWeb - An embedded HTTP server used by NM Manager (if built with --enable-nmrest) to provide a REST API interface. 
+- (CivetWeb is removed from ION 4.1.4 and later versions.) CivetWeb - An embedded HTTP server used by NM Manager (if built with --enable-nmrest) to provide a REST API interface. 
   - https://github.com/civetweb/civetweb

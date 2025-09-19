@@ -1904,27 +1904,11 @@ nm_mgr_SOURCES = \
 	nm/shared/msg/ion_if.c \
 	nm/shared/adm/adm_init.c
 
-# TODO: Split cJSON as a seperate configurable supporting library
-CIVETWEB_SOURCES = \
-	nm/contrib/civetweb/src/civetweb.c \
-	nm/contrib/civetweb/examples/rest/cJSON/cJSON.c \
-	nm/contrib/civetweb/examples/rest/cJSON/cJSON_Utils.c \
-	nm/mgr/nm_rest.c
-CIVETWEB_INCLUDES = -I$(srcdir)/nm/contrib/civetweb/include -I$(srcdir)/nm/contrib/civetweb/examples/rest/cJSON
-CIVETWEB_CFLAGS = -DNO_SSL -DUSE_CIVETWEB -DUSE_JSON
-
 nm_mgr_LDADD = libamp.la libici.la  $(bplib) libltp.la $(PTHREAD_LIBS)
 
 # Note: NCURSES and MySql support are optional and controlled at configure time with --with-mysql or --with-ncurses
 nm_mgr_LDFLAGS = -lpthread 
 nm_mgr_CFLAGS =  -I$(srcdir)/ici/library -I$(srcdir)/bpv7/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) $(NM_CBOR_CFLAGS) $(NM_ADM_INCLUDES)
-
-if BUILD_NM_REST
-nm_mgr_LDFLAGS += -ldl
-nm_mgr_CFLAGS += $(CIVETWEB_INCLUDES) $(CIVETWEB_CFLAGS)
-nm_mgr_SOURCES += $(CIVETWEB_SOURCES)
-
-endif
 
 ##########################
 #

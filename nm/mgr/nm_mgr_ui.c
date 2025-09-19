@@ -48,10 +48,6 @@
 #include "nm_mgr_sql.h"
 #endif
 
-#ifdef USE_CIVETWEB
-#include "civetweb.h"
-#endif
-
 #ifdef USE_NCURSES
 #include <curses.h>
 #include <form.h>
@@ -1758,12 +1754,6 @@ void ui_fprintf(ui_print_cfg_t *fd, const char* format, ...)
       {
          vfprintf(fd->fd, format, args);
       }
-#ifdef USE_CIVETWEB
-      else if (fd->conn != NULL)
-      {
-         mg_vprintf(fd->conn, format, args);
-      }
-#endif
       else
       {
          printf("NM UI ERROR: ui_fprintf called with illegal arguments\n");

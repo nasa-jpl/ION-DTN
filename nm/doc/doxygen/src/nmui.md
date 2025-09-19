@@ -9,9 +9,9 @@ An enhanced NCURSES based UI is also available. This mode provides a more user f
 
 A REST API is now available if configured with "--enable-nmrest". This API should be considered experimental and is likely to evolve in future releases.  See below for details.
 
-## REST API (Experimental)
+## REST API (Experimental) - CivetWeb is removed from ION 4.1.4 and later versions
 
-The REST API is implemented using the [Civetweb](https://github.com/civetweb/civetweb) library. It's functionality is limited, and is primarily intended for integration with additional tools in the future.
+The REST API is implemented using the [Civetweb](https://github.com/civetweb/civetweb) library. It's functionality is limited, and is primarily intended for integration with additional tools in the future. 
 
 Note: At this time, no attempt has been made to secure the REST API at this time.  The library can support SSL encryption and basic HTTP Authentication, or the user can wrap the server with security settings using an Apache server proxy.  Refer to the CivetWeb documentation and nm/mgr/nm_rest.c for details.
 
