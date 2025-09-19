@@ -1,0 +1,401 @@
+# ION CFDP SW Architecture & Event Definitions
+
+## SW Architecture
+
+### Basic Components
+
+ION implement CFDP's core network engine in `bputa`, which handles all CFDP protocol processing, PDU handling, transaction state management, and network I/O. This engine is designed to be efficient and responsive to incoming CFDP traffic. 
+
+`bputa` has two threads, one receives network packets quickly and queues them for processing, while the other processes these packets and manages transaction state. This design ensures that incoming PDUs are handled promptly without blocking.
+
+The CFDP engine generates events for significant occurrences, such as transaction starts, file segment receptions, EOFs, metadata receptions, transaction completions, and fault indications. These events are placed in a global event queue.
+
+The event queue is designed to have only one consumer at a time to prevent conflicts. Applications like `bpcp`, `bpcpd`, and `cfdptest` (CFDP test utility) can all events from this queue so they must not run simultaneously on a host to avoid conflicts.
+
+Currently, `bpcp` and `bpcpd` operate in a client-server model, where `bpcp` initiates file transfers and get remote directory listing through `bpcpd`. 
+
+### Consideration for Implementing CFDP Applications
+
+For most typical CFDP file transfer, file store, and transaction control operations, `bpcp` and `cfdptest` are sufficient.
+
+For a number of more complex operations, such as recursive file copying and remote directory listing, the `bpcpd` daemon is introduced as a prototype to demonstrate how to separately handle user requests that may either slow down CFDP engine performance or are extensions that require a more complex series of steps to complete.
+
+For example, the core CFDP engine `bputa` is designed not to handle incoming remote directory listing requests. Although such capability exists as part of CFDP directory operation API, the `bputa` engine does not process request directly. Instead, it reports the event to applications such as the `bpcpd` service daemon to handle separately. 
+
+Another example is recursive copying, which requires listing the files in a directory and invoke file transfer for each file. This is best carried out in a service daemon, as demonstrated by `bpcpd`.
+
+The user should be aware of the limitation of the event queue only supporting a single consumer as they design their own CFDP applications. If their requirements are complex and involve many simultaneous requests and services to be handled, it is best to implement a unified service daemon that consumes the event queue and controls the processing of user requests to the core CFDP engine. If their operation is very simple and controlled, then direct interaction with the CFDP engine is sufficient.
+
+### High-level Diagrams
+
+Here is a high-level architecture diagram of the CFDP software components and their interactions:
+
+```mermaid
+graph TD
+    subgraph Network["🌐 NETWORK LAYER"]
+        PeerA["Remote CFDP Peer A"]
+        PeerB["Remote CFDP Peer B"]
+        PeerA -.->|CFDP Protocol| PeerB
+    end
+    
+    subgraph Engine["⚙️ CFDP ENGINE"]
+        bputa["bputa<br/>• CFDP Protocol Handler<br/>• Network I/O Bundle Protocol<br/>• Transaction Management<br/>• PDU Processing<br/>• Event Generation"]
+    end
+    
+    subgraph EventSys["📬 EVENT SYSTEM"]
+        EventQueue["Event Queue<br/>• Transaction Started<br/>• File Segment Received<br/>• EOF Sent/Received<br/>• Metadata Received<br/>• Transaction End<br/>• Fault Indications"]
+    end
+    
+    subgraph Apps["🖥️ APPLICATION LAYER"]
+        subgraph ClientServer["Client-Server Pair"]
+            bpcp["bpcp Client<br/>• CLI Interface<br/>• User Commands<br/>• Progress Display<br/>• Error Handling"]
+            bpcpd["bpcpd Server<br/>• Event Consumer<br/>• Directory Listings<br/>• File Services<br/>• Remote Operations"]
+        end
+        
+        subgraph Symmetric["Test Application"]
+            cfdptest["cfdptest test<br/>Send File, Monitor Events, Request Directory Listing from bpcpd"]
+        end
+    end
+    
+    %% Network connections
+    Network -.-> Engine
+    Engine -.-> Network
+    
+    %% Event flow
+    Engine --> EventSys
+    EventSys -->|CONFLICT only one consumer allowed at a time| bpcpd
+    EventSys -->|CONFLICT only one consumer allowed at a time| cfdptest
+    EventSys -->|CONFLICT only one consumer allowed at a time| bpcp
+
+    %% Direct CFDP API calls - Fixed syntax
+    bpcp -.-> bputa
+    cfdptest -.-> bputa
+    
+    %% Client-server relationship
+    bpcp -.->|File Operations| bpcpd
+    cfdptest -.->|Remote Directory Listing| bpcpd
+    
+    style EventQueue fill:#ffcccc
+    style bpcp fill:#ffe6e6
+    style bpcpd fill:#ffe6e6
+    style cfdptest fill:#ffe6e6
+```
+
+
+### COMPONENT RELATIONSHIPS
+                               
+```mermaid
+graph LR
+    bputa["bputa<br/>CFDP Engine"]
+    EventQueue["Event Queue<br/>⚠️ Single Consumer"]
+    
+    bpcp["bpcp<br/>Client"]
+    bpcpd["bpcpd<br/>Server"]
+    cfdptest["cfdptest<br/>Tester"]
+    
+    Network["Remote Peers"]
+    
+    %% Core relationships
+    bputa --> EventQueue
+    bputa <--> Network
+    
+    %% API calls (simplified)
+    bpcp --> bputa
+    cfdptest --> bputa
+    
+    %% Event consumption conflicts
+    EventQueue -.-> bpcp
+    EventQueue -.-> bpcpd
+    EventQueue -.-> cfdptest
+    
+    %% Service relationship
+    bpcp -.-> bpcpd
+    
+    style EventQueue fill:#ff9999
+    style bpcp fill:#ffcccc
+    style bpcpd fill:#ffcccc
+    style cfdptest fill:#ffcccc
+
+```
+
+### INTERACTION PATTERNS
+                                  
+#### Normal File Copy:
+```mermaid
+sequenceDiagram
+    participant User
+    participant bpcp
+    participant bputa_local as bputa (Local)
+    participant Network
+    participant bputa_remote as bputa (Remote)
+    participant FileSystem as File System (Remote)
+    participant bpcp_event as bpcp Event Thread
+
+    User->>bpcp: bpcp file.txt remote-host:/path/file.txt
+    bpcp->>bputa_local: cfdp_put(file.txt)
+    bpcp->>bpcp_event: Start event monitoring
+    bputa_local->>Network: CFDP PDUs
+    Network->>bputa_remote: CFDP PDUs
+    bputa_remote->>FileSystem: Write file.txt
+    bputa_remote->>Network: Acknowledgment PDUs
+    Network->>bputa_local: Acknowledgment PDUs
+    bputa_local->>bpcp_event: Transaction Complete Event
+    bpcp_event->>bpcp: Transfer completed
+    bpcp->>User: Success/Failure status
+```
+    
+Bpcp Directory Listing:  
+```mermaid
+sequenceDiagram
+    participant User
+    participant bpcp
+    participant bputa_local as bputa (Local)
+    participant Network
+    participant bputa_remote as bputa (Remote)
+    participant bpcpd_remote as bpcpd (Remote)
+    participant FileSystem as File System (Remote)
+    participant bpcp_event as bpcp Event Thread
+
+    User->>bpcp: bpcp -r remote-host:/dir/ /local/dir/
+    bpcp->>bputa_local: cfdp_rls("/dir/", "temp_listing.txt")
+    bpcp->>bpcp_event: Monitor for directory listing response
+    bputa_local->>Network: Directory listing request PDU
+    Network->>bputa_remote: Directory listing request PDU
+    bputa_remote->>bpcpd_remote: Directory listing event
+    bpcpd_remote->>FileSystem: opendir(), readdir()
+    FileSystem->>bpcpd_remote: Directory contents
+    bpcpd_remote->>bputa_remote: Send directory listing file
+    bputa_remote->>Network: Directory listing response PDUs
+    Network->>bputa_local: Directory listing response PDUs
+    bputa_local->>bpcp_event: Directory listing complete event
+    bpcp_event->>bpcp: Directory listing received
+    bpcp->>bpcp: Parse directory, start file transfers
+```
+
+Cfdptest Remote Directory Listing (similar to BPCP case):
+```mermaid
+sequenceDiagram
+    participant User
+    participant cfdptest
+    participant bputa_local as bputa (Local)
+    participant Network
+    participant bputa_remote as bputa (Remote)
+    participant bpcpd
+    participant FileSystem as File System (Remote)
+    participant event_thread as cfdptest Event Thread
+
+    User->>cfdptest: Interactive: L /remote/directory mylisting.txt
+    cfdptest->>bputa_local: cfdp_rls("/remote/directory", "mylisting.txt")
+    cfdptest->>event_thread: Wait for directory listing response
+    bputa_local->>Network: Directory listing request PDU
+    Network->>bputa_remote: Directory listing request PDU
+    bputa_remote->>bpcpd: Directory listing event
+    bpcpd->>FileSystem: opendir(), readdir()
+    FileSystem->>bpcpd: Directory entries
+    bpcpd->>bputa_remote: Create and send listing file
+    bputa_remote->>Network: Directory listing file PDUs
+    Network->>bputa_local: Directory listing file PDUs
+    bputa_local->>event_thread: Directory listing complete event
+    event_thread->>cfdptest: Directory Listing: SUCCESS
+    cfdptest->>User: Display success message
+```
+
+
+## CFDP Event Types
+
+- **0**: CfdpNoEvent (internal interrupt, not relevant to user)
+- **1**: CfdpTransactionInd (transaction started)
+- **2**: CfdpEofSentInd (EOF sent)
+- **3**: CfdpTransactionFinishedInd (transaction finished)
+- **4**: CfdpMetadataRecvInd (metadata received)
+- **5**: CfdpFileSegmentRecvInd (file data segment received)
+- **6**: CfdpEofRecvInd (EOF received)
+- **7**: CfdpSuspendedInd (suspended)
+- **8**: CfdpResumedInd (resumed)
+- **9**: CfdpReportInd (transaction report)
+- **10**: CfdpFaultInd (fault)
+- **11**: CfdpAbandonedInd (abandoned)
+
+---
+
+The following is a list (non-exhaustive) of CFDP events and state information available through the `cfdptest` test utility or using `cfdp_get_event()` API.
+
+## Field Meanings by Event Type
+
+### **Event 1: CfdpTransactionInd (Transaction Started)**
+**Occurs:** When sender initiates a file transfer
+
+| Field | Typical Values | Meaning |
+|-------|----------------|---------|
+| **Condition** | `0` (CfdpNoError) | Transaction setup successful |
+| **Progress** | `0` bytes | No data sent yet |
+
+---
+
+### **Event 2: CfdpEofSentInd (EOF Sent)**
+**Occurs:** When sender finishes transmitting all file data
+
+| Field | Typical Values | Meaning |
+|-------|----------------|---------|
+| **Condition** | `0` (CfdpNoError) | File data transmission completed successfully |
+| **Progress** | File size | All file data has been transmitted (at least once) |
+
+**Key Insight:** This event means "I sent everything" but doesn't guarantee receiver got it.
+
+---
+
+### **Event 3: CfdpTransactionFinishedInd (Transaction Finished)** 
+**Occurs:** When transaction completes (most important event for diagnostics)
+
+#### **Acknowledged Mode (closureLatency > 0):**
+
+| Condition | DeliveryCode | FileStatus | Meaning |
+|-----------|--------------|------------|---------|
+| **0** (NoError) | **0** (Complete) | **2** (Retained) | **SUCCESS** - Finish PDU received (sender), file delivered/received and saved (receiver) |
+| **0** (NoError) | **0** (Complete) | **0** (Discarded) | File delivered (sender) but receiver discarded it (checksum/policy issue) |
+| **0** (NoError) | **1** (Incomplete) | **3** (Unreported) | Finish PDU received (sender) but receiver reports problems |
+| **10** (CheckLimitReached) | **1** (Incomplete) | **3** (Unreported) | **TIMEOUT** - Finish PDU never received (sender) |
+| **5** (ChecksumFailure) | **1** (Incomplete) | **0** (Discarded) | Receiver detected file corruption (receiver) |
+| **15** (CancelRequested) | **1** (Incomplete) | **3** (Unreported) | User cancelled transaction (sender/receiver) |
+
+#### **Unacknowledged Mode (closureLatency = 0):**
+
+| Condition | DeliveryCode | FileStatus | Meaning |
+|-----------|--------------|------------|---------|
+| **0** (NoError) | **1** (Incomplete) | **3** (Unreported) | **NORMAL (sender side)** - File sent successfully, no confirmation expected at sender side |
+| **0** (NoError) | **0** (Complete) | **2** (Retained) | **SUCCESS (receiver side)** - File sent successfully, file saved |
+| **15** (CancelRequested) | **1** (Incomplete) | **3** (Unreported) | ❌ User cancelled transaction |
+
+**Key Insight:** Only `condition=0` + `deliveryCode=0` + `fileStatus=2` means guaranteed success!
+
+---
+
+### **Event 4: CfdpMetadataRecvInd (Metadata Received)**
+**Occurs:** When receiver gets file transfer metadata (receiver side)
+
+| Field | Typical Values | Meaning |
+|-------|----------------|---------|
+| **Condition** | `0` (CfdpNoError) | Metadata processed successfully |
+| **Progress** | `0` bytes | No file data received yet |
+
+---
+
+### **Event 5: CfdpFileSegmentRecvInd (File Data Received)**
+**Occurs:** Periodically as receiver gets file data chunks
+
+| Field | Typical Values | Meaning |
+|-------|----------------|---------|
+| **Condition** | `0` (CfdpNoError) | Data segment received and processed |
+| **Progress** | Increasing | Bytes received so far |
+
+---
+
+### **Event 6: CfdpEofRecvInd (EOF Received)**
+**Occurs:** When receiver gets EOF PDU (receiver side)
+
+| Field | Possible Values | Meaning |
+|-------|----------------|---------|
+| **Condition** | `0` (CfdpNoError) | EOF received, checking file completeness |
+| **Condition** | `5` (ChecksumFailure) | File corruption detected |
+| **Condition** | `9` (InvalidFileStructure) | File structure problems |
+| **Progress** | Expected file size | Total bytes that should have been received |
+
+---
+
+### **Event 7: CfdpSuspendedInd (Suspended)**
+**Occurs:** When transaction is paused
+
+| Field | Typical Values | Meaning |
+|-------|----------------|---------|
+| **Condition** | `14` (SuspendRequested) | User/system requested suspension |
+| **DeliveryCode** | `1` (Incomplete) | Transfer paused |
+| **FileStatus** | `3` (Unreported) | Transfer incomplete |
+| **Progress** | Current bytes | Progress when suspended |
+
+---
+
+### **Event 8: CfdpResumedInd (Resumed)**
+**Occurs:** When suspended transaction restarts
+
+| Field | Typical Values | Meaning |
+|-------|----------------|---------|
+| **Condition** | `0` (CfdpNoError) | Resume successful |
+| **DeliveryCode** | `1` (Incomplete) | Transfer continuing |
+| **FileStatus** | `3` (Unreported) | Transfer still in progress |
+| **Progress** | Resume point | Bytes completed when resumed |
+
+---
+
+### **Event 9: CfdpReportInd (Transaction Report)**
+**Occurs:** When user requests transaction status
+
+| Field | Meaning |
+|-------|---------|
+| **Condition** | Current transaction condition |
+| **Progress** | Current progress |
+
+**Key Insight:** This is a snapshot of current transaction state, not an event-triggered change.
+
+---
+
+### **Event 10: CfdpFaultInd (Fault)**
+**Occurs:** When recoverable errors occur
+
+| Condition | Meaning |
+|-----------|---------|
+| **1** (AckLimitReached) | Too many retransmissions |
+| **4** (FilestoreRejection) | Receiver rejected file operation |
+| **5** (ChecksumFailure) | Data corruption detected |
+| **6** (FileSizeError) | File size mismatch |
+| **8** (InactivityDetected) | No progress for too long |
+
+**DeliveryCode/FileStatus:** Reflect current state when fault occurred.
+
+---
+
+### **Event 11: CfdpAbandonedInd (Abandoned)**
+**Occurs:** When transaction cannot recover from faults
+
+| Field | Typical Values | Meaning |
+|-------|----------------|---------|
+| **Condition** | Various fault codes | The fault that caused abandonment |
+| **DeliveryCode** | `1` (Incomplete) | Transfer failed |
+| **FileStatus** | `0` (Discarded) or `3` (Unreported) | File not delivered |
+| **Progress** | Last known progress | How much was completed before failure |
+
+---
+
+## Condition Code Reference
+
+| Code | Name | Meaning |
+|------|------|---------|
+| **0** | CfdpNoError | Success/Normal operation |
+| **1** | CfdpAckLimitReached | Too many ACK retries |
+| **2** | CfdpKeepaliveLimitReached | Keepalive timeout |
+| **3** | CfdpInvalidTransmissionMode | Wrong CFDP mode |
+| **4** | CfdpFilestoreRejection | File operation rejected |
+| **5** | CfdpChecksumFailure | Data corruption |
+| **6** | CfdpFileSizeError | File size mismatch |
+| **7** | CfdpNakLimitReached | Too many NAKs |
+| **8** | CfdpInactivityDetected | No activity timeout |
+| **9** | CfdpInvalidFileStructure | Malformed file |
+| **10** | CfdpCheckLimitReached | **Finish PDU timeout** |
+| **11** | CfdpUnsupportedChecksumType | Unknown checksum |
+| **14** | CfdpSuspendRequested | User suspension |
+| **15** | CfdpCancelRequested | User cancellation |
+
+## DeliveryCode Reference
+
+| Code | Name | Meaning |
+|------|------|---------|
+| **0** | CfdpDataComplete | All data successfully delivered |
+| **1** | CfdpDataIncomplete | Data missing/incomplete/in-progress |
+
+## FileStatus Reference
+
+| Code | Name | Meaning |
+|------|------|---------|
+| **0** | CfdpFileDiscarded | File was discarded (error/policy) |
+| **1** | CfdpFileRejected | File delivery was rejected |
+| **2** | CfdpFileRetained | File successfully stored |
+| **3** | CfdpFileStatusUnreported | Status unknown/not available |

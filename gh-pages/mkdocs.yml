@@ -40,9 +40,14 @@ markdown_extensions:
       generic: true
   - footnotes
   - pymdownx.details
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.mark
   - attr_list
+
 
 copyright:
   Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.  
@@ -80,7 +85,7 @@ nav:
     - Platform Macros & Error Reporting: Platform-Macros-Error-Reporting.md
     - ION Utility Programs: ION-Utilities.md
     - ION Coding Guide: ION-Coding-Guide.md
-    - CFDP Event Definitions: CFDP-Event-Definitions.md
+    - CFDP SW Architecture: CFDP-SW-Architecture.md
     - SPP CLA Prototype Description: SPP-CLA-Prototype-Description.md
   - Man Pages:
     - Man Pages: Man-Page-Introduction.md
