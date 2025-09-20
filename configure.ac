@@ -253,7 +253,7 @@ AM_CONDITIONAL([ENABLE_INSTALL_MESSAGES], [test "$enable_install_messages" = yes
 # ION will build BPv7 only
 #
 
-VER="4.1.3s"
+VER="4.1.4-a.2"
 VER="-DVNAME=ION-OPEN-SOURCE-$VER"
 AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv7"
 BUILD_BPv7=true

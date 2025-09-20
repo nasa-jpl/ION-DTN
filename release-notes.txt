@@ -1,6 +1,6 @@
-= Release Notes for ION 4.1.4-a.1 =
+= Release Notes for ION 4.1.4-a.2 =
 
-January 22, 2025
+September 19, 2025
 
 %%%%%%%%%%%
 = GENERAL =
@@ -64,6 +64,62 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 4.1.4-a.2 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+This release introduces several new experimental features, key updates, and 
+bug fixes while removing obsolete code.
+
+Removal of BPv6
+
+The BPv6 codebase has been removed starting with this release. This legacy 
+code had remained unchanged since ION version 3.7.4. For users who still 
+require BPv6, the final stable release containing it is ION 4.1.3s.
+
+Experimental Features
+
+- Dual-Stack for UDPCLA: Introduced experimental support for IPv4 and IPv6 
+  dual-stack networking in the UDP Convergence Layer Adapter.
+
+- 'IPN' URI Scheme: Added a prototype implementation for the updated 'IPN' 
+  URI scheme, as specified in RFC 9758.
+
+- SPP Convergence Layer: Included a prototype of the Space Packet Protocol 
+  (SPP) convergence layer adapter for experimentation.
+
+Improvements & Stability Fixes
+
+- Security: A new, robust, and platform-native entropy polling module has 
+  been added to meet high-integrity standards for cryptographic key generation.
+
+- Networking: An address caching and re-resolution mechanism was added for 
+  the UDPCL output and LSO daemons (UDPCLO/UDPLSO).
+
+- The ION codebase has been decoupled from GNU-C extensions to improve 
+  portability.
+
+- ION can now be compiled on MUSL libc using the Clang compiler. 
+    Due to limitation of the maximum allowed named semaphores for MUSL, it 
+    is recommended that user deploy only 1 instance of ION per host. Many
+    regression tests are expected to fail since they require multiple instances
+    of ION running simultaneously on the same host.
+
+- Fixed a bug in the ionlauncher capability.
+
+- Resolved an issue in the ionTerminate function that caused crashes 
+  during the ION shutdown process.
+
+- Corrected a bug that allowed a node to source a bundle with an incorrect 
+  node number.
+
+- The cfdptest program was updated to provide detailed event reporting and 
+  a new directory listing command. The event reporting API was also enhanced 
+  to deliver more detailed file transfer status and progress.
+
+- The obsolete civetweb-based REST API for the network management module 
+  has been removed.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 4.1.4-a.1 =
