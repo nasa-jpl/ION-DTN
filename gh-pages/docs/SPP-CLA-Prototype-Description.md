@@ -1,6 +1,8 @@
 # A CCSDS Space Packet Protocol (SPP) CLA Prototype in ION
 
-**December 2024**
+**September 2025**
+
+*Note: This experiment module (as of ION 4.1.4-a.2 release) is built and dynamically linked to an underlying Space Packet Protocol (SPP) emulation software. Users can examine the header prototype to reconstruct the SPP emulator underneath to use this prototype. The emulator software is a submodule under the `contrib` folder and is not yet publicly available.*
 
 ## SPP CLA Description
 
