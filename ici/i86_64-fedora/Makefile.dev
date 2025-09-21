@@ -31,6 +31,7 @@ LIBICIOBJS = \
 	entropy_src.o \
 	secrypt.o \
 	ionsec.o \
+	libicinm.o \
 	crypto.o \
 	csi.o \
 	crc.o \
@@ -84,7 +85,7 @@ UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend ionwarn ionunlock ion
 
 TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh smrbtsh owltsim owlttb
 
-ALL = check libici.so libicinm.so libsecrypt.so rfxclock $(UTILITIES) $(TESTPGMS)
+ALL = check libici.so rfxclock $(UTILITIES) $(TESTPGMS)
 
 all:		$(ALL)
 
@@ -106,7 +107,6 @@ install:
 
 uninstall:		
 		rm $(ROOT)/lib/libici.so
-		rm $(ROOT)/lib/libicinm.so
 		for file in $(PUBINCLS); \
 			do rm $(ROOT)/include/$(notdir $$file); done
 		rm $(ROOT)/bin/rfxclock
@@ -200,14 +200,6 @@ rfxclock:	rfxclock.o libici.so
 libici.so:	$(LIBICIOBJS)
 		$(LD) -o libici.so $(LIBICIOBJS)
 		cp libici.so ./lib
-
-libicinm.so:	libicinm.o $(INCL)/icinm.h
-		$(LD) -o libicinm.so libicinm.o
-		cp libicinm.so ./lib
-
-libsecrypt.so:	secrypt.o
-		$(LD) -o libsecrypt.so secrypt.o
-		cp libsecrypt.so ./lib
 
 #	-	-	Object modules	-	-	-	-	-
 
