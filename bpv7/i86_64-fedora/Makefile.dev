@@ -35,7 +35,7 @@ UNIBO_CGR = 0
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3 -DENABLE_IMC -DBPSEC
 # OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3 -DENABLE_IMC -DBPSEC -DUNIBO_CGR -DUNIBO_CGR_ENH_WITHOUT_EXP_EXTENSIONS
-CC = gcc $(OPT) $(ADD_FLAGS) -I$(METADATA) -I$(IPN) -I$(IMC) -I$(SAGA) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/pnb -I$(API)/ext/bpq -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/hcb -I$(API)/ext/bpsec -I$(API)/ext/snw -I$(API)/ext/imc -I$(BIBE) -I$(BPSEC)/instr -I$(BPSEC)/policy -I$(BPSEC)/sci -I$(BPSEC)/utils -I$(STCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -I$(ICI_INCL) -I../../ici/library -I../../ici/crypto/NULL_SUITES -I$(LTP_INCL) -I../../dgr/include -I$(BSSP_INCL) -I$(BLOOM_INCL) -L$(ICI_LIB) -L$(LTP_LIB) -L$(DGR_LIB) -L$(BSSP_LIB) -L$(BLOOM_LIB) -DBP_EXTENDED
+CC = gcc $(OPT) $(ADD_FLAGS) -I$(METADATA) -I$(IPN) -I$(IMC) -I$(SAGA) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/pnb -I$(API)/ext/bpq -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/hcb -I$(API)/ext/bpsec -I$(API)/ext/snw -I$(API)/ext/imc -I$(BIBE) -I$(BPSEC)/instr -I$(BPSEC)/policy -I$(BPSEC)/sci -I$(BPSEC)/utils -I$(STCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -I$(ICI_INCL) -I../../ici/library -I../../ici/crypto -I../../ici/crypto/NULL_SUITES -I$(LTP_INCL) -I../../dgr/include -I$(BSSP_INCL) -I$(BLOOM_INCL) -L$(ICI_LIB) -L$(LTP_LIB) -L$(DGR_LIB) -L$(BSSP_LIB) -L$(BLOOM_LIB) -DBP_EXTENDED
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -146,8 +146,8 @@ bibeadmin:	bibeadmin.o $(BPLIBS)
 		$(CC) -o bibeadmin bibeadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bibeadmin ./bin
 
-bpsecadmin:	bpsecadmin.o $(BPLIBS)
-		$(CC) -o bpsecadmin bpsecadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+bpsecadmin:	bpsecadmin.o bpsecadmin_config.o jsmn.o $(BPLIBS)
+		$(CC) -o bpsecadmin bpsecadmin.o bpsecadmin_config.o jsmn.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpsecadmin ./bin
 
 ipnadmin:	ipnadmin.o $(BPLIBS) libbp.so
@@ -209,6 +209,10 @@ bpversion:	bpversion.o
 bpcrash:	bpcrash.o
 		$(CC) -o bpcrash bpcrash.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpcrash ./bin
+
+bptracker:	bptracker.o $(BPLIBS)
+		$(CC) -o bptracker bptracker.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp bptracker ./bin
 
 #	-	-	IPN executables	-	-	-	-	-
 

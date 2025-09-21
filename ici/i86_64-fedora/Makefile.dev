@@ -6,10 +6,11 @@ DAEMON = ../daemon
 SDR = ../sdr
 CRYPTO = ../crypto/NULL_SUITES
 BULK = ../bulk/STUB_BULK
+CRYPTO_PARENT = ../crypto
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
-CC = gcc $(OPT) $(ADD_FLAGS) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I$(CRYPTO) -I../crypto 
+CC = gcc $(OPT) $(ADD_FLAGS) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I$(CRYPTO) -I$(CRYPTO_PARENT) 
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -26,6 +27,9 @@ LIBICIOBJS = \
 	sptrace.o \
 	ion.o \
 	rfx.o \
+	ion_network.o \
+	entropy_src.o \
+	secrypt.o \
 	ionsec.o \
 	crypto.o \
 	csi.o \
@@ -54,6 +58,7 @@ PUBINCLS = \
 	$(INCL)/sptrace.h \
 	$(INCL)/ion.h \
 	$(INCL)/rfx.h \
+	$(INCL)/ion_network.h \
 	$(INCL)/ionsec.h \
 	$(INCL)/crypto.h \
 	$(INCL)/csi.h \
@@ -68,7 +73,7 @@ PUBINCLS = \
 	$(INCL)/sdrtable.h \
 	$(INCL)/sdrhash.h \
 	$(INCL)/sdr.h \
-	$(INCL)/icinm.h 
+	$(INCL)/icinm.h
 
 ICIINCLS = \
 	$(SRC)/radixP.h \
@@ -213,6 +218,9 @@ libsecrypt.so:	secrypt.o
 		$(CC) -c $<
 
 %.o:		$(CRYPTO)/%.c
+		$(CC) -c $<
+
+%.o:		$(CRYPTO_PARENT)/%.c
 		$(CC) -c $<
 
 %.o:		$(BULK)/%.c
