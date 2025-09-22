@@ -60,9 +60,17 @@
     - [LTP Timeout Intervals](#ltp-timeout-intervals)
     - [CFDP](#cfdp)
     - [List data structures (lyst, sdrlist, smlist)](#list-data-structures-lyst-sdrlist-smlist)
+  - [SDR (Simple Data Recorder) Module](#sdr-simple-data-recorder-module)
+    - [Persistent Object Storage](#persistent-object-storage)
+    - [ACID Transaction Management](#acid-transaction-management)
+    - [Memory Management](#memory-management)
+    - [Object Catalog System](#object-catalog-system)
+    - [Key SDR structures:](#key-sdr-structures)
+    - [SDR Heap Structure](#sdr-heap-structure)
+  - [PSM (Platform Specific Memory) Module](#psm-platform-specific-memory-module)
+    - [Key PSM structures:](#key-psm-structures)
     - [PSM Partition Structure](#psm-partition-structure)
     - [PSM and SDR Block Structures](#psm-and-sdr-block-structures)
-    - [SDR Heap Structure](#sdr-heap-structure)
   - [Operations](#operations)
     - [Interplanetary Communication Infrastructure (ICI)](#interplanetary-communication-infrastructure-ici)
       - [Compile-time options](#compile-time-options)
@@ -660,6 +668,25 @@ single PSM "partition". The size of the partition is specified in the
 **wmSize** parameter of the ionconfig file supplied at the time ION is
 initialized.
 
+The SDR service (described later) also utilizes PSM to management its
+working memory as a second PSM partition. The size is specified in the
+**sdrWMSize** parameter of the ionconfig file.
+
+In summary, PSM manages working memories in ION suite as follows:
+
+```text
+PSM Working Memory Partitions:
+├── SDR Working Memory (_sdrwm) - USED ONLY by the SDR service
+│
+└── ION Working Memory (_ionwm) - SHARED by all protocols
+    ├── IonVdb (ION core volatile database)
+    ├── BpVdb (Bundle Protocol volatile database)  
+    ├── CfdpVdb (CFDP volatile database)
+    ├── LtpVdb (LTP volatile database)
+    ├── Security policy structures
+    └── Contact plan and routing structures
+```
+
 #### Heap
 
 ION's "heap" is a fixed-size pool of notionally non-volatile storage
@@ -680,12 +707,11 @@ only if that memory is battery-backed. Otherwise heap storage is in
 reality as volatile as working memory: heap contents will be lost upon a
 system power cycle (which may in fact be the preferred behavior for any
 given deployment of ION). However, the heap should not be thought of as
-\"memory\" even when it in fact resides only in DRAM, just as a disk
-device should not be thought of as \"memory\" even when it is in fact a
+"memory" even when it in fact resides only in DRAM, just as a disk
+device should not be thought of as "memory" even when it is in fact a
 RAM disk.
 
-![ION heap space use](./media-ion-guide/media/image18.png){width="4.738575021872266in"
-height="3.338542213473316in"}
+![ION heap space use](./media-ion-guide/media/image18.png)
 
 The ION heap (Figure 5) is used for storage of data that (in at least some
 deployments) would have to be retained in the event of a system power
@@ -2395,17 +2421,89 @@ flight operations.
 
 ![ION list data structures](./media-ion-guide/media/image16.png)
 
-### PSM Partition Structure
+## SDR (Simple Data Recorder) Module
 
+### Persistent Object Storage
+
+Object-Based Storage: Manages data as individual objects rather than requiring applications to manage files
+Flat Address Space: Provides a unified addressing scheme across all stored objects
+Dual-Mode Storage: Can store data in both volatile memory and persistent files
+
+### ACID Transaction Management
+
+Transaction Support: All SDR operations occur within transactions (sdr_begin_xn, sdr_end_xn)
+Write-Ahead Logging: Maintains transaction logs for rollback capability
+Atomic Operations: Ensures data consistency across system crashes
+Reversible Transactions: Can rollback incomplete transactions on restart
+
+### Memory Management
+
+Two-Tier Allocation:
+- Small Pool: For objects ≤ 256 bytes (fixed-size buckets)
+- Large Pool: For larger objects (variable-size with coalescing)
+Heap Management: Custom allocation algorithms optimized for space efficiency
+Garbage Collection: Automatic space reclamation when objects are freed
+
+### Object Catalog System
+
+Named Object Storage: Objects can be cataloged by name for easy retrieval
+Type Management: Associates type information with stored objects
+Persistent References: Objects referenced by `Object` handles (addresses)
+
+### Key SDR structures:
+
+```text
+SDR Dataspace Structure:
+├── SdrMap (heap metadata)
+│   ├── Small pool free lists  
+│   ├── Large pool free lists
+│   └── Heap management info
+├── Small Pool (≤256 byte objects)
+├── Large Pool (>256 byte objects)  
+└── Unassigned Space
+```
+Purpose: Persistent application data storage
+Location: Either/both DRAM and file storage
+Access: Via SDR transactions (`sdr_malloc`, `sdr_free`)
+
+### SDR Heap Structure
+
+![sdr heap structure](./media-ion-guide/media/image19.png)
+
+## PSM (Platform Specific Memory) Module
+
+The PSM module provides the foundation for managing memory partitions 
+in ION. It's a general-purpose memory management system that supports:
+
+- Working Memory Role: PSM manages volatile shared memory partitions that serve as "working memory"
+- Memory Partition Management: Provides allocation/deallocation (`psm_malloc`, `psm_free`, `psm_zalloc`)
+- Address Translation: Handles conversion between absolute pointers and partition-relative addresses (`psp()`, `psa()`)
+- Pool-Based Allocation: Uses small pools (for blocks ≤ 256 bytes) and large pools (for bigger allocations)
+
+### Key PSM structures:
+
+`PartitionMap`: Contains metadata about memory partition state, free block buckets, and space management
+`PsmPartition`: Represents a memory partition that can be shared across processes
+
+```text
+SDR Working Memory = PSM Partition
+├── SdrControlHeader (coordination between processes)
+├── SdrState objects (per-SDR metadata) 
+├── Transaction logs (for rollback)
+└── Management structures
+```
+
+Purpose: Volatile coordination and metadata
+Location: Shared memory partition managed by PSM
+Access: Via `_sdrwm()` function returning `PsmPartition`
+
+### PSM Partition Structure
 ![psm partition structure](./media-ion-guide/media/image12.png)
 
 ### PSM and SDR Block Structures
 
 ![psm and sdr block structures](./media-ion-guide/media/image11.png)
 
-### SDR Heap Structure
-
-![sdr heap structure](./media-ion-guide/media/image19.png)
 
 ## Operations
 
