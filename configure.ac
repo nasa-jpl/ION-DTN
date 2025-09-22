@@ -108,9 +108,9 @@ AC_CHECK_FUNCS([pow])
 
 # Check Platform and Architecture
 m4_include([m4/dccp_macro.m4])
-AM_CFLAGS=""
-AM_LDFLAGS=""
-AM_LIBTOOLFLAGS=""
+#AM_CFLAGS=""
+#AM_LDFLAGS=""
+#AM_LIBTOOLFLAGS=""
 PLATFORM=""
 S_LIB_END="so"
 case $host_os in
