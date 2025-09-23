@@ -6,6 +6,11 @@
 #ifndef ION_NETWORK_H
 #define ION_NETWORK_H
 
+/* POSIX feature test macros - portable across all Unix systems, no GNU */
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200112L  /* POSIX.1-2001: includes getaddrinfo() */
+#endif
+
 #include <netdb.h>
 #include <sys/socket.h>
 #include "platform.h"
