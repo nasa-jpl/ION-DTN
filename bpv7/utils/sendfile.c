@@ -28,17 +28,14 @@
  * @copyright 2023, California Institute of Technology.	All rights reserved.
  */
 
-#ifndef darwin
-#ifndef freebsd
-/* needed to compile on 32-bit Raspberry PI */
-#define _GNU_SOURCE */
-/* macos/darwin handles this differently */
-/* #define _POSIX_C_SOURCE 200112L */
-#endif
-#endif
+ /* 
+ * CRITICAL: bp.h must be included FIRST to ensure platform.h 
+ * feature test macros are processed before any system headers.
+ * This provides proper POSIX compliance for all platforms.
+ */
+ #include <bp.h>
 
 #include "ionsec.h"
-#include <bp.h>
 #include <metadata.h> 
 #include <secrypt.h>
 

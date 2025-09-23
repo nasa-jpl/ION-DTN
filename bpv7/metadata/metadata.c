@@ -46,18 +46,8 @@
  * @copyright 2024, California Institute of Technology. All rights reserved.
  */
 
-#ifndef darwin
-#ifndef freebsd
-/* needed to pass on 32 bits OS on Raspberry PIs*/
-#define _GNU_SOURCE 
-/* macos/darwin and freebsd handle this differently */
-/* #define _POSIX_C_SOURCE 200112L */
-#endif
-#endif
-
-#include "metadata.h"
 #include <bp.h>
-
+#include "metadata.h"
 
 /******************************************************************************/
 /*    CORE FUNCTIONS    CORE FUNCTIONS    CORE FUNCTIONS    CORE FUNCTIONS    */
