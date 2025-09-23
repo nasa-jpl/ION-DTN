@@ -473,7 +473,7 @@ tnv_t *dtn_ion_ipnadmin_ctrl_plan_del(eid_t *def_mgr, tnvc_t *parms, int8_t *sta
 	 * |START CUSTOM FUNCTION ctrl_plan_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	int success;
+	int success = 1;
 	uvast fqnn = 0;
 
 	fqnn = getFqn(adm_get_parm_obj(parms,0,AMP_TYPE_STR));
