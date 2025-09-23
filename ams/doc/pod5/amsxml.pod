@@ -8,7 +8,15 @@ The Management Information Base (MIB) for an AMS communicating entity (either
 B<amsd> or an AMS application module) must contain enough information to
 enable the entity to initiate participation in AMS message exchange, such
 as the network location of the configuration server and the roles and message
-subjects defined for some venture.
+subjects defined for some venture. 
+
+A recent update to AMS introduced an explicit routing model to support modern
+three-part IPN endpoint IDs and work around the 16-bit limitation of continuum
+numbers. This change decouples the application-layer AMS continuum number from
+the transport-layer network node number. Routing information is now explicitly
+defined using a mandatory Gateway Endpoint ID (gweid) for each message space,
+which maps the continuum to a specific network gateway address (e.g., a Bundle
+Protocol endpoint).
 
 AMS entities automatically load their MIBs from initialization files at
 startup.  When AMS is built with the -DNOEXPAT compiler option set, the
@@ -86,7 +94,9 @@ in order for the file to be parsed successfully by expat.
 
 			<unit nbr="3" name="orbiters.far"/>
 
-			<msgspace nbr="2"/>
+            <msgspace nbr="1" neighbor="1" gweid="bp@ipn:1.1"/>
+
+            <msgspace nbr="2" neighbor="0" gweid="bp@ipn:2.1"/>
 
 		</venture>
 

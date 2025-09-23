@@ -10,8 +10,16 @@ enable the entity to initiate participation in AMS message exchange, such
 as the network location of the configuration server and the roles and message
 subjects defined for some venture.
 
+A recent update to AMS introduced an explicit routing model to support modern 
+three-part IPN endpoint IDs and work around the 16-bit limitation of continuum 
+numbers.  This change decouples the application-layer AMS continuum number 
+from the transport-layer network node number.  Routing information is now 
+explicitly defined using a mandatory Gateway Endpoint ID (gweid) for each 
+message space, which maps the continuum to a specific network gateway address 
+(e.g., a Bundle Protocol endpoint).
+
 AMS entities automatically load their MIBs from initialization files at
-startup.  When AMS is built with the -DNOEXPAT compiler option set, the
+startup. When AMS is built with the -DNOEXPAT compiler option set, the
 MIB initialization file must conform to the I<amsrc> syntax described
 below; otherwise the I<expat> XML parsing library must be linked into
 the AMS executable and the MIB initialization file must conform to the
@@ -457,7 +465,9 @@ is omitted, resynchronization in that cell is disabled.
 =item B<msgspace>
 
 Identifies one of the message spaces in remote continua that are encompassed
-by the venture that is the element that's currently being configured.
+by the venture that is the element that's currently being configured.  Each
+msgspace definition maps a remote continuum number to a specific network
+gateway address.
 
 Sub-elements: none
 
@@ -469,10 +479,10 @@ Attributes:
 
 Identifies the remote continuum within which the message space operates.
 
-=item gweid
+=item B<gweid>
 
-Identifies the RAMS network endpoint ID of the RAMS gateway module for
-this message space.  Gateway endpoint ID is expressed as
+(Mandatory) Identifies the RAMS network endpoint ID of the RAMS gateway 
+module for this message space.  Gateway endpoint ID is expressed as
 <protocol_name>@<eid_string> where I<protocol_name> is either "bp"
 or "udp".  If protocol name is "bp" then I<eid_string> must be a
 valid Bundle Protocol endpoint ID; otherwise, I<eid_string> must be
@@ -547,9 +557,9 @@ is omitted the default value is 1.
 
 *unit nbr=3 name=orbiters.far
 
-*msgspace nbr=1 neighbor=1
+*msgspace nbr=1 neighbor=1 gweid='bp@ipn:1.1'
 
-*msgspace nbr=2 neighbor=0
+*msgspace nbr=2 neighbor=0 gweid='bp@ipn:2.1'
 
 -venture
 
