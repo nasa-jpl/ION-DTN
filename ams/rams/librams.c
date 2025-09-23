@@ -728,7 +728,6 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	int			amsMemory;
 	AmsModule		amsModule;
 	AmsMib			*mib;
-	short			ownContinuumNbr;
 	Subject			*ownMsgspace = NULL;
 	RamsGateway		*gWay;
 	LystElt			elt;
