@@ -134,8 +134,68 @@ echo "Deleting Posix Named Semaphores..."
 #ls /dev/shm/sem.ion:GLOBAL*
 #s /tmp/.SEM*ion:GLOBAL*
 
-rm -f /dev/shm/sem.ion:GLOBAL* /tmp/.SEM*ion:GLOBAL* || (echo '*** Re-run killm with sudo to remove remaining semaphores: '; find /dev/shm /tmp/ -name 'sem.ion:GLOBAL*' -o -name '/tmp/.SEM*ion:GLOBAL*' 2>/dev/null)
+# Function to safely remove semaphore files
+remove_semaphores() {
+    local path="$1"
+    local pattern="$2"
+    
+    if [ -d "$path" ]; then
+        local files=$(find "$path" -name "$pattern" 2>/dev/null)
+        if [ -n "$files" ]; then
+            echo "Removing from $path:"
+            echo "$files"
+            rm -f $files 2>/dev/null
+        fi
+    fi
+}
 
+# Function to find remaining semaphores
+find_remaining() {
+    local remaining=""
+    
+    # Check all possible paths
+    for path in "/dev/shm" "/tmp" "/tmp/.LIBRT/SEMD" "/tmp/.LIBRT/SEMDL"; do
+        if [ -d "$path" ]; then
+            local found=$(find "$path" -maxdepth 1 -name "*ion:GLOBAL*" -o -name "sem.ion:GLOBAL*" -o -name ".SEM*ion:GLOBAL*" 2>/dev/null)
+            if [ -n "$found" ]; then
+                remaining="$remaining$found\n"
+            fi
+        fi
+    done
+    
+    echo -e "$remaining"
+}
+
+echo "Before deletion, POSIX Named Semaphore files:"
+find_remaining
+
+echo -e "\n=== Starting cleanup ==="
+
+# Linux paths (/dev/shm)
+remove_semaphores "/dev/shm" "sem.ion:GLOBAL*"
+
+# Generic /tmp paths
+remove_semaphores "/tmp" ".SEM*ion:GLOBAL*"
+
+# Solaris LIBRT paths
+remove_semaphores "/tmp/.LIBRT/SEMD" "*ion:GLOBAL*"
+remove_semaphores "/tmp/.LIBRT/SEMDL" "*ion:GLOBAL*"
+
+# Check for any remaining semaphores
+echo -e "\n=== Checking for remaining semaphores ==="
+remaining=$(find_remaining)
+
+if [ -n "$remaining" ] && [ "$remaining" != "" ]; then
+    echo "*** WARNING: Some semaphores could not be removed ***"
+    echo "*** Re-run script with sudo to remove remaining semaphores: ***"
+    echo -e "$remaining"
+    exit 1
+else
+    echo "All ion:GLOBAL semaphores removed successfully"
+fi
+
+echo -e "\nAfter deletion, POSIX Named Semaphore files:"
+find_remaining
 # DEBUG: show POSIX Name Semaphore files after removal
 #echo "After deletion, Posix Name Semaphore Files:"
 #ls /dev/shm/sem.ion:GLOBAL*
