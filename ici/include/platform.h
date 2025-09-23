@@ -28,8 +28,7 @@ extern "C" {
 #undef ION_LWT
 #endif
 
-/* Feature test macros for UNIX - must come before any system header */
-
+/* Feature test macros for Unix - must come before any system header */
 #ifdef unix			/****	Feature test macros for UNIX	****/
 
 #ifndef _POSIX_C_SOURCE
@@ -64,7 +63,25 @@ extern "C" {
 #endif
 #endif
 
-#endif				/****	End of feature test macros	****/
+#endif				/****	End of feature test macros	for unix ****/
+
+/* Feture test macro for Solaris */
+#ifdef solaris
+#ifndef __EXTENSIONS__
+#define __EXTENSIONS__		/****	Solaris extensions ****/
+#endif
+#ifndef _POSIX_PTHREAD_SEMANTICS
+#define _POSIX_PTHREAD_SEMANTICS	/****	POSIX pthreads ****/
+#endif
+/* Ensure clock_gettime is available in C11 mode */
+#ifndef _POSIX_TIMERS
+#define _POSIX_TIMERS
+#endif
+/* Alternative approach - force XPG6 compliance */
+#ifndef _XOPEN_SOURCE
+#define _XOPEN_SOURCE 600
+#endif
+#endif /* solaris */
 
 
 /*	NOTE: the -DION4WIN compiler switch is used to indicate that
