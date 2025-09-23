@@ -15,8 +15,8 @@
 #ifndef _HELPER_H_
 #define _HELPER_H_
 
-#include "lyst.h"
 #include "platform.h"
+#include "lyst.h"
 #include "bpP.h"
 
 #ifdef __cplusplus

@@ -7,12 +7,12 @@
  * back (for example, via bpecho), the round-trip time is displayed.
  */
 
-#include <getopt.h>     /* getopt */
 #include <bp.h>
 #include <lyst.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <limits.h>
+#include <getopt.h>     /* getopt */
 
 /*	Note: bping originally used strtok_r to parse responses,
 	but neither strtok_r nor strtok_s are provided by MinGW.	*/

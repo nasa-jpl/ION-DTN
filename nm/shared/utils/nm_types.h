@@ -26,12 +26,11 @@
 #ifndef NM_TYPES_H
 #define NM_TYPES_H
 
-#include <stdint.h>
-#include <string.h>
 #include "platform.h"
-
 #include "debug.h"
 
+#include <stdint.h>
+#include <string.h>
 
 #ifdef __cplusplus
 extern "C" {

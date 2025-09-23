@@ -4,12 +4,12 @@
 
 */
 
+#include "lyst.h"
+#include "cgr.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-
-#include "cgr.h"
-#include "lyst.h"
 
 #define DARK      "\"#444444\""
 #define LIGHT     "\"#F8F8F8\""

@@ -28,6 +28,45 @@ extern "C" {
 #undef ION_LWT
 #endif
 
+/* Feature test macros for UNIX - must come before any system header */
+
+#ifdef unix			/****	Feature test macros for UNIX	****/
+
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L	/****	POSIX.1-2008 functions ****/
+#endif
+
+#ifndef _DEFAULT_SOURCE
+#define _DEFAULT_SOURCE		/****	glibc default functions ****/
+#endif
+
+#ifdef linux
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE
+#endif
+#ifndef _SVID_SOURCE
+#define _SVID_SOURCE
+#endif
+#ifndef _XOPEN_SOURCE
+#define _XOPEN_SOURCE 700
+#endif
+#endif
+
+#ifdef freebsd
+#ifndef __BSD_VISIBLE
+#define __BSD_VISIBLE 1
+#endif
+#endif
+
+#ifdef darwin
+#ifndef _DARWIN_C_SOURCE
+#define _DARWIN_C_SOURCE
+#endif
+#endif
+
+#endif				/****	End of feature test macros	****/
+
+
 /*	NOTE: the -DION4WIN compiler switch is used to indicate that
  *	header code must be rendered suitable for compilation of ION-
  *	based Windows executables in a Visual Studio build environment.
@@ -590,6 +629,7 @@ extern int	irecvfrom(int sockfd, char *buf, int len, int flags,
 #include <netdb.h>
 #include <sys/resource.h>
 #include <sys/time.h>
+#include <pthread.h>
 /*
 ** End of *NIX Headers
 */

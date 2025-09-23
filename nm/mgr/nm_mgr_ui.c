@@ -27,10 +27,6 @@
  **  10/07/18  E. Birrane     Update to AMP v0.5. (JHU/APL)
  *****************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-
 #include "platform.h"
 #include "../shared/nm.h"
 #include "../shared/utils/utils.h"
@@ -43,6 +39,10 @@
 #include "ui_input.h"
 #include "nm_mgr_print.h"
 #include "metadata.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
 
 #ifdef HAVE_MYSQL
 #include "nm_mgr_sql.h"

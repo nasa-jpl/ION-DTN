@@ -196,6 +196,7 @@ ionunlock
 ionwarn
 ionxnowner
 ipnd
+!ipnd/
 ltpdeliv
 ltpsecadmin
 nm_agent
