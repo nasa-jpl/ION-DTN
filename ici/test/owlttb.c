@@ -187,6 +187,8 @@ static void	*recvDownlink(void *parm)
 					timebuf, segLength);
 		}
 	}
+
+	return NULL;
 }
 
 static void	*sendDownlink(void *parm)
@@ -256,6 +258,8 @@ length %d.\n", timebuf, seg->length);
 
 		sm_SemGive(stp->downlinkMutex);
 	}
+
+	return NULL;
 }
 
 static void	*offerDownlink(void *parm)
@@ -356,6 +360,8 @@ static void	*offerDownlink(void *parm)
 			close(fwdSocket);
 		}
 	}
+
+	return NULL;
 }
 
 /*	*	*	*	Uplink functions	*	*	*/
@@ -418,6 +424,8 @@ length %d.\n", timebuf, seg->length);
 
 		sm_SemGive(stp->uplinkMutex);
 	}
+
+	return NULL;
 }
 
 static void	*offerUplink(void *parm)
@@ -545,6 +553,8 @@ length %d.\n", timebuf, segLength);
 
 		close(fwdSocket);
 	}
+
+	return NULL;
 }
 
 /*	*	*	Main thread functions	*	*	*	*/
