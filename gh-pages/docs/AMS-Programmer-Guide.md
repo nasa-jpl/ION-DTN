@@ -1,16 +1,17 @@
 # AMS Programmer's Guide
 
-**Version 3.0**
+**Version 3.1**
 
 _Sky DeBaun, Jet Propulsion Laboratory, California Institute of
 Technology_
 
 **Document Change Log**
 
-| Ver No. | Date      | Affected | Description             | Comments |
-| ------- | --------- | -------- | ----------------------- | -------- |
-| 2.2     | Sept 2010 |          |                         |          |
-| 3.0     | June 2023 | All      | Updates and Corrections |          |
+| Ver No. | Date      | Affected      | Description                                                                                                                                  | Comments |
+| ------- | --------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| 2.2     | Sept 2010 |               |                                                                                                                                              |          |
+| 3.0     | June 2023 | All           | Updates and Corrections                                                                                                                      |          |
+| 3.1     | Sept 2025 | MIB, Security | Clarified `gweid` usage for local/remote gateways.<br>Added `symkey` attribute for per-subject encryption.<br>Noted 15-bit size of continuum numbers. |          |
 
 ## Purpose and Scope
 
@@ -50,6 +51,9 @@ Technology_
  whichever is less restrictive in the context in which this continuum
  name is used; the reserved continuum number zero corresponds to this
  continuum name.
+
+ Note that within the AMS protocol, the continuum number is represented 
+ as an unsigned 15-bit integer, limiting its range of values from 0 to 32,767.
 
  An *application* is a data system implementation, typically taking the
  form of a set of source code text files, that relies on AMS procedures
@@ -554,9 +558,12 @@ g.  encryption parameters, including a symmetric encryption key,
  This information may be used to support secure transmission of
  messages on selected subjects.
 
- ***Note**, though, that the JPL implementation of AMS **does not
- implement** any of the cryptographic algorithms that are required to
- support these security features.*
+ Note: As of version 3.1 (this document), the JPL implementation of AMS 
+ supports per-subject symmetric key encryption for message content when 
+ the  MBEDTLS 2.28.x library is installed. This feature uses HMAC for 
+ authentication and AES in CBC mode for encryption. It is enabled on a 
+ per-subject basis by adding the symkey attribute to a subject's 
+ definition in the MIB.
 
 13. **Subject Catalog**
 
@@ -870,7 +877,7 @@ Note: if support for the expat XML parsing library is required see 4.3
 
 ## Type and Macro Definitions
 
-```c++
+```c
 #define THIS_CONTINUUM	(-1)
 #define ALL_CONTINUA	(0)
 #define ANY_CONTINUUM	(0)
@@ -985,7 +992,7 @@ void	*errHandlerUserData;
 
 ## Module Management functions
 
-```c++
+```c
 int ams_register(char *mibSource, char *tsorder, char *applicationName, char *authorityName, char *unitName, char *roleName, AmsModule
 *module);
 ```
@@ -1608,13 +1615,12 @@ int  ams_parse_notice (AmsEvent event, AmsStateType
  *roleName, int lifetime);
 ```
  This function initiates a RAMS gateway operations loop. *mibSource*,
- *tsorder*, *mName*, *memory*, *mSize*, *applicationName*,
- *authorityName*, *unitName*, and *roleName* are as discussed in the
- documentation of  ams_register  above; they are used to
- register the RAMS gateway process as an AMS module. *lifetime* is the
- user-specified maximum time to live for all DTN bundles issued by the
- RAMS gateway in the course of its communications over the RAMS
- network.
+ *tsorder*, *applicationName*, *authorityName*, *unitName*, and 
+ *roleName* are as discussed in the documentation of  ams_register  
+ above; they are used to register the RAMS gateway process as an AMS 
+ module. *lifetime* is the user-specified maximum time to live for all 
+ DTN bundles issued by the RAMS gateway in the course of its 
+ communications over the RAMS network.
 
  Note that the priority assigned to any DTN bundle that conveys a
  published or privately sent AMS message over the RAMS network will be
@@ -1668,142 +1674,97 @@ int  ams_parse_notice (AmsEvent event, AmsStateType
  value declaration commands in XML format are read from a file, parsed,
  and processed automatically.
 
-## MIB file syntax
+### MIB file syntax
 
- The elements of the XML files used to load AMS MIBs are as follows:
- [ams_mib_load] : contains a series of MIB load commands.
+The elements of the XML files used to load AMS MIBs are as follows:
 
- Attributes: none
+**[ams_mib_load]** : contains a series of MIB load commands.  
+Attributes:  
+none
 
- [ams_mib_init] : command that initializes the MIB.
- Attributes:
+---
+**[ams_mib_init]** : command that initializes the MIB.  
+Attributes:  
+[continuum_nbr]: the number identifying the local continuum  
+[ptsname]: the name of the primary transport service
 
- continuum_nbr: the number identifying the local continuum ptsname: the
- name of the primary transport service
+---
+**[ams_mib_add]** : contains a series of elements that add items to the MIB.  
+Attributes:  
+none
 
- [ams_mib_add] : contains a series of elements that add
- items to the MIB.
+---
+**[continuum]** :  
+Attributes:  
+[nbr]: the number that identifies this continuum  
+[name]: the name that identifies this continuum  
+[neighbor]: a Boolean indication ("1" or "0") of whether or not this is a neighboring continuum. If omitted, the default is "1".  
+[desc]: a brief textual description of this continuum
 
- Attributes: none
+---
+**[csendpoint]** : configuration server endpoint specification.  
+Attributes:  
+[epspec]: PTS-specific endpoint specification string
 
- [continuum] :
+---
+**[application]** : defines an application.  
+Attributes:  
+[name]: name of application
 
- Attributes:
+---
+**[venture]** : defines a venture (an instance of an application).  
+Attributes:  
+[nbr]: the number that identifies this venture  
+[appname]: the name of the application served by this venture  
+[authname]: the name of the authority responsible for this instance of this application  
+[net_config]: the configuration ("mesh" or "tree") of the RAMS network. If omitted, the default is "mesh".  
+[gweid]: a string identifying the endpoint for the local continuum's RAMS gateway; default is "bp@ipn:local_continuum_nbr.venture_nbr"  
+[root_cell_resync_period]: the period (expressed as a count of registrar heartbeats) on which the configuration of the root unit of this venture will automatically be resynchronized. If omitted or set to zero, automatic resync is disabled within the root unit.
 
- nbr: the number that identifies this continuum name: the name that
- identifies this continuum
+---
+**[role]** : defines a role within a venture.  
+Attributes:  
+[nbr]: the number that identifies this role  
+[name]: the name that identifies this role
 
- neighbor: a Boolean indication ("1" or "0") of whether or not this is
- a neighboring continuum [If omitted, the continuum is by default
- assumed to be a neighbor -- that is, an implicit neighbor="1"
- attribute is the default.]
-
- desc: a brief textual description of this continuum
-
- [csendpoint] : configuration server endpoint specification
- (i.e., network location of configuration server)
-
- Attributes:
-
- epspec: PTS-specific endpoint specification string (to be more fully
- documented in a later edition of this [Programmer's
- Guide] )
-
- [application] : defines an application Attributes:
-
- name: name of application
-
- [venture] : defines a venture (an instance of an
- application) Attributes:
-
- [nbr]: the number that identifies this venture
-
- [appname]: the name of the application served by this venture
-
- [authname]: the name of the authority responsible for this instance of
- this application
-
- [net_config]: the configuration ("mesh" or "tree") of the RAMS network
- comprising all AMS continua that participate in this venture. If
- omitted, the RAMS network configuration is by default assumed to be a
- mesh.
-
- [gweid]: a string identifying the endpoint for the local continuum's
- RAMS gateway within the RAMS network for this venture; default is
- "bp@ipn:*local_continuum_nbr*.*venture_nbr*"
-
- root_cell_resync_period: the period (expressed as a count of registrar
- heartbeats) on which the configuration of the root unit of this
- venture will automatically be resynchronized. If omitted or set to
- zero, automatic resync is disabled within the root unit.
-
- [role] : defines a role within a venture Attributes:
-
- [nbr]: the number that identifies this role 
- 
- [name]: the name that
- identifies this role
-
- [subject] : defines a message subject within a venture
- Attributes:
-
- [nbr]: the number that identifies this subject 
- 
- [name]: the name that
- identifies this subject
-
+---
+**[subject]** : defines a message subject within a venture.  
+Attributes:  
+[nbr]: the number that identifies this subject  
+[name]: the name that identifies this subject  
+[symkey]: (Optional) The name of the symmetric key for message content encryption. This key must be pre-loaded into the ION security database via the `ionsecadmin` utility. Requires the MBEDTLS library (v2.28.x).  
 [desc]: a brief textual description of this message subject
 
- [element] : defines one of the elements (fields) of a
- message on a given subject (note that elements must be defined in the
- order in which they appear in the message, without omission)
+---
+**[element]** : defines one of the elements (fields) of a message on a given subject.  
+Attributes:  
+[type]: a number that specifies the data type of this element (1=long, 2=int, 3=short, 4=char, 5=string)  
+[name]: the name that identifies this element  
+[desc]: a brief textual description of this message field.
 
- Attributes:
+---
+**[unit]** : defines a unit of a venture.  
+Attributes:  
+[nbr]: the number that identifies this unit  
+[name]: the name that identifies this unit  
+[resync_period]: the period (expressed as a count of registrar heartbeats) on which the configuration of this unit will automatically be resynchronized. If omitted or set to zero, automatic resync is disabled within this unit.
 
- [type]: a number that specifies the data type of this element (1 = long,
- 2 = int, 3 = short, 4 = char, 5 = string)
+---
+**[msgspace]** : identifies a remote continuum that contains a message space that is part of this venture.  
+Attributes:  
+[nbr]: the number that identifies the continuum containing this message space  
+[gweid]: (Mandatory) A string defining the explicit network route to the remote gateway. The format is '`<protocol_name>`@`<eid_string>`'.  
+[neighbor]: Signifies adjacency with the parent continuum using a Boolean value (1=adjacent, 0=non-adjacent). If omitted, the default is 1.  
 
- [name]: the name that identifies this element
-
- [desc]: a brief textual description of this message field.
- [unit] : defines a unit of a venture
-
- Attributes:
-
- [nbr]: the number that identifies this unit name: the name that
- identifies this unit
-
- [resync_period]: the period (expressed as a count of registrar
- heartbeats) on which the configuration of this unit will automatically
- be resynchronized. If omitted or set to zero, automatic resync is
- disabled within this unit.
-
- [msgspace] : identifies a remote continuum that contains a
- message space that is part of this venture
-
- [Attributes]:
-
- [nbr]: the number that identifies the continuum containing this message
- space
-
- [gweid]: a string identifying the endpoint for the indicated continuum's
- RAMS gateway, within the RAMS network for this venture; default is
- "bp@ipn:*continuum_nbr*.*venture_nbr*"
-
- neighbor: Signifies adjacency of the message space with the parent
- continuum using a Boolean value (i.e. 1 is adjacent, 0 is
- non-adjacent). Note that in this context message space is analogous to
- continuum. If the neighbor attribute is omitted the default value is
- 1.
 
 ## A Sample MIB
 
 ```xml
 <?xml version="1.0" standalone="yes"?>
 <ams_mib_load>
-<ams_mib_init continuum_nbr="1" ptsname="dgr"/>
+<ams_mib_init continuum_nbr="3" ptsname="dgr"/>
 <ams_mib_add>
-<continuum nbr="2" name="gsfc"" desc="Goddard Space Flight Center"/>
+<continuum nbr="2" name="gsfc" desc="Goddard Space Flight Center"/>
 <csendpoint epspec="amroc.net:2502"/>
 <application name="demo"/>
 <venture nbr="9" appname="demo" authname="test" >
@@ -1819,7 +1780,10 @@ int  ams_parse_notice (AmsEvent event, AmsStateType
 <unit nbr="1" name="orbiters"/>
 <unit nbr="2" name="orbiters.near"/>
 <unit nbr="3" name="orbiters.far"/>
-<msgspace nbr="2" neighbor=1/>
+<msgspace nbr="1" neighbor=0 gweid='bp@ipn:2.9'/>
+<msgspace nbr="2" neighbor=1 gweid='bp@ipn:2.9'/>
+<msgspace nbr="4" neighbor=1 gweid='bp@ipn:4.9'/>
+<msgspace nbr="5" neighbor=0 gweid='bp@ipn:4.9'/>
 </venture>
 </ams_mib_add>
 </ams_mib_load>
