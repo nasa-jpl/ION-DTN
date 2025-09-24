@@ -42,7 +42,14 @@ int radixpt_user_match(PsmPartition partition, PsmAddress user_data, void *tag)
 
 void radixpt_radix_search(PsmPartition partition, PsmAddress radixAddr, char *value)
 {
-	char *src_key = strndup(value, RADIX_MAX_SUBSTR);
+	
+	// Replace strdup with malloc+strncpy for C17 compliance
+	//char *src_key = strndup(value, RADIX_MAX_SUBSTR);
+	size_t len = strlen(value);
+	if (len > RADIX_MAX_SUBSTR) len = RADIX_MAX_SUBSTR;
+	char *src_key = malloc(len + 1);
+	strncpy(src_key, value, len);
+	((char*)src_key)[len] = '\0';
 	CHKVOID(src_key);
 
 //	if(gConfig.verbose)

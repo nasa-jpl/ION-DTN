@@ -111,7 +111,13 @@ void radix_wildcard2(void)
 
 	memset(key,0,20);
 	sprintf(key,"ipn:*");
-	char *tmp = strdup(key);
+	// Replace strdup with malloc+strncpy for C17 compliance
+	//char *tmp = strdup(key);
+	size_t len = strlen(key);
+	char *tmp = malloc(len + 1);
+	strcpy(tmp, key);
+
+
 	TEST_ASSERT_EQUAL_INT(1,radix_insert(wm, radixAddr, key, makeDataFromString(wm, key), NULL, radixpt_user_del));
 
 	if(gConfig.verbose)

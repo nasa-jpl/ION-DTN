@@ -54,7 +54,15 @@ Lyst radixpt_lyst_populate()
 			LystTestData *test_data = (LystTestData*) malloc(sizeof(LystTestData));
 			memset(test_data, 0, sizeof(LystTestData));
 			strncpy(&(test_data->key[0]), tmp, RADIX_MAX_SUBSTR-1);
-			test_data->data = strndup(tmp,RADIX_MAX_SUBSTR);
+
+			// Replace strdup with malloc+strncpy for C17 compliance
+			//test_data->data = strndup(tmp,RADIX_MAX_SUBSTR);
+			size_t len = strlen(tmp);
+			if (len > RADIX_MAX_SUBSTR) len = RADIX_MAX_SUBSTR;
+			test_data->data = malloc(len + 1);
+			strncpy((char*)test_data->data, tmp, len);
+			((char*)test_data->data)[len] = '\0';
+
 			if(gConfig.verbose)
 			{
 				printf("ADDING: %s\n", tmp);
@@ -264,7 +272,7 @@ void radixpt_ui_print_usage(char *name)
 void radixpt_ui_parse_args(int argc, char *argv[])
 {
 	int i = 0;
-	uint value;
+	unsigned int value;
 	int error = 0;
 
 	for(i = 1; i < argc; i++)
