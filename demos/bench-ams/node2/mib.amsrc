@@ -1,7 +1,7 @@
 +ams_mib_load
-*ams_mib_init continuum_nbr=2 ptsname=dgr
+*ams_mib_init continuum_nbr=22 ptsname=dgr
 +ams_mib_add
-*continuum nbr=3 name=ion3 desc='ION node 3'
+*continuum nbr=33 name=ion3 desc='ION node 3'
 *csendpoint epspec=127.0.0.1:2502
 *application name='amsdemo'
 +venture nbr=9 appname=amsdemo authname=test net_config=tree 
@@ -19,7 +19,7 @@
 *subject nbr=4 name=textreturn desc='return receipt for text'
 *subject nbr=5 name=video desc='video stream'
 *unit nbr=1 name=orbiters
-*msgspace nbr=3 neighbor=1 gweid='bp@ipn:3.9'
+*msgspace nbr=33 neighbor=1 gweid='bp@ipn:1.3333333301.9'
 -venture
 -ams_mib_add
 -ams_mib_load
