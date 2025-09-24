@@ -31,8 +31,11 @@ extern "C" {
 /* Feature test macros for Unix - must come before any system header */
 #ifdef unix			/****	Feature test macros for UNIX	****/
 
+/* Check FreeBSD first to exempt it from strict POSIX */
+#ifndef freebsd        
 #ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 200809L	/****	POSIX.1-2008 functions ****/
+#endif
 #endif
 
 #ifndef _DEFAULT_SOURCE
@@ -55,12 +58,17 @@ extern "C" {
 #ifndef __BSD_VISIBLE
 #define __BSD_VISIBLE 1
 #endif
-/* Ensure BSD extensions are available with strict C11 */
-#ifndef _DEFAULT_SOURCE
-#define _DEFAULT_SOURCE
-#endif
+/* Ensure all BSD extensions are available with C11 */
 #ifndef _BSD_SOURCE  
 #define _BSD_SOURCE
+#endif
+/* Use XPG6/UNIX 03 for broader compatibility than strict POSIX.1-2008 */
+#ifndef _XOPEN_SOURCE
+#define _XOPEN_SOURCE 600
+#endif
+/* Ensure gettimeofday and other time functions are available */
+#ifndef _XOPEN_SOURCE_EXTENDED
+#define _XOPEN_SOURCE_EXTENDED 1
 #endif
 #endif
 
