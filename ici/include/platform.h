@@ -55,6 +55,13 @@ extern "C" {
 #ifndef __BSD_VISIBLE
 #define __BSD_VISIBLE 1
 #endif
+/* Ensure BSD extensions are available with strict C11 */
+#ifndef _DEFAULT_SOURCE
+#define _DEFAULT_SOURCE
+#endif
+#ifndef _BSD_SOURCE  
+#define _BSD_SOURCE
+#endif
 #endif
 
 #ifdef darwin
