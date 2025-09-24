@@ -61,6 +61,11 @@ extern "C" {
 #ifndef _DARWIN_C_SOURCE
 #define _DARWIN_C_SOURCE
 #endif
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE
+#endif
+/* Ensure BSD types (u_char, u_short, etc.) are available */
+#include <sys/types.h>
 #endif
 
 #endif				/****	End of feature test macros	for unix ****/
