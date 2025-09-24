@@ -48,9 +48,11 @@ void radixpt_radix_search(PsmPartition partition, PsmAddress radixAddr, char *va
 	size_t len = strlen(value);
 	if (len > RADIX_MAX_SUBSTR) len = RADIX_MAX_SUBSTR;
 	char *src_key = malloc(len + 1);
-	strncpy(src_key, value, len);
-	((char*)src_key)[len] = '\0';
 	CHKVOID(src_key);
+
+	// avoid fortified string warnings
+	memcpy(src_key, value, len);
+    src_key[len] = '\0';
 
 //	if(gConfig.verbose)
 //	{
