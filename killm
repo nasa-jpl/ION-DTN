@@ -142,8 +142,8 @@ remove_semaphores() {
     if [ -d "$path" ]; then
         local files=$(find "$path" -name "$pattern" 2>/dev/null)
         if [ -n "$files" ]; then
-            echo "Removing from $path:"
-            echo "$files"
+            #echo "Removing from $path:"
+            #echo "$files"
             rm -f $files 2>/dev/null
         fi
     fi
@@ -165,9 +165,6 @@ find_remaining() {
     
     echo -e "$remaining"
 }
-
-echo "Before deletion, POSIX Named Semaphore files:"
-find_remaining
 
 echo -e "\n=== Starting cleanup ==="
 
@@ -194,7 +191,7 @@ else
     echo "All ion:GLOBAL semaphores removed successfully"
 fi
 
-echo -e "\nAfter deletion, POSIX Named Semaphore files:"
+echo -e "\nAfter deletion, remaining POSIX Named Semaphore files (should be blank)..."
 find_remaining
 # DEBUG: show POSIX Name Semaphore files after removal
 #echo "After deletion, Posix Name Semaphore Files:"
