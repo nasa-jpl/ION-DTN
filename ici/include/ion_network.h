@@ -11,9 +11,9 @@
 #define _POSIX_C_SOURCE 200112L  /* POSIX.1-2001: includes getaddrinfo() */
 #endif
 
+#include "platform.h"
 #include <netdb.h>
 #include <sys/socket.h>
-#include "platform.h"
 
 #define MAX_FQDN_LEN 255 /* Maximum length of a fully qualified domain name */
 
