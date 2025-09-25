@@ -6,8 +6,8 @@ poll_entropy_src, get_error_message - cross-platform cryptographically secure ra
 
  #include "entropy_src.h"
 
- int poll_entropy_src(void *data, unsigned char *output, uvast ilen,
-                      uvast *olen);
+ int poll_entropy_src(void *data, unsigned char *output, size_t ilen,
+                      size_t *olen);
 
  const char* get_error_message(ErrorCode code);
 

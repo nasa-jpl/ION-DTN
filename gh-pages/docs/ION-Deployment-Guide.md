@@ -616,8 +616,8 @@ ION log file. NOTE that
 #### Allocating Working Memory
 
 When ION stores a bundle, it typically holds part of the bundle part in
-memory (heap) as determined by the maxheap parameter in bprc. The
-default value is about 650 bytes. The rest of the payload is placed into
+memory (heap) as determined by the heapmax parameter in bprc. The
+default value is about 560 bytes. The rest of the payload is placed into
 file reference. Also a bundle, before transmission, kept its header and
 extensions inside a data structure for quick look up and manipulations;
 the bundle is serialized into a chunk of octet according to the standard
@@ -625,7 +625,7 @@ just prior to transmission. Therefore, when a bundle is stored in an ION
 node, part of its footprint is in the 'heap' and part of it is in the
 'working memory.'
 
-Test shows that leaving the maxHeap parameter to its default value, a
+Test shows that leaving the heapmax parameter to its default value, a
 bundle uses about 1.5KB of space in heap and about 100-150 Byte in
 working memory. Adding a 200% margin, we recommend that following
 relationship between `heapWords` and `wmSize`:

@@ -461,7 +461,7 @@ the heap space required for BP/LTP operation in ION:
     observations. It is the additional heap space needed to
     accommodate each additional bundle structure and also a small
     amount of data as determined by the heapmax parameter in .bprc
-    file (default value is 650 bytes).
+    file (default value is 560 bytes).
 - If N \> M, heap space usage is approximately S x M + 1560 bytes x
   N + base
 

@@ -67,7 +67,7 @@ ION handles routing based on the following general hierarchy:
 ### Memory/Storage Allocation
 
 - To set the `heapWord` parameter, it is recommended that you consider the worst case buffering need for a node, and use at least 5 times more for heap. For example, if you expect that your DTN node will need to buffer as much as 100M bytes of data during operation, you should allocate at least 500M bytes (or more) to the heap. Each heap `word` is determined by the size of the operation system. For a 64 bit system, each word is 8 bytes long. For in our example, the `heapWord` should be 62.5 mega or 62500000 words.
-- Based on testing results and assuming using the default `maxHeap` parameter in `ionrc`, we recommend the following minimum setting for the ION working memory `wmSize` in bytes:
+- Based on testing results and assuming using the default `heapmax` parameter in `ionrc`, we recommend the following minimum setting for the ION working memory `wmSize` in bytes:
 
 ```text
 wmSize = 3 x heapWords x 8 x 0.4 / 10

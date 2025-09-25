@@ -17,7 +17,7 @@ then
     killm
 else
     echo "This is a multi-ION instance configuration. Killm not invoked."
-    echo "Each moduels will shutdown individually. You may want to use a customized script."
+    echo "Each module will shutdown individually. You may want to use a customized script."
     if [[ -z "${ION_NODE_WDNAME}" ]]; then
         echo "ION_NODE_WDNAME not defined. Assume we are already in the proper working directory."
         CURRENT_WD=$(pwd)
