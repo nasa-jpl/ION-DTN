@@ -1,0 +1,4 @@
+#!/bin/bash
+
+echo "Removing all symbolic links from arch-rtems directory"
+find ./ -maxdepth 1 -type l -exec rm {} \;

@@ -1,0 +1,496 @@
+#!/bin/bash
+# Shell script to populate RTEMS build directory with sym links to source files.
+#
+# 9/24/2023
+#    All source files drawn from ION 4.1.2 release
+
+# clear existing symbolic links
+./srcremove
+
+# pull in fresh sources
+ION_OPEN_SOURCE=1
+CRYPTO=crypto/NULL_SUITES
+BULK=bulk/STUB_BULK
+
+# ici/library
+ln -s ../ici/library/cbor.c
+ln -s ../ici/library/crc.c
+ln -s ../ici/library/platform.c
+ln -s ../ici/library/platform_sm.c
+ln -s ../ici/library/memmgr.c
+ln -s ../ici/library/llcv.c
+ln -s ../ici/library/lyst.c
+ln -s ../ici/library/lystP.h
+ln -s ../ici/library/psm.c
+ln -s ../ici/library/smlist.c
+ln -s ../ici/library/smrbt.c
+ln -s ../ici/library/ion.c
+ln -s ../ici/library/ionsec.c
+ln -s ../ici/library/rfx.c
+ln -s ../ici/library/zco.c
+ln -s ../ici/library/libicinm.c
+ln -s ../ici/library/radix.c
+ln -s ../ici/library/radixP.h
+ln -s ../ici/library/sptrace.c
+ln -s ../ici/library/symtab.c
+
+# ici/crypto
+ln -s ../ici/crypto/csi_debug.h
+ln -s ../ici/$CRYPTO/csi.c
+ln -s ../ici/$CRYPTO/crypto.c
+ln -s ../ici/$BULK/bulk.c
+
+# ici/libbloom-master
+ln -s ../ici/libbloom-master/bloom.c
+ln -s ../ici/libbloom-master/bloom.h
+ln -s ../ici/libbloom-master/murmur2/MurmurHash2.c
+ln -s ../ici/libbloom-master/murmur2/murmurhash2.h
+
+# ici/sdr
+ln -s ../ici/sdr/sdrtable.c
+ln -s ../ici/sdr/sdrhash.c
+ln -s ../ici/sdr/sdrxn.c
+ln -s ../ici/sdr/sdrP.h
+ln -s ../ici/sdr/sdrmgt.c
+ln -s ../ici/sdr/sdrstring.c
+ln -s ../ici/sdr/sdrlist.c
+ln -s ../ici/sdr/sdrcatlg.c
+
+# ici/daemon
+ln -s ../ici/daemon/rfxclock.c
+
+# ici/bloom filter not included
+
+# ici/utils
+ln -s ../ici/utils/ionadmin.c
+ln -s ../ici/utils/ionsecadmin.c
+ln -s ../ici/utils/sdrmend.c
+ln -s ../ici/utils/ionunlock.c
+ln -s ../ici/utils/ionxnowner.c
+ln -s ../ici/utils/ionlog.c
+ln -s ../ici/utils/ionwarn.c
+ln -s ../bpv7/utils/bpadmin.c
+ln -s ../bpv7/utils/bpsecadmin.c
+ln -s ../bpv7/utils/bpstats.c
+ln -s ../bpv7/utils/bptrace.c
+ln -s ../bpv7/utils/bplist.c
+ln -s ../bpv7/utils/lgagent.c
+
+# bpv7/adm omitted; adm not included in this port
+
+# bpv7/bibe
+ln -s ../bpv7/bibe/bibe.c
+ln -s ../bpv7/bibe/bibe.h
+ln -s ../bpv7/bibe/bibeadmin.c
+ln -s ../bpv7/bibe/bibeclo.c
+ln -s ../bpv7/bibe/bibeP.h
+
+# bpv7/bpsec/instr
+ln -s ../bpv7/bpsec/instr/bpsec_instr.c
+ln -s ../bpv7/bpsec/instr/bpsec_instr.h
+
+# bpv7/bpsec/policy
+ln -s ../bpv7/bpsec/policy/bpsec_policy_event.c
+ln -s ../bpv7/bpsec/policy/bpsec_policy_event.h
+ln -s ../bpv7/bpsec/policy/bpsec_policy_eventset.c
+ln -s ../bpv7/bpsec/policy/bpsec_policy_eventset.h
+ln -s ../bpv7/bpsec/policy/bpsec_policy_rule.c
+ln -s ../bpv7/bpsec/policy/bpsec_policy_rule.h
+ln -s ../bpv7/bpsec/policy/bpsec_policy.c
+ln -s ../bpv7/bpsec/policy/bpsec_policy.h
+
+# bpv7/bpsec/sci
+ln -s ../bpv7/bpsec/sci/bcb_aes_gcm_sc.c
+ln -s ../bpv7/bpsec/sci/bcb_aes_gcm_sc.h
+ln -s ../bpv7/bpsec/sci/bib_hmac_sha2_sc.c
+ln -s ../bpv7/bpsec/sci/bib_hmac_sha2_sc.h
+ln -s ../bpv7/bpsec/sci/ion_test_sc.c
+ln -s ../bpv7/bpsec/sci/ion_test_sc.h
+ln -s ../bpv7/bpsec/sci/rfc9173_utils.c
+ln -s ../bpv7/bpsec/sci/rfc9173_utils.h
+ln -s ../bpv7/bpsec/sci/sci_valmap.c
+ln -s ../bpv7/bpsec/sci/sci_valmap.h
+ln -s ../bpv7/bpsec/sci/sc_util.c
+ln -s ../bpv7/bpsec/sci/sc_util.h
+ln -s ../bpv7/bpsec/sci/sc_value.c
+ln -s ../bpv7/bpsec/sci/sc_value.h
+ln -s ../bpv7/bpsec/sci/sci_structs.h
+ln -s ../bpv7/bpsec/sci/sci.c
+ln -s ../bpv7/bpsec/sci/sci.h
+
+# bpv7/bpsec/utils
+ln -s ../bpv7/bpsec/utils/bpsec_asb.c
+ln -s ../bpv7/bpsec/utils/bpsec_asb.h
+ln -s ../bpv7/bpsec/utils/bpsec_util.c
+ln -s ../bpv7/bpsec/utils/bpsec_util.h
+
+# bpv7/brs - not included
+
+# bpv7/bssp
+ln -s ../bpv7/bssp/bsspcla.h
+ln -s ../bpv7/bssp/bsspclo.c
+ln -s ../bpv7/bssp/bsspcli.c
+
+# bpv7/cgr
+ln -s ../bpv7/cgr/libcgr.c
+
+# bpv7/daemon
+ln -s ../bpv7/daemon/bpclock.c
+ln -s ../bpv7/daemon/bptransit.c
+ln -s ../bpv7/daemon/bpclm.c
+ln -s ../bpv7/daemon/cpsd.c
+
+# bpv7/dccp - not included
+
+# bpv7/dgr
+ln -s ../bpv7/dgr/dgrcli.c
+ln -s ../bpv7/dgr/dgrclo.c
+
+# bpv7/dtn2 - not included
+#ln -s ../bpv7/dtn2/libdtn2fw.c
+#ln -s ../bpv7/dtn2/dtn2fw.h
+#ln -s ../bpv7/dtn2/dtn2fw.c
+#ln -s ../bpv7/dtn2/dtn2admin.c
+#ln -s ../bpv7/dtn2/dtn2adminep.h
+
+# bpv7/imc
+ln -s ../bpv7/imc/imcadminep.c
+ln -s ../bpv7/imc/imcfw.c
+ln -s ../bpv7/imc/imcfw.h
+ln -s ../bpv7/imc/libimcfw.c
+
+# bpv7/ipn
+ln -s ../bpv7/ipn/ipnadmin.c
+ln -s ../bpv7/ipn/libipnfw.c
+ln -s ../bpv7/ipn/ipnfw.c
+ln -s ../bpv7/ipn/ipnfw.h
+ln -s ../bpv7/ipn/ipnadminep.c
+
+# bpv7/ipnd - not included
+#ln -s ../bpv7/ipnd/beacon.c
+#ln -s ../bpv7/ipnd/beacon.h
+#ln -s ../bpv7/ipnd/helper.c
+#ln -s ../bpv7/ipnd/helper.h
+#ln -s ../bpv7/ipnd/ipnd.c
+#ln -s ../bpv7/ipnd/ipndP.h
+#ln -s ../bpv7/ipnd/bpa.c
+#ln -s ../bpv7/ipnd/bpa.h
+
+# bpv7/library
+ln -s ../bpv7/library/libbp.c
+ln -s ../bpv7/library/libbpP.c
+ln -s ../bpv7/library/libbpnm.c
+ln -s ../bpv7/library/bpP.h
+ln -s ../bpv7/library/bpnm.h
+ln -s ../bpv7/library/cgr.h
+ln -s ../bpv7/library/eureka.c
+ln -s ../bpv7/library/bei.c
+ln -s ../bpv7/library/bei.h
+#ln -s ../bpv7/library/selectcla.c
+
+# bpv7/library/ext - not all are included
+ln -s ../bpv7/library/ext/bpextensions.c
+ln -s ../bpv7/library/ext/meb/meb.c
+ln -s ../bpv7/library/ext/meb/meb.h
+ln -s ../bpv7/library/ext/bae/bae.c
+ln -s ../bpv7/library/ext/bae/bae.h
+ln -s ../bpv7/library/ext/snw/snw.c
+ln -s ../bpv7/library/ext/snw/snw.h
+ln -s ../bpv7/library/ext/bpsec/bcb.c
+ln -s ../bpv7/library/ext/bpsec/bcb.h
+ln -s ../bpv7/library/ext/bpsec/bib.c
+ln -s ../bpv7/library/ext/bpsec/bib.h
+ln -s ../bpv7/library/ext/imc/imc.c
+ln -s ../bpv7/library/ext/imc/imc.h
+ln -s ../bpv7/library/ext/bpq/bpq.c
+ln -s ../bpv7/library/ext/bpq/bpq.h
+ln -s ../bpv7/library/ext/hcb/hcb.c
+ln -s ../bpv7/library/ext/hcb/hcb.h
+ln -s ../bpv7/library/ext/pnb/pnb.c
+ln -s ../bpv7/library/ext/pnb/pnb.h
+
+
+# bpv7/ltp
+ln -s ../bpv7/ltp/ltpcli.c
+ln -s ../bpv7/ltp/ltpclo.c
+ln -s ../bpv7/ltp/ltpcla.h
+
+# bpv7/saga
+ln -s ../bpv7/saga/saga.c
+ln -s ../bpv7/saga/saga.h
+
+# bpv7/stcp - not included
+# bpv7/tcp - not included
+
+# bpv7/test - only included a few for testing
+ln -s ../bpv7/test/bpsource.c
+ln -s ../bpv7/test/bpsink.c
+ln -s ../bpv7/test/bpcrash.c
+
+# bpv7/udp - not included
+
+# nm not used in this port, list not vetted
+# nm/shared/adm
+#ln -s ../nm/shared/adm/adm.c
+#ln -s ../nm/shared/adm/adm.h
+#ln -s ../nm/shared/adm/adm_bp.c
+#ln -s ../nm/shared/adm/adm_bp.h
+#ln -s ../nm/shared/adm/adm_ion.c
+#ln -s ../nm/shared/adm/adm_ion.h
+#ln -s ../nm/shared/adm/adm_ltp.c
+#ln -s ../nm/shared/adm/adm_ltp.h
+#ln -s ../nm/shared/adm/adm_agent.c
+#ln -s ../nm/shared/adm/adm_agent.h
+#ln -s ../nm/shared/adm/adm_sbsp.c
+#ln -s ../nm/shared/adm/adm_sbsp.h
+
+# nm/shared/msg
+#ln -s ../nm/shared/msg/msg.c
+#ln -s ../nm/shared/msg/msg.h
+#ln -s ../nm/shared/msg/ion_if.c
+#ln -s ../nm/shared/msg/ion_if.h
+#ln -s ../nm/shared/msg/msg_ctrl.c
+#ln -s ../nm/shared/msg/msg_ctrl.h
+#ln -s ../nm/shared/msg/msg_admin.c
+#ln -s ../nm/shared/msg/msg_admin.h
+#ln -s ../nm/shared/msg/pdu.c
+#ln -s ../nm/shared/msg/pdu.h
+
+# nm/shared/primitives
+#ln -s ../nm/shared/primitives/var.c
+#ln -s ../nm/shared/primitives/var.h
+#ln -s ../nm/shared/primitives/blob.c
+#ln -s ../nm/shared/primitives/blob.h
+#ln -s ../nm/shared/primitives/admin.c
+#ln -s ../nm/shared/primitives/admin.h
+#ln -s ../nm/shared/primitives/def.c
+#ln -s ../nm/shared/primitives/def.h
+#ln -s ../nm/shared/primitives/mid.c
+#ln -s ../nm/shared/primitives/mid.h
+#ln -s ../nm/shared/primitives/oid.c
+#ln -s ../nm/shared/primitives/oid.h
+#ln -s ../nm/shared/primitives/report.c
+#ln -s ../nm/shared/primitives/report.h
+#ln -s ../nm/shared/primitives/rules.c
+#ln -s ../nm/shared/primitives/rules.h
+#ln -s ../nm/shared/primitives/dc.c
+#ln -s ../nm/shared/primitives/dc.h
+#ln -s ../nm/shared/primitives/value.c
+#ln -s ../nm/shared/primitives/value.h
+#ln -s ../nm/shared/primitives/lit.c
+#ln -s ../nm/shared/primitives/lit.h
+#ln -s ../nm/shared/primitives/nn.c
+#ln -s ../nm/shared/primitives/nn.h
+#ln -s ../nm/shared/primitives/tdc.c
+#ln -s ../nm/shared/primitives/tdc.h
+#ln -s ../nm/shared/primitives/ctrl.c
+#ln -s ../nm/shared/primitives/ctrl.h
+#ln -s ../nm/shared/primitives/table.c
+#ln -s ../nm/shared/primitives/table.h
+#ln -s ../nm/shared/primitives/expr.c
+#ln -s ../nm/shared/primitives/expr.h
+
+# nm/shared/utils
+#ln -s ../nm/shared/utils/utils.c
+#ln -s ../nm/shared/utils/utils.h
+#ln -s ../nm/shared/utils/db.c
+#ln -s ../nm/shared/utils/db.h
+#ln -s ../nm/shared/utils/nm_types.c
+#ln -s ../nm/shared/utils/nm_types.h
+#ln -s ../nm/shared/utils/debug.h
+
+# nm/agent
+#ln -s ../nm/agent/ingest.c
+#ln -s ../nm/agent/ingest.h
+#n -s ../nm/agent/lcc.c
+#ln -s ../nm/agent/lcc.h
+#ln -s ../nm/agent/ldc.c
+#ln -s ../nm/agent/ldc.h
+#ln -s ../nm/agent/nmagent.c
+#ln -s ../nm/agent/nmagent.h
+#ln -s ../nm/agent/rda.c
+#ln -s ../nm/agent/rda.h
+#ln -s ../nm/agent/agent_db.c
+#ln -s ../nm/agent/agent_db.h
+#ln -s ../nm/agent/adm_ion_priv.c
+#ln -s ../nm/agent/adm_ion_priv.h
+#ln -s ../nm/agent/adm_ltp_priv.c
+#ln -s ../nm/agent/adm_ltp_priv.h
+#ln -s ../nm/agent/adm_agent_impl.c
+#ln -s ../nm/agent/adm_agent_impl.h
+#ln -s ../nm/agent/adm_bp_impl.c
+#ln -s ../nm/agent/adm_bp_impl.h
+#ln -s ../nm/agent/adm_sbsp_impl.c
+#ln -s ../nm/agent/adm_sbsp_impl.h
+#ln -s ../nm/agent/instr.c
+#ln -s ../nm/agent/instr.h
+
+# bss/library
+ln -s ../bss/library/libbss.c
+ln -s ../bss/library/libbssP.c
+ln -s ../bss/library/bssP.h
+
+# bss/test
+ln -s ../bss/test/bsscounter.c
+ln -s ../bss/test/bssdriver.c
+ln -s ../bss/test/bsstest.h
+
+# bssp/daemon
+ln -s ../bssp/daemon/bsspclock.c
+
+# bssp/library
+ln -s ../bssp/library/libbssp.c
+ln -s ../bssp/library/libbsspP.c
+ln -s ../bssp/library/bsspP.h
+
+# bssp/udp
+ln -s ../bssp/udp/udpbsa.h
+ln -s ../bssp/udp/udpbsi.c
+ln -s ../bssp/udp/udpbso.c
+
+# bssp/tcp
+ln -s ../bssp/tcp/tcpbsa.h
+ln -s ../bssp/tcp/tcpbsi.c
+ln -s ../bssp/tcp/tcpbso.c
+ln -s ../bssp/tcp/libtcpbsa.c
+
+# bssp/utils
+ln -s ../bssp/utils/bsspadmin.c
+
+# adding CFDP
+# cfdp/library
+ln -s ../cfdp/library/libcfdp.c
+ln -s ../cfdp/library/libcfdpops.c
+ln -s ../cfdp/library/libcfdpP.c
+ln -s ../cfdp/library/cfdpP.h
+
+# cfdp/bp
+ln -s ../cfdp/bp/bputa.c
+
+# cfdp/daemon
+ln -s ../cfdp/daemon/cfdpclock.c
+
+# cfdp/utils
+ln -s ../cfdp/utils/cfdpadmin.c
+ln -s ../cfdp/utils/bpcp.c
+ln -s ../cfdp/utils/bpcpd.c
+
+# cfdp/include
+ln -s ../cfdp/include/cfdpops.h
+# cfdp/tcp - not included
+# cfdp/test - not included
+
+# dgr/library
+ln -s ../dgr/library/libdgr.c
+
+# dgr/test - not included
+# dtpc - not included
+
+# ltp/library
+ln -s ../ltp/library/libltp.c
+ln -s ../ltp/library/libltpP.c
+ln -s ../ltp/library/libltpnm.c
+ln -s ../ltp/library/ltpsec.c
+ln -s ../ltp/library/ltpei.c
+ln -s ../ltp/library/ext/ltpextensions.c
+ln -s ../ltp/library/ltpP.h
+ln -s ../ltp/library/ltpnm.h
+ln -s ../ltp/library/ltpsec.h
+ln -s ../ltp/library/ltpei.h
+
+# ltp/sda
+ln -s ../ltp/sda/libsda.c
+
+# ltp/daemon
+ln -s ../ltp/daemon/ltpclock.c
+ln -s ../ltp/daemon/ltpdeliv.c
+ln -s ../ltp/daemon/ltpmeter.c
+
+# ltp/utils
+ln -s ../ltp/utils/ltpadmin.c
+ln -s ../ltp/utils/ltpsecadmin.c
+
+# ltp/udp - not included, this port 
+#           POSIX msg queue under ltp
+#           for data transfer within
+#           a single host only
+
+# ams/library
+ln -s ../ams/library/amscommon.h
+ln -s ../ams/library/amscommon.c
+ln -s ../ams/library/amsP.h
+ln -s ../ams/library/amsd.c
+ln -s ../ams/library/crypt.c
+ln -s ../ams/library/default.crypt.c
+ln -s ../ams/library/marshal.c
+ln -s ../ams/library/default.marshal.c
+ln -s ../ams/library/libams.c
+ln -s ../ams/library/loadmib.c
+ln -s ../ams/library/dgrts.c
+ln -s ../ams/library/tcpts.c
+ln -s ../ams/library/udpts.c
+#ln -s ../ams/library/vmqts.c
+
+# ams/rams
+ln -s ../ams/rams/rams.h
+ln -s ../ams/rams/librams.c
+ln -s ../ams/rams/ramscommon.h
+ln -s ../ams/rams/ramscommon.c
+ln -s ../ams/rams/ramsgate.c
+
+# ams/test
+ln -s ../ams/test/amsshell.c
+ln -s ../ams/test/amslog.c
+ln -s ../ams/test/amslogprt.c
+#ln -s ../ams/test/benchr.c
+#ln -s ../ams/test/benchs.c
+#ln -s ../ams/test/logprt.c
+#ln -s ../ams/test/pubsub.c
+
+# ams/utils
+ln -s ../ams/utils/amsmib.c
+ln -s ../ams/utils/amsstop.c
+
+# restart/utils
+ln -s ../restart/utils/ionrestart.c
+ln -s ../restart/utils/ionexit.c
+
+# tc - not included
+
+# Optional features: unvetted, multicast, aggregate custody signaling, sender node number
+#
+# ln -s ../bp/imc/imcadmin.c
+# ln -s ../bp/imc/libimcfw.c
+# ln -s ../bp/imc/imcfw.c
+# ln -s ../bp/imc/imcfw.h
+# ln -s ../bp/imc/imcP.h
+#
+# ln -s ../bp/library/acs/acsappend.c
+# ln -s ../bp/library/acs/acsid.c
+# ln -s ../bp/library/acs/acstx.c
+# ln -s ../bp/library/acs/acsrx.c
+# ln -s ../bp/library/acs/acsserialize.c
+# ln -s ../bp/library/acs/acs.h
+# ln -s ../bp/library/acs/acsP.h
+# ln -s ../bp/utils/acsadmin.c
+# ln -s ../bp/utils/acslist.c
+# ln -s ../bp/library/ext/cteb/cteb.c
+# ln -s ../bp/library/ext/cteb/cteb.h
+#
+# ln -s ../bp/library/ext/snid/snid.c
+# ln -s ../bp/library/ext/snid/snid.h
+
+# Optional extra stuff for testing.
+#
+# ln -s ../ici/library/sptrace.c
+# ln -s ../bp/utils/bpstats2.c
+# ln -s ../bp/utils/bping.c
+# ln -s ../bp/utils/bpchat.c
+# ln -s ../bp/test/bpdriver.c
+# ln -s ../bp/test/bpecho.c
+# ln -s ../bp/test/bpcounter.c
+# ln -s ../bp/test/bpsource.c
+# ln -s ../bp/test/bpsink.c
+# ln -s ../bp/test/bpnmtest.c
+# ln -s ../bp/utils/bpsendfile.c
+# ln -s ../bp/utils/bprecvfile.c

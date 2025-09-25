@@ -1,0 +1,491 @@
+#
+# Hello World Program Waf script
+# Adopted for ION BPv7 port to RTEMS 5.1
+#
+from __future__ import print_function
+
+rtems_version = "5"
+
+try:
+    import rtems_waf.rtems as rtems
+except:
+    print('error: no rtems_waf git submodule')
+    import sys
+    sys.exit(1)
+
+def init(ctx):
+    rtems.init(ctx, version = rtems_version, long_commands = True)
+
+def bsp_configure(conf, arch_bsp):
+    # Add BSP specific configuration checks
+    pass
+
+def options(opt):
+    rtems.options(opt)
+
+def configure(conf):
+    rtems.configure(conf, bsp_configure = bsp_configure)
+
+def build(bld):
+    # Excluding CFDP by seting open source = 0
+    ION_OPEN_SOURCE=0
+
+    iondefines=[
+        'RTEMS',
+        'BP_EXTENDED',
+        'CRYPTO',
+        'ENABLE_IMC',
+        'GDSSYMTAB',
+        'GDSLOGGER',
+        'USING_SDR_POINTERS',
+        'NO_SDR_TRACE',
+        'NO_PSM_TRACE',
+        'NO_PROXY',
+        'NO_DIRLIST',
+        'NOEXPAT',
+        'UDPTS',
+        'TCPTS',
+        'DGRTS',
+        'SPACE_ORDER=2',
+        'LONG_LONG_OKAY=1',
+        'PRIVATE_SYMTAB'
+    ]
+
+    # Check for includsion of CFDP
+    #   Currently CFDP is not included due to compilation issues
+    #   with RTEMS 5.1. To be address by future upate.
+
+    if ION_OPEN_SOURCE == 0:
+        iondefines+=['NASA_PROTECTED_FLIGHT_CODE']
+
+    # Not including the following
+    # -DION_NO_DNS 
+    # Not building with nm
+    # -DAGENT_ROLE
+    # Not buidling with CFDP
+    # -DNASA_PROTECTED_FLIGHT_CODE    
+
+    ionflags='-g -Wall -Werror -Wno-unused-variable'
+
+    icisources = [
+        'rfxclock.c',    
+        'ionadmin.c',    
+        'sdrmend.c',     
+        'ionunlock.c',   
+        'ionxnowner.c',  
+        'ionlog.c',          
+        'ionsecadmin.c', 
+        'crypto.c',      
+        'csi.c',         
+        'ionwarn.c',     
+        'ionrestart.c',
+        'ionexit.c',
+        'bpadmin.c',   
+        'bpsecadmin.c'
+    ]
+
+    iciinclude=[
+        '../ici/include',
+        '../ici/library',
+        '../ici/crypto',
+        '../bpv7/library',
+        '../ltp/library',
+        '../ici/test',
+        '../ici/sdr',
+        '../ici/libbloom-master',
+        '../ici/libbloom-master/murmur2'
+    ]
+
+    icilibsources=[
+        'bulk.c', 
+        'cbor.c',
+        'crc.c',
+        'ion.c',
+        'ionsec.c',
+        'libicinm.c',
+        'llcv.c',
+        'lyst.c',
+        'memmgr.c',
+        'platform.c',
+        'platform_sm.c',
+        'psm.c',
+        'radix.c',
+        'rfx.c',
+        'smlist.c',     
+        'smrbt.c', 
+        'sptrace.c',
+        'zco.c',
+        'sdrcatlg.c',
+        'sdrhash.c',     
+        'sdrxn.c',       
+        'sdrmgt.c',      
+        'sdrstring.c',   
+        'sdrlist.c',
+        'sdrtable.c' 
+    ]
+    
+    ltpsource=[   
+	    'ltpclock.c',   
+	    'ltpdeliv.c',   
+	    'ltpmeter.c',   
+	    'pmqlsi.c',
+	    'pmqlso.c',     
+	    'ltpadmin.c',   
+	    'ltpsecadmin.c'
+    ]
+
+    ltpinclude=[
+        '../ltp/include',
+        '../ltp/library',
+        '../ltp/library/ext'
+    ]
+
+    ltplibsources=[
+        'libltp.c',
+        'libltpnm.c',
+        'libltpP.c',
+        'ltpei.c',
+        'ltpsec.c',
+        'libsda.c'
+    ]
+
+    # not included in port
+    ltpudplsasources=[
+
+    ]
+
+    bpsources=[
+	    'bpclock.c',
+	    'bptransit.c',
+        'bpclm.c',
+        'bpstats.c',
+        'bptrace.c',
+        'bplist.c',     
+        'cpsd.c',
+        'dgrcli.c',
+        'dgrclo.c',
+        'lgagent.c',
+        'ipnadmin.c',
+        'ipnfw.c',
+        'ipnadminep.c',
+        'ltpcli.c',
+        'ltpclo.c',
+        'bibeadmin.c',
+        'bibeclo.c',
+        'bsspclo.c',
+        'bsspcli.c',
+        'imcadminep.c',
+        'imcfw.c'
+    ]
+
+    bplibsources=[
+        'bpsec_instr.c',
+        'bpsec_policy.c' ,
+        'bpsec_policy_eventset.c',
+        'bpsec_policy_event.c' ,
+        'bpsec_policy_rule.c' ,
+        'ion_test_sc.c' ,
+        'bib_hmac_sha2_sc.c' ,
+        'bcb_aes_gcm_sc.c' ,
+        'rfc9173_utils.c' ,
+        'sc_util.c' ,
+        'sci.c' ,
+        'sci_valmap.c' ,
+        'sc_value.c' ,
+        'bpsec_util.c' ,
+        'bpsec_asb.c' ,
+        'bibe.c' ,
+        'libbp.c' ,
+        'libbpP.c' ,
+        'libbpnm.c' ,
+        'libimcfw.c',
+        'imc.c',
+        'eureka.c' ,
+        'bei.c' ,
+        'bae.c' ,
+        'bpq.c' ,
+        'bcb.c' ,
+        'bib.c' ,
+        'hcb.c',
+        'meb.c' ,
+        'pnb.c' ,
+        'snw.c' ,
+        'libipnfw.c' ,
+        'saga.c' ,
+        'bloom.c' ,
+        'MurmurHash2.c',
+        'libcgr.c'        
+    ]
+
+    bpinclude=[
+        './',
+        '../bpv7/include',
+        '../bpv7/bpsec/sci',
+        '../bpv7/bpsec/utils',
+        '../bpv7/bpsec/instr',
+        '../bpv7/bpsec/policy',
+        '../bpv7/library',
+        '../bpv7/library/ext',
+        '../bpv7/library/ext/meb',
+        '../bpv7/library/ext/bae',
+        '../bpv7/ipn',
+        '../bpv7/ipnd',
+        '../bpv7/library/crypto', 
+        '../bpv7/tcp',
+        '../bpv7/udp', 
+        '../bpv7/library/ext/snw',
+        '../bpv7/bibe',
+        '../bpv7/imc',
+        '../bpv7/saga',
+        '../bpv7/dtn2',
+        '../bpv7/library/ext/bpsec',
+        '../bpv7/library/ext/hcb',
+        '../bpv7/library/ext/pnb',
+        '../bpv7/library/ext/bpq',
+        '../bpv7/library/ext/imc',
+        '../bpv7/utils'
+    ]
+    
+    # nm and adm are not used, list not vetted
+    nmsource=[
+        'adm.c',
+        'adm_agent.c',
+        'adm_bp.c',
+        'adm_sbsp.c',
+        'adm_ltp.c',
+        'expr.c',
+        'blob.c',
+        'report.c',
+        'rules.c',
+        'ctrl.c',
+        'table.c',
+        'ion_if.c',
+        'utils.c',
+        'db.c',
+        'nm_types.c',
+        'ingest.c',
+        'instr.c',
+        'lcc.c',
+        'ldc.c',
+        'rda.c',
+        'msg.c',
+        'agent_db.c',
+        'adm_ion_priv.c',
+        'adm_ltp_priv.c',
+        'adm_agent_impl.c',
+        'adm_bp_impl.c',
+        'adm_sbsp_impl.c',
+        'nmagent.c'
+    ]
+
+    bsssources=[
+        'bsscounter.c',
+        'bssdriver.c'
+    ]
+
+    bsslibsources=[
+        'libbss.c',
+        'libbssP.c'
+    ]
+
+    bssinclude=[
+        './',
+        '../bss/include'
+    ]
+
+    bsspsources=[
+        'bsspclock.c',
+        'bsspadmin.c',
+        'udpbsi.c',
+        'udpbso.c',
+        'libtcpbsa.c',
+        'tcpbsi.c',
+        'tcpbso.c'
+    ]
+
+    bsspinclude=[
+        './',
+        '../bssp/include'
+    ]
+
+    bssplibsources=[
+        'libbssp.c', 
+	    'libbsspP.c'
+    ]
+
+    cfdpsources=[
+        'bputa.c',
+        'cfdpclock.c',
+        'cfdpadmin.c',
+        'bpcp.c',
+        'bpcpd.c'
+    ] 
+
+    cfdplibsources=[
+        'libcfdp.c',
+        'libcfdpP.c',
+        'libcfdpops.c'
+    ]
+
+    cfdpinclude=[
+        './',
+        '../cfdp/include',
+        '../cfdp/utils'
+    ]
+
+    amssources=[
+        'amsd.c',
+        'librams.c',
+        'ramscommon.c',
+        'ramsgate.c',
+        'amsshell.c',
+        'amslog.c',
+        'amslogprt.c',
+        'amsmib.c',
+        'amsstop.c'
+    ]
+    # marshal.c is part of libams.c
+    # default.marshal.c not needed
+    # default.crypt.c not needed
+
+    amslibsources=[
+        'amscommon.c',
+        'crypt.c',
+        'dgrts.c',
+        'libams.c',
+        'loadmib.c',
+        'tcpts.c',
+        'udpts.c'
+    ]
+
+    amsinclude=[
+        './',
+        '../ams/include',
+        '../ams/rams'
+    ]
+
+    dgrlibsources=[
+        'libdgr.c'
+    ]
+
+    dgrinclude=[
+        './',
+        '../dgr/include'
+    ]
+
+    testsources=[
+        'bpsource.c',
+        'bpsink.c',
+        'bpcrash.c'
+    ]
+
+    csrcs = ['ionrtems.c'] + icisources + ltpsource \
+    + bpsources + testsources + bsssources + bsspsources \
+    + amssources
+
+    if ION_OPEN_SOURCE == 1:
+        csrcs += cfdpsources
+
+    # cfdpsources - not compiled into final executable,
+    #      building CFDP library was okay but have issue 
+    #      building the final executable with WAF in RTEMS 5.1
+    #      complain of unknown type in header files.
+    #      To be fixed in future release. Current demo does
+    #      require NM and CFDP functionalities
+
+    includes = ['./'] + iciinclude + ltpinclude + \
+        dgrinclude + bsspinclude + bpinclude + \
+        amsinclude + bssinclude
+    
+    if ION_OPEN_SOURCE == 1:
+        includes += cfdpinclude
+
+    rtems.build(bld)
+    bld.stlib(
+        target='ici',
+        cflags=ionflags,
+        source=icilibsources,
+        includes=iciinclude,
+        defines=iondefines,
+        use=['m']
+    )
+
+    bld.stlib(
+        target='ltp',
+        cflags= ionflags,
+        source=ltplibsources,
+        includes=ltpinclude+iciinclude,
+        defines=iondefines,
+        use=['ici','m']
+    )
+
+    # Not building libudplsa.la, not used for this port
+
+    bld.stlib(
+        target='dgr',
+        cflags= ionflags,
+        source=dgrlibsources,
+        includes=dgrinclude+iciinclude,
+        defines=iondefines,
+        use=['ici','m']
+    )
+
+    bld.stlib(
+        target='bssp',
+        cflags= ionflags,
+        source=bssplibsources,
+        includes=bsspinclude+iciinclude,
+        defines=iondefines,
+        use=['ici','m']
+    )
+
+    bld.stlib(
+        target='bp',
+        cflags= ionflags,
+        source=bplibsources,
+        includes=bpinclude+bsspinclude+ltpinclude+dgrinclude+iciinclude,
+        defines=iondefines,
+        use=['ici','bssp','ltp','dgr','m']
+    )
+
+    bld.stlib(
+        target='ams',
+        cflags= ionflags,
+        source=amslibsources,
+        includes=iciinclude+dgrinclude+amsinclude,
+        defines=iondefines,
+        use=['ici','dgr','m']
+    )
+
+    bld.stlib(
+        target='bss',
+        cflags= ionflags,
+        source=bsslibsources,
+        includes=iciinclude+bpinclude+bssinclude,
+        defines=iondefines,
+        use=['ici','bp','m']
+    )
+
+    if ION_OPEN_SOURCE == 1: 
+        bld.stlib(
+            target='cfdp',
+            cflags= ionflags,
+            source=cfdplibsources,
+            includes=iciinclude+bpinclude+cfdpinclude,
+            defines=iondefines,
+            use=['ici','bp','m']
+        )
+
+    libuse = ['ici','bp','dgr','bssp','ltp','bss','ams','m']
+
+    if ION_OPEN_SOURCE == 1:
+        libuse += ['cfdp']
+
+    bld(features = 'c cprogram',
+        target = 'ion.exe',
+        cflags = ionflags,
+        source = csrcs,
+        includes = includes,
+        defines = iondefines,
+        use=libuse
+    )
