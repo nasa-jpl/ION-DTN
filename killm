@@ -154,7 +154,7 @@ find_remaining() {
     local remaining=""
     
     # Check all possible paths
-    for path in "/dev/shm" "/tmp" "/tmp/.LIBRT/SEMD" "/tmp/.LIBRT/SEMDL"; do
+    for path in "/dev/shm" "/tmp" "/tmp/.LIBRT/SEMD" "/tmp/.LIBRT/SEML"; do
         if [ -d "$path" ]; then
             local found=$(find "$path" -maxdepth 1 -name "*ion:GLOBAL*" -o -name "sem.ion:GLOBAL*" -o -name ".SEM*ion:GLOBAL*" 2>/dev/null)
             if [ -n "$found" ]; then
@@ -176,7 +176,7 @@ remove_semaphores "/tmp" ".SEM*ion:GLOBAL*"
 
 # Solaris LIBRT paths
 remove_semaphores "/tmp/.LIBRT/SEMD" "*ion:GLOBAL*"
-remove_semaphores "/tmp/.LIBRT/SEMDL" "*ion:GLOBAL*"
+remove_semaphores "/tmp/.LIBRT/SEML" "*ion:GLOBAL*"
 
 # Check for any remaining semaphores
 echo -e "\n=== Checking for remaining semaphores ==="
