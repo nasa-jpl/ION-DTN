@@ -645,7 +645,9 @@ AC_CHECK_LIB(
 AC_CHECK_LIB(
 	[pthread],
 	[pthread_create],
-	[ AM_LDFLAGS="$AM_LDFLAGS -lpthread" ],
+	[ AM_LDFLAGS="$AM_LDFLAGS -lpthread"
+	  PTHREAD_LIBS="-lpthread"
+	  AC_SUBST([PTHREAD_LIBS]) ],
 	[AC_MSG_ERROR([You need pthread library.]) ]
 )
 
@@ -800,6 +802,7 @@ AM_CONDITIONAL([SOLARIS], [test "$build_solaris" = "yes"])
 #Output!
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([contrib/Makefile])
+AC_CONFIG_FILES([ion.pc])
 
 dnl ===============================================================
 dnl  Guard: create empty stubs so depfiles never fail

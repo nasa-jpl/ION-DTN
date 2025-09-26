@@ -1,0 +1,13 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: ION-DTN
+Description: Interplanetary Overlay Network DTN Implementation
+Version: @VERSION@
+URL: https://github.com/nasa-jpl/ION-DTN
+
+Requires:
+Libs: -L${libdir} -lbp -lici @PTHREAD_LIBS@
+Cflags: -I${includedir}

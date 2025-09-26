@@ -51,11 +51,16 @@ endif
 # support is not present, this variable is empty.
 AM_CFLAGS += $(VALGRIND_COMPAT_CFLAGS)
 
+# ION pkg-config support
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = ion.pc
+
 # EXTRA_DIST gets sent in the tarball, but isn't really a program
 # anything NOT compiled: scripts, readmes, tar files, config files.
 # An exception of something compiled which must be explicitly included is
 # man page source files.
 EXTRA_DIST = 	\
+	$(srcdir)/ion.pc.in \
 	$(srcdir)/loopbacktest.sh \
 	$(srcdir)/sysctl_script.sh \
 	$(srcdir)/README.md \
@@ -186,6 +191,7 @@ distclean-local:
 # clean-local refers to existing documents.
 clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local amsclean-local cfdpclean-local
 	@rm -f .build_finished
+	@rm -f ion.pc
 
 build-man-directories:
 	mkdir -p $(top_builddir)/ici/doc

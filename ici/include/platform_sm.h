@@ -15,6 +15,11 @@
 extern "C" {
 #endif
 
+/* include platform.h first before any system headers */
+#ifndef _PLATFORM_H_
+#include "platform.h"
+#endif
+
 typedef struct
 {
 	int		wmKey;
