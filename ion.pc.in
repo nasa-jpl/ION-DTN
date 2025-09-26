@@ -7,7 +7,6 @@ Name: ION-DTN
 Description: Interplanetary Overlay Network DTN Implementation
 Version: @VERSION@
 URL: https://github.com/nasa-jpl/ION-DTN
-
 Requires:
-Libs: -L${libdir} -lbp -lici @PTHREAD_LIBS@
-Cflags: -I${includedir}
+Libs: -L${libdir} -lbp -lici @PTHREAD_LIBS@ @CRYPTO_LIBS@
+Cflags: -I${includedir} @PKG_CONFIG_CFLAGS@

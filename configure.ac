@@ -2,13 +2,11 @@
 # Samuel Jero
 # June 14, 2013
 # Process this file with autoconf to produce a configure script.
-
-
-
+# Refactored by JPL ION development team
 
 
 AC_PREREQ([2.60])
-AC_INIT([ion],[open source 4.1.3s],[https://github.com/nasa-jpl/ION-DTN/issues])
+AC_INIT([ion],[open-source-4.1.4-a.2],[https://github.com/nasa-jpl/ION-DTN/issues])
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
 #  all of the portability warnings introduced by autoconf v2.69 and
@@ -108,11 +106,11 @@ AC_CHECK_FUNCS([pow])
 
 # Check Platform and Architecture
 m4_include([m4/dccp_macro.m4])
-#AM_CFLAGS=""
-#AM_LDFLAGS=""
-#AM_LIBTOOLFLAGS=""
 PLATFORM=""
 S_LIB_END="so"
+# Initialize PKG_CONFIG_CFLAGS for external applications
+PKG_CONFIG_CFLAGS=""
+
 case $host_os in
 	darwin*)
 		AC_DEFINE([darwin],[1],[Build Darwin specific platform code.])
@@ -121,32 +119,41 @@ case $host_os in
 		S_LIB_END="dylib"
 		if test $host_cpu = "x86_64" ; then
 			AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 -m64 "
+			PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 "
 			echo "Build 64-bit Darwin specific platform code."
 		elif test $host_cpu = "aarch64" ; then
 			AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 -m64"
+			PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 "
 			echo "Build 64-bit ARM Darwin specific platform code."	
 		elif test $host_cpu = "arm" ; then
 			AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 -m64 "
+			PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 "
 			echo "Build 64-bit ARM Darwin specific platform code."
 		else
 			AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=2 -m32 "
+			PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=2"
 			echo "Build 32-bit Darwin specific platform code."
 
 		fi
 		;;
 	linux*)
 		PLATFORM="linux"
+		# Add to PKG_CONFIG_CFLAGS
+		PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Dlinux"
 		if test $host_cpu = "x86_64" ; then
 			AC_DEFINE([linux],[1],[Build 64-bit Linux specific platform code.])
 			AM_CFLAGS="$AM_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=3 -fno-strict-aliasing"
+			PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=3 "
 			echo "Build 64-bit Linux specific platform code."
 		elif test $host_cpu = "aarch64" ; then
 			AC_DEFINE([linux],[1],[Build 64-bit Linux specific platform code.])
 			AM_CFLAGS="$AM_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=3 -fno-strict-aliasing"
+			PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=3 "
 			echo "Build 64-bit Linux specific platform code."
 		else
 			AC_DEFINE([linux],[1],[Build 32-bit Linux specific platform code.])
-			AM_CFLAGS="$AM_CFLAGS -Dunix -Dlinux -fno-strict-aliasing"
+			AM_CFLAGS="$AM_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=2 -fno-strict-aliasing"
+			PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=2 "
 			echo "Build 32-bit Linux specific platform code."
 		fi
 		#check for DCCP support
@@ -157,6 +164,7 @@ case $host_os in
 		AC_DEFINE([new_mingw],[1],[Build Mingw/Msys2 specific platform code.])
 		PLATFORM="mingw"
                 AM_CFLAGS="$AM_CFLAGS -Dmingw"
+				PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dmingw"
                 build_windows=yes
 		;;
 
@@ -170,10 +178,12 @@ case $host_os in
 		case $host_cpu in
 			x86_64|amd64)
 				AM_CFLAGS="$AM_CFLAGS -D__BSD_VISIBLE -Dunix -Dfreebsd -DSPACE_ORDER=3 -m64 "
+				PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__BSD_VISIBLE -Dunix -Dfreebsd -DSPACE_ORDER=3 "
 				echo "Build 64-bit Freebsd specific platform code."
 				;;
 			*)
 				AM_CFLAGS="$AM_CFLAGS -D__BSD_VISIBLE -Dunix -Dfreebsd -DSPACE_ORDER=2 -m32 "
+				PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__BSD_VISIBLE -Dunix -Dfreebsd -DSPACE_ORDER=2 "
 				echo "Build 32-bit Freebsd specific platform code."
 				;;
 		esac
@@ -200,17 +210,20 @@ case $host_os in
 			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
 			AM_LDFLAGS="$AM_LDFLAGS -lrt -lsocket -lnsl"
 
-			AM_CFLAGS="$AM_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -DLONG_LONG_OKAY=0 -xmemalign=4i  -features=extensions  -xalias_level=any -xbuiltin=%none -DSPACE_ORDER=2"	
+			AM_CFLAGS="$AM_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -DLONG_LONG_OKAY=0 -DSPACE_ORDER=2 -xmemalign=4i -features=extensions  -xalias_level=any -xbuiltin=%none"	
+			PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -DLONG_LONG_OKAY=0 -DSPACE_ORDER=2"
 			echo "Build 32-bit ION on 64-bit solaris"
 		elif test $host_cpu = "sparc" ; then
 			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
 			AM_LDFLAGS="$AM_LDFLAGS -lrt -lsocket -lnsl"
 			AM_CFLAGS="$AM_CFLAGS  -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing -fno-builtin -DSPACE_ORDER=3"
+			PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -DSPACE_ORDER=3"
 			echo "Build Solaris/SPARC specific platform code."
 		else
 			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
 			AM_LDFLAGS="$AM_LDFLAGS  -lrt -lsocket -lnsl"
 			AM_CFLAGS="$AM_CFLAGS  -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing -DSPACE_ORDER=3"
+			PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -DSPACE_ORDER=3"
 			echo "Build Solaris specific platform code."
 		fi
 		# Do bitness check
@@ -256,6 +269,7 @@ AM_CONDITIONAL([ENABLE_INSTALL_MESSAGES], [test "$enable_install_messages" = yes
 VER="4.1.4-a.2"
 VER="-DVNAME=ION-OPEN-SOURCE-$VER"
 AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv7"
+PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS $VER -DBUILD_BPv7"
 BUILD_BPv7=true
 BP_DIR="bpv7"
 AC_SUBST([BP_DIR])
@@ -269,6 +283,7 @@ AC_ARG_ENABLE(
     [AS_HELP_STRING([--disable-imc],[disable Interplanetary Multicast])],
     [],
     [AM_CFLAGS="$AM_CFLAGS -DENABLE_IMC"
+	 PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DENABLE_IMC"
      ENABLE_IMC=yes])
 AM_CONDITIONAL(ENABLE_IMC, test "x$ENABLE_IMC" = "xyes")
 
@@ -279,7 +294,8 @@ AC_ARG_ENABLE(
     ams-industrial,
     [AS_HELP_STRING([--enable-ams-industrial],[enable AMS_INDUSTRIAL])],
     [ENABLE_AMS_INDUSTRIAL=yes
-	 AM_CFLAGS="$AM_CFLAGS -DAMS_INDUSTRIAL"],
+	 AM_CFLAGS="$AM_CFLAGS -DAMS_INDUSTRIAL"
+	 PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DAMS_INDUSTRIAL"],
     [ENABLE_AMS_INDUSTRIAL=no])
 AM_CONDITIONAL(ENABLE_AMS_INDUSTRIAL, test "x$ENABLE_AMS_INDUSTRIAL" = "xyes")
 
@@ -290,7 +306,8 @@ AC_ARG_ENABLE(
     ewchar,
     [AS_HELP_STRING([--enable-ewchar],[enable enhanced watch characters])],
     [ENABLE_EWCHAR=yes
-	 AM_CFLAGS="$AM_CFLAGS -DEWCHAR"],
+	 AM_CFLAGS="$AM_CFLAGS -DEWCHAR"
+	 PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DEWCHAR"],
     [ENABLE_EWCHAR=no])
 AM_CONDITIONAL(ENABLE_EWCHAR, test "x$ENABLE_EWCHAR" = "xyes")
 
@@ -304,6 +321,7 @@ AC_ARG_ENABLE(
 	 if test "$readline_present" = 1; then
 		ENABLE_CMD_HIST=yes
 	 	AM_CFLAGS="$AM_CFLAGS -DINPUT_HISTORY"
+		PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DINPUT_HISTORY"
 	 else
 	 	ENABLE_CMD_HIST=no
 	 	AC_MSG_ERROR([You need to have the readline executable installed to use this option.])
@@ -321,6 +339,7 @@ AC_ARG_ENABLE(
     high-speed,
     [AS_HELP_STRING([--enable-high-speed],[Enable high-speed ION, increases memory usage.])],
     [AM_CFLAGS="$AM_CFLAGS -DENABLE_HIGH_SPEED"
+	 PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DENABLE_HIGH_SPEED"
      ENABLE_HIGH_SPEED=yes],
     [])
 AM_CONDITIONAL(ENABLE_HIGH_SPEED, test x$ENABLE_HIGH_SPEED = xyes)
@@ -332,6 +351,7 @@ AC_ARG_ENABLE(
     force-posix-named-semaphores,
     [AS_HELP_STRING([--enable-force-posix-named-semaphores],[Force the use of Posix Named Semaphores, which are faster then SVR4, but might not work on this platform])],
 	[AM_CFLAGS="$AM_CFLAGS -DFORCE_POSIX_NAMED_SEMAPHORES"
+	 PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DFORCE_POSIX_NAMED_SEMAPHORES"
 		ENABLE_FORCE_POSIX_NAMED_SEMAPHORES=yes],
     [])
 
@@ -342,6 +362,7 @@ AC_ARG_ENABLE(
     force-svr4-semaphores,
     [AS_HELP_STRING([--enable-force-svr4-semaphores],[Force the use of SVR4 Semaphores, which are supported on most platforms, but might be slower])],
 	[AM_CFLAGS="$AM_CFLAGS -DFORCE_SVR4_SEMAPHORES"
+		PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DFORCE_SVR4_SEMAPHORES"
 		ENABLE_FORCE_SVR4_SEMAPHORES=yes],
     [])
 
@@ -354,18 +375,23 @@ AC_ARG_ENABLE(
     [case "${enableval}" in
 		1) echo "BPSEC Debugging enabled. Using level 1."
 		   AM_CFLAGS="$AM_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=1 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
+		   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=1 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
 		   ENABLE_BPSEC_DEBUGGING=yes;;
 		2) echo "BPSEC Debugging enabled. Using level 2."
 		   AM_CFLAGS="$AM_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=2 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
+		   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=2 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
     	   ENABLE_BPSEC_DEBUGGING=yes;;
 		3) echo "BPSEC Debugging enabled. Using level 3."
 		   AM_CFLAGS="$AM_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=3 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
+		   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=3 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
     	   ENABLE_BPSEC_DEBUGGING=yes;;
 		4) echo "BPSEC Debugging enabled. Using level 4."
 		   AM_CFLAGS="$AM_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=4 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
+		   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=4 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
     	   ENABLE_BPSEC_DEBUGGING=yes;;
 		*) echo "BPSEC Debugging enabled. Defaulting to level 4."
 		   AM_CFLAGS="$AM_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=4 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
+		   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=4 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
 		   ENABLE_BPSEC_DEBUGGING=yes;;
 	 esac],
     [])
@@ -376,7 +402,8 @@ AC_ARG_ENABLE(
 AC_ARG_ENABLE(
     dccp,
     [AS_HELP_STRING([--enable-dccp], [Enable Support for DCCP as a convergence layer])],
-    [AC_DEFINE([build_dccp],[1],[DCCP only supported on Linux >=3.2.0])],
+    [AC_DEFINE([build_dccp],[1],[DCCP only supported on Linux >=3.2.0])
+	PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dbuild_dccp"],
     [])
 
 #
@@ -392,6 +419,7 @@ AC_ARG_ENABLE(
             AC_MSG_RESULT([yes])
             UNIBO_CGR=yes
             AC_DEFINE([UNIBO_CGR],[1],[Define to 1 to build Unibo-CGR])
+			PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DUNIBO_CGR"
             echo "Building ION with UniBo CGR code"
         else
             AC_MSG_RESULT([no])
@@ -439,10 +467,12 @@ AC_ARG_ENABLE(
 	crypto-mbedtls,
 	[AS_HELP_STRING([--enable-crypto-mbedtls],[Turn on cryptography using MBEDTLS])],
 	[CRYPTO_MBEDTLS=true
-	 AM_CFLAGS="$AM_CFLAGS -DMBEDTLS_CRYPTO_SUITES"],
+	 AM_CFLAGS="$AM_CFLAGS -DMBEDTLS_CRYPTO_SUITES"
+	 PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DMBEDTLS_CRYPTO_SUITES"],
 	[echo "MBEDTLS Crypto disabled, building with NULL SUITES."
 	 CRYPTO_MBEDTLS=false
-	 AM_CFLAGS="$AM_CFLAGS -DNULL_CRYPTO_SUITES"])
+	 AM_CFLAGS="$AM_CFLAGS -DNULL_CRYPTO_SUITES"
+	 PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DNULL_CRYPTO_SUITES"])
 
 AM_CONDITIONAL([CRYPTO_MBEDTLS], [test "x$CRYPTO_MBEDTLS" = "xtrue"])
 
@@ -465,7 +495,8 @@ if test x$CRYPTO_MBEDTLS = xtrue; then
 		AC_CHECK_FILES(
 		[$MBED_LIB_PATH/libmbedtls.$S_LIB_END $MBED_LIB_PATH/libmbedx509.$S_LIB_END $MBED_LIB_PATH/libmbedcrypto.$S_LIB_END],
 		[CRYPTO_LIBS="-lmbedtls -lmbedx509 -lmbedcrypto -L$MBED_LIB_PATH"
-		 AM_CFLAGS="$AM_CFLAGS -I$MBED_INC_PATH"],
+		 AM_CFLAGS="$AM_CFLAGS -I$MBED_INC_PATH"
+		 PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -I$MBED_INC_PATH"],
 		[AC_MSG_WARN([If you have MbedTLS installed in a non-standard location, add MBED_LIB_PATH=<path-to-mbedtls-sharedlibrary> and MBED_INC_PATH=<path-to-mbedtls-header-files> to the ./configure command line.])
 		 AC_MSG_ERROR([You need to have the MbedTLS dynamic library installed or use --disable-crypto.])]
 		)
@@ -482,7 +513,8 @@ fi
 #
 	AC_ARG_ENABLE([ams-debug],
 		[  --enable-ams-debug    Enable AMS debugging info],
-		[ AC_DEFINE([AMSDEBUG], 1, [Enable AMS debugging info]) ])
+		[ AC_DEFINE([AMSDEBUG], 1, [Enable AMS debugging info])
+		  PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DAMSDEBUG" ])
 
 #
 # Dynamically choose whether or not to instrument code for gcov code coverage
@@ -528,6 +560,7 @@ if test "x$expat" = "xyes" ; then
 else
 	echo "Build against libexpat... no"
 	CFLAGS="$CFLAGS -DNOEXPAT"
+	PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DNOEXPAT"
 fi
 AM_CONDITIONAL([ENABLE_EXPAT], [test "x$expat" = "xyes"])
 
@@ -612,6 +645,7 @@ AC_ARG_WITH([ncurses],
 if test "x$ncurses" = "xyes" ; then
 	echo "Build against libncurses... yes"
 	CFLAGS="$CFLAGS -DUSE_NCURSES"
+	PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DUSE_NCURSES"
 else
 	echo "Build against libncurses... no"
 fi
@@ -624,6 +658,7 @@ AC_ARG_ENABLE(
 	tcpcl-low-cycle,
 	[AS_HELP_STRING([--enable-tcpcl-low-cycle],[enable TCPCL_LOW_CYCLE option])],
 	[AM_CFLAGS="$AM_CFLAGS -DTCPCL_LOW_CYCLE"
+	 PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DTCPCL_LOW_CYCLE"
 	 TCPCL_LOW_CYCLE=yes],
 	[]
 )
@@ -794,6 +829,8 @@ AC_CHECK_FUNCS([alarm ftruncate getcwd gethostbyaddr gethostbyname gethostname g
 AC_SUBST([AM_LDFLAGS],"$AM_LDFLAGS")
 AC_SUBST([AM_CFLAGS],"$AM_CFLAGS")
 AC_SUBST([AM_LIBTOOLFLAGS],"$AM_LIBTOOLFLAGS")
+AC_SUBST([PKG_CONFIG_CFLAGS])
+AC_SUBST([CRYPTO_LIBS],"$CRYPTO_LIBS")
 AM_CONDITIONAL([LINUX_BUILD], [test "x$PLATFORM" = "xlinux"])
 AM_CONDITIONAL([SOLARIS_STUDIO_CC], [test "$BUILD_32_ON_64_SOLARIS" = "1"])
 AM_CONDITIONAL([WINDOWS], [test "$build_windows" = "yes"])
