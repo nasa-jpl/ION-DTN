@@ -838,8 +838,9 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 /* semaphore options */
 /* POSIX_NAMED_SEMAPHORES is the default on FreeBSD */
 #undef  POSIX_SEMAPHORES
-#undef  POSIX_NAMED_SEMAPHORES
-#define  SVR4_SEMAPHORES
+#undef  SVR4_SEMAPHORES
+#define  POSIX_NAMED_SEMAPHORES
+
 
 #endif				/****	End of #ifdef freebsd	     ****/
 

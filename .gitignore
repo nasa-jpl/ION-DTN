@@ -520,3 +520,4 @@ tests/issue-260-teach-valgrind-mtake/valgrind-output
 demos/bench-ltp/global.ionrc
 tests/nm-unit-ipn2/dotest
 ion.pc
+ion.pc
