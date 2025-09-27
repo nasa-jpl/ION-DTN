@@ -841,6 +841,11 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 #undef  SVR4_SEMAPHORES
 #define  POSIX_NAMED_SEMAPHORES
 
+/* ADD THIS SECTION: */
+#ifndef SEM_NSEMS_MAX
+#define	SEM_NSEMS_MAX		2048
+#endif
+
 
 #endif				/****	End of #ifdef freebsd	     ****/
 
