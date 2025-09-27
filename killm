@@ -127,12 +127,14 @@ fi
 
 # remove posix named semaphores if this platform maps them into the file system
 # Solaris puts them in /tmp/.SEM*, Linux in /dev/shm/sem.*, MacOS doesn't put them in file system
+# FreeBSD puts them in /tmp/SEM*
 echo "Deleting Posix Named Semaphores..."
 
 # DEBUG: show POSIX Name Semaphore files before removal
 #echo "Before deletion, Posix Name Semaphore Files:"
 #ls /dev/shm/sem.ion:GLOBAL*
-#s /tmp/.SEM*ion:GLOBAL*
+#ls /tmp/.SEM*ion:GLOBAL*
+#ls /tmp/SEM*ion:GLOBAL*
 
 # Function to safely remove semaphore files
 remove_semaphores() {
@@ -156,7 +158,7 @@ find_remaining() {
     # Check all possible paths
     for path in "/dev/shm" "/tmp" "/tmp/.LIBRT/SEMD" "/tmp/.LIBRT/SEML"; do
         if [ -d "$path" ]; then
-            local found=$(find "$path" -maxdepth 1 -name "*ion:GLOBAL*" -o -name "sem.ion:GLOBAL*" -o -name ".SEM*ion:GLOBAL*" 2>/dev/null)
+            local found=$(find "$path" -maxdepth 1 -name "*ion:GLOBAL*" -o -name "sem.ion:GLOBAL*" -o -name ".SEM*ion:GLOBAL*" -o -name "SEM*ion:GLOBAL*" 2>/dev/null)
             if [ -n "$found" ]; then
                 remaining="$remaining$found\n"
             fi
@@ -171,8 +173,9 @@ echo -e "\n=== Starting cleanup ==="
 # Linux paths (/dev/shm)
 remove_semaphores "/dev/shm" "sem.ion:GLOBAL*"
 
-# Generic /tmp paths
+# Generic /tmp paths FreeBSD
 remove_semaphores "/tmp" ".SEM*ion:GLOBAL*"
+remove_semaphores "/tmp" "SEM*ion:GLOBAL*"
 
 # Solaris LIBRT paths
 remove_semaphores "/tmp/.LIBRT/SEMD" "*ion:GLOBAL*"
@@ -196,7 +199,8 @@ find_remaining
 # DEBUG: show POSIX Name Semaphore files after removal
 #echo "After deletion, Posix Name Semaphore Files:"
 #ls /dev/shm/sem.ion:GLOBAL*
-#s /tmp/.SEM*ion:GLOBAL*
+#ls /tmp/.SEM*ion:GLOBAL*
+#ls /tmp/SEM*ion:GLOBAL*
 
 echo "Killm completed."	
 exit 0
