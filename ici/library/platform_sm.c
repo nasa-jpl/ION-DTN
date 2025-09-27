@@ -3640,8 +3640,12 @@ static int _semSync(SmProcessSemtable *plocal, sm_SemId semnum, int semlocked)
 	if (pglobalSem->inUse) {
 		/* MUST already exist */
 		/* we might have it open locally, so close that first, it may have changed */
-		oK(sem_close(plocalSem->id));
-
+		
+		/* Check if semaphore ID is valid before attempting to close */
+		if (plocalSem->id != NULL && plocalSem->id != SEM_FAILED) {
+			oK(sem_close(plocalSem->id));
+		}
+		
 		/* ensure that we're using EXACTLY the mode bits in POSIX_NAMED_SEMAPHORES_FILEMODE regardless */
 		/* of the account's setting of umask() */
 		oldmask = umask(0);
@@ -3659,7 +3663,12 @@ static int _semSync(SmProcessSemtable *plocal, sm_SemId semnum, int semlocked)
 		plocalSem->id = psem;
 	} else {
 		/* NOT (or no longer) in use globally, remove our version */
-		oK(sem_close(plocalSem->id));	
+
+		/* Check if semaphore ID is valid before attempting to close */
+		if (plocalSem->id != NULL && plocalSem->id != SEM_FAILED) {
+			oK(sem_close(plocalSem->id));	
+		}
+
 		plocalSem->id = NULL;
 		plocalSem->lseq = pglobalSem->gseq;
 	}
@@ -3686,6 +3695,18 @@ static SmProcessSemtable *_semTbl(int action)
 		}
 #endif /* DEBUG_POSIX_NAMED_SEMAPHORES */
 
+		/* Close all open semaphores before detaching/stopping */
+		if (semTableInitialized) {
+			int i;
+			for (i = 0; i < SEM_NSEMS_MAX; i++) {
+				SmLocalSem *sem = &semStruct.lsemtable[i];
+				if (sem->id != NULL && sem->id != SEM_FAILED) {
+					oK(sem_close(sem->id));
+					sem->id = NULL;
+				}
+			}
+		}
+		
 		semTableInitialized = 0;
 		return NULL;
 	}
@@ -3708,6 +3729,7 @@ static SmProcessSemtable *_semTbl(int action)
 		for (i = 0; i < SEM_NSEMS_MAX; i++) {
 			semStruct.lsemtable[i].semgl = &psemGlobal->gsemtable[i];
 			semStruct.lsemtable[i].lseq = 0;
+			semStruct.lsemtable[i].id = NULL;
 		}
 
 		semStruct.semtablegl = psemGlobal;  
