@@ -446,6 +446,15 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #define UNUSED
 #endif
 
+/* Feature Test for Thread-Local Storage Support */
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__)
+    #include <threads.h>
+    #define ION_THREAD_LOCAL thread_local
+#else
+    #define ION_THREAD_LOCAL __thread
+#endif
+
+
 #ifndef MIN
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #endif

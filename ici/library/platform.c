@@ -1568,7 +1568,7 @@ void	writeErrMemo(char *text)
 
 char	*iToa(long long arg)
 {
-	static thread_local char	itoa_str[33];
+	static ION_THREAD_LOCAL char itoa_str[33];
 
 	isprintf(itoa_str, sizeof itoa_str, "%lld", arg);
 	return itoa_str;
@@ -1576,7 +1576,7 @@ char	*iToa(long long arg)
 
 char	*uToa(unsigned long long arg)
 {
-	static thread_local char	utoa_str[33];
+	static ION_THREAD_LOCAL char utoa_str[33];
 
 	isprintf(utoa_str, sizeof utoa_str, "%llu", arg);
 	return utoa_str;
