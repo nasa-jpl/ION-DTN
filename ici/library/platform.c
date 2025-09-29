@@ -1566,19 +1566,19 @@ void	writeErrMemo(char *text)
 	writeMemoNote(text, system_error_msg());
 }
 
-char	*iToa(int arg)
+char	*iToa(long long arg)
 {
-	static char	itoa_str[33];
+	static thread_local char	itoa_str[33];
 
-	isprintf(itoa_str, sizeof itoa_str, "%d", arg);
+	isprintf(itoa_str, sizeof itoa_str, "%lld", arg);
 	return itoa_str;
 }
 
-char	*uToa(unsigned int arg)
+char	*uToa(unsigned long long arg)
 {
-	static char	utoa_str[33];
+	static thread_local char	utoa_str[33];
 
-	isprintf(utoa_str, sizeof utoa_str, "%u", arg);
+	isprintf(utoa_str, sizeof utoa_str, "%llu", arg);
 	return utoa_str;
 }
 
