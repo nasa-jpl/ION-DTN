@@ -17,7 +17,7 @@ ION Open Source supports Linux and Solaris. Please consult the [Quick Start](./g
 
 Support for `FreeBSD`, `macOS`, `Windows`, `Raspberry Pi OS` are provided on a best-effort, test and report (BETR) level. We will try, with reasonable effort, to test, document and fix issues related to these platforms but they are not officially supported.
 
-Prototype demonstrations on how to build ION on `Android`, `RTEMS`, and `ARM-based AT91SAM9G20 board` are provided as is.
+Prototype demonstrations on how to build ION on `Android`, `RTEMS`, and `ARM-based AT91SAM9G20 board` are provided as is. Available from ION 4.1.3s or earlier; deprecated as of ION 4.1.4-a.2.
 
 ## ION-related Software Packages
 
