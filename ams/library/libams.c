@@ -381,10 +381,7 @@ static void	eraseSAP(AmsSAP *sap)
 		lyst_destroy(sap->invitations);
 	}
 
-	sem_destroy(&sap->isRegistered);
-	/*
-	 * FIX: Destroy the new mutex.
-	 */
+	sm_SemDelete(sap->isRegistered);
 	pthread_mutex_destroy(&sap->sapStateMutex);
 	MRELEASE(sap);
 }
@@ -3785,12 +3782,21 @@ static void	*heartbeatMain(void *parm)
 	struct timespec	deadline;
 
 	/*
-	 * This is the very first action the thread takes. The sem_wait()
-	 * function will block (pause) this thread's execution until the
-	 * main thread calls sem_post() in ams_register(), which signals
-	 * that all initialization is complete.
-	 */
-	sem_wait(&sap->isRegistered);
+		* This is the very first action the thread takes. The sm_SemTake()
+		* function will block (pause) this thread's execution until the
+		* main thread calls sm_SemGive() in ams_register(), which signals
+		* that all initialization is complete.
+		*/
+	if (sm_SemTake(sap->isRegistered) < 0)
+	{
+		putSysErrmsg("heartbeat can't take isRegistered semaphore", NULL);
+		return NULL; /* Abort thread if waiting fails */
+	}
+
+	/* Since this is a one-time gate, give the semaphore back immediately
+		so that any other startup threads can also pass through. */
+	sm_SemGive(sap->isRegistered);
+
 
 	if (pthread_mutex_init(&mutex, NULL))
 	{
@@ -3936,20 +3942,32 @@ static int	ams_register2(char *applicationName, char *authorityName,
 	}
 
 	/*
-	 * Initialize the semaphore. The second argument '0' indicates it is
-	 * shared between threads of this process. The initial value '0'
-	 * means the semaphore is "taken". Any thread that calls sem_wait()
-	 * on it will block until another thread calls sem_post().
-	 */
-	if (sem_init(&sap->isRegistered, 0, 0) != 0)
+		* Create the semaphore using ION's platform abstraction.
+		* SM_NO_KEY lets the system pick a unique key, which is fine since
+		* this semaphore is only used within this process's threads.
+		* The semaphore is created with a count of 1, so we immediately take
+		* it to achieve the initial "gate closed" state (count = 0).
+		*/
+	sap->isRegistered = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
+	if (sap->isRegistered == SM_SEM_NONE)
 	{
-		putSysErrmsg("Can't initialize SAP semaphore", NULL);
-		/* No threads have been started, so MRELEASE is safe. */
+		putSysErrmsg("Can't create SAP semaphore", NULL);
 		pthread_mutex_destroy(&sap->sapStateMutex);
 		MRELEASE(sap);
 		*module = NULL;
 		return -1;
 	}
+
+    /* Take the semaphore to set its initial count to 0 (gate closed). */
+    if (sm_SemTake(sap->isRegistered) < 0)
+    {
+        putSysErrmsg("Can't take initial SAP semaphore", NULL);
+        sm_SemDelete(sap->isRegistered); // Clean up the created semaphore
+        pthread_mutex_destroy(&sap->sapStateMutex);
+        MRELEASE(sap);
+        *module = NULL;
+        return -1;
+    }
 
 	sap->state = AmsSapClosed;
 	sap->primeThread = pthread_self();
@@ -4328,11 +4346,11 @@ int	ams_register(char *mibSource, char *tsorder, char *applicationName,
 		(*module)->state = AmsSapOpen;
 
 		/*
-		 * "Post" to the semaphore. This increments its value from 0 to 1,
-		 * which unblocks the heartbeatMain thread (and mamsMain thread)
-		 * that is currently waiting on it. This is the "gate open" signal.
-		 */
-		sem_post(&(*module)->isRegistered);
+		* "Give" the semaphore. This increments its value from 0 to 1,
+		* which unblocks the heartbeatMain thread (and mamsMain thread)
+		* that is currently waiting on it. This is the "gate open" signal.
+		*/
+		sm_SemGive((*module)->isRegistered);
 	}
 	else
 	{

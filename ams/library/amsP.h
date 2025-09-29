@@ -193,7 +193,7 @@ typedef struct amssapst
 	int			haveHeartbeatThread;
 	pthread_t	mamsThread;
 	int			haveMamsThread;
-	sem_t		isRegistered;		/* Guarantees setup is complete */
+	sm_SemId    isRegistered;		/* Guarantees setup is complete */
 	volatile int	terminating;	/* Signal thread cleanup routine */
 
 	pthread_mutex_t	sapStateMutex;
