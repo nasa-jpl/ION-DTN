@@ -23,7 +23,8 @@
 extern "C" {
 #endif
 
-#define BpLtpClientId		(1)
+/* LTP Client ID for BPv7 is 4 per RFC 7116 */
+#define BpLtpClientId		(4)
 
 #ifdef __cplusplus
 }
