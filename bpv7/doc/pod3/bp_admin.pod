@@ -1,0 +1,245 @@
+=head1 NAME
+
+bp_admin - ION Bundle Protocol programmatic administration library
+
+=head1 SYNOPSIS
+
+#include "bp_admin.h"
+
+int bp_init(void);
+int bp_start(void);
+void bp_stop(void);
+int ipn_init(void);
+
+int add_scheme(char *I<name>, char *I<fwdCmd>, char *I<admAppCmd>);
+int remove_scheme(char *I<name>);
+
+int bp_start_scheme(char *I<name>);
+void bp_stop_scheme(char *I<name>);
+int add_endpoint(char *I<eid>, BpRecvRule I<recvRule>, char *I<script>);
+int remove_endpoint(char *I<eid>);
+
+void bp_list_schemes(void);
+void bp_list_endpoints(void);
+void bp_list_protocols(void);
+void report_all_state_stats(void);
+
+=head1 DESCRIPTION
+
+The B<bp_admin> library provides a set of functions for programmatically configuring and managing an ION (Interplanetary Overlay Network) node's Bundle Protocol (BP) agent. This API serves as an alternative to using the interactive I<bpadmin>(1) command-line utility, allowing applications to automate the setup, control, and monitoring of the BP service.
+
+All functions in this library require that the application first attach to the BP agent by calling I<bp_attach>(3).
+
+=head1 NAMING CONVENTION
+
+All public API functions follow snake_case naming (e.g., C<bp_init()>, C<add_scheme()>). This distinguishes them from the private implementation functions which use camelCase (e.g., C<bpInit()>, C<addScheme()>). Applications should only use the public snake_case functions.
+
+=head1 FUNCTIONS
+
+=head2 System Lifecycle
+
+These functions manage the complete lifecycle of the BP agent and are intended for applications that perform all configuration programmatically.
+
+=over 4
+
+=item B<int bp_init(void)>
+
+Initializes the BP database and prepares the node for BP operations. This is one of the first functions that should be called when setting up a node from scratch.
+
+Returns 0 on success, -1 on error.
+
+=item B<int bp_start(void)>
+
+Starts all BP agent processes, including the bundle expiration clock (bpclock), the main forwarding daemon (bptransit), and all scheme-specific forwarders (e.g., ipnfw) and administrative daemons (e.g., ipnadminep) that have been configured.
+
+Returns 0 on success, -1 on error.
+
+=item B<void bp_stop(void)>
+
+Stops all running BP agent processes. This function should be called to gracefully shut down the BP service.
+
+=item B<int ipn_init(void)>
+
+Initializes the database used for IPN (Interplanetary Networking) routing. This is an optional step required only if you intend to configure and use IPN routing plans.
+
+Returns 0 on success, -1 on error.
+
+=back
+
+=head2 Scheme Configuration
+
+These functions manage the structural configuration of URI schemes.
+
+=over 4
+
+=item B<int add_scheme(char *I<name>, char *I<fwdCmd>, char *I<admAppCmd>)>
+
+Adds a new URI scheme to the BP configuration.
+
+=over 8
+
+=item I<name> is the name of the scheme (e.g., "ipn").
+
+=item I<fwdCmd> is the command to start the scheme's forwarder daemon (e.g., "ipnfw").
+
+=item I<admAppCmd> is the command to start the scheme's administrative application (e.g., "ipnadminep").
+
+=back
+
+Returns 1 on success, 0 if the scheme already exists, -1 on error.
+
+=item B<int remove_scheme(char *I<name>)>
+
+Removes an existing scheme. The scheme must not have any registered endpoints or queued bundles. This function will first stop the scheme's daemons before attempting removal.
+
+Returns 1 on success, 0 if the scheme is not found, -1 on error.
+
+=back
+
+=head2 Endpoint Configuration
+
+=over 4
+
+=item B<int add_endpoint(char *I<eid>, BpRecvRule I<recvRule>, char *I<script>)>
+
+Adds a new endpoint to the BP configuration, registering it under the appropriate scheme.
+
+=over 8
+
+=item I<eid> is the full endpoint ID string (e.g., "ipn:1.2").
+
+=item I<recvRule> specifies the behavior when a bundle arrives for an endpoint that is not currently open. It can be B<EnqueueBundle> (the default) or B<DiscardBundle>.
+
+=item I<script> is an optional command to be executed when a bundle arrives for an endpoint that is not open. May be NULL.
+
+=back
+
+Returns 1 on success, 0 if the endpoint already exists, -1 on error.
+
+=item B<int remove_endpoint(char *I<eid>)>
+
+Removes an existing endpoint. The endpoint must not be currently open by any application and must not have any bundles in its delivery queue.
+
+Returns 1 on success, 0 if the endpoint is not found, -1 on error.
+
+=back
+
+=head2 Scheme Lifecycle Control
+
+These functions manage the operational state of individual schemes.
+
+=over 4
+
+=item B<int bp_start_scheme(char *I<name>)>
+
+Starts the forwarder and administrative daemons for a single, already-configured scheme. This is a safe operation to perform while the main BP agent is running.
+
+Returns 1 on success, 0 if the scheme is not found, -1 on error.
+
+=item B<void bp_stop_scheme(char *I<name>)>
+
+Stops the daemons for a single scheme. Bundles destined for this scheme will accumulate in its forward queue until it is restarted. This is a safe operation to perform while the main BP agent is running.
+
+=back
+
+=head2 Monitoring
+
+=over 4
+
+=item B<void bp_list_schemes(void)>
+
+Prints a list of all configured schemes and their current status to standard output. Displays scheme names, code numbers, admin endpoints, and process IDs for forwarder and admin daemons.
+
+=item B<void bp_list_endpoints(void)>
+
+Prints a list of all registered endpoints and their status to standard output. Shows endpoint IDs, receive rules, application PIDs, and associated scripts.
+
+=item B<void bp_list_protocols(void)>
+
+Prints a list of all configured convergence-layer protocols to standard output. Displays protocol names and their classes (Scheduled, Unscheduled, or OnDemand).
+
+=item B<void report_all_state_stats(void)>
+
+Prints a summary of bundle processing statistics to standard output. Includes counts for sourced, received, forwarded, delivered, expired, and other bundle state transitions.
+
+=back
+
+=head1 OPERATIONAL NOTES
+
+When managing BP schemes, it is critical to distinguish between operations that modify the system's B<configuration> and those that change a scheme's operational B<state>.
+
+=head2 Configuration Changes (add/remove)
+
+Functions like B<add_scheme()> and B<remove_scheme()> perform structural configuration changes. They create or permanently destroy a scheme's underlying data structures, such as its forward queue.
+
+B<WARNING:> These operations are B<not safe> to perform while the main BP agent (e.g., bptransit) is running. Doing so can create a race condition where the agent might try to access a data structure that is being deleted, leading to a crash or memory corruption. Scheme configuration changes should ONLY be made when the main BP agent is stopped (i.e., between a call to B<bp_stop()> and B<bp_start()>).
+
+=head2 State Changes (start/stop)
+
+Functions like B<bp_start_scheme()> and B<bp_stop_scheme()> are operational state changes designed to be used while the BP agent is running.
+
+B<bp_stop_scheme()> safely terminates a scheme's forwarder process but leaves its data structures intact. The main I<bptransit> daemon can still route bundles to the scheme's forward queue, where they will wait until the scheme is restarted.
+
+B<bp_start_scheme()> starts a scheme's forwarder, allowing it to begin processing its queue. It is the intended method for dynamically activating a scheme without stopping the entire BP node.
+
+=head1 RETURN VALUES
+
+Functions that return an integer typically follow this convention:
+
+=over 4
+
+=item * 1 indicates successful completion
+
+=item * 0 indicates the operation could not be performed (e.g., item already exists or not found)
+
+=item * -1 indicates a system error occurred
+
+=back
+
+System lifecycle functions (C<bp_init()>, C<bp_start()>, C<ipn_init()>) return 0 on success and -1 on error.
+
+=head1 EXAMPLE
+
+    #include "bp_admin.h"
+    
+    /* Initialize and start BP */
+    if (bp_init() < 0) {
+        fprintf(stderr, "Failed to initialize BP\n");
+        return -1;
+    }
+    
+    /* Add IPN scheme */
+    if (add_scheme("ipn", "ipnfw", "ipnadminep") < 0) {
+        fprintf(stderr, "Failed to add IPN scheme\n");
+        return -1;
+    }
+    
+    /* Add an endpoint */
+    if (add_endpoint("ipn:1.1", EnqueueBundle, NULL) < 0) {
+        fprintf(stderr, "Failed to add endpoint\n");
+        return -1;
+    }
+    
+    /* Start the BP agent */
+    if (bp_start() < 0) {
+        fprintf(stderr, "Failed to start BP agent\n");
+        return -1;
+    }
+    
+    /* Display current configuration */
+    bp_list_schemes();
+    bp_list_endpoints();
+    report_all_state_stats();
+
+=head1 SEE ALSO
+
+bp(3), bpadmin(1), bp_attach(3), ipn_admin(3)
+
+=head1 COPYRIGHT
+
+Copyright (c) 2003, California Institute of Technology.
+ALL RIGHTS RESERVED. U.S. Government Sponsorship acknowledged.
+
+=head1 AUTHOR
+
+iondev33, JPL

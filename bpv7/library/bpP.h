@@ -18,6 +18,7 @@
 #define _BPP_H_
 
 #include "bp.h"
+#include "bp_admin.h"
 #include "rfx.h"
 #include "cbor.h"
 #include "crc.h"
@@ -384,12 +385,13 @@ typedef struct
 } IncompleteBundle;
 
 /*	*	*	Endpoint structures	*	*	*	*/
-
+/* moved to public header 
 typedef enum
 {
 	DiscardBundle = 0,
 	EnqueueBundle
 } BpRecvRule;
+*/
 
 /*	The endpoint object characterizes an endpoint within which
  *	the node is registered.						*/
@@ -1293,7 +1295,6 @@ extern int		startBpTask(Object cmd, Object cmdparms, int *pid);
 extern void		noteStateStats(int stateIdx, Bundle *bundle);
 extern void		clearAllStateStats();
 extern void		reportAllStateStats();
-
 extern void		findScheme(char *name, VScheme **vscheme,
 				PsmAddress *elt);
 extern int		addScheme(char *name, char *fwdCmd, char *admAppCmd);
@@ -1305,14 +1306,12 @@ extern void		bpStopScheme(char *name);
 extern void		findEndpoint(char *schemeName, MetaEid *meid,
 				VScheme *vscheme, VEndpoint **vpoint,
 				PsmAddress *elt);
-/*	Note that adding an endpoint is also called "registering".	*/
+/*	Note that adding an endpoint is also called "registering". */
 extern int		addEndpoint(char *endpointName,
-				BpRecvRule recvAction, char *recvScript);
+					BpRecvRule recvAction, char *recvScript);
 extern int		updateEndpoint(char *endpointName,
-				BpRecvRule recvAction, char *recvScript);
-/*	Removing an endpoint is also called "unregistering".		*/
+					BpRecvRule recvAction, char *recvScript);
 extern int		removeEndpoint(char *endpointName);
-
 extern void		lookUpEidScheme(EndpointId *eid, VScheme **vscheme);
 extern void		lookUpEndpoint(EndpointId *eid, VScheme *vscheme,
 				VEndpoint **vpoint);

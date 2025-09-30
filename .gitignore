@@ -521,3 +521,4 @@ demos/bench-ltp/global.ionrc
 tests/nm-unit-ipn2/dotest
 ion.pc
 ion.pc
+tests/admin_public_api/dotest

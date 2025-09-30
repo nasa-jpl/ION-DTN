@@ -436,6 +436,7 @@ iciinclude = \
 	ici/include/crypto.h \
 	ici/include/icinm.h \
 	ici/include/ion.h \
+	ici/include/ion_admin.h \
 	ici/include/ionsec.h \
 	ici/include/llcv.h \
 	ici/include/lyst.h \
@@ -495,6 +496,7 @@ iciextra = \
 	ici/doc/pod3/platform.pod \
 	ici/doc/pod3/memmgr.pod \
 	ici/doc/pod3/ion.pod \
+	ici/doc/pod3/ion_admin.pod \
 	ici/doc/pod3/llcv.pod \
 	ici/doc/pod3/lyst.pod \
 	ici/doc/pod3/psm.pod \
@@ -570,6 +572,7 @@ libici_la_SOURCES =	\
 	ici/library/cbor.c \
 	ici/library/crc.c \
 	ici/library/ion.c \
+	ici/library/ion_admin.c \
 	ici/library/ion_network.c \
 	ici/library/ionsec.c \
 	ici/library/libicinm.c \
@@ -720,6 +723,7 @@ ltplib = \
 
 ltpinclude = \
 	ltp/include/ltp.h \
+	ltp/include/ltp_admin.h \
 	ltp/include/sda.h
 
 ltpnoinst = \
@@ -741,6 +745,7 @@ ltpextra = \
 	ltp/doc/pod1/udplsi.pod \
 	ltp/doc/pod1/udplso.pod \
 	ltp/doc/pod3/ltp.pod \
+	ltp/doc/pod3/ltp_admin.pod \
 	ltp/doc/pod5/ltprc.pod
 
 ltpmans = \
@@ -755,6 +760,7 @@ ltpmans = \
 	ltp/doc/udplsi.1 \
 	ltp/doc/udplso.1 \
 	ltp/doc/ltp.3 \
+	ltp/doc/ltp_admin.3 \
 	ltp/doc/ltprc.5
 
 ltpclean-local:
@@ -1039,6 +1045,7 @@ bplib = \
 
 bpinclude = \
 	bpv7/include/bp.h \
+	bpv7/include/bp_admin.h \
 	bpv7/include/eureka.h \
 	bpv7/bpsec/sci/sci.h \
 	bpv7/bpsec/sci/ion_test_sc.h \
@@ -1138,6 +1145,7 @@ bpextra = \
 	bpv7/doc/pod1/udpcli.pod \
 	bpv7/doc/pod1/udpclo.pod \
 	bpv7/doc/pod3/bp.pod \
+	bpv7/doc/pod3/bp_admin.pod \
 	bpv7/doc/pod3/bpextensions.pod \
 	bpv7/doc/pod3/metadata.pod \
 	bpv7/doc/pod5/biberc.pod \
@@ -2557,7 +2565,8 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/nm-unit/utils/radix_pt/dotest \
 	tests/nm-unit/utils/radix_ut/dotest \
 	tests/nm-unit-ipn2/dotest \
-	tests/sm_subsystem/dotest
+	tests/sm_subsystem/dotest \
+	tests/admin_public_api/dotest
 #	tests/nm-unit/primitives/ari/dotest
 
 # Note: Built without shared nm libraries to allow compilation with USE_MALLOC flag.
@@ -2637,8 +2646,11 @@ tests_issue_334_cfdp_transaction_id_dotest_CFLAGS = $(icicflags) $(cfdpcflags) $
 
 tests_sm_subsystem_dotest_SOURCES = tests/sm_subsystem/dotest.c
 tests_sm_subsystem_dotest_LDADD = libici.la -lm $(bplib) $(TESTUTILOBJS)
-tests_sm_subsystem_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS) $(icicflags) 
+tests_sm_subsystem_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS) $(icicflags)
 
+tests_admin_public_api_dotest_SOURCES = tests/admin_public_api/ltp_admin_api_test.c tests/admin_public_api/ion_test_utils.c
+tests_admin_public_api_dotest_LDADD = libici.la -lm $(bplib) $(ltplib)
+tests_admin_public_api_dotest_CFLAGS = $(icicflags) $(bpcflags) $(ltpcflags) $(AM_CFLAGS)
 
 
 ##########################

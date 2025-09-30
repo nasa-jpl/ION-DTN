@@ -10,6 +10,7 @@
  */
 
 #include "ltpP.h"
+#include "ltp_admin.h"
 
 int	ltp_attach()
 {
@@ -415,4 +416,170 @@ void	ltp_release_data(Object data)
 void	ltp_close(unsigned int clientSvcId)
 {
 	ltpDetachClient(clientSvcId);
+}
+
+/*	*	*	Public LTP Admin API wrappers	*	*	*/
+
+int	ltp_init(unsigned int est_max_sessions)
+{
+	return ltpInit(est_max_sessions);
+}
+
+int	ltp_start(void)
+{
+	return ltpStart();
+}
+
+void	ltp_stop(void)
+{
+	ltpStop();
+}
+
+int	add_span(uvast engine_id,
+		unsigned int max_export_sessions,
+		unsigned int max_import_sessions,
+		unsigned int max_segment_size,
+		unsigned int aggr_size_limit,
+		unsigned int aggr_time_limit,
+		char *lso_command,
+		unsigned int queuing_latency,
+		int purge_enabled)
+{
+	return addSpan(engine_id, max_export_sessions, max_import_sessions,
+			max_segment_size, aggr_size_limit, aggr_time_limit,
+			lso_command, queuing_latency, purge_enabled);
+}
+
+int	update_span(uvast engine_id,
+		unsigned int max_export_sessions,
+		unsigned int max_import_sessions,
+		unsigned int max_segment_size,
+		unsigned int aggr_size_limit,
+		unsigned int aggr_time_limit,
+		char *lso_command,
+		unsigned int queuing_latency,
+		int purge_enabled)
+{
+	return updateSpan(engine_id, max_export_sessions, max_import_sessions,
+			max_segment_size, aggr_size_limit, aggr_time_limit,
+			lso_command, queuing_latency, purge_enabled);
+}
+
+int	remove_span(uvast engine_id)
+{
+	return removeSpan(engine_id);
+}
+
+int	ltp_start_span(uvast engine_id)
+{
+	return ltpStartSpan(engine_id);
+}
+
+void	ltp_stop_span(uvast engine_id)
+{
+	ltpStopSpan(engine_id);
+}
+
+int	add_seat(char *lsi_command)
+{
+	return addSeat(lsi_command);
+}
+
+int	remove_seat(char *lsi_command)
+{
+	return removeSeat(lsi_command);
+}
+
+void	ltp_list_spans(void)
+{
+	Sdr		sdr = getIonsdr();
+	LtpVdb		*vdb = getLtpVdb();
+	PsmPartition	ionwm = getIonwm();
+	Object		ltpdbObj = getLtpDbObject();
+			OBJ_POINTER(LtpDB, ltpdb);
+	char		nbrBuf[FQN_MAX_LENGTH];
+	char		buffer[128];
+	PsmAddress	elt;
+	LtpVspan	*vspan;
+
+	CHKVOID(sdr_begin_xn(sdr));
+	GET_OBJ_POINTER(sdr, LtpDB, ltpdb, ltpdbObj);
+	putFqn(nbrBuf, ltpdb->ownEngineId);
+	isprintf(buffer, sizeof buffer, "(Engine %s Queuing latency: %u)",
+			nbrBuf, ltpdb->ownQtime);
+	PUTS(buffer);
+	for (elt = sm_list_first(ionwm, vdb->spans); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vspan = (LtpVspan *) psp(ionwm, sm_list_data(ionwm, elt));
+
+		/*	Print span details.				*/
+
+		OBJ_POINTER(LtpSpan, span);
+		char	cmd[SDRSTRING_BUFSZ];
+
+		GET_OBJ_POINTER(sdr, LtpSpan, span,
+				sdr_list_data(sdr, vspan->spanElt));
+		putFqn(nbrBuf, vspan->engineId);
+		sdr_string_read(sdr, cmd, span->lsoCmd);
+		isprintf(buffer, sizeof buffer, "%s pid: %d  cmd: '%.128s'",
+				nbrBuf, vspan->lsoPid, cmd);
+		PUTS(buffer);
+		isprintf(buffer, sizeof buffer,
+				"\tmax export sessions: %u",
+				span->maxExportSessions);
+		PUTS(buffer);
+		isprintf(buffer, sizeof buffer,
+				"\tmax import sessions: %u",
+				span->maxImportSessions);
+		PUTS(buffer);
+		isprintf(buffer, sizeof buffer,
+				"\taggregation size threshold: %u  \
+aggregation time limit: %u", span->aggrSizeLimit, span->aggrTimeLimit);
+		PUTS(buffer);
+		isprintf(buffer, sizeof buffer,
+				"\tmax segment size: %u  queuing \
+latency: %u  purge: %d", span->maxSegmentSize, span->remoteQtime,
+				span->purge);
+		PUTS(buffer);
+		isprintf(buffer, sizeof buffer,
+				"\towltOutbound: %u  localXmit: %u  \
+owltInbound: %u  remoteXmit: %u", vspan->owltOutbound,
+				vspan->localXmitRate, vspan->owltInbound,
+				vspan->remoteXmitRate);
+		PUTS(buffer);
+	}
+
+	sdr_exit_xn(sdr);
+}
+
+void	ltp_list_seats(void)
+{
+	Sdr		sdr = getIonsdr();
+	LtpVdb		*vdb = getLtpVdb();
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	elt;
+	LtpVseat	*vseat;
+
+	CHKVOID(sdr_begin_xn(sdr));
+	for (elt = sm_list_first(ionwm, vdb->seats); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vseat = (LtpVseat *) psp(ionwm, sm_list_data(ionwm, elt));
+
+		/*	Print seat details.				*/
+
+		OBJ_POINTER(LtpSeat, seat);
+		char	cmd[SDRSTRING_BUFSZ];
+		char	buffer[256];
+
+		GET_OBJ_POINTER(sdr, LtpSeat, seat,
+				sdr_list_data(sdr, vseat->seatElt));
+		sdr_string_read(sdr, cmd, seat->lsiCmd);
+		isprintf(buffer, sizeof buffer, "'%.128s' pid: %d",
+				cmd, vseat->lsiPid);
+		PUTS(buffer);
+	}
+
+	sdr_exit_xn(sdr);
 }

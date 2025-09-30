@@ -31,8 +31,8 @@ extern "C" {
 /* Feature test macros for Unix - must come before any system header */
 #ifdef unix			/****	Feature test macros for UNIX	****/
 
-/* Check FreeBSD first to exempt it from strict POSIX */
-#ifndef freebsd        
+/* Check FreeBSD and Solaris first to exempt them from strict POSIX */
+#if !defined(freebsd) && !defined(solaris)
 #ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 200809L	/****	POSIX.1-2008 functions ****/
 #endif

@@ -1,0 +1,389 @@
+=head1 NAME
+
+ltp_admin - LTP Administration API
+
+=head1 SYNOPSIS
+
+    #include "ltp_admin.h"
+
+    /* System lifecycle */
+    int ltp_init(unsigned int est_max_sessions);
+    int ltp_start(void);
+    void ltp_stop(void);
+
+    /* Span management */
+    int add_span(uvast engine_id,
+                 unsigned int max_export_sessions,
+                 unsigned int max_import_sessions,
+                 unsigned int max_segment_size,
+                 unsigned int aggr_size_limit,
+                 unsigned int aggr_time_limit,
+                 char *lso_command,
+                 unsigned int queuing_latency,
+                 int purge_enabled);
+
+    int update_span(uvast engine_id,
+                    unsigned int max_export_sessions,
+                    unsigned int max_import_sessions,
+                    unsigned int max_segment_size,
+                    unsigned int aggr_size_limit,
+                    unsigned int aggr_time_limit,
+                    char *lso_command,
+                    unsigned int queuing_latency,
+                    int purge_enabled);
+
+    int remove_span(uvast engine_id);
+    int ltp_start_span(uvast engine_id);
+    void ltp_stop_span(uvast engine_id);
+
+    /* Seat management */
+    int add_seat(char *lsi_command);
+    int remove_seat(char *lsi_command);
+
+    /* Monitoring */
+    void ltp_list_spans(void);
+    void ltp_list_seats(void);
+
+=head1 DESCRIPTION
+
+The ltp_admin library provides programmatic access to LTP (Licklider
+Transmission Protocol) configuration and management functions that are
+traditionally accessible only through the B<ltpadmin>(1) command-line
+interface. This enables applications to dynamically configure and manage
+LTP operations at runtime.
+
+LTP manages communication with remote LTP engines through "spans" (for
+transmission) and "seats" (for reception). Unlike BP scheme operations,
+LTP span and seat operations are SAFE to perform while LTP is running,
+as they use SDR transactions for synchronization and automatically manage
+LSO/LSI process lifecycles.
+
+=head2 Key Concepts
+
+=over 4
+
+=item B<Span>
+
+Configuration for transmitting data to a remote LTP engine. Each span
+manages sessions, segmentation, and retransmission for outbound traffic.
+
+=item B<Seat>
+
+Configuration for receiving data from remote LTP engines. Defines the
+Link Service Input (LSI) endpoint.
+
+=item B<LSO>
+
+Link Service Output - the transmission daemon, one per span.
+
+=item B<LSI>
+
+Link Service Input - the reception daemon, one per seat.
+
+=item B<Engine ID>
+
+Identifier for an LTP engine, typically corresponding to an IPN node number.
+
+=back
+
+=head1 FUNCTIONS
+
+=head2 System Lifecycle Functions
+
+=over 4
+
+=item int ltp_init(unsigned int est_max_sessions)
+
+Initialize the LTP engine. Creates or recovers the LTP database in SDR.
+Must be called after ionAttach().
+
+I<est_max_sessions> - Estimated maximum number of concurrent sessions.
+
+Returns 0 on success, -1 on error.
+
+=item int ltp_start(void)
+
+Start the LTP engine and all its daemons. Launches ltpclock, ltpdeliv,
+and all configured LSO/LSI processes.
+
+Returns 0 on success, -1 on error.
+
+=item void ltp_stop(void)
+
+Stop the LTP engine and all its daemons. Terminates ltpclock, ltpdeliv,
+and all LSO/LSI processes.
+
+=back
+
+=head2 Span Management Functions
+
+=over 4
+
+=item int add_span(uvast engine_id, ...)
+
+Add a span to a remote LTP engine. A span defines how to transmit data
+to a specific remote LTP engine.
+
+Parameters:
+
+=over 8
+
+=item I<engine_id>
+
+Remote LTP engine identifier (typically IPN node number).
+
+=item I<max_export_sessions>
+
+Maximum concurrent outbound sessions to this engine.
+
+=item I<max_import_sessions>
+
+Maximum concurrent inbound sessions from this engine.
+
+=item I<max_segment_size>
+
+Maximum LTP segment size in bytes.
+
+=item I<aggr_size_limit>
+
+Block aggregation size threshold in bytes.
+
+=item I<aggr_time_limit>
+
+Block aggregation time limit in seconds.
+
+=item I<lso_command>
+
+Link Service Output command (e.g., "udplso localhost:1113").
+
+=item I<queuing_latency>
+
+Expected transmission queuing delay in seconds.
+
+=item I<purge_enabled>
+
+Enable automatic session purging (0=no, 1=yes).
+
+=back
+
+Returns 1 on success, 0 if duplicate span exists, -1 on error.
+
+Example:
+
+    add_span(2, 100, 100, 1400, 10000, 1, "udplso localhost:1113", 1, 0);
+
+=item int update_span(uvast engine_id, ...)
+
+Update an existing span's parameters. Parameters are the same as add_span().
+
+Returns 1 on success, 0 if span not found, -1 on error.
+
+=item int remove_span(uvast engine_id)
+
+Remove a span to a remote LTP engine. Automatically stops the LSO process
+before removal. The span must have no pending segments or open sessions.
+
+Returns 1 on success, 0 if span not found or has pending data, -1 on error.
+
+=item int ltp_start_span(uvast engine_id)
+
+Start transmission on a span. Starts the LSO process for the specified span.
+
+Returns 1 on success, 0 if span not found, -1 on error.
+
+=item void ltp_stop_span(uvast engine_id)
+
+Stop transmission on a span. Stops the LSO process for the specified span.
+
+=back
+
+=head2 Seat Management Functions
+
+=over 4
+
+=item int add_seat(char *lsi_command)
+
+Add a seat (link service input). A seat defines how to receive data from
+remote LTP engines.
+
+I<lsi_command> - Link Service Input command (e.g., "udplsi localhost:1113").
+
+Returns 1 on success, 0 if duplicate seat exists, -1 on error.
+
+Example:
+
+    add_seat("udplsi localhost:1113");
+
+=item int remove_seat(char *lsi_command)
+
+Remove a seat (link service input). Automatically stops the LSI process
+before removal.
+
+Returns 1 on success, 0 if seat not found, -1 on error.
+
+=back
+
+=head2 Monitoring Functions
+
+=over 4
+
+=item void ltp_list_spans(void)
+
+List all configured spans. Displays span engine IDs, session limits,
+segment sizes, aggregation parameters, LSO commands, and process IDs.
+
+Output is written to stdout.
+
+=item void ltp_list_seats(void)
+
+List all configured seats. Displays LSI commands and process IDs.
+
+Output is written to stdout.
+
+=back
+
+=head1 RUNTIME SAFETY
+
+Unlike BP scheme operations, LTP span and seat operations are safe to
+perform while LTP is running because:
+
+=over 4
+
+=item *
+
+All operations use SDR transactions for synchronization.
+
+=item *
+
+LSO/LSI process lifecycles are managed automatically.
+
+=item *
+
+No race conditions exist between configuration changes and active traffic.
+
+=back
+
+Applications can safely add, update, or remove spans and seats at runtime
+without stopping the LTP engine.
+
+=head1 RETURN VALUES
+
+Most functions follow these conventions:
+
+=over 4
+
+=item *
+
+Return 1 on successful operation.
+
+=item *
+
+Return 0 when the operation cannot be completed (e.g., span not found,
+duplicate exists).
+
+=item *
+
+Return -1 on error (check error messages via putErrmsg).
+
+=back
+
+Lifecycle functions (ltp_init, ltp_start) return 0 on success, -1 on error.
+
+Void functions (ltp_stop, ltp_stop_span, ltp_list_*) do not return values.
+
+=head1 EXAMPLES
+
+=head2 Initialize and Start LTP
+
+    #include "ion.h"
+    #include "ltp_admin.h"
+
+    if (ionAttach() < 0)
+    {
+        fprintf(stderr, "Can't attach to ION\n");
+        return -1;
+    }
+
+    if (ltp_init(1000) < 0)
+    {
+        fprintf(stderr, "Can't initialize LTP\n");
+        return -1;
+    }
+
+    if (ltp_start() < 0)
+    {
+        fprintf(stderr, "Can't start LTP\n");
+        return -1;
+    }
+
+=head2 Configure a Span
+
+    /* Add a span to engine 2 */
+    if (add_span(2,           /* engine_id */
+                 100,         /* max_export_sessions */
+                 100,         /* max_import_sessions */
+                 1400,        /* max_segment_size */
+                 10000,       /* aggr_size_limit */
+                 1,           /* aggr_time_limit */
+                 "udplso localhost:1113",
+                 1,           /* queuing_latency */
+                 0            /* purge_enabled */
+                 ) < 0)
+    {
+        fprintf(stderr, "Can't add span\n");
+        return -1;
+    }
+
+    /* Start transmission on the span */
+    if (ltp_start_span(2) < 0)
+    {
+        fprintf(stderr, "Can't start span\n");
+        return -1;
+    }
+
+=head2 Configure a Seat
+
+    /* Add a seat for receiving data */
+    if (add_seat("udplsi localhost:1113") < 0)
+    {
+        fprintf(stderr, "Can't add seat\n");
+        return -1;
+    }
+
+=head2 Monitor Configuration
+
+    /* List all configured spans */
+    ltp_list_spans();
+
+    /* List all configured seats */
+    ltp_list_seats();
+
+=head2 Cleanup
+
+    /* Stop a span */
+    ltp_stop_span(2);
+
+    /* Remove the span */
+    remove_span(2);
+
+    /* Remove the seat */
+    remove_seat("udplsi localhost:1113");
+
+    /* Stop LTP engine */
+    ltp_stop();
+
+=head1 SEE ALSO
+
+ltpadmin(1), ltp(3), ion(3)
+
+=head1 NOTES
+
+This API provides the same functionality as the ltpadmin command-line
+interface, but allows for programmatic control of LTP configuration.
+
+For detailed runtime safety analysis, see LTP_RUNTIME_SAFETY_ANALYSIS.md
+in the ION documentation.
+
+=head1 AUTHORS
+
+Jet Propulsion Laboratory, California Institute of Technology

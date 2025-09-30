@@ -1,0 +1,64 @@
+ION Admin Public API Test Suite
+=================================
+
+This directory contains automated tests for ION's public administrative APIs,
+demonstrating how to programmatically configure and operate ION nodes using
+the C API instead of configuration files or command-line tools.
+
+Examples for UDP and TCP are not provided due to the fact that these tests
+are best conducted on separate hosts. The multi-node per host setup is not
+currently supported in this test suite. This is a future enhancement.
+
+Tests Included
+--------------
+
+1. ltp_admin_api_test.c
+   - Tests LTP (Licklider Transmission Protocol) administrative functions
+   - Demonstrates complete node initialization and configuration
+   - Validates bundle transfer over LTP loopback
+   - Tests: ion_initialize, ltp_init, add_span, add_seat, ltp_start
+   - Includes BP initialization, scheme/endpoint setup, and protocol configuration
+
+Test Utilities
+--------------
+
+- ion_test_utils.c/h
+  - Shared helper functions for ION API testing
+  - Process management utilities
+  - Common test infrastructure with colored output
+  - Cleanup and shutdown routines
+
+Building
+--------
+
+The test is built as part of the normal ION build process:
+
+    make buildcheck
+
+This creates the executable: tests/admin_public_api/dotest
+
+Running
+-------
+
+Run the test directly:
+
+    cd tests/admin_public_api
+    ./dotest
+
+Or as part of the test suite:
+
+    cd tests
+    ./runtests
+
+Expected Output
+---------------
+
+The test performs a complete LTP loopback configuration and sends a test
+bundle. Success is indicated by "Payload delivered" in the output and
+all tests passing with a green checkmark.
+
+Exit Code
+---------
+
+- 0: All tests passed
+- 1: One or more tests failed

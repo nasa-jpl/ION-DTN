@@ -1,0 +1,323 @@
+=head1 NAME
+
+ion_admin - Public API for ION (Interplanetary Overlay Network) Administration
+
+=head1 SYNOPSIS
+
+ #include "ion_admin.h"
+
+=head1 DESCRIPTION
+
+The B<ion_admin.h> header provides public interfaces for managing ION 
+configuration parameters that are currently accessible only through the 
+ionadmin CLI. 
+
+=head1 FUNCTIONS
+
+=head2 Production Rate Management
+
+=over 4
+
+=item B<int ion_set_production_rate(int rate_bytes_per_sec)>
+
+Sets the expected mean rate of continuous data origination by local 
+Bundle Protocol applications.
+
+B<Parameters:>
+
+=over 4
+
+=item rate_bytes_per_sec
+
+The production rate in bytes per second. Special values:
+
+=over 4
+
+=item * B<-1> indicates the rate is unknown or not metered
+
+=item * B<0> indicates router-only nodes with no local data production
+
+=item * B<Positive values> specify the expected production rate
+
+=back
+
+=back
+
+B<Returns:> 0 on success, -1 on error.
+
+B<Prerequisites:> ION must be attached via ionAttach() before calling 
+this function.
+
+B<Notes:> Changes to production rate trigger an update to ION's congestion 
+forecast by invoking the ionwarn utility.
+
+=item B<int ion_get_production_rate(int *rate_bytes_per_sec)>
+
+Retrieves the current production rate setting.
+
+B<Parameters:>
+
+=over 4
+
+=item rate_bytes_per_sec
+
+Pointer to an integer where the current production rate will be stored.
+
+=back
+
+B<Returns:> 0 on success, -1 on error.
+
+B<Prerequisites:> ION must be attached via ionAttach() before calling 
+this function.
+
+=back
+
+=head2 Consumption Rate Management
+
+=over 4
+
+=item B<int ion_set_consumption_rate(int rate_bytes_per_sec)>
+
+Sets the expected mean rate of data delivery to local Bundle Protocol 
+applications.
+
+B<Parameters:>
+
+=over 4
+
+=item rate_bytes_per_sec
+
+The consumption rate in bytes per second. Special values:
+
+=over 4
+
+=item * B<-1> indicates the rate is unknown or not metered
+
+=item * B<0> indicates no local data consumption
+
+=item * B<Positive values> specify the expected consumption rate
+
+=back
+
+=back
+
+B<Returns:> 0 on success, -1 on error.
+
+B<Prerequisites:> ION must be attached via ionAttach() before calling 
+this function.
+
+B<Notes:> Changes to consumption rate trigger an update to ION's 
+congestion forecast by invoking the ionwarn utility.
+
+=item B<int ion_get_consumption_rate(int *rate_bytes_per_sec)>
+
+Retrieves the current consumption rate setting.
+
+B<Parameters:>
+
+=over 4
+
+=item rate_bytes_per_sec
+
+Pointer to an integer where the current consumption rate will be stored.
+
+=back
+
+B<Returns:> 0 on success, -1 on error.
+
+B<Prerequisites:> ION must be attached via ionAttach() before calling 
+this function.
+
+=back
+
+=head2 Congestion Forecast Horizon Management
+
+=over 4
+
+=item B<int ion_set_congestion_forecast_horizon(time_t horizon_time)>
+
+Sets the end time for ION's congestion forecasting window.
+
+B<Parameters:>
+
+=over 4
+
+=item horizon_time
+
+End time for congestion forecasts as a Unix timestamp (seconds since 
+epoch). Special values:
+
+=over 4
+
+=item * B<0> disables congestion forecasting entirely
+
+=item * B<Positive values> specify the forecast horizon as a UTC timestamp
+
+=back
+
+=back
+
+B<Returns:> 0 on success, -1 on error.
+
+B<Prerequisites:> ION must be attached via ionAttach() before calling 
+this function.
+
+B<Notes:> Changes to the horizon trigger an update to ION's congestion 
+forecast by invoking the ionwarn utility.
+
+=item B<int ion_get_congestion_forecast_horizon(time_t *horizon_time)>
+
+Retrieves the current congestion forecast horizon setting.
+
+B<Parameters:>
+
+=over 4
+
+=item horizon_time
+
+Pointer to a time_t variable where the current horizon timestamp will 
+be stored.
+
+=back
+
+B<Returns:> 0 on success, -1 on error.
+
+B<Prerequisites:> ION must be attached via ionAttach() before calling 
+this function.
+
+=back
+
+=head1 RETURN VALUES
+
+All functions return:
+
+=over 4
+
+=item B<0>
+
+Success
+
+=item B<-1>
+
+Error (detailed error message available via ION's error reporting 
+mechanisms)
+
+=back
+
+=head1 ERROR HANDLING
+
+Functions in this API return -1 on error and use ION's standard error 
+reporting mechanism (putErrmsg). Common error conditions include:
+
+=over 4
+
+=item *
+
+ION not attached (ionAttach() not called or failed)
+
+=item *
+
+ION database not found or corrupted
+
+=item *
+
+SDR transaction failures
+
+=item *
+
+Invalid parameters (e.g., NULL pointer for output parameters)
+
+=back
+
+Use ION's error reporting facilities to retrieve detailed error messages.
+
+=head1 THREAD SAFETY
+
+These functions are not inherently thread-safe. If multiple threads need 
+to modify ION configuration parameters, the caller must provide 
+appropriate synchronization.
+
+=head1 PREREQUISITES
+
+Before using these functions:
+
+=over 4
+
+=item 1.
+
+ION must be initialized using ionInitialize()
+
+=item 2.
+
+The calling process must be attached to ION using ionAttach()
+
+=item 3.
+
+The ION database must be accessible and properly configured
+
+=back
+
+=head1 RELATIONSHIP TO IONADMIN
+
+These functions provide programmatic access to configuration parameters 
+that can also be set through the ionadmin command-line interface:
+
+=over 4
+
+=item *
+
+B<ion_set_production_rate()> is equivalent to: C<m production E<lt>rateE<gt>>
+
+=item *
+
+B<ion_set_consumption_rate()> is equivalent to: C<m consumption E<lt>rateE<gt>>
+
+=item *
+
+B<ion_set_congestion_forecast_horizon()> is equivalent to: C<m horizon E<lt>timeE<gt>>
+
+=back
+
+Changes made through this API are immediately visible to ionadmin and 
+vice versa, as both operate on the same underlying ION database.
+
+
+=over 4
+
+=item *
+
+Involves spawning a separate process
+
+=item *
+
+May perform computation-intensive forecast calculations
+
+=item *
+
+Should not be called in high-frequency loops or time-critical code paths
+
+=back
+
+For best performance, set configuration parameters during initialization 
+or infrequently during runtime.
+
+=head1 SEE ALSO
+
+ionadmin(1), ion(3), ionattach(3), iondetach(3), ioninitialize(3), 
+bp_admin(3)
+
+=head1 COPYRIGHT
+
+Copyright (c) 2025, California Institute of Technology.
+ALL RIGHTS RESERVED. U.S. Government Sponsorship acknowledged.
+
+=head1 AUTHOR
+
+NASA/JPL Interplanetary Overlay Network (ION) Project
+
+=head1 BUGS
+
+Report bugs to the ION development team or through the ION project's 
+issue tracking system.
+
+=cut

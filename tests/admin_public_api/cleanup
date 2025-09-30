@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+echo "Cleaning up old ION..."
+killm
+rm -f ion.log
+rm -f bpsink_ltp_output.txt

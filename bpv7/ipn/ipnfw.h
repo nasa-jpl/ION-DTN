@@ -45,6 +45,9 @@
 #include "bpP.h"
 #include "cgr.h"
 
+/* Include the public admin API */
+#include "bp_admin.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -110,6 +113,7 @@ typedef struct
 	Object		exits;			/*	SDR list	*/
 	Object		overrides;		/*	SDR list	*/
 } IpnDB;
+
 
 extern int		ipnInit();
 extern Object		getIpnDbObject();

@@ -3151,8 +3151,12 @@ static int	addEndpoint_IMC(VScheme *vscheme, char *eid)
 
 	/*	We know the EID parses okay, because it was already
 	 *	parsed earlier in addEndpoint.				*/
+	/* Make a safe copy of EID before parsing */
+	char eidCopy[SDRSTRING_BUFSZ];
+	istrcpy(eidCopy, eid, SDRSTRING_BUFSZ - 1);
+	eidCopy[SDRSTRING_BUFSZ - 1] = '\0';
 
-	CHKERR(parseEidString(eid, &metaEid, &vscheme, &elt));
+	CHKERR(parseEidString(eidCopy, &metaEid, &vscheme, &elt));
 	petition.fqgn = metaEid.elementNbr;
 	if (petition.fqgn == 0)		/*	Pan-regional dispatch.	*/
 	{
@@ -3181,9 +3185,12 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	BpDB		db;
 
 	CHKERR(eid);
-	if (parseEidString(eid, &metaEid, &vscheme, &elt) == 0)
+	/* Make a safe copy of EID before parsing */
+	char eidCopy[SDRSTRING_BUFSZ];
+	istrcpy(eidCopy, eid, SDRSTRING_BUFSZ - 1);
+	eidCopy[SDRSTRING_BUFSZ - 1] = '\0';
+	if (parseEidString(eidCopy, &metaEid, &vscheme, &elt) == 0)
 	{
-		restoreEidString(&metaEid);
 		writeMemoNote("[?] Can't parse the EID", eid);
 		return 0;
 	}
@@ -3199,7 +3206,6 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	if (elt != 0)	/*	This is a known endpoint.	*/
 	{
 		sdr_exit_xn(sdr);
-		restoreEidString(&metaEid);
 		writeMemoNote("[?] Duplicate endpoint", eid);
 		return 0;
 	}
@@ -3208,7 +3214,6 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 
 	memset((char *) &endpointBuf, 0, sizeof(Endpoint));
 	istrcpy(endpointBuf.nss, metaEid.nss, sizeof endpointBuf.nss);
-	restoreEidString(&metaEid);
 	endpointBuf.recvRule = recvRule;
 	if (script)
 	{
@@ -3275,9 +3280,12 @@ int	updateEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	Endpoint	endpointBuf;
 
 	CHKERR(eid);
-	if (parseEidString(eid, &metaEid, &vscheme, &elt) == 0)
+	/* Make a safe copy of EID before parsing */
+	char eidCopy[SDRSTRING_BUFSZ];
+	istrcpy(eidCopy, eid, SDRSTRING_BUFSZ - 1);
+	eidCopy[SDRSTRING_BUFSZ - 1] = '\0';
+	if (parseEidString(eidCopy, &metaEid, &vscheme, &elt) == 0)
 	{
-		restoreEidString(&metaEid);
 		writeMemoNote("[?] Can't parse the EID", eid);
 		return 0;
 	}
@@ -3334,7 +3342,12 @@ static int	removeEndpoint_IMC(VScheme *vscheme, char *eid)
 	/*	We know the EID parses okay, because it was already
 	 *	parsed earlier in removeEndpoint.			*/
 
-	CHKERR(parseEidString(eid, &metaEid, &vscheme, &elt));
+	/* Make a safe copy of EID before parsing */
+	char eidCopy[SDRSTRING_BUFSZ];
+	istrcpy(eidCopy, eid, SDRSTRING_BUFSZ - 1);
+	eidCopy[SDRSTRING_BUFSZ - 1] = '\0';
+
+	CHKERR(parseEidString(eidCopy, &metaEid, &vscheme, &elt));
 	petition.fqgn = metaEid.elementNbr;
 	petition.isMember = 0;
 	result = imcSendPetition(&petition, 0);
@@ -3354,9 +3367,12 @@ int	removeEndpoint(char *eid)
 	Endpoint	endpointBuf;
 
 	CHKERR(eid);
-	if (parseEidString(eid, &metaEid, &vscheme, &elt) == 0)
+	/* Make a safe copy of EID before parsing */
+	char eidCopy[SDRSTRING_BUFSZ];
+	istrcpy(eidCopy, eid, SDRSTRING_BUFSZ - 1);
+	eidCopy[SDRSTRING_BUFSZ - 1] = '\0';
+	if (parseEidString(eidCopy, &metaEid, &vscheme, &elt) == 0)
 	{
-		restoreEidString(&metaEid);
 		writeMemoNote("[?] Can't parse the EID", eid);
 		return 0;
 	}
@@ -3529,7 +3545,12 @@ int	addPlan(char *eidIn, unsigned int nominalRate)
 		return 0;
 	}
 
-	if (parseEidString(eidIn, &metaEid, &vscheme, &vschemeElt) == 0)
+	/* Make a safe copy of EID before parsing */
+	char eidInCopy[SDRSTRING_BUFSZ];
+	istrcpy(eidInCopy, eidIn, SDRSTRING_BUFSZ - 1);
+	eidInCopy[SDRSTRING_BUFSZ - 1] = '\0';
+
+	if (parseEidString(eidInCopy, &metaEid, &vscheme, &vschemeElt) == 0)
 	{
 		sdr_exit_xn(sdr);
 		restoreEidString(&metaEid);

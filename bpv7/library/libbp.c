@@ -15,6 +15,7 @@
  */
 
 #include "bpP.h"
+#include "../ipn/ipnfw.h"
 
 extern void	bpEndpointTally(VEndpoint *vpoint, unsigned int idx,
 			unsigned int size);
@@ -1353,4 +1354,391 @@ void	bp_release_delivery(BpDelivery *dlvBuffer, int releasePayload)
 			}
 		}
 	}
+}
+
+/********************************************
+ * BP Management APIs (initial)
+ * 
+ * Listing APIs will be updated to return data in 
+ * structure structure.   
+ **********************************************/
+
+int	bp_init(void)
+{
+	return bpInit();
+}
+
+int	bp_start(void)
+{
+	return bpStart();
+}
+
+
+void bp_stop(void)
+{
+	bpStop();
+}
+
+int ipn_init(void)
+{
+	return ipnInit();
+}
+
+int	add_scheme(char *name, char *fwdCmd, char *admAppCmd)
+{
+	return addScheme(name, fwdCmd, admAppCmd);
+}
+
+int	remove_scheme(char *name)
+{
+	return removeScheme(name);
+}
+
+int	bp_start_scheme(char *name)
+{
+	return bpStartScheme(name);
+}
+
+void bp_stop_scheme(char *name)
+{
+	return bpStopScheme(name);
+}
+
+int	add_endpoint(char *eid, BpRecvRule recvRule, char *script)
+{
+	return addEndpoint(eid, recvRule, script);
+}
+
+int	remove_endpoint(char *eid)
+{
+	return removeEndpoint(eid);
+}
+
+/* Protocol management wrappers */
+
+int add_protocol(char *protocol_name, int protocol_class)
+{
+	return addProtocol(protocol_name, protocol_class);
+}
+
+int remove_protocol(char *protocol_name)
+{
+	return removeProtocol(protocol_name);
+}
+
+int bp_start_protocol(char *protocol_name)
+{
+	return bpStartProtocol(protocol_name);
+}
+
+void bp_stop_protocol(char *protocol_name)
+{
+	bpStopProtocol(protocol_name);
+}
+
+/* Induct management wrappers */
+
+int add_induct(char *protocol_name, char *duct_name, char *cli_command)
+{
+	return addInduct(protocol_name, duct_name, cli_command);
+}
+
+int remove_induct(char *protocol_name, char *duct_name)
+{
+	return removeInduct(protocol_name, duct_name);
+}
+
+int bp_start_induct(char *protocol_name, char *duct_name)
+{
+	return bpStartInduct(protocol_name, duct_name);
+}
+
+void bp_stop_induct(char *protocol_name, char *duct_name)
+{
+	bpStopInduct(protocol_name, duct_name);
+}
+
+/* Outduct management wrappers */
+
+int add_outduct(char *protocol_name, char *duct_name,
+                char *clo_command, unsigned int max_payload_length)
+{
+	return addOutduct(protocol_name, duct_name, clo_command,
+	                  max_payload_length);
+}
+
+int remove_outduct(char *protocol_name, char *duct_name)
+{
+	return removeOutduct(protocol_name, duct_name);
+}
+
+int bp_start_outduct(char *protocol_name, char *duct_name)
+{
+	return bpStartOutduct(protocol_name, duct_name);
+}
+
+void bp_stop_outduct(char *protocol_name, char *duct_name)
+{
+	bpStopOutduct(protocol_name, duct_name);
+}
+
+/* Egress plan management wrappers */
+
+int add_plan(char *eid, unsigned int nominal_rate)
+{
+	return addPlan(eid, nominal_rate);
+}
+
+int remove_plan(char *eid)
+{
+	return removePlan(eid);
+}
+
+int bp_start_plan(char *eid)
+{
+	return bpStartPlan(eid);
+}
+
+void bp_stop_plan(char *eid)
+{
+	bpStopPlan(eid);
+}
+
+/* Planduct (plan-outduct attachment) management wrappers */
+
+int add_planduct(char *eid, char *protocol_name, char *duct_name)
+{
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
+
+	CHKERR(eid && protocol_name && duct_name);
+
+	/* Find the outduct by protocol and duct name */
+	findOutduct(protocol_name, duct_name, &vduct, &vductElt);
+	if (vductElt == 0)
+	{
+		writeMemoNote("[?] Unknown outduct, can't attach to plan",
+		              duct_name);
+		return 0;
+	}
+
+	/* Attach the outduct to the plan using its element pointer */
+	return attachPlanDuct(eid, vduct->outductElt);
+}
+
+int remove_planduct(char *protocol_name, char *duct_name)
+{
+	VOutduct	*vduct;
+	PsmAddress	vductElt;
+
+	CHKERR(protocol_name && duct_name);
+
+	/* Find the outduct by protocol and duct name */
+	findOutduct(protocol_name, duct_name, &vduct, &vductElt);
+	if (vductElt == 0)
+	{
+		writeMemoNote("[?] Unknown outduct, can't detach from plan",
+		              duct_name);
+		return 0;
+	}
+
+	/* Detach the outduct from its plan using its element pointer */
+	return detachPlanDuct(vduct->outductElt);
+}
+
+void report_all_state_stats(void)
+{
+	reportAllStateStats();
+}
+
+void bp_list_schemes(void)
+{
+    Sdr          sdr;
+    PsmPartition bpwm;
+    BpVdb        *vdb;
+    PsmAddress   elt;
+    VScheme      *vscheme;
+    
+    sdr = getIonsdr();
+    bpwm = getIonwm();
+    vdb = getBpVdb();
+    
+    if (sdr_begin_xn(sdr) < 0)
+    {
+        writeErrMemo("bpListSchemes: Cannot begin transaction\n");
+    }
+    
+    // Iterate through all schemes
+    for (elt = sm_list_first(bpwm, vdb->schemes); elt;
+         elt = sm_list_next(bpwm, elt))
+    {
+        vscheme = (VScheme *) psp(bpwm, sm_list_data(bpwm, elt));
+        
+        // Access scheme information
+        PUTMEMO("Scheme", vscheme->name);
+        PUTMEMO("  Code Number", itoa(vscheme->codeNumber));
+        PUTMEMO("  Admin EID", vscheme->adminEid);
+        PUTMEMO("  Forwarder PID", itoa(vscheme->fwdPid));
+        PUTMEMO("  Admin App PID", itoa(vscheme->admAppPid));
+    }
+    
+	/* TO DO: Can add return structure in the future */
+
+    sdr_exit_xn(sdr);
+
+}
+
+void bp_list_endpoints(void)
+{
+    Sdr          sdr = getIonsdr();
+    PsmPartition bpwm = getIonwm();
+    BpVdb        *vdb = getBpVdb();
+    PsmAddress   schemeElt;
+    PsmAddress   endpointElt;
+    VScheme      *vscheme;
+    VEndpoint    *vpoint;
+    Object       endpointObj;
+    Endpoint     endpoint;
+    Scheme       schemeBuf;
+    char         buffer[2048];
+    char         recvScriptBuf[SDRSTRING_BUFSZ];
+    char         *recvScript;
+    char         recvRuleChar;
+    int          endpointCount = 0;
+
+    CHKVOID(vdb);
+    CHKVOID(sdr_begin_xn(sdr));
+
+    // Iterate through all schemes
+    for (schemeElt = sm_list_first(bpwm, vdb->schemes); schemeElt;
+         schemeElt = sm_list_next(bpwm, schemeElt))
+    {
+        vscheme = (VScheme *) psp(bpwm, sm_list_data(bpwm, schemeElt));
+        
+        // Read scheme details
+        sdr_read(sdr, (char *)&schemeBuf, 
+                 sdr_list_data(sdr, vscheme->schemeElt), 
+                 sizeof(Scheme));
+
+        // Iterate through endpoints for this scheme
+        for (endpointElt = sm_list_first(bpwm, vscheme->endpoints); 
+             endpointElt;
+             endpointElt = sm_list_next(bpwm, endpointElt))
+        {
+            vpoint = (VEndpoint *) psp(bpwm, sm_list_data(bpwm, endpointElt));
+            
+            // Read endpoint details from SDR
+            endpointObj = sdr_list_data(sdr, vpoint->endpointElt);
+            sdr_read(sdr, (char *)&endpoint, endpointObj, sizeof(Endpoint));
+
+            // Format receive rule as character
+            recvRuleChar = (endpoint.recvRule == EnqueueBundle) ? 'q' : 'x';
+
+            // Read receive script if present
+            if (endpoint.recvScript == 0)
+            {
+                recvScript = "";
+            }
+            else
+            {
+                if (sdr_string_read(sdr, recvScriptBuf, endpoint.recvScript) < 0)
+                {
+                    recvScript = "?";
+                }
+                else
+                {
+                    recvScript = recvScriptBuf;
+                }
+            }
+
+            // Format and print endpoint information
+            isprintf(buffer, sizeof(buffer),
+                     "%s:%s  rule=%c  app_pid=%d  script='%s'",
+                     vscheme->name,
+                     vpoint->nss,
+                     recvRuleChar,
+                     vpoint->appPid,
+                     recvScript);
+            PUTS(buffer);
+
+            endpointCount++;
+        }
+    }
+
+    sdr_exit_xn(sdr);
+
+    // Print summary
+    if (endpointCount == 0)
+    {
+        PUTS("No endpoints registered.");
+    }
+    else
+    {
+        isprintf(buffer, sizeof(buffer), 
+                 "Total endpoints: %d", endpointCount);
+        PUTS(buffer);
+    }
+}
+
+void bp_list_protocols(void)
+{
+    Sdr        sdr = getIonsdr();
+    BpDB       *bpConstants = getBpConstants();
+    Object     elt;
+    Object     protocolObj;
+    ClProtocol protocol;
+    char       buffer[2048];
+    int        protocolCount = 0;
+    char       *className;
+
+    CHKVOID(bpConstants);
+    CHKVOID(sdr_begin_xn(sdr));
+
+    // Iterate through all protocols
+    for (elt = sdr_list_first(sdr, bpConstants->protocols); elt;
+         elt = sdr_list_next(sdr, elt))
+    {
+        protocolObj = sdr_list_data(sdr, elt);
+        sdr_read(sdr, (char *)&protocol, protocolObj, sizeof(ClProtocol));
+
+        // Determine protocol class name
+        switch (protocol.protocolClass)
+        {
+        case 0:
+            className = "Scheduled";
+            break;
+        case 1:
+            className = "Unscheduled";
+            break;
+        case 2:
+            className = "OnDemand";
+            break;
+        default:
+            className = "Unknown";
+        }
+
+        // Format and print protocol information
+        isprintf(buffer, sizeof(buffer),
+                 "Protocol: %-12s  class=%d (%s)",
+                 protocol.name,
+                 protocol.protocolClass,
+                 className);
+        PUTS(buffer);
+
+        protocolCount++;
+    }
+
+    sdr_exit_xn(sdr);
+
+    // Print summary
+    if (protocolCount == 0)
+    {
+        PUTS("No convergence layer protocols configured.");
+    }
+    else
+    {
+        isprintf(buffer, sizeof(buffer), 
+                 "Total protocols: %d", protocolCount);
+        PUTS(buffer);
+    }
 }
