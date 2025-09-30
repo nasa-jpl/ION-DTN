@@ -1582,6 +1582,30 @@ char	*uToa(unsigned int arg)
 	return utoa_str;
 }
 
+/* For vast values (which may be long or long long depending on platform) */
+char *vastToa(vast arg)
+{
+    static ION_THREAD_LOCAL char vast_str[33];
+    isprintf(vast_str, sizeof vast_str, VAST_FIELDSPEC, arg);
+    return vast_str;
+}
+
+/* For uvast values */
+char *uvastToa(uvast arg)
+{
+    static ION_THREAD_LOCAL char uvast_str[33];
+    isprintf(uvast_str, sizeof uvast_str, UVAST_FIELDSPEC, arg);
+    return uvast_str;
+}
+
+/* For size_t values */
+char *sizeToa(size_t arg)
+{
+    static ION_THREAD_LOCAL char size_str[33];
+    isprintf(size_str, sizeof size_str, "%zu", arg);
+    return size_str;
+}
+
 static int	clipFileName(const char *qualifiedFileName, char **fileName)
 {
 	int	fileNameLength;
@@ -3266,7 +3290,7 @@ char	*igetcwd(char *buf, size_t size)
 	cwdName = getcwd(buf, size);
 	if (cwdName == NULL)
 	{
-		putSysErrmsg("Can't get CWD name", itoa(size));
+		putSysErrmsg("Can't get CWD name", sizetoa(size));
 	}
 
 	return cwdName;

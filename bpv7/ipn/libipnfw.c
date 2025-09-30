@@ -637,7 +637,7 @@ int	ipn_addExit(uvast firstFqnn, uvast lastFqnn, char *viaEid)
 	if (locateExit(firstFqnn, lastFqnn, &nextExit) != 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Duplicate exit", utoa(firstFqnn));
+		writeMemoNote("[?] Duplicate exit", uvasttoa(firstFqnn));
 		return 0;
 	}
 
@@ -691,7 +691,7 @@ int	ipn_updateExit(uvast firstFqnn, uvast lastFqnn, char *viaEid)
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Unknown exit", utoa(firstFqnn));
+		writeMemoNote("[?] Unknown exit", uvasttoa(firstFqnn));
 		return 0;
 	}
 
@@ -723,7 +723,7 @@ int	ipn_removeExit(uvast firstFqnn, uvast lastFqnn)
 	if (elt == 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Unknown exit", utoa(firstFqnn));
+		writeMemoNote("[?] Unknown exit", uvasttoa(firstFqnn));
 		return 0;
 	}
 

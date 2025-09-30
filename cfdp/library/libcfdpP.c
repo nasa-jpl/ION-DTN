@@ -1144,7 +1144,7 @@ Object	addEntity(uvast entityId, char *protocolName, char *endpointName,
 	elt = locateEntity(entityId, &nextElt);
 	if (elt)
 	{
-		writeMemoNote("[?] CFDP entity already exists", itoa(entityId));
+		writeMemoNote("[?] CFDP entity already exists", uvasttoa(entityId));
 		return 0;
 	}
 
@@ -1224,7 +1224,7 @@ int	changeEntity(uvast entityId, char *protocolName, char *endpointName,
 	elt = locateEntity(entityId, NULL);
 	if (elt == 0)
 	{
-		writeMemoNote("[?] CFDP entity doesn't exist", itoa(entityId));
+		writeMemoNote("[?] CFDP entity doesn't exist", uvasttoa(entityId));
 		return -1;
 	}
 
@@ -1292,7 +1292,7 @@ int	removeEntity(uvast entityId)
 	elt = locateEntity(entityId, NULL);
 	if (elt == 0)
 	{
-		writeMemoNote("[?] CFDP entity doesn't exist", itoa(entityId));
+		writeMemoNote("[?] CFDP entity doesn't exist", uvasttoa(entityId));
 		return -1;
 	}
 
@@ -1301,7 +1301,7 @@ int	removeEntity(uvast entityId)
 	if (sdr_list_length(sdr, entity.inboundFdus) > 0)
 	{
 		writeMemoNote("[?] Can't delete entity, FDUs pending",
-				itoa(entityId));
+				uvasttoa(entityId));
 		return -1;
 	}
 

@@ -470,6 +470,21 @@ for immediate use as an argument to putErrmsg().
 Returns a string representation of the unsigned integer in I<value>, nominally
 for immediate use as an argument to putErrmsg().
 
+=item char *vasttoa(vast value)
+
+Returns a string representation of I<vast> in I<value>, nominally
+for immediate use as an argument to putErrmsg().
+
+=item char *uvasttoa(uvast value)
+
+Returns a string representation of I<uvast> in I<value>, nominally
+for immediate use as an argument to putErrmsg().
+
+=item char *sizetoa(size_t value)
+
+Returns a string representation of I<size_t> in I<value>, nominally
+for immediate use as an argument to putErrmsg().
+
 =item void postErrmsg(char *text, char *argument)
 
 Constructs an error message noting the name of the source file containing

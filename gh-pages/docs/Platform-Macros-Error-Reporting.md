@@ -445,8 +445,28 @@ Returns a string representation of the signed int in value, nominally for immedi
     ```c
     char *utoa(unsigned int value)
     ```
-
 Returns a string representation of the unsigned int in value, nominally for immediate use as an argument to putErrmsg().
+
+### vasttoa
+
+    ```c
+    char *vasttoa(vast value)
+    ```
+Returns a string representation of `vast` in value, nominally for immediate use as an argument to putErrmsg().
+### uvasttoa
+
+    ```c
+    char *uvasttoa(uvast value)
+    ```
+Returns a string representation of `uvast` in value, nominally for immediate use as an argument to putErrmsg().
+
+### sizetoa
+
+    ```c
+    char *sizetoa(size_t value)
+    ```
+
+Returns a string representation of `size_t` in value, nominally for immediate use as an argument to putErrmsg().
 
 ### postErrmsg
 

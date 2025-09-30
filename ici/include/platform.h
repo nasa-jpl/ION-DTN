@@ -434,6 +434,9 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 
 #define itoa			iToa
 #define utoa			uToa
+#define vasttoa			vastToa
+#define uvasttoa		uvastToa
+#define sizetoa		sizeToa
 
 #ifdef ERROR
 #undef ERROR
@@ -1033,6 +1036,9 @@ extern void			unlockResource(ResourceLock *);
 
 extern char			*itoa(int);
 extern char			*utoa(unsigned int);
+extern char			*vasttoa(vast);
+extern char			*uvasttoa(uvast);
+extern char			*sizetoa(size_t);
 #define postErrmsg(txt, arg)	_postErrmsg(__FILE__, __LINE__, txt, arg)
 extern void			_postErrmsg(const char *, int, const char *,
 					const char *);
