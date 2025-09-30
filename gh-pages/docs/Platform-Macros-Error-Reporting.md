@@ -435,18 +435,18 @@ Writes a log message like writeMemo(), accompanied by text describing the curren
 ### itoa
 
     ```c
-    char *itoa(long long value)
+    char *itoa(int value)
     ```
 
-Returns a string representation of the signed long long in value, nominally for immediate use as an argument to putErrmsg().
+Returns a string representation of the signed int in value, nominally for immediate use as an argument to putErrmsg().
 
 ### utoa
 
     ```c
-    char *utoa(unsigned long long value)
+    char *utoa(unsigned int value)
     ```
 
-Returns a string representation of the unsigned long long in value, nominally for immediate use as an argument to putErrmsg().
+Returns a string representation of the unsigned int in value, nominally for immediate use as an argument to putErrmsg().
 
 ### postErrmsg
 

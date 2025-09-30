@@ -460,12 +460,12 @@ context-specific text in I<note>.
 Writes a log message like writeMemo(), accompanied by text describing the
 current system error.
 
-=item char *itoa(long long value)
+=item char *itoa(int value)
 
 Returns a string representation of the signed integer in I<value>, nominally
 for immediate use as an argument to putErrmsg(). 
 
-=item char *utoa(unsigned long long value)
+=item char *utoa(unsigned int value)
 
 Returns a string representation of the unsigned integer in I<value>, nominally
 for immediate use as an argument to putErrmsg().

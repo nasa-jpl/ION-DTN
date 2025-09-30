@@ -1031,8 +1031,8 @@ extern void			killResourceLock(ResourceLock *);
 extern void			lockResource(ResourceLock *);
 extern void			unlockResource(ResourceLock *);
 
-extern char			*itoa(long long);
-extern char			*utoa(unsigned long long);
+extern char			*itoa(int);
+extern char			*utoa(unsigned int);
 #define postErrmsg(txt, arg)	_postErrmsg(__FILE__, __LINE__, txt, arg)
 extern void			_postErrmsg(const char *, int, const char *,
 					const char *);
