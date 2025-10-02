@@ -896,6 +896,9 @@ int	ionInitialize(IonParms *parms, uvast ownFqnn)
 static void	destroyIonNode(PsmPartition partition, PsmAddress eltData,
 			void *argument)
 {
+	/* Parameter intentionally unused. */
+	(void)argument;
+
 	IonNode	*node = (IonNode *) psp(partition, eltData);
 
 	sm_list_destroy(partition, node->embargoes, rfx_erase_data, NULL);
@@ -905,6 +908,9 @@ static void	destroyIonNode(PsmPartition partition, PsmAddress eltData,
 static void	destroyNeighbor(PsmPartition partition, PsmAddress nodeData,
 		void *argument)
 {
+	/* Parameter intentionally unused. */
+	(void)argument;
+
 	psm_free(partition, nodeData);
 }
 
@@ -1496,11 +1502,17 @@ void	printIonMemTrace(int verbose)
 
 void	clearIonMemTrace(int verbose)
 {
+	/* Parameter intentionally unused. */
+	(void)verbose;
+
 	psm_clear_trace(_ionwm(NULL));
 }
 
 void	stopIonMemTrace(int verbose)
 {
+	/* Parameter intentionally unused. */
+	(void)verbose;
+
 	psm_stop_trace(_ionwm(NULL));
 }
 

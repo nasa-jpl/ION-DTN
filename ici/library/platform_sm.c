@@ -3351,6 +3351,10 @@ int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 #endif
 	CHKERR(name);
 
+	/* Acknowledge unused parameters. */
+	(void)priority;
+	(void)stackSize;
+
 	/*	Ignoring SIGCHLD signals causes the parent process
 	 *	to ignore the fate of the child process, so the child
 	 *	process cannot become a zombie: when it terminates,
@@ -3996,6 +4000,9 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	sem_t *psem;
 	mode_t oldmask;  /* save current umode() mask so we can restore it after open() */
 
+	/* Acknowledge unused parameter. */
+	(void)semType;
+
 	takeIpcLock();  /* lock global table across ALL Ion instances */\
 	/*	If key was specified, try to find it  */
 	if (key != SM_NO_KEY) {
@@ -4213,6 +4220,8 @@ void	sm_SemUnend(sm_SemId i)
 /* ... so we'll have to do it old school with an alarm clock signal */
 static void	handleTimeout(int signum)
 {
+	/* Acknowledge unused parameter. */
+	(void)signum;	
 	return;
 }
 

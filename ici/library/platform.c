@@ -1904,14 +1904,14 @@ void	printStackTrace()
 #endif
 }
 
-void	debugPrint(const char *format, ...)
+void    debugPrint(const char *format, ...)
 {
 #if DEBUG_PRINT
-	va_list		args;
+	va_list     args;
 
 	va_start(args, format);
 #if DEBUG_PRINT_LOG
-	char		buffer[256];
+	char        buffer[256];
 
 	vsnprintf(buffer, sizeof buffer, format, args);
 	writeMemo(buffer);
@@ -1919,6 +1919,10 @@ void	debugPrint(const char *format, ...)
 	vprintf(format, args);
 	putchar('\n');
 	va_end(args);
+#else
+	/* When DEBUG_PRINT is disabled, tell the compiler we 
+	 * are not using 'format' */
+	(void)format;
 #endif
 }
 
@@ -3611,6 +3615,8 @@ int	iputs(int fd, char *string)
 #ifndef mingw
 void	itcp_handleConnectionLoss(int signum)
 {
+	/* Parameter intentionally unused. */
+	(void)signum;
 	isignal(SIGPIPE, itcp_handleConnectionLoss);
 }
 #endif

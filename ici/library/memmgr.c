@@ -34,8 +34,12 @@ typedef struct
  *	private standard memory allocator -- allocates and initializes
  */
 
-static void	*memmgr_malloc(const char *fileName, int lineNbr, size_t size)
+static void *memmgr_malloc(const char *fileName, int lineNbr, size_t size)
 {
+	/* Parameters intentionally unused. */
+	(void)fileName;
+	(void)lineNbr;
+
 	return acquireSystemMemory(size);
 }
 
@@ -45,6 +49,10 @@ static void	*memmgr_malloc(const char *fileName, int lineNbr, size_t size)
 
 static void	memmgr_free(const char *fileName, int lineNbr, void *address)
 {
+	/* Parameters intentionally unused. */
+	(void)fileName;
+	(void)lineNbr;
+
 	TRACK_FREE(address);
 	free(address);
 }
@@ -69,23 +77,39 @@ static uaddr	memmgr_ptoa(void * address)
 
 /*	Default null memory management functions.			*/
 
-static void	*null_malloc(const char *fileName, int lineNbr, size_t size)
+static void *null_malloc(const char *fileName, int lineNbr, size_t size)
 {
+	/* Parameters intentionally unused. */
+	(void)fileName;
+	(void)lineNbr;
+	(void)size;
+
 	return NULL;
 }
 
-static void	null_free(const char *fileName, int lineNbr, void *address)
+static void null_free(const char *fileName, int lineNbr, void *address)
 {
+	/* Parameters intentionally unused. */
+	(void)fileName;
+	(void)lineNbr;
+	(void)address;
+
 	return;
 }
 
-static void	*null_atop(uaddr pointer)
+static void *null_atop(uaddr pointer)
 {
+	/* Parameter intentionally unused. */
+	(void)pointer;
+
 	return NULL;
 }
 
-static uaddr	null_ptoa(void * address)
+static uaddr    null_ptoa(void * address)
 {
+	/* Parameter intentionally unused. */
+	(void)address;
+
 	return 0;
 }
 

@@ -65,8 +65,10 @@ static Object	endCycle(Sdr sdr, Object cycleList, Cycle *currentCycle,
 
 static void	handleQuit(int signum)
 {
-	int	stopped = 1;
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
 
+	int	stopped = 1;
 	oK(file2sdr_stopped(&stopped));
 }
 

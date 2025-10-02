@@ -115,6 +115,8 @@ static int	orderKeyRefs(PsmPartition wm, PsmAddress refData,
 
 static void	eraseKeyRef(PsmPartition wm, PsmAddress refData, void *arg)
 {
+	/* Parameter intentionally unused. */
+	(void)arg;
 	psm_free(wm, refData);
 }
 
