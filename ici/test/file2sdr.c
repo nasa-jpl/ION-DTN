@@ -158,7 +158,7 @@ static int	run_file2sdr(int configFlags, char *fileName)
 	}
 
 	startLineNbr = 0;
-	while (startLineNbr < currentCycle.lineCount)
+	while (startLineNbr < (unsigned long)currentCycle.lineCount)
 	{
 		if (igets(inputFile, line, sizeof line, &len) == NULL)
 		{

@@ -1057,7 +1057,7 @@ static PsmAddress	mallocLarge(PartitionMap *map, register size_t nbytes)
 
 	bucket = computeBucket(nbytes);
 	desperationBucket = bucket;	/*	Save in case desperate.	*/
-	if (nbytes != (1 << (bucket + LARGE_ORDER1)))
+	if (nbytes != (size_t)(1 << (bucket + LARGE_ORDER1)))
 	{
 		bucket++;
 	}
@@ -1338,7 +1338,7 @@ void	psm_audit(PsmPartition partition)
 			}
 		}
 
-		if (blockCount != map->smallPoolFree[i].freeBlocks)
+		if ((size_t)blockCount != map->smallPoolFree[i].freeBlocks)
 		{
 			writeMemo("Small pool audit failed: count.");
 			abort();

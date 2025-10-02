@@ -516,7 +516,7 @@ PsmAddress	postProbeEvent(IonNode *node, Embargo *embargo)
 	if (neighbor)
 	{
 		rtlt = (neighbor->owltOutbound + neighbor->owltInbound) << 1;
-		if (rtlt > interval)
+		if (rtlt > (unsigned int)interval)
 		{
 			interval = rtlt;
 		}

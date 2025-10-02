@@ -2671,13 +2671,13 @@ int	ionSendZcoByTCP(int *sock, Object zco, char *buffer, int buflen)
 	{
 		CHKERR(sdr_begin_xn(sdr));
 		bytesToLoad = bytesRemaining;
-		if (bytesToLoad > buflen)
+		if (bytesToLoad > (uvast)buflen)
 		{
 			bytesToLoad = buflen;
 		}
 
 		bytesToSend = zco_transmit(sdr, &reader, bytesToLoad, buffer);
-		if (sdr_end_xn(sdr) < 0 || bytesToSend != bytesToLoad)
+		if (sdr_end_xn(sdr) < 0 || (uvast)bytesToSend != bytesToLoad)
 		{
 			putErrmsg("Incomplete zco_transmit.", NULL);
 			return -1;

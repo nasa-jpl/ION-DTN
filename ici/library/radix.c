@@ -282,7 +282,7 @@ PsmAddress radix_find(PsmPartition partition, PsmAddress radixAddr, char *key, i
 				 */
 				tmpAddr = radixP_get_child(partition, nodePtr, 0);
 				if((tmpAddr == 0) ||
-				   (offset + strlen(nodeKeyPtr) >= len))
+				   (offset + strlen(nodeKeyPtr) >= (size_t)len))
 				{
 					/* Step 4.1.2.2.1: Get next node and adjust key offset. */
 					nodeAddr = radixP_get_next_node(partition, nodeAddr, 0, &delta);
@@ -549,7 +549,7 @@ void radix_foreach_match(PsmPartition partition, PsmAddress radixAddr, char *key
 				 */
 				tmpAddr = radixP_get_child(partition, nodePtr, 0);
 				if((tmpAddr == 0) ||
-				   (offset + strlen(nodeKeyPtr) >= len))
+				   (offset + strlen(nodeKeyPtr) >= (size_t)len))
 				{
 					/* Step 4.1.2.2.1: Get next node and adjust key offset. */
 					nodeAddr = radixP_get_next_node(partition, nodeAddr, 0, &delta);
@@ -643,7 +643,7 @@ int   radix_insert(PsmPartition partition, PsmAddress radixAddr, char *key, PsmA
 	termAddr = radixP_get_term_node(partition, radixPtr, key, &type, &key_idx, &node_idx);
 
 	/* Step 4: Make sure we found the node without issue. */
-	if((type == -1) || (key_idx > strlen(key)) || (node_idx > strlen(key)))
+	if((type == -1) || ((size_t)key_idx > strlen(key)) || ((size_t)node_idx > strlen(key)))
 	{
 		radix_unlock(radixPtr);
 		return -1;
@@ -1598,7 +1598,7 @@ int radixP_node_matches_key(char *node_key, char *key, int *idx, int wildcard)
 	 *         only a partial match.
 	 */
 	*idx = key_len;
-	return (strlen(key) == key_len) ? RADIX_MATCH_FULL : RADIX_MATCH_PARTIAL;
+	return (strlen(key) == (size_t)key_len) ? RADIX_MATCH_FULL : RADIX_MATCH_PARTIAL;
 }
 
 

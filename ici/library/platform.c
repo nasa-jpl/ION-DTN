@@ -1884,7 +1884,7 @@ void	printStackTrace()
 	void	*returnAddresses[MAX_TRACE_DEPTH];
 	size_t	stackFrameCount;
 	char	**functionNames;
-	int	i;
+	size_t	i;
 
 	stackFrameCount = backtrace(returnAddresses, MAX_TRACE_DEPTH);
 	functionNames = backtrace_symbols(returnAddresses, stackFrameCount);
