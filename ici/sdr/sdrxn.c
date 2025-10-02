@@ -594,19 +594,29 @@ int	_xniEnd(const char *fileName, int lineNbr, const char *arg, Sdr sdrv)
 	each log entry being written back into the indicated start
 	address.							*/
 
-static int	readFromLog(int logfile, char *logsm, size_t offset,
+static int  readFromLog(int logfile, char *logsm, size_t offset,
 			char *into, size_t length, SdrState *sdr)
 {
-	if (logsm == NULL)		/*	Log is in file.		*/
+	if (logsm == NULL)	/* Log is in file.	*/
 	{
-		if (lseek(logfile, offset, SEEK_SET) < 0
-		|| read(logfile, into, length) < length)
+		ssize_t bytesRead;
+
+		if (lseek(logfile, offset, SEEK_SET) < 0)
+		{
+			putSysErrmsg("Can't seek in log file", itoa(offset));
+			return -1;
+		}
+
+		bytesRead = read(logfile, into, length);
+
+		/* Check for read error (-1) first, then for a partial read. */
+		if (bytesRead < 0 || (size_t)bytesRead < length)
 		{
 			putSysErrmsg("Can't read from log file", itoa(length));
 			return -1;
 		}
 	}
-	else				/*	Log is in memory.	*/
+	else		/* Log is in memory.	*/
 	{
 		if (offset + length > sdr->logSize)
 		{
@@ -619,7 +629,7 @@ static int	readFromLog(int logfile, char *logsm, size_t offset,
 	}
 
 	return 0;
-}
+	}
 
 static int	reverseTransaction(SdrState *sdr, int logfile, char *logsm,
 			int dsfile, char *dssm)
@@ -630,6 +640,7 @@ static int	reverseTransaction(SdrState *sdr, int logfile, char *logsm,
 	uaddr		logEntryOffset;
 	uaddr		logEntryControl[2];	/*	Offset, length.	*/
 	char		*buf;
+	ssize_t		bytesWritten; /* Added for safe write() check. */
 
 	if ((logfile == -1 && logsm == NULL))
 	{
@@ -665,15 +676,16 @@ static int	reverseTransaction(SdrState *sdr, int logfile, char *logsm,
 
 			if (dsfile != -1)
 			{
-				/*	Use dataspace in sm as buffer.	*/
-
-				if (lseek(dsfile, logEntryControl[0], SEEK_SET)
-						< 0
-				|| write(dsfile, dssm + logEntryControl[0],
-						length) < length)
+				if (lseek(dsfile, logEntryControl[0], SEEK_SET) < 0)
 				{
-					putSysErrmsg("Can't reverse log entry",
-							NULL);
+					putSysErrmsg("Can't seek in dataspace file", NULL);
+					return -1;
+				}
+
+				bytesWritten = write(dsfile, dssm + logEntryControl[0], length);
+				if (bytesWritten < 0 || (size_t)bytesWritten < length)
+				{
+					putSysErrmsg("Can't reverse log entry", NULL);
 					return -1;
 				}
 			}
@@ -699,12 +711,17 @@ static int	reverseTransaction(SdrState *sdr, int logfile, char *logsm,
 					return -1;
 				}
 
-				if (lseek(dsfile, logEntryControl[0], SEEK_SET)
-						< 0
-				|| write(dsfile, buf, length) < length)
+				if (lseek(dsfile, logEntryControl[0], SEEK_SET) < 0)
 				{
-					putSysErrmsg("Can't reverse log entry",
-							NULL);
+					putSysErrmsg("Can't seek in dataspace file", NULL);
+					MRELEASE(buf);
+					return -1;
+				}
+
+				bytesWritten = write(dsfile, buf, length);
+				if (bytesWritten < 0 || (size_t)bytesWritten < length)
+				{
+					putSysErrmsg("Can't reverse log entry", NULL);
 					MRELEASE(buf);
 					return -1;
 				}
@@ -1018,6 +1035,7 @@ static int	createDsFile(SdrState *sdr, char *dsfilename)
 	size_t	lengthRemaining;
 	size_t	lengthToWrite;
 	SdrMap	map;
+	ssize_t bytesWritten; /* Added for safe write() check. */
 
 	bufsize = getBigBuffer(&buffer);
 	if (bufsize < 1)
@@ -1043,8 +1061,9 @@ static int	createDsFile(SdrState *sdr, char *dsfilename)
 		{
 			lengthToWrite = bufsize;
 		}
-
-		if (write(dsfile, buffer, lengthToWrite) < lengthToWrite)
+		
+		bytesWritten = write(dsfile, buffer, lengthToWrite);
+		if (bytesWritten < 0 || (size_t)bytesWritten < lengthToWrite)
 		{
 			close(dsfile);
 			unlink(dsfilename);
@@ -1058,15 +1077,31 @@ static int	createDsFile(SdrState *sdr, char *dsfilename)
 
 	MRELEASE(buffer);
 	initSdrMap(&map, sdr);
-	if (lseek(dsfile, 0, SEEK_SET) < 0
-	|| write(dsfile, (char *) &map, sizeof map) < sizeof map
-	|| lseek(dsfile, 0, SEEK_SET) < 0)
+	if (lseek(dsfile, 0, SEEK_SET) < 0)
+	{
+		close(dsfile);
+		unlink(dsfilename);
+		putSysErrmsg("Can't seek to start of dataspace file", dsfilename);
+		return -1;
+	}
+
+	bytesWritten = write(dsfile, (char *) &map, sizeof map);
+	if (bytesWritten < 0 || (size_t)bytesWritten < sizeof map)
 	{
 		close(dsfile);
 		unlink(dsfilename);
 		putSysErrmsg("Can't initialize dataspace file", dsfilename);
 		return -1;
 	}
+
+	if (lseek(dsfile, 0, SEEK_SET) < 0)
+	{
+		close(dsfile);
+		unlink(dsfilename);
+		putSysErrmsg("Can't rewind dataspace file", dsfilename);
+		return -1;
+	}
+
 	return dsfile;
 }
 
@@ -1994,10 +2029,12 @@ static int	writeToLog(const char *file, int line, Sdr sdrv, char *from,
 			size_t length)
 {
 	SdrState	*sdr = sdrv->sdr;
+	ssize_t		bytesWritten; /* Added for safe write() check. */
 
 	if (sdr->logSize == 0)		/*	Log is in file.		*/
 	{
-		if (write(sdrv->logfile, from, length) != length)
+		bytesWritten = write(sdrv->logfile, from, length);
+		if (bytesWritten < 0 || (size_t)bytesWritten != length)
 		{
 			_putSysErrmsg(file, line, "Can't write log entry",
 					itoa(length));
@@ -2036,7 +2073,10 @@ void	_sdrput(const char *file, int line, Sdr sdrv, Address into, char *from,
 	Address		to;
 	uaddr		logEntryControl[2];
 	char		*buffer;
-	size_t		logOffset;
+	size_t		logOffset;	
+	/* --- Added for safe I/O checks. --- */
+	ssize_t     bytesRead;
+	ssize_t     bytesWritten;
 
 	if (length == 0)
 	{
@@ -2101,8 +2141,17 @@ log entry.", itoa(length));
 				return;
 			}
 
-			if (lseek(sdrv->dsfile, into, SEEK_SET) < 0
-			|| read(sdrv->dsfile, buffer, length) < length)
+			if (lseek(sdrv->dsfile, into, SEEK_SET) < 0)
+			{
+				MRELEASE(buffer);
+				_putSysErrmsg(file, line, "Can't seek to read old data",
+						itoa(length));
+				crashXn(sdrv);
+				return;
+			}
+
+			bytesRead = read(sdrv->dsfile, buffer, length);
+			if (bytesRead < 0 || (size_t)bytesRead < length)
 			{
 				MRELEASE(buffer);
 				_putSysErrmsg(file, line, "Can't read old data",
@@ -2137,8 +2186,16 @@ entry.", NULL);
 
 	if (sdr->configFlags & SDR_IN_FILE)
 	{
-		if (lseek(sdrv->dsfile, into, SEEK_SET) < 0
-		|| write(sdrv->dsfile, from, length) < length)
+		if (lseek(sdrv->dsfile, into, SEEK_SET) < 0)
+		{
+			_putSysErrmsg(file, line, "Can't seek to write to dataspace",
+					itoa(length));
+			crashXn(sdrv);
+			return;
+		}
+		
+		bytesWritten = write(sdrv->dsfile, from, length);
+		if (bytesWritten < 0 || (size_t)bytesWritten < length)
 		{
 			_putSysErrmsg(file, line, "Can't write to dataspace",
 					itoa(length));
@@ -2172,6 +2229,7 @@ void	_sdrfetch(Sdr sdrv, char *into, Address from, size_t length)
 {
 	SdrState	*sdr;
 	Address		to;
+	ssize_t		bytesRead; /* Added for safe read() check. */
 
 	if (length == 0)			/*	Nothing to do.	*/
 	{
@@ -2200,12 +2258,20 @@ void	_sdrfetch(Sdr sdrv, char *into, Address from, size_t length)
 	{
 		if (sdr->configFlags & SDR_IN_FILE)
 		{
-			if (lseek(sdrv->dsfile, from, SEEK_SET) < 0
-			|| read(sdrv->dsfile, into, length) < length)
+			/* --- Start of corrected block --- */
+			if (lseek(sdrv->dsfile, from, SEEK_SET) < 0)
+			{
+				putSysErrmsg("Dataspace seek failed", itoa(from));
+				crashXn(sdrv);  /* Releases SDR.   */
+				return;
+			}
+
+			bytesRead = read(sdrv->dsfile, into, length);
+			if (bytesRead < 0 || (size_t)bytesRead < length)
 			{
 				putSysErrmsg("Dataspace read failed",
 						itoa(length));
-				crashXn(sdrv);	/*	Releases SDR.	*/
+				crashXn(sdrv);  /* Releases SDR.   */
 				return;
 			}
 		}

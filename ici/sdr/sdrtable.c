@@ -136,7 +136,7 @@ Address	sdr_table_row(Sdr sdrv, Object table, unsigned int rowNbr)
 
 	CHKERR(table);
 	sdrFetch(tableBuffer, (Address) table);
-	CHKERR(rowNbr < tableBuffer.rowCount);
+	CHKERR(rowNbr < (unsigned int)tableBuffer.rowCount);
 	addr = ((Address) (tableBuffer.rows)) + (rowNbr * tableBuffer.rowSize);
 	return addr;
 }

@@ -643,7 +643,7 @@ static Object	mallocLarge(Sdr sdrv, size_t nbytes)
 	searchLimit = map->largePoolSearchLimit;
 	if (searchLimit == 0)
 	{
-		if (nbytes == (1 << (bucket + LARGE_ORDER1)))
+		if (nbytes == (size_t)(1 << (bucket + LARGE_ORDER1)))
 		{
 			searchLimit = 1;
 		}

@@ -84,7 +84,7 @@ Object	Sdr_hash_create(const char *file, int line, Sdr sdrv, int keyLength,
 		rowCount = hashDimensions[i];
 		i++;
 		if (rowCount <= rawRowCount
-		&& i < (sizeof hashDimensions / sizeof(int)))
+		&& (size_t)i < (sizeof hashDimensions / sizeof(int)))
 		{
 			continue;
 		}
@@ -533,7 +533,7 @@ static void	deleteHashEntry(Sdr sdrv, Object eltData, void *arg)
 {
 	/* Parameter intentionally unused. */
 	(void)arg;
-	
+
 	sdr_free(sdrv, eltData);
 }
 
