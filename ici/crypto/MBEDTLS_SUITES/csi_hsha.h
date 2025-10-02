@@ -28,7 +28,7 @@
 #include "csi_debug.h"
 
 int hsha_init(mbedtls_entropy_context *entropy);
-void hsha_teardown();
+void hsha_teardown(void);
 
 uint32_t hsha_parm_get_len(csi_csid_t suite, csi_parmid_t parmid);
 

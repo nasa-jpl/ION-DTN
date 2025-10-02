@@ -42,7 +42,7 @@ typedef struct
 
 int gcm_init(mbedtls_entropy_context *entropy);
 
-void gcm_teardown();
+void gcm_teardown(void);
 
 extern uint32_t   gcm_blocksize(csi_csid_t suite);
 

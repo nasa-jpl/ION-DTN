@@ -56,7 +56,7 @@ int gcm_init(mbedtls_entropy_context *entropy)
 	return 1;
 }
 
-void gcm_teardown()
+void gcm_teardown(void)
 {
     mbedtls_ctr_drbg_free( &g_csi_ctr_drbg_ctx );
 }

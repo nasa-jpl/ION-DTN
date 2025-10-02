@@ -191,7 +191,7 @@ Error %d.", len, retVal);
 	return result;
 }
 
-void hsha_teardown()
+void hsha_teardown(void)
 {
     mbedtls_hmac_drbg_free( &g_csi_hmac_drbg_256_ctx );
     mbedtls_hmac_drbg_free( &g_csi_hmac_drbg_384_ctx );

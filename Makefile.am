@@ -35,7 +35,8 @@ AM_CFLAGS += \
 NO_UNUSED_VARIABLE = 
 else
 AM_CFLAGS += -Wall \
-	-fPIC -Werror -Wextra
+	-fPIC -Werror -Wextra \
+	-Wstrict-prototypes
 
 NO_UNUSED_VARIABLE = -Wno-unused-variable
 endif # end SOLARIS_STUDIO_CC
