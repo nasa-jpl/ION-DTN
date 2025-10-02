@@ -48,8 +48,10 @@ static void	printText(char *text)
 	PUTS(text);
 }
 
-static void	handleQuit()
+static void	handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
 	printText("Please enter command 'q' to stop the program.");
 }
 
@@ -64,7 +66,7 @@ static void	printSyntaxError(int lineNbr)
 
 #define	SYNTAX_ERROR	printSyntaxError(__LINE__)
 
-static void	printUsage()
+static void	printUsage(void)
 {
 	PUTS("Valid commands are:");
 	PUTS("\tq\tQuit");
@@ -141,7 +143,7 @@ static void	initializeTca(int tokenCount, char **tokens)
 	}
 }
 
-static int	attachToTca()
+static int	attachToTca(void)
 {
 	if (tcaAttach(_blocksGroupNbr(NULL)) < 0)
 	{
@@ -589,7 +591,7 @@ static void	executeList(int tokenCount, char **tokens)
 	sdr_exit_xn(sdr);
 }
 
-static void	executeInfo()
+static void	executeInfo(void)
 {
 	Sdr		sdr = getIonsdr();
 	Object		dbobj;

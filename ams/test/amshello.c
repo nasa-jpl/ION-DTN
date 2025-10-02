@@ -19,7 +19,7 @@ amsd @ @ amsdemo test "" &
 
 #include "ams.h"
 
-static int	runPitcher()
+static int	runPitcher(void)
 {
 	AmsModule	me;
 	AmsEvent	evt;
@@ -57,7 +57,7 @@ static int	runPitcher()
 	}
 }
 
-static int	runCatcher()
+static int	runCatcher(void)
 {
 	AmsModule	me;
 	AmsEvent	evt;

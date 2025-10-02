@@ -172,12 +172,12 @@ typedef struct
 	Object		content;
 } DlvPayload;
 
-extern int		dtpcInit();
-#define dtpcStart()	_dtpcStart()
-extern int		_dtpcStart();
-#define dtpcStop()	_dtpcStop()
-extern void		dtpcStop();
-extern int		dtpcAttach();
+extern int		dtpcInit(void);
+#define dtpcStart(void)	_dtpcStart()
+extern int		_dtpcStart(void);
+#define dtpcStop()  _dtpcStop()
+extern void     _dtpcStop(void);
+extern int		dtpcAttach(void);
 extern unsigned int 	dtpcGetProfile(unsigned int maxRtx,
 				unsigned int aggrSizeLimit,
 				unsigned int aggrTimeLimit,
@@ -210,9 +210,9 @@ extern int		addProfile(unsigned int profileID,
 				char* reportToEid,
 				char *flags);
 extern int		removeProfile(unsigned int profileID);
-extern Object		getDtpcDbObject();
-extern DtpcDB		*getDtpcConstants();
-extern DtpcVdb		*getDtpcVdb();
+extern Object		getDtpcDbObject(void);
+extern DtpcDB		*getDtpcConstants(void);
+extern DtpcVdb		*getDtpcVdb(void);
 extern int		handleInAdu(Sdr sdr, BpSAP txSap, BpDelivery *dlv,
 				unsigned int profNum, Scalar seqNum);
 extern int		handleAck(Sdr sdr, BpDelivery *dlv,

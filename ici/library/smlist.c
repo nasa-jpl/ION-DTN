@@ -38,17 +38,17 @@ typedef struct
 	PsmAddress	data;	/* address of data for this element	*/
 } SmListElt;
 
-static char	*_noListMsg()
+static char	*_noListMsg(void)
 {
 	return "Can't access list at address zero.";
 }
 
-static char	*_cannotLockMsg()
+static char	*_cannotLockMsg(void)
 {
 	return "Can't lock list.";
 }
 
-static char	*_noSpaceForEltMsg()
+static char	*_noSpaceForEltMsg(void)
 {
 	return "Can't allocate space for list element.";
 }

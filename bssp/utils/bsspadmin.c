@@ -68,7 +68,7 @@ static void	printSyntaxError(int lineNbr)
 
 #define	SYNTAX_ERROR	printSyntaxError(__LINE__)
 
-static void	printUsage()
+static void	printUsage(void)
 {
 	PUTS("Valid commands are:");
 	PUTS("\tq\tQuit");
@@ -131,7 +131,7 @@ static void	initializeBssp(int tokenCount, char **tokens)
 	}
 }
 
-static int	attachToBssp()
+static int	attachToBssp(void)
 {
 	if (bsspAttach() < 0)
 	{

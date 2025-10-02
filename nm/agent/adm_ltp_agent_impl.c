@@ -42,7 +42,7 @@ int8_t get_span(tnvc_t *parms, NmltpSpan *stats)
 
 /*   STOP CUSTOM FUNCTIONS HERE  */
 
-void dtn_ltp_agent_setup()
+void dtn_ltp_agent_setup(void)
 {
 
 	/*
@@ -59,7 +59,7 @@ void dtn_ltp_agent_setup()
 	 */
 }
 
-void dtn_ltp_agent_cleanup()
+void dtn_ltp_agent_cleanup(void)
 {
 
 	/*

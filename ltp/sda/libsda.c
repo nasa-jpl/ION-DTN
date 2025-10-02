@@ -321,7 +321,7 @@ int	sda_run(SdaDelimiterFn delimiter, SdaHandlerFn handler)
 	return 0;
 }
 
-void	sda_interrupt()
+void	sda_interrupt(void)
 {
 	ltp_interrupt(SdaLtpClientId);
 }

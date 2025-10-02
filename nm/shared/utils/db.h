@@ -249,9 +249,9 @@ int  db_persist_var(void* item);
 
 int  db_read_objs(char *name);
 
-void db_destroy();
+void db_destroy(void);
 
-int db_init(char *name, void (*adm_init_cb)());
+int db_init(char *name, void (*adm_init_cb)(void));
 
 
 int vdb_obj_init(Object sdr_list, vdb_init_cb_fn init_cb);

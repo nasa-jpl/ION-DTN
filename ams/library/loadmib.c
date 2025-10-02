@@ -66,13 +66,13 @@ typedef struct
 	void		*target;	/*	For deletion.		*/
 } LoadMibState;
 
-static int	crash()
+static int	crash(void)
 {
 	putErrmsg("Loading of test MIB failed.", NULL);
 	return -1;
 }
 
-static int	loadTestMib()
+static int	loadTestMib(void)
 {
 	AmsMibParameters	parms = { 1, "dgr", NULL, NULL };
 	AmsMib			*mib;

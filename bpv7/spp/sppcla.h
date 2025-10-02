@@ -30,8 +30,8 @@ extern "C" {
 #define SPP_MAX_SEQ_COUNT   (16383) 
 #define SPPCLA_BUFSZ		(65536)
 // Declare initialization, finalization and request calls
-typedef void (*init_spp_sender_ptr)();
-typedef void (*finalize_spp_sender_ptr)();
+typedef void (*init_spp_sender_ptr)(void);
+typedef void (*finalize_spp_sender_ptr)(void);
 typedef int (*packet_request_ptr)(unsigned char*,int, int, int, int, size_t);
     
 struct SppConfig {

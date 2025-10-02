@@ -127,7 +127,7 @@ static void	printSyntaxError(int lineNbr)
 /**
  * Prints usage.
  */
-static void	printUsage()
+static void	printUsage(void)
 {
 	PUTS("Valid commands are:");
 	PUTS("\t1\tInitialize");
@@ -160,7 +160,7 @@ static int	processLine(char *line, int lineLength);
  * Initializes IPND context and loads its default values.
  * @return 0 on success, -1 on error.
  */
-static int	initializeIpnd()
+static int	initializeIpnd(void)
 {
 	IPNDCtx	*ctx = NULL;
 	char	line[1024];

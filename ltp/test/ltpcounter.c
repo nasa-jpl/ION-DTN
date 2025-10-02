@@ -100,7 +100,7 @@ static void	handleQuit(int signum)
 	ltp_interrupt(_clientId(NULL));
 }
 
-static void	printCounts()
+static void	printCounts(void)
 {
 	PUTMEMO("Sessions canceled", itoa(_sessionsCanceled(0)));
 	PUTMEMO("Blocks received", itoa(_blocksReceived(0)));

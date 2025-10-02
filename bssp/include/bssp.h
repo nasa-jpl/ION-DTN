@@ -31,11 +31,11 @@ typedef struct
 
 /*	*	*	BSSP initialization	*	*	*	*/
 
-extern int	bssp_attach();
+extern int	bssp_attach(void);
 
-extern void	bssp_detach();
+extern void	bssp_detach(void);
 
-extern int	bssp_engine_is_started();
+extern int	bssp_engine_is_started(void);
 		/*	Returns 1 if the local BSSP engine has been
 		 *	started and not yet stopped, 0 otherwise.	*/
 

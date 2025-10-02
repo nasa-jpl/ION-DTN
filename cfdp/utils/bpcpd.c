@@ -13,10 +13,10 @@ int running=1;
 
 
 
-void poll_cfdp_messages();
+void poll_cfdp_messages(void);
 void dbgprintf(int level, const char *fmt, ...);
 void usage(void);
-void version();
+void version(void);
 #ifdef CLEAN_ON_EXIT
 void sig_handler(int signum);
 #endif
@@ -88,7 +88,7 @@ int main(int argc, char **argv)
 }
 
 /*CFDP Event Polling loop*/
-void poll_cfdp_messages()
+void poll_cfdp_messages(void)
 {
 	char *eventTypes[] =	{
 					"no event",
@@ -207,7 +207,7 @@ void usage(void)
 }
 
 /*Print Version Information*/
-void version()
+void version(void)
 {
 	dbgprintf(0, BPCP_VERSION_STRING);
 	exit(1);

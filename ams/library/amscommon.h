@@ -467,9 +467,9 @@ extern int	initMemoryMgt(char *mName, char *memory, unsigned mSize);
 extern AmsMib	*_mib(AmsMibParameters *parms);
 extern AmsMib	*loadMib(char *mibSource);
 extern int	updateMib(char *mibSource);
-extern void	lockMib();
-extern void	unlockMib();
-extern void	unloadMib();
+extern void	lockMib(void);
+extern void	unlockMib(void);
+extern void	unloadMib(void);
 extern char	*_rejectionMemos(int idx);
 
 extern int	time_to_stop(Llcv llcv);

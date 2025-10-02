@@ -29,38 +29,38 @@
 static PsmPartition	_sdrwm(sm_WmParms *parms);
 
 #ifndef SDR_TRACE
-char	*_noTraceMsg()
+char	*_noTraceMsg(void)
 {
 	return "Tracing disabled; recompile with -DSDR_TRACE.";
 }
 #endif
 
-char	*_notInXnMsg()
+char	*_notInXnMsg(void)
 {
 	return "sdr_in_xn(sdrv)";
 }
 
-char	*_apiErrMsg()
+char	*_apiErrMsg(void)
 {
 	return "API values";
 }
 
-char	*_noMemoryMsg()
+char	*_noMemoryMsg(void)
 {
 	return "Not enough available SDR working memory.";
 }
 
-char	*_violationMsg()
+char	*_violationMsg(void)
 {
 	return "SDR boundaries or integrity violation.";
 }
 
-static char	*_SdrSchName()
+static char	*_SdrSchName(void)
 {
 	return "sdrsch";
 }
 
-static char	*_SdrWmName()
+static char	*_SdrWmName(void)
 {
 	return "sdrwm";
 }

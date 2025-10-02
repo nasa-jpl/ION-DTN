@@ -467,16 +467,16 @@ extern vec_idx_t g_amp_agent_idx[11];
 #define AMP_AGENT_OP_STOR 0x34
 
 /* Initialization functions. */
-void amp_agent_init();
-void amp_agent_init_meta();
-void amp_agent_init_cnst();
-void amp_agent_init_edd();
-void amp_agent_init_op();
-void amp_agent_init_var();
-void amp_agent_init_ctrl();
-void amp_agent_init_mac();
-void amp_agent_init_rpttpl();
-void amp_agent_init_tblt();
+void amp_agent_init(void);
+void amp_agent_init_meta(void);
+void amp_agent_init_cnst(void);
+void amp_agent_init_edd(void);
+void amp_agent_init_op(void);
+void amp_agent_init_var(void);
+void amp_agent_init_ctrl(void);
+void amp_agent_init_mac(void);
+void amp_agent_init_rpttpl(void);
+void amp_agent_init_tblt(void);
 
 
 #endif /* _HAVE_AMP_AGENT_ADM_ */

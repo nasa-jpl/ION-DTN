@@ -29,7 +29,7 @@
 /*             TODO              */
 /*   STOP CUSTOM FUNCTIONS HERE  */
 
-void dtn_ion_bpadmin_setup()
+void dtn_ion_bpadmin_setup(void)
 {
 
 	/*
@@ -44,7 +44,7 @@ void dtn_ion_bpadmin_setup()
 	 */
 }
 
-void dtn_ion_bpadmin_cleanup()
+void dtn_ion_bpadmin_cleanup(void)
 {
 
 	/*

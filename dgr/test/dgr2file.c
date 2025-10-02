@@ -15,13 +15,16 @@ static int	dgr2file_stopped = 0;
 static Dgr	dgr2file_dgr;
 static int	cycleNbr = 0;
 
-static void	handleQuit()
+static void	handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+	
 	dgr2file_stopped = 1;
 	dgr_interrupt(dgr2file_dgr);
 }
 
-static FILE	*openFile()
+static FILE	*openFile(void)
 {
 	char	fileName[256];
 	FILE	*outputFile;

@@ -303,7 +303,7 @@ typedef struct
 	unsigned char	metadata[BP_MAX_METADATA_LEN];
 } BpDelivery;
 
-extern int		bp_attach();
+extern int		bp_attach(void);
 			/* 	Note that all ION libraries and
 			 * 	applications draw memory dynamically,
 			 * 	as needed, from a shared pool of ION
@@ -315,17 +315,17 @@ extern int		bp_attach();
 			 *
 			 *	Returns 0 on success, -1 on any error.	*/
 
-extern int		bp_agent_is_started();
+extern int		bp_agent_is_started(void);
 			/*	Returns 1 if the local BP agent has
 			 *	been started and not yet stopped, 0
 			 *	otherwise.				*/
 
-extern Sdr		bp_get_sdr();
+extern Sdr		bp_get_sdr(void);
 			/*	Returns the SDR used for BP, to enable
 			 *	creation and interrogation of bundle
 			 *	payloads (application data units).	*/
 
-extern void		bp_detach();
+extern void		bp_detach(void);
 			/*	Terminates access to local BP agent.	*/
 
 extern int		bp_open(	char *eid,
@@ -406,7 +406,7 @@ extern int		recordEid(EndpointId *eid, MetaEid *meid, EidMode mode);
 
 extern void		eraseEid(EndpointId *eid);
 extern void		readEid(EndpointId *eid, char **str);
-extern char		*_nullEid();
+extern char		*_nullEid(void);
 
 extern int		bp_send(	BpSAP sap,
 					char *destEid,

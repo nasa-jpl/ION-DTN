@@ -92,7 +92,7 @@ static Object	_bpdbObject(Object *newDbObj)
 	return obj;
 }
 
-static BpDB	*_bpConstants()
+static BpDB	*_bpConstants(void)
 {
 	static BpDB	buf;
 	static BpDB	*db = NULL;
@@ -1157,7 +1157,7 @@ static int	raiseProtocol(Address protocolAddr, BpVdb *bpvdb)
 	return 0;
 }
 
-static char	*_bpvdbName()
+static char	*_bpvdbName(void)
 {
 	return "bpvdb";
 }
@@ -1355,7 +1355,7 @@ static BpVdb	*_bpvdb(char **name)
 	return vdb;
 }
 
-static char	*_bpdbName()
+static char	*_bpdbName(void)
 {
 	return "bpdb";
 }
@@ -7160,7 +7160,7 @@ static int	advanceWorkBuffer(AcqWorkArea *work, int bytesParsed)
 	return 0;
 }
 
-static char	*_versionMemo()
+static char	*_versionMemo(void)
 {
 	static char	buf[80];
 	static char	*memo = NULL;

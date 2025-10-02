@@ -50,7 +50,7 @@ static int	lookUpEntity(uvast entityId, unsigned int *ipAddress,
 
 /*	*	*	Receiver thread functions	*	*	*/
 
-static int	openAccessSocket()
+static int	openAccessSocket(void)
 {
 	unsigned int		ipAddress;
 	unsigned short		portNbr;

@@ -463,7 +463,7 @@ static void	shutDownAdminApp(int signum)
 	sm_SemEnd((_petitionSap(NULL))->recvSemaphore);
 }
 
-static int	handlePetitions()
+static int	handlePetitions(void)
 {
 	Sdr		sdr = getIonsdr();
 	char		receptionEid[] = "imc:0.0";

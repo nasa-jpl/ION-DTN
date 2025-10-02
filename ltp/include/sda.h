@@ -67,7 +67,7 @@ extern int	sda_run(SdaDelimiterFn delimiter, SdaHandlerFn handler);
 		 *	that sda_send() can only be executed while the
 		 *	sda_run loop is still executing.		*/
 
-extern void	sda_interrupt();
+extern void	sda_interrupt(void);
 
 #ifdef __cplusplus
 }

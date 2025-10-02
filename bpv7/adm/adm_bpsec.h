@@ -418,15 +418,15 @@
  */
 
 /* Initialization functions. */
-void dtn_bpsec_init();
-void dtn_bpsec_init_meta();
-void dtn_bpsec_init_cnst();
-void dtn_bpsec_init_edd();
-void dtn_bpsec_init_op();
-void dtn_bpsec_init_var();
-void dtn_bpsec_init_ctrl();
-void dtn_bpsec_init_mac();
-void dtn_bpsec_init_rpttpl();
-void dtn_bpsec_init_tblt();
+void dtn_bpsec_init(void);
+void dtn_bpsec_init_meta(void);
+void dtn_bpsec_init_cnst(void);
+void dtn_bpsec_init_edd(void);
+void dtn_bpsec_init_op(void);
+void dtn_bpsec_init_var(void);
+void dtn_bpsec_init_ctrl(void);
+void dtn_bpsec_init_mac(void);
+void dtn_bpsec_init_rpttpl(void);
+void dtn_bpsec_init_tblt(void);
 #endif /* _HAVE_DTN_BPSEC_ADM_ */
 #endif //ADM_BPSEC_H_

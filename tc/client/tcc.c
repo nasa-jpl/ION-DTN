@@ -39,9 +39,12 @@ static TccState	*_tccState(TccState *newState)
 	return state;
 }
 
-static void	shutDown()	/*	Commands tcc termination.	*/
+static void	shutDown(int signum)	/*	Commands tcc termination.	*/
 {
 	TccState	*state;
+	
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
 
 	isignal(SIGTERM, shutDown);
 	writeMemo("TC client daemon interrupted.");

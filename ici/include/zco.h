@@ -104,7 +104,7 @@ extern void	zco_register_callback(ZcoCallback notify);
 			 *	a ZCO is destroyed, making ZCO space
 			 *	available for new ZCO creation.		*/
 
-extern void	zco_unregister_callback();
+extern void	zco_unregister_callback(void);
 			/*	Removes the currently registered
 			 *	ZCO-space-available callback.		*/
 

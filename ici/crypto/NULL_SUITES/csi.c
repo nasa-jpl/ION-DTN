@@ -105,12 +105,12 @@ static int8_t csi_memAlloc(uint8_t **mem, int32_t *len)
  *                   BP-version-independent functions                   *
  ************************************************************************/
 
-int csi_init()
+int csi_init(void)
 {
     return 1;
 }
 
-void csi_teardown()
+void csi_teardown(void)
 {
     return;
 }

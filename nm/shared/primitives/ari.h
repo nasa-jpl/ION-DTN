@@ -201,7 +201,7 @@ ari_t*    ari_from_parm_reg(uint8_t flags, uvast nn, uvast iss, blob_t *tag, blo
 tnv_t*    ari_get_param(ari_t *id, int i);
 uint8_t   ari_get_num_parms(ari_t *ari);
 void      ari_init(ari_t *ari);
-ari_t     ari_null();
+ari_t     ari_null(void);
 void      ari_release(ari_t *ari, int destroy);
 int       ari_replace_parms(ari_t *ari, tnvc_t *new_parms);
 tnvc_t*   ari_resolve_parms(tnvc_t *src_parms, tnvc_t *cur_parms);
@@ -212,7 +212,7 @@ blob_t*   ari_serialize_wrapper(ari_t *ari);
 /* ARI Collection Functions */
 int       ac_append(ac_t *dest, ac_t *src);
 void      ac_clear(ac_t *ac);
-ac_t*     ac_create();
+ac_t*     ac_create(void);
 //int       ac_compare(ac_t *a1, ac_t *a2);
 ac_t      ac_copy(ac_t *src);
 ac_t*     ac_copy_ptr(ac_t *src);

@@ -259,16 +259,16 @@ extern "C" {
  */
 
 /* Initialization functions. */
-void dtn_ion_ltpadmin_init();
-void dtn_ion_ltpadmin_init_meta();
-void dtn_ion_ltpadmin_init_cnst();
-void dtn_ion_ltpadmin_init_edd();
-void dtn_ion_ltpadmin_init_op();
-void dtn_ion_ltpadmin_init_var();
-void dtn_ion_ltpadmin_init_ctrl();
-void dtn_ion_ltpadmin_init_mac();
-void dtn_ion_ltpadmin_init_rpttpl();
-void dtn_ion_ltpadmin_init_tblt();
+void dtn_ion_ltpadmin_init(void);
+void dtn_ion_ltpadmin_init_meta(void);
+void dtn_ion_ltpadmin_init_cnst(void);
+void dtn_ion_ltpadmin_init_edd(void);
+void dtn_ion_ltpadmin_init_op(void);
+void dtn_ion_ltpadmin_init_var(void);
+void dtn_ion_ltpadmin_init_ctrl(void);
+void dtn_ion_ltpadmin_init_mac(void);
+void dtn_ion_ltpadmin_init_rpttpl(void);
+void dtn_ion_ltpadmin_init_tblt(void);
 
 
 #endif /* _HAVE_DTN_ION_LTPADMIN_ADM_ */

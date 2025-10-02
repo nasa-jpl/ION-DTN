@@ -70,7 +70,7 @@
 #define	INIT_MRD	(750000)	/*	.75 seconds		*/
 #define	INIT_RTT	(INIT_SMOOTHED + (4 * INIT_MRD))
 
-static int	_watching()
+static int	_watching(void)
 {
 	static int	watching = DGRWATCHING;
 
@@ -299,7 +299,7 @@ static int	traceRetard;
 static int	aggregateDelay;
 static int	rcSnoozes;
 
-static void	dgrtrace()
+static void	dgrtrace(void)
 {
 	char	tracebuf[128];
 

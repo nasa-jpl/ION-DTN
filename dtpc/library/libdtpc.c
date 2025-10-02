@@ -17,24 +17,24 @@ typedef struct
 	sm_SemId	semaphore;
 } TimerParms;
 
-int     dtpc_attach()
+int     dtpc_attach(void)
 {
         return dtpcAttach();
 }
 
-void     dtpc_detach()
+void     dtpc_detach(void)
 {
         ionDetach();
 }
 
-int     dtpc_entity_is_started()
+int     dtpc_entity_is_started(void)
 {
         DtpcVdb *vdb = getDtpcVdb();
 
         return (vdb && vdb->clockPid > 0) ? 1 : 0;
 }
 
-char    *dtpc_working_directory()
+char    *dtpc_working_directory(void)
 {
         return getIonWorkingDirectory();
 }

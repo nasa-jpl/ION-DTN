@@ -15,7 +15,7 @@ static int	stopped = 0;
 static int	cycleNbr = 0;
 static int	accessSocket = -1;
 
-static void	handleQuit()
+static void	handleQuit(int signum)
 {
 	stopped = 1;
 }
@@ -115,7 +115,7 @@ static int	receiveData(int *sock, char *buffer, int *bufferLength)
 	return 0;
 }
 
-static FILE	*openFile()
+static FILE	*openFile(void)
 {
 	char	fileName[256];
 	FILE	*outputFile;

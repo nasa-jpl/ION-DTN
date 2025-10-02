@@ -34,7 +34,7 @@ static void shutDownClo(int signum)
 
 /*	*	*	Main thread functions	*	*	*	*/
 
-static unsigned long getUsecTimestamp()
+static unsigned long getUsecTimestamp(void)
 {
 	struct timeval tv;
 

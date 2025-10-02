@@ -168,8 +168,8 @@ extern int8_t			 csi_crypt_full(csi_csid_t suite,	csi_svcid_t svc,	csi_cipherpar
  *          ION Ciphersuite Interface (CSI) Common Functions                 *
  *****************************************************************************/
 
-extern int	csi_init();
-extern void	csi_teardown();
+extern int	csi_init(void);
+extern void	csi_teardown(void);
 extern uint32_t	csi_blocksize(csi_csid_t suite);
 extern uint32_t	csi_ctx_len(csi_csid_t suite);
 extern uint8_t	csi_ctx_free(csi_csid_t suite, void *context);

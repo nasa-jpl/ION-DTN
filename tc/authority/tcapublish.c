@@ -40,9 +40,12 @@ static TcaPublishState	*_tcapublishState(TcaPublishState *newState)
 	return state;
 }
 
-static void	shutDown()	/*	Commands tcapublish shutdown.	*/
+static void	shutDown(int signum)	/*	Commands tcapublish shutdown.	*/
 {
 	TcaPublishState	*state;
+
+	/* Tell the compiler the parameter is intentionally unused. */
+	(void)signum;
 
 	isignal(SIGTERM, shutDown);
 	writeMemo("tcapublish: TCA publisher daemon interrupted.");

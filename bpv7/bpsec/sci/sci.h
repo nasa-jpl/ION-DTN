@@ -135,15 +135,15 @@
  */
 
 
-typedef int  (*bpsec_sc_init)            ();
-typedef void (*bpsec_sc_teardown)        ();
+typedef int  (*bpsec_sc_init)            (void);
+typedef void (*bpsec_sc_teardown)        (void);
 typedef int  (*bpsec_sc_initOutboundASB) (void *def, Bundle *bundle, BpsecOutboundASB *asb, Sdr sdr, PsmPartition wm, PsmAddress parms);
 typedef int  (*bpsec_sc_stateInit)       (PsmPartition wm, sc_state *state, unsigned char secBlkNum, void *sc_def, sc_role role, sc_action action, EndpointId src, PsmAddress pol_parms, Lyst blk_parms, int num_tgts);
 typedef int  (*bpsec_sc_stateIncr)       (sc_state *state);
 typedef void (*bpsec_sc_stateClear)      (sc_state *state);
 typedef int  (*bpsec_sc_procOutboundBlk) (sc_state *state, Lyst outParms, Bundle *bundle, BpsecOutboundASB *asb, BpsecOutboundTargetResult *tgtResult);
 typedef int  (*bpsec_sc_procInboundBlk)  (sc_state *state, AcqWorkArea *wk, BpsecInboundASB *asb, LystElt tgtBlkElt, BpsecInboundTargetResult *tgtResult);
-typedef sc_value_map* (*bpsec_sc_valMapGet)();
+typedef sc_value_map* (*bpsec_sc_valMapGet)(void);
 
 /**
  * Security Context Definition
@@ -196,12 +196,12 @@ typedef struct
  *****************************************************************************/
 
 
-int   bpsec_sci_defCount();
+int   bpsec_sci_defCount(void);
 int   bpsec_sci_defFind(int sci_id, sc_Def *def);
 int   bpsec_sci_idFind(char *sc_name, int *sc_id);
 
-int   bpsec_sci_execInit();
-void  bpsec_sci_execTeardown();
+int   bpsec_sci_execInit(void);
+void  bpsec_sci_execTeardown(void);
 
 int   bpsec_sci_polParmAdd(PsmPartition wm, PsmAddress parms, sc_Def *def, char *key, char *value);
 char* bpsec_sci_polParmPrint(PsmPartition wm, sc_Def *sc_def, PsmAddress pol_parms);

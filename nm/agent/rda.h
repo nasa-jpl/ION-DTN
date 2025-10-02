@@ -55,22 +55,22 @@ typedef struct
 
 extern agent_db_t gAgentDb;
 
-int rda_init();
+int rda_init(void);
 
-void         rda_cleanup();
+void         rda_cleanup(void);
 msg_rpt_t*   rda_get_msg_rpt(eid_t recipient);
 msg_tbl_t*   rda_get_msg_tbl(eid_t recipient);
 
-int          rda_process_ctrls();
+int          rda_process_ctrls(void);
 
 void rda_scan_tbrs_cb(rh_elt_t *elt, void *tag);
 void rda_scan_sbrs_cb(rh_elt_t *elt, void *tag);
 
-int          rda_process_rules();
+int          rda_process_rules(void);
 
 
-int          rda_send_reports();
-int          rda_send_tables();
+int          rda_send_reports(void);
+int          rda_send_tables(void);
 
 void*        rda_thread(int* running);
 

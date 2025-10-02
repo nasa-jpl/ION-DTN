@@ -35,7 +35,7 @@ extern "C" {
 /*             TODO              */
 /*   STOP typeENUM  */
 
-void name_adm_init_agent();
+void name_adm_init_agent(void);
 
 
 
@@ -47,8 +47,8 @@ void name_adm_init_agent();
 /*   START CUSTOM FUNCTIONS HERE */
 /*   STOP CUSTOM FUNCTIONS HERE  */
 
-void dtn_ion_ltpadmin_setup();
-void dtn_ion_ltpadmin_cleanup();
+void dtn_ion_ltpadmin_setup(void);
+void dtn_ion_ltpadmin_cleanup(void);
 
 
 /* Metadata Functions */

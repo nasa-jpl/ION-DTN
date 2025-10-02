@@ -28,7 +28,7 @@
 /*             TODO              */
 /*   STOP CUSTOM FUNCTIONS HERE  */
 
-void dtn_ion_ipnadmin_setup()
+void dtn_ion_ipnadmin_setup(void)
 {
 
 	/*
@@ -43,7 +43,7 @@ void dtn_ion_ipnadmin_setup()
 	 */
 }
 
-void dtn_ion_ipnadmin_cleanup()
+void dtn_ion_ipnadmin_cleanup(void)
 {
 
 	/*

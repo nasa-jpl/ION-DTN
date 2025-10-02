@@ -129,7 +129,7 @@ msg_hdr_t msg_hdr_deserialize(QCBORDecodeContext *it, int *success);
 int msg_hdr_serialize(QCBOREncodeContext *encoder, msg_hdr_t hdr);
 
 
-msg_agent_t* msg_agent_create();
+msg_agent_t* msg_agent_create(void);
 
 msg_agent_t* msg_agent_deserialize(blob_t *data, int *success);
 
@@ -141,7 +141,7 @@ blob_t*      msg_agent_serialize_wrapper(msg_agent_t *msg);
 
 void         msg_agent_set_agent(msg_agent_t *msg, eid_t agent);
 
-msg_ctrl_t* msg_ctrl_create();
+msg_ctrl_t* msg_ctrl_create(void);
 
 msg_ctrl_t* msg_ctrl_create_ari(ari_t *id);
 

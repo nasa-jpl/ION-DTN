@@ -29,12 +29,12 @@
 agent_instr_t gAgentInstr;
 
 
-void agent_instr_init()
+void agent_instr_init(void)
 {
 	agent_instr_clear();
 }
 
-void agent_instr_clear()
+void agent_instr_clear(void)
 {
 	memset(&gAgentInstr,0, sizeof(gAgentInstr));
 }

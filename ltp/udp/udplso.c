@@ -59,8 +59,11 @@ static sm_SemId		udplsoSemaphore(sm_SemId *semid)
 	return semaphore;
 }
 
-static void	shutDownLso()	/*	Commands LSO termination.	*/
+static void	shutDownLso(int signum)	/*	Commands LSO termination.	*/
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	sm_SemEnd(udplsoSemaphore(NULL));
 }
 
@@ -131,7 +134,7 @@ nbytes=%d, rv=%d, errno=%d", (char *) inet_ntoa(saddr->sin_addr),
 	}
 }
 
-static unsigned long	getUsecTimestamp()
+static unsigned long	getUsecTimestamp(void)
 {
 	struct timeval	tv;
 

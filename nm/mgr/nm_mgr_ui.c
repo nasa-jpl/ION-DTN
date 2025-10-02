@@ -466,7 +466,7 @@ void ui_show_log(char *title, char *fn)
    ui_display_exec();
 }
 
-void ui_log_cfg_menu()
+void ui_log_cfg_menu(void)
 {
    int status;
    vecit_t it;

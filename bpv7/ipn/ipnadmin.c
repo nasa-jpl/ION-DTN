@@ -64,7 +64,7 @@ static void	printSyntaxError(int lineNbr)
 
 #define	SYNTAX_ERROR	printSyntaxError(__LINE__)
 
-static void	printUsage()
+static void	printUsage(void)
 {
 	PUTS("Syntax of 'duct expression' is:");
 	PUTS("\t<protocol name>/<outduct name>");
@@ -737,7 +737,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 	SYNTAX_ERROR;
 }
 
-static void	listPlans()
+static void	listPlans(void)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -759,7 +759,7 @@ static void	listPlans()
 	sdr_exit_xn(sdr);
 }
 
-static void	listExits()
+static void	listExits(void)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -776,7 +776,7 @@ static void	listExits()
 	sdr_exit_xn(sdr);
 }
 
-static void	listOverrides()
+static void	listOverrides(void)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;

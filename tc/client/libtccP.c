@@ -23,12 +23,12 @@ static Object	_tccmdbobject(Object *newDbObj)
 	return obj;
 }
 
-static char	*_tccmdbName()
+static char	*_tccmdbName(void)
 {
 	return "tccdb";
 }
 
-static Object	getTccMDB()
+static Object	getTccMDB(void)
 {
 	Sdr	sdr = getIonsdr();
 	Object	mdbobj;
@@ -100,12 +100,12 @@ static PsmAddress	_tccmvdbAddress(PsmAddress *newVdbAddr)
 	return addr;
 }
 
-static char	*_tccvdbName()
+static char	*_tccvdbName(void)
 {
 	return "tccvdb";
 }
 
-static PsmAddress	getTccMVdb()
+static PsmAddress	getTccMVdb(void)
 {
 	PsmPartition	wm = getIonwm();
 	PsmAddress	mvdbAddr;

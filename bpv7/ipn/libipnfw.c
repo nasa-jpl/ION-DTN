@@ -32,7 +32,7 @@ static Object	_ipndbObject(Object *newDbObj)
 	return obj;
 }
 
-static IpnDB	*_ipnConstants()
+static IpnDB	*_ipnConstants(void)
 {
 	static IpnDB	buf;
 	static IpnDB	*db = NULL;

@@ -59,8 +59,10 @@ static saddr _running(saddr *newValue)
 	return state;
 }
 
-static void shutDown() /*	Commands dtka termination.	*/
+static void shutDown(int signum) /*	Commands dtka termination.	*/
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
 	saddr stop = 0;
 
 	oK(_running(&stop)); /*	Terminates dtka.		*/

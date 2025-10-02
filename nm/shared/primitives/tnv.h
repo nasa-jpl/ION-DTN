@@ -160,7 +160,7 @@ int       tnv_cb_comp(void *i1, void *i2);
 void*     tnv_cb_copy(void *item);
 tnv_t     tnv_copy(tnv_t val, int *success);
 tnv_t*    tnv_copy_ptr(tnv_t *val);
-tnv_t*    tnv_create();
+tnv_t*    tnv_create(void);
 tnv_t     tnv_deserialize(QCBORDecodeContext *it, int *success);
 tnv_t*    tnv_deserialize_ptr(QCBORDecodeContext *it, int *success);
 tnv_t*    tnv_deserialize_raw(blob_t *data, int *success);

@@ -114,10 +114,9 @@ typedef struct
 	Object		overrides;		/*	SDR list	*/
 } IpnDB;
 
-
-extern int		ipnInit();
-extern Object		getIpnDbObject();
-extern IpnDB		*getIpnConstants();
+extern int		ipnInit(void);
+extern Object		getIpnDbObject(void);
+extern IpnDB		*getIpnConstants(void);
 
 extern int		ipn_setOvrd(unsigned int dataLabel,
 				uvast destFqnn,

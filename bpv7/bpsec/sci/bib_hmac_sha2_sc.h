@@ -85,7 +85,7 @@ typedef enum
 
 int           bpsec_bhssci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *asb, LystElt tgtBlkElt, BpsecInboundTargetResult *tgtResult);
 int           bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, BpsecOutboundASB *asb, BpsecOutboundTargetResult *tgtResult);
-sc_value_map* bpsec_bhssci_valMapGet();
+sc_value_map* bpsec_bhssci_valMapGet(void);
 
 
 /* Generic Utilities */

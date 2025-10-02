@@ -39,7 +39,7 @@ static void	killMainThread()
 	fclose(stdin);
 }
 #else
-static pthread_t	_mainThread()
+static pthread_t	_mainThread(void)
 {
 	static pthread_t	mainThread;
 	static int		haveMainThread = 0;
@@ -53,7 +53,7 @@ static pthread_t	_mainThread()
 	return mainThread;
 }
 
-static void	killMainThread()
+static void	killMainThread(void)
 {
 	int		stop = 0;
 	pthread_t	mainThread = _mainThread();

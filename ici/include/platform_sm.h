@@ -68,13 +68,13 @@ extern int		pthread_begin_named(pthread_t *thread,
 #endif			/*	end of #ifndef ION4WIN			*/
 
 /*      IPC services access control */
-extern int		sm_ipc_init();
-extern void		sm_ipc_stop();
+extern int		sm_ipc_init(void);
+extern void		sm_ipc_stop(void);
 #if defined(SVR4_SEMAPHORES) || defined(POSIX_NAMED_SEMAPHORES)
-extern void		sm_ipc_detach();
+extern void		sm_ipc_detach(void);
 #endif
 
-extern int		sm_GetUniqueKey();
+extern int		sm_GetUniqueKey(void);
 
 /*	Portable semaphore management routines.				*/
 
@@ -97,12 +97,12 @@ extern void		sm_ShmDestroy(uaddr id);
 
 /*	Portable task (process) management routines.			*/
 
-extern int		sm_TaskIdSelf();
+extern int		sm_TaskIdSelf(void);
 extern int		sm_TaskExists(int taskId);
 extern void		*sm_TaskVar(void **arg);
-extern void		sm_TaskSuspend();
+extern void		sm_TaskSuspend(void);
 extern void		sm_TaskDelay(int seconds);
-extern void		sm_TaskYield();
+extern void		sm_TaskYield(void);
 extern int		sm_TaskSpawn(char *name, char *arg1, char *arg2,
 				char *arg3, char *arg4, char *arg5, char *arg6,
 				char *arg7, char *arg8, char *arg9, char *arg10,
@@ -110,8 +110,8 @@ extern int		sm_TaskSpawn(char *name, char *arg1, char *arg2,
 extern void		sm_TaskForget(int taskId);
 extern void		sm_TaskKill(int taskId, int sigNbr);
 extern void		sm_TaskDelete(int taskId);
-extern void		sm_TasksClear();
-extern void		sm_Abort();
+extern void		sm_TasksClear(void);
+extern void		sm_Abort(void);
 #if (defined(mingw) || defined(ION4WIN))
 extern void		sm_WaitForWakeup(int seconds);
 extern void		sm_Wakeup(DWORD);

@@ -30,7 +30,7 @@ static Object	_imcdbObject(Object *newDbObj)
 	return obj;
 }
 
-static ImcDB	*_imcConstants()
+static ImcDB	*_imcConstants(void)
 {
 	static ImcDB	buf;
 	static ImcDB	*db = NULL;

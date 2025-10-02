@@ -82,7 +82,7 @@ extern void	bpnm_extensions_get(char * nameBuffer, int bufLen,
 			char * nameArray [], int * numStrings);
 
 extern void	bpnm_disposition_get(NmbpDisposition * buffer);
-extern void	bpnm_disposition_reset();
+extern void	bpnm_disposition_reset(void);
 
 extern void	bpnm_endpointNames_get(char * nameBuffer, int bufLen,
 			char * nameArray [], int * numStrings);

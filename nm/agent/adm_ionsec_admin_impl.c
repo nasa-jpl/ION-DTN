@@ -31,7 +31,7 @@
 
 /*   STOP CUSTOM FUNCTIONS HERE  */
 
-void dtn_ion_ionsecadmin_setup()
+void dtn_ion_ionsecadmin_setup(void)
 {
 
 	/*
@@ -46,7 +46,7 @@ void dtn_ion_ionsecadmin_setup()
 	 */
 }
 
-void dtn_ion_ionsecadmin_cleanup()
+void dtn_ion_ionsecadmin_cleanup(void)
 {
 
 	/*

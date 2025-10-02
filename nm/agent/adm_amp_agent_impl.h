@@ -63,7 +63,7 @@ typedef enum
 
 /*   STOP typeENUM  */
 
-void name_adm_init_agent();
+void name_adm_init_agent(void);
 
 
 
@@ -82,8 +82,8 @@ tnv_t *adm_agent_unary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e res
 
 /*   STOP CUSTOM FUNCTIONS HERE  */
 
-void amp_agent_setup();
-void amp_agent_cleanup();
+void amp_agent_setup(void);
+void amp_agent_cleanup(void);
 
 
 /* Metadata Functions */

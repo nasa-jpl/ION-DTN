@@ -147,7 +147,7 @@ void freeStatusReport(statusReport *rpt)
 }
 
 // const char* header_rpt = "srcEid/creationTime:count/offset 'status' # 'at' time 'on' statusEid, statusMsg\n";
-void print_reports() {
+void print_reports(void) {
     if (reports && n_rpts > 0) {
         printf("\nDone, printing in time order: \n");
         printf("------------------------------\n");

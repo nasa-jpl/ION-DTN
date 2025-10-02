@@ -51,11 +51,11 @@ typedef struct
 
 /*      *       *       DTPC initilization       *       *       *	*/
 
-extern int      dtpc_attach();
+extern int      dtpc_attach(void);
 
-extern int      dtpc_entity_is_started();
+extern int      dtpc_entity_is_started(void);
 
-extern void      dtpc_detach();
+extern void      dtpc_detach(void);
 
 /*      *       *       DTPC local services      *       *       *	*/
 

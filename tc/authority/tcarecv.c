@@ -35,9 +35,12 @@ static TcarecvState	*_tcarecvState(TcarecvState *newState)
 	return state;
 }
 
-static void	shutDown()	/*	Commands tcarecv termination.	*/
+static void	shutDown(int signum)	/*	Commands tcarecv termination.	*/
 {
 	TcarecvState	*state;
+
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;	
 
 	isignal(SIGTERM, shutDown);
 	writeMemo("TCA receiver daemon interrupted.");

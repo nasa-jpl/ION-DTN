@@ -30,12 +30,12 @@ static char	versionNbr[32];
 extern void	sdr_eject_xn(Sdr);
 static void	ionProvideZcoSpace(ZcoAcct acct);
 
-static char	*_iondbName()
+static char	*_iondbName(void)
 {
 	return "iondb";
 }
 
-static char	*_ionvdbName()
+static char	*_ionvdbName(void)
 {
 	return "ionvdb";
 }
@@ -76,7 +76,7 @@ static Object	_iondbObject(Object *newDbObj)
 	return obj;
 }
 
-static IonDB	*_ionConstants()
+static IonDB	*_ionConstants(void)
 {
 	static IonDB	buf;
 	static IonDB	*db = NULL;
@@ -446,7 +446,7 @@ void writeMemoToIonLog(char *text)
     unlockResource(&logFileLock);
 }
 
-static void	ionRedirectMemos()
+static void	ionRedirectMemos(void)
 {
 	setLogger(writeMemoToIonLog);
 }
@@ -457,7 +457,7 @@ static void	ionRedirectMemos()
 #elif defined (GDSWATCHER)
 #include "gdswatcher.c"
 #else
-static void	ionRedirectWatchCharacters()
+static void	ionRedirectWatchCharacters(void)
 {
 	setWatcher(NULL);		/*	Defaults to stdout.	*/
 }
@@ -965,7 +965,7 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	zco_unregister_callback();
 }
 
-void	ionDropVdb()
+void	ionDropVdb(void)
 {
 	PsmPartition	wm = getIonwm();
 	char		*ionvdbName = _ionvdbName();
@@ -992,7 +992,7 @@ void	ionDropVdb()
 	oK(_ionvdb(&stop));			/*	Forget old Vdb.	*/
 }
 
-void	ionRaiseVdb()				/*	For ionrestart.	*/
+void	ionRaiseVdb(void)				/*	For ionrestart.	*/
 {
 	char	*ionvdbName = _ionvdbName();
 
@@ -1232,7 +1232,7 @@ void	ionProd(uvast fromNode, uvast toNode, size_t xmitRate,
 	writeMemo(rfx_print_contact(xaddr, textbuf));
 }
 
-void	ionEject()
+void	ionEject(void)
 {
 	sdr_eject_xn(_ionsdr(NULL));
 }

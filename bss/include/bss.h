@@ -69,9 +69,9 @@ extern int		bssStart(char* bssName, char* path, char* eid,
 extern int		bssRun(char* bssName, char* path, char* eid,
 				char* buffer, long bufLen, RTBHandler handler);
 
-extern void		bssClose();
-extern void		bssStop();
-extern void		bssExit();
+extern void		bssClose(void);
+extern void		bssStop(void);
+extern void		bssExit(void);
 
 extern long		bssRead(bssNav nav, char* data, long dataLen);
 extern long		bssSeek(bssNav *nav, time_t time, time_t *curTime, 

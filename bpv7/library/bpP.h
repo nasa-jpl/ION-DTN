@@ -1240,17 +1240,17 @@ extern int		bpDestroyBundle(Object bundleToDestroy,
 			 *	retained because not all constraints
 			 *	have been removed, -1 on any error.	*/
 
-extern int		bpInit();
-extern void		bpDropVdb();
-extern void		bpRaiseVdb();
-extern int		bpStart();
-extern void		bpStop();
-extern int		bpAttach();
-extern void		bpDetach();
+extern int		bpInit(void);
+extern void		bpDropVdb(void);
+extern void		bpRaiseVdb(void);
+extern int		bpStart(void);
+extern void		bpStop(void);
+extern int		bpAttach(void);
+extern void		bpDetach(void);
 
-extern Object		getBpDbObject();
-extern BpDB		*getBpConstants();
-extern BpVdb		*getBpVdb();
+extern Object		getBpDbObject(void);
+extern BpDB		*getBpConstants(void);
+extern BpVdb		*getBpVdb(void);
 
 extern void		getCurrentDtnTime(DtnTime *dt);
 
@@ -1293,8 +1293,9 @@ extern int		computeZcoCrc(BpCrcType crcType,
 extern int		startBpTask(Object cmd, Object cmdparms, int *pid);
 
 extern void		noteStateStats(int stateIdx, Bundle *bundle);
-extern void		clearAllStateStats();
-extern void		reportAllStateStats();
+extern void		clearAllStateStats(void);
+extern void		reportAllStateStats(void);
+
 extern void		findScheme(char *name, VScheme **vscheme,
 				PsmAddress *elt);
 extern int		addScheme(char *name, char *fwdCmd, char *admAppCmd);

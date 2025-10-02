@@ -66,7 +66,7 @@ typedef struct
 
 /*	*	*	Sender thread functions	*	*	*	*/
 
-static void	*terminateSenderThread()
+static void	*terminateSenderThread(void)
 {
 	writeErrmsgMemos();
 	writeMemo("[i] brsscla sender thread stopping.");
@@ -151,7 +151,7 @@ static void	*sendBundles(void *parm)
 
 /*	*	*	Receiver thread functions	*	*	*/
 
-static int	reforwardStrandedBundles()
+static int	reforwardStrandedBundles(void)
 {
 	Sdr	sdr = getIonsdr();
 	BpDB	*bpConstants = getBpConstants();

@@ -70,7 +70,7 @@ extern "C" {
 
 
 ui_cb_return_values_t  ui_print_agents_cb_fn(int idx, int keypress, void* data, char* status_msg);
-int   ui_print_agents();
+int   ui_print_agents(void);
 
 #define ui_print_report(rpt) ui_fprint_report(NULL, rpt)
 void  ui_fprint_report(ui_print_cfg_t *fd, rpt_t *rpt);

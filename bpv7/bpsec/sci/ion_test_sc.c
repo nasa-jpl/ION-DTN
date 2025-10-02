@@ -937,25 +937,7 @@ int bpsec_itsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bps
  * @retval !NULL - The value map for this SC
  * @retval  NULL - There was an error.
  *****************************************************************************/
-sc_value_map* bpsec_itsci_valMapGet()
+sc_value_map* bpsec_itsci_valMapGet(void)
 {
     return gITSC_ParmMap;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

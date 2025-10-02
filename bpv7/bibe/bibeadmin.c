@@ -65,7 +65,7 @@ static void	printSyntaxError(int lineNbr)
 
 #define	SYNTAX_ERROR	printSyntaxError(__LINE__)
 
-static void	printUsage()
+static void	printUsage(void)
 {
 	PUTS("Valid commands are:");
 	PUTS("\tq\tQuit");
@@ -93,7 +93,7 @@ static void	printUsage()
 	PUTS("\t   # <comment text, ignored by the program>");
 }
 
-static int	attachToBp()
+static int	attachToBp(void)
 {
 	if (bpAttach() < 0)
 	{
@@ -353,7 +353,7 @@ static void	executeList(int tokenCount, char **tokens)
 	SYNTAX_ERROR;
 }
 
-static void	noteWatchValue()
+static void	noteWatchValue(void)
 {
 	BpVdb	*vdb = getBpVdb();
 	Sdr	sdr = getIonsdr();

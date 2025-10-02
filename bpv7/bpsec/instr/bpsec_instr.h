@@ -105,10 +105,10 @@ typedef enum
 
 
 void     bpsec_instr_update(char *src, uvast blk, uvast bytes, bpsec_instr_type_e type);
-void     bpsec_instr_cleanup();
+void     bpsec_instr_cleanup(void);
 void     bpsec_instr_clear_src(Object sdrElt);
 int   bpsec_instr_get_misc(bpsec_instr_misc_t *result);
-int   bpsec_instr_clear();
+int   bpsec_instr_clear(void);
 int   bpsec_instr_get_src_blk(char *src_id, bpsec_instr_type_e type, uvast *result);
 int   bpsec_instr_get_src_bytes(char *src_id, bpsec_instr_type_e type, uvast *result);
 int   bpsec_instr_get_src_update(char *src_id, time_t *result);
@@ -116,11 +116,11 @@ int   bpsec_instr_get_total_blk(bpsec_instr_type_e type, uvast *result);
 int   bpsec_instr_get_total_bytes(bpsec_instr_type_e type, uvast *result);
 int   bpsec_instr_get_tot_update(time_t *result);
 uint32_t bpsec_instr_get_num_keys(void);
-char*    bpsec_instr_get_keynames();
-char*    bpsec_instr_get_csnames();
-char*    bpsec_instr_get_srcnames();
-int      bpsec_instr_init();
-void     bpsec_instr_reset();
+char*    bpsec_instr_get_keynames(void);
+char*    bpsec_instr_get_csnames(void);
+char*    bpsec_instr_get_srcnames(void);
+int      bpsec_instr_init(void);
+void     bpsec_instr_reset(void);
 void     bpsec_instr_reset_src(char *src_id);
 
 #endif

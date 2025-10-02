@@ -32,7 +32,7 @@
 
 //vec_idx_t g_amp_agent_idx[11];
 
-void amp_agent_init()
+void amp_agent_init(void)
 {
 	adm_add_adm_info("amp_agent", ADM_ENUM_AMP_AGENT);
 
@@ -58,7 +58,7 @@ void amp_agent_init()
 	amp_agent_init_tblt();
 }
 
-void amp_agent_init_meta()
+void amp_agent_init_meta(void)
 {
 
 	adm_add_cnst(adm_build_ari(AMP_TYPE_CNST, 0, g_amp_agent_idx[ADM_META_IDX], AMP_AGENT_META_NAME), amp_agent_meta_name);
@@ -67,13 +67,13 @@ void amp_agent_init_meta()
 	adm_add_cnst(adm_build_ari(AMP_TYPE_CNST, 0, g_amp_agent_idx[ADM_META_IDX], AMP_AGENT_META_ORGANIZATION), amp_agent_meta_organization);
 }
 
-void amp_agent_init_cnst()
+void amp_agent_init_cnst(void)
 {
 
 	adm_add_cnst(adm_build_ari(AMP_TYPE_CNST, 0, g_amp_agent_idx[ADM_CONST_IDX], AMP_AGENT_CNST_AMP_EPOCH), amp_agent_get_amp_epoch);
 }
 
-void amp_agent_init_edd()
+void amp_agent_init_edd(void)
 {
 
 	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_amp_agent_idx[ADM_EDD_IDX], AMP_AGENT_EDD_NUM_RPT_TPLS), amp_agent_get_num_rpt_tpls);
@@ -92,7 +92,7 @@ void amp_agent_init_edd()
 	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_amp_agent_idx[ADM_EDD_IDX], AMP_AGENT_EDD_CUR_TIME), amp_agent_get_cur_time);
 }
 
-void amp_agent_init_op()
+void amp_agent_init_op(void)
 {
 
 	adm_add_op(g_amp_agent_idx[ADM_OPER_IDX], AMP_AGENT_OP_PLUSINT, 2, amp_agent_op_plusint);
@@ -150,7 +150,7 @@ void amp_agent_init_op()
 	adm_add_op(g_amp_agent_idx[ADM_OPER_IDX], AMP_AGENT_OP_STOR, 2, amp_agent_op_stor);
 }
 
-void amp_agent_init_var()
+void amp_agent_init_var(void)
 {
 
 	ari_t *id = NULL;
@@ -168,7 +168,7 @@ void amp_agent_init_var()
 	adm_add_var_from_expr(id, AMP_TYPE_UINT, expr);
 }
 
-void amp_agent_init_ctrl()
+void amp_agent_init_ctrl(void)
 {
 
 	adm_add_ctrldef(g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_ADD_VAR, 3, amp_agent_ctrl_add_var);
@@ -189,12 +189,12 @@ void amp_agent_init_ctrl()
 	adm_add_ctrldef(g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_RESET_COUNTS, 0, amp_agent_ctrl_reset_counts);
 }
 
-void amp_agent_init_mac()
+void amp_agent_init_mac(void)
 {
 
 }
 
-void amp_agent_init_rpttpl()
+void amp_agent_init_rpttpl(void)
 {
 
 	rpttpl_t *def = NULL;
@@ -220,7 +220,7 @@ void amp_agent_init_rpttpl()
 	adm_add_rpttpl(def);
 }
 
-void amp_agent_init_tblt()
+void amp_agent_init_tblt(void)
 {
 
 	tblt_t *def = NULL;

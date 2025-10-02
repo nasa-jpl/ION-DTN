@@ -708,16 +708,16 @@ typedef struct
 } LtpVdb;
 
 extern int		ltpInit(int estMaxExportSessions);
-extern void		ltpDropVdb();
-extern void		ltpRaiseVdb();
-extern int		ltpStart();
-extern void		ltpStop();
-extern int		ltpAttach();
-extern void		ltpDetach();
+extern void		ltpDropVdb(void);
+extern void		ltpRaiseVdb(void);
+extern int		ltpStart(void);
+extern void		ltpStop(void);
+extern int		ltpAttach(void);
+extern void		ltpDetach(void);
 
-extern Object		getLtpDbObject();
-extern LtpDB		*getLtpConstants();
-extern LtpVdb		*getLtpVdb();
+extern Object		getLtpDbObject(void);
+extern LtpDB		*getLtpConstants(void);
+extern LtpVdb		*getLtpVdb(void);
 
 extern void		findSeat(char *lsiCmd, LtpVseat **vseat,
 				PsmAddress *vseatElt);
@@ -741,7 +741,7 @@ extern int		updateSpan(uvast engineId,
 				unsigned int aggrTimeLimit,
 				char *lsoCmd, unsigned int qTime, int purge);
 extern int		removeSpan(uvast engineId);
-extern void		checkReservationLimit();
+extern void		checkReservationLimit(void);
 extern int		ltpStartSpan(uvast engineId);
 extern void		ltpStopSpan(uvast engineId);
 

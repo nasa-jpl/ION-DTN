@@ -222,7 +222,7 @@ static void rtt_debug(register struct rtt_struct *ptr)
  * (errno = EINTR) above, and we then check the tout_flag flag.
  */
 
-static void	to_alarm()
+static void	to_alarm(int signum)
 {
 printf("!");
 fflush(stdout);

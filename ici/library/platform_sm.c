@@ -14,8 +14,8 @@
 
 #include <platform.h>
 
-static void	takeIpcLock();
-static void	giveIpcLock();
+static void	takeIpcLock(void);
+static void	giveIpcLock(void);
 
 
 /* shared action arguments for SVR4 and Posix Named Sems */
@@ -3334,7 +3334,7 @@ void	sm_TaskYield()
 	sched_yield();
 }
 
-static void	closeAllFileDescriptors()
+static void	closeAllFileDescriptors(void)
 {
 	struct rlimit	limit;
 	rlim_t		i;
@@ -3552,7 +3552,7 @@ static SmLocalSem *_semGetSem(SmProcessSemtable *psemtable, sm_SemId semnum, int
 static char *_semGenPosixSemname(char *namebuf, unsigned bufsize, int semnum);
 static int _semKeyExists(int key);
 
-void _semPrintTable()  // Only for debugging purposes
+void _semPrintTable(void)  // Only for debugging purposes
 {
 #ifdef DEBUGGING
 	SmProcessSemtable	*semTbl = _semTbl(IPC_ACTION_LOOKUP);
@@ -3955,7 +3955,7 @@ static sem_t	*_ipcSemaphore(int action)
 }
 
 
-int	sm_ipc_init()
+int	sm_ipc_init(void)
 {	
 	if (_ipcSemaphore(IPC_ACTION_LOOKUP) == NULL) {
 		putErrmsg("Can't initialize IPC.", NULL);
@@ -3965,19 +3965,19 @@ int	sm_ipc_init()
 }
 
 
-void 	sm_ipc_detach()
+void 	sm_ipc_detach(void)
 {
 	oK(_ipcSemaphore(IPC_ACTION_DETACH));
 }
 
 
-void	sm_ipc_stop()
+void	sm_ipc_stop(void)
 {
 	oK(_ipcSemaphore(IPC_ACTION_STOP));	
 }
 
 
-static void	takeIpcLock()
+static void	takeIpcLock(void)
 {
 	sem_t *ipcsem = _ipcSemaphore(IPC_ACTION_LOOKUP);
 
@@ -3992,7 +3992,7 @@ static void	takeIpcLock()
 }
 
 
-static void	giveIpcLock()
+static void	giveIpcLock(void)
 {
 	if (sem_post(_ipcSemaphore(IPC_ACTION_LOOKUP)) == -1) {
 		putSysErrmsg("giveIpcLock failed", NULL);

@@ -18,7 +18,7 @@
 
 /*	*	*	Routing information mgt functions	*	*/
 
-int	dtn2Init()
+int	dtn2Init(void)
 {
 	return 0;	/*	No additional database needed.		*/
 }

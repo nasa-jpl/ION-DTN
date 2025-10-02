@@ -67,7 +67,7 @@ static void     printSyntaxError(int lineNbr)
 
 #define SYNTAX_ERROR	printSyntaxError(__LINE__)
 
-static void     printUsage()
+static void     printUsage(void)
 {
 	PUTS("Valid commands are:");
 	PUTS("\tq\tQuit");
@@ -115,7 +115,7 @@ static void	initializeDtpc(int tokenCount, char **tokens)
 	}
 }
 
-static int	attachToDtpc()
+static int	attachToDtpc(void)
 {
 	if (dtpcAttach() < 0)
 	{

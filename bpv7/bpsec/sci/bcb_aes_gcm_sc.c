@@ -47,7 +47,7 @@ static sc_value_map gBAG_ParmMap[] = {
 };
 
 
-sc_value_map* bpsec_bagsci_valMapGet()
+sc_value_map* bpsec_bagsci_valMapGet(void)
 {
 	return gBAG_ParmMap;
 }

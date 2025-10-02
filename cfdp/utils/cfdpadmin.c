@@ -67,7 +67,7 @@ static void	printSyntaxError(int lineNbr)
 
 #define	SYNTAX_ERROR	printSyntaxError(__LINE__)
 
-static void	printUsage()
+static void	printUsage(void)
 {
 	PUTS("Valid commands are:");
 	PUTS("\tq\tQuit");
@@ -135,7 +135,7 @@ static void	initializeCfdp(int tokenCount, char **tokens)
 	}
 }
 
-static int	attachToCfdp()
+static int	attachToCfdp(void)
 {
 	if (cfdpAttach() < 0)
 	{
@@ -304,7 +304,7 @@ static void	infoEntity(int tokenCount, char **tokens)
 	sdr_exit_xn(sdr);
 }
 
-static void	printCfdpInfo()
+static void	printCfdpInfo(void)
 {
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(CfdpDB, db);

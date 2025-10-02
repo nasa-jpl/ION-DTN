@@ -87,11 +87,11 @@ typedef struct
 	PsmAddress  bpsecEventSet;       /* SM RB tree of BpSecPolEventSet */
 } SecVdb;
 
-extern int	secInitialize();
-extern int	secAttach();
-extern Object	getSecDbObject();
-extern SecDB	*getSecConstants();
-extern SecVdb	*getSecVdb();
+extern int	secInitialize(void);
+extern int	secAttach(void);
+extern Object	getSecDbObject(void);
+extern SecDB	*getSecConstants(void);
+extern SecVdb	*getSecVdb(void);
 
 /*	*	Functions for managing public keys.			*/
 

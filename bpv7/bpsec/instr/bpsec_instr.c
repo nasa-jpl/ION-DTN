@@ -334,7 +334,7 @@ void bpsec_instr_update(char *src, uvast blk, uvast bytes, bpsec_instr_type_e ty
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-void bpsec_instr_cleanup()
+void bpsec_instr_cleanup(void)
 {
 
 }
@@ -444,7 +444,7 @@ int bpsec_instr_get_misc(bpsec_instr_misc_t *result)
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-int bpsec_instr_clear()
+int bpsec_instr_clear(void)
 {
 	Sdr sdr = getIonsdr();
 	BpsecInstrDB result;
@@ -923,7 +923,7 @@ int  bpsec_instr_get_tot_update(time_t *result)
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-uint32_t bpsec_instr_get_num_keys()
+uint32_t bpsec_instr_get_num_keys(void)
 {
 	int size;
 	return (uint32_t) bpsec_util_numKeysGet(&size);
@@ -948,7 +948,7 @@ uint32_t bpsec_instr_get_num_keys()
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-char *bpsec_instr_get_keynames()
+char *bpsec_instr_get_keynames(void)
 {
 	int size = 0;
 	int num_keys = 0;
@@ -992,7 +992,7 @@ bytes", total_size);
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-char * bpsec_instr_get_csnames()
+char * bpsec_instr_get_csnames(void)
 {
 	int size = 0;
 	int num = 0;
@@ -1041,7 +1041,7 @@ bytes", total_size);
  *  07/05/16  E. Birrane     Updated to use source names from SDR. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-char * bpsec_instr_get_srcnames()
+char * bpsec_instr_get_srcnames(void)
 {
 	Sdr sdr = getIonsdr();
 	BpsecInstrDB result;
@@ -1127,7 +1127,7 @@ bytes", total_size);
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-int bpsec_instr_init()
+int bpsec_instr_init(void)
 {
 	BpsecInstrDB tmp;
 	Object dbObj;
@@ -1151,7 +1151,7 @@ int bpsec_instr_init()
  *  04/20/16  E. Birrane     Initial implementation. (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
 
-void bpsec_instr_reset()
+void bpsec_instr_reset(void)
 {
 	bpsec_instr_clear();
 }

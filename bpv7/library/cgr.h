@@ -261,8 +261,8 @@ typedef struct
 	PsmAddress	routingObjects;	/*	SmList of CgrRtgObject.	*/
 } CgrVdb;
 
-extern void		cgr_start();
-extern CgrVdb		*cgr_get_vdb();
+extern void		cgr_start(void);
+extern CgrVdb		*cgr_get_vdb(void);
 extern void		cgr_clear_vdb(CgrVdb *);
 extern int		cgr_create_routing_object(IonNode *node);
 extern int		cgr_start_SAP(uvast, time_t, CgrSAP *sap);
@@ -278,7 +278,7 @@ extern int		cgr_preview_forward(uvast terminusNodeNbr,
 extern int		cgr_prospect(uvast terminusNode, time_t deadline);
 extern const char	*cgr_tracepoint_text(CgrTraceType traceType);
 extern const char	*cgr_reason_text(CgrReason reason);
-extern void		cgr_stop();
+extern void		cgr_stop(void);
 
 #ifdef __cplusplus
 }

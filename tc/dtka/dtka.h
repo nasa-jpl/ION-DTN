@@ -31,10 +31,10 @@ extern "C"
 		unsigned int keySize;			/* In bytes*/
 	} DtkaDB;
 
-	extern int dtkaInit();
-	extern int dtkaAttach();
-	extern Object getDtkaDbObject();
-	extern DtkaDB *getDtkaConstants();
+	extern int dtkaInit(void);
+	extern int dtkaAttach(void);
+	extern Object getDtkaDbObject(void);
+	extern DtkaDB *getDtkaConstants(void);
 
 #ifdef __cplusplus
 }

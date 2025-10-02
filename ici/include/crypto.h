@@ -61,7 +61,7 @@ extern int	arc4_crypt(arc4_context *ctx, size_t length,
  *                     HMAC-SHA-1 FUNCTION DEFINITIONS                       *
  *****************************************************************************/
 
-extern int	hmac_sha1_context_length();
+extern int	hmac_sha1_context_length(void);
 extern void	hmac_sha1_init(void *context, unsigned char *key,
 			int key_length);
 extern void	hmac_sha1_update(void *context, unsigned char *data,
@@ -80,7 +80,7 @@ extern int	hmac_authenticate(char *mac_buffer, const int mac_size,
  *                     HMAC-SHA-256 FUNCTION DEFINITIONS                     *
  *****************************************************************************/
 
-extern int	hmac_sha256_context_length();
+extern int	hmac_sha256_context_length(void);
 extern void	hmac_sha256_init(void *context, unsigned char *key,
 			int key_length);
 extern void	hmac_sha256_update(void *context, unsigned char *data,
@@ -93,7 +93,7 @@ extern void	hmac_sha256_reset(void *context);
  *                       SHA-256 FUNCTION DEFINITIONS                        *
  *****************************************************************************/
 
-extern int	sha256_context_length();
+extern int	sha256_context_length(void);
 extern void	sha256_init(void *context);
 extern void	sha256_update(void *context, unsigned char *data,
 			int data_length);

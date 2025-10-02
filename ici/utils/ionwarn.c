@@ -27,7 +27,7 @@ typedef struct
 	int	fromNeighbor;		/*	Boolean.		*/
 } RateChange;
 
-static char	*_cannotForecast()
+static char	*_cannotForecast(void)
 {
 	return "Can't complete congestion forecast.";
 }
@@ -113,7 +113,7 @@ static int	insertRateChange(time_t time, unsigned int xmitRate,
 	return 0;
 }
 
-int	checkForCongestion()
+int	checkForCongestion(void)
 {
 	time_t		forecastTime;
 	Sdr		sdr;

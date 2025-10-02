@@ -1050,7 +1050,7 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 
 /*		Top-level ipnfw functions				*/
 
-static int	openCgr()
+static int	openCgr(void)
 {
 	CgrSAP	sap;
 
@@ -1071,7 +1071,7 @@ static int	openCgr()
 	return 0;
 }
 
-static void	closeCgr()
+static void	closeCgr(void)
 {
 	CgrSAP	noSap = NULL;
 

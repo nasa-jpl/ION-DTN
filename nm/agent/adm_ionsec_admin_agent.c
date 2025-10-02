@@ -32,7 +32,7 @@
 
 static vec_idx_t g_dtn_ion_ionsecadmin_idx[11];
 
-void dtn_ion_ionsecadmin_init()
+void dtn_ion_ionsecadmin_init(void)
 {
 	adm_add_adm_info("dtn_ion_ionsecadmin", ADM_ENUM_DTN_ION_IONSECADMIN);
 
@@ -53,7 +53,7 @@ void dtn_ion_ionsecadmin_init()
 	dtn_ion_ionsecadmin_init_tblt();
 }
 
-void dtn_ion_ionsecadmin_init_meta()
+void dtn_ion_ionsecadmin_init_meta(void)
 {
 
 	adm_add_cnst(adm_build_ari(AMP_TYPE_CNST, 0, g_dtn_ion_ionsecadmin_idx[ADM_META_IDX], DTN_ION_IONSECADMIN_META_NAME), dtn_ion_ionsecadmin_meta_name);
@@ -62,27 +62,27 @@ void dtn_ion_ionsecadmin_init_meta()
 	adm_add_cnst(adm_build_ari(AMP_TYPE_CNST, 0, g_dtn_ion_ionsecadmin_idx[ADM_META_IDX], DTN_ION_IONSECADMIN_META_ORGANIZATION), dtn_ion_ionsecadmin_meta_organization);
 }
 
-void dtn_ion_ionsecadmin_init_cnst()
+void dtn_ion_ionsecadmin_init_cnst(void)
 {
 
 }
 
-void dtn_ion_ionsecadmin_init_edd()
+void dtn_ion_ionsecadmin_init_edd(void)
 {
 
 }
 
-void dtn_ion_ionsecadmin_init_op()
+void dtn_ion_ionsecadmin_init_op(void)
 {
 
 }
 
-void dtn_ion_ionsecadmin_init_var()
+void dtn_ion_ionsecadmin_init_var(void)
 {
 
 }
 
-void dtn_ion_ionsecadmin_init_ctrl()
+void dtn_ion_ionsecadmin_init_ctrl(void)
 {
 
 	adm_add_ctrldef(g_dtn_ion_ionsecadmin_idx[ADM_CTRL_IDX], DTN_ION_IONSECADMIN_CTRL_KEY_ADD, 2, dtn_ion_ionsecadmin_ctrl_key_add);
@@ -99,17 +99,17 @@ void dtn_ion_ionsecadmin_init_ctrl()
 	adm_add_ctrldef(g_dtn_ion_ionsecadmin_idx[ADM_CTRL_IDX], DTN_ION_IONSECADMIN_CTRL_LIST_LTP_TX_RULES, 0, dtn_ion_ionsecadmin_ctrl_list_ltp_tx_rules);
 }
 
-void dtn_ion_ionsecadmin_init_mac()
+void dtn_ion_ionsecadmin_init_mac(void)
 {
 
 }
 
-void dtn_ion_ionsecadmin_init_rpttpl()
+void dtn_ion_ionsecadmin_init_rpttpl(void)
 {
 
 }
 
-void dtn_ion_ionsecadmin_init_tblt()
+void dtn_ion_ionsecadmin_init_tblt(void)
 {
 
 	tblt_t *def = NULL;

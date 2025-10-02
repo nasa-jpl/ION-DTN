@@ -141,12 +141,12 @@ typedef struct
 	PsmAddress	address;
 } PsmCatlgEntry;
 
-static char	*_outOfSpaceMsg()
+static char	*_outOfSpaceMsg(void)
 {
 	return "Not enough available memory.";
 }
 
-static char	*_badBlockSizeMsg()
+static char	*_badBlockSizeMsg(void)
 {
 	return "Can't allocate, illegal block size.";
 }

@@ -215,10 +215,10 @@ typedef struct
 
 /*	*	*	CFDP initialization	*	*	*	*/
 
-extern int	cfdp_attach();
-extern void	cfdp_detach();
+extern int	cfdp_attach(void);
+extern void	cfdp_detach(void);
 
-extern int	cfdp_entity_is_started();
+extern int	cfdp_entity_is_started(void);
 		/*	Returns 1 if the local CFDP entity has been
 		 *	started and not yet stopped, 0 otherwise.	*/
 
@@ -232,7 +232,7 @@ extern void	cfdp_update_checksum(unsigned char octet,
 			unsigned int	*checksum,
 			CfdpCksumType	ckType);
 extern
-MetadataList	cfdp_create_usrmsg_list();
+MetadataList	cfdp_create_usrmsg_list(void);
 extern int	cfdp_add_usrmsg(MetadataList list,
 			unsigned char	*text,
 			int		length);
@@ -241,7 +241,7 @@ extern int	cfdp_get_usrmsg(MetadataList *list,
 			int		*length);
 extern void	cfdp_destroy_usrmsg_list(MetadataList *list);
 extern
-MetadataList	cfdp_create_fsreq_list();
+MetadataList	cfdp_create_fsreq_list(void);
 extern int	cfdp_add_fsreq(MetadataList list,
 			CfdpAction	action,
 			char		*firstFileName,
@@ -259,7 +259,7 @@ extern int	cfdp_get_fsresp(MetadataList *list,
 			char		*messageBuf);
 extern void	cfdp_destroy_fsresp_list(MetadataList *list);
 
-extern char	*cfdp_working_directory();
+extern char	*cfdp_working_directory(void);
 
 /*	*	*	CFDP local services	*	*	*	*/
 
@@ -341,7 +341,7 @@ extern int	cfdp_get_event(CfdpEventType	*type,
 		 *	sets *type to CfdpNoEvent.  On system failure,
 		 *	returns -1.  Otherwise returns 0.		*/
 
-extern void	cfdp_interrupt();
+extern void	cfdp_interrupt(void);
 		/*	cfdp_get_event always blocks; to interrupt it,
 		 *	call cfdp_interrupt.				*/
 

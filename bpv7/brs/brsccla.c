@@ -46,7 +46,7 @@ static sm_SemId		brscclaSemaphore(sm_SemId *semid)
 	return semaphore;
 }
 
-static void	killMainThread()
+static void	killMainThread(void)
 {
 	sm_SemEnd(brscclaSemaphore(NULL));
 }

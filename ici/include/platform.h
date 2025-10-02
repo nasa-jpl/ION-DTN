@@ -1007,7 +1007,7 @@ typedef void			(* Watcher)(char *);
 
 extern void			*acquireSystemMemory(size_t);
 extern int			createFile(const char*, int);
-extern char			*system_error_msg();
+extern char			*system_error_msg(void);
 extern void			setLogger(Logger);
 extern void			writeMemo(char *);
 extern void			writeErrMemo(char *);
@@ -1018,7 +1018,7 @@ extern void			iwatch_str(char *);
 extern void			snooze(unsigned int);
 extern void			microsnooze(unsigned int);
 extern void			getCurrentTime(struct timeval *);
-extern unsigned long		getClockResolution();	/*	usec	*/
+extern unsigned long		getClockResolution(void);	/*	usec	*/
 #if (defined(FSWLAN) || !(defined(ION_NO_DNS)))
 extern unsigned int		getInternetAddress(char *);
 extern char			*getInternetHostName(unsigned int, char *);
@@ -1052,8 +1052,8 @@ extern void			_putErrmsg(const char *, int, const char *,
 extern void			_putSysErrmsg(const char *, int, const char *,
 					const char *);
 extern int			getErrmsg(char *buffer);
-extern void			writeErrmsgMemos();
-extern void			discardErrmsgs();
+extern void			writeErrmsgMemos(void);
+extern void			discardErrmsgs(void);
 
 #define iEnd(arg)		_iEnd(__FILE__, __LINE__, arg)
 extern int			_iEnd(const char *, int, const char *);
@@ -1066,7 +1066,7 @@ extern int			_coreFileNeeded(int *);
 #define CHKNULL(e)    		if (!(e) && (iEnd(#e)||1)) return NULL
 #define CHKVOID(e)    		if (!(e) && (iEnd(#e)||1)) return
 
-extern void			printStackTrace();
+extern void			printStackTrace(void);
 
 #ifndef DEBUG_PRINT
 #define DEBUG_PRINT		(0)
@@ -1122,7 +1122,7 @@ extern int			iputs(int, char *);
 
 extern void			icopy(char *fromPath, char *toPath);
 
-extern unsigned int		getAddressOfHost();
+extern unsigned int		getAddressOfHost(void);
 extern char			*addressToString(struct in_addr, char *buf);
 extern int			parseSocketSpec(char *socketSpec,
 					unsigned short *portNbr,

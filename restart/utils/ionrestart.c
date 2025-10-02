@@ -28,8 +28,8 @@
 
 #define	RESTART_LOOP_INTERVAL	(RESTART_GRACE_PERIOD * 5)
 
-extern void	ionDropVdb();
-extern void	ionRaiseVdb();
+extern void	ionDropVdb(void);
+extern void	ionRaiseVdb(void);
 
 static void	restartION(Sdr sdrv)
 {

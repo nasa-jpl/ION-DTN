@@ -28,7 +28,7 @@
  *                             break potential circular dependencies.
  *****************************************************************************/
 
-void adm_init()
+void adm_init(void)
 {
    adm_common_init();
 

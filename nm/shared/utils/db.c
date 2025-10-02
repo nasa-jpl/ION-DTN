@@ -504,7 +504,7 @@ void db_destroy()
 }
 
 
-int db_init(char *name, void (*adm_init_cb)()) 
+int db_init(char *name, void (*adm_init_cb)(void)) 
 {
 	int success = AMP_FAIL;
 	int num;

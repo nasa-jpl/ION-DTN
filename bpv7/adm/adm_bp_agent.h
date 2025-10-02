@@ -276,15 +276,15 @@
  */
 
 /* Initialization functions. */
-void dtn_bp_agent_init();
-void dtn_bp_agent_init_meta();
-void dtn_bp_agent_init_cnst();
-void dtn_bp_agent_init_edd();
-void dtn_bp_agent_init_op();
-void dtn_bp_agent_init_var();
-void dtn_bp_agent_init_ctrl();
-void dtn_bp_agent_init_mac();
-void dtn_bp_agent_init_rpttpl();
-void dtn_bp_agent_init_tblt();
+void dtn_bp_agent_init(void);
+void dtn_bp_agent_init_meta(void);
+void dtn_bp_agent_init_cnst(void);
+void dtn_bp_agent_init_edd(void);
+void dtn_bp_agent_init_op(void);
+void dtn_bp_agent_init_var(void);
+void dtn_bp_agent_init_ctrl(void);
+void dtn_bp_agent_init_mac(void);
+void dtn_bp_agent_init_rpttpl(void);
+void dtn_bp_agent_init_tblt(void);
 #endif /* _HAVE_DTN_BP_AGENT_ADM_ */
 #endif //ADM_BP_AGENT_H_

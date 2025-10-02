@@ -65,7 +65,7 @@
 
 #define BPSEC_ITSC_MIN_FILE_BUFFER (BPSEC_ITSC_XMIT_RATE / BPSEC_ITSC_MAX_TEMP_FILES_PER_SECOND)
 
-typedef sc_value_map* (*bpsec_sc_valMapGet)();
+typedef sc_value_map* (*bpsec_sc_valMapGet)(void);
 
 /*****************************************************************************
  *                               BCB Functions                               *
@@ -94,7 +94,7 @@ int      bpsec_itscbib_verify(sc_state *state, AcqWorkArea *wk, BpsecInboundASB 
 int           bpsec_itsci_initAsbFn(void *def, Bundle *bundle, BpsecOutboundASB *asb, Sdr sdr, PsmPartition wm, PsmAddress parms);
 int           bpsec_itsci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *asb, LystElt tgtBlkElt, BpsecInboundTargetResult *tgtResult);
 int           bpsec_itsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, BpsecOutboundASB *asb, BpsecOutboundTargetResult *tgtResult);
-sc_value_map* bpsec_itsci_valMapGet();
+sc_value_map* bpsec_itsci_valMapGet(void);
 
 
 

@@ -26,11 +26,11 @@ typedef struct
 
 /*	*	*	LTP initialization	*	*	*	*/
 
-extern int	ltp_attach();
+extern int	ltp_attach(void);
 
-extern void	ltp_detach();
+extern void	ltp_detach(void);
 
-extern int	ltp_engine_is_started();
+extern int	ltp_engine_is_started(void);
 		/*	Returns 1 if the local LTP engine has been
 		 *	started and not yet stopped, 0 otherwise.	*/
 

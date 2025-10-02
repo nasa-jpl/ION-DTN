@@ -26,7 +26,7 @@
 /*   START CUSTOM FUNCTIONS HERE */
 /*   STOP CUSTOM FUNCTIONS HERE  */
 
-void dtn_ion_ionadmin_setup()
+void dtn_ion_ionadmin_setup(void)
 {
 
 	/*
@@ -41,7 +41,7 @@ void dtn_ion_ionadmin_setup()
 	 */
 }
 
-void dtn_ion_ionadmin_cleanup()
+void dtn_ion_ionadmin_cleanup(void)
 {
 
 	/*

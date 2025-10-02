@@ -77,8 +77,8 @@ typedef struct {
  */
 
 
-void agent_instr_init();
-void agent_instr_clear();
+void agent_instr_init(void);
+void agent_instr_clear(void);
 
 extern agent_instr_t gAgentInstr;
 

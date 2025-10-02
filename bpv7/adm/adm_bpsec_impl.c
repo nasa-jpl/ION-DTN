@@ -92,7 +92,7 @@ static tnv_t *adm_bpsec_get_tot_val(bpsec_instr_type_e type, query_type_e query)
 
 /*   STOP CUSTOM FUNCTIONS HERE  */
 
-void dtn_bpsec_setup()
+void dtn_bpsec_setup(void)
 {
 
 	/*
@@ -107,7 +107,7 @@ void dtn_bpsec_setup()
 	 */
 }
 
-void dtn_bpsec_cleanup()
+void dtn_bpsec_cleanup(void)
 {
 
 	/*

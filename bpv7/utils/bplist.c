@@ -419,7 +419,7 @@ static int	printAll(int detail)
 	return bundlesCount;
 }
 
-static void	printUsage()
+static void	printUsage(void)
 {
 	PUTS("Usage: bplist [{count | detail} [<node ID (EID)>[/<priority>]]]");
 }

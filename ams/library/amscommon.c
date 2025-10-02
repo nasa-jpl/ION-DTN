@@ -675,12 +675,12 @@ static void _mibLock(int lock)
 	}
 }
 
-void	lockMib()
+void	lockMib(void)
 {
 	_mibLock(1);
 }
 
-void	unlockMib()
+void	unlockMib(void)
 {
 	_mibLock(0);
 }

@@ -87,7 +87,7 @@ typedef enum
 
 int           bpsec_bagsci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *asb, LystElt tgtBlkElt, BpsecInboundTargetResult *tgtResult);
 int           bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, BpsecOutboundASB *asb, BpsecOutboundTargetResult *tgtResult);
-sc_value_map* bpsec_bagsci_valMapGet();
+sc_value_map* bpsec_bagsci_valMapGet(void);
 
 /* Generic Utilities */
 uint8_t*      bpsec_bagscu_computeSignature(BpsecSerializeData aad, Object zcoObj, int zcoLen, int csi_suite, csi_val_t csi_key, csi_svcid_t svc);

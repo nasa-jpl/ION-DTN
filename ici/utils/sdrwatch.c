@@ -164,7 +164,7 @@ static int	run_sdrwatch(char *sdrName, char *mode, int interval,
 	return 0;
 }
 
-static void	printUsage()
+static void	printUsage(void)
 {
 	PUTS("Usage: sdrwatch <sdr name> [ -t | -s | -r | -z ] [<interval> \
 [<count> [verbose]]]");

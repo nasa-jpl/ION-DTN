@@ -23,7 +23,7 @@
 
 int running = 1;		/* initialize bpdriver state */
 
-static unsigned long	getUsecTimestamp()
+static unsigned long	getUsecTimestamp(void)
 {
 	struct timeval	tv;
 
@@ -63,10 +63,9 @@ static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 
 static void	handleQuit(int signum)
 {
-	/* Parameter intentionally unused. */
+	/* Tell the compiler that we are not using 'signum' */
 	(void)signum;
 
-	//isignal(SIGINT, handleQuit);
 	printf("Caught Ctrl-C!!!\n");
 	running = 0;
 	bp_interrupt(_bpsap(NULL));

@@ -583,7 +583,7 @@ tnv_t *adm_agent_binary_log_op(amp_agent_op_e op, vector_t *stack)
 
 /*   STOP CUSTOM FUNCTIONS HERE  */
 
-void amp_agent_setup()
+void amp_agent_setup(void)
 {
 
 	/*
@@ -598,7 +598,7 @@ void amp_agent_setup()
 	 */
 }
 
-void amp_agent_cleanup()
+void amp_agent_cleanup(void)
 {
 
 	/*

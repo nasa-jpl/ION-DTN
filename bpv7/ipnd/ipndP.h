@@ -132,7 +132,7 @@ typedef struct
 /* Updates ctx->nbf as well as NBF-Bits service in ctx->services if present */
 extern void	updateCtxNbf(char *eid, int len);
 
-extern IPNDCtx	*getIPNDCtx();
+extern IPNDCtx	*getIPNDCtx(void);
 extern void	setIPNDCtx(IPNDCtx *);
 
 #ifdef __cplusplus

@@ -90,9 +90,8 @@ static long llsqrt(long long a)
 	return (long)x;
 }
 
-static void handleQuit()
+static void triggerShutdown(void)
 {
-	signal(SIGINT, handleQuit);
 	shutdownnow = 1;
 	bp_interrupt(recvsap);
 	if(sendRequestsThreadRunning
@@ -100,6 +99,15 @@ static void handleQuit()
 	{
 		pthread_kill(sendRequestsThread, SIGINT);
 	}
+}
+
+static void handleQuit(int signum)
+{
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
+	signal(SIGINT, handleQuit);
+	triggerShutdown(); /* Call the common shutdown logic */
 }
 
 /* Subtract the `struct timeval' values X and Y, storing the result in RESULT.
@@ -437,7 +445,7 @@ static void *sendRequests(void *x)
 	if(verbosity) fprintf(stderr, "Sent %d bundles.\n", totalsent);
 	if(waitdelay > 0) {
 		snooze(waitdelay);
-		handleQuit();
+		triggerShutdown();
 	}
 	return NULL;
 }

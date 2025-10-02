@@ -29,8 +29,10 @@ static saddr	_running(saddr *newValue)
 	return state;
 }
 
-static void	shutDown()	/*	Commands tcacompile shutdown.	*/
+static void	shutDown(int signum)	/*	Commands tcacompile shutdown.	*/
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
 	saddr	stop = 0;
 
 	oK(_running(&stop));	/*	Terminates tcacompile.		*/

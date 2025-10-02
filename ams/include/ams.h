@@ -225,7 +225,7 @@ extern int		ams_get_unit_nbr(AmsModule module);
 
 extern Lyst		ams_list_msgspaces(AmsModule module);
 
-extern short		ams_get_continuum_nbr();
+extern short		ams_get_continuum_nbr(void);
 
 extern int		ams_rams_net_is_tree(AmsModule module);
 

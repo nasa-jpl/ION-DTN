@@ -44,9 +44,9 @@ typedef struct
 	int		isMember;	/*	Boolean			*/
 } ImcPetition;
 
-extern int		imcInit();
-extern Object		getImcDbObject();
-extern ImcDB		*getImcConstants();
+extern int		imcInit(void);
+extern Object		getImcDbObject(void);
+extern ImcDB		*getImcConstants(void);
 
 extern void		imcFindGroup(uvast fqgn, Object *addr, Object *eltp);
 

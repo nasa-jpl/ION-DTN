@@ -45,8 +45,10 @@ static sm_SemId		udpbsoSemaphore(sm_SemId *semid)
 	return semaphore;
 }
 
-static void	shutDownBso()	/*	Commands LSO termination.	*/
+static void	shutDownBso(int signum)	/*	Commands LSO termination.	*/
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
 	sm_SemEnd(udpbsoSemaphore(NULL));
 }
 
@@ -76,7 +78,7 @@ static void	*handleDatagrams(void *parm)
 	if (buffer == NULL)
 	{
 		putErrmsg("udpbsi can't get UDP buffer.", NULL);
-		shutDownBso();
+		shutDownBso(0); /* Pass a dummy value to satisfy the function signature. */
 		return NULL;
 	}
 
@@ -93,7 +95,7 @@ static void	*handleDatagrams(void *parm)
 		{
 		case -1:
 			putSysErrmsg("Can't acquire block", NULL);
-			shutDownBso();
+			shutDownBso(0); /* Pass a dummy value to satisfy the function signature. */
 
 			/* FALLTHROUGH */
 
@@ -106,7 +108,7 @@ static void	*handleDatagrams(void *parm)
 		if (bsspHandleInboundBlock(buffer, blockLength) < 0)
 		{
 			putErrmsg("Can't handle inbound block.", NULL);
-			shutDownBso();
+			shutDownBso(0); /* Pass a dummy value to satisfy the function signature. */
 			rtp->running = 0;
 			continue;
 		}
@@ -166,7 +168,7 @@ nbytes=%d, rv=%d, errno=%d", (char *) inet_ntoa(saddr->sin_addr),
 	}
 }
 
-static unsigned long	getUsecTimestamp()
+static unsigned long	getUsecTimestamp(void)
 {
 	struct timeval	tv;
 

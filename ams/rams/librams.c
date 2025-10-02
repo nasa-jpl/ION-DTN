@@ -33,7 +33,7 @@ volatile sig_atomic_t g_ramsgate_interrupted = 0;
 static void	PrintGatewayState(RamsGateway *gWay);
 static void	PrintInvitationList(RamsGateway *gWay);
 #endif
-static void	KillGateway();
+static void	KillGateway(void);
 static void	TerminateGateway(RamsGateway *gWay);
 
 
@@ -339,7 +339,7 @@ static int	_petitionLog(char *logLine, int ventureNbr)
 /*	*	*	RAMS gateway main line	*	*	*	*/
 
 /*	Called by main thread to tell the manager thread to stop.	*/
-static void	KillGateway()
+static void	KillGateway(void)
 {
 	RamsGateway	*gWay = _gWay(NULL);
 

@@ -34,7 +34,7 @@ static Object	_cfdpdbObject(Object *newDbObj)
 	return obj;
 }
 
-static CfdpDB	*_cfdpConstants()
+static CfdpDB	*_cfdpConstants(void)
 {
 	static CfdpDB	buf;
 	static CfdpDB	*db = NULL;
@@ -320,7 +320,7 @@ int	getReqNbr()
 	return db.requestCounter;
 }
 
-static unsigned char	*_crcComputationBuf()
+static unsigned char	*_crcComputationBuf(void)
 {
 	static unsigned char	buffer[CFDP_MAX_PDU_SIZE];
 
@@ -368,7 +368,7 @@ static unsigned short	computeCRC(unsigned char *buffer, int length)
 
 /*	*	*	CFDP service control functions	*	*	*/
 
-static char	*_cfdpvdbName()
+static char	*_cfdpvdbName(void)
 {
 	return "cfdpvdb";
 }
@@ -451,12 +451,12 @@ static CfdpVdb	*_cfdpvdb(char **name)
 	return vdb;
 }
 
-static char	*_cfdpdbName()
+static char	*_cfdpdbName(void)
 {
 	return "cfdpdb";
 }
 
-int	cfdpInit()
+int	cfdpInit(void)
 {
 	Sdr		sdr;
 	Object		cfdpdbObject;
@@ -585,7 +585,7 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	}
 }
 
-void	cfdpDropVdb()
+void	cfdpDropVdb(void)
 {
 	PsmPartition	wm = getIonwm();
 	char		*cfdpvdbName = _cfdpvdbName();
@@ -612,7 +612,7 @@ void	cfdpDropVdb()
 	oK(_cfdpvdb(&stop));			/*	Forget old Vdb.	*/
 }
 
-void	cfdpRaiseVdb()
+void	cfdpRaiseVdb(void)
 {
 	char	*cfdpvdbName = _cfdpvdbName();
 
@@ -622,17 +622,17 @@ void	cfdpRaiseVdb()
 	}
 }
 
-Object	getCfdpDbObject()
+Object	getCfdpDbObject(void)
 {
 	return _cfdpdbObject(NULL);
 }
 
-CfdpDB	*getCfdpConstants()
+CfdpDB	*getCfdpConstants(void)
 {
 	return _cfdpConstants();
 }
 
-CfdpVdb	*getCfdpVdb()
+CfdpVdb	*getCfdpVdb(void)
 {
 	return _cfdpvdb(NULL);
 }
@@ -687,7 +687,7 @@ int	_cfdpStart(char *utaCmd)
 	return 0;
 }
 
-void	_cfdpStop()		/*	Reverses cfdpStart.		*/
+void	_cfdpStop(void)		/*	Reverses cfdpStart.		*/
 {
 	Sdr		sdr = getIonsdr();
 	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
@@ -779,7 +779,7 @@ void	_cfdpStop()		/*	Reverses cfdpStart.		*/
 	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
 }
 
-int	cfdpAttach()
+int	cfdpAttach(void)
 {
 	Object		cfdpdbObject = _cfdpdbObject(NULL);
 	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
@@ -831,7 +831,7 @@ int	cfdpAttach()
 	return 0;		/*	CFDP service is available.	*/
 }
 
-void	cfdpDetach()
+void	cfdpDetach(void)
 {
 	char	*stop = NULL;
 
@@ -982,7 +982,7 @@ void	destroyFsrespList(Object *list)
 	*list = 0;
 }
 
-void	cfdpScrub()
+void	cfdpScrub(void)
 {
 	Sdr		sdr = getIonsdr();
 	CfdpDB		*cfdpConstants = _cfdpConstants();

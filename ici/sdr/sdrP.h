@@ -188,13 +188,13 @@ extern void		joinTrace(Sdr, const char *, int);
 extern SdrMap		*_mapImage(Sdr sdrv);
 
 #ifndef SDR_TRACE
-extern char		*_noTraceMsg();
+extern char		*_noTraceMsg(void);
 #endif
 
-extern char		*_notInXnMsg();
-extern char		*_apiErrMsg();
-extern char		*_noMemoryMsg();
-extern char		*_violationMsg();
+extern char		*_notInXnMsg(void);
+extern char		*_apiErrMsg(void);
+extern char		*_noMemoryMsg(void);
+extern char		*_violationMsg(void);
 
 #define ADDRESS_OF(X)	(((char *) &(map->X)) - ((char *) map))
 

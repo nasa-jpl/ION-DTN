@@ -22,12 +22,12 @@
 									*/
 #include "ionsec.h"
 
-static char	*_secDbName()
+static char	*_secDbName(void)
 {
 	return "secdb";
 }
 
-static char	*_secVdbName()
+static char	*_secVdbName(void)
 {
 	return "secvdb";
 }
@@ -44,7 +44,7 @@ static Object	_secdbObject(Object *newDbObj)
 	return obj;
 }
 
-static SecDB	*_secConstants()
+static SecDB	*_secConstants(void)
 {
 	static SecDB	buf;
 	static SecDB	*db = NULL;
@@ -253,7 +253,7 @@ static SecVdb	*_secvdb(char **name)
 	return vdb;
 }
 
-int	secInitialize()
+int	secInitialize(void)
 {
 	Sdr	ionsdr;
 	Object	secdbObject;
@@ -324,7 +324,7 @@ int	secInitialize()
 	return 0;
 }
 
-int	secAttach()
+int	secAttach(void)
 {
 	Sdr	ionsdr;
 	Object	secdbObject;
@@ -366,17 +366,17 @@ int	secAttach()
 	return 0;
 }
 
-Object	getSecDbObject()
+Object	getSecDbObject(void)
 {
 	return _secdbObject(NULL);
 }
 
-SecDB	*getSecConstants()
+SecDB	*getSecConstants(void)
 {
 	return _secConstants();
 }
 
-SecVdb	*getSecVdb()
+SecVdb	*getSecVdb(void)
 {
 	return _secvdb(NULL);
 }

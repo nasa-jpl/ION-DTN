@@ -40,7 +40,7 @@ static Object	_bsspdbObject(Object *newDbObj)
 	return obj;
 }
 
-static BsspDB	*_bsspConstants()
+static BsspDB	*_bsspConstants(void)
 {
 	static BsspDB	buf;
 	static BsspDB	*db = NULL;
@@ -291,7 +291,7 @@ static void	dropSeat(BsspVseat *vseat, PsmAddress vseatElt)
 	psm_free(bsspwm, vseatAddr);
 }
 
-Object	getBsspDbObject()
+Object	getBsspDbObject(void)
 {
 	return _bsspdbObject(NULL);
 }
@@ -489,7 +489,7 @@ static void	waitForSeat(BsspVseat *vseat)
 	}
 }
 
-static char 	*_bsspvdbName()
+static char 	*_bsspvdbName(void)
 {
 	return "bsspvdb";
 }
@@ -600,7 +600,7 @@ static BsspVdb		*_bsspvdb(char **name)
 	return vdb;
 }
 
-static char	*_bsspdbName()
+static char	*_bsspdbName(void)
 {
 	return "bsspdb";
 }
@@ -749,7 +749,7 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	sm_list_destroy(wm, vdb->spans, NULL, NULL);
 }
 
-void	bsspDropVdb()
+void	bsspDropVdb(void)
 {
 	PsmPartition	wm = getIonwm();
 	char		*bsspvdbName = _bsspvdbName();
@@ -778,7 +778,7 @@ void	bsspDropVdb()
 	oK(_bsspvdb(&stop));			/*	Forget old Vdb.	*/
 }
 
-void	bsspRaiseVdb()
+void	bsspRaiseVdb(void)
 {
 	char	*bsspvdbName = _bsspvdbName();
 
@@ -788,17 +788,17 @@ void	bsspRaiseVdb()
 	}
 }
 
-BsspDB	*getBsspConstants()
+BsspDB	*getBsspConstants(void)
 {
 	return _bsspConstants();
 }
 
-BsspVdb	*getBsspVdb()
+BsspVdb	*getBsspVdb(void)
 {
 	return _bsspvdb(NULL);
 }
 
-int	bsspStart()
+int	bsspStart(void)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	bsspwm = getIonwm();
@@ -834,7 +834,7 @@ int	bsspStart()
 	return 0;
 }
 
-void	bsspStop()		/*	Reverses bsspStart.		*/
+void	bsspStop(void)		/*	Reverses bsspStart.		*/
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	bsspwm = getIonwm();
@@ -930,7 +930,7 @@ void	bsspStop()		/*	Reverses bsspStart.		*/
 	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
 }
 
-int	bsspAttach()
+int	bsspAttach(void)
 {
 	Object	bsspdbObject = _bsspdbObject(NULL);
 	BsspVdb	*bsspvdb = _bsspvdb(NULL);
@@ -983,7 +983,7 @@ int	bsspAttach()
 	return 0;		/*	BSSP service is available.	*/
 }
 
-void	bsspDetach()
+void	bsspDetach(void)
 {
 	char	*stop = NULL;
 

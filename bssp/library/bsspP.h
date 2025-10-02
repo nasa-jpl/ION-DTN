@@ -300,16 +300,16 @@ typedef struct
 } BsspVdb;
 
 extern int		bsspInit(int estMaxExportSession);
-extern void		bsspDropVdb();
-extern void		bsspRaiseVdb();
-extern int		bsspStart();
-extern void		bsspStop();
-extern int		bsspAttach();
-extern void		bsspDetach();
+extern void		bsspDropVdb(void);
+extern void		bsspRaiseVdb(void);
+extern int		bsspStart(void);
+extern void		bsspStop(void);
+extern int		bsspAttach(void);
+extern void		bsspDetach(void);
 
-extern Object		getBsspDbObject();
-extern BsspDB		*getBsspConstants();
-extern BsspVdb		*getBsspVdb();
+extern Object		getBsspDbObject(void);
+extern BsspDB		*getBsspConstants(void);
+extern BsspVdb		*getBsspVdb(void);
 
 extern void		findBsspSeat(char *beBsiCmd, char *rlBsiCmd,
 				BsspVseat **seat,

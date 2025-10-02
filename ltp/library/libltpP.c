@@ -84,7 +84,7 @@ static Object	_ltpdbObject(Object *newDbObj)
 	return obj;
 }
 
-static LtpDB	*_ltpConstants()
+static LtpDB	*_ltpConstants(void)
 {
 	static LtpDB	buf;
 	static LtpDB	*db = NULL;
@@ -839,7 +839,7 @@ static void	waitForSeat(LtpVseat *vseat)
 	}
 }
 
-static char 	*_ltpvdbName()
+static char 	*_ltpvdbName(void)
 {
 	return "ltpvdb";
 }
@@ -953,7 +953,7 @@ static LtpVdb		*_ltpvdb(char **name)
 	return vdb;
 }
 
-static char	*_ltpdbName()
+static char	*_ltpdbName(void)
 {
 	return "ltpdb";
 }

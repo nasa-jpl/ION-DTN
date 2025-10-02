@@ -84,7 +84,7 @@ int	nmagent(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 	int	main(int argc, char *argv[]);
 #endif
 
-void agent_register();
+void agent_register(void);
 
 
 

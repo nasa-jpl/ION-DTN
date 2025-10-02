@@ -148,7 +148,7 @@ typedef struct
 	ZcoAcct		acct;
 } Zco;
 
-static char	*_badArgsMemo()
+static char	*_badArgsMemo(void)
 {
 	return "Missing/invalid argument(s).";
 }
@@ -242,7 +242,7 @@ void	zco_register_callback(ZcoCallback notify)
 	_zcoCallback(&notify, ZcoUnknown);
 }
 
-void	zco_unregister_callback()
+void	zco_unregister_callback(void)
 {
 	ZcoCallback	notify = NULL;
 

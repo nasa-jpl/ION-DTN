@@ -87,8 +87,8 @@ extern "C" {
  */
 
 
-int8_t utils_mem_int();
-void   utils_mem_teardown();
+int8_t utils_mem_int(void);
+void   utils_mem_teardown(void);
 void   utils_safe_release(void* ptr);
 void*  utils_safe_take(size_t size);
 

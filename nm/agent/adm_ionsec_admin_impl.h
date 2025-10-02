@@ -43,7 +43,7 @@ extern "C" {
 
 /*   STOP typeENUM  */
 
-void name_adm_init_agent();
+void name_adm_init_agent(void);
 
 
 
@@ -69,8 +69,8 @@ extern int	sec_activeKey(char *keyName);
 extern int	sec_addKeyValue(char *keyName, char *keyVal, uint32_t keyLen);
 /*   STOP CUSTOM FUNCTIONS HERE  */
 
-void dtn_ion_ionsecadmin_setup();
-void dtn_ion_ionsecadmin_cleanup();
+void dtn_ion_ionsecadmin_setup(void);
+void dtn_ion_ionsecadmin_cleanup(void);
 
 
 /* Metadata Functions */

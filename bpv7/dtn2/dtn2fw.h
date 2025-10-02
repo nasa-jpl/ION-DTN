@@ -21,7 +21,7 @@
 extern "C" {
 #endif
 
-extern int	dtn2_init();
+extern int	dtn2_init(void);
 
 extern void	dtn2_findPlan(char *nodeName, Object *planAddr, Object *elt);
 

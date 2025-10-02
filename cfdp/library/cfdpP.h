@@ -322,21 +322,21 @@ typedef struct
 	unsigned int	corruptionModulus;
 } CfdpVdb;
 
-extern int		cfdpInit();
-extern void		cfdpDropVdb();
-extern void		cfdpRaiseVdb();
+extern int		cfdpInit(void);
+extern void		cfdpDropVdb(void);
+extern void		cfdpRaiseVdb(void);
 #define cfdpStart(cmd)	_cfdpStart(cmd)
 extern int		_cfdpStart(char *utiCmd);
 #define cfdpStop()	_cfdpStop()
-extern void		_cfdpStop();
-extern int		cfdpAttach();
-extern void		cfdpDetach();
+extern void		_cfdpStop(void);
+extern int		cfdpAttach(void);
+extern void		cfdpDetach(void);
 
-extern void		cfdpScrub();
+extern void		cfdpScrub(void);
 
-extern Object		getCfdpDbObject();
-extern CfdpDB		*getCfdpConstants();
-extern CfdpVdb		*getCfdpVdb();
+extern Object		getCfdpDbObject(void);
+extern CfdpDB		*getCfdpConstants(void);
+extern CfdpVdb		*getCfdpVdb(void);
 
 extern Object		findEntity(uvast entityId, Entity *entity);
 extern Object		addEntity(uvast entityId, char *protocolName,
@@ -356,7 +356,7 @@ extern void		addToChecksum(unsigned char octet, vast *offset,
 extern void		addDataToChecksum(unsigned char *data, int dLen, vast *offset,
 				unsigned int *checksum, CfdpCksumType ckType);
 #endif
-extern int		getReqNbr();	/*	Returns next req nbr.	*/
+extern int		getReqNbr(void);	/*	Returns next req nbr.	*/
 
 extern MetadataList	createMetadataList(Object log);
 extern void		destroyUsrmsgList(MetadataList *list);

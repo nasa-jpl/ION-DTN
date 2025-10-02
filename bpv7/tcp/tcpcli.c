@@ -156,7 +156,7 @@ typedef struct tcpcl_neighbor
 
 static void	*handleContacts(void *parm);
 
-static char	*procName()
+static char	*procName(void)
 {
 	return "tcpcli";
 }

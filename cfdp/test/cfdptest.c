@@ -1240,7 +1240,7 @@ static void	*handleEvents(void *parm)
 	return NULL;
 }
 
-static int	runCfdptestInteractive()
+static int	runCfdptestInteractive(void)
 {
 	int		cmdFile;
 	char		line[256];

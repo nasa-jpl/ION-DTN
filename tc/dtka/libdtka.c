@@ -23,7 +23,7 @@ static Object	_dtkadbObject(Object *newDbObj)
 	return obj;
 }
 
-static DtkaDB	*_dtkaConstants()
+static DtkaDB	*_dtkaConstants(void)
 {
 	static DtkaDB	buf;
 	static DtkaDB	*db = NULL;
@@ -72,7 +72,7 @@ DtkaDB	*getDtkaConstants()
 	return _dtkaConstants();
 }
 
-static char	*_dtkadbName()
+static char	*_dtkadbName(void)
 {
 	return "dtkadb";
 }

@@ -15,7 +15,7 @@ char* read_remote_dir(int dir, int index, char* buf, int size);
 int close_remote_dir(int dir);
 void toremote(char *targ, int argc, char **argv);
 void tolocal(int argc, char **argv);
-void ion_cfdp_init();
+void ion_cfdp_init(void);
 int ion_cfdp_put(struct transfer *t);
 int ion_cfdp_get(struct transfer *t);
 int ion_cfdp_rput(struct transfer *t);
@@ -27,7 +27,7 @@ void transfer(struct transfer *t);
 void* rcv_msg_thread(void* param);
 void dbgprintf(int level, const char *fmt, ...);
 void usage(void);
-void version();
+void version(void);
 void print_parsed(struct transfer* t);
 void exit_nicely(int val);
 void prog_start_cpy(struct transfer *t);
@@ -728,7 +728,7 @@ void tolocal(int argc, char **argv)
 }
 
 /*Initialize ION and CFDP. Exits program on error.*/
-void ion_cfdp_init()
+void ion_cfdp_init(void)
 {
 	int i=0;
 	memset((char *) &parms, 0, sizeof(CfdpReqParms));
@@ -1638,7 +1638,7 @@ void usage(void)
 }
 
 /*Print Version Information*/
-void version()
+void version(void)
 {
 	dbgprintf(0, BPCP_VERSION_STRING);
 	exit(1);

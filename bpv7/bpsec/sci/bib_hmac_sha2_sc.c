@@ -6,7 +6,7 @@
 
 /*****************************************************************************
  **
- ** File Name: bib_hmac_sha2.h
+ ** File Name: bib_hmac_sha2.c
  **
  ** Namespace:
  **    bpsec_bhssci_   SCI INterface functions
@@ -432,7 +432,7 @@ int bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle,
  * @retval !NULL - The value map for this SC
  * @retval  NULL - There was an error.
  *****************************************************************************/
-sc_value_map* bpsec_bhssci_valMapGet()
+sc_value_map* bpsec_bhssci_valMapGet(void)
 {
     return gBHS_ParmMap;
 }

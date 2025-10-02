@@ -91,7 +91,7 @@ rule_t *ui_create_tbr_from_parms(tnvc_t parms);
 
 void ui_deregister_agent(agent_t* agent);
 
-void ui_event_loop();
+void ui_event_loop(void);
 
 void ui_list_objs(uint8_t adm_id, uvast mask, ari_t **result);
 
@@ -99,19 +99,19 @@ void ui_postprocess_ctrl(ari_t *id);
 
 void ui_register_agent(char* msg);
 
-agent_t *ui_select_agent();
+agent_t *ui_select_agent(void);
 
 void ui_send_file(agent_t* agent, uint8_t enter_ts);
 
 void ui_send_raw(agent_t* agent, uint8_t enter_ts);
 
-void ui_print_menu_main();
+void ui_print_menu_main(void);
 int ui_menu_admin_do(uint8_t choice);
-void ui_menu_admin_show();
+void ui_menu_admin_show(void);
 int ui_menu_ctrl_do(uint8_t choice);
-void ui_menu_ctrl_show();
+void ui_menu_ctrl_show(void);
 
-void ui_print_nop();
+void ui_print_nop(void);
 void *ui_thread(int *running);
 
 #ifdef HAVE_MYSQL
@@ -287,7 +287,7 @@ int ui_display_to_file(char* filename);
 /** This function will end the redirection of ui_printf() and close the open file (if any). 
  *    See ui_display_to_file() for details.
  */
-void ui_display_to_file_close();
+void ui_display_to_file_close(void);
 
 /** A wrapper function to output data to the UI using standard printf style formatting.
  *   If file redirection (ui_display_to_file()) is active, then this function will write
@@ -305,7 +305,7 @@ void ui_fprintf(ui_print_cfg_t *fd, const char* format, ...);
  *    In NCURSES mode, this triggers the buffer to be displayed to the screen.
  *    In STDIO mode, this prints demarcation text to indicate the end of an output section.
  */
-int ui_display_exec();
+int ui_display_exec(void);
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 

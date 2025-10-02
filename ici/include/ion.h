@@ -474,8 +474,8 @@ extern uaddr		ionMemPtoA(void *);
 
 extern int		ionInitialize(	IonParms *parms,
 					uvast ownFqnn);
-extern int		ionAttach();
-extern void		ionDetach();
+extern int		ionAttach(void);
+extern void		ionDetach(void);
 extern void		ionProd(	uvast fromFqnn,
 					uvast toFqnn,
 					size_t xmitRate,
@@ -524,14 +524,14 @@ extern vast		ionAppendZcoExtent(Object zco,
 extern int		ionSendZcoByTCP(int *sock, Object zco, char *buffer,
 					int buflen);
 
-extern const char	*getIonVersionNbr();
-extern Sdr		getIonsdr();
-extern Object		getIonDbObject();
-extern PsmPartition	getIonwm();
-extern int		getIonMemoryMgr();
-extern IonVdb		*getIonVdb();
-extern char		*getIonWorkingDirectory();
-extern uvast		getOwnFqnn();
+extern const char	*getIonVersionNbr(void);
+extern Sdr		getIonsdr(void);
+extern Object		getIonDbObject(void);
+extern PsmPartition	getIonwm(void);
+extern int		getIonMemoryMgr(void);
+extern IonVdb		*getIonVdb(void);
+extern char		*getIonWorkingDirectory(void);
+extern uvast		getOwnFqnn(void);
 
 extern int		startIonMemTrace(size_t size);
 extern void		printIonMemTrace(int verbose);
@@ -546,8 +546,8 @@ extern void		stopIonMemTrace(int verbose);
 #define	TIMESTAMPBUFSZ	20
 
 extern int		setDeltaFromUTC(int newDelta);
-extern time_t		getCtime();	/*	Unix 1970 epoch time.	*/
-extern int		ionClockIsSynchronized();
+extern time_t		getCtime(void);	/*	Unix 1970 epoch time.	*/
+extern int		ionClockIsSynchronized(void);
 
 extern time_t		readTimestampLocal(char *timestampBuffer,
 					time_t referenceTime);
@@ -574,7 +574,7 @@ extern int		_extractSmallSdnv(unsigned int *into,
 					int *nbrOfBytesRemaining,
 					int lineNbr);
 
-extern int		ionLocked();
+extern int		ionLocked(void);
 
 extern int		readIonParms(	char *configFileName,
 					IonParms *parms);

@@ -143,7 +143,7 @@ extern char		*rfx_print_range(PsmAddress range, char *buffer);
 				system error, an indicative value
 				greater than 0 on any user error.	*/
 
-extern void		rfx_brief_ranges();
+extern void		rfx_brief_ranges(void);
 			/*	Writes a file of commands that will
 			 *	recreate the current list of IonRange
 			 *	objects in the node's ION database.
@@ -185,9 +185,9 @@ extern int		rfx_remove_alarm(PsmAddress alarmAddr);
 
 /*	*	Functions for controlling the rfxclock.			*/
 
-extern int		rfx_start();
-extern int		rfx_system_is_started();
-extern void		rfx_stop();
+extern int		rfx_start(void);
+extern int		rfx_system_is_started(void);
+extern void		rfx_stop(void);
 
 /*	*	Additional database management functions.		*/
 

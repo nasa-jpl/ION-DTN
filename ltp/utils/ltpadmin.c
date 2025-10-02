@@ -68,7 +68,7 @@ static void	printSyntaxError(int lineNbr)
 
 #define	SYNTAX_ERROR	printSyntaxError(__LINE__)
 
-static void	printUsage()
+static void	printUsage(void)
 {
 	PUTS("Valid commands are:");
 	PUTS("\tq\tQuit");
@@ -148,7 +148,7 @@ static void	initializeLtp(int tokenCount, char **tokens)
 	}
 }
 
-static int	attachToLtp()
+static int	attachToLtp(void)
 {
 	if (ltpAttach() < 0)
 	{

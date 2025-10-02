@@ -105,7 +105,7 @@ static void	printSyntaxError(int lineNbr)
 
 #define	SYNTAX_ERROR	printSyntaxError(__LINE__)
 
-static void	bpsec_admin_printUsage()
+static void	bpsec_admin_printUsage(void)
 {
 	PUTS("Valid commands are:");
 	PUTS("\tq\tQuit");
@@ -259,7 +259,7 @@ static int bpsec_admin_attach(int state)
  *
  * @retval int
  *****************************************************************************/
-static int bpsec_admin_init()
+static int bpsec_admin_init(void)
 {
 
     /* This will call ionAttach */

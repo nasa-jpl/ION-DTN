@@ -25,7 +25,7 @@ static Object   _dtpcdbObject(Object *newDbObj)
 	return obj;
 }
 
-static DtpcDB   *_dtpcConstants()
+static DtpcDB   *_dtpcConstants(void)
 {
 	static DtpcDB	buf;
 	static DtpcDB	*db = NULL;
@@ -47,7 +47,7 @@ static DtpcDB   *_dtpcConstants()
 
 /*      *       *       DTPC service control functions  *       *       */
 
-static char	*_dtpcvdbName()
+static char	*_dtpcvdbName(void)
 {
 	return "dtpcvdb";
 }
@@ -236,12 +236,12 @@ static DtpcVdb  *_dtpcvdb(char **name)
 	return vdb;
 }
 
-static char	*_dtpcdbName()
+static char	*_dtpcdbName(void)
 {
 	return "dtpcdb";
 }
 
-int	dtpcInit()
+int	dtpcInit(void)
 {
 	Sdr		sdr;
 	Object		dtpcdbObject;
@@ -315,22 +315,22 @@ int	dtpcInit()
 	return 0;	/*	DTPC service is available.	*/
 }
 
-Object	getDtpcDbObject()
+Object	getDtpcDbObject(void)
 {
 	return _dtpcdbObject(NULL);
 }		
 
-DtpcDB	*getDtpcConstants()
+DtpcDB	*getDtpcConstants(void)
 {
 	return _dtpcConstants();
 }
 
-DtpcVdb	*getDtpcVdb()
+DtpcVdb	*getDtpcVdb(void)
 {
 	return	_dtpcvdb(NULL);
 }
 
-int	_dtpcStart()
+int	_dtpcStart(void)
 {
 	Sdr	sdr = getIonsdr();
 	DtpcVdb	*dtpcvdb = _dtpcvdb(NULL);
@@ -355,7 +355,7 @@ int	_dtpcStart()
 	return 0;
 }
 
-void	_dtpcStop()		/*	Reverses dtpcStart.		*/
+void	_dtpcStop(void)		/*	Reverses dtpcStart.		*/
 {
 	Sdr		sdr = getIonsdr();
 	DtpcVdb		*dtpcvdb = _dtpcvdb(NULL);

@@ -132,8 +132,8 @@ uint32_t adm_get_parm_uint(tnvc_t *parms, uint8_t idx, int *success);
 uvast adm_get_parm_uvast(tnvc_t *parms, uint8_t idx, int *success);
 vast adm_get_parm_vast(tnvc_t *parms, uint8_t idx, int *success);
 
-void adm_init();
-void adm_common_init();
+void adm_init(void);
+void adm_common_init(void);
 
 
 #ifdef __cplusplus

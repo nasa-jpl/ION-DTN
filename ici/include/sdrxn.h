@@ -66,7 +66,7 @@ extern void		sdr_wm_usage(PsmUsageSummary *summary);
 				internal operations.  To print the
 		      		snapshot, use psm_report().		*/ 
 
-extern void		sdr_shutdown();
+extern void		sdr_shutdown(void);
 			/*	Ends all access to all SDRs and
 				releases all resources used by the
 				sdr system.				*/

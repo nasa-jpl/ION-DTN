@@ -98,7 +98,7 @@ static ReqAttendant	*_signalAttendant(ReqAttendant *newAttendant)
 	return attendant;
 }
 
-static void	shutDownClo()
+static void	shutDownClo(void)
 {
 	sm_SemEnd(bibecloSemaphore(NULL));
 }

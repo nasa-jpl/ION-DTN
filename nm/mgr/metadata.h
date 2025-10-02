@@ -168,7 +168,7 @@ meta_col_t* meta_filter(uint32_t adm_id, amp_type_e type);
 meta_fp_t*  meta_get_parm(metadata_t *meta, uint8_t idx);
 void        meta_release(metadata_t *meta, int destroy);
 
-meta_col_t* metacol_create();
+meta_col_t* metacol_create(void);
 void        metacol_release(meta_col_t*col, int destroy);
 
 
