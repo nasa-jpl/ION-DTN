@@ -197,7 +197,7 @@ static int	run_psmshell(short partitionSize)
 				continue;
 			}
 
-			/*	Deliberate fall-through to default.	*/
+			/* FALLTHROUGH */
 
 		default:
 			puts("psmshell: invalid command");
