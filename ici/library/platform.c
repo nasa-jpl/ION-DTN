@@ -3813,7 +3813,7 @@ int	itcp_recv(int *sock, char *into, int length)
 			case ECONNRESET:
 				bytesRead = 0;
 
-			/*	Intentional fall-through to default.	*/
+			/* FALLTHROUGH */
 
 			default:
 				putSysErrmsg("irecv() error on TCP socket",

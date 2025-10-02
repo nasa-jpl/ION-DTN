@@ -648,6 +648,9 @@ Object	zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript,
 	Object		fileRefObj;
 	FileRef		fileRef;
 
+	/* Parameter intentionally unused. */
+	(void)acct;
+
 	CHKZERO(sdr);
 	CHKZERO(pathName);
 	if (qualifyFileName(pathName, pathBuf, sizeof pathBuf) < 0)
@@ -866,6 +869,9 @@ Object	zco_create_bulk_ref(Sdr sdr, unsigned long item, vast length,
 	Object	bulkRefObj;
 	BulkRef	bulkRef;
 
+	/* Parameter intentionally unused. */
+	(void)acct;
+
 	CHKZERO(sdr);
 	CHKZERO(item);
 
@@ -916,6 +922,9 @@ Object	zco_create_obj_ref(Sdr sdr, Object object, vast length, ZcoAcct acct)
 {
 	Object	objRefObj;
 	ObjRef	objRef;
+
+	/* Parameter intentionally unused. */
+	(void)acct;
 
 	CHKZERO(sdr);
 	CHKZERO(object);
@@ -2695,6 +2704,9 @@ static void	destroyExtentText(Sdr sdr, SourceExtent *extent, ZcoAcct acct)
 static void	destroyFirstExtent(Sdr sdr, Object zcoObj, Zco *zco)
 {
 	SourceExtent	extent;
+
+	/* Parameter intentionally unused. */
+	(void)zcoObj;
 
 	sdr_read(sdr, (char *) &extent, zco->firstExtent, sizeof(SourceExtent));
 

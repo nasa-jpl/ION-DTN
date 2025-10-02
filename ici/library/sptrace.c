@@ -208,6 +208,9 @@ PsmPartition	sptrace_join(int smkey, size_t smsize, char *sm,
 
 static void	discardEvent(PsmPartition trace)
 {
+	/* Tell the compiler that we are not using 'trace' */
+	(void)trace;
+
 	char	buffer[256];
 
 	isprintf(buffer, sizeof buffer, "sptrace (pid %d) logging: not enough \

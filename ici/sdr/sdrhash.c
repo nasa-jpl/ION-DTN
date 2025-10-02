@@ -531,6 +531,9 @@ int	Sdr_hash_remove(const char *file, int line, Sdr sdrv, Object hash,
 
 static void	deleteHashEntry(Sdr sdrv, Object eltData, void *arg)
 {
+	/* Parameter intentionally unused. */
+	(void)arg;
+	
 	sdr_free(sdrv, eltData);
 }
 

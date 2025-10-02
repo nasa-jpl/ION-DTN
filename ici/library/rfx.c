@@ -236,6 +236,9 @@ int	rfx_order_events(PsmPartition partition, PsmAddress nodeData,
 void	rfx_erase_data(PsmPartition partition, PsmAddress nodeData,
 		void *argument)
 {
+	/* Parameter intentionally unused. */
+	(void)argument;
+
 	if (nodeData)
 	{
 		psm_free(partition, nodeData);
@@ -824,6 +827,9 @@ static void	insertContact(int regionIdx, IonDB *iondb, Object iondbObj,
 	Object		elt;
 	IonCXref	newCx;
 
+	/* Parameter intentionally unused. */
+	(void)iondbObj;
+
 	contact.fromTime = fromTime;
 	contact.toTime = toTime;
 	contact.fromFqnn = fromFqnn;
@@ -1030,6 +1036,9 @@ static void	vacateRegion(IonDB *iondb, Object iondbObj, int regionIdx,
 	PsmAddress	cxelt;
 	PsmAddress	cxaddr;
 	RegionMember	member;
+
+	/* Parameter intentionally unused. */
+	(void)iondbObj;
 
 	iondb->regions[regionIdx].regionNbr = 0;
 
@@ -1946,6 +1955,9 @@ static void	unregisterFromRegion(uvast fromFqnn, IonCXref *cxref,
 	PsmAddress	cxelt;
 	PsmAddress	cxaddr;
 	RegionMember	member;
+
+	/* Parameter intentionally unused. */
+	(void)cxref;
 
 	iondbObj = getIonDbObject();
 	CHKVOID(iondbObj);
