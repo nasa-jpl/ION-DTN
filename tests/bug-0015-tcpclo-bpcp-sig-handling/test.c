@@ -11,12 +11,16 @@
 #include "platform.h"
 #include "platform_sm.h"
 
-void sighandler(){
+void sighandler(int signum)
+{
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGINT, sighandler);
 	printf("Got SIGINT\n");
 }
 
-int main()
+int main(void)
 {
 
 	if (bp_attach() < 0)

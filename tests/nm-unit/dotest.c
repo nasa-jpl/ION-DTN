@@ -23,7 +23,7 @@ TODO:
 #define check(bool) if (!(bool)) { printf("END: FAILED at %s:%d after %i sub-checks passed\n", __FILE__, __LINE__, group_pass); return 0; } else { group_pass++; }
 #define end_group() printf("END: %i checks passed\n", group_pass); return 1;
 
-void adm_init_stub() { }
+void adm_init_stub(void) { }
 
 int num_groups = 0, group_pass = 0, group_fail = 0;
 void init_group(char* str) {
@@ -111,7 +111,7 @@ int test_simple_ari(char *desc, char* cbor, amp_type_e type)
  * - This is the first function called when decoding a received (CBOR) message
  * - 
  */
-int test_msg_grp_deserialize() { // TODO: Remove or finish this function
+int test_msg_grp_deserialize(void) { // TODO: Remove or finish this function
    msg_grp_t *grp = NULL;
    int success = AMP_FAIL;
 
@@ -206,7 +206,7 @@ int test_msg_grp(char *desc, char* cbor) {
    return 1;
 }
 
-void msg_encoding_tests()
+void msg_encoding_tests(void)
 {
 #if 0 // AMPv6 Tests
    
@@ -284,7 +284,7 @@ int test_msgs_raw(char* input) {
 
    return rtv;
 }
-void msgs_encoding_tests() {
+void msgs_encoding_tests(void) {
    fail_unless(test_msgs_raw("0x8200587801816869706e3a322e36358383c115410405012581a701410141011a5e83f8b805012300838a181b41021a5e83f8b8050109878a181b4102050124c7182d410100050124c718414100000501248718cd410005012487182d41000501248718194100050124c718cd41010083a701410141011a5e83f8b800"));
 }
 

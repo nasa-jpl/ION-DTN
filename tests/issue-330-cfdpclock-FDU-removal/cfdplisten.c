@@ -8,7 +8,7 @@
 #include "ion.h"
 
 
-void poll_cfdp_messages();
+void poll_cfdp_messages(void);
 void dbgprintf(int level, const char *fmt, ...);
 
 
@@ -29,7 +29,7 @@ int main(void)
 }
 
 /*CFDP Event Polling loop*/
-void poll_cfdp_messages()
+void poll_cfdp_messages(void)
 {
 	char *eventTypes[] =	{
 					"no event",

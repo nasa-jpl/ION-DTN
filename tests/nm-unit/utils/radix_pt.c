@@ -39,7 +39,7 @@ int radixpt_lyst_search(Lyst eids, char *key)
 	return 0;
 }
 
-Lyst radixpt_lyst_populate()
+Lyst radixpt_lyst_populate(void)
 {
 	Lyst eids = lyst_create();
 
@@ -131,7 +131,7 @@ void radixpt_lyst_cleanup(Lyst eids)
 
 
 
-void radixpt_lyst_runtest()
+void radixpt_lyst_runtest(void)
 {
 	Lyst eids;
 
@@ -244,7 +244,7 @@ static void	radixpt_rbt_key_del(PsmPartition wm, PsmAddress refData, void *arg)
 }
 
 
-void radixpt_rbt_runtest()
+void radixpt_rbt_runtest(void)
 {
 	PsmAddress rbt = sm_rbt_create(getIonwm());
 

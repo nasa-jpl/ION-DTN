@@ -35,7 +35,7 @@ static void reaper(int sig)
 }
 
 
-static void wait_for_children() {
+static void wait_for_children(void) {
 	if (debug) fprintf(stderr,"Parent process %d Waiting for children to finish...\n", getpid());
 	while (1) {
 		int status;
@@ -85,7 +85,7 @@ static int check_unique_keys_guts(unsigned iterations, int sm_unique_key[], int 
 	return(count_non_unique);
 }
 
-static int check_unique_keys()
+static int check_unique_keys(void)
 {
 	int num_uniq_keys = 5;
 	sm_SemId unique_sm_id[num_uniq_keys];
@@ -213,13 +213,13 @@ thread_adder (void *parg)
 	unsigned iterations = *((int *)parg);
 
 	thread_adder_guts(&counter, iterations);
-    pthread_exit (NULL);
+	pthread_exit (NULL);
 }
 
 
-static int multi_thread_semtest()
+static int multi_thread_semtest(void)
 {
-	unsigned int i;
+	int i;
 	struct timeval time_begin, time_end;
 	counter = 0;
 	#define MAXTHREADS 100
@@ -236,51 +236,51 @@ static int multi_thread_semtest()
 
 	semnum = sm_SemCreate (-1, 0);
 
-   	gettimeofday (&time_begin, NULL);
+	gettimeofday (&time_begin, NULL);
 
-    for (i = 0; i < nthreads; i++)
-        {
-            if (pthread_create (&threads[i], NULL, thread_adder, (void *)&iterations) != 0) {
+	for (i = 0; i < nthreads; i++)
+		{
+			if (pthread_create (&threads[i], NULL, thread_adder, (void *)&iterations) != 0) {
 				perror("pthread_create");
 			}
-        }
+		}
 
-    for (i = 0; i < nthreads; i++)
-        {
-            int exitValue;
-            pthread_join (threads[i], (void *)&exitValue);
+	for (i = 0; i < nthreads; i++)
+		{
+			int exitValue;
+			pthread_join (threads[i], (void *)&exitValue);
 			if (exitValue != 0)
 				fprintf (stderr,"Thread %d returned with exit value %d\n", i, exitValue);
-        }
+		}
 
-    gettimeofday (&time_end, NULL);
+	gettimeofday (&time_end, NULL);
 
-    critical_sections = nthreads * iterations;
+	critical_sections = nthreads * iterations;
 	correct = (counter == (critical_sections));
-    fprintf (stderr,"\n  Main thread done, counter: %'d   %s\n", counter,
-            correct? "CORRECT" : "WRONG!!!!!!!!!!!!");
+	fprintf (stderr,"\n  Main thread done, counter: %'d   %s\n", counter,
+			correct? "CORRECT" : "WRONG!!!!!!!!!!!!");
 
-    double elapsed_sec
-        = (time_end.tv_sec + (time_end.tv_usec / 1000000.0))
-          - (time_begin.tv_sec + (time_begin.tv_usec / 1000000.0));
+	double elapsed_sec
+		= (time_end.tv_sec + (time_end.tv_usec / 1000000.0))
+			- (time_begin.tv_sec + (time_begin.tv_usec / 1000000.0));
 
-    fprintf (stderr,"  Elapsed time: %.3lf seconds\n", elapsed_sec);
-    fprintf (stderr,"  Critical sections/second: %'.0lf\n",
-            (double)((double)critical_sections / elapsed_sec));
-    fprintf (stderr,"  Microseconds/critical section: %.3lf\n",
-            (elapsed_sec * 1000000.0) / critical_sections);
+	fprintf (stderr,"  Elapsed time: %.3lf seconds\n", elapsed_sec);
+	fprintf (stderr,"  Critical sections/second: %'.0lf\n",
+			(double)((double)critical_sections / elapsed_sec));
+	fprintf (stderr,"  Microseconds/critical section: %.3lf\n",
+			(elapsed_sec * 1000000.0) / critical_sections);
 
 	sm_SemDelete(semnum);
 
-    return (correct);
-}
+	return (correct);
+	}
 
-static int multi_process_semtest()
+static int multi_process_semtest(void)
 {
-    int i;
+	int i;
 	int exitval;
 	int correct;
-    struct timeval time_begin, time_end;
+	struct timeval time_begin, time_end;
 	uaddr shmid;
 	int nprocs = 10;
 	unsigned iterations = 300000;
@@ -313,44 +313,44 @@ static int multi_process_semtest()
 	wait(&exitval);
 	semnum = pshmemInt->semnum;  // pull semnum from shared memory	
 
-   	gettimeofday (&time_begin, NULL);
+	gettimeofday (&time_begin, NULL);
 
-    for (i = 0; i < nprocs; i++)
-        {
-            if (fork() == 0) {
+	for (i = 0; i < nprocs; i++)
+		{
+			if (fork() == 0) {
 				/* child */
 				thread_adder_guts(&pshmemInt->counter, iterations);
 				_exit(0);
 			}
-        }
+		}
 
-    wait_for_children();
+	wait_for_children();
 
-    gettimeofday (&time_end, NULL);
+	gettimeofday (&time_end, NULL);
 
-    long int critical_sections = nprocs * iterations;
+	long int critical_sections = nprocs * iterations;
 	correct = (pshmemInt->counter == (critical_sections));
-    fprintf (stderr,"\n  Main thread done, counter: %'d   %s\n", pshmemInt->counter,
-            correct ? "CORRECT" : "WRONG!!!!!!!!!!!!");
+	fprintf (stderr,"\n  Main thread done, counter: %'d   %s\n", pshmemInt->counter,
+			correct ? "CORRECT" : "WRONG!!!!!!!!!!!!");
 
-    double elapsed_sec
-        = (time_end.tv_sec + (time_end.tv_usec / 1000000.0))
-          - (time_begin.tv_sec + (time_begin.tv_usec / 1000000.0));
+	double elapsed_sec
+		= (time_end.tv_sec + (time_end.tv_usec / 1000000.0))
+			- (time_begin.tv_sec + (time_begin.tv_usec / 1000000.0));
 
-    fprintf (stderr,"  Elapsed time: %.3lf seconds\n", elapsed_sec);
-    fprintf (stderr,"  Critical sections/second: %'.0lf\n",
-            (double)((double)critical_sections / elapsed_sec));
-    fprintf (stderr,"  Microseconds/critical section: %.3lf\n",
-            (elapsed_sec * 1000000.0) / critical_sections);
+	fprintf (stderr,"  Elapsed time: %.3lf seconds\n", elapsed_sec);
+	fprintf (stderr,"  Critical sections/second: %'.0lf\n",
+			(double)((double)critical_sections / elapsed_sec));
+	fprintf (stderr,"  Microseconds/critical section: %.3lf\n",
+			(elapsed_sec * 1000000.0) / critical_sections);
 
 	sm_ShmDetach((char *)pshmemInt);
 	sm_SemDelete(semnum);
 
-    return (correct);
+	return (correct);
 }
 
 
-int sem_errors()
+int sem_errors(void)
 {
 	int sem;
 	int ret;
@@ -461,7 +461,7 @@ int do_churn(int p, unsigned iterations)
 }
 
 
-int semaphore_churn()
+int semaphore_churn(void)
 {
 	int nprocs = 10;
 	unsigned iterations = 15000;
@@ -513,7 +513,7 @@ int synch_command(char *cmd, int maxseconds)
 	return(1);
 }
 
-int do_killm()
+int do_killm(void)
 {
 	return(synch_command("killm",60));
 }
@@ -585,7 +585,7 @@ int main(void)
 	printf("\n####################################################\n");
 
 #ifdef POSIX_NAMED_SEMAPHORES
-	void _semPrintTable();
+	void _semPrintTable(void);
 	_semPrintTable();
 #endif /* POSIX_NAMED_SEMAPHORES */
 

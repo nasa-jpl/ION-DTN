@@ -22,7 +22,7 @@
  * setUp and tearDown are required by unity when not integrated with ceedling
  * They are called before and after every RUN_TEST()
  */
-void adm_init() { }
+void adm_init(void) { }
 void setUp(void) { }
 void tearDown(void) { }
 

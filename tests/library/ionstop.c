@@ -7,7 +7,7 @@
 #include <bp.h>
 #include "check.h"
 
-void ionstop()
+void ionstop(void)
 {
 	int pid;
 

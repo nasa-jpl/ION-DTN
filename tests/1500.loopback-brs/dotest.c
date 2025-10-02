@@ -15,7 +15,7 @@ static BpSAP	rxSap;
 static char testEid[] = "ipn:1.1";
 static char testLine[] = "Loopback bundle over ION";
 
-void do_brs_startup()
+void do_brs_startup(void)
 {
 	VInduct *vBrscin;
 	PsmAddress vBrscinElt;	/* Don't use, but findInduct() requires. */

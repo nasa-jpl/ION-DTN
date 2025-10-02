@@ -72,14 +72,14 @@ void _ionstart(const char* path_prefix, const char *ionrc,
 
 /* Calls each admin program using the stop argument (e.g. "ionadmin ."), to
  * shut down an ION node. */
-void ionstop();
+void ionstop(void);
 
 /* Returns a statically-allocated string like "../../configs/" that is the
  * prefix to the directory containing the default configurations, relative 
  * to the working directory of "dotest"; this is obtained by the test
  * infrastructure setting the CONFIGSROOT environment variable.
  */
-const char *get_configs_path_prefix();
+const char *get_configs_path_prefix(void);
 
 /* Loads a security key defined in a default configuration. */
 int sec_addKey_default_config(char *keyName, char *fileName);

@@ -8,7 +8,7 @@
  * adm_init() as a stub to avoid building nmagent.c/nm_mgr.c
  * setUp and tearDown are required by unity when not integrated with ceedling
  */
-void adm_init() { }
+void adm_init(void) { }
 void setUp(void) { }
 void tearDown(void) { }
 

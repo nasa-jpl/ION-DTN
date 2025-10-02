@@ -10,10 +10,10 @@
 PsmAddress makeDataFromString(PsmPartition wm, char *str);
 
 int	radixpt_gen_eidsMatch(char *firstEid, int firstEidLen, char *secondEid, int secondEidLen);
-char *radixpt_gen_make_addr();
-void radixpc_gen_printconfig();
-void radixpt_gen_printstats();
-void radixpt_gen_initconfig();
+char *radixpt_gen_make_addr(void);
+void radixpc_gen_printconfig(void);
+void radixpt_gen_printstats(void);
+void radixpt_gen_initconfig(void);
 
 void radixpt_user_del(PsmPartition partition, PsmAddress user_data);
 
@@ -23,7 +23,7 @@ void radixpt_radix_search(PsmPartition partition, PsmAddress radixAddr, char *va
 
 void radixpt_radix_populate(PsmPartition partition, PsmAddress radixAddr);
 void radixpt_radix_query(PsmPartition partition, PsmAddress raddixAddr);
-void radixpt_radix_runtest();
+void radixpt_radix_runtest(void);
 
 typedef struct
 {
