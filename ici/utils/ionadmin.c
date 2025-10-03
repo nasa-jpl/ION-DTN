@@ -105,6 +105,9 @@ static void	printText(char *text)
 
 static void	handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	printText("Please enter command 'q' to stop the program.");
 }
 
@@ -815,7 +818,7 @@ static void	manageOccupancy(int tokenCount, char **tokens, ZcoAcct acct)
 	case 4:
 		newFileLimit = strtovast(tokens[3]);
 
-		/*	Intentional fall-through to next case.		*/
+		/* FALLTHROUGH */
 
 	case 3:
 		newHeapLimit = strtovast(tokens[2]);
@@ -1003,6 +1006,9 @@ static void	manageUsage(int tokenCount, char **tokens)
 	double	fileSpaceMBInUseOutbound;
 	double	occupancyCeiling;	/*	In MBytes.		*/
 	double	maxForecastOccupancy;	/*	In MBytes.		*/
+
+	/* Parameter intentionally unused. */
+	(void)tokens;
 
 	if (tokenCount != 2)
 	{
@@ -1221,6 +1227,10 @@ static int	processLine(char *line, int lineLength, int *rc)
 	uvast		regionNbr;
 	int		max = 0;
 	int		count = 0;
+
+	/* Parameter intentionally unused. */
+	(void)lineLength;
+
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)

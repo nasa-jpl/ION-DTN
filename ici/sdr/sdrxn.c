@@ -777,6 +777,11 @@ static void	handleUnrecoverableError(Sdr sdrv)
 	putErrmsg("Unrecoverable SDR error.", NULL);
 #ifdef IN_FLIGHT
 	sdr_abort(sdrv);
+
+#else
+	/* sdrv is unused when not compiling with IN_FLIGHT */
+	(void)sdrv;
+
 #endif
 	sm_Abort();
 }
@@ -1586,6 +1591,9 @@ int	sdr_reload_profile(char *name, int configFlags, size_t heapWords,
 
 static void	deleteObjectExtent(LystElt elt, void *userData)
 {
+	/* Parameter intentionally unused. */
+	(void)userData;
+
 	MRELEASE(lyst_data(elt));
 }
 

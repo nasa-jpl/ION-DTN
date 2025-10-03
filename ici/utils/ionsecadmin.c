@@ -60,6 +60,9 @@ static void	printText(char *text)
 
 static void	handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	printText("Please enter command 'q' to stop the program.");
 }
 
@@ -103,6 +106,9 @@ static void	printUsage()
 
 static void	initializeIonSecurity(int tokenCount, char **tokens)
 {
+	/* Parameter intentionally unused. */
+	(void)tokens;
+
 	if (tokenCount != 1)
 	{
 		SYNTAX_ERROR;
@@ -281,7 +287,7 @@ static void	printPubKey(Object keyAddr)
 	}
 	else
 	{
-		if (len > sizeof datValue)
+		if ((size_t)len > sizeof datValue)
 		{
 			len = sizeof datValue;
 		}
@@ -453,6 +459,9 @@ int	ionsecadmin_processLine(char *line, int lineLength)
 	int	i;
 	char	*tokens[9];
 	char	buffer[80];
+
+	/* Parameter intentionally unused. */
+	(void)lineLength;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)

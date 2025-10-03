@@ -51,9 +51,14 @@ char gCsiMsg[GMSG_BUFLEN];      /*  Debug message buffer.  */
 
 int csi_keywrap(int wrap, csi_val_t kek, csi_val_t input, csi_val_t *output)
 {
-	output->contents = MTAKE(NCS_LEN_VAL);
-	output->len = NCS_LEN_VAL;
-	return 1;
+    /* Parameters intentionally unused. */
+    (void)wrap;
+    (void)kek;
+    (void)input;
+
+    output->contents = MTAKE(NCS_LEN_VAL);
+    output->len = NCS_LEN_VAL;
+    return 1;
 }
 
 
@@ -137,6 +142,9 @@ void csi_teardown()
 
 uint32_t csi_blocksize(csi_csid_t suite)
 {
+    /* Parameter intentionally unused. */
+    (void)suite;
+
     return NCS_BLOCKSIZE;
 }
 
@@ -164,6 +172,9 @@ uint32_t csi_blocksize(csi_csid_t suite)
 
 uint32_t csi_ctx_len(csi_csid_t suite)
 {
+    /* Parameter intentionally unused. */
+    (void)suite;
+
     return NCS_LEN_VAL;
 }
 
@@ -190,6 +201,9 @@ uint32_t csi_ctx_len(csi_csid_t suite)
 
 uint8_t csi_ctx_free(csi_csid_t suite, void *context)
 {
+    /* Parameter intentionally unused. */
+    (void)suite;
+
     CHKZERO(context);
     MRELEASE(context);    
     return 1;
@@ -215,6 +229,9 @@ uint8_t csi_ctx_free(csi_csid_t suite, void *context)
 
 uint32_t csi_sign_res_len(csi_csid_t suite, void *context)
 {
+    /* Parameter intentionally unused. */
+    (void)suite;
+
     CHKZERO(context);
     return NCS_LEN_VAL;  
 }
@@ -241,6 +258,10 @@ uint32_t csi_sign_res_len(csi_csid_t suite, void *context)
 
 uint32_t csi_crypt_parm_get_len(csi_csid_t suite, csi_parmid_t parmid)
 {
+    /* Parameters intentionally unused. */
+    (void)suite;
+    (void)parmid;
+
     return NCS_LEN_VAL;
 }
 
@@ -266,6 +287,10 @@ uint32_t csi_crypt_parm_get_len(csi_csid_t suite, csi_parmid_t parmid)
 
 uint32_t csi_crypt_res_len(csi_csid_t suite, void *context, csi_blocksize_t blocksize, csi_svcid_t svc)
 {
+    /* Parameters intentionally unused. */
+    (void)suite;
+    (void)svc;
+
     CHKZERO(context);
     CHKZERO(blocksize.plaintextLen);
 
@@ -659,6 +684,12 @@ int8_t csi_crypt_key(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parms
                      csi_val_t longtermkey, csi_val_t input, csi_val_t *output)
 {
     int8_t retval;
+    /* Parameter intentionally unused. */
+    (void)suite;
+    (void)svc;
+    (void)parms;
+    (void)longtermkey;
+    (void)input;
 
     output->len = NCS_LEN_VAL;
     retval = csi_memAlloc(&output->contents, &output->len);
@@ -684,6 +715,9 @@ void csi_cipherparms_free(csi_cipherparms_t parms)
 csi_val_t csi_rand(csi_csid_t suite, uint32_t len)
 {
     csi_val_t result;
+
+    /* Parameter intentionally unused. */
+    (void)suite;
 
     memset(&result, 0, sizeof(result)); 
 
@@ -727,6 +761,9 @@ uint8_t *csi_ctx_init(csi_csid_t suite, csi_val_t key_info, csi_svcid_t svc)
     uint8_t *context = NULL;
     int32_t temp_len = csi_ctx_len(suite);
 
+    /* Parameter intentionally unused. */
+    (void)svc;
+
     if(csi_memAlloc(&context, &temp_len) <= 0)
     {
         return NULL;
@@ -763,6 +800,9 @@ uint8_t *csi_ctx_init(csi_csid_t suite, csi_val_t key_info, csi_svcid_t svc)
 
 int8_t csi_sign_start(csi_csid_t suite, void *context)
 {
+    /* Parameter intentionally unused. */
+    (void)suite;
+
     CHKERR(context);
 
     return 1;
@@ -792,6 +832,10 @@ int8_t csi_sign_start(csi_csid_t suite, void *context)
 
 int8_t csi_sign_update(csi_csid_t suite, void *context, csi_val_t data, csi_svcid_t svc)
 {
+    /* Parameters intentionally unused. */
+    (void)suite;
+    (void)svc;
+
     CHKERR(context);
 
     if(data.contents == NULL || data.len <= 0)
@@ -831,6 +875,10 @@ int8_t csi_sign_update(csi_csid_t suite, void *context, csi_val_t data, csi_svci
 
 int8_t csi_sign_finish(csi_csid_t suite, void *context, csi_val_t *result, csi_svcid_t svc)
 {
+    /* Parameters intentionally unused. */
+    (void)suite;
+    (void)svc;
+
     CHKERR(context);
 
 #ifdef NULL_FAIL
@@ -873,6 +921,12 @@ int8_t csi_sign_finish(csi_csid_t suite, void *context, csi_val_t *result, csi_s
 
 int8_t csi_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_t *result, csi_svcid_t svc)
 {
+    /* Parameters intentionally unused. */
+    (void)suite;
+    (void)input;
+    (void)key;
+    (void)svc;
+
     CHKERR(result);
 
 #ifdef NULL_FAIL
@@ -912,9 +966,13 @@ int8_t csi_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_t
 
 int8_t csi_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc, csi_cipherparms_t *parms)
 {
+   /* Parameters intentionally unused. */
+    (void)suite;
+    (void)svc;
+
     CHKERR(context);
     CHKERR(parms);
-    
+
 #ifdef NULL_FAIL
     return 0;
 #endif
@@ -1053,8 +1111,11 @@ csi_val_t csi_crypt_parm_get(csi_csid_t suite, csi_parmid_t parmid)
 
 int8_t csi_crypt_start(csi_csid_t suite, void *context, csi_cipherparms_t parms)
 {
-    CHKERR(context);
+    /* Parameters intentionally unused. */
+    (void)suite;
+    (void)parms;
 
+    CHKERR(context);
     return 1;
 }
 
@@ -1085,6 +1146,10 @@ int8_t csi_crypt_start(csi_csid_t suite, void *context, csi_cipherparms_t parms)
 csi_val_t csi_crypt_update(csi_csid_t suite, void *context, csi_svcid_t svc, csi_val_t data)
 {
     csi_val_t result;
+    
+    /* Parameters intentionally unused. */
+    (void)suite;
+    (void)svc;
 
     memset(&result, 0, sizeof(result)); 
 

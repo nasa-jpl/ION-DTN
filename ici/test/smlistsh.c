@@ -18,7 +18,7 @@
 int	smlistsh(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 #else
-int	main(int argc, char **argv)
+int	main(void)
 #endif
 {
 	int		cmdFile;
@@ -278,8 +278,8 @@ try again.");
 				continue;
 			}
 
-			/*	Intentional fall-through to default.	*/
-
+			/* FALLTHROUGH */
+			
 		default:
 			puts("invalid command");
 		}

@@ -36,6 +36,9 @@ static unsigned int	sdrwatch_count(int *newValue)
 
 static void	handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+	
 	int	newCount = 1;	/*	Advance to end of last cycle.	*/
 
 	PUTS("[Terminated by user.]");

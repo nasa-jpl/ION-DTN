@@ -57,6 +57,9 @@ static void	deleteDG(LystElt elt, void *userdata)
 {
 	void	*dg = lyst_data(elt);
 
+	/* Parameter intentionally unused. */
+	(void)userdata;
+
 	if (dg)
 	{
 		free(dg);
@@ -378,7 +381,7 @@ int	main(int argc, char *argv[])
 			verbose = 1;
 		}
 
-		/*	Intentional fall-through to next case.		*/
+		/* FALLTHROUGH */
 
 	case 2:
 		fileName = argv[1];
@@ -433,6 +436,7 @@ int	main(int argc, char *argv[])
 
 			perror("owltsim failed on fscanf");
 			owltsimExit(1);
+			break; /* Satisfy the compiler for the no-return call above*/
 
 		case 7:
 			stp = (SimThreadParms *) malloc(sizeof(SimThreadParms));

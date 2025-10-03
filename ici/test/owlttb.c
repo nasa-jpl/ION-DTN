@@ -46,6 +46,9 @@ static void	deleteSegment(LystElt elt, void *userdata)
 {
 	void	*segment = lyst_data(elt);
 
+	/* Parameter intentionally unused. */
+	(void)userdata;
+
 	if (segment)
 	{
 		free(segment);
@@ -583,7 +586,7 @@ int	main(int argc, char *argv[])
 			stpBuf.verbose = 1;
 		}
 
-		/*	Intentional fall-through to next case.		*/
+		/* FALLTHROUGH */
 
 	case 8:
 		stpBuf.ownUplinkPortNbr = strtoul(argv[1], &end, 0);

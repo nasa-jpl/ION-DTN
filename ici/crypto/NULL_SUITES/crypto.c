@@ -51,18 +51,34 @@ static void	sha1_hmac(const unsigned char *key, size_t keylen,
 			const unsigned char *input, size_t ilen,
 			unsigned char output[20])
 {
+	/* Parameter intentionally unused. */
+	(void)key;
+	(void)keylen;
+	(void)input;
+	(void)ilen;
+	(void)output;
 	return;
 }
 
 static int	x509parse_key(rsa_context *rsa, const unsigned char *key,
 			size_t keylen, const unsigned char *pwd, size_t pwdlen)
 {
+	/* Parameter intentionally unused. */
+	(void)rsa;
+	(void)key;
+	(void)keylen;
+	(void)pwd;
+	(void)pwdlen;
 	return 0;
 }
 
 static int	x509parse_public_key(rsa_context *rsa, const unsigned char *key,
 			size_t keylen)
 {
+	/* Parameter intentionally unused. */
+	(void)rsa;
+	(void)key;
+	(void)keylen;
 	return 0;
 }
 
@@ -76,6 +92,13 @@ static int	rsa_rsassa_pkcs1_v15_sign(rsa_context *ctx, int mode,
 			int hash_id, unsigned int hashlen,
 			const unsigned char *hash, unsigned char *sig)
 {
+	/* Parameter intentionally unused. */
+	(void)ctx;
+	(void)mode;
+	(void)hash_id;
+	(void)hashlen;
+	(void)hash;
+	(void)sig;
 	return 0;
 }
 
@@ -83,12 +106,24 @@ static int	rsa_rsassa_pkcs1_v15_verify(rsa_context *ctx, int mode,
 			int hash_id, unsigned int hashlen,
 			const unsigned char *hash, unsigned char *sig)
 {
+	/* Parameter intentionally unused. */
+	(void)ctx;
+	(void)mode;
+	(void)hash_id;
+	(void)hashlen;
+	(void)hash;
+	(void)sig;
 	return 0;
 }
 
 void	sha2(const unsigned char *input, size_t ilen,
 		unsigned char output[32], int is224)
 {
+	/* Parameter intentionally unused. */
+	(void)input;
+	(void)ilen;
+	(void)output;
+	(void)is224;
 	return;
 }
 
@@ -98,6 +133,10 @@ void	sha2(const unsigned char *input, size_t ilen,
 void	arc4_setup( arc4_context *ctx, const unsigned char *key,
 		unsigned int keylen )
 {
+	/* Parameter intentionally unused. */
+	(void)ctx;
+	(void)key;
+	(void)keylen;
 	return;
 }
 
@@ -107,6 +146,9 @@ void	arc4_setup( arc4_context *ctx, const unsigned char *key,
 int	arc4_crypt( arc4_context *ctx, size_t length,
 		const unsigned char *input, unsigned char *output )
 {
+	/* Parameter intentionally unused. */
+	(void)ctx;
+
 	memcpy(output, input, length);
 	return( 0 );
 }
@@ -136,6 +178,11 @@ void	hmac_sha1_init(void *context, unsigned char *key, int key_length)
 
 void	hmac_sha1_update(void *context, unsigned char *data, int data_length)
 {
+	/* Parameters intentionally unused. */
+	(void)context;
+	(void)data;
+	(void)data_length;
+
 	return;
 }
 
@@ -156,6 +203,9 @@ void	hmac_sha1_final(void *context, unsigned char *result, int resultLen)
 
 void	hmac_sha1_reset(void *context)
 {
+	/* Parameter intentionally unused. */
+	(void)context;
+
 	return;
 }
 
@@ -170,6 +220,12 @@ int	hmac_authenticate(char *mac_buffer, const int mac_size,
 		const char *key, const int key_length, const char *message,
 		const int message_length)
 {
+	/* Parameters intentionally unused. */
+	(void)key;
+	(void)key_length;
+	(void)message;
+	(void)message_length;
+
 	memset(mac_buffer, 0, mac_size);
 	return mac_size;
 }
@@ -199,6 +255,11 @@ void	hmac_sha256_init(void *context, unsigned char *key, int key_length)
 
 void	hmac_sha256_update(void *context, unsigned char *data, int data_length)
 {
+	/* Parameters intentionally unused. */
+	(void)context;
+	(void)data;
+	(void)data_length;
+
 	return;
 }
 
@@ -219,6 +280,9 @@ void	hmac_sha256_final(void *context, unsigned char *result, int resultLen)
 
 void	hmac_sha256_reset(void *context)
 {
+	/* Parameter intentionally unused. */
+	(void)context;
+
 	return;
 }
 
@@ -233,16 +297,27 @@ int	sha256_context_length()
 
 void	sha256_init(void *context)
 {
+	/* Parameter intentionally unused. */
+	(void)context;
+
 	return;
 }
 
 void	sha256_update(void *context, unsigned char *data, int data_length)
 {
+	/* Parameters intentionally unused. */
+	(void)context;
+	(void)data;
+	(void)data_length;
+
 	return;
 }
 
 void	sha256_final(void *context, unsigned char *result, int resultLen)
 {
+	/* Parameters intentionally unused. */
+	(void)context;
+
 	memset(result, 0, resultLen);
 }
 
@@ -284,6 +359,9 @@ int	rsa_sha256_sign_context_length(void *context)
 int	rsa_sha256_sign(void *context, int hashlen, void *hashData,
 		int signatureLen, void *signature)
 {
+	/* Parameter intentionally unused. */
+	(void)hashlen;
+
 	memset(signature, 0, signatureLen);
 	return rsa_rsassa_pkcs1_v15_sign((rsa_context *) context, RSA_PRIVATE,
 			SIG_RSA_SHA256, 0, hashData, signature);
@@ -315,6 +393,10 @@ int	rsa_sha256_verify_context_length(void *context)
 int	rsa_sha256_verify(void *context, int hashlen, void *hashData,
 		int signatureLen, void *signature)
 {
+	/* Parameter intentionally unused. */
+	(void)hashlen;
+	(void)signatureLen;
+
 	return rsa_rsassa_pkcs1_v15_verify((rsa_context *) context, RSA_PUBLIC,
 			SIG_RSA_SHA256, 0, hashData,
 			(unsigned char *)signature);

@@ -30,8 +30,10 @@ static int	stopped(int *newState)
 
 static void	handleQuit(int signum)
 {
-	int	stop = 1;
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
 
+	int	stop = 1;
 	oK(stopped(&stop));
 }
 
@@ -64,6 +66,9 @@ static void	printUsage()
 static int	compareNodes(PsmPartition partition, PsmAddress nodeData,
 			void *dataBuffer)
 {
+	/* Parameter intentionally unused. */
+	(void)partition;
+
 	return ((unsigned long) nodeData) - *((unsigned long *) dataBuffer);
 }
 
@@ -71,6 +76,9 @@ static void	destroyNode(PsmPartition partition, PsmAddress nodeData,
 			void *argument)
 {
 	unsigned int	data;
+
+	/* Parameter intentionally unused. */
+	(void)partition;
 
 	data = (unsigned long) nodeData;
 	PUTMEMO("Destroying node", utoa(data)); 
@@ -90,6 +98,9 @@ static int	processLine(PsmPartition partition, PsmAddress rbt, char *line,
 	PsmAddress		next;
 	unsigned long		prevdata;
 	char			*memo = "";
+
+	/* Parameter intentionally unused. */
+	(void)lineLength;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)

@@ -443,7 +443,7 @@ int	dccplso(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 #else
-int	main(int argc, char *argv[])
+int	main(void)
 {
 #endif
 putErrmsg("dccplso (and the DCCP protocol) are only available under Linux (>=3.2.0). Please see the README in the ltp/dccp source directory for more information.", NULL);

@@ -29,6 +29,9 @@ static int	sdr2file_stopped(int *newState)
 
 static void	handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	int	stop = 1;
 
 	oK(sdr2file_stopped(&stop));
