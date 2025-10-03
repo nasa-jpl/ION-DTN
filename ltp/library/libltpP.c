@@ -661,6 +661,9 @@ static int	raiseSeat(Object seatElt, LtpVdb *ltpvdb)
 static void	deleteSegmentRef(PsmPartition ltpwm, PsmAddress nodeData,
 			void *arg)
 {
+/* Parameter intentionally unused. */
+(void)arg;
+
 	psm_free(ltpwm, nodeData);	/*	Delete LtpSegmentRef.	*/
 }
 
@@ -688,6 +691,9 @@ static void	deleteVImportSession(PsmPartition ltpwm, PsmAddress nodeData,
 
 static void	deleteIdxRbt(PsmPartition ltpwm, PsmAddress nodeData, void *arg)
 {
+	/* Parameter intentionally unused. */
+	(void)arg;
+
 	oK(sm_rbt_destroy(ltpwm, nodeData, NULL, NULL));
 }
 
@@ -738,6 +744,9 @@ static void	dropSeat(LtpVseat *vseat, PsmAddress vseatElt)
 {
 	PsmPartition	ltpwm = getIonwm();
 	PsmAddress	vseatAddr;
+
+	/* Parameter intentionally unused. */
+	(void)vseat;
 
 	vseatAddr = sm_list_data(ltpwm, vseatElt);
 	sm_list_delete(ltpwm, vseatElt, NULL, NULL);
@@ -1832,6 +1841,9 @@ to work with UDP sendmmsg()", itoa(maxSegmentSize));
 
 static void	releaseImportBuffer(Sdr sdr, Object elt, void *arg)
 {
+	/* Parameter intentionally unused. */
+	(void)arg;
+
 	sdr_free(sdr, sdr_list_data(sdr, elt));
 }
 
@@ -2329,6 +2341,9 @@ static void	stopExportSession(LtpExportSession *session)
 
 static void	destroySdrListData(Sdr sdr, Object elt, void *arg)
 {
+/* Parameter intentionally unused. */
+(void)arg;
+
 	sdr_free(sdr, sdr_list_data(sdr, elt));
 }
 
@@ -3440,7 +3455,7 @@ static int	readFromExportBlock(char *buffer, Object svcDataObjects,
 
 		bytesRead = zco_transmit(sdr, &reader, bytesToRead,
 				buffer + totalBytesRead);
-		if (bytesRead != bytesToRead)
+		if (bytesRead < 0 || (unsigned int)bytesRead != bytesToRead)
 		{
 			putErrmsg("Failed reading SDU.", NULL);
 			return -1;
@@ -4059,6 +4074,9 @@ static int	constructSourceCancelReqSegment(LtpSpan *span,
 {
 	LtpXmitSeg	segment;
 	Object		segmentObj;
+
+	/* Parameter intentionally unused. */
+	(void)sessionObj;
 
 	/*	Cancellation by the local engine.			*/
 
@@ -5084,6 +5102,9 @@ static int	insertDataSegment(LtpImportSession *session,
 	LtpSegmentRef	refbuf;
 	PsmAddress	addr;
 
+	/* Parameter intentionally unused. */
+	(void)pdu;
+
 	CHKERR(ionLocked());
 	segUpperBound = segment->pdu.offset + segment->pdu.length;
 	if (session->redPartLength > 0)	/*	EORP received.		*/
@@ -5138,7 +5159,7 @@ putErrmsg("discarded segment", itoa(segment->pdu.offset));
 		return 0;			/*	Overlap.	*/
 	}
 
-	if (nextRbtNode && nextRef->offset < segUpperBound)
+if (nextRbtNode && segUpperBound >= 0 && nextRef->offset < (unsigned int)segUpperBound)
 	{
 #if LTPDEBUG
 putErrmsg("discarded segment", itoa(segment->pdu.offset));
@@ -5555,7 +5576,10 @@ putErrmsg("Discarded data segment: can't start new session.", itoa(sessionNbr));
 			return -1;
 		}
 
-		if (write(fd, *cursor, bytesForFile) < bytesForFile)
+		ssize_t	bytesWritten;
+
+		bytesWritten = write(fd, *cursor, bytesForFile);
+		if (bytesWritten < 0 || (uvast)bytesWritten < bytesForFile)
 		{
 			putSysErrmsg("Can't write to block file",
 					sessionBuf->fileBufferPath);
@@ -5665,7 +5689,7 @@ putErrmsg("Discarding stray data segment.", itoa(sessionNbr));
 		return sdr_end_xn(sdr);
 	}
 
-	if (pdu->length > *bytesRemaining)
+	if (*bytesRemaining < 0 || pdu->length > (unsigned int)*bytesRemaining)
 	{
 #if LTPDEBUG
 putErrmsg("Discarded malformed data segment.", itoa(sessionNbr));
@@ -6014,7 +6038,7 @@ static int	loadClaimsArray(char **cursor, int *bytesRemaining,
 			unsigned int claimCount, LtpReceptionClaim *claims,
 			unsigned int lowerBound, unsigned int upperBound)
 {
-	int			i;
+	unsigned int			i;
 	LtpReceptionClaim	*claim;
 	unsigned int		offset;
 	unsigned int		dataEnd;
@@ -6157,7 +6181,8 @@ static int	constructDataSegment(Sdr sdr, LtpExportSession *session,
 		 *	red-part bytes remaining in the extent that is
 		 *	to be segmented.				*/
 
-		if (remainingRedBytes > extent->length)
+		if (worstCaseSegmentSize >= 0
+		&& (unsigned int)worstCaseSegmentSize > span->maxSegmentSize)
 		{
 			/*	This extent encompasses part (but not
 			 *	all) of the block's remaining red data.	*/
@@ -6198,7 +6223,8 @@ static int	constructDataSegment(Sdr sdr, LtpExportSession *session,
 
 		worstCaseSegmentSize = length
 				+ dataSegmentOverhead + checkpointOverhead;
-		if (worstCaseSegmentSize > span->maxSegmentSize)
+		if (worstCaseSegmentSize >= 0
+		&& (unsigned int)worstCaseSegmentSize > span->maxSegmentSize)
 		{
 			/*	Must reduce length.  So this segment's
 			 *	last data byte can't be the last data
@@ -6267,7 +6293,9 @@ static int	constructDataSegment(Sdr sdr, LtpExportSession *session,
 		dataSegmentOverhead = segment.pdu.headerLength +
 				segment.pdu.ohdLength + lengthSdnv.length;
 		worstCaseSegmentSize = length + dataSegmentOverhead;
-		if (worstCaseSegmentSize > span->maxSegmentSize)
+
+		if (worstCaseSegmentSize >= 0
+		&& (unsigned int)worstCaseSegmentSize > span->maxSegmentSize)
 		{
 			/*	Must reduce length, so cannot be end
 			 *	of green part (which is end of block).	*/

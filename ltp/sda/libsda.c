@@ -31,6 +31,9 @@ static int	_running(int *newState)
 static void	handleQuit(int signum)
 {
 	int	stop = 0;
+	
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
 
 	oK(_running(&stop));
 	ltp_interrupt(SdaLtpClientId);

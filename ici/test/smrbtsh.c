@@ -77,8 +77,10 @@ static void	destroyNode(PsmPartition partition, PsmAddress nodeData,
 {
 	unsigned int	data;
 
-	/* Parameter intentionally unused. */
+	/* Parameters intentionally unused. */
 	(void)partition;
+	(void)argument;
+
 
 	data = (unsigned long) nodeData;
 	PUTMEMO("Destroying node", utoa(data)); 

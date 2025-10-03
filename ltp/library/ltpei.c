@@ -172,7 +172,7 @@ int	ltpei_parse_extension(char **cursor, int *bytesRemaining, Lyst exts,
 	(*cursor)++;
 	(*bytesRemaining)--;
 	extractSmallSdnv(&valueLength, cursor, bytesRemaining);
-	if (valueLength == 0 || *bytesRemaining < valueLength)
+	if (valueLength == 0 || *bytesRemaining < 0 || (unsigned int)*bytesRemaining < valueLength)
 	{
 		return 0;	/*	Corrupt.			*/
 	}
@@ -224,6 +224,9 @@ void	ltpei_destroy_extension(Sdr sdr, Object elt, void *arg)
 {
 	Object			addr;
 	LtpExtensionOutbound	ext;
+
+	/* Parameter intentionally unused. */
+	(void)arg;
 
 	addr = sdr_list_data(sdr, elt);
 	sdr_read(sdr, (char *) &ext, addr, sizeof(LtpExtensionOutbound));

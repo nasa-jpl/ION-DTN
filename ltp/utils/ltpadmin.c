@@ -51,6 +51,9 @@ static void	printText(char *text)
 
 static void	handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	printText("Please enter command 'q' to stop the program.");
 }
 
@@ -512,6 +515,9 @@ static void	listSeats(int tokenCount, char **tokens)
 	PsmAddress	elt;
 	LtpVseat	*vseat;
 
+	/* Parameter intentionally unused. */
+	(void)tokens;
+
 	if (tokenCount != 2)
 	{
 		SYNTAX_ERROR;
@@ -540,6 +546,9 @@ static void	listSpans(int tokenCount, char **tokens)
 	char		buffer[128];
 	PsmAddress	elt;
 	LtpVspan	*vspan;
+
+	/* Parameter intentionally unused. */
+	(void)tokens;
 
 	if (tokenCount != 2)
 	{
@@ -967,6 +976,9 @@ static int	processLine(char *line, int lineLength, int *checkNeeded,
 	struct timeval	cur_time;
 	int		max = 0;
 	int		count = 0;
+
+	/* Parameter intentionally unused. */
+	(void)lineLength;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 12; i++)

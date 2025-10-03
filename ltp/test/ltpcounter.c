@@ -92,6 +92,9 @@ static void	*showProgress(void *parm)
 static void	handleQuit(int signum)
 {
 	int	stop = 0;
+	
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
 
 	oK(_running(&stop));
 	ltp_interrupt(_clientId(NULL));
