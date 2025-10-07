@@ -310,7 +310,7 @@ uint8_t* bpsec_scvm_hexCborEncode(PsmPartition wm, sc_value *val, unsigned int *
 int   bpsec_scvm_hexStrDecode(PsmPartition wm, sc_value *val, unsigned int len, char *value)
 {
     int isOdd = 0;
-    int i = 0;
+    unsigned int i = 0;
     int nib1 = 0;
     int nib2 = 0;
     char *cursor = NULL;
@@ -535,6 +535,8 @@ uint8_t* bpsec_scvm_intCborEncode(PsmPartition wm, sc_value *val, unsigned int *
 int   bpsec_scvm_intStrDecode(PsmPartition wm, sc_value *val, unsigned int len, char *value)
 {
     uvast *cursor = NULL;
+    /* Parameter intentionally unused. */
+    (void)len;
 
     /* Step 0: Sanity checks. */
     CHKERR(val);
@@ -715,6 +717,8 @@ uint8_t* bpsec_scvm_strCborEncode(PsmPartition wm, sc_value *val, unsigned int *
 int   bpsec_scvm_strStrDecode(PsmPartition wm, sc_value *val, unsigned int len, char *value)
 {
     char *cursor = NULL;
+    /* Parameter intentionally unused. */
+    (void)len;
 
     /* Step 0: Sanity checks. */
     CHKERR(val);

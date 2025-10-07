@@ -6181,8 +6181,7 @@ static int	constructDataSegment(Sdr sdr, LtpExportSession *session,
 		 *	red-part bytes remaining in the extent that is
 		 *	to be segmented.				*/
 
-		if (worstCaseSegmentSize >= 0
-		&& (unsigned int)worstCaseSegmentSize > span->maxSegmentSize)
+		if (remainingRedBytes >= 0 && (unsigned int)remainingRedBytes > extent->length)
 		{
 			/*	This extent encompasses part (but not
 			 *	all) of the block's remaining red data.	*/
@@ -6224,7 +6223,7 @@ static int	constructDataSegment(Sdr sdr, LtpExportSession *session,
 		worstCaseSegmentSize = length
 				+ dataSegmentOverhead + checkpointOverhead;
 		if (worstCaseSegmentSize >= 0
-		&& (unsigned int)worstCaseSegmentSize > span->maxSegmentSize)
+			&& (unsigned int)worstCaseSegmentSize > span->maxSegmentSize)
 		{
 			/*	Must reduce length.  So this segment's
 			 *	last data byte can't be the last data
@@ -6293,9 +6292,8 @@ static int	constructDataSegment(Sdr sdr, LtpExportSession *session,
 		dataSegmentOverhead = segment.pdu.headerLength +
 				segment.pdu.ohdLength + lengthSdnv.length;
 		worstCaseSegmentSize = length + dataSegmentOverhead;
-
 		if (worstCaseSegmentSize >= 0
-		&& (unsigned int)worstCaseSegmentSize > span->maxSegmentSize)
+			&& (unsigned int)worstCaseSegmentSize > span->maxSegmentSize)
 		{
 			/*	Must reduce length, so cannot be end
 			 *	of green part (which is end of block).	*/
@@ -6588,7 +6586,7 @@ static int	handleRS(LtpDB *ltpdb, unsigned int sessionNbr,
 	unsigned int		newClaimEnd;
 	LystElt			elt2;
 	LystElt			nextElt2;
-	int			i;
+	unsigned int			i;
 	Lyst			extents;
 	unsigned int		startOfGap;
 	unsigned int		endOfGap;
@@ -6802,7 +6800,7 @@ putErrmsg("Discarding report.", NULL);
 
 	/*	Now apply reception claims to the transmission session.	*/
 
-	if (rptUpperBound > sessionBuf.redPartLength	/*	Bogus.	*/
+	if ((sessionBuf.redPartLength < 0 || rptUpperBound > (unsigned int)sessionBuf.redPartLength) /* Bogus. */
 	|| rptLowerBound >= rptUpperBound	/*	Malformed.	*/
 	|| claimCount == 0)			/*	Malformed.	*/
 	{
@@ -6967,7 +6965,7 @@ putErrmsg("Discarding report.", NULL);
 	 *	the last Green segment is known to have been sent,
 	 *	end the export session.					*/
 
-	if (claim->offset == 0 && claim->length == sessionBuf.redPartLength)
+	if (claim->offset == 0 && sessionBuf.redPartLength >= 0 && claim->length == (unsigned int)sessionBuf.redPartLength)
 	{
 		ltpSpanTally(vspan, POS_RPT_RECV, 0);
 		MRELEASE(claim);	/*	(Sole claim in list.)	*/
@@ -7016,8 +7014,9 @@ putErrmsg("Discarding report.", NULL);
 	ltpSpanTally(vspan, NEG_RPT_RECV, 0);
 	ckptSerialNbr = sessionBuf.prevCkptSerialNbr + 1;
 	if (ckptSerialNbr == 0	/*	Rollover.			*/
-	|| sdr_list_length(sdr, sessionBuf.checkpoints)
-			>= sessionBuf.maxCheckpoints)
+	|| (sessionBuf.maxCheckpoints >= 0
+		&& sdr_list_length(sdr, sessionBuf.checkpoints)
+			>= (size_t)sessionBuf.maxCheckpoints))
 	{
 		/*	Limit reached, can't retransmit any more.
 		 *	Just destroy the claims list and cancel. 	*/
@@ -8088,6 +8087,9 @@ static void	suspendTimer(time_t suspendTime, LtpTimer *timer,
 {
 	time_t	latestAckXmitStartTime;
 
+	/* Parameter intentionally unused. */
+	(void)remoteXmitRate;
+
 	CHKVOID(ionLocked());
 	latestAckXmitStartTime = timer->segArrivalTime + qTime;
 	if (latestAckXmitStartTime < suspendTime)
@@ -8127,6 +8129,9 @@ int	ltpSuspendTimers(LtpVspan *vspan, PsmAddress vspanElt,
 	LtpXmitSeg		rsBuf;
 	LtpExportSession	xsessionBuf;
 	LtpXmitSeg		dsBuf;
+
+	/* Parameter intentionally unused. */
+	(void)vspanElt;
 
 	CHKERR(ionLocked());
 	CHKERR(vspan);
@@ -8257,6 +8262,9 @@ static int	resumeTimer(time_t resumeTime, LtpTimer *timer,
 	int		additionalDelay;
 	LtpEvent	event;
 
+	/* Parameter intentionally unused. */
+	(void)remoteXmitRate;
+
 	CHKERR(ionLocked());
 	earliestAckXmitStartTime = timer->segArrivalTime + qTime;
 	additionalDelay = resumeTime - earliestAckXmitStartTime;
@@ -8306,6 +8314,9 @@ int	ltpResumeTimers(LtpVspan *vspan, PsmAddress vspanElt, time_t resumeTime,		un
 	LtpXmitSeg		rsBuf;
 	LtpExportSession	xsessionBuf;
 	LtpXmitSeg		dsBuf;
+
+	/* Parameter intentionally unused. */
+	(void)vspanElt;
 
 	CHKERR(ionLocked());
 	CHKERR(vspan);
@@ -8533,7 +8544,8 @@ putErrmsg("Checkpoint is already acknowledged.", itoa(sessionNbr));
 		return -1;
 	}
 
-	if (dsBuf.pdu.timer.expirationCount == vspan->maxTimeouts)
+	if (dsBuf.pdu.timer.expirationCount >= 0
+		&& (unsigned int)dsBuf.pdu.timer.expirationCount == vspan->maxTimeouts)
 	{
 #if LTPDEBUG
 putErrmsg("Cancel by sender.", itoa(sessionNbr));
@@ -8644,7 +8656,8 @@ putErrmsg("Session is gone.", itoa(sessionNbr));
 		return -1;
 	}
 
-	if (sessionBuf.timer.expirationCount == vspan->maxTimeouts)
+	if (sessionBuf.timer.expirationCount >= 0
+		&& (unsigned int)sessionBuf.timer.expirationCount == vspan->maxTimeouts)
 	{
 #if LTPDEBUG
 putErrmsg("Retransmission limit exceeded.", itoa(sessionNbr));
@@ -8730,7 +8743,8 @@ putErrmsg("Report is already acknowledged.", itoa(sessionNbr));
 		return sdr_end_xn(sdr);
 	}
 
-	if (rsBuf.pdu.timer.expirationCount == vspan->maxTimeouts)
+	if (rsBuf.pdu.timer.expirationCount >= 0
+		&& (unsigned int)rsBuf.pdu.timer.expirationCount == vspan->maxTimeouts)
 	{
 #if LTPDEBUG
 putErrmsg("Cancel by receiver.", itoa(sessionNbr));
@@ -8820,7 +8834,8 @@ putErrmsg("Session is gone.", itoa(sessionNbr));
 			vspan->spanElt));
 	sdr_stage(sdr, (char *) &sessionBuf, sessionObj,
 			sizeof(LtpImportSession));
-	if (sessionBuf.timer.expirationCount == vspan->maxTimeouts)
+	if (sessionBuf.timer.expirationCount >= 0
+		&& (unsigned int)sessionBuf.timer.expirationCount == vspan->maxTimeouts)
 	{
 #if LTPDEBUG
 putErrmsg("Retransmission limit exceeded.", itoa(sessionNbr));

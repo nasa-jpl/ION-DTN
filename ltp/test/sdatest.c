@@ -24,6 +24,9 @@
 
 static void	interruptThread(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGTERM, interruptThread);
 	sda_interrupt();
 }
@@ -31,6 +34,9 @@ static void	interruptThread(int signum)
 static vast	getLengthOfItem(unsigned int clientId, unsigned char *buffer,
 			vast bufferLength)
 {
+	/* Parameter intentionally unused. */
+	(void)clientId;
+
 	return 1 + istrlen((char *) buffer, bufferLength);
 }
 
@@ -41,6 +47,10 @@ static int	handleItem(uvast sourceEngineId, unsigned int clientId,
 	ZcoReader	reader;
 	char		buffer[MAX_LINE_LEN + 1];
 	vast		len;
+
+	/* Parameters intentionally unused. */
+	(void)sourceEngineId;
+	(void)clientId;
 
 	zco_start_receiving(clientServiceData, &reader);
 	memset(buffer, 0, sizeof buffer);

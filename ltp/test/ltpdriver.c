@@ -218,18 +218,24 @@ int	main(int argc, char **argv)
 	{
 	case 6:
 	  	aduLen = strtol(argv[5], NULL, 0);
+		/* FALLTHROUGH */
 
 	case 5:
 	  	greenLen = strtol(argv[4], NULL, 0);
+		/* FALLTHROUGH */
 
 	case 4:
 	  	cycles = strtol(argv[3], NULL, 0);
+		/* FALLTHROUGH */
 
 	case 3:
 		clientId = strtol(argv[2], NULL, 0);
+		/* FALLTHROUGH */
 
 	case 2:
 		destEngineId = getFqn(argv[1]);
+		/* FALLTHROUGH */
+
 
 	default:
 		break;

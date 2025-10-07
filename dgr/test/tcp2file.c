@@ -131,7 +131,7 @@ static FILE	*openFile()
 	return outputFile;
 }
 
-int	main(int argc, char **argv)
+int	main(void)
 {
 	unsigned long		ownIpAddress;
 	unsigned short		portNbr = TEST_PORT_NBR;

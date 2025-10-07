@@ -172,6 +172,16 @@ void bcb_handle_rx_error(AcqWorkArea *work, LystElt bcbBlkElt, LystElt tgtBlkElt
                          uint8_t tgtBlkType)
 {
 
+    /*
+     * The 'tgtBlkType' parameter is only used in the BCB_TEST_POINT macro.
+     * When BCB_TEST_LOGGING is not enabled (i.e., not equal to 1),
+     * that macro is empty, leaving the parameter unused.
+     */
+#if (BCB_TEST_LOGGING != 1)
+    /* Parameter intentionally unused. */
+    (void)tgtBlkType;
+#endif
+
     switch(result)
     {
 
@@ -329,7 +339,7 @@ int    bpsec_decrypt(AcqWorkArea *work)
                         /* Else if the block was the payload or primary block, it cannot be represented
                          * as an AcqExtBlock, making the TgtBlk pointer NULL and requiring use of the 
                          * security context target ID as the block identifier. */
-                        else if (tgtResult->scTargetId >= 0)
+                        else /* changed from an always true comparison of unsigned type >= 0 here*/
                         {
                             BCB_TEST_POINT("sop_processed", bundle, tgtResult->scTargetId);
                         }

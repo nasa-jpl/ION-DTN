@@ -297,7 +297,8 @@ char *bslevt_get_name(BpSecEventId eventId)
 
 	while(gEventNameMap[i].key != NULL)
 	{
-		if(gEventNameMap[i].value == eventId)
+		if(gEventNameMap[i].value >= 0
+		&& (BpSecEventId)gEventNameMap[i].value == eventId)
 		{
 			return gEventNameMap[i].key;
 		}

@@ -965,7 +965,7 @@ Object bspsec_util_findOutboundBpsecTargetBlock(Bundle *bundle, int tgtBlkNum, B
             targetObj = sdr_list_data(sdr, elt2);
             sdr_read(sdr, (char *) &target, targetObj,
                     sizeof(BpsecOutboundTargetResult));
-            if (target.scTargetId == tgtBlkNum)
+            if (tgtBlkNum >= 0 && target.scTargetId == (uvast)tgtBlkNum)
             {
                 return elt; /* bpsec block with target found */
             }
@@ -1361,7 +1361,7 @@ int bpsec_util_checkOutboundSopTarget(Bundle *bundle, sc_Def *def, PsmPartition 
              *              This is ONLY ok if the current block is a BIB and we
              *              are applying a BCB. Otherwise, this is a problem.
              */
-            if (target.scTargetId == tgtBlkNum)
+            if (tgtBlkNum >= 0 && target.scTargetId == (uvast)tgtBlkNum)
             {
                 if((sopType == BlockConfidentialityBlk) && (block.type == BlockIntegrityBlk))
                 {
@@ -1573,8 +1573,14 @@ void bpsec_util_outboundBlkRelease(ExtensionBlock *blk)
  */
 int bpsec_util_swapOutboundSop(Bundle *bundle, ExtensionBlock *src, ExtensionBlock *dest, int tgtBlkNum)
 {
-	BPSEC_DEBUG_ERR("Not implemented yet.", NULL);
-	return -1;
+    /* Parameter intentionally unused. */
+    (void)bundle;
+    (void)src;
+    (void)dest;
+    (void)tgtBlkNum;
+
+    BPSEC_DEBUG_ERR("Not implemented yet.", NULL);
+    return -1;
 }
 
 
@@ -1676,7 +1682,7 @@ sc_value bpsec_util_keyRetrieve(char *keyName)
      *  the required size of the buffer to hold the key.        */
 
     /* Step 2a - If we did not find a key... */
-    if(ReqBufLen <= sizeof(stdBuffer))
+    if(ReqBufLen >= 0 && (size_t)ReqBufLen <= sizeof(stdBuffer))
     {
         BPSEC_DEBUG_WARN("Unable to find key '%s'", keyName);
         BPSEC_DEBUG_PROC("--> key (len=%d)", key.scValLength);
@@ -2055,6 +2061,10 @@ int32_t bpsec_util_fileBlkConvert(uint32_t suite, uint8_t *csi_ctx,
 int bpsec_util_numKeysGet(int *size)
 {
     // TODO - remove calls to this function.
+
+    /* Parameter intentionally unused. */
+    (void)size;
+
     BPSEC_DEBUG_ERR("DEPRECATED FUNCTION CALL", NULL)
     CHKERR(0);
     return -1;
@@ -2063,6 +2073,11 @@ int bpsec_util_numKeysGet(int *size)
 void bpsec_util_keysGet(char *buffer, int length)
 {
     // TODO - remove calls to this function.
+
+    /* Parameters intentionally unused. */
+    (void)buffer;
+    (void)length;
+
     BPSEC_DEBUG_ERR("DEPRECATED FUNCTION CALL", NULL)
     CHKVOID(0);
 }
@@ -2070,6 +2085,10 @@ void bpsec_util_keysGet(char *buffer, int length)
 int  bpsec_util_numCSNamesGet(int *size)
 {
     // TODO - remove calls to this function.
+
+    /* Parameter intentionally unused. */
+    (void)size;
+
     BPSEC_DEBUG_ERR("DEPRECATED FUNCTION CALL", NULL)
     CHKERR(0);
     return -1;
@@ -2078,6 +2097,11 @@ int  bpsec_util_numCSNamesGet(int *size)
 void bpsec_util_cSNamesGet(char *buffer, int length)
 {
     // TODO - remove calls to this function.
+
+    /* Parameters intentionally unused. */
+    (void)buffer;
+    (void)length;
+
     BPSEC_DEBUG_ERR("DEPRECATED FUNCTION CALL", NULL)
     CHKVOID(0);
 }

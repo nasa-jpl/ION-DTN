@@ -186,7 +186,7 @@ void	*udplsa_handle_datagrams(void *parm)
 			putSysErrmsg("Can't acquire segment", NULL);
 			ionKillMainThread(procName);
 
-			/*	Intentional fall-through to next case.	*/
+			/* FALLTHROUGH */
 
 		case 1:				/*	Normal stop.	*/
 			pthread_mutex_lock(&rtp->lock);

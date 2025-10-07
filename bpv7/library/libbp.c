@@ -61,6 +61,9 @@ static int	createBpSAP(Sdr sdr, char *eidString, BpSAP *bpsapPtr,
 	VEndpoint	*vpoint;
 	PsmAddress	vpointElt;
 
+	/* Parameter intentionally unused. */
+	(void)sdr;
+
 	memset((char *) &sap, 0, sizeof(Sap));
 
 	/*	First validate the endpoint ID.				*/
@@ -250,7 +253,7 @@ int	bp_parse_quality_of_service(const char *token,
 	{
 	case 6:
 		/*	All unsigned ints are valid data labels.	*/
-		/*	Intentional fall-through to next case.		*/
+		/* FALLTHROUGH */
 
 	case 5:
 		if ((myCritical != 0 && myCritical != 1)
@@ -259,7 +262,7 @@ int	bp_parse_quality_of_service(const char *token,
 			return 0;	/*	Invalid format.		*/
 		}
 
-		/*	Intentional fall-through to next case.		*/
+		/* FALLTHROUGH */
 
 	case 3:
 		if (myOrdinal > 254)
@@ -267,7 +270,7 @@ int	bp_parse_quality_of_service(const char *token,
 			return 0;	/*	Invalid format.		*/
 		}
 
-		/*	Intentional fall-through to next case.		*/
+		/* FALLTHROUGH */
 
 	case 2:
 		if (myPriority > 2 || myCustodyRequested > 1)
@@ -775,7 +778,7 @@ int	bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
 		unsigned char srrFlags, int ackRequested,
 		BpAncillaryData *ancillaryData, Object adu, Object *bundleObj)
 {
-	BpAncillaryData	defaultAncillaryData = { 0, 0, 0, 0, 0, "\0" };
+	BpAncillaryData	defaultAncillaryData = {0};
 	MetaEid		*sourceMetaEid;
 
 	if (adu == 0)
@@ -923,6 +926,10 @@ void	bp_untrack(Object bundleObj, Object trackingElt)
 
 int	bp_memo(Object bundleObj, unsigned int interval)
 {
+	/* Parameter intentionally unused. */
+	(void)bundleObj;
+	(void)interval;
+
 	return 0;
 }
 

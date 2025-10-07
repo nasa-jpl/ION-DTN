@@ -326,6 +326,9 @@ static void	crashThread(DgrSAP *sap, char *msg)
 
 static int	time_to_stop(Llcv llcv)
 {
+	/* Parameter intentionally unused. */
+	(void)llcv;
+
 	return 1;
 }
 
@@ -744,6 +747,9 @@ static int	sendMessage(DgrSAP *sap, DgrRecord rec, LystElt arqElt,
 	struct sockaddr_in	socketAddress;
 	struct sockaddr		*sockName = (struct sockaddr *) &socketAddress;
 
+	/* Parameter intentionally unused. */
+	(void)arqElt;
+
 	/*	Construct LTP data segment in sap->outputBuffer.	*/
 
 	cursor = (unsigned char *) (sap->outputBuffer);
@@ -863,6 +869,9 @@ static void	noteCompletion(DgrRecord rec, DgrDest *dest, int destIdx)
 	int		negative;	/*	Boolean			*/
 	int		adj;
 	int		change;
+
+	/* Parameter intentionally unused. */
+	(void)destIdx;
 
 	/*	Update predicted RTT, but only if this is not a
 	 *	delayed acknowledgement, and only if we can be sure

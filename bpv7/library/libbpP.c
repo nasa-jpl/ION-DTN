@@ -926,6 +926,9 @@ static void	dropInduct(VInduct *vduct, PsmAddress vductElt)
 	PsmPartition	bpwm = getIonwm();
 	PsmAddress	vductAddr;
 
+	/* Parameter intentionally unused. */
+	(void)vduct;
+
 	vductAddr = sm_list_data(bpwm, vductElt);
 	oK(sm_list_delete(bpwm, vductElt, NULL, NULL));
 	psm_free(bpwm, vductAddr);
@@ -7616,7 +7619,7 @@ int	computeZcoCrc(BpCrcType crcType, int crcSize, ZcoReader *reader,
 
 	while (bytesToProcess > 0)
 	{
-		if (bytesToProcess > sizeof buffer)
+		if (bytesToProcess > 0 && (size_t)bytesToProcess > sizeof buffer)
 		{
 			/*	Must not load partial CRC into the
 			 *	buffer, as the final cycle of
@@ -7624,7 +7627,7 @@ int	computeZcoCrc(BpCrcType crcType, int crcSize, ZcoReader *reader,
 			 *	potentially extract) the complete
 			 *	CRC value in a single operation.	*/
 
-			if (bytesToProcess - sizeof buffer < crcSize)
+			if ((size_t)bytesToProcess - sizeof buffer < (size_t)crcSize)
 			{
 				bytesToReceive = bytesToProcess - crcSize;
 			}
@@ -7800,7 +7803,7 @@ bundle containing administrative record.");
 	}
 
 	nullEidLen = strlen(_nullEid());
-	if (istrlen(eidString, nullEidLen + 1) == nullEidLen
+	if (nullEidLen >= 0 && istrlen(eidString, nullEidLen + 1) == (size_t)nullEidLen
 	&& strcmp(eidString, _nullEid()) == 0)
 	{
 		bundle->anonymous = 1;
@@ -7990,7 +7993,7 @@ requests prohibited for anonymous bundle.");
  			}
 		}
 
-		if (crcLength > unparsedBytes)
+		if (crcLength >= 0 && (unsigned int)crcLength > unparsedBytes)
 		{
 			writeMemo("[?] Primary block truncated.");
 			return 0;
@@ -8307,7 +8310,7 @@ undefined block.");
  			}
 		}
 
-		if (crcLength > unparsedBytes)
+		if (crcLength >= 0 && (unsigned int)crcLength > unparsedBytes)
 		{
 			writeMemo("[?] Extension block truncated.");
 			return 0;
@@ -9489,7 +9492,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 int	sendStatusRpt(Bundle *bundle)
 {
 	int		priority = bundle->priority;
-	BpAncillaryData	ecos = { 0, 0, bundle->ancillaryData.ordinal };
+	BpAncillaryData ecos = { .ordinal = bundle->ancillaryData.ordinal };
 	Object		payloadZco = 0;
 	uvast		ttl;	/*	Original bundle's TTL.		*/
 	char		*reportToEid;
@@ -9551,7 +9554,7 @@ int	parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
 	int		length;
 	uvast		itemsRemaining;
 	uvast		statusAssertionsRemaining;
-	int		i;
+	uvast		i;
 	DtnTime		statusTime;
 
 	memset((char *) rpt, 0, sizeof(BpStatusRpt));
@@ -10362,6 +10365,11 @@ static Object	insertBundleIntoQueue(Object queue, Object firstElt,
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(Bundle, bundle);
 	Object	nextElt;
+
+	/* Parameter intentionally unused. */
+	(void)queue;
+	(void)priority;
+	(void)ordinal;
 
 	/*	Bundles have transmission seniority which must be
 	 *	honored.  A bundle that was enqueued for transmission

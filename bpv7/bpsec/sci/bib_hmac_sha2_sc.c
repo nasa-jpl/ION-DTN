@@ -75,6 +75,11 @@ int bpsec_bhssci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
     int addData = 0;
     uint16_t sha_variant = 0;
 
+    /* Parameters intentionally unused. */
+    (void)asb;
+    (void)tgtBlkElt;
+
+
     /* Step 0 - Sanity Checks. */
     CHKERR(state);
     CHKERR(state->scStAction == SC_ACT_VERIFY);
@@ -248,6 +253,9 @@ int bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle,
     int result = 0;
     int addData = 0;
     uint16_t sha_variant = 0;
+
+    /* Parameter intentionally unused. */
+    (void)asb;
 
     /* Step 0 - Sanity Checks. */
     CHKERR(state);
@@ -543,14 +551,14 @@ uint8_t *bpsec_bhsscutl_computeSignature(BpsecSerializeData preamble, Object zco
 
         cursor = chunkData.contents + preambleRemaining;
 
-        if(delta >= zcoRemaining)
+        if(delta >= 0 && (unsigned int)delta >= zcoRemaining)
         {
             delta = zcoRemaining;
             chunkData.len = preambleRemaining + zcoRemaining;
         }
 
         zcoRead = zco_transmit(sdr, &dataReader, delta, cursor);
-        if(zcoRead != delta)
+        if(delta < 0 || zcoRead != (unsigned int)delta)
         {
             BPSEC_DEBUG_ERR("Read %d bytes, but expected %d.", zcoRead, delta);
 

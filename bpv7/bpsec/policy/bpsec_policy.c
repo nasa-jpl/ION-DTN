@@ -383,6 +383,9 @@ int bsl_vdb_init(PsmPartition partition)
 
 void bsl_vdb_teardown(PsmPartition partition)
 {
+	/* Parameter intentionally unused. */
+	(void)partition;
+
 	/*
 	SecVdb *secvdb = getSecVdb();
 
@@ -969,7 +972,8 @@ int bsl_handle_sender_sop_event(Bundle *bundle, BpSecEventId sopEvent,
 	/* Step 0: Sanity checks */
 	CHKERR(bundle);
 	CHKERR(sopEvent >= 0);
-	CHKERR(tgtNum >=0);
+	/* The check 'tgtNum >= 0' is always true. */
+	/* CHKERR(tgtNum >=0); */
 
 	BpSecPolRuleSearchTag tag;
 	memset(&tag,0,sizeof(tag));

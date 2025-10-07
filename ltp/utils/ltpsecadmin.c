@@ -68,6 +68,9 @@ static void	printText(char *text)
 
 static void	handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	printText("Please enter command 'q' to stop the program.");
 }
 
@@ -441,6 +444,9 @@ int	ltpsecadmin_processLine(char *line, int lineLength)
 	int	i;
 	char	*tokens[9];
 	char	buffer[80];
+
+	/* Parameter intentionally unused. */
+	(void)lineLength;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)

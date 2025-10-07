@@ -588,6 +588,9 @@ int bsles_sdr_forget(PsmPartition wm, char *name)
 	Object dataElt = 0;
 	int success = 0;
 
+	/* Parameter intentionally unused. */
+	(void)wm;
+
 	CHKERR(name);
 	if (secdb == NULL) return -1;
 
@@ -835,6 +838,9 @@ int bsles_cb_rbt_key_comp(PsmPartition wm, PsmAddress refData, void *dataBuffer)
 
 void bsles_cb_rbt_key_del(PsmPartition wm, PsmAddress refData, void *arg)
 {
+	/* Parameter intentionally unused. */
+	(void)arg;
+
 	psm_free(wm, refData);
 }
 
@@ -850,6 +856,9 @@ void bsles_cb_rbt_key_del(PsmPartition wm, PsmAddress refData, void *arg)
 
 void bsles_cb_smlist_del(PsmPartition wm, PsmAddress elt, void *arg)
 {
+	/* Parameter intentionally unused. */
+	(void)arg;
+
 	psm_free(wm, sm_list_data(wm, elt));
 }
 

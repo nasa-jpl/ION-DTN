@@ -48,6 +48,9 @@ static void	printText(char *text)
 
 static void	handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	printText("Please enter command 'q' to stop the program.");
 }
 
@@ -308,6 +311,9 @@ static void	listBclas(int tokenCount, char **tokens)
 	Object		elt;
 	Bcla		bcla;
 
+	/* Parameter intentionally unused. */
+	(void)tokenCount;
+
 	CHKVOID(sdr_begin_xn(sdr));
 	findScheme(tokens[2], &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
@@ -456,6 +462,11 @@ static int	processLine(char *line, int lineLength, int *rc)
 	char	*cursor;
 	int	i;
 	char	*tokens[15];
+
+	/* Parameters intentionally unused. */
+	(void)lineLength;
+	(void)rc;
+
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 15; i++)

@@ -426,6 +426,9 @@ int bpsec_itscbcb_encrypt(sc_state *state, Lyst extraParms, Bundle *bundle, Bpse
     csi_cipherparms_t parms;
     sc_value *sci_encrypted_key;
 
+    /* Parameter intentionally unused. */
+    (void)asb;
+
     /* Step 1 - Retrieve parameters to use for encryption from the SC state. */
     if(bpsec_itscbcb_parmsGet(state, &parms, &sessionKey, &encryptedSessionKey) == ERROR)
     {
@@ -623,6 +626,10 @@ int bpsec_itscbib_sign(sc_state *state, Lyst extraParms, Bundle *bundle, BpsecOu
     sc_value *digest = NULL;
    	csi_val_t csi_result;
    	int result = 0;
+
+    /* Parameter intentionally unused. */
+    (void)extraParms;
+    (void)asb;
 
     /*
      * Step 1: Get they key to use for signing.
@@ -870,6 +877,9 @@ int   bpsec_itsci_initAsbFn(void *def, Bundle *bundle, BpsecOutboundASB *asb, Sd
 
 int bpsec_itsci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *asb, LystElt tgtBlkElt, BpsecInboundTargetResult *tgtResult)
 {
+    /* Parameter intentionally unused. */
+    (void)tgtBlkElt;
+
     CHKERR(state);
 
     switch(state->scStAction)

@@ -233,6 +233,9 @@ static int bslasb_extractTargetResults(BpsecInboundASB *asb, int memIdx, unsigne
 	LystElt tgtElt;
 	int i = 1;
 
+	/* Parameter intentionally unused. */
+	(void)memIdx;
+
 
 	BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC",memIdx,"ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
 	                 (uaddr) asb, (uaddr) cursor, (uaddr) unparsedBytes);
@@ -363,7 +366,7 @@ static Object bslasb_outboundCopyTargetResults(Sdr sdr, Object oldResultList)
         newTgtResult.scTargetId = oldTgtResult.scTargetId;
 
         /* Step 2.3: Copy over the individual results. */
-        if((newTgtResult.scIndTargetResults = bpsec_scv_sdrListCopy(sdr, oldTgtResult.scIndTargetResults)) < 0)
+        if((newTgtResult.scIndTargetResults = bpsec_scv_sdrListCopy(sdr, oldTgtResult.scIndTargetResults)) == 0)
         {
             success = 0;
             break;
@@ -704,105 +707,108 @@ void bpsec_asb_inboundTargetResultRemove(LystElt tgtResultElt, LystElt secBlkElt
  * -1 is bad.
  * Replaced: // bpsec_recordAsb .. bsu_asb_record
  */
-int  bpsec_asb_inboundAsbRecord(ExtensionBlock *newBlk, AcqExtBlock *oldBlk)
-{
-	Sdr			sdr = getIonsdr();
-	BpsecInboundASB	*oldAsb;
-	BpsecOutboundASB	newAsb;
-	int			result;
-	LystElt			elt;
-	BpsecInboundTargetResult	*oldTarget;
-	BpsecOutboundTargetResult	newTarget;
-	Object			obj;
+    int  bpsec_asb_inboundAsbRecord(ExtensionBlock *newBlk, AcqExtBlock *oldBlk)
+    {
+    Sdr			sdr = getIonsdr();
+    BpsecInboundASB	*oldAsb;
+    BpsecOutboundASB	newAsb;
+    int			result;
+    LystElt			elt;
+    BpsecInboundTargetResult	*oldTarget;
+    BpsecOutboundTargetResult	newTarget;
+    Object			obj;
 
-	BPSEC_DEBUG_PROC("(" ADDR_FIELDSPEC "," ADDR_FIELDSPEC ")",
-			        (uaddr) newBlk, (uaddr) oldBlk);
+    BPSEC_DEBUG_PROC("(" ADDR_FIELDSPEC "," ADDR_FIELDSPEC ")",
+                    (uaddr) newBlk, (uaddr) oldBlk);
 
-	/* Step 0: Sanity Checks. */
-	CHKERR(newBlk);
-	CHKERR(oldBlk);
+    /* Step 0: Sanity Checks. */
+    CHKERR(newBlk);
+    CHKERR(oldBlk);
 
-	/* Step 1: If there is no object to record, we are done. */
-	if (oldBlk->object == NULL || oldBlk->size == 0)
-	{
-		/*	Nothing to do.					*/
-		newBlk->object = 0;
-		newBlk->size = 0;
-		return 0;
-	}
+    /* Step 1: If there is no object to record, we are done. */
+    if (oldBlk->object == NULL || oldBlk->size == 0)
+    {
+        /*	Nothing to do.					*/
+        newBlk->object = 0;
+        newBlk->size = 0;
+        return 0;
+    }
 
-	/* Step 2: Initialize the new ASB. */
-	memset((char *) &newAsb, 0, sizeof(newAsb));
-
-
-	/* Step 3: Copy fixed data from memory to the SDR. */
-	oldAsb = (BpsecInboundASB *) (oldBlk->object);
-
-	newAsb.scId = oldAsb->scId;
-	newAsb.scFlags = oldAsb->scFlags;
-	if((result = bpsec_util_EIDCopy(&newAsb.scSource, &oldAsb->scSource)) < 1)
-	{
-		BPSEC_DEBUG_ERR("Unable to copy EID.", NULL);
-		return -1;
-	}
-
-	/* Step 4: Copy over the target results. */
-	if((newAsb.scResults = sdr_list_create(sdr)) == 0)
-	{
-		BPSEC_DEBUG_ERR("Unable to create results list.", NULL);
-		return -1;
-	}
-
-	for (elt = lyst_first(oldAsb->scResults); elt; elt = lyst_next(elt))
-	{
-		oldTarget = (BpsecInboundTargetResult *) lyst_data(elt);
-
-		/*	Copy individual results for target to the SDR.	*/
-		newTarget.scTargetId = oldTarget->scTargetId;
-
-		if((newTarget.scIndTargetResults = bpsec_scv_memListRecord(sdr, 0, oldTarget->scIndTargetResults)) == 0)
-		{
-			bpsec_asb_outboundAsbDelete(sdr, &newAsb);
-			return -1;
-		}
-
-		/* Allocate space for outbound target results. */
-		obj = sdr_malloc(sdr, sizeof(newTarget));
-		sdr_write(sdr, obj, (char *) &newTarget, sizeof(newTarget));
-		if (sdr_list_insert_last(sdr, newAsb.scResults, obj) == 0)
-		{
-		    bpsec_asb_outboundAsbDelete(sdr, &newAsb);
-			return -1;
-		}
-	}
-
-	/* Step 5: Copy over parameters. */
-	if((newAsb.scParms = bpsec_scv_memListRecord(sdr, 0, oldAsb->scParms)) < 1)
-	{
-		bpsec_asb_outboundAsbDelete(sdr, &newAsb);
-		return -1;
-	}
-
-	/* Step 6: Allocate space for the new ASB. */
-	if((newBlk->object = sdr_malloc(sdr, sizeof(BpsecOutboundASB))) == 0)
-	{
-	    bpsec_asb_outboundAsbDelete(sdr, &newAsb);
-		return -1;
-	}
-	newBlk->size = sizeof(BpsecOutboundASB);
+    /* Step 2: Initialize the new ASB. */
+    memset((char *) &newAsb, 0, sizeof(newAsb));
 
 
-	/* Step 7: Write the ASB to the SDR. */
-	sdr_write(sdr, newBlk->object, (char *) &newAsb, sizeof(newAsb));
+    /* Step 3: Copy fixed data from memory to the SDR. */
+    oldAsb = (BpsecInboundASB *) (oldBlk->object);
+
+    newAsb.scId = oldAsb->scId;
+    newAsb.scFlags = oldAsb->scFlags;
+    if((result = bpsec_util_EIDCopy(&newAsb.scSource, &oldAsb->scSource)) < 1)
+    {
+        BPSEC_DEBUG_ERR("Unable to copy EID.", NULL);
+        return -1;
+    }
+
+    /* Step 4: Copy over the target results. */
+    if((newAsb.scResults = sdr_list_create(sdr)) == 0)
+    {
+        BPSEC_DEBUG_ERR("Unable to create results list.", NULL);
+        return -1;
+    }
+
+    for (elt = lyst_first(oldAsb->scResults); elt; elt = lyst_next(elt))
+    {
+        oldTarget = (BpsecInboundTargetResult *) lyst_data(elt);
+
+        /*	Copy individual results for target to the SDR.	*/
+        newTarget.scTargetId = oldTarget->scTargetId;
+
+        if((newTarget.scIndTargetResults = bpsec_scv_memListRecord(sdr, 0, oldTarget->scIndTargetResults)) == 0)
+        {
+            bpsec_asb_outboundAsbDelete(sdr, &newAsb);
+            return -1;
+        }
+
+        /* Allocate space for outbound target results. */
+        obj = sdr_malloc(sdr, sizeof(newTarget));
+        sdr_write(sdr, obj, (char *) &newTarget, sizeof(newTarget));
+        if (sdr_list_insert_last(sdr, newAsb.scResults, obj) == 0)
+        {
+            bpsec_asb_outboundAsbDelete(sdr, &newAsb);
+            return -1;
+        }
+    }
+
+    /* Step 5: Copy over parameters. */
+    if((newAsb.scParms = bpsec_scv_memListRecord(sdr, 0, oldAsb->scParms)) < 1)
+    {
+        bpsec_asb_outboundAsbDelete(sdr, &newAsb);
+        return -1;
+    }
+
+    /* Step 6: Allocate space for the new ASB. */
+    if((newBlk->object = sdr_malloc(sdr, sizeof(BpsecOutboundASB))) == 0)
+    {
+        bpsec_asb_outboundAsbDelete(sdr, &newAsb);
+        return -1;
+    }
+    newBlk->size = sizeof(BpsecOutboundASB);
 
 
-	BPSEC_DEBUG_PROC("Returning 0", NULL);
-	return 0;
-}
+    /* Step 7: Write the ASB to the SDR. */
+    sdr_write(sdr, newBlk->object, (char *) &newAsb, sizeof(newAsb));
+
+
+    BPSEC_DEBUG_PROC("Returning 0", NULL);
+    return 0;
+    }
 
 // TODO: Document function.
 void bpsec_asb_inboundTargetResultRelease(LystElt item, void *tag) // bsu_outTgtReleaseCb
 {
+    /* Parameter intentionally unused. */
+    (void)tag;
+
     BpsecInboundTargetResult *result = (BpsecInboundTargetResult *) lyst_data(item);
 
     if(result)
@@ -834,6 +840,9 @@ Object bpsec_asb_outboundAsbCreate(Sdr sdr, unsigned int *size)
 
 void bpsec_asb_outboundTargetResultsRelease(Sdr sdr, Object eltData, void *arg)
 {
+    /* Parameter intentionally unused. */
+    (void)arg;
+
     Object obj = sdr_list_data(sdr, eltData);
 
     bpsec_asb_outboundTargetResultDelete(sdr, obj);

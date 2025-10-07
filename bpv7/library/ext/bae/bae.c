@@ -41,6 +41,9 @@ int	bae_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 {
 	DtnTime	currentDtnTime;	/*	milliseconds past EPOCH 2000.	*/
 
+	/* Parameter intentionally unused. */
+	(void)ctxt;
+
 	getCurrentDtnTime(&currentDtnTime);
 	if (ionClockIsSynchronized() && bundle->id.creationTime.msec > 0)
 	{
@@ -91,5 +94,9 @@ int	bae_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 
 int	bae_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
+	/* Parameter intentionally unused. */
+	(void)blk;
+	(void)wk;
+
 	return 1;
 }

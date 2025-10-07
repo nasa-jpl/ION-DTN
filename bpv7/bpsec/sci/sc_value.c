@@ -269,6 +269,9 @@ void *bpsec_scv_rawAlloc(PsmPartition wm, sc_value *val, int length)
  {
      sc_value *val = NULL;
 
+    /* Parameter intentionally unused. */
+    (void)arg;
+
      if((val = lyst_data(elt)) != NULL)
      {
          if(val->scValLoc == SC_VAL_STORE_MEM)
@@ -303,7 +306,7 @@ void *bpsec_scv_rawAlloc(PsmPartition wm, sc_value *val, int length)
      for(elt = lyst_first(list); elt; elt = lyst_next(elt))
      {
          result = (sc_value *) lyst_data(elt);
-         if((result->scValId == id) && (result->scValType == type))
+         if((result->scValId == id) && (type >= 0 && result->scValType == (sc_val_type)type))
          {
              BPSEC_DEBUG_INFO("Found value with id %d, type %d, length %d", result->scValId, result->scValType, result->scValLength);
              return result;
@@ -932,6 +935,9 @@ sc_value bpsec_scv_memCsiConvert(csi_val_t csi_value, int type, int id)
  // TODO comment..
  void  bpsec_scv_sdrListCbDel(Sdr sdr, Object eltData, void *args)
  {
+    /* Parameter intentionally unused. */
+    (void)args;
+
      bpsec_scv_sdrRelease(sdr, sdr_list_data(sdr, eltData));
  }
 
@@ -1392,6 +1398,9 @@ PsmAddress bpsec_scv_smCreate(PsmPartition wm, sc_val_type type)
 void  bpsec_scv_smlistCbDel(PsmPartition wm, PsmAddress addr, void *arg)
 {
     sc_value *val = NULL;
+
+    /* Parameter intentionally unused. */
+    (void)arg;
 
     if((val = (sc_value *) psp(wm, addr)) != NULL)
     {

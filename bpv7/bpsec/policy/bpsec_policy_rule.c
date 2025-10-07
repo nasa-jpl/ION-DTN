@@ -2487,6 +2487,9 @@ int bslpol_cb_ruleradix_search_best(PsmPartition partition, PsmAddress entryAddr
 
 void bslpol_cb_smlist_delete(PsmPartition partition, PsmAddress eltAddr, void *tag)
 {
+	/* Parameter intentionally unused. */
+	(void)tag;
+
 
 	bslpol_rule_delete(partition, sm_list_data(partition, eltAddr));
 }
