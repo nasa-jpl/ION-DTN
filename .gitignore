@@ -161,11 +161,11 @@ bpnmtest
 bpsecadmin
 bptransit
 bpversion
-bsspclock                                                          
+bsspclock
 bssrecv
 bssStreamingApp
 bsscounter
-bssdriver 
+bssdriver
 bsspadmin
 bsspcli
 bsspclo
@@ -278,6 +278,9 @@ contrib/Makefile
 # Ignore mkdocs build
 gh-pages/site/*
 gh-pages/docs/man/*
+
+# python version file
+.python-version
 
 build/*
 ams/doc/html/man1/amsbenchr.html
