@@ -8182,7 +8182,11 @@ undefined block.");
 
 	/*	This is an extension block.  Cursor is pointing at
 	 *	start of block data.					*/
-
+	if (dataLength < 0)	/*	Overflowed	*/
+	{
+		writeMemo("[?] Malformed extension block");
+		return 0;
+	}
 	if (unparsedBytes < dataLength)	/*	Doesn't fit in buffer.	*/
 	{
 		writeMemoNote("[?] Extension block too long", utoa(dataLength));

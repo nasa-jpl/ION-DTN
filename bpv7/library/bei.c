@@ -754,7 +754,7 @@ int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
 		unsigned char blkProcFlags, BpCrcType crcType, unsigned int dataLength)
 {
 	Bundle		*bundle = &(work->bundle);
-	int		blkSize;
+	size_t		blkSize;
 	AcqExtBlock	*blk;
 	LystElt		elt;
 	int		additionalOverhead;
