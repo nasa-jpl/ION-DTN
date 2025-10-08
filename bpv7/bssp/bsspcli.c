@@ -17,6 +17,9 @@
 
 static void	interruptThread(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGTERM, interruptThread);
 	ionKillMainThread("bsspcli");
 }
@@ -36,6 +39,9 @@ int	acquireBundle(AcqWorkArea *work, BsspSessionId *sessionId,
 	Sdr		sdr = getIonsdr();
 	ZcoReader	reader;
 	int		result;
+
+	/* Parameter intentionally unused. */
+	(void)sessionId;
 
 	if (zco == 0)		/*	Session canceled.		*/
 	{

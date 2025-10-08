@@ -283,6 +283,9 @@ static void	dropSeat(BsspVseat *vseat, PsmAddress vseatElt)
 	PsmPartition	bsspwm = getIonwm();
 	PsmAddress	vseatAddr;
 
+	/* Parameter intentionally unused. */
+	(void)vseat;
+
 	vseatAddr = sm_list_data(bsspwm, vseatElt);
 	sm_list_delete(bsspwm, vseatElt, NULL, NULL);
 	psm_free(bsspwm, vseatAddr);
@@ -1952,7 +1955,7 @@ static int	readFromExportBlock(char *buffer, Object svcDataObject,
 
 	bytesRead = zco_transmit(sdr, &reader, bytesToRead,
 			buffer + totalBytesRead);
-	if (bytesRead != bytesToRead)
+	if (bytesRead < 0 || (unsigned int)bytesRead != bytesToRead)
 	{
 		putErrmsg("Failed reading SDU.", NULL);
 		return -1;
@@ -2479,6 +2482,9 @@ static int	handleDataBlock(uvast sourceEngineId, BsspDB *bsspdb,
 	vast		pduLength = 0;
 	Object		clientSvcData = 0;
 
+	/* Parameter intentionally unused. */
+	(void)bsspdb;
+
 	/*	First finish parsing the block.			*/
 
 	extractSmallSdnv(&(pdu->clientSvcId), cursor, bytesRemaining);
@@ -2500,7 +2506,7 @@ putErrmsg("Discarded data block.", itoa(sessionNbr));
 		return sdr_end_xn(sdr);
 	}
 
-	if (pdu->length > *bytesRemaining)
+	if (*bytesRemaining < 0 || pdu->length > (unsigned int)*bytesRemaining)
 	{
 #if BSSPDEBUG
 putErrmsg("Discarded data block.", itoa(sessionNbr));
@@ -2625,6 +2631,9 @@ static int	constructDataBlock(Sdr sdr, BsspExportSession *session,
 	int		worstCaseDataPDUSize;
 	Sdnv		lengthSdnv;
 
+	/* Parameter intentionally unused. */
+	(void)vspan;
+
 #if BSSPDEBUG
 char		buf[256];
 #endif
@@ -2651,7 +2660,7 @@ char		buf[256];
 	encodeSdnv(&lengthSdnv, length);
 	dataBlockOverhead = block.ohdLength + lengthSdnv.length;
 	worstCaseDataPDUSize = length + dataBlockOverhead;
-	if (worstCaseDataPDUSize > span->maxBlockSize)
+	if (worstCaseDataPDUSize >= 0 && (unsigned int)worstCaseDataPDUSize > span->maxBlockSize)
 	{
 		putErrmsg("Bssp XmitDataBlock size exceeds maximum block size.",
 		 NULL);
@@ -2760,6 +2769,9 @@ static void	getSessionContext(BsspDB *BsspDB, unsigned int sessionNbr,
 {
 	Sdr	sdr = getIonsdr();
 
+	/* Parameter intentionally unused. */
+	(void)BsspDB;
+
 	CHKVOID(ionLocked());
 	*spanObj = 0;		/*	Default: no context.		*/
 	getExportSession(sessionNbr, sessionObj);
@@ -2805,6 +2817,13 @@ static int	handleAck(BsspDB *BsspDB, unsigned int sessionNbr,
 	BsspVspan		*vspan;
 	PsmAddress		vspanElt;
 	BsspXmitBlock		dsBuf;
+
+	/* Parameters intentionally unused. */
+	(void)block;
+	(void)pdu;
+	(void)cursor;
+	(void)bytesRemaining;
+
 #if BSSPDEBUG
 putErrmsg("Handling acknowledgment.", utoa(sessionNbr));
 #endif
@@ -3016,6 +3035,9 @@ static void	suspendTimer(time_t suspendTime, BsspTimer *timer,
 {
 	time_t	latestAckXmitStartTime;
 
+	/* Parameter intentionally unused. */
+	(void)remoteXmitRate;
+
 	CHKVOID(ionLocked());
 	latestAckXmitStartTime = timer->pduArrivalTime + qTime;
 	if (latestAckXmitStartTime < suspendTime)
@@ -3049,6 +3071,9 @@ int	bsspSuspendTimers(BsspVspan *vspan, PsmAddress vspanElt,
 	BsspTimer		*timer;
 	BsspExportSession	xsessionBuf;
 	BsspXmitBlock		dsBuf;
+
+	/* Parameter intentionally unused. */
+	(void)vspanElt;
 
 	CHKERR(ionLocked());
 	CHKERR(vspan);
@@ -3098,6 +3123,9 @@ static int	resumeTimer(time_t resumeTime, BsspTimer *timer,
 	int		additionalDelay;
 	BsspEvent	event;
 
+	/* Parameter intentionally unused. */
+	(void)remoteXmitRate;
+
 	CHKERR(ionLocked());
 	earliestAckXmitStartTime = timer->pduArrivalTime + qTime;
 	additionalDelay = resumeTime - earliestAckXmitStartTime;
@@ -3141,6 +3169,9 @@ int	bsspResumeTimers(BsspVspan *vspan, PsmAddress vspanElt,
 	BsspTimer		*timer;
 	BsspExportSession	xsessionBuf;
 	BsspXmitBlock		dsBuf;
+
+	/* Parameter intentionally unused. */
+	(void)vspanElt;
 
 	CHKERR(ionLocked());
 	CHKERR(vspan);

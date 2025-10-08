@@ -2351,6 +2351,10 @@ int	cgr_create_routing_object(IonNode *node)
 
 int	cgr_start_SAP(uvast ownNodeNbr, time_t referenceTime, CgrSAP *sap)
 {
+	/* Parameters intentionally unused. */
+	(void)ownNodeNbr;
+	(void)referenceTime;
+
 	*sap = NULL;
 	return 0;
 }
@@ -2364,6 +2368,9 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 	time_t		deadline;
 	CgrRtgObject	*routingObj;
 	int		potential;
+
+	/* Parameter intentionally unused. */
+	(void)sap;
 
 	deadline = bundle->expirationTime;
 	routingObj = (CgrRtgObject *) psp(ionwm, terminusNode->routingObject);
@@ -2425,12 +2432,18 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 
 void	cgr_stop_SAP(CgrSAP sap)
 {
+	/* Parameter intentionally unused. */
+	(void)sap;
+
 	return;
 }
 
 static void	deleteObject(LystElt elt, void *userdata)
 {
 	void	*object = lyst_data(elt);
+
+	/* Parameter intentionally unused. */
+	(void)userdata;
 
 	if (object)
 	{

@@ -54,6 +54,9 @@ static void	printText(char *text)
 
 static void	handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	printText("Please enter command 'q' to stop the program.");
 }
 
@@ -144,6 +147,9 @@ indication characters, e.g., acz~.  See man(5) for bprc.");
 
 static void	initializeBp(int tokenCount, char **tokens)
 {
+	/* Parameter intentionally unused. */
+	(void)tokens;
+
 	if (tokenCount != 1)
 	{
 		SYNTAX_ERROR;
@@ -1055,6 +1061,9 @@ static void	listSchemes(int tokenCount, char **tokens)
 	PsmAddress	elt;
 	VScheme		*vscheme;
 
+	/* Parameter intentionally unused. */
+	(void)tokens;
+
 	if (tokenCount != 2)
 	{
 		SYNTAX_ERROR;
@@ -1130,6 +1139,9 @@ static void	listEndpoints(int tokenCount, char **tokens)
 
 static void	listProtocols(int tokenCount, char **tokens)
 {
+	/* Parameter intentionally unused. */
+	(void)tokens;
+
 	Sdr	sdr = getIonsdr();
 	Object	elt;
 		OBJ_POINTER(ClProtocol, clp);
@@ -1273,6 +1285,9 @@ static void	listPlans(int tokenCount, char **tokens)
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	elt;
 	VPlan		*vplan;
+
+	/* Parameter intentionally unused. */
+	(void)tokens;
 
 	if (tokenCount != 2)
 	{
@@ -1715,6 +1730,9 @@ static int	processLine(char *line, int lineLength, int *rc)
 	struct timeval	done_time;
 	struct timeval	cur_time;
 	char		buffer[80];
+
+	/* Parameter intentionally unused. */
+	(void)lineLength;
 
 	int max = 0;
 	int count = 0;

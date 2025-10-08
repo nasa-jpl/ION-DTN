@@ -48,6 +48,9 @@ int	hcb_serialize(ExtensionBlock *blk, Bundle *bundle)
 
 int	hcb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 {
+	/* Parameter intentionally unused. */
+	(void)ctxt;
+
 	bundle->hopCount += 1;
 	if (bundle->hopCount > bundle->hopLimit)
 	{
@@ -109,5 +112,9 @@ int	hcb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 
 int	hcb_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
+	/* Parameter intentionally unused. */
+	(void)blk;
+	(void)wk;
+
 	return 1;
 }

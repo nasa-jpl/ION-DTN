@@ -40,6 +40,9 @@ static sm_SemId		bsspcloSemaphore(sm_SemId *semid)
 
 static void	shutDownClo(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGTERM, shutDownClo);
 	sm_SemEnd(bsspcloSemaphore(NULL));
 }
@@ -162,6 +165,9 @@ static int	isInOrder(Lyst streams, Bundle *bundle)
 
 static void	eraseStream(LystElt elt, void *userData)
 {
+	/* Parameter intentionally unused. */
+	(void)userData;
+
 	BundleStream	*stream = lyst_data(elt);
 
 	MRELEASE(stream);

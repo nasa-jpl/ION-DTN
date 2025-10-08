@@ -46,6 +46,9 @@ static void	handleQuit(int signum)
 {
 	BptestState	*state;
 
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGINT, handleQuit);
 	PUTS("BP reception interrupted.");
 	fflush(stdout);

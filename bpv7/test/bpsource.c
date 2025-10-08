@@ -40,6 +40,9 @@ static void	handleQuit(int signum)
 {
 	int	stop = 0;
 
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	oK(_running(&stop));
 	ionPauseAttendant(_attendant(NULL));
 }
@@ -67,16 +70,16 @@ int	main(int argc, char **argv)
 	{
 	case 4:
 		arg3 = argv[3];
+		/* FALLTHROUGH */
 
-		/*	Intentional fall-through to next case.		*/
 	case 3:
 		arg2 = argv[2];
+		/* FALLTHROUGH */
 
-		/*	Intentional fall-through to next case.		*/
 	case 2:
 		destEid = argv[1];
+		/* FALLTHROUGH */
 
-		/*	Intentional fall-through to next case.		*/
 	default:
 		break;
 	}

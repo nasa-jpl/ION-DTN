@@ -12,6 +12,9 @@
 
 static void	handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	oK(sdr_end_xn(bp_get_sdr()));
 	isignal(SIGINT, SIG_DFL);
 	sm_TaskKill(sm_TaskIdSelf(), SIGINT);
@@ -89,7 +92,7 @@ static void	printExtensions(Sdr sdr, Object extensions)
 			continue;
 		}
 
-		if (blk->length > buflen)
+		if (buflen < 0 || blk->length > (unsigned int)buflen)
 		{
 			if (buf)
 			{

@@ -224,7 +224,7 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
 			int ttl, char *svcClass, char *trace, char *flags)
 {
 	int		priority = 0;
-	BpAncillaryData	ancillaryData = { 0, 0, 0 };
+	BpAncillaryData	ancillaryData = {0};
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	int		srrFlags = 0;
 	BpSAP		sap;

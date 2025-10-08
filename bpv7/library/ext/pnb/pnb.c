@@ -20,11 +20,19 @@ int	pnb_offer(ExtensionBlock *blk, Bundle *bundle)
 	blk->length = 0;
 	blk->size = 1;		 /*	Just to keep block alive.	*/
 	blk->object = 0;
+
+	/* Parameter intentionally unused. */
+	(void)bundle;
+
 	return 0;
 }
 
 int	pnb_serialize(ExtensionBlock *blk, Bundle *bundle)
 {
+	/* Parameters intentionally unused. */
+	(void)blk;
+	(void)bundle;
+
 	return 0;	/*	Need context to determine content.	*/
 }
 
@@ -38,6 +46,9 @@ int	pnb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	EndpointId	eid;
 	unsigned char	dataBuffer[300];
 	int		length;
+
+	/* Parameter intentionally unused. */
+	(void)bundle;
 
 	suppressExtensionBlock(blk);	/*	Default.		*/
 
@@ -116,6 +127,9 @@ int	pnb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 
 int	pnb_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
+	/* Parameter intentionally unused. */
+	(void)wk;
+
 	discardAcqExtensionBlock(blk);
 	return 1;
 }

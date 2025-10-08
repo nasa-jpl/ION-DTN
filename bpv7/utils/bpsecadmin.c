@@ -86,6 +86,9 @@ static void	bpsec_admin_printText(char *text)
 
 static void	bpsec_admin_handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	bpsec_admin_printText("Please enter command 'q' to stop the program.");
 }
 
@@ -485,7 +488,7 @@ static int bpsec_admin_json_getTypedIdx(jsonObject job, int start, int end, char
 			i++;
 
 			/* The index is a match if the value is the expected type. */
-			return (job.tokens[i].type == type) ? i : 0;
+			return ((type >= 0) && (job.tokens[i].type == (jsmntype_t)type)) ? i : 0;
 		}
 	}
 
@@ -2159,6 +2162,9 @@ static void	bpsec_admin_listEventSet(jsonObject job)
 	char name[MAX_EVENT_SET_NAME_LEN];
 	char desc[MAX_EVENT_SET_DESC_LEN];
 
+	/* Parameter intentionally unused. */
+	(void)job;
+
 	memset(name, '\0', sizeof(name));
 	memset(desc, '\0', sizeof(desc));
 
@@ -2191,6 +2197,9 @@ static void	bpsec_admin_listEventSet(jsonObject job)
 static void	bpsec_admin_listPolicyrule(jsonObject job)
 {
 	PsmAddress elt = 0;
+
+	/* Parameter intentionally unused. */
+	(void)job;
 
 	/* Print each event configured for the event set */
 	for(elt = sm_list_first(gWm, getSecVdb()->bpsecPolicyRules); elt; elt = sm_list_next(gWm, elt))

@@ -15,6 +15,9 @@
 
 int	qos_offer(ExtensionBlock *blk, Bundle *bundle)
 {
+	/* Parameter intentionally unused. */
+	(void)bundle;
+
 	blk->blkProcFlags = BLK_MUST_BE_COPIED;
 	blk->dataLength = 0;	/*	Will know length at dequeue.	*/
 	blk->length = 0;
@@ -46,7 +49,10 @@ int	qos_serialize(ExtensionBlock *blk, Bundle *bundle)
 
 int  qos_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 {
-    return qos_serialize(blk, bundle);
+	/* Parameter intentionally unused. */
+	(void)ctxt;
+
+	return qos_serialize(blk, bundle);
 }
 
 int	qos_parse(AcqExtBlock *blk, AcqWorkArea *wk)
@@ -115,5 +121,9 @@ int	qos_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 
 int	qos_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
+	/* Parameters intentionally unused. */
+	(void)blk;
+	(void)wk;
+
 	return 1;
 }

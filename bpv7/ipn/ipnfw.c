@@ -91,6 +91,9 @@ static CgrSAP	cgrSap(CgrSAP *newSap)
 
 static void	shutDown(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGTERM, shutDown);
 	sm_SemEnd(_ipnfwSemaphore(NULL));
 }
@@ -106,6 +109,9 @@ static int	applyRoutingOverride(Bundle *bundle, Object bundleObj,
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 	BpPlan		plan;
+
+	/* Parameter intentionally unused. */
+	(void)fqnn;
 
 	if (bundle->ovrdNeighbor == 0)
 	{
@@ -205,6 +211,9 @@ static int 	tryHIRR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 	PsmPartition	ionwm = getIonwm();
 	CgrRtgObject	*routingObj;
 
+	/* Parameter intentionally unused. */
+	(void)bundle;
+
 	if (terminusNode->routingObject == 0)
 	{
 		if (cgr_create_routing_object(terminusNode) < 0)
@@ -231,6 +240,9 @@ static int 	tryHIRR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 static void	deleteObject(LystElt elt, void *userdata)
 {
 	void	*object = lyst_data(elt);
+
+	/* Parameter intentionally unused. */
+	(void)userdata;
 
 	if (object)
 	{
@@ -302,7 +314,7 @@ static int	proactivelyFragment(Bundle *bundle, Object *bundleObj,
 		fragmentLength = 1;	/*	Assume rounding error.	*/
 	}
 
-	if (fragmentLength >= bundle->payload.length)
+	if (bundle->payload.length < 0 || fragmentLength >= (size_t)bundle->payload.length)
 	{
 		fragmentLength = bundle->payload.length - 1;
 	}
@@ -360,6 +372,9 @@ static int	enqueueToEntryNode(CgrRoute *route, Bundle *bundle,
 	Object		contactObj;
 	IonContact	contactBuf;
 	int		i;
+
+	/* Parameter intentionally unused. */
+	(void)terminusNode;
 
 	/*	Note that a copy is being sent on the route through
 	 *	this neighbor.						*/
@@ -645,7 +660,7 @@ static int	proxNodeRedundant(Bundle *bundle, vast fqnn)
 
 	for (i = 0; i < bundle->xmitCopiesCount; i++)
 	{
-		if (bundle->xmitCopies[i] == fqnn)
+		if (fqnn >= 0 && bundle->xmitCopies[i] == (uvast)fqnn)
 		{
 			return 1;
 		}
@@ -759,6 +774,10 @@ static unsigned char	initializeSnw(unsigned int ttl, uvast toFqnn)
 	 *	node and the initial contact's "to" node both reside.
 	 *
 	 *	The computation is very complex, left for later.	*/
+
+	/* Parameters intentionally unused. */
+	(void)ttl;
+	(void)toFqnn;
 
 	return 16;	/*	Dummy result, for now.			*/
 }
@@ -1071,6 +1090,10 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 	IonNode		*node;
 	PsmAddress	nextNode;
 	uint32_t	regionNbr;
+
+	/* Parameter intentionally unused. */
+	(void)sap;
+
 #if CGR_DEBUG == 1
 	CgrTrace	*trace = &(CgrTrace) { .fn = printCgrTraceLine };
 #else
@@ -1232,7 +1255,7 @@ int	ipnfw(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 #else
-int	main(int argc, char *argv[])
+int	main(void)
 {
 #endif
 	int		running = 1;

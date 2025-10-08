@@ -80,6 +80,10 @@ static int	removePredictedContacts(int regionIdx)
 
 static void	freePbContents(LystElt elt, void *userdata)
 {
+	/* Parameters intentionally unused. */
+	(void)elt;
+	(void)userdata;
+
 	MRELEASE(lyst_data(elt));
 }
 
@@ -743,6 +747,9 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 	BpDB		*bpConstants = getBpConstants();
 	Object		bundleElt;
 	Object		nextBundleElt;
+
+	/* Parameter intentionally unused. */
+	(void)dlv;
 
 	uvtemp = 0;
 	if (cbor_decode_array_open(&uvtemp, &cursor, &unparsedBytes) < 0)

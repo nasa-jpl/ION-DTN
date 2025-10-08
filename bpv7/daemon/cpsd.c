@@ -34,6 +34,9 @@ static void	shutDown(int signum)
 {
 	uaddr	stop = 0;
 
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGTERM, SIG_IGN);
 	oK(_running(&stop));	/*	Terminates cpsd.		*/
 }
@@ -54,6 +57,9 @@ static int	handleCpsNotice(BpDelivery *dlv, unsigned char *cursor,
 	int		result;
 	PsmAddress	xaddr;
 	int		revisingContact = 0;
+
+	/* Parameter intentionally unused. */
+	(void)dlv;
 
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
 			&unparsedBytes) < 1)
@@ -301,7 +307,7 @@ static void	*handleNotices(void *parm)
 		case BpEndpointStopped:
 			_running(&stop);
 
-			/*	Intentional fall-through to default.	*/
+			/* FALLTHROUGH */
 
 		default:
 			bp_release_delivery(&dlv, 1);
@@ -378,7 +384,7 @@ int	cpsd(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 #else
-int	main(int argc, char *argv[])
+int	main(void)
 {
 #endif
 	MetaEid		meid;

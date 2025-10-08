@@ -65,6 +65,9 @@ char tagDefLines[][53] = {
  */
 static void	interruptThread(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGTERM, interruptThread);
 	isignal(SIGINT, interruptThread);
 	ionKillMainThread("ipnd");
@@ -214,7 +217,7 @@ static int	initializeIpnd()
 	setIPNDCtx(ctx);
 
 	/* process tagDefLines */
-	int i;
+	size_t i;
 
 	for (i = 0; i < sizeof(tagDefLines) / sizeof(tagDefLines[0]); i++)
 	{
@@ -265,7 +268,7 @@ void updateCtxNbf(char* eid, int eidLen)
 		{
 			cnt1 = decodeSdnv(&len1, def->data + 1);
 			cnt2 = decodeSdnv(&len2, def->data + 1 + cnt1 + 1);
-			if (len2 == ctx->nbf.bytes)
+			if (ctx->nbf.bytes >= 0 && len2 == (uvast)ctx->nbf.bytes)
 			{
 				/* just replace bytes */
 				memcpy(def->data + 1 + cnt1 + 1 + cnt2,
@@ -1086,6 +1089,9 @@ static int	processLine(char *line, int lineLength)
 	int		i;
 	const int	MAX_TOKENS = 99;
 	char		*tokens[MAX_TOKENS];
+
+	/* Parameter intentionally unused. */
+	(void)lineLength;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < MAX_TOKENS; i++)

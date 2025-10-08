@@ -53,6 +53,9 @@ static void	killMainThread()
 
 static void	interruptThread(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGTERM, interruptThread);
 	ionPauseAttendant(_attendant(NULL));
 	killMainThread();
@@ -172,7 +175,7 @@ static void	*receiveBundles(void *parm)
 			putErrmsg("can't acquire bundle.", NULL);
 			killMainThread();
 
-			/*	Intentional fall-through to next case.	*/
+			/* FALLTHROUGH */
 
 		case 0:				/*	Normal stop.	*/
 			*(parms->running) = 0;
@@ -371,7 +374,7 @@ number>");
 		case -1:
 			putErrmsg("Can't get countersign.", NULL);
 
-			/*	Intentional fall-through to next case.	*/
+			/* FALLTHROUGH */
 
 		default:
 			writeMemo("[i] brsccla registration failed.");

@@ -171,6 +171,14 @@ void bib_handle_rx_error(AcqWorkArea *work, Bundle *bundle, BpSecPolRule *polRul
                       LystElt bibElt, LystElt tgtResultElt, int tgtId, int result,
                       uint8_t tgtBlkType)
 {
+    /*
+     * The 'tgtBlkType' parameter is only used in the BIB_TEST_POINT macro.
+     * When BIB_TEST_LOGGING is not enabled (i.e., not equal to 1),
+     * that macro is empty, leaving the parameter unused.
+     */
+#if (BIB_TEST_LOGGING != 1)
+    (void)tgtBlkType;
+#endif
 
     if(result == -1)
     {

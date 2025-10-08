@@ -64,6 +64,9 @@ static int  processLine(char *line, int lineLength, int keyLen)
     unsigned char   *key = NULL;
     int             result = 0;
 
+    /* Parameter intentionally unused. */
+    (void)lineLength;
+
     if (*line == '#')       /* Comment.        */
     {
         return 0;

@@ -105,6 +105,9 @@ static void	shutDownClo()
 
 static void	handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGTERM, handleQuit);
 	bp_interrupt(_bpduSap(NULL));
 	bp_interrupt(_signalSap(NULL));

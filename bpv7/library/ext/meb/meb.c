@@ -52,36 +52,67 @@ int	meb_serialize(ExtensionBlock *blk, Bundle *bundle)
 
 void	meb_release(ExtensionBlock *blk)
 {
+	/* Parameter intentionally unused. */
+	(void)blk;
+
 	return;
 }
 
 int	meb_record(ExtensionBlock *sdrBlk, AcqExtBlock *ramBlk)
 {
+	/* Parameters intentionally unused. */
+	(void)sdrBlk;
+	(void)ramBlk;
+
 	return 0;
 }
 
 int	meb_copy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 {
+	/* Parameters intentionally unused. */
+	(void)newBlk;
+	(void)oldBlk;
+
 	return 0;
 }
 
 int	meb_processOnFwd(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 {
+	/* Parameters intentionally unused. */
+	(void)blk;
+	(void)bundle;
+	(void)ctxt;
+
 	return 0;
 }
 
 int	meb_processOnAccept(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 {
+	/* Parameters intentionally unused. */
+	(void)blk;
+	(void)bundle;
+	(void)ctxt;
+
 	return 0;
 }
 
 int	meb_processOnEnqueue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 {
+	/* Parameters intentionally unused. */
+	(void)blk;
+	(void)bundle;
+	(void)ctxt;
+
 	return 0;
 }
 
 int	meb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 {
+	/* Parameters intentionally unused. */
+	(void)blk;
+	(void)bundle;
+	(void)ctxt;
+
 	return meb_serialize(blk, bundle);
 }
 
@@ -142,5 +173,9 @@ int	meb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 
 int	meb_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
+	/* Parameters intentionally unused. */
+	(void)blk;
+	(void)wk;
+
 	return 1;
 }

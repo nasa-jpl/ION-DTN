@@ -103,6 +103,9 @@ static VOutduct *vduct;
 
 static void hopDeleteFn(LystElt elt, void *data)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)data;
+
 	MRELEASE(lyst_data(elt));
 }
 
@@ -114,6 +117,9 @@ static void routeDestroy(Route *route)
 
 static void routeDeleteFn(LystElt elt, void *data)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)data;
+
 	routeDestroy(lyst_data(elt));
 }
 
@@ -140,17 +146,28 @@ static LystElt nextConsidered(LystElt routeElt)
 static void outputTraceMsg(void *data, unsigned int lineNbr,
 		           CgrTraceType traceType, va_list args)
 {
+	/* Parameter intentionally unused. */
+	(void)data;
+	(void)lineNbr;
+
 	vfprintf(stderr, cgr_tracepoint_text(traceType), args);
 
 	switch (traceType) {
 	case CgrUpdateRoute:
 		fputs("other route has", stderr);
-		// fallthrough
+		/* FALLTHROUGH */
+
 	case CgrIgnoreContact:
+	/* FALLTHROUGH */
+
 	case CgrExcludeRoute:
+	/* FALLTHROUGH */
+
 	case CgrSkipRoute:
 		fputc(' ', stderr);
 		fputs(cgr_reason_text(va_arg(args, CgrReason)), stderr);
+		/* FALLTHROUGH */
+	
 	default:
 		break;
 	}
@@ -165,6 +182,9 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 	LystElt routeElt;
 	Route *route;
 	Hop *hop;
+
+	/* Parameter intentionally unused. */
+	(void)lineNbr;
 
 	switch (traceType) {
 	case CgrBeginRoute:

@@ -39,6 +39,9 @@ static sm_SemId	_bpclmSemaphore(sm_SemId *newValue)
 
 static void	shutDown(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGTERM, shutDown);
 	sm_SemEnd(_bpclmSemaphore(NULL));
 }
@@ -237,6 +240,9 @@ static int	getOutboundBundle(Outflow *flows, VPlan *vplan,
 	Outflow		*selectedFlow;
 	Object		xmitElt;
 
+	/* Parameter intentionally unused. */
+	(void)bundle;
+
 	while (1)
 	{
 		*bundleElt = 0;			/*	Default.	*/
@@ -299,6 +305,9 @@ static int	outductSelected(BpPlan *plan, Object planObj, Bundle *bundle,
 	Object		ductElt;
 	Object		outductElt;
 	Object		outductObj;
+
+	/* Parameter intentionally unused. */
+	(void)planObj;
 
 	if (bundle->ovrdNeighbor)	/*	Routing override.	*/
 	{
@@ -605,7 +614,8 @@ int	main(int argc, char *argv[])
 		}
 
 		if (maxPayloadLength > 0
-		&& bundle.payload.length > maxPayloadLength)
+		&& bundle.payload.length >= 0
+		&& (size_t)bundle.payload.length > maxPayloadLength)
 		{
 			/*	Must fragment this bundle.		*/
 

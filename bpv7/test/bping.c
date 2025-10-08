@@ -142,6 +142,9 @@ static void *receiveResponses(void *x)
 	unsigned long respcount, resppid;
 	long        diff_in_us;
 
+		/* Parameter intentionally unused. */
+	(void)x;
+
 	while((shutdownnow == 0) && (count == -1 || totalreceived < count) &&
 			bp_receive(recvsap, &dlv, BP_BLOCKING) >= 0)
 	{
@@ -265,7 +268,7 @@ static void *receiveResponses(void *x)
 			bp_release_delivery(&dlv, 1);
 			continue;
 		}
-		if(resppid != myPid){
+		if(myPid < 0 || resppid != (unsigned long)myPid){
 			/* not intended for this bping, ignore */
 			bp_release_delivery(&dlv, 1);
 			continue;
@@ -366,6 +369,9 @@ static Object bping_new_ping(void)
 static void *sendRequests(void *x)
 {
 	Object  bundleZco;
+
+	/* Parameter intentionally unused. */
+	(void)x;
 
 	/* Send bundles until we are told to shutdownnow, or we've sent "count". */
 	sendRequestsThreadRunning = 1;

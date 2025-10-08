@@ -11521,7 +11521,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 			length = 5;
 		}
 
-		if (length > unparsedBytes)
+		if (length >= 0 && (unsigned int)length > unparsedBytes)
 		{
 			writeMemo("[?] Can't decode outbound bundle, no CRC.");
 			return -1;
@@ -11648,7 +11648,7 @@ block is too long.");
 				length = 5;
 			}
 
-			if (length > unparsedBytes)
+			if (length >= 0 && (unsigned int)length > unparsedBytes)
 			{
 				writeMemo("[?] Can't decode outbound bundle, \
 no CRC.");
@@ -12003,6 +12003,9 @@ static BpSAP	_bpadminSap(BpSAP *newSap)
 
 static void	shutDownAdminApp(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGTERM, shutDownAdminApp);
 	sm_SemEnd((_bpadminSap(NULL))->recvSemaphore);
 }
@@ -12010,6 +12013,11 @@ static void	shutDownAdminApp(int signum)
 static int	defaultSrh(BpDelivery *dlv, unsigned char *cursor,
 			unsigned int unparsedBytes)
 {
+	/* Parameters intentionally unused. */
+	(void)dlv;
+	(void)cursor;
+	(void)unparsedBytes;
+
 	return 0;
 }
 

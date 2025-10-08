@@ -15,7 +15,7 @@ static int	run_bpsendtest(char *ownEid, char *destEid, char *fileName,
 			int ttl, char *svcClass, int repetitions)
 {
 	int		priority = 0;
-	BpAncillaryData	ancillaryData = { 0, 0, 0 };
+	BpAncillaryData	ancillaryData = {0};
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	BpSAP		sap = NULL;
 	Sdr		sdr;

@@ -13,7 +13,7 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 			int ttl, char *svcClass)
 {
 	int		priority = 0;
-	BpAncillaryData	ancillaryData = { 0, 0, 0 };
+	BpAncillaryData	ancillaryData = {0};
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	BpSAP		sap = NULL;
 	Sdr		sdr;
@@ -168,14 +168,24 @@ int	main(int argc, char **argv)
 	{
 	case 6:
 		ttl = atoi(argv[5]);
+		/* FALLTHROUGH */
+
 	case 5:
 		classOfService = argv[4];
+		/* FALLTHROUGH */
+
 	case 4:
 		fileName = argv[3];
+		/* FALLTHROUGH */
+
 	case 3:
 		destEid = argv[2];
+		/* FALLTHROUGH */
+
 	case 2:
 		ownEid = argv[1];
+		/* FALLTHROUGH */
+		
 	default:
 		break;
 	}

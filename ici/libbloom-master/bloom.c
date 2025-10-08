@@ -39,7 +39,8 @@ static int bloom_check_add(struct bloom * bloom,
   register unsigned int mask;
   register unsigned char c;
 
-  for (i = 0; i < bloom->hashes; i++) {
+    /* Cast bloom->hashes to unsigned to fix signedness warning. */
+    for (i = 0; i < (unsigned int)bloom->hashes; i++) {
     x = (a + i*b) % bloom->bits;
     byte = x >> 3;
     c = bloom->bf[byte];        // expensive memory access

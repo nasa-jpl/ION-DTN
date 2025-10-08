@@ -15,6 +15,9 @@
 
 int	imc_offer(ExtensionBlock *blk, Bundle *bundle)
 {
+	/* Parameter intentionally unused. */
+	(void)bundle;
+
 	/*	Block must be offered as a placeholder to enable
 	 *	later extension block processing.			*/
 
@@ -144,6 +147,9 @@ int	imc_copy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 
 int	imc_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 {
+	/* Parameter intentionally unused. */
+	(void)ctxt;
+
 	Sdr	sdr = getIonsdr();
 
 	if (blk->object)
@@ -166,7 +172,10 @@ int	imc_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	uvast		*destinationNodesArray;
 	uvast		*destinationNode;
 	uvast		uvtemp;
-	int		i;
+	uvast		i;
+
+	/* Parameter intentionally unused. */
+	(void)wk;
 
 	if (unparsedBytes < 1)
 	{
@@ -218,6 +227,10 @@ int	imc_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 
 int	imc_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
+	/* Parameters intentionally unused. */
+	(void)blk;
+	(void)wk;
+
 	return 1;
 }
 

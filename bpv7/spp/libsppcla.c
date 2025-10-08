@@ -17,7 +17,10 @@ int	sendBytesBySPP(int length,unsigned char *buffer, struct SppConfig *sppcfg, s
 {
     size_t  bytesWritten = 0;
     size_t  sppheadersize = 6;
-    
+
+    /* Parameter intentionally unused. */
+    (void)length;
+
     toSendBytes+=sppheadersize;
     bytesWritten = sppcfg->packet_request(buffer,sppcfg->apid,
 					  sppcfg->seq_count,sppcfg->packet_type,sppcfg->sec_header_flag,toSendBytes);

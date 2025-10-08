@@ -20,6 +20,9 @@ typedef struct
 
 static void	deleteOutductId(LystElt elt, void *userdata)
 {
+	/* Parameter intentionally unused. */
+	(void)userdata;
+
 	MRELEASE(lyst_data(elt));
 }
 

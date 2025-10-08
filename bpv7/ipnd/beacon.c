@@ -108,7 +108,8 @@ static int	logBeaconTag(IpndTag *tags, char *parentName,
 	uvast		sdnvTmp;
 	IpndTagChild	searchChild;
 	LystElt		found;
-	int		sdnvLength, readLen, i, ret = 1;
+	int		sdnvLength, readLen, ret = 1;
+	size_t i;
 	char*		pName;
 
 	data++;
@@ -653,7 +654,8 @@ static int	validateServiceDefinition(IpndTag *tags, unsigned char *data,
 {
 	IpndTagChild	searchChild;
 	uvast		tmp;
-	int		i, id, ret, len, sdnvLength, childLen;
+	int		id, ret, len, sdnvLength, childLen;
+	size_t i;
 
 	if (maxLen < 2)
 	{
@@ -757,8 +759,8 @@ int	deserializeBeacon(unsigned char *rawBeacon, const int rawBeaconLength,
 {
 	unsigned char		*cursor = rawBeacon;
 	unsigned char		*cursorEnd = cursor + rawBeaconLength;
-	uvast			sdnvTmp, tmp;
-	int			sdnvLength, eidLength, i, j, ret = 0;
+	uvast			sdnvTmp, tmp, j;
+	int			sdnvLength, eidLength, i, ret = 0;
 	int			numberOfServices;
 	ServiceDefinition	*serviceDefinition;
 	ServiceDefinition	*defNbfHashes = NULL, *defNbfBits = NULL;

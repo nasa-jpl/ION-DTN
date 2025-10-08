@@ -27,11 +27,17 @@ static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 #ifndef mingw
 static void	handleStopThread(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGINT, handleStopThread);
 }
 #endif
 static void	handleStopBrsscla(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGTERM, handleStopBrsscla);
 	ionKillMainThread("brsscla");
 }
@@ -353,7 +359,7 @@ static void	*receiveBundles(void *parm)
 	case -1:
 		putErrmsg("Can't get registration.", NULL);
 
-			/*	Intentional fall-through to next case.	*/
+			/* FALLTHROUGH */
 
 	default:
 		*parms->authenticated = 1;

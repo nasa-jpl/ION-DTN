@@ -390,7 +390,7 @@ int	imcSendDispatch(char *destEid, uint32_t toRegion, unsigned char *buffer,
 	Object		sourceData;
 	Object		payloadZco;
 	unsigned int	ttl = 86400;	/*	Seconds; 1 day.		*/
-	BpAncillaryData	ancillary = { 0, 0, 255 };
+	BpAncillaryData ancillary = { .ordinal = 255 };
 
 	ancillary.imcRegionNbr = toRegion;
 	isprintf(sourceEid, sizeof sourceEid, "ipn:" UVAST_FIELDSPEC ".0",
@@ -462,7 +462,7 @@ puts("Transmitting dispatch.");
 	case 0:
 		putErrmsg("IMC dispatch not sent.", NULL);
 
-		/*	Intentional fall-through to next case.	*/
+		/* FALLTHROUGH */
 
 	default:
 		return 0;

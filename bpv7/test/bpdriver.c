@@ -63,9 +63,12 @@ static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 
 static void	handleQuit(int signum)
 {
+	/* Parameter intentionally unused. */
+	(void)signum;
+
 	//isignal(SIGINT, handleQuit);
-	printf("Catched Ctrl-C!!!\n");
-    running = 0;
+	printf("Caught Ctrl-C!!!\n");
+	running = 0;
 	bp_interrupt(_bpsap(NULL));
 	ionPauseAttendant(_attendant(NULL));
 }
@@ -502,6 +505,8 @@ int	main(int argc, char **argv)
 		{
 			aduLength = atoi(argv[6]);
 		}
+		/* FALLTHROUGH */
+
 	case 6:
 		if(argv[5][0] == 't')
 		{
@@ -515,6 +520,8 @@ int	main(int argc, char **argv)
 		{
 			aduLength = atoi(argv[5]);
 		}
+		/* FALLTHROUGH */
+
 	case 5:
 		if(argv[4][0] == 't')
 		{
@@ -528,12 +535,20 @@ int	main(int argc, char **argv)
 		{
 			aduLength = atoi(argv[4]);
 		}
+		/* FALLTHROUGH */
+
 	case 4:
 		destEid = argv[3];
+		/* FALLTHROUGH */
+
 	case 3:
 		ownEid = argv[2];
+		/* FALLTHROUGH */
+
 	case 2:
 		cyclesRemaining = atoi(argv[1]);
+		/* FALLTHROUGH */
+
 	default:
 		break;
 	}

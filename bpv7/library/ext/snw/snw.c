@@ -15,6 +15,9 @@
 
 int	snw_offer(ExtensionBlock *blk, Bundle *bundle)
 {
+	/* Parameter intentionally unused. */
+	(void)bundle;
+
 	/*	Block must be offered as a placeholder to enable
 	 *	later extension block processing.			*/
 
@@ -42,6 +45,9 @@ int	snw_serialize(ExtensionBlock *blk, Bundle *bundle)
 int	snw_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 {
 	uvast	permits;
+
+	/* Parameter intentionally unused. */
+	(void)ctxt;
 
 	if (bundle->permits == 0)	/*	SNW block unnecessary.	*/
 	{
@@ -92,5 +98,9 @@ int	snw_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 
 int	snw_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
+	/* Parameters intentionally unused. */
+	(void)blk;
+	(void)wk;
+
 	return 1;
 }

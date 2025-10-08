@@ -37,6 +37,9 @@ static void	handleQuit(int signum)
 {
 	BptestState	*state;
 
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGINT, handleQuit);
 	PUTS("BP reception interrupted.");
 	fflush(NULL);
@@ -126,7 +129,7 @@ int	main(int argc, char **argv)
 					contentLength);
 			PUTS(line);
 			fflush(NULL);
-			if (contentLength < sizeof content)
+			if (contentLength >= 0 && (size_t)contentLength < sizeof content)
 			{
 				zco_start_receiving(dlv.adu, &reader);
 				CHKZERO(sdr_begin_xn(sdr));
