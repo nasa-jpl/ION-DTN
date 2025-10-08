@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+
+CONFIGFILES=" \
+./2.ipn.udp/ipn.bprc \
+./2.ipn.udp/ipn.ionconfig \
+./2.ipn.udp/ipn.ionrc \
+./2.ipn.udp/ipn.ionsecrc \
+./2.ipn.udp/ipn.ipnrc \
+./3.ipn.udp/ipn.bprc \
+./3.ipn.udp/ipn.ionconfig \
+./3.ipn.udp/ipn.ionrc \
+./3.ipn.udp/ipn.ionsecrc \
+./3.ipn.udp/ipn.ipnrc \
+"
+IONRECEIVEFILE=./ionreceivefile.txt
+IONEXPECTED=./expected_message.txt
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify a malformed extension block does not cause an uncontrolled
+        memory allocation, which can kill the receiver thread and cause a
+        Denial-of-Service. The bad bundle contains a extension block with an
+        element that is a byte string. Nothing in RFC 9171 precludes this, but
+        this is very different from how current BPv7, as well as previous BPv6,
+        extension blocks have been defined. Because this bad bundle results in
+        an overflow condition, a bundle like this will be treated like an
+        extension block that is too large for the buffer and discard the whole
+        bundle. The extension block starts at 0x85070201005bbb0e20b4ea001a000927c0....
+        The first byte in the extension block (0x85) indicates a CBOR array of
+        five elements of which the first four are numbers (0x07, 0x02, 0x01, 0x00)
+        but the fifth element is the byte string of length 27 (0x5bbb0e20b4ea001a000927c0...).
+"
+
+sleep 3
+
+echo
+echo "CONFIG: 2 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat "$N"
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+echo
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+# Start nodes.
+cd 2.ipn.udp
+./ionstart
+cd ../3.ipn.udp
+./ionstart
+
+# give the buffer time to clear
+echo "Sleeping for 30 seconds to clear buffer"
+sleep 30
+
+bpsink ipn:3.1 > $IONRECEIVEFILE &
+BPSINKPID=$!
+cd ../
+
+# pause for bpsink
+sleep 5
+
+echo "Sending bad bundle..."
+python3 corruption_send.py
+sleep 5
+
+echo "Make sure good bundle gets through..."
+cd 2.ipn.udp
+bpsource ipn:3.1 "Hello" &
+BPSOURCEPID=$!
+sleep 5
+
+# bpsink does not self-terminate, so send it SIGINT
+echo "Stopping bpsink..."
+kill -2 $BPSINKPID >/dev/null 2>&1
+sleep 1
+kill -9 $BPSINKPID >/dev/null 2>&1
+
+echo "Make sure bpsource stopped..."
+kill -2 $BPSOURCEPID >/dev/null 2>&1
+sleep 1
+kill -9 $BPSOURCEPID >/dev/null 2>&1
+
+cd ../3.ipn.udp
+# compare the sent message to the received one
+if cmp -s $IONEXPECTED $IONRECEIVEFILE; then
+    echo "No DoS!"
+    RETVAL=0
+else
+    echo "Test failure, bad bundle!"
+    RETVAL=1
+fi
+
+cd ..
+echo -e "\nStopping ION..."
+./cleanup
+echo -e "...test terminated.\n"
+exit $RETVAL

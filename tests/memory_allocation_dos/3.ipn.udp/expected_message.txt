@@ -1,0 +1,6 @@
+ION event: Payload delivered.
+	payload length is 5.
+	'Hello'
+BP reception interrupted.
+ION event: Reception interrupted.
+Stopping bpsink.
