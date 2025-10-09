@@ -70,6 +70,9 @@ int main(int argc, char **argv)
 	int rxLen;
 	char rxContent[sizeof(testLine)];
 
+	/* Parameter intentionally unused. */
+	(void)argc;
+
 	do_brs_startup();
 
 	/* Attach to ION */

@@ -237,6 +237,9 @@ void radixpt_rbt_query(PsmAddress rbt)
 
 static void	radixpt_rbt_key_del(PsmPartition wm, PsmAddress refData, void *arg)
 {
+	/* Parameter intentionally unused. */
+	(void)arg;
+
 	psm_free(wm, refData);
 }
 

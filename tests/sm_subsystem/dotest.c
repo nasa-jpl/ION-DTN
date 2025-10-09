@@ -23,6 +23,9 @@ static void reaper(int sig)
     int status;
     int pid;
 
+    /* Parameter intentionally unused. */
+    (void)sig;
+
     while ((pid=waitpid((pid_t)-1, &status, WNOHANG)) > 0) {
 		if (debug) fprintf(stderr,"Child process %d exited with status %u\n", pid, WEXITSTATUS(status));
 		reaper_exit_val_total += WEXITSTATUS(status);
@@ -54,7 +57,8 @@ static void wait_for_children() {
 
 static int check_unique_keys_guts(unsigned iterations, int sm_unique_key[], int num_uniq_keys)
 {
-	int l, k;
+	int k;
+	unsigned int l;
 	unsigned count_non_unique = 0;
 	unsigned key_min = 0xffffffff;
 	unsigned key_max = 0;
@@ -65,7 +69,7 @@ static int check_unique_keys_guts(unsigned iterations, int sm_unique_key[], int 
 		if (debug>1) if (l < 10) { printf("process %d (0x%08x) got unique key %d (0x%08x) (diff 0x%08lx)\n", getpid(), getpid(), NEW_unique_key, NEW_unique_key, (unsigned long) sm_unique_key[0] - (unsigned long) NEW_unique_key); fflush(stdout);}
 
 		for (k=0; k < num_uniq_keys; ++k) {
-			if (NEW_unique_key == sm_unique_key[k]) {
+			if (sm_unique_key[k] >= 0 && NEW_unique_key == (unsigned int)sm_unique_key[k]) {
 				printf("      ******  on loop iteration %d, process %d got unique key %u (0x%08x) again\n", 
 					l, getpid(), sm_unique_key[k], sm_unique_key[k]);
 				++count_non_unique;
@@ -189,7 +193,7 @@ int counter = 0;
 static int
 thread_adder_guts (int *pcounter, unsigned iterations)
 {
-	int iter;
+	unsigned int iter;
 	if (debug) fprintf (stderr,"I am a worker adding to shared variable at address %p (protected by semaphore %d)\n", pcounter, semnum);
 
     for (iter = 0; iter < iterations; ++iter)
@@ -215,8 +219,8 @@ thread_adder (void *parg)
 
 static int multi_thread_semtest()
 {
-    int i;
-    struct timeval time_begin, time_end;
+	unsigned int i;
+	struct timeval time_begin, time_end;
 	counter = 0;
 	#define MAXTHREADS 100
 	pthread_t threads[MAXTHREADS];	
@@ -423,8 +427,12 @@ int sem_errors()
 int do_churn(int p, unsigned iterations)
 {
 	int numsems_each = 10;
-	int i, s, d;
+	int s, d;
+	unsigned int i;
 	int semlist[numsems_each];
+
+	/* Parameter intentionally unused. */
+	(void)p;
 
 	for (i=0; i < iterations; ++i) {
 		for (s=0; s < numsems_each; ++s) {
@@ -511,7 +519,7 @@ int do_killm()
 }
 
 
-int main(int argc, char **argv)
+int main(void)
 {
 	int passed = 1;
 	time_t time_start, time_stop;

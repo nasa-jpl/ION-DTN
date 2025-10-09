@@ -17,7 +17,7 @@
 
 #include <platform.h> // for SEM_NSEMS_MAX
 
-int main(int argc, char **argv) {
+int main(void) {
 
 #if defined(linux)
 	// The only OS that this test currently supports is Linux.

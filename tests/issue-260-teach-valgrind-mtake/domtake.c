@@ -16,6 +16,9 @@ int main(int argc, char **argv)
 	char *stringToLeak = NULL;
 	char *stringToNotLeak = NULL;
 
+	/* Parameter intentionally unused. */
+	(void)argc;
+
     ionAttach();
 
 	stringToLeak = MTAKE(128);

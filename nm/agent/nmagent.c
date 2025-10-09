@@ -131,7 +131,16 @@ int	main(int argc, char *argv[])
 
     pthread_t ingest_thr;
     pthread_t rda_thr;
-    
+
+    /* Parameters intentionally unused. */
+    (void)a4;
+    (void)a5;
+    (void)a6;
+    (void)a7;
+    (void)a8;
+    (void)a9;
+    (void)a10;
+
     char ingest_thr_name[]  = "ingest_thread";
     char rda_thr_name[]     = "rda_thread";
     int rc;

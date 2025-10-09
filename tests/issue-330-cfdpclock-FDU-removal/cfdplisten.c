@@ -14,7 +14,7 @@ void dbgprintf(int level, const char *fmt, ...);
 
 
 /*Start Here*/
-int main(int argc, char **argv)
+int main(void)
 {
 
 	/*Initialize CFDP*/

@@ -155,6 +155,9 @@ int test_msg_grp_deserialize() { // TODO: Remove or finish this function
 
 int test_msg_grp(char *desc, char* cbor) {
    vecit_t it;
+
+   /* Parameter intentionally unused. */
+   (void)desc;
    
    // Setup
    init_group("TEST test_msg_grp");   
@@ -293,6 +296,9 @@ void msgs_encoding_tests() {
 
 int main(int argc, char **argv)
 {
+   /* Parameter intentionally unused. */
+   (void)argc;
+
    printf("Test Suite Built on %s %s\n", __DATE__, __TIME__);
 
    sleep(5);

@@ -59,6 +59,9 @@ rh_idx_t int_cb_hash_fn(void *table_in, void *key)
 
 void test_simple_cnt_cb(void *value, void *tag)
 {
+   /* Parameter intentionally unused. */
+   (void)value;
+
    int *cnt = (int*)tag;
    (*cnt)++;
 }

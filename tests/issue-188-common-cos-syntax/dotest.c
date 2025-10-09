@@ -14,7 +14,7 @@ static void run_cos_case(const char *token, BpAncillaryData desiredAncillaryData
 		BpCustodySwitch desiredCustodySwitch, int desiredPriority)
 {
 	//BpExtendedCOS	extendedCOS = { 0, 0, 0 };
-	BpAncillaryData	ancillaryData = { 0, 0, 0 };
+	BpAncillaryData	ancillaryData = {0};
 	BpCustodySwitch	custodySwitch;
 	int				priority;
 
@@ -32,7 +32,7 @@ static void run_cos_case(const char *token, BpAncillaryData desiredAncillaryData
 static void run_invalid_cos_case(const char *token)
 {
 	//BpExtendedCOS	extendedCOS = { 0, 0, 0 };
-BpAncillaryData	ancillaryData = { 0, 0, 0 };
+BpAncillaryData	ancillaryData = {0};
 	BpCustodySwitch	custodySwitch;
 	int				priority;
 
@@ -42,8 +42,11 @@ BpAncillaryData	ancillaryData = { 0, 0, 0 };
 
 int main(int argc, char **argv)
 {
-	//BpExtendedCOS desiredExtendedCOS = { 0, 0, 0 };
-	BpAncillaryData	desiredAncillaryData = { 0, 0, 0 };
+    /* Parameter intentionally unused. */
+    (void)argc;
+
+    //BpExtendedCOS desiredExtendedCOS = { 0, 0, 0 };
+    BpAncillaryData	desiredAncillaryData = {0};
 
     /* Only one arg: invalid args. */
     run_invalid_cos_case("0");
@@ -54,13 +57,13 @@ int main(int argc, char **argv)
     run_invalid_cos_case(" ");      /* Not even an int. */
     run_invalid_cos_case("");       /* Not even an int. */
 
-	/* Only two args: custody.priority . */
-	run_cos_case("0.2", desiredAncillaryData, NoCustodyRequested, 2);
-	run_cos_case("0.1", desiredAncillaryData, NoCustodyRequested, 1);
-	run_cos_case("0.0", desiredAncillaryData, NoCustodyRequested, 0);
-	run_cos_case("1.2", desiredAncillaryData, SourceCustodyRequired, 2);
-	run_cos_case("1.1", desiredAncillaryData, SourceCustodyRequired, 1);
-	run_cos_case("1.0", desiredAncillaryData, SourceCustodyRequired, 0);
+    /* Only two args: custody.priority . */
+    run_cos_case("0.2", desiredAncillaryData, NoCustodyRequested, 2);
+    run_cos_case("0.1", desiredAncillaryData, NoCustodyRequested, 1);
+    run_cos_case("0.0", desiredAncillaryData, NoCustodyRequested, 0);
+    run_cos_case("1.2", desiredAncillaryData, SourceCustodyRequired, 2);
+    run_cos_case("1.1", desiredAncillaryData, SourceCustodyRequired, 1);
+    run_cos_case("1.0", desiredAncillaryData, SourceCustodyRequired, 0);
 
     /* Custody must be 0 or 1, and priority must be 0, 1, or 2. */
     run_invalid_cos_case("2.0");

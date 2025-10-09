@@ -13,10 +13,17 @@ const char *get_configs_path_prefix()
 	static char path_prefix[256] = "";
     const char * cfgroot = getenv("CONFIGSROOT");
 	
-    if(cfgroot) {
-        fail_unless(snprintf(path_prefix, sizeof(path_prefix), "%s/", cfgroot)
-			 < sizeof(path_prefix));
-    }
+	if(cfgroot) {
+		int neededSize;
+		neededSize = snprintf(path_prefix, sizeof(path_prefix), "%s/", cfgroot);
+
+		/* 
+		 * Check for snprintf errors. A return value < 0 is an error.
+		 * A return value >= sizeof(buffer) means the output was truncated.
+		 */
+		fail_unless(neededSize >= 0 && (size_t)neededSize < sizeof(path_prefix),
+					"snprintf failed or truncated the config path prefix");
+	}
 	return path_prefix;
 }
 

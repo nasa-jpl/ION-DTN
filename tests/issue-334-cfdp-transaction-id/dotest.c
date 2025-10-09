@@ -36,6 +36,9 @@ int main(int argc, char **argv)
 	uvast tid;
 	int ret;
 
+	/* Parameter intentionally unused. */
+	(void)argc;
+
 	/* Start ION */
 	printf("Starting ION...\n");
 	_xadmin("ionadmin", "", "cfdp.ipn.bp.ltp.udp/config.ionrc");

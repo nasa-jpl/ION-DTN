@@ -19,6 +19,10 @@ void _fail_unless(int result, const char *file,
 {
     const char *msg;
 
+    /* Parameters intentionally unused. */
+    (void)file;
+    (void)line;
+
     if(!result) {
         va_list ap;
 
