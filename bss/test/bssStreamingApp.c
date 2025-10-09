@@ -46,6 +46,9 @@ static void	handleQuit(int signum)
 {
 	BptestState	*state;
 
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGINT, handleQuit);
 	PUTS("BP reception interrupted.");
 	state = _bptestState(NULL);
@@ -56,7 +59,7 @@ static void	handleQuit(int signum)
 static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 {
 	int		priority = 0;
-	BpAncillaryData	ancillaryData = { 0, 0, 0 };
+	BpAncillaryData	ancillaryData = {0};
 			/*	Note: flag value set to 0 instead of 10.
 			 *  No longer mandates streaming CL.	*/
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
@@ -207,10 +210,16 @@ int	main(int argc, char **argv)
 	{
 	case 4:
 		classOfService = argv[3];
+		/* FALLTHROUGH */
+
 	case 3:
 		destEid = argv[2];
+		/* FALLTHROUGH */
+
 	case 2:
 		ownEid = argv[1];
+		/* FALLTHROUGH */
+		
 	default:
 		break;
 	}

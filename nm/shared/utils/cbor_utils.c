@@ -101,7 +101,9 @@ int cut_get_cbor_str_ptr(QCBORDecodeContext *it, char *dst, size_t length)
 int cut_enc_bytes(QCBOREncodeContext *encoder, uint8_t *buf, size_t len)
 {
    CHKUSR(encoder,AMP_FAIL);
-   if(len >= QCBOR_MAX_ITEMS_IN_ARRAY - encoder->nesting.pCurrentNesting->uCount) {
+
+   int remaining_space = QCBOR_MAX_ITEMS_IN_ARRAY - encoder->nesting.pCurrentNesting->uCount;
+   if(remaining_space < 0 || len >= (size_t)remaining_space) {
       return AMP_FAIL; // QCBOR_ERR_ARRAY_TOO_LONG;
    }
    

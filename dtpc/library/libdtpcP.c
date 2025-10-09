@@ -93,6 +93,9 @@ int	raiseVSap(Sdr sdr, Object elt, DtpcVdb *vdb, unsigned int topicID)
 	PsmAddress	addr;
 	PsmAddress	vsapElt;
 
+	/* Parameter intentionally unused. */
+	(void)sdr;
+
 	addr = psm_malloc(wm, sizeof(VSap));
 	if (addr == 0)
 	{
@@ -564,6 +567,9 @@ static Object	insertToTopic(unsigned int topicID, Object outAduObj,
 	Sdr		sdr = getIonsdr();
 	time_t		currentTime;
 
+	/* Parameter intentionally unused. */
+	(void)newRecord;
+
 	sdr_stage(sdr, (char *) &outAdu, outAduObj, sizeof(OutAdu));
 	for (elt = sdr_list_first(sdr, outAdu.topics); elt;
 		elt = sdr_list_next(sdr, elt))
@@ -835,8 +841,8 @@ int	insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
 	 *	requested for this profile) then finish aggregation
 	 *	and create an empty outbound ADU.			*/
 
-	if (totalLength >= vprofile->aggrSizeLimit
-	|| vprofile->aggrTimeLimit == 0)
+	if ((totalLength >= 0 && (unsigned int)totalLength >= vprofile->aggrSizeLimit)
+		|| vprofile->aggrTimeLimit == 0)
 	{
 		if (createAdu(vprofile, outAduObj, outAduElt) < 0)
 		{
@@ -915,6 +921,9 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 	Object			extent;
 				OBJ_POINTER(Topic, topic);
 				OBJ_POINTER(PayloadRecord, payloadRec);
+
+	/* Parameter intentionally unused. */
+	(void)outAduElt;
 
 	/*	The code to create and give the aggregated
 	 *	zco to bp starts here.					*/
@@ -1270,6 +1279,9 @@ int	sendAdu(BpSAP sap)
 
 static void	deleteEltObjContent(Sdr sdr, Object elt, void *arg)
 {
+	/* Parameter intentionally unused. */
+	(void)arg;
+
 	sdr_free(sdr, sdr_list_data(sdr, elt));
 }
 
@@ -1532,7 +1544,7 @@ int	addProfile(unsigned int profileID, unsigned int maxRtx,
 {
 	Sdr		sdr = getIonsdr();
 	DtpcVdb		*vdb = getDtpcVdb();
-	BpAncillaryData	ancillaryData = {0, 0, 0};
+	BpAncillaryData	ancillaryData = {0};
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	Profile		*vprofile;
 	Profile		profile;
@@ -1777,6 +1789,9 @@ static int	insertAtPlaceholder(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
 	Scalar	tempScalar;
 	int	result = 0;
 
+	/* Parameter intentionally unused. */
+	(void)inAggr;
+
 	/*	If the PDU following the placeholder is a true PDU,
 	 *	then we can simply transform the placeholder into the
 	 *	missing ADU by setting its aggregatedZCO.
@@ -1904,6 +1919,9 @@ static int	insertAduAtEnd(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
 	InAdu		inAdu;
 	Object		aduElt;
 	DtpcEvent	event;
+
+	/* Parameter intentionally unused. */
+	(void)profile;
 
 	/*	Append new ADU to end of aggregator's inAdus list,
 	 *	preceded (as needed) by a placeholder for all prior
@@ -2603,7 +2621,7 @@ static int	parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
 		remainingLength = payloadLength;
 		while (remainingLength > 0)
 		{
-			if (remainingLength <= *bytesUnparsed)
+			if (remainingLength >= 0 && (unsigned int)remainingLength <= *bytesUnparsed)
 			{
 				/*	Remainder of payload is in
 				 *	the buffer.			*/
@@ -2659,7 +2677,7 @@ for DlvPayload.", NULL);
 				bytesReceived = zco_receive_source(sdr, reader,
 						buflen, (char *) *cursor);
 				*bytesUnparsed = bytesReceived;
-				if (*bytesUnparsed < remainingLength)
+				if (remainingLength >= 0 && *bytesUnparsed < (unsigned int)remainingLength)
 				{
 					writeMemoNote("[?] DTPC user data \
 item truncated", itoa((*bytesUnparsed) - remainingLength));
@@ -2932,7 +2950,7 @@ int	sendAck(BpSAP sap, unsigned int profileID, Scalar seqNum,
 	Object		addr;
 	Object		ackZco;
 	Object		newBundle;
-	BpAncillaryData	ancillaryData = { 0, 0, 0};
+	BpAncillaryData	ancillaryData = {0};
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	Profile		*profile;
 	time_t		currentTime;

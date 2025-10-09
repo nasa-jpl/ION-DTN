@@ -64,24 +64,36 @@ void dtn_ion_ipnadmin_cleanup()
 
 tnv_t *dtn_ion_ipnadmin_meta_name(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("ion_ipn_admin");
 }
 
 
 tnv_t *dtn_ion_ipnadmin_meta_namespace(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("DTN/ION/ipnadmin");
 }
 
 
 tnv_t *dtn_ion_ipnadmin_meta_version(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("v0.0");
 }
 
 
 tnv_t *dtn_ion_ipnadmin_meta_organization(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("JHUAPL");
 }
 
@@ -246,6 +258,9 @@ tbl_t *dtn_ion_ipnadmin_tblt_plans(ari_t *id)
 tnv_t *dtn_ion_ipnadmin_get_ion_version(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_ion_version BODY
@@ -271,6 +286,9 @@ tnv_t *dtn_ion_ipnadmin_ctrl_exit_add(eid_t *def_mgr, tnvc_t *parms, int8_t *sta
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_exit_add BODY
@@ -315,6 +333,9 @@ tnv_t *dtn_ion_ipnadmin_ctrl_exit_change(eid_t *def_mgr, tnvc_t *parms, int8_t *
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_exit_change BODY
@@ -357,6 +378,9 @@ tnv_t *dtn_ion_ipnadmin_ctrl_exit_del(eid_t *def_mgr, tnvc_t *parms, int8_t *sta
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_exit_del BODY
@@ -395,6 +419,9 @@ tnv_t *dtn_ion_ipnadmin_ctrl_plan_add(eid_t *def_mgr, tnvc_t *parms, int8_t *sta
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_plan_add BODY
@@ -431,6 +458,9 @@ tnv_t *dtn_ion_ipnadmin_ctrl_plan_change(eid_t *def_mgr, tnvc_t *parms, int8_t *
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_plan_change BODY
@@ -468,6 +498,9 @@ tnv_t *dtn_ion_ipnadmin_ctrl_plan_del(eid_t *def_mgr, tnvc_t *parms, int8_t *sta
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_plan_del BODY

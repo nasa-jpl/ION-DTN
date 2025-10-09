@@ -41,15 +41,21 @@ static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 	return attendant;
 }
 
-void handleQuit(int sig)
+void handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	needShutdown = 1;
 	bp_interrupt(sap);
 	ionPauseAttendant(_attendant(NULL));
 }
 
-void sendDefault(int sig)
+void sendDefault(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	needSendDefault = 1;
 	bp_interrupt(sap);
 	ionPauseAttendant(_attendant(NULL));
@@ -198,7 +204,7 @@ int sendStats(char *destEid, char *buffer, size_t len)
 	if(rc < 0) return -1;
 	bytesWritten += rc;
 
-	for(i = 0; bytesWritten < len && i < 8; i++) {
+	for(i = 0; bytesWritten >= 0 && (size_t)bytesWritten < len && i < 8; i++) {
 		rc = appendStateStats(buffer + bytesWritten, len - bytesWritten, i);
 		if(rc < 0) return -1;
 		bytesWritten += rc;

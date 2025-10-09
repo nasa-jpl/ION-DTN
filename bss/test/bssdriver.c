@@ -23,7 +23,7 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 			char *svcClass)
 {
 	int		priority = 0;
-	BpAncillaryData	ancillaryData = { 0, 0, 0 };
+	BpAncillaryData	ancillaryData = {0};
 			/*	Note: flag value changed from 10 (previous) to 0.
 			 *  Does not require streaming protocol. */
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
@@ -151,12 +151,20 @@ int	main(int argc, char **argv)
 	{
 	case 5:
 		classOfService = argv[4];
+		/* FALLTHROUGH */
+
 	case 4:
 		nbrOfBundles = strtol(argv[3], NULL, 0);
+		/* FALLTHROUGH */
+
 	case 3:
 		destEid = argv[2];
+		/* FALLTHROUGH */
+
 	case 2:
 		ownEid = argv[1];
+		/* FALLTHROUGH */
+		
 	default:
 		break;
 	}

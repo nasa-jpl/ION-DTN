@@ -388,7 +388,7 @@ Not sending beacon.", nDestination->addr.ip, nDestination->addr.port);
 static int	joinMulticastGroups(Lyst listenAddresses, const int socket,
 			const char *address)
 {
-	int		i;
+	size_t 		i;
 	LystElt		listenAddrElt;
 	NetAddress	*listenAddr;
 	struct ip_mreq	mcReq;
@@ -431,7 +431,7 @@ static int	*setUpListenSockets(Lyst listenAddresses,
 			int enabledBroadcastReceiving, int *numListenSockets)
 {
 	int			receiveBroadcastSockOpt;
-	int			i;
+	size_t 			i;
 	int			numListenAddrs;
 	int			listenSocket;
 	int			*listenSockets;
@@ -1041,7 +1041,7 @@ void	*expireNeighbors(void *attr)
 {
 	char		buffer[120];
 	IPNDCtx		*ctx = (IPNDCtx *)attr;
-	int		i;
+	size_t 		i;
 	LystElt		nbOld, nbElt, destinationElt;
 	Destination	*dest;
 	IpndNeighbor	*nb;

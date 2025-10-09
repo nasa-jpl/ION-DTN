@@ -471,7 +471,19 @@ int generateNewFilename(Metadata *metadata)
     char baseName[256], extension[256] = "", newFilename[512];
     if (dot) 
     {
-        int baseLength = (dot - originalFilename < sizeof(baseName) - 1) ? dot - originalFilename : sizeof(baseName) - 1;
+        size_t      diff;
+        size_t      maxLen = sizeof(baseName) - 1;
+
+        if (dot > originalFilename)
+        {
+            diff = dot - originalFilename;
+        }
+        else
+        {
+            diff = 0; // This implies the filename starts with '.', e.g., ".my_file"
+        }
+
+        int baseLength = (diff < maxLen) ? diff : maxLen;
         strncpy(baseName, originalFilename, baseLength);
         baseName[baseLength] = '\0';
         strncpy(extension, dot, sizeof(extension) - 1);  //copy the extension including the dot
@@ -498,7 +510,7 @@ int generateNewFilename(Metadata *metadata)
     do 
     {
         neededSize = snprintf(newFilename, sizeof(newFilename), "%s_%d%s", baseName, count++, extension);
-        if (neededSize >= sizeof(newFilename) || neededSize < 0) 
+        if (neededSize < 0 || (size_t)neededSize >= sizeof(newFilename))
         {
             return -1; //snprintf error or potential truncation
         }

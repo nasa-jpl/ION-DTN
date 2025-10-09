@@ -80,24 +80,36 @@ void dtn_ltp_agent_cleanup()
 
 tnv_t *dtn_ltp_agent_meta_name(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("ltp_agent");
 }
 
 
 tnv_t *dtn_ltp_agent_meta_namespace(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("DTN/ltp_agent");
 }
 
 
 tnv_t *dtn_ltp_agent_meta_version(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("v0.0");
 }
 
 
 tnv_t *dtn_ltp_agent_meta_organization(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("JHUAPL");
 }
 
@@ -1349,6 +1361,9 @@ tnv_t *dtn_ltp_agent_ctrl_reset(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_reset BODY

@@ -408,6 +408,9 @@ static long	addDataRecord(int fileD, off_t datOffset, BpTimestamp time,
 {
 	dataRecord data;
 
+	/* Parameter intentionally unused. */
+	(void)datOffset;
+
 	data.crtnTime = time;
 	data.pLen = payloadLength;
 
@@ -1103,6 +1106,10 @@ static int	checkDb(int dat, int lst, int tbl)
 	int		result;
 	time_t		entrySeconds;
 	time_t		dataSeconds;
+
+	/* Parameter intentionally unused. */
+	(void)tbl;
+
 
 	if (_lockMutex(1) == -1)
 	{

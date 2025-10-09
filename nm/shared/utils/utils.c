@@ -231,7 +231,7 @@ char *utils_hex_to_string(uint8_t *buffer, uint32_t size)
     uint32_t char_size = 0;
 
     char temp[3];
-    int i = 0;
+    uint32_t  i = 0;
     int r = 0;
 
     AMP_DEBUG_ENTRY("utils_hex_to_string","(%x,%d)",
@@ -290,7 +290,7 @@ char *utils_hex_to_string(uint8_t *buffer, uint32_t size)
 
 void utils_print_hex(unsigned char *s, uint32_t len)
 {
-	int i;
+	uint32_t  i;
 
 	printf("0x");
 	for(i = 0; i < len; i++)

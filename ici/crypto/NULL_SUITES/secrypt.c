@@ -45,7 +45,14 @@ int crypt_and_hash_buffer(
     char *my_key
 )
 {
-    int exit_code = 0; //success     
+    int exit_code = 0; //success
+
+    /* Parameters intentionally unused. */
+    (void)mode;
+    (void)personalization_string;
+    (void)cipher;
+    (void)md;
+    (void)my_key;
 
     /* allocate memory for the output buffer (if not already allocated) */
     if (*my_output_buffer == NULL) 
@@ -91,6 +98,13 @@ int crypt_and_hash_file(
 ) 
 {
    int exit_code = 0; //success
+
+    /* Parameters intentionally unused. */
+    (void)my_mode;
+    (void)personalization_string;
+    (void)cipher;
+    (void)md;
+    (void)my_key;
 
    /* open input file */
     FILE *fin = fopen(file_in, "rb"); 

@@ -99,12 +99,12 @@ static void	initializeTcc(int tokenCount, char **tokens)
 	{
 	case 4:
 		R = atof(tokens[3]);
+		/* FALLTHROUGH */
 
-		/*	Intentional fall-through to next case.		*/
 	case 3:
 		K = atoi(tokens[2]);
-
-		/*	Intentional fall-through to next case.		*/
+		/* FALLTHROUGH */
+	
 	case 2:
 		numAuths = atoi(tokens[1]);
 		break;
@@ -159,7 +159,7 @@ static void	manageAuthority(int tokenCount, char **tokens)
 
 	CHKVOID(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &db, dbobj, sizeof(TccDB));
-	if (idx < 0 || idx >= sdr_list_length(sdr, db.authorities))
+	if (idx < 0 || (size_t)idx >= sdr_list_length(sdr, db.authorities))
 	{
 		sdr_exit_xn(sdr);
 		putErrmsg("authority index value invalid.", tokens[2]);
@@ -267,6 +267,9 @@ static int	processLine(char *line, int lineLength)
 	char		buffer[80];
 	struct timeval	done_time;
 	struct timeval	cur_time;
+
+	/* Parameter intentionally unused. */
+	(void)lineLength;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)

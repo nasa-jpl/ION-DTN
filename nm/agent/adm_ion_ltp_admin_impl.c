@@ -66,24 +66,36 @@ void dtn_ion_ltpadmin_cleanup()
 
 tnv_t *dtn_ion_ltpadmin_meta_name(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("ion_ltp_admin");
 }
 
 
 tnv_t *dtn_ion_ltpadmin_meta_namespace(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("DTN/ION/ltpadmin");
 }
 
 
 tnv_t *dtn_ion_ltpadmin_meta_version(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("v0.0");
 }
 
 
 tnv_t *dtn_ion_ltpadmin_meta_organization(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("JHUAPL");
 }
 
@@ -174,6 +186,9 @@ tbl_t *dtn_ion_ltpadmin_tblt_spans(ari_t *id)
 tnv_t *dtn_ion_ltpadmin_get_ion_version(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_ion_version BODY
@@ -205,6 +220,9 @@ tnv_t *dtn_ion_ltpadmin_ctrl_manage_heap(eid_t *def_mgr, tnvc_t *parms, int8_t *
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_manage_heap BODY
@@ -255,6 +273,9 @@ tnv_t *dtn_ion_ltpadmin_ctrl_manage_max_ber(eid_t *def_mgr, tnvc_t *parms, int8_
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_manage_max_ber BODY
@@ -317,6 +338,9 @@ tnv_t *dtn_ion_ltpadmin_ctrl_manage_own_queue_time(eid_t *def_mgr, tnvc_t *parms
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_manage_own_queue_time BODY
@@ -370,6 +394,10 @@ tnv_t *dtn_ion_ltpadmin_ctrl_manage_screening(eid_t *def_mgr, tnvc_t *parms, int
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameters intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_manage_screening BODY
@@ -395,6 +423,9 @@ tnv_t *dtn_ion_ltpadmin_ctrl_span_add(eid_t *def_mgr, tnvc_t *parms, int8_t *sta
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_span_add BODY
@@ -438,6 +469,9 @@ tnv_t *dtn_ion_ltpadmin_ctrl_span_change(eid_t *def_mgr, tnvc_t *parms, int8_t *
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_span_change BODY
@@ -486,6 +520,9 @@ tnv_t *dtn_ion_ltpadmin_ctrl_span_del(eid_t *def_mgr, tnvc_t *parms, int8_t *sta
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_span_del BODY
@@ -515,6 +552,10 @@ tnv_t *dtn_ion_ltpadmin_ctrl_stop(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_stop BODY
@@ -551,6 +592,9 @@ tnv_t *dtn_ion_ltpadmin_ctrl_watch_set(eid_t *def_mgr, tnvc_t *parms, int8_t *st
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_watch_set BODY
@@ -563,7 +607,7 @@ tnv_t *dtn_ion_ltpadmin_ctrl_watch_set(eid_t *def_mgr, tnvc_t *parms, int8_t *st
 	LtpDB	db;
 	char *name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
 	LtpVdb	*vdb = getLtpVdb();
-	int i;
+	size_t i;
 
 	*status = CTRL_SUCCESS;
 

@@ -15,6 +15,9 @@
 
 static void	interruptThread(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGTERM, interruptThread);
 	ionKillMainThread("tcpbsi");
 }
@@ -128,7 +131,7 @@ static void	*receiveBlocks(void *parm)
 		case -1:
 			putErrmsg("Can't receive block.", NULL);
 
-			/*	Intentional fall-through to next case.	*/
+			/* FALLTHROUGH */
 
 		case 0:				/*	Normal stop.	*/
 			threadRunning = 0;

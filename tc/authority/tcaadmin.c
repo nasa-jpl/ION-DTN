@@ -118,11 +118,11 @@ static void	initializeTca(int tokenCount, char **tokens)
 	case 6:
 		R = atof(tokens[5]);
 
-		/*	Intentional fall-through to next case.		*/
+		/* FALLTHROUGH */
 	case 5:
 		K = atoi(tokens[4]);
 
-		/*	Intentional fall-through to next case.		*/
+		/* FALLTHROUGH */
 	case 4:
 		numAuths = atoi(tokens[3]);
 		recordsGroupNbr = atoi(tokens[2]);
@@ -337,7 +337,7 @@ static void	executeEnable(int tokenCount, char **tokens)
 
 	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &db, dbobj, sizeof(TcaDB));
-	if (idx < 0 || idx >= sdr_list_length(sdr, db.authorities))
+	if (idx < 0 || (size_t)idx >= sdr_list_length(sdr, db.authorities))
 	{
 		putErrmsg("authority index value invalid.", tokens[1]);
 		return;
@@ -389,7 +389,7 @@ static void	executeDisable(int tokenCount, char **tokens)
 	idx = atoi(tokens[1]);
 	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &db, dbobj, sizeof(TcaDB));
-	if (idx < 0 || idx >= sdr_list_length(sdr, db.authorities))
+	if (idx < 0 || (size_t)idx >= sdr_list_length(sdr, db.authorities))
 	{
 		putErrmsg("authority index value invalid.", tokens[1]);
 		return;
@@ -558,6 +558,9 @@ static void	executeList(int tokenCount, char **tokens)
 	char		nbrBuf[FQN_MAX_LENGTH];
 	char		buffer[32];
 
+	/* Parameter intentionally unused. */
+	(void)tokens;
+
 	if (tokenCount != 1)
 	{
 		SYNTAX_ERROR;
@@ -664,6 +667,9 @@ static int	processLine(char *line, int lineLength)
 	char		buffer[80];
 	struct timeval	done_time;
 	struct timeval	cur_time;
+
+	/* Parameter intentionally unused. */
+	(void)lineLength;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)

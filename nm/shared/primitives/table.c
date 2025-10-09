@@ -495,7 +495,7 @@ int tblt_check_row(tblt_t *tblt, tnvc_t *row)
 	CHKZERO(row);
 
 	max = vec_num_entries(tblt->cols);
-	if(tnvc_size(row) != max)
+	if(tnvc_size(row) < 0 || (size_t)tnvc_size(row) != max)
 	{
 		return 0;
 	}

@@ -126,7 +126,7 @@ tnv_t *amp_agent_binary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e re
 		return NULL;
 	}
 
-	result->type = (result_type == AMP_TYPE_UNK) ? gValNumCvtResult[lval->type - AMP_TYPE_INT][rval->type - AMP_TYPE_INT] : result_type;
+	result->type = (result_type == AMP_TYPE_UNK) ? (amp_type_e)gValNumCvtResult[lval->type - AMP_TYPE_INT][rval->type - AMP_TYPE_INT] : result_type;
 
 	if(result->type == AMP_TYPE_UNK)
 	{
@@ -275,7 +275,7 @@ tnv_t *adm_agent_unary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e res
 		return NULL;
 	}
 
-	result->type = (result_type == AMP_TYPE_UNK) ? gValNumCvtResult[lval->type - AMP_TYPE_INT][lval->type - AMP_TYPE_INT] : result_type;
+	result->type = (result_type == AMP_TYPE_UNK) ? (amp_type_e)gValNumCvtResult[lval->type - AMP_TYPE_INT][lval->type - AMP_TYPE_INT] : result_type;
 
 	if(result->type == AMP_TYPE_UNK)
 	{
@@ -619,24 +619,36 @@ void amp_agent_cleanup()
 
 tnv_t *amp_agent_meta_name(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("amp_agent");
 }
 
 
 tnv_t *amp_agent_meta_namespace(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("Amp/Agent");
 }
 
 
 tnv_t *amp_agent_meta_version(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("v3.1");
 }
 
 
 tnv_t *amp_agent_meta_organization(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("JHUAPL");
 }
 
@@ -644,6 +656,9 @@ tnv_t *amp_agent_meta_organization(tnvc_t *parms)
 /* Constant Functions */
 tnv_t *amp_agent_get_amp_epoch(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_uvast(1504915200);
 }
 
@@ -850,6 +865,10 @@ tbl_t *amp_agent_tblt_tblts(ari_t *id)
 tnv_t *amp_agent_get_num_rpt_tpls(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_rpt_tpls BODY
@@ -872,6 +891,10 @@ tnv_t *amp_agent_get_num_rpt_tpls(tnvc_t *parms)
 tnv_t *amp_agent_get_num_tbl_tpls(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_tbl_tpls BODY
@@ -895,6 +918,10 @@ tnv_t *amp_agent_get_num_tbl_tpls(tnvc_t *parms)
 tnv_t *amp_agent_get_sent_reports(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_sent_reports BODY
@@ -918,6 +945,10 @@ tnv_t *amp_agent_get_sent_reports(tnvc_t *parms)
 tnv_t *amp_agent_get_num_tbr(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_tbr BODY
@@ -941,6 +972,10 @@ tnv_t *amp_agent_get_num_tbr(tnvc_t *parms)
 tnv_t *amp_agent_get_run_tbr(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_run_tbr BODY
@@ -964,6 +999,10 @@ tnv_t *amp_agent_get_run_tbr(tnvc_t *parms)
 tnv_t *amp_agent_get_num_sbr(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_sbr BODY
@@ -987,6 +1026,10 @@ tnv_t *amp_agent_get_num_sbr(tnvc_t *parms)
 tnv_t *amp_agent_get_run_sbr(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_run_sbr BODY
@@ -1010,6 +1053,10 @@ tnv_t *amp_agent_get_run_sbr(tnvc_t *parms)
 tnv_t *amp_agent_get_num_const(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_const BODY
@@ -1033,6 +1080,10 @@ tnv_t *amp_agent_get_num_const(tnvc_t *parms)
 tnv_t *amp_agent_get_num_var(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_var BODY
@@ -1056,6 +1107,10 @@ tnv_t *amp_agent_get_num_var(tnvc_t *parms)
 tnv_t *amp_agent_get_num_macros(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_macros BODY
@@ -1078,6 +1133,10 @@ tnv_t *amp_agent_get_num_macros(tnvc_t *parms)
 tnv_t *amp_agent_get_run_macros(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_run_macros BODY
@@ -1099,6 +1158,10 @@ tnv_t *amp_agent_get_run_macros(tnvc_t *parms)
 tnv_t *amp_agent_get_num_controls(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_controls BODY
@@ -1121,6 +1184,10 @@ tnv_t *amp_agent_get_num_controls(tnvc_t *parms)
 tnv_t *amp_agent_get_run_controls(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_run_controls BODY
@@ -1143,6 +1210,10 @@ tnv_t *amp_agent_get_run_controls(tnvc_t *parms)
 tnv_t *amp_agent_get_cur_time(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_cur_time BODY
@@ -1173,6 +1244,10 @@ tnv_t *amp_agent_ctrl_add_var(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_add_var BODY
@@ -1235,6 +1310,10 @@ tnv_t *amp_agent_ctrl_del_var(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_del_var BODY
@@ -1283,6 +1362,10 @@ tnv_t *amp_agent_ctrl_add_rptt(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_add_rptt BODY
@@ -1338,6 +1421,10 @@ tnv_t *amp_agent_ctrl_del_rptt(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_del_rptt BODY
@@ -1389,6 +1476,10 @@ tnv_t *amp_agent_ctrl_desc_rptt(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_desc_rptt BODY
@@ -1444,6 +1535,10 @@ tnv_t *amp_agent_ctrl_gen_rpts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_gen_rpts BODY
@@ -1529,6 +1624,10 @@ tnv_t *amp_agent_ctrl_gen_tbls(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_gen_tbls BODY
@@ -1614,6 +1713,10 @@ tnv_t *amp_agent_ctrl_add_macro(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_add_macro BODY
@@ -1678,6 +1781,10 @@ tnv_t *amp_agent_ctrl_del_macro(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_del_macro BODY
@@ -1729,6 +1836,10 @@ tnv_t *amp_agent_ctrl_desc_macro(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_desc_macro BODY
@@ -1783,6 +1894,10 @@ tnv_t *amp_agent_ctrl_add_tbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_add_tbr BODY
@@ -1852,6 +1967,10 @@ tnv_t *amp_agent_ctrl_add_sbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_add_sbr BODY
@@ -1921,6 +2040,10 @@ tnv_t *amp_agent_ctrl_del_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_del_rule BODY
@@ -1970,6 +2093,10 @@ tnv_t *amp_agent_ctrl_desc_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_desc_rule BODY
@@ -2024,6 +2151,10 @@ tnv_t *amp_agent_ctrl_store_var(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_store_var BODY
@@ -2070,6 +2201,10 @@ tnv_t *amp_agent_ctrl_reset_counts(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameters intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_reset_counts BODY
@@ -3244,6 +3379,10 @@ tnv_t *amp_agent_op_bitshiftright(vector_t *stack)
 tnv_t *amp_agent_op_stor(vector_t *stack)
 {
 	tnv_t *result = NULL;
+
+	/* Parameters intentionally unused. */
+	(void)stack;
+	
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_stor BODY

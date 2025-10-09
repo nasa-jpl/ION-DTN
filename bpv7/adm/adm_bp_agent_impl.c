@@ -68,24 +68,36 @@ void dtn_bp_agent_cleanup()
 
 tnv_t *dtn_bp_agent_meta_name(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("bp_agent");
 }
 
 
 tnv_t *dtn_bp_agent_meta_namespace(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("DTN/bp_agent");
 }
 
 
 tnv_t *dtn_bp_agent_meta_version(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("v0.1");
 }
 
 
 tnv_t *dtn_bp_agent_meta_organization(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("JHUAPL");
 }
 
@@ -101,6 +113,9 @@ tnv_t *dtn_bp_agent_meta_organization(tnvc_t *parms)
 tnv_t *dtn_bp_agent_get_bp_node_id(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_bp_node_id BODY
@@ -126,6 +141,9 @@ tnv_t *dtn_bp_agent_get_bp_node_id(tnvc_t *parms)
 tnv_t *dtn_bp_agent_get_bp_node_version(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_bp_node_version BODY
@@ -151,6 +169,9 @@ tnv_t *dtn_bp_agent_get_bp_node_version(tnvc_t *parms)
 tnv_t *dtn_bp_agent_get_available_storage(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_available_storage BODY
@@ -177,6 +198,10 @@ tnv_t *dtn_bp_agent_get_available_storage(tnvc_t *parms)
 tnv_t *dtn_bp_agent_get_last_reset_time(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_last_reset_time BODY
@@ -208,6 +233,8 @@ tnv_t *dtn_bp_agent_get_last_reset_time(tnvc_t *parms)
 tnv_t *dtn_bp_agent_get_num_registrations(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_registrations BODY
@@ -233,6 +260,9 @@ tnv_t *dtn_bp_agent_get_num_registrations(tnvc_t *parms)
 tnv_t *dtn_bp_agent_get_num_pend_fwd(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_pend_fwd BODY
@@ -258,6 +288,9 @@ tnv_t *dtn_bp_agent_get_num_pend_fwd(tnvc_t *parms)
 tnv_t *dtn_bp_agent_get_num_pend_dis(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_pend_dis BODY
@@ -283,6 +316,9 @@ tnv_t *dtn_bp_agent_get_num_pend_dis(tnvc_t *parms)
 tnv_t *dtn_bp_agent_get_num_in_cust(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_in_cust BODY
@@ -308,6 +344,9 @@ tnv_t *dtn_bp_agent_get_num_in_cust(tnvc_t *parms)
 tnv_t *dtn_bp_agent_get_num_pend_reassembly(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_pend_reassembly BODY
@@ -507,6 +546,9 @@ tnv_t *dtn_bp_agent_get_src_bytes_by_priority(tnvc_t *parms)
 tnv_t *dtn_bp_agent_get_num_fragmented_bundles(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_fragmented_bundles BODY
@@ -533,6 +575,9 @@ tnv_t *dtn_bp_agent_get_num_fragmented_bundles(tnvc_t *parms)
 tnv_t *dtn_bp_agent_get_num_fragments_produced(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_fragments_produced BODY
@@ -624,6 +669,9 @@ tnv_t *dtn_bp_agent_get_num_failed_by_reason(tnvc_t *parms)
 tnv_t *dtn_bp_agent_get_num_bundles_deleted(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_bundles_deleted BODY
@@ -649,6 +697,9 @@ tnv_t *dtn_bp_agent_get_num_bundles_deleted(tnvc_t *parms)
 tnv_t *dtn_bp_agent_get_failed_custody_bundles(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_failed_custody_bundles BODY
@@ -674,6 +725,9 @@ tnv_t *dtn_bp_agent_get_failed_custody_bundles(tnvc_t *parms)
 tnv_t *dtn_bp_agent_get_failed_custody_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_failed_custody_bytes BODY
@@ -699,6 +753,9 @@ tnv_t *dtn_bp_agent_get_failed_custody_bytes(tnvc_t *parms)
 tnv_t *dtn_bp_agent_get_failed_forward_bundles(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_failed_forward_bundles BODY
@@ -724,6 +781,9 @@ tnv_t *dtn_bp_agent_get_failed_forward_bundles(tnvc_t *parms)
 tnv_t *dtn_bp_agent_get_failed_forward_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_failed_forward_bytes BODY
@@ -749,6 +809,9 @@ tnv_t *dtn_bp_agent_get_failed_forward_bytes(tnvc_t *parms)
 tnv_t *dtn_bp_agent_get_abandoned_bundles(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_abandoned_bundles BODY
@@ -774,6 +837,9 @@ tnv_t *dtn_bp_agent_get_abandoned_bundles(tnvc_t *parms)
 tnv_t *dtn_bp_agent_get_abandoned_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_abandoned_bytes BODY
@@ -799,6 +865,9 @@ tnv_t *dtn_bp_agent_get_abandoned_bytes(tnvc_t *parms)
 tnv_t *dtn_bp_agent_get_discarded_bundles(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_discarded_bundles BODY
@@ -824,6 +893,9 @@ tnv_t *dtn_bp_agent_get_discarded_bundles(tnvc_t *parms)
 tnv_t *dtn_bp_agent_get_discarded_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_discarded_bytes BODY
@@ -849,6 +921,9 @@ tnv_t *dtn_bp_agent_get_discarded_bytes(tnvc_t *parms)
 tnv_t *dtn_bp_agent_get_endpoint_names(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_endpoint_names BODY
@@ -988,6 +1063,10 @@ tnv_t *dtn_bp_agent_ctrl_reset_all_counts(eid_t *def_mgr, tnvc_t *parms, int8_t 
 
 	bpnm_disposition_reset();
 	*status = CTRL_SUCCESS;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 
 	/*
 	 * +-------------------------------------------------------------------------+

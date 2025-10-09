@@ -119,7 +119,10 @@ static int ui_print_agents_cb_parse(int idx, int keypress, void* data, char* sta
    agent_t *agent = (agent_t*)data;
    char *subtitle = "";
    char *tmp;
-  
+
+    /* Parameter intentionally unused. */
+    (void)idx;
+
    switch(keypress)
    {
    case 'e':
@@ -1010,6 +1013,10 @@ char *ui_str_from_op(op_t *op)
 char *ui_str_from_rpt(rpt_t *rpt)
 {
 // TODO
+
+	/* Parameter intentionally unused. */
+	(void)rpt;
+
 	return NULL;
 }
 
@@ -1075,7 +1082,8 @@ char *ui_str_from_tbl(tbl_t *tbl)
 	char *result = STAKE(8192); // todo dynamically size this.
 	char fmt[100];
 	vecit_t it;
-	int i, j;
+	size_t i;
+	int j;
 	size_t num_rows = 0;
 	tnvc_t *cur_row = NULL;
 	tblt_t *tblt = VDB_FINDKEY_TBLT(tbl->id);

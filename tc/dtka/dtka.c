@@ -228,6 +228,10 @@ static int	generateKeyPair(BpSAP sap, DtkaDB *db, char *keyType,
 	time_t	currentTime = getCtime();
 	Sdr	sdr = getIonsdr();
 	time_t	effectiveTime;
+
+	/* Parameter intentionally unused. */
+	(void)keyType;
+
 #ifdef CRYPTO_SOFTWARE_INSTALLED
 	int	result;
 	// char test[5];
@@ -389,6 +393,9 @@ static void	*generateKeys(void *parm)
 	int	keySize;
 	BpSAP	sap;
 	saddr	state = 1;
+
+	/* Parameter intentionally unused. */
+	(void)parm;
 
 	/*	Main loop for DTKA key generation.			*/
 
@@ -623,7 +630,7 @@ int dtka(int a1, int a2, int a3, int a4, int a5,
 		 int a6, int a7, int a8, int a9, int a10)
 {
 #else
-int main(int argc, char *argv[])
+int main(void)
 {
 #endif
 	saddr		state = 1;

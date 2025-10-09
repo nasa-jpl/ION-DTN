@@ -25,7 +25,10 @@ int	tc_serialize(char *buffer, unsigned int buflen, uvast fqnn,
 	CHKERR(buflen);
 	cursor = buffer;
 	encodeSdnv(&fqnnSdnv, fqnn);
-	CHKERR(buflen > fqnnSdnv.length + 14 + datLength);
+
+	int requiredSize = fqnnSdnv.length + 14 + datLength;
+	CHKERR(requiredSize >= 0 && buflen > (unsigned int)requiredSize);
+	
 	memcpy(cursor, fqnnSdnv.text, fqnnSdnv.length);
 	cursor += fqnnSdnv.length;
 	length += fqnnSdnv.length;

@@ -1829,7 +1829,7 @@ static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_le
 {
 	tnvc_t result;
 	blob_t types;
-	int i;
+	size_t i;
 
 	AMP_DEBUG_ENTRY("tnvc_deserialize_tvc","(0x"ADDR_FIELDSPEC",0x"ADDR_FIELDSPEC")", (uaddr) array_it, (uaddr) success);
 	memset(&result,0,sizeof(result));
@@ -1903,7 +1903,7 @@ static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_le
 {
 	tnvc_t result;
 	blob_t types;
-	int i;
+	size_t i;
 
 	AMP_DEBUG_ENTRY("tnvc_deserialize_tvc","(0x"ADDR_FIELDSPEC",0x"ADDR_FIELDSPEC")", (uaddr) array_it, (uaddr) success);
 	memset(&result,0,sizeof(result));
@@ -2017,6 +2017,9 @@ uint8_t tnvc_get_count(tnvc_t* tnvc)
 
 tnv_enc_e tnvc_get_encode_type(tnvc_t *tnvc)
 {
+	/* Parameter intentionally unused. */
+	(void)tnvc;
+
 	return TNVC_TVC;
 }
 
@@ -2275,7 +2278,7 @@ static int tnvc_serialize_tvc(QCBOREncodeContext *encoder, tnvc_t *tnvc)
 	/* Step 2: Construct and serialize the type bytestring. */
 	types = tnvc_get_types(tnvc, &success);
 
-	if(types.length != num)
+	if(num < 0 || types.length != (size_t)num)
 	{
 		AMP_DEBUG_WARN("tnvc_serialize_tvc","Mismatch: have %d types but expected %d.", types.length, num);
 	}

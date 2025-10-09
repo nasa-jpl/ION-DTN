@@ -79,7 +79,7 @@ static void *handleDatagrams(void *parm)
 			putErrmsg("Can't acquire bundle.", NULL);
 			ionKillMainThread(procName);
 
-			/*	Intentional fall-through to next case.	*/
+			/* FALLTHROUGH */
 
 		case 1: /*	Normal stop.	*/
 			rtp->running = 0;
@@ -123,6 +123,9 @@ static UdpClaSocket *global_cla_socket = NULL;
 
 static void interruptThread(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	/* Send shutdown signal instead of just setting flags */
 	if (global_cla_socket != NULL)
 	{

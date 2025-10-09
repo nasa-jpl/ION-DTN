@@ -164,11 +164,17 @@ static char	*procName()
 #ifndef mingw
 static void	handleStopThread(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGINT, handleStopThread);
 }
 #endif
 static void	handleStopTcpcli(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGTERM, handleStopTcpcli);
 	ionKillMainThread(procName());
 }
@@ -211,7 +217,7 @@ static int	receiveSdnv(TcpclSession *p, uvast *val)
 						p->outductName);
 			}
 
-			/*	Intentional fall-through to next case.	*/
+			/* FALLTHROUGH */
 
 		case 0:			/*	Neighbor closed.	*/
 			return 0;
@@ -322,6 +328,9 @@ static LystElt	addTcpclNeighbor(VPlan *vplan, VInduct *induct, Lyst neighbors)
 static void	cancelXmit(LystElt elt, void *userdata)
 {
 	Object	bundleZco = (Object) lyst_data(elt);
+
+	/* Parameter intentionally unused. */
+	(void)userdata;
 
 	if (bundleZco == 0)
 	{
@@ -1661,6 +1670,9 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 	LystElt		elt;
 	Object		bundleZco = 0;
 
+	/* Parameter intentionally unused. */
+	(void)msgtypeByte;
+
 	result = receiveSdnv(session, &lengthAcked);
 	if (result < 1)
 	{
@@ -1791,6 +1803,10 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 static int	handleRefusal(ReceiverThreadParms *rtp,
 			unsigned char msgtypeByte)
 {
+	/* Parameters intentionally unused. */
+	(void)rtp;
+	(void)msgtypeByte;
+
 	return 1;			/*	Refusals are ignored.	*/
 }
 
@@ -1798,6 +1814,9 @@ static int	handleKeepalive(ReceiverThreadParms *rtp,
 			unsigned char msgtypeByte)
 {
 	TcpclSession	*session = rtp->session;
+
+	/* Parameter intentionally unused. */
+	(void)msgtypeByte;
 
 	session->secSinceReception = 0;
 	session->timeoutCount = 0;
@@ -1825,7 +1844,7 @@ static int	handleShutdown(ReceiverThreadParms *rtp,
 						neighbor->vplan->neighborEid);
 			}
 
-			/*	Intentional fall-through to next case.	*/
+			/* FALLTHROUGH */
 
 		case 0:			/*	Neighbor closed.	*/
 			return 0;
@@ -1861,6 +1880,9 @@ static int	handleLength(ReceiverThreadParms *rtp,
 	int	result;
 	uvast	bundleLength;
 
+	/* Parameter intentionally unused. */
+	(void)msgtypeByte;
+
 	result = receiveSdnv(rtp->session, &bundleLength);
 	if (result < 1)
 	{
@@ -1887,7 +1909,7 @@ static int	handleMessages(ReceiverThreadParms *rtp)
 						session->outductName);
 			}
 
-			/*	Intentional fall-through to next case.	*/
+			/* FALLTHROUGH */
 
 		case 0:			/*	Neighbor closed.	*/
 			return 0;
@@ -2259,6 +2281,9 @@ static int	beginSessionForDuct(ClockThreadParms *ctp, LystElt neighborElt,
 	TcpclNeighbor	*neighbor;
 	TcpclSession	*session;
 	int		sock;
+
+	/* Parameter intentionally unused. */
+	(void)ctp;
 
 	len = istrlen(outductName, DUCT_BUFLEN);
 	CHKERR(len > 2);
@@ -2754,6 +2779,9 @@ static void	*handleEvents(void *parm)
 static void	dropPendingSession(LystElt elt, void *userdata)
 {
 	saddr	sock = (uaddr) lyst_data(elt);
+
+	/* Parameter intentionally unused. */
+	(void)userdata;
 
 	if (sock != -1)
 	{

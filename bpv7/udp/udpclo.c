@@ -26,6 +26,9 @@ static sm_SemId udpcloSemaphore(sm_SemId *semid)
 
 static void shutDownClo(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	sm_SemEnd(udpcloSemaphore(NULL));
 }
 
@@ -269,7 +272,7 @@ int main(int argc, char *argv[])
 		/* Send via Dual-stack */
 		bytesSent = sendBundleByUDPDualStack(&destAddr, &ductSocket,
 		                bundleLength, bundleZco, buffer);
-		if (bytesSent < bundleLength)
+		if (bytesSent < 0 || (unsigned int)bytesSent < bundleLength)
 		{
 			sm_SemEnd(udpcloSemaphore(NULL)); /* Stop. */
 			continue;

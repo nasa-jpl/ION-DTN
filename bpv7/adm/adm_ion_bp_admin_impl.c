@@ -65,24 +65,36 @@ void dtn_ion_bpadmin_cleanup()
 
 tnv_t *dtn_ion_bpadmin_meta_name(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("ion_bp_admin");
 }
 
 
 tnv_t *dtn_ion_bpadmin_meta_namespace(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("DTN/ION/bpadmin");
 }
 
 
 tnv_t *dtn_ion_bpadmin_meta_version(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("v0.0");
 }
 
 
 tnv_t *dtn_ion_bpadmin_meta_organization(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("JHUAPL");
 }
 
@@ -555,6 +567,9 @@ tbl_t *dtn_ion_bpadmin_tblt_egress_plans(ari_t *id)
 tnv_t *dtn_ion_bpadmin_get_bp_version(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_bp_version BODY
@@ -589,6 +604,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_endpoint_add(eid_t *def_mgr, tnvc_t *parms, int8_t *
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_endpoint_add BODY
@@ -625,6 +643,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_endpoint_change(eid_t *def_mgr, tnvc_t *parms, int8_
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_endpoint_change BODY
@@ -662,6 +683,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_endpoint_del(eid_t *def_mgr, tnvc_t *parms, int8_t *
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_endpoint_del BODY
@@ -693,6 +717,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_induct_add(eid_t *def_mgr, tnvc_t *parms, int8_t *st
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_induct_add BODY
@@ -725,6 +752,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_induct_change(eid_t *def_mgr, tnvc_t *parms, int8_t 
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_induct_change BODY
@@ -757,6 +787,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_induct_del(eid_t *def_mgr, tnvc_t *parms, int8_t *st
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_induct_del BODY
@@ -787,6 +820,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_induct_start(eid_t *def_mgr, tnvc_t *parms, int8_t *
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_induct_start BODY
@@ -817,6 +853,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_induct_stop(eid_t *def_mgr, tnvc_t *parms, int8_t *s
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_induct_stop BODY
@@ -850,6 +889,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_manage_heap_max(eid_t *def_mgr, tnvc_t *parms, int8_
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_manage_heap_max BODY
@@ -899,6 +941,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_outduct_add(eid_t *def_mgr, tnvc_t *parms, int8_t *s
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_outduct_add BODY
@@ -932,6 +977,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_outduct_change(eid_t *def_mgr, tnvc_t *parms, int8_t
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_outduct_change BODY
@@ -966,6 +1014,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_outduct_del(eid_t *def_mgr, tnvc_t *parms, int8_t *s
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_outduct_del BODY
@@ -996,6 +1047,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_outduct_start(eid_t *def_mgr, tnvc_t *parms, int8_t 
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_outduct_start BODY
@@ -1029,6 +1083,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_egress_plan_block(eid_t *def_mgr, tnvc_t *parms, int
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_egress_plan_block BODY
@@ -1059,6 +1116,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_egress_plan_unblock(eid_t *def_mgr, tnvc_t *parms, i
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_egress_plan_unblock BODY
@@ -1087,6 +1147,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_outduct_stop(eid_t *def_mgr, tnvc_t *parms, int8_t *
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_outduct_stop BODY
@@ -1116,6 +1179,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_protocol_add(eid_t *def_mgr, tnvc_t *parms, int8_t *
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_protocol_add BODY
@@ -1148,6 +1214,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_protocol_del(eid_t *def_mgr, tnvc_t *parms, int8_t *
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_protocol_del BODY
@@ -1177,6 +1246,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_protocol_start(eid_t *def_mgr, tnvc_t *parms, int8_t
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_protocol_start BODY
@@ -1207,6 +1279,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_protocol_stop(eid_t *def_mgr, tnvc_t *parms, int8_t 
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_protocol_stop BODY
@@ -1239,6 +1314,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_scheme_add(eid_t *def_mgr, tnvc_t *parms, int8_t *st
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_scheme_add BODY
@@ -1271,6 +1349,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_scheme_change(eid_t *def_mgr, tnvc_t *parms, int8_t 
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_scheme_change BODY
@@ -1303,6 +1384,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_scheme_del(eid_t *def_mgr, tnvc_t *parms, int8_t *st
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_scheme_del BODY
@@ -1333,6 +1417,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_scheme_start(eid_t *def_mgr, tnvc_t *parms, int8_t *
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_scheme_start BODY
@@ -1363,6 +1450,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_scheme_stop(eid_t *def_mgr, tnvc_t *parms, int8_t *s
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_scheme_stop BODY
@@ -1401,6 +1491,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_watch(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_watch BODY
@@ -1413,7 +1506,7 @@ tnv_t *dtn_ion_bpadmin_ctrl_watch(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	BpDB	db;
 	char *name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
 	BpVdb	*vdb = getBpVdb();
-	int i;
+	size_t i;
 
 	CHKNULL(vdb);
 	*status = CTRL_SUCCESS;

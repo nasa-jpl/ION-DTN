@@ -120,6 +120,9 @@ static void	handleQuit(int signum)
 {
 	BptestState	*state;
 
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGINT, handleQuit);
 	writeMemo("[i] recvfile interrupted.");
 	state = _bptestState(NULL);

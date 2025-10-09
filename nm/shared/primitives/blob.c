@@ -536,7 +536,7 @@ int blob_serialize(QCBOREncodeContext *it, blob_t *blob)
  */
 int blob_serialize_as_bytes(QCBOREncodeContext *it, blob_t *blob)
 {
-   int i = 0;
+   size_t  i = 0;
    int err;
    
 	if(blob == NULL || it == NULL)

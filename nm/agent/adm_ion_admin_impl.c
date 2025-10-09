@@ -62,24 +62,36 @@ void dtn_ion_ionadmin_cleanup()
 
 tnv_t *dtn_ion_ionadmin_meta_name(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("ion_admin");
 }
 
 
 tnv_t *dtn_ion_ionadmin_meta_namespace(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("DTN/ION/ionadmin");
 }
 
 
 tnv_t *dtn_ion_ionadmin_meta_version(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("v0.0");
 }
 
 
 tnv_t *dtn_ion_ionadmin_meta_organization(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("JHUAPL");
 }
 
@@ -237,6 +249,9 @@ tbl_t *dtn_ion_ionadmin_tblt_ranges(ari_t *id)
 tnv_t *dtn_ion_ionadmin_get_clock_error(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_clock_error BODY
@@ -268,6 +283,9 @@ tnv_t *dtn_ion_ionadmin_get_clock_error(tnvc_t *parms)
 tnv_t *dtn_ion_ionadmin_get_clock_sync(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_clock_sync BODY
@@ -300,6 +318,9 @@ tnv_t *dtn_ion_ionadmin_get_clock_sync(tnvc_t *parms)
 tnv_t *dtn_ion_ionadmin_get_congestion_alarm_control(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_congestion_alarm_control BODY
@@ -339,6 +360,9 @@ tnv_t *dtn_ion_ionadmin_get_congestion_alarm_control(tnvc_t *parms)
 tnv_t *dtn_ion_ionadmin_get_congestion_end_time_forecasts(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_congestion_end_time_forecasts BODY
@@ -369,6 +393,9 @@ tnv_t *dtn_ion_ionadmin_get_congestion_end_time_forecasts(tnvc_t *parms)
 tnv_t *dtn_ion_ionadmin_get_consumption_rate(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_consumption_rate BODY
@@ -400,6 +427,9 @@ tnv_t *dtn_ion_ionadmin_get_consumption_rate(tnvc_t *parms)
 tnv_t *dtn_ion_ionadmin_get_inbound_file_system_occupancy_limit(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_inbound_file_system_occupancy_limit BODY
@@ -433,6 +463,9 @@ tnv_t *dtn_ion_ionadmin_get_inbound_file_system_occupancy_limit(tnvc_t *parms)
 tnv_t *dtn_ion_ionadmin_get_inbound_heap_occupancy_limit(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_inbound_heap_occupancy_limit BODY
@@ -464,6 +497,9 @@ tnv_t *dtn_ion_ionadmin_get_inbound_heap_occupancy_limit(tnvc_t *parms)
 tnv_t *dtn_ion_ionadmin_get_number(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_number BODY
@@ -495,6 +531,9 @@ tnv_t *dtn_ion_ionadmin_get_number(tnvc_t *parms)
 tnv_t *dtn_ion_ionadmin_get_outbound_file_system_occupancy_limit(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_outbound_file_system_occupancy_limit BODY
@@ -528,6 +567,9 @@ tnv_t *dtn_ion_ionadmin_get_outbound_file_system_occupancy_limit(tnvc_t *parms)
 tnv_t *dtn_ion_ionadmin_get_outbound_heap_occupancy_limit(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_outbound_heap_occupancy_limit BODY
@@ -559,6 +601,9 @@ tnv_t *dtn_ion_ionadmin_get_outbound_heap_occupancy_limit(tnvc_t *parms)
 tnv_t *dtn_ion_ionadmin_get_production_rate(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_production_rate BODY
@@ -590,6 +635,9 @@ tnv_t *dtn_ion_ionadmin_get_production_rate(tnvc_t *parms)
 tnv_t *dtn_ion_ionadmin_get_ref_time(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_ref_time BODY
@@ -617,6 +665,9 @@ tnv_t *dtn_ion_ionadmin_get_ref_time(tnvc_t *parms)
 tnv_t *dtn_ion_ionadmin_get_time_delta(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_time_delta BODY
@@ -647,6 +698,9 @@ tnv_t *dtn_ion_ionadmin_get_time_delta(tnvc_t *parms)
 tnv_t *dtn_ion_ionadmin_get_version(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_version BODY
@@ -683,6 +737,10 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_init(eid_t *def_mgr, tnvc_t *parms, int8_t *st
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_node_init BODY
@@ -707,6 +765,9 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_clock_error_set(eid_t *def_mgr, tnvc_t *parms,
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_node_clock_error_set BODY
@@ -748,6 +809,9 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_clock_sync_set(eid_t *def_mgr, tnvc_t *parms, 
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_node_clock_sync_set BODY
@@ -790,6 +854,9 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_congestion_alarm_control_set(eid_t *def_mgr, t
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_node_congestion_alarm_control_set BODY
@@ -839,6 +906,9 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_congestion_end_time_forecasts_set(eid_t *def_m
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_node_congestion_end_time_forecasts_set BODY
@@ -892,6 +962,9 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_consumption_rate_set(eid_t *def_mgr, tnvc_t *p
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_node_consumption_rate_set BODY
@@ -942,6 +1015,9 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_node_contact_add BODY
@@ -1032,6 +1108,9 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_del(eid_t *def_mgr, tnvc_t *parms, int
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_node_contact_del BODY
@@ -1093,6 +1172,10 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_inbound_heap_occupancy_limit_set(eid_t *def_mg
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_node_inbound_heap_occupancy_limit_set BODY
@@ -1119,6 +1202,10 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_outbound_heap_occupancy_limit_set(eid_t *def_m
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameters intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_node_outbound_heap_occupancy_limit_set BODY
@@ -1146,6 +1233,10 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_production_rate_set(eid_t *def_mgr, tnvc_t *pa
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameters intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_node_production_rate_set BODY
@@ -1171,6 +1262,9 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_range_add(eid_t *def_mgr, tnvc_t *parms, int8_
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_node_range_add BODY
@@ -1237,6 +1331,9 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_range_del(eid_t *def_mgr, tnvc_t *parms, int8_
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_node_range_del BODY
@@ -1288,6 +1385,10 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_ref_time_set(eid_t *def_mgr, tnvc_t *parms, in
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameters intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_node_ref_time_set BODY
@@ -1313,6 +1414,10 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_time_delta_set(eid_t *def_mgr, tnvc_t *parms, 
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameters intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_node_time_delta_set BODY

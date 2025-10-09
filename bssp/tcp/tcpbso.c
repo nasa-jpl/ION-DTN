@@ -39,6 +39,9 @@ static sm_SemId	tcpbsoSemaphore(sm_SemId *semid)
 
 static void	shutDownBso(int signum)	/*	Commands CLO shutdown.	*/
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGTERM, shutDownBso);
 	sm_SemEnd(tcpbsoSemaphore(NULL));
 }

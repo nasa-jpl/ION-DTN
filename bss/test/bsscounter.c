@@ -31,6 +31,9 @@ static int	display(time_t sec, unsigned long count, char *buf,
 	static time_t prevSec = 0;
 	static unsigned int	prevCount = 0;
 
+	/* Parameter intentionally unused. */
+	(void)buf;
+
 	if (bufLength < sizeof(unsigned int))
 	{
 		writeMemoNote("[?] Received test payload is too small",
@@ -138,7 +141,7 @@ static int	checkReceptionStatus(char *buffer, int limit, long playback_wait)
 			return -1;
 		}
 
-		if (bytesRead < sizeof(unsigned int))
+		if (bytesRead < 0 || (size_t)bytesRead < sizeof(unsigned int))
 		{
 			writeMemoNote("[?] Received test payload is too small",
 					itoa(bytesRead));
@@ -207,18 +210,23 @@ int	main(int argc, char **argv)
 	{
 	case 6:
 		playback_wait = strtol(argv[5], NULL, 0);
+		/* FALLTHROUGH */
 	
 	case 5:
 		eid = argv[4];
+		/* FALLTHROUGH */
 
 	case 4:
 		path = argv[3];
+		/* FALLTHROUGH */
 
 	case 3:
 		bssName = argv[2];
+		/* FALLTHROUGH */
 
 	case 2:
 		limit = strtol(argv[1], NULL, 0);
+		/* FALLTHROUGH */
 
 	default:
 		break;

@@ -347,7 +347,7 @@ writeMemoNote("tcc: No block for this share", itoa(i));
 		zco_start_receiving(block->text, &reader);
 		blk = inputBlocks[slotNbr];
 		len = zco_receive_source(sdr, &reader, blksize, (char *) blk);
-		if (len != blksize)
+		if (len < 0 || (size_t)len != blksize)
 		{
 			putErrmsg("Failure retrieving block text.", NULL);
 			MRELEASE(inputSharenums);
@@ -385,7 +385,7 @@ writeMemo("tcc: Not enough blocks for successful decode.");
 	for (i = 0, recoveredBlk = outputBlocks; i < db->fec_K; i++)
 	{
 		sharenum = inputSharenums[i];
-	       	if (sharenum >= db->fec_K)
+		if (db->fec_K < 0 || sharenum >= (unsigned int)db->fec_K)
 		{
 			/*	This element of the input block array
 			 *	was originally occupied by a parity
@@ -860,7 +860,7 @@ writeMemo(msgbuf);
 
 	share.blocksAnnounced += 1;
 	sdr_write(sdr, shareObj, (char *) &share, sizeof(TccShare));
-	if (bulletin.sharesAnnounced < db->fec_K)
+	if (db->fec_K >= 0 && bulletin.sharesAnnounced < (unsigned int)db->fec_K)
 	{
 #if TC_DEBUG
 writeMemoNote("tcc: Bulletin can't be complete yet, sharesAnnounced",

@@ -1788,6 +1788,9 @@ static void	frCreateFile(char *firstFileName, char *secondFileName,
 {
 	int	fd;
 
+	/* Parameter intentionally unused. */
+	(void)secondFileName;
+
 	if (missingFileName(firstFileName, 1, resp, msgBuf, bufLen))
 	{
 		return;
@@ -1808,6 +1811,9 @@ static void	frCreateFile(char *firstFileName, char *secondFileName,
 static void	frDeleteFile(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
+	/* Parameter intentionally unused. */
+	(void)secondFileName;
+
 	if (missingFileName(firstFileName, 1, resp, msgBuf, bufLen))
 	{
 		return;
@@ -1987,6 +1993,9 @@ static void	frReplaceFile(char *firstFileName, char *secondFileName,
 static void	frCreateDirectory(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
+	/* Parameter intentionally unused. */
+	(void)secondFileName;
+
 	if (missingFileName(firstFileName, 1, resp, msgBuf, bufLen))
 	{
 		return;
@@ -2006,6 +2015,9 @@ static void	frCreateDirectory(char *firstFileName, char *secondFileName,
 static void	frRemoveDirectory(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
+	/* Parameter intentionally unused. */
+	(void)secondFileName;
+
 	if (missingFileName(firstFileName, 1, resp, msgBuf, bufLen))
 	{
 		return;
@@ -2021,6 +2033,9 @@ static void	frRemoveDirectory(char *firstFileName, char *secondFileName,
 static void	frDenyFile(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
+	/* Parameter intentionally unused. */
+	(void)secondFileName;
+
 	if (missingFileName(firstFileName, 1, resp, msgBuf, bufLen))
 	{
 		return;
@@ -2041,6 +2056,9 @@ static void	frDenyFile(char *firstFileName, char *secondFileName,
 static void	frDenyDirectory(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
+	/* Parameter intentionally unused. */
+	(void)secondFileName;
+
 	if (missingFileName(firstFileName, 1, resp, msgBuf, bufLen))
 	{
 		return;
@@ -3328,7 +3346,7 @@ int	cfdpDequeueOutboundPdu(Object *pdu, OutFdu *fduBuffer, FinishPdu *fpdu,
 		sdr_write(sdr, fdu, (char *) fduBuffer, sizeof(OutFdu));
 		largeFile = fduBuffer->largeFile;
 		entityNbrLength = cfdpdb.ownEntityNbr.length;
-		if (fduBuffer->destinationEntityNbr.length > entityNbrLength)
+		if (entityNbrLength < 0 || fduBuffer->destinationEntityNbr.length > (unsigned int)entityNbrLength)
 		{
 			entityNbrLength =
 				fduBuffer->destinationEntityNbr.length;
@@ -3930,7 +3948,7 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 		bytesRemaining--;
 		if (event.segMetadataLength > 0)
 		{
-			if (event.segMetadataLength > bytesRemaining)
+			if (bytesRemaining < 0 || event.segMetadataLength > (unsigned int)bytesRemaining)
 			{
 				return 0;	/*	Malformed.	*/
 			}
@@ -4020,7 +4038,8 @@ printf("...Now iterate over list of current extent...\n");
 printf("...... For extent from " UVAST_FIELDSPEC " to " UVAST_FIELDSPEC ".\n",
 extent.offset, extent.offset + extent.length);
 #endif
-		if (extentEnd < segmentOffset)	/*	data segment is not contiguous after current extent */
+		/*	data segment is not contiguous after current extent */
+		if (segmentOffset >= 0 && extentEnd < (uvast)segmentOffset)	
 		{
 #if CFDPDEBUG
 printf("......... Segment is non-contiguous with current extent, extent.offset = " UVAST_FIELDSPEC 
@@ -4030,7 +4049,7 @@ extent.offset, extentEnd, segmentOffset);
 			continue;	/*	Look for next extent.	*/
 		}
 
-		if (extent.offset <= segmentOffset)
+		if (segmentOffset >= 0 && extent.offset <= (uvast)segmentOffset)
 		{
 			/*	This segment starts at the beginning of the extent, 
 			 *  within the scope of the current extent or  
@@ -4044,7 +4063,7 @@ extent.offset, extentEnd , segmentOffset, segmentEnd);
 #endif
 			/* calculate overlap, if any */
 			bytesToSkip = extentEnd - segmentOffset;
-			if (bytesToSkip >= bytesRemaining)
+			if (bytesRemaining < 0 || bytesToSkip >= (uvast)bytesRemaining)
 			{
 #if CFDPDEBUG
 printf("......... Complete overlap, ignore data. \n"); 
@@ -4189,7 +4208,7 @@ extent.offset, extent.offset + extent.length);
 	}
 
 	fileLength = endOfFile;
-	if (fileLength < segmentOffset)
+	if (segmentOffset >= 0 && fileLength < (uvast)segmentOffset)
 	{
 		/*	Temporarily take large working memory
 		 *	buffer for fill characters.  Try to use
@@ -4230,7 +4249,7 @@ extent.offset, extent.offset + extent.length);
 		}
 
 		memset(fillBuf, cfdpdb.fillCharacter, fillBufSize);
-		while (fileLength < segmentOffset)
+		while (segmentOffset >= 0 && fileLength < (uvast)segmentOffset)
 		{
 			fillSize = segmentOffset - fileLength;
 			if (fillSize > fillBufSize)
@@ -4331,7 +4350,7 @@ Updated curosr = %p. \n", bytesToWrite, segmentOffset, bytesRemaining, cursor);
 #if CFDPDEBUG
 printf(".... Rare Case Detected: additional bytes (%d) remain after bridging gap. \n", bytesRemaining);
 #endif
-			if ((bytesRemaining) <= nextExtent.length) {
+			if (bytesRemaining >= 0 && (uvast)bytesRemaining <= nextExtent.length) {
 
             	/* the remainder is fully contained within the next extent */
 				bytesRemaining = 0;
@@ -4393,7 +4412,7 @@ printf("Are there any remaining data to write? The segmentEnd = " UVAST_FIELDSPE
  and the adjusted segmentOffset = " VAST_FIELDSPEC ". If segmentEnd > segmentOffset, \
 need to write remaining data.\n", segmentEnd, segmentOffset);
 #endif
-	if (segmentEnd > segmentOffset)
+	if (segmentOffset < 0 || segmentEnd > (uvast)segmentOffset)
 	{
 		bytesToWrite = segmentEnd - segmentOffset;
 		if (writeSegmentData(fdu, &cursor, &bytesRemaining,

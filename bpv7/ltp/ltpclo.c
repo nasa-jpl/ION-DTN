@@ -37,6 +37,9 @@ static sm_SemId		ltpcloSemaphore(sm_SemId *semid)
 
 static void	shutDownClo(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGTERM, shutDownClo);
 	sm_SemEnd(ltpcloSemaphore(NULL));
 }

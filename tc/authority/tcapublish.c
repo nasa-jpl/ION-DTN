@@ -704,7 +704,7 @@ for (i = 0; i < (db->fec_M - db->fec_K); i++)
 	{
 		sharenums[i] = sharenum;
 		sharenum++;
-		if (sharenum == db->fec_M)
+		if (db->fec_M >= 0 && sharenum == (unsigned int)db->fec_M)
 		{
 			sharenum = 0;
 		}

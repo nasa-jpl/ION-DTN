@@ -199,7 +199,7 @@ int	getIpv4AddressType(const char *ip)
  */
 NetAddress	*findAddr(const char *ip, Lyst addresses)
 {
-	int		i;
+	size_t		i;
 	LystElt		addrElt;
 	NetAddress	*addr;
 
@@ -316,7 +316,7 @@ int	compareDestination(void *data1, void *data2)
  */
 LystElt	findDestinationByAddr(NetAddress *addr, Lyst destinations)
 {
-	int		i;
+	size_t		i;
 	LystElt		destinationElt;
 	Destination	*dest;
 
@@ -344,7 +344,7 @@ LystElt	findDestinationByAddr(NetAddress *addr, Lyst destinations)
  */
 void	releaseLystElements(Lyst lyst)
 {
-	int	i;
+	size_t	i;
 	LystElt	lystElt;
 
 	if (lyst == NULL)
@@ -588,6 +588,9 @@ int	stringIP6ToBytesBytes(char *str, char *buf, int maxLen)
 {
 	/*	No portable support for IPV6 at this time.		*/
 
+	/* Parameter intentionally unused. */
+	(void)str;
+
 	if (maxLen < 1 + 16) return -1;
 	buf[0] = 16;
 	memset(buf + 1, 0, 16);
@@ -748,7 +751,7 @@ int	bytesToStringString(unsigned char *data, char *buf, int maxLen)
 	}
 
 	sdnvLength = decodeSdnv(&len, data);
-	if (maxLen >= len + 1)
+	if (maxLen >= 0 && (uvast)maxLen >= len + 1)
 	{
 		memcpy(buf, data + sdnvLength, len);
 		buf[len] = '\0';
@@ -765,9 +768,8 @@ int	bytesToStringString(unsigned char *data, char *buf, int maxLen)
  */
 int	bytesToBytesString(unsigned char *data, char *buf, int maxLen)
 {
-	uvast		len, sdnvLength;
+	uvast		len, sdnvLength, i;
 	static char	hex[] = "0123456789ABCDEF";
-	int		i;
 
 	if (data[0] == 1 && data[1] == 0)
 	{
@@ -775,7 +777,7 @@ int	bytesToBytesString(unsigned char *data, char *buf, int maxLen)
 	}
 
 	sdnvLength = decodeSdnv(&len, data);
-	if (maxLen >= len * 2 + 1)
+	if (maxLen >= 0 && (uvast)maxLen >= len * 2 + 1)
 	{
 		for (i = 0; i < len; i++)
 		{

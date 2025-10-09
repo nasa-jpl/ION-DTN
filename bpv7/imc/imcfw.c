@@ -73,6 +73,9 @@ static sm_SemId		_imcfwSemaphore(sm_SemId *newValue)
 
 static void	shutDown(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGTERM, shutDown);
 	sm_SemEnd(_imcfwSemaphore(NULL));
 }
@@ -200,6 +203,9 @@ static int	loadDestination(Bundle *bundle, uvast newFqnn)
 static void	deleteObject(LystElt elt, void *userData)
 {
 	void	*object = lyst_data(elt);
+
+	/* Parameter intentionally unused. */
+	(void)userData;
 
 	if (object)
 	{
@@ -367,6 +373,9 @@ static uvast	getViaNode(Bundle *bundle, uvast destinationFqnn)
 
 static void	deleteGang(LystElt elt, void *userData)
 {
+		/* Parameter intentionally unused. */
+	(void)userData;
+
 	ImcGang	*gang = (ImcGang *) lyst_data(elt);
 
 	lyst_destroy(gang->members);
@@ -854,7 +863,7 @@ int	imcfw(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 #else
-int	main(int argc, char *argv[])
+int	main(void)
 {
 #endif
 	int		running = 1;

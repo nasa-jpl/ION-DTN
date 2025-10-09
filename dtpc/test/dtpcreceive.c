@@ -40,6 +40,9 @@ static void	handleQuit(int signum)
 {
 	int	stop = 0;
 
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	PUTS("DTPC reception interrupted.");
 	oK(_running(&stop));
 	dtpc_interrupt(_dtpcsap(NULL));

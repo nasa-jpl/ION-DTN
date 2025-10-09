@@ -34,6 +34,11 @@ static int display(time_t sec, unsigned long count, char* buf,
 {
 	int 	reps;
 
+	/* Parameters intentionally unused. */
+	(void)sec;
+	(void)count;
+	(void)bufLength;
+
 	/*
 	 * This function is called either by the receiving thread or the BSS
  	 * receiving application. It converts buffer contents to an integer
@@ -208,8 +213,11 @@ static int userInput(int fd, char* bssName, char* path, char* eid )
 	return 0;
 }
 
-static void handleQuit(int sig)
+static void handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	bssExit();
 	if (_threadBuf(NULL)!=NULL)
 	{
@@ -280,16 +288,28 @@ int	main(int argc, char **argv)
 	{
 		case 7:
 			aToTime = argv[6];
+			/* FALLTHROUGH */
+
 		case 6:
 			aFromTime = argv[5];
+			/* FALLTHROUGH */
+
 		case 5:
 			aEid = argv[4];
+			/* FALLTHROUGH */
+
 		case 4:
 			aPath = argv[3];
+			/* FALLTHROUGH */
+
 		case 3:
 			aBssName = argv[2];
+			/* FALLTHROUGH */
+
 		case 2:
 			choice = strtol(argv[1], NULL, 0);
+			/* FALLTHROUGH */
+		
 		default:
 			break;
 	}

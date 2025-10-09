@@ -117,7 +117,7 @@ void	cfdp_decompress_number(uvast *val, CfdpNumber *nbr)
 {
 	unsigned char	*octet;
 	vast		digit;
-	int		i;
+	unsigned int		i;
 
 	CHKVOID(val);
 	CHKVOID(nbr);
@@ -1070,6 +1070,9 @@ static int	constructEofPdu(OutFdu *fdu, CfdpDB *db, unsigned int checksum)
 	unsigned int	u4;
 	uvast		u8;
 
+	/* Parameter intentionally unused. */
+	(void)db;
+
 	cursor = eofBuf;
 	*cursor = 4;		/*	Directive code: EOF PDU.	*/
 	cursor++;
@@ -1154,6 +1157,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	Object		fduObj;
 	CfdpEvent	event;
 	int		metadataFnRet;
+	off_t	currentOffset;
 
 	CHKZERO(transactionId);
 	memset((char *) transactionId, 0, sizeof(CfdpTransactionId));
@@ -1356,8 +1360,8 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 
 			if (recordLength == 0)
 			{
-				if (ilseek(sourceFile, 0, SEEK_CUR)
-						== fdu.fileSize)
+				currentOffset = ilseek(sourceFile, 0, SEEK_CUR);
+				if (currentOffset >= 0 && (uvast)currentOffset == fdu.fileSize)
 				{
 					break;	/*	No more records.*/
 				}

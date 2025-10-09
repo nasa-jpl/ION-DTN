@@ -27,11 +27,17 @@ static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 #ifndef mingw
 static void	handleStopThread(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGINT, handleStopThread);
 }
 #endif
 static void	handleStopStcpcli(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGTERM, handleStopStcpcli);
 	ionKillMainThread("stcpcli");
 }
@@ -111,7 +117,7 @@ static void	*receiveBundles(void *parm)
 		case -1:
 			putErrmsg("Can't acquire bundle.", NULL);
 
-			/*	Intentional fall-through to next case.	*/
+			/* FALLTHROUGH */
 
 		case 0:				/*	Normal stop.	*/
 			threadRunning = 0;

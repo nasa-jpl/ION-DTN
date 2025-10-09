@@ -456,6 +456,9 @@ static BpSAP	_petitionSap(BpSAP *newSap)
 
 static void	shutDownAdminApp(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGTERM, shutDownAdminApp);
 	sm_SemEnd((_petitionSap(NULL))->recvSemaphore);
 }
@@ -500,7 +503,7 @@ static int	handlePetitions()
 		case BpEndpointStopped:
 			running = 0;
 
-			/*	Intentional fall-through to default.	*/
+			/* FALLTHROUGH */
 
 		default:
 			bp_release_delivery(&dlv, 1);
@@ -578,7 +581,7 @@ int	imcadminep(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 #else
-int	main(int argc, char *argv[])
+int	main(void)
 {
 #endif
 	if (bpAttach() < 0)

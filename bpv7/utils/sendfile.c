@@ -112,7 +112,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 			int ttl, char *aux, char *svcClass, unsigned char encryptFlag, char *keyInput)
 {
 	int		    priority = 0;
-	BpAncillaryData	ancillaryData = { 0, 0, 0 };
+	BpAncillaryData	ancillaryData = {0};
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	BpSAP		sap = NULL;
 	Sdr		    sdr = NULL;
@@ -243,7 +243,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 
 
 	readResult = fread(input_buffer, 1, fileSize, file);
-	if (readResult != fileSize)
+	if (fileSize < 0 || readResult != (size_t)fileSize)
 	{
 		char read_failure_msg[256] = {0};
 		snprintf(read_failure_msg, sizeof(read_failure_msg), "[!] sendfile: error reading from %s: expected %ld, got %zu bytes.",

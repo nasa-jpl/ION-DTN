@@ -80,6 +80,9 @@ static void printUsage()
 
 static void initializeDtka(int tokenCount, char **tokens)
 {
+	/* Parameter intentionally unused. */
+	(void)tokens;
+
 	if (tokenCount != 1)
 	{
 		SYNTAX_ERROR;
@@ -313,6 +316,9 @@ static int processLine(char *line, int lineLength)
 	int i;
 	char *tokens[9];
 	char buffer[80];
+
+	/* Parameter intentionally unused. */
+	(void)lineLength;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)

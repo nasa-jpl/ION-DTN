@@ -463,7 +463,7 @@ int	dccpcli(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
 #else
-int	main(int argc, char *argv[])
+int	main(void)
 {
 #endif	
 putErrmsg("dccpcli (and the DCCP protocol) are only available under Linux (>=3.2.0). Please see the README in the bp/dccp source directory for more information.", NULL);

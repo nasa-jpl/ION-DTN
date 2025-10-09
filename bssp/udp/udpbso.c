@@ -95,7 +95,7 @@ static void	*handleDatagrams(void *parm)
 			putSysErrmsg("Can't acquire block", NULL);
 			shutDownBso();
 
-			/*	Intentional fall-through to next case.	*/
+			/* FALLTHROUGH */
 
 		case 0:
 		case 1:				/*	Normal stop.	*/

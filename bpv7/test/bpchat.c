@@ -31,6 +31,9 @@ static void *       sendLines(void *args)
 	int             lineLength = 0;
 	char            lineBuffer[1024];
 
+	/* Parameter intentionally unused. */
+	(void)args;
+
 	while(running) {
 		/* Read a line from stdin */
 		if(fgets(lineBuffer, sizeof(lineBuffer), stdin) == NULL) {
@@ -94,6 +97,9 @@ static void *       recvBundles(void *args)
 	int             rc;
 	int             bytesToRead;
 
+	/* Parameter intentionally unused. */
+	(void)args;
+
 	while(running)
 	{
 		if(bp_receive(sap, &dlv, BP_BLOCKING) < 0)
@@ -145,8 +151,11 @@ static void *       recvBundles(void *args)
 	return NULL;
 }
 
-void handleQuit(int sig)
+void handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	running = 0;
 	pthread_end(sendLinesThread);
 	bp_interrupt(sap);

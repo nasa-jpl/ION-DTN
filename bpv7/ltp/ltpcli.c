@@ -16,6 +16,9 @@
 
 static void	interruptThread(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGTERM, interruptThread);
 	ionKillMainThread("ltpcli");
 }
@@ -32,6 +35,9 @@ typedef struct
 static int	acquireRedBundles(AcqWorkArea *work, Object zco,
 			uvast senderEngineNbr)
 {
+	/* Parameter intentionally unused. */
+	(void)senderEngineNbr;
+
 	if (bpBeginAcq(work, 0, NULL) < 0)
 	{
 		putErrmsg("Can't begin acquisition of bundle(s).", NULL);

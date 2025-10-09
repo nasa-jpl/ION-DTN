@@ -67,24 +67,36 @@ void dtn_ion_ionsecadmin_cleanup()
 
 tnv_t *dtn_ion_ionsecadmin_meta_name(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("ionsec_admin");
 }
 
 
 tnv_t *dtn_ion_ionsecadmin_meta_namespace(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("DTN/ION/ionsecadmin");
 }
 
 
 tnv_t *dtn_ion_ionsecadmin_meta_version(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("v0.0");
 }
 
 
 tnv_t *dtn_ion_ionsecadmin_meta_organization(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("JHUAPL");
 }
 
@@ -223,6 +235,9 @@ tnv_t *dtn_ion_ionsecadmin_ctrl_key_add(eid_t *def_mgr, tnvc_t *parms, int8_t *s
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_key_add BODY
@@ -255,6 +270,9 @@ tnv_t *dtn_ion_ionsecadmin_ctrl_key_change(eid_t *def_mgr, tnvc_t *parms, int8_t
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_key_change BODY
@@ -285,6 +303,9 @@ tnv_t *dtn_ion_ionsecadmin_ctrl_key_del(eid_t *def_mgr, tnvc_t *parms, int8_t *s
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_key_del BODY
@@ -316,6 +337,10 @@ tnv_t *dtn_ion_ionsecadmin_ctrl_ltp_rx_rule_add(eid_t *def_mgr, tnvc_t *parms, i
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_ltp_rx_rule_add BODY
@@ -340,6 +365,10 @@ tnv_t *dtn_ion_ionsecadmin_ctrl_ltp_rx_rule_change(eid_t *def_mgr, tnvc_t *parms
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_ltp_rx_rule_change BODY
@@ -363,6 +392,10 @@ tnv_t *dtn_ion_ionsecadmin_ctrl_ltp_rx_rule_del(eid_t *def_mgr, tnvc_t *parms, i
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_ltp_rx_rule_del BODY
@@ -392,6 +425,10 @@ tnv_t *dtn_ion_ionsecadmin_ctrl_ltp_tx_rule_add(eid_t *def_mgr, tnvc_t *parms, i
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_ltp_tx_rule_add BODY
@@ -415,6 +452,10 @@ tnv_t *dtn_ion_ionsecadmin_ctrl_ltp_tx_rule_change(eid_t *def_mgr, tnvc_t *parms
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_ltp_tx_rule_change BODY
@@ -438,6 +479,10 @@ tnv_t *dtn_ion_ionsecadmin_ctrl_ltp_tx_rule_del(eid_t *def_mgr, tnvc_t *parms, i
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_ltp_tx_rule_del BODY
@@ -461,6 +506,10 @@ tnv_t *dtn_ion_ionsecadmin_ctrl_list_keys(eid_t *def_mgr, tnvc_t *parms, int8_t 
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_list_keys BODY
@@ -482,6 +531,10 @@ tnv_t *dtn_ion_ionsecadmin_ctrl_list_ltp_rx_rules(eid_t *def_mgr, tnvc_t *parms,
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_list_ltp_rx_rules BODY
@@ -503,6 +556,10 @@ tnv_t *dtn_ion_ionsecadmin_ctrl_list_ltp_tx_rules(eid_t *def_mgr, tnvc_t *parms,
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_list_ltp_tx_rules BODY

@@ -128,24 +128,36 @@ void dtn_bpsec_cleanup()
 
 tnv_t *dtn_bpsec_meta_name(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("bpsec");
 }
 
 
 tnv_t *dtn_bpsec_meta_namespace(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("DTN/bpsec");
 }
 
 
 tnv_t *dtn_bpsec_meta_version(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("v1.0");
 }
 
 
 tnv_t *dtn_bpsec_meta_organization(tnvc_t *parms)
 {
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	return tnv_from_str("JHUAPL");
 }
 
@@ -375,6 +387,10 @@ tbl_t *dtn_bpsec_tblt_bcb_rules(ari_t *id)
 tnv_t *dtn_bpsec_get_num_good_tx_bcb_blk(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_good_tx_bcb_blk BODY
@@ -396,6 +412,10 @@ tnv_t *dtn_bpsec_get_num_good_tx_bcb_blk(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_bad_tx_bcb_blk(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bcb_blk BODY
@@ -417,6 +437,10 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bcb_blk(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_good_rx_bcb_blk(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_good_rx_bcb_blk BODY
@@ -438,6 +462,10 @@ tnv_t *dtn_bpsec_get_num_good_rx_bcb_blk(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_bad_rx_bcb_blk(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bcb_blk BODY
@@ -459,6 +487,10 @@ tnv_t *dtn_bpsec_get_num_bad_rx_bcb_blk(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_missing_rx_bcb_blks(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_missing_rx_bcb_blks BODY
@@ -480,6 +512,10 @@ tnv_t *dtn_bpsec_get_num_missing_rx_bcb_blks(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_fwd_bcb_blks(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_fwd_bcb_blks BODY
@@ -501,6 +537,10 @@ tnv_t *dtn_bpsec_get_num_fwd_bcb_blks(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_good_tx_bcb_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_good_tx_bcb_bytes BODY
@@ -522,6 +562,10 @@ tnv_t *dtn_bpsec_get_num_good_tx_bcb_bytes(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_bad_tx_bcb_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bcb_bytes BODY
@@ -543,6 +587,10 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bcb_bytes(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_bad_tx_bcb_blks(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bcb_blks BODY
@@ -564,6 +612,10 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bcb_blks(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_good_rx_bcb_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_good_rx_bcb_bytes BODY
@@ -585,6 +637,10 @@ tnv_t *dtn_bpsec_get_num_good_rx_bcb_bytes(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_bad_rx_bcb_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bcb_bytes BODY
@@ -606,6 +662,10 @@ tnv_t *dtn_bpsec_get_num_bad_rx_bcb_bytes(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_missing_rx_bcb_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_missing_rx_bcb_bytes BODY
@@ -627,6 +687,10 @@ tnv_t *dtn_bpsec_get_num_missing_rx_bcb_bytes(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_fwd_bcb_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_fwd_bcb_bytes BODY
@@ -648,6 +712,10 @@ tnv_t *dtn_bpsec_get_num_fwd_bcb_bytes(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_good_tx_bib_blks(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_good_tx_bib_blks BODY
@@ -669,6 +737,10 @@ tnv_t *dtn_bpsec_get_num_good_tx_bib_blks(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_bad_tx_bib_blks(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bib_blks BODY
@@ -690,6 +762,10 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bib_blks(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_good_rx_bib_blks(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_good_rx_bib_blks BODY
@@ -711,6 +787,10 @@ tnv_t *dtn_bpsec_get_num_good_rx_bib_blks(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_bad_rx_bib_blks(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bib_blks BODY
@@ -732,6 +812,10 @@ tnv_t *dtn_bpsec_get_num_bad_rx_bib_blks(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_miss_rx_bib_blks(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_miss_rx_bib_blks BODY
@@ -753,6 +837,10 @@ tnv_t *dtn_bpsec_get_num_miss_rx_bib_blks(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_fwd_bib_blks(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_fwd_bib_blks BODY
@@ -774,6 +862,10 @@ tnv_t *dtn_bpsec_get_num_fwd_bib_blks(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_good_tx_bib_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_good_tx_bib_bytes BODY
@@ -795,6 +887,10 @@ tnv_t *dtn_bpsec_get_num_good_tx_bib_bytes(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_bad_tx_bib_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_bad_tx_bib_bytes BODY
@@ -816,6 +912,10 @@ tnv_t *dtn_bpsec_get_num_bad_tx_bib_bytes(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_good_rx_bib_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_good_rx_bib_bytes BODY
@@ -837,6 +937,10 @@ tnv_t *dtn_bpsec_get_num_good_rx_bib_bytes(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_bad_rx_bib_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_bad_rx_bib_bytes BODY
@@ -858,6 +962,10 @@ tnv_t *dtn_bpsec_get_num_bad_rx_bib_bytes(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_miss_rx_bib_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_miss_rx_bib_bytes BODY
@@ -879,6 +987,10 @@ tnv_t *dtn_bpsec_get_num_miss_rx_bib_bytes(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_fwd_bib_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_fwd_bib_bytes BODY
@@ -900,6 +1012,10 @@ tnv_t *dtn_bpsec_get_num_fwd_bib_bytes(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_last_update(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_last_update BODY
@@ -926,6 +1042,10 @@ tnv_t *dtn_bpsec_get_last_update(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_num_known_keys(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_num_known_keys BODY
@@ -950,6 +1070,10 @@ tnv_t *dtn_bpsec_get_num_known_keys(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_key_names(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_key_names BODY
@@ -991,6 +1115,10 @@ tnv_t *dtn_bpsec_get_key_names(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_ciphersuite_names(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_ciphersuite_names BODY
@@ -1031,6 +1159,10 @@ tnv_t *dtn_bpsec_get_ciphersuite_names(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_rule_source(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_rule_source BODY
@@ -1611,6 +1743,10 @@ tnv_t *dtn_bpsec_get_last_update_src(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_last_reset(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION get_last_reset BODY
@@ -1647,6 +1783,11 @@ tnv_t *dtn_bpsec_ctrl_rst_all_cnts(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameters intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_rst_all_cnts BODY
@@ -1671,6 +1812,10 @@ tnv_t *dtn_bpsec_ctrl_rst_src_cnts(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameters intentionally unused. */
+	(void)def_mgr;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_rst_src_cnts BODY
@@ -1702,6 +1847,12 @@ tnv_t *dtn_bpsec_ctrl_delete_key(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
+
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_delete_key BODY
@@ -1748,6 +1899,11 @@ tnv_t *dtn_bpsec_ctrl_add_key(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_add_key BODY
@@ -1794,6 +1950,10 @@ tnv_t *dtn_bpsec_ctrl_add_bib_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_add_bib_rule BODY
@@ -1860,6 +2020,10 @@ tnv_t *dtn_bpsec_ctrl_del_bib_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_del_bib_rule BODY
@@ -1902,6 +2066,10 @@ tnv_t *dtn_bpsec_ctrl_add_bcb_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_add_bcb_rule BODY
@@ -1972,6 +2140,10 @@ tnv_t *dtn_bpsec_ctrl_del_bcb_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 {
 	tnv_t *result = NULL;
 	*status = CTRL_FAILURE;
+
+	/* Parameter intentionally unused. */
+	(void)def_mgr;
+	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION ctrl_del_bcb_rule BODY

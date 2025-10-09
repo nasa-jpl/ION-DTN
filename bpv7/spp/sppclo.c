@@ -26,6 +26,9 @@ static sm_SemId		sppcloSemaphore(sm_SemId *semid)
 
 static void	shutDownClo(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	sm_SemEnd(sppcloSemaphore(NULL));
 }
 
@@ -236,9 +239,9 @@ int	main(int argc, char *argv[])
 
 		if ((bytesSent = sendBundleBySPP(bundleLength,bundleZco,buffer,sppcfg)) < 0)
 		{
-		    putErrmsg("Unable to sendBundleBySPP",NULL);
+			putErrmsg("Unable to sendBundleBySPP",NULL);
 			sm_SemEnd(sppcloSemaphore(NULL)); /*	Stop.	*/
-		    continue;
+			continue;
 		}
 
 		// Increment the sequence count for the next packet.
@@ -253,7 +256,7 @@ int	main(int argc, char *argv[])
 		}
 
 		/* Remove this and add in a function call to mark bundles as abandoned*/
-		if (bytesSent < bundleLength)
+		if (bytesSent < 0 || (unsigned int)bytesSent < bundleLength)
 		{
 			sm_SemEnd(sppcloSemaphore(NULL));/*	Stop.	*/
 			continue;
@@ -268,7 +271,7 @@ int	main(int argc, char *argv[])
 	
 	if (funcHandle != NULL)
 	{
-	    dlclose(funcHandle);
+		dlclose(funcHandle);
 	}
 	writeErrmsgMemos();
 	writeMemo("[i] sppclo duct has ended.");

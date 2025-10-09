@@ -211,8 +211,10 @@ static int 	tryHIRR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 	PsmPartition	ionwm = getIonwm();
 	CgrRtgObject	*routingObj;
 
-	/* Parameter intentionally unused. */
+	/* Parameters intentionally unused. */
 	(void)bundle;
+	(void)bundleObj;
+	(void)atTime;
 
 	if (terminusNode->routingObject == 0)
 	{

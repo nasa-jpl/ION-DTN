@@ -854,7 +854,7 @@ int	deserializeBeacon(unsigned char *rawBeacon, const int rawBeaconLength,
 				break;
 			}
 
-			for (j = 0; j < sdnvLength + 1; j++)
+			for (j = 0; sdnvLength >= 0 && j < (uvast)sdnvLength + 1; j++)
 			{
 				serviceDefinition->data[j] = *(cursor
 						- sdnvLength - 1 + j);

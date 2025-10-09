@@ -35,6 +35,9 @@ typedef struct
 
 static void	interruptThread(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGTERM, interruptThread);
 	ionKillMainThread("sppcli");
 }
@@ -70,35 +73,37 @@ static void	*handleSpacePackets(void *parm)
 
 	while (rtp->running)
 	{
-	    bundleLength = (size_t)rtp->packet_indication(buffer, &received_apid);
-	    switch (bundleLength)
-	    {
-	    case -1:
-	    case 0:
+		bundleLength = (size_t)rtp->packet_indication(buffer, &received_apid);
+		switch (bundleLength)
+		{
+		case -1:
+		/* FALLTHROUGH */
+
+		case 0:
 		putErrmsg("Can't acquire bundle.", NULL);
 		ionKillMainThread(procName);
 
-		/*	Intentional fall-through to next case.	*/
+		/* FALLTHROUGH */
 
-	    case 1:				/*	Normal stop.	*/
+		case 1:				/*	Normal stop.	*/
 		rtp->running = 0;
 		continue;
 
-	    default:
+		default:
 		break;			/*	Out of switch.	*/
-	    }
+		}
 
-	    if (bpBeginAcq(work, 0, NULL) < 0
+		if (bpBeginAcq(work, 0, NULL) < 0
 		|| bpContinueAcq(work, buffer, bundleLength, 0, 0) < 0
 		|| bpEndAcq(work) < 0)
-	    {
+		{
 		putErrmsg("Can't acquire bundle.", NULL);
 		ionKillMainThread(procName);
 		rtp->running = 0;
 		continue;
-	    }
+		}
 
-	    sm_TaskYield();
+		sm_TaskYield();
 	}
 	
 	writeErrmsgMemos();
@@ -124,16 +129,16 @@ static int openSharedLibrary(char* sharedLibPath, void* handle)
 
 static int openSPPFunctions(ReceiverThreadParms *rtp,void *handle)
 {
-    //rtp->parse_space_packet = (parse_space_packet_ptr)dlsym(handle,"parse_space_packet");
-    rtp->packet_indication = (packet_recv_ptr)dlsym(handle,"packet_indication");
-    return 0;
+	//rtp->parse_space_packet = (parse_space_packet_ptr)dlsym(handle,"parse_space_packet");
+	rtp->packet_indication = (packet_recv_ptr)dlsym(handle,"packet_indication");
+	return 0;
 }
 
 #if defined (ION_LWT)
 int	sppcli(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-        char	                *ductName = (char *)a1;
+		char	                *ductName = (char *)a1;
 	char                    *sharedLibPath = (char *) a2;
 #else
 int	main(int argc, char *argv[])

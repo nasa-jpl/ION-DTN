@@ -79,8 +79,10 @@ static int	_running(int *newState)
 
 static void	handleQuit(int signum)
 {
-	int	stop = 0;
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
 
+	int	stop = 0;
 	oK(_running(&stop));
 }
 
@@ -286,16 +288,28 @@ int	main(int argc, char **argv)
 	{
 	case 7:
 		dstEid = argv[6];
+		/* FALLTHROUGH */
+
 	case 6:
 		profileID = atoi(argv[5]);
+		/* FALLTHROUGH */
+
 	case 5:
 	  	topicID = atoi(argv[4]);
+		/* FALLTHROUGH */
+
 	case 4:
 		recordLength = atoi(argv[3]);
+		/* FALLTHROUGH */
+
 	case 3:
 		rate = atoi(argv[2]);
+		/* FALLTHROUGH */
+
 	case 2:
 		cycles = atoi(argv[1]);
+		/* FALLTHROUGH */
+		
 	default:
 		break;
 	}

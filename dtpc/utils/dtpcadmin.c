@@ -50,6 +50,9 @@ static void	printText(char *text)
 
 static void	handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	printText("Please enter command 'q' to stop the program.");
 }
 
@@ -97,6 +100,9 @@ indication characters, e.g., pq.  See man(5) for dtpcrc.");
 
 static void	initializeDtpc(int tokenCount, char **tokens)
 {
+	/* Parameter intentionally unused. */
+	(void)tokens;
+
 	if (tokenCount != 1)
 	{
 		SYNTAX_ERROR;
@@ -260,6 +266,9 @@ static void	listProfiles(int tokenCount, char **tokens)
 	PsmPartition	wm = getIonwm();
 	PsmAddress	elt;
 	Profile		*vprofile;
+
+	/* Parameter intentionally unused. */
+	(void)tokens;
 
 	if (tokenCount != 2)
 	{
@@ -443,6 +452,9 @@ static int	processLine(char *line, int lineLength, int *rc)
 	char		buffer[80];
 	struct timeval	done_time;
 	struct timeval	cur_time;
+
+	/* Parameter intentionally unused. */
+	(void)lineLength;
 
 	int max = 0;
 	int count = 0;

@@ -145,6 +145,9 @@ tnv_t *ldc_collect_var(ari_t *id, tnvc_t *parms)
 {
 	var_t *var = NULL;
 
+	/* Parameter intentionally unused. */
+	(void)parms;
+
 	CHKNULL(id);
 	var = VDB_FINDKEY_VAR(id);
 	if(var == NULL)

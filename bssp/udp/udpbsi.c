@@ -15,6 +15,9 @@
 
 static void	interruptThread(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGTERM, interruptThread);
 	ionKillMainThread("udpbsi");
 }
@@ -61,7 +64,7 @@ static void	*handleDatagrams(void *parm)
 			putSysErrmsg("Can't acquire block", NULL);
 			ionKillMainThread(procName);
 
-			/*	Intentional fall-through to next case.	*/
+			/* FALLTHROUGH */
 
 		case 0:
 		case 1:				/*	Normal stop.	*/
