@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# Scott Burleigh
-# August 9, 2012
+# Nate Richard
+# 2025-10-09
 
 echo "Cleaning up old ION..."
 killm

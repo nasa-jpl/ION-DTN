@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+#
+# Nate Richard
+# 2025-10-09
 
 CONFIGFILES=" \
 ./2.ipn.udp/ipn.bprc \
