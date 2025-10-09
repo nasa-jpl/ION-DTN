@@ -478,7 +478,7 @@ char *csi_val_print(csi_val_t val, uint32_t maxLen)
 	uint32_t char_size = 0;
 
 	char temp[3];
-	int i = 0;
+	uint32_t  i = 0;
 	int r = 0;
 
 
@@ -487,7 +487,7 @@ char *csi_val_print(csi_val_t val, uint32_t maxLen)
 		maxLen = 4;
 	}
 
-	if(val.len < maxLen)
+	if(val.len >= 0 && (uint32_t)val.len < maxLen)
 	{
 		maxLen = val.len;
 	}

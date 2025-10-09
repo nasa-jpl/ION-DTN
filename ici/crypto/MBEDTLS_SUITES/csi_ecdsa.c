@@ -66,6 +66,9 @@ extern char	gMsg[];		/*	Debug message buffer.	*/
 
 uint32_t  ecdsa_blocksize(csi_csid_t suite)
 {
+	/* Parameters intentionally unused. */
+	(void)suite;
+
 	return 65000;
 }
 
@@ -216,6 +219,9 @@ mbedtls_ecdsa_context *ecdsa_ctx_build(csi_csid_t suite, csi_val_t *key_info)
 
 uint32_t  ecdsa_ctx_len(csi_csid_t suite)
 {
+	/* Parameters intentionally unused. */
+	(void)suite;
+
 	return sizeof(csi_ecdsa_ctx_t);
 }
 
@@ -321,6 +327,9 @@ csi_ecdsa_ctx_t  *ecdsa_ctx_init(csi_csid_t suite, csi_val_t key_info, csi_svcid
 {
 	csi_ecdsa_ctx_t *csi_ecdsa_ctx;
 	uint32_t size = ecdsa_ctx_len(suite);
+
+	/* Parameters intentionally unused. */
+	(void)svc;
 
 	/* Step 1: Allocate and initialize the main context. */
 	if((csi_ecdsa_ctx = MTAKE(size)) == NULL)
@@ -711,6 +720,10 @@ int8_t ecdsa_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val
 
 uint32_t ecdsa_sign_res_len(csi_csid_t suite, void *context)
 {
+	/* Parameters intentionally unused. */
+	(void)suite;
+	(void)context;
+
 	return (uint32_t) MBEDTLS_ECDSA_MAX_LEN;
 }
 
@@ -740,6 +753,10 @@ uint32_t ecdsa_sign_res_len(csi_csid_t suite, void *context)
 
 int8_t   ecdsa_sign_start(csi_csid_t suite, void *context)
 {
+	/* Parameters intentionally unused. */
+	(void)suite;
+	(void)context;
+
 	return 1;
 }
 
@@ -774,6 +791,9 @@ int8_t ecdsa_sign_update(csi_csid_t suite, void *context, csi_val_t data, csi_sv
 
 	csi_ecdsa_ctx_t *csi_ecdsa_ctx = (csi_ecdsa_ctx_t *) context;
 	//uint32_t result = 0;
+
+	/* Parameters intentionally unused. */
+	(void)svc;
 
 	if(csi_ecdsa_ctx == NULL)
 	{

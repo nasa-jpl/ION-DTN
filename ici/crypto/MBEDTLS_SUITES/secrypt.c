@@ -222,7 +222,7 @@ int crypt_and_hash_buffer(
     LARGE_INTEGER li_size;
     __int64 offset;
 #else
-    off_t offset = 0;
+    size_t  offset = 0;
 #endif
 
 

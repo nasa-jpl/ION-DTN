@@ -88,6 +88,9 @@ void gcm_teardown()
 
 uint32_t gcm_blocksize(csi_csid_t suite)
 {
+	/* Parameter intentionally unused. */
+	(void)suite;
+
 	return 65000;
 }
 
@@ -115,6 +118,9 @@ uint32_t gcm_blocksize(csi_csid_t suite)
 
 uint32_t gcm_ctx_len(csi_csid_t suite)
 {
+	/* Parameter intentionally unused. */
+	(void)suite;
+
 	return sizeof(csi_gcm_context_t);
 }
 
@@ -251,6 +257,9 @@ uint8_t gcm_ctx_free(csi_csid_t suite, void *context)
 {
 	csi_gcm_context_t *csi_gcm_ctx = (csi_gcm_context_t *) context;
 
+	/* Parameter intentionally unused. */
+	(void)suite;
+
 	/* Step 1: If NULL, nothing to free. */
 	if(csi_gcm_ctx != NULL)
 	{
@@ -293,6 +302,10 @@ int8_t gcm_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc, csi_ci
 {
 	csi_gcm_context_t *csi_gcm_ctx = (csi_gcm_context_t *) context;
 	int retval = 0;
+
+	/* Parameter intentionally unused. */
+	(void)suite;
+	(void)svc;
 
 	if(context == NULL)
 	{
@@ -602,6 +615,9 @@ csi_val_t gcm_rand(csi_csid_t suite, uint32_t len)
 	csi_val_t result;
 	int retVal = 0;
 
+	/* Parameter intentionally unused. */
+	(void)suite;
+
 	result.len = len;
 	result.contents = NULL;
 
@@ -763,6 +779,11 @@ uint32_t gcm_crypt_parm_get_len(csi_csid_t suite, csi_parmid_t parmid)
  *****************************************************************************/
 uint32_t gcm_crypt_res_len(csi_csid_t suite, void *context, csi_blocksize_t blocksize, csi_svcid_t svc)
 {
+	/* Parameter intentionally unused. */
+	(void)suite;
+	(void)context;
+	(void)svc;
+
 	return (uint32_t) blocksize.plaintextLen;
 }
 
@@ -791,6 +812,9 @@ int8_t gcm_crypt_start(csi_csid_t suite, void *context, csi_cipherparms_t parms)
 {
 	csi_gcm_context_t *csi_gcm_ctx = NULL;
 	uint32_t retval = 0;
+
+	/* Parameter intentionally unused. */
+	(void)suite;
 
 	CHKERR(context);
 
@@ -844,6 +868,10 @@ csi_val_t  gcm_crypt_update(csi_csid_t suite, void *context, csi_svcid_t svc, cs
 	csi_gcm_context_t *csi_gcm_ctx = (csi_gcm_context_t *) context;
 	csi_val_t result;
 	int retval = 0;
+
+	/* Parameter intentionally unused. */
+	(void)suite;
+	(void)svc;
 
 	memset(&result, 0, sizeof(result));
 

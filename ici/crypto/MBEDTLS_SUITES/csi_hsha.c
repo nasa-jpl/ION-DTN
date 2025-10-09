@@ -227,6 +227,9 @@ void hsha_teardown()
 
 uint32_t hsha_blocksize(csi_csid_t suite)
 {
+	/* Parameters intentionally unused. */
+	(void)suite;
+
 	return 65000;
 }
 
@@ -252,6 +255,9 @@ uint32_t hsha_blocksize(csi_csid_t suite)
 
 uint32_t hsha_ctx_len(csi_csid_t suite)
 {
+	/* Parameters intentionally unused. */
+	(void)suite;
+
 	return sizeof( mbedtls_md_context_t );
 }
 
@@ -288,6 +294,9 @@ mbedtls_md_context_t *hsha_ctx_init(csi_csid_t suite, csi_val_t key_info, csi_sv
 	mbedtls_md_info_t *md_info;
 	mbedtls_md_type_t md_type = MBEDTLS_MD_NONE;
 	uint32_t result = 0;
+
+	/* Parameters intentionally unused. */
+	(void)svc;
 
 	/* Step 1: Allocate the new context. */
 	if((ctx = MTAKE(size)) == NULL)
@@ -375,6 +384,9 @@ uint8_t  hsha_ctx_free(csi_csid_t suite, void *context)
 {
 	mbedtls_md_context_t *ctx = (mbedtls_md_context_t *) context;
 
+	/* Parameters intentionally unused. */
+	(void)suite;
+
 	if(ctx != NULL)
 	{
 		mbedtls_md_free(ctx);
@@ -408,6 +420,9 @@ uint32_t hsha_sign_res_len(csi_csid_t suite, void *context)
 {
 	mbedtls_md_context_t *ctx = (mbedtls_md_context_t *) context;
 	uint32_t result = 0;
+
+	/* Parameters intentionally unused. */
+	(void)suite;
 
 	if(ctx == NULL)
 	{
@@ -455,6 +470,10 @@ uint32_t hsha_sign_res_len(csi_csid_t suite, void *context)
 
 int8_t  hsha_sign_start(csi_csid_t suite, void *context)
 {
+	/* Parameters intentionally unused. */
+	(void)suite;
+	(void)context;
+
 	return 1;
 }
 
@@ -486,6 +505,10 @@ int8_t  hsha_sign_update(csi_csid_t suite, void *context, csi_val_t data, csi_sv
 {
 	mbedtls_md_context_t *ctx = (mbedtls_md_context_t *) context;
 	uint32_t result = 0;
+
+	/* Parameters intentionally unused. */
+	(void)suite;
+	(void)svc;
 
 	if(ctx == NULL)
 	{
@@ -579,7 +602,7 @@ int8_t  hsha_sign_finish(csi_csid_t suite, void *context, csi_val_t *digest, csi
 		csi_val_t loc_digest;
 
 		/* First, make sure the passed-in digest is the right length. */
-		if(digest->len != csi_sign_res_len(suite, context))
+		if(digest->len < 0 || (uint32_t)digest->len != csi_sign_res_len(suite, context))
 		{
 			CSI_DEBUG_ERR("x hsha_sign_finish: Wrong length digest in \
 	BIB: %d != %d.", digest->len, csi_sign_res_len(suite, context));
@@ -731,7 +754,7 @@ int8_t hsha_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_
 		csi_val_t loc_digest;
 
 		/* First, make sure the passed-in digest is the right length. */
-		if(digest->len != digest_len)
+		if(digest->len < 0 || (uint32_t)digest->len != digest_len)
 		{
 			CSI_DEBUG_ERR("x hsha_sign_full: Bad digest len. %d != %d.", digest->len, digest_len);
 			return ERROR;
