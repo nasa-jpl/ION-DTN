@@ -2566,7 +2566,8 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/nm-unit/utils/radix_ut/dotest \
 	tests/nm-unit-ipn2/dotest \
 	tests/sm_subsystem/dotest \
-	tests/admin_public_api/dotest
+	tests/admin_public_api/ltp_loopback/dotest \
+	tests/admin_public_api/tcp_2nodes/dotest
 #	tests/nm-unit/primitives/ari/dotest
 
 # Note: Built without shared nm libraries to allow compilation with USE_MALLOC flag.
@@ -2648,9 +2649,19 @@ tests_sm_subsystem_dotest_SOURCES = tests/sm_subsystem/dotest.c
 tests_sm_subsystem_dotest_LDADD = libici.la -lm $(bplib) $(TESTUTILOBJS)
 tests_sm_subsystem_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS) $(icicflags)
 
-tests_admin_public_api_dotest_SOURCES = tests/admin_public_api/ltp_admin_api_test.c tests/admin_public_api/ion_test_utils.c
-tests_admin_public_api_dotest_LDADD = libici.la -lm $(bplib) $(ltplib)
-tests_admin_public_api_dotest_CFLAGS = $(icicflags) $(bpcflags) $(ltpcflags) $(AM_CFLAGS)
+tests_admin_public_api_ltp_loopback_dotest_SOURCES = tests/admin_public_api/ltp_loopback/ltp_admin_api_test.c tests/admin_public_api/ltp_loopback/ion_test_utils.c
+tests_admin_public_api_ltp_loopback_dotest_LDADD = libici.la -lm $(bplib) $(ltplib)
+tests_admin_public_api_ltp_loopback_dotest_CFLAGS = $(icicflags) $(bpcflags) $(ltpcflags) $(AM_CFLAGS)
+
+# Helper program tcp_single_node for tcp_2nodes test
+check_PROGRAMS += tests/admin_public_api/tcp_2nodes/tcp_single_node
+tests_admin_public_api_tcp_2nodes_tcp_single_node_SOURCES = tests/admin_public_api/tcp_2nodes/tcp_single_node.c
+tests_admin_public_api_tcp_2nodes_tcp_single_node_LDADD = libici.la -lm $(bplib)
+tests_admin_public_api_tcp_2nodes_tcp_single_node_CFLAGS = $(icicflags) $(bpcflags) $(AM_CFLAGS)
+
+tests_admin_public_api_tcp_2nodes_dotest_SOURCES = tests/admin_public_api/tcp_2nodes/tcp_2nodes_launcher.c
+tests_admin_public_api_tcp_2nodes_dotest_LDADD = libici.la -lm $(bplib)
+tests_admin_public_api_tcp_2nodes_dotest_CFLAGS = $(icicflags) $(bpcflags) $(AM_CFLAGS)
 
 
 ##########################

@@ -5,28 +5,57 @@ This directory contains automated tests for ION's public administrative APIs,
 demonstrating how to programmatically configure and operate ION nodes using
 the C API instead of configuration files or command-line tools.
 
-Examples for UDP and TCP are not provided due to the fact that these tests
-are best conducted on separate hosts. The multi-node per host setup is not
-currently supported in this test suite. This is a future enhancement.
-
 Tests Included
 --------------
 
-1. ltp_admin_api_test.c
-   - Tests LTP (Licklider Transmission Protocol) administrative functions
+1. ltp_loopback/
+   - LTP (Licklider Transmission Protocol) single-node loopback test
    - Demonstrates complete node initialization and configuration
-   - Validates bundle transfer over LTP loopback
-   - Tests: ion_initialize, ltp_init, add_span, add_seat, ltp_start
+   - Validates bundle transfer over LTP on localhost
+   - APIs tested: ion_initialize, ltp_init, add_span, add_seat, ltp_start
    - Includes BP initialization, scheme/endpoint setup, and protocol configuration
+
+2. tcp_2nodes/
+   - Two-node TCP convergence layer test using separate processes
+   - Demonstrates multi-node operation with unique wmKeys and SDR names
+   - Each node runs in its own process (required by ION architecture)
+   - Validates TCP connection establishment between nodes
+   - APIs tested: ion_register_node, ion_add_contact, ion_add_range, add_protocol,
+     add_induct, add_outduct, add_plan, add_planduct
+   - Includes tcp_single_node helper for spawning individual nodes
+
+Multi-Node Considerations
+--------------------------
+
+When running multiple ION instances on a single host:
+
+1. Process Separation Required
+   - Each ION node MUST run in a separate process due to process-wide static variables
+   - ION's SDR and IPC systems maintain process-level state that cannot be shared
+
+2. Unique Identifiers
+   - Each node requires a unique wmKey (ION working memory key) for daemon attachment
+   - Each node requires a unique SDR name to avoid database conflicts
+   - Nodes are coordinated via ION_NODE_LIST_DIR and ion_nodes file
+
+3. IPC Cleanup Issues
+   - When parms.wmKey is explicitly set (required for daemon attachment), some IPC
+     resources may not be marked as "private" and won't be automatically destroyed
+   - Resources like semBase (SDR locking semaphore) may persist after ionTerminate(1)
+   - The tcp_2nodes launcher includes explicit IPC cleanup to handle this
+   - In production: use killm script or manual ipcrm commands if needed
+
+4. Why sm_ipc_stop() Isn't Used
+   - sm_ipc_stop() is too aggressive and can interfere with shutdown processes
+   - Calling it during active shutdown can create more leftover resources
+   - Manual cleanup via ipcrm after all nodes exit is more reliable
 
 Test Utilities
 --------------
 
-- ion_test_utils.c/h
-  - Shared helper functions for ION API testing
-  - Process management utilities
-  - Common test infrastructure with colored output
-  - Cleanup and shutdown routines
+- ltp_loopback/ion_test_utils.c/h
+  - Shared helper functions for LTP testing
+  - Process management, colored output, cleanup routines
 
 Building
 --------
@@ -35,30 +64,3 @@ The test is built as part of the normal ION build process:
 
     make buildcheck
 
-This creates the executable: tests/admin_public_api/dotest
-
-Running
--------
-
-Run the test directly:
-
-    cd tests/admin_public_api
-    ./dotest
-
-Or as part of the test suite:
-
-    cd tests
-    ./runtests
-
-Expected Output
----------------
-
-The test performs a complete LTP loopback configuration and sends a test
-bundle. Success is indicated by "Payload delivered" in the output and
-all tests passing with a green checkmark.
-
-Exit Code
----------
-
-- 0: All tests passed
-- 1: One or more tests failed

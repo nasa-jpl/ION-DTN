@@ -15,7 +15,7 @@
  */
 
 #include "bpP.h"
-#include "../ipn/ipnfw.h"
+#include "ipnfw.h"
 
 extern void	bpEndpointTally(VEndpoint *vpoint, unsigned int idx,
 			unsigned int size);
