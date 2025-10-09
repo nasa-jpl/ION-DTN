@@ -42,10 +42,6 @@
  *   Host1: ./tcp_single_node 1 65536 ion1 /tmp/ion_node1 192.168.1.10 4556 2 192.168.1.20 4556
  *   Host2: ./tcp_single_node 2 65537 ion2 /tmp/ion_node2 192.168.1.20 4556 1 192.168.1.10 4556
  *
- * Testing communication:
- *   Terminal 2: ION_NODE_WDNAME=/tmp/ion_node2 bpsink ipn:2.1
- *   Terminal 1: echo "Hello Node 2" | ION_NODE_WDNAME=/tmp/ion_node1 bpsource ipn:2.1
- *
  * Compile:
  *   gcc -o tcp_single_node tcp_single_node.c -lici -lbp -lpthread -lm -lrt
  */
@@ -102,23 +98,6 @@ static void print_usage(const char *prog_name)
 	printf("  peer_ip        - Peer's IP address\n");
 	printf("  peer_tcp_port  - Peer's TCP port to connect to\n\n");
 
-	printf("Example - 2 nodes on localhost:\n");
-	printf(COLOR_CYAN "  Terminal 1:" COLOR_RESET "\n");
-	printf("    %s 1 65536 ion1 /tmp/ion_node1 localhost 4556 2 localhost 4557\n\n", prog_name);
-	printf(COLOR_CYAN "  Terminal 2:" COLOR_RESET "\n");
-	printf("    %s 2 65537 ion2 /tmp/ion_node2 localhost 4557 1 localhost 4556\n\n", prog_name);
-
-	printf("Example - 2 nodes on different hosts:\n");
-	printf(COLOR_CYAN "  Host 192.168.1.10:" COLOR_RESET "\n");
-	printf("    %s 1 65536 ion1 /tmp/ion_node1 192.168.1.10 4556 2 192.168.1.20 4556\n\n", prog_name);
-	printf(COLOR_CYAN "  Host 192.168.1.20:" COLOR_RESET "\n");
-	printf("    %s 2 65537 ion2 /tmp/ion_node2 192.168.1.20 4556 1 192.168.1.10 4556\n\n", prog_name);
-
-	printf("Testing communication:\n");
-	printf(COLOR_CYAN "  Terminal 2 (receiver):" COLOR_RESET "\n");
-	printf("    ION_NODE_WDNAME=/tmp/ion_node2 bpsink ipn:2.1\n\n");
-	printf(COLOR_CYAN "  Terminal 1 (sender):" COLOR_RESET "\n");
-	printf("    echo \"Hello Node 2\" | ION_NODE_WDNAME=/tmp/ion_node1 bpsource ipn:2.1\n\n");
 }
 
 static void print_step(const char *msg)
@@ -494,9 +473,6 @@ int main(int argc, char *argv[])
 	printf(COLOR_CYAN "To interact with this node from other terminals:\n" COLOR_RESET);
 	printf("  export ION_NODE_LIST_DIR=%s\n", program_dir);
 	printf("  export ION_NODE_WDNAME=%s\n", work_dir);
-	printf("  bpadmin\n");
-	printf("  bpsource ipn:%d.1\n", peer_node);
-	printf("  bpsink ipn:%d.1\n\n", node_num);
 
 	printf(COLOR_GREEN "[SUCCESS] Node %d configured and running\n" COLOR_RESET, node_num);
 
