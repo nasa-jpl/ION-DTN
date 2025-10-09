@@ -24,6 +24,15 @@ static void	handleNotice(DgrRC rc, Dgr dgrSap, unsigned short portNbr,
 			unsigned int ipAddress, char *buffer, int length,
 			int errnbr)
 {
+	/* Parameters intentionally unused. */
+	(void)rc;
+	(void)dgrSap;
+	(void)portNbr;
+	(void)ipAddress;
+	(void)buffer;
+	(void)length;
+	(void)errnbr;
+
 	return;		/*	Maybe do something with these later.	*/
 }
 
@@ -378,6 +387,9 @@ static int	dgrSendAms(AmsEndpoint *dp, AmsSAP *sap,
 	unsigned short	checksum;
 	DgrRC		rc;
 	int		result;
+
+	/* Parameter intentionally unused. */
+	(void)flowLabel;
 
 	CHKERR(dp);
 	CHKERR(sap);

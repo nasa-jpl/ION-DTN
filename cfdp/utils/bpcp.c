@@ -1739,6 +1739,9 @@ void prog_start_cpy(struct transfer *t)
  * if the progress meter is enabled.*/
 void prog_end_cpy(struct transfer *t)
 {
+	/* Parameter intentionally unused. */
+	(void)t;
+
 	if (showprogress)
 	{
 		printf(" Complete\n");
@@ -1777,6 +1780,9 @@ void prog_start_dir(struct transfer *t)
  * if the progress meter is enabled.*/
 void prog_end_dir(struct transfer *t)
 {
+	/* Parameter intentionally unused. */
+	(void)t;
+
 	if (showprogress)
 	{
 		printf(" Complete\n");
@@ -1815,6 +1821,9 @@ int setscreensize(void)
 /*Perform some simple cleanup on SIGTERM*/
 static void handle_sigterm(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	/*Reset signal handlers for portability*/
 	isignal(SIGTERM, handle_sigterm);
 	isignal(SIGINT, handle_sigterm);

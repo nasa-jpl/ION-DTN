@@ -134,6 +134,9 @@ static int	enqueueAmsEvent(AmsSAP *sap, AmsEvt *evt, char *ancillaryBlock,
 	long	queryNbr;
 	LystElt	elt;
 
+	/* Parameter intentionally unused. */
+	(void)ancillaryBlock;
+
 	if (eventsQueue == NULL)
 	{
 		return 0;	/*	SAP not initialized yet.	*/
@@ -392,6 +395,9 @@ static void	destroyAmsEvent(LystElt elt, void *userdata)
 	AmsMsg	*amsMsg;
 	MamsMsg	*mamsMsg;
 
+	/* Parameter intentionally unused. */
+	(void)userdata;
+
 	if (event == NULL) return;
 	if (event->type == AMS_MSG_EVT)
 	{
@@ -415,6 +421,9 @@ static void	destroyAmsEvent(LystElt elt, void *userdata)
 
 static void	destroyDeliveryVector(LystElt elt, void *userdata)
 {
+	/* Parameter intentionally unused. */
+	(void)userdata;
+
 	DeliveryVector	*vector = (DeliveryVector *) lyst_data(elt);
 
 	lyst_destroy(vector->interfaces);
@@ -423,6 +432,9 @@ static void	destroyDeliveryVector(LystElt elt, void *userdata)
 
 static void	destroyMsgRule(LystElt elt, void *userdata)
 {
+	/* Parameter intentionally unused. */
+	(void)userdata;
+
 	MsgRule	*rule = (MsgRule *) lyst_data(elt);
 
 	MRELEASE(rule);
@@ -430,6 +442,9 @@ static void	destroyMsgRule(LystElt elt, void *userdata)
 
 void	destroyXmitRule(LystElt elt, void *userdata)
 {
+	/* Parameter intentionally unused. */
+	(void)userdata;
+
 	XmitRule	*rule = (XmitRule *) lyst_data(elt);
 
 	MRELEASE(rule);
@@ -442,7 +457,7 @@ static int	getMsgSender(AmsSAP *sap, AmsMsg *msg, unsigned char *header,
 	msg->continuumNbr = ((*(header + 2) & 0x7f) << 8) + *(header + 3);
 
 
-	if (msg->continuumNbr < 1 || msg->continuumNbr > MAX_CONTIN_NBR
+	if (msg->continuumNbr < 1 
 	|| getMsgSpaceByNbr(sap->venture, msg->continuumNbr) == NULL)
 	{
 		writeMemoNote("[?] Received message from unknown continuum",
@@ -832,13 +847,13 @@ received by non-RAMS-gateway module.");
 
 		subjectNbr = 0 - msg.subjectNbr;
 
-		if (subjectNbr > MAX_CONTIN_NBR)
-		{
-			writeMemoNote("[?] Received msg for invalid continuum",
-					itoa(subjectNbr));
-			unlockMib();
-			return -1;
-		}
+		/*
+		 * The check 'subjectNbr > MAX_CONTIN_NBR' was removed to fix
+		 * a -Wtype-limits warning. The compiler determined this
+		 * comparison is always false due to the limited range of
+		 * the 'subjectNbr' data type. The type itself now
+		 * implicitly enforces this upper bound.
+		 */
 
 		subject = getMsgSpaceByNbr(sap->venture, subjectNbr);
 	}
@@ -1192,6 +1207,9 @@ static void	loadAssertion(char **cursor, int ruleType, unsigned char
 			unitNbr, short subjectNbr, int vectorNbr, int priority,
 			unsigned char flowLabel)
 {
+	/* Parameter intentionally unused. */
+	(void)ruleType;
+
 	subjectNbr = htons(subjectNbr);
 	memcpy(*cursor, (char *) &subjectNbr, 2);
 	(*cursor) += 2;
@@ -1398,6 +1416,9 @@ static void	eraseAmsEndpoint(AmsEndpoint *ep)
 
 void	destroyAmsEndpoint(LystElt elt, void *userdata)
 {
+	/* Parameter intentionally unused. */
+	(void)userdata;
+
 	eraseAmsEndpoint((AmsEndpoint *) lyst_data(elt));
 }
 
@@ -1417,11 +1438,15 @@ static int	subjectIsValid(AmsSAP *sap, int subjectNbr, Subject **subject)
 	if (subjectNbr < 0)
 	{
 		
-		if ((pseudoSubjectNbr = 0 - subjectNbr) <= MAX_CONTIN_NBR
-		&& (*subject = getMsgSpaceByNbr(sap->venture,  pseudoSubjectNbr))
-			!= NULL)
+		/* First, perform the validation using the (original) 'int' type */
+		if ((0 - subjectNbr) <= MAX_CONTIN_NBR)
 		{
-			return 1;
+			/* If the validation passes, it's safe to assign to the 'short' */
+			pseudoSubjectNbr = 0 - subjectNbr;
+			if ((*subject = getMsgSpaceByNbr(sap->venture,  pseudoSubjectNbr)) != NULL)
+			{
+				return 1; /* Success */
+			}
 		}
 	}
 
@@ -1434,6 +1459,10 @@ static LystElt	findSubjOfInterest(AmsSAP *sap, Module *module,
 {
 	LystElt		elt;
 	SubjOfInterest	*subj;
+
+	/* Parameter intentionally unused. */
+	(void)sap;
+
 
 	/*	This function finds the SubjOfInterest containing
 	 *	all XmitRules asserted by this module for the specified
@@ -1470,6 +1499,9 @@ static LystElt	findFanModule(AmsSAP *sap, Subject *subject, Module *module,
 {
 	LystElt		elt;
 	FanModule	*fan;
+
+	/* Parameter intentionally unused. */
+	(void)sap;
 
 	/*	This function finds the FanModule containing
 	 *	all XmitRule asserted by this module for the specified
@@ -2167,6 +2199,9 @@ static int	parseAmsEndpoint(Module *module, int *bytesRemaining,
 {
 	int	gotIt = 0;
 
+	/* Parameter intentionally unused. */
+	(void)module;
+
 	*tsname = *cursor;
 	*eptLen = 0;
 	*ept = NULL;
@@ -2391,6 +2426,9 @@ static int	noteModule(AmsSAP *sap, int roleNbr, int unitNbr, int moduleNbr,
 	AppRole	*role;
 	Cell	*cell;
 	Module	*module;
+
+	/* Parameter intentionally unused. */
+	(void)msg;
 
 	if (roleNbr < 1 || roleNbr > MAX_ROLE_NBR)
 	{
@@ -3339,6 +3377,9 @@ static void	process_rejection(AmsSAP *sap, MamsMsg *msg)
 {
 	int	reasonCode;
 	char	*reasonString;
+
+	/* Parameter intentionally unused. */
+	(void)sap;
 
 	if (msg->supplementLength < 1)
 	{
@@ -4571,7 +4612,7 @@ int	ams_msgspace_is_neighbor(AmsSAP *sap, short continuumNbr)
 {
 	Subject	*msgspace;
 
-	if (sap == NULL || continuumNbr < 1 || continuumNbr > MAX_CONTIN_NBR)
+	if (sap == NULL || continuumNbr < 1 )
 	{
 		return 0;
 	}
@@ -6572,9 +6613,12 @@ static char	*ams_lookup_continuum_name2(AmsSAP *sap, short continuumNbr)
 	AmsMib		*mib = _mib(NULL);
 	LystElt		elt;
 
+	/* Parameter intentionally unused. */
+	(void)sap;
+
 	lockMib();
 	if (continuumNbr < 0) continuumNbr = 0 - continuumNbr;
-       	if (continuumNbr > 0 && continuumNbr <= MAX_CONTIN_NBR)
+       	if (continuumNbr > 0 )
 	{
 		/* 	Set Elt to first element of continuum_lyst and 
 			iterate through the set of lysts */

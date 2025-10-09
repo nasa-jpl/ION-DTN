@@ -14,7 +14,7 @@ int	amslogprt(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 #else
-int	main(int argc, char **argv)
+int	main(void)
 {
 #endif
 	int		subjectNameLength;
@@ -24,7 +24,7 @@ int	main(int argc, char **argv)
 	unsigned char	*buffer = NULL;
 	int		bufferLength = 0;
 	char		codes[] = "0123456789abcdef";
-	int		i;
+	unsigned int	i;
 	unsigned int	idx;
 
 	while (1)
@@ -53,7 +53,7 @@ int	main(int argc, char **argv)
 			continue;
 		}
 
-		if (contentLength > bufferLength)
+		if (bufferLength < 0 || contentLength > (unsigned int)bufferLength)
 		{
 			if (buffer)
 			{

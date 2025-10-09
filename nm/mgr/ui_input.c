@@ -86,6 +86,9 @@ blob_t *ui_input_file_contents(char *prompt)
 	uint8_t *data = NULL;
 	char *str = NULL;
 
+	/* Parameter intentionally unused. */
+	(void)prompt;
+
 	if((filename = ui_input_string("Enter filename:")) == NULL)
 	{
 		return NULL;
@@ -124,7 +127,7 @@ blob_t *ui_input_file_contents(char *prompt)
 		return NULL;
 	}
 
-	if((fread(data, 1, file_size, fp)) != file_size)
+	if(file_size < 0 || (fread(data, 1, (size_t)file_size, fp)) != (size_t)file_size)
 	{
 		SRELEASE(data);
 		AMP_DEBUG_ERR("ui_input_file_contents","Couldn't read %d bytes from %s", file_size, filename);
@@ -737,6 +740,9 @@ ari_t *ui_input_ari_list(uint8_t adm_id, uvast mask)
 	meta_col_t *col = NULL;
 	metadata_t *meta = NULL;
 
+	/* Parameter intentionally unused. */
+	(void)adm_id;
+
 	int enum_id = ui_input_adm_id();
 	ui_list_objs(enum_id, mask, &result);
 	return result;
@@ -978,6 +984,9 @@ tnvc_t* ui_input_tnvc(char *prompt)
 	int i;
 	char tnv_prompt[32];
 
+	/* Parameter intentionally unused. */
+	(void)prompt;
+
 	num = ui_input_int("Number of elements of the TNVC");
 	result = tnvc_create(num);
 
@@ -1002,8 +1011,9 @@ tnvc_t* ui_input_tnvc(char *prompt)
 
 ctrl_t* ui_input_ctrl(char * prompt)
 {
+	/* Parameter intentionally unused. */
+	(void)prompt;
 
-   
 	AMP_DEBUG_ERR("ui_input_ctrl", "Not implemented yet.", NULL);
 	return NULL;
 }
@@ -1014,6 +1024,9 @@ expr_t* ui_input_expr(char* prompt)
    ari_t *val = NULL;
    amp_type_e type = AMP_TYPE_UNK;
    uvast mask;
+
+   /* Parameter intentionally unused. */
+   (void)prompt;
 
    ui_printf("\n\n");
    ui_printf("Expression Builder\n");
@@ -1055,36 +1068,54 @@ expr_t* ui_input_expr(char* prompt)
 
 op_t* ui_input_oper(char* prompt)
 {
+	/* Parameter intentionally unused. */
+	(void)prompt;
+
 	AMP_DEBUG_ERR("ui_input_oper", "Not implemented yet.", NULL);
 	return NULL;
 }
 
 rpt_t* ui_input_rpt(char* prompt)
 {
+	/* Parameter intentionally unused. */
+	(void)prompt;
+
 	AMP_DEBUG_ERR("ui_input_rpt", "Not implemented yet.", NULL);
 	return NULL;
 }
 
 rpttpl_t* ui_input_rpttpl(char* prompt)
 {
+	/* Parameter intentionally unused. */
+	(void)prompt;
+
 	AMP_DEBUG_ERR("ui_input_rpttpl", "Not implemented yet.", NULL);
 	return NULL;
 }
 
 rule_t *ui_input_rule(char* prompt)
 {
+	/* Parameter intentionally unused. */
+	(void)prompt;
+
 	AMP_DEBUG_ERR("ui_input_rule", "Not implemented yet.", NULL);
 	return NULL;
 }
 
 tbl_t* ui_input_tbl(char* prompt)
 {
+	/* Parameter intentionally unused. */
+	(void)prompt;
+
 	AMP_DEBUG_ERR("ui_input_tbl", "Not implemented yet.", NULL);
 	return NULL;
 }
 
 tblt_t* ui_input_tblt(char* prompt)
 {
+	/* Parameter intentionally unused. */
+	(void)prompt;
+
 	AMP_DEBUG_ERR("ui_input_tblt", "Not implemented yet.", NULL);
 	return NULL;
 }
@@ -1092,12 +1123,18 @@ tblt_t* ui_input_tblt(char* prompt)
 
 var_t* ui_input_var(char* prompt)
 {
+	/* Parameter intentionally unused. */
+	(void)prompt;
+
 	AMP_DEBUG_ERR("ui_input_var", "Not implemented yet.", NULL);
 	return NULL;
 }
 
 macdef_t *ui_input_mac(char *prompt)
 {
+	/* Parameter intentionally unused. */
+	(void)prompt;
+
 	AMP_DEBUG_ERR("ui_input_var", "Not implemented yet.", NULL);
 	return NULL;
 }

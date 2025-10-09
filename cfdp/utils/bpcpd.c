@@ -215,6 +215,9 @@ void version()
 
 void sig_handler(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	/*Reset signal handlers for portability*/
 	isignal(SIGTERM, sig_handler);
 	isignal(SIGINT, sig_handler);

@@ -71,6 +71,9 @@ static void	killMainThread()
 
 static void	handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGINT, handleQuit);
 	killMainThread();
 }
@@ -93,6 +96,14 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 #endif
 	char	replyText[256];
 	int	replyLength;
+
+	/* Parameter intentionally unused. */
+	(void)userData;
+	(void)continuumNbr;
+	(void)unitNbr;
+	(void)moduleNbr;
+	(void)context;
+	(void)flowLabel;
 
 	subjectName = ams_lookup_subject_name(me, subjectNbr);
 	if (subjectName == NULL)
@@ -181,6 +192,10 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 
 static void	interruptAmslog(void *userData, AmsEvent *event)
 {
+	/* Parameters intentionally unused. */
+	(void)userData;
+	(void)event;
+
 	fputs("AMS event loop terminated.\n", stderr);
 	killMainThread();
 }
@@ -331,7 +346,7 @@ messages to stdout.\n", stderr);
 				continue;
 			}
 
-			/*	Intentional fall-through to next case.	*/
+			/* FALLTHROUGH */
 
 		case 3:						// CW 5/1/06
 			if (strcmp(unitName, "_") != 0)
@@ -346,7 +361,7 @@ messages to stdout.\n", stderr);
 				}
 			}
 
-			/*	Intentional fall-through to next case.	*/
+			/* FALLTHROUGH */
 
 		case 2:  
 			if (strcmp(continName, "_") != 0)	// CW, 5/19/06
@@ -361,7 +376,7 @@ continuum", continName);
 				}
 			}
 
-			/*	Intentional fall-through to next case.	*/
+			/* FALLTHROUGH */
 
 		case 1:
 			subjectNbr = ams_lookup_subject_nbr(me, subjectName);

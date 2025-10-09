@@ -71,6 +71,9 @@ static void	killMainThread()
 
 static void	handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGINT, handleQuit);
 	killMainThread();
 }
@@ -267,6 +270,10 @@ message", subjectName);
 
 static void	reportError(void *userData, AmsEvent *event)
 {
+	/* Parameters intentionally unused. */
+	(void)userData;
+	(void)event;
+
 	puts("AMS event loop terminated.");
 	killMainThread();
 }

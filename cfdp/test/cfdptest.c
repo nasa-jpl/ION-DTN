@@ -193,6 +193,9 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
     char *ackMode;
     int isReliableAckMode = 0;  /* Flag to indicate if we have reliable ack mode info */
 
+	/* Parameter intentionally unused. */
+	(void)destFileNameBuf;
+
 	/* DEBUG: Show what CFDP engine is actually providing
     cfdp_decompress_number(&srcEntityNbr, &transactionId->sourceEntityNbr);
     cfdp_decompress_number(&txnNbr, &transactionId->transactionNbr);
@@ -320,12 +323,21 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
 static int	noteSegmentTime(uvast fileOffset, unsigned int recordOffset,
 			unsigned int length, int sourceFileFd, char *buffer)
 {
+	/* Parameters intentionally unused. */
+	(void)fileOffset;
+	(void)recordOffset;
+	(void)length;
+	(void)sourceFileFd;
+
 	writeTimestampLocal(getCtime(), buffer);
 	return strlen(buffer) + 1;
 }
 
 static void	handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	PUTS("cfdptest interrupted.");
 	fflush(stdout);
 }
@@ -707,7 +719,7 @@ static void	addFilestoreRequest(int tokenCount, char **tokens,
 		case 4:
 			secondPathName = tokens[3];
 
-			/*	Intentional fall-through to next case.	*/
+			/* FALLTHROUGH */
 
 		case 3:
 			firstPathName = tokens[2];
@@ -793,7 +805,7 @@ static void	displayDirListing(const char *filename)
 					entryPos = 0;
 				}
 			}
-			else if (entryPos < sizeof(entry) - 1)
+			else if (entryPos >= 0 && (size_t)entryPos < sizeof(entry) - 1)
 			{
 				entry[entryPos++] = buffer[pos];
 			}
@@ -820,6 +832,9 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 	int		i;
 	char		*tokens[9];
 	CfdpProxyTask	task;
+
+	/* Parameter intentionally unused. */
+	(void)lineLength;
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)

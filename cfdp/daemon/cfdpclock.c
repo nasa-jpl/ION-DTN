@@ -30,6 +30,9 @@ static uaddr	_running(uaddr *newValue)
 
 static void	shutDown(int signum)	/*	Stops cfdpclock.	*/
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	uaddr	stop = 0;
 
 	oK(_running(&stop));	/*	Terminates cfdpclock.		*/
@@ -102,8 +105,8 @@ static int	scanInFdus(Sdr sdr, time_t currentTime)
 						sizeof(InFdu));
 			}
 
-			if (fdu->checkTimeouts
-				> cfdpConstants->checkTimeoutLimit)
+			if (fdu->checkTimeouts >= 0 && (unsigned int)fdu->checkTimeouts > 
+				cfdpConstants->checkTimeoutLimit)
 			{
 				if (handleFault(&(fdu->transactionId),
 					CfdpCheckLimitReached, &handler) < 0)
@@ -399,7 +402,7 @@ int	cfdpclock(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 #else
-int	main(int argc, char *argv[])
+int	main(void)
 {
 #endif
 	Sdr	sdr;

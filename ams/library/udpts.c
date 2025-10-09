@@ -459,6 +459,9 @@ static int	udpSendAms(AmsEndpoint *dp, AmsSAP *sap,
 	struct sockaddr_in	*inetName;
 	unsigned short		checksum;
 
+	/* Parameter intentionally unused. */
+	(void)flowLabel;
+
 	CHKERR(dp);
 	CHKERR(sap);
 	CHKERR(header);

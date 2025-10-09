@@ -13,12 +13,19 @@
 
 static void	reportError(void *userData, AmsEvent *event)
 {
+	/* Parameters intentionally unused. */
+	(void)userData;
+	(void)event;
+
 	PUTS("AMS event loop crashed.");
 	fflush(stdout);
 }
 
 static void	handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	PUTS("Terminating amsbenchs.");
 	fflush(stdout);
 }
@@ -41,7 +48,7 @@ int	main(int argc, char **argv)
 	short		subjectNbr;
 	int		content;
 
-	if (count < 1 || size < sizeof(int) || size > 65535)
+	if (count < 1 || (size < 0 || (size_t)size < sizeof(int)) || size > 65535)
 	{
 		PUTS("Usage: amsbenchs <# of msgs to send> <msg length>");
 		fflush(stdout);
@@ -55,7 +62,7 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
-	if (size > sizeof(int))
+	if ((size_t)size > sizeof(int))
 	{
 		memset(buffer, ' ', size - 1);
 		buffer[size - 1] = '\0';

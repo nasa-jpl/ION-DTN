@@ -380,6 +380,9 @@ static void	eraseAmsEpspec(AmsEpspec *amses)
 /* required for lyst initialization (continuum_lyst) */
 static void destroyMIBContinua(LystElt elt, void *userdata)
 {
+	/* Parameter intentionally unused. */
+	(void)userdata;
+
 	Continuum *continnuum = (Continuum *) lyst_data(elt);
 	eraseContinuum(continnuum);
 }
@@ -389,6 +392,9 @@ static void destroyMIBContinua(LystElt elt, void *userdata)
 	 msgspaces pointers */
 static void destroyMsgSpace(LystElt elt, void *userdata)
 {
+	/* Parameter intentionally unused. */
+	(void)userdata;
+
 	/*  msgspace is of type: Subject, so we cast the element 
 		to Subject pointer here */
 	Subject *my_msgspace = (Subject *) lyst_data(elt);
@@ -397,6 +403,9 @@ static void destroyMsgSpace(LystElt elt, void *userdata)
 
 static void	destroyAmsEpspec(LystElt elt, void *userdata)
 {
+	/* Parameter intentionally unused. */
+	(void)userdata;
+
 	AmsEpspec	*amses = (AmsEpspec *) lyst_data(elt);
 
 	eraseAmsEpspec(amses);
@@ -429,6 +438,9 @@ void	eraseApp(AmsApp *app)
 
 static void	destroyApplication(LystElt elt, void *userdata)
 {
+	/* Parameter intentionally unused. */
+	(void)userdata;
+
 	AmsApp	*app = (AmsApp *) lyst_data(elt);
 
 	eraseApp(app);
@@ -442,6 +454,9 @@ static void	eraseCsEndpoint(MamsEndpoint *ep)
 
 static void	destroyCsEndpoint(LystElt elt, void *userdata)
 {
+	/* Parameter intentionally unused. */
+	(void)userdata;
+
 	MamsEndpoint	*ep = (MamsEndpoint *) lyst_data(elt);
 
 	eraseCsEndpoint(ep);
@@ -697,7 +712,6 @@ AmsMib	*_mib(AmsMibParameters *parms)
 			else
 			{
 				if (parms->continuumNbr < 1
-				|| parms->continuumNbr > MAX_CONTIN_NBR
 				|| parms->ptsName == NULL)
 				{
 					putErrmsg("Invalid MIB parms.", NULL);
@@ -793,6 +807,9 @@ unsigned short	computeAmsChecksum(unsigned char *cursor, int pduLength)
 
 int	time_to_stop(Llcv llcv)
 {
+	/* Parameter intentionally unused. */
+	(void)llcv;
+
 	return 1;
 }
 
@@ -1232,6 +1249,9 @@ static RamsNetProtocol	parseGwEid(char *gwEidString, char **gwEid,
 
 static void	destroyFanModule(LystElt elt, void *userdata)
 {
+	/* Parameter intentionally unused. */
+	(void)userdata;
+
 	FanModule	*fan = (FanModule *) lyst_data(elt);
 
 	MRELEASE(fan);
@@ -1394,6 +1414,9 @@ void	deleteAuthorizedReceiver(Subject *subj, char *receiverRoleName)
 
 static void	destroyAuthorization(LystElt elt, void *userdata)
 {
+	/* Parameter intentionally unused. */
+	(void)userdata;
+
 	char	*roleName = (char *) lyst_data(elt);
 
 	MRELEASE(roleName);
@@ -1529,7 +1552,6 @@ Subject	*createMsgspace(Venture *venture, short continNbr, int isNeighbor,
 
 	CHKNULL(venture);
 	CHKNULL(continNbr > 0);
-	CHKNULL(continNbr <= MAX_CONTIN_NBR);
 
 	/* return null if no match */
 	if(getContinuaByNbr((_mib(NULL), continNbr)) == NULL ) 
@@ -1588,6 +1610,9 @@ Subject	*createMsgspace(Venture *venture, short continNbr, int isNeighbor,
 
 static void	destroySubjOfInterest(LystElt elt, void *userdata)
 {
+	/* Parameter intentionally unused. */
+	(void)userdata;
+
 	SubjOfInterest	*subj = (SubjOfInterest *) lyst_data(elt);
 
 	lyst_destroy(subj->subscriptions);
@@ -2368,6 +2393,9 @@ int	enqueueMamsEvent(Llcv eventsQueue, AmsEvt *evt, char *ancillaryBlock,
 	long	queryNbr;
 	LystElt	elt;
 
+	/* Parameter intentionally unused. */
+	(void)ancillaryBlock;
+
 	llcv_lock(eventsQueue);
 
 	/*	Events that shut down event loops are inserted at
@@ -2694,6 +2722,9 @@ void	recycleEvent(AmsEvt *evt)
 
 void	destroyEvent(LystElt elt, void *userdata)
 {
+	/* Parameter intentionally unused. */
+	(void)userdata;
+
 	AmsEvt	*evt = (AmsEvt *) lyst_data(elt);
 
 	recycleEvent(evt);

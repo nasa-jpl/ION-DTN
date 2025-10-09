@@ -107,6 +107,9 @@ static void	shutDownAmsd(int signum)
 {
 	int	stop = 0;
 
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGINT, shutDownAmsd);
 	oK(_amsdRunning(&stop));
 }
@@ -257,6 +260,9 @@ static void	cleanUpCsState(CsState *csState)
 
 static void	reloadRsRegistrations(CsState *csState)
 {
+	/* Parameter intentionally unused. */
+	(void)csState;
+
 	return;		/*	Maybe do this eventually.		*/
 }
 

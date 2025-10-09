@@ -473,21 +473,39 @@ void ui_log_cfg_menu()
    
    // Build Form
    form_fields_t log_cfg_fields[] = {
-      {"Enable logging to files", NULL, 8, 0, TYPE_CHECK_BOOL, &agent_log_cfg.enabled},
+      { .title = "Enable logging to files", .value = NULL, .width = 8, .opts_off = 0, 
+         .type = TYPE_CHECK_BOOL, .parsed_value = &agent_log_cfg.enabled },
       // FUTURE: Enable logging to UDP Socket or global file. (And corresponding port/server settings)
       //{"Enable logging to socket", NULL, 8, 0, TYPE_CHECK_BOOL, &agent_log_cfg.net_enabled},
       // TX IP, Port (used for TX+RX).  Protocol fixed as UDP
-      {"Log TX CBOR", NULL, 8, 0, TYPE_CHECK_BOOL, &agent_log_cfg.tx_cbor},
-      {"Log RX CBOR", NULL, 8, 0, TYPE_CHECK_BOOL, &agent_log_cfg.rx_cbor},
-      {"Log Received Reports (ASCII)", NULL, 8, 0, TYPE_CHECK_BOOL, &agent_log_cfg.rx_rpt},
-      {"Log Received Tables (ASCII)", NULL, 8, 0, TYPE_CHECK_BOOL, &agent_log_cfg.rx_tbl},
+      { .title = "Log TX CBOR", .value = NULL, .width = 8, .opts_off = 0, .type = TYPE_CHECK_BOOL,
+        .parsed_value = &agent_log_cfg.tx_cbor },
+
+      { .title = "Log RX CBOR", .value = NULL, .width = 8, .opts_off = 0, .type = TYPE_CHECK_BOOL,
+        .parsed_value = &agent_log_cfg.rx_cbor },
+
+      { .title = "Log Received Reports (ASCII)", .value = NULL, .width = 8, .opts_off = 0,
+        .type = TYPE_CHECK_BOOL, .parsed_value = &agent_log_cfg.rx_rpt },
+
+      { .title = "Log Received Tables (ASCII)", .value = NULL, .width = 8, .opts_off = 0,
+        .type = TYPE_CHECK_BOOL, .parsed_value = &agent_log_cfg.rx_tbl },
+
 #ifdef USE_JSON
-      {"Log Received Reports (JSON)", NULL, 8, 0, TYPE_CHECK_BOOL, &agent_log_cfg.rx_json_rpt},
-      {"Log Received Tables (JSON)", NULL, 8, 0, TYPE_CHECK_BOOL, &agent_log_cfg.rx_json_tbl},
+      { .title = "Log Received Reports (JSON)", .value = NULL, .width = 8, .opts_off = 0,
+        .type = TYPE_CHECK_BOOL, .parsed_value = &agent_log_cfg.rx_json_rpt },
+
+      { .title = "Log Received Tables (JSON)", .value = NULL, .width = 8, .opts_off = 0,
+        .type = TYPE_CHECK_BOOL, .parsed_value = &agent_log_cfg.rx_json_tbl },
 #endif
-      {"Use discrete directories per agent", NULL, 8, 0, TYPE_CHECK_BOOL, &agent_log_cfg.agent_dirs},
-      {"Max Entries Per Log File", NULL, 8, 0, TYPE_CHECK_NUM, &agent_log_cfg.limit},
-      {"Root Log directory", agent_log_cfg.dir, 32, 0, 0},
+
+      { .title = "Use discrete directories per agent", .value = NULL, .width = 8, .opts_off = 0,
+        .type = TYPE_CHECK_BOOL, .parsed_value = &agent_log_cfg.agent_dirs },
+
+      { .title = "Max Entries Per Log File", .value = NULL, .width = 8, .opts_off = 0,
+        .type = TYPE_CHECK_NUM, .parsed_value = &agent_log_cfg.limit },
+
+      { .title = "Root Log directory", .value = agent_log_cfg.dir, .width = 32, .opts_off = 0,
+        .type = 0 }
    };
 
    // Display Form
@@ -2932,6 +2950,10 @@ int ui_menu_listing(
    int status;
    int running = 1;
    char line[20];
+
+   /* Parameters intentionally unused. */
+	(void)default_idx;
+	(void)flags;
 
    while(running && *global_nm_running)
    {

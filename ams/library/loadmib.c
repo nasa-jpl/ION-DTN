@@ -204,6 +204,10 @@ static int	noMibYet(LoadMibState *state)
 
 static void	handle_load_start(LoadMibState *state, const char **atts)
 {
+	/* Parameters intentionally unused. */
+	(void)state;
+	(void)atts;
+
 	return;
 }
 
@@ -1214,7 +1218,7 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 		}
 	}
 
-	if (contnbr < 1 || contnbr > MAX_CONTIN_NBR)
+	if (contnbr < 1 )
 	{
 		noteLoadError(state, "Need number of continuum.");
 		return;
@@ -1364,6 +1368,9 @@ static void XMLCALL	startElement(void *userData, const char *name,
 
 static void	handle_load_end(LoadMibState *state)
 {
+	/* Parameter intentionally unused. */
+	(void)state;
+
 	return;
 }
 
@@ -1374,21 +1381,33 @@ static void	handle_init_end(LoadMibState *state)
 
 static void	handle_op_end(LoadMibState *state, LoadMibOp op)
 {
+	/* Parameter intentionally unused. */
+	(void)op;
+
 	state->currentOperation = LoadDormant;
 }
 
 static void	handle_continuum_end(LoadMibState *state)
 {
+	/* Parameter intentionally unused. */
+	(void)state;
+
 	return;
 }
 
 static void	handle_csendpoint_end(LoadMibState *state)
 {
+	/* Parameter intentionally unused. */
+	(void)state;
+
 	return;
 }
 
 static void	handle_amsendpoint_end(LoadMibState *state)
 {
+	/* Parameter intentionally unused. */
+	(void)state;
+
 	return;
 }
 

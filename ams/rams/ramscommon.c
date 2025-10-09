@@ -1283,6 +1283,9 @@ void	*CheckUdpRpdus(void *parm)
 	LystElt		nextElt;
 	UdpRpdu		*rpdu;
 
+	/* Parameter intentionally unused. */
+	(void)parm;
+
 	while (1)
 	{
 		snooze(1);

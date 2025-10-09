@@ -50,6 +50,9 @@ static void	printText(char *text)
 
 static void	handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	printText("Please enter command 'q' to stop the program.");
 }
 
@@ -117,6 +120,9 @@ indication characters, e.g., pq.  See man(5) for cfdprc.");
 
 static void	initializeCfdp(int tokenCount, char **tokens)
 {
+	/* Parameter intentionally unused. */
+	(void)tokens;
+
 	if (tokenCount != 1)
 	{
 		SYNTAX_ERROR;
@@ -343,6 +349,9 @@ static void	listEntities(int tokenCount, char **tokens)
 	Object	entityObj;
 	Entity	entity;
 	char	buffer[128];
+
+	/* Parameter intentionally unused. */
+	(void)tokens;
 
 	if (tokenCount != 2)
 	{
@@ -823,6 +832,9 @@ static int	processLine(char *line, int lineLength, int *rc)
 	char		buffer[80];
 	struct timeval	done_time;
 	struct timeval	cur_time;
+
+	/* Parameter intentionally unused. */
+	(void)lineLength;
 
 	int max = 0;
 	int count = 0;

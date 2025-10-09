@@ -151,6 +151,9 @@ static int	RehandlePetition(RamsNetProtocol protocol, char *gwEid,
 	RamsGateway	*gWay = _gWay(NULL);
 	RamsNode	*fromNode;
 
+	/* Parameter intentionally unused. */
+	(void)protocol;
+
 	fromNode = Look_Up_Neighbor(gWay, gwEid);
 	if (fromNode == NULL)
 	{
@@ -380,6 +383,9 @@ static void	KillGateway()
 /*	Signal handler: just set the flag and return.			*/
 static void	InterruptGateway(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	isignal(SIGTERM, InterruptGateway);
 	g_ramsgate_interrupted = 1;
 }
@@ -540,6 +546,9 @@ static int	compareCheckTimes(void *data1, void *data2)
 
 static void	deleteDeclaration(LystElt elt, void *arg)
 {
+	/* Parameter intentionally unused. */
+	(void)arg;
+
 	UdpRpdu	*rpdu = (UdpRpdu *) lyst_data(elt);
 
 	MRELEASE(rpdu->envelope);
@@ -561,7 +570,7 @@ static int _sendQueuedRpdu(RamsGateway *gWay, BpOutboundRpdu *rpdu)
 {
 	Sdr		sdr = getIonsdr();
 	int		classOfService;
-	BpAncillaryData	ancillaryData = { 0, 0, 0 };
+	BpAncillaryData	ancillaryData = {0};
 	Object		extent;
 	Object		bundleZco;
 	Object		newBundle;
@@ -1430,6 +1439,10 @@ sub=%d\n", inv->inviteSpecification->domainUnitNbr,
 
 static void	HandleAamsError(void *userData, AmsEvent *event)
 {
+	/* Parameters intentionally unused. */
+	(void)userData;
+	(void)event;
+
 	putErrmsg("AAMS error.", NULL);
 	/*	This just signals the main thread to begin shutdown.	*/
 	g_ramsgate_interrupted = 1;
@@ -1444,6 +1457,15 @@ static void	HandleSubscription(AmsModule module, void *userData,
 {
 	RamsGateway	*gWay;
 	Module		*sourceModule;
+
+	/* Parameters intentionally unused. */
+	(void)module;
+	(void)eventRef;
+	(void)priority;
+	(void)flowLabel;
+	(void)sequence;
+	(void)diligence;
+
 
 #if RAMSDEBUG
 printf("<HandleSubscription> receive subscription notice from %d \
@@ -1469,6 +1491,10 @@ static void	HandleUnsubscription(AmsModule module, void *userData,
 	RamsGateway	*gWay;
 	Module		*sourceModule;
 
+	/* Parameters intentionally unused. */
+	(void)module;
+	(void)eventRef;
+
 #if RAMSDEBUG
 printf("<HandleUnsubscription> receive unsubscription from %d subjectNbr=%d\n",
 moduleNbr, subjectNbr);
@@ -1491,6 +1517,12 @@ static void	HandleRegistration(AmsModule module, void *userData,
 {
 	RamsGateway	*gWay = _gWay(NULL);
 	Module		*sourceModule;
+
+	/* Parameters intentionally unused. */
+	(void)module;
+	(void)userData;
+	(void)eventRef;
+	(void)roleNbr;
 
 #if RAMSDEBUG
 PUTS("in HandleRegistration");
@@ -1516,6 +1548,10 @@ static void	HandleUnregistration(AmsModule module, void *userData,
 	RamsGateway	*gWay = _gWay(NULL);
 	Module		*sourceModule;
 	LystElt		elt;
+
+	/* Parameters intentionally unused. */
+	(void)userData;
+	(void)eventRef;
 
 #if RAMSDEBUG
 PUTS("in HandleUnregistration");
@@ -1552,6 +1588,14 @@ static void	HandleInvitation(AmsModule module, void *userData,
 	LystElt		invElt;
 	Invitation	*inv;
 	LystElt		elt;
+
+	/* Parameters intentionally unused. */
+	(void)module;
+	(void)eventRef;
+	(void)priority;
+	(void)flowLabel;
+	(void)sequence;
+	(void)diligence;
 
 #if RAMSDEBUG
 printf("in HandleInvitation subjectNbr=%d from unit=%d module=%d to domain \
@@ -1616,6 +1660,10 @@ static void	HandleDisinvitation(AmsModule module, void *userData,
 	Invitation	*inv;
 	Module		*sourceModule;
 
+	/* Parameters intentionally unused. */
+	(void)module;
+	(void)eventRef;
+
 #if RAMSDEBUG
 printf("in HandleDisinvitation subjectNbr=%d from unit=%d module=%d to \
 domain role=%d domain cont = %d domain Unit=%d\n", subjectNbr, unitNbr,
@@ -1655,6 +1703,14 @@ static void	HandleUserEvent(AmsModule module, void *userData,
 			AmsEvent *eventRef, int code, int dataLength,
 			char *data)
 {
+	/* Parameters intentionally unused. */
+	(void)module;
+	(void)userData;
+	(void)eventRef;
+	(void)code;
+	(void)dataLength;
+	(void)data;
+
 #if RAMSDEBUG
 PUTS("in HandleUserEvent");
 #endif
@@ -1666,6 +1722,16 @@ static void	HandleAamsMessage(AmsModule module, void *userData,
 			char *content, int context, AmsMsgType msgType,
 			int priority, unsigned char flowLabel)
 {
+	/* Parameters intentionally unused. */
+	(void)module;
+	(void)userData;
+	(void)continuumNbr;
+	(void)unitNbr;
+	(void)moduleNbr;
+	(void)context;
+	(void)msgType;
+	(void)priority;
+
 	RamsGateway	*gWay = (RamsGateway *) userData;
 
 #if RAMSDEBUG

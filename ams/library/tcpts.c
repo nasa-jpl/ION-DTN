@@ -164,36 +164,58 @@ static void	removeSender(TcpTsep *tsep)
 
 static int	tcpComputeCsepName(char *endpointSpec, char *endpointName)
 {
+	/* Parameters intentionally unused. */
+	(void)endpointSpec;
+	(void)endpointName;
+
 	putErrmsg("Sorry, no PTS support implemented in tcpts.", NULL);
 	return -1;
 }
 
 int	tcpMamsInit(MamsInterface *tsif)
 {
+	/* Parameter intentionally unused. */
+	(void)tsif;
+
 	putErrmsg("Sorry, no PTS support implemented in tcpts.", NULL);
 	return -1;
 }
 
 static void	*tcpMamsAccess(void *parm)
 {
+	/* Parameter intentionally unused. */
+	(void)parm;
+
 	putErrmsg("Sorry, no PTS support implemented in tcpts.", NULL);
 	return NULL;
 }
 
 static int	tcpParseMamsEndpoint(MamsEndpoint *ep)
 {
+	/* Parameter intentionally unused. */
+	(void)ep;
+
 	putErrmsg("Sorry, no PTS support implemented in tcpts.", NULL);
 	return -1;
 }
 
 static void	tcpClearMamsEndpoint(MamsEndpoint *ep)
 {
+	/* Parameter intentionally unused. */
+	(void)ep;
+
 	putErrmsg("Sorry, no PTS support implemented in tcpts.", NULL);
 }
 
 static int	tcpSendMams(MamsEndpoint *ep, MamsInterface *tsif, char *msg,
 			int msgLen)
 {
+	/* Parameters intentionally unused. */
+	(void)ep;
+	(void)tsif;
+	(void)msg;
+	(void)msgLen;
+
 	putErrmsg("Sorry, no PTS support implemented in tcpts.", NULL);
 	return -1;
 }
@@ -304,7 +326,7 @@ static void	*tcpAmsReceiver(void *parm)
 		case -1:
 			writeMemo("[?] tcpts receiver crashed.");
 
-			/*	Intentional fall-through to next case.	*/
+			/* FALLTHROUGH */
 
 		case 0:	/*	Connection simply closed by sender.	*/
 			MRELEASE(buffer);
@@ -528,6 +550,9 @@ static int	tcpSendAms(AmsEndpoint *dp, AmsSAP *sap,
 	unsigned short		checksum;
 	unsigned short		preamble;
 	int			result;
+
+	/* Parameter intentionally unused. */
+	(void)flowLabel;
 
 	CHKERR(dp);
 	CHKERR(sap);
