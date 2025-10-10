@@ -173,10 +173,10 @@ typedef struct
 } DlvPayload;
 
 extern int		dtpcInit(void);
-#define dtpcStart(void)	_dtpcStart()
+#define dtpcStart()	_dtpcStart()
 extern int		_dtpcStart(void);
-#define dtpcStop()  _dtpcStop()
-extern void     _dtpcStop(void);
+#define dtpcStop()	_dtpcStop()
+extern void		_dtpcStop(void);
 extern int		dtpcAttach(void);
 extern unsigned int 	dtpcGetProfile(unsigned int maxRtx,
 				unsigned int aggrSizeLimit,
