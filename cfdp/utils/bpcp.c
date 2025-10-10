@@ -1689,15 +1689,20 @@ void exit_nicely(int val)
 		}
 	}
 
-	/*Delete remote directory listing semaphore*/
-	sm_SemEnd(events_sem);
-	microsnooze(50000);
-	sm_SemDelete(events_sem);
-
-	/*End receiver thread*/
+	/*End receiver thread BEFORE deleting semaphore*/
 	recv_running=0;
 	cfdp_interrupt();
+
+	/*Signal the semaphore to wake up the receiver thread if it's blocked*/
+	sm_SemEnd(events_sem);
+	sm_SemGive(events_sem);
+
+	/*Wait for receiver thread to exit*/
 	pthread_join(rcv_thread, NULL);
+
+	/*Now it's safe to delete the semaphore*/
+	sm_SemDelete(events_sem);
+
 	exit(val);
 }
 
