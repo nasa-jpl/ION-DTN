@@ -203,7 +203,7 @@ pid_t spawn_node(const char *tcp_single_node_path,
 /*
  * Main launcher
  */
-int main(int argc, char *argv[])
+int main(void)
 {
 	int status1 = 0, status2 = 0;
 	int exit_code = 0;
