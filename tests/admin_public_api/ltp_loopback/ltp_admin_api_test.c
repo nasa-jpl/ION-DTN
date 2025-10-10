@@ -117,7 +117,7 @@ static int test_list_ltp_config(void)
  * =============================================================================
  */
 
-int main(int argc, char *argv[])
+int main(void)
 {
 	time_t	now;
 
