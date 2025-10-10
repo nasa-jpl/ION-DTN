@@ -38,6 +38,22 @@
 #include <signal.h>
 #include <libgen.h>
 
+/*
+ * Suppress format-truncation warnings for GCC 7+.
+ * This code has explicit length checks before all snprintf() calls,
+ * but GCC's static analysis doesn't recognize the runtime checks and
+ * issues false-positive warnings. The snprintf calls are safe because:
+ * 1. All paths use MAXPATHLEN-sized buffers
+ * 2. strlen() checks verify the concatenated length won't exceed buffer size
+ * 3. Any overflow is caught and reported before snprintf is called
+ */
+#if defined(__GNUC__) && __GNUC__ >= 7
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+#endif
+
+/* Color codes for output */
+#define COLOR_GREEN "\x1b[32m"
+
 /* Color codes for output */
 #define COLOR_GREEN "\x1b[32m"
 #define COLOR_RED "\x1b[31m"
