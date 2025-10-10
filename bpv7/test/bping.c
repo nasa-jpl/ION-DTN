@@ -182,7 +182,25 @@ static void *receiveResponses(void *x)
 			pthread_exit(NULL);
 		}
 		contentLength = zco_source_data_length(sdr, dlv.adu);
-		bytesToRead = MIN(contentLength, sizeof(buffer)-1); 
+		size_t maxBytes = sizeof(buffer) - 1;
+
+		if (contentLength < 0)
+		{
+			/* contentLength is negative (error), so it's the smaller value.
+			* Or, handle as an error if appropriate. For now, preserve MIN logic. */
+			bytesToRead = contentLength;
+		}
+		else if ((size_t)contentLength < maxBytes)
+		{
+			/* contentLength is non-negative and smaller than the max. */
+			bytesToRead = contentLength;
+		}
+		else
+		{
+			/* contentLength is non-negative and larger than or equal to the max. */
+			bytesToRead = maxBytes;
+		}
+
 		zco_start_receiving(dlv.adu, &reader);
 		oK(sdr_begin_xn(sdr));
 		result = zco_receive_source(sdr, &reader, bytesToRead, buffer);

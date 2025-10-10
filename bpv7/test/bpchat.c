@@ -131,7 +131,25 @@ static void *       recvBundles(void *args)
 		zco_start_receiving(dlv.adu, &reader);
 		while(bundleLenRemaining > 0)
 		{
-			bytesToRead = MIN(bundleLenRemaining, sizeof(buffer)-1);
+			size_t maxBytes = sizeof(buffer) - 1;
+
+			if (bundleLenRemaining < 0)
+			{
+				/* A negative remaining length is an error/impossible state.
+				* Set bytesToRead to 0 to be safe and prevent a read. */
+				bytesToRead = 0; 
+			}
+			else if ((size_t)bundleLenRemaining < maxBytes)
+			{
+				/* The remaining length is valid and fits within the max. */
+				bytesToRead = bundleLenRemaining;
+			}
+			else
+			{
+				/* The remaining length is larger than the max, so clamp it. */
+				bytesToRead = maxBytes;
+			}
+
 			rc = zco_receive_source(sdr, &reader, bytesToRead,
 					buffer);
 			if(rc < 0) break;

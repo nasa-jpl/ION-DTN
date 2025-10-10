@@ -2490,6 +2490,9 @@ int pthread_begin_named(pthread_t *thread, const pthread_attr_t *attr,
 {
 	int result;
 
+	/* Parameter intentionally unused. */
+	(void)name;
+
 	/*	VxWorks uses a different method of naming threads.	*/
 #ifdef vxworks
 	if(attr){
