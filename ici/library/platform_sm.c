@@ -4124,6 +4124,17 @@ int	sm_SemTake(sm_SemId i)
 
 	CHKERR(sem);
 
+	/*	Check if semaphore has been deleted to avoid race condition
+	 *	where sm_SemDelete() is called while another thread is about
+	 *	to call sem_wait().					*/
+
+	if (sem->id == NULL)
+	{
+		errno = EINVAL;
+		putErrmsg("Semaphore has been deleted", itoa(i));
+		return -1;
+	}
+
 	while (sem_wait(sem->id) == -1) {
 		if (errno == EINTR)	{
 			continue;

@@ -1965,6 +1965,16 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 		/*	Wait until CFDP entity announces an event
 		 *	by giving the event semaphore.			*/
 
+		/*	Check if semaphore has ended before trying to take
+		 *	it, to avoid race condition with sm_SemDelete().	*/
+
+		if (sm_SemEnded(vdb->eventSemaphore))
+		{
+			*type = CfdpAccessEnded;
+			writeMemo("[i] CFDP user app access terminated.");
+			return 0;
+		}
+
 		if (sm_SemTake(vdb->eventSemaphore) < 0)
 		{
 			putErrmsg("CFDP user app can't take semaphore.", NULL);
