@@ -68,7 +68,7 @@ static IpnDB	*_ipnConstants(void)
 
 /*	*	*	Routing information mgt functions	*	*/
 
-int	ipnInit()
+int	ipnInit(void)
 {
 	Sdr	sdr = getIonsdr();
 	Object	ipndbObject;
@@ -116,12 +116,12 @@ int	ipnInit()
 	return 0;
 }
 
-Object	getIpnDbObject()
+Object	getIpnDbObject(void)
 {
 	return _ipndbObject(NULL);
 }
 
-IpnDB	*getIpnConstants()
+IpnDB	*getIpnConstants(void)
 {
 	return _ipnConstants();
 }

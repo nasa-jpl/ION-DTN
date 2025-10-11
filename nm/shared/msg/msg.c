@@ -48,7 +48,7 @@ int msg_hdr_serialize(QCBOREncodeContext *encoder, msg_hdr_t hdr)
 	return cut_enc_byte(encoder, hdr.flags);
 }
 
-msg_agent_t* msg_agent_create()
+msg_agent_t* msg_agent_create(void)
 {
 	msg_agent_t *result = STAKE(sizeof(msg_agent_t));
 	CHKNULL(result);
@@ -156,7 +156,7 @@ void msg_agent_set_agent(msg_agent_t *msg, eid_t agent)
 	msg->agent_id = agent;
 }
 
-msg_ctrl_t* msg_ctrl_create()
+msg_ctrl_t* msg_ctrl_create(void)
 {
 	msg_ctrl_t *result = STAKE(sizeof(msg_ctrl_t));
 	CHKNULL(result);

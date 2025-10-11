@@ -33,7 +33,7 @@
 
 static vec_idx_t g_dtn_bpsec_idx[11];
 
-void dtn_bpsec_init()
+void dtn_bpsec_init(void)
 {
 	adm_add_adm_info("dtn_bpsec", ADM_ENUM_DTN_BPSEC);
 
@@ -57,7 +57,7 @@ void dtn_bpsec_init()
 	dtn_bpsec_init_tblt();
 }
 
-void dtn_bpsec_init_meta()
+void dtn_bpsec_init_meta(void)
 {
 
 	adm_add_cnst(adm_build_ari(AMP_TYPE_CNST, 0, g_dtn_bpsec_idx[ADM_META_IDX], DTN_BPSEC_META_NAME), dtn_bpsec_meta_name);
@@ -66,12 +66,12 @@ void dtn_bpsec_init_meta()
 	adm_add_cnst(adm_build_ari(AMP_TYPE_CNST, 0, g_dtn_bpsec_idx[ADM_META_IDX], DTN_BPSEC_META_ORGANIZATION), dtn_bpsec_meta_organization);
 }
 
-void dtn_bpsec_init_cnst()
+void dtn_bpsec_init_cnst(void)
 {
 
 }
 
-void dtn_bpsec_init_edd()
+void dtn_bpsec_init_edd(void)
 {
 
 	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bpsec_idx[ADM_EDD_IDX], DTN_BPSEC_EDD_NUM_GOOD_TX_BCB_BLK), dtn_bpsec_get_num_good_tx_bcb_blk);
@@ -132,12 +132,12 @@ void dtn_bpsec_init_edd()
 	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 1, g_dtn_bpsec_idx[ADM_EDD_IDX], DTN_BPSEC_EDD_LAST_RESET), dtn_bpsec_get_last_reset);
 }
 
-void dtn_bpsec_init_op()
+void dtn_bpsec_init_op(void)
 {
 
 }
 
-void dtn_bpsec_init_var()
+void dtn_bpsec_init_var(void)
 {
 
 	ari_t *id = NULL;
@@ -155,7 +155,7 @@ void dtn_bpsec_init_var()
 	adm_add_var_from_expr(id, AMP_TYPE_UINT, expr);
 }
 
-void dtn_bpsec_init_ctrl()
+void dtn_bpsec_init_ctrl(void)
 {
 
 	adm_add_ctrldef(g_dtn_bpsec_idx[ADM_CTRL_IDX], DTN_BPSEC_CTRL_RST_ALL_CNTS, 0, dtn_bpsec_ctrl_rst_all_cnts);
@@ -168,12 +168,12 @@ void dtn_bpsec_init_ctrl()
 	adm_add_ctrldef(g_dtn_bpsec_idx[ADM_CTRL_IDX], DTN_BPSEC_CTRL_DEL_BCB_RULE, 3, dtn_bpsec_ctrl_del_bcb_rule);
 }
 
-void dtn_bpsec_init_mac()
+void dtn_bpsec_init_mac(void)
 {
 
 }
 
-void dtn_bpsec_init_rpttpl()
+void dtn_bpsec_init_rpttpl(void)
 {
 
 	rpttpl_t *def = NULL;
@@ -241,7 +241,7 @@ void dtn_bpsec_init_rpttpl()
 	adm_add_rpttpl(def);
 }
 
-void dtn_bpsec_init_tblt()
+void dtn_bpsec_init_tblt(void)
 {
 
 	tblt_t *def = NULL;

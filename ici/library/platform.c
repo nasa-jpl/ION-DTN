@@ -675,7 +675,7 @@ void	getCurrentTime(struct timeval *tvp)
 	oK(gettimeofday(tvp, NULL));
 }
 
-unsigned long	getClockResolution()
+unsigned long	getClockResolution(void)
 {
 	/*	Linux clock resolution of Alpha is 1 ms, as is
 	 *	Windows XP standard clock resolution, and Solaris
@@ -1129,7 +1129,7 @@ int	watchSocket(int fd)
 
 #if (defined (linux) || defined (freebsd) || defined (darwin) || defined (RTEMS))
 
-char	*system_error_msg()
+char	*system_error_msg(void)
 {
 	return strerror(errno);
 }
@@ -1789,7 +1789,7 @@ int	getErrmsg(char *buffer)
 	return _errmsgs(0, NULL, NULL, NULL, buffer);
 }
 
-void	writeErrmsgMemos()
+void	writeErrmsgMemos(void)
 {
 	static ResourceLock	memosLock;
 	static int		memosLockInit = 0;
@@ -1833,7 +1833,7 @@ excessive length";
 	unlockResource(&memosLock);
 }
 
-void	discardErrmsgs()
+void	discardErrmsgs(void)
 {
 	static char	msgdiscardbuf[ERRMSGS_BUFSIZE];
 
@@ -1875,7 +1875,7 @@ int	_iEnd(const char *fileName, int lineNbr, const char *arg)
 	return 1;
 }
 
-void	printStackTrace()
+void	printStackTrace(void)
 {
 #if !defined(__linux__) || !defined(HAVE_EXECINFO_H)
 	writeMemo("[?] No stack trace available on this platform.");
@@ -2589,7 +2589,7 @@ char	*addressToString(struct in_addr address, char *buffer)
 
 #else
 
-unsigned int	getAddressOfHost()
+unsigned int	getAddressOfHost(void)
 {
 	char	hostnameBuf[MAXHOSTNAMELEN + 1];
 	getNameOfHost(hostnameBuf, sizeof(hostnameBuf));

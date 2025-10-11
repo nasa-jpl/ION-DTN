@@ -26,24 +26,24 @@ typedef struct
 	sm_SemId	semaphore;
 } TimerParms;
 
-int	bp_attach()
+int	bp_attach(void)
 {
 	return bpAttach();
 }
 
-int	bp_agent_is_started()
+int	bp_agent_is_started(void)
 {
 	BpVdb	*vdb = getBpVdb();
 
 	return (vdb && vdb->clockPid != ERROR);
 }
 
-Sdr	bp_get_sdr()
+Sdr	bp_get_sdr(void)
 {
 	return getIonsdr();
 }
 
-void	bp_detach()
+void	bp_detach(void)
 {
 #if (!(defined (ION_LWT)))
 	bpDetach();
@@ -309,7 +309,7 @@ int	bp_parse_quality_of_service(const char *token,
 	return 1;
 }
 
-char	*_nullEid()
+char	*_nullEid(void)
 {
 	return "dtn:none";
 }

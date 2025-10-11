@@ -70,7 +70,7 @@ void radixpt_radix_search(PsmPartition partition, PsmAddress radixAddr, char *va
 	free(src_key);
 }
 
-char *radixpt_gen_make_addr()
+char *radixpt_gen_make_addr(void)
 {
 	char *tmp = malloc(RADIX_MAX_SUBSTR);
 	CHKNULL(tmp);
@@ -127,7 +127,7 @@ int	radixpt_gen_eidsMatch(char *firstEid, int firstEidLen, char *secondEid, int 
 	return 1;
 }
 
-void radixpc_gen_printconfig()
+void radixpc_gen_printconfig(void)
 {
 		printf("Test Options:\n-------------\n");
 		printf("\tType: %s\n", (gConfig.type == RADIX_TEST) ? "radix" : "lyst");
@@ -142,7 +142,7 @@ void radixpc_gen_printconfig()
 }
 
 
-void radixpt_gen_printstats()
+void radixpt_gen_printstats(void)
 {
 /*
 	long est_size;
@@ -218,7 +218,7 @@ void radixpt_radix_query(PsmPartition partition, PsmAddress radixAddr)
 }
 
 
-void radixpt_radix_runtest()
+void radixpt_radix_runtest(void)
 {
 	PsmPartition wm = getIonwm();
 
@@ -242,7 +242,7 @@ void radixpt_radix_runtest()
 }
 
 
-void radixpt_gen_initconfig()
+void radixpt_gen_initconfig(void)
 {
 	gConfig.type = RADIX_TEST;
 	gConfig.inserts = 100;

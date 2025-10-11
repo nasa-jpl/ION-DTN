@@ -1200,7 +1200,7 @@ void ui_register_agent(char* msg)
  *  07/04/16  E. Birrane     Auto-select if only 1 agent known.
  *  10/07/18  E. Birrane     Update to AMP v0.5 (JHU/APL)
  *****************************************************************************/
-agent_t* ui_select_agent()
+agent_t* ui_select_agent(void)
 {
 	char line[10];
 	int idx = -1;
@@ -1733,7 +1733,7 @@ void ui_ctrl_list_menu(int *running)
 FILE *display_fd = NULL;
 
 /** Close any open stdout redirects and restore normal output */
-void ui_display_to_file_close()
+void ui_display_to_file_close(void)
 {
    if (display_fd != NULL)
    {
@@ -3109,7 +3109,7 @@ int ui_menu_listing(
 
 }
 
-int ui_display_exec()
+int ui_display_exec(void)
 {
    if(display_fd != NULL) {
       ui_display_to_file_close();

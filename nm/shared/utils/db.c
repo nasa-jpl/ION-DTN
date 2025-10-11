@@ -485,7 +485,7 @@ int vdb_db_init_var(blob_t *data, db_desc_t desc)
 }
 
 
-void db_destroy()
+void db_destroy(void)
 {
 	rhht_release(&(gVDB.adm_atomics), 0);
 	rhht_release(&(gVDB.adm_edds), 0);

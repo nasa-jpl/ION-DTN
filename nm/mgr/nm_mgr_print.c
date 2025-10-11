@@ -216,7 +216,7 @@ static int ui_print_agents_cb_parse(int idx, int keypress, void* data, char* sta
    return UI_CB_RTV_CONTINUE;
 }
 
-int ui_print_agents()
+int ui_print_agents(void)
 {
   vecit_t it;
   int i = 0, tmp, tmp2;

@@ -8,7 +8,7 @@
 #include "check.h"
 #include "testutil.h"
 
-const char *get_configs_path_prefix()
+const char *get_configs_path_prefix(void)
 {
 	static char path_prefix[256] = "";
     const char * cfgroot = getenv("CONFIGSROOT");

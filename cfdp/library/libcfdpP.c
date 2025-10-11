@@ -307,7 +307,7 @@ void	addToChecksum(unsigned char octet, vast *offset,
 }
 #endif
 
-int	getReqNbr()
+int	getReqNbr(void)
 {
 	Sdr	sdr = getIonsdr();
 	Object	dbObj = getCfdpDbObject();

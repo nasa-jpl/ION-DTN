@@ -32,7 +32,7 @@
 #ifdef _HAVE_DTN_ION_IONADMIN_ADM_
 static vec_idx_t g_dtn_ion_ionadmin_idx[11];
 
-void dtn_ion_ionadmin_init()
+void dtn_ion_ionadmin_init(void)
 {
 	adm_add_adm_info("dtn_ion_ionadmin", ADM_ENUM_DTN_ION_IONADMIN);
 
@@ -53,7 +53,7 @@ void dtn_ion_ionadmin_init()
 	dtn_ion_ionadmin_init_tblt();
 }
 
-void dtn_ion_ionadmin_init_meta()
+void dtn_ion_ionadmin_init_meta(void)
 {
 
 	ari_t *id = NULL;
@@ -76,12 +76,12 @@ void dtn_ion_ionadmin_init_meta()
 
 }
 
-void dtn_ion_ionadmin_init_cnst()
+void dtn_ion_ionadmin_init_cnst(void)
 {
 
 }
 
-void dtn_ion_ionadmin_init_edd()
+void dtn_ion_ionadmin_init_edd(void)
 {
 
 	ari_t *id = NULL;
@@ -144,17 +144,17 @@ void dtn_ion_ionadmin_init_edd()
 
 }
 
-void dtn_ion_ionadmin_init_op()
+void dtn_ion_ionadmin_init_op(void)
 {
 
 }
 
-void dtn_ion_ionadmin_init_var()
+void dtn_ion_ionadmin_init_var(void)
 {
 
 }
 
-void dtn_ion_ionadmin_init_ctrl()
+void dtn_ion_ionadmin_init_ctrl(void)
 {
 
 	ari_t *id = NULL;
@@ -299,17 +299,17 @@ void dtn_ion_ionadmin_init_ctrl()
 	meta_add_parm(meta, "local_time_sec_after_epoch", AMP_TYPE_UINT);
 }
 
-void dtn_ion_ionadmin_init_mac()
+void dtn_ion_ionadmin_init_mac(void)
 {
 
 }
 
-void dtn_ion_ionadmin_init_rpttpl()
+void dtn_ion_ionadmin_init_rpttpl(void)
 {
 
 }
 
-void dtn_ion_ionadmin_init_tblt()
+void dtn_ion_ionadmin_init_tblt(void)
 {
 
 	tblt_t *def = NULL;

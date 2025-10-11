@@ -319,7 +319,7 @@ tnv_t *tnv_copy_ptr(tnv_t *val)
  * \returns The created TNV, or NULL.
  *****************************************************************************/
 
-tnv_t *tnv_create()
+tnv_t *tnv_create(void)
 {
 	tnv_t *result = STAKE(sizeof(tnv_t));
 	CHKNULL(result);

@@ -441,7 +441,7 @@ void csi_cipherparms_free(csi_cipherparms_t parms)
 } */
 
 // 2/21
-int csi_init()
+int csi_init(void)
 {
 	CSI_DEBUG_PROC("+ csi_init()", NULL);
 
@@ -674,7 +674,7 @@ csi_val_t csi_serialize_parms(csi_cipherparms_t parms)
 	return result;
 }
 
-void      csi_teardown()
+void      csi_teardown(void)
 {
 	gcm_teardown();
     hsha_teardown();

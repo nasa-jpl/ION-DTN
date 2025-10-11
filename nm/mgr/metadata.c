@@ -208,7 +208,7 @@ void meta_release(metadata_t *meta, int destroy)
 }
 
 
-meta_col_t* metacol_create()
+meta_col_t* metacol_create(void)
 {
 	meta_col_t *result = malloc(sizeof(meta_col_t));
 	int success;

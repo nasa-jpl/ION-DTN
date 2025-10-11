@@ -71,7 +71,7 @@ agent_db_t gAgentDb;
  *  11/23/21  E. Birrane     Added table sets (JHU/APL)
  *****************************************************************************/
 
-void rda_cleanup()
+void rda_cleanup(void)
 {
 	vec_release(&(gAgentDb.rpt_msgs), 0);
 	vec_release(&(gAgentDb.tbl_msgs), 0);
@@ -79,7 +79,7 @@ void rda_cleanup()
 	vec_release(&(gAgentDb.sbrs), 0);
 }
 
-int rda_init()
+int rda_init(void)
 {
 	int success;
 
@@ -242,7 +242,7 @@ msg_tbl_t *rda_get_msg_tbl(eid_t recipient)
  *  10/21/11  E. Birrane     Initial implementation,
  *  10/04/18  E. Birrane     Update to AMP v0.5 (JHU/APL)
  *****************************************************************************/
-int rda_process_ctrls()
+int rda_process_ctrls(void)
 {
 	vec_idx_t i;
 	ctrl_t *ctrl;
@@ -381,7 +381,7 @@ void rda_scan_sbrs_cb(rh_elt_t *elt, void *tag)
  *  10/05/18  E. Birrane     Updated to AMP v0.5.
  *****************************************************************************/
 
-int rda_process_rules()
+int rda_process_rules(void)
 {
     vecit_t it;
 
@@ -482,7 +482,7 @@ int rda_process_rules()
  *  10/05/18  E. Birrane     Update to latest AMP v0.5. (JHU/APL)
  *****************************************************************************/
 
-int rda_send_reports()
+int rda_send_reports(void)
 {
     vecit_t it1;
     vecit_t it2;
@@ -555,7 +555,7 @@ int rda_send_reports()
  *  11/23/21  E. Birrane     Initial Implementation (JHU/APL)
  *****************************************************************************/
 
-int rda_send_tables()
+int rda_send_tables(void)
 {
     vecit_t it1;
     vecit_t it2;

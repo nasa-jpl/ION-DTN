@@ -67,7 +67,7 @@ eid_t        agent_eid;
  *  10/04/18  E. Birrane     Update to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
-void agent_register()
+void agent_register(void)
 {
     msg_agent_t *msg = NULL;
 

@@ -32,7 +32,7 @@
 #ifdef _HAVE_DTN_ION_LTPADMIN_ADM_
 static vec_idx_t g_dtn_ion_ltpadmin_idx[11];
 
-void dtn_ion_ltpadmin_init()
+void dtn_ion_ltpadmin_init(void)
 {
 	adm_add_adm_info("dtn_ion_ltpadmin", ADM_ENUM_DTN_ION_LTPADMIN);
 
@@ -53,7 +53,7 @@ void dtn_ion_ltpadmin_init()
 	dtn_ion_ltpadmin_init_tblt();
 }
 
-void dtn_ion_ltpadmin_init_meta()
+void dtn_ion_ltpadmin_init_meta(void)
 {
 
 	ari_t *id = NULL;
@@ -76,12 +76,12 @@ void dtn_ion_ltpadmin_init_meta()
 
 }
 
-void dtn_ion_ltpadmin_init_cnst()
+void dtn_ion_ltpadmin_init_cnst(void)
 {
 
 }
 
-void dtn_ion_ltpadmin_init_edd()
+void dtn_ion_ltpadmin_init_edd(void)
 {
 
 	ari_t *id = NULL;
@@ -92,17 +92,17 @@ void dtn_ion_ltpadmin_init_edd()
 
 }
 
-void dtn_ion_ltpadmin_init_op()
+void dtn_ion_ltpadmin_init_op(void)
 {
 
 }
 
-void dtn_ion_ltpadmin_init_var()
+void dtn_ion_ltpadmin_init_var(void)
 {
 
 }
 
-void dtn_ion_ltpadmin_init_ctrl()
+void dtn_ion_ltpadmin_init_ctrl(void)
 {
 
 	ari_t *id = NULL;
@@ -196,17 +196,17 @@ void dtn_ion_ltpadmin_init_ctrl()
 	meta_add_parm(meta, "activity", AMP_TYPE_STR);
 }
 
-void dtn_ion_ltpadmin_init_mac()
+void dtn_ion_ltpadmin_init_mac(void)
 {
 
 }
 
-void dtn_ion_ltpadmin_init_rpttpl()
+void dtn_ion_ltpadmin_init_rpttpl(void)
 {
 
 }
 
-void dtn_ion_ltpadmin_init_tblt()
+void dtn_ion_ltpadmin_init_tblt(void)
 {
 
 	tblt_t *def = NULL;

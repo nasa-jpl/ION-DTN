@@ -529,7 +529,7 @@ static void    resetDbStats(BpDB *db)
 }   /* end of bpnm_dbStats_reset */
 
 /*****************************************************************************/
-void    bpnm_disposition_reset()
+void    bpnm_disposition_reset(void)
 {
     Sdr             sdr = getIonsdr();
     Object          dbobj;

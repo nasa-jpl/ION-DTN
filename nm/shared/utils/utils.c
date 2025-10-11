@@ -44,7 +44,7 @@ static ResourceLock gMemMutex;
 char gAmpMsg[AMP_GMSG_BUFLEN];
 #endif
 
-int8_t utils_mem_int()
+int8_t utils_mem_int(void)
 {
 	if(initResourceLock(&gMemMutex))
 	{
@@ -55,7 +55,7 @@ int8_t utils_mem_int()
 	return AMP_OK;
 }
 
-void utils_mem_teardown()
+void utils_mem_teardown(void)
 {
 	killResourceLock(&gMemMutex);
 }

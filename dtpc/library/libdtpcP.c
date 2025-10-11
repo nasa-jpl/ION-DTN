@@ -458,7 +458,7 @@ void	_dtpcStop(void)		/*	Reverses dtpcStart.		*/
 	sdr_exit_xn(sdr);
 }
 
-int	dtpcAttach()
+int	dtpcAttach(void)
 {
 	Object		dtpcdbObject = _dtpcdbObject(NULL);
 	DtpcVdb		*dtpcvdb = _dtpcvdb(NULL);

@@ -150,7 +150,7 @@ blob_t *ui_input_file_contents(char *prompt)
 }
 
 
-uint8_t ui_input_adm_id()
+uint8_t ui_input_adm_id(void)
 {
 	vecit_t it;
 	int i = 0;

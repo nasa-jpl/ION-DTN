@@ -16,7 +16,7 @@
 
 #include "bssP.h"
 
-void	bssStop()
+void	bssStop(void)
 {
 	int		destroy = 0;
 	int		stopLoop = 0;
@@ -48,7 +48,7 @@ void	bssStop()
 	fflush(stdout);
 }
 
-void	bssClose()
+void	bssClose(void)
 {
 	int	destroy = 0;
 
@@ -75,7 +75,7 @@ void	bssClose()
 	fflush(stdout);
 }
 
-void	bssExit()
+void	bssExit(void)
 {
 	PUTS("BSS is exiting...");
 	fflush(stdout);

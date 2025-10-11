@@ -32,7 +32,7 @@
 
 static vec_idx_t g_dtn_ion_bpadmin_idx[11];
 
-void dtn_ion_bpadmin_init()
+void dtn_ion_bpadmin_init(void)
 {
 	adm_add_adm_info("dtn_ion_bpadmin", ADM_ENUM_DTN_ION_BPADMIN);
 
@@ -54,7 +54,7 @@ void dtn_ion_bpadmin_init()
 	dtn_ion_bpadmin_init_tblt();
 }
 
-void dtn_ion_bpadmin_init_meta()
+void dtn_ion_bpadmin_init_meta(void)
 {
 
 	adm_add_cnst(adm_build_ari(AMP_TYPE_CNST, 0, g_dtn_ion_bpadmin_idx[ADM_META_IDX], DTN_ION_BPADMIN_META_NAME), dtn_ion_bpadmin_meta_name);
@@ -63,28 +63,28 @@ void dtn_ion_bpadmin_init_meta()
 	adm_add_cnst(adm_build_ari(AMP_TYPE_CNST, 0, g_dtn_ion_bpadmin_idx[ADM_META_IDX], DTN_ION_BPADMIN_META_ORGANIZATION), dtn_ion_bpadmin_meta_organization);
 }
 
-void dtn_ion_bpadmin_init_cnst()
+void dtn_ion_bpadmin_init_cnst(void)
 {
 
 }
 
-void dtn_ion_bpadmin_init_edd()
+void dtn_ion_bpadmin_init_edd(void)
 {
 
 	adm_add_edd(adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_ion_bpadmin_idx[ADM_EDD_IDX], DTN_ION_BPADMIN_EDD_BP_VERSION), dtn_ion_bpadmin_get_bp_version);
 }
 
-void dtn_ion_bpadmin_init_op()
+void dtn_ion_bpadmin_init_op(void)
 {
 
 }
 
-void dtn_ion_bpadmin_init_var()
+void dtn_ion_bpadmin_init_var(void)
 {
 
 }
 
-void dtn_ion_bpadmin_init_ctrl()
+void dtn_ion_bpadmin_init_ctrl(void)
 {
 
 	adm_add_ctrldef(g_dtn_ion_bpadmin_idx[ADM_CTRL_IDX], DTN_ION_BPADMIN_CTRL_ENDPOINT_ADD, 3, dtn_ion_bpadmin_ctrl_endpoint_add);
@@ -115,17 +115,17 @@ void dtn_ion_bpadmin_init_ctrl()
 	adm_add_ctrldef(g_dtn_ion_bpadmin_idx[ADM_CTRL_IDX], DTN_ION_BPADMIN_CTRL_WATCH, 2, dtn_ion_bpadmin_ctrl_watch);
 }
 
-void dtn_ion_bpadmin_init_mac()
+void dtn_ion_bpadmin_init_mac(void)
 {
 
 }
 
-void dtn_ion_bpadmin_init_rpttpl()
+void dtn_ion_bpadmin_init_rpttpl(void)
 {
 
 }
 
-void dtn_ion_bpadmin_init_tblt()
+void dtn_ion_bpadmin_init_tblt(void)
 {
 
 	tblt_t *def = NULL;

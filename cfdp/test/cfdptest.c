@@ -342,7 +342,7 @@ static void	handleQuit(int signum)
 	fflush(stdout);
 }
 
-static void	printUsage()
+static void	printUsage(void)
 {
 	PUTS("Valid commands are:");
 	PUTS("\tq\tQuit");

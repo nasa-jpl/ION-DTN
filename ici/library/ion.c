@@ -1002,7 +1002,7 @@ void	ionRaiseVdb(void)				/*	For ionrestart.	*/
 	}
 }
 
-int	ionAttach()
+int	ionAttach(void)
 {
 	Sdr		ionsdr = _ionsdr(NULL);
 	Object		iondbObject = _iondbObject(NULL);
@@ -1135,7 +1135,7 @@ int	ionAttach()
 	return 0;
 }
 
-void	ionDetach()
+void	ionDetach(void)
 {
 #if defined (ION_LWT)
 #ifdef RTEMS
@@ -1424,37 +1424,37 @@ int	ionRegionOf(uvast fqnnA, uvast fqnnB, uint32_t *regionNbr)
 
 /*	Utility functions.						*/
 
-const char	*getIonVersionNbr()
+const char	*getIonVersionNbr(void)
 {
 	return versionNbr;
 }
 
-Sdr	getIonsdr()
+Sdr	getIonsdr(void)
 {
 	return _ionsdr(NULL);
 }
 
-Object	getIonDbObject()
+Object	getIonDbObject(void)
 {
 	return _iondbObject(NULL);
 }
 
-PsmPartition	getIonwm()
+PsmPartition	getIonwm(void)
 {
 	return _ionwm(NULL);
 }
 
-int	getIonMemoryMgr()
+int	getIonMemoryMgr(void)
 {
 	return _ionMemory(NULL);
 }
 
-IonVdb	*getIonVdb()
+IonVdb	*getIonVdb(void)
 {
 	return _ionvdb(NULL);
 }
 
-char	*getIonWorkingDirectory()
+char	*getIonWorkingDirectory(void)
 {
 	IonDB	*snapshot = _ionConstants();
 
@@ -1466,7 +1466,7 @@ char	*getIonWorkingDirectory()
 	return snapshot->workingDirectoryName;
 }
 
-uvast	getOwnFqnn()
+uvast	getOwnFqnn(void)
 {
 	IonDB	*snapshot = _ionConstants();
 
@@ -1478,7 +1478,7 @@ uvast	getOwnFqnn()
 	return snapshot->ownFqnn;
 }
 
-int	ionClockIsSynchronized()
+int	ionClockIsSynchronized(void)
 {
 	Sdr	ionsdr = _ionsdr(NULL);
 	Object	iondbObject = _iondbObject(NULL);
@@ -1540,7 +1540,7 @@ int	setDeltaFromUTC(int newDelta)
 	return 0;
 }
 
-time_t	getCtime()
+time_t	getCtime(void)
 {
 	IonVdb	*ionvdb = _ionvdb(NULL);
 	int	delta = ionvdb ? ionvdb->deltaFromUTC : 0;
@@ -1742,7 +1742,7 @@ int	_extractSmallSdnv(unsigned int *into, unsigned char **from,
 
 /*	*	*	Debugging 	*	*	*	*	*/
 
-int	ionLocked()
+int	ionLocked(void)
 {
 	return sdr_in_xn(_ionsdr(NULL));	/*	Boolean.	*/
 }

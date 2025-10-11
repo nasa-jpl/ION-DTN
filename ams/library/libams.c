@@ -4628,7 +4628,7 @@ int	ams_msgspace_is_neighbor(AmsSAP *sap, short continuumNbr)
 	return msgspace->isNeighbor;
 }
 
-short	ams_get_continuum_nbr()
+short	ams_get_continuum_nbr(void)
 {
 	return (_mib(NULL))->localContinuumNbr;
 }

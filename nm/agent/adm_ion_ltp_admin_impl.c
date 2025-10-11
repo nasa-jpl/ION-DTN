@@ -27,7 +27,7 @@
 /*   START CUSTOM FUNCTIONS HERE */
 /*   STOP CUSTOM FUNCTIONS HERE  */
 
-void dtn_ion_ltpadmin_setup()
+void dtn_ion_ltpadmin_setup(void)
 {
 
 	/*
@@ -45,7 +45,7 @@ void dtn_ion_ltpadmin_setup()
 	 */
 }
 
-void dtn_ion_ltpadmin_cleanup()
+void dtn_ion_ltpadmin_cleanup(void)
 {
 
 	/*

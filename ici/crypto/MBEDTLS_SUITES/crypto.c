@@ -165,7 +165,7 @@ int	arc4_crypt( arc4_context *ctx, size_t length,
  *                     HMAC-SHA-1 FUNCTION DEFINITIONS                       *
  *****************************************************************************/
 
-int	hmac_sha1_context_length()
+int	hmac_sha1_context_length(void)
 {
 	return 20; 	/*	The maximum.				*/
 }
@@ -242,7 +242,7 @@ int	hmac_authenticate(char *mac_buffer, const int mac_size,
  *                     HMAC-SHA-256 FUNCTION DEFINITIONS                     *
  *****************************************************************************/
 
-int	hmac_sha256_context_length()
+int	hmac_sha256_context_length(void)
 {
 	return 32; 	/*	The maximum.				*/
 }
@@ -298,7 +298,7 @@ void	hmac_sha256_reset(void *context)
  *                       SHA-256 FUNCTION DEFINITIONS                        *
  *****************************************************************************/
 
-int	sha256_context_length()
+int	sha256_context_length(void)
 {
 	return 1;
 }

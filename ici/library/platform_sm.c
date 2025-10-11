@@ -3278,7 +3278,7 @@ void	sm_Wakeup(DWORD processId)
 
 	/* ---- Task Control services (Unix) -------------------------- */
 
-int	sm_TaskIdSelf()
+int	sm_TaskIdSelf(void)
 {
 	static int	taskId = 0;
 
@@ -3319,7 +3319,7 @@ void	*sm_TaskVar(void **arg)
 	return value;
 }
 
-void	sm_TaskSuspend()
+void	sm_TaskSuspend(void)
 {
 	pause();
 }
@@ -3329,7 +3329,7 @@ void	sm_TaskDelay(int seconds)
 	sleep(seconds);
 }
 
-void	sm_TaskYield()
+void	sm_TaskYield(void)
 {
 	sched_yield();
 }
@@ -3442,7 +3442,7 @@ void	sm_TaskDelete(int task)
 	oK(waitpid(task, NULL, 0));
 }
 
-void	sm_Abort()
+void	sm_Abort(void)
 {
 	TRACK_DIED(getpid());
 	abort();
@@ -3792,7 +3792,7 @@ static char *_semGenPosixSemname(char *namebuf, unsigned bufsize, int semnum)
 
 
 /* unlink the names of all POSIX named semaphores that could belong to ION instance ionId */
-static void _semEraseNamedSems()
+static void _semEraseNamedSems(void)
 {
 	char sem_name[MAX_NAMED_SEM_KEYLENGTH];
 
@@ -4372,7 +4372,7 @@ static int	_sm_GetUniqueKey_internal(
 	return(tryKey);
 }
 /* when called externally, we need to grab the IPC lock */
-int	sm_GetUniqueKey()
+int	sm_GetUniqueKey(void)
 {
 	int ret;
 #if defined(SVR4_SEMAPHORES)

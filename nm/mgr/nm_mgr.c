@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
  **  10/06/18  E. Birrane      Updated to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
-int mgr_cleanup()
+int mgr_cleanup(void)
 {
 
 #ifdef HAVE_MYSQL

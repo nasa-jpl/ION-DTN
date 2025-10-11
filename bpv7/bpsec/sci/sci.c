@@ -137,7 +137,7 @@ static int gNumScDefs = sizeof(gScDefs) / sizeof(sc_Def);
  * @retval - # structures registered
  *****************************************************************************/
 
-int bpsec_sci_defCount()
+int bpsec_sci_defCount(void)
 {
     return gNumScDefs;
 }
@@ -229,7 +229,7 @@ int bpsec_sci_idFind(char *sc_name, int *sc_id)
  * @retval  1 - All security contexts initialized successfully.
   *****************************************************************************/
 
-int bpsec_sci_execInit()
+int bpsec_sci_execInit(void)
 {
     int i = 0;
     int result = 1;
@@ -259,7 +259,7 @@ int bpsec_sci_execInit()
  *    called upon termination of the BPSec security system.
  ******************************************************************************/
 
-void bpsec_sci_execTeardown()
+void bpsec_sci_execTeardown(void)
 {
     int i = 0;
 

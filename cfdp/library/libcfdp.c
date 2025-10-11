@@ -52,19 +52,19 @@ extern int	handleDirectoryListingRequest(CfdpUserOpsData *opsData);
 
 #endif
 
-int	cfdp_attach()
+int	cfdp_attach(void)
 {
 	return cfdpAttach();
 }
 
-int	cfdp_entity_is_started()
+int	cfdp_entity_is_started(void)
 {
 	CfdpVdb	*vdb = getCfdpVdb();
 
 	return (vdb && vdb->clockPid != ERROR);
 }
 
-void	 cfdp_detach()
+void	 cfdp_detach(void)
 {
 #if (!(defined (ION_LWT)))
 	cfdpDetach();
@@ -345,7 +345,7 @@ int	cfdp_read_text_lines(int fd, unsigned int *checksum,
 	return length;
 }
 
-MetadataList	cfdp_create_usrmsg_list()
+MetadataList	cfdp_create_usrmsg_list(void)
 {
 	return createMetadataList((getCfdpConstants())->usrmsgLists);
 }
@@ -464,7 +464,7 @@ void	cfdp_destroy_usrmsg_list(Object *list)
 	}
 }
 
-MetadataList	cfdp_create_fsreq_list()
+MetadataList	cfdp_create_fsreq_list(void)
 {
 	return createMetadataList((getCfdpConstants())->fsreqLists);
 }
@@ -676,7 +676,7 @@ void	cfdp_destroy_fsresp_list(Object *list)
 	}
 }
 
-char	*cfdp_working_directory()
+char	*cfdp_working_directory(void)
 {
 	return getIonWorkingDirectory();
 }
@@ -2207,7 +2207,7 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 	return 0;
 }
 
-void	cfdp_interrupt()
+void	cfdp_interrupt(void)
 {
 	CfdpVdb	*vdb;
 

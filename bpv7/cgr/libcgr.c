@@ -245,7 +245,7 @@ static int	disabledRoute(PsmPartition ionwm, PsmAddress routeElt,
 
 #endif
 
-CgrVdb	*cgr_get_vdb()
+CgrVdb	*cgr_get_vdb(void)
 {
 	static char	*name = CGRVDB_NAME;
 	PsmPartition	ionwm = getIonwm();
@@ -2569,7 +2569,7 @@ int	cgr_prospect(uvast terminusNodeNbr, time_t deadline)
 	return 0;
 }
 
-void	cgr_start()
+void	cgr_start(void)
 {
 	oK(cgr_get_vdb());
 }
@@ -2671,7 +2671,7 @@ volume for this bundle",
 	return reasonText[i];
 }
 
-void	cgr_stop()
+void	cgr_stop(void)
 {
 	PsmPartition	wm = getIonwm();
 	char		*name = "cgrvdb";

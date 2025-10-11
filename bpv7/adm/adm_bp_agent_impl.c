@@ -32,7 +32,7 @@
 /*             TODO              */
 /*   STOP CUSTOM FUNCTIONS HERE  */
 
-void dtn_bp_agent_setup()
+void dtn_bp_agent_setup(void)
 {
 
 	/*
@@ -47,7 +47,7 @@ void dtn_bp_agent_setup()
 	 */
 }
 
-void dtn_bp_agent_cleanup()
+void dtn_bp_agent_cleanup(void)
 {
 
 	/*

@@ -12,12 +12,12 @@
 #include "ltpP.h"
 #include "ltp_admin.h"
 
-int	ltp_attach()
+int	ltp_attach(void)
 {
 	return ltpAttach();
 }
 
-void	ltp_detach()
+void	ltp_detach(void)
 {
 #if (!(defined (ION_LWT)))
 	ltpDetach();
@@ -25,7 +25,7 @@ void	ltp_detach()
 	ionDetach();
 }
 
-int	ltp_engine_is_started()
+int	ltp_engine_is_started(void)
 {
 	LtpVdb	*vdb = getLtpVdb();
 

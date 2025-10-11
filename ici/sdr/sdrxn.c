@@ -524,7 +524,7 @@ void	sdr_wm_usage(PsmUsageSummary *usage)
 	psm_usage(_sdrwm(NULL), usage);
 }
 
-void	sdr_shutdown()		/*	Ends SDR service on machine.	*/
+void	sdr_shutdown(void)	/*	Ends SDR service on machine.	*/
 {
 	sm_WmParms	wmparms;
 

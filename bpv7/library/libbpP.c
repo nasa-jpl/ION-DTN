@@ -1360,7 +1360,7 @@ static char	*_bpdbName(void)
 	return "bpdb";
 }
 
-int	bpInit()
+int	bpInit(void)
 {
 	Sdr		sdr;
 	Object		bpdbObject;
@@ -1549,7 +1549,7 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	sm_rbt_destroy(wm, vdb->timeline, NULL, NULL);
 }
 
-void	bpDropVdb()
+void	bpDropVdb(void)
 {
 	PsmPartition	wm = getIonwm();
 	char		*bpvdbName = _bpvdbName();
@@ -1576,7 +1576,7 @@ void	bpDropVdb()
 	oK(_bpvdb(&stop));			/*	Forget old Vdb.	*/
 }
 
-void	bpRaiseVdb()
+void	bpRaiseVdb(void)
 {
 	char	*bpvdbName = _bpvdbName();
 
@@ -1586,22 +1586,22 @@ void	bpRaiseVdb()
 	}
 }
 
-Object	getBpDbObject()
+Object	getBpDbObject(void)
 {
 	return _bpdbObject(NULL);
 }
 
-BpDB	*getBpConstants()
+BpDB	*getBpConstants(void)
 {
 	return _bpConstants();
 }
 
-BpVdb	*getBpVdb()
+BpVdb	*getBpVdb(void)
 {
 	return _bpvdb(NULL);
 }
 
-int	bpStart()
+int	bpStart(void)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	bpwm = getIonwm();
@@ -1673,7 +1673,7 @@ int	bpStart()
 	return sdr_end_xn(sdr);
 }
 
-void	bpStop()		/*	Reverses bpStart.		*/
+void	bpStop(void)		/*	Reverses bpStart.		*/
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	bpwm = getIonwm();
@@ -1849,7 +1849,7 @@ void	bpStop()		/*	Reverses bpStart.		*/
 	oK(sdr_end_xn(sdr));
 }
 
-int	bpAttach()
+int	bpAttach(void)
 {
 	Object		bpdbObject = _bpdbObject(NULL);
 	BpVdb		*bpvdb = _bpvdb(NULL);
@@ -1904,7 +1904,7 @@ int	bpAttach()
 	return 0;		/*	BP service is now available.	*/
 }
 
-void	bpDetach()
+void	bpDetach(void)
 {
 	char	*stop = NULL;
 
@@ -2187,7 +2187,7 @@ static void	reportStateStats(int i, char *fromTimestamp, char *toTimestamp,
 	writeMemo(buffer);
 }
 
-void	reportAllStateStats()
+void	reportAllStateStats(void)
 {
 	Sdr		sdr = getIonsdr();
 	Object		bpDbObject = getBpDbObject();

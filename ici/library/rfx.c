@@ -247,7 +247,7 @@ void	rfx_erase_data(PsmPartition partition, PsmAddress nodeData,
 
 /*	*	*	RFX utility functions	*	*	*	*/
 
-int	rfx_system_is_started()
+int	rfx_system_is_started(void)
 {
 	IonVdb	*vdb = getIonVdb();
 
@@ -2998,7 +2998,7 @@ int	rfx_remove_range(time_t *fromTime, uvast fromFqnn, uvast toFqnn,
 	return 0;
 }
 
-void	rfx_brief_ranges()
+void	rfx_brief_ranges(void)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -3235,7 +3235,7 @@ static int	loadContact(Object elt, uint32_t regionNbr)
 	return 0;
 }
 
-int	rfx_start()
+int	rfx_start(void)
 {
 	Sdr		sdr = getIonsdr();
 	IonVdb		*vdb = getIonVdb();
@@ -3302,7 +3302,7 @@ int	rfx_start()
 	return 0;
 }
 
-void	rfx_stop()
+void	rfx_stop(void)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();

@@ -32,7 +32,7 @@
 #ifdef _HAVE_DTN_LTP_AGENT_ADM_
 static vec_idx_t g_dtn_ltp_agent_idx[11];
 
-void dtn_ltp_agent_init()
+void dtn_ltp_agent_init(void)
 {
 	adm_add_adm_info("dtn_ltp_agent", ADM_ENUM_DTN_LTP_AGENT);
 
@@ -54,7 +54,7 @@ void dtn_ltp_agent_init()
 	dtn_ltp_agent_init_tblt();
 }
 
-void dtn_ltp_agent_init_meta()
+void dtn_ltp_agent_init_meta(void)
 {
 
 	ari_t *id = NULL;
@@ -77,12 +77,12 @@ void dtn_ltp_agent_init_meta()
 
 }
 
-void dtn_ltp_agent_init_cnst()
+void dtn_ltp_agent_init_cnst(void)
 {
 
 }
 
-void dtn_ltp_agent_init_edd()
+void dtn_ltp_agent_init_edd(void)
 {
 
 	ari_t *id = NULL;
@@ -301,17 +301,17 @@ void dtn_ltp_agent_init_edd()
 	meta_add_parm(meta, "ltp_span", AMP_TYPE_UINT);
 }
 
-void dtn_ltp_agent_init_op()
+void dtn_ltp_agent_init_op(void)
 {
 
 }
 
-void dtn_ltp_agent_init_var()
+void dtn_ltp_agent_init_var(void)
 {
 
 }
 
-void dtn_ltp_agent_init_ctrl()
+void dtn_ltp_agent_init_ctrl(void)
 {
 
 	ari_t *id = NULL;
@@ -328,12 +328,12 @@ void dtn_ltp_agent_init_ctrl()
 	meta_add_parm(meta, "ltp_span", AMP_TYPE_UINT);
 }
 
-void dtn_ltp_agent_init_mac()
+void dtn_ltp_agent_init_mac(void)
 {
 
 }
 
-void dtn_ltp_agent_init_rpttpl()
+void dtn_ltp_agent_init_rpttpl(void)
 {
 
 	metadata_t *meta = NULL;
@@ -389,7 +389,7 @@ void dtn_ltp_agent_init_rpttpl()
 	meta_add_parm(meta, "ltp_span", AMP_TYPE_UINT);
 }
 
-void dtn_ltp_agent_init_tblt()
+void dtn_ltp_agent_init_tblt(void)
 {
 
 	tblt_t *def = NULL;

@@ -32,7 +32,7 @@
 #ifdef _HAVE_AMP_AGENT_ADM_
 //vec_idx_t g_amp_agent_idx[11];
 
-void amp_agent_init()
+void amp_agent_init(void)
 {
 	adm_add_adm_info("amp_agent", ADM_ENUM_AMP_AGENT);
 
@@ -57,7 +57,7 @@ void amp_agent_init()
 	amp_agent_init_tblt();
 }
 
-void amp_agent_init_meta()
+void amp_agent_init_meta(void)
 {
 
 	ari_t *id = NULL;
@@ -80,7 +80,7 @@ void amp_agent_init_meta()
 
 }
 
-void amp_agent_init_cnst()
+void amp_agent_init_cnst(void)
 {
 
 	ari_t *id = NULL;
@@ -91,7 +91,7 @@ void amp_agent_init_cnst()
 
 }
 
-void amp_agent_init_edd()
+void amp_agent_init_edd(void)
 {
 
 	ari_t *id = NULL;
@@ -154,7 +154,7 @@ void amp_agent_init_edd()
 
 }
 
-void amp_agent_init_op()
+void amp_agent_init_op(void)
 {
 
 	ari_t *id = NULL;
@@ -531,7 +531,7 @@ void amp_agent_init_op()
 	meta_add_parm(meta, "O2", AMP_TYPE_UNK);
 }
 
-void amp_agent_init_var()
+void amp_agent_init_var(void)
 {
 
 	ari_t *id = NULL;
@@ -551,7 +551,7 @@ void amp_agent_init_var()
 
 }
 
-void amp_agent_init_ctrl()
+void amp_agent_init_ctrl(void)
 {
 
 	ari_t *id = NULL;
@@ -706,12 +706,12 @@ void amp_agent_init_ctrl()
 
 }
 
-void amp_agent_init_mac()
+void amp_agent_init_mac(void)
 {
 
 }
 
-void amp_agent_init_rpttpl()
+void amp_agent_init_rpttpl(void)
 {
 
 	rpttpl_t *def = NULL;
@@ -738,7 +738,7 @@ void amp_agent_init_rpttpl()
 	meta_add_rpttpl(def->id, ADM_ENUM_AMP_AGENT, "full_report", "This is all known meta-data, EDD, and VAR values known by the agent.");
 }
 
-void amp_agent_init_tblt()
+void amp_agent_init_tblt(void)
 {
 
 	tblt_t *def = NULL;

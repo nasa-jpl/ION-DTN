@@ -33,7 +33,7 @@
 #ifdef _HAVE_DTN_BPSEC_ADM_
 static vec_idx_t g_dtn_bpsec_idx[11];
 
-void dtn_bpsec_init()
+void dtn_bpsec_init(void)
 {
 	adm_add_adm_info("dtn_bpsec", ADM_ENUM_DTN_BPSEC);
 
@@ -56,7 +56,7 @@ void dtn_bpsec_init()
 	dtn_bpsec_init_tblt();
 }
 
-void dtn_bpsec_init_meta()
+void dtn_bpsec_init_meta(void)
 {
 
 	ari_t *id = NULL;
@@ -79,12 +79,12 @@ void dtn_bpsec_init_meta()
 
 }
 
-void dtn_bpsec_init_cnst()
+void dtn_bpsec_init_cnst(void)
 {
 
 }
 
-void dtn_bpsec_init_edd()
+void dtn_bpsec_init_edd(void)
 {
 
 	ari_t *id = NULL;
@@ -343,12 +343,12 @@ void dtn_bpsec_init_edd()
 	meta_add_parm(meta, "Src", AMP_TYPE_STR);
 }
 
-void dtn_bpsec_init_op()
+void dtn_bpsec_init_op(void)
 {
 
 }
 
-void dtn_bpsec_init_var()
+void dtn_bpsec_init_var(void)
 {
 
 	ari_t *id = NULL;
@@ -368,7 +368,7 @@ void dtn_bpsec_init_var()
 
 }
 
-void dtn_bpsec_init_ctrl()
+void dtn_bpsec_init_ctrl(void)
 {
 
 	ari_t *id = NULL;
@@ -453,12 +453,12 @@ void dtn_bpsec_init_ctrl()
 	meta_add_parm(meta, "target", AMP_TYPE_INT);
 }
 
-void dtn_bpsec_init_mac()
+void dtn_bpsec_init_mac(void)
 {
 
 }
 
-void dtn_bpsec_init_rpttpl()
+void dtn_bpsec_init_rpttpl(void)
 {
 
 	metadata_t *meta = NULL;
@@ -531,7 +531,7 @@ void dtn_bpsec_init_rpttpl()
 	meta_add_parm(meta, "Source", AMP_TYPE_STR);
 }
 
-void dtn_bpsec_init_tblt()
+void dtn_bpsec_init_tblt(void)
 {
 
 	tblt_t *def = NULL;

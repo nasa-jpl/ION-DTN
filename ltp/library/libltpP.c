@@ -1105,7 +1105,7 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	}
 }
 
-void	ltpDropVdb()
+void	ltpDropVdb(void)
 {
 	PsmPartition	wm = getIonwm();
 	char		*ltpvdbName = _ltpvdbName();
@@ -1134,7 +1134,7 @@ void	ltpDropVdb()
 	oK(_ltpvdb(&stop));			/*	Forget old Vdb.	*/
 }
 
-void	ltpRaiseVdb()
+void	ltpRaiseVdb(void)
 {
 	char	*ltpvdbName = _ltpvdbName();
 
@@ -1144,22 +1144,22 @@ void	ltpRaiseVdb()
 	}
 }
 
-Object	getLtpDbObject()
+Object	getLtpDbObject(void)
 {
 	return _ltpdbObject(NULL);
 }
 
-LtpDB	*getLtpConstants()
+LtpDB	*getLtpConstants(void)
 {
 	return _ltpConstants();
 }
 
-LtpVdb	*getLtpVdb()
+LtpVdb	*getLtpVdb(void)
 {
 	return _ltpvdb(NULL);
 }
 
-int	ltpStart()
+int	ltpStart(void)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ltpwm = getIonwm();
@@ -1205,7 +1205,7 @@ int	ltpStart()
 	return 0;
 }
 
-void	ltpStop()		/*	Reverses ltpStart.		*/
+void	ltpStop(void)		/*	Reverses ltpStart.		*/
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ltpwm = getIonwm();
@@ -1315,7 +1315,7 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 	sdr_exit_xn(sdr);		/*	Unlock memory.		*/
 }
 
-int	ltpAttach()
+int	ltpAttach(void)
 {
 	Object	ltpdbObject = _ltpdbObject(NULL);
 	LtpVdb	*ltpvdb = _ltpvdb(NULL);
@@ -1368,7 +1368,7 @@ int	ltpAttach()
 	return 0;		/*	LTP service is available.	*/
 }
 
-void	ltpDetach()
+void	ltpDetach(void)
 {
 	char	*stop = NULL;
 
@@ -1535,7 +1535,7 @@ void	findSpan(uvast engineId, LtpVspan **vspan, PsmAddress *vspanElt)
 	*vspanElt = elt;	/*	(Zero if vspan was not found.)	*/
 }
 
-void	checkReservationLimit()
+void	checkReservationLimit(void)
 {
 	Sdr	sdr = getIonsdr();
 	Object	dbobj = getLtpDbObject();

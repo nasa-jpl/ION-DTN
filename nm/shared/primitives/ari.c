@@ -824,7 +824,7 @@ void ari_init(ari_t *ari)
 
 
 
-ari_t ari_null()
+ari_t ari_null(void)
 {
 	static int i = 0;
 	static ari_t result;
@@ -998,7 +998,7 @@ int ac_init(ac_t *ac)
 }
 
 
-ac_t *ac_create()
+ac_t *ac_create(void)
 {
 	ac_t *result;
 	int success;

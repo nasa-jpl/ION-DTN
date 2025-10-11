@@ -13,12 +13,12 @@
 
 #include "bsspP.h"
 
-int	bssp_attach()
+int	bssp_attach(void)
 {
 	return bsspAttach();
 }
 
-void	bssp_detach()
+void	bssp_detach(void)
 {
 #if (!(defined (ION_LWT)))
 	bsspDetach();
@@ -26,7 +26,7 @@ void	bssp_detach()
 	ionDetach();
 }
 
-int	bssp_engine_is_started()
+int	bssp_engine_is_started(void)
 {
 	BsspVdb	*vdb = getBsspVdb();
 

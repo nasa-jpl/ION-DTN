@@ -32,7 +32,7 @@
 #ifdef _HAVE_DTN_BP_AGENT_ADM_
 static vec_idx_t g_dtn_bp_agent_idx[11];
 
-void dtn_bp_agent_init()
+void dtn_bp_agent_init(void)
 {
 	adm_add_adm_info("dtn_bp_agent", ADM_ENUM_DTN_BP_AGENT);
 
@@ -53,7 +53,7 @@ void dtn_bp_agent_init()
 	dtn_bp_agent_init_tblt();
 }
 
-void dtn_bp_agent_init_meta()
+void dtn_bp_agent_init_meta(void)
 {
 
 	ari_t *id = NULL;
@@ -76,12 +76,12 @@ void dtn_bp_agent_init_meta()
 
 }
 
-void dtn_bp_agent_init_cnst()
+void dtn_bp_agent_init_cnst(void)
 {
 
 }
 
-void dtn_bp_agent_init_edd()
+void dtn_bp_agent_init_edd(void)
 {
 
 	ari_t *id = NULL;
@@ -214,17 +214,17 @@ void dtn_bp_agent_init_edd()
 	meta_add_parm(meta, "endpoint_name", AMP_TYPE_STR);
 }
 
-void dtn_bp_agent_init_op()
+void dtn_bp_agent_init_op(void)
 {
 
 }
 
-void dtn_bp_agent_init_var()
+void dtn_bp_agent_init_var(void)
 {
 
 }
 
-void dtn_bp_agent_init_ctrl()
+void dtn_bp_agent_init_ctrl(void)
 {
 
 	ari_t *id = NULL;
@@ -238,12 +238,12 @@ void dtn_bp_agent_init_ctrl()
 
 }
 
-void dtn_bp_agent_init_mac()
+void dtn_bp_agent_init_mac(void)
 {
 
 }
 
-void dtn_bp_agent_init_rpttpl()
+void dtn_bp_agent_init_rpttpl(void)
 {
 
 	metadata_t *meta = NULL;
@@ -307,7 +307,7 @@ void dtn_bp_agent_init_rpttpl()
 	meta_add_parm(meta, "endpoint_id", AMP_TYPE_STR);
 }
 
-void dtn_bp_agent_init_tblt()
+void dtn_bp_agent_init_tblt(void)
 {
 
 }

@@ -66,7 +66,7 @@ static ImcDB	*_imcConstants(void)
 
 /*	*	*	IMC database mgt functions	*	*	*/
 
-int	imcInit()
+int	imcInit(void)
 {
 	Sdr	sdr = getIonsdr();
 	Object	imcdbObject;
@@ -113,12 +113,12 @@ int	imcInit()
 	return 0;
 }
 
-Object	getImcDbObject()
+Object	getImcDbObject(void)
 {
 	return _imcdbObject(NULL);
 }
 
-ImcDB	*getImcConstants()
+ImcDB	*getImcConstants(void)
 {
 	return _imcConstants();
 }

@@ -94,7 +94,7 @@ static IPNDCtx	*_IPNDCtx(IPNDCtx *newCtx)
  * Gets IPNDCtx context.
  * @return IPND context.
  */
-IPNDCtx	*getIPNDCtx()
+IPNDCtx	*getIPNDCtx(void)
 {
 	return _IPNDCtx(NULL);
 }

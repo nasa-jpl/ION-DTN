@@ -1916,7 +1916,7 @@ specs.", NULL);
 	return mib;
 }
 
-void unloadMib()
+void unloadMib(void)
 {
 	AmsMib				*mib;
 	AmsMibParameters	parms = { 0, NULL, NULL, NULL };

@@ -62,12 +62,12 @@ static DtkaDB	*_dtkaConstants(void)
 	return db;
 }
 
-Object	getDtkaDbObject()
+Object	getDtkaDbObject(void)
 {
 	return _dtkadbObject(NULL);
 }
 
-DtkaDB	*getDtkaConstants()
+DtkaDB	*getDtkaConstants(void)
 {
 	return _dtkaConstants();
 }
@@ -77,7 +77,7 @@ static char	*_dtkadbName(void)
 	return "dtkadb";
 }
 
-int	dtkaInit()
+int	dtkaInit(void)
 {
 	Sdr	sdr;
 	Object	dtkadbObject;
@@ -140,7 +140,7 @@ int	dtkaInit()
 	return 0;		/*	TCC service is available.	*/
 }
 
-int	dtkaAttach()
+int	dtkaAttach(void)
 {
 	Object	dtkadbObject = _dtkadbObject(NULL);
 	Sdr	sdr;
