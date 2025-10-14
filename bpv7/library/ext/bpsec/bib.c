@@ -239,6 +239,7 @@ int bpsec_verify(AcqWorkArea *work)
     LystElt nextTgtElt;
     BpsecInboundTargetResult *target;
     sc_Def def;
+    int primeBibcheck = 0;  // Flag to set if a BIB targets the primary block
     int secBlkMisconf = 0;
     int result = 0;
     char *fromEid = NULL;
@@ -255,7 +256,7 @@ int bpsec_verify(AcqWorkArea *work)
     /*    First check all BIBS that are present in the bundle.    */
     for (blkElt = lyst_first(work->extBlocks); blkElt; blkElt = nextBlkElt)
     {
-	nextBlkElt = lyst_next(blkElt);
+        nextBlkElt = lyst_next(blkElt);
         if((block = (AcqExtBlock*) lyst_data(blkElt)) == NULL)
         {
             continue; // Weird...
@@ -274,60 +275,63 @@ int bpsec_verify(AcqWorkArea *work)
             /* Check each target block for applicable rule */
             for (tgtElt = lyst_first(asb->scResults); tgtElt; tgtElt = nextTgtElt)
             {
-		nextTgtElt = lyst_next(tgtElt);
+                nextTgtElt = lyst_next(tgtElt);
                 target = (BpsecInboundTargetResult*) lyst_data(tgtElt);
 
                 polRule = bslpol_get_receiver_rule(work, target->scTargetId, asb->scId);
 
                 if (polRule == NULL)	/*	No BIB rule for target.	*/
-		{
-			/*	SB 07/26/2024				*/
-			if (bundle->deliverable == 0)
-			{
-				/*	Missing rule is not a problem
-				 *	at a waypoint node.		*/
+                {
+                    /*	SB 07/26/2024				*/
+                    if (bundle->deliverable == 0)
+                    {
+                        /*	Missing rule is not a problem
+                        *	at a waypoint node.		*/
 
-				continue;
-			}
+                        continue;
+                    }
 
-			/*	SB 05/27/2024				*/
-			/*	If BIB target is the primary block,
-			 *	then BPSec authentication is required.
-			 *	If there is no policy rule for primary
-			 *	block verification, then authentication
-			 *	by BPSec is not possible.  So the
-			 *	bundle is tagged as inauthentic.
-			 *
-			 *	If BIB target is NOT the primary
-			 *	block, then the security source has
-			 *	asserted that the integrity of this
-			 *	target block must be verified.  If
-			 *	there is no policy rule for verifying
-			 *	the integrity of this block, then
-			 *	that verification is impossible.
-			 *	So the bundle is tagged as altered.
-			 *
-			 *	Note that these determinations may
-			 *	need to be revisited: a hostile
-			 *	forwarding node might attach a BIB
-			 *	for the target of which the security
-			 *	acceptor is known not to have any
-			 *	rule.  This would cause bundles to
-			 *	be discarded incorrectly, a serious
-			 *	denial-of-service attack.
-			 *
-			 *	SB 5/26/2024				*/
+                    /*	SB 05/27/2024				*/
+                    /*	If BIB target is the primary block,
+                    *	then BPSec authentication is required.
+                    *	If there is no policy rule for primary
+                    *	block verification, then authentication
+                    *	by BPSec is not possible.  So the
+                    *	bundle is tagged as inauthentic.
+                    *
+                    *	If BIB target is NOT the primary
+                    *	block, then the security source has
+                    *	asserted that the integrity of this
+                    *	target block must be verified.  If
+                    *	there is no policy rule for verifying
+                    *	the integrity of this block, then
+                    *	that verification is impossible.
+                    *	So the bundle is tagged as altered.
+                    *
+                    *	Note that these determinations may
+                    *	need to be revisited: a hostile
+                    *	forwarding node might attach a BIB
+                    *	for the target of which the security
+                    *	acceptor is known not to have any
+                    *	rule.  This would cause bundles to
+                    *	be discarded incorrectly, a serious
+                    *	denial-of-service attack.
+                    *
+                    *	SB 5/26/2024				*/
 
-			if (target->scTargetId == PrimaryBlk)
-			{
-				work->authentic = 0;
-			}
-			else	/*	Not the primary block.		*/
-			{
-				 bundle->altered = 1;
-			}
-		}
-		else	/*	Applicable policy rule was found.	*/
+                    if (target->scTargetId == PrimaryBlk)
+                    {
+                        // There was a primary block BIB, but no rule to process it
+                        // If there is no CRC, block will still be judged inauthentic
+                        primeBibcheck = 1;
+                        work->authentic = 0;
+                    }
+                    else	/*	Not the primary block.		*/
+                    {
+                        bundle->altered = 1;
+                    }
+                }
+		        else	/*	Applicable policy rule was found.	*/
                 {
                     /*
                      * If the security block is corrupted (meaning we cannot process items
@@ -342,12 +346,12 @@ int bpsec_verify(AcqWorkArea *work)
                     {
                         ADD_BIB_RX_FAIL(fromEid, 1, length);
                         BIB_DEBUG_WARN("Failed receipt rule for %d", polRule->user_id);
-                        
+
                         bib_handle_rx_error(work, bundle, polRule, blkElt, tgtElt, target->scTargetId, result, polRule->filter.blk_type);
                         if(result == -1)
                         {
                             MRELEASE(fromEid);
-			    bundle->insecure = 1;
+                            bundle->insecure = 1;
                             return 0;
                         }
                     }
@@ -357,6 +361,7 @@ int bpsec_verify(AcqWorkArea *work)
                     {
                         if ((work->authentic == -1) && (target->scTargetId == PrimaryBlk))
                         {
+                            primeBibcheck = 1;
                             work->authentic = 1;
                         }
                         if (bpsec_util_destIsLocalCheck(bundle))
@@ -381,7 +386,7 @@ int bpsec_verify(AcqWorkArea *work)
                 }
             }
 
-	    MRELEASE(fromEid);		/*	SB 12/20/2023		*/
+        MRELEASE(fromEid);		/*	SB 12/20/2023		*/
         }
     }
 
@@ -399,6 +404,20 @@ int bpsec_verify(AcqWorkArea *work)
      *	hostile forwarding node would constitute a security attack.
      *
      *	SB 5/26/2024							*/
+
+    /* This attempts to handle the case where the BIB for a primary block
+    exists, but there is no CRC. ION does not have a good way to lookup if
+    defined extensions block, like BIB or BCB, exist and filter them based on
+    target. Instead a simplifed method of setting a flag when the necessary
+    conditions are meant is used and if there any issues they are left to the
+    existing processing.
+
+            NR 10/13/2025       */
+    if ((primeBibcheck == 0) && (bundle->primaryBlkCrcType == NoCRC))
+    {
+        writeMemo("[!] No primary block BIB or primary block CRC.");
+        work->authentic = 0;
+    }
 
     bundle->clDossier.authentic = (work->authentic == 0 ? 0 : 1);
     BPSEC_DEBUG_PROC("Returning 0", NULL);
