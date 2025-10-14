@@ -302,7 +302,13 @@ cfdp_get_event() always blocks indefinitely until an CFDP processing
 event is delivered or the function is interrupted by an invocation of
 cfdp_interrupt().
 
-On application error, returns zero but sets errno to EINVAL.  Returns -1 on
+The closureRequested field is defined as unsigned int and is used as a 
+Boolean flag with the following values: 0 = No closure requested 
+(Unacknowledged mode), and 1 = Closure requested (Acknowledged mode).
+Applications can use this field to determine whether a transaction is 
+operating in Acknowledged or Unacknowledged mode.
+
+On error, returns zero but sets errno to EINVAL.  Returns -1 on
 system failure, zero otherwise.
 
 =item void cfdp_interrupt()
