@@ -12,6 +12,7 @@
 #define _UDPLSA_H_
 
 #include "ltpP.h"
+#include "ion_network.h" 
 #include <pthread.h>
 
 #ifdef __cplusplus
@@ -26,6 +27,8 @@ typedef struct
 	pthread_mutex_t lock;
 	int			linkSocket;
 	int			running;
+	IonNetworkAddress   local_addr;
+	IonNetworkAddress   peer_addr;
 } udp_ReceiverThreadParms;
 
 extern void			*udplsa_handle_datagrams(void *parm);
