@@ -22,6 +22,9 @@ static void reaper(int sig)
 	int status;
 	int pid;
 
+	/* Parameter intentionally unused. */
+	(void)sig;
+
 	while ((pid = waitpid((pid_t) -1, &status, WNOHANG)) > 0)
 	{
 		if (debug)
@@ -77,7 +80,8 @@ static void wait_for_children(void)
 static int check_unique_keys_guts(unsigned iterations, int sm_unique_key[],
                 int num_uniq_keys)
 {
-	int      l, k;
+	int k;
+	unsigned int l;
 	unsigned count_non_unique = 0;
 	unsigned key_min = 0xffffffff;
 	unsigned key_max = 0;
@@ -104,7 +108,7 @@ static int check_unique_keys_guts(unsigned iterations, int sm_unique_key[],
 
 		for (k = 0; k < num_uniq_keys; ++k)
 		{
-			if (NEW_unique_key == sm_unique_key[k])
+			if (sm_unique_key[k] >= 0 && NEW_unique_key == (unsigned int)sm_unique_key[k])
 			{
 				// clang-format off
 				printf(
@@ -307,7 +311,7 @@ int counter = 0;
 
 static int thread_adder_guts(int *pcounter, unsigned iterations)
 {
-	int iter;
+	unsigned  int iter;
 	if (debug)
 	{
 		// clang-format off
@@ -342,7 +346,7 @@ static void *thread_adder(void *parg)
 
 static int multi_thread_semtest(void)
 {
-	int            i;
+	unsigned int            i;
 	struct timeval time_begin, time_end;
 	counter = 0;
 #define MAXTHREADS 100
@@ -615,6 +619,9 @@ int do_churn(int p, unsigned iterations)
 	int s, d;
 	unsigned int i;
 	int semlist[numsems_each];
+
+	/* Parameter intentionally unused. */
+	(void)p;
 
 	for (i = 0; i < iterations; ++i)
 	{

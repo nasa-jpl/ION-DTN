@@ -17,6 +17,9 @@ static int	accessSocket = -1;
 
 static void	handleQuit(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 	stopped = 1;
 }
 

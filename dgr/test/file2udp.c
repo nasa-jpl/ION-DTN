@@ -224,6 +224,9 @@ static void rtt_debug(register struct rtt_struct *ptr)
 
 static void	to_alarm(int signum)
 {
+	/* Tell the compiler that we are not using 'signum' */
+	(void)signum;
+
 printf("!");
 fflush(stdout);
 	tout_flag = 1;		/* set flag for function above */
