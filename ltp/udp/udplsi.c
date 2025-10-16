@@ -111,40 +111,10 @@ int	main(int argc, char *argv[])
 		}
 	}
 
-	/* Create socket */
-	rtp.linkSocket = socket(rtp.local_addr.family, SOCK_DGRAM, IPPROTO_UDP);
-	if (rtp.linkSocket < 0)
+	/* Create and bind socket using helper function */
+	if (createNetworkSocket(SOCK_DGRAM, &rtp.local_addr, &rtp.linkSocket) < 0)
 	{
-		putSysErrmsg("LSI can't open UDP socket", NULL);
-		return -1;
-	}
-
-	/* Set socket options */
-	if (reUseAddress(rtp.linkSocket) < 0)
-	{
-		closesocket(rtp.linkSocket);
-		putSysErrmsg("LSI can't set socket options for reuse", NULL);
-		return 1;
-	}
-
-	/* For IPv6, set IPv6-only mode to avoid dual-stack conflicts */
-	if (rtp.local_addr.family == AF_INET6)
-	{
-		int ipv6only = 1;
-		if (setsockopt(rtp.linkSocket, IPPROTO_IPV6, IPV6_V6ONLY, 
-		              &ipv6only, sizeof(ipv6only)) < 0)
-		{
-			/* Non-fatal - log but continue */
-			writeMemo("[i] udplsi: Could not set IPV6_V6ONLY");
-		}
-	}
-
-	/* Bind to the resolved address */
-	if (bind(rtp.linkSocket, (struct sockaddr*)&rtp.local_addr.addr, 
-	         rtp.local_addr.addr_len) < 0)
-	{
-		closesocket(rtp.linkSocket);
-		putSysErrmsg("LSI can't bind UDP socket", NULL);
+		putErrmsg("udplsi: Can't create and bind UDP socket", NULL);
 		return 1;
 	}
 

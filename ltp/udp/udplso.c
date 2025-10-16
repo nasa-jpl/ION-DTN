@@ -383,41 +383,10 @@ int	main(int argc, char *argv[])
 		rtp.local_addr.addr_len = sizeof(struct sockaddr_in6);
 	}
 
-	/* Create socket with automatically determined family */
-	rtp.linkSocket = socket(rtp.local_addr.family, SOCK_DGRAM, IPPROTO_UDP);
-	if (rtp.linkSocket < 0)
+	/* Create and bind socket using helper function */
+	if (createNetworkSocket(SOCK_DGRAM, &rtp.local_addr, &rtp.linkSocket) < 0)
 	{
-		putSysErrmsg("LSO can't open UDP socket", NULL);
-		return 1;
-	}
-
-	/*	Bind the socket to own socket address so that we
-	 *	can send a 1-byte datagram to that address to shut
-	 *	down the datagram handling thread.			*/
-
-	if (reUseAddress(rtp.linkSocket) < 0)
-	{
-		closesocket(rtp.linkSocket);
-		putSysErrmsg("LSO can't set socket options", NULL);
-		return 1;
-	}
-
-	/* For IPv6, set IPv6-only mode */
-	if (rtp.local_addr.family == AF_INET6)
-	{
-		int ipv6only = 1;
-		if (setsockopt(rtp.linkSocket, IPPROTO_IPV6, IPV6_V6ONLY, 
-					&ipv6only, sizeof(ipv6only)) < 0)
-		{
-			writeMemo("[i] udplso: Could not set IPV6_V6ONLY");
-		}
-	}
-
-	if (bind(rtp.linkSocket, (struct sockaddr*)&rtp.local_addr.addr, 
-			rtp.local_addr.addr_len) < 0)
-	{
-		closesocket(rtp.linkSocket);
-		putSysErrmsg("LSO can't bind UDP socket", NULL);
+		putErrmsg("udplso: Can't create and bind UDP socket", NULL);
 		return 1;
 	}
 

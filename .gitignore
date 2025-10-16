@@ -525,3 +525,6 @@ tests/nm-unit-ipn2/dotest
 ion.pc
 ion.pc
 tests/admin_public_api/dotest
+tests/admin_public_api/ltp_loopback/dotest
+tests/admin_public_api/tcp_2nodes/dotest
+tests/admin_public_api/tcp_2nodes/tcp_single_node
