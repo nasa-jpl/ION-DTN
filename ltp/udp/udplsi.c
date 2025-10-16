@@ -1,5 +1,5 @@
 /*
-	udplsi.c:	LTP UDP-based link service daemon.
+ 	udplsi.c:	LTP UDP-based link service daemon.
 
 	Author: Scott Burleigh, JPL
 
@@ -35,15 +35,23 @@ int	main(int argc, char *argv[])
 	char			lsiCmd[256];
 	LtpVseat		*vseat;
 	PsmAddress		vseatElt;
-	unsigned short		portNbr = 0;
-	unsigned int		ipAddress = INADDR_ANY;
-	struct sockaddr		ownSockName;
-	struct sockaddr_in	*inetName;
 	static udp_ReceiverThreadParms	rtp;
-	socklen_t		nameLength;
 	pthread_t		receiverThread;
 	int			fd;
 	char			quit = '\0';
+	char			localAddrStr[INET6_ADDRSTRLEN + 10];
+	socklen_t		addr_len;
+
+	/* usage message with both IPv4 and IPv6 examples */
+	if (endpointSpec == NULL)
+	{
+		PUTS("Usage: udplsi <local host name>[:<port number>]");
+		PUTS("  IPv4: udplsi 192.168.1.1:1113");
+		PUTS("  IPv6: udplsi [::1]:1113");
+		PUTS("  IPv6: udplsi [2001:db8::1]:1113");
+		PUTS("  Any:  udplsi 0.0.0.0:1113 or udplsi [::]:1113");
+		return 0;
+	}
 
 	/*	Note that ltpadmin must be run before the first
 	 *	invocation of ltplsi, to initialize the LTP database
@@ -74,48 +82,82 @@ int	main(int argc, char *argv[])
 
 	/*	All command-line arguments are now validated.		*/
 
-	if (endpointSpec)
+	/* Initialize the mutex.  */
+	pthread_mutex_init(&rtp.lock, NULL); 
+
+	/* Dual-stack address resolution */
+	int resolveResult = resolveNetworkAddressCached(endpointSpec, &rtp.local_addr);
+	if (resolveResult < 0)
 	{
-		if(parseSocketSpec(endpointSpec, &portNbr, &ipAddress) != 0)
+		putErrmsg("udplsi: Can't resolve dual-stack address", endpointSpec);
+		return -1;
+	}
+
+	/* Set default port if not specified */
+	if (rtp.local_addr.family == AF_INET)
+	{
+		struct sockaddr_in *sin = (struct sockaddr_in*)&rtp.local_addr.addr;
+		if (sin->sin_port == 0)
 		{
-			putErrmsg("Can't get IP/port for endpointSpec.",
-					endpointSpec);
-			return -1;
+			sin->sin_port = htons(LtpUdpDefaultPortNbr);
+		}
+	}
+	else if (rtp.local_addr.family == AF_INET6)
+	{
+		struct sockaddr_in6 *sin6 = (struct sockaddr_in6*)&rtp.local_addr.addr;
+		if (sin6->sin6_port == 0)
+		{
+			sin6->sin6_port = htons(LtpUdpDefaultPortNbr);
 		}
 	}
 
-	/* Initialize the mutex.  */
-
-	pthread_mutex_init(&rtp.lock, NULL); 
-
-	if (portNbr == 0)
-	{
-		portNbr = LtpUdpDefaultPortNbr;
-	}
-
-	portNbr = htons(portNbr);
-	ipAddress = htonl(ipAddress);
-	memset((char *) &ownSockName, 0, sizeof ownSockName);
-	inetName = (struct sockaddr_in *) &ownSockName;
-	inetName->sin_family = AF_INET;
-	inetName->sin_port = portNbr;
-	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &ipAddress, 4);
-	rtp.linkSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	/* Create socket */
+	rtp.linkSocket = socket(rtp.local_addr.family, SOCK_DGRAM, IPPROTO_UDP);
 	if (rtp.linkSocket < 0)
 	{
 		putSysErrmsg("LSI can't open UDP socket", NULL);
 		return -1;
 	}
 
-	nameLength = sizeof(struct sockaddr);
-	if (reUseAddress(rtp.linkSocket)
-	|| bind(rtp.linkSocket, &ownSockName, nameLength) < 0
-	|| getsockname(rtp.linkSocket, &ownSockName, &nameLength) < 0)
+	/* Set socket options */
+	if (reUseAddress(rtp.linkSocket) < 0)
 	{
 		closesocket(rtp.linkSocket);
-		putSysErrmsg("LSI can't initialize UDP socket", NULL);
+		putSysErrmsg("LSI can't set socket options for reuse", NULL);
 		return 1;
 	}
+
+	/* For IPv6, set IPv6-only mode to avoid dual-stack conflicts */
+	if (rtp.local_addr.family == AF_INET6)
+	{
+		int ipv6only = 1;
+		if (setsockopt(rtp.linkSocket, IPPROTO_IPV6, IPV6_V6ONLY, 
+		              &ipv6only, sizeof(ipv6only)) < 0)
+		{
+			/* Non-fatal - log but continue */
+			writeMemo("[i] udplsi: Could not set IPV6_V6ONLY");
+		}
+	}
+
+	/* Bind to the resolved address */
+	if (bind(rtp.linkSocket, (struct sockaddr*)&rtp.local_addr.addr, 
+	         rtp.local_addr.addr_len) < 0)
+	{
+		closesocket(rtp.linkSocket);
+		putSysErrmsg("LSI can't bind UDP socket", NULL);
+		return 1;
+	}
+
+	/* Get actual bound address for logging and shutdown */
+	addr_len = sizeof(rtp.local_addr.addr);
+	if (getsockname(rtp.linkSocket, (struct sockaddr*)&rtp.local_addr.addr, &addr_len) < 0)
+	{
+		closesocket(rtp.linkSocket);
+		putSysErrmsg("LSI can't get socket name", NULL);
+		return 1;
+	}
+	rtp.local_addr.addr_len = addr_len;
+	rtp.local_addr.family = rtp.local_addr.addr.ss_family;
 
 	/*	Set up signal handling; SIGTERM is shutdown signal.	*/
 
@@ -136,36 +178,74 @@ int	main(int argc, char *argv[])
 	/*	Now sleep until interrupted by SIGTERM, at which point
 	 *	it's time to stop the link service.			*/
 
+	/* Logging */
+	formatNetworkAddress(&rtp.local_addr, localAddrStr, sizeof(localAddrStr));
 	{
 		char	txt[500];
 
 		isprintf(txt, sizeof(txt),
-			"[i] udplsi is running, spec=[%s:%d].", 
-			inet_ntoa(inetName->sin_addr), ntohs(portNbr));
+			"[i] udplsi is running, listening on %s (%s).",
+			localAddrStr,
+			(rtp.local_addr.family == AF_INET6) ? "IPv6" : "IPv4");
 		writeMemo(txt);
 	}
 
 	ionPauseMainThread(-1);
 
 	/*	Time to shut down.					*/
+	
+	writeMemo("[i] udplsi shutting down...");
+	
 	pthread_mutex_lock(&rtp.lock);
 	rtp.running = 0;
 	pthread_mutex_unlock(&rtp.lock);
 
-	/*	Wake up the receiver thread by opening a single-use
-	 *	transmission socket and sending a 1-byte datagram
-	 *	to the reception socket.				*/
-
-	fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	/* Shutdown signaling */
+	fd = socket(rtp.local_addr.family, SOCK_DGRAM, IPPROTO_UDP);
 	if (fd >= 0)
 	{
-		if (isendto(fd, &quit, 1, 0, &ownSockName,
-				sizeof(struct sockaddr)) == 1)
+		/* Prepare shutdown target address */
+		IonNetworkAddress shutdown_target = rtp.local_addr;
+		
+		/* NEW: Handle "any address" cases for shutdown signal */
+		if (rtp.local_addr.family == AF_INET)
+		{
+			struct sockaddr_in *sin = (struct sockaddr_in*)&shutdown_target.addr;
+			if (sin->sin_addr.s_addr == INADDR_ANY)
+			{
+				sin->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+			}
+		}
+		else if (rtp.local_addr.family == AF_INET6)
+		{
+			struct sockaddr_in6 *sin6 = (struct sockaddr_in6*)&shutdown_target.addr;
+			if (IN6_IS_ADDR_UNSPECIFIED(&sin6->sin6_addr))
+			{
+				sin6->sin6_addr = in6addr_loopback;
+			}
+		}
+
+		/* Send shutdown signal */
+		if (sendto(fd, &quit, 1, 0, 
+		          (struct sockaddr*)&shutdown_target.addr, 
+		          shutdown_target.addr_len) == 1)
 		{
 			pthread_join(receiverThread, NULL);
 		}
-
+		else
+		{
+			writeMemo("[!] udplsi: Shutdown signal failed, forcing thread termination");
+			pthread_cancel(receiverThread);
+			pthread_join(receiverThread, NULL);
+		}
+		
 		closesocket(fd);
+	}
+	else
+	{
+		writeMemo("[!] udplsi: Can't create shutdown socket, forcing thread termination");
+		pthread_cancel(receiverThread);
+		pthread_join(receiverThread, NULL);
 	}
 
 	closesocket(rtp.linkSocket);
