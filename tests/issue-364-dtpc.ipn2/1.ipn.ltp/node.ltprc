@@ -1,4 +1,4 @@
 1 10
-a span 2 2 2 1200 100000 1 'udplso localhost:9113 230000'
+a span 2 2 2 1200 100000 1 'udplso 127.0.0.1:9113 230000'
 w 1
-s 'udplsi localhost:1113'
+s 'udplsi 127.0.0.1:1113'

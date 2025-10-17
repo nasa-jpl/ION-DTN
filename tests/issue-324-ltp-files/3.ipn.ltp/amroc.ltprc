@@ -1,7 +1,7 @@
 1 30
-a span 2 8 8 1200 100000 1 'udplso localhost:2192'
-a span 3 2 2 1200 100000 1 'udplso localhost:2113'
+a span 2 8 8 1200 100000 1 'udplso 127.0.0.1:2192'
+a span 3 2 2 1200 100000 1 'udplso 127.0.0.1:2113'
 m maxber 0.0001
 e 1
 w 1
-s 'udplsi localhost:2113'
+s 'udplsi 127.0.0.1:2113'
