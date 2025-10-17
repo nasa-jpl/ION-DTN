@@ -16,7 +16,7 @@ extern "C" {
 #endif
 
 #define BPNM_ENDPOINT_NAME_FMT_STRING           ("%s:%s")
-#define BPNM_ENDPOINT_FILLPATT                  (0xE1)
+#define BPNM_ENDPOINT_FILLPATT                  ((unsigned char)0xE1)
 #define BPNM_ENDPOINT_EIDSTRING_LEN             (32)
 
 

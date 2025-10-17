@@ -1408,7 +1408,8 @@ int	bp_start_scheme(char *name)
 
 void bp_stop_scheme(char *name)
 {
-	return bpStopScheme(name);
+	/* An explicit "return;" is optional here, as the function ends anyway. */
+	bpStopScheme(name);
 }
 
 int	add_endpoint(char *eid, BpRecvRule recvRule, char *script)

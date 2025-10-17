@@ -31,7 +31,7 @@
 extern "C" {
 #endif
 
-void *rx_thread(int *running);
+void *rx_thread(void *arg);
 void rx_handle_perf_ctrl(msg_metadata_t *meta, blob_t *contents);
 
 #ifdef __cplusplus

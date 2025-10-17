@@ -131,7 +131,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 	char		*cursor;
 	int		i;
 	char		buf[3];
-	int		val;
+	unsigned int		val;
 
 	if (tokenCount < 2)
 	{

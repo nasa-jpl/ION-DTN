@@ -682,7 +682,7 @@ static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 
 		printDBG(1, "handling status report...\n");
 		reports[n_rpts] = malloc(sizeof(*reports[n_rpts]/*statusReport*/));
-		printDBG(3, "report pointer after malloc: %p\n", reports[n_rpts]);
+		printDBG(3, "report pointer after malloc: %p\n", (void *)reports[n_rpts]);
 		rpt_rval = handleStatusRpt(&dlv, cursor, unparsedBytes, reports[n_rpts]);
 		printDBG(3, "\n"UVAST_FIELDSPEC"\n", reports[n_rpts]->creationTime);
 		n_rpts++;

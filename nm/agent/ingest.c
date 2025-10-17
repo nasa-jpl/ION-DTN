@@ -53,12 +53,14 @@
  *  10/04/18  E. Birrane     Update to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
-void *rx_thread(int *running) {
+void *rx_thread(void *arg) {
 #ifndef mingw
     AMP_DEBUG_ENTRY("rx_thread","(0x%X)",(unsigned long) pthread_self());
 #endif
     AMP_DEBUG_INFO("rx_thread","Receiver thread running...", NULL);
-    
+
+    /* Cast the generic void* argument back to the real type we need. */
+    int *running = (int *)arg;
 
     vecit_t it;
     blob_t *result = NULL;

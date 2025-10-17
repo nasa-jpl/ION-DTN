@@ -40,7 +40,7 @@ typedef int		sm_SemId;
 #else
 /*      Required in order to overload pthread_begin macro		*/
 #define GET_MACRO(_1,_2,_3,_4,_5,NAME,...) NAME
-#define pthread_begin(...) GET_MACRO(__VA_ARGS__, pthread_begin5, pthread_begin4)(__VA_ARGS__)
+#define pthread_begin(...) GET_MACRO(__VA_ARGS__, pthread_begin5, pthread_begin4, 0)(__VA_ARGS__)
 #endif
 
 #if defined (bionic) || defined (uClibc)

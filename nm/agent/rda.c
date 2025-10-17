@@ -629,10 +629,14 @@ int rda_send_tables(void)
  *  11/23/21  E. Birrane     Send tablesets (JHU/APL)
  *****************************************************************************/
 
-void* rda_thread(int* running)
+void* rda_thread(void* arg)
 {
     struct timeval start_time;
     vast delta = 0;
+
+    /* Cast the generic void* argument back to the real type we need. */
+    int *running = (int *)arg;
+
 #ifndef mingw
     AMP_DEBUG_ENTRY("rda_thread","(0x%X)", (unsigned long) pthread_self()); //threadId);
 #endif

@@ -72,7 +72,7 @@ int          rda_process_rules(void);
 int          rda_send_reports(void);
 int          rda_send_tables(void);
 
-void*        rda_thread(int* running);
+void*        rda_thread(void* arg);
 
 
 #ifdef __cplusplus

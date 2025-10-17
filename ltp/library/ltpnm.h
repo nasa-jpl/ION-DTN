@@ -15,7 +15,7 @@
 extern "C" {
 #endif
 
-#define LTPNM_SPAN_FILLPATT          (0xE0)
+#define LTPNM_SPAN_FILLPATT       ((unsigned char)0xE0)
 
 typedef struct
 {

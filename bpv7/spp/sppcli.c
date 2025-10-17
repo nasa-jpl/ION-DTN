@@ -129,8 +129,19 @@ static int openSharedLibrary(char* sharedLibPath, void* handle)
 
 static int openSPPFunctions(ReceiverThreadParms *rtp,void *handle)
 {
-	//rtp->parse_space_packet = (parse_space_packet_ptr)dlsym(handle,"parse_space_packet");
-	rtp->packet_indication = (packet_recv_ptr)dlsym(handle,"packet_indication");
+
+	/* Union to safely convert the pointer types per strict C standard */
+	union {
+		void *obj_ptr;
+		packet_recv_ptr func_ptr;
+	} converter;
+
+	/* Step 1: Get the generic object pointer from dlsym. */
+	converter.obj_ptr = dlsym(handle, "packet_indication");
+
+	/* Step 2: Read the same memory as a function pointer. This is standard-compliant. */
+	rtp->packet_indication = converter.func_ptr;
+
 	return 0;
 }
 

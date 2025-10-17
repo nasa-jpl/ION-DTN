@@ -523,7 +523,7 @@ uint8_t *bpsec_bhsscutl_computeSignature(BpsecSerializeData preamble, Object zco
     while((success) && (preambleRemaining >= chunkSize))
     {
         memcpy(chunkData.contents, cursor, chunkSize);
-        cursor += chunkSize;
+        cursor = (char *)cursor + chunkSize;
 
         /* Add the data to the context.        */
         if(csi_sign_update(csi_suite, csi_ctx, chunkData, svc) == ERROR)

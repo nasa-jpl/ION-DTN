@@ -220,7 +220,7 @@ int	main(int argc, char *argv[])
     /*! use pthread_begin() so thread can be named and have its stacksize adjusted on some OS's */
     /*! and provide threads with a pointer to gRunning, so threads will shutdown */
     //rc = pthread_create(&ingest_thr, NULL, (void *)rx_thread, (void *)ingest_thr_name);
-    rc = pthread_begin(&ingest_thr, NULL, (void *)rx_thread, (void *)&gRunning, "nmagent_ingest");
+    rc = pthread_begin(&ingest_thr, NULL, rx_thread, (void *)&gRunning, "nmagent_ingest");
 
     if (rc)
     {
@@ -234,7 +234,7 @@ int	main(int argc, char *argv[])
     }
 
     //rc = pthread_create(&rda_thr, NULL, (void *)rda_thread, (void *)rda_thr_name);
-    rc = pthread_begin(&rda_thr, NULL, (void *)rda_thread, (void *)&gRunning, "nmagent_rda");
+    rc = pthread_begin(&rda_thr, NULL, rda_thread, (void *)&gRunning, "nmagent_rda");
 
     if (rc)
     {
