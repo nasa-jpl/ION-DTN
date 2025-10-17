@@ -420,6 +420,7 @@ static CfdpVdb	*_cfdpvdb(char **name)
 		vdb = (CfdpVdb *) psp(wm, vdbAddress);
 		memset((char *) vdb, 0, sizeof(CfdpVdb));
 		vdb->utaPid = ERROR;		/*	None yet.	*/
+		vdb->bpcpdPid = ERROR;	/*	None yet.	*/
 		vdb->clockPid = ERROR;		/*	None yet.	*/
 		vdb->eventSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 		vdb->fduSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
@@ -637,54 +638,88 @@ CfdpVdb	*getCfdpVdb(void)
 	return _cfdpvdb(NULL);
 }
 
-int	_cfdpStart(char *utaCmd)
+int _cfdpStart(char *utaCmd)
 {
-	Sdr	sdr = getIonsdr();
-	CfdpVdb	*cfdpvdb = _cfdpvdb(NULL);
-	Object	cfdpdbobj = getCfdpDbObject();
-	CfdpDB	cfdpdb;
+    Sdr     sdr = getIonsdr();
+    CfdpVdb *cfdpvdb = _cfdpvdb(NULL);
+    Object  cfdpdbobj = getCfdpDbObject();
+    CfdpDB  cfdpdb;
+    int     startBpcpd = 0;
+    char    *actualUtaCmd = utaCmd;
 
-	if (utaCmd)
-	{
-		CHKERR(sdr_begin_xn(sdr));
-		sdr_stage(sdr, (char *) &cfdpdb, cfdpdbobj, sizeof(CfdpDB));
-		istrcpy(cfdpdb.utaCmd, utaCmd, sizeof cfdpdb.utaCmd);
-		sdr_write(sdr, cfdpdbobj, (char *) &cfdpdb, sizeof(CfdpDB));
-		if (sdr_end_xn(sdr))
-		{
-			putErrmsg("Can't set UTA command.", NULL);
-			return -1;
-		}
-	}
-	else
-	{
-		sdr_read(sdr, (char *) &cfdpdb, cfdpdbobj, sizeof(CfdpDB));
-	}
+    /* Check if utaCmd contains proxy directive */
+    if (utaCmd)
+    {
+        /* Check for "bputa proxy" format */
+        if (strstr(utaCmd, " proxy") != NULL)
+        {
+            startBpcpd = 1;
+            /* Create a copy without " proxy" for storage */
+            char tempCmd[256];
+            istrcpy(tempCmd, utaCmd, sizeof(tempCmd));
+            char *proxyPtr = strstr(tempCmd, " proxy");
+            if (proxyPtr)
+            {
+                *proxyPtr = '\0';  /* Remove " proxy" */
+            }
+            actualUtaCmd = tempCmd;
+        }
 
-	if (cfdpdb.utaCmd[0] == 0)	/*	No UTA command.		*/
-	{
-		putErrmsg("CFDP can't start: no UTA command.", NULL);
-		return -1;
-	}
+        CHKERR(sdr_begin_xn(sdr));
+        sdr_stage(sdr, (char *) &cfdpdb, cfdpdbobj, sizeof(CfdpDB));
+        istrcpy(cfdpdb.utaCmd, actualUtaCmd, sizeof cfdpdb.utaCmd);
+        sdr_write(sdr, cfdpdbobj, (char *) &cfdpdb, sizeof(CfdpDB));
+        if (sdr_end_xn(sdr))
+        {
+            putErrmsg("Can't set UTA command.", NULL);
+            return -1;
+        }
+    }
+    else
+    {
+        sdr_read(sdr, (char *) &cfdpdb, cfdpdbobj, sizeof(CfdpDB));
+    }
 
-	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+    if (cfdpdb.utaCmd[0] == 0)
+    {
+        putErrmsg("CFDP can't start: no UTA command.", NULL);
+        return -1;
+    }
 
-	/*	Start the CFDP events clock if necessary.		*/
+    CHKERR(sdr_begin_xn(sdr));  /* Just to lock memory. */
 
-	if (cfdpvdb->clockPid == ERROR || sm_TaskExists(cfdpvdb->clockPid) == 0)
-	{
-		cfdpvdb->clockPid = pseudoshell("cfdpclock");
-	}
+    /* Start the CFDP events clock if necessary. */
+    if (cfdpvdb->clockPid == ERROR || sm_TaskExists(cfdpvdb->clockPid) == 0)
+    {
+        cfdpvdb->clockPid = pseudoshell("cfdpclock");
+    }
 
-	/*	Start UT adapter service if necessary.			*/
+    /* Start UT adapter service if necessary. */
+    if (cfdpvdb->utaPid == ERROR || sm_TaskExists(cfdpvdb->utaPid) == 0)
+    {
+        cfdpvdb->utaPid = pseudoshell(cfdpdb.utaCmd);
+    }
 
-	if (cfdpvdb->utaPid == ERROR || sm_TaskExists(cfdpvdb->utaPid) == 0)
-	{
-		cfdpvdb->utaPid = pseudoshell(utaCmd);
-	}
+    /* Start bpcpd if requested and bputa is the UTA */
+    if (startBpcpd && strstr(cfdpdb.utaCmd, "bputa") != NULL)
+    {
+        if (cfdpvdb->bpcpdPid == ERROR || sm_TaskExists(cfdpvdb->bpcpdPid) == 0)
+        {
+            cfdpvdb->bpcpdPid = pseudoshell("bpcpd");
+            if (cfdpvdb->bpcpdPid == ERROR)
+            {
+                writeMemo("[!] Warning: bpcpd failed to start");
+            }
+            else
+            {
+                writeMemoNote("[i] bpcpd proxy daemon started", 
+                             itoa(cfdpvdb->bpcpdPid));
+            }
+        }
+    }
 
-	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
-	return 0;
+    sdr_exit_xn(sdr);  /* Unlock memory. */
+    return 0;
 }
 
 void	_cfdpStop(void)		/*	Reverses cfdpStart.		*/
@@ -714,6 +749,12 @@ void	_cfdpStop(void)		/*	Reverses cfdpStart.		*/
 		sm_SemEnd(cfdpvdb->fduSemaphore);
 	}
 
+	/* Stop bpcpd task if running */
+    if (cfdpvdb->bpcpdPid != ERROR)
+    {
+        sm_TaskKill(cfdpvdb->bpcpdPid, SIGTERM);
+    }
+
 	/*	Stop clock task.					*/
 
 	if (cfdpvdb->clockPid != ERROR)
@@ -734,6 +775,15 @@ void	_cfdpStop(void)		/*	Reverses cfdpStart.		*/
 		}
 	}
 
+	/* Wait for bpcpd to stop */
+    if (cfdpvdb->bpcpdPid != ERROR)
+    {
+        while (sm_TaskExists(cfdpvdb->bpcpdPid))
+        {
+            microsnooze(100000);
+        }
+    }
+
 	if (cfdpvdb->clockPid != ERROR)
 	{
 		while (sm_TaskExists(cfdpvdb->clockPid))
@@ -746,6 +796,7 @@ void	_cfdpStop(void)		/*	Reverses cfdpStart.		*/
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	cfdpvdb->utaPid = ERROR;
+	cfdpvdb->bpcpdPid = ERROR;
 	cfdpvdb->clockPid = ERROR;
 	if (cfdpvdb->eventSemaphore == SM_SEM_NONE)
 	{

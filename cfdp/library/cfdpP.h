@@ -274,6 +274,7 @@ typedef struct
 typedef struct
 {
 	int		utaPid;		/*	For stopping the UTA.	*/
+	int     bpcpdPid;	/*	For stopping the BPCP daemon.	*/
 	int		clockPid;	/*	For stopping cfdpclock.	*/
 	int		watching;	/*	Activity watch.		*/
 	sm_SemId	eventSemaphore;

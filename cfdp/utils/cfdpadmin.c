@@ -90,7 +90,8 @@ static void	printUsage(void)
 	PUTS("\td\tDelete");
 	PUTS("\t   d entity <entity nbr>");
 	PUTS("\tl\tList");
-	PUTS("\t   l entity");
+	PUTS("\t   l		- show general CFDP status including daemons");
+	PUTS("\t   l entity - show all configured CFDP entities");
 	PUTS("\tm\tManage");
 	PUTS("\t   m discard { 0 | 1 }");
 	PUTS("\t   m requirecrc { 0 | 1 }");
@@ -105,7 +106,9 @@ static void	printUsage(void)
 	PUTS("\t   i entity <entity nbr>");
 	PUTS("\t   i");
 	PUTS("\ts\tStart");
-	PUTS("\t   s '<UTA command>'");
+    PUTS("\t   s '<UTA command>'");
+    PUTS("\t   s 'bputa'              - Start bputa only");
+    PUTS("\t   s 'bputa proxy'        - Start bputa with bpcpd proxy daemon");
 	PUTS("\tx\tStop");
 	PUTS("\t   x");
 	PUTS("\tw\tWatch CFDP activity");
@@ -375,21 +378,148 @@ timer period: %u  Check timeout limit: %u)", db->ownEntityId,
 	sdr_exit_xn(sdr);
 }
 
-static void	executeList(int tokenCount, char **tokens)
+static void executeList(int tokenCount, char **tokens)
 {
-	if (tokenCount < 2)
-	{
-		printText("List what?");
-		return;
-	}
-
-	if (strcmp(tokens[1], "entity") == 0)
-	{
-		listEntities(tokenCount, tokens);
-		return;
-	}
-
-	SYNTAX_ERROR;
+    Sdr     sdr;
+    CfdpVdb *vdb;
+    CfdpDB  *db;
+    char    buffer[256];
+    char    utaCmd[256];
+    
+    /* Handle different list commands based on token count */
+    if (tokenCount < 2)
+    {
+        /* No subcommand - show general CFDP status including daemons */
+        sdr = getIonsdr();
+        vdb = getCfdpVdb();
+        db = getCfdpConstants();
+        
+        if (!vdb || !db)
+        {
+            printText("CFDP not initialized.");
+            return;
+        }
+        
+        /* Show CFDP system status header */
+        printText("\n==== CFDP System Status ====");
+        
+        /* Show basic CFDP info */
+        CHKVOID(sdr_begin_xn(sdr));
+        isprintf(buffer, sizeof buffer, 
+                "Local entity: " UVAST_FIELDSPEC, db->ownEntityId);
+        printText(buffer);
+        
+        isprintf(buffer, sizeof buffer,
+                "Check timer period: %u sec, Check timeout limit: %u",
+                db->checkTimerPeriod, db->checkTimeoutLimit);
+        printText(buffer);
+        
+        /* Get UTA command from database */
+        Object cfdpdbobj = getCfdpDbObject();
+        CfdpDB cfdpdb;
+        sdr_read(sdr, (char *) &cfdpdb, cfdpdbobj, sizeof(CfdpDB));
+        istrcpy(utaCmd, cfdpdb.utaCmd, sizeof(utaCmd));
+        sdr_exit_xn(sdr);
+        
+        /* Show daemon status section */
+        printText("\n==== Daemon Status ====");
+        
+        /* CFDP Clock status */
+        if (vdb->clockPid != ERROR && vdb->clockPid != 0 
+            && sm_TaskExists(vdb->clockPid))
+        {
+            isprintf(buffer, sizeof buffer, 
+                    "cfdpclock     : RUNNING (pid %d)", vdb->clockPid);
+        }
+        else
+        {
+            istrcpy(buffer, "cfdpclock     : NOT RUNNING", sizeof buffer);
+        }
+        printText(buffer);
+        
+        /* UTA daemon status (bputa or tcputa) */
+        if (vdb->utaPid != ERROR && vdb->utaPid != 0 
+            && sm_TaskExists(vdb->utaPid))
+        {
+            isprintf(buffer, sizeof buffer, 
+                    "%-14s: RUNNING (pid %d)", utaCmd, vdb->utaPid);
+        }
+        else
+        {
+            isprintf(buffer, sizeof buffer, 
+                    "%-14s: NOT RUNNING", 
+                    strlen(utaCmd) > 0 ? utaCmd : "UTA daemon");
+        }
+        printText(buffer);
+        
+        /* bpcpd proxy daemon status */
+        if (vdb->bpcpdPid != ERROR && vdb->bpcpdPid != 0 
+            && sm_TaskExists(vdb->bpcpdPid))
+        {
+            isprintf(buffer, sizeof buffer, 
+                    "bpcpd         : RUNNING (pid %d) [proxy daemon]", 
+                    vdb->bpcpdPid);
+        }
+        else
+        {
+            istrcpy(buffer, "bpcpd         : NOT RUNNING", sizeof buffer);
+        }
+        printText(buffer);
+        
+        /* Show watch flags status */
+        printText("\n==== Watch Status ====");
+        if (vdb->watching == 0)
+        {
+            printText("Watching      : DISABLED");
+        }
+        else if (vdb->watching == -1)
+        {
+            printText("Watching      : ALL (p q)");
+        }
+        else
+        {
+            char watchFlags[32];
+            int pos = 0;
+            
+            istrcpy(watchFlags, "Watching      : ", sizeof(watchFlags));
+            pos = strlen(watchFlags);
+            
+            if (vdb->watching & WATCH_p)
+            {
+                watchFlags[pos++] = 'p';
+                watchFlags[pos++] = ' ';
+            }
+            if (vdb->watching & WATCH_q)
+            {
+                watchFlags[pos++] = 'q';
+                watchFlags[pos++] = ' ';
+            }
+            watchFlags[pos] = '\0';
+            printText(watchFlags);
+        }
+        
+        /* Show entity count */
+        printText("\n==== Entities ====");
+        CHKVOID(sdr_begin_xn(sdr));
+        int entityCount = sdr_list_length(sdr, db->entities);
+        sdr_exit_xn(sdr);
+        
+        isprintf(buffer, sizeof buffer, 
+                "Configured remote entities: %d", entityCount);
+        printText(buffer);
+        printText("(use 'l entity' to list all entities)");
+        
+        return;
+    }
+    
+    /* Original behavior for subcommands */
+    if (strcmp(tokens[1], "entity") == 0)
+    {
+        listEntities(tokenCount, tokens);
+        return;
+    }
+    
+    SYNTAX_ERROR;
 }
 
 static void	manageDiscard(int tokenCount, char **tokens)

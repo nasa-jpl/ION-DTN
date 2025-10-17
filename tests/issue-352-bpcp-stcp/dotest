@@ -157,12 +157,7 @@ fi
 
 #Test 2 R2L
 echo "Test 2 --- Remote to Local Copy"
-sleep 1 
-echo "Starting bpcpd..."
-cd ../3.ipn.cfdp.bp.stcp || { echo "ERROR: Cannot change to 3.ipn.cfdp.bp.stcp."; killm; exit 1; }
-bpcpd &
-BPCPD3_PID=$!
-sleep 3 # Give bpcpd time to start
+sleep 1
 
 # PRE-CHECK AND DELETE
 cd ../1.ipn.cfdp.bp.stcp || { echo "ERROR: Cannot change to 1.ipn.cfdp.bp.stcp for pre-check."; killm; exit 1; }
@@ -171,8 +166,6 @@ if [ -e ./test2 ]; then
     rm ./test2
     if [ $? -ne 0 ]; then
         echo "ERROR: Failed to delete existing test2 on Node 1."
-        kill -2 $BPCPD3_PID >/dev/null 2>&1
-        kill -9 $BPCPD3_PID >/dev/null 2>&1
         killm
         exit 1
     fi
@@ -186,8 +179,6 @@ BPCP_EXIT_STATUS=$?
 # Check bpcp's exit status first
 if [ $BPCP_EXIT_STATUS -ne 0 ]; then
     echo "ERROR: bpcp command for Remote to Local failed to execute successfully. Exit status: $BPCP_EXIT_STATUS"
-    kill -2 $BPCPD3_PID >/dev/null 2>&1
-    kill -9 $BPCPD3_PID >/dev/null 2>&1
     killm
     exit 1
 fi
@@ -214,10 +205,6 @@ done
 if [ $FILE_COPIED -eq 0 ]; then
     echo "ERROR: Remote to Local Copy Failed. File not found or content mismatch after timeout. FAILED!!"
     echo "$TEST"
-    echo "Stopping bpcpd..."
-    kill -2 $BPCPD3_PID >/dev/null 2>&1
-    sleep 1
-    kill -9 $BPCPD3_PID >/dev/null 2>&1
     killm
     exit 1
 else
@@ -228,31 +215,14 @@ fi
 echo "Test 3 --- Remote to Remote Copy"
 sleep 1
 
-echo "Starting bpcpd..."
-cd ../3.ipn.cfdp.bp.stcp || { echo "ERROR: Cannot change to 3.ipn.cfdp.bp.stcp."; killm; exit 1; }
-# Note: bpcpd3 is already running from Test 2, but for clarity if tests were run independently.
-# If you want to ensure it's started fresh for this test, you might need to stop it from Test 2 first.
-# For now, let's assume it's okay if it's already running or gets restarted.
-bpcpd & # If BPCPD3_PID from Test 2 is still valid, this might be redundant or problematic.
-        # It's better to manage bpcpd processes more explicitly, perhaps starting them once and stopping at the end.
-BPCPD3_PID=$! # Re-capture PID if you restarted it
-
-cd ../2.ipn.cfdp.bp.stcp || { echo "ERROR: Cannot change to 2.ipn.cfdp.bp.stcp."; killm; exit 1; }
-bpcpd &
-BPCPD2_PID=$!
-sleep 3 # Give bpcpd time to start
-
 # PRE-CHECK AND DELETE
 # Target file for R2R is on node 2
+cd ../2.ipn.cfdp.bp.stcp || { echo "ERROR: Cannot change to 2.ipn.cfdp.bp.stcp."; killm; exit 1; }
 if [ -e ./test3 ]; then
     echo "Found existing test3 on Node 2. Deleting for a clean test."
     rm ./test3
     if [ $? -ne 0 ]; then
         echo "ERROR: Failed to delete existing test3 on Node 2."
-        kill -2 $BPCPD2_PID >/dev/null 2>&1
-        kill -2 $BPCPD3_PID >/dev/null 2>&1
-        kill -9 $BPCPD2_PID >/dev/null 2>&1
-        kill -9 $BPCPD3_PID >/dev/null 2>&1
         killm
         exit 1
     fi
@@ -269,10 +239,6 @@ cd ../2.ipn.cfdp.bp.stcp || { echo "ERROR: Cannot change to 2.ipn.cfdp.bp.stcp f
 # Check bpcp's exit status first
 if [ $BPCP_EXIT_STATUS -ne 0 ]; then
     echo "ERROR: bpcp command for Remote to Remote failed to execute successfully. Exit status: $BPCP_EXIT_STATUS"
-    kill -2 $BPCPD2_PID >/dev/null 2>&1
-    kill -2 $BPCPD3_PID >/dev/null 2>&1
-    kill -9 $BPCPD2_PID >/dev/null 2>&1
-    kill -9 $BPCPD3_PID >/dev/null 2>&1
     killm
     exit 1
 fi
@@ -299,12 +265,6 @@ done
 if [ $FILE_COPIED -eq 0 ]; then
     echo "ERROR: Remote to Remote Copy Failed. File not found or content mismatch after timeout. FAILED!!"
     echo "$TEST"
-    echo "Stopping bpcpd..."
-    kill -2 $BPCPD2_PID >/dev/null 2>&1
-    kill -2 $BPCPD3_PID >/dev/null 2>&1
-    sleep 1
-    kill -9 $BPCPD2_PID >/dev/null 2>&1
-    kill -9 $BPCPD3_PID >/dev/null 2>&1
     killm
     exit 1
 else
@@ -312,13 +272,6 @@ else
 fi
 
 RETVAL=0
-
-echo "Stopping bpcpd..."
-kill -2 $BPCPD2_PID >/dev/null 2>&1
-kill -2 $BPCPD3_PID >/dev/null 2>&1
-sleep 1 
-kill -9 $BPCPD2_PID >/dev/null 2>&1
-kill -9 $BPCPD3_PID >/dev/null 2>&1
 
 #cd ../1.ipn.cfdp.bp.stcp
 #./ionstop &

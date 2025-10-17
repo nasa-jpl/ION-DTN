@@ -65,10 +65,19 @@ information about the indicated entity.  Otherwise this command will print
 information about the current state of the local CFDP entity, including the
 current settings of all parameters that can be managed as described below.
 
-=item B<s> 'I<UTS command>'
+=item B<s> 'I<UTA command>'
 
-The B<start> command.  This command starts the UT-layer service task
-for the local CFDP entity.
+The B<start> command. Starts the CFDP UT adapter task and the 
+CFDP clock task for the local CFDP entity.
+
+The I<UTA command> can be:
+  'bputa'        - Start BP-based UT adapter only
+  'bputa proxy'  - Start BP-based UT adapter with bpcpd proxy daemon
+  'tcputa'       - Start TCP-based UT adapter
+
+When 'proxy' is specified with bputa, the bpcpd daemon is also started
+to handle incoming proxy operations (get requests from remote nodes).
+Note: bpcpd and bpcp cannot run simultaneously on the same node.
 
 =item B<m discard> { 0 | 1 }
 

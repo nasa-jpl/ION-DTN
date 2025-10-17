@@ -129,11 +129,6 @@ fi
 #Test 2 R2L
 echo "Test 2 --- Remote to Local Copy"
 sleep 1
-echo "Starting bpcpd..."
-cd ../3.ipn.cfdp.bp.ltp
-bpcpd &
-BPCPD3_PID=$!
-sleep 3
 cd ../1.ipn.cfdp.bp.ltp
 echo "Starting bpcp..."
 bpcp 3:../dotest test2
@@ -142,10 +137,6 @@ TEST=`diff ../dotest test2`
 echo $TEST
 if [ ! -e ./test2 ] || [ -n "$TEST" ]; then
 	echo "ERROR: Remote to Local Copy Failed. FAILED!!"
-	echo "Stopping bpcpd..."
-	kill -2 $BPCPD3_PID >/dev/null 2>&1
-	sleep 1 
-	kill -9 $BPCPD3_PID >/dev/null 2>&1
 	#cd ../1.ipn.cfdp.bp.ltp
 	#./ionstop &
 	#cd ../2.ipn.cfdp.bp.ltp
@@ -164,11 +155,6 @@ fi
 #Test 3 R2R
 echo "Test 3 --- Remote to Remote Copy"
 sleep 1
-echo "Starting bpcpd..."
-cd ../2.ipn.cfdp.bp.ltp
-bpcpd &
-BPCPD2_PID=$!
-sleep 3
 cd ../1.ipn.cfdp.bp.ltp
 echo "Starting bpcp..."
 bpcp 3:../dotest 2:./test3
@@ -178,12 +164,6 @@ TEST=`diff ../dotest test3`
 echo $TEST
 if  [ ! -e ./test3 ] || [ -n "$TEST" ]; then
 	echo "ERROR: Remote to Remote Copy Failed. FAILED!!"
-	echo "Stopping bpcpd..."
-	kill -2 $BPCPD2_PID >/dev/null 2>&1
-	kill -2 $BPCPD3_PID >/dev/null 2>&1
-	sleep 1 
-	kill -9 $BPCPD2_PID >/dev/null 2>&1
-	kill -9 $BPCPD3_PID >/dev/null 2>&1
 	#cd ../1.ipn.cfdp.bp.ltp
 	#./ionstop &
 	#cd ../2.ipn.cfdp.bp.ltp
@@ -200,13 +180,6 @@ else
 fi
 
 RETVAL=0
-
-echo "Stopping bpcpd..."
-kill -2 $BPCPD2_PID >/dev/null 2>&1
-kill -2 $BPCPD3_PID >/dev/null 2>&1
-sleep 1 
-kill -9 $BPCPD2_PID >/dev/null 2>&1
-kill -9 $BPCPD3_PID >/dev/null 2>&1
 
 #cd ../1.ipn.cfdp.bp.ltp
 #./ionstop &
