@@ -1,0 +1,5 @@
+1
+e 1
+
+# ENCRYPTION RULE
+a key 'hmac_sha256' ../key1.hmk

@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+#
+# Nate Richard
+# 2025-10-16
+
+CONFIGFILES=" \
+./2.ipn.udp/ipn.bprc \
+./2.ipn.udp/ipn.bpsecrc \
+./2.ipn.udp/ipn.ionconfig \
+./2.ipn.udp/ipn.ionrc \
+./2.ipn.udp/ipn.ionsecrc \
+./2.ipn.udp/ipn.ipnrc \
+./3.ipn.udp/ipn.bprc \
+./3.ipn.udp/ipn.bpsecrc \
+./3.ipn.udp/ipn.ionconfig \
+./3.ipn.udp/ipn.ionrc \
+./3.ipn.udp/ipn.ionsecrc \
+./3.ipn.udp/ipn.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify a bundle without a primary Block CRC or a Bundle
+    Integrity Block is rejected. RFC 9171 requires a bundle to contain at least
+    one of those pieces. ION should reject a bundle like this to ensure
+    compliance and so it only accepts authentic bundles.
+"
+
+sleep 3
+
+echo
+echo "CONFIG: 2 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat "$N"
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+echo
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+# Start nodes.
+cd 2.ipn.udp
+./ionstart
+cd ../3.ipn.udp
+./ionstart
+
+# give the buffer time to clear
+echo "Sleeping for 30 seconds to clear buffer"
+sleep 30
+
+bpsink ipn:3.1 >/dev/null &
+BPSINKPID=$!
+cd ../
+
+# pause for bpsink
+sleep 5
+
+echo "Sending unauthenticated bundle..."
+python3 bib_send.py
+sleep 5
+
+echo "Make sure good bundle gets through..."
+cd 2.ipn.udp
+bptrace ipn:2.1 ipn:3.1 dtn:none 300 0.1 "Hello!" &
+BPSOURCEPID=$!
+sleep 5
+
+# bpsink does not self-terminate, so send it SIGINT
+echo "Stopping bpsink..."
+kill -2 $BPSINKPID >/dev/null 2>&1
+sleep 1
+kill -9 $BPSINKPID >/dev/null 2>&1
+
+echo "Make sure bpsource stopped..."
+kill -2 $BPSOURCEPID >/dev/null 2>&1
+sleep 1
+kill -9 $BPSOURCEPID >/dev/null 2>&1
+
+cd ../3.ipn.udp
+bpstats
+
+cd ..
+LINE_NUM=$(python ion_parse.py -l 'No primary block BIB or primary block CRC' 3.ipn.udp/ion.log)
+STATCHECK=$?
+if [ $STATCHECK -eq 0 ]; then
+    echo "SUCCESS: ion.log reported unauthenticated bundle rejected line $LINE_NUM"
+else
+    echo "FAIL: No match or error"
+    RETVAL=1
+fi
+
+python ion_parse.py -b 'rcv' -f '+' -c '1' -s '7' 3.ipn.udp/ion.log
+COUNTCHECK=$?
+if [ $COUNTCHECK -eq 0 ]; then
+    echo "SUCCESS: Correct number of bundles received"
+else
+    echo "FAIL: Incorrect bundle count or no bundles"
+    RETVAL=1
+fi
+
+echo -e "\nStopping ION..."
+./cleanup
+echo -e "...test terminated.\n"
+exit $RETVAL

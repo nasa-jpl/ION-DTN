@@ -1,0 +1,71 @@
+1
+
+a {
+    "event_set": {
+        "name": "d_integrity",
+        "desc": "default integrity event set"
+    }
+}
+
+a {
+    "event": {
+        "es_ref": "d_integrity",
+        "event_id": "sop_corrupted_at_verifier",
+        "actions": [
+            {
+                "id": "remove_sop"
+            },
+            {
+                "id": "remove_sop_target"
+            }
+        ]
+    }
+}
+a {
+    "event": {
+        "es_ref": "d_integrity",
+        "event_id": "sop_missing_at_acceptor",
+        "actions": [
+            {
+                "id": "remove_sop_target"
+            }
+        ]
+    }
+}
+a {
+    "event": {
+        "es_ref": "d_integrity",
+        "event_id": "sop_corrupted_at_acceptor",
+        "actions": [
+            {
+                "id": "remove_sop_target"
+            }
+        ]
+    }
+}
+
+a {
+    "policyrule": {
+        "desc": "Integrity source rule",
+        "filter": {
+            "rule_id": 190,
+            "role": "s",
+            "src": "ipn:2.*",
+            "dest": "ipn:3.*",
+            "tgt": 0
+        },
+        "spec": {
+            "svc": "bib-integrity",
+            "sc_id": 1,
+            "sc_parms": [
+                {
+                    "key_name": "hmac_sha256"
+                },
+                {
+                    "scope_flags": "4"
+                }
+            ]
+        },
+        "es_ref": "d_integrity"
+    }
+}
