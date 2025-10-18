@@ -1344,181 +1344,192 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 			return -1;
 		}
 
-		progress = 0;
-		while (1)
+		/* Special case for empty files */
+		if (fileSize == 0)
 		{
-			recordLength = readerFn(sourceFile, &checksum,
-					fdu.ckType);
-			if (recordLength < 0)
+			/* Close the file immediately - no data to read
+			 * checksum remains at initial value (0)
+			 * Skip the entire while loop that reads records */
+			close(sourceFile);
+		}
+		else
+		{
+			progress = 0;
+			while (1)
 			{
-				close(sourceFile);
-				sdr_cancel_xn(sdr);
-				putErrmsg("CFDP failed reading records.",
-						sourceFileName);
-				return -1;
-			}
-
-			if (recordLength == 0)
-			{
-				currentOffset = ilseek(sourceFile, 0, SEEK_CUR);
-				if (currentOffset >= 0 && (uvast)currentOffset == fdu.fileSize)
-				{
-					break;	/*	No more records.*/
-				}
-
-				/*	Stopped before end of file.	*/
-
-				if (handleFault(&fdu.transactionId,
-						CfdpInvalidFileStructure,
-						&handler) < 0)
+				recordLength = readerFn(sourceFile, &checksum,
+						fdu.ckType);
+				if (recordLength < 0)
 				{
 					close(sourceFile);
 					sdr_cancel_xn(sdr);
-					putErrmsg("Can't segment file.", NULL);
-					return -1;
-				}
-
-				switch (handler)
-				{
-				case CfdpCancel:
-				case CfdpAbandon:
-					close(sourceFile);
-					sdr_cancel_xn(sdr);
-					return 0;	/*	Done.	*/
-
-				default:	/*	No problem.	*/
-					break;	/*	Out of switch.	*/
-				}
-
-				break;		/*	No more records.*/
-			}
-
-			/*	Note parameters of this PDU.		*/
-
-			pduObj = sdr_malloc(sdr, sizeof(FileDataPdu));
-			if (pduObj == 0)
-			{
-				close(sourceFile);
-				sdr_cancel_xn(sdr);
-				putErrmsg("CFDP failed creating file data PDU.",
-						sourceFileName);
-				return -1;
-			}
-
-			lengthRemaining = recordLength;
-			while (lengthRemaining > 0)
-			{
-				pdu.offset = progress;
-				if (lengthRemaining > db.maxFileDataLength)
-				{
-					pdu.length = db.maxFileDataLength;
-					if (lengthRemaining == recordLength)
-					{
-						pdu.continuationState =
-							CfdpStartOfRecord;
-					}
-					else
-					{
-						pdu.continuationState =
-							CfdpNoBoundary;
-					}
-				}
-				else
-				{
-					pdu.length = lengthRemaining;
-					if (lengthRemaining == recordLength)
-					{
-						if (fdu.recordBoundsRespected)
-						{
-							pdu.continuationState =
-							CfdpEntireRecord;
-						}
-						else
-						{
-							pdu.continuationState =
-							CfdpNoBoundary;
-						}
-					}
-					else
-					{
-						pdu.continuationState =
-							CfdpEndOfRecord;
-					}
-				}
-
-				if (metadataFn)
-				{
-					metadataFnRet =
-						metadataFn(progress,
-						recordLength - lengthRemaining,
-						pdu.length, sourceFile,
-						metadataBuffer);
-					if (metadataFnRet < 0)
-					{
-						close(sourceFile);
-						sdr_cancel_xn(sdr);
-						putErrmsg("CFDP metadataFn \
-failed.", sourceFileName);
-						return -1;
-					}
-
-					if (metadataFnRet > 63)
-					{
-						close(sourceFile);
-						sdr_cancel_xn(sdr);
-						putErrmsg("CFDP seg metadata \
-too long.", sourceFileName);
-						return -1;
-					}
-
-					pdu.metadataLength =
-						(unsigned int) metadataFnRet;
-				}
-				else
-				{
-					pdu.metadataLength = 0;
-				}
-
-				if (pdu.metadataLength == 0)
-				{
-					pdu.metadata = 0;
-				}
-				else
-				{
-					pdu.metadata = sdr_malloc(sdr,
-							pdu.metadataLength);
-					if (pdu.metadata == 0)
-					{
-						close(sourceFile);
-						sdr_cancel_xn(sdr);
-						putErrmsg("CFDP seg metadata.",
-								sourceFileName);
-						return -1;
-					}
-
-					sdr_write(sdr, pdu.metadata,
-							metadataBuffer,
-							pdu.metadataLength);
-				}
-
-				if (sdr_list_insert_last(sdr, fdu.fileDataPdus,
-						pduObj) == 0)
-				{
-					close(sourceFile);
-					sdr_cancel_xn(sdr);
-					putErrmsg("CFDP file data PDUs failed.",
+					putErrmsg("CFDP failed reading records.",
 							sourceFileName);
 					return -1;
 				}
 
-				sdr_write(sdr, pduObj, (char *) &pdu,
-						sizeof(FileDataPdu));
-				progress += pdu.length;
-				lengthRemaining -= pdu.length;
-			}
-		}
+				if (recordLength == 0)
+				{
+					currentOffset = ilseek(sourceFile, 0, SEEK_CUR);
+					if (currentOffset >= 0 && (uvast)currentOffset == fdu.fileSize)
+					{
+						break;	/*	No more records.*/
+					}
 
-		close(sourceFile);
+					/*	Stopped before end of file.	*/
+
+					if (handleFault(&fdu.transactionId,
+							CfdpInvalidFileStructure,
+							&handler) < 0)
+					{
+						close(sourceFile);
+						sdr_cancel_xn(sdr);
+						putErrmsg("Can't segment file.", NULL);
+						return -1;
+					}
+
+					switch (handler)
+					{
+					case CfdpCancel:
+					case CfdpAbandon:
+						close(sourceFile);
+						sdr_cancel_xn(sdr);
+						return 0;	/*	Done.	*/
+
+					default:	/*	No problem.	*/
+						break;	/*	Out of switch.	*/
+					}
+
+					break;		/*	No more records.*/
+				}
+
+				/*	Note parameters of this PDU.		*/
+
+				pduObj = sdr_malloc(sdr, sizeof(FileDataPdu));
+				if (pduObj == 0)
+				{
+					close(sourceFile);
+					sdr_cancel_xn(sdr);
+					putErrmsg("CFDP failed creating file data PDU.",
+							sourceFileName);
+					return -1;
+				}
+
+				lengthRemaining = recordLength;
+				while (lengthRemaining > 0)
+				{
+					pdu.offset = progress;
+					if (lengthRemaining > db.maxFileDataLength)
+					{
+						pdu.length = db.maxFileDataLength;
+						if (lengthRemaining == recordLength)
+						{
+							pdu.continuationState =
+								CfdpStartOfRecord;
+						}
+						else
+						{
+							pdu.continuationState =
+								CfdpNoBoundary;
+						}
+					}
+					else
+					{
+						pdu.length = lengthRemaining;
+						if (lengthRemaining == recordLength)
+						{
+							if (fdu.recordBoundsRespected)
+							{
+								pdu.continuationState =
+								CfdpEntireRecord;
+							}
+							else
+							{
+								pdu.continuationState =
+								CfdpNoBoundary;
+							}
+						}
+						else
+						{
+							pdu.continuationState =
+								CfdpEndOfRecord;
+						}
+					}
+
+					if (metadataFn)
+					{
+						metadataFnRet =
+							metadataFn(progress,
+							recordLength - lengthRemaining,
+							pdu.length, sourceFile,
+							metadataBuffer);
+						if (metadataFnRet < 0)
+						{
+							close(sourceFile);
+							sdr_cancel_xn(sdr);
+							putErrmsg("CFDP metadataFn \
+	failed.", sourceFileName);
+							return -1;
+						}
+
+						if (metadataFnRet > 63)
+						{
+							close(sourceFile);
+							sdr_cancel_xn(sdr);
+							putErrmsg("CFDP seg metadata \
+	too long.", sourceFileName);
+							return -1;
+						}
+
+						pdu.metadataLength =
+							(unsigned int) metadataFnRet;
+					}
+					else
+					{
+						pdu.metadataLength = 0;
+					}
+
+					if (pdu.metadataLength == 0)
+					{
+						pdu.metadata = 0;
+					}
+					else
+					{
+						pdu.metadata = sdr_malloc(sdr,
+								pdu.metadataLength);
+						if (pdu.metadata == 0)
+						{
+							close(sourceFile);
+							sdr_cancel_xn(sdr);
+							putErrmsg("CFDP seg metadata.",
+									sourceFileName);
+							return -1;
+						}
+
+						sdr_write(sdr, pdu.metadata,
+								metadataBuffer,
+								pdu.metadataLength);
+					}
+
+					if (sdr_list_insert_last(sdr, fdu.fileDataPdus,
+							pduObj) == 0)
+					{
+						close(sourceFile);
+						sdr_cancel_xn(sdr);
+						putErrmsg("CFDP file data PDUs failed.",
+								sourceFileName);
+						return -1;
+					}
+
+					sdr_write(sdr, pduObj, (char *) &pdu,
+							sizeof(FileDataPdu));
+					progress += pdu.length;
+					lengthRemaining -= pdu.length;
+				}
+			}
+
+			close(sourceFile);
+		}
 	}
 
 	/*	Prepare for construction of PDUs for this FDU.		*/
