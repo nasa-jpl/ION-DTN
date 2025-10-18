@@ -2711,33 +2711,34 @@ int	completeInFdu(InFdu *fduBuf, Object fduObj, Object fduElt,
 		else
 		{
 			event.fileStatus = CfdpFileRetained;
-			if (fduBuf->workingFileName != fduBuf->destFileName)
+
+			/*	For empty files (fileSize == 0), the file may not
+			 *	have been created since no file data PDUs were
+			 *	received. Create it now before rename/completion.	*/
+
+			if (fduBuf->fileSize == 0 && fduBuf->destFileName != 0)
 			{
-				/*	For empty files (fileSize == 0), the working
-				*	file may not have been created since no file
-				*	data PDUs were received. Create it now.	*/
+				char	fileName[SDRSTRING_BUFSZ];
+				int	fd;
 
-				if (fduBuf->fileSize == 0)
+				/*	Use destFileName directly since workingFileName
+				 *	may equal destFileName for empty files.	*/
+
+				sdr_string_read(sdr, fileName, fduBuf->destFileName);
+				if (checkFile(fileName) != 1)
 				{
-					char	workingFileName[SDRSTRING_BUFSZ];
-					int	fd;
+					/*	File doesn't exist. Create empty file.	*/
 
-					sdr_string_read(sdr, workingFileName,
-							fduBuf->workingFileName);
-					if (checkFile(workingFileName) != 1)
+					fd = ifopen(fileName, O_WRONLY | O_CREAT, 0666);
+					if (fd >= 0)
 					{
-						/*	Working file doesn't exist.
-						*	Create empty file.		*/
-
-						fd = ifopen(workingFileName,
-								O_WRONLY | O_CREAT, 0666);
-						if (fd >= 0)
-						{
-							close(fd);
-						}
+						close(fd);
 					}
 				}
+			}
 
+			if (fduBuf->workingFileName != fduBuf->destFileName)
+			{
 				renameWorkingFile(fduBuf);
 			}
 		}
@@ -2805,6 +2806,32 @@ int	completeInFdu(InFdu *fduBuf, Object fduObj, Object fduElt,
 				writeMemo(logMsg);
 
 				event.fileStatus = CfdpFileRetained;
+
+				/*	For empty files (fileSize == 0), the file may not
+				 *	have been created since no file data PDUs were
+				 *	received. Create it now before rename/completion.	*/
+
+				if (fduBuf->fileSize == 0 && fduBuf->destFileName != 0)
+				{
+					char	fileName[SDRSTRING_BUFSZ];
+					int	fd;
+
+					/*	Use destFileName directly since workingFileName
+					 *	may equal destFileName for empty files.	*/
+
+					sdr_string_read(sdr, fileName, fduBuf->destFileName);
+					if (checkFile(fileName) != 1)
+					{
+						/*	File doesn't exist. Create empty file.	*/
+
+						fd = ifopen(fileName, O_WRONLY | O_CREAT, 0666);
+						if (fd >= 0)
+						{
+							close(fd);
+						}
+					}
+				}
+
 				if (fduBuf->workingFileName !=
 						fduBuf->destFileName)
 				{

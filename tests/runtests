@@ -265,6 +265,12 @@ function run_a_test () {
         else
             echo "FAILED: ${TEST}" >> "$PROGRESSFILE"
         fi
+        # Optionally skip cleanup on failure to preserve logs
+        if [ -n "$PRESERVE_TEST_LOGS" ]; then
+            echo "Preserving test logs (PRESERVE_TEST_LOGS is set)" | tee -a $PROGRESSFILE
+        elif [ -x "cleanup" ]; then
+            ./cleanup
+        fi
     elif [ $TEST_RETVAL -eq 2 ]; then
         echo "TEST SKIPPED!"
         skip_test "$TEST"
