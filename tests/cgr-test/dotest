@@ -57,6 +57,40 @@ else
 	exit 1
 fi
 
+echo "Generating CGR visualization data with cgrfetch..."
+echo "This creates JSON files for use with contrib/cgr-viewer tool."
+
+# Generate JSON files for various destination nodes in the contact graph
+# These files can be loaded into contrib/cgr-viewer/cgr-viewer.html for visualization
+
+echo "  Generating cgr_to_mcc.json (node 9 -> node 1: Mission Control)..."
+cgrfetch -o cgr_to_mcc.json 1 2>/dev/null || echo "    Warning: cgrfetch failed for node 1"
+
+echo "  Generating cgr_to_goldstone.json (node 9 -> node 2: Goldstone DSN)..."
+cgrfetch -o cgr_to_goldstone.json 2 2>/dev/null || echo "    Warning: cgrfetch failed for node 2"
+
+echo "  Generating cgr_to_madrid.json (node 9 -> node 3: Madrid DSN)..."
+cgrfetch -o cgr_to_madrid.json 3 2>/dev/null || echo "    Warning: cgrfetch failed for node 3"
+
+echo "  Generating cgr_to_canberra.json (node 9 -> node 4: Canberra DSN)..."
+cgrfetch -o cgr_to_canberra.json 4 2>/dev/null || echo "    Warning: cgrfetch failed for node 4"
+
+echo "  Generating cgr_to_maven.json (node 9 -> node 5: MAVEN orbiter)..."
+cgrfetch -o cgr_to_maven.json 5 2>/dev/null || echo "    Warning: cgrfetch failed for node 5"
+
+echo "  Generating cgr_to_mro.json (node 9 -> node 6: MRO orbiter)..."
+cgrfetch -o cgr_to_mro.json 6 2>/dev/null || echo "    Warning: cgrfetch failed for node 6"
+
+echo "  Generating cgr_to_tgo.json (node 9 -> node 7: TGO orbiter)..."
+cgrfetch -o cgr_to_tgo.json 7 2>/dev/null || echo "    Warning: cgrfetch failed for node 7"
+
+echo "  Generating cgr_to_exomars.json (node 9 -> node 8: ExoMars rover)..."
+cgrfetch -o cgr_to_exomars.json 8 2>/dev/null || echo "    Warning: cgrfetch failed for node 8"
+
+echo "CGR JSON files generated successfully."
+echo "To visualize: open contrib/cgr-viewer/cgr-viewer.html and load the JSON files."
+echo ""
+
 echo "Send a bundle from ipn:9.1 destined for (nonexistent) node ipn:1.1..."
 bptrace ipn:9.1 ipn:1.1 ipn:9.0 200000 1.1 "Hi"
 

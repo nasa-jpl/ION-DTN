@@ -25,3 +25,26 @@ destined for the MCC at node 1.  The bundle's lifetime is 200000 seconds, so
 CGR needs to consider all contacts in the contact graph in order to select
 the best next-hop node to forward the bundle to.  The bundle never actually
 goes anywhere; all we're exercising is the route computation logic.
+
+CGR VISUALIZATION:
+
+The dotest script now automatically generates JSON files for CGR route
+visualization using the cgrfetch utility. These files are created for
+routes from node 9 to all other nodes in the contact graph:
+
+  - cgr_to_mcc.json        (node 9 -> node 1: Mission Control Center)
+  - cgr_to_goldstone.json  (node 9 -> node 2: Goldstone DSN station)
+  - cgr_to_madrid.json     (node 9 -> node 3: Madrid DSN station)
+  - cgr_to_canberra.json   (node 9 -> node 4: Canberra DSN station)
+  - cgr_to_maven.json      (node 9 -> node 5: MAVEN orbiter)
+  - cgr_to_mro.json        (node 9 -> node 6: MRO orbiter)
+  - cgr_to_tgo.json        (node 9 -> node 7: TGO orbiter)
+  - cgr_to_exomars.json    (node 9 -> node 8: ExoMars rover)
+
+To visualize these routes:
+1. Run the test: ./dotest
+2. Open contrib/cgr-viewer/cgr-viewer.html in a web browser
+3. Click "Choose JSON" and select one of the generated JSON files
+4. Explore the routes that CGR considered and selected
+
+The JSON files are preserved after test cleanup for visualization purposes.
