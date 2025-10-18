@@ -69,7 +69,11 @@ static int	compareNodes(PsmPartition partition, PsmAddress nodeData,
 	/* Parameter intentionally unused. */
 	(void)partition;
 
-	return ((unsigned long) nodeData) - *((unsigned long *) dataBuffer);
+	unsigned long nd = (unsigned long) nodeData;
+	unsigned long db = *((unsigned long *) dataBuffer);
+	if (nd < db) return -1;
+	if (nd > db) return 1;
+	return 0;
 }
 
 static void	destroyNode(PsmPartition partition, PsmAddress nodeData,
