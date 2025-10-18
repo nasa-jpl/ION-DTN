@@ -88,6 +88,25 @@ else
 	echo "Okay: node 2 received file from node 1."
 fi
 
+COUNT=$(ls -al receivedEmptyFile 2>/dev/null | wc -l)
+if [ "$COUNT" -ne 1 ]
+then
+	echo ""
+	echo "Error: node 2 did not receive empty file from node 1."
+	RETVAL=1
+else
+	SIZE=$(wc -c < receivedEmptyFile)
+	if [ "$SIZE" -ne 0 ]
+	then
+		echo ""
+		echo "Error: received empty file has non-zero size ($SIZE bytes)."
+		RETVAL=1
+	else
+		echo ""
+		echo "Okay: node 2 received empty file correctly."
+	fi
+fi
+
 echo ""
 echo "Stopping ION..."
 #cd ../1.ipn.ltp

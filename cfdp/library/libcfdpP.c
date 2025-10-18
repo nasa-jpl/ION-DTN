@@ -2713,6 +2713,31 @@ int	completeInFdu(InFdu *fduBuf, Object fduObj, Object fduElt,
 			event.fileStatus = CfdpFileRetained;
 			if (fduBuf->workingFileName != fduBuf->destFileName)
 			{
+				/*	For empty files (fileSize == 0), the working
+				*	file may not have been created since no file
+				*	data PDUs were received. Create it now.	*/
+
+				if (fduBuf->fileSize == 0)
+				{
+					char	workingFileName[SDRSTRING_BUFSZ];
+					int	fd;
+
+					sdr_string_read(sdr, workingFileName,
+							fduBuf->workingFileName);
+					if (checkFile(workingFileName) != 1)
+					{
+						/*	Working file doesn't exist.
+						*	Create empty file.		*/
+
+						fd = ifopen(workingFileName,
+								O_WRONLY | O_CREAT, 0666);
+						if (fd >= 0)
+						{
+							close(fd);
+						}
+					}
+				}
+
 				renameWorkingFile(fduBuf);
 			}
 		}

@@ -542,3 +542,5 @@ tests/cgr-test/cgr_to_mro.json
 tests/cgr-test/cgr_to_tgo.json
 tests/cgr-test/route.gv
 tests/cgr-test/route.svg.base64
+tests/cfdpv1/1.ipn.ltp/receivedFile
+tests/cfdpv1/2.ipn.ltp/receivedFile
