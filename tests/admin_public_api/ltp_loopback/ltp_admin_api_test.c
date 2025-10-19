@@ -144,6 +144,13 @@ int main(void)
 	}
 	TEST_PASS("ion_register_node(1)");
 
+	/* Step 1.6: Initialize ION Security (empty database) */
+	printf("\n--- Step 1.6: Initialize ION Security ---\n");
+	if (test_ionsec_initialization_and_attach() < 0)
+	{
+		goto cleanup;
+	}
+
 	/* Step 2: Start RFX */
 	printf("\n--- Step 2: Start RFX ---\n");
 	if (test_rfx_start() < 0)

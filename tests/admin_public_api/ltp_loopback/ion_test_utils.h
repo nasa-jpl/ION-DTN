@@ -15,6 +15,7 @@
 
 #include "ion.h"
 #include "ion_admin.h"
+#include "ionsec.h"
 #include "bp.h"
 #include "bp_admin.h"
 
@@ -147,6 +148,19 @@ int test_add_contact(time_t from_time, time_t to_time,
 int test_add_range(time_t from_time, time_t to_time,
                    uvast from_node, uvast to_node,
                    unsigned int owlt);
+
+/*
+ * =============================================================================
+ * ION Security (ionsec) Tests
+ * =============================================================================
+ */
+
+/**
+ * Test ION Security initialization and attach.
+ *
+ * @return 0 on success, -1 on error
+ */
+int test_ionsec_initialization_and_attach(void);
 
 /*
  * =============================================================================

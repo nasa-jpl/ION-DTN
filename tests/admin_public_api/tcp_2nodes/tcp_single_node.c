@@ -48,6 +48,7 @@
 
 #include "ion.h"
 #include "ion_admin.h"
+#include "ionsec.h"
 #include "bp.h"
 #include "bp_admin.h"
 #include "rfx.h"
@@ -302,6 +303,22 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	print_success("Node registered in region 1");
+
+	/* Initialize ION Security */
+	print_step("Initialize ION Security");
+	if (secInitialize() < 0)
+	{
+		print_error("secInitialize failed");
+		return 1;
+	}
+	print_success("ION Security initialized");
+
+	if (secAttach() < 0)
+	{
+		print_error("secAttach failed");
+		return 1;
+	}
+	print_success("ION Security attached (empty database)");
 
 	/* Start RFX */
 	print_step("Start RFX");

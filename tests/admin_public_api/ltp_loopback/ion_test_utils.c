@@ -250,6 +250,38 @@ int test_add_range(time_t from_time, time_t to_time,
 
 /*
  * =============================================================================
+ * ION Security (ionsec) Tests
+ * =============================================================================
+ */
+
+int test_ionsec_initialization_and_attach(void)
+{
+	int	rc;
+
+	TEST_START("ION Security Initialization");
+	LOG_INFO("Calling secInitialize()...");
+	rc = secInitialize();
+	if (rc < 0)
+	{
+		TEST_FAIL("secInitialize", "Failed to initialize ION security database");
+		return -1;
+	}
+
+	LOG_INFO("secInitialize() succeeded");
+	LOG_INFO("Calling secAttach()...");
+	rc = secAttach();
+	if (rc < 0)
+	{
+		TEST_FAIL("secAttach", "Failed to attach to ION security database");
+		return -1;
+	}
+
+	TEST_PASS("ION Security Initialization and Attach (empty database)");
+	return 0;
+}
+
+/*
+ * =============================================================================
  * BP (Bundle Protocol) Tests
  * =============================================================================
  */
