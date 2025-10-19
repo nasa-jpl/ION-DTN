@@ -1,0 +1,30 @@
+#!/bin/bash
+#
+# cleanup script for semaphore deferred deletion test
+#
+# This script cleans up any leftover IPC resources (shared memory and semaphores)
+# from the test run.
+#
+
+echo "Cleaning up IPC resources..."
+
+# Kill any running test processes
+pkill -9 dotest 2>/dev/null
+
+# Remove shared memory segments owned by current user
+ipcs -m | grep $(whoami) | awk '{print $2}' | xargs -r ipcrm -m 2>/dev/null
+
+# Remove semaphores owned by current user
+ipcs -s | grep $(whoami) | awk '{print $2}' | xargs -r ipcrm -s 2>/dev/null
+
+# Remove any POSIX named semaphores in /dev/shm (Linux) or equivalent
+if [ -d /dev/shm ]; then
+    rm -f /dev/shm/sem.ion* 2>/dev/null
+fi
+
+# macOS uses /var/tmp/ for named semaphores
+if [ "$(uname)" = "Darwin" ]; then
+    rm -f /var/tmp/ion:GLOBAL:* 2>/dev/null
+fi
+
+echo "Cleanup complete"

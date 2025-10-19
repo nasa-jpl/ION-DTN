@@ -2571,6 +2571,11 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/admin_public_api/tcp_2nodes/dotest
 #	tests/nm-unit/primitives/ari/dotest
 
+# Only build semaphore deferred deletion test if using POSIX Named Semaphores
+if USING_POSIX_NAMED_SEMAPHORES
+check_PROGRAMS += tests/semaphore-deferred-deletion/dotest
+endif
+
 # Note: Built without shared nm libraries to allow compilation with USE_MALLOC flag.
 tests_nm_unit_dotest_SOURCES = tests/nm-unit/dotest.c $(nm_agent_SOURCES) $(nm_shared_src) $(nm_agent_ADM_SOURCES)
 #tests_nm_unit_dotest_LDADD = $(nm_agent_LDADD) -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)
@@ -2663,6 +2668,13 @@ tests_admin_public_api_tcp_2nodes_tcp_single_node_CFLAGS = $(icicflags) $(bpcfla
 tests_admin_public_api_tcp_2nodes_dotest_SOURCES = tests/admin_public_api/tcp_2nodes/tcp_2nodes_launcher.c
 tests_admin_public_api_tcp_2nodes_dotest_LDADD = libici.la -lm $(bplib)
 tests_admin_public_api_tcp_2nodes_dotest_CFLAGS = $(icicflags) $(bpcflags) $(AM_CFLAGS)
+
+# Build rules for semaphore deferred deletion test (POSIX Named Semaphores only)
+if USING_POSIX_NAMED_SEMAPHORES
+tests_semaphore_deferred_deletion_dotest_SOURCES = tests/semaphore-deferred-deletion/test_deferred_deletion.c
+tests_semaphore_deferred_deletion_dotest_LDADD = libici.la -lpthread
+tests_semaphore_deferred_deletion_dotest_CFLAGS = $(icicflags) $(AM_CFLAGS)
+endif
 
 
 ##########################

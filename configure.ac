@@ -356,7 +356,7 @@ AC_ARG_ENABLE(
     [])
 
 #
-# allow the user running configure to force the use of SVR4 Semaphores over the 
+# allow the user running configure to force the use of SVR4 Semaphores over the
 # otherwise recommended system. They are supported on all process-based platforms
 AC_ARG_ENABLE(
     force-svr4-semaphores,
@@ -365,6 +365,12 @@ AC_ARG_ENABLE(
 		PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DFORCE_SVR4_SEMAPHORES"
 		ENABLE_FORCE_SVR4_SEMAPHORES=yes],
     [])
+
+# Set up conditional for POSIX Named Semaphores
+# By default (on Linux, FreeBSD, macOS, Solaris), POSIX Named Semaphores are used
+# unless --enable-force-svr4-semaphores was specified
+AM_CONDITIONAL([USING_POSIX_NAMED_SEMAPHORES],
+    [test x$ENABLE_FORCE_SVR4_SEMAPHORES != xyes])
 
 #
 # allow the user running configure to enable bpsec debugging 

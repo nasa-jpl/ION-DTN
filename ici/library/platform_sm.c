@@ -3505,6 +3505,8 @@ typedef struct
 	char		ended;
 	int			key;
 	smSequence	gseq;
+	int			refCount;		/* Number of active users across all processes */
+	int			pendingDelete;	/* Marked for deletion when refCount reaches 0 */
 } SmGlobalSem;
 
 /* this structure makes up the process-local semaphore table */
@@ -3514,6 +3516,7 @@ typedef struct
 	sem_t		*id;
 	SmGlobalSem *semgl;  	/* pointer to ION-wide shared master semtable entry (to avoid multiplication)*/
 	smSequence	lseq;
+	int			localRefCount;	/* Per-process reference count for tracking */
 } SmLocalSem;
 
 /* the data structure shared by ALL processes/threads for all ION Instances */
@@ -3551,6 +3554,7 @@ static void _semEraseNamedSems(void);
 static SmLocalSem *_semGetSem(SmProcessSemtable *psemtable, sm_SemId semnum, int semlocked);
 static char *_semGenPosixSemname(char *namebuf, unsigned bufsize, int semnum);
 static int _semKeyExists(int key);
+static void _sm_SemCompleteDeletePosix(SmProcessSemtable *semTbl, sm_SemId i);
 
 void _semPrintTable(void)  // Only for debugging purposes
 {
@@ -3744,6 +3748,7 @@ static SmProcessSemtable *_semTbl(int action)
 			semStruct.lsemtable[i].semgl = &psemGlobal->gsemtable[i];
 			semStruct.lsemtable[i].lseq = 0;
 			semStruct.lsemtable[i].id = NULL;
+			semStruct.lsemtable[i].localRefCount = 0;
 		}
 
 		semStruct.semtablegl = psemGlobal;  
@@ -4076,6 +4081,9 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	sem->semgl->key = key;
 	sem->semgl->inUse = 1;
 	sem->semgl->ended = 0;
+	sem->semgl->refCount = 0;  /* Initialize to 0 - no active users yet */
+	sem->semgl->pendingDelete = 0;
+	sem->localRefCount = 0;
 
 	/* gather usage statistics for memory tuning */
 	++semTbl->semtablegl->opensems_current;
@@ -4085,51 +4093,96 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	/* tell other ION processes that their local copy is out of date */
 	sem->lseq = ++sem->semgl->gseq;
 
-	sm_SemGive(freeslot);	/*	(First taker succeeds.)	*/
+	/* Initialize semaphore value (first taker succeeds)
+	 * Call sem_post directly instead of sm_SemGive to avoid deadlock
+	 * since we're already holding the IPC lock */
+	if (sem_post(psem) == -1)
+	{
+		putSysErrmsg("Can't initialize semaphore", itoa(freeslot));
+	}
 
 	giveIpcLock();
 	
 	return freeslot;
 }
 
+/* Internal helper - must be called with IPC lock held */
+static void _sm_SemCompleteDeletePosix(SmProcessSemtable *semTbl, sm_SemId i)
+{
+	SmLocalSem *sem = &semTbl->lsemtable[i];
+	SmGlobalSem *gsem = sem->semgl;
+	char sem_name[MAX_NAMED_SEM_KEYLENGTH];
+
+	/* Close local handle if open */
+	if (sem->id != NULL && sem->id != SEM_FAILED)
+	{
+		if (sem_close(sem->id) == -1)
+		{
+			putSysErrmsg("Can't close semaphore", itoa(i));
+		}
+		sem->id = NULL;
+	}
+
+	/* Unlink the named semaphore */
+	_semGenPosixSemname(sem_name, sizeof(sem_name), i);
+	if (sem_unlink(sem_name) == -1)
+	{
+		if (errno != ENOENT)
+		{
+			putSysErrmsg("Can't unlink semaphore", sem_name);
+		}
+	}
+
+	/* Update global state */
+	gsem->inUse = 0;
+	gsem->ended = 0;
+	gsem->key = SM_NO_KEY;
+	gsem->refCount = 0;
+	gsem->pendingDelete = 0;
+	gsem->gseq++;  /* Invalidate all cached local copies */
+
+	/* Update local state */
+	sem->lseq = 0;
+	sem->localRefCount = 0;
+
+	/* Update statistics */
+	semTbl->semtablegl->opensems_current--;
+}
 
 void	sm_SemDelete(sm_SemId i)
 {
 	SmProcessSemtable *semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	SmLocalSem *sem;   /* MUST be looked up inside IpcLock() for Semaphore Deletion */
-	char sem_name[MAX_NAMED_SEM_KEYLENGTH];
+	SmLocalSem *sem;
+	SmGlobalSem *gsem;
 
 	takeIpcLock();
 
-	/* look up the semaphore (sem is locked) */
-	sem = _semGetSem(semTbl,i,1);
+	/* Look up the semaphore */
+	sem = _semGetSem(semTbl, i, 1);  /* 1 = already locked */
 
-	if (sem == NULL) {
-		/* not currently in use - nothing to do */
+	if (sem == NULL)
+	{
+		/* Not currently in use - nothing to do */
 		giveIpcLock();
 		return;
 	}
 
-	_semGenPosixSemname(sem_name, sizeof(sem_name), i);
+	gsem = sem->semgl;
 
-	if (sem_close(sem->id) == -1) {
-		putSysErrmsg("Can't close semaphore", itoa(i));
-		/* continue on and do the other steps anyway */
+	/* Check if anyone is using the semaphore */
+	if (gsem->refCount > 0)
+	{
+		/* Defer deletion until all users release it */
+		gsem->pendingDelete = 1;
+		giveIpcLock();
+
+		writeMemoNote("Semaphore deletion deferred (refCount=%d)",
+		              itoa(gsem->refCount));
+		return;
 	}
 
-	if (sem_unlink(sem_name) == -1)	{
-		putSysErrmsg("Can't unlink named semaphore", sem_name);
-		/* continue on and do the other steps anyway */
-	}
-	
-	sem->id = NULL;
-	sem->semgl->inUse = 0;
-	sem->semgl->key = 0;
-	--semTbl->semtablegl->opensems_current;
-
-	/* tell other ION processes processes that their local copy is out of date */
-	sem->lseq = ++sem->semgl->gseq;
-
+	/* No active users - delete immediately */
+	_sm_SemCompleteDeletePosix(semTbl, i);
 	giveIpcLock();
 }
 
@@ -4137,25 +4190,68 @@ void	sm_SemDelete(sm_SemId i)
 int	sm_SemTake(sm_SemId i)
 {
 	SmProcessSemtable *semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	SmLocalSem *sem = _semGetSem(semTbl,i,0);
+	SmLocalSem *sem;
+	SmGlobalSem *gsem;
 
-	CHKERR(sem);
+	CHKERR(semTbl);
+	CHKERR(i >= 0);
+	CHKERR(i < SEM_NSEMS_MAX);
 
-	/*	Check if semaphore has been deleted to avoid race condition
-	 *	where sm_SemDelete() is called while another thread is about
-	 *	to call sem_wait().					*/
+	/* Atomically increment reference count under IPC lock */
+	takeIpcLock();
 
+	/* Sync local and global state */
+	sem = _semGetSem(semTbl, i, 1);  /* 1 = already locked */
+	if (sem == NULL)
+	{
+		giveIpcLock();
+		putErrmsg("Can't access semaphore", itoa(i));
+		return -1;
+	}
+
+	gsem = sem->semgl;
+
+	/* Check if semaphore is deleted or pending deletion */
+	if (!gsem->inUse || gsem->pendingDelete)
+	{
+		giveIpcLock();
+		putErrmsg("Can't take deleted or pending-delete semaphore", itoa(i));
+		return -1;
+	}
+
+	/* Check if semaphore ID is valid */
 	if (sem->id == NULL)
 	{
+		giveIpcLock();
 		errno = EINVAL;
 		putErrmsg("Semaphore has been deleted", itoa(i));
 		return -1;
 	}
 
-	while (sem_wait(sem->id) == -1) {
-		if (errno == EINTR)	{
-			continue;
+	/* Increment reference counts */
+	gsem->refCount++;
+	sem->localRefCount++;
+	giveIpcLock();
+
+	/* Now safely take the semaphore - protected by refCount */
+	while (sem_wait(sem->id) == -1)
+	{
+		if (errno == EINTR)
+		{
+			continue;  /* Retry on signal interruption */
 		}
+
+		/* Error - must decrement refCount before returning */
+		takeIpcLock();
+		gsem->refCount--;
+		sem->localRefCount--;
+
+		if (gsem->pendingDelete && gsem->refCount == 0)
+		{
+			/* Last user - complete deferred deletion */
+			_sm_SemCompleteDeletePosix(semTbl, i);
+		}
+		giveIpcLock();
 
 		putSysErrmsg("Can't take semaphore", itoa(i));
 		return -1;
@@ -4168,12 +4264,34 @@ void	sm_SemGive(sm_SemId i)
 {
 	SmProcessSemtable *semTbl = _semTbl(IPC_ACTION_LOOKUP);
 	SmLocalSem *sem = _semGetSem(semTbl,i,0);
+	SmGlobalSem *gsem;
 
 	CHKVOID(sem);
 
-	if (sem_post(sem->id) == -1) {
+	/* Give the semaphore first */
+	if (sem_post(sem->id) == -1)
+	{
 		putSysErrmsg("Can't give semaphore", itoa(i));
+		/* Still need to decrement refCount even if post fails */
 	}
+
+	/* Atomically decrement reference count under IPC lock */
+	takeIpcLock();
+
+	gsem = sem->semgl;
+
+	/* Decrement reference counts */
+	gsem->refCount--;
+	sem->localRefCount--;
+
+	/* Check if semaphore is pending deletion and no more users */
+	if (gsem->pendingDelete && gsem->refCount == 0)
+	{
+		/* Last user across all processes - complete deferred deletion */
+		_sm_SemCompleteDeletePosix(semTbl, i);
+	}
+
+	giveIpcLock();
 }
 
 void	sm_SemEnd(sm_SemId i)
