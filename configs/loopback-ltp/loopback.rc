@@ -48,7 +48,7 @@ m consumption 1000000
 1 128
 
 # Add a span. (a connection) 
-a span 1 128 128 1024 1024 1 'udplso localhost:1113'
+a span 1 128 128 1024 1024 1 'udplso 127.0.0.1:1113'
 
 # Start command.
 #	This command actually runs the link service output commands

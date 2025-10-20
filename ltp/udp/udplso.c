@@ -96,15 +96,14 @@ static int	sendBatch(int linkSocket, struct mmsghdr *msgs,
 }
 #else
 int	sendSegmentByUDP(int linkSocket, char *from, int length,
-		struct sockaddr_in *destAddr )
+		struct sockaddr *destAddr, socklen_t addrLen)
 {
 	int	bytesWritten;
 
-	while (1)	/*	Continue until not interrupted.		*/
+	while (1)	/*	Continue until interrupted.		*/
 	{
-		bytesWritten = isendto(linkSocket, from, length, 0,
-				(struct sockaddr *) destAddr,
-				sizeof(struct sockaddr));
+		bytesWritten = sendto(linkSocket, from, length, 0,
+				destAddr, addrLen);
 		if (bytesWritten < 0)
 		{
 			if (errno == EINTR)	/*	Interrupted.	*/
@@ -117,17 +116,27 @@ int	sendSegmentByUDP(int linkSocket, char *from, int length,
 				return length;	/*	Just data loss.	*/
 			}
 
+			/* Enhanced error logging with dual-stack support */
+			char memoBuf[1000];
+			char addrStr[INET6_ADDRSTRLEN + 10];
+			
+			if (destAddr->sa_family == AF_INET)
 			{
-				char			memoBuf[1000];
-				struct sockaddr_in	*saddr = destAddr;
-
+				struct sockaddr_in *sin = (struct sockaddr_in*)destAddr;
+				inet_ntop(AF_INET, &sin->sin_addr, addrStr, sizeof(addrStr));
 				isprintf(memoBuf, sizeof(memoBuf),
-					"udplso sendto() error, dest=[%s:%d], \
-nbytes=%d, rv=%d, errno=%d", (char *) inet_ntoa(saddr->sin_addr), 
-					ntohs(saddr->sin_port), 
-					length, bytesWritten, errno);
-				writeMemo(memoBuf);
+					"udplso sendto() error, dest=%s:%d, nbytes=%d, rv=%d, errno=%d",
+					addrStr, ntohs(sin->sin_port), length, bytesWritten, errno);
 			}
+			else if (destAddr->sa_family == AF_INET6)
+			{
+				struct sockaddr_in6 *sin6 = (struct sockaddr_in6*)destAddr;
+				inet_ntop(AF_INET6, &sin6->sin6_addr, addrStr, sizeof(addrStr));
+				isprintf(memoBuf, sizeof(memoBuf),
+					"udplso sendto() error, dest=[%s]:%d, nbytes=%d, rv=%d, errno=%d",
+					addrStr, ntohs(sin6->sin6_port), length, bytesWritten, errno);
+			}
+			writeMemo(memoBuf);
 		}
 
 		return bytesWritten;
@@ -236,15 +245,8 @@ int	main(int argc, char *argv[])
 	Sdr			sdr;
 	LtpVspan		*vspan;
 	PsmAddress		vspanElt;
-	unsigned short		portNbr = 0;
-	unsigned int		ipAddress = 0;
-	struct sockaddr		peerSockName;
-	struct sockaddr_in	*peerInetName;
-	char			ownHostName[MAXHOSTNAMELEN];
-	struct sockaddr		ownSockName;
-	struct sockaddr_in	*ownInetName;
-	unsigned short		ownPortNbr = 0;
-	socklen_t		nameLength;
+	char			peerAddrStr[INET6_ADDRSTRLEN + 10];
+	char			localAddrStr[INET6_ADDRSTRLEN + 10];
 	static udp_ReceiverThreadParms rtp;  /* Don't create on main's stack */
 	pthread_t		receiverThread;
 	int			segmentLength;
@@ -270,10 +272,13 @@ int	main(int argc, char *argv[])
 	/* Initialize the mutex.  */
 
 	pthread_mutex_init(&rtp.lock, NULL); 
+	
 	if (remoteEngineId == 0 || endpointSpec == NULL)
 	{
-		PUTS("Usage: udplso {<remote engine's host name> | @}\
-[:<its port number>] <remote engine ID>");
+		PUTS("Usage: udplso {<remote engine's host name> | @}[:<its port number>] <remote engine ID>");
+		PUTS("  IPv4: udplso 192.168.1.1:1113 42");
+		PUTS("  IPv6: udplso [2001:db8::1]:1113 42");
+		PUTS("  Auto: udplso node.example.com:1113 42");
 		return 0;
 	}
 
@@ -310,90 +315,91 @@ int	main(int argc, char *argv[])
 	/*	All command-line arguments are now validated.  First
 	 *	compute the peer's socket address.			*/
 
+	/*  Resolve peer's address resolution and retry if needed */
 	{
 		int retries = UDPLSO_DNS_RETRY_COUNT;
-		while (retries > 0 && parseSocketSpec(endpointSpec, &portNbr,
-				&ipAddress) != 0)
+		int resolveResult = -1;
+		
+		while (retries > 0)
 		{
+			resolveResult = resolveNetworkAddressCached(endpointSpec, &rtp.peer_addr);
+			if (resolveResult >= 0)
+			{
+				break;  /* Success */
+			}
+			
 			char memoBuf[256];
-			isprintf(memoBuf, sizeof(memoBuf), "udplso: initial DNS resolution failed for %s, retrying %d more times, retry interval %d second(s).",
-			   endpointSpec, retries - 1, UDPLSO_DNS_RETRY_DELAY);
+			isprintf(memoBuf, sizeof(memoBuf), 
+					"udplso: DNS resolution failed for %s, retrying %d more times, retry interval %d second(s).",
+					endpointSpec, retries - 1, UDPLSO_DNS_RETRY_DELAY);
 			writeMemoNote("[i] udplso", memoBuf);
 			snooze(UDPLSO_DNS_RETRY_DELAY);
 			retries--;
 		}
-		if (ipAddress == 0)
+		
+		if (resolveResult < 0)
 		{
-			putErrmsg("udplso: Quit. Can't get IP address for host.", endpointSpec);
+			putErrmsg("udplso: Maximum DNS retries reached, can't resolve peer address", endpointSpec);
 			return 1;
 		}
 	}
 
-	if (portNbr == 0)
+	/* Set default port if not specified */
+	if (rtp.peer_addr.family == AF_INET)
 	{
-		portNbr = LtpUdpDefaultPortNbr;
+		struct sockaddr_in *sin = (struct sockaddr_in*)&rtp.peer_addr.addr;
+		if (sin->sin_port == 0)
+		{
+			sin->sin_port = htons(LtpUdpDefaultPortNbr);
+		}
+	}
+	else if (rtp.peer_addr.family == AF_INET6)
+	{
+		struct sockaddr_in6 *sin6 = (struct sockaddr_in6*)&rtp.peer_addr.addr;
+		if (sin6->sin6_port == 0)
+		{
+			sin6->sin6_port = htons(LtpUdpDefaultPortNbr);
+		}
+	}	
+
+	/* Prepare local socket address (any address, system-chosen port) */
+	memset(&rtp.local_addr, 0, sizeof(rtp.local_addr));
+	rtp.local_addr.family = rtp.peer_addr.family;  /* Match peer's family */
+
+	if (rtp.peer_addr.family == AF_INET)
+	{
+		struct sockaddr_in *sin = (struct sockaddr_in*)&rtp.local_addr.addr;
+		sin->sin_family = AF_INET;
+		sin->sin_addr.s_addr = INADDR_ANY;
+		sin->sin_port = 0;  /* Let OS choose */
+		rtp.local_addr.addr_len = sizeof(struct sockaddr_in);
+	}
+	else if (rtp.peer_addr.family == AF_INET6)
+	{
+		struct sockaddr_in6 *sin6 = (struct sockaddr_in6*)&rtp.local_addr.addr;
+		sin6->sin6_family = AF_INET6;
+		sin6->sin6_addr = in6addr_any;
+		sin6->sin6_port = 0;  /* Let OS choose */
+		rtp.local_addr.addr_len = sizeof(struct sockaddr_in6);
 	}
 
-	if (ipAddress == 0)	/*	Default to own IP address.	*/
+	/* Create and bind socket using helper function */
+	if (createNetworkSocket(SOCK_DGRAM, &rtp.local_addr, &rtp.linkSocket) < 0)
 	{
-		getNameOfHost(ownHostName, sizeof ownHostName);
-		ipAddress = getInternetAddress(ownHostName);
-	}
-
-	portNbr = htons(portNbr);
-	ipAddress = htonl(ipAddress);
-	memset((char *) &peerSockName, 0, sizeof peerSockName);
-	peerInetName = (struct sockaddr_in *) &peerSockName;
-	peerInetName->sin_family = AF_INET;
-	peerInetName->sin_port = portNbr;
-	memcpy((char *) &(peerInetName->sin_addr.s_addr),
-			(char *) &ipAddress, 4);
-
-	/*	Now compute own socket address, used when the peer
-	 *	responds to the link service output socket rather
-	 *	than to the advertised link service inpud socket.	*/
-
-	ipAddress = INADDR_ANY;
-	ownPortNbr = 0;	/*	Let O/S choose it.			*/
-
-	/*	This socket needs to be bound to the local socket
-	 *	address (just as in udplsi), so that the udplso
-	 *	main thread can send a 1-byte datagram to that
-	 *	socket to shut down the datagram handling thread.	*/
-
-	ownPortNbr = htons(ownPortNbr);
-	ipAddress = htonl(ipAddress);
-	memset((char *) &ownSockName, 0, sizeof ownSockName);
-	ownInetName = (struct sockaddr_in *) &ownSockName;
-	ownInetName->sin_family = AF_INET;
-	ownInetName->sin_port = ownPortNbr;
-	memcpy((char *) &(ownInetName->sin_addr.s_addr),
-			(char *) &ipAddress, 4);
-
-	/*	Now create the socket that will be used for sending
-	 *	datagrams to the peer LTP engine and possibly for
-	 *	receiving datagrams from the peer LTP engine.		*/
-
-	rtp.linkSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (rtp.linkSocket < 0)
-	{
-		putSysErrmsg("LSO can't open UDP socket", NULL);
+		putErrmsg("udplso: Can't create and bind UDP socket", NULL);
 		return 1;
 	}
 
-	/*	Bind the socket to own socket address so that we
-	 *	can send a 1-byte datagram to that address to shut
-	 *	down the datagram handling thread.			*/
-
-	nameLength = sizeof(struct sockaddr);
-	if (reUseAddress(rtp.linkSocket)
-	|| bind(rtp.linkSocket, &ownSockName, nameLength) < 0
-	|| getsockname(rtp.linkSocket, &ownSockName, &nameLength) < 0)
+	/* Get actual bound address for shutdown signaling */
+	socklen_t addr_len = sizeof(rtp.local_addr.addr);
+	if (getsockname(rtp.linkSocket, (struct sockaddr*)&rtp.local_addr.addr, &addr_len) < 0)
 	{
 		closesocket(rtp.linkSocket);
-		putSysErrmsg("LSO can't initialize UDP socket", NULL);
+		putSysErrmsg("LSO can't get socket name", NULL);
 		return 1;
 	}
+	rtp.local_addr.addr_len = addr_len;
+	rtp.local_addr.family = rtp.local_addr.addr.ss_family;
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
@@ -413,17 +419,22 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	/*	Can now begin transmitting to remote engine.		*/
-
+	/*  Log startup information */
+	formatNetworkAddress(&rtp.peer_addr, peerAddrStr, sizeof(peerAddrStr));
+	formatNetworkAddress(&rtp.local_addr, localAddrStr, sizeof(localAddrStr));
 	{
-		char	memoBuf[1024];
-
+		char memoBuf[1024];
 		isprintf(memoBuf, sizeof(memoBuf),
-	"[i] udplso is running, spec=[%s:%d], rengine=" UVAST_FIELDSPEC,
-			(char *) inet_ntoa(peerInetName->sin_addr),
-			ntohs(portNbr), remoteEngineId);
+			"[i] udplso is running, local=%s (%s), peer=%s (%s), rengine=%d.",
+			localAddrStr,
+			(rtp.local_addr.family == AF_INET6) ? "IPv6" : "IPv4",
+			peerAddrStr,
+			(rtp.peer_addr.family == AF_INET6) ? "IPv6" : "IPv4",
+			(int) remoteEngineId);
 		writeMemo(memoBuf);
 	}
+
+	/*	Can now begin transmitting to remote engine.		*/
 
 #ifdef UDP_MULTISEND
 	spanObj = sdr_list_data(sdr, vspan->spanElt);
@@ -492,29 +503,58 @@ int	main(int argc, char *argv[])
 		time_t now = time(NULL);
 		if (now - lastDnsCheck >= UDPLSO_DNS_RECHECK_INTERVAL)
 		{
-			unsigned int newIpAddress = ipAddress;
-			if (parseSocketSpec(endpointSpec, &portNbr,
-					&newIpAddress) != 0)
+			IonNetworkAddress newPeerAddr;
+			if (resolveNetworkAddressCached(endpointSpec, &newPeerAddr) < 0)
 			{
 				char memoBuf[256];
-				isprintf(memoBuf, sizeof(memoBuf), "Periodic DNS resolution failed for %s", endpointSpec);
+				isprintf(memoBuf, sizeof(memoBuf),
+						"udplso: Periodic DNS resolution failed for %s", endpointSpec);
 				writeMemoNote("[i] udplso", memoBuf);
 				dnsFailed = 1;
 			}
-			else if (newIpAddress != ipAddress)
+			else
 			{
-				pthread_mutex_lock(&rtp.lock);
-				ipAddress = newIpAddress;
-				ipAddress = htonl(ipAddress);
-				memcpy((char *) &(peerInetName->sin_addr.s_addr), (char *) &ipAddress, 4);
-				if (dnsFailed)
+				/* Check if address changed */
+				int changed = 0;
+				if (newPeerAddr.family != rtp.peer_addr.family)
 				{
-					char memoBuf[256];
-					isprintf(memoBuf, sizeof(memoBuf), "Updated peer IP address to %s", inet_ntoa(peerInetName->sin_addr));
-					writeMemoNote("[i] udplso", memoBuf);
-					dnsFailed = 0;
+					changed = 1;
 				}
-				pthread_mutex_unlock(&rtp.lock);
+				else if (newPeerAddr.family == AF_INET)
+				{
+					struct sockaddr_in *old_sin = (struct sockaddr_in*)&rtp.peer_addr.addr;
+					struct sockaddr_in *new_sin = (struct sockaddr_in*)&newPeerAddr.addr;
+					if (old_sin->sin_addr.s_addr != new_sin->sin_addr.s_addr)
+					{
+						changed = 1;
+					}
+				}
+				else if (newPeerAddr.family == AF_INET6)
+				{
+					struct sockaddr_in6 *old_sin6 = (struct sockaddr_in6*)&rtp.peer_addr.addr;
+					struct sockaddr_in6 *new_sin6 = (struct sockaddr_in6*)&newPeerAddr.addr;
+					if (memcmp(&old_sin6->sin6_addr, &new_sin6->sin6_addr, sizeof(struct in6_addr)) != 0)
+					{
+						changed = 1;
+					}
+				}
+
+				if (changed)
+				{
+					pthread_mutex_lock(&rtp.lock);
+					rtp.peer_addr = newPeerAddr;
+					pthread_mutex_unlock(&rtp.lock);
+
+					if (dnsFailed)
+					{
+						formatNetworkAddress(&newPeerAddr, peerAddrStr, sizeof(peerAddrStr));
+						char memoBuf[256];
+						isprintf(memoBuf, sizeof(memoBuf),
+								"udplso: Updated peer address to %s", peerAddrStr);
+						writeMemoNote("[i] udplso", memoBuf);
+						dnsFailed = 0;
+					}
+				}
 			}
 			lastDnsCheck = now;
 		}
@@ -587,8 +627,8 @@ segment batch.", NULL);
 		iovec->iov_base = buffer;
 		iovec->iov_len = segmentLength;
 		msg = msgs + batchLength;
-		msg->msg_hdr.msg_name = (struct sockaddr *) peerInetName;
-		msg->msg_hdr.msg_namelen = sizeof(struct sockaddr);
+		msg->msg_hdr.msg_name = (struct sockaddr*)&rtp.peer_addr.addr;
+		msg->msg_hdr.msg_namelen = rtp.peer_addr.addr_len;
 		msg->msg_hdr.msg_iov = iovec;
 		msg->msg_hdr.msg_iovlen = 1;
 		batchLength++;
@@ -645,29 +685,58 @@ segment batch.", NULL);
 		time_t now = time(NULL);
 		if (now - lastDnsCheck >= UDPLSO_DNS_RECHECK_INTERVAL)
 		{
-			unsigned int newIpAddress = ipAddress;
-			if (parseSocketSpec(endpointSpec, &portNbr,
-					&newIpAddress) != 0)
+			IonNetworkAddress newPeerAddr;
+			if (resolveNetworkAddressCached(endpointSpec, &newPeerAddr) < 0)
 			{
 				char memoBuf[256];
-				isprintf(memoBuf, sizeof(memoBuf), "udplso: Periodic DNS resolution failed for %s", endpointSpec);
+				isprintf(memoBuf, sizeof(memoBuf), 
+						"udplso: Periodic DNS resolution failed for %s", endpointSpec);
 				writeMemoNote("[i] udplso", memoBuf);
 				dnsFailed = 1;
 			}
-			else if (newIpAddress != ipAddress)
+			else
 			{
-				pthread_mutex_lock(&rtp.lock);
-				ipAddress = newIpAddress;
-				ipAddress = htonl(ipAddress);
-				memcpy((char *) &(peerInetName->sin_addr.s_addr), (char *) &ipAddress, 4);
-				if (dnsFailed)
+				/* Check if address changed */
+				int changed = 0;
+				if (newPeerAddr.family != rtp.peer_addr.family)
 				{
-					char memoBuf[256];
-					isprintf(memoBuf, sizeof(memoBuf), "udplso: Updated peer IP address to %s", inet_ntoa(peerInetName->sin_addr));
-					writeMemoNote("[i] udplso", memoBuf);
-					dnsFailed = 0;
+					changed = 1;
 				}
-				pthread_mutex_unlock(&rtp.lock);
+				else if (newPeerAddr.family == AF_INET)
+				{
+					struct sockaddr_in *old_sin = (struct sockaddr_in*)&rtp.peer_addr.addr;
+					struct sockaddr_in *new_sin = (struct sockaddr_in*)&newPeerAddr.addr;
+					if (old_sin->sin_addr.s_addr != new_sin->sin_addr.s_addr)
+					{
+						changed = 1;
+					}
+				}
+				else if (newPeerAddr.family == AF_INET6)
+				{
+					struct sockaddr_in6 *old_sin6 = (struct sockaddr_in6*)&rtp.peer_addr.addr;
+					struct sockaddr_in6 *new_sin6 = (struct sockaddr_in6*)&newPeerAddr.addr;
+					if (memcmp(&old_sin6->sin6_addr, &new_sin6->sin6_addr, sizeof(struct in6_addr)) != 0)
+					{
+						changed = 1;
+					}
+				}
+				
+				if (changed)
+				{
+					pthread_mutex_lock(&rtp.lock);
+					rtp.peer_addr = newPeerAddr;
+					pthread_mutex_unlock(&rtp.lock);
+					
+					if (dnsFailed)
+					{
+						formatNetworkAddress(&newPeerAddr, peerAddrStr, sizeof(peerAddrStr));
+						char memoBuf[256];
+						isprintf(memoBuf, sizeof(memoBuf), 
+								"udplso: Updated peer address to %s", peerAddrStr);
+						writeMemoNote("[i] udplso", memoBuf);
+						dnsFailed = 0;
+					}
+				}
 			}
 			lastDnsCheck = now;
 		}
@@ -696,8 +765,9 @@ segment batch.", NULL);
 			continue;
 		}
 
-		bytesSent = sendSegmentByUDP(rtp.linkSocket, segment,
-				segmentLength, peerInetName);
+		bytesSent = sendSegmentByUDP(rtp.linkSocket, segment, segmentLength,
+                            (struct sockaddr*)&rtp.peer_addr.addr, 
+                            rtp.peer_addr.addr_len);
 		if (bytesSent < segmentLength)
 		{
 			pthread_mutex_lock(&rtp.lock);
@@ -724,14 +794,53 @@ segment batch.", NULL);
 	 *	transmission socket and sending a 1-byte datagram
 	 *	to the reception socket.				*/
 
-	fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	fd = socket(rtp.local_addr.family, SOCK_DGRAM, IPPROTO_UDP);
 	if (fd >= 0)
 	{
-		oK(isendto(fd, &quit, 1, 0, &ownSockName,
-				sizeof(struct sockaddr)));
+		/* Prepare shutdown target address */
+		IonNetworkAddress shutdown_target = rtp.local_addr;
+
+		/* Handle "any address" cases for shutdown signal */
+		if (rtp.local_addr.family == AF_INET)
+		{
+			struct sockaddr_in *sin = (struct sockaddr_in*)&shutdown_target.addr;
+			if (sin->sin_addr.s_addr == INADDR_ANY)
+			{
+				sin->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+			}
+		}
+		else if (rtp.local_addr.family == AF_INET6)
+		{
+			struct sockaddr_in6 *sin6 = (struct sockaddr_in6*)&shutdown_target.addr;
+			if (IN6_IS_ADDR_UNSPECIFIED(&sin6->sin6_addr))
+			{
+				sin6->sin6_addr = in6addr_loopback;
+			}
+		}
+
+		/* Send shutdown signal */
+		if (sendto(fd, &quit, 1, 0,
+		          (struct sockaddr*)&shutdown_target.addr,
+		          shutdown_target.addr_len) == 1)
+		{
+			pthread_join(receiverThread, NULL);
+		}
+		else
+		{
+			writeMemo("[!] udplso: Shutdown signal failed, forcing thread termination");
+			pthread_cancel(receiverThread);
+			pthread_join(receiverThread, NULL);
+		}
+
 		closesocket(fd);
 	}
-	pthread_join(receiverThread, NULL);
+	else
+	{
+		writeMemo("[!] udplso: Can't create shutdown socket, forcing thread termination");
+		pthread_cancel(receiverThread);
+		pthread_join(receiverThread, NULL);
+	}
+
 	closesocket(rtp.linkSocket);
 
 	writeErrmsgMemos();

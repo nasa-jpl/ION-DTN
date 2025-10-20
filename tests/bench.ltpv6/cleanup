@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Cleanup script for bench.ltpv6 test
+
+# Kill any running ION processes
+killm 2>/dev/null
+
+# Clean up ion_nodes file
+rm -f ./ion_nodes
+
+# Clean up any leftover shared memory segments
+ipcrm -M 66236 2>/dev/null
+ipcrm -M 66336 2>/dev/null
+
+# Clean up log files
+rm -f ion.log
+rm -f 2.bench.ltpv6/*.log 2>/dev/null
+rm -f 3.bench.ltpv6/*.log 2>/dev/null
+
+exit 0

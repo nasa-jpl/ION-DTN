@@ -387,6 +387,7 @@ int	strncasecmp(const char *s1, const char *s2, size_t n)
 
 void	*memalign(size_t boundary, size_t size)
 {
+	(void)boundary;  /* Unused parameter */
 	return malloc(size);
 }
 
