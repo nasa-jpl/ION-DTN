@@ -1,6 +1,0 @@
-Exlude All for demos/bss-multicast
-
-Info: bss-multicast is a functional demonstration (rather than a regression test). 
-Not intended for remote execution (may lead to reported failures).
-
-Requirements: xterm (and if running remotely.. x11 forwarding).

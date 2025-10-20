@@ -104,16 +104,19 @@ sleep 5
 echo
 echo "Starting bssrecv application..."
 cd ../3.ipn.bss
-xterm -geom 160x40 -e bssrecv 3 bssDB ./ imc:19.0 &
+bssrecv 3 bssDB ./ imc:19.0 > node3_bssrecv.stdout 2>&1 &
+BSSRECV3_PID=$!
 cd ../4.ipn.bss
-xterm -geom 160x40 -e bssrecv 3 bssDB ./ imc:19.0 &
+bssrecv 3 bssDB ./ imc:19.0 > node4_bssrecv.stdout 2>&1 &
+BSSRECV4_PID=$!
 sleep 2
 
 cd ../1.ipn.bss
 echo
 echo "Sending a stream of bundles from node 1 to group 19 for 30 seconds..."
 echo "bssStreamingApp started at $(date +"%Y/%m/%d-%T")"
-xterm -e bssStreamingApp ipn:1.2 imc:19.0 &
+bssStreamingApp ipn:1.2 imc:19.0 > node1_bssStreamingApp.stdout 2>&1 &
+BSSSTREAM_PID=$!
 sleep 30
 pkill -SIGINT bssStreamingApp
 TOTIME=$(date +"%Y/%m/%d-%T")
@@ -140,9 +143,11 @@ fi
 echo
 echo "Replaying the received stream."
 cd ../3.ipn.bss
-xterm -geom 160x40 -e "bssrecv 1 bssDB ./ imc:19.0 +0 \"$TOTIME\" | tee node3_replay.stdout" &
+bssrecv 1 bssDB ./ imc:19.0 +0 "$TOTIME" > node3_replay.stdout 2>&1 &
+REPLAY3_PID=$!
 cd ../4.ipn.bss
-xterm -geom 160x40 -e "bssrecv 1 bssDB ./ imc:19.0 +0 \"$TOTIME\" | tee node4_replay.stdout" &
+bssrecv 1 bssDB ./ imc:19.0 +0 "$TOTIME" > node4_replay.stdout 2>&1 &
+REPLAY4_PID=$!
 echo
 sleep 70
 pkill bssrecv
@@ -182,4 +187,9 @@ cd ../4.ipn.bss
 sleep 15
 killm
 echo "BSS multicast demo completed."
-echo "Please verify playback on the real-time bssrecv terminal windows."
+echo "Output logs available:"
+echo "  - Node 1 streaming app: 1.ipn.bss/node1_bssStreamingApp.stdout"
+echo "  - Node 3 receiver: 3.ipn.bss/node3_bssrecv.stdout"
+echo "  - Node 3 replay: 3.ipn.bss/node3_replay.stdout"
+echo "  - Node 4 receiver: 4.ipn.bss/node4_bssrecv.stdout"
+echo "  - Node 4 replay: 4.ipn.bss/node4_replay.stdout"

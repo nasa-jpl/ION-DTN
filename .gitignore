@@ -542,5 +542,15 @@ tests/cgr-test/cgr_to_mro.json
 tests/cgr-test/cgr_to_tgo.json
 tests/cgr-test/route.gv
 tests/cgr-test/route.svg.base64
+demos/bss-multicast/1.ipn.bss/node1.stdout
+demos/bss-multicast/2.ipn.bss/node2.stdout
+demos/bss-multicast/3.ipn.bss/bssDB.dat
+demos/bss-multicast/3.ipn.bss/bssDB.lst
+demos/bss-multicast/3.ipn.bss/bssDB.tbl
+demos/bss-multicast/3.ipn.bss/node3.stdout
+demos/bss-multicast/4.ipn.bss/bssDB.dat
+demos/bss-multicast/4.ipn.bss/bssDB.lst
+demos/bss-multicast/4.ipn.bss/bssDB.tbl
+demos/bss-multicast/4.ipn.bss/node4.stdout
 tests/cfdpv1/1.ipn.ltp/receivedFile
 tests/cfdpv1/2.ipn.ltp/receivedFile
