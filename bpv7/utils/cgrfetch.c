@@ -548,8 +548,9 @@ static void output_json(Lyst routes, time_t dispatchTime,
 			route->payloadClass, cgr_reason_text(route->ignoreReason)
 		);
 
-		ret = system("dot -Tsvg '" GRAPHVIZ_FILENAME "' | base64 -w 0 "
-		             ">'" IMAGE_FILENAME "'");
+		ret = system("dot -Tsvg '" GRAPHVIZ_FILENAME "' >'" IMAGE_FILENAME ".svg' && "
+		             "base64 <'" IMAGE_FILENAME ".svg' | tr -d '\\n' >'" IMAGE_FILENAME "' && "
+		             "rm -f '" IMAGE_FILENAME ".svg'");
 
 		if (ret != EXIT_SUCCESS)
 		{

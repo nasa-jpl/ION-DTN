@@ -528,3 +528,17 @@ tests/admin_public_api/dotest
 tests/admin_public_api/ltp_loopback/dotest
 tests/admin_public_api/tcp_2nodes/dotest
 tests/admin_public_api/tcp_2nodes/tcp_single_node
+tests/asymmetric-range/cgr_to_node5.json
+tests/asymmetric-range/cgr_to_node6.json
+tests/asymmetric-range/route.gv
+tests/asymmetric-range/route.svg.base64
+tests/cgr-test/cgr_to_canberra.json
+tests/cgr-test/cgr_to_exomars.json
+tests/cgr-test/cgr_to_goldstone.json
+tests/cgr-test/cgr_to_madrid.json
+tests/cgr-test/cgr_to_maven.json
+tests/cgr-test/cgr_to_mcc.json
+tests/cgr-test/cgr_to_mro.json
+tests/cgr-test/cgr_to_tgo.json
+tests/cgr-test/route.gv
+tests/cgr-test/route.svg.base64

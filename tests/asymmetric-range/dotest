@@ -38,7 +38,7 @@ echo
 echo "########################################"
 
 echo "Cleaning up old ION..."
-rm -f ion.log
+rm -f ion.log cgrfetch_error.log
 killm
 sleep 1
 
@@ -47,6 +47,27 @@ export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 
 ./ionstart
+
+echo "Generating CGR visualization data with cgrfetch..."
+echo "This creates JSON files for use with contrib/cgr-viewer tool."
+
+echo "  Generating cgr_to_node5.json (node 9 -> node 5)..."
+if cgrfetch -d ltp:9 -e 86400 -o cgr_to_node5.json 5 2>cgrfetch_error.log; then
+	rm -f cgrfetch_error.log
+else
+	echo "    Warning: cgrfetch failed for node 5. See cgrfetch_error.log for details."
+fi
+
+echo "  Generating cgr_to_node6.json (node 9 -> node 6)..."
+if cgrfetch -d ltp:9 -e 86400 -o cgr_to_node6.json 6 2>cgrfetch_error.log; then
+	rm -f cgrfetch_error.log
+else
+	echo "    Warning: cgrfetch failed for node 6. See cgrfetch_error.log for details."
+fi
+
+echo "CGR JSON files generated successfully."
+echo "To visualize: open contrib/cgr-viewer/cgr-viewer.html and load the JSON files."
+echo ""
 
 echo "Sending bundle with 10-second lifetime from ipn:9.1 to ipn:6.1."
 # Send a bundle destined for (nonexistent) node 6 with lifetime = 10.

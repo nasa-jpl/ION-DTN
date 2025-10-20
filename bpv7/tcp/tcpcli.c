@@ -714,7 +714,7 @@ static void	closeSession(TcpclSession *session)
 	pthread_mutex_unlock(&(session->plMutex));
 }
 
-static int	sendShutdown(TcpclSession *session, char reason,
+static int	sendShutdown(TcpclSession *session, signed char reason,
 			int doNotReconnect)
 {
 	char	shutdown[3];
@@ -747,7 +747,7 @@ static int	sendShutdown(TcpclSession *session, char reason,
 	return result;
 }
 
-static void	endSession(TcpclSession *session, char reason)
+static void	endSession(TcpclSession *session, signed char reason)
 {
 	TcpclNeighbor	*neighbor = session->neighbor;
 
