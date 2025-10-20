@@ -26,8 +26,8 @@ def bpstats_parse(bundle_type: str, flow: str, logfile: str) -> Tuple[int, int]:
         return 0, 0
 
     if flow == "+":
-        flow = "\\+"
-    result = re.search(f"{flow}\\)(..)(..)", stats_line)
+        flow = r"\+"
+    result = re.search(rf"{flow}\)(..)(..)", stats_line)
 
     if result is not None:
         paired_values = result.group(0).split(")")[1].strip()
