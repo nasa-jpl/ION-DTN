@@ -4,7 +4,15 @@
 # September 11, 2012
 
 set -e  # Exit immediately if a command exits with a non-zero status.
-trap 'echo "An error occurred. Exiting."; exit 1;' ERR
+
+# Cleanup function to ensure orphaned processes are killed on exit
+cleanup_processes() {
+    pkill -f "sleep infinity" 2>/dev/null || true
+    pkill bssrecv 2>/dev/null || true
+}
+
+trap 'echo "An error occurred. Exiting."; cleanup_processes; exit 1;' ERR
+trap 'cleanup_processes' EXIT
 
 # Documentation boilerplate
 CONFIGFILES=" \
@@ -128,6 +136,9 @@ echo
 echo "Wait 15 seconds to ensure the complete reception of the stream from node 2..."
 sleep 15
 pkill bssrecv
+sleep 1
+# Clean up orphaned sleep infinity processes that were piping to bssrecv
+pkill -f "sleep infinity" 2>/dev/null || true
 
 # Check that data was actually received in the database
 cd ../3.ipn.bss
@@ -153,6 +164,9 @@ REPLAY4_PID=$!
 echo
 sleep 70
 pkill bssrecv
+sleep 1
+# Clean up orphaned sleep infinity processes that were piping to bssrecv
+pkill -f "sleep infinity" 2>/dev/null || true
 
 # Check that data was replayed
 # This checks that the 10th bundle was replayed, which we expect.
