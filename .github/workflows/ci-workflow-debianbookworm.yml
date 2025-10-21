@@ -35,6 +35,9 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          clean: true 
+          # clear workspace after
 
       - name: Display OS and Arch
         run: |
