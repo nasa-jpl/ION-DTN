@@ -118,7 +118,7 @@ echo "bssStreamingApp started at $(date +"%Y/%m/%d-%T")"
 bssStreamingApp ipn:1.2 imc:19.0 > node1_bssStreamingApp.stdout 2>&1 &
 BSSSTREAM_PID=$!
 sleep 30
-pkill -SIGINT bssStreamingApp
+pkill -INT bssStreamingApp
 TOTIME=$(date +"%Y/%m/%d-%T")
 echo
 

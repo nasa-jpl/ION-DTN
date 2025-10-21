@@ -25,7 +25,7 @@ int ensure_process_terminated(const char *process_name)
 	printf("Attempting to gracefully terminate '%s' with SIGINT...\n", process_name);
 
 	/* 1. Signal Gracefully (using SIGINT) */
-	sprintf(command, "pkill -SIGINT %s 2>/dev/null", process_name);
+	sprintf(command, "pkill -INT %s 2>/dev/null", process_name);
 	if(system(command)) { /* ignored */ }
 
 	/* 2. Poll for termination with a 5-second timeout */
@@ -49,7 +49,7 @@ int ensure_process_terminated(const char *process_name)
 
 	/* 3. If the loop finishes, the process is still alive. Escalate. */
 	printf("'%s' did not terminate gracefully. Forcing termination with SIGKILL...\n", process_name);
-	sprintf(command, "pkill -SIGKILL %s 2>/dev/null", process_name);
+	sprintf(command, "pkill -KILL %s 2>/dev/null", process_name);
 	if (system(command)) { /* ignored */ }
 
 	/* Give it a moment to die */

@@ -96,7 +96,7 @@ echo "Sending a stream of bundles from node 1 to node 2 for 30 seconds..."
 echo "bssStreamingApp started at $(date +"%Y/%m/%d-%T")"
 xterm -geom 160x40 -e bssStreamingApp ipn:1.2 ipn:2.71 &
 sleep 20
-pkill -SIGINT bssStreamingApp
+pkill -INT bssStreamingApp
 TOTIME=$(date +"%Y/%m/%d-%T")
 echo
 
