@@ -101,13 +101,15 @@ bpadmin node.bprc.2
 sleep 5
 
 # Start BSS receiver on nodes 3 and 4
+# Note: Use sleep infinity to keep stdin open without sending data
+# This prevents bssrecv from spinning in menu loop (it will block waiting for input)
 echo
 echo "Starting bssrecv application..."
 cd ../3.ipn.bss
-bssrecv 3 bssDB ./ imc:19.0 > node3_bssrecv.stdout 2>&1 &
+sleep infinity | bssrecv 3 bssDB ./ imc:19.0 > /dev/null 2>&1 &
 BSSRECV3_PID=$!
 cd ../4.ipn.bss
-bssrecv 3 bssDB ./ imc:19.0 > node4_bssrecv.stdout 2>&1 &
+sleep infinity | bssrecv 3 bssDB ./ imc:19.0 > /dev/null 2>&1 &
 BSSRECV4_PID=$!
 sleep 2
 
@@ -115,7 +117,7 @@ cd ../1.ipn.bss
 echo
 echo "Sending a stream of bundles from node 1 to group 19 for 30 seconds..."
 echo "bssStreamingApp started at $(date +"%Y/%m/%d-%T")"
-bssStreamingApp ipn:1.2 imc:19.0 > node1_bssStreamingApp.stdout 2>&1 &
+bssStreamingApp ipn:1.2 imc:19.0 > /dev/null 2>&1 &
 BSSSTREAM_PID=$!
 sleep 30
 pkill -INT bssStreamingApp
@@ -143,10 +145,10 @@ fi
 echo
 echo "Replaying the received stream."
 cd ../3.ipn.bss
-bssrecv 1 bssDB ./ imc:19.0 +0 "$TOTIME" > node3_replay.stdout 2>&1 &
+bssrecv 1 bssDB ./ imc:19.0 +0 "$TOTIME" < /dev/null > node3_replay.stdout 2>&1 &
 REPLAY3_PID=$!
 cd ../4.ipn.bss
-bssrecv 1 bssDB ./ imc:19.0 +0 "$TOTIME" > node4_replay.stdout 2>&1 &
+bssrecv 1 bssDB ./ imc:19.0 +0 "$TOTIME" < /dev/null > node4_replay.stdout 2>&1 &
 REPLAY4_PID=$!
 echo
 sleep 70
