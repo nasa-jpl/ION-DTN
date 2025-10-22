@@ -1,0 +1,12 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:2.0 x
+a endpoint ipn:2.1 x
+a endpoint ipn:2.2 x
+a endpoint ipn:2.64 x
+a endpoint ipn:2.65 x
+a protocol tcp 1400 100 -1
+a induct tcp [::1]:2113 tcpcli
+a outduct tcp [::1]:3113 ''
+r 'ipnadmin bench.ipnrc'
+s

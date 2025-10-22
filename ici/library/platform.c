@@ -12,6 +12,7 @@
 /*	Ioannis Alexiadis, Democritus University of Thrace, 2011.	*/
 /*									*/
 #include "platform.h"
+#include "ion_network.h"
 
 /* Only for Ubuntu as of ION 4.1.2 */
 #if defined (TCP_LOW_CYCLE)
@@ -3703,6 +3704,100 @@ int	itcp_connect(char *socketSpec, unsigned short defaultPort, int *sock)
 
 	iciTcpConnectionOK = 1;
 	writeMemoNote("[i] Connected to TCP socket", socketTag);
+	return 1;	/*	Connected to remote socket.		*/
+}
+
+/*	Dual-stack (IPv4/IPv6) version of itcp_connect using ion_network framework */
+int	itcp_connect_dualstack(char *socketSpec, unsigned short defaultPort,
+		int *sock, IonNetworkAddress *remoteAddr)
+{
+	IonEndpointSpec		spec;
+	IonNetworkAddress	resolved_addr;
+	char			addrStr[INET6_ADDR_WITH_PORT_STRLEN];
+	static int		iciTcpConnectionOK = 1;
+
+	CHKERR(socketSpec);
+	CHKERR(sock);
+	*sock = -1;		/*	Default value.			*/
+	if (*socketSpec == '\0')
+	{
+		return 0;	/*	Don't try to connect.		*/
+	}
+
+	/*	Parse endpoint specification				*/
+	if (parseNetworkEndpoint(socketSpec, &spec) < 0)
+	{
+		putErrmsg("Can't parse socket specification", socketSpec);
+		return -1;
+	}
+
+	/*	Apply default port if none specified			*/
+	if (spec.port == 0)
+	{
+		spec.port = defaultPort;
+		snprintf(spec.service, sizeof(spec.service), "%hu", defaultPort);
+	}
+
+	/*	Resolve address using dual-stack resolver		*/
+	if (resolveNetworkAddressTCP(&spec, &resolved_addr) < 0)
+	{
+		putErrmsg("Can't resolve TCP address", socketSpec);
+		return -1;
+	}
+
+	/*	Create socket (family automatically determined)		*/
+	*sock = socket(resolved_addr.family, SOCK_STREAM, IPPROTO_TCP);
+	if (*sock < 0)
+	{
+		formatNetworkAddress(&resolved_addr, addrStr, sizeof(addrStr));
+		putSysErrmsg("Can't open TCP socket", addrStr);
+		return -1;
+	}
+
+#if defined (TCPCL_LOW_CYCLE)
+	/*	Set lower SYN retries					*/
+	int syncnt = 1;
+	int syncnt_sz = sizeof(syncnt);
+	setsockopt(*sock, IPPROTO_TCP, TCP_SYNCNT, &syncnt, syncnt_sz);
+#endif
+
+	/*	Connect to remote socket				*/
+	if (connect(*sock, (struct sockaddr *)&resolved_addr.addr,
+			resolved_addr.addr_len) < 0)
+	{
+		formatNetworkAddress(&resolved_addr, addrStr, sizeof(addrStr));
+		if (errno == ECONNREFUSED)
+		{
+			if (iciTcpConnectionOK == 1)
+			{
+				writeMemoNote("[i] Can't connect to TCP socket (refused)",
+						addrStr);
+				iciTcpConnectionOK = 0;
+			}
+		}
+		else
+		{
+			if (iciTcpConnectionOK == 1)
+			{
+				putSysErrmsg("Can't connect to TCP socket", addrStr);
+				iciTcpConnectionOK = 0;
+			}
+		}
+
+		closesocket(*sock);
+		*sock = -1;
+		return 0;
+	}
+
+	/*	Store remote address if requested			*/
+	if (remoteAddr != NULL)
+	{
+		*remoteAddr = resolved_addr;
+	}
+
+	iciTcpConnectionOK = 1;
+	formatNetworkAddress(&resolved_addr, addrStr, sizeof(addrStr));
+	writeMemoNote("[i] Connected to TCP socket", addrStr);
 	return 1;	/*	Connected to remote socket.		*/
 }
 

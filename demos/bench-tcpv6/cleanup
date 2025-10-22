@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#
+# Scott Burleigh
+# February 26, 2012
+
+echo "Cleaning up old ION..."
+killm
+rm -f ion_nodes 2.bench.tcpv6/ion.log 2.bench.tcpv6/bpdriverAduFile 3.bench.tcpv6/ion.log

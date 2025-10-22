@@ -16,6 +16,7 @@
 #include <sys/socket.h>
 
 #define MAX_FQDN_LEN 255 /* Maximum length of a fully qualified domain name */
+#define INET6_ADDR_WITH_PORT_STRLEN (INET6_ADDRSTRLEN + 10) /* [IPv6]:port\0 */
 
 #ifdef __cplusplus
 extern "C" {
@@ -63,6 +64,7 @@ extern int resolveNetworkAddressCachedTCP(const char *endpoint,
                 IonNetworkAddress                    *result);
 
 /* Endpoint parsing */
+extern int parseNetworkEndpoint(const char *endpoint, IonEndpointSpec *spec);
 extern const char *formatNetworkAddress(const IonNetworkAddress *addr,
                 char *buffer, size_t buflen);
 
@@ -73,6 +75,10 @@ extern int createNetworkSocket(int       socket_type,
 /* Utility functions */
 extern int isIPv6Address(const char *addr_str);
 extern int isIPv4Address(const char *addr_str);
+
+/* Dual-stack TCP connection function */
+extern int itcp_connect_dualstack(char *socketSpec, unsigned short defaultPort,
+                int *sock, IonNetworkAddress *remoteAddr);
 
 #ifdef __cplusplus
 }

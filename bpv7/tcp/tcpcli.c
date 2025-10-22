@@ -7,10 +7,11 @@
 	Copyright (c) 2015, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "bpP.h"
 #include "llcv.h"
+#include "ion_network.h"
 
 #ifdef ENABLE_HIGH_SPEED
 #define	TCPCL_BUFSZ		(512 * 1024)
@@ -484,8 +485,8 @@ static int	reopenSession(TcpclSession *session)
 
 	/*	Okay to make next session attempt.			*/
 
-	switch (itcp_connect(session->outductName, BpTcpDefaultPortNbr,
-			&(session->sock)))
+	switch (itcp_connect_dualstack(session->outductName, BpTcpDefaultPortNbr,
+			&(session->sock), NULL))
 	{
 	case -1:		/*	System failure.			*/
 		putErrmsg("tcpcli failed on TCP reconnect.",
@@ -2200,7 +2201,7 @@ static void	*spawnReceivers(void *parm)
 
 	ServerThreadParms	*stp = (ServerThreadParms *) parm;
 	saddr			newSocket;
-	struct sockaddr		socketName;
+	struct sockaddr_storage	socketName;
 	socklen_t		socknamelen;
 	LystElt			elt;
 
@@ -2212,7 +2213,7 @@ static void	*spawnReceivers(void *parm)
 	while (stp->running)
 	{
 		socknamelen = sizeof socketName;
-		newSocket = accept(stp->serverSocket, &socketName,
+		newSocket = accept(stp->serverSocket, (struct sockaddr *)&socketName,
 				&socknamelen);
 		if (newSocket < 0)
 		{
@@ -2343,8 +2344,8 @@ session with this neighbor", eid);
 		oK(istrcpy(session->outductName, outductName, len));
 	}
 
-	switch (itcp_connect(session->outductName, BpTcpDefaultPortNbr,
-				&sock))
+	switch (itcp_connect_dualstack(session->outductName, BpTcpDefaultPortNbr,
+				&sock, NULL))
 	{
 	case -1:	/*	System failure.				*/
 		putErrmsg("tcpcli can't connect to remote node.",
@@ -2789,16 +2790,17 @@ static void	dropPendingSession(LystElt elt, void *userdata)
 	}
 }
 
-static void	wakeUpServerThread(struct sockaddr *socketName)
+static void	wakeUpServerThread(IonNetworkAddress *localAddr)
 {
 	int	sock;
 
 	/*	Wake up the server thread by connecting to it.		*/
 
-	sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	sock = socket(localAddr->family, SOCK_STREAM, IPPROTO_TCP);
 	if (sock >= 0)
 	{
-		oK(connect(sock, socketName, sizeof(struct sockaddr)));
+		oK(connect(sock, (struct sockaddr *)&localAddr->addr,
+				localAddr->addr_len));
 
 		/*	Immediately discard the connected socket.	*/
 
@@ -2818,12 +2820,7 @@ int	main(int argc, char *argv[])
 #endif
 	VInduct			*vduct;
 	PsmAddress		vductElt;
-	unsigned short		portNbr;
-	unsigned int		hostNbr;
-	struct sockaddr		socketName;
-	struct sockaddr_in	*inetName;
 	ServerThreadParms	stp;
-	socklen_t		nameLength;
 	Lyst			neighbors;
 	Lyst			backlog;
 	pthread_mutex_t		backlogMutex;
@@ -2843,16 +2840,30 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (parseSocketSpec(ductName, &portNbr, &hostNbr) != 0)
+	/*	Parse and resolve the local address for dual-stack support	*/
+	IonEndpointSpec		localSpec;
+	IonNetworkAddress	localAddr;
+	char			addrStr[INET6_ADDR_WITH_PORT_STRLEN];
+
+	if (parseNetworkEndpoint(ductName, &localSpec) < 0)
 	{
-		writeMemoNote("[?] tcpcli: can't get induct IP address",
+		writeMemoNote("[?] tcpcli: can't parse induct address",
 				ductName);
 		return 1;
 	}
 
-	if (portNbr == 0)
+	if (localSpec.port == 0)
 	{
-		portNbr = BpTcpDefaultPortNbr;
+		localSpec.port = BpTcpDefaultPortNbr;
+		snprintf(localSpec.service, sizeof(localSpec.service), "%hu",
+				BpTcpDefaultPortNbr);
+	}
+
+	if (resolveNetworkAddressTCP(&localSpec, &localAddr) < 0)
+	{
+		writeMemoNote("[?] tcpcli: can't resolve induct address",
+				ductName);
+		return 1;
 	}
 
 	findInduct("tcp", ductName, &vduct, &vductElt);
@@ -2895,36 +2906,28 @@ int	main(int argc, char *argv[])
 	lyst_delete_set(backlog, dropPendingSession, NULL);
 	pthread_mutex_init(&backlogMutex, NULL);
 
-	/*	Now create the server socket.				*/
+	/*	Now create the server socket using dual-stack support		*/
 
-	portNbr = htons(portNbr);
-	hostNbr = htonl(hostNbr);
-	memset((char *) &(socketName), 0, sizeof(struct sockaddr));
-	inetName = (struct sockaddr_in *) &(socketName);
-	inetName->sin_family = AF_INET;
-	inetName->sin_port = portNbr;
-	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &hostNbr, 4);
-	stp.serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (stp.serverSocket < 0)
+	if (createNetworkSocket(SOCK_STREAM, &localAddr, &stp.serverSocket) < 0)
 	{
-		putSysErrmsg("Can't open TCP server socket", NULL);
+		putSysErrmsg("Can't create TCP server socket", NULL);
 		lyst_destroy(backlog);
 		lyst_destroy(neighbors);
 		return 1;
 	}
 
-	nameLength = sizeof(struct sockaddr);
-	if (reUseAddress(stp.serverSocket)
-	|| bind(stp.serverSocket, &socketName, nameLength) < 0
-	|| listen(stp.serverSocket, 5) < 0
-	|| getsockname(stp.serverSocket, &socketName, &nameLength) < 0)
+	if (listen(stp.serverSocket, 5) < 0)
 	{
 		closesocket(stp.serverSocket);
 		lyst_destroy(backlog);
 		lyst_destroy(neighbors);
-		putSysErrmsg("Can't initialize TCP server socket", NULL);
+		putSysErrmsg("Can't listen on TCP server socket", NULL);
 		return 1;
 	}
+
+	/*	Log the address we're listening on				*/
+	formatNetworkAddress(&localAddr, addrStr, sizeof(addrStr));
+	writeMemoNote("[i] tcpcli listening on", addrStr);
 
 	/*	Set up signal handling: SIGTERM is shutdown signal.	*/
 
@@ -2980,11 +2983,13 @@ int	main(int argc, char *argv[])
 
 	{
 		char	txt[500];
+		char	serverAddrStr[INET6_ADDR_WITH_PORT_STRLEN];
 
+		formatNetworkAddress(&localAddr, serverAddrStr,
+				sizeof(serverAddrStr));
 		isprintf(txt, sizeof(txt),
-				"[i] tcpcli is running [%s:%d].", 
-				inet_ntoa(inetName->sin_addr),
-				ntohs(inetName->sin_port));
+				"[i] tcpcli is running on %s.",
+				serverAddrStr);
 		writeMemo(txt);
 	}
 
@@ -2993,7 +2998,7 @@ int	main(int argc, char *argv[])
 	/*	Time to shut down.					*/
 
 	stp.running = 0;
-	wakeUpServerThread(&socketName);
+	wakeUpServerThread(&localAddr);
 	if (pthread_kill(serverThread, SIGCONT) == 0)
 	{
 		pthread_join(serverThread, NULL);

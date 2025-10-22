@@ -24,7 +24,7 @@ extern "C" {
 #endif
 
 #define UDPCLA_BUFSZ                ((256 * 256) - 1)
-#define INET6_ADDR_WITH_PORT_STRLEN (INET6_ADDRSTRLEN + 10) /* includes \0 */
+/* INET6_ADDR_WITH_PORT_STRLEN is now defined in ion_network.h */
 
 /* Dual-stack socket management with shutdown support */
 typedef struct
