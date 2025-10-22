@@ -289,72 +289,27 @@ fi
 ###############################
 echo ""
 echo "Case 3: Send bundle with no CRC (type 0) for primary block, CRC32 (type 2) for payload"
+echo "Expected: Bundle should be rejected at relay (per CCSDS Bluebook: primary block must have CRC or BIB)"
 cd ../2.ipn.ltp
 bpadmin adjust-crc-type-case-3.bprc
 sleep 1
 bpsource ipn:5.2 "Third hello!" -t3000
 sleep 5
 
-# Set expected CRC types
-EXPECTED_PRIMARY_CRC_TYPE=0
-EXPECTED_PAYLOAD_CRC_TYPE=2
-
 cd ../5.ipn.ltp
 
-# Run bplist and grep for CRC types
-bplist | tee case3_out.txt
+# Run bplist to check if bundle arrived (it should NOT arrive)
+BUNDLE_COUNT=$(bplist | tee case3_out.txt | grep -c "^\*\*\*\* Bundle")
 
-PRIMARY_CRC=$(grep -E "primary crc type:" "case3_out.txt" | awk '{print $NF}')
-PAYLOAD_CRC=$(grep -E "payload crc type:" "case3_out.txt" | awk '{print $NF}')
-
-# Check if grep found the lines
-if [ -z "$PRIMARY_CRC" ]; then
-    echo "Error: Could not find primary crc type in bplist output"
-    RETVAL=1
-fi
-
-if [ -z "$PAYLOAD_CRC" ]; then
-    echo "Error: Could not find payload crc type in bplist output"
-    RETVAL=1
-fi
-
-# Validate primary CRC type
-if [ "$PRIMARY_CRC" != "$EXPECTED_PRIMARY_CRC_TYPE" ]; then
-    echo "Error: Invalid primary crc type: $PRIMARY_CRC. Expected CRC is $EXPECTED_PRIMARY_CRC_TYPE"
-    RETVAL=1
-fi
-
-# Validate payload CRC type
-if [ "$PAYLOAD_CRC" != "$EXPECTED_PAYLOAD_CRC_TYPE" ]; then
-    echo "Error: Invalid payload crc type: $PAYLOAD_CRC. Expected CRC is $EXPECTED_PAYLOAD_CRC_TYPE"
-    RETVAL=1
-fi
-
-# Success
-echo "Success: Case 3: Primary CRC type ($PRIMARY_CRC) and Payload CRC type ($PAYLOAD_CRC) match expected values"
-
-# drain the bundle
-bpsink ipn:5.2 &
-
-# capture the PID
-PID=$!
-
-# let it run
-sleep 2
-
-# Send Ctrl+C (SIGINT) to the program
-kill -SIGINT $PID
-
-# let the program exit
-wait $PID 2>/dev/null
-
-# check if the program exited
-if ! ps -p $PID > /dev/null; then
-    echo "bpsink ended..."
+# Bundle should NOT be present at destination (should be rejected at relay)
+if [ "$BUNDLE_COUNT" -eq 0 ]; then
+    echo "Success: Case 3: Bundle correctly rejected at relay (no primary CRC and no BIB)"
 else
-    echo "Error: bpsink did not end..."
-	RETVAL=1
+    echo "Error: Case 3: Bundle should have been rejected but $BUNDLE_COUNT bundle(s) found at destination"
+    RETVAL=1
 fi
+
+# No need to drain bundle since it shouldn't be there
 
 ########################
 

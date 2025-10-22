@@ -395,16 +395,6 @@ int bpsec_verify(AcqWorkArea *work)
     // TODO - This probably also means being able to query by wildcard SCID.
     // TODO - Maybe we keep a list of processed rule IDs
 
-    /*	Note: if no BIB targeting the primary block is present in
-     *	the bundle (one of the potential required-but-not-present
-     *	BIBs alluded to above), then it is assumed that BPSec
-     *	authentication is not required; the bundle is assumed to be
-     *	authentic unless it had been tagged as inauthentic by some
-     *	other means.  Removal of such a BIB (or BIB target) by a
-     *	hostile forwarding node would constitute a security attack.
-     *
-     *	SB 5/26/2024							*/
-
     /* This attempts to handle the case where the BIB for a primary block
     exists, but there is no CRC. ION does not have a good way to lookup if
     defined extensions block, like BIB or BCB, exist and filter them based on

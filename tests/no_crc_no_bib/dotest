@@ -45,6 +45,22 @@ echo
 echo "########################################"
 echo
 
+# Check if python3 is available
+if ! command -v python3 &> /dev/null; then
+    echo "Error: python3 is required but not found. Please install Python 3."
+    exit 1
+fi
+
+# Check Python version (need at least 3.6 for f-strings)
+PYTHON_VERSION=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
+PYTHON_MAJOR=$(python3 -c 'import sys; print(sys.version_info[0])')
+PYTHON_MINOR=$(python3 -c 'import sys; print(sys.version_info[1])')
+if [ "$PYTHON_MAJOR" -lt 3 ] || { [ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 6 ]; }; then
+    echo "Error: Python 3.6 or higher is required. Found version $PYTHON_VERSION"
+    exit 1
+fi
+echo "Using Python $PYTHON_VERSION"
+
 ./cleanup
 sleep 1
 echo "Starting ION..."
@@ -94,7 +110,7 @@ cd ../3.ipn.udp
 bpstats
 
 cd ..
-LINE_NUM=$(python ion_parse.py -l 'No primary block BIB or primary block CRC' 3.ipn.udp/ion.log)
+LINE_NUM=$(python3 ion_parse.py -l 'No primary block BIB or primary block CRC' 3.ipn.udp/ion.log)
 STATCHECK=$?
 if [ $STATCHECK -eq 0 ]; then
     echo "SUCCESS: ion.log reported unauthenticated bundle rejected line $LINE_NUM"
@@ -103,7 +119,7 @@ else
     RETVAL=1
 fi
 
-python ion_parse.py -b 'rcv' -f '+' -c '1' -s '7' 3.ipn.udp/ion.log
+python3 ion_parse.py -b 'rcv' -f '+' -c '1' -s '7' 3.ipn.udp/ion.log
 COUNTCHECK=$?
 if [ $COUNTCHECK -eq 0 ]; then
     echo "SUCCESS: Correct number of bundles received"
