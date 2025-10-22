@@ -7,7 +7,7 @@ set -e  # Exit immediately if a command exits with a non-zero status.
 
 # Cleanup function to ensure orphaned processes are killed on exit
 cleanup_processes() {
-    pkill -f "sleep infinity" 2>/dev/null || true
+    pkill -f "sleep 86400" 2>/dev/null || true
     pkill bssrecv 2>/dev/null || true
 }
 
@@ -109,15 +109,15 @@ bpadmin node.bprc.2
 sleep 5
 
 # Start BSS receiver on nodes 3 and 4
-# Note: Use sleep infinity to keep stdin open without sending data
+# Note: Use sleep with large value to keep stdin open without sending data
 # This prevents bssrecv from spinning in menu loop (it will block waiting for input)
 echo
 echo "Starting bssrecv application..."
 cd ../3.ipn.bss
-sleep infinity | bssrecv 3 bssDB ./ imc:19.0 > /dev/null 2>&1 &
+sleep 86400 | bssrecv 3 bssDB ./ imc:19.0 > /dev/null 2>&1 &
 BSSRECV3_PID=$!
 cd ../4.ipn.bss
-sleep infinity | bssrecv 3 bssDB ./ imc:19.0 > /dev/null 2>&1 &
+sleep 86400 | bssrecv 3 bssDB ./ imc:19.0 > /dev/null 2>&1 &
 BSSRECV4_PID=$!
 sleep 2
 
@@ -137,8 +137,8 @@ echo "Wait 15 seconds to ensure the complete reception of the stream from node 2
 sleep 15
 pkill bssrecv
 sleep 1
-# Clean up orphaned sleep infinity processes that were piping to bssrecv
-pkill -f "sleep infinity" 2>/dev/null || true
+# Clean up orphaned sleep processes that were piping to bssrecv
+pkill -f "sleep 86400" 2>/dev/null || true
 
 # Check that data was actually received in the database
 cd ../3.ipn.bss
@@ -165,18 +165,18 @@ echo
 sleep 70
 pkill bssrecv
 sleep 1
-# Clean up orphaned sleep infinity processes that were piping to bssrecv
-pkill -f "sleep infinity" 2>/dev/null || true
+# Clean up orphaned sleep processes that were piping to bssrecv
+pkill -f "sleep 86400" 2>/dev/null || true
 
 # Check that data was replayed
 # This checks that the 10th bundle was replayed, which we expect.
 cd ../3.ipn.bss
-if ! grep -q "**********10" node3_replay.stdout ; then
+if ! grep -qF "**********10" node3_replay.stdout ; then
     echo "Relay failed in node 3."
 	exit 1
 fi
 cd ../4.ipn.bss
-if ! grep -q "**********10" node4_replay.stdout ; then
+if ! grep -qF "**********10" node4_replay.stdout ; then
     echo "Replay failed in node 4."
 	exit 1
 fi
