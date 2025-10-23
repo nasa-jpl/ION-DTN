@@ -38,8 +38,8 @@ typedef int		sm_SemId;
 #ifdef SOLARIS_COMPILER
 #define pthread_begin	pthread_begin_named
 #else
-/*      Required in order to overload pthread_begin macro		*/
-#define GET_MACRO(_1,_2,_3,_4,_5,NAME,...) NAME
+/*		Required in order to overload pthread_begin macro		*/
+#define GET_MACRO(a1, a2, a3, a4, a5, NAME, ...) NAME
 #define pthread_begin(...) GET_MACRO(__VA_ARGS__, pthread_begin5, pthread_begin4, 0)(__VA_ARGS__)
 #endif
 
@@ -67,7 +67,7 @@ extern int		pthread_begin_named(pthread_t *thread,
 
 #endif			/*	end of #ifndef ION4WIN			*/
 
-/*      IPC services access control */
+/*		IPC services access control */
 extern int		sm_ipc_init(void);
 extern void		sm_ipc_stop(void);
 #if defined(SVR4_SEMAPHORES) || defined(POSIX_NAMED_SEMAPHORES)

@@ -1408,7 +1408,6 @@ int	bp_start_scheme(char *name)
 
 void bp_stop_scheme(char *name)
 {
-	/* An explicit "return;" is optional here, as the function ends anyway. */
 	bpStopScheme(name);
 }
 
