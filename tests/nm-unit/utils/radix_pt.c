@@ -280,7 +280,7 @@ void radixpt_ui_parse_args(int argc, char *argv[])
 
 	for(i = 1; i < argc; i++)
 	{
-		if (sscanf(argv[i], "-t%d", &value) == 1)
+		if (sscanf(argv[i], "-t%u", &value) == 1)
 		{
 			gConfig.type = value;
 			if(value > 2)
@@ -290,15 +290,15 @@ void radixpt_ui_parse_args(int argc, char *argv[])
 				break;
 			}
 		}
-		else if(sscanf(argv[i], "-i%d", &value) == 1)
+		else if(sscanf(argv[i], "-i%u", &value) == 1)
 		{
 			gConfig.inserts = value;
 		}
-		else if(sscanf(argv[i], "-q%d", &value) == 1)
+		else if(sscanf(argv[i], "-q%u", &value) == 1)
 		{
 			gConfig.queries = value;
 		}
-		else if(sscanf(argv[i], "-m%d", &value) == 1)
+		else if(sscanf(argv[i], "-m%u", &value) == 1)
 		{
 			gConfig.maxNum = value;
 		}
@@ -311,15 +311,15 @@ void radixpt_ui_parse_args(int argc, char *argv[])
 			radixpt_ui_print_usage(argv[0]);
 			exit(1);
 		}
-		else if(sscanf(argv[i], "-s1%d", &value) == 1)
+		else if(sscanf(argv[i], "-s1%u", &value) == 1)
 		{
 			gConfig.seed1 = value;
 		}
-		else if(sscanf(argv[i], "-s2%d", &value) == 1)
+		else if(sscanf(argv[i], "-s2%u", &value) == 1)
 		{
 			gConfig.seed2 = value;
 		}
-		else if(sscanf(argv[i], "-w%d", &value) == 1)
+		else if(sscanf(argv[i], "-w%u", &value) == 1)
 		{
 			gConfig.wildcard_pct = value;
 			if(gConfig.wildcard_pct > 100)

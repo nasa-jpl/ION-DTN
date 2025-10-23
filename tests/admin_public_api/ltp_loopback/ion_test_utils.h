@@ -54,8 +54,25 @@ typedef struct
 	printf(COLOR_RED "    [FAIL] %s: %s" COLOR_RESET "\n", name, reason); \
 	results.failed++;
 
-#define LOG_INFO(msg, ...) \
+/* Helper for LOG_INFO with just a message */
+#define _LOG_INFO_1(msg) \
+	printf(COLOR_YELLOW "    [INFO] " COLOR_RESET msg "\n")
+
+/* Helper for LOG_INFO with a format string + args */
+#define _LOG_INFO_N(msg, ...) \
 	printf(COLOR_YELLOW "    [INFO] " COLOR_RESET msg "\n", ##__VA_ARGS__)
+
+/* Argument-counting dispatcher macro */
+#define _LOG_INFO_GET_MACRO(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, NAME, ...) NAME
+
+/* The main C99-compliant LOG_INFO macro */
+#define LOG_INFO(...) \
+	_LOG_INFO_GET_MACRO(__VA_ARGS__, \
+						_LOG_INFO_N, _LOG_INFO_N, _LOG_INFO_N, _LOG_INFO_N, \
+						_LOG_INFO_N, _LOG_INFO_N, _LOG_INFO_N, _LOG_INFO_N, \
+						_LOG_INFO_N, _LOG_INFO_1, 0) \
+	(__VA_ARGS__)
+
 
 /* Global test results - must be defined in the test program */
 extern TestResults results;

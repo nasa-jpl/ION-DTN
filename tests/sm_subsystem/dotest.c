@@ -319,7 +319,7 @@ static int thread_adder_guts(int *pcounter, unsigned iterations)
 			stderr,
 			"I am a worker adding to shared variable at address %p"
 			" (protected by semaphore %d)\n",
-			pcounter, semnum
+			(void *) pcounter, semnum
 		);
 		// clang-format on
 	}
@@ -393,14 +393,14 @@ static int multi_thread_semtest(void)
 
 	critical_sections = nthreads * iterations;
 	correct = (counter == (critical_sections));
-	fprintf(stderr, "\n  Main thread done, counter: %'d   %s\n", counter,
+	fprintf(stderr, "\n  Main thread done, counter: %d   %s\n", counter,
 	                correct ? "CORRECT" : "WRONG!!!!!!!!!!!!");
 
 	double elapsed_sec = (time_end.tv_sec + (time_end.tv_usec / 1000000.0))
 	                - (time_begin.tv_sec + (time_begin.tv_usec / 1000000.0));
 
 	fprintf(stderr, "  Elapsed time: %.3lf seconds\n", elapsed_sec);
-	fprintf(stderr, "  Critical sections/second: %'.0lf\n",
+	fprintf(stderr, "  Critical sections/second: %.0lf\n",
 	                (double) ((double) critical_sections / elapsed_sec));
 	fprintf(stderr, "  Microseconds/critical section: %.3lf\n",
 	                (elapsed_sec * 1000000.0) / critical_sections);
@@ -443,7 +443,7 @@ static int multi_process_semtest(void)
 		return (-1);
 	if (debug)
 		fprintf(stderr, "Shared memory pointer for counter is %p\n",
-		                pshmemInt);
+		                (void *) pshmemInt);
 	pshmemInt->counter = 0;
 
 	/*
@@ -487,7 +487,7 @@ static int multi_process_semtest(void)
 
 	long int critical_sections = nprocs * iterations;
 	correct = (pshmemInt->counter == (critical_sections));
-	fprintf(stderr, "\n  Main thread done, counter: %'d   %s\n",
+	fprintf(stderr, "\n  Main thread done, counter: %d   %s\n",
 	                pshmemInt->counter,
 	                correct ? "CORRECT" : "WRONG!!!!!!!!!!!!");
 
@@ -495,7 +495,7 @@ static int multi_process_semtest(void)
 	                - (time_begin.tv_sec + (time_begin.tv_usec / 1000000.0));
 
 	fprintf(stderr, "  Elapsed time: %.3lf seconds\n", elapsed_sec);
-	fprintf(stderr, "  Critical sections/second: %'.0lf\n",
+	fprintf(stderr, "  Critical sections/second: %.0lf\n",
 	                (double) ((double) critical_sections / elapsed_sec));
 	fprintf(stderr, "  Microseconds/critical section: %.3lf\n",
 	                (elapsed_sec * 1000000.0) / critical_sections);
