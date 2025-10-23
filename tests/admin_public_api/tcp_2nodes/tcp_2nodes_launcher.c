@@ -37,6 +37,9 @@
 #include <errno.h>
 #include <signal.h>
 #include <libgen.h>
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
 
 /*
  * Suppress format-truncation warnings for GCC 7+.
@@ -142,7 +145,32 @@ int create_directory(const char *path)
  */
 int get_executable_dir(char *buf, size_t size)
 {
-	ssize_t len = readlink("/proc/self/exe", buf, size - 1);
+	ssize_t len = -1;
+
+	/* Try platform-specific methods to get executable path */
+#ifdef __linux__
+	len = readlink("/proc/self/exe", buf, size - 1);
+#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
+	len = readlink("/proc/curproc/file", buf, size - 1);
+#elif defined(__sun) || defined(__CYGWIN__)
+	len = readlink("/proc/self/path/a.out", buf, size - 1);
+#elif defined(__APPLE__) && defined(__MACH__)
+	/* macOS doesn't have procfs, use _NSGetExecutablePath */
+	uint32_t bufsize = (uint32_t)size;
+	if (_NSGetExecutablePath(buf, &bufsize) == 0) {
+		len = strlen(buf);
+	}
+#else
+	/* Fallback: try common paths in order */
+	len = readlink("/proc/self/exe", buf, size - 1);
+	if (len == -1) {
+		len = readlink("/proc/curproc/file", buf, size - 1);
+	}
+	if (len == -1) {
+		len = readlink("/proc/self/path/a.out", buf, size - 1);
+	}
+#endif
+
 	if (len == -1) {
 		perror("readlink");
 		return -1;
