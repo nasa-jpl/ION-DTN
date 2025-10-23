@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+#
+# Test to validate CI workflow's handling of:
+# 1. Test timeout detection
+# 2. ion.log collection from timed-out tests
+#
+# This test runs for a long time and creates an ion.log file
+# for workflow validation purposes. It should be killed by the
+# workflow's timeout mechanism.
+#
+# NOTE: This test does NOT require ION to be installed.
+# It simply creates a mock ion.log file and runs in a loop.
+#
+# USAGE: Set workflow timeout_minutes to a small value (e.g., 1 or 2 minutes)
+#        to test timeout behavior without waiting too long.
+
+echo "Starting long-running test for workflow timeout validation..."
+echo "This test will run for 30 minutes unless killed by timeout..."
+
+# Create initial ion.log file
+cat > ion.log <<'EOF'
+========================================
+WORKFLOW VALIDATION TEST - TIMEOUT TEST
+========================================
+
+Test Name: test-timeout
+Purpose: Validate CI workflow timeout enforcement and log collection
+Status: RUNNING (should be killed by timeout)
+
+Start Timestamp: $(date)
+
+This is a simulated ion.log file created for workflow validation.
+The workflow should:
+1. Kill this test after the configured timeout
+2. Still collect this ion.log file
+3. Upload it with a unique name: workflow-test-test-timeout-ion.log
+4. Include the timestamp in the artifact name
+
+Simulated log entries:
+[2025-10-23 12:00:00] ION initialization (simulated)
+[2025-10-23 12:00:01] Bundle protocol agent started (simulated)
+[2025-10-23 12:00:02] Test execution started (simulated)
+
+========================================
+PERIODIC STATUS UPDATES BELOW
+========================================
+EOF
+
+echo "Created mock ion.log file with initial content"
+
+# Run for a long time (30 minutes) while periodically updating the log
+for i in {1..180}; do
+    echo "[$(date)] TEST: Still running... iteration $i" >> ion.log
+    echo "Iteration $i of 180 (running for $(( i * 10 )) seconds)"
+    sleep 10
+done
+
+# This should never be reached if timeout works correctly
+cat >> ion.log <<'EOF'
+
+========================================
+WARNING: Test completed without timeout
+========================================
+This message should NOT appear if the workflow timeout is working correctly!
+EOF
+
+echo "WARNING: Test completed without timing out - this should not happen"
+exit 0
