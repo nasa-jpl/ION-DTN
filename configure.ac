@@ -64,19 +64,21 @@ m4_ifdef([AM_PROG_AR],   dnl Automake ≥ 1.12 wants this
 
 
 dnl =============================================================
-dnl  Prefer ISO C11, fall back to ISO C99  (portable  ≥ Autoconf 2.60)
+dnl  Prefer ISO C11/C18, fall back to ISO C99  (portable  ≥ Autoconf 2.60)
 dnl =============================================================
-AC_CACHE_CHECK([whether $CC supports C11], [ac_cv_c11],
+AC_CACHE_CHECK([whether $CC supports C18 (iso9899:2018)], [ac_cv_c11],
   [save_CFLAGS="$CFLAGS"
-   CFLAGS="$CFLAGS -std=c11"
+ 
+  CFLAGS="$CFLAGS -std=iso9899:2018"
    AC_COMPILE_IFELSE(
      [AC_LANG_SOURCE([[#include <stdatomic.h> int main() { return 0; }]])],
      [ac_cv_c11=yes],
      [ac_cv_c11=no])
    CFLAGS="$save_CFLAGS"])
 
-if test "$ac_cv_c11" = yes; then
-  AM_CFLAGS="$AM_CFLAGS -std=c11"
+if test "$ac_cv_c11" = yes;
+then
+  AM_CFLAGS="$AM_CFLAGS -std=iso9899:2018"
 else
   AC_CACHE_CHECK([whether $CC supports C99], [ac_cv_c99],
     [save_CFLAGS="$CFLAGS"
