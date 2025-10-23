@@ -18,6 +18,11 @@ on:
         required: false
         type: string
         default: ''
+      timeout_minutes:
+        description: 'Timeout for build and tests in minutes (default: 240 minutes / 4 hours)'
+        required: false
+        type: number
+        default: 240
 
   workflow_dispatch:
     inputs:
@@ -36,6 +41,11 @@ on:
         required: false
         type: string
         default: ''
+      timeout_minutes:
+        description: 'Timeout for build and tests in minutes (default: 240 minutes / 4 hours)'
+        required: false
+        type: number
+        default: 240
 
 jobs:
   build-and-test:
@@ -65,6 +75,7 @@ jobs:
         run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
 
       - name: Run build and tests, capture stdout
+        timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '240') }}
         run: |
           {
             echo "Starting build and tests at $(date)"
@@ -72,6 +83,7 @@ jobs:
             echo "USER is set to: $USER"
             export ION_RUN_EXPERT="yes"
             export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+            export PRESERVE_TEST_LOGS="yes"
             autoreconf -fi
             ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
             make -j4
@@ -119,6 +131,31 @@ jobs:
         with:
           name: test-progress-ol8-${{ env.TIMESTAMP }}
           path: ./tests/progress
+
+      - name: Collect and upload ion.log files from all test directories
+        if: ${{ always() }}
+        run: |
+          echo "Collecting ion.log files with unique names..."
+          mkdir -p ion-logs-collection
+          find ./tests -name "ion.log" -type f | while IFS= read -r logfile; do
+            # Extract test path and create unique filename
+            relpath=$(echo "$logfile" | sed 's|^\./tests/||' | sed 's|/ion\.log$||')
+            unique_name=$(echo "$relpath" | tr '/' '-')
+            cp "$logfile" "ion-logs-collection/${unique_name}-ion.log"
+            echo "Collected: $logfile -> ion-logs-collection/${unique_name}-ion.log"
+          done
+
+          # List all collected logs for verification
+          echo "Collected ion.log files:"
+          find ion-logs-collection -name "*.log" -type f | sort
+
+      - name: Upload ion.log files as artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ion-logs-ol8-${{ env.TIMESTAMP }}
+          path: ion-logs-collection/
+          if-no-files-found: warn
 
       - name: Clean up ION build
         if: ${{ always() }}
