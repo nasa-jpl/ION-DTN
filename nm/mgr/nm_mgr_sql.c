@@ -4593,3 +4593,5 @@ uint32_t db_insert_msg_rpt_set(uint32_t grp_id, msg_rpt_t *rpt, int *status)
 
 #endif /* ifdef HAVE_MYSQL */
 
+/* Dummy typedef to prevent empty translation unit warning */
+typedef int nm_mgr_sql_pedantic_dummy;
