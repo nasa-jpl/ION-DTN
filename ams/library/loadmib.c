@@ -280,7 +280,8 @@ static void	handle_init_start(LoadMibState *state, const char **atts)
 	mib = _mib(&parms);
 	if (mib == NULL)
 	{
-		return putErrmsg("Couldn't create MIB.", NULL);
+		putErrmsg("Couldn't create MIB.", NULL);
+		return;
 	}
 }
 
@@ -373,8 +374,9 @@ static void	handle_continuum_start(LoadMibState *state, const char **atts)
 			contin = createContinuum(contnbr, contname, desc);
 			if (contin == NULL)
 			{
-				return putErrmsg("Couldn't add continuum.",
+				putErrmsg("Couldn't add continuum.",
 						contname);
+				return;
 			}
 		}
 
@@ -455,7 +457,8 @@ static void	handle_csendpoint_start(LoadMibState *state, const char **atts)
 	case LoadAdding:
 		if (createCsEndpoint(epspec, elt) == NULL)
 		{
-			return putErrmsg("Couldn't add CS endpoint.", NULL);
+			putErrmsg("Couldn't add CS endpoint.", NULL);
+			return;
 		}
 
 		break;
@@ -466,9 +469,10 @@ and deleted.");
 		return;
 
 	case LoadDeleting:
-       		if (elt == NULL)
+		if (elt == NULL)
 		{
-			return putErrmsg("Couldn't delete CS endpoint.", NULL);
+			putErrmsg("Couldn't delete CS endpoint.", NULL);
+			return;
 		}
 
 		lyst_delete(elt);
@@ -528,8 +532,9 @@ static void	handle_amsendpoint_start(LoadMibState *state, const char **atts)
 		elt = createAmsEpspec(tsname, epspec);
 		if (elt == NULL)
 		{
-			return putErrmsg("Couldn't add AMS endpoint spec.",
+			putErrmsg("Couldn't add AMS endpoint spec.",
 					NULL);
+			return;
 		}
 
 		break;
@@ -604,8 +609,9 @@ static void	handle_application_start(LoadMibState *state, const char **atts)
 			elt = createApp(appname, pubkeyname, privkeyname);
 			if (elt == NULL)
 			{
-				return putErrmsg("Couldn't add application.",
+				putErrmsg("Couldn't add application.",
 						appname);
+				return;
 			}
 
 			state->app = (AmsApp *) lyst_data(elt);
@@ -696,12 +702,14 @@ static void	handle_venture_start(LoadMibState *state, const char **atts)
 
 	if (appname == NULL)
 	{
-		return writeMemo("[?] Need app name for venture.");
+		writeMemo("[?] Need app name for venture.");
+		return;
 	}
 
 	if (authname == NULL)
 	{
-		return writeMemo("[?] Need auth name for venture.");
+		writeMemo("[?] Need auth name for venture.");
+		return;
 	}
 
 	state->venture = lookUpVenture(appname, authname);
@@ -714,8 +722,9 @@ static void	handle_venture_start(LoadMibState *state, const char **atts)
 					authname, gwEid, ramsNetIsTree, rzrsp);
 			if (state->venture == NULL)
 			{
-				return putErrmsg("Couldn't add venture.",
+				putErrmsg("Couldn't add venture.",
 						appname);
+				return;
 			}
 		}
 
@@ -802,8 +811,9 @@ static void	handle_role_start(LoadMibState *state, const char **atts)
 					pubkeyname, privkeyname);
 			if (role == NULL)
 			{
-				return putErrmsg("Couldn't add role.",
+				putErrmsg("Couldn't add role.",
 						rolename);
+				return;
 			}
 		}
 		else
@@ -920,8 +930,9 @@ static void	handle_subject_start(LoadMibState *state, const char **atts)
 					marshalfnname, unmarshalfnname);
 			if (state->subject == NULL)
 			{
-				return putErrmsg("Couldn't add subject.",
+				putErrmsg("Couldn't add subject.",
 						subjname);
+				return;
 			}
 		}
 
@@ -988,8 +999,9 @@ static void	handle_sender_start(LoadMibState *state, const char **atts)
 		if (addAuthorizedSender(state->venture, state->subject,
 				rolename) < 0)
 		{
-			return putErrmsg("Couldn't add authorized sender.",
+			putErrmsg("Couldn't add authorized sender.",
 						rolename);
+			return;
 		}
 
 		break;
@@ -1050,8 +1062,9 @@ static void	handle_receiver_start(LoadMibState *state, const char **atts)
 		if (addAuthorizedReceiver(state->venture, state->subject,
 				rolename) < 0)
 		{
-			return putErrmsg("Couldn't add authorized receiver.",
+			putErrmsg("Couldn't add authorized receiver.",
 						rolename);
+			return;
 		}
 
 		break;
@@ -1126,7 +1139,8 @@ static void	handle_unit_start(LoadMibState *state, const char **atts)
 			unit = createUnit(state->venture, znbr, zname, rsp);
 			if (unit == NULL)
 			{
-				return putErrmsg("Couldn't add unit.", zname);
+				putErrmsg("Couldn't add unit.", zname);
+				return;
 			}
 		}
 		else
@@ -1245,8 +1259,9 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 					isNeighbor, gwEid, symkeyname);
 			if (msgspace == NULL)
 			{
-				return putErrmsg("Couldn't add msgspace.",
+				putErrmsg("Couldn't add msgspace.",
 						contin->name);
+				return;
 			}
 		}
 
@@ -1284,82 +1299,98 @@ static void XMLCALL	startElement(void *userData, const char *name,
 #endif
 	if (strcmp(name, "ams_mib_load") == 0)
 	{
-		return handle_load_start(state, atts);
+		handle_load_start(state, atts);
+		return;
 	}
 
 	if (strcmp(name, "ams_mib_init") == 0)
 	{
-		return handle_init_start(state, atts);
+		handle_init_start(state, atts);
+		return;
 	}
 
 	if (strcmp(name, "ams_mib_add") == 0)
 	{
-		return handle_op_start(state, LoadAdding);
+		handle_op_start(state, LoadAdding);
+		return;
 	}
 
 	if (strcmp(name, "ams_mib_change") == 0)
 	{
-		return handle_op_start(state, LoadChanging);
+		handle_op_start(state, LoadChanging);
+		return;
 	}
 
 	if (strcmp(name, "ams_mib_delete") == 0)
 	{
-		return handle_op_start(state, LoadDeleting);
+		handle_op_start(state, LoadDeleting);
+		return;
 	}
 
 	if (strcmp(name, "continuum") == 0)
 	{
-		return handle_continuum_start(state, atts);
+		handle_continuum_start(state, atts);
+		return;
 	}
 
 	if (strcmp(name, "csendpoint") == 0)
 	{
-		return handle_csendpoint_start(state, atts);
+		handle_csendpoint_start(state, atts);
+		return;
 	}
 
 	if (strcmp(name, "amsendpoint") == 0)
 	{
-		return handle_amsendpoint_start(state, atts);
+		handle_amsendpoint_start(state, atts);
+		return;
 	}
 
 	if (strcmp(name, "application") == 0)
 	{
-		return handle_application_start(state, atts);
+		handle_application_start(state, atts);
+		return;
 	}
 
 	if (strcmp(name, "venture") == 0)
 	{
-		return handle_venture_start(state, atts);
+		handle_venture_start(state, atts);
+		return;
 	}
 
 	if (strcmp(name, "role") == 0)
 	{
-		return handle_role_start(state, atts);
+		handle_role_start(state, atts);
+		return;
 	}
 
 	if (strcmp(name, "subject") == 0)
 	{
-		return handle_subject_start(state, atts);
+		handle_subject_start(state, atts);
+		return;
 	}
 
 	if (strcmp(name, "sender") == 0)
 	{
-		return handle_sender_start(state, atts);
+		handle_sender_start(state, atts);
+		return;
 	}
 
 	if (strcmp(name, "receiver") == 0)
 	{
-		return handle_receiver_start(state, atts);
+		handle_receiver_start(state, atts);
+		return;
 	}
 
 	if (strcmp(name, "unit") == 0)
 	{
-		return handle_unit_start(state, atts);
+		handle_unit_start(state, atts);
+		return;
 	}
 
 	if (strcmp(name, "msgspace") == 0)
 	{
-		return handle_msgspace_start(state, atts);
+		handle_msgspace_start(state, atts);
+		return;
 	}
 
 	noteLoadError(state, "Unknown element name.");
@@ -1501,82 +1532,98 @@ static void XMLCALL	endElement(void *userData, const char *name)
 #endif
 	if (strcmp(name, "ams_mib_load") == 0)
 	{
-		return handle_load_end(state);
+		handle_load_end(state);
+		return;
 	}
 
 	if (strcmp(name, "ams_mib_init") == 0)
 	{
-		return handle_init_end(state);
+		handle_init_end(state);
+		return;
 	}
 
 	if (strcmp(name, "ams_mib_add") == 0)
 	{
-		return handle_op_end(state, LoadAdding);
+		handle_op_end(state, LoadAdding);
+		return;
 	}
 
 	if (strcmp(name, "ams_mib_change") == 0)
 	{
-		return handle_op_end(state, LoadChanging);
+		handle_op_end(state, LoadChanging);
+		return;
 	}
 
 	if (strcmp(name, "ams_mib_delete") == 0)
 	{
-		return handle_op_end(state, LoadDeleting);
+		handle_op_end(state, LoadDeleting);
+		return;
 	}
 
 	if (strcmp(name, "continuum") == 0)
 	{
-		return handle_continuum_end(state);
+		handle_continuum_end(state);
+		return;
 	}
 
 	if (strcmp(name, "csendpoint") == 0)
 	{
-		return handle_csendpoint_end(state);
+		handle_csendpoint_end(state);
+		return;
 	}
 
 	if (strcmp(name, "amsendpoint") == 0)
 	{
-		return handle_amsendpoint_end(state);
+		handle_amsendpoint_end(state);
+		return;
 	}
 
 	if (strcmp(name, "application") == 0)
 	{
-		return handle_application_end(state);
+		handle_application_end(state);
+		return;
 	}
 
 	if (strcmp(name, "role") == 0)
 	{
-		return handle_role_end(state);
+		handle_role_end(state);
+		return;
 	}
 
 	if (strcmp(name, "subject") == 0)
 	{
-		return handle_subject_end(state);
+		handle_subject_end(state);
+		return;
 	}
 
 	if (strcmp(name, "sender") == 0)
 	{
-		return handle_sender_end(state);
+		handle_sender_end(state);
+		return;
 	}
 
 	if (strcmp(name, "receiver") == 0)
 	{
-		return handle_receiver_end(state);
+		handle_receiver_end(state);
+		return;
 	}
 
 	if (strcmp(name, "venture") == 0)
 	{
-		return handle_venture_end(state);
+		handle_venture_end(state);
+		return;
 	}
 
 	if (strcmp(name, "unit") == 0)
 	{
-		return handle_unit_end(state);
+		handle_unit_end(state);
+		return;
 	}
 
 	if (strcmp(name, "msgspace") == 0)
 	{
-		return handle_msgspace_end(state);
+		handle_msgspace_end(state);
+		return;
 	}
 
 	noteLoadError(state, "Unknown element name.");

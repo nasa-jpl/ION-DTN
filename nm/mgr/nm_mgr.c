@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
 
 
     /* Spawn threads for receiving msgs, user interface, and db connection. */
-    if(pthread_begin(&rx_thr, NULL, (void *)mgr_rx_thread, (void *)&gRunning, "nm_mgr_rx"))
+    if(pthread_begin(&rx_thr, NULL, mgr_rx_thread, (void *)&gRunning, "nm_mgr_rx"))
     {
         AMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
         		        rx_thr_name, strerror(errno));
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
     }
 
 
-    if(pthread_begin(&ui_thr, NULL, (void *)ui_thread, (void *)&gRunning, "nm_mgr_ui"))
+    if(pthread_begin(&ui_thr, NULL, ui_thread, (void *)&gRunning, "nm_mgr_ui"))
     {
         AMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
         		        ui_thr_name, strerror(errno));

@@ -112,7 +112,7 @@ int ui_menu_ctrl_do(uint8_t choice);
 void ui_menu_ctrl_show(void);
 
 void ui_print_nop(void);
-void *ui_thread(int *running);
+void *ui_thread(void *arg);
 
 #ifdef HAVE_MYSQL
 int ui_menu_sql_do(uint8_t choice);

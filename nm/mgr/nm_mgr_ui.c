@@ -1396,12 +1396,15 @@ void ui_send_raw(agent_t* agent, uint8_t enter_ts)
 }
 
 
-void *ui_thread(int *running)
+void *ui_thread(void *arg)
 {
+   /* Cast the generic argument back to int */
+      int *running = (int *)arg;
+
 	AMP_DEBUG_ENTRY("ui_thread","(0x%x)", (size_t) running);
 
-    // Cache running as an NM UI Global for simplicity. This is always the entrypoint to ui
-    global_nm_running = running;
+   // Cache running as an NM UI Global for simplicity. This is always the entrypoint to ui
+   global_nm_running = running;
 
 	ui_eventLoop(running);
 

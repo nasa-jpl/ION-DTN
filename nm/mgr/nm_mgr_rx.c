@@ -266,8 +266,10 @@ void rx_agent_reg(msg_metadata_t *meta, msg_agent_t *msg)
  *  08/20/13  E. Birrane     Code cleanup and documentation.
  *****************************************************************************/
 
-void *mgr_rx_thread(int *running)
+void *mgr_rx_thread(void *arg)
 {
+    /* Cast the generic argument back to int */
+    int *running = (int *)arg;
 
     AMP_DEBUG_ENTRY("mgr_rx_thread","(0x%x)", (size_t) running);
     

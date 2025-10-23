@@ -94,7 +94,7 @@ int      main(int argc, char *argv[]);
 
 int      mgr_cleanup(void);
 int      mgr_init(char *eid);
-void*    mgr_rx_thread(int *running);
+void*    mgr_rx_thread(void *arg);
 
 
 
