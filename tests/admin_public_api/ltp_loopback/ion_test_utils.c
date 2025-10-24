@@ -365,6 +365,13 @@ int test_bp_start(void)
 	LOG_INFO("BP agent is started");
 	LOG_INFO("Waiting for scheme forwarders to initialize...");
 	sleep(2);
+
+#ifdef __APPLE__
+	/* Skip process detection on macOS - causes hang with popen()
+	 * when parent has active child processes. ipnfw starts successfully
+	 * as confirmed by bp_start() and can be verified in ion.log */
+	LOG_INFO("Skipping ipnfw process detection on macOS (check ion.log for confirmation)");
+#else
 	if (waitForSchemeDaemon("ipnfw", 5))
 	{
 		LOG_INFO("ipnfw forwarder started");
@@ -373,6 +380,7 @@ int test_bp_start(void)
 	{
 		LOG_INFO("Warning: ipnfw daemon not detected");
 	}
+#endif
 
 	TEST_PASS("BP Start and Agent Ready");
 	return 0;
@@ -626,10 +634,15 @@ int test_cleanup(void)
 
 	TEST_START("Cleanup - ION fully shutdown and clean up");
 
+#ifdef __APPLE__
+	/* Skip killall on macOS - system() hangs with active child processes */
+	LOG_INFO("Skipping killall on macOS - relying on bp_stop() and rfx_stop()");
+#else
 	/* Kill ionrestart FIRST - it auto-restarts components */
 	LOG_INFO("Killing ionrestart daemon...");
 	if (system("killall -9 ionrestart 2>/dev/null")) { /* ignored */ }
 	snooze(1);
+#endif
 
 	/* bp_stop() all daemons */
 	bp_stop();
@@ -663,10 +676,15 @@ int test_cleanup(void)
 	LOG_INFO("Calling sm_ipc_stop() to remove IPC system...");
 	sm_ipc_stop();
 
+#ifdef __APPLE__
+	/* Skip final killall on macOS - system() hangs with active child processes */
+	LOG_INFO("Skipping final killall on macOS");
+#else
 	/* Kill any remaining processes */
 	LOG_INFO("Ensuring all ION processes are terminated...");
 	if (system("killall -9 rfxclock bpclock ipnfw tcpcli tcpclo udpcli udpclo ltpcli ltpclo ionrestart 2>/dev/null")) { /* ignored */ }
 	snooze(1);
+#endif
 
 	TEST_PASS("Cleanup ION, SDR, and IPC complete");
 	return 0;
