@@ -53,10 +53,14 @@ jobs:
   build-and-test:
     runs-on: [self-hosted, linux, ARM, debiantrixie]
     steps:
+      - name: Clean up workspace
+        run: |
+          rm -rf $GITHUB_WORKSPACE/*
+
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          clean: true 
+          clean: true
           # clear workspace after
 
       - name: Display OS and Arch
@@ -159,6 +163,7 @@ jobs:
       - name: Clean up ION build
         if: ${{ always() }}
         run: |
+          killm
           make uninstall
           make clean
           rm -rf $GITHUB_WORKSPACE/*
