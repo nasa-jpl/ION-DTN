@@ -376,6 +376,32 @@ extern int	cfdp_map(CfdpTransactionId	*transactionId,
 		 *	On system failure, returns -1.  Otherwise
 		 *	returns 1.					*/
 
+/*	*	*	CFDP throttle control	*	*	*	*/
+
+extern int	cfdp_set_throttle(uvast bitsPerSecond);
+		/*	Set maximum transmit rate for CFDP PDUs sent
+		 *	via bp_send.  The throttle enforces a constant
+		 *	transmission rate by introducing a delay between
+		 *	consecutive bp_send() calls.  The delay is
+		 *	calculated as: (bits_sent / bits_per_second)
+		 *	seconds.
+		 *
+		 *	bitsPerSecond:  Maximum bit rate (0 = unlimited)
+		 *
+		 *	Returns 0 on success, -1 on failure.
+		 *
+		 *	Note: Changes take effect immediately if the UT
+		 *	layer is running. The setting is also persisted
+		 *	to the CFDP database for future restarts.	*/
+
+extern int	cfdp_get_throttle(uvast *bitsPerSecond);
+		/*	Get current maximum transmit rate setting.
+		 *
+		 *	bitsPerSecond:  Pointer to receive current rate
+		 *			(0 = unlimited)
+		 *
+		 *	Returns 0 on success, -1 on failure.		*/
+
 #include "cfdpops.h"
 
 #ifdef __cplusplus

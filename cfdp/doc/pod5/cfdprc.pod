@@ -147,6 +147,26 @@ The B<manage inactivity period> command. This command establishes the number
 of seconds that a CFDP file transfer is allowed to go idle before being
 canceled for inactivity. The default is one day.
 
+=item B<m throttle> I<bits_per_second>
+
+The B<manage throttle> command. This command establishes the maximum transmit
+rate for CFDP PDUs in bits per second. The throttle enforces a constant
+transmission rate by introducing a delay between consecutive PDU transmissions.
+The delay for each PDU is calculated as:
+
+    delay = (PDU_size_in_bits / max_rate_in_bps) seconds
+
+A value of 0 disables throttling (unlimited rate). The default value is 0.
+
+Note: Changes take effect immediately if the UT layer (bputa) is running. The
+setting is also persisted to the CFDP database for future restarts.
+
+Examples:
+
+  m throttle 1000000     # Limit to 1 Mbps (constant rate, takes effect immediately)
+  m throttle 10000000    # Limit to 10 Mbps
+  m throttle 0           # Disable throttle (unlimited)
+
 =item B<x>
 
 The B<stop> command.  This command stops the UT-layer service task for

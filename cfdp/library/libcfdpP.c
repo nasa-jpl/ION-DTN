@@ -514,6 +514,7 @@ int	cfdpInit(void)
 		cfdpdbBuf.checkTimerPeriod = 86400;	/*	1 day.	*/
 		cfdpdbBuf.checkTimeoutLimit = 7;
 		cfdpdbBuf.maxQueuedEvents = 20;
+		cfdpdbBuf.maxTransmitRate = 0;		/*	Unlimited.	*/
 
 		/*	Management information.				*/
 
@@ -692,6 +693,17 @@ int _cfdpStart(char *utaCmd)
     if (cfdpvdb->clockPid == ERROR || sm_TaskExists(cfdpvdb->clockPid) == 0)
     {
         cfdpvdb->clockPid = pseudoshell("cfdpclock");
+    }
+
+    /* Load throttle setting into volatile database. */
+    cfdpvdb->maxTransmitRate = cfdpdb.maxTransmitRate;
+    if (cfdpvdb->maxTransmitRate > 0)
+    {
+        char    memo[128];
+
+        isprintf(memo, sizeof memo, "[i] CFDP throttle: " UVAST_FIELDSPEC \
+                " bps", cfdpvdb->maxTransmitRate);
+        writeMemo(memo);
     }
 
     /* Start UT adapter service if necessary. */

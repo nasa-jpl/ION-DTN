@@ -156,6 +156,8 @@ int	main(void)
 	char		reportToEidBuf[64];
 	char		*reportToEid;
 	Object		newBundle;
+	CfdpVdb		*vdb;
+	vast		pduLength;
 
 	if (bp_attach() < 0)
 	{
@@ -198,6 +200,7 @@ int	main(void)
 	haveRxThread = 1;
 	writeMemo("[i] bputa is running.");
 	sdr = getIonsdr();
+	vdb = getCfdpVdb();
 	while (parms.running)
 	{
 		/*	Get an outbound CFDP PDU for transmission.	*/
@@ -281,6 +284,10 @@ terminating.");
 			reportToEid = reportToEidBuf;
 		}
 
+		/*	Capture PDU length before sending for throttle.	*/
+
+		pduLength = zco_length(sdr, pduZco);
+
 		/*	Send PDU in a bundle.  Do this inside a
 		 *	transaction to ensure that bundle forwarding
 		 *	and transmission doesn't happen before the
@@ -327,6 +334,30 @@ retransmission; terminated.", NULL);
 			putErrmsg("bputa error sending PDU; terminated.", NULL);
 			parms.running = 0;
 			continue;
+		}
+
+		/*	Apply throttle control if enabled.		*/
+
+		if (vdb->maxTransmitRate > 0)
+		{
+			uvast		pduBits;
+			uvast		delayNanos;
+			struct timespec	req;
+			struct timespec	rem;
+
+			pduBits = ((uvast) pduLength) * 8;
+			delayNanos = (pduBits * 1000000000ULL)
+					/ vdb->maxTransmitRate;
+
+			req.tv_sec = (time_t) (delayNanos / 1000000000ULL);
+			req.tv_nsec = (long) (delayNanos % 1000000000ULL);
+
+			/*	Sleep, restarting if interrupted by signal.	*/
+
+			while (nanosleep(&req, &rem) == -1 && errno == EINTR)
+			{
+				req = rem;
+			}
 		}
 
 		/*	Make sure other tasks have a chance to run.	*/

@@ -102,6 +102,7 @@ static void	printUsage(void)
 	PUTS("\t   m maxtrnbr <max transaction number>");
 	PUTS("\t   m segsize <max bytes per file data segment>");
 	PUTS("\t   m inactivity <inactivity limit, in seconds>");
+	PUTS("\t   m throttle <max transmit rate in bits per second>");
 	PUTS("\ti\tInfo");
 	PUTS("\t   i entity <entity nbr>");
 	PUTS("\t   i");
@@ -312,6 +313,7 @@ static void	printCfdpInfo(void)
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(CfdpDB, db);
 	char	buffer[256];
+	char	throttleBuffer[128];
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	GET_OBJ_POINTER(sdr, CfdpDB, db, getCfdpDbObject());
@@ -323,8 +325,21 @@ ckperiod=%u, maxtimeouts=%u, maxevents=%u", db->transactionCounter,
 			db->maxFileDataLength, db->transactionInactivityLimit,
 			db->checkTimerPeriod, db->checkTimeoutLimit,
 			db->maxQueuedEvents);
-	sdr_exit_xn(sdr);
 	printText(buffer);
+
+	if (db->maxTransmitRate == 0)
+	{
+		printText("\tThrottle: unlimited");
+	}
+	else
+	{
+		isprintf(throttleBuffer, sizeof throttleBuffer,
+			"\tThrottle: " UVAST_FIELDSPEC " bps",
+			db->maxTransmitRate);
+		printText(throttleBuffer);
+	}
+
+	sdr_exit_xn(sdr);
 }
 
 static void	executeInfo(int tokenCount, char **tokens)
@@ -793,6 +808,24 @@ static void	manageInactivity(int tokenCount, char **tokens)
 	}
 }
 
+static void	manageThrottle(int tokenCount, char **tokens)
+{
+	uvast	newThrottle;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	newThrottle = strtouvast(tokens[2]);
+
+	if (cfdp_set_throttle(newThrottle) < 0)
+	{
+		putErrmsg("Can't set CFDP throttle.", NULL);
+	}
+}
+
 static void	executeManage(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -852,6 +885,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "inactivity") == 0)
 	{
 		manageInactivity(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "throttle") == 0)
+	{
+		manageThrottle(tokenCount, tokens);
 		return;
 	}
 

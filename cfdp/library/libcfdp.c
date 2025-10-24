@@ -1915,6 +1915,79 @@ int	cfdp_report(CfdpTransactionId *transactionId)
 	}
 }
 
+int	cfdp_set_throttle(uvast bitsPerSecond)
+{
+	Sdr	sdr = getIonsdr();
+	Object	cfdpdbObj = getCfdpDbObject();
+	CfdpDB	cfdpdbBuf;
+	CfdpVdb	*vdb;
+	char	memo[128];
+
+	if (cfdpdbObj == 0)
+	{
+		putErrmsg("CFDP not initialized.", NULL);
+		return -1;
+	}
+
+	/*	Update persistent configuration in SDR.			*/
+
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &cfdpdbBuf, cfdpdbObj, sizeof(CfdpDB));
+	cfdpdbBuf.maxTransmitRate = bitsPerSecond;
+	sdr_write(sdr, cfdpdbObj, (char *) &cfdpdbBuf, sizeof(CfdpDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't update CFDP throttle.", NULL);
+		return -1;
+	}
+
+	/*	Update volatile database immediately for live effect.	*/
+
+	vdb = getCfdpVdb();
+	if (vdb != NULL)
+	{
+		vdb->maxTransmitRate = bitsPerSecond;
+
+		if (bitsPerSecond == 0)
+		{
+			writeMemo("[i] CFDP throttle disabled (live update).");
+		}
+		else
+		{
+			isprintf(memo, sizeof memo,
+				"[i] CFDP throttle set to " UVAST_FIELDSPEC \
+				" bps (live update).", bitsPerSecond);
+			writeMemo(memo);
+		}
+	}
+	else
+	{
+		writeMemo("[i] CFDP throttle updated. Restart UTA for changes to take effect.");
+	}
+
+	return 0;
+}
+
+int	cfdp_get_throttle(uvast *bitsPerSecond)
+{
+	Sdr	sdr = getIonsdr();
+	Object	cfdpdbObj = getCfdpDbObject();
+	CfdpDB	cfdpdbBuf;
+
+	if (cfdpdbObj == 0 || bitsPerSecond == NULL)
+	{
+		putErrmsg("CFDP not initialized.", NULL);
+		return -1;
+	}
+
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &cfdpdbBuf, cfdpdbObj, sizeof(CfdpDB));
+	sdr_exit_xn(sdr);
+
+	*bitsPerSecond = cfdpdbBuf.maxTransmitRate;
+	return 0;
+}
+
 int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 		CfdpTransactionId *transactionId, char *sourceFileNameBuf,
 		char *destFileNameBuf, uvast *fileSize,

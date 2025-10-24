@@ -254,6 +254,8 @@ typedef struct
 	/*	Fault handlers table is indexed by transaction
 	 *	condition code as represented by CfdpCondition.		*/
 
+	uvast		maxTransmitRate;	/*	bits per second	*/
+
 	Object		usrmsgLists;	/*	SDR list: MetadataList	*/
 	Object		fsreqLists;	/*	SDR list: MetadataList	*/
 	Object		fsrespLists;	/*	SDR list: MetadataList	*/
@@ -305,6 +307,10 @@ typedef struct
 	 *	ZCOs and therefore only a single attendant is needed.	*/
 
 	ReqAttendant	attendant;
+
+	/*	Throttle control: loaded from DB at startup.		*/
+
+	uvast		maxTransmitRate;	/*	bits per second	*/
 
 	/*	FOR TESTING ONLY: if the environment value named
 	 *	CFDP_CORRUPTION_MODULUS exists and is a positive
