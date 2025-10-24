@@ -8,6 +8,7 @@
 
 #include "cfdp.h"
 #include "bputa.h"
+#include "cfdpP.h"
 
 /* check directory listing extension */
 #ifndef NO_DIRLIST
@@ -133,6 +134,167 @@ static int getSenderClosureLatency(CfdpTransactionId *transId)
         }
     }
     return -1; /* Not found */
+}
+
+/* Helper function to get state name */
+static char *getStateName(FduState state)
+{
+    switch (state) {
+        case FduActive: return "Active";
+        case FduSuspended: return "Suspended";
+        case FduCanceled: return "Canceled";
+        default: return "Unknown";
+    }
+}
+
+/* Parse transaction ID from string in format "source.transaction" */
+static int parseTransactionId(char *idStr, CfdpTransactionId *transId)
+{
+    char *dot;
+    uvast sourceEntity, txnNbr;
+
+    if (idStr == NULL || transId == NULL) {
+        return -1;
+    }
+
+    /* Find the dot separator */
+    dot = strchr(idStr, '.');
+    if (dot == NULL) {
+        PUTS("Transaction ID must be in format: sourceEntity.transactionNbr");
+        fflush(stdout);
+        return -1;
+    }
+
+    /* Parse source entity number */
+    *dot = '\0';  /* Temporarily terminate the string */
+    sourceEntity = strtouvast(idStr);
+    *dot = '.';   /* Restore the dot */
+
+    /* Parse transaction number */
+    txnNbr = strtouvast(dot + 1);
+
+    /* Compress into CfdpNumber format */
+    cfdp_compress_number(&transId->sourceEntityNbr, sourceEntity);
+    cfdp_compress_number(&transId->transactionNbr, txnNbr);
+
+    return 0;
+}
+
+/* Check if transaction is locally initiated */
+static int isLocalTransaction(CfdpTransactionId *transId)
+{
+    CfdpDB *db;
+    Sdr sdr;
+    int isLocal;
+
+    sdr = getIonsdr();
+    CHKERR(sdr_begin_xn(sdr));
+    db = getCfdpConstants();
+    if (db == NULL) {
+        sdr_exit_xn(sdr);
+        return 0;
+    }
+
+    /* Compare source entity with own entity */
+    isLocal = (memcmp(transId->sourceEntityNbr.buffer,
+                      db->ownEntityNbr.buffer, 8) == 0);
+    sdr_exit_xn(sdr);
+    return isLocal;
+}
+
+/* List all known transactions */
+static int listTransactions(void)
+{
+    Sdr sdr = getIonsdr();
+    CfdpDB *db;
+    Object elt, obj;
+    OutFdu outFdu;
+    InFdu inFdu;
+    Entity entity;
+    uvast srcEntity, txnNbr;
+    int count = 0;
+
+    CHKERR(sdr_begin_xn(sdr));
+    db = getCfdpConstants();
+    if (db == NULL) {
+        sdr_exit_xn(sdr);
+        PUTS("Unable to access CFDP database.");
+        fflush(stdout);
+        return -1;
+    }
+
+    PUTS("=== Active Transactions ===");
+    PUTS("");
+    PUTS("OUTBOUND Transactions (Locally Initiated):");
+    PUTS_FMT("%-20s %-12s %-15s %s", "Transaction ID", "State", "Progress", "File");
+    PUTS("--------------------------------------------------------------------");
+
+    /* List outbound transactions */
+    for (elt = sdr_list_first(sdr, db->outboundFdus); elt;
+         elt = sdr_list_next(sdr, elt)) {
+        obj = sdr_list_data(sdr, elt);
+        sdr_read(sdr, (char *) &outFdu, obj, sizeof(OutFdu));
+
+        cfdp_decompress_number(&srcEntity, &outFdu.transactionId.sourceEntityNbr);
+        cfdp_decompress_number(&txnNbr, &outFdu.transactionId.transactionNbr);
+
+        PUTS_FMT(UVAST_FIELDSPEC "." UVAST_FIELDSPEC " %-12s " UVAST_FIELDSPEC "/" UVAST_FIELDSPEC " %s",
+                 srcEntity, txnNbr,
+                 getStateName(outFdu.state),
+                 outFdu.progress, outFdu.fileSize,
+                 outFdu.sourceFileName);
+        count++;
+    }
+
+    if (count == 0) {
+        PUTS("  (none)");
+    }
+
+    PUTS("");
+    PUTS("INBOUND Transactions (Remotely Initiated):");
+    PUTS_FMT("%-20s %-12s %-15s %s", "Transaction ID", "State", "Progress", "File");
+    PUTS("--------------------------------------------------------------------");
+
+    count = 0;
+    /* List inbound transactions from all entities */
+    for (elt = sdr_list_first(sdr, db->entities); elt;
+         elt = sdr_list_next(sdr, elt)) {
+        Object inElt, inObj;
+        char destFileName[256];
+
+        obj = sdr_list_data(sdr, elt);
+        sdr_read(sdr, (char *) &entity, obj, sizeof(Entity));
+
+        for (inElt = sdr_list_first(sdr, entity.inboundFdus); inElt;
+             inElt = sdr_list_next(sdr, inElt)) {
+            inObj = sdr_list_data(sdr, inElt);
+            sdr_read(sdr, (char *) &inFdu, inObj, sizeof(InFdu));
+
+            cfdp_decompress_number(&srcEntity, &inFdu.transactionId.sourceEntityNbr);
+            cfdp_decompress_number(&txnNbr, &inFdu.transactionId.transactionNbr);
+
+            strcpy(destFileName, "(unknown)");
+            if (inFdu.destFileName) {
+                sdr_string_read(sdr, destFileName, inFdu.destFileName);
+            }
+
+            PUTS_FMT(UVAST_FIELDSPEC "." UVAST_FIELDSPEC " %-12s " UVAST_FIELDSPEC "/" UVAST_FIELDSPEC " %s",
+                     srcEntity, txnNbr,
+                     getStateName(inFdu.state),
+                     inFdu.progress, inFdu.fileSize,
+                     destFileName);
+            count++;
+        }
+    }
+
+    if (count == 0) {
+        PUTS("  (none)");
+    }
+
+    PUTS("=======================");
+    fflush(stdout);
+    sdr_exit_xn(sdr);
+    return 0;
 }
 
 /* Helper functions for field name translation */
@@ -348,6 +510,8 @@ static void	printUsage(void)
 	PUTS("\tq\tQuit");
 	PUTS("\th\tHelp");
 	PUTS("\t?\tHelp");
+	PUTS("\tv\tView all active transactions with state");
+	PUTS("\t   v");
 	PUTS("\tz\tPause before processing next command. (For test scripts.)");
 	PUTS("\t   z <number of seconds to pause>");
 	PUTS("\td\tSet destination entity number");
@@ -396,14 +560,20 @@ custody transfer>");
 	PUTS("\tD <local_file>\t\tDisplay directory listing file (ION extension).");
 	PUTS("\t&\tSend file per specified parameters");
 	PUTS("\t   &");
-	PUTS("\t^\tCancel the current file transmission");
-	PUTS("\t   ^");
-	PUTS("\t%\tSuspend the current file transmission");
-	PUTS("\t   %");
-	PUTS("\t$\tResume the current file transmission");
-	PUTS("\t   $");
-	PUTS("\t#\tReport on the current file transmission");
-	PUTS("\t   #");
+	PUTS("\t^\tCancel a file transmission");
+	PUTS("\t   ^ [sourceEntity.transactionNbr]");
+	PUTS("\t   If no transaction ID is specified, cancels the last transaction.");
+	PUTS("\t%\tSuspend a file transmission (outbound only)");
+	PUTS("\t   % [sourceEntity.transactionNbr]");
+	PUTS("\t   If no transaction ID is specified, suspends the last transaction.");
+	PUTS("\t   Only works for locally-initiated transactions (suspend/resume).");
+	PUTS("\t$\tResume a file transmission (outbound only)");
+	PUTS("\t   $ [sourceEntity.transactionNbr]");
+	PUTS("\t   If no transaction ID is specified, resumes the last transaction.");
+	PUTS("\t   Only works for locally-initiated transactions (suspend/resume).");
+	PUTS("\t#\tReport on a file transmission");
+	PUTS("\t   # [sourceEntity.transactionNbr]");
+	PUTS("\t   If no transaction ID is specified, reports on the last transaction.");
 	PUTS("\t|\tGet file: send request for file per specified parameters");
 	PUTS("\t   |");
 	fflush(stdout);
@@ -446,7 +616,7 @@ static void	setDestinationEntityNbr(int tokenCount, char **tokens,
 
 	if (tokenCount != 2)
 	{
-		PUTS("What's the destination entity number?");
+		PUTS("Usage: d <destination entity number>");
 		fflush(stdout);
 		return;
 	}
@@ -550,7 +720,8 @@ static void	setCtInterval(int tokenCount, char **tokens, BpUtParms *utParms)
 
 	if (tokenCount != 2)
 	{
-		PUTS("What's the custody transfer retransmission interval?");
+		PUTS("Usage: i <custody transfer retransmission interval in seconds>");
+		fflush(stdout);
 		return;
 	}
 
@@ -882,6 +1053,10 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 			printUsage();
 			return 0;
 
+		case 'v':
+			listTransactions();
+			return 0;
+
 		case 'd':
 			setDestinationEntityNbr(tokenCount, tokens,
 					&(parms->destinationEntityNbr));
@@ -1013,39 +1188,155 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 			return 0;
 
 		case '^':
-			if (cfdp_cancel(&(parms->transactionId)) < 0)
 			{
-				putErrmsg("Can't cancel transaction.", NULL);
-				return -1;
-			}
+				CfdpTransactionId targetId;
+				if (tokenCount == 1)
+				{
+					/* Use last transaction */
+					memcpy(&targetId, &(parms->transactionId),
+						sizeof(CfdpTransactionId));
+				}
+				else if (tokenCount == 2)
+				{
+					/* Parse provided transaction ID */
+					if (parseTransactionId(tokens[1], &targetId) < 0)
+					{
+						return 0;
+					}
+				}
+				else
+				{
+					PUTS("Usage: ^ [sourceEntity.transactionNbr]");
+					fflush(stdout);
+					return 0;
+				}
 
+				if (cfdp_cancel(&targetId) < 0)
+				{
+					putErrmsg("Can't cancel transaction.", NULL);
+					return -1;
+				}
+				PUTS("Cancel request sent.");
+				fflush(stdout);
+			}
 			return 0;
 
 		case '%':
-			if (cfdp_suspend(&(parms->transactionId)) < 0)
 			{
-				putErrmsg("Can't suspend transaction.", NULL);
-				return -1;
-			}
+				CfdpTransactionId targetId;
+				if (tokenCount == 1)
+				{
+					/* Use last transaction */
+					memcpy(&targetId, &(parms->transactionId),
+						sizeof(CfdpTransactionId));
+				}
+				else if (tokenCount == 2)
+				{
+					/* Parse provided transaction ID */
+					if (parseTransactionId(tokens[1], &targetId) < 0)
+					{
+						return 0;
+					}
+				}
+				else
+				{
+					PUTS("Usage: % [sourceEntity.transactionNbr]");
+					fflush(stdout);
+					return 0;
+				}
 
+				/* Check if transaction is local */
+				if (!isLocalTransaction(&targetId))
+				{
+					PUTS("Error: Suspend only works for locally-initiated transactions.");
+					fflush(stdout);
+					return 0;
+				}
+
+				if (cfdp_suspend(&targetId) < 0)
+				{
+					putErrmsg("Can't suspend transaction.", NULL);
+					return -1;
+				}
+				PUTS("Suspend request sent.");
+				fflush(stdout);
+			}
 			return 0;
 
 		case '$':
-			if (cfdp_resume(&(parms->transactionId)) < 0)
 			{
-				putErrmsg("Can't resume transaction.", NULL);
-				return -1;
-			}
+				CfdpTransactionId targetId;
+				if (tokenCount == 1)
+				{
+					/* Use last transaction */
+					memcpy(&targetId, &(parms->transactionId),
+						sizeof(CfdpTransactionId));
+				}
+				else if (tokenCount == 2)
+				{
+					/* Parse provided transaction ID */
+					if (parseTransactionId(tokens[1], &targetId) < 0)
+					{
+						return 0;
+					}
+				}
+				else
+				{
+					PUTS("Usage: $ [sourceEntity.transactionNbr]");
+					fflush(stdout);
+					return 0;
+				}
 
+				/* Check if transaction is local */
+				if (!isLocalTransaction(&targetId))
+				{
+					PUTS("Error: Resume only works for locally-initiated transactions.");
+					fflush(stdout);
+					return 0;
+				}
+
+				if (cfdp_resume(&targetId) < 0)
+				{
+					putErrmsg("Can't resume transaction.", NULL);
+					return -1;
+				}
+				PUTS("Resume request sent.");
+				fflush(stdout);
+			}
 			return 0;
 
 		case '#':
-			if (cfdp_report(&(parms->transactionId)) < 0)
 			{
-				putErrmsg("Can't report transaction.", NULL);
-				return -1;
-			}
+				CfdpTransactionId targetId;
+				if (tokenCount == 1)
+				{
+					/* Use last transaction */
+					memcpy(&targetId, &(parms->transactionId),
+						sizeof(CfdpTransactionId));
+				}
+				else if (tokenCount == 2)
+				{
+					/* Parse provided transaction ID */
+					if (parseTransactionId(tokens[1], &targetId) < 0)
+					{
+						return 0;
+					}
+				}
+				else
+				{
+					PUTS("Usage: # [sourceEntity.transactionNbr]");
+					fflush(stdout);
+					return 0;
+				}
 
+				if (cfdp_report(&targetId) < 0)
+				{
+					putErrmsg("Can't report transaction.", NULL);
+					return -1;
+				}
+				PUTS("Report request sent.");
+				fflush(stdout);
+			}
 			return 0;
 
 		case 'z':

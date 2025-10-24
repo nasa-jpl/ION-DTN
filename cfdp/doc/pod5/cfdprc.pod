@@ -58,12 +58,17 @@ with an existing entity in the CFDP management information base.
 The B<delete entity> command.  This command will delete an existing entity from
 the CFDP management information base.
 
-=item B<i> [<entity nbr>]
+=item B<i> [B<entity> <entity nbr>]
 
-The B<info> command.  When B<entity nbr> is provided, this command will print
-information about the indicated entity.  Otherwise this command will print
-information about the current state of the local CFDP entity, including the
-current settings of all parameters that can be managed as described below.
+The B<info> command.  This command displays CFDP configuration information.
+
+With no arguments (B<i>), displays information about the current state of the
+local CFDP entity, including the current settings of all parameters that can
+be managed as described below.
+
+When B<entity> <entity nbr> is specified (e.g., B<i entity 1>), displays
+detailed information about the indicated remote CFDP entity, including its
+protocol, endpoint, RTT, and checksum types.
 
 =item B<s> 'I<UTA command>'
 
@@ -172,6 +177,14 @@ formats.  It is the same as the B<?> command.
 =head1 EXAMPLES
 
 =over 4
+
+=item i
+
+Display general CFDP status and configuration parameters for the local entity.
+
+=item i entity 1
+
+Display detailed information about remote CFDP entity 1.
 
 =item m requirecrc 1
 
