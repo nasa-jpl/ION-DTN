@@ -39,6 +39,13 @@ formats.  It is the same as the B<h> command.
 
 An alternate form of the B<help> command.
 
+=item B<v>
+
+The B<view transactions> command. This command lists all active CFDP transactions
+(both outbound and inbound) with their current state (Active, Suspended, or
+Canceled), progress (bytes transferred / total file size), and associated filenames.
+This is useful for monitoring multiple concurrent file transfers.
+
 =item B<z> [<number of seconds to pause>]
 
 The B<pause> command.  When B<cfdptest> is running in interactive mode,
@@ -62,6 +69,13 @@ transmitted when the next file transmission operation is commanded.
 The B<to> command.  This command provides the name for the file that will be
 created at the receiving entity when the next file transmission operation
 is commanded.
+
+=item B<R>
+
+The B<reset filenames> command. This command resets both the source file name
+(B<f>) and destination file name (B<t>) to NULL. This is useful for sending
+metadata-only transactions or for clearing previously set filenames before
+starting a new configuration.
 
 =item B<l> <lifetime in seconds>
 
@@ -297,25 +311,51 @@ responding entity receives those messages and initiates a 'send' to accomplish
 transmission of the file.  This means that 'send' can succeed even if no user
 application is running at the remote node, but 'get' cannot.
 
-=item B<^>
+=item B<^> [<sourceEntity.transactionNbr>]
 
-The B<cancel> command.  This command cancels the most recently initiated
-file transmission.
+The B<cancel> command. This command cancels a file transmission.
 
-=item B<%>
+With no arguments (B<^>), cancels the most recently initiated file transmission.
 
-The B<suspend> command.  This command suspends the most recently initiated
-file transmission.
+When a transaction ID is specified in the format I<sourceEntity.transactionNbr>
+(e.g., B<^ 1.42>), cancels the specified transaction. This works for both
+outbound and inbound transactions.
 
-=item B<$>
+=item B<%> [<sourceEntity.transactionNbr>]
 
-The B<resume> command.  This command resumes the most recently initiated
-file transmission.
+The B<suspend> command. This command suspends a file transmission.
 
-=item B<#>
+With no arguments (B<%>), suspends the most recently initiated file transmission.
 
-The B<report> command.  This command reports on the most recently initiated
-file transmission.
+When a transaction ID is specified in the format I<sourceEntity.transactionNbr>
+(e.g., B<% 1.42>), suspends the specified transaction.
+
+B<IMPORTANT:> Suspend only works for locally-initiated (outbound) transactions.
+Attempting to suspend a remotely-initiated (inbound) transaction will result
+in an error.
+
+=item B<$> [<sourceEntity.transactionNbr>]
+
+The B<resume> command. This command resumes a previously suspended file transmission.
+
+With no arguments (B<$>), resumes the most recently initiated file transmission.
+
+When a transaction ID is specified in the format I<sourceEntity.transactionNbr>
+(e.g., B<$ 1.42>), resumes the specified transaction.
+
+B<IMPORTANT:> Resume only works for locally-initiated (outbound) transactions.
+Attempting to resume a remotely-initiated (inbound) transaction will result
+in an error.
+
+=item B<#> [<sourceEntity.transactionNbr>]
+
+The B<report> command. This command generates a status report for a file transmission.
+
+With no arguments (B<#>), reports on the most recently initiated file transmission.
+
+When a transaction ID is specified in the format I<sourceEntity.transactionNbr>
+(e.g., B<# 1.42>), reports on the specified transaction. This works for both
+outbound and inbound transactions.
 
 =item B<q>
 
@@ -358,6 +398,42 @@ Directory listing requests are sent as special "messages to user" with a
 specific format. The remote entity processes these messages, executes the
 directory listing operation, and responds with both the directory contents
 (as a file transfer) and a status message indicating success or failure.
+
+=head1 EXAMPLES
+
+=over 4
+
+=item Sending a file and managing the transaction
+
+  d 2                    # Set destination entity to 2
+  f /tmp/test.txt        # Set source file
+  t /tmp/received.txt    # Set destination file
+  &                      # Send the file
+  v                      # View all active transactions
+  % 1.5                  # Suspend transaction 1.5
+  $ 1.5                  # Resume transaction 1.5
+  # 1.5                  # Get status report for transaction 1.5
+
+=item Sending metadata-only (no file)
+
+  d 2                    # Set destination entity
+  R                      # Reset filenames to NULL
+  u 'Status check'       # Add user message
+  &                      # Send metadata only
+
+=item Managing multiple concurrent transfers
+
+  d 2
+  f /tmp/file1.txt
+  t /tmp/dest1.txt
+  &                      # Start transfer 1
+  f /tmp/file2.txt
+  t /tmp/dest2.txt
+  &                      # Start transfer 2
+  v                      # View both transactions
+  ^ 1.100                # Cancel specific transaction by ID
+
+=back
 
 =head1 EXIT STATUS
 

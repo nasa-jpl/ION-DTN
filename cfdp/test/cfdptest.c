@@ -554,6 +554,8 @@ custody transfer>");
 	PUTS("\t\t\t\t6 = remove directory");
 	PUTS("\t\t\t\t7 = deny file");
 	PUTS("\t\t\t\t8 = deny directory");
+	PUTS("\tR\tReset source and destination file names to NULL");
+	PUTS("\t   R");
 	PUTS("\tu\tAdd message to user");
 	PUTS("\t   u '<message text>'");
 	PUTS("\tL <remote_dir> <local_file>\tList remote directory (ION extension).");
@@ -630,7 +632,7 @@ static void	setSourceFileName(int tokenCount, char **tokens,
 {
 	if (tokenCount != 2)
 	{
-		PUTS("What's the source file name?");
+		PUTS("Usage: f <source file name>");
 		fflush(stdout);
 		return;
 	}
@@ -644,13 +646,32 @@ static void	setDestFileName(int tokenCount, char **tokens,
 {
 	if (tokenCount != 2)
 	{
-		PUTS("What's the destination file name?");
+		PUTS("Usage: t <destination file name>");
 		fflush(stdout);
 		return;
 	}
 
 	isprintf(destFileNameBuf, 256, "%.255s", tokens[1]);
 	*destFileName = destFileNameBuf;
+}
+
+static void	resetFileNames(int tokenCount, char **tokens,
+			char **sourceFileName, char **destFileName)
+{
+	/* Parameter intentionally unused. */
+	(void)tokens;
+
+	if (tokenCount != 1)
+	{
+		PUTS("Usage: R");
+		fflush(stdout);
+		return;
+	}
+
+	*sourceFileName = NULL;
+	*destFileName = NULL;
+	PUTS("Source and destination file names reset to NULL.");
+	fflush(stdout);
 }
 
 static void	setClassOfService(int tokenCount, char **tokens,
@@ -1118,6 +1139,12 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 		case 'r':
 			addFilestoreRequest(tokenCount, tokens,
 					&(parms->fsRequests));
+			return 0;
+
+		case 'R':
+			resetFileNames(tokenCount, tokens,
+					&(parms->sourceFileName),
+					&(parms->destFileName));
 			return 0;
 
 #ifndef NO_DIRLIST
