@@ -62,8 +62,24 @@ static TestResults results = {0, 0, 0};
 	printf(COLOR_RED "    [FAIL] %s: %s" COLOR_RESET "\n", name, reason); \
 	results.failed++;
 
-#define LOG_INFO(msg, ...) \
-	printf(COLOR_YELLOW "    [INFO] " COLOR_RESET msg "\n", ##__VA_ARGS__)
+/* Helper for LOG_INFO with just a message */
+#define LOG_INFO__1(msg) \
+	printf(COLOR_YELLOW "    [INFO] " COLOR_RESET msg "\n")
+
+/* Helper for LOG_INFO with a format string + args */
+#define LOG_INFO__N(msg, ...) \
+	printf(COLOR_YELLOW "    [INFO] " COLOR_RESET msg "\n", __VA_ARGS__)
+
+/* Argument-counting dispatcher macro */
+#define LOG_INFO__GET_MACRO(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, NAME, ...) NAME
+
+/* The main C99-compliant LOG_INFO macro */
+#define LOG_INFO(...) \
+	LOG_INFO__GET_MACRO(__VA_ARGS__, \
+						LOG_INFO__N, LOG_INFO__N, LOG_INFO__N, LOG_INFO__N, \
+						LOG_INFO__N, LOG_INFO__N, LOG_INFO__N, LOG_INFO__N, \
+						LOG_INFO__N, LOG_INFO__1, 0) \
+	(__VA_ARGS__)
 
 /* Thread argument structure */
 typedef struct
