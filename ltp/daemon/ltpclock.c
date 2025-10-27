@@ -169,6 +169,11 @@ static int	manageLinks(Sdr sdr, time_t currentTime)
 		{
 			if (vspan->localXmitRate > 0)
 			{
+#if DEBUG_RFX
+				printf("[LTP] vspan %u stopping xmit (rate 0)\n",
+					(unsigned int)vspan->engineId);
+				fflush(stdout);
+#endif
 				vspan->localXmitRate = 0;
 				ltpStopXmit(vspan);
 			}
@@ -177,9 +182,45 @@ static int	manageLinks(Sdr sdr, time_t currentTime)
 		{
 			if (vspan->localXmitRate == 0)
 			{
+#if DEBUG_RFX
+				printf("[LTP] vspan %u starting xmit: rate=%zu\n",
+					(unsigned int)vspan->engineId,
+					neighbor->xmitRate);
+				fflush(stdout);
+#endif
 				vspan->localXmitRate = neighbor->xmitRate;
 				ltpStartXmit(vspan);
 			}
+			else if (vspan->localXmitRate != neighbor->xmitRate)
+			{
+				/*	Rate changed (adjacent contacts with
+				 *	different rates).  Update rate; the
+				 *	transmitter will pick up the new rate
+				 *	on its next iteration.			*/
+
+#if DEBUG_RFX
+				printf("[LTP] vspan %u localXmitRate changed: %u -> %zu\n",
+					(unsigned int)vspan->engineId,
+					vspan->localXmitRate,
+					neighbor->xmitRate);
+				fflush(stdout);
+#endif
+				vspan->localXmitRate = neighbor->xmitRate;
+			}
+#if DEBUG_RFX
+			else
+			{
+				/*	Rate unchanged, log periodically	*/
+				static int logCounter = 0;
+				if ((logCounter++ % 100) == 0)
+				{
+					printf("[LTP] vspan %u rate unchanged: %u\n",
+						(unsigned int)vspan->engineId,
+						vspan->localXmitRate);
+					fflush(stdout);
+				}
+			}
+#endif
 		}
 
 		if (neighbor->fireRate == 0)
@@ -207,6 +248,20 @@ static int	manageLinks(Sdr sdr, time_t currentTime)
 					putErrmsg("Can't manage links.", NULL);
 					return -1;
 				}
+			}
+			else if (vspan->remoteXmitRate != neighbor->fireRate)
+			{
+				/*	Rate changed (adjacent contacts with
+				 *	different rates).  Update rate.	*/
+
+#if DEBUG_RFX
+				printf("[LTP] vspan %u remoteXmitRate changed: %u -> %zu\n",
+					(unsigned int)vspan->engineId,
+					vspan->remoteXmitRate,
+					neighbor->fireRate);
+				fflush(stdout);
+#endif
+				vspan->remoteXmitRate = neighbor->fireRate;
 			}
 		}
 

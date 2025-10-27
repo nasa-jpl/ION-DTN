@@ -55,14 +55,14 @@ tests/adjacent-contacts/
 
 ### Two-Node Bundle Transfer Test
 
-The main test runs two ION nodes (1 and 2) connected via UDP/LTP and sends 7000 bundles (10KB each) across adjacent contacts.
+The main test runs two ION nodes (1 and 2) connected via UDP/LTP and sends 6000 bundles (10KB each) across adjacent contacts.
 
 **Contact Plan (in `global.ionrc`):**
 - Range: OWLT = 1 second between nodes 1 and 2
 - Contact 1: Node 1->2, time +10 to +60 (50 seconds), rate 1 MB/s
-- Contact 2: Node 1->2, time +60 to +110 (50 seconds), rate 1 MB/s **(ADJACENT)**
+- Contact 2: Node 1->2, time +60 to +2000 (1940 seconds), rate 2 MB/s **(ADJACENT)**
 - Contact 3: Node 2->1, time +10 to +60 (50 seconds), rate 1 MB/s
-- Contact 4: Node 2->1, time +60 to +110 (50 seconds), rate 1 MB/s **(ADJACENT)**
+- Contact 4: Node 2->1, time +60 to +2000 (1940 seconds), rate 2 MB/s **(ADJACENT)**
 
 **LTP Configuration:**
 - Node 1: UDP span to node 2 via localhost:1113→localhost:1114
@@ -73,10 +73,10 @@ The main test runs two ION nodes (1 and 2) connected via UDP/LTP and sends 7000 
 **Bundle Transfer:**
 - Source: ipn:1.1 (Node 1)
 - Destination: ipn:2.1 (Node 2)
-- Count: 7000 bundles
+- Count: 6000 bundles
 - Size: 10 KB per bundle
-- Rate: 100 bundles/sec (10ms interval)
-- Total data: ~70 MB over 100 seconds (spans both contacts)
+- Send rate: 5.6 Mbps (approximately 70 bundles/sec)
+- Total data: ~60 MB transferred over ~85 seconds (spans both contacts)
 
 **Expected Event Sequence (with DEBUG_RFX enabled):**
 
@@ -167,12 +167,12 @@ With DEBUG_RFX enabled in the build, you'll see detailed event logs showing:
 
 ## Validation Criteria
 
-✓ No "Overlapping contact ignored" errors
-✓ Adjacent contact detection in rfx.c (with DEBUG_RFX)
-✓ Skip messages in rfxclock.c for Stop events (with DEBUG_RFX)
-✓ Bundle delivery rate ≥99.5%
-✓ No LTP segment rejection errors during contact transition
-✓ Seamless rate transitions at boundary (t=60) with no gap
+- No "Overlapping contact ignored" errors
+- Adjacent contact detection in rfx.c (with DEBUG_RFX)
+- Skip messages in rfxclock.c for Stop events (with DEBUG_RFX)
+- Bundle delivery rate ≥99.5%
+- No LTP segment rejection errors during contact transition
+- Seamless rate transitions at boundary (t=60) with no gap
 
 ## Key Implementation Details
 

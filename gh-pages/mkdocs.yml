@@ -70,6 +70,7 @@ nav:
     - Configuration Templates: ION-Config-File-Templates.md
     - BPSec Configuration Example: BpSec-Configuration-Examples.md
     - Multi-network Configuration: Configure-Multiple-Network-Interfaces.md
+    - Contact Graph Events and LTP: Contact-Graph-Events-and-LTP.md
     - LTP Configuration Tool: Using-LTP-Config-Tool.md
     - ION Launcher Script: ION-Launcher.md
     - Knowledge Base, Issues & Patches: Known-Issues.md

@@ -599,46 +599,81 @@ static void	postCpsNotice(uint32_t regionNbr, time_t fromTime,
 }
 
 /*	Helper function to find an adjacent contact (exact boundary match).
- *	Returns the IonCXref if found, NULL otherwise.			*/
+ *	Returns the IonCXref if found, NULL otherwise.
+ *	Also returns the PSM address of the contact data via adjacentAddr.	*/
 
 static IonCXref	*findAdjacentContact(IonVdb *vdb, uint32_t regionNbr,
 			uvast fromFqnn, uvast toFqnn, time_t fromTime,
-			time_t toTime, int *isPreceding)
+			time_t toTime, int *isPreceding, PsmAddress *adjacentAddr)
 {
 	PsmPartition	ionwm = getIonwm();
-	IonCXref	arg;
 	PsmAddress	cxelt;
-	PsmAddress	nextElt;
+	PsmAddress	cxaddr;
 	IonCXref	*cxref;
 
 	*isPreceding = 0;
+	if (adjacentAddr)
+	{
+		*adjacentAddr = 0;
+	}
 
 	/*	Search for a contact that ends exactly when this one begins.	*/
 
-	memset((char *) &arg, 0, sizeof(IonCXref));
-	arg.regionNbr = regionNbr;
-	arg.fromFqnn = fromFqnn;
-	arg.toFqnn = toFqnn;
-	arg.fromTime = 0;	/*	Start from beginning.	*/
+#if DEBUG_RFX
+	printf("[RFX] findAdjacentContact: Looking for adjacent to " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC " [%ld, %ld] regionNbr=%u\n",
+		fromFqnn, toFqnn, fromTime, toTime, regionNbr);
+#endif
 
-	for (cxelt = sm_rbt_search(ionwm, vdb->contactIndex,
-			rfx_order_contacts, &arg, &nextElt);
-			cxelt; cxelt = sm_rbt_next(ionwm, cxelt))
+	/*	Iterate through all contacts in the index.		*/
+
+	for (cxelt = sm_rbt_first(ionwm, vdb->contactIndex); cxelt;
+			cxelt = sm_rbt_next(ionwm, cxelt))
 	{
-		cxref = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, cxelt));
+		cxaddr = sm_rbt_data(ionwm, cxelt);
+		cxref = (IonCXref *) psp(ionwm, cxaddr);
 
-		/*	Only check contacts for the same node pair.	*/
+#if DEBUG_RFX
+		printf("[RFX]   Found contact in index: region=%u " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC " [%ld, %ld]\n",
+			cxref->regionNbr, cxref->fromFqnn, cxref->toFqnn, cxref->fromTime, cxref->toTime);
+#endif
+
+		/*	Only check contacts for the same region and node pair.	*/
+
+		if (cxref->regionNbr != regionNbr)
+		{
+#if DEBUG_RFX
+			printf("[RFX]     -> Skipping (different region: %u vs %u)\n",
+				cxref->regionNbr, regionNbr);
+#endif
+			continue;
+		}
 
 		if (cxref->fromFqnn != fromFqnn || cxref->toFqnn != toFqnn)
 		{
+#if DEBUG_RFX
+			printf("[RFX]     -> Skipping (different node pair)\n");
+#endif
 			continue;
 		}
+
+#if DEBUG_RFX
+		printf("[RFX]   Checking existing contact: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC " [%ld, %ld]\n",
+			cxref->fromFqnn, cxref->toFqnn, cxref->fromTime, cxref->toTime);
+#endif
 
 		/*	Check if existing contact ends when new one begins.	*/
 
 		if (cxref->toTime == fromTime)
 		{
+#if DEBUG_RFX
+			printf("[RFX]   -> Found PRECEDING adjacent contact (ends at %ld)\n", cxref->toTime);
+#endif
 			*isPreceding = 1;
+			if (adjacentAddr)
+			{
+				*adjacentAddr = cxaddr;
+			}
+
 			return cxref;
 		}
 
@@ -646,19 +681,120 @@ static IonCXref	*findAdjacentContact(IonVdb *vdb, uint32_t regionNbr,
 
 		if (cxref->fromTime == toTime)
 		{
+#if DEBUG_RFX
+			printf("[RFX]   -> Found FOLLOWING adjacent contact (starts at %ld)\n", cxref->fromTime);
+#endif
 			*isPreceding = 0;
+			if (adjacentAddr)
+			{
+				*adjacentAddr = cxaddr;
+			}
+
 			return cxref;
-		}
-
-		/*	If we're past the new contact's time range, stop.	*/
-
-		if (cxref->fromTime > toTime)
-		{
-			break;
 		}
 	}
 
+#if DEBUG_RFX
+	printf("[RFX]   -> No adjacent contact found\n");
+#endif
+
 	return NULL;	/*	No adjacent contact found.	*/
+}
+
+/*	Helper function to update Stop events for a preceding adjacent contact.
+ *	When a new contact is inserted that is adjacent to an existing contact,
+ *	we need to delete the old Stop events (which have maxClockError applied)
+ *	and recreate them with the exact boundary time.			*/
+
+static int	updateAdjacentStopEvents(IonVdb *vdb, IonCXref *precedingCxref,
+			PsmAddress precedingCxaddr, time_t boundaryTime)
+{
+	PsmPartition	ionwm = getIonwm();
+	IonEvent	oldEvent;
+	IonEvent	*newEvent;
+	PsmAddress	addr;
+
+	/*	Delete and recreate IonStopXmit if applicable.		*/
+
+	if (precedingCxref->stopXmit)
+	{
+#if DEBUG_RFX
+		printf("[RFX]   Updating IonStopXmit: old time=%ld, new time=%ld\n",
+			precedingCxref->stopXmit, boundaryTime);
+#endif
+		/*	Delete the old event from timeline.		*/
+
+		oldEvent.time = precedingCxref->stopXmit;
+		oldEvent.type = IonStopXmit;
+		oldEvent.ref = precedingCxaddr;
+		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+				&oldEvent, rfx_erase_data, NULL);
+
+		/*	Update the cxref field.				*/
+
+		precedingCxref->stopXmit = boundaryTime;
+
+		/*	Create new event with updated time.		*/
+
+		addr = psm_zalloc(ionwm, sizeof(IonEvent));
+		if (addr == 0)
+		{
+			return -1;
+		}
+
+		newEvent = (IonEvent *) psp(ionwm, addr);
+		newEvent->time = boundaryTime;
+		newEvent->type = IonStopXmit;
+		newEvent->ref = precedingCxaddr;
+		if (sm_rbt_insert(ionwm, vdb->timeline, addr,
+				rfx_order_events, newEvent) == 0)
+		{
+			psm_free(ionwm, addr);
+			return -1;
+		}
+	}
+
+	/*	Delete and recreate IonStopFire if applicable.		*/
+
+	if (precedingCxref->stopFire)
+	{
+#if DEBUG_RFX
+		printf("[RFX]   Updating IonStopFire: old time=%ld, new time=%ld\n",
+			precedingCxref->stopFire, boundaryTime);
+#endif
+		/*	Delete the old event from timeline.		*/
+
+		oldEvent.time = precedingCxref->stopFire;
+		oldEvent.type = IonStopFire;
+		oldEvent.ref = precedingCxaddr;
+		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+				&oldEvent, rfx_erase_data, NULL);
+
+		/*	Update the cxref field.				*/
+
+		precedingCxref->stopFire = boundaryTime;
+
+		/*	Create new event with updated time.		*/
+
+		addr = psm_zalloc(ionwm, sizeof(IonEvent));
+		if (addr == 0)
+		{
+			return -1;
+		}
+
+		newEvent = (IonEvent *) psp(ionwm, addr);
+		newEvent->time = boundaryTime;
+		newEvent->type = IonStopFire;
+		newEvent->ref = precedingCxaddr;
+		if (sm_rbt_insert(ionwm, vdb->timeline, addr,
+				rfx_order_events, newEvent) == 0)
+		{
+			psm_free(ionwm, addr);
+			return -1;
+		}
+	}
+
+	return 0;
 }
 
 static PsmAddress	insertCXref(IonCXref *cxref)
@@ -725,9 +861,14 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 
 	iondbObj = getIonDbObject();
 	sdr_read(getIonsdr(), (char *) &iondb, iondbObj, sizeof(IonDB));
+#if DEBUG_RFX
+	printf("[RFX] insertCXref: maxClockError=%d for contact " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC " [%ld, %ld]\n",
+		iondb.maxClockError, cxref->fromFqnn, cxref->toFqnn, cxref->fromTime, cxref->toTime);
+#endif
 	if (cxref->type == CtScheduled)
 	{
 		IonCXref	*adjacentContact;
+		PsmAddress	adjacentCxaddr;
 		int		isPreceding;
 
 		/*	Check for adjacent contacts to avoid temporal
@@ -735,7 +876,8 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 
 		adjacentContact = findAdjacentContact(vdb, cxref->regionNbr,
 				cxref->fromFqnn, cxref->toFqnn,
-				cxref->fromTime, cxref->toTime, &isPreceding);
+				cxref->fromTime, cxref->toTime, &isPreceding,
+				&adjacentCxaddr);
 
 		if (cxref->fromFqnn == getOwnFqnn())
 		{
@@ -759,6 +901,9 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 					cxref->fromFqnn, cxref->toFqnn,
 					cxref->fromTime);
 #endif
+				/*	The preceding contact's stopXmit event
+				 *	will be updated after all times are
+				 *	computed (see below).			*/
 			}
 			else
 			{
@@ -801,6 +946,13 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 				 *	maxClockError to start.		*/
 
 				cxref->startFire = cxref->fromTime;
+#if DEBUG_RFX
+				printf("[RFX]   Setting startFire to boundary time=%ld\n",
+					cxref->fromTime);
+#endif
+				/*	The preceding contact's stopFire event
+				 *	will be updated after all times are
+				 *	computed (see below).			*/
 			}
 			else
 			{
@@ -824,6 +976,24 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 		else	/*	Not a transmission to the local node.	*/
 		{
 			cxref->purgeTime = cxref->toTime;
+		}
+
+		/*	If this contact is adjacent to a preceding contact,
+		 *	update that contact's Stop events in the timeline
+		 *	to use the boundary time instead of the time with
+		 *	maxClockError applied.				*/
+
+		if (adjacentContact && isPreceding)
+		{
+#if DEBUG_RFX
+			printf("[RFX] Calling updateAdjacentStopEvents for preceding contact\n");
+#endif
+			if (updateAdjacentStopEvents(vdb, adjacentContact,
+					adjacentCxaddr, cxref->fromTime) < 0)
+			{
+				psm_free(ionwm, cxaddr);
+				return 0;
+			}
 		}
 	}
 
@@ -1092,31 +1262,51 @@ static void	deleteContact(PsmAddress cxaddr)
 				&event, rfx_erase_data, NULL);
 	}
 
-	/*	Apply to current state of affected neighbors, if any.	*/
+	/*	Apply to current state of affected neighbors, if any.
+	 *
+	 *	When purging a contact, only zero neighbor rates if
+	 *	currentTime is strictly before the stop time. This
+	 *	handles early contact termination.
+	 *
+	 *	If currentTime equals stop time (normal termination),
+	 *	DON'T zero rates - let the IonStop events handle it.
+	 *	This prevents interference with adjacent contacts.	*/
 
-	if (currentTime >= cxref->startXmit && currentTime <= cxref->stopXmit)
+	if (currentTime >= cxref->startXmit && currentTime < cxref->stopXmit)
 	{
 		neighbor = findNeighbor(vdb, cxref->toFqnn, &nextElt);
 		if (neighbor)
 		{
+#if DEBUG_RFX
+			printf("[RFX] deleteContact: Early termination, zeroing xmitRate\n");
+			fflush(stdout);
+#endif
 			neighbor->xmitRate = 0;
 		}
 	}
 
-	if (currentTime >= cxref->startFire && currentTime <= cxref->stopFire)
+	if (currentTime >= cxref->startFire && currentTime < cxref->stopFire)
 	{
 		neighbor = findNeighbor(vdb, cxref->fromFqnn, &nextElt);
 		if (neighbor)
 		{
+#if DEBUG_RFX
+			printf("[RFX] deleteContact: Early termination, zeroing fireRate\n");
+			fflush(stdout);
+#endif
 			neighbor->fireRate = 0;
 		}
 	}
 
-	if (currentTime >= cxref->startRecv && currentTime <= cxref->stopRecv)
+	if (currentTime >= cxref->startRecv && currentTime < cxref->stopRecv)
 	{
 		neighbor = findNeighbor(vdb, cxref->fromFqnn, &nextElt);
 		if (neighbor)
 		{
+#if DEBUG_RFX
+			printf("[RFX] deleteContact: Early termination, zeroing recvRate\n");
+			fflush(stdout);
+#endif
 			neighbor->recvRate = 0;
 		}
 	}

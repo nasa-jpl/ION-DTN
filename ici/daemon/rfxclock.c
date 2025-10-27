@@ -80,6 +80,55 @@ static int	setProbeIsDue(unsigned long destFqnn,
 	return 0;	/*	Embargo no longer exists; no problem.	*/
 }
 
+/*	Helper function to look ahead in the timeline for an adjacent Start
+ *	event at the same time for the same node pair.  Returns 1 if found,
+ *	0 otherwise.							*/
+
+static int	findAdjacentStartEvent(IonVdb *vdb, time_t eventTime,
+			IonEventType startType, uvast fromFqnn, uvast toFqnn)
+{
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	elt;
+	PsmAddress	addr;
+	IonEvent	*candidateEvent;
+	IonCXref	*candidateCxref;
+
+	/*	Search timeline for events at the same time.		*/
+
+	for (elt = sm_rbt_first(ionwm, vdb->timeline); elt;
+			elt = sm_rbt_next(ionwm, elt))
+	{
+		addr = sm_rbt_data(ionwm, elt);
+		candidateEvent = (IonEvent *) psp(ionwm, addr);
+
+		if (candidateEvent->time > eventTime)
+		{
+			break;	/*	Past the time we're looking for.*/
+		}
+
+		if (candidateEvent->time < eventTime)
+		{
+			continue;	/*	Not there yet.		*/
+		}
+
+		/*	Same time - check if it's the Start event
+		 *	we're looking for.				*/
+
+		if (candidateEvent->type == startType)
+		{
+			candidateCxref = (IonCXref *) psp(ionwm,
+					candidateEvent->ref);
+			if (candidateCxref->fromFqnn == fromFqnn
+			&& candidateCxref->toFqnn == toFqnn)
+			{
+				return 1;  /*	Found adjacent!	*/
+			}
+		}
+	}
+
+	return 0;	/*	No adjacent Start event found.		*/
+}
+
 static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 {
 	PsmPartition	ionwm = getIonwm();
@@ -119,6 +168,28 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			fflush(stdout);
 		}
 #endif
+
+		/*	Look ahead for adjacent IonStartXmit at same time.
+		 *	If found, skip setting xmitRate to 0 to maintain
+		 *	seamless transmission across adjacent contacts.	*/
+
+		if (findAdjacentStartEvent(vdb, event->time, IonStartXmit,
+				cxref->fromFqnn, cxref->toFqnn))
+		{
+#if DEBUG_RFX
+			{
+				char	timebuf[TIMESTAMPBUFSZ];
+				writeTimestampUTC(event->time, timebuf);
+				printf("[RFX] Node " UVAST_FIELDSPEC " %s Skipping IonStopXmit: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC " (adjacent IonStartXmit found)\n",
+					getOwnFqnn(), timebuf, cxref->fromFqnn, cxref->toFqnn);
+				fflush(stdout);
+			}
+#endif
+			sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+					event, rfx_erase_data, NULL);
+			return 0;
+		}
+
 		if (cxref->fromFqnn == getOwnFqnn()
 		&& cxref->type != CtSuppressed)
 		{
@@ -143,6 +214,28 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			fflush(stdout);
 		}
 #endif
+
+		/*	Look ahead for adjacent IonStartFire at same time.
+		 *	If found, skip setting fireRate to 0 to maintain
+		 *	seamless timer management across adjacent contacts.	*/
+
+		if (findAdjacentStartEvent(vdb, event->time, IonStartFire,
+				cxref->fromFqnn, cxref->toFqnn))
+		{
+#if DEBUG_RFX
+			{
+				char	timebuf[TIMESTAMPBUFSZ];
+				writeTimestampUTC(event->time, timebuf);
+				printf("[RFX] Node " UVAST_FIELDSPEC " %s Skipping IonStopFire: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC " (adjacent IonStartFire found)\n",
+					getOwnFqnn(), timebuf, cxref->fromFqnn, cxref->toFqnn);
+				fflush(stdout);
+			}
+#endif
+			sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+					event, rfx_erase_data, NULL);
+			return 0;
+		}
+
 		if (cxref->toFqnn == getOwnFqnn()
 		&& cxref->type != CtSuppressed)
 		{
@@ -166,11 +259,45 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			fflush(stdout);
 		}
 #endif
+
+		/*	Look ahead for adjacent IonStartRecv at same time,
+		 *	or for IonStartFire that will create IonStartRecv.
+		 *	If found, skip setting recvRate to 0 to maintain
+		 *	seamless reception across adjacent contacts.	*/
+
+		neighbor = getNeighbor(vdb, cxref->fromFqnn);
+		if (neighbor == NULL)
+		{
+			neighbor = addNeighbor(vdb, cxref->fromFqnn);
+			if (neighbor == NULL)
+			{
+				putErrmsg("Can't get neighbor.", NULL);
+				return -1;
+			}
+		}
+
+		if (findAdjacentStartEvent(vdb, event->time, IonStartRecv,
+				cxref->fromFqnn, cxref->toFqnn)
+		|| findAdjacentStartEvent(vdb, event->time - neighbor->owltInbound,
+				IonStartFire, cxref->fromFqnn, cxref->toFqnn))
+		{
+#if DEBUG_RFX
+			{
+				char	timebuf[TIMESTAMPBUFSZ];
+				writeTimestampUTC(event->time, timebuf);
+				printf("[RFX] Node " UVAST_FIELDSPEC " %s Skipping IonStopRecv: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC " (adjacent reception continues)\n",
+					getOwnFqnn(), timebuf, cxref->fromFqnn, cxref->toFqnn);
+				fflush(stdout);
+			}
+#endif
+			sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events,
+					event, rfx_erase_data, NULL);
+			return 0;
+		}
+
 		if (cxref->toFqnn == getOwnFqnn()
 		&& cxref->type != CtSuppressed)
 		{
-			neighbor = getNeighbor(vdb, cxref->fromFqnn);
-			CHKERR(neighbor);
 			neighbor->recvRate = 0;
 			*forecastNeeded = 1;
 		}

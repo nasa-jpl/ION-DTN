@@ -25,7 +25,7 @@ echo "========================================="
 echo ""
 echo "This test verifies seamless bundle transfer across adjacent contacts:"
 echo "  - Contact 1: t=10 to t=60 (50 sec, 1 MB/s)"
-echo "  - Contact 2: t=60 to t=110 (50 sec, 1 MB/s, ADJACENT)"
+echo "  - Contact 2: t=60 to t=2000 (1940 sec, 2 MB/s, ADJACENT)"
 echo ""
 echo "Test will send ${NUM_BUNDLES} bundles (${BUNDLE_SIZE} bytes each)"
 echo "Expected: 99.5%+ delivery rate with no LTP segment rejections"
@@ -50,9 +50,6 @@ cleanup() {
 
     echo "Cleanup complete."
 }
-
-# Register cleanup function
-trap cleanup EXIT INT TERM
 
 # Check if ION is already running
 if pgrep -x "rfxclock" > /dev/null; then
@@ -137,17 +134,27 @@ echo ""
 
 # Wait for bpcounter to finish or timeout
 START_TIME=$(date +%s)
+BPCOUNTER_EXIT=1  # Default to failure
+
 while kill -0 $BPCOUNTER_PID 2>/dev/null; do
     ELAPSED=$(($(date +%s) - START_TIME))
 
     if [ $ELAPSED -ge $MAX_WAIT ]; then
         echo ""
         echo "Reached ${MAX_WAIT} second timeout - stopping test."
+        kill $BPCOUNTER_PID 2>/dev/null || true
+        wait $BPCOUNTER_PID 2>/dev/null || true
         break
     fi
 
     sleep 5
 done
+
+# If bpcounter already exited, wait will return immediately
+if ! kill -0 $BPCOUNTER_PID 2>/dev/null; then
+    # Process already exited, capture its exit code
+    wait $BPCOUNTER_PID 2>/dev/null && BPCOUNTER_EXIT=0 || BPCOUNTER_EXIT=$?
+fi
 
 ELAPSED=$(($(date +%s) - START_TIME))
 echo ""
@@ -159,10 +166,6 @@ echo "========================================="
 echo "Test Results"
 echo "========================================="
 echo ""
-
-# Wait for bpcounter process to complete
-wait $BPCOUNTER_PID 2>/dev/null
-BPCOUNTER_EXIT=$?
 
 # The success message from bpcounter should be visible in stdout above
 # Format: "Stopping bpcounter; bundles received: <count>"
