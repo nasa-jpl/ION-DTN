@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+## Start script for ION Node 2
+
+ionadmin    adjacent.ionrc
+sleep 1
+
+ionadmin    ../global.ionrc
+sleep 1
+
+ionsecadmin adjacent.ionsecrc
+sleep 1
+
+ltpadmin    adjacent.ltprc
+sleep 1
+
+bpadmin     adjacent.bprc

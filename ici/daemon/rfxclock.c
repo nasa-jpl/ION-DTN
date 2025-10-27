@@ -110,6 +110,15 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 
 	case IonStopXmit:
 		cxref = (IonCXref *) psp(ionwm, event->ref);
+#if DEBUG_RFX
+		{
+			char	timebuf[TIMESTAMPBUFSZ];
+			writeTimestampUTC(event->time, timebuf);
+			printf("[RFX] %s IonStopXmit: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC "\n",
+				timebuf, cxref->fromFqnn, cxref->toFqnn);
+			fflush(stdout);
+		}
+#endif
 		if (cxref->fromFqnn == getOwnFqnn()
 		&& cxref->type != CtSuppressed)
 		{
@@ -125,6 +134,15 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 
 	case IonStopFire:
 		cxref = (IonCXref *) psp(ionwm, event->ref);
+#if DEBUG_RFX
+		{
+			char	timebuf[TIMESTAMPBUFSZ];
+			writeTimestampUTC(event->time, timebuf);
+			printf("[RFX] %s IonStopFire: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC "\n",
+				timebuf, cxref->fromFqnn, cxref->toFqnn);
+			fflush(stdout);
+		}
+#endif
 		if (cxref->toFqnn == getOwnFqnn()
 		&& cxref->type != CtSuppressed)
 		{
@@ -139,6 +157,15 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 
 	case IonStopRecv:
 		cxref = (IonCXref *) psp(ionwm, event->ref);
+#if DEBUG_RFX
+		{
+			char	timebuf[TIMESTAMPBUFSZ];
+			writeTimestampUTC(event->time, timebuf);
+			printf("[RFX] %s IonStopRecv: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC "\n",
+				timebuf, cxref->fromFqnn, cxref->toFqnn);
+			fflush(stdout);
+		}
+#endif
 		if (cxref->toFqnn == getOwnFqnn()
 		&& cxref->type != CtSuppressed)
 		{
@@ -179,6 +206,15 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 
 	case IonStartXmit:
 		cxref = (IonCXref *) psp(ionwm, event->ref);
+#if DEBUG_RFX
+		{
+			char	timebuf[TIMESTAMPBUFSZ];
+			writeTimestampUTC(event->time, timebuf);
+			printf("[RFX] %s IonStartXmit: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC " rate=%zu\n",
+				timebuf, cxref->fromFqnn, cxref->toFqnn, cxref->xmitRate);
+			fflush(stdout);
+		}
+#endif
 		if (cxref->fromFqnn == getOwnFqnn()
 		&& cxref->type != CtSuppressed)
 		{
@@ -194,6 +230,15 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 
 	case IonStartFire:
 		cxref = (IonCXref *) psp(ionwm, event->ref);
+#if DEBUG_RFX
+		{
+			char	timebuf[TIMESTAMPBUFSZ];
+			writeTimestampUTC(event->time, timebuf);
+			printf("[RFX] %s IonStartFire: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC " rate=%zu\n",
+				timebuf, cxref->fromFqnn, cxref->toFqnn, cxref->xmitRate);
+			fflush(stdout);
+		}
+#endif
 		if (cxref->toFqnn == getOwnFqnn())
 		{
 			neighbor = getNeighbor(vdb, cxref->fromFqnn);
@@ -219,7 +264,35 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			 *	accepting segments, and a
 			 *	little slow to stop, to
 			 *	minimize the chance of
-			 *	discarding legitimate input.	*/
+			 *	discarding legitimate input.
+			 *
+			 *	Note: For adjacent contacts, startFire/stopFire
+			 *	equal fromTime/toTime (no maxClockError applied
+			 *	in rfx.c). Detect this and skip maxClockError
+			 *	for reception events to prevent temporal reversal.	*/
+
+			/*	Detect if this contact is adjacent to another
+			 *	by checking if maxClockError was applied to
+			 *	startFire/stopFire.				*/
+
+			int adjacentAtStart = 0;
+			int adjacentAtEnd = 0;
+
+			if (cxref->startFire == cxref->fromTime)
+			{
+				/*	No maxClockError at start = adjacent
+				 *	contact before this one.		*/
+
+				adjacentAtStart = 1;
+			}
+
+			if (cxref->stopFire == cxref->toTime)
+			{
+				/*	No maxClockError at end = adjacent
+				 *	contact after this one.			*/
+
+				adjacentAtEnd = 1;
+			}
 
 			addr = psm_zalloc(ionwm, sizeof(IonEvent));
 			if (addr == 0)
@@ -228,9 +301,23 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			}
 
 			newEvent = (IonEvent *) psp(ionwm, addr);
-			cxref->startRecv = newEvent->time =
-				(cxref->fromTime - iondb.maxClockError)
-					+ neighbor->owltInbound;
+			if (adjacentAtStart)
+			{
+				/*	Adjacent contact: no maxClockError
+				 *	adjustment at start.			*/
+
+				cxref->startRecv = newEvent->time =
+					cxref->startFire + neighbor->owltInbound;
+			}
+			else
+			{
+				/*	Normal contact: apply maxClockError.	*/
+
+				cxref->startRecv = newEvent->time =
+					cxref->startFire - iondb.maxClockError
+						+ neighbor->owltInbound;
+			}
+
 			newEvent->type = IonStartRecv;
 			newEvent->ref = ref;
 			if (sm_rbt_insert(ionwm, vdb->timeline, addr,
@@ -247,9 +334,22 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			}
 
 			newEvent = (IonEvent *) psp(ionwm, addr);
-			cxref->stopRecv = newEvent->time =
-				(cxref->toTime + iondb.maxClockError)
-					+ neighbor->owltInbound;
+			if (adjacentAtEnd)
+			{
+				/*	Adjacent contact: no maxClockError
+				 *	adjustment at end.			*/
+
+				cxref->stopRecv = newEvent->time =
+					cxref->stopFire + neighbor->owltInbound;
+			}
+			else
+			{
+				/*	Normal contact: apply maxClockError.	*/
+
+				cxref->stopRecv = newEvent->time =
+					cxref->stopFire + iondb.maxClockError
+						+ neighbor->owltInbound;
+			}
 			newEvent->type = IonStopRecv;
 			newEvent->ref = ref;
 			if (sm_rbt_insert(ionwm, vdb->timeline, addr,
@@ -260,7 +360,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			}
 
 			/*	Purge contact when reception
-			 *	is expected to stop.		*/
+			 *	is expected to stop.
+			 *	Use stopRecv time (already computed above).	*/
 
 			addr = psm_zalloc(ionwm, sizeof(IonEvent));
 			if (addr == 0)
@@ -269,9 +370,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			}
 
 			newEvent = (IonEvent *) psp(ionwm, addr);
-			cxref->purgeTime = newEvent->time =
-				(cxref->toTime + iondb.maxClockError)
-					+ neighbor->owltInbound;
+			cxref->purgeTime = newEvent->time = cxref->stopRecv;
 			newEvent->type = IonPurgeContact;
 			newEvent->ref = ref;
 			if (sm_rbt_insert(ionwm, vdb->timeline, addr,
@@ -288,6 +387,15 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 
 	case IonStartRecv:
 		cxref = (IonCXref *) psp(ionwm, event->ref);
+#if DEBUG_RFX
+		{
+			char	timebuf[TIMESTAMPBUFSZ];
+			writeTimestampUTC(event->time, timebuf);
+			printf("[RFX] %s IonStartRecv: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC " rate=%zu\n",
+				timebuf, cxref->fromFqnn, cxref->toFqnn, cxref->xmitRate);
+			fflush(stdout);
+		}
+#endif
 		if (cxref->toFqnn == getOwnFqnn()
 		&& cxref->type != CtSuppressed)
 		{
@@ -303,6 +411,15 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 
 	case IonPurgeContact:
 		cxref = (IonCXref *) psp(ionwm, event->ref);
+#if DEBUG_RFX
+		{
+			char	timebuf[TIMESTAMPBUFSZ];
+			writeTimestampUTC(event->time, timebuf);
+			printf("[RFX] %s IonPurgeContact: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC "\n",
+				timebuf, cxref->fromFqnn, cxref->toFqnn);
+			fflush(stdout);
+		}
+#endif
 
 		/*	rfx_remove_contact deletes all contact events
 		 *	from timeline including the one that invoked

@@ -1074,6 +1074,9 @@ extern void			printStackTrace(void);
 #ifndef DEBUG_PRINT_LOG
 #define DEBUG_PRINT_LOG		(0)
 #endif
+#ifndef DEBUG_RFX
+#define DEBUG_RFX		(0)
+#endif
 extern void			debugPrint(const char *format, ...);
 
 /*	The following macro deals with irrelevant return codes.		*/

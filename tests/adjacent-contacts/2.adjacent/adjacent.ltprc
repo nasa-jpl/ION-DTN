@@ -1,0 +1,6 @@
+## LTP configuration for node 2
+## Span to node 1 over UDP
+
+1 100
+a span 1 100 100 1400 10000 1 'udplso localhost:1113'
+s 'udplsi localhost:1114'

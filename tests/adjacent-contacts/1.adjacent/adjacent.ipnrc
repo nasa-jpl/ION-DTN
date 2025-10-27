@@ -1,0 +1,4 @@
+## IPN routing configuration for node 1
+## Route to node 2 via LTP
+
+a plan 2 ltp/2

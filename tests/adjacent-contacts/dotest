@@ -1,0 +1,215 @@
+#!/bin/bash
+#
+# Test script for adjacent contacts with 2-node bundle transfer
+# This script starts two ION nodes, sends bundles across adjacent contacts,
+# and verifies seamless operation during the contact transition.
+#
+# Based on demos/bench-ltp/dotest pattern
+#
+
+# Exit on error
+set -e
+
+# Test configuration
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+MAX_WAIT=180          # Maximum wait time in seconds
+NUM_BUNDLES=6000      # Total bundles to send; last about 70 seconds
+BUNDLE_SIZE=10000     # 10 KB per bundle
+SEND_RATE=5600000     # Send rate in bps (5.6 Mbps, ~70 bundles/sec)
+
+echo "========================================="
+echo "Adjacent Contacts 2-Node Transfer Test"
+echo "========================================="
+echo ""
+echo "This test verifies seamless bundle transfer across adjacent contacts:"
+echo "  - Contact 1: t=10 to t=60 (50 sec, 1 MB/s)"
+echo "  - Contact 2: t=60 to t=110 (50 sec, 1 MB/s, ADJACENT)"
+echo ""
+echo "Test will send ${NUM_BUNDLES} bundles (${BUNDLE_SIZE} bytes each)"
+echo "Expected: 99.5%+ delivery rate with no LTP segment rejections"
+echo "Note: DEBUG_RFX messages may appear out of order due to interleaving but expected."
+echo "      Time stamp will provide ground truth on order of operation."
+echo ""
+
+# Function to cleanup on exit
+cleanup() {
+    echo ""
+    echo "Cleaning up..."
+
+    # Kill bpdriver and bpcounter if running
+    pkill -f "bpdriver" 2>/dev/null || true
+    pkill -f "bpcounter" 2>/dev/null || true
+
+    # Stop both nodes
+    cd "$TESTDIR/2.adjacent" 2>/dev/null && killm 2>/dev/null || true
+    sleep 2
+    cd "$TESTDIR/1.adjacent" 2>/dev/null && killm 2>/dev/null || true
+    sleep 2
+
+    echo "Cleanup complete."
+}
+
+# Register cleanup function
+trap cleanup EXIT INT TERM
+
+# Check if ION is already running
+if pgrep -x "rfxclock" > /dev/null; then
+    echo "ERROR: ION appears to be already running."
+    echo "Please run 'killm' first to stop all ION processes."
+    exit 1
+fi
+
+echo "Starting ION nodes..."
+echo ""
+
+# Set ION_NODE_LIST_DIR following bench-ltp pattern
+export ION_NODE_LIST_DIR="$TESTDIR"
+rm -f "$TESTDIR/ion_nodes"
+
+# Start Node 1
+echo "Starting Node 1..."
+cd "$TESTDIR/1.adjacent"
+./ionstart
+sleep 3
+
+# Start Node 2
+echo "Starting Node 2..."
+cd "$TESTDIR/2.adjacent"
+./ionstart
+sleep 3
+
+# Verify both nodes are running
+if ! pgrep -x "rfxclock" > /dev/null; then
+    echo "ERROR: ION nodes did not start. Check configuration."
+    echo ""
+    echo "Node 1 startup log:"
+    cat "$TESTDIR/1.adjacent/ion_startup.log"
+    echo ""
+    echo "Node 2 startup log:"
+    cat "$TESTDIR/2.adjacent/ion_startup.log"
+    exit 1
+fi
+
+echo ""
+echo "Both nodes started successfully."
+echo ""
+
+# Verify contact plan on Node 1
+echo "Node 1 contact plan:"
+cd "$TESTDIR/1.adjacent"
+echo "l contact" | ionadmin 2>&1 | grep -E "contact|^[[:space:]]*[0-9]" || true
+echo ""
+
+# Check for overlap errors
+echo "Checking for overlap errors..."
+if [ -f ion.log ]; then
+    if grep -i "overlap" ion.log; then
+        echo "WARNING: Overlap errors found!"
+    else
+        echo "No overlap errors - adjacent contacts accepted."
+    fi
+fi
+echo ""
+
+# Start bpcounter on Node 2 BEFORE the wait (it will queue bundles)
+echo "Starting bpcounter on Node 2 (expecting ${NUM_BUNDLES} bundles)..."
+cd "$TESTDIR/2.adjacent"
+bpcounter ipn:2.1 ${NUM_BUNDLES} &
+BPCOUNTER_PID=$!
+sleep 2
+
+# Start bpdriver on Node 1 BEFORE the wait (bundles will queue until contact starts)
+echo "Starting bpdriver on Node 1 (sending ${NUM_BUNDLES} bundles at ${SEND_RATE} bps)..."
+cd "$TESTDIR/1.adjacent"
+bpdriver ${NUM_BUNDLES} ipn:1.1 ipn:2.1 -${BUNDLE_SIZE} t300 i${SEND_RATE} &
+BPDRIVER_PID=$!
+
+echo ""
+echo "Waiting for first contact to start (t=10)..."
+sleep 12
+
+echo ""
+echo "Bundle transfer in progress..."
+echo "Waiting for bpcounter to complete (max ${MAX_WAIT} seconds)..."
+echo ""
+
+# Wait for bpcounter to finish or timeout
+START_TIME=$(date +%s)
+while kill -0 $BPCOUNTER_PID 2>/dev/null; do
+    ELAPSED=$(($(date +%s) - START_TIME))
+
+    if [ $ELAPSED -ge $MAX_WAIT ]; then
+        echo ""
+        echo "Reached ${MAX_WAIT} second timeout - stopping test."
+        break
+    fi
+
+    sleep 5
+done
+
+ELAPSED=$(($(date +%s) - START_TIME))
+echo ""
+echo "Test completed after ${ELAPSED} seconds."
+echo ""
+
+# Wait for bpcounter to finish and check its output
+echo "========================================="
+echo "Test Results"
+echo "========================================="
+echo ""
+
+# Wait for bpcounter process to complete
+wait $BPCOUNTER_PID 2>/dev/null
+BPCOUNTER_EXIT=$?
+
+# The success message from bpcounter should be visible in stdout above
+# Format: "Stopping bpcounter; bundles received: <count>"
+# Since bpcounter outputs to stdout, we look for this pattern
+
+echo "Checking for success condition..."
+echo "Expected: bpcounter reports 'Stopping bpcounter; bundles received: ${NUM_BUNDLES}'"
+echo ""
+
+# Check bpcounter exit status (0 = success)
+if [ $BPCOUNTER_EXIT -eq 0 ]; then
+    echo "✓ PASS: bpcounter completed successfully (exit code 0)"
+    echo "        All ${NUM_BUNDLES} bundles were received"
+    TEST_RESULT=0
+else
+    echo "✗ FAIL: bpcounter exited with code ${BPCOUNTER_EXIT}"
+    echo "        Expected to receive ${NUM_BUNDLES} bundles"
+    TEST_RESULT=1
+fi
+
+echo ""
+
+# Check Node 1 ion.log for issues
+cd "$TESTDIR/1.adjacent"
+if [ -f ion.log ]; then
+    echo "Node 1 ion.log issues (if any):"
+    grep -i "error\|warn\|fail" ion.log | tail -10 || echo "  No errors/warnings found"
+fi
+
+echo ""
+
+# Check Node 2 ion.log for issues
+cd "$TESTDIR/2.adjacent"
+if [ -f ion.log ]; then
+    echo "Node 2 ion.log issues (if any):"
+    grep -i "error\|warn\|fail" ion.log | tail -10 || echo "  No errors/warnings found"
+fi
+
+echo ""
+echo "========================================="
+echo ""
+
+if [ $TEST_RESULT -eq 0 ]; then
+    echo "TEST PASSED: Adjacent contact seamless transition verified"
+else
+    echo "TEST FAILED: Check output above for details"
+fi
+
+echo ""
+
+# Cleanup will be handled by trap
+exit $TEST_RESULT

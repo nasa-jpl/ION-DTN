@@ -598,6 +598,69 @@ static void	postCpsNotice(uint32_t regionNbr, time_t fromTime,
 	}
 }
 
+/*	Helper function to find an adjacent contact (exact boundary match).
+ *	Returns the IonCXref if found, NULL otherwise.			*/
+
+static IonCXref	*findAdjacentContact(IonVdb *vdb, uint32_t regionNbr,
+			uvast fromFqnn, uvast toFqnn, time_t fromTime,
+			time_t toTime, int *isPreceding)
+{
+	PsmPartition	ionwm = getIonwm();
+	IonCXref	arg;
+	PsmAddress	cxelt;
+	PsmAddress	nextElt;
+	IonCXref	*cxref;
+
+	*isPreceding = 0;
+
+	/*	Search for a contact that ends exactly when this one begins.	*/
+
+	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.regionNbr = regionNbr;
+	arg.fromFqnn = fromFqnn;
+	arg.toFqnn = toFqnn;
+	arg.fromTime = 0;	/*	Start from beginning.	*/
+
+	for (cxelt = sm_rbt_search(ionwm, vdb->contactIndex,
+			rfx_order_contacts, &arg, &nextElt);
+			cxelt; cxelt = sm_rbt_next(ionwm, cxelt))
+	{
+		cxref = (IonCXref *) psp(ionwm, sm_rbt_data(ionwm, cxelt));
+
+		/*	Only check contacts for the same node pair.	*/
+
+		if (cxref->fromFqnn != fromFqnn || cxref->toFqnn != toFqnn)
+		{
+			continue;
+		}
+
+		/*	Check if existing contact ends when new one begins.	*/
+
+		if (cxref->toTime == fromTime)
+		{
+			*isPreceding = 1;
+			return cxref;
+		}
+
+		/*	Check if existing contact begins when new one ends.	*/
+
+		if (cxref->fromTime == toTime)
+		{
+			*isPreceding = 0;
+			return cxref;
+		}
+
+		/*	If we're past the new contact's time range, stop.	*/
+
+		if (cxref->fromTime > toTime)
+		{
+			break;
+		}
+	}
+
+	return NULL;	/*	No adjacent contact found.	*/
+}
+
 static PsmAddress	insertCXref(IonCXref *cxref)
 {
 	PsmPartition	ionwm = getIonwm();
@@ -664,6 +727,16 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 	sdr_read(getIonsdr(), (char *) &iondb, iondbObj, sizeof(IonDB));
 	if (cxref->type == CtScheduled)
 	{
+		IonCXref	*adjacentContact;
+		int		isPreceding;
+
+		/*	Check for adjacent contacts to avoid temporal
+		 *	reversal when maxClockError is applied.		*/
+
+		adjacentContact = findAdjacentContact(vdb, cxref->regionNbr,
+				cxref->fromFqnn, cxref->toFqnn,
+				cxref->fromTime, cxref->toTime, &isPreceding);
+
 		if (cxref->fromFqnn == getOwnFqnn())
 		{
 			/*	Be a little slow to start transmission,
@@ -671,9 +744,48 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 			 *	that segments arrive only when neighbor
 			 *	is expecting them.			*/
 
-			cxref->startXmit = cxref->fromTime
-					+ iondb.maxClockError;
-			cxref->stopXmit = cxref->toTime - iondb.maxClockError;
+			if (adjacentContact && isPreceding)
+			{
+				/*	This contact starts right after
+				 *	another ends.  Don't add
+				 *	maxClockError to start time to
+				 *	avoid gap at boundary.		*/
+
+				cxref->startXmit = cxref->fromTime;
+#if DEBUG_RFX
+				printf("[RFX] Adjacent contact (follows): "
+					UVAST_FIELDSPEC "->" UVAST_FIELDSPEC
+					" at boundary time=%ld\n",
+					cxref->fromFqnn, cxref->toFqnn,
+					cxref->fromTime);
+#endif
+			}
+			else
+			{
+				cxref->startXmit = cxref->fromTime
+						+ iondb.maxClockError;
+			}
+
+			if (adjacentContact && !isPreceding)
+			{
+				/*	This contact ends right before
+				 *	another starts.  Don't subtract
+				 *	maxClockError from stop time.	*/
+
+				cxref->stopXmit = cxref->toTime;
+#if DEBUG_RFX
+				printf("[RFX] Adjacent contact (precedes): "
+					UVAST_FIELDSPEC "->" UVAST_FIELDSPEC
+					" at boundary time=%ld\n",
+					cxref->fromFqnn, cxref->toFqnn,
+					cxref->toTime);
+#endif
+			}
+			else
+			{
+				cxref->stopXmit = cxref->toTime
+						- iondb.maxClockError;
+			}
 		}
 
 		if (cxref->toFqnn == getOwnFqnn())
@@ -683,9 +795,31 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 			 *	to minimize the chance of premature
 			 *	timeout.				*/
 
-			cxref->startFire = cxref->fromTime
-			      	 	+ iondb.maxClockError;
-			cxref->stopFire = cxref->toTime - iondb.maxClockError;
+			if (adjacentContact && isPreceding)
+			{
+				/*	Adjacent contact: don't add
+				 *	maxClockError to start.		*/
+
+				cxref->startFire = cxref->fromTime;
+			}
+			else
+			{
+				cxref->startFire = cxref->fromTime
+			      	 		+ iondb.maxClockError;
+			}
+
+			if (adjacentContact && !isPreceding)
+			{
+				/*	Adjacent contact: don't subtract
+				 *	maxClockError from stop.	*/
+
+				cxref->stopFire = cxref->toTime;
+			}
+			else
+			{
+				cxref->stopFire = cxref->toTime
+						- iondb.maxClockError;
+			}
 		}
 		else	/*	Not a transmission to the local node.	*/
 		{
@@ -1665,6 +1799,17 @@ hypothetical contact, as that contact is now discovered.");
 		if (cxref->toTime < fromTime)
 		{
 			/*	Prior contact, no overlap.		*/
+
+			cxelt = sm_rbt_next(ionwm, cxelt);
+			continue;
+		}
+
+		/*	Check for exact adjacency (allowed).		*/
+
+		if (cxref->toTime == fromTime || cxref->fromTime == toTime)
+		{
+			/*	Contacts are exactly adjacent, which
+			 *	is permitted.  Not an overlap.		*/
 
 			cxelt = sm_rbt_next(ionwm, cxelt);
 			continue;
