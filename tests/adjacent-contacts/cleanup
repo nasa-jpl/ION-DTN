@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+#
+# Cleanup script for adjacent-contacts test
+# This script removes all test artifacts and kills all ION processes
+#
+# Called by runtests framework:
+#   - Before running the test (to ensure clean state)
+#   - After test passes (always)
+#   - After test fails (unless PRESERVE_TEST_LOGS environment variable is set)
+#
+# Artifacts removed:
+#   - ion_nodes (root test directory)
+#   - *.log files (both node directories)
+#   - bpdriverAduFile (Node 1)
+#   - contact_verification.txt (Node 1)
+#
+
+echo "Cleaning up adjacent-contacts test..."
+
+# Change to test directory
+cd "$(dirname "$0")"
+
+# Kill all ION processes for both nodes
+# Node 1
+if [ -d "1.adjacent" ]; then
+    echo "  Cleaning Node 1..."
+    cd 1.adjacent
+    killm 2>/dev/null || true
+    cd ..
+fi
+
+# Node 2
+if [ -d "2.adjacent" ]; then
+    echo "  Cleaning Node 2..."
+    cd 2.adjacent
+    killm 2>/dev/null || true
+    cd ..
+fi
+
+# Remove test artifacts from the root test directory
+echo "  Removing test artifacts..."
+rm -f ion_nodes
+
+# Remove runtime artifacts from Node 1 directory
+if [ -d "1.adjacent" ]; then
+    rm -f 1.adjacent/ion.log
+    rm -f 1.adjacent/ion_startup.log
+    rm -f 1.adjacent/bpdriver.log
+    rm -f 1.adjacent/bpdriverAduFile
+    rm -f 1.adjacent/contact_verification.txt
+fi
+
+# Remove runtime artifacts from Node 2 directory
+if [ -d "2.adjacent" ]; then
+    rm -f 2.adjacent/ion.log
+    rm -f 2.adjacent/ion_startup.log
+    rm -f 2.adjacent/bpcounter.log
+fi
+
+echo "Cleanup complete."

@@ -1,6 +1,0 @@
-: From  2038/01/19-03:14:07 to  2038/01/19-03:14:07 the xmit rate from node 1 to node 1 is          0 bytes/sec, confidence 1.000000.
-From  2025/10/27-01:46:06 to  2025/10/27-01:46:56 the xmit rate from node 1 to node 2 is    1000000 bytes/sec, confidence 1.000000.
-From  2025/10/27-01:46:56 to  2025/10/27-01:47:46 the xmit rate from node 1 to node 2 is    1000000 bytes/sec, confidence 1.000000.
-From  2025/10/27-01:46:06 to  2025/10/27-01:46:56 the xmit rate from node 2 to node 1 is    1000000 bytes/sec, confidence 1.000000.
-From  2025/10/27-01:46:56 to  2025/10/27-01:47:46 the xmit rate from node 2 to node 1 is    1000000 bytes/sec, confidence 1.000000.
-: Stopping ionadmin.

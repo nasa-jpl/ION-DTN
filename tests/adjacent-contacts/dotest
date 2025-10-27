@@ -6,8 +6,10 @@
 #
 # Based on demos/bench-ltp/dotest pattern
 #
+# Note: Cleanup is handled by the ./cleanup script, which is called by
+#       the runtests framework before/after this test.
 
-# Exit on error
+# Exit on error for most commands (disabled during cleanup sections)
 set -e
 
 # Test configuration
@@ -31,10 +33,10 @@ echo "Note: DEBUG_RFX messages may appear out of order due to interleaving but e
 echo "      Time stamp will provide ground truth on order of operation."
 echo ""
 
-# Function to cleanup on exit
+# Function to cleanup on exit (simplified - detailed cleanup in ./cleanup script)
 cleanup() {
     echo ""
-    echo "Cleaning up..."
+    echo "Stopping test processes..."
 
     # Kill bpdriver and bpcounter if running
     pkill -f "bpdriver" 2>/dev/null || true
@@ -211,5 +213,6 @@ fi
 
 echo ""
 
-# Cleanup will be handled by trap
+# Cleanup will be handled by trap on exit and/or by runtests ./cleanup script
+# Note: If PRESERVE_TEST_LOGS is set, runtests will skip cleanup on failure
 exit $TEST_RESULT

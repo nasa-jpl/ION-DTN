@@ -114,8 +114,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		{
 			char	timebuf[TIMESTAMPBUFSZ];
 			writeTimestampUTC(event->time, timebuf);
-			printf("[RFX] %s IonStopXmit: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC "\n",
-				timebuf, cxref->fromFqnn, cxref->toFqnn);
+			printf("[RFX] Node " UVAST_FIELDSPEC " %s IonStopXmit: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC "\n",
+				getOwnFqnn(), timebuf, cxref->fromFqnn, cxref->toFqnn);
 			fflush(stdout);
 		}
 #endif
@@ -138,8 +138,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		{
 			char	timebuf[TIMESTAMPBUFSZ];
 			writeTimestampUTC(event->time, timebuf);
-			printf("[RFX] %s IonStopFire: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC "\n",
-				timebuf, cxref->fromFqnn, cxref->toFqnn);
+			printf("[RFX] Node " UVAST_FIELDSPEC " %s IonStopFire: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC "\n",
+				getOwnFqnn(), timebuf, cxref->fromFqnn, cxref->toFqnn);
 			fflush(stdout);
 		}
 #endif
@@ -161,8 +161,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		{
 			char	timebuf[TIMESTAMPBUFSZ];
 			writeTimestampUTC(event->time, timebuf);
-			printf("[RFX] %s IonStopRecv: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC "\n",
-				timebuf, cxref->fromFqnn, cxref->toFqnn);
+			printf("[RFX] Node " UVAST_FIELDSPEC " %s IonStopRecv: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC "\n",
+				getOwnFqnn(), timebuf, cxref->fromFqnn, cxref->toFqnn);
 			fflush(stdout);
 		}
 #endif
@@ -210,8 +210,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		{
 			char	timebuf[TIMESTAMPBUFSZ];
 			writeTimestampUTC(event->time, timebuf);
-			printf("[RFX] %s IonStartXmit: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC " rate=%zu\n",
-				timebuf, cxref->fromFqnn, cxref->toFqnn, cxref->xmitRate);
+			printf("[RFX] Node " UVAST_FIELDSPEC " %s IonStartXmit: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC " rate=%zu\n",
+				getOwnFqnn(), timebuf, cxref->fromFqnn, cxref->toFqnn, cxref->xmitRate);
 			fflush(stdout);
 		}
 #endif
@@ -234,8 +234,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		{
 			char	timebuf[TIMESTAMPBUFSZ];
 			writeTimestampUTC(event->time, timebuf);
-			printf("[RFX] %s IonStartFire: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC " rate=%zu\n",
-				timebuf, cxref->fromFqnn, cxref->toFqnn, cxref->xmitRate);
+			printf("[RFX] Node " UVAST_FIELDSPEC " %s IonStartFire: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC " rate=%zu\n",
+				getOwnFqnn(), timebuf, cxref->fromFqnn, cxref->toFqnn, cxref->xmitRate);
 			fflush(stdout);
 		}
 #endif
@@ -391,8 +391,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		{
 			char	timebuf[TIMESTAMPBUFSZ];
 			writeTimestampUTC(event->time, timebuf);
-			printf("[RFX] %s IonStartRecv: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC " rate=%zu\n",
-				timebuf, cxref->fromFqnn, cxref->toFqnn, cxref->xmitRate);
+			printf("[RFX] Node " UVAST_FIELDSPEC " %s IonStartRecv: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC " rate=%zu\n",
+				getOwnFqnn(), timebuf, cxref->fromFqnn, cxref->toFqnn, cxref->xmitRate);
 			fflush(stdout);
 		}
 #endif
@@ -414,9 +414,11 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 #if DEBUG_RFX
 		{
 			char	timebuf[TIMESTAMPBUFSZ];
+			char	startTimebuf[TIMESTAMPBUFSZ];
 			writeTimestampUTC(event->time, timebuf);
-			printf("[RFX] %s IonPurgeContact: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC "\n",
-				timebuf, cxref->fromFqnn, cxref->toFqnn);
+			writeTimestampUTC(cxref->fromTime, startTimebuf);
+			printf("[RFX] Node " UVAST_FIELDSPEC " %s IonPurgeContact: " UVAST_FIELDSPEC "->" UVAST_FIELDSPEC " (started at %s)\n",
+				getOwnFqnn(), timebuf, cxref->fromFqnn, cxref->toFqnn, startTimebuf);
 			fflush(stdout);
 		}
 #endif
