@@ -17,6 +17,10 @@ echo "# Testing started by $0 `date`" > $PROGRESSFILE
 echo "# testing host: `hostname`" >> $PROGRESSFILE
 echo "# testing environment: `uname -a`" >> $PROGRESSFILE
 
+# Preserve test logs by default (can be overridden by setting to empty string)
+# To disable: export PRESERVE_TEST_LOGS=""
+: ${PRESERVE_TEST_LOGS:=1}
+
 # If this environment variable is set, and is an existing directory,
 # then output from each individual tests will go THERE instead
 # of to the screen.  File names are of the form:
