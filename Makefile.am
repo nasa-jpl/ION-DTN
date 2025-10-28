@@ -37,7 +37,11 @@ else
 AM_CFLAGS += -Wall \
 	-fPIC -Werror -Wextra \
 	-Wstrict-prototypes \
-	-pedantic
+	-pedantic \
+	-Wshadow \
+	-Wpointer-arith \
+	-Wcast-qual \
+	-Wcast-align
 
 NO_UNUSED_VARIABLE = -Wno-unused-variable
 endif # end SOLARIS_STUDIO_CC

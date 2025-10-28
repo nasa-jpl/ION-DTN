@@ -1608,7 +1608,7 @@ char *sizeToa(size_t arg)
     return size_str;
 }
 
-static int	clipFileName(const char *qualifiedFileName, char **fileName)
+static int	clipFileName(const char *qualifiedFileName, const char **fileName)
 {
 	int	fileNameLength;
 	int	excessLength;
@@ -1623,7 +1623,7 @@ static int	clipFileName(const char *qualifiedFileName, char **fileName)
 	/*	Clip excessLength bytes off the front of the file
 	 *	name by adding excessLength to the string pointer.	*/
 
-	(*fileName) = ((char *) qualifiedFileName) + excessLength;
+	(*fileName) = (qualifiedFileName) + excessLength;
 	fileNameLength -= excessLength;
 	return fileNameLength;
 }
@@ -1638,7 +1638,7 @@ static int	_errmsgs(int lineNbr, const char *qualifiedFileName,
 	int			msgLength;
 	int			spaceFreed;
 	int			fileNameLength;
-	char			*fileName;
+	const char		*fileName;
 	char			lineNbrBuffer[32];
 	int			spaceAvbl;
 	int			spaceForText;
@@ -2343,7 +2343,7 @@ uvast	htonv(uvast hostvast)
 {
 	static const int	fortyTwo = 42;
 
-	if ((*(char *) &fortyTwo) == 0)	/*	Check first byte.	*/
+	if ((*(const char *) &fortyTwo) == 0)	/*	Check first byte.	*/
 	{
 		/*	Small-endian (network byte order) machine.	*/
 
