@@ -65,11 +65,52 @@ typedef struct {
 #define MAX_SENDER_TRANSACTIONS 50  /* Increased for busy systems */
 static SenderTransaction senderTransactions[MAX_SENDER_TRANSACTIONS];
 static int numSenderTransactions = 0;
+
+/* Transaction tracker for detailed event history and summaries */
+#define MAX_TRACKED_TRANSACTIONS 100
+#define MAX_EVENTS_PER_TRANSACTION 50
+
+typedef struct {
+    time_t timestamp;
+    CfdpEventType type;
+    uvast progress;
+} TrackedEvent;
+
+typedef struct {
+    CfdpTransactionId transactionId;  /* Full ID for uniqueness */
+    time_t startTime;
+    time_t endTime;
+    int isActive;
+    char sourceFileName[256];
+    char destFileName[256];
+    uvast fileSize;
+    int acknowledgedMode;  /* 1 if closureLatency > 0 */
+
+    /* Event history */
+    int eventCount;
+    TrackedEvent events[MAX_EVENTS_PER_TRANSACTION];
+
+    /* Final status */
+    CfdpCondition finalCondition;
+    CfdpDeliveryCode finalDelivery;
+    CfdpFileStatus finalStatus;
+    char outcome[64];  /* "SUCCESS", "TIMEOUT", etc. */
+} TransactionTracker;
+
+static TransactionTracker transactionTrackers[MAX_TRACKED_TRANSACTIONS];
+static int numTrackedTransactions = 0;
+static int verboseMode = 0;
+
 static void	handleQuit(int signum);
 static void	printUsage(void);
 #ifndef NO_DIRLIST
 static void	displayDirListing(const char *filename);
 #endif
+
+/* Forward declarations for helper functions */
+static char *getConditionName(CfdpCondition condition);
+static char *getDeliveryCodeName(CfdpDeliveryCode deliveryCode);
+static char *getFileStatusName(CfdpFileStatus fileStatus);
 
 /* Function to store sender transaction closure info */
 static void storeSenderTransaction(CfdpTransactionId *transId, unsigned int closureLatency)
@@ -134,6 +175,463 @@ static int getSenderClosureLatency(CfdpTransactionId *transId)
         }
     }
     return -1; /* Not found */
+}
+
+/* ========== Transaction Tracking Functions ========== */
+
+/* Compare two transaction IDs using full 16-byte structure */
+static int compareTransactionIds(CfdpTransactionId *id1, CfdpTransactionId *id2)
+{
+    return memcmp(id1, id2, sizeof(CfdpTransactionId));
+}
+
+/* Find transaction index by full transaction ID */
+static int findTransactionIndex(CfdpTransactionId *transactionId)
+{
+    int i;
+    for (i = 0; i < numTrackedTransactions; i++) {
+        if (compareTransactionIds(&transactionTrackers[i].transactionId, transactionId) == 0) {
+            return i;
+        }
+    }
+    return -1;  /* Not found */
+}
+
+/* Clean up old completed transactions (older than 1 hour) */
+static void cleanupOldTransactions(void)
+{
+    time_t now = time(NULL);
+    int i, j;
+
+    for (i = 0; i < numTrackedTransactions; ) {
+        if (!transactionTrackers[i].isActive &&
+            (now - transactionTrackers[i].endTime) > 3600) {
+            /* Remove this transaction by shifting remaining ones down */
+            for (j = i; j < numTrackedTransactions - 1; j++) {
+                memcpy(&transactionTrackers[j], &transactionTrackers[j + 1],
+                       sizeof(TransactionTracker));
+            }
+            numTrackedTransactions--;
+            /* Don't increment i - check same position again */
+        } else {
+            i++;
+        }
+    }
+}
+
+/* Initialize transaction tracker on Event 1 (TransactionInd) */
+static void initTransactionTracker(CfdpTransactionId *transactionId,
+                                   char *sourceFileName,
+                                   char *destFileName,
+                                   uvast fileSize,
+                                   unsigned int closureRequested)
+{
+    int idx;
+
+    /* Check if already exists */
+    idx = findTransactionIndex(transactionId);
+    if (idx >= 0) {
+        /* Already tracking this transaction, just update it */
+        transactionTrackers[idx].startTime = time(NULL);
+        transactionTrackers[idx].isActive = 1;
+        return;
+    }
+
+    /* Clean up old transactions if needed */
+    if (numTrackedTransactions >= MAX_TRACKED_TRANSACTIONS) {
+        cleanupOldTransactions();
+        /* If still full, remove oldest completed transaction */
+        if (numTrackedTransactions >= MAX_TRACKED_TRANSACTIONS) {
+            int oldestIdx = -1;
+            time_t oldestTime = time(NULL);
+            int i;
+            for (i = 0; i < numTrackedTransactions; i++) {
+                if (!transactionTrackers[i].isActive &&
+                    transactionTrackers[i].endTime < oldestTime) {
+                    oldestTime = transactionTrackers[i].endTime;
+                    oldestIdx = i;
+                }
+            }
+            if (oldestIdx >= 0) {
+                /* Remove oldest */
+                int j;
+                for (j = oldestIdx; j < numTrackedTransactions - 1; j++) {
+                    memcpy(&transactionTrackers[j], &transactionTrackers[j + 1],
+                           sizeof(TransactionTracker));
+                }
+                numTrackedTransactions--;
+            }
+        }
+    }
+
+    /* Add new transaction */
+    if (numTrackedTransactions < MAX_TRACKED_TRANSACTIONS) {
+        idx = numTrackedTransactions;
+        memset(&transactionTrackers[idx], 0, sizeof(TransactionTracker));
+        memcpy(&transactionTrackers[idx].transactionId, transactionId,
+               sizeof(CfdpTransactionId));
+        transactionTrackers[idx].startTime = time(NULL);
+        transactionTrackers[idx].isActive = 1;
+        transactionTrackers[idx].acknowledgedMode = (closureRequested > 0) ? 1 : 0;
+        transactionTrackers[idx].fileSize = fileSize;
+
+        if (sourceFileName) {
+            size_t len = strlen(sourceFileName);
+            if (len >= sizeof(transactionTrackers[idx].sourceFileName)) {
+                len = sizeof(transactionTrackers[idx].sourceFileName) - 1;
+            }
+            memcpy(transactionTrackers[idx].sourceFileName, sourceFileName, len);
+            transactionTrackers[idx].sourceFileName[len] = '\0';
+        }
+        if (destFileName) {
+            size_t len = strlen(destFileName);
+            if (len >= sizeof(transactionTrackers[idx].destFileName)) {
+                len = sizeof(transactionTrackers[idx].destFileName) - 1;
+            }
+            memcpy(transactionTrackers[idx].destFileName, destFileName, len);
+            transactionTrackers[idx].destFileName[len] = '\0';
+        }
+
+        numTrackedTransactions++;
+    }
+}
+
+/* Add event to transaction history */
+static void addTransactionEvent(CfdpTransactionId *transactionId,
+                                CfdpEventType eventType,
+                                uvast progress)
+{
+    int idx = findTransactionIndex(transactionId);
+    if (idx < 0) {
+        return;  /* Transaction not found */
+    }
+
+    if (transactionTrackers[idx].eventCount < MAX_EVENTS_PER_TRANSACTION) {
+        int eventIdx = transactionTrackers[idx].eventCount;
+        transactionTrackers[idx].events[eventIdx].timestamp = time(NULL);
+        transactionTrackers[idx].events[eventIdx].type = eventType;
+        transactionTrackers[idx].events[eventIdx].progress = progress;
+        transactionTrackers[idx].eventCount++;
+    }
+}
+
+/* Determine outcome string from status codes */
+static void determineOutcome(char *outcome, int outcomeSize,
+                            CfdpCondition condition,
+                            CfdpDeliveryCode deliveryCode,
+                            CfdpFileStatus fileStatus,
+                            int acknowledgedMode)
+{
+    /* Based on CFDP-SW-Architecture.md */
+    if (condition == CfdpNoError && deliveryCode == CfdpDataComplete &&
+        fileStatus == CfdpFileRetained) {
+        snprintf(outcome, outcomeSize, "SUCCESS");
+    } else if (condition == CfdpNoError && deliveryCode == CfdpDataIncomplete &&
+               fileStatus == CfdpFileStatusUnreported && !acknowledgedMode) {
+        snprintf(outcome, outcomeSize, "NORMAL");
+    } else if (condition == CfdpCheckLimitReached) {
+        snprintf(outcome, outcomeSize, "TIMEOUT");
+    } else if (condition == CfdpChecksumFailure) {
+        snprintf(outcome, outcomeSize, "CHECKSUM FAILURE");
+    } else if (condition == CfdpCancelRequested) {
+        snprintf(outcome, outcomeSize, "CANCELLED");
+    } else if (condition == CfdpNoError && fileStatus == CfdpFileDiscarded) {
+        snprintf(outcome, outcomeSize, "DISCARDED");
+    } else if (deliveryCode == CfdpDataIncomplete) {
+        snprintf(outcome, outcomeSize, "INCOMPLETE");
+    } else {
+        snprintf(outcome, outcomeSize, "UNKNOWN");
+    }
+}
+
+/* Finalize transaction on Events 3 (Finished) or 11 (Abandoned) */
+static void finalizeTransaction(CfdpTransactionId *transactionId,
+                                CfdpCondition condition,
+                                CfdpDeliveryCode deliveryCode,
+                                CfdpFileStatus fileStatus)
+{
+    int idx = findTransactionIndex(transactionId);
+    if (idx < 0) {
+        return;  /* Transaction not found */
+    }
+
+    transactionTrackers[idx].endTime = time(NULL);
+    transactionTrackers[idx].isActive = 0;
+    transactionTrackers[idx].finalCondition = condition;
+    transactionTrackers[idx].finalDelivery = deliveryCode;
+    transactionTrackers[idx].finalStatus = fileStatus;
+
+    determineOutcome(transactionTrackers[idx].outcome,
+                     sizeof(transactionTrackers[idx].outcome),
+                     condition, deliveryCode, fileStatus,
+                     transactionTrackers[idx].acknowledgedMode);
+}
+
+/* Format duration in seconds to HH:MM:SS */
+static void formatDuration(time_t seconds, char *buffer, int bufferSize)
+{
+    int hours = seconds / 3600;
+    int minutes = (seconds % 3600) / 60;
+    int secs = seconds % 60;
+    snprintf(buffer, bufferSize, "%02d:%02d:%02d", hours, minutes, secs);
+}
+
+/* Format timestamp to HH:MM:SS.mmm */
+static void formatTimestamp(time_t timestamp, char *buffer, int bufferSize)
+{
+    struct tm *tm_info = localtime(&timestamp);
+    snprintf(buffer, bufferSize, "%04d-%02d-%02d %02d:%02d:%02d",
+             tm_info->tm_year + 1900, tm_info->tm_mon + 1, tm_info->tm_mday,
+             tm_info->tm_hour, tm_info->tm_min, tm_info->tm_sec);
+}
+
+/* Print detailed summary for a single transaction */
+static void printTransactionSummary(CfdpTransactionId *transactionId)
+{
+    int idx = findTransactionIndex(transactionId);
+    uvast srcEntity, txnNbr;
+    char timeStr[64];
+    char durationStr[32];
+    int i;
+
+    if (idx < 0) {
+        PUTS("Transaction not found in tracker.");
+        fflush(stdout);
+        return;
+    }
+
+    cfdp_decompress_number(&srcEntity, &transactionId->sourceEntityNbr);
+    cfdp_decompress_number(&txnNbr, &transactionId->transactionNbr);
+
+    PUTS("=== TRANSACTION SUMMARY ===");
+    PUTS_FMT("Transaction: " UVAST_FIELDSPEC "." UVAST_FIELDSPEC, srcEntity, txnNbr);
+
+    if (transactionTrackers[idx].sourceFileName[0] || transactionTrackers[idx].destFileName[0]) {
+        PUTS_FMT("File: %s -> %s",
+                 transactionTrackers[idx].sourceFileName[0] ? transactionTrackers[idx].sourceFileName : "(unknown)",
+                 transactionTrackers[idx].destFileName[0] ? transactionTrackers[idx].destFileName : "(unknown)");
+    }
+
+    formatTimestamp(transactionTrackers[idx].startTime, timeStr, sizeof(timeStr));
+    PUTS_FMT("Start Time: %s", timeStr);
+
+    if (!transactionTrackers[idx].isActive) {
+        formatTimestamp(transactionTrackers[idx].endTime, timeStr, sizeof(timeStr));
+        PUTS_FMT("End Time: %s", timeStr);
+
+        time_t duration = transactionTrackers[idx].endTime - transactionTrackers[idx].startTime;
+        formatDuration(duration, durationStr, sizeof(durationStr));
+        PUTS_FMT("Duration: %s", durationStr);
+    } else {
+        time_t duration = time(NULL) - transactionTrackers[idx].startTime;
+        formatDuration(duration, durationStr, sizeof(durationStr));
+        PUTS_FMT("Duration (so far): %s", durationStr);
+    }
+
+    PUTS_FMT("Mode: %s", transactionTrackers[idx].acknowledgedMode ? "Acknowledged" : "Unacknowledged");
+
+    if (transactionTrackers[idx].fileSize > 0) {
+        PUTS_FMT("File Size: " UVAST_FIELDSPEC " bytes", transactionTrackers[idx].fileSize);
+    }
+
+    PUTS("");
+    PUTS("Event History:");
+
+    for (i = 0; i < transactionTrackers[idx].eventCount; i++) {
+        TrackedEvent *ev = &transactionTrackers[idx].events[i];
+        formatTimestamp(ev->timestamp, timeStr, sizeof(timeStr));
+
+        if (ev->type >= 0 && ev->type <= 11) {
+            PUTS_FMT("  %s - Event %d: %s (" UVAST_FIELDSPEC " bytes)",
+                     timeStr, ev->type, eventTypes[ev->type], ev->progress);
+        } else {
+            PUTS_FMT("  %s - Event %d: unknown (" UVAST_FIELDSPEC " bytes)",
+                     timeStr, ev->type, ev->progress);
+        }
+    }
+
+    if (!transactionTrackers[idx].isActive) {
+        PUTS("");
+        PUTS("Final Status:");
+        PUTS_FMT("  Condition: %s (%d)", getConditionName(transactionTrackers[idx].finalCondition),
+                 transactionTrackers[idx].finalCondition);
+        PUTS_FMT("  Delivery: %s (%d)", getDeliveryCodeName(transactionTrackers[idx].finalDelivery),
+                 transactionTrackers[idx].finalDelivery);
+        PUTS_FMT("  File Status: %s (%d)", getFileStatusName(transactionTrackers[idx].finalStatus),
+                 transactionTrackers[idx].finalStatus);
+        PUTS_FMT("  OUTCOME: %s", transactionTrackers[idx].outcome);
+    }
+
+    PUTS("===========================");
+    fflush(stdout);
+}
+
+/* Print summary table of all tracked transactions */
+static void printAllTransactionsSummary(void)
+{
+    char timeStr[64];
+    char durationStr[32];
+    uvast srcEntity, txnNbr;
+    int i;
+    int activeCount = 0;
+    int completedCount = 0;
+    int failedCount = 0;
+    int successCount = 0;
+    uvast totalBytes = 0;
+    time_t totalDuration = 0;
+
+    PUTS("");
+    PUTS("=== ALL TRANSACTIONS SUMMARY ===");
+    formatTimestamp(time(NULL), timeStr, sizeof(timeStr));
+    PUTS_FMT("Current Time: %s", timeStr);
+    PUTS("");
+
+    /* Count and categorize */
+    for (i = 0; i < numTrackedTransactions; i++) {
+        if (transactionTrackers[i].isActive) {
+            activeCount++;
+        } else {
+            if (strcmp(transactionTrackers[i].outcome, "SUCCESS") == 0 ||
+                strcmp(transactionTrackers[i].outcome, "NORMAL") == 0) {
+                completedCount++;
+                successCount++;
+            } else {
+                failedCount++;
+            }
+            totalDuration += (transactionTrackers[i].endTime - transactionTrackers[i].startTime);
+            if (transactionTrackers[i].eventCount > 0) {
+                totalBytes += transactionTrackers[i].events[transactionTrackers[i].eventCount - 1].progress;
+            }
+        }
+    }
+
+    /* Display active transactions */
+    if (activeCount > 0) {
+        PUTS_FMT("Active Transactions (%d):", activeCount);
+        PUTS_FMT("%-20s %-7s %-25s %-15s %-15s",
+                 "Transaction", "Mode", "File", "Started", "Progress");
+        PUTS("--------------------------------------------------------------------------------");
+
+        for (i = 0; i < numTrackedTransactions; i++) {
+            if (!transactionTrackers[i].isActive) continue;
+
+            cfdp_decompress_number(&srcEntity, &transactionTrackers[i].transactionId.sourceEntityNbr);
+            cfdp_decompress_number(&txnNbr, &transactionTrackers[i].transactionId.transactionNbr);
+
+            formatTimestamp(transactionTrackers[i].startTime, timeStr, sizeof(timeStr));
+
+            uvast currentProgress = 0;
+            if (transactionTrackers[i].eventCount > 0) {
+                currentProgress = transactionTrackers[i].events[transactionTrackers[i].eventCount - 1].progress;
+            }
+
+            char fileDisplay[26];
+            if (transactionTrackers[i].sourceFileName[0]) {
+                snprintf(fileDisplay, sizeof(fileDisplay), "%.25s", transactionTrackers[i].sourceFileName);
+            } else {
+                snprintf(fileDisplay, sizeof(fileDisplay), "(unknown)");
+            }
+
+            PUTS_FMT(UVAST_FIELDSPEC "." UVAST_FIELDSPEC " %-7s %-25s %s " UVAST_FIELDSPEC "/" UVAST_FIELDSPEC,
+                     srcEntity, txnNbr,
+                     transactionTrackers[i].acknowledgedMode ? "Ack" : "Unack",
+                     fileDisplay,
+                     timeStr + 11,  /* Just time part */
+                     currentProgress, transactionTrackers[i].fileSize);
+        }
+        PUTS("");
+    }
+
+    /* Display completed transactions */
+    if (completedCount > 0) {
+        PUTS_FMT("Completed Transactions (%d):", completedCount);
+        PUTS_FMT("%-20s %-7s %-25s %-12s %-12s %s",
+                 "Transaction", "Mode", "File", "Completed", "Duration", "Outcome");
+        PUTS("--------------------------------------------------------------------------------");
+
+        for (i = 0; i < numTrackedTransactions; i++) {
+            if (transactionTrackers[i].isActive) continue;
+            if (strcmp(transactionTrackers[i].outcome, "SUCCESS") != 0 &&
+                strcmp(transactionTrackers[i].outcome, "NORMAL") != 0) continue;
+
+            cfdp_decompress_number(&srcEntity, &transactionTrackers[i].transactionId.sourceEntityNbr);
+            cfdp_decompress_number(&txnNbr, &transactionTrackers[i].transactionId.transactionNbr);
+
+            formatTimestamp(transactionTrackers[i].endTime, timeStr, sizeof(timeStr));
+            formatDuration(transactionTrackers[i].endTime - transactionTrackers[i].startTime,
+                          durationStr, sizeof(durationStr));
+
+            char fileDisplay[26];
+            if (transactionTrackers[i].sourceFileName[0]) {
+                snprintf(fileDisplay, sizeof(fileDisplay), "%.25s", transactionTrackers[i].sourceFileName);
+            } else {
+                snprintf(fileDisplay, sizeof(fileDisplay), "(unknown)");
+            }
+
+            PUTS_FMT(UVAST_FIELDSPEC "." UVAST_FIELDSPEC " %-7s %-25s %s %s %s",
+                     srcEntity, txnNbr,
+                     transactionTrackers[i].acknowledgedMode ? "Ack" : "Unack",
+                     fileDisplay,
+                     timeStr + 11,  /* Just time part */
+                     durationStr,
+                     transactionTrackers[i].outcome);
+        }
+        PUTS("");
+    }
+
+    /* Display failed transactions */
+    if (failedCount > 0) {
+        PUTS_FMT("Failed/Abandoned Transactions (%d):", failedCount);
+        PUTS_FMT("%-20s %-7s %-25s %-12s %-12s %s",
+                 "Transaction", "Mode", "File", "Failed", "Duration", "Reason");
+        PUTS("--------------------------------------------------------------------------------");
+
+        for (i = 0; i < numTrackedTransactions; i++) {
+            if (transactionTrackers[i].isActive) continue;
+            if (strcmp(transactionTrackers[i].outcome, "SUCCESS") == 0 ||
+                strcmp(transactionTrackers[i].outcome, "NORMAL") == 0) continue;
+
+            cfdp_decompress_number(&srcEntity, &transactionTrackers[i].transactionId.sourceEntityNbr);
+            cfdp_decompress_number(&txnNbr, &transactionTrackers[i].transactionId.transactionNbr);
+
+            formatTimestamp(transactionTrackers[i].endTime, timeStr, sizeof(timeStr));
+            formatDuration(transactionTrackers[i].endTime - transactionTrackers[i].startTime,
+                          durationStr, sizeof(durationStr));
+
+            char fileDisplay[26];
+            if (transactionTrackers[i].sourceFileName[0]) {
+                snprintf(fileDisplay, sizeof(fileDisplay), "%.25s", transactionTrackers[i].sourceFileName);
+            } else {
+                snprintf(fileDisplay, sizeof(fileDisplay), "(unknown)");
+            }
+
+            PUTS_FMT(UVAST_FIELDSPEC "." UVAST_FIELDSPEC " %-7s %-25s %s %s %s",
+                     srcEntity, txnNbr,
+                     transactionTrackers[i].acknowledgedMode ? "Ack" : "Unack",
+                     fileDisplay,
+                     timeStr + 11,  /* Just time part */
+                     durationStr,
+                     transactionTrackers[i].outcome);
+        }
+        PUTS("");
+    }
+
+    /* Summary statistics */
+    PUTS("Summary Statistics:");
+    PUTS_FMT("  Total Transactions: %d", numTrackedTransactions);
+    PUTS_FMT("  Active: %d", activeCount);
+    PUTS_FMT("  Successful: %d", successCount);
+    PUTS_FMT("  Failed: %d", failedCount);
+    PUTS_FMT("  Total Bytes Transferred: " UVAST_FIELDSPEC, totalBytes);
+
+    if (completedCount + failedCount > 0) {
+        time_t avgDuration = totalDuration / (completedCount + failedCount);
+        formatDuration(avgDuration, durationStr, sizeof(durationStr));
+        PUTS_FMT("  Average Duration: %s", durationStr);
+    }
+
+    PUTS("================================");
+    fflush(stdout);
 }
 
 /* Helper function to get state name */
@@ -345,8 +843,8 @@ static char *getFileStatusName(CfdpFileStatus fileStatus)
     }
 }
 
-static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf, 
-                           CfdpCondition condition, CfdpDeliveryCode deliveryCode, 
+static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
+                           CfdpCondition condition, CfdpDeliveryCode deliveryCode,
                            CfdpFileStatus fileStatus, uvast progress,
                            CfdpTransactionId *transactionId,
                            unsigned int closureRequested, char *destFileNameBuf)
@@ -355,27 +853,32 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
     char *ackMode;
     int isReliableAckMode = 0;  /* Flag to indicate if we have reliable ack mode info */
 
-	/* Parameter intentionally unused. */
-	(void)destFileNameBuf;
-
 	/* DEBUG: Show what CFDP engine is actually providing
     cfdp_decompress_number(&srcEntityNbr, &transactionId->sourceEntityNbr);
     cfdp_decompress_number(&txnNbr, &transactionId->transactionNbr);
-    printf("[DEBUG] Event %d for " UVAST_FIELDSPEC "." UVAST_FIELDSPEC 
+    printf("[DEBUG] Event %d for " UVAST_FIELDSPEC "." UVAST_FIELDSPEC
            ": progress=" UVAST_FIELDSPEC ", closureRequested=%u\n",
            type, srcEntityNbr, txnNbr, progress, closureRequested);
 	*/
-    
+
     /* Handle special cases */
-    if (type < 0) {	
+    if (type < 0) {
         PUTS("CFDP Event: CFDP access had ended.");
 		fflush(stdout);
         return;
     }
-    
+
     if (type == CfdpNoEvent) {
         return;  /* Skip NoEvent - just an interrupt signal */
     }
+
+    /* Transaction tracking - Event 1: Initialize tracker */
+    if (type == CfdpTransactionInd) {
+        initTransactionTracker(transactionId, NULL, destFileNameBuf, 0, closureRequested);
+    }
+
+    /* Transaction tracking - Record all events */
+    addTransactionEvent(transactionId, type, progress);
     
     /* Decompress transaction ID */
     cfdp_decompress_number(&srcEntityNbr, &transactionId->sourceEntityNbr);
@@ -450,19 +953,19 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
                 } else if (condition == CfdpNoError && deliveryCode == 1 && fileStatus == 3) {
                     PUTS(" COMPLETED: Unacknowledged mode (status unknown)");
                 } else {
-                    PUTS(" FAILED: Check conditions above");
+                    PUTS(" Check condition codes above");
                 }
             }
 			fflush(stdout);
             break;
-            
+
         case CfdpReportInd:             // Display report detail
             PUTS_FMT("Condition: %s (%d)", getConditionName(condition), condition);
             if (statusReportBuf && strlen(statusReportBuf) > 0) {
                 PUTS_FMT("Report Details: %s", statusReportBuf);
             }
             break;
-            
+
         default:
             /* Unknown event type - show condition if there's an error */
             if (condition != CfdpNoError) {
@@ -470,14 +973,23 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
             }
             break;
     }
-    
+
     /* Always show progress for meaningful events */
     PUTS_FMT("Progress: " UVAST_FIELDSPEC " bytes", progress);
     PUTS("==================");
 	fflush(stdout);
-    
-    /* Clean up completed transactions to prevent memory buildup */
+
+    /* Transaction tracking - Finalize on completion */
     if (type == CfdpTransactionFinishedInd || type == CfdpAbandonedInd) {
+        finalizeTransaction(transactionId, condition, deliveryCode, fileStatus);
+
+        /* Show transaction summary if verbose mode is enabled */
+        if (verboseMode) {
+            PUTS("");
+            printTransactionSummary(transactionId);
+        }
+
+        /* Clean up completed sender transactions to prevent memory buildup */
         cleanupCompletedTransaction(transactionId);
     }
 }
@@ -510,8 +1022,12 @@ static void	printUsage(void)
 	PUTS("\tq\tQuit");
 	PUTS("\th\tHelp");
 	PUTS("\t?\tHelp");
-	PUTS("\tv\tView all active transactions with state");
+	PUTS("\tv\tToggle verbose mode (shows transaction summary on completion)");
 	PUTS("\t   v");
+	PUTS("\ts\tShow summary of all tracked transactions");
+	PUTS("\t   s");
+	PUTS("\tw\tView all active transactions with state (from CFDP engine)");
+	PUTS("\t   w");
 	PUTS("\tz\tPause before processing next command. (For test scripts.)");
 	PUTS("\t   z <number of seconds to pause>");
 	PUTS("\td\tSet destination entity number");
@@ -1075,6 +1591,23 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 			return 0;
 
 		case 'v':
+			/* Toggle verbose mode */
+			verboseMode = !verboseMode;
+			if (verboseMode) {
+				PUTS("Verbose mode enabled - will show transaction summaries on completion");
+			} else {
+				PUTS("Verbose mode disabled");
+			}
+			fflush(stdout);
+			return 0;
+
+		case 's':
+			/* Show all transactions summary */
+			printAllTransactionsSummary();
+			return 0;
+
+		case 'w':
+			/* View active transactions from CFDP engine */
 			listTransactions();
 			return 0;
 
@@ -1626,8 +2159,34 @@ int	cfdptest(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 #else
 int	main(int argc, char **argv)
 {
-	char		*cmdFileName = argc > 1 ? argv[1] : NULL;
-	int		interactive = (argc == 1);
+	char		*cmdFileName = NULL;
+	int		interactive = 1;
+	int		i;
+
+	/* Parse command-line arguments */
+	for (i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0) {
+			verboseMode = 1;
+		} else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+			printf("Usage: cfdptest [-v|--verbose] [-h|--help] [script_file]\n");
+			printf("  -v, --verbose   Enable verbose mode (show transaction summaries)\n");
+			printf("  -h, --help      Show this help message\n");
+			printf("  script_file     Run commands from script file instead of interactive mode\n");
+			printf("\nEnvironment variables:\n");
+			printf("  CFDP_EVENT_DETAIL=1   Enable verbose mode\n");
+			return 0;
+		} else {
+			cmdFileName = argv[i];
+			interactive = 0;
+		}
+	}
+
+	/* Check environment variable for verbose mode */
+	if (getenv("CFDP_EVENT_DETAIL") != NULL) {
+		if (strcmp(getenv("CFDP_EVENT_DETAIL"), "1") == 0) {
+			verboseMode = 1;
+		}
+	}
 #endif
 	int		retval=0;
 	CfdpReqParms	parms;
