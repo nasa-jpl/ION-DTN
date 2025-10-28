@@ -244,10 +244,12 @@ The following is a list (non-exhaustive) of CFDP events and state information av
 
 ---
 
-### **Event 3: CfdpTransactionFinishedInd (Transaction Finished)** 
+### **Event 3: CfdpTransactionFinishedInd (Transaction Finished)**
 **Occurs:** When transaction completes (most important event for diagnostics)
 
-#### **Acknowledged Mode (closureLatency > 0):**
+#### **Closure-Requested Mode (closureLatency > 0):**
+
+When closure latency is non-zero, the sender waits for a Finished PDU from the receiver. The transaction completes when the Finished PDU is received within the closure latency period, or when the closure latency timeout occurs.
 
 | Condition | DeliveryCode | FileStatus | Meaning |
 |-----------|--------------|------------|---------|
@@ -260,6 +262,8 @@ The following is a list (non-exhaustive) of CFDP events and state information av
 
 #### **Unacknowledged Mode (closureLatency = 0):**
 
+When closure latency is zero, the sender does not wait for acknowledgment. The transaction completes immediately after EOF is sent.
+
 | Condition | DeliveryCode | FileStatus | Meaning |
 |-----------|--------------|------------|---------|
 | **0** (NoError) | **1** (Incomplete) | **3** (Unreported) | **NORMAL (sender side)** - File sent successfully, no confirmation expected at sender side |
@@ -267,6 +271,8 @@ The following is a list (non-exhaustive) of CFDP events and state information av
 | **15** (CancelRequested) | **1** (Incomplete) | **3** (Unreported) | ❌ User cancelled transaction |
 
 **Key Insight:** Only `condition=0` + `deliveryCode=0` + `fileStatus=2` means guaranteed success!
+
+**Terminology Note:** Both modes operate within CFDP Class 1 (Unacknowledged) service class per the CFDP Blue Book. The "closure-requested" terminology refers to ION's optional closure latency feature that adds acknowledgment behavior within the unacknowledged service class. This should not be confused with CFDP Class 2 (Acknowledged) service, which ION does not implement.
 
 ---
 
@@ -399,3 +405,121 @@ The following is a list (non-exhaustive) of CFDP events and state information av
 | **1** | CfdpFileRejected | File delivery was rejected |
 | **2** | CfdpFileRetained | File successfully stored |
 | **3** | CfdpFileStatusUnreported | Status unknown/not available |
+
+---
+
+# cfdptest Utility Enhancements
+
+## Transaction Tracking and Summary Display
+
+The `cfdptest` utility provides enhanced transaction tracking with detailed event history and outcome determination.
+
+### New Commands
+
+- **`v`** - Toggle verbose mode. When enabled, automatically displays detailed transaction summary upon completion.
+
+- **`s [transactionId]`** - Show transaction summary
+  - Without arguments: displays summary table of all tracked transactions
+  - With transaction ID (e.g., `s 1.5`): displays detailed event history and status for specific transaction
+
+- **`w`** - View active transactions from CFDP engine (replaces old `v` command)
+
+### Transaction Summary Display
+
+When verbose mode is enabled or when using `s <transactionId>`, cfdptest shows detailed transaction information including:
+
+- Transaction ID, file names, start/end times, duration
+- Mode: Closure-Requested or Unacknowledged
+- Complete event history with timestamps
+- Final outcome: SUCCESS, TIMEOUT, CHECKSUM FAILURE, CANCELLED, etc.
+
+**Example:**
+```
+=== TRANSACTION SUMMARY ===
+Transaction: 1.5
+File: testfile.txt -> /remote/path/testfile.txt
+Start Time: 2025-10-27 14:23:40
+End Time: 2025-10-27 14:23:45
+Duration: 00:00:05
+Mode: Closure-Requested
+File Size: 1024 bytes
+
+Event History:
+  2025-10-27 14:23:40 - Event 1: Transaction started (0 bytes)
+  2025-10-27 14:23:41 - Event 2: EOF sent (1024 bytes)
+  2025-10-27 14:23:45 - Event 3: Transaction finished (1024 bytes)
+
+Final Status:
+  Condition: NoError (0)
+  Delivery: Complete (0)
+  File Status: Retained (2)
+  OUTCOME: SUCCESS
+===========================
+```
+
+### All Transactions Summary Table
+
+The `s` command without arguments displays a summary table of all tracked transactions:
+
+```
+=== ALL TRANSACTIONS SUMMARY ===
+Current Time: 2025-10-28 08:48:43
+
+Completed Transactions (1):
+Transaction          Mode      File                      Completed    Duration     Outcome
+----------------------------------------------------------------------------------------
+1.1                  ClosReq   testfile.txt              08:46:21     00:00:05     SUCCESS
+
+Summary Statistics:
+  Total Transactions: 1
+  Active: 0
+  Successful: 1
+  Failed: 0
+  Total Bytes Transferred: 1024
+  Average Duration: 00:00:05
+================================
+```
+
+### Filestore Response Display
+
+Filestore responses now show labeled action and status codes:
+```
+FilestoreResp action=1 status=0 'testfile20' '' ''
+```
+
+Where:
+- **action**: Filestore action code (0=CreateFile, 1=DeleteFile, 2=RenameFile, etc.)
+- **status**: Status code per CFDP Table 5-18 (0=Successful, 1-15=various errors)
+
+### Transaction Tracking Features
+
+- Tracks up to 100 simultaneous transactions
+- Stores up to 50 events per transaction
+- Uses full 16-byte Transaction ID for uniqueness (prevents collisions)
+- Automatic cleanup of old completed transactions (>1 hour)
+- Handles transaction number wraparound and entity reboots
+
+### Command-Line Options
+
+```bash
+# Start cfdptest in verbose mode
+cfdptest -v
+
+# Or use environment variable
+CFDP_EVENT_DETAIL=1 cfdptest
+
+# Interactive mode (default)
+cfdptest
+
+# Scripted mode
+cfdptest script.txt
+```
+
+### Terminology Update (2025-10-28)
+
+Updated terminology throughout codebase and documentation to align with CFDP specification:
+
+**OLD:** "Acknowledged mode" / "Unacknowledged mode"
+**NEW:** "Closure-Requested mode" / "Unacknowledged mode"
+
+The term "closure-requested" more accurately describes the behavior where the sender requests and waits for closure confirmation (Finished PDU) from the receiver via the closure latency parameter. This avoids confusion with CFDP Class 2 (Acknowledged) service, which ION does not implement.

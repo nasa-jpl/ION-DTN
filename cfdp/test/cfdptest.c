@@ -84,7 +84,7 @@ typedef struct {
     char sourceFileName[256];
     char destFileName[256];
     uvast fileSize;
-    int acknowledgedMode;  /* 1 if closureLatency > 0 */
+    int closureRequested;  /* 1 if closureLatency > 0 */
 
     /* Event history */
     int eventCount;
@@ -266,13 +266,23 @@ static void initTransactionTracker(CfdpTransactionId *transactionId,
 
     /* Add new transaction */
     if (numTrackedTransactions < MAX_TRACKED_TRANSACTIONS) {
+        int senderClosureLatency;
         idx = numTrackedTransactions;
         memset(&transactionTrackers[idx], 0, sizeof(TransactionTracker));
         memcpy(&transactionTrackers[idx].transactionId, transactionId,
                sizeof(CfdpTransactionId));
         transactionTrackers[idx].startTime = time(NULL);
         transactionTrackers[idx].isActive = 1;
-        transactionTrackers[idx].acknowledgedMode = (closureRequested > 0) ? 1 : 0;
+
+        /* Try to get sender closure info first (more reliable for locally-initiated transactions) */
+        senderClosureLatency = getSenderClosureLatency(transactionId);
+        if (senderClosureLatency >= 0) {
+            transactionTrackers[idx].closureRequested = (senderClosureLatency > 0) ? 1 : 0;
+        } else {
+            /* Fall back to closureRequested parameter from event */
+            transactionTrackers[idx].closureRequested = (closureRequested > 0) ? 1 : 0;
+        }
+
         transactionTrackers[idx].fileSize = fileSize;
 
         if (sourceFileName) {
@@ -302,8 +312,16 @@ static void addTransactionEvent(CfdpTransactionId *transactionId,
                                 uvast progress)
 {
     int idx = findTransactionIndex(transactionId);
+    int senderClosureLatency;
+
     if (idx < 0) {
         return;  /* Transaction not found */
+    }
+
+    /* Update closureRequested if sender info becomes available */
+    senderClosureLatency = getSenderClosureLatency(transactionId);
+    if (senderClosureLatency >= 0) {
+        transactionTrackers[idx].closureRequested = (senderClosureLatency > 0) ? 1 : 0;
     }
 
     if (transactionTrackers[idx].eventCount < MAX_EVENTS_PER_TRANSACTION) {
@@ -364,7 +382,7 @@ static void finalizeTransaction(CfdpTransactionId *transactionId,
     determineOutcome(transactionTrackers[idx].outcome,
                      sizeof(transactionTrackers[idx].outcome),
                      condition, deliveryCode, fileStatus,
-                     transactionTrackers[idx].acknowledgedMode);
+                     transactionTrackers[idx].closureRequested);
 }
 
 /* Format duration in seconds to HH:MM:SS */
@@ -428,7 +446,7 @@ static void printTransactionSummary(CfdpTransactionId *transactionId)
         PUTS_FMT("Duration (so far): %s", durationStr);
     }
 
-    PUTS_FMT("Mode: %s", transactionTrackers[idx].acknowledgedMode ? "Acknowledged" : "Unacknowledged");
+    PUTS_FMT("Mode: %s", transactionTrackers[idx].closureRequested ? "Closure-Requested" : "Unacknowledged");
 
     if (transactionTrackers[idx].fileSize > 0) {
         PUTS_FMT("File Size: " UVAST_FIELDSPEC " bytes", transactionTrackers[idx].fileSize);
@@ -508,7 +526,7 @@ static void printAllTransactionsSummary(void)
     /* Display active transactions */
     if (activeCount > 0) {
         PUTS_FMT("Active Transactions (%d):", activeCount);
-        PUTS_FMT("%-20s %-7s %-25s %-15s %-15s",
+        PUTS_FMT("%-20s %-7s %-25s %-12s %-20s",
                  "Transaction", "Mode", "File", "Started", "Progress");
         PUTS("--------------------------------------------------------------------------------");
 
@@ -526,18 +544,27 @@ static void printAllTransactionsSummary(void)
             }
 
             char fileDisplay[26];
+            char transIdStr[21];
+            char modeStr[8];
+            char progressStr[21];
+
             if (transactionTrackers[i].sourceFileName[0]) {
                 snprintf(fileDisplay, sizeof(fileDisplay), "%.25s", transactionTrackers[i].sourceFileName);
             } else {
                 snprintf(fileDisplay, sizeof(fileDisplay), "(unknown)");
             }
 
-            PUTS_FMT(UVAST_FIELDSPEC "." UVAST_FIELDSPEC " %-7s %-25s %s " UVAST_FIELDSPEC "/" UVAST_FIELDSPEC,
-                     srcEntity, txnNbr,
-                     transactionTrackers[i].acknowledgedMode ? "Ack" : "Unack",
-                     fileDisplay,
-                     timeStr + 11,  /* Just time part */
+            snprintf(transIdStr, sizeof(transIdStr), UVAST_FIELDSPEC "." UVAST_FIELDSPEC,
+                     srcEntity, txnNbr);
+            snprintf(modeStr, sizeof(modeStr), "%s",
+                     transactionTrackers[i].closureRequested ? "ClosReq" : "Unack");
+            snprintf(progressStr, sizeof(progressStr), UVAST_FIELDSPEC "/" UVAST_FIELDSPEC,
                      currentProgress, transactionTrackers[i].fileSize);
+
+            PUTS_FMT("%-20s %-7s %-25s %-12s %-20s",
+                     transIdStr, modeStr, fileDisplay,
+                     timeStr + 11,  /* Just time part */
+                     progressStr);
         }
         PUTS("");
     }
@@ -562,16 +589,22 @@ static void printAllTransactionsSummary(void)
                           durationStr, sizeof(durationStr));
 
             char fileDisplay[26];
+            char transIdStr[21];
+            char modeStr[8];
+
             if (transactionTrackers[i].sourceFileName[0]) {
                 snprintf(fileDisplay, sizeof(fileDisplay), "%.25s", transactionTrackers[i].sourceFileName);
             } else {
                 snprintf(fileDisplay, sizeof(fileDisplay), "(unknown)");
             }
 
-            PUTS_FMT(UVAST_FIELDSPEC "." UVAST_FIELDSPEC " %-7s %-25s %s %s %s",
-                     srcEntity, txnNbr,
-                     transactionTrackers[i].acknowledgedMode ? "Ack" : "Unack",
-                     fileDisplay,
+            snprintf(transIdStr, sizeof(transIdStr), UVAST_FIELDSPEC "." UVAST_FIELDSPEC,
+                     srcEntity, txnNbr);
+            snprintf(modeStr, sizeof(modeStr), "%s",
+                     transactionTrackers[i].closureRequested ? "ClosReq" : "Unack");
+
+            PUTS_FMT("%-20s %-7s %-25s %-12s %-12s %s",
+                     transIdStr, modeStr, fileDisplay,
                      timeStr + 11,  /* Just time part */
                      durationStr,
                      transactionTrackers[i].outcome);
@@ -599,16 +632,22 @@ static void printAllTransactionsSummary(void)
                           durationStr, sizeof(durationStr));
 
             char fileDisplay[26];
+            char transIdStr[21];
+            char modeStr[8];
+
             if (transactionTrackers[i].sourceFileName[0]) {
                 snprintf(fileDisplay, sizeof(fileDisplay), "%.25s", transactionTrackers[i].sourceFileName);
             } else {
                 snprintf(fileDisplay, sizeof(fileDisplay), "(unknown)");
             }
 
-            PUTS_FMT(UVAST_FIELDSPEC "." UVAST_FIELDSPEC " %-7s %-25s %s %s %s",
-                     srcEntity, txnNbr,
-                     transactionTrackers[i].acknowledgedMode ? "Ack" : "Unack",
-                     fileDisplay,
+            snprintf(transIdStr, sizeof(transIdStr), UVAST_FIELDSPEC "." UVAST_FIELDSPEC,
+                     srcEntity, txnNbr);
+            snprintf(modeStr, sizeof(modeStr), "%s",
+                     transactionTrackers[i].closureRequested ? "ClosReq" : "Unack");
+
+            PUTS_FMT("%-20s %-7s %-25s %-12s %-12s %s",
+                     transIdStr, modeStr, fileDisplay,
                      timeStr + 11,  /* Just time part */
                      durationStr,
                      transactionTrackers[i].outcome);
@@ -884,21 +923,21 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
     cfdp_decompress_number(&srcEntityNbr, &transactionId->sourceEntityNbr);
     cfdp_decompress_number(&txnNbr, &transactionId->transactionNbr);
     
-    /* Determine acknowledge mode with enhanced reliability */
+    /* Determine closure mode with enhanced reliability */
     if (type == CfdpMetadataRecvInd) {
         /* MOST RELIABLE: Receiver side during metadata reception */
-        ackMode = closureRequested ? "Acknowledged" : "Unacknowledged";
+        ackMode = closureRequested ? "Closure-requested" : "Unacknowledged";
         isReliableAckMode = 1;
     } else {
         /* For other events, try to get stored sender closure info first */
         int senderClosureLatency = getSenderClosureLatency(transactionId);
         if (senderClosureLatency >= 0) {
             /* We have definitive sender closure info */
-            ackMode = (senderClosureLatency > 0) ? "Acknowledged" : "Unacknowledged";
+            ackMode = (senderClosureLatency > 0) ? "Closure-requested" : "Unacknowledged";
             isReliableAckMode = 1;
         } else {
             /* Fall back to API parameter */
-            ackMode = closureRequested ? "Acknowledged" : "Unacknowledged";
+            ackMode = closureRequested ? "Closure-requested" : "Unacknowledged";
             isReliableAckMode = 0;
         }
     }
@@ -1024,8 +1063,8 @@ static void	printUsage(void)
 	PUTS("\t?\tHelp");
 	PUTS("\tv\tToggle verbose mode (shows transaction summary on completion)");
 	PUTS("\t   v");
-	PUTS("\ts\tShow summary of all tracked transactions");
-	PUTS("\t   s");
+	PUTS("\ts\tShow summary of all tracked transactions, or specific transaction");
+	PUTS("\t   s [sourceEntity.transactionNbr]");
 	PUTS("\tw\tView all active transactions with state (from CFDP engine)");
 	PUTS("\t   w");
 	PUTS("\tz\tPause before processing next command. (For test scripts.)");
@@ -1602,8 +1641,21 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 			return 0;
 
 		case 's':
-			/* Show all transactions summary */
-			printAllTransactionsSummary();
+			/* Show all transactions summary or specific transaction */
+			if (tokenCount == 1) {
+				/* No arguments - show all transactions summary */
+				printAllTransactionsSummary();
+			} else if (tokenCount == 2) {
+				/* Transaction ID provided - show detailed summary */
+				CfdpTransactionId targetId;
+				if (parseTransactionId(tokens[1], &targetId) < 0) {
+					return 0;
+				}
+				printTransactionSummary(&targetId);
+			} else {
+				PUTS("Usage: s [sourceEntity.transactionNbr]");
+				fflush(stdout);
+			}
 			return 0;
 
 		case 'w':
@@ -2078,7 +2130,7 @@ static void	*handleEvents(void *parm)
 
 			if (action != ((CfdpAction) -1))
 			{
-				PUTS_FMT("\tResponse %d %d '%s' '%s' '%s'",
+				PUTS_FMT("\tFilestoreResp action=%d status=%d '%s' '%s' '%s'",
 						action, status, firstPathName,
 						secondPathName, msgBuf);
 			}

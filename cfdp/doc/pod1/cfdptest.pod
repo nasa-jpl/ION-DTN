@@ -25,6 +25,33 @@ If no file is specified, B<cfdptest> instead offers the user an interactive
 stdout, accepts strings of text from stdin, and interprets each string as
 a command.
 
+=head2 Transaction Modes
+
+B<cfdptest> supports two transaction modes:
+
+=over 4
+
+=item B<Unacknowledged mode> (closure latency = 0)
+
+The sender does not wait for a Finished PDU from the receiver. The transaction
+completes immediately after EOF is sent. Status is "Unreported" since the
+sender doesn't know if the receiver successfully received the file.
+
+=item B<Closure-requested mode> (closure latency > 0)
+
+The sender waits for a Finished PDU acknowledgment from the receiver within
+the specified closure latency period. The transaction completes only after
+receiving the Finished PDU (or timing out). Status indicates actual delivery
+success.
+
+=back
+
+Note: Both modes operate within CFDP Class 1 (Unacknowledged) service class
+as defined in the CFDP Blue Book. The closure latency parameter adds an
+acknowledgment mechanism within that class.
+
+=head1 COMMANDS
+
 The supported B<cfdptest> commands (whether interactive or scripted) are as
 follows:
 
@@ -41,10 +68,22 @@ An alternate form of the B<help> command.
 
 =item B<v>
 
-The B<view transactions> command. This command lists all active CFDP transactions
-(both outbound and inbound) with their current state (Active, Suspended, or
-Canceled), progress (bytes transferred / total file size), and associated filenames.
-This is useful for monitoring multiple concurrent file transfers.
+The B<toggle verbose mode> command. When enabled, automatically displays detailed
+transaction summary upon completion, including event history and final outcome.
+
+=item B<s> [<sourceEntity.transactionNbr>]
+
+The B<show summary> command. Without arguments, displays a summary table of all
+tracked transactions. With a transaction ID (e.g., s 1.5), displays detailed
+event history and status for that specific transaction.
+
+=item B<w>
+
+The B<view active transactions> command. This command lists all active CFDP
+transactions (both outbound and inbound) with their current state (Active,
+Suspended, or Canceled), progress (bytes transferred / total file size), and
+associated filenames. This is useful for monitoring multiple concurrent file
+transfers.
 
 =item B<z> [<number of seconds to pause>]
 
@@ -287,8 +326,8 @@ file exists with the same filename as specified in the B<t> command, the
 delivered file is stored as a temporary file typically name B<cfdp.x.y> where
 B<x.y> is the transaction number. 
 
-For acknowledged mode, e.g., non-zero closure latency, this will lead to 
-failure on the receiving side due to timeout, which is controlled by the B<maxtimeouts> 
+For closure-requested mode (non-zero closure latency), this will lead to
+failure on the receiving side due to timeout, which is controlled by the B<maxtimeouts>
 and the B<ckperiod> configuration parameter in the .cfdprc configuration file.
 The sender side will not receive a CFDP FINISHED PDU, even if the file transfer
 has completed without error. The temporary file could contain a complete file 
