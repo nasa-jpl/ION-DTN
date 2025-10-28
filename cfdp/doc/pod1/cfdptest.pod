@@ -165,6 +165,11 @@ insertion, while a value of 0 disables it.
 
 =item B<g> <srrflags>
 
+B<NOTE: This command is a prototype in progress and is NOT YET FUNCTIONAL.>
+While it sets BP status report request flags that are passed to bundles,
+CFDP does not currently process received status reports. This feature is
+under development for a future release.
+
 The B<srrflags> command.  This command establishes the BP status reporting
 that will be requested for all subsequently issued bundles containing
 CFDP PDUs.  I<srrflags> must be a status reporting flags string as defined
