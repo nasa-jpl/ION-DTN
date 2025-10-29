@@ -554,4 +554,5 @@ demos/bss-multicast/4.ipn.bss/bssDB.tbl
 demos/bss-multicast/4.ipn.bss/node4.stdout
 tests/cfdpv1/1.ipn.ltp/receivedFile
 tests/cfdpv1/2.ipn.ltp/receivedFile
+iontermlog
 tests/semaphore-deferred-deletion/dotest
