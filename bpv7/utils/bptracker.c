@@ -725,6 +725,7 @@ int checkBundleStatus(BundleTracker *tracker)
         /* Detect transmission completion */
         if (wasInAnyQueue && !nowInAnyQueue && tbundle.status == BUNDLE_PENDING) {
             printf("Bundle %d transmission completed (with queue status)\n", tbundle.bundleId);
+            printf("\n> ");
             fflush(stdout);
             
             printDBG(2, "About to update bundle %d status to TRANSMITTED\n", tbundle.bundleId);
@@ -899,7 +900,7 @@ void* inputHandler(void* arg)
         } else if (strcmp(input, "h") == 0 || strcmp(input, "help") == 0) {
             printf("\nAvailable commands:\n");
             printf("  config [param] [value]   - Configure or show settings\n");
-            printf("  send <dest> <size>       - Send bundle to destination\n");
+            printf("  send [<dest>] <size>     - Send bundle (dest optional, uses config default)\n");
             printf("  reports [bundle_id]      - Show status report statistics\n");
             printf("  q, quit                  - Quit program\n");
             printf("  s, status                - Show current status\n");
@@ -1011,9 +1012,33 @@ static int cmdConfig(BundleTracker *tracker, char *args)
 	else if (strcmp(param, "srr") == 0)
 	{
 		unsigned int flags = 0;
+		int isHex = 0;
 
-		/* Try parsing as hex first */
-		if (sscanf(value, "%x", &flags) == 1)
+		/* Check if it's a hex number (starts with 0x or is all hex digits without text flag chars) */
+		if (strncmp(value, "0x", 2) == 0 || strncmp(value, "0X", 2) == 0)
+		{
+			isHex = 1;
+		}
+		else
+		{
+			/* Check if it contains comma or known flag names - if so, it's text */
+			if (strchr(value, ',') != NULL ||
+			    strstr(value, "rcv") != NULL ||
+			    strstr(value, "fwd") != NULL ||
+			    strstr(value, "dlv") != NULL ||
+			    strstr(value, "del") != NULL)
+			{
+				isHex = 0;
+			}
+			else
+			{
+				/* Try parsing as hex only if it doesn't contain flag keywords */
+				isHex = 1;
+			}
+		}
+
+		/* Try parsing as hex first if determined to be hex format */
+		if (isHex && sscanf(value, "%x", &flags) == 1)
 		{
 			tracker->srrFlags = (unsigned char)flags;
 			printf("Status report request flags set to: 0x%02x\n", tracker->srrFlags);
@@ -1135,12 +1160,31 @@ static int cmdSend(BundleTracker *tracker, char *args)
 	Object adu;
 	int parsed;
 
-	/* Parse destination and size */
+	/* Try parsing with both destination and size first */
 	parsed = sscanf(args, "%255s %d", destEid, &payloadSize);
-	if (parsed != 2)
+
+	if (parsed == 1)
 	{
-		printf("Usage: send <dest_eid> <payload_size>\n");
-		printf("Example: send ipn:2.1 1024\n");
+		/* Only one argument - assume it's the payload size, use default destination */
+		payloadSize = atoi(destEid);  /* destEid actually contains the size */
+
+		if (tracker->destEid[0] == '\0')
+		{
+			printf("ERROR: No destination specified and no default destination configured\n");
+			printf("Usage: send <dest_eid> <payload_size>  OR  send <payload_size> (uses config dest)\n");
+			printf("Example: send ipn:2.1 1024  OR  config dest ipn:2.1; send 1024\n");
+			fflush(stdout);
+			return -1;
+		}
+
+		/* Use configured default destination */
+		strncpy(destEid, tracker->destEid, sizeof(destEid) - 1);
+		destEid[sizeof(destEid) - 1] = '\0';
+	}
+	else if (parsed != 2)
+	{
+		printf("Usage: send <dest_eid> <payload_size>  OR  send <payload_size> (uses config dest)\n");
+		printf("Example: send ipn:2.1 1024  OR  config dest ipn:2.1; send 1024\n");
 		fflush(stdout);
 		return -1;
 	}
@@ -1328,7 +1372,7 @@ void printUsage(char *progName)
     printf("    srr <flags>           Set status report request flags (hex)\n");
     printf("    ttl <seconds>         Set default time-to-live\n");
     printf("    priority <0-2>        Set priority (0=bulk, 1=standard, 2=expedited)\n");
-    printf("  send <dest> <size>      Send bundle to destination with payload size\n");
+    printf("  send [<dest>] <size>    Send bundle (dest optional, overrides config default)\n");
     printf("  list                    List all tracked bundles\n");
     printf("  reports [bundle_id]     Show status report statistics\n");
     printf("  quit                    Exit the program\n");

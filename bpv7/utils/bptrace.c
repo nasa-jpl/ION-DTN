@@ -506,6 +506,205 @@ static int	handleStatusRpt(BpDelivery *dlv, unsigned char *cursor,
 	return bundleDeath;
 }
 
+static int run_listen_bptrace(char *listenEid)
+{
+	signal(SIGABRT, sighandler);
+	signal(SIGINT, sighandler);
+	reports = (statusReport **)malloc(sizeof(statusReport)*128);
+
+	printDBG(1, "running listen-only mode\n");
+
+	Sdr sdr;
+	BpDelivery dlv;
+	vast		recordLen;
+	ZcoReader	reader;
+	vast		bytesToParse;
+	unsigned char	headerBuf[10];
+	unsigned char	*cursor;
+	unsigned int	unparsedBytes;
+	vast		headerLen;
+	int		adminRecType;
+	unsigned int	buflen;
+	unsigned char	*buffer;
+	uvast		uvtemp;
+
+	int rpt_rval = 0;
+
+	if (bp_attach() < 0)
+	{
+		printf("Can't attach to BP.\n");
+		return 0;
+	}
+
+	if(bp_open(listenEid, &state.sap) < 0){
+		printf("can't open endpoint %s\n", listenEid);
+		return -1;
+	}
+	oK(_bptestState(&state));
+	sdr = bp_get_sdr();
+
+	printf("Listening for status reports on %s (Ctrl+C to stop)...\n", listenEid);
+	fflush(stdout);
+
+	/* Listen indefinitely until interrupted or 128 reports received */
+	while(state.running && n_rpts < 128){
+		if (bp_receive(state.sap, &dlv, BP_NONBLOCKING) < 0)
+		{
+			printf("Bundle reception failed, continuing\n");
+			continue;
+		}
+
+		switch (dlv.result)
+		{
+			case BpPayloadPresent:
+				printDBG(1, "received packet with payload\n");
+				break;
+			case BpEndpointStopped:
+				printf("endpoint has been stopped\n");
+				state.running = 0;
+				/*	Intentional fall-through to default.	*/
+			default:
+				continue;
+		}
+
+		/* only accept admin bundles */
+		if (dlv.adminRecord == 0)
+		{
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		/*	Read and strip off the admin record header	*/
+		printDBG(2, "checking sdr and pulling admin header...\n");
+		CHKERR(sdr_begin_xn(sdr));
+
+		recordLen = zco_source_data_length(sdr, dlv.adu);
+		printDBG(2, "data length: " UVAST_FIELDSPEC "\n", recordLen);
+		zco_start_receiving(dlv.adu, &reader);
+		bytesToParse = zco_receive_source(sdr, &reader, 10,
+				(char *) headerBuf);
+		if (bytesToParse < 2)
+		{
+			printf("Can't receive admin record header.\n");
+			oK(sdr_end_xn(sdr));
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		cursor = headerBuf;
+		unparsedBytes = bytesToParse;
+		uvtemp = 2;	/*	Decode array of size 2.		*/
+		if (cbor_decode_array_open(&uvtemp, &cursor, &unparsedBytes) < 1)
+		{
+			printf("Can't decode admin record array.\n");
+			oK(sdr_end_xn(sdr));
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
+					&unparsedBytes) < 1)
+		{
+			printf("Can't decode admin record type.\n");
+			oK(sdr_end_xn(sdr));
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		adminRecType = uvtemp;
+
+		/*	Now strip off the admin record header, leaving
+		 *	just the admin record content.			*/
+
+		headerLen = cursor - headerBuf;
+		zco_delimit_source(sdr, dlv.adu, headerLen,
+				recordLen - headerLen);
+		zco_strip(sdr, dlv.adu);
+		if (sdr_end_xn(sdr) < 0)
+		{
+			printf("Can't strip admin record.\n");
+			oK(sdr_exit_xn(sdr));
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		/* Ignore admin bundles other than status reports */
+		if (adminRecType != BP_STATUS_REPORT)
+		{
+			printDBG(2, "Ignoring admin record type %d.\n",
+					adminRecType);
+			bp_release_delivery(&dlv, 0);
+			continue;
+		}
+
+		/*	Read the entire admin record into memory buffer.	*/
+		printDBG(1, "Received admin bundle...\n");
+		CHKERR(sdr_begin_xn(sdr));
+		buflen = zco_source_data_length(sdr, dlv.adu);
+
+		if ((buffer = MTAKE(buflen)) == NULL)
+		{
+			printf("Can't handle admin record.\n");
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		zco_start_receiving(dlv.adu, &reader);
+		bytesToParse = zco_receive_source(sdr, &reader, buflen,
+				(char *) buffer);
+		if (bytesToParse < 0)
+		{
+			printf("Can't receive admin record.\n");
+			MRELEASE(buffer);
+			oK(sdr_end_xn(sdr));
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		oK(sdr_end_xn(sdr));
+
+		cursor = buffer;
+		unparsedBytes = bytesToParse;
+
+		printDBG(1, "handling status report...\n");
+		reports[n_rpts] = malloc(sizeof(*reports[n_rpts]));
+		printDBG(3, "report pointer after malloc: %p\n", (void *)reports[n_rpts]);
+		rpt_rval = handleStatusRpt(&dlv, cursor, unparsedBytes, reports[n_rpts]);
+		printDBG(3, "\n"UVAST_FIELDSPEC"\n", reports[n_rpts]->creationTime);
+
+		/* Print the report immediately (real-time display) */
+		if (rpt_rval >= 0)
+		{
+			print(reports[n_rpts]);
+			fflush(stdout);
+		}
+		else
+		{
+			printf("Status report handler failed.\n");
+		}
+
+		/* Free the report immediately since we already printed it */
+		freeStatusReport(reports[n_rpts]);
+		reports[n_rpts] = NULL;
+
+		n_rpts++;
+		printDBG(2, "report handler returned %d\n", rpt_rval);
+		MRELEASE(buffer);
+		bp_release_delivery(&dlv, 1);
+	}
+
+	if (n_rpts >= 128)
+	{
+		printf("\nReport limit (128) reached. Exiting.\n");
+	}
+
+	/* Cleanup */
+	free(reports);
+	bp_close(state.sap);
+	bp_detach();
+	return 0;
+}
+
 static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 			int ttl, char *classOfService, char *trace, char *flagString, int rtt){
 	signal(SIGABRT, sighandler); // ensure that quit and interrupt signals still output trace as of that moment.
@@ -715,8 +914,10 @@ usage(
     va_end(ap);
 
 	fprintf(stderr, "usage: %s [-v] [-msg <msg>] [-ttl <ttl>] [-rtt <rtt>] [-qos <qos>] [-flags <flags>] <srcEid> <destEid> <traceEid>\n", progname);
+	fprintf(stderr, "listen mode usage: %s -listen [-v] <listenEid>\n", progname);
 	fprintf(stderr,"legacy usage: %s <own EID> <destination EID> <report-to EID> <time to live (seconds)> <quality of service> '<trace text>' [<status report flag string>]\n", progname);
 	fprintf(stderr, "-v        \tChanges debug level, +1 per 'v' supplied. (e.g. -vv -> debug=2)\n");
+	fprintf(stderr, "-listen   \tListen-only mode: receive and display status reports without sending bundles\n");
 	fprintf(stderr, "-msg <msg>  \tSpecifies message to send in data of trace bundle.\n");
 	fprintf(stderr, "-ttl <ttl>  \tInteger number of seconds after which bundle should expire. Default: 10\n");
 	fprintf(stderr, "-rtt <rtt>  \tInteger number of seconds to wait for status reports. Default: 2 * ttl\n");
@@ -741,15 +942,38 @@ int	main(int argc, char **argv)
 	int	ttl = 0;
 	int rtt = -1;
 	char	*classOfService = NULL;
-	char	*trace = NULL; 
+	char	*trace = NULL;
 	char	*flagString = NULL;
+	int	listenOnly = 0;
 
 	int parsemode = 1;
-	if (argc < 4)
-		usage(argv[0], "too few arguments.");
-	
 	int i = 1;
-	for (i=1; i < (argc -3); ++i)
+
+	/* Do a first pass to check for -listen flag */
+	for (i=1; i < argc; ++i)
+	{
+		if (strcmp(argv[i], "-listen") == 0)
+		{
+			listenOnly = 1;
+			break;
+		}
+	}
+
+	/* Validate argument count based on mode */
+	if (listenOnly)
+	{
+		if (argc < 2)
+			usage(argv[0], "too few arguments for listen mode.");
+	}
+	else
+	{
+		if (argc < 4)
+			usage(argv[0], "too few arguments.");
+	}
+
+	i = 1;
+	int minArgs = listenOnly ? 1 : 3;
+	for (i=1; i < (argc - minArgs); ++i)
 	{
 		if (*argv[i] == '-') {
 			if (strcmp(argv[i],"-ttl") == 0) {
@@ -777,6 +1001,10 @@ int	main(int argc, char **argv)
 				flagString = argv[++i];
 				continue;	/* iterate back to for (i=1... loop */
 	    	}
+			else if (strcmp(argv[i],"-listen") == 0) {
+				listenOnly = 1;
+				continue;	/* iterate back to for (i=1... loop */
+	    	}
 			else if (strcmp(argv[i],"-h") == 0) {
 				usage(argv[0], "");
 	    	}
@@ -795,9 +1023,20 @@ int	main(int argc, char **argv)
 			break;
 		}
 	}
-	ownEid = argv[i];
-	destEid = argv[++i];
-	traceEid = argv[++i];
+
+	/* Parse positional arguments based on mode */
+	if (listenOnly)
+	{
+		traceEid = argv[i];
+		ownEid = traceEid;
+		destEid = NULL;
+	}
+	else
+	{
+		ownEid = argv[i];
+		destEid = argv[++i];
+		traceEid = argv[++i];
+	}
 
 	if(!parsemode){
 		if(argc != 7 && argc != 8){
@@ -818,13 +1057,27 @@ int	main(int argc, char **argv)
 		trace = "No message supplied.";
 	if(!ttl)
 		ttl = 10;
-	if(!(ownEid && destEid && traceEid)){
-		usage(argv[0], "insufficient arguments.");
+
+	/* Validate required arguments based on mode */
+	if (listenOnly)
+	{
+		if (!traceEid)
+		{
+			usage(argv[0], "listen mode requires listenEid.");
+		}
+	}
+	else
+	{
+		if(!(ownEid && destEid && traceEid))
+		{
+			usage(argv[0], "insufficient arguments.");
+		}
 	}
 
 	printDBG(2, "Legacy parsing: %s\n", (!parsemode) ?"on":"off");
+	printDBG(2, "Listen-only mode: %s\n", listenOnly ? "yes" : "no");
 	printDBG(2, "Own EID: '%s'\n", ownEid);
-	printDBG(2, "Dest EID: '%s'\n", destEid);
+	printDBG(2, "Dest EID: '%s'\n", destEid ? destEid : "(none)");
 	printDBG(2, "report EID: '%s'\n", traceEid);
 	printDBG(2, "ttl: '%d'\n", ttl);
 	if (parsemode) printDBG(2, "rtt: '%d'\n", rtt);
@@ -833,6 +1086,13 @@ int	main(int argc, char **argv)
 	printDBG(2, "Flags: '%s'\n", flagString ? flagString : "");
 	printDBG(2, "Debug: '%d'\n", BPTRACE_DEBUG);
 
+	/* Handle listen-only mode */
+	if (listenOnly)
+	{
+		return run_listen_bptrace(traceEid);
+	}
+
+	/* Normal mode routing */
 	char* traceEid_num = strchr(traceEid, ':')+1;
 	char* traceEid_dot = strchr(traceEid, '.')+1;
 	char* ownEid_num = strchr(ownEid, ':')+1;
@@ -843,7 +1103,7 @@ int	main(int argc, char **argv)
 	if(strncmp(traceEid_num, ownEid_num, traceEid_dot - traceEid_num) == 0 &&
 		strcmp(traceEid_dot, "0") != 0){
 		// run terminal interface version if report endpoint is on this node and is not the admin endpoint.
-		return run_terminal_bptrace(ownEid, destEid, traceEid, ttl, classOfService, trace, flagString, rtt);		
+		return run_terminal_bptrace(ownEid, destEid, traceEid, ttl, classOfService, trace, flagString, rtt);
 	}else{
 		return run_bptrace(ownEid, destEid, traceEid, ttl, classOfService, trace, flagString);
 	}

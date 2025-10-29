@@ -4,37 +4,24 @@ bptracker - ION Bundle Protocol transmission tracker and management utility with
 
 =head1 SYNOPSIS
 
-B<bptracker> [B<-v>] [B<-vv>] [B<-vvv>] [B<-h>] I<source_eid> I<dest_eid> I<payload_size> I<num_bundles>
+B<bptracker> [B<-v>] [B<-vv>] [B<-vvv>] [B<-h>] I<source_eid> [I<dest_eid>]
 
 =head1 DESCRIPTION
 
-B<bptracker> is an interactive Bundle Protocol utility that sends multiple bundles
-with detention enabled and provides real-time tracking and management capabilities
-with enhanced queue status monitoring. It allows users to monitor detailed bundle
-transmission status, suspend and resume bundle transmission, and manually release
-bundles from detention while providing comprehensive debugging output.
+B<bptracker> is an interactive Bundle Protocol utility that provides real-time
+bundle tracking and management with Bundle Protocol status report support. It
+operates in a fully interactive mode where users can configure transmission
+parameters, send individual bundles, and monitor bundle status through the
+Bundle Protocol status report mechanism.
 
-The utility creates bundles with test payload data and tracks them through their
-complete lifecycle from creation to transmission completion. All bundles are sent
-with detention enabled, meaning they remain in local storage until explicitly
-released, allowing for detailed inspection and control.
+The utility opens a source endpoint with detention enabled, allowing detailed
+tracking of sent bundles. Users can configure status report request flags and
+specify a report-to endpoint to receive Bundle Protocol status reports for
+transmitted bundles.
 
-B<bptracker> operates in two phases:
-
-=over 4
-
-=item *
-
-B<Bundle Creation and Transmission>: Creates the specified number of bundles with
-test payloads and sends them to the destination endpoint with enhanced tracking
-that monitors ION internal queue status.
-
-=item *
-
-B<Interactive Monitoring>: Provides an interactive command interface for real-time
-bundle management and detailed status monitoring with queue-level visibility.
-
-=back
+B<Note>: To receive and display status reports, use B<bptrace> in listen-only
+mode (B<bptrace -listen> I<reportEid>) on the same or different terminal. Status
+report reception directly in bptracker is planned for a future release.
 
 =head1 OPTIONS
 
@@ -65,28 +52,69 @@ Display usage information and exit.
 =item I<source_eid>
 
 Source endpoint identifier (e.g., ipn:1.1). Must be a valid EID that the local
-node can open as a source endpoint.
+node can open as a source endpoint. Required.
 
 =item I<dest_eid>
 
-Destination endpoint identifier (e.g., ipn:2.1). Target endpoint for bundle transmission.
-
-=item I<payload_size>
-
-Size of bundle payload in bytes. Must be between 1 and 65536 bytes. Each bundle
-will contain a test pattern payload of this size.
-
-=item I<num_bundles>
-
-Number of bundles to send. Each bundle receives a sequential ID starting from 1.
+Optional default destination endpoint identifier (e.g., ipn:2.1). If provided,
+this sets the default destination that can be used for convenience. Individual
+B<send> commands can override this by specifying a different destination.
 
 =back
 
 =head1 INTERACTIVE COMMANDS
 
-Once bundles are sent, B<bptracker> enters interactive mode with the following commands:
+B<bptracker> provides a fully interactive command interface immediately upon startup:
 
 =over 4
+
+=item B<config> [I<param>] [I<value>]
+
+Configure transmission parameters or show current configuration. When called without
+arguments, displays all current settings. Configuration parameters:
+
+=over 8
+
+=item B<dest> I<eid>
+
+Set default destination endpoint. The B<send> command can override this on a per-bundle
+basis. Example: config dest ipn:2.1
+
+=item B<report> I<eid>
+
+Set the report-to endpoint where Bundle Protocol status reports will be sent.
+Example: config report ipn:1.2
+
+=item B<srr> I<flags>
+
+Set status report request flags. Can be specified as hex (e.g., 0f) or comma-separated
+text flags: rcv (received), fwd (forwarded), dlv (delivered), del (deleted).
+Example: config srr rcv,dlv  or  config srr 0f
+
+=item B<ttl> I<seconds>
+
+Set default time-to-live in seconds. Example: config ttl 300
+
+=item B<priority> I<0-2>
+
+Set default priority: 0=bulk, 1=standard, 2=expedited. Example: config priority 1
+
+=back
+
+=item B<send> [I<dest_eid>] I<payload_size>
+
+Send a bundle with the given payload size (1-65536 bytes). The destination can be
+specified explicitly or omitted to use the default destination set via B<config dest>.
+If provided, the destination parameter overrides the configured default. Uses current
+configuration for status report flags, report-to endpoint, TTL, and priority.
+
+Examples:
+  send ipn:2.1 1024    (explicit destination)
+  send 1024            (uses configured default destination)
+
+=item B<reports> [I<bundle_id>]
+
+Show status report statistics (not yet implemented - use B<bptrace -listen> to view reports).
 
 =item B<q>, B<quit>
 

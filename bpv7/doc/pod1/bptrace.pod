@@ -6,6 +6,9 @@ Updated from original by Silas Springer - March 2023.
 =head1 SYNOPSIS
 
 B<bptrace> [-v] [-msg "I<msg>"] [-ttl I<ttl>] [-rtt I<rtt>] [-qos I<qos>] [-flags I<flags>] I<srcEid> I<destEid> I<traceEid>
+
+B<bptrace> -listen [-v] I<listenEid>
+
 Backwards compatible with legacy usage:
 B<bptrace> I<srcEid> I<destEid> I<traceEid> I<ttl> I<qos> "I<msg>" [I<flags>]
 
@@ -16,6 +19,13 @@ destination endpoint, with status reporting options enabled as selected
 by the user, then terminates.  The status reports returned as the bundle
 makes its way through the network provide a view of the operation of the
 network as currently configured.
+
+B<Listen-only mode:> When invoked with the B<-listen> flag, B<bptrace> opens
+the specified endpoint and displays bundle status reports as they arrive, without
+sending any trace bundles. This mode is useful for monitoring status reports from
+bundles sent by other applications. The program will continue listening until
+interrupted (Ctrl+C) or until 128 reports have been received. Status reports are
+displayed in real-time as they arrive.
 
 I<ttl> indicates the number of seconds the trace bundle may remain in the
 network, undelivered, before it is automatically destroyed.
@@ -45,9 +55,15 @@ I<flags> must be a sequence of status report flags, separated
 by commas, with no embedded whitespace.  Each status report flag must be one
 of the following: rcv, fwd, dlv, del.
 
-When I<traceEid> is the same node as I<srcEid> but with a differing, non-zero ID 
+B<-listen> runs bptrace in listen-only mode. In this mode, only I<listenEid> is
+required. B<bptrace> will open the endpoint and display status reports as they
+arrive in real-time, without sending any bundles. The B<-v> flag can be used
+for verbose debug output. The program listens indefinitely until interrupted
+(Ctrl+C) or until 128 reports have been received.
+
+When I<traceEid> is the same node as I<srcEid> but with a differing, non-zero ID
 (e.g. I<srcEid> is 2.2 and I<traceEid> is 2.3) and the arguments are not specified
-using the legacy format; bptrace will listen on the specified I<traceEid> and give 
+using the legacy format; bptrace will listen on the specified I<traceEid> and give
 a summary of recieved trace information to the terminal once the ttl has expired.
 
 =head1 EXIT STATUS
