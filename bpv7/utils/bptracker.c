@@ -38,24 +38,116 @@ typedef struct {
     int         isDetained;         /* Boolean: bundle is detained */
     
     time_t      transmitTime;       /* When transmission completed */
+
+    /* Bundle Protocol status report tracking */
+    int         receivedReportCount;     /* Number of "received" reports */
+    int         forwardedReportCount;    /* Number of "forwarded" reports */
+    int         deliveredReportCount;    /* Number of "delivered" reports */
+    int         deletedReportCount;      /* Number of "deleted" reports */
+    time_t      lastReportTime;          /* Time of most recent status report */
+    char        lastReportNode[64];      /* EID of node that sent last report */
+    char        deletionReason[128];     /* If deleted, why */
 } TrackedBundle;
 
 typedef struct {
-    BpSAP       sap;               /* Bundle Protocol SAP */
+    BpSAP       sap;               /* Bundle Protocol SAP for sending */
+    BpSAP       reportSap;         /* SAP for receiving status reports */
     Object      trackedBundles;    /* SDR list of TrackedBundle objects */
     int         totalSent;         /* Total bundles sent */
     int         totalTransmitted;  /* Total bundles transmitted (not released) */
     int         totalCompleted;    /* Total bundles manually released */
-    char        destEid[64];       /* Target destination EID */
+
+    /* Configuration */
+    char        sourceEid[64];     /* Source endpoint */
+    char        destEid[64];       /* Default destination (can be overridden per send) */
+    char        reportToEid[64];   /* Where status reports are sent */
+    unsigned char srrFlags;        /* Status report request flags */
+    int         defaultTTL;        /* Default time-to-live */
+    int         defaultPriority;   /* Default priority */
+
+    /* Status report statistics */
+    int         totalReportsReceived;
+    int         totalBundlesWithReports;
 } BundleTracker;
 
 static volatile int g_quit = 0;
+
+/*	Forward declarations	*/
+static void initializeConfig(BundleTracker *tracker, char *sourceEid, char *destEid);
+static void showConfig(BundleTracker *tracker);
+static int cmdConfig(BundleTracker *tracker, char *args);
+static int cmdSend(BundleTracker *tracker, char *args);
 
 void signalHandler(int sig)
 {
     printf("\nReceived signal %d. Shutting down...\n", sig);
     fflush(stdout);
     g_quit = 1;
+}
+
+/*	Helper functions for status reports	*/
+
+__attribute__((unused))
+static char* getReasonCodeText(unsigned char reasonCode)
+{
+	switch (reasonCode)
+	{
+	case 0:
+		return "No additional information";
+	case 1:
+		return "Lifetime expired";
+	case 2:
+		return "Forwarded over unidirectional link";
+	case 3:
+		return "Transmission canceled";
+	case 4:
+		return "Depleted storage";
+	case 5:
+		return "Destination endpoint ID unavailable";
+	case 6:
+		return "No known route to destination";
+	case 7:
+		return "No timely contact with next node";
+	case 8:
+		return "Block unintelligible";
+	case 9:
+		return "Hop limit exceeded";
+	case 10:
+		return "Traffic pared";
+	case 11:
+		return "Block unsupported";
+	default:
+		return "Unknown reason";
+	}
+}
+
+static void initializeConfig(BundleTracker *tracker, char *sourceEid, char *destEid)
+{
+	memset(tracker->sourceEid, 0, sizeof(tracker->sourceEid));
+	memset(tracker->destEid, 0, sizeof(tracker->destEid));
+	memset(tracker->reportToEid, 0, sizeof(tracker->reportToEid));
+
+	if (sourceEid)
+	{
+		istrcpy(tracker->sourceEid, sourceEid, sizeof(tracker->sourceEid));
+	}
+
+	if (destEid)
+	{
+		istrcpy(tracker->destEid, destEid, sizeof(tracker->destEid));
+	}
+
+	/* By default, reports come back to source endpoint */
+	if (sourceEid)
+	{
+		istrcpy(tracker->reportToEid, sourceEid, sizeof(tracker->reportToEid));
+	}
+
+	tracker->srrFlags = 0;  /* No reports by default */
+	tracker->defaultTTL = 300;  /* 5 minutes */
+	tracker->defaultPriority = BP_STD_PRIORITY;
+	tracker->totalReportsReceived = 0;
+	tracker->totalBundlesWithReports = 0;
 }
 
 /*	Convert bundle status to string	*/
@@ -775,6 +867,20 @@ void* inputHandler(void* arg)
             fflush(stdout);
             g_quit = 1;
             break;
+        } else if (strncmp(input, "config", 6) == 0) {
+            /* Handle config command */
+            char *args = input + 6;
+            while (*args == ' ') args++;  /* Skip spaces */
+            cmdConfig(tracker, args);
+        } else if (strncmp(input, "send ", 5) == 0) {
+            /* Handle send command */
+            char *args = input + 5;
+            while (*args == ' ') args++;  /* Skip spaces */
+            cmdSend(tracker, args);
+        } else if (strncmp(input, "reports", 7) == 0) {
+            /* Handle reports command - will implement in Phase 3 */
+            printf("Reports command not yet implemented\n");
+            fflush(stdout);
         } else if (strcmp(input, "s") == 0 || strcmp(input, "status") == 0) {
             printStatus(tracker);
         } else if (strcmp(input, "l") == 0 || strcmp(input, "list") == 0) {
@@ -792,6 +898,9 @@ void* inputHandler(void* arg)
             releaseAllBundles(tracker);
         } else if (strcmp(input, "h") == 0 || strcmp(input, "help") == 0) {
             printf("\nAvailable commands:\n");
+            printf("  config [param] [value]   - Configure or show settings\n");
+            printf("  send <dest> <size>       - Send bundle to destination\n");
+            printf("  reports [bundle_id]      - Show status report statistics\n");
             printf("  q, quit                  - Quit program\n");
             printf("  s, status                - Show current status\n");
             printf("  l, list                  - List all bundles with detailed info\n");
@@ -800,6 +909,13 @@ void* inputHandler(void* arg)
             printf("  release <id>, r <id>     - Release specific bundle from detention\n");
             printf("  release-all, ra          - Release all bundles from detention\n");
             printf("  h, help                  - Show this help\n\n");
+            printf("Configuration parameters:\n");
+            printf("  dest <eid>               - Set default destination\n");
+            printf("  report <eid>             - Set report-to endpoint\n");
+            printf("  srr <flags>              - Set status report flags\n");
+            printf("                             (hex: 0f, or text: rcv,fwd,dlv,del)\n");
+            printf("  ttl <seconds>            - Set default TTL\n");
+            printf("  priority <0-2>           - Set priority\n\n");
             printf("Enhanced Bundle Information:\n");
             printf("  Source_EID      - Original source endpoint of bundle\n");
             printf("  Creation_Time   - When bundle was created (YYYY-MM-DD HH:MM:SS.mmm.count)\n");
@@ -827,39 +943,415 @@ void* inputHandler(void* arg)
     return NULL;
 }
 
+/*	Configuration command handlers	*/
+
+static void showConfig(BundleTracker *tracker)
+{
+	printf("\n=== Configuration ===\n");
+	printf("Source EID:       %s\n", tracker->sourceEid);
+	printf("Destination EID:  %s\n", tracker->destEid[0] ? tracker->destEid : "(not set)");
+	printf("Report-To EID:    %s\n", tracker->reportToEid);
+	printf("SRR Flags:        0x%02x", tracker->srrFlags);
+	if (tracker->srrFlags)
+	{
+		printf(" (");
+		if (tracker->srrFlags & BP_RECEIVED_RPT) printf("RCV ");
+		if (tracker->srrFlags & BP_FORWARDED_RPT) printf("FWD ");
+		if (tracker->srrFlags & BP_DELIVERED_RPT) printf("DLV ");
+		if (tracker->srrFlags & BP_DELETED_RPT) printf("DEL");
+		printf(")");
+	}
+	printf("\n");
+	printf("Default TTL:      %d seconds\n", tracker->defaultTTL);
+	printf("Default Priority: %d", tracker->defaultPriority);
+	switch (tracker->defaultPriority)
+	{
+		case BP_BULK_PRIORITY: printf(" (Bulk)"); break;
+		case BP_STD_PRIORITY: printf(" (Standard)"); break;
+		case BP_EXPEDITED_PRIORITY: printf(" (Expedited)"); break;
+	}
+	printf("\n");
+	printf("=====================\n\n");
+	fflush(stdout);
+}
+
+static int cmdConfig(BundleTracker *tracker, char *args)
+{
+	char param[64], value[256];
+	int parsed;
+
+	/* If no arguments, show current config */
+	if (!args || strlen(args) == 0)
+	{
+		showConfig(tracker);
+		return 0;
+	}
+
+	/* Parse parameter and value */
+	parsed = sscanf(args, "%63s %255s", param, value);
+	if (parsed < 2)
+	{
+		printf("Usage: config <param> <value>\n");
+		printf("Type 'help' to see available parameters\n");
+		fflush(stdout);
+		return -1;
+	}
+
+	/* Handle each configuration parameter */
+	if (strcmp(param, "dest") == 0)
+	{
+		istrcpy(tracker->destEid, value, sizeof(tracker->destEid));
+		printf("Default destination set to: %s\n", tracker->destEid);
+	}
+	else if (strcmp(param, "report") == 0)
+	{
+		istrcpy(tracker->reportToEid, value, sizeof(tracker->reportToEid));
+		printf("Report-to endpoint set to: %s\n", tracker->reportToEid);
+	}
+	else if (strcmp(param, "srr") == 0)
+	{
+		unsigned int flags = 0;
+
+		/* Try parsing as hex first */
+		if (sscanf(value, "%x", &flags) == 1)
+		{
+			tracker->srrFlags = (unsigned char)flags;
+			printf("Status report request flags set to: 0x%02x\n", tracker->srrFlags);
+		}
+		else
+		{
+			/* Parse as comma-separated text flags (like cfdptest) */
+			char *cursor = value;
+			char *comma;
+			char flagCopy[256];
+
+			strncpy(flagCopy, value, sizeof(flagCopy) - 1);
+			flagCopy[sizeof(flagCopy) - 1] = '\0';
+			cursor = flagCopy;
+
+			while (1)
+			{
+				comma = strchr(cursor, ',');
+				if (comma)
+				{
+					*comma = '\0';
+				}
+
+				/* Parse individual flag */
+				if (strcmp(cursor, "rcv") == 0)
+				{
+					flags |= BP_RECEIVED_RPT;
+				}
+				else if (strcmp(cursor, "fwd") == 0)
+				{
+					flags |= BP_FORWARDED_RPT;
+				}
+				else if (strcmp(cursor, "dlv") == 0)
+				{
+					flags |= BP_DELIVERED_RPT;
+				}
+				else if (strcmp(cursor, "del") == 0)
+				{
+					flags |= BP_DELETED_RPT;
+				}
+				else if (strlen(cursor) > 0)
+				{
+					printf("Unknown flag: %s (valid: rcv, fwd, dlv, del)\n", cursor);
+					fflush(stdout);
+					return -1;
+				}
+
+				if (comma)
+				{
+					cursor = comma + 1;
+					continue;
+				}
+
+				break;
+			}
+
+			tracker->srrFlags = (unsigned char)flags;
+			printf("Status report request flags set to: 0x%02x", tracker->srrFlags);
+			if (flags)
+			{
+				printf(" (");
+				if (flags & BP_RECEIVED_RPT) printf("rcv ");
+				if (flags & BP_FORWARDED_RPT) printf("fwd ");
+				if (flags & BP_DELIVERED_RPT) printf("dlv ");
+				if (flags & BP_DELETED_RPT) printf("del");
+				printf(")");
+			}
+			printf("\n");
+		}
+	}
+	else if (strcmp(param, "ttl") == 0)
+	{
+		int ttl;
+		if (sscanf(value, "%d", &ttl) == 1 && ttl > 0)
+		{
+			tracker->defaultTTL = ttl;
+			printf("Default TTL set to: %d seconds\n", tracker->defaultTTL);
+		}
+		else
+		{
+			printf("Invalid TTL value: %s (must be positive integer)\n", value);
+			fflush(stdout);
+			return -1;
+		}
+	}
+	else if (strcmp(param, "priority") == 0)
+	{
+		int priority;
+		if (sscanf(value, "%d", &priority) == 1 && priority >= 0 && priority <= 2)
+		{
+			tracker->defaultPriority = priority;
+			printf("Default priority set to: %d\n", tracker->defaultPriority);
+		}
+		else
+		{
+			printf("Invalid priority: %s (must be 0-2)\n", value);
+			fflush(stdout);
+			return -1;
+		}
+	}
+	else
+	{
+		printf("Unknown parameter: %s\n", param);
+		printf("Valid parameters: dest, report, srr, ttl, priority\n");
+		fflush(stdout);
+		return -1;
+	}
+
+	fflush(stdout);
+	return 0;
+}
+
+/*	Send command handler	*/
+
+static int cmdSend(BundleTracker *tracker, char *args)
+{
+	char destEid[256];
+	int payloadSize;
+	Object adu;
+	int parsed;
+
+	/* Parse destination and size */
+	parsed = sscanf(args, "%255s %d", destEid, &payloadSize);
+	if (parsed != 2)
+	{
+		printf("Usage: send <dest_eid> <payload_size>\n");
+		printf("Example: send ipn:2.1 1024\n");
+		fflush(stdout);
+		return -1;
+	}
+
+	/* Validate payload size */
+	if (payloadSize < 1 || payloadSize > 65536)
+	{
+		printf("ERROR: Payload size must be between 1 and 65536 bytes\n");
+		fflush(stdout);
+		return -1;
+	}
+
+	/* Create payload */
+	adu = createPayload(payloadSize);
+	if (adu == 0)
+	{
+		printf("ERROR: Failed to create payload\n");
+		fflush(stdout);
+		return -1;
+	}
+
+	/* Send bundle with status report flags */
+	Sdr sdr = getIonsdr();
+	Object bundleObj;
+	BpAncillaryData ancillaryData = { 0 };
+
+	/* Set report-to EID if status reports are enabled */
+	char *reportToEid = NULL;
+	if (tracker->srrFlags != 0 && tracker->reportToEid[0] != '\0')
+	{
+		reportToEid = tracker->reportToEid;
+	}
+
+	printDBG(1, "Sending bundle to %s (size=%d, srr=0x%02x, reportTo=%s)\n",
+	         destEid, payloadSize, tracker->srrFlags,
+	         reportToEid ? reportToEid : "none");
+
+	/* Send bundle */
+	if (bp_send(tracker->sap, destEid, reportToEid, tracker->defaultTTL,
+	            tracker->defaultPriority, NoCustodyRequested, tracker->srrFlags,
+	            0, &ancillaryData, adu, &bundleObj) != 1)
+	{
+		printf("ERROR: Failed to send bundle to %s\n", destEid);
+		fflush(stdout);
+		return -1;
+	}
+
+	printDBG(2, "Bundle sent successfully (obj: " ADDR_FIELDSPEC ")\n", bundleObj);
+
+	/* Track the bundle */
+	if (sdr_begin_xn(sdr) < 0)
+	{
+		printf("ERROR: Can't begin tracking transaction\n");
+		fflush(stdout);
+		return -1;
+	}
+
+	/* Read the bundle to get source EID and creation time */
+	Bundle bundle;
+	char *sourceEidString = NULL;
+
+	memset(&bundle, 0, sizeof(Bundle));
+	sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
+
+	/* Extract source EID string */
+	readEid(&bundle.id.source, &sourceEidString);
+	if (sourceEidString == NULL)
+	{
+		sourceEidString = strdup("unknown");
+	}
+
+	printDBG(3, "Bundle source EID: %s, creation time: " UVAST_FIELDSPEC ".%u\n",
+	         sourceEidString, bundle.id.creationTime.msec, bundle.id.creationTime.count);
+
+	/* Create tracking bundle object */
+	Object tbundleObj = sdr_malloc(sdr, sizeof(TrackedBundle));
+	if (tbundleObj == 0)
+	{
+		sdr_cancel_xn(sdr);
+		printf("ERROR: No space for tracked bundle\n");
+		if (sourceEidString) MRELEASE(sourceEidString);
+		bp_cancel(bundleObj);
+		fflush(stdout);
+		return -1;
+	}
+
+	/* Initialize tracking data */
+	TrackedBundle tbundle;
+	memset(&tbundle, 0, sizeof(TrackedBundle));
+
+	tbundle.bundleObj = bundleObj;
+	tbundle.sendTime = time(NULL);
+	tbundle.transmitTime = 0;
+	tbundle.status = BUNDLE_PENDING;
+	tbundle.bundleId = ++tracker->totalSent;
+
+	/* Store destination EID */
+	strncpy(tbundle.destEid, destEid, sizeof(tbundle.destEid) - 1);
+	tbundle.destEid[sizeof(tbundle.destEid) - 1] = '\0';
+
+	/* Store source EID */
+	strncpy(tbundle.sourceEid, sourceEidString, sizeof(tbundle.sourceEid) - 1);
+	tbundle.sourceEid[sizeof(tbundle.sourceEid) - 1] = '\0';
+
+	/* Store creation time */
+	tbundle.creationTimeMsec = bundle.id.creationTime.msec;
+	tbundle.creationTimeCount = bundle.id.creationTime.count;
+
+	/* Initialize queue status flags */
+	tbundle.inPlanQueue = (bundle.planXmitElt != 0) ? 1 : 0;
+	tbundle.inDuctQueue = (bundle.ductXmitElt != 0) ? 1 : 0;
+	tbundle.inFwdQueue = (bundle.fwdQueueElt != 0) ? 1 : 0;
+	tbundle.inDlvQueue = (bundle.dlvQueueElt != 0) ? 1 : 0;
+	tbundle.isDetained = (bundle.detained != 0) ? 1 : 0;
+
+	/* Initialize status report tracking fields */
+	tbundle.receivedReportCount = 0;
+	tbundle.forwardedReportCount = 0;
+	tbundle.deliveredReportCount = 0;
+	tbundle.deletedReportCount = 0;
+	tbundle.lastReportTime = 0;
+	memset(tbundle.lastReportNode, 0, sizeof(tbundle.lastReportNode));
+	memset(tbundle.deletionReason, 0, sizeof(tbundle.deletionReason));
+
+	/* Write tracking data to SDR */
+	sdr_write(sdr, tbundleObj, (char *) &tbundle, sizeof(TrackedBundle));
+
+	/* Clean up source EID string */
+	if (sourceEidString)
+	{
+		MRELEASE(sourceEidString);
+	}
+
+	/* Add to tracking list */
+	Object trackingElt = sdr_list_insert_last(sdr, tracker->trackedBundles, tbundleObj);
+	if (trackingElt == 0)
+	{
+		sdr_cancel_xn(sdr);
+		printf("ERROR: Can't add bundle to tracking list\n");
+		sdr_free(sdr, tbundleObj);
+		bp_cancel(bundleObj);
+		fflush(stdout);
+		return -1;
+	}
+
+	/* Commit transaction */
+	if (sdr_end_xn(sdr) < 0)
+	{
+		printf("ERROR: Can't complete tracking\n");
+		fflush(stdout);
+		return -1;
+	}
+
+	printf("Bundle #%d sent to %s (%d bytes)\n", tbundle.bundleId, destEid, payloadSize);
+	if (tracker->srrFlags != 0)
+	{
+		printf("  Status reports requested: 0x%02x", tracker->srrFlags);
+		if (tracker->srrFlags & BP_RECEIVED_RPT) printf(" RCV");
+		if (tracker->srrFlags & BP_FORWARDED_RPT) printf(" FWD");
+		if (tracker->srrFlags & BP_DELIVERED_RPT) printf(" DLV");
+		if (tracker->srrFlags & BP_DELETED_RPT) printf(" DEL");
+		printf("\n");
+	}
+	fflush(stdout);
+
+	return 0;
+}
+
 /*	Print usage information	*/
 void printUsage(char *progName)
 {
-    printf("Usage: %s [-v] [-vv] [-vvv] <source_eid> <dest_eid> <payload_size> <num_bundles>\n", progName);
+    printf("Usage: %s [-v] [-vv] [-vvv] <source_eid> [dest_eid]\n", progName);
     printf("\nOptions:\n");
     printf("  -v        Verbose output (debug level 1)\n");
     printf("  -vv       More verbose output (debug level 2)\n");
     printf("  -vvv      Most verbose output (debug level 3)\n");
     printf("  -h        Show this help\n");
     printf("\nArguments:\n");
-    printf("  source_eid    Source endpoint identifier\n");
-    printf("  dest_eid      Destination endpoint identifier\n");
-    printf("  payload_size  Size of payload in bytes (1-65536)\n");
-    printf("  num_bundles   Number of bundles to send\n");
+    printf("  source_eid    Source endpoint identifier (required)\n");
+    printf("  dest_eid      Default destination endpoint (optional)\n");
+    printf("\nInteractive Commands:\n");
+    printf("  config [param] [value]  Configure parameters or show current config\n");
+    printf("    dest <eid>            Set default destination endpoint\n");
+    printf("    report <eid>          Set report-to endpoint\n");
+    printf("    srr <flags>           Set status report request flags (hex)\n");
+    printf("    ttl <seconds>         Set default time-to-live\n");
+    printf("    priority <0-2>        Set priority (0=bulk, 1=standard, 2=expedited)\n");
+    printf("  send <dest> <size>      Send bundle to destination with payload size\n");
+    printf("  list                    List all tracked bundles\n");
+    printf("  reports [bundle_id]     Show status report statistics\n");
+    printf("  quit                    Exit the program\n");
+    printf("  help                    Show this help\n");
     printf("\nDebug Levels:\n");
     printf("  0 = No debug output (default)\n");
     printf("  1 = Basic operations and status changes\n");
     printf("  2 = Detailed function calls and tracking\n");
     printf("  3 = Verbose internal state and queue details\n");
     printf("\nExample:\n");
-    printf("  %s -vv ipn:1.1 ipn:2.1 1024 5\n", progName);
+    printf("  %s -vv ipn:1.1 ipn:2.1\n", progName);
+    printf("  Then use 'send ipn:2.1 1024' to send a bundle\n");
     printf("\n");
 }
 
 int main(int argc, char *argv[])
 {
     BundleTracker tracker;
-    char *sourceEid, *destEid;
-    int payloadSize, numBundles;
-    Object *payloads;
-    int i, argIndex = 1;
+    char *sourceEid = NULL;
+    char *destEid = NULL;
+    int argIndex = 1;
     pthread_t inputThread;
-    
+
     /* Parse command line options */
     while (argIndex < argc && argv[argIndex][0] == '-') {
         if (strcmp(argv[argIndex], "-h") == 0 || strcmp(argv[argIndex], "--help") == 0) {
@@ -877,46 +1369,50 @@ int main(int argc, char *argv[])
             return 1;
         }
     }
-    
-    /* Check remaining arguments */
-    if (argc - argIndex != 4) {
+
+    /* Check remaining arguments - source_eid required, dest_eid optional */
+    int remainingArgs = argc - argIndex;
+    if (remainingArgs < 1 || remainingArgs > 2) {
         printf("ERROR: Wrong number of arguments\n");
         printUsage(argv[0]);
         return 1;
     }
-    
+
     sourceEid = argv[argIndex];
-    destEid = argv[argIndex + 1];
-    payloadSize = atoi(argv[argIndex + 2]);
-    numBundles = atoi(argv[argIndex + 3]);
-    
-    printf("Bundle Tracker with Queue Status Starting...\n");
-    printf("Source: %s -> Destination: %s\n", sourceEid, destEid);
-    printf("Payload size: %d bytes, Bundles: %d\n", payloadSize, numBundles);
+    if (remainingArgs == 2) {
+        destEid = argv[argIndex + 1];
+    }
+
+    printf("Interactive Bundle Tracker Starting...\n");
+    printf("Source: %s\n", sourceEid);
+    if (destEid) {
+        printf("Default Destination: %s\n", destEid);
+    }
     printf("Debug level: %d\n", BPTRACKER_DEBUG);
+    printf("Type 'help' for available commands\n");
     fflush(stdout);
-    
+
     /* Initialize Bundle Protocol */
     printDBG(1, "Attaching to Bundle Protocol\n");
-    
+
     if (bpAttach() < 0) {
         printf("ERROR: Can't attach to Bundle Protocol\n");
         return 1;
     }
-    
+
     /* Set up signal handlers */
     signal(SIGINT, signalHandler);
     signal(SIGTERM, signalHandler);
-    
+
     /* Open SAP with detention */
     printDBG(1, "Opening SAP with detention enabled\n");
-    
+
     if (bp_open_source(sourceEid, &(tracker.sap), 1) < 0) {
         printf("ERROR: Can't open source endpoint with detention\n");
         bpDetach();
         return 1;
     }
-    
+
     /* Initialize tracker */
     Sdr sdr = getIonsdr();
     if (sdr_begin_xn(sdr) < 0) {
@@ -925,7 +1421,7 @@ int main(int argc, char *argv[])
         bpDetach();
         return 1;
     }
-    
+
     tracker.trackedBundles = sdr_list_create(sdr);
     if (tracker.trackedBundles == 0) {
         sdr_cancel_xn(sdr);
@@ -934,74 +1430,35 @@ int main(int argc, char *argv[])
         bpDetach();
         return 1;
     }
-    
+
     tracker.totalSent = 0;
     tracker.totalTransmitted = 0;
     tracker.totalCompleted = 0;
-    strncpy(tracker.destEid, destEid, sizeof(tracker.destEid) - 1);
-    tracker.destEid[sizeof(tracker.destEid) - 1] = '\0';
-    
+
+    /* Initialize configuration */
+    initializeConfig(&tracker, sourceEid, destEid);
+
     if (sdr_end_xn(sdr) < 0) {
         printf("ERROR: Can't complete tracker initialization\n");
         bp_close(tracker.sap);
         bpDetach();
         return 1;
     }
-    
-    /* Create payloads */
-    payloads = malloc(numBundles * sizeof(Object));
-    if (payloads == NULL) {
-        printf("ERROR: Can't allocate payload array\n");
-        bp_close(tracker.sap);
-        bpDetach();
-        return 1;
-    }
-    
-    printDBG(1, "Creating %d payloads\n", numBundles);
-    
-    for (i = 0; i < numBundles; i++) {
-        payloads[i] = createPayload(payloadSize);
-        if (payloads[i] == 0) {
-            printf("ERROR: Failed to create payload %d\n", i + 1);
-            free(payloads);
-            bp_close(tracker.sap);
-            bpDetach();
-            return 1;
-        }
-    }
-    
-    /* Send bundles */
-    printDBG(1, "Sending %d bundles with detention enabled\n", numBundles);
-    
-    for (i = 0; i < numBundles; i++) {
-        if (sendTrackedBundle(&tracker, payloads[i], 300, i + 1) < 0) {
-            printf("ERROR: Failed to send bundle %d\n", i + 1);
-            g_quit = 1;
-            break;
-        }
-        usleep(100000);  /* 100ms delay between sends */
-    }
-    
-    free(payloads);
-    
-    if (g_quit) {
-        printf("ERROR: Exiting due to send failure\n");
-        bp_close(tracker.sap);
-        bpDetach();
-        return 1;
-    }
-    
+
     /* Start input handler thread */
     printDBG(1, "Starting input thread\n");
-    
+
     if (pthread_create(&inputThread, NULL, inputHandler, &tracker) != 0) {
         printf("ERROR: Can't create input thread\n");
         g_quit = 1;
     }
-    
+
     /* Monitor bundle status */
     printDBG(1, "Entering monitoring loop\n");
-    
+
+    printf("\nbptracker> ");
+    fflush(stdout);
+
     while (!g_quit) {
         int result = checkBundleStatus(&tracker);
         if (result < 0) {
@@ -1010,17 +1467,17 @@ int main(int argc, char *argv[])
         }
         sleep(5);  /* Check every 5 seconds */
     }
-    
+
     /* Cleanup */
     printDBG(1, "Cleaning up\n");
-    
+
     if (!g_quit) g_quit = 1;
     pthread_cancel(inputThread);
     pthread_join(inputThread, NULL);
-    
+
     bp_close(tracker.sap);
     bpDetach();
-    
+
     printDBG(1, "Program completed\n");
     return 0;
 }
