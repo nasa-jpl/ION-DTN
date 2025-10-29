@@ -184,7 +184,7 @@ int writeMetaDataContentToFile(const Metadata* metaData, const char* tempFilenam
         return -1;
     }
 
-    FILE *file = fopen((char *)tempFilename, "wb");
+    FILE *file = fopen((const char *)tempFilename, "wb");
     if (file == NULL) 
     {
         perror("Error creating file.");

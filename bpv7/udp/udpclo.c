@@ -240,9 +240,9 @@ int main(int argc, char *argv[])
 		sdr_exit_xn(sdr); /* Short transaction, no nested calls expected */
 
 		/* Periodic address re-resolution using dual-stack cache */
-		int resolveResult = resolveNetworkAddressCached(endpointSpec,
+		int innerResolveResult = resolveNetworkAddressCached(endpointSpec,
 		                &destAddr);
-		if (resolveResult == -2)
+		if (innerResolveResult == -2)
 		{
 			/* Fatal DNS failure - stop daemon */
 			putErrmsg("udpclo: Maximum DNS failures reached",
@@ -256,7 +256,7 @@ int main(int argc, char *argv[])
 			break;
 		}
 
-		if (resolveResult < 0)
+		if (innerResolveResult < 0)
 		{
 			/* Address resolution failed - abandon this bundle */
 			writeMemoNote("[?] udpclo: Address resolution failed, abandoning bundle",

@@ -186,8 +186,8 @@ static int isUdpClaShutdownSignal(UdpClaSocket *claSock,
 
 	if (from_addr->family == AF_INET)
 	{
-		struct sockaddr_in *from4 =
-		                (struct sockaddr_in *) &from_addr->addr;
+		const struct sockaddr_in *from4 =
+		                (const struct sockaddr_in *) &from_addr->addr;
 		struct sockaddr_in *local4 =
 		                (struct sockaddr_in *) &claSock->local_addr.addr;
 
@@ -196,8 +196,8 @@ static int isUdpClaShutdownSignal(UdpClaSocket *claSock,
 	}
 	else if (from_addr->family == AF_INET6)
 	{
-		struct sockaddr_in6 *from6 =
-		                (struct sockaddr_in6 *) &from_addr->addr;
+		const struct sockaddr_in6 *from6 =
+		                (const struct sockaddr_in6 *) &from_addr->addr;
 		struct sockaddr_in6 *local6 =
 		                (struct sockaddr_in6 *) &claSock->local_addr.addr;
 
@@ -460,7 +460,7 @@ int sendBundleByUDPDualStack(const IonNetworkAddress *destAddr,
 
 	/* Send using dual-stack address - works for IPv4 and IPv6 */
 	bytesSent = sendto(*bundleSocket, (char *) buffer, bytesToSend, 0,
-	                (struct sockaddr *) &destAddr->addr, destAddr->addr_len);
+	                (const struct sockaddr *) &destAddr->addr, destAddr->addr_len);
 
 	if (bytesSent < 0)
 	{

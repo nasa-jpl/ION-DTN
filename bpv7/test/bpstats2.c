@@ -66,7 +66,7 @@ int appendStateStats(char *buffer, size_t len, int stateIdx)
 {
 	static char *classnames[] = 
 	{ "src", "fwd", "xmt", "rcv", "dlv", "ctr", "rfw", "exp" };
-	Sdr		sdr = getIonsdr();
+	Sdr		sdrHandle = getIonsdr();
 	Object		bpDbObject = getBpDbObject();
 	BpDB		bpdb;
 	time_t startTime;
@@ -77,14 +77,14 @@ int appendStateStats(char *buffer, size_t len, int stateIdx)
 
 	if (stateIdx < 0 || stateIdx > 7) { return -1; }
 
-	CHKERR(sdr_begin_xn(sdr));
-	sdr_read(sdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
+	CHKERR(sdr_begin_xn(sdrHandle));
+	sdr_read(sdrHandle, (char *) &bpdb, bpDbObject, sizeof(BpDB));
 	startTime = bpdb.resetTime;
 	currentTime = getCtime();
 	switch (stateIdx)
 	{
 	case 0:
-		sdr_read(sdr, (char *) &cosStats, bpdb.sourceStats,
+		sdr_read(sdrHandle, (char *) &cosStats, bpdb.sourceStats,
 				sizeof(BpCosStats));
 		memcpy((char *) &tallies[0], (char *) &cosStats.tallies[0],
 				sizeof(Tally));
@@ -99,7 +99,7 @@ int appendStateStats(char *buffer, size_t len, int stateIdx)
 		break;
 
 	case 1:
-		sdr_read(sdr, (char *) &dbStats, bpdb.dbStats,
+		sdr_read(sdrHandle, (char *) &dbStats, bpdb.dbStats,
 				sizeof(BpDbStats));
 		memset((char *) &tallies[0], 0, sizeof(Tally));
 		memset((char *) &tallies[1], 0, sizeof(Tally));
@@ -110,7 +110,7 @@ int appendStateStats(char *buffer, size_t len, int stateIdx)
 		break;
 
 	case 2:
-		sdr_read(sdr, (char *) &cosStats, bpdb.xmitStats,
+		sdr_read(sdrHandle, (char *) &cosStats, bpdb.xmitStats,
 				sizeof(BpCosStats));
 		memcpy((char *) &tallies[0], (char *) &cosStats.tallies[0],
 				sizeof(Tally));
@@ -125,7 +125,7 @@ int appendStateStats(char *buffer, size_t len, int stateIdx)
 		break;
 
 	case 3:
-		sdr_read(sdr, (char *) &cosStats, bpdb.recvStats,
+		sdr_read(sdrHandle, (char *) &cosStats, bpdb.recvStats,
 				sizeof(BpCosStats));
 		memcpy((char *) &tallies[0], (char *) &cosStats.tallies[0],
 				sizeof(Tally));
@@ -154,7 +154,7 @@ int appendStateStats(char *buffer, size_t len, int stateIdx)
 		break;
 
 	case 6:
-		sdr_read(sdr, (char *) &dbStats, bpdb.dbStats,
+		sdr_read(sdrHandle, (char *) &dbStats, bpdb.dbStats,
 				sizeof(BpDbStats));
 		memset((char *) &tallies[0], 0, sizeof(Tally));
 		memset((char *) &tallies[1], 0, sizeof(Tally));
@@ -165,7 +165,7 @@ int appendStateStats(char *buffer, size_t len, int stateIdx)
 		break;
 
 	default:		/*	Can only be 7.			*/
-		sdr_read(sdr, (char *) &dbStats, bpdb.dbStats,
+		sdr_read(sdrHandle, (char *) &dbStats, bpdb.dbStats,
 				sizeof(BpDbStats));
 		memset((char *) &tallies[0], 0, sizeof(Tally));
 		memset((char *) &tallies[1], 0, sizeof(Tally));
@@ -175,7 +175,7 @@ int appendStateStats(char *buffer, size_t len, int stateIdx)
 				sizeof(Tally));
 	}
 
-	sdr_exit_xn(sdr);
+	sdr_exit_xn(sdrHandle);
 	return snprintf(buffer, len, "  [x] %s from %u to %u: (0) \
 %u " UVAST_FIELDSPEC " (1) %u " UVAST_FIELDSPEC " (2) \
 %u " UVAST_FIELDSPEC " (+) %u " UVAST_FIELDSPEC "\n", classnames[stateIdx],

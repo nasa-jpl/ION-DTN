@@ -1865,12 +1865,12 @@ static int	setTimer(BsspTimer *timer, Address timerAddr, time_t currentSec,
 			BsspVspan *vspan, int blockLength, BsspEvent *event)
 {
 	Sdr	sdr = getIonsdr();
-	BsspDB	BsspDB;
+	BsspDB	bsspDb;
 	int	radTime;
 		OBJ_POINTER(BsspSpan, span);
 
 	CHKERR(ionLocked());
-	sdr_read(sdr, (char *) &BsspDB, getBsspDbObject(), sizeof(BsspDB));
+	sdr_read(sdr, (char *) &bsspDb, getBsspDbObject(), sizeof(BsspDB));
 	if (vspan->localXmitRate == 0)	/*	Should never be, but...	*/
 	{
 		radTime = 0;		/*	Avoid divide by zero.	*/
@@ -1889,7 +1889,7 @@ static int	setTimer(BsspTimer *timer, Address timerAddr, time_t currentSec,
 	 *	the current outbound signal propagation time (owlt).	*/
 
 	timer->pduArrivalTime = currentSec + radTime + vspan->owltOutbound
-			+ ((BsspDB.ownQtime >> 1) & 0x7fffffff);
+			+ ((bsspDb.ownQtime >> 1) & 0x7fffffff);
 	GET_OBJ_POINTER(sdr, BsspSpan, span, sdr_list_data(sdr,
 			vspan->spanElt));
 
@@ -1912,7 +1912,7 @@ static int	setTimer(BsspTimer *timer, Address timerAddr, time_t currentSec,
 
 	timer->ackDeadline = timer->pduArrivalTime
 			+ span->remoteQtime + vspan->owltInbound
-			+ ((BsspDB.ownQtime >> 1) & 0x7fffffff);
+			+ ((bsspDb.ownQtime >> 1) & 0x7fffffff);
 	if (vspan->remoteXmitRate > 0)
 	{
 		event->scheduledTime = timer->ackDeadline;
@@ -2762,7 +2762,7 @@ int	issueXmitBlock(Sdr sdr, BsspSpan *span, BsspVspan *vspan,
 	return 1;
 }
 
-static void	getSessionContext(BsspDB *BsspDB, unsigned int sessionNbr,
+static void	getSessionContext(BsspDB *bsspDb, unsigned int sessionNbr,
 			Object *sessionObj, BsspExportSession *sessionBuf,
 			Object *spanObj, BsspSpan *spanBuf, BsspVspan **vspan,
 			PsmAddress *vspanElt)
@@ -2770,7 +2770,7 @@ static void	getSessionContext(BsspDB *BsspDB, unsigned int sessionNbr,
 	Sdr	sdr = getIonsdr();
 
 	/* Parameter intentionally unused. */
-	(void)BsspDB;
+	(void)bsspDb;
 
 	CHKVOID(ionLocked());
 	*spanObj = 0;		/*	Default: no context.		*/
@@ -2804,7 +2804,7 @@ putErrmsg("Discarding stray block.", itoa(sessionNbr));
 	}
 }
 
-static int	handleAck(BsspDB *BsspDB, unsigned int sessionNbr,
+static int	handleAck(BsspDB *bsspDb, unsigned int sessionNbr,
 			BsspRecvBlk *block, BsspPdu *pdu, char **cursor,
 			int *bytesRemaining)
 {
@@ -2829,7 +2829,7 @@ putErrmsg("Handling acknowledgment.", utoa(sessionNbr));
 #endif
 
 	CHKERR(sdr_begin_xn(sdr));
-	getSessionContext(BsspDB, sessionNbr, &sessionObj,
+	getSessionContext(bsspDb, sessionNbr, &sessionObj,
 			&sessionBuf, &spanObj, &spanBuf, &vspan, &vspanElt);
 	if (spanObj == 0)	/*	Unknown provenance, ignore.	*/
 	{

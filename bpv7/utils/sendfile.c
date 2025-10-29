@@ -270,7 +270,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 
 	/*file type*/
 	filetype = "text/plain";
-	metadata.filetype = (unsigned char*)filetype;
+	metadata.filetype = (unsigned char *)(uintptr_t)filetype;
 	metadata.filetypeLength = strlen((const char*) metadata.filetype);
 
 	/* aux command string */		
