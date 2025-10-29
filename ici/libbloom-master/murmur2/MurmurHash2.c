@@ -30,7 +30,25 @@ unsigned int murmurhash2(const void * key, int len, const unsigned int seed)
 
 	while(len >= 4)
 	{
-		unsigned int k = *(unsigned int *)data;
+		/*
+		* Replaced the original direct cast `*(unsigned int *)data`.
+		* That cast was non-portable and unsafe for two reasons:
+		*
+		* 1. -Wcast-align: It may hardware crashe on systems
+		* that enforce memory alignment (like SPARC).
+		* 2. Endianness: It produces different hash values on
+		* little-endian (Linux/x86) vs. big-endian (Solaris/SPARC)
+		* systems.
+		*
+		* This manual, byte-by-byte construction of 'k' solves
+		* both problems. It's alignment-safe and forces a
+		* little-endian read, ensuring the same hash result on
+		* all platforms.
+		*/
+		unsigned int k = (unsigned int)data[0]
+					| ((unsigned int)data[1] << 8)
+					| ((unsigned int)data[2] << 16)
+					| ((unsigned int)data[3] << 24);
 
 		k *= m;
 		k ^= k >> r;
