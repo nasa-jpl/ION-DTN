@@ -110,8 +110,8 @@ extern char	gMsg[GMSG_BUFLEN];
 
    #define BPSEC_DEBUG(level, prefix, format,...) if(level >= BPSEC_DEBUG_LVL) \
 {                                                                              \
-  int len = _isprintf(gMsg, GMSG_BUFLEN, "%s: (%s) ", __func__, prefix);        \
-  _isprintf(gMsg+len, GMSG_BUFLEN-len, format, __VA_ARGS__);                   \
+  int dbg_len = _isprintf(gMsg, GMSG_BUFLEN, "%s: (%s) ", __func__, prefix);        \
+  _isprintf(gMsg+dbg_len, GMSG_BUFLEN-dbg_len, format, __VA_ARGS__);                   \
    putErrmsg(gMsg, NULL);                                                      \
 }
 

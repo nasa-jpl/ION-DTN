@@ -693,13 +693,13 @@ static int parseOutduct(char *str)
 static void listOutducts(void) {
 	PsmPartition bpwm = getIonwm();
 	PsmAddress elt;
-	VOutduct *vduct;
+	VOutduct *duct;
 
 	for (elt = sm_list_first(bpwm, getBpVdb()->outducts); elt;
 	     elt = sm_list_next(bpwm, elt))
 	{
-		vduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
-		printf("%s:%s\n", vduct->protocolName, vduct->ductName);
+		duct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
+		printf("%s:%s\n", duct->protocolName, duct->ductName);
 	}
 }
 

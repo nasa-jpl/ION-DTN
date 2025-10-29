@@ -123,7 +123,7 @@ int bpsec_bagsci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
     if(state->scRawKey.scValLength == 0)
     {
         csi_cipherparms_t parms;
-        int result = 0;
+        int unwrap_result = 0;
 
         /*
          * Step 2.1.1: Get they key to use for signing. AES keywrap does not need any
@@ -131,9 +131,9 @@ int bpsec_bagsci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
          */
         memset(&parms, 0, sizeof(csi_cipherparms_t));
 
-        result = bpsec_scutl_keyUnwrap(state, BPSEC_BAGSC_PARM_LTK_NAME, &key_value, BPSEC_BAGSC_PARM_WRAPPED_KEY, CSTYPE_AES_KW, &parms);
+        unwrap_result = bpsec_scutl_keyUnwrap(state, BPSEC_BAGSC_PARM_LTK_NAME, &key_value, BPSEC_BAGSC_PARM_WRAPPED_KEY, CSTYPE_AES_KW, &parms);
 
-        if(result == ERROR)
+        if(unwrap_result == ERROR)
         {
             BPSEC_DEBUG_ERR("Cannot find a key for verification.", NULL);
             return ERROR;

@@ -110,10 +110,10 @@ void print(statusReport *rpt){
 	free(tmbuffer);
 }
 
-void sortByStatusTime(statusReport *rpts[], unsigned n_rpts){
-	for(unsigned i = 0; i < n_rpts-1; ++i){
-		for(unsigned j = 0; j < (n_rpts-i)-1; ++j){
-			printDBG(3, "j: %u, J+1: %u, n_rpts: %u\n", j, j+1, n_rpts);
+void sortByStatusTime(statusReport *rpts[], unsigned reportCount){
+	for(unsigned i = 0; i < reportCount-1; ++i){
+		for(unsigned j = 0; j < (reportCount-i)-1; ++j){
+			printDBG(3, "j: %u, J+1: %u, reportCount: %u\n", j, j+1, reportCount);
 			
 			printDBG(3, UVAST_FIELDSPEC"\n", rpts[j]->statusTime);
 			printDBG(3, UVAST_FIELDSPEC"\n", rpts[j+1]->statusTime);

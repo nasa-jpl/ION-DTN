@@ -199,13 +199,13 @@ int	ltpei_parse_extension(char **cursor, int *bytesRemaining, Lyst exts,
 	return 1;
 }
 
-void	ltpei_discard_extensions(Lyst extensions)
+void	ltpei_discard_extensions(Lyst extsList)
 {
 	LystElt			elt;
 	LtpExtensionInbound	*ext;
 
-	CHKVOID(extensions);
-	while ((elt = lyst_first(extensions)) != NULL)
+	CHKVOID(extsList);
+	while ((elt = lyst_first(extsList)) != NULL)
 	{
 		ext = (LtpExtensionInbound *) lyst_data(elt);
 		if (ext->value)
@@ -217,7 +217,7 @@ void	ltpei_discard_extensions(Lyst extensions)
 		lyst_delete(elt);
 	}
 
-	lyst_destroy(extensions);
+	lyst_destroy(extsList);
 }
 
 void	ltpei_destroy_extension(Sdr sdr, Object elt, void *arg)
