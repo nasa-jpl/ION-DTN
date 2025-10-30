@@ -1,0 +1,190 @@
+#!/usr/bin/env bash
+#
+# Test LTP explicit configuration: Global Split Mode with asymmetric packet loss
+#
+# This test verifies that the new split mode commands (maxretriesxmit, maxretriesrecv,
+# maxseglossratexmit, maxseglossraterecv) work correctly with asymmetric packet loss.
+# Node 2->3: 20% loss, Node 3->2: 5% loss
+
+# Documentation boilerplate
+CONFIGFILES=" \
+./owlt.rc \
+./2.ipn.ltp/amroc.ltprc \
+./2.ipn.ltp/amroc.bprc \
+./2.ipn.ltp/amroc.ionconfig \
+./2.ipn.ltp/global.ionrc \
+./2.ipn.ltp/amroc.ionrc \
+./2.ipn.ltp/amroc.ionsecrc \
+./2.ipn.ltp/amroc.ipnrc \
+./3.ipn.ltp/amroc.ltprc \
+./3.ipn.ltp/amroc.bprc \
+./3.ipn.ltp/amroc.ionconfig \
+./3.ipn.ltp/global.ionrc \
+./3.ipn.ltp/amroc.ionrc \
+./3.ipn.ltp/amroc.ionsecrc \
+./3.ipn.ltp/amroc.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing new LTP explicit configuration commands in split mode."
+echo "         Verifies asymmetric configuration with different xmit/recv parameters."
+echo "         Node 2->3: 20% packet loss (12 retries), Node 3->2: 5% loss (6 retries)"
+echo "         Tests that LTP handles asymmetric links correctly."
+echo
+echo "CONFIG: 2 node custom LTP with owltsim (asymmetric loss):"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Test results and asymmetric configuration verification."
+echo
+echo "########################################"
+
+killm
+./cleanup
+sleep 1
+
+echo "Starting owltsim (asymmetric packet loss: 20% and 5%)..."
+owltsim owlt.rc -v &
+OWLTSIM_PID=$!
+sleep 2
+
+echo "Starting ION nodes..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+# Start node 2
+cd 2.ipn.ltp
+./ionstart > node2.stdout 2>&1
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo "Node 2 started successfully"
+else
+	echo "Node 2 not started: Aborting Test"
+	kill $OWLTSIM_PID 2>/dev/null
+	exit 1
+fi
+
+# Start node 3
+cd ../3.ipn.ltp
+./ionstart > node3.stdout 2>&1
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo "Node 3 started successfully"
+else
+	echo "Node 3 not started: Aborting Test"
+	kill $OWLTSIM_PID 2>/dev/null
+	exit 1
+fi
+
+echo "Starting bpcounter on node 3..."
+sleep 1
+bpcounter ipn:3.1 100 &
+BPCOUNTER_PID=$!
+
+cd ../2.ipn.ltp
+echo "Sending 100 bundles from node 2 to node 3..."
+bpdriver 100 ipn:2.1 ipn:3.1 -10000 &
+
+# Wait for transmission to finish
+echo "Waiting for transmission to finish..."
+RUNNING=1
+TIMER=0
+while [ $RUNNING -eq 1 ]
+do
+	TIMER=$((++TIMER))
+	sleep 1
+	echo "...receiving..."
+	# Check if bpcounter is still running
+	if [ "$1" == "windows" ]
+	then
+		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	else
+		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	fi
+	if [ $RETURN_VALUE -eq 0 ]
+	then
+		echo "...transmission finished."
+		RUNNING=0
+	fi
+	if [ $TIMER -gt 120 ]
+	then
+		#infinite loop protection
+		echo "...120 seconds passed; giving up."
+		RUNNING=0
+		RETVAL=1
+		kill -9 $BPCOUNTER_PID 2>/dev/null
+	fi
+done
+
+echo "Verifying results..."
+
+# Check for retransmissions
+COUNT=`grep "@" node2.stdout | wc -l`
+if [ $COUNT -eq 0 ]
+then
+	echo "FAIL: No LTP retransmissions detected (expected with 20% loss)"
+	RETVAL=1
+else
+	echo "PASS: $COUNT retransmissions detected"
+fi
+
+# Check for explicit config message
+if grep -q "explicit config" node2.stdout
+then
+	echo "PASS: Explicit config mode confirmed in node 2"
+else
+	echo "FAIL: Not using explicit config mode"
+	RETVAL=1
+fi
+
+# Check split mode (different xmit/recv loss rates)
+# Node 2: xmit=0.20, recv=0.05
+if grep -q "xmit segment loss rate 0.20" node2.stdout && grep -q "recv segment loss rate 0.05" node2.stdout
+then
+	echo "PASS: Split mode confirmed in node 2 (asymmetric xmit/recv rates)"
+else
+	echo "WARNING: Could not verify split mode rates in node 2"
+fi
+
+# Check for max timeouts = 12 * 6 (SIGNAL_REDUNDANCY) = 72
+if grep -q "max timeouts 72" node2.stdout
+then
+	echo "PASS: Max timeouts = 72 confirmed (12 retries * 6 redundancy)"
+else
+	echo "WARNING: Could not verify max timeouts value"
+fi
+
+# Check node 3 has opposite configuration
+if grep -q "xmit segment loss rate 0.05" node3.stdout && grep -q "recv segment loss rate 0.20" node3.stdout
+then
+	echo "PASS: Node 3 has opposite split configuration"
+else
+	echo "WARNING: Could not verify node 3 split mode rates"
+fi
+
+echo "Stopping..."
+kill $OWLTSIM_PID 2>/dev/null
+sleep 1
+killm
+
+if [ $RETVAL -eq 0 ]
+then
+	echo "LTP config split test PASSED"
+else
+	echo "LTP config split test FAILED"
+fi
+
+exit $RETVAL

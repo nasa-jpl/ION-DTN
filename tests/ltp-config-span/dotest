@@ -1,0 +1,259 @@
+#!/usr/bin/env bash
+#
+# Test LTP explicit configuration: Per-Span Overrides with variable packet loss
+#
+# This test verifies that per-span override commands work correctly.
+# Node 2 has global config (6 retries, 5% loss) but span 3 overridden (15 retries, 14% loss).
+# Node 2 -> 3: 14% packet loss (span override)
+# Node 2 -> 4: 5% packet loss (global defaults)
+
+# Documentation boilerplate
+CONFIGFILES=" \
+./owlt.rc \
+./2.ipn.ltp/amroc.ltprc \
+./2.ipn.ltp/amroc.bprc \
+./2.ipn.ltp/amroc.ionconfig \
+./2.ipn.ltp/global.ionrc \
+./2.ipn.ltp/amroc.ionrc \
+./2.ipn.ltp/amroc.ionsecrc \
+./2.ipn.ltp/amroc.ipnrc \
+./3.ipn.ltp/amroc.ltprc \
+./3.ipn.ltp/amroc.bprc \
+./3.ipn.ltp/amroc.ionconfig \
+./3.ipn.ltp/global.ionrc \
+./3.ipn.ltp/amroc.ionrc \
+./3.ipn.ltp/amroc.ionsecrc \
+./3.ipn.ltp/amroc.ipnrc \
+./4.ipn.ltp/amroc.ltprc \
+./4.ipn.ltp/amroc.bprc \
+./4.ipn.ltp/amroc.ionconfig \
+./4.ipn.ltp/global.ionrc \
+./4.ipn.ltp/amroc.ionrc \
+./4.ipn.ltp/amroc.ionsecrc \
+./4.ipn.ltp/amroc.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing new LTP per-span override configuration."
+echo "         Node 2 has global config (6 retries, 5% loss) with"
+echo "         per-span override for span 3 (15 retries, 14% loss)."
+echo "         Span 4 uses global defaults."
+echo "         Tests that per-span overrides work correctly with"
+echo "         different packet loss rates per span."
+echo
+echo "CONFIG: 3 node custom LTP with owltsim (variable loss per span):"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Test results and per-span override verification."
+echo
+echo "########################################"
+
+killm
+./cleanup
+sleep 1
+
+echo "Starting owltsim (variable packet loss: 14% and 5%)..."
+owltsim owlt.rc -v &
+OWLTSIM_PID=$!
+sleep 2
+
+echo "Starting ION nodes..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+# Start node 2
+cd 2.ipn.ltp
+./ionstart > node2.stdout 2>&1
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo "Node 2 started successfully"
+else
+	echo "Node 2 not started: Aborting Test"
+	kill $OWLTSIM_PID 2>/dev/null
+	exit 1
+fi
+
+# Start node 3
+cd ../3.ipn.ltp
+./ionstart > node3.stdout 2>&1
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo "Node 3 started successfully"
+else
+	echo "Node 3 not started: Aborting Test"
+	kill $OWLTSIM_PID 2>/dev/null
+	exit 1
+fi
+
+# Start node 4
+cd ../4.ipn.ltp
+./ionstart > node4.stdout 2>&1
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo "Node 4 started successfully"
+else
+	echo "Node 4 not started: Aborting Test"
+	kill $OWLTSIM_PID 2>/dev/null
+	exit 1
+fi
+
+# Test 1: Send to node 3 (per-span override)
+echo "Starting bpcounter on node 3..."
+sleep 1
+bpcounter ipn:3.1 50 &
+BPCOUNTER3_PID=$!
+
+cd ../2.ipn.ltp
+echo "Sending 50 bundles from node 2 to node 3 (per-span override)..."
+bpdriver 50 ipn:2.1 ipn:3.1 -10000 &
+
+# Wait for transmission to finish
+echo "Waiting for transmission to node 3..."
+RUNNING=1
+TIMER=0
+while [ $RUNNING -eq 1 ]
+do
+	TIMER=$((++TIMER))
+	sleep 1
+	# Check if bpcounter is still running
+	if [ "$1" == "windows" ]
+	then
+		ps | grep "$BPCOUNTER3_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	else
+		ps $BPCOUNTER3_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER3_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	fi
+	if [ $RETURN_VALUE -eq 0 ]
+	then
+		echo "...transmission to node 3 finished."
+		RUNNING=0
+	fi
+	if [ $TIMER -gt 120 ]
+	then
+		echo "...120 seconds passed; giving up on node 3."
+		RUNNING=0
+		RETVAL=1
+		kill -9 $BPCOUNTER3_PID 2>/dev/null
+	fi
+done
+
+# Test 2: Send to node 4 (global defaults)
+cd ../4.ipn.ltp
+echo "Starting bpcounter on node 4..."
+bpcounter ipn:4.1 50 &
+BPCOUNTER4_PID=$!
+
+cd ../2.ipn.ltp
+echo "Sending 50 bundles from node 2 to node 4 (global defaults)..."
+bpdriver 50 ipn:2.1 ipn:4.1 -10000 &
+
+# Wait for transmission to finish
+echo "Waiting for transmission to node 4..."
+RUNNING=1
+TIMER=0
+while [ $RUNNING -eq 1 ]
+do
+	TIMER=$((++TIMER))
+	sleep 1
+	# Check if bpcounter is still running
+	if [ "$1" == "windows" ]
+	then
+		ps | grep "$BPCOUNTER4_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	else
+		ps $BPCOUNTER4_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER4_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	fi
+	if [ $RETURN_VALUE -eq 0 ]
+	then
+		echo "...transmission to node 4 finished."
+		RUNNING=0
+	fi
+	if [ $TIMER -gt 120 ]
+	then
+		echo "...120 seconds passed; giving up on node 4."
+		RUNNING=0
+		RETVAL=1
+		kill -9 $BPCOUNTER4_PID 2>/dev/null
+	fi
+done
+
+echo "Verifying results..."
+
+# Check for retransmissions
+COUNT=`grep "@" node2.stdout | wc -l`
+if [ $COUNT -eq 0 ]
+then
+	echo "FAIL: No LTP retransmissions detected (expected with packet loss)"
+	RETVAL=1
+else
+	echo "PASS: $COUNT retransmissions detected"
+fi
+
+# Check for explicit config
+if grep -q "explicit config" node2.stdout
+then
+	echo "PASS: Explicit config mode confirmed"
+else
+	echo "FAIL: Not using explicit config mode"
+	RETVAL=1
+fi
+
+# Check span 3 has per-span override (max timeouts = 15 * 6 = 90)
+if grep "engine 3" node2.stdout | grep -q "max timeouts 90"
+then
+	echo "PASS: Span 3 has per-span override (max timeouts = 90)"
+else
+	echo "WARNING: Could not verify span 3 per-span override"
+fi
+
+# Check span 4 uses global defaults (max timeouts = 6 * 6 = 36)
+if grep "engine 4" node2.stdout | grep -q "max timeouts 36"
+then
+	echo "PASS: Span 4 uses global defaults (max timeouts = 36)"
+else
+	echo "WARNING: Could not verify span 4 uses global defaults"
+fi
+
+# Check span 3 has 0.14 loss rate
+if grep "engine 3" node2.stdout | grep -q "xmit segment loss rate 0.14"
+then
+	echo "PASS: Span 3 has overridden loss rate (0.14)"
+else
+	echo "WARNING: Could not verify span 3 loss rate"
+fi
+
+# Check span 4 has 0.05 loss rate
+if grep "engine 4" node2.stdout | grep -q "xmit segment loss rate 0.05"
+then
+	echo "PASS: Span 4 has global loss rate (0.05)"
+else
+	echo "WARNING: Could not verify span 4 loss rate"
+fi
+
+echo "Stopping..."
+kill $OWLTSIM_PID 2>/dev/null
+sleep 1
+killm
+
+if [ $RETVAL -eq 0 ]
+then
+	echo "LTP config per-span test PASSED"
+else
+	echo "LTP config per-span test FAILED"
+fi
+
+exit $RETVAL

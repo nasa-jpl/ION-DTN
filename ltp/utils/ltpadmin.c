@@ -100,7 +100,19 @@ See man(5) for ltprc.");
 	PUTS("\t   m heapmax <max database heap for any single inbound block>");
 	PUTS("\t   m screening {y | on | n | off}");
 	PUTS("\t   m ownqtime <own queuing latency, in seconds>");
-	PUTS("\t   m maxber <max expected bit error rate; default is .000001>");
+	PUTS("\t   m maxber <max expected bit error rate> (DEPRECATED)");
+	PUTS("\t   m maxretries <max retransmission attempts; default is 5>");
+	PUTS("\t   m maxseglossrate <max segment loss rate; default is 0.01>");
+	PUTS("\t   m maxretriesxmit <max retries transmit; default is 5>");
+	PUTS("\t   m maxretriesrecv <max retries receive; default is 5>");
+	PUTS("\t   m maxseglossratexmit <max seg loss rate xmit; default 0.01>");
+	PUTS("\t   m maxseglossraterecv <max seg loss rate recv; default 0.01>");
+	PUTS("\t   m span <engine ID> maxretries <value>");
+	PUTS("\t   m span <engine ID> maxseglossrate <value>");
+	PUTS("\t   m span <engine ID> maxretriesxmit <value>");
+	PUTS("\t   m span <engine ID> maxretriesrecv <value>");
+	PUTS("\t   m span <engine ID> maxseglossratexmit <value>");
+	PUTS("\t   m span <engine ID> maxseglossraterecv <value>");
 	PUTS("\t   m maxbacklog <max block delivery backlog; default is 10>");
 	PUTS("\ts\tStart");
 	PUTS("\t   s ['<LSI command>']");
@@ -733,14 +745,32 @@ static void	manageMaxBER(int tokenCount, char **tokens)
 		return;
 	}
 
+	/*	Deprecation warning.					*/
+
+	writeMemo("[?] Warning: 'maxber' is deprecated.");
+	writeMemo("[?] Use 'm maxretries' and 'm maxseglossrate' instead.");
+
 	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
 	ltpdb.maxBER = newMaxBER;
 	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));
+
+	/*	Switch ALL spans to legacy mode (LAST WRITE WINS).	*/
+
 	for (elt = sm_list_first(ionwm, vdb->spans); elt;
 			elt = sm_list_next(ionwm, elt))
 	{
 		vspan = (LtpVspan *) psp(ionwm, sm_list_data(ionwm, elt));
+
+		/*	Log mode switch if applicable.			*/
+
+		if (vspan->useExplicitConfig == 1)
+		{
+			writeMemo("[i] Switching from explicit to legacy mode");
+		}
+
+		vspan->useExplicitConfig = 0;	/*	Legacy mode.	*/
+		vspan->hasSpanOverride = 0;	/*	Clear override.	*/
 		computeRetransmissionLimits(vspan);
 	}
 
@@ -748,6 +778,650 @@ static void	manageMaxBER(int tokenCount, char **tokens)
 	{
 		putErrmsg("Can't change maximum bit error rate.", NULL);
 	}
+}
+
+static void	manageMaxRetries(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	Object		ltpdbObj = getLtpDbObject();
+	PsmPartition	ionwm = getIonwm();
+	LtpVdb		*vdb = getLtpVdb();
+	LtpDB		ltpdb;
+	unsigned int	newMaxRetries;
+	PsmAddress	elt;
+	LtpVspan	*vspan;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	newMaxRetries = strtoul(tokens[2], NULL, 0);
+	if (newMaxRetries < 3)
+	{
+		writeMemoNote("[?] maxRetries must be >= 3", tokens[2]);
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
+	ltpdb.defaultMaxRetries = newMaxRetries;
+	ltpdb.useGlobalSplitMode = 0;		/*	Unified mode.	*/
+	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));
+
+	/*	Update all spans WITHOUT overrides.			*/
+
+	for (elt = sm_list_first(ionwm, vdb->spans); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vspan = (LtpVspan *) psp(ionwm, sm_list_data(ionwm, elt));
+
+		if (vspan->hasSpanOverride == 0)
+		{
+			if (vspan->useExplicitConfig == 0)
+			{
+				writeMemo("[i] Switching from legacy to \
+explicit mode");
+			}
+
+			vspan->useExplicitConfig = 1;
+			vspan->useSplitMode = 0;
+			vspan->maxRetries = newMaxRetries;
+			computeRetransmissionLimits(vspan);
+		}
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change max retries.", NULL);
+	}
+}
+
+static void	manageMaxSegLossRate(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	Object		ltpdbObj = getLtpDbObject();
+	PsmPartition	ionwm = getIonwm();
+	LtpVdb		*vdb = getLtpVdb();
+	LtpDB		ltpdb;
+	float		newLossRate;
+	PsmAddress	elt;
+	LtpVspan	*vspan;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	newLossRate = atof(tokens[2]);
+	if (newLossRate < 0.0 || newLossRate >= 1.0)
+	{
+		writeMemoNote("[?] maxSegmentLossRate must be [0.0, 0.99]",
+			      tokens[2]);
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
+	ltpdb.defaultMaxSegLossRate = newLossRate;
+	ltpdb.useGlobalSplitMode = 0;		/*	Unified mode.	*/
+	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));
+
+	/*	Update all spans WITHOUT overrides.			*/
+
+	for (elt = sm_list_first(ionwm, vdb->spans); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vspan = (LtpVspan *) psp(ionwm, sm_list_data(ionwm, elt));
+
+		if (vspan->hasSpanOverride == 0)
+		{
+			vspan->useExplicitConfig = 1;
+			vspan->useSplitMode = 0;
+			vspan->maxSegmentLossRate = newLossRate;
+			computeRetransmissionLimits(vspan);
+		}
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change max segment loss rate.", NULL);
+	}
+}
+
+static void	manageMaxRetriesXmit(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	Object		ltpdbObj = getLtpDbObject();
+	PsmPartition	ionwm = getIonwm();
+	LtpVdb		*vdb = getLtpVdb();
+	LtpDB		ltpdb;
+	unsigned int	newMaxRetries;
+	PsmAddress	elt;
+	LtpVspan	*vspan;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	newMaxRetries = strtoul(tokens[2], NULL, 0);
+	if (newMaxRetries < 3)
+	{
+		writeMemoNote("[?] maxRetries must be >= 3", tokens[2]);
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
+	ltpdb.defaultMaxRetriesXmit = newMaxRetries;
+	ltpdb.useGlobalSplitMode = 1;		/*	Split mode.	*/
+	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));
+
+	/*	Update all spans WITHOUT overrides.			*/
+
+	for (elt = sm_list_first(ionwm, vdb->spans); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vspan = (LtpVspan *) psp(ionwm, sm_list_data(ionwm, elt));
+
+		if (vspan->hasSpanOverride == 0)
+		{
+			if (vspan->useExplicitConfig == 0)
+			{
+				writeMemo("[i] Switching from legacy to \
+explicit mode");
+			}
+
+			vspan->useExplicitConfig = 1;
+			vspan->useSplitMode = 1;
+			vspan->maxRetriesXmit = newMaxRetries;
+			computeRetransmissionLimits(vspan);
+		}
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change max retries xmit.", NULL);
+	}
+}
+
+static void	manageMaxRetriesRecv(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	Object		ltpdbObj = getLtpDbObject();
+	PsmPartition	ionwm = getIonwm();
+	LtpVdb		*vdb = getLtpVdb();
+	LtpDB		ltpdb;
+	unsigned int	newMaxRetries;
+	PsmAddress	elt;
+	LtpVspan	*vspan;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	newMaxRetries = strtoul(tokens[2], NULL, 0);
+	if (newMaxRetries < 3)
+	{
+		writeMemoNote("[?] maxRetries must be >= 3", tokens[2]);
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
+	ltpdb.defaultMaxRetriesRecv = newMaxRetries;
+	ltpdb.useGlobalSplitMode = 1;		/*	Split mode.	*/
+	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));
+
+	/*	Update all spans WITHOUT overrides.			*/
+
+	for (elt = sm_list_first(ionwm, vdb->spans); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vspan = (LtpVspan *) psp(ionwm, sm_list_data(ionwm, elt));
+
+		if (vspan->hasSpanOverride == 0)
+		{
+			vspan->useExplicitConfig = 1;
+			vspan->useSplitMode = 1;
+			vspan->maxRetriesRecv = newMaxRetries;
+			computeRetransmissionLimits(vspan);
+		}
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change max retries recv.", NULL);
+	}
+}
+
+static void	manageMaxSegLossRateXmit(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	Object		ltpdbObj = getLtpDbObject();
+	PsmPartition	ionwm = getIonwm();
+	LtpVdb		*vdb = getLtpVdb();
+	LtpDB		ltpdb;
+	float		newLossRate;
+	PsmAddress	elt;
+	LtpVspan	*vspan;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	newLossRate = atof(tokens[2]);
+	if (newLossRate < 0.0 || newLossRate >= 1.0)
+	{
+		writeMemoNote("[?] maxSegmentLossRate must be [0.0, 0.99]",
+			      tokens[2]);
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
+	ltpdb.defaultMaxSegLossRateXmit = newLossRate;
+	ltpdb.useGlobalSplitMode = 1;		/*	Split mode.	*/
+	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));
+
+	/*	Update all spans WITHOUT overrides.			*/
+
+	for (elt = sm_list_first(ionwm, vdb->spans); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vspan = (LtpVspan *) psp(ionwm, sm_list_data(ionwm, elt));
+
+		if (vspan->hasSpanOverride == 0)
+		{
+			vspan->useExplicitConfig = 1;
+			vspan->useSplitMode = 1;
+			vspan->maxSegLossRateXmit = newLossRate;
+			computeRetransmissionLimits(vspan);
+		}
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change max segment loss rate xmit.", NULL);
+	}
+}
+
+static void	manageMaxSegLossRateRecv(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	Object		ltpdbObj = getLtpDbObject();
+	PsmPartition	ionwm = getIonwm();
+	LtpVdb		*vdb = getLtpVdb();
+	LtpDB		ltpdb;
+	float		newLossRate;
+	PsmAddress	elt;
+	LtpVspan	*vspan;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	newLossRate = atof(tokens[2]);
+	if (newLossRate < 0.0 || newLossRate >= 1.0)
+	{
+		writeMemoNote("[?] maxSegmentLossRate must be [0.0, 0.99]",
+			      tokens[2]);
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
+	ltpdb.defaultMaxSegLossRateRecv = newLossRate;
+	ltpdb.useGlobalSplitMode = 1;		/*	Split mode.	*/
+	sdr_write(sdr, ltpdbObj, (char *) &ltpdb, sizeof(LtpDB));
+
+	/*	Update all spans WITHOUT overrides.			*/
+
+	for (elt = sm_list_first(ionwm, vdb->spans); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vspan = (LtpVspan *) psp(ionwm, sm_list_data(ionwm, elt));
+
+		if (vspan->hasSpanOverride == 0)
+		{
+			vspan->useExplicitConfig = 1;
+			vspan->useSplitMode = 1;
+			vspan->maxSegLossRateRecv = newLossRate;
+			computeRetransmissionLimits(vspan);
+		}
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change max segment loss rate recv.", NULL);
+	}
+}
+
+/*	Per-span configuration commands (volatile memory only).	*/
+
+static void	manageSpanMaxRetries(int tokenCount, char **tokens)
+{
+	PsmPartition	ionwm = getIonwm();
+	LtpVdb		*vdb = getLtpVdb();
+	PsmAddress	elt;
+	LtpVspan	*vspan;
+	uvast		engineId;
+	unsigned int	newMaxRetries;
+	int		found = 0;
+
+	if (tokenCount != 5)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	engineId = strtouvast(tokens[2]);
+	newMaxRetries = strtoul(tokens[4], NULL, 0);
+	if (newMaxRetries < 3)
+	{
+		writeMemoNote("[?] maxretries must be at least 3", tokens[4]);
+		return;
+	}
+
+	/*	Find the span by engineId.				*/
+
+	for (elt = sm_list_first(ionwm, vdb->spans); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vspan = (LtpVspan *) psp(ionwm, sm_list_data(ionwm, elt));
+		if (vspan->engineId == engineId)
+		{
+			found = 1;
+			break;
+		}
+	}
+
+	if (!found)
+	{
+		writeMemoNote("[?] Span not found for engine", utoa(engineId));
+		return;
+	}
+
+	/*	Update span-specific configuration (volatile only).	*/
+
+	vspan->hasSpanOverride = 1;
+	vspan->useExplicitConfig = 1;
+	vspan->useSplitMode = 0;  /* Unified mode. */
+	vspan->maxRetries = newMaxRetries;
+	computeRetransmissionLimits(vspan);
+}
+
+static void	manageSpanMaxRetriesXmit(int tokenCount, char **tokens)
+{
+	PsmPartition	ionwm = getIonwm();
+	LtpVdb		*vdb = getLtpVdb();
+	PsmAddress	elt;
+	LtpVspan	*vspan;
+	uvast		engineId;
+	unsigned int	newMaxRetriesXmit;
+	int		found = 0;
+
+	if (tokenCount != 5)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	engineId = strtouvast(tokens[2]);
+	newMaxRetriesXmit = strtoul(tokens[4], NULL, 0);
+	if (newMaxRetriesXmit < 3)
+	{
+		writeMemoNote("[?] maxretriesxmit must be at least 3", tokens[4]);
+		return;
+	}
+
+	/*	Find the span by engineId.				*/
+
+	for (elt = sm_list_first(ionwm, vdb->spans); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vspan = (LtpVspan *) psp(ionwm, sm_list_data(ionwm, elt));
+		if (vspan->engineId == engineId)
+		{
+			found = 1;
+			break;
+		}
+	}
+
+	if (!found)
+	{
+		writeMemoNote("[?] Span not found for engine", utoa(engineId));
+		return;
+	}
+
+	/*	Update span-specific configuration (volatile only).	*/
+
+	vspan->hasSpanOverride = 1;
+	vspan->useExplicitConfig = 1;
+	vspan->useSplitMode = 1;  /* Split mode. */
+	vspan->maxRetriesXmit = newMaxRetriesXmit;
+	computeRetransmissionLimits(vspan);
+}
+
+static void	manageSpanMaxRetriesRecv(int tokenCount, char **tokens)
+{
+	PsmPartition	ionwm = getIonwm();
+	LtpVdb		*vdb = getLtpVdb();
+	PsmAddress	elt;
+	LtpVspan	*vspan;
+	uvast		engineId;
+	unsigned int	newMaxRetriesRecv;
+	int		found = 0;
+
+	if (tokenCount != 5)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	engineId = strtouvast(tokens[2]);
+	newMaxRetriesRecv = strtoul(tokens[4], NULL, 0);
+	if (newMaxRetriesRecv < 3)
+	{
+		writeMemoNote("[?] maxretriesrecv must be at least 3", tokens[4]);
+		return;
+	}
+
+	/*	Find the span by engineId.				*/
+
+	for (elt = sm_list_first(ionwm, vdb->spans); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vspan = (LtpVspan *) psp(ionwm, sm_list_data(ionwm, elt));
+		if (vspan->engineId == engineId)
+		{
+			found = 1;
+			break;
+		}
+	}
+
+	if (!found)
+	{
+		writeMemoNote("[?] Span not found for engine", utoa(engineId));
+		return;
+	}
+
+	/*	Update span-specific configuration (volatile only).	*/
+
+	vspan->hasSpanOverride = 1;
+	vspan->useExplicitConfig = 1;
+	vspan->useSplitMode = 1;  /* Split mode. */
+	vspan->maxRetriesRecv = newMaxRetriesRecv;
+	computeRetransmissionLimits(vspan);
+}
+
+static void	manageSpanMaxSegLossRate(int tokenCount, char **tokens)
+{
+	PsmPartition	ionwm = getIonwm();
+	LtpVdb		*vdb = getLtpVdb();
+	PsmAddress	elt;
+	LtpVspan	*vspan;
+	uvast		engineId;
+	float		newLossRate;
+	int		found = 0;
+
+	if (tokenCount != 5)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	engineId = strtouvast(tokens[2]);
+	newLossRate = atof(tokens[4]);
+	if (newLossRate < 0.0 || newLossRate >= 1.0)
+	{
+		writeMemoNote("[?] maxseglossrate must be in [0.0, 0.99]",
+				tokens[4]);
+		return;
+	}
+
+	/*	Find the span by engineId.				*/
+
+	for (elt = sm_list_first(ionwm, vdb->spans); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vspan = (LtpVspan *) psp(ionwm, sm_list_data(ionwm, elt));
+		if (vspan->engineId == engineId)
+		{
+			found = 1;
+			break;
+		}
+	}
+
+	if (!found)
+	{
+		writeMemoNote("[?] Span not found for engine", utoa(engineId));
+		return;
+	}
+
+	/*	Update span-specific configuration (volatile only).	*/
+
+	vspan->hasSpanOverride = 1;
+	vspan->useExplicitConfig = 1;
+	vspan->useSplitMode = 0;  /* Unified mode. */
+	vspan->maxSegmentLossRate = newLossRate;
+	computeRetransmissionLimits(vspan);
+}
+
+static void	manageSpanMaxSegLossRateXmit(int tokenCount, char **tokens)
+{
+	PsmPartition	ionwm = getIonwm();
+	LtpVdb		*vdb = getLtpVdb();
+	PsmAddress	elt;
+	LtpVspan	*vspan;
+	uvast		engineId;
+	float		newLossRateXmit;
+	int		found = 0;
+
+	if (tokenCount != 5)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	engineId = strtouvast(tokens[2]);
+	newLossRateXmit = atof(tokens[4]);
+	if (newLossRateXmit < 0.0 || newLossRateXmit >= 1.0)
+	{
+		writeMemoNote("[?] maxseglossratexmit must be in [0.0, 0.99]",
+				tokens[4]);
+		return;
+	}
+
+	/*	Find the span by engineId.				*/
+
+	for (elt = sm_list_first(ionwm, vdb->spans); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vspan = (LtpVspan *) psp(ionwm, sm_list_data(ionwm, elt));
+		if (vspan->engineId == engineId)
+		{
+			found = 1;
+			break;
+		}
+	}
+
+	if (!found)
+	{
+		writeMemoNote("[?] Span not found for engine", utoa(engineId));
+		return;
+	}
+
+	/*	Update span-specific configuration (volatile only).	*/
+
+	vspan->hasSpanOverride = 1;
+	vspan->useExplicitConfig = 1;
+	vspan->useSplitMode = 1;  /* Split mode. */
+	vspan->maxSegLossRateXmit = newLossRateXmit;
+	computeRetransmissionLimits(vspan);
+}
+
+static void	manageSpanMaxSegLossRateRecv(int tokenCount, char **tokens)
+{
+	PsmPartition	ionwm = getIonwm();
+	LtpVdb		*vdb = getLtpVdb();
+	PsmAddress	elt;
+	LtpVspan	*vspan;
+	uvast		engineId;
+	float		newLossRateRecv;
+	int		found = 0;
+
+	if (tokenCount != 5)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	engineId = strtouvast(tokens[2]);
+	newLossRateRecv = atof(tokens[4]);
+	if (newLossRateRecv < 0.0 || newLossRateRecv >= 1.0)
+	{
+		writeMemoNote("[?] maxseglossraterecv must be in [0.0, 0.99]",
+				tokens[4]);
+		return;
+	}
+
+	/*	Find the span by engineId.				*/
+
+	for (elt = sm_list_first(ionwm, vdb->spans); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vspan = (LtpVspan *) psp(ionwm, sm_list_data(ionwm, elt));
+		if (vspan->engineId == engineId)
+		{
+			found = 1;
+			break;
+		}
+	}
+
+	if (!found)
+	{
+		writeMemoNote("[?] Span not found for engine", utoa(engineId));
+		return;
+	}
+
+	/*	Update span-specific configuration (volatile only).	*/
+
+	vspan->hasSpanOverride = 1;
+	vspan->useExplicitConfig = 1;
+	vspan->useSplitMode = 1;  /* Split mode. */
+	vspan->maxSegLossRateRecv = newLossRateRecv;
+	computeRetransmissionLimits(vspan);
 }
 
 static void	manageMaxBacklog(int tokenCount, char **tokens)
@@ -809,6 +1483,102 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "maxber") == 0)
 	{
 		manageMaxBER(tokenCount, tokens);
+		return;
+	}
+
+	/*	Global unified mode commands.				*/
+
+	if (strcmp(tokens[1], "maxretries") == 0)
+	{
+		manageMaxRetries(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "maxseglossrate") == 0)
+	{
+		manageMaxSegLossRate(tokenCount, tokens);
+		return;
+	}
+
+	/*	Global split mode commands.				*/
+
+	if (strcmp(tokens[1], "maxretriesxmit") == 0)
+	{
+		manageMaxRetriesXmit(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "maxretriesrecv") == 0)
+	{
+		manageMaxRetriesRecv(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "maxseglossratexmit") == 0)
+	{
+		manageMaxSegLossRateXmit(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "maxseglossraterecv") == 0)
+	{
+		manageMaxSegLossRateRecv(tokenCount, tokens);
+		return;
+	}
+
+	/*	Per-span commands (requires 'span <engineId> <param>').	*/
+
+	if (strcmp(tokens[1], "span") == 0)
+	{
+		if (tokenCount < 4)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		/*	Unified mode per-span commands.		*/
+
+		if (strcmp(tokens[3], "maxretries") == 0)
+		{
+			manageSpanMaxRetries(tokenCount, tokens);
+			return;
+		}
+
+		if (strcmp(tokens[3], "maxseglossrate") == 0)
+		{
+			manageSpanMaxSegLossRate(tokenCount, tokens);
+			return;
+		}
+
+		/*	Split mode per-span commands.			*/
+
+		if (strcmp(tokens[3], "maxretriesxmit") == 0)
+		{
+			manageSpanMaxRetriesXmit(tokenCount, tokens);
+			return;
+		}
+
+		if (strcmp(tokens[3], "maxretriesrecv") == 0)
+		{
+			manageSpanMaxRetriesRecv(tokenCount, tokens);
+			return;
+		}
+
+		if (strcmp(tokens[3], "maxseglossratexmit") == 0)
+		{
+			manageSpanMaxSegLossRateXmit(tokenCount, tokens);
+			return;
+		}
+
+		if (strcmp(tokens[3], "maxseglossraterecv") == 0)
+		{
+			manageSpanMaxSegLossRateRecv(tokenCount, tokens);
+			return;
+		}
+
+		/*	Unknown span parameter.				*/
+
+		SYNTAX_ERROR;
 		return;
 	}
 

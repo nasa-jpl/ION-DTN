@@ -218,6 +218,111 @@ block.  (Note that this computation is also sensitive to data segment size
 and to the size of the block that is to be transmitted.)  The default value
 is .000001 (10^-6).
 
+B<NOTE:> This command is deprecated.  Use B<m maxretries> and
+B<m maxseglossrate> instead for explicit configuration of retransmission
+parameters.
+
+=item B<m maxretries> I<max_retransmission_attempts>
+
+The B<manage max retries> command.  This command sets the maximum number of
+retransmission attempts for control segments (reports and checkpoints) in
+unified mode (symmetric configuration for both transmit and receive directions).
+The value must be at least 3.  The default value is 5.
+
+This command applies globally to all spans that have not been configured with
+per-span overrides.  It switches spans to explicit unified configuration mode.
+
+=item B<m maxseglossrate> I<max_segment_loss_rate>
+
+The B<manage max segment loss rate> command.  This command sets the expected
+maximum segment loss rate (packet loss rate) in unified mode.  The value must
+be in the range [0.0, 0.99].  The default value is 0.01 (1%).
+
+This command applies globally to all spans that have not been configured with
+per-span overrides.  It switches spans to explicit unified configuration mode.
+
+=item B<m maxretriesxmit> I<max_retransmission_attempts_transmit>
+
+The B<manage max retries transmit> command.  This command sets the maximum
+number of retransmission attempts for control segments in the transmit direction
+only (split mode).  The value must be at least 3.  The default value is 5.
+
+This command applies globally to all spans that have not been configured with
+per-span overrides.  It switches spans to explicit split configuration mode
+for asymmetric links.
+
+=item B<m maxretriesrecv> I<max_retransmission_attempts_receive>
+
+The B<manage max retries receive> command.  This command sets the maximum
+number of retransmission attempts for control segments in the receive direction
+only (split mode).  The value must be at least 3.  The default value is 5.
+
+This command applies globally to all spans that have not been configured with
+per-span overrides.  It switches spans to explicit split configuration mode
+for asymmetric links.
+
+=item B<m maxseglossratexmit> I<max_segment_loss_rate_transmit>
+
+The B<manage max segment loss rate transmit> command.  This command sets the
+expected maximum segment loss rate in the transmit direction only (split mode).
+The value must be in the range [0.0, 0.99].  The default value is 0.01 (1%).
+
+This command applies globally to all spans that have not been configured with
+per-span overrides.  It switches spans to explicit split configuration mode
+for asymmetric links.
+
+=item B<m maxseglossraterecv> I<max_segment_loss_rate_receive>
+
+The B<manage max segment loss rate receive> command.  This command sets the
+expected maximum segment loss rate in the receive direction only (split mode).
+The value must be in the range [0.0, 0.99].  The default value is 0.01 (1%).
+
+This command applies globally to all spans that have not been configured with
+per-span overrides.  It switches spans to explicit split configuration mode
+for asymmetric links.
+
+=item B<m span> I<peer_engine_nbr> B<maxretries> I<max_retransmission_attempts>
+
+The B<manage span max retries> command.  This command sets the maximum number
+of retransmission attempts for the specified span in unified mode.  The value
+must be at least 3.  This creates a per-span override that takes precedence
+over global configuration.
+
+=item B<m span> I<peer_engine_nbr> B<maxseglossrate> I<max_segment_loss_rate>
+
+The B<manage span max segment loss rate> command.  This command sets the
+expected maximum segment loss rate for the specified span in unified mode.
+The value must be in the range [0.0, 0.99].  This creates a per-span override
+that takes precedence over global configuration.
+
+=item B<m span> I<peer_engine_nbr> B<maxretriesxmit> I<max_retransmission_attempts_transmit>
+
+The B<manage span max retries transmit> command.  This command sets the maximum
+number of retransmission attempts for the specified span in the transmit
+direction only (split mode).  The value must be at least 3.  This creates a
+per-span override for asymmetric link configuration.
+
+=item B<m span> I<peer_engine_nbr> B<maxretriesrecv> I<max_retransmission_attempts_receive>
+
+The B<manage span max retries receive> command.  This command sets the maximum
+number of retransmission attempts for the specified span in the receive
+direction only (split mode).  The value must be at least 3.  This creates a
+per-span override for asymmetric link configuration.
+
+=item B<m span> I<peer_engine_nbr> B<maxseglossratexmit> I<max_segment_loss_rate_transmit>
+
+The B<manage span max segment loss rate transmit> command.  This command sets
+the expected maximum segment loss rate for the specified span in the transmit
+direction only (split mode).  The value must be in the range [0.0, 0.99].
+This creates a per-span override for asymmetric link configuration.
+
+=item B<m span> I<peer_engine_nbr> B<maxseglossraterecv> I<max_segment_loss_rate_receive>
+
+The B<manage span max segment loss rate receive> command.  This command sets
+the expected maximum segment loss rate for the specified span in the receive
+direction only (split mode).  The value must be in the range [0.0, 0.99].
+This creates a per-span override for asymmetric link configuration.
+
 =item B<m maxbacklog> I<max_delivery_backlog>
 
 The B<manage max delivery backlog> command.  This command sets the limit

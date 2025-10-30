@@ -491,9 +491,48 @@ void	computeRetransmissionLimits(LtpVspan *vspan)
 	float	pSegmentOk;
 	float	pDlvFailure;
 	char	nbrBuf[FQN_MAX_LENGTH];
-	char	buf[256];
+	char	buf[512];
 
 	GET_OBJ_POINTER(getIonsdr(), LtpDB, ltpdb, getLtpDbObject());
+
+	/*	Check if using explicit configuration or legacy mode.	*/
+
+	if (vspan->useExplicitConfig)
+	{
+		/*	Explicit configuration: use direct parameters.	*/
+
+		if (vspan->useSplitMode)
+		{
+			/*	Split mode: xmit and recv independent.	*/
+
+			vspan->xmitSegLossRate = vspan->maxSegLossRateXmit;
+			vspan->recvSegLossRate = vspan->maxSegLossRateRecv;
+			vspan->maxTimeouts = vspan->maxRetriesXmit
+					* SIGNAL_REDUNDANCY;
+		}
+		else
+		{
+			/*	Unified mode: symmetric configuration.	*/
+
+			vspan->xmitSegLossRate = vspan->maxSegmentLossRate;
+			vspan->recvSegLossRate = vspan->maxSegmentLossRate;
+			vspan->maxTimeouts = vspan->maxRetries
+					* SIGNAL_REDUNDANCY;
+		}
+
+		putFqn(nbrBuf, vspan->engineId);
+		isprintf(buf, sizeof buf, "[i] Span to engine %s (explicit \
+config, max xmit segment size %d, max recv segment size %d): xmit segment loss \
+rate %f, recv segment loss rate %f, max timeouts %d.", nbrBuf,
+				vspan->maxXmitSegSize, vspan->maxRecvSegSize,
+				vspan->xmitSegLossRate,
+				vspan->recvSegLossRate, vspan->maxTimeouts);
+		writeMemo(buf);
+		return;
+	}
+
+	/*	Legacy mode: compute from maxBER (bit error rate).	*/
+
 	maxBER = ltpdb->maxBER;
 	if (maxBER <= 0.0	/*	Perfect link.			*/
 	|| maxBER >= 1.0)	/*	No communication at all.	*/
@@ -533,9 +572,9 @@ void	computeRetransmissionLimits(LtpVspan *vspan)
 
 	vspan->maxTimeouts *= SIGNAL_REDUNDANCY;
 	putFqn(nbrBuf, vspan->engineId);
-	isprintf(buf, sizeof buf, "[i] Span to engine %s (max BER %f, max \
-xmit segment size %d, max recv segment size %d): xmit segment loss rate %f, \
-recv segment loss rate %f, max timeouts %d.", nbrBuf, maxBER,
+	isprintf(buf, sizeof buf, "[i] Span to engine %s (legacy max BER \
+%f, max xmit segment size %d, max recv segment size %d): xmit segment loss \
+rate %f, recv segment loss rate %f, max timeouts %d.", nbrBuf, maxBER,
 			vspan->maxXmitSegSize, vspan->maxRecvSegSize,
 			vspan->xmitSegLossRate, vspan->recvSegLossRate,
 			vspan->maxTimeouts);
@@ -1016,6 +1055,17 @@ int	ltpInit(int estMaxExportSessions)
 		ltpdbBuf.ownQtime = 1;		/*	Default.	*/
 		ltpdbBuf.enforceSchedule = 1;	/*	Default.	*/
 		ltpdbBuf.maxBER = DEFAULT_MAX_BER;
+
+		/*	Initialize explicit config defaults.		*/
+
+		ltpdbBuf.defaultMaxRetries = 5;
+		ltpdbBuf.defaultMaxSegLossRate = 0.01;
+		ltpdbBuf.useGlobalSplitMode = 0;  /* Unified by default. */
+		ltpdbBuf.defaultMaxRetriesXmit = 5;
+		ltpdbBuf.defaultMaxRetriesRecv = 5;
+		ltpdbBuf.defaultMaxSegLossRateXmit = 0.01;
+		ltpdbBuf.defaultMaxSegLossRateRecv = 0.01;
+
 		for (i = 0; i < LTP_MAX_NBR_OF_CLIENTS; i++)
 		{
 			ltpdbBuf.clients[i].notices = sdr_list_create(sdr);

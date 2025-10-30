@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#
+# Cleanup script for ltp-config-span test
+#
+
+# Kill any remaining owltsim processes
+pkill -9 owltsim 2>/dev/null
+
+# Remove output files
+rm -f ion_nodes
+rm -f 2.ipn.ltp/*.stdout
+rm -f 3.ipn.ltp/*.stdout
+rm -f 4.ipn.ltp/*.stdout
+rm -f 2.ipn.ltp/*.txt
+rm -f 3.ipn.ltp/*.txt
+rm -f 4.ipn.ltp/*.txt
+
+echo "Cleanup complete."

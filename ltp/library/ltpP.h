@@ -524,6 +524,27 @@ typedef struct
 	Object		stats;		/*	LtpSpanStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
 	uvast		engineId;	/*	ID of remote engine.	*/
+
+	/*	New explicit configuration parameters.			*/
+
+	int		useExplicitConfig;/*	0=legacy, 1=explicit	*/
+	int		useSplitMode;	/*	0=unified, 1=split	*/
+	int		hasSpanOverride;/*	0=global, 1=override	*/
+
+	/*	Unified mode values (when useSplitMode=0).		*/
+
+	unsigned int	maxRetries;	/*	Both directions.	*/
+	float		maxSegmentLossRate;/*	Both directions.	*/
+
+	/*	Split mode values (when useSplitMode=1).		*/
+
+	unsigned int	maxRetriesXmit;	/*	Outbound data segments.	*/
+	unsigned int	maxRetriesRecv;	/*	Inbound reports.	*/
+	float		maxSegLossRateXmit;/*	Outbound loss rate.	*/
+	float		maxSegLossRateRecv;/*	Inbound loss rate.	*/
+
+	/*	Legacy computed parameters (kept for compatibility).	*/
+
 	float		xmitSegLossRate;
 	float		recvSegLossRate;
 	unsigned int	maxTimeouts;
@@ -658,7 +679,24 @@ typedef struct
 	int		estMaxExportSessions;
 	unsigned int	ownQtime;
 	unsigned int	enforceSchedule;/*	Boolean.		*/
-	double		maxBER;		/*	Max. bit error rate.	*/
+
+	/*	Retransmission parameters (legacy and new).		*/
+
+	double		maxBER;		/*	Legacy: bit error rate.	*/
+
+	/*	Global defaults - unified mode.				*/
+
+	unsigned int	defaultMaxRetries;/*	Default: 5		*/
+	float		defaultMaxSegLossRate;/*	Default: 0.01		*/
+
+	/*	Global defaults - split mode.				*/
+
+	int		useGlobalSplitMode;/*	0=unified, 1=split	*/
+	unsigned int	defaultMaxRetriesXmit;
+	unsigned int	defaultMaxRetriesRecv;
+	float		defaultMaxSegLossRateXmit;
+	float		defaultMaxSegLossRateRecv;
+
 	LtpClient	clients[LTP_MAX_NBR_OF_CLIENTS];
 	unsigned int	sessionCount;
 	Object		exportSessionsHash;
