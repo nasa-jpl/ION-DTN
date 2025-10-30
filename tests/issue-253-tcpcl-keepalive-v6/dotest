@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 #
-# Mithun R Rajan
-# June 15, 2011
-#
-# This test is modeled off of Scott's limbo test.
+# Extended TCPCL Keepalive Test for IPv6
 # The test checks if the tcpcl keepalive backoff timer
 # triggers a keepalive when the timer goes off. The 
 # timer should trigger a keepalive every 30, 60, 120 seconds....
@@ -15,6 +12,7 @@
 # wait for 30 seconds. When the backoff timer(30 seconds) expires it 
 # will re-establish connection and resend the second file. A third
 # file is sent from node 2 to node 3 to test restored connectivity.
+#
 
 killm
 ./cleanup

@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
-#
-# Scott Burleigh
-# February 26, 2012
-#
-#
-# Shawn Ostermann
-# Made it more flexible for testing
-# October 11, 2023
-#
+# Adapted TCPCL Throughput Benchmark Test for IPv6
+# iondev33, JPL
 
 #
 # testing configuration
