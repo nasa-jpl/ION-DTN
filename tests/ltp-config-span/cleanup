@@ -14,5 +14,11 @@ rm -f 4.ipn.ltp/*.stdout
 rm -f 2.ipn.ltp/*.txt
 rm -f 3.ipn.ltp/*.txt
 rm -f 4.ipn.ltp/*.txt
+rm -f 2.ipn.ltp/ion.log
+rm -f 3.ipn.ltp/ion.log
+rm -f 4.ipn.ltp/ion.log
+rm -f 2.ipn.ltp/ltpblock.*
+rm -f 3.ipn.ltp/ltpblock.*
+rm -f 4.ipn.ltp/ltpblock.*
 
 echo "Cleanup complete."

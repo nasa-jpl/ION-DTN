@@ -130,9 +130,10 @@ do
 done
 
 echo "Verifying results..."
+cd ..
 
 # Check for retransmissions (@ character in watch output)
-COUNT=`grep "@" node2.stdout | wc -l`
+COUNT=`grep "@" 2.ipn.ltp/node2.stdout | wc -l`
 if [ $COUNT -eq 0 ]
 then
 	echo "FAIL: No LTP retransmissions detected (expected with 10% loss)"
@@ -141,8 +142,8 @@ else
 	echo "PASS: $COUNT retransmissions detected"
 fi
 
-# Check for explicit config message in logs
-if grep -q "explicit config" node2.stdout
+# Check for explicit config message in logs (ion.log contains span configuration)
+if grep -q "explicit config" 2.ipn.ltp/ion.log
 then
 	echo "PASS: Explicit config mode confirmed in node 2"
 else
@@ -150,7 +151,7 @@ else
 	RETVAL=1
 fi
 
-if grep -q "explicit config" node3.stdout
+if grep -q "explicit config" 3.ipn.ltp/ion.log
 then
 	echo "PASS: Explicit config mode confirmed in node 3"
 else
@@ -159,17 +160,18 @@ else
 fi
 
 # Check unified mode (same xmit/recv loss rates of 0.10)
-if grep -q "xmit segment loss rate 0.10.*recv segment loss rate 0.10" node2.stdout
+# Grep to find final configuration (spans configured at startup)
+if grep "engine 3" 2.ipn.ltp/ion.log | grep "explicit config" | tail -1 | grep -q "xmit segment loss rate 0.10.*recv segment loss rate 0.10"
 then
 	echo "PASS: Unified mode confirmed in node 2 (same xmit/recv rates)"
 else
 	echo "WARNING: Could not verify unified mode rates in node 2"
 fi
 
-# Check for max timeouts = 8 * 6 (SIGNAL_REDUNDANCY) = 48
-if grep -q "max timeouts 48" node2.stdout
+# Check for max timeouts = 8 (8 retries * SIGNAL_REDUNDANCY=1)
+if grep "engine 3" 2.ipn.ltp/ion.log | grep "explicit config" | tail -1 | grep -q "max timeouts 8"
 then
-	echo "PASS: Max timeouts = 48 confirmed (8 retries * 6 redundancy)"
+	echo "PASS: Max timeouts = 8 confirmed (8 retries * 1 redundancy)"
 else
 	echo "WARNING: Could not verify max timeouts value"
 fi

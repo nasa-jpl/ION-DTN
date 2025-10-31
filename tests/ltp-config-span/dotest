@@ -192,9 +192,10 @@ do
 done
 
 echo "Verifying results..."
+cd ..
 
 # Check for retransmissions
-COUNT=`grep "@" node2.stdout | wc -l`
+COUNT=`grep "@" 2.ipn.ltp/node2.stdout | wc -l`
 if [ $COUNT -eq 0 ]
 then
 	echo "FAIL: No LTP retransmissions detected (expected with packet loss)"
@@ -203,8 +204,8 @@ else
 	echo "PASS: $COUNT retransmissions detected"
 fi
 
-# Check for explicit config
-if grep -q "explicit config" node2.stdout
+# Check for explicit config (ion.log contains span configuration)
+if grep -q "explicit config" 2.ipn.ltp/ion.log
 then
 	echo "PASS: Explicit config mode confirmed"
 else
@@ -212,24 +213,25 @@ else
 	RETVAL=1
 fi
 
-# Check span 3 has per-span override (max timeouts = 15 * 6 = 90)
-if grep "engine 3" node2.stdout | grep -q "max timeouts 90"
+# Check span 3 has per-span override (max timeouts = 15 * 1 = 15)
+# Grep the whole log to find final configuration (spans configured at startup)
+if grep "engine 3" 2.ipn.ltp/ion.log | grep "explicit config" | tail -1 | grep -q "max timeouts 15"
 then
-	echo "PASS: Span 3 has per-span override (max timeouts = 90)"
+	echo "PASS: Span 3 has per-span override (max timeouts = 15)"
 else
 	echo "WARNING: Could not verify span 3 per-span override"
 fi
 
-# Check span 4 uses global defaults (max timeouts = 6 * 6 = 36)
-if grep "engine 4" node2.stdout | grep -q "max timeouts 36"
+# Check span 4 uses global defaults (max timeouts = 6 * 1 = 6)
+if grep "engine 4" 2.ipn.ltp/ion.log | grep "explicit config" | tail -1 | grep -q "max timeouts 6"
 then
-	echo "PASS: Span 4 uses global defaults (max timeouts = 36)"
+	echo "PASS: Span 4 uses global defaults (max timeouts = 6)"
 else
 	echo "WARNING: Could not verify span 4 uses global defaults"
 fi
 
 # Check span 3 has 0.14 loss rate
-if grep "engine 3" node2.stdout | grep -q "xmit segment loss rate 0.14"
+if grep "engine 3" 2.ipn.ltp/ion.log | grep "explicit config" | tail -1 | grep -q "xmit segment loss rate 0.14"
 then
 	echo "PASS: Span 3 has overridden loss rate (0.14)"
 else
@@ -237,7 +239,7 @@ else
 fi
 
 # Check span 4 has 0.05 loss rate
-if grep "engine 4" node2.stdout | grep -q "xmit segment loss rate 0.05"
+if grep "engine 4" 2.ipn.ltp/ion.log | grep "explicit config" | tail -1 | grep -q "xmit segment loss rate 0.05"
 then
 	echo "PASS: Span 4 has global loss rate (0.05)"
 else

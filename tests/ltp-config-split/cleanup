@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Cleanup script for ltp-config-unified test
+# Cleanup script for ltp-config-split test
 #
 
 # Kill any remaining owltsim processes
@@ -12,5 +12,9 @@ rm -f 2.ipn.ltp/*.stdout
 rm -f 3.ipn.ltp/*.stdout
 rm -f 2.ipn.ltp/*.txt
 rm -f 3.ipn.ltp/*.txt
+rm -f 2.ipn.ltp/ion.log
+rm -f 3.ipn.ltp/ion.log
+rm -f 2.ipn.ltp/ltpblock.*
+rm -f 3.ipn.ltp/ltpblock.*
 
 echo "Cleanup complete."

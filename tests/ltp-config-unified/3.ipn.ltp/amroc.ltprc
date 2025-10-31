@@ -1,8 +1,8 @@
 1 100
-m maxretries 8
-m maxseglossrate 0.10
 a span 3 2 100100 2 100100 1200 100100 1 'udplso 127.0.0.1:2113'
 a span 2 10 100100 10 100100 1200 100100 1 'udplso 127.0.0.1:2192'
+m maxretries 8
+m maxseglossrate 0.10
 w 1
 e 1
 s 'udplsi 127.0.0.1:2113'

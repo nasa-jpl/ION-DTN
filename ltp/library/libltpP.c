@@ -621,6 +621,33 @@ static int	raiseSpan(Object spanElt, LtpVdb *ltpvdb)
 	vspan->maxXmitSegSize = span.maxSegmentSize;
 	vspan->maxRecvSegSize = 1;
 	computeRetransmissionLimits(vspan);
+
+	/*	Validate explicit configuration at span initialization.	*/
+
+	if (vspan->useExplicitConfig)
+	{
+		if (vspan->useSplitMode)
+		{
+			if (vspan->maxRetriesXmit == 0
+			|| vspan->maxRetriesRecv == 0
+			|| vspan->maxSegLossRateXmit == 0.0
+			|| vspan->maxSegLossRateRecv == 0.0)
+			{
+				writeMemo("[!] WARNING: Incomplete split mode \
+configuration detected (some parameters are 0).");
+			}
+		}
+		else
+		{
+			if (vspan->maxRetries == 0
+			|| vspan->maxSegmentLossRate == 0.0)
+			{
+				writeMemo("[!] WARNING: Incomplete unified mode \
+configuration detected (some parameters are 0).");
+			}
+		}
+	}
+
 	vspan->segmentBuffer = psm_malloc(ltpwm, span.maxSegmentSize);
 	if (vspan->segmentBuffer == 0)
 	{

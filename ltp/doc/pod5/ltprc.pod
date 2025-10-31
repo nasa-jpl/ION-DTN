@@ -232,6 +232,11 @@ The value must be at least 3.  The default value is 5.
 This command applies globally to all spans that have not been configured with
 per-span overrides.  It switches spans to explicit unified configuration mode.
 
+B<IMPORTANT:> For proper explicit configuration, both B<m maxretries> and
+B<m maxseglossrate> should be specified together.  If only one is set, the
+other will default to 0, which may not reflect actual link conditions.  A
+warning will be logged if incomplete configuration is detected.
+
 =item B<m maxseglossrate> I<max_segment_loss_rate>
 
 The B<manage max segment loss rate> command.  This command sets the expected
@@ -240,6 +245,9 @@ be in the range [0.0, 0.99].  The default value is 0.01 (1%).
 
 This command applies globally to all spans that have not been configured with
 per-span overrides.  It switches spans to explicit unified configuration mode.
+
+B<IMPORTANT:> For proper explicit configuration, both B<m maxretries> and
+B<m maxseglossrate> should be specified together.  See B<m maxretries> above.
 
 =item B<m maxretriesxmit> I<max_retransmission_attempts_transmit>
 
@@ -250,6 +258,11 @@ only (split mode).  The value must be at least 3.  The default value is 5.
 This command applies globally to all spans that have not been configured with
 per-span overrides.  It switches spans to explicit split configuration mode
 for asymmetric links.
+
+B<IMPORTANT:> For proper split mode configuration, all four parameters
+(B<m maxretriesxmit>, B<m maxretriesrecv>, B<m maxseglossratexmit>,
+B<m maxseglossraterecv>) should be specified together.  Incomplete
+configuration will result in warnings.
 
 =item B<m maxretriesrecv> I<max_retransmission_attempts_receive>
 
