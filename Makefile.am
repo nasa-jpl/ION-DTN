@@ -974,6 +974,7 @@ bpbin = \
 	bpdriver \
 	bpecho \
 	bping \
+	bpinspect \
 	bplist \
 	bpnmtest \
 	bprecvfile \
@@ -1102,6 +1103,7 @@ bpextra = \
 	bpv7/doc/pod1/bpdriver.pod \
 	bpv7/doc/pod1/bpecho.pod \
 	bpv7/doc/pod1/bping.pod \
+	bpv7/doc/pod1/bpinspect.pod \
 	bpv7/doc/pod1/bplist.pod \
 	bpv7/doc/pod1/bpnmtest.pod \
 	bpv7/doc/pod1/bprecvfile.pod \
@@ -1190,6 +1192,7 @@ bpmans = \
 	bpv7/doc/bpdriver.1 \
 	bpv7/doc/bpecho.1 \
 	bpv7/doc/bping.1 \
+	bpv7/doc/bpinspect.1 \
 	bpv7/doc/bplist.1 \
 	bpv7/doc/bpnmtest.1 \
 	bpv7/doc/bprecvfile.1 \
@@ -1376,6 +1379,10 @@ bpcancel_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bplist_SOURCES = bpv7/utils/bplist.c
 bplist_LDADD = libici.la $(bplib)
 bplist_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bpinspect_SOURCES = bpv7/utils/bpinspect.c bpv7/utils/bpinspect_data.c bpv7/utils/bpinspect_filter.c bpv7/utils/bpinspect_ops.c
+bpinspect_LDADD = libici.la $(bplib)
+bpinspect_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpsecadmin_SOURCES = bpv7/utils/bpsecadmin.c
 bpsecadmin_LDADD = libici.la $(bplib)

@@ -1,0 +1,338 @@
+=head1 NAME
+
+bpinspect - Bundle Protocol (BP) comprehensive bundle inspection and management utility
+
+=head1 SYNOPSIS
+
+B<bpinspect> [I<options>]
+
+=head1 DESCRIPTION
+
+B<bpinspect> is a comprehensive utility program for inspecting, filtering, and managing
+bundles that currently reside in the local node. It combines and extends the functionality
+of B<bplist> and B<bpcancel>, providing advanced filtering, sorting, batch operations,
+and export capabilities.
+
+The utility enumerates bundles from the local bundle agent's timeline list, applies
+user-specified filters and sorting criteria, and performs requested operations such as
+listing, detailed inspection, batch cancellation, or export to files.
+
+=head1 OPTIONS
+
+=head2 General Options
+
+=over 4
+
+=item B<-l>
+
+List bundles (default action if no other action specified).
+
+=item B<-d> I<level>
+
+Detail level for bundle display:
+  0 = Summary table (one line per bundle, default)
+  1 = Detailed information (metadata, flags, timestamps)
+  2 = Full information (includes extension blocks, CRC types, SDR addresses)
+
+=item B<-c>
+
+Cancel matching bundles. Requires user confirmation unless B<-n> is specified.
+Bundles are identified and canceled using the same mechanism as B<bpcancel>.
+
+=item B<-n>
+
+Skip confirmation prompts (use with B<-c> for automated cancellation).
+
+=item B<-D>
+
+Dry-run mode. Show what would be done without actually performing the action.
+Useful for previewing which bundles would be canceled by filter criteria.
+
+=item B<-e> I<file>
+
+Export bundle details to the specified file. Appends to file if it exists.
+
+=item B<-h>
+
+Display usage information and exit.
+
+=back
+
+=head2 Filtering Options
+
+=over 4
+
+=item B<-s> I<eid>
+
+Filter by source EID using prefix matching. Example: -s ipn:1. matches all bundles
+from node 1 (ipn:1.1, ipn:1.2, etc.).
+
+=item B<-S> I<eid>
+
+Filter by source EID using exact matching. Example: -S ipn:1.1 matches only bundles
+from service 1 on node 1.
+
+=item B<-t> I<eid>
+
+Filter by destination EID using prefix matching.
+
+=item B<-T> I<eid>
+
+Filter by destination EID using exact matching.
+
+=item B<-p> I<priority>
+
+Filter by bundle priority level:
+  0 = Bulk priority
+  1 = Standard priority
+  2 = Urgent priority
+
+=item B<-m> I<bytes>
+
+Filter by minimum payload size in bytes.
+
+=item B<-M> I<bytes>
+
+Filter by maximum payload size in bytes.
+
+=item B<-x> I<seconds>
+
+Filter bundles expiring within the specified number of seconds. Useful for finding
+bundles that are about to expire.
+
+=item B<-a>
+
+Show only administrative bundles (exclude data bundles).
+
+=item B<-A>
+
+Show only data bundles (exclude administrative bundles).
+
+=item B<-f>
+
+Show only bundle fragments.
+
+=item B<-q> I<state>
+
+Filter by queue state. State can be a comma-separated combination of:
+  fwd   = Bundles in forwarding queue
+  dlv   = Bundles in delivery queue
+  xmit  = Bundles in transmission queue
+  limbo = Bundles in limbo (no active queue)
+
+Example: -q fwd,xmit shows only bundles in forwarding or transmission queues.
+
+=back
+
+=head2 Sorting Options
+
+=over 4
+
+=item B<-o> I<field>
+
+Sort bundles by the specified field:
+  time = Creation time (default, newest first)
+  exp  = Expiration time (soonest expiring first)
+  size = Payload size
+  src  = Source EID (alphabetical)
+  dst  = Destination EID (alphabetical)
+  pri  = Priority level
+
+=item B<-r>
+
+Reverse sort order (ascending instead of descending).
+
+=item B<-L> I<count>
+
+Limit results to the first I<count> bundles (default: 1000). Useful for large
+bundle sets to prevent excessive output.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<bpinspect -l>
+
+List all bundles in summary table format.
+
+=item B<bpinspect -s ipn:1. -d 1>
+
+Show detailed information for all bundles from node ipn:1.
+
+=item B<bpinspect -x 60 -o exp>
+
+Show bundles expiring within 60 seconds, sorted by expiration time.
+
+=item B<bpinspect -t ipn:2.1 -c>
+
+Cancel all bundles destined for ipn:2.1 (with confirmation prompt).
+
+=item B<bpinspect -p 0 -D -c>
+
+Dry-run: show which bulk priority bundles would be canceled.
+
+=item B<bpinspect -s ipn:1.1 -T ipn:2.1 -e bundles.txt>
+
+Export details of bundles from ipn:1.1 to ipn:2.1 to file.
+
+=item B<bpinspect -m 1000000 -o size -r>
+
+Show bundles larger than 1MB, sorted by size (largest first).
+
+=item B<bpinspect -q fwd,xmit -d 1>
+
+Show detailed view of bundles in forwarding or transmission queues.
+
+=item B<bpinspect -a -s ipn:1.>
+
+List administrative bundles from node ipn:1.
+
+=item B<bpinspect -x 300 -c -n>
+
+Cancel all bundles expiring within 5 minutes without confirmation.
+
+=back
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bpinspect> terminated successfully.
+
+=item "1"
+
+B<bpinspect> encountered an error. Common causes include:
+  - Unable to attach to Bundle Protocol operations (bpadmin not run)
+  - Invalid command-line arguments
+  - Errors during bundle enumeration or operations
+  - Insufficient memory for bundle cache
+
+=back
+
+=head1 OUTPUT FORMAT
+
+=head2 Summary Table (detail level 0)
+
+Displays bundles in a tabular format with columns:
+
+  Source          - Source EID
+  Destination     - Destination EID
+  Size            - Payload size (B/KB/MB)
+  TTL             - Time to live (seconds/minutes/hours until expiration)
+  P               - Priority (B=Bulk, S=Standard, U=Urgent)
+  Queue           - Queue state (Forwarding/Delivery/Transmit/Planned/Limbo)
+
+=head2 Detailed View (detail level 1)
+
+Includes all summary information plus:
+
+  - Full bundle ID (source, creation timestamp, fragment info)
+  - Creation timestamp (human-readable and milliseconds)
+  - Expiration timestamp with countdown
+  - Total ADU length
+  - Bundle processing flags (ADMIN, FRAGMENT, ACK-REQ)
+  - Fragment offset and length (if applicable)
+
+=head2 Full View (detail level 2)
+
+Includes all detailed information plus:
+
+  - SDR (Simple Data Recorder) address
+  - Number and types of extension blocks
+  - Payload CRC type
+  - Primary block CRC type
+  - List of extension block type numbers
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item Can't attach to BP.
+
+B<bpadmin> has not yet initialized BP operations.
+
+=item Can't get BP constants.
+
+Unable to access the Bundle Protocol database. The local ION node may need
+to be restarted.
+
+=item Can't allocate bundle cache.
+
+Insufficient memory to create the in-memory bundle cache. Try reducing the
+maximum results limit with B<-L>.
+
+=item Can't enumerate bundles.
+
+Error accessing the bundle timeline. This may indicate a serious database
+error requiring node restart.
+
+=item Can't find bundle to cancel.
+
+The specified bundle could not be located. It may have already been transmitted,
+delivered, or expired.
+
+=item Can't destroy bundle.
+
+Unable to cancel the bundle, possibly due to database error or because the
+bundle has already been cloned for transmission.
+
+=back
+
+=head1 IMPLEMENTATION NOTES
+
+B<bpinspect> uses internal Bundle Protocol APIs to access bundle metadata and
+perform operations. It enumerates bundles from the SDR timeline list and caches
+key metadata in memory for efficient filtering and sorting.
+
+Bundle cancellation uses the same mechanism as B<bpcancel>, destroying bundles
+by simulating immediate TTL expiration. Bundles that have been cloned for
+transmission cannot be canceled.
+
+All database operations are performed within SDR transactions to ensure
+consistency. The utility keeps transactions brief to minimize lock contention.
+
+=head1 PERFORMANCE CONSIDERATIONS
+
+For systems with large numbers of bundles (10,000+):
+
+=over 4
+
+=item *
+
+Use B<-L> to limit the number of results displayed
+
+=item *
+
+Apply specific filters to reduce the working set
+
+=item *
+
+Avoid detail level 2 unless necessary (reads full bundle metadata)
+
+=item *
+
+Use dry-run mode (B<-D>) before performing batch cancellations
+
+=back
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
+
+=head1 SEE ALSO
+
+bplist(1), bpcancel(1), bpstats(1), bpadmin(1), bpclock(1)
