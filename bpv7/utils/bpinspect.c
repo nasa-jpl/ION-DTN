@@ -41,6 +41,7 @@ static int	g_interrupted = 0;
  */
 static void handleQuit(int signum)
 {
+	(void)signum;  /* Suppress unused parameter warning */
 	g_interrupted = 1;
 	isignal(SIGINT, handleQuit);
 }
@@ -268,7 +269,7 @@ static int parseOptions(int argc, char **argv, CmdOptions *opts)
  */
 static void format_bundle_line(const BundleCacheEntry *entry, char *buf, int len)
 {
-	char	sizeBuf[16];
+	char	sizeBuf[32];  /* Increased from 16 to avoid truncation warning */
 	char	ttlBuf[16];
 	char	priChar;
 
@@ -305,7 +306,7 @@ static void format_bundle_line(const BundleCacheEntry *entry, char *buf, int len
 	}
 
 	/* Format line */
-	snprintf(buf, len, "%-32s %-32s %8s %6s %c %-10s",
+	snprintf(buf, len, "%-24s %-24s %8s %6s %c %-10s",
 		 entry->source,
 		 entry->dest,
 		 sizeBuf,
@@ -334,11 +335,11 @@ static void list_bundles(const BundleCacheEntry *entries, int count, int detail)
 	if (detail == 0)
 	{
 		/* Table header */
-		printf("%-32s %-32s %8s %6s %s %-10s\n",
+		printf("%-24s %-24s %8s %6s %s %-10s\n",
 		       "Source", "Destination", "Size", "TTL", "P", "Queue");
-		printf("%-32s %-32s %8s %6s %s %-10s\n",
-		       "--------------------------------",
-		       "--------------------------------",
+		printf("%-24s %-24s %8s %6s %s %-10s\n",
+		       "------------------------",
+		       "------------------------",
 		       "--------",
 		       "------",
 		       "-",
