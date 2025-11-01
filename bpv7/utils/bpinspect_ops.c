@@ -21,6 +21,9 @@ int bpinspect_ops_cancel_bundle(const BundleCacheEntry *entry)
 	Sdr		sdr;
 	Object		bundleObj;
 	BpTimestamp	creationTime;
+	Bundle		bundle;
+	int		destroyResult;
+	char		diagBuf[512];
 
 	if (entry == NULL)
 	{
@@ -29,33 +32,95 @@ int bpinspect_ops_cancel_bundle(const BundleCacheEntry *entry)
 
 	sdr = bp_get_sdr();
 
-	/* Construct creation timestamp */
+	/* Construct creation timestamp for findBundle */
 	creationTime.msec = entry->creationMsec;
 	creationTime.count = entry->creationCount;
 
-	/* Find the bundle by ID */
+	/* Begin transaction BEFORE calling findBundle (requires ion lock) */
+	CHKERR(sdr_begin_xn(sdr));
+
+	/* Re-validate that bundle still exists (safe against race conditions) */
 	if (findBundle((char *) entry->source, &creationTime,
 		       entry->fragmentOffset, entry->fragmentLength,
 		       &bundleObj) < 0)
 	{
-		putErrmsg("Can't find bundle to cancel.", entry->source);
+		sdr_cancel_xn(sdr);
+		putErrmsg("Can't search for bundle.", entry->source);
 		return -1;
 	}
 
 	if (bundleObj == 0)
 	{
-		putErrmsg("Bundle not found.", entry->source);
+		/* Bundle no longer exists - already destroyed */
+		sdr_cancel_xn(sdr);
+		snprintf(diagBuf, sizeof(diagBuf),
+			 "Bundle %s [%llu.%u] no longer exists (already destroyed)",
+			 entry->source,
+			 (unsigned long long) entry->creationMsec,
+			 entry->creationCount);
+		writeMemo(diagBuf);
+		return 0;	/* Not an error - bundle is gone */
+	}
+
+	/* Read bundle state before cancellation for diagnostics */
+	sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
+	snprintf(diagBuf, sizeof(diagBuf),
+		 "Canceling bundle %s [%llu.%u]: queue state before: "
+		 "fwd=%lu dlv=%lu xmit=%lu plan=%lu duct=%lu detained=%d",
+		 entry->source,
+		 (unsigned long long) entry->creationMsec,
+		 entry->creationCount,
+		 (unsigned long) bundle.fwdQueueElt,
+		 (unsigned long) bundle.dlvQueueElt,
+		 (unsigned long) bundle.transitElt,
+		 (unsigned long) bundle.planXmitElt,
+		 (unsigned long) bundle.ductXmitElt,
+		 bundle.detained);
+	writeMemo(diagBuf);
+
+	destroyResult = bpDestroyBundle(bundleObj, 3);  /* 3 = canceled */
+
+	if (destroyResult < 0)
+	{
+		sdr_cancel_xn(sdr);
+		putErrmsg("bpDestroyBundle failed with error.", entry->source);
 		return -1;
 	}
 
-	/* Cancel the bundle */
-	CHKERR(sdr_begin_xn(sdr));
+	/* Verify bundle was actually destroyed by trying to read it */
+	/* Note: If bundle was destroyed, this address should be freed/zeroed */
+	sdr_stage(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 
-	if (bpDestroyBundle(bundleObj, 3) < 0)  /* 3 = canceled */
+	/* Check if bundle still has valid data (not destroyed) */
+	if (bundle.timelineElt != 0 || bundle.hashEntry != 0)
 	{
-		sdr_cancel_xn(sdr);
-		putErrmsg("Can't destroy bundle.", entry->source);
-		return -1;
+		/* Bundle still exists - it wasn't fully destroyed */
+		sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
+		snprintf(diagBuf, sizeof(diagBuf),
+			 "WARNING: Bundle %s [%llu.%u] still exists after cancel! "
+			 "Queue state: fwd=%lu dlv=%lu xmit=%lu plan=%lu duct=%lu detained=%d",
+			 entry->source,
+			 (unsigned long long) entry->creationMsec,
+			 entry->creationCount,
+			 (unsigned long) bundle.fwdQueueElt,
+			 (unsigned long) bundle.dlvQueueElt,
+			 (unsigned long) bundle.transitElt,
+			 (unsigned long) bundle.planXmitElt,
+			 (unsigned long) bundle.ductXmitElt,
+			 bundle.detained);
+		writeMemo(diagBuf);
+
+		/* This is not an error - bpDestroyBundle returns 0 when it
+		 * can't destroy yet, but we want to report it */
+	}
+	else
+	{
+		snprintf(diagBuf, sizeof(diagBuf),
+			 "Successfully destroyed bundle %s [%llu.%u]",
+			 entry->source,
+			 (unsigned long long) entry->creationMsec,
+			 entry->creationCount);
+		writeMemo(diagBuf);
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -64,6 +129,8 @@ int bpinspect_ops_cancel_bundle(const BundleCacheEntry *entry)
 		return -1;
 	}
 
+	/* Return success if bpDestroyBundle didn't error, even if bundle
+	 * wasn't fully destroyed (it may be queued for later destruction) */
 	return 0;
 }
 

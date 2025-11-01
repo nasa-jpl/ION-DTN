@@ -149,6 +149,52 @@ bundle sets to prevent excessive output.
 
 =back
 
+=head2 Display Options
+
+=over 4
+
+=item B<--color>
+
+Force color output using ANSI escape codes. Overrides auto-detection.
+Colors are used to highlight:
+  - Priority levels (Bulk=Blue, Standard=White, Urgent=Yellow)
+  - Queue states (Forwarding=Green, Delivery=Cyan, Transmission/Planned=Yellow, Limbo=Red)
+  - TTL warnings (Expired or <5min=Red, <1hour=Yellow)
+
+=item B<--no-color>
+
+Disable color output. Overrides auto-detection and the NO_COLOR environment variable.
+
+=back
+
+=head1 COLOR SUPPORT
+
+B<bpinspect> automatically detects terminal color support and enables color output
+when appropriate. Color output is enabled when:
+
+=over 4
+
+=item *
+
+Standard output is connected to a terminal (not a pipe or file)
+
+=item *
+
+The TERM environment variable indicates a color-capable terminal
+
+=item *
+
+The NO_COLOR environment variable is not set
+
+=back
+
+When color output is enabled, the table uses Unicode box-drawing characters for
+professional borders, and bundle information is color-coded for quick visual
+identification of priorities, queue states, and time-sensitive bundles.
+
+Use B<--color> to force color output (e.g., for specific terminal emulators),
+or B<--no-color> to disable colors for scripting or accessibility needs.
+
 =head1 EXAMPLES
 
 =over 4

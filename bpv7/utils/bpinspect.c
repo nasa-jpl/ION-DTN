@@ -18,6 +18,34 @@
 #include "bpinspect_ops.h"
 #include <signal.h>
 
+/* ANSI color codes */
+#define ANSI_RESET		"\033[0m"
+#define ANSI_BOLD		"\033[1m"
+#define ANSI_RED		"\033[31m"
+#define ANSI_GREEN		"\033[32m"
+#define ANSI_YELLOW		"\033[33m"
+#define ANSI_BLUE		"\033[34m"
+#define ANSI_CYAN		"\033[36m"
+#define ANSI_WHITE		"\033[37m"
+#define ANSI_BOLD_RED		"\033[1;31m"
+#define ANSI_BOLD_YELLOW	"\033[1;33m"
+
+/* Box-drawing characters (UTF-8) */
+#define BOX_H			"\xE2\x94\x80"	/* ─ horizontal */
+#define BOX_V			"\xE2\x94\x82"	/* │ vertical */
+#define BOX_TL			"\xE2\x94\x8C"	/* ┌ top-left */
+#define BOX_TR			"\xE2\x94\x90"	/* ┐ top-right */
+#define BOX_BL			"\xE2\x94\x94"	/* └ bottom-left */
+#define BOX_BR			"\xE2\x94\x98"	/* ┘ bottom-right */
+#define BOX_VR			"\xE2\x94\x9C"	/* ├ vertical-right */
+#define BOX_VL			"\xE2\x94\x24"	/* ┤ vertical-left */
+#define BOX_HU			"\xE2\x94\xB4"	/* ┴ horizontal-up */
+#define BOX_HD			"\xE2\x94\xAC"	/* ┬ horizontal-down */
+#define BOX_CROSS		"\xE2\x94\xBC"	/* ┼ cross */
+
+/* Color support state */
+static int	g_useColor = 0;
+
 /* Command-line options */
 typedef struct
 {
@@ -26,6 +54,7 @@ typedef struct
 	int		cancel;			/* Cancel matching bundles */
 	int		dryRun;			/* Dry-run mode (don't actually cancel) */
 	int		noConfirm;		/* Skip confirmation prompts */
+	int		useColor;		/* Use ANSI colors (0=auto, 1=on, -1=off) */
 	char		exportFile[256];	/* Export to file */
 	FilterCriteria	filter;			/* Filter criteria */
 	SortField	sortField;		/* Sort field */
@@ -35,6 +64,47 @@ typedef struct
 
 /* Global state for signal handling */
 static int	g_interrupted = 0;
+
+/*
+ * Detect if terminal supports color
+ */
+static int detect_color_support(void)
+{
+	const char	*term;
+	const char	*noColor;
+
+	/* Check NO_COLOR environment variable */
+	noColor = getenv("NO_COLOR");
+	if (noColor != NULL && noColor[0] != '\0')
+	{
+		return 0;
+	}
+
+	/* Check if stdout is a terminal */
+	if (!isatty(fileno(stdout)))
+	{
+		return 0;
+	}
+
+	/* Check TERM environment variable */
+	term = getenv("TERM");
+	if (term == NULL)
+	{
+		return 0;
+	}
+
+	/* Common terminals that support color */
+	if (strstr(term, "color") != NULL ||
+	    strstr(term, "xterm") != NULL ||
+	    strstr(term, "screen") != NULL ||
+	    strstr(term, "tmux") != NULL ||
+	    strstr(term, "linux") != NULL)
+	{
+		return 1;
+	}
+
+	return 0;
+}
 
 /*
  * Signal handler for clean shutdown
@@ -77,6 +147,9 @@ static void printUsage(void)
 	printf("  -o <field>         Sort by field: time,exp,size,src,dst,pri\n");
 	printf("  -r                 Reverse sort order (descending)\n");
 	printf("  -L <count>         Limit results to N bundles (default: 1000)\n\n");
+	printf("Display options:\n");
+	printf("  --color            Force color output\n");
+	printf("  --no-color         Disable color output\n\n");
 	printf("Examples:\n");
 	printf("  bpinspect -l                          List all bundles\n");
 	printf("  bpinspect -s ipn:1. -d 1              Show bundles from ipn:1.* with details\n");
@@ -105,10 +178,24 @@ static int parseOptions(int argc, char **argv, CmdOptions *opts)
 	opts->cancel = 0;
 	opts->dryRun = 0;
 	opts->noConfirm = 0;
+	opts->useColor = 0;  /* Auto-detect */
 	opts->sortField = SORT_BY_CREATION_TIME;
 	opts->sortAscending = 0;  /* Newest first */
 	opts->maxResults = 1000;
 	bpinspect_filter_init(&opts->filter);
+
+	/* Check for --color and --no-color before getopt */
+	for (c = 1; c < argc; c++)
+	{
+		if (strcmp(argv[c], "--color") == 0)
+		{
+			opts->useColor = 1;
+		}
+		else if (strcmp(argv[c], "--no-color") == 0)
+		{
+			opts->useColor = -1;
+		}
+	}
 
 	/* Parse options */
 	while ((c = getopt(argc, argv, "hld:cnDe:s:S:t:T:p:m:M:x:aAfq:o:rL:")) != -1)
@@ -265,13 +352,80 @@ static int parseOptions(int argc, char **argv, CmdOptions *opts)
 }
 
 /*
+ * Get color for priority
+ */
+static const char *get_priority_color(int priority)
+{
+	if (!g_useColor)
+		return "";
+
+	switch (priority)
+	{
+	case 0:  return ANSI_BLUE;		/* Bulk */
+	case 1:  return ANSI_WHITE;		/* Standard */
+	case 2:  return ANSI_BOLD_YELLOW;	/* Urgent */
+	default: return ANSI_WHITE;
+	}
+}
+
+/*
+ * Get color for queue state
+ */
+static const char *get_queue_color(const char *queueState)
+{
+	if (!g_useColor)
+		return "";
+
+	if (strstr(queueState, "Forward"))
+		return ANSI_GREEN;
+	else if (strstr(queueState, "Deliver"))
+		return ANSI_CYAN;
+	else if (strstr(queueState, "Transmit"))
+		return ANSI_YELLOW;
+	else if (strstr(queueState, "Limbo"))
+		return ANSI_RED;
+	else if (strstr(queueState, "Planned"))
+		return ANSI_YELLOW;
+
+	return ANSI_WHITE;
+}
+
+/*
+ * Get color for TTL warning
+ */
+static const char *get_ttl_color(int timeRemaining)
+{
+	if (!g_useColor)
+		return "";
+
+	if (timeRemaining < 0)
+		return ANSI_BOLD_RED;	/* Expired */
+	else if (timeRemaining < 300)
+		return ANSI_BOLD_RED;	/* < 5 minutes */
+	else if (timeRemaining < 3600)
+		return ANSI_YELLOW;	/* < 1 hour */
+
+	return "";
+}
+
+/*
  * Format bundle for list display (one line)
  */
 static void format_bundle_line(const BundleCacheEntry *entry, char *buf, int len)
 {
-	char	sizeBuf[32];  /* Increased from 16 to avoid truncation warning */
-	char	ttlBuf[16];
-	char	priChar;
+	char		sizeBuf[32];
+	char		ttlBuf[16];
+	char		priChar;
+	const char	*priColor;
+	const char	*queueColor;
+	const char	*ttlColor;
+	const char	*reset;
+
+	/* Get colors */
+	priColor = get_priority_color(entry->priority);
+	queueColor = get_queue_color(entry->queueState);
+	ttlColor = get_ttl_color(entry->timeRemaining);
+	reset = g_useColor ? ANSI_RESET : "";
 
 	/* Format size */
 	if (entry->payloadLength < 1024)
@@ -305,14 +459,27 @@ static void format_bundle_line(const BundleCacheEntry *entry, char *buf, int len
 	default: priChar = '?'; break;
 	}
 
-	/* Format line */
-	snprintf(buf, len, "%-24s %-24s %8s %6s %c %-10s",
-		 entry->source,
-		 entry->dest,
-		 sizeBuf,
-		 ttlBuf,
-		 priChar,
-		 entry->queueState);
+	/* Format line with colors */
+	if (g_useColor)
+	{
+		snprintf(buf, len, "%-24s %-24s %8s %s%6s%s %s%c%s %s%-10s%s",
+			 entry->source,
+			 entry->dest,
+			 sizeBuf,
+			 ttlColor, ttlBuf, reset,
+			 priColor, priChar, reset,
+			 queueColor, entry->queueState, reset);
+	}
+	else
+	{
+		snprintf(buf, len, "%-24s %-24s %8s %6s %c %-10s",
+			 entry->source,
+			 entry->dest,
+			 sizeBuf,
+			 ttlBuf,
+			 priChar,
+			 entry->queueState);
+	}
 }
 
 /*
@@ -320,8 +487,10 @@ static void format_bundle_line(const BundleCacheEntry *entry, char *buf, int len
  */
 static void list_bundles(const BundleCacheEntry *entries, int count, int detail)
 {
-	int	i;
-	char	lineBuf[256];
+	int		i;
+	char		lineBuf[512];
+	const char	*bold;
+	const char	*reset;
 
 	if (count == 0)
 	{
@@ -329,27 +498,109 @@ static void list_bundles(const BundleCacheEntry *entries, int count, int detail)
 		return;
 	}
 
+	bold = g_useColor ? ANSI_BOLD : "";
+	reset = g_useColor ? ANSI_RESET : "";
+
 	printf("\n");
 	printf("Total bundles: %d\n\n", count);
 
 	if (detail == 0)
 	{
+		/* Top border */
+		if (g_useColor)
+		{
+			printf("%s", BOX_TL);
+			for (i = 0; i < 24; i++) printf("%s", BOX_H);
+			printf("%s", BOX_HD);
+			for (i = 0; i < 24; i++) printf("%s", BOX_H);
+			printf("%s", BOX_HD);
+			for (i = 0; i < 8; i++) printf("%s", BOX_H);
+			printf("%s", BOX_HD);
+			for (i = 0; i < 6; i++) printf("%s", BOX_H);
+			printf("%s", BOX_HD);
+			printf("%s", BOX_H);
+			printf("%s", BOX_HD);
+			for (i = 0; i < 10; i++) printf("%s", BOX_H);
+			printf("%s\n", BOX_TR);
+		}
+		else
+		{
+			printf("+------------------------+------------------------+--------+------+-+----------+\n");
+		}
+
 		/* Table header */
-		printf("%-24s %-24s %8s %6s %s %-10s\n",
-		       "Source", "Destination", "Size", "TTL", "P", "Queue");
-		printf("%-24s %-24s %8s %6s %s %-10s\n",
-		       "------------------------",
-		       "------------------------",
-		       "--------",
-		       "------",
-		       "-",
-		       "----------");
+		if (g_useColor)
+		{
+			printf("%s%s%-24s%s%s%s%-24s%s%s%8s%s%6s%s%s%s%s%-10s%s%s\n",
+			       BOX_V, bold, "Source", reset, BOX_V,
+			       bold, "Destination", reset, BOX_V,
+			       "Size", BOX_V,
+			       "TTL", BOX_V,
+			       "P", BOX_V,
+			       bold, "Queue", reset, BOX_V);
+		}
+		else
+		{
+			printf("|%-24s|%-24s|%8s|%6s|%s|%-10s|\n",
+			       "Source", "Destination", "Size", "TTL", "P", "Queue");
+		}
+
+		/* Header separator */
+		if (g_useColor)
+		{
+			printf("%s", BOX_VR);
+			for (i = 0; i < 24; i++) printf("%s", BOX_H);
+			printf("%s", BOX_CROSS);
+			for (i = 0; i < 24; i++) printf("%s", BOX_H);
+			printf("%s", BOX_CROSS);
+			for (i = 0; i < 8; i++) printf("%s", BOX_H);
+			printf("%s", BOX_CROSS);
+			for (i = 0; i < 6; i++) printf("%s", BOX_H);
+			printf("%s", BOX_CROSS);
+			printf("%s", BOX_H);
+			printf("%s", BOX_CROSS);
+			for (i = 0; i < 10; i++) printf("%s", BOX_H);
+			printf("%s\n", BOX_VL);
+		}
+		else
+		{
+			printf("+------------------------+------------------------+--------+------+-+----------+\n");
+		}
 
 		/* List each bundle */
 		for (i = 0; i < count; i++)
 		{
 			format_bundle_line(&entries[i], lineBuf, sizeof(lineBuf));
-			printf("%s\n", lineBuf);
+			if (g_useColor)
+			{
+				printf("%s%s%s\n", BOX_V, lineBuf, BOX_V);
+			}
+			else
+			{
+				printf("|%s|\n", lineBuf);
+			}
+		}
+
+		/* Bottom border */
+		if (g_useColor)
+		{
+			printf("%s", BOX_BL);
+			for (i = 0; i < 24; i++) printf("%s", BOX_H);
+			printf("%s", BOX_HU);
+			for (i = 0; i < 24; i++) printf("%s", BOX_H);
+			printf("%s", BOX_HU);
+			for (i = 0; i < 8; i++) printf("%s", BOX_H);
+			printf("%s", BOX_HU);
+			for (i = 0; i < 6; i++) printf("%s", BOX_H);
+			printf("%s", BOX_HU);
+			printf("%s", BOX_H);
+			printf("%s", BOX_HU);
+			for (i = 0; i < 10; i++) printf("%s", BOX_H);
+			printf("%s\n", BOX_BR);
+		}
+		else
+		{
+			printf("+------------------------+------------------------+--------+------+-+----------+\n");
 		}
 	}
 	else
@@ -474,6 +725,20 @@ int main(int argc, char **argv)
 		return (result < 0) ? 1 : 0;
 	}
 
+	/* Determine color support */
+	if (opts.useColor == 1)
+	{
+		g_useColor = 1;  /* Force on */
+	}
+	else if (opts.useColor == -1)
+	{
+		g_useColor = 0;  /* Force off */
+	}
+	else
+	{
+		g_useColor = detect_color_support();  /* Auto-detect */
+	}
+
 	/* Set up signal handler */
 	isignal(SIGINT, handleQuit);
 
@@ -538,6 +803,44 @@ int main(int argc, char **argv)
 		/* Cancel bundles */
 		result = cancel_bundles(filtered, filteredCount,
 					opts.dryRun, opts.noConfirm);
+
+		/* Re-enumerate to verify cancellation (only if bundles were canceled) */
+		if (!opts.dryRun && result == 0 && filteredCount > 0)
+		{
+			BundleListState		verifyState;
+			int			remainingCount;
+
+			printf("\nVerifying cancellation...\n");
+
+			/* Re-enumerate bundles */
+			if (bpinspect_data_init(&verifyState) < 0)
+			{
+				printf("Warning: Can't re-enumerate for verification.\n");
+			}
+			else
+			{
+				remainingCount = bpinspect_data_refresh(&verifyState);
+				if (remainingCount >= 0)
+				{
+					printf("Before cancellation: %d bundles\n", filteredCount);
+					printf("After cancellation:  %d total bundles\n", remainingCount);
+					printf("Expected reduction:  %d bundles\n\n", filteredCount);
+
+					if (remainingCount < state.count)
+					{
+						printf("Successfully removed %d bundles from system\n",
+						       state.count - remainingCount);
+					}
+					else
+					{
+						printf("WARNING: Bundle count did not decrease as expected\n");
+						printf("  Check ion.log for detailed cancellation diagnostics\n");
+					}
+				}
+
+				bpinspect_data_cleanup(&verifyState);
+			}
+		}
 	}
 	else if (opts.exportFile[0] != '\0')
 	{

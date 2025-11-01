@@ -48,6 +48,7 @@ if (cd node3; bpadmin <<< "i") >/dev/null 2>&1; then
 else
     echo "  ✗ Node 3 failed"
 fi
+sleep 3
 
 echo
 echo "Network started successfully!"

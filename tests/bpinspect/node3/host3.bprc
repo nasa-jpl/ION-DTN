@@ -5,4 +5,5 @@ a endpoint ipn:3.1 q
 a protocol ltp 1400 100
 a induct ltp 3 ltpcli
 a outduct ltp 1 ltpclo
+r 'ipnadmin host3.ipnrc'
 s
