@@ -52,6 +52,8 @@ typedef struct
 	int		list;			/* List bundles */
 	int		detail;			/* Detail level (0-2) */
 	int		cancel;			/* Cancel matching bundles */
+	int		suspend;		/* Suspend matching bundles */
+	int		resume;			/* Resume matching bundles */
 	int		dryRun;			/* Dry-run mode (don't actually cancel) */
 	int		noConfirm;		/* Skip confirmation prompts */
 	int		useColor;		/* Use ANSI colors (0=auto, 1=on, -1=off) */
@@ -127,7 +129,9 @@ static void printUsage(void)
 	printf("  -l                 List bundles (default action)\n");
 	printf("  -d <level>         Detail level: 0=summary, 1=detailed, 2=full (default: 0)\n");
 	printf("  -c                 Cancel matching bundles (requires confirmation)\n");
-	printf("  -n                 No confirmation (use with -c)\n");
+	printf("  -u                 Suspend matching bundles (requires confirmation)\n");
+	printf("  -R                 Resume matching bundles (requires confirmation)\n");
+	printf("  -n                 No confirmation (use with -c, -u, or -R)\n");
 	printf("  -D                 Dry-run mode (show what would be done)\n");
 	printf("  -e <file>          Export bundle details to file\n\n");
 	printf("Filtering options:\n");
@@ -155,6 +159,8 @@ static void printUsage(void)
 	printf("  bpinspect -s ipn:1. -d 1              Show bundles from ipn:1.* with details\n");
 	printf("  bpinspect -x 60 -o exp                Show bundles expiring within 60s, sorted\n");
 	printf("  bpinspect -t ipn:2.1 -c               Cancel bundles to ipn:2.1\n");
+	printf("  bpinspect -t ipn:2.1 -u               Suspend bundles to ipn:2.1\n");
+	printf("  bpinspect -q limbo -R                 Resume all bundles in limbo\n");
 	printf("  bpinspect -p 0 -D -c                  Dry-run cancel of bulk priority bundles\n");
 	printf("  bpinspect -s ipn:1.1 -e bundles.txt   Export bundles from ipn:1.1\n\n");
 }
@@ -176,6 +182,8 @@ static int parseOptions(int argc, char **argv, CmdOptions *opts)
 	opts->list = 1;  /* Default action */
 	opts->detail = 0;
 	opts->cancel = 0;
+	opts->suspend = 0;
+	opts->resume = 0;
 	opts->dryRun = 0;
 	opts->noConfirm = 0;
 	opts->useColor = 0;  /* Auto-detect */
@@ -198,7 +206,7 @@ static int parseOptions(int argc, char **argv, CmdOptions *opts)
 	}
 
 	/* Parse options */
-	while ((c = getopt(argc, argv, "hld:cnDe:s:S:t:T:p:m:M:x:aAfq:o:rL:")) != -1)
+	while ((c = getopt(argc, argv, "hld:cnDe:s:S:t:T:p:m:M:x:aAfq:o:rL:uR")) != -1)
 	{
 		switch (c)
 		{
@@ -221,6 +229,14 @@ static int parseOptions(int argc, char **argv, CmdOptions *opts)
 
 		case 'c':
 			opts->cancel = 1;
+			break;
+
+		case 'u':
+			opts->suspend = 1;
+			break;
+
+		case 'R':
+			opts->resume = 1;
 			break;
 
 		case 'n':
@@ -708,6 +724,126 @@ static int cancel_bundles(BundleCacheEntry *entries, int count,
 }
 
 /*
+ * Suspend bundles
+ */
+static int suspend_bundles(BundleCacheEntry *entries, int count,
+			   int dryRun, int noConfirm)
+{
+	int	i;
+	int	suspendedCount;
+
+	if (count == 0)
+	{
+		printf("No bundles to suspend.\n");
+		return 0;
+	}
+
+	/* Show what will be suspended */
+	printf("\nBundles to suspend:\n\n");
+	for (i = 0; i < count && i < 20; i++)  /* Show first 20 */
+	{
+		char	lineBuf[256];
+		format_bundle_line(&entries[i], lineBuf, sizeof(lineBuf));
+		printf("  %s\n", lineBuf);
+	}
+
+	if (count > 20)
+	{
+		printf("  ... and %d more\n", count - 20);
+	}
+
+	/* Dry-run mode - just show what would be done */
+	if (dryRun)
+	{
+		printf("\nDry-run mode: would suspend %d bundles\n", count);
+		return 0;
+	}
+
+	/* Confirm action */
+	if (!noConfirm)
+	{
+		if (!confirm_action("Suspend bundles?", count))
+		{
+			printf("Canceled.\n");
+			return 0;
+		}
+	}
+
+	/* Suspend bundles */
+	printf("\nSuspending bundles...\n");
+	suspendedCount = bpinspect_ops_suspend_bundles(entries, count);
+
+	if (suspendedCount < 0)
+	{
+		printf("Error suspending bundles.\n");
+		return -1;
+	}
+
+	printf("Suspended %d of %d bundles.\n", suspendedCount, count);
+	return 0;
+}
+
+/*
+ * Resume bundles
+ */
+static int resume_bundles(BundleCacheEntry *entries, int count,
+			  int dryRun, int noConfirm)
+{
+	int	i;
+	int	resumedCount;
+
+	if (count == 0)
+	{
+		printf("No bundles to resume.\n");
+		return 0;
+	}
+
+	/* Show what will be resumed */
+	printf("\nBundles to resume:\n\n");
+	for (i = 0; i < count && i < 20; i++)  /* Show first 20 */
+	{
+		char	lineBuf[256];
+		format_bundle_line(&entries[i], lineBuf, sizeof(lineBuf));
+		printf("  %s\n", lineBuf);
+	}
+
+	if (count > 20)
+	{
+		printf("  ... and %d more\n", count - 20);
+	}
+
+	/* Dry-run mode - just show what would be done */
+	if (dryRun)
+	{
+		printf("\nDry-run mode: would resume %d bundles\n", count);
+		return 0;
+	}
+
+	/* Confirm action */
+	if (!noConfirm)
+	{
+		if (!confirm_action("Resume bundles?", count))
+		{
+			printf("Canceled.\n");
+			return 0;
+		}
+	}
+
+	/* Resume bundles */
+	printf("\nResuming bundles...\n");
+	resumedCount = bpinspect_ops_resume_bundles(entries, count);
+
+	if (resumedCount < 0)
+	{
+		printf("Error resuming bundles.\n");
+		return -1;
+	}
+
+	printf("Resumed %d of %d bundles.\n", resumedCount, count);
+	return 0;
+}
+
+/*
  * Main function
  */
 int main(int argc, char **argv)
@@ -841,6 +977,18 @@ int main(int argc, char **argv)
 				bpinspect_data_cleanup(&verifyState);
 			}
 		}
+	}
+	else if (opts.suspend)
+	{
+		/* Suspend bundles */
+		result = suspend_bundles(filtered, filteredCount,
+					 opts.dryRun, opts.noConfirm);
+	}
+	else if (opts.resume)
+	{
+		/* Resume bundles */
+		result = resume_bundles(filtered, filteredCount,
+					opts.dryRun, opts.noConfirm);
 	}
 	else if (opts.exportFile[0] != '\0')
 	{

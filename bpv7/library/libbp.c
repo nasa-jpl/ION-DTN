@@ -981,6 +981,7 @@ int	bp_suspend(Object bundleObj)
 		}
 
 		sdr_write(sdr, planObj, (char *) &plan, sizeof(BpPlan));
+		sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 	}
 
 	if (sdr_end_xn(sdr) < 0)

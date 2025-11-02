@@ -205,6 +205,70 @@ int bpinspect_ops_resume_bundle(const BundleCacheEntry *entry)
 }
 
 /*
+ * Suspend multiple bundles from an array of cache entries
+ */
+int bpinspect_ops_suspend_bundles(const BundleCacheEntry *entries, int count)
+{
+	int	i;
+	int	suspendedCount = 0;
+
+	if (entries == NULL || count <= 0)
+	{
+		return -1;
+	}
+
+	for (i = 0; i < count; i++)
+	{
+		if (bpinspect_ops_suspend_bundle(&entries[i]) == 0)
+		{
+			suspendedCount++;
+		}
+		else
+		{
+			/* Log error but continue with remaining bundles */
+			char	buf[256];
+			snprintf(buf, sizeof(buf),
+				 "Failed to suspend bundle %d of %d", i + 1, count);
+			writeMemo(buf);
+		}
+	}
+
+	return suspendedCount;
+}
+
+/*
+ * Resume multiple bundles from an array of cache entries
+ */
+int bpinspect_ops_resume_bundles(const BundleCacheEntry *entries, int count)
+{
+	int	i;
+	int	resumedCount = 0;
+
+	if (entries == NULL || count <= 0)
+	{
+		return -1;
+	}
+
+	for (i = 0; i < count; i++)
+	{
+		if (bpinspect_ops_resume_bundle(&entries[i]) == 0)
+		{
+			resumedCount++;
+		}
+		else
+		{
+			/* Log error but continue with remaining bundles */
+			char	buf[256];
+			snprintf(buf, sizeof(buf),
+				 "Failed to resume bundle %d of %d", i + 1, count);
+			writeMemo(buf);
+		}
+	}
+
+	return resumedCount;
+}
+
+/*
  * Format bundle ID as string
  */
 char* bpinspect_ops_format_bundle_id(const BundleCacheEntry *entry, char *buf, int len)

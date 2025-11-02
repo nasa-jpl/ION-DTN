@@ -44,6 +44,24 @@ extern int	bpinspect_ops_suspend_bundle(const BundleCacheEntry *entry);
 extern int	bpinspect_ops_resume_bundle(const BundleCacheEntry *entry);
 
 /*
+ * Suspend multiple bundles from an array of cache entries
+ * Parameters:
+ *   entries - Array of bundle cache entries to suspend
+ *   count   - Number of entries in array
+ * Returns: number of bundles successfully suspended, -1 on error
+ */
+extern int	bpinspect_ops_suspend_bundles(const BundleCacheEntry *entries, int count);
+
+/*
+ * Resume multiple bundles from an array of cache entries
+ * Parameters:
+ *   entries - Array of bundle cache entries to resume
+ *   count   - Number of entries in array
+ * Returns: number of bundles successfully resumed, -1 on error
+ */
+extern int	bpinspect_ops_resume_bundles(const BundleCacheEntry *entries, int count);
+
+/*
  * Export bundle details to a file
  * Parameters:
  *   entry    - Bundle cache entry

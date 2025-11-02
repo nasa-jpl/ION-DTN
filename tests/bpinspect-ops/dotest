@@ -299,6 +299,205 @@ fi
 bpinspect -t ipn:2.2 -c -n >/dev/null 2>&1
 sleep 1
 
+#
+# Test 6: Basic Suspend Operation
+#
+echo ""
+echo "Test 6: Basic bundle suspension"
+echo "  Sending 2 bundles to ipn:2.4..."
+bpsource ipn:2.4 "suspend test 1" -t7200 >/dev/null 2>&1
+bpsource ipn:2.4 "suspend test 2" -t7200 >/dev/null 2>&1
+sleep 2
+
+# Show bundles before suspend
+echo ""
+echo "  BEFORE suspend:"
+bpinspect -t ipn:2.4 -l 2>&1 | head -20
+
+# Verify bundles are queued
+COUNT11=$(bpinspect -t ipn:2.4 -l 2>&1 | grep -c "ipn:2.4" || true)
+echo ""
+echo "  Found $COUNT11 bundles queued"
+if [ "$COUNT11" -ne 2 ]; then
+    echo "  FAIL: Expected 2 bundles, found $COUNT11"
+    RETVAL=1
+else
+    echo "  OK: 2 bundles queued as expected"
+fi
+
+# Suspend them
+echo ""
+echo "  Suspending bundles..."
+bpinspect -t ipn:2.4 -u -n 2>&1 | grep -E "(Suspending|Suspended)" || true
+sleep 1
+
+# Show bundles after suspend (check limbo queue)
+echo ""
+echo "  AFTER suspend (checking limbo):"
+bpinspect -q limbo -t ipn:2.4 -l 2>&1 | head -20
+
+# Verify bundles moved to limbo
+COUNT12=$(bpinspect -q limbo -t ipn:2.4 -l 2>&1 | grep -c "ipn:2.4" || true)
+echo ""
+echo "  Found $COUNT12 bundles in limbo"
+if [ "$COUNT12" -ne 2 ]; then
+    echo "  FAIL: Expected 2 bundles in limbo, found $COUNT12"
+    RETVAL=1
+else
+    echo "  PASS: All bundles successfully suspended"
+fi
+
+#
+# Test 7: Resume Suspended Bundles
+#
+echo ""
+echo "Test 7: Resume suspended bundles"
+echo "  Resuming bundles from limbo..."
+bpinspect -q limbo -t ipn:2.4 -R -n 2>&1 | grep -E "(Resuming|Resumed)" || true
+sleep 1
+
+# Show bundles after resume
+echo ""
+echo "  AFTER resume:"
+bpinspect -t ipn:2.4 -l 2>&1 | head -20
+
+# Check limbo is now empty for these bundles
+COUNT13=$(bpinspect -q limbo -t ipn:2.4 -l 2>&1 | grep -c "ipn:2.4" || true)
+echo ""
+echo "  Found $COUNT13 bundles in limbo after resume"
+if [ "$COUNT13" -ne 0 ]; then
+    echo "  FAIL: Expected 0 bundles in limbo after resume, found $COUNT13"
+    RETVAL=1
+else
+    echo "  PASS: Bundles successfully resumed"
+fi
+
+# Clean up resumed bundles
+bpinspect -t ipn:2.4 -c -n >/dev/null 2>&1
+sleep 1
+
+#
+# Test 8: Filter + Suspend (Destination Filter)
+#
+echo ""
+echo "Test 8: Filter + suspend (destination filter)"
+echo "  Sending bundles to different destinations (ipn:2.5 and ipn:2.6)..."
+bpsource ipn:2.5 "to endpoint 2.5" -t7200 >/dev/null 2>&1
+bpsource ipn:2.6 "to endpoint 2.6" -t7200 >/dev/null 2>&1
+sleep 2
+
+# Show bundles before suspend
+echo ""
+echo "  BEFORE suspend:"
+bpinspect -l 2>&1 | grep -E "ipn:2\.[56]" || true
+
+# Verify both bundles queued
+COUNT14=$(bpinspect -l 2>&1 | grep -E "ipn:2\.[56]" | wc -l)
+echo ""
+echo "  Found $COUNT14 bundles queued"
+if [ "$COUNT14" -ne 2 ]; then
+    echo "  FAIL: Expected 2 bundles, found $COUNT14"
+    RETVAL=1
+else
+    echo "  OK: 2 bundles queued as expected"
+fi
+
+# Suspend only bundles to ipn:2.5
+echo ""
+echo "  Suspending only bundles to ipn:2.5..."
+bpinspect -t ipn:2.5 -u -n 2>&1 | grep -E "(Suspending|Suspended)" || true
+sleep 1
+
+# Show bundles after suspend
+echo ""
+echo "  AFTER suspend:"
+bpinspect -q limbo -t ipn:2.5 -l 2>&1 | head -20
+
+# Should have 1 bundle in limbo (ipn:2.5)
+COUNT15=$(bpinspect -q limbo -t ipn:2.5 -l 2>&1 | grep -c "ipn:2.5" || true)
+echo ""
+echo "  Found $COUNT15 bundles to ipn:2.5 in limbo"
+if [ "$COUNT15" -ne 1 ]; then
+    echo "  FAIL: Expected 1 bundle in limbo, found $COUNT15"
+    RETVAL=1
+else
+    echo "  PASS: Filtered suspend successful (1 bundle to ipn:2.5 in limbo)"
+fi
+
+# Clean up both bundles
+bpinspect -q limbo -t ipn:2.5 -c -n >/dev/null 2>&1
+bpinspect -t ipn:2.6 -c -n >/dev/null 2>&1
+sleep 1
+
+#
+# Test 9: Dry-run Suspend/Resume
+#
+echo ""
+echo "Test 9: Dry-run mode (suspend and resume)"
+echo "  Sending bundle to ipn:2.7..."
+bpsource ipn:2.7 "dry-run suspend test" -t7200 >/dev/null 2>&1
+sleep 2
+
+# Show bundle before dry-run
+echo ""
+echo "  BEFORE dry-run suspend:"
+bpinspect -t ipn:2.7 -l 2>&1 | head -20
+
+# Verify bundle queued
+COUNT16=$(bpinspect -t ipn:2.7 -l 2>&1 | grep -c "ipn:2.7" || true)
+echo ""
+echo "  Found $COUNT16 bundles queued"
+if [ "$COUNT16" -ne 1 ]; then
+    echo "  FAIL: Expected 1 bundle, found $COUNT16"
+    RETVAL=1
+else
+    echo "  OK: 1 bundle queued as expected"
+fi
+
+# Dry-run suspend (should NOT actually suspend)
+echo ""
+echo "  Running dry-run suspend (-D flag)..."
+bpinspect -t ipn:2.7 -D -u -n 2>&1 | grep -E "(Would suspend|Dry-run)" || true
+sleep 1
+
+# Show bundle after dry-run (should NOT be in limbo)
+echo ""
+echo "  AFTER dry-run suspend:"
+COUNT17=$(bpinspect -q limbo -t ipn:2.7 -l 2>&1 | grep -c "ipn:2.7" || true)
+echo ""
+echo "  Found $COUNT17 bundles in limbo after dry-run"
+if [ "$COUNT17" -ne 0 ]; then
+    echo "  FAIL: Expected 0 bundles in limbo after dry-run suspend, found $COUNT17"
+    RETVAL=1
+else
+    echo "  PASS: Dry-run suspend successful (bundle not moved to limbo)"
+fi
+
+# Now actually suspend it for dry-run resume test
+bpinspect -t ipn:2.7 -u -n >/dev/null 2>&1
+sleep 1
+
+# Dry-run resume (should NOT actually resume)
+echo ""
+echo "  Running dry-run resume (-D flag)..."
+bpinspect -q limbo -t ipn:2.7 -D -R -n 2>&1 | grep -E "(Would resume|Dry-run)" || true
+sleep 1
+
+# Should still be in limbo
+COUNT18=$(bpinspect -q limbo -t ipn:2.7 -l 2>&1 | grep -c "ipn:2.7" || true)
+echo ""
+echo "  Found $COUNT18 bundles in limbo after dry-run resume"
+if [ "$COUNT18" -ne 1 ]; then
+    echo "  FAIL: Expected 1 bundle in limbo after dry-run resume, found $COUNT18"
+    RETVAL=1
+else
+    echo "  PASS: Dry-run resume successful (bundle still in limbo)"
+fi
+
+# Clean up test bundle
+bpinspect -q limbo -t ipn:2.7 -c -n >/dev/null 2>&1
+sleep 1
+
 # "runtest" will determine whether to clean up or not.
 
 # Summary
