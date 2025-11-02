@@ -1,0 +1,314 @@
+#!/usr/bin/env bash
+#
+# bpinspect operations regression test
+# Tests cancel, filter+cancel, and dry-run operations
+#
+
+echo "========================================="
+echo "bpinspect Operations Test"
+echo "========================================="
+
+RETVAL=0
+
+# Setup
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+killm 2>/dev/null
+sleep 1
+
+# Start nodes
+echo ""
+echo "Starting 2-node test network..."
+(cd node1; ./ionstart) >/dev/null 2>&1 &
+(cd node2; ./ionstart) >/dev/null 2>&1 &
+sleep 5
+
+# Verify nodes started
+echo "Verifying nodes..."
+if ! (cd node1; bpadmin <<< "i") >/dev/null 2>&1; then
+    echo "FAIL: Node 1 failed to start"
+    RETVAL=1
+    ./cleanup
+    exit $RETVAL
+fi
+
+if ! (cd node2; bpadmin <<< "i") >/dev/null 2>&1; then
+    echo "FAIL: Node 2 failed to start"
+    RETVAL=1
+    ./cleanup
+    exit $RETVAL
+fi
+
+echo "  Node 1: OK"
+echo "  Node 2: OK"
+
+# All tests run from node1
+cd node1
+
+#
+# Test 1: Basic Cancel Operation
+#
+echo ""
+echo "Test 1: Basic bundle cancellation"
+echo "  Sending 3 bundles to ipn:2.1..."
+bpsource ipn:2.1 "test data 1" -t7200
+bpsource ipn:2.1 "test data 2" -t7200
+bpsource ipn:2.1 "test data 3" -t7200
+sleep 2
+
+# Show bundles before cancel
+echo ""
+echo "  BEFORE cancel:"
+bpinspect -t ipn:2.1 -l 2>&1 | head -20
+
+# Verify bundles are queued
+COUNT1=$(bpinspect -t ipn:2.1 -l 2>&1 | grep -c "ipn:2.1" || true)
+echo ""
+echo "  Found $COUNT1 bundles queued"
+if [ "$COUNT1" -ne 3 ]; then
+    echo "  FAIL: Expected 3 bundles, found $COUNT1"
+    RETVAL=1
+else
+    echo "  OK: 3 bundles queued as expected"
+fi
+
+# Cancel them (with -n for no confirmation)
+echo ""
+echo "  Canceling bundles..."
+bpinspect -t ipn:2.1 -c -n 2>&1 | grep -E "(Canceling|Canceled)" || true
+sleep 1
+
+# Show bundles after cancel
+echo ""
+echo "  AFTER cancel:"
+bpinspect -t ipn:2.1 -l 2>&1 | head -20
+
+# Verify bundles were removed
+COUNT2=$(bpinspect -l 2>&1 | grep -c "ipn:2.1" || true)
+echo ""
+echo "  Found $COUNT2 bundles after cancel"
+if [ "$COUNT2" -ne 0 ]; then
+    echo "  FAIL: Expected 0 bundles after cancel, found $COUNT2"
+    RETVAL=1
+else
+    echo "  PASS: All bundles successfully canceled"
+fi
+
+#
+# Test 2: Filter + Cancel (Destination Filter)
+#
+echo ""
+echo "Test 2: Filter + cancel (destination filter)"
+echo "  Sending bundles to different destinations (ipn:2.2 and ipn:2.3)..."
+bpsource ipn:2.2 "to endpoint 2.2" -t7200 >/dev/null 2>&1
+bpsource ipn:2.3 "to endpoint 2.3" -t7200 >/dev/null 2>&1
+sleep 2
+
+# Show bundles before cancel
+echo ""
+echo "  BEFORE cancel:"
+bpinspect -l 2>&1 | head -20
+
+# Verify both bundles queued
+COUNT3=$(bpinspect -l 2>&1 | grep -E "ipn:2\.[23]" | wc -l)
+echo ""
+echo "  Found $COUNT3 bundles queued"
+if [ "$COUNT3" -ne 2 ]; then
+    echo "  FAIL: Expected 2 bundles, found $COUNT3"
+    RETVAL=1
+else
+    echo "  OK: 2 bundles queued as expected"
+fi
+
+# Cancel only bundles to ipn:2.2
+echo ""
+echo "  Canceling only bundles to ipn:2.2..."
+bpinspect -t ipn:2.2 -c -n 2>&1 | grep -E "(Canceling|Canceled)" || true
+sleep 1
+
+# Show bundles after cancel
+echo ""
+echo "  AFTER cancel:"
+bpinspect -l 2>&1 | head -20
+
+# Should have 1 bundle remaining (to ipn:2.3)
+COUNT4=$(bpinspect -l 2>&1 | grep -E "ipn:2\.[23]" | wc -l)
+echo ""
+echo "  Found $COUNT4 bundles after filtered cancel"
+if [ "$COUNT4" -ne 1 ]; then
+    echo "  FAIL: Expected 1 bundle remaining, found $COUNT4"
+    RETVAL=1
+else
+    echo "  PASS: Filtered cancel successful (1 bundle to ipn:2.3 remains)"
+fi
+
+# Clean up remaining bundle
+bpinspect -t ipn:2.3 -c -n >/dev/null 2>&1
+sleep 1
+
+#
+# Test 3: Dry-run Mode
+#
+echo ""
+echo "Test 3: Dry-run mode (no actual cancel)"
+echo "  Sending bundle to ipn:2.3..."
+bpsource ipn:2.3 "dry-run test" -t7200 >/dev/null 2>&1
+sleep 2
+
+# Show bundle before dry-run
+echo ""
+echo "  BEFORE dry-run cancel:"
+bpinspect -t ipn:2.3 -l 2>&1 | head -20
+
+# Verify bundle queued
+COUNT5=$(bpinspect -t ipn:2.3 -l 2>&1 | grep -c "ipn:2.3" || true)
+echo ""
+echo "  Found $COUNT5 bundles queued"
+if [ "$COUNT5" -ne 1 ]; then
+    echo "  FAIL: Expected 1 bundle, found $COUNT5"
+    RETVAL=1
+else
+    echo "  OK: 1 bundle queued as expected"
+fi
+
+# Dry-run cancel (should NOT actually cancel)
+echo ""
+echo "  Running dry-run cancel (-D flag)..."
+bpinspect -t ipn:2.3 -D -c -n 2>&1 | grep -E "(Would cancel|Dry-run)" || true
+sleep 1
+
+# Show bundle after dry-run
+echo ""
+echo "  AFTER dry-run cancel:"
+bpinspect -t ipn:2.3 -l 2>&1 | head -20
+
+# Bundle should still be present
+COUNT6=$(bpinspect -t ipn:2.3 -l 2>&1 | grep -c "ipn:2.3" || true)
+echo ""
+echo "  Found $COUNT6 bundles after dry-run"
+if [ "$COUNT6" -ne 1 ]; then
+    echo "  FAIL: Expected 1 bundle after dry-run, found $COUNT6"
+    RETVAL=1
+else
+    echo "  PASS: Dry-run successful (bundle not canceled)"
+fi
+
+# Clean up dry-run test bundle
+bpinspect -t ipn:2.3 -c -n >/dev/null 2>&1
+sleep 1
+
+#
+# Test 4: Multiple Bundle Cancel
+#
+echo ""
+echo "Test 4: Multiple bundle cancel"
+echo "  Sending multiple bundles to ipn:2.1..."
+bpsource ipn:2.1 "bundle 1" -t7200 >/dev/null 2>&1
+bpsource ipn:2.1 "bundle 2" -t7200 >/dev/null 2>&1
+sleep 2
+
+# Show bundles before cancel
+echo ""
+echo "  BEFORE cancel:"
+bpinspect -t ipn:2.1 -l 2>&1 | head -20
+
+# Verify both queued
+COUNT7=$(bpinspect -t ipn:2.1 -l 2>&1 | grep -c "ipn:2.1" || true)
+echo ""
+echo "  Found $COUNT7 bundles queued"
+if [ "$COUNT7" -ne 2 ]; then
+    echo "  FAIL: Expected 2 bundles, found $COUNT7"
+    RETVAL=1
+else
+    echo "  OK: 2 bundles queued as expected"
+fi
+
+# Cancel all bundles to ipn:2.1
+echo ""
+echo "  Canceling all bundles to ipn:2.1..."
+bpinspect -t ipn:2.1 -c -n 2>&1 | grep -E "(Canceling|Canceled)" || true
+sleep 1
+
+# Show bundles after cancel
+echo ""
+echo "  AFTER cancel:"
+bpinspect -t ipn:2.1 -l 2>&1 | head -20
+
+# Should have 0 bundles remaining
+COUNT8=$(bpinspect -t ipn:2.1 -l 2>&1 | grep -c "ipn:2.1" || true)
+echo ""
+echo "  Found $COUNT8 bundles after cancel"
+if [ "$COUNT8" -ne 0 ]; then
+    echo "  FAIL: Expected 0 bundles remaining, found $COUNT8"
+    RETVAL=1
+else
+    echo "  PASS: Multiple bundle cancel successful"
+fi
+
+#
+# Test 5: Priority Filter + Cancel
+#
+echo ""
+echo "Test 5: Priority filter + cancel"
+echo "  Sending bulk (pri=0) and standard (pri=1) bundles to ipn:2.2..."
+
+# Send bundles with different priorities using bptrace with dtn:none traceEid
+bptrace -qos 0.0 -msg "bulk priority" -ttl 7200 ipn:1.1 ipn:2.2 dtn:none >/dev/null 2>&1
+bptrace -qos 0.1 -msg "standard priority" -ttl 7200 ipn:1.1 ipn:2.2 dtn:none >/dev/null 2>&1
+sleep 2
+
+# Show bundles with their priorities
+echo ""
+echo "  BEFORE cancel:"
+bpinspect -t ipn:2.2 -l 2>&1 | head -20
+
+# Verify both bundles queued
+COUNT9=$(bpinspect -t ipn:2.2 -l 2>&1 | grep -c "ipn:2.2" || true)
+echo ""
+echo "  Found $COUNT9 bundles queued"
+if [ "$COUNT9" -ne 2 ]; then
+    echo "  FAIL: Expected 2 bundles, found $COUNT9"
+    RETVAL=1
+else
+    echo "  OK: 2 bundles queued as expected"
+fi
+
+# Cancel only bulk priority bundles (priority 0)
+echo ""
+echo "  Canceling only bulk priority bundles (-p 0)..."
+bpinspect -t ipn:2.2 -p 0 -c -n 2>&1 | grep -E "(Canceling|Canceled|bundles)" || true
+sleep 1
+
+# Show remaining bundles
+echo ""
+echo "  AFTER cancel:"
+bpinspect -t ipn:2.2 -l 2>&1 | head -20
+
+# Should have 1 bundle remaining (standard priority)
+COUNT10=$(bpinspect -t ipn:2.2 -l 2>&1 | grep -c "ipn:2.2" || true)
+echo ""
+echo "  Found $COUNT10 bundles after filtered cancel"
+if [ "$COUNT10" -ne 1 ]; then
+    echo "  FAIL: Expected 1 bundle remaining, found $COUNT10"
+    RETVAL=1
+else
+    echo "  PASS: Priority filter successful (1 standard priority bundle remains)"
+fi
+
+# Clean up remaining bundle
+bpinspect -t ipn:2.2 -c -n >/dev/null 2>&1
+sleep 1
+
+# "runtest" will determine whether to clean up or not.
+
+# Summary
+echo ""
+echo "========================================="
+if [ "$RETVAL" -eq 0 ]; then
+    echo "PASS: All tests passed"
+else
+    echo "FAIL: Some tests failed"
+fi
+echo "========================================="
+
+exit $RETVAL

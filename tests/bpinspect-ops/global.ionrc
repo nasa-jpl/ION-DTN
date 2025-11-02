@@ -1,0 +1,8 @@
+m horizon +0
+# Node 1 to Node 2: future contact (starts in 3600s = 1 hour) at 10 KB/s
+# Bundles will queue in "Planned" state, perfect for testing cancel operations
+a contact +3600 +7200 1 2 10000
+a range   +3600 +7200 1 2 1
+# Node 2 to Node 1: future contact (starts in 3600s = 1 hour) at 10 KB/s
+a contact +3600 +7200 2 1 10000
+a range   +3600 +7200 2 1 1

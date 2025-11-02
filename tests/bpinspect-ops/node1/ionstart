@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+ionadmin config.ionrc
+sleep 1
+ionadmin ../global.ionrc
+sleep 1
+ltpadmin config.ltprc
+sleep 1
+bpadmin config.bprc

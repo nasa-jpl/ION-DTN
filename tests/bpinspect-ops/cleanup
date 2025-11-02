@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+#
+# Cleanup script for bpinspect-ops test
+#
+
+echo "Cleaning up bpinspect-ops test..."
+
+# Force kill any remaining ION processes
+killm 2>/dev/null
+
+# Clean up tracking files
+rm -f ./ion_nodes
+
+# Clean up node log files and data
+rm -f node1/*.log node1/ion.log
+rm -f node2/*.log node2/ion.log
+rm -f node1/core.* node2/core.*
+
+echo "Cleanup complete"
