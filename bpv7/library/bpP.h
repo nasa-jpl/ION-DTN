@@ -27,6 +27,11 @@
 extern "C" {
 #endif
 
+/*	Debug flag for BP suspend/resume diagnostic logging.		*/
+#ifndef BPDEBUG
+#define BPDEBUG	0
+#endif
+
 #define	BpUdpDefaultPortNbr		4556
 #define	BpTcpDefaultPortNbr		4556
 

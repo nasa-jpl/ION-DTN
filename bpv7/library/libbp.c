@@ -940,10 +940,20 @@ int	bp_suspend(Object bundleObj)
 	Object		queue;
 	Object		planObj;
 	BpPlan		plan;
+#if BPDEBUG
+	char		*eidString;
+#endif
 
 	CHKERR(bundleObj);
 	CHKERR(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
+
+#if BPDEBUG
+	readEid(&bundle.id.source, &eidString);
+	writeMemoNote("[i] Attempting to suspend bundle", eidString);
+	MRELEASE(eidString);
+#endif
+
 	if (bundle.ancillaryData.flags & BP_MINIMUM_LATENCY)
 	{
 		writeMemo("[?] Attempt to suspend a 'critical' bundle.");
@@ -953,11 +963,13 @@ int	bp_suspend(Object bundleObj)
 
 	if (bundle.suspended == 1)	/*	Already suspended.	*/
 	{
+#if BPDEBUG
+		writeMemo("[i] Bundle already suspended.");
+#endif
 		sdr_exit_xn(sdr);	/*	Nothing to do.		*/
 		return 0;
 	}
 
-	bundle.suspended = 1;
 	queue = sdr_list_list(sdr, bundle.planXmitElt);
 	planObj = sdr_list_user_data(sdr, queue);
 	if (planObj == 0)
@@ -965,6 +977,10 @@ int	bp_suspend(Object bundleObj)
 		/*	Object is already in limbo for other reasons.
 		 *	Just record the suspension flag.		*/
 
+#if BPDEBUG
+		writeMemo("[i] Bundle already in limbo, setting suspended flag.");
+#endif
+		bundle.suspended = 1;
 		sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 	}
 	else
@@ -972,6 +988,9 @@ int	bp_suspend(Object bundleObj)
 		/*	Must reverse the enqueuing of this bundle
 		 *	and place it in limbo.				*/
 
+#if BPDEBUG
+		writeMemo("[i] Moving bundle to limbo via reverseEnqueue.");
+#endif
 		sdr_stage(sdr, (char *) &plan, planObj, sizeof(BpPlan));
 		if (reverseEnqueue(bundle.planXmitElt, &plan, 1))
 		{
@@ -981,7 +1000,40 @@ int	bp_suspend(Object bundleObj)
 		}
 
 		sdr_write(sdr, planObj, (char *) &plan, sizeof(BpPlan));
+
+		/*	reverseEnqueue updated the bundle in SDR (moved
+		 *	it to limbo and updated planXmitElt). Re-stage
+		 *	to get those changes, then set suspended flag.	*/
+
+#if BPDEBUG
+		writeMemo("[i] Re-staging bundle to set suspended flag.");
+#endif
+		sdr_stage(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
+
+#if BPDEBUG
+		{
+			char msg[256];
+			snprintf(msg, sizeof(msg),
+				"[i] After re-stage: planXmitElt=%lu, suspended=%d",
+				(unsigned long)bundle.planXmitElt, bundle.suspended);
+			writeMemo(msg);
+		}
+#endif
+
+		bundle.suspended = 1;
 		sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
+
+#if BPDEBUG
+		{
+			char msg[256];
+			snprintf(msg, sizeof(msg),
+				"[i] After write: planXmitElt=%lu, suspended=%d",
+				(unsigned long)bundle.planXmitElt, bundle.suspended);
+			writeMemo(msg);
+		}
+
+		writeMemo("[i] Bundle suspended and moved to limbo.");
+#endif
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -990,6 +1042,9 @@ int	bp_suspend(Object bundleObj)
 		return -1;
 	}
 
+#if BPDEBUG
+	writeMemo("[i] Bundle suspension completed successfully.");
+#endif
 	return 0;
 }
 
@@ -997,17 +1052,41 @@ int	bp_resume(Object bundleObj)
 {
 	Sdr	sdr = getIonsdr();
 	Bundle	bundle;
+#if BPDEBUG
+	char	*eidString;
+#endif
 
 	CHKERR(bundleObj);
 	CHKERR(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
+
+#if BPDEBUG
+	readEid(&bundle.id.source, &eidString);
+	writeMemoNote("[i] Attempting to resume bundle", eidString);
+	MRELEASE(eidString);
+
+	{
+		char msg[256];
+		snprintf(msg, sizeof(msg),
+			"[i] Bundle read: planXmitElt=%lu, suspended=%d",
+			(unsigned long)bundle.planXmitElt, bundle.suspended);
+		writeMemo(msg);
+	}
+#endif
+
 	if (bundle.suspended == 0)
 	{
+#if BPDEBUG
+		writeMemo("[i] Bundle not suspended, nothing to do.");
+#endif
 		sdr_exit_xn(sdr);	/*	Nothing to do.		*/
 		return 0;
 	}
 
-	if (releaseFromLimbo(bundle.ductXmitElt, 1) < 0)
+#if BPDEBUG
+	writeMemo("[i] Releasing bundle from limbo.");
+#endif
+	if (releaseFromLimbo(bundle.planXmitElt, 1) < 0)
 	{
 		sdr_cancel_xn(sdr);
 		putErrmsg("Can't resume transmission of bundle.", NULL);
@@ -1020,6 +1099,9 @@ int	bp_resume(Object bundleObj)
 		return -1;
 	}
 
+#if BPDEBUG
+	writeMemo("[i] Bundle resumed successfully.");
+#endif
 	return 0;
 }
 

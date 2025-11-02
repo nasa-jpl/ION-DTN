@@ -190,12 +190,33 @@ int bpinspect_ops_suspend_bundle(const BundleCacheEntry *entry)
  */
 int bpinspect_ops_resume_bundle(const BundleCacheEntry *entry)
 {
+	int	result;
+#if BPDEBUG
+	char	msg[256];
+#endif
+
 	if (entry == NULL)
 	{
+#if BPDEBUG
+		writeMemo("[!] bpinspect_ops_resume_bundle: NULL entry");
+#endif
 		return -1;
 	}
 
-	if (bp_resume(entry->bundleObj) < 0)
+#if BPDEBUG
+	snprintf(msg, sizeof(msg), "[i] bpinspect_ops_resume_bundle: bundleObj=%lu, source=%s",
+		 (unsigned long)entry->bundleObj, entry->source);
+	writeMemo(msg);
+#endif
+
+	result = bp_resume(entry->bundleObj);
+
+#if BPDEBUG
+	snprintf(msg, sizeof(msg), "[i] bp_resume returned: %d", result);
+	writeMemo(msg);
+#endif
+
+	if (result < 0)
 	{
 		putErrmsg("Can't resume bundle.", entry->source);
 		return -1;

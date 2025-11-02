@@ -100,6 +100,10 @@ static int expand_cache(BundleListState *state)
  */
 void bpinspect_data_get_queue_state(Bundle *bundle, char *queueState, int maxLen)
 {
+	Sdr		sdr;
+	BpDB		*bpConstants;
+	Object		queue;
+
 	if (bundle == NULL || queueState == NULL || maxLen <= 0)
 	{
 		return;
@@ -121,7 +125,22 @@ void bpinspect_data_get_queue_state(Bundle *bundle, char *queueState, int maxLen
 	}
 	else if (bundle->planXmitElt)
 	{
-		istrcpy(queueState, "Planned", maxLen);
+		/*	Check if this is in the limbo queue or a plan queue.
+		 *	When bundles are suspended, they're moved to limbo
+		 *	but planXmitElt still points to the queue element.	*/
+
+		sdr = bp_get_sdr();
+		bpConstants = getBpConstants();
+		queue = sdr_list_list(sdr, bundle->planXmitElt);
+
+		if (queue == bpConstants->limboQueue)
+		{
+			istrcpy(queueState, "Limbo", maxLen);
+		}
+		else
+		{
+			istrcpy(queueState, "Planned", maxLen);
+		}
 	}
 	else
 	{
