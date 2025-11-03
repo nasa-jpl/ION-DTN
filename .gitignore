@@ -557,3 +557,4 @@ tests/cfdpv1/2.ipn.ltp/receivedFile
 iontermlog
 tests/semaphore-deferred-deletion/dotest
 tests/semaphore-deferred-deletion/dotest
+bpinspect
