@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-echo "Stopping node 1..."
-bpadmin .
-sleep 1
-ltpadmin .
-sleep 1
-ionadmin .
-sleep 1
-#killm
