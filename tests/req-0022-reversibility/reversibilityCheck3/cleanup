@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#
+# reversibilityCheck3 cleanup script
+# JPL ION Development Team, November 2024
+
+echo "Cleaning up old ION files..."
+rm -f ion_nodes ion.log bpdriverAduFile
+rm -f /tmp/ion1.sdrlog

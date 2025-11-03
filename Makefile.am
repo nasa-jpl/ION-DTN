@@ -415,6 +415,7 @@ icibin = \
 	psmwatch \
 	rfxclock \
 	sdr2file \
+	sdr_test_util \
 	sdrmend \
 	sdrwatch \
 	sm2file \
@@ -665,6 +666,10 @@ psmshell_CFLAGS = $(icicflags) $(AM_CFLAGS)
 sdr2file_SOURCES = ici/test/sdr2file.c
 sdr2file_LDADD = libici.la -lm
 sdr2file_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
+sdr_test_util_SOURCES = ici/test/sdr_test_util.c
+sdr_test_util_LDADD = libici.la -lm
+sdr_test_util_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 sm2file_SOURCES = ici/test/sm2file.c
 sm2file_LDADD = libici.la -lm
@@ -971,6 +976,7 @@ bpbin = \
 	bpclock \
 	bpcounter \
 	bpcrash \
+	bpcrash_hard \
 	bpdriver \
 	bpecho \
 	bping \
@@ -1120,6 +1126,7 @@ bpextra = \
 	bpv7/doc/pod1/bptransit.pod \
 	bpv7/doc/pod1/bpversion.pod \
 	bpv7/doc/pod1/bpcrash.pod \
+	bpv7/doc/pod1/bpcrash_hard.pod \
 	bpv7/doc/pod1/brsccla.pod \
 	bpv7/doc/pod1/brsscla.pod \
 	bpv7/doc/pod1/cgrfetch.pod \
@@ -1580,6 +1587,10 @@ bpcounter_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpcrash_SOURCES = bpv7/test/bpcrash.c
 bpcrash_LDADD = libici.la $(bplib)
 bpcrash_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bpcrash_hard_SOURCES = bpv7/test/bpcrash_hard.c
+bpcrash_hard_LDADD = libici.la $(bplib)
+bpcrash_hard_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpdriver_SOURCES = bpv7/test/bpdriver.c
 bpdriver_LDADD = libici.la $(bplib)
