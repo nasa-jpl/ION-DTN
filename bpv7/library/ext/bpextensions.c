@@ -238,16 +238,36 @@ static ExtensionDef	extensionDefs[] =
 
 static ExtensionSpec		extensionSpecs[] =
 				{
-					{ PreviousNodeBlk, 0, X25CRC16 },
-					{ QualityOfServiceBlk, 0, X25CRC16 },
+#ifdef ION_CORE_BUILD
+	/* ION-CORE: Compile-time extension block selection */
+	#ifdef PNB_EXT
+					{ PreviousNodeBlk, 0, NoCRC },
+	#endif
+	#ifdef BPQ_EXT
+					{ QualityOfServiceBlk, 0, NoCRC },
+	#endif
+	#ifdef BAE_EXT
 					{ BundleAgeBlk, 0, NoCRC },
-					{ SnwPermitsBlk, 0, X25CRC16 },
-					{ ImcDestinationsBlk, 0, X25CRC16 },
+	#endif
+	#ifdef SNW_EXT
+					{ SnwPermitsBlk, 0, NoCRC },
+	#endif
+	#ifdef IMC_EXT
+					{ ImcDestinationsBlk, 0, NoCRC },
+	#endif
+#else
+	/* Standard ION-DTN: All extension blocks enabled */
+					{ PreviousNodeBlk, 0, NoCRC },
+					{ QualityOfServiceBlk, 0, NoCRC },
+					{ BundleAgeBlk, 0, NoCRC },
+					{ SnwPermitsBlk, 0, NoCRC },
+					{ ImcDestinationsBlk, 0, NoCRC },
+#endif
 #if RGREB
-					{ RGRBlk, 0, X25CRC16 },
+					{ RGRBlk, 0, NoCRC },
 #endif
 #if CGRREB
-					{ CGRRBlk, 0, X25CRC16 },
+					{ CGRRBlk, 0, NoCRC },
 #endif
-					{ UnknownBlk, 0, X25CRC16 }
+					{ UnknownBlk, 0, NoCRC }
 				};
