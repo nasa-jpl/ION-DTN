@@ -12,8 +12,13 @@
 #include "tcaP.h"
 #include "crypto.h"
 
+#ifndef __STDC_VERSION__
 #define restrict
 #define const
+#elif __STDC_VERSION__ < 199901L
+#define restrict
+#define const
+#endif
 #include "fec.h"
 
 typedef struct
@@ -674,7 +679,7 @@ writeMemo(msgbuf);
 		return -1;
 	}
 
-	fec_encode(fec, (unsigned char **) primaryBlocks,
+	fec_encode(fec, (const unsigned char *const *) primaryBlocks,
 			(unsigned char **) secondaryBlocks,
 			secondaryBlockNbrs, db->fec_M - db->fec_K, blksize);
 #if TC_DEBUG

@@ -11,8 +11,13 @@
 #include "tccP.h"
 #include "crypto.h"
 
+#ifndef __STDC_VERSION__
 #define restrict
 #define const
+#elif __STDC_VERSION__ < 199901L
+#define restrict
+#define const
+#endif
 #include "fec.h"
 
 typedef struct
@@ -383,7 +388,7 @@ writeMemo("tcc: Not enough blocks for successful decode.");
 	 *	bulletin content.  Finally, overwrite the output
 	 *	block array with the updated input block array.		*/
 
-	fec_decode(fec, (unsigned char **) inputBlocks,
+	fec_decode(fec, (const unsigned char *const *) inputBlocks,
 		(unsigned char **) outputBlocks, inputSharenums, blksize);
 	for (i = 0, recoveredBlk = outputBlocks; i < db->fec_K; i++)
 	{
