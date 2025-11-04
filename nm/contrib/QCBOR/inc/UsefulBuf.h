@@ -65,6 +65,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _UsefulBuf_h
 #define _UsefulBuf_h
 
+#include <stdint.h> /* Sky adds for -Wcast-qual fixes */
 
 /*
  Configuration Options
@@ -602,7 +603,7 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind);
 /** Deprecated function; use UsefulBuf_Unconst() instead */
 static inline UsefulBuf UsefulBufC_Unconst(const UsefulBufC UBC)
 {
-    return (UsefulBuf){(void *)UBC.ptr, UBC.len};
+    return (UsefulBuf){(void *)(uintptr_t)UBC.ptr, UBC.len};
 }
 #endif
 
@@ -1537,7 +1538,7 @@ static inline UsefulBufC UsefulBuf_Const(const UsefulBuf UB)
 
 static inline UsefulBuf UsefulBuf_Unconst(const UsefulBufC UBC)
 {
-   return (UsefulBuf){(void *)UBC.ptr, UBC.len};
+   return (UsefulBuf){(void *)(uintptr_t)UBC.ptr, UBC.len};
 }
 
 
@@ -1584,7 +1585,7 @@ static inline UsefulBufC UsefulBuf_Tail(UsefulBufC UB, size_t uAmount)
    } else if(UB.ptr == NULL) {
       ReturnValue = (UsefulBufC){NULL, UB.len - uAmount};
    } else {
-      ReturnValue = (UsefulBufC){(uint8_t *)UB.ptr + uAmount, UB.len - uAmount};
+      ReturnValue = (UsefulBufC){(const uint8_t *)UB.ptr + uAmount, UB.len - uAmount};
    }
 
    return ReturnValue;
@@ -1967,7 +1968,7 @@ static inline uint8_t UsefulInputBuf_GetByte(UsefulInputBuf *pMe)
 {
    const void *pResult = UsefulInputBuf_GetBytes(pMe, sizeof(uint8_t));
 
-   return pResult ? *(uint8_t *)pResult : 0;
+   return pResult ? *(const uint8_t *)pResult : 0;
 }
 
 static inline uint16_t UsefulInputBuf_GetUint16(UsefulInputBuf *pMe)
