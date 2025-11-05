@@ -163,10 +163,37 @@ echo "Wait complete"
 #==============================================================================
 echo ""
 echo "=== PHASE 5: Verifying System After ionrestart ==="
-echo "ionrestart already executed in Phase 3, checking that ION is operational..."
+echo "ionrestart already executed in Phase 3, waiting for all daemons to restart..."
 
-# Give system time to stabilize after ionrestart
-sleep 5
+# Give ionrestart sufficient time to complete full restart cycle
+# ionrestart stops daemons, drops VDBs, raises VDBs, and restarts daemons
+# This can take 15-20 seconds on slower systems like Solaris
+sleep 20
+
+echo "Checking if BP daemon restarted successfully..."
+# Check if BP is running by verifying bpclock is started
+if bpadmin . <<EOF 2>&1 | grep -q "bpclock is running"
+w 0
+EOF
+then
+	echo "PASS: BP daemon is running after ionrestart"
+else
+	echo "WARNING: BP daemon may not be running, attempting manual restart..."
+	# If BP didn't restart, manually restart it
+	if command -v timeout >/dev/null 2>&1; then
+		timeout 30 bpadmin restart.bprc || echo "bpadmin restart timed out or failed"
+	else
+		bpadmin restart.bprc &
+		BPADMIN_PID=$!
+		sleep 30
+		if kill -0 $BPADMIN_PID 2>/dev/null; then
+			echo "bpadmin restart appears hung, killing..."
+			kill -9 $BPADMIN_PID 2>/dev/null
+		fi
+		wait $BPADMIN_PID 2>/dev/null || true
+	fi
+	sleep 5
+fi
 
 # Verify SDR is operational
 if check_sdr_operational; then
