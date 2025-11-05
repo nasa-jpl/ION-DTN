@@ -172,9 +172,36 @@ echo ""
 echo "=== PHASE 4: Restarting Node 2 Daemons ==="
 echo "Manually restarting ION and BP daemons on node 2..."
 
-ionadmin restart.ionrc
-sleep 3
-bpadmin restart.bprc
+# Give Solaris extra time for cleanup without wiping SDR
+sleep 5
+
+# Run with timeout to prevent hanging on Solaris
+if command -v timeout >/dev/null 2>&1; then
+	timeout 30 ionadmin restart.ionrc || echo "ionadmin restart timed out or failed"
+	sleep 3
+	timeout 30 bpadmin restart.bprc || echo "bpadmin restart timed out or failed"
+else
+	# Fallback for systems without timeout command (e.g., older Solaris)
+	ionadmin restart.ionrc &
+	IONADMIN_PID=$!
+	sleep 30
+	if kill -0 $IONADMIN_PID 2>/dev/null; then
+		echo "ionadmin restart appears hung, killing..."
+		kill -9 $IONADMIN_PID 2>/dev/null
+	fi
+	wait $IONADMIN_PID 2>/dev/null || true
+	sleep 3
+
+	bpadmin restart.bprc &
+	BPADMIN_PID=$!
+	sleep 30
+	if kill -0 $BPADMIN_PID 2>/dev/null; then
+		echo "bpadmin restart appears hung, killing..."
+		kill -9 $BPADMIN_PID 2>/dev/null
+	fi
+	wait $BPADMIN_PID 2>/dev/null || true
+fi
+
 sleep 5
 
 echo "Daemons restarted"

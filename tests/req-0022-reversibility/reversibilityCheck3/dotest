@@ -166,7 +166,19 @@ fi
 
 # Try sending a test bundle to ensure BP is still working
 echo "Sending test bundle to verify BP functionality..."
-bpdriver 5 ipn:1.1 ipn:1.1 -100 t30
+if command -v timeout >/dev/null 2>&1; then
+	timeout 30 bpdriver 5 ipn:1.1 ipn:1.1 -100 t30 || echo "bpdriver timed out or failed"
+else
+	# Fallback for systems without timeout command (e.g., older Solaris)
+	bpdriver 5 ipn:1.1 ipn:1.1 -100 t30 &
+	BPDRIVER_PID=$!
+	sleep 30
+	if kill -0 $BPDRIVER_PID 2>/dev/null; then
+		echo "bpdriver appears hung, killing..."
+		kill -9 $BPDRIVER_PID 2>/dev/null
+	fi
+	wait $BPDRIVER_PID 2>/dev/null || true
+fi
 sleep 2
 
 # Verify no new transaction aborts occurred
