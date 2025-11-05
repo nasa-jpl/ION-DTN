@@ -180,8 +180,14 @@ echo "=== PHASE 4: Extracting SDR Configuration ==="
 
 SDR_CONFIG=$(grep "^[[:space:]]*1[[:space:]]*" config.ionrc | grep -v "^#" | head -1)
 
+echo "DEBUG: Current directory: $PWD"
+echo "DEBUG: config.ionrc exists: $([ -f config.ionrc ] && echo 'yes' || echo 'no')"
+echo "DEBUG: SDR_CONFIG = '$SDR_CONFIG'"
+
 if [ -z "$SDR_CONFIG" ]; then
 	echo "FAIL: Could not find SDR configuration in config.ionrc"
+	echo "       Current directory: $PWD"
+	echo "       Looking for line starting with '1' in config.ionrc"
 	RETVAL=1
 	end
 fi
