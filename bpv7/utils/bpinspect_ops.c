@@ -537,8 +537,7 @@ int bpinspect_ops_export_bundle(const BundleCacheEntry *entry,
 				const char *filename,
 				int verbose)
 {
-	FILE	*fp;
-	FILE	*oldStdout;
+	FILE	*originalStdout;
 
 	if (entry == NULL)
 	{
@@ -552,24 +551,26 @@ int bpinspect_ops_export_bundle(const BundleCacheEntry *entry,
 		return 0;
 	}
 
-	/* Open file for writing */
-	fp = fopen(filename, "a");
-	if (fp == NULL)
+	/* Redirect stdout to file using freopen */
+	fflush(stdout);
+	originalStdout = freopen(filename, "a", stdout);
+	if (originalStdout == NULL)
 	{
-		putErrmsg("Can't open export file.", (char *) filename);
+		putErrmsg("Can't redirect stdout to export file.", (char *) filename);
 		return -1;
 	}
-
-	/* Redirect stdout to file */
-	oldStdout = stdout;
-	stdout = fp;
 
 	/* Print bundle details */
 	bpinspect_ops_print_bundle(entry, verbose);
 
-	/* Restore stdout */
-	stdout = oldStdout;
-	fclose(fp);
+	/* Restore stdout to terminal - reopen /dev/tty */
+	fflush(stdout);
+	if (freopen("/dev/tty", "w", stdout) == NULL)
+	{
+		/* If /dev/tty fails, we can't really recover stdout */
+		putErrmsg("Can't restore stdout.", NULL);
+		return -1;
+	}
 
 	return 0;
 }
