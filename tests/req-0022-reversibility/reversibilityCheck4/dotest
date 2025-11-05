@@ -178,24 +178,13 @@ echo "=== PHASE 4: Extracting SDR Configuration ==="
 # Inline format: 1 17 heapWords heapKey logSize logKey [pathName]
 # External format: 1 1 config.ionconfig
 
-# Try simpler grep pattern that works on all systems
+# Use simple grep pattern that works on all systems
 # Look for lines starting with "1 " (number 1 followed by space)
 SDR_CONFIG=$(grep "^1 " config.ionrc | grep -v "^#" | head -1)
 
-echo "DEBUG: Current directory: $PWD"
-echo "DEBUG: config.ionrc exists: $([ -f config.ionrc ] && echo 'yes' || echo 'no')"
-echo "DEBUG: First 3 lines of config.ionrc:"
-head -3 config.ionrc | sed 's/^/  /'
-echo "DEBUG: Trying to find line starting with '1 '"
-echo "DEBUG: SDR_CONFIG = '$SDR_CONFIG'"
-
 if [ -z "$SDR_CONFIG" ]; then
 	echo "FAIL: Could not find SDR configuration in config.ionrc"
-	echo "       Current directory: $PWD"
 	echo "       Looking for line starting with '1 ' in config.ionrc"
-	echo ""
-	echo "       Full config.ionrc content:"
-	cat config.ionrc | sed 's/^/       /'
 	RETVAL=1
 	end
 fi
