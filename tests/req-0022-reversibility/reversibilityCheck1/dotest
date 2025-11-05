@@ -159,51 +159,20 @@ sleep 60
 echo "Wait complete"
 
 #==============================================================================
-# PHASE 5: Restart Daemons
+# PHASE 5: Verify System After ionrestart
 #==============================================================================
 echo ""
-echo "=== PHASE 5: Restarting ION Daemons ==="
-echo "Manually restarting ION and BP daemons..."
+echo "=== PHASE 5: Verifying System After ionrestart ==="
+echo "ionrestart already executed in Phase 3, checking that ION is operational..."
 
-# Give Solaris extra time for cleanup without wiping SDR
+# Give system time to stabilize after ionrestart
 sleep 5
-
-# Run with timeout to prevent hanging on Solaris
-if command -v timeout >/dev/null 2>&1; then
-	timeout 30 ionadmin restart.ionrc || echo "ionadmin restart timed out or failed"
-	sleep 3
-	timeout 30 bpadmin restart.bprc || echo "bpadmin restart timed out or failed"
-else
-	# Fallback for systems without timeout command (e.g., older Solaris)
-	ionadmin restart.ionrc &
-	IONADMIN_PID=$!
-	sleep 30
-	if kill -0 $IONADMIN_PID 2>/dev/null; then
-		echo "ionadmin restart appears hung, killing..."
-		kill -9 $IONADMIN_PID 2>/dev/null
-	fi
-	wait $IONADMIN_PID 2>/dev/null || true
-	sleep 3
-
-	bpadmin restart.bprc &
-	BPADMIN_PID=$!
-	sleep 30
-	if kill -0 $BPADMIN_PID 2>/dev/null; then
-		echo "bpadmin restart appears hung, killing..."
-		kill -9 $BPADMIN_PID 2>/dev/null
-	fi
-	wait $BPADMIN_PID 2>/dev/null || true
-fi
-
-sleep 15  # Allow time for full initialization
-
-echo "Daemons restarted"
 
 # Verify SDR is operational
 if check_sdr_operational; then
-	echo "PASS: SDR is operational after restart"
+	echo "PASS: SDR is operational after ionrestart"
 else
-	echo "FAIL: SDR is not operational after restart"
+	echo "FAIL: SDR is not operational after ionrestart"
 	RETVAL=1
 	end
 fi
