@@ -25,7 +25,20 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../verify_sdr_recovery.sh"
 
+# Global timeout watchdog - kill test if it runs too long
+TEST_TIMEOUT=300  # 5 minutes max for entire test
+(
+	sleep $TEST_TIMEOUT
+	echo ""
+	echo "ERROR: Test timeout after ${TEST_TIMEOUT} seconds - forcing cleanup"
+	killm 2>/dev/null
+	exit 1
+) &
+WATCHDOG_PID=$!
+
 function end(){
+	# Kill the watchdog timer
+	kill $WATCHDOG_PID 2>/dev/null
 	# Shut down ION
 	echo "Stopping ION..."
 	killm 2>/dev/null
