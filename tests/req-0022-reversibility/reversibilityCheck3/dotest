@@ -90,7 +90,7 @@ sleep 1
 bpadmin config.bprc
 sleep 1
 ipnadmin config.ipnrc
-sleep 1
+sleep 2
 echo "ION started successfully"
 
 #==============================================================================
@@ -99,6 +99,9 @@ echo "ION started successfully"
 echo ""
 echo "=== PHASE 2: Testing Unmodified Transaction Cancellation ==="
 echo "Using sdr_test_util to create and cancel transaction WITHOUT modifications..."
+
+# Add delay to ensure ION is fully ready
+sleep 1
 
 # Run sdr_test_util in test_no_reversal mode
 # This will:
@@ -221,6 +224,9 @@ fi
 echo ""
 echo "=== PHASE 5: Verify Reversal Still Works When Modifications Present ==="
 echo "Using sdr_test_util to test reversal WITH modifications..."
+
+# Add delay to ensure ION is fully ready for next test
+sleep 2
 
 # Now test that reversal DOES work when there ARE modifications
 sdr_test_util test_reversal ion

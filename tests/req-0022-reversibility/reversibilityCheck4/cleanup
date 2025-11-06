@@ -6,6 +6,11 @@
 # Cleanup for test with SDR_IN_FILE support (configFlags=15)
 
 echo "Cleaning up old ION files..."
+
+# Kill any lingering ION processes from previous runs
+killm 2>/dev/null
+sleep 1
+
 rm -f ion_nodes ion.log bpdriverAduFile
 
 # Clean up SDR files in /tmp

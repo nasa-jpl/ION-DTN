@@ -1,6 +1,11 @@
 #!/bin/sh
 # Samuel Jero <sj323707@ohio.edu>
 # Cleanup script
+
+# Kill any lingering ION processes from previous runs
+killm 2>/dev/null
+sleep 1
+
 IONSENDFILE=./ionsendfile.txt
 IONRECEIVEFILE=./ionreceivefile.txt
 

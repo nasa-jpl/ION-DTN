@@ -20,6 +20,62 @@ Exclude files can exist in any of the following formats:
 
 - `.exclude_cbased`: Disables a test that relies on compiling a C program to generate the dotest executable script. To exclude C-based tests, you need to define the environment variable `ION_EXCLUDE_CBASED`.
 
+## Optional tests
+
+Tests can be marked as optional by adding a `.optional` file to the test directory. Optional tests are run by default (unless explicitly excluded via an exclude file), but their results do not affect the overall pass/fail status of the test campaign.
+
+### How to mark a test as optional
+
+To mark a test as optional, create a file named `.optional` in the test directory:
+
+```bash
+touch tests/my-test/.optional
+```
+
+### Use cases for optional tests
+
+Optional tests are useful for:
+
+- Experimental or unstable tests that are not yet ready for CI enforcement
+- Performance tests that may be sensitive to system load or timing
+- Tests that depend on external resources that may be temporarily unavailable
+- Long-running tests that provide valuable information but should not block the test suite
+- Tests that are being developed or debugged
+
+### Key behaviors of optional tests
+
+- They are run during normal test execution
+- They are clearly marked as "OPTIONAL TEST" in the console output
+- Their pass/fail status is reported in a separate "Optional Tests" section at the end of the test run
+- Failed optional tests do **NOT** cause the overall test campaign to fail (exit code 0)
+- Failed optional tests are **NOT** included in the `retest` file
+- Optional tests are **NOT** retested in the automatic retest phase
+
+### Example output
+
+When running tests that include optional tests, the output will clearly indicate when an optional test is being executed:
+
+```
+***
+*** OPTIONAL TEST: experimental-feature
+***
+OPTIONAL TEST FAILED!
+```
+
+At the end of the test run, optional test results are shown in a dedicated section:
+
+```
+=== Optional Tests ===
+optional tests passed: 2
+    perf-test
+    integration-test
+
+optional tests failed: 1
+    experimental-feature
+```
+
+The overall test campaign will still report success (exit 0) even if optional tests fail, as long as all non-optional tests pass.
+
 ## Running the tests
 
 The tests are run by running `make test-all` in the top-level directory, or by running `runtests` in this directory.

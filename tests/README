@@ -36,6 +36,35 @@ Exclude files can exist in any of the following formats:
 		      variable ION_EXCLUDE_CBASED.
 
 
+Optional tests
+~~~~~~~~~~~~~~~~
+
+Tests can be marked as optional by adding a ".optional" file to the test
+directory. Optional tests are run by default (unless explicitly excluded via
+an exclude file), but their results do not affect the overall pass/fail status
+of the test campaign.
+
+To mark a test as optional, create a file named ".optional" in the test
+directory:
+
+    touch tests/my-test/.optional
+
+Optional tests are useful for:
+- Experimental or unstable tests that are not yet ready for CI enforcement
+- Performance tests that may be sensitive to system load
+- Tests that depend on external resources that may be temporarily unavailable
+- Long-running tests that provide valuable information but should not block
+  the test suite
+
+Key behaviors of optional tests:
+- They are run during normal test execution
+- They are clearly marked as "OPTIONAL TEST" in the output
+- Their pass/fail status is reported in a separate "Optional Tests" section
+- Failed optional tests do NOT cause the overall test run to fail
+- Failed optional tests are NOT included in the retest file
+- Optional tests are NOT retested in the automatic retest phase
+
+
 Running the tests
 ~~~~~~~~~~~~~~~~~
 

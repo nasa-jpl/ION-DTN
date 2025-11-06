@@ -129,6 +129,16 @@ function pass_test_after_retest () {
     TESTS_PASSED_AFTER_RETEST="$TESTS_PASSED_AFTER_RETEST $1"
 }
 
+function optional_pass_test () {
+    NUM_OPTIONAL_PASSED=$((NUM_OPTIONAL_PASSED + 1))
+    TESTS_OPTIONAL_PASSED="$TESTS_OPTIONAL_PASSED $1"
+}
+
+function optional_fail_test () {
+    NUM_OPTIONAL_FAILED=$((NUM_OPTIONAL_FAILED + 1))
+    TESTS_OPTIONAL_FAILED="$TESTS_OPTIONAL_FAILED $1"
+}
+
 
 # runs one test, updates the test status counters
 function run_a_test () {
@@ -138,12 +148,26 @@ function run_a_test () {
     TEST=${TEST##./}
     TEST=${TEST%%/}
 
+    # Check if this is an optional test
+    IS_OPTIONAL_TEST=""
+    if [ -f "$TEST/.optional" ]; then
+        IS_OPTIONAL_TEST="true"
+    fi
+
     echo
     echo "***"
-    echo "*** ${TEST}"
+    if [ -n "$IS_OPTIONAL_TEST" ]; then
+        echo "*** OPTIONAL TEST: ${TEST}"
+    else
+        echo "*** ${TEST}"
+    fi
     echo "***"
 
-    echo "=== Processing $TEST at time `date`" >> $PROGRESSFILE
+    if [ -n "$IS_OPTIONAL_TEST" ]; then
+        echo "=== Processing OPTIONAL TEST: $TEST at time `date`" >> $PROGRESSFILE
+    else
+        echo "=== Processing $TEST at time `date`" >> $PROGRESSFILE
+    fi
 
     # check if test is excluded because it is obsolete
     if [ -f "$TEST/.exclude_obsolete" ]; then
@@ -250,24 +274,36 @@ function run_a_test () {
 
     TEST_RETVAL=$?
     if [ $TEST_RETVAL -eq 0 ]; then
-        echo "TEST PASSED!"
-        if [[ "$RETESTING" == "true" ]]; then
-            pass_test_after_retest "$TEST"
-            echo "PASSED AFTER RETEST: ${TEST}" >> "$PROGRESSFILE"
+        if [ -n "$IS_OPTIONAL_TEST" ]; then
+            echo "OPTIONAL TEST PASSED!"
+            optional_pass_test "$TEST"
+            echo "OPTIONAL TEST PASSED: ${TEST}" >> "$PROGRESSFILE"
         else
-            pass_test "$TEST"
-            echo "PASSED: ${TEST}" >> "$PROGRESSFILE"
+            echo "TEST PASSED!"
+            if [[ "$RETESTING" == "true" ]]; then
+                pass_test_after_retest "$TEST"
+                echo "PASSED AFTER RETEST: ${TEST}" >> "$PROGRESSFILE"
+            else
+                pass_test "$TEST"
+                echo "PASSED: ${TEST}" >> "$PROGRESSFILE"
+            fi
         fi
         if [ -x "cleanup" ]; then
             ./cleanup
         fi
     elif [ $TEST_RETVAL -eq 1 ]; then
-        echo "TEST FAILED!"
-        fail_test "$TEST"
-        if [[ "$RETESTING" == "true" ]]; then
-            echo "FAILED AFTER RETEST: ${TEST}" >> "$PROGRESSFILE"
+        if [ -n "$IS_OPTIONAL_TEST" ]; then
+            echo "OPTIONAL TEST FAILED!"
+            optional_fail_test "$TEST"
+            echo "OPTIONAL TEST FAILED: ${TEST}" >> "$PROGRESSFILE"
         else
-            echo "FAILED: ${TEST}" >> "$PROGRESSFILE"
+            echo "TEST FAILED!"
+            fail_test "$TEST"
+            if [[ "$RETESTING" == "true" ]]; then
+                echo "FAILED AFTER RETEST: ${TEST}" >> "$PROGRESSFILE"
+            else
+                echo "FAILED: ${TEST}" >> "$PROGRESSFILE"
+            fi
         fi
         # Optionally skip cleanup on failure to preserve logs
         if [ -n "$PRESERVE_TEST_LOGS" ]; then
@@ -281,11 +317,16 @@ function run_a_test () {
         echo "SKIPPED: ${TEST}" >> "$PROGRESSFILE"
     else
         echo "test returned unknown value $TEST_RETVAL"
-        fail_test "$TEST"
-        if [[ "$RETESTING" == "true" ]]; then
-            echo "CONFUSED AFTER RETEST: ${TEST}: bad return value $TEST_RETVAL" >> "$PROGRESSFILE"
+        if [ -n "$IS_OPTIONAL_TEST" ]; then
+            optional_fail_test "$TEST"
+            echo "OPTIONAL TEST CONFUSED: ${TEST}: bad return value $TEST_RETVAL" >> "$PROGRESSFILE"
         else
-            echo "CONFUSED: ${TEST}: bad return value $TEST_RETVAL" >> "$PROGRESSFILE"
+            fail_test "$TEST"
+            if [[ "$RETESTING" == "true" ]]; then
+                echo "CONFUSED AFTER RETEST: ${TEST}: bad return value $TEST_RETVAL" >> "$PROGRESSFILE"
+            else
+                echo "CONFUSED: ${TEST}: bad return value $TEST_RETVAL" >> "$PROGRESSFILE"
+            fi
         fi
     fi
 
@@ -382,6 +423,20 @@ function generate_initial_summary () {
     for TEST in $TESTS_EXCLUDED_OBSOLETE; do
         echo "    $TEST"
     done
+
+    # Show optional test results in a separate section
+    echo
+    echo "=== Optional Tests ==="
+    echo "optional tests passed: $NUM_OPTIONAL_PASSED"
+    for TEST in $TESTS_OPTIONAL_PASSED; do
+        echo "    $TEST"
+    done
+
+    echo
+    echo "optional tests failed: $NUM_OPTIONAL_FAILED"
+    for TEST in $TESTS_OPTIONAL_FAILED; do
+        echo "    $TEST"
+    done
 }
 
 # Function to generate final summary after retests
@@ -433,6 +488,20 @@ function generate_final_summary () {
     for TEST in $TESTS_EXCLUDED_OBSOLETE; do
         echo "    $TEST"
     done
+
+    # Show optional test results in a separate section
+    echo
+    echo "=== Optional Tests ==="
+    echo "optional tests passed: $NUM_OPTIONAL_PASSED"
+    for TEST in $TESTS_OPTIONAL_PASSED; do
+        echo "    $TEST"
+    done
+
+    echo
+    echo "optional tests failed: $NUM_OPTIONAL_FAILED"
+    for TEST in $TESTS_OPTIONAL_FAILED; do
+        echo "    $TEST"
+    done
 }
 
 # these track how much of the test suite is passing/failing/skipped
@@ -444,6 +513,8 @@ NUM_EXCLUDED_BPv=0
 NUM_EXCLUDED_OBSOLETE=0
 NUM_UNKNOWN=0
 NUM_PASSED_AFTER_RETEST=0
+NUM_OPTIONAL_PASSED=0
+NUM_OPTIONAL_FAILED=0
 
 # these track the names of the tests passed/failed/skipped
 # each is a string consisting of the names of all the tests in that category, separated by spaces
@@ -454,6 +525,8 @@ TESTS_EXCLUDED_OS=''
 TESTS_EXCLUDED_BPv=''
 TESTS_EXCLUDED_OBSOLETE=''
 TESTS_PASSED_AFTER_RETEST=''
+TESTS_OPTIONAL_PASSED=''
+TESTS_OPTIONAL_FAILED=''
 
 # Flag to indicate when we're retesting
 RETESTING="false"
