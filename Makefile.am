@@ -866,6 +866,8 @@ dccplso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 #
 ##########################
 
+if ENABLE_DGR
+
 # Define pod2man stuff
 dgrPODM1 = pod2man -s 1 -c "DGR executables"
 dgrPODM3 = pod2man -s 3 -c "DGR library functions"
@@ -938,6 +940,8 @@ udp2file_SOURCES = dgr/test/udp2file.c
 udp2file_LDADD = libici.la -lm
 udp2file_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
 
+endif # ENABLE_DGR
+
 ##########################
 #
 # AMP VERSION
@@ -997,12 +1001,8 @@ bpbin = \
 	bpversion \
 	brsccla \
 	brsscla \
-	bsspcli \
-	bsspclo \
 	cgrfetch \
 	cpsd \
-	dgrcli \
-	dgrclo \
 	dtn2admin \
 	dtn2adminep \
 	dtn2fw \
@@ -1044,6 +1044,18 @@ bpbin += \
 	imcadminep \
 	imcfw
 endif # end ENABLE_IMC
+
+if ENABLE_DGR
+bpbin += \
+	dgrcli \
+	dgrclo
+endif # end ENABLE_DGR
+
+if ENABLE_BSSP
+bpbin += \
+	bsspcli \
+	bsspclo
+endif # end ENABLE_BSSP
 
 bplib = \
 	libbp.la \
@@ -1476,6 +1488,7 @@ ipnd_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- BSSP Executables --- #
 
+if ENABLE_BSSP
 bsspcli_SOURCES = bpv7/bssp/bsspcli.c
 bsspcli_LDADD = libbssp.la libici.la  $(bplib) $(PTHREAD_LIBS)
 bsspcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
@@ -1483,6 +1496,7 @@ bsspcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bsspclo_SOURCES = bpv7/bssp/bsspclo.c
 bsspclo_LDADD = libbssp.la libici.la  $(bplib)
 bsspclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+endif # end ENABLE_BSSP
 
 # --- LTP Executables --- #
 
@@ -1556,6 +1570,7 @@ dccpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- DGR Executables --- #
 
+if ENABLE_DGR
 dgrcli_SOURCES = bpv7/dgr/dgrcli.c
 dgrcli_LDADD = libdgr.la libici.la  $(bplib) $(PTHREAD_LIBS)
 dgrcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
@@ -1563,6 +1578,7 @@ dgrcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 dgrclo_SOURCES = bpv7/dgr/dgrclo.c
 dgrclo_LDADD = libdgr.la libici.la  $(bplib) $(PTHREAD_LIBS)
 dgrclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+endif # end ENABLE_DGR
 
 # --- BRS executables --- #
 
@@ -1956,9 +1972,16 @@ amsPODM5 = pod2man -s 5 -c "AMS configuration files"
 #amsPODH = pod2html --noindex
 
 if CRYPTO_MBEDTLS
-    amscflags = -I$(srcdir)/ams/library -I$(srcdir)/ams/include -I$(srcdir)/ams/rams -I$(srcdir)/ici/crypto/MBEDTLS_SUITES -DUDPTS -DTCPTS -DDGRTS
+    amscflags = -I$(srcdir)/ams/library -I$(srcdir)/ams/include -I$(srcdir)/ams/rams -I$(srcdir)/ici/crypto/MBEDTLS_SUITES -DUDPTS -DTCPTS
 else
-    amscflags = -I$(srcdir)/ams/library -I$(srcdir)/ams/include -I$(srcdir)/ams/rams -I$(srcdir)/ici/crypto/NULL_SUITES -DUDPTS -DTCPTS -DDGRTS
+    amscflags = -I$(srcdir)/ams/library -I$(srcdir)/ams/include -I$(srcdir)/ams/rams -I$(srcdir)/ici/crypto/NULL_SUITES -DUDPTS -DTCPTS
+endif
+
+if ENABLE_DGR
+    amscflags += -DDGRTS
+    amsdgrlib = libdgr.la
+else
+    amsdgrlib =
 endif
 
 
@@ -2026,11 +2049,15 @@ amsclean-local:
 libams_la_SOURCES = \
 	ams/library/amscommon.c \
 	ams/library/crypt.c \
-	ams/library/dgrts.c \
 	ams/library/libams.c \
 	ams/library/loadmib.c \
 	ams/library/tcpts.c \
 	ams/library/udpts.c
+
+if ENABLE_DGR
+libams_la_SOURCES += \
+	ams/library/dgrts.c
+endif
 
 if CRYPTO_MBEDTLS
 libams_la_SOURCES += \
@@ -2042,42 +2069,42 @@ endif
 
 libams_la_LDFLAGS = -static
 libams_la_CFLAGS = $(amscflags) $(AM_CFLAGS)
-libams_la_LIBADD = $(EXPAT_LIBS) $(bplib) libdgr.la libici.la $(secryptlib)
+libams_la_LIBADD = $(EXPAT_LIBS) $(bplib) $(amsdgrlib) libici.la $(secryptlib)
 
 # --- Utility Programs --- #
 
 amslog_SOURCES = ams/test/amslog.c
-amslog_LDADD = libams.la libdgr.la libici.la  -lm 
+amslog_LDADD = libams.la $(amsdgrlib) libici.la  -lm 
 amslog_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 amslogprt_SOURCES = ams/test/amslogprt.c
-amslogprt_LDADD = libams.la libdgr.la libici.la  
+amslogprt_LDADD = libams.la $(amsdgrlib) libici.la  
 amslogprt_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 amsmib_SOURCES = ams/utils/amsmib.c
-amsmib_LDADD = libams.la libdgr.la libici.la  -lm 
+amsmib_LDADD = libams.la $(amsdgrlib) libici.la  -lm 
 amsmib_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 amsshell_SOURCES = ams/test/amsshell.c
-amsshell_LDADD = libams.la libdgr.la libici.la  -lm 
+amsshell_LDADD = libams.la $(amsdgrlib) libici.la  -lm 
 amsshell_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
 
 amsbenchr_SOURCES = ams/test/amsbenchr.c
-amsbenchr_LDADD = libams.la libdgr.la libici.la  -lm 
+amsbenchr_LDADD = libams.la $(amsdgrlib) libici.la  -lm 
 amsbenchr_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 amsbenchs_SOURCES = ams/test/amsbenchs.c
-amsbenchs_LDADD = libams.la libdgr.la libici.la  -lm 
+amsbenchs_LDADD = libams.la $(amsdgrlib) libici.la  -lm 
 amsbenchs_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 amshello_SOURCES = ams/test/amshello.c
-amshello_LDADD = libams.la libdgr.la libici.la  -lm 
+amshello_LDADD = libams.la $(amsdgrlib) libici.la  -lm 
 amshello_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 amsstop_SOURCES =ams/utils/amsstop.c
-amsstop_LDADD = libams.la libdgr.la libici.la  -lm 
+amsstop_LDADD = libams.la $(amsdgrlib) libici.la  -lm 
 amsstop_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
@@ -2086,12 +2113,17 @@ amsd_SOURCES = \
 	ams/library/amscommon.c \
 	ams/library/amsd.c \
 	ams/library/crypt.c \
-	ams/library/dgrts.c \
 	ams/library/libams.c \
 	ams/library/tcpts.c \
 	ams/library/udpts.c
+
+if ENABLE_DGR
+amsd_SOURCES += \
+	ams/library/dgrts.c
+endif
+
 amsd_CFLAGS = $(amscflags) $(AM_CFLAGS)
-amsd_LDADD = libams.la libdgr.la libici.la  -lm 
+amsd_LDADD = libams.la $(amsdgrlib) libici.la  -lm 
 
 # --- RAMS Executables --- #
 
@@ -2099,7 +2131,7 @@ ramsgate_SOURCES = \
 	ams/rams/librams.c \
 	ams/rams/ramscommon.c \
 	ams/rams/ramsgate.c
-ramsgate_LDADD = $(bplib) libams.la libdgr.la libici.la  
+ramsgate_LDADD = $(bplib) libams.la $(amsdgrlib) libici.la  
 ramsgate_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 ##############
@@ -2287,6 +2319,8 @@ bssStreamingApp_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 #
 ##############
 
+if ENABLE_BSSP
+
 # Define pod2man stuff
 bsspPODM1 = pod2man -s 1 -c "BSSP executables"
 bsspPODM3 = pod2man -s 3 -c "BSSP library functions"
@@ -2374,6 +2408,8 @@ tcpbsi_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 tcpbso_SOURCES = bssp/tcp/tcpbso.c
 tcpbso_LDADD = libbssp.la libtcpbsa.la libici.la  -lm $(bplib) $(PTHREAD_LIBS)
 tcpbso_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
+
+endif # ENABLE_BSSP
 
 ##############
 #
@@ -2469,12 +2505,18 @@ dtpcd_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 #
 ##########################
 
+if ENABLE_BSSP
+    ionexitbssplib = libbssp.la
+else
+    ionexitbssplib =
+endif
+
 restartbin = ionrestart ionexit
 
 # --- Utility Programs --- #
 
 ionexit_SOURCES = restart/utils/ionexit.c
-ionexit_LDADD = libltp.la libbssp.la libcfdp.la libici.la  -lm $(bplib) 
+ionexit_LDADD = libltp.la $(ionexitbssplib) libcfdp.la libici.la  -lm $(bplib) 
 ionexit_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 ionrestart_SOURCES = restart/utils/ionrestart.c

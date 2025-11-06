@@ -290,6 +290,30 @@ AC_ARG_ENABLE(
 AM_CONDITIONAL(ENABLE_IMC, test "x$ENABLE_IMC" = "xyes")
 
 #
+# allow the user running configure to disable DGR
+#
+AC_ARG_ENABLE(
+    dgr,
+    [AS_HELP_STRING([--disable-dgr],[disable DGR convergence layer])],
+    [],
+    [AM_CFLAGS="$AM_CFLAGS -DENABLE_DGR"
+	 PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DENABLE_DGR"
+     ENABLE_DGR=yes])
+AM_CONDITIONAL(ENABLE_DGR, test "x$ENABLE_DGR" = "xyes")
+
+#
+# allow the user running configure to disable BSSP
+#
+AC_ARG_ENABLE(
+    bssp,
+    [AS_HELP_STRING([--disable-bssp],[disable BSSP convergence layer])],
+    [],
+    [AM_CFLAGS="$AM_CFLAGS -DENABLE_BSSP"
+	 PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DENABLE_BSSP"
+     ENABLE_BSSP=yes])
+AM_CONDITIONAL(ENABLE_BSSP, test "x$ENABLE_BSSP" = "xyes")
+
+#
 # allow the user running configure to enable AMS_INDUSTRIAL
 #
 AC_ARG_ENABLE(
@@ -927,6 +951,26 @@ AC_CONFIG_COMMANDS([podman-stubs], [
     bssp/doc/podman.mk dtpc/doc/podman.mk; do
     test -f "$f" || echo "# stub" > "$f"
   done
+])
+
+dnl ===============================================================
+dnl  Configuration Summary
+dnl ===============================================================
+AC_MSG_NOTICE([
+========================================================================
+ION Configuration Summary
+========================================================================
+
+  Optional Convergence Layers:
+    DGR (Datagram Retransmission):           ${ENABLE_DGR:-no}
+    BSSP (Bundle Streaming Service):         ${ENABLE_BSSP:-no}
+    IMC (Interplanetary Multicast):          ${ENABLE_IMC:-no}
+
+  To disable DGR:   ./configure --disable-dgr
+  To disable BSSP:  ./configure --disable-bssp
+  To disable both:  ./configure --disable-dgr --disable-bssp
+
+========================================================================
 ])
 
 AC_OUTPUT

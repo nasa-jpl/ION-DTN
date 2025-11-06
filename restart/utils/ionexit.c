@@ -12,8 +12,10 @@
 #include "bp.h"
 #include "bpP.h"
 
+#ifdef ENABLE_BSSP
 #include "bssp.h"
 #include "bssp/library/bsspP.h"
+#endif
 
 #include "cfdp.h"
 #include "cfdp/library/cfdpP.h"
@@ -97,9 +99,7 @@ int	main(int argc, char **argv)
       else
          printText("Unable to attach to LTP");
 
-
-
-
+#ifdef ENABLE_BSSP
       if (bsspAttach() == 0)
       {
          printText("Issuing BSSP stop.");
@@ -117,9 +117,7 @@ int	main(int argc, char **argv)
       }
       else
          printText("Unable to attach to BSSP");
-
-
-
+#endif
 
       if (cfdpAttach() == 0)
       {
