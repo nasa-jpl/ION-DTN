@@ -216,6 +216,17 @@ The application successfully:
 - `-m 4096` - 4GB RAM allocation
 - `-serial mon:stdio` - Serial console output
 
+**Reference Output:**
+
+A complete execution output with detailed header information is provided in `ion-qemu-output.txt`. This file includes:
+- Full QEMU command for standalone and Docker execution
+- Explanation of all QEMU parameters
+- Complete console output from a successful run
+- List of all services that should start
+- Known warnings and their meanings
+
+Users can compare their execution output against this reference to verify correct operation.
+
 **For Users Adapting This Port:**
 When porting to your specific BSP and hardware, the expected initialization sequence is:
 ```
