@@ -53,7 +53,8 @@ def build(bld):
         'DGRTS',
         'SPACE_ORDER=3',
         'LONG_LONG_OKAY=1',
-        'PRIVATE_SYMTAB'
+        'PRIVATE_SYMTAB',
+        'USING_RTEMS_LIBBSD'
     ]
 
     # Check for inclusion of CFDP
@@ -99,7 +100,6 @@ def build(bld):
     ]
 
     iciinclude=[
-        'include',           # RTEMS stub headers (netinet/ip.h, netinet/udp.h)
         '../ici/include',
         '../ici/library',
         '../ici/crypto',
@@ -141,13 +141,13 @@ def build(bld):
         'sdrtable.c' 
     ]
     
-    ltpsource=[   
-	    'ltpclock.c',   
-	    'ltpdeliv.c',   
-	    'ltpmeter.c',   
-	    'pmqlsi.c',
-	    'pmqlso.c',     
-	    'ltpadmin.c',   
+    ltpsource=[
+	    'ltpclock.c',
+	    'ltpdeliv.c',
+	    'ltpmeter.c',
+	    'udplsi.c',
+	    'udplso.c',
+	    'ltpadmin.c',
 	    'ltpsecadmin.c'
     ]
 
@@ -163,7 +163,8 @@ def build(bld):
         'libltpP.c',
         'ltpei.c',
         'ltpsec.c',
-        'libsda.c'
+        'libsda.c',
+        'libudplsa.c'
     ]
 
     # not included in port
@@ -534,5 +535,5 @@ def build(bld):
         includes = includes,
         defines = iondefines,
         use=libuse,
-        lib=['m', 'rtemscpu', 'rtemsbsp']  # Math library + RTEMS core libraries
+        lib=['rtemscpu', 'rtemsbsp', 'bsd', 'm']  # RTEMS core, BSD networking, and Math libraries (order matters)
     )

@@ -45,10 +45,11 @@ ION_OPEN_SOURCE = 1  # Enable CFDP
 
 ### Transport Layer
 
-* **LTP over POSIX Message Queues**: Uses `pmqlso`/`pmqlsi` for loopback testing (default)
-* **RTEMS libbsd**: Full BSD socket support for UDP/TCP convergence layers
+* **LTP over UDP Sockets**: Uses `udplso`/`udplsi` via RTEMS libbsd (127.0.0.1:1113 loopback)
+* **RTEMS libbsd Networking**: Full BSD socket API with initialized TCP/IP stack
+* **Network Initialization**: Automatic BSD networking stack and loopback interface (lo0) setup
 * **Conditional Convergence Layers**: DGR and BSSP can be enabled as needed
-* **Future enhancement**: Real network interface support over libbsd
+* **Current status**: Network stack initialized successfully, UDP services running, LTP transmission in progress
 
 ### Prerequisites
 
@@ -163,24 +164,24 @@ For applications using networking features (UDP/TCP convergence layers), ensure 
 ### Configuration Details
 
 **Memory Configuration (64-bit ARM):**
-* `wmSize`: 200,000 bytes (increased from 100,000)
-* `heapWords`: 150,000 words (increased from 75,000)
-* `sdrWmSize`: 200,000 bytes (increased from 100,000)
-* RTEMS workspace automatically sized
+* `wmSize`: 500,000 bytes (increased for UDP buffers)
+* `heapWords`: 500,000 words (increased for UDP buffers)
+* `sdrWmSize`: 500,000 bytes (increased for UDP buffers)
+* RTEMS workspace with unlimited objects (`CONFIGURE_UNLIMITED_OBJECTS`)
+* Unified work areas enabled for libbsd compatibility
 
 **ION Configuration:**
 * Node Number: 19
-* Loopback only (127.0.0.1)
-* LTP span: node 19 to node 19 via POSIX message queues
+* Loopback: 127.0.0.1:1113 (UDP via RTEMS libbsd)
+* LTP span: node 19 to node 19 via UDP sockets (`udplso`/`udplsi`)
 * IPN scheme with endpoints: ipn:19.0, ipn:19.1, ipn:19.2, ipn:19.64, ipn:19.65, ipn:19.126, ipn:19.127
 
 **RTEMS Resource Limits:**
-* 40 POSIX threads
-* 100 POSIX semaphores
-* 10 POSIX message queues
-* 40 file descriptors
-* 40 tasks
-* 20 semaphores
+* Unlimited objects enabled (`CONFIGURE_UNLIMITED_OBJECTS`)
+* Allocation size: 32 objects per block (`CONFIGURE_UNLIMITED_ALLOCATION_SIZE`)
+* Unified work areas (`CONFIGURE_UNIFIED_WORK_AREAS`)
+* Maximum user extensions: 5 (required for libbsd)
+* Maximum file descriptors: 40
 
 ### Testing
 
@@ -205,10 +206,15 @@ qemu-system-aarch64 \
 ```
 
 The application successfully:
+- Initializes RTEMS BSD networking stack (libbsd)
+- Configures loopback interface (lo0) with link state UP
 - Initializes ION with the public API
-- Starts all BP/LTP services (rfxclock, ltpclock, ltpdeliv, ltpmeter, pmqlso, pmqlsi, bpclock, bptransit)
-- Executes the loopback test via POSIX message queues
+- Starts all BP/LTP services (rfxclock, ltpclock, ltpdeliv, ltpmeter, udplso, udplsi, bpclock, bptransit)
+- UDP services bind to 127.0.0.1:1113 successfully
+- Executes the loopback test (bundle sourcing verified)
 - Begins clean shutdown
+
+**Current Status:** Network stack fully initialized, UDP services running. Bundle transmission through LTP/UDP layer in progress (debugging ongoing).
 
 **Key QEMU Parameters:**
 - `-machine virt,gic-version=3` - ARM Virtual Platform with GICv3 interrupt controller (required)
@@ -285,10 +291,10 @@ The build system uses preprocessor guards to exclude unused modules:
 ### Known Limitations
 
 * **Template port** - Provided as reference for adaptation to user's specific BSP and hardware
-* Loopback only (no real network interfaces configured yet)
+* Loopback only (127.0.0.1 via libbsd, no real network interfaces configured yet)
 * No CFDP file transfer capability (excluded by default)
 * No AMS multicast support (not built)
-* Limited to single-node operation with POSIX message queues in current configuration
+* LTP transmission through UDP loopback currently under investigation (bundle sourcing works, transmission layer debugging in progress)
 * DGR and BSSP convergence layers excluded by default (can be enabled)
 
 ### Current Status (November 2025)
@@ -298,9 +304,12 @@ The build system uses preprocessor guards to exclude unused modules:
 **Conditional compilation system implemented**
 **Binary size optimized by excluding unused modules**
 **Successfully executes in QEMU** - Verified with ARM Virtual Platform (virt machine with GICv3)
+**RTEMS BSD networking stack initialized** - libbsd fully functional
+**UDP services running** - udplso/udplsi bound to 127.0.0.1:1113
+**Loopback interface operational** - lo0 link state UP
 
 **Execution Status:**
-The port has been successfully tested in QEMU emulation. The application initializes ION, starts all BP/LTP services, executes a loopback bundle transfer test, and performs clean shutdown. The key requirement is using the ARM Virtual Platform machine type (`virt`) with GICv3 interrupt controller support.
+The port has been successfully tested in QEMU emulation with RTEMS libbsd networking. The application initializes the BSD network stack, configures the loopback interface, initializes ION, and starts all BP/LTP services with UDP convergence layers. Bundle sourcing is verified. LTP transmission through UDP is currently under investigation for completion of end-to-end data flow.
 
 **This port serves as a template/example** for users to adapt to their own BSP and target hardware. The port has been verified to run successfully in QEMU emulation. Users should:
 1. Adapt the build configuration to their specific RTEMS BSP
@@ -310,12 +319,23 @@ The port has been successfully tested in QEMU emulation. The application initial
 
 ### Future Enhancements
 
-* Test UDP/TCP convergence layers over RTEMS libbsd
+* Complete LTP transmission verification over UDP/libbsd loopback
+* Test multi-node UDP/TCP convergence over real network interfaces
 * Enable and test CFDP for file transfer
 * Port to real ARM hardware (Raspberry Pi 4, Xilinx ZynqMP, etc.)
 * Multi-node testing over real networks
 * Enable DGR/BSSP for additional protocol support as needed
 * Performance benchmarking and optimization
+
+### Recent Implementation Work (November 2025)
+
+**RTEMS libbsd Network Integration:**
+- Added `USING_RTEMS_LIBBSD` build flag to conditionally exclude socket stubs
+- Implemented network initialization with `rtems_bsd_initialize()` and `rtems_bsd_ifconfig_lo0()`
+- Configured RTEMS with unlimited objects and unified work areas for libbsd compatibility
+- Increased ION memory allocations to 500KB for UDP buffer support
+- Modified library link order to properly resolve dependencies
+- Successfully initialized BSD networking stack and loopback interface in QEMU
 
 ---
 

@@ -28,6 +28,13 @@ extern "C" {
 #undef ION_LWT
 #endif
 
+/* Feature test macros - must come before any system header */
+#ifdef RTEMS
+#define __BSD_VISIBLE 1
+#define __MISC_VISIBLE 1
+#include <sys/types.h>
+#endif
+
 /* Feature test macros for Unix - must come before any system header */
 #ifdef unix			/****	Feature test macros for UNIX	****/
 
@@ -399,7 +406,6 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #else				/****	not Windows		*********/
 
 #ifdef freebsd
-#define __BSD_VISIBLE 1
 #include <sys/types.h>
 #endif
 
@@ -410,8 +416,10 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#ifndef RTEMS
 #include <netinet/ip.h>
 #include <netinet/udp.h>
+#endif
 
 #ifndef SOCK_CLOEXEC
 #define SOCK_CLOEXEC		0

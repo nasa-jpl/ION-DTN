@@ -7,6 +7,9 @@
 #include <rtems.h>
 #include <rtems/error.h>
 #include <rtems/shell.h>
+#include <assert.h>
+#include <sysexits.h>
+#include <rtems/bsd/bsd.h>
 #include "platform.h"
 #include "ion.h"
 #include "ionsec.h"
@@ -16,6 +19,7 @@
 #include "ion_admin.h"
 #include "ltp_admin.h"
 #include "bp_admin.h"
+#include "ltpnm.h"
 #ifndef NASA_PROTECTED_FLIGHT_CODE
 #include "cfdp.h"
 #endif
@@ -27,6 +31,24 @@
  * Note: EnqueueBundle is an enum value in BpRecvRule, not a function.
  * We use it directly in add_endpoint() calls below.
  */
+
+static void	initNetwork()
+{
+	rtems_status_code sc;
+	int exit_code;
+
+	puts("Initializing RTEMS BSD networking stack...");
+
+	/* Initialize the BSD network stack */
+	sc = rtems_bsd_initialize();
+	assert(sc == RTEMS_SUCCESSFUL);
+
+	/* Configure loopback interface (lo0) */
+	exit_code = rtems_bsd_ifconfig_lo0();
+	assert(exit_code == EX_OK);
+
+	puts("Network initialization complete (loopback interface ready).");
+}
 
 static int	startDTN()
 {
@@ -43,12 +65,12 @@ static int	startDTN()
 	/*	Set up ION parameters for RTEMS 6.1 64-bit ARM		*/
 	memset(&parms, 0, sizeof(IonParms));
 	parms.wmKey = 0;			/* Auto-allocate private memory */
-	parms.wmSize = 200000;			/* Increased for 64-bit pointers */
+	parms.wmSize = 500000;			/* Increased for UDP buffers */
 	parms.wmAddress = NULL;
 	istrcpy(parms.sdrName, "ion", sizeof(parms.sdrName));
-	parms.sdrWmSize = 200000;		/* Increased for 64-bit */
+	parms.sdrWmSize = 500000;		/* Increased for UDP buffers */
 	parms.configFlags = SDR_IN_DRAM | SDR_BOUNDED;
-	parms.heapWords = 150000;		/* Increased for 64-bit pointers */
+	parms.heapWords = 500000;		/* Increased for UDP buffers */
 	parms.heapKey = SM_NO_KEY;		/* Auto-allocate */
 	parms.logSize = 0;
 	parms.logKey = SM_NO_KEY;
@@ -114,7 +136,7 @@ static int	startDTN()
 		return -1;
 	}
 
-	if (ion_add_range(now + 1, now + 7200, nodenbr, nodenbr, 0) < 0)
+	if (ion_add_range(now + 1, now + 7200, nodenbr, nodenbr, 1) < 0)
 	{
 		writeMemo("[?] Failed to add range.");
 		return -1;
@@ -128,16 +150,16 @@ static int	startDTN()
 		return -1;
 	}
 
-	/*	Add LTP span using POSIX message queues for loopback		*/
+	/*	Add LTP span using UDP for loopback		*/
 	/* add_span(engine_id, max_export_sessions, max_import_sessions, max_segment_size,
 	            aggr_size_limit, aggr_time_limit, lso_command, queuing_latency, purge_enabled) */
-	if (add_span(nodenbr, 100, 100, 1400, 10000, 1, "pmqlso /ionpmq.19", 1, 0) < 0)
+	if (add_span(nodenbr, 100, 100, 1400, 10000, 1, "udplso 127.0.0.1:1113", 1, 0) < 0)
 	{
 		writeMemo("[?] Failed to add LTP span.");
 		return -1;
 	}
 
-	if (add_seat("pmqlsi /ionpmq.19") < 0)
+	if (add_seat("udplsi 127.0.0.1:1113") < 0)
 	{
 		writeMemo("[?] Failed to add LTP seat.");
 		return -1;
@@ -290,6 +312,43 @@ static int	startDTN()
 	return 0;
 }
 
+static void	printLtpSpanStats()
+{
+	NmltpSpan	spanStats;
+	int		success = 0;
+	char		buffer[256];
+
+	ltpnm_span_get(ION_NODE_NBR, &spanStats, &success);
+	if (success == 0)
+	{
+		writeMemo("[?] Failed to retrieve LTP span statistics.");
+		return;
+	}
+
+	isprintf(buffer, sizeof buffer, "LTP Span Statistics for engine " UVAST_FIELDSPEC ":",
+		ION_NODE_NBR);
+	puts(buffer);
+	isprintf(buffer, sizeof buffer, "  Output segments: popped=%lu bytes=%lu",
+		spanStats.outputSegPoppedCount, spanStats.outputSegPoppedBytes);
+	puts(buffer);
+	isprintf(buffer, sizeof buffer, "  Input segments (red): count=%lu bytes=%lu",
+		spanStats.inputSegRecvRedCount, spanStats.inputSegRecvRedBytes);
+	puts(buffer);
+	isprintf(buffer, sizeof buffer, "  Input segments (green): count=%lu bytes=%lu",
+		spanStats.inputSegRecvGreenCount, spanStats.inputSegRecvGreenBytes);
+	puts(buffer);
+	isprintf(buffer, sizeof buffer, "  Checkpoints transmitted: %lu",
+		spanStats.outputCkptXmitCount);
+	puts(buffer);
+	isprintf(buffer, sizeof buffer, "  Checkpoints received: %lu",
+		spanStats.inputCkptRecvCount);
+	puts(buffer);
+	isprintf(buffer, sizeof buffer, "  Sessions: export=%lu import=%lu completed=%lu",
+		spanStats.currentExportSessions, spanStats.currentImportSessions,
+		spanStats.outputCompleteCount);
+	puts(buffer);
+}
+
 static void	testLoopback()
 {
 	char	cmd[80];
@@ -298,11 +357,21 @@ static void	testLoopback()
 	isprintf(cmd, sizeof cmd, "bpsink ipn:" UVAST_FIELDSPEC ".1",
 			ION_NODE_NBR);
 	pseudoshell(cmd);
-	snooze(1);
+	snooze(2);
 	isprintf(cmd, sizeof cmd, "bpsource ipn:" UVAST_FIELDSPEC
 			".1 'Hello, world.'", ION_NODE_NBR);
 	pseudoshell(cmd);
+	snooze(5);
+
+	/*	Verify LTP transmission success with bundle statistics	*/
+	puts("Verifying bundle transmission with statistics:");
+	pseudoshell("bpstats");
 	snooze(1);
+
+	/*	Print LTP span statistics to verify actual transmission	*/
+	puts("\nLTP Protocol Layer Statistics:");
+	printLtpSpanStats();
+
 	puts("Loopback test ended.");
 }
 
@@ -355,6 +424,10 @@ static int	stopDTN(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 rtems_task	Init(rtems_task_argument ignored)
 {
 	puts("=== ION RTEMS 6.1 ARM64 Port - Minimal BP/LTP ===");
+
+	/* Initialize BSD networking stack for UDP support */
+	initNetwork();
+
 	puts("Starting ION with public API (no config files)...");
 
 	if (startDTN() < 0)
@@ -364,7 +437,14 @@ rtems_task	Init(rtems_task_argument ignored)
 	}
 
 	testLoopback();
-	snooze(2);
+	snooze(3);
+
+	/*	Check statistics one more time after longer delay		*/
+	puts("Final statistics check:");
+	pseudoshell("bpstats");
+	puts("\nFinal LTP Protocol Layer Statistics:");
+	printLtpSpanStats();
+	snooze(1);
 
 	puts("Stopping ION...");
 	oK(stopDTN(0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
@@ -406,9 +486,11 @@ void	showUtcDelta()
 #define	CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
 /*	Resource limits - adjusted for minimal BP/LTP port	*/
-#define	CONFIGURE_MAXIMUM_SEMAPHORES				20
-#define	CONFIGURE_MAXIMUM_MESSAGE_QUEUES			10
-#define	CONFIGURE_MAXIMUM_TASKS					40
+/*	Use unlimited objects for libbsd compatibility		*/
+#define	CONFIGURE_UNLIMITED_OBJECTS
+#define	CONFIGURE_UNLIMITED_ALLOCATION_SIZE			32
+#define	CONFIGURE_UNIFIED_WORK_AREAS
+#define	CONFIGURE_MAXIMUM_USER_EXTENSIONS			5
 
 #ifndef CONFIGURE_MICROSECONDS_PER_TICK
 #define	CONFIGURE_MICROSECONDS_PER_TICK				10000

@@ -1,0 +1,82 @@
+=== ION RTEMS 6.1 ARM64 Port - Minimal BP/LTP ===
+Initializing RTEMS BSD networking stack...
+nexus0: <RTEMS Nexus device>
+[zone: unpcb] kern.ipc.maxsockets limit reached
+Network initialization complete (loopback interface ready).
+Starting ION with public API (no config files)...
+Initializing ION...
+[?] No such directory; disabling heap residence in file and transaction reversibility: /ion
+Starting RFX clock...
+Initializing LTP...
+[1988/01/01-00:00:00] [i] Span 19 initialized with global unified mode defaults: maxRetries=5, maxSegmentLossRate=0.0100
+[1988/01/01-00:00:00] [i] Span to engine 19 (explicit config, max xmit segment size 1400, max recv segment size 1): xmit segment loss rate 0.010000, recv segment loss rate 0.010000, max timeouts 5.
+Initializing BP...
+[1988/01/01-00:00:00] [i] This node deploys bundle protocol version 7.
+[1988/01/01-00:00:00] [i] Bundle security is enabled.
+Starting BP...
+[1988/01/01-00:00:00] at line 2921 of ../../platform_sm.c, Can't spawn task; function not in private symbol table; must be added to mysymtab.c. (cpsd)
+[1988/01/01-00:00:00] at line 2940 of ../../platform_sm.c, Can't spawn task: no parms cleared yet.
+[1988/01/01-00:00:00] at line 2940 of ../../platform_sm.c, Can't spawn task: no parms cleared yet.
+[1988/01/01-00:00:00] at line 2940 of ../../platform_sm.c, Can't spawn task: no parms cleared yet.
+[1988/01/01-00:00:00] at line 2940 of ../../platform_sm.c, Can't spawn task: no parms cleared yet.
+[1988/01/01-00:00:00] at line 2940 of ../../platform_sm.c, Can't spawn task: no parms cleared yet.
+[1988/01/01-00:00:00] at line 2940 of ../../platform_sm.c, Can't spawn task: no parms cleared yet.
+[1988/01/01-00:00:00] [i] rfxclock is running.
+[1988/01/01-00:00:00] [i] ltpclock is running.
+[1988/01/01-00:00:00] [i] ltpdeliv is running.
+[1988/01/01-00:00:00] [i] ltpmeter is running.
+[1988/01/01-00:00:00] [i] udplso is running, local=0.0.0.0:26171 (IPv4), peer=127.0.0.1:1113 (IPv4), rengine=19.
+[1988/01/01-00:00:00] [i] udplsi is running, listening on 127.0.0.1:1113 (IPv4).
+[1988/01/01-00:00:00] [i] bpclock is running.
+[1988/01/01-00:00:00] [i] bptransit is running.
+info: lo0: link state changed to UP
+ION startup complete.
+Starting loopback test.
+[1988/01/01-00:00:02] [i] No congestion collapse predicted.
+[1988/01/01-00:00:02] [i] ionwarn finished.
+Verifying bundle transmission with statistics:
+[1988/01/01-00:00:08] [i] Start of statistics snapshot...
+[1988/01/01-00:00:08] [x] src from 1970/01/01-00:00:00 to 1988/01/01-00:00:08: (0) 0 0 (1) 1 13 (2) 0 0 (+) 1 13
+[1988/01/01-00:00:08] [x] fwd from 1970/01/01-00:00:00 to 1988/01/01-00:00:08: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[1988/01/01-00:00:08] [x] xmt from 1970/01/01-00:00:00 to 1988/01/01-00:00:08: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[1988/01/01-00:00:08] [x] rcv from 1970/01/01-00:00:00 to 1988/01/01-00:00:08: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[1988/01/01-00:00:08] [x] dlv from 1970/01/01-00:00:00 to 1988/01/01-00:00:08: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[1988/01/01-00:00:08] [x] rfw from 1970/01/01-00:00:00 to 1988/01/01-00:00:08: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[1988/01/01-00:00:08] [x] exp from 1970/01/01-00:00:00 to 1988/01/01-00:00:08: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[1988/01/01-00:00:08] [i] ...end of statistics snapshot.
+
+LTP Protocol Layer Statistics:
+LTP Span Statistics for engine 19:
+  Output segments: popped=0 bytes=0
+  Input segments (red): count=0 bytes=0
+  Input segments (green): count=0 bytes=0
+  Checkpoints transmitted: 0
+  Checkpoints received: 0
+  Sessions: export=1 import=0 completed=0
+Loopback test ended.
+Final statistics check:
+
+Final LTP Protocol Layer Statistics:
+LTP Span Statistics for engine 19:
+  Output segments: popped=0 bytes=0
+  Input segments (red): count=0 bytes=0
+  Input segments (green): count=0 bytes=0
+  Checkpoints transmitted: 0
+  Checkpoints received: 0
+  Sessions: export=1 import=0 completed=0
+[1988/01/01-00:00:12] [i] Start of statistics snapshot...
+[1988/01/01-00:00:12] [x] src from 1970/01/01-00:00:00 to 1988/01/01-00:00:12: (0) 0 0 (1) 1 13 (2) 0 0 (+) 1 13
+[1988/01/01-00:00:12] [x] fwd from 1970/01/01-00:00:00 to 1988/01/01-00:00:12: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[1988/01/01-00:00:12] [x] xmt from 1970/01/01-00:00:00 to 1988/01/01-00:00:12: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[1988/01/01-00:00:12] [x] rcv from 1970/01/01-00:00:00 to 1988/01/01-00:00:12: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[1988/01/01-00:00:12] [x] dlv from 1970/01/01-00:00:00 to 1988/01/01-00:00:12: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[1988/01/01-00:00:12] [x] rfw from 1970/01/01-00:00:00 to 1988/01/01-00:00:12: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[1988/01/01-00:00:12] [x] exp from 1970/01/01-00:00:00 to 1988/01/01-00:00:12: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[1988/01/01-00:00:12] [i] ...end of statistics snapshot.
+Stopping ION...
+Stopping BP...
+[1988/01/01-00:00:13] [i] Endpoint has been stopped.
+ION event: Endpoint stopped.
+Stopping bpsink.
+[1988/01/01-00:00:13] [i] bptransit has ended.
+qemu-system-aarch64: terminating on signal 15 from pid 4039 (timeout)

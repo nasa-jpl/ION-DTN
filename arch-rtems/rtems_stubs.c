@@ -81,9 +81,11 @@ int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
 
 /*
  * BSD Networking Functions
- * The BSP was built without networking support (HAS_NETWORKING is empty)
- * These functions won't be called in the minimal port using PMQL transport
+ * Only provide stubs when NOT using rtems-libbsd
+ * When USING_RTEMS_LIBBSD is defined, libbsd provides real implementations
  */
+
+#ifndef USING_RTEMS_LIBBSD
 
 int socket(int domain, int type, int protocol)
 {
@@ -256,3 +258,5 @@ int inet_pton(int af, const char *src, void *dst)
 	errno = EAFNOSUPPORT;
 	return 0;
 }
+
+#endif /* USING_RTEMS_LIBBSD */

@@ -21,12 +21,13 @@ extern int	ltpadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpclock(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpdeliv(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpmeter(int, int, int, int, int, int, int, int, int, int);
-extern int	pmqlsi(int, int, int, int, int, int, int, int, int, int);
-extern int	pmqlso(int, int, int, int, int, int, int, int, int, int);
+extern int	udplsi(int, int, int, int, int, int, int, int, int, int);
+extern int	udplso(int, int, int, int, int, int, int, int, int, int);
 extern int	bpadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	bpclock(int, int, int, int, int, int, int, int, int, int);
 extern int	bptransit(int, int, int, int, int, int, int, int, int, int);
 extern int	bpclm(int, int, int, int, int, int, int, int, int, int);
+extern int	bpstats(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpcli(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpclo(int, int, int, int, int, int, int, int, int, int);
 extern int	bibeclo(int, int, int, int, int, int, int, int, int, int);
@@ -84,12 +85,13 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "ltpclock",	(FUNCPTR) ltpclock,	ICI_PRIORITY,	32768 },
 		{ "ltpdeliv",	(FUNCPTR) ltpdeliv,	ICI_PRIORITY,	32768 },
 		{ "ltpmeter",	(FUNCPTR) ltpmeter,	ICI_PRIORITY,	32768 },
-		{ "pmqlsi",	(FUNCPTR) pmqlsi,	ICI_PRIORITY,	32768 },
-		{ "pmqlso",	(FUNCPTR) pmqlso,	ICI_PRIORITY,	32768 },
+		{ "udplsi",	(FUNCPTR) udplsi,	ICI_PRIORITY,	32768 },
+		{ "udplso",	(FUNCPTR) udplso,	ICI_PRIORITY,	32768 },
 		{ "bpadmin",	(FUNCPTR) bpadmin,	ICI_PRIORITY,	32768 },
 		{ "bpclock",	(FUNCPTR) bpclock,	ICI_PRIORITY,	4096  },
 		{ "bptransit",	(FUNCPTR) bptransit,	ICI_PRIORITY,	4096  },
 		{ "bpclm",	(FUNCPTR) bpclm,	ICI_PRIORITY,	24576 },
+		{ "bpstats",	(FUNCPTR) bpstats,	ICI_PRIORITY,	4096  },
 		{ "ltpcli",	(FUNCPTR) ltpcli,	ICI_PRIORITY,	32768 },
 		{ "ltpclo",	(FUNCPTR) ltpclo,	ICI_PRIORITY,	32768 },
 		{ "bibeclo",	(FUNCPTR) bibeclo,	ICI_PRIORITY,	32768 },
