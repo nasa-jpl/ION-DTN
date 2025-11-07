@@ -620,30 +620,181 @@ static int	raiseSpan(Object spanElt, LtpVdb *ltpvdb)
 	vspan->engineId = span.engineId;
 	vspan->maxXmitSegSize = span.maxSegmentSize;
 	vspan->maxRecvSegSize = 1;
+
+	/*	Initialize vspan with global default configuration.
+	 *	This ensures that even if no manage commands are issued,
+	 *	the span will use reasonable defaults rather than zeros.	*/
+
+	{
+			OBJ_POINTER(LtpDB, ltpdb);
+		char	nbrBuf[FQN_MAX_LENGTH];
+		char	msgBuf[512];
+
+		GET_OBJ_POINTER(sdr, LtpDB, ltpdb, getLtpDbObject());
+		vspan->useExplicitConfig = 1;
+		vspan->useSplitMode = ltpdb->useGlobalSplitMode;
+		vspan->hasSpanOverride = 0;
+
+		putFqn(nbrBuf, vspan->engineId);
+
+		if (ltpdb->useGlobalSplitMode)
+		{
+			/*	Split mode defaults.			*/
+
+			vspan->maxRetriesXmit = ltpdb->defaultMaxRetriesXmit;
+			vspan->maxRetriesRecv = ltpdb->defaultMaxRetriesRecv;
+			vspan->maxSegLossRateXmit =
+					ltpdb->defaultMaxSegLossRateXmit;
+			vspan->maxSegLossRateRecv =
+					ltpdb->defaultMaxSegLossRateRecv;
+
+			isprintf(msgBuf, sizeof msgBuf,
+				"[i] Span %s initialized with global split \
+mode defaults: maxRetriesXmit=%u, maxRetriesRecv=%u, maxSegLossRateXmit=%.4f, \
+maxSegLossRateRecv=%.4f",
+				nbrBuf, vspan->maxRetriesXmit,
+				vspan->maxRetriesRecv,
+				vspan->maxSegLossRateXmit,
+				vspan->maxSegLossRateRecv);
+			writeMemo(msgBuf);
+		}
+		else
+		{
+			/*	Unified mode defaults.			*/
+
+			vspan->maxRetries = ltpdb->defaultMaxRetries;
+			vspan->maxSegmentLossRate =
+					ltpdb->defaultMaxSegLossRate;
+
+			isprintf(msgBuf, sizeof msgBuf,
+				"[i] Span %s initialized with global unified \
+mode defaults: maxRetries=%u, maxSegmentLossRate=%.4f",
+				nbrBuf, vspan->maxRetries,
+				vspan->maxSegmentLossRate);
+			writeMemo(msgBuf);
+		}
+	}
+
 	computeRetransmissionLimits(vspan);
 
-	/*	Validate explicit configuration at span initialization.	*/
+	/*	Validate and complete explicit configuration at span
+	 *	initialization.  Apply global defaults to any missing
+	 *	parameters to ensure safe operation.			*/
 
 	if (vspan->useExplicitConfig)
 	{
+		char	nbrBuf[FQN_MAX_LENGTH];
+		char	warnBuf[512];
+		int	incomplete = 0;
+			OBJ_POINTER(LtpDB, ltpdb);
+
+		GET_OBJ_POINTER(sdr, LtpDB, ltpdb, getLtpDbObject());
+		putFqn(nbrBuf, vspan->engineId);
+
 		if (vspan->useSplitMode)
 		{
-			if (vspan->maxRetriesXmit == 0
-			|| vspan->maxRetriesRecv == 0
-			|| vspan->maxSegLossRateXmit == 0.0
-			|| vspan->maxSegLossRateRecv == 0.0)
+			/*	Split mode: check all four parameters.	*/
+
+			if (vspan->maxRetriesXmit == 0)
 			{
-				writeMemo("[!] WARNING: Incomplete split mode \
-configuration detected (some parameters are 0).");
+				vspan->maxRetriesXmit =
+					ltpdb->defaultMaxRetriesXmit;
+				incomplete = 1;
+				isprintf(warnBuf, sizeof warnBuf,
+					"[!] WARNING: Span %s maxRetriesXmit \
+not configured, using global default: %u",
+					nbrBuf, vspan->maxRetriesXmit);
+				writeMemo(warnBuf);
+			}
+
+			if (vspan->maxRetriesRecv == 0)
+			{
+				vspan->maxRetriesRecv =
+					ltpdb->defaultMaxRetriesRecv;
+				incomplete = 1;
+				isprintf(warnBuf, sizeof warnBuf,
+					"[!] WARNING: Span %s maxRetriesRecv \
+not configured, using global default: %u",
+					nbrBuf, vspan->maxRetriesRecv);
+				writeMemo(warnBuf);
+			}
+
+			if (vspan->maxSegLossRateXmit == 0.0)
+			{
+				vspan->maxSegLossRateXmit =
+					ltpdb->defaultMaxSegLossRateXmit;
+				incomplete = 1;
+				isprintf(warnBuf, sizeof warnBuf,
+					"[!] WARNING: Span %s \
+maxSegLossRateXmit not configured, using global default: %.4f",
+					nbrBuf, vspan->maxSegLossRateXmit);
+				writeMemo(warnBuf);
+			}
+
+			if (vspan->maxSegLossRateRecv == 0.0)
+			{
+				vspan->maxSegLossRateRecv =
+					ltpdb->defaultMaxSegLossRateRecv;
+				incomplete = 1;
+				isprintf(warnBuf, sizeof warnBuf,
+					"[!] WARNING: Span %s \
+maxSegLossRateRecv not configured, using global default: %.4f",
+					nbrBuf, vspan->maxSegLossRateRecv);
+				writeMemo(warnBuf);
+			}
+
+			if (incomplete)
+			{
+				/*	Recompute limits with defaults.	*/
+
+				computeRetransmissionLimits(vspan);
+				isprintf(warnBuf, sizeof warnBuf,
+					"[i] Span %s split mode configuration \
+completed with global defaults. For asymmetric links, specify all four \
+parameters (m maxretriesxmit, m maxretriesrecv, m maxseglossratexmit, \
+m maxseglossraterecv).",
+					nbrBuf);
+				writeMemo(warnBuf);
 			}
 		}
 		else
 		{
-			if (vspan->maxRetries == 0
-			|| vspan->maxSegmentLossRate == 0.0)
+			/*	Unified mode: check both parameters.	*/
+
+			if (vspan->maxRetries == 0)
 			{
-				writeMemo("[!] WARNING: Incomplete unified mode \
-configuration detected (some parameters are 0).");
+				vspan->maxRetries = ltpdb->defaultMaxRetries;
+				incomplete = 1;
+				isprintf(warnBuf, sizeof warnBuf,
+					"[!] WARNING: Span %s maxRetries not \
+configured, using global default: %u",
+					nbrBuf, vspan->maxRetries);
+				writeMemo(warnBuf);
+			}
+
+			if (vspan->maxSegmentLossRate == 0.0)
+			{
+				vspan->maxSegmentLossRate =
+					ltpdb->defaultMaxSegLossRate;
+				incomplete = 1;
+				isprintf(warnBuf, sizeof warnBuf,
+					"[!] WARNING: Span %s \
+maxSegmentLossRate not configured, using global default: %.4f",
+					nbrBuf, vspan->maxSegmentLossRate);
+				writeMemo(warnBuf);
+			}
+
+			if (incomplete)
+			{
+				/*	Recompute limits with defaults.	*/
+
+				computeRetransmissionLimits(vspan);
+				isprintf(warnBuf, sizeof warnBuf,
+					"[i] Span %s unified mode configuration \
+completed with global defaults. For proper configuration, specify both \
+parameters (m maxretries, m maxseglossrate).",
+					nbrBuf);
+				writeMemo(warnBuf);
 			}
 		}
 	}

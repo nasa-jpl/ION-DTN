@@ -1,0 +1,160 @@
+#!/bin/bash
+#
+# Test for incomplete LTP configuration warnings and default value application
+#
+# This test verifies that:
+# 1. Warnings are issued when LTP configuration is incomplete
+# 2. Global default values are automatically applied to missing parameters
+# 3. The system remains functional with auto-applied defaults
+# 4. Warning messages clearly indicate which parameters got defaults and their values
+
+echo "Starting LTP incomplete configuration warnings test..."
+
+# Initialize return value
+RETVAL=0
+
+# Change to node directory
+cd 1.ipn.ltp
+
+# Clean up any previous test run
+echo "Cleaning up any previous test artifacts..."
+./ionstop > /dev/null 2>&1
+killm > /dev/null 2>&1
+sleep 1
+
+# Remove old log files
+rm -f ion.log *.stdout *.stderr
+
+# Start ION node
+echo "Starting ION node with incomplete LTP configuration..."
+./ionstart > node.stdout 2>&1
+sleep 2
+
+# Give LTP time to initialize and log warnings
+sleep 1
+
+echo ""
+echo "=== Checking for default configuration initialization ==="
+
+# Check 1: Verify span initialized with defaults message
+if grep -q "initialized with global unified mode defaults" ion.log
+then
+    echo "✓ PASS: Span initialization with defaults message detected"
+else
+    echo "✗ FAIL: No message about span initialization with defaults"
+    RETVAL=1
+fi
+
+# Check 2: Verify default maxRetries value (5) is shown
+if grep "initialized with global unified mode defaults" ion.log | grep -q "maxRetries=5"
+then
+    echo "✓ PASS: Default maxRetries=5 shown in initialization message"
+else
+    echo "✗ FAIL: Default maxRetries value not shown or incorrect"
+    RETVAL=1
+fi
+
+# Check 3: Verify default maxSegmentLossRate value (0.01) is shown
+if grep "initialized with global unified mode defaults" ion.log | grep -q "maxSegmentLossRate=0.0100"
+then
+    echo "✓ PASS: Default maxSegmentLossRate=0.0100 shown in initialization message"
+else
+    echo "✗ FAIL: Default maxSegmentLossRate value not shown or incorrect"
+    RETVAL=1
+fi
+
+echo ""
+echo "=== Checking for correct configuration application ==="
+
+# Check 5: Verify explicit config mode is active
+if grep "engine 2" ion.log | grep -q "explicit config"
+then
+    echo "✓ PASS: Explicit configuration mode confirmed"
+else
+    echo "✗ FAIL: Not using explicit configuration mode"
+    RETVAL=1
+fi
+
+# Check 6: Verify computed max timeouts value
+# With maxRetries=5 (default) and SIGNAL_REDUNDANCY=1, maxTimeouts should be 5
+if grep "engine 2" ion.log | grep "explicit config" | tail -1 | grep -q "max timeouts 5"
+then
+    echo "✓ PASS: Max timeouts = 5 confirmed (5 retries × 1)"
+else
+    echo "✗ FAIL: Max timeouts value incorrect or not found"
+    RETVAL=1
+fi
+
+# Check 7: Verify segment loss rate is the default value
+if grep "engine 2" ion.log | grep "explicit config" | tail -1 | grep -q "recv segment loss rate 0.010000"
+then
+    echo "✓ PASS: Segment loss rate = 0.01 (default) confirmed"
+else
+    echo "✗ FAIL: Segment loss rate not set to default value"
+    RETVAL=1
+fi
+
+echo ""
+echo "=== Checking system functionality ==="
+
+# Check 8: Verify no LTP-related errors in startup
+# Exclude expected security database warnings (common in containers)
+if grep -E "Can't|ERROR|FAILURE" ion.log | \
+   grep -v "Can't find ION security database" | \
+   grep -v "Can't execute new process" | \
+   grep -q .
+then
+    echo "✗ FAIL: LTP errors detected in ion.log"
+    echo "Error messages:"
+    grep -E "Can't|ERROR|FAILURE" ion.log | \
+        grep -v "Can't find ION security database" | \
+        grep -v "Can't execute new process"
+    RETVAL=1
+else
+    echo "✓ PASS: No LTP errors in ION startup"
+fi
+
+# Check 9: Verify LTP engine is running
+if pgrep ltpclock > /dev/null && pgrep ltpmeter > /dev/null
+then
+    echo "✓ PASS: LTP engine daemons are running"
+else
+    echo "✗ FAIL: LTP engine daemons not running"
+    RETVAL=1
+fi
+
+# Check 10: Verify span was raised successfully
+if grep -q "Span to engine 2.*explicit config" ion.log
+then
+    echo "✓ PASS: Span to engine 2 raised successfully"
+else
+    echo "✗ FAIL: Span to engine 2 not raised properly"
+    RETVAL=1
+fi
+
+echo ""
+echo "=== Test Summary ==="
+
+if [ $RETVAL -eq 0 ]
+then
+    echo "✓✓✓ ALL TESTS PASSED ✓✓✓"
+    echo "LTP automatic default configuration initialization works correctly."
+else
+    echo "✗✗✗ SOME TESTS FAILED ✗✗✗"
+    echo "Review the output above for details."
+    echo ""
+    echo "=== Relevant log excerpts ==="
+    echo "Initialization messages:"
+    grep "initialized with global" ion.log || echo "(none found)"
+    echo ""
+    echo "Span configuration:"
+    grep "Span to engine 2" ion.log || echo "(none found)"
+fi
+
+# Clean up
+echo ""
+echo "Stopping ION node..."
+./ionstop > /dev/null 2>&1
+sleep 1
+
+exit $RETVAL

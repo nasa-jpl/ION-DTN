@@ -1,0 +1,40 @@
+## begin bpadmin
+# Initialization command (command 1).
+1
+
+# Add an EID scheme (command a).
+#	The scheme's name is ipn.
+#	The scheme's number is 1.  Note that this number is defined for
+#	Compressed Bundle Header Encoding (CBHE) (RFC 6260).
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+# Add endpoints (command a).
+#	Establish endpoints ipn:1.0, ipn:1.1, and ipn:1.2 on the local node.
+#	ipn:1.0 is expected for custodial/administration traffic.
+#	ipn:1.1 is a generic application endpoint.
+#	ipn:1.2 is a special endpoint for bundle-in-bundle encapsulation.
+a endpoint ipn:1.0 q
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+
+# Add a protocol (command a).
+#	Add the protocol named ltp.
+#	Estimate transmission capacity assuming 1400 bytes of each frame (in
+#	this case, UDP on the ethernet) can be devoted to LTP payload.
+a protocol ltp 1400 100
+
+# Add an induct (command a).
+#	Add an induct to accept bundles using the ltp protocol.
+#	The induct itself is implemented at local node 1, and will use the
+#	CLI 'ltpcli'
+a induct ltp 1 ltpcli
+
+# Add an outduct (command a).
+#	Add an outduct to send bundles using the ltp protocol.
+#	The outduct itself is implemented at remote node 2, and will use the
+#	CLO 'ltpclo'
+a outduct ltp 2 ltpclo
+
+# Start the daemons
+s
+## end bpadmin

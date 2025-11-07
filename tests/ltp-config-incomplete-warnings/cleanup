@@ -1,0 +1,23 @@
+#!/bin/bash
+#
+# Cleanup script for incomplete LTP configuration warnings test
+
+echo "Cleaning up LTP incomplete configuration warnings test..."
+
+# Stop ION if it's running
+cd 1.ipn.ltp
+./ionstop > /dev/null 2>&1
+cd ..
+
+# Kill any remaining ION processes
+killm > /dev/null 2>&1
+sleep 1
+
+# Remove generated files
+rm -f 1.ipn.ltp/ion.log
+rm -f 1.ipn.ltp/*.stdout
+rm -f 1.ipn.ltp/*.stderr
+rm -f 1.ipn.ltp/core.*
+rm -rf /tmp/ion_amroc
+
+echo "Cleanup complete."

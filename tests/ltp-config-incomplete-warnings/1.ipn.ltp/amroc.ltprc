@@ -1,0 +1,24 @@
+## begin ltpadmin
+# Initialize LTP (command 1).
+#	Estimated number of sessions: 100
+1 100
+
+# Add a span (command a).
+#	Specify the span to engine 2 (the neighboring node).
+#	Maximum number of export sessions: 10
+#	Maximum number of import sessions: 10
+#	Maximum segment size: 1400 bytes
+#	Aggregation size limit: 100000 bytes
+#	Aggregation time limit: 1 second
+#	LSO command: 'udplso 127.0.0.1:2113'
+#	Queuing latency: 1 second (positive value, no purging)
+a span 2 10 10 1400 100000 1 'udplso 127.0.0.1:2113' 1
+
+# NOTE: NO manage commands are specified
+# This tests that the span will use global defaults (5 retries, 0.01 loss rate)
+# and show informational messages about the auto-applied configuration
+
+# Start the LSI daemon (command s).
+#	Use 'udplsi 127.0.0.1:2112' as the command to start the LSI
+s 'udplsi 127.0.0.1:2112'
+## end ltpadmin

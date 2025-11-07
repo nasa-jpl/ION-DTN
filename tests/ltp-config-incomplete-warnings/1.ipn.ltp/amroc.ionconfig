@@ -1,0 +1,7 @@
+wmKey 65281
+wmSize 5000000
+sdrName amroc
+sdrWmSize 1000000
+configFlags 1
+heapWords 750000
+pathName /tmp/ion_amroc

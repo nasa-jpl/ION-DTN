@@ -560,3 +560,5 @@ tests/semaphore-deferred-deletion/dotest
 tests/asymmetric-range/route.svg.base64.svg
 tests/cgr-test/route.svg.base64.svg
 bpinspect
+bpcrash_hard
+sdr_test_util

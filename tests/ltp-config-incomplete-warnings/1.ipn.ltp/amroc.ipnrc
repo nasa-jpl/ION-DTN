@@ -1,0 +1,6 @@
+## begin ipnadmin
+# Add an egress plan (command a).
+#	Bundles to be transmitted to node 2 can be transmitted directly using
+#	ltp outduct identified as '2'.
+a plan 2 ltp/2
+## end ipnadmin
