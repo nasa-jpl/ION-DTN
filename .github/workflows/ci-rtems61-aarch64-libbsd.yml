@@ -1,0 +1,370 @@
+name: RTEMS 6.1 ARM64 Build and Test (libbsd)
+
+on:
+  workflow_call:
+    inputs:
+      pr_number:
+        description: 'The PR number this test is associated with.'
+        required: false
+        type: string
+        default: ''
+      timeout_minutes:
+        description: 'Timeout for build and tests in minutes (default: 30 minutes)'
+        required: false
+        type: number
+        default: 30
+
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'The PR number this test is associated with.'
+        required: false
+        type: string
+        default: ''
+      timeout_minutes:
+        description: 'Timeout for build and tests in minutes (default: 30 minutes)'
+        required: false
+        type: number
+        default: 30
+
+  push:
+    branches:
+      - update-4.1.5-rtems
+      - integration
+    paths:
+      - 'arch-rtems/**'
+      - 'ici/**'
+      - 'ltp/**'
+      - 'bpv7/**'
+      - '.github/workflows/ci-rtems61-aarch64-libbsd.yml'
+
+  pull_request:
+    paths:
+      - 'arch-rtems/**'
+      - 'ici/**'
+      - 'ltp/**'
+      - 'bpv7/**'
+      - '.github/workflows/ci-rtems61-aarch64-libbsd.yml'
+
+jobs:
+  rtems-build-and-test:
+    runs-on: [self-hosted, karuna]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Display runner information
+        run: |
+          echo "Runner: ${{ runner.name }}"
+          echo "OS: $(cat /etc/os-release | grep PRETTY_NAME)"
+          echo "Arch: $(uname -m)"
+          echo "User: $(whoami)"
+          echo "Docker version: $(docker --version)"
+          echo "Available Docker images:"
+          docker images | grep rtems || echo "No RTEMS images found"
+
+      - name: Generate timestamp for artifacts
+        id: timestamp
+        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+
+      - name: Create output directory
+        run: |
+          mkdir -p rtems-test-output
+          chmod 777 rtems-test-output
+
+      - name: Build ION in RTEMS Docker container
+        id: build
+        timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '30') }}
+        run: |
+          echo "Starting RTEMS 6.1 ARM64 build at $(date)"
+
+          # Launch Docker container with ION source mounted
+          CONTAINER_ID=$(docker run -d \
+            --name rtems-ion-build-${{ github.run_id }} \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace/arch-rtems \
+            rtems-6.1-dev-aarch64-libbsd \
+            sleep infinity)
+
+          echo "Container ID: $CONTAINER_ID"
+          echo "CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_ENV
+
+          # Wait for container to be ready
+          sleep 2
+
+          # Clean previous build if any
+          docker exec $CONTAINER_ID bash -c "cd /workspace/arch-rtems && ./waf clean || true"
+
+          # Configure and build
+          docker exec $CONTAINER_ID bash -c "cd /workspace/arch-rtems && ./waf configure --rtems=/opt/rtems/6 --rtems-bsp=aarch64/a53_lp64_qemu"
+
+          docker exec $CONTAINER_ID bash -c "cd /workspace/arch-rtems && ./waf build" 2>&1 | tee rtems-test-output/build-log.txt
+
+          BUILD_STATUS=${PIPESTATUS[0]}
+
+          if [ $BUILD_STATUS -ne 0 ]; then
+            echo "Build failed with status $BUILD_STATUS"
+            echo "BUILD_FAILED=true" >> $GITHUB_ENV
+            exit 1
+          fi
+
+          echo "Build completed successfully"
+          echo "BUILD_FAILED=false" >> $GITHUB_ENV
+
+      - name: Run ION in QEMU
+        id: test
+        if: env.BUILD_FAILED == 'false'
+        timeout-minutes: 2
+        run: |
+          echo "Starting QEMU test at $(date)"
+
+          # Run ION in QEMU and capture output
+          docker exec ${{ env.CONTAINER_ID }} bash -c \
+            "cd /workspace/arch-rtems && \
+             timeout 30 qemu-system-aarch64 \
+               -no-reboot \
+               -nographic \
+               -serial mon:stdio \
+               -machine virt,gic-version=3 \
+               -cpu cortex-a53 \
+               -m 4096 \
+               -kernel build/aarch64-rtems6-a53_lp64_qemu/ion.exe" \
+            2>&1 | tee rtems-test-output/qemu-output.txt
+
+          QEMU_STATUS=${PIPESTATUS[0]}
+
+          # QEMU will be terminated by timeout, so exit code 124 is expected
+          if [ $QEMU_STATUS -eq 124 ] || [ $QEMU_STATUS -eq 0 ]; then
+            echo "QEMU test completed (exit code: $QEMU_STATUS)"
+          else
+            echo "QEMU test failed with unexpected exit code: $QEMU_STATUS"
+            echo "TEST_FAILED=true" >> $GITHUB_ENV
+            exit 1
+          fi
+
+          echo "TEST_FAILED=false" >> $GITHUB_ENV
+
+      - name: Verify test results
+        if: env.BUILD_FAILED == 'false' && env.TEST_FAILED == 'false'
+        run: |
+          echo "Verifying ION execution results..."
+
+          # Create verification report file
+          VERIFY_REPORT="rtems-test-output/verification-report.txt"
+          echo "RTEMS 6.1 ARM64 ION Verification Report" > $VERIFY_REPORT
+          echo "========================================" >> $VERIFY_REPORT
+          echo "Date: $(date)" >> $VERIFY_REPORT
+          echo "Workflow Run: ${{ github.run_id }}" >> $VERIFY_REPORT
+          echo "" >> $VERIFY_REPORT
+
+          VERIFICATION_FAILED=false
+
+          # Check for critical success indicators in output
+          echo "Verification Checks:" >> $VERIFY_REPORT
+          echo "" >> $VERIFY_REPORT
+
+          if grep -q "ION event: Payload delivered" rtems-test-output/qemu-output.txt; then
+            echo "✓ Bundle payload delivered successfully"
+            echo "[PASS] Bundle payload delivered successfully" >> $VERIFY_REPORT
+          else
+            echo "✗ Bundle payload delivery not found"
+            echo "[FAIL] Bundle payload delivery not found" >> $VERIFY_REPORT
+            VERIFICATION_FAILED=true
+          fi
+
+          if grep -q "ipnfw is running" rtems-test-output/qemu-output.txt; then
+            echo "✓ IPN forwarder daemon running"
+            echo "[PASS] IPN forwarder daemon running" >> $VERIFY_REPORT
+          else
+            echo "✗ IPN forwarder daemon not found"
+            echo "[FAIL] IPN forwarder daemon not found" >> $VERIFY_REPORT
+            VERIFICATION_FAILED=true
+          fi
+
+          if grep -q "udplso is running" rtems-test-output/qemu-output.txt && \
+             grep -q "udplsi is running" rtems-test-output/qemu-output.txt; then
+            echo "✓ UDP services running"
+            echo "[PASS] UDP services running (udplso and udplsi)" >> $VERIFY_REPORT
+          else
+            echo "✗ UDP services not found"
+            echo "[FAIL] UDP services not found (udplso or udplsi missing)" >> $VERIFY_REPORT
+            VERIFICATION_FAILED=true
+          fi
+
+          # Check for LTP transmission
+          if grep -q "Output segments: popped=1" rtems-test-output/qemu-output.txt; then
+            echo "✓ LTP segment transmitted"
+            echo "[PASS] LTP segment transmitted (popped=1)" >> $VERIFY_REPORT
+          else
+            echo "✗ LTP segment transmission not found"
+            echo "[FAIL] LTP segment transmission not found" >> $VERIFY_REPORT
+            VERIFICATION_FAILED=true
+          fi
+
+          # Check for LTP reception
+          if grep -q "Input segments (red): count=1" rtems-test-output/qemu-output.txt; then
+            echo "✓ LTP segment received"
+            echo "[PASS] LTP segment received (count=1)" >> $VERIFY_REPORT
+          else
+            echo "✗ LTP segment reception not found"
+            echo "[FAIL] LTP segment reception not found" >> $VERIFY_REPORT
+            VERIFICATION_FAILED=true
+          fi
+
+          # Check for session completion
+          if grep -q "Sessions:.*completed=1" rtems-test-output/qemu-output.txt; then
+            echo "✓ LTP session completed"
+            echo "[PASS] LTP session completed" >> $VERIFY_REPORT
+          else
+            echo "✗ LTP session completion not found"
+            echo "[FAIL] LTP session did not complete" >> $VERIFY_REPORT
+            VERIFICATION_FAILED=true
+          fi
+
+          # Check for errors that should not appear
+          if grep -q "Can't spawn task: no parms cleared yet" rtems-test-output/qemu-output.txt; then
+            echo "✗ Daemon spawn errors detected"
+            echo "[FAIL] Daemon spawn errors detected" >> $VERIFY_REPORT
+
+            # Extract which daemons failed to spawn
+            echo "" >> $VERIFY_REPORT
+            echo "Failed daemon spawns:" >> $VERIFY_REPORT
+            grep "Can't spawn task: no parms cleared yet" rtems-test-output/qemu-output.txt | \
+              sed 's/.*(\(.*\))/  - \1/' >> $VERIFY_REPORT
+
+            VERIFICATION_FAILED=true
+          else
+            echo "✓ No daemon spawn errors"
+            echo "[PASS] No daemon spawn errors" >> $VERIFY_REPORT
+          fi
+
+          # Check system clock initialization
+          if grep -q "System clock initialized" rtems-test-output/qemu-output.txt; then
+            echo "✓ System clock initialized"
+            echo "[PASS] System clock initialized" >> $VERIFY_REPORT
+          else
+            echo "✗ System clock initialization not found"
+            echo "[FAIL] System clock initialization not found" >> $VERIFY_REPORT
+            VERIFICATION_FAILED=true
+          fi
+
+          # Check bundle statistics
+          if grep -q "xmt from.*: (0) 0 0 (1) 1 13" rtems-test-output/qemu-output.txt; then
+            echo "✓ Bundle transmitted (1 bundle, 13 bytes)"
+            echo "[PASS] Bundle transmitted (1 bundle, 13 bytes)" >> $VERIFY_REPORT
+          else
+            echo "✗ Bundle transmission statistics not found"
+            echo "[FAIL] Bundle transmission statistics incorrect" >> $VERIFY_REPORT
+            VERIFICATION_FAILED=true
+          fi
+
+          if grep -q "rcv from.*: (0) 0 0 (1) 1 13" rtems-test-output/qemu-output.txt; then
+            echo "✓ Bundle received (1 bundle, 13 bytes)"
+            echo "[PASS] Bundle received (1 bundle, 13 bytes)" >> $VERIFY_REPORT
+          else
+            echo "✗ Bundle reception statistics not found"
+            echo "[FAIL] Bundle reception statistics incorrect" >> $VERIFY_REPORT
+            VERIFICATION_FAILED=true
+          fi
+
+          echo "" >> $VERIFY_REPORT
+          echo "========================================" >> $VERIFY_REPORT
+
+          if [ "$VERIFICATION_FAILED" = "true" ]; then
+            echo "VERIFICATION_FAILED=true" >> $GITHUB_ENV
+            echo "" >> $VERIFY_REPORT
+            echo "OVERALL RESULT: FAILED" >> $VERIFY_REPORT
+            echo "" >> $VERIFY_REPORT
+            echo "One or more verification checks failed." >> $VERIFY_REPORT
+            echo "See details above for specific failures." >> $VERIFY_REPORT
+            echo "" >> $VERIFY_REPORT
+            echo "Verification failed - see verification-report.txt for details"
+            cat $VERIFY_REPORT
+            exit 1
+          else
+            echo "" >> $VERIFY_REPORT
+            echo "OVERALL RESULT: PASSED" >> $VERIFY_REPORT
+            echo "" >> $VERIFY_REPORT
+            echo "All verification checks passed successfully!" >> $VERIFY_REPORT
+            echo "" >> $VERIFY_REPORT
+            echo "All verification checks passed!"
+            cat $VERIFY_REPORT
+          fi
+
+      - name: Create test summary
+        if: always()
+        run: |
+          cat > rtems-test-output/test-summary.txt << EOF
+          RTEMS 6.1 ARM64 ION Test Summary
+          ================================
+          Date: $(date)
+          Workflow Run: ${{ github.run_id }}
+          PR Number: ${{ inputs.pr_number }}
+          Commit: ${{ github.sha }}
+          Branch: ${{ github.ref_name }}
+
+          Build Status: $([ "${BUILD_FAILED}" = "true" ] && echo "FAILED" || echo "SUCCESS")
+          Test Status: $([ "${TEST_FAILED}" = "true" ] && echo "FAILED" || echo "SUCCESS")
+          Verification Status: $([ "${VERIFICATION_FAILED}" = "true" ] && echo "FAILED" || echo "SUCCESS")
+
+          Runner: ${{ runner.name }}
+          Docker Image: rtems-6.1-dev-aarch64-libbsd
+
+          Artifacts:
+          - build-log.txt: Complete build output
+          - qemu-output.txt: QEMU execution output
+          - test-summary.txt: This summary file
+          EOF
+
+          cat rtems-test-output/test-summary.txt
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rtems-test-results-${{ env.TIMESTAMP }}
+          path: rtems-test-output/
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Stop and remove Docker container
+        if: always()
+        run: |
+          if [ ! -z "${{ env.CONTAINER_ID }}" ]; then
+            echo "Stopping container ${{ env.CONTAINER_ID }}"
+            docker stop ${{ env.CONTAINER_ID }} || true
+            docker rm ${{ env.CONTAINER_ID }} || true
+          else
+            echo "No container to clean up"
+          fi
+
+          # Clean up any orphaned containers from this workflow
+          docker ps -a --filter "name=rtems-ion-build-${{ github.run_id }}" --format "{{.ID}}" | xargs -r docker rm -f
+
+      - name: Clean up workspace
+        if: always()
+        run: |
+          # Clean build artifacts but preserve source
+          cd ${{ github.workspace }}/arch-rtems
+          ./waf clean || true
+          rm -rf build/ .lock-waf* .waf-* .waf3-* || true
+
+      - name: Report test results
+        if: always()
+        run: |
+          if [ "${BUILD_FAILED}" = "true" ]; then
+            echo "::error::RTEMS build failed"
+            exit 1
+          elif [ "${TEST_FAILED}" = "true" ]; then
+            echo "::error::RTEMS QEMU test failed"
+            exit 1
+          elif [ "${VERIFICATION_FAILED}" = "true" ]; then
+            echo "::error::RTEMS test verification failed"
+            exit 1
+          else
+            echo "::notice::RTEMS 6.1 ARM64 build and test passed successfully"
+          fi
