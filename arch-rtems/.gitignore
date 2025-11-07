@@ -1,0 +1,25 @@
+# WAF build artifacts
+build/
+.waf3-*
+.lock-waf_*
+.wafpickle-*
+
+# Test executables
+*.exe
+test_*.c
+
+# Editor/IDE files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Object files and libraries
+*.o
+*.a
+*.so
+*.dylib
+
+# Debug files
+*.dSYM/

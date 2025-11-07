@@ -17,8 +17,10 @@
 #include "bssp/library/bsspP.h"
 #endif
 
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 #include "cfdp.h"
-#include "cfdp/library/cfdpP.h"
+#include "cfdpP.h"
+#endif
 
 #include "ltp.h"
 #include "ltpP.h"
@@ -118,7 +120,7 @@ int	main(int argc, char **argv)
       else
          printText("Unable to attach to BSSP");
 #endif
-
+#ifndef NASA_PROTECTED_FLIGHT_CODE
       if (cfdpAttach() == 0)
       {
          printText("Issuing CFDP stop.");
@@ -136,6 +138,7 @@ int	main(int argc, char **argv)
       }
       else
          printText("Unable to attach to CFDP");
+#endif
 
 
 

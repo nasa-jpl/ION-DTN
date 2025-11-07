@@ -20,7 +20,9 @@
 #include "ltpP.h"
 #include "bpP.h"
 #include "cgr.h"
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 #include "cfdpP.h"
+#endif
 
 #ifndef RESTART_GRACE_PERIOD
 #define	RESTART_GRACE_PERIOD	3
@@ -36,10 +38,13 @@ static void	restartION(Sdr sdrv)
 	int	i;
 	int	restart_bp = 1;
 	int	restart_ltp = 1;
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 	int	restart_cfdp = 1;
+#endif
 	time_t	prevRestartTime;
 
 	/*	Stop all tasks.						*/
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 	if (cfdpAttach() < 0)
 	{
 		restart_cfdp = 0;
@@ -68,6 +73,7 @@ static void	restartION(Sdr sdrv)
 			writeMemo("[i] ionrestart: CFDP stopped.");
 		}
 	}
+#endif
 	if (bpAttach() < 0)
 	{
 		restart_bp = 0;
@@ -155,11 +161,13 @@ static void	restartION(Sdr sdrv)
 
 	/*	Drop all volatile databases.				*/
 
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 	if (restart_cfdp)
 	{
 		cfdpDropVdb();
 		writeMemo("[i] ionrestart: CFDP volatile database dropped.");
 	}
+#endif
 	if (restart_bp)
 	{
 		bpDropVdb();
@@ -197,11 +205,13 @@ static void	restartION(Sdr sdrv)
 	}
 
 	cgr_start();
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 	if (restart_cfdp)
 	{
 		cfdpRaiseVdb();
 		writeMemo("[i] ionrestart: CFDP volatile database raised.");
 	}
+#endif
 	/*	If it's safe, restart all ION tasks.			*/
 
 	prevRestartTime = sdrv->sdr->restartTime;
@@ -281,6 +291,7 @@ static void	restartION(Sdr sdrv)
 		}
 	}
 
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 	if (restart_cfdp)
 	{
 		cfdpStart(NULL);
@@ -304,6 +315,7 @@ static void	restartION(Sdr sdrv)
 			writeMemo("[i] ionrestart: CFDP restarted.");
 		}
 	}
+#endif
 }
 
 #if defined (ION_LWT)

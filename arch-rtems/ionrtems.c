@@ -1,234 +1,99 @@
 /*
  *  ION runtime image initialization and driver.
+ *  RTEMS 6.1 ARM64 port - uses ION Admin Public API
  */
 
 #include <bsp.h>
 #include <rtems.h>
-#include <rtems/rtems_bsdnet.h>
 #include <rtems/error.h>
 #include <rtems/shell.h>
 #include "platform.h"
 #include "ion.h"
+#include "ionsec.h"
 #include "rfx.h"
 #include "ltp.h"
 #include "bp.h"
+#include "ion_admin.h"
+#include "ltp_admin.h"
+#include "bp_admin.h"
+#ifndef NASA_PROTECTED_FLIGHT_CODE
 #include "cfdp.h"
+#endif
 
 
 #define	ION_NODE_NBR	19
 
-static void	createIonConfigFiles()
-{
-	uvast	nodenbr = ION_NODE_NBR;
-	char	filenamebuf[80];
-	int	fd;
-	char	*ionconfigLines[] =	{
-"wmSize 100000\n",
-"configFlags 1\n",
-"heapWords 75000\n",
-"pathName /ion\n",
-					};
-	int	ionconfigLineCount = sizeof ionconfigLines / sizeof (char *);
-	char	*globalLines[] =	{
-"a contact +0 +7200 19 19 100000\n",
-"a range +0 +7200 19 19 0\n"
-					};
-	int	globalLineCount = sizeof globalLines / sizeof (char *);
-	char	*ionsecrcLines[] =	{
-"1\n",
-"a bspbabrule ipn:19.* ipn:19.* '' ''\n"
-					};
-	int	ionsecrcLineCount = sizeof ionsecrcLines / sizeof (char *);
-	char	*ltprcLines[] =		{
-"1 20 64000\n",
-"a span 19 4 4000 4 4000 1084 2048 1 'pmqlso /ionpmq.19'\n",
-"w 1\n",
-"s 'pmqlsi /ionpmq.19'\n"
-					};
-	int	ltprcLineCount = sizeof ltprcLines / sizeof (char *);
-	char	*bprcLines[] =		{
-"1\n",
-"a scheme ipn 'ipnfw' 'ipnadminep'\n",
-"a endpoint ipn:19.0 x\n",
-"a endpoint ipn:19.1 x\n",
-"a endpoint ipn:19.2 x\n",
-"a endpoint ipn:19.64 x\n",
-"a endpoint ipn:19.65 x\n",
-"a endpoint ipn:19.126 x\n",
-"a endpoint ipn:19.127 x\n",
-"a protocol ltp 1400 100\n",
-"a induct ltp 19 ltpcli\n",
-"a outduct ltp 19 ltpclo\n",
-"w 1\n"
-					};
-	int	bprcLineCount = sizeof bprcLines / sizeof (char *);
-	char	*ipnrcLines[] =		{
-"a plan 19 ltp/19\n"
-					};
-	int	ipnrcLineCount = sizeof ipnrcLines / sizeof (char *);
-	char	linebuf[255];
-	char	**line;
-	int	i;
-
-	/*	Keep all ION configuration files in one directory.	*/
-
-	if (mkdir("/ion", 0777) < 0)
-	{
-		perror("Can't create directory for config files");
-		return;
-	}
-
-	/*	Create ionconfig file.					*/
-
-	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node" UVAST_FIELDSPEC
-			".ionconfig", nodenbr);
-	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
-	if (fd < 0)
-	{
-		printf("Can't create .ionconfig file '%s'.\n", filenamebuf);
-		return;
-	}
-
-	for (i = 0, line = ionconfigLines; i < ionconfigLineCount; line++, i++)
-	{
-		oK(iputs(fd, *line));
-	}
-
-	close(fd);
-
-	/*	Create ionrc file.					*/
-
-	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node" UVAST_FIELDSPEC
-			".ionrc", nodenbr);
-	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
-	if (fd < 0)
-	{
-		printf("Can't create .ionrc file '%s'.\n", filenamebuf);
-		return;
-	}
-
-	isprintf(linebuf, sizeof linebuf, "1 " UVAST_FIELDSPEC " /ion/node"
-			UVAST_FIELDSPEC ".ionconfig\ns\n", nodenbr, nodenbr);
-	oK(iputs(fd, linebuf));
-	close(fd);
-
-	/*	Create global.ionrc file.				*/
-
-	istrcpy(filenamebuf, "/ion/global.ionrc", sizeof filenamebuf);
-	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
-	if (fd < 0)
-	{
-		printf("Can't create global.ionrc file '%s'.\n", filenamebuf);
-		return;
-	}
-
-	for (i = 0, line = globalLines; i < globalLineCount; line++, i++)
-	{
-		oK(iputs(fd, *line));
-	}
-
-	close(fd);
-
-	/*	Create ionsecrc file.					*/
-
-	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node" UVAST_FIELDSPEC
-			".ionsecrc", nodenbr);
-	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
-	if (fd < 0)
-	{
-		printf("Can't create .ionsecrc file '%s'.\n", filenamebuf);
-		return;
-	}
-
-	for (i = 0, line = ionsecrcLines; i < ionsecrcLineCount; line++, i++)
-	{
-		oK(iputs(fd, *line));
-	}
-
-	close(fd);
-
-	/*	Create ltprc file.					*/
-
-	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node" UVAST_FIELDSPEC
-			".ltprc", nodenbr);
-	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
-	if (fd < 0)
-	{
-		printf("Can't create .ltprc file '%s'.\n", filenamebuf);
-		return;
-	}
-
-	for (i = 0, line = ltprcLines; i < ltprcLineCount; line++, i++)
-	{
-		oK(iputs(fd, *line));
-	}
-
-	close(fd);
-
-	/*	Create ipnrc file.					*/
-
-	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node" UVAST_FIELDSPEC
-			".ipnrc", nodenbr);
-	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
-	if (fd < 0)
-	{
-		printf("Can't create .ipnrc file '%s'.\n", filenamebuf);
-		return;
-	}
-
-	for (i = 0, line = ipnrcLines; i < ipnrcLineCount; line++, i++)
-	{
-		oK(iputs(fd, *line));
-	}
-
-	close(fd);
-
-	/*	Create bprc file.					*/
-
-	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node" UVAST_FIELDSPEC
-			".bprc", nodenbr);
-	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
-	if (fd < 0)
-	{
-		printf("Can't create .bprc file '%s'.\n", filenamebuf);
-		return;
-	}
-
-	for (i = 0, line = bprcLines; i < bprcLineCount; line++, i++)
-	{
-		oK(iputs(fd, *line));
-	}
-
-	isprintf(linebuf, sizeof linebuf, "r 'ipnadmin /ion/node"
-			UVAST_FIELDSPEC ".ipnrc'\ns\n", nodenbr);
-	oK(iputs(fd, linebuf));
-	close(fd);
-
-	/*	Create cfdprc file.					*/
-
-	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node" UVAST_FIELDSPEC
-			".cfdprc", nodenbr);
-	fd = iopen(filenamebuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
-	if (fd < 0)
-	{
-		printf("Can't create .cfdprc file '%s'.\n", filenamebuf);
-		return;
-	}
-
-	oK(iputs(fd, "1\ns bputa\n"));
-	close(fd);
-}
+/*
+ * Note: EnqueueBundle is an enum value in BpRecvRule, not a function.
+ * We use it directly in add_endpoint() calls below.
+ */
 
 static int	startDTN()
 {
-	uvast	nodenbr = ION_NODE_NBR;
-	char	cmd[80];
-	int	count;
+	uvast		nodenbr = ION_NODE_NBR;
+	int		count;
+	time_t		now;
+	IonParms	parms;
 
+	/*	Initialize ION with public API - no config files needed	*/
+
+	puts("Initializing ION...");
 	sm_ipc_init();
-	isprintf(cmd, sizeof cmd, "ionadmin /ion/node" UVAST_FIELDSPEC
-			".ionrc", nodenbr);
-	pseudoshell(cmd);
+
+	/*	Set up ION parameters for RTEMS 6.1 64-bit ARM		*/
+	memset(&parms, 0, sizeof(IonParms));
+	parms.wmKey = 0;			/* Auto-allocate private memory */
+	parms.wmSize = 200000;			/* Increased for 64-bit pointers */
+	parms.wmAddress = NULL;
+	istrcpy(parms.sdrName, "ion", sizeof(parms.sdrName));
+	parms.sdrWmSize = 200000;		/* Increased for 64-bit */
+	parms.configFlags = SDR_IN_DRAM | SDR_BOUNDED;
+	parms.heapWords = 150000;		/* Increased for 64-bit pointers */
+	parms.heapKey = SM_NO_KEY;		/* Auto-allocate */
+	parms.logSize = 0;
+	parms.logKey = SM_NO_KEY;
+	istrcpy(parms.pathName, "/ion", sizeof(parms.pathName));
+
+	if (ionInitialize(&parms, nodenbr) < 0)
+	{
+		writeMemo("[?] ION initialization failed.");
+		return -1;
+	}
+
+	if (ionAttach() < 0)
+	{
+		writeMemo("[?] ION attach failed.");
+		return -1;
+	}
+
+	/*	Register node in region	 - REQUIRED before adding contacts	*/
+	if (ion_register_node(1) < 0)
+	{
+		writeMemo("[?] Node registration failed.");
+		return -1;
+	}
+
+	/*	Initialize ION Security						*/
+	if (secInitialize() < 0)
+	{
+		writeMemo("[?] Security initialization failed.");
+		return -1;
+	}
+
+	if (secAttach() < 0)
+	{
+		writeMemo("[?] Security attach failed.");
+		return -1;
+	}
+
+	/*	Start RFX (ION clock daemon)					*/
+	puts("Starting RFX clock...");
+	if (rfx_start() < 0)
+	{
+		writeMemo("[?] RFX start failed.");
+		return -1;
+	}
+
 	count = 5;
 	while (rfx_system_is_started() == 0)
 	{
@@ -241,18 +106,49 @@ static int	startDTN()
 		}
 	}
 
-	pseudoshell("ionadmin /ion/global.ionrc");
-	snooze(1);
-	isprintf(cmd, sizeof cmd, "ionsecadmin /ion/node" UVAST_FIELDSPEC
-			".ionsecrc", nodenbr);
-	pseudoshell(cmd);
-	snooze(1);
+	/*	Add contacts and ranges						*/
+	now = time(NULL);
+	if (ion_add_contact(now + 1, now + 7200, nodenbr, nodenbr, 100000, 1.0) < 0)
+	{
+		writeMemo("[?] Failed to add contact.");
+		return -1;
+	}
 
-	/*	Now start the higher layers of the DTN stack.		*/
+	if (ion_add_range(now + 1, now + 7200, nodenbr, nodenbr, 0) < 0)
+	{
+		writeMemo("[?] Failed to add range.");
+		return -1;
+	}
 
-	isprintf(cmd, sizeof cmd, "ltpadmin /ion/node" UVAST_FIELDSPEC
-			".ltprc", nodenbr);
-	pseudoshell(cmd);
+	/*	Initialize and configure LTP					*/
+	puts("Initializing LTP...");
+	if (ltp_init(100) < 0)  /* Estimated max sessions */
+	{
+		writeMemo("[?] LTP initialization failed.");
+		return -1;
+	}
+
+	/*	Add LTP span using POSIX message queues for loopback		*/
+	/* add_span(engine_id, max_export_sessions, max_import_sessions, max_segment_size,
+	            aggr_size_limit, aggr_time_limit, lso_command, queuing_latency, purge_enabled) */
+	if (add_span(nodenbr, 100, 100, 1400, 10000, 1, "pmqlso /ionpmq.19", 1, 0) < 0)
+	{
+		writeMemo("[?] Failed to add LTP span.");
+		return -1;
+	}
+
+	if (add_seat("pmqlsi /ionpmq.19") < 0)
+	{
+		writeMemo("[?] Failed to add LTP seat.");
+		return -1;
+	}
+
+	if (ltp_start() < 0)
+	{
+		writeMemo("[?] LTP start failed.");
+		return -1;
+	}
+
 	count = 5;
 	while (ltp_engine_is_started() == 0)
 	{
@@ -265,9 +161,111 @@ static int	startDTN()
 		}
 	}
 
-	isprintf(cmd, sizeof cmd, "bpadmin /ion/node" UVAST_FIELDSPEC
-			".bprc", nodenbr);
-	pseudoshell(cmd);
+	/*	Initialize and configure BP					*/
+	puts("Initializing BP...");
+	if (bp_init() < 0)
+	{
+		writeMemo("[?] BP initialization failed.");
+		return -1;
+	}
+
+	if (bp_attach() < 0)
+	{
+		writeMemo("[?] BP attach failed.");
+		return -1;
+	}
+
+	/*	Add IPN scheme							*/
+	if (add_scheme("ipn", "ipnfw", "ipnadminep") < 0)
+	{
+		writeMemo("[?] Failed to add IPN scheme.");
+		return -1;
+	}
+
+	/*	Add endpoints - using NULL for callback since test only	*/
+	if (add_endpoint("ipn:19.0", EnqueueBundle, NULL) < 0)
+	{
+		writeMemo("[?] Failed to add endpoint ipn:19.0.");
+		return -1;
+	}
+
+	if (add_endpoint("ipn:19.1", EnqueueBundle, NULL) < 0)
+	{
+		writeMemo("[?] Failed to add endpoint ipn:19.1.");
+		return -1;
+	}
+
+	if (add_endpoint("ipn:19.2", EnqueueBundle, NULL) < 0)
+	{
+		writeMemo("[?] Failed to add endpoint ipn:19.2.");
+		return -1;
+	}
+
+	if (add_endpoint("ipn:19.64", EnqueueBundle, NULL) < 0)
+	{
+		writeMemo("[?] Failed to add endpoint ipn:19.64.");
+		return -1;
+	}
+
+	if (add_endpoint("ipn:19.65", EnqueueBundle, NULL) < 0)
+	{
+		writeMemo("[?] Failed to add endpoint ipn:19.65.");
+		return -1;
+	}
+
+	if (add_endpoint("ipn:19.126", EnqueueBundle, NULL) < 0)
+	{
+		writeMemo("[?] Failed to add endpoint ipn:19.126.");
+		return -1;
+	}
+
+	if (add_endpoint("ipn:19.127", EnqueueBundle, NULL) < 0)
+	{
+		writeMemo("[?] Failed to add endpoint ipn:19.127.");
+		return -1;
+	}
+
+	/*	Add LTP protocol						*/
+	if (add_protocol("ltp", 0) < 0)	/* 0 = Scheduled */
+	{
+		writeMemo("[?] Failed to add LTP protocol.");
+		return -1;
+	}
+
+	/*	Add LTP convergence layer adapters				*/
+	if (add_induct("ltp", "19", "ltpcli") < 0)
+	{
+		writeMemo("[?] Failed to add LTP induct.");
+		return -1;
+	}
+
+	if (add_outduct("ltp", "19", "ltpclo", 0) < 0)
+	{
+		writeMemo("[?] Failed to add LTP outduct.");
+		return -1;
+	}
+
+	/*	Add routing plan						*/
+	if (add_plan("ipn:19.0", 0) < 0)
+	{
+		writeMemo("[?] Failed to add plan.");
+		return -1;
+	}
+
+	if (add_planduct("ipn:19.0", "ltp", "19") < 0)
+	{
+		writeMemo("[?] Failed to add planduct.");
+		return -1;
+	}
+
+	/*	Start BP							*/
+	puts("Starting BP...");
+	if (bp_start() < 0)
+	{
+		writeMemo("[?] BP start failed.");
+		return -1;
+	}
+
 	count = 5;
 	while (bp_agent_is_started() == 0)
 	{
@@ -280,27 +278,15 @@ static int	startDTN()
 		}
 	}
 
-	isprintf(cmd, sizeof cmd, "lgagent ipn:" UVAST_FIELDSPEC ".127",
-			nodenbr);
-	pseudoshell(cmd);
+	/*	Start lgagent for diagnostics					*/
+	pseudoshell("lgagent ipn:19.127");
 	snooze(1);
 
-	/*	Now start CFDP.						*/
+#ifndef NASA_PROTECTED_FLIGHT_CODE
+	/*	CFDP is excluded in this minimal BP/LTP port			*/
+#endif
 
-	isprintf(cmd, sizeof cmd, "cfdpadmin /ion/node" UVAST_FIELDSPEC
-			".cfdprc", nodenbr);
-	pseudoshell(cmd);
-	count = 5;
-	while (cfdp_entity_is_started() == 0)
-	{
-		snooze(1);
-		count--;
-		if (count == 0)
-		{
-			writeMemo("[?] CFDP start hung up, abandoned.");
-			return -1;
-		}
-	}
+	puts("ION startup complete.");
 	return 0;
 }
 
@@ -323,70 +309,77 @@ static void	testLoopback()
 static int	stopDTN(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 			saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-	/*	Stop CFDP.						*/
+#ifndef NASA_PROTECTED_FLIGHT_CODE
+	/*	CFDP is excluded in this minimal BP/LTP port			*/
+#endif
 
-	pseudoshell("cfdpadmin .");
-	while (cfdp_entity_is_started())
-	{
-		snooze(1);
-	}
+	/*	Stop BP (void function, no return value to check)		*/
 
-	/*	Stop BP.						*/
+	puts("Stopping BP...");
+	bp_stop();
 
-	pseudoshell("bpadmin .");
 	while (bp_agent_is_started())
 	{
 		snooze(1);
 	}
 
-	/*	Stop LTP.					*/
+	/*	Stop LTP (void function, no return value to check)		*/
 
-	pseudoshell("ltpadmin .");
+	puts("Stopping LTP...");
+	ltp_stop();
+
 	while (ltp_engine_is_started())
 	{
 		snooze(1);
 	}
 
-	/*	Stop rfxclock.						*/
+	/*	Stop rfxclock (void function, no return value to check)	*/
 
-	pseudoshell("ionadmin .");
+	puts("Stopping RFX...");
+	rfx_stop();
+
 	while (rfx_system_is_started())
 	{
 		snooze(1);
 	}
 
-	/*	Erase all ION data in DRAM.				*/
+	/*	Erase all ION data in DRAM					*/
 
-	ionTerminate();
+	puts("Terminating ION...");
+	ionTerminate(1);	/* 1 = delete SDR */
+	sm_ipc_stop();
+
 	return 0;
 }
 
 rtems_task	Init(rtems_task_argument ignored)
 {
-	puts("Inside Init(), creating configuration files.");
-	createIonConfigFiles();
-	puts("Inside Init(), spawning ION startup tasks.");
+	puts("=== ION RTEMS 6.1 ARM64 Port - Minimal BP/LTP ===");
+	puts("Starting ION with public API (no config files)...");
+
 	if (startDTN() < 0)
 	{
 		writeMemo("[?] Can't start ION.");
+		exit(1);
 	}
 
 	testLoopback();
-	snooze(1);
-	puts("Stopping ION.");
+	snooze(2);
+
+	puts("Stopping ION...");
 	oK(stopDTN(0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
-	puts("ION stopped.");
+	puts("ION stopped successfully.");
 	exit(0);
 }
 
-/* TO DO: 10/2/2023 nothing calls this function */
+/*
+ * inferUtcDelta() - Helper function for UTC time synchronization
+ * Note: Currently unused in this port
+ */
 void	inferUtcDelta(char *correctUtcTimeStamp)
 {
 	IonVdb	*ionvdb = getIonVdb();
 	time_t	correctUtcTime = readTimestampUTC(correctUtcTimeStamp, 0);
-	/* getCtime already factors in deltaFromUTC */
-	/* time_t	clocktime = getCtime() + ionvdb->deltaFromUTC;
-	 */
 	time_t	clocktime = getCtime();
 	int	delta = clocktime - correctUtcTime;
 	char	buffer[80];
@@ -405,13 +398,14 @@ void	showUtcDelta()
 	writeMemo(buffer);
 }
 
-/*	*	*	RTEMS configuration	*	*	*	*/
+/*	*	*	RTEMS 6.1 Configuration	*	*	*	*/
 
 #define CONFIGURE_APPLICATION_NEEDS_CONSOLE_DRIVER
 #define CONFIGURE_APPLICATION_NEEDS_CLOCK_DRIVER
 
 #define	CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
+/*	Resource limits - adjusted for minimal BP/LTP port	*/
 #define	CONFIGURE_MAXIMUM_SEMAPHORES				20
 #define	CONFIGURE_MAXIMUM_MESSAGE_QUEUES			10
 #define	CONFIGURE_MAXIMUM_TASKS					40
@@ -422,13 +416,11 @@ void	showUtcDelta()
 #ifndef CONFIGURE_TICKS_PER_TIMESLICE
 #define	CONFIGURE_TICKS_PER_TIMESLICE				10
 #endif
-#define CONFIGURE_MAXIMUM_FILE_DESCRIPTORS		40
+#define CONFIGURE_MAXIMUM_FILE_DESCRIPTORS			40
 #define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
 
 #define CONFIGURE_MAXIMUM_POSIX_THREADS				40
-/* Obsolete since RTEMS 5.1, should something else be added instead? */
-/* #define CONFIGURE_MAXIMUM_POSIX_MUTEXES				10 */
-/* #define CONFIGURE_MAXIMUM_POSIX_CONDITION_VARIABLES		10 */
+/*	POSIX mutexes and condition variables config removed in RTEMS 6	*/
 #define CONFIGURE_MAXIMUM_POSIX_SEMAPHORES			100
 #define CONFIGURE_MAXIMUM_POSIX_MESSAGE_QUEUES			10
 
@@ -442,8 +434,12 @@ void	showUtcDelta()
 #undef Object
 #include <rtems/confdefs.h>
 
-/* Loopback Network Configuration needed to prevent linking with dummy.o */
-
+/*
+ * Loopback Network Configuration
+ * NOTE: Disabled for this minimal port - using POSIX message queues only
+ * If actual networking is needed, enable rtems-libbsd instead of legacy bsdnet
+ */
+#if 0
 extern int rtems_bsdnet_loopattach(struct rtems_bsdnet_ifconfig *, int);
 
 static struct rtems_bsdnet_ifconfig	loopback_config =
@@ -474,3 +470,4 @@ struct rtems_bsdnet_config		rtems_bsdnet_config =
 	8192,				/* tcp_tx_buf_size */
 	8192				/* tcp_rx_buf_size */
 };
+#endif

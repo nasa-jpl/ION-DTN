@@ -1,0 +1,1 @@
+../ltp/library/libltpP.c

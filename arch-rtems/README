@@ -1,30 +1,162 @@
-## Notes for RTEMS 5.1 port of ION 4.1.2
+## Notes for RTEMS 6.1 ARM64 port of ION 4.1.2 with BPv7
 
-This port follows the same basic features scope and approach of previous ION 3.6 port with the following changes:
+This port is a **minimal BP/LTP implementation** targeting RTEMS 6.1 on 64-bit ARM (AArch64) platforms. It represents a significant modernization of the previous RTEMS 5.1 port with the following key changes:
+
+### Major Changes from RTEMS 5.1 Port
+
+* **RTEMS 6.1**: Upgraded from RTEMS 5.1 with API compatibility updates
+* **64-bit ARM (AArch64)**: Migrated from 32-bit SPARC (erc32) to 64-bit ARM (a53_lp64_qemu)
+* **ION Admin Public API**: Uses modern programmatic configuration (no config files required)
+* **SPACE_ORDER=3**: Updated for 64-bit pointer addressing
+* **Minimal Feature Set**: BP + LTP only (excludes AMS, BSS, CFDP, NM)
+* **Memory Configuration**: Increased heap and workspace sizes for 64-bit
+
+### Excluded Components
+
+* **CFDP** (CCSDS File Delivery Protocol) - excluded via `NASA_PROTECTED_FLIGHT_CODE`
+* **AMS/RAMS** (Asynchronous Message Service)
+* **BSS** (Bundle Streaming Service) - Note: BSSP is included as BP dependency
+* **NM** (Network Management)
+
+### Transport Layer
+
+* **LTP over POSIX Message Queues**: Uses `pmqlso`/`pmqlsi` for loopback testing
+* **No libbsd required**: Pure RTEMS POSIX implementation
+* **Future enhancement**: UDP support can be added with RTEMS libbsd
+
+### Prerequisites
+
+1. Install RTEMS 6.1 toolchain for AArch64
+2. Build RTEMS 6.1 BSP for `aarch64/a53_lp64_qemu`
+3. Set PATH to include RTEMS 6.1 tools
+
+Example RTEMS 6.1 setup:
+```bash
+export PATH=$HOME/rtems/6/bin:"$PATH"
+```
+
+Refer to [RTEMS 6.1 documentation](https://docs.rtems.org/branches/master/) for detailed installation instructions.
+
+### Building the Port
+
+1. Navigate to the `arch-rtems` directory
+2. Create source symlinks: `./srclinks`
+3. Configure with WAF:
+   ```bash
+   ./waf configure --rtems=$HOME/rtems/6 --rtems-bsp=aarch64/a53_lp64_qemu
+   ```
+4. Build:
+   ```bash
+   ./waf
+   ```
+5. The output executable is `build/ion.exe`
+
+### Configuration Details
+
+**Memory Configuration (64-bit ARM):**
+* `wmSize`: 200,000 bytes (increased from 100,000)
+* `heapWords`: 150,000 words (increased from 75,000)
+* `sdrWmSize`: 200,000 bytes (increased from 100,000)
+* RTEMS workspace automatically sized
+
+**ION Configuration:**
+* Node Number: 19
+* Loopback only (127.0.0.1)
+* LTP span: node 19 to node 19 via POSIX message queues
+* IPN scheme with endpoints: ipn:19.0, ipn:19.1, ipn:19.2, ipn:19.64, ipn:19.65, ipn:19.126, ipn:19.127
+
+**RTEMS Resource Limits:**
+* 40 POSIX threads
+* 100 POSIX semaphores
+* 10 POSIX message queues
+* 40 file descriptors
+* 40 tasks
+* 20 semaphores
+
+### Testing
+
+The port includes a built-in loopback test that:
+1. Initializes ION with the public API
+2. Starts all BP/LTP services
+3. Runs `bpsource` and `bpsink` for a simple bundle transfer
+4. Cleanly shuts down all services
+
+Run in QEMU:
+```bash
+qemu-system-aarch64 -M xilinx-zynq-a9 -m 256M -no-reboot -serial null \
+  -serial mon:stdio -nographic -kernel build/ion.exe
+```
+
+Expected output:
+```
+=== ION RTEMS 6.1 ARM64 Port - Minimal BP/LTP ===
+Starting ION with public API (no config files)...
+Initializing ION...
+Starting RFX clock...
+Initializing LTP...
+Initializing BP...
+Starting BP...
+ION startup complete.
+Starting loopback test.
+Loopback test ended.
+Stopping ION...
+```
+
+### Architecture Notes
+
+**Public API vs Config Files:**
+
+The RTEMS 5.1 port used configuration files (`.ionrc`, `.ltprc`, `.bprc`) which required:
+* File I/O operations
+* Text parsing
+* POSIX shell execution (`pseudoshell`)
+
+The RTEMS 6.1 port uses the ION Admin Public API which provides:
+* Direct C function calls (`ionInitialize`, `add_span`, `add_endpoint`, etc.)
+* No filesystem dependencies
+* Better error handling
+* Easier integration with RTEMS applications
+* More suitable for embedded systems
+
+**Build System:**
+
+Uses WAF (Waf build system) with rtems_waf integration:
+* Builds static libraries: `libici.a`, `libltp.a`, `libdgr.a`, `libbssp.a`, `libbp.a`
+* Links into single RTEMS executable: `ion.exe`
+* DGR library included as BP dependency
+* Symbol table (`mysymtab.c`) for dynamic task spawning
+
+### Known Limitations
+
+* Loopback only (no real network interfaces)
+* No CFDP file transfer capability
+* No AMS multicast support
+* Limited to single-node operation with POSIX message queues
+* UDP/TCP convergence layers not included (can be added with libbsd)
+
+### Future Enhancements
+
+* Add UDP support with RTEMS libbsd
+* Enable CFDP (resolve build issues)
+* Port to real ARM hardware (Raspberry Pi 4, Xilinx ZynqMP, etc.)
+* Add TCP convergence layers
+* Multi-node testing over real networks
+
+---
+
+## Archive: Notes for RTEMS 5.1 port of ION 4.1.2
+
+This section preserved for historical reference. See above for current RTEMS 6.1 ARM64 port.
+
+This port followed the basic features scope and approach of previous ION 3.6 port with the following changes:
 
 * Updates to RTEMS 5.1 release
 * Updates port from BPv6 to BPv7
 * Updates RTEMS build system from `make` to `waf`, builds individual libraries
-* Our target of space/erc32 is a 32-bit system
+* Target: sparc/erc32 (32-bit system)
 * Does not include CFDP and NM modules
 
-Please install RTEMS 5.1 tool chain and Board Support Package (BSP) for sparce/erc32 simulator. Instructions can be found [here](https://ftp.rtems.org/pub/rtems/releases/5/5.1/docs/html/). It is also recommended that you attempt to complete building the example application in order to setup WAF build system on the development host.
-
-Make sure you set the PATH environment in your shell to point to your RTEMS 5.1 tool chain. For example `export PATH=$HOME/quick-start/rtems/5/bin:"$PATH"`.
-
-To build ION, go to the `arch-rtems` directory. Then pull in the source files needed for the port by: `./srclinks`. 
-
-Then run the WAF configure command:
-
-```
-./waf configure --rtems=$HOME/quick-start/rtems/5 --rtems-bsp=sparc/erc32
-```
-
-Then build it:
-
-```
-./waf
-```
+---
 
 
 

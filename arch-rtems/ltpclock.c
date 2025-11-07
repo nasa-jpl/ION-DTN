@@ -1,0 +1,1 @@
+../ltp/daemon/ltpclock.c

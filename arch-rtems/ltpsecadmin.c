@@ -1,0 +1,1 @@
+../ltp/utils/ltpsecadmin.c

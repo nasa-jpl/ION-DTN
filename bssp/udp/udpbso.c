@@ -16,7 +16,7 @@
 
 #include "udpbsa.h"
 
-#if defined(linux)
+#if defined(linux) || defined(RTEMS)
 
 #define IPHDR_SIZE	(sizeof(struct iphdr) + sizeof(struct udphdr))
 

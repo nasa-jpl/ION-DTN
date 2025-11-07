@@ -2942,16 +2942,16 @@ private symbol table; must be added to mysymtab.c.", name);
 	}
 
 	parms->threadMainFunction = entryPoint;
-	parms->arg1 = (int) arg1;
-	parms->arg2 = (int) arg2;
-	parms->arg3 = (int) arg3;
-	parms->arg4 = (int) arg4;
-	parms->arg5 = (int) arg5;
-	parms->arg6 = (int) arg6;
-	parms->arg7 = (int) arg7;
-	parms->arg8 = (int) arg8;
-	parms->arg9 = (int) arg9;
-	parms->arg10 = (int) arg10;
+	parms->arg1 = (saddr) arg1;
+	parms->arg2 = (saddr) arg2;
+	parms->arg3 = (saddr) arg3;
+	parms->arg4 = (saddr) arg4;
+	parms->arg5 = (saddr) arg5;
+	parms->arg6 = (saddr) arg6;
+	parms->arg7 = (saddr) arg7;
+	parms->arg8 = (saddr) arg8;
+	parms->arg9 = (saddr) arg9;
+	parms->arg10 = (saddr) arg10;
 	sm_ConfigurePthread(&attr, stackSize);
 	errno = pthread_create(&threadId, &attr, posixDriverThread,
 			(void *) parms);
@@ -3274,6 +3274,7 @@ void	sm_Wakeup(DWORD processId)
 
 #include <sys/stat.h>
 #include <sys/ipc.h>
+#include <sys/shm.h>
 #include <sched.h>
 
 	/* ---- Task Control services (Unix) -------------------------- */

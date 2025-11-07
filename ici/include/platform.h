@@ -585,6 +585,7 @@ typedef int			socklen_t;
 #define RTOS_SHM
 
 #undef	SVR4_SEMAPHORES
+#undef	POSIX_NAMED_SEMAPHORES
 #define POSIX_SEMAPHORES
 
 #undef	UNIX_TASKS
@@ -997,7 +998,7 @@ int pthread_setname_np(const char *name);
  */
 typedef struct
 {
-	uvast			opaque[12];
+	uvast			opaque[13];
 } ResourceLock;
 
 /*	Prototypes for standard ION platform functions.			*/

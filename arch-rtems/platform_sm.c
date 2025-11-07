@@ -1,0 +1,1 @@
+../ici/library/platform_sm.c

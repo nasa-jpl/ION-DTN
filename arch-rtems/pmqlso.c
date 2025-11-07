@@ -13,7 +13,7 @@
 
 static sm_SemId	_pmqlsoSemaphore(sm_SemId *semptr)
 {
-	long		temp;
+	saddr		temp;
 	void		*value;
 	sm_SemId	sem;
 
@@ -21,11 +21,11 @@ static sm_SemId	_pmqlsoSemaphore(sm_SemId *semptr)
 	{
 		temp = *semptr;
 		value = (void *) temp;
-		sem = (sm_SemId) sm_TaskVar(&value);
+		sem = (sm_SemId) (saddr) sm_TaskVar(&value);
 	}
 	else				/*	Retrieve task variable.	*/
 	{
-		sem = (sm_SemId) sm_TaskVar(NULL);
+		sem = (sm_SemId) (saddr) sm_TaskVar(NULL);
 	}
 
 	return sem;

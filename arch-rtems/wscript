@@ -1,10 +1,10 @@
 #
 # Hello World Program Waf script
-# Adopted for ION BPv7 port to RTEMS 5.1
+# Adopted for ION BPv7 port to RTEMS 6.1 (ARM64 aarch64/a53_lp64_qemu)
 #
 from __future__ import print_function
 
-rtems_version = "5"
+rtems_version = "6"
 
 try:
     import rtems_waf.rtems as rtems
@@ -46,14 +46,15 @@ def build(bld):
         'UDPTS',
         'TCPTS',
         'DGRTS',
-        'SPACE_ORDER=2',
+        'SPACE_ORDER=3',
         'LONG_LONG_OKAY=1',
         'PRIVATE_SYMTAB'
     ]
 
-    # Check for includsion of CFDP
-    #   Currently CFDP is not included due to compilation issues
-    #   with RTEMS 5.1. To be address by future upate.
+    # Check for inclusion of CFDP
+    #   Currently CFDP is not included (ION_OPEN_SOURCE=0)
+    #   When ION_OPEN_SOURCE=0, NASA_PROTECTED_FLIGHT_CODE is defined
+    #   which excludes CFDP code from compilation
 
     if ION_OPEN_SOURCE == 0:
         iondefines+=['NASA_PROTECTED_FLIGHT_CODE']
@@ -68,23 +69,25 @@ def build(bld):
     ionflags='-g -Wall -Werror -Wno-unused-variable'
 
     icisources = [
-        'rfxclock.c',    
-        'ionadmin.c',    
-        'sdrmend.c',     
-        'ionunlock.c',   
-        'ionxnowner.c',  
-        'ionlog.c',          
-        'ionsecadmin.c', 
-        'crypto.c',      
-        'csi.c',         
-        'ionwarn.c',     
+        'rfxclock.c',
+        'ionadmin.c',
+        'sdrmend.c',
+        'ionunlock.c',
+        'ionxnowner.c',
+        'ionlog.c',
+        'ionsecadmin.c',
+        'crypto.c',
+        'csi.c',
+        'ionwarn.c',
         'ionrestart.c',
         'ionexit.c',
-        'bpadmin.c',   
-        'bpsecadmin.c'
+        'bpadmin.c',
+        'bpsecadmin.c',
+        'rtems_stubs.c'   # RTEMS pthread_kill and pause stubs
     ]
 
     iciinclude=[
+        'include',           # RTEMS stub headers (netinet/ip.h, netinet/udp.h)
         '../ici/include',
         '../ici/library',
         '../ici/crypto',
@@ -97,10 +100,12 @@ def build(bld):
     ]
 
     icilibsources=[
-        'bulk.c', 
+        'bulk.c',
         'cbor.c',
         'crc.c',
         'ion.c',
+        'ion_admin.c',
+        'ion_network.c',
         'ionsec.c',
         'libicinm.c',
         'llcv.c',
@@ -379,9 +384,9 @@ def build(bld):
         'bpcrash.c'
     ]
 
+    # Minimal BP/LTP port - excluding AMS, BSS, DGR
     csrcs = ['ionrtems.c'] + icisources + ltpsource \
-    + bpsources + testsources + bsssources + bsspsources \
-    + amssources
+    + bpsources + bsspsources + testsources
 
     if ION_OPEN_SOURCE == 1:
         csrcs += cfdpsources
@@ -393,10 +398,10 @@ def build(bld):
     #      To be fixed in future release. Current demo does
     #      require NM and CFDP functionalities
 
+    # Minimal BP/LTP port - excluding AMS, BSS (DGR needed by BP)
     includes = ['./'] + iciinclude + ltpinclude + \
-        dgrinclude + bsspinclude + bpinclude + \
-        amsinclude + bssinclude
-    
+        dgrinclude + bsspinclude + bpinclude
+
     if ION_OPEN_SOURCE == 1:
         includes += cfdpinclude
 
@@ -421,6 +426,7 @@ def build(bld):
 
     # Not building libudplsa.la, not used for this port
 
+    # DGR still needed as BP depends on it
     bld.stlib(
         target='dgr',
         cflags= ionflags,
@@ -448,23 +454,7 @@ def build(bld):
         use=['ici','bssp','ltp','dgr','m']
     )
 
-    bld.stlib(
-        target='ams',
-        cflags= ionflags,
-        source=amslibsources,
-        includes=iciinclude+dgrinclude+amsinclude,
-        defines=iondefines,
-        use=['ici','dgr','m']
-    )
-
-    bld.stlib(
-        target='bss',
-        cflags= ionflags,
-        source=bsslibsources,
-        includes=iciinclude+bpinclude+bssinclude,
-        defines=iondefines,
-        use=['ici','bp','m']
-    )
+    # AMS and BSS libraries excluded for minimal port
 
     if ION_OPEN_SOURCE == 1: 
         bld.stlib(
@@ -476,10 +466,13 @@ def build(bld):
             use=['ici','bp','m']
         )
 
-    libuse = ['ici','bp','dgr','bssp','ltp','bss','ams','m']
+    # Minimal BP/LTP port - only required libraries
+    libuse = ['ici','bp','dgr','bssp','ltp','m']
 
     if ION_OPEN_SOURCE == 1:
         libuse += ['cfdp']
+
+    # Note: RTEMS pthread functions are in rtemscpu library
 
     bld(features = 'c cprogram',
         target = 'ion.exe',
@@ -487,5 +480,6 @@ def build(bld):
         source = csrcs,
         includes = includes,
         defines = iondefines,
-        use=libuse
+        use=libuse,
+        lib=['m', 'rtemscpu', 'rtemsbsp']  # Math library + RTEMS core libraries
     )
