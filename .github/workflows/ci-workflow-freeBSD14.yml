@@ -67,8 +67,8 @@ jobs:
 
       - name: Copy code to FreeBSD VM
         run: |
-          ssh -o StrictHostKeyChecking=no jgao@$VM_IP 'rm -rf ~/ion-gh-test-dir && mkdir -p ~/ion-gh-test-dir'
-          rsync -avz -e "ssh -o StrictHostKeyChecking=no" --exclude='arch-rtems' "$GITHUB_WORKSPACE/" jgao@$VM_IP:~/ion-gh-test-dir/ion-ios-dev/
+          ssh -o StrictHostKeyChecking=no jgao@$VM_IP 'rm -rf ~/ion-gh-test-dir && mkdir -p ~/ion-gh-test-dir/ion-ios-dev'
+          tar -czf - --exclude='arch-rtems' -C "$GITHUB_WORKSPACE" . | ssh -o StrictHostKeyChecking=no jgao@$VM_IP 'tar -xzf - -C ~/ion-gh-test-dir/ion-ios-dev'
 
       - name: Generate timestamp for file names
         id: timestamp
