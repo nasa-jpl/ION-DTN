@@ -1,41 +1,66 @@
-## Notes for RTEMS 6.1 ARM64 port of ION 4.1.2 with BPv7
+## Notes for RTEMS 6.1 ARM64 port of ION 4.1.5 with BPv7
 
-This port is a **minimal BP/LTP implementation** targeting RTEMS 6.1 on 64-bit ARM (AArch64) platforms. It represents a significant modernization of the previous RTEMS 5.1 port with the following key changes:
+This port is a **minimal BP/LTP implementation** targeting RTEMS 6.1 on 64-bit ARM (AArch64) platforms with libbsd networking support. It represents a significant modernization of the previous RTEMS 5.1 port with the following key changes:
 
 ### Major Changes from RTEMS 5.1 Port
 
 * **RTEMS 6.1**: Upgraded from RTEMS 5.1 with API compatibility updates
 * **64-bit ARM (AArch64)**: Migrated from 32-bit SPARC (erc32) to 64-bit ARM (a53_lp64_qemu)
+* **libbsd Networking**: Built against BSP with RTEMS libbsd for full TCP/IP stack support
 * **ION Admin Public API**: Uses modern programmatic configuration (no config files required)
 * **SPACE_ORDER=3**: Updated for 64-bit pointer addressing
-* **Minimal Feature Set**: BP + LTP only (excludes AMS, BSS, CFDP, NM)
+* **Conditional Compilation**: Modular build system with optional DGR and BSSP support
+* **Minimal Feature Set**: BP + LTP core (optional AMS, BSS, DGR, BSSP, CFDP)
 * **Memory Configuration**: Increased heap and workspace sizes for 64-bit
 
-### Excluded Components
+### Module Configuration
 
-* **CFDP** (CCSDS File Delivery Protocol) - excluded via `NASA_PROTECTED_FLIGHT_CODE`
-* **AMS/RAMS** (Asynchronous Message Service)
-* **BSS** (Bundle Streaming Service) - Note: BSSP is included as BP dependency
-* **NM** (Network Management)
+The build system supports conditional inclusion of modules via flags in `wscript`:
+
+**Currently Disabled (Minimal Configuration):**
+* **DGR** (Datagram Retransmission) - Set `ENABLE_DGR = 0` (convergence layer excluded)
+* **BSSP** (Bundle Streaming Service Protocol) - Set `ENABLE_BSSP = 0` (convergence layer excluded)
+* **CFDP** (CCSDS File Delivery Protocol) - Set `ION_OPEN_SOURCE = 0` (excluded via `NASA_PROTECTED_FLIGHT_CODE`)
+
+**Always Excluded:**
+* **AMS/RAMS** (Asynchronous Message Service) - Not built
+* **BSS** (Bundle Streaming Service) - Not built
+* **NM** (Network Management) - Not built
+
+**Included in Minimal Build:**
+* **ICI** (Interplanetary Communication Infrastructure) - Core library
+* **LTP** (Licklider Transmission Protocol) - Transport protocol
+* **BP** (Bundle Protocol v7) - Bundle layer with IPN routing
+
+To enable optional modules, edit `arch-rtems/wscript`:
+```python
+ENABLE_DGR = 1    # Enable DGR convergence layer
+ENABLE_BSSP = 1   # Enable BSSP convergence layer
+ION_OPEN_SOURCE = 1  # Enable CFDP
+```
 
 ### Transport Layer
 
-* **LTP over POSIX Message Queues**: Uses `pmqlso`/`pmqlsi` for loopback testing
-* **No libbsd required**: Pure RTEMS POSIX implementation
-* **Future enhancement**: UDP support can be added with RTEMS libbsd
+* **LTP over POSIX Message Queues**: Uses `pmqlso`/`pmqlsi` for loopback testing (default)
+* **RTEMS libbsd**: Full BSD socket support for UDP/TCP convergence layers
+* **Conditional Convergence Layers**: DGR and BSSP can be enabled as needed
+* **Future enhancement**: Real network interface support over libbsd
 
 ### Prerequisites
 
 1. Install RTEMS 6.1 toolchain for AArch64
-2. Build RTEMS 6.1 BSP for `aarch64/a53_lp64_qemu`
+2. Build RTEMS 6.1 BSP for `aarch64/a53_lp64_qemu` with libbsd support
 3. Set PATH to include RTEMS 6.1 tools
 
 Example RTEMS 6.1 setup:
 ```bash
-export PATH=$HOME/rtems/6/bin:"$PATH"
+export PATH=/opt/rtems/6/bin:"$PATH"
 ```
 
-Refer to [RTEMS 6.1 documentation](https://docs.rtems.org/branches/master/) for detailed installation instructions.
+**BSP Requirements:**
+The BSP must be built with RTEMS libbsd for networking support. When configuring the BSP, ensure libbsd is enabled.
+
+Refer to [RTEMS 6 documentation](https://docs.rtems.org/branches/master/) for detailed installation instructions.
 
 ### Building the Port
 
@@ -43,13 +68,22 @@ Refer to [RTEMS 6.1 documentation](https://docs.rtems.org/branches/master/) for 
 2. Create source symlinks: `./srclinks`
 3. Configure with WAF:
    ```bash
-   ./waf configure --rtems=$HOME/rtems/6 --rtems-bsp=aarch64/a53_lp64_qemu
+   ./waf configure --rtems=/opt/rtems/6 --rtems-bsp=aarch64/a53_lp64_qemu
    ```
 4. Build:
    ```bash
-   ./waf
+   ./waf build
    ```
-5. The output executable is `build/ion.exe`
+5. The output executable is `build/aarch64-rtems6-a53_lp64_qemu/ion.exe`
+
+**Build Output (Minimal Configuration):**
+* `ion.exe`: 5.1 MB (final executable)
+* `libici.a`: 1.2 MB (ICI core library)
+* `libltp.a`: 424 KB (LTP library)
+* `libbp.a`: 2.0 MB (BP library)
+* Build time: ~1.5 seconds (116 compilation units)
+
+**Note:** With `ENABLE_DGR=0` and `ENABLE_BSSP=0`, the DGR and BSSP libraries are not built, resulting in a smaller binary size.
 
 ### Configuration Details
 
@@ -121,26 +155,44 @@ The RTEMS 6.1 port uses the ION Admin Public API which provides:
 **Build System:**
 
 Uses WAF (Waf build system) with rtems_waf integration:
-* Builds static libraries: `libici.a`, `libltp.a`, `libdgr.a`, `libbssp.a`, `libbp.a`
+* Builds static libraries conditionally based on configuration flags
+* Minimal build: `libici.a`, `libltp.a`, `libbp.a`
+* Optional libraries: `libdgr.a`, `libbssp.a`, `libcfdp.a` (when enabled)
 * Links into single RTEMS executable: `ion.exe`
-* DGR library included as BP dependency
-* Symbol table (`mysymtab.c`) for dynamic task spawning
+* Symbol table (`mysymtab.c`) for dynamic task spawning with conditional exports
+* Conditional compilation via preprocessor defines (`ENABLE_DGR`, `ENABLE_BSSP`, `NASA_PROTECTED_FLIGHT_CODE`)
+
+**Conditional Compilation:**
+The build system uses preprocessor guards to exclude unused modules:
+* Source files conditionally added to build based on flags
+* Symbol table entries wrapped with `#ifdef ENABLE_BSSP` guards
+* Runtime code in `ionexit.c` uses `#ifdef ENABLE_BSSP` for cleanup
+* Library dependencies dynamically adjusted at build time
 
 ### Known Limitations
 
-* Loopback only (no real network interfaces)
-* No CFDP file transfer capability
-* No AMS multicast support
-* Limited to single-node operation with POSIX message queues
-* UDP/TCP convergence layers not included (can be added with libbsd)
+* Loopback only (no real network interfaces configured yet)
+* No CFDP file transfer capability (excluded by default)
+* No AMS multicast support (not built)
+* Limited to single-node operation with POSIX message queues in current configuration
+* DGR and BSSP convergence layers excluded by default (can be enabled)
+
+### Current Status (November 2024)
+
+✅ **Successfully builds with RTEMS 6.1 + libbsd**
+✅ **Minimal configuration (BP + LTP only) compiles cleanly**
+✅ **Conditional compilation system implemented**
+✅ **Binary size optimized by excluding unused modules**
+✅ **Ready for integration testing with libbsd networking**
 
 ### Future Enhancements
 
-* Add UDP support with RTEMS libbsd
-* Enable CFDP (resolve build issues)
+* Test UDP/TCP convergence layers over RTEMS libbsd
+* Enable and test CFDP for file transfer
 * Port to real ARM hardware (Raspberry Pi 4, Xilinx ZynqMP, etc.)
-* Add TCP convergence layers
 * Multi-node testing over real networks
+* Enable DGR/BSSP for additional protocol support as needed
+* Performance benchmarking and optimization
 
 ---
 

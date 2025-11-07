@@ -36,12 +36,14 @@ extern int	ipnadminep(int, int, int, int, int, int, int, int, int, int);
 extern int	lgagent(int, int, int, int, int, int, int, int, int, int);
 extern int	bpsource(int, int, int, int, int, int, int, int, int, int);
 extern int	bpsink(int, int, int, int, int, int, int, int, int, int);
+#ifdef ENABLE_BSSP
 extern int	bsspclock(int, int, int, int, int, int, int, int, int, int);
 extern int	bsspadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	udpbsi(int, int, int, int, int, int, int, int, int, int);
 extern int	udpbso(int, int, int, int, int, int, int, int, int, int);
 extern int	tcpbsi(int, int, int, int, int, int, int, int, int, int);
 extern int	tcpbso(int, int, int, int, int, int, int, int, int, int);
+#endif
 /* AMS excluded for minimal BP/LTP port */
 /*extern int	ramsgate(int, int, int, int, int, int, int, int, int, int);
 extern int	amsshell(int, int, int, int, int, int, int, int, int, int);
@@ -97,12 +99,14 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "lgagent",	(FUNCPTR) lgagent,	ICI_PRIORITY,	24576 },
 		{ "bpsource",	(FUNCPTR) bpsource,	ICI_PRIORITY,	4096  },
 		{ "bpsink",	(FUNCPTR) bpsink,	ICI_PRIORITY,	4096  },
+#ifdef ENABLE_BSSP
 		{ "bsspclock",	(FUNCPTR) bsspclock,	ICI_PRIORITY,	25576 },
 		{ "bsspadmin",	(FUNCPTR) bsspadmin,	ICI_PRIORITY,	25576 },
 		{ "udpbsi",	(FUNCPTR) udpbsi,	ICI_PRIORITY,	25576 },
 		{ "udpbso",	(FUNCPTR) udpbso,	ICI_PRIORITY,	25576 },
 		{ "tcpbsi",	(FUNCPTR) tcpbsi,	ICI_PRIORITY,	25576 },
 		{ "tcpbso",	(FUNCPTR) tcpbso,	ICI_PRIORITY,	25576 },
+#endif
 		/* AMS excluded for minimal BP/LTP port */
 		/*{ "ramsgate",	(FUNCPTR) ramsgate,	ICI_PRIORITY,	25576 },
 		{ "amsshell",	(FUNCPTR) amsshell,	ICI_PRIORITY,	25576 },

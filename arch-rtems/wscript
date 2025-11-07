@@ -30,6 +30,11 @@ def build(bld):
     # Excluding CFDP by seting open source = 0
     ION_OPEN_SOURCE=0
 
+    # Excluding DGR and BSSP for minimal RTEMS configuration
+    # Set to 1 to enable these convergence layers
+    ENABLE_DGR = 0
+    ENABLE_BSSP = 0
+
     iondefines=[
         'RTEMS',
         'BP_EXTENDED',
@@ -58,6 +63,13 @@ def build(bld):
 
     if ION_OPEN_SOURCE == 0:
         iondefines+=['NASA_PROTECTED_FLIGHT_CODE']
+
+    # Add conditional defines for DGR and BSSP
+    if ENABLE_DGR == 1:
+        iondefines+=['ENABLE_DGR']
+
+    if ENABLE_BSSP == 1:
+        iondefines+=['ENABLE_BSSP']
 
     # Not including the following
     # -DION_NO_DNS 
@@ -165,10 +177,8 @@ def build(bld):
         'bpclm.c',
         'bpstats.c',
         'bptrace.c',
-        'bplist.c',     
+        'bplist.c',
         'cpsd.c',
-        'dgrcli.c',
-        'dgrclo.c',
         'lgagent.c',
         'ipnadmin.c',
         'ipnfw.c',
@@ -177,11 +187,17 @@ def build(bld):
         'ltpclo.c',
         'bibeadmin.c',
         'bibeclo.c',
-        'bsspclo.c',
-        'bsspcli.c',
         'imcadminep.c',
         'imcfw.c'
     ]
+
+    # Conditionally add DGR convergence layer sources
+    if ENABLE_DGR == 1:
+        bpsources += ['dgrcli.c', 'dgrclo.c']
+
+    # Conditionally add BSSP convergence layer sources
+    if ENABLE_BSSP == 1:
+        bpsources += ['bsspcli.c', 'bsspclo.c']
 
     bplibsources=[
         'bpsec_instr.c',
@@ -386,9 +402,14 @@ def build(bld):
         'bpcrash.c'
     ]
 
-    # Minimal BP/LTP port - excluding AMS, BSS, DGR
+    # Minimal BP/LTP port - excluding AMS, BSS
+    # DGR and BSSP conditionally included based on ENABLE_DGR and ENABLE_BSSP flags
     csrcs = ['ionrtems.c'] + icisources + ltpsource \
-    + bpsources + bsspsources + testsources
+    + bpsources + testsources
+
+    # Conditionally add BSSP daemon and admin sources
+    if ENABLE_BSSP == 1:
+        csrcs += bsspsources
 
     if ION_OPEN_SOURCE == 1:
         csrcs += cfdpsources
@@ -400,9 +421,17 @@ def build(bld):
     #      To be fixed in future release. Current demo does
     #      require NM and CFDP functionalities
 
-    # Minimal BP/LTP port - excluding AMS, BSS (DGR needed by BP)
-    includes = ['./'] + iciinclude + ltpinclude + \
-        dgrinclude + bsspinclude + bpinclude
+    # Minimal BP/LTP port - excluding AMS, BSS
+    # DGR and BSSP conditionally included based on flags
+    includes = ['./'] + iciinclude + ltpinclude + bpinclude
+
+    # Conditionally add DGR include paths
+    if ENABLE_DGR == 1:
+        includes += dgrinclude
+
+    # Conditionally add BSSP include paths
+    if ENABLE_BSSP == 1:
+        includes += bsspinclude
 
     if ION_OPEN_SOURCE == 1:
         includes += cfdpinclude
@@ -428,32 +457,47 @@ def build(bld):
 
     # Not building libudplsa.la, not used for this port
 
-    # DGR still needed as BP depends on it
-    bld.stlib(
-        target='dgr',
-        cflags= ionflags,
-        source=dgrlibsources,
-        includes=dgrinclude+iciinclude,
-        defines=iondefines,
-        use=['ici','m']
-    )
+    # Conditionally build DGR library
+    if ENABLE_DGR == 1:
+        bld.stlib(
+            target='dgr',
+            cflags= ionflags,
+            source=dgrlibsources,
+            includes=dgrinclude+iciinclude,
+            defines=iondefines,
+            use=['ici','m']
+        )
 
-    bld.stlib(
-        target='bssp',
-        cflags= ionflags,
-        source=bssplibsources,
-        includes=bsspinclude+iciinclude,
-        defines=iondefines,
-        use=['ici','m']
-    )
+    # Conditionally build BSSP library
+    if ENABLE_BSSP == 1:
+        bld.stlib(
+            target='bssp',
+            cflags= ionflags,
+            source=bssplibsources,
+            includes=bsspinclude+iciinclude,
+            defines=iondefines,
+            use=['ici','m']
+        )
+
+    # Build BP library with conditional DGR and BSSP dependencies
+    bp_includes = bpinclude + ltpinclude + iciinclude
+    bp_use = ['ici', 'ltp', 'm']
+
+    if ENABLE_DGR == 1:
+        bp_includes += dgrinclude
+        bp_use.insert(-1, 'dgr')  # Insert before 'm'
+
+    if ENABLE_BSSP == 1:
+        bp_includes += bsspinclude
+        bp_use.insert(-1, 'bssp')  # Insert before 'm'
 
     bld.stlib(
         target='bp',
         cflags= ionflags,
         source=bplibsources,
-        includes=bpinclude+bsspinclude+ltpinclude+dgrinclude+iciinclude,
+        includes=bp_includes,
         defines=iondefines,
-        use=['ici','bssp','ltp','dgr','m']
+        use=bp_use
     )
 
     # AMS and BSS libraries excluded for minimal port
@@ -469,10 +513,17 @@ def build(bld):
         )
 
     # Minimal BP/LTP port - only required libraries
-    libuse = ['ici','bp','dgr','bssp','ltp','m']
+    libuse = ['ici', 'bp', 'ltp', 'm']
+
+    # Conditionally add DGR and BSSP to linked libraries
+    if ENABLE_DGR == 1:
+        libuse.insert(-1, 'dgr')  # Insert before 'm'
+
+    if ENABLE_BSSP == 1:
+        libuse.insert(-1, 'bssp')  # Insert before 'm'
 
     if ION_OPEN_SOURCE == 1:
-        libuse += ['cfdp']
+        libuse.insert(-1, 'cfdp')  # Insert before 'm'
 
     # Note: RTEMS pthread functions are in rtemscpu library
 
