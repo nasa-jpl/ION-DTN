@@ -7,3 +7,6 @@
 [submodule "contrib/SPP-UCP"]
 	path = contrib/SPP-UCP
 	url = https://github.com/nasa-jpl/SPP-UCP
+[submodule "contrib/rtems_waf"]
+	path = contrib/rtems_waf
+	url = https://gitlab.rtems.org/rtems/tools/rtems_waf.git

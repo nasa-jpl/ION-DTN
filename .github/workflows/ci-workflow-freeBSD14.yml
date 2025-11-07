@@ -40,7 +40,8 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          clean: true 
+          clean: true
+          submodules: true
           # clear workspace after
 
       - name: Display Runner Host OS and Arch
