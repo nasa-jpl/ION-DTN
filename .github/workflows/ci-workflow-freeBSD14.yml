@@ -41,7 +41,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: true
-          submodules: true
           # clear workspace after
 
       - name: Display Runner Host OS and Arch
@@ -69,7 +68,7 @@ jobs:
       - name: Copy code to FreeBSD VM
         run: |
           ssh -o StrictHostKeyChecking=no jgao@$VM_IP 'rm -rf ~/ion-gh-test-dir && mkdir -p ~/ion-gh-test-dir'
-          scp -o StrictHostKeyChecking=no -r "$GITHUB_WORKSPACE" jgao@$VM_IP:~/ion-gh-test-dir
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no" --exclude='arch-rtems' --exclude='contrib' "$GITHUB_WORKSPACE/" jgao@$VM_IP:~/ion-gh-test-dir/ion-ios-dev/
 
       - name: Generate timestamp for file names
         id: timestamp
