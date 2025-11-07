@@ -54,7 +54,8 @@ def build(bld):
         'SPACE_ORDER=3',
         'LONG_LONG_OKAY=1',
         'PRIVATE_SYMTAB',
-        'USING_RTEMS_LIBBSD'
+        'USING_RTEMS_LIBBSD',
+        'MAX_SPAWNS=32'
     ]
 
     # Check for inclusion of CFDP

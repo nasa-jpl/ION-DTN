@@ -28,6 +28,9 @@ extern int	bpclock(int, int, int, int, int, int, int, int, int, int);
 extern int	bptransit(int, int, int, int, int, int, int, int, int, int);
 extern int	bpclm(int, int, int, int, int, int, int, int, int, int);
 extern int	bpstats(int, int, int, int, int, int, int, int, int, int);
+extern int	bplist(int, int, int, int, int, int, int, int, int, int);
+extern int	bptrace(int, int, int, int, int, int, int, int, int, int);
+extern int	cpsd(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpcli(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpclo(int, int, int, int, int, int, int, int, int, int);
 extern int	bibeclo(int, int, int, int, int, int, int, int, int, int);
@@ -92,6 +95,9 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "bptransit",	(FUNCPTR) bptransit,	ICI_PRIORITY,	4096  },
 		{ "bpclm",	(FUNCPTR) bpclm,	ICI_PRIORITY,	24576 },
 		{ "bpstats",	(FUNCPTR) bpstats,	ICI_PRIORITY,	4096  },
+		{ "bplist",	(FUNCPTR) bplist,	ICI_PRIORITY,	4096  },
+		{ "bptrace",	(FUNCPTR) bptrace,	ICI_PRIORITY,	4096  },
+		{ "cpsd",	(FUNCPTR) cpsd,		ICI_PRIORITY,	32768 },
 		{ "ltpcli",	(FUNCPTR) ltpcli,	ICI_PRIORITY,	32768 },
 		{ "ltpclo",	(FUNCPTR) ltpclo,	ICI_PRIORITY,	32768 },
 		{ "bibeclo",	(FUNCPTR) bibeclo,	ICI_PRIORITY,	32768 },

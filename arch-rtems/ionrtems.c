@@ -9,6 +9,7 @@
 #include <rtems/shell.h>
 #include <assert.h>
 #include <sysexits.h>
+#include <sys/time.h>
 #include <rtems/bsd/bsd.h>
 #include "platform.h"
 #include "ion.h"
@@ -48,6 +49,34 @@ static void	initNetwork()
 	assert(exit_code == EX_OK);
 
 	puts("Network initialization complete (loopback interface ready).");
+}
+
+static void	initClock()
+{
+	rtems_time_of_day tod;
+	rtems_status_code sc;
+
+	/*
+	 * Set system clock to November 7, 2025, 00:00:00 UTC
+	 * This provides a realistic timestamp for bundle creation
+	 * and prevents timestamp corruption that blocks bundle forwarding.
+	 */
+	tod.year   = 2025;
+	tod.month  = 11;
+	tod.day    = 7;
+	tod.hour   = 0;
+	tod.minute = 0;
+	tod.second = 0;
+	tod.ticks  = 0;
+
+	sc = rtems_clock_set(&tod);
+	if (sc != RTEMS_SUCCESSFUL)
+	{
+		printf("rtems_clock_set failed: %s\n", rtems_status_text(sc));
+		assert(sc == RTEMS_SUCCESSFUL);
+	}
+
+	puts("System clock initialized to November 7, 2025.");
 }
 
 static int	startDTN()
@@ -366,6 +395,8 @@ static void	testLoopback()
 	/*	Verify LTP transmission success with bundle statistics	*/
 	puts("Verifying bundle transmission with statistics:");
 	pseudoshell("bpstats");
+	puts("\nBundle Protocol outduct status:");
+	pseudoshell("bplist");
 	snooze(1);
 
 	/*	Print LTP span statistics to verify actual transmission	*/
@@ -424,6 +455,9 @@ static int	stopDTN(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 rtems_task	Init(rtems_task_argument ignored)
 {
 	puts("=== ION RTEMS 6.1 ARM64 Port - Minimal BP/LTP ===");
+
+	/* Initialize system clock to prevent timestamp corruption */
+	initClock();
 
 	/* Initialize BSD networking stack for UDP support */
 	initNetwork();

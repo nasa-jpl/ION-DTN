@@ -1,0 +1,103 @@
+=== ION RTEMS 6.1 ARM64 Port - Minimal BP/LTP ===
+System clock initialized to November 7, 2025.
+Initializing RTEMS BSD networking stack...
+nexus0: <RTEMS Nexus device>
+[zone: unpcb] kern.ipc.maxsockets limit reached
+Network initialization complete (loopback interface ready).
+Starting ION with public API (no config files)...
+Initializing ION...
+[?] No such directory; disabling heap residence in file and transaction reversibility: /ion
+Starting RFX clock...
+Initializing LTP...
+[2025/11/07-00:00:00] [i] Span 19 initialized with global unified mode defaults: maxRetries=5, maxSegmentLossRate=0.0100
+[2025/11/07-00:00:00] [i] Span to engine 19 (explicit config, max xmit segment size 1400, max recv segment size 1): xmit segment loss rate 0.010000, recv segment loss rate 0.010000, max timeouts 5.
+Initializing BP...
+[2025/11/07-00:00:00] [i] This node deploys bundle protocol version 7.
+[2025/11/07-00:00:00] [i] Bundle security is enabled.
+Starting BP...
+[2025/11/07-00:00:00] [i] rfxclock is running.
+[2025/11/07-00:00:00] [i] ltpclock is running.
+[2025/11/07-00:00:00] [i] ltpdeliv is running.
+[2025/11/07-00:00:00] [i] ltpmeter is running.
+[2025/11/07-00:00:00] [i] udplso is running, local=0.0.0.0:43495 (IPv4), peer=127.0.0.1:1113 (IPv4), rengine=19.
+[2025/11/07-00:00:00] [i] udplsi is running, listening on 127.0.0.1:1113 (IPv4).
+[2025/11/07-00:00:00] [i] bpclock is running.
+[2025/11/07-00:00:00] [i] Not configured for multicast; cpsd stopping.
+[2025/11/07-00:00:00] [i] bptransit is running.
+[2025/11/07-00:00:00] [i] ipnfw is running.
+[2025/11/07-00:00:00] [i] ipnadminep is running.
+[2025/11/07-00:00:00] [i] bpclm is running: ipn:19.0
+[2025/11/07-00:00:00] [i] ltpcli is running.
+[2025/11/07-00:00:00] [i] ltpclo is running.
+[2025/11/07-00:00:00] [i] lgagent is running.
+info: lo0: link state changed to UP
+ION startup complete.
+Starting loopback test.
+[2025/11/07-00:00:02] [i] No congestion collapse predicted.
+[2025/11/07-00:00:02] [i] ionwarn finished.
+[2025/11/07-00:00:04] [i] Span to engine 19 (explicit config, max xmit segment size 1400, max recv segment size 90): xmit segment loss rate 0.010000, recv segment loss rate 0.010000, max timeouts 5.
+ION event: Payload delivered.
+        payload length is 13.
+        'Hello, world.'
+Verifying bundle transmission with statistics:
+
+Bundle Protocol outduct status:
+[2025/11/07-00:00:08] [i] Start of statistics snapshot...
+[2025/11/07-00:00:08] [x] src from 1970/01/01-00:00:00 to 2025/11/07-00:00:08: (0) 0 0 (1) 1 13 (2) 0 0 (+) 1 13
+[2025/11/07-00:00:08] [x] fwd from 1970/01/01-00:00:00 to 2025/11/07-00:00:08: (0) 0 0 (1) 0 0 (2) 0 0 (+) 1 13
+[2025/11/07-00:00:08] [x] xmt from 1970/01/01-00:00:00 to 2025/11/07-00:00:08: (0) 0 0 (1) 1 13 (2) 0 0 (+) 1 13
+[2025/11/07-00:00:08] [x] rcv from 1970/01/01-00:00:00 to 2025/11/07-00:00:08: (0) 0 0 (1) 1 13 (2) 0 0 (+) 1 13
+[2025/11/07-00:00:08] [x] dlv from 1970/01/01-00:00:00 to 2025/11/07-00:00:08: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2025/11/07-00:00:08] [x] rfw from 1970/01/01-00:00:00 to 2025/11/07-00:00:08: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2025/11/07-00:00:08] [x] exp from 1970/01/01-00:00:00 to 2025/11/07-00:00:08: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2025/11/07-00:00:08] [i] ...end of statistics snapshot.
+Reporting detail of all bundles.
+
+Report count is 0.
+
+LTP Protocol Layer Statistics:
+LTP Span Statistics for engine 19:
+  Output segments: popped=1 bytes=90
+  Input segments (red): count=1 bytes=90
+  Input segments (green): count=0 bytes=0
+  Checkpoints transmitted: 1
+  Checkpoints received: 1
+  Sessions: export=1 import=0 completed=1
+Loopback test ended.
+Final statistics check:
+
+Final LTP Protocol Layer Statistics:
+LTP Span Statistics for engine 19:
+  Output segments: popped=1 bytes=90
+  Input segments (red): count=1 bytes=90
+  Input segments (green): count=0 bytes=0
+  Checkpoints transmitted: 1
+  Checkpoints received: 1
+  Sessions: export=1 import=0 completed=1
+[2025/11/07-00:00:12] [i] Start of statistics snapshot...
+[2025/11/07-00:00:12] [x] src from 1970/01/01-00:00:00 to 2025/11/07-00:00:12: (0) 0 0 (1) 1 13 (2) 0 0 (+) 1 13
+[2025/11/07-00:00:12] [x] fwd from 1970/01/01-00:00:00 to 2025/11/07-00:00:12: (0) 0 0 (1) 0 0 (2) 0 0 (+) 1 13
+[2025/11/07-00:00:12] [x] xmt from 1970/01/01-00:00:00 to 2025/11/07-00:00:12: (0) 0 0 (1) 1 13 (2) 0 0 (+) 1 13
+[2025/11/07-00:00:12] [x] rcv from 1970/01/01-00:00:00 to 2025/11/07-00:00:12: (0) 0 0 (1) 1 13 (2) 0 0 (+) 1 13
+[2025/11/07-00:00:12] [x] dlv from 1970/01/01-00:00:00 to 2025/11/07-00:00:12: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2025/11/07-00:00:12] [x] rfw from 1970/01/01-00:00:00 to 2025/11/07-00:00:12: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2025/11/07-00:00:12] [x] exp from 1970/01/01-00:00:00 to 2025/11/07-00:00:12: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2025/11/07-00:00:12] [i] ...end of statistics snapshot.
+Stopping ION...
+Stopping BP...
+[2025/11/07-00:00:13] [i] ipnfw forwarder has ended.
+[2025/11/07-00:00:13] [i] Endpoint has been stopped.
+[2025/11/07-00:00:13] [i] Administrative endpoint terminated.
+[2025/11/07-00:00:13] [i] ipnadminep has ended.
+[2025/11/07-00:00:13] [i] Endpoint has been stopped.
+ION event: Endpoint stopped.
+Stopping bpsink.
+[2025/11/07-00:00:13] [i] Endpoint has been stopped.
+[2025/11/07-00:00:13] [i] Stopping lgagent.
+[2025/11/07-00:00:13] [i] Plan has been stopped: ipn:19.0
+[2025/11/07-00:00:13] [i] bpclm has ended: ipn:19.0
+[2025/11/07-00:00:13] [i] Outduct has been stopped: 19
+[2025/11/07-00:00:13] [i] ltpclo outduct closed.
+[2025/11/07-00:00:13] [i] ltpclo duct has ended.
+[2025/11/07-00:00:13] [i] bptransit has ended.
+qemu-system-aarch64: terminating on signal 15 from pid 4843 (timeout)

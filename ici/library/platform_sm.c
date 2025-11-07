@@ -2937,7 +2937,7 @@ private symbol table; must be added to mysymtab.c.", name);
 
 	if (i == MAX_SPAWNS)
 	{
-		putErrmsg("Can't spawn task: no parms cleared yet.", NULL);
+		putErrmsg("Can't spawn task: no parms cleared yet.", name);
 		return -1;
 	}
 
