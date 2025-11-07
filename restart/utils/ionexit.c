@@ -19,7 +19,7 @@
 
 #ifndef NASA_PROTECTED_FLIGHT_CODE
 #include "cfdp.h"
-#include "cfdpP.h"
+#include "cfdp/library/cfdpP.h"
 #endif
 
 #include "ltp.h"

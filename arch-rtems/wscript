@@ -310,7 +310,8 @@ def build(bld):
 
     bsspinclude=[
         './',
-        '../bssp/include'
+        '../bssp/include',
+        '../bssp/library'
     ]
 
     bssplibsources=[
@@ -335,6 +336,7 @@ def build(bld):
     cfdpinclude=[
         './',
         '../cfdp/include',
+        '../cfdp/library',
         '../cfdp/utils'
     ]
 

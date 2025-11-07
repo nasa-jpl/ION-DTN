@@ -258,7 +258,7 @@ INCLUDES_T= -I. -I../ici/include -I../ltp/include -I../bp/include \
 #	-I../bss/include
 #	-I../bssp/include
 
-INCLUDES = $(INCLUDES_T) -I../cfdp/include -I../ams/include
+INCLUDES = $(INCLUDES_T) -I../bssp/include -I../bssp/library -I../cfdp/include -I../cfdp/library -I../ams/include
 
 #CFLAGS = -g -Wall -Werror $(IONFLAGS) $(INCLUDES) -O2
 #CFLAGS = -g -Wall -Werror $(IONFLAGS) $(INCLUDES)
