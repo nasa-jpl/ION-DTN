@@ -63,6 +63,12 @@ jobs:
           # Only initialize rtems_waf submodule (required for build)
           git submodule update --init --recursive contrib/rtems_waf
 
+          # Verify submodule was initialized
+          echo "Checking rtems_waf submodule contents:"
+          ls -la contrib/rtems_waf/
+          echo "Checking arch-rtems symlink:"
+          ls -la arch-rtems/rtems_waf
+
       - name: Display runner information
         run: |
           echo "Runner: ${{ runner.name }}"
@@ -101,6 +107,11 @@ jobs:
 
           # Wait for container to be ready
           sleep 2
+
+          # Verify rtems_waf is available inside container
+          echo "Checking rtems_waf inside container:"
+          docker exec $CONTAINER_ID bash -c "ls -la /workspace/contrib/rtems_waf/ || echo 'rtems_waf not found'"
+          docker exec $CONTAINER_ID bash -c "ls -la /workspace/arch-rtems/rtems_waf || echo 'symlink not found'"
 
           # Clean previous build if any
           docker exec $CONTAINER_ID bash -c "cd /workspace/arch-rtems && ./waf clean || true"
