@@ -238,6 +238,15 @@ B<NOTE:> This command is deprecated.  Use B<m maxretries> and
 B<m maxseglossrate> instead for explicit configuration of retransmission
 parameters.
 
+B<CRITICAL ORDERING REQUIREMENT:> The B<m maxber> command applies only to
+spans that already exist when the command is executed. It does NOT affect
+spans created afterward. For correct operation, all B<a span> commands MUST
+be issued BEFORE B<m maxber>, or those spans will use default values instead.
+
+This ordering restriction is one reason why this command is deprecated. The
+modern B<m maxretries> and B<m maxseglossrate> commands can be issued in any
+order and will correctly apply to all existing spans without per-span overrides.
+
 =item B<m maxretries> I<max_retransmission_attempts>
 
 The B<manage max retries> command.  This command sets the global default maximum
