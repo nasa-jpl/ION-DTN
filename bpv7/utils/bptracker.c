@@ -804,18 +804,18 @@ void listActiveBundles(BundleTracker *tracker)
         /* Get simple queue status */
         getSimpleQueueStatus(&tbundle, queueStatusStr, sizeof(queueStatusStr));
         
-        printf("%-3d %-12s %-7ld %-20s %-20s %-15s\n", 
-               tbundle.bundleId, 
+        printf("%-3d %-12s %-7lld %-20s %-20s %-15s\n",
+               tbundle.bundleId,
                statusToString(tbundle.status),
-               currentTime - tbundle.sendTime,
+               (long long)(currentTime - tbundle.sendTime),
                tbundle.sourceEid,
                creationTimeStr,
                queueStatusStr);
-        
+
         /* Show additional info for transmitted bundles */
         if (tbundle.status == BUNDLE_TRANSMITTED && tbundle.transmitTime > 0) {
-            printf("    └─ Transmitted: %ld seconds ago, Object: " ADDR_FIELDSPEC "\n", 
-                   currentTime - tbundle.transmitTime, tbundle.bundleObj);
+            printf("    └─ Transmitted: %lld seconds ago, Object: " ADDR_FIELDSPEC "\n",
+                   (long long)(currentTime - tbundle.transmitTime), tbundle.bundleObj);
         } else if (tbundle.bundleObj != 0) {
             printf("    └─ Object: " ADDR_FIELDSPEC "\n", tbundle.bundleObj);
         }
