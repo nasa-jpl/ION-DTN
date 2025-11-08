@@ -56,7 +56,12 @@ jobs:
         with:
           clean: true
           fetch-depth: 1
-          submodules: recursive
+          submodules: false
+
+      - name: Initialize required submodules
+        run: |
+          # Only initialize rtems_waf submodule (required for build)
+          git submodule update --init --recursive contrib/rtems_waf
 
       - name: Display runner information
         run: |
