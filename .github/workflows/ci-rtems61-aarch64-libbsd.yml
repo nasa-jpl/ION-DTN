@@ -54,20 +54,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          clean: true
           fetch-depth: 1
           submodules: false
 
       - name: Initialize required submodules
         run: |
           # Only initialize rtems_waf submodule (required for build)
-          git submodule update --init --recursive contrib/rtems_waf
+          git submodule sync contrib/rtems_waf
+          git submodule update --init --force contrib/rtems_waf
 
           # Verify submodule was initialized
           echo "Checking rtems_waf submodule contents:"
           ls -la contrib/rtems_waf/
-          echo "Checking arch-rtems symlink:"
-          ls -la arch-rtems/rtems_waf
+
+          # Verify the actual Python files are present
+          if [ -f "contrib/rtems_waf/rtems.py" ]; then
+            echo "✓ rtems_waf submodule properly initialized"
+          else
+            echo "✗ rtems_waf submodule initialization failed - missing files"
+            exit 1
+          fi
 
       - name: Display runner information
         run: |
