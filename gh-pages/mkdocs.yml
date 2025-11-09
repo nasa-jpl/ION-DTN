@@ -60,6 +60,7 @@ nav:
     - ION Design & Operation Manual: ION-Guide.md
     - Watch Characters: ION-Watch-Characters.md
     - AMS Programmer's Guide: AMS-Programmer-Guide.md
+    - RTEMS 6.1 Port: RTEMS6-Installation.md
     - Use Cases: Use-Cases.md
     - Publications/Documents: List-of-Papers.md
     - Open Source Development & Support: community/OpenSource-Development-Support.md

@@ -10,9 +10,11 @@ This document describes removed ION Software and provide references to archived 
 
 ## Deprecated Ports
 
-`arch-android`, `arch-rtems` and `arch-uClibc` - are three demonstration ports of ION based on ION 3.x (bpv6) and were not actively maintained. 
+`arch-android` and `arch-uClibc` - are demonstration ports of ION based on ION 3.x (bpv6) and were not actively maintained.
 
 Please see [ION 4.1.3s Release](https://github.com/nasa-jpl/ION-DTN/releases/tag/ion-open-source-4.1.3s) or earlier versions and consult the README documentations under each folder for dependencies and build instructions. There is no expectation that they will work with modern toolchains or operating systems, and they are provided "as is" for historical reference only.
+
+**Note on RTEMS:** The legacy `arch-rtems` SPARC/RTEMS 5.1 port from ION 3.x is deprecated. However, a new **RTEMS 6.1 ARM64 port** (ION 4.1.4+) is now available and actively maintained. See the [RTEMS 6.1 Port Quick Start Guide](RTEMS6-Installation.md) for the modern BPv7 implementation.
 
 ## Depreciated Platform-specific Development Makefiles
 
