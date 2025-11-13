@@ -1117,7 +1117,7 @@ char *ui_str_from_tbl(tbl_t *tbl)
 			{
 				strcat(result, "|");
 			}
-			char *tmp = ui_str_from_tnv(val);
+			tmp = ui_str_from_tnv(val);
 			snprintf(fmt,100,"   %23s   ", tmp);
 			SRELEASE(tmp);
 			strcat(result, fmt);

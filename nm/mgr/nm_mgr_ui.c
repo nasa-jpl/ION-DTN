@@ -3254,8 +3254,6 @@ static int do_ui_form_confirm(char* title, int status, form_fields_t *fields, in
    for(i = 0; i < num_fields; i++)
    {
       form_fields_t *field = &fields[i];
-      int tmp = 0;
-
       printf("%s:\t", field->title);
       ui_form_show_value(field);
       printf("\n");

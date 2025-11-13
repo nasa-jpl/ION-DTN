@@ -300,7 +300,7 @@ const char *formatNetworkAddress(const IonNetworkAddress *addr, char *buffer,
 
 	if (addr->family == AF_INET)
 	{
-		struct sockaddr_in *sin = (struct sockaddr_in *) &addr->addr;
+		struct sockaddr_in *sin = (const struct sockaddr_in *) &addr->addr;
 		addr_ptr = &sin->sin_addr;
 		port = ntohs(sin->sin_port);
 
@@ -309,7 +309,7 @@ const char *formatNetworkAddress(const IonNetworkAddress *addr, char *buffer,
 	}
 	else if (addr->family == AF_INET6)
 	{
-		struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *) &addr->addr;
+		struct sockaddr_in6 *sin6 = (const struct sockaddr_in6 *) &addr->addr;
 		addr_ptr = &sin6->sin6_addr;
 		port = ntohs(sin6->sin6_port);
 
@@ -372,7 +372,7 @@ int createNetworkSocket(int socket_type, const IonNetworkAddress *local_addr,
 
 	/* Bind to local address - structure automatically correct from getaddrinfo()
    */
-	if (bind(sock, (struct sockaddr *) &local_addr->addr, local_addr->addr_len)
+	if (bind(sock, (const struct sockaddr *) &local_addr->addr, local_addr->addr_len)
 	                < 0)
 	{
 		closesocket(sock);

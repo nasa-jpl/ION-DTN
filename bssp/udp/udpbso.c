@@ -153,12 +153,12 @@ int	sendBlockByUDP(int linkSocket, char *from, int length,
 
 			{
 				char			memoBuf[1000];
-				struct sockaddr_in	*saddr = destAddr;
+				struct sockaddr_in	*sockAddr = destAddr;
 
 				isprintf(memoBuf, sizeof(memoBuf),
 					"udpbso sendto() error, dest=[%s:%d], \
-nbytes=%d, rv=%d, errno=%d", (char *) inet_ntoa(saddr->sin_addr), 
-					ntohs(saddr->sin_port), 
+nbytes=%d, rv=%d, errno=%d", (char *) inet_ntoa(sockAddr->sin_addr), 
+					ntohs(sockAddr->sin_port), 
 					length, bytesWritten, errno);
 				writeMemo(memoBuf);
 			}

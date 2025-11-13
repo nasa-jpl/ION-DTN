@@ -1931,7 +1931,7 @@ tnv_t *amp_agent_ctrl_add_tbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 	if(VDB_FINDKEY_RULE(&(tbr->id)) == NULL)
 	{
-		int rh_code = VDB_ADD_RULE(&(tbr->id), tbr);
+		rh_code = VDB_ADD_RULE(&(tbr->id), tbr);
 
 		if(rh_code != RH_OK)
 		{
@@ -2004,7 +2004,7 @@ tnv_t *amp_agent_ctrl_add_sbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 	if(VDB_FINDKEY_RULE(&(sbr->id)) == NULL)
 	{
-		int rh_code = VDB_ADD_RULE(&(sbr->id), sbr);
+		rh_code = VDB_ADD_RULE(&(sbr->id), sbr);
 
 		if(rh_code != RH_OK)
 		{
