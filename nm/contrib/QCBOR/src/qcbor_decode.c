@@ -71,7 +71,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  This casts away the const-ness of a pointer, usually so it can be
  freed or realloced.
  */
-#define UNCONST_POINTER(ptr)    ((void *)(ptr))
+#define UNCONST_POINTER(ptr)    ((void *)(uintptr_t)(ptr))
 
 
 /*

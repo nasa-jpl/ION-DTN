@@ -101,12 +101,12 @@ size_t UsefulBuf_IsValue(const UsefulBufC UB, uint8_t uValue)
       return 0;
    }
 
-   const uint8_t * const pEnd = (uint8_t *)UB.ptr + UB.len;
+   const uint8_t * const pEnd = (const uint8_t *)UB.ptr + UB.len;
    const uint8_t *p = UB.ptr;
    for(; p < pEnd; p++) {
       if(*p != uValue) {
          /* Byte didn't match */
-         return p - (uint8_t *)UB.ptr;
+         return p - (const uint8_t *)UB.ptr;
       }
    }
 
@@ -126,7 +126,7 @@ size_t UsefulBuf_FindBytes(UsefulBufC BytesToSearch, UsefulBufC BytesToFind)
 
    size_t uPos;
    for(uPos = 0; uPos <= BytesToSearch.len - BytesToFind.len; uPos++) {
-      if(!UsefulBuf_Compare((UsefulBufC){((uint8_t *)BytesToSearch.ptr) + uPos, BytesToFind.len}, BytesToFind)) {
+      if(!UsefulBuf_Compare((UsefulBufC){((const uint8_t *)BytesToSearch.ptr) + uPos, BytesToFind.len}, BytesToFind)) {
          return uPos;
       }
    }
@@ -346,7 +346,7 @@ const void * UsefulInputBuf_GetBytes(UsefulInputBuf *pMe, size_t uAmount)
    }
 
    // This is going to succeed
-   const void * const result = ((uint8_t *)pMe->UB.ptr) + pMe->cursor;
+   const void * const result = ((const uint8_t *)pMe->UB.ptr) + pMe->cursor;
    pMe->cursor += uAmount; // this will not overflow because of check using UsefulInputBuf_BytesAvailable()
    return result;
 }
