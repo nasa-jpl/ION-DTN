@@ -192,7 +192,7 @@ void radixpt_rbt_populate(PsmAddress rbt)
 
 			if(addr)
 			{
-				char *entry = (char *) psp(getIonwm(), addr);
+				entry = (char *) psp(getIonwm(), addr);
 				strncpy(entry,tmp,RADIX_MAX_SUBSTR);
 				sm_rbt_insert(getIonwm(), rbt, addr, radixpt_rbt_key_comp, entry);
 			}

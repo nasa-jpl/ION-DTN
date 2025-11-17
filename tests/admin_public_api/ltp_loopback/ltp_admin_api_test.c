@@ -50,14 +50,14 @@ static int test_add_ltp_span(uvast engine_id, unsigned int max_export_sessions,
 	TEST_START("Add LTP Span");
 	LOG_INFO("Adding LTP span to engine " UVAST_FIELDSPEC "...", engine_id);
 	if (add_span(engine_id,
-	             max_export_sessions,
-	             max_import_sessions,
-	             max_segment_size,
-	             aggr_size_limit,
-	             aggr_time_limit,
-	             (char *) lso_command,
-	             queuing_latency,
-	             purge_enabled) <= 0)
+			max_export_sessions,
+			max_import_sessions,
+			max_segment_size,
+			aggr_size_limit,
+			aggr_time_limit,
+			(char *)(uintptr_t) lso_command,
+			queuing_latency,
+			purge_enabled) <= 0)
 	{
 		TEST_FAIL("add_span", "Failed to add LTP span");
 		return -1;
@@ -72,7 +72,7 @@ static int test_add_ltp_seat(const char *lsi_command)
 {
 	TEST_START("Add LTP Seat");
 	LOG_INFO("Adding LTP seat: %s", lsi_command);
-	if (add_seat((char *) lsi_command) <= 0)
+	if (add_seat((char *)(uintptr_t)lsi_command) <= 0)
 	{
 		TEST_FAIL("add_seat", "Failed to add LTP seat");
 		return -1;

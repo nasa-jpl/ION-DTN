@@ -291,7 +291,7 @@ mbedtls_md_context_t *hsha_ctx_init(csi_csid_t suite, csi_val_t key_info, csi_sv
 {
 	mbedtls_md_context_t *ctx;
 	uint32_t size = hsha_ctx_len(suite);
-	mbedtls_md_info_t *md_info;
+	const mbedtls_md_info_t *md_info;
 	mbedtls_md_type_t md_type = MBEDTLS_MD_NONE;
 	uint32_t result = 0;
 
@@ -333,7 +333,7 @@ mbedtls_md_context_t *hsha_ctx_init(csi_csid_t suite, csi_val_t key_info, csi_sv
 		return NULL;
 	}
 
-	if((md_info = (mbedtls_md_info_t *)mbedtls_md_info_from_type(md_type)) == NULL)
+	if((md_info = mbedtls_md_info_from_type(md_type)) == NULL)
 	{
 		CSI_DEBUG_ERR("x hsha_ctx_init: Can't get MD info for suite %d", suite);
 		hsha_ctx_free(suite, ctx);
@@ -684,7 +684,7 @@ int8_t  hsha_sign_finish(csi_csid_t suite, void *context, csi_val_t *digest, csi
  *****************************************************************************/
 int8_t hsha_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_t *digest, csi_svcid_t svc)
 {
-	mbedtls_md_info_t *md_info;
+	const mbedtls_md_info_t *md_info;
 	mbedtls_md_type_t md_type = MBEDTLS_MD_NONE;
 	uint8_t retval = ERROR;
 	uint32_t digest_len = 0;
@@ -714,7 +714,7 @@ int8_t hsha_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_
 		return ERROR;
 	}
 
-	if((md_info = (mbedtls_md_info_t *)mbedtls_md_info_from_type(md_type)) == NULL)
+	if((md_info = mbedtls_md_info_from_type(md_type)) == NULL)
 	{
 		CSI_DEBUG_ERR("x hsha_sign_full: Can't get MD info for suite %d", suite);
 		return ERROR;

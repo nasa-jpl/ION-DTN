@@ -4,6 +4,9 @@
  * Implementation of shared test utilities and helper functions for ION API tests
  */
 
+ /* Must be defined before including standard headers to enable popen() */
+#define _POSIX_C_SOURCE 200809L
+
 #include "ion_test_utils.h"
 #include "rfx.h"
 
@@ -400,7 +403,8 @@ int test_add_scheme(const char *name, const char *fwdCmd, const char *admAppCmd)
 			"Calling add_scheme('%s', '%s', '%s')...", name, fwdCmd,
 			admAppCmd);
 	LOG_INFO("%s", logMsg);
-	rc = add_scheme((char *) name, (char *) fwdCmd, (char *) admAppCmd);
+	rc = add_scheme((char *)(uintptr_t) name, (char *)(uintptr_t) fwdCmd, 
+			(char *)(uintptr_t) admAppCmd);
 	if (rc <= 0)
 	{
 		snprintf(logMsg, sizeof(logMsg), "Failed to add '%s' scheme", name);
@@ -440,7 +444,7 @@ int test_add_endpoint(const char *eid, BpRecvRule recvRule, const char *script)
 			"Calling add_endpoint('%s', %s, %s)...", eid, actionName,
 			(script == NULL) ? "NULL" : script);
 	LOG_INFO("%s", logMsg);
-	rc = add_endpoint((char *) eid, recvRule, (char *) script);
+	rc = add_endpoint((char *)(uintptr_t) eid, recvRule, (char *)(uintptr_t) script);
 	if (rc <= 0)
 	{
 		snprintf(logMsg, sizeof(logMsg), "Failed to add '%s' endpoint", eid);
@@ -489,7 +493,7 @@ int test_add_protocol(const char *protocol_name, int protocol_class)
 			"Calling add_protocol('%s', %d)...", protocol_name,
 			protocol_class);
 	LOG_INFO("%s", logMsg);
-	rc = add_protocol((char *) protocol_name, protocol_class);
+	rc = add_protocol((char *)(uintptr_t) protocol_name, protocol_class);
 	if (rc <= 0)
 	{
 		snprintf(logMsg, sizeof(logMsg), "Failed to add '%s' protocol",
@@ -517,8 +521,8 @@ int test_add_induct(const char *protocol_name, const char *duct_name,
 			"Calling add_induct('%s', '%s', '%s')...", protocol_name,
 			duct_name, cli_command);
 	LOG_INFO("%s", logMsg);
-	rc = add_induct((char *) protocol_name, (char *) duct_name,
-			(char *) cli_command);
+	rc = add_induct((char *)(uintptr_t) protocol_name, (char *)(uintptr_t) duct_name,
+			(char *)(uintptr_t) cli_command);
 	if (rc <= 0)
 	{
 		snprintf(logMsg, sizeof(logMsg), "Failed to add induct '%s:%s'",
@@ -547,8 +551,8 @@ int test_add_outduct(const char *protocol_name, const char *duct_name,
 			"Calling add_outduct('%s', '%s', '%s', %u)...",
 			protocol_name, duct_name, clo_command, max_payload_length);
 	LOG_INFO("%s", logMsg);
-	rc = add_outduct((char *) protocol_name, (char *) duct_name,
-			(char *) clo_command, max_payload_length);
+	rc = add_outduct((char *)(uintptr_t) protocol_name, (char *)(uintptr_t) duct_name,
+			(char *)(uintptr_t) clo_command, max_payload_length);
 	if (rc <= 0)
 	{
 		snprintf(logMsg, sizeof(logMsg), "Failed to add outduct '%s:%s'",
@@ -574,7 +578,7 @@ int test_add_plan(const char *eid, unsigned int nominal_rate)
 	snprintf(logMsg, sizeof(logMsg), "Calling add_plan('%s', %u)...",
 			eid, nominal_rate);
 	LOG_INFO("%s", logMsg);
-	rc = add_plan((char *) eid, nominal_rate);
+	rc = add_plan((char *)(uintptr_t) eid, nominal_rate);
 	if (rc <= 0)
 	{
 		snprintf(logMsg, sizeof(logMsg), "Failed to add plan '%s'", eid);
@@ -601,8 +605,8 @@ int test_add_planduct(const char *eid, const char *protocol_name,
 			"Calling add_planduct('%s', '%s', '%s')...", eid,
 			protocol_name, duct_name);
 	LOG_INFO("%s", logMsg);
-	rc = add_planduct((char *) eid, (char *) protocol_name,
-			(char *) duct_name);
+	rc = add_planduct((char *)(uintptr_t) eid, (char *)(uintptr_t) protocol_name,
+			(char *)(uintptr_t) duct_name);
 	if (rc <= 0)
 	{
 		snprintf(logMsg, sizeof(logMsg),
