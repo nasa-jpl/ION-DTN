@@ -493,7 +493,7 @@ extern Venture	*lookUpVenture(char *appName, char *authName);
 extern Subject	*lookUpSubject(Venture *venture, char *subjectName);
 extern AppRole	*lookUpRole(Venture *venture, char *roleName);
 extern Unit	*lookUpUnit(Venture *venture, char *unitName);
-extern short	lookUpContinuum(char *continuumName);
+extern short	lookUpContinuum(const char *continuumName);
 extern Continuum *getContinuaByNbr(short contnbr);
 extern Subject	*getMsgSpaceByNbr(Venture *venture, short continuum_nbr);
 extern void	eraseApp(AmsApp *app);

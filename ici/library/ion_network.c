@@ -287,9 +287,9 @@ int resolveNetworkAddressCachedTCP(const char *endpoint, IonNetworkAddress *resu
 }
 
 const char *formatNetworkAddress(const IonNetworkAddress *addr, char *buffer,
-                size_t buflen)
+				size_t buflen)
 {
-	void          *addr_ptr;
+	const void          *addr_ptr;
 	unsigned short port;
 	char           addr_str[INET6_ADDRSTRLEN];
 
@@ -300,7 +300,7 @@ const char *formatNetworkAddress(const IonNetworkAddress *addr, char *buffer,
 
 	if (addr->family == AF_INET)
 	{
-		struct sockaddr_in *sin = (const struct sockaddr_in *) &addr->addr;
+		const struct sockaddr_in *sin = (const struct sockaddr_in *) &addr->addr;
 		addr_ptr = &sin->sin_addr;
 		port = ntohs(sin->sin_port);
 
@@ -309,7 +309,7 @@ const char *formatNetworkAddress(const IonNetworkAddress *addr, char *buffer,
 	}
 	else if (addr->family == AF_INET6)
 	{
-		struct sockaddr_in6 *sin6 = (const struct sockaddr_in6 *) &addr->addr;
+		const struct sockaddr_in6 *sin6 = (const struct sockaddr_in6 *) &addr->addr;
 		addr_ptr = &sin6->sin6_addr;
 		port = ntohs(sin6->sin6_port);
 
@@ -337,7 +337,7 @@ int isIPv6Address(const char *addr_str)
 }
 
 int createNetworkSocket(int socket_type, const IonNetworkAddress *local_addr,
-                int *socket_fd)
+				int *socket_fd)
 {
 	int sock;
 
@@ -348,7 +348,7 @@ int createNetworkSocket(int socket_type, const IonNetworkAddress *local_addr,
 
 	/* Create socket - family automatically correct from getaddrinfo() */
 	sock = socket(local_addr->family, socket_type,
-	                (socket_type == SOCK_DGRAM) ? IPPROTO_UDP : IPPROTO_TCP);
+					(socket_type == SOCK_DGRAM) ? IPPROTO_UDP : IPPROTO_TCP);
 	if (sock < 0)
 	{
 		putSysErrmsg("Can't create network socket", NULL);
@@ -367,11 +367,11 @@ int createNetworkSocket(int socket_type, const IonNetworkAddress *local_addr,
 	{
 		int ipv6only = 1;
 		setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, &ipv6only,
-		                sizeof(ipv6only));
+						sizeof(ipv6only));
 	}
 
 	/* Bind to local address - structure automatically correct from getaddrinfo()
-   */
+	*/
 	if (bind(sock, (const struct sockaddr *) &local_addr->addr, local_addr->addr_len)
 	                < 0)
 	{

@@ -37,6 +37,7 @@
 
 */
 
+#include <stdint.h> /* For uintptr_t */
 #include "amscommon.h"
 #ifndef NOEXPAT
 #include "expat.h"
@@ -216,12 +217,12 @@ static void	handle_init_start(LoadMibState *state, const char **atts)
 	AmsMib			*mib;
 	vast			temp;
 	short			cnbr = 0;
-	char			*ptsname = NULL;
-	char			*pubkeyname = NULL;
-	char			*privkeyname = NULL;
-	char			**att;
-	char			*name;
-	char			*value;
+	const char		*ptsname = NULL;
+	const char		*pubkeyname = NULL;
+	const char		*privkeyname = NULL;
+	const char		**att;
+	const char		*name;
+	const char		*value;
 	AmsMibParameters	parms;
 
 	if (state->currentOperation != LoadDormant)
@@ -238,7 +239,7 @@ static void	handle_init_start(LoadMibState *state, const char **atts)
 	}
 
 	state->currentOperation = LoadInitializing;
-	for (att = (char **) atts; *att; att++)
+	for (att = atts; *att; att++)
 	{
 		name = *att;
 		att++;
@@ -274,9 +275,9 @@ static void	handle_init_start(LoadMibState *state, const char **atts)
 	}
 
 	parms.continuumNbr = cnbr;
-	parms.ptsName = ptsname;
-	parms.publicKeyName = pubkeyname;
-	parms.privateKeyName = privkeyname;
+	parms.ptsName = (char *)(uintptr_t) ptsname;
+	parms.publicKeyName = (char *)(uintptr_t) pubkeyname;
+	parms.privateKeyName = (char *)(uintptr_t) privkeyname;
 	mib = _mib(&parms);
 	if (mib == NULL)
 	{
@@ -301,16 +302,16 @@ static void	handle_continuum_start(LoadMibState *state, const char **atts)
 {
 	vast		temp;
 	short		contnbr = 0;
-	char		*contname = NULL;
-	char		*desc = NULL;
-	char		**att;
-	char		*name;
-	char		*value;
+	const char	*contname = NULL;
+	const char	*desc = NULL;
+	const char	**att;
+	const char	*name;
+	const char	*value;
 	int		idx;
 	Continuum	*contin;
 
 	if (noMibYet(state)) return;
-	for (att = (char **) atts; *att; att++)
+	for (att = atts; *att; att++)
 	{
 		name = *att;
 		att++;
@@ -371,7 +372,7 @@ static void	handle_continuum_start(LoadMibState *state, const char **atts)
 	case LoadAdding:
 		if (contin == NULL)
 		{
-			contin = createContinuum(contnbr, contname, desc);
+			contin = createContinuum(contnbr, (char *)(uintptr_t)contname, (char *)(uintptr_t)desc);
 			if (contin == NULL)
 			{
 				putErrmsg("Couldn't add continuum.",
@@ -407,13 +408,13 @@ static void	handle_csendpoint_start(LoadMibState *state, const char **atts)
 	int	after = -1;
 	LystElt	elt = NULL;
 	int	count;
-	char	*epspec = NULL;
-	char	**att;
-	char	*name;
-	char	*value;
+	const char	*epspec = NULL;
+	const char	**att;
+	const char	*name;
+	const char	*value;
 
 	if (noMibYet(state)) return;
-	for (att = (char **) atts; *att; att++)
+	for (att = atts; *att; att++)
 	{
 		name = *att;
 		att++;
@@ -455,7 +456,7 @@ static void	handle_csendpoint_start(LoadMibState *state, const char **atts)
 	switch (state->currentOperation)
 	{
 	case LoadAdding:
-		if (createCsEndpoint(epspec, elt) == NULL)
+		if (createCsEndpoint((char *)(uintptr_t)epspec, elt) == NULL)
 		{
 			putErrmsg("Couldn't add CS endpoint.", NULL);
 			return;
@@ -486,15 +487,15 @@ and deleted.");
 
 static void	handle_amsendpoint_start(LoadMibState *state, const char **atts)
 {
-	char		*tsname = NULL;
-	char		*epspec = NULL;
-	char		**att;
-	char		*name;
-	char		*value;
+	const char		*tsname = NULL;
+	const char		*epspec = NULL;
+	const char		**att;
+	const char		*name;
+	const char		*value;
 	LystElt		elt;
 
 	if (noMibYet(state)) return;
-	for (att = (char **) atts; *att; att++)
+	for (att = atts; *att; att++)
 	{
 		name = *att;
 		att++;
@@ -529,7 +530,7 @@ static void	handle_amsendpoint_start(LoadMibState *state, const char **atts)
 	switch (state->currentOperation)
 	{
 	case LoadAdding:
-		elt = createAmsEpspec(tsname, epspec);
+		elt = createAmsEpspec((char *)(uintptr_t)tsname, (char *)(uintptr_t)epspec);
 		if (elt == NULL)
 		{
 			putErrmsg("Couldn't add AMS endpoint spec.",
@@ -555,12 +556,12 @@ static void	handle_amsendpoint_start(LoadMibState *state, const char **atts)
 
 static void	handle_application_start(LoadMibState *state, const char **atts)
 {
-	char	*appname = NULL;
-	char	*pubkeyname = NULL;
-	char	*privkeyname = NULL;
-	char	**att;
-	char	*name;
-	char	*value;
+	const char	*appname = NULL;
+	const char	*pubkeyname = NULL;
+	const char	*privkeyname = NULL;
+	const char	**att;
+	const char	*name;
+	const char	*value;
 	LystElt	elt;
 
 	if (noMibYet(state)) return;
@@ -570,7 +571,7 @@ static void	handle_application_start(LoadMibState *state, const char **atts)
 		return;
 	}
 
-	for (att = (char **) atts; *att; att++)
+	for (att = atts; *att; att++)
 	{
 		name = *att;
 		att++;
@@ -600,13 +601,13 @@ static void	handle_application_start(LoadMibState *state, const char **atts)
 		return;
 	}
 
-	state->app = lookUpApplication(appname);
+	state->app = lookUpApplication((char *)(uintptr_t)appname);
 	switch (state->currentOperation)
 	{
 	case LoadAdding:
 		if (state->app == NULL)
 		{
-			elt = createApp(appname, pubkeyname, privkeyname);
+			elt = createApp((char *)(uintptr_t)appname, (char *)(uintptr_t)pubkeyname, (char *)(uintptr_t)privkeyname);
 			if (elt == NULL)
 			{
 				putErrmsg("Couldn't add application.",
@@ -641,14 +642,14 @@ static void	handle_application_start(LoadMibState *state, const char **atts)
 static void	handle_venture_start(LoadMibState *state, const char **atts)
 {
 	int	vnbr = 0;
-	char	*appname = NULL;
-	char	*authname = NULL;
-	char	*gwEid = NULL;
+	const char	*appname = NULL;
+	const char	*authname = NULL;
+	const char	*gwEid = NULL;
 	int	ramsNetIsTree = 0;
 	int	rzrsp = 0;
-	char	**att;
-	char	*name;
-	char	*value;
+	const char	**att;
+	const char	*name;
+	const char	*value;
 
 	if (noMibYet(state)) return;
 	if (state->venture)
@@ -657,7 +658,7 @@ static void	handle_venture_start(LoadMibState *state, const char **atts)
 		return;
 	}
 
-	for (att = (char **) atts; *att; att++)
+	for (att = atts; *att; att++)
 	{
 		name = *att;
 		att++;
@@ -712,14 +713,14 @@ static void	handle_venture_start(LoadMibState *state, const char **atts)
 		return;
 	}
 
-	state->venture = lookUpVenture(appname, authname);
+	state->venture = lookUpVenture((char *)(uintptr_t)appname, (char *)(uintptr_t)authname);
 	switch (state->currentOperation)
 	{
 	case LoadAdding:
 		if (state->venture == NULL)
 		{
-			state->venture = createVenture(vnbr, appname,
-					authname, gwEid, ramsNetIsTree, rzrsp);
+			state->venture = createVenture(vnbr, (char *)(uintptr_t)appname,
+				(char *)(uintptr_t)authname, (char *)(uintptr_t)gwEid, ramsNetIsTree, rzrsp);
 			if (state->venture == NULL)
 			{
 				putErrmsg("Couldn't add venture.",
@@ -752,12 +753,12 @@ static void	handle_venture_start(LoadMibState *state, const char **atts)
 static void	handle_role_start(LoadMibState *state, const char **atts)
 {
 	int	rolenbr = 0;
-	char	*rolename = NULL;
-	char	*pubkeyname = NULL;
-	char	*privkeyname = NULL;
-	char	**att;
-	char	*name;
-	char	*value;
+	const char	*rolename = NULL;
+	const char	*pubkeyname = NULL;
+	const char	*privkeyname = NULL;
+	const char	**att;
+	const char	*name;
+	const char	*value;
 	AppRole	*role;
 
 	if (noMibYet(state)) return;
@@ -767,7 +768,7 @@ static void	handle_role_start(LoadMibState *state, const char **atts)
 		return;
 	}
 
-	for (att = (char **) atts; *att; att++)
+	for (att = atts; *att; att++)
 	{
 		name = *att;
 		att++;
@@ -801,14 +802,14 @@ static void	handle_role_start(LoadMibState *state, const char **atts)
 		return;
 	}
 
-	role = lookUpRole(state->venture, rolename);
+	role = lookUpRole(state->venture, (char *)(uintptr_t)rolename);
 	switch (state->currentOperation)
 	{
 	case LoadAdding:
 		if (role == NULL)
 		{
-			role = createRole(state->venture, rolenbr, rolename,
-					pubkeyname, privkeyname);
+			role = createRole(state->venture, rolenbr, (char *)(uintptr_t)rolename,
+			(char *)(uintptr_t)pubkeyname, (char *)(uintptr_t)privkeyname);
 			if (role == NULL)
 			{
 				putErrmsg("Couldn't add role.",
@@ -848,14 +849,14 @@ static void	handle_subject_start(LoadMibState *state, const char **atts)
 {
 	vast	temp;
 	short	subjnbr = 0;
-	char	*subjname = NULL;
-	char	*desc = NULL;
-	char	*symkeyname = NULL;
-	char	*marshalfnname = NULL;
-	char	*unmarshalfnname = NULL;
-	char	**att;
-	char	*name;
-	char	*value;
+	const char	*subjname = NULL;
+	const char	*desc = NULL;
+	const char	*symkeyname = NULL;
+	const char	*marshalfnname = NULL;
+	const char	*unmarshalfnname = NULL;
+	const char	**att;
+	const char	*name;
+	const char	*value;
 
 	if (noMibYet(state)) return;
 	if (state->venture == NULL)
@@ -870,7 +871,7 @@ static void	handle_subject_start(LoadMibState *state, const char **atts)
 		return;
 	}
 
-	for (att = (char **) atts; *att; att++)
+	for (att = atts; *att; att++)
 	{
 		name = *att;
 		att++;
@@ -919,19 +920,19 @@ static void	handle_subject_start(LoadMibState *state, const char **atts)
 		return;
 	}
 
-	state->subject = lookUpSubject(state->venture, subjname);
+	state->subject = lookUpSubject(state->venture, (char *)(uintptr_t)subjname);
 	switch (state->currentOperation)
 	{
 	case LoadAdding:
 		if (state->subject == NULL)
 		{
 			state->subject = createSubject(state->venture, subjnbr,
-					subjname, desc, symkeyname,
-					marshalfnname, unmarshalfnname);
+					(char *)(uintptr_t)subjname, (char *)(uintptr_t)desc, (char *)(uintptr_t)symkeyname,
+					(char *)(uintptr_t)marshalfnname, (char *)(uintptr_t)unmarshalfnname);
 			if (state->subject == NULL)
 			{
 				putErrmsg("Couldn't add subject.",
-						subjname);
+						(char *)(uintptr_t)subjname);
 				return;
 			}
 		}
@@ -959,10 +960,10 @@ static void	handle_subject_start(LoadMibState *state, const char **atts)
 
 static void	handle_sender_start(LoadMibState *state, const char **atts)
 {
-	char	*rolename = NULL;
-	char	**att;
-	char	*name;
-	char	*value;
+	const char	*rolename = NULL;
+	const char	**att;
+	const char	*name;
+	const char	*value;
 
 	if (noMibYet(state)) return;
 	if (state->subject == NULL)
@@ -971,7 +972,7 @@ static void	handle_sender_start(LoadMibState *state, const char **atts)
 		return;
 	}
 
-	for (att = (char **) atts; *att; att++)
+	for (att = atts; *att; att++)
 	{
 		name = *att;
 		att++;
@@ -997,10 +998,10 @@ static void	handle_sender_start(LoadMibState *state, const char **atts)
 	{
 	case LoadAdding:
 		if (addAuthorizedSender(state->venture, state->subject,
-				rolename) < 0)
+		(char *)(uintptr_t)rolename) < 0)
 		{
 			putErrmsg("Couldn't add authorized sender.",
-						rolename);
+						(char *)(uintptr_t)rolename);
 			return;
 		}
 
@@ -1011,7 +1012,7 @@ static void	handle_sender_start(LoadMibState *state, const char **atts)
 		return;
 
 	case LoadDeleting:
-		state->target = rolename;	/*	May be target.	*/
+		state->target = (char *)(uintptr_t)rolename;	/*	May be target.	*/
 		break;
 
 	default:
@@ -1022,10 +1023,10 @@ static void	handle_sender_start(LoadMibState *state, const char **atts)
 
 static void	handle_receiver_start(LoadMibState *state, const char **atts)
 {
-	char	*rolename = NULL;
-	char	**att;
-	char	*name;
-	char	*value;
+	const char	*rolename = NULL;
+	const char	**att;
+	const char	*name;
+	const char	*value;
 
 	if (noMibYet(state)) return;
 	if (state->subject == NULL)
@@ -1034,7 +1035,7 @@ static void	handle_receiver_start(LoadMibState *state, const char **atts)
 		return;
 	}
 
-	for (att = (char **) atts; *att; att++)
+	for (att = atts; *att; att++)
 	{
 		name = *att;
 		att++;
@@ -1060,7 +1061,7 @@ static void	handle_receiver_start(LoadMibState *state, const char **atts)
 	{
 	case LoadAdding:
 		if (addAuthorizedReceiver(state->venture, state->subject,
-				rolename) < 0)
+				(char *)(uintptr_t) rolename) < 0)
 		{
 			putErrmsg("Couldn't add authorized receiver.",
 						rolename);
@@ -1074,7 +1075,7 @@ static void	handle_receiver_start(LoadMibState *state, const char **atts)
 		return;
 
 	case LoadDeleting:
-		state->target = rolename;	/*	May be target.	*/
+		state->target = (char *)(uintptr_t)rolename;	/*	May be target.	*/
 		break;
 
 	default:
@@ -1086,11 +1087,11 @@ static void	handle_receiver_start(LoadMibState *state, const char **atts)
 static void	handle_unit_start(LoadMibState *state, const char **atts)
 {
 	int	znbr = 0;
-	char	*zname = NULL;
+	const char	*zname = NULL;
 	int	rsp = 0;
-	char	**att;
-	char	*name;
-	char	*value;
+	const char	**att;
+	const char	*name;
+	const char	*value;
 	Unit	*unit;
 
 	if (noMibYet(state)) return;
@@ -1100,7 +1101,7 @@ static void	handle_unit_start(LoadMibState *state, const char **atts)
 		return;
 	}
 
-	for (att = (char **) atts; *att; att++)
+	for (att = atts; *att; att++)
 	{
 		name = *att;
 		att++;
@@ -1130,16 +1131,16 @@ static void	handle_unit_start(LoadMibState *state, const char **atts)
 		return;
 	}
 
-	unit = lookUpUnit(state->venture, zname);
+	unit = lookUpUnit(state->venture, (char *)(uintptr_t)zname);
 	switch (state->currentOperation)
 	{
 	case LoadAdding:
 		if (unit == NULL)
 		{
-			unit = createUnit(state->venture, znbr, zname, rsp);
+			unit = createUnit(state->venture, znbr, (char *)(uintptr_t)zname, rsp);
 			if (unit == NULL)
 			{
-				putErrmsg("Couldn't add unit.", zname);
+				putErrmsg("Couldn't add unit.", (char *)(uintptr_t)zname);
 				return;
 			}
 		}
@@ -1175,12 +1176,12 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 {
 	vast		temp;
 	short		contnbr = 0;
-	char		*gwEid = NULL;
-	char		*symkeyname = NULL;
+	const char		*gwEid = NULL;
+	const char		*symkeyname = NULL;
 	int		isNeighbor = 1;
-	char		**att;
-	char		*name;
-	char		*value;
+	const char		**att;
+	const char		*name;
+	const char		*value;
 	Continuum	*contin;
 	Subject		*msgspace = NULL;
 
@@ -1197,7 +1198,7 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 		return;
 	}
 
-	for (att = (char **) atts; *att; att++)
+	for (att = atts; *att; att++)
 	{
 		name = *att;
 		att++;
@@ -1247,8 +1248,8 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 		return;
 	}
 
-	/* Sky gets msgspace for contNbr here*/
-	msgspace = getMsgSpaceByNbr(state->venture, contnbr);		
+	msgspace = createMsgspace(state->venture, contnbr,
+		isNeighbor, (char *)(uintptr_t)gwEid, (char *)(uintptr_t)symkeyname);
 
 	switch (state->currentOperation)
 	{
@@ -1256,7 +1257,7 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 		if (msgspace == NULL)
 		{
 			msgspace = createMsgspace(state->venture, contnbr,
-					isNeighbor, gwEid, symkeyname);
+					isNeighbor, (char *)(uintptr_t)gwEid, (char *)(uintptr_t)symkeyname);
 			if (msgspace == NULL)
 			{
 				putErrmsg("Couldn't add msgspace.",
@@ -1706,7 +1707,7 @@ static int	rcParse(LoadMibState *state, char *buf, size_t length)
 	switch (buf[0])
 	{
 	case '+':
-		startElement(state, elementName, (const char **) atts);
+		startElement(state, elementName, (const char **)(uintptr_t) atts);
 		break;
 
 	case '-':
@@ -1714,7 +1715,7 @@ static int	rcParse(LoadMibState *state, char *buf, size_t length)
 		break;
 
 	case '*':
-		startElement(state, elementName, (const char **) atts);
+		startElement(state, elementName, (const char **)(uintptr_t) atts);
 		endElement(state, elementName);
 		break;
 

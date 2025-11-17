@@ -1017,7 +1017,7 @@ Continuum	*getContinuaByNbr(short contnbr)
 	return NULL;
 }
 
-short	lookUpContinuum(char *contName)
+short	lookUpContinuum(const char *contName)
 {
 	lockMib();
 	

@@ -118,7 +118,7 @@ int bpsec_bhssci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
     if(state->scRawKey.scValLength == 0)
     {
         csi_cipherparms_t parms;
-        int result = 0;
+        result = 0;
 
         /*
          * Step 2.1.1: Get they key to use for signing. AES keywrap does not need any
