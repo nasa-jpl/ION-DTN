@@ -9,6 +9,7 @@
 
 #include "bpinspect_ops.h"
 #include <bei.h>
+#include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
@@ -40,7 +41,7 @@ int bpinspect_ops_cancel_bundle(const BundleCacheEntry *entry)
 	CHKERR(sdr_begin_xn(sdr));
 
 	/* Re-validate that bundle still exists (safe against race conditions) */
-	if (findBundle((char *) entry->source, &creationTime,
+	if (findBundle((char *)(uintptr_t)entry->source, &creationTime,
 		       entry->fragmentOffset, entry->fragmentLength,
 		       &bundleObj) < 0)
 	{
@@ -556,7 +557,7 @@ int bpinspect_ops_export_bundle(const BundleCacheEntry *entry,
 	originalStdout = freopen(filename, "a", stdout);
 	if (originalStdout == NULL)
 	{
-		putErrmsg("Can't redirect stdout to export file.", (char *) filename);
+		putErrmsg("Can't redirect stdout to export file.", filename);
 		return -1;
 	}
 
