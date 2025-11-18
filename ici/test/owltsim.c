@@ -174,7 +174,7 @@ static void	*receiveUdp(void *parm)
 		owltsimExit(1);
 	}
 
-	inetName = (struct sockaddr_in *) &socketName;
+	inetName = (struct sockaddr_in *)(void *) &socketName;
 	memset((char *) &socketName, 0, sizeof socketName);
 	inetName->sin_family = AF_INET;
 	inetName->sin_addr.s_addr = INADDR_ANY;

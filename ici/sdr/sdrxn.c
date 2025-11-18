@@ -403,7 +403,7 @@ SdrMap	*_mapImage(Sdr sdrv)
 
 	if (sdrv->sdr->configFlags & SDR_IN_DRAM)
 	{
-		return (SdrMap *) (sdrv->dssm);
+		return (SdrMap *)(void *) (sdrv->dssm);
 	}
 
 	sdrFetch(map, 0);
@@ -1474,7 +1474,7 @@ in file and transaction reversibility", sdr->pathName);
 		{
 			/*	Just initialize the dataspace.		*/
 
-			initSdrMap((SdrMap *) dssm, sdr);
+			initSdrMap((SdrMap *)(void *) dssm, sdr);
 		}
 		else			/*	Heap is also in file.	*/
 		{

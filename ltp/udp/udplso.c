@@ -122,7 +122,7 @@ int	sendSegmentByUDP(int linkSocket, char *from, int length,
 			
 			if (destAddr->sa_family == AF_INET)
 			{
-				struct sockaddr_in *sin = (struct sockaddr_in*)destAddr;
+				struct sockaddr_in *sin = (struct sockaddr_in*)(void *)destAddr;
 				inet_ntop(AF_INET, &sin->sin_addr, addrStr, sizeof(addrStr));
 				isprintf(memoBuf, sizeof(memoBuf),
 					"udplso sendto() error, dest=%s:%d, nbytes=%d, rv=%d, errno=%d",
@@ -130,7 +130,7 @@ int	sendSegmentByUDP(int linkSocket, char *from, int length,
 			}
 			else if (destAddr->sa_family == AF_INET6)
 			{
-				struct sockaddr_in6 *sin6 = (struct sockaddr_in6*)destAddr;
+				struct sockaddr_in6 *sin6 = (struct sockaddr_in6*)(void *)destAddr;
 				inet_ntop(AF_INET6, &sin6->sin6_addr, addrStr, sizeof(addrStr));
 				isprintf(memoBuf, sizeof(memoBuf),
 					"udplso sendto() error, dest=[%s]:%d, nbytes=%d, rv=%d, errno=%d",

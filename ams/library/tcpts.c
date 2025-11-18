@@ -254,7 +254,7 @@ int	tcpAmsInit(AmsInterface *tsif, char *epspec)
 	pthread_mutex_init(&sap->sendPoolMutex, NULL);
 	pthread_mutex_init(&sap->rcvrPoolMutex, NULL);
 	memset((char *) &(sap->addrbuf), 0, sizeof(struct sockaddr));
-	sap->nm = (struct sockaddr_in *) &(sap->addrbuf);
+	sap->nm = (struct sockaddr_in *)(void *)&(sap->addrbuf);
 	sap->nm->sin_family = AF_INET;
 	sap->nm->sin_port = htons(portNbr);
 	sap->nm->sin_addr.s_addr = htonl(ipAddress);
@@ -546,7 +546,7 @@ static int	tcpSendAms(AmsEndpoint *dp, AmsSAP *sap,
 	AmsInterface		*tsif;
 	TcptsSap		*tcpSap;
 	struct sockaddr		buf;
-	struct sockaddr_in	*nm = (struct sockaddr_in *) &buf;
+	struct sockaddr_in	*nm = (struct sockaddr_in *)(void *)&buf;
 	unsigned short		checksum;
 	unsigned short		preamble;
 	int			result;

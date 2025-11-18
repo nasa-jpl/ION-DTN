@@ -87,9 +87,9 @@ struct big_ohd2				/*	Trailing overhead.	*/
 	PsmAddress	prev;
 };
 
-#define SMALL(x)	((struct small_ohd *)(((char *) map) + x))
-#define BIG1(x)		((struct big_ohd1 *)(((char *) map) + x))
-#define BIG2(x)		((struct big_ohd2 *)(((char *) map) + x))
+#define SMALL(x)	((struct small_ohd *)(void *)(((char *) map) + x))
+#define BIG1(x)		((struct big_ohd1 *)(void *)(((char *) map) + x))
+#define BIG2(x)		((struct big_ohd2 *)(void *)(((char *) map) + x))
 #define PTR(x)		(((char *) map) + x)
 
 #define	LG_OHD_SIZE	(1 << LARGE_ORDER1)	/*	double word	*/
@@ -304,7 +304,7 @@ int	psm_manage(char *start, size_t length, char *name, PsmPartition *psmp,
 
 	partition->space = start;
 	partition->trace = NULL;
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	if (map->status == MANAGED)
 	{
 		*psmp = partition;
@@ -400,7 +400,7 @@ char	*psm_name(PsmPartition partition)
 	PartitionMap	*map;
 
 	CHKNULL(partition);
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	return map->name;
 }
 
@@ -415,7 +415,7 @@ void	psm_unmanage(PsmPartition partition)
 	PartitionMap	*map;
 
 	CHKVOID(partition);
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	if (map->status == MANAGED)
 	{
 	/*	Wait for partition to be no longer in use; unmanage.	*/
@@ -437,7 +437,7 @@ void	psm_erase(PsmPartition partition)
 	PartitionMap	*map;
 
 	CHKVOID(partition);
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	psm_unmanage(partition);	/*	Locks partition.	*/
 	map->status = 0;
 }
@@ -455,7 +455,7 @@ PsmAddress	psa(PsmPartition partition, void *pointer)
 	char		*ptr = (char *) pointer;
 
 	CHKZERO(partition);
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	if (ptr < partition->space + sizeof(PartitionMap)
 	|| ptr > partition->space + map->partitionSize)
 	{
@@ -470,7 +470,7 @@ void	psm_panic(PsmPartition partition)
 	PartitionMap	*map;
 
 	CHKVOID(partition);
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	lockPartition(map);
 	map->desperate = 1;
 	unlockPartition(map);
@@ -481,7 +481,7 @@ void	psm_relax(PsmPartition partition)
 	PartitionMap	*map;
 
 	CHKVOID(partition);
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	lockPartition(map);
 	map->desperate = 0;
 	unlockPartition(map);
@@ -493,7 +493,7 @@ int	psm_set_root(PsmPartition partition, PsmAddress root)
 	int		err = 0;
 
 	CHKERR(partition);
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	lockPartition(map);
 	if (map->directory != 0)
 	{
@@ -520,7 +520,7 @@ void	psm_erase_root(PsmPartition partition)
 	PartitionMap	*map;
 
 	CHKVOID(partition);
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	lockPartition(map);
 	map->directory = 0;
 	unlockPartition(map);
@@ -532,7 +532,7 @@ PsmAddress	psm_get_root(PsmPartition partition)
 	PsmAddress	root;
 
 	CHKZERO(partition);
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	if (map->status == 0)
 	{
 		/*	Catch before assert in lockPartition().		*/
@@ -558,7 +558,7 @@ int	Psm_add_catlg(const char *file, int line, PsmPartition partition)
 		return -1;
 	}
 
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	lockPartition(map);
 	if (map->directory != 0)
 	{
@@ -596,7 +596,7 @@ int	Psm_catlg(const char *file, int line, PsmPartition partition,
 		return -1;
 	}
 
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	lockPartition(map);
 	if (map->directory == 0)
 	{
@@ -677,7 +677,7 @@ int	Psm_uncatlg(const char *file, int line, PsmPartition partition,
 		return -1;
 	}
 
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	lockPartition(map);
 	if (psm_locate(partition, name, &objAddress, &elt) < 0)
 	{
@@ -712,7 +712,7 @@ int	psm_locate(PsmPartition partition, char *name, PsmAddress *address,
 	CHKERR(entryElt);
 	*address = 0;		/*	Default is "not found".		*/
 	*entryElt = 0;		/*	Default is "not found".		*/
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	lockPartition(map);
 	if (map->directory == 0)
 	{
@@ -881,7 +881,7 @@ static void	freeLarge(PartitionMap *map, PsmAddress block)
 #ifdef PSM_TRACE
 static int	traceInProgress(PsmPartition partition)
 {
-	PartitionMap	*map = (PartitionMap *) (partition->space);
+	PartitionMap	*map = (PartitionMap *)(void *) (partition->space);
 
 	if (partition->trace == NULL)
 	{
@@ -958,7 +958,7 @@ void	Psm_free(const char *file, int line, PsmPartition partition,
 		return;
 	}
 
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	if (address >= map->partitionSize
 	|| ((address / WORD_SIZE) * WORD_SIZE) != address)
 	{
@@ -1216,7 +1216,7 @@ block size %lu", nbytes);
 		return 0;
 	}
 
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	lockPartition(map);
 	block = mallocLarge(map, nbytes);
 #ifdef PSM_TRACE
@@ -1255,7 +1255,7 @@ block size %lu", nbytes);
 		return 0;
 	}
 
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	lockPartition(map);
 	if (nbytes > SMALL_BLK_LIMIT)
 	{
@@ -1314,7 +1314,7 @@ void	psm_audit(PsmPartition partition)
 	struct small_ohd	*blk;
 
 	CHKVOID(partition);
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	lockPartition(map);
 	for (i = 0; i < SMALL_SIZES; i++)
 	{
@@ -1357,7 +1357,7 @@ void	psm_usage(PsmPartition partition, PsmUsageSummary *usage)
 
 	CHKVOID(partition);
 	CHKVOID(usage);
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	lockPartition(map);
 	istrcpy(usage->partitionName, map->name, sizeof usage->partitionName);
 	usage->partitionSize = map->partitionSize;
@@ -1464,7 +1464,7 @@ int	psm_start_trace(PsmPartition partition, size_t shmSize, char *shm)
 	PartitionMap	*map;
 
 	CHKERR(partition);
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	lockPartition(map);
 	if (map->traceSize > 0)	/*	Trace is already enabled.	*/
 	{
@@ -1509,7 +1509,7 @@ void	psm_print_trace(PsmPartition partition, int verbose)
 	PsmUsageSummary	summary;
 
 	CHKVOID(partition);
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	sptrace_report(partition->trace, verbose);
 	lockPartition(map);
 	psm_usage(partition, &summary);
@@ -1526,7 +1526,7 @@ void	psm_clear_trace(PsmPartition partition)
 	PartitionMap	*map;
 
 	CHKVOID(partition);
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	lockPartition(map);
 	sptrace_clear(partition->trace);
 	unlockPartition(map);
@@ -1541,7 +1541,7 @@ void	psm_stop_trace(PsmPartition partition)
 	PartitionMap	*map;
 
 	CHKVOID(partition);
-	map = (PartitionMap *) (partition->space);
+	map = (PartitionMap *)(void *) (partition->space);
 	lockPartition(map);
 	map->traceSize = 0;			/*	Disable trace.	*/
 	snooze(1);   /* allow sufficient time for existing trace to end */

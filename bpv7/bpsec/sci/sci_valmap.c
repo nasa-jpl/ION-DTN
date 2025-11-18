@@ -622,29 +622,38 @@ char* bpsec_scvm_intStrEncode(PsmPartition wm, sc_value *val)
  *****************************************************************************/
 int   bpsec_scvm_strCborDecode(PsmPartition wm, sc_value *val, unsigned int len, uint8_t *buffer)
 {
-	int bytesUsed = 0;
-	void *cursor = NULL;
+    int bytesUsed = 0;
+    void *cursor = NULL;
+    uvast temp_len = 0; /* Temp var for safe 64-bit alignment/sizing */
 
     CHKERR(val);
 
-    if(cbor_decode_text_string(NULL, (uvast *) &val->scValLength, &buffer, &len) < 1)
+    /* Pass the aligned temp variable instead of the struct member */
+    if(cbor_decode_text_string(NULL, &temp_len, &buffer, &len) < 1)
     {
-    	BPSEC_DEBUG_ERR("Cannot determine SC value length.", NULL);
-    	return -1;
+        BPSEC_DEBUG_ERR("Cannot determine SC value length.", NULL);
+        return -1;
     }
+    
+    /* Copy the value back to the struct */
+    val->scValLength = temp_len;
 
     if((cursor = bpsec_scv_rawAlloc(wm, val, val->scValLength)) == NULL)
     {
-    	BPSEC_DEBUG_ERR("Cannot allocate %d bytes.", val->scValLength);
-    	return -1;
+        BPSEC_DEBUG_ERR("Cannot allocate %d bytes.", val->scValLength);
+        return -1;
     }
 
-    if((bytesUsed = cbor_decode_text_string(cursor, (uvast *) &val->scValLength, &buffer, &len)) < 1)
+    /* Pass the aligned temp variable again */
+    if((bytesUsed = cbor_decode_text_string(cursor, &temp_len, &buffer, &len)) < 1)
     {
-    	BPSEC_DEBUG_ERR("Cannot decode text string.", NULL);
-    	bpsec_scv_clear(wm, val);
-    	return -1;
+        BPSEC_DEBUG_ERR("Cannot decode text string.", NULL);
+        bpsec_scv_clear(wm, val);
+        return -1;
     }
+    
+    /* Update struct again (just in case the decode updated the length) */
+    val->scValLength = temp_len;
 
     return bytesUsed;
 }

@@ -269,7 +269,7 @@ static void	reloadRsRegistrations(CsState *csState)
 static void	processMsgToCs(CsState *csState, AmsEvt *evt)
 {
 	AmsMib		*mib = _mib(NULL);
-	MamsMsg		*msg = (MamsMsg *) (evt->value);
+	MamsMsg		*msg = (MamsMsg *)(void *)(evt->value);
 	char		*zeroLengthEpt = "";
 	Venture		*venture;
 	Unit		*unit;
@@ -716,7 +716,7 @@ static void	stopConfigServer(CsState *csState)
 static int	sendMsgToCS(RsState *rsState, AmsEvt *evt)
 {
 	AmsMib		*mib = _mib(NULL);
-	MamsMsg		*msg = (MamsMsg *) (evt->value);
+	MamsMsg		*msg = (MamsMsg *)(void *)(evt->value);
 	MamsEndpoint	*ep;
 	int		result;
 
@@ -1223,7 +1223,7 @@ static int	skipDeclaration(int *bytesRemaining, char **cursor)
 static void	processMsgToRs(RsState *rsState, AmsEvt *evt)
 {
 	AmsMib		*mib = _mib(NULL);
-	MamsMsg		*msg = (MamsMsg *) (evt->value);
+	MamsMsg		*msg = (MamsMsg *)(void *)(evt->value);
 	Venture		*venture;
 	Unit		*unit;
 	Cell		*cell;

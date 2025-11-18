@@ -131,7 +131,7 @@ static void	*recvDownlink(void *parm)
 	char			*buffer;
 	unsigned short		portNbr = stp->destDownlinkPortNbr;
 	struct sockaddr		socketName;
-	struct sockaddr_in	*inetName = (struct sockaddr_in *) &socketName;
+	struct sockaddr_in	*inetName = (struct sockaddr_in *)(void *) &socketName;
 	int			fwdSocket;
 	int			segLength;
 	struct timeval		currentTime;
@@ -288,7 +288,7 @@ static void	*offerDownlink(void *parm)
 	/*	Create downlink dialup socket.				*/
 
 	memset((char *) &(socketName), 0, sizeof(struct sockaddr));
-	inetName = (struct sockaddr_in *) &socketName;
+	inetName = (struct sockaddr_in *)(void *) &socketName;
 	inetName->sin_family = AF_INET;
 	inetName->sin_port = htons(portNbr);
 	inetName->sin_addr.s_addr = INADDR_ANY;
@@ -374,7 +374,7 @@ static void	*sendUplink(void *parm)
 	SimThreadParms		*stp = (SimThreadParms *) parm;
 	unsigned short		portNbr = stp->destUplinkPortNbr;
 	struct sockaddr		socketName;
-	struct sockaddr_in	*inetName = (struct sockaddr_in *) &socketName;
+	struct sockaddr_in	*inetName = (struct sockaddr_in *)(void *) &socketName;
 	struct timeval		currentTime;
 	LystElt			elt;
 	LystElt			nextElt;
@@ -457,7 +457,7 @@ static void	*offerUplink(void *parm)
 	/*	Create uplink dialup socket.				*/
 
 	memset((char *) &(socketName), 0, sizeof(struct sockaddr));
-	inetName = (struct sockaddr_in *) &socketName;
+	inetName = (struct sockaddr_in *)(void *) &socketName;
 	inetName->sin_family = AF_INET;
 	inetName->sin_port = htons(portNbr);
 	inetName->sin_addr.s_addr = INADDR_ANY;

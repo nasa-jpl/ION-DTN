@@ -2378,7 +2378,7 @@ void	dgr_getsockname(DgrSAP *sap, unsigned short *portNbr,
 {
 	struct sockaddr		buf;
 	socklen_t		buflen = sizeof buf;
-	struct sockaddr_in	*nm = (struct sockaddr_in *) &buf;
+	struct sockaddr_in	*nm = (struct sockaddr_in *)(void *) &buf;
 
 	CHKVOID(sap);
 	CHKVOID(portNbr);

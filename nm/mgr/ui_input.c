@@ -219,7 +219,7 @@ uint8_t  ui_input_byte(char *prompt)
 	uint8_t result = 0;
 	char line[3];
 	memset(line,0,3);
-	ui_input_get_line(prompt, (char**)&line, 3);
+	ui_input_get_line(prompt, (char**)(void *)&line, 3);
 
 	blob_t *blob = utils_string_to_hex(line);
 	if(blob == NULL)
@@ -242,7 +242,7 @@ double   ui_input_real64(char *prompt)
 	double result = 0;
 	char line[20];
 
-	ui_input_get_line(prompt, (char**)&line, 20);
+	ui_input_get_line(prompt, (char**)(void *)&line, 20);
 
 	sscanf(line, "%lf", &result);
 
@@ -254,7 +254,7 @@ float    ui_input_real32(char *prompt)
 	float result = 0;
 	char line[20];
 
-	ui_input_get_line(prompt, (char**)&line, 20);
+	ui_input_get_line(prompt, (char**)(void *)&line, 20);
 
 	sscanf(line, "%f", &result);
 
@@ -299,7 +299,7 @@ char *   ui_input_string(char *prompt)
 	char *result = NULL;
 	char line[MAX_INPUT_BYTES];
 	memset(line, 0, MAX_INPUT_BYTES);
-	ui_input_get_line(prompt, (char**)&line, MAX_INPUT_BYTES-1);
+	ui_input_get_line(prompt, (char**)(void *)&line, MAX_INPUT_BYTES-1);
 
 	result = (char *) STAKE(strlen(line) + 1);
 
@@ -314,7 +314,7 @@ int32_t     ui_input_int(char *prompt)
 	int32_t result = 0;
 	char line[20];
 
-	ui_input_get_line(prompt, (char**)&line, 20);
+	ui_input_get_line(prompt, (char**)(void *)&line, 20);
 
 	sscanf(line, "%d", &result);
 
@@ -326,7 +326,7 @@ uint32_t     ui_input_uint(char *prompt)
 	uint32_t result = 0;
 	char line[20];
 
-	ui_input_get_line(prompt, (char**)&line, 20);
+	ui_input_get_line(prompt, (char**)(void *)&line, 20);
 
 	sscanf(line, "%u", &result);
 
@@ -338,7 +338,7 @@ uvast     ui_input_uvast(char *prompt)
 	uvast result = 0;
 	char line[MAX_INPUT_BYTES];
 
-	ui_input_get_line(prompt, (char**)&line, MAX_INPUT_BYTES);
+	ui_input_get_line(prompt, (char**)(void *)&line, MAX_INPUT_BYTES);
 
 	sscanf(line, UVAST_FIELDSPEC, &result);
 
@@ -350,7 +350,7 @@ vast     ui_input_vast(char *prompt)
 	vast result = 0;
 	char line[MAX_INPUT_BYTES];
 
-	ui_input_get_line(prompt, (char**)&line, MAX_INPUT_BYTES);
+	ui_input_get_line(prompt, (char**)(void *)&line, MAX_INPUT_BYTES);
 
 	sscanf(line, VAST_FIELDSPEC, &result);
 

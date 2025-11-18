@@ -372,7 +372,7 @@ int	main(int argc, char *argv[])
 	hostNbr = htonl(hostNbr);
 	atp.vduct = vduct;
 	memset((char *) &(atp.socketName), 0, sizeof(struct sockaddr));
-	atp.inetName = (struct sockaddr_in *) &(atp.socketName);
+	atp.inetName = (struct sockaddr_in *)(void *)&(atp.socketName);
 	atp.inetName->sin_family = AF_INET;
 	atp.inetName->sin_port = portNbr;
 	memcpy((char *) &(atp.inetName->sin_addr.s_addr), (char *) &hostNbr, 4);

@@ -683,7 +683,7 @@ puts("no destinations");
 	}
 
 	sdr_read(sdr, fqnnsArray, imcblock->object, imcblock->size);
-	fqnnPtr = (uvast *) fqnnsArray;
+	fqnnPtr = (uvast *)(void *) fqnnsArray;
 	for (i = 0; i < destinationsCount; i++, fqnnPtr++)
 	{
 		if (*fqnnPtr == ownFqnn)

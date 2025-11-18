@@ -401,7 +401,7 @@ static void	destroyAmsEvent(LystElt elt, void *userdata)
 	if (event == NULL) return;
 	if (event->type == AMS_MSG_EVT)
 	{
-		amsMsg = (AmsMsg *) (event->value);
+		amsMsg = (AmsMsg *)(void *) (event->value);
 		if (amsMsg->content)
 		{
 			RELEASE_CONTENT_SPACE(amsMsg->content);
@@ -409,7 +409,7 @@ static void	destroyAmsEvent(LystElt elt, void *userdata)
 	}
 	else if (event->type == MAMS_MSG_EVT)
 	{
-		mamsMsg = (MamsMsg *) (event->value);
+		mamsMsg = (MamsMsg *)(void *) (event->value);
 		if (mamsMsg->supplement)
 		{
 			MRELEASE(mamsMsg->supplement);
@@ -2485,7 +2485,7 @@ discarding message.", NULL);
 
 static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 {
-	MamsMsg			*msg = (MamsMsg *) (evt->value);
+	MamsMsg			*msg = (MamsMsg *)(void *) (evt->value);
 	int				i;
 	int				unitNbr;
 	Unit			*unit;
@@ -3132,7 +3132,7 @@ static int	locateRegistrar(AmsSAP *sap)
 		{
 		case MAMS_MSG_EVT:			
 
-			msg = (MamsMsg *) (evt->value);
+			msg = (MamsMsg *)(void *) (evt->value);
 			switch (msg->type)
 			{
 			case registrar_unknown:
@@ -3301,7 +3301,7 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 		switch (evt->type)
 		{
 		case MAMS_MSG_EVT:
-			msg = (MamsMsg *) (evt->value);
+			msg = (MamsMsg *)(void *) (evt->value);
 			switch (msg->type)
 			{
 			case you_are_dead:
@@ -3348,7 +3348,7 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 static int	sendMsgToRegistrar(AmsSAP *sap, AmsEvt *evt)
 {
 	int	result;
-	MamsMsg	*msg = (MamsMsg *) (evt->value);
+	MamsMsg	*msg = (MamsMsg *)(void *) (evt->value);
 
 	if (msg->type == I_am_stopping)
 	{
@@ -3543,7 +3543,7 @@ static int	getModuleNbr(AmsSAP *sap)
 		switch (evt->type)
 		{
 		case MAMS_MSG_EVT:
-			msg = (MamsMsg *) (evt->value);
+			msg = (MamsMsg *)(void *) (evt->value);
 
 			switch (msg->type)
 			{
@@ -6057,7 +6057,7 @@ static int	ams_reply2(AmsSAP *sap, AmsEvt *evt, short subjectNbr,
 
 	CHKERR(evt);
 	CHKERR(evt->type == AMS_MSG_EVT);
-	msg = (AmsMsg *) (evt->value);
+	msg = (AmsMsg *)(void *) (evt->value);
 	result = sendMsg(sap, msg->continuumNbr, msg->unitNbr, msg->moduleNbr,
 			subjectNbr, priority, flowLabel, contentLength,
 			content, msg->contextNbr, AmsMsgReply);
@@ -6402,7 +6402,7 @@ int	ams_parse_msg(AmsEvent event, short *continuumNbr, int *unitNbr,
 	CHKERR(msgType);
 	CHKERR(priority);
 	CHKERR(flowLabel);
-	msg = (AmsMsg *) (event->value);
+	msg = (AmsMsg *)(void *) (event->value);
 	*continuumNbr = msg->continuumNbr;
 	*unitNbr = msg->unitNbr;
 	*moduleNbr = msg->moduleNbr;
@@ -6675,7 +6675,7 @@ int	ams_parse_notice(AmsEvent event, AmsStateType *state,
 	CHKERR(flowLabel);
 	CHKERR(sequence);
 	CHKERR(diligence);
-	notice = (AmsNotice *) (event->value);
+	notice = (AmsNotice *)(void *) (event->value);
 	*state = notice->stateType;
 	*change = notice->changeType;
 	*unitNbr = notice->unitNbr;
@@ -6720,7 +6720,7 @@ int	ams_recycle_event(AmsEvent event)
 	CHKERR(event);
 	if (event->type == AMS_MSG_EVT)
 	{
-		msg = (AmsMsg *) (event->value);
+		msg = (AmsMsg *)(void *) (event->value);
 		if (msg->content)
 		{
 			RELEASE_CONTENT_SPACE(msg->content);

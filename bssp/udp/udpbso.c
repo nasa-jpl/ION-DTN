@@ -289,7 +289,7 @@ compatibility, but it is ignored.");
 	portNbr = htons(portNbr);
 	ipAddress = htonl(ipAddress);
 	memset((char *) &peerSockName, 0, sizeof peerSockName);
-	peerInetName = (struct sockaddr_in *) &peerSockName;
+	peerInetName = (struct sockaddr_in *)(void *)&peerSockName;
 	peerInetName->sin_family = AF_INET;
 	peerInetName->sin_port = portNbr;
 	memcpy((char *) &(peerInetName->sin_addr.s_addr),
@@ -310,7 +310,7 @@ compatibility, but it is ignored.");
 	portNbr = htons(portNbr);
 	ipAddress = htonl(ipAddress);
 	memset((char *) &ownSockName, 0, sizeof ownSockName);
-	ownInetName = (struct sockaddr_in *) &ownSockName;
+	ownInetName = (struct sockaddr_in *)(void *)&ownSockName;
 	ownInetName->sin_family = AF_INET;
 	ownInetName->sin_port = portNbr;
 	memcpy((char *) &(ownInetName->sin_addr.s_addr),

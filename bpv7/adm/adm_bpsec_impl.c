@@ -1012,6 +1012,7 @@ tnv_t *dtn_bpsec_get_num_fwd_bib_bytes(tnvc_t *parms)
 tnv_t *dtn_bpsec_get_last_update(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
+	time_t temp_time = 0; /* Temp var for safe 64-bit alignment */
 
 	/* Parameter intentionally unused. */
 	(void)parms;
@@ -1023,9 +1024,13 @@ tnv_t *dtn_bpsec_get_last_update(tnvc_t *parms)
 	 */
 	result = tnv_create();
 	result->type = AMP_TYPE_UNK;
-	if(bpsec_instr_get_tot_update((time_t*)&(result->value.as_uint)) != ERROR)
+
+	/* Use temp_time to safely capture the 64-bit time_t */
+	if(bpsec_instr_get_tot_update(&temp_time) != ERROR)
 	{
 		result->type = AMP_TYPE_TS;
+		/* Safely truncate/copy the time back to the 32-bit struct member */
+		result->value.as_uint = (uint32_t)temp_time;
 	}
 	/*
 	 * +-------------------------------------------------------------------------+

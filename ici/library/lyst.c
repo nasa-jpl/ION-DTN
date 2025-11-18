@@ -110,10 +110,11 @@ Lyst_create_using(const char *file, int line, int idx)
 {
   Lyst list;
 
-  if ((list = (Lyst) lyst__alloc(file, line, idx, sizeof(*list))) == NULL)
+  /* Cast through (void *) to satisfy SPARC alignment requirements */
+  if ((list = (Lyst)(void *) lyst__alloc(file, line, idx, sizeof(*list))) == NULL)
   {
-	putErrmsg("Can't create list.", NULL);
-	return NULL;
+    putErrmsg("Can't create list.", NULL);
+    return NULL;
   }
 
   lyst__clear(list);
@@ -628,11 +629,11 @@ lyst__elt_create(const char *file, int line, Lyst list, void *data)
 {
   LystElt elt;
 
-  if ((elt = (LystElt) lyst__alloc(file, line, list->alloc_idx, sizeof(*elt)))
-	== NULL)
+  if ((elt = (LystElt)(void *) lyst__alloc(file, line, list->alloc_idx, sizeof(*elt)))
+      == NULL)
   {
-	putErrmsg("Can't create list element.", NULL);
-	return NULL;
+    putErrmsg("Can't create list element.", NULL);
+    return NULL;
   }
 
   lyst__elt_clear(elt);

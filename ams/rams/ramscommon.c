@@ -1066,7 +1066,7 @@ static int	SendRPDUviaUdp(RamsGateway *gWay, RamsNode *ramsNode,
 	unsigned short		portNbr;
 	unsigned int		ipAddress;
 	struct sockaddr		socketName;
-	struct sockaddr_in	*inetName = (struct sockaddr_in *) &socketName;
+	struct sockaddr_in	*inetName = (struct sockaddr_in *)(void *)&socketName;
 	char			errorMsg[128];
 	UdpRpdu			*rpdu;
 	LystElt			elt;

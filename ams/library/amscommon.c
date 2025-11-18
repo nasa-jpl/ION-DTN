@@ -2710,7 +2710,7 @@ void	recycleEvent(AmsEvt *evt)
 	if (evt == NULL) return;
 	if (evt->type == MAMS_MSG_EVT)
 	{
-		msg = (MamsMsg *) (evt->value);
+		msg = (MamsMsg *)(void *) (evt->value);
 		if (msg->supplement)
 		{
 			MRELEASE(msg->supplement);

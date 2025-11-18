@@ -480,6 +480,8 @@ int8_t ecdsa_sign_finish(csi_csid_t suite, void *context, csi_val_t *digest, csi
 	/* Step 4: Sign the hash with ECDSA. */
 	if(svc == CSI_SVC_SIGN)
 	{
+		size_t sig_len = 0; /* Temp var for safe 64-bit handling */
+
 		digest->len = ecdsa_sign_res_len(suite, context);
 		if((digest->contents = MTAKE(digest->len)) == NULL)
 		{
@@ -487,15 +489,18 @@ int8_t ecdsa_sign_finish(csi_csid_t suite, void *context, csi_val_t *digest, csi
 			digest->len = 0;
 			return ERROR;
 		}
+		
+		/* Initialize temp length with the buffer size */
+		sig_len = digest->len;
 
 		retval = mbedtls_ecdsa_write_signature(ici_ecdsa_ctx->ecdsa_ctx, // ECDSA context
-				                               hashalg,                  // Algorithm used to hash the message.
-											   hashval.contents,        // Message hash
-											   hashval.len,             // Length of hash
-											   digest->contents,         // Buffer that will hold the signature
-											   (size_t *) &(digest->len),           // Length of the signature written
-											   mbedtls_ctr_drbg_random,
-											   (void *) &ctr_drbg);
+												hashalg,                  // Algorithm used to hash the message.
+												hashval.contents,        // Message hash
+												hashval.len,             // Length of hash
+												digest->contents,         // Buffer that will hold the signature
+												&sig_len,                // Use temp variable instead of cast
+												mbedtls_ctr_drbg_random,
+												(void *) &ctr_drbg);
 		if(retval != 0)
 		{
 			CSI_DEBUG_ERR("x ecdsa_sign_finish: Unable to write signature. Error %x.", retval);
@@ -503,6 +508,7 @@ int8_t ecdsa_sign_finish(csi_csid_t suite, void *context, csi_val_t *digest, csi
 		}
 		else
 		{
+			digest->len = sig_len; /* Copy actual length back to struct */
 			retval = 1;
 		}
 
@@ -623,9 +629,10 @@ int8_t ecdsa_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val
 		return ERROR;
 	}
 
-	/* Step 4: Sign the hash with ECDSA. */
+/* Step 4: Sign the hash with ECDSA. */
 	if(svc == CSI_SVC_SIGN)
 	{
+		size_t sig_len = 0; /* Temp var for safe 64-bit alignment and size */
 
 		/* Step 3: Allocate space for the result. */
 		result->len = ecdsa_sign_res_len(suite, ecdsa_ctx);
@@ -638,15 +645,18 @@ int8_t ecdsa_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val
 			return ERROR;
 		}
 
+		/* Initialize the temp length with the allocated size */
+		sig_len = result->len;
+
 		/* Step 4: Sign the result. */
 		retval = mbedtls_ecdsa_write_signature(ecdsa_ctx, // ECDSA context
-				                                   hashalg,                  // Algorithm used to hash the message.
-											       hashval.contents,        // Message hash
-											       hashval.len,             // Length of hash
-											       result->contents,         // Buffer that will hold the signature
-											       (size_t*)&(result->len),           // Length of the signature written
-												   mbedtls_ctr_drbg_random,
-												   (void *)&ctr_drbg);
+													hashalg,                  // Algorithm used to hash the message.
+													hashval.contents,        // Message hash
+													hashval.len,             // Length of hash
+													result->contents,         // Buffer that will hold the signature
+													&sig_len,                 // Use temp variable instead of cast!
+													mbedtls_ctr_drbg_random,
+													(void *)&ctr_drbg);
 
 		if(retval != 0)
 		{
@@ -656,6 +666,9 @@ int8_t ecdsa_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val
 			MRELEASE(hashval.contents);
 			return ERROR;
 		}
+
+		/* Copy the actual signature length back to the result struct */
+		result->len = sig_len;
 	}
 	else if(svc == CSI_SVC_VERIFY)
 	{

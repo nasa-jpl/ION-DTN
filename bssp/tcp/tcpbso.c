@@ -176,7 +176,7 @@ engine number>");
 	hostNbr = htonl(hostNbr);
 
 	memset((char *) &socketName, 0, sizeof socketName);
-	inetName = (struct sockaddr_in *) &socketName;
+	inetName = (struct sockaddr_in *)(void *)&socketName;
 	inetName->sin_family = AF_INET;
 	inetName->sin_port = portNbr;
 	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &hostNbr, 4);

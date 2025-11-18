@@ -169,7 +169,7 @@ int	main(int argc, char *argv[])
 	ipAddress = htonl(ipAddress);
 
 	memset((char *) &socketName, 0, sizeof socketName);
-	inetName = (struct sockaddr_in *) &socketName;
+	inetName = (struct sockaddr_in *)(void *)&socketName;
 	inetName->sin_family = AF_INET;
 	inetName->sin_port = portNbr;
 	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &ipAddress, 4);

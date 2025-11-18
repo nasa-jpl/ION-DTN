@@ -910,7 +910,7 @@ void ui_list_objs(uint8_t adm_id, uvast mask, ari_t **result)
    );
    if (result != NULL && rtv >= 0)
    {
-      *result = ari_copy_ptr(((ari_t*)list[rtv].data));
+      *result = ari_copy_ptr(((ari_t*)(void *)list[rtv].data));
    }
 
    for(i = 0; i < num_objs; i++)
@@ -1154,7 +1154,7 @@ void ui_register_agent(char* msg)
 #else
     memset(line,0, AMP_MAX_EID_LEN);
 	/* Grab the new agent's EID. */
-	if(ui_input_get_line("Enter EID of new agent:", (char **)&line, AMP_MAX_EID_LEN-1) == 0)
+	if(ui_input_get_line("Enter EID of new agent:", (char **)(void *)&line, AMP_MAX_EID_LEN-1) == 0)
 	{
 #endif
 		AMP_DEBUG_ERR("register_agent","Unable to read user input.", NULL);

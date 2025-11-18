@@ -755,7 +755,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	unsigned short		portNbr;
 	unsigned int		ipAddress;
 	struct sockaddr		socketName;
-	struct sockaddr_in	*inetName = (struct sockaddr_in *) &socketName;
+	struct sockaddr_in	*inetName = (struct sockaddr_in *)(void *)&socketName;
 	socklen_t		nameLength;
 	int			datagramLength;
 	char			*buffer = NULL; /* For UDP only */

@@ -55,7 +55,7 @@ static int	openAccessSocket(void)
 	unsigned int		ipAddress;
 	unsigned short		portNbr;
 	struct sockaddr		socketName;
-	struct sockaddr_in	*inetName = (struct sockaddr_in *) &socketName;
+	struct sockaddr_in	*inetName = (struct sockaddr_in *)(void *) &socketName;
 	int			accessSocket;
 	socklen_t		nameLength = sizeof(struct sockaddr);
 
@@ -239,7 +239,7 @@ static int	connectToPeerEntity(uvast destinationEntityNbr,
 	unsigned int		ipAddress;
 	unsigned short		portNbr;
 	struct sockaddr		socketName;
-	struct sockaddr_in	*inetName = (struct sockaddr_in *) &socketName;
+	struct sockaddr_in	*inetName = (struct sockaddr_in *)(void *) &socketName;
 
 	putFqn(nbrBuf, destinationEntityNbr);
 	if (lookUpEntity(destinationEntityNbr, &ipAddress, &portNbr) == 0)
