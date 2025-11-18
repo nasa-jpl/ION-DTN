@@ -4,13 +4,6 @@
  * Implementation of shared test utilities and helper functions for ION API tests
  */
 
-/** 
- * Enable POSIX.2 functionality (popen/pclose) and 
- * Solaris extensions (procset_t) required for strict C18 builds.
- */
-#define _POSIX_C_SOURCE 200809L
-#define __EXTENSIONS__
-
 #include "ion_test_utils.h"
 #include "rfx.h"
 

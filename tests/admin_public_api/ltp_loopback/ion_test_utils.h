@@ -13,18 +13,18 @@
 #ifndef _ION_TEST_UTILS_H_
 #define _ION_TEST_UTILS_H_
 
+#include "ion.h"
+#include "ion_admin.h"
+#include "ionsec.h"
+#include "bp.h"
+#include "bp_admin.h"
+
 #include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
-#include "ion.h"
-#include "ion_admin.h"
-#include "ionsec.h"
-#include "bp.h"
-#include "bp_admin.h"
 
 /* Test result tracking */
 typedef struct
