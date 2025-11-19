@@ -6,6 +6,6 @@
 # Disable screening to allow adjacent contacts
 #m screening n
 
-a span 1 100 100 1400 10000 1 'udplso localhost:1113'
+a span 1 100 100 1400 10000 1 'udplso 127.0.0.1:1113'
 #w 1
-s 'udplsi localhost:1114'
+s 'udplsi 127.0.0.1:1114'

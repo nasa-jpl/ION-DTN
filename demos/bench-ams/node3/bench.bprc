@@ -5,5 +5,5 @@ a endpoint ipn:1.3333333301.1 x
 a endpoint ipn:1.3333333301.3 x
 a endpoint ipn:1.3333333301.9 x
 a protocol tcp 1400 100 -1
-a induct tcp localhost:3113 tcpcli
+a induct tcp 127.0.0.1:3113 tcpcli
 s
