@@ -3506,7 +3506,7 @@ typedef struct
 	char		ended;
 	int			key;
 	smSequence	gseq;
-	int			refCount;		/* Number of active users across all processes */
+	atomic_int	refCount;		/* Number of active users across all processes (atomic for lock-free access) */
 	int			pendingDelete;	/* Marked for deletion when refCount reaches 0 */
 } SmGlobalSem;
 
@@ -4082,7 +4082,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	sem->semgl->key = key;
 	sem->semgl->inUse = 1;
 	sem->semgl->ended = 0;
-	sem->semgl->refCount = 0;  /* Initialize to 0 - no active users yet */
+	atomic_store(&sem->semgl->refCount, 0);  /* Initialize to 0 - no active users yet */
 	sem->semgl->pendingDelete = 0;
 	sem->localRefCount = 0;
 
@@ -4138,7 +4138,7 @@ static void _sm_SemCompleteDeletePosix(SmProcessSemtable *semTbl, sm_SemId i)
 	gsem->inUse = 0;
 	gsem->ended = 0;
 	gsem->key = SM_NO_KEY;
-	gsem->refCount = 0;
+	atomic_store(&gsem->refCount, 0);
 	gsem->pendingDelete = 0;
 	gsem->gseq++;  /* Invalidate all cached local copies */
 
@@ -4199,19 +4199,12 @@ int	sm_SemTake(sm_SemId i)
 	CHKERR(i < SEM_NSEMS_MAX);
 
 #ifdef DEBUG_SEMAPHORE_HANG
-	writeMemoNote("[DEBUG] sm_SemTake: about to takeIpcLock for sem", itoa(i));
+	writeMemoNote("[DEBUG] sm_SemTake: syncing sem", itoa(i));
 #endif
-	/* Atomically increment reference count under IPC lock */
-	takeIpcLock();
-#ifdef DEBUG_SEMAPHORE_HANG
-	writeMemoNote("[DEBUG] sm_SemTake: got IpcLock for sem", itoa(i));
-#endif
-
-	/* Sync local and global state */
-	sem = _semGetSem(semTbl, i, 1);  /* 1 = already locked */
+	/* Sync local semaphore state with global (takes IPC lock internally if needed) */
+	sem = _semGetSem(semTbl, i, 0);
 	if (sem == NULL)
 	{
-		giveIpcLock();
 		putErrmsg("Can't access semaphore", itoa(i));
 		return -1;
 	}
@@ -4221,29 +4214,18 @@ int	sm_SemTake(sm_SemId i)
 	/* Check if semaphore is deleted or pending deletion */
 	if (!gsem->inUse || gsem->pendingDelete)
 	{
-		giveIpcLock();
 		putErrmsg("Can't take deleted or pending-delete semaphore", itoa(i));
 		return -1;
 	}
 
-	/* Check if semaphore ID is valid */
-	if (sem->id == NULL)
-	{
-		giveIpcLock();
-		errno = EINVAL;
-		putErrmsg("Semaphore has been deleted", itoa(i));
-		return -1;
-	}
-
-	/* Increment reference counts */
-	gsem->refCount++;
+	/* Atomically increment reference count (lock-free) */
+	atomic_fetch_add(&gsem->refCount, 1);
 	sem->localRefCount++;
-	giveIpcLock();
 
 #ifdef DEBUG_SEMAPHORE_HANG
 	writeMemoNote("[DEBUG] sm_SemTake: about to sem_wait for sem", itoa(i));
 #endif
-	/* Now safely take the semaphore - protected by refCount */
+	/* Take the semaphore */
 	while (sem_wait(sem->id) == -1)
 	{
 		if (errno == EINTR)
@@ -4251,22 +4233,17 @@ int	sm_SemTake(sm_SemId i)
 			continue;  /* Retry on signal interruption */
 		}
 
-		/* Error - must decrement refCount before returning */
-		takeIpcLock();
-		gsem->refCount--;
+		/* Error - decrement refCount atomically before returning */
+		atomic_fetch_sub(&gsem->refCount, 1);
 		sem->localRefCount--;
-
-		if (gsem->pendingDelete && gsem->refCount == 0)
-		{
-			/* Last user - complete deferred deletion */
-			_sm_SemCompleteDeletePosix(semTbl, i);
-		}
-		giveIpcLock();
 
 		putSysErrmsg("Can't take semaphore", itoa(i));
 		return -1;
 	}
 
+#ifdef DEBUG_SEMAPHORE_HANG
+	writeMemoNote("[DEBUG] sm_SemTake: got sem", itoa(i));
+#endif
 	return 0;
 }
 
@@ -4278,6 +4255,9 @@ void	sm_SemGive(sm_SemId i)
 
 	CHKVOID(sem);
 
+#ifdef DEBUG_SEMAPHORE_HANG
+	writeMemoNote("[DEBUG] sm_SemGive: giving sem", itoa(i));
+#endif
 	/* Give the semaphore first */
 	if (sem_post(sem->id) == -1)
 	{
@@ -4285,23 +4265,15 @@ void	sm_SemGive(sm_SemId i)
 		/* Still need to decrement refCount even if post fails */
 	}
 
-	/* Atomically decrement reference count under IPC lock */
-	takeIpcLock();
-
 	gsem = sem->semgl;
 
-	/* Decrement reference counts */
-	gsem->refCount--;
+	/* Atomically decrement reference count (lock-free) */
+	atomic_fetch_sub(&gsem->refCount, 1);
 	sem->localRefCount--;
 
-	/* Check if semaphore is pending deletion and no more users */
-	if (gsem->pendingDelete && gsem->refCount == 0)
-	{
-		/* Last user across all processes - complete deferred deletion */
-		_sm_SemCompleteDeletePosix(semTbl, i);
-	}
-
-	giveIpcLock();
+#ifdef DEBUG_SEMAPHORE_HANG
+	writeMemoNote("[DEBUG] sm_SemGive: gave sem", itoa(i));
+#endif
 }
 
 void	sm_SemEnd(sm_SemId i)

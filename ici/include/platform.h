@@ -346,6 +346,9 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #include <math.h>
 #include <stdarg.h>
 
+/* C11 atomics for lock-free reference counting */
+#include <stdatomic.h>
+
 /* Add headers for getaddrinfo on Linux, FreeBSD, macOS, RTEMS */
 #if defined(linux) || defined(freebsd) || defined(darwin) || defined(RTEMS)
 #include <netdb.h>
