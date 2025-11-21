@@ -1275,12 +1275,12 @@ uvast	getFqn(char *fromBuffer)
 	if (delimiter)		/*	Allocator number is explicit.	*/
 	{
 		*delimiter = 0;
-		fqn = (atol(fromBuffer) << 32) + atol(delimiter + 1);
+		fqn = (strtouvast(fromBuffer) << 32) + strtouvast(delimiter + 1);
 		*delimiter = '.';
 	}
 	else			/*	Implicit allocator number.	*/
 	{
-		fqn = atoll(fromBuffer);
+		fqn = strtouvast(fromBuffer);
 	}
 
 	return fqn;
