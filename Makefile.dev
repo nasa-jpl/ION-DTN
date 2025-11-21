@@ -1,6 +1,8 @@
 BP = bpv7
+VNAME = ION-4.1.4-b.1
+ADD_FLAGS += -DVNAME=\"$(VNAME)\"
 
-SCRIPTS= ionstart ionstop killm ionscript ionstart.awk 
+SCRIPTS= ionstart ionstop killm ionscript ionstart.awk
 
 $(info Development Makefiles actively maintained for only for "bpv7" on platform "i86_64-fedora" options)
 $(info  - All other options (bpv6 and platforms) are informational only.)

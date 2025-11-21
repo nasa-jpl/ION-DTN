@@ -6,7 +6,7 @@
 
 
 AC_PREREQ([2.60])
-AC_INIT([ion],[open-source-4.1.4-a.2],[https://github.com/nasa-jpl/ION-DTN/issues])
+AC_INIT([ion],[open-source-4.1.4-b.1],[https://github.com/nasa-jpl/ION-DTN/issues])
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
 #  all of the portability warnings introduced by autoconf v2.69 and
@@ -268,7 +268,7 @@ AM_CONDITIONAL([ENABLE_INSTALL_MESSAGES], [test "$enable_install_messages" = yes
 # ION will build BPv7 only
 #
 
-VER="4.1.4-a.2"
+VER="4.1.4-b.1"
 VER="-DVNAME=ION-OPEN-SOURCE-$VER"
 AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv7"
 PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS $VER -DBUILD_BPv7"
