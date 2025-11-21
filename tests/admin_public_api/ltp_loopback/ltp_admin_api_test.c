@@ -277,20 +277,6 @@ int main(void)
 
 	/* Step 12: Bundle send/receive test */
 	printf("\n--- Step 12: Bundle Send/Receive Test (LTP) ---\n");
-
-#ifdef __APPLE__
-	/* Skip bundle test on macOS due to system() call hanging issues
-	 * when parent process has active child processes (ION daemons).
-	 * All LTP admin API tests (Steps 1-11) have passed successfully. */
-	printf(COLOR_YELLOW " * Skipping on macOS: system() calls hang when ION daemons are running\n");
-	printf(" * All LTP admin API configuration tests (Steps 1-11) passed successfully\n");
-	printf(" * Bundle transfer can be tested manually using bpsource/bpsink\n" COLOR_RESET);
-
-	printf("\n========================================\n");
-	printf("  LTP Tests Complete\n");
-	printf("========================================\n");
-	goto cleanup;
-#else
 	printf(" * Sending bundle to ipn:1.2 using bpsource and bpsink\n");
 
 	//printf("\n" COLOR_YELLOW "Press ENTER to continue with LTP bundle test..." COLOR_RESET);
@@ -298,7 +284,6 @@ int main(void)
 
 	/* Clean up temporary file */
 	if (system("rm -f ./bpsink_ltp_output.txt")) { /* ignored */ }
-#endif
 
 	/* Start bpsink in background to receive bundles at ipn:1.2 */
 	LOG_INFO("Starting bpsink to receive at ipn:1.2...");

@@ -432,14 +432,6 @@ int main(void)
 	 * =================================================================
 	 */
 
-#ifdef __APPLE__
-	/* Skip bundle test on macOS due to system() call hanging issues */
-	printf(COLOR_YELLOW "\n * Skipping span management tests on macOS\n");
-	printf(" * system() calls hang when ION daemons are running\n");
-	printf(" * All LTP setup tests (Steps 1-10) passed successfully\n" COLOR_RESET);
-	goto cleanup;
-#endif
-
 	/* Test 1: Initial bundle transmission with span running */
 	printf("\n--- Step 11: Test 1 - Initial Bundle Transmission ---\n");
 	LOG_INFO("Testing bundle delivery with span running...");

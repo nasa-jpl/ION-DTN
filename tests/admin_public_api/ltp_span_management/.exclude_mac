@@ -1,1 +1,13 @@
-Debugging how to identify running process by name on macOS
+This test is excluded on macOS due to platform-specific limitations:
+
+REASON: system() and popen() with shell commands hang on macOS when the parent
+process has active child processes. This test requires:
+1. system() calls to run bpsource/bpsink for bundle transmission tests
+2. system() calls for process management (pkill, pgrep)
+3. popen() with "ps aux | grep" to verify process states during span management
+
+The test performs span start/stop operations and needs to verify that bundles
+are properly queued and delivered. These verification steps hang on macOS.
+
+The core functionality tested (LTP span management API) is sufficiently covered
+by tests on Linux/Solaris where these system calls work reliably.

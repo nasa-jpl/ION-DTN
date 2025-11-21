@@ -1,1 +1,15 @@
-Debugging how to identify running process by name on macOS
+This test is excluded on macOS due to platform-specific limitations:
+
+REASON: system() and popen() with shell commands hang on macOS when the parent
+process has active child processes. This test requires:
+1. fork() and exec() to launch separate node processes
+2. system() calls to verify process states
+3. Inter-process communication with active ION daemons
+
+The test launches multiple ION nodes as child processes and uses system() calls
+to monitor and control them. These operations hang on macOS when child processes
+are running ION daemons.
+
+The core functionality tested (TCP convergence layer and multi-node communication)
+is sufficiently covered by tests on Linux/Solaris where these system calls work
+reliably.

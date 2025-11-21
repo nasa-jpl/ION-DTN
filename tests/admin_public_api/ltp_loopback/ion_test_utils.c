@@ -366,12 +366,6 @@ int test_bp_start(void)
 	LOG_INFO("Waiting for scheme forwarders to initialize...");
 	sleep(2);
 
-#ifdef __APPLE__
-	/* Skip process detection on macOS - causes hang with popen()
-	 * when parent has active child processes. ipnfw starts successfully
-	 * as confirmed by bp_start() and can be verified in ion.log */
-	LOG_INFO("Skipping ipnfw process detection on macOS (check ion.log for confirmation)");
-#else
 	if (waitForSchemeDaemon("ipnfw", 5))
 	{
 		LOG_INFO("ipnfw forwarder started");
@@ -380,7 +374,6 @@ int test_bp_start(void)
 	{
 		LOG_INFO("Warning: ipnfw daemon not detected");
 	}
-#endif
 
 	TEST_PASS("BP Start and Agent Ready");
 	return 0;
@@ -635,9 +628,9 @@ int test_cleanup(void)
 
 	TEST_START("Cleanup - ION fully shutdown and clean up");
 
-#if defined(__APPLE__) || defined(__sun)
-	/* Skip killall on macOS/Solaris - system() hangs with active child processes */
-	LOG_INFO("Skipping killall on macOS/Solaris - relying on bp_stop() and rfx_stop()");
+#if defined(__sun)
+	/* Skip killall on Solaris - system() hangs with active child processes */
+	LOG_INFO("Skipping killall on Solaris - relying on bp_stop() and rfx_stop()");
 #else
 	/* Kill ionrestart FIRST - it auto-restarts components */
 	LOG_INFO("Killing ionrestart daemon...");
@@ -677,9 +670,9 @@ int test_cleanup(void)
 	LOG_INFO("Calling sm_ipc_stop() to remove IPC system...");
 	sm_ipc_stop();
 
-#if defined(__APPLE__) || defined(__sun)
-	/* Skip final killall on macOS/Solaris - system() hangs with active child processes */
-	LOG_INFO("Skipping final killall on macOS/Solaris");
+#if defined(__sun)
+	/* Skip final killall on Solaris - system() hangs with active child processes */
+	LOG_INFO("Skipping final killall on Solaris");
 #else
 	/* Kill any remaining processes */
 	LOG_INFO("Ensuring all ION processes are terminated...");
