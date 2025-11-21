@@ -60,7 +60,7 @@ typedef struct
 
 /* Helper for LOG_INFO with a format string + args */
 #define LOG_INFO__N(msg, ...) \
-	printf(COLOR_YELLOW "    [INFO] " COLOR_RESET msg "\n", ##__VA_ARGS__)
+	printf(COLOR_YELLOW "    [INFO] " COLOR_RESET msg "\n", __VA_ARGS__)
 
 /* Argument-counting dispatcher macro */
 #define LOG_INFO__GET_MACRO(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, NAME, ...) NAME

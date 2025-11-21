@@ -1,0 +1,7 @@
+#!/bin/bash
+#
+# cleanup script for ltp_span_crash_recovery test
+#
+
+killm
+rm -f ion.log

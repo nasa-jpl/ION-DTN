@@ -15,7 +15,32 @@ Tests Included
    - APIs tested: ion_initialize, ltp_init, add_span, add_seat, ltp_start
    - Includes BP initialization, scheme/endpoint setup, and protocol configuration
 
-2. tcp_2nodes/
+2. ltp_span_management/
+   - LTP span lifecycle management test (stop/remove/add/start)
+   - Tests dynamic span operations on a running LTP engine
+   - Validates bundle buffering in BP outduct queue during span removal
+   - Verifies buffered bundle delivery after span and outduct restart
+   - APIs tested: remove_span, add_span, ltp_start_span, bp_stop_outduct, bp_start_outduct
+   - Demonstrates safe runtime span management without full ION restart
+   - Best practice: Stop ltpclo when removing last span (prevents crashes, enables safe buffering)
+
+3. bp_plan_crash_recovery/
+   - Regression test for BP plan crash recovery
+   - Verifies that bpStartPlan() can restart a bpclm daemon after crash
+   - Tests semaphore reset bug fix (resetPlan() before startPlan())
+   - Simulates daemon crash via SIGKILL and validates successful restart
+   - APIs tested: bp_start_plan (crash recovery scenario)
+   - Ensures no "semaphore ended" errors after daemon crash
+
+4. ltp_span_crash_recovery/
+   - Regression test for LTP span crash recovery
+   - Verifies that ltpStartSpan() can restart an LSO daemon after crash
+   - Tests semaphore reset bug fix (resetSpan() before startSpan())
+   - Simulates ltpclo crash via SIGKILL and validates successful restart
+   - APIs tested: ltp_start_span (crash recovery scenario)
+   - Ensures no "semaphore ended" errors after daemon crash
+
+5. tcp_2nodes/
    - Two-node TCP convergence layer test using separate processes
    - Demonstrates multi-node operation with unique wmKeys and SDR names
    - Each node runs in its own process (required by ION architecture)
@@ -63,4 +88,31 @@ Building
 The test is built as part of the normal ION build process:
 
     make buildcheck
+
+Debugging Crash Recovery
+-------------------------
+
+The BP plan and LTP span crash recovery code includes conditional debug
+instrumentation that can be enabled at compile time. This provides detailed
+logging of daemon state checks, semaphore operations, and recovery decisions
+without cluttering ion.log during normal operation.
+
+To enable crash recovery debugging:
+
+    make CFLAGS="-DDEBUG_CRASH_RECOVERY"
+
+When enabled, ion.log will include detailed trace messages showing:
+- Daemon running vs crashed detection (bpclm, ltpmeter, udplso)
+- When resetPlan()/resetSpan() is called and why
+- Semaphore operations (take/give) during recovery
+- Decision logic for spawning vs skipping daemon starts
+
+This is particularly useful for troubleshooting platform-specific issues
+(e.g., semaphore race conditions that manifest differently on Solaris vs Linux)
+or when modifying the crash recovery logic in bpStartPlan() or ltpStartSpan().
+
+Affected code:
+- bpv7/library/libbpP.c (bpStartPlan, resetPlan, startPlan)
+- bpv7/daemon/bpclm.c (semaphore wait loop)
+- ltp/library/libltpP.c (ltpStartSpan, resetSpan, startSpan)
 

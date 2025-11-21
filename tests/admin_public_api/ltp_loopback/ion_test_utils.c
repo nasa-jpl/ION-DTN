@@ -635,9 +635,9 @@ int test_cleanup(void)
 
 	TEST_START("Cleanup - ION fully shutdown and clean up");
 
-#ifdef __APPLE__
-	/* Skip killall on macOS - system() hangs with active child processes */
-	LOG_INFO("Skipping killall on macOS - relying on bp_stop() and rfx_stop()");
+#if defined(__APPLE__) || defined(__sun)
+	/* Skip killall on macOS/Solaris - system() hangs with active child processes */
+	LOG_INFO("Skipping killall on macOS/Solaris - relying on bp_stop() and rfx_stop()");
 #else
 	/* Kill ionrestart FIRST - it auto-restarts components */
 	LOG_INFO("Killing ionrestart daemon...");
@@ -677,9 +677,9 @@ int test_cleanup(void)
 	LOG_INFO("Calling sm_ipc_stop() to remove IPC system...");
 	sm_ipc_stop();
 
-#ifdef __APPLE__
-	/* Skip final killall on macOS - system() hangs with active child processes */
-	LOG_INFO("Skipping final killall on macOS");
+#if defined(__APPLE__) || defined(__sun)
+	/* Skip final killall on macOS/Solaris - system() hangs with active child processes */
+	LOG_INFO("Skipping final killall on macOS/Solaris");
 #else
 	/* Kill any remaining processes */
 	LOG_INFO("Ensuring all ION processes are terminated...");
