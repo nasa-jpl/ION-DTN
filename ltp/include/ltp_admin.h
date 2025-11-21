@@ -196,6 +196,8 @@ extern void ltp_list_spans(void);
  */
 extern void ltp_list_seats(void);
 
+extern void ltp_print_span_sessions(uvast engine_id);
+
 #ifdef __cplusplus
 }
 #endif

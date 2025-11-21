@@ -28,6 +28,14 @@
 #include "ltpP.h"
 #include "ltpei.h"
 
+/*	Enable LTP_DEBUG to get detailed diagnostics for span management
+ *	and RBT operations. This is useful for debugging semaphore issues
+ *	but adds significant log volume in production.			*/
+
+#ifndef LTP_DEBUG
+#define LTP_DEBUG	0
+#endif
+
 /* Enhanced Watch Character
  * #define EWCHAR */
 
@@ -432,55 +440,113 @@ static void	raiseClient(LtpVclient *client)
 
 static void	resetSpan(LtpVspan *vspan)
 {
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] resetSpan: Entry", NULL);
+#endif
 	if (vspan->bufOpenRedSemaphore == SM_SEM_NONE)
 	{
+#ifdef DEBUG_CRASH_RECOVERY
+		writeMemoNote("[DEBUG] resetSpan: Creating bufOpenRedSemaphore", NULL);
+#endif
 		vspan->bufOpenRedSemaphore =
 				sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 	}
 	else
 	{
+#ifdef DEBUG_CRASH_RECOVERY
+		writeMemoNote("[DEBUG] resetSpan: Resetting bufOpenRedSemaphore", NULL);
+#endif
 		sm_SemUnend(vspan->bufOpenRedSemaphore);
 		sm_SemGive(vspan->bufOpenRedSemaphore);
 	}
 
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] resetSpan: About to take bufOpenRedSemaphore", NULL);
+#endif
 	sm_SemTake(vspan->bufOpenRedSemaphore);		/*	Lock.	*/
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] resetSpan: bufOpenRedSemaphore taken", NULL);
+#endif
 	if (vspan->bufOpenGreenSemaphore == SM_SEM_NONE)
 	{
+#ifdef DEBUG_CRASH_RECOVERY
+		writeMemoNote("[DEBUG] resetSpan: Creating bufOpenGreenSemaphore", NULL);
+#endif
 		vspan->bufOpenGreenSemaphore =
 				sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 	}
 	else
 	{
+#ifdef DEBUG_CRASH_RECOVERY
+		writeMemoNote("[DEBUG] resetSpan: Resetting bufOpenGreenSemaphore", NULL);
+#endif
 		sm_SemUnend(vspan->bufOpenGreenSemaphore);
 		sm_SemGive(vspan->bufOpenGreenSemaphore);
 	}
 
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] resetSpan: About to take bufOpenGreenSemaphore", NULL);
+#endif
 	sm_SemTake(vspan->bufOpenGreenSemaphore);	/*	Lock.	*/
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] resetSpan: bufOpenGreenSemaphore taken", NULL);
+#endif
 	if (vspan->bufClosedSemaphore == SM_SEM_NONE)
 	{
+#ifdef DEBUG_CRASH_RECOVERY
+		writeMemoNote("[DEBUG] resetSpan: Creating bufClosedSemaphore", NULL);
+#endif
 		vspan->bufClosedSemaphore = sm_SemCreate(SM_NO_KEY,
 				SM_SEM_FIFO);
 	}
 	else
 	{
+#ifdef DEBUG_CRASH_RECOVERY
+		writeMemoNote("[DEBUG] resetSpan: Resetting bufClosedSemaphore", NULL);
+#endif
 		sm_SemUnend(vspan->bufClosedSemaphore);
 		sm_SemGive(vspan->bufClosedSemaphore);
 	}
 
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] resetSpan: About to take bufClosedSemaphore", NULL);
+#endif
 	sm_SemTake(vspan->bufClosedSemaphore);		/*	Lock.	*/
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] resetSpan: bufClosedSemaphore taken", NULL);
+#endif
 	if (vspan->segSemaphore == SM_SEM_NONE)
 	{
+#ifdef DEBUG_CRASH_RECOVERY
+		writeMemoNote("[DEBUG] resetSpan: Creating segSemaphore", NULL);
+#endif
 		vspan->segSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 	}
 	else
 	{
+#ifdef DEBUG_CRASH_RECOVERY
+		writeMemoNote("[DEBUG] resetSpan: Resetting segSemaphore", NULL);
+#endif
 		sm_SemUnend(vspan->segSemaphore);
 		sm_SemGive(vspan->segSemaphore);
 	}
 
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] resetSpan: About to take segSemaphore", NULL);
+#endif
 	sm_SemTake(vspan->segSemaphore);		/*	Lock.	*/
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] resetSpan: segSemaphore taken", NULL);
+#endif
 	vspan->meterPid = ERROR;			/*	None.	*/
 	vspan->lsoPid = ERROR;				/*	None.	*/
+	sm_SemGive(vspan->segSemaphore);		/*	Unlock.	*/
+	sm_SemGive(vspan->bufClosedSemaphore);		/*	Unlock.	*/
+	sm_SemGive(vspan->bufOpenGreenSemaphore);	/*	Unlock.	*/
+	sm_SemGive(vspan->bufOpenRedSemaphore);		/*	Unlock.	*/
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] resetSpan: All semaphores unlocked, returning", NULL);
+#endif
 }
 
 void	computeRetransmissionLimits(LtpVspan *vspan)
@@ -887,7 +953,26 @@ static void	deleteSegmentRef(PsmPartition ltpwm, PsmAddress nodeData,
 static PsmAddress	recycleIdxRbt(PsmPartition ltpwm, LtpVspan *vspan,
 				PsmAddress rbt)
 {
+#if LTP_DEBUG
+	typedef struct { PsmAddress userData; PsmAddress root; size_t length; sm_SemId lock; } SmRbt;
+	SmRbt	*rbtPtr = (SmRbt *) psp(ltpwm, rbt);
+	char	msgBuf[256];
+
+	isprintf(msgBuf, sizeof msgBuf,
+		"[LTP_DEBUG] recycleIdxRbt: Recycling RBT at 0x%lx with lock semaphore ID=%d",
+		(unsigned long)rbt, rbtPtr->lock);
+	writeMemo(msgBuf);
+#endif
+
 	sm_rbt_clear(ltpwm, rbt, deleteSegmentRef, NULL);
+
+#if LTP_DEBUG
+	isprintf(msgBuf, sizeof msgBuf,
+		"[LTP_DEBUG] recycleIdxRbt: After sm_rbt_clear, RBT at 0x%lx still has lock semaphore ID=%d",
+		(unsigned long)rbt, rbtPtr->lock);
+	writeMemo(msgBuf);
+#endif
+
 	return sm_list_insert_first(ltpwm, vspan->avblIdxRbts, rbt);
 }
 
@@ -900,18 +985,33 @@ static void	deleteVImportSession(PsmPartition ltpwm, PsmAddress nodeData,
 
 	if (vsession->redSegmentsIdx)
 	{
-		oK(recycleIdxRbt(ltpwm, vspan, vsession->redSegmentsIdx));
+		/*	If vspan is NULL, we're destroying the span itself,
+		 *	so don't try to recycle the RBT back into the span's
+		 *	avblIdxRbts list. Just destroy it directly.		*/
+		if (vspan == NULL)
+		{
+			sm_rbt_destroy(ltpwm, vsession->redSegmentsIdx,
+					NULL, NULL);
+		}
+		else
+		{
+			oK(recycleIdxRbt(ltpwm, vspan, vsession->redSegmentsIdx));
+		}
 	}
 
 	psm_free(ltpwm, nodeData);	/*	Delete VImportSession.	*/
 }
 
-static void	deleteIdxRbt(PsmPartition ltpwm, PsmAddress nodeData, void *arg)
+static void	deleteIdxRbt(PsmPartition ltpwm, PsmAddress elt, void *arg)
 {
+	PsmAddress	rbtAddr;
+
 	/* Parameter intentionally unused. */
 	(void)arg;
 
-	oK(sm_rbt_destroy(ltpwm, nodeData, NULL, NULL));
+	/*	Extract the RBT address from the list element.		*/
+	rbtAddr = sm_list_data(ltpwm, elt);
+	oK(sm_rbt_destroy(ltpwm, rbtAddr, NULL, NULL));
 }
 
 static void	dropSpan(LtpVspan *vspan, PsmAddress vspanElt)
@@ -920,38 +1020,80 @@ static void	dropSpan(LtpVspan *vspan, PsmAddress vspanElt)
 	PsmAddress	vspanAddr;
 
 	vspanAddr = sm_list_data(ltpwm, vspanElt);
+
+	/*	IMPORTANT: Destroy RBT structures BEFORE deleting semaphores.
+	 *	This is critical because:
+	 *	1. Each RBT has its own lock semaphore
+	 *	2. If we delete the buffer semaphores first, their IDs may
+	 *	   get reused by the system
+	 *	3. If an RBT's lock semaphore ID happens to match a deleted
+	 *	   buffer semaphore ID, the RBT will be corrupted
+	 *	Therefore, destroy all RBTs first while semaphores are valid.*/
+
+	/*	When destroying importSessions, pass NULL as the arg to
+	 *	deleteVImportSession so it knows we're destroying the span
+	 *	and should NOT recycle the redSegmentsIdx RBTs back into
+	 *	avblIdxRbts. This prevents corruption when we destroy
+	 *	avblIdxRbts immediately after.				*/
+	oK(sm_rbt_destroy(ltpwm, vspan->importSessions,
+			deleteVImportSession, NULL));
+
+	/*	avblIdxRbts may have already been destroyed in removeSpan()
+	 *	before stopSpan() was called, to prevent semaphore ID
+	 *	corruption. Only destroy it if it still exists.	*/
+	if (vspan->avblIdxRbts != 0)
+	{
+		oK(sm_list_destroy(ltpwm, vspan->avblIdxRbts,
+				deleteIdxRbt, NULL));
+	}
+
+	/*	Now it's safe to delete the buffer semaphores.		*/
+	/*	Note: If stopSpan() was called before dropSpan() (as in
+	 *	removeSpan()), the semaphores have already been ended.
+	 *	We only need to check if they've been ended and delete them.
+	 *	We should NOT call sm_SemEnd() again, as calling it on
+	 *	already-ended semaphores followed by sm_SemDelete() can
+	 *	cause semaphore ID reuse issues.				*/
+
 	if (vspan->bufOpenRedSemaphore != SM_SEM_NONE)
 	{
-		sm_SemEnd(vspan->bufOpenRedSemaphore);
+		if (!sm_SemEnded(vspan->bufOpenRedSemaphore))
+		{
+			sm_SemEnd(vspan->bufOpenRedSemaphore);
+		}
 		microsnooze(50000);
 		sm_SemDelete(vspan->bufOpenRedSemaphore);
 	}
 
 	if (vspan->bufOpenGreenSemaphore != SM_SEM_NONE)
 	{
-		sm_SemEnd(vspan->bufOpenGreenSemaphore);
+		if (!sm_SemEnded(vspan->bufOpenGreenSemaphore))
+		{
+			sm_SemEnd(vspan->bufOpenGreenSemaphore);
+		}
 		microsnooze(50000);
 		sm_SemDelete(vspan->bufOpenGreenSemaphore);
 	}
 
 	if (vspan->bufClosedSemaphore != SM_SEM_NONE)
 	{
-		sm_SemEnd(vspan->bufClosedSemaphore);
+		if (!sm_SemEnded(vspan->bufClosedSemaphore))
+		{
+			sm_SemEnd(vspan->bufClosedSemaphore);
+		}
 		microsnooze(50000);
 		sm_SemDelete(vspan->bufClosedSemaphore);
 	}
 
 	if (vspan->segSemaphore != SM_SEM_NONE)
 	{
-		sm_SemEnd(vspan->segSemaphore);
+		if (!sm_SemEnded(vspan->segSemaphore))
+		{
+			sm_SemEnd(vspan->segSemaphore);
+		}
 		microsnooze(50000);
 		sm_SemDelete(vspan->segSemaphore);
 	}
-
-	oK(sm_rbt_destroy(ltpwm, vspan->importSessions,
-			deleteVImportSession, vspan));
-	oK(sm_list_destroy(ltpwm, vspan->avblIdxRbts,
-			deleteIdxRbt, NULL));
 	psm_free(ltpwm, vspan->segmentBuffer);
 	oK(sm_list_delete(ltpwm, vspanElt, NULL, NULL));
 	psm_free(ltpwm, vspanAddr);
@@ -982,12 +1124,49 @@ static void	startSpan(LtpVspan *vspan)
 	sdr_read(sdr, (char *) &span, sdr_list_data(sdr, vspan->spanElt),
 			sizeof(LtpSpan));
 	putFqn(nbrBuf, span.engineId);
-	isprintf(ltpmeterCmdString, sizeof ltpmeterCmdString, "ltpmeter %s",
-			nbrBuf);
-	vspan->meterPid = pseudoshell(ltpmeterCmdString);
-	sdr_string_read(sdr, cmd, span.lsoCmd);
-	isprintf(lsoCmdString, sizeof lsoCmdString, "%s %s", cmd, nbrBuf);
-	vspan->lsoPid = pseudoshell(lsoCmdString);
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] startSpan: Entry for engine", nbrBuf);
+#endif
+
+	if (vspan->meterPid == ERROR || sm_TaskExists(vspan->meterPid) == 0)
+	{
+#ifdef DEBUG_CRASH_RECOVERY
+		writeMemoNote("[DEBUG] startSpan: Spawning ltpmeter", nbrBuf);
+#endif
+		isprintf(ltpmeterCmdString, sizeof ltpmeterCmdString, "ltpmeter %s",
+				nbrBuf);
+		vspan->meterPid = pseudoshell(ltpmeterCmdString);
+#ifdef DEBUG_CRASH_RECOVERY
+		writeMemoNote("[DEBUG] startSpan: ltpmeter spawned", nbrBuf);
+#endif
+	}
+#ifdef DEBUG_CRASH_RECOVERY
+	else
+	{
+		writeMemoNote("[DEBUG] startSpan: ltpmeter already running", nbrBuf);
+	}
+#endif
+
+	if (vspan->lsoPid == ERROR || sm_TaskExists(vspan->lsoPid) == 0)
+	{
+#ifdef DEBUG_CRASH_RECOVERY
+		writeMemoNote("[DEBUG] startSpan: Spawning udplso", nbrBuf);
+#endif
+		sdr_string_read(sdr, cmd, span.lsoCmd);
+		isprintf(lsoCmdString, sizeof lsoCmdString, "%s %s", cmd, nbrBuf);
+		vspan->lsoPid = pseudoshell(lsoCmdString);
+#ifdef DEBUG_CRASH_RECOVERY
+		writeMemoNote("[DEBUG] startSpan: udplso spawned", nbrBuf);
+#endif
+	}
+#ifdef DEBUG_CRASH_RECOVERY
+	else
+	{
+		writeMemoNote("[DEBUG] startSpan: udplso already running", nbrBuf);
+	}
+
+	writeMemoNote("[DEBUG] startSpan: Returning", nbrBuf);
+#endif
 }
 
 static void	startSeat(LtpVseat *vseat)
@@ -995,6 +1174,120 @@ static void	startSeat(LtpVseat *vseat)
 	if (vseat->lsiPid == ERROR || sm_TaskExists(vseat->lsiPid) == 0)
 	{
 		vseat->lsiPid = pseudoshell(vseat->lsiCmd);
+	}
+}
+
+/*	Clean up any empty export sessions left by ltpmeter when it exits.
+ *	ltpmeter creates an empty "next" export session after finishing a
+ *	block, in anticipation of receiving more data. When the span is
+ *	stopped, ltpmeter is killed and this empty session becomes orphaned.
+ *	Empty sessions have: totalLength=0, stateFlags=0, clientSvcId=0.
+ *	Removing these prevents "span has open sessions" errors during
+ *	span removal.							*/
+
+static void	cleanupEmptyExportSessions(LtpVspan *vspan)
+{
+	Sdr		sdr = getIonsdr();
+	Object		spanObj;
+	LtpSpan		span;
+	Object		elt;
+	Object		nextElt;
+	Object		sessionObj;
+			OBJ_POINTER(LtpExportSession, session);
+	int		needUpdate = 0;
+
+	CHKVOID(ionLocked());
+
+	spanObj = sdr_list_data(sdr, vspan->spanElt);
+	sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
+
+	/*	Iterate through export sessions, removing any that are
+	 *	completely empty (created by ltpmeter but never used).	*/
+
+	for (elt = sdr_list_first(sdr, span.exportSessions); elt;
+			elt = nextElt)
+	{
+		nextElt = sdr_list_next(sdr, elt);
+		sessionObj = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, LtpExportSession, session, sessionObj);
+
+		/*	Check if this is an empty, unused session:
+		 *	- No data (totalLength == 0)
+		 *	- No state flags set (stateFlags == 0)
+		 *	- Invalid client service ID (clientSvcId == 0)
+		 *	These indicate a session created by ltpmeter but
+		 *	never populated with actual data.		*/
+
+		if (session->totalLength == 0
+		&& session->stateFlags == 0
+		&& session->clientSvcId == 0)
+		{
+			/*	This is an orphaned empty session.
+			 *	Clean it up to prevent blocking span
+			 *	removal.				*/
+
+#if LTPDEBUG
+			writeMemo("[i] Cleaning up empty export session.");
+#endif
+			/*	Clear any allocated resources.		*/
+
+			if (session->svcDataObjects)
+			{
+				sdr_list_destroy(sdr,
+					session->svcDataObjects, NULL, NULL);
+			}
+
+			if (session->redSegments)
+			{
+				sdr_list_destroy(sdr,
+					session->redSegments, NULL, NULL);
+			}
+
+			if (session->greenSegments)
+			{
+				sdr_list_destroy(sdr,
+					session->greenSegments, NULL, NULL);
+			}
+
+			if (session->claims)
+			{
+				sdr_list_destroy(sdr,
+					session->claims, NULL, NULL);
+			}
+
+			if (session->checkpoints)
+			{
+				sdr_list_destroy(sdr,
+					session->checkpoints, NULL, NULL);
+			}
+
+			if (session->rsSerialNbrs)
+			{
+				sdr_list_destroy(sdr,
+					session->rsSerialNbrs, NULL, NULL);
+			}
+
+			/*	Remove from exportSessions list and free.  */
+
+			sdr_list_delete(sdr, elt, NULL, NULL);
+			sdr_free(sdr, sessionObj);
+
+			/*	If this was the current export session,
+			 *	clear the pointer in the span.		*/
+
+			if (span.currentExportSessionObj == sessionObj)
+			{
+				span.currentExportSessionObj = 0;
+				needUpdate = 1;
+			}
+		}
+	}
+
+	/*	Write back the span if we modified currentExportSessionObj.	*/
+
+	if (needUpdate)
+	{
+		sdr_write(sdr, spanObj, (char *) &span, sizeof(LtpSpan));
 	}
 }
 
@@ -2078,6 +2371,8 @@ static void	releaseImportBuffer(Sdr sdr, Object elt, void *arg)
 int	removeSpan(uvast engineId)
 {
 	Sdr		sdr = getIonsdr();
+	PsmPartition	ltpwm = getIonwm();
+	LtpVdb		*ltpvdb = getLtpVdb();
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
 	Object		spanElt;
@@ -2097,11 +2392,89 @@ int	removeSpan(uvast engineId)
 
 	/*	All parameters validated.				*/
 
+	/*	CRITICAL: Destroy avblIdxRbts BEFORE calling stopSpan().
+	 *	When stopSpan() ends the buffer semaphores, their IDs may
+	 *	accidentally match the lock semaphore IDs of RBTs in the
+	 *	avblIdxRbts list, causing corruption. Destroy these RBTs
+	 *	now while all semaphores are still valid.		*/
+	{
+#if LTP_DEBUG
+		PsmAddress	elt;
+		int		rbtCount = 0;
+		char		msgBuf[256];
+		typedef struct { PsmAddress userData; PsmAddress root; size_t length; sm_SemId lock; } SmRbt;
+
+		/*	Diagnostic: Log buffer semaphore IDs		*/
+		isprintf(msgBuf, sizeof msgBuf,
+			"[DEBUG] removeSpan: Buffer semaphore IDs: red=%d green=%d closed=%d seg=%d",
+			vspan->bufOpenRedSemaphore,
+			vspan->bufOpenGreenSemaphore,
+			vspan->bufClosedSemaphore,
+			vspan->segSemaphore);
+		writeMemo(msgBuf);
+
+		/*	Diagnostic: Log RBT count and semaphore IDs	*/
+		for (elt = sm_list_first(ltpwm, vspan->avblIdxRbts); elt;
+				elt = sm_list_next(ltpwm, elt))
+		{
+			PsmAddress	rbtAddr = sm_list_data(ltpwm, elt);
+			SmRbt		*rbt = (SmRbt *) psp(ltpwm, rbtAddr);
+			rbtCount++;
+			isprintf(msgBuf, sizeof msgBuf,
+				"[DEBUG] removeSpan: avblIdxRbt #%d at 0x%lx, lock semaphore ID=%d",
+				rbtCount, (unsigned long)rbtAddr, rbt->lock);
+			writeMemo(msgBuf);
+		}
+
+		isprintf(msgBuf, sizeof msgBuf,
+			"[DEBUG] removeSpan: About to destroy %d RBTs in avblIdxRbts",
+			rbtCount);
+		writeMemo(msgBuf);
+#endif
+
+		sm_list_destroy(ltpwm, vspan->avblIdxRbts,
+				deleteIdxRbt, NULL);
+		vspan->avblIdxRbts = 0;	/* Mark as destroyed */
+
+#if LTP_DEBUG
+		writeMemo("[DEBUG] removeSpan: Successfully destroyed avblIdxRbts");
+#endif
+	}
+
 	stopSpan(vspan);
-	sdr_exit_xn(sdr);
-	waitForSpan(vspan);
+
+	/*	Copy PIDs to local variables before unlocking memory.
+	 *	This prevents use-after-unlock bug where vspan could
+	 *	be modified or freed by another process after unlock.	*/
+
+	{
+		int	lsoPid = vspan->lsoPid;
+		int	meterPid = vspan->meterPid;
+
+		sdr_exit_xn(sdr);
+
+		/*	Wait for tasks to terminate using local PID copies.
+		 *	Safe to access local variables after unlock.	*/
+
+		if (lsoPid != ERROR)
+		{
+			while (sm_TaskExists(lsoPid))
+			{
+				microsnooze(100000);
+			}
+		}
+
+		if (meterPid != ERROR)
+		{
+			while (sm_TaskExists(meterPid))
+			{
+				microsnooze(100000);
+			}
+		}
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
-	resetSpan(vspan);
+	cleanupEmptyExportSessions(vspan);	/*	Remove orphans.	*/
 	spanElt = vspan->spanElt;
 	spanObj = (Object) sdr_list_data(sdr, spanElt);
 	GET_OBJ_POINTER(sdr, LtpSpan, span, spanObj);
@@ -2130,6 +2503,15 @@ removed yet.", itoa(engineId));
 		return 0;
 	}
 
+	if (sdr_list_length(sdr, span->closedImports) != 0)
+	{
+		sdr_exit_xn(sdr);
+		writeMemoNote("[?] Span has closed import sessions that \
+haven't been forgotten yet, can't be removed. Wait for timeline events to \
+process them.", itoa(engineId));
+		return 0;
+	}
+
 	/*	Okay to remove this span from the database.		*/
 
 	dropSpan(vspan, vspanElt);
@@ -2153,6 +2535,32 @@ removed yet.", itoa(engineId));
 		return -1;
 	}
 
+	/*	Check if this was the last span. If so, stop LTP convergence
+	 *	layer outducts (ltpclo) to prevent them from crashing when
+	 *	they try to transmit to non-existent spans.
+	 *
+	 *	This is safer than leaving ltpclo running with no spans:
+	 *	- ltpclo will crash on next transmission attempt (ltp_send
+	 *	  returns -1 for "destination unknown")
+	 *	- In multi-span scenarios, this crash affects ALL spans
+	 *	- BP will safely buffer bundles in the outduct queue until
+	 *	  ltpclo is restarted (via bp_start_outduct or add_span)
+	 *
+	 *	Note: We don't call bp_stop_outduct here because:
+	 *	1. LTP library shouldn't depend on BP library (layering)
+	 *	2. Outduct names vary by configuration (can't hardcode)
+	 *	3. User/application should manage convergence layer lifecycle
+	 *
+	 *	Instead, we log a warning message to guide operators.
+	 */
+	if (sm_list_length(ltpwm, ltpvdb->spans) == 0)
+	{
+		writeMemoNote("[?] Last LTP span removed",
+			"Consider stopping LTP convergence layer outducts \
+(ltpclo) to prevent transmission errors. Bundles will be safely buffered in BP \
+until outducts are restarted.");
+	}
+
 	return 1;
 }
 
@@ -2162,8 +2570,16 @@ int	ltpStartSpan(uvast engineId)
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
 	int		result = 1;
+	int		meterCrashed = 0;
+	int		lsoCrashed = 0;
 
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] ltpStartSpan: Entry for engine", itoa(engineId));
+#endif
 	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] ltpStartSpan: SDR locked", itoa(engineId));
+#endif
 	findSpan(engineId, &vspan, &vspanElt);
 	if (vspanElt == 0)
 	{
@@ -2172,8 +2588,80 @@ int	ltpStartSpan(uvast engineId)
 		return 0;
 	}
 
+	/*	Only call resetSpan if ltpmeter or lso crashed (has a PID
+	 *	but task no longer exists). Don't call it on first start
+	 *	since raiseSpan() already called it during add_span(), or
+	 *	after explicit stop since ltpStopSpan() already called it.
+	 *	Calling resetSpan() when daemons are running creates a race
+	 *	condition where the daemons can grab semaphores between
+	 *	sm_SemGive() and sm_SemTake().				*/
+
+	if (vspan->meterPid != ERROR && sm_TaskExists(vspan->meterPid) == 0)
+	{
+		meterCrashed = 1;
+#ifdef DEBUG_CRASH_RECOVERY
+		writeMemoNote("[DEBUG] ltpStartSpan: ltpmeter crashed", itoa(engineId));
+#endif
+	}
+#ifdef DEBUG_CRASH_RECOVERY
+	else if (vspan->meterPid != ERROR && sm_TaskExists(vspan->meterPid) != 0)
+	{
+		writeMemoNote("[DEBUG] ltpStartSpan: ltpmeter is running", itoa(engineId));
+	}
+#endif
+
+	if (vspan->lsoPid != ERROR && sm_TaskExists(vspan->lsoPid) == 0)
+	{
+		lsoCrashed = 1;
+#ifdef DEBUG_CRASH_RECOVERY
+		writeMemoNote("[DEBUG] ltpStartSpan: udplso crashed", itoa(engineId));
+#endif
+	}
+#ifdef DEBUG_CRASH_RECOVERY
+	else if (vspan->lsoPid != ERROR && sm_TaskExists(vspan->lsoPid) != 0)
+	{
+		writeMemoNote("[DEBUG] ltpStartSpan: udplso is running", itoa(engineId));
+	}
+#endif
+
+	/*	Only reset if BOTH daemons are stopped. If either daemon
+	 *	is still running, calling resetSpan() creates a race where
+	 *	the running daemon can grab semaphores between Give and Take.	*/
+
+	if ((meterCrashed || vspan->meterPid == ERROR) &&
+	    (lsoCrashed || vspan->lsoPid == ERROR))
+	{
+		/*	Both daemons stopped - safe to reset if crash detected */
+		if (meterCrashed || lsoCrashed)
+		{
+#ifdef DEBUG_CRASH_RECOVERY
+			writeMemoNote("[DEBUG] ltpStartSpan: Both daemons stopped, calling resetSpan", itoa(engineId));
+#endif
+			resetSpan(vspan);
+		}
+#ifdef DEBUG_CRASH_RECOVERY
+		else
+		{
+			writeMemoNote("[DEBUG] ltpStartSpan: Skipping resetSpan (first start)", itoa(engineId));
+		}
+#endif
+	}
+#ifdef DEBUG_CRASH_RECOVERY
+	else
+	{
+		writeMemoNote("[DEBUG] ltpStartSpan: Skipping resetSpan (daemon still running)", itoa(engineId));
+	}
+
+	writeMemoNote("[DEBUG] ltpStartSpan: About to call startSpan", itoa(engineId));
+#endif
 	startSpan(vspan);
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] ltpStartSpan: startSpan returned", itoa(engineId));
+#endif
 	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] ltpStartSpan: SDR unlocked, returning", itoa(engineId));
+#endif
 	return result;
 }
 
@@ -2182,6 +2670,8 @@ void	ltpStopSpan(uvast engineId)
 	Sdr		sdr = getIonsdr();
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
+	int		lsoPid;
+	int		meterPid;
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	findSpan(engineId, &vspan, &vspanElt);
@@ -2193,11 +2683,38 @@ void	ltpStopSpan(uvast engineId)
 	}
 
 	stopSpan(vspan);
+
+	/*	Copy PIDs to local variables before unlocking memory.
+	 *	This prevents use-after-unlock bug where vspan could
+	 *	be modified or freed by another process after unlock.	*/
+
+	lsoPid = vspan->lsoPid;
+	meterPid = vspan->meterPid;
 	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
-	waitForSpan(vspan);
+
+	/*	Wait for tasks to terminate using local PID copies.
+	 *	Safe to access local variables after unlock.		*/
+
+	if (lsoPid != ERROR)
+	{
+		while (sm_TaskExists(lsoPid))
+		{
+			microsnooze(100000);
+		}
+	}
+
+	if (meterPid != ERROR)
+	{
+		while (sm_TaskExists(meterPid))
+		{
+			microsnooze(100000);
+		}
+	}
+
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	resetSpan(vspan);
-	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
+	cleanupEmptyExportSessions(vspan);	/*	Remove orphans.	*/
+	sdr_end_xn(sdr);	/*	Unlock memory, commit changes.	*/
 }
 
 int	startExportSession(Sdr sdr, Object spanObj, LtpVspan *vspan)
@@ -2703,18 +3220,44 @@ static int	orderImportSessions(PsmPartition wm, PsmAddress nodeData,
 
 static PsmAddress	getIdxRbt(PsmPartition ltpwm, LtpVspan *vspan)
 {
+#if LTP_DEBUG
+	typedef struct { PsmAddress userData; PsmAddress root; size_t length; sm_SemId lock; } SmRbt;
+#endif
 	PsmAddress	elt;
 	PsmAddress	rbt;
+#if LTP_DEBUG
+	SmRbt		*rbtPtr;
+	char		msgBuf[256];
+#endif
 
 	elt = sm_list_first(ltpwm, vspan->avblIdxRbts);
 	if (elt)	/*	Reuse previously created RBT.		*/
 	{
 		rbt = sm_list_data(ltpwm, elt);
+#if LTP_DEBUG
+		rbtPtr = (SmRbt *) psp(ltpwm, rbt);
+
+		isprintf(msgBuf, sizeof msgBuf,
+			"[LTP_DEBUG] getIdxRbt: Reusing RBT at 0x%lx with lock semaphore ID=%d from avblIdxRbts pool",
+			(unsigned long)rbt, rbtPtr->lock);
+		writeMemo(msgBuf);
+#endif
+
 		sm_list_delete(ltpwm, elt, NULL, NULL);
 		return rbt;
 	}
 
-	return sm_rbt_create(ltpwm);
+	rbt = sm_rbt_create(ltpwm);
+#if LTP_DEBUG
+	rbtPtr = (SmRbt *) psp(ltpwm, rbt);
+
+	isprintf(msgBuf, sizeof msgBuf,
+		"[LTP_DEBUG] getIdxRbt: Created NEW RBT at 0x%lx with lock semaphore ID=%d",
+		(unsigned long)rbt, rbtPtr->lock);
+	writeMemo(msgBuf);
+#endif
+
+	return rbt;
 }
 
 static void	addVImportSession(LtpVspan *vspan, unsigned int sessionNbr,

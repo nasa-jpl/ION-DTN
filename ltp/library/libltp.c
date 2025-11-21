@@ -583,3 +583,115 @@ void	ltp_list_seats(void)
 
 	sdr_exit_xn(sdr);
 }
+
+void	ltp_print_span_sessions(uvast engineId)
+{
+	Sdr		sdr = getIonsdr();
+	LtpVspan	*vspan;
+	PsmAddress	vspanElt;
+	Object		spanObj;
+			OBJ_POINTER(LtpSpan, span);
+	char		buffer[256];
+	Object		elt;
+	Object		sessionObj;
+			OBJ_POINTER(LtpExportSession, session);
+
+	CHKVOID(sdr_begin_xn(sdr));
+
+	/*	Find the span.						*/
+
+	findSpan(engineId, &vspan, &vspanElt);
+	if (vspanElt == 0)
+	{
+		isprintf(buffer, sizeof buffer,
+				"Span " UVAST_FIELDSPEC " not found", engineId);
+		PUTS(buffer);
+		sdr_exit_xn(sdr);
+		return;
+	}
+
+	spanObj = sdr_list_data(sdr, vspan->spanElt);
+	GET_OBJ_POINTER(sdr, LtpSpan, span, spanObj);
+
+	/*	Display session counts.					*/
+
+	isprintf(buffer, sizeof buffer,
+			"Span " UVAST_FIELDSPEC " session details:", engineId);
+	PUTS(buffer);
+
+	isprintf(buffer, sizeof buffer,
+			"  Export sessions: %ld",
+			sdr_list_length(sdr, span->exportSessions));
+	PUTS(buffer);
+
+	isprintf(buffer, sizeof buffer,
+			"  Import sessions: %ld",
+			sdr_list_length(sdr, span->importSessions));
+	PUTS(buffer);
+
+	isprintf(buffer, sizeof buffer,
+			"  Dead imports: %ld",
+			sdr_list_length(sdr, span->deadImports));
+	PUTS(buffer);
+
+	isprintf(buffer, sizeof buffer,
+			"  Closed imports: %ld",
+			sdr_list_length(sdr, span->closedImports));
+	PUTS(buffer);
+
+	isprintf(buffer, sizeof buffer,
+			"  Pending segments: %ld",
+			sdr_list_length(sdr, span->segments));
+	PUTS(buffer);
+
+	/*	Show details of each export session.			*/
+
+	for (elt = sdr_list_first(sdr, span->exportSessions); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		sessionObj = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, LtpExportSession, session, sessionObj);
+
+		isprintf(buffer, sizeof buffer,
+				"  Export session %u details:", session->sessionNbr);
+		PUTS(buffer);
+
+		isprintf(buffer, sizeof buffer,
+				"    Client service ID: %u", session->clientSvcId);
+		PUTS(buffer);
+
+		isprintf(buffer, sizeof buffer,
+				"    State flags: 0x%x (EOB_SENT=%d, FINAL_ACK=%d)",
+				session->stateFlags,
+				(session->stateFlags & LTP_EOB_SENT) ? 1 : 0,
+				(session->stateFlags & LTP_FINAL_ACK) ? 1 : 0);
+		PUTS(buffer);
+
+		isprintf(buffer, sizeof buffer,
+				"    Total length: %d, Red part: %d",
+				session->totalLength, session->redPartLength);
+		PUTS(buffer);
+
+		isprintf(buffer, sizeof buffer,
+				"    Checkpoints pending: %ld",
+				sdr_list_length(sdr, session->checkpoints));
+		PUTS(buffer);
+
+		isprintf(buffer, sizeof buffer,
+				"    Claims (reception reports): %ld",
+				sdr_list_length(sdr, session->claims));
+		PUTS(buffer);
+
+		isprintf(buffer, sizeof buffer,
+				"    Red segments (unsent): %ld",
+				sdr_list_length(sdr, session->redSegments));
+		PUTS(buffer);
+
+		isprintf(buffer, sizeof buffer,
+				"    Green segments (unsent): %ld",
+				sdr_list_length(sdr, session->greenSegments));
+		PUTS(buffer);
+	}
+
+	sdr_exit_xn(sdr);
+}
