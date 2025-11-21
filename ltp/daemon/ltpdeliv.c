@@ -375,6 +375,7 @@ putErrmsg("LTP delivered service data.", itoa(sessionBuf.redPartLength));
 
 	shutDown(SIGTERM);
 	ionStopAttendant(&attendant);
+	MRELEASE(buffer);
 	writeErrmsgMemos();
 	writeMemo("[i] ltpdeliv has ended.");
 	ionDetach();

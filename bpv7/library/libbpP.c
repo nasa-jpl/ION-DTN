@@ -741,18 +741,37 @@ static void	waitForScheme(VScheme *vscheme)
 
 static void	resetPlan(VPlan *vplan)
 {
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] resetPlan: Entry for", vplan->neighborEid);
+#endif
 	if (vplan->semaphore == SM_SEM_NONE)
 	{
+#ifdef DEBUG_CRASH_RECOVERY
+		writeMemoNote("[DEBUG] resetPlan: Creating new semaphore", vplan->neighborEid);
+#endif
 		vplan->semaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 	}
 	else
 	{
+#ifdef DEBUG_CRASH_RECOVERY
+		writeMemoNote("[DEBUG] resetPlan: Semaphore exists, unending/giving", vplan->neighborEid);
+#endif
 		sm_SemUnend(vplan->semaphore);
 		sm_SemGive(vplan->semaphore);
 	}
 
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] resetPlan: About to take semaphore", vplan->neighborEid);
+#endif
 	sm_SemTake(vplan->semaphore);			/*	Lock.	*/
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] resetPlan: Semaphore taken", vplan->neighborEid);
+#endif
 	vplan->clmPid = ERROR;
+	sm_SemGive(vplan->semaphore);			/*	Unlock.	*/
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] resetPlan: Semaphore given, returning", vplan->neighborEid);
+#endif
 }
 
 static int	raisePlan(Object planElt, BpVdb *bpvdb)
@@ -842,12 +861,28 @@ static void	startPlan(VPlan *vplan)
 {
 	char	cmdString[6 + MAX_EID_LEN + 1];
 
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] startPlan: Entry for", vplan->neighborEid);
+#endif
 	if (vplan->clmPid == ERROR || sm_TaskExists(vplan->clmPid) == 0)
 	{
+#ifdef DEBUG_CRASH_RECOVERY
+		writeMemoNote("[DEBUG] startPlan: Spawning bpclm", vplan->neighborEid);
+#endif
 		isprintf(cmdString, sizeof cmdString, "bpclm %s",
 				vplan->neighborEid);
 		vplan->clmPid = pseudoshell(cmdString);
+#ifdef DEBUG_CRASH_RECOVERY
+		writeMemoNote("[DEBUG] startPlan: bpclm spawned", vplan->neighborEid);
+#endif
 	}
+#ifdef DEBUG_CRASH_RECOVERY
+	else
+	{
+		writeMemoNote("[DEBUG] startPlan: bpclm already running", vplan->neighborEid);
+	}
+	writeMemoNote("[DEBUG] startPlan: Returning", vplan->neighborEid);
+#endif
 }
 
 static void	stopPlan(VPlan *vplan)
@@ -965,12 +1000,20 @@ static void	stopInduct(VInduct *vduct)
 
 static void	waitForInduct(VInduct *vduct)
 {
+	char	memo[256];
+
 	if (vduct->cliPid != ERROR)
 	{
+		isprintf(memo, sizeof memo, "[i] waitForInduct: Waiting for induct '%s' (PID %d) to terminate...",
+			vduct->ductName, (int)vduct->cliPid);
+		writeMemo(memo);
 		while (sm_TaskExists(vduct->cliPid))
 		{
 			microsnooze(100000);
 		}
+		isprintf(memo, sizeof memo, "[i] waitForInduct: Induct '%s' terminated.",
+			vduct->ductName);
+		writeMemo(memo);
 	}
 }
 
@@ -1687,10 +1730,13 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 	Object		nextElt;
 	Object		zco;
 
+	writeMemo("[i] bpStop: Starting BP shutdown sequence.");
+
 	bpsec_instr_cleanup();
 
 	/*	Tell all BP processes to stop.				*/
 
+	writeMemo("[i] bpStop: Stopping schemes...");
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	for (elt = sm_list_first(bpwm, bpvdb->schemes); elt;
 			elt = sm_list_next(bpwm, elt))
@@ -1698,22 +1744,35 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 		vscheme = (VScheme *) psp(bpwm, sm_list_data(bpwm, elt));
 		stopScheme(vscheme);
 	}
+	writeMemo("[i] bpStop: Schemes stopped.");
 
-	for (elt = sm_list_first(bpwm, bpvdb->plans); elt;
-			elt = sm_list_next(bpwm, elt))
+	/*	Brief delay to allow any active CL threads to complete
+	 *	their current operations and release locks before we
+	 *	iterate through plans. This prevents a race condition
+	 *	observed on Solaris where shutdown could hang if a CL
+	 *	thread was holding the plans list lock.		*/
+
+	microsnooze(50000);	/*	50 milliseconds.		*/
+	writeMemo("[i] bpStop: Stopping plans...");
+	elt = sm_list_first(bpwm, bpvdb->plans);
+	for (; elt; elt = sm_list_next(bpwm, elt))
 	{
 		vplan = (VPlan *) psp(bpwm, sm_list_data(bpwm, elt));
 		stopPlan(vplan);
 	}
+	writeMemo("[i] bpStop: Plans stopped.");
 
-	for (elt = sm_list_first(bpwm, bpvdb->inducts); elt; elt = 
+	writeMemo("[i] bpStop: Stopping inducts...");
+	for (elt = sm_list_first(bpwm, bpvdb->inducts); elt; elt =
 			sm_list_next(bpwm, elt))
 	{
 		vinduct = (VInduct *) psp(bpwm, sm_list_data(bpwm, elt));
 		stopInduct(vinduct);
 	}
+	writeMemo("[i] bpStop: Inducts stopped.");
 
-	for (elt = sm_list_first(bpwm, bpvdb->outducts); elt; elt = 
+	writeMemo("[i] bpStop: Stopping outducts...");
+	for (elt = sm_list_first(bpwm, bpvdb->outducts); elt; elt =
 			sm_list_next(bpwm, elt))
 	{
 		voutduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
@@ -1722,7 +1781,9 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 			stopOutduct(voutduct);
 		}
 	}
+	writeMemo("[i] bpStop: Outducts stopped.");
 
+	writeMemo("[i] bpStop: Stopping BP daemons...");
 	if (bpvdb->clockPid != ERROR)
 	{
 		sm_TaskKill(bpvdb->clockPid, SIGTERM);
@@ -1738,31 +1799,38 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 	{
 		sm_TaskKill(bpvdb->transitPid, SIGTERM);
 	}
+	writeMemo("[i] bpStop: BP daemons signaled.");
 
 	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
 
 	/*	Wait until all BP processes have stopped.		*/
 
+	writeMemo("[i] bpStop: Waiting for schemes to terminate...");
 	for (elt = sm_list_first(bpwm, bpvdb->schemes); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
 		vscheme = (VScheme *) psp(bpwm, sm_list_data(bpwm, elt));
 		waitForScheme(vscheme);
 	}
+	writeMemo("[i] bpStop: All schemes terminated.");
 
+	writeMemo("[i] bpStop: Waiting for plans to terminate...");
 	for (elt = sm_list_first(bpwm, bpvdb->plans); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
 		vplan = (VPlan *) psp(bpwm, sm_list_data(bpwm, elt));
 		waitForPlan(vplan);
 	}
+	writeMemo("[i] bpStop: All plans terminated.");
 
-	for (elt = sm_list_first(bpwm, bpvdb->inducts); elt; elt = 
+	writeMemo("[i] bpStop: Waiting for inducts to terminate...");
+	for (elt = sm_list_first(bpwm, bpvdb->inducts); elt; elt =
 			sm_list_next(bpwm, elt))
 	{
 		vinduct = (VInduct *) psp(bpwm, sm_list_data(bpwm, elt));
 		waitForInduct(vinduct);
 	}
+	writeMemo("[i] bpStop: All inducts terminated.");
 
 	for (elt = sm_list_first(bpwm, bpvdb->outducts); elt; elt = 
 			sm_list_next(bpwm, elt))
@@ -3771,7 +3839,13 @@ int	bpStartPlan(char *eid)
 	PsmAddress	vplanElt;
 	int		result = 1;
 
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] bpStartPlan: Entry", eid);
+#endif
 	CHKZERO(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] bpStartPlan: SDR locked", eid);
+#endif
 	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)	/*	This is an unknown egress plan.	*/
 	{
@@ -3780,10 +3854,42 @@ int	bpStartPlan(char *eid)
 	}
 	else
 	{
+		/*	Only call resetPlan if bpclm crashed (has a PID but
+		 *	task no longer exists). Don't call it on first start
+		 *	since raisePlan() already called it during add_plan(),
+		 *	or after explicit stop since bpStopPlan() already
+		 *	called it. Calling resetPlan() when bpclm is running
+		 *	creates a race condition where bpclm can grab the
+		 *	semaphore between sm_SemGive() and sm_SemTake().	*/
+
+		if (vplan->clmPid != ERROR && sm_TaskExists(vplan->clmPid) == 0)
+		{
+#ifdef DEBUG_CRASH_RECOVERY
+			writeMemoNote("[DEBUG] bpStartPlan: bpclm crashed, calling resetPlan", eid);
+#endif
+			resetPlan(vplan);
+		}
+#ifdef DEBUG_CRASH_RECOVERY
+		else
+		{
+			writeMemoNote("[DEBUG] bpStartPlan: Skipping resetPlan (not needed)", eid);
+		}
+
+		writeMemoNote("[DEBUG] bpStartPlan: About to call startPlan", eid);
+#endif
 		startPlan(vplan);
+#ifdef DEBUG_CRASH_RECOVERY
+		writeMemoNote("[DEBUG] bpStartPlan: startPlan returned", eid);
+#endif
 	}
 
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] bpStartPlan: About to unlock SDR", eid);
+#endif
 	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] bpStartPlan: SDR unlocked, returning", eid);
+#endif
 	return result;
 }
 
@@ -12244,6 +12350,7 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 		sm_TaskYield();
 	}
 
+	bp_close(sap);
 	writeMemo("[i] Administrative endpoint terminated.");
 	writeErrmsgMemos();
 	return 0;
