@@ -14,7 +14,7 @@
 
 static int	_running(int *newState)
 {
-	int	state = 1;
+	static int	state = 1;
 
 	if (newState)
 	{
