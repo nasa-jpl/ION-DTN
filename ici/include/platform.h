@@ -1159,7 +1159,7 @@ extern void			findToken(char **cursorPtr, char **token);
 #endif
 
 #ifndef MAXPATHLEN
-#define MAXPATHLEN 200 // debug
+#error "No value defined for MAXPATHLEN. Compiler invocation must supply preprocessor flags indicating the target platform, e.g. -Dlinux, -Dmingw, -Dsolaris, etc... See configuration of AM_CFLAGS per 'host_os' in ./configure.ac in the ION source directory."
 #endif
 
 #endif  /* _PLATFORM_H_ */

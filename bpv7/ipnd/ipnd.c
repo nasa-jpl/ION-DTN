@@ -31,6 +31,7 @@
 #define DEFAULT_UNICAST_PERIOD		5
 #define DEFAULT_MULTICAST_PERIOD	7
 #define DEFAULT_BROADCAST_PERIOD	11
+#define MAX_TOKENS			99
 
 /**
  * Definition of TAGs, handled as lines from config
@@ -1087,7 +1088,6 @@ static int	processLine(char *line, int lineLength)
 	int		tokenCount;
 	char		*cursor;
 	int		i;
-	const int	MAX_TOKENS = 99;
 	char		*tokens[MAX_TOKENS];
 
 	/* Parameter intentionally unused. */
