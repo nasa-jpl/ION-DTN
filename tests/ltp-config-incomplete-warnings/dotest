@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Test for incomplete LTP configuration warnings and default value application
 #
@@ -22,8 +22,10 @@ echo "Cleaning up any previous test artifacts..."
 killm > /dev/null 2>&1
 sleep 1
 
-# Remove old log files
-rm -f ion.log *.stdout *.stderr
+# Remove old log files (unless preserving test logs)
+if [ -z "$PRESERVE_TEST_LOGS" ]; then
+    rm -f ion.log *.stdout *.stderr
+fi
 
 # Start ION node
 echo "Starting ION node with incomplete LTP configuration..."
