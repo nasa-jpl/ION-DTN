@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # cleanup script for ltp_span_crash_recovery test
 #
