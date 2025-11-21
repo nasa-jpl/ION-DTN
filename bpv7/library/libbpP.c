@@ -1750,9 +1750,9 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 	 *	their current operations and release locks before we
 	 *	iterate through plans. This prevents a race condition
 	 *	observed on Solaris where shutdown could hang if a CL
-	 *	thread was holding the plans list lock.		*/
+	 *	thread was holding the plans list lock or IPC lock.	*/
 
-	microsnooze(50000);	/*	50 milliseconds.		*/
+	microsnooze(200000);	/*	200 milliseconds.		*/
 	writeMemo("[i] bpStop: Stopping plans...");
 	elt = sm_list_first(bpwm, bpvdb->plans);
 	for (; elt; elt = sm_list_next(bpwm, elt))

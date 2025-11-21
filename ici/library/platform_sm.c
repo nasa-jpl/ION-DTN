@@ -4298,16 +4298,34 @@ void	sm_SemGive(sm_SemId i)
 void	sm_SemEnd(sm_SemId i)
 {
 	SmProcessSemtable *semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	SmLocalSem *sem = _semGetSem(semTbl,i,0);
+	SmLocalSem *sem;
 
 	// to match semantics of SVR4 code when calling this on a closed semaphore,
 	// we don't check for that, only that the semphore index is valid.
 	CHKVOID(i >= 0);
 	CHKVOID(i < SEM_NSEMS_MAX);
-	sem = &semTbl->lsemtable[i]; // semGetSem() will have returned NULL if semaphore is not open
-	sem->semgl->ended = 1;
 
-	sm_SemGive(i);
+	/* Mark semaphore as ended under IPC lock protection */
+	takeIpcLock();
+	sem = &semTbl->lsemtable[i];
+	sem->semgl->ended = 1;
+	giveIpcLock();
+
+	/* Wake up any waiting threads/processes without changing refCount.
+	 * Note: We use sem_post() directly here instead of sm_SemGive()
+	 * because sm_SemGive() decrements refCount, but sm_SemEnd() never
+	 * called sm_SemTake(), so there's no refCount to decrement.
+	 * Any threads blocked on sm_SemTake() will wake up and see the
+	 * 'ended' flag, then call sm_SemGive() themselves to balance
+	 * their refCount. */
+	sem = _semGetSem(semTbl, i, 0);
+	if (sem != NULL && sem->id != NULL)
+	{
+		if (sem_post(sem->id) == -1)
+		{
+			putSysErrmsg("Can't wake waiters for ended semaphore", itoa(i));
+		}
+	}
 }
 
 int	sm_SemEnded(sm_SemId i)

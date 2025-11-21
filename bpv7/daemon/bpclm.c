@@ -275,6 +275,7 @@ static int	getOutboundBundle(Outflow *flows, VPlan *vplan,
 
 				/*	End task, but without error.	*/
 
+				sm_SemGive(vplan->semaphore);
 				return 0;
 			}
 
