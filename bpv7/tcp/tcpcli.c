@@ -2790,11 +2790,24 @@ static void	dropPendingSession(LystElt elt, void *userdata)
 	}
 }
 
-static void	wakeUpServerThread(IonNetworkAddress *localAddr)
+static void	wakeUpServerThread(int serverSocket, IonNetworkAddress *localAddr)
 {
 	int	sock;
 
-	/*	Wake up the server thread by connecting to it.		*/
+	/*	Wake up the server thread blocked on accept().
+	 *	Use shutdown() on the listening socket, which is
+	 *	reliable across all platforms and address families.	*/
+
+	if (serverSocket >= 0)
+	{
+		shutdown(serverSocket, SHUT_RDWR);
+	}
+
+	/*	For backwards compatibility and as a fallback,
+	 *	also attempt to connect to the listening socket.
+	 *	This may fail on some platforms (e.g., Solaris IPv6
+	 *	loopback with IPV6_V6ONLY), but shutdown() above
+	 *	should have already woken the server thread.		*/
 
 	sock = socket(localAddr->family, SOCK_STREAM, IPPROTO_TCP);
 	if (sock >= 0)
@@ -2802,7 +2815,8 @@ static void	wakeUpServerThread(IonNetworkAddress *localAddr)
 		oK(connect(sock, (struct sockaddr *)&localAddr->addr,
 				localAddr->addr_len));
 
-		/*	Immediately discard the connected socket.	*/
+		/*	Connection result doesn't matter - shutdown()
+		 *	already did the job. Close the socket.		*/
 
 		closesocket(sock);
 	}
@@ -2997,11 +3011,16 @@ int	main(int argc, char *argv[])
 
 	/*	Time to shut down.					*/
 
+	writeMemo("[i] tcpcli main thread beginning shutdown");
 	stp.running = 0;
-	wakeUpServerThread(&localAddr);
+	writeMemo("[i] tcpcli calling wakeUpServerThread");
+	wakeUpServerThread(stp.serverSocket, &localAddr);
+	writeMemo("[i] tcpcli wakeUpServerThread returned");
 	if (pthread_kill(serverThread, SIGCONT) == 0)
 	{
+		writeMemo("[i] tcpcli waiting for server thread to join");
 		pthread_join(serverThread, NULL);
+		writeMemo("[i] tcpcli server thread joined");
 	}
 
 	shutDownNeighbors(neighbors);

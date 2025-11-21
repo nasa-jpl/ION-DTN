@@ -255,12 +255,18 @@ static int	getOutboundBundle(Outflow *flows, VPlan *vplan,
 			 *	outbound bundle by giving plan's
 			 *	semaphore.				*/
 
+#ifdef DEBUG_CRASH_RECOVERY
+			writeMemoNote("[DEBUG] bpclm: No bundles, waiting on semaphore", vplan->neighborEid);
+#endif
 			if (sm_SemTake(vplan->semaphore) < 0)
 			{
 				putErrmsg("bpclm can't take plan semaphore.",
 						vplan->neighborEid);
 				return -1;
 			}
+#ifdef DEBUG_CRASH_RECOVERY
+			writeMemoNote("[DEBUG] bpclm: Semaphore taken", vplan->neighborEid);
+#endif
 
 			if (sm_SemEnded(vplan->semaphore))
 			{
@@ -477,11 +483,19 @@ int	main(int argc, char *argv[])
 		return 0;
 	}
 
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] bpclm: Starting for node", nodeName);
+#endif
+
 	if (bpAttach() < 0)
 	{
 		putErrmsg("bpclm can't attach to BP.", NULL);
 		return -1;
 	}
+
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] bpclm: bpAttach succeeded", nodeName);
+#endif
 
 	if (ipnInit() < 0)
 	{
@@ -489,8 +503,18 @@ int	main(int argc, char *argv[])
 		return -1;
 	}
 
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] bpclm: ipnInit succeeded", nodeName);
+#endif
+
 	sdr = getIonsdr();
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] bpclm: About to lock SDR", nodeName);
+#endif
 	CHKZERO(sdr_begin_xn(sdr));	/*	Just to lock database.	*/
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] bpclm: SDR locked", nodeName);
+#endif
 	findPlan(nodeName, &vplan, &vplanElt);
 	if (vplanElt == 0)
 	{
@@ -521,6 +545,9 @@ int	main(int argc, char *argv[])
 	}
 
 	sdr_exit_xn(sdr);		/*	Unlock the database.	*/
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] bpclm: SDR unlocked", nodeName);
+#endif
 
 	/*	Set up signal handling.					*/
 
@@ -537,6 +564,9 @@ int	main(int argc, char *argv[])
 	 *	the semaphore for that Outduct.				*/
 
 	writeMemoNote("[i] bpclm is running", nodeName);
+#ifdef DEBUG_CRASH_RECOVERY
+	writeMemoNote("[DEBUG] bpclm: Entering main loop", nodeName);
+#endif
 	while (running)
 	{
 		CHKZERO(sdr_begin_xn(sdr));
