@@ -1,6 +1,6 @@
 # Convergence Layer Adaptor - APIs
 
-ION currently provides several CLAs, include LTP, TCP, UDP, STCP. However, it is possible to develop a customized CLA using ION's API. This document will describe the basic set of API used to develop a customized CLA.
+ION currently provides several CLAs, including LTP, TCP, UDP, and STCP. However, it is possible to develop a customized CLA using ION's API. This document will describe the basic set of APIs used to develop a customized CLA.
 
 ## CLA APIs
 
@@ -171,9 +171,9 @@ This should be called before shutting down a CLA process.
 
 Return Value
 
-* `NULL`: on any failure
+* None
 
-### bpBeginAcquisition
+### bpBeginAcq
 
 ```c
 extern int	bpBeginAcq(	AcqWorkArea *workArea,
@@ -197,7 +197,7 @@ acquired (e.g., per knowledge that
 the data were received via a
 physically secure medium) and, if
 non-NULL, an EID characterizing the
-node that send this inbound bundle.
+node that sent this inbound bundle.
 
 Return Values
 

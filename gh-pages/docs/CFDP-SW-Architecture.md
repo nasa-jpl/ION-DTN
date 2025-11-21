@@ -408,6 +408,74 @@ When closure latency is zero, the sender does not wait for acknowledgment. The t
 
 ---
 
+## Finished (FIN) PDU Behavior in Closure-Requested Mode
+
+### When FIN Messages Are Sent
+
+In closure-requested mode (when `closureLatency > 0`), the receiver sends a **Finished (FIN) PDU** back to the sender when the file transfer reaches completion. The FIN message is sent when the transaction reaches the `completeInFdu()` function AND the `closureRequested` flag is true.
+
+**Required Conditions for Normal (Success) FIN:**
+1. **Metadata received** - The Metadata PDU has been received from the sender
+2. **EOF received** - The EOF (End-of-File) PDU has been received
+3. **All file data received** - `bytesReceived >= fileSize` (no missing data segments)
+4. **Checksum verification passes** - The computed checksum matches the EOF checksum (or NullChecksum is used)
+
+**Code Reference:** `cfdp/library/libcfdpP.c:2878-2885`
+
+### FIN Sent With Error Conditions
+
+The FIN PDU is sent **even when errors occur**, as long as the transaction reaches the completion phase. The FIN PDU includes the error condition code to inform the sender of the outcome.
+
+**Error Conditions That Trigger FIN (when fault handler = `CfdpCancel`):**
+
+| Condition Code | Condition Name | When It Occurs | Code Reference |
+|---------------|----------------|----------------|----------------|
+| **5** | `CfdpChecksumFailure` | Checksum verification fails | libcfdpP.c:3899 |
+| **4** | `CfdpFilestoreRejection` | Filestore operations fail | libcfdpP.c:3955 |
+| **6** | `CfdpFileSizeError` | Received data exceeds declared file size | libcfdpP.c:4114, 4939 |
+| **11** | `CfdpUnsupportedChecksumType` | Checksum type not supported | libcfdpP.c:5034 |
+| **3** | `CfdpInvalidTransmissionMode` | Transmission mode mismatch | libcfdpP.c:5372 |
+| **9** | `CfdpInvalidFileStructure` | File structure invalid | libcfdp.c:1381 |
+| **15** | `CfdpCancelRequested` | User cancellation | libcfdp.c:1693 |
+
+### FIN PDU Contents
+
+The Finished PDU contains a status byte with the following fields:
+
+```
+Bits 7-4: Condition Code (error/success)
+Bit 2:    Delivery Code (0=Complete, 1=Incomplete)
+Bits 1-0: File Status (0=Discarded, 1=Rejected, 2=Retained, 3=Unreported)
+```
+
+**Code Reference:** `cfdp/library/libcfdpP.c:2518-2521`
+
+### When FIN is NOT Sent
+
+FIN will NOT be sent if the fault handler is configured as:
+
+| Handler | Behavior | Result |
+|---------|----------|--------|
+| **`CfdpAbandon`** | Transaction abandoned | Sends `CfdpAbandonedInd` event instead, no FIN PDU |
+| **`CfdpSuspend`** | Transaction suspended | Transaction paused, no completion |
+| **`CfdpIgnore`** | Fault ignored | Transaction continues, FIN sent later if completes |
+
+**Fault Handler Configuration:**
+- Fault handlers can be set per-transaction or globally via `cfdpadmin`
+- Default handlers are defined in the CFDP database
+- The handler determines how each fault condition is processed
+
+### Key Takeaway
+
+The FIN message is sent **unconditionally** whenever:
+- `completeInFdu()` is called
+- `closureRequested` flag is true
+- **Regardless of whether the condition represents success or error**
+
+The error condition code is embedded in the FIN PDU to inform the sender of the actual outcome. This allows the sender to receive definitive notification about transaction completion, even in error cases.
+
+---
+
 # cfdptest Utility Enhancements
 
 ## Transaction Tracking and Summary Display

@@ -78,13 +78,13 @@ The overall test campaign will still report success (exit 0) even if optional te
 
 ## Running the tests
 
-The tests are run by running `make test-all` in the top-level directory, or by running `runtests` in this directory.
+The tests are run by running `make test-all` in the top-level directory, or by running `runtests` in the `tests` directory.
 
 An individual test can also be run: `./runtests <test_name>`
 
-A file defining a set of tests can be run with `runtestset`.  The arguments to `runtestset` are files that contain globs of tests to run, for example: `./runtestset quicktests` or `./runtests a*` which will run all tests that matches the `a*` name pattern.
+A file defining a set of tests can be run with `runtestset`. The arguments to `runtestset` are files that contain globs of tests to run, for example: `./runtestset quicktests`. Alternatively, you can pass glob patterns directly to `runtests`, such as `./runtests a*`, which will run all tests that match the `a*` name pattern.
 
-In order to run BPSec-related regression tests, one should set the `ION_RUN_EXPERT` environment variable to a non-empty value, such as "1" or "YES", etc. This enables the BPSec-specific tests to run. Otherwise, those tests will be skipped.
+In order to run BPSec-related regression tests and other tests marked as "expert", one should set the `ION_RUN_EXPERT` environment variable to a non-empty value (such as "1", "yes", or "YES"). This enables tests that are excluded with `.exclude_expert` files. Otherwise, those tests will be skipped.
 
 ## Writing new tests
 
@@ -94,7 +94,7 @@ A test directory must contain an executable file named `dotest`.  If a directory
     1: Failure
     2: Skip this test
 
-The test program starts without the ION stack running.  The test program is responsible for starting ION in the ways that is appropriate for the test.
+The test program starts without the ION stack running. The test program is responsible for starting ION in the way that is appropriate for the test.
 
 The test program *must* stop the ION protocol stack before returning.
 
@@ -104,10 +104,16 @@ The `dotest` scripts are run in their test directory. The following environment 
 
 - `IONDIR` is the root of the local ION source directory.
 
-- `PATH` begins with `IONDIR` (this is where the local executables are found.)
+- `PATH` has `IONDIR` prepended to it, ensuring ION executables in the local build directory are found first.
 
-## For 4.1.3s and later
+## Test Progress Tracking (ION 4.1.3 and later)
 
-The `runtests` script maintains a file called `tests/progress` that gives the start time, finish time, and final result for each test.
+Starting with ION version 4.1.3, the `runtests` script maintains a file called `tests/progress` that records the start time, finish time, and final result for each test.
 
-If the environment variable `RUNTESTS_OUTPUTDIR` is set, as in, `export RUNTESTS_OUTPUTDIR="/tmp"`, then the output from each test will be stored in `/tmp/results`, which makes it much easier to find particular text or results when debugging.
+If the environment variable `RUNTESTS_OUTPUTDIR` is set, as in `export RUNTESTS_OUTPUTDIR="/tmp"`, then the output from each test will be stored in individual files like `/tmp/results.testname` (e.g., `/tmp/results.1000.loopback`), which makes it much easier to find particular text or results when debugging.
+
+## Test retries and the retest file
+
+When tests fail during a test campaign, `runtests` automatically generates a file called `retest` in the `tests` directory. This file contains the names of all failed non-optional tests. After the initial test run completes, `runtests` will automatically attempt to re-run all tests listed in the `retest` file once more. This automatic retry mechanism helps identify intermittent failures and reduces false positives from timing-sensitive tests.
+
+Note that optional tests (marked with `.optional`) are never included in the `retest` file and are not retested automatically, since their failure does not affect the overall test campaign status.

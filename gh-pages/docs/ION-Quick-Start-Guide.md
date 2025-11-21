@@ -1,5 +1,7 @@
 # ION Quick Start Guide
 
+**IMPORTANT NOTE ON DUAL-STACK IPv4/IPv6 NETWORKING (ION 4.1.4-b.1 and later)**: The dual-stack IPv4/IPv6 capability will automatically use the network address family returned by hostname resolution. Most operating systems return IPv6 addresses first when available, and ION's network stack will use the first entry returned. If a host is not properly configured for the returned address family, this may cause network address family conflicts, resulting in connection failures for TCP, UDP, and LTPCLA (which runs over UDP). The most reliable approach is to use explicit IP addresses if known. If using hostnames, ensure all hosts resolve to the correct address family as the first entry in DNS resolution.
+
 - [ION Quick Start Guide](#ion-quick-start-guide)
   - [Installing ION on Linux, MacOS, Solaris](#installing-ion-on-linux-macos-solaris)
     - [Build ION 4.1.3 (and earlier versions) without actual cipher suite](#build-ion-413-and-earlier-versions-without-actual-cipher-suite)
@@ -105,7 +107,7 @@ If you are not planning to use BPSec's interface to the MBEDTLS cipher suite, yo
 
 Before building ION, you should build and install MBEDTLS first. Download [MBEDTLS release 2.28.8 from GitHub.](https://github.com/Mbed-TLS/mbedtls/releases/tag/v2.28.8)
 
-Assume your place the files in your home directory under `$HOME/mbedtls-2.28.2`. Now do the following:
+Assume you place the files in your home directory under `$HOME/mbedtls-2.28.2`. Now do the following:
 
 1. Modify the file under `$HOME/mbedtls-2.28.2/include/mbedtls/config.h`
    - Uncomment the line `#define MBEDTLS_NIST_KW_C` and save the file.
@@ -115,7 +117,7 @@ Assume your place the files in your home directory under `$HOME/mbedtls-2.28.2`.
 4. Install MBEDTLS shared library: `sudo make install`
     - The default library installation locations are `/usr/local/lib` and `/usr/local/include`. After the installation, verify the location of the library and header files. If the MBEDTLS shared libraries are not copied into the above locations, then make a note of the full path to the actual library and header files, which will need to be provided to ION during compilation.
 
-Now we are ready to install ION. For the `./configure` command you need to enable MBEDTLS cipher suite interface using the `--enable-crypto-mbedtls` option. In additional, you may also optionally add the `--enable-bpsec-debugging` flag in you plan to run the BPSec related regression tests.
+Now we are ready to install ION. For the `./configure` command you need to enable MBEDTLS cipher suite interface using the `--enable-crypto-mbedtls` option. In addition, you may also optionally add the `--enable-bpsec-debugging` flag if you plan to run the BPSec related regression tests.
 
 If the MBEDTLS library is not installed under the `/usr/local` prefix, then you will need to provide the path to the MBEDTLS library explicitly to ION by adding `MBED_LIB_PATH=<path-to-mbedtls-sharedlibrary> MBED_INC_PATH=<path-to-mbedtls-header-files>` to the `./configure` command.
 
@@ -145,17 +147,20 @@ For MacOS and FreeBSD, prior to building ION, you should check whether there is 
 
 ### Adding Other Compile Time Switches
 
-If you want to set additional compile-time switches for a build, the place to do this to add them to the `./configure` command. To see a list of supported ION compiler options, see explanation provided by:
+If you want to set additional compile-time switches for a build, the place to do this is to add them to the `./configure` command. To see a list of supported ION compiler options, see the explanation provided by:
 
 `./configure -h`
 
-By default, Bundle Protocol V7 will be built and installed, but BPv6 source code is still available in ION 4.1.3s. The BPv6 implementation is essentially the same as that of ION 3.7.4, with only critical bugs being updated going forward. All users need to switch to BPV7 for ION 4.1.4 or later.
-
-To build BPv6 (ION 4.1.3s or earlier)
-
-`./configure --enable-bpv6`
+By default, Bundle Protocol V7 will be built and installed. Starting with ION 4.1.4-a.2, BPv6 has been removed from the codebase. All users must use BPv7 for ION 4.1.4 or later.
 
 To build ION with enhanced watch character support, use the `--enable-ewchar` option.
+
+For minimal builds targeting resource-constrained environments, ION 4.1.4-b.1 introduces options to selectively disable optional convergence layer modules:
+
+- `--disable-dgr` - Disable the DGR (Datagram Retransmission) convergence layer
+- `--disable-bssp` - Disable the BSSP (Bundle Streaming Service Protocol) convergence layer
+
+These options can reduce the compiled size and runtime resource requirements when these specific convergence layers are not needed for your deployment.
 
 To introduce customized build flags, you can add them via the `./configure` in this manner:
 
@@ -189,7 +194,7 @@ Where `id` is one of:
 - `?` (warning statement)
 - `x` (error statement)
 
-To in order help users quickly verify their BP security configurations and operations are correct, the default BPSec logging level is set to 4 to provide per bundle status update in _ion.log_. This is also the level required for running the python-based BPSec regression tests in the ION distribution. This level of verbosity may be too high for operation or too low for in-depth debugging. Therefore, when needed, you can recompile ION to turn BPSec logging off or set a specific logging level based on your needs.
+To help users quickly verify their BP security configurations and operations are correct, the default BPSec logging level is set to 4 to provide per bundle status updates in _ion.log_. This is also the level required for running the python-based BPSec regression tests in the ION distribution. This level of verbosity may be too high for operation or too low for in-depth debugging. Therefore, when needed, you can recompile ION to turn BPSec logging off or set a specific logging level based on your needs.
 
 To run BPSec logging at default level, run
 
@@ -197,7 +202,7 @@ To run BPSec logging at default level, run
 ./configure --enable-bpsec-logging
 ```
 
-To run BPSec without logging, simply omit the `--enable-bpsec-loggin` option.
+To run BPSec without logging, simply omit the `--enable-bpsec-logging` option.
 
 To run BPSec logging at a specific level (1, 2, 3, or 4 - note 4 is the least verbose), run
 
@@ -215,15 +220,15 @@ If you do not wish to use the automake build system, you can build ION by using 
 
 #### Method 1: Using Development Makefiles
 
-The ION distribution provides a set of Makefiles that does not rely on the automake system. This set of Makefile is by ION developer on Linux-based OS to offer more flexibility for compiling and debugging.
+The ION distribution provides a set of Makefiles that does not rely on the automake system. This set of Makefiles is used by ION developers on Linux-based OS to offer more flexibility for compiling and debugging.
 
-Currently, the only actively maintained platform-specific development Makefile set is for 64-bits Linux under the "i86_48-fedora" folder in each module. If you choose this option, be aware of the following limitations:
+Currently, the only actively maintained platform-specific development Makefile set is for 64-bits Linux under the "i86_64-fedora" folder in each module. If you choose this option, be aware of the following limitations:
 
 For ION 4.1.1, 4.1.2 and 4.1.3:
 
-- The development Makefiles are hierarchical. There is a top-level Makefile in the ION root directory and a set of Makefiles in the individual ION modules, under the "i86_48-fedora" subfolder. If you run `./configure` command, it will switch to the automake system and all development Makefiles will be renamed from `Makefile` to `Makefile.dev`.
+- The development Makefiles are hierarchical. There is a top-level Makefile in the ION root directory and a set of Makefiles in the individual ION modules, under the "i86_64-fedora" subfolder. If you run `./configure` command, it will switch to the automake system and all development Makefiles will be renamed from `Makefile` to `Makefile.dev`.
   - If you used the automake system and want to revert to the development Makefiles, you should first run `make clean` and `make uninstall` to completely remove ION from the system because the two compilation method builds organizes shared libraries differently. Then you can either run `git stash` to restore the old Makefiles or simply pull a fresh copy of the code from the repo.
-- The development Makefiles, as they are, provides only the default compilation options  - similar to running `./configure` with no arguments. If you need to set specific compiler flags, you need to modify the Makefiles directly or pass a `ADD_FLAGS` argument to the `make all` command.
+- The development Makefiles, as they are, provide only the default compilation options - similar to running `./configure` with no arguments. If you need to set specific compiler flags, you need to modify the Makefiles directly or pass an `ADD_FLAGS` argument to the `make all` command.
 - The default directory for installation is `/usr/local/`, which usually requires sudo privilege. To override the installation prefix, change the value of `OPT` in the top-level Makefile of each package.
 
 To build using the development Makefiles, cd to the ION root directory and run:
@@ -234,7 +239,7 @@ OR if you need to set specific compiler flags, run:
 
 `make all ADD_FLAGS="<string of compiler options>"`
 
-To install ION, run:
+Note: The `make all` command builds all ION executables and libraries to local `bin/` and `lib/` subdirectories within each module. To install these to the system directories (default: `/usr/local/`), run:
 
 `sudo make install && sudo ldconfig`
 
@@ -248,16 +253,16 @@ To remove all build artifacts, run:
 
 For ION 4.1.3s and later:
 
-- ION will be released without any Makefile. The default build method is automake. You run `./configure` command, to create a single Makefile in the ION root directory.
-- If you want to switch to use the development Makefiles, you need to first run `make clean` and `make uninstall` to completely remove ION from the system because the two compilation method builds organizes shared libraries differently. Then you can run the script `enable_manaul_build.sh` to clear the automake build system and replace it with the development Makefiles.
+- ION will be released without any Makefile. The default build method is automake. You run the `./configure` command to create a single Makefile in the ION root directory.
+- If you want to switch to use the development Makefiles, you need to first run `make clean` and `make uninstall` to completely remove ION from the system because the two compilation method builds organizes shared libraries differently. Then you can run the script `enable_manual_build.sh` to clear the automake build system and replace it with the development Makefiles.
 
 ##### Build Individual Packages
 
 It's also possible to build the individual packages of ION, using the development Makefiles in the package subdirectories. If you choose this option, be aware of the dependencies among the packages:
 
 - The "ici" package must be built (run `make` and `make install`) before any other package.
-- The "bp" package is dependent on "dgr" and "ltp" and "bssp" as well as "ici"
-- The "cfdp", "ams", "bss", and "dtpc" packages are dependent on "bpv7"
+- The "bp" package is dependent on "dgr", "ltp", and "bssp" as well as "ici"
+- The "cfdp", "ams", "bss", and "dtpc" packages are dependent on "bp"
 - The "restart" package is dependent on "cfdp", "bp", "ltp", and "ici"
 
 For more detailed instruction on building ION, see section 2 of the "ION Design and Operation Guide" document that is distributed with this package.
@@ -268,7 +273,7 @@ All Makefiles are for gmake; on a FreeBSD platform, be sure to install gmake bef
 
 #### Method 2: Using the ion-core Package
 
-The `ion-core` package contains only a subset of essential BP functionalities - particular those features that are more stable and have been deployed for operations previously. The `ion-core` package can be [downloaded here](https://github.com/nasa-jpl/ion-core). Please following the `README.md` file there for installation instructions.
+The `ion-core` package contains only a subset of essential BP functionalities - particularly those features that are more stable and have been deployed for operations previously. The `ion-core` package can be [downloaded here](https://github.com/nasa-jpl/ion-core). Please follow the `README.md` file there for installation instructions.
 
 ## Windows 7 & Windows 10
 
@@ -286,7 +291,7 @@ Before running ION, let's confirm which version of Bundle Protocol is installed 
 
 `bpversion`
 
-You will see a simple string on the terminal windows indicating either "bpv6" or "bpv7".
+You will see a simple string on the terminal window indicating "bpv7".
 
 Also check the ION version installed by running:
 
@@ -388,7 +393,7 @@ If you study the test script under the "tests" and the "demos" folders, you will
 
 In order to run multiple ION instances in one host, specific, different IPCS keys must be used for each instance, and several  variables must be set properly in the shell environment. Please see the ION Deployment Guide (included with the ION distribution) for more information on how to do that.
 
-We recommend that most users, unless due to specific contrain that they must run multiple ION instance on one host, to run each ION instance on a separate host or (VM).
+We recommend that most users, unless due to specific constraints that require running multiple ION instances on one host, run each ION instance on a separate host or VM.
 
 ## Setup UDP Configuration on Two Hosts
 
@@ -433,7 +438,7 @@ Repeat the same updates for host B by appropriately substituting old IP address 
 
 ## Launch ION on two separate hosts
 
-After updating the configuration files on host A and B to reflect the new IP addresses and using default wmKey (by not specifying any), we are new ready to try launching ION.
+After updating the configuration files on host A and B to reflect the new IP addresses and using the default wmKey (by not specifying any), we are now ready to try launching ION.
 
 Before you try to launch ION, it is recommended that you:
 
@@ -496,13 +501,13 @@ After host B has launched bpcounter, then on host A, run this command:
 
 This command tells ION running in host A to send 3 bundles from EID 2.2 to EID 3.2, which is waiting for data (per bpcounter command.) And each bundle should be 10,000 bytes in size.
 
-Why use the "-" sign in front of the size parameter? It's not a typo. The "-" indicates that bpdriver should keep sending bundles without waiting for any response from the receiver. The feature where bpdriver waits for the receiver is available in BPv6 but no longer part of BPv7.
+Why use the "-" sign in front of the size parameter? It's not a typo. The "-" indicates that bpdriver should keep sending bundles without waiting for any response from the receiver.
 
 When the test completed, you should see output indicating that all the data were sent, how many bundles were transmitted/received, and at what rate.
 
 Please note that on the sending side the transmission may appear to be almost instantaneous. That is because bpdriver, as an application, is pushing data into bundle protocol which has the ability to rate buffer the data. So as soon as the bpdriver application pushes all data into the local bundle protocol agent, it considers the transmission completed and it will report a very high throughput value, one that is far above the contact graph's data rate limit. This is not an error; it simple report the throughput as experienced by the sending application, knowing that the data has not yet delivered fully to the destination.
 
-Throughput reported by bpcounter, on the other hand, is quite accurate if a large number of bundles are sent. To accurately measure the time it takes to send the bundles, bpdriver program will send a "pilot" bundle just before sending the test data to signals to the bpcounter program to run its throughput calculation timer. This allows the user to run bpcounter and not haveing to worry about immediately send all the bundles in order to produce an accurate throughput measurement.
+Throughput reported by bpcounter, on the other hand, is quite accurate if a large number of bundles are sent. To accurately measure the time it takes to send the bundles, the bpdriver program will send a "pilot" bundle just before sending the test data to signal to the bpcounter program to run its throughput calculation timer. This allows the user to run bpcounter and not have to worry about immediately sending all the bundles in order to produce an accurate throughput measurement.
 
 If you want to emulate the action of a constant rate source, instead of having bpdriver pushing all data as fast as possible, then you can use the 'i' option to specify a data rate throttle in bits per second.
 
@@ -512,13 +517,13 @@ If you want to know more about how bpdriver and bpcounter work, look up their ma
 
 To confirm whether ION is running properly or has experienced an error, the first thing to do is to check the ion.log, which is a file created in the directory from which ION was launched. If an ion.log file exists when ION starts, it will simply append additional log entries into that file. Each entry has a timestamp to help you determine the time and the relative order in which events occurred.
 
-When serious error occurs, ion.log  will have detailed messages that can pinpoint the name  and line number of the source code where the error was reported or triggered.
+When a serious error occurs, ion.log will have detailed messages that can pinpoint the name and line number of the source code where the error was reported or triggered.
 
 ## bpacq and ltpacq files
 
 Sometimes after operating ION for a while, you will notice a number of files with names such as "bpacq" or "ltpacq" followed by a number. These are temporary files created by ION to stage bundles or LTP blocks during reception and processing.  Once a bundle or LTP block is completely constructed, delivered, or cancelled properly, these temporary files are automatically removed by ION. But if ION experiences an anomalous shutdown, then these files may remain and accumulate in the local directory.
 
-It is generally safe to remove these files between ION runs. Their presence does not automatically imply issues with ION but can indicate that ION operations were interrupted for some reason. By noting their creation time stamp, it can provide clues on when these interruptions occurred. Right now there are no ION utilty program to parse them because these files are essentially bit buckets and do not contain internal markers or structure and allows user to parse them or extract information by processes outside the bundle agents that created them in the first place.
+It is generally safe to remove these files between ION runs. Their presence does not automatically imply issues with ION but can indicate that ION operations were interrupted for some reason. By noting their creation time stamp, it can provide clues on when these interruptions occurred. Right now there are no ION utility programs to parse them because these files are essentially bit buckets and do not contain internal markers or structure that would allow users to parse them or extract information by processes outside the bundle agents that created them in the first place.
 
 ## Forced Shutdown of ION
 
@@ -547,7 +552,7 @@ The ION Dev Kit mentioned in the NASA ION Course had been deprecated. However, s
 
 In this section, we provide three configuration file examples with detailed comments explaining the configuration commands. The three examples are:
 
-- Singe Node Loopback over LTP
+- Single Node Loopback over LTP
 - Two Nodes over TCPCL
 - Three Node with a relay using LTP and TCPCL
 
@@ -563,157 +568,56 @@ Here is an example configuration file for "loopback.rc" using LTP as the primary
 ## Run the following command to start ION node:
 ##  % ionstart -I "loopback.rc"
 
-## begin ionadmin 
-# ionrc configuration file for loopback test.
-#   This uses ltp as the primary convergence layer.
-#   command: % ionadmin loopback.ionrc
-#   This command should be run FIRST.
-#
-#   Ohio University, Oct 2008
-
-# Initialization command (command 1). 
-#   Set this node to be node 1 (as in ipn:1).
-#   Use default sdr configuration (empty configuration file name "").
+## begin ionadmin
+# Initialize node 1 with default SDR configuration
 1 1 ""
-
-# start ion node
 s
 
-# Add a contact.
-#   It will start at +1 seconds from now, ending +3600 seconds from now.
-#   It will connect node 1 to itself
-#   It will transmit 100000 bytes/second.
+# Add contact and range (loopback, +1 to +3600 seconds, 100000 bytes/sec, 1 sec OWLT)
 a contact +1 +3600 1 1 100000
-
-# Add a range. This is the physical distance between nodes.
-#   It will start at +1 seconds from now, ending +3600 seconds from now.
-#   It will connect node 1 to itself.
-#   Data on the link is expected to take 1 second to reach the other
-#   end (One Way Light Time).
 a range +1 +3600 1 1 1
 
-# set this node to consume and produce a mean of 1000000 bytes/second.
+# Set production and consumption rates
 m production 1000000
 m consumption 1000000
-## end ionadmin 
+## end ionadmin
 
-## begin ltpadmin 
-# ltprc configuration file for the loopback test.
-#   Command: % ltpadmin loopback.ltprc
-#   This command should be run AFTER ionadmin and BEFORE bpadmin.
-#
-#   Ohio University, Oct 2008
-
-# Initialization command (command 1).
-#   We estimate that the total number of export sessions managed by the 
-#       LTP engine will be 32.  A session is assumed to be around one
-#   second of transmission.  This value should be estimated at the sum
-#   of maximum round-trip times (in seconds) for all "spans."
-#   Suggest throwing 20% higher number of sessions to account for extra-
-#   long sessions which contain an actual retransmission.
+## begin ltpadmin
+# Initialize LTP with 32 sessions
 1 32
 
-# Add a span. (a connection) 
-#   Identify the span as engine number 1.
-#       Limit the number of export and imports sessions on this span
-#       to 10 to ensure we do not consume all space.
-#   Use 1400 byte segments (assuming a standard ethernet frame
-#   underlying this link and accounting for ip/udp/eth header overhead).
-#   Use a block size aggregation limit of 10000 bytes.  This is the amount
-#   of data (which can span several bundles) typically sent in a session.
-#   You should consider this to be the maximum number of bytes sent in
-#   one second on the link.
-#       Use a block time aggregation limit of 1 second; if 1 second passes
-#       and the amount of data accumulated in the current block
-#       is less than the limit, send the block anyway.
-#   Use the command 'udplso localhost:1113' to implement the link
-#   itself.  In this case, we use udp to connect to localhost (this is
-#   loopback) using port 1113 (defined by IANA as the default UDP port
-#   for Licklider Transmission Protocol).  The single quote is
-#   important, don't use double quotes.
+# Add span for node 1 (10 sessions, 1400 byte segments, 10000 byte blocks, 1 sec aggregation)
 a span 1 10 10 1400 10000 1 'udplso localhost:1113'
 
-# Start command.
-#   This command actually runs the link service output commands
-#   (defined above, in the "a span" command).
-#   Also starts the link service INPUT task 'udplsi localhost:1113' to
-#   listen locally on UDP port 1113 for incoming LTP traffic.
+# Start LTP with UDP listener on port 1113
 s 'udplsi localhost:1113'
-## end ltpadmin 
+## end ltpadmin
 
-## begin bpadmin 
-# bprc configuration file for the loopback test.
-#   Command: % bpadmin loopback.bprc
-#   This command should be run AFTER ionadmin and ltpadmin and 
-#   BEFORE ipnadmin or dtnadmin.
-#
-#   Ohio University, Oct 2008
-
-# Initialization command (command 1).
-#   Use ipn:1.0 as the custodian endpoint of this node.
-#   That is, scheme IPN with node 1 and service number 0
-#   (ipn requires custodian service is zero).
-#   Note that this EID must be understood by the node itself, so be sure
-#   to add the scheme below.
+## begin bpadmin
+# Initialize with custodian endpoint ipn:1.0
 1 ipn:1.0
 
-# Add an EID scheme.
-#   The scheme's name is ipn.
->#  This scheme's forwarding engine is handled by the program 'ipnfw.'
-#   This scheme's administration program (acting as the custodian
-#   daemon) is 'ipnadminep.'
+# Add IPN scheme
 a scheme ipn 'ipnfw' 'ipnadminep'
 
-# Add endpoints.
-#   Establish endpoints ipn:1.0, ipn:1.1, and ipn:1.2 on the local node.
-#   ipn:1.0 is expected for custodian traffic.  The rest are usually
-#   used for specific applications (such as bpsink).
-#   The behavior for receiving a bundle when there is no application
-#   currently accepting bundles, is to queue them 'q', as opposed to
-#   immediately and silently discarding them (use 'x' instead of 'q' to
-#   discard).
+# Add endpoints
 a endpoint ipn:1.0 q
 a endpoint ipn:1.1 q
 a endpoint ipn:1.2 q
 
-# Add a protocol. 
-#   Add the protocol named ltp.
-#   Estimate transmission capacity assuming 1400 bytes of each frame (in
-#   this case, udp on ethernet) for payload, and 100 bytes for overhead.
+# Add LTP protocol (1400 byte payload, 100 byte overhead)
 a protocol ltp 1400 100
 
-# Add an induct. (listen)
-#   Add an induct to accept bundles using the ltp protocol.
-#   The duct's name is 1 (this is for future changing/deletion of the
-#   induct).
-#   The induct itself is implemented by the 'ltpcli' command.
+# Add LTP induct and outduct
 a induct ltp 1 ltpcli
-
-# Add an outduct (send to yourself).
-#   Add an outduct to send bundles using the ltp protocol.
-#   The duct's name is 1 (this is for future changing/deletion of the
-#   outduct).
-#   The outduct itself is implemented by the 'ltpclo' command.
 a outduct ltp 1 ltpclo
 
-# Start bundle protocol engine, also running all of the induct, outduct,
-# and administration programs defined above
+# Start bundle protocol engine
 s
-## end bpadmin 
+## end bpadmin
 
-## begin ipnadmin 
-# ipnrc configuration file for the loopback test.
-#   Essentially, this is the IPN scheme's routing table.
-#   Command: % ipnadmin loopback.ipnrc
-#   This command should be run AFTER bpadmin (likely to be run last).
-#
-#   Ohio University, Oct 2008
-
-# Add an egress plan.
-#   Bundles to be transmitted to node number 1 (that is, yourself).
-#   The plan is to queue for transmission on protocol 'ltp' using
-#   the outduct identified as '1.'
-#   See your bprc file or bpadmin for outducts/protocols you can use.
+## begin ipnadmin
+# Add egress plan for node 1
 a plan 1 ltp/1
 ## end ipnadmin
 ```
@@ -733,135 +637,55 @@ Note that this example network uses a different convergence layer: TCP.
 ## % ionstart -I "host1.rc"
 
 ## begin ionadmin
-# ionrc configuration file for host1 in a 2node tcp test.
-# This uses tcp as the primary convergence layer.
-# command: % ionadmin host1.ionrc
-# This command should be run FIRST.
-#
-# Ohio University, Oct 2008
-
-# Initialization command (command 1).
-# Set this node to be node 1 (as in ipn:1).
-# Use default sdr configuration (empty configuration file name "").
+# Initialize node 1 with default SDR configuration
 1 1 ""
-
-# start ion node
 s
 
-# Add a contact.
-# It will start at +1 seconds from now, ending +3600 seconds from now.
-# It will connect node 1 to itself
-# It will transmit 100000 bytes/second.
+# Add contacts (unidirectional, 100000 bytes/sec)
 a contact +1 +3600 1 1 100000
-
-# Add more contacts.
-# They will connect 1 to 2, 2 to 1, and 2 to itself
-# Note that contacts are unidirectional, so order matters.
 a contact +1 +3600 1 2 100000
 a contact +1 +3600 2 1 100000
 a contact +1 +3600 2 2 100000
 
-# Add a range. This is the physical distance between nodes.
-# It will start at +1 seconds from now, ending +3600 seconds from now.
-# It will connect node 1 to itself.
-# Data on the link is expected to take 1 second to reach the other
-# end (One Way Light Time).
+# Add ranges (bidirectional, 1 sec OWLT)
 a range +1 +3600 1 1 1
-
-# Add more ranges.
-# We will assume every range is one second.
-# Note that ranges cover both directions, so you only need define
-# one range for any combination of nodes.
 a range +1 +3600 2 2 1
 a range +1 +3600 2 1 1
 
-# set this node to consume and produce a mean of 1000000 bytes/second.
+# Set production and consumption rates
 m production 1000000
 m consumption 1000000
 ## end ionadmin
 
 ## begin bpadmin
-# bprc configuration file for host1 in a 2node test.
-# Command: % bpadmin host1.bprc
-# This command should be run AFTER ionadmin and BEFORE ipnadmin
-# or dtnadmin.
-#
-# Ohio University, Oct 2008
-
-# Initialization command (command 1).
+# Initialize BP
 1
 
-# Add an EID scheme.
-# The scheme's name is ipn.
-# This scheme's forwarding engine is handled by the program 'ipnfw.'
-# This scheme's administration program (acting as the custodian
-# daemon) is 'ipnadminep.'
+# Add IPN scheme
 a scheme ipn 'ipnfw' 'ipnadminep'
 
-# Add endpoints.
-# Establish endpoints ipn:1.0, ipn:1.1, and ipn:1.2 on the local node.
-# ipn:1.0 is expected for custodian traffic. The rest are usually
-# used for specific applications (such as bpsink).
-# The behavior for receiving a bundle when there is no application
-# currently accepting bundles, is to dump them 'x', as opposed to
-# queueing them (use 'q' instead of 'x' to queue).
+# Add endpoints (discard behavior 'x')
 a endpoint ipn:1.0 x
 a endpoint ipn:1.1 x
 a endpoint ipn:1.2 x
 
-# Add a protocol.
-# Add the protocol named tcp.
-# Estimate transmission capacity assuming 1400 bytes of each frame (in
-# this case, tcp on ethernet) for payload, and 100 bytes for overhead.
+# Add TCP protocol (1400 byte payload, 100 byte overhead)
 a protocol tcp 1400 100
 
-# Add an induct. (listen)
-# Add an induct to accept bundles using the tcp protocol.
-# The induct will listen at this host's IP address (private testbed).
-# The induct will listen on port 4556, the IANA assigned default DTN
-# TCP convergence layer port.
-# The induct itself is implemented by the 'tcpcli' command.
+# Add TCP induct (listen on port 4556)
 a induct tcp 10.1.1.1:4556 tcpcli
 
-# Add an outduct (send to yourself).
-# Add an outduct to send bundles using the tcp protocol.
-# The outduct will connect to the IP address 10.1.1.1 using the
-# IANA assigned default DTN TCP port of 4556.
-# The outduct itself is implemented by the 'tcpclo' command.
+# Add TCP outducts (to self and host2)
 a outduct tcp 10.1.1.1:4556 tcpclo
-
-# Add an outduct. (send to host2)
-# Add an outduct to send bundles using the tcp protocol.
-# The outduct will connect to the IP address 10.1.1.2 using the
-# IANA assigned default DTN TCP port of 4556.
-# The outduct itself is implemented by the 'tcpclo' command.
 a outduct tcp 10.1.1.2:4556 tcpclo
 
-# Start bundle protocol engine, also running all of the induct, outduct,
-# and administration programs defined above.
+# Start bundle protocol engine
 s
 ## end bpadmin
 
 ## begin ipnadmin
-# ipnrc configuration file for host1 in the 2node tcp network.
-# Essentially, this is the IPN scheme's routing table.
-# Command: % ipnadmin host1.ipnrc
-# This command should be run AFTER bpadmin (likely to be run last).
-#
-# Ohio University, Oct 2008
-
-# Add an egress plan (to yourself).
-# Bundles to be transmitted to node number 1 (that is, yourself).
-# The plan is to queue for transmission on protocol 'tcp' using
-# the outduct identified as '10.1.1.1:4556'
-# See your bprc file or bpadmin for outducts/protocols you can use.
+# Add egress plans
 a plan 1 tcp/10.1.1.1:4556
-
-# Add an egress plan. (to the second host)
-# Bundles to be transmitted to node number 2 (the other node).
-# The plan is to queue for transmission on protocol 'tcp' using
-# the outduct identified as '10.1.1.2:4556'
-# See your bprc file or bpadmin for outducts/protocols you can use.
 a plan 2 tcp/10.1.1.2:4556
 ## end ipnadmin
 ```
@@ -872,136 +696,56 @@ a plan 2 tcp/10.1.1.2:4556
 ## Run the following command to start ION node:
 ##  % ionstart -I "host2.rc"
 
-## begin ionadmin 
-# ionrc configuration file for host2 in a 2node tcp test.
-#   This uses tcp as the primary convergence layer.
-#   command: % ionadmin host2.ionrc
-#   This command should be run FIRST.
-#
-#   Ohio University, Oct 2008
-
-# Initialization command (command 1). 
-#   Set this node to be node 2 (as in ipn:2).
-#   Use default sdr configuration (empty configuration file name "").
+## begin ionadmin
+# Initialize node 2 with default SDR configuration
 1 2 ""
-
-# start ion node
 s
 
-# Add a contact.
-#   It will start at +1 seconds from now, ending +3600 seconds from now.
-#   It will connect node 1 to itself
-#   It will transmit 100000 bytes/second.
+# Add contacts (unidirectional, 100000 bytes/sec)
 a contact +1 +3600 1 1 100000
-
-# Add more contacts.
-#   They will connect 1 to 2, 2 to 1, and 2 to itself
-#   Note that contacts are unidirectional, so order matters.
 a contact +1 +3600 1 2 100000
 a contact +1 +3600 2 1 100000
 a contact +1 +3600 2 2 100000
 
-# Add a range. This is the physical distance between nodes.
-#   It will start at +1 seconds from now, ending +3600 seconds from now.
-#   It will connect node 1 to itself.
-#   Data on the link is expected to take 1 second to reach the other
-#   end (One Way Light Time).
+# Add ranges (bidirectional, 1 sec OWLT)
 a range +1 +3600 1 1 1
-
-# Add more ranges.
-#   We will assume every range is one second.
-#   Note that ranges cover both directions, so you only need define
-#   one range for any combination of nodes.
 a range +1 +3600 2 2 1
 a range +1 +3600 2 1 1
 
-# set this node to consume and produce a mean of 1000000 bytes/second.
+# Set production and consumption rates
 m production 1000000
 m consumption 1000000
-## end ionadmin 
+## end ionadmin
 
-## begin bpadmin 
-# bprc configuration file for host2 in a 2node test.
-#   Command: % bpadmin host2.bprc
-#   This command should be run AFTER ionadmin and BEFORE ipnadmin
-#   or dtnadmin.
-#
-#   Ohio University, Oct 2008
-
-# Initialization command (command 1).
+## begin bpadmin
+# Initialize BP
 1
 
-# Add an EID scheme.
-#   The scheme's name is ipn.
-#   This scheme's forwarding engine is handled by the program 'ipnfw.'
-#   This scheme's administration program (acting as the custodian
-#   daemon) is 'ipnadminep.'
+# Add IPN scheme
 a scheme ipn 'ipnfw' 'ipnadminep'
 
-# Add endpoints.
-#   Establish endpoints ipn:2.0, ipn:2.1, and ipn:2.2 on the local node.
-#   ipn:2.0 is expected for custodian traffic.  The rest are usually
-#   used for specific applications (such as bpsink).
-#   The behavior for receiving a bundle when there is no application
-#   currently accepting bundles, is to dump them 'x', as opposed to
-#   queueing them (use 'q' instead of 'x' to queue).
+# Add endpoints (discard behavior 'x')
 a endpoint ipn:2.0 x
 a endpoint ipn:2.1 x
 a endpoint ipn:2.2 x
 
-# Add a protocol. 
-#   Add the protocol named tcp.
-#   Estimate transmission capacity assuming 1400 bytes of each frame (in
-#   this case, tcp on ethernet) for payload, and 100 bytes for overhead.
+# Add TCP protocol (1400 byte payload, 100 byte overhead)
 a protocol tcp 1400 100
 
-# Add an induct. (listen)
-#   Add an induct to accept bundles using the tcp protocol.
-#   The induct will listen at this host's IP address (private testbed).
-#   The induct will listen on port 4556, the IANA assigned default DTN
-#   TCP convergence layer port.
-#   The induct itself is implemented by the 'tcpcli' command.
+# Add TCP induct (listen on port 4556)
 a induct tcp 10.1.1.2:4556 tcpcli
 
-# Add an outduct (send to yourself).
-#   Add an outduct to send bundles using the tcp protocol.
-#   The outduct will connect to the IP address 10.1.1.2 using the
-#   IANA assigned default DTN TCP port of 4556.
-#   The outduct itself is implemented by the 'tcpclo' command.
+# Add TCP outducts (to self and host1)
 a outduct tcp 10.1.1.2:4556 tcpclo
-
-# Add an outduct. (send to host1)
-#   Add an outduct to send bundles using the tcp protocol.
-#   The outduct will connect to the IP address 10.1.1.1 using the
-#   IANA assigned default DTN TCP port of 4556.
-#   The outduct itself is implemented by the 'tcpclo' command.
 a outduct tcp 10.1.1.1:4556 tcpclo
 
-# Start bundle protocol engine, also running all of the induct, outduct,
-# and administration programs defined above.
+# Start bundle protocol engine
 s
-## end bpadmin 
+## end bpadmin
 
-## begin ipnadmin 
-# ipnrc configuration file for host1 in the 2node tcp network.
-#   Essentially, this is the IPN scheme's routing table.
-#   Command: % ipnadmin host2.ipnrc
-#   This command should be run AFTER bpadmin (likely to be run last).
-#
-#   Ohio University, Oct 2008
-
-# Add an egress plan (to yourself).
-#   Bundles to be transmitted to node number 2 (that is, yourself).
-#   The plan is to queue for transmission on protocol 'tcp' using
-#   the outduct identified as '10.1.1.2:4556'
-#   See your bprc file or bpadmin for outducts/protocols you can use.
+## begin ipnadmin
+# Add egress plans
 a plan 2 tcp/10.1.1.2:4556
-
-# Add an egress plan. (to the other host)
-#   Bundles to be transmitted to node number 1 (the other node).
-#   The plan is to queue for transmission on protocol 'tcp' using
-#   the outduct identified as '10.1.1.1:4556'
-#   See your bprc file or bpadmin for outducts/protocols you can use.
 a plan 1 tcp/10.1.1.1:4556
 ## end ipnadmin
 ```
@@ -1019,36 +763,16 @@ Also note that this network uses both LTP and TCP convergence layers.
 #### FILE: host1.rc (3-node network)
 
 ```text
-## File created by ../../ionscript
-## Wed Oct 29 17:33:43 EDT 2008
 ## Run the following command to start ION node:
 ##  % ionstart -I "host1.rc"
 
-## begin ionadmin 
-# ionrc configuration file for host1 in a 3node tcp/ltp test.
-#   This uses ltp from 1 to 2 and ltp from 2 to 3.
-#   command: % ionadmin host1.ionrc
-#   This command should be run FIRST.
-#
-#   Ohio University, Oct 2008
-
-# Initialization command (command 1). 
-#   Set this node to be node 1 (as in ipn:1).
-#   Use default sdr configuration (empty configuration file name "").
+## begin ionadmin
+# Initialize node 1 with default SDR configuration
 1 1 ""
-
-# start ion node
 s
 
-# Add a contact.
-#   It will start at +1 seconds from now, ending +3600 seconds from now.
-#   It will connect node 1 to itself.
-#   It will transmit 100000 bytes/second.
+# Add contacts for 3-node network (topology: 1--2--3)
 a contact +1 +3600 1 1 100000
-
-# Add more contacts.
-#   The network goes 1--2--3
-#   Note that contacts are unidirectional, so order matters.
 a contact +1 +3600 1 2 100000
 a contact +1 +3600 2 1 100000
 a contact +1 +3600 2 2 100000
@@ -1056,143 +780,61 @@ a contact +1 +3600 2 3 100000
 a contact +1 +3600 3 2 100000
 a contact +1 +3600 3 3 100000
 
-# Add a range. This is the physical distance between nodes.
-#   It will start at +1 seconds from now, ending +3600 seconds from now.
-#   It will connect node 1 to itself.
-#   Data on the link is expected to take 1 second to reach the other
-#   end (One Way Light Time).
+# Add ranges (1 sec OWLT for neighbors, 2 sec for node 1 to 3)
 a range +1 +3600 1 1 1
-
-# Add more ranges.
-#   We will assume every range is one second.
-#   Note that ranges cover both directions, so you only need define
-#   one range for any combination of nodes.
 a range +1 +3600 1 2 1
 a range +1 +3600 1 3 2
 a range +1 +3600 2 2 1
 a range +1 +3600 2 3 1
 a range +1 +3600 3 3 1
 
-# set this node to consume and produce a mean of 1000000 bytes/second.
+# Set production and consumption rates
 m production 1000000
 m consumption 1000000
-## end ionadmin 
+## end ionadmin
 
-## begin ltpadmin 
-# ltprc configuration file for host1 in a 3node ltp/tcp test.
-#   Command: % ltpadmin host1.ltprc
-#   This command should be run AFTER ionadmin and BEFORE bpadmin.
-#
-#   Ohio University, Oct 2008
-
-# Initialization command (command 1).
+## begin ltpadmin
+# Initialize LTP with 32 sessions
 1 32
 
-# Add a span. (a connection)
+# Add LTP spans (to self and host2)
 a span 1 10 10 1400 10000 1 'udplso 10.1.1.1:1113'
-
-# Add another span. (to host2) 
-#   Identify the span as engine number 2.
-#   Use the command 'udplso 10.1.1.2:1113' to implement the link
-#   itself.  In this case, we use udp to connect to host2 using the
-#   default port.
 a span 2 10 10 1400 10000 1 'udplso 10.1.1.2:1113'
 
-# Start command.
-#   This command actually runs the link service output commands
-#   (defined above, in the "a span" commands).
-#   Also starts the link service INPUT task 'udplsi 10.1.1.1:1113' to
-#   listen locally on UDP port 1113 for incoming LTP traffic.
+# Start LTP with UDP listener on port 1113
 s 'udplsi 10.1.1.1:1113'
-## end ltpadmin 
+## end ltpadmin
 
-## begin bpadmin 
-# bprc configuration file for host1 in a 3node ltp/tcp test.
-#   Command: % bpadmin host1.bprc
-#   This command should be run AFTER ionadmin and ltpadmin and 
-#   BEFORE ipnadmin or dtnadmin.
-#
-#   Ohio University, Oct 2008
-
-# Initialization command (command 1).
+## begin bpadmin
+# Initialize BP
 1
 
-# Add an EID scheme.
-#   The scheme's name is ipn.
-#   This scheme's forwarding engine is handled by the program 'ipnfw.'
-#   This scheme's administration program (acting as the custodian
-#   daemon) is 'ipnadminep.'
+# Add IPN scheme
 a scheme ipn 'ipnfw' 'ipnadminep'
 
-# Add endpoints.
-#   Establish endpoints ipn:1.0, ipn:1.1, and ipn:1.2 on the local node.
-#   ipn:1.0 is expected for custodian traffic.  The rest are usually
-#   used for specific applications (such as bpsink).
-#   The behavior for receiving a bundle when there is no application
-#   currently accepting bundles, is to queue them 'q', as opposed to
-#   immediately and silently discarding them (use 'x' instead of 'q' to
-#   discard).
+# Add endpoints (discard behavior 'x')
 a endpoint ipn:1.0 x
 a endpoint ipn:1.1 x
 a endpoint ipn:1.2 x
 
-# Add a protocol. 
-#   Add the protocol named ltp.
-#   Estimate transmission capacity assuming 1400 bytes of each frame (in
-#   this case, udp on ethernet) for payload, and 100 bytes for overhead.
+# Add LTP protocol (1400 byte payload, 100 byte overhead)
 a protocol ltp 1400 100
 
-# Add an induct. (listen)
-#   Add an induct to accept bundles using the ltp protocol.
-#   The duct's name is 1 (this is for future changing/deletion of the
-#   induct). 
-#   The induct itself is implemented by the 'ltpcli' command.
+# Add LTP induct and outducts
 a induct ltp 1 ltpcli
-
-# Add an outduct (send to yourself).
-#   Add an outduct to send bundles using the ltp protocol.
-#   The duct's name is 1 (this is for future changing/deletion of the
-#   outduct). The name should correspond to a span (in your ltprc).
-#   The outduct itself is implemented by the 'ltpclo' command.
 a outduct ltp 1 ltpclo
-# NOTE: what happens if 1 does not match the id of an ltp span?
-
-# Add an outduct. (send to host2)
-#   Add an outduct to send bundles using the ltp protocol.
-#   The duct's name is 2 (this is for future changing/deletion of the
-#   outduct). The name should correpsond to a span (in your ltprc).
-#   The outduct itself is implemented by the 'ltpclo' command.
 a outduct ltp 2 ltpclo
 
-# Start bundle protocol engine, also running all of the induct, outduct,
-# and administration programs defined above
+# Start bundle protocol engine
 s
-## end bpadmin 
+## end bpadmin
 
-## begin ipnadmin 
-# ipnrc configuration file for host1 in a 3node ltp/tcp test. 
-#   Essentially, this is the IPN scheme's routing table.
-#   Command: % ipnadmin host1.ipnrc
-#   This command should be run AFTER bpadmin (likely to be run last).
-#
-#   Ohio University, Oct 2008
-
-# Add an egress plan.
-#   Bundles to be transmitted to node number 1 (that is, yourself).
-#   The plan is to queue for transmission on protocol 'ltp' using
-#   the outduct identified as '1.'
-#   See your bprc file or bpadmin for outducts/protocols you can use.
+## begin ipnadmin
+# Add egress plans for nodes 1 and 2
 a plan 1 ltp/1
-
-# Add other egress plans.
-#   Bundles for elemetn 2 can be transmitted directly to host2 using
-#   ltp outduct identified as '2.' See bprc file for available outducts
-#   and/or protocols.
 a plan 2 ltp/2
 
-# Add a group static route
-#   host 3 is not a neighbor to host1, but it is a neighbor to host2.
-#   send bundles for 3 via 2.
+# Add group route: send bundles for node 3 via node 2 (gateway)
 a group 3 3 ipn:2.0
 ## end ipnadmin
 ```
@@ -1200,36 +842,16 @@ a group 3 3 ipn:2.0
 #### FILE: host2.rc (3-node network)
 
 ```text
-## File created by ../../ionscript
-## Wed Oct 29 17:33:43 EDT 2008
 ## Run the following command to start ION node:
 ##  % ionstart -I "host2.rc"
 
-## begin ionadmin 
-# ionrc configuration file for host2 in a 3node tcp/ltp test.
-#   This uses ltp from 1 to 2 and ltp from 2 to 3.
-#   command: % ionadmin host2.ionrc
-#   This command should be run FIRST.
-#
-#   Ohio University, Oct 2008
-
-# Initialization command (command 1). 
-#   Set this node to be node 2 (as in ipn:2).
-#   Use default sdr configuration (empty configuration file name "").
+## begin ionadmin
+# Initialize node 2 with default SDR configuration
 1 2 ""
-
-# start ion node
 s
 
-# Add a contact.
-#   It will start at +1 seconds from now, ending +3600 seconds from now.
-#   It will connect node 1 to itself.
-#   It will transmit 100000 bytes/second.
+# Add contacts for 3-node network (topology: 1--2--3)
 a contact +1 +3600 1 1 100000
-
-# Add more contacts.
-#   The network goes 1--2--3
-#   Note that contacts are unidirectional, so order matters.
 a contact +1 +3600 1 2 100000
 a contact +1 +3600 2 1 100000
 a contact +1 +3600 2 2 100000
@@ -1237,172 +859,64 @@ a contact +1 +3600 2 3 100000
 a contact +1 +3600 3 2 100000
 a contact +1 +3600 3 3 100000
 
-# Add a range. This is the physical distance between nodes.
-#   It will start at +1 seconds from now, ending +3600 seconds from now.
-#   It will connect node 1 to itself.
-#   Data on the link is expected to take 1 second to reach the other
-#   end (One Way Light Time).
+# Add ranges (1 sec OWLT for neighbors, 2 sec for node 1 to 3)
 a range +1 +3600 1 1 1
-
-# Add more ranges.
-#   We will assume every range is one second.
-#   Note that ranges cover both directions, so you only need define
-#   one range for any combination of nodes.
 a range +1 +3600 1 2 1
 a range +1 +3600 1 3 2
 a range +1 +3600 2 2 1
 a range +1 +3600 2 3 1
 a range +1 +3600 3 3 1
 
-# set this node to consume and produce a mean of 1000000 bytes/second.
+# Set production and consumption rates
 m production 1000000
 m consumption 1000000
-## end ionadmin 
+## end ionadmin
 
-## begin ltpadmin 
-# ltprc configuration file for host2 in a 3node ltp/tcp test.
-#   Command: % ltpadmin host2.ltprc
-#   This command should be run AFTER ionadmin and BEFORE bpadmin.
-#
-#   Ohio University, Oct 2008
-
-# Initialization command (command 1).
+## begin ltpadmin
+# Initialize LTP with 32 sessions
 1 32
 
-# Add a span. (a connection) 
-#   Identify the span as engine number 1.
-#   Use the command 'udplso 10.1.1.1:1113' to implement the link
-#   itself.  In this case, we use udp to connect to the local machine
-#   (loopback) using port 1113 (defined by IANA as the default UDP port
-#   for Licklider Transmission Protocol).  The single quote is
-#   important, don't use double quotes.
+# Add LTP spans (to host1 and self)
 a span 1 10 10 1400 10000 1 'udplso 10.1.1.1:1113'
-
-# Add another span (to yourself).
-#   Identify the span as engine number 2.
-#   Use the command 'udplso 10.1.1.2:1113' to implement the link
-#   itself.  In this case, we use udp to connect to host2 using the
-#   default port.
 a span 2 10 10 1400 10000 1 'udplso 10.1.1.2:1113'
 
-# Start command.
-#   This command actually runs the link service output commands
-#   (defined above, in the "a span" commands).
-#   Also starts the link service INPUT task 'udplsi 10.1.1.2:1113' to
-#   listen locally on UDP port 1113 for incoming LTP traffic.
+# Start LTP with UDP listener on port 1113
 s 'udplsi 10.1.1.2:1113'
-## end ltpadmin 
+## end ltpadmin
 
-## begin bpadmin 
-# bprc configuration file for host2 in a 3node ltp/tcp test.
-#   Command: % bpadmin host2.bprc
-#   This command should be run AFTER ionadmin and ltpadmin and 
-#   BEFORE ipnadmin or dtnadmin.
-#
-#   Ohio University, Oct 2008
-
-# Initialization command (command 1).
+## begin bpadmin
+# Initialize BP
 1
 
-# Add an EID scheme.
-#   The scheme's name is ipn.
-#   This scheme's forwarding engine is handled by the program 'ipnfw.'
-#   This scheme's administration program (acting as the custodian
-#   daemon) is 'ipnadminep.'
+# Add IPN scheme
 a scheme ipn 'ipnfw' 'ipnadminep'
 
-# Add endpoints.
-#   Establish endpoints ipn:2.0, ipn:2.1, and ipn:2.2 on the local node.
-#   ipn:2.0 is expected for custodian traffic.  The rest are usually
-#   used for specific applications (such as bpsink).
-#   The behavior for receiving a bundle when there is no application
-#   currently accepting bundles, is to queue them 'q', as opposed to
-#   immediately and silently discarding them (use 'x' instead of 'q' to
-#   discard).
+# Add endpoints (discard behavior 'x')
 a endpoint ipn:2.0 x
 a endpoint ipn:2.1 x
 a endpoint ipn:2.2 x
 
-# Add a protocol. 
-#   Add the protocol named ltp.
-#   Estimate transmission capacity assuming 1400 bytes of each frame (in
-#   this case, udp on ethernet) for payload, and 100 bytes for overhead.
+# Add protocols (LTP and TCP)
 a protocol ltp 1400 100
-
-# Add a protocol. 
-#   Add the protocol named tcp.
-#   Estimate transmission capacity assuming 1400 bytes of each frame (in
-#   this case, tcp on ethernet) for payload, and 100 bytes for overhead.
 a protocol tcp 1400 100
 
-# Add an induct. (listen)
-#   Add an induct to accept bundles using the ltp protocol.
-#   The duct's name is 2 (this is for future changing/deletion of the
-#   induct). 
-#   The induct itself is implemented by the 'ltpcli' command.
+# Add inducts (LTP and TCP)
 a induct ltp 2 ltpcli
-
-# Add an induct. (listen)
-#   Add an induct to accept bundles using the tcp protocol.
-#   The induct will listen at this host's IP address (private testbed).
-#   The induct will listen on port 4556, the IANA assigned default DTN
-#   TCP convergence layer port.
-#   The induct itself is implemented by the 'tcpcli' command.
 a induct tcp 10.1.1.2:4556 tcpcli
 
-# Add an outduct (send to yourself).
-#   Add an outduct to send bundles using the tcp protocol.
-#   The outduct will connect to the IP address 10.1.1.2 using the
-#   IANA assigned default DTN TCP port of 4556.
-#   The outduct itself is implemented by the 'tcpclo' command.
+# Add outducts (TCP to self and host3, LTP to host1)
 a outduct tcp 10.1.1.2:4556 tcpclo
-
-# Add an outduct. (send to host3)
-#   Add an outduct to send bundles using the tcp protocol.
-#   The outduct will connect to the IP address 10.1.1.3 using the
-#   IANA assigned default DTN TCP port of 4556.
-#   The outduct itself is implemented by the 'tcpclo' command.
 a outduct tcp 10.1.1.3:4556 tcpclo
-
-# Add an outduct. (send to host1)
-#   Add an outduct to send bundles using the ltp protocol.
-#   The duct's name is 1 (this is for future changing/deletion of the
-#   outduct). The name should correpsond to a span (in your ltprc).
-#   The outduct itself is implemented by the 'ltpclo' command.
 a outduct ltp 1 ltpclo
 
-# Start bundle protocol engine, also running all of the induct, outduct,
-# and administration programs defined above
+# Start bundle protocol engine
 s
-## end bpadmin 
+## end bpadmin
 
-## begin ipnadmin 
-# ipnrc configuration file for host2 in a 3node ltp/tcp test. 
-#   Essentially, this is the IPN scheme's routing table.
-#   Command: % ipnadmin host2.ipnrc
-#   This command should be run AFTER bpadmin (likely to be run last).
-#
-#   Ohio University, Oct 2008
-
-# Add an egress plan (to yourself).
-#   Bundles to be transmitted to node number 2 (that is, yourself).
-#   The plan is to queue for transmission on protocol 'tcp' using
-#   the outduct identified as '10.1.1.2:4556'
-#   See your bprc file or bpadmin for outducts/protocols you can use.
+## begin ipnadmin
+# Add egress plans (node 2 uses TCP, node 3 uses TCP, node 1 uses LTP)
 a plan 2 tcp/10.1.1.2:4556
-
-# Add an egress plan. (to host3)
-#   Bundles to be transmitted to node number 3 (the other node).
-#   The plan is to queue for transmission on protocol 'tcp' using
-#   the outduct identified as '10.1.1.3:4556'
-#   See your bprc file or bpadmin for outducts/protocols you can use.
 a plan 3 tcp/10.1.1.3:4556
-
-# Add an egress plan. (to host1)
-#   Bundles to be transmitted to node number 1.
-#   The plan is to queue for transmission on protocol 'ltp' using
-#   the outduct identified as '1.'
-#   See your bprc file or bpadmin for outducts/protocols you can use.
 a plan 1 ltp/1
 ## end ipnadmin
 ```
@@ -1410,36 +924,16 @@ a plan 1 ltp/1
 #### FILE: host3.rc (3-node network)
 
 ```text
-## File created by ../../ionscript
-## Wed Oct 29 17:33:43 EDT 2008
 ## Run the following command to start ION node:
 ##  % ionstart -I "host3.rc"
 
-## begin ionadmin 
-# ionrc configuration file for host3 in a 3node tcp/ltp test.
-#   This uses ltp from 1 to 2 and ltp from 2 to 3.
-#   command: % ionadmin host3.ionrc
-#   This command should be run FIRST.
-#
-#   Ohio University, Oct 2008
-
-# Initialization command (command 1). 
-#   Set this node to be node 3 (as in ipn:3).
-#   Use default sdr configuration (empty configuration file name "").
+## begin ionadmin
+# Initialize node 3 with default SDR configuration
 1 3 ""
-
-# start ion node
 s
 
-# Add a contact.
-#   It will start at +1 seconds from now, ending +3600 seconds from now.
-#   It will connect node 1 to itself.
-#   It will transmit 100000 bytes/second.
+# Add contacts for 3-node network (topology: 1--2--3)
 a contact +1 +3600 1 1 100000
-
-# Add more contacts.
-#   The network goes 1--2--3
-#   Note that contacts are unidirectional, so order matters.
 a contact +1 +3600 1 2 100000
 a contact +1 +3600 2 1 100000
 a contact +1 +3600 2 2 100000
@@ -1447,116 +941,51 @@ a contact +1 +3600 2 3 100000
 a contact +1 +3600 3 2 100000
 a contact +1 +3600 3 3 100000
 
-# Add a range. This is the physical distance between nodes.
-#   It will start at +1 seconds from now, ending +3600 seconds from now.
-#   It will connect node 1 to itself.
-#   Data on the link is expected to take 1 second to reach the other
-#   end (One Way Light Time).
+# Add ranges (1 sec OWLT for neighbors, 2 sec for node 1 to 3)
 a range +1 +3600 1 1 1
-
-# Add more ranges.
-#   We will assume every range is one second.
-#   Note that ranges cover both directions, so you only need define
-#   one range for any combination of nodes.
 a range +1 +3600 1 2 1
 a range +1 +3600 1 3 2
 a range +1 +3600 2 2 1
 a range +1 +3600 2 3 1
 a range +1 +3600 3 3 1
 
-# set this node to consume and produce a mean of 1000000 bytes/second.
+# Set production and consumption rates
 m production 1000000
 m consumption 1000000
-## end ionadmin 
+## end ionadmin
 
-## begin bpadmin 
-# bprc configuration file for host3 in a 3node ltp/tcp test.
-#   Command: % bpadmin host3.bprc
-#   This command should be run AFTER ionadmin and 
-#   BEFORE ipnadmin or dtnadmin.
-#
-#   Ohio University, Oct 2008
-
-# Initialization command (command 1).
+## begin bpadmin
+# Initialize BP
 1
 
-# Add an EID scheme.
-#   The scheme's name is ipn.
-#   This scheme's forwarding engine is handled by the program 'ipnfw.'
-#   This scheme's administration program (acting as the custodian
-#   daemon) is 'ipnadminep.'
+# Add IPN scheme
 a scheme ipn 'ipnfw' 'ipnadminep'
 
-# Add endpoints.
-#   Establish endpoints ipn:3.0, ipn:3.1, and ipn:3.2 on the local node.
-#   ipn:3.0 is expected for custodian traffic.  The rest are usually
-#   used for specific applications (such as bpsink).
-#   The behavior for receiving a bundle when there is no application
-#   currently accepting bundles, is to queue them 'q', as opposed to
-#   immediately and silently discarding them (use 'x' instead of 'q' to
-#   discard).
+# Add endpoints (discard behavior 'x')
 a endpoint ipn:3.0 x
 a endpoint ipn:3.1 x
 a endpoint ipn:3.2 x
 
-# Add a protocol. 
-#   Add the protocol named tcp.
-#   Estimate transmission capacity assuming 1400 bytes of each frame (in
-#   this case, tcp on ethernet) for payload, and 100 bytes for overhead.
+# Add TCP protocol (1400 byte payload, 100 byte overhead)
 a protocol tcp 1400 100
 
-# Add an induct. (listen)
-#   Add an induct to accept bundles using the tcp protocol.
-#   The induct will listen at this host's IP address (private testbed).
-#   The induct will listen on port 4556, the IANA assigned default DTN
-#   TCP convergence layer port.
-#   The induct itself is implemented by the 'tcpcli' command.
+# Add TCP induct (listen on port 4556)
 a induct tcp 10.1.1.3:4556 tcpcli
 
-# Add an outduct (send to yourself).
-#   Add an outduct to send bundles using the tcp protocol.
-#   The outduct will connect to the IP address 10.1.1.3 using the
-#   IANA assigned default DTN TCP port of 4556.
-#   The outduct itself is implemented by the 'tcpclo' command.
+# Add TCP outducts (to self and host2)
 a outduct tcp 10.1.1.3:4556 tcpclo
-
-# Add an outduct. (send to host2)
-#   Add an outduct to send bundles using the tcp protocol.
-#   The outduct will connect to the IP address 10.1.1.2 using the
-#   IANA assigned default DTN TCP port of 4556.
-#   The outduct itself is implemented by the 'tcpclo' command.
 a outduct tcp 10.1.1.2:4556 tcpclo
 
-# Start bundle protocol engine, also running all of the induct, outduct,
-# and administration programs defined above
+# Start bundle protocol engine
 s
-## end bpadmin 
+## end bpadmin
 
-## begin ipnadmin 
-# ipnrc configuration file for host3 in a 3node ltp/tcp test. 
-#   Essentially, this is the IPN scheme's routing table.
-#   Command: % ipnadmin host3.ipnrc
-#   This command should be run AFTER bpadmin (likely to be run last).
-#
-#   Ohio University, Oct 2008
-
-# Add an egress plan (to yourself).
-#   Bundles to be transmitted to node number 3 (that is, yourself).
-#   The plan is to queue for transmission on protocol 'tcp' using
-#   the outduct identified as '10.1.1.3:4556'
-#   See your bprc file or bpadmin for outducts/protocols you can use.
+## begin ipnadmin
+# Add egress plans for nodes 3 and 2
 a plan 3 tcp/10.1.1.3:4556
-
-# Add an egress plan. (to host2)
-#   Bundles to be transmitted to node number 2 (the other node).
-#   The plan is to queue for transmission on protocol 'tcp' using
-#   the outduct identified as '10.1.1.2:4556'
-#   See your bprc file or bpadmin for outducts/protocols you can use.
 a plan 2 tcp/10.1.1.2:4556
 
-# Add a group static route.
-#   Host1 is not a neigbor to host3, but is is a neighbor to host 2;
-#   send bundles for 1 via 2.
+# Add group route: send bundles for node 1 via node 2 (gateway)
 a group 1 1 ipn:2.0
 ## end ipnadmin
 ```
@@ -1570,7 +999,7 @@ Use the Summary or the Files tab to download point releases
 ### Using the code repository
 
 - Track the tags for alpha, beta, and stable releases
-- Track stable releases are on `current` branch
+- Stable releases are on the `current` branch
 - Alpha and beta releases are on `integration` branch
 
 ## Open Source Development and Support

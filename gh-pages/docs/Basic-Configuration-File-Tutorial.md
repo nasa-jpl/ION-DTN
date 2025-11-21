@@ -4,7 +4,7 @@
 
 The [ION Configuration Tools](https://github.com/nasa-jpl/ion-config-tool) provides both command line and browser interfaces for creating and editing configuration files for the Interplanetary Overlay Network (ION) software, an implementation of Delay/Disruption Tolerant Networking technology.
 
-The [DTN Network Model](https://github.com/nasa-jpl/ion-network-model) is simple graphical frontend to specify a network of computer hosts, DTN nodes, IP address assignments, and link connections in a JSON file, which can be ported into the ION Configuration Tool to generate configuration files the ION software uses.
+The [DTN Network Model](https://github.com/nasa-jpl/ion-network-model) is a simple graphical frontend to specify a network of computer hosts, DTN nodes, IP address assignments, and link connections in a JSON file, which can be ported into the ION Configuration Tool to generate configuration files the ION software uses.
 
 ## Programs in ION
 
@@ -14,8 +14,8 @@ Daemon and Configuration
 
 * ionadmin is the administration and configuration interface for the local ION node contacts and manages shared memory resources used by ION.
 * ltpadmin is the administration and configuration interface for LTP operations on the local ION node.
-* bsspadmin is the administrative interface for operations of the Bundle Streaming Service Protocol on the local ion node.
-* bpadmin is the administrative interface for bundle protocol operations on the local ion node.
+* bsspadmin is the administrative interface for operations of the Bundle Streaming Service Protocol on the local ION node.
+* bpadmin is the administrative interface for bundle protocol operations on the local ION node.
 * ipnadmin is the administration and configuration interface for the IPN addressing system and routing on the ION node. (ipn:)
 * dtn2admin is the administration and configuration interface for the DTN addressing system and routing on the ION node. (dtn://)
 * killm is a script which tears down the daemon and any running ducts on a single machine (use ionstop instead).
@@ -53,7 +53,7 @@ Manually typing configuration commands into the terminal for each administration
 
 You can find appropriate commands in the following sections.
 
-##Configuration Files Overview
+## Configuration Files Overview
 
 There are five configuration files about which you should be aware.
 
@@ -182,11 +182,11 @@ span indicates that an LTP span will be added.
 
 32 specifies the maximum number of LTP ''block'' transmission sessions that may be active on this span. The product of the mean block size and the maximum number of transmission sessions is effectively the LTP flow control ''window'' for this span: if it's less than the bandwidth delay product for traffic between the local LTP engine and this spa's remote LTP engine then you'll be under-utilizing that link. We often try to size each block to be about one second's worth of transmission, so to select a good value for this parameter you can simply divide the span's bandwidth delay product (data rate times distance in light seconds) by your best guess at the mean block size.
 
-The second 32specifies the maximum number of LTP ''block'' reception sessions that may be active on this span. When data rates in both directions are the same, this is usually the same value as the maximum number of transmission sessions.
+The second 32 specifies the maximum number of LTP ''block'' reception sessions that may be active on this span. When data rates in both directions are the same, this is usually the same value as the maximum number of transmission sessions.
 
 1400 is the number of bytes in a single segment. In this case, LTP runs atop UDP/IP on ethernet, so we account for some packet overhead and use 1400.
 
-1000 is the LTP aggregation size limit, in bytes. LTP will aggregate multiple bundles into blocks for transmission. This value indicates that the block currently being aggregated will be transmitted as soon as its aggregate size exceeds 10000 bytes.
+10000 is the LTP aggregation size limit, in bytes. LTP will aggregate multiple bundles into blocks for transmission. This value indicates that the block currently being aggregated will be transmitted as soon as its aggregate size exceeds 10000 bytes.
 
 1 is the LTP aggregation time limit, in seconds. This value indicates that the block currently being aggregated will be transmitted 1 second after aggregation began, even if its aggregate size is still less than the aggregation size limit.
 
@@ -208,7 +208,7 @@ a span 1 32 32 1400 10000 1 'udplso localhost:1113'
 s 'udplsi localhost:1113'
 ```
 
-##The Bundle Protocol Configuration File
+## The Bundle Protocol Configuration File
 
 Given to bpadmin either as a file or from the daemon command line, this file configures the endpoints through which this node's Bundle Protocol Agent (BPA) will communicate. We will assume the local BPA's node number is 1; as for LTP, in ION node numbers are used to identify bundle protocol agents.
 
@@ -264,7 +264,7 @@ ltp is the name of the convergence-layer protocol.
 
 1400 is the estimated size of each convergence-layer protocol data unit (in bytes); in this case, the value is based on the size of a UDP/IP packet on Ethernet.
 
-100 is the estimated size of the protocol transmission overhead (in bytes) per convergence-layer procotol data unit sent.
+100 is the estimated size of the protocol transmission overhead (in bytes) per convergence-layer protocol data unit sent.
 
 `a induct ltp 1 ltpcli `
 
@@ -338,7 +338,7 @@ Assuming no errors occur with the configuration above, we are now ready to test 
 
 `ionstart -i host1.ionrc -l host1.ltprc -b host1.bprc -p host1.ipnrc `
 
-This command will run the appropriate administration programs, in order, with the appropriate configuration files. Don't worry that the command is lengthy and unwieldly; we will show you how to make a more clean single configuration file later.
+This command will run the appropriate administration programs, in order, with the appropriate configuration files. Don't worry that the command is lengthy and unwieldy; we will show you how to make a more clean single configuration file later.
 
 Once the daemon is started, run:
 

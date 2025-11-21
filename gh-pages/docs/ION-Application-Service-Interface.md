@@ -188,7 +188,7 @@ Creates a non-volatile linked list, suitable for containing filestore requests t
 ### cfdp_add_fsreq
 
 ```c
-int cfdp_add_fsreq(MetadataList list, CfdpAction action, char *firstFileName, char *seconfdFIleName)
+int cfdp_add_fsreq(MetadataList list, CfdpAction action, char *firstFileName, char *secondFileName)
 ```
 
 Appends the indicated filestore request to list.
@@ -388,13 +388,23 @@ Return Value
 
 ### CFDP Shell Test Program: `cfdptest`
 
-ION provides application CFDP test program called `cfdptest`, which installed as part of regular ION build/install process and can be invoked from terminal this way:
+ION provides an application CFDP test program called `cfdptest`, which is installed as part of the regular ION build/install process and can be invoked from the terminal this way:
 
 ```bash
 cfdptest
 ```
 
-The shell program present a ':' prompt for interactive mode commanding. You can type 'h' to see a list of available commands.
+The shell program presents a ':' prompt for interactive mode commanding. You can type 'h' to see a list of available commands.
+
+Starting with ION 4.1.4-b.1, `cfdptest` includes major enhancements for transaction management:
+
+- Transaction tracking and summary display for monitoring multiple concurrent file transfers
+- Per-transaction control commands (cancel, suspend, resume) for fine-grained management
+- Terminology updates for RFC compliance (closure-reqt replaces ack)
+- Reset command (R) to clear source and destination filenames
+- Version command (v) to display build information and version details
+
+These improvements make `cfdptest` more suitable for testing complex CFDP scenarios and managing multiple file transfers simultaneously.
 
 One can also feed a sequence of commands to `cfdptest` non-interactively such that you will not see the stdout of the program. This is useful for running automated tests.
 
@@ -408,7 +418,7 @@ A third way to use cfdptest is to feed command scripts but allows the interactiv
 cfdptest < [file_containing_cfdptest_commands]
 ```
 
-The `cfdptest.c` source code is also provided as a code examples on how write applications using the CFDP APIs. The cfdptest command set can be found in the manual pages [here.](https://nasa-jpl.github.io/ION-DTN/man/cfdp/cfdptest/?h=cfdptest)
+The `cfdptest.c` source code is also provided as a code example on how to write applications using the CFDP APIs. The cfdptest command set can be found in the manual pages [here.](https://nasa-jpl.github.io/ION-DTN/man/cfdp/cfdptest/?h=cfdptest)
 
 ### CFDP Application Code Example
 
@@ -424,15 +434,15 @@ The application-specific "display" function invoked by the background thread mus
 
 All data acquired by the BSS background thread is written to a BSS database comprising three files: table, list, and data. The name of the database is the root name that is common to the three files, e.g., db3.tbl, db3.lst, db3.dat would be the three files making up the db3 BSS database. All three files of the selected BSS database must reside in the same directory of the file system.
 
-Several replay navigation functions in the BSS library require that the application provide a navigation state structure of type bssNav as defined in the bss.h header file. The application is not reponsible for populating this structure; it's strictly for the private use of the BSS library.
+Several replay navigation functions in the BSS library require that the application provide a navigation state structure of type bssNav as defined in the bss.h header file. The application is not responsible for populating this structure; it's strictly for the private use of the BSS library.
 
 ### Bundle Streaming Service (BSS) & Bundle Streaming Service Protocol (BSSP CLA)
 
 The Bundle Streaming Service (BSS) and the Bundle Streaming Service Protocol (BSSP) CLA are independent modules.
 
-The BSSP CLA is designed to emulate a connection between two DTN neighboring nodes characterized by two delivery mechanisms: (a) a minimal delay, unreliable channel (physical or logical), and (b) a potentially delayed, but reliable channel. The minimal delay channel is emulated by transpot UDP (with a timer mechanism added) and the reliable channel is emulated via TCP transport. 
+The BSSP CLA is designed to emulate a connection between two DTN neighboring nodes characterized by two delivery mechanisms: (a) a minimal delay, unreliable channel (physical or logical), and (b) a potentially delayed, but reliable channel. The minimal delay channel is emulated by transport UDP (with a timer mechanism added) and the reliable channel is emulated via TCP transport. 
 
-A DTN user mission may decide to use a single CCSDS AOS or TM downlink with LTP CLA running on top as its reliability mechanism. In that case, it can directly use the LTP CLA in ION and interface it with the CCSDS framing protocol which could be implemented by the mission's avionic system or the radio. 
+A DTN user mission may decide to use a single CCSDS AOS or TM downlink with LTP CLA running on top as its reliability mechanism. In that case, it can directly use the LTP CLA in ION and interface it with the CCSDS framing protocol which could be implemented by the mission's avionics system or the radio. 
 
 However, it is also possible that a mission may utilize different types of transports, for example, using multiple downlinks via  S, X, Ka-band or optical, each with different reliability mechanism (or not). Alternatively, a flight system may also use commercial communications services with differentiated delays and levels of reliability. In such case, BSSP can be used to approximate such configuration in a lab environment for prototyping and testing the impact on streaming data delivery, until the actual CLAs are implemented and tested.
 
@@ -574,18 +584,18 @@ negative acknowledgment or timer expiration; suppression of duplicate
 application data items; aggregation of small application data items into
 large bundle payloads, to reduce bundle protocol overhead; and
 application-controlled elision of redundant data items in aggregated payloads,
-to improve link utiliization.
+to improve link utilization.
 
 ### DTPC APIs
 
 ```c
-int dptc_attach( )
+int dtpc_attach( )
 ```
 Attaches the application to DTPC functionality on the local computer.  Returns
 0 on success, -1 on any error.
 
 ```c
-void dptc_detach( )
+void dtpc_detach( )
 ```
 
 Terminates all access to DTPC functionality on the local computer.

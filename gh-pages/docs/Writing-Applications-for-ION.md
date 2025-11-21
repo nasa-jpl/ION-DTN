@@ -59,6 +59,74 @@ If `pkg-config` cannot find ION:
 ## Benefits of Using pkg-config
 
 - **Automatic platform detection**: Gets the correct `-Dunix`, `-Dlinux`, etc. flags
-- **Version compatibility**: Ensures you get flags matching your ION installation  
+- **Version compatibility**: Ensures you get flags matching your ION installation
 - **Crypto backend awareness**: Automatically includes MbedTLS libraries if ION was built with crypto support
 - **Maintainability**: No need to manually track ION's build configuration changes
+
+## Writing Shutdown-Aware Applications
+
+**IMPORTANT**: When writing BP applications, you must design them to detect and respond to ION shutdown gracefully. This is critical for operational environments where ION operators and application users may be different people.
+
+### Why This Matters
+
+When ION shuts down via `ionstop` or `bpadmin .`, it signals all BP applications to terminate by calling `sm_SemEnd()` on endpoint semaphores. Applications that properly check for `BpEndpointStopped` will automatically exit cleanly, allowing ION to shut down without hanging.
+
+**If your application does NOT check for `BpEndpointStopped`:**
+- ION shutdown (`bpadmin .`) may hang indefinitely waiting for your application to exit
+- Operators will need to manually terminate your application before shutting down ION
+- This creates coordination problems in multi-user environments
+
+### Required Pattern for All BP Applications
+
+Every BP application that receives bundles **MUST** check for `BpEndpointStopped` and exit gracefully:
+
+```c
+while (running)
+{
+    if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
+    {
+        running = 0;
+        continue;
+    }
+
+    // REQUIRED: Check for ION shutdown
+    if (dlv.result == BpEndpointStopped)
+    {
+        writeMemo("ION is shutting down - exiting gracefully.");
+        running = 0;  // Exit your main loop
+    }
+    else if (dlv.result == BpPayloadPresent)
+    {
+        // Process bundle
+    }
+
+    bp_release_delivery(&dlv, 1);
+}
+
+// Clean up before exiting
+bp_close(sap);
+bp_detach();
+```
+
+### Additional Shutdown Best Practices
+
+1. **Handle SIGTERM** - Implement signal handlers so operators can manually terminate your application:
+   ```c
+   signal(SIGTERM, sigterm_handler);
+   signal(SIGINT, sigint_handler);
+   ```
+
+2. **Avoid long operations** - If your application performs lengthy processing between `bp_receive()` calls, consider checking shutdown status periodically
+
+3. **Clean up resources** - Always call `bp_close()` and `bp_detach()` before exiting
+
+4. **Log shutdown events** - Use `writeMemo()` to log when your application detects shutdown for debugging
+
+### Complete Example
+
+See the full shutdown-aware application pattern with signal handling in the [BP Service API Guide, ION Shutdown Order section](./BP-Service-API.md#critical-resource-management-warnings).
+
+### For More Information
+
+For detailed information about ION shutdown behavior, application shutdown detection, and complete code examples, see:
+- [BP Service API - ION Shutdown Order and Application Graceful Termination](./BP-Service-API.md#critical-resource-management-warnings)

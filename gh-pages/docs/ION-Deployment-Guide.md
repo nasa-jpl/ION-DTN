@@ -1,6 +1,6 @@
 # ION Deployment Guide
 
-Version 4.1.3
+Version 4.1.4-b.1
 
 _Jay Gao, Jet Propulsion Laboratory, California Institute of
 Technology_; _Sky DeBaun, Jet Propulsion Laboratory, California Institute of
@@ -10,6 +10,7 @@ Document Change Log
 
 | Ver No. | Date      | Description                      | Note                    |
 | ------- | --------- | -------------------------------- | ----------------------- |
+| V4.1.4-b.1  | 12/2025 | ION 4.1.4-b.1 release         |                         |
 | V4.1.3  | 11/6/2023 | Add LTP Performance Test         | Converted to markdown |
 | V4.1.2  | 1/5/2023  | Added notes on SDR file and CGRM |                         |
 
@@ -49,7 +50,7 @@ kinds of modifications are described in the _Adaptation_ section
 below.
 
 Finally, in rare cases it may be necessary to execute ION in an
-operating-system environmeo which it has not yet been ported.
+operating-system environment to which it has not yet been ported.
 Guidance for porting ION to new platforms will be provided in a future
 edition of this Deployment Guide.
 
@@ -648,6 +649,150 @@ names are in the form of `<xxx>rc`, where `<xxx>` gets replaced by the specific
 module name (bp, dtn2, ion, ionsec, ipn, ltp, bssp, cfdp). The
 directories in which to find these files are: ./ici/doc/pod5,
 ./ltp/doc/pod5, ./bssp/doc/pod5, ./bp/doc/pod5, and ./cfdp/doc/pod5.
+
+### Regions and Contact Plans
+
+ION's contact graph routing operates within organizational units called **regions**. A region is an arbitrarily managed set of nodes that share a common contact plan and use contact graph routing to compute forwarding routes among themselves. Understanding how ION determines region membership and assigns contacts to regions is essential for configuring multi-region networks.
+
+**Important Note on Multi-Region Operation**: Full multi-region operation has not yet been extensively tested in ION. For production deployments, it is **strongly recommended** to operate with a single region assignment (the default region 1). This default configuration is used automatically unless you explicitly issue the `^` command to switch regions. Single-region operation is well-tested and sufficient for most DTN deployments.
+
+#### What is a Region?
+
+A **region** represents a group of DTN nodes that:
+- Share a common contact plan (schedule of predicted communication opportunities)
+- Use contact graph routing (CGR) to compute routes among themselves
+- Are typically small sets (on the order of 16-32 nodes) to keep routing computationally tractable
+
+Each region is identified by a **region number**, a positive integer that uniquely identifies the region. Region number 0 is reserved and cannot be used.
+
+#### Region Hierarchy
+
+Regions follow a hierarchical numbering scheme:
+- **Higher region numbers** represent sub-regions (smaller, more specific groupings)
+- **Lower region numbers** represent super-regions (larger, more encompassing groupings)
+
+This hierarchy affects how nodes transition between regions when their participation in the network topology changes.
+
+#### Node Region Membership
+
+Each ION node can be a member of up to **two regions** simultaneously:
+1. **Home Region**: The primary region where the node actively participates in routing
+2. **Outer Region**: A secondary region, typically a super-region that encompasses the home region
+
+When a node first appears in the contact plan, it is automatically assigned to a home region. If the node later participates in contacts belonging to a different region, ION automatically adjusts the node's region membership according to hierarchical rules:
+
+- If the new region has a **higher** region number (sub-region):
+  - The current home region becomes the outer region
+  - The new region becomes the home region
+
+- If the new region has a **lower** region number (super-region):
+  - The new region becomes the outer region
+  - The current home region remains unchanged
+
+This automatic management means administrators do not need manual commands to assign nodes to home or outer regions—ION handles this based on the contact plan topology.
+
+#### How Regions are Determined for Contacts
+
+Unlike some networking systems where regions might be inferred from topology or geographic location, ION requires **explicit region assignment** for each contact. When you add a contact to the contact plan, you must specify which region that contact belongs to.
+
+The region determination follows these principles:
+
+1. **Explicit Assignment**: Each contact is explicitly assigned to a specific region number when it is added to the contact plan
+
+2. **Region Context**: In the ionadmin utility, you set the current region context using the `^` (caret) command. All subsequent contact additions apply to that region until you switch to a different region
+
+3. **Automatic Region Selection**: When using the Public Administration API (`ion_add_contact()`), ION automatically determines the appropriate region by finding the common region where both nodes (from and to) already have membership
+
+4. **Validation**: When inserting a contact, ION validates that:
+   - The region number is non-zero
+   - For non-registration contacts, the region must be one of the local node's two regions (home or outer)
+   - Both nodes participating in the contact must have membership in that region
+
+#### Configuring Regions in ionrc Files
+
+The ionadmin configuration utility provides the `^` command to specify which region subsequent contacts belong to:
+
+**Syntax:**
+```
+^ <region_number>
+```
+
+**Default Behavior:**
+- By default, region number **1** (the "universal" region) is selected
+- All contacts added without an explicit region selection belong to region 1
+
+**Example Configuration:**
+
+```bash
+# Initialize ION node 1
+1 1 ionconfig
+
+# Start ION
+s
+
+# Set reference time to current time
+@ 0
+
+# Select region 1 (default - can be omitted)
+^ 1
+
+# Add contacts for region 1
+a contact +1 +3600 1 2 100000
+a contact +1 +3600 2 3 100000
+a contact +1 +3600 3 1 100000
+
+# Switch to region 2
+^ 2
+
+# Add contacts for region 2 (different contact plan)
+a contact +1 +3600 1 4 50000
+a contact +1 +3600 4 5 50000
+a contact +1 +3600 5 1 50000
+
+# Switch back to region 1 to add more contacts
+^ 1
+a contact +3601 +7200 1 2 100000
+```
+
+**Multi-Region Deployment Considerations:**
+
+1. **Small Region Sizes**: Keep regions small (16-32 nodes) because contact graph routing is computationally intensive. Larger regions require more processing power for route computation.
+
+2. **Two-Region Limit**: Each ION node can only manage contact information for two regions at once. This constraint helps limit memory usage and computational overhead.
+
+3. **Contact Plan Consistency**: All nodes within a region should share the same contact plan for that region. The `!` (announce) command can enable automatic distribution of contact plan updates within a region, though this is typically disabled (default) for controlled deployments.
+
+4. **Region Isolation**: Contacts belonging to different regions are maintained in separate contact lists. This isolation allows different parts of a large network to maintain independent contact plans.
+
+#### Region Selection Best Practices
+
+**Production Deployment Recommendation**: For production deployments, use the default single-region configuration (region 1) and avoid the `^` command. Multi-region operation is an advanced feature that has not yet been extensively tested in operational environments.
+
+1. **Single Region Networks** (Recommended): For all deployments where all nodes can participate in a single contact plan, use the default region 1 and omit the `^` command entirely. This is the well-tested, recommended configuration for production use.
+
+2. **Multi-Region Networks** (Experimental): Multi-region operation should only be considered for experimental or research purposes. If you choose to deploy hierarchical or federated networks with multiple regions:
+   - **Test thoroughly** in a non-production environment before any operational use
+   - Assign lower region numbers to larger, more stable network segments
+   - Assign higher region numbers to smaller, more dynamic sub-networks
+   - Document your region numbering scheme for operational clarity
+   - Be prepared to troubleshoot unexpected routing behaviors
+
+3. **Gateway Nodes**: Nodes that bridge multiple regions will automatically maintain membership in both their home and outer regions based on contact plan participation. Ensure gateway nodes have sufficient computational resources for multi-region routing. Note that gateway node operation in multi-region scenarios has limited operational validation.
+
+4. **Contact Plan Updates**: When modifying contact plans in single-region deployments:
+   - Verify contacts are being added to region 1 (the default)
+   - Use the `l contact` (list contacts) command to verify contacts are in the expected region
+   - If you accidentally use the `^` command, ensure you switch back to `^ 1` before adding additional contacts
+
+#### Programmatic Region Management
+
+When using the Public Administration API (available in ION 4.1.4+), region assignment is handled automatically:
+
+- The `ion_add_contact()` function determines the appropriate region by examining which nodes participate in the contact and finding their common region membership
+- This automatic determination uses the same logic as the `^` command but eliminates the need for manual region selection
+- For advanced use cases requiring explicit region control or contact announcement, use `rfx_insert_contact()` directly
+
+For details on the Public Administration API, see the [Public Administration API Guide](./Public-Admin-API-Guide.md).
 
 ### Multi-node Operation
 

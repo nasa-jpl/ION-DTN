@@ -1,12 +1,12 @@
 # BP Extension Interface
 
-ION offers software developer a set of standard interface for adding extensions to Bundle Protocol without modifying the core BP source code. This capability can be used to implement both standardized bundle extension blocks or user-specific extension blocks.
+ION offers software developers a set of standard interface for adding extensions to Bundle Protocol without modifying the core BP source code. This capability can be used to implement both standardized bundle extension blocks or user-specific extension blocks.
 
 ION's interface for extending the Bundle Protocol enables the definition of external functions that insert extension blocks into outbound bundles (either before or after the payload block), parse and record extension blocks in inbound bundles, and modify extension blocks at key points in bundle processing. All extension-block handling is statically linked into ION at build time, but the addition of an extension never requires that any standard ION source code be modified.
 
 Standard structures for recording extension blocks -- both in transient storage memory during bundle acquisition (AcqExtBlock) and in persistent storage [the ION database] during subsequent bundle processing (ExtensionBlock) -- are defined in the bei.h header file. In each case, the extension block structure comprises a block type code, block processing flags, possibly a list of EID references, an array of bytes (the serialized form of the block, for transmission), the length of that array, optionally an extension-specific opaque object whose structure is designed to characterize the block in a manner that's convenient for the extension processing functions, and the size of that object.
 
-## Extension Definition: `ExtesnionDef` & `extensionDefs`
+## Extension Definition: `ExtensionDef` & `extensionDefs`
 
 The definition of each extension is asserted in an ExtensionDef structure, also as defined in the `bei.h` header file. 
 
@@ -98,10 +98,10 @@ typedef struct
 } ExtensionSpec;
 ```
 
-An array of ExtensionSpec structures named extensionSpecs is also required. Each ExtensionSpec provides the specification for producing an outbound extension block: 
+An array of ExtensionSpec structures named extensionSpecs is also required. Each ExtensionSpec provides the specification for producing an outbound extension block:
 
-1. block definition (identified by block type number), 
-2. three discriminator tags whose semantics are block-type-specific, and 
+1. block definition (identified by block type number),
+2. a discriminator tag whose semantics are block-type-specific, and
 3. CRC type indicating what type of CRC must be used to protect this extension block. 
 
 The order of appearance of extension specifications in the extensionSpecs array determines the order in which extension blocks will be inserted into locally sourced bundles.
@@ -126,9 +126,9 @@ The standard extensionDefs array -- which is empty -- is in the `noextensions.c`
 
 ## Extension Implementation Functions
 
-The function pointers supplied in each ExtensionDef must conform to the following specifications. 
+The function pointers supplied in each ExtensionDef must conform to the following specifications.
 
-NOTE that any function that modifies the bytes member of an ExtensionBlock or AckExtBlock must set the corresponding length to the new length of the bytes array, if changed.
+NOTE that any function that modifies the bytes member of an ExtensionBlock or AcqExtBlock must set the corresponding length to the new length of the bytes array, if changed.
 
 ```c
 int (*BpExtBlkOfferFn)(ExtensionBlock *blk, Bundle *bundle)
@@ -152,13 +152,13 @@ Releases all ION database space occupied by the object member of blk. This funct
 int (*BpExtBlkCopyFn)(ExtensionBlock *newblk, ExtensionBlock *oldblk)
 ```
 
-Copies the object member of oldblk to ION database heap space and places the address of that new non-volatile object in the object member of newblk, also sets size in newblk. This function is automatically called when two copies of a bundle are needed, e.g., in the event that it must both be delivered to a local client and also fowarded to another node. Return zero on success, -1 on any system failure.
+Copies the object member of oldblk to ION database heap space and places the address of that new non-volatile object in the object member of newblk, also sets size in newblk. This function is automatically called when two copies of a bundle are needed, e.g., in the event that it must both be delivered to a local client and also forwarded to another node. Return zero on success, -1 on any system failure.
 
 ```c
 int (*BpAcqExtBlkAcquireFn)(AcqExtBlock *acqblk, AcqWorkArea *work)
 ```
 
-Populates the indicated AcqExtBlock structure with size and object for retention as part of the indicated inbound bundle. (The type, blkProcFlags, EID references (if any), dataLength, length, and bytes values of the structure are pre-populated with data as extracted from the serialized bundle.) This function is only to be provided for extension blocks that are never encrypted; a extension block that may be encrypted should have a BpAcqExtBlkParseFn callback instead. The function is automatically called when an extension block of this type is encountered in the course of parsing and acquiring a bundle for local delivery and/or forwarding. If no internal object representing the state of the block is needed, the object member of acqblk must be set to NULL and the size member must be set to zero. If an object is needed for this block, it must occupy space that is allocated from ION working memory using MTAKE and its size must be indicated in blk. Return zero if the block is malformed (this will cause the bundle to be discarded), 1 if the block is successfully parsed, -1 on any system failure.
+Populates the indicated AcqExtBlock structure with size and object for retention as part of the indicated inbound bundle. (The type, blkProcFlags, EID references (if any), dataLength, length, and bytes values of the structure are pre-populated with data as extracted from the serialized bundle.) This function is only to be provided for extension blocks that are never encrypted; an extension block that may be encrypted should have a BpAcqExtBlkParseFn callback instead. The function is automatically called when an extension block of this type is encountered in the course of parsing and acquiring a bundle for local delivery and/or forwarding. If no internal object representing the state of the block is needed, the object member of acqblk must be set to NULL and the size member must be set to zero. If an object is needed for this block, it must occupy space that is allocated from ION working memory using MTAKE and its size must be indicated in blk. Return zero if the block is malformed (this will cause the bundle to be discarded), 1 if the block is successfully parsed, -1 on any system failure.
 
 ```c
 int (*BpAcqExtBlkReviewFn)(AcqWorkArea *work)
@@ -176,7 +176,7 @@ Decrypts some other extension block that has been acquired but not yet parsed, n
 int (*BpAcqExtBlkParseFn)(AcqExtBlock *acqblk, AcqWorkArea *work)
 ```
 
-Populates the indicated AcqExtBlock structure with size and object for retention as part of the indicated inbound bundle. (The type, blkProcFlags, EID references (if any), dataLength, length, and bytes values of the structure are pre-populated with data as extracted from the serialized bundle.) This function is provided for extension blocks that may be encrypted; a extension block that can never be encrypted should have a BpAcqExtBlkAcquireFn callback instead. The function is automatically called when an extension block of this type is encountered in the course of parsing and acquiring a bundle for local delivery and/or forwarding. If no internal object representing the state of the block is needed, the object member of acqblk must be set to NULL and the size member must be set to zero. If an object is needed for this block, it must occupy space that is allocated from ION working memory using MTAKE and its size must be indicated in blk. Return zero if the block is malformed (this will cause the bundle to be discarded), 1 if the block is successfully parsed, -1 on any system failure.
+Populates the indicated AcqExtBlock structure with size and object for retention as part of the indicated inbound bundle. (The type, blkProcFlags, EID references (if any), dataLength, length, and bytes values of the structure are pre-populated with data as extracted from the serialized bundle.) This function is provided for extension blocks that may be encrypted; an extension block that can never be encrypted should have a BpAcqExtBlkAcquireFn callback instead. The function is automatically called when an extension block of this type is encountered in the course of parsing and acquiring a bundle for local delivery and/or forwarding. If no internal object representing the state of the block is needed, the object member of acqblk must be set to NULL and the size member must be set to zero. If an object is needed for this block, it must occupy space that is allocated from ION working memory using MTAKE and its size must be indicated in blk. Return zero if the block is malformed (this will cause the bundle to be discarded), 1 if the block is successfully parsed, -1 on any system failure.
 
 ```c
 int (*BpAcqExtBlkCheckFn)(AcqExtBlock *acqblk, AcqWorkArea *work)
@@ -233,3 +233,447 @@ void restoreExtensionBlock(ExtensionBlock *blk)
 ```
 
 Reverses the effect of suppressExtensionBlock(), enabling the block to be included when the bundle to which it is attached is serialized.
+
+---
+
+## Extension Block Lifecycle
+
+Understanding the lifecycle of extension blocks is critical for proper implementation:
+
+### Outbound Bundle Processing
+
+1. **Bundle Creation**: When a bundle is created locally, the `offer()` function is called for each registered extension type
+2. **Serialization**: The `serialize()` function converts the block structure to wire format (typically via `serializeExtBlk()`)
+3. **Forwarding**: `process[BP_PROCESS_ON_FORWARD]()` is called when the bundle is forwarded to another node
+4. **Custody**: `process[BP_PROCESS_ON_TAKE_CUSTODY]()` is called when custody is taken (if applicable)
+5. **Enqueue**: `process[BP_PROCESS_ON_ENQUEUE]()` is called when the bundle is queued for transmission
+6. **Dequeue**: `process[BP_PROCESS_ON_DEQUEUE]()` is called when removed from transmission queue
+7. **Transmission**: `process[BP_PROCESS_ON_TRANSMIT]()` is called after serialization, before actual transmission
+8. **Duplication**: If the bundle needs to be duplicated (e.g., local delivery + forwarding), `copy()` is called
+9. **Destruction**: When the bundle is destroyed, `release()` is called to free database heap memory
+
+### Inbound Bundle Processing
+
+1. **Reception**: Bundle arrives and is parsed by BP core
+2. **Acquisition**: For non-encrypted blocks, `acquire()` extracts the block into temporary (working) memory
+   - For potentially encrypted blocks, use `parse()` instead of `acquire()`
+3. **Decryption**: If applicable, `decrypt()` processes encrypted blocks
+4. **Validation**: `check()` verifies block authenticity
+5. **Review**: `review()` checks that all required blocks are present
+6. **Recording**: If the bundle is accepted, `record()` converts from temporary to persistent (database) storage
+7. **Cleanup**: `clear()` releases working memory allocated during acquisition
+
+---
+
+## Memory Management: Critical Concepts
+
+### Database Heap vs. Working Memory
+
+ION uses two distinct memory regions:
+
+- **Database Heap (SDR)**: Persistent storage that survives process crashes. Use `sdr_malloc()` for allocation.
+  - For `ExtensionBlock` objects (persistent storage)
+  - Memory allocated in `offer()`, `copy()`, and `record()`
+  - Must be freed in `release()`
+
+- **Working Memory**: Temporary storage for bundle acquisition. Use `MTAKE()` for allocation.
+  - For `AcqExtBlock` objects (temporary storage during reception)
+  - Memory allocated in `acquire()` or `parse()`
+  - Must be freed in `clear()`
+
+### Common Memory Management Errors
+
+**Error 1: Using wrong memory type**
+```c
+// WRONG: Using working memory for persistent storage
+int myOffer(ExtensionBlock *blk, Bundle *bundle) {
+    MyData *data = (MyData *)MTAKE(sizeof(MyData));  // WRONG!
+    blk->object = (Object)data;
+    return 0;
+}
+
+// CORRECT: Use database heap for persistent storage
+int myOffer(ExtensionBlock *blk, Bundle *bundle) {
+    Sdr sdr = getIonsdr();
+    Object dataObj = sdr_malloc(sdr, sizeof(MyData));
+    if (dataObj == 0) return -1;
+
+    MyData data;
+    // ... populate data ...
+    sdr_write(sdr, dataObj, (char *)&data, sizeof(MyData));
+
+    blk->object = dataObj;
+    blk->size = sizeof(MyData);
+    return 0;
+}
+```
+
+**Error 2: Not freeing memory**
+```c
+// WRONG: Memory leak - not freeing in release()
+void myRelease(ExtensionBlock *blk) {
+    // Nothing - MEMORY LEAK!
+}
+
+// CORRECT: Free database memory
+void myRelease(ExtensionBlock *blk) {
+    Sdr sdr = getIonsdr();
+    if (blk->object) {
+        sdr_free(sdr, blk->object);
+    }
+}
+```
+
+---
+
+## Complete Working Example: Timestamp Extension
+
+This example implements a simple extension block that adds a timestamp to bundles.
+
+### Step 1: Define the Extension Data Structure
+
+```c
+// File: timestamp_ext.h
+#ifndef TIMESTAMP_EXT_H
+#define TIMESTAMP_EXT_H
+
+#include "bei.h"
+
+#define TIMESTAMP_EXT_TYPE  192  // Use private block type number
+
+typedef struct {
+    time_t  timestamp;
+    uvast   sequenceNum;
+} TimestampData;
+
+#endif
+```
+
+### Step 2: Implement Callback Functions
+
+```c
+// File: timestamp_ext.c
+#include "timestamp_ext.h"
+
+static uvast g_sequenceNum = 0;
+
+// Offer function: Create block for outbound bundle
+int timestampOffer(ExtensionBlock *blk, Bundle *bundle)
+{
+    Sdr sdr = getIonsdr();
+    Object dataObj;
+    TimestampData data;
+
+    // Populate timestamp data
+    data.timestamp = time(NULL);
+    data.sequenceNum = g_sequenceNum++;
+
+    // Allocate in database heap
+    dataObj = sdr_malloc(sdr, sizeof(TimestampData));
+    if (dataObj == 0) {
+        return -1;
+    }
+
+    // Write data to SDR
+    sdr_write(sdr, dataObj, (char *)&data, sizeof(TimestampData));
+
+    // Set block metadata
+    blk->type = TIMESTAMP_EXT_TYPE;
+    blk->blkProcFlags = 0;  // No special processing flags
+    blk->dataLength = sizeof(TimestampData);
+    blk->object = dataObj;
+    blk->size = sizeof(TimestampData);
+
+    // Serialize the block
+    if (serializeExtBlk(blk, (char *)&data) < 0) {
+        sdr_free(sdr, dataObj);
+        return -1;
+    }
+
+    return 0;
+}
+
+// Release function: Free database memory
+void timestampRelease(ExtensionBlock *blk)
+{
+    Sdr sdr = getIonsdr();
+
+    if (blk->object) {
+        sdr_free(sdr, blk->object);
+        blk->object = 0;
+    }
+}
+
+// Copy function: Duplicate for bundle copying
+int timestampCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
+{
+    Sdr sdr = getIonsdr();
+    Object newObj;
+
+    if (oldBlk->object == 0) {
+        newBlk->object = 0;
+        newBlk->size = 0;
+        return 0;
+    }
+
+    // Allocate new database memory
+    newObj = sdr_malloc(sdr, oldBlk->size);
+    if (newObj == 0) {
+        return -1;
+    }
+
+    // Copy data from old to new
+    char buffer[sizeof(TimestampData)];
+    sdr_read(sdr, buffer, oldBlk->object, oldBlk->size);
+    sdr_write(sdr, newObj, buffer, oldBlk->size);
+
+    newBlk->object = newObj;
+    newBlk->size = oldBlk->size;
+
+    return 0;
+}
+
+// Acquire function: Parse inbound block
+int timestampAcquire(AcqExtBlock *acqBlk, AcqWorkArea *work)
+{
+    TimestampData *data;
+
+    // Allocate working memory
+    data = (TimestampData *)MTAKE(sizeof(TimestampData));
+    if (data == NULL) {
+        return -1;
+    }
+
+    // Extract from serialized bytes
+    if (acqBlk->length < sizeof(TimestampData)) {
+        MRELEASE(data);
+        return 0;  // Malformed block
+    }
+
+    memcpy(data, acqBlk->bytes + (acqBlk->length - acqBlk->dataLength),
+           sizeof(TimestampData));
+
+    acqBlk->object = (Object)data;
+    acqBlk->size = sizeof(TimestampData);
+
+    return 1;  // Successfully parsed
+}
+
+// Clear function: Free working memory
+void timestampClear(AcqExtBlock *acqBlk)
+{
+    if (acqBlk->object) {
+        MRELEASE((char *)acqBlk->object);
+        acqBlk->object = 0;
+    }
+}
+
+// Record function: Convert from working to database memory
+int timestampRecord(ExtensionBlock *blk, AcqExtBlock *acqBlk)
+{
+    Sdr sdr = getIonsdr();
+    Object dataObj;
+
+    if (acqBlk->object == 0) {
+        blk->object = 0;
+        blk->size = 0;
+        return 0;
+    }
+
+    // Allocate database heap
+    dataObj = sdr_malloc(sdr, acqBlk->size);
+    if (dataObj == 0) {
+        return -1;
+    }
+
+    // Copy from working memory to database
+    sdr_write(sdr, dataObj, (char *)acqBlk->object, acqBlk->size);
+
+    blk->object = dataObj;
+    blk->size = acqBlk->size;
+
+    return 0;
+}
+```
+
+### Step 3: Register the Extension
+
+```c
+// File: bpextensions.c
+#include "bei.h"
+#include "timestamp_ext.h"
+
+// External function declarations
+extern int  timestampOffer(ExtensionBlock *, Bundle *);
+extern void timestampRelease(ExtensionBlock *);
+extern int  timestampCopy(ExtensionBlock *, ExtensionBlock *);
+extern int  timestampAcquire(AcqExtBlock *, AcqWorkArea *);
+extern void timestampClear(AcqExtBlock *);
+extern int  timestampRecord(ExtensionBlock *, AcqExtBlock *);
+
+// Extension definitions array
+ExtensionDef extensionDefs[] = {
+    {
+        "timestamp",              // name
+        TIMESTAMP_EXT_TYPE,       // type
+        timestampOffer,           // offer
+        NULL,                     // serialize (not needed, using serializeExtBlk)
+        {NULL, NULL, NULL, NULL, NULL},  // process callbacks (not needed for this example)
+        timestampRelease,         // release
+        timestampCopy,            // copy
+        timestampAcquire,         // acquire
+        NULL,                     // review (not needed)
+        NULL,                     // decrypt (not applicable)
+        NULL,                     // parse (using acquire instead)
+        NULL,                     // check (not needed)
+        timestampRecord,          // record
+        timestampClear            // clear
+    },
+    {"", 0, NULL, NULL, {NULL, NULL, NULL, NULL, NULL}, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}  // Terminator
+};
+
+// Extension specifications array
+ExtensionSpec extensionSpecs[] = {
+    {TIMESTAMP_EXT_TYPE, 0, NoCRC},
+    {0, 0, NoCRC}  // Terminator
+};
+```
+
+### Step 4: Build Integration
+
+Add to the Makefile for linking `libbpP.so`:
+
+```makefile
+# Add timestamp_ext.o to the link command
+libbpP.so: ... timestamp_ext.o
+    $(CC) -shared -o libbpP.so ... timestamp_ext.o
+```
+
+Compile with the `-DBP_EXTENDED` flag when building `libbpP.c`.
+
+---
+
+## Common Pitfalls and Best Practices
+
+### Return Value Conventions
+
+The return values are **not** consistent across all callbacks:
+
+- **offer(), copy(), record()**: Return 0 on success, -1 on system error
+- **acquire(), parse()**: Return 1 on success, 0 if malformed (discard bundle), -1 on system error
+- **review()**: Return 1 if all required blocks present, 0 if missing, -1 on system error
+- **decrypt()**: Return 1 on success, 0 if malformed, -1 on system error
+- **check()**: Return 1 if **inauthentic** (discard), 0 if authentic, -1 on system error
+
+### Callback Function Requirements
+
+Not all callbacks are required. Minimal implementations need:
+
+**For basic non-encrypted extension**:
+- `offer()` - create block for outbound bundles
+- `release()` - free database memory
+- `copy()` - duplicate blocks
+- `acquire()` - parse inbound blocks
+- `record()` - convert to persistent storage
+- `clear()` - free working memory
+
+**Optional callbacks**:
+- `process[]` - for modifying blocks at specific points
+- `review()` - for policy enforcement
+- `decrypt()` - for encrypted blocks
+- `parse()` - alternative to `acquire()` for potentially encrypted blocks
+- `check()` - for authentication verification
+
+### Transaction Management
+
+Always use SDR transactions when manipulating database memory:
+
+```c
+int myOffer(ExtensionBlock *blk, Bundle *bundle)
+{
+    Sdr sdr = getIonsdr();
+    Object obj;
+
+    CHKZERO(sdr_begin_xn(sdr));
+
+    obj = sdr_malloc(sdr, sizeof(MyData));
+    if (obj == 0) {
+        sdr_cancel_xn(sdr);
+        return -1;
+    }
+
+    // ... populate object ...
+
+    if (sdr_end_xn(sdr) < 0) {
+        return -1;
+    }
+
+    blk->object = obj;
+    return 0;
+}
+```
+
+### Testing Your Extension
+
+1. **Unit Testing**: Test each callback independently
+2. **Integration Testing**: Use `bpsource` and `bpsink` to send bundles with your extension
+3. **Logging**: Use ION's logging to trace execution:
+   ```c
+   writeMemo("[i] Timestamp extension offered");
+   ```
+4. **Memory Verification**: Run ION with memory leak detection enabled
+5. **Multi-hop Testing**: Verify blocks survive forwarding through intermediate nodes
+
+---
+
+## Debugging Guide
+
+### Common Error Messages
+
+**"Extension block type X not recognized"**
+- Verify the extension is registered in `extensionDefs`
+- Check that `-DBP_EXTENDED` was used during compilation
+- Ensure `bpextensions.c` is in the include path
+
+**"SDR transaction already in progress"**
+- You may be starting a nested transaction
+- Check if calling code already has a transaction open
+
+**Memory leak detected on shutdown**
+- Verify `release()` frees all allocated database memory
+- Verify `clear()` frees all allocated working memory
+- Use `sdr_free()` for database objects, `MRELEASE()` for working memory
+
+### Using ION Logging
+
+Enable detailed logging to trace extension execution:
+
+```c
+#include "platform.h"
+
+int timestampOffer(ExtensionBlock *blk, Bundle *bundle)
+{
+    char buf[256];
+
+    isprintf(buf, sizeof(buf), "[i] timestamp:offer called for bundle");
+    writeMemo(buf);
+
+    // ... implementation ...
+
+    writeMemo("[i] timestamp:offer completed successfully");
+    return 0;
+}
+```
+
+Check `ion.log` for these messages during operation.
+
+---
+
+## Additional Resources
+
+For more detailed information about ION's internal APIs used in extension development:
+
+- **ICI API Documentation**: See [ICI-API.md](./ICI-API.md) for SDR management functions
+- **BP Service API**: See [BP-Service-API.md](./BP-Service-API.md) for bundle protocol details
+- **ION Manual Pages**: Consult `man bei`, `man sdr`, `man ion` for comprehensive API references
+- **Example Extensions**: See ION source code in `bp/extensions/` for production examples like BPSec blocks

@@ -51,7 +51,7 @@ if (ionAttach() < 0)
 
 Description
 
-Attached is the invoking task to ION infrastructure as previously established by running the ionadmin utility program. After successful execution, the handle to the ION SDR can be obtained by a separate API call. `putErrmsg` is an ION logging API, which will be described later in this document.
+Attaches the invoking task to ION infrastructure as previously established by running the ionadmin utility program. After successful execution, the handle to the ION SDR can be obtained by a separate API call. `putErrmsg` is an ION logging API, which will be described later in this document.
 
 ---------------
 
@@ -79,7 +79,7 @@ ionDetach();
 
 Description
 
-Detaches the invoking task from ION infrastructure. In particular, releases handle allocated for access to ION's non-volatile database.
+Detaches the invoking task from ION infrastructure. In particular, releases the handle allocated for access to ION's non-volatile database.
 
 ---------------
 
@@ -167,8 +167,7 @@ Parameters
 
 Return Value
 
-* 0: Success
-* -1: Any error
+* None
 
 Example Call
 
@@ -182,7 +181,7 @@ Destroys the semaphore in `attendant`, preventing a potential resource leak. Thi
 
 ---------------
 
-### ionPauseAttendent
+### ionPauseAttendant
 
 Function Prototype
 
@@ -201,12 +200,12 @@ Return Value
 Example Call
 
 ```c
-ionStopAttendant(&attendant);
+ionPauseAttendant(&attendant);
 ```
 
 Description
 
-"Ends" the semaphore in attendant so that the task blocked on taking it is interrupted and may respond to an error or shutdown condition. This may be required when trying to quit a blocked user application while acquiring ZCO space.
+Ends the semaphore in attendant so that the task blocked on taking it is interrupted and may respond to an error or shutdown condition. This may be required when trying to quit a blocked user application while acquiring ZCO space.
 
 ------------------
 
@@ -415,7 +414,7 @@ Parameters
 
 Return Value
 
-* address of the allocated space: success
+* number of bytes of heap space allocated: success
 * 0: Failure
 
 Description
@@ -439,12 +438,11 @@ Parameters
 
 Return Value
 
-* address of the allocated space: success
-* 0: failure
+* None
 
 Description
 
-Frees the heap space occupied by an object at *object*. The space freed are put back into the SDR memory pool and will become available for subsequent re-allocation.
+Frees the heap space occupied by an object at *object*. The space freed is put back into the SDR memory pool and will become available for subsequent re-allocation.
 
 ---
 
@@ -465,8 +463,7 @@ Parameters
 
 Return Value
 
-* address of the allocated space: success
-* 0: Failure
+* None
 
 Description
 
@@ -491,8 +488,7 @@ Parameters
 
 Return Value
 
-* address of the allocated space: success
-* 0: Failure
+* None
 
 Description
 
@@ -514,20 +510,17 @@ void sdr_write(Sdr sdr, Address into, char *from, int length)
 Parameters
 
 * `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
-* `*into`: the location in the SDR heap where data should be written into
-* `from`: this is a location in memory where data should copied from
+* `into`: the location in the SDR heap where data should be written into
+* `*from`: this is a location in memory where data should be copied from
 * `length`: this is the size to be written
 
 Return Value
 
-* address of the allocated space: success
-* 0: Failure
+* None
 
 Description
 
-Like `sdr_read`, this function will copy length characters from (a location in the heap of the indicated SDR) to the memory location given by into. Unlike `sdr_get`, `sdr_stage` requires that from be the address of some allocated object, not just any location within the heap. `sdr_stage`, when called from within a transaction, notifies the SDR library that the indicated object may be updated later in the transaction; this enables the library to retrieve the object's size for later reference in validating attempts to write into some location within the object. If length is zero, the object's size is privately retrieved by SDR but none of the object's content is copied into memory.
-
-`sdr_get` is a macro that uses `sdr_read` to load variables from the SDR address given by heap_pointer; heap_pointer must be (or be derived from) a heap pointer as returned by `sdr_pointer`. The size of the variable is used as the number of bytes to copy.
+Copies length characters from the memory location given by from to a location in the SDR heap specified by into. The data are written to the shared memory region in which the SDR resides, if any; otherwise, they are written to the file in which the SDR resides. This function must be called within a transaction.
 
 ---
 
@@ -671,7 +664,7 @@ typedef void (*SdrListDeleteFn)(Sdr sdr, Object elt, void *argument);
 
 ### Callback: SdrListCompareFn
 
-### Callback: SDRListDEleteFn
+### Callback: SdrListDeleteFn
 
 USAGE
 
@@ -759,7 +752,8 @@ Parameters
 * `list`: a list in SDR
 
 Return Value
-`number of elements in the` list`: Success
+
+* `number of elements in the list`: Success
 * `-1`: any error
 
 Description

@@ -1,6 +1,6 @@
 # LTP Underlying Communications API
 
-In the Licklider Transmission Protocol (LTP) Specification issued by [CCSDS 734.1-B-1](https://public.ccsds.org/Pubs/734x1b1.pdf), the elements of a LTP architecture is shown as follows:
+In the Licklider Transmission Protocol (LTP) Specification issued by [CCSDS 734.1-B-1](https://public.ccsds.org/Pubs/734x1b1.pdf), the elements of an LTP architecture are shown as follows:
 
 ![LTP Architecture](images/LTP-Architecture-CCSDS.png)
 
@@ -27,7 +27,7 @@ There are several steps for an external application to connecting to LTP:
 2. The external application must make sure LTP is initialized by calling the `ltpInit()` API.
 3. Once `ltpInit` called returned successfully, it must obtain access to ION SDR and detemine the associated LTP `span` (based on a peer engine number) for which communication service will be provisioned.  This is done by using the `findSpan()` API. A `span` defines the communication parameters between two LTP engine peers.
 4. Acquire the semaphore used by the associated LTP engines - for the span - to indicate the availability of a segment for transmission. The presences of a valid semaphore is also indication that the span is currently active.
-5. Use the `ltpDequeueOUtboundSegment` API to acquire each available segment from the LTP Engine for transmission to the peer entity.
+5. Use the `ltpDequeueOutboundSegment` API to acquire each available segment from the LTP Engine for transmission to the peer entity.
 
 In the following section we will describe the *private* APIs used by the underlying communication protocols. There are other APIs for external processes to use LTP as a reliable point-to-point data transmission service, but they are not described in this document; they are available in the manual pages.
 
@@ -38,7 +38,7 @@ Here is a diagram of the major LTP data structures and their relationships.
 ```text
 +----------------------------------+----------------------------------+
 |                                  |                                  |
-| non->olatile (SDR heap)          |    volatile (working memory ION) |
+| non-volatile (SDR heap)          |    volatile (working memory ION) |
 |                                  |                                  |
 |                                  |                                  |
 | LtpDB                            |    LtpVdb                        |
@@ -99,7 +99,7 @@ extern int ltpInit(int estMaxExportSessions);
 
 Parameters
 
-* `estMaxExportSessions`: name of the endpoint
+* `estMaxExportSessions`: estimated maximum number of concurrent export sessions that will be managed by the LTP engine. Use 0 to attach to an existing LTP service without reinitializing.
 
 Return Value
 
@@ -147,6 +147,10 @@ Return Value
 
 * none
 
+**CRITICAL - SDR Transaction Required:**
+
+This function MUST be called within an SDR transaction (between `sdr_begin_xn()` and `sdr_exit_xn()` or `sdr_end_xn()`). Failure to do so may result in inconsistent reads or crashes. The SDR transaction ensures safe access to the span data structures.
+
 Example Code
 
 ```c++
@@ -156,15 +160,18 @@ findSpan(remoteEngineId, &vspan, &vspanElt);
 if (vspanElt == 0)
 {
     sdr_exit_xn(sdr);
-    putErrmsg("No such engine in database.", itoa(remoteEngineId));
+    char engineIdStr[32];
+    isprintf(engineIdStr, sizeof(engineIdStr), UVAST_FIELDSPEC, remoteEngineId);
+    putErrmsg("No such engine in database.", engineIdStr);
     /* user error handling routine here */
 }
 
 if (vspan->lsoPid != ERROR && vspan->lsoPid != sm_TaskIdSelf())
 {
     sdr_exit_xn(sdr);
-    putErrmsg("LSO task is already started for this span.",
-        itoa(vspan->lsoPid));
+    char pidStr[32];
+    isprintf(pidStr, sizeof(pidStr), "%lu", (unsigned long) vspan->lsoPid);
+    putErrmsg("LSO task is already started for this span.", pidStr);
     /* user error handling routine here */
 }
 
@@ -218,6 +225,12 @@ if (segmentLength == 0)
 Description:
 
 This function dequeues a LTP segment, based on the `segSemaphore` in `vspan` object, into a buffer space for the calling task to process for transmission. The returned value is the length of the LTP segment dequeue; 0 if the segment belongs to a session that already closed (therefore no action is required), and -1 if an error occurred.
+
+**Important - Buffer Memory Management:**
+
+The buffer returned via the `buf` parameter is managed by the LTP engine and resides in LTP's internal buffer pool. After transmission, do NOT free this buffer - it will be automatically recycled by the LTP engine. The buffer remains valid only until the next call to `ltpDequeueOutboundSegment()` or until the span is terminated.
+
+**Semaphore Monitoring:**
 
 If this call is implemented in a loop, then it is suggested that the loop monitors the `segSemaphore` in `vspan` to detect the termination of the semaphore using the `sm_SemEnded(vspan->segSemaphore)` call. If the semaphore has ended, it means the span associated with the underlying communication protocol instance has ended. This is the right time to end the task itself.
 

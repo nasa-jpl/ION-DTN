@@ -8,7 +8,8 @@
 5. [Bundle Protocol Administrative API](#bundle-protocol-administrative-api)
 6. [Complete Example](#complete-example)
 7. [Best Practices](#best-practices)
-8. [API Reference](#api-reference)
+8. [Debugging Crash Recovery](#debugging-crash-recovery)
+9. [API Reference](#api-reference)
 
 ---
 
@@ -220,10 +221,29 @@ Before adding contacts, the local node must be registered in a region:
 int ion_register_node(uint32_t region_nbr);
 ```
 
+**Important Notes:**
+- **Must be called before adding contacts**: Contacts will be rejected as "foreign region" if the node is not registered
+- **Region number must be > 0**: Region 0 is reserved and will be rejected
+- **Typical usage**: Most applications use region 1 for all nodes
+- **Two-region support**: Each ION node can belong to at most 2 regions (home region and outer region)
+
 **Example:**
 ```c
-ion_register_node(1);  // Required before adding contacts
+// Initialize ION
+ionInitialize(&parms, 1);
+ionAttach();
+
+// Register in region 1 (REQUIRED before adding contacts)
+ion_register_node(1);
+
+// Now contacts can be added
+ion_add_contact(now + 1, now + 3600, 1, 2, 100000, 1.0);
 ```
+
+**What happens if you skip node registration?**
+- `ion_add_contact()` will fail with return value -1
+- `ion.log` will show: "Contact is for a foreign region: N"
+- The contact will be silently rejected
 
 ### Contact Management
 
@@ -294,9 +314,12 @@ time_t now = time(NULL);
 // Add range with 1 second propagation delay
 ion_add_range(now + 1, now + 3600, 1, 2, 1);
 
-// For GEO satellite: ~0.24 second delay
-ion_add_range(now, now + 86400, 1, 100, 0.24);
+// For GEO satellite: ~0.24 second actual delay (rounded to 1 second)
+// Note: OWLT parameter must be whole seconds (unsigned int)
+ion_add_range(now, now + 86400, 1, 100, 1);
 ```
+
+**Important:** The `owlt` (one-way light time) parameter is an `unsigned int` representing whole seconds. Fractional second delays cannot be specified through this API.
 
 ---
 
@@ -396,6 +419,108 @@ add_seat("udplsi localhost:1113");
 // Remove seat (automatically stops LSI)
 remove_seat("udplsi localhost:1113");
 ```
+
+### Important: Span Configuration Updates
+
+**CRITICAL BEHAVIOR:** The `update_span()` function updates the span configuration in the database but **does NOT restart the LSO (Link Service Output) daemon**. The old LSO process continues running with the previous configuration until the span is explicitly restarted.
+
+#### Why This Matters
+
+When you change span parameters—especially the `lso_command`—using `update_span()` or the ltpadmin `c span` command:
+
+1. **Database is updated** with new configuration
+2. **LSO process continues running** with the old command
+3. **New configuration takes effect** only after span restart
+
+This behavior can cause operational confusion if not properly understood.
+
+#### Recommended Approach: Remove and Re-add
+
+The safest and most straightforward approach to change span configuration is to remove and re-add the span:
+
+```c
+// Step 1: Stop and remove the existing span
+ltp_stop_span(engine_id);
+remove_span(engine_id);
+
+// Step 2: Re-add span with new configuration
+add_span(engine_id,
+         max_export_sessions,
+         max_import_sessions,
+         max_segment_size,
+         aggr_size_limit,
+         aggr_time_limit,
+         "NEW_lso_command",  // New LSO command
+         queuing_latency,
+         purge_enabled);
+
+// Step 3: Start the span with new configuration
+ltp_start_span(engine_id);
+```
+
+**Note:** If you remove the last span, consider also stopping and restarting the corresponding BP outduct to prevent the ltpclo from attempting to transmit to a non-existent destination:
+
+```c
+// After removing last LTP span
+bp_stop_outduct("ltp", "engine_id_string");
+
+// After re-adding span
+bp_start_outduct("ltp", "engine_id_string");
+```
+
+#### Alternative: Stop-Update-Start Sequence
+
+If you need to update parameters without removing the span (e.g., to preserve session state), use this sequence:
+
+```c
+// Step 1: Stop the span (stops LSO/ltpmeter processes)
+ltp_stop_span(engine_id);
+
+// Step 2: Update the configuration
+update_span(engine_id,
+            max_export_sessions,
+            max_import_sessions,
+            max_segment_size,
+            aggr_size_limit,
+            aggr_time_limit,
+            "NEW_lso_command",  // New LSO command
+            queuing_latency,
+            purge_enabled);
+
+// Step 3: Restart the span (starts new LSO/ltpmeter with updated config)
+ltp_start_span(engine_id);
+```
+
+**Warning:** This approach may not properly clean up all span state. The remove-and-re-add approach is recommended for most scenarios.
+
+#### For ltpadmin Users
+
+When using the ltpadmin command-line tool:
+
+**Option 1: Delete and re-add (Recommended)**
+```
+# In ltpadmin
+d span <engine_ID>
+a span <engine_ID> <params...> '<NEW_LSO_command>' [queuing_latency]
+```
+
+**Option 2: Stop and restart entire LTP**
+```
+# In ltpadmin
+x    # Stop LTP engine (stops all spans)
+c span <engine_ID> <params...> '<NEW_LSO_command>' [queuing_latency]
+s    # Start LTP engine (starts all spans with updated config)
+```
+
+**Important:** The `c span` command alone (without stopping/restarting LTP) will **NOT** apply the new LSO command to the running daemon.
+
+#### Reference Implementation
+
+See the test program at `tests/admin_public_api/ltp_span_management/ltp_span_management_test.c` for a complete working example of proper span lifecycle management, including:
+- Removing spans during runtime
+- Managing BP outducts during span removal
+- Re-adding spans with new configuration
+- Verifying bundle delivery after span restart
 
 ### Monitoring
 
@@ -567,10 +692,10 @@ add_induct("tcp", "0.0.0.0:4556", "tcpcli 0.0.0.0:4556");
 ### Outduct Management
 
 ```c
-int add_outduct(char *protocol_name,         // Protocol name
-                char *duct_name,             // Duct identifier
-                char *clo_command,           // CLO command
-                unsigned int max_payload);   // Max payload (0=default)
+int add_outduct(char *protocol_name,              // Protocol name
+                char *duct_name,                   // Duct identifier
+                char *clo_command,                 // CLO command
+                unsigned int max_payload_length);  // Max payload (0=default)
 
 int remove_outduct(char *protocol_name, char *duct_name);
 
@@ -604,7 +729,7 @@ add_plan("ipn:3.1", 50000);   // Route to specific endpoint
 
 ### Planduct Management
 
-Plandtucts attach outducts to plans, creating routing directives.
+Plan-outduct attachments (planducts) attach outducts to plans, creating routing directives.
 
 ```c
 int add_planduct(char *eid,              // Plan EID
@@ -749,7 +874,9 @@ int main(void)
         return -1;
     }
 
-    sleep(5);  // Allow LTP to fully start
+    // Allow LTP daemons to fully initialize and register semaphores
+    // Shorter delays may cause race conditions on some systems
+    sleep(5);
 
     // ========================================
     // Step 5: Initialize and Configure BP
@@ -824,7 +951,8 @@ int main(void)
         return -1;
     }
 
-    sleep(5);  // Allow BP to fully start
+    // Allow BP daemons to fully initialize and register semaphores
+    sleep(5);
 
     // ========================================
     // Step 7: System is Operational
@@ -912,12 +1040,40 @@ rfx_start() → ltp_init() → bp_init() → bp_attach()
 
 ### 2. Error Handling
 
-Check return values for all API calls:
+Check return values for all API calls. Different API families return different success values:
+
+**Return Value Convention Summary**
+
+| API Family | Success | Duplicate/Not Found | Error | Notes |
+|-----------|---------|---------------------|-------|-------|
+| ION Admin | 0 | N/A | -1 | Traditional Unix convention |
+| LTP Admin | 1 | 0 | -1 | 1=success, 0=already exists/not found |
+| BP Admin | 1 | 0 | -1 | 1=success, 0=already exists/not found |
+
+**Examples:**
 
 ```c
+// ION Admin APIs return 0 on success
 if (ion_add_contact(now, now + 3600, 1, 2, 100000, 1.0) < 0) {
-    fprintf(stderr, "Failed to add contact: check ION logs\n");
-    // Handle error appropriately
+    fprintf(stderr, "Failed to add contact\n");
+}
+
+// LTP/BP Admin APIs return 1 on success, 0 if duplicate
+int result = add_span(1, 100000, 1400, 1400, 100000, 0, 100, "udplso");
+if (result < 0) {
+    fprintf(stderr, "Failed to add span\n");
+} else if (result == 0) {
+    fprintf(stderr, "Span already exists\n");
+}
+// result == 1 means success
+
+// BP Admin APIs follow same pattern
+result = add_scheme("ipn", "ipnfw", "ipnadminep");
+if (result <= 0) {  // Check for both user and system errors
+    if (result == 0)
+        fprintf(stderr, "Scheme already exists or invalid\n");
+    else
+        fprintf(stderr, "System error adding scheme\n");
 }
 ```
 
@@ -929,7 +1085,17 @@ if (ion_add_contact(now, now + 3600, 1, 2, 100000, 1.0) < 0) {
 
 ### 4. Resource Management
 
-Always ensure proper cleanup on exit. The cleanup method depends on your SDR configuration:
+Always ensure proper cleanup on exit. The cleanup method depends on your SDR configuration.
+
+**CRITICAL: Shutdown Order**
+
+Services must be stopped in reverse initialization order. Never call `ionTerminate()` or `ionDetach()` while services are still running:
+
+1. Stop BP: `bp_stop()`
+2. Stop LTP: `ltp_stop()`
+3. Then cleanup: `ionDetach()` or `ionTerminate()`
+
+Incorrect shutdown order can cause crashes, resource leaks, or corrupted SDR data.
 
 ```c
 // OPTION 1: Standard shutdown (preserves file-based SDR)
@@ -1022,6 +1188,77 @@ ion_set_congestion_forecast_horizon(horizon);
 
 ---
 
+## Debugging Crash Recovery
+
+The BP plan and LTP span crash recovery code includes conditional debug instrumentation that can be enabled at compile time. This provides detailed logging of daemon state checks, semaphore operations, and recovery decisions without cluttering `ion.log` during normal operation.
+
+### Enabling Debug Instrumentation
+
+To enable crash recovery debugging, compile ION with the `DEBUG_CRASH_RECOVERY` preprocessor flag:
+
+```bash
+make CFLAGS="-DDEBUG_CRASH_RECOVERY"
+```
+
+### Debug Output
+
+When `DEBUG_CRASH_RECOVERY` is defined, `ion.log` will include detailed trace messages showing:
+
+- **Daemon state detection**: Whether daemons (bpclm, ltpmeter, udplso) are running or crashed
+- **Recovery function calls**: When `resetPlan()` or `resetSpan()` is called and why
+- **Semaphore operations**: Detailed logging of `sm_SemTake()` and `sm_SemGive()` during recovery
+- **Spawn decisions**: Logic for determining whether to spawn or skip daemon starts
+
+### Use Cases
+
+This debugging capability is particularly useful for:
+
+1. **Platform-specific troubleshooting**: Investigating semaphore race conditions that manifest differently across platforms (e.g., Solaris vs Linux process scheduling differences)
+2. **Crash recovery development**: When modifying the crash recovery logic in `bpStartPlan()` or `ltpStartSpan()`
+3. **Daemon lifecycle debugging**: Understanding complex interactions between parent processes and spawned daemons
+
+### Affected Code Sections
+
+The debug instrumentation is present in:
+
+- **`bpv7/library/libbpP.c`**: Functions `bpStartPlan()`, `resetPlan()`, `startPlan()`
+- **`bpv7/daemon/bpclm.c`**: Main semaphore wait loop in bpclm daemon
+- **`ltp/library/libltpP.c`**: Functions `ltpStartSpan()`, `resetSpan()`, `startSpan()`
+
+### Example Debug Output
+
+With `DEBUG_CRASH_RECOVERY` enabled, `ion.log` will contain entries like:
+
+```
+[DEBUG] bpStartPlan: bpclm is running for plan ipn:1.0
+[DEBUG] bpStartPlan: Not calling resetPlan - daemon already running
+[DEBUG] startPlan: bpclm already running for plan ipn:1.0, skipping spawn
+```
+
+Or during actual crash recovery:
+
+```
+[DEBUG] ltpStartSpan: ltpmeter crashed: 2
+[DEBUG] ltpStartSpan: udplso crashed: 2
+[DEBUG] ltpStartSpan: Calling resetSpan: 2
+[DEBUG] resetSpan: About to take bufClosedSemaphore for span 2
+[DEBUG] resetSpan: Unending and giving all semaphores for span 2
+[DEBUG] startSpan: Spawning new ltpmeter for span 2
+[DEBUG] startSpan: Spawning new udplso for span 2
+```
+
+### Best Practices
+
+- **Enable only when needed**: Keep this flag disabled during production builds to avoid log bloat
+- **Test suite integration**: Regression tests for crash recovery (in `tests/admin_public_api/bp_plan_crash_recovery/` and `tests/admin_public_api/ltp_span_crash_recovery/`) benefit from this instrumentation when failures occur
+- **Clean rebuilds**: When toggling this flag, perform a clean rebuild to ensure consistent behavior:
+  ```bash
+  make clean
+  make CFLAGS="-DDEBUG_CRASH_RECOVERY"
+  ```
+
+---
+
 ## API Reference
 
 ### ION Admin API (`ion_admin.h`)
@@ -1070,6 +1307,6 @@ ion_set_congestion_forecast_horizon(horizon);
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** 2025-10-08
+**Document Version:** 1.1
+**Last Updated:** 2024-11-17
 **Based on:** ION Public Admin API Test Suite (`ltp_admin_api_test.c`)
