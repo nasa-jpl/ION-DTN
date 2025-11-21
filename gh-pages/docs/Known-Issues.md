@@ -1,5 +1,7 @@
 # Knowledge Base, Issues & Patches
 
+Laste Updated: 11/21/2025
+
 This is a short list of information regarding ION operation, known issues, and patches.
 
 Most of these information are likely to be found in other longer documents but it is presented here in a summarized form for easier search. Another useful document is the [ION Deployment Guide](./ION-Deployment-Guide.md) which contains recommendations on configuring and running ION and performance data.
@@ -149,3 +151,4 @@ The following security advisories are associated with ION:
 
 - [CVE-2024-54130](https://github.com/nasa-jpl/ION-DTN/security/advisories/GHSA-7pj7-hfwv-q3v6) - fixed in 4.1.3s
 - [CVE-2024-54129](https://github.com/nasa-jpl/ION-DTN/security/advisories/GHSA-393w-w6jh-pq3j) - fixed in 4.1.3s
+- [CVE-2025-61910](https://github.com/nasa-jpl/ION-DTN/security/advisories/GHSA-xm96-38vj-h28h) - fixed in 4.1.4-b.1

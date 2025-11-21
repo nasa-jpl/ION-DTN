@@ -80,8 +80,3 @@ qemu-system-aarch64 -M raspi3b -m 1G -kernel build/ionrtems.exe \
 - **Installation Issues**: Consult arch-rtems/README and KEY-FIXES-SUMMARY.md
 - **Network Configuration**: See arch-rtems/UDP-NETWORK-STATUS.md
 - **Bug Reports**: ION GitHub Issues
-- **RTEMS Questions**: RTEMS Users Mailing List
-
----
-
-**For all installation details, please refer to the documentation files in the `arch-rtems/` directory of your ION distribution.**
