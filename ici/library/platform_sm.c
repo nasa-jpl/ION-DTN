@@ -4177,7 +4177,7 @@ void	sm_SemDelete(sm_SemId i)
 		gsem->pendingDelete = 1;
 		giveIpcLock();
 
-		writeMemoNote("Semaphore deletion deferred (refCount=%d)",
+		writeMemoNote("Semaphore deletion deferred, refCount",
 		              itoa(gsem->refCount));
 		return;
 	}
@@ -4305,11 +4305,19 @@ void	sm_SemEnd(sm_SemId i)
 	CHKVOID(i >= 0);
 	CHKVOID(i < SEM_NSEMS_MAX);
 
-	/* Mark semaphore as ended under IPC lock protection */
+	/* Sync local semaphore first, then mark as ended and wake waiters.
+	 * We do this all under a single IPC lock hold to prevent races. */
 	takeIpcLock();
-	sem = &semTbl->lsemtable[i];
+	sem = _semGetSem(semTbl, i, 1);  /* 1 = already locked */
+	if (sem == NULL)
+	{
+		/* Semaphore not in use - just mark ended in global table */
+		semTbl->lsemtable[i].semgl->ended = 1;
+		giveIpcLock();
+		return;
+	}
+
 	sem->semgl->ended = 1;
-	giveIpcLock();
 
 	/* Wake up any waiting threads/processes without changing refCount.
 	 * Note: We use sem_post() directly here instead of sm_SemGive()
@@ -4318,14 +4326,15 @@ void	sm_SemEnd(sm_SemId i)
 	 * Any threads blocked on sm_SemTake() will wake up and see the
 	 * 'ended' flag, then call sm_SemGive() themselves to balance
 	 * their refCount. */
-	sem = _semGetSem(semTbl, i, 0);
-	if (sem != NULL && sem->id != NULL)
+	if (sem->id != NULL)
 	{
 		if (sem_post(sem->id) == -1)
 		{
 			putSysErrmsg("Can't wake waiters for ended semaphore", itoa(i));
 		}
 	}
+
+	giveIpcLock();
 }
 
 int	sm_SemEnded(sm_SemId i)
