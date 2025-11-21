@@ -1758,10 +1758,13 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 	 *	that are blocked waiting for induct activity can be
 	 *	unblocked when the inducts begin shutdown.		*/
 	writeMemo("[i] bpStop: Signaling inducts to stop...");
-	for (elt = sm_list_first(bpwm, bpvdb->inducts); elt; elt =
-			sm_list_next(bpwm, elt))
+	writeMemo("[i] bpStop: About to call sm_list_first on inducts");
+	elt = sm_list_first(bpwm, bpvdb->inducts);
+	writeMemo("[i] bpStop: sm_list_first returned");
+	for (; elt; elt = sm_list_next(bpwm, elt))
 	{
 		vinduct = (VInduct *) psp(bpwm, sm_list_data(bpwm, elt));
+		writeMemoNote("[i] bpStop: Signaling induct", vinduct->ductName);
 		stopInduct(vinduct);
 	}
 	writeMemo("[i] bpStop: Inducts signaled.");
