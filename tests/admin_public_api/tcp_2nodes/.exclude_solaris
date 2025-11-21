@@ -1,1 +1,0 @@
-The get_executable_dir() call not supported on Solaris. Also programmatically launching multiple ION instances on Solaris is not required/supported.
