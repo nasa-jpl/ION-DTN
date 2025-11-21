@@ -1177,8 +1177,8 @@ excluded edge.", NULL);
 
 	if (contact)
 	{
-		route->toFqnn = contact->toFqnn;
-		route->fromTime = contact->fromTime;
+		newRoute->toFqnn = contact->toFqnn;
+		newRoute->fromTime = contact->fromTime;
 	}
 
 	/*	Append new route to list of known routes.		*/
