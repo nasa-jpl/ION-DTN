@@ -407,6 +407,7 @@ iciPODM5 = pod2man -s 5 -c "ICI configuration files"
 icicflags = -I$(srcdir)/ici/library -I$(srcdir)/ici/crypto -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/test -I$(srcdir)/ici/sdr -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2
 
 icibin = \
+	ionwatch \
 	file2sdr \
 	file2sm \
 	ionadmin \
@@ -478,6 +479,7 @@ icinoinst = \
 
 iciextra = \
 	ici/README.txt \
+	ici/doc/pod1/ionwatch.pod \
 	ici/doc/pod1/file2sdr.pod \
 	ici/doc/pod1/file2sm.pod \
 	ici/doc/pod1/ionadmin.pod \
@@ -524,6 +526,7 @@ iciextra += \
 endif # end BUILD_BPv7
 
 icimans = \
+	ici/doc/ionwatch.1 \
 	ici/doc/file2sdr.1 \
 	ici/doc/file2sm.1 \
 	ici/doc/ionadmin.1 \
@@ -636,6 +639,10 @@ ionxnowner_CFLAGS = $(icicflags) $(AM_CFLAGS)
 psmwatch_SOURCES = ici/utils/psmwatch.c
 psmwatch_LDADD = libici.la -lm
 psmwatch_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
+ionwatch_SOURCES = ici/utils/ionwatch.c
+ionwatch_LDADD = libici.la libltp.la $(bplib) libcfdp.la libdtpc.la libbssp.la -lm
+ionwatch_CFLAGS = $(icicflags) $(AM_CFLAGS) -I$(srcdir)/ltp/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/cfdp/library -I$(srcdir)/dtpc/library -I$(srcdir)/bssp/library
 
 sdrmend_SOURCES = ici/utils/sdrmend.c
 sdrmend_LDADD = libici.la -lm
@@ -2633,6 +2640,9 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/nm-unit-ipn2/dotest \
 	tests/sm_subsystem/dotest \
 	tests/admin_public_api/ltp_loopback/dotest \
+	tests/admin_public_api/ltp_span_management/dotest \
+	tests/admin_public_api/bp_plan_crash_recovery/dotest \
+	tests/admin_public_api/ltp_span_crash_recovery/dotest \
 	tests/admin_public_api/tcp_2nodes/dotest
 #	tests/nm-unit/primitives/ari/dotest
 
@@ -2723,6 +2733,18 @@ tests_sm_subsystem_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS) $(
 tests_admin_public_api_ltp_loopback_dotest_SOURCES = tests/admin_public_api/ltp_loopback/ltp_admin_api_test.c tests/admin_public_api/ltp_loopback/ion_test_utils.c
 tests_admin_public_api_ltp_loopback_dotest_LDADD = libici.la -lm $(bplib) $(ltplib)
 tests_admin_public_api_ltp_loopback_dotest_CFLAGS = $(icicflags) $(bpcflags) $(ltpcflags) $(AM_CFLAGS)
+
+tests_admin_public_api_ltp_span_management_dotest_SOURCES = tests/admin_public_api/ltp_span_management/ltp_span_management_test.c tests/admin_public_api/ltp_loopback/ion_test_utils.c
+tests_admin_public_api_ltp_span_management_dotest_LDADD = libici.la -lm $(bplib) $(ltplib)
+tests_admin_public_api_ltp_span_management_dotest_CFLAGS = $(icicflags) $(bpcflags) $(ltpcflags) $(AM_CFLAGS)
+
+tests_admin_public_api_bp_plan_crash_recovery_dotest_SOURCES = tests/admin_public_api/bp_plan_crash_recovery/bp_plan_crash_recovery_test.c tests/admin_public_api/ltp_loopback/ion_test_utils.c
+tests_admin_public_api_bp_plan_crash_recovery_dotest_LDADD = libici.la -lm $(bplib)
+tests_admin_public_api_bp_plan_crash_recovery_dotest_CFLAGS = $(icicflags) $(bpcflags) $(AM_CFLAGS)
+
+tests_admin_public_api_ltp_span_crash_recovery_dotest_SOURCES = tests/admin_public_api/ltp_span_crash_recovery/ltp_span_crash_recovery_test.c tests/admin_public_api/ltp_loopback/ion_test_utils.c
+tests_admin_public_api_ltp_span_crash_recovery_dotest_LDADD = libici.la -lm $(bplib) $(ltplib)
+tests_admin_public_api_ltp_span_crash_recovery_dotest_CFLAGS = $(icicflags) $(bpcflags) $(ltpcflags) $(AM_CFLAGS)
 
 # Helper program tcp_single_node for tcp_2nodes test
 check_PROGRAMS += tests/admin_public_api/tcp_2nodes/tcp_single_node

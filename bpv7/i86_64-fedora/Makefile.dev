@@ -23,6 +23,7 @@ STCP = ../stcp
 DGR = ../dgr
 BRS = ../brs
 UDP = ../udp
+SPP = ../spp
 DCCP = ../dccp
 BIBE = ../bibe
 IPND = ../ipnd
@@ -73,6 +74,7 @@ BPLIBS = \
 	libcgr.so \
 	libstcpcla.so \
 	libudpcla.so \
+	libsppcla.so \
 	libmetadata.so
 
 BPPOBJS = libbpP.o libipnfw.o libimcfw.o libdtn2fw.o bibe.o eureka.o saga.o bei.o pnb.o bpq.o meb.o bae.o hcb.o snw.o imc.o bpsec_util.o bpsec_instr.o bib.o bcb.o bpsec_policy.o bpsec_policy_event.o bpsec_policy_eventset.o bpsec_policy_rule.o bcb_aes_gcm_sc.o bib_hmac_sha2_sc.o ion_test_sc.o rfc9173_utils.o sc_util.o sc_value.o sci.o sci_valmap.o bpsec_asb.o
@@ -84,7 +86,7 @@ CGROBJS = libcgr.o
 
 LBP = -lbp
 
-RUNTIMES = bpadmin bpsecadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat imcfw imcadminep bsspcli bsspclo bibeclo bibeadmin bpnmtest ipnd cgrfetch bpversion bpcrash cpsd sendfile recvfile
+RUNTIMES = bpadmin bpsecadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo sppcli sppclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat imcfw imcadminep bsspcli bsspclo bibeclo bibeadmin bpnmtest ipnd cgrfetch bpversion bpcrash bpcrash_hard bpinspect cpsd sendfile recvfile bptracker
 # dccpcli dccpclo
 
 ALL = check $(BPLIBS) $(RUNTIMES)
@@ -214,6 +216,14 @@ bptracker:	bptracker.o $(BPLIBS)
 		$(CC) -o bptracker bptracker.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bptracker ./bin
 
+bpinspect:	bpinspect.o bpinspect_data.o bpinspect_filter.o bpinspect_ops.o $(BPLIBS)
+		$(CC) -o bpinspect bpinspect.o bpinspect_data.o bpinspect_filter.o bpinspect_ops.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp bpinspect ./bin
+
+bpcrash_hard:	bpcrash_hard.o $(BPLIBS)
+		$(CC) -o bpcrash_hard bpcrash_hard.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp bpcrash_hard ./bin
+
 #	-	-	IPN executables	-	-	-	-	-
 
 ipnfw:		ipnfw.o $(BPLIBS) libbp.so libcgr.so
@@ -283,6 +293,16 @@ udpcli:		udpcli.o $(BPLIBS) libudpcla.so
 udpclo:		udpclo.o $(BPLIBS) libudpcla.so
 		$(CC) -o udpclo udpclo.o -L./lib -L$(ROOT)/lib -ludpcla $(LBP) -lici -lpthread -lm
 		cp udpclo ./bin
+
+#	-	-	SPP executables	-	-	-	-
+
+sppcli:		sppcli.o $(BPLIBS) libsppcla.so
+		$(CC) -o sppcli sppcli.o -L./lib -L$(ROOT)/lib -lsppcla $(LBP) -lici -lpthread -lm
+		cp sppcli ./bin
+
+sppclo:		sppclo.o $(BPLIBS) libsppcla.so
+		$(CC) -o sppclo sppclo.o -L./lib -L$(ROOT)/lib -lsppcla $(LBP) -lici -lpthread -lm
+		cp sppclo ./bin
 
 #	-	-	BSSP executables	-	-	-	-
 
@@ -402,6 +422,10 @@ libstcpcla.so:	libstcpcla.o
 libudpcla.so:	libudpcla.o
 		$(LD) -o libudpcla.so libudpcla.o
 		cp libudpcla.so ./lib
+
+libsppcla.so:	libsppcla.o
+		$(LD) -o libsppcla.so libsppcla.o
+		cp libsppcla.so ./lib
 
 libmetadata.so:	metadata.o
 		$(LD) -o libmetadata.so metadata.o
@@ -526,6 +550,9 @@ endif
 		$(CC) -c $<
 
 %.o:		$(UDP)/%.c
+		$(CC) -c $<
+
+%.o:		$(SPP)/%.c
 		$(CC) -c $<
 
 #%.o:		$(DCCP)/%.c

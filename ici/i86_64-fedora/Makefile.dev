@@ -28,6 +28,7 @@ LIBICIOBJS = \
 	ion.o \
 	rfx.o \
 	ion_network.o \
+	ion_admin.o \
 	entropy_src.o \
 	secrypt.o \
 	ionsec.o \
@@ -60,6 +61,7 @@ PUBINCLS = \
 	$(INCL)/ion.h \
 	$(INCL)/rfx.h \
 	$(INCL)/ion_network.h \
+	$(INCL)/ion_admin.h \
 	$(INCL)/ionsec.h \
 	$(INCL)/crypto.h \
 	$(INCL)/csi.h \
@@ -81,9 +83,9 @@ ICIINCLS = \
 	$(SRC)/lystP.h \
 	$(SDR)/sdrP.h
 
-UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend ionwarn ionunlock ionxnowner ionlog
+UTILITIES = sdrwatch psmwatch ionwatch ionadmin ionsecadmin sdrmend ionwarn ionunlock ionxnowner ionlog
 
-TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh smrbtsh owltsim owlttb
+TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh smrbtsh owltsim owlttb entropy_test sdr_test_util
 
 ALL = check libici.so rfxclock $(UTILITIES) $(TESTPGMS)
 
@@ -189,6 +191,14 @@ owlttb:		owlttb.o libici.so
 		$(CC) -o owlttb owlttb.o -L./lib -lici -lpthread -lm
 		cp owlttb ./bin
 
+entropy_test:	entropy_test.o libici.so
+		$(CC) -o entropy_test entropy_test.o -L./lib -lici -lpthread -lm
+		cp entropy_test ./bin
+
+sdr_test_util:	sdr_test_util.o libici.so
+		$(CC) -o sdr_test_util sdr_test_util.o -L./lib -lici -lpthread -lm
+		cp sdr_test_util ./bin
+
 #	-	-	Daemon executable	-	-	-	-
 
 rfxclock:	rfxclock.o libici.so
@@ -225,4 +235,7 @@ libici.so:	$(LIBICIOBJS)
 		$(CC) -c $<
 
 %.o:		$(TEST)/%.c
+		$(CC) -c $<
+
+%.o:		$(TEST)/entropy/%.c
 		$(CC) -c $<
