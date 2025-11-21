@@ -4198,8 +4198,14 @@ int	sm_SemTake(sm_SemId i)
 	CHKERR(i >= 0);
 	CHKERR(i < SEM_NSEMS_MAX);
 
+#ifdef DEBUG_SEMAPHORE_HANG
+	writeMemoNote("[DEBUG] sm_SemTake: about to takeIpcLock for sem", itoa(i));
+#endif
 	/* Atomically increment reference count under IPC lock */
 	takeIpcLock();
+#ifdef DEBUG_SEMAPHORE_HANG
+	writeMemoNote("[DEBUG] sm_SemTake: got IpcLock for sem", itoa(i));
+#endif
 
 	/* Sync local and global state */
 	sem = _semGetSem(semTbl, i, 1);  /* 1 = already locked */
@@ -4234,6 +4240,9 @@ int	sm_SemTake(sm_SemId i)
 	sem->localRefCount++;
 	giveIpcLock();
 
+#ifdef DEBUG_SEMAPHORE_HANG
+	writeMemoNote("[DEBUG] sm_SemTake: about to sem_wait for sem", itoa(i));
+#endif
 	/* Now safely take the semaphore - protected by refCount */
 	while (sem_wait(sem->id) == -1)
 	{
