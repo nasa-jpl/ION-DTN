@@ -133,12 +133,14 @@ echo "Stopping all ION processes (keeping SDR intact for repair)..."
 # Using ionstop or direct process termination instead of killm
 
 # Try graceful shutdown first with ionadmin/bpadmin
+# 'x' command stops the daemons without destroying the SDR
+# This is equivalent to running "ionadmin ." and "bpadmin ." from command line
 ionadmin <<EOF 2>/dev/null
-.
+x
 EOF
 
 bpadmin <<EOF 2>/dev/null
-.
+x
 EOF
 
 sleep 3

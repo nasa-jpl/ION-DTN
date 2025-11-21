@@ -56,6 +56,7 @@ sleep 30
 cd ../3.ipn.tcp
 echo "Starting bprecvfile..."
 bprecvfile ipn:3.1 &
+BPRECVFILE_PID=$!
 sleep 1
 
 # Send one file from node 2.
@@ -79,6 +80,9 @@ fi
 
 echo ""
 # Now break TCP connectivity to node 3.
+echo "Terminating bprecvfile..."
+kill $BPRECVFILE_PID
+sleep 2
 echo "Breaking TCP connection to node 3..."
 ./ionstop
 echo "Node 3 is stopped."
@@ -108,6 +112,7 @@ echo ""
 # Restore node 3's TCP socket.
 echo "Restoring TCP connectivity to node 3 to test automatic release."
 cd ../3.ipn.tcp
+sleep 2
 ./ionstart
 rm testfile*
 echo "Restarting bprecvfile..."

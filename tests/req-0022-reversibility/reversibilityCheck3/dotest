@@ -103,17 +103,37 @@ echo "Using sdr_test_util to create and cancel transaction WITHOUT modifications
 # Add delay to ensure ION is fully ready
 sleep 1
 
-# Run sdr_test_util in test_no_reversal mode
+# Run sdr_test_util in test_no_reversal mode with timeout
 # This will:
 # 1. Begin a transaction
 # 2. Perform only read operations (no writes)
 # 3. Cancel the transaction
 # Expected: "Transaction reversal not necessary" message
-sdr_test_util test_no_reversal ion
+if command -v timeout >/dev/null 2>&1; then
+	timeout 90 sdr_test_util test_no_reversal ion
+	SDR_RESULT=$?
+else
+	# Fallback for systems without timeout command
+	sdr_test_util test_no_reversal ion &
+	SDR_PID=$!
+	sleep 90
+	if kill -0 $SDR_PID 2>/dev/null; then
+		echo "sdr_test_util appears hung after 90s, killing..."
+		kill -9 $SDR_PID 2>/dev/null
+		SDR_RESULT=124  # timeout exit code
+	else
+		wait $SDR_PID 2>/dev/null
+		SDR_RESULT=$?
+	fi
+fi
 
 # Check if sdr_test_util succeeded
-if [ $? -ne 0 ]; then
-	echo "FAIL: sdr_test_util failed to execute"
+if [ $SDR_RESULT -ne 0 ]; then
+	if [ $SDR_RESULT -eq 124 ]; then
+		echo "FAIL: sdr_test_util timed out after 90 seconds"
+	else
+		echo "FAIL: sdr_test_util failed to execute"
+	fi
 	RETVAL=1
 	end
 else
@@ -228,11 +248,31 @@ echo "Using sdr_test_util to test reversal WITH modifications..."
 # Add delay to ensure ION is fully ready for next test
 sleep 2
 
-# Now test that reversal DOES work when there ARE modifications
-sdr_test_util test_reversal ion
+# Now test that reversal DOES work when there ARE modifications (with timeout)
+if command -v timeout >/dev/null 2>&1; then
+	timeout 90 sdr_test_util test_reversal ion
+	SDR_RESULT=$?
+else
+	# Fallback for systems without timeout command
+	sdr_test_util test_reversal ion &
+	SDR_PID=$!
+	sleep 90
+	if kill -0 $SDR_PID 2>/dev/null; then
+		echo "sdr_test_util test_reversal appears hung after 90s, killing..."
+		kill -9 $SDR_PID 2>/dev/null
+		SDR_RESULT=124  # timeout exit code
+	else
+		wait $SDR_PID 2>/dev/null
+		SDR_RESULT=$?
+	fi
+fi
 
-if [ $? -ne 0 ]; then
-	echo "FAIL: sdr_test_util test_reversal failed"
+if [ $SDR_RESULT -ne 0 ]; then
+	if [ $SDR_RESULT -eq 124 ]; then
+		echo "FAIL: sdr_test_util test_reversal timed out after 90 seconds"
+	else
+		echo "FAIL: sdr_test_util test_reversal failed"
+	fi
 	RETVAL=1
 	end
 else

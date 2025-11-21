@@ -6,7 +6,6 @@ a endpoint ipn:3.2 x
 a protocol tcp 1400 100
 a induct tcp [::1]:5101 tcpcli
 a outduct tcp [::1]:5001 tcpclo
-a outduct tcp [::1]:5101 tcpclo
 r 'ipnadmin amroc.ipnrc'
 w 1
 s
