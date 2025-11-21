@@ -1190,7 +1190,7 @@ unsigned int getInternetAddress(char *hostName)
     /* Extract IPv4 address from first result */
     if (res->ai_addrlen >= sizeof(struct sockaddr_in))
     {
-        struct sockaddr_in *addr = (struct sockaddr_in *) res->ai_addr;
+        struct sockaddr_in *addr = (struct sockaddr_in *)(void *) res->ai_addr;
         hostInetAddress = ntohl(addr->sin_addr.s_addr);
     }
     else

@@ -87,6 +87,7 @@ IONPROCESSLIST="acsadmin lt-acsadmin \
 	ionsecadmin lt-ionsecadmin \
 	ionunlock lt-ionunlock \
 	ionwarn lt-ionwarn \
+	ionwatch lt-ionwatch \
 	ipnadmin lt-ipnadmin \
 	ipnadminep lt-ipnadminep \
 	ipnd lt-ipnd \

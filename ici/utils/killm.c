@@ -93,6 +93,7 @@ char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
 "ionsecadmin.exe", "lt-ionsecadmin.exe", \
 "ionunlock.exe", "lt-ionunlock.exe", \
 "ionwarn.exe", "lt-ionwarn.exe", \
+"ionwatch.exe", "lt-ionwatch.exe", \
 "ipnadmin.exe", "lt-ipnadmin.exe", \
 "ipnadminep.exe", "lt-ipnadminep.exe", \
 "ipnd.exe", "lt-ipnd.exe", \

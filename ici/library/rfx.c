@@ -3647,8 +3647,11 @@ void	rfx_stop(void)
 	PsmAddress	addr;
 	Requisition	*req;
 
+	writeMemo("[i] rfx_stop: Starting ION shutdown sequence.");
+
 	/*	Safely shut down the ZCO flow control system.		*/
 
+	writeMemo("[i] rfx_stop: Ending ZCO requisition semaphores.");
 	for (i = 0; i < 1; i++)
 	{
 		for (elt = sm_list_first(ionwm, vdb->requisitions[i]); elt;
@@ -3667,18 +3670,28 @@ void	rfx_stop(void)
 		}
 	}
 
+	writeMemo("[i] rfx_stop: Unregistering ZCO callback.");
 	zco_unregister_callback();
 
 	/*	Stop the rfx clock if necessary.			*/
 
+	writeMemo("[i] rfx_stop: Stopping rfxclock daemon.");
 	if (vdb->clockPid != ERROR)
 	{
 		sm_TaskKill(vdb->clockPid, SIGTERM);
+		writeMemo("[i] rfx_stop: Waiting for rfxclock to terminate...");
 		while (sm_TaskExists(vdb->clockPid))
 		{
 			microsnooze(100000);
 		}
 
 		vdb->clockPid = ERROR;
+		writeMemo("[i] rfx_stop: rfxclock terminated.");
 	}
+	else
+	{
+		writeMemo("[i] rfx_stop: rfxclock was not running.");
+	}
+
+	writeMemo("[i] rfx_stop: ION shutdown sequence completed.");
 }

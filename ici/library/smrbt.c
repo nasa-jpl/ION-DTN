@@ -218,11 +218,31 @@ void	Sm_rbt_destroy(const char *file, int line, PsmPartition partition,
 		PsmAddress rbt, SmRbtDeleteFn deleteFn, void *arg)
 {
 	SmRbt	*rbtPtr;
+#if SMRBT_DEBUG
+	char	msgBuf[256];
+#endif
 
 	CHKVOID(partition);
 	CHKVOID(rbt);
 	rbtPtr = (SmRbt *) psp(partition, rbt);
+
+#if SMRBT_DEBUG
+	/*	DEBUG: Log RBT address and semaphore ID before locking	*/
+	isprintf(msgBuf, sizeof msgBuf,
+		"[SMRBT_DEBUG] sm_rbt_destroy: RBT at 0x%lx, lock semaphore ID=%d, about to lock",
+		(unsigned long)rbt, rbtPtr->lock);
+	writeMemo(msgBuf);
+#endif
+
 	oK(lockSmrbt(rbtPtr));
+
+#if SMRBT_DEBUG
+	isprintf(msgBuf, sizeof msgBuf,
+		"[SMRBT_DEBUG] sm_rbt_destroy: Successfully locked semaphore %d",
+		rbtPtr->lock);
+	writeMemo(msgBuf);
+#endif
+
 	destroyRbtNodes(file, line, partition, rbtPtr, deleteFn, arg);
 
 	/*	Now destroy the tree itself.				*/
