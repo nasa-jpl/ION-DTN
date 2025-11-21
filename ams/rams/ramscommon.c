@@ -1245,6 +1245,12 @@ int	SendNewRPDU(RamsGateway *gWay, short destContinuumNbr,
 	envelope = NULL; 
 	if (enclosure)
 	{
+		if (enclosure->length > 0 && enclosure->text == NULL)
+		{
+			ErrMsg("SendNewRPDU: Enclosure corrupted (len > 0 but text is NULL)");
+			return -1; 
+		}
+
 		encLength = enclosure->length;
 		envelope = (char *) MTAKE(ENVELOPELENGTH + encLength);
 		CHKERR(envelope);
@@ -1289,28 +1295,46 @@ void	*CheckUdpRpdus(void *parm)
 	while (1)
 	{
 		snooze(1);
-		/* Note: g_ramsgate_interrupted should be checked here for UDP */
+
+		/* 1. Check for shutdown signal to exit cleanly */
+		if (g_ramsgate_interrupted)
+		{
+			return NULL;
+		}
+
+		/* 2. LOCK the mutex before touching the shared list */
+		pthread_mutex_lock(&gWay->gwayStateMutex);
+
 		currentTime = time(NULL);
 		for (elt = lyst_first(gWay->udpRpdus); elt; elt = nextElt)
 		{
 			nextElt = lyst_next(elt);
 			rpdu = (UdpRpdu	 *) lyst_data(elt);
+			
+			/* Optimization: The list is sorted by time, so we can stop early */
 			if (rpdu->checkTime > currentTime)
 			{
-				break;	/*	Out of inner loop.	*/
+				break;	
 			}
 
-			/*	Time to re-send this RPDU via UDP.	*/
-
+			/* Time to re-send this RPDU via UDP. */
 			if (SendRPDUviaUdp(gWay, rpdu->neighbor,
 					rpdu->flowLabel, rpdu->envelope,
 					rpdu->envelopeLength) < 0)
 			{
 				ErrMsg("Failed re-sending UDP RPDU.");
+				
+				/* IMPORTANT: Unlock before returning to avoid deadlock! */
+				pthread_mutex_unlock(&gWay->gwayStateMutex);
+				
 				return NULL;
 			}
 
+			/* Safe to delete because we hold the lock */
 			lyst_delete(elt);
 		}
+
+		/* 3. UNLOCK after processing the batch */
+		pthread_mutex_unlock(&gWay->gwayStateMutex);
 	}
 }

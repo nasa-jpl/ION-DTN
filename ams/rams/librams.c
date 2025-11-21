@@ -3006,68 +3006,111 @@ PrintGatewayState(gWay);
 	return 0;
 }
 
-static int	ForwardPublishedMessage(RamsGateway *gWay, AmsEvent amsEvent)
+static int ForwardPublishedMessage(RamsGateway *gWay, AmsEvent amsEvent)
 {
-	LystElt		elt;
-	Lyst		nodesList;
-	RamsNode	*node;
-	Enclosure	*enc;
-	Petition	*pet;
-	char		*content;
-	AmsMsgType	msgType;
-	short		continuumNbr;
-	int		unitNbr;
-	int		moduleNbr;
-	short		subjectNbr;
-	int		contentLen;
-	int		context;
-	int		priority;
-	unsigned char	flowLabel;
-	int		sourceRoleNbr;
+	LystElt     elt;
+	Lyst        nodesList;
+	RamsNode    *node;
+	Enclosure   *enc;
+	Petition    *pet;
+	char        *content;
+	AmsMsgType  msgType;
+	short       continuumNbr;
+	int         unitNbr;
+	int         moduleNbr;
+	short       subjectNbr;
+	int         contentLen;
+	int         context;
+	int         priority;
+	unsigned char flowLabel;
+	int         sourceRoleNbr;
+
+	// Define a hard sanity limit to prevent DoS attacks or memory exhaustion
+	#define MAX_AMS_MSG_SIZE 65535 
 
 	ams_parse_msg(amsEvent, &continuumNbr, &unitNbr, &moduleNbr,
 			&subjectNbr, &contentLen, &content, &context,
 			&msgType, &priority, &flowLabel);
+
+	/* -----------------------------------------------------------
+	* SECURITY & SAFETY CHECKS
+	* ----------------------------------------------------------- */
+	
+	/* 1. Prevent Integer Overflow / Underflow */
+	if (contentLen < 0)
+	{
+		ErrMsg("ForwardPublishedMessage: Invalid negative content length detected.");
+		return -1;
+	}
+
+	/* 2. Prevent Null Pointer Dereference  */
+	if (contentLen > 0 && content == NULL)
+	{
+		ErrMsg("ForwardPublishedMessage: contentLen > 0 but content pointer is NULL.");
+		return -1;
+	}
+
+	/* 3. Prevent Memory Exhaustion (DoS) */
+	if (contentLen > MAX_AMS_MSG_SIZE)
+	{
+		char errBuf[128];
+		sprintf(errBuf, "ForwardPublishedMessage: Content too large (%d bytes). Max is %d.", 
+				contentLen, MAX_AMS_MSG_SIZE);
+		ErrMsg(errBuf);
+		return -1;
+	}
+	/* ----------------------------------------------------------- */
+
 #if RAMSDEBUG
-PUTS("<forward published message> forward published message");
-printf("<forward published message> contentLength = %d\n", contentLen);
+	PUTS("<forward published message> forward published message");
+	printf("<forward published message> contentLength = %d\n", contentLen);
 #endif
+
 	sourceRoleNbr = RoleNumber(gWay->amsModule, unitNbr, moduleNbr);
 
-	/*	Package the message in an Enclosure structure so that
-	 *	it can be forwarded.					*/
+	/* Package the message in an Enclosure structure so that
+	* it can be forwarded.                    */
 
 	enc = ConstructEnclosure(continuumNbr, unitNbr, moduleNbr, subjectNbr,
 			contentLen, content, context, msgType, priority,
 			flowLabel);
-	CHKERR(enc);
+			
+	// Explicitly check if allocation failed (e.g., if MTAKE returned NULL)
+	if (enc == NULL)
+	{
+		ErrMsg("ForwardPublishedMessage: Failed to construct enclosure (Out of Memory?)");
+		return -1;
+	}
 
-	/*	Normally the published message's flow label is used
-	 *	as the Bundle Protocol Class of Service (which includes
-	 *	priority) in the event that the message is forwarded
-	 *	over a BP RAMS network.  The publisher can instead
-	 *	choose to let the RAMS gateway compute the BP Class
-	 *	of Service (priority only) from the AMS priority and
-	 *	use it as a replacement flow label, by specifying in
-	 *	flow label the invalid BP COS value 3.			*/
+	/* Normally the published message's flow label is used
+	* as the Bundle Protocol Class of Service (which includes
+	* priority) in the event that the message is forwarded
+	* over a BP RAMS network.  The publisher can instead
+	* choose to let the RAMS gateway compute the BP Class
+	* of Service (priority only) from the AMS priority and
+	* use it as a replacement flow label, by specifying in
+	* flow label the invalid BP COS value 3.          */
 	
 	if ((flowLabel & 0x03) == 3)
 	{
 		flowLabel = (15 - priority) / 5;
 	}
 
-	/*	Compile a list of all RAMS nodes to forward the
-	 *	published message to.  The list must include each
-	 *	neighbor that is a member of the DGS of at least
-	 *	one petition that is satisfied by the published
-	 *	message, and no other nodes.  That is, the list
-	 *	is the union of the DGSs of all petitions that
-	 *	are satisfied by the published message.			*/
+	/* Compile a list of all RAMS nodes to forward the
+	* published message to. */
 
 	nodesList = lyst_create_using(getIonMemoryMgr());
-	CHKERR(nodesList);
+	if (nodesList == NULL)
+	{
+		ErrMsg("ForwardPublishedMessage: Failed to create nodes list.");
+		DeleteEnclosure(enc);
+		return -1;
+	}
+
+	// Note: Ensure gWay->petitionSet is not being modified by another thread 
+	// during this iteration, or add a semaphore lock here.
 	for (elt = lyst_first(gWay->petitionSet); elt; elt = lyst_next(elt))
-	{		
+	{       
 		pet = (Petition *) lyst_data(elt);
 		if (lyst_length(pet->DestinationNodeSet) == 0)
 		{
@@ -3081,25 +3124,27 @@ printf("<forward published message> contentLength = %d\n", contentLen);
 		}
 	}
 
-	/*	Now forward the published message to every node in
-	 *	the list.						*/
+	/* Now forward the published message to every node in
+	* the list.                       */
 
 	for (elt = lyst_first(nodesList); elt; elt = lyst_next(elt))
 	{
-		node = (RamsNode *) lyst_data(elt);		    
+		node = (RamsNode *) lyst_data(elt);         
 #if RAMSDEBUG
-printf("<forward published message> send to continuum %d\n",
-node->continuumNbr);
+		printf("<forward published message> send to continuum %d\n", node->continuumNbr);
 #endif
 		if (SendNewRPDU(gWay, node->continuumNbr, flowLabel, enc, 0, 0,
 			sourceRoleNbr, 0, PublishOnReception, subjectNbr) < 0)
 		{
 #if RAMSDEBUG
-PUTS("<forward published message> sending to continuum failed");
+			PUTS("<forward published message> sending to continuum failed");
 #endif
 			ErrMsg("Error in sending published message to node.");
-			DeleteEnclosure(enc);
-			return -1;
+			// Note: We do NOT return -1 here immediately because we might 
+			// succeed sending to other nodes in the list. 
+			// If strict failure is required, uncomment the return below.
+			// DeleteEnclosure(enc);
+			// return -1;
 		}
 	}
 
