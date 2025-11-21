@@ -1753,6 +1753,19 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 	 *	thread was holding the plans list lock or IPC lock.	*/
 
 	microsnooze(200000);	/*	200 milliseconds.		*/
+
+	/*	Signal inducts to stop first, so that any bpclm daemons
+	 *	that are blocked waiting for induct activity can be
+	 *	unblocked when the inducts begin shutdown.		*/
+	writeMemo("[i] bpStop: Signaling inducts to stop...");
+	for (elt = sm_list_first(bpwm, bpvdb->inducts); elt; elt =
+			sm_list_next(bpwm, elt))
+	{
+		vinduct = (VInduct *) psp(bpwm, sm_list_data(bpwm, elt));
+		stopInduct(vinduct);
+	}
+	writeMemo("[i] bpStop: Inducts signaled.");
+
 	writeMemo("[i] bpStop: Stopping plans...");
 	elt = sm_list_first(bpwm, bpvdb->plans);
 	for (; elt; elt = sm_list_next(bpwm, elt))
@@ -1761,15 +1774,6 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 		stopPlan(vplan);
 	}
 	writeMemo("[i] bpStop: Plans stopped.");
-
-	writeMemo("[i] bpStop: Stopping inducts...");
-	for (elt = sm_list_first(bpwm, bpvdb->inducts); elt; elt =
-			sm_list_next(bpwm, elt))
-	{
-		vinduct = (VInduct *) psp(bpwm, sm_list_data(bpwm, elt));
-		stopInduct(vinduct);
-	}
-	writeMemo("[i] bpStop: Inducts stopped.");
 
 	writeMemo("[i] bpStop: Stopping outducts...");
 	for (elt = sm_list_first(bpwm, bpvdb->outducts); elt; elt =
