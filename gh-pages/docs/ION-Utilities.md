@@ -17,6 +17,7 @@ Here is a short list of utility programs that come with ION that are frequently 
 * `psmwatch` - Monitor and display private shared memory usage statistics
 * `bpstats` - Display Bundle Protocol statistics including bundle counts and transmission rates
 * `bpstats2` - Enhanced bundle statistics utility with additional metrics
+* `ltpstats` - Display LTP (Licklider Transmission Protocol) statistics for all configured spans with flexible reporting modes (key, all, or grouped statistics)
 * `bplist` - List all bundles currently in custody showing source, destination, and status
 * `bpcancel` - Cancel transmission of specified bundles by ID or endpoint. Bundles are permanently deleted and cannot be recovered. **Note:** Consider using `bpinspect` instead, which provides bundle inspection before deletion.
 * `bptrace` - Trace bundle transmission path and report hop-by-hop delivery status

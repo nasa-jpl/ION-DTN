@@ -25,7 +25,7 @@ LTPINCLS = \
 	$(UDP)/udplsa.h \
 	$(DCCP)/dccplsa.h
 
-RUNTIMES = ltpadmin ltpsecadmin ltpclock ltpdeliv ltpmeter udplsi udplso ltpdriver ltpcounter sdatest
+RUNTIMES = ltpadmin ltpsecadmin ltpstats ltpclock ltpdeliv ltpmeter udplsi udplso ltpdriver ltpcounter sdatest
 #dccplsi dccplso libudplsa
 
 ALL = check libltp.so $(RUNTIMES)
@@ -79,6 +79,10 @@ ltpadmin:	ltpadmin.o libltp.so
 ltpsecadmin:	ltpsecadmin.o libltp.so
 		$(CC) -o ltpsecadmin ltpsecadmin.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
 		cp ltpsecadmin ./bin
+
+ltpstats:	ltpstats.o libltp.so
+		$(CC) -o ltpstats ltpstats.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
+		cp ltpstats ./bin
 
 #	-	-	Test executables	-	-	-	-
 

@@ -1,0 +1,263 @@
+=head1 NAME
+
+ltpstats - Licklider Transmission Protocol (LTP) processing statistics query utility
+
+=head1 SYNOPSIS
+
+B<ltpstats> [B<-a> | B<-k> | B<-g>] [B<-r>]
+
+=head1 DESCRIPTION
+
+B<ltpstats> logs messages containing the current values of LTP processing
+statistics accumulators for all configured LTP spans, then terminates. The
+utility provides flexible reporting options to display statistics in different
+formats and with varying levels of detail.
+
+B<ltpstats> reports statistics on a per-span basis, identified by the remote
+engine ID. Each statistic includes both a count (number of occurrences) and
+bytes (total bytes processed).
+
+Statistics are accumulated from the time of span creation or from the last
+reset operation. The B<-r> option can be used to reset the current statistics
+after reporting.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-a>
+
+Report all 27 LTP statistics. This mode provides comprehensive visibility into
+all aspects of LTP operation including segments queued, transmitted, received,
+acknowledgments, errors, and discards.
+
+=item B<-k>
+
+Report key statistics only (default). This mode reports the most important
+statistics for monitoring LTP performance:
+
+=over 4
+
+=item *
+
+Outbound segments queued and transmitted
+
+=item *
+
+Checkpoint transmissions and retransmissions
+
+=item *
+
+Segment retransmissions
+
+=item *
+
+Export (transmission) completions
+
+=item *
+
+Inbound red and green segments received
+
+=item *
+
+Checkpoints received
+
+=item *
+
+Import (reception) completions
+
+=back
+
+=item B<-g>
+
+Report grouped statistics. This mode organizes statistics into logical
+categories for easier analysis:
+
+=over 4
+
+=item *
+
+B<Export (Outbound)>: Segments queued/transmitted, checkpoints, retransmissions,
+export completions
+
+=item *
+
+B<Import (Inbound)>: Segments received (red/green), checkpoints received,
+import completions
+
+=item *
+
+B<Acknowledgments>: Positive/negative reports sent and received, report
+retransmissions
+
+=item *
+
+B<Errors/Discards>: Redundant, malformed, unknown sender/client, screened,
+miscolored segments, and cancellations
+
+=back
+
+=item B<-r>
+
+Reset current statistics after reporting. This option resets the currentCount
+and currentBytes fields to zero and updates the resetTime to the current time.
+The reset operation is performed after the statistics are logged.
+
+Note: This option modifies the SDR database and requires write access.
+
+=back
+
+=head1 OUTPUT
+
+B<ltpstats> writes statistics to the B<ion.log> file. All output is logged
+between start and end markers:
+
+    [i] Start of LTP statistics snapshot...
+    [x] span <engineId> <statistic> from <resetTime> to <currentTime>: <count> <bytes>
+    [i] ...end of LTP statistics snapshot.
+
+Each statistics line contains:
+
+=over 4
+
+=item B<span <engineId>>
+
+The remote engine ID identifying the LTP span. Statistics are reported
+separately for each configured span.
+
+=item B<statistic>
+
+The name of the statistic being reported (e.g., out_seg_queued, ckpt_xmit,
+in_seg_recv_red).
+
+=item B<from <resetTime> to <currentTime>>
+
+The time range over which statistics were accumulated. The resetTime is either
+the span creation time (shown as 1969/12/31-16:00:00 for epoch) or the last
+time statistics were reset with the B<-r> option.
+
+=item B<count>
+
+The first number: total count of events or operations for this statistic.
+For example, for out_seg_queued, this is the number of segments that were
+queued for transmission.
+
+=item B<bytes>
+
+The second number: total bytes processed for this statistic. For example,
+for out_seg_queued, this is the total size in bytes of all segments that
+were queued. Note that some statistics (like checkpoints) may report 0 bytes
+as they track control events rather than data transfer.
+
+=back
+
+=head2 Example Output
+
+    [2025/11/22-22:48:11] [i] Start of LTP statistics snapshot...
+    [2025/11/22-22:48:11] [x] span 3 out_seg_queued from 1969/12/31-16:00:00 to 2025/11/22-22:48:11: 235 11747594
+    [2025/11/22-22:48:11] [x] span 3 out_seg_popped from 1969/12/31-16:00:00 to 2025/11/22-22:48:11: 231 11600397
+    [2025/11/22-22:48:11] [x] span 3 ckpt_xmit from 1969/12/31-16:00:00 to 2025/11/22-22:48:11: 115 0
+    [2025/11/22-22:48:11] [i] ...end of LTP statistics snapshot.
+
+In this example, for span 3:
+
+=over 4
+
+=item *
+
+235 segments totaling 11,747,594 bytes were queued for transmission
+
+=item *
+
+231 segments totaling 11,600,397 bytes were transmitted (popped from queue)
+
+=item *
+
+115 checkpoints were transmitted (0 bytes as checkpoints are control segments)
+
+=back
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<ltpstats> has terminated successfully.
+
+=item "1"
+
+B<ltpstats> was unable to attach to LTP, probably because B<ltpadmin> has not
+yet initialized LTP operations, or the ION_NODE_LIST_DIR environment variable
+is not set correctly for multi-node configurations.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+=over 4
+
+=item B<ION_NODE_LIST_DIR>
+
+For multi-node test configurations, this variable must be set to the directory
+containing the ion_nodes file that identifies which node's database to access.
+
+=back
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item ltpstats can't attach to LTP.
+
+B<ltpadmin> has not yet initialized LTP protocol operations, or the environment
+is not configured correctly.
+
+=item LTP is not initialized.
+
+The LTP constants database has not been created yet. Run B<ltpadmin> to
+initialize LTP.
+
+=item Failed to commit statistics reset.
+
+An SDR error occurred while attempting to reset statistics (only when B<-r>
+is used). Check SDR status and available memory.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<ltpstats>
+
+Display key statistics for all LTP spans (default behavior).
+
+=item B<ltpstats -g>
+
+Display statistics organized by category (Export, Import, Acknowledgments,
+Errors).
+
+=item B<ltpstats -a>
+
+Display all 27 LTP statistics for comprehensive monitoring.
+
+=item B<ltpstats -k -r>
+
+Display key statistics and then reset the current counters.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
+
+=head1 SEE ALSO
+
+ltpadmin(1), bpstats(1), ltp(3)

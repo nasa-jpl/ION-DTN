@@ -731,6 +731,7 @@ ltpbin = \
 	ltpdriver \
 	ltpmeter \
 	ltpsecadmin \
+	ltpstats \
 	sdatest \
 	udplsi \
 	udplso
@@ -760,6 +761,7 @@ ltpextra = \
 	ltp/doc/pod1/ltpdriver.pod \
 	ltp/doc/pod1/ltpmeter.pod \
 	ltp/doc/pod1/ltpsecadmin.pod \
+	ltp/doc/pod1/ltpstats.pod \
 	ltp/doc/pod1/udplsi.pod \
 	ltp/doc/pod1/udplso.pod \
 	ltp/doc/pod3/ltp.pod \
@@ -775,6 +777,7 @@ ltpmans = \
 	ltp/doc/ltpdriver.1 \
 	ltp/doc/ltpmeter.1 \
 	ltp/doc/ltpsecadmin.1 \
+	ltp/doc/ltpstats.1 \
 	ltp/doc/udplsi.1 \
 	ltp/doc/udplso.1 \
 	ltp/doc/ltp.3 \
@@ -810,8 +813,12 @@ ltpadmin_LDADD = libltp.la libici.la
 ltpadmin_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 ltpsecadmin_SOURCES = ltp/utils/ltpsecadmin.c
-ltpsecadmin_LDADD = libltp.la libici.la  
+ltpsecadmin_LDADD = libltp.la libici.la
 ltpsecadmin_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+
+ltpstats_SOURCES = ltp/utils/ltpstats.c
+ltpstats_LDADD = libltp.la libici.la
+ltpstats_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
 
