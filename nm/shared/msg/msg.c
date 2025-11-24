@@ -699,6 +699,7 @@ msg_grp_t  *msg_grp_create(uint8_t length)
 	}
 
 	blob_init(&(result->types), NULL, 0, length);
+	result->time = getCtime();
 
 	return result;
 }
