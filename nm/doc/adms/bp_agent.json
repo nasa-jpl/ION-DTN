@@ -1,4 +1,5 @@
 {
+  "_comment": "ION Extension: Byte-count fields use UVAST instead of UINT per draft-birrane-dtn-adm-bp-03 to prevent overflow in long-running missions. Count fields remain UINT per spec. This is a documented deviation for operational robustness.",
   "Mdat": [{
       "name": "name",
       "type": "STR",
@@ -81,7 +82,7 @@
     },
     {
       "name": "bytes_by_priority",
-      "type": "UINT",
+      "type": "UVAST",
       "parmspec": [{
         "type": "UINT",
         "name": "mask"
@@ -99,7 +100,7 @@
     },
     {
       "name": "src_bytes_by_priority",
-      "type": "UINT",
+      "type": "UVAST",
       "parmspec": [{
         "type": "UINT",
         "name": "mask"
@@ -137,7 +138,7 @@
     },
     {
       "name": "failed_custody_bytes",
-      "type": "UINT",
+      "type": "UVAST",
       "description": "number bytes of fails at this node"
     },
     {
@@ -147,7 +148,7 @@
     },
     {
       "name": "failed_forward_bytes",
-      "type": "UINT",
+      "type": "UVAST",
       "description": "number of bytes not forwaded by this node"
     },
     {
@@ -157,7 +158,7 @@
     },
     {
       "name": "abandoned_bytes",
-      "type": "UINT",
+      "type": "UVAST",
       "description": "number of bytes abandoned by this node"
     },
     {
@@ -167,7 +168,7 @@
     },
     {
       "name": "discarded_bytes",
-      "type": "UINT",
+      "type": "UVAST",
       "description": "number of bytes discarded by this node"
     },
     {

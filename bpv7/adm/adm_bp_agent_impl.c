@@ -271,7 +271,7 @@ tnv_t *dtn_bp_agent_get_num_pend_fwd(tnvc_t *parms)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result = tnv_from_uvast(state.currentForwardPending);
+	result = tnv_from_uint((unsigned int)state.currentForwardPending);
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -299,7 +299,7 @@ tnv_t *dtn_bp_agent_get_num_pend_dis(tnvc_t *parms)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result = tnv_from_uvast(state.currentDispatchPending);
+	result = tnv_from_uint((unsigned int)state.currentDispatchPending);
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -327,7 +327,7 @@ tnv_t *dtn_bp_agent_get_num_in_cust(tnvc_t *parms)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result = tnv_from_uvast(state.currentInCustody);
+	result = tnv_from_uint((unsigned int)state.currentInCustody);
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -355,7 +355,7 @@ tnv_t *dtn_bp_agent_get_num_pend_reassembly(tnvc_t *parms)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result = tnv_from_uvast(state.currentReassemblyPending);
+	result = tnv_from_uint((unsigned int)state.currentReassemblyPending);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_pend_reassembly BODY
@@ -398,7 +398,7 @@ tnv_t *dtn_bp_agent_get_bundles_by_priority(tnvc_t *parms)
 		val += state.currentResidentCount[2];
 	}
 
-	result = tnv_from_uvast(val);
+	result = tnv_from_uint((unsigned int)val);
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -485,7 +485,7 @@ tnv_t *dtn_bp_agent_get_src_bundles_by_priority(tnvc_t *parms)
 		val += state.bundleSourceCount[2];
 	}
 
-	result = tnv_from_uvast(val);
+	result = tnv_from_uint((unsigned int)val);
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -558,7 +558,7 @@ tnv_t *dtn_bp_agent_get_num_fragmented_bundles(tnvc_t *parms)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result = tnv_from_uvast(state.bundlesFragmented);
+	result = tnv_from_uint((unsigned int)state.bundlesFragmented);
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -586,7 +586,7 @@ tnv_t *dtn_bp_agent_get_num_fragments_produced(tnvc_t *parms)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result = tnv_from_uvast(state.fragmentsProduced);
+	result = tnv_from_uint((unsigned int)state.fragmentsProduced);
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -653,7 +653,7 @@ tnv_t *dtn_bp_agent_get_num_failed_by_reason(tnvc_t *parms)
 		val += state.delBlkMalformedCount;
 	}
 
-	result = tnv_from_uvast(val);
+	result = tnv_from_uint((unsigned int)val);
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_failed_by_reason BODY
@@ -680,7 +680,7 @@ tnv_t *dtn_bp_agent_get_num_bundles_deleted(tnvc_t *parms)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result = tnv_from_uvast(state.delNoneCount + state.delExpiredCount + state.delFwdUnidirCount + state.delCanceledCount + state.delDepletionCount + state.delEidMalformedCount + state.delNoRouteCount + state.delNoContactCount + state.delBlkMalformedCount);
+	result = tnv_from_uint((unsigned int)(state.delNoneCount + state.delExpiredCount + state.delFwdUnidirCount + state.delCanceledCount + state.delDepletionCount + state.delEidMalformedCount + state.delNoRouteCount + state.delNoContactCount + state.delBlkMalformedCount));
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -708,7 +708,7 @@ tnv_t *dtn_bp_agent_get_failed_custody_bundles(tnvc_t *parms)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result = tnv_from_uvast(state.custodyRefusedCount);
+	result = tnv_from_uint((unsigned int)state.custodyRefusedCount);
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -764,7 +764,7 @@ tnv_t *dtn_bp_agent_get_failed_forward_bundles(tnvc_t *parms)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result = tnv_from_uvast(state.bundleFwdFailedCount);
+	result = tnv_from_uint((unsigned int)state.bundleFwdFailedCount);
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -820,7 +820,7 @@ tnv_t *dtn_bp_agent_get_abandoned_bundles(tnvc_t *parms)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result = tnv_from_uvast(state.bundleAbandonCount);
+	result = tnv_from_uint((unsigned int)state.bundleAbandonCount);
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -876,7 +876,7 @@ tnv_t *dtn_bp_agent_get_discarded_bundles(tnvc_t *parms)
 	NmbpDisposition state;
 	bpnm_disposition_get(&state);
 
-	result = tnv_from_uvast(state.bundleDiscardCount);
+	result = tnv_from_uint((unsigned int)state.bundleDiscardCount);
 
 	/*
 	 * +-------------------------------------------------------------------------+
