@@ -57,7 +57,8 @@ typedef struct
 	uvast		delNoContactCount;
 	uvast		delBlkMalformedCount;
 
-	uvast		bytesDeletedToDate;
+	uvast		numBundlesDeleted;
+	uvast		bytesDiscardedToDate;
 
 	uvast		custodyRefusedCount;
 	uvast		custodyRefusedBytes;

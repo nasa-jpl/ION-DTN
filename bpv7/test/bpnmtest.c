@@ -96,8 +96,10 @@ int	main(void)
 			dispBuf.delNoContactCount);
 	printf("delBlkMalformedCount:		" UVAST_FIELDSPEC "\n",
 			dispBuf.delBlkMalformedCount);
-	printf("bytesDeletedToDate:		" UVAST_FIELDSPEC "\n",
-			dispBuf.bytesDeletedToDate);
+	printf("numBundlesDeleted:		" UVAST_FIELDSPEC "\n",
+			dispBuf.numBundlesDeleted);
+	printf("bytesDiscardedToDate:		" UVAST_FIELDSPEC "\n",
+			dispBuf.bytesDiscardedToDate);
 	printf("custodyRefusedCount:		" UVAST_FIELDSPEC "\n",
 			dispBuf.custodyRefusedCount);
 	printf("custodyRefusedBytes:		" UVAST_FIELDSPEC "\n",

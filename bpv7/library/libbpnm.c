@@ -386,7 +386,13 @@ void bpnm_disposition_get(NmbpDisposition *results)
 	results->delBlkMalformedCount
 		= delStats.currentDelByReason[BP_REASON_BLK_MALFORMED];
 
-	/*		Bundle processing errors				*/
+    results->numBundlesDeleted = results->delNoneCount
+	    + results->delExpiredCount + results->delFwdUnidirCount
+	    + results->delCanceledCount + results->delDepletionCount
+	    + results->delEidMalformedCount + results->delNoRouteCount
+	    + results->delNoContactCount + results->delBlkMalformedCount;
+
+    /*		Bundle processing errors				*/
 
 	sdr_read(sdr, (char *) &dbStats, bpdb.dbStats, sizeof(BpDbStats));
 	results->custodyRefusedCount = 0;
@@ -410,9 +416,9 @@ void bpnm_disposition_get(NmbpDisposition *results)
 	results->bundleDiscardBytes
 		= dbStats.tallies[BP_DB_DISCARD].currentBytes;
 
-	results->bytesDeletedToDate
-		= dbStats.tallies[BP_DB_DISCARD].totalBytes;
-	sdr_exit_xn(sdr);
+    results->bytesDiscardedToDate
+	    = dbStats.tallies[BP_DB_DISCARD].totalBytes;
+    sdr_exit_xn(sdr);
 
 }   /* end of bpnm_disposition_get */
 
