@@ -77,10 +77,17 @@ int main(int argc, char **argv)
 
 #ifdef CLEAN_ON_EXIT
 #if defined (unix)
-	/*Cleanup all directory listing files*/
-	if (system("rm dirlist_* >/dev/null 2>/dev/null")<0)
+	/*	Cleanup all directory listing files.
+	 *	Note: system() can fail during shutdown due to signal
+	 *	handling or resource limits. Since this is just cleanup
+	 *	of temporary files, we check but don't report errors.	*/
 	{
-		dbgprintf(0, "Error running cleanup\n");
+		int ret = system("rm -f dirlist_* 2>/dev/null");
+		if (ret < 0 || ret == 127)
+		{
+			/*	system() failed or shell unavailable.
+			 *	This can happen during shutdown. Ignore.	*/
+		}
 	}
 #endif
 #endif

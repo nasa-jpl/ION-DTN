@@ -2050,11 +2050,28 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 	{
 		sdr_exit_xn(sdr);
 
+		/*	Acquire mutex before waiting to coordinate with shutdown.	*/
+
+		if (sm_SemTake(vdb->eventMutex) < 0)
+		{
+			putErrmsg("CFDP can't take event mutex.", NULL);
+			return -1;
+		}
+
+		if (sm_SemEnded(vdb->eventMutex))
+		{
+			sm_SemGive(vdb->eventMutex);
+			*type = CfdpAccessEnded;
+			writeMemo("[i] CFDP user app access terminated.");
+			return 0;
+		}
+
+		/*	Release mutex before blocking on semaphore.		*/
+
+		sm_SemGive(vdb->eventMutex);
+
 		/*	Wait until CFDP entity announces an event
 		 *	by giving the event semaphore.			*/
-
-		/*	Check if semaphore has ended before trying to take
-		 *	it, to avoid race condition with sm_SemDelete().	*/
 
 		if (sm_SemEnded(vdb->eventSemaphore))
 		{
@@ -2076,9 +2093,11 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 			return 0;
 		}
 
+		/*	Signaled - check queue again.			*/
+
 		CHKERR(sdr_begin_xn(sdr));
 		elt = sdr_list_first(sdr, db->events);
-		if (elt == 0)	/*	Function was interrupted.	*/
+		if (elt == 0)	/*	Spurious wakeup or interrupted.	*/
 		{
 			sdr_exit_xn(sdr);
 			return 0;
@@ -2296,6 +2315,14 @@ void	cfdp_interrupt(void)
 	CfdpVdb	*vdb;
 
 	vdb = getCfdpVdb();
+
+	/*	Signal both mutex and semaphore to wake up any waiters.	*/
+
+	if (vdb->eventMutex != SM_SEM_NONE)
+	{
+		sm_SemGive(vdb->eventMutex);
+	}
+
 	if (vdb->eventSemaphore != SM_SEM_NONE)
 	{
 		sm_SemGive(vdb->eventSemaphore);

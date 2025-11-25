@@ -402,6 +402,21 @@ static CfdpVdb	*_cfdpvdb(char **name)
 		if (elt)
 		{
 			vdb = (CfdpVdb *) psp(wm, vdbAddress);
+
+			/*	Ensure eventMutex is initialized for backward
+			 *	compatibility with VDBs created before this field
+			 *	was added.					*/
+
+			if (vdb->eventMutex == SM_SEM_NONE)
+			{
+				vdb->eventMutex = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
+				if (vdb->eventMutex == SM_SEM_NONE)
+				{
+					putErrmsg("Can't create event mutex.", NULL);
+					return NULL;
+				}
+			}
+
 			return vdb;
 		}
 
@@ -422,9 +437,16 @@ static CfdpVdb	*_cfdpvdb(char **name)
 		vdb->utaPid = ERROR;		/*	None yet.	*/
 		vdb->bpcpdPid = ERROR;	/*	None yet.	*/
 		vdb->clockPid = ERROR;		/*	None yet.	*/
+
+		/*	Create producer-consumer synchronization primitives.
+		 *	eventMutex is a binary semaphore used as a mutex.
+		 *	eventSemaphore is a counting semaphore for event count.	*/
+
+		vdb->eventMutex = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 		vdb->eventSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 		vdb->fduSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
-		if (vdb->eventSemaphore == SM_SEM_NONE
+		if (vdb->eventMutex == SM_SEM_NONE
+		|| vdb->eventSemaphore == SM_SEM_NONE
 		|| vdb->fduSemaphore == SM_SEM_NONE
 		|| ionStartAttendant(&(vdb->attendant)) < 0
 		|| psm_catlg(wm, *name, vdbAddress) < 0)
@@ -434,7 +456,12 @@ static CfdpVdb	*_cfdpvdb(char **name)
 			return NULL;
 		}
 
-		sm_SemTake(vdb->eventSemaphore);/*	Lock.		*/
+		/*	eventMutex starts UNLOCKED (available).
+		 *	eventSemaphore starts LOCKED (no events yet).
+		 *	fduSemaphore starts LOCKED.			*/
+
+		/* eventMutex: Don't take it - leave it available for first user */
+		sm_SemTake(vdb->eventSemaphore);/*	Lock - no events.	*/
 		sm_SemTake(vdb->fduSemaphore);	/*	Lock.		*/
 		vdb->currentFile = -1;		/*	Nothing open.	*/
 		corruptionModulusString = getenv("CFDP_CORRUPTION_MODULUS");
@@ -567,6 +594,16 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	CfdpVdb		*vdb;
 
 	vdb = (CfdpVdb *) psp(wm, vdbAddress);
+
+	/*	End and delete eventMutex.	*/
+
+	if (vdb->eventMutex != SM_SEM_NONE)
+	{
+		sm_SemEnd(vdb->eventMutex);
+		microsnooze(50000);
+		sm_SemDelete(vdb->eventMutex);
+	}
+
 	if (vdb->eventSemaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(vdb->eventSemaphore);
@@ -749,6 +786,11 @@ void	_cfdpStop(void)		/*	Reverses cfdpStart.		*/
 
 	/*	Stop user application input thread.			*/
 
+	if (cfdpvdb->eventMutex != SM_SEM_NONE)
+	{
+		sm_SemEnd(cfdpvdb->eventMutex);
+	}
+
 	if (cfdpvdb->eventSemaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(cfdpvdb->eventSemaphore);
@@ -810,6 +852,16 @@ void	_cfdpStop(void)		/*	Reverses cfdpStart.		*/
 	cfdpvdb->utaPid = ERROR;
 	cfdpvdb->bpcpdPid = ERROR;
 	cfdpvdb->clockPid = ERROR;
+	if (cfdpvdb->eventMutex == SM_SEM_NONE)
+	{
+		cfdpvdb->eventMutex = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
+	}
+	else
+	{
+		sm_SemUnend(cfdpvdb->eventMutex);
+		/* Don't take eventMutex - leave it available */
+	}
+
 	if (cfdpvdb->eventSemaphore == SM_SEM_NONE)
 	{
 		cfdpvdb->eventSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
@@ -2925,9 +2977,26 @@ int	enqueueCfdpEvent(CfdpEvent *event)
 		sdr_list_delete(sdr, elt, NULL, NULL);
 	}
 
+	/*	Acquire mutex before signaling to ensure consumer
+	 *	cannot miss the signal during shutdown sequence.	*/
+
+	if (sm_SemTake(cfdpvdb->eventMutex) < 0)
+	{
+		putErrmsg("Can't take event mutex.", NULL);
+		return -1;
+	}
+
+	if (sm_SemEnded(cfdpvdb->eventMutex))
+	{
+		writeMemo("[i] CFDP event enqueue terminated.");
+		sm_SemGive(cfdpvdb->eventMutex);
+		return -1;
+	}
+
 	/*	Tell user application that an event is waiting.		*/
 
 	sm_SemGive(cfdpvdb->eventSemaphore);
+	sm_SemGive(cfdpvdb->eventMutex);
 	return 0;
 }
 
