@@ -156,6 +156,7 @@ int main(int argc, char **argv)
 	extern int optind;
 	int tmpoption;
 
+
 	/*Initialize CFDP*/
 	ion_cfdp_init();
 
@@ -1395,6 +1396,7 @@ void transfer(struct transfer *t)
 void* rcv_msg_thread(void* param)
 {
 	int			*running=(int*)param;
+
 	char			*eventTypes[] =	{
 					"no event",
 					"transaction started",
@@ -1442,14 +1444,15 @@ void* rcv_msg_thread(void* param)
 	while (*running)
 	{
 		/*Grab a CFDP event*/
-		if (cfdp_get_event(&type, &time, &reqNbr, &transactionId,
+		int cfdp_result = cfdp_get_event(&type, &time, &reqNbr, &transactionId,
 				sourceFileNameBuf, destFileNameBuf,
 				&fileSize, &messagesToUser, &offset, &length,
 				&recordBoundsRespected, &continuationState,
 				&segMetadataLength, segMetadata,
 				&condition, &progress, &fileStatus,
 				&deliveryCode, &originatingTransactionId,
-				statusReportBuf, &filestoreResponses, &closureRequested) < 0)
+				statusReportBuf, &filestoreResponses, &closureRequested);
+		if (cfdp_result < 0)
 		{
 			dbgprintf(0, "Error: Failed getting CFDP event.", NULL);
 			exit(1);

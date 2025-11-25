@@ -2001,9 +2001,13 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 		char *statusReportBuf, MetadataList *filestoreResponses,
 		unsigned int *closureRequested)
 {
+	writeMemo("[BPCP_DEBUG_352] cfdp_get_event starting");
 	Sdr		sdr = getIonsdr();
+	writeMemo("[BPCP_DEBUG_352] getIonsdr() completed");
 	CfdpVdb		*vdb = getCfdpVdb();
+	writeMemo("[BPCP_DEBUG_352] getCfdpVdb() completed");
 	CfdpDB		*db = getCfdpConstants();
+	writeMemo("[BPCP_DEBUG_352] getCfdpConstants() completed");
 	Object		elt;
 	Object		eventAddr;
 	CfdpEvent	event;
@@ -2052,12 +2056,16 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 
 		/*	Acquire mutex before waiting to coordinate with shutdown.	*/
 
+		if (vdb == NULL)
+		{
+			putErrmsg("CFDP VDB is NULL", NULL);
+			return -1;
+		}
 		if (sm_SemTake(vdb->eventMutex) < 0)
 		{
 			putErrmsg("CFDP can't take event mutex.", NULL);
 			return -1;
 		}
-
 		if (sm_SemEnded(vdb->eventMutex))
 		{
 			sm_SemGive(vdb->eventMutex);
