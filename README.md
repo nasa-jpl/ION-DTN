@@ -1,4 +1,4 @@
-# 🛰️ NASA/JPL Interplanetary Overlay Network (ION)
+#  NASA/JPL Interplanetary Overlay Network (ION)
 
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/lasuzuki/StrapDown.js/graphs/commit-activity)
 [![Open Source Love svg1](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)](https://github.com/ellerbrock/open-source-badges/)
@@ -48,6 +48,21 @@ Both Web-based and Command Line Interfaces for automated generation of ION confi
 <https://github.com/nasa-jpl/ion-config-tool>
 
 <https://github.com/nasa-jpl/ion-network-model>
+
+## ION Versioning Scheme
+
+ION uses a versioning scheme of the form `X.Y.Z[-suffix].N`, where:
+
+- `X` is the major version number, incremented for significant changes that may include backward-incompatible changes.
+- `Y` is the minor version number, incremented for backward-compatible feature additions and improvements.
+- `Z` is the patch version number, incremented for backward-compatible bug fixes.
+- `[-suffix]` is an optional suffix that may include additional information such as pre-release identifiers ('a' for alpha, 'b' for beta) or build metadata.
+- `N` is the build number, incremented for each build of a given `X.Y.Z[-suffix]` version.
+
+* Each stable release is tagged in the Git repository with a tag of the form `ion-open-source-X.Y.Z`.
+* Each alpha and beta release is tagged in the Git repository with a tag of the form `ion-open-source-X.Y.Z-suffix.1`. A release package is created for the first build of each alpha and beta release (i.e., build number `1`).
+* Online documentation is versioned according to the stable release and build 1 of alpha/beta releases.
+* Starting with ION 4.1.4-b.1, we will be providing tags, but not release packages, for subsequent builds of alpha/beta releases (i.e., build numbers greater than `1`) to facilitate testing and development and wider, quicker access to the latest code.
 
 ## ION Documentation
 
