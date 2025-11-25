@@ -3,6 +3,8 @@
 # Scott Burleigh
 # October 4, 2014
 #
+# Improved CFDP TCP test with better timing and validation
+#
 # Tests some of the revisions to CCSDS file delivery protocol.
 # CFDP is started at both nodes, and a background cfdptest task, which
 # only receives and documents service indications, is started at both
@@ -14,69 +16,167 @@
 # so the "get" operation should finish before the put operation (which must
 # wait for a Finished PDU from node 2).
 
+# Function to wait for process to be ready
+wait_for_process() {
+    local process_name="$1"
+    local node_dir="$2"
+    local timeout=30
+    local count=0
+
+    echo "Waiting for $process_name to start in $node_dir..."
+    while [ $count -lt $timeout ]; do
+        if grep -q "$process_name is running" "$node_dir/ion.log" 2>/dev/null; then
+            echo "$process_name is ready."
+            return 0
+        fi
+        sleep 1
+        count=$((count + 1))
+    done
+    echo "ERROR: $process_name failed to start within $timeout seconds"
+    return 1
+}
+
+# Function to wait for file transfer completion
+wait_for_file() {
+    local file_path="$1"
+    local expected_size="$2"
+    local timeout=60
+    local count=0
+
+    echo "Waiting for file $file_path (expecting $expected_size bytes)..."
+    while [ $count -lt $timeout ]; do
+        if [ -f "$file_path" ]; then
+            local actual_size=$(stat -f%z "$file_path" 2>/dev/null || stat -c%s "$file_path" 2>/dev/null)
+            if [ "$actual_size" = "$expected_size" ]; then
+                echo "File transfer complete: $file_path ($actual_size bytes)"
+                return 0
+            fi
+        fi
+        sleep 1
+        count=$((count + 1))
+    done
+    echo "ERROR: File transfer timeout for $file_path"
+    return 1
+}
+
+# Function for proper cleanup
+cleanup_test() {
+    echo "Cleaning up test environment..."
+    # Kill any running cfdptest processes
+    pkill -f cfdptest 2>/dev/null
+
+    # Try proper ION shutdown first
+    for node_dir in "1.ipn.ltp" "2.ipn.ltp"; do
+        if [ -d "$node_dir" ]; then
+            cd "$node_dir"
+            if [ -x "./ionstop" ]; then
+                echo "Stopping ION in $node_dir..."
+                ./ionstop >/dev/null 2>&1 &
+            fi
+            cd ..
+        fi
+    done
+
+    # Wait for graceful shutdown
+    sleep 5
+
+    # Force cleanup if needed
+    killm >/dev/null 2>&1
+}
+
+# Trap for cleanup on exit
+trap cleanup_test EXIT
+
+# Main test execution
 killm
 ./cleanup
 
-echo "Starting ION..."
+echo "Starting ION nodes..."
 export ION_NODE_LIST_DIR=$PWD
 
-# Start nodes.
+# Get source file size for validation
+SOURCE_SIZE=$(stat -f%z "1.ipn.ltp/sourceFile" 2>/dev/null || stat -c%s "1.ipn.ltp/sourceFile" 2>/dev/null)
+if [ -z "$SOURCE_SIZE" ]; then
+    echo "ERROR: Cannot determine source file size"
+    exit 1
+fi
+echo "Source file size: $SOURCE_SIZE bytes"
+
+# Start node 1
 cd 1.ipn.ltp
 ./ionstart
-sleep 1
+if [ $? -ne 0 ]; then
+    echo "ERROR: Failed to start node 1"
+    exit 1
+fi
+
+# Wait for node 1 services
+if ! wait_for_process "tcputa" "."; then
+    echo "ERROR: Node 1 tcputa failed to start"
+    exit 1
+fi
+
 cd ../2.ipn.ltp
 ./ionstart
+if [ $? -ne 0 ]; then
+    echo "ERROR: Failed to start node 2"
+    exit 1
+fi
 
-sleep 10
-echo "Starting cfdptest on each node..."
+# Wait for node 2 services
+if ! wait_for_process "tcputa" "."; then
+    echo "ERROR: Node 2 tcputa failed to start"
+    exit 1
+fi
+
+# Additional wait for TCP connections to be ready
+sleep 5
+echo "Services ready. Starting CFDP tests..."
+
+# Start background listeners
 cd ../1.ipn.ltp
 cfdptest < cfdp_cmds >& node1.stdout &
+NODE1_PID=$!
+
 cd ../2.ipn.ltp
 cfdptest < cfdp_cmds >& node2.stdout &
+NODE2_PID=$!
 
-sleep 35
-echo ""
-echo "Checking for file arrivals...."
+# Wait for transfers to complete
+echo "Waiting for file transfers to complete..."
+
 RETVAL=0
 
-cd ../1.ipn.ltp
-
-COUNT=$(ls -al receivedFile | wc -l)
-if [ "$COUNT" -ne 1 ]
-then
-	echo ""
-	echo "Error: node 1 did not receive file from node 2."
-	RETVAL=1
+# Check bidirectional transfers
+if ! wait_for_file "../1.ipn.ltp/receivedFile" "$SOURCE_SIZE"; then
+    echo "ERROR: Node 1 did not receive file from node 2"
+    RETVAL=1
 else
-	echo ""
-	echo "Okay: node 1 received file from node 2."
+    echo "SUCCESS: Node 1 received file from node 2"
+fi
+
+if ! wait_for_file "../2.ipn.ltp/receivedFile" "$SOURCE_SIZE"; then
+    echo "ERROR: Node 2 did not receive file from node 1"
+    RETVAL=1
+else
+    echo "SUCCESS: Node 2 received file from node 1"
+fi
+
+# Verify transfer completion in logs
+echo "Checking transfer completion status..."
+cd ../1.ipn.ltp
+if grep -q "SUCCESS: File delivered and retained" node1.stdout; then
+    echo "Node 1 confirmed successful transfer"
+else
+    echo "WARNING: Node 1 transfer status unclear"
 fi
 
 cd ../2.ipn.ltp
-
-COUNT=$(ls -al receivedFile | wc -l)
-if [ "$COUNT" -ne 1 ]
-then
-	echo ""
-	echo "Error: node 2 did not receive file from node 1."
-	RETVAL=1
+if grep -q "file data segment received" node2.stdout; then
+    echo "Node 2 confirmed file reception"
 else
-	echo ""
-	echo "Okay: node 2 received file from node 1."
+    echo "WARNING: Node 2 reception status unclear"
 fi
 
-echo ""
-echo "Stopping ION..."
-#cd ../1.ipn.ltp
-#./ionstop &
-#cd ../2.ipn.ltp
-#./ionstop &
-
-# Give both nodes time to shut down, then clean up.
-#sleep 15
-
-
-killm
-echo ""
-echo "CFDPv1 test completed."
+echo "CFDP test completed with exit code: $RETVAL"
 exit $RETVAL
