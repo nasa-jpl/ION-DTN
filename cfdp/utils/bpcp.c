@@ -307,6 +307,7 @@ of Service\n");
 		sm_SemEnd(events_sem);
 		microsnooze(50000);
 		sm_SemDelete(events_sem);
+		events_sem = SM_SEM_NONE;
 		exit(1);
 	}
 
@@ -485,7 +486,8 @@ int open_remote_dir(char *host, char *dir)
 	if (sm_SemTake(events_sem)<0)
 	{
 		dbgprintf(0, "Error: Can't take directory semaphore\n");
-		exit_nicely(1);
+		current_wait_status=no_req;
+		return -2;
 	}
 
 	if (current_wait_status==nodir)
@@ -796,6 +798,10 @@ int ion_cfdp_put(struct transfer* t)
 	/*Handle Error*/
 	if (res<0) {
 		dbgprintf(0, "Error: CFDP error on %s\n",t->dfile);
+#ifdef SERIAL
+		current_wait_status=no_req;
+		event_wait_id=NULL;
+#endif
 		return -1;
 	}
 
@@ -806,7 +812,9 @@ int ion_cfdp_put(struct transfer* t)
 		if (sm_SemTake(events_sem)<0)
 		{
 			dbgprintf(0, "Error: Can't take EOF semaphore\n");
-			exit_nicely(1);
+			current_wait_status=no_req;
+			event_wait_id=NULL;
+			return -1;
 		}
 	}
 
@@ -820,7 +828,7 @@ int ion_cfdp_put(struct transfer* t)
 	{
 		/*Error*/
 		dbgprintf(0, "Terminated\n");
-		exit_nicely(1);
+		return -1;
 	}
 #endif
 
@@ -894,6 +902,10 @@ int ion_cfdp_get(struct transfer* t)
 	if (res<0)
 	{
 		dbgprintf(0, "Error: CFDP error on: %s\n",t->sfile);
+#ifdef SERIAL
+		current_wait_status=no_req;
+		event_wait_id=NULL;
+#endif
 		return -1;
 	}
 
@@ -904,7 +916,9 @@ int ion_cfdp_get(struct transfer* t)
 		if (sm_SemTake(events_sem)<0)
 		{
 			dbgprintf(0, "Error: Can't take EOF semaphore\n");
-			exit_nicely(1);
+			current_wait_status=no_req;
+			event_wait_id=NULL;
+			return -1;
 		}
 	}
 
@@ -918,7 +932,7 @@ int ion_cfdp_get(struct transfer* t)
 	{
 		/*Error*/
 		dbgprintf(0, "Terminated\n");
-		exit_nicely(1);
+		return -1;
 	}
 #endif
 
@@ -992,6 +1006,10 @@ int ion_cfdp_rput(struct transfer* t)
 	/*Handle Error*/
 	if (res<0) {
 		dbgprintf(0, "Error: CFDP error on: %s\n",t->sfile);
+#ifdef SERIAL
+		current_wait_status=no_req;
+		event_wait_id=NULL;
+#endif
 		return -1;
 	}
 
@@ -1002,7 +1020,9 @@ int ion_cfdp_rput(struct transfer* t)
 		if (sm_SemTake(events_sem)<0)
 		{
 			dbgprintf(0, "Error: Can't take EOF semaphore\n");
-			exit_nicely(1);
+			current_wait_status=no_req;
+			event_wait_id=NULL;
+			return -1;
 		}
 	}
 
@@ -1016,7 +1036,7 @@ int ion_cfdp_rput(struct transfer* t)
 	{
 		/*Error*/
 		dbgprintf(0, "Terminated\n");
-		exit_nicely(1);
+		return -1;
 	}
 #endif
 
@@ -1694,13 +1714,13 @@ void exit_nicely(int val)
 	cfdp_interrupt();
 
 	/*Signal the semaphore to wake up the receiver thread if it's blocked*/
-	sm_SemEnd(events_sem);
 	sm_SemGive(events_sem);
 
 	/*Wait for receiver thread to exit*/
 	pthread_join(rcv_thread, NULL);
 
-	/*Now it's safe to delete the semaphore*/
+	/*Now it's safe to end and delete the semaphore*/
+	sm_SemEnd(events_sem);
 	sm_SemDelete(events_sem);
 
 	exit(val);
