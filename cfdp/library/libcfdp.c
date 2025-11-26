@@ -2001,13 +2001,9 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 		char *statusReportBuf, MetadataList *filestoreResponses,
 		unsigned int *closureRequested)
 {
-	writeMemo("[BPCP_DEBUG_352] cfdp_get_event starting");
 	Sdr		sdr = getIonsdr();
-	writeMemo("[BPCP_DEBUG_352] getIonsdr() completed");
 	CfdpVdb		*vdb = getCfdpVdb();
-	writeMemo("[BPCP_DEBUG_352] getCfdpVdb() completed");
 	CfdpDB		*db = getCfdpConstants();
-	writeMemo("[BPCP_DEBUG_352] getCfdpConstants() completed");
 	Object		elt;
 	Object		eventAddr;
 	CfdpEvent	event;

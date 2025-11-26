@@ -688,12 +688,15 @@ int _cfdpStart(char *utaCmd)
     /* Check if utaCmd contains proxy directive */
     if (utaCmd)
     {
+        /* tempCmd must be declared here (not inside inner block) so it
+         * remains in scope when actualUtaCmd is used below at line 708. */
+        char tempCmd[256];
+
         /* Check for "bputa proxy" format */
         if (strstr(utaCmd, " proxy") != NULL)
         {
             startBpcpd = 1;
             /* Create a copy without " proxy" for storage */
-            char tempCmd[256];
             istrcpy(tempCmd, utaCmd, sizeof(tempCmd));
             char *proxyPtr = strstr(tempCmd, " proxy");
             if (proxyPtr)

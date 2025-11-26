@@ -37,16 +37,20 @@ wait_for_process() {
 }
 
 # Function to wait for file transfer completion
+# Returns: 0 on success, 1 on failure
+# Sets global WAIT_FILE_ERROR with failure reason
 wait_for_file() {
     local file_path="$1"
     local expected_size="$2"
     local timeout=60
     local count=0
+    local actual_size=""
 
+    WAIT_FILE_ERROR=""
     echo "Waiting for file $file_path (expecting $expected_size bytes)..."
     while [ $count -lt $timeout ]; do
         if [ -f "$file_path" ]; then
-            local actual_size=$(stat -f%z "$file_path" 2>/dev/null || stat -c%s "$file_path" 2>/dev/null)
+            actual_size=$(stat -f%z "$file_path" 2>/dev/null || stat -c%s "$file_path" 2>/dev/null)
             if [ "$actual_size" = "$expected_size" ]; then
                 echo "File transfer complete: $file_path ($actual_size bytes)"
                 return 0
@@ -55,7 +59,15 @@ wait_for_file() {
         sleep 1
         count=$((count + 1))
     done
-    echo "ERROR: File transfer timeout for $file_path"
+
+    # Determine failure reason
+    if [ ! -f "$file_path" ]; then
+        WAIT_FILE_ERROR="file does not exist"
+    else
+        actual_size=$(stat -f%z "$file_path" 2>/dev/null || stat -c%s "$file_path" 2>/dev/null)
+        WAIT_FILE_ERROR="size mismatch: expected $expected_size bytes, got $actual_size bytes"
+    fi
+    echo "ERROR: File transfer timeout for $file_path ($WAIT_FILE_ERROR)"
     return 1
 }
 
@@ -94,13 +106,21 @@ killm
 echo "Starting ION nodes..."
 export ION_NODE_LIST_DIR=$PWD
 
-# Get source file size for validation
-SOURCE_SIZE=$(stat -f%z "1.ipn.ltp/sourceFile" 2>/dev/null || stat -c%s "1.ipn.ltp/sourceFile" 2>/dev/null)
-if [ -z "$SOURCE_SIZE" ]; then
-    echo "ERROR: Cannot determine source file size"
+# Get source file sizes for validation
+# Node 1 sends its sourceFile to Node 2, Node 2 sends its sourceFile to Node 1
+NODE1_SOURCE_SIZE=$(stat -f%z "1.ipn.ltp/sourceFile" 2>/dev/null || stat -c%s "1.ipn.ltp/sourceFile" 2>/dev/null)
+if [ -z "$NODE1_SOURCE_SIZE" ]; then
+    echo "ERROR: Cannot determine node 1 source file size"
     exit 1
 fi
-echo "Source file size: $SOURCE_SIZE bytes"
+echo "Node 1 source file size: $NODE1_SOURCE_SIZE bytes"
+
+NODE2_SOURCE_SIZE=$(stat -f%z "2.ipn.ltp/sourceFile" 2>/dev/null || stat -c%s "2.ipn.ltp/sourceFile" 2>/dev/null)
+if [ -z "$NODE2_SOURCE_SIZE" ]; then
+    echo "ERROR: Cannot determine node 2 source file size"
+    exit 1
+fi
+echo "Node 2 source file size: $NODE2_SOURCE_SIZE bytes"
 
 # Start node 1
 cd 1.ipn.ltp
@@ -148,15 +168,17 @@ echo "Waiting for file transfers to complete..."
 RETVAL=0
 
 # Check bidirectional transfers
-if ! wait_for_file "../1.ipn.ltp/receivedFile" "$SOURCE_SIZE"; then
-    echo "ERROR: Node 1 did not receive file from node 2"
+# Node 1 receives from Node 2, so expect Node 2's source file size
+if ! wait_for_file "../1.ipn.ltp/receivedFile" "$NODE2_SOURCE_SIZE"; then
+    echo "ERROR: Node 1 did not receive file from node 2 ($WAIT_FILE_ERROR)"
     RETVAL=1
 else
     echo "SUCCESS: Node 1 received file from node 2"
 fi
 
-if ! wait_for_file "../2.ipn.ltp/receivedFile" "$SOURCE_SIZE"; then
-    echo "ERROR: Node 2 did not receive file from node 1"
+# Node 2 receives from Node 1, so expect Node 1's source file size
+if ! wait_for_file "../2.ipn.ltp/receivedFile" "$NODE1_SOURCE_SIZE"; then
+    echo "ERROR: Node 2 did not receive file from node 1 ($WAIT_FILE_ERROR)"
     RETVAL=1
 else
     echo "SUCCESS: Node 2 received file from node 1"

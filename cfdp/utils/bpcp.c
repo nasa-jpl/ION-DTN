@@ -1716,14 +1716,16 @@ void exit_nicely(int val)
 	recv_running=0;
 	cfdp_interrupt();
 
-	/*Signal the semaphore to wake up the receiver thread if it's blocked*/
+	/*End the semaphore BEFORE pthread_join so the receiver thread sees the
+	 *ended flag when it wakes from cfdp_get_event and can exit gracefully.
+	 *Also give the semaphore to wake up the thread if it's blocked on it.*/
+	sm_SemEnd(events_sem);
 	sm_SemGive(events_sem);
 
 	/*Wait for receiver thread to exit*/
 	pthread_join(rcv_thread, NULL);
 
-	/*Now it's safe to end and delete the semaphore*/
-	sm_SemEnd(events_sem);
+	/*Now it's safe to delete the semaphore*/
 	sm_SemDelete(events_sem);
 
 	exit(val);
