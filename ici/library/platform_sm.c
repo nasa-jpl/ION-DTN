@@ -3646,15 +3646,6 @@ static int _semSync(SmProcessSemtable *plocal, sm_SemId semnum, int semlocked)
 	SmLocalSem 	*plocalSem  = &plocal->lsemtable[semnum];
 	SmGlobalSem *pglobalSem = plocalSem->semgl;
 
-	/* Track semaphore 71 sync operations */
-	if (semnum == 71)
-	{
-		char msg[350];
-		snprintf(msg, sizeof(msg), "BPCP_DEBUG_352: _semSync sem 71, lseq=%lu, gseq=%lu, inUse=%d, id=%p, handleOpened=%d",
-		         plocalSem->lseq, pglobalSem->gseq, pglobalSem->inUse, (void*)plocalSem->id, plocalSem->handleOpened);
-		writeMemo(msg);
-	}
-
 	if (plocalSem->lseq == pglobalSem->gseq) {
 		/* local copy is up to date */
 		return(1);
@@ -3687,47 +3678,15 @@ static int _semSync(SmProcessSemtable *plocal, sm_SemId semnum, int semlocked)
 			}
 			umask(oldmask);  /* restore previous umask() */
 
-			/* Track semaphore 71 handle opening */
-			if (semnum == 71)
-			{
-				char msg[200];
-				snprintf(msg, sizeof(msg), "BPCP_DEBUG_352: _semSync opening sem 71 handle for first time: %p",
-				         (void*)psem);
-				writeMemo(msg);
-			}
-
 			plocalSem->id = psem;
 			plocalSem->handleOpened = 1;
-
-			/* Validate semaphore 71 pointer after assignment */
-			if (semnum == 71)
-			{
-				if ((uintptr_t)plocalSem->id < 0x1000 || (uintptr_t)plocalSem->id > 0x7fffffffffff)
-				{
-					writeMemo("BPCP_DEBUG_352: CRITICAL - Sem 71 pointer corrupted immediately after assignment!");
-				}
-			}
-		} else {
-			/* Handle already opened - just mark sequence as up to date */
-			if (semnum == 71)
-			{
-				char msg[200];
-				snprintf(msg, sizeof(msg), "BPCP_DEBUG_352: _semSync sem 71 handle already open: %p",
-				         (void*)plocalSem->id);
-				writeMemo(msg);
-			}
 		}
+		/* else: Handle already opened - just mark sequence as up to date */
 
 	} else {
 		/* NOT (or no longer) in use globally, close our version if opened */
 
 		if (plocalSem->handleOpened && plocalSem->id != NULL && plocalSem->id != SEM_FAILED) {
-			/* Track semaphore 71 pointer being closed */
-			if (semnum == 71)
-			{
-				writeMemo("BPCP_DEBUG_352: _semSync closing sem 71 handle (no longer in use)");
-			}
-
 			oK(sem_close(plocalSem->id));
 			plocalSem->handleOpened = 0;
 		}
@@ -4131,15 +4090,6 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	sem->localRefCount = 0;
 	sem->handleOpened = 1;  /* Mark handle as opened since we just opened it */
 
-	/* Track semaphore 71 creation */
-	if (freeslot == 71)
-	{
-		char msg[250];
-		snprintf(msg, sizeof(msg), "BPCP_DEBUG_352: Creating sem 71, sem=%p, sem->id=%p, handleOpened=%d",
-		         (void*)sem, (void*)psem, sem->handleOpened);
-		writeMemo(msg);
-	}
-
 	/* gather usage statistics for memory tuning */
 	++semTbl->semtablegl->opensems_current;
 	if (semTbl->semtablegl->opensems_current > semTbl->semtablegl->opensems_max)
@@ -4168,36 +4118,12 @@ static void _sm_SemCompleteDeletePosix(SmProcessSemtable *semTbl, sm_SemId i)
 	SmGlobalSem *gsem = sem->semgl;
 	char sem_name[MAX_NAMED_SEM_KEYLENGTH];
 
-	/* Track semaphore 71 deletion */
-	if (i == 71)
-	{
-		char msg[200];
-		snprintf(msg, sizeof(msg), "BPCP_DEBUG_352: Deleting sem 71, sem=%p, sem->id=%p",
-		         (void*)sem, (void*)sem->id);
-		writeMemo(msg);
-	}
-
 	/* Close local handle if open */
 	if (sem->handleOpened && sem->id != NULL && sem->id != SEM_FAILED)
 	{
-		/* Track semaphore 71 cleanup */
-		if (i == 71)
-		{
-			char msg[200];
-			snprintf(msg, sizeof(msg), "BPCP_DEBUG_352: Cleanup closing sem 71 handle: %p",
-			         (void*)sem->id);
-			writeMemo(msg);
-		}
-
 		if (sem_close(sem->id) == -1)
 		{
 			putSysErrmsg("Can't close semaphore", itoa(i));
-		}
-
-		/* Track semaphore 71 pointer being set to NULL */
-		if (i == 71)
-		{
-			writeMemo("BPCP_DEBUG_352: Cleanup setting sem 71 id to NULL");
 		}
 		sem->id = NULL;
 		sem->handleOpened = 0;
@@ -4302,11 +4228,7 @@ int	sm_SemTake(sm_SemId i)
 	/* Take the semaphore */
 	if (sem == NULL || sem->id == NULL)
 	{
-		writeMemoNote("BPCP_DEBUG_352: ERROR - sem or sem->id is NULL for", itoa(i));
-		if (i == 71)
-		{
-			writeMemo("BPCP_DEBUG_352: CRITICAL - Semaphore 71 has NULL pointer!");
-		}
+		putErrmsg("Semaphore or semaphore handle is NULL", itoa(i));
 		/* Atomically decrement reference count before returning */
 		atomic_fetch_sub(&gsem->refCount, 1);
 		sem->localRefCount--;
@@ -4316,35 +4238,13 @@ int	sm_SemTake(sm_SemId i)
 	/* Validate handle is properly opened */
 	if (!sem->handleOpened)
 	{
-		writeMemoNote("BPCP_DEBUG_352: ERROR - semaphore handle not opened for", itoa(i));
-		if (i == 71)
-		{
-			writeMemo("BPCP_DEBUG_352: CRITICAL - Semaphore 71 handle not opened!");
-		}
+		putErrmsg("Semaphore handle not opened", itoa(i));
 		/* Atomically decrement reference count before returning */
 		atomic_fetch_sub(&gsem->refCount, 1);
 		sem->localRefCount--;
 		return -1;
 	}
 
-	/* Special tracking for semaphore 71 */
-	if (i == 71)
-	{
-		char msg[200];
-		snprintf(msg, sizeof(msg), "BPCP_DEBUG_352: Taking sem 71, sem=%p, sem->id=%p, handleOpened=%d",
-		         (void*)sem, (void*)sem->id, sem->handleOpened);
-		writeMemo(msg);
-
-		/* Validate the sem_t pointer looks reasonable */
-		if ((uintptr_t)sem->id < 0x1000 || (uintptr_t)sem->id > 0x7fffffffffff)
-		{
-			writeMemo("BPCP_DEBUG_352: CRITICAL - Sem 71 pointer looks corrupted!");
-			/* Atomically decrement reference count before returning */
-			atomic_fetch_sub(&gsem->refCount, 1);
-			sem->localRefCount--;
-			return -1;
-		}
-	}
 	while (1)
 	{
 		int wait_result = sem_wait(sem->id);
@@ -4352,13 +4252,13 @@ int	sm_SemTake(sm_SemId i)
 			break;
 		if (errno == EINTR)
 		{
-			/* Check if semaphore was ended during signal interruption */
+			/* Check if semaphore was ended during signal interruption.
+			 * If so, return success so caller can check sm_SemEnded()
+			 * and handle graceful shutdown. This matches the behavior
+			 * of other semaphore implementations (VxWorks, SVR4, etc.) */
 			if (gsem->ended)
 			{
-				writeMemoNote("BPCP_DEBUG_352: semaphore ended during signal for", itoa(i));
-				atomic_fetch_sub(&gsem->refCount, 1);
-				sem->localRefCount--;
-				return -1;
+				return 0;
 			}
 			continue;  /* Retry on signal interruption */
 		}
@@ -4372,14 +4272,13 @@ int	sm_SemTake(sm_SemId i)
 	}
 
 	/* Check if semaphore was ended while we were waiting.
-	 * If so, return error to indicate semaphore is no longer usable.
-	 * Decrement refCount to balance the increment we did at entry. */
+	 * If so, return success so caller can check sm_SemEnded() and
+	 * handle graceful shutdown. This matches the behavior of other
+	 * semaphore implementations (VxWorks, SVR4, etc.) where sm_SemTake
+	 * returns 0 and the caller is expected to check sm_SemEnded(). */
 	if (gsem->ended)
 	{
-		writeMemoNote("BPCP_DEBUG_352: semaphore ended after sem_wait, returning error for", itoa(i));
-		atomic_fetch_sub(&gsem->refCount, 1);
-		sem->localRefCount--;
-		return -1;
+		return 0;
 	}
 
 #ifdef DEBUG_SEMAPHORE_HANG
@@ -4450,15 +4349,15 @@ void	sm_SemEnd(sm_SemId i)
 	 * their refCount.
 	 *
 	 * We post multiple times to wake ALL waiting threads, since a single
-	 * sem_post() only wakes one waiter. Use refCount as upper bound since
-	 * that represents the maximum threads that could be waiting. */
+	 * sem_post() only wakes one waiter. Use refCount since that represents
+	 * the number of threads that could be waiting. Always post at least
+	 * once to ensure any waiter is woken. */
 	if (sem->id != NULL)
 	{
-		int maxWaiters = atomic_load(&sem->semgl->refCount);
-		if (maxWaiters > 25) maxWaiters = 25;  /* Safety cap for typical ION deployments */
-		if (maxWaiters < 1) maxWaiters = 1;    /* Always post at least once */
+		int waiters = atomic_load(&sem->semgl->refCount);
+		if (waiters < 1) waiters = 1;    /* Always post at least once */
 
-		for (int j = 0; j < maxWaiters; j++)
+		for (int j = 0; j < waiters; j++)
 		{
 			if (sem_post(sem->id) == -1)
 			{
@@ -4470,6 +4369,7 @@ void	sm_SemEnd(sm_SemId i)
 				}
 				/* EOVERFLOW means semaphore value would exceed SEM_VALUE_MAX,
 				 * which is fine - it means we've posted enough to wake waiters */
+				break;
 			}
 		}
 	}
