@@ -47,14 +47,41 @@ function CHECK_COMMAND {
     fi
 }
 
-# Verify required commands
-for cmd in ionadmin bpadmin ltpadmin dtpcadmin cfdpadmin; do
-    CHECK_COMMAND "$cmd"
-done
-
 # Initialize return value
 ret_val=0
 
+# Track which subsystems are requested
+check_ion=false
+check_bp=false
+check_ltp=false
+check_dtpc=false
+check_cfdp=false
+
+# First pass: determine which subsystems are requested
+while getopts ":AW:i:b:l:D:c:h" opt; do
+    case $opt in
+        A|W) check_ion=true; check_bp=true; check_ltp=true; check_dtpc=true; check_cfdp=true ;;
+        i) check_ion=true ;;
+        b) check_bp=true ;;
+        l) check_ltp=true ;;
+        D) check_dtpc=true ;;
+        c) check_cfdp=true ;;
+        h) USAGE ;;
+        \?) ;;
+    esac
+done
+
+# Reset getopts for second pass
+OPTIND=1
+
+# Verify only the commands that will be used
+if [[ "$check_ion" == true ]]; then CHECK_COMMAND "ionadmin"; fi
+if [[ "$check_bp" == true ]]; then CHECK_COMMAND "bpadmin"; fi
+if [[ "$check_ltp" == true ]]; then CHECK_COMMAND "ltpadmin"; fi
+if [[ "$check_dtpc" == true ]]; then CHECK_COMMAND "dtpcadmin"; fi
+if [[ "$check_cfdp" == true ]]; then CHECK_COMMAND "cfdpadmin"; fi
+
+# Second pass: execute the checks
 while getopts ":AW:i:b:l:D:c:h" options; do
     case $options in
         A)
