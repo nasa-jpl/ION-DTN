@@ -669,6 +669,27 @@ Check `ion.log` for these messages during operation.
 
 ---
 
+## ION Built-in Extension Blocks
+
+ION includes several built-in extension block implementations. This section documents their behavior and any special handling.
+
+### Metadata Extension Block (MEB) - Block Type 8
+
+The Metadata Extension Block (block type 8) was originally defined for BPv6 in RFC 6258. In BPv7, block type 8 is not standardized and may be used differently by other implementations.
+
+**ION's Behavior:**
+
+ION registers block type 8 as the Metadata Extension Block, but handles non-conformant data gracefully:
+
+- If an inbound bundle contains a block type 8 that conforms to MEB format (a CBOR array with metadata type and content), ION parses and processes it as an MEB.
+- If the block data does not conform to MEB format, ION treats the block as opaque data and retains it without modification, allowing the bundle to be processed normally.
+
+This approach ensures interoperability with other BPv7 implementations that may use block type 8 for different purposes, while preserving MEB functionality for ION-to-ION communication.
+
+**Note:** The MEB implementation code is retained to allow ION to adapt should a Metadata Extension Block be standardized for BPv7 in the future.
+
+---
+
 ## Additional Resources
 
 For more detailed information about ION's internal APIs used in extension development:

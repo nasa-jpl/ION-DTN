@@ -125,10 +125,16 @@ int	meb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	uvast		uvtemp;
 	unsigned char	metadata[BP_MAX_METADATA_LEN];
 
+	/*	MEB (block type 8) was defined for BPv6 in RFC 6258.
+	 *	In BPv7, block type 8 is not standardized and may be
+	 *	used differently by other implementations. If the block
+	 *	data does not conform to MEB format, treat it as opaque
+	 *	data and retain it without modification.		*/
+
 	if (unparsedBytes < 3)
 	{
-		writeMemo("[?] Can't decode MEB block.");
-		return 0;		/*	Malformed.		*/
+		/*	Block doesn't conform to MEB format.	*/
+		return 1;
 	}
 
 	/*	Data parsed out of the meb byte array go directly
@@ -141,14 +147,14 @@ int	meb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	arrayLength = 3;
 	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 1)
 	{
-		writeMemo("[?] Can't decode MEB block array.");
-		return 0;
+		/*	Block doesn't conform to MEB format.	*/
+		return 1;
 	}
 
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
-		writeMemo("[?] Can't decode MEB metadata type.");
-		return 0;
+		/*	Block doesn't conform to MEB format.	*/
+		return 1;
 	}
 
 	bundle->ancillaryData.metadataType = uvtemp;
@@ -156,16 +162,16 @@ int	meb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	if (cbor_decode_byte_string(metadata, &uvtemp, &cursor, &unparsedBytes)
 			< 1)
 	{
-		writeMemo("[?] Can't decode MEB metadata type.");
-		return 0;
+		/*	Block doesn't conform to MEB format.	*/
+		return 1;
 	}
 
 	bundle->ancillaryData.metadataLen = uvtemp;
 	memcpy(bundle->ancillaryData.metadata, metadata, uvtemp);
 	if (unparsedBytes != 0)
 	{
-		writeMemo("[?] Excess bytes at end of MEB block.");
-		return 0;		/*	Malformed.		*/
+		/*	Block doesn't conform to MEB format.	*/
+		return 1;
 	}
 
 	return 1;
