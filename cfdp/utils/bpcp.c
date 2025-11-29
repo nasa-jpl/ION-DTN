@@ -444,7 +444,7 @@ int open_remote_dir(char *host, char *dir)
 	strncpy(tmp_files[hndl], tmp, 255);
 
 	/*Setup Dir list*/
-	dirlst.destFileName=tmp;
+	dirlst.destFileName=tmp_files[hndl];	/*	Use persistent storage, not stack.	*/
 	dirlst.directoryName=dir;
 
 	if(strlen(tmp) + strlen(dir) + strlen("cfdp")+ 1 >= 255)
@@ -995,6 +995,7 @@ int ion_cfdp_rput(struct transfer* t)
 	event_wait_id=&parms.transactionId;
 	current_wait_status=snd_wait;
 #endif
+	/* BPCP_DEBUG_352 */ dbgprintf(0, "[BPCP_DEBUG_352] ion_cfdp_rput: calling cfdp_rput for %s\n", t->sfile);
 	res = cfdp_rput(&src, sizeof(BpUtParms),
 			(unsigned char *) &(parms.utParms),
 			NULL, NULL, 0,
@@ -1006,6 +1007,7 @@ int ion_cfdp_rput(struct transfer* t)
 
 	/*Handle Error*/
 	if (res<0) {
+		/* BPCP_DEBUG_352 */ dbgprintf(0, "[BPCP_DEBUG_352] ion_cfdp_rput: cfdp_rput FAILED for %s\n", t->sfile);
 		dbgprintf(0, "Error: CFDP error on: %s\n",t->sfile);
 #ifdef SERIAL
 		current_wait_status=no_req;
@@ -1013,6 +1015,7 @@ int ion_cfdp_rput(struct transfer* t)
 #endif
 		return -1;
 	}
+	/* BPCP_DEBUG_352 */ dbgprintf(0, "[BPCP_DEBUG_352] ion_cfdp_rput: cfdp_rput succeeded for %s\n", t->sfile);
 
 #ifdef SERIAL
 	/*Sleep waiting for EOF event*/
@@ -1029,9 +1032,38 @@ int ion_cfdp_rput(struct transfer* t)
 
 	if (current_wait_status==sent)
 	{
-		/*No Error*/
-		current_wait_status=no_req;
-		event_wait_id=NULL;
+		/*	EOF sent for proxy request. Now wait for the proxy
+		 *	request to be actually processed (handleProxyPutRequest
+		 *	called), with a timeout to avoid blocking forever.
+		 *	This prevents a race condition where bpcp exits before
+		 *	the last proxy request is processed.			*/
+		int timeout_ms = 2000;
+		int wait_interval_ms = 50;
+		int elapsed = 0;
+
+		current_wait_status = proxy_wait;
+
+		while (current_wait_status == proxy_wait && elapsed < timeout_ms)
+		{
+			microsnooze(wait_interval_ms * 1000);
+			elapsed += wait_interval_ms;
+		}
+
+		if (current_wait_status == proxy_done)
+		{
+			/*	Proxy request was processed successfully.	*/
+			dbgprintf(3, "Proxy request processed for %s\n", t->sfile);
+		}
+		else
+		{
+			/*	Timeout - proxy may or may not have been
+			 *	processed. Log warning but continue.		*/
+			dbgprintf(1, "Warning: Timeout waiting for proxy \
+processing for %s\n", t->sfile);
+		}
+
+		current_wait_status = no_req;
+		event_wait_id = NULL;
 	}
 	else
 	{
@@ -1565,6 +1597,7 @@ void* rcv_msg_thread(void* param)
 			if(type==CfdpEofSentInd)
 			{
 				/*This is an EOF Sent event*/
+				/* BPCP_DEBUG_352 */ dbgprintf(0, "[BPCP_DEBUG_352] rcv_msg_thread: got CfdpEofSentInd, TID=%llu.%llu\n", (unsigned long long)TID11, (unsigned long long)TID12);
 
 				if (event_wait_id==NULL)
 				{
@@ -1574,6 +1607,7 @@ void* rcv_msg_thread(void* param)
 
 				cfdp_decompress_number(&TID21,&event_wait_id->sourceEntityNbr);
 				cfdp_decompress_number(&TID22,&event_wait_id->transactionNbr);
+				/* BPCP_DEBUG_352 */ dbgprintf(0, "[BPCP_DEBUG_352] rcv_msg_thread: waiting for TID=%llu.%llu\n", (unsigned long long)TID21, (unsigned long long)TID22);
 
 				/*Compare transaction IDs*/
 				if (TID21==TID11 && TID22==TID12)
@@ -1582,11 +1616,42 @@ void* rcv_msg_thread(void* param)
 						TID21=TID22=0;
 						dbgprintf(3, "EOF Sent\n");
 						dbgprintf(3, "Transaction ID: %i\n", TID22);
+						/* BPCP_DEBUG_352 */ dbgprintf(0, "[BPCP_DEBUG_352] rcv_msg_thread: TID match! signaling semaphore\n");
 						current_wait_status=sent;
 						sm_SemGive(events_sem);
 				}
+				/* BPCP_DEBUG_352 */ else { dbgprintf(0, "[BPCP_DEBUG_352] rcv_msg_thread: TID mismatch, ignoring\n"); }
 			}
 
+		}
+
+		/*	Check for proxy request processing completion.
+		 *	When we see a CfdpMetadataRecvInd that matches our
+		 *	proxy request transaction, it means handleProxyPutRequest
+		 *	was called inside cfdp_get_event, signaling completion.	*/
+		if (current_wait_status == proxy_wait)
+		{
+			if (type == CfdpMetadataRecvInd)
+			{
+				if (event_wait_id == NULL)
+				{
+					continue;
+				}
+
+				cfdp_decompress_number(&TID21,
+						&event_wait_id->sourceEntityNbr);
+				cfdp_decompress_number(&TID22,
+						&event_wait_id->transactionNbr);
+
+				/*	Check if this metadata event is for our
+				 *	proxy request (same TID as the FDU we sent).	*/
+				if (TID21 == TID11 && TID22 == TID12)
+				{
+					dbgprintf(3, "Proxy request processed\n");
+					/* BPCP_DEBUG_352 */ dbgprintf(0, "[BPCP_DEBUG_352] rcv_msg_thread: CfdpMetadataRecvInd for proxy TID=%llu.%llu, setting proxy_done\n", (unsigned long long)TID11, (unsigned long long)TID12);
+					current_wait_status = proxy_done;
+				}
+			}
 		}
 	}
 	return NULL;

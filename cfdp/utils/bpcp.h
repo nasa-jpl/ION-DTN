@@ -73,6 +73,8 @@ enum wait_status
 	nodir,			/*Result Status: No Such Directory*/
 	snd_wait,		/*Waiting for a file to be sent*/
 	sent,			/*Result Status: File sent*/
+	proxy_wait,		/*Waiting for proxy request to be processed*/
+	proxy_done,		/*Result Status: Proxy request processed*/
 };
 
 /*Message to user object*/
