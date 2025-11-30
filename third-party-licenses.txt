@@ -1,0 +1,51 @@
+THIRD-PARTY SOFTWARE LICENSES
+==============================
+
+ION (Interplanetary Overlay Network) is licensed under the BSD 3-Clause
+License (see license.txt). However, ION includes the following third-party
+components, each with their own licensing terms:
+
+================================================================================
+zfec - Forward Error Correction Library
+================================================================================
+
+Location: ici/zfec-1.4.24/
+License: Transitive Grace Period Public Licence (TGPPL) v1.0
+         (also available under GPL v2 or later)
+
+ION uses zfec under the terms of the TGPPL v1.0.
+
+Copyright: Zooko O'Whielacronx <zooko@zooko.com>
+           Portions derived from "fec" software by Luigi Rizzo, et al.
+
+The full license text is available in:
+  - ici/zfec-1.4.24/COPYING.TGPPL.html
+  - ici/zfec-1.4.24/COPYING.GPL
+  - ici/zfec-1.4.24/copyright
+
+================================================================================
+libbloom - Bloom Filter Library
+================================================================================
+
+Location: ici/libbloom-master/
+License: BSD 2-Clause License
+
+Copyright (c) 2012, Jyri J. Virkki
+All rights reserved.
+
+The full license text is available in:
+  - ici/libbloom-master/LICENSE
+
+================================================================================
+Unity Test Framework
+================================================================================
+
+Location: contrib/Unity/
+License: MIT License
+
+Copyright (c) 2007-14 Mike Karlesky, Mark VanderVoord, Greg Williams
+
+The full license text is available in:
+  - contrib/Unity/LICENSE.txt
+
+================================================================================
