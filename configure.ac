@@ -751,58 +751,6 @@ fi
 
 
 
-# Check for tools to compile documentation into ION.pdf
-AC_PATH_PROG([PS2PDF], [ps2pdf])
-AC_PATH_PROG([PDF2PS], [pdf2ps])
-AC_PATH_PROG([PSJOIN], [psjoin])
-AC_PATH_PROG([PDFJOIN], [pdfjoin])
-AC_MSG_CHECKING([for fallback included psjoin])
-if test -x "$PWD/doc/psjoin"; then
-    PSJOIN="$PWD/doc/psjoin"
-    AC_MSG_RESULT($PSJOIN)
-else
-    AC_MSG_RESULT([not found])
-fi
-AC_MSG_CHECKING([for fallback included pdfjoin])
-if test -x "$PWD/doc/pdfjoin"; then
-    PDFJOIN="$PWD/doc/pdfjoin"
-    AC_MSG_RESULT($PDFJOIN)
-else
-    AC_MSG_RESULT([not found])
-fi
-AC_PATH_PROG([GROFF], [groff])
-AC_MSG_CHECKING([if groff suports -ms])
-if test "$GROFF" && echo | $GROFF -ms - >/dev/null 2>/dev/null; then
-    AC_MSG_RESULT($GROFF)
-    GROFFMS="$GROFF"
-else
-    AC_MSG_RESULT([not found])
-    AC_MSG_NOTICE([try installing groff and the ms plugin])
-fi
-AC_SUBST([GROFFMS], $GROFFMS)
-
-AC_PATH_PROG([MANOPTS], [man])
-AC_MSG_CHECKING([if man supports -l])
-if test "$MANOPTS" && echo | $MANOPTS -l - >/dev/null 2>/dev/null; then
-    AC_MSG_RESULT($MANOPTS)
-else
-    MANOPTS=""
-    AC_MSG_RESULT([not found])
-    AC_MSG_NOTICE([try installing a version of man that supports -l])
-fi
-AC_SUBST([MANOPTS], $MANOPTS)
-
-AC_MSG_CHECKING([for tools to build autodoc])
-if test "$PS2PDF" && test "$PDF2PS" && test "$PSJOIN" && test "$GROFFMS" && test -n "$MANOPTS"; then
-    AC_MSG_RESULT([(skipping autodoc)])
-# Comment out line above and uncomment the two below to enable automatic generation of ION.pdf
-#    AC_MSG_RESULT([found])
-#    buildautodoc="yes"
-else
-    AC_MSG_RESULT([not found (skipping autodoc)])
-    AC_MSG_NOTICE([Ensure the ghostscript, psutils, groff-base and groff packages are installed.])
-fi
-AM_CONDITIONAL([ENABLE_AUTODOC], [ test "$buildautodoc" ])
 
 # Add user defined CFLAGS
 CFLAGS="$CFLAGS $CUSTOM_CFLAGS"
