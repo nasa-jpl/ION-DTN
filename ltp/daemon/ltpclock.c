@@ -107,6 +107,11 @@ static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
 			result = 0;
 			break;		/*	Out of switch.		*/
 #endif
+		case LtpStaleImportSession:
+			result = ltpHandleStaleImportSession(event.refNbr1,
+					event.refNbr2);
+			break;		/*	Out of switch.		*/
+
 		default:		/*	Spurious event.		*/
 			result = 0;	/*	Event is ignored.	*/
 		}

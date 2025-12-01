@@ -303,6 +303,10 @@ typedef struct
 	/*	Backward reference.					*/
 
 	Object		span;		/*	Reception span.		*/
+
+	/*	Inactivity timeout event (for stale session cleanup).	*/
+
+	Object		inactivityEvent;/*	SDR addr of LtpEvent.	*/
 } LtpImportSession;
 
 /*	The volatile import session object encapsulates the current
@@ -404,7 +408,8 @@ typedef enum
 #if CLOSED_EXPORTS_ENABLED
 	LtpForgetExportSession,
 #endif
-	LtpForgetImportSession
+	LtpForgetImportSession,
+	LtpStaleImportSession
 } LtpEventType;
 
 typedef struct
@@ -566,6 +571,10 @@ typedef struct
 	unsigned int	endOfRed;
 	unsigned int	greenSessionNbr;
 	unsigned int	startOfGreen;
+
+	/*	For stale import session protection.			*/
+
+	unsigned int	sessionInactivityLimit;	/*	Seconds, 0=off.	*/
 
 	/*	*	*	Work area	*	*	*	*/
 
@@ -834,6 +843,8 @@ extern int		ltpResendReport(uvast engineId,
 				unsigned int sessionNbr,
 				unsigned int report_serial_number);
 extern int		ltpResendRecvCancel(uvast engineId,
+				unsigned int sessionNbr);
+extern int		ltpHandleStaleImportSession(uvast engineId,
 				unsigned int sessionNbr);
 
 extern void		ltpSpanTally(LtpVspan *vspan, unsigned int idx,

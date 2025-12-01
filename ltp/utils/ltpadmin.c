@@ -113,6 +113,7 @@ See man(5) for ltprc.");
 	PUTS("\t   m span <engine ID> maxretriesrecv <value>");
 	PUTS("\t   m span <engine ID> maxseglossratexmit <value>");
 	PUTS("\t   m span <engine ID> maxseglossraterecv <value>");
+	PUTS("\t   m span <engine ID> inactivity <seconds>");
 	PUTS("\t   m maxbacklog <max block delivery backlog; default is 10>");
 	PUTS("\ts\tStart");
 	PUTS("\t   s ['<LSI command>']");
@@ -1424,6 +1425,56 @@ static void	manageSpanMaxSegLossRateRecv(int tokenCount, char **tokens)
 	computeRetransmissionLimits(vspan);
 }
 
+static void	manageSpanInactivityLimit(int tokenCount, char **tokens)
+{
+	PsmPartition	ionwm = getIonwm();
+	LtpVdb		*vdb = getLtpVdb();
+	PsmAddress	elt;
+	LtpVspan	*vspan;
+	uvast		engineId;
+	unsigned int	newLimit;
+	int		found = 0;
+	char		nbrBuf[FQN_MAX_LENGTH];
+	char		msgBuf[256];
+
+	if (tokenCount != 5)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	engineId = strtouvast(tokens[2]);
+	newLimit = strtoul(tokens[4], NULL, 0);
+
+	/*	Find the span by engineId.				*/
+
+	for (elt = sm_list_first(ionwm, vdb->spans); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vspan = (LtpVspan *) psp(ionwm, sm_list_data(ionwm, elt));
+		if (vspan->engineId == engineId)
+		{
+			found = 1;
+			break;
+		}
+	}
+
+	if (!found)
+	{
+		writeMemoNote("[?] Span not found for engine", utoa(engineId));
+		return;
+	}
+
+	/*	Update span-specific configuration (volatile only).	*/
+
+	vspan->sessionInactivityLimit = newLimit;
+	putFqn(nbrBuf, engineId);
+	isprintf(msgBuf, sizeof msgBuf,
+		"[i] Span %s sessionInactivityLimit set to %u seconds",
+		nbrBuf, newLimit);
+	writeMemo(msgBuf);
+}
+
 static void	manageMaxBacklog(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
@@ -1573,6 +1624,12 @@ static void	executeManage(int tokenCount, char **tokens)
 		if (strcmp(tokens[3], "maxseglossraterecv") == 0)
 		{
 			manageSpanMaxSegLossRateRecv(tokenCount, tokens);
+			return;
+		}
+
+		if (strcmp(tokens[3], "inactivity") == 0)
+		{
+			manageSpanInactivityLimit(tokenCount, tokens);
 			return;
 		}
 

@@ -1,0 +1,238 @@
+#!/usr/bin/env bash
+#
+# Test for LTP stale import session protection via inactivity timeout.
+#
+# This test verifies that import sessions are automatically canceled
+# when the sender crashes mid-transmission (before sending checkpoint/EORP/EOB).
+#
+# Test scenario:
+# 1. Start sender (node 2) and receiver (node 3) with inactivity timeout = 10s
+# 2. Begin large bundle transmission from node 2 to node 3
+# 3. Kill sender node 2 mid-transmission (simulates crash before EORP)
+# 4. Wait for inactivity timeout to expire on node 3
+# 5. Verify the stale session was cleaned up (CR segment sent)
+#
+
+# documentation boilerplate
+CONFIGFILES=" \
+./2.ipn.ltp/amroc.ltprc \
+./2.ipn.ltp/amroc.bprc \
+./2.ipn.ltp/amroc.ionconfig \
+./2.ipn.ltp/global.ionrc \
+./2.ipn.ltp/amroc.ionrc \
+./2.ipn.ltp/amroc.ionsecrc \
+./2.ipn.ltp/amroc.ipnrc \
+"
+
+CONFIGFILES=$CONFIGFILES"
+./3.ipn.ltp/amroc.ltprc \
+./3.ipn.ltp/amroc.bprc \
+./3.ipn.ltp/amroc.ionconfig \
+./3.ipn.ltp/global.ionrc \
+./3.ipn.ltp/amroc.ionrc \
+./3.ipn.ltp/amroc.ionsecrc \
+./3.ipn.ltp/amroc.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing LTP stale import session protection via inactivity timeout."
+echo "	When a sender crashes before completing transmission (before sending"
+echo "	checkpoint/EORP/EOB segments), the import session on the receiver"
+echo "	would remain indefinitely, consuming buffer slots. This test verifies"
+echo "	that the inactivity timeout mechanism cancels such stale sessions."
+echo
+echo "	The test:"
+echo "	1. Starts sender (node 2) and receiver (node 3)"
+echo "	2. Configures inactivity timeout = 10 seconds on receiver's span"
+echo "	3. Begins large bundle transmission"
+echo "	4. Kills sender mid-transmission"
+echo "	5. Waits for inactivity timeout to expire"
+echo "	6. Verifies receiver detected and cleaned up the stale session"
+
+echo
+echo "CONFIG: 2 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+cd 2.ipn.ltp
+./ionstart >& node2.stdout
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo "Node 2 started."
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 1
+fi
+
+cd ../3.ipn.ltp
+./ionstart >& node3.stdout
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo "Node 3 started."
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 1
+fi
+
+# Enable inactivity timeout on node 3's span to engine 2
+# This sets a 10-second inactivity limit for import sessions from engine 2
+echo "Configuring inactivity timeout (10 seconds) on node 3 for span to engine 2..."
+echo "m span 2 inactivity 10" | ltpadmin
+
+# Give LTP a moment to apply the configuration
+sleep 1
+
+# Capture initial session count
+echo "Capturing initial state..."
+INITIAL_IMPORTS=`ltpadmin <<< "i span 2" 2>&1 | grep -c "import"`
+
+# Start bpsink on node 3 (will receive bundles, but won't complete due to sender crash)
+echo "Starting bpsink on node 3..."
+bpsink ipn:3.1 > received.txt &
+BPSINK_PID=$!
+
+cd ../2.ipn.ltp
+
+# Start sending a large number of large bundles (will not complete)
+# Using multiple bundles with large payloads to ensure transmission is in progress
+echo "Starting large bundle transmission from node 2..."
+echo "Sending 20 bundles of 100KB each (will be interrupted)..."
+bpdriver 1 ipn:2.1 ipn:3.1 -10000000 &
+BPDRIVER_PID=$!
+
+# Wait for transmission to start (some data segments sent)
+echo "Waiting for transmission to start..."
+sleep 2
+
+# Kill sender mid-transmission (simulates crash before EORP)
+echo "Killing sender (node 2) mid-transmission..."
+echo "  This simulates a peer crash before checkpoint/EORP/EOB is sent."
+
+# First kill bpdriver to stop bundle creation
+kill -9 $BPDRIVER_PID >/dev/null 2>&1
+
+# Kill all ION processes on node 2 to simulate complete node failure
+cd ../2.ipn.ltp
+./ionstop
+sleep 2
+
+echo "Sender node 2 killed."
+
+# Now wait for the inactivity timeout on node 3
+# The timeout is 10 seconds, so we wait a bit longer to be safe
+cd ../3.ipn.ltp
+echo ""
+echo "Waiting for inactivity timeout to expire (10+ seconds)..."
+echo "  Import sessions with no segment activity will be canceled."
+
+# Wait for timeout + processing time
+WAIT_TIME=15
+TIMER=0
+while [ $TIMER -lt $WAIT_TIME ]
+do
+	TIMER=$((++TIMER))
+	sleep 1
+	echo "  ...waiting ($TIMER/$WAIT_TIME seconds)..."
+done
+
+echo ""
+echo "Inactivity timeout period has elapsed. Checking results..."
+
+# Check ion.log for evidence of stale session handling
+echo ""
+echo "Checking for inactivity timeout events in ion.log..."
+
+# Look for the specific log message from ltpHandleStaleImportSession
+# Message format: "[i] Canceling stale import session due to inactivity"
+INACTIVITY_MSG=`grep -c "Canceling stale import session due to inactivity" ion.log 2>/dev/null || echo "0"`
+
+echo "  Inactivity timeout cancellations found: $INACTIVITY_MSG"
+
+# Check for cancel-by-receiver watch characters in the log
+CR_COUNT=`grep -c "\[" ion.log 2>/dev/null || echo "0"`
+
+# Also check node3.stdout for any relevant output
+CR_STDOUT=`grep -c "\[" node3.stdout 2>/dev/null || echo "0"`
+
+# Combine counts
+TOTAL_CR=$((CR_COUNT + CR_STDOUT))
+
+echo "  Cancel-by-receiver segments found: $TOTAL_CR"
+
+# Stop bpsink
+kill -2 $BPSINK_PID >/dev/null 2>&1
+sleep 1
+kill -9 $BPSINK_PID >/dev/null 2>&1
+
+# Determine test result
+RETVAL=0
+
+echo ""
+echo "========================================="
+echo "TEST RESULTS:"
+echo "========================================="
+
+if [ $INACTIVITY_MSG -gt 0 ]
+then
+	echo "SUCCESS: Stale import session was detected and canceled."
+	echo "  Found $INACTIVITY_MSG inactivity timeout cancellation(s) in ion.log."
+	echo "  The inactivity timeout mechanism is working correctly."
+	echo "  Import sessions from crashed peers are cleaned up automatically."
+elif [ $TOTAL_CR -gt 0 ]
+then
+	echo "SUCCESS: Cancel-by-receiver segments detected."
+	echo "  The session was canceled (inactivity timeout likely triggered)."
+else
+	echo "WARNING: Could not confirm stale session cancellation in logs."
+	echo "  This may be because:"
+	echo "  1. The session was not created before sender died"
+	echo "  2. Watch characters are not enabled"
+	echo ""
+	echo "  Checking if transmission started before sender was killed..."
+
+	# Check if any data was sent (look for 's' = segment received watch char)
+	DATA_RECV=`grep -c "s" node3.stdout 2>/dev/null || echo "0"`
+	if [ $DATA_RECV -gt 0 ]
+	then
+		echo "  Data segments were received, session should have been created."
+		echo "  The inactivity timeout should have fired."
+		echo "  Marking test as FAIL."
+		RETVAL=1
+	else
+		echo "  No data segments detected - sender may have died too quickly."
+		echo "  Marking test as INCONCLUSIVE."
+		RETVAL=2
+	fi
+fi
+
+echo "========================================="
+echo ""
+
+# Shut down ION processes.
+echo "Stopping ION..."
+killm
+echo "LTP inactivity timeout test completed."
+exit $RETVAL

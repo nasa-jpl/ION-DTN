@@ -376,6 +376,27 @@ the expected maximum segment loss rate for the specified span in the receive
 direction only (split mode).  The value must be in the range [0.0, 0.99].
 This creates a per-span override for asymmetric link configuration.
 
+=item B<m span> I<peer_engine_nbr> B<inactivity> I<seconds>
+
+The B<manage span inactivity timeout> command.  This command sets the session
+inactivity limit for import sessions from the specified span.  When an import
+session receives no data segments for this number of seconds, it is
+automatically canceled to prevent indefinite resource consumption.
+
+A value of 0 (the default) disables inactivity timeout for the span.  Any
+positive value enables the timeout.  Each time a data segment is received
+for an import session, the timer is reset.
+
+This feature protects against stale import sessions that can occur when
+the sending peer loses connectivity before completing transmission (i.e.,
+before sending checkpoint/EORP/EOB segments).  Without this timeout, such
+sessions would remain in the database indefinitely, consuming buffer slots
+and eventually causing "can't start new session" errors.
+
+B<NOTE:> This setting is stored in volatile memory only and must be
+reconfigured after each restart of the LTP engine.  It does not affect
+the public span API.
+
 =item B<m maxbacklog> I<max_delivery_backlog>
 
 The B<manage max delivery backlog> command.  This command sets the limit

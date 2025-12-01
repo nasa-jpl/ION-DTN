@@ -2853,6 +2853,53 @@ static void	cancelEvent(LtpEventType type, uvast refNbr1,
 	}
 }
 
+/*	*	*	Inactivity event functions	*	*	*/
+
+static int	setInactivityEvent(LtpImportSession *session,
+			Object sessionObj, LtpVspan *vspan)
+{
+	Sdr		sdr = getIonsdr();
+	time_t		currentTime;
+	LtpEvent	event;
+	Object		eventObj;
+
+	CHKERR(ionLocked());
+
+	/*	Cancel any existing inactivity event first.		*/
+
+	if (session->inactivityEvent != 0)
+	{
+		cancelEvent(LtpStaleImportSession, 0, session->sessionNbr, 0);
+		session->inactivityEvent = 0;
+	}
+
+	/*	If inactivity limit is enabled, schedule new event.	*/
+
+	if (vspan->sessionInactivityLimit > 0)
+	{
+		currentTime = getCtime();
+		event.type = LtpStaleImportSession;
+		event.refNbr1 = vspan->engineId;
+		event.refNbr2 = session->sessionNbr;
+		event.refNbr3 = 0;
+		event.parm = 0;
+		event.scheduledTime = currentTime
+				+ vspan->sessionInactivityLimit;
+		eventObj = insertLtpTimelineEvent(&event);
+		if (eventObj == 0)
+		{
+			putErrmsg("Can't set inactivity event.", NULL);
+			return -1;
+		}
+
+		session->inactivityEvent = eventObj;
+	}
+
+	sdr_write(sdr, sessionObj, (char *) session,
+			sizeof(LtpImportSession));
+	return 0;
+}
+
 /*	*	*	LTP client mgt and access functions	*	*/
 
 int	ltpAttachClient(unsigned int clientSvcId)
@@ -3747,6 +3794,13 @@ void	closeImportSession(Object sessionObj)
 	CHKVOID(ionLocked());
 	GET_OBJ_POINTER(sdr, LtpImportSession, session, sessionObj);
 	GET_OBJ_POINTER(sdr, LtpSpan, span, session->span);
+
+	/*	Cancel any pending inactivity event for this session.	*/
+
+	if (session->inactivityEvent != 0)
+	{
+		cancelEvent(LtpStaleImportSession, 0, session->sessionNbr, 0);
+	}
 
 	/*	Remove the rest of the import session.			*/
 
@@ -5011,6 +5065,15 @@ static int	cancelSessionByReceiver(LtpImportSession *session,
 		OBJ_POINTER(LtpSpan, span);
 
 	CHKERR(ionLocked());
+
+	/*	Cancel any pending inactivity event for this session.	*/
+
+	if (session->inactivityEvent != 0)
+	{
+		cancelEvent(LtpStaleImportSession, 0, session->sessionNbr, 0);
+		session->inactivityEvent = 0;
+	}
+
 	GET_OBJ_POINTER(sdr, LtpSpan, span, session->span);
 	if (enqueueNotice(ltpvdb->clients + session->clientSvcId,
 			span->engineId, session->sessionNbr, 0, 0,
@@ -5805,6 +5868,17 @@ putErrmsg("Opened import session.", utoa(sessionNbr));
 	{
 		putErrmsg("Can't create volatile import session.", NULL);
 		return -1;
+	}
+
+	/*	Schedule inactivity timeout if enabled for this span.	*/
+
+	if (vspan->sessionInactivityLimit > 0)
+	{
+		if (setInactivityEvent(sessionBuf, *sessionObj, vspan) < 0)
+		{
+			putErrmsg("Can't set inactivity event.", NULL);
+			return -1;
+		}
 	}
 
 	/*	All successful.  Remove import buffer (if any) from
@@ -6788,6 +6862,18 @@ putErrmsg("Check point not acted on.", itoa(sessionNbr));
 				sdr_cancel_xn(sdr);
 				return -1;
 			}
+		}
+	}
+
+	/*	Reset inactivity timer if enabled.			*/
+
+	if (vspan->sessionInactivityLimit > 0)
+	{
+		if (setInactivityEvent(&sessionBuf, sessionObj, vspan) < 0)
+		{
+			putErrmsg("Can't reset inactivity event.", NULL);
+			sdr_cancel_xn(sdr);
+			return -1;
 		}
 	}
 
@@ -9631,6 +9717,59 @@ putErrmsg("Retransmission limit exceeded.", itoa(sessionNbr));
 	if (sdr_end_xn(sdr))
 	{
 		putErrmsg("Can't handle cancel request resend.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+int	ltpHandleStaleImportSession(uvast engineId, unsigned int sessionNbr)
+{
+	Sdr			sdr = getIonsdr();
+	LtpVspan		*vspan;
+	PsmAddress		vspanElt;
+	Object			sessionObj;
+	LtpImportSession	sessionBuf;
+#if LTPDEBUG
+putErrmsg("Handling stale import session.", itoa(sessionNbr));
+#endif
+	CHKERR(sdr_begin_xn(sdr));
+	findSpan(engineId, &vspan, &vspanElt);
+	if (vspanElt == 0)	/*	Can't search for session.	*/
+	{
+		return sdr_end_xn(sdr);
+	}
+
+	getImportSession(vspan, sessionNbr, NULL, &sessionObj);
+	if (sessionObj == 0)	/*	Session is gone.		*/
+	{
+#if LTPDEBUG
+putErrmsg("Session is gone.", itoa(sessionNbr));
+#endif
+		return sdr_end_xn(sdr);
+	}
+
+	sdr_stage(sdr, (char *) &sessionBuf, sessionObj,
+			sizeof(LtpImportSession));
+
+	/*	Session is still active - cancel it due to inactivity.	*/
+
+	writeMemoNote("[i] Canceling stale import session due to inactivity",
+			itoa(sessionNbr));
+	sessionBuf.inactivityEvent = 0;	/*	Event is being handled.	*/
+	sdr_write(sdr, sessionObj, (char *) &sessionBuf,
+			sizeof(LtpImportSession));
+	if (cancelSessionByReceiver(&sessionBuf, sessionObj,
+			LtpCancelByEngine) < 0)
+	{
+		putErrmsg("Can't cancel stale import session.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
+
+	if (sdr_end_xn(sdr))
+	{
+		putErrmsg("Can't handle stale import session.", NULL);
 		return -1;
 	}
 

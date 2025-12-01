@@ -1,0 +1,7 @@
+# LTP configuration for receiver node 3
+# Inactivity timeout will be configured via manage command after startup
+1 300
+a span 3 2 100100 2 100100 1200 100100 1 'udplso localhost:3113'
+a span 2 200 100100 20 1000000 1200 100100 1 'udplso localhost:2113'
+w 1
+s 'udplsi localhost:3113'
