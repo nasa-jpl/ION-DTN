@@ -1,0 +1,9 @@
+GF-Complete Library - Vendored Snapshot
+
+Source: https://github.com/ceph/gf-complete
+Commit: a6862d10c9db467148f20eef2c6445ac9afd94d8
+Date:   2017-04-10
+License: BSD-3-Clause (see License.txt)
+
+This is a frozen snapshot of GF-Complete (Galois Field arithmetic library)
+required by Jerasure for ION's TC (Trusted Collective) component.

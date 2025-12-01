@@ -11,14 +11,7 @@
 #include "tccP.h"
 #include "crypto.h"
 
-#ifndef __STDC_VERSION__
-#define restrict
-#define const
-#elif __STDC_VERSION__ < 199901L
-#define restrict
-#define const
-#endif
-#include "fec.h"
+#include "ion_fec.h"
 
 typedef struct
 {
@@ -246,7 +239,7 @@ static void	snap(TccDB *db, TccBulletin *bulletin,
 }
 #endif
 
-static int	tryAuths(TccDB *db, fec_t *fec, TccBulletin *bulletin,
+static int	tryAuths(TccDB *db, ion_fec_t *fec, TccBulletin *bulletin,
 			char *inputBuffer,
 			char *outputBuffer,
 			int bufSize,
@@ -388,7 +381,7 @@ writeMemo("tcc: Not enough blocks for successful decode.");
 	 *	bulletin content.  Finally, overwrite the output
 	 *	block array with the updated input block array.		*/
 
-	fec_decode(fec, (const unsigned char *const *) inputBlocks,
+	ion_fec_decode(fec, (const unsigned char *const *) inputBlocks,
 		(unsigned char **) outputBlocks, inputSharenums, blksize);
 	for (i = 0, recoveredBlk = outputBlocks; i < db->fec_K; i++)
 	{
@@ -398,7 +391,7 @@ writeMemo("tcc: Not enough blocks for successful decode.");
 			/*	This element of the input block array
 			 *	was originally occupied by a parity
 			 *	block.  It can now be replaced by one
-			 *	of the blocks recovered by fec_decode().*/
+			 *	of the blocks recovered by ion_fec_decode().*/
 
 			blk = inputBlocks[i];
 			memmove(blk, *recoveredBlk, blksize);
@@ -509,7 +502,7 @@ static int	reconstructBulletin(TccDB *db, TccVdb *vdb,
 	char		*outputBuffer;
 	char		**inputBlocks;
 	char		**outputBlocks;
-	fec_t		*fec;
+	ion_fec_t	*fec;
 	int		auths;
 	char		nbrBuf[FQN_MAX_LENGTH];
 	int		i;
@@ -557,7 +550,7 @@ static int	reconstructBulletin(TccDB *db, TccVdb *vdb,
 		outputBlocks[i] = outputBuffer + (i * blksize);
 	}
 
-	fec = fec_new(db->fec_K, db->fec_M);
+	fec = ion_fec_new(db->fec_K, db->fec_M);
 	if (fec == NULL)
 	{
 		putErrmsg("Not enough memory for fec decoder.", NULL);
@@ -576,7 +569,7 @@ static int	reconstructBulletin(TccDB *db, TccVdb *vdb,
 	{
 	case -1:
 		putErrmsg("Failure decoding bulletin.", NULL);
-		fec_free(fec);
+		ion_fec_free(fec);
 		MRELEASE(inputBuffer);
 		MRELEASE(outputBuffer);
 		MRELEASE(inputBlocks);
@@ -584,7 +577,7 @@ static int	reconstructBulletin(TccDB *db, TccVdb *vdb,
 		return -1;
 
 	case 1:
-		fec_free(fec);
+		ion_fec_free(fec);
 		MRELEASE(inputBuffer);
 		MRELEASE(inputBlocks);
 		MRELEASE(outputBlocks);
@@ -609,7 +602,7 @@ writeMemo("tcc: First K blocks don't work.");
 		{
 		case -1:
 			putErrmsg("Failure decoding bulletin.", NULL);
-			fec_free(fec);
+			ion_fec_free(fec);
 			MRELEASE(inputBuffer);
 			MRELEASE(outputBuffer);
 			MRELEASE(inputBlocks);
@@ -619,7 +612,7 @@ writeMemo("tcc: First K blocks don't work.");
 		case 1:
 			putFqn(nbrBuf, getAuthNodeNbr(db, j));
 			writeMemoNote("[?] Compromised TC authority", nbrBuf);
-			fec_free(fec);
+			ion_fec_free(fec);
 			MRELEASE(inputBuffer);
 			MRELEASE(inputBlocks);
 			MRELEASE(outputBlocks);
@@ -653,7 +646,7 @@ writeMemo("tcc: Can't be just one compromised authority.");
 			{
 			case -1:
 				putErrmsg("Failure decoding bulletin.", NULL);
-				fec_free(fec);
+				ion_fec_free(fec);
 				MRELEASE(inputBuffer);
 				MRELEASE(outputBuffer);
 				MRELEASE(inputBlocks);
@@ -667,7 +660,7 @@ writeMemo("tcc: Can't be just one compromised authority.");
 				putFqn(nbrBuf, getAuthNodeNbr(db, k));
 				writeMemoNote("[?] Compromised TC authority",
 						nbrBuf);
-				fec_free(fec);
+				ion_fec_free(fec);
 				MRELEASE(inputBuffer);
 				MRELEASE(inputBlocks);
 				MRELEASE(outputBlocks);
@@ -688,7 +681,7 @@ writeMemo("tcc: Can't be just two compromised authorities; too little data.");
 #endif
 	/*	Need more blocks from non-compromised authorities.	*/
 
-	fec_free(fec);
+	ion_fec_free(fec);
 	MRELEASE(inputBuffer);
 	MRELEASE(outputBuffer);
 	MRELEASE(inputBlocks);

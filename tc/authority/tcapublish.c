@@ -12,14 +12,7 @@
 #include "tcaP.h"
 #include "crypto.h"
 
-#ifndef __STDC_VERSION__
-#define restrict
-#define const
-#elif __STDC_VERSION__ < 199901L
-#define restrict
-#define const
-#endif
-#include "fec.h"
+#include "ion_fec.h"
 
 typedef struct
 {
@@ -413,7 +406,7 @@ static int	publishConsensusBulletin(Sdr sdr, TcaDB *db, BpSAP sap)
 	char		**primaryBlocks;
 	char		**secondaryBlocks;
 	unsigned char	hash[32];
-	fec_t		*fec;
+	ion_fec_t	*fec;
 	unsigned int	sharenum;
 	unsigned int	*sharenums;
 	unsigned int	u4;
@@ -667,7 +660,7 @@ writeMemo(msgbuf);
 		cursor += blksize;
 	}
 
-	fec = fec_new(db->fec_K, db->fec_M);
+	fec = ion_fec_new(db->fec_K, db->fec_M);
 	if (fec == NULL)
 	{
 		putErrmsg("Not enough memory for fec encoder.", NULL);
@@ -679,7 +672,7 @@ writeMemo(msgbuf);
 		return -1;
 	}
 
-	fec_encode(fec, (const unsigned char *const *) primaryBlocks,
+	ion_fec_encode(fec, (const unsigned char *const *) primaryBlocks,
 			(unsigned char **) secondaryBlocks,
 			secondaryBlockNbrs, db->fec_M - db->fec_K, blksize);
 #if TC_DEBUG
@@ -724,7 +717,7 @@ for (i = 0; i < (db->fec_M - db->fec_K); i++)
 		if (obj == 0)
 		{
 			putErrmsg("Not enough heap space for block ZCO.", NULL);
-			fec_free(fec);
+			ion_fec_free(fec);
 			MRELEASE(buffer);
 			MRELEASE(secondaryBlockNbrs);
 			MRELEASE(primaryBlocks);
@@ -747,7 +740,7 @@ for (i = 0; i < (db->fec_M - db->fec_K); i++)
 		if (zco == 0 || zco == (Object) -1)
 		{
 			putErrmsg("Can't create block ZCO.", NULL);
-			fec_free(fec);
+			ion_fec_free(fec);
 			MRELEASE(buffer);
 			MRELEASE(secondaryBlockNbrs);
 			MRELEASE(primaryBlocks);
@@ -765,7 +758,7 @@ writeMemoNote("tcapublish: Sending block for share number", itoa(sharenum));
 		}
 	}
 
-	fec_free(fec);
+	ion_fec_free(fec);
 	MRELEASE(buffer);
 	MRELEASE(secondaryBlockNbrs);
 	MRELEASE(primaryBlocks);

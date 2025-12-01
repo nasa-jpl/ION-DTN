@@ -1715,7 +1715,7 @@ tcPODM1 = pod2man -s 1 -c "TC executables"
 tcPODM3 = pod2man -s 3 -c "TC library functions"
 tcPODM5 = pod2man -s 5 -c "TC configuration files"
 
-tccflags = -I$(srcdir)/tc/authority -I$(srcdir)/tc/client -I$(srcdir)/tc/include -I$(srcdir)/ici/zfec-1.4.24/zfec -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/include
+tccflags = -I$(srcdir)/tc/authority -I$(srcdir)/tc/client -I$(srcdir)/tc/include -I$(srcdir)/tc/jerasure/include -I$(srcdir)/tc/gf-complete/include -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/include
 
 tcbin = \
 	dtka \
@@ -1733,14 +1733,17 @@ tclib = \
 	libtc.la \
 	libtcaP.la \
 	libtcc.la \
-	libzfec.la
+	libgfcomplete.la \
+	libjerasure.la \
+	libionfec.la
 
 tcinclude = \
 	tc/dtka/dtka.h \
 	tc/authority/tcaP.h \
 	tc/client/tcc.h \
 	tc/client/tccP.h \
-	tc/include/tc.h
+	tc/include/tc.h \
+	tc/include/ion_fec.h
 
 tcextra = \
 	tc/doc/pod1/dtka.pod \
@@ -1795,8 +1798,38 @@ libtcc_la_SOURCES = tc/client/libtcc.c tc/client/libtccP.c
 libtcc_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
 libtcc_la_LIBADD = libici.la libbp.la
 
-libzfec_la_SOURCES = ici/zfec-1.4.24/zfec/fec.c
-libzfec_la_CFLAGS = $(tccflags) $(AM_CFLAGS) -Drestrict=
+# GF-Complete library (Galois Field arithmetic)
+# Note: This is vendored third-party code; suppress warnings that are treated as errors
+libgfcomplete_la_SOURCES = \
+	tc/gf-complete/src/gf.c \
+	tc/gf-complete/src/gf_w4.c \
+	tc/gf-complete/src/gf_w8.c \
+	tc/gf-complete/src/gf_w16.c \
+	tc/gf-complete/src/gf_w32.c \
+	tc/gf-complete/src/gf_w64.c \
+	tc/gf-complete/src/gf_w128.c \
+	tc/gf-complete/src/gf_wgen.c \
+	tc/gf-complete/src/gf_general.c \
+	tc/gf-complete/src/gf_rand.c \
+	tc/gf-complete/src/gf_method.c \
+	tc/gf-complete/src/gf_cpu.c
+libgfcomplete_la_CFLAGS = -I$(srcdir)/tc/gf-complete/include -w
+
+# Jerasure library (Reed-Solomon erasure coding)
+# Note: This is vendored third-party code; suppress warnings that are treated as errors
+libjerasure_la_SOURCES = \
+	tc/jerasure/src/jerasure.c \
+	tc/jerasure/src/reed_sol.c \
+	tc/jerasure/src/galois.c \
+	tc/jerasure/src/cauchy.c \
+	tc/jerasure/src/liberation.c
+libjerasure_la_CFLAGS = -I$(srcdir)/tc/jerasure/include -I$(srcdir)/tc/gf-complete/include -w
+libjerasure_la_LIBADD = libgfcomplete.la
+
+# ION FEC wrapper library
+libionfec_la_SOURCES = tc/library/ion_fec.c
+libionfec_la_CFLAGS = $(AM_CFLAGS) -I$(srcdir)/tc/include -I$(srcdir)/tc/jerasure/include -I$(srcdir)/tc/gf-complete/include
+libionfec_la_LIBADD = libjerasure.la libgfcomplete.la
 
 
 # --- DTKA Executables --- #

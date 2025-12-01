@@ -1,0 +1,9 @@
+Jerasure Library - Vendored Snapshot
+
+Source: https://github.com/tsuraan/Jerasure
+Commit: 414c96ef2b9934953b6facb31d803d79b1dd1405
+Date:   2015-01-08
+License: BSD-3-Clause (see License.txt)
+
+This is a frozen snapshot of Jerasure for use in ION's TC (Trusted Collective)
+component for Reed-Solomon erasure coding.
