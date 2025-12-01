@@ -157,7 +157,8 @@ int gf_general_s_to_val(gf_general_t *v, int w, char *s, int hex)
       if (l > 32) return 0;
       save = s[l-16];
       s[l-16] = '\0';
-      if (sscanf(s, "%llx", (long long unsigned int *) (&(v->w128[0]))) == 0) {
+      /* ION: Check != 1 instead of == 0 to also handle EOF (CodeQL fix) */
+      if (sscanf(s, "%llx", (long long unsigned int *) (&(v->w128[0]))) != 1) {
         s[l-16] = save;
         return 0;
       }

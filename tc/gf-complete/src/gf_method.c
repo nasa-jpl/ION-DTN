@@ -56,8 +56,9 @@ int create_gf_from_argv(gf_t *gf, int w, int argc, char **argv, int starting)
             _gf_errno = GF_E_GROUPAR;
             return 0;
           }
-          if (sscanf(argv[starting+1], "%d", &arg1) == 0 ||
-              sscanf(argv[starting+2], "%d", &arg2) == 0) {
+          /* ION: Check != 1 instead of == 0 to also handle EOF (CodeQL fix) */
+          if (sscanf(argv[starting+1], "%d", &arg1) != 1 ||
+              sscanf(argv[starting+2], "%d", &arg2) != 1) {
             _gf_errno = GF_E_GROUPNU;
             return 0;
           }
@@ -86,8 +87,9 @@ int create_gf_from_argv(gf_t *gf, int w, int argc, char **argv, int starting)
             _gf_errno = GF_E_SPLITAR;
             return 0;
           }
-          if (sscanf(argv[starting+1], "%d", &arg1) == 0 ||
-              sscanf(argv[starting+2], "%d", &arg2) == 0) {
+          /* ION: Check != 1 instead of == 0 to also handle EOF (CodeQL fix) */
+          if (sscanf(argv[starting+1], "%d", &arg1) != 1 ||
+              sscanf(argv[starting+2], "%d", &arg2) != 1) {
             _gf_errno = GF_E_SPLITNU;
             return 0;
           }
@@ -95,7 +97,8 @@ int create_gf_from_argv(gf_t *gf, int w, int argc, char **argv, int starting)
         } else if (strcmp(argv[starting], "COMPOSITE") == 0) {
           mult_type = GF_MULT_COMPOSITE;
           if (argc < starting + 2) { _gf_errno = GF_E_FEWARGS; return 0; }
-          if (sscanf(argv[starting+1], "%d", &arg1) == 0) {
+          /* ION: Check != 1 instead of == 0 to also handle EOF (CodeQL fix) */
+          if (sscanf(argv[starting+1], "%d", &arg1) != 1) {
             _gf_errno = GF_E_COMP_A2;
             return 0;
           }
@@ -146,7 +149,8 @@ int create_gf_from_argv(gf_t *gf, int w, int argc, char **argv, int starting)
         }
       } else if (strcmp(argv[starting], "-p") == 0) {
         starting++;
-        if (sscanf(argv[starting], "%llx", (long long unsigned int *)(&prim_poly)) == 0) {
+        /* ION: Check != 1 instead of == 0 to also handle EOF (CodeQL fix) */
+        if (sscanf(argv[starting], "%llx", (long long unsigned int *)(&prim_poly)) != 1) {
           if (base != NULL) gf_free(base, 1);
           _gf_errno = GF_E_POLYSPC;
           return 0;

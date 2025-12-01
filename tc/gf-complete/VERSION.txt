@@ -13,3 +13,5 @@ ION-specific modifications:
   prototype compliance (-Wstrict-prototypes)
 - src/gf_general.c: Changed sscanf() return checks from == 0 to != 1 to
   properly handle EOF in addition to parse failures (CodeQL fix)
+- src/gf_method.c: Changed sscanf() return checks from == 0 to != 1 to
+  properly handle EOF in addition to parse failures (CodeQL fix)
