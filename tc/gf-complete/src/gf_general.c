@@ -131,9 +131,11 @@ int gf_general_s_to_val(gf_general_t *v, int w, char *s, int hex)
 
   if (w <= 32) {
     if (hex) {
-      if (sscanf(s, "%x", &(v->w32)) == 0) return 0;
+      /* ION: Check != 1 instead of == 0 to also handle EOF (CodeQL fix) */
+      if (sscanf(s, "%x", &(v->w32)) != 1) return 0;
     } else {
-      if (sscanf(s, "%u", &(v->w32)) == 0) return 0;
+      /* ION: Check != 1 instead of == 0 to also handle EOF (CodeQL fix) */
+      if (sscanf(s, "%u", &(v->w32)) != 1) return 0;
     }
     if (w == 32) return 1;
     if (w == 31) {

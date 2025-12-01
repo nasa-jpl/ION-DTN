@@ -7,3 +7,9 @@ License: BSD-3-Clause (see License.txt)
 
 This is a frozen snapshot of GF-Complete (Galois Field arithmetic library)
 required by Jerasure for ION's TC (Trusted Collective) component.
+
+ION-specific modifications:
+- include/gf_complete.h: Changed gf_error() to gf_error(void) for strict
+  prototype compliance (-Wstrict-prototypes)
+- src/gf_general.c: Changed sscanf() return checks from == 0 to != 1 to
+  properly handle EOF in addition to parse failures (CodeQL fix)
