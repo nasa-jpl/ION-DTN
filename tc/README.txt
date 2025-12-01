@@ -33,18 +33,12 @@ access to foreign persons.
 
 To build this prototype DTKA implementation:
 
-1.	In the top-level DTKA directory, create a symbolic link to
-ion-open-source/bp named "bp".
+The TC component uses Jerasure and GF-Complete libraries for Reed-Solomon
+erasure coding. These libraries are included as vendored snapshots under
+tc/jerasure/ and tc/gf-complete/ respectively. No external downloads are
+required.
 
-2.	Download zfec-1.4.24, untar it, and apply the fec.h.patch patch
-to zfec-1.4.24/zfec/fec.h.  (We needed to do this to get zfec to build.
-There is undoubtedly a better fix, but we haven't found it yet.)
-
-3.	In the top-level DTKA directory, create a symbolic link to
-zfec-1.4.24/zfec named "zfec".
-
-4.	Then in the top-level dtka directory enter "make clean", "make",
-and "make install".
+Build TC as part of the normal ION build process using autotools.
 
 To test the build, cd into ion-open-source/tests/dtka and enter "./dotest".
 But note that the test will not succeed until you build with cryptography

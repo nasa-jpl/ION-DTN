@@ -6,22 +6,37 @@ License (see license.txt). However, ION includes the following third-party
 components, each with their own licensing terms:
 
 ================================================================================
-zfec - Forward Error Correction Library
+Jerasure - Reed-Solomon Erasure Coding Library
 ================================================================================
 
-Location: ici/zfec-1.4.24/
-License: Transitive Grace Period Public Licence (TGPPL) v1.0
-         (also available under GPL v2 or later)
+Location: tc/jerasure/
+License: BSD 3-Clause License
+Source: https://github.com/tsuraan/Jerasure
+Commit: 414c96ef2b9934953b6facb31d803d79b1dd1405 (2015-01-08)
 
-ION uses zfec under the terms of the TGPPL v1.0.
-
-Copyright: Zooko O'Whielacronx <zooko@zooko.com>
-           Portions derived from "fec" software by Luigi Rizzo, et al.
+Copyright (c) 2013, James S. Plank and Kevin Greenan
+All rights reserved.
 
 The full license text is available in:
-  - ici/zfec-1.4.24/COPYING.TGPPL.html
-  - ici/zfec-1.4.24/COPYING.GPL
-  - ici/zfec-1.4.24/copyright
+  - tc/jerasure/License.txt
+
+================================================================================
+GF-Complete - Galois Field Arithmetic Library
+================================================================================
+
+Location: tc/gf-complete/
+License: BSD 3-Clause License
+Source: https://github.com/ceph/gf-complete
+Commit: a6862d1018b5916ec8c3d7e7893095e3e0fa5368 (2017-04-10)
+
+Copyright (c) 2013, James S. Plank, Ethan L. Miller, Kevin M. Greenan,
+Benjamin A. Arnold, John A. Googie, William B. Houston, and Pamela L. Tisdale
+All rights reserved.
+
+GF-Complete is required by Jerasure for Galois Field arithmetic operations.
+
+The full license text is available in:
+  - tc/gf-complete/License.txt
 
 ================================================================================
 libbloom - Bloom Filter Library
