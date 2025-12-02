@@ -1,5 +1,9 @@
 name: Regression Tests for ION on Ubuntu 20
 
+permissions:
+  contents: read
+  statuses: write
+
 on:
   workflow_call:
     inputs:

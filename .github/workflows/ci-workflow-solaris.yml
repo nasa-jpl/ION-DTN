@@ -1,5 +1,8 @@
 name: Regression Tests for ION on Solaris 11 LDOM via Ubuntu host
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:

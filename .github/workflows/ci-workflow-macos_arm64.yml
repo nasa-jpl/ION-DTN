@@ -1,5 +1,8 @@
 name: Regression Tests for ION on MacOS 14.7 ARM64 - no mbedtls
 
+permissions:
+  contents: read
+
 on:
 #  pull_request:
 #    branches:

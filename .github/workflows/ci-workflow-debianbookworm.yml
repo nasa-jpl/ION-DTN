@@ -1,5 +1,8 @@
 name: Regression Tests for ION on Debian Bookworm
 
+permissions:
+  contents: read
+
 on:
 #  pull_request:
 #    branches:

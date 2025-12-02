@@ -1,5 +1,8 @@
 name: Regression Tests for ION on FreeBSD 14 VM via Ubuntu host
 
+permissions:
+  contents: read
+
 on:
 #  pull_request:
 #    branches:

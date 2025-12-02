@@ -1,5 +1,8 @@
 name: Build ION Documentation With Mkdocs # this workflow is currently disabled in GitHub
 
+permissions:
+  contents: write
+
 on:
   push:
     branches:

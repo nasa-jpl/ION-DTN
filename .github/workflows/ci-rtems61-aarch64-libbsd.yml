@@ -1,5 +1,8 @@
 name: RTEMS 6.1 ARM64 Build and Test (libbsd)
 
+permissions:
+  contents: read
+
 on:
   workflow_call:
     inputs:
