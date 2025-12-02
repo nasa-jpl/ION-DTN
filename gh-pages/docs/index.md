@@ -40,6 +40,7 @@ ION provides comprehensive APIs for application development and system administr
 - **[ION Design and API Overview](./ION-Design-and-API-Overview.md)**: Overview of ION's modular architecture and the complete set of APIs available for interacting with DTN services.
 - **[Public Administration API Guide](./Public-Admin-API-Guide.md)**: Detailed guide for programmatic configuration and management of ION, LTP, and BP subsystems using the ion_admin.h, ltp_admin.h, and bp_admin.h APIs introduced in ION 4.1.4-b.1. This enables applications to configure ION nodes directly from C code without requiring command-line tools.
 - **[BP Service API](./BP-Service-API.md)**: Documentation for Bundle Protocol service APIs that enable applications to send and receive bundles.
+- **[IPN Naming Scheme Transition](./IPN-Naming-Scheme-Transition.md)**: Guide for migrating code from the old 2-part IPN node numbers to the new 3-part Fully Qualified Node Numbers (FQNN) introduced in ION 4.1.4-a.1.
 
 ## License
 
