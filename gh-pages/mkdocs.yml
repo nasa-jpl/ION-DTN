@@ -88,9 +88,11 @@ nav:
     - Extension Block Interface: Extension-Block-Interface.md
     - Platform Macros & Error Reporting: Platform-Macros-Error-Reporting.md
     - ION Utility Programs: ION-Utilities.md
+    - ION Monitoring Guide: ION-Monitoring-Guide.md
     - ION Coding Guide: ION-Coding-Guide.md
     - CFDP SW Architecture: CFDP-SW-Architecture.md
     - SPP CLA Prototype Description: SPP-CLA-Prototype-Description.md
+    - IPN Naming Scheme Transition: IPN-Naming-Scheme-Transition.md
     - Archived Software: ION-Archive.md
   - Man Pages:
     - Man Pages: Man-Page-Introduction.md
