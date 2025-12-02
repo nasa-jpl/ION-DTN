@@ -140,9 +140,16 @@ function optional_fail_test () {
 }
 
 
+# Helper function to get timestamp in consistent format
+function get_timestamp () {
+    date '+%Y-%m-%d %H:%M:%S'
+}
+
 # runs one test, updates the test status counters
 function run_a_test () {
     TEST=$1
+    CURRENT_TEST_NUM=${2:-0}  # Current test number (optional, defaults to 0)
+    TOTAL_TEST_COUNT=${3:-0}  # Total test count (optional, defaults to 0)
 
     # see, you can make bash read like perl if you try
     TEST=${TEST##./}
@@ -169,11 +176,28 @@ function run_a_test () {
         echo "=== Processing $TEST at time `date`" >> $PROGRESSFILE
     fi
 
+    # Output concise START message to stderr for real-time visibility
+    TEST_START_TIME=$(date +%s)
+    TEST_START_TIMESTAMP=$(get_timestamp)
+    if [ $TOTAL_TEST_COUNT -gt 0 ]; then
+        echo "[$TEST_START_TIMESTAMP] [$CURRENT_TEST_NUM/$TOTAL_TEST_COUNT] START: $TEST" >&2
+    else
+        echo "[$TEST_START_TIMESTAMP] START: $TEST" >&2
+    fi
+
+    # Helper to format progress counter
+    if [ $TOTAL_TEST_COUNT -gt 0 ]; then
+        PROGRESS_PREFIX="[$CURRENT_TEST_NUM/$TOTAL_TEST_COUNT] "
+    else
+        PROGRESS_PREFIX=""
+    fi
+
     # check if test is excluded because it is obsolete
     if [ -f "$TEST/.exclude_obsolete" ]; then
     	echo "Test excluded because it is obsolete, skipping $TEST" | tee -a $PROGRESSFILE
 	    cat "$TEST/.exclude_obsolete"
     	excludeObsolete_test "$TEST"
+    	echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (obsolete)" >&2
     	return
     fi
 
@@ -182,6 +206,7 @@ function run_a_test () {
     	echo "Test universally excluded, skipping $TEST" | tee -a $PROGRESSFILE
 	    cat "$TEST/.exclude_all"
     	skip_test "$TEST"
+    	echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (excluded)" >&2
     	return
     fi
 
@@ -191,6 +216,7 @@ function run_a_test () {
 		echo "Test excluded by expertise class, skipping $TEST" | tee -a $PROGRESSFILE
 		cat "$TEST/.exclude_expert"
 		skip_test "$TEST"
+		echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (expert test)" >&2
 		return
 	    fi
     fi
@@ -201,6 +227,7 @@ function run_a_test () {
 		echo "Test excluded because of C code, skipping $TEST" | tee -a $PROGRESSFILE
 		cat "$TEST/.exclude_cbased"
 		skip_test "$TEST"
+		echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (C-based)" >&2
 		return
 	    fi
     fi
@@ -210,6 +237,7 @@ function run_a_test () {
     	echo "Test excluded by OS type, skipping $TEST" | tee -a $PROGRESSFILE
 	    cat "$TEST/.exclude_$OS_VERSION"
     	excludeOS_test "$TEST"
+    	echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (OS excluded)" >&2
     	return
     fi
 
@@ -218,6 +246,7 @@ function run_a_test () {
     	echo "Test excluded by BP version, skipping $TEST" | tee -a $PROGRESSFILE
 	    cat "$TEST/.exclude_$BP_VERSION"
     	excludeBPv_test "$TEST"
+    	echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (BP version excluded)" >&2
     	return
     fi
 
@@ -226,6 +255,7 @@ function run_a_test () {
         echo "test $TEST does not exist!" | tee -a $PROGRESSFILE
         NUM_FAILED=$((NUM_FAILED + 1))
         TESTS_FAILED="$TESTS_FAILED $TEST"
+        echo "[$(get_timestamp)] ${PROGRESS_PREFIX}FAIL: $TEST (does not exist)" >&2
         return
     fi
 
@@ -234,6 +264,7 @@ function run_a_test () {
         echo "dotest script $TEST/dotest not executable, skipping" | tee -a $PROGRESSFILE
         NUM_SKIPPED=$((NUM_SKIPPED + 1))
         TESTS_SKIPPED="$TESTS_SKIPPED $TEST"
+        echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (not executable)" >&2
         return
     fi
 
@@ -273,11 +304,19 @@ function run_a_test () {
     fi
 
     TEST_RETVAL=$?
+
+    # Calculate test duration for concise output
+    TEST_END_TIME=$(date +%s)
+    TEST_END_TIMESTAMP=$(get_timestamp)
+    TEST_DURATION=$((TEST_END_TIME - TEST_START_TIME))
+
     if [ $TEST_RETVAL -eq 0 ]; then
         if [ -n "$IS_OPTIONAL_TEST" ]; then
             echo "OPTIONAL TEST PASSED!"
             optional_pass_test "$TEST"
             echo "OPTIONAL TEST PASSED: ${TEST}" >> "$PROGRESSFILE"
+            # Concise output to stderr
+            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}PASS: $TEST (${TEST_DURATION}s)" >&2
         else
             echo "TEST PASSED!"
             if [[ "$RETESTING" == "true" ]]; then
@@ -287,6 +326,8 @@ function run_a_test () {
                 pass_test "$TEST"
                 echo "PASSED: ${TEST}" >> "$PROGRESSFILE"
             fi
+            # Concise output to stderr
+            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}PASS: $TEST (${TEST_DURATION}s)" >&2
         fi
         if [ -x "cleanup" ]; then
             ./cleanup
@@ -296,6 +337,8 @@ function run_a_test () {
             echo "OPTIONAL TEST FAILED!"
             optional_fail_test "$TEST"
             echo "OPTIONAL TEST FAILED: ${TEST}" >> "$PROGRESSFILE"
+            # Concise output to stderr
+            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${TEST_DURATION}s)" >&2
         else
             echo "TEST FAILED!"
             fail_test "$TEST"
@@ -304,6 +347,8 @@ function run_a_test () {
             else
                 echo "FAILED: ${TEST}" >> "$PROGRESSFILE"
             fi
+            # Concise output to stderr
+            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${TEST_DURATION}s)" >&2
         fi
         # Optionally skip cleanup on failure to preserve logs
         if [ -n "$PRESERVE_TEST_LOGS" ]; then
@@ -315,11 +360,15 @@ function run_a_test () {
         echo "TEST SKIPPED!"
         skip_test "$TEST"
         echo "SKIPPED: ${TEST}" >> "$PROGRESSFILE"
+        # Concise output to stderr
+        echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}SKIP: $TEST (${TEST_DURATION}s)" >&2
     else
         echo "test returned unknown value $TEST_RETVAL"
         if [ -n "$IS_OPTIONAL_TEST" ]; then
             optional_fail_test "$TEST"
             echo "OPTIONAL TEST CONFUSED: ${TEST}: bad return value $TEST_RETVAL" >> "$PROGRESSFILE"
+            # Concise output to stderr
+            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${TEST_DURATION}s) [unknown return value $TEST_RETVAL]" >&2
         else
             fail_test "$TEST"
             if [[ "$RETESTING" == "true" ]]; then
@@ -327,6 +376,8 @@ function run_a_test () {
             else
                 echo "CONFUSED: ${TEST}: bad return value $TEST_RETVAL" >> "$PROGRESSFILE"
             fi
+            # Concise output to stderr
+            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${TEST_DURATION}s) [unknown return value $TEST_RETVAL]" >&2
         fi
     fi
 
@@ -370,8 +421,13 @@ function cleanup_a_test () {
 
 # run all tests listed in $@
 function run_tests () {
+    # Count total number of tests
+    local TOTAL_TESTS=$#
+    local CURRENT_NUM=0
+
     for TEST in "$@"; do
-        run_a_test "$TEST"
+        CURRENT_NUM=$((CURRENT_NUM + 1))
+        run_a_test "$TEST" "$CURRENT_NUM" "$TOTAL_TESTS"
     done
 }
 
