@@ -725,6 +725,7 @@ ltpbin = \
 	dccplsi \
 	dccplso \
 	ltpadmin \
+	ltpcancel \
 	ltpclock \
 	ltpcounter \
 	ltpdeliv \
@@ -732,6 +733,7 @@ ltpbin = \
 	ltpmeter \
 	ltpsecadmin \
 	ltpstats \
+	ltpwatch \
 	sdatest \
 	udplsi \
 	udplso
@@ -819,6 +821,14 @@ ltpsecadmin_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 ltpstats_SOURCES = ltp/utils/ltpstats.c
 ltpstats_LDADD = libltp.la libici.la
 ltpstats_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+
+ltpcancel_SOURCES = ltp/utils/ltpcancel.c
+ltpcancel_LDADD = libici.la
+ltpcancel_CFLAGS = $(AM_CFLAGS)
+
+ltpwatch_SOURCES = ltp/utils/ltpwatch.c
+ltpwatch_LDADD = libici.la
+ltpwatch_CFLAGS = $(AM_CFLAGS)
 
 # --- Test Executables --- #
 

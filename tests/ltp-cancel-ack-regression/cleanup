@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+#
+# Cleanup script for LTP cancel segment acknowledgment test
+#
+
+# Kill all ION processes
+killm
+
+# Clean up test files
+rm -f testfile received_testfile
+rm -f cancel_injector ack_monitor
+rm -f *.stdout *.stderr
+
+# Clean up ION databases and logs
+rm -rf 2.ipn.ltp/ion.log
+rm -rf 3.ipn.ltp/ion.log
+rm -rf 2.ipn.ltp/*.sdr
+rm -rf 3.ipn.ltp/*.sdr
+
+# Clean up any leftover processes
+pkill -f "cancel_injector"
+pkill -f "ack_monitor"
+pkill -f "bpsendfile"
+pkill -f "bprecvfile"
+
+echo "Cleanup completed"

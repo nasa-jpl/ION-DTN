@@ -1,0 +1,266 @@
+########################################
+
+NAME:  ltp-cancel-ack-regression
+
+PURPOSE: Testing LTP Cancel Segment acknowledgment for completed sessions.
+	This test verifies the fix for issue where Cancel Segments received
+	after sessions were completed were being ignored, causing unnecessary
+	retransmissions and resource consumption. The LTP engine should always
+	acknowledge Cancel Segments regardless of session state.
+
+CONFIG: 2 node custom:
+
+./2.ipn.ltp/amroc.ltprc:
+1 300
+a span 2 2 100100 2 100100 1200 100100 1 'udplso localhost:2113'
+a span 3 20 1000000 200 100100 1200 100100 1 'udplso localhost:3113'
+w 1
+s 'udplsi localhost:2113'
+# EOF
+
+./2.ipn.ltp/amroc.bprc:
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:2.0 x
+a endpoint ipn:2.1 x
+a endpoint ipn:2.2 x
+a endpoint ipn:2.64 x
+a endpoint ipn:2.65 x
+a protocol ltp 1400 100
+a induct ltp 2 ltpcli
+a outduct ltp 2 ltpclo
+a outduct ltp 3 ltpclo
+r 'ipnadmin amroc.ipnrc'
+w 1
+s
+# EOF
+
+./2.ipn.ltp/amroc.ionconfig:
+wmKey 66236
+sdrName ion2
+wmSize 5000000
+configFlags 1
+heapWords 2000000
+pathName /tmp
+# EOF
+
+./2.ipn.ltp/global.ionrc:
+m horizon  +0
+a range    +0 +1200		2 3   0
+a contact  +0 +600		2 2   10000
+a contact  +0 +600		3 3   10000
+a contact  +0 +600		2 3   2000000
+a contact  +0 +600		3 2   1000000
+# EOF
+
+./2.ipn.ltp/amroc.ionrc:
+1 2 amroc.ionconfig
+s
+m horizon  +0
+# EOF
+
+./2.ipn.ltp/amroc.ionsecrc:
+1
+# EOF
+
+./2.ipn.ltp/amroc.ipnrc:
+a plan 2 ltp/2
+a plan 3 ltp/3
+# EOF
+
+./3.ipn.ltp/amroc.ltprc:
+1 300
+a span 3 2 100100 2 100100 1200 100100 1 'udplso localhost:3113'
+a span 2 200 100100 20 1000000 1200 100100 1 'udplso localhost:2113'
+w 1
+s 'udplsi localhost:3113'
+# EOF
+
+./3.ipn.ltp/amroc.bprc:
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:3.0 x
+a endpoint ipn:3.1 x
+a endpoint ipn:3.2 x
+a endpoint ipn:3.64 x
+a endpoint ipn:3.65 x
+a protocol ltp 1400 100
+a induct ltp 3 ltpcli
+a outduct ltp 2 ltpclo
+a outduct ltp 3 ltpclo
+r 'ipnadmin amroc.ipnrc'
+w 1
+s
+# EOF
+
+./3.ipn.ltp/amroc.ionconfig:
+wmKey 66336
+sdrName ion3
+wmSize 5000000
+configFlags 1
+heapWords 2000000
+pathName /tmp
+# EOF
+
+./3.ipn.ltp/global.ionrc:
+m horizon  +0
+a range    +0 +1200		2 3   0
+a contact  +0 +600		2 2   10000
+a contact  +0 +600		3 3   10000
+a contact  +5 +600		2 3   2000000
+a contact  +5 +600		3 2   1000000
+# EOF
+
+./3.ipn.ltp/amroc.ionrc:
+1 3 amroc.ionconfig
+s
+m horizon  +0
+# EOF
+
+./3.ipn.ltp/amroc.ionsecrc:
+1
+# EOF
+
+./3.ipn.ltp/amroc.ipnrc:
+a plan 2 ltp/2
+a plan 3 ltp/3
+# EOF
+
+Sending TERM to the processes...
+Sending KILL to the processes...
+Checking if all ION processes ended...
+Deleting shared memory to remove SDR...
+Deleting Posix Named Semaphores...
+
+=== Starting cleanup ===
+
+=== Checking for remaining semaphores ===
+All ion:GLOBAL semaphores removed successfully
+
+After deletion, remaining POSIX Named Semaphore files (should be blank)...
+
+Killm completed.
+Sending TERM to the processes...
+Sending KILL to the processes...
+Checking if all ION processes ended...
+Deleting shared memory to remove SDR...
+Deleting Posix Named Semaphores...
+
+=== Starting cleanup ===
+
+=== Checking for remaining semaphores ===
+All ion:GLOBAL semaphores removed successfully
+
+After deletion, remaining POSIX Named Semaphore files (should be blank)...
+
+Killm completed.
+Cleanup completed
+Starting ION...
+Checking for required LTP test utilities...
+Required utilities found: ltpcancel, ltpwatch
+Starting node 2...
+Checking ion
+: ION system is started
+Stopping ionadmin.
+Checking ltp
+: LTP engine is started
+Stopping ltpadmin.
+Checking bp
+: BP agent is started
+Stopping bpadmin.
+
+ION system status check completed.
+Starting node 3...
+Checking ion
+: ION system is started
+Stopping ionadmin.
+Checking ltp
+: LTP engine is started
+Stopping ltpadmin.
+Checking bp
+: BP agent is started
+Stopping bpadmin.
+
+ION system status check completed.
+Nodes started successfully
+
+Running cancel segment acknowledgment tests...
+=== Test Scenario: CS for unknown session ===
+Sending CS segment for engine 2, session 99999
+tcpdump: listening on lo0, link-type NULL (BSD loopback), snapshot length 262144 bytes
+Sent CS segment: 7 bytes to localhost:3113
+  Source Engine ID: 2
+  Session Number: 99999
+0 packets captured
+1 packet received by filter
+0 packets dropped by kernel
+DEBUG: Captured packet contents:
+FAILURE: No CS acknowledgment found in captured packets
+=== Test Scenario: CR for unknown session ===
+Sending CR segment for engine 3, session 99998
+tcpdump: listening on lo0, link-type NULL (BSD loopback), snapshot length 262144 bytes
+Sent CR segment: 7 bytes to localhost:2113
+  Source Engine ID: 3
+  Session Number: 99998
+1 packet captured
+2 packets received by filter
+0 packets dropped by kernel
+DEBUG: Captured packet contents:
+15:32:54.749010 IP localhost.23322 > localhost.3113: UDP, length 6
+	0x0000:  0200 0000 4500 0022 dedf 0000 4011 0000
+	0x0010:  7f00 0001 7f00 0001 5b1a 0c29 000e fe21
+	0x0020:  0f02 868d 1e00
+FAILURE: No CR acknowledgment found in captured packets
+=== Sending test data to create session activity ===
+Starting file transfer...
+aStopping bpsendfile.
+=== Test Scenario: CS after data transfer ===
+Sending CS segment for engine 2, session 1
+tcpdump: listening on lo0, link-type NULL (BSD loopback), snapshot length 262144 bytes
+Sent CS segment: 5 bytes to localhost:3113
+  Source Engine ID: 2
+  Session Number: 1
+1 packet captured
+2 packets received by filter
+0 packets dropped by kernel
+DEBUG: Captured packet contents:
+15:33:16.212492 IP localhost.63735 > localhost.2113: UDP, length 4
+	0x0000:  0200 0000 4500 0020 6762 0000 4011 0000
+	0x0010:  7f00 0001 7f00 0001 f8f7 0841 000c fe1f
+	0x0020:  0d02 0100
+FAILURE: No CS acknowledgment found in captured packets
+=== Test Scenario: CR after data transfer ===
+Sending CR segment for engine 3, session 1
+tcpdump: listening on lo0, link-type NULL (BSD loopback), snapshot length 262144 bytes
+Sent CR segment: 5 bytes to localhost:2113
+  Source Engine ID: 3
+  Session Number: 1
+1 packet captured
+2 packets received by filter
+0 packets dropped by kernel
+DEBUG: Captured packet contents:
+15:33:29.652490 IP localhost.23322 > localhost.3113: UDP, length 4
+	0x0000:  0200 0000 4500 0020 55e2 0000 4011 0000
+	0x0010:  7f00 0001 7f00 0001 5b1a 0c29 000c fe1f
+	0x0020:  0f02 0100
+FAILURE: No CR acknowledgment found in captured packets
+
+Cleaning up...
+Sending TERM to the processes...
+Sending KILL to the processes...
+Checking if all ION processes ended...
+Deleting shared memory to remove SDR...
+Deleting Posix Named Semaphores...
+
+=== Starting cleanup ===
+
+=== Checking for remaining semaphores ===
+All ion:GLOBAL semaphores removed successfully
+
+After deletion, remaining POSIX Named Semaphore files (should be blank)...
+
+Killm completed.
+Cleanup completed
+
+SOME TESTS FAILED: Cancel segment acknowledgment issue detected
+The LTP engine may not be properly acknowledging cancel segments.
