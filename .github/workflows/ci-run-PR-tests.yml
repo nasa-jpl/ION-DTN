@@ -2,6 +2,7 @@ name: Run All PR Tests Manually
 
 permissions:
   contents: read
+  statuses: write
 
 on:
   workflow_dispatch:
