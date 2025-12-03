@@ -3,6 +3,7 @@ name: Regression Tests for ION on Ubuntu
 permissions:
   contents: read
   statuses: write
+  pull-requests: read
 
 on:
   workflow_call:
