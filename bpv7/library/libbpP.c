@@ -11534,21 +11534,21 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 	/*	Extract destination EID.				*/
 
-	if (acquireEid(&(image->destination), &cursor, &unparsedBytes) < 0)
+	if (acquireEid(&(image->destination), &cursor, &unparsedBytes) < 1)
 	{
 		return -1;
 	}
 
 	/*	Extract source EID.					*/
 
-	if (acquireEid(&(image->id.source), &cursor, &unparsedBytes) < 0)
+	if (acquireEid(&(image->id.source), &cursor, &unparsedBytes) < 1)
 	{
 		return -1;
 	}
 
 	/*	Extract report-to EID.					*/
 
-	if (acquireEid(&(image->reportTo), &cursor, &unparsedBytes) < 0)
+	if (acquireEid(&(image->reportTo), &cursor, &unparsedBytes) < 1)
 	{
 		return -1;
 	}
@@ -11863,6 +11863,7 @@ int	bpHandleXmitSuccess(Object bundleZco)
 	if (retrieveSerializedBundle(bundleZco, &bundleAddr) < 0)
 	{
 		putErrmsg("Can't locate bundle for okay transmission.", NULL);
+		zco_destroy(sdr, bundleZco);
 		sdr_cancel_xn(sdr);
 		return -1;
 	}
@@ -11936,6 +11937,7 @@ int	bpHandleXmitFailure(Object bundleZco)
 	CHKERR(sdr_begin_xn(sdr));
 	if (retrieveSerializedBundle(bundleZco, &bundleAddr) < 0)
 	{
+		zco_destroy(sdr, bundleZco);
 		sdr_cancel_xn(sdr);
 		putErrmsg("Can't locate bundle for failed transmission.", NULL);
 		return -1;
