@@ -69,12 +69,10 @@ void ion_fec_free(ion_fec_t *fec);
  * The parity_block_nums array specifies which parity blocks to generate
  * (indices from k to m-1).
  */
-void ion_fec_encode(const ion_fec_t *fec,
-                    const unsigned char *const *data_blocks,
-                    unsigned char **parity_blocks,
-                    const unsigned int *parity_block_nums,
-                    size_t num_parity_blocks,
-                    size_t block_size);
+void ion_fec_encode(const ion_fec_t *fec, const unsigned char *const *data_blocks,
+                unsigned char     **parity_blocks,
+                const unsigned int *parity_block_nums, size_t num_parity_blocks,
+                size_t block_size);
 
 /*
  * Decode/reconstruct missing data blocks.
@@ -92,11 +90,10 @@ void ion_fec_encode(const ion_fec_t *fec,
  * Missing data blocks (those with indices 0 to k-1 that are not in input_blocks)
  * will be reconstructed and written to output_blocks.
  */
-void ion_fec_decode(const ion_fec_t *fec,
-                    const unsigned char *const *input_blocks,
-                    unsigned char **output_blocks,
-                    const unsigned int *block_indices,
-                    size_t block_size);
+void ion_fec_decode(const ion_fec_t        *fec,
+                const unsigned char *const *input_blocks,
+                unsigned char             **output_blocks,
+                const unsigned int *block_indices, size_t block_size);
 
 #ifdef __cplusplus
 }

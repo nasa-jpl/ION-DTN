@@ -81,7 +81,7 @@ PenaltyExcessCharacter: 10
 PenaltyReturnTypeOnItsOwnLine: 300
 PointerAlignment: Right
 QualifierAlignment: Left
-ReflowComments: IndentOnly
+ReflowComments: false
 SeparateDefinitionBlocks: Leave
 SkipMacroDefinitionBody: false
 SortIncludes: CaseSensitive
