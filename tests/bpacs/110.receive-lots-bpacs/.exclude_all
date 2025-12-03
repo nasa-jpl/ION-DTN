@@ -1,1 +1,0 @@
-This test relies on an outdated Python harness. The Python code needs to be updated to use different sockets for the bundles and custody reports.

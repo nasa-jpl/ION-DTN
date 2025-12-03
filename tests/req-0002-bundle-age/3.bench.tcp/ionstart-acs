@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-ionadmin	bench.ionrc
-
-acsadmin	bench.acsrc
-
-ionsecadmin	bench.ionsecrc &
-
-bpadmin		bench.bprc &

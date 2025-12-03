@@ -15,15 +15,8 @@ CONFIGFILES=" \
 ./2.ipn.ltp/amroc.ionrc \
 ./2.ipn.ltp/amroc.ionsecrc \
 ./2.ipn.ltp/amroc.ipnrc \
+
 "
-
-echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	ACS="found"
-	CONFIGFILES=$CONFIGFILES" ./2.ipn.ltp/amroc.acsrc"
-fi
-
 CONFIGFILES=$CONFIGFILES"
 ./5.ipn.ltp/amroc.ltprc \
 ./5.ipn.ltp/amroc.bprc \

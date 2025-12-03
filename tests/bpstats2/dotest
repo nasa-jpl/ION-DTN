@@ -8,20 +8,6 @@ CONFIGFILES=" \
 ./config/host1.rc \
 "
 
-echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	ACS="found"
-	CONFIGFILES=" \
-	./config/host1-acs.rc \
-	"
-else
-    ACS="missing"
-	CONFIGFILES=" \
-	./config/host1.rc \
-	"
-fi
-
 echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
@@ -60,11 +46,7 @@ rm -f testfile1 testfile2 ion.log
 echo "Starting ION..."
 srcdir=`pwd`
 CONFIGDIR="config"
-if [ $ACS == "found" ] ; then
-	"ionstart" -I "${CONFIGDIR}/host1-acs.rc"
-else
-	"ionstart" -I "${CONFIGDIR}/host1.rc"
-fi
+"ionstart" -I "${CONFIGDIR}/host1.rc"
 
 get_asrun_time ()
 {

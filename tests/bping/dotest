@@ -3,14 +3,7 @@
 # Tests that bping produces expected output and behaves well.
 #
 # documentation boilerplate
-source ../setacs.sh
-echo "ACS is $ACS"
-
-if [ $ACS == "found" ] ; then
-	CONFIGFILES="${CONFIGSROOT}/loopback-udp/loopback-acs.rc"
-else
-	CONFIGFILES="${CONFIGSROOT}/loopback-udp/loopback.rc"
-fi
+CONFIGFILES="${CONFIGSROOT}/loopback-udp/loopback.rc"
 
 echo "########################################"
 echo
@@ -60,13 +53,8 @@ rm -f ion.log bpingoutput1 bpingoutput2 bpingoutput3 bpingoutput4
 echo "Starting ION..."
 srcdir=`pwd`
 CONFIGDIR="${CONFIGSROOT}/loopback-udp"
-if [[ $ACS == "found" ]] ; then
-	echo "ionstart -I ${CONFIGDIR}/loopback-acs.rc"
-	"ionstart" -I "${CONFIGDIR}/loopback-acs.rc"
-else
-	echo "ionstart -I ${CONFIGDIR}/loopback.rc"
-	"ionstart" -I "${CONFIGDIR}/loopback.rc"
-fi
+echo "ionstart -I ${CONFIGDIR}/loopback.rc"
+"ionstart" -I "${CONFIGDIR}/loopback.rc"
 
 
 echo "Start a bpecho."
