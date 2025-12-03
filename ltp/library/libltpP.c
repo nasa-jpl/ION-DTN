@@ -8416,7 +8416,7 @@ putErrmsg("Discarding stray segment.", itoa(sessionNbr));
 	return 1;
 }
 
-static int	handleCR(LtpDB *ltpdb, unsigned int sessionNbr,
+static int	handleCR(uvast sourceEngineId, LtpDB *ltpdb, unsigned int sessionNbr,
 			LtpRecvSeg *segment, char **cursor, int *bytesRemaining,
 			Lyst headerExtensions, Lyst trailerExtensions)
 {
@@ -8445,13 +8445,31 @@ putErrmsg("Handling cancel by receiver.", utoa(sessionNbr));
 	 *	session.						*/
 
 	CHKERR(sdr_begin_xn(sdr));
-	getSessionContext(ltpdb, sessionNbr, &sessionObj, &sessionBuf,
-			&spanObj, &spanBuf, &vspan, &vspanElt);
-	if (spanObj == 0)	/*	Unknown provenance, ignore.	*/
+	findSpan(sourceEngineId, &vspan, &vspanElt);
+	if (vspanElt == 0)
 	{
+		/*	Cancellation is from an unknown source engine,
+		 *	so we can't even acknowledge.  Ignore it.	*/
+
 		sdr_exit_xn(sdr);
 		return 0;
 	}
+
+	if (vspan->receptionRate == 0 && ltpdb->enforceSchedule == 1)
+	{
+#if LTPDEBUG
+putErrmsg("Discarding stray segment.", itoa(sessionNbr));
+#endif
+		/*	Segment is from an engine that is not supposed
+		 *	to be sending at this time, so we treat it as
+		 *	a misdirected transmission.			*/
+
+		sdr_exit_xn(sdr);
+		return 0;
+	}
+
+	spanObj = sdr_list_data(sdr, vspan->spanElt);
+	sdr_read(sdr, (char *) &spanBuf, spanObj, sizeof(LtpSpan));
 
 	/*	At this point, the remaining bytes should all be
 	 *	trailer extensions.  We now parse them.			*/
@@ -8496,7 +8514,21 @@ putErrmsg("Handling cancel by receiver.", utoa(sessionNbr));
 	}
 
 	ltpSpanTally(vspan, IMPORT_CANCEL_RECV, 0);
-	if (sessionObj)
+
+	/*	Now look up the session to see if we can cancel it.	*/
+
+	getExportSession(sessionNbr, &sessionObj);
+	if (sessionObj != 0)	/*	Known session.			*/
+	{
+		sdr_stage(sdr, (char *) &sessionBuf, sessionObj,
+				sizeof(LtpExportSession));
+		if (sessionBuf.totalLength <= 0)/*	Not a live session. */
+		{
+			sessionObj = 0;		/*	Can't cancel.	*/
+		}
+	}
+
+	if (sessionObj)	/*	Can cancel session as requested.	*/
 	{
 		sessionBuf.reasonCode = **cursor;
 		if (ltpvdb->watching & WATCH_handleCR)
@@ -8838,7 +8870,7 @@ int	ltpHandleInboundSegment(char *buf, int length)
 					iwatch('s');
 #endif
 			}
-			result = handleCR(ltpdb, sessionNbr,
+			result = handleCR(sourceEngineId, ltpdb, sessionNbr,
 					&segment, &cursor, &bytesRemaining,
 					headerExtensions, trailerExtensions);
 			break;
