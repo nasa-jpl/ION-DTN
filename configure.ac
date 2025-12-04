@@ -113,6 +113,10 @@ S_LIB_END="so"
 # Initialize PKG_CONFIG_CFLAGS for external applications
 PKG_CONFIG_CFLAGS=""
 
+# Template for linux define - comment set once to avoid m4 macro processing issue
+# where all AC_DEFINE comments are seen regardless of shell if-elif-else logic
+AH_TEMPLATE([linux],[Build Linux specific platform code.])
+
 case $host_os in
 	darwin*)
 		AC_DEFINE([darwin],[1],[Build Darwin specific platform code.])
@@ -143,17 +147,17 @@ case $host_os in
 		# Add to PKG_CONFIG_CFLAGS
 		PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Dlinux"
 		if test $host_cpu = "x86_64" ; then
-			AC_DEFINE([linux],[1],[Build 64-bit Linux specific platform code.])
+			AC_DEFINE([linux],[1])
 			AM_CFLAGS="$AM_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=3 -fno-strict-aliasing"
 			PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=3 "
 			echo "Build 64-bit Linux specific platform code."
 		elif test $host_cpu = "aarch64" ; then
-			AC_DEFINE([linux],[1],[Build 64-bit Linux specific platform code.])
+			AC_DEFINE([linux],[1])
 			AM_CFLAGS="$AM_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=3 -fno-strict-aliasing"
 			PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=3 "
 			echo "Build 64-bit Linux specific platform code."
 		else
-			AC_DEFINE([linux],[1],[Build 32-bit Linux specific platform code.])
+			AC_DEFINE([linux],[1])
 			AM_CFLAGS="$AM_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=2 -fno-strict-aliasing"
 			PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=2 "
 			echo "Build 32-bit Linux specific platform code."
