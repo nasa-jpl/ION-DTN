@@ -3873,6 +3873,24 @@ int	itcp_send(int *sock, char *from, int length)
 	return totalBytesSent;
 }
 
+static const char	*errnoName(int errnum)
+{
+	switch (errnum)
+	{
+	case EINTR:		return "EINTR";
+	case EBADF:		return "EBADF";
+	case ECONNRESET:	return "ECONNRESET";
+	case ETIMEDOUT:		return "ETIMEDOUT";
+	case ECONNREFUSED:	return "ECONNREFUSED";
+	case EHOSTUNREACH:	return "EHOSTUNREACH";
+	case ENETUNREACH:	return "ENETUNREACH";
+	case EPIPE:		return "EPIPE";
+	case ENOTCONN:		return "ENOTCONN";
+	case ENOTSOCK:		return "ENOTSOCK";
+	default:		return itoa(errnum);
+	}
+}
+
 int	itcp_recv(int *sock, char *into, int length)
 {
 	int	totalBytesReceived = 0;
@@ -3913,7 +3931,7 @@ int	itcp_recv(int *sock, char *into, int length)
 
 			default:
 				putSysErrmsg("irecv() error on TCP socket",
-						NULL);
+						errnoName(errno));
 				return bytesRead;
 			}
 
