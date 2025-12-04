@@ -68,14 +68,6 @@ if ! command -v tcpdump >/dev/null 2>&1; then
     exit 2
 fi
 
-# Check if tcpdump can be run without sudo (required for packet capture)
-if ! tcpdump -D >/dev/null 2>&1; then
-    echo "Error: tcpdump requires elevated permissions. Please run with sufficient privileges"
-    echo "or configure tcpdump to run without sudo (e.g., via capabilities or sudo configuration)."
-    echo "Skipping test due to insufficient permissions."
-    exit 2
-fi
-
 # Detect loopback interface (could be 'lo' on Linux or 'lo0' on FreeBSD/macOS)
 LOOPBACK_IF=""
 if ifconfig lo0 >/dev/null 2>&1; then
@@ -88,9 +80,18 @@ else
     exit 2
 fi
 
+# Check if tcpdump can capture on loopback without sudo (required for packet capture)
+# Run a brief capture attempt to verify permissions
+if ! timeout 1 tcpdump -i "$LOOPBACK_IF" -c 1 -w /dev/null 2>/dev/null; then
+    echo "Error: tcpdump requires elevated permissions to capture on $LOOPBACK_IF."
+    echo "Please run with sufficient privileges or configure tcpdump capabilities."
+    echo "Skipping test due to insufficient permissions."
+    exit 2
+fi
+
 echo "Prerequisites met:"
 echo "  - ltpcancel utility: found"
-echo "  - tcpdump utility: found and accessible"
+echo "  - tcpdump utility: found with capture permissions"
 echo "  - loopback interface: $LOOPBACK_IF"
 
 # Start Node 2 (sender)
