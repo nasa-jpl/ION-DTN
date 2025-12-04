@@ -1243,13 +1243,15 @@ gcc -g -o myapp myapp.c -I/usr/local/include -L/usr/local/lib -lbp -lici -lpthre
 gcc -O2 -o myapp myapp.c -I/usr/local/include -L/usr/local/lib -lbp -lici -lpthread
 ```
 
-### Using pkg-config
+### Using pkg-config (Recommended)
 
 If ION was installed with pkg-config support, you can use it to automatically get the correct compiler and linker flags:
 
 ```bash
 gcc -o myapp myapp.c `pkg-config --cflags --libs ion`
 ```
+
+> **WARNING**: Using pkg-config is strongly recommended to ensure ABI compatibility. ION's public structures contain members whose sizes depend on platform-specific preprocessor definitions. Compiling without the correct flags (e.g., `-Dlinux`) will cause struct size mismatches, leading to buffer overruns and segmentation faults.
 
 For more information about using pkg-config with ION, see the [Writing Applications for ION](./Writing-Applications-for-ION.md) guide.
 

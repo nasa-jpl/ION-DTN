@@ -2,6 +2,8 @@
 
 When using the automake build system, ION provides a `pkg-config` file (`ion.pc`) that contains all the necessary compiler and linker flags for building external applications against ION libraries.
 
+> **WARNING - ABI Compatibility**: You **MUST** use `pkg-config --cflags ion` or manually specify the exact same platform flags that ION was compiled with. ION's public structures (such as `IonParms` in `ion.h`) contain members whose sizes depend on platform-specific preprocessor definitions. For example, `IonParms.pathName` is sized using `MAXPATHLEN`, which is only correctly defined when platform flags like `-Dlinux` are present. Without these flags, your application will use different struct sizes than the ION library, causing buffer overruns and segmentation faults when calling functions like `ionInitialize()`.
+
 ## Checking ION Installation
 
 First, verify ION's pkg-config information is available:
