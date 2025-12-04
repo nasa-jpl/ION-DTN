@@ -758,12 +758,14 @@ ltpextra = \
 	ltp/doc/pod1/dccplsi.pod \
 	ltp/doc/pod1/dccplso.pod \
 	ltp/doc/pod1/ltpadmin.pod \
+	ltp/doc/pod1/ltpcancel.pod \
 	ltp/doc/pod1/ltpclock.pod \
 	ltp/doc/pod1/ltpcounter.pod \
 	ltp/doc/pod1/ltpdriver.pod \
 	ltp/doc/pod1/ltpmeter.pod \
 	ltp/doc/pod1/ltpsecadmin.pod \
 	ltp/doc/pod1/ltpstats.pod \
+	ltp/doc/pod1/ltpwatch.pod \
 	ltp/doc/pod1/udplsi.pod \
 	ltp/doc/pod1/udplso.pod \
 	ltp/doc/pod3/ltp.pod \
@@ -774,12 +776,14 @@ ltpmans = \
 	ltp/doc/dccplsi.1 \
 	ltp/doc/dccplso.1 \
 	ltp/doc/ltpadmin.1 \
+	ltp/doc/ltpcancel.1 \
 	ltp/doc/ltpclock.1 \
 	ltp/doc/ltpcounter.1 \
 	ltp/doc/ltpdriver.1 \
 	ltp/doc/ltpmeter.1 \
 	ltp/doc/ltpsecadmin.1 \
 	ltp/doc/ltpstats.1 \
+	ltp/doc/ltpwatch.1 \
 	ltp/doc/udplsi.1 \
 	ltp/doc/udplso.1 \
 	ltp/doc/ltp.3 \
@@ -827,8 +831,8 @@ ltpcancel_LDADD = libici.la
 ltpcancel_CFLAGS = $(AM_CFLAGS)
 
 ltpwatch_SOURCES = ltp/utils/ltpwatch.c
-ltpwatch_LDADD = libici.la
-ltpwatch_CFLAGS = $(AM_CFLAGS)
+ltpwatch_LDADD = libltp.la libici.la
+ltpwatch_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
 

@@ -1,0 +1,344 @@
+=head1 NAME
+
+ltpwatch - Licklider Transmission Protocol (LTP) session status monitor
+
+=head1 SYNOPSIS
+
+B<ltpwatch> [B<-t> I<type>] [B<-s> I<session>] [B<-e> I<engineId>] [I<interval> [I<count>]]
+
+=head1 DESCRIPTION
+
+B<ltpwatch> displays the current status of LTP sessions for all configured
+spans (or a specific span if filtered). It shows both active sessions and
+recently completed sessions that are still in the "dead" lists awaiting
+cleanup.
+
+For each session, B<ltpwatch> displays the session number, current status,
+client service ID, data lengths, and retransmission count. Sessions are
+organized by span and separated into export (outbound) and import (inbound)
+categories.
+
+B<ltpwatch> can run in one-shot mode (default) or periodically refresh the
+display at a specified interval.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-t> I<type>
+
+Filter sessions by type. Valid values are:
+
+=over 4
+
+=item B<export>
+
+Show only export (outbound/sending) sessions.
+
+=item B<import>
+
+Show only import (inbound/receiving) sessions.
+
+=back
+
+If not specified, both export and import sessions are displayed.
+
+=item B<-s> I<session>
+
+Filter by a specific session number. Only sessions matching this number
+will be displayed. Useful for tracking a particular session across
+multiple spans.
+
+=item B<-e> I<engineId>
+
+Filter by span engine ID. Only the span with the specified remote engine
+ID will be displayed. If not specified, all configured spans are shown.
+
+=item B<-h>
+
+Display usage information and exit.
+
+=back
+
+=head1 ARGUMENTS
+
+=over 4
+
+=item I<interval>
+
+Refresh interval in seconds. If set to 0 or omitted, B<ltpwatch> runs in
+one-shot mode: it displays the current status and exits immediately.
+
+If a positive interval is specified, B<ltpwatch> will refresh the display
+every I<interval> seconds until interrupted (Ctrl+C) or the count is
+reached.
+
+=item I<count>
+
+Number of iterations to perform. Only meaningful when I<interval> is
+greater than 0.
+
+=over 4
+
+=item *
+
+If I<interval> is 0 (or omitted), I<count> defaults to 1 (one-shot mode).
+
+=item *
+
+If I<interval> is greater than 0 and I<count> is omitted, B<ltpwatch>
+runs indefinitely until interrupted.
+
+=item *
+
+If both I<interval> and I<count> are specified, B<ltpwatch> performs
+exactly I<count> iterations with I<interval> seconds between each.
+
+=back
+
+=back
+
+=head1 OUTPUT
+
+B<ltpwatch> displays session information in a tabular format:
+
+    === LTP Session Watch [2024-12-03 14:23:45] ===
+
+    --- Span 2 ---
+
+    EXPORT SESSIONS (Active: 3, Dead: 1)
+      Session    Status             Client TotalLen   RedLen     Rexmit
+      -------    ------             ------ ---------  ---------  ------
+      10001      transmitting       1      65536      32768      0
+      10002      buffering          1      131072     65536      0
+      10004      completed          1      16384      16384      0
+
+    IMPORT SESSIONS (Active: 2, Dead: 1)
+      Session    Status             Client RedLen     Received   Rexmit
+      -------    ------             ------ ---------  ---------  ------
+      20001      receiving          1      65536      45000      0
+      20003      completed          1      16384      16384      0
+
+=head2 Export Session Status Values
+
+=over 4
+
+=item B<buffering>
+
+Session is aggregating data blocks; End-of-Block has not been sent yet.
+
+=item B<transmitting>
+
+End-of-Block has been sent but final acknowledgment has not been received.
+
+=item B<awaiting-cleanup>
+
+Final acknowledgment received; session is being cleaned up.
+
+=item B<green-only>
+
+Session contains only green (unreliable) data with no red part.
+
+=item B<completed>
+
+Session completed successfully (in dead exports list).
+
+=item B<canceled(user)>
+
+Session was canceled by user request.
+
+=item B<canceled(unreachable)>
+
+Session was canceled because client service was unreachable.
+
+=item B<canceled(rexmit)>
+
+Session was canceled due to retransmission limit exceeded.
+
+=item B<canceled(miscolor)>
+
+Session was canceled due to segment color mismatch.
+
+=item B<canceled(engine)>
+
+Session was canceled by the LTP engine.
+
+=back
+
+=head2 Import Session Status Values
+
+=over 4
+
+=item B<receiving>
+
+Session is actively receiving data segments.
+
+=item B<complete-pending>
+
+All data received; waiting for processing.
+
+=item B<awaiting-delivery>
+
+Final report acknowledged; awaiting delivery to client.
+
+=item B<delivered>
+
+Data has been delivered to the client application.
+
+=item B<completed>
+
+Session completed successfully (in dead imports list).
+
+=item B<canceled(...)>
+
+Same cancellation reasons as export sessions.
+
+=back
+
+=head2 Column Descriptions
+
+=over 4
+
+=item B<Session>
+
+The LTP session number.
+
+=item B<Status>
+
+Current session state (see status values above).
+
+=item B<Client>
+
+Client service ID that owns this session.
+
+=item B<TotalLen> (export only)
+
+Total block size in bytes.
+
+=item B<RedLen>
+
+Size of the red (reliable) portion in bytes.
+
+=item B<Received> (import only)
+
+Number of red bytes received so far.
+
+=item B<Rexmit>
+
+Retransmission/expiration count from the session timer.
+
+=back
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<ltpwatch> completed successfully.
+
+=item "1"
+
+B<ltpwatch> was unable to attach to LTP or encountered an error.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<ltpwatch>
+
+One-shot display of all sessions on all spans.
+
+=item B<ltpwatch 5>
+
+Refresh display every 5 seconds until interrupted.
+
+=item B<ltpwatch 2 10>
+
+Refresh every 2 seconds, for 10 iterations total.
+
+=item B<ltpwatch -t export>
+
+Show only export sessions (one-shot).
+
+=item B<ltpwatch -t import -e 3>
+
+Show only import sessions for span with engine ID 3.
+
+=item B<ltpwatch -s 12345>
+
+Find and display session 12345 across all spans.
+
+=item B<ltpwatch -e 2 -t export 3>
+
+Show export sessions for engine 2, refreshing every 3 seconds.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+=over 4
+
+=item B<ION_NODE_LIST_DIR>
+
+For multi-node test configurations, this variable must be set to the
+directory containing the ion_nodes file.
+
+=back
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued:
+
+=over 4
+
+=item ltpwatch can't attach to LTP.
+
+B<ltpadmin> has not yet initialized LTP protocol operations.
+
+=item LTP is not initialized.
+
+The LTP database has not been created. Run B<ltpadmin> first.
+
+=item No spans configured.
+
+No LTP spans have been added via B<ltpadmin>.
+
+=item No span found for engine ID I<N>
+
+The specified engine ID does not match any configured span.
+
+=back
+
+=head1 NOTES
+
+=over 4
+
+=item *
+
+Recently completed sessions are only visible for a short time (typically
+around 30 seconds) while they remain in the "dead" session lists awaiting
+final cleanup. After cleanup, they will no longer appear in B<ltpwatch>
+output.
+
+=item *
+
+The B<Rexmit> column shows the timer expiration count, which is only
+meaningful for sessions that have experienced retransmissions or
+cancellation attempts.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
+
+=head1 SEE ALSO
+
+ltpadmin(1), ltpstats(1), ltprc(5), ltp(3)

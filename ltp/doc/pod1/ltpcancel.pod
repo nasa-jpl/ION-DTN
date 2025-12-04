@@ -1,0 +1,241 @@
+=head1 NAME
+
+ltpcancel - LTP Cancel Segment injection utility for testing
+
+=head1 SYNOPSIS
+
+B<ltpcancel> I<segment_type> I<dest_host> I<dest_port> I<source_engine_id> I<session_number>
+
+=head1 DESCRIPTION
+
+B<ltpcancel> is a testing utility that crafts and sends artificial LTP
+Cancel Segments to a specified destination. It is primarily used for
+testing and debugging LTP cancel segment handling, particularly the
+acknowledgment behavior for cancel segments.
+
+The utility constructs a minimal valid LTP Cancel Segment with the
+specified parameters and sends it via UDP to the target LTP engine.
+This allows testing of cancel segment processing without requiring
+an actual LTP session to be in progress.
+
+B<Note:> This is a testing/debugging tool and should not be used in
+production environments. Injecting cancel segments for non-existent
+or arbitrary sessions may cause unexpected behavior in the receiving
+LTP engine.
+
+=head1 ARGUMENTS
+
+=over 4
+
+=item I<segment_type>
+
+The type of cancel segment to send:
+
+=over 4
+
+=item B<CS>
+
+Cancel Segment from sender (segment type code 12). This indicates
+the sending engine is canceling the session.
+
+=item B<CR>
+
+Cancel Segment from receiver (segment type code 14). This indicates
+the receiving engine is canceling the session.
+
+=back
+
+=item I<dest_host>
+
+The hostname or IP address of the target LTP engine. Can be a DNS name
+(e.g., "localhost", "node2.example.com") or an IP address
+(e.g., "127.0.0.1", "192.168.1.100").
+
+=item I<dest_port>
+
+The UDP port number on which the target LTP engine is listening.
+This is typically the port configured for the LTP link service
+input (LSI) on the target node.
+
+=item I<source_engine_id>
+
+The LTP engine ID to use as the source of the cancel segment.
+This should match the engine ID that the target expects for
+incoming segments (i.e., it should be an engine ID that corresponds
+to a configured span on the target).
+
+=item I<session_number>
+
+The session number to include in the cancel segment. For testing
+cancel acknowledgment behavior, this can be any session number,
+including sessions that don't exist on the target.
+
+=back
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+The cancel segment was successfully sent.
+
+=item "1"
+
+An error occurred. Possible causes include:
+
+=over 4
+
+=item *
+
+Invalid arguments or missing required parameters
+
+=item *
+
+Invalid segment type (must be CS or CR)
+
+=item *
+
+Unable to resolve destination hostname
+
+=item *
+
+Socket creation or transmission failure
+
+=back
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<ltpcancel CS localhost 2113 2 12345>
+
+Send a Cancel-by-Sender (CS) segment to localhost port 2113,
+appearing to come from engine ID 2, for session number 12345.
+
+=item B<ltpcancel CR 192.168.1.100 1113 1 99>
+
+Send a Cancel-by-Receiver (CR) segment to 192.168.1.100 port 1113,
+appearing to come from engine ID 1, for session number 99.
+
+=item B<ltpcancel CS node2.local 2113 3 1>
+
+Send a CS segment to node2.local, from engine 3, session 1.
+
+=back
+
+=head1 OUTPUT
+
+On successful transmission, B<ltpcancel> prints:
+
+    Sent CS segment: 6 bytes to localhost:2113
+      Source Engine ID: 2
+      Session Number: 12345
+
+The byte count reflects the actual size of the LTP segment sent,
+which varies based on the SDNV encoding of the engine ID and
+session number.
+
+=head1 TECHNICAL DETAILS
+
+The cancel segment is constructed according to the LTP specification
+(RFC 5326) with the following structure:
+
+=over 4
+
+=item *
+
+Version/Type byte: Version 0, type 12 (CS) or 14 (CR)
+
+=item *
+
+Source Engine ID: SDNV-encoded engine ID
+
+=item *
+
+Session Number: SDNV-encoded session number
+
+=item *
+
+Extension count: 0 (no extensions)
+
+=item *
+
+Reason code: 0 (LtpCancelByUser)
+
+=back
+
+The segment is sent as a single UDP datagram to the specified
+destination.
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables are used.
+
+=head1 DIAGNOSTICS
+
+=over 4
+
+=item Error: segment_type must be CS or CR
+
+The first argument must be either "CS" or "CR" (case-sensitive).
+
+=item Error: Could not resolve host I<hostname>
+
+The specified destination hostname could not be resolved via DNS.
+Check the hostname spelling or use an IP address instead.
+
+=item socket: I<error message>
+
+Failed to create a UDP socket. Check system resources and
+network configuration.
+
+=item sendto: I<error message>
+
+Failed to send the UDP packet. This may indicate network
+connectivity issues or firewall restrictions.
+
+=back
+
+=head1 NOTES
+
+=over 4
+
+=item *
+
+This utility does not require ION or LTP to be running on the
+local machine. It operates independently by directly constructing
+and sending UDP packets.
+
+=item *
+
+The cancel reason code is always set to 0 (LtpCancelByUser).
+Other reason codes are not currently supported.
+
+=item *
+
+No response is expected or waited for. To verify that the target
+processed the cancel segment, check the target's LTP logs or use
+B<ltpwatch> to observe session state changes.
+
+=item *
+
+SDNV (Self-Delimiting Numeric Value) encoding is used for the
+engine ID and session number, as required by the LTP specification.
+Values up to 2,097,151 are supported.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
+
+=head1 SEE ALSO
+
+ltpadmin(1), ltpwatch(1), ltprc(5), ltp(3)

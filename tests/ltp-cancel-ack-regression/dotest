@@ -58,14 +58,14 @@ echo "Checking test prerequisites..."
 if ! command -v ltpcancel >/dev/null 2>&1; then
     echo "Error: ltpcancel utility not found. Please build with 'make buildcheck' first."
     echo "Skipping test due to missing utilities."
-    exit 77  # Exit code 77 indicates test was skipped
+    exit 2  # Exit code 2 indicates test was skipped (runtests framework convention)
 fi
 
 # Check for tcpdump utility
 if ! command -v tcpdump >/dev/null 2>&1; then
     echo "Error: tcpdump utility not found. Please install tcpdump."
     echo "Skipping test due to missing utilities."
-    exit 77
+    exit 2
 fi
 
 # Check if tcpdump can be run without sudo (required for packet capture)
@@ -73,7 +73,7 @@ if ! tcpdump -D >/dev/null 2>&1; then
     echo "Error: tcpdump requires elevated permissions. Please run with sufficient privileges"
     echo "or configure tcpdump to run without sudo (e.g., via capabilities or sudo configuration)."
     echo "Skipping test due to insufficient permissions."
-    exit 77
+    exit 2
 fi
 
 # Detect loopback interface (could be 'lo' on Linux or 'lo0' on FreeBSD/macOS)
@@ -85,7 +85,7 @@ elif ifconfig lo >/dev/null 2>&1; then
 else
     echo "Error: Could not find loopback interface (tried 'lo' and 'lo0')."
     echo "Skipping test due to missing loopback interface."
-    exit 77
+    exit 2
 fi
 
 echo "Prerequisites met:"
