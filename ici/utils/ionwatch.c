@@ -30,8 +30,18 @@
 #endif
 
 #ifdef ENABLE_DTPC
-#include "dtpcP.h"
 #include "dtpc.h"
+/* Forward declarations to avoid dtpcP.h conflicts with bpP.h */
+typedef struct
+{
+	int		dtpcdPid;
+	int		clockPid;
+	int		watching;
+	sm_SemId	aduSemaphore;
+	PsmAddress	vsaps;
+	PsmAddress	profiles;
+} DtpcVdb;
+extern DtpcVdb	*getDtpcVdb(void);
 #endif
 
 #ifdef ENABLE_BSSP
