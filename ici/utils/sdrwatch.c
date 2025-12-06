@@ -14,6 +14,27 @@
 #include "ion.h"
 #include "zco.h"
 #include "sdrxn.h"
+#include "sdrmgt.h"
+
+#include <sys/types.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+/*	Logger function to restore stdout logging after ionAttach()
+ *	redirects memos to ion.log.					*/
+
+static void	logToStdoutLocal(char *text)
+{
+	if (text)
+	{
+		fprintf(stdout, "%s\n", text);
+		fflush(stdout);
+	}
+}
+
+#define DAEMON_POLL_INTERVAL_SEC	10
+#define DEFAULT_REPORT_INTERVAL_MIN	10
+#define DEFAULT_PERCENT_THRESHOLD	5
 
 static unsigned int	sdrwatch_count(int *newValue)
 {
@@ -38,11 +59,273 @@ static void	handleQuit(int signum)
 {
 	/* Tell the compiler that we are not using 'signum' */
 	(void)signum;
-	
+
 	int	newCount = 1;	/*	Advance to end of last cycle.	*/
 
 	PUTS("[Terminated by user.]");
 	oK(sdrwatch_count(&newCount));
+}
+
+/*	Daemon mode state variables.					*/
+
+static volatile int	daemonRunning = 1;
+static double		lastReportedHeapPct = -1.0;
+static double		lastReportedInboundPct = -1.0;
+static double		lastReportedOutboundPct = -1.0;
+static time_t		lastReportTime = 0;
+
+static void	handleDaemonQuit(int signum)
+{
+	(void)signum;
+	daemonRunning = 0;
+}
+
+static int	daemonize(void)
+{
+	pid_t	pid;
+
+	pid = fork();
+	if (pid < 0)
+	{
+		return -1;
+	}
+
+	if (pid > 0)
+	{
+		exit(0);	/*	Parent exits.			*/
+	}
+
+	if (setsid() < 0)
+	{
+		return -1;
+	}
+
+	/*	Second fork to prevent acquiring a controlling terminal.*/
+
+	pid = fork();
+	if (pid < 0)
+	{
+		return -1;
+	}
+
+	if (pid > 0)
+	{
+		exit(0);
+	}
+
+	/*	Close standard file descriptors and redirect to /dev/null.*/
+
+	close(STDIN_FILENO);
+	close(STDOUT_FILENO);
+	close(STDERR_FILENO);
+	oK(open("/dev/null", O_RDONLY));	/*	stdin		*/
+	oK(open("/dev/null", O_WRONLY));	/*	stdout		*/
+	oK(open("/dev/null", O_WRONLY));	/*	stderr		*/
+
+	return 0;
+}
+
+static double	calculateSdrHeapPct(Sdr sdr)
+{
+	SdrUsageSummary	summary;
+	double		unavailableBytes;
+	double		totalBytes;
+
+	CHKZERO(sdr_begin_xn(sdr));
+	sdr_usage(sdr, &summary);
+	sdr_exit_xn(sdr);
+
+	unavailableBytes = (double)(summary.smallPoolAllocated
+			+ summary.largePoolAllocated);
+	totalBytes = (double)(summary.heapSize);
+	if (totalBytes <= 0)
+	{
+		return 0.0;
+	}
+
+	return (unavailableBytes / totalBytes) * 100.0;
+}
+
+static double	calculateZcoInboundPct(Sdr sdr)
+{
+	double	occupancy;
+	double	maxOccupancy;
+
+	CHKZERO(sdr_begin_xn(sdr));
+	occupancy = zco_get_heap_occupancy(sdr, ZcoInbound);
+	maxOccupancy = zco_get_max_heap_occupancy(sdr, ZcoInbound);
+	sdr_exit_xn(sdr);
+
+	if (maxOccupancy <= 0)
+	{
+		return 0.0;
+	}
+
+	return (occupancy / maxOccupancy) * 100.0;
+}
+
+static double	calculateZcoOutboundPct(Sdr sdr)
+{
+	double	occupancy;
+	double	maxOccupancy;
+
+	CHKZERO(sdr_begin_xn(sdr));
+	occupancy = zco_get_heap_occupancy(sdr, ZcoOutbound);
+	maxOccupancy = zco_get_max_heap_occupancy(sdr, ZcoOutbound);
+	sdr_exit_xn(sdr);
+
+	if (maxOccupancy <= 0)
+	{
+		return 0.0;
+	}
+
+	return (occupancy / maxOccupancy) * 100.0;
+}
+
+static void	reportSdrHeapUsage(Sdr sdr, char *sdrName, double pct)
+{
+	SdrUsageSummary	summary;
+	char		buf[256];
+	unsigned long	unavailableBytes;
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_usage(sdr, &summary);
+	sdr_exit_xn(sdr);
+
+	unavailableBytes = (unsigned long)(summary.smallPoolAllocated
+			+ summary.largePoolAllocated);
+	isprintf(buf, sizeof buf,
+		"[i] sdrwatch: %s SDR heap usage: %.3f%% (%lu/%lu bytes)",
+		sdrName, pct, unavailableBytes,
+		(unsigned long) summary.heapSize);
+	writeMemo(buf);
+}
+
+static void	reportZcoUsage(Sdr sdr, char *sdrName, double inboundPct,
+			double outboundPct)
+{
+	char		buf[256];
+	vast		inboundOccupancy;
+	vast		inboundMax;
+	vast		outboundOccupancy;
+	vast		outboundMax;
+
+	CHKVOID(sdr_begin_xn(sdr));
+	inboundOccupancy = zco_get_heap_occupancy(sdr, ZcoInbound);
+	inboundMax = zco_get_max_heap_occupancy(sdr, ZcoInbound);
+	outboundOccupancy = zco_get_heap_occupancy(sdr, ZcoOutbound);
+	outboundMax = zco_get_max_heap_occupancy(sdr, ZcoOutbound);
+	sdr_exit_xn(sdr);
+
+	isprintf(buf, sizeof buf,
+		"[i] sdrwatch: %s ZCO heap inbound: %.3f%% (%ld/%ld), "
+		"outbound: %.3f%% (%ld/%ld)",
+		sdrName, inboundPct, (long) inboundOccupancy, (long) inboundMax,
+		outboundPct, (long) outboundOccupancy, (long) outboundMax);
+	writeMemo(buf);
+}
+
+static int	run_sdrwatch_daemon(char *sdrName, int intervalMinutes,
+			double percentThreshold)
+{
+	Sdr	sdr;
+	double	currentHeapPct;
+	double	currentInboundPct;
+	double	currentOutboundPct;
+	time_t	now;
+	int	heapThresholdCrossed;
+	int	inboundThresholdCrossed;
+	int	outboundThresholdCrossed;
+	int	intervalElapsed;
+
+	/*	Daemonize first, before attaching to SDR.		*/
+
+	if (daemonize() < 0)
+	{
+		return -1;
+	}
+
+	/*	Register signal handlers for graceful shutdown.		*/
+
+	isignal(SIGTERM, handleDaemonQuit);
+	isignal(SIGINT, handleDaemonQuit);
+
+	/*	Attach to ION in the daemon process.  This sets up
+	 *	the logger to write to ion.log and initializes SDR.	*/
+
+	if (ionAttach() < 0)
+	{
+		return -1;
+	}
+
+	sdr = sdr_start_using(sdrName);
+	if (sdr == NULL)
+	{
+		putErrmsg("Can't attach to sdr.", sdrName);
+		writeErrmsgMemos();
+		ionDetach();
+		return -1;
+	}
+
+	/*	Log startup message.					*/
+
+	writeMemo("[i] sdrwatch daemon started.");
+
+	/*	Initial report.						*/
+
+	lastReportedHeapPct = calculateSdrHeapPct(sdr);
+	lastReportedInboundPct = calculateZcoInboundPct(sdr);
+	lastReportedOutboundPct = calculateZcoOutboundPct(sdr);
+	lastReportTime = getCtime();
+	reportSdrHeapUsage(sdr, sdrName, lastReportedHeapPct);
+	reportZcoUsage(sdr, sdrName, lastReportedInboundPct,
+			lastReportedOutboundPct);
+
+	/*	Main daemon loop: poll every DAEMON_POLL_INTERVAL_SEC.	*/
+
+	while (daemonRunning)
+	{
+		snooze(DAEMON_POLL_INTERVAL_SEC);
+		if (!daemonRunning)
+		{
+			break;
+		}
+
+		currentHeapPct = calculateSdrHeapPct(sdr);
+		currentInboundPct = calculateZcoInboundPct(sdr);
+		currentOutboundPct = calculateZcoOutboundPct(sdr);
+		now = getCtime();
+
+		/*	Check if any threshold crossed or interval elapsed.*/
+
+		heapThresholdCrossed = (int)(currentHeapPct / percentThreshold)
+				!= (int)(lastReportedHeapPct / percentThreshold);
+		inboundThresholdCrossed = (int)(currentInboundPct / percentThreshold)
+				!= (int)(lastReportedInboundPct / percentThreshold);
+		outboundThresholdCrossed = (int)(currentOutboundPct / percentThreshold)
+				!= (int)(lastReportedOutboundPct / percentThreshold);
+		intervalElapsed = (now - lastReportTime)
+				>= (intervalMinutes * 60);
+
+		if (heapThresholdCrossed || inboundThresholdCrossed
+				|| outboundThresholdCrossed || intervalElapsed)
+		{
+			reportSdrHeapUsage(sdr, sdrName, currentHeapPct);
+			reportZcoUsage(sdr, sdrName, currentInboundPct,
+					currentOutboundPct);
+			lastReportedHeapPct = currentHeapPct;
+			lastReportedInboundPct = currentInboundPct;
+			lastReportedOutboundPct = currentOutboundPct;
+			lastReportTime = now;
+		}
+	}
+
+	/*	Log shutdown message.					*/
+
+	writeMemo("[i] sdrwatch daemon stopped.");
+	sdr_stop_using(sdr, 0);
+	writeErrmsgMemos();
+	return 0;
 }
 
 static int	run_sdrwatch(char *sdrName, char *mode, int interval,
@@ -164,9 +447,10 @@ static int	run_sdrwatch(char *sdrName, char *mode, int interval,
 	return 0;
 }
 
+#if !defined (ION_LWT)
 static void	printUsage(void)
 {
-	PUTS("Usage: sdrwatch <sdr name> [ -t | -s | -r | -z ] [<interval> \
+	PUTS("Usage: sdrwatch [<sdr_name>] [ -t | -s | -r | -z ] [<interval> \
 [<count> [verbose]]]");
 	PUTS("\t-t to print a trace of space allocation and release (default)");
 	PUTS("\t-s to print stats for current transaction, no tracing");
@@ -174,12 +458,22 @@ static void	printUsage(void)
 for current transaction, no tracing");
 	PUTS("\t-z to print stats for current transaction and print ZCO \
 status after that transaction ends, no tracing");
-	PUTS("   sdr name: name of the SDR to monitor, e.g., 'ion'");
+	PUTS("   sdr_name: name of the SDR to monitor; if omitted, auto-detected \
+from ION configuration");
 	PUTS("   interval: polling interval in seconds");
 	PUTS("   count: number of polls");
 	PUTS("   verbose: enable verbose output, tracing all allocations, \
-			does not remove log entries for freed blocks.");
+		does not remove log entries for freed blocks.");
+	PUTS("");
+	PUTS("Daemon mode:");
+	PUTS("   sdrwatch [<sdr_name>] -d [<interval_minutes> [<percent_threshold>]]");
+	PUTS("   -d: run as daemon, reporting usage to ion.log");
+	PUTS("   interval_minutes: reporting interval (default: 10)");
+	PUTS("   percent_threshold: report when usage crosses this threshold \
+(default: 5)");
+	PUTS("   sdr_name: if omitted, auto-detected from ION configuration");
 }
+#endif
 
 #if defined (ION_LWT)
 int	sdrwatch(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
@@ -205,54 +499,7 @@ int	sdrwatch(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		count = strtol((char *) a3, NULL, 0);
 		verbose = a4;
 	}
-#else
-int	main(int argc, char **argv)
-{
-	char	*sdrName;
-	int	interval = 0;
-	int	count = 0;
-	int	verbose = 0;
-	char	*mode = "t";
 
-	if (argc < 2)
-	{
-		printUsage();
-		return 0;
-	}
-
-	sdrName = argv[1];
-	if (argc > 2)
-	{
-		if (*(argv[2]) == '-')
-		{
-			mode = argv[2] + 1;
-			if (argc > 3)
-			{
-				interval = strtol(argv[3], NULL, 0);
-				if (argc > 4)
-				{
-					count = strtol(argv[4], NULL, 0);
-					if (argc > 5)
-					{
-						verbose = 1;
-					}
-				}
-			}
-		}
-		else
-		{
-			interval = strtol(argv[2], NULL, 0);
-			if (argc > 3)
-			{
-				count = strtol(argv[3], NULL, 0);
-				if (argc > 4)
-				{
-					verbose = 1;
-				}
-			}
-		}
-	}
-#endif
 	if (interval < 0)
 	{
 		interval = 0;
@@ -266,3 +513,152 @@ int	main(int argc, char **argv)
 	oK(sdrwatch_count(&count));
 	return run_sdrwatch(sdrName, mode, interval, verbose);
 }
+#else
+int	main(int argc, char **argv)
+{
+	char	*sdrName = "ion";
+	char	sdrNameBuf[MAX_SDR_NAME + 1];
+	int	interval = 0;
+	int	count = 0;
+	int	verbose = 0;
+	char	*mode = "t";
+	int	intervalMinutes;
+	double	percentThreshold;
+	int	argIdx;
+	Sdr	sdr;
+	Object	iondbObj;
+	IonDB	iondb;
+
+	/*	Check for help request.					*/
+
+	if (argc > 1 && (strcmp(argv[1], "-h") == 0
+			|| strcmp(argv[1], "--help") == 0))
+	{
+		printUsage();
+		return 0;
+	}
+
+	/*	Helper function: Check if argument is a mode flag.	*/
+	#define IS_MODE_FLAG(arg)	(strcmp(arg, "-t") == 0 \
+					|| strcmp(arg, "-s") == 0 \
+					|| strcmp(arg, "-r") == 0 \
+					|| strcmp(arg, "-z") == 0 \
+					|| strcmp(arg, "-d") == 0)
+
+	/*	Determine if we need to auto-detect SDR name.
+	 *	Auto-detect if:
+	 *	  - No arguments (argc == 1)
+	 *	  - First argument is a mode flag (-t, -s, -r, -z, -d)
+	 *	  - First argument looks like a number (interval)	*/
+
+	if (argc < 2 || IS_MODE_FLAG(argv[1])
+			|| (argv[1][0] >= '0' && argv[1][0] <= '9'))
+	{
+		/*	Auto-detect SDR name from ION configuration.	*/
+
+		if (ionAttach() < 0)
+		{
+			putErrmsg("sdrwatch: can't attach to ION.", NULL);
+			writeErrmsgMemos();
+			return 1;
+		}
+
+		sdr = getIonsdr();
+		iondbObj = getIonDbObject();
+		CHKZERO(sdr_begin_xn(sdr));
+		sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+		sdr_exit_xn(sdr);
+
+		istrcpy(sdrNameBuf, iondb.parmcopy.sdrName,
+				sizeof sdrNameBuf);
+		sdrName = sdrNameBuf;
+
+		ionDetach();
+
+		/*	Restore stdout logging for standard mode.
+		 *	ionAttach() redirects memos to ion.log.	*/
+
+		setLogger(logToStdoutLocal);
+
+		argIdx = 1;	/*	Start parsing from argv[1].	*/
+	}
+	else
+	{
+		/*	First argument is SDR name.			*/
+
+		sdrName = argv[1];
+		argIdx = 2;	/*	Start parsing from argv[2].	*/
+	}
+
+	/*	Check for daemon mode (-d flag).			*/
+
+	if (argIdx < argc && strcmp(argv[argIdx], "-d") == 0)
+	{
+		intervalMinutes = DEFAULT_REPORT_INTERVAL_MIN;
+		percentThreshold = DEFAULT_PERCENT_THRESHOLD;
+		argIdx++;
+
+		if (argIdx < argc)
+		{
+			intervalMinutes = strtol(argv[argIdx], NULL, 0);
+			if (intervalMinutes < 1)
+			{
+				intervalMinutes = DEFAULT_REPORT_INTERVAL_MIN;
+			}
+
+			argIdx++;
+		}
+
+		if (argIdx < argc)
+		{
+			percentThreshold = strtod(argv[argIdx], NULL);
+			if (percentThreshold < 0.001 || percentThreshold > 100)
+			{
+				percentThreshold = DEFAULT_PERCENT_THRESHOLD;
+			}
+		}
+
+		return run_sdrwatch_daemon(sdrName, intervalMinutes,
+				percentThreshold);
+	}
+
+	/*	Standard mode: sdrwatch [sdr_name] [-t|-s|-r|-z] [interval]
+	 *	[count] [verbose]					*/
+
+	if (argIdx < argc && *(argv[argIdx]) == '-')
+	{
+		mode = argv[argIdx] + 1;
+		argIdx++;
+	}
+
+	if (argIdx < argc)
+	{
+		interval = strtol(argv[argIdx], NULL, 0);
+		argIdx++;
+	}
+
+	if (argIdx < argc)
+	{
+		count = strtol(argv[argIdx], NULL, 0);
+		argIdx++;
+	}
+
+	if (argIdx < argc)
+	{
+		verbose = 1;
+	}
+
+	if (interval < 0)
+	{
+		interval = 0;
+	}
+
+	if (count < 1)
+	{
+		count = 1;
+	}
+
+	oK(sdrwatch_count(&count));
+	return run_sdrwatch(sdrName, mode, interval, verbose);
+}
+#endif

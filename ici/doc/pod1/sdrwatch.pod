@@ -4,7 +4,9 @@ sdrwatch - SDR non-volatile data store activity monitor
 
 =head1 SYNOPSIS
 
-B<sdrwatch> I<sdr_name> [ -t | -s | -r | -z ] [I<interval> [I<count> [ verbose ]]]
+B<sdrwatch> [ I<sdr_name> ] [ -t | -s | -r | -z ] [I<interval> [I<count> [ verbose ]]]
+
+B<sdrwatch> [ I<sdr_name> ] B<-d> [ I<interval_minutes> [ I<percent_threshold> ] ]
 
 =head1 DESCRIPTION
 
@@ -17,6 +19,9 @@ data store identified by I<sdr_name> during that interval.  If the optional
 B<verbose> parameter is specified, the printed SDR activity trace will be
 verbose as described in sdr(3). The 's', 'r' and 'z' modes do not enable tracing.
 
+If I<sdr_name> is omitted, B<sdrwatch> will auto-detect the SDR name from the
+ION configuration.
+
 If I<interval> is zero, B<sdrwatch> just performs the indicated operation
 once (for 't', it merely prints a current usage summary for the indicated
 data store) and terminates.
@@ -25,6 +30,63 @@ B<sdrwatch> is helpful for detecting and diagnosing storage space leaks.  For
 debugging the ION protocol stack, I<sdr_name> is normally "ion" but might be
 overridden by the value of sdrName in the .ionconfig file used to configure
 the node under study.
+
+=head2 Daemon Mode
+
+When invoked with the B<-d> flag, B<sdrwatch> runs as a background daemon
+that periodically reports SDR heap usage and ZCO inbound/outbound heap
+occupancy percentages to B<ion.log>.  No memory allocation tracing is
+performed in this mode, minimizing overhead.
+
+The daemon reports three metrics:
+
+=over 4
+
+=item *
+
+SDR heap usage percentage (total unavailable bytes / heap size)
+
+=item *
+
+ZCO inbound heap occupancy percentage
+
+=item *
+
+ZCO outbound heap occupancy percentage
+
+=back
+
+The daemon reports when either:
+
+=over 4
+
+=item *
+
+The reporting interval elapses (default: 10 minutes)
+
+=item *
+
+Any of the three metrics crosses a threshold boundary (default: 5%, meaning
+reports occur when any metric crosses 5%, 10%, 15%, etc.)
+
+=back
+
+If I<sdr_name> is omitted, it is auto-detected from the ION configuration.
+
+=over 8
+
+=item I<interval_minutes>
+
+Reporting interval in minutes.  Default is 10.
+
+=item I<percent_threshold>
+
+Percentage threshold for change reporting.  Default is 5, meaning a report
+is generated whenever any metric crosses any multiple of 5%.
+
+=back
+
+The daemon can be stopped by sending SIGTERM or SIGINT to the process.
 
 =head1 EXIT STATUS
 

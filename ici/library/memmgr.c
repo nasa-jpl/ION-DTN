@@ -134,6 +134,30 @@ static int	_mem_mgrs(int nbr, char *name, MemAllocator take,
 	if (nbr < 0)	/*	Add or lookup memory manager.		*/
 	{
 		CHKERR(name);
+
+		/*	Normalize NULL function pointers to defaults
+		 *	before any comparisons.				*/
+
+		if (take == NULL)
+		{
+			take = null_malloc;
+		}
+
+		if (release == NULL)
+		{
+			release = null_free;
+		}
+
+		if (AtoP == NULL)
+		{
+			AtoP = null_atop;
+		}
+
+		if (PtoA == NULL)
+		{
+			PtoA = null_ptoa;
+		}
+
 		for (i = 0, mgr = mem_mgrs; i < mem_mgr_count; i++, mgr++)
 		{
 			if (mgr == NULL || mgr->name == NULL || name == NULL)
@@ -153,7 +177,17 @@ static int	_mem_mgrs(int nbr, char *name, MemAllocator take,
 				return i;
 			}
 
-			/*	Re-adding existing memory manager.	*/
+			/*	Re-adding existing memory manager.  If all
+			 *	function pointers are NULL (defaults), just
+			 *	return the existing manager index - caller
+			 *	is attaching to use existing partition.
+			 *	Otherwise, verify function pointers match.	*/
+
+			if (take == null_malloc && release == null_free
+			&& AtoP == null_atop && PtoA == null_ptoa)
+			{
+				return i;	/*	Use existing.	*/
+			}
 
 			if (mgr->take != take
 			|| mgr->release != release
@@ -181,26 +215,6 @@ static int	_mem_mgrs(int nbr, char *name, MemAllocator take,
 		{
 			putErrmsg("Too many memory managers.", NULL);
 			return -1;
-		}
-
-		if (take == NULL)
-		{
-			take = null_malloc;
-		}
-
-		if (release == NULL)
-		{
-			release = null_free;
-		}
-
-		if (AtoP == NULL)
-		{
-			AtoP = null_atop;
-		}
-
-		if (PtoA == NULL)
-		{
-			PtoA = null_ptoa;
 		}
 
 		/*	Copy the name, in case it's not a literal.	*/

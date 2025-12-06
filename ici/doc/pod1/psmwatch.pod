@@ -4,20 +4,28 @@ psmwatch - PSM memory partition activity monitor
 
 =head1 SYNOPSIS
 
+B<psmwatch> [ I<interval> [ I<count> [ verbose ]]]
+
 B<psmwatch> I<shared_memory_key> I<memory_size> I<partition_name> I<interval> I<count> [ verbose ]
+
+B<psmwatch> B<-d> [ I<interval_minutes> [ I<percent_threshold> ] ] [ I<shared_memory_key> I<memory_size> I<partition_name> ]
 
 =head1 DESCRIPTION
 
 For I<count> interations, B<psmwatch> sleeps I<interval> seconds and then
 invokes the psm_print_trace() function (see psm(3)) to report on PSM dynamic
 memory management activity in the PSM-managed shared memory partition
-identified by I<shared_memory_key> (hexidecimal or decimal) during that interval. 
+identified by I<shared_memory_key> (hexidecimal or decimal) during that interval.
 If the optional B<verbose> parameter is specified, the printed PSM activity trace will be
 verbose as described in psm(3).
 
-To prevent confusion, the specified I<memory_size> and I<partition_name> are
-compared to those declared when this shared memory partition was initially
-managed; if they don't match, B<psmwatch> immediately terminates.
+If I<shared_memory_key>, I<memory_size>, and I<partition_name> are omitted,
+B<psmwatch> will auto-detect these parameters from the ION configuration.
+
+To prevent confusion, when explicit parameters are specified, the I<memory_size>
+and I<partition_name> are compared to those declared when this shared memory
+partition was initially managed; if they don't match, B<psmwatch> immediately
+terminates.
 
 If I<interval> is zero, B<psmwatch> merely prints a current usage summary
 for the indicated shared-memory partition and terminates. If negative, B<psmwatch>
@@ -26,6 +34,50 @@ will disable any memory tracing.
 
 B<psmwatch> is helpful for detecting and diagnosing memory leaks.  For
 debugging the ION protocol stack:
+
+=head2 Daemon Mode
+
+When invoked with the B<-d> flag, B<psmwatch> runs as a background daemon
+that periodically reports PSM partition usage percentage to B<ion.log>.
+No memory allocation tracing is performed in this mode, minimizing overhead.
+
+The daemon reports usage when either:
+
+=over 4
+
+=item *
+
+The reporting interval elapses (default: 10 minutes)
+
+=item *
+
+The usage percentage crosses a threshold boundary (default: 5%, meaning
+reports occur when usage crosses 5%, 10%, 15%, etc.)
+
+=back
+
+If I<shared_memory_key>, I<memory_size>, and I<partition_name> are omitted,
+B<psmwatch> will attach to ION and use the default working memory partition
+parameters from the ION configuration.
+
+=over 8
+
+=item I<interval_minutes>
+
+Reporting interval in minutes.  Default is 10.
+
+=item I<percent_threshold>
+
+Percentage threshold for change reporting.  Default is 5, meaning a report
+is generated whenever usage crosses any multiple of 5%.
+
+=back
+
+The daemon can be stopped by sending SIGTERM or SIGINT to the process.
+
+=head2 Standard Mode
+
+For debugging the ION protocol stack:
 
 =over 8
 
