@@ -318,6 +318,30 @@ AC_ARG_ENABLE(
 AM_CONDITIONAL(ENABLE_BSSP, test "x$ENABLE_BSSP" = "xyes")
 
 #
+# allow the user running configure to disable DTPC
+#
+AC_ARG_ENABLE(
+    dtpc,
+    [AS_HELP_STRING([--disable-dtpc],[disable DTPC protocol])],
+    [],
+    [AM_CFLAGS="$AM_CFLAGS -DENABLE_DTPC"
+     PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DENABLE_DTPC"
+     ENABLE_DTPC=yes])
+AM_CONDITIONAL(ENABLE_DTPC, test "x$ENABLE_DTPC" = "xyes")
+
+#
+# allow the user running configure to disable TC (Trusted Collective TCA/TCC)
+#
+AC_ARG_ENABLE(
+    tc,
+    [AS_HELP_STRING([--disable-tc],[disable Trusted Collective (TCA/TCC)])],
+    [],
+    [AM_CFLAGS="$AM_CFLAGS -DENABLE_TC"
+     PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DENABLE_TC"
+     ENABLE_TC=yes])
+AM_CONDITIONAL(ENABLE_TC, test "x$ENABLE_TC" = "xyes")
+
+#
 # allow the user running configure to enable AMS_INDUSTRIAL
 #
 AC_ARG_ENABLE(
@@ -918,9 +942,14 @@ ION Configuration Summary
     BSSP (Bundle Streaming Service):         ${ENABLE_BSSP:-no}
     IMC (Interplanetary Multicast):          ${ENABLE_IMC:-no}
 
+  Optional Protocols:
+    DTPC (Delay Tolerant Payload Conditioning): ${ENABLE_DTPC:-no}
+    TC (Trusted Collective TCA/TCC):            ${ENABLE_TC:-no}
+
   To disable DGR:   ./configure --disable-dgr
   To disable BSSP:  ./configure --disable-bssp
-  To disable both:  ./configure --disable-dgr --disable-bssp
+  To disable DTPC:  ./configure --disable-dtpc
+  To disable TC:    ./configure --disable-tc
 
 ========================================================================
 ])

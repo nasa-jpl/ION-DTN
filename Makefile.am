@@ -2576,13 +2576,25 @@ else
     ionexitbssplib =
 endif
 
+if ENABLE_DTPC
+    ionexitdtpclib = libdtpc.la
+else
+    ionexitdtpclib =
+endif
+
+if ENABLE_TC
+    ionexittclib = libtcaP.la libtcc.la
+else
+    ionexittclib =
+endif
+
 restartbin = ionrestart ionexit
 
 # --- Utility Programs --- #
 
 ionexit_SOURCES = restart/utils/ionexit.c
-ionexit_LDADD = libltp.la $(ionexitbssplib) libcfdp.la libici.la  -lm $(bplib) 
-ionexit_CFLAGS = $(icicflags) $(AM_CFLAGS)
+ionexit_LDADD = libltp.la $(ionexitbssplib) libcfdp.la $(ionexitdtpclib) $(ionexittclib) libici.la -lm $(bplib)
+ionexit_CFLAGS = $(icicflags) $(AM_CFLAGS) -I$(srcdir)/dtpc/include -I$(srcdir)/dtpc/library -I$(srcdir)/tc/include -I$(srcdir)/tc/authority -I$(srcdir)/tc/client
 
 ionrestart_SOURCES = restart/utils/ionrestart.c
 ionrestart_LDADD = libici.la $(bplib) libltp.la libcfdp.la 

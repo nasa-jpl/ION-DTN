@@ -22,6 +22,19 @@
 #include "cfdp/library/cfdpP.h"
 #endif
 
+#ifdef ENABLE_DTPC
+#include "dtpc.h"
+/* Forward declarations to avoid dtpcP.h conflicts with bpP.h */
+extern int	dtpcAttach(void);
+extern void	_dtpcStop(void);
+#define dtpcStop()	_dtpcStop()
+#endif
+
+#ifdef ENABLE_TC
+#include "tcaP.h"
+#include "tccP.h"
+#endif
+
 #include "ltp.h"
 #include "ltpP.h"
 
@@ -47,6 +60,10 @@ int	main(int argc, char **argv)
    char	*p1 = (argc > 1 ? argv[1] : NULL);
 #endif
    int loopcount, errcount= 0, deletesdr = -1;
+#ifdef ENABLE_TC
+   char msgbuf[80];
+   int groupNbr;
+#endif
 
 
    if( p1 != NULL )
@@ -63,6 +80,72 @@ int	main(int argc, char **argv)
 
    if (ionAttach() == 0)
    {
+#ifdef ENABLE_DTPC
+      if (dtpcAttach() == 0)
+      {
+         printText("Issuing DTPC stop.");
+         dtpcStop();
+
+         for (loopcount = 5; dtpc_entity_is_started() && loopcount; loopcount--)
+         {
+            snooze(1);
+         }
+         if (!loopcount)
+         {
+            errcount++;
+            printText("***** DTPC did not shut down");
+         }
+      }
+      else
+         printText("Unable to attach to DTPC");
+#endif
+
+#ifdef ENABLE_TC
+      /* Stop all TCA instances (try group numbers 1-10) */
+      for (groupNbr = 1; groupNbr <= 10; groupNbr++)
+      {
+         if (tcaAttach(groupNbr) == 0 && tcaIsStarted(groupNbr))
+         {
+            isprintf(msgbuf, sizeof(msgbuf), "Issuing TCA stop for group %d.", groupNbr);
+            printText(msgbuf);
+            tcaStop(groupNbr);
+
+            for (loopcount = 5; tcaIsStarted(groupNbr) && loopcount; loopcount--)
+            {
+               snooze(1);
+            }
+            if (!loopcount)
+            {
+               errcount++;
+               isprintf(msgbuf, sizeof(msgbuf), "***** TCA group %d did not shut down", groupNbr);
+               printText(msgbuf);
+            }
+         }
+      }
+
+      /* Stop all TCC instances (try group numbers 1-10) */
+      for (groupNbr = 1; groupNbr <= 10; groupNbr++)
+      {
+         if (tccAttach(groupNbr) == 0 && tccIsStarted(groupNbr))
+         {
+            isprintf(msgbuf, sizeof(msgbuf), "Issuing TCC stop for group %d.", groupNbr);
+            printText(msgbuf);
+            tccStop(groupNbr);
+
+            for (loopcount = 5; tccIsStarted(groupNbr) && loopcount; loopcount--)
+            {
+               snooze(1);
+            }
+            if (!loopcount)
+            {
+               errcount++;
+               isprintf(msgbuf, sizeof(msgbuf), "***** TCC group %d did not shut down", groupNbr);
+               printText(msgbuf);
+            }
+         }
+      }
+#endif
+
       if (bpAttach() == 0)
       {
          printText("Issuing BP stop.");
