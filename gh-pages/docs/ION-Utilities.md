@@ -1,16 +1,70 @@
 # ION Utility Programs
 
-Here is a short list of utility programs that come with ION that are frequently used by users to launch, stop, and query ION/BP operation status:
+Here is a short list of utility programs that come with ION that are frequently used by users to launch, stop, and query ION/BP operation status.
 
-* `ionexit` - A program that shuts down ION with the option to preserve the SDR.
-    Normally, when ION's various daemons were stopped by calling `ionstop` or issuing the command '.' to the administration programs, the SDR will be modified/destroyed in the process. Calling `ionexit` with the argument `k` (for "keep") preserves the SDR state just prior to execution, allowing it to be saved in non-volatile storage such as a file if ION was configured to use a file-based SDR. It stops the BP, LTP, BSSP, CFDP, and RFX daemons, if they were running. Any other ION services started by the user will need to be stopped manually, and any user applications/processes attached to the SDR will need to detach, in order to notify the OS that ION shared resources are no longer in use and release those resources (e.g. SDR shared memory in DRAM).
+For comprehensive shutdown documentation, see the [ION Shutdown Guide](ION-Shutdown-Guide.md).
 
-    **Usage:** `ionexit` (destroys SDR) or `ionexit k` (preserves SDR)
+## Startup and Shutdown Utilities
+
+There are three main ways to stop ION, each suited for different scenarios:
+
+### ionexit (Recommended for Normal Shutdown)
+
+The `ionexit` program is the recommended method for normal ION shutdown. It gracefully stops all ION daemon services in the correct dependency order.
+
+**Usage:**
+```bash
+ionexit      # Stop ION and destroy SDR
+ionexit k    # Stop ION but keep/preserve SDR
+```
+
+**Daemons stopped (in order):**
+1. DTPC - Delay Tolerant Payload Conditioning (if enabled)
+2. TCA/TCC - Trusted Custody services (if enabled)
+3. BP - Bundle Protocol
+4. LTP - Licklider Transmission Protocol
+5. BSSP - Bundle Streaming Service Protocol (if enabled)
+6. CFDP - CCSDS File Delivery Protocol
+7. RFX - Contact plan system
+8. IPC resources cleanup
+
+The `k` option preserves the SDR state, which is useful for:
+- Saving state before planned maintenance
+- Enabling restart with `ionrestart` after a controlled shutdown
+- Preserving bundle queue state for later transmission
+
+**Important:** SDR preservation only works when the SDR is configured with file-based storage (`SDR_IN_FILE`). If the SDR uses DRAM-only storage (`SDR_IN_DRAM`), the data resides in shared memory and will be lost when processes exit, regardless of the `k` option.
+
+**Note:** User applications attached to ION must detach separately, and custom services started by the user must be stopped manually.
+
+### Admin Programs with Period (`.`) Argument
+
+Each admin program can stop its associated daemons by passing `.` as a command:
+
+```bash
+dtpcadmin .    # Stop DTPC daemons
+cfdpadmin .    # Stop CFDP daemons
+bpadmin .      # Stop BP daemons
+ltpadmin .     # Stop LTP daemons
+bsspadmin .    # Stop BSSP daemons
+ionadmin .     # Stop ION core (rfxclock)
+```
+
+Use this method when you need fine-grained control over individual subsystems.
+
+### ionstop and killm (Complete Cleanup)
 
 * `ionstart` - Script to initialize and start ION node with configuration files
-* `ionstop` - Script to gracefully stop all ION daemons and services
-* `killm` - Utility to forcefully terminate ION processes and clean up shared memory
-    **WARNING:** Force-kills all ION processes and clears System V IPC resources. Use only when normal shutdown (`ionstop`) fails. This is a destructive last-resort operation.
+
+* `ionstop` - Script to gracefully stop all ION daemons and services. Calls each admin program with `.` to stop subsystems, then calls `killm` for single-ION instances. For multi-ION instances, it does NOT call `killm` to avoid affecting other instances.
+
+* `killm` - Utility to forcefully terminate ION processes and clean up shared memory.
+    **WARNING:** Force-kills all ION processes and clears System V IPC resources. Use only when normal shutdown fails. This is a destructive last-resort operation that:
+    - Sends SIGTERM then SIGKILL to all ION processes
+    - Destroys all System V shared memory and semaphores
+    - Removes all ION POSIX named semaphores
+
+## Other Utilities
 * `ionrestart` - Utility to restart ION node after a crash while preserving SDR state
 * `ionwatch` - Continuous monitoring utility that displays ION node status and statistics in real-time, including contact plan, bundle statistics, and protocol state
 * `sdrwatch` - Monitor and display SDR (Shared Data Region) memory usage statistics

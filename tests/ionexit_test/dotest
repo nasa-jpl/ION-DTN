@@ -341,7 +341,14 @@ fi
 # Verify also that ION processes are gone. Borrowed from killm
 echo "Checking if all ION processes ended..."
 
-source ionprocesslist.sh
+# Load IONPROCESSLIST from ionprocesses.txt (in ION root directory)
+PROCESS_FILE="../../ionprocesses.txt"
+if [ -f "$PROCESS_FILE" ]; then
+    IONPROCESSLIST=$(grep -v '^#' "$PROCESS_FILE" | grep -v '^[[:space:]]*$' | tr '\n' ' ')
+else
+    echo "Error: ionprocesses.txt not found at $PROCESS_FILE" >&2
+    exit 1
+fi
 
 OSNAME=`uname`
 if [ "$OSNAME" = "SunOS" ]; then

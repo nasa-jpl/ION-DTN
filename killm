@@ -19,8 +19,17 @@ USERNAME_CUT=$(echo "$(whoami)" | cut -c 1-10)
 # DEBUG: check the value of USERNAME_CUT
 # echo "Abbreviated username is "${USERNAME_CUT}
 
-# Get IONPROCESSLIST
-source ionprocesslist.sh
+# Get IONPROCESSLIST from ionprocesses.txt
+# The file contains one process name per line (comments start with #)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROCESS_FILE="${SCRIPT_DIR}/ionprocesses.txt"
+
+if [ -f "$PROCESS_FILE" ]; then
+    IONPROCESSLIST=$(grep -v '^#' "$PROCESS_FILE" | grep -v '^[[:space:]]*$' | tr '\n' ' ')
+else
+    echo "Error: ionprocesses.txt not found at $PROCESS_FILE" >&2
+    exit 1
+fi
 
 sw_vers 2> /dev/null > /dev/null
 

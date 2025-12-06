@@ -296,7 +296,7 @@ stuff_SCRIPTS =	$(srcdir)/ionstart \
 		$(srcdir)/demos/ionlauncher/ionlauncher \
 		$(srcdir)/demos/ionlauncher/net_model_gen \
 		$(srcdir)/killm	\
-		$(srcdir)/ionprocesslist.sh \
+		$(srcdir)/ionprocesses.txt \
 		$(srcdir)/remove_win_shmem.ps1
 #comment stuff_SCRIPTS += $(srcdir)/killm if you want to build killm.exe
 

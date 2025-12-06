@@ -218,20 +218,44 @@ If the user plans to install multiple versions of ION in different directories, 
 
 ### Shutdown ION
 
-1. **Determine if you are in a multi-ION instance configuration**. First, establish a shell session with the ION instance you want to shut down using these [steps](#establish-a-shell-session-to-interact-with-an-ion-instance).
-2. **Launch the shutdown script**:
-    * If you know the working directory and a shutdown script is provided, then execute that script.
-    * If you don't know the working directory but ION appears to be running normally, try to shut it down by executing the admin program associated with the ION daemons. For example, you could run the following commands:
+For comprehensive shutdown documentation, see the [ION Shutdown Guide](ION-Shutdown-Guide.md).
 
+There are three main methods to stop ION:
+
+| Method | Use Case | Command |
+|--------|----------|---------|
+| **ionexit** | Normal shutdown (recommended) | `ionexit` or `ionexit k` |
+| **Admin programs** | Manual control of subsystems | `bpadmin .`, `ltpadmin .`, etc. |
+| **ionstop/killm** | Complete system cleanup | `ionstop` or `killm` |
+
+**Recommended procedure:**
+
+1. **For normal shutdown**, use `ionexit`:
     ```sh
-    bpadmin .
-    ltpadmin .
-    ionadmin .
+    ionexit      # Stop ION and destroy SDR
+    ionexit k    # Stop ION but preserve SDR state
     ```
 
-    Additional admin programs will need to run to try to shut down the associated services. To determine exactly which services are running, you need to look at the output of the `ps` command to figure that out.
+2. **For manual control**, use admin programs with `.`:
+    ```sh
+    dtpcadmin .  # Stop DTPC (if running)
+    cfdpadmin .  # Stop CFDP
+    bpadmin .    # Stop BP
+    ltpadmin .   # Stop LTP
+    ionadmin .   # Stop ION core
+    ```
 
-3. **Use the [check ION instance](#check-for-running-ion-instances) procedure**. If the instance you are trying to shut down is still running, then use the installed `ionstop` stop script from the working directory of the ION instance you want to shut down.
+3. **For complete cleanup** (when normal shutdown fails):
+    ```sh
+    ionstop      # Graceful stop, then killm for single instances
+    killm        # Force kill all ION processes (last resort)
+    ```
+
+**Multi-ION instance considerations:**
+
+1. First, establish a shell session with the ION instance you want to shut down using these [steps](#establish-a-shell-session-to-interact-with-an-ion-instance).
+2. Set `ION_NODE_WDNAME` to the working directory of the instance to shut down.
+3. Use `ionexit` or admin programs to stop only that instance.
 4. **Re-verify ION is no longer running using the [check ION instance](#check-for-running-ion-instances) procedure**.
 
 ### Remove ION Installation
