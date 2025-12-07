@@ -104,6 +104,17 @@ To check your ION configuration, look for `configFlags` in your ionconfig file o
 - The `k` option only preserves SDR; processes are still terminated
 - SDR preservation requires `SDR_IN_FILE` configuration
 
+**Multi-Node Configuration Warning:**
+
+`ionexit` is **not suitable for multi-node per host configurations** (such as regression test environments). This is because `ionexit` calls `sm_ipc_stop()` at the end, which destroys the IPC system shared by all ION instances on the host. Running `ionexit` when multiple nodes are active will terminate all nodes, not just the one you attached to.
+
+| Configuration | ionexit Suitable? | Recommended Shutdown Method |
+|---------------|-------------------|----------------------------|
+| Single node per host (deployment, beta testing) | **Yes** | `ionexit` or `ionexit k` |
+| Multiple nodes per host (regression testing) | **No** | Admin programs (e.g., `bpadmin .`, `ltpadmin .`, `ionadmin .`) |
+
+For multi-node test environments, shut down individual nodes using the admin programs with the `.` argument in each node's working directory, or use `killm` at the end of testing to clean up all nodes simultaneously.
+
 ### Method 3: ionstop and killm (Complete Cleanup)
 
 The `ionstop` script and `killm` utility provide complete system cleanup, ensuring all ION processes are terminated and all shared resources are released.
