@@ -2708,3 +2708,35 @@ int	ionSendZcoByTCP(int *sock, Object zco, char *buffer, int buflen)
 
 	return totalBytesSent;
 }
+
+void	ionRegisterPsmwatchPid(int pid)
+{
+	Sdr	sdr = getIonsdr();
+	Object	iondbObj = getIonDbObject();
+	IonDB	iondb;
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	iondb.psmwatchPid = pid;
+	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't register psmwatch PID.", NULL);
+	}
+}
+
+void	ionRegisterSdrwatchPid(int pid)
+{
+	Sdr	sdr = getIonsdr();
+	Object	iondbObj = getIonDbObject();
+	IonDB	iondb;
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	iondb.sdrwatchPid = pid;
+	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't register sdrwatch PID.", NULL);
+	}
+}

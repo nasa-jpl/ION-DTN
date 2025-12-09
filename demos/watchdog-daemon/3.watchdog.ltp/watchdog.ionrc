@@ -1,0 +1,5 @@
+1 3 watchdog.ionconfig
+w psmwatch
+w sdrwatch
+s
+m horizon +0

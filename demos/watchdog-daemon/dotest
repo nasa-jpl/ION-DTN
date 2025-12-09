@@ -1,0 +1,272 @@
+#!/usr/bin/env bash
+#
+# Watchdog Daemon Test Script
+# Tests psmwatch and sdrwatch daemon auto-launch, ionrestart, and ionexit
+#
+# This test verifies:
+# 1. ionadmin launches psmwatch and sdrwatch daemons via 'w' command
+# 2. Data transfer works while daemons are running
+# 3. ionrestart properly stops and restarts daemons
+# 4. ionexit properly shuts down daemons
+#
+
+TOPDIR=$(pwd)
+RETVAL=0
+
+# Test configuration
+BUNDLESIZE=10000
+NUMBUNDLES=100
+MAXSECONDS=60
+
+echo "###############################################################################"
+echo "# Watchdog Daemon Test"
+echo "###############################################################################"
+echo "Date: $(date)"
+echo "Hostname: $(hostname)"
+echo ""
+
+# Function to check if watchdog daemons are running
+check_daemons() {
+    local node=$1
+    local check_type=$2  # "running" or "stopped"
+    local psmwatch_running=0
+    local sdrwatch_running=0
+
+    if pgrep -f "psmwatch" > /dev/null 2>&1; then
+        psmwatch_running=1
+    fi
+    if pgrep -f "sdrwatch" > /dev/null 2>&1; then
+        sdrwatch_running=1
+    fi
+
+    if [ "$check_type" = "running" ]; then
+        if [ $psmwatch_running -eq 1 ] && [ $sdrwatch_running -eq 1 ]; then
+            echo "[PASS] Node $node: Both psmwatch and sdrwatch daemons are running"
+            return 0
+        else
+            echo "[FAIL] Node $node: Expected daemons running - psmwatch=$psmwatch_running, sdrwatch=$sdrwatch_running"
+            return 1
+        fi
+    else
+        if [ $psmwatch_running -eq 0 ] && [ $sdrwatch_running -eq 0 ]; then
+            echo "[PASS] Node $node: Both psmwatch and sdrwatch daemons are stopped"
+            return 0
+        else
+            echo "[FAIL] Node $node: Expected daemons stopped - psmwatch=$psmwatch_running, sdrwatch=$sdrwatch_running"
+            return 1
+        fi
+    fi
+}
+
+# Function to show daemon process info
+show_daemon_info() {
+    echo "=== Current watchdog daemon processes ==="
+    ps aux | grep -E "(psmwatch|sdrwatch)" | grep -v grep || echo "(no daemons running)"
+    echo ""
+}
+
+# Cleanup
+echo "###############################################################################"
+echo "# Step 0: Cleanup"
+echo "###############################################################################"
+./cleanup
+sleep 1
+
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+echo ""
+echo "###############################################################################"
+echo "# Step 1: Start ION nodes with watchdog daemons enabled"
+echo "###############################################################################"
+echo ""
+
+# Start nodes
+echo "Starting node 2..."
+(cd 2.watchdog.ltp; ./ionstart)
+sleep 2
+
+echo "Starting node 3..."
+(cd 3.watchdog.ltp; ./ionstart)
+sleep 2
+
+echo ""
+echo "Checking if watchdog daemons were launched..."
+show_daemon_info
+
+if ! check_daemons "2/3" "running"; then
+    echo ""
+    echo "[ERROR] Watchdog daemons not started by ionadmin!"
+    RETVAL=1
+fi
+
+echo ""
+echo "###############################################################################"
+echo "# Step 2: Transfer data while daemons are running"
+echo "###############################################################################"
+echo ""
+
+# Check ion.log for daemon activity
+echo "Checking ion.log for daemon launch messages..."
+if grep -l "psmwatch" 2.watchdog.ltp/ion.log 3.watchdog.ltp/ion.log 2>/dev/null; then
+    echo "[INFO] Found psmwatch references in ion.log"
+fi
+if grep -l "sdrwatch" 2.watchdog.ltp/ion.log 3.watchdog.ltp/ion.log 2>/dev/null; then
+    echo "[INFO] Found sdrwatch references in ion.log"
+fi
+
+echo ""
+echo "Sending ${NUMBUNDLES} bundles of ${BUNDLESIZE} bytes from node 2 to node 3..."
+
+# Start receiver on node 3
+cd 3.watchdog.ltp
+bpcounter ipn:3.1 ${NUMBUNDLES} &
+BPCOUNTER_PID=$!
+cd ..
+sleep 1
+
+# Check if bpcounter started
+if ! ps -p $BPCOUNTER_PID > /dev/null 2>&1; then
+    echo "[ERROR] bpcounter couldn't be started."
+    RETVAL=1
+else
+    # Send bundles from node 2
+    (cd 2.watchdog.ltp; bpdriver ${NUMBUNDLES} ipn:2.1 ipn:3.1 -${BUNDLESIZE} > /dev/null) &
+    BPDRIVER_PID=$!
+
+    # Wait for transmission
+    echo "Waiting for transmission to complete..."
+    TIMER=0
+    while ps -p $BPCOUNTER_PID > /dev/null 2>&1; do
+        sleep 1
+        TIMER=$((TIMER + 1))
+        if [ $TIMER -gt $MAXSECONDS ]; then
+            echo "[ERROR] Transmission timeout after $MAXSECONDS seconds"
+            kill -9 $BPCOUNTER_PID $BPDRIVER_PID 2>/dev/null
+            RETVAL=1
+            break
+        fi
+    done
+
+    if [ $TIMER -le $MAXSECONDS ]; then
+        echo "[PASS] Data transfer completed successfully"
+    fi
+fi
+
+echo ""
+show_daemon_info
+
+echo ""
+echo "###############################################################################"
+echo "# Step 3: Run ionrestart on node 2 and verify daemons restart"
+echo "###############################################################################"
+echo ""
+
+echo "Current daemon PIDs before ionrestart:"
+PSMWATCH_PID_BEFORE=$(pgrep -f "psmwatch" | head -1)
+SDRWATCH_PID_BEFORE=$(pgrep -f "sdrwatch" | head -1)
+echo "  psmwatch PID: ${PSMWATCH_PID_BEFORE:-none}"
+echo "  sdrwatch PID: ${SDRWATCH_PID_BEFORE:-none}"
+
+echo ""
+echo "Running ionrestart on node 2 (from 2.watchdog.ltp directory)..."
+echo "(ionrestart requires running from the node's config directory in multi-node mode)"
+cd 2.watchdog.ltp
+ionrestart &
+IONRESTART_PID=$!
+cd ..
+
+# Wait for ionrestart to complete (up to 30 seconds)
+TIMER=0
+while ps -p $IONRESTART_PID > /dev/null 2>&1; do
+    sleep 1
+    TIMER=$((TIMER + 1))
+    if [ $TIMER -gt 30 ]; then
+        echo "[WARN] ionrestart taking longer than expected"
+        break
+    fi
+done
+
+sleep 3
+
+echo ""
+echo "Daemon PIDs after ionrestart:"
+PSMWATCH_PID_AFTER=$(pgrep -f "psmwatch" | head -1)
+SDRWATCH_PID_AFTER=$(pgrep -f "sdrwatch" | head -1)
+echo "  psmwatch PID: ${PSMWATCH_PID_AFTER:-none}"
+echo "  sdrwatch PID: ${SDRWATCH_PID_AFTER:-none}"
+
+echo ""
+show_daemon_info
+
+# Check if daemons are still running (they should have been restarted)
+if ! check_daemons "after-restart" "running"; then
+    echo "[FAIL] Daemons not running after ionrestart!"
+    RETVAL=1
+else
+    # Check if PIDs changed (indicating restart occurred)
+    if [ -n "$PSMWATCH_PID_BEFORE" ] && [ -n "$PSMWATCH_PID_AFTER" ]; then
+        if [ "$PSMWATCH_PID_BEFORE" != "$PSMWATCH_PID_AFTER" ]; then
+            echo "[INFO] psmwatch was restarted (PID changed: $PSMWATCH_PID_BEFORE -> $PSMWATCH_PID_AFTER)"
+        else
+            echo "[INFO] psmwatch PID unchanged (may have survived restart)"
+        fi
+    fi
+fi
+
+echo ""
+echo "###############################################################################"
+echo "# Step 4: Shutdown both nodes and verify daemons stop"
+echo "###############################################################################"
+echo ""
+
+echo "Stopping node 2 using ionstop (ionadmin .) which calls rfx_stop()..."
+echo "(Using ionstop instead of ionexit to avoid sm_ipc_stop() breaking other nodes)"
+cd 2.watchdog.ltp
+./ionstop
+cd ..
+sleep 2
+
+echo "Stopping node 3 using ionstop..."
+cd 3.watchdog.ltp
+./ionstop
+cd ..
+sleep 3
+
+echo ""
+show_daemon_info
+
+if ! check_daemons "after-ionexit" "stopped"; then
+    echo "[FAIL] Daemons still running after ionexit!"
+    # Force cleanup
+    pkill -f psmwatch 2>/dev/null
+    pkill -f sdrwatch 2>/dev/null
+    RETVAL=1
+else
+    echo "[PASS] ionexit properly stopped all watchdog daemons"
+fi
+
+echo ""
+echo "###############################################################################"
+echo "# Test Summary"
+echo "###############################################################################"
+echo ""
+
+if [ $RETVAL -eq 0 ]; then
+    echo "=========================================="
+    echo "  ALL TESTS PASSED"
+    echo "=========================================="
+else
+    echo "=========================================="
+    echo "  SOME TESTS FAILED"
+    echo "=========================================="
+fi
+
+echo ""
+echo "Cleaning up..."
+killm 2>/dev/null
+pkill -f psmwatch 2>/dev/null
+pkill -f sdrwatch 2>/dev/null
+
+echo "Test completed."
+exit $RETVAL

@@ -189,6 +189,12 @@ static int	run_psmwatch_daemon(int memKey, long memSize,
 		return -1;
 	}
 
+	/*	Register our actual PID with ION so rfx_stop() can
+	 *	find us.  The PID from pseudoshell() was the
+	 *	intermediate process that exited during daemonize().	*/
+
+	ionRegisterPsmwatchPid(getpid());
+
 	if (memmgr_open(memKey, memSize, &memory, &smId, partitionName, &psm,
 			&memmgrIdx, NULL, NULL, NULL, NULL) < 0)
 	{

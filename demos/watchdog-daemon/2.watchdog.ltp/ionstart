@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# shell script to get node running
+
+ionadmin	watchdog.ionrc
+sleep 1
+ionadmin	../global.ionrc
+sleep 1
+ionsecadmin	watchdog.ionsecrc
+sleep 1
+ltpadmin	watchdog.ltprc
+sleep 1
+bpadmin		watchdog.bprc

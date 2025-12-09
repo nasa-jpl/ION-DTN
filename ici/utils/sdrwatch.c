@@ -258,6 +258,12 @@ static int	run_sdrwatch_daemon(char *sdrName, int intervalMinutes,
 		return -1;
 	}
 
+	/*	Register our actual PID with ION so rfx_stop() can
+	 *	find us.  The PID from pseudoshell() was the
+	 *	intermediate process that exited during daemonize().	*/
+
+	ionRegisterSdrwatchPid(getpid());
+
 	sdr = sdr_start_using(sdrName);
 	if (sdr == NULL)
 	{

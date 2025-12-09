@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#
+# Cleanup script for watchdog-daemon test
+
+echo "Cleaning up old ION..."
+killm
+rm -f ion_nodes 2.watchdog.ltp/ion.log 3.watchdog.ltp/ion.log

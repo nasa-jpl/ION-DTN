@@ -588,6 +588,14 @@ extern void		ionNoteMainThread(char *procName);
 extern void		ionPauseMainThread(int seconds);
 extern void		ionKillMainThread(char *procName);
 
+/*	Watchdog daemon PID registration functions.  These allow
+ *	daemons to register their actual PIDs after daemonizing,
+ *	since the PID returned by pseudoshell() is the intermediate
+ *	process that exits during double-fork daemonization.		*/
+
+extern void		ionRegisterPsmwatchPid(int pid);
+extern void		ionRegisterSdrwatchPid(int pid);
+
 #ifdef __cplusplus
 }
 #endif

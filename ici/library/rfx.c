@@ -3653,7 +3653,6 @@ static void	stopWatchDaemons(void)
 	IonDB	iondb;
 	int	pid;
 	int	i;
-	int	status;
 
 	CHKVOID(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
@@ -3667,11 +3666,15 @@ static void	stopWatchDaemons(void)
 		writeMemo("[i] rfx_stop: Stopping psmwatch daemon.");
 		if (kill(pid, SIGTERM) == 0)
 		{
-			/*	Wait up to 5 seconds for graceful exit.*/
+			/*	Wait up to 5 seconds for graceful exit.
+			 *	Use kill(pid, 0) to check if process
+			 *	still exists, since waitpid() only works
+			 *	for child processes and daemons launched
+			 *	via pseudoshell() are not direct children.	*/
 
 			for (i = 0; i < 50; i++)
 			{
-				if (waitpid(pid, &status, WNOHANG) > 0)
+				if (kill(pid, 0) < 0 && errno == ESRCH)
 				{
 					break;	/*	Process exited.	*/
 				}
@@ -3679,7 +3682,19 @@ static void	stopWatchDaemons(void)
 				microsnooze(100000);	/*	0.1 sec	*/
 			}
 
-			writeMemo("[i] rfx_stop: psmwatch daemon stopped.");
+			if (i < 50)
+			{
+				writeMemo("[i] rfx_stop: psmwatch daemon stopped.");
+			}
+			else
+			{
+				writeMemo("[!] rfx_stop: psmwatch daemon did not stop, sending SIGKILL.");
+				kill(pid, SIGKILL);
+			}
+		}
+		else
+		{
+			writeMemo("[i] rfx_stop: psmwatch daemon already gone.");
 		}
 
 		CHKVOID(sdr_begin_xn(sdr));
@@ -3704,11 +3719,15 @@ static void	stopWatchDaemons(void)
 		writeMemo("[i] rfx_stop: Stopping sdrwatch daemon.");
 		if (kill(pid, SIGTERM) == 0)
 		{
-			/*	Wait up to 5 seconds for graceful exit.*/
+			/*	Wait up to 5 seconds for graceful exit.
+			 *	Use kill(pid, 0) to check if process
+			 *	still exists, since waitpid() only works
+			 *	for child processes and daemons launched
+			 *	via pseudoshell() are not direct children.	*/
 
 			for (i = 0; i < 50; i++)
 			{
-				if (waitpid(pid, &status, WNOHANG) > 0)
+				if (kill(pid, 0) < 0 && errno == ESRCH)
 				{
 					break;	/*	Process exited.	*/
 				}
@@ -3716,7 +3735,19 @@ static void	stopWatchDaemons(void)
 				microsnooze(100000);	/*	0.1 sec	*/
 			}
 
-			writeMemo("[i] rfx_stop: sdrwatch daemon stopped.");
+			if (i < 50)
+			{
+				writeMemo("[i] rfx_stop: sdrwatch daemon stopped.");
+			}
+			else
+			{
+				writeMemo("[!] rfx_stop: sdrwatch daemon did not stop, sending SIGKILL.");
+				kill(pid, SIGKILL);
+			}
+		}
+		else
+		{
+			writeMemo("[i] rfx_stop: sdrwatch daemon already gone.");
 		}
 
 		CHKVOID(sdr_begin_xn(sdr));
@@ -3735,35 +3766,23 @@ static void	launchWatchDaemons(void)
 	Sdr	sdr = getIonsdr();
 	Object	iondbObj = getIonDbObject();
 	IonDB	iondb;
-	pid_t	pid;
 
 	CHKVOID(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	sdr_exit_xn(sdr);
 
-	/*	Launch psmwatch if enabled.				*/
+	/*	Launch psmwatch if enabled.  The daemon will register
+	 *	its own PID with IonDB after it completes daemonization
+	 *	via ionRegisterPsmwatchPid().  We don't store the PID
+	 *	returned by pseudoshell() because it's the intermediate
+	 *	process that exits during the double-fork daemonize().	*/
 
 	if (iondb.enablePsmwatch)
 	{
 		writeMemo("[i] rfx_start: Launching psmwatch daemon.");
-		pid = pseudoshell("psmwatch -d");
-		if (pid > 0)
+		if (pseudoshell("psmwatch -d") > 0)
 		{
-			CHKVOID(sdr_begin_xn(sdr));
-			sdr_stage(sdr, (char *) &iondb, iondbObj,
-					sizeof(IonDB));
-			iondb.psmwatchPid = pid;
-			sdr_write(sdr, iondbObj, (char *) &iondb,
-					sizeof(IonDB));
-			if (sdr_end_xn(sdr) < 0)
-			{
-				putErrmsg("Can't save psmwatch PID.", NULL);
-			}
-			else
-			{
-				writeMemo("[i] rfx_start: psmwatch daemon \
-launched.");
-			}
+			writeMemo("[i] rfx_start: psmwatch daemon launched.");
 		}
 		else
 		{
@@ -3771,7 +3790,7 @@ launched.");
 		}
 	}
 
-	/*	Launch sdrwatch if enabled.				*/
+	/*	Launch sdrwatch if enabled.  Same as psmwatch above.	*/
 
 	CHKVOID(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
@@ -3780,24 +3799,9 @@ launched.");
 	if (iondb.enableSdrwatch)
 	{
 		writeMemo("[i] rfx_start: Launching sdrwatch daemon.");
-		pid = pseudoshell("sdrwatch -d");
-		if (pid > 0)
+		if (pseudoshell("sdrwatch -d") > 0)
 		{
-			CHKVOID(sdr_begin_xn(sdr));
-			sdr_stage(sdr, (char *) &iondb, iondbObj,
-					sizeof(IonDB));
-			iondb.sdrwatchPid = pid;
-			sdr_write(sdr, iondbObj, (char *) &iondb,
-					sizeof(IonDB));
-			if (sdr_end_xn(sdr) < 0)
-			{
-				putErrmsg("Can't save sdrwatch PID.", NULL);
-			}
-			else
-			{
-				writeMemo("[i] rfx_start: sdrwatch daemon \
-launched.");
-			}
+			writeMemo("[i] rfx_start: sdrwatch daemon launched.");
 		}
 		else
 		{
