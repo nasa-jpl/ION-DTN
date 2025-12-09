@@ -7,3 +7,9 @@ License: BSD-3-Clause (see License.txt)
 
 This is a frozen snapshot of Jerasure for use in ION's TC (Trusted Collective)
 component for Reed-Solomon erasure coding.
+
+ION-specific modifications:
+- src/jerasure.c, src/liberation.c: Replaced bzero() with memset() for
+  portability. bzero() is a legacy BSD function that causes implicit function
+  declaration errors on Solaris 11 and other strict compilers. memset() is
+  C standard and portable across Linux, FreeBSD, macOS, and Solaris.

@@ -61,7 +61,7 @@ int *liberation_coding_bitmatrix(int k, int w)
   if (k > w) return NULL;
   matrix = talloc(int, 2*k*w*w);
   if (matrix == NULL) return NULL;
-  bzero(matrix, sizeof(int)*2*k*w*w);
+  memset(matrix, 0, sizeof(int)*2*k*w*w);
   
   /* Set up identity matrices */
 
@@ -99,7 +99,7 @@ int *liber8tion_coding_bitmatrix(int k)
   if (k > w) return NULL;
   matrix = talloc(int, 2*k*w*w);
   if (matrix == NULL) return NULL;
-  bzero(matrix, sizeof(int)*2*k*w*w);
+  memset(matrix, 0, sizeof(int)*2*k*w*w);
   
   /* Set up identity matrices */
 
@@ -213,7 +213,7 @@ int *blaum_roth_coding_bitmatrix(int k, int w)
 
   matrix = talloc(int, 2*k*w*w);
   if (matrix == NULL) return NULL;
-  bzero(matrix, sizeof(int)*2*k*w*w);
+  memset(matrix, 0, sizeof(int)*2*k*w*w);
   
   /* Set up identity matrices */
 

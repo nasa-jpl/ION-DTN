@@ -894,7 +894,7 @@ static int **jerasure_generate_decoding_schedule(int k, int m, int w, int *bitma
     ptr = decoding_matrix;
     for (i = 0; i < k; i++) {
       if (row_ids[i] == i) {
-        bzero(ptr, k*w*w*sizeof(int));
+        memset(ptr, 0, k*w*w*sizeof(int));
         for (x = 0; x < w; x++) {
           ptr[x+i*w+x*k*w] = 1;
         } 
@@ -948,7 +948,7 @@ static int **jerasure_generate_decoding_schedule(int k, int m, int w, int *bitma
     for (i = 0; i < k; i++) {
       if (row_ids[i] != i) {
         for (j = 0; j < w; j++) {
-          bzero(ptr+j*k*w+i*w, sizeof(int)*w);
+          memset(ptr+j*k*w+i*w, 0, sizeof(int)*w);
         }
       }  
     }
