@@ -15,3 +15,8 @@ ION-specific modifications:
   properly handle EOF in addition to parse failures (CodeQL fix)
 - src/gf_method.c: Changed sscanf() return checks from == 0 to != 1 to
   properly handle EOF in addition to parse failures (CodeQL fix)
+- src/gf.c, src/gf_w4.c, src/gf_w8.c, src/gf_w16.c: Added #include <string.h>
+  and replaced bzero() with memset() for portability. bzero() is a legacy BSD
+  function not declared without <strings.h>, causing implicit function
+  declaration errors on Solaris 11 and other strict compilers. memset() is
+  C standard and portable across Linux, FreeBSD, macOS, and Solaris.

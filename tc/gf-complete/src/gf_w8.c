@@ -12,6 +12,7 @@
 #include "gf_w8.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 #include "gf_cpu.h"
 
@@ -793,10 +794,10 @@ int gf_w8_log_init(gf_t *gf)
     return 0;
   }
 
-  if (h->mult_type == GF_MULT_LOG_ZERO) bzero(alt+510, 255);
+  if (h->mult_type == GF_MULT_LOG_ZERO) memset(alt+510, 0, 255);
 
   if (h->mult_type == GF_MULT_LOG_ZERO_EXT) {
-    bzero(alt+512, 255);
+    memset(alt+512, 0, 255);
     alt[512+512] = 0;
   }
 
@@ -1094,8 +1095,8 @@ int gf_w8_split_init(gf_t *gf)
   h = (gf_internal_t *) gf->scratch;
   htd = (struct gf_w8_half_table_data *)h->private;
 
-  bzero(htd->high, sizeof(uint8_t)*GF_FIELD_SIZE*GF_HALF_SIZE);
-  bzero(htd->low, sizeof(uint8_t)*GF_FIELD_SIZE*GF_HALF_SIZE);
+  memset(htd->high, 0, sizeof(uint8_t)*GF_FIELD_SIZE*GF_HALF_SIZE);
+  memset(htd->low, 0, sizeof(uint8_t)*GF_FIELD_SIZE*GF_HALF_SIZE);
 
   for (a = 1; a < GF_FIELD_SIZE; a++) {
     for (b = 1; b < GF_HALF_SIZE; b++) {
@@ -1145,25 +1146,25 @@ int gf_w8_table_init(gf_t *gf)
       (gf_cpu_supports_intel_ssse3 || gf_cpu_supports_arm_neon)) {
     dd = (struct gf_w8_default_data *)h->private;
     scase = 3;
-    bzero(dd->high, sizeof(uint8_t) * GF_FIELD_SIZE * GF_HALF_SIZE);
-    bzero(dd->low, sizeof(uint8_t) * GF_FIELD_SIZE * GF_HALF_SIZE);
-    bzero(dd->divtable, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
-    bzero(dd->multtable, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
-  } else if (h->mult_type == GF_MULT_DEFAULT || 
+    memset(dd->high, 0, sizeof(uint8_t) * GF_FIELD_SIZE * GF_HALF_SIZE);
+    memset(dd->low, 0, sizeof(uint8_t) * GF_FIELD_SIZE * GF_HALF_SIZE);
+    memset(dd->divtable, 0, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
+    memset(dd->multtable, 0, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
+  } else if (h->mult_type == GF_MULT_DEFAULT ||
              h->region_type == 0 || (h->region_type & GF_REGION_CAUCHY)) {
     ftd = (struct gf_w8_single_table_data *)h->private;
-    bzero(ftd->divtable, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
-    bzero(ftd->multtable, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
+    memset(ftd->divtable, 0, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
+    memset(ftd->multtable, 0, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
     scase = 0;
   } else if (h->region_type == GF_REGION_DOUBLE_TABLE) {
     dtd = (struct gf_w8_double_table_data *)h->private;
-    bzero(dtd->div, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
-    bzero(dtd->mult, sizeof(uint16_t) * GF_FIELD_SIZE * GF_FIELD_SIZE * GF_FIELD_SIZE);
+    memset(dtd->div, 0, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
+    memset(dtd->mult, 0, sizeof(uint16_t) * GF_FIELD_SIZE * GF_FIELD_SIZE * GF_FIELD_SIZE);
     scase = 1;
   } else if (h->region_type == (GF_REGION_DOUBLE_TABLE | GF_REGION_LAZY)) {
     ltd = (struct gf_w8_double_table_lazy_data *)h->private;
-    bzero(ltd->div, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
-    bzero(ltd->smult, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
+    memset(ltd->div, 0, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
+    memset(ltd->smult, 0, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
     scase = 2;
   } else {
     fprintf(stderr, "Internal error in gf_w8_table_init\n");
@@ -1250,7 +1251,7 @@ gf_w8_composite_multiply_region_alt(gf_t *gf, void *src, void *dest, gf_val_32_t
 
   if (val == 0) {
     if (xor) return;
-    bzero(dest, bytes);
+    memset(dest, 0, bytes);
     return;
   }
 
@@ -1391,7 +1392,7 @@ gf_w8_composite_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val
 
   if (val == 0) {
     if (xor) return;
-    bzero(dest, bytes);
+    memset(dest, 0, bytes);
     return;
   }
 

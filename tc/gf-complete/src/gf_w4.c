@@ -11,6 +11,7 @@
 #include "gf_int.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "gf_w4.h"
 #include "gf_cpu.h"
 
@@ -433,8 +434,8 @@ int gf_w4_single_table_init(gf_t *gf)
   h = (gf_internal_t *) gf->scratch;
   std = (struct gf_single_table_data *)h->private;
 
-  bzero(std->mult, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
-  bzero(std->div, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
+  memset(std->mult, 0, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
+  memset(std->div, 0, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
 
   for (a = 1; a < GF_FIELD_SIZE; a++) {
     for (b = 1; b < GF_FIELD_SIZE; b++) {
@@ -529,8 +530,8 @@ int gf_w4_double_table_init(gf_t *gf)
   h = (gf_internal_t *) gf->scratch;
   std = (struct gf_double_table_data *)h->private;
 
-  bzero(mult, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
-  bzero(std->div, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
+  memset(mult, 0, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
+  memset(std->div, 0, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
 
   for (a = 1; a < GF_FIELD_SIZE; a++) {
     for (b = 1; b < GF_FIELD_SIZE; b++) {
@@ -539,7 +540,7 @@ int gf_w4_double_table_init(gf_t *gf)
       std->div[prod][b] = a;
     }
   }
-  bzero(std->mult, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE * GF_FIELD_SIZE);
+  memset(std->mult, 0, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE * GF_FIELD_SIZE);
   for (a = 0; a < GF_FIELD_SIZE; a++) {
     for (b = 0; b < GF_FIELD_SIZE; b++) {
       ab = mult[a][b];
@@ -656,8 +657,8 @@ int gf_w4_quad_table_init(gf_t *gf)
   h = (gf_internal_t *) gf->scratch;
   std = (struct gf_quad_table_data *)h->private;
 
-  bzero(mult, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
-  bzero(std->div, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
+  memset(mult, 0, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
+  memset(std->div, 0, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
 
   for (a = 1; a < GF_FIELD_SIZE; a++) {
     for (b = 1; b < GF_FIELD_SIZE; b++) {
@@ -712,8 +713,8 @@ int gf_w4_quad_table_lazy_init(gf_t *gf)
       }
   }
 
-  bzero(std->smult, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
-  bzero(std->div, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
+  memset(std->smult, 0, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
+  memset(std->div, 0, sizeof(uint8_t) * GF_FIELD_SIZE * GF_FIELD_SIZE);
 
   for (a = 1; a < GF_FIELD_SIZE; a++) {
     loga = log_tbl[a];
