@@ -66,7 +66,7 @@
 #define	PAYLOAD_BLOCK_CRC_TYPE	1
 #endif
 
-/*	We hitchhike on the ZCO heap space management system to 
+/*	We hitchhike on the ZCO heap space management system to
  *	manage the space occupied by Bundle objects.  In effect,
  *	the Bundle overhead objects compete with ZCOs for available
  *	SDR heap space.  We don't want this practice to become
@@ -98,7 +98,7 @@ static BpDB	*_bpConstants(void)
 	static BpDB	*db = NULL;
 	Sdr		sdr;
 	Object		dbObject;
-	
+
 	if (db == NULL)
 	{
 		/*	Load constants into a conveniently accessed
@@ -127,7 +127,7 @@ static BpDB	*_bpConstants(void)
 			db = &buf;
 		}
 	}
-	
+
 	return db;
 }
 
@@ -1837,7 +1837,7 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 	}
 	writeMemo("[i] bpStop: All inducts terminated.");
 
-	for (elt = sm_list_first(bpwm, bpvdb->outducts); elt; elt = 
+	for (elt = sm_list_first(bpwm, bpvdb->outducts); elt; elt =
 			sm_list_next(bpwm, elt))
 	{
 		voutduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
@@ -1891,14 +1891,14 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 		resetPlan(vplan);
 	}
 
-	for (elt = sm_list_first(bpwm, bpvdb->inducts); elt; elt = 
+	for (elt = sm_list_first(bpwm, bpvdb->inducts); elt; elt =
 			sm_list_next(bpwm, elt))
 	{
 		vinduct = (VInduct *) psp(bpwm, sm_list_data(bpwm, elt));
 		resetInduct(vinduct);
 	}
 
-	for (elt = sm_list_first(bpwm, bpvdb->outducts); elt; elt = 
+	for (elt = sm_list_first(bpwm, bpvdb->outducts); elt; elt =
 			sm_list_next(bpwm, elt))
 	{
 		voutduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
@@ -2721,7 +2721,7 @@ incomplete bundle.", NULL);
 	bpDiscardTally(bundle.classOfService, bundle.payload.length);
 	bpDbTally(BP_DB_DISCARD, bundle.payload.length);
 	noteBundleRemoved(&bundle);
-	
+
 	/*	Guard against old bundle address being used to
 	 *	read destroyed bundle's state before it has been
 	 *	overwritten.						*/
@@ -3785,7 +3785,7 @@ int	removePlan(char *eidIn)
 		/*	Each member of planBuf.ducts points to an
 		 *	outducts list element referencing an outduct.
 		 *	Detaching that outduct from this plan's list
-		 *	of outducts removes it from planBuf.ducts.	*/ 
+		 *	of outducts removes it from planBuf.ducts.	*/
 
 		oK(detachPlanDuct(sdr_list_data(sdr, elt)));
 	}
@@ -4919,7 +4919,7 @@ int	removeOutduct(char *protocolName, char *ductName)
 		return -1;
 	}
 
-	/*	Then detach the outduct from the egress plan that 
+	/*	Then detach the outduct from the egress plan that
 	 *	cites it, if any.					*/
 
 	if (outduct.planDuctListElt)
@@ -5025,7 +5025,7 @@ static int	findIncomplete(Bundle *bundle, VEndpoint *vpoint,
 
 	CHKERR(ionLocked());
 	*incompleteElt = 0;		/*	Default: not found.	*/
-	GET_OBJ_POINTER(sdr, Endpoint, endpoint, 
+	GET_OBJ_POINTER(sdr, Endpoint, endpoint,
 			sdr_list_data(sdr, vpoint->endpointElt));
 	if (bundle->id.source.schemeCodeNbr == dtn)
 	{
@@ -5050,7 +5050,7 @@ static int	findIncomplete(Bundle *bundle, VEndpoint *vpoint,
 			elt = sdr_list_next(sdr, elt))
 	{
 		*incompleteAddr = sdr_list_data(sdr, elt);
-		GET_OBJ_POINTER(sdr, IncompleteBundle, incomplete, 
+		GET_OBJ_POINTER(sdr, IncompleteBundle, incomplete,
 				*incompleteAddr);
 
 		/*	See if ID of Incomplete's first fragment
@@ -6093,7 +6093,7 @@ when asking for status reports.");
 	{
 		/*	If no synchronized clock, then creationTime
 		 *	milliseconds is always zero.			*/
-	       
+
 		currentDtnTime = 0;
 	}
 
@@ -6266,7 +6266,7 @@ when asking for status reports.");
 #else
 		iwatch('a');
 #endif
-		
+
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -6657,7 +6657,7 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 				 *	failure action for this
 				 *	endpoint is DiscardBundle,
 				 *	now the the time to destroy
-				 *	the bundle.	
+				 *	the bundle.
 				 *  Another case is that this node
 				 *  just send the bundle as loopback
 				 *  because it is either unicast to
@@ -7023,7 +7023,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		}
 	}
 
-	/*	Now add extent.  
+	/*	Now add extent.
 	 *
 	 *	Note that this procedure assumes that bundle extents
 	 *	are acquired in increasing offset order, without gaps;
@@ -7618,7 +7618,7 @@ uvast	computeBufferCrc(BpCrcType crcType, unsigned char *buffer,
 		{
 			bytesToMask = 2;
 		}
-		
+
 		if (bytesToMask > 0)
 		{
 			/*	Extract last 2 bytes, then set them
@@ -7653,7 +7653,7 @@ uvast	computeBufferCrc(BpCrcType crcType, unsigned char *buffer,
 	{
 		bytesToMask = 4;
 	}
-	
+
 	if (bytesToMask > 0)
 	{
 		/*	Extract last 4 bytes, then set them to zero
@@ -8029,7 +8029,7 @@ requests prohibited for anonymous bundle.");
 		}
 
 		/*	CRC is encoded as a CBOR byte string.		*/
- 
+
  		uvtemp = (uvast) -1;
  		if (cbor_decode_byte_string(NULL, &uvtemp, &cursor,
  				&unparsedBytes) < 1)
@@ -8073,13 +8073,13 @@ requests prohibited for anonymous bundle.");
 			writeMemo("[?] Primary block truncated.");
 			return 0;
 		}
-		
+
 		/*	Compute CRC over entire block including the
  		 *	CRC itself.					*/
- 
+
  		length = cursor - startOfBlock;
 
-		crcComputed = computeBufferCrc(bundle->primaryBlkCrcType, startOfBlock, 
+		crcComputed = computeBufferCrc(bundle->primaryBlkCrcType, startOfBlock,
 				length + crcLength, 1, 0, &crcReceived);
 
 		if (crcComputed != crcReceived)
@@ -8166,6 +8166,12 @@ static int	acquireBlock(AcqWorkArea *work)
 
 	blkNumber = uvtemp;
 	itemsRemaining -= 1;
+
+	if (blkType == PayloadBlk && blkNumber != 1)
+	{
+		writeMemo("[!] Invalid block number for Payload Block.");
+		return 0;
+	}
 
 	/*	Acquire block processing flags, and revise the
 	 *	value of that field during acquisition to support
@@ -8282,7 +8288,7 @@ undefined block.");
 	if (def)	/*	This is a known extension block type.	*/
 	{
 		if (acquireExtensionBlock(work, def, startOfBlock,
-			lengthOfBlock, blkType, blkNumber, blkProcFlags, 
+			lengthOfBlock, blkType, blkNumber, blkProcFlags,
 			crcType, dataLength) < 0)
 		{
 			return -1;
@@ -8364,7 +8370,7 @@ undefined block.");
  		 *	the *size* of the CRC, not by the length
  		 *	of the CRC itself.  However, itemsRemaining
  		 *	is reduced by 1 at this time.			*/
- 
+
  		crcLength = uvtemp;
 		if (crcType == X25CRC16)
 		{
@@ -8393,9 +8399,9 @@ undefined block.");
 
 		/*	Compute CRC over entire block including the
  		 *	CRC itself.					*/
- 
+
  		length = cursor - startOfBlock;
- 		crcComputed = computeBufferCrc(crcType, startOfBlock, 
+ 		crcComputed = computeBufferCrc(crcType, startOfBlock,
 				length + crcLength, 1, 0, &crcReceived);
 		if (crcComputed != crcReceived)
 		{
@@ -8679,7 +8685,7 @@ static int	discardReceivedBundle(AcqWorkArea *work, BpSrReason srReason)
 	/*	If we must discard the bundle, we send any reception
 	 *	status report(s) previously noted and we discard the
 	 *	bundle's payload content.  We may also send send a
-	 *	deletion status report if requested.  
+	 *	deletion status report if requested.
 	 *
 	 *	Note that negative status reporting is performed here
 	 *	(in the CLI) before the bundle is enqueued for forwarding,
@@ -8747,7 +8753,7 @@ static int	recordBundleEid(Bundle *bundle, EndpointId *eid)
 	{
 		putErrmsg("Can't read EID.", NULL);
 		return -1;
-	} 
+	}
 
 	if (parseEidString(eidString, &meid, &vscheme, &vschemeElt) == 0)
 	{
@@ -8947,7 +8953,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		writeMemo("[?] security verification failed for target block.");
 		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
 			bundle->payload.length);
-		return abortBundleAcq(work);	
+		return abortBundleAcq(work);
 	}
 
 	if (bundle->insecure == 1)
@@ -8971,7 +8977,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		writeMemo("[?] security block misconfigured for target payload block.");
 		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
 			bundle->payload.length);
-		return abortBundleAcq(work);	
+		return abortBundleAcq(work);
 	}
 #endif
 
@@ -9018,7 +9024,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		       putErrmsg("Can't read EID.", NULL);
 		       sdr_cancel_xn(sdr);
 		       return -1;
-		} 
+		}
 
 		if (parseEidString(eidString, &senderMetaEid, &vscheme,
 				&vschemeElt) == 0)
@@ -9642,7 +9648,7 @@ int	parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
 	DtnTime		statusTime;
 
 	memset((char *) rpt, 0, sizeof(BpStatusRpt));
-	
+
 	/*	Start parsing of status report.				*/
 
 	arrayLength = 0;	/*	Decode array of any size.	*/
@@ -9832,7 +9838,7 @@ int	parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
 int	serializeEid(EndpointId *eid, unsigned char *buffer)
 {
 	/*	Note: we assume that the buffer is large enough to
-	 *	hold a serialized EID, i.e., 300 bytes.  The largest 
+	 *	hold a serialized EID, i.e., 300 bytes.  The largest
 	 *	allowable DTN SSP is 255 (which lets the SSP be stored
 	 *	in an sdrstring).					*/
 
@@ -9943,9 +9949,9 @@ void	serializePrimaryBlock(Bundle *bundle, unsigned char **cursor,
 	startOfPrimaryBlock = *cursor;
 
 	/*  Primary block can have 8 to 11 items:
-	 * 	
-	 *  Non-fragmented	No CRC		8 items	
-	 *  Non-fragmented	Yes CRC 	9 items 
+	 *
+	 *  Non-fragmented	No CRC		8 items
+	 *  Non-fragmented	Yes CRC 	9 items
 	 *  Fragmented		No CRC 		10 items
 	 *  Fragmented		Yes CRC		11 items */
 
@@ -9969,7 +9975,7 @@ void	serializePrimaryBlock(Bundle *bundle, unsigned char **cursor,
 	{
 		uvtemp = 8;
 	}
-	else 
+	else
 		uvtemp = 9;
 
 	oK(cbor_encode_array_open(uvtemp, cursor));
@@ -10058,7 +10064,7 @@ void	serializePrimaryBlock(Bundle *bundle, unsigned char **cursor,
 		crc16 = htons(crc16);
 		memcpy((*cursor) - 2, (char *) &crc16, 2);
 	}
-	else if (bundle->primaryBlkCrcType == CRC32C) 
+	else if (bundle->primaryBlkCrcType == CRC32C)
 	{
 		crc32 = 0;
 		oK(cbor_encode_byte_string((unsigned char *) &crc32, 4,
@@ -10704,7 +10710,7 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
 		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)b",
-			bundle->id.source.ssp.ipn.fqnn, 
+			bundle->id.source.ssp.ipn.fqnn,
 			bundle->id.source.ssp.ipn.serviceNbr,
 			bundle->id.creationTime.count);
 		iwatch_str(ewchar);
@@ -10762,7 +10768,7 @@ int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
 		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)j",
-				bundle->id.source.ssp.ipn.fqnn, 
+				bundle->id.source.ssp.ipn.fqnn,
 		     		bundle->id.source.ssp.ipn.serviceNbr,
 				bundle->id.creationTime.count);
 		iwatch_str(ewchar);
@@ -10938,7 +10944,7 @@ int	releaseFromLimbo(Object xmitElt, int resuming)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
 		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)k",
-			bundle.id.source.ssp.ipn.fqnn, 
+			bundle.id.source.ssp.ipn.fqnn,
 			bundle.id.source.ssp.ipn.serviceNbr,
 			bundle.id.creationTime.count);
 		iwatch_str(ewchar);
@@ -11752,7 +11758,7 @@ int	decodeBundle(Sdr sdr, Object zco, unsigned char *buffer, Bundle *image)
 	int		bytesBuffered;
 	int		result;
 
-	CHKERR(sdr && zco && buffer && image); 
+	CHKERR(sdr && zco && buffer && image);
 
 	/*	This is an outbound bundle, so the primary block is
 	 *	in a capsule and we use zco_transmit to re-read it.	*/
