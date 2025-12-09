@@ -277,6 +277,10 @@ typedef struct
         IonParms        parmcopy;       /*	Copy of the ion config
 						parms as asserted to
 						ionadmin at startup.	*/
+	char		enablePsmwatch;		/*	Auto-launch flag.	*/
+	char		enableSdrwatch;		/*	Auto-launch flag.	*/
+	int		psmwatchPid;		/*	Daemon process ID.	*/
+	int		sdrwatchPid;		/*	Daemon process ID.	*/
 } IonDB;
 
 /*	The IonVdb red-black tree of IonNodes, in volatile memory,

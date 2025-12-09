@@ -3570,6 +3570,11 @@ static int	loadContact(Object elt, uint32_t regionNbr)
 	return 0;
 }
 
+/*	Forward declarations for daemon management.			*/
+
+static void	stopWatchDaemons(void);
+static void	launchWatchDaemons(void);
+
 int	rfx_start(void)
 {
 	Sdr		sdr = getIonsdr();
@@ -3634,7 +3639,171 @@ int	rfx_start(void)
 	}
 
 	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
+
+	/*	Launch monitoring daemons if configured.		*/
+
+	launchWatchDaemons();
 	return 0;
+}
+
+static void	stopWatchDaemons(void)
+{
+	Sdr	sdr = getIonsdr();
+	Object	iondbObj = getIonDbObject();
+	IonDB	iondb;
+	int	pid;
+	int	i;
+	int	status;
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	sdr_exit_xn(sdr);
+
+	/*	Stop psmwatch if running.				*/
+
+	if (iondb.psmwatchPid > 0)
+	{
+		pid = iondb.psmwatchPid;
+		writeMemo("[i] rfx_stop: Stopping psmwatch daemon.");
+		if (kill(pid, SIGTERM) == 0)
+		{
+			/*	Wait up to 5 seconds for graceful exit.*/
+
+			for (i = 0; i < 50; i++)
+			{
+				if (waitpid(pid, &status, WNOHANG) > 0)
+				{
+					break;	/*	Process exited.	*/
+				}
+
+				microsnooze(100000);	/*	0.1 sec	*/
+			}
+
+			writeMemo("[i] rfx_stop: psmwatch daemon stopped.");
+		}
+
+		CHKVOID(sdr_begin_xn(sdr));
+		sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+		iondb.psmwatchPid = 0;
+		sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't clear psmwatch PID.", NULL);
+		}
+	}
+
+	/*	Stop sdrwatch if running.				*/
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	sdr_exit_xn(sdr);
+
+	if (iondb.sdrwatchPid > 0)
+	{
+		pid = iondb.sdrwatchPid;
+		writeMemo("[i] rfx_stop: Stopping sdrwatch daemon.");
+		if (kill(pid, SIGTERM) == 0)
+		{
+			/*	Wait up to 5 seconds for graceful exit.*/
+
+			for (i = 0; i < 50; i++)
+			{
+				if (waitpid(pid, &status, WNOHANG) > 0)
+				{
+					break;	/*	Process exited.	*/
+				}
+
+				microsnooze(100000);	/*	0.1 sec	*/
+			}
+
+			writeMemo("[i] rfx_stop: sdrwatch daemon stopped.");
+		}
+
+		CHKVOID(sdr_begin_xn(sdr));
+		sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+		iondb.sdrwatchPid = 0;
+		sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't clear sdrwatch PID.", NULL);
+		}
+	}
+}
+
+static void	launchWatchDaemons(void)
+{
+	Sdr	sdr = getIonsdr();
+	Object	iondbObj = getIonDbObject();
+	IonDB	iondb;
+	pid_t	pid;
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	sdr_exit_xn(sdr);
+
+	/*	Launch psmwatch if enabled.				*/
+
+	if (iondb.enablePsmwatch)
+	{
+		writeMemo("[i] rfx_start: Launching psmwatch daemon.");
+		pid = pseudoshell("psmwatch -d");
+		if (pid > 0)
+		{
+			CHKVOID(sdr_begin_xn(sdr));
+			sdr_stage(sdr, (char *) &iondb, iondbObj,
+					sizeof(IonDB));
+			iondb.psmwatchPid = pid;
+			sdr_write(sdr, iondbObj, (char *) &iondb,
+					sizeof(IonDB));
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't save psmwatch PID.", NULL);
+			}
+			else
+			{
+				writeMemo("[i] rfx_start: psmwatch daemon \
+launched.");
+			}
+		}
+		else
+		{
+			putErrmsg("Can't launch psmwatch daemon.", NULL);
+		}
+	}
+
+	/*	Launch sdrwatch if enabled.				*/
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	sdr_exit_xn(sdr);
+
+	if (iondb.enableSdrwatch)
+	{
+		writeMemo("[i] rfx_start: Launching sdrwatch daemon.");
+		pid = pseudoshell("sdrwatch -d");
+		if (pid > 0)
+		{
+			CHKVOID(sdr_begin_xn(sdr));
+			sdr_stage(sdr, (char *) &iondb, iondbObj,
+					sizeof(IonDB));
+			iondb.sdrwatchPid = pid;
+			sdr_write(sdr, iondbObj, (char *) &iondb,
+					sizeof(IonDB));
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't save sdrwatch PID.", NULL);
+			}
+			else
+			{
+				writeMemo("[i] rfx_start: sdrwatch daemon \
+launched.");
+			}
+		}
+		else
+		{
+			putErrmsg("Can't launch sdrwatch daemon.", NULL);
+		}
+	}
 }
 
 void	rfx_stop(void)
@@ -3692,6 +3861,10 @@ void	rfx_stop(void)
 	{
 		writeMemo("[i] rfx_stop: rfxclock was not running.");
 	}
+
+	/*	Stop monitoring daemons if they are running.		*/
+
+	stopWatchDaemons();
 
 	writeMemo("[i] rfx_stop: ION shutdown sequence completed.");
 }

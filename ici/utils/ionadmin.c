@@ -189,6 +189,9 @@ in bytes per second> [confidence in occurrence]");
 	PUTS("\t   s");
 	PUTS("\tx\tStop");
 	PUTS("\t   x");
+	PUTS("\tw\tWatch - Enable auto-launch of monitoring daemons");
+	PUTS("\t   w psmwatch");
+	PUTS("\t   w sdrwatch");
 	PUTS("\te\tEnable or disable echo of printed output to log file");
 	PUTS("\t   e { 0 | 1 }");
 	PUTS("\t#\tComment");
@@ -1165,6 +1168,53 @@ static void	switchEcho(int tokenCount, char **tokens)
 	oK(_echo(&state));
 }
 
+static void	executeWatch(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+	Object	iondbObj = getIonDbObject();
+	IonDB	iondb;
+
+	if (tokenCount != 2)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+
+	if (strcmp(tokens[1], "psmwatch") == 0)
+	{
+		iondb.enablePsmwatch = 1;
+		sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't enable psmwatch auto-launch.", NULL);
+			return;
+		}
+
+		printText("psmwatch auto-launch enabled.");
+		return;
+	}
+
+	if (strcmp(tokens[1], "sdrwatch") == 0)
+	{
+		iondb.enableSdrwatch = 1;
+		sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't enable sdrwatch auto-launch.", NULL);
+			return;
+		}
+
+		printText("sdrwatch auto-launch enabled.");
+		return;
+	}
+
+	sdr_exit_xn(sdr);
+	SYNTAX_ERROR;
+}
+
 static void	switchAnnounce(int tokenCount, char **tokens)
 {
 	int	state;
@@ -1458,6 +1508,14 @@ no time.");
 
 		case 'e':
 			switchEcho(tokenCount, tokens);
+			return 0;
+
+		case 'w':
+			if (ionAttach() == 0)
+			{
+				executeWatch(tokenCount, tokens);
+			}
+
 			return 0;
 
 		case 't':
