@@ -366,6 +366,37 @@ static int	beginSession(LystElt neighborElt, int newSocket, int sessionIdx)
 	session->secUntilReconnect = -1;
 	session->newlyAdded = 1;
 
+	/*	Clean up any resources from a previously closed session.
+	 *	When a session is closed via closeSession() rather than
+	 *	endSession(), the trigger and throttle llcv handles are
+	 *	not destroyed. We must close them here before creating
+	 *	new ones, to avoid leaking resources and to ensure the
+	 *	new admin thread's trigger llcv works properly.		*/
+
+	if (session->trigger)
+	{
+		llcv_close(session->trigger);
+		session->trigger = NULL;
+	}
+
+	if (session->signals)
+	{
+		lyst_destroy(session->signals);
+		session->signals = NULL;
+	}
+
+	if (session->throttle)
+	{
+		llcv_close(session->throttle);
+		session->throttle = NULL;
+	}
+
+	if (session->pipeline)
+	{
+		lyst_destroy(session->pipeline);
+		session->pipeline = NULL;
+	}
+
 	/*	Transmission pipeline.					*/
 
 	session->pipeline = lyst_create_using(getIonMemoryMgr());
@@ -3038,16 +3069,11 @@ int	main(int argc, char *argv[])
 
 	/*	Time to shut down.					*/
 
-	writeMemo("[i] tcpcli main thread beginning shutdown");
 	stp.running = 0;
-	writeMemo("[i] tcpcli calling wakeUpServerThread");
 	wakeUpServerThread(stp.serverSocket, &localAddr);
-	writeMemo("[i] tcpcli wakeUpServerThread returned");
 	if (pthread_kill(serverThread, SIGCONT) == 0)
 	{
-		writeMemo("[i] tcpcli waiting for server thread to join");
 		pthread_join(serverThread, NULL);
-		writeMemo("[i] tcpcli server thread joined");
 	}
 
 	shutDownNeighbors(neighbors);
