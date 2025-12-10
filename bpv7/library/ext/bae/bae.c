@@ -100,3 +100,42 @@ int	bae_check(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	return 1;
 }
+
+int bae_review(AcqWorkArea *wk)
+{
+	Bundle		*bundle = &(wk->bundle);
+	LystElt		elt;
+	LystElt		nextElt;
+	AcqExtBlock	*blk;
+	ExtensionDef	*def;
+
+	CHKERR(wk);
+	for (elt = lyst_first(wk->extBlocks); elt; elt = nextElt)
+	{
+		nextElt = lyst_next(elt);
+		blk = (AcqExtBlock *) lyst_data(elt);
+
+		/*	Now do block-specific parsing.			*/
+
+		def = findExtensionDef(blk->type);
+		if (def == NULL || def->parse == NULL)
+		{
+			continue;
+		}
+
+		if (def->type == BundleAgeBlk)
+		{
+			return 1;
+		}
+
+	}
+
+	// Don't have BAE, but creation time is defined
+	if (bundle->id.creationTime.msec > 0)
+	{
+		return 1;
+	}
+
+	writeMemo("[?] No bundle age block or creation time set.");
+	return 0;
+}

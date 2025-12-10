@@ -132,7 +132,7 @@ static ExtensionDef	extensionDefs[] =
 				0,
 				0,
 				0,
-				0,
+				bae_review,
 				0,
 				bae_parse,
 				bae_check,
