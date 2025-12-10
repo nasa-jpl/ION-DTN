@@ -114,7 +114,13 @@ int	main(int argc, char **argv)
 				{
 					ttl = atoi(arg3 + 2);
 				}
-				/* if 3rd argument is not TTL, it is ignored */
+				else
+				{
+					PUTS("Usage: bpsource <destination endpoint ID> [\"<text>\"] \
+[-t<Bundle TTL>]");
+					PUTS("(Third argument ignored; must be -t<TTL>.)");
+					return 0;
+				}
 			}
 		}
 	}

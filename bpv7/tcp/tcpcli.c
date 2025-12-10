@@ -1067,6 +1067,15 @@ static void	*sendBundles(void *parm)
 		break;			/*	Out of loop.		*/
 	}
 
+	/*	Close socket to unblock receiver thread.		*/
+
+	if (session->sock != -1)
+	{
+		shutdown(session->sock, SD_BOTH);
+		closesocket(session->sock);
+		session->sock = -1;
+	}
+
 	writeErrmsgMemos();
 	writeMemoNote("[i] tcpcli sender thread has ended",
 			neighbor->vplan->neighborEid);
@@ -2080,6 +2089,15 @@ static void	*handleContacts(void *parm)
 				continue;
 			}
 
+			/*	Check if outduct has been stopped.	*/
+
+			if (session->vduct == NULL
+			|| sm_SemEnded(session->vduct->semaphore))
+			{
+				running = 0;
+				continue;
+			}
+
 			/*	Session can be re-established.		*/
 
 			switch (reopenSession(session))
@@ -2176,6 +2194,7 @@ static void	*handleContacts(void *parm)
 	MRELEASE(rtp->buffer);
 	bpReleaseAcqArea(rtp->work);
 	MRELEASE(rtp);
+	session->hasReceiver = 0;	/*	Allow session restart.	*/
 #if defined(bionic)
 	int task_id = sm_TaskIdSelf();
 	sm_TaskForget(task_id);
@@ -2328,8 +2347,16 @@ session with this neighbor", eid);
 	/*	This is a duct for which we need to make a connection.	*/
 
 	session = &(neighbor->sessions[TCPCL_PLANNED]);
-	if (session->hasReceiver)	/*	Already connected.	*/
+	if (session->hasReceiver && session->sock != -1 && session->isOpen)
 	{
+		return 0;	/*	Already connected.		*/
+	}
+
+	if (session->hasReceiver)
+	{
+		/*	Receiver thread exists but session is closed;
+		 *	thread is in process of terminating. Let it
+		 *	finish before attempting to reconnect.		*/
 		return 0;
 	}
 
