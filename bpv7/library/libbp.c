@@ -343,18 +343,31 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 		return 1;
 	}
 
+	/*	Make a copy of the EID string to avoid modifying the
+	 *	original, which may be in shared memory or may be
+	 *	read by other threads/processes concurrently.		*/
+
+	metaEid->eidCopy = strdup(eidString);
+	if (metaEid->eidCopy == NULL)
+	{
+		putErrmsg("No memory for EID copy.", eidString);
+		return 0;
+	}
+
 	/*	EID string does not identify the special null endpoint.	*/
 
-	metaEid->colon = strchr(eidString, ':');
+	metaEid->colon = strchr(metaEid->eidCopy, ':');
 	if (metaEid->colon == NULL)
 	{
 		writeMemoNote("[?] Malformed EID", eidString);
+		free(metaEid->eidCopy);
+		metaEid->eidCopy = NULL;
 		return 0;
 	}
 
 	*(metaEid->colon) = '\0';
-	metaEid->schemeName = eidString;
-	metaEid->schemeNameLength = metaEid->colon - eidString;
+	metaEid->schemeName = metaEid->eidCopy;
+	metaEid->schemeNameLength = metaEid->colon - metaEid->eidCopy;
 	metaEid->nss = metaEid->colon + 1;
 	metaEid->nssLength = strlen(metaEid->nss);
 
@@ -363,8 +376,9 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 	findScheme(metaEid->schemeName, vscheme, vschemeElt);
 	if (*vschemeElt == 0)
 	{
-		*(metaEid->colon) = ':';
 		writeMemoNote("[?] Unknown scheme for endpoint URI", eidString);
+		free(metaEid->eidCopy);
+		metaEid->eidCopy = NULL;
 		return 0;
 	}
 
@@ -376,8 +390,9 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 		|| *(metaEid->nss) != '/'
 		|| *(metaEid->nss + 1) != '/')
 		{
-			*(metaEid->colon) = ':';
 			writeMemoNote("[?] Malformed URI", eidString);
+			free(metaEid->eidCopy);
+			metaEid->eidCopy = NULL;
 			return 0;
 		}
 
@@ -401,8 +416,9 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 		else if (sscanf(metaEid->nss, UVAST_FIELDSPEC ".%lu",
 			&(metaEid->elementNbr), &(metaEid->serviceNbr)) != 2)
 		{
-			*(metaEid->colon) = ':';
 			writeMemoNote("[?] Malformed URI", eidString);
+			free(metaEid->eidCopy);
+			metaEid->eidCopy = NULL;
 			return 0;
 		}
 
@@ -424,8 +440,9 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 		else if (sscanf(metaEid->nss, UVAST_FIELDSPEC ".%lu",
 			&(metaEid->elementNbr), &(metaEid->serviceNbr)) < 2)
 		{
-			*(metaEid->colon) = ':';
 			writeMemoNote("[?] Malformed URI", eidString);
+			free(metaEid->eidCopy);
+			metaEid->eidCopy = NULL;
 			return 0;
 		}
 
@@ -434,6 +451,8 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 	default:
 		writeMemoNote("[?] URI for this scheme not parseable",
 				metaEid->schemeName);
+		free(metaEid->eidCopy);
+		metaEid->eidCopy = NULL;
 	}
 
 	return 0;
@@ -443,9 +462,9 @@ void	restoreEidString(MetaEid *metaEid)
 {
 	if (metaEid)
 	{
-		if (metaEid->colon)
+		if (metaEid->eidCopy)
 		{
-			*(metaEid->colon) = ':';
+			free(metaEid->eidCopy);
 		}
 
 		memset((char *) metaEid, 0, sizeof(MetaEid));

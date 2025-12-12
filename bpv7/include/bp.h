@@ -168,6 +168,7 @@ typedef struct
 
 typedef struct
 {
+	char		*eidCopy;	/*	Allocated copy of EID.	*/
 	char		*schemeName;
 	int		schemeNameLength;
 	SchemeCodeNbr	schemeCodeNbr;
