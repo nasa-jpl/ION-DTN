@@ -632,7 +632,6 @@ static void	startScheme(VScheme *vscheme)
 	if (parseEidString(vscheme->adminEid, &metaEid, &vscheme2,
 			&vschemeElt) == 0)
 	{
-		clearMetaEid(&metaEid);
 		writeMemoNote("[?] Malformed admin EID string",
 				vscheme->adminEid);
 		vscheme->adminNSSLength = 0;
@@ -651,7 +650,6 @@ static void	startScheme(VScheme *vscheme)
 			if (addEndpoint(vscheme->adminEid, EnqueueBundle, NULL)
 					< 1)
 			{
-				clearMetaEid(&metaEid);
 				writeMemoNote("Can't add admin endpoint",
 						vscheme->adminEid);
 				vscheme->adminNSSLength = 0;
@@ -5845,7 +5843,6 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 	if (parseEidString(destEidString, &destMetaEid, &vscheme, &vschemeElt)
 			== 0)
 	{
-		clearMetaEid(&destMetaEid);
 		writeMemoNote("[?] Destination EID malformed", destEidString);
 		return 0;
 	}
@@ -5974,7 +5971,6 @@ when asking for status reports.");
 			if (parseEidString(sourceEidString, &tempMetaEid,
 					&vscheme2, &vschemeElt2) == 0)
 			{
-				clearMetaEid(&tempMetaEid);
 				writeMemoNote("[?] Admin EID malformed",
 						sourceEidString);
 				return 0;
@@ -6005,7 +6001,6 @@ when asking for status reports.");
 		if (parseEidString(reportToEidString, &reportToMetaEidBuf,
 				&vscheme, &vschemeElt) == 0)
 		{
-			clearMetaEid(&reportToMetaEidBuf);
 			writeMemoNote("[?] Report-to EID malformed",
 					reportToEidString);
 			return 0;
@@ -9018,7 +9013,6 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		if (parseEidString(eidString, &senderMetaEid, &vscheme,
 				&vschemeElt) == 0)
 		{
-			clearMetaEid(&senderMetaEid);
 			putErrmsg("Can't parse sender EID.", eidString);
 			sdr_cancel_xn(sdr);
 			return -1;
@@ -10571,7 +10565,6 @@ static int	isLoopback(char *eid)
 	PsmAddress	elt;
 
 	result = parseEidString(eid, &metaEid, &vscheme, &elt);
-	clearMetaEid(&metaEid);
 	if (result == 0)
 	{
 		/*	Unrecognizable EID, so can't be an ION node,
@@ -10579,6 +10572,8 @@ static int	isLoopback(char *eid)
 
 		return 0;
 	}
+
+	clearMetaEid(&metaEid);
 
 	if (strncmp(eid, vscheme->adminEid, MAX_EID_LEN) == 0)
 	{

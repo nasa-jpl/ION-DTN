@@ -59,13 +59,14 @@ int	pnb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 
 	result = parseEidString(context->proxNodeEid, &metaEid, &vscheme,
 			&vschemeElt);
-	clearMetaEid(&metaEid);
 	if (result == 0)
 	{
 		/*	Can't know which admin EID to use.		*/
 
 		return 0;
 	}
+
+	clearMetaEid(&metaEid);
 
 	restoreExtensionBlock(blk);
 	CHKZERO(parseEidString(vscheme->adminEid, &metaEid, &vscheme,

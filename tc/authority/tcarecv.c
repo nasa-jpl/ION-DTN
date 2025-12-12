@@ -129,7 +129,6 @@ static int	acquireRecord(Sdr sdr, TcaDB *db, char *src, Object adu)
 	parsedOkay = parseEidString(src, &metaEid, &vscheme, &schemeElt);
 	if (!parsedOkay)
 	{
-		clearMetaEid(&metaEid);
 		writeMemoNote("[?] Can't parse source of TCA record", src);
 		return 0;
 	}
