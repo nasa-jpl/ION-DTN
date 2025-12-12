@@ -340,7 +340,7 @@ static int	discoveryAcquired(char *socketSpec, char *discoveryEid,
 		cbhe = 1;
 	}
 
-	restoreEidString(&metaEid);
+	clearMetaEid(&metaEid);
 	elt = bp_find_discovery(discoveryEid);
 	if (elt)
 	{
@@ -686,7 +686,7 @@ static int	discoveryLost(char *socketSpec, char *discoveryEid,
 		cbhe = 1;
 	}
 
-	restoreEidString(&metaEid);
+	clearMetaEid(&metaEid);
 
 	/*	Stop transmission of bundles via this contact.		*/
 

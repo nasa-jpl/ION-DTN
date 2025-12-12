@@ -305,7 +305,6 @@ static int	proactivelyFragment(Bundle *bundle, Object *bundleObj,
 
 	if (parseEidString(eid, &stationMetaEid, &vscheme, &vschemeElt) == 0)
 	{
-		restoreEidString(&stationMetaEid);
 		putErrmsg("Bad station EID", eid);
 		return -1;
 	}
@@ -331,7 +330,7 @@ static int	proactivelyFragment(Bundle *bundle, Object *bundleObj,
 	/*	Send the second fragment back through the routing
 	 *	procedure; adapted from forwardBundle().		*/
 
-	restoreEidString(&stationMetaEid);
+	clearMetaEid(&stationMetaEid);
 	stationEid = sdr_string_create(sdr, eid);
 	if (stationEid == 0
 	|| sdr_list_insert_first(sdr, secondBundle.stations, stationEid) == 0)
@@ -1125,7 +1124,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 	}
 
 	fqnn = metaEid.elementNbr;
-	restoreEidString(&metaEid);
+	clearMetaEid(&metaEid);
 
 	/*	Apply routing override, if any.				*/
 

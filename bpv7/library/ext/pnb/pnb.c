@@ -59,7 +59,7 @@ int	pnb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 
 	result = parseEidString(context->proxNodeEid, &metaEid, &vscheme,
 			&vschemeElt);
-	restoreEidString(&metaEid);
+	clearMetaEid(&metaEid);
 	if (result == 0)
 	{
 		/*	Can't know which admin EID to use.		*/
@@ -71,7 +71,7 @@ int	pnb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	CHKZERO(parseEidString(vscheme->adminEid, &metaEid, &vscheme,
 			&vschemeElt));
 	result = jotEid(&eid, &metaEid);
-	restoreEidString(&metaEid);
+	clearMetaEid(&metaEid);
 	if (result < 0)
 	{
 		putErrmsg("Can't jot eid.", NULL);

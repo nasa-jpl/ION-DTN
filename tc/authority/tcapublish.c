@@ -141,7 +141,7 @@ writeMemoNote("tcapublish: Got proposed bulletin from node", nbrBuf);
 		}
 	}
 
-	restoreEidString(&metaEid);
+	clearMetaEid(&metaEid);
 	if (elt == 0)
 	{
 #if TC_DEBUG

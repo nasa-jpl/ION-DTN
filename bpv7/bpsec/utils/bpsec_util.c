@@ -118,7 +118,7 @@ int bpsec_util_EIDCopy(EndpointId *toEID, EndpointId *fromEID)
 	}
 
 	result = writeEid(toEID, &meid);
-	restoreEidString(&meid);
+	clearMetaEid(&meid);
 	MRELEASE(eidBuf);
 	if (result < 0)
 	{
@@ -216,7 +216,7 @@ char	*bpsec_util_localAdminEIDGet(char *peerEid)
 		return NULL;
 	}
 
-	restoreEidString(&metaEid);
+	clearMetaEid(&metaEid);
    	return vscheme->adminEid;
 }
 

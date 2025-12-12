@@ -398,7 +398,7 @@ extern int		bp_parse_quality_of_service(const char *token,
 
 extern int		parseEidString(char *eidString, MetaEid *metaEid,
 				VScheme **scheme, PsmAddress *schemeElt);
-extern void		restoreEidString(MetaEid *metaEid);
+extern void		clearMetaEid(MetaEid *metaEid);
 extern int		recordEid(EndpointId *eid, MetaEid *meid, EidMode mode);
 
 #define writeEid(eid, meid)	recordEid(eid, meid, EidNV)

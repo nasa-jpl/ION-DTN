@@ -129,7 +129,7 @@ static int	acquireRecord(Sdr sdr, TcaDB *db, char *src, Object adu)
 	parsedOkay = parseEidString(src, &metaEid, &vscheme, &schemeElt);
 	if (!parsedOkay)
 	{
-		restoreEidString(&metaEid);
+		clearMetaEid(&metaEid);
 		writeMemoNote("[?] Can't parse source of TCA record", src);
 		return 0;
 	}
@@ -138,7 +138,7 @@ static int	acquireRecord(Sdr sdr, TcaDB *db, char *src, Object adu)
 	len = recordLength;
 	if (len > TC_MAX_REC)
 	{
-		restoreEidString(&metaEid);
+		clearMetaEid(&metaEid);
 		writeMemoNote("[?] TCA record length error", itoa(len));
 		return 0;
 	}
@@ -159,7 +159,7 @@ writeMemoNote("tcarecv: Got record from", itoa(metaEid.elementNbr));
 writeMemo("tcarecv: Deserialize failed.");
 #endif
 		writeMemo("[?] Unable to deserialize record.");
-		restoreEidString(&metaEid);
+		clearMetaEid(&metaEid);
 		return 0;
 	}
 
@@ -181,7 +181,7 @@ writeMemo("tcarecv: Deserialize failed.");
 
 		if (clientElt == 0 || client != metaEid.elementNbr)
 		{
-			restoreEidString(&metaEid);
+			clearMetaEid(&metaEid);
 			writeMemoNote("[?] TCA record posted by unauthorized \
 client", src);
 			return 0;
@@ -193,14 +193,14 @@ client", src);
 
 		if (record.fqnn != metaEid.elementNbr)
 		{
-			restoreEidString(&metaEid);
+			clearMetaEid(&metaEid);
 			writeMemoNote("[?] TCA record posted from unauthorized \
 EID", src);
 			return 0;
 		}
 	}
 
-	restoreEidString(&metaEid);
+	clearMetaEid(&metaEid);
 	if (fetchRecord(db->pendingRecords, record.fqnn,
 			record.effectiveTime, &recordElt, &nextRecordElt))
 	{

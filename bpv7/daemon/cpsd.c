@@ -421,7 +421,7 @@ int	main(void)
 
 	oK(parseEidString(cpsEid, &meid, &vscheme, &velt));
 	findEndpoint("imc", &meid, vscheme, &vpoint, &velt);
-	restoreEidString(&meid);
+	clearMetaEid(&meid);
 	if (velt == 0)
 	{
 		writeMemo("[i] Not configured for CP sync; cpsd stopping.");

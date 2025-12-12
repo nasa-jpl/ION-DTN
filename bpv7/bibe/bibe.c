@@ -24,7 +24,7 @@ static void	getSchemeName(char *eid, char *schemeNameBuf)
 	else
 	{
 		istrcpy(schemeNameBuf, meid.schemeName, MAX_SCHEME_NAME_LEN);
-		restoreEidString(&meid);
+		clearMetaEid(&meid);
 	}
 }
 

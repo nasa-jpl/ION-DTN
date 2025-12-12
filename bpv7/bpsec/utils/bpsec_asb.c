@@ -1404,7 +1404,7 @@ void     bpsec_asb_outboundSecuritySourceInsert(Bundle *bundle, BpsecOutboundASB
 
     CHKVOID(parseEidString(adminEid, &metaEid, &vscheme, &elt));
     result = writeEid(&(asb->scSource), &metaEid);
-    restoreEidString(&metaEid);
+    clearMetaEid(&metaEid);
     CHKVOID(result == 0);
 }
 

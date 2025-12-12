@@ -1268,7 +1268,7 @@ extern void		computePriorClaims(BpPlan *plan, Bundle *bundle,
 
 extern int		parseEidString(char *eidString, MetaEid *metaEid,
 				VScheme **scheme, PsmAddress *schemeElt);
-extern void		restoreEidString(MetaEid *metaEid);
+extern void		clearMetaEid(MetaEid *metaEid);
 extern int		recordEid(EndpointId *eid, MetaEid *meid, EidMode mode);
 
 #define writeEid(eid, meid)	recordEid(eid, meid, EidNV)

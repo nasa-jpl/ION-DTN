@@ -80,7 +80,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	}
 
 	isprintf(nodeId, sizeof nodeId, "dtn://%s/", metaEid.nodeName);
-	restoreEidString(&metaEid);
+	clearMetaEid(&metaEid);
 	lookupPlan(nodeId, &vplan);
 	if (vplan == NULL)
 	{

@@ -739,7 +739,7 @@ char	nbrBuf[FQN_MAX_LENGTH];
 		}
 	}
 
-	restoreEidString(&metaEid);
+	clearMetaEid(&metaEid);
 	if (elt == 0)
 	{
 		writeMemoNote("[?] Bulletin block from non-authority", src);

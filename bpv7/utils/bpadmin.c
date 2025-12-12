@@ -806,7 +806,6 @@ static void	infoEndpoint(int tokenCount, char **tokens)
 
 	if (parseEidString(tokens[2], &metaEid, &vscheme, &vschemeElt) == 0)
 	{
-		restoreEidString(&metaEid);
 		printText("Endpoint ID unintelligible.");
 		return;
 	}
@@ -823,7 +822,7 @@ static void	infoEndpoint(int tokenCount, char **tokens)
 	}
 
 	sdr_exit_xn(sdr);
-	restoreEidString(&metaEid);
+	clearMetaEid(&metaEid);
 }
 
 static void	printProtocol(ClProtocol *protocol)

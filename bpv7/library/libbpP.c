@@ -632,7 +632,7 @@ static void	startScheme(VScheme *vscheme)
 	if (parseEidString(vscheme->adminEid, &metaEid, &vscheme2,
 			&vschemeElt) == 0)
 	{
-		restoreEidString(&metaEid);
+		clearMetaEid(&metaEid);
 		writeMemoNote("[?] Malformed admin EID string",
 				vscheme->adminEid);
 		vscheme->adminNSSLength = 0;
@@ -645,13 +645,13 @@ static void	startScheme(VScheme *vscheme)
 
 		findEndpoint(vscheme->name, &metaEid, vscheme, &vpoint,
 				&vpointElt);
-		restoreEidString(&metaEid);
+		clearMetaEid(&metaEid);
 		if (vpointElt == 0)
 		{
 			if (addEndpoint(vscheme->adminEid, EnqueueBundle, NULL)
 					< 1)
 			{
-				restoreEidString(&metaEid);
+				clearMetaEid(&metaEid);
 				writeMemoNote("Can't add admin endpoint",
 						vscheme->adminEid);
 				vscheme->adminNSSLength = 0;
@@ -3239,7 +3239,7 @@ static int	addEndpoint_IMC(VScheme *vscheme, char *eid)
 
 	petition.isMember = 1;
 	result = imcSendPetition(&petition, 0);
-	restoreEidString(&metaEid);
+	clearMetaEid(&metaEid);
 	return result;
 }
 
@@ -3358,7 +3358,7 @@ int	updateEndpoint(char *eid, BpRecvRule recvRule, char *script)
 
 	CHKERR(sdr_begin_xn(sdr));
 	findEndpoint(NULL, &metaEid, vscheme, &vpoint, &elt);
-	restoreEidString(&metaEid);
+	clearMetaEid(&metaEid);
 	if (elt == 0)		/*	This is an unknown endpoint.	*/
 	{
 		sdr_exit_xn(sdr);
@@ -3412,7 +3412,7 @@ static int	removeEndpoint_IMC(VScheme *vscheme, char *eid)
 	petition.fqgn = metaEid.elementNbr;
 	petition.isMember = 0;
 	result = imcSendPetition(&petition, 0);
-	restoreEidString(&metaEid);
+	clearMetaEid(&metaEid);
 	return result;
 }
 
@@ -3436,7 +3436,7 @@ int	removeEndpoint(char *eid)
 
 	CHKERR(sdr_begin_xn(sdr));
 	findEndpoint(NULL, &metaEid, vscheme, &vpoint, &elt);
-	restoreEidString(&metaEid);
+	clearMetaEid(&metaEid);
 	if (elt == 0)			/*	Not found.		*/
 	{
 		sdr_exit_xn(sdr);
@@ -3605,7 +3605,6 @@ int	addPlan(char *eidIn, unsigned int nominalRate)
 	if (parseEidString(eidIn, &metaEid, &vscheme, &vschemeElt) == 0)
 	{
 		sdr_exit_xn(sdr);
-		restoreEidString(&metaEid);
 		writeMemoNote("[?] Malformed eid for egress plan", eidIn);
 		return 0;
 	}
@@ -3615,7 +3614,7 @@ int	addPlan(char *eidIn, unsigned int nominalRate)
 		neighborFqnn = metaEid.elementNbr;
 	}
 
-	restoreEidString(&metaEid);
+	clearMetaEid(&metaEid);
 
 	/*	All parameters validated, okay to add the plan.		*/
 
@@ -5652,7 +5651,6 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 	{
 		/*	Can't forward: can't make sense of this EID.	*/
 
-		restoreEidString(&stationMetaEid);
 		writeMemoNote("[?] Can't parse station EID", eid);
 		sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
 		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
@@ -5670,7 +5668,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 	}
 
 	/*  Not a null-endpoint */
-	restoreEidString(&stationMetaEid);
+	clearMetaEid(&stationMetaEid);
 
 	/*	We're going to queue this bundle for processing by
 	 *	the forwarder for the station EID's scheme name.
@@ -5847,7 +5845,7 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 	if (parseEidString(destEidString, &destMetaEid, &vscheme, &vschemeElt)
 			== 0)
 	{
-		restoreEidString(&destMetaEid);
+		clearMetaEid(&destMetaEid);
 		writeMemoNote("[?] Destination EID malformed", destEidString);
 		return 0;
 	}
@@ -5897,7 +5895,7 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 	{
 		if (sourceMetaEid == NULL)
 		{
-			restoreEidString(&destMetaEid);
+			clearMetaEid(&destMetaEid);
 			writeMemo("[?] Source can't be anonymous when asking \
 for status reports.");
 			return 0;
@@ -5908,7 +5906,7 @@ for status reports.");
 
 		if (adminRecordType != 0 && adminRecordType != BP_BIBE_PDU)
 		{
-			restoreEidString(&destMetaEid);
+			clearMetaEid(&destMetaEid);
 			writeMemo("[?] Can't ask for status reports for admin \
 records.");
 			return 0;
@@ -5921,7 +5919,7 @@ records.");
 		{
 			if (ancillaryData->flags & BP_MINIMUM_LATENCY)
 			{
-				restoreEidString(&destMetaEid);
+				clearMetaEid(&destMetaEid);
 				writeMemo("[?] Can't flag bundle as 'critical' \
 when asking for status reports.");
 				return 0;
@@ -5976,7 +5974,7 @@ when asking for status reports.");
 			if (parseEidString(sourceEidString, &tempMetaEid,
 					&vscheme2, &vschemeElt2) == 0)
 			{
-				restoreEidString(&tempMetaEid);
+				clearMetaEid(&tempMetaEid);
 				writeMemoNote("[?] Admin EID malformed",
 						sourceEidString);
 				return 0;
@@ -6007,7 +6005,7 @@ when asking for status reports.");
 		if (parseEidString(reportToEidString, &reportToMetaEidBuf,
 				&vscheme, &vschemeElt) == 0)
 		{
-			restoreEidString(&reportToMetaEidBuf);
+			clearMetaEid(&reportToMetaEidBuf);
 			writeMemoNote("[?] Report-to EID malformed",
 					reportToEidString);
 			return 0;
@@ -6039,8 +6037,8 @@ when asking for status reports.");
 	if (aduLength < 0)
 	{
 		sdr_exit_xn(sdr);
-		restoreEidString(&destMetaEid);
-		restoreEidString(reportToMetaEid);
+		clearMetaEid(&destMetaEid);
+		clearMetaEid(reportToMetaEid);
 		putErrmsg("Can't get length of ADU.", NULL);
 		return -1;
 	}
@@ -6049,14 +6047,14 @@ when asking for status reports.");
 	if (loadEids(&bundle, &destMetaEid, sourceMetaEid, reportToMetaEid) < 0)
 	{
 		sdr_exit_xn(sdr);
-		restoreEidString(&destMetaEid);
-		restoreEidString(reportToMetaEid);
+		clearMetaEid(&destMetaEid);
+		clearMetaEid(reportToMetaEid);
 		putErrmsg("Can't load endpoint IDs.", NULL);
 		return -1;
 	}
 
-	restoreEidString(&destMetaEid);
-	restoreEidString(reportToMetaEid);
+	clearMetaEid(&destMetaEid);
+	clearMetaEid(reportToMetaEid);
 	bundle.id.fragmentOffset = 0;
 
 	/*	Note: bundle is not a fragment when initially created,
@@ -9020,7 +9018,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		if (parseEidString(eidString, &senderMetaEid, &vscheme,
 				&vschemeElt) == 0)
 		{
-			restoreEidString(&senderMetaEid);
+			clearMetaEid(&senderMetaEid);
 			putErrmsg("Can't parse sender EID.", eidString);
 			sdr_cancel_xn(sdr);
 			return -1;
@@ -9029,7 +9027,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		bundle->clDossier.senderFqnn = senderMetaEid.elementNbr;
 		if (writeEid(&bundle->clDossier.senderEid, &senderMetaEid) < 0)
 		{
-			restoreEidString(&senderMetaEid);
+			clearMetaEid(&senderMetaEid);
 			putErrmsg("No space for sender EID.", eidString);
 			sdr_cancel_xn(sdr);
 			return -1;
@@ -10573,7 +10571,7 @@ static int	isLoopback(char *eid)
 	PsmAddress	elt;
 
 	result = parseEidString(eid, &metaEid, &vscheme, &elt);
-	restoreEidString(&metaEid);
+	clearMetaEid(&metaEid);
 	if (result == 0)
 	{
 		/*	Unrecognizable EID, so can't be an ION node,

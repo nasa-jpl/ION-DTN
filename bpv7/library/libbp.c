@@ -76,21 +76,21 @@ static int	createBpSAP(Sdr sdr, char *eidString, BpSAP *bpsapPtr,
 
 	if (metaEid.nullEndpoint)	/*	No SAP is possible.	*/
 	{
-		restoreEidString(&metaEid);
+		clearMetaEid(&metaEid);
 		return 0;
 	}
 
 	if (vschemeElt == 0)
 	{
 		putErrmsg("Scheme not known.", metaEid.schemeName);
-		restoreEidString(&metaEid);
+		clearMetaEid(&metaEid);
 		return -1;
 	}
 
 	findEndpoint(NULL, &metaEid, vscheme, &vpoint, &vpointElt);
 	if (vpointElt == 0)
 	{
-		restoreEidString(&metaEid);
+		clearMetaEid(&metaEid);
 		putErrmsg("Endpoint not known.", eidString);
 		return -1;
 	}
@@ -106,7 +106,7 @@ static int	createBpSAP(Sdr sdr, char *eidString, BpSAP *bpsapPtr,
 		{
 			if (sm_TaskExists(vpoint->appPid))
 			{
-				restoreEidString(&metaEid);
+				clearMetaEid(&metaEid);
 				if (vpoint->appPid == sm_TaskIdSelf())
 				{
 					return 0;
@@ -133,7 +133,7 @@ static int	createBpSAP(Sdr sdr, char *eidString, BpSAP *bpsapPtr,
 	sap.endpointMetaEid.schemeName = MTAKE(metaEid.schemeNameLength + 1);
 	if (sap.endpointMetaEid.schemeName == NULL)
 	{
-		restoreEidString(&metaEid);
+		clearMetaEid(&metaEid);
 		putErrmsg("Can't create BpSAP.", NULL);
 		return -1;
 	}
@@ -142,7 +142,7 @@ static int	createBpSAP(Sdr sdr, char *eidString, BpSAP *bpsapPtr,
 	if (sap.endpointMetaEid.nss == NULL)
 	{
 		MRELEASE(sap.endpointMetaEid.schemeName);
-		restoreEidString(&metaEid);
+		clearMetaEid(&metaEid);
 		putErrmsg("Can't create BpSAP.", NULL);
 		return -1;
 	}
@@ -152,7 +152,7 @@ static int	createBpSAP(Sdr sdr, char *eidString, BpSAP *bpsapPtr,
 	{
 		MRELEASE(sap.endpointMetaEid.nss);
 		MRELEASE(sap.endpointMetaEid.schemeName);
-		restoreEidString(&metaEid);
+		clearMetaEid(&metaEid);
 		putErrmsg("Can't create BpSAP.", NULL);
 		return -1;
 	}
@@ -162,7 +162,7 @@ static int	createBpSAP(Sdr sdr, char *eidString, BpSAP *bpsapPtr,
 	istrcpy(sap.endpointMetaEid.nss, metaEid.nss,
 			metaEid.nssLength + 1);
 	memcpy((char *) (*bpsapPtr), (char *) &sap, sizeof(Sap));
-	restoreEidString(&metaEid);
+	clearMetaEid(&metaEid);
 	return 0;
 }
 
@@ -458,7 +458,7 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 	return 0;
 }
 
-void	restoreEidString(MetaEid *metaEid)
+void	clearMetaEid(MetaEid *metaEid)
 {
 	if (metaEid)
 	{
