@@ -36,7 +36,7 @@
 #include "bei.h"
 #include "bpsec_util.h"
 
-/*	We hitchhike on the ZCO heap space management system to 
+/*	We hitchhike on the ZCO heap space management system to
  *	manage the space occupied by Bundle objects.  In effect,
  *	the Bundle overhead objects compete with ZCOs for available
  *	SDR heap space.  We don't want this practice to become
@@ -677,7 +677,7 @@ int	serializeExtBlk(ExtensionBlock *blk, char *blockData)
 	uvtemp = blk->dataLength;
 	oK(cbor_encode_byte_string((unsigned char *) blockData, uvtemp,
 			&cursor));
-	
+
 #ifdef DEBUG_CRC
 	printf("\n Serializing extension blocks: crcType = %d; block type = %d\n", (int) blk->crcType, blk->type);
 #endif
@@ -870,6 +870,11 @@ int	parseExtensionBlocks(AcqWorkArea *work)
 	AcqExtBlock	*blk;
 	ExtensionDef	*def;
 	unsigned int	oldLength;
+	unsigned char   blkNum;
+	/* ION supports 11 extensions blocks plus an unknown extension and with
+	the possibility of mulitple BIBs & BCBs, 32 should be sufficent */
+	unsigned char existingBlknum[32];
+	int count = 0;
 
 	CHKERR(work);
 	for (elt = lyst_first(work->extBlocks); elt; elt = nextElt)
@@ -917,6 +922,18 @@ int	parseExtensionBlocks(AcqWorkArea *work)
 			bundle->extensionsLength -= oldLength;
 			bundle->extensionsLength += blk->length;
 		}
+
+		blkNum = blk->number;
+		for (int j = 0; j < count; j++)
+		{
+			if (existingBlknum[j] == blkNum)
+			{
+				return 1;
+			}
+		}
+
+		existingBlknum[count] = blkNum;
+		count++;
 	}
 
 	return 0;

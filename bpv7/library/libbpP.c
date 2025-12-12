@@ -8870,12 +8870,20 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	/*	Can now finish block acquisition for any blocks
 	 *	that were originally encrypted.				*/
-
-	if (parseExtensionBlocks(work) < 0)
+	switch(parseExtensionBlocks(work))
 	{
+	case -1:
 		putErrmsg("Failed parsing extension blocks.", NULL);
 		sdr_cancel_xn(sdr);
 		return -1;
+
+	/* case 0 is nominal */
+
+	case 1:
+		writeMemo("[?] Malformed bundle: Extension block with duplicate block number(s).");
+		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+				bundle->payload.length);
+		return abortBundleAcq(work);
 	}
 
 	/*	Check extension blocks in context.			*/
@@ -8892,6 +8900,8 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
 				bundle->payload.length);
 		return abortBundleAcq(work);
+
+	/*	case 1 is nominal.*/
 	}
 
 	/*	Now that acquisition is complete, check the bundle
