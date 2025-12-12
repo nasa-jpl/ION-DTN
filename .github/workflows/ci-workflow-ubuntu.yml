@@ -92,7 +92,7 @@ jobs:
         run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
 
       - name: Run build and tests, capture stdout
-        timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '240') }}
+        timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '270') }}
         run: |
           {
             echo "Starting build and tests at $(date)"
