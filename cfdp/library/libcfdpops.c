@@ -555,10 +555,6 @@ int	handleProxyPutRequest(CfdpUserOpsData *opsData)
 	CfdpTransactionId	transactionId;
 	int			result;
 
-	/* BPCP_DEBUG_352 */ writeMemo("[BPCP_DEBUG_352] handleProxyPutRequest: received request");
-	/* BPCP_DEBUG_352 */ if (opsData->proxySourceFileName[0]) { writeMemoNote("[BPCP_DEBUG_352] Proxy source file", opsData->proxySourceFileName); }
-	/* BPCP_DEBUG_352 */ if (opsData->proxyDestFileName[0]) { writeMemoNote("[BPCP_DEBUG_352] Proxy dest file", opsData->proxyDestFileName); }
-
 	if (!opsData->proxyUnacknowledged)
 	{
 		return reportOnProxyPut(opsData, CfdpInvalidTransmissionMode,
@@ -600,21 +596,18 @@ int	handleProxyPutRequest(CfdpUserOpsData *opsData)
 			&transactionId);
 	if (result < 0)
 	{
-		/* BPCP_DEBUG_352 */ writeMemo("[BPCP_DEBUG_352] handleProxyPutRequest: createFDU returned error");
 		putErrmsg("Can't perform proxy put.", NULL);
 		return -1;
 	}
 
 	if (transactionId.transactionNbr.length == 0)
 	{
-		/* BPCP_DEBUG_352 */ writeMemo("[BPCP_DEBUG_352] handleProxyPutRequest: createFDU silent failure (empty txn ID)");
 		/*	createFDU failed silently (e.g., source file not
 		 *	found). Send error response back to originator.	*/
 		return reportOnProxyPut(opsData, CfdpFilestoreRejection,
 				CfdpDataIncomplete, CfdpFileStatusUnreported);
 	}
 
-	/* BPCP_DEBUG_352 */ writeMemo("[BPCP_DEBUG_352] handleProxyPutRequest: createFDU succeeded, sending response");
 	return reportOnProxyPut(opsData, CfdpNoError, CfdpDataComplete,
 			CfdpFileStatusUnreported);
 }

@@ -995,7 +995,6 @@ int ion_cfdp_rput(struct transfer* t)
 	event_wait_id=&parms.transactionId;
 	current_wait_status=snd_wait;
 #endif
-	/* BPCP_DEBUG_352 */ dbgprintf(0, "[BPCP_DEBUG_352] ion_cfdp_rput: calling cfdp_rput for %s\n", t->sfile);
 	res = cfdp_rput(&src, sizeof(BpUtParms),
 			(unsigned char *) &(parms.utParms),
 			NULL, NULL, 0,
@@ -1007,7 +1006,6 @@ int ion_cfdp_rput(struct transfer* t)
 
 	/*Handle Error*/
 	if (res<0) {
-		/* BPCP_DEBUG_352 */ dbgprintf(0, "[BPCP_DEBUG_352] ion_cfdp_rput: cfdp_rput FAILED for %s\n", t->sfile);
 		dbgprintf(0, "Error: CFDP error on: %s\n",t->sfile);
 #ifdef SERIAL
 		current_wait_status=no_req;
@@ -1015,7 +1013,6 @@ int ion_cfdp_rput(struct transfer* t)
 #endif
 		return -1;
 	}
-	/* BPCP_DEBUG_352 */ dbgprintf(0, "[BPCP_DEBUG_352] ion_cfdp_rput: cfdp_rput succeeded for %s\n", t->sfile);
 
 #ifdef SERIAL
 	/*Sleep waiting for EOF event*/
@@ -1597,7 +1594,6 @@ void* rcv_msg_thread(void* param)
 			if(type==CfdpEofSentInd)
 			{
 				/*This is an EOF Sent event*/
-				/* BPCP_DEBUG_352 */ dbgprintf(0, "[BPCP_DEBUG_352] rcv_msg_thread: got CfdpEofSentInd, TID=%llu.%llu\n", (unsigned long long)TID11, (unsigned long long)TID12);
 
 				if (event_wait_id==NULL)
 				{
@@ -1607,7 +1603,6 @@ void* rcv_msg_thread(void* param)
 
 				cfdp_decompress_number(&TID21,&event_wait_id->sourceEntityNbr);
 				cfdp_decompress_number(&TID22,&event_wait_id->transactionNbr);
-				/* BPCP_DEBUG_352 */ dbgprintf(0, "[BPCP_DEBUG_352] rcv_msg_thread: waiting for TID=%llu.%llu\n", (unsigned long long)TID21, (unsigned long long)TID22);
 
 				/*Compare transaction IDs*/
 				if (TID21==TID11 && TID22==TID12)
@@ -1616,11 +1611,9 @@ void* rcv_msg_thread(void* param)
 						TID21=TID22=0;
 						dbgprintf(3, "EOF Sent\n");
 						dbgprintf(3, "Transaction ID: %i\n", TID22);
-						/* BPCP_DEBUG_352 */ dbgprintf(0, "[BPCP_DEBUG_352] rcv_msg_thread: TID match! signaling semaphore\n");
 						current_wait_status=sent;
 						sm_SemGive(events_sem);
 				}
-				/* BPCP_DEBUG_352 */ else { dbgprintf(0, "[BPCP_DEBUG_352] rcv_msg_thread: TID mismatch, ignoring\n"); }
 			}
 
 		}
@@ -1648,7 +1641,6 @@ void* rcv_msg_thread(void* param)
 				if (TID21 == TID11 && TID22 == TID12)
 				{
 					dbgprintf(3, "Proxy request processed\n");
-					/* BPCP_DEBUG_352 */ dbgprintf(0, "[BPCP_DEBUG_352] rcv_msg_thread: CfdpMetadataRecvInd for proxy TID=%llu.%llu, setting proxy_done\n", (unsigned long long)TID11, (unsigned long long)TID12);
 					current_wait_status = proxy_done;
 				}
 			}
