@@ -60,7 +60,7 @@ sleep 10
 RETVAL=0
 cd ../3.ipn.ltp
 
-COUNT=`ls -l testfile1 | wc -l`
+COUNT=`ls -l testfile1 2>/dev/null | wc -l`
 if [ $COUNT -eq 1 ]
 then
 	if diff testfile testfile1 > /dev/null;

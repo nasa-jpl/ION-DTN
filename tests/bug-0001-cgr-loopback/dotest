@@ -5,10 +5,10 @@
 #
 # documentation boilerplate
 CONFIGFILES=" \
+./global.ionrc \
 ./3.ipn.ltp/amroc.bprc \
 ./3.ipn.ltp/amroc.ltprc \
 ./3.ipn.ltp/amroc.ionconfig \
-./3.ipn.ltp/global.ionrc \
 ./3.ipn.ltp/amroc.ionrc \
 ./3.ipn.ltp/amroc.ionsecrc \
 ./3.ipn.ltp/amroc.ipnrc \
@@ -18,7 +18,6 @@ CONFIGFILES=$CONFIGFILES"
 ./2.ipn.ltp/amroc.bprc \
 ./2.ipn.ltp/amroc.ltprc \
 ./2.ipn.ltp/amroc.ionconfig \
-./2.ipn.ltp/global.ionrc \
 ./2.ipn.ltp/amroc.ionrc \
 ./2.ipn.ltp/amroc.ionsecrc \
 ./2.ipn.ltp/amroc.ipnrc \

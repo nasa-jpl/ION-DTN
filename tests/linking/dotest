@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 
+#
 # this test checks the linking cleanliness of the executables
 #
 # it's a bit icky, because it's not obvious what files are executables

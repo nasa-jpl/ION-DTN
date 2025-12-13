@@ -1,0 +1,1 @@
+The make-link-graph.sh script uses GNU-specific options (find -perm /111 and sed -r) that are not available on Solaris.

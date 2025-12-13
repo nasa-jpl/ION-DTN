@@ -2,7 +2,7 @@
 
 echo "Cleaning up old ION..."
 killm
-rm ion_nodes
+rm -f ion_nodes
 rm -rf node1
 rm -rf node2
 

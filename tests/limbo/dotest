@@ -142,7 +142,7 @@ sleep 3
 
 # Verify that this file has NOT arrived.
 cd ../3.ipn.tcp
-COUNT=`ls -l testfile2 | egrep 1070 | wc -l`
+COUNT=`ls -l testfile2 2>/dev/null | egrep 1070 | wc -l`
 if [ $COUNT -eq 1 ]
 then
 	echo ""
@@ -210,7 +210,7 @@ sleep 3
 
 # Verify that this file has NOT arrived.
 cd ../3.ipn.tcp
-COUNT=`ls -l testfile4 | egrep 1070 | wc -l`
+COUNT=`ls -l testfile4 2>/dev/null | egrep 1070 | wc -l`
 if [ $COUNT -eq 1 ]
 then
 	echo ""

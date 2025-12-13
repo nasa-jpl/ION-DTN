@@ -4,7 +4,7 @@
 shutdown_process() {
     process_name=$1
     echo "Stopping $process_name..."
-    pids=$(ps | awk '/'"$process_name"'/ {print $1}')
+    pids=$(ps -e 2>/dev/null | awk '/'"$process_name"'/ {print $1}')
     for pid in $pids; do
         if [ -n "$pid" ]; then
             kill "$pid"

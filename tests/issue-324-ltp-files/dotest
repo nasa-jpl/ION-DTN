@@ -64,6 +64,7 @@ while [ $ITERCOUNT -le 4 ] && [ $GAVEUP -eq 1 ]
 do
 	echo "Starting channel simulator (owltsim)..."
 	owltsim owlt.rc &
+	OWLTSIM_PID=$!
 
 	# Start nodes.
 	cd 3.ipn.ltp
@@ -141,7 +142,7 @@ do
 	echo ""
 
 	# Verify that no leftover files remain.
-	COUNT=`ls -l *ltpblock* | wc -l`
+	COUNT=`ls -l *ltpblock* 2>/dev/null | wc -l`
 	if [ $COUNT -eq 0 ]
 	then
 		echo ""
@@ -154,11 +155,11 @@ do
 
 	#Kill file receiver
 	echo "1st attempt to kill file receiver..."
-	kill -2 $RCVPID
+	kill -2 $RCVPID 2>/dev/null
 	sleep 2
 	echo "2nd attempt to kill file receiver... Maybe redundant but to be sure..."
-	kill -9 $RCVPID
-	sleep 2
+	kill -9 $RCVPID 2>/dev/null
+	wait $RCVPID 2>/dev/null
 	rm testfile*
 
 	#adjust loop condition
@@ -191,6 +192,7 @@ do
 	fi
 
 	$killcmd -KILL "owltsim" &> /dev/null
+	wait $OWLTSIM_PID 2>/dev/null
 
 	# Shut down ION processes.
 	#echo "Stopping ION..."

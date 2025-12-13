@@ -35,7 +35,7 @@ echo
 echo "########################################"
 
 export ION_NODE_LIST_DIR=$PWD
-rm ion_nodes
+rm -f ion_nodes
 ./cleanup
 
 echo "Starting ION..."
@@ -75,6 +75,7 @@ sleep 6
 echo
 echo "Killing bpcp..."
 kill -2 $BPCP_PID >/dev/null 2>&1
+wait $BPCP_PID 2>/dev/null
 echo "Killing stcpcli..."
 pkill -15 stcpcli >/dev/null 2>&1
 

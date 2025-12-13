@@ -212,9 +212,8 @@ echo "File should have been forwarded from 2 to 3 and deleted locally."
 sleep 5
 echo ""
 echo "Killing all ipnd tasks..."
-$killcmd ipnd
-echo "Killing all lt-ipnd tasks..."
-$killcmd lt-ipnd
+$killcmd ipnd 2>/dev/null
+$killcmd lt-ipnd 2>/dev/null
 
 # After 5 seconds, start ipnd for nodes 2 and 5 so that the file
 # destined for node 7 will be forwarded to node 5.
@@ -237,9 +236,8 @@ echo "File should have been forwarded from 2 to 5 with a copy saved in limbo."
 sleep 5
 echo ""
 echo "Killing all ipnd tasks..."
-$killcmd ipnd
-echo "Killing all lt-ipnd tasks..."
-$killcmd lt-ipnd
+$killcmd ipnd 2>/dev/null
+$killcmd lt-ipnd 2>/dev/null
 
 # After 5 seconds, start ipnd for nodes 3 and 6 so that the file
 # destined for node 6 will be forwarded to node 6.
@@ -259,9 +257,8 @@ echo "File x (915 bytes) in 3 destined for 6 should be forwarded to 6."
 sleep 5
 echo ""
 echo "Killing all ipnd tasks..."
-$killcmd ipnd
-echo "Killing all lt-ipnd tasks..."
-$killcmd lt-ipnd
+$killcmd ipnd 2>/dev/null
+$killcmd lt-ipnd 2>/dev/null
 
 # After 5 seconds, start ipnd for nodes 5 and 7 so that the file
 # destined for node 7 will be forwarded to node 7.
@@ -281,9 +278,8 @@ echo "File y (1070 bytes) in 5 destined for 7 should be forwarded to 7."
 sleep 5
 echo ""
 echo "Killing all ipnd tasks..."
-$killcmd ipnd
-echo "Killing all lt-ipnd tasks..."
-$killcmd lt-ipnd
+$killcmd ipnd 2>/dev/null
+$killcmd lt-ipnd 2>/dev/null
 
 # After 5 seconds, check all results.
 sleep 5

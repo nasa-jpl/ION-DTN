@@ -101,29 +101,27 @@ TST=$!
 echo "Fire signals at test program..."
 for i in {1..20}
 do
-	kill -SIGINT $TST
-	kill -SIGINT $TST
-	kill -SIGINT $TST
-	kill -SIGINT $TST
+	kill -SIGINT $TST 2>/dev/null
+	kill -SIGINT $TST 2>/dev/null
+	kill -SIGINT $TST 2>/dev/null
+	kill -SIGINT $TST 2>/dev/null
 	sleep 1
 done
 
 #Test
-test1=$(grep "Assertion failed" ./2.ipn.tcp/ion.log)
+test1=$(grep "Assertion failed" ./2.ipn.tcp/ion.log 2>/dev/null)
 echo $test1
 if [ -z "$test1" ]; then
-	echo "OK: Checked node 1, ION worked correctly when bombarded by signals. SUCCESS!!"
-	RETVAL=0
+	echo "OK: Checked node 2, ION worked correctly when bombarded by signals. SUCCESS!!"
 else
 	echo "ERROR: ION crashed as a result of a signal. FAILED!!"
 	RETVAL=1
 fi
 
-test2=$(grep "Assertion failed" ion.log)
+test2=$(grep "Assertion failed" ./1.ipn.tcp/ion.log 2>/dev/null)
 echo $test2
 if [ -z "$test2" ]; then
-	echo "OK: Checked node 2, ION worked correctly when bombarded by signals. SUCCESS!!"
-	RETVAL=0
+	echo "OK: Checked node 1, ION worked correctly when bombarded by signals. SUCCESS!!"
 else
 	echo "ERROR: ION crashed as a result of a signal. FAILED!!"
 	RETVAL=1
@@ -133,6 +131,7 @@ sleep 10
 
 #End ION
 echo "Killing ION..."
-kill -SIGTERM $TST
+kill -SIGTERM $TST 2>/dev/null
+wait $TST 2>/dev/null
 killm
 exit $RETVAL

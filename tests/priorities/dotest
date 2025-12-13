@@ -6,15 +6,14 @@
 
 # documentation boilerplate
 CONFIGFILES=" \
+./global.ionrc \
 ./2.ipn.udp/amroc.bprc \
 ./2.ipn.udp/amroc.ionconfig \
-./2.ipn.udp/global.ionrc \
 ./2.ipn.udp/amroc.ionrc \
 ./2.ipn.udp/amroc.ionsecrc \
 ./2.ipn.udp/amroc.ipnrc \
 ./3.ipn.udp/amroc.bprc \
 ./3.ipn.udp/amroc.ionconfig \
-./3.ipn.udp/global.ionrc \
 ./3.ipn.udp/amroc.ionrc \
 ./3.ipn.udp/amroc.ionsecrc \
 ./3.ipn.udp/amroc.ipnrc \

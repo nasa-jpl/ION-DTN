@@ -78,7 +78,7 @@ echo "Waiting 10 seconds for bpsink to receive bundle..."
 sleep 10
 
 #Check if bpsource is still running
-kill -0 $BPSOURCE_PID
+kill -0 $BPSOURCE_PID 2>/dev/null
 TEST=$?
 if [ $TEST -eq 0 ]; then
 	echo "Bundles were not sent. ION believed to be locked! FAILURE!"

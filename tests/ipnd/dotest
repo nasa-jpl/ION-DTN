@@ -90,9 +90,8 @@ echo "File should have been forwarded from 2 to 3 and delivered."
 sleep 5
 echo ""
 echo "Killing all ipnd tasks..."
-killall ipnd
-echo "Killing all lt-ipnd tasks..."
-killall lt-ipnd
+killall ipnd 2>/dev/null
+killall lt-ipnd 2>/dev/null
 
 # After 5 seconds, check all results.
 sleep 5

@@ -95,7 +95,7 @@ sleep 5
 
 # Verify that this file has NOT arrived.
 cd ../3.ipn.tcp
-COUNT=$(ls -l testfile2 | grep 1070 | wc -l)
+COUNT=$(ls -l testfile2 2>/dev/null | grep 1070 | wc -l)
 if [ "$COUNT" -eq 1 ]
 then
 	echo ""

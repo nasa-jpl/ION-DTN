@@ -92,10 +92,10 @@ echo "Close bpchat and bpecho.  Time how long it takes bpchat to close."
 SECONDS=0
 # Give bpchat a small moment to process the EOF and exit gracefully
 sleep 1
-kill $BPECHOPID $BPCHATPID # Killing bpchat is a backup in case it hangs
-wait $BPCHATPID
+kill $BPECHOPID $BPCHATPID 2>/dev/null # Killing bpchat is a backup in case it hangs
+wait $BPCHATPID 2>/dev/null
 FINISHSECONDS=$SECONDS
-wait $BPECHOPID
+wait $BPECHOPID 2>/dev/null
 
 # Verify results.
 if [ $FINISHSECONDS -ge 30 ]; then
