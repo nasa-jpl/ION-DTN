@@ -223,13 +223,13 @@ echo ""
 echo "Stopping node 2 using ionstop (ionadmin .) which calls rfx_stop()..."
 echo "(Using ionstop instead of ionexit to avoid sm_ipc_stop() breaking other nodes)"
 cd 2.watchdog.ltp
-./ionstop
+timeout 30 ./ionstop || echo "[WARN] ionstop for node 2 timed out"
 cd ..
 sleep 2
 
 echo "Stopping node 3 using ionstop..."
 cd 3.watchdog.ltp
-./ionstop
+timeout 30 ./ionstop || echo "[WARN] ionstop for node 3 timed out"
 cd ..
 sleep 3
 
@@ -264,7 +264,7 @@ fi
 
 echo ""
 echo "Cleaning up..."
-killm 2>/dev/null
+timeout 30 killm 2>/dev/null || echo "[WARN] killm timed out"
 pkill -f psmwatch 2>/dev/null
 pkill -f sdrwatch 2>/dev/null
 
