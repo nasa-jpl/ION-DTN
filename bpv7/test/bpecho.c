@@ -10,8 +10,10 @@
 		data, March 2009 			*/
 
 #include <bp.h>
+#include <stdlib.h>
 
-#define ADU_LEN	(1024)
+#define ADU_LEN		(1024)
+#define DEFAULT_TTL	(300)
 
 typedef struct
 {
@@ -58,10 +60,12 @@ int	bpecho(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char	*ownEid = (char *) a1;
+	int	ttl = a2 ? strtol((char *) a2, NULL, 0) : DEFAULT_TTL;
 #else
 int	main(int argc, char **argv)
 {
 	char	*ownEid = (argc > 1 ? argv[1] : NULL);
+	int	ttl = (argc > 2 ? strtol(argv[2], NULL, 0) : DEFAULT_TTL);
 #endif
 /*	Indication marks:	"." for BpPayloadPresent (1),
 				"*" for BpReceptionTimedOut (2).
@@ -82,7 +86,7 @@ int	main(int argc, char **argv)
 
 	if (ownEid == NULL)
 	{
-		PUTS("Usage: bpecho <own endpoint ID>");
+		PUTS("Usage: bpecho <own endpoint ID> [<ttl>]");
 		return 0;
 	}
 
@@ -122,12 +126,13 @@ int	main(int argc, char **argv)
 				return 1;
 			}
 
-			putchar(dlvmarks[dlv.result]);
-			fflush(stdout);
 			if (dlv.result == BpReceptionInterrupted)
 			{
 				continue;
 			}
+
+			putchar(dlvmarks[dlv.result]);
+			fflush(stdout);
 
 			if (dlv.result == BpEndpointStopped)
 			{
@@ -190,7 +195,7 @@ int	main(int argc, char **argv)
 			break;		/*	Out of main loop.	*/
 		}
 
-		if (bp_send(state.sap, sourceEid, NULL, 300, BP_STD_PRIORITY,
+		if (bp_send(state.sap, sourceEid, NULL, ttl, BP_STD_PRIORITY,
 				NoCustodyRequested, 0, 0, NULL, bundleZco,
 				&newBundle) < 1)
 		{

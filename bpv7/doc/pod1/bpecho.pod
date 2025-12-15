@@ -4,14 +4,17 @@ bpecho - Bundle Protocol reception test program
 
 =head1 SYNOPSIS
 
-B<bpecho> I<ownEndpointId>
+B<bpecho> I<ownEndpointId> [I<ttl>]
 
 =head1 DESCRIPTION
 
 B<bpecho> uses Bundle Protocol to receive application data units
-from a remote B<bpdriver> application task.  In response to each
+from a remote B<bpdriver> or B<bping> application task.  In response to each
 received application data unit it sends back an "echo" application data
-unit of length 2, the NULL-terminated string "x".
+unit containing the same payload.
+
+I<ttl> specifies the lifetime of the echo bundles in seconds.  The default
+is 300 seconds (5 minutes).
 
 B<bpecho> terminates upon receiving the SIGQUIT signal, i.e., ^C from the
 keyboard.
@@ -84,4 +87,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-bpadmin(1), bpdriver(1), bpcounter(1), bp(3)
+bpadmin(1), bpdriver(1), bpcounter(1), bping(1), bp(3)
