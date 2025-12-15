@@ -156,14 +156,14 @@ fi
 echo
 echo "Replaying the received stream."
 cd ../3.ipn.bss
-bssrecv 1 bssDB ./ imc:19.0 +0 "$TOTIME" < /dev/null > node3_replay.stdout 2>&1 &
+timeout 65 bssrecv 1 bssDB ./ imc:19.0 +0 "$TOTIME" < /dev/null > node3_replay.stdout 2>&1 &
 REPLAY3_PID=$!
 cd ../4.ipn.bss
-bssrecv 1 bssDB ./ imc:19.0 +0 "$TOTIME" < /dev/null > node4_replay.stdout 2>&1 &
+timeout 65 bssrecv 1 bssDB ./ imc:19.0 +0 "$TOTIME" < /dev/null > node4_replay.stdout 2>&1 &
 REPLAY4_PID=$!
 echo
 sleep 70
-pkill bssrecv
+pkill bssrecv 2>/dev/null || true
 sleep 1
 # Clean up orphaned sleep processes that were piping to bssrecv
 pkill -f "sleep 86400" 2>/dev/null || true

@@ -367,9 +367,9 @@ int	main(int argc, char **argv)
 			if(igets(cmdFile, menuNav, sizeof menuNav, &navLen)
 					== NULL)
 			{
-   				PUTS("Error in reading choice");
-				fflush(stdout);
-				continue;
+				/*	EOF on stdin - exit gracefully
+				 *	instead of looping infinitely.	*/
+				break;
   			}
 
 			if(sscanf (menuNav, "%d", &choice) != 1)
