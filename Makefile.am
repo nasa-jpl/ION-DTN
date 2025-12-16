@@ -84,7 +84,8 @@ EXTRA_DIST = 	\
 	$(bsspextra) \
 	$(amsextra) \
 	$(cfdpextra) \
-	$(nmextra)
+	$(nmextra) \
+	$(restartextra)
 #	$(twonodestcp_DATA) \
 #	$(threenodestcpltp_DATA)
 
@@ -182,13 +183,15 @@ distclean-local:
 	rm -f $(top_builddir)/bss/doc/podman.mk
 	rm -f $(top_builddir)/bssp/doc/podman.mk
 	rm -f $(top_builddir)/dtpc/doc/podman.mk
+	rm -f $(top_builddir)/restart/doc/podman.mk
 	rm -f $(top_builddir)/tests/testrules.mk
 	rm -f $(top_builddir)/pstrules.mk
 	rm -f $(top_builddir)/man-lists.mk
 
 
 # clean-local refers to existing documents.
-clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local amsclean-local cfdpclean-local
+clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local \
+	     amsclean-local cfdpclean-local restartclean-local
 	@rm -f .build_finished
 	@rm -f ion.pc
 
@@ -204,6 +207,7 @@ build-man-directories:
 	mkdir -p $(top_builddir)/ams/doc
 	mkdir -p $(top_builddir)/cfdp/doc
 	mkdir -p $(top_builddir)/nm/doc
+	mkdir -p $(top_builddir)/restart/doc
 
 
 bin_PROGRAMS = \
@@ -285,7 +289,8 @@ man_MANS = \
 	$(bsspmans) \
 	$(amsmans) \
 	$(cfdpmans) \
-	$(nmmans)
+	$(nmmans) \
+	$(restartmans)
 endif # end ENABLE_MANPAGES
 
 #################
@@ -938,10 +943,14 @@ dgrnoinst = \
 
 dgrextra = \
 	dgr/README.txt \
+	dgr/doc/pod1/dgr2file.pod \
+	dgr/doc/pod1/file2dgr.pod \
 	dgr/doc/pod3/dgr.pod
 
 dgrmans = \
-	 dgr/doc/dgr.3
+	dgr/doc/dgr2file.1 \
+	dgr/doc/file2dgr.1 \
+	dgr/doc/dgr.3
 
 dgrclean-local:
 	rm -f $(top_builddir)/dgr/doc/*.1
@@ -1244,9 +1253,12 @@ bpmans = \
 	bpv7/doc/bptrace.1 \
 	bpv7/doc/bptracker.1 \
 	bpv7/doc/bptransit.1 \
+	bpv7/doc/bpcrash.1 \
+	bpv7/doc/bpcrash_hard.1 \
 	bpv7/doc/brsccla.1 \
 	bpv7/doc/brsscla.1 \
 	bpv7/doc/cgrfetch.1 \
+	bpv7/doc/cpsd.1 \
 	bpv7/doc/dccpcli.1 \
 	bpv7/doc/dccpclo.1 \
 	bpv7/doc/dgrcli.1 \
@@ -1272,7 +1284,9 @@ bpmans = \
 	bpv7/doc/udpcli.1 \
 	bpv7/doc/udpclo.1 \
 	bpv7/doc/bp.3 \
+	bpv7/doc/bp_admin.3 \
 	bpv7/doc/bpextensions.3 \
+	bpv7/doc/metadata.3 \
 	bpv7/doc/biberc.5 \
 	bpv7/doc/bprc.5 \
 	bpv7/doc/bpsecrc.5 \
@@ -2586,6 +2600,12 @@ ionrestart_SOURCES = restart/utils/ionrestart.c
 ionrestart_LDADD = libici.la $(bplib) libltp.la libcfdp.la 
 ionrestart_CFLAGS = -I$(srcdir)/ici/sdr -I$(srcdir)/ici/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library -I$(srcdir)/cfdp/library $(AM_CFLAGS)
 
+restartextra = restart/doc/pod1/ionrestart.pod
+restartmans = restart/doc/ionrestart.1
+
+restartclean-local:
+	rm -f $(top_builddir)/restart/doc/*.1
+
 ##########################
 #
 # TESTS SECTION
@@ -2813,3 +2833,4 @@ include $(top_builddir)/cfdp/doc/podman.mk     # am--include-marker
 include $(top_builddir)/bss/doc/podman.mk      # am--include-marker
 include $(top_builddir)/bssp/doc/podman.mk     # am--include-marker
 include $(top_builddir)/dtpc/doc/podman.mk     # am--include-marker
+include $(top_builddir)/restart/doc/podman.mk  # am--include-marker

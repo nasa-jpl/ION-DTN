@@ -883,6 +883,7 @@ ADD_PODMAN(cfdp)
 ADD_PODMAN(bss)
 ADD_PODMAN(bssp)
 ADD_PODMAN(dtpc)
+ADD_PODMAN(restart)
 
 
 
@@ -923,7 +924,7 @@ AC_CONFIG_COMMANDS([podman-stubs], [
     ici/doc/podman.mk ltp/doc/podman.mk dgr/doc/podman.mk \
     nm/doc/podman.mk bpv7/doc/podman.mk tc/doc/podman.mk \
     ams/doc/podman.mk cfdp/doc/podman.mk bss/doc/podman.mk \
-    bssp/doc/podman.mk dtpc/doc/podman.mk; do
+    bssp/doc/podman.mk dtpc/doc/podman.mk restart/doc/podman.mk; do
     test -f "$f" || echo "# stub" > "$f"
   done
 ])
