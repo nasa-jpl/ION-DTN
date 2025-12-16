@@ -12,9 +12,6 @@
 #include "bpP.h"
 #include "ipnfw.h"
 
-/* for enhanced watch character
- * #define EWCHAR */
-
 static sm_SemId	_bpclmSemaphore(sm_SemId *newValue)
 {
 	uaddr		temp;

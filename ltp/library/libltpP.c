@@ -36,9 +36,6 @@
 #define LTP_DEBUG	0
 #endif
 
-/* Enhanced Watch Character
- * #define EWCHAR */
-
 #define	EST_LINK_OHD		16
 
 #ifndef LTPDEBUG
