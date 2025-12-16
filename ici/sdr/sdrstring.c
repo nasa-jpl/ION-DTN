@@ -50,7 +50,7 @@ Object	Sdr_string_create(const char *file, int line, Sdr sdrv, char *from)
 	}
 
 	joinTrace(sdrv, file, line);
-	if (from == NULL || (length = strlen(from)) > 255)
+	if (from == NULL || (length = strlen(from)) > MAX_SDRSTRING)
 	{
 		oK(_xniEnd(file, line, from, sdrv));
 		return 0;
