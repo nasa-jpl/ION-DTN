@@ -38,12 +38,18 @@ combine with B<e 1> command to log the version number at startup.
 The B<initialize> command.  Until this command is executed, the local ION
 node has no security database and most I<ionsecadmin> commands will fail.
 
-=item B<a key> I<key_name> I<file_name>
+=item B<a key> I<key_name> I<file_name> [I<key_length>]
 
 The B<add key> command.  This command adds a named key value to the
 security database.  The content of I<file_name> is taken as the
-value of the key.  Named keys can be referenced by other elements of the
-security database.
+value of the key.
+
+If the optional I<key_length> argument is provided, the file is treated as a
+raw binary stream and exactly I<key_length> bytes are read.  This bypasses
+standard text/hex parsing and is required for ingesting raw keys from
+temporary files or pipes.
+
+Named keys can be referenced by other elements of the security database.
 
 =item B<a pubkey> I<node> I<effective_time> I<assertion_time> I<key_length> I<key_text>
 
@@ -52,10 +58,12 @@ public key for the indicated node.  I<effective_time> and I<assertion_ time>
 are counts of seconds from the UNIX epoch time; I<key_text> is hexadecimal.
 This command is normally expected to be issued automatically by the DTKA system.
 
-=item B<c key> I<key_name> I<file_name>
+=item B<c key> I<key_name> I<file_name> [I<key_length>]
 
 The B<change key> command.  This command changes the value of the named
 key, obtaining the new key value from the content of I<file_name>.
+Like the B<add key> command, an optional I<key_length> can be provided to
+force raw binary ingestion of a specific byte count.
 
 =item B<d key> I<key_name>
 
@@ -100,7 +108,12 @@ formats.  It is the same as the B<?> command.
 =item a key BABKEY ./babkey.txt
 
 Adds a new key named "BABKEY" whose value is the content of the file
-"./babkey.txt".
+"./babkey.txt", parsed using standard text/hex rules.
+
+=item a key SESSION_KEY /tmp/key_export.dat 32
+
+Adds a new key named "SESSION_KEY" by reading exactly 32 bytes of raw
+binary data from "/tmp/key_export.dat".
 
 =back
 

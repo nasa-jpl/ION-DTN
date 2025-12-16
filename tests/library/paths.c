@@ -34,5 +34,5 @@ int sec_addKey_default_config(char *keyName, char *fileName)
 	fail_unless(snprintf(prefixedFileName, PATHLENMAX, "%s%s",
 					get_configs_path_prefix(), fileName) < PATHLENMAX);
 
-	return sec_addKey(keyName, prefixedFileName);
+	return sec_addKey(keyName, prefixedFileName, 0);
 }

@@ -145,14 +145,25 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "key") == 0)
 	{
-		if (tokenCount != 4)
+		/* Support implicit key length syntax: a key <name> <file> */
+		if (tokenCount == 4)
+		{
+			/* Pass 0 length to auto-detect */
+			sec_addKey(tokens[2], tokens[3], 0);
+			return;
+		}
+		/* Support FIFO syntax: a key <name> <file> <length> */
+		else if (tokenCount == 5)
+		{
+			int len = atoi(tokens[4]);
+			sec_addKey(tokens[2], tokens[3], len);
+			return;
+		}
+		else
 		{
 			SYNTAX_ERROR;
 			return;
 		}
-
-		sec_addKey(tokens[2], tokens[3]);
-		return;
 	}
 
 	if (strcmp(tokens[1], "pubkey") == 0)
@@ -191,7 +202,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 	SYNTAX_ERROR;
 }
 
-static void	executeChange(int tokenCount, char **tokens)
+static void executeChange(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
 	{
@@ -201,14 +212,25 @@ static void	executeChange(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "key") == 0)
 	{
-		if (tokenCount != 4)
+		/* Support implicit key length syntax: c key <name> <file> */
+		if (tokenCount == 4)
+		{
+			/* Pass 0 for auto-detect */
+			sec_updateKey(tokens[2], tokens[3], 0);
+			return;
+		}
+		/* Support FIFO syntax: c key <name> <file> <length> */
+		else if (tokenCount == 5)
+		{
+			int len = atoi(tokens[4]);
+			sec_updateKey(tokens[2], tokens[3], len);
+			return;
+		}
+		else
 		{
 			SYNTAX_ERROR;
 			return;
 		}
-
-		sec_updateKey(tokens[2], tokens[3]);
-		return;
 	}
 
 	SYNTAX_ERROR;

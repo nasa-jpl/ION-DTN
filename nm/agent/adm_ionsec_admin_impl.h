@@ -62,8 +62,8 @@ void name_adm_init_agent(void);
 /*	*	Functions for managing security information.		*/
 
 extern void	sec_findKey(char *keyName, Object *keyAddr, Object *eltp);
-extern int	sec_addKey(char *keyName, char *fileName);
-extern int	sec_updateKey(char *keyName, char *fileName);
+extern int	sec_addKey(char *keyName, char *fileName, int keyLen);
+extern int	sec_updateKey(char *keyName, char *fileName, int keyLen);
 extern int	sec_removeKey(char *keyName);
 extern int	sec_activeKey(char *keyName);
 extern int	sec_addKeyValue(char *keyName, char *keyVal, uint32_t keyLen);

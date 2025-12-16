@@ -248,7 +248,11 @@ tnv_t *dtn_ion_ionsecadmin_ctrl_key_add(eid_t *def_mgr, tnvc_t *parms, int8_t *s
 
 	if((key_name != NULL) && (file_name != NULL))
 	{
-		sec_addKey(key_name, file_name);
+		/*
+		 * Key length 0 is 'flag' to stat for key length (assumes default
+		 * ionsecrc 'add key' method)
+		 */
+		sec_addKey(key_name, file_name, 0);
 		*status = CTRL_SUCCESS;
 	}
 
@@ -283,7 +287,11 @@ tnv_t *dtn_ion_ionsecadmin_ctrl_key_change(eid_t *def_mgr, tnvc_t *parms, int8_t
 
 	if((key_name != NULL) && (file_name != NULL))
 	{
-		sec_updateKey(key_name, file_name);
+		/*
+		 * Key length 0 is 'flag' to stat for key length (assumes default
+		 * ionsecrc 'change key' method)
+		 */
+		sec_updateKey(key_name, file_name, 0);
 		*status = CTRL_SUCCESS;
 	}
 

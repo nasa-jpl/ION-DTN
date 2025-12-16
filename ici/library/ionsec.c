@@ -21,6 +21,7 @@
 
 									*/
 #include "ionsec.h"
+#include <sys/stat.h>
 
 static char	*_secDbName(void)
 {
@@ -1239,10 +1240,10 @@ int	sec_addKeyValue(char *keyName, char *keyVal, uint32_t keyLen)
 	return 1;
 }
 
-int	sec_addKey(char *keyName, char *fileName)
+int sec_addKey(char *keyName, char *fileName, int keyLen)
 {
 	Sdr		sdr = getIonsdr();
-	SecDB		*secdb = _secConstants();
+	SecDB		*secdb = _secConstants(); /* Required for list head */
 	Object		nextKey;
 	struct stat	statbuf;
 	SecKey		key;
@@ -1251,19 +1252,33 @@ int	sec_addKey(char *keyName, char *fileName)
 	CHKERR(keyName);
 	CHKERR(fileName);
 	CHKERR(secdb);
+
 	if (*keyName == '\0' || istrlen(keyName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid key name", keyName);
 		return 0;
 	}
 
-	if (stat(fileName, &statbuf) < 0)
+	/*
+	 * Only check filesystem if keyLen == 0. This prevents
+	 * locking the SDR if the file is missing.
+	 */
+	if (keyLen == 0)
 	{
-		writeMemoNote("[?] Can't stat the key value file", fileName);
-		return 0;
+		if (stat(fileName, &statbuf) < 0)
+		{
+			writeMemoNote("[?] Can't stat the key value file",
+					fileName);
+			return 0;
+		}
 	}
 
+	/*
+	 * Transaction Start
+	 */
 	CHKERR(sdr_begin_xn(sdr));
+
+	/* Check for duplicates */
 	if (locateKey(keyName, &nextKey) != 0)
 	{
 		sdr_exit_xn(sdr);
@@ -1271,10 +1286,22 @@ int	sec_addKey(char *keyName, char *fileName)
 		return 0;
 	}
 
-	/*	Okay to add this key to the database.			*/
-
+	/* Initialize the local struct */
 	istrcpy(key.name, keyName, sizeof key.name);
-	key.length = statbuf.st_size;
+
+	/*
+	 * Set length from Argument (Stream) or Stat Buffer (File)
+	 */
+	if (keyLen > 0)
+	{
+		key.length = keyLen;
+	}
+	else
+	{
+		key.length = statbuf.st_size;
+	}
+
+	/* Load actual data */
 	switch (loadKeyValue(&key, fileName))
 	{
 	case -1:
@@ -1288,6 +1315,7 @@ int	sec_addKey(char *keyName, char *fileName)
 		return -1;
 	}
 
+	/* Allocate SDR memory for the SecKey structure */
 	keyObj = sdr_malloc(sdr, sizeof(SecKey));
 	if (keyObj == 0)
 	{
@@ -1296,6 +1324,7 @@ int	sec_addKey(char *keyName, char *fileName)
 		return -1;
 	}
 
+	/* Insert into the linked list */
 	if (nextKey)
 	{
 		oK(sdr_list_insert_before(sdr, nextKey, keyObj));
@@ -1305,7 +1334,9 @@ int	sec_addKey(char *keyName, char *fileName)
 		oK(sdr_list_insert_last(sdr, secdb->keys, keyObj));
 	}
 
+	/* Write the struct data to SDR */
 	sdr_write(sdr, keyObj, (char *) &key, sizeof(SecKey));
+
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't add key.", NULL);
@@ -1315,7 +1346,7 @@ int	sec_addKey(char *keyName, char *fileName)
 	return 1;
 }
 
-int	sec_updateKey(char *keyName, char *fileName)
+int sec_updateKey(char *keyName, char *fileName, int keyLen)
 {
 	Sdr		sdr = getIonsdr();
 	Object		elt;
@@ -1325,19 +1356,33 @@ int	sec_updateKey(char *keyName, char *fileName)
 
 	CHKERR(keyName);
 	CHKERR(fileName);
+
 	if (*keyName == '\0' || istrlen(keyName, 32) > 31)
 	{
 		writeMemoNote("[?] Invalid key name", keyName);
 		return 0;
 	}
 
-	if (stat(fileName, &statbuf) < 0)
+	/*
+	 * Only check filesystem if keyLen == 0. This prevents
+	 * locking the SDR if the file is missing.
+	 */
+	if (keyLen == 0)
 	{
-		writeMemoNote("[?] Can't stat the key value file", fileName);
-		return 0;
+		if (stat(fileName, &statbuf) < 0)
+		{
+			writeMemoNote("[?] Can't stat the key value file",
+					fileName);
+			return 0;
+		}
 	}
 
+	/*
+	 * Transaction Start
+	 */
 	CHKERR(sdr_begin_xn(sdr));
+
+	/* Find the existing key */
 	elt = locateKey(keyName, NULL);
 	if (elt == 0)
 	{
@@ -1346,14 +1391,29 @@ int	sec_updateKey(char *keyName, char *fileName)
 		return 0;
 	}
 
+	/* Get the existing object address */
 	keyObj = sdr_list_data(sdr, elt);
 	sdr_stage(sdr, (char *) &key, keyObj, sizeof(SecKey));
+
+	/* Free the old key value data (Specific to Update) */
 	if (key.value)
 	{
 		sdr_free(sdr, key.value);
 	}
 
-	key.length = statbuf.st_size;
+	/*
+	 * Set length from Argument (Stream) or Stat Buffer (File)
+	 */
+	if (keyLen > 0)
+	{
+		key.length = keyLen;
+	}
+	else
+	{
+		key.length = statbuf.st_size;
+	}
+
+	/* Load new data */
 	switch (loadKeyValue(&key, fileName))
 	{
 	case -1:
@@ -1367,7 +1427,9 @@ int	sec_updateKey(char *keyName, char *fileName)
 		return -1;
 	}
 
+	/* Overwrite the struct data in SDR */
 	sdr_write(sdr, keyObj, (char *) &key, sizeof(SecKey));
+
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't update key.", keyName);
