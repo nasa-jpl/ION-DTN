@@ -5,14 +5,8 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-#Control building of Contrib as determined by ./configure flags
-if BUILD_CONTRIB
-SUBDIRS= . contrib
-else
 SUBDIRS= .
-endif # end BUILD_CONTRIB
-
-DIST_SUBDIRS= . contrib
+DIST_SUBDIRS= .
 
 AM_CFLAGS += \
 	-g \

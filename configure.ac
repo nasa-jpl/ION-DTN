@@ -503,20 +503,6 @@ AC_ARG_ENABLE(
 AM_CONDITIONAL(ENABLE_MANPAGES, test "x$ENABLE_MANPAGES" = "xyes")
 
 #
-# Control building /contrib utlities
-#
-AC_ARG_ENABLE(
-	contrib,
-	[AS_HELP_STRING([--disable-contrib],[Disable building third-party contributed utilities])],
-	[case "${enableval}" in
-		yes) BUILD_CONTRIB=yes;;
-		no)  BUILD_CONTRIB=no;;
-		*) AC_MSG_ERROR([bad value ${enableval} for --enable-contrib]);;
-	esac],
-	[BUILD_CONTRIB=no])
-AM_CONDITIONAL(BUILD_CONTRIB, test "x$BUILD_CONTRIB" = "xyes")
-
-#
 # Allow user to enable crypto
 #
 # To Enable crypto, use "./configure --enable-crypto-mbedtls"
@@ -861,7 +847,6 @@ AM_CONDITIONAL([SOLARIS], [test "$build_solaris" = "yes"])
 
 #Output!
 AC_CONFIG_FILES([Makefile])
-AC_CONFIG_FILES([contrib/Makefile])
 AC_CONFIG_FILES([ion.pc])
 
 dnl ===============================================================
