@@ -1133,22 +1133,10 @@ bpnoinst = \
 bpextra = \
 	bpv7/README.txt \
 	bpv7/bibe/bibe.h \
-	bpv7/bpsec/instr/bpsec_instr.h \
 	bpv7/bpsec/policy/bpsec_policy.h \
 	bpv7/bpsec/policy/bpsec_policy_eventset.h \
 	bpv7/bpsec/policy/bpsec_policy_event.h \
 	bpv7/bpsec/policy/bpsec_policy_rule.h \
-	# bpv7/bpsec/policy/bpsec_policy.c \
-	# bpv7/bpsec/policy/bpsec_policy_eventset.c \
-	# bpv7/bpsec/policy/bpsec_policy_event.c \
-	# bpv7/bpsec/policy/bpsec_policy_rule.c \
-	bpv7/bpsec/sci/sci.h \
-	bpv7/bpsec/sci/ion_test_sc.h \
-	bpv7/bpsec/sci/bib_hmac_sha2_sc.h \
-	bpv7/bpsec/sci/bcb_aes_gcm_sc.h \
-	bpv7/bpsec/sci/rfc9173_utils.h \
-	bpv7/bpsec/utils/bpsec_util.h \
-	bpv7/bpsec/utils/bpsec_asb.h \
 	bpv7/doc/pod1/bibeadmin.pod \
 	bpv7/doc/pod1/bibeclo.pod \
 	bpv7/doc/pod1/bpadmin.pod \
@@ -1216,22 +1204,13 @@ bpextra = \
 	bpv7/doc/pod5/dtn2rc.pod \
 	bpv7/doc/pod5/ipnrc.pod \
 	bpv7/doc/pod5/lgfile.pod \
-	bpv7/library/bei.c \
-	bpv7/library/saga.h \
-	bpv7/library/saga.c \
 	bpv7/library/ext/bpextensions.c \
 	bpv7/library/ext/noextensions.c \
 	bpv7/library/ext/bpsec/bcb.h \
 	bpv7/library/ext/bpsec/bib.h \
-	bpv7/library/ext/ecos/ecos.h \
-	bpv7/library/ext/ecos/ecos.c \
 	bpv7/library/ext/hcb/hcb.h \
 	bpv7/library/ext/meb/meb.h \
-	bpv7/library/ext/meb/meb.c \
-	bpv7/library/ext/bae/bae.h \
-	bpv7/library/ext/bae/bae.c \
-	ici/include/crypto.h \
-	ici/include/csi.h
+	bpv7/library/ext/bae/bae.h
 
 if ENABLE_IMC
 bpextra += \
