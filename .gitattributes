@@ -1,2 +1,9 @@
 *.hmk binary
 *.key binary
+**testfile* -diff
+**sourceFile* -diff
+**receivedFile* -diff
+**shakespeare* -diff
+tests/**/file[1-9]* -diff
+tests/bpchat/bpchatinput -diff
+tests/ltp-sda/2.ipn.ltp/test2.text -diff
