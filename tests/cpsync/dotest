@@ -5,7 +5,7 @@
 #
 # Tests contact plan synchronization.  Initially four nodes are in
 # a tree topology 2<->1<->3<->4.  The initial contact plan expires
-# after 20 seconds; before this happens, additional contacts are
+# after 30 seconds; before this happens, additional contacts are
 # posted at node 1 and automatically propagated to the other nodes.
 # While contact is paused, nodes 2 and 4 join multicast group 19 and
 # spawn bprecvfile tasks that listen on that group EID.  After contact
