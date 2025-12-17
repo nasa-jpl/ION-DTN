@@ -185,6 +185,7 @@ static void	detachRoutingObject(PsmPartition ionwm,
 
 void	cgr_clear_vdb(CgrVdb *vdb)
 {
+	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	elt;
 	PsmAddress	nextElt;
@@ -193,6 +194,7 @@ void	cgr_clear_vdb(CgrVdb *vdb)
 
 	/*	Destroy all routing objects in the CGR vdb.		*/
 
+	CHKVOID(sdr_begin_xn(sdr)); /* To lock memory. */
 	for (elt = sm_list_first(ionwm, vdb->routingObjects); elt;
 			elt = nextElt)
 	{
@@ -209,6 +211,8 @@ void	cgr_clear_vdb(CgrVdb *vdb)
 
 		sm_list_delete(ionwm, elt, NULL, NULL);
 	}
+
+	oK(sdr_exit_xn(sdr));
 }
 
 #if !UNIBO_CGR
