@@ -573,3 +573,5 @@ tests/req-0022-reversibility/loopback/configs/ionsendfile.txt
 ionwatch
 tests/admin_public_api/ltp_span_management/dotest
 ltpstats
+ltpcancel
+ltpwatch
