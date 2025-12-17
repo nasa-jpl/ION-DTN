@@ -222,6 +222,14 @@ static void	restartION(Sdr sdrv)
 		return;
 	}
 
+	/*	Exit the hijacked transaction before starting daemons.
+	 *	This ensures each daemon can begin its own transaction
+	 *	cleanly without racing with ionrestart's transaction.	*/
+
+	sdrv->sdr->xnDepth = 1;
+	sdrv->sdr->modified = 0;
+	sdr_exit_xn(sdrv);
+
 	rfx_start();
 	for (i = 0; i < 5; i++)
 	{
@@ -363,12 +371,6 @@ int	main(void)
 	 * modified flag to 0 from this point on ward */
 	sdrv->sdr->modified = 0;
 	restartION(sdrv);
-
-	/*	Close out the hijacked transaction.			*/
-
-	sdrv->sdr->xnDepth = 1;
-	sdrv->sdr->modified = 0;
-	sdr_exit_xn(sdrv);
 
 	/*	Terminate.						*/
 
