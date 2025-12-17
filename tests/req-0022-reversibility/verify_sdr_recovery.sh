@@ -70,7 +70,10 @@ check_ionrestart_executed() {
     local LOG_FILE="${1:-ion.log}"
 
     # Look for ionrestart-specific messages
-    if grep -q -E "(ionrestart|Stopping daemons|Restarting ION)" "$LOG_FILE"; then
+    # Use multiple greps for Solaris compatibility (no -E option)
+    if grep -q "ionrestart" "$LOG_FILE" 2>/dev/null || \
+       grep -q "Stopping daemons" "$LOG_FILE" 2>/dev/null || \
+       grep -q "Restarting ION" "$LOG_FILE" 2>/dev/null; then
         echo "PASS: ionrestart executed"
         return 0
     else
@@ -177,7 +180,34 @@ print_log_context() {
     local AFTER="${4:-5}"
 
     echo "=== Log context for: $PATTERN ==="
-    grep -B "$BEFORE" -A "$AFTER" "$PATTERN" "$LOG_FILE" || echo "Pattern not found"
+    # Use awk for Solaris compatibility (no grep -B/-A options)
+    awk -v pattern="$PATTERN" -v before="$BEFORE" -v after="$AFTER" '
+    {
+        lines[NR] = $0
+    }
+    $0 ~ pattern {
+        match_lines[NR] = 1
+    }
+    END {
+        if (length(match_lines) == 0) {
+            print "Pattern not found"
+            exit
+        }
+        for (m in match_lines) {
+            start = m - before
+            if (start < 1) start = 1
+            end = m + after
+            if (end > NR) end = NR
+            for (i = start; i <= end; i++) {
+                if (!printed[i]) {
+                    print lines[i]
+                    printed[i] = 1
+                }
+            }
+            print "--"
+        }
+    }
+    ' "$LOG_FILE" 2>/dev/null || echo "Pattern not found"
     echo "=== End context ==="
 }
 
