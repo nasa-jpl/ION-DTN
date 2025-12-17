@@ -432,6 +432,7 @@ static int	lockSdr(SdrState *sdr)
 	sdr->sdrOwnerThread = pthread_self();
 	sdr->sdrOwnerTask = sm_TaskIdSelf();
 	sdr->xnDepth = 1;
+	writeMemoNote("[DIAG-SDR-MOD] New transaction, task", itoa(sdr->sdrOwnerTask));
 	sdr->modified = 0;
 	return 0;
 }
@@ -1916,6 +1917,9 @@ void	sdr_exit_xn(Sdr sdrv)
 		{
 			if (sdr->modified)
 			{
+				writeMemoNote("[DIAG-SDR-MOD] sdr_exit_xn with modified=1, owner task",
+						itoa(sdr->sdrOwnerTask));
+
 				/*	Can't simply exit from a
 				 *	transaction during which
 				 *	data were modified - must
@@ -1964,6 +1968,11 @@ int	sdr_end_xn(Sdr sdrv)
 		sdr->xnDepth--;
 		if (sdr->xnDepth == 0)
 		{
+			if (sdr->modified)
+			{
+				writeMemoNote("[DIAG-SDR-MOD] sdr_end_xn committing modified transaction, task",
+						itoa(sdr->sdrOwnerTask));
+			}
 			terminateXn(sdrv);
 		}
 
@@ -2227,6 +2236,12 @@ entry.", NULL);
 		memcpy(sdrv->dssm + into, from, length);
 	}
 
+	if (sdr->modified == 0)
+	{
+		char	diagBuf[256];
+		isprintf(diagBuf, sizeof(diagBuf), "[DIAG-SDR-MOD] modified=1 by %s:%d task=%d", file, line, sdr->sdrOwnerTask);
+		writeMemo(diagBuf);
+	}
 	sdr->modified = 1;
 }
 

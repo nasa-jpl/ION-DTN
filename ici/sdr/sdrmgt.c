@@ -810,11 +810,16 @@ Object	_sdrmalloc(Sdr sdrv, size_t nbytes)
 
 Object	Sdr_malloc(const char *file, int line, Sdr sdrv, size_t nbytes)
 {
+	char	diagBuf[256];
+
 	if (!(sdr_in_xn(sdrv)))
 	{
 		oK(_iEnd(file, line, _notInXnMsg()));
 		return 0;
 	}
+
+	isprintf(diagBuf, sizeof(diagBuf), "[DIAG-MALLOC] sdr_malloc called from %s:%d task=%d", file, line, sm_TaskIdSelf());
+	writeMemo(diagBuf);
 
 	joinTrace(sdrv, file, line);
 	return _sdrmalloc(sdrv, nbytes);
@@ -824,12 +829,16 @@ Object	Sdr_insert(const char *file, int line, Sdr sdrv, char *from,
 		size_t size)
 {
 	Object	obj;
+	char	diagBuf[256];
 
 	if (!(sdr_in_xn(sdrv)))
 	{
 		oK(_iEnd(file, line, _notInXnMsg()));
 		return 0;
 	}
+
+	isprintf(diagBuf, sizeof(diagBuf), "[DIAG-MALLOC] sdr_insert called from %s:%d task=%d", file, line, sm_TaskIdSelf());
+	writeMemo(diagBuf);
 
 	joinTrace(sdrv, file, line);
 	obj = _sdrmalloc(sdrv, size);
@@ -1025,11 +1034,16 @@ void	_sdrfree(Sdr sdrv, Object object, PutSrc src)
 
 void	Sdr_free(const char *file, int line, Sdr sdrv, Object object)
 {
+	char	diagBuf[256];
+
 	if (!(sdr_in_xn(sdrv)))
 	{
 		oK(_iEnd(file, line, _notInXnMsg()));
 		return;
 	}
+
+	isprintf(diagBuf, sizeof(diagBuf), "[DIAG-FREE] sdr_free called from %s:%d task=%d", file, line, sm_TaskIdSelf());
+	writeMemo(diagBuf);
 
 	joinTrace(sdrv, file, line);
 	_sdrfree(sdrv, object, UserPut);
