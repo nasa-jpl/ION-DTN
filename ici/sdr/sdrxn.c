@@ -2235,7 +2235,7 @@ entry.", NULL);
 	/* [DIAG-SDR-MOD] Log when modified flag transitions from 0 to 1 */
 	if (sdr->modified == 0)
 	{
-		writeMemoNote("[DIAG-SDR-MOD] Setting modified=1", file);
+		writeMemoNote("[DIAG-SDR-MOD] Setting modified=1", (char *) file);
 	}
 	sdr->modified = 1;
 }
