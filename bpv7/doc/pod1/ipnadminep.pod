@@ -73,4 +73,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-bpadmin(1), ipnadmin(1), bprc(5)
+bpadmin(1), ipnadmin(1), ipnrc(5)
