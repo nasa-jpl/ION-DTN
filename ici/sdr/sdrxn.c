@@ -422,6 +422,8 @@ static int	lockSdr(SdrState *sdr)
 	sdr->sdrOwnerThread = pthread_self();
 	sdr->sdrOwnerTask = sm_TaskIdSelf();
 	sdr->xnDepth = 1;
+	/* [DIAG-SDR-MOD] Log new transaction start */
+	writeMemoNote("[DIAG-SDR-MOD] New transaction, task", itoa(sdr->sdrOwnerTask));
 	sdr->modified = 0;
 	return 0;
 }
@@ -1904,6 +1906,13 @@ void	sdr_exit_xn(Sdr sdrv)
 		sdr->xnDepth--;
 		if (sdr->xnDepth == 0)
 		{
+			/* [DIAG-SDR-MOD] Log sdr_exit_xn state */
+			if (sdr->modified)
+			{
+				writeMemoNote("[DIAG-SDR-MOD] sdr_exit_xn with modified=1, owner task",
+						itoa(sdr->sdrOwnerTask));
+			}
+
 			if (sdr->modified)
 			{
 				/*	Can't simply exit from a
@@ -1911,7 +1920,7 @@ void	sdr_exit_xn(Sdr sdrv)
 				 *	data were modified - must
 				 *	either end or cancel.  This
 				 *	is an implementation error.	*/
-				
+
 				/* Print error message to record implementation error */
 				putErrmsg("A critical section ended with SDR modification, should not use sdr_exit_xn. Compile with CORE_FILE_NEEDED=1 to get core for stack trace.", NULL);
 				/* Trigger coredump for tracing */
@@ -1954,6 +1963,12 @@ int	sdr_end_xn(Sdr sdrv)
 		sdr->xnDepth--;
 		if (sdr->xnDepth == 0)
 		{
+			/* [DIAG-SDR-MOD] Log sdr_end_xn completing with modifications */
+			if (sdr->modified)
+			{
+				writeMemoNote("[DIAG-SDR-MOD] sdr_end_xn committing modified transaction, task",
+						itoa(sdr->sdrOwnerTask));
+			}
 			terminateXn(sdrv);
 		}
 
@@ -2217,6 +2232,11 @@ entry.", NULL);
 		memcpy(sdrv->dssm + into, from, length);
 	}
 
+	/* [DIAG-SDR-MOD] Log when modified flag transitions from 0 to 1 */
+	if (sdr->modified == 0)
+	{
+		writeMemoNote("[DIAG-SDR-MOD] Setting modified=1", file);
+	}
 	sdr->modified = 1;
 }
 
