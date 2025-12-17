@@ -230,6 +230,13 @@ static void	restartION(Sdr sdrv)
 	sdrv->sdr->modified = 0;
 	sdr_exit_xn(sdrv);
 
+	/*	Set halted flag during daemon startup.  This allows
+	 *	spawned daemons to pass sdrFetchSafe() checks while
+	 *	they initialize, preventing race conditions where
+	 *	daemons try to access SDR before fully attached.	*/
+
+	sdrv->sdr->halted = 1;
+
 	rfx_start();
 	for (i = 0; i < 5; i++)
 	{
@@ -324,6 +331,9 @@ static void	restartION(Sdr sdrv)
 		}
 	}
 #endif
+	/*	Clear halted flag now that all daemons have started.	*/
+
+	sdrv->sdr->halted = 0;
 }
 
 #if defined (ION_LWT)
