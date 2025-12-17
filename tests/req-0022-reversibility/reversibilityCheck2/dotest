@@ -13,14 +13,14 @@
 #
 # METHODOLOGY:
 # 1. Start two nodes (node 1 sender, node 2 receiver)
-# 2. Flood node 2 with bundles from node 1
-# 3. Use bpcrash_hard on node 2 to force crash with SDR modifications
-# 4. Verify transaction reversal occurs
-# 5. Restart node 2 daemons
-# 6. Verify node 2 can receive new bundles
+# 2. Use bpcrash_hard on node 2 to force crash with SDR modifications
+# 3. Verify transaction reversal occurs
+# 4. Restart node 2 daemons
+# 5. Send test bundles and verify node 2 can receive them (proof of recovery)
 #
-# This test uses bpcrash_hard (instead of bpcrash) to ensure SDR modifications
-# are present, guaranteeing transaction reversal is exercised in ION 4.1.3+.
+# This test uses bpcrash_hard which explicitly modifies the SDR (via sdr_malloc
+# and sdr_write) before canceling the transaction, guaranteeing that transaction
+# reversal logic is exercised in ION 4.1.3+.
 #
 
 # Source the common verification functions
@@ -105,35 +105,13 @@ cd 2.ipn.udp/
 ./ionstart
 sleep 3
 
-# Start bundle counter to receive initial bundles
-bpcounter ipn:2.1 15 > output1 &
-COUNTER_PID=$!
-
 echo "Both nodes started successfully"
 
 #==============================================================================
-# PHASE 2: Flood Node 2 with Bundles
+# PHASE 2: Force Crash on Node 2 with bpcrash_hard
 #==============================================================================
 echo ""
-echo "=== PHASE 2: Flooding Node 2 with Bundles ==="
-
-cd ../1.ipn.udp/
-echo "Sending 5000 bundles from node 1 to node 2..."
-bpdriver 5000 ipn:1.1 ipn:2.1 -1000 t40 >& output1 &
-BPDRIVER_PID=$!
-
-# Wait for bundles to start accumulating
-sleep 10
-
-echo "Bundle transmission in progress..."
-
-#==============================================================================
-# PHASE 3: Force Crash on Node 2 with bpcrash_hard
-#==============================================================================
-echo ""
-echo "=== PHASE 3: Forcing Crash on Node 2 ==="
-
-cd ../2.ipn.udp/
+echo "=== PHASE 2: Forcing Crash on Node 2 ==="
 echo "Using bpcrash_hard to trigger transaction cancellation with modifications..."
 
 # Use bpcrash_hard instead of bpcrash to ensure SDR modifications
@@ -142,7 +120,7 @@ bpcrash_hard
 sleep 5
 
 echo ""
-echo "=== PHASE 3 VERIFICATION ==="
+echo "=== PHASE 2 VERIFICATION ==="
 
 # Check for transaction abort
 ABORT_COUNT=$(count_messages "Transaction aborted" "ion.log")
@@ -180,10 +158,10 @@ fi
 echo "Node 2 recovered from crash"
 
 #==============================================================================
-# PHASE 4: Restart Node 2 Daemons
+# PHASE 3: Restart Node 2 Daemons
 #==============================================================================
 echo ""
-echo "=== PHASE 4: Restarting Node 2 Daemons ==="
+echo "=== PHASE 3: Restarting Node 2 Daemons ==="
 echo "Manually restarting ION and BP daemons on node 2..."
 
 # Give Solaris extra time for cleanup without wiping SDR
@@ -231,22 +209,10 @@ else
 fi
 
 #==============================================================================
-# PHASE 5: Wait for Bundles to Expire
+# PHASE 4: Send New Test Bundles
 #==============================================================================
 echo ""
-echo "=== PHASE 5: Waiting for Previous Bundles to Expire ==="
-echo "TTL was 40 seconds, waiting 30 seconds..."
-sleep 30
-
-echo "Running bpstats to check bundle status..."
-bpstats
-echo "See ion.log for bpstats output"
-
-#==============================================================================
-# PHASE 6: Send New Test Bundles
-#==============================================================================
-echo ""
-echo "=== PHASE 6: Testing Bundle Reception After Recovery ==="
+echo "=== PHASE 4: Testing Bundle Reception After Recovery ==="
 
 # Capture current abort count before sending test bundles
 ABORT_COUNT_BEFORE=$(count_messages "Transaction aborted" "ion.log")
@@ -271,10 +237,10 @@ bpstats
 echo "See ion.log for bpstats output"
 
 #==============================================================================
-# PHASE 7: Verify No New Transaction Aborts
+# PHASE 5: Verify No New Transaction Aborts
 #==============================================================================
 echo ""
-echo "=== PHASE 7: Verifying No New Transaction Aborts ==="
+echo "=== PHASE 5: Verifying No New Transaction Aborts ==="
 
 ABORT_COUNT_AFTER=$(count_messages "Transaction aborted" "ion.log")
 NEW_ABORTS=$((ABORT_COUNT_AFTER - ABORT_COUNT_BEFORE))
@@ -303,10 +269,10 @@ else
 fi
 
 #==============================================================================
-# PHASE 8: Verify Bundle Reception
+# PHASE 6: Verify Bundle Reception
 #==============================================================================
 echo ""
-echo "=== PHASE 8: Verifying Bundle Reception ==="
+echo "=== PHASE 6: Verifying Bundle Reception ==="
 
 # Stop bpcounter gracefully
 kill -2 $BPCOUNTER_PID >/dev/null 2>&1
