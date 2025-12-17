@@ -111,7 +111,14 @@ BPDRIVER_PID=$!
 echo "Waiting for SDR exhaustion..."
 wait_for_message "Transaction aborted" "ion.log" 120
 
-# Give bpdriver time to complete
+# Kill bpdriver to prevent interference with ionrestart
+# bpdriver may still be trying to send bundles which can interfere
+# with the recovery process
+echo "Stopping bpdriver..."
+kill -9 $BPDRIVER_PID 2>/dev/null
+wait $BPDRIVER_PID 2>/dev/null || true
+
+# Give system time to settle after killing bpdriver
 sleep 5
 
 # Check that transaction abort occurred
