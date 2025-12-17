@@ -419,11 +419,19 @@ static int	lockSdr(SdrState *sdr)
 		return -1;
 	}
 
+	/*	sm_SemTake returns 0 when the semaphore was ended
+	 *	during the wait (graceful shutdown path). In that
+	 *	case, we don't actually hold the semaphore and must
+	 *	not proceed with transaction setup.			*/
+
+	if (sm_SemEnded(sdr->sdrSemaphore))
+	{
+		return -1;
+	}
+
 	sdr->sdrOwnerThread = pthread_self();
 	sdr->sdrOwnerTask = sm_TaskIdSelf();
 	sdr->xnDepth = 1;
-	/* [DIAG-SDR-MOD] Log new transaction start */
-	writeMemoNote("[DIAG-SDR-MOD] New transaction, task", itoa(sdr->sdrOwnerTask));
 	sdr->modified = 0;
 	return 0;
 }
@@ -1906,13 +1914,6 @@ void	sdr_exit_xn(Sdr sdrv)
 		sdr->xnDepth--;
 		if (sdr->xnDepth == 0)
 		{
-			/* [DIAG-SDR-MOD] Log sdr_exit_xn state */
-			if (sdr->modified)
-			{
-				writeMemoNote("[DIAG-SDR-MOD] sdr_exit_xn with modified=1, owner task",
-						itoa(sdr->sdrOwnerTask));
-			}
-
 			if (sdr->modified)
 			{
 				/*	Can't simply exit from a
@@ -1963,12 +1964,6 @@ int	sdr_end_xn(Sdr sdrv)
 		sdr->xnDepth--;
 		if (sdr->xnDepth == 0)
 		{
-			/* [DIAG-SDR-MOD] Log sdr_end_xn completing with modifications */
-			if (sdr->modified)
-			{
-				writeMemoNote("[DIAG-SDR-MOD] sdr_end_xn committing modified transaction, task",
-						itoa(sdr->sdrOwnerTask));
-			}
 			terminateXn(sdrv);
 		}
 
@@ -2232,13 +2227,6 @@ entry.", NULL);
 		memcpy(sdrv->dssm + into, from, length);
 	}
 
-	/* [DIAG-SDR-MOD] Log when modified flag transitions from 0 to 1 */
-	if (sdr->modified == 0)
-	{
-		char	diagBuf[256];
-		isprintf(diagBuf, sizeof(diagBuf), "[DIAG-SDR-MOD] modified=1 by %s:%d", file, line);
-		writeMemo(diagBuf);
-	}
 	sdr->modified = 1;
 }
 
