@@ -2119,7 +2119,7 @@ void	_sdrput(const char *file, int line, Sdr sdrv, Address into, char *from,
 	Address		to;
 	uaddr		logEntryControl[2];
 	char		*buffer;
-	size_t		logOffset;	
+	size_t		logOffset;
 	/* --- Added for safe I/O checks. --- */
 	ssize_t     bytesRead;
 	ssize_t     bytesWritten;
@@ -2133,6 +2133,18 @@ void	_sdrput(const char *file, int line, Sdr sdrv, Address into, char *from,
 	CHKVOID(sdrv);
 	CHKVOID(from);
 	sdr = sdrv->sdr;
+
+	/*	Defensive check: verify current task still owns the
+	 *	transaction.  After transaction crash/cancellation,
+	 *	another task may have taken ownership while this
+	 *	task's call stack is still unwinding.  If we don't
+	 *	own the transaction, silently return to avoid
+	 *	corrupting the new owner's transaction.		*/
+
+	if (sdr->sdrOwnerTask != sm_TaskIdSelf())
+	{
+		return;		/*	No longer transaction owner.	*/
+	}
 	to = into + length;
 	if (to > sdr->dsSize)
 	{

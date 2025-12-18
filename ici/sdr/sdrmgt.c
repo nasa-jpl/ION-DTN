@@ -782,6 +782,19 @@ Object	_sdrmalloc(Sdr sdrv, size_t nbytes)
 
 	CHKZERO(sdrv);
 	XNCHKZERO(!(nbytes == 0 || nbytes > LARGE_BLK_LIMIT));
+
+	/*	Defensive check: verify current task still owns the
+	 *	transaction.  After transaction crash/cancellation,
+	 *	another task may have taken ownership while this
+	 *	task's call stack is still unwinding.  If we don't
+	 *	own the transaction, return 0 to avoid corrupting
+	 *	the new owner's transaction.			*/
+
+	if (sdr->sdrOwnerTask != sm_TaskIdSelf())
+	{
+		return 0;	/*	No longer transaction owner.	*/
+	}
+
 	isprintf(diagBuf, sizeof(diagBuf), "[DIAG-_SDRMALLOC] _sdrmalloc called, task=%d", sm_TaskIdSelf());
 	writeMemo(diagBuf);
 	object = mallocLarge(sdrv, nbytes);
@@ -961,6 +974,19 @@ void	_sdrfree(Sdr sdrv, Object object, PutSrc src)
 
 	CHKVOID(sdrv);
 	sdr = sdrv->sdr;
+
+	/*	Defensive check: verify current task still owns the
+	 *	transaction.  After transaction crash/cancellation,
+	 *	another task may have taken ownership while this
+	 *	task's call stack is still unwinding.  If we don't
+	 *	own the transaction, silently return to avoid
+	 *	corrupting the new owner's transaction.		*/
+
+	if (sdr->sdrOwnerTask != sm_TaskIdSelf())
+	{
+		return;		/*	No longer transaction owner.	*/
+	}
+
 	isprintf(diagBuf, sizeof(diagBuf), "[DIAG-_SDRFREE] _sdrfree called, src=%s caller_task=%d owner_task=%d modified=%d",
 		(src == UserPut ? "UserPut" : "SystemPut"), sm_TaskIdSelf(), sdr->sdrOwnerTask, sdr->modified);
 	writeMemo(diagBuf);
