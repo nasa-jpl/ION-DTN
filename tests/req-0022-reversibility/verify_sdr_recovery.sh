@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # verify_sdr_recovery.sh - Common verification logic for SDR recovery tests
 #
@@ -180,20 +180,24 @@ print_log_context() {
     local AFTER="${4:-5}"
 
     echo "=== Log context for: $PATTERN ==="
-    # Use awk for Solaris compatibility (no grep -B/-A options)
+    # Use awk for cross-platform compatibility (no grep -B/-A on Solaris)
+    # This version avoids GNU awk extensions like length() on arrays
     awk -v pattern="$PATTERN" -v before="$BEFORE" -v after="$AFTER" '
+    BEGIN { found = 0; match_count = 0 }
     {
         lines[NR] = $0
     }
     $0 ~ pattern {
-        match_lines[NR] = 1
+        match_lines[match_count++] = NR
+        found = 1
     }
     END {
-        if (length(match_lines) == 0) {
+        if (found == 0) {
             print "Pattern not found"
             exit
         }
-        for (m in match_lines) {
+        for (j = 0; j < match_count; j++) {
+            m = match_lines[j]
             start = m - before
             if (start < 1) start = 1
             end = m + after
@@ -257,17 +261,6 @@ display_log_summary() {
     echo "==================="
 }
 
-# Export functions so they can be used by sourcing scripts
-export -f check_transaction_aborted
-export -f check_reversal_attempted
-export -f check_reversal_skipped
-export -f check_no_unrecoverable_error
-export -f check_ionrestart_executed
-export -f check_sdr_operational
-export -f count_messages
-export -f verify_recovery_with_reversal
-export -f verify_recovery_without_reversal
-export -f print_log_context
-export -f wait_for_message
-export -f clean_ion_log
-export -f display_log_summary
+# Note: Functions are available to sourcing scripts automatically.
+# No 'export -f' needed since this script is sourced, not executed as a subprocess.
+# (export -f is bash-specific and not portable to other shells anyway)

@@ -778,9 +778,12 @@ Object	_sdrmalloc(Sdr sdrv, size_t nbytes)
 	Object		object;
 	Address		addr;
 	Ohd		ohd;
+	char		diagBuf[256];
 
 	CHKZERO(sdrv);
 	XNCHKZERO(!(nbytes == 0 || nbytes > LARGE_BLK_LIMIT));
+	isprintf(diagBuf, sizeof(diagBuf), "[DIAG-_SDRMALLOC] _sdrmalloc called, task=%d", sm_TaskIdSelf());
+	writeMemo(diagBuf);
 	object = mallocLarge(sdrv, nbytes);
 	if (object != 0)
 	{
@@ -954,8 +957,12 @@ void	_sdrfree(Sdr sdrv, Object object, PutSrc src)
 	size_t		newFreeBlocks;
 	LystElt		elt;
 	ObjectExtent	*extent;
+	char		diagBuf[256];
 
 	CHKVOID(sdrv);
+	isprintf(diagBuf, sizeof(diagBuf), "[DIAG-_SDRFREE] _sdrfree called, src=%s task=%d",
+		(src == UserPut ? "UserPut" : "SystemPut"), sm_TaskIdSelf());
+	writeMemo(diagBuf);
 	sdr = sdrv->sdr;
 	switch (scaleOf(sdrv, addr, &ohd))
 	{
