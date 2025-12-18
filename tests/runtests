@@ -439,6 +439,28 @@ function cleanup_tests () {
     done
 }
 
+# Reset all test counters for stress test iterations
+function reset_test_counters () {
+    NUM_PASSED=0
+    NUM_FAILED=0
+    NUM_SKIPPED=0
+    NUM_EXCLUDED_OS=0
+    NUM_EXCLUDED_BPv=0
+    NUM_EXCLUDED_OBSOLETE=0
+    NUM_PASSED_AFTER_RETEST=0
+    NUM_OPTIONAL_PASSED=0
+    NUM_OPTIONAL_FAILED=0
+    TESTS_PASSED=""
+    TESTS_FAILED=""
+    TESTS_SKIPPED=""
+    TESTS_EXCLUDED_OS=""
+    TESTS_EXCLUDED_BPv=""
+    TESTS_EXCLUDED_OBSOLETE=""
+    TESTS_PASSED_AFTER_RETEST=""
+    TESTS_OPTIONAL_PASSED=""
+    TESTS_OPTIONAL_FAILED=""
+}
+
 # Function to generate initial summary and retest file
 function generate_initial_summary () {
     echo
@@ -587,6 +609,11 @@ TESTS_OPTIONAL_FAILED=''
 # Flag to indicate when we're retesting
 RETESTING="false"
 
+# Stress test mode variables
+STRESS_MODE=""
+STRESS_ITERATION=0
+MAX_ITERATIONS=100
+
 # Determine OS version for exclusion of tests
 OS_VERSION=''
 version=`uname -a`
@@ -618,6 +645,22 @@ BP_VERSION=`bpversion`
 export BP_VERSION
 echo "BP version is $BP_VERSION"
 
+# Parse --stress flag
+STRESS_MODE=""
+if [ "$1" = "--stress" ]; then
+    shift
+    STRESS_MODE="1"
+    # Force preserve logs in stress mode
+    PRESERVE_TEST_LOGS=1
+fi
+
+# Parse --max-iterations flag
+if [ "$1" = "--max-iterations" ]; then
+    shift
+    MAX_ITERATIONS="$1"
+    shift
+fi
+
 CLEANUP=""
 if [ "$1" = "cleanup" ]; then
     shift
@@ -638,48 +681,91 @@ fi
 
 
 if [ -z "$CLEANUP" ]; then
-    # Run all tests initially
-    run_tests $TESTS
-    
-    # Generate initial summary and create retest file
-    generate_initial_summary
-    
-    # Check if retest file exists and has content (meaning there were failures)
-    if [ -f "$FAILEDFILE" ] && [ -s "$FAILEDFILE" ]; then
-        # Read the failed tests from the retest file (skip comment line)
-        RETEST_TESTS=$(grep -v '^#' "$FAILEDFILE")
-        
-        if [ -n "$RETEST_TESTS" ]; then
+    if [ -n "$STRESS_MODE" ]; then
+        # Stress test mode: repeat tests until failure or max iterations
+        echo "=== STRESS TEST MODE: max $MAX_ITERATIONS iterations ==="
+        echo "# Stress test mode started at `date`" >> $PROGRESSFILE
+
+        while [ $STRESS_ITERATION -lt $MAX_ITERATIONS ]; do
+            STRESS_ITERATION=$((STRESS_ITERATION + 1))
             echo
-            echo "=== RETESTING FAILED TESTS ==="
-            echo "=== Retesting failed tests at time `date`" >> $PROGRESSFILE
-            
-            # Reset failed test tracking for retest
-            TESTS_FAILED=""
-            NUM_FAILED=0
-            
-            # Set retest flag
-            RETESTING="true"
-            
-            # Retest only the failed tests from the retest file
-            run_tests $RETEST_TESTS
-            
-            # Reset retest flag
-            RETESTING="false"
-            
-            # Update final passed count (initial passed + passed after retest)
-            NUM_PASSED=$((NUM_PASSED + NUM_PASSED_AFTER_RETEST))
-            TESTS_PASSED="$TESTS_PASSED $TESTS_PASSED_AFTER_RETEST"
-            
-            # Generate final summary
-            (generate_final_summary) | tee -a "$PROGRESSFILE"
+            echo "=========================================="
+            echo "=== STRESS TEST ITERATION $STRESS_ITERATION / $MAX_ITERATIONS ==="
+            echo "=========================================="
+            echo "=== Stress iteration $STRESS_ITERATION started at `date`" >> $PROGRESSFILE
+
+            # Reset counters for this iteration
+            reset_test_counters
+
+            # Run the tests (no retest in stress mode)
+            run_tests $TESTS
+
+            if [ $NUM_FAILED -gt 0 ]; then
+                echo
+                echo "=========================================="
+                echo "=== STRESS TEST FAILED on iteration $STRESS_ITERATION ==="
+                echo "=========================================="
+                generate_initial_summary
+                echo "# Stress test FAILED on iteration $STRESS_ITERATION at `date`" >> $PROGRESSFILE
+                echo "Logs preserved. Exiting."
+                exit 1
+            fi
+
+            echo "=== Iteration $STRESS_ITERATION passed, cleaning up... ==="
+            cleanup_tests $TESTS
+        done
+
+        # Completed all iterations without failure
+        echo
+        echo "=========================================="
+        echo "=== STRESS TEST COMPLETE: $MAX_ITERATIONS iterations passed ==="
+        echo "=========================================="
+        echo "# Stress test completed $MAX_ITERATIONS iterations at `date`" >> $PROGRESSFILE
+        exit 0
+    else
+        # Normal mode: run all tests initially
+        run_tests $TESTS
+
+        # Generate initial summary and create retest file
+        generate_initial_summary
+
+        # Check if retest file exists and has content (meaning there were failures)
+        if [ -f "$FAILEDFILE" ] && [ -s "$FAILEDFILE" ]; then
+            # Read the failed tests from the retest file (skip comment line)
+            RETEST_TESTS=$(grep -v '^#' "$FAILEDFILE")
+
+            if [ -n "$RETEST_TESTS" ]; then
+                echo
+                echo "=== RETESTING FAILED TESTS ==="
+                echo "=== Retesting failed tests at time `date`" >> $PROGRESSFILE
+
+                # Reset failed test tracking for retest
+                TESTS_FAILED=""
+                NUM_FAILED=0
+
+                # Set retest flag
+                RETESTING="true"
+
+                # Retest only the failed tests from the retest file
+                run_tests $RETEST_TESTS
+
+                # Reset retest flag
+                RETESTING="false"
+
+                # Update final passed count (initial passed + passed after retest)
+                NUM_PASSED=$((NUM_PASSED + NUM_PASSED_AFTER_RETEST))
+                TESTS_PASSED="$TESTS_PASSED $TESTS_PASSED_AFTER_RETEST"
+
+                # Generate final summary
+                (generate_final_summary) | tee -a "$PROGRESSFILE"
+            else
+                # No tests to retest, just append initial summary to progress file
+                (generate_initial_summary) | tee -a "$PROGRESSFILE"
+            fi
         else
-            # No tests to retest, just append initial summary to progress file
+            # No failures, just append initial summary to progress file
             (generate_initial_summary) | tee -a "$PROGRESSFILE"
         fi
-    else
-        # No failures, just append initial summary to progress file
-        (generate_initial_summary) | tee -a "$PROGRESSFILE"
     fi
 else
     cleanup_tests $TESTS
