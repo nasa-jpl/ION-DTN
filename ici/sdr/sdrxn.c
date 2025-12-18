@@ -414,6 +414,10 @@ SdrMap	*_mapImage(Sdr sdrv)
 
 static int	lockSdr(SdrState *sdr)
 {
+	char	diagBuf[256];
+	int	prevOwner;
+	int	prevModified;
+
 	if (sm_SemTake(sdr->sdrSemaphore) < 0)
 	{
 		return -1;
@@ -429,10 +433,17 @@ static int	lockSdr(SdrState *sdr)
 		return -1;
 	}
 
+	/* Capture previous state for diagnostics */
+	prevOwner = sdr->sdrOwnerTask;
+	prevModified = sdr->modified;
+
 	sdr->sdrOwnerThread = pthread_self();
 	sdr->sdrOwnerTask = sm_TaskIdSelf();
 	sdr->xnDepth = 1;
-	writeMemoNote("[DIAG-SDR-MOD] New transaction, task", itoa(sdr->sdrOwnerTask));
+	isprintf(diagBuf, sizeof(diagBuf),
+		"[DIAG-SDR-MOD] New transaction: new_owner=%d prev_owner=%d prev_modified=%d",
+		sdr->sdrOwnerTask, prevOwner, prevModified);
+	writeMemo(diagBuf);
 	sdr->modified = 0;
 	return 0;
 }
@@ -800,9 +811,14 @@ static void	handleUnrecoverableError(Sdr sdrv)
 static void	terminateXn(Sdr sdrv)
 {
 	SdrState	*sdr = sdrv->sdr;
+	char		diagBuf[256];
 
 	if (sdr->xnCanceled == 0)
 	{
+		isprintf(diagBuf, sizeof(diagBuf),
+			"[DIAG-SDR-MOD] terminateXn (commit): caller=%d owner=%d modified=%d",
+			sm_TaskIdSelf(), sdr->sdrOwnerTask, sdr->modified);
+		writeMemo(diagBuf);
 		clearTransaction(sdrv);
 		unlockSdr(sdr);
 		return;
@@ -1907,6 +1923,7 @@ int	sdrFetchSafe(Sdr sdrv)
 void	sdr_exit_xn(Sdr sdrv)
 {
 	SdrState	*sdr;
+	char		diagBuf[256];
 
 	CHKVOID(sdrv);
 	sdr = sdrv->sdr;
@@ -1917,8 +1934,10 @@ void	sdr_exit_xn(Sdr sdrv)
 		{
 			if (sdr->modified)
 			{
-				writeMemoNote("[DIAG-SDR-MOD] sdr_exit_xn with modified=1, owner task",
-						itoa(sdr->sdrOwnerTask));
+				isprintf(diagBuf, sizeof(diagBuf),
+					"[DIAG-SDR-MOD] sdr_exit_xn with modified=1, caller_task=%d owner_task=%d",
+					sm_TaskIdSelf(), sdr->sdrOwnerTask);
+				writeMemo(diagBuf);
 
 				/*	Can't simply exit from a
 				 *	transaction during which

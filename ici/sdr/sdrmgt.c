@@ -960,10 +960,10 @@ void	_sdrfree(Sdr sdrv, Object object, PutSrc src)
 	char		diagBuf[256];
 
 	CHKVOID(sdrv);
-	isprintf(diagBuf, sizeof(diagBuf), "[DIAG-_SDRFREE] _sdrfree called, src=%s task=%d",
-		(src == UserPut ? "UserPut" : "SystemPut"), sm_TaskIdSelf());
-	writeMemo(diagBuf);
 	sdr = sdrv->sdr;
+	isprintf(diagBuf, sizeof(diagBuf), "[DIAG-_SDRFREE] _sdrfree called, src=%s caller_task=%d owner_task=%d modified=%d",
+		(src == UserPut ? "UserPut" : "SystemPut"), sm_TaskIdSelf(), sdr->sdrOwnerTask, sdr->modified);
+	writeMemo(diagBuf);
 	switch (scaleOf(sdrv, addr, &ohd))
 	{
 	case SmallObject:	/*	For SDR library use only.	*/
