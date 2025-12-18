@@ -2436,11 +2436,39 @@ static void	purgePlanXmitElt(Bundle *bundle)
 	Object	planObj;
 	BpPlan	plan;
 
+	/*	Validate planXmitElt before use.  After transaction
+	 *	reversal (ionrestart), the list element referenced
+	 *	by planXmitElt may no longer be valid.  Check that
+	 *	it's a valid SDR object before proceeding.		*/
+
+	if ((ssize_t) sdr_object_length(sdr, bundle->planXmitElt) == -1)
+	{
+		/*	Object is invalid (possibly freed during
+		 *	transaction reversal).  Clear the reference
+		 *	and skip queue cleanup.				*/
+
+		writeMemo("[i] purgePlanXmitElt: invalid planXmitElt \
+detected (post-reversal cleanup), clearing reference.");
+		bundle->planXmitElt = 0;
+		return;
+	}
+
 	queue = sdr_list_list(sdr, bundle->planXmitElt);
 	planObj = sdr_list_user_data(sdr, queue);
 	if (planObj == 0)	/*	Bundle is in Limbo queue.	*/
 	{
 		sdr_list_delete(sdr, bundle->planXmitElt, NULL, NULL);
+		bundle->planXmitElt = 0;
+		return;
+	}
+
+	/*	Validate planObj before staging.  After transaction
+	 *	reversal, the plan object may no longer be valid.	*/
+
+	if ((ssize_t) sdr_object_length(sdr, planObj) == -1)
+	{
+		writeMemo("[i] purgePlanXmitElt: invalid planObj \
+detected (post-reversal cleanup), clearing reference.");
 		bundle->planXmitElt = 0;
 		return;
 	}
