@@ -414,10 +414,6 @@ SdrMap	*_mapImage(Sdr sdrv)
 
 static int	lockSdr(SdrState *sdr)
 {
-	char	diagBuf[256];
-	int	prevOwner;
-	int	prevModified;
-
 	if (sm_SemTake(sdr->sdrSemaphore) < 0)
 	{
 		return -1;
@@ -433,17 +429,9 @@ static int	lockSdr(SdrState *sdr)
 		return -1;
 	}
 
-	/* Capture previous state for diagnostics */
-	prevOwner = sdr->sdrOwnerTask;
-	prevModified = sdr->modified;
-
 	sdr->sdrOwnerThread = pthread_self();
 	sdr->sdrOwnerTask = sm_TaskIdSelf();
 	sdr->xnDepth = 1;
-	isprintf(diagBuf, sizeof(diagBuf),
-		"[DIAG-SDR-MOD] New transaction: new_owner=%d prev_owner=%d prev_modified=%d",
-		sdr->sdrOwnerTask, prevOwner, prevModified);
-	writeMemo(diagBuf);
 	sdr->modified = 0;
 	return 0;
 }
@@ -811,14 +799,9 @@ static void	handleUnrecoverableError(Sdr sdrv)
 static void	terminateXn(Sdr sdrv)
 {
 	SdrState	*sdr = sdrv->sdr;
-	char		diagBuf[256];
 
 	if (sdr->xnCanceled == 0)
 	{
-		isprintf(diagBuf, sizeof(diagBuf),
-			"[DIAG-SDR-MOD] terminateXn (commit): caller=%d owner=%d modified=%d",
-			sm_TaskIdSelf(), sdr->sdrOwnerTask, sdr->modified);
-		writeMemo(diagBuf);
 		clearTransaction(sdrv);
 		unlockSdr(sdr);
 		return;
@@ -1923,7 +1906,6 @@ int	sdrFetchSafe(Sdr sdrv)
 void	sdr_exit_xn(Sdr sdrv)
 {
 	SdrState	*sdr;
-	char		diagBuf[256];
 
 	CHKVOID(sdrv);
 	sdr = sdrv->sdr;
@@ -1934,21 +1916,11 @@ void	sdr_exit_xn(Sdr sdrv)
 		{
 			if (sdr->modified)
 			{
-				isprintf(diagBuf, sizeof(diagBuf),
-					"[DIAG-SDR-MOD] sdr_exit_xn with modified=1, caller_task=%d owner_task=%d",
-					sm_TaskIdSelf(), sdr->sdrOwnerTask);
-				writeMemo(diagBuf);
-
 				/*	Can't simply exit from a
 				 *	transaction during which
 				 *	data were modified - must
 				 *	either end or cancel.  This
 				 *	is an implementation error.	*/
-
-				/* Print error message to record implementation error */
-				putErrmsg("A critical section ended with SDR modification, should not use sdr_exit_xn. Compile with CORE_FILE_NEEDED=1 to get core for stack trace.", NULL);
-				/* Trigger coredump for tracing */
-				/* CHKVOID(0); */
 
 				handleUnrecoverableError(sdrv);
 			}
@@ -1987,11 +1959,6 @@ int	sdr_end_xn(Sdr sdrv)
 		sdr->xnDepth--;
 		if (sdr->xnDepth == 0)
 		{
-			if (sdr->modified)
-			{
-				writeMemoNote("[DIAG-SDR-MOD] sdr_end_xn committing modified transaction, task",
-						itoa(sdr->sdrOwnerTask));
-			}
 			terminateXn(sdrv);
 		}
 
@@ -2267,12 +2234,6 @@ entry.", NULL);
 		memcpy(sdrv->dssm + into, from, length);
 	}
 
-	if (sdr->modified == 0)
-	{
-		char	diagBuf[256];
-		isprintf(diagBuf, sizeof(diagBuf), "[DIAG-SDR-MOD] modified=1 by %s:%d task=%d", file, line, sdr->sdrOwnerTask);
-		writeMemo(diagBuf);
-	}
 	sdr->modified = 1;
 }
 
