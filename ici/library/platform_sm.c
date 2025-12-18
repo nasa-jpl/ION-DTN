@@ -4182,9 +4182,10 @@ void	sm_SemDelete(sm_SemId i)
 		/* Defer deletion until all users release it */
 		gsem->pendingDelete = 1;
 		giveIpcLock();
-
+#ifdef DEBUG_POSIX_NAMED_SEMAPHORES
 		writeMemoNote("Semaphore deletion deferred, refCount",
 		              itoa(gsem->refCount));
+#endif
 		return;
 	}
 
