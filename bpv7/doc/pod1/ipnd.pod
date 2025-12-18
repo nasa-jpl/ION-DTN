@@ -43,6 +43,11 @@ Default is 1.
 Local eid. This command sets the advertised BP endpoint ID by which the
 node will identify itself in beacon messages.
 
+=item B<m port> I<port number>
+
+Port number. This command sets the port number of the sockets on which
+the node will announce and listen for beacon messages.
+
 =item B<m announce period> { 1 | 0 }
 
 Announce period control. Setting to 1 causes all beacons messages sent
