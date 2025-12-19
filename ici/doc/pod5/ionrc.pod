@@ -264,8 +264,9 @@ This command lists all predicted periods of known range in light seconds.
 =item B<b range>
 
 The B<brief ranges> command.  This command writes a file of commands that
-will recreate the current list of ranges in the node's ION database.  The
-file's name will be "ranges.ionrc".
+will recreate the current list of ranges in the node's ION database; the
+file's name will be "ranges.ionrc".  This file can be used to initialize
+the contact plan for a new node.
 
 =item B<m utcdelta> I<local_time_sec_after_UTC>
 
