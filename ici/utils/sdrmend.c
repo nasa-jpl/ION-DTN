@@ -40,7 +40,7 @@ int	main(int argc, char **argv)
 	if (argc < 6)
 	{
 		PUTS("Usage: sdrmend <sdr name> <config flags> <heap words> \
-<heap key, e.g. -1> <pathName> [<restartCmd>]");
+<heap key, e.g. -1> <log size> <log key> <pathName> [<restartCmd>]");
 		return 0;
 	}
 
