@@ -213,6 +213,12 @@ an additional extent to an existing ZCO.  Returns -1 on failure, 0 on
 interruption by ionPauseAttendant() or if I<attendant> was NULL and sufficient
 space for the extent was not immediately available, I<length> on success.
 
+=item int ionSendZcoByTcp(int *sock, Object zco, char *buffer, int buflen)
+
+Transmits the content of zero-copy object I<zco> to the TCP socket
+identified by I<*sock>.  Transmits in chunks of size I<buflen> or less,
+loading chunks of ZCO content into I<buffer> for this purpose.
+
 =item char *getIonVersionNbr()
 
 Returns the name of the ION version installed on the local machine.
@@ -221,6 +227,10 @@ Returns the name of the ION version installed on the local machine.
 
 Returns a pointer to the SDR management object, previously acquired by calling
 ionAttach(), or zero on any error.
+
+=item Object getIonDbObject()
+
+Returns the SDR heap address of the node's non-volatile ION database.
 
 =item PsmPartition getIonwm()
 
@@ -231,6 +241,14 @@ by calling ionAttach(), or zero on any error.
 
 Returns the memory manager ID for operations on ION's working memory partition,
 previously acquired by calling ionAttach(), or -1 on any error.
+
+=item IonVdb *getIonVdb()
+
+Returns the address in memory of the node's volatile ION database.
+
+=item char *getIonWorkingDirectory()
+
+Returns the name of the directory in which the node resides.
 
 =item int ionLocked();
 
@@ -247,7 +265,12 @@ by I<ionadmin>. New IPN node numbers should use the getOwnFqnn() API instead.
 =item uvast getOwnFqnn()
 
 Returns the fully qualified node number identifying this node, as derived from
-the IPN node number initialized by I<ionadmin> with or without the allocator. 
+the IPN node number initialized by I<ionadmin> with or without the allocator.
+
+=item int setDeltaFromUTC(int newDelta)
+
+Sets the value of the UTC "delta" adjustment that ION will apply to
+the system clock time order to obtain the correct UTC time.
 
 =item time_t getCtime()
 
