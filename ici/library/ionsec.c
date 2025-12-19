@@ -381,6 +381,10 @@ SecVdb	*getSecVdb(void)
 	return _secvdb(NULL);
 }
 
+/*
+ * Asymmetric cryptography functions
+ */
+
 static Object	locatePublicKey(uvast fqnn, time_t effectiveTime,
 			PubKeyRef *argRef)
 {
@@ -1034,6 +1038,10 @@ int	sec_get_private_key(time_t effectiveTime, int *keyBufferLen,
 	sdr_exit_xn(sdr);
 	return privateKey.length;
 }
+
+/*
+ * Symmetric cryptography functions
+ */
 
 static Object	locateKey(char *keyName, Object *nextKey)
 {

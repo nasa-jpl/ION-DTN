@@ -93,7 +93,9 @@ extern Object	getSecDbObject(void);
 extern SecDB	*getSecConstants(void);
 extern SecVdb	*getSecVdb(void);
 
-/*	*	Functions for managing public keys.			*/
+/*
+ * Functions for managing asymmetric cryptography.
+ */
 
 extern void	sec_findPublicKey(uvast fqnn, time_t effectiveTime,
 			Object *keyAddr, Object *eltp);
@@ -160,7 +162,9 @@ extern int	sec_get_private_key(time_t effectiveTime, int *datBufferLen,
 		 *	value in *datBufferLen unchanged.  On
 		 *	system failure returns -1.			*/
 
-/*	*	Functions for managing security information.		*/
+/*
+ * Functions for managing symmetric cryptography.
+ */
 
 extern void	sec_findKey(char *keyName, Object *keyAddr, Object *eltp);
 extern int	sec_addKey(char *keyName, char *fileName);
@@ -168,8 +172,6 @@ extern int	sec_updateKey(char *keyName, char *fileName);
 extern int	sec_removeKey(char *keyName);
 extern int	sec_activeKey(char *keyName);
 extern int	sec_addKeyValue(char *keyName, char *keyVal, uint32_t keyLen);
-
-/*	*	Functions for retrieving security information.		*/
 
 extern int	sec_get_key(char *keyName,
 			int *keyBufferLength,
