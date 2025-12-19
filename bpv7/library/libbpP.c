@@ -8493,6 +8493,12 @@ static int	acquireBlock(AcqWorkArea *work)
 		return 0;
 	}
 
+	if (blkNumber > 255)
+	{
+		writeMemo("[!] Block number exceeds maximum supported value.");
+		return 0;
+	}
+
 	/*	Acquire block processing flags, and revise the
 	 *	value of that field during acquisition to support
 	 *	cryptographic verification of block integrity.		*/
