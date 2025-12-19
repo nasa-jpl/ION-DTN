@@ -747,10 +747,14 @@ if [ -z "$CLEANUP" ]; then
             # Run the tests (no retest in stress mode)
             run_tests $TESTS
 
-            if [ $NUM_FAILED -gt 0 ]; then
+            # In stress mode, treat optional test failures as failures too
+            if [ $NUM_FAILED -gt 0 ] || [ $NUM_OPTIONAL_FAILED -gt 0 ]; then
                 echo
                 echo "=========================================="
                 echo "=== STRESS TEST FAILED on iteration $STRESS_ITERATION ==="
+                if [ $NUM_OPTIONAL_FAILED -gt 0 ]; then
+                    echo "=== (includes $NUM_OPTIONAL_FAILED optional test failure(s)) ==="
+                fi
                 echo "=========================================="
                 generate_initial_summary
                 echo "# Stress test FAILED on iteration $STRESS_ITERATION at `date`" >> $PROGRESSFILE
