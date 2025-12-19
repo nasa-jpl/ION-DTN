@@ -253,6 +253,7 @@ int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle)
 		memset((char *) &newBlk, 0, sizeof(ExtensionBlock));
 //printf("Copying extension block of type %d.\n", oldBlk->type);
 		newBlk.type = oldBlk->type;
+		newBlk.number = oldBlk->number;
 		newBlk.blkProcFlags = oldBlk->blkProcFlags;
 		newBlk.dataLength = oldBlk->dataLength;
 		newBlk.length = oldBlk->length;
@@ -284,6 +285,7 @@ int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle)
 		}
 
 		newBlk.tag = oldBlk->tag;
+		newBlk.crcType = oldBlk->crcType;
 		newBlkAddr = sdr_malloc(sdr, sizeof(ExtensionBlock));
 		CHKERR(newBlkAddr);
 //puts("Inserting extension block copy.");
@@ -928,6 +930,12 @@ int	parseExtensionBlocks(AcqWorkArea *work)
 		{
 			if (existingBlknum[j] == blkNum)
 			{
+				char	buf[128];
+				isprintf(buf, sizeof(buf),
+					"[?] Duplicate block number %u (block type %u, count %d)",
+					blkNum, blk->type, count);
+				writeMemo(buf);
+				printStackTrace();
 				return 1;
 			}
 		}

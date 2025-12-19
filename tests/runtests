@@ -614,6 +614,53 @@ STRESS_MODE=""
 STRESS_ITERATION=0
 MAX_ITERATIONS=100
 
+# Help function
+function show_help () {
+    cat << 'EOF'
+Usage: runtests [OPTIONS] [TEST_PATHS...]
+
+Run ION test suite.
+
+OPTIONS:
+    -h, --help          Show this help message and exit
+    --stress            Run tests repeatedly until failure or max iterations
+    --max-iterations N  Set maximum iterations for stress mode (default: 100)
+    cleanup             Clean up test artifacts without running tests
+
+TEST_PATHS:
+    Paths to specific test directories or parent directories containing tests.
+    If no paths are specified, runs all tests in ../demos/ and current directory.
+
+ENVIRONMENT VARIABLES:
+    RUNTESTS_OUTPUTDIR  Directory to save individual test output files
+                        (e.g., export RUNTESTS_OUTPUTDIR="/tmp")
+    PRESERVE_TEST_LOGS  Set to preserve test logs (default: 1, enabled)
+                        To disable: export PRESERVE_TEST_LOGS=""
+
+EXAMPLES:
+    ./runtests                              Run all tests
+    ./runtests req-0022-reversibility       Run a specific test
+    ./runtests --stress req-0022-reversibility
+                                            Stress test until failure
+    ./runtests --stress --max-iterations 50 req-0022-reversibility
+                                            Stress test with 50 max iterations
+    ./runtests cleanup                      Clean up all test artifacts
+    ./runtests cleanup req-0022-reversibility
+                                            Clean up specific test
+
+OUTPUT FILES:
+    retest              List of failed tests (can be used for retesting)
+    progress            Intermediate progress log
+
+EOF
+    exit 0
+}
+
+# Parse --help flag early
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    show_help
+fi
+
 # Determine OS version for exclusion of tests
 OS_VERSION=''
 version=`uname -a`

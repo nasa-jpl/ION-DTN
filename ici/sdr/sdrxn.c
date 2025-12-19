@@ -2110,6 +2110,12 @@ void	_sdrput(const char *file, int line, Sdr sdrv, Address into, char *from,
 
 	if (sdr->sdrOwnerTask != sm_TaskIdSelf())
 	{
+		char	buf[128];
+		isprintf(buf, sizeof(buf),
+			"[!] SDR write owner mismatch: sdrOwnerTask=%d, sm_TaskIdSelf()=%d",
+			sdr->sdrOwnerTask, sm_TaskIdSelf());
+		writeMemo(buf);
+		printStackTrace();
 		return;		/*	No longer transaction owner.	*/
 	}
 	to = into + length;
