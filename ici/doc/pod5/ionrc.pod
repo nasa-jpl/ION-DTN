@@ -63,7 +63,7 @@ node does not exist and most I<ionadmin> commands will fail.
 The command configures the local node to be identified by I<node>, an
 ipn-scheme node identifier which uniquely identifies the node in the
 delay-tolerant network.  It also configures ION's data space (SDR)
-and shared working-memory region.  For this purpose it uses a set
+and shared working-memory partition.  For this purpose it uses a set
 of default settings if no argument follows I<node> or if
 the argument following I<node> is ''; otherwise it uses
 the configuration settings found in a configuration file.  If
@@ -78,7 +78,7 @@ For example:
 
 would initialize ION on the local computer, assigning the local ION node the
 node number 19 (allocator number zero) and using default values to configure
-the data space and shared working-memory region.
+the data space and shared working-memory partition.
 
 =item B<@> I<time>
 
