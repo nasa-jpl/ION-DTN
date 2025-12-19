@@ -1849,25 +1849,67 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 
 	if (bpvdb->clockPid != ERROR)
 	{
-		while (sm_TaskExists(bpvdb->clockPid))
+		int	i;
+
+		for (i = 0; i < 50 && sm_TaskExists(bpvdb->clockPid); i++)
 		{
 			microsnooze(100000);
+		}
+
+		if (sm_TaskExists(bpvdb->clockPid))
+		{
+			writeMemo("[!] bpStop: bpclock not responding to \
+SIGTERM, sending SIGKILL.");
+			sm_TaskKill(bpvdb->clockPid, SIGKILL);
+			for (i = 0; i < 10 && sm_TaskExists(bpvdb->clockPid);
+					i++)
+			{
+				microsnooze(100000);
+			}
 		}
 	}
 
 	if (bpvdb->cpsdPid != ERROR)
 	{
-		while (sm_TaskExists(bpvdb->cpsdPid))
+		int	i;
+
+		for (i = 0; i < 50 && sm_TaskExists(bpvdb->cpsdPid); i++)
 		{
 			microsnooze(100000);
+		}
+
+		if (sm_TaskExists(bpvdb->cpsdPid))
+		{
+			writeMemo("[!] bpStop: cpsd not responding to \
+SIGTERM, sending SIGKILL.");
+			sm_TaskKill(bpvdb->cpsdPid, SIGKILL);
+			for (i = 0; i < 10 && sm_TaskExists(bpvdb->cpsdPid);
+					i++)
+			{
+				microsnooze(100000);
+			}
 		}
 	}
 
 	if (bpvdb->transitPid != ERROR)
 	{
-		while (sm_TaskExists(bpvdb->transitPid))
+		int	i;
+
+		for (i = 0; i < 50 && sm_TaskExists(bpvdb->transitPid); i++)
 		{
 			microsnooze(100000);
+		}
+
+		if (sm_TaskExists(bpvdb->transitPid))
+		{
+			writeMemo("[!] bpStop: bptransit not responding to \
+SIGTERM, sending SIGKILL.");
+			sm_TaskKill(bpvdb->transitPid, SIGKILL);
+			for (i = 0; i < 10 && sm_TaskExists(bpvdb->transitPid);
+					i++)
+			{
+				microsnooze(100000);
+			}
 		}
 	}
 

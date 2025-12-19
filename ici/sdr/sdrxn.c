@@ -432,6 +432,7 @@ static int	lockSdr(SdrState *sdr)
 	sdr->sdrOwnerThread = pthread_self();
 	sdr->sdrOwnerTask = sm_TaskIdSelf();
 	sdr->xnDepth = 1;
+	sdr->xnCanceled = 0;
 	sdr->modified = 0;
 	return 0;
 }
@@ -457,6 +458,7 @@ int	takeSdr(SdrState *sdr)
 static void	unlockSdr(SdrState *sdr)
 {
 	sdr->sdrOwnerTask = -1;
+	sdr->sdrOwnerThread = 0;
 	if (sdr->sdrSemaphore != -1)
 	{
 		sm_SemGive(sdr->sdrSemaphore);
