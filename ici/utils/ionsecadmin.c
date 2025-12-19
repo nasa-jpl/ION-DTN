@@ -91,7 +91,8 @@ static void	printUsage(void)
 	PUTS("\t   1");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a key <key name> <name of file containing key value>");
-	PUTS("\t   a pubkey <node> <effective time sec> <key len> <key>");
+	PUTS("\t   a pubkey <node> <effective time sec> <assertion time \
+sec> <key len> <key>");
 	PUTS("\tc\tChange");
 	PUTS("\t   c key <key name> <name of file containing key value>");
 	PUTS("\td\tDelete");
