@@ -39,6 +39,29 @@
 #include <metadata.h>
 #include <secrypt.h>
 
+#define RANDOMIZER_SIZE 21
+
+
+
+/******************************************************************************/
+/* secure_wipe()                                                          */
+/******************************************************************************/
+/**
+ * @brief secure_wipe - Securely zeroes out memory.
+ * * Uses a volatile pointer to ensure the compiler does not optimize
+ * away the zeroing operation (Dead Store Elimination), which often
+ * happens with standard memset() at the end of a function.
+ * * @param v Pointer to memory to wipe.
+ * @param n Number of bytes to wipe.
+ */
+static void secure_wipe(void *v, size_t n)
+{
+	volatile unsigned char *p = (volatile unsigned char *)v;
+	while (n--)
+	{
+		*p++ = 0;
+	}
+}
 
 /******************************************************************************/
 /* extractBasename()                                                          */
@@ -108,25 +131,29 @@ static const char* extractBasename(const char *path)
  * @warning The function assumes that BP is properly set up and that the file
  * to be sent exists.
  */
-static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
+static int run_sendfile(char *ownEid, char *destEid, char *fileName,
 			int ttl, char *aux, char *svcClass, unsigned char encryptFlag, char *keyInput)
 {
-	int		priority = 0;
-	BpAncillaryData ancillaryData = { 0 };
+	int         priority = 0;
+	BpAncillaryData ancillaryData = {0};
 	BpCustodySwitch custodySwitch = NoCustodyRequested;
-	BpSAP		sap = NULL;
-	Sdr		sdr = NULL;
-	Object		fileRef = 0;
-	struct stat	statbuf;
-	int		aduLength = 0;
-	Object		bundleZco;
-	char		progressText[300] = { 0 };
-	Object		newBundle;
-	size_t		readResult = 0;
+	BpSAP       sap = NULL;
+	Sdr         sdr = NULL;
+	Object      fileRef = 0;
+	struct stat statbuf;
+	size_t      aduLength = 0;
+	Object      bundleZco;
+	char        progressText[300] = {0};
+	Object      newBundle;
+	size_t      readResult = 0;
 
+	/* Initialize file handle early for safe cleanup */
+	FILE        *file = NULL;
+
+	/* Safe local copy of key to prevent crashes during wipe */
+	char        *localKey = NULL;
 
 	/*metadata vars*/
-#define RANDOMIZER_SIZE 21
 	uint64_t timestamp = 0;
 	size_t out_contentLength=0;
 	size_t nameSize = 0;
@@ -179,27 +206,51 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	}
 
 	writeMemo("[i] sendfile is running.");
-	if (stat(fileName, &statbuf) < 0)
-	{
-		if (sap)
-		{
-			bp_close(sap);
-		}
 
-		putErrmsg("[!] sendfile error: can't stat the file.", fileName);
-		return -1;
+	/* SAFE KEY HANDLING:
+	* We make a local copy of the key. This ensures we can safely
+	* wipe 'localKey' at the end without worrying if 'keyInput'
+	* is a read-only string literal (which would crash if wiped).
+	*/
+	if (keyInput && encryptFlag == 1)
+	{
+		size_t keyLen = strlen(keyInput) + 1;
+		localKey = MTAKE(keyLen);
+		if (!localKey)
+		{
+			writeErrMemo("[!] sendfile: memory allocation error (key copy).");
+			goto exit;
+		}
+		memcpy(localKey, keyInput, keyLen);
 	}
 
-	aduLength = statbuf.st_size;
+	/* OPEN FILE FIRST (Fixes TOCTOU Race Condition)
+	* We open the file now to acquire a file descriptor.
+	* All subsequent checks use this descriptor, ensuring we
+	* operate on the exact same resource.
+	*/
+	file = fopen(fileName, "rb");
+	if (!file)
+	{
+		char open_file_error[256] = {0};
+		snprintf(open_file_error, sizeof(open_file_error), "[!] sendfile: error opening file %s.", fileName);
+		putErrmsg(open_file_error, NULL);
+		goto exit;
+	}
+
+	if (fstat(fileno(file), &statbuf) < 0)
+	{
+		putErrmsg("[!] sendfile error: can't stat the file.", fileName);
+		goto exit; // Goto exit ensures file is closed properly
+	}
+
+	/* Assign st_size to size_t. Safe as file is valid/open. */
+	aduLength = (size_t)statbuf.st_size;
+
 	if (aduLength == 0)
 	{
 		putErrmsg("[!] sendfile error: can't send file of length zero.", fileName);
-
-		if (sap)
-		{
-			bp_close(sap);
-		}
-		return -1;
+		goto exit;
 	}
 
 	sdr = bp_get_sdr();
@@ -216,22 +267,11 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 		goto exit;
 	}
 
-	/*CREATE RANDOM FILENAME (AND IV PERSONALIZER)*/
+	/*CREATE RANDOM FILENAME (AND IV PERSONALIZER string)*/
 	createUniqueFile(randInitializer, sizeof(randInitializer));
 
 	/* READ THE FILE-------------------------------------*/
-	FILE *file = fopen(fileName, "rb");
-	if (!file)
-	{
-		char open_file_error[256] = {0};
-		snprintf(open_file_error, sizeof(open_file_error), "[!] sendfile: error opening file %s.", fileName);
-		writeErrMemo(open_file_error);
-		goto exit;
-	}
-
-	fseek(file, 0, SEEK_END);
-	long fileSize = ftell(file);
-	fseek(file, 0, SEEK_SET);
+	size_t fileSize = aduLength;
 
 	input_buffer = (unsigned char*)MTAKE(fileSize);
 
@@ -241,18 +281,22 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 		goto exit;
 	}
 
-
 	readResult = fread(input_buffer, 1, fileSize, file);
-	if (fileSize < 0 || readResult != (size_t)fileSize)
+
+	/* We don't need the file handle anymore, just the data in the buffer */
+	fclose(file);
+	file = NULL; // set NULL so the exit block doesn't try to close it again.
+
+	if (readResult != (size_t)fileSize)
 	{
 		char read_failure_msg[256] = {0};
 		snprintf(read_failure_msg, sizeof(read_failure_msg), "[!] sendfile: error reading from %s: expected %ld, got %zu bytes.",
 				fileName, fileSize, readResult);
 		writeErrMemo(read_failure_msg);
 
+		/* Abort if the read failed. */
+		goto exit;
 	}
-	fclose(file);
-
 
 	/*BEGIN METADATA CREATION----------------------------*/
 	Metadata metadata = {0};
@@ -323,29 +367,13 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	metadata.fileNameLength = nameSize;
 
 
-
 	/*ADD FILENAME AND FILE CONTENT TO METADATA-----------*/
 	if(encryptFlag == 1)
 	{
-		/* Get the key from ionsecadmin database */
-		/* char        keyBuffer[512] = {0};
-		int	        keyBufferLength = sizeof keyBuffer;
-		int	        keyLength = 0;
-
-		keyLength = sec_get_key(keyInput,
-				&keyBufferLength, keyBuffer);
-		if (keyLength <= 0)
-		{
-			putErrmsg("Can't fetch symmetric key.",
-					keyInput);
-			return -1;
-		} */
-
-
 		int result = -1; //default to failure
 
 		/* ENCRYPT FILE CONTENTS */
-		result = crypt_and_hash_buffer(0, (unsigned char*) randInitializer, input_buffer, (size_t *)&fileSize, &encrypted_content_buffer, &out_contentLength, CIPHER, MD, keyInput);
+		result = crypt_and_hash_buffer(0, (unsigned char*) randInitializer, input_buffer, &fileSize, &encrypted_content_buffer, &out_contentLength, CIPHER, MD, localKey);
 		if(result != 0)
 		{
 			writeErrMemo("[!] sendfile error: encryption.");
@@ -397,13 +425,16 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	}
 	else
 	{
-		isprintf(progressText, sizeof progressText, "[i] sendfile is sending %s of size %d bytes (transmitted %d total bytes)", fileName, metadata.fileContentLength, aduLength);
+		/* Using %zu for size_t logging */
+		isprintf(progressText, sizeof progressText, "[i] sendfile is sending %s of size %zu bytes (transmitted %zu total bytes)", fileName, (size_t)metadata.fileContentLength, aduLength);
 		writeMemo(progressText);
 		if (bp_send(sap, destEid, NULL, ttl, priority, custodySwitch,
 			0, 0, &ancillaryData, bundleZco, &newBundle) <= 0)
 		{
-			putErrmsg("[!] sendfile error: can't send file in bundle.",
-					itoa(aduLength));
+			/* Replaced non-standard itoa with snprintf */
+			char sizeStr[32];
+			snprintf(sizeStr, sizeof(sizeStr), "%zu", aduLength);
+			putErrmsg("[!] sendfile error: can't send file in bundle.", sizeStr);
 		}
 		else
 		{
@@ -418,23 +449,30 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 exit:
 
 	/*CLEAN ALL TRACES OF ENCRYPTION-----------------------------*/
-	if( metadata_buffer)
+
+	/* Check if file is still open (e.g. if we jumped here on error) */
+	if (file) {
+		fclose(file);
+		file = NULL;
+	}
+
+	if(metadata_buffer)
 	{
-		memset(metadata_buffer, 0, metabuffer_size);
-		MRELEASE (metadata_buffer);
+		secure_wipe(metadata_buffer, metabuffer_size);
+		MRELEASE(metadata_buffer);
 		metadata_buffer = NULL;
 	}
 
 	if(aux_command)
 	{
-		memset(aux_command, 0, aux_length);
+		secure_wipe(aux_command, aux_length);
 		MRELEASE(aux_command);
 		aux_command = NULL;
 	}
 
 	if(input_buffer)
 	{
-		memset(input_buffer, 0, fileSize);
+		secure_wipe(input_buffer, fileSize);
 		MRELEASE(input_buffer);
 		input_buffer = NULL;
 	}
@@ -448,13 +486,20 @@ exit:
 
 	if(encryptFlag == 1)
 	{
-		memset(encrypted_content_buffer, 0, out_contentLength);
+		secure_wipe(encrypted_content_buffer, out_contentLength);
 		MRELEASE(encrypted_content_buffer);
 		encrypted_content_buffer = NULL;
 	}
 
-	memset(&metadata, 0, sizeof(metadata));
+	/* Wipe the LOCAL copy of the key */
+	if (localKey)
+	{
+		secure_wipe(localKey, strlen(localKey));
+		MRELEASE(localKey);
+		localKey = NULL;
+	}
 
+	secure_wipe(&metadata, sizeof(metadata));
 
 
 	/*ION CLEANUP------------------------------------------------*/
@@ -477,21 +522,21 @@ exit:
 
 
 	/*SANITIZE USER INPUT AND WORKING DATA STRUCTURES------------*/
-	memset(&statbuf, 0, sizeof(statbuf));
-	memset(fileName, 0, strlen(fileName));
+	secure_wipe(&statbuf, sizeof(statbuf));
+
 	fileName = NULL;
-
-	if(keyInput)
-	{
-		memset(keyInput, 0, strlen(keyInput));
-		keyInput = NULL;
-	}
-
-	memset(ownEid, 0, strlen(ownEid));
 	ownEid = NULL;
-
-	memset(destEid, 0, strlen(destEid));
 	destEid = NULL;
+	keyInput = NULL;
+
+	secure_wipe(randInitializer, randomizer_size);
+	secure_wipe(progressText, sizeof(progressText));
+
+	/*ION specific handles */
+	/* Wiping local handle variables ensures no stale data on stack,
+	and satisfies CodeQL that the wipe was intentional. */
+	secure_wipe(&sdr, sizeof(sdr));
+	secure_wipe(&sap, sizeof(sap));
 
 	memset(randInitializer, 0, RANDOMIZER_SIZE);
 	memset(progressText, 0, 300);
