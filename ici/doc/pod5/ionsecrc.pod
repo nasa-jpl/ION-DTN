@@ -45,6 +45,13 @@ security database.  The content of I<file_name> is taken as the
 value of the key.  Named keys can be referenced by other elements of the
 security database.
 
+=item B<a pubkey> I<node> I<effective_time> I<assertion_time> I<key_length> I<key_text>
+
+The B<add public key> command.  This command adds to the security database a
+public key for the indicated node.  I<effective_time> and I<assertion_ time>
+are counts of seconds from the UNIX epoch time; I<key_text> is hexadecimal.
+This command is normally expected to be issued automatically by the DTKA system.
+
 =item B<c key> I<key_name> I<file_name>
 
 The B<change key> command.  This command changes the value of the named
@@ -54,14 +61,30 @@ key, obtaining the new key value from the content of I<file_name>.
 
 The B<delete key> command.  This command deletes the key identified by I<name>.
 
+=item B<d pubkey> I<node> I<effective_time>
+
+The B<delete public key> command.  This command deletes the public key for
+I<node> that is identified by I<effective_time>, a count of seconds
+from the UNIX epoch time.
+
 =item B<i key> I<key_name>
 
 This command will print information about the named key, i.e., the length of
 its current value.
 
+=item B<i pubkey> I<node_number> I<effective_time>
+
+This command will print information (e.g., key length and text) about the
+public key for I<node_number> that is identified by I<effective_time>, a
+count of seconds from the UNIX epoch time.
+
 =item B<l key>
 
-This command lists all keys in the security database.
+This command lists all named keys in the security database.
+
+=item B<l pubkey>
+
+This command lists all public keys in the security database.
 
 =item B<h>
 
