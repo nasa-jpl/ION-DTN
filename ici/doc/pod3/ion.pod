@@ -256,12 +256,6 @@ Returns 1 if the calling task is the owner of the current SDR transaction.
 Assuring that ION is locked while related critical operations are performed
 is essential to the avoidance of race conditions.
 
-=item uvast getOwnNodeNbr()
-
-This API is deprecated as of ION 4.1.4-a.2 or later. It returns the Bundle Protocol 
-node number identifying this node, as declared when ION was initialized 
-by I<ionadmin>. New IPN node numbers should use the getOwnFqnn() API instead.
-
 =item uvast getOwnFqnn()
 
 Returns the fully qualified node number identifying this node, as derived from
