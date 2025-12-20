@@ -81,6 +81,40 @@ static void	restartION(Sdr sdrv)
 	}
 	else
 	{
+		BpVdb		*bpvdb = getBpVdb();
+		PsmPartition	bpwm = getIonwm();
+		PsmAddress	elt;
+		VPlan		*vplan;
+		int		oldClockPid = ERROR;
+
+		/*	Maximum of 64 bpclm processes tracked.		*/
+
+		int		oldClmPids[64];
+		int		oldClmCount = 0;
+		int		j;
+
+		/*	Save the old bpclock PID before stopping.	*/
+
+		if (bpvdb != NULL)
+		{
+			oldClockPid = bpvdb->clockPid;
+
+			/*	Save old bpclm PIDs before stopping.	*/
+
+			for (elt = sm_list_first(bpwm, bpvdb->plans); elt;
+					elt = sm_list_next(bpwm, elt))
+			{
+				vplan = (VPlan *) psp(bpwm,
+						sm_list_data(bpwm, elt));
+				if (vplan->clmPid != ERROR &&
+						oldClmCount < 64)
+				{
+					oldClmPids[oldClmCount++] =
+							vplan->clmPid;
+				}
+			}
+		}
+
 		cgr_stop();
 		bpStop();
 		for (i = 0; i < 5; i++)
@@ -101,6 +135,86 @@ static void	restartION(Sdr sdrv)
 		else
 		{
 			writeMemo("[i] ionrestart: BP stopped.");
+		}
+
+		/*	Ensure old bpclock process is actually dead.
+		 *	It may still be unwinding after transaction
+		 *	crash even though bpStop() completed.		*/
+
+		if (oldClockPid != ERROR && sm_TaskExists(oldClockPid))
+		{
+			writeMemo("[i] ionrestart: Waiting for old bpclock \
+to terminate...");
+			for (i = 0; i < 50 && sm_TaskExists(oldClockPid); i++)
+			{
+				microsnooze(100000);
+			}
+
+			if (sm_TaskExists(oldClockPid))
+			{
+				writeMemo("[!] ionrestart: Old bpclock not \
+responding, sending SIGKILL.");
+				sm_TaskKill(oldClockPid, SIGKILL);
+				for (i = 0; i < 10 && sm_TaskExists(oldClockPid);
+						i++)
+				{
+					microsnooze(100000);
+				}
+			}
+
+			if (sm_TaskExists(oldClockPid))
+			{
+				writeMemo("[!] ionrestart: Old bpclock still \
+running after SIGKILL.");
+			}
+			else
+			{
+				writeMemo("[i] ionrestart: Old bpclock \
+terminated.");
+			}
+		}
+
+		/*	Ensure old bpclm processes are actually dead.
+		 *	They may still be unwinding after transaction
+		 *	crash even though bpStop() completed.		*/
+
+		for (j = 0; j < oldClmCount; j++)
+		{
+			if (sm_TaskExists(oldClmPids[j]))
+			{
+				writeMemo("[i] ionrestart: Waiting for old \
+bpclm to terminate...");
+				for (i = 0; i < 50 &&
+						sm_TaskExists(oldClmPids[j]);
+						i++)
+				{
+					microsnooze(100000);
+				}
+
+				if (sm_TaskExists(oldClmPids[j]))
+				{
+					writeMemo("[!] ionrestart: Old bpclm \
+not responding, sending SIGKILL.");
+					sm_TaskKill(oldClmPids[j], SIGKILL);
+					for (i = 0; i < 10 &&
+						sm_TaskExists(oldClmPids[j]);
+							i++)
+					{
+						microsnooze(100000);
+					}
+				}
+
+				if (sm_TaskExists(oldClmPids[j]))
+				{
+					writeMemo("[!] ionrestart: Old bpclm \
+still running after SIGKILL.");
+				}
+				else
+				{
+					writeMemo("[i] ionrestart: Old bpclm \
+terminated.");
+				}
+			}
 		}
 	}
 

@@ -786,7 +786,13 @@ static void	clearTransaction(Sdr sdrv)
 
 static void	handleUnrecoverableError(Sdr sdrv)
 {
+#ifdef DEBUG_BUILD
+	putErrmsg("Unrecoverable SDR error: sdr_exit_xn called when SDR \
+modifications were made (modified=1), faulty implementation or bug.", NULL);
+	printStackTrace();
+#else
 	putErrmsg("Unrecoverable SDR error.", NULL);
+#endif
 #ifdef IN_FLIGHT
 	sdr_abort(sdrv);
 
@@ -2112,12 +2118,14 @@ void	_sdrput(const char *file, int line, Sdr sdrv, Address into, char *from,
 
 	if (sdr->sdrOwnerTask != sm_TaskIdSelf())
 	{
+#ifdef DEBUG_BUILD
 		char	buf[128];
 		isprintf(buf, sizeof(buf),
 			"[!] SDR write owner mismatch: sdrOwnerTask=%d, sm_TaskIdSelf()=%d",
 			sdr->sdrOwnerTask, sm_TaskIdSelf());
 		writeMemo(buf);
 		printStackTrace();
+#endif
 		return;		/*	No longer transaction owner.	*/
 	}
 	to = into + length;

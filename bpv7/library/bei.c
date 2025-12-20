@@ -342,6 +342,13 @@ void	destroyExtensionBlocks(Bundle *bundle)
 		return;
 	}
 
+	/*	Verify transaction still active before cleanup.		*/
+
+	if (!(sdr_in_xn(sdr)))
+	{
+		return;		/*	Transaction crashed, bail out.	*/
+	}
+
 	while (1)
 	{
 		elt = sdr_list_first(sdr, bundle->extensions);

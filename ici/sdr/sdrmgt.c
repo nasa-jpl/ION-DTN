@@ -791,12 +791,14 @@ Object	_sdrmalloc(Sdr sdrv, size_t nbytes)
 
 	if (sdr->sdrOwnerTask != sm_TaskIdSelf())
 	{
+#ifdef DEBUG_BUILD
 		char	buf[128];
 		isprintf(buf, sizeof(buf),
 			"[!] SDR malloc owner mismatch: sdrOwnerTask=%d, sm_TaskIdSelf()=%d",
 			sdr->sdrOwnerTask, sm_TaskIdSelf());
 		writeMemo(buf);
 		printStackTrace();
+#endif
 		return 0;	/*	No longer transaction owner.	*/
 	}
 
@@ -977,12 +979,14 @@ void	_sdrfree(Sdr sdrv, Object object, PutSrc src)
 
 	if (sdr->sdrOwnerTask != sm_TaskIdSelf())
 	{
+#ifdef DEBUG_BUILD
 		char	buf[128];
 		isprintf(buf, sizeof(buf),
 			"[!] SDR free owner mismatch: sdrOwnerTask=%d, sm_TaskIdSelf()=%d",
 			sdr->sdrOwnerTask, sm_TaskIdSelf());
 		writeMemo(buf);
 		printStackTrace();
+#endif
 		return;		/*	No longer transaction owner.	*/
 	}
 

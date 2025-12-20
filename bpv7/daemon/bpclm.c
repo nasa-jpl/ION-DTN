@@ -570,7 +570,13 @@ int	main(int argc, char *argv[])
 #endif
 	while (running)
 	{
-		CHKZERO(sdr_begin_xn(sdr));
+		if (sdr_begin_xn(sdr) == 0)
+		{
+			putErrmsg("bpclm can't begin transaction.", nodeName);
+			running = 0;
+			continue;
+		}
+
 		throttle = applicableThrottle(vplan);
 		CHKZERO(throttle);
 

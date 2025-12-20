@@ -896,11 +896,26 @@ static void	stopPlan(VPlan *vplan)
 
 static void	waitForPlan(VPlan *vplan)
 {
+	int	i;
+
 	if (vplan->clmPid != ERROR)
 	{
-		while (sm_TaskExists(vplan->clmPid))
+		/*	Wait up to 5 seconds for bpclm to terminate.	*/
+
+		for (i = 0; i < 50 && sm_TaskExists(vplan->clmPid); i++)
 		{
 			microsnooze(100000);
+		}
+
+		if (sm_TaskExists(vplan->clmPid))
+		{
+			writeMemoNote("[!] bpStop: bpclm not responding to \
+SIGTERM, sending SIGKILL", vplan->neighborEid);
+			sm_TaskKill(vplan->clmPid, SIGKILL);
+			for (i = 0; i < 10 && sm_TaskExists(vplan->clmPid); i++)
+			{
+				microsnooze(100000);
+			}
 		}
 	}
 }
@@ -2546,6 +2561,13 @@ static void	purgeStationsStack(Bundle *bundle)
 		return;
 	}
 
+	/*	Verify transaction still active before cleanup.		*/
+
+	if (!(sdr_in_xn(sdr)))
+	{
+		return;		/*	Transaction crashed, bail out.	*/
+	}
+
 	/*	Discard all intermediate routing destinations.		*/
 
 	while (1)
@@ -2694,6 +2716,14 @@ incomplete bundle.", NULL);
 		return 0;	/*	Can't destroy bundle yet.	*/
 	}
 
+	/*	Verify transaction still active before destructive ops.	*/
+
+	if (!(sdr_in_xn(sdr)))
+	{
+		putErrmsg("Transaction crashed before destroying bundle.", NULL);
+		return -1;
+	}
+
 	/*	Remove bundle from timeline and bundles hash table.	*/
 
 	destroyBpTimelineEvent(bundle.timelineElt);
@@ -2713,6 +2743,14 @@ incomplete bundle.", NULL);
 			sdr_write(sdr, bsetObj, (char *) &bset,
 					sizeof(BundleSet));
 		}
+	}
+
+	/*	Verify transaction still active after hash ops.		*/
+
+	if (!(sdr_in_xn(sdr)))
+	{
+		putErrmsg("Transaction crashed during hash operations.", NULL);
+		return -1;
 	}
 
 	/*	Remove transmission metadata.				*/
@@ -2769,6 +2807,16 @@ incomplete bundle.", NULL);
 		zco_destroy(sdr, bundle.payload.content);
 	}
 
+	/*	Verify transaction still active after payload destruction.
+	 *	Pool exhaustion in zco_destroy triggers crashXn.	*/
+
+	if (!(sdr_in_xn(sdr)))
+	{
+		putErrmsg("Transaction crashed during payload destruction.",
+				NULL);
+		return -1;
+	}
+
 	/*	Destroy all SDR objects managed for this bundle and
 	 *	free space occupied by the bundle itself.		*/
 
@@ -2779,6 +2827,15 @@ incomplete bundle.", NULL);
 	}
 
 	destroyExtensionBlocks(&bundle);
+
+	/*	Verify transaction still active after extension cleanup.	*/
+
+	if (!(sdr_in_xn(sdr)))
+	{
+		putErrmsg("Transaction crashed during extension cleanup.", NULL);
+		return -1;
+	}
+
 	purgeStationsStack(&bundle);
 	if (bundle.stations)
 	{
@@ -2795,6 +2852,14 @@ incomplete bundle.", NULL);
 	/*	Guard against old bundle address being used to
 	 *	read destroyed bundle's state before it has been
 	 *	overwritten.						*/
+
+	/*	Verify transaction still active before final SDR ops.	*/
+
+	if (!(sdr_in_xn(sdr)))
+	{
+		putErrmsg("Transaction crashed during bundle cleanup.", NULL);
+		return -1;
+	}
 
 	memset((char *) &bundle, 0, sizeof(Bundle));
 	sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));

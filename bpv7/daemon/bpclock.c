@@ -54,7 +54,12 @@ static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
 
 	while (1)
 	{
-		CHKERR(sdr_begin_xn(sdr));
+		if (sdr_begin_xn(sdr) == 0)
+		{
+			putErrmsg("bpclock can't begin transaction.", NULL);
+			return -1;
+		}
+
 		elt = sdr_list_first(sdr, events);
 		if (elt == 0)	/*	No more events to dispatch.	*/
 		{

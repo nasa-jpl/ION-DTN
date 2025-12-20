@@ -2444,7 +2444,12 @@ static int	rescanPlans(ClockThreadParms *ctp)
 			OBJ_POINTER(Outduct, outduct);
 	LystElt		neighborElt;
 
-	CHKERR(sdr_begin_xn(sdr));
+	if (sdr_begin_xn(sdr) == 0)
+	{
+		putErrmsg("tcpcli rescanPlans can't begin transaction.", NULL);
+		return -1;
+	}
+
 	fetchProtocol("tcp", &clp, &protocolElt);
 	protocolObj = sdr_list_data(sdr, protocolElt);
 	for (vplanElt = sm_list_first(wm, vdb->plans); vplanElt;
