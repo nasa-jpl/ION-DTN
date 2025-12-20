@@ -1348,6 +1348,7 @@ void	findIndexRow(time_t time, long *position)
 	CHKVOID(position);
 	CHKVOID(index);
 	hdr = &(index->header);
+	CHKVOID(hdr);
 	if (hdr->oldestTime == 0	/*	Empty database.		*/
 	|| time > hdr->newestTime)	/*	Hasn't happened yet.	*/
 	{
