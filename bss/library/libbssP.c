@@ -247,6 +247,7 @@ tblIndex	*_tblIndex(int *control)
 		if (*control)		/*	Creating.		*/
 		{
 			index = MTAKE(sizeof(tblIndex));
+			memset((char *) index, 0, sizeof(tblIndex));
 		}
 	}
 
