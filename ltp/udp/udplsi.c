@@ -70,13 +70,13 @@ int	main(int argc, char *argv[])
 	sdr_exit_xn(sdr);
 	if (vseatElt == 0)
 	{
-		putErrmsg("Undefined LSI", lsiCmd);
+		writeMemoNote("[?] Undefined LSI", lsiCmd);
 		return 1;
 	}
 
 	if (vseat->lsiPid != ERROR && vseat->lsiPid != sm_TaskIdSelf())
 	{
-		putErrmsg("LSI task is already started.", itoa(vseat->lsiPid));
+		writeMemoNote("[?] LSI task is already started", itoa(vseat->lsiPid));
 		return 1;
 	}
 
@@ -89,7 +89,8 @@ int	main(int argc, char *argv[])
 	int resolveResult = resolveNetworkAddressCached(endpointSpec, &rtp.local_addr);
 	if (resolveResult < 0)
 	{
-		putErrmsg("udplsi: Can't resolve dual-stack address", endpointSpec);
+		putErrmsg("udplsi: Can't resolve dual-stack address",
+				endpointSpec);
 		return -1;
 	}
 
