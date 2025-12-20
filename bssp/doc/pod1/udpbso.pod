@@ -14,9 +14,10 @@ them in UDP datagrams, and sends those datagrams to the indicated UDP port
 on the indicated host.  If not specified, port number defaults to 6001.
 
 The parameter I<txbps> is optional and kept only for backward compatibility 
-with older configuration files. If it is included, it's value is ignored.
+with older configuration files. If it is included, its value is ignored.
 For context, I<txbps> (transmission rate in bits per second) was used for
-congestion control but  B<udpbso> now derive its data rate from contact graph.
+congestion control, but B<udpbso> now derives its data rate from the contact
+plan.
 
 When invoking B<udpbso> through bsspadmin using the start or add seat command,
 the I<remote_engine_nbr> and I<txbps> should be omitted. BSSP admin daemon
