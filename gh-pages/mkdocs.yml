@@ -71,11 +71,8 @@ nav:
     - Configuration Templates: ION-Config-File-Templates.md
     - BPSec Configuration Example: BpSec-Configuration-Examples.md
     - Multi-network Configuration: Configure-Multiple-Network-Interfaces.md
-    - Contact Graph Events and LTP: Contact-Graph-Events-and-LTP.md
     - LTP Configuration Tool: Using-LTP-Config-Tool.md
     - ION Launcher Script: ION-Launcher.md
-    - Knowledge Base, Issues & Patches: Known-Issues.md
-    - Standard Operations Procedure: SOP-for-ION.md
   - ION APIs:
     - ION Design & API Overview: ION-Design-and-API-Overview.md
     - ION Life Cycle Administrative Public API: Public-Admin-API-Guide.md
@@ -86,14 +83,6 @@ nav:
     - LTP Underlying Communications API: LTP-UComm-API.md
     - CLA API: CLA-API.md
     - Extension Block Interface: Extension-Block-Interface.md
-    - Platform Macros & Error Reporting: Platform-Macros-Error-Reporting.md
-    - ION Utility Programs: ION-Utilities.md
-    - ION Monitoring Guide: ION-Monitoring-Guide.md
-    - ION Coding Guide: ION-Coding-Guide.md
-    - CFDP SW Architecture: CFDP-SW-Architecture.md
-    - SPP CLA Prototype Description: SPP-CLA-Prototype-Description.md
-    - IPN Naming Scheme Transition: IPN-Naming-Scheme-Transition.md
-    - Archived Software: ION-Archive.md
   - Man Pages:
     - Man Pages: Man-Page-Introduction.md
     - Asychronous Messaging System (AMS): man/ams/index.md
@@ -109,7 +98,18 @@ nav:
     - ION Node Restart Utility: man/restart/ionrestart.md
     - Delay Tolerant Key Administration: man/tc/index.md
   - Topics:
-    - SDR Reversibility: Topics/SDR-Reversibility.md
+    - SDR Reversibility: topics/deep-dive-sdr-reversibility.md
+    - CFDP SW Architecture: CFDP-SW-Architecture.md
+    - Contact Graph Events and LTP: Contact-Graph-Events-and-LTP.md
+    - Knowledge Base, Issues & Patches: Known-Issues.md
+    - Standard Operations Procedure: SOP-for-ION.md
+    - Platform Macros & Error Reporting: Platform-Macros-Error-Reporting.md
+    - ION Utility Programs: ION-Utilities.md
+    - ION Monitoring Guide: ION-Monitoring-Guide.md
+    - ION Coding Guide: ION-Coding-Guide.md
+    - SPP CLA Prototype Description: SPP-CLA-Prototype-Description.md
+    - IPN Naming Scheme Transition: IPN-Naming-Scheme-Transition.md
+    - Archived Software: ION-Archive.md
   - Cloud Deployment (Archive):
     - Running 1 ION Node on Cloud VM: community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM.md
     - Running 2 ION Node on Cloud VM: community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs.md
