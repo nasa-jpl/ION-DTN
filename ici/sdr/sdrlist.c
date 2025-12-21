@@ -528,7 +528,13 @@ Object	sdr_list_first(Sdr sdrv, Object list)
 {
 	SdrList		listBuffer;
 
-	CHKZERO(sdrFetchSafe(sdrv));
+	if (!sdrFetchSafe(sdrv))
+	{
+		writeMemoNote("[?] sdr_list_first called but SDR not \
+accessible", itoa(list));
+		return 0;	/*	Defensive: SDR not accessible.	*/
+	}
+
 	CHKZERO(list);
 	sdrFetch(listBuffer, (Address) list);
 	return listBuffer.first;
@@ -538,7 +544,13 @@ Object	sdr_list_last(Sdr sdrv, Object list)
 {
 	SdrList		listBuffer;
 
-	CHKZERO(sdrFetchSafe(sdrv));
+	if (!sdrFetchSafe(sdrv))
+	{
+		writeMemoNote("[?] sdr_list_last called but SDR not \
+accessible", itoa(list));
+		return 0;	/*	Defensive: SDR not accessible.	*/
+	}
+
 	CHKZERO(list);
 	sdrFetch(listBuffer, (Address) list);
 	return listBuffer.last;
@@ -548,7 +560,13 @@ Object	sdr_list_next(Sdr sdrv, Object elt)
 {
 	SdrListElt	eltBuffer;
 
-	CHKZERO(sdrFetchSafe(sdrv));
+	if (!sdrFetchSafe(sdrv))
+	{
+		writeMemoNote("[?] sdr_list_next called but SDR not \
+accessible", itoa(elt));
+		return 0;	/*	Defensive: SDR not accessible.	*/
+	}
+
 	CHKZERO(elt);
 	sdrFetch(eltBuffer, (Address) elt);
 	return eltBuffer.next;
@@ -558,7 +576,13 @@ Object	sdr_list_prev(Sdr sdrv, Object elt)
 {
 	SdrListElt	eltBuffer;
 
-	CHKZERO(sdrFetchSafe(sdrv));
+	if (!sdrFetchSafe(sdrv))
+	{
+		writeMemoNote("[?] sdr_list_prev called but SDR not \
+accessible", itoa(elt));
+		return 0;	/*	Defensive: SDR not accessible.	*/
+	}
+
 	CHKZERO(elt);
 	sdrFetch(eltBuffer, (Address) elt);
 	return eltBuffer.prev;
@@ -571,7 +595,13 @@ Object	sdr_list_search(Sdr sdrv, Object fromElt, int reverse,
 	SdrListElt	elt;
 	int		result;
 
-	CHKZERO(sdrFetchSafe(sdrv));
+	if (!sdrFetchSafe(sdrv))
+	{
+		writeMemoNote("[?] sdr_list_search called but SDR not \
+accessible", itoa(fromElt));
+		return 0;	/*	Defensive: SDR not accessible.	*/
+	}
+
 	CHKZERO(fromElt);
 	if (compare)	/* list assumed sorted; bail early if possible	*/
 	{
