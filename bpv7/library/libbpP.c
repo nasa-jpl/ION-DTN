@@ -165,7 +165,13 @@ void	bpEndpointTally(VEndpoint *vpoint, unsigned int idx, unsigned int size)
 		return;
 	}
 
-	CHKVOID(ionLocked());
+	/*	Defensive check: skip stats update if not in transaction.	*/
+
+	if (!(ionLocked()))
+	{
+		return;
+	}
+
 	CHKVOID(idx < BP_ENDPOINT_STATS);
 	sdr_stage(sdr, (char *) &stats, vpoint->stats, sizeof(EndpointStats));
 	tally = stats.tallies + idx;
@@ -190,7 +196,13 @@ void	bpInductTally(VInduct *vduct, unsigned int idx, unsigned int size)
 		return;
 	}
 
-	CHKVOID(ionLocked());
+	/*	Defensive check: skip stats update if not in transaction.	*/
+
+	if (!(ionLocked()))
+	{
+		return;
+	}
+
 	CHKVOID(idx < BP_INDUCT_STATS);
 	sdr_stage(sdr, (char *) &stats, vduct->stats, sizeof(InductStats));
 	tally = stats.tallies + idx;
@@ -215,7 +227,13 @@ void	bpPlanTally(VPlan *vplan, unsigned int idx, unsigned int size)
 		return;
 	}
 
-	CHKVOID(ionLocked());
+	/*	Defensive check: skip stats update if not in transaction.	*/
+
+	if (!(ionLocked()))
+	{
+		return;
+	}
+
 	CHKVOID(idx < BP_PLAN_STATS);
 	sdr_stage(sdr, (char *) &stats, vplan->stats, sizeof(PlanStats));
 	tally = stats.tallies + idx;
@@ -241,7 +259,13 @@ void	bpSourceTally(unsigned int priority, unsigned int size)
 		return;
 	}
 
-	CHKVOID(ionLocked());
+	/*	Defensive check: skip stats update if not in transaction.	*/
+
+	if (!(ionLocked()))
+	{
+		return;
+	}
+
 	CHKVOID(priority < 3);
 	sdr_stage(sdr, (char *) &stats, vdb->sourceStats, sizeof(BpCosStats));
 	tally = stats.tallies + priority;
@@ -268,7 +292,13 @@ void	bpRecvTally(unsigned int priority, unsigned int size)
 		return;
 	}
 
-	CHKVOID(ionLocked());
+	/*	Defensive check: skip stats update if not in transaction.	*/
+
+	if (!(ionLocked()))
+	{
+		return;
+	}
+
 	CHKVOID(priority < 3);
 	sdr_stage(sdr, (char *) &stats, vdb->recvStats, sizeof(BpCosStats));
 	tally = stats.tallies + priority;
@@ -294,7 +324,13 @@ void	bpDiscardTally(unsigned int priority, unsigned int size)
 		return;
 	}
 
-	CHKVOID(ionLocked());
+	/*	Defensive check: skip stats update if not in transaction.	*/
+
+	if (!(ionLocked()))
+	{
+		return;
+	}
+
 	CHKVOID(priority < 3);
 	sdr_stage(sdr, (char *) &stats, vdb->discardStats, sizeof(BpCosStats));
 	tally = stats.tallies + priority;
@@ -321,7 +357,13 @@ void	bpXmitTally(unsigned int priority, unsigned int size)
 		return;
 	}
 
-	CHKVOID(ionLocked());
+	/*	Defensive check: skip stats update if not in transaction.	*/
+
+	if (!(ionLocked()))
+	{
+		return;
+	}
+
 	CHKVOID(priority < 3);
 	sdr_stage(sdr, (char *) &stats, vdb->xmitStats, sizeof(BpCosStats));
 	tally = stats.tallies + priority;
@@ -345,7 +387,14 @@ void	bpDelTally(unsigned int reason)
 		return;
 	}
 
-	CHKVOID(ionLocked());
+	/*	Defensive check: skip stats update if not in transaction.
+	 *	This can happen after transaction crash during cleanup.	*/
+
+	if (!(ionLocked()))
+	{
+		return;
+	}
+
 	CHKVOID(reason < BP_REASON_STATS);
 	sdr_stage(sdr, (char *) &stats, vdb->delStats, sizeof(BpDelStats));
 	stats.totalDelByReason[reason] += 1;
@@ -367,7 +416,14 @@ void	bpDbTally(unsigned int idx, unsigned int size)
 		return;
 	}
 
-	CHKVOID(ionLocked());
+	/*	Defensive check: skip stats update if not in transaction.
+	 *	This can happen after transaction crash during cleanup.	*/
+
+	if (!(ionLocked()))
+	{
+		return;
+	}
+
 	CHKVOID(idx < BP_DB_STATS);
 	sdr_stage(sdr, (char *) &stats, vdb->dbStats, sizeof(BpDbStats));
 	tally = stats.tallies + idx;
@@ -2511,6 +2567,18 @@ detected (post-reversal cleanup), clearing reference.");
 	}
 
 	queue = sdr_list_list(sdr, bundle->planXmitElt);
+
+	/*	Validate queue before use.  After transaction crash,
+	 *	queue may be 0 if the list operation failed.		*/
+
+	if (queue == 0)
+	{
+		writeMemo("[i] purgePlanXmitElt: invalid queue \
+(transaction may have crashed), clearing reference.");
+		bundle->planXmitElt = 0;
+		return;
+	}
+
 	planObj = sdr_list_user_data(sdr, queue);
 	if (planObj == 0)	/*	Bundle is in Limbo queue.	*/
 	{
@@ -2572,6 +2640,13 @@ static void	purgeStationsStack(Bundle *bundle)
 
 	while (1)
 	{
+		/*	Check transaction still active inside loop.	*/
+
+		if (!(sdr_in_xn(sdr)))
+		{
+			return;	/*	Transaction crashed mid-loop.	*/
+		}
+
 		elt = sdr_list_first(sdr, bundle->stations);
 		if (elt == 0)
 		{
@@ -2593,8 +2668,22 @@ int	bpDestroyBundle(Object bundleObj, int unconditional)
 	BundleSet	bset;
 	Object		elt;
 
-	CHKERR(ionLocked());
-	CHKERR(bundleObj);
+	/*	Defensive checks: validate transaction and bundle address.
+	 *	After transaction crash, ionLocked() may return false.
+	 *	After transaction reversal, bundleObj may be invalid.	*/
+
+	if (!(ionLocked()))
+	{
+		putErrmsg("bpDestroyBundle: not in transaction.", NULL);
+		return -1;
+	}
+
+	if (bundleObj == 0)
+	{
+		putErrmsg("bpDestroyBundle: invalid bundle address.", NULL);
+		return -1;
+	}
+
 	sdr_stage(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 
 	/*	Special handling for TTL expiration.			*/
@@ -2705,6 +2794,16 @@ incomplete bundle.", NULL);
 		}
 
 		bundle.detained = 0;
+
+		/*	Verify transaction before sdr_write.		*/
+
+		if (!(sdr_in_xn(sdr)))
+		{
+			putErrmsg("Transaction crashed during TTL handling.",
+					NULL);
+			return -1;
+		}
+
 		sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 	}
 
@@ -5779,7 +5878,14 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		}
 	}
 
-	CHKERR(ionLocked());
+	/*	Defensive check: verify transaction still active.	*/
+
+	if (!(ionLocked()))
+	{
+		putErrmsg("forwardBundle: transaction crashed.", NULL);
+		return -1;
+	}
+
 	if (parseEidString(eid, &stationMetaEid, &vscheme, &vschemeElt) == 0)
 	{
 		/*	Can't forward: can't make sense of this EID.	*/
@@ -11047,7 +11153,14 @@ int	releaseFromLimbo(Object xmitElt, int resuming)
 	Object	bundleAddr;
 	Bundle	bundle;
 
-	CHKERR(ionLocked());
+	/*	Defensive check: verify transaction still active.	*/
+
+	if (!(ionLocked()))
+	{
+		putErrmsg("releaseFromLimbo: not in transaction.", NULL);
+		return -1;
+	}
+
 	CHKERR(xmitElt);
 	bundleAddr = sdr_list_data(sdr, xmitElt);
 	sdr_stage(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
@@ -11071,6 +11184,15 @@ int	releaseFromLimbo(Object xmitElt, int resuming)
 
 	sdr_list_delete(sdr, bundle.planXmitElt, NULL, NULL);
 	bundle.planXmitElt = 0;
+
+	/*	Verify transaction still active after list delete.	*/
+
+	if (!(sdr_in_xn(sdr)))
+	{
+		putErrmsg("releaseFromLimbo: transaction crashed.", NULL);
+		return -1;
+	}
+
 	sdr_write(sdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
 	bpDbTally(BP_DB_FROM_LIMBO, bundle.payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_delimbo)
@@ -12114,7 +12236,14 @@ int	bpReforwardBundle(Object bundleAddr)
 	char	*eidString;
 	int	result;
 
-	CHKERR(ionLocked());
+	/*	Defensive check: return error if not in transaction.	*/
+
+	if (!(ionLocked()))
+	{
+		putErrmsg("bpReforwardBundle: not in transaction.", NULL);
+		return -1;
+	}
+
 	CHKERR(bundleAddr);
 	sdr_stage(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 	if (bundle.ancillaryData.flags & BP_MINIMUM_LATENCY)
@@ -12163,6 +12292,15 @@ int	bpReforwardBundle(Object bundleAddr)
 
 	bundle.returnToSender = 1;
 	purgeStationsStack(&bundle);
+
+	/*	Verify transaction still active after stack cleanup.	*/
+
+	if (!(sdr_in_xn(sdr)))
+	{
+		putErrmsg("bpReforwardBundle: transaction crashed.", NULL);
+		return -1;
+	}
+
 	if (bundle.planXmitElt)
 	{
 		purgePlanXmitElt(&bundle);

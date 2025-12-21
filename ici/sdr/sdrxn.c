@@ -1928,9 +1928,17 @@ void	sdr_exit_xn(Sdr sdrv)
 				 *	transaction during which
 				 *	data were modified - must
 				 *	either end or cancel.  This
-				 *	is an implementation error.	*/
+				 *	may happen during crash recovery
+				 *	when call stack is unwinding.
+				 *	Instead of aborting, trigger
+				 *	transaction cancellation which
+				 *	will attempt reversal.		*/
 
-				handleUnrecoverableError(sdrv);
+				writeMemo("[?] sdr_exit_xn called with \
+modifications; triggering cancellation.");
+				sdr->xnCanceled = 1;
+				terminateXn(sdrv);
+				return;
 			}
 
 			clearTransaction(sdrv);

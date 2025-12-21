@@ -313,19 +313,49 @@ void	deleteExtensionBlock(Object elt, int *lengthsTotal)
 	ExtensionDef	*def;
 
 	CHKVOID(elt);
+
+	/*	Verify transaction active before any SDR operations.	*/
+
+	if (!(sdr_in_xn(sdr)))
+	{
+		return;		/*	Transaction crashed, bail out.	*/
+	}
+
 	blkAddr = sdr_list_data(sdr, elt);
 	sdr_list_delete(sdr, elt, NULL, NULL);
+
+	/*	Check if transaction crashed during list delete.	*/
+
+	if (!(sdr_in_xn(sdr)))
+	{
+		return;		/*	Transaction crashed, bail out.	*/
+	}
+
 	GET_OBJ_POINTER(sdr, ExtensionBlock, blk, blkAddr);
 	*lengthsTotal -= blk->length;
 	def = findExtensionDef(blk->type);
 	if (def && def->release)
 	{
 		def->release(blk);
+
+		/*	Check if release callback crashed transaction.	*/
+
+		if (!(sdr_in_xn(sdr)))
+		{
+			return;	/*	Transaction crashed, bail out.	*/
+		}
 	}
 
 	if (blk->bytes)
 	{
 		sdr_free(sdr, blk->bytes);
+
+		/*	Check if sdr_free crashed transaction.		*/
+
+		if (!(sdr_in_xn(sdr)))
+		{
+			return;	/*	Transaction crashed, bail out.	*/
+		}
 	}
 
 	sdr_free(sdr, blkAddr);
@@ -358,6 +388,22 @@ void	destroyExtensionBlocks(Bundle *bundle)
 		}
 
 		deleteExtensionBlock(elt, &bundle->extensionsLength);
+
+		/*	Check if transaction crashed during block deletion.
+		 *	This catches cases where crashXn was called but
+		 *	sm_Abort didn't immediately terminate on POSIX.	*/
+
+		if (!(sdr_in_xn(sdr)))
+		{
+			return;	/*	Transaction crashed, bail out.	*/
+		}
+	}
+
+	/*	Final transaction check before destroying the list.	*/
+
+	if (!(sdr_in_xn(sdr)))
+	{
+		return;		/*	Transaction crashed, bail out.	*/
 	}
 
 	sdr_list_destroy(sdr, bundle->extensions, NULL, NULL);
