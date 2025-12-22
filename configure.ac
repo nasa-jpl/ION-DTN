@@ -181,6 +181,7 @@ case $host_os in
   	*bsd*)
 		AC_DEFINE([freebsd],[1],[Build Freebsd specific platform code.])
 		PLATFORM="bsd"
+		AM_LDFLAGS="$AM_LDFLAGS -lexecinfo"
 		case $host_cpu in
 			x86_64|amd64)
 				AM_CFLAGS="$AM_CFLAGS -D__BSD_VISIBLE -Dunix -Dfreebsd -DSPACE_ORDER=3 -m64 "
