@@ -1879,7 +1879,8 @@ int	_iEnd(const char *fileName, int lineNbr, const char *arg)
 
 void	printStackTrace(void)
 {
-#if (defined(__linux__) && defined(HAVE_EXECINFO_H)) || defined(solaris)
+#if (defined(__linux__) && defined(HAVE_EXECINFO_H)) || defined(solaris) \
+	|| defined(freebsd) || defined(darwin)
 #define	MAX_TRACE_DEPTH	100
 	void	*returnAddresses[MAX_TRACE_DEPTH];
 	size_t	stackFrameCount;
