@@ -91,7 +91,7 @@ oK(_coreFileNeeded(&on));
 
 The `printStackTrace()` function prints a symbolic stack trace when assertions fail. This is supported on:
 * **Linux**: Requires `HAVE_EXECINFO_H` to be defined and linking with `-rdynamic`
-* **Solaris 11+**: Uses `backtrace()` from libc
+* **Solaris**: Uses `printstack()` from `<ucontext.h>`
 * **FreeBSD**: Uses `backtrace()` from `<execinfo.h>`
 * **macOS**: Uses `backtrace()` from `<execinfo.h>`
 
