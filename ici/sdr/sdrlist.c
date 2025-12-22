@@ -532,6 +532,7 @@ Object	sdr_list_first(Sdr sdrv, Object list)
 	{
 		writeMemoNote("[?] sdr_list_first called but SDR not \
 accessible", itoa(list));
+		printStackTrace();
 		return 0;	/*	Defensive: SDR not accessible.	*/
 	}
 
@@ -548,6 +549,7 @@ Object	sdr_list_last(Sdr sdrv, Object list)
 	{
 		writeMemoNote("[?] sdr_list_last called but SDR not \
 accessible", itoa(list));
+		printStackTrace();
 		return 0;	/*	Defensive: SDR not accessible.	*/
 	}
 
@@ -564,6 +566,7 @@ Object	sdr_list_next(Sdr sdrv, Object elt)
 	{
 		writeMemoNote("[?] sdr_list_next called but SDR not \
 accessible", itoa(elt));
+		printStackTrace();
 		return 0;	/*	Defensive: SDR not accessible.	*/
 	}
 
@@ -580,6 +583,7 @@ Object	sdr_list_prev(Sdr sdrv, Object elt)
 	{
 		writeMemoNote("[?] sdr_list_prev called but SDR not \
 accessible", itoa(elt));
+		printStackTrace();
 		return 0;	/*	Defensive: SDR not accessible.	*/
 	}
 
@@ -599,6 +603,7 @@ Object	sdr_list_search(Sdr sdrv, Object fromElt, int reverse,
 	{
 		writeMemoNote("[?] sdr_list_search called but SDR not \
 accessible", itoa(fromElt));
+		printStackTrace();
 		return 0;	/*	Defensive: SDR not accessible.	*/
 	}
 

@@ -665,6 +665,24 @@ if test "x$enable_valgrind" != xno; then
   fi
 fi
 
+#
+# Allow user to disable fail-fast mode (CORE_FILE_NEEDED)
+# By default, assertion failures cause immediate termination with core dump.
+# Use --disable-core-file-needed to return error values instead of aborting.
+#
+AC_ARG_ENABLE([core-file-needed],
+    [AS_HELP_STRING([--disable-core-file-needed],[Disable fail-fast mode; assertion failures return errors instead of aborting])],
+    [case "${enableval}" in
+        yes) AM_CFLAGS="$AM_CFLAGS -DCORE_FILE_NEEDED=1"
+             PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DCORE_FILE_NEEDED=1"
+             CORE_FILE_NEEDED=yes;;
+        no)  AM_CFLAGS="$AM_CFLAGS -DCORE_FILE_NEEDED=0"
+             PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DCORE_FILE_NEEDED=0"
+             CORE_FILE_NEEDED=no;;
+        *) AC_MSG_ERROR([bad value ${enableval} for --enable-core-file-needed]);;
+    esac],
+    [CORE_FILE_NEEDED=yes])
+
 AC_ARG_ENABLE([sysctl-check], AS_HELP_STRING([--disable-sysctl-check],[Disable checking sysctl configuration on OSX and FreeBSD]),
               [], [enable_sysctl_check=yes])
 

@@ -344,6 +344,14 @@ terminated.");
 	sdrv->sdr->modified = 0;
 	sdr_exit_xn(sdrv);
 
+	/*	Disable fail-fast mode during daemon restart to prevent
+	 *	assertion failures from aborting newly restarted daemons.  */
+	{
+		int	off = 0;
+
+		oK(_coreFileNeeded(&off));
+	}
+
 	/*	Set halted flag during daemon startup.  This allows
 	 *	spawned daemons to pass sdrFetchSafe() checks while
 	 *	they initialize, preventing race conditions where
@@ -448,6 +456,13 @@ terminated.");
 	/*	Clear halted flag now that all daemons have started.	*/
 
 	sdrv->sdr->halted = 0;
+
+	/*	Restore fail-fast mode after successful restart.	*/
+	{
+		int	on = 1;
+
+		oK(_coreFileNeeded(&on));
+	}
 }
 
 #if defined (ION_LWT)

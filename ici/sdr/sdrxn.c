@@ -557,6 +557,7 @@ int	_xniEnd(const char *fileName, int lineNbr, const char *arg, Sdr sdrv)
 	_postErrmsg(fileName, lineNbr,
 			"Assertion failed, SDR transaction canceled.", arg);
 	writeErrmsgMemos();
+	printStackTrace();
 	crashXn(sdrv);
 	if (_coreFileNeeded(NULL))
 	{

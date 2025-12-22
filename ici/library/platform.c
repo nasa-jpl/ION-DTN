@@ -1879,9 +1879,7 @@ int	_iEnd(const char *fileName, int lineNbr, const char *arg)
 
 void	printStackTrace(void)
 {
-#if !defined(__linux__) || !defined(HAVE_EXECINFO_H)
-	writeMemo("[?] No stack trace available on this platform.");
-#else
+#if (defined(__linux__) && defined(HAVE_EXECINFO_H)) || defined(solaris)
 #define	MAX_TRACE_DEPTH	100
 	void	*returnAddresses[MAX_TRACE_DEPTH];
 	size_t	stackFrameCount;
@@ -1903,6 +1901,9 @@ void	printStackTrace(void)
 	}
 
 	free(functionNames);
+#undef	MAX_TRACE_DEPTH
+#else
+	writeMemo("[?] No stack trace available on this platform.");
 #endif
 }
 

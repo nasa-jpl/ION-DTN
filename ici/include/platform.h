@@ -320,7 +320,7 @@ typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
 
 /*	Return values for error conditions.				*/
 #ifndef CORE_FILE_NEEDED
-#define CORE_FILE_NEEDED	(0)
+#define CORE_FILE_NEEDED	(1)
 #endif
 
 #if defined RTEMS || defined (STRSOE)	/****	RTEMS or STRSOE	     ****/
@@ -738,6 +738,7 @@ extern int getpriority(int, id_t);
 #endif				/****	End of #ifdef (sparc)        ****/
 
 #ifdef solaris			/****	Solaris (SunOS 5+)	     ****/
+#include <ucontext.h>		/****	For backtrace() on Solaris   ****/
 
 /* semaphore options */
 /* POSIX_NAMED_SEMAPHORES are the default on Solaris */

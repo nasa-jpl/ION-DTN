@@ -5,6 +5,7 @@
   - [Application Behavior](#application-behavior)
   - [Function Design Guidelines](#function-design-guidelines)
   - [Error Checking](#error-checking)
+    - [CHK Macro Behavior and Fail-Fast Mode](#chk-macro-behavior-and-fail-fast-mode)
   - [Error and Status Reporting](#error-and-status-reporting)
   - [‘C’ Coding Style](#c-coding-style)
     - [Naming Conventions](#naming-conventions)
@@ -56,7 +57,59 @@ Detection of an error should result in the printing of an error message and, nor
 
 By convention this value is usually -1, but both zero and NULL are appropriate failure indications under some circumstances such as object  creation.
 
-The `CHKERR`, `CHKZERO`, `CHKNULL`, and `CHKVOID` macros are used to implement this behavior in a standard and lexically terse manner. Use of these macros offers an additional feature: for debugging purposes, they can easily be configured to call `sm_Abort()` to terminate immediately with a core dump instead of returning a error indication.  This option is enabled by setting the compiler parameter `CORE_FILE_NEEDED` to 1 at compilation time.
+The `CHKERR`, `CHKZERO`, `CHKNULL`, and `CHKVOID` macros are used to implement this behavior in a standard and lexically terse manner.
+
+### CHK Macro Behavior and Fail-Fast Mode
+
+When a CHK macro's condition evaluates to false, the following actions occur:
+
+1. An error message is posted with the file name, line number, and the failed assertion expression
+2. All error memos are written to the log via `writeErrmsgMemos()`
+3. A stack trace is printed via `printStackTrace()` (on Linux and Solaris platforms)
+4. If fail-fast mode is enabled (`CORE_FILE_NEEDED=1`), `sm_Abort()` is called to terminate immediately with a core dump
+5. Otherwise, the function returns the appropriate error value (-1, 0, NULL, or void)
+
+**Fail-Fast Mode (CORE_FILE_NEEDED)**
+
+The `CORE_FILE_NEEDED` parameter controls whether assertion failures cause immediate process termination:
+
+* **Default value is 1 (enabled)**: Assertion failures will cause immediate termination with a core dump, providing maximum debugging information
+* **To disable at compile time**: Use `-DCORE_FILE_NEEDED=0` when compiling
+* **To control at runtime**: Call `_coreFileNeeded(int *ctrl)` with a pointer to 0 (disable) or 1 (enable)
+
+```c
+/* Disable fail-fast mode at runtime */
+int off = 0;
+oK(_coreFileNeeded(&off));
+
+/* Re-enable fail-fast mode */
+int on = 1;
+oK(_coreFileNeeded(&on));
+```
+
+**Stack Trace Support**
+
+The `printStackTrace()` function prints a symbolic stack trace when assertions fail. This is supported on:
+* **Linux**: Requires `HAVE_EXECINFO_H` to be defined and linking with `-rdynamic`
+* **Solaris 11+**: Uses `backtrace()` from libc
+
+On other platforms, a message indicating stack trace unavailability will be logged instead.
+
+**SDR Transaction Assertions (XNCHK macros)**
+
+For assertions within SDR transactions, use the `XNCHKERR`, `XNCHKZERO`, `XNCHKNULL`, and `XNCHKVOID` macros. These variants additionally cancel the current SDR transaction via `crashXn()` before the fail-fast check, ensuring proper transaction cleanup.
+
+**Interaction with ionrestart and SDR Reversibility**
+
+When SDR transaction reversibility is enabled, failed transactions trigger the `ionrestart` utility to recover the system. During recovery, `ionrestart` temporarily disables fail-fast mode before restarting daemons to prevent assertion failures from cascading during the restart process. Fail-fast mode is restored after all daemons have successfully restarted.
+
+If you are writing tests that intentionally trigger assertion failures or crash recovery scenarios, you should disable fail-fast mode at the start of your test:
+
+```c
+int off = 0;
+oK(_coreFileNeeded(&off));
+/* ... test code that may trigger assertions ... */
+```
 
 In the absence of any error, the function returns a value that indicates nominal completion. By convention this value is usually zero, but under some circumstances other values (such as pointers or addresses) are appropriate indications of nominal completion. Any additional information produced by the function, such as an indication of “success”, is usually returned as the value of a reference argument.  
 
