@@ -3654,7 +3654,11 @@ static void	stopWatchDaemons(void)
 	int	pid;
 	int	i;
 
-	CHKVOID(sdr_begin_xn(sdr));
+	if (sdr_begin_xn(sdr) == 0)
+	{
+		writeMemo("[?] stopWatchDaemons: SDR unavailable (may be normal during shutdown).");
+		return;
+	}
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	sdr_exit_xn(sdr);
 

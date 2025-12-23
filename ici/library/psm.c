@@ -959,6 +959,12 @@ void	Psm_free(const char *file, int line, PsmPartition partition,
 	}
 
 	map = (PartitionMap *)(void *) (partition->space);
+	if (map->status != MANAGED)
+	{
+		writeMemo("[?] psm_free on unmanaged partition (may be normal during shutdown/reversal).");
+		return;
+	}
+
 	if (address >= map->partitionSize
 	|| ((address / WORD_SIZE) * WORD_SIZE) != address)
 	{

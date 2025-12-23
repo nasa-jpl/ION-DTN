@@ -4162,6 +4162,18 @@ void	sm_SemDelete(sm_SemId i)
 	SmLocalSem *sem;
 	SmGlobalSem *gsem;
 
+	if (i < 0)
+	{
+		writeMemoNote("[?] sm_SemDelete negative semaphore ID (may be normal during shutdown)", itoa(i));
+		return;
+	}
+
+	if (i >= SEM_NSEMS_MAX)
+	{
+		writeMemoNote("[!] sm_SemDelete semaphore ID out of range (bug)", itoa(i));
+		return;
+	}
+
 	takeIpcLock();
 
 	/* Look up the semaphore */
@@ -4291,10 +4303,20 @@ int	sm_SemTake(sm_SemId i)
 void	sm_SemGive(sm_SemId i)
 {
 	SmProcessSemtable *semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	SmLocalSem *sem = _semGetSem(semTbl,i,0);
+	SmLocalSem *sem;
 	SmGlobalSem *gsem;
 
-	CHKVOID(sem);
+	if (semTbl == NULL)
+	{
+		return;
+	}
+
+	sem = _semGetSem(semTbl, i, 0);
+	if (sem == NULL)
+	{
+		writeMemoNote("[?] sm_SemGive on invalid semaphore (may be normal during shutdown)", itoa(i));
+		return;
+	}
 
 #ifdef DEBUG_SEMAPHORE_HANG
 	writeMemoNote("[DEBUG] sm_SemGive: giving sem", itoa(i));
@@ -4324,8 +4346,17 @@ void	sm_SemEnd(sm_SemId i)
 
 	// to match semantics of SVR4 code when calling this on a closed semaphore,
 	// we don't check for that, only that the semphore index is valid.
-	CHKVOID(i >= 0);
-	CHKVOID(i < SEM_NSEMS_MAX);
+	if (i < 0)
+	{
+		writeMemoNote("[?] sm_SemEnd negative semaphore ID (may be normal during shutdown)", itoa(i));
+		return;
+	}
+
+	if (i >= SEM_NSEMS_MAX)
+	{
+		writeMemoNote("[!] sm_SemEnd semaphore ID out of range (bug)", itoa(i));
+		return;
+	}
 
 	/* Sync local semaphore first, then mark as ended and wake waiters.
 	 * We do this all under a single IPC lock hold to prevent races. */
@@ -4381,15 +4412,24 @@ void	sm_SemEnd(sm_SemId i)
 int	sm_SemEnded(sm_SemId i)
 {
 	SmProcessSemtable *semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	SmLocalSem *sem = _semGetSem(semTbl,i,0);
+	SmLocalSem *sem;
 	int	ended;
 
 	// to match semantics of SVR4 code when calling this on a closed semaphore,
 	// we don't check for that, only that the semphore index is valid.
-	CHKZERO(i >= 0);
-	CHKZERO(i < SEM_NSEMS_MAX);
-	sem  = &semTbl->lsemtable[i]; // semGetSem() will have returned NULL if semaphore is not open
+	if (i < 0)
+	{
+		writeMemoNote("[?] sm_SemEnded negative semaphore ID (may be normal during shutdown)", itoa(i));
+		return 0;
+	}
 
+	if (i >= SEM_NSEMS_MAX)
+	{
+		writeMemoNote("[!] sm_SemEnded semaphore ID out of range (bug)", itoa(i));
+		return 0;
+	}
+
+	sem = &semTbl->lsemtable[i];
 	ended = sem->semgl->ended;
 	if (ended)
 	{
@@ -4402,14 +4442,23 @@ int	sm_SemEnded(sm_SemId i)
 void	sm_SemUnend(sm_SemId i)
 {
 	SmProcessSemtable *semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	SmLocalSem *sem = _semGetSem(semTbl,i,0);
+	SmLocalSem *sem;
 
 	// to match semantics of SVR4 code when calling this on a closed semaphore,
 	// we don't check for that, only that the semphore index is valid.
-	CHKVOID(i >= 0);
-	CHKVOID(i < SEM_NSEMS_MAX);
-	sem  = &semTbl->lsemtable[i]; // semGetSem() will have returned NULL if semaphore is not open
+	if (i < 0)
+	{
+		writeMemoNote("[?] sm_SemUnend negative semaphore ID (may be normal during shutdown)", itoa(i));
+		return;
+	}
 
+	if (i >= SEM_NSEMS_MAX)
+	{
+		writeMemoNote("[!] sm_SemUnend semaphore ID out of range (bug)", itoa(i));
+		return;
+	}
+
+	sem = &semTbl->lsemtable[i];
 	sem->semgl->ended = 0;
 }
 
@@ -4425,9 +4474,19 @@ static void	handleTimeout(int signum)
 int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 {
 	SmProcessSemtable *semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	SmLocalSem *sem = _semGetSem(semTbl,i,0);
+	SmLocalSem *sem;
 
-	CHKERR(sem);
+	if (semTbl == NULL)
+	{
+		return -1;
+	}
+
+	sem = _semGetSem(semTbl, i, 0);
+	if (sem == NULL)
+	{
+		putErrmsg("Can't unwedge deleted semaphore (may be normal during shutdown)", itoa(i));
+		return -1;
+	}
 
 	if (timeoutSeconds < 1) timeoutSeconds = 1;
 

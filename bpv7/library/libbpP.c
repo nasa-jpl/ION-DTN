@@ -2753,7 +2753,7 @@ int	bpDestroyBundle(Object bundleObj, int unconditional)
 
 	if (!(ionLocked()))
 	{
-		putErrmsg("bpDestroyBundle: not in transaction.", NULL);
+		putErrmsg("[?] bpDestroyBundle: not in transaction (may be normal during ionrestart).", NULL);
 		return -1;
 	}
 
@@ -2878,7 +2878,7 @@ incomplete bundle.", NULL);
 
 		if (!(sdr_in_xn(sdr)))
 		{
-			putErrmsg("Transaction crashed during TTL handling.",
+			putErrmsg("[?] Transaction crashed during TTL handling (may be normal during ionrestart).",
 					NULL);
 			return -1;
 		}
@@ -2898,7 +2898,7 @@ incomplete bundle.", NULL);
 
 	if (!(sdr_in_xn(sdr)))
 	{
-		putErrmsg("Transaction crashed before destroying bundle.", NULL);
+		putErrmsg("[?] Transaction crashed before destroying bundle (may be normal during ionrestart).", NULL);
 		return -1;
 	}
 
@@ -2927,7 +2927,7 @@ incomplete bundle.", NULL);
 
 	if (!(sdr_in_xn(sdr)))
 	{
-		putErrmsg("Transaction crashed during hash operations.", NULL);
+		putErrmsg("[?] Transaction crashed during hash operations (may be normal during ionrestart).", NULL);
 		return -1;
 	}
 
@@ -2990,7 +2990,7 @@ incomplete bundle.", NULL);
 
 	if (!(sdr_in_xn(sdr)))
 	{
-		putErrmsg("Transaction crashed during payload destruction.",
+		putErrmsg("[?] Transaction crashed during payload destruction (may be normal during ionrestart).",
 				NULL);
 		return -1;
 	}
@@ -3010,7 +3010,7 @@ incomplete bundle.", NULL);
 
 	if (!(sdr_in_xn(sdr)))
 	{
-		putErrmsg("Transaction crashed during extension cleanup.", NULL);
+		putErrmsg("[?] Transaction crashed during extension cleanup (may be normal during ionrestart).", NULL);
 		return -1;
 	}
 
@@ -3035,7 +3035,7 @@ incomplete bundle.", NULL);
 
 	if (!(sdr_in_xn(sdr)))
 	{
-		putErrmsg("Transaction crashed during bundle cleanup.", NULL);
+		putErrmsg("[?] Transaction crashed during bundle cleanup (may be normal during ionrestart).", NULL);
 		return -1;
 	}
 
@@ -5961,7 +5961,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 
 	if (!(ionLocked()))
 	{
-		putErrmsg("forwardBundle: transaction crashed.", NULL);
+		putErrmsg("[?] forwardBundle: transaction crashed (may be normal during ionrestart).", NULL);
 		return -1;
 	}
 
@@ -11236,7 +11236,7 @@ int	releaseFromLimbo(Object xmitElt, int resuming)
 
 	if (!(ionLocked()))
 	{
-		putErrmsg("releaseFromLimbo: not in transaction.", NULL);
+		putErrmsg("[?] releaseFromLimbo: not in transaction (may be normal during ionrestart).", NULL);
 		return -1;
 	}
 
@@ -11268,7 +11268,7 @@ int	releaseFromLimbo(Object xmitElt, int resuming)
 
 	if (!(sdr_in_xn(sdr)))
 	{
-		putErrmsg("releaseFromLimbo: transaction crashed.", NULL);
+		putErrmsg("[?] releaseFromLimbo: transaction crashed (may be normal during ionrestart).", NULL);
 		return -1;
 	}
 
@@ -11397,7 +11397,7 @@ int	bpAbandon(Object bundleObj, Bundle *bundle, int reason)
 
 	if (!(sdr_in_xn(getIonsdr())))
 	{
-		putErrmsg("Transaction crashed during bpAbandon.", NULL);
+		putErrmsg("[?] Transaction crashed during bpAbandon (may be normal during ionrestart).", NULL);
 		return -1;
 	}
 
@@ -12327,7 +12327,7 @@ int	bpReforwardBundle(Object bundleAddr)
 
 	if (!(ionLocked()))
 	{
-		putErrmsg("bpReforwardBundle: not in transaction.", NULL);
+		putErrmsg("[?] bpReforwardBundle: not in transaction (may be normal during ionrestart).", NULL);
 		return -1;
 	}
 
@@ -12384,7 +12384,7 @@ int	bpReforwardBundle(Object bundleAddr)
 
 	if (!(sdr_in_xn(sdr)))
 	{
-		putErrmsg("bpReforwardBundle: transaction crashed.", NULL);
+		putErrmsg("[?] bpReforwardBundle: transaction crashed (may be normal during ionrestart).", NULL);
 		return -1;
 	}
 
