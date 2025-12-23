@@ -11314,6 +11314,14 @@ int	bpAbandon(Object bundleObj, Bundle *bundle, int reason)
 
 	bpDelTally(srReason);
 
+	/*	Verify transaction still active before SDR operations.	*/
+
+	if (!(sdr_in_xn(getIonsdr())))
+	{
+		putErrmsg("Transaction crashed during bpAbandon.", NULL);
+		return -1;
+	}
+
 	/*	Must record updated state of bundle in case
 	 *	bpDestroyBundle doesn't erase it.			*/
 
