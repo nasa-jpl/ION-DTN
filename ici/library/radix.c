@@ -363,7 +363,7 @@ void  radix_foreach(PsmPartition partition, PsmAddress radixAddr, radix_foreach_
 	nodeAddr = radixPtr->root;
 	while(nodeAddr != 0)
 	{
-		nodePtr = (RadixNode*) psp(partition, radixPtr->root);
+		nodePtr = (RadixNode*) psp(partition, nodeAddr);
 
 		/*
 		 * Step 3.1 - When visiting node, we don't assess the success of the

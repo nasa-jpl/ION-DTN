@@ -875,13 +875,22 @@ BpSecPolRule *bslpol_rule_get_best_match(PsmPartition partition, BpSecPolRuleSea
 
 	/* Step 2: Walk through each index... */
 	search_key = (criteria.bsrc) ? criteria.bsrc : default_key;
-	radix_foreach_match(partition,  secvdb->bpsecRuleIdxBySrc, search_key,  RADIX_MATCH_FULL, (radix_match_fn)bslpol_cb_ruleradix_search_best, &tag);
+	if (secvdb->bpsecRuleIdxBySrc != 0)
+	{
+		radix_foreach_match(partition,  secvdb->bpsecRuleIdxBySrc, search_key,  RADIX_MATCH_FULL, (radix_match_fn)bslpol_cb_ruleradix_search_best, &tag);
+	}
 
 	search_key = (criteria.bdest) ? criteria.bdest : default_key;
-	radix_foreach_match(partition,  secvdb->bpsecRuleIdxByDest, search_key,  RADIX_MATCH_FULL, (radix_match_fn)bslpol_cb_ruleradix_search_best, &tag);
+	if (secvdb->bpsecRuleIdxByDest != 0)
+	{
+		radix_foreach_match(partition,  secvdb->bpsecRuleIdxByDest, search_key,  RADIX_MATCH_FULL, (radix_match_fn)bslpol_cb_ruleradix_search_best, &tag);
+	}
 
 	search_key = (criteria.ssrc) ? criteria.ssrc : default_key;
-	radix_foreach_match(partition,  secvdb->bpsecRuleIdxBySSrc, search_key,  RADIX_MATCH_FULL, (radix_match_fn)bslpol_cb_ruleradix_search_best, &tag);
+	if (secvdb->bpsecRuleIdxBySSrc != 0)
+	{
+		radix_foreach_match(partition,  secvdb->bpsecRuleIdxBySSrc, search_key,  RADIX_MATCH_FULL, (radix_match_fn)bslpol_cb_ruleradix_search_best, &tag);
+	}
 
 	/* Step 3: Return the "best" rule for this circumstance. */
 	return tag.best_rule;
