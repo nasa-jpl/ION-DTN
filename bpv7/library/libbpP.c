@@ -165,9 +165,10 @@ void	bpEndpointTally(VEndpoint *vpoint, unsigned int idx, unsigned int size)
 		return;
 	}
 
-	/*	Defensive check: skip stats update if not in transaction.	*/
+	/*	Defensive check: skip stats update if not in transaction.
+	 *	Use sdr_in_xn directly to handle race with ionrestart.	*/
 
-	if (!(ionLocked()))
+	if (!(sdr_in_xn(sdr)))
 	{
 		return;
 	}
@@ -180,6 +181,14 @@ void	bpEndpointTally(VEndpoint *vpoint, unsigned int idx, unsigned int size)
 	tally->currentCount += 1;
 	tally->currentBytes += size;
 	offset = (char *) tally - ((char *) &stats);
+
+	/*	Re-check transaction before write in case of race.	*/
+
+	if (!(sdr_in_xn(sdr)))
+	{
+		return;
+	}
+
 	sdr_write(sdr, vpoint->stats + offset, (char *) tally, sizeof(Tally));
 }
 
@@ -196,9 +205,10 @@ void	bpInductTally(VInduct *vduct, unsigned int idx, unsigned int size)
 		return;
 	}
 
-	/*	Defensive check: skip stats update if not in transaction.	*/
+	/*	Defensive check: skip stats update if not in transaction.
+	 *	Use sdr_in_xn directly to handle race with ionrestart.	*/
 
-	if (!(ionLocked()))
+	if (!(sdr_in_xn(sdr)))
 	{
 		return;
 	}
@@ -211,6 +221,14 @@ void	bpInductTally(VInduct *vduct, unsigned int idx, unsigned int size)
 	tally->currentCount += 1;
 	tally->currentBytes += size;
 	offset = (char *) tally - ((char *) &stats);
+
+	/*	Re-check transaction before write in case of race.	*/
+
+	if (!(sdr_in_xn(sdr)))
+	{
+		return;
+	}
+
 	sdr_write(sdr, vduct->stats + offset, (char *) tally, sizeof(Tally));
 }
 
@@ -227,9 +245,10 @@ void	bpPlanTally(VPlan *vplan, unsigned int idx, unsigned int size)
 		return;
 	}
 
-	/*	Defensive check: skip stats update if not in transaction.	*/
+	/*	Defensive check: skip stats update if not in transaction.
+	 *	Use sdr_in_xn directly to handle race with ionrestart.	*/
 
-	if (!(ionLocked()))
+	if (!(sdr_in_xn(sdr)))
 	{
 		return;
 	}
@@ -242,6 +261,14 @@ void	bpPlanTally(VPlan *vplan, unsigned int idx, unsigned int size)
 	tally->currentCount += 1;
 	tally->currentBytes += size;
 	offset = (char *) tally - ((char *) &stats);
+
+	/*	Re-check transaction before write in case of race.	*/
+
+	if (!(sdr_in_xn(sdr)))
+	{
+		return;
+	}
+
 	sdr_write(sdr, vplan->stats + offset, (char *) tally, sizeof(Tally));
 }
 
@@ -259,9 +286,10 @@ void	bpSourceTally(unsigned int priority, unsigned int size)
 		return;
 	}
 
-	/*	Defensive check: skip stats update if not in transaction.	*/
+	/*	Defensive check: skip stats update if not in transaction.
+	 *	Use sdr_in_xn directly to handle race with ionrestart.	*/
 
-	if (!(ionLocked()))
+	if (!(sdr_in_xn(sdr)))
 	{
 		return;
 	}
@@ -274,6 +302,14 @@ void	bpSourceTally(unsigned int priority, unsigned int size)
 	tally->currentCount += 1;
 	tally->currentBytes += size;
 	offset = (char *) tally - ((char *) &stats);
+
+	/*	Re-check transaction before write in case of race.	*/
+
+	if (!(sdr_in_xn(sdr)))
+	{
+		return;
+	}
+
 	sdr_write(sdr, vdb->sourceStats + offset, (char *) tally,
 			sizeof(Tally));
 }
@@ -292,9 +328,10 @@ void	bpRecvTally(unsigned int priority, unsigned int size)
 		return;
 	}
 
-	/*	Defensive check: skip stats update if not in transaction.	*/
+	/*	Defensive check: skip stats update if not in transaction.
+	 *	Use sdr_in_xn directly to handle race with ionrestart.	*/
 
-	if (!(ionLocked()))
+	if (!(sdr_in_xn(sdr)))
 	{
 		return;
 	}
@@ -307,6 +344,14 @@ void	bpRecvTally(unsigned int priority, unsigned int size)
 	tally->currentCount += 1;
 	tally->currentBytes += size;
 	offset = (char *) tally - ((char *) &stats);
+
+	/*	Re-check transaction before write in case of race.	*/
+
+	if (!(sdr_in_xn(sdr)))
+	{
+		return;
+	}
+
 	sdr_write(sdr, vdb->recvStats + offset, (char *) tally, sizeof(Tally));
 }
 
@@ -324,9 +369,10 @@ void	bpDiscardTally(unsigned int priority, unsigned int size)
 		return;
 	}
 
-	/*	Defensive check: skip stats update if not in transaction.	*/
+	/*	Defensive check: skip stats update if not in transaction.
+	 *	Use sdr_in_xn directly to handle race with ionrestart.	*/
 
-	if (!(ionLocked()))
+	if (!(sdr_in_xn(sdr)))
 	{
 		return;
 	}
@@ -339,6 +385,14 @@ void	bpDiscardTally(unsigned int priority, unsigned int size)
 	tally->currentCount += 1;
 	tally->currentBytes += size;
 	offset = (char *) tally - ((char *) &stats);
+
+	/*	Re-check transaction before write in case of race.	*/
+
+	if (!(sdr_in_xn(sdr)))
+	{
+		return;
+	}
+
 	sdr_write(sdr, vdb->discardStats + offset, (char *) tally,
 			sizeof(Tally));
 }
@@ -357,9 +411,10 @@ void	bpXmitTally(unsigned int priority, unsigned int size)
 		return;
 	}
 
-	/*	Defensive check: skip stats update if not in transaction.	*/
+	/*	Defensive check: skip stats update if not in transaction.
+	 *	Use sdr_in_xn directly to handle race with ionrestart.	*/
 
-	if (!(ionLocked()))
+	if (!(sdr_in_xn(sdr)))
 	{
 		return;
 	}
@@ -372,6 +427,14 @@ void	bpXmitTally(unsigned int priority, unsigned int size)
 	tally->currentCount += 1;
 	tally->currentBytes += size;
 	offset = (char *) tally - ((char *) &stats);
+
+	/*	Re-check transaction before write in case of race.	*/
+
+	if (!(sdr_in_xn(sdr)))
+	{
+		return;
+	}
+
 	sdr_write(sdr, vdb->xmitStats + offset, (char *) tally, sizeof(Tally));
 }
 
@@ -388,9 +451,9 @@ void	bpDelTally(unsigned int reason)
 	}
 
 	/*	Defensive check: skip stats update if not in transaction.
-	 *	This can happen after transaction crash during cleanup.	*/
+	 *	Use sdr_in_xn directly to handle race with ionrestart.	*/
 
-	if (!(ionLocked()))
+	if (!(sdr_in_xn(sdr)))
 	{
 		return;
 	}
@@ -399,6 +462,14 @@ void	bpDelTally(unsigned int reason)
 	sdr_stage(sdr, (char *) &stats, vdb->delStats, sizeof(BpDelStats));
 	stats.totalDelByReason[reason] += 1;
 	stats.currentDelByReason[reason] += 1;
+
+	/*	Re-check transaction before write in case of race.	*/
+
+	if (!(sdr_in_xn(sdr)))
+	{
+		return;
+	}
+
 	sdr_write(sdr, vdb->delStats, (char *) &stats, sizeof(BpDelStats));
 }
 
@@ -417,9 +488,9 @@ void	bpDbTally(unsigned int idx, unsigned int size)
 	}
 
 	/*	Defensive check: skip stats update if not in transaction.
-	 *	This can happen after transaction crash during cleanup.	*/
+	 *	Use sdr_in_xn directly to handle race with ionrestart.	*/
 
-	if (!(ionLocked()))
+	if (!(sdr_in_xn(sdr)))
 	{
 		return;
 	}
@@ -432,6 +503,14 @@ void	bpDbTally(unsigned int idx, unsigned int size)
 	tally->currentCount += 1;
 	tally->currentBytes += size;
 	offset = (char *) tally - ((char *) &stats);
+
+	/*	Re-check transaction before write in case of race.	*/
+
+	if (!(sdr_in_xn(sdr)))
+	{
+		return;
+	}
+
 	sdr_write(sdr, vdb->dbStats + offset, (char *) tally, sizeof(Tally));
 }
 
