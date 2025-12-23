@@ -57,7 +57,7 @@ static int	testReversal(Sdr sdr)
 			NULL);
 
 	/* Begin transaction */
-	if (sdr_begin_xn(sdr) < 0)
+	if (sdr_begin_xn(sdr) == 0)
 	{
 		putErrmsg("sdr_test_util: Can't begin transaction.", NULL);
 		return -1;
@@ -104,7 +104,7 @@ static int	testNoReversal(Sdr sdr)
 			NULL);
 
 	/* Begin transaction */
-	if (sdr_begin_xn(sdr) < 0)
+	if (sdr_begin_xn(sdr) == 0)
 	{
 		putErrmsg("sdr_test_util: Can't begin transaction.", NULL);
 		return -1;
@@ -146,7 +146,7 @@ static int	verifyState(Sdr sdr)
 	putErrmsg("sdr_test_util: Verifying SDR state.", NULL);
 
 	/* Try to begin and end a simple transaction */
-	if (sdr_begin_xn(sdr) < 0)
+	if (sdr_begin_xn(sdr) == 0)
 	{
 		putErrmsg("sdr_test_util: FAILED - Can't begin transaction.", NULL);
 		return -1;
