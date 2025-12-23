@@ -35,7 +35,6 @@ static void *handleDatagrams(void *parm)
 	int                  bundleLength;
 	IonNetworkAddress    fromAddr;    /* Dual-stack address */
 	int                  is_shutdown; /* Shutdown detection */
-	char fromAddrStr[INET6_ADDRSTRLEN + 10]; /* 10 = brackets, colon, port, null terminator */
 
 	snooze(1); /*	Let main thread become interruptible.	*/
 	work = bpGetAcqArea(rtp->vduct);
@@ -89,9 +88,6 @@ static void *handleDatagrams(void *parm)
 			break; /*	Out of switch.	*/
 		}
 
-		/* Log sender address (works for both IPv4 and IPv6) */
-		formatNetworkAddress(&fromAddr, fromAddrStr, sizeof(fromAddrStr));
-		writeMemoNote("[i] udpcli received bundle from", fromAddrStr);
 		if (bpBeginAcq(work, 0, NULL) < 0
 		                || bpContinueAcq(work, buffer, bundleLength, 0, 0)
 		                                < 0
