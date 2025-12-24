@@ -2649,18 +2649,6 @@ tests_library_libtestutil_la_SOURCES = \
 	tests/library/ionstop.c
 tests_library_libtestutil_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-# C TAP Harness Library. Provides enhanced functions for writing unit tests and outputting TAP-conformant output
-# Note: TAP = Test anything Protocol
-# Note: This library includes a harness to run tests similar to runtests, but which is ot being used at this time.
-# TESTTAPOBJS = tests/library/libtesttap.la
-# TEST_TAP_DIR = contrib/c-tap-harness/tests/tap
-# TESTTAPCFLAGS = -I$(srcdir)/contrib/c-tap-harness
-# check_LTLIBRARIES = $(TESTTAPOBJS)
-# tests_library_libtesttap_la_SOURCES = \
-# 	$(TEST_TAP_DIR)/basic.c \
-# 	$(TEST_TAP_DIR)/float.c
-# tests_library_libtesttap_la_CFLAGS = $(TESTTAPCFLAGS) $(AM_CFLAGS)
-
 # Unity Test Framework (http://throwtheswitch.org/unity) Utility
 TESTUNITYOBJS = tests/library/libtestunity.la
 TEST_UNITY_DIR = contrib/c-unity-harness/tests/unity
