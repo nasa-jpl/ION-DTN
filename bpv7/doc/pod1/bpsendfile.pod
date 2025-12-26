@@ -4,7 +4,7 @@ bpsendfile - Bundle Protocol (BP) file transmission utility
 
 =head1 SYNOPSIS
 
-B<bpsendfile> I<own_endpoint_ID> I<destination_endpoint_ID> I<file_name> [I<class_of_service> [I<time_to_live (seconds)> ]]
+B<bpsendfile> I<own_endpoint_ID> I<destination_endpoint_ID> I<file_name> [I<class_of_service> [I<time_to_live (seconds)> [I<report-to_endpoint_ID>]]]
 
 =head1 DESCRIPTION
 
