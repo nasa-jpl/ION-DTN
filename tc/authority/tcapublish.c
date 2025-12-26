@@ -841,7 +841,7 @@ int	main(int argc, char *argv[])
 				- currentTime;
 		if (interval <= 0)
 		{
-#ifdef TC_DEBUG
+#if TC_DEBUG
 writeMemo("tcapublish: consensus grace period has ended.");
 #endif
 			CHKZERO(sdr_begin_xn(sdr));
