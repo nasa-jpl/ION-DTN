@@ -44,6 +44,15 @@ The B<initialize> command.  Until this command is executed, the authority
 function for the selected TC application is not in operation on the local
 ION node and most I<tcaadmin> commands will fail.
 
+I<multicast_group_number_for_TC_bulletins> identifies the multicast
+group that the members of this collective authority will use for the
+exchange of proposed information bulletins.
+
+I<multicast_group_number_for_TC_records> identifies the multicast group
+that the members of this collective authority will use for the publication
+of "blocks" of information on which they have reached consensus.  NOTE: as
+such, it identifies the TC application served by this collective authority.
+
 I<K> is the mandated B<diffusion> for the selected TC application, i.e.,
 the number of blocks into which each bulletin of published TC information
 is divided for transmission.
