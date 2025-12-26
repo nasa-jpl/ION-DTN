@@ -63,7 +63,7 @@ rather than extents of the bulletin itself.
 
 =item B<i>
 
-The B<info> This command will print information about the current state
+The B<info> command will print information about the current state
 of the authority function for the selected TC application on the local
 node, including the current settings of all parameters that can be
 managed as described below.
