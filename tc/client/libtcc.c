@@ -53,7 +53,7 @@ int	tcc_getBulletin(int blocksGroupNbr, char **bulletinContent,
 		if (sm_SemEnded(vdb->contentSemaphore))
 		{
 			writeMemo("[i] TCC stop has been signaled.");
-			return -1;
+			return 0;
 		}
 
 		CHKERR(sdr_begin_xn(sdr));
