@@ -92,7 +92,6 @@ int	imc_record(ExtensionBlock *sdrBlk, AcqExtBlock *ramBlk)
 {
 	Sdr	sdr = getIonsdr();
 
-//printf("...in imc_record, ramBlk->size is %u...\n", ramBlk->size);
 	if (ramBlk->size == 0)
 	{
 		return 0;
@@ -115,11 +114,9 @@ int	imc_copy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 	Sdr	sdr = getIonsdr();
 	char	*buffer;
 
-//puts("...in imc_copy...");
 	newBlk->size = oldBlk->size;	/*	Possible bogus size.	*/
 	if (oldBlk->object == 0)
 	{
-//puts("...oldBlk->object is 0...");
 		return 0;
 	}
 
@@ -139,7 +136,6 @@ int	imc_copy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 	}
 
 	sdr_read(sdr, buffer, oldBlk->object, oldBlk->size);
-//printf("Copying extension block object of size %u.\n", newBlk->size);
 	sdr_write(sdr, newBlk->object, buffer, newBlk->size);
 	MRELEASE(buffer);
 	return 0;
@@ -217,7 +213,6 @@ int	imc_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 		}
 
 		*destinationNode = uvtemp;
-//printf("Parsed destination is " UVAST_FIELDSPEC ".\n", uvtemp);
 	}
 
 	if (unparsedBytes != 0)
