@@ -146,7 +146,7 @@ typedef struct
 	} \
 } while (0)
 
-/*		IPN-specific RFX data structures.			*/
+/*		CGR-specific ION data structures.			*/
 
 typedef void		*CgrSAP;
 
