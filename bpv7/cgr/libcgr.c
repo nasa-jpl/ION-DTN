@@ -1520,7 +1520,11 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 	}
 
 	contact = (IonCXref *) psp(ionwm, contactAddr);
-	CHKERR(contact->xmitRate > 0);
+	if (contact->xmitRate == 0)
+	{
+		/* First contact is inactive, route not usable. */
+		return 0;
+	}
 
 	/*	Compute the expected initial transmit time
 	 *	(Earliest Transmission Opportunity): start of
