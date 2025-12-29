@@ -213,6 +213,9 @@ static void	printBundle(Object bundleObj)
 		OBJ_POINTER(Bundle, bundle);
 	char	*eid;
 	char	buf[300];
+	Object  stationEidElt;
+	Object  stationEidObj;
+	char    proxEidBuf[SDRSTRING_BUFSZ];
 	int	priority;
 	uvast expirationTimeDtnMsec;
 
@@ -242,6 +245,15 @@ static void	printBundle(Object bundleObj)
 		isprintf(buf, sizeof buf, "Report-to EID   '%s'", eid);
 		PUTS(buf);
 		MRELEASE(eid);
+	}
+
+	stationEidElt = sdr_list_first(sdr, bundle->stations);
+	if (stationEidElt)
+	{
+		stationEidObj = sdr_list_data(sdr, stationEidElt);
+		sdr_string_read(sdr, proxEidBuf, stationEidObj);
+		isprintf(buf, sizeof buf, "  Station EID   '%s'", proxEidBuf);
+		PUTS(buf);
 	}
 
 	isprintf(buf, sizeof buf,
