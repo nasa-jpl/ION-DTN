@@ -7209,7 +7209,7 @@ static int	createIncompleteBundle(Object bundleObj, Bundle *bundle,
 	return 0;
 }
 
-int	deliverBundle(Object bundleObj, Bundle *bundle, VEndpoint *vpoint)
+static int deliverBundle(Object bundleObj, Bundle *bundle, VEndpoint *vpoint)
 {
 	Object	incompleteAddr = 0;
 		OBJ_POINTER(IncompleteBundle, incomplete);

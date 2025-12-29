@@ -1441,8 +1441,6 @@ extern int		findBundle(char *sourceEid, BpTimestamp *creationTime,
 				Object *bundleAddr);
 extern int		retrieveSerializedBundle(Object bundleZco, Object *obj);
 
-extern int		deliverBundle(Object bundleObj, Bundle *bundle,
-				VEndpoint *vpoint);
 extern int		forwardBundle(Object bundleObj, Bundle *bundle,
 				char *stationEid);
 
