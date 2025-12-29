@@ -13,6 +13,7 @@
 									*/
 #include "bpP.h"
 #include "lyst.h"
+#include "saga.h"
 
 #define CONFIDENCE_BASIS	(MAX_CONTACT_LOG_LENGTH * 2.0)
 
