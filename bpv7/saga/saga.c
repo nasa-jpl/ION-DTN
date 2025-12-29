@@ -752,7 +752,7 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 	(void)dlv;
 
 	uvtemp = 0;
-	if (cbor_decode_array_open(&uvtemp, &cursor, &unparsedBytes) < 0)
+	if (cbor_decode_array_open(&uvtemp, &cursor, &unparsedBytes) < 1)
 	{
 		writeMemo("[?] Can't decode saga array.");
 		return 0;
@@ -760,7 +760,7 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 
 	/*	Get region number.					*/
 
-	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 0)
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
 		writeMemo("[?] Can't decode saga region number.");
 		return 0;
@@ -783,7 +783,7 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 	while (1)
 	{
 		if (cbor_decode_initial_byte(&cursor, &unparsedBytes,
-				&majorType, &additionalInfo) < 0)
+				&majorType, &additionalInfo) < 1)
 		{
 			writeMemo("[?] Can't decode saga encounter.");
 			return 0;
@@ -801,7 +801,7 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 		}
 
 		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
-				&unparsedBytes) < 0)
+				&unparsedBytes) < 1)
 		{
 			writeMemo("[?] Can't decode encounter fromTime.");
 			return 0;
@@ -809,7 +809,7 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 
 		fromTime = uvtemp;
 		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
-				&unparsedBytes) < 0)
+				&unparsedBytes) < 1)
 		{
 			writeMemo("[?] Can't decode encounter toTime.");
 			return 0;
@@ -817,7 +817,7 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 
 		toTime = uvtemp;
 		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
-				&unparsedBytes) < 0)
+				&unparsedBytes) < 1)
 		{
 			writeMemo("[?] Can't decode encounter fromFqnn.");
 			return 0;
@@ -825,7 +825,7 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 
 		fromFqnn = uvtemp;
 		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
-				&unparsedBytes) < 0)
+				&unparsedBytes) < 1)
 		{
 			writeMemo("[?] Can't decode encounter toFqnn.");
 			return 0;
@@ -833,7 +833,7 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 
 		toFqnn = uvtemp;
 		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
-				&unparsedBytes) < 0)
+				&unparsedBytes) < 1)
 		{
 			writeMemo("[?] Can't decode encounter xmitRate.");
 			return 0;
