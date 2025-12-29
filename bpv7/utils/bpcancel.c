@@ -8,6 +8,7 @@
 /*									*/
 
 #include <bpP.h>
+#include "platform.h"
 
 #if defined (ION_LWT)
 int	bpcancel(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
@@ -22,7 +23,7 @@ int	bpcancel(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 int	main(int argc, char **argv)
 {
 	char		*sourceEid = argc > 1 ? argv[1] : NULL;
-	uvast		creationMsec = argc > 2 ? strtol(argv[2], NULL, 10) : 0;
+	uvast		creationMsec = argc > 2 ? strtouvast(argv[2]) : 0;
 	unsigned int	creationCount = argc > 3 ? atoi(argv[3]) : 0;
 	unsigned int	fragmentOffset = argc > 4 ? atoi(argv[4]) : 0;
 	unsigned int	fragmentLength = argc > 5 ? atoi(argv[5]) : 0;
