@@ -324,8 +324,8 @@ static int	discoveryAcquired(char *socketSpec, char *discoveryEid,
 	CHKERR(*socketSpec);
 	CHKERR(discoveryEid);
 	CHKERR(claProtocol);
-	CHKERR(xmitRate);
-	CHKERR(recvRate);
+	CHKERR(xmitRate > 0);
+	CHKERR(recvRate > 0);
 	result = parseEidString(discoveryEid, &metaEid, &vscheme, &vschemeElt);
 	if (result == 0)
 	{
