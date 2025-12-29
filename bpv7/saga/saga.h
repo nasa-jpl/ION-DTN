@@ -15,6 +15,9 @@
 #ifndef SAGA_H
 #define SAGA_H
 
+/* Administrative record types */
+#define BP_SAGA_MESSAGE (6)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
