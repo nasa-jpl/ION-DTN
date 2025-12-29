@@ -1807,7 +1807,7 @@ int	bpStart(void)
 		bpvdb->clockPid = pseudoshell(cmdString);
 	}
 
-	/*	Start the contact plan manager if necessary.		*/
+	/* Start the contact plan synchronizer if necessary. */
 
 	if (bpvdb->cpsdPid == ERROR || sm_TaskExists(bpvdb->cpsdPid) == 0)
 	{
