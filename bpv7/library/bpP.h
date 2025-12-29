@@ -390,13 +390,6 @@ typedef struct
 } IncompleteBundle;
 
 /*	*	*	Endpoint structures	*	*	*	*/
-/* moved to public header 
-typedef enum
-{
-	DiscardBundle = 0,
-	EnqueueBundle
-} BpRecvRule;
-*/
 
 /*	The endpoint object characterizes an endpoint within which
  *	the node is registered.						*/
