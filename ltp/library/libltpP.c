@@ -7470,7 +7470,6 @@ static int	handleRS(LtpDB *ltpdb, unsigned int sessionNbr,
 	Object			elt;
 	unsigned int		oldRptSerialNbr;
 	Object			dsObj;
-	LtpXmitSeg		dsBuf;
 	Lyst			claims;
 	Object			claimObj;
 	Object			nextElt;
@@ -7683,13 +7682,13 @@ putErrmsg("Discarding report.", NULL);
 			return sdr_end_xn(sdr);	/*	Ignore.		*/
 		}
 
-		/*	Deactivate the checkpoint segment.  It has been
-		 *	received, so there will never be any need to
-		 *	retransmit it.					*/
-
-		sdr_stage(sdr, (char *) &dsBuf, dsObj, sizeof(LtpXmitSeg));
-		dsBuf.pdu.timer.segArrivalTime = 0;
-		sdr_write(sdr, dsObj, (char *) &dsBuf, sizeof(LtpXmitSeg));
+		/*	Don't deactivate the checkpoint here. When multiple
+		 *	Report Segments are needed for a single checkpoint,
+		 *	some RSs may be lost. If we deactivate the checkpoint
+		 *	on the first RS, the sender won't retransmit the
+		 *	checkpoint if later RSs are lost, causing the session
+		 *	to get stuck. The checkpoint will be cleaned up when
+		 *	the session closes.				*/
 	}
 
 	/*	Now apply reception claims to the transmission session.	*/
