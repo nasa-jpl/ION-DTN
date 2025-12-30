@@ -193,8 +193,6 @@ typedef struct
 /*	Administrative record types	*/
 #define	BP_STATUS_REPORT	(1)
 #define	BP_MULTICAST_BRIEFING	(5)
-#define	BP_BIBE_PDU		(7)
-#define	BP_BIBE_SIGNAL		(8)	/*	Aggregate, in BIBE.	*/
 
 typedef enum
 {
