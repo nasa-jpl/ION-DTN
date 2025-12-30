@@ -40,7 +40,7 @@ int	main(void)
 	PsmAddress	smlistsh_list = 0;
 	PsmMgtOutcome	outcome;
 
-#ifdef FSWLOGGER
+#ifdef NON_INTERACTIVE
 	return 0;	/*	No stdin/stdout, can't be interactive.	*/
 #endif
 	sm_ipc_init();

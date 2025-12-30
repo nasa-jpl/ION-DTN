@@ -536,6 +536,11 @@ oK(_isprintf(buffer, bufsize, format, __VA_ARGS__))
 #define PUTMEMO(text, memo)	printf("%s: %s\n", text, memo)
 #endif
 
+/*	NON_INTERACTIVE: When defined, disables interactive (stdin-based)
+ *	command loops in admin utilities and test programs. This switch
+ *	is independent of FSWLOGGER; define it explicitly when stdin is
+ *	not available (e.g., embedded systems without a console).	*/
+
 /*	Need MAXPATHLEN defined for Visual Studio compile.		*/
 
 #ifdef ION4WIN

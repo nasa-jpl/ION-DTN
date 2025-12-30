@@ -2256,7 +2256,7 @@ int	main(int argc, char **argv)
 
 	if (interactive)
 	{
-#ifndef FSWLOGGER	/*	Need stdin/stdout for interactivity.	*/
+#ifndef NON_INTERACTIVE	/*	Need stdin/stdout for interactivity.	*/
 		retval = runCfdptestInteractive();
 		ionDetach();
 #endif

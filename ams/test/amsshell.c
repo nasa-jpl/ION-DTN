@@ -300,7 +300,7 @@ int	main(int argc, char **argv)
 	AmsEventMgt	rules;
 	int		start = 1;
 
-#ifndef FSWLOGGER	/*	Need stdin/stdout for interactivity.	*/
+#ifndef NON_INTERACTIVE	/*	Need stdin/stdout for interactivity.	*/
 	if (unitName == NULL || roleName == NULL
 	|| applicationName == NULL || authorityName == NULL
 	|| (strcmp(mode, "p") && strcmp(mode, "s") && strcmp(mode, "q")

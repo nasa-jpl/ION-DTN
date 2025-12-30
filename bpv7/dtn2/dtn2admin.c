@@ -39,6 +39,7 @@ static void	printText(char *text)
 	PUTS(text);
 }
 
+#ifndef NON_INTERACTIVE
 static void	handleQuit(int signum)
 {
 	/* Tell the compiler that we are not using 'signum' */
@@ -46,6 +47,7 @@ static void	handleQuit(int signum)
 
 	printText("Please enter command 'q' to stop the program.");
 }
+#endif
 
 static void	printSyntaxError(int lineNbr)
 {
@@ -531,8 +533,8 @@ static int	run_dtn2admin(char *cmdFileName)
 
 	if (cmdFileName == NULL)	/*	Interactive.		*/
 	{
-#ifdef FSWLOGGER
-		return 0;
+#ifdef NON_INTERACTIVE
+		return 0;		/*	No stdin.		*/
 #endif
 		cmdFile = fileno(stdin);
 		isignal(SIGINT, handleQuit);

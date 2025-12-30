@@ -458,7 +458,7 @@ int	main(int argc, char **argv)
 #endif
 	int	result;
 
-#ifdef FSWLOGGER
+#ifdef NON_INTERACTIVE
 	if (cmdFileName == NULL)
 	{
 		PUTS("Can't run smrbtsh interactively: need stdin.");

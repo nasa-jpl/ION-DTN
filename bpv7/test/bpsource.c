@@ -191,7 +191,7 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
-#ifndef FSWLOGGER	/*	Need stdin/stdout for interactivity.	*/
+#ifndef NON_INTERACTIVE	/*	Need stdin/stdout for interactivity.	*/
 	fd = fileno(stdin);
 	isignal(SIGINT, handleQuit);
 	while (_running(NULL))

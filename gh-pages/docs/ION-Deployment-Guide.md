@@ -99,6 +99,22 @@ working directory, to be replaced (by #include) with code in the source
 file fswlogger.c. A file of this name must be in the inclusion path for
 the compiler, as defined by --Ixxxx compiler option parameters.
 
+`NON_INTERACTIVE`
+
+This option disables interactive (stdin-based) command loops in admin
+utilities (ionadmin, bpadmin, ltpadmin, etc.) and test programs. When
+defined, these programs will only accept commands from configuration
+files, not from interactive terminal input. Define this option when
+stdin is not available, such as on embedded systems without a console.
+
+This switch is independent of FSWLOGGER. A crewed mission may use
+FSWLOGGER for flight software logging while still allowing interactive
+operation of admin utilities by human operators.
+
+Note: Prior to this change, FSWLOGGER implicitly disabled interactive
+mode. These concerns are now separated—FSWLOGGER controls only logging
+redirection, while NON_INTERACTIVE controls interactive mode availability.
+
 `FSWCLOCK`
 
 This option causes the invocation of the standard time function within
@@ -127,7 +143,8 @@ the compiler.
 `FSWSOURCE`
 
 This option simply causes FSWLOGGER, FSWCLOCK, FSWWDNAME, and FSWSYMTAB
-all to be set.
+all to be set. Note that FSWSOURCE does not set NON_INTERACTIVE; if
+non-interactive mode is also required, define NON_INTERACTIVE explicitly.
 
 `GDSLOGGER`
 
