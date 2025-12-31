@@ -23,7 +23,7 @@ LTPINCLS = \
 
 RUNTIMES = bsspadmin bsspclock udpbso udpbsi tcpbso tcpbsi
 
-ALL = check libbsspP.so libbssp.so libtcpbsa.so $(RUNTIMES)
+ALL = check libbssp.so libtcpbsa.so $(RUNTIMES)
 
 all:		$(ALL)
 
@@ -44,7 +44,6 @@ install:
 		cp bin/* $(ROOT)/bin
 
 uninstall:
-		rm $(ROOT)/lib/libbsspP.so
 		rm $(ROOT)/lib/libbssp.so
 		rm $(ROOT)/lib/libtcpbsa.so
 		for file in $(PUBINCLS); \
@@ -54,43 +53,39 @@ uninstall:
 
 #	-	-	Daemon executables	-	-	-	-
 
-bsspclock:	bsspclock.o libbsspP.so
-		$(CC) -o bsspclock bsspclock.o -L./lib -L$(ROOT)/lib -lbsspP -lici -lpthread -lm
+bsspclock:	bsspclock.o libbssp.so
+		$(CC) -o bsspclock bsspclock.o -L./lib -L$(ROOT)/lib -lbssp -lici -lpthread -lm
 		cp bsspclock ./bin
 
 #	-	-	Utility executables	-	-	-	-
 
-bsspadmin:	bsspadmin.o libbsspP.so
-		$(CC) -o bsspadmin bsspadmin.o -L./lib -L$(ROOT)/lib -lbssp -lbsspP -lici -lpthread -lm
+bsspadmin:	bsspadmin.o libbssp.so
+		$(CC) -o bsspadmin bsspadmin.o -L./lib -L$(ROOT)/lib -lbssp -lici -lpthread -lm
 		cp bsspadmin ./bin
 
 #	-	-	UDP executables	-	-	-	-	-
 
-udpbsi:		udpbsi.o libbsspP.so
-		$(CC) -o udpbsi udpbsi.o -L./lib -L$(ROOT)/lib -lbsspP -lici -lpthread -lm
+udpbsi:		udpbsi.o libbssp.so
+		$(CC) -o udpbsi udpbsi.o -L./lib -L$(ROOT)/lib -lbssp -lici -lpthread -lm
 		cp udpbsi ./bin
 
-udpbso:		udpbso.o libbsspP.so
-		$(CC) -o udpbso udpbso.o -L./lib -L$(ROOT)/lib -lbsspP -lici -lpthread -lm
+udpbso:		udpbso.o libbssp.so
+		$(CC) -o udpbso udpbso.o -L./lib -L$(ROOT)/lib -lbssp -lici -lpthread -lm
 		cp udpbso ./bin
 
 #	-	-	TCP executables-	-	-	-	-
-tcpbsi:		tcpbsi.o libbsspP.so
-		$(CC) -o tcpbsi tcpbsi.o -L./lib -L$(ROOT)/lib -ltcpbsa -lbsspP -lici -lpthread -lm
+tcpbsi:		tcpbsi.o libbssp.so
+		$(CC) -o tcpbsi tcpbsi.o -L./lib -L$(ROOT)/lib -ltcpbsa -lbssp -lici -lpthread -lm
 		cp tcpbsi ./bin
 
-tcpbso:		tcpbso.o libbsspP.so
-		$(CC) -o tcpbso tcpbso.o -L./lib -L$(ROOT)/lib -ltcpbsa -lbsspP -lici -lpthread -lm
+tcpbso:		tcpbso.o libbssp.so
+		$(CC) -o tcpbso tcpbso.o -L./lib -L$(ROOT)/lib -ltcpbsa -lbssp -lici -lpthread -lm
 		cp tcpbso ./bin
 
 #	-	-	Libraries	-	-	-	-	-
 
-libbsspP.so:	libbsspP.o
-		$(LD) -o libbsspP.so libbsspP.o
-		cp libbsspP.so ./lib
-
-libbssp.so:	libbssp.o
-		$(LD) -o libbssp.so libbssp.o
+libbssp.so:	libbssp.o libbsspP.o
+		$(LD) -o libbssp.so libbssp.o libbsspP.o
 		cp libbssp.so ./lib
 
 libtcpbsa.so:	libtcpbsa.o
