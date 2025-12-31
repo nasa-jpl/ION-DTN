@@ -7,7 +7,7 @@ UDP = ../udp
 DCCP = ../dccp
 SDA = ../sda
 TEST = ../test
-ICI_LIB = ../../ici/i86_64-fedora/lib
+ICI_LIB = ../../ici/x86_64-linux/lib
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3

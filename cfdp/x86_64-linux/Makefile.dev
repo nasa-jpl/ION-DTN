@@ -1,8 +1,8 @@
 API = ../library
 INCL = ../include
 ICI_INCL = ../../ici/include
-ICI_LIB = ../../ici/i86_64-fedora/lib
-BP_LIB = ../../bpv7/i86_64-fedora/lib
+ICI_LIB = ../../ici/x86_64-linux/lib
+BP_LIB = ../../bpv7/x86_64-linux/lib
 UTILS = ../utils
 DAEMON = ../daemon
 BP = ../bp

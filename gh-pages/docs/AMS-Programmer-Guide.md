@@ -795,9 +795,9 @@ Note: if support for the expat XML parsing library is required see 4.3
  follows
 
 1. Before installation, first determine which environment (i.e.
-   platform) you're going to be building for: i86- redhat,
-   i86_64-fedora, sparc-solaris, RTEMS, etc. Note this for the
-   following step
+   platform) you're going to be building for: x86_64-linux (recommended
+   for 64-bit Linux), or legacy platforms like i86-redhat, sparc-solaris,
+   RTEMS, etc. Note this for the following step
 2. Move the ION .gz file to a directory in which you want to build the
    system, gunzip the file, and then un-tar it; a number of new
    directories will appear.AMS requires the following packages: ici, dgr, ltp, bp, and ams. For

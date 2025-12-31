@@ -4,10 +4,10 @@ ICI_INCL = ../../ici/include
 LTP_INCL = ../../ltp/include
 BSSP_INCL = ../../bssp/include
 BLOOM_INCL = ../../ici/libbloom-master
-ICI_LIB = ../../ici/i86_64-fedora/lib
-LTP_LIB = ../../ltp/i86_64-fedora/lib
-DGR_LIB = ../../dgr/i86_64-fedora/lib
-BSSP_LIB = ../../bssp/i86_64-fedora/lib
+ICI_LIB = ../../ici/x86_64-linux/lib
+LTP_LIB = ../../ltp/x86_64-linux/lib
+DGR_LIB = ../../dgr/x86_64-linux/lib
+BSSP_LIB = ../../bssp/x86_64-linux/lib
 BLOOM_LIB = ../../ici/libbloom-master/build
 UTILS = ../utils
 TEST = ../test
@@ -86,7 +86,7 @@ CGROBJS = libcgr.o
 
 LBP = -lbp
 
-RUNTIMES = bpadmin bpsecadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo sppcli sppclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat imcfw imcadminep bsspcli bsspclo bibeclo bibeadmin bpnmtest ipnd cgrfetch bpcrash bpcrash_hard bpinspect cpsd sendfile recvfile bptracker
+RUNTIMES = bpadmin bpsecadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpsendtest bprecvtest bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo sppcli sppclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat imcfw imcadminep bsspcli bsspclo bibeclo bibeadmin bpnmtest ipnd cgrfetch bpversion bpcrash bpcrash_hard bpinspect cpsd sendfile recvfile bptracker
 # dccpcli dccpclo
 
 ALL = check $(BPLIBS) $(RUNTIMES)

@@ -28,4 +28,4 @@ The following platform-specific development Makefiles have been removed from the
 
 They were not actively maintained and are provided "as is" for historical reference only. Please see [ION 4.1.3s Release](https://github.com/nasa-jpl/ION-DTN/releases/tag/ion-open-source-4.1.3s) or earlier versions and consult the README documentation for dependencies and build instructions.
 
-The only development Makefile for each submodule that will be actively maintained is `i86_64-fedora` for Intel-based Linux systems. Although named for Fedora (historical reasons), it is designed to work on most modern Linux distributions with GNU Make and GCC installed.
+The only development Makefile for each submodule that will be actively maintained is `x86_64-linux` for 64-bit Linux systems. It is designed to work on most modern Linux distributions with GNU Make and GCC installed.

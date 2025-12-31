@@ -114,7 +114,7 @@ INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(
 
 CC = gcc $(OPT) $(ADD_FLAGS) $(INCLDIRS)
 
-LIBDIRS = -L$(ROOT)/lib -L/usr/local/mysql/lib -L../../ici/i86_64-fedora/lib -L../../bpv7/i86_64-fedora/lib -L../../ltp/i86_64-fedora/lib -L../../cfdp/i86_64-fedora/lib
+LIBDIRS = -L$(ROOT)/lib -L/usr/local/mysql/lib -L../../ici/x86_64-linux/lib -L../../bpv7/x86_64-linux/lib -L../../ltp/x86_64-linux/lib -L../../cfdp/x86_64-linux/lib
 
 LIBS = -lcfdp -lbp -lltp -lici -lpthread -lm
 

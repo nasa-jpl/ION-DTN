@@ -230,11 +230,11 @@ If you do not wish to use the automake build system, you can build ION by using 
 
 The ION distribution provides a set of Makefiles that does not rely on the automake system. This set of Makefiles is used by ION developers on Linux-based OS to offer more flexibility for compiling and debugging.
 
-Currently, the only actively maintained platform-specific development Makefile set is for 64-bits Linux under the "i86_64-fedora" folder in each module. If you choose this option, be aware of the following limitations:
+Currently, the only actively maintained platform-specific development Makefile set is for 64-bit Linux under the "x86_64-linux" folder in each module. If you choose this option, be aware of the following limitations:
 
 For ION 4.1.1, 4.1.2 and 4.1.3:
 
-- The development Makefiles are hierarchical. There is a top-level Makefile in the ION root directory and a set of Makefiles in the individual ION modules, under the "i86_64-fedora" subfolder. If you run `./configure` command, it will switch to the automake system and all development Makefiles will be renamed from `Makefile` to `Makefile.dev`.
+- The development Makefiles are hierarchical. There is a top-level Makefile in the ION root directory and a set of Makefiles in the individual ION modules, under the "x86_64-linux" subfolder. If you run `./configure` command, it will switch to the automake system and all development Makefiles will be renamed from `Makefile` to `Makefile.dev`.
   - If you used the automake system and want to revert to the development Makefiles, you should first run `make clean` and `make uninstall` to completely remove ION from the system because the two compilation method builds organizes shared libraries differently. Then you can either run `git stash` to restore the old Makefiles or simply pull a fresh copy of the code from the repo.
 - The development Makefiles, as they are, provide only the default compilation options - similar to running `./configure` with no arguments. If you need to set specific compiler flags, you need to modify the Makefiles directly or pass an `ADD_FLAGS` argument to the `make all` command.
 - The default directory for installation is `/usr/local/`, which usually requires sudo privilege. To override the installation prefix, change the value of `OPT` in the top-level Makefile of each package.

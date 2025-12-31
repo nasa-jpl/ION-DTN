@@ -1,5 +1,5 @@
 OPT = /usr/local
-PLATFORMS = i86_64-fedora
+PLATFORMS = x86_64-linux
 # i86-redhat
 
 all:

@@ -1,11 +1,11 @@
 OPT = /usr/local
 HEAP_PTRS = 0
-PLATFORMS = i86_64-fedora
+PLATFORMS = x86_64-linux
 # i86-redhat
 # sparc-sol9
 # i86-freebsd
 
-ifeq ($PLATFORMS,i86_64-fedora)
+ifeq ($PLATFORMS,x86_64-linux)
 MM=-m64
 endif
 

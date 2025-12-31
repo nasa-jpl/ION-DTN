@@ -1,8 +1,8 @@
 INCL = ../include
 ICI_INCL = ../../ici/include
-ICI_LIB = ../../ici/i86_64-fedora/lib
-DGR_LIB = ../../dgr/i86_64-fedora/lib
-BP_LIB = ../../bpv7/i86_64-fedora/lib
+ICI_LIB = ../../ici/x86_64-linux/lib
+DGR_LIB = ../../dgr/x86_64-linux/lib
+BP_LIB = ../../bpv7/x86_64-linux/lib
 API = ../library
 TEST = ../test
 UTILS = ../utils
