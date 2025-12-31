@@ -29,7 +29,7 @@ static void	printBytes(char *text, int length)
 	int	high;
 	int	low;
 	int	digit;
-	char	digits[16] = "0123456789abcdef";
+	char	digits[17] = "0123456789abcdef";
 
 	while (1)
 	{
