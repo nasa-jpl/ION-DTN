@@ -1551,7 +1551,7 @@ static time_t	readTimestamp(char *timestampBuffer, time_t referenceTime,
 	}
 #endif
 	result = mktime(&ts);
-	if (result < 0 || result > MAX_POSIX_TIME)
+	if (result == (time_t) -1 || result > MAX_POSIX_TIME)
 	{
 		putErrmsg("Time value not supported (must be before 19 January \
 2038).", timestampBuffer);

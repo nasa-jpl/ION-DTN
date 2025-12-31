@@ -559,10 +559,10 @@ static void	postCpsNotice(uint32_t regionNbr, time_t fromTime,
 	 *
 	 * 	*** For a contact notice:
 	 *
-	 *	If fromTime is -1 (a registration contact)
+	 *	If fromTime is MAX_POSIX_TIME (a registration contact)
 	 *		If toTime is 0
 	 *			Unregister fromFqnn in region (regionNbr)
-	 *		Else (toTime is -1)
+	 *		Else (toTime is MAX_POSIX_TIME)
 	 *			Register fromFqnn in region (regionNbr)
 	 *	Else (scheduled contact)
 	 *		If toTime is 0
