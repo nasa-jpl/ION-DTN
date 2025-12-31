@@ -1206,8 +1206,8 @@ static int	computeAnotherRoute(IonNode *terminusNode,
 	PsmAddress	knownRouteAddr;
 	CgrRoute	*knownRoute;
 	PsmAddress	bestKnownRouteElt;
-	PsmAddress	bestKnownRouteAddr;
-	CgrRoute	*bestKnownRoute;
+	PsmAddress	bestKnownRouteAddr = 0;
+	CgrRoute	*bestKnownRoute = 0;
 
 //puts("*** Computing another route. ***");
 	*elt = 0;	/*	Default: no new route found.		*/
