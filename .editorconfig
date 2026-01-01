@@ -1,0 +1,43 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+tab_width = 8
+
+[*.diff]
+trim_trailing_whitespace = false
+
+[{*.{hmk,key},*testfile*}]
+insert_final_newline = false
+trim_trailing_whitespace = false
+
+[*.{c,h}]
+indent_size = 8
+indent_style = tab
+
+[jsmn.c]
+indent_size = 4
+indent_style = space
+
+[jsmn.h]
+indent_size = 2
+indent_style = space
+
+[Makefile.am]
+indent_size = 8
+indent_style = tab
+
+[configure.ac]
+indent_size = 2
+indent_style = space
+
+[*.{py}]
+indent_size = 4
+indent_style = space
+
+[{*.sh,check_memory,*cleanup,*dotest,{dtka,imc}start,ion{launcher,resume,script,start{,-ipv4,.awk},stop},kill{m,_udplsi},list_all_tests,mingw_setup,results2csv,run{experiment,test{,s,set}},shutdown_proc,start{beacon,listen},system_up}]
+indent_size = 4
+indent_style = space
