@@ -96,4 +96,4 @@ SpacesBeforeTrailingComments: 1
 SpacesInParens: Never
 SpacesInSquareBrackets: false
 TabWidth: 8
-UseTab: ForIndentation
+UseTab: Always
