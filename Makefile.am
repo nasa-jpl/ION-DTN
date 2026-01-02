@@ -1056,14 +1056,14 @@ bpbin = \
 	ltpclo \
 	recvfile \
 	sendfile \
+	sppcli \
+	sppclo \
 	stcpcli \
 	stcpclo \
 	tcpcli \
 	tcpclo \
 	udpcli \
-	udpclo \
-        sppcli \
-        sppclo
+	udpclo
 
 #Uncomment if you want to build killm.exe
 #if WINDOWS
@@ -1099,9 +1099,9 @@ endif # end ENABLE_BSSP
 bplib = \
 	libbp.la \
 	libcgr.la \
+	libsppcla.la \
 	libstcpcla.la \
-	libudpcla.la \
-        libsppcla.la
+	libudpcla.la
 
 bpinclude = \
 	bpv7/include/bp.h \
@@ -1126,9 +1126,9 @@ bpnoinst = \
 	bpv7/library/bpP.h \
 	bpv7/ltp/ltpcla.h \
 	bpv7/saga/saga.h \
+	bpv7/spp/sppcla.h \
 	bpv7/stcp/stcpcla.h \
-	bpv7/udp/udpcla.h \
-        bpv7/spp/sppcla.h
+	bpv7/udp/udpcla.h
 
 bpextra = \
 	bpv7/README.txt \
