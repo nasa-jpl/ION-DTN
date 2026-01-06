@@ -40,3 +40,9 @@ jobs:
     with:
       tests_to_run: ${{ inputs.tests_to_run }}
       env_vars: ${{ inputs.env_vars }}
+
+  fedora42:
+    uses: ./.github/workflows/ci-workflow-fedora42.yml
+    with:
+      tests_to_run: ${{ inputs.tests_to_run }}
+      env_vars: ${{ inputs.env_vars }}
