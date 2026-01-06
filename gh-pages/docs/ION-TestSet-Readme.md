@@ -86,6 +86,67 @@ A file defining a set of tests can be run with `runtestset`. The arguments to `r
 
 In order to run BPSec-related regression tests and other tests marked as "expert", one should set the `ION_RUN_EXPERT` environment variable to a non-empty value (such as "1", "yes", or "YES"). This enables tests that are excluded with `.exclude_expert` files. Otherwise, those tests will be skipped.
 
+## Expert Test Requirements
+
+Expert tests (`.exclude_expert`) require additional system capabilities or dependencies beyond a standard ION build. The following table summarizes the current expert tests and their requirements:
+
+| Test | Description | Requirements |
+|------|-------------|--------------|
+| `bpsec/python_tests` | BPSec cryptographic operations | Python >= 3.7, MbedTLS library, ION compiled with `--enable-crypto-mbedtls --enable-bpsec-debugging` |
+| `ipaddr-caching-udpclo` | IPv4/IPv6 address caching for UDP CLO | Password-less sudo, ability to modify `/etc/hosts`, IPv6 support (optional) |
+| `ipaddr-caching-udplso` | IPv4/IPv6 address caching for UDP/LTP | Password-less sudo, ability to modify `/etc/hosts` |
+| `tcpcl-ack-resilience` | TCP convergence layer ACK resilience | Password-less sudo, iptables or nftables, TCP kernel parameter access (`/proc/sys/net/ipv4/`) |
+
+### Detailed Requirements
+
+#### BPSec Python Tests (`bpsec/python_tests`)
+
+This test validates Bundle Protocol Security (BPSec) cryptographic operations. It requires:
+
+- **Python 3.7 or later**: The test uses Python scripts for validation
+- **MbedTLS library**: Version 2.28.9 recommended
+- **Special compile flags**: ION must be built with:
+  ```bash
+  ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
+  ```
+
+Without MbedTLS, ION uses NULL cipher suites and this test will fail.
+
+#### IP Address Caching Tests (`ipaddr-caching-udpclo`, `ipaddr-caching-udplso`)
+
+These tests validate DNS resolution caching and failover behavior in the UDP convergence layers. They require:
+
+- **Password-less sudo**: The tests modify system files and need non-interactive sudo access
+- **`/etc/hosts` modification**: Tests temporarily add/remove hostname entries
+- **IPv6 support** (optional for `udpclo`): Tests IPv6 fallback when available
+
+The tests verify that ION correctly handles:
+- DNS resolution failures and bundle abandonment
+- Address cache refresh cycles (65-second intervals)
+- Automatic IPv4/IPv6 fallback
+
+#### TCPCL ACK Resilience Test (`tcpcl-ack-resilience`)
+
+This test validates TCP convergence layer behavior during network interruptions. It requires:
+
+- **Password-less sudo**: Required for firewall and kernel parameter modifications
+- **Packet filtering**: Either `iptables` (most Linux distributions) or `nftables` (RHEL/Oracle Linux)
+- **TCP kernel parameters**: Access to modify `/proc/sys/net/ipv4/tcp_retries1`, `tcp_retries2`, and `tcp_keepalive_time`
+- **Ports 4555 and 4556**: Must be available for the test
+
+The test sends 10,000 bundles while temporarily blocking network traffic to verify ACK resilience and connection recovery.
+
+### CI/CD Integration
+
+Most CI workflows set `ION_RUN_EXPERT="yes"` to run the full test suite. Platforms in the CI matrix should have:
+
+1. Password-less sudo configured for the runner user
+2. Required tools installed (iptables/nftables, Python 3.7+)
+3. MbedTLS library installed (for BPSec tests)
+4. IPv6 enabled (optional, tests adapt when unavailable)
+
+If a platform lacks certain capabilities (e.g., no MbedTLS), the corresponding expert tests will fail but other tests will continue to run.
+
 ## Writing new tests
 
 A test directory must contain an executable file named `dotest`.  If a directory does not contain this, the test will be ignored. The `dotest` program should execute the test, possibly reporting runtime information on stdout and stderr, and indicate by its return value the result of the test as follows:
