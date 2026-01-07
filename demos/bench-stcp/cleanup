@@ -5,4 +5,4 @@
 
 echo "Cleaning up old ION..."
 killm
-rm -f ion_nodes 2.bench.stcp/ion.log 2.bench.stcp/bpdriverAduFile 3.bench.stcp/ion.log
+rm -f ion_nodes 2.bench.stcp/ion.log 2.bench.stcp/bpdriverAduFile 3.bench.stcp/ion.log bpcounter_test*.txt

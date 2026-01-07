@@ -68,6 +68,7 @@ sleep 1
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
+rm -f bpcounter_test*.txt
 RETVAL=0
 
 # Start nodes.
@@ -83,7 +84,10 @@ sleep 30
 echo ""
 echo "Test 1: 1000 bundles of 1000 bytes each."
 cd ../3.bench.udp
-bpcounter ipn:3.1 1000 &
+BPCOUNTER_OUTPUT="../bpcounter_test1.txt"
+EXPECTED_BUNDLES=1000
+THRESHOLD=$((EXPECTED_BUNDLES * 90 / 100))  # 90% threshold for UDP
+bpcounter ipn:3.1 $EXPECTED_BUNDLES > $BPCOUNTER_OUTPUT &
 BPCOUNTER_PID=$!
 sleep 1
 
@@ -120,6 +124,17 @@ do
     fi
 done
 
+# Validate actual bundle reception (90% threshold for UDP)
+if [ "$RETVAL" -eq 0 ]; then
+	RECEIVED=$(grep -i "bundles received:" $BPCOUNTER_OUTPUT | tail -1 | sed 's/.*: //')
+	if [ -z "$RECEIVED" ] || [ "$RECEIVED" -lt "$THRESHOLD" ]; then
+		echo "ERROR: Test 1 expected at least $THRESHOLD bundles (90% of $EXPECTED_BUNDLES), received ${RECEIVED:-0}"
+		RETVAL=1
+	else
+		echo "Test 1 PASSED: Received $RECEIVED bundles (threshold: $THRESHOLD)"
+	fi
+fi
+
 if [ "$RETVAL" -eq 1 ]
 then
         echo "Test did not complete."
@@ -141,7 +156,10 @@ sleep 30
 echo ""
 echo "Test 2: 1000 bundles of 10,000 bytes each."
 cd ../3.bench.udp
-bpcounter ipn:3.1 1000 &
+BPCOUNTER_OUTPUT="../bpcounter_test2.txt"
+EXPECTED_BUNDLES=1000
+THRESHOLD=$((EXPECTED_BUNDLES * 90 / 100))  # 90% threshold for UDP
+bpcounter ipn:3.1 $EXPECTED_BUNDLES > $BPCOUNTER_OUTPUT &
 BPCOUNTER_PID=$!
 sleep 1
 
@@ -178,6 +196,17 @@ do
     fi
 done
 
+# Validate actual bundle reception (90% threshold for UDP)
+if [ "$RETVAL" -eq 0 ]; then
+	RECEIVED=$(grep -i "bundles received:" $BPCOUNTER_OUTPUT | tail -1 | sed 's/.*: //')
+	if [ -z "$RECEIVED" ] || [ "$RECEIVED" -lt "$THRESHOLD" ]; then
+		echo "ERROR: Test 2 expected at least $THRESHOLD bundles (90% of $EXPECTED_BUNDLES), received ${RECEIVED:-0}"
+		RETVAL=1
+	else
+		echo "Test 2 PASSED: Received $RECEIVED bundles (threshold: $THRESHOLD)"
+	fi
+fi
+
 if [ "$RETVAL" -eq 1 ]
 then
         echo "Test did not complete."
@@ -200,7 +229,10 @@ sleep 30
 # remember: rate control and buffer size are critical factors when tuning "high performance" UDP
 echo "Test 3: 500 bundles of 100,000 bytes each."
 cd ../3.bench.udp
-bpcounter ipn:3.1 500 &
+BPCOUNTER_OUTPUT="../bpcounter_test3.txt"
+EXPECTED_BUNDLES=500
+THRESHOLD=$((EXPECTED_BUNDLES * 90 / 100))  # 90% threshold for UDP
+bpcounter ipn:3.1 $EXPECTED_BUNDLES > $BPCOUNTER_OUTPUT &
 BPCOUNTER_PID=$!
 
 
@@ -239,6 +271,16 @@ do
     fi
 done
 
+# Validate actual bundle reception (90% threshold for UDP)
+if [ "$RETVAL" -eq 0 ]; then
+	RECEIVED=$(grep -i "bundles received:" $BPCOUNTER_OUTPUT | tail -1 | sed 's/.*: //')
+	if [ -z "$RECEIVED" ] || [ "$RECEIVED" -lt "$THRESHOLD" ]; then
+		echo "ERROR: Test 3 expected at least $THRESHOLD bundles (90% of $EXPECTED_BUNDLES), received ${RECEIVED:-0}"
+		RETVAL=1
+	else
+		echo "Test 3 PASSED: Received $RECEIVED bundles (threshold: $THRESHOLD)"
+	fi
+fi
 
 if [ "$RETVAL" -eq 1 ]
 then

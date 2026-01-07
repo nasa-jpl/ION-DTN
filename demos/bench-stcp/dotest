@@ -48,6 +48,7 @@ sleep 1
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
+rm -f bpcounter_test*.txt
 RETVAL=0
 
 # Start nodes.
@@ -60,12 +61,14 @@ sleep 3
 echo ""
 echo "Test 1: 10,000 bundles of 1000 bytes each."
 cd ../3.bench.stcp
-bpcounter ipn:3.1 10000 &
+BPCOUNTER_OUTPUT="../bpcounter_test1.txt"
+EXPECTED_BUNDLES=10000
+bpcounter ipn:3.1 $EXPECTED_BUNDLES > $BPCOUNTER_OUTPUT &
 BPCOUNTER_PID=$!
 sleep 1
 
 cd ../2.bench.stcp
-bpdriver 10000 ipn:2.1 ipn:3.1 -1000 &
+bpdriver $EXPECTED_BUNDLES ipn:2.1 ipn:3.1 -1000 &
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
@@ -96,6 +99,17 @@ do
         RETVAL=1
     fi
 done
+
+# Validate actual bundle reception
+if [ "$RETVAL" -eq 0 ]; then
+	RECEIVED=$(grep -i "bundles received:" $BPCOUNTER_OUTPUT | tail -1 | sed 's/.*: //')
+	if [ -z "$RECEIVED" ] || [ "$RECEIVED" -lt "$EXPECTED_BUNDLES" ]; then
+		echo "ERROR: Test 1 expected $EXPECTED_BUNDLES bundles, received ${RECEIVED:-0}"
+		RETVAL=1
+	else
+		echo "Test 1 PASSED: Received $RECEIVED bundles"
+	fi
+fi
 
 if [ "$RETVAL" -eq 1 ]
 then
@@ -115,12 +129,14 @@ sleep 3
 echo ""
 echo "Test 2: 10000 bundles of 10,000 bytes each."
 cd ../3.bench.stcp
-bpcounter ipn:3.1 10000 &
+BPCOUNTER_OUTPUT="../bpcounter_test2.txt"
+EXPECTED_BUNDLES=10000
+bpcounter ipn:3.1 $EXPECTED_BUNDLES > $BPCOUNTER_OUTPUT &
 BPCOUNTER_PID=$!
 sleep 1
 
 cd ../2.bench.stcp
-bpdriver 10000 ipn:2.1 ipn:3.1 -10000 &
+bpdriver $EXPECTED_BUNDLES ipn:2.1 ipn:3.1 -10000 &
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
@@ -151,6 +167,17 @@ do
         RETVAL=1
     fi
 done
+
+# Validate actual bundle reception
+if [ "$RETVAL" -eq 0 ]; then
+	RECEIVED=$(grep -i "bundles received:" $BPCOUNTER_OUTPUT | tail -1 | sed 's/.*: //')
+	if [ -z "$RECEIVED" ] || [ "$RECEIVED" -lt "$EXPECTED_BUNDLES" ]; then
+		echo "ERROR: Test 2 expected $EXPECTED_BUNDLES bundles, received ${RECEIVED:-0}"
+		RETVAL=1
+	else
+		echo "Test 2 PASSED: Received $RECEIVED bundles"
+	fi
+fi
 
 if [ "$RETVAL" -eq 1 ]
 then
@@ -170,12 +197,14 @@ sleep 3
 echo ""
 echo "Test 3: 10000 bundles of 100,000 bytes each."
 cd ../3.bench.stcp
-bpcounter ipn:3.1 10000 &
+BPCOUNTER_OUTPUT="../bpcounter_test3.txt"
+EXPECTED_BUNDLES=10000
+bpcounter ipn:3.1 $EXPECTED_BUNDLES > $BPCOUNTER_OUTPUT &
 BPCOUNTER_PID=$!
 sleep 1
 
 cd ../2.bench.stcp
-bpdriver 10000 ipn:2.1 ipn:3.1 -100000 &
+bpdriver $EXPECTED_BUNDLES ipn:2.1 ipn:3.1 -100000 &
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
@@ -206,6 +235,17 @@ do
         RETVAL=1
     fi
 done
+
+# Validate actual bundle reception
+if [ "$RETVAL" -eq 0 ]; then
+	RECEIVED=$(grep -i "bundles received:" $BPCOUNTER_OUTPUT | tail -1 | sed 's/.*: //')
+	if [ -z "$RECEIVED" ] || [ "$RECEIVED" -lt "$EXPECTED_BUNDLES" ]; then
+		echo "ERROR: Test 3 expected $EXPECTED_BUNDLES bundles, received ${RECEIVED:-0}"
+		RETVAL=1
+	else
+		echo "Test 3 PASSED: Received $RECEIVED bundles"
+	fi
+fi
 
 if [ "$RETVAL" -eq 1 ]
 then
@@ -225,12 +265,14 @@ sleep 3
 echo ""
 echo "Test 4: 1000 bundles of 1,000,000 bytes each."
 cd ../3.bench.stcp
-bpcounter ipn:3.1 1000 &
+BPCOUNTER_OUTPUT="../bpcounter_test4.txt"
+EXPECTED_BUNDLES=1000
+bpcounter ipn:3.1 $EXPECTED_BUNDLES > $BPCOUNTER_OUTPUT &
 BPCOUNTER_PID=$!
 sleep 1
 
 cd ../2.bench.stcp
-bpdriver 1000 ipn:2.1 ipn:3.1 -1000000 &
+bpdriver $EXPECTED_BUNDLES ipn:2.1 ipn:3.1 -1000000 &
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
@@ -261,6 +303,17 @@ do
         RETVAL=1
     fi
 done
+
+# Validate actual bundle reception
+if [ "$RETVAL" -eq 0 ]; then
+	RECEIVED=$(grep -i "bundles received:" $BPCOUNTER_OUTPUT | tail -1 | sed 's/.*: //')
+	if [ -z "$RECEIVED" ] || [ "$RECEIVED" -lt "$EXPECTED_BUNDLES" ]; then
+		echo "ERROR: Test 4 expected $EXPECTED_BUNDLES bundles, received ${RECEIVED:-0}"
+		RETVAL=1
+	else
+		echo "Test 4 PASSED: Received $RECEIVED bundles"
+	fi
+fi
 
 if [ "$RETVAL" -eq 1 ]
 then
@@ -280,12 +333,14 @@ sleep 3
 echo ""
 echo "Test 5: 100 bundles of 10,000,000 bytes each."
 cd ../3.bench.stcp
-bpcounter ipn:3.1 100 &
+BPCOUNTER_OUTPUT="../bpcounter_test5.txt"
+EXPECTED_BUNDLES=100
+bpcounter ipn:3.1 $EXPECTED_BUNDLES > $BPCOUNTER_OUTPUT &
 BPCOUNTER_PID=$!
 sleep 1
 
 cd ../2.bench.stcp
-bpdriver 100 ipn:2.1 ipn:3.1 -10000000 &
+bpdriver $EXPECTED_BUNDLES ipn:2.1 ipn:3.1 -10000000 &
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
@@ -316,6 +371,17 @@ do
         RETVAL=1
     fi
 done
+
+# Validate actual bundle reception
+if [ "$RETVAL" -eq 0 ]; then
+	RECEIVED=$(grep -i "bundles received:" $BPCOUNTER_OUTPUT | tail -1 | sed 's/.*: //')
+	if [ -z "$RECEIVED" ] || [ "$RECEIVED" -lt "$EXPECTED_BUNDLES" ]; then
+		echo "ERROR: Test 5 expected $EXPECTED_BUNDLES bundles, received ${RECEIVED:-0}"
+		RETVAL=1
+	else
+		echo "Test 5 PASSED: Received $RECEIVED bundles"
+	fi
+fi
 
 if [ "$RETVAL" -eq 1 ]
 then
@@ -335,12 +401,14 @@ sleep 3
 echo ""
 echo "Test 6: 10 bundles of 100,000,000 bytes each."
 cd ../3.bench.stcp
-bpcounter ipn:3.1 10 &
+BPCOUNTER_OUTPUT="../bpcounter_test6.txt"
+EXPECTED_BUNDLES=10
+bpcounter ipn:3.1 $EXPECTED_BUNDLES > $BPCOUNTER_OUTPUT &
 BPCOUNTER_PID=$!
 sleep 1
 
 cd ../2.bench.stcp
-bpdriver 10 ipn:2.1 ipn:3.1 -100000000 &
+bpdriver $EXPECTED_BUNDLES ipn:2.1 ipn:3.1 -100000000 &
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
@@ -371,6 +439,17 @@ do
         RETVAL=1
     fi
 done
+
+# Validate actual bundle reception
+if [ "$RETVAL" -eq 0 ]; then
+	RECEIVED=$(grep -i "bundles received:" $BPCOUNTER_OUTPUT | tail -1 | sed 's/.*: //')
+	if [ -z "$RECEIVED" ] || [ "$RECEIVED" -lt "$EXPECTED_BUNDLES" ]; then
+		echo "ERROR: Test 6 expected $EXPECTED_BUNDLES bundles, received ${RECEIVED:-0}"
+		RETVAL=1
+	else
+		echo "Test 6 PASSED: Received $RECEIVED bundles"
+	fi
+fi
 
 if [ "$RETVAL" -eq 1 ]
 then
@@ -390,12 +469,14 @@ sleep 3
 echo ""
 echo "Test 7: 1 bundle of 1,000,000,000 bytes."
 cd ../3.bench.stcp
-bpcounter ipn:3.1 1 &
+BPCOUNTER_OUTPUT="../bpcounter_test7.txt"
+EXPECTED_BUNDLES=1
+bpcounter ipn:3.1 $EXPECTED_BUNDLES > $BPCOUNTER_OUTPUT &
 BPCOUNTER_PID=$!
 sleep 1
 
 cd ../2.bench.stcp
-bpdriver 1 ipn:2.1 ipn:3.1 -1000000000 &
+bpdriver $EXPECTED_BUNDLES ipn:2.1 ipn:3.1 -1000000000 &
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
@@ -426,6 +507,17 @@ do
         RETVAL=1
     fi
 done
+
+# Validate actual bundle reception
+if [ "$RETVAL" -eq 0 ]; then
+	RECEIVED=$(grep -i "bundles received:" $BPCOUNTER_OUTPUT | tail -1 | sed 's/.*: //')
+	if [ -z "$RECEIVED" ] || [ "$RECEIVED" -lt "$EXPECTED_BUNDLES" ]; then
+		echo "ERROR: Test 7 expected $EXPECTED_BUNDLES bundles, received ${RECEIVED:-0}"
+		RETVAL=1
+	else
+		echo "Test 7 PASSED: Received $RECEIVED bundles"
+	fi
+fi
 
 if [ "$RETVAL" -eq 1 ]
 then
