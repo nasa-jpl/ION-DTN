@@ -194,7 +194,8 @@ void radixpt_radix_populate(PsmPartition partition, PsmAddress radixAddr)
 		{
 			if(gConfig.verbose)
 			{
-				printf("ADDING: %s with addr %ld\n", tmp, dataAddr);
+				printf("ADDING: %s with addr " ADDR_FIELDSPEC_INT
+				       "\n", tmp, dataAddr);
 			}
 		}
 
