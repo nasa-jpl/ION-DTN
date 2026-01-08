@@ -1,0 +1,35 @@
+name: Mirror to public GitHub repo
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - integration
+
+jobs:
+  mirror:
+    runs-on: [self-hosted, linux, x64, karuna]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: integration
+          fetch-depth: 1
+      - name: git fetch --unshallow
+        run: |
+          if [ -f .git/shallow ]; then
+            git fetch --unshallow origin integration
+          fi
+      - name: git push
+        env:
+          PAT: ${{ secrets.ION_DTN_PUSH_TOKEN }}
+        run: |
+          echo "::add-mask::$PAT"
+          PAT_B64=$(echo -n "x-access-token:$PAT" | base64 -w0)
+          echo "::add-mask::$PAT_B64"
+          export AUTH_HEADER="Authorization: Basic $PAT_B64"
+          GIT_TRACE=1 GIT_CURL_VERBOSE=1 git \
+            -c "http.https://github.com/.extraHeader=" \
+            --config-env=http.https://github.com/nasa-jpl/ION-DTN.extraHeader=AUTH_HEADER \
+            push https://github.com/nasa-jpl/ION-DTN.git +integration:integration
