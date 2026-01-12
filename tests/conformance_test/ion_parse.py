@@ -3,7 +3,6 @@
 import argparse
 import re
 import sys
-
 from typing import Tuple
 
 
@@ -27,10 +26,10 @@ def bpstats_parse(bundle_type: str, flow: str, logfile: str) -> Tuple[int, int]:
 
     if flow == "+":
         flow = r"\+"
-    result = re.search(rf"{flow}\)(..)(..)", stats_line)
+    result = re.findall(rf"{flow}\)(..)(..)", stats_line)
 
     if result is not None:
-        paired_values = result.group(0).split(")")[1].strip()
+        paired_values = result[-1].group(0).split(")")[1].strip()
         bundle_results = paired_values.split(" ")
         return int(bundle_results[0]), int(bundle_results[1])
 
