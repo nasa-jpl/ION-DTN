@@ -11,25 +11,24 @@ def bpstats_parse(bundle_type: str, flow: str, logfile: str) -> Tuple[int, int]:
     returns the number of bundles and total size. This will search based on the
     network type and which traffic flow."""
     bpstats = False
-    stats_line = None
+    stats_lines = []
 
     with open(logfile, "r", encoding="utf-8") as file:
         for line in file.readlines():
             if "Start of statistics snapshot" in line:
                 bpstats = True
             if bpstats and bundle_type in line:
-                stats_line = line
-                break
+                stats_lines.append(line)
 
-    if stats_line is None:
+    if not stats_lines:
         return 0, 0
 
     if flow == "+":
         flow = r"\+"
-    result = re.findall(rf"{flow}\)(..)(..)", stats_line)
+    result = re.search(rf"{flow}\) \d+ \d+", stats_lines[-1])
 
     if result is not None:
-        paired_values = result[-1].group(0).split(")")[1].strip()
+        paired_values = result.group(0).split(")")[1].strip()
         bundle_results = paired_values.split(" ")
         return int(bundle_results[0]), int(bundle_results[1])
 
