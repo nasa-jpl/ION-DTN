@@ -49,6 +49,10 @@ on:
       - 'bpv7/**'
       - '.github/workflows/ci-rtems61-aarch64-libbsd.yml'
 
+  merge_group:
+    branches:
+      - integration
+
 jobs:
   rtems-build-and-test:
     runs-on: [self-hosted, karuna]

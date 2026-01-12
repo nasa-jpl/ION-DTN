@@ -16,6 +16,8 @@ on:
     branches: [ "integration" ]
   pull_request:
     branches: [ "integration" ]
+  merge_group:
+    branches: [ "integration" ]
   schedule:
     - cron: '41 15 * * 1'
   workflow_dispatch:

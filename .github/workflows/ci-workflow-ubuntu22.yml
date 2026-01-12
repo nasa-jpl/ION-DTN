@@ -181,25 +181,26 @@ jobs:
           rm -rf $GITHUB_WORKSPACE/*
 
       - name: Set PR status
-        if: ${{ github.event.inputs.pr_number != '' }}
+        if: ${{ inputs.pr_number != '' }}
         uses: actions/github-script@v7
         with:
           script: |
             const conclusion = "${{ job.status }}" === "success" ? "success" : "failure";
-            const prNumber = parseInt("${{ github.event.inputs.pr_number }}", 10);
-      
-            const { data: pulls } = await github.rest.pulls.list({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: "open",
-            });
-      
-            const pr = pulls.find(p => p.number === prNumber);
-            if (!pr) {
-              console.log("PR not found");
+            const prNumber = parseInt("${{ inputs.pr_number }}", 10);
+
+            let pr;
+            try {
+              const { data } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+              });
+              pr = data;
+            } catch (error) {
+              console.log(`PR #${prNumber} not found: ${error.message}`);
               return;
             }
-      
+
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,

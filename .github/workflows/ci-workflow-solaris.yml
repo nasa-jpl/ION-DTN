@@ -2,6 +2,8 @@ name: Regression Tests for ION on Solaris 11 LDOM via Ubuntu host
 
 permissions:
   contents: read
+  statuses: write
+  pull-requests: read
 
 on:
   push:
@@ -202,3 +204,34 @@ jobs:
             cd ../.. &&
             rm -rf ~/ion-gh-test-dir'
           rm -rf $GITHUB_WORKSPACE/*
+
+      - name: Set PR status
+        if: ${{ inputs.pr_number != '' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const conclusion = "${{ job.status }}" === "success" ? "success" : "failure";
+            const prNumber = parseInt("${{ inputs.pr_number }}", 10);
+
+            let pr;
+            try {
+              const { data } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+              });
+              pr = data;
+            } catch (error) {
+              console.log(`PR #${prNumber} not found: ${error.message}`);
+              return;
+            }
+
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: pr.head.sha,
+              state: conclusion,
+              context: "ci/solaris",
+              description: `Tests ${conclusion === "success" ? "passed" : "failed"}`,
+              target_url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            });
