@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Nate Richard
-# 2025-10-16
+# 2026-01-12
 
 CONFIGFILES=" \
 ./2.ipn.udp/ipn.bprc \
@@ -22,10 +22,8 @@ echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
-echo "PURPOSE: Verify a bundle without a primary Block CRC or a Bundle
-    Integrity Block is rejected. RFC 9171 requires a bundle to contain at least
-    one of those pieces. ION should reject a bundle like this to ensure
-    compliance and so it only accepts authentic bundles.
+echo "PURPOSE: Verify several bundles are handled correctly to ensure ION
+    conformance with RFC 9171.
 "
 
 sleep 3
@@ -85,15 +83,9 @@ cd ../
 # pause for bpsink
 sleep 5
 
-echo "Sending unauthenticated bundle..."
-python3 bib_send.py
-sleep 5
-
-echo "Make sure good bundle gets through..."
-cd 2.ipn.udp
-bptrace ipn:2.1 ipn:3.1 dtn:none 300 0.1 "Hello!" &
-BPSOURCEPID=$!
-sleep 5
+echo "Sending bundles..."
+python runtest.py bundles.txt
+STATCHECK=$?
 
 # bpsink does not self-terminate, so send it SIGINT
 echo "Stopping bpsink..."
@@ -101,30 +93,10 @@ kill -2 $BPSINKPID >/dev/null 2>&1
 sleep 1
 kill -9 $BPSINKPID >/dev/null 2>&1
 
-echo "Make sure bpsource stopped..."
-kill -2 $BPSOURCEPID >/dev/null 2>&1
-sleep 1
-kill -9 $BPSOURCEPID >/dev/null 2>&1
-
-cd ../3.ipn.udp
-bpstats
-
-cd ..
-LINE_NUM=$(python3 ion_parse.py -l 'No primary block BIB or primary block CRC' 3.ipn.udp/ion.log)
-STATCHECK=$?
 if [ $STATCHECK -eq 0 ]; then
-    echo "SUCCESS: ion.log reported unauthenticated bundle rejected line $LINE_NUM"
+    echo "SUCCESS: Conformance test passed!"
 else
-    echo "FAIL: No match or error"
-    RETVAL=1
-fi
-
-python3 ion_parse.py -b 'rcv' -f '+' -c '1' -s '7' 3.ipn.udp/ion.log
-COUNTCHECK=$?
-if [ $COUNTCHECK -eq 0 ]; then
-    echo "SUCCESS: Correct number of bundles received"
-else
-    echo "FAIL: Incorrect bundle count or no bundles"
+    echo "FAIL: A conformance bundle failed."
     RETVAL=1
 fi
 
