@@ -3,10 +3,9 @@
 import argparse
 import re
 import sys
-from typing import Tuple
 
 
-def bpstats_parse(bundle_type: str, flow: str, logfile: str) -> Tuple[int, int]:
+def bpstats_parse(bundle_type: str, flow: str, logfile: str) -> tuple[int, int]:
     """Looks for the first instance where bpstats is called in ion.log and
     returns the number of bundles and total size. This will search based on the
     network type and which traffic flow."""
