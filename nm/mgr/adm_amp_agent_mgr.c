@@ -25,11 +25,6 @@
 #include "metadata.h"
 #include "nm_mgr_ui.h"
 
-
-
-
-#define _HAVE_AMP_AGENT_ADM_
-#ifdef _HAVE_AMP_AGENT_ADM_
 //vec_idx_t g_amp_agent_idx[11];
 
 void amp_agent_init(void)
@@ -785,5 +780,3 @@ void amp_agent_init_tblt(void)
 	adm_add_tblt(def);
 	meta_add_tblt(def->id, ADM_ENUM_AMP_AGENT, "tblts", "This table lists the ARI for every table template that is known to the agent.");
 }
-
-#endif // _HAVE_AMP_AGENT_ADM_

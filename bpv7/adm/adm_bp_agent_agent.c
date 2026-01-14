@@ -25,11 +25,6 @@
 #include "adm_bp_agent_impl.h"
 #include "agent/rda.h"
 
-
-
-#define _HAVE_DTN_BP_AGENT_ADM_
-#ifdef _HAVE_DTN_BP_AGENT_ADM_
-
 static vec_idx_t g_dtn_bp_agent_idx[11];
 
 void dtn_bp_agent_init(void)
@@ -186,5 +181,3 @@ void dtn_bp_agent_init_tblt(void)
 {
 
 }
-
-#endif // _HAVE_DTN_BP_AGENT_ADM_

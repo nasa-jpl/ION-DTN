@@ -18,8 +18,6 @@
 
 #ifndef ADM_LTP_AGENT_H_
 #define ADM_LTP_AGENT_H_
-#define _HAVE_DTN_LTP_AGENT_ADM_
-#ifdef _HAVE_DTN_LTP_AGENT_ADM_
 
 #include "shared/utils/nm_types.h"
 #include "shared/adm/adm.h"
@@ -329,9 +327,6 @@ void dtn_ltp_agent_init_ctrl(void);
 void dtn_ltp_agent_init_mac(void);
 void dtn_ltp_agent_init_rpttpl(void);
 void dtn_ltp_agent_init_tblt(void);
-
-#endif /* _HAVE_DTN_LTP_AGENT_ADM_ */
-
 
 #ifdef __cplusplus
 }

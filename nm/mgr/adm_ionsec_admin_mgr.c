@@ -25,11 +25,6 @@
 #include "metadata.h"
 #include "nm_mgr_ui.h"
 
-
-
-
-#define _HAVE_DTN_ION_IONSECADMIN_ADM_
-#ifdef _HAVE_DTN_ION_IONSECADMIN_ADM_
 static vec_idx_t g_dtn_ion_ionsecadmin_idx[11];
 
 void dtn_ion_ionsecadmin_init(void)
@@ -240,5 +235,3 @@ void dtn_ion_ionsecadmin_init_tblt(void)
 	adm_add_tblt(def);
 	meta_add_tblt(def->id, ADM_ENUM_DTN_ION_IONSECADMIN, "ltp_tx_rules", "This table lists all LTP segment signing rules in the security policy database.");
 }
-
-#endif // _HAVE_DTN_ION_IONSECADMIN_ADM_

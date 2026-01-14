@@ -25,11 +25,6 @@
 #include "metadata.h"
 #include "nm_mgr_ui.h"
 
-
-
-
-#define _HAVE_DTN_ION_IPNADMIN_ADM_
-#ifdef _HAVE_DTN_ION_IPNADMIN_ADM_
 static vec_idx_t g_dtn_ion_ipnadmin_idx[11];
 
 void dtn_ion_ipnadmin_init(void)
@@ -199,5 +194,3 @@ void dtn_ion_ipnadmin_init_tblt(void)
 	adm_add_tblt(def);
 	meta_add_tblt(def->id, ADM_ENUM_DTN_ION_IPNADMIN, "plans", "This table lists all of the egress plans that are established in the IPN database for the local node.");
 }
-
-#endif // _HAVE_DTN_ION_IPNADMIN_ADM_

@@ -25,11 +25,6 @@
 #include "adm_amp_agent_impl.h"
 #include "agent/rda.h"
 
-
-
-#define _HAVE_AMP_AGENT_ADM_
-#ifdef _HAVE_AMP_AGENT_ADM_
-
 //vec_idx_t g_amp_agent_idx[11];
 
 void amp_agent_init(void)
@@ -261,5 +256,3 @@ void amp_agent_init_tblt(void)
 	tblt_add_col(def, AMP_TYPE_ARI, "ids");
 	adm_add_tblt(def);
 }
-
-#endif // _HAVE_AMP_AGENT_ADM_

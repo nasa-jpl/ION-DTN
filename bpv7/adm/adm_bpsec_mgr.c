@@ -28,9 +28,6 @@
 
 #include "adm_amp_agent.h"
 
-
-#define _HAVE_DTN_BPSEC_ADM_
-#ifdef _HAVE_DTN_BPSEC_ADM_
 static vec_idx_t g_dtn_bpsec_idx[11];
 
 void dtn_bpsec_init(void)
@@ -572,5 +569,3 @@ void dtn_bpsec_init_tblt(void)
 	adm_add_tblt(def);
 	meta_add_tblt(def->id, ADM_ENUM_DTN_BPSEC, "bcb_rules", "BCB Rules.");
 }
-
-#endif // _HAVE_DTN_BPSEC_ADM_

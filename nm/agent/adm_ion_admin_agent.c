@@ -25,11 +25,6 @@
 #include "adm_ion_admin_impl.h"
 #include "agent/rda.h"
 
-
-
-#define _HAVE_DTN_ION_IONADMIN_ADM_
-#ifdef _HAVE_DTN_ION_IONADMIN_ADM_
-
 static vec_idx_t g_dtn_ion_ionadmin_idx[11];
 
 void dtn_ion_ionadmin_init(void)
@@ -153,5 +148,3 @@ void dtn_ion_ionadmin_init_tblt(void)
 	tblt_add_col(def, AMP_TYPE_UINT, "distance");
 	adm_add_tblt(def);
 }
-
-#endif // _HAVE_DTN_ION_IONADMIN_ADM_

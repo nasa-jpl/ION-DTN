@@ -18,8 +18,6 @@
 
 #ifndef ADM_BP_AGENT_H_
 #define ADM_BP_AGENT_H_
-#define _HAVE_DTN_BP_AGENT_ADM_
-#ifdef _HAVE_DTN_BP_AGENT_ADM_
 
 #include "shared/utils/nm_types.h"
 #include "shared/adm/adm.h"
@@ -286,5 +284,4 @@ void dtn_bp_agent_init_ctrl(void);
 void dtn_bp_agent_init_mac(void);
 void dtn_bp_agent_init_rpttpl(void);
 void dtn_bp_agent_init_tblt(void);
-#endif /* _HAVE_DTN_BP_AGENT_ADM_ */
 #endif //ADM_BP_AGENT_H_

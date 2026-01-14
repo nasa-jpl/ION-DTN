@@ -18,8 +18,6 @@
 
 #ifndef ADM_AMP_AGENT_H_
 #define ADM_AMP_AGENT_H_
-#define _HAVE_AMP_AGENT_ADM_
-#ifdef _HAVE_AMP_AGENT_ADM_
 
 #include "shared/utils/nm_types.h"
 #include "shared/adm/adm.h"
@@ -477,10 +475,6 @@ void amp_agent_init_ctrl(void);
 void amp_agent_init_mac(void);
 void amp_agent_init_rpttpl(void);
 void amp_agent_init_tblt(void);
-
-
-#endif /* _HAVE_AMP_AGENT_ADM_ */
-
 
 #ifdef __cplusplus
 }

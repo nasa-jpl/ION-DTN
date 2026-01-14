@@ -25,11 +25,6 @@
 #include "metadata.h"
 #include "nm_mgr_ui.h"
 
-
-
-
-#define _HAVE_DTN_ION_IONADMIN_ADM_
-#ifdef _HAVE_DTN_ION_IONADMIN_ADM_
 static vec_idx_t g_dtn_ion_ionadmin_idx[11];
 
 void dtn_ion_ionadmin_init(void)
@@ -337,5 +332,3 @@ void dtn_ion_ionadmin_init_tblt(void)
 	adm_add_tblt(def);
 	meta_add_tblt(def->id, ADM_ENUM_DTN_ION_IONADMIN, "ranges", "This table shows all predicted periods of constant distance between nodes.");
 }
-
-#endif // _HAVE_DTN_ION_IONADMIN_ADM_

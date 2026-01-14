@@ -25,11 +25,6 @@
 #include "metadata.h"
 #include "nm_mgr_ui.h"
 
-
-
-
-#define _HAVE_DTN_ION_LTPADMIN_ADM_
-#ifdef _HAVE_DTN_ION_LTPADMIN_ADM_
 static vec_idx_t g_dtn_ion_ltpadmin_idx[11];
 
 void dtn_ion_ltpadmin_init(void)
@@ -225,5 +220,3 @@ void dtn_ion_ltpadmin_init_tblt(void)
 	adm_add_tblt(def);
 	meta_add_tblt(def->id, ADM_ENUM_DTN_ION_LTPADMIN, "spans", "This table lists all spans of potential LTP data interchange that exists between the local LTP engine and the indicated (neighboring) LTP engine.");
 }
-
-#endif // _HAVE_DTN_ION_LTPADMIN_ADM_

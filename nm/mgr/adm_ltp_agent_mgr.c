@@ -25,11 +25,6 @@
 #include "metadata.h"
 #include "nm_mgr_ui.h"
 
-
-
-
-#define _HAVE_DTN_LTP_AGENT_ADM_
-#ifdef _HAVE_DTN_LTP_AGENT_ADM_
 static vec_idx_t g_dtn_ltp_agent_idx[11];
 
 void dtn_ltp_agent_init(void)
@@ -401,5 +396,3 @@ void dtn_ltp_agent_init_tblt(void)
 	adm_add_tblt(def);
 	meta_add_tblt(def->id, ADM_ENUM_DTN_LTP_AGENT, "engines", "This table lists all known remote engine ids.");
 }
-
-#endif // _HAVE_DTN_LTP_AGENT_ADM_

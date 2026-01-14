@@ -18,8 +18,6 @@
 
 #ifndef ADM_BPSEC_H_
 #define ADM_BPSEC_H_
-#define _HAVE_DTN_BPSEC_ADM_
-#ifdef _HAVE_DTN_BPSEC_ADM_
 
 #include "shared/utils/nm_types.h"
 #include "shared/adm/adm.h"
@@ -428,5 +426,4 @@ void dtn_bpsec_init_ctrl(void);
 void dtn_bpsec_init_mac(void);
 void dtn_bpsec_init_rpttpl(void);
 void dtn_bpsec_init_tblt(void);
-#endif /* _HAVE_DTN_BPSEC_ADM_ */
 #endif //ADM_BPSEC_H_

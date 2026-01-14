@@ -18,8 +18,6 @@
 
 #ifndef ADM_ION_LTP_ADMIN_H_
 #define ADM_ION_LTP_ADMIN_H_
-#define _HAVE_DTN_ION_LTPADMIN_ADM_
-#ifdef _HAVE_DTN_ION_LTPADMIN_ADM_
 
 #include "shared/utils/nm_types.h"
 #include "shared/adm/adm.h"
@@ -269,9 +267,6 @@ void dtn_ion_ltpadmin_init_ctrl(void);
 void dtn_ion_ltpadmin_init_mac(void);
 void dtn_ion_ltpadmin_init_rpttpl(void);
 void dtn_ion_ltpadmin_init_tblt(void);
-
-
-#endif /* _HAVE_DTN_ION_LTPADMIN_ADM_ */
 
 #ifdef __cplusplus
 }

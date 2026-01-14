@@ -25,11 +25,6 @@
 #include "metadata.h"
 #include "nm_mgr_ui.h"
 
-
-
-
-#define _HAVE_DTN_ION_BPADMIN_ADM_
-#ifdef _HAVE_DTN_ION_BPADMIN_ADM_
 static vec_idx_t g_dtn_ion_bpadmin_idx[11];
 
 void dtn_ion_bpadmin_init(void)
@@ -420,5 +415,3 @@ void dtn_ion_bpadmin_init_tblt(void)
 	adm_add_tblt(def);
 	meta_add_tblt(def->id, ADM_ENUM_DTN_ION_BPADMIN, "egress_plans", "Egress plans.");
 }
-
-#endif // _HAVE_DTN_ION_BPADMIN_ADM_

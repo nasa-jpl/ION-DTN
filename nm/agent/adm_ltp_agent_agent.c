@@ -25,11 +25,6 @@
 #include "adm_ltp_agent_impl.h"
 #include "agent/rda.h"
 
-
-
-#define _HAVE_DTN_LTP_AGENT_ADM_
-#ifdef _HAVE_DTN_LTP_AGENT_ADM_
-
 static vec_idx_t g_dtn_ltp_agent_idx[11];
 
 void dtn_ltp_agent_init(void)
@@ -200,5 +195,3 @@ void dtn_ltp_agent_init_tblt(void)
 	tblt_add_col(def, AMP_TYPE_UVAST, "peer_engine_nbr");
 	adm_add_tblt(def);
 }
-
-#endif // _HAVE_DTN_LTP_AGENT_ADM_

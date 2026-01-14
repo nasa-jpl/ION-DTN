@@ -18,8 +18,6 @@
 
 #ifndef ADM_ION_BP_ADMIN_H_
 #define ADM_ION_BP_ADMIN_H_
-#define _HAVE_DTN_ION_BPADMIN_ADM_
-#ifdef _HAVE_DTN_ION_BPADMIN_ADM_
 
 #include "shared/utils/nm_types.h"
 #include "shared/adm/adm.h"
@@ -397,5 +395,4 @@ void dtn_ion_bpadmin_init_ctrl(void);
 void dtn_ion_bpadmin_init_mac(void);
 void dtn_ion_bpadmin_init_rpttpl(void);
 void dtn_ion_bpadmin_init_tblt(void);
-#endif /* _HAVE_DTN_ION_BPADMIN_ADM_ */
 #endif //ADM_ION_BP_ADMIN_H_
