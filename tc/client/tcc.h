@@ -8,10 +8,10 @@
  *	Author: Scott Burleigh, JPL
  */
 
-#include "tc.h"
+#ifndef TCC_H
+#define TCC_H
 
-#ifndef _TCC_H_
-#define _TCC_H_
+#include "tc.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,4 +34,4 @@ extern int	tcc_getBulletin(int blocksGroupNbr, char **bulletinContent,
 }
 #endif
 
-#endif	/*	_TCC_H		*/
+#endif /* TCC_H */

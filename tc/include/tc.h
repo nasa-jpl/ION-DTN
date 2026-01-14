@@ -8,6 +8,9 @@
  *	Author: Scott Burleigh, JPL
  */
 
+#ifndef TC_H
+#define TC_H
+
 #include "lyst.h"
 #include "zco.h"
 #include "bpP.h"
@@ -15,9 +18,6 @@
 #ifndef TC_DEBUG
 #define	TC_DEBUG	(0)
 #endif
-
-#ifndef _TC_H_
-#define _TC_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -43,4 +43,4 @@ extern int	tc_deserialize(char **buffer, int *buflen,
 }
 #endif
 
-#endif
+#endif /* TC_H */

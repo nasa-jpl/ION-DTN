@@ -7,10 +7,10 @@
  *	Author: Scott Burleigh, JPL
  */
 
-#include "tcc.h"
+#ifndef DTKA_H
+#define DTKA_H
 
-#ifndef _DTKA_H_
-#define _DTKA_H_
+#include "tcc.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -53,4 +53,4 @@ extern "C"
 }
 #endif
 
-#endif /*	_DTKA_H	*/
+#endif /* DTKA_H */

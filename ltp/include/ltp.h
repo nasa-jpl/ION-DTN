@@ -9,10 +9,10 @@
  *	Author: Scott Burleigh, JPL
  */
 
-#include "sdr.h"
+#ifndef LTP_H
+#define LTP_H
 
-#ifndef _LTP_H_
-#define _LTP_H_
+#include "sdr.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -119,4 +119,4 @@ extern void	ltp_close(unsigned int clientId);
 }
 #endif
 
-#endif
+#endif /* LTP_H */

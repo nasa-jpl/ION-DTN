@@ -9,13 +9,13 @@
  *	Author: Scott Burleigh, JPL
  */
 
+#ifndef CFDPP_H
+#define CFDPP_H
+
 #include "lyst.h"
 #include "zco.h"
 #include "crc.h"
 #include "cfdp.h"
-
-#ifndef _CFDPP_H_
-#define _CFDPP_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -403,4 +403,4 @@ extern int		cfdpHandleInboundPdu(unsigned char *buf, int length);
 }
 #endif
 
-#endif
+#endif /* CFDPP_H */

@@ -11,15 +11,15 @@
  *	Author: Sotirios-Angelos Lenas, Space Internetworking Center
  */
 
+#ifndef BSSPP_H
+#define BSSPP_H
+
 #include "rfx.h"
 #include "lyst.h"
 #include "smlist.h"
 #include "zco.h"
 #include "bssp.h"
 #include "sdrhash.h"
-
-#ifndef _BSSPP_H_
-#define _BSSPP_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -368,4 +368,4 @@ extern int		bsspResendBlock(unsigned int sessionNbr);
 }
 #endif
 
-#endif
+#endif /* BSSPP_H */

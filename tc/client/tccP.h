@@ -9,10 +9,10 @@
  *	Author: Scott Burleigh, JPL
  */
 
-#include "tcc.h"
+#ifndef TCCP_H
+#define TCCP_H
 
-#ifndef _TCCP_H_
-#define _TCCP_H_
+#include "tcc.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -139,4 +139,4 @@ extern TccVdb		*getTccVdb(int blocksGroupNbr);
 }
 #endif
 
-#endif	/*	_TCCP_H	*/
+#endif /* TCCP_H */

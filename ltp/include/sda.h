@@ -8,10 +8,10 @@
  *	Author: Scott Burleigh, JPL
  */
 
-#include "ltp.h"
+#ifndef SDA_H
+#define SDA_H
 
-#ifndef _SDA_H_
-#define _SDA_H_
+#include "ltp.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -73,4 +73,4 @@ extern void	sda_interrupt(void);
 }
 #endif
 
-#endif
+#endif /* SDA_H */

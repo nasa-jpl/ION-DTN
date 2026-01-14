@@ -19,10 +19,11 @@
 	11-30-02  SCB   Original development.
 
 									*/
-#include "psm.h"
 
-#ifndef _SPTRACE_H_
-#define _SPTRACE_H_
+#ifndef SPTRACE_H
+#define SPTRACE_H
+
+#include "psm.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -132,4 +133,4 @@ extern void		sptrace_stop(PsmPartition trace);
 }
 #endif
 
-#endif  /* _SPTRACE_H_ */
+#endif /* SPTRACE_H */

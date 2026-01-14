@@ -8,10 +8,10 @@
  *	Author: Scott Burleigh, JPL
  */
 
-#include "tc.h"
+#ifndef TCA_H
+#define TCA_H
 
-#ifndef _TCA_H_
-#define _TCA_H_
+#include "tc.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -109,4 +109,4 @@ extern TcaVdb		*getTcaVdb(int blocksGroupNbr);
 }
 #endif
 
-#endif
+#endif /* TCA_H */

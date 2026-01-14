@@ -9,10 +9,10 @@
  *	Author: Scott Burleigh, JPL
  */
 
-#include "bp.h"
+#ifndef BPUTA_H
+#define BPUTA_H
 
-#ifndef _BPUTA_H_
-#define _BPUTA_H_
+#include "bp.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,4 +34,4 @@ typedef struct
 }
 #endif
 
-#endif
+#endif /* BPUTA_H */

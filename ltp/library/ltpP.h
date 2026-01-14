@@ -28,6 +28,9 @@
  *			 Research and Technology.
  */
 
+#ifndef LTPP_H
+#define LTPP_H
+
 /*	The UDP_MULTISEND option can improve LTP performance by
  *	sharply reducing system call overhead: multiple LTP segments
  *	encapsulated in UDP datagrams may be transmitted with a
@@ -64,9 +67,6 @@
 #include "zco.h"
 #include "ltp.h"
 #include "sdrhash.h"
-
-#ifndef _LTPP_H_
-#define _LTPP_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -856,11 +856,11 @@ extern void 		ltpForgetClosedExport(Object elt);
 extern int		addClosedExport(LtpDB *ltpdb, LtpVspan *vspan,
 				Object spanObj, unsigned int sessionNbr,
 				unsigned int segmentLength);
-extern int 		ackFromClosedExport(unsigned int sessionNbr,
+extern int		ackFromClosedExport(unsigned int sessionNbr,
 				unsigned int rptSerialNbr);
 #endif
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif /* LTPP_H */
