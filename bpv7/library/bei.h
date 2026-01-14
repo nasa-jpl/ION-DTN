@@ -4,9 +4,6 @@
 
 	Author: Scott Burleigh, JPL
 
-	Modification History:
-	Date      Who   What
-
 	Copyright (c) 2010, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
 *******************************************************************************/
@@ -176,10 +173,6 @@ extern Object	attachExtensionBlock(BpBlockType type, ExtensionBlock *blk,
  * \param[in/out]	bundle containing the new block
  * \par Notes:	Returns the address of the newly created block, or
  * 		zero on any error.
- * \par Revision History:
- *  MM/DD/YY  AUTHOR        IONWG#    DESCRIPTION
- *  --------  ------------  ------ ----------------------------------------
- *            S. Burleigh		   Initial Implementation
  */
 
 extern int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle);
@@ -193,11 +186,6 @@ void		destroyExtensionBlocks(Bundle *bundle);
  * \param[in]  bundle  - The bundle holding the desired block.
  * \param[in]  type    - The block identifier desired.
  * \param[in]  tag     - An annotation indicating the role of the block.
- * \par Notes:
- * \par Revision History:
- *  MM/DD/YY  AUTHOR        IONWG#    DESCRIPTION
- *  --------  ------------  ------ ----------------------------------------
- *            S. Burleigh		   Initial Implementation
  */
 extern Object	findExtensionBlock(Bundle *bundle, BpBlockType type, char tag);
 extern Object   getExtensionBlockObj(Bundle *bundle, unsigned char blockNum);
@@ -212,11 +200,6 @@ extern int	processExtensionBlocks(Bundle *bundle, int fnIdx,
  * \par Purpose:
  * \retval void
  * \param[in]  blk  The block being restored
- * \par Notes:
- * \par Revision History:
- *  MM/DD/YY  AUTHOR        IONWG#    DESCRIPTION
- *  --------  ------------  ------ ----------------------------------------
- *            S. Burleigh		   Initial Implementation
  */
 extern void	restoreExtensionBlock(ExtensionBlock *blk);
 
@@ -225,11 +208,6 @@ extern void	restoreExtensionBlock(ExtensionBlock *blk);
  * \par Purpose:
  * \retval void
  * \param[in]  blk  The block being scratched.
- * \par Notes:
- * \par Revision History:
- *  MM/DD/YY  AUTHOR        IONWG#    DESCRIPTION
- *  --------  ------------  ------ ----------------------------------------
- *            S. Burleigh		   Initial Implementation
  */
 extern void	scratchExtensionBlock(ExtensionBlock *blk);
 
@@ -239,11 +217,6 @@ extern void	scratchExtensionBlock(ExtensionBlock *blk);
  * \retval void
  * \param[in]  blk           - The block being serialized
  * \param[out] blockData     - The serialized block.
- * \par Notes:
- * \par Revision History:
- *  MM/DD/YY  AUTHOR        IONWG#    DESCRIPTION
- *  --------  ------------  ------ ----------------------------------------
- *            S. Burleigh		   Initial Implementation
  */
 extern int	serializeExtBlk(ExtensionBlock *blk, char *blockData);
 
@@ -252,11 +225,6 @@ extern int	serializeExtBlk(ExtensionBlock *blk, char *blockData);
  * \par Purpose:
  * \retval void
  * \param[in]  blk  The block being suppressed
- * \par Notes:
- * \par Revision History:
- *  MM/DD/YY  AUTHOR        IONWG#    DESCRIPTION
- *  --------  ------------  ------ ----------------------------------------
- *            S. Burleigh		   Initial Implementation
  */
 extern void	suppressExtensionBlock(ExtensionBlock *blk);
 
@@ -283,11 +251,6 @@ extern LystElt	getAcqExtensionBlock(AcqWorkArea *wk, unsigned char nbr);
  * \par Purpose:
  * \retval void
  * \param[in]  blk  The inbound block being discarded.
- * \par Notes:
- * \par Revision History:
- *  MM/DD/YY  AUTHOR        IONWG#    DESCRIPTION
- *  --------  ------------  ------ ----------------------------------------
- *            S. Burleigh		   Initial Implementation
  */
 extern void	discardAcqExtensionBlock(AcqExtBlock *blk);
 extern int	recordExtensionBlocks(AcqWorkArea *wk);
