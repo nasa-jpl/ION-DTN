@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+#
+# Regression test for QoS best-effort to reliable CLA fallback
+#
+# Tests that bundles marked with BP_BEST_EFFORT can be forwarded via
+# reliable CLAs (TCP) when no unreliable CLA is available.
+#
+# Network topology:
+#   Node 1 (LTP) --> Node 2 (LTP in, TCP out) --> Node 3 (TCP)
+#
+# The bundle is sent with best-effort QoS from Node 1 to Node 3.
+# At Node 2, only TCP is available to reach Node 3.
+# Without the fix: bundle goes to limbo at Node 2
+# With the fix: bundle is forwarded via TCP to Node 3
+
+echo "=============================================="
+echo "QoS Best-Effort to TCP Fallback Regression Test"
+echo "=============================================="
+
+# Cleanup any previous test
+killm >/dev/null 2>&1
+./cleanup
+sleep 1
+
+echo "Starting ION nodes..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start Node 3 first (destination, TCP receiver)
+echo "Starting Node 3 (TCP destination)..."
+cd 3.ipn.tcp
+./ionstart > node3.stdout 2>&1
+sleep 2
+
+# Start Node 2 (relay with LTP in, TCP out)
+echo "Starting Node 2 (LTP-TCP relay)..."
+cd ../2.ipn.relay
+./ionstart > node2.stdout 2>&1
+sleep 2
+
+# Start Node 1 (LTP source)
+echo "Starting Node 1 (LTP source)..."
+cd ../1.ipn.ltp
+./ionstart > node1.stdout 2>&1
+sleep 2
+
+# Wait for all nodes to initialize
+echo "Waiting for nodes to initialize..."
+sleep 5
+
+# Start receiver on Node 3
+echo "Starting bprecvfile on Node 3..."
+cd ../3.ipn.tcp
+bprecvfile ipn:3.1 &
+RECV_PID=$!
+sleep 2
+
+# Send test file with BEST EFFORT QoS from Node 1 to Node 3
+# QoS format: custody.priority.ordinal.unreliable.critical
+# 0.1.0.1.0 = no custody, priority 1, ordinal 0, UNRELIABLE (best-effort), not critical
+echo "Sending best-effort bundle from Node 1 to Node 3..."
+cd ../1.ipn.ltp
+bpsendfile ipn:1.2 ipn:3.1 testfile 0.1.0.1.0
+sleep 10
+
+# Check if file was received
+RETVAL=0
+cd ../3.ipn.tcp
+
+if [ -f testfile1 ]; then
+    echo "SUCCESS: File received at Node 3!"
+    if diff ../1.ipn.ltp/testfile testfile1 > /dev/null 2>&1; then
+        echo "SUCCESS: File content matches!"
+    else
+        echo "WARNING: File received but content differs"
+        RETVAL=1
+    fi
+else
+    echo "FAILURE: File NOT received at Node 3"
+    echo "This indicates the bundle was likely stuck in limbo at Node 2"
+    echo "The fix for best-effort to reliable CLA fallback may not be working"
+    RETVAL=1
+fi
+
+# Additional diagnostics
+echo ""
+echo "=== Diagnostic Information ==="
+
+echo "Node 2 limbo check:"
+cd ../2.ipn.relay
+if grep -i "limbo" ion.log 2>/dev/null; then
+    echo "WARNING: Found limbo references in Node 2 log"
+fi
+
+echo ""
+echo "Node 2 forwarding check:"
+if grep -i "Forwarded" ion.log 2>/dev/null | tail -3; then
+    echo "(forwarding activity found)"
+else
+    echo "(no forwarding activity logged)"
+fi
+
+# Cleanup
+echo ""
+echo "Cleaning up..."
+kill $RECV_PID 2>/dev/null
+killm >/dev/null 2>&1
+
+echo ""
+if [ $RETVAL -eq 0 ]; then
+    echo "TEST PASSED: Best-effort bundle successfully forwarded via TCP"
+else
+    echo "TEST FAILED: Best-effort bundle did not reach destination"
+fi
+
+exit $RETVAL

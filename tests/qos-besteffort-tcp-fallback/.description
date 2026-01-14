@@ -1,0 +1,1 @@
+Tests that best-effort bundles can use reliable (TCP) CLAs when no unreliable CLA is available.

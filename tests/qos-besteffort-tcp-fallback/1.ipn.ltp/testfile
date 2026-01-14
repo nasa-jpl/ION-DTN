@@ -1,0 +1,6 @@
+This is a test file for the QoS best-effort to TCP fallback regression test.
+The bundle containing this file is sent with BP_BEST_EFFORT QoS flag.
+It should be forwarded via LTP (green) from Node 1 to Node 2.
+At Node 2, it should fall back to TCP (reliable) to reach Node 3.
+Without the fix, this bundle would be stuck in limbo at Node 2.
+With the fix, it arrives successfully at Node 3.

@@ -1,0 +1,5 @@
+# IPN routing for Node 3
+# Route to Node 2 via TCP
+a plan 2 tcp/127.0.0.1:4556
+# Route to Node 1 via Node 2
+a plan 1 tcp/127.0.0.1:4556

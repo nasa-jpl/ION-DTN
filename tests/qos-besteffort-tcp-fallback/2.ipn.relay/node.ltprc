@@ -1,0 +1,6 @@
+# LTP configuration for Node 2 (receives from Node 1 only)
+1 32
+# Add span to Node 1 for return traffic
+a span 1 10 10 1400 10000 1 'udplso 127.0.0.1:1113'
+# Start link service input
+s 'udplsi 127.0.0.1:2113'

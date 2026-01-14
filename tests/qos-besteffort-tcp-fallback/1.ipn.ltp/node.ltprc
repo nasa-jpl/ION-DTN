@@ -1,0 +1,7 @@
+# LTP configuration for Node 1
+# Initialize with engine number 1
+1 32
+# Add span to Node 2
+a span 2 10 10 1400 10000 1 'udplso 127.0.0.1:2113'
+# Start link service input
+s 'udplsi 127.0.0.1:1113'

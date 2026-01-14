@@ -1,0 +1,5 @@
+# IPN routing for Node 2
+# Route to Node 1 via LTP
+a plan 1 ltp/1
+# Route to Node 3 via TCP (this is the key - TCP is reliable only)
+a plan 3 tcp/127.0.0.1:4557

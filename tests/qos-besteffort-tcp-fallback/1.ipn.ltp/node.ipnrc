@@ -1,0 +1,5 @@
+# IPN routing for Node 1
+# Route to Node 2 via LTP
+a plan 2 ltp/2
+# Route to Node 3 via Node 2 (multi-hop)
+a plan 3 ltp/2

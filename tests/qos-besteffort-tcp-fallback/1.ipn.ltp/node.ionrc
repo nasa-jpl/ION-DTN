@@ -1,0 +1,15 @@
+# Node 1 - Source node using LTP
+1 1 node.ionconfig
+s
+m horizon +0
+a range +0 +3600 1 2 1
+a range +0 +3600 2 1 1
+a range +0 +3600 2 3 1
+a range +0 +3600 3 2 1
+a contact +0 +3600 1 1 100000
+a contact +0 +3600 2 2 100000
+a contact +0 +3600 3 3 100000
+a contact +0 +3600 1 2 100000
+a contact +0 +3600 2 1 100000
+a contact +0 +3600 2 3 100000
+a contact +0 +3600 3 2 100000
