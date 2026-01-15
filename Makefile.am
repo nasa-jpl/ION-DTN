@@ -2591,7 +2591,7 @@ ionrestart_CFLAGS = -I$(srcdir)/ici/sdr -I$(srcdir)/ici/library -I$(srcdir)/$(BP
 # TESTS SECTION
 #
 ##########################
-.PHONY:	test check buildcheck test-all test-branch test-% retest
+.PHONY:	test check buildcheck test-all test-% retest
 
 # "make buildcheck" will compile any of the compiled tests, but won't run
 # any of them.
@@ -2611,14 +2611,6 @@ test: buildcheck
 # Could also use ./runtestset alltests, they should be equivalent.
 test-all: buildcheck
 	cd $(srcdir)/tests && ./runtests
-
-# Builds a testset file with the same name as a mercurial branch.
-# This is intended as a per-branch unit test.
-test-branch: buildcheck
-	@echo
-	@echo "You need mercurial (hg) installed for this."
-	@echo
-	cd $(srcdir)/tests && hg branch | xargs -L1 ./runtestset
 
 # Catch-all for tests, basically any string after "make test-" will run a
 # testset file with the same name as that string.
