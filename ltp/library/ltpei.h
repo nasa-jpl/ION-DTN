@@ -16,8 +16,8 @@
  *                        getIndexOfExtensionField and getExtensionField
  */
 
-#ifndef _LTPEI_H_
-#define _LTPEI_H_
+#ifndef LTPEI_H
+#define LTPEI_H
 
 /*****************************************************************************
  *                           CALLBACK TYPE DEFINITIONS                       *
@@ -245,4 +245,4 @@ Returns:
 extern int	invokeOutboundOnTrailerExtensionGenerationCallbacks
 			(LtpXmitSeg *segment);
 
-#endif	/* _LTPEI_H_ */
+#endif /* LTPEI_H */

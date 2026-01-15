@@ -39,8 +39,9 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
  									*/
-#ifndef _IPNFW_H_
-#define _IPNFW_H_
+
+#ifndef IPNFW_H
+#define IPNFW_H
 
 #include "bpP.h"
 #include "cgr.h"
@@ -165,4 +166,4 @@ extern int		ipn_removePlan(uvast fqnn);
 }
 #endif
 
-#endif  /* _IPNFW_H_ */
+#endif /* IPNFW_H */

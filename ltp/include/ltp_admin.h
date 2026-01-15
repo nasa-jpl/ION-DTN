@@ -10,8 +10,8 @@
  * ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
  */
 
-#ifndef _LTP_ADMIN_H_
-#define _LTP_ADMIN_H_
+#ifndef LTP_ADMIN_H
+#define LTP_ADMIN_H
 
 #include "platform.h"
 
@@ -202,4 +202,4 @@ extern void ltp_print_span_sessions(uvast engine_id);
 }
 #endif
 
-#endif /* _LTP_ADMIN_H_ */
+#endif /* LTP_ADMIN_H */

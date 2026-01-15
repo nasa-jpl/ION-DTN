@@ -8,8 +8,8 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
 */
 
-#ifndef	_RAMSCOMMON_H
-#define	_RAMSCOMMON_H
+#ifndef RAMSCOMMON_H
+#define RAMSCOMMON_H
 
 #ifndef RAMSDEBUG
 #define	RAMSDEBUG	0
@@ -100,4 +100,4 @@ extern void		*CheckUdpRpdus(void *threadParm);
 }
 #endif
 
-#endif
+#endif /* RAMSCOMMON_H */

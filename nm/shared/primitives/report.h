@@ -27,9 +27,8 @@
  **  09/28/18  E. Birrane     Update to latest AMP v0.5. (JHU/APL)
  *****************************************************************************/
 
-
-#ifndef _REPORT_H_
-#define _REPORT_H_
+#ifndef REPORT_H
+#define REPORT_H
 
 #include "../utils/nm_types.h"
 #include "../utils/db.h"
@@ -156,4 +155,4 @@ blob_t*   rpttpl_serialize_wrapper(rpttpl_t *rpttpl);
 }
 #endif
 
-#endif /* _REPORT_H_ */
+#endif /* REPORT_H */

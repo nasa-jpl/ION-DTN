@@ -8,8 +8,9 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
  									*/
-#ifndef _UDPLSA_H_
-#define _UDPLSA_H_
+
+#ifndef UDPLSA_H
+#define UDPLSA_H
 
 #include "ltpP.h"
 #include "ion_network.h" 
@@ -37,4 +38,4 @@ extern void			*udplsa_handle_datagrams(void *parm);
 }
 #endif
 
-#endif	/* _UDPLSA_H */
+#endif /* UDPLSA_H */

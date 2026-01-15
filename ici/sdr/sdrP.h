@@ -11,8 +11,8 @@
  *	acknowledged.
  */
 
-#ifndef _SDRP_H_
-#define _SDRP_H_
+#ifndef SDRP_H
+#define SDRP_H
 
 #ifndef NO_SDR_TRACE
 #define	SDR_TRACE
@@ -220,4 +220,4 @@ extern int		sdrFetchSafe(Sdr);
 
 extern void		crashXn(Sdr);
 
-#endif  /* _SDRP_H_ */
+#endif /* SDRP_H */

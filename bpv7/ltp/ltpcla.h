@@ -12,8 +12,9 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
  									*/
-#ifndef _LTPCLA_H_
-#define _LTPCLA_H_
+
+#ifndef LTPCLA_H
+#define LTPCLA_H
 
 #include "bpP.h"
 #include "ltp.h"
@@ -30,4 +31,4 @@ extern "C" {
 }
 #endif
 
-#endif	/* _LTPCLA_H */
+#endif /* LTPCLA_H */

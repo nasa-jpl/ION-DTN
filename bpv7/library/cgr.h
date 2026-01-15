@@ -11,8 +11,9 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
  									*/
-#ifndef _CGR_H_
-#define _CGR_H_
+
+#ifndef CGR_H
+#define CGR_H
 
 #include "bpP.h"
 
@@ -284,4 +285,4 @@ extern void		cgr_stop(void);
 }
 #endif
 
-#endif  /* _CGR_H_ */
+#endif /* CGR_H */

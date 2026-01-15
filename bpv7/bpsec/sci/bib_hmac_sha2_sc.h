@@ -29,8 +29,8 @@
  **  03/07/22  E. Birrane     Initial implementation
  *****************************************************************************/
 
-#ifndef _BPSEC_BHSSC_H_
-#define _BPSEC_BHSSC_H_
+#ifndef BPSEC_BHSSC_H
+#define BPSEC_BHSSC_H
 
 #include "csi.h"
 #include "sci.h"
@@ -94,4 +94,4 @@ uint8_t* bpsec_bhsscutl_computeSignature(BpsecSerializeData preamble, Object zco
 
 
 
-#endif
+#endif /* BPSEC_BHSSC_H */

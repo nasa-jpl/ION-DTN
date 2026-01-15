@@ -8,8 +8,9 @@
 	Author: Larry Shackleford, GSFC
 	Modified by Scott Burleigh per changes in MIB definition
  									*/
-#ifndef _BPNM_H_
-#define _BPNM_H_
+
+#ifndef BPNM_H
+#define BPNM_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -92,4 +93,4 @@ extern void	bpnm_endpoint_get(char * name, NmbpEndpoint * buffer,
 }
 #endif
 
-#endif  /* _BPNM_H_ */
+#endif /* BPNM_H */

@@ -14,8 +14,9 @@
 	acknowledged.
 
 									*/
-#ifndef _SDRMGT_H_
-#define _SDRMGT_H_
+
+#ifndef SDRMGT_H
+#define SDRMGT_H
 
 #include "sdrxn.h"
 
@@ -130,4 +131,4 @@ extern void		sdr_stop_trace(Sdr sdr);
 }
 #endif
 
-#endif  /* _SDRMGT_H_ */
+#endif /* SDRMGT_H */

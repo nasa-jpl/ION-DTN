@@ -12,8 +12,9 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
  									*/
-#ifndef _PSM_H_
-#define _PSM_H_
+
+#ifndef PSM_H
+#define PSM_H
 
 #include "platform.h"
 
@@ -267,4 +268,4 @@ extern void		psm_erase(PsmPartition);
 }
 #endif
 
-#endif
+#endif /* PSM_H */

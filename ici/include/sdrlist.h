@@ -14,8 +14,9 @@
 	acknowledged.
 
 									*/
-#ifndef _SDRLIST_H_
-#define _SDRLIST_H_
+
+#ifndef SDRLIST_H
+#define SDRLIST_H
 
 #include "sdrmgt.h"
 
@@ -106,4 +107,4 @@ extern Address		Sdr_list_data_set(const char *file, int line,
 }
 #endif
 
-#endif  /* _SDRLIST_H_ */
+#endif /* SDRLIST_H */

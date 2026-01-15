@@ -44,8 +44,8 @@
  **                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-#ifndef _CSI_H_
-#define _CSI_H_
+#ifndef CSI_H
+#define CSI_H
 
 
 #include "platform.h"
@@ -187,4 +187,4 @@ extern uint32_t	csi_sign_res_len(csi_csid_t suite, void *context);
 extern uint32_t	csi_crypt_parm_get_len(csi_csid_t suite, csi_parmid_t parmid);
 extern uint32_t	csi_crypt_res_len(csi_csid_t suite, void *context, csi_blocksize_t blocksize, csi_svcid_t svc);
 
-#endif
+#endif /* CSI_H */

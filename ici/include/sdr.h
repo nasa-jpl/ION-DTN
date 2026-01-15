@@ -24,8 +24,9 @@
 	acknowledged.
 
 									*/
-#ifndef _SDR_H_
-#define _SDR_H_
+
+#ifndef SDR_H
+#define SDR_H
 
 #include "sdrstring.h"
 #include "sdrlist.h"
@@ -63,4 +64,4 @@ extern Object		sdr_read_catlg(Sdr sdr, char *name, int *type,
 }
 #endif
 
-#endif  /* _SDR_H_ */
+#endif /* SDR_H */

@@ -23,8 +23,8 @@
  **  10/06/18  E. Birrane     Update to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
-#ifndef _UI_INPUT_H
-#define _UI_INPUT_H
+#ifndef UI_INPUT_H
+#define UI_INPUT_H
 
 #include "../shared/utils/nm_types.h"
 #include "../shared/adm/adm.h"
@@ -115,4 +115,4 @@ macdef_t *ui_input_mac(char *prompt);
 }
 #endif
 
-#endif  /* _UI_INPUT_H_ */
+#endif /* UI_INPUT_H */

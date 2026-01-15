@@ -11,8 +11,9 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
  									*/
-#ifndef _SPPCLA_H_
-#define _SPPCLA_H_
+
+#ifndef SPPCLA_H
+#define SPPCLA_H
 
 #include "bpP.h"
 #include <stdio.h>
@@ -52,4 +53,4 @@ extern int	sendBundleBySPP(unsigned int bundleLength, Object bundleZco,
 }
 #endif
 
-#endif	/* _SPPCLA_H */
+#endif /* SPPCLA_H */

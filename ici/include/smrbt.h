@@ -16,8 +16,9 @@
 	acknowledged.
 
 									*/
-#ifndef _SMRBT_H_
-#define _SMRBT_H_
+
+#ifndef SMRBT_H
+#define SMRBT_H
 
 #include "psm.h"
 
@@ -99,4 +100,4 @@ extern PsmAddress	sm_rbt_data(PsmPartition partition, PsmAddress node);
 }
 #endif
 
-#endif  /* _SMRBT_H_ */
+#endif /* SMRBT_H */

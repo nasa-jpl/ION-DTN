@@ -10,8 +10,8 @@
  * - Common ION test functions
  */
 
-#ifndef _ION_TEST_UTILS_H_
-#define _ION_TEST_UTILS_H_
+#ifndef ION_TEST_UTILS_H
+#define ION_TEST_UTILS_H
 
 #include "ion.h"
 #include "ion_admin.h"
@@ -297,4 +297,4 @@ int test_list_protocols(void);
  */
 int test_cleanup(void);
 
-#endif /* _ION_TEST_UTILS_H_ */
+#endif /* ION_TEST_UTILS_H */

@@ -30,8 +30,9 @@
 	acknowledged.
 
 									*/
-#ifndef _SDRHASH_H_
-#define _SDRHASH_H_
+
+#ifndef SDRHASH_H
+#define SDRHASH_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -92,4 +93,4 @@ extern void		Sdr_hash_destroy(const char *file, int line, Sdr sdr,
 }
 #endif
 
-#endif  /* _SDRHASH_H_ */
+#endif /* SDRHASH_H */

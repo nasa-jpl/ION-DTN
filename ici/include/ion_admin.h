@@ -10,8 +10,8 @@
  * ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
  */
 
-#ifndef _ION_ADMIN_H_
-#define _ION_ADMIN_H_
+#ifndef ION_ADMIN_H
+#define ION_ADMIN_H
 
 #include "ion.h"
 
@@ -243,4 +243,4 @@ extern int ion_list_ranges(void);
 }
 #endif
 
-#endif /* _ION_ADMIN_H_ */
+#endif /* ION_ADMIN_H */

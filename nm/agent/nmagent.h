@@ -22,8 +22,8 @@
  **  10/03/18  E. Birrane     Update to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
-#ifndef _NM_AGENT_H
-#define _NM_AGENT_H
+#ifndef NM_AGENT_H
+#define NM_AGENT_H
 
 #define DEBUG 1
 
@@ -125,4 +125,4 @@ extern iif_t ion_ptr;
 }
 #endif
 
-#endif  /* _NM_AGENT_H_ */
+#endif /* NM_AGENT_H */

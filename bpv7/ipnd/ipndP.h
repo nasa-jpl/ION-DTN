@@ -13,8 +13,8 @@
  *	Version 2.2 Shared context ctx passed explicitely to threads to avoid shared library security change implications
  */
 
-#ifndef _IPND_H_
-#define _IPND_H_
+#ifndef IPND_H
+#define IPND_H
 
 #include "lyst.h"
 #include "llcv.h"
@@ -139,4 +139,4 @@ extern void	setIPNDCtx(IPNDCtx *);
 }
 #endif
 
-#endif
+#endif /* IPND_H */

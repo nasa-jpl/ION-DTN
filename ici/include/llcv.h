@@ -30,8 +30,9 @@
 /*									*/
 /*	Mutex locking fixes by John Huff, Ohio University, 2018.	*/
 /*									*/
-#ifndef _LLCV_H_
-#define _LLCV_H_
+
+#ifndef LLCV_H
+#define LLCV_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -128,4 +129,4 @@ extern void	llcv_close(Llcv llcv);
 }
 #endif
 
-#endif  /* _LLCV_H_ */
+#endif /* LLCV_H */

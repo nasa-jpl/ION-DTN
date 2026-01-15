@@ -16,8 +16,9 @@
 			   structures, added lists of ltpXmitAuthRule
 			   and ltpRecvAuthRules in SecDB structure
 									*/
-#ifndef _LTPSEC_H_
-#define _LTPSEC_H_
+
+#ifndef LTPSEC_H
+#define LTPSEC_H
 
 #include "ionsec.h"
 
@@ -77,4 +78,4 @@ extern int	sec_removeLtpRecvAuthRule(uvast ltpEngineId);
 }
 #endif
 
-#endif  /* _LTPSEC_H_ */
+#endif /* LTPSEC_H */

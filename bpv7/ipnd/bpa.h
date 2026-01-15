@@ -13,8 +13,8 @@
  *		- ION IPND Implementation Assembly Part2
  */
 
-#ifndef _NODE_H_
-#define _NODE_H_
+#ifndef BPA_H
+#define BPA_H
 
 #define IPND_DEBUG	0
 
@@ -72,4 +72,4 @@ extern void	*expireNeighbors(void *attr);
 }
 #endif
 
-#endif
+#endif /* BPA_H */

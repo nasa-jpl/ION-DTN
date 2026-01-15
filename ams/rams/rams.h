@@ -8,8 +8,8 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
 */
 
-#ifndef	_RAMS_H
-#define	_RAMS_H
+#ifndef RAMS_H
+#define RAMS_H
 
 #include "ams.h"
 #include "amscommon.h"
@@ -201,4 +201,4 @@ extern int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 }
 #endif
 
-#endif	/* _RAMS_H */
+#endif /* RAMS_H */

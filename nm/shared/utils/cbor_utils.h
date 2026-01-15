@@ -25,8 +25,9 @@
  **  --------  ------------   ---------------------------------------------
  **  08/31/18  E. Birrane     Initial Implementation (JHU/APL)
  *****************************************************************************/
-#ifndef __CBOR_UTILS__
-#define __CBOR_UTILS__
+
+#ifndef CBOR_UTILS_H
+#define CBOR_UTILS_H
 
 #include "nm_types.h"
 #include "vector.h"
@@ -84,4 +85,4 @@ int cut_get_cbor_str_ptr(QCBORDecodeContext *it, char *dst, size_t length);
 }
 #endif
 
-#endif  /* _CBOR_UTILS_H_ */
+#endif /* CBOR_UTILS_H */

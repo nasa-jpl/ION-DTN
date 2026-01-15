@@ -56,8 +56,9 @@
 									*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*									*/
-#ifndef _ZCO_H_
-#define _ZCO_H_
+
+#ifndef ZCO_H
+#define ZCO_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -619,4 +620,4 @@ extern void	zco_strip(	Sdr sdr,
 }
 #endif
 
-#endif  /* _ZCO_H_ */
+#endif /* ZCO_H */

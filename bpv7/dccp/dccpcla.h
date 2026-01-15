@@ -12,8 +12,9 @@
 	fragmentation support. Maximum packet size is
 	link MTU.
  										*/
-#ifndef _DCCPCLA_H_
-#define _DCCPCLA_H_
+
+#ifndef DCCPCLA_H
+#define DCCPCLA_H
 
 #include "bpP.h"
 #include <pthread.h>
@@ -75,4 +76,4 @@ extern "C" {
 }
 #endif
 
-#endif	/* _DCCPLSA_H_ */
+#endif /* DCCPLSA_H */

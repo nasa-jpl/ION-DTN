@@ -7,8 +7,9 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
 									*/
-#ifndef _CRC_H_
-#define _CRC_H_
+
+#ifndef CRC_H
+#define CRC_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,4 +38,4 @@ extern uint32_t ion_CRC32_1EDC6F41_C(const char *data, uint32_t dLen,
 }
 #endif
 
-#endif  /* _CRC_H_ */
+#endif /* CRC_H */

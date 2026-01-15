@@ -8,8 +8,8 @@
  *	Author: Scott Burleigh, Jet Propulsion Laboratory
  */
 
-#ifndef _BULK_H_
-#define _BULK_H_
+#ifndef BULK_H
+#define BULK_H
 
 extern int		bulk_create(unsigned long item);
 extern int		bulk_write(unsigned long item, vast offset,
@@ -18,4 +18,4 @@ extern int		bulk_read(unsigned long item, char *buffer,
 				vast offset, vast length);
 extern void		bulk_destroy(unsigned long item);
 
-#endif  /* _BULK_H_ */
+#endif /* BULK_H */

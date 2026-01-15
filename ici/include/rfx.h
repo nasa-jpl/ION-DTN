@@ -10,8 +10,9 @@
 									*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*									*/
-#ifndef _RFX_H_
-#define _RFX_H_
+
+#ifndef RFX_H
+#define RFX_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -216,4 +217,4 @@ extern PsmAddress	postProbeEvent(IonNode *node, Embargo *embargo);
 }
 #endif
 
-#endif  /* _RFX_H_ */
+#endif  /* RFX_H */

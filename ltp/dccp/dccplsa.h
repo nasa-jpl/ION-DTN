@@ -8,8 +8,9 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
  									*/
-#ifndef _DCCPLSA_H_
-#define _DCCPLSA_H_
+
+#ifndef DCCPLSA_H
+#define DCCPLSA_H
 
 #include "ltpP.h"
 #include <pthread.h>
@@ -71,4 +72,4 @@ extern "C" {
 }
 #endif
 
-#endif	/* _UDPLSA_H */
+#endif /* DCCPLSA_H */

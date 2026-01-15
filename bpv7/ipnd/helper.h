@@ -12,8 +12,8 @@
  *		- ION IPND Implementation Assembly Part2
  */
 
-#ifndef _HELPER_H_
-#define _HELPER_H_
+#ifndef HELPER_H
+#define HELPER_H
 
 #include "platform.h"
 #include "lyst.h"
@@ -88,4 +88,4 @@ int	bytesIP6ToBytesString(unsigned char *data, char *buf, int maxLen);
 }
 #endif
 
-#endif
+#endif /* HELPER_H */

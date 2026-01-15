@@ -21,8 +21,9 @@
  **  05/17/15  E. Birrane     Redesign around DTNMP v0.1 (Secure DTN - NASA: NNX14CS58P)
  **  11/18/18  E. Birrane     Update to latest AMP version. (JHU/APL)
  *****************************************************************************/
-#ifndef _CTRL_H
-#define _CTRL_H
+
+#ifndef CTRL_H
+#define CTRL_H
 
 #include "../utils/utils.h"
 #include "../utils/nm_types.h"
@@ -177,4 +178,4 @@ blob_t*   macdef_serialize_wrapper(macdef_t *mac);
 }
 #endif
 
-#endif  /* _CTRL_H_ */
+#endif /* CTRL_H */

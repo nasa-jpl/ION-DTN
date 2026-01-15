@@ -12,8 +12,8 @@
  *	Author: Sotirios-Angelos Lenas, Space Internetworking Center (SPICE)
  */
 
-#ifndef _BSSP_H_
-#define _BSSP_H_
+#ifndef BSSP_H
+#define BSSP_H
 
 #include "bss.h"
 #include "bp.h"
@@ -190,5 +190,4 @@ extern void		findIndexRow(time_t time, long *position);
 }
 #endif
 
-#endif  /* _BSSP_H_ */
-
+#endif /* BSSP_H */

@@ -7,8 +7,9 @@
 									*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*									*/
-#ifndef _MEMMGR_H_
-#define _MEMMGR_H_
+
+#ifndef MEMMGR_H
+#define MEMMGR_H
 
 #include "psm.h"
 
@@ -82,4 +83,4 @@ void		memmgr_destroy(uaddr smId, PsmPartition *partition);
 }
 #endif
 
-#endif  /* _MEMMGR_H_ */
+#endif /* MEMMGR_H */

@@ -21,9 +21,8 @@
  **                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-
-#ifndef _CSI_DEBUG_H_
-#define _CSI_DEBUG_H_
+#ifndef CSI_DEBUG_H
+#define CSI_DEBUG_H
 
 #include "platform.h"
 #include "ion.h"
@@ -105,7 +104,4 @@ extern char	gCsiMsg[GMSG_BUFLEN];
 
 #endif
 
-
-
-
-#endif
+#endif /* CSI_DEBUG_H */

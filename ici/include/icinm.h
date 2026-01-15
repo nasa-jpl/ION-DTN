@@ -9,8 +9,9 @@
 	Author: Scott Burleigh, JPL
 	Adapted by Vinny Ramachandran, JHU/APL
  									*/
-#ifndef _ICINM_H_
-#define _ICINM_H_
+
+#ifndef ICINM_H
+#define ICINM_H
 
 #include "ion.h"
 
@@ -35,4 +36,4 @@ extern void	sdrnm_state_get(SdrnmState *state);
 }
 #endif
 
-#endif  /* _ICINM_H_ */
+#endif /* ICINM_H */

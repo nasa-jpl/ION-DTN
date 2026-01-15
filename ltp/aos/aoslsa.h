@@ -7,9 +7,8 @@
 /* 7/6/2010, copied from udplso, as per issue 101-LTP-over-AOS-via-UDP
    Greg Menke, Raytheon, under contract METS-MR-679-0909 with NASA GSFC */
 
-
-#ifndef _AOSLSA_H_
-#define _AOSLSA_H_
+#ifndef AOSLSA_H
+#define AOSLSA_H
 
 #include "ltpP.h"
 #include <pthread.h>
@@ -25,4 +24,4 @@ extern "C" {
 }
 #endif
 
-#endif	/* _AOSLSA_H */
+#endif /* AOSLSA_H */

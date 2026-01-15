@@ -13,8 +13,9 @@
 									*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*									*/
-#ifndef _SMLIST_H_
-#define _SMLIST_H_
+
+#ifndef SMLIST_H
+#define SMLIST_H
 
 #include "psm.h"
 
@@ -105,4 +106,4 @@ extern PsmAddress	sm_list_data_set(PsmPartition partition, PsmAddress elt,
 }
 #endif
 
-#endif  /* _SMLIST_H_ */
+#endif /* SMLIST_H */

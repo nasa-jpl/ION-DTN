@@ -37,8 +37,8 @@
  **
  *****************************************************************************/
 
-#ifndef _SCIP_H_
-#define _SCIP_H_
+#ifndef SCIP_H
+#define SCIP_H
 
 #include "bpP.h"
 #include "sci_structs.h"
@@ -82,4 +82,4 @@ char*    bpsec_scvm_strStrEncode(PsmPartition wm, sc_value *val);
 
 
 
-#endif
+#endif /* SCIP_H */

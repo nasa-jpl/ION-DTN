@@ -25,8 +25,8 @@
  **  10/01/18  E. Birrane     Updated to AMP v0.5. Migrate from pdu.h. (JHU/APL)
  *****************************************************************************/
 
-#ifndef _PDU_H_
-#define _PDU_H_
+#ifndef MSG_H
+#define MSG_H
 
 #include "stdint.h"
 #include "../utils/nm_types.h"
@@ -210,4 +210,4 @@ blob_t*    msg_grp_serialize_wrapper(msg_grp_t *msg_grp);
 }
 #endif
 
-#endif  /* _MSG_H_ */
+#endif /* MSG_H */

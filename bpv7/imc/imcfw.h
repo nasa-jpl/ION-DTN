@@ -11,8 +11,8 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
  									*/
-#ifndef _IMCFW_H_
-#define _IMCFW_H_
+#ifndef IMCFW_H
+#define IMCFW_H
 
 #include "bpP.h"
 
@@ -70,4 +70,4 @@ extern int		imcSendPetition(ImcPetition *petition,
 }
 #endif
 
-#endif  /* _IMCFW_H_ */
+#endif  /* IMCFW_H */

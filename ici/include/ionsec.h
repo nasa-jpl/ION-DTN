@@ -16,8 +16,8 @@
 			   structures, added lists of ltpXmitAuthRule
 			   and ltpRecvAuthRules in SecDB structure
 									*/
-#ifndef _SEC_H_
-#define _SEC_H_
+#ifndef SEC_H
+#define SEC_H
 
 #include "ion.h"
 
@@ -195,4 +195,4 @@ extern int	sec_get_key(char *keyName,
 }
 #endif
 
-#endif  /* _SEC_H_ */
+#endif /* SEC_H */

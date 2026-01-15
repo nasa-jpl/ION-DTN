@@ -9,8 +9,9 @@
 									*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*									*/
-#ifndef _BIBE_H_
-#define _BIBE_H_
+
+#ifndef BIBE_H
+#define BIBE_H
 
 #include "bpP.h"
 
@@ -53,4 +54,4 @@ extern void	bibeCtCancel(Bundle *bundle);
 }
 #endif
 
-#endif  /* _BIBE_H_ */
+#endif /* BIBE_H */

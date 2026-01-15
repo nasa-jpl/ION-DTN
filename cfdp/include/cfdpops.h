@@ -9,8 +9,8 @@
  *	Author: Scott Burleigh, JPL
  */
 
-#ifndef _CFDPOPS_H_
-#define _CFDPOPS_H_
+#ifndef CFDPOPS_H
+#define CFDPOPS_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -109,4 +109,4 @@ extern int	cfdp_rls(CfdpNumber	*respondentEntityNbr,
 }
 #endif
 
-#endif	/* _CFDPOPS_H */
+#endif	/* CFDPOPS_H */

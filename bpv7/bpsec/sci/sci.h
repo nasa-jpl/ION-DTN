@@ -40,8 +40,8 @@
  **
  *****************************************************************************/
 
-#ifndef _SCI_H_
-#define _SCI_H_
+#ifndef SCI_H
+#define SCI_H
 
 #include "platform.h"
 #include "ion.h"
@@ -222,4 +222,4 @@ int   bpsec_sci_multCheck(Sdr sdr, BpsecOutboundASB *asb, sc_Def *def,
 
 
 
-#endif
+#endif /* SCI_H */

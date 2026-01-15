@@ -9,8 +9,9 @@
 									*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*									*/
-#ifndef _BIBEP_H_
-#define _BIBEP_H_
+
+#ifndef BIBEP_H
+#define BIBEP_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -72,4 +73,4 @@ typedef struct
 }
 #endif
 
-#endif  /* _BIBEP_H_ */
+#endif /* BIBEP_H */

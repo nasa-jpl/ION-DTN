@@ -24,8 +24,8 @@
  **  09/29/18  E. Birrane     Updated to AMPv0.5 (JHU/APL)
  *****************************************************************************/
 
-#ifndef _RULES_H_
-#define _RULES_H_
+#ifndef RULES_H
+#define RULES_H
 
 #include "../utils/nm_types.h"
 #include "../utils/db.h"
@@ -174,4 +174,4 @@ int tbrdef_serialize(QCBOREncodeContext *encoder, tbr_def_t *def);
 }
 #endif
 
-#endif /* _RULES_H_ */
+#endif /* RULES_H */

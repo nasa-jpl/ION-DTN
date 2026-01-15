@@ -57,9 +57,8 @@
  **                                 updated for RFC9172 and RFC9173. (JHU/APL)
  *****************************************************************************/
 
-#ifndef _BPSEC_ASB_H_
-
-#define _BPSEC_ASB_H_
+#ifndef BPSEC_ASB_H
+#define BPSEC_ASB_H
 
 /*****************************************************************************
  *                              FILE INCLUSIONS                              *
@@ -245,4 +244,4 @@ int                           bpsec_asb_outboundTargetInsert(Sdr sdr, BpsecOutbo
 
 
 
-#endif /* _BPSEC_ASB_H_ */
+#endif /* BPSEC_ASB_H */

@@ -17,8 +17,8 @@
  **                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-#ifndef _CSI_GCM_H_
-#define _CSI_GCM_H_
+#ifndef CSI_GCM_H
+#define CSI_GCM_H
 
 #include "platform.h"
 
@@ -69,4 +69,4 @@ extern int8_t     gcm_crypt_start(csi_csid_t suite, void *context, csi_cipherpar
 extern csi_val_t  gcm_crypt_update(csi_csid_t suite, void *context, csi_svcid_t svc, csi_val_t data);
 
 
-#endif /* CSI_GCM_H_ */
+#endif /* CSI_GCM_H */

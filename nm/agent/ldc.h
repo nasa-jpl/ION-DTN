@@ -23,8 +23,8 @@
  **  10/04/18  E. Birrane     Updaye to AMP v0.5 (JHU/APL)
  *****************************************************************************/
 
-#ifndef _LDC_H_
-#define _LDC_H_
+#ifndef LDC_H
+#define LDC_H
 
 #include "../shared/adm/adm.h"
 
@@ -52,5 +52,4 @@ int    ldc_fill_rpt(rpttpl_t *rpttpl, rpt_t *rpt);
 }
 #endif
 
-#endif  /* _LDC_H_ */
-
+#endif /* LDC_H */

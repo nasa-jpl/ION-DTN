@@ -12,8 +12,9 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
  									*/
-#ifndef _DGR_H_
-#define _DGR_H_
+
+#ifndef DGR_H
+#define DGR_H
 
 #include "platform.h"
 #include "lyst.h"
@@ -177,11 +178,11 @@ extern int		dgr_receive(	Dgr dgr,
 
 extern void		dgr_interrupt(Dgr dgr);
 			/*	Interrupts a dgr_receive invocation
-			 *	that is currently blocked.  Designed 
+			 *	that is currently blocked.  Designed
 			 *	to be called from a signal handler.	*/
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif	/* _DGR_H */
+#endif /* DGR_H */

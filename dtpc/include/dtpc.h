@@ -10,8 +10,8 @@
 	Democritus University of Thrace. ALL RIGHTS RESERVED.
 */
 
-#ifndef _DTPC_H
-#define _DTPC_H
+#ifndef DTPC_H
+#define DTPC_H
 
 #include "bp.h"
 
@@ -92,4 +92,4 @@ extern void     dtpc_close(DtpcSAP sap);
 }
 #endif
 
-#endif	/* _DTPC_H */
+#endif /* DTPC_H */

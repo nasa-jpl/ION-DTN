@@ -14,8 +14,9 @@
 	acknowledged.
 
 									*/
-#ifndef _SDRXN_H_
-#define _SDRXN_H_
+
+#ifndef SDRXN_H
+#define SDRXN_H
 
 #include "psm.h"
 
@@ -292,4 +293,4 @@ extern int		_xniEnd(const char *, int, const char *, Sdr);
 }
 #endif
 
-#endif  /* _SDRXN_H_ */
+#endif /* SDRXN_H */

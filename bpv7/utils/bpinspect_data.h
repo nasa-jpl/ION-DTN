@@ -7,8 +7,8 @@
  *	Author: ION Development Team
  */
 
-#ifndef _BPINSPECT_DATA_H_
-#define _BPINSPECT_DATA_H_
+#ifndef BPINSPECT_DATA_H
+#define BPINSPECT_DATA_H
 
 #include "bpP.h"
 
@@ -99,4 +99,4 @@ extern int	bpinspect_data_time_remaining(time_t expirationTime);
 }
 #endif
 
-#endif /* _BPINSPECT_DATA_H_ */
+#endif /* BPINSPECT_DATA_H */

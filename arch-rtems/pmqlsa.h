@@ -8,8 +8,9 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
  									*/
-#ifndef _PMQLSA_H_
-#define _PMQLSA_H_
+
+#ifndef PMQLSA_H
+#define PMQLSA_H
 
 #include "ltpP.h"
 #include <mqueue.h>
@@ -25,4 +26,4 @@ extern "C" {
 }
 #endif
 
-#endif	/* _PMQLSA_H */
+#endif /* PMQLSA_H */

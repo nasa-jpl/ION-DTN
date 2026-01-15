@@ -11,8 +11,9 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
  									*/
-#ifndef _AMSP_H_
-#define _AMSP_H_
+
+#ifndef AMSP_H
+#define AMSP_H
 
 #include "ams.h"
 #include "amscommon.h"
@@ -250,4 +251,4 @@ extern int	enqueueAmsMsg(AmsSAP *sap, unsigned char *buffer, int length);
 }
 #endif
 
-#endif	/* _AMSP_H */
+#endif /* AMSP_H */

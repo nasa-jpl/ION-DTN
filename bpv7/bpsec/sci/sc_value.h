@@ -101,8 +101,8 @@
  **
  *****************************************************************************/
 
-#ifndef _SC_VALUE_H_
-#define _SC_VALUE_H_
+#ifndef SC_VALUE_H
+#define SC_VALUE_H
 
 #include "platform.h"
 #include "ion.h"

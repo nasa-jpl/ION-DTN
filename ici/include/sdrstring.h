@@ -14,8 +14,9 @@
 	acknowledged.
 
 									*/
-#ifndef _SDRSTRING_H_
-#define _SDRSTRING_H_
+
+#ifndef SDRSTRING_H
+#define SDRSTRING_H
 
 #include "sdrmgt.h"
 
@@ -63,4 +64,4 @@ extern int		sdr_string_read(Sdr sdr, char *into, Object string);
 }
 #endif
 
-#endif  /* _SDRSTRING_H_ */
+#endif /* SDRSTRING_H */

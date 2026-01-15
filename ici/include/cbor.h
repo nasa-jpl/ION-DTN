@@ -10,8 +10,9 @@
 									*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*									*/
-#ifndef _CBOR_H_
-#define _CBOR_H_
+
+#ifndef CBOR_H
+#define CBOR_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -214,4 +215,4 @@ extern int	cbor_decode_boolean(uvast* value, unsigned char **cursor,
 }
 #endif
 
-#endif  /* _CBOR_H_ */
+#endif /* CBOR_H */

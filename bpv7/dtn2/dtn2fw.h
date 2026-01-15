@@ -12,8 +12,9 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
  									*/
-#ifndef _DTN2FW_H_
-#define _DTN2FW_H_
+
+#ifndef DTN2FW_H
+#define DTN2FW_H
 
 #include "bpP.h"
 
@@ -36,4 +37,4 @@ extern int	dtn2_removePlan(char *nodeName);
 }
 #endif
 
-#endif  /* _DTN2FW_H_ */
+#endif /* DTN2FW_H */

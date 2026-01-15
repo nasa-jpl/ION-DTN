@@ -17,8 +17,8 @@
  **                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-#ifndef _CSI_ECDSA_H_
-#define _CSI_ECDSA_H_
+#ifndef CSI_ECDSA_H
+#define CSI_ECDSA_H
 
 #include "platform.h"
 
@@ -86,4 +86,4 @@ crypt_val_t ecdsa_block_update(uint8_t suite, void *context, crypt_val_t *data, 
 
 
 
-#endif /* CSI_ECDSA_H_ */
+#endif /* CSI_ECDSA_H */

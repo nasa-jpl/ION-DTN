@@ -1,5 +1,5 @@
-#ifndef __NM__
-#define __NM__
+#ifndef NM_H
+#define NM_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,4 +32,4 @@ extern "C" {
 }
 #endif
 
-#endif  /* _NM_H_ */
+#endif /* NM_H */

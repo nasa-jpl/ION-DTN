@@ -22,8 +22,8 @@
  **  01/10/13  E. Birrane     Initial Implementation (JHU/APL)
  *****************************************************************************/
 
-#ifndef _INGEST_H_
-#define _INGEST_H_
+#ifndef INGEST_H
+#define INGEST_H
 
 #include "../shared/msg/msg.h"
 
@@ -38,4 +38,4 @@ void rx_handle_perf_ctrl(msg_metadata_t *meta, blob_t *contents);
 }
 #endif
 
-#endif  /* _INGEST_H_ */
+#endif /* INGEST_H */

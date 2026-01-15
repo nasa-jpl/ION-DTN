@@ -11,8 +11,9 @@
 									*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*									*/
-#ifndef _SAGA_H_
-#define _SAGA_H_
+
+#ifndef SAGA_H
+#define SAGA_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -72,4 +73,4 @@ extern int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 }
 #endif
 
-#endif  /* _SAGA_H_ */
+#endif /* SAGA_H */

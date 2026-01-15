@@ -28,8 +28,8 @@
  **  03/07/22  E. Birrane     Initial implementation
  *****************************************************************************/
 
-#ifndef _RFC9173_UTIL_H_
-#define _RFC9173_UTIL_H_
+#ifndef RFC9173_UTIL_H
+#define RFC9173_UTIL_H
 
 
 #include "sci.h"
@@ -92,4 +92,4 @@ uint16_t           bpsec_rfc9173utl_intParmGet(sc_state *state, int id, uint16_t
 
 
 
-#endif
+#endif /* RFC9173_UTIL_H */

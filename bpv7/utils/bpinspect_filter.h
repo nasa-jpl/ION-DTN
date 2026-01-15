@@ -7,8 +7,8 @@
  *	Author: ION Development Team
  */
 
-#ifndef _BPINSPECT_FILTER_H_
-#define _BPINSPECT_FILTER_H_
+#ifndef BPINSPECT_FILTER_H
+#define BPINSPECT_FILTER_H
 
 #include "bpinspect_data.h"
 
@@ -93,4 +93,4 @@ extern int	bpinspect_filter_str_match(const char *str, const char *pattern, Matc
 }
 #endif
 
-#endif /* _BPINSPECT_FILTER_H_ */
+#endif /* BPINSPECT_FILTER_H */

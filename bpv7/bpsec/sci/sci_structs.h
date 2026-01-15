@@ -5,8 +5,8 @@
  *      Author: ebirrane
  */
 
-#ifndef _SCI_STRUCTS_H_
-#define _SCI_STRUCTS_H_
+#ifndef SCI_STRUCTS_H
+#define SCI_STRUCTS_H
 
 #include "ion.h"
 #include "bp.h"
@@ -334,4 +334,4 @@ typedef struct
 
 
 
-#endif /* _SCI_STRUCTS_H_ */
+#endif /* SCI_STRUCTS_H */

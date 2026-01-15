@@ -12,8 +12,9 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
  									*/
-#ifndef _BP_H_
-#define _BP_H_
+
+#ifndef BP_H
+#define BP_H
 
 #include "platform.h"
 #include "psm.h"
@@ -577,4 +578,4 @@ extern void		bp_close(BpSAP sap);
 }
 #endif
 
-#endif	/* _BP_H */
+#endif /* BP_H */

@@ -29,8 +29,9 @@
  **  08/21/16  E. Birrane     Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
  **  07/26/17  E. Birrane     Added batch testing. (JHU/APL)
  *****************************************************************************/
-#ifndef _NM_MGR_UI_H
-#define _NM_MGR_UI_H
+
+#ifndef NM_MGR_UI_H
+#define NM_MGR_UI_H
 
 #include "nm_mgr.h"
 #include "agents.h"
@@ -337,4 +338,4 @@ void ui_log_transmit_msg(agent_t* agent, msg_ctrl_t *msg);
 }
 #endif
 
-#endif  /* _NM_MGR_UI_H */
+#endif /* NM_MGR_UI_H */

@@ -24,8 +24,8 @@
  **
  *****************************************************************************/
 
-#ifndef _BPSEC_POLICY_H_
-#define _BPSEC_POLICY_H_
+#ifndef BPSEC_POLICY_H
+#define BPSEC_POLICY_H
 
 /*****************************************************************************
  *                              FILE INCLUSIONS                              *
@@ -148,4 +148,4 @@ void       bsl_do_not_forward_at_receiver(AcqWorkArea *wk);
 void       bsl_report_reason_code_at_receiver(AcqWorkArea *wk, BpSrReason reason);
 
 
-#endif /*_BPSEC_POLICY_H_*/
+#endif /* BPSEC_POLICY_H */

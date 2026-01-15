@@ -7,8 +7,8 @@
  *	Author: ION Development Team
  */
 
-#ifndef _BPINSPECT_OPS_H_
-#define _BPINSPECT_OPS_H_
+#ifndef BPINSPECT_OPS_H
+#define BPINSPECT_OPS_H
 
 #include "bpinspect_data.h"
 
@@ -97,4 +97,4 @@ extern char*	bpinspect_ops_format_bundle_id(const BundleCacheEntry *entry,
 }
 #endif
 
-#endif /* _BPINSPECT_OPS_H_ */
+#endif /* BPINSPECT_OPS_H */

@@ -11,8 +11,8 @@
  *		ION IPND Implementation Assembly Part2
  */
 
-#ifndef _BEACON_H_
-#define _BEACON_H_
+#ifndef BEACON_H
+#define BEACON_H
 
 #include "ipndP.h"
 #include "bloom.h"
@@ -52,4 +52,4 @@ extern void	copyBeacon(Beacon* dest, Beacon* src);
 }
 #endif
 
-#endif
+#endif /* BEACON_H */

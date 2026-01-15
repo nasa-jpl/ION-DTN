@@ -14,8 +14,9 @@
 	acknowledged.
 
 									*/
-#ifndef _SDRTABLE_H_
-#define _SDRTABLE_H_
+
+#ifndef SDRTABLE_H
+#define SDRTABLE_H
 
 #include "sdrmgt.h"
 
@@ -53,4 +54,4 @@ extern void		Sdr_table_destroy(const char *file, int line,
 }
 #endif
 
-#endif  /* _SDRTABLE_H_ */
+#endif /* SDRTABLE_H */

@@ -11,8 +11,9 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
  									*/
-#ifndef _BRSCLA_H_
-#define _BRSCLA_H_
+
+#ifndef BRSCLA_H
+#define BRSCLA_H
 
 #include "../stcp/stcpcla.h"
 #include "ipnfw.h"
@@ -39,4 +40,4 @@ extern "C" {
 }
 #endif
 
-#endif	/* _BRSCLA_H */
+#endif /* BRSCLA_H */

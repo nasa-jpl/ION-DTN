@@ -16,8 +16,8 @@
 #include "ion.h"
 #include "sdr.h"
 
-#ifndef _BSSP_H_
-#define _BSSP_H_
+#ifndef BSSP_H
+#define BSSP_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -107,4 +107,4 @@ extern void	bssp_close(unsigned int clientId);
 }
 #endif
 
-#endif
+#endif /* BSSP_H */

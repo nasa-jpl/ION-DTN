@@ -25,8 +25,8 @@
  **  09/21/18  E. Birrane     Update to new AMP. Add EDDs. (JHU/APL)
  *****************************************************************************/
 
-#ifndef _VAR_H_
-#define _VAR_H_
+#ifndef VAR_H
+#define VAR_H
 
 #include "../utils/db.h"
 #include "ari.h"
@@ -160,4 +160,4 @@ blob_t*    vardef_serialize_wrapper(var_def_t *def);
 }
 #endif
 
-#endif  /* _VAR_H_ */
+#endif /* VAR_H */

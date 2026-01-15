@@ -40,8 +40,8 @@
  **                                 [Secure DTN implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-#ifndef _BPSEC_UTIL_H_
-#define _BPSEC_UTIL_H_
+#ifndef BPSEC_UTIL_H
+#define BPSEC_UTIL_H
 
 /*****************************************************************************
  *                              FILE INCLUSIONS                              *
@@ -252,4 +252,4 @@ int                     bpsec_util_numCSNamesGet(int *size);
 void                    bpsec_util_cSNamesGet(char *buffer, int length);
 
 
-#endif /* _BPSEC_UTIL_H_ */
+#endif /* BPSEC_UTIL_H */

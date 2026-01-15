@@ -17,8 +17,8 @@
  **                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-#ifndef _CSI_HSHA_H_
-#define _CSI_HSHA_H_
+#ifndef CSI_HSHA_H
+#define CSI_HSHA_H
 
 #include "platform.h"
 #include "mbedtls/md.h"
@@ -52,4 +52,4 @@ extern int8_t  hsha_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, 
 //extern csi_val_t hsha_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_svcid_t svc);
 
 
-#endif /* CSI_HSHA_H_ */
+#endif /* CSI_HSHA_H */

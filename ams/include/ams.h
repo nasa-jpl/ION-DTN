@@ -11,8 +11,9 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
  									*/
-#ifndef _AMS_H_
-#define _AMS_H_
+
+#ifndef AMS_H
+#define AMS_H
 
 #include "platform.h"
 #include "lyst.h"
@@ -400,4 +401,4 @@ extern void		ams_remove_event_mgr(AmsModule module);
 }
 #endif
 
-#endif	/* _AMS_H */
+#endif /* AMS_H */

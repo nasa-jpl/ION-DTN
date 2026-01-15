@@ -9,8 +9,9 @@
 /*	Author: Jeff Biesiadecki, Jet Propulsion Laboratory		*/
 /*	Adapted by Scott Burleigh, Jet Propulsion Laboratory		*/
 /*									*/
-#ifndef _LYSTP_H_
-#define _LYSTP_H_
+
+#ifndef LYSTP_H
+#define LYSTP_H
 
 #include "lyst.h"
 
@@ -40,4 +41,4 @@ struct LystEltStruct {
    void    *data; /* data for this element */
 };
 
-#endif  /* _LYSTP_H_ */
+#endif /* LYSTP_H */

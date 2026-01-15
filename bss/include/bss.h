@@ -13,8 +13,8 @@
  *	Author: Sotirios-Angelos Lenas, Space Internetworking Center (SPICE)
  */
 
-#ifndef _BSS_H_
-#define _BSS_H_
+#ifndef BSS_H
+#define BSS_H
 
 #define _GNU_SOURCE
 
@@ -92,5 +92,4 @@ extern long		bssPrev_read(bssNav *nav, time_t *curTime,
 }
 #endif
 
-#endif  /* _BSS_H_ */
-
+#endif /* BSS_H */

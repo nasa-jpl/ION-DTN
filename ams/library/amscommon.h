@@ -32,8 +32,8 @@
 	
 */
 
-#ifndef _AMSCOMMON_H_
-#define _AMSCOMMON_H_
+#ifndef AMSCOMMON_H
+#define AMSCOMMON_H
 
 #ifndef	AMSDEBUG
 #define AMSDEBUG	0
@@ -564,4 +564,4 @@ extern int	findConfigServer(MamsInterface *tsif, Llcv eventsQueue,
 }
 #endif
 
-#endif	/* _AMSCOMMON_H */
+#endif /* AMSCOMMON_H */

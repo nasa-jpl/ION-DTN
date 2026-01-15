@@ -29,8 +29,8 @@
  *****************************************************************************/
 
 
-#ifndef _BPSEC_BAGSC_H_
-#define _BPSEC_BAGSC_H_
+#ifndef BPSEC_BAGSC_H
+#define BPSEC_BAGSC_H
 
 #include "sci.h"
 #include "sc_util.h"
@@ -98,4 +98,4 @@ int           bpsec_bagscu_zcoCompute(uint32_t suite, Object *dataObj, csi_val_t
 
 
 
-#endif
+#endif /* BPSEC_BAGSC_H */

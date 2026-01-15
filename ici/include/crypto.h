@@ -10,8 +10,8 @@
  **     For any other permissions, please contact the Legal Office at JHU/APL.
  ******************************************************************************/
 
-#ifndef _CRYPTO_H_
-#define _CRYPTO_H_
+#ifndef CRYPTO_H
+#define CRYPTO_H
 
 #include "platform.h"
 
@@ -124,4 +124,4 @@ extern int	rsa_sha256_verify_context_length(void *context);
 extern int	rsa_sha256_verify(void *context, int hashlen, void *hashData,
 			int signatureLen, void *signature);
 
-#endif
+#endif /* CRYPTO_H */

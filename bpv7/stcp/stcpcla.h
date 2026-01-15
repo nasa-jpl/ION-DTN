@@ -11,8 +11,9 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
  									*/
-#ifndef _STCPCLA_H_
-#define _STCPCLA_H_
+
+#ifndef STCPCLA_H
+#define STCPCLA_H
 
 #include "bpP.h"
 #include <pthread.h>
@@ -53,4 +54,4 @@ extern void	closeStcpOutductSocket(int *bundleSocket);
 }
 #endif
 
-#endif	/* _STCPCLA_H */
+#endif /* STCPCLA_H */

@@ -11,8 +11,9 @@
  *	All rights reserved. U.S. Government and E.U. Sponsorship acknowledged.
  *
  */
-#ifndef _UDPBSA_H_
-#define _UDPBSA_H_
+
+#ifndef UDPBSA_H
+#define UDPBSA_H
 
 #include "bsspP.h"
 #include <pthread.h>
@@ -28,4 +29,4 @@ extern "C" {
 }
 #endif
 
-#endif	/* _UDPBSA_H */
+#endif /* UDPBSA_H */

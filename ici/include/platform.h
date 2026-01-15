@@ -11,8 +11,9 @@
 /*      J. Veregge: modified for all platforms to consolidate		*/
 /*      S. Clancy: added STRSOE flag for building with JPL STRS OE	*/
 /*									*/
-#ifndef _PLATFORM_H_
-#define _PLATFORM_H_
+
+#ifndef PLATFORM_H
+#define PLATFORM_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -1172,4 +1173,4 @@ extern void			findToken(char **cursorPtr, char **token);
 #error "No value defined for MAXPATHLEN. Compiler invocation must supply preprocessor flags indicating the target platform, e.g. -Dlinux, -Dmingw, -Dsolaris, etc... See configuration of AM_CFLAGS per 'host_os' in ./configure.ac in the ION source directory."
 #endif
 
-#endif  /* _PLATFORM_H_ */
+#endif /* PLATFORM_H */

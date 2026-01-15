@@ -12,8 +12,9 @@
  *	All rights reserved. U.S. Government and E.U. Sponsorship acknowledged.
  *
  */
-#ifndef _BSSPCLA_H_
-#define _BSSPCLA_H_
+
+#ifndef BSSPCLA_H
+#define BSSPCLA_H
 
 #include "bpP.h"
 #include "bssp.h"
@@ -29,4 +30,4 @@ extern "C" {
 }
 #endif
 
-#endif	/* _BSSPCLA_H */
+#endif /* BSSPCLA_H */

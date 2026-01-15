@@ -7,8 +7,9 @@
 	Copyright (c) 2007, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
  									*/
-#ifndef _ION_H_
-#define _ION_H_
+
+#ifndef ION_H
+#define ION_H
 
 #include "platform.h"
 #include "memmgr.h"
@@ -600,4 +601,4 @@ extern void		ionRegisterSdrwatchPid(int pid);
 }
 #endif
 
-#endif  /* _ION_H_ */
+#endif /* ION_H */

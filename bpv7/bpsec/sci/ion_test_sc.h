@@ -40,9 +40,8 @@
  **
  *****************************************************************************/
 
-#ifndef _NSC_H_
-
-#define _NSC_H_
+#ifndef NSC_H
+#define NSC_H
 
 
 #include "sci.h"
@@ -109,4 +108,4 @@ int32_t bpsec_itsc_updatePayloadFromFile(uint32_t suite, csi_cipherparms_t *csi_
 
 
 
-#endif
+#endif /* NSC_H */

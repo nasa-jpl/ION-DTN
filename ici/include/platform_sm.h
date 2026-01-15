@@ -8,8 +8,9 @@
 									*/
 /*	Author: Alan Schlutsmeyer, Jet Propulsion Laboratory		*/
 /*									*/
-#ifndef _PLATFORM_SM_H_
-#define _PLATFORM_SM_H_
+
+#ifndef PLATFORM_SM_H
+#define PLATFORM_SM_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -128,4 +129,4 @@ extern int		pseudoshell(char *commandLine);
 }
 #endif
 
-#endif  /* _PLATFORM_SM_H_ */
+#endif /* PLATFORM_SM_H */

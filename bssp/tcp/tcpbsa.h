@@ -11,8 +11,9 @@
  *	All rights reserved. U.S. Government and E.U. Sponsorship acknowledged.
  *
  */
-#ifndef _TCPBSA_H_
-#define _TCPBSA_H_
+
+#ifndef TCPBSA_H
+#define TCPBSA_H
 
 #include "bsspP.h"
 #include <pthread.h>
@@ -49,4 +50,4 @@ extern int	sendBlockByTCP(struct sockaddr *socketName,
 }
 #endif
 
-#endif	/* _TCPBSA_H */
+#endif /* TCPBSA_H */

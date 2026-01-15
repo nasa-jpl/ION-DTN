@@ -14,8 +14,8 @@
  *                        serializeAuthTrailerExtensionField
  */
 
-#ifndef _LTPAUTH_H_
-#define _LTPAUTH_H_
+#ifndef LTPAUTH_H
+#define LTPAUTH_H
 #include "ltpP.h"
 #include "ltpsec.h"
 #include "ltpei.h"
@@ -97,4 +97,4 @@ Returns:
 extern int	serializeAuthTrailerExtensionField(Object fieldObj,
 			LtpXmitSeg *segment, char** cursor);
 
-#endif
+#endif /* LTPAUTH_H */

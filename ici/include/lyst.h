@@ -9,8 +9,8 @@
 /*	Adapted by Scott Burleigh, Jet Propulsion Laboratory		*/
 /*									*/
 
-#ifndef _LYST_H_
-#define _LYST_H_
+#ifndef LYST_H
+#define LYST_H
 
 #include "platform.h"
 
@@ -91,4 +91,4 @@ void lyst_apply(Lyst,LystCallback,void *);
 }
 #endif
 
-#endif  /* _LYST_H_ */
+#endif /* LYST_H */

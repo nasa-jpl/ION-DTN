@@ -14,8 +14,9 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
  									*/
-#ifndef _BPP_H_
-#define _BPP_H_
+
+#ifndef BPP_H
+#define BPP_H
 
 #include "bp.h"
 #include "bp_admin.h"
@@ -1421,4 +1422,4 @@ extern int		endpointIsLocal(EndpointId eid);
 }
 #endif
 
-#endif  /* _BPP_H_ */
+#endif /* BPP_H */

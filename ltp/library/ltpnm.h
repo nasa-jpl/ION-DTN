@@ -8,8 +8,8 @@
  *	Author: Larry Shackleford, GSFC
  */
 
-#ifndef _LTPNM_H_
-#define _LTPNM_H_
+#ifndef LTPNM_H
+#define LTPNM_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -82,4 +82,4 @@ extern void	ltpnm_span_reset(uvast engineId, int *success);
 }
 #endif
 
-#endif
+#endif /* LTPNM_H */

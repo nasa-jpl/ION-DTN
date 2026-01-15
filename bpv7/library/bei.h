@@ -8,8 +8,8 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
 *******************************************************************************/
 
-#ifndef _BEI_H_
-#define _BEI_H_
+#ifndef BEI_H
+#define BEI_H
 
 /*****************************************************************************
  **
@@ -267,4 +267,4 @@ extern void	getExtensionSpecs(ExtensionSpec **array, int *count);
 extern
 ExtensionSpec	*findExtensionSpec(BpBlockType type, char tag);
 
-#endif /* _BEI_H_ */
+#endif /* BEI_H */

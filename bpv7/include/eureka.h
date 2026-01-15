@@ -11,8 +11,9 @@
 									*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*									*/
-#ifndef _EUREKA_H_
-#define _EUREKA_H_
+
+#ifndef EUREKA_H
+#define EUREKA_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -76,4 +77,4 @@ extern PsmAddress	bp_find_discovery(
 }
 #endif
 
-#endif  /* _EUREKA_H_ */
+#endif /* EUREKA_H */

@@ -29,8 +29,8 @@
  **
  *****************************************************************************/
 
-#ifndef _SC_UTIL_H_
-#define _SC_UTIL_H_
+#ifndef SC_UTIL_H
+#define SC_UTIL_H
 
 
 #include "platform.h"
@@ -68,4 +68,4 @@ char* bpsec_scutl_strFromStrsCreate(char **array, int size, int num_items);
 
 
 
-#endif /* _SC_UTIL_H_ */
+#endif /* SC_UTIL_H */

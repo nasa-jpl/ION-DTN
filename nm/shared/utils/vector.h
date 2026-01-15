@@ -11,8 +11,8 @@
  *      Author: ebirrane
  */
 
-#ifndef NM_SHARED_PRIMITIVES_VECTOR_H_
-#define NM_SHARED_PRIMITIVES_VECTOR_H_
+#ifndef VECTOR_H
+#define VECTOR_H
 
 #include "platform.h"
 #include "../primitives/blob.h"
@@ -145,4 +145,4 @@ int vec_uvast_find_idx(vector_t *vec, uvast value, vec_idx_t *idx);
 }
 #endif
 
-#endif  /* _VECTOR_H_ */
+#endif /* VECTOR_H */
