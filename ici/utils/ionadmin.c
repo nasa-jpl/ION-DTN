@@ -272,19 +272,19 @@ void	executeAdd(int tokenCount, char **tokens)
 	toFqnnNbr = getFqn(tokens[5]);
 	if (fromFqnnNbr <= 0)
 	{
-		printText("'From' node number must be greater than zero.");
+		printText("[?] 'From' node number must be greater than zero.");
 		return;
 	}
 
 	if (toFqnnNbr <= 0)
 	{
-		printText("'To' node number must be greater than zero.");
+		printText("[?] 'To' node number must be greater than zero.");
 		return;
 	}
 
 	if (confidence < 0.0 || confidence > 1.0)
 	{
-		printText("Confidence must be in the range 0.0 to 1.0.");
+		printText("[?] Confidence must be in the range 0.0 to 1.0.");
 		return;
 	}
 
@@ -322,7 +322,7 @@ void	executeAdd(int tokenCount, char **tokens)
 
 			if (fromFqnnNbr != toFqnnNbr)
 			{
-				printText("For registration contact, from \
+				printText("[?] For registration contact, from \
 and to nodes must be identical.");
 				return;
 			}
@@ -337,7 +337,7 @@ and to nodes must be identical.");
 			if (fromFqnnNbr == toFqnnNbr
 			|| (fromFqnnNbr != ownFqnn && toFqnnNbr != ownFqnn))
 			{
-				printText("For hypothetical contact, either \
+				printText("[?] For hypothetical contact, either \
 from or to node must be the local node and the other must not.");
 				return;
 			}
@@ -349,7 +349,7 @@ from or to node must be the local node and the other must not.");
 		{
 			if (toTime <= fromTime)
 			{
-				printText("Interval end time must be later \
+				printText("[?] Interval end time must be later \
 than start time and earlier than 19 January 2038.");
 				return;
 			}
@@ -373,7 +373,7 @@ than start time and earlier than 19 January 2038.");
 		toTime = readTimestampUTC(tokens[3], refTime);
 		if (toTime <= fromTime)
 		{
-			printText("Interval end time must be later than start \
+			printText("[?] Interval end time must be later than start \
 time and earlier than 19 January 2038.");
 			return;
 		}
@@ -563,7 +563,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 		}
 		else
 		{
-			printText("Contact not found in database.");
+			printText("[?] Contact not found in database.");
 		}
 
 		sdr_exit_xn(sdr);
@@ -587,7 +587,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 		}
 		else
 		{
-			printText("Range not found in database.");
+			printText("[?] Range not found in database.");
 		}
 
 		sdr_exit_xn(sdr);
@@ -1135,7 +1135,7 @@ static void	executeRun(int tokenCount, char **tokens)
 
 	if (pseudoshell(tokens[1]) < 0)
 	{
-		printText("pseudoshell failed.");
+		printText("[?] pseudoshell failed.");
 	}
 	else
 	{
@@ -1391,7 +1391,7 @@ up, abandoned.");
 			{
 				if (tokenCount < 2)
 				{
-					printText("Can't set reference time: \
+					printText("[?] Can't set reference time: \
 no time.");
 				}
 				else if (strcmp(tokens[1], "0") == 0)
@@ -1435,7 +1435,7 @@ no time.");
 				regionNbr = strtouvast(tokens[1]);
 				if (regionNbr == 0)
 				{
-					printText("Region nbr can't be zero.");
+					printText("[?] Region nbr can't be zero.");
 				}
 				else
 				{
@@ -1693,6 +1693,9 @@ the program.");
 		}
 		else
 		{
+			int	echoState = 1;
+
+			oK(_echo(&echoState));
 			while (1)
 			{
 				if (igets(cmdFile, line, sizeof line, &len)

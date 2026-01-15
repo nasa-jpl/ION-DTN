@@ -533,7 +533,7 @@ static void	infoPlan(int tokenCount, char **tokens)
 	ipn_findPlan(fqnn, &planAddr, &elt);
 	if (elt == 0)
 	{
-		printText("Unknown node.");
+		printText("[?] Unknown node.");
 	}
 	else
 	{
@@ -574,7 +574,7 @@ static void	infoExit(int tokenCount, char **tokens)
 	lastFqnn = getFqn(tokens[3]);
 	if (lastFqnn < firstFqnn)
 	{
-		printText("Unknown exit.");
+		printText("[?] Unknown exit.");
 		return;
 	}
 
@@ -593,7 +593,7 @@ static void	infoExit(int tokenCount, char **tokens)
 
 	if (elt == 0)
 	{
-		printText("Unknown exit.");
+		printText("[?] Unknown exit.");
 	}
 
 	sdr_exit_xn(sdr);
@@ -704,7 +704,7 @@ static void	infoOverride(int tokenCount, char **tokens)
 
 	if (elt == 0)
 	{
-		printText("Unknown override.");
+		printText("[?] Unknown override.");
 	}
 
 	sdr_exit_xn(sdr);
@@ -1071,6 +1071,9 @@ the program.");
 		}
 		else
 		{
+			int	echoState = 1;
+
+			oK(_echo(&echoState));
 			while (1)
 			{
 				if (igets(cmdFile, line, sizeof line, &len)

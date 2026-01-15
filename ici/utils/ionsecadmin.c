@@ -121,7 +121,7 @@ static void	initializeIonSecurity(int tokenCount, char **tokens)
 
 	if (secInitialize() < 0)
 	{
-		printText("Can't initialize the ION security system.");
+		printText("[?] Can't initialize the ION security system.");
 	}
 }
 
@@ -360,7 +360,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 		sec_findKey(tokens[2], &addr, &elt);
 		if (elt == 0)
 		{
-			printText("Key not found.");
+			printText("[?] Key not found.");
 		}
 		else
 		{
@@ -385,7 +385,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 		sec_findPublicKey(fqnn, effectiveTime, &addr, &elt);
 		if (elt == 0)
 		{
-			printText("Public key not found.");
+			printText("[?] Public key not found.");
 		}
 		else
 		{
@@ -718,6 +718,9 @@ the program.");
 		}
 		else
 		{
+			int	echoState = 1;
+
+			oK(_echo(&echoState));
 			while (1)
 			{
 				if (igets(cmdFile, line, sizeof line, &len)

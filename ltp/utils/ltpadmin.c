@@ -168,7 +168,7 @@ static int	attachToLtp(void)
 {
 	if (ltpAttach() < 0)
 	{
-		printText("LTP not initialized yet.");
+		printText("[?] LTP not initialized yet.");
 		return -1;
 	}
 
@@ -467,7 +467,7 @@ static void	infoSeat(int tokenCount, char **tokens)
 	sdr_exit_xn(sdr);
 	if (vseatElt == 0)
 	{
-		printText("Unknown seat.");
+		printText("[?] Unknown seat.");
 		return;
 	}
 
@@ -493,7 +493,7 @@ static void	infoSpan(int tokenCount, char **tokens)
 	sdr_exit_xn(sdr);
 	if (vspanElt == 0)
 	{
-		printText("Unknown span.");
+		printText("[?] Unknown span.");
 		return;
 	}
 
@@ -2156,6 +2156,9 @@ the program.");
 		}
 		else
 		{
+			int	echoState = 1;
+
+			oK(_echo(&echoState));
 			while (1)
 			{
 				if (igets(cmdFile, line, sizeof line, &len)

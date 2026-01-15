@@ -146,7 +146,7 @@ static int	attachToCfdp(void)
 {
 	if (cfdpAttach() < 0)
 	{
-		printText("CFDP not initialized yet.");
+		printText("[?] CFDP not initialized yet.");
 		return -1;
 	}
 
@@ -301,7 +301,7 @@ static void	infoEntity(int tokenCount, char **tokens)
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	if (findEntity(entityNbr, &entity) == 0)
 	{
-		printText("Unknown entity.");
+		printText("[?] Unknown entity.");
 	}
 	else
 	{
@@ -1075,7 +1075,7 @@ static int	processLine(char *line, int lineLength, int *rc)
 			{
 				if (tokenCount < 2)
 				{
-					printText("Can't start CFDP: no UTA \
+					printText("[?] Can't start CFDP: no UTA \
 command.");
 				}
 				else
@@ -1354,6 +1354,9 @@ the program.");
 		}
 		else
 		{
+			int	echoState = 1;
+
+			oK(_echo(&echoState));
 			while (1)
 			{
 				if (igets(cmdFile, line, sizeof line, &len)

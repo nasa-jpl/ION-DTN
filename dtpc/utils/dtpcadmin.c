@@ -122,7 +122,7 @@ static int	attachToDtpc(void)
 {
 	if (dtpcAttach() < 0)
 	{
-		printText("DTPC not initialized yet.");
+		printText("[?] DTPC not initialized yet.");
 		return -1;
 	}
 
@@ -189,7 +189,7 @@ static void	infoProfile(int tokenCount, char **tokens)
 
 	if (elt == 0)
 	{
-		printText("Unknown profile.");
+		printText("[?] Unknown profile.");
 		return;
 	}
 
@@ -790,6 +790,9 @@ the program.");
 		}
 		else
 		{
+			int	echoState = 1;
+
+			oK(_echo(&echoState));
 			while (1)
 			{
 				if (igets(cmdFile, line, sizeof line, &len)

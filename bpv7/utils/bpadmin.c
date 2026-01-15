@@ -182,7 +182,7 @@ static int	attachToBp(void)
 {
 	if (bpAttach() < 0)
 	{
-		printText("BP not initialized yet.");
+		printText("[?] BP not initialized yet.");
 		return -1;
 	}
 
@@ -476,7 +476,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		findOutduct(tokens[3], tokens[4], &vduct, &vductElt);
 		if (vductElt == 0)
 		{
-			printText("Unknown outduct.");
+			printText("[?] Unknown outduct.");
 			return;
 		}
 
@@ -685,7 +685,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 		findOutduct(tokens[2], tokens[3], &vduct, &vductElt);
 		if (vductElt == 0)
 		{
-			printText("Unknown outduct.");
+			printText("[?] Unknown outduct.");
 			return;
 		}
 
@@ -748,7 +748,7 @@ static void	infoScheme(int tokenCount, char **tokens)
 	findScheme(tokens[2], &vscheme, &elt);
 	if (elt == 0)
 	{
-		printText("Unknown scheme.");
+		printText("[?] Unknown scheme.");
 	}
 	else
 	{
@@ -815,7 +815,7 @@ static void	infoEndpoint(int tokenCount, char **tokens)
 
 	if (parseEidString(tokens[2], &metaEid, &vscheme, &vschemeElt) == 0)
 	{
-		printText("Endpoint ID unintelligible.");
+		printText("[?] Endpoint ID unintelligible.");
 		return;
 	}
 
@@ -823,7 +823,7 @@ static void	infoEndpoint(int tokenCount, char **tokens)
 	findEndpoint(tokens[2], &metaEid, NULL, &vpoint, &elt);
 	if (elt == 0)
 	{
-		printText("Unknown endpoint.");
+		printText("[?] Unknown endpoint.");
 	}
 	else
 	{
@@ -855,7 +855,7 @@ static void	infoProtocol(int tokenCount, char **tokens)
 	fetchProtocol(tokens[2], &clpbuf, &elt);
 	if (elt == 0)
 	{
-		printText("Unknown protocol.");
+		printText("[?] Unknown protocol.");
 	}
 	else
 	{
@@ -907,7 +907,7 @@ static void	infoInduct(int tokenCount, char **tokens)
 	findInduct(tokens[2], tokens[3], &vduct, &elt);
 	if (elt == 0)
 	{
-		printText("Unknown induct.");
+		printText("[?] Unknown induct.");
 	}
 	else
 	{
@@ -964,7 +964,7 @@ static void	infoOutduct(int tokenCount, char **tokens)
 	findOutduct(tokens[2], tokens[3], &vduct, &elt);
 	if (elt == 0)
 	{
-		printText("Unknown outduct.");
+		printText("[?] Unknown outduct.");
 	}
 	else
 	{
@@ -1002,7 +1002,7 @@ static void	infoPlan(int tokenCount, char **tokens)
 	findPlan(tokens[2], &vplan, &vplanElt);
 	if (vplanElt == 0)
 	{
-		printText("Unknown plan.");
+		printText("[?] Unknown plan.");
 	}
 	else
 	{
@@ -1127,7 +1127,7 @@ static void	listEndpoints(int tokenCount, char **tokens)
 		findScheme(tokens[2], &vscheme, &elt);
 		if (elt == 0)
 		{
-			printText("Unknown scheme.");
+			printText("[?] Unknown scheme.");
 		}
 		else
 		{
@@ -1211,7 +1211,7 @@ static void	listInducts(int tokenCount, char **tokens)
 		fetchProtocol(tokens[2], &clpbuf, &elt);
 		if (elt == 0)
 		{
-			printText("Unknown protocol.");
+			printText("[?] Unknown protocol.");
 		}
 		else
 		{
@@ -1269,7 +1269,7 @@ static void	listOutducts(int tokenCount, char **tokens)
 		fetchProtocol(tokens[2], &clpbuf, &elt);
 		if (elt == 0)
 		{
-			printText("Unknown protocol.");
+			printText("[?] Unknown protocol.");
 		}
 		else
 		{
@@ -1431,7 +1431,7 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 	heapmax = strtoul(tokens[2], NULL, 0);
 	if (heapmax < 560)
 	{
-		printText("heapmax must be at least 560.");
+		printText("[?] heapmax must be at least 560.");
 		return;
 	}
 
@@ -1461,7 +1461,7 @@ static void	managePrimaryCrc(int tokenCount, char **tokens)
 	crcType = strtoul(tokens[2], NULL, 0);
 	if (crcType < 0 || crcType > 2)
 	{
-		printText("Primary block CRC type must 0, 1 or 2.");
+		printText("[?] Primary block CRC type must 0, 1 or 2.");
 		return;
 	}
 
@@ -1491,7 +1491,7 @@ static void	managePayloadCrc(int tokenCount, char **tokens)
 	crcType = strtoul(tokens[2], NULL, 0);
 	if (crcType < 0 || crcType > 2)
 	{
-		printText("Payload CRC type must be 0, 1 or 2.");
+		printText("[?] Payload CRC type must be 0, 1 or 2.");
 		return;
 	}
 
@@ -1698,7 +1698,7 @@ static void	executeRun(int tokenCount, char **tokens)
 
 	if (pseudoshell(tokens[1]) < 0)
 	{
-		printText("pseudoshell failed.");
+		printText("[?] pseudoshell failed.");
 	}
 	else
 	{
@@ -2246,6 +2246,9 @@ the program.");
 		}
 		else
 		{
+			int	echoState = 1;
+
+			oK(_echo(&echoState));
 			while (1)
 			{
 				if (igets(cmdFile, line, sizeof line, &len)

@@ -664,7 +664,7 @@ static int bpsec_admin_json_getEventId(jsonObject job, BpSecEventId *event)
 
 	else
 	{
-		bpsec_admin_printText("Event format incorrect. Event name not found.");
+		bpsec_admin_printText("[?] Event format incorrect. Event name not found.");
 		result = -1;
 	}
 
@@ -993,25 +993,25 @@ static int bpsec_admin_json_getFilterCriteria(jsonObject job, char *bsrc, char *
 
 	if(bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_STRING, KNS_SRC, MAX_EID_LEN, bsrc, NULL) < 0)
 	{
-		bpsec_admin_printText("Malformed bundle source provided. Expected a string EID.");
+		bpsec_admin_printText("[?] Malformed bundle source provided. Expected a string EID.");
 		return 0;
 	}
 
 	if(bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_STRING, KNS_DEST, MAX_EID_LEN, bdest, NULL) < 0)
 	{
-		bpsec_admin_printText("Malformed bundle destination provided. Expected a string EID.");
+		bpsec_admin_printText("[?] Malformed bundle destination provided. Expected a string EID.");
 		return 0;
 	}
 
 	if(bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_STRING, KNS_SEC_SRC, MAX_EID_LEN, ssrc, NULL) < 0)
 	{
-		bpsec_admin_printText("Malformed security source provided. Expected a string EID.");
+		bpsec_admin_printText("[?] Malformed security source provided. Expected a string EID.");
 		return 0;
 	}
 
 	if((result = bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_PRIMITIVE, KNS_TGT, NUM_STR_LEN, num_str, NULL)) < 0)
 	{
-		bpsec_admin_printText("Malformed target block type provided. Expected a block type identifier (int).");
+		bpsec_admin_printText("[?] Malformed target block type provided. Expected a block type identifier (int).");
 		return 0;
 	}
 	else if (result > 0)
@@ -1031,7 +1031,7 @@ static int bpsec_admin_json_getFilterCriteria(jsonObject job, char *bsrc, char *
 	/* A result of 0 means the role was not found in the JSON, which is OK. */
 	if(result < 0)
 	{
-		bpsec_admin_printText("Malformed security role provided. Supported roles are: \n\t\"sec_source\"\n\t\"sec_verifier\"\n\t\"sec_acceptor\"");
+		bpsec_admin_printText("[?] Malformed security role provided. Supported roles are: \n\t\"sec_source\"\n\t\"sec_verifier\"\n\t\"sec_acceptor\"");
 		return 0;
 	}
 	else if (result > 0)
@@ -1042,7 +1042,7 @@ static int bpsec_admin_json_getFilterCriteria(jsonObject job, char *bsrc, char *
 	/* A result of -1 means the sc_id in the JSON was invalid. */
 	if((result = bpsec_admin_json_getScId(job, sc_id)) == -1)
 	{
-		bpsec_admin_printText("Malformed security context identifier provided.");
+		bpsec_admin_printText("[?] Malformed security context identifier provided.");
 		return 0;
 	}
 	/* A result of 1 means that the sc_id was found and is valid. Result == 0 indicates that
@@ -1050,13 +1050,13 @@ static int bpsec_admin_json_getFilterCriteria(jsonObject job, char *bsrc, char *
 	/* Result is 0 if sc_id is missing */
 	if((*role == BPRF_SRC_ROLE) && (result == 0))
 	{
-		bpsec_admin_printText("Security sources MUST specify a security context identifer (\"sc_id\").");
+		bpsec_admin_printText("[?] Security sources MUST specify a security context identifer (\"sc_id\").");
 		return 0;
 	}
 
 	if((result = bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_STRING, KNS_SVC, JSON_VAL_LEN, svc_str, NULL)) < 0)
 	{
-		bpsec_admin_printText("Malformed security service provided. Supported security services are: \n\tbib-integrity\n\tbcb-confidentiality");
+		bpsec_admin_printText("[?] Malformed security service provided. Supported security services are: \n\tbib-integrity\n\tbcb-confidentiality");
 		return 0;
 	}
 	else if (result > 0)
@@ -1116,12 +1116,12 @@ static int bpsec_admin_json_parseFilter(jsonObject job, BpSecFilter *filter)
 
 		else
 		{
-			bpsec_admin_printText("Filter information for policy rule invalid.");
+			bpsec_admin_printText("[?] Filter information for policy rule invalid.");
 			return 0;
 		}
 	}
 
-	bpsec_admin_printText("Malformed filter criteria found for policy rule.");
+	bpsec_admin_printText("[?] Malformed filter criteria found for policy rule.");
 	return 0;
 }
 
@@ -1387,7 +1387,7 @@ static void	bpsec_admin_addEventSet(jsonObject job)
 	}
 	else
 	{
-		bpsec_admin_printText("Error adding named eventset.");
+		bpsec_admin_printText("[?] Error adding named eventset.");
 	}
 	return;
 }
@@ -1443,7 +1443,7 @@ static void	bpsec_admin_addEvent(jsonObject job)
 	}
 	else
 	{
-		bpsec_admin_printText("No \"es_ref\" in call to add event. Must include a named eventset.");
+		bpsec_admin_printText("[?] No \"es_ref\" in call to add event. Must include a named eventset.");
 	}
 }
 
@@ -1470,11 +1470,11 @@ static void	bpsec_admin_addPolicyrule(jsonObject job)
 
 	if(!bpsec_admin_json_parseFilter(job, &filter))
 	{
-		bpsec_admin_printText("Filter criteria could not be processed.");
+		bpsec_admin_printText("[?] Filter criteria could not be processed.");
 	}
 	else if (!bpsec_admin_json_getNewRuleId(job, &id))
 	{
-		bpsec_admin_printText("Rule ID could not be processed.");
+		bpsec_admin_printText("[?] Rule ID could not be processed.");
 	}
 	else if(bpsec_admin_json_getTypedValue(job, start, 0, JSMN_STRING, KNS_DESC, BPSEC_RULE_DESCR_LEN, desc, NULL) < 0)
 	{
@@ -1483,7 +1483,7 @@ static void	bpsec_admin_addPolicyrule(jsonObject job)
 	}
 	else if(bpsec_admin_json_getTypedValue(job, start, 0, JSMN_STRING, KNS_ES_REF, MAX_EVENT_SET_NAME_LEN, name, NULL) <= 0)
 	{
-		bpsec_admin_printText("Missing event set reference (\"es_ref\").");
+		bpsec_admin_printText("[?] Missing event set reference (\"es_ref\").");
 	}
 	else if((esAddr = bsles_get_addr(gWm, name)) == 0)
 	{
@@ -1511,7 +1511,7 @@ static void	bpsec_admin_addPolicyrule(jsonObject job)
 
 			if((sci_parms = bpsec_admin_json_getSecCtxtParms(job, &secCtx)) == 0)
 			{
-				bpsec_admin_printText("Security context parameters could not be processed.");
+				bpsec_admin_printText("[?] Security context parameters could not be processed.");
 				return;
 			}
 		}
@@ -1519,8 +1519,8 @@ static void	bpsec_admin_addPolicyrule(jsonObject job)
 		   the security context to use when processing them, it's an error. */
 		else if ((!(filter.flags & BPRF_USE_SCID)) && (bpsec_admin_json_getTypedIdx(job, 1, 0, KNS_SC_PARMS, JSMN_ARRAY) > 0))
 		{
-			bpsec_admin_printText("Security context parameters provided without security context identifier.");
-			bpsec_admin_printText("\"sc_id\" field must be present in policy rules providing \"sc_parms\".");
+			bpsec_admin_printText("[?] Security context parameters provided without security context identifier.");
+			bpsec_admin_printText("[?] \"sc_id\" field must be present in policy rules providing \"sc_parms\".");
 			return;
 		}
 
@@ -1638,7 +1638,7 @@ static void	bpsec_admin_deleteEventSet(jsonObject job)
 	}
 	else
 	{
-		bpsec_admin_printText("Error deleting eventset.");
+		bpsec_admin_printText("[?] Error deleting eventset.");
 	}
 	return;
 }
@@ -1674,7 +1674,7 @@ static void	bpsec_admin_deleteEvent(jsonObject job)
 	}
 	else
 	{
-		bpsec_admin_printText("Missing event set name. Cannot delete event.");
+		bpsec_admin_printText("[?] Missing event set name. Cannot delete event.");
 	}
 	return;
 }
@@ -1696,7 +1696,7 @@ static void	bpsec_admin_deletePolicyrule(jsonObject job)
 	}
 	else
 	{
-		bpsec_admin_printText("Missing rule id. Cannot delete policy rule.");
+		bpsec_admin_printText("[?] Missing rule id. Cannot delete policy rule.");
 	}
 	return;
 }
@@ -1831,7 +1831,7 @@ static void bpsec_admin_printPolicyrule(BpSecPolRule *rulePtr, int verbose)
 
 	if(rulePtr == NULL)
 	{
-		bpsec_admin_printText("No Rule.\n");
+		bpsec_admin_printText("[?] No Rule.\n");
 		return;
 	}
 
@@ -1924,7 +1924,7 @@ static void bpsec_admin_printPolicyruleLyst(Lyst rules, int verbose)
 	/* lyst_length does a NULL check. */
 	if(lyst_length(rules) <= 0)
 	{
-		bpsec_admin_printText("No policy rules defined.\n");
+		bpsec_admin_printText("[?] No policy rules defined.\n");
 		return;
 	}
 
@@ -1964,7 +1964,7 @@ static int bpsec_admin_json_getFindCriteria(jsonObject job, int start, int *type
 	/* Search the JSON object for the search type and process it. */
 	if(bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_STRING, KNS_TYPE, JSON_VAL_LEN, tmp_str, NULL) <= 0)
 	{
-		bpsec_admin_printText("Search type missing. Include field \"type\" set to value \"all\" or \"best\".");
+		bpsec_admin_printText("[?] Search type missing. Include field \"type\" set to value \"all\" or \"best\".");
 		return 0;
 	}
 
@@ -2010,7 +2010,7 @@ static int bpsec_admin_json_getFindCriteria(jsonObject job, int start, int *type
 	/* A result of -1 means the sc_id in the JSON was invalid. */
 	if((result = bpsec_admin_json_getScId(job, &sc_id)) == -1)
 	{
-		bpsec_admin_printText("Malformed security context identifier provided.");
+		bpsec_admin_printText("[?] Malformed security context identifier provided.");
 		return 0;
 	}
 	/* A result of 1 means the SC ID is valid (supported by the BPA) */
@@ -2030,7 +2030,7 @@ static int bpsec_admin_json_getFindCriteria(jsonObject job, int start, int *type
 	/* Search for a security service. If none is found, set to 0 */
 	if((result = bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_STRING, KNS_SVC, JSON_VAL_LEN, tmp_str, NULL)) < 0)
 	{
-		bpsec_admin_printText("Malformed security service provided. Supported security services are: \n\tbib-integrity\n\tbcb-confidentiality");
+		bpsec_admin_printText("[?] Malformed security service provided. Supported security services are: \n\tbib-integrity\n\tbcb-confidentiality");
 		return 0;
 	}
 	else if (result > 0)
@@ -2070,7 +2070,7 @@ static void	bpsec_admin_findPolicyrule(jsonObject job)
 
 	if(bpsec_admin_json_getFindCriteria(job, start, &type, &tag) <= 0)
 	{
-		bpsec_admin_printText("Unable to populate policy rule find criteria.");
+		bpsec_admin_printText("[?] Unable to populate policy rule find criteria.");
 		return;
 	}
 
@@ -2086,7 +2086,7 @@ static void	bpsec_admin_findPolicyrule(jsonObject job)
 		bpsec_admin_printPolicyrule(bslpol_rule_find_best_match(gWm, tag), 1);
 		break;
 	default:
-		bpsec_admin_printText("Unknown find type. Supported types are: \"best\" or \"all\".");
+		bpsec_admin_printText("[?] Unknown find type. Supported types are: \"best\" or \"all\".");
 		break;
 	}
 
@@ -2125,7 +2125,7 @@ static void	bpsec_admin_infoEventSet(jsonObject job)
 	}
 	else
 	{
-		bpsec_admin_printText("Error displaying eventset info.");
+		bpsec_admin_printText("[?] Error displaying eventset info.");
 	}
 
 	return;
@@ -2147,7 +2147,7 @@ static void	bpsec_admin_infoPolicyrule(jsonObject job)
 	}
 	else
 	{
-		bpsec_admin_printText("Missing policy rule id from info command.");
+		bpsec_admin_printText("[?] Missing policy rule id from info command.");
 	}
 	return;
 }
@@ -2238,7 +2238,7 @@ SecPolCmd bpsec_admin_json_getSecPolCmd(char *cmdCode, jsonObject job)
 
 	if(cmdTypeIdx < 0)
 	{
-		bpsec_admin_printText("Malformed security policy command. \n"
+		bpsec_admin_printText("[?] Malformed security policy command. \n"
 				"Hint: Supported command types are: \n"
 				"\t \"event_set\" \n\t \"event\" \n\t \"policyrule\"\n");
 		return invalid;
@@ -2250,7 +2250,7 @@ SecPolCmd bpsec_admin_json_getSecPolCmd(char *cmdCode, jsonObject job)
 	/* Step 1.1: The command type identifier must be a string. */
 	if(bpsec_admin_json_getValueAtIdx(job, JSMN_STRING, cmdTypeIdx, cmdType, sizeof(cmdType)) <= 0)
 	{
-		bpsec_admin_printText("Malformed security policy command. Command type must be a string.\n"
+		bpsec_admin_printText("[?] Malformed security policy command. Command type must be a string.\n"
 				"Hint: Supported command types are: \n"
 				"\t \"event_set\" \n\t \"event\" \n\t \"policyrule\"\n");
 		return invalid;
@@ -2276,7 +2276,7 @@ SecPolCmd bpsec_admin_json_getSecPolCmd(char *cmdCode, jsonObject job)
 		}
 		else
 		{
-			bpsec_admin_printText("Malformed security policy add command. \n"
+			bpsec_admin_printText("[?] Malformed security policy add command. \n"
 					"Supported command types are: \n"
 					"\t \"event_set\" \t \"event\" \t \"policyrule\"");
 			return invalid;
@@ -2297,7 +2297,7 @@ SecPolCmd bpsec_admin_json_getSecPolCmd(char *cmdCode, jsonObject job)
 		}
 		else
 		{
-			bpsec_admin_printText("Malformed security policy delete command. \n"
+			bpsec_admin_printText("[?] Malformed security policy delete command. \n"
 					"Supported command types are: \n"
 					"\t \"event_set\" \t \"event\" \t \"policyrule\"");
 			return invalid;
@@ -2310,7 +2310,7 @@ SecPolCmd bpsec_admin_json_getSecPolCmd(char *cmdCode, jsonObject job)
 		}
 		else
 		{
-			bpsec_admin_printText("Malformed security policy find command. \n"
+			bpsec_admin_printText("[?] Malformed security policy find command. \n"
 					"Supported command types are: \n"
 					"\t \"policyrule\"");
 			return invalid;
@@ -2327,7 +2327,7 @@ SecPolCmd bpsec_admin_json_getSecPolCmd(char *cmdCode, jsonObject job)
 		}
 		else
 		{
-			bpsec_admin_printText("Malformed security policy info command. \n"
+			bpsec_admin_printText("[?] Malformed security policy info command. \n"
 					"Supported command types are: \n"
 					"\t \"event_set\" \t \"policyrule\"");
 			return invalid;
@@ -2344,14 +2344,14 @@ SecPolCmd bpsec_admin_json_getSecPolCmd(char *cmdCode, jsonObject job)
 		}
 		else
 		{
-			bpsec_admin_printText("Malformed security policy list command. \n"
+			bpsec_admin_printText("[?] Malformed security policy list command. \n"
 					"Supported command types are: \n"
 					"\t \"event_set\" \t \"policyrule\"");
 			return invalid;
 		}
 	}
 
-	bpsec_admin_printText("Malformed security policy command. \nCheck security policy user's manual for more information.");
+	bpsec_admin_printText("[?] Malformed security policy command. \nCheck security policy user's manual for more information.");
 	return invalid;
 }
 
@@ -2667,7 +2667,7 @@ int bpsec_admin_json_validateCmd(SecPolCmd cmdType, jsonObject job){
 		/* Step 2.1: Retrieve key field. All keys must be strings */
 		if(bpsec_admin_json_getValueAtIdx(job, JSMN_STRING, keyIdx, key, sizeof(key)) <= 0)
 		{
-			bpsec_admin_printText("Malformed key field provided. All keys must be strings.");
+			bpsec_admin_printText("[?] Malformed key field provided. All keys must be strings.");
 			return -1;
 		}
 
@@ -2733,7 +2733,7 @@ int bpsec_admin_json_validateCmd(SecPolCmd cmdType, jsonObject job){
 		}
 		else
 		{
-			bpsec_admin_printText("Malformed security policy command: Invalid key field provided.");
+			bpsec_admin_printText("[?] Malformed security policy command: Invalid key field provided.");
 			return -1;
 		}
 	}
@@ -2778,7 +2778,7 @@ int bpsec_admin_executeCmd(char *line)
 	 * be '{' indicating the start of the JSON command. */
 	if(strchr("{", line[0]) != NULL)
 	{
-		bpsec_admin_printText("Security policy command missing command code.");
+		bpsec_admin_printText("[?] Security policy command missing command code.");
 		bpsec_admin_printText("Hint: 'a', 'd', 'f', etc.\nEnter 'h' for more information.");
 		return -1;
 	}
@@ -2786,7 +2786,7 @@ int bpsec_admin_executeCmd(char *line)
 	/* Step 1.3: Populate the command code field (length is 1 + 1)*/
 	if(istrcpy(cmdCode, line, 2) == NULL)
 	{
-		bpsec_admin_printText("Security policy command code malformed.");
+		bpsec_admin_printText("[?] Security policy command code malformed.");
 		bpsec_admin_printText("Hint: 'a', 'd', 'f', etc.\nEnter 'h' for more information.");
 		return -1;
 	}
@@ -2834,13 +2834,13 @@ int bpsec_admin_executeCmd(char *line)
 	{
 		if(bpsec_admin_json_parseJob(line, &job) < 1)
 		{
-			bpsec_admin_printText("Malformed security policy command detected. Failed to parse JSON.");
+			bpsec_admin_printText("[?] Malformed security policy command detected. Failed to parse JSON.");
 			return -1;
 		}
 	}
 	else
 	{
-		bpsec_admin_printText("Malformed security policy command. \n "
+		bpsec_admin_printText("[?] Malformed security policy command. \n "
 				"Hint: Enter 'h' to see supported commands.");
 		return -1;
 	}
@@ -2849,7 +2849,7 @@ int bpsec_admin_executeCmd(char *line)
 	 * structure for a security policy command. */
 	if(bpsec_admin_json_checkCmd(job) < 1)
 	{
-		bpsec_admin_printText("Malformed security policy command. \n"
+		bpsec_admin_printText("[?] Malformed security policy command. \n"
 				"Hint: Supported command types are: \n"
 				"\t \"event_set\" \n\t \"event\" \n\t \"policyrule\"");
 		return 0;
@@ -3090,6 +3090,9 @@ the program.");
 		}
 		else
 		{
+			int	echoState = 1;
+
+			oK(_echo(&echoState));
 			while (1)
 			{
 				if (igets(cmdFile, line, sizeof(line), &len) == NULL)
@@ -3102,7 +3105,7 @@ the program.");
 						 * is invalid */
 						if(strlen(jsonStr) != 0)
 						{
-							bpsec_admin_printText("Malformed security policy command detected. JSON incomplete.");
+							bpsec_admin_printText("[?] Malformed security policy command detected. JSON incomplete.");
 						}
 						break;	/*	Loop.	*/
 					}
@@ -3147,7 +3150,7 @@ the program.");
 					}
 					else if (retval == -1)
 					{
-						bpsec_admin_printText("Invalid JSON detected.");
+						bpsec_admin_printText("[?] Invalid JSON detected.");
 						memset(jsonStr, '\0', sizeof(jsonStr));
 					}
 					/* Otherwise, add the next line to the concatenated JSON command

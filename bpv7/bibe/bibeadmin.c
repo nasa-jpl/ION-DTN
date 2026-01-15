@@ -100,7 +100,7 @@ static int	attachToBp(void)
 {
 	if (bpAttach() < 0)
 	{
-		printText("BP not initialized yet.");
+		printText("[?] BP not initialized yet.");
 		return -1;
 	}
 
@@ -277,7 +277,7 @@ static void	infoBcla(int tokenCount, char **tokens)
 	bibeFind(tokens[2], &obj, &elt);
 	if (elt == 0)
 	{
-		printText("Unknown BIBE CLA.");
+		printText("[?] Unknown BIBE CLA.");
 	}
 	else
 	{
@@ -321,7 +321,7 @@ static void	listBclas(int tokenCount, char **tokens)
 	findScheme(tokens[2], &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
 	{
-		printText("Unknown scheme.");
+		printText("[?] Unknown scheme.");
 	}
 	else
 	{
@@ -700,6 +700,9 @@ the program.");
 		}
 		else
 		{
+			int	echoState = 1;
+
+			oK(_echo(&echoState));
 			while (1)
 			{
 				if (igets(cmdFile, line, sizeof line, &len)
