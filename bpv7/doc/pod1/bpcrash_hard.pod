@@ -148,7 +148,7 @@ Expected message from SDR library indicating reversal is being performed.
 
 =head1 BUGS
 
-Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
