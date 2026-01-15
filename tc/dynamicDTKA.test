@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/usr/bin/env bash
 #
 # Author:       Michael Stadler
 # Date:         07/23/17
