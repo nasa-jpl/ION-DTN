@@ -2736,7 +2736,6 @@ tests_ionexit_test_checksemaphores_SOURCES = tests/ionexit_test/checksemaphores.
 tests_ionexit_test_checksemaphores_LDADD = -lpthread
 tests_ionexit_test_checksemaphores_CFLAGS = $(AM_CFLAGS)
 
-#Disabled this test in ION 3.7.0 due to routing changes
 tests_issue_188_common_cos_syntax_dotest_SOURCES = tests/issue-188-common-cos-syntax/dotest.c
 tests_issue_188_common_cos_syntax_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(TESTUTILOBJS)
 tests_issue_188_common_cos_syntax_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
