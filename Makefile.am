@@ -191,7 +191,7 @@ distclean-local:
 
 # clean-local refers to existing documents.
 clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local \
-	     amsclean-local cfdpclean-local restartclean-local
+	     amsclean-local cfdpclean-local restartclean-local tcclean-local
 	@rm -f .build_finished
 	@rm -f ion.pc
 
