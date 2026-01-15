@@ -265,6 +265,3 @@ int	main(int argc, char **argv)
 
    return (errcount != 0)? -1 : 0;
 }
-
-
-/* eof */
