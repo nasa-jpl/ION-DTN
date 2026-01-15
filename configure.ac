@@ -368,23 +368,19 @@ AM_CONDITIONAL(ENABLE_EWCHAR, test "x$ENABLE_EWCHAR" = "xyes")
 
 #
 # allow the user running configure to enable the command line history option
+# Uses bundled linenoise library (BSD-2-Clause)
 #
 AC_ARG_ENABLE(
     commandline-history,
-    [AS_HELP_STRING([--enable-commandline-history],[enable command line history])],
-    [AC_CHECK_PROG([readline_present], [readline], [1], [0])
-	 if test "$readline_present" = 1; then
-		ENABLE_CMD_HIST=yes
-	 	AM_CFLAGS="$AM_CFLAGS -DINPUT_HISTORY"
-		PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DINPUT_HISTORY"
-	 else
-	 	ENABLE_CMD_HIST=no
-	 	AC_MSG_ERROR([You need to have the readline executable installed to use this option.])
-	 fi
-	],
+    [AS_HELP_STRING([--enable-commandline-history],[enable command line history using bundled linenoise])],
+    [ENABLE_CMD_HIST=yes
+     AM_CFLAGS="$AM_CFLAGS -DINPUT_HISTORY"
+     PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DINPUT_HISTORY"
+     echo "Command line history enabled (using bundled linenoise)."
+    ],
     [ENABLE_CMD_HIST=no
-	 echo "Command line history disabled."
-	])
+     echo "Command line history disabled."
+    ])
 AM_CONDITIONAL(ENABLE_CMD_HIST, test "x$ENABLE_CMD_HIST" = "xyes")
 
 #

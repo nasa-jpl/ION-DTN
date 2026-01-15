@@ -21,18 +21,18 @@ TODO: Implement support for anonymous event sets in policyrules.
 
 */
 
-#ifdef INPUT_HISTORY
-#include <stdio.h>
-#include <string.h>
-#include <readline/readline.h>
-#include <readline/history.h>
-#endif
-
 /*****************************************************************************
  *                              FILE INCLUSIONS                              *
  *****************************************************************************/
 
 #include "bpsecadmin_config.h"
+
+#ifdef INPUT_HISTORY
+#include "linenoise.h"
+#include <errno.h>
+#include <stdio.h>
+#include <string.h>
+#endif
 
 /*****************************************************************************
  *                              GLOBAL VARIABLES                             *
@@ -2985,34 +2985,42 @@ int	main(int argc, char **argv)
 		{
 #ifdef INPUT_HISTORY
 			/* add input history */
-			if ((input = readline(": ")) != NULL)
+			if ((input = linenoise(": ")) != NULL)
 			{
 				len = strlen(input);
-				
+
 				if (len == 0)
 				{
+					linenoiseFree(input);
 					continue;
 				}
 
 				/* received input */
-				if (len > 0) 
+				if (len > 0)
 				{
-            		add_history(input);
-        		}
-				
-				if (len > sizeof(line) - 1 ) 
+					linenoiseHistoryAdd(input);
+				}
+
+				if ((size_t) len > sizeof(line) - 1)
 				{
 					printf("\nInput is too long. Ignored.\n");
 					fflush(stdout);
+					linenoiseFree(input);
 					continue;
 				}
+			}
+			else if (errno == EAGAIN)
+			{
+				/* Ctrl+C pressed */
+				bpsec_admin_printText("Please enter command 'q' to stop \
+the program.");
+				continue;
 			}
 			else
 			{
 				/* input error detected */
 				printf("\nInput error detected. Exiting.\n");
 				fflush(stdout);
-				free(input);
 				break;
 			}
 
@@ -3023,18 +3031,19 @@ int	main(int argc, char **argv)
 
 			result = bpsec_admin_executeCmd(line);
 
-			if (result == -1) 
+			if (result == -1)
 			{
 				printf("\nCommand execution error. Exiting.\n");
 				fflush(stdout);
-				free(input);
+				linenoiseFree(input);
 				break;
 			}
 			else if (result == 2)
 			{
-				free(input);
+				linenoiseFree(input);
 				break;
 			}
+			linenoiseFree(input);
 #else
 			/* original input handling*/
 			printf(": ");

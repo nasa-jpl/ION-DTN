@@ -8,9 +8,10 @@ Technology_
 
 Document Change Log
 
-| Ver No. | Date      | Description                      | Note                    |
+| Ver No. | Date      | Description   | Note   |
 | ------- | --------- | -------------------------------- | ----------------------- |
-| V4.1.4-b.1  | 12/2025 | ION 4.1.4-b.1 release         |                         |
+| V4.1.4-b.3  | 1/2026 | ION 4.1.4-b.3 release   |    |
+| V4.1.4-b.1  | 12/2025 | ION 4.1.4-b.1 release   |    |
 | V4.1.3  | 11/6/2023 | Add LTP Performance Test         | Converted to markdown |
 | V4.1.2  | 1/5/2023  | Added notes on SDR file and CGRM |                         |
 
@@ -114,6 +115,84 @@ operation of admin utilities by human operators.
 Note: Prior to this change, FSWLOGGER implicitly disabled interactive
 mode. These concerns are now separated—FSWLOGGER controls only logging
 redirection, while NON_INTERACTIVE controls interactive mode availability.
+
+`INPUT_HISTORY` (configure option: `--enable-commandline-history`)
+
+This option enables command-line history and editing in the interactive
+admin utilities (ionadmin, bpadmin, ltpadmin, etc.). When enabled, users
+can use arrow keys to navigate through previously entered commands and
+edit the current command line—similar to bash shell behavior.
+
+This feature is enabled at build time via the `configure` option
+`--enable-commandline-history`, which defines the `INPUT_HISTORY` macro
+and links the admin utilities against the bundled **linenoise** library.
+Linenoise is a lightweight (~850 lines), BSD-2-Clause licensed
+alternative to GNU readline.
+
+**Ground-Based Use Only**: This feature uses `malloc()` for dynamic
+memory allocation. It is intended exclusively for ground-based
+operations where admin utilities may be used interactively by human
+operators. **Do not enable this option for flight software builds**—the
+use of `malloc()` is generally prohibited in flight software due to
+concerns about memory fragmentation and determinism.
+
+For the rare scenario of a crewed mission where human operators interact
+directly with ION admin utilities in flight, the linenoise library
+would need to be modified to replace all `malloc()`/`free()` calls with
+static buffer allocations. The linenoise source is bundled in
+`ici/linenoise/` and includes documentation of modifications already
+made for ION compatibility.
+
+Example build command for ground systems:
+
+```bash
+./configure --enable-commandline-history
+make
+```
+
+**Available Keyboard Shortcuts**
+
+When command-line history is enabled, the following keyboard shortcuts are available in all ION admin utilities:
+
+*Line Editing:*
+
+| Key | Action |
+|-----|--------|
+| Left Arrow or Ctrl+B | Move cursor left |
+| Right Arrow or Ctrl+F | Move cursor right |
+| Home or Ctrl+A | Move to beginning of line |
+| End or Ctrl+E | Move to end of line |
+| Backspace or Ctrl+H | Delete character before cursor |
+| Delete | Delete character at cursor |
+| Ctrl+T | Swap current character with previous |
+
+*History Navigation:*
+
+| Key | Action |
+|-----|--------|
+| Up Arrow or Ctrl+P | Previous command in history |
+| Down Arrow or Ctrl+N | Next command in history |
+
+History holds up to 100 entries in memory per session.
+
+*Line Manipulation:*
+
+| Key | Action |
+|-----|--------|
+| Ctrl+U | Delete entire line |
+| Ctrl+K | Delete from cursor to end of line |
+| Ctrl+W | Delete word before cursor |
+
+*Other:*
+
+| Key | Action |
+|-----|--------|
+| Ctrl+L | Clear screen |
+| Ctrl+C | Cancel current input |
+| Ctrl+D | Delete character at cursor, or exit if line is empty |
+| Enter | Execute command |
+
+Note: Command history is not persisted across sessions.
 
 `FSWCLOCK`
 

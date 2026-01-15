@@ -51,6 +51,13 @@ Configuration information (such as routes, connections, etc) can be specified on
 (Recommended) Creating a configuration file and passing it to ionadmin, bpadmin, ipnadmin... either directly or via the ionstart helper script.
 Manually typing configuration commands into the terminal for each administration program.
 
+> **Tip**: If ION was built with `--enable-commandline-history`, the admin
+> utilities support command-line history and editing (use arrow keys to
+> recall previous commands). This is useful for interactive terminal
+> sessions but is intended for ground-based use only. See the
+> [ION Deployment Guide](ION-Deployment-Guide.md#input_history-configure-option---enable-commandline-history)
+> for details.
+
 You can find appropriate commands in the following sections.
 
 ## Configuration Files Overview

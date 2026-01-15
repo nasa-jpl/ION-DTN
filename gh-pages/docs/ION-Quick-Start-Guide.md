@@ -162,6 +162,14 @@ For minimal builds targeting resource-constrained environments, ION 4.1.4-b.1 in
 
 These options can reduce the compiled size and runtime resource requirements when these specific convergence layers are not needed for your deployment.
 
+For ground-based operations where operators interact with admin utilities
+(ionadmin, bpadmin, etc.) via terminal, the `--enable-commandline-history`
+option enables command-line history and editing (arrow keys to recall
+previous commands). This feature is **not recommended for flight builds**
+as it uses dynamic memory allocation. See the
+[ION Deployment Guide](ION-Deployment-Guide.md#input_history-configure-option---enable-commandline-history)
+for details.
+
 To introduce customized build flags, you can add them via the `./configure` in this manner:
 
 `./configure CFLAGS="<string of compiler options>"`

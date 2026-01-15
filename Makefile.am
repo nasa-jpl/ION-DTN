@@ -242,6 +242,19 @@ lib_LTLIBRARIES = \
 	$(secryptlib) \
 	$(metadatalib)
 
+# Linenoise: lightweight readline replacement (BSD-2-Clause)
+# Only built when --enable-commandline-history is used
+if ENABLE_CMD_HIST
+noinst_LTLIBRARIES = liblinenoise.la
+liblinenoise_la_SOURCES = ici/linenoise/linenoise.c
+liblinenoise_la_CFLAGS = $(AM_CFLAGS)
+LINENOISE_LDADD = liblinenoise.la
+LINENOISE_CFLAGS = -I$(srcdir)/ici/linenoise
+else
+LINENOISE_LDADD =
+LINENOISE_CFLAGS =
+endif
+
 include_HEADERS = \
 	$(iciinclude) \
 	$(ltpinclude) \
@@ -613,16 +626,16 @@ libici_la_LIBADD = $(CRYPTO_LIBS) -lm
 # --- Utility Programs --- #
 
 ionadmin_SOURCES = ici/utils/ionadmin.c
-ionadmin_LDADD = libici.la -lm
-ionadmin_CFLAGS = $(icicflags) $(AM_CFLAGS)
+ionadmin_LDADD = libici.la -lm $(LINENOISE_LDADD)
+ionadmin_CFLAGS = $(icicflags) $(AM_CFLAGS) $(LINENOISE_CFLAGS)
 
 ionlog_SOURCES = ici/utils/ionlog.c
 ionlog_LDADD = libici.la -lm
 ionlog_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 ionsecadmin_SOURCES = ici/utils/ionsecadmin.c
-ionsecadmin_LDADD = libici.la -lm
-ionsecadmin_CFLAGS = $(icicflags) $(AM_CFLAGS)
+ionsecadmin_LDADD = libici.la -lm $(LINENOISE_LDADD)
+ionsecadmin_CFLAGS = $(icicflags) $(AM_CFLAGS) $(LINENOISE_CFLAGS)
 
 ionunlock_SOURCES = ici/utils/ionunlock.c
 ionunlock_LDADD = libici.la -lm
@@ -815,8 +828,8 @@ libudplsa_la_LIBADD = libici.la libltp.la -lm
 # --- Utility Programs --- #
 
 ltpadmin_SOURCES = ltp/utils/ltpadmin.c
-ltpadmin_LDADD = libltp.la libici.la  
-ltpadmin_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+ltpadmin_LDADD = libltp.la libici.la $(LINENOISE_LDADD)
+ltpadmin_CFLAGS = $(ltpcflags) $(AM_CFLAGS) $(LINENOISE_CFLAGS)
 
 ltpsecadmin_SOURCES = ltp/utils/ltpsecadmin.c
 ltpsecadmin_LDADD = libltp.la libici.la
@@ -1420,8 +1433,8 @@ libsecrypt_la_LIBADD = libbp.la libici.la
 # --- Utility Programs --- #
 
 bpadmin_SOURCES = bpv7/utils/bpadmin.c
-bpadmin_LDADD = libici.la $(bplib)
-bpadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+bpadmin_LDADD = libici.la $(bplib) $(LINENOISE_LDADD)
+bpadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(LINENOISE_CFLAGS)
 
 bpcancel_SOURCES = bpv7/utils/bpcancel.c
 bpcancel_LDADD = libici.la $(bplib)
@@ -1436,8 +1449,8 @@ bpinspect_LDADD = libici.la $(bplib)
 bpinspect_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpsecadmin_SOURCES = bpv7/utils/bpsecadmin.c
-bpsecadmin_LDADD = libici.la $(bplib)
-bpsecadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+bpsecadmin_LDADD = libici.la $(bplib) $(LINENOISE_LDADD)
+bpsecadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(LINENOISE_CFLAGS)
 
 bpstats_SOURCES = bpv7/utils/bpstats.c
 bpstats_LDADD = libici.la $(bplib)
@@ -1477,8 +1490,8 @@ imcfw_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 endif # end ENABLE_IMC
 
 ipnadmin_SOURCES = bpv7/ipn/ipnadmin.c
-ipnadmin_LDADD = libici.la $(bplib)
-ipnadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+ipnadmin_LDADD = libici.la $(bplib) $(LINENOISE_LDADD)
+ipnadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(LINENOISE_CFLAGS)
 
 lgagent_SOURCES = bpv7/utils/lgagent.c
 lgagent_LDADD = libici.la $(bplib)
@@ -1583,8 +1596,8 @@ sppclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 # --- BIBE Executables --- #
 
 bibeadmin_SOURCES = bpv7/bibe/bibeadmin.c
-bibeadmin_LDADD = libici.la $(bplib)
-bibeadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+bibeadmin_LDADD = libici.la $(bplib) $(LINENOISE_LDADD)
+bibeadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(LINENOISE_CFLAGS)
 
 bibeclo_SOURCES = bpv7/bibe/bibeclo.c
 bibeclo_LDADD = libici.la $(bplib)
@@ -2283,8 +2296,8 @@ bpcpd_LDADD = libcfdp.la libici.la  -lm
 bpcpd_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 cfdpadmin_SOURCES = cfdp/utils/cfdpadmin.c
-cfdpadmin_LDADD = libcfdp.la libici.la  -lm $(bplib) 
-cfdpadmin_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
+cfdpadmin_LDADD = libcfdp.la libici.la -lm $(bplib) $(LINENOISE_LDADD)
+cfdpadmin_CFLAGS = $(cfdpcflags) $(AM_CFLAGS) $(LINENOISE_CFLAGS)
 
 # --- BP Programs --- #
 
@@ -2451,8 +2464,8 @@ bsspclock_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 # --- Utility Programs --- #
 
 bsspadmin_SOURCES = bssp/utils/bsspadmin.c
-bsspadmin_LDADD = libbssp.la libici.la  -lm $(bplib) 
-bsspadmin_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
+bsspadmin_LDADD = libbssp.la libici.la -lm $(bplib) $(LINENOISE_LDADD)
+bsspadmin_CFLAGS = $(bsspcflags) $(AM_CFLAGS) $(LINENOISE_CFLAGS)
 
 # --- UDP Executables --- #
 
@@ -2540,8 +2553,8 @@ libdtpc_la_LIBADD = libici.la $(bplib) $(PTHREAD_LIBS)
 # --- Utility Programs --- #
 
 dtpcadmin_SOURCES = dtpc/utils/dtpcadmin.c
-dtpcadmin_LDADD = libdtpc.la libici.la  $(bplib) 
-dtpcadmin_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
+dtpcadmin_LDADD = libdtpc.la libici.la $(bplib) $(LINENOISE_LDADD)
+dtpcadmin_CFLAGS = $(dtpccflags) $(AM_CFLAGS) $(LINENOISE_CFLAGS)
 
 # --- Test Programs --- #
 

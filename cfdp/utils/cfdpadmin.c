@@ -10,9 +10,10 @@
 #include "cfdpP.h"
 
 #ifdef INPUT_HISTORY
+#include "linenoise.h"
+#include <errno.h>
+#include <stdio.h>
 #include <string.h>
-#include <readline/readline.h>
-#include <readline/history.h>
 #endif
 
 #ifdef STRSOE
@@ -1252,34 +1253,42 @@ int	main(int argc, char **argv)
 		{
 #ifdef INPUT_HISTORY
 			/* add input history */
-			if ((input = readline(": ")) != NULL)
+			if ((input = linenoise(": ")) != NULL)
 			{
 				len = strlen(input);
-				
+
 				if (len == 0)
 				{
+					linenoiseFree(input);
 					continue;
 				}
 
 				/* received input */
-				if (len > 0) 
+				if (len > 0)
 				{
-            		add_history(input);
-        		}
-				
-				if (len > sizeof(line) - 1 ) 
+					linenoiseHistoryAdd(input);
+				}
+
+				if ((size_t) len > sizeof(line) - 1)
 				{
 					printf("\nInput is too long. Ignored.\n");
 					fflush(stdout);
+					linenoiseFree(input);
 					continue;
 				}
+			}
+			else if (errno == EAGAIN)
+			{
+				/* Ctrl+C pressed */
+				printText("Please enter command 'q' to stop \
+the program.");
+				continue;
 			}
 			else
 			{
 				/* input error detected */
 				printf("\nInput error detected. Exiting.\n");
 				fflush(stdout);
-				free(input);
 				break;
 			}
 
@@ -1290,9 +1299,10 @@ int	main(int argc, char **argv)
 
 			if (processLine(line, len, &rc))
 			{
-				free(input);
+				linenoiseFree(input);
 				break;		/*	Out of loop.	*/
 			}
+			linenoiseFree(input);
 #else
 			/* original input handling*/
 			printf(": ");
