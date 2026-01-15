@@ -137,4 +137,4 @@ units tagged with the indicated client service data ID.
 
 =head1 SEE ALSO
 
-bsspadmin(1), bssprc(5), zco(3)
+bsspadmin(1), zco(3), bssprc(5)

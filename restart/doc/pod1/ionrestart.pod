@@ -62,4 +62,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-ionadmin(1), ltpadmin(1), bpadmin(1), cfdpadmin(1)
+bpadmin(1), cfdpadmin(1), ionadmin(1), ltpadmin(1)

@@ -67,4 +67,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-ionunlock(1), sdr(3), ionadmin(1)
+ionadmin(1), ionunlock(1), sdr(3)

@@ -87,4 +87,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-bpadmin(1), bpdriver(1), bpcounter(1), bping(1), bp(3)
+bpadmin(1), bpcounter(1), bpdriver(1), bping(1), bp(3)

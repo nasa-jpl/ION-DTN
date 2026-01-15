@@ -84,4 +84,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-ltpadmin(1), dccplso(1), owltsim(1)
+dccplso(1), ltpadmin(1), owltsim(1)

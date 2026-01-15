@@ -123,4 +123,5 @@ arguments, 0 on any record malformation, record length otherwise.
 
 =head1 SEE ALSO
 
-tcaboot(1), tcaadmin(1), tcarecv(1), tcacompile(1), tcapublish(1), tccadmin(1), tcc(1)
+tcaadmin(1), tcaboot(1), tcacompile(1), tcapublish(1), tcarecv(1), tcc(1),
+tccadmin(1)

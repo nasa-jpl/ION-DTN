@@ -101,4 +101,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-bpecho(1), bpsource(1), bpsink(1), bp(3)
+bpecho(1), bpsink(1), bpsource(1), bp(3)

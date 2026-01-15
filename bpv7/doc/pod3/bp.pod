@@ -259,4 +259,4 @@ endpoint.
 
 =head1 SEE ALSO
 
-bpadmin(1), lgsend(1), lgagent(1), bpextensions(3), bprc(5), lgfile(5)
+bpadmin(1), lgagent(1), lgsend(1), bpextensions(3), bprc(5), lgfile(5)

@@ -55,4 +55,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-bpcp(1), ion(3), cfdptest(1)
+bpcp(1), cfdptest(1), ion(3)

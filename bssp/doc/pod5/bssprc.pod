@@ -215,4 +215,4 @@ Sets local queuing delay allowance to 2 seconds.
 
 =head1 SEE ALSO
 
-bsspadmin(1), udpbsi(1), udpbso(1), tcpbsi(1), tcpbso(1)
+bsspadmin(1), tcpbsi(1), tcpbso(1), udpbsi(1), udpbso(1)

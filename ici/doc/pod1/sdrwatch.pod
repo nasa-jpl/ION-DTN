@@ -130,4 +130,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-sdr(3), psmwatch(1)
+psmwatch(1), sdr(3)

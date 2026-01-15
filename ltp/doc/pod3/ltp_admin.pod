@@ -374,7 +374,7 @@ Void functions (ltp_stop, ltp_stop_span, ltp_list_*) do not return values.
 
 =head1 SEE ALSO
 
-ltpadmin(1), ltp(3), ion(3)
+ltpadmin(1), ion(3), ltp(3)
 
 =head1 NOTES
 

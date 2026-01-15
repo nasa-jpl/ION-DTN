@@ -112,4 +112,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-bpstats(1), bpchat(1)
+bpchat(1), bpstats(1)

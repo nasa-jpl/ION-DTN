@@ -90,4 +90,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-bpadmin(1), bprc(5), udpcli(1)
+bpadmin(1), udpcli(1), bprc(5)

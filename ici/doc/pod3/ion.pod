@@ -480,4 +480,5 @@ just as for the documented status message types.
 
 =head1 SEE ALSO
 
-ionadmin(1), rfxclock(1), bpstats(1), llcv(3), lyst(3), memmgr(3), platform(3), psm(3), sdr(3), zco(3), ltp(3), bp(3), cfdp(3), ams(3), bss(3)
+bpstats(1), ionadmin(1), rfxclock(1), ams(3), bp(3), bss(3), cfdp(3), llcv(3),
+ltp(3), lyst(3), memmgr(3), platform(3), psm(3), sdr(3), zco(3)

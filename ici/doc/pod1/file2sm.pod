@@ -93,4 +93,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-sm2file(1), smlist(3), psm(3)
+sm2file(1), psm(3), smlist(3)

@@ -260,4 +260,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-ltpadmin(1), bpstats(1), ltp(3)
+bpstats(1), ltpadmin(1), ltp(3)

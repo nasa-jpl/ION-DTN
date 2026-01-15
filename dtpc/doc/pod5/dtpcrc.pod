@@ -163,4 +163,4 @@ tracked by any bundle status report production.
 
 =head1 SEE ALSO
 
-dtpcadmin(1), bptrace(1)
+bptrace(1), dtpcadmin(1)

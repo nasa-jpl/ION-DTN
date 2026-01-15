@@ -126,4 +126,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-ionrc(5), ionconfig(5)
+ionconfig(5), ionrc(5)

@@ -510,4 +510,4 @@ Runs the administrative program I<ipnadmin> from within I<bpadmin>.
 
 =head1 SEE ALSO
 
-bpadmin(1), ipnadmin(1), dtn2admin(1)
+bpadmin(1), dtn2admin(1), ipnadmin(1)

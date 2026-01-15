@@ -152,4 +152,4 @@ Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
 
 =head1 SEE ALSO
 
-bpcrash(1), ionrestart(1), sdrmend(1), sdr(3), ionadmin(1), bpadmin(1)
+bpadmin(1), bpcrash(1), ionadmin(1), ionrestart(1), sdrmend(1), sdr(3)

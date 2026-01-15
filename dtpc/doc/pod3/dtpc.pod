@@ -156,4 +156,4 @@ receive application data items on the indicated topic.
 
 =head1 SEE ALSO
 
-dtpcadmin(1), dtpcrc(5), bp(3)
+dtpcadmin(1), bp(3), dtpcrc(5)

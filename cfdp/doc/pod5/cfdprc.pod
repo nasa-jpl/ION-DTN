@@ -236,4 +236,4 @@ UT Layer.
 
 =head1 SEE ALSO
 
-cfdpadmin(1), bputa(1)
+bputa(1), cfdpadmin(1)

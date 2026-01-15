@@ -93,4 +93,4 @@ List all available outducts.
 
 =head1 SEE ALSO
 
-dot(1), base64(1)
+base64(1), dot(1)

@@ -125,4 +125,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-bpecho(1), bptrace(1), bpadmin(1), bp(3), ping(8)
+bpadmin(1), bpecho(1), bptrace(1), bp(3), ping(8)

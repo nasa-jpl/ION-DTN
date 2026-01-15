@@ -146,4 +146,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-biberc(5), bibeadmin(1)
+bibeadmin(1), biberc(5)

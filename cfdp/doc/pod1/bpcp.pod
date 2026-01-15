@@ -228,4 +228,4 @@ Report bugs to F<https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-bpcpd(1), ion(3), cfdptest(1)
+bpcpd(1), cfdptest(1), ion(3)

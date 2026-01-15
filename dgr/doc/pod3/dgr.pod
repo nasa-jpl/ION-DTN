@@ -160,4 +160,4 @@ be obtained from a static variable.
 
 =head1 SEE ALSO
 
-ltp(3), file2dgr(1), dgr2file(1)
+dgr2file(1), file2dgr(1), ltp(3)

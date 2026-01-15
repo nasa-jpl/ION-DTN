@@ -516,7 +516,7 @@ Report bugs to ION development team.
 
 =head1 SEE ALSO
 
-bpsource(1), bpsink(1), bpdriver(1), bpsendtest(1), bprecvtest(1), bpadmin(1), 
+bpadmin(1), bpdriver(1), bprecvtest(1), bpsendtest(1), bpsink(1), bpsource(1),
 bptrace(1), bp(3), ion(3)
 
 =head1 AUTHOR

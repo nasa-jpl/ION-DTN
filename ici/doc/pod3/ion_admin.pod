@@ -303,8 +303,7 @@ or infrequently during runtime.
 
 =head1 SEE ALSO
 
-ionadmin(1), ion(3), ionattach(3), iondetach(3), ioninitialize(3), 
-bp_admin(3)
+ionadmin(1), bp_admin(3), ion(3), ionattach(3), iondetach(3), ioninitialize(3)
 
 =head1 COPYRIGHT
 

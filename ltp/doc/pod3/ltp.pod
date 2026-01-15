@@ -147,4 +147,4 @@ units tagged with the indicated client service data ID.
 
 =head1 SEE ALSO
 
-ltpadmin(1), ltprc(5), zco(3)
+ltpadmin(1), zco(3), ltprc(5)

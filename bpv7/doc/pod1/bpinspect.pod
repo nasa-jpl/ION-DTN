@@ -381,4 +381,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-bplist(1), bpcancel(1), bpstats(1), bpadmin(1), bpclock(1)
+bpadmin(1), bpcancel(1), bpclock(1), bplist(1), bpstats(1)

@@ -91,4 +91,4 @@ convergence-layer protocol.
 
 =head1 SEE ALSO
 
-lgsend(1), lgagent(1), platform(3)
+lgagent(1), lgsend(1), platform(3)
