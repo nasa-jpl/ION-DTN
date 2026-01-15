@@ -490,14 +490,6 @@ void ui_log_cfg_menu(void)
       { .title = "Log Received Tables (ASCII)", .value = NULL, .width = 8, .opts_off = 0,
         .type = TYPE_CHECK_BOOL, .parsed_value = &agent_log_cfg.rx_tbl },
 
-#ifdef USE_JSON
-      { .title = "Log Received Reports (JSON)", .value = NULL, .width = 8, .opts_off = 0,
-        .type = TYPE_CHECK_BOOL, .parsed_value = &agent_log_cfg.rx_json_rpt },
-
-      { .title = "Log Received Tables (JSON)", .value = NULL, .width = 8, .opts_off = 0,
-        .type = TYPE_CHECK_BOOL, .parsed_value = &agent_log_cfg.rx_json_tbl },
-#endif
-
       { .title = "Use discrete directories per agent", .value = NULL, .width = 8, .opts_off = 0,
         .type = TYPE_CHECK_BOOL, .parsed_value = &agent_log_cfg.agent_dirs },
 

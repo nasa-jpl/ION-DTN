@@ -108,14 +108,6 @@ void rx_data_rpt(msg_metadata_t *meta, msg_rpt_t *msg)
                     ui_fprint_report(&fd, rpt);
                     agent->log_fd_cnt++;
                 }
-#ifdef USE_JSON
-                if (agent_log_cfg.rx_json_rpt)
-                {
-                    ui_print_cfg_t fd = INIT_UI_PRINT_CFG_FD(agent->log_fd);
-                    ui_fprint_json_report(&fd, rpt);
-                    agent->log_fd_cnt++;
-                }
-#endif
             }
             
             if (status == VEC_OK)
@@ -201,15 +193,6 @@ void rx_data_tbl(msg_metadata_t *meta, msg_tbl_t *msg)
                     ui_fprint_table(&fd, tbl);
                     agent->log_fd_cnt++;
                 }
-#ifdef USE_JSON
-                if (agent_log_cfg.rx_json_tbl)
-                {
-                    ui_print_cfg_t fd = INIT_UI_PRINT_CFG_FD(agent->log_fd);
-                    ui_fprint_json_table(&fd, tbl);
-                    agent->log_fd_cnt++;
-                }
-#endif
-
             }
 
             if (status == VEC_OK)

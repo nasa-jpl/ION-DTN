@@ -37,10 +37,6 @@ agent_autologging_cfg_t agent_log_cfg = {
 	0, // Log CBOR Hex on receipt
 	0, // Log Parsed Report on receipt
 	0, // Log Parsed tables on Receipt
-#ifdef USE_JSON // Output in JSON format
-	0,
-	0,
-#endif
 	50, // Number of reports per file before rotation
 	0, // Create discrete sub-folders per agent
 	"." // root log directory will be the working directory mgr started from as default

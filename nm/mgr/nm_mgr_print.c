@@ -27,14 +27,6 @@
 #include "agents.h"
 #include "ui_input.h"
 
-#ifdef USE_JSON
-#include "cJSON.h"
-
-// JSON Prototypes (TODO: Move to header and/or discrete file)
-cJSON* ui_json_from_tnvc(tnvc_t *tnvc);
-cJSON *ui_json_from_tnv(tnv_t *tnv);
-#endif
-
 #include "../shared/utils/utils.h"
 #include "../shared/primitives/blob.h"
 #include "../shared/primitives/table.h"
@@ -277,95 +269,6 @@ int ui_print_agents(void)
   return num_agents;
 }
 
-#ifdef USE_JSON
-/* Convert a TBL into cJSON */
-cJSON* ui_json_table(tbl_t *tbl)
-{
-   size_t num_rows;
-   tblt_t *tblt;
-   vecit_t it;
-   cJSON *out_tbl;
-   
-   CHKNULL(tbl);
-   
-   tblt = VDB_FINDKEY_TBLT(tbl->id);
-   CHKNULL(tblt);
-
-   out_tbl = cJSON_CreateObject();
-
-   /* Add the table name to the JSON table */
-   char *tbl_name = ui_str_from_ari(tbl->id, NULL, 0);
-   cJSON_AddStringToObject(out_tbl, "table name", (tbl_name == NULL) ? "Unknown" : tbl_name);
-   SRELEASE(tbl_name);
-      
-   cJSON *cols = cJSON_AddArrayToObject(out_tbl, "cols");
-   cJSON *rows = cJSON_AddArrayToObject(out_tbl, "rows");
-
-   // Build Columns Description
-   for(it = vecit_first(&tblt->cols); vecit_valid(it); it = vecit_next(it))
-   {
-      tblt_col_t *col = (tblt_col_t*) vecit_data(it);
-      cJSON *jcol = cJSON_CreateObject();
-      
-      if (col != NULL) {
-         cJSON_AddStringToObject(jcol, "name", col->name);
-         cJSON_AddStringToObject(jcol, "type", type_to_str(col->type) );
-      } // Else we add an empty object
-      cJSON_AddItemToArray(cols, jcol);
-   }
-
-   // For each row (if there are no rows, we will return an empty array)
-   num_rows = tbl_num_rows(tbl);
-   for(int i = 0; i < num_rows; i++)
-   {
-      	tnvc_t *cur_row = tbl_get_row(tbl, i);
-        cJSON *obj = cJSON_CreateArray();
-        vecit_t it;
-        int j;
-
-        // For each column; Simultaneously iterate on data col and title columns
-        for(j = 0; j < tnvc_get_count(cur_row); j++)
-        {
-           tnv_t *val = tnvc_get(cur_row, j);
-
-           cJSON_AddItemToArray(obj,
-                                 ui_json_from_tnv(val)
-              );
-        }
-
-        cJSON_AddItemToArray(rows, obj);
-   }
-   
-   
-   return out_tbl;
-}
-
-void ui_fprint_json_table(ui_print_cfg_t *fd, tbl_t *table)
-{
-
-  /* Step 1: Print the table name */
-  char *tbl_name = ui_str_from_ari(table->id, NULL, 0);
-  ui_fprintf(fd, "\nTable Name: %s \n", (tbl_name == NULL) ? "Unknown" : tbl_name);
-  SRELEASE(tbl_name);
-
-  /* Step 2: Print table contents */
-
-  cJSON *json = ui_json_table(table);
-   if (json == NULL)
-   {
-      return;
-   }
-   else
-   {
-      char *str = cJSON_Print(json);
-      ui_fprintf(fd, str);
-      cJSON_free(str);
-      cJSON_Delete(json);
-   }
-}
-
-#endif
-
 void ui_fprint_table(ui_print_cfg_t *fd, tbl_t *tbl)
 {
 
@@ -528,177 +431,6 @@ void ui_fprint_report(ui_print_cfg_t *fd, rpt_t *rpt)
 	/* Step 3: Print report trailer. */
     ui_fprintf(fd,"\n----------------------------------------\n\n");
 }
-
-#ifdef USE_JSON
-/** Output a report in JSON format
- * @returns A cJSON object representing the given report.  
- *   Caller is responsible for freeing with cJSON_Delete
- */
-cJSON* ui_json_report(rpt_t *rpt)
-{
-	int num_entries = 0;
-	tnv_t *val = NULL;
-	char name[META_NAME_MAX+3];
-	metadata_t *rpt_info = NULL;
-	metadata_t *entry_info = NULL;
-    cJSON *rtv = cJSON_CreateObject();
-
-	if((rtv == NULL || rpt == NULL) || (rpt->id == NULL))
-	{
-		return NULL;
-	}
-
-	/* Step 1: Print the report banner. This will include the report
-	 *         name.
-	 */
-	rpt_info = rhht_retrieve_key(&(gMgrDB.metadata), rpt->id);
-    num_entries = tnvc_get_count(rpt->entries);
-
-    cJSON_AddNumberToObject(rtv, "num_entries", num_entries);
-    cJSON_AddStringToObject(rtv, "recipient_name", rpt->recipient.name);
-
-    if(rpt_info == NULL)
-    {
-    	char *rpt_str = ui_str_from_ari(rpt->id, NULL, 0);
-        cJSON_AddStringToObject(rtv, "name", (rpt_str == NULL) ? "Unknown" : rpt_str);
-        SRELEASE(rpt_str);
-    }
-    else
-    {
-       cJSON_AddStringToObject(rtv, "name", rpt_info->name);                                       
-
-       if(vec_num_entries(rpt->id->as_reg.parms.values) > 0)
-       {
-          cJSON* obj = ui_json_from_tnvc(&(rpt->id->as_reg.parms));
-          if (obj != NULL) {
-             cJSON_AddItemToObject(rtv,
-                                "arguments",
-                                   obj);
-          }
-       }
-    }
-    cJSON_AddStringToObject(rtv, "timestamp", ctime(&(rpt->time)));
-
-    /* Step 2: Print individual entries, based on type. */
-	if(rpt->id->type == AMP_TYPE_RPTTPL)
-	{
-		int i = 0;
-		rpttpl_t *tpl = VDB_FINDKEY_RPTT(rpt->id);
-        cJSON *entries = cJSON_AddObjectToObject(rtv, "entries");
-        cJSON_AddStringToObject(rtv, "type", "rpttpl");
-
-		if((tpl != NULL) && (ac_get_count(&(tpl->contents)) != num_entries))
-		{
-			AMP_DEBUG_ERR("ui_print_report",
-					      "Template mismatch. Expected %d entries but have %d. Not using template.",
-						  ac_get_count(&(tpl->contents)),
-						  num_entries);
-			tpl = NULL;
-		}
-
-
-		for(i = 0; i < num_entries; i++)
-		{
-			ari_t *entry_id = (tpl == NULL) ? NULL : ac_get(&(tpl->contents), i);
-			entry_info = (entry_id == NULL) ? NULL : rhht_retrieve_key(&(gMgrDB.metadata), entry_id);
-			val = tnvc_get(rpt->entries, i);
-            
-			if(entry_info == NULL)
-			{
-				sprintf(name, "Entry %d", i);
-			}
-			else
-			{
-				tnvc_t *parms = ari_resolve_parms(&(entry_id->as_reg.parms), &(rpt->id->as_reg.parms));
-				char *parm_str = NULL;
-
-				if(parms != NULL)
-				{
-					if(vec_num_entries(parms->values) > 0)
-					{
-						parm_str = ui_str_from_tnvc(parms);
-					}
-					tnvc_release(parms, 1);
-				}
-
-				if(parm_str != NULL)
-				{
-                   if(snprintf(name, sizeof(name),"%s(%s)", entry_info->name, parm_str) < 0) {
-                      snprintf(name, sizeof(name), "%s(.)", entry_info->name);
-                   }
-					SRELEASE(parm_str);
-				}
-				else
-				{
-                   strncpy(name, entry_info->name, sizeof(name));
-				}
-			}
-
-            cJSON_AddItemToObject(entries, name, ui_json_from_tnv(val));
-		}
-        
-	}
-	else if(rpt->id->type == AMP_TYPE_TBLT)
-	{
-		int i = 0;
-		vecit_t it;
-		tbl_t *tbl = NULL;
-        cJSON *entries = cJSON_AddArrayToObject(rtv, "entries");
-                cJSON_AddStringToObject(rtv, "type", "tblt");
-		for(i = 0; i < num_entries; i++)
-		{
-			val = tnvc_get(rpt->entries, i);
-			if(val->type == AMP_TYPE_TBL)
-			{
-				tbl = (tbl_t *) val->value.as_ptr;
-                cJSON_AddItemToObject(rtv, "table", ui_json_table(tbl));                
-			}
-		}
-	}
-	else
-	{
-       cJSON *entries = cJSON_AddArrayToObject(rtv, "entries");
-       cJSON_AddStringToObject(rtv, "type", "unknown");
-       
-		if(rpt_info == NULL)
-		{
-           cJSON_AddItemToObject(entries,
-                                 "(Entry 1)",
-                                 ui_json_from_tnvc(rpt->entries)
-           );
-		}
-		else
-		{
-           cJSON_AddItemToObject(entries,
-                                 rpt_info->name,
-                                 ui_json_from_tnvc(rpt->entries)
-           );
-		}
-	}
-
-
-	/* Step 3: Add report to object */
-    return rtv;
-}
-
-void ui_fprint_json_report(ui_print_cfg_t *fd, rpt_t *rpt)
-{
-   cJSON *json = ui_json_report(rpt);
-   if (json == NULL)
-   {
-      return;
-   }
-   else
-   {
-      char *str = cJSON_Print(json);
-      ui_fprintf(fd, str);
-      ui_fprintf(fd, "\n");
-      cJSON_free(str);
-      cJSON_Delete(json);
-   }
-}
-#endif
-
 
 static void ui_print_report_entry(ui_print_cfg_t *fd, char *name, tnv_t *val)
 {
@@ -1100,59 +832,6 @@ char *ui_str_from_tbl(tbl_t *tbl)
 
 	strcat(result, tmp);
 	SRELEASE(tmp);
-	
-	num_rows = tbl_num_rows(tbl);
-
-	strcat(result, "----------------------------------------------------------------------\n");
-
-	/* For each row */
-	for(i = 0; i < num_rows; i++)
-	{
-		cur_row = tbl_get_row(tbl, i);
-		
-		for(j = 0; j < tnvc_get_count(cur_row); j++)
-		{
-		  tnv_t *val = tnvc_get(cur_row, j);
-			if(j == 0)
-			{
-				strcat(result, "|");
-			}
-			tmp = ui_str_from_tnv(val);
-			snprintf(fmt,100,"   %23s   ", tmp);
-			SRELEASE(tmp);
-			strcat(result, fmt);
-			strcat(result, "|");
-		}
-		strcat(result, "\n");
-	}
-	strcat(result, "----------------------------------------------------------------------\n");
-
-	return result;
-}
-
-// TODO
-#if 0 //def USE_JSON
-
-void ui_json_from_tbl(cJSON *obj, tbl_t *tbl)
-{
-	char fmt[100];
-	vecit_t it;
-	int i, j;
-	size_t num_rows = 0;
-	tnvc_t *cur_row = NULL;
-	tblt_t *tblt = VDB_FINDKEY_TBLT(tbl->id);
-	char *tmp = NULL;
-
-	CHKVOID(obj);
-	CHKVOID(tbl);
-
-	/* Print table headers, if we have a table template. */
-	if((tmp = ui_str_from_tblt(tblt)) == NULL)
-	{
-		return;
-	}
-	strcat(result, tmp);
-	SRELEASE(tmp);
 
 	num_rows = tbl_num_rows(tbl);
 
@@ -1170,7 +849,7 @@ void ui_json_from_tbl(cJSON *obj, tbl_t *tbl)
 			{
 				strcat(result, "|");
 			}
-			char *tmp = ui_str_from_tnv(val);
+			tmp = ui_str_from_tnv(val);
 			snprintf(fmt,100,"   %23s   ", tmp);
 			SRELEASE(tmp);
 			strcat(result, fmt);
@@ -1182,7 +861,6 @@ void ui_json_from_tbl(cJSON *obj, tbl_t *tbl)
 
 	return result;
 }
-#endif
 
 char *ui_str_from_tblt(tblt_t *tblt)
 {
@@ -1242,46 +920,6 @@ char *ui_str_from_tbr(rule_t *tbr)
 
 	return str;
 }
-
-#ifdef USE_JSON
-cJSON *ui_json_from_tnv(tnv_t *tnv)
-{
-   char *str;
-   CHKNULL(tnv);
-
-   // TODO: Additional data types from ui_str_from_tnv() can be converted to json
-   switch(tnv->type)
-   {
-      /* Primitive Types */
-   case AMP_TYPE_BOOL:   return cJSON_CreateBool(tnv->value.as_byte);
-   case AMP_TYPE_INT:    return cJSON_CreateNumber(tnv->value.as_int);
-   case AMP_TYPE_UINT:   return cJSON_CreateNumber(tnv->value.as_uint);
-   case AMP_TYPE_VAST:   return cJSON_CreateNumber(tnv->value.as_vast);
-   case AMP_TYPE_TV:
-   case AMP_TYPE_TS:
-   case AMP_TYPE_UVAST:  return cJSON_CreateNumber(tnv->value.as_uvast);
-   case AMP_TYPE_REAL32: return cJSON_CreateNumber(tnv->value.as_real32);
-   case AMP_TYPE_REAL64: return cJSON_CreateNumber(tnv->value.as_real64);
-      
-      /* Compound Objects */
-   case AMP_TYPE_TNV:    return ui_json_from_tnv(tnv->value.as_ptr);
-   case AMP_TYPE_TNVC:   return ui_json_from_tnvc(tnv->value.as_ptr);
-      
-   default: // Fallback to STR Parsing
-      str = ui_str_from_tnv(tnv);
-      if (str != NULL)
-      {
-         cJSON *rtv = cJSON_CreateString(str);
-         SRELEASE(str);
-         return rtv;
-      }
-      else
-      {
-         return NULL;
-      }
-   }
-}
-#endif
 
 char *ui_str_from_tnv(tnv_t *tnv)
 {
@@ -1345,35 +983,6 @@ char *ui_str_from_tnv(tnv_t *tnv)
 
 	return str;
 }
-
-#ifdef USE_JSON
-/* Convert a TNVC into a JSON Array and insert into specified object */
-cJSON* ui_json_from_tnvc(tnvc_t *tnvc)
-{
-	int i;
-	int max;
-    CHKNULL(tnvc);
-
-	max = tnvc_get_count(tnvc);
-	if(max == 0)
-	{
-		return NULL;
-	}
-    else if (max == 1)
-    {
-       return ui_json_from_tnv(tnvc_get(tnvc,0));
-    }
-
-    cJSON *obj = cJSON_CreateArray();
-    
-	for(i = 0; i < max; i++)
-	{
-       cJSON_AddItemToArray(obj, ui_json_from_tnv(tnvc_get(tnvc,i)));
-	}
-
-	return obj;
-}
-#endif
 
 char *ui_str_from_tnvc(tnvc_t *tnvc)
 {

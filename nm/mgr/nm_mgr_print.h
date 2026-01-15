@@ -43,10 +43,6 @@
 extern "C" {
 #endif
 
-#ifdef USE_JSON
-#include "cJSON.h"
-#endif
-
 // ASCII Color Codes & Macros for formatting stdout
 #define RST  "\x1B[0m"
 #define KRED  "\x1B[31m"
@@ -75,13 +71,6 @@ int   ui_print_agents(void);
 #define ui_print_report(rpt) ui_fprint_report(NULL, rpt)
 void  ui_fprint_report(ui_print_cfg_t *fd, rpt_t *rpt);
 void  ui_print_report_set(agent_t* agent);
-
-#ifdef USE_JSON
-cJSON* ui_json_report(rpt_t *rpt);
-cJSON* ui_json_table(tbl_t *tbl);
-void ui_fprint_json_report(ui_print_cfg_t *fd, rpt_t *rpt);
-void ui_fprint_json_table(ui_print_cfg_t *fd, tbl_t *rpt);
-#endif
 
 #define ui_print_table(tbl) ui_fprint_table(NULL, tbl)
 void  ui_fprint_table(ui_print_cfg_t *fd, tbl_t *rpt);
