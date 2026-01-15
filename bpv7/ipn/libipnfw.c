@@ -789,3 +789,78 @@ int	ipn_lookupExit(uvast fqnn, char *eid)
 	sdr_string_read(sdr, eid, exit.eid);
 	return 1;
 }
+
+/*
+ * Bulk removal function for runtime reconfiguration.
+ *
+ * This function collects plan identifiers first, then removes each plan.
+ * This avoids iterator invalidation when modifying the list.
+ */
+
+#define MAX_BULK_REMOVE_PLANS	256
+
+int	ipn_remove_all_plans(void)
+{
+	Sdr		sdr = getIonsdr();
+	PsmPartition	bpwm = getIonwm();
+	BpVdb		*vdb = getBpVdb();
+	PsmAddress	elt;
+	VPlan		*vplan;
+	uvast		fqnns[MAX_BULK_REMOVE_PLANS];
+	int		count = 0;
+	int		removed = 0;
+	int		i;
+	int		result;
+
+	if (vdb == NULL)
+	{
+		writeMemo("[?] ipn_remove_all_plans: BP not initialized.");
+		return -1;
+	}
+
+	/*	First, collect all IPN plan FQNNs to avoid iterator
+	 *	invalidation when removing items.			*/
+
+	CHKERR(sdr_begin_xn(sdr));
+	for (elt = sm_list_first(bpwm, vdb->plans); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		vplan = (VPlan *) psp(bpwm, sm_list_data(bpwm, elt));
+		if (vplan == NULL || count >= MAX_BULK_REMOVE_PLANS)
+		{
+			continue;
+		}
+
+		/*	Only process IPN plans (those with neighborFqnn
+		 *	set, i.e., neighborEid starts with "ipn:").	*/
+
+		if (vplan->neighborFqnn == 0)
+		{
+			continue;	/*	Not an IPN plan.	*/
+		}
+
+		fqnns[count++] = vplan->neighborFqnn;
+	}
+
+	sdr_exit_xn(sdr);
+
+	/*	Now remove each IPN plan.				*/
+
+	for (i = 0; i < count; i++)
+	{
+		result = ipn_removePlan(fqnns[i]);
+		if (result == 1)
+		{
+			removed++;
+		}
+		else if (result < 0)
+		{
+			writeMemoNote("[?] ipn_remove_all_plans: Error removing \
+plan", utoa(fqnns[i]));
+		}
+		/*	result == 0 means plan not found or has pending
+		 *	bundles; continue with others.			*/
+	}
+
+	return removed;
+}

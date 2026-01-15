@@ -1,0 +1,4 @@
+#!/bin/bash
+# Cleanup script for bulk_removal test
+killm
+rm -f ion.log *.txt

@@ -198,6 +198,31 @@ extern void ltp_list_seats(void);
 
 extern void ltp_print_span_sessions(uvast engine_id);
 
+/* Bulk removal operations */
+
+/*
+ * Remove all LTP spans.
+ * Stops LSO processes and removes all configured spans.
+ * Useful for runtime reconfiguration or cleanup.
+ *
+ * Spans with pending data (segments, sessions) will be skipped.
+ * Use ltp_stop() + ionTerminate(1) for complete shutdown instead.
+ *
+ * Returns: Number of spans successfully removed (>= 0), -1 on fatal error
+ */
+extern int ltp_remove_all_spans(void);
+
+/*
+ * Remove all LTP seats.
+ * Stops LSI processes and removes all configured seats.
+ * Useful for runtime reconfiguration or cleanup.
+ *
+ * Use ltp_stop() + ionTerminate(1) for complete shutdown instead.
+ *
+ * Returns: Number of seats successfully removed (>= 0), -1 on fatal error
+ */
+extern int ltp_remove_all_seats(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -1,0 +1,10 @@
+# Exclude this test on macOS
+#
+# This test uses features that may not be available or behave differently
+# on macOS compared to Linux. Specifically:
+# - Process management (pkill, pgrep) behavior differs
+# - IPC cleanup (sm_ipc_stop) may have timing differences
+# - Signal handling for daemon termination varies
+#
+# The bulk removal functions themselves should work on macOS, but the
+# test infrastructure relies on Linux-specific process management.

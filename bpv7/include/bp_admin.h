@@ -432,6 +432,60 @@ extern void bp_list_protocols(void);
  */
 extern void report_all_state_stats(void);
 
+/* Bulk removal operations */
+
+/*
+ * Remove all endpoints registered under a scheme.
+ * Useful for runtime reconfiguration or cleanup.
+ *
+ * Endpoints with pending bundles or open applications will be skipped.
+ * Use bp_stop() + ionTerminate(1) for complete shutdown instead.
+ *
+ * Parameters:
+ *   scheme - Scheme name ("ipn" or "dtn")
+ *
+ * Returns: Number of endpoints successfully removed (>= 0), -1 on fatal error
+ */
+extern int bp_remove_all_endpoints(char *scheme);
+
+/*
+ * Remove all inducts for a protocol.
+ * Useful for runtime reconfiguration or cleanup.
+ *
+ * Use bp_stop() + ionTerminate(1) for complete shutdown instead.
+ *
+ * Parameters:
+ *   protocol - Protocol name (e.g., "ltp", "tcp", "udp")
+ *
+ * Returns: Number of inducts successfully removed (>= 0), -1 on fatal error
+ */
+extern int bp_remove_all_inducts(char *protocol);
+
+/*
+ * Remove all outducts for a protocol.
+ * Useful for runtime reconfiguration or cleanup.
+ *
+ * Outducts attached to plans will be skipped.
+ * Use bp_stop() + ionTerminate(1) for complete shutdown instead.
+ *
+ * Parameters:
+ *   protocol - Protocol name (e.g., "ltp", "tcp", "udp")
+ *
+ * Returns: Number of outducts successfully removed (>= 0), -1 on fatal error
+ */
+extern int bp_remove_all_outducts(char *protocol);
+
+/*
+ * Remove all IPN egress plans.
+ * Useful for runtime reconfiguration or cleanup.
+ *
+ * Plans with pending bundles in queues will be skipped.
+ * Use bp_stop() + ionTerminate(1) for complete shutdown instead.
+ *
+ * Returns: Number of plans successfully removed (>= 0), -1 on fatal error
+ */
+extern int ipn_remove_all_plans(void);
+
 #ifdef __cplusplus
 }
 #endif

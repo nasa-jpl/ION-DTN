@@ -695,3 +695,133 @@ void	ltp_print_span_sessions(uvast engineId)
 
 	sdr_exit_xn(sdr);
 }
+
+/*
+ * Bulk removal functions for runtime reconfiguration.
+ *
+ * These functions collect identifiers first, then remove each item.
+ * This avoids iterator invalidation when modifying the list.
+ */
+
+#define MAX_BULK_REMOVE_ITEMS	256
+
+int	ltp_remove_all_spans(void)
+{
+	Sdr		sdr = getIonsdr();
+	LtpVdb		*vdb = getLtpVdb();
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	elt;
+	LtpVspan	*vspan;
+	uvast		engineIds[MAX_BULK_REMOVE_ITEMS];
+	int		count = 0;
+	int		removed = 0;
+	int		i;
+	int		result;
+
+	if (vdb == NULL)
+	{
+		writeMemo("[?] ltp_remove_all_spans: LTP not initialized.");
+		return -1;
+	}
+
+	/*	First, collect all engine IDs to avoid iterator
+	 *	invalidation when removing items.			*/
+
+	CHKERR(sdr_begin_xn(sdr));
+	for (elt = sm_list_first(ionwm, vdb->spans); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vspan = (LtpVspan *) psp(ionwm, sm_list_data(ionwm, elt));
+		if (vspan != NULL && count < MAX_BULK_REMOVE_ITEMS)
+		{
+			engineIds[count++] = vspan->engineId;
+		}
+	}
+
+	sdr_exit_xn(sdr);
+
+	/*	Now remove each span.					*/
+
+	for (i = 0; i < count; i++)
+	{
+		result = removeSpan(engineIds[i]);
+		if (result == 1)
+		{
+			removed++;
+		}
+		else if (result < 0)
+		{
+			writeMemoNote("[?] ltp_remove_all_spans: Error removing \
+span", utoa(engineIds[i]));
+		}
+		/*	result == 0 means span not found or has pending
+		 *	data; continue with others.			*/
+	}
+
+	return removed;
+}
+
+int	ltp_remove_all_seats(void)
+{
+	Sdr		sdr = getIonsdr();
+	LtpVdb		*vdb = getLtpVdb();
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	elt;
+	LtpVseat	*vseat;
+	char		*lsiCmds[MAX_BULK_REMOVE_ITEMS];
+	int		count = 0;
+	int		removed = 0;
+	int		i;
+	int		result;
+
+	if (vdb == NULL)
+	{
+		writeMemo("[?] ltp_remove_all_seats: LTP not initialized.");
+		return -1;
+	}
+
+	/*	First, collect all LSI commands to avoid iterator
+	 *	invalidation when removing items.			*/
+
+	CHKERR(sdr_begin_xn(sdr));
+	for (elt = sm_list_first(ionwm, vdb->seats); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vseat = (LtpVseat *) psp(ionwm, sm_list_data(ionwm, elt));
+		if (vseat != NULL && vseat->lsiCmd[0] != '\0'
+				&& count < MAX_BULK_REMOVE_ITEMS)
+		{
+			lsiCmds[count] = MTAKE(strlen(vseat->lsiCmd) + 1);
+			if (lsiCmds[count] != NULL)
+			{
+				istrcpy(lsiCmds[count], vseat->lsiCmd,
+						strlen(vseat->lsiCmd) + 1);
+				count++;
+			}
+		}
+	}
+
+	sdr_exit_xn(sdr);
+
+	/*	Now remove each seat.					*/
+
+	for (i = 0; i < count; i++)
+	{
+		result = removeSeat(lsiCmds[i]);
+		if (result == 1)
+		{
+			removed++;
+		}
+		else if (result < 0)
+		{
+			writeMemoNote("[?] ltp_remove_all_seats: Error removing \
+seat", lsiCmds[i]);
+		}
+		/*	result == 0 means seat not found; continue
+		 *	with others.					*/
+
+		MRELEASE(lsiCmds[i]);
+	}
+
+	return removed;
+}

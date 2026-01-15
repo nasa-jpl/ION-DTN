@@ -1851,3 +1851,310 @@ void bp_list_protocols(void)
 		PUTS(buffer);
 	}
 }
+
+/*
+ * Bulk removal functions for runtime reconfiguration.
+ *
+ * These functions collect identifiers first, then remove each item.
+ * This avoids iterator invalidation when modifying the list.
+ */
+
+#define MAX_BULK_REMOVE_ITEMS	256
+
+int	bp_remove_all_endpoints(char *scheme)
+{
+	Sdr		sdr = getIonsdr();
+	PsmPartition	bpwm = getIonwm();
+	BpVdb		*vdb = getBpVdb();
+	PsmAddress	schemeElt;
+	PsmAddress	endpointElt;
+	VScheme		*vscheme;
+	VEndpoint	*vpoint;
+	char		*eids[MAX_BULK_REMOVE_ITEMS];
+	int		count = 0;
+	int		removed = 0;
+	int		i;
+	int		result;
+	char		eidBuf[MAX_EID_LEN];
+
+	if (vdb == NULL)
+	{
+		writeMemo("[?] bp_remove_all_endpoints: BP not initialized.");
+		return -1;
+	}
+
+	if (scheme == NULL)
+	{
+		writeMemo("[?] bp_remove_all_endpoints: scheme is NULL.");
+		return -1;
+	}
+
+	/*	First, collect all EIDs for the specified scheme to
+	 *	avoid iterator invalidation when removing items.	*/
+
+	CHKERR(sdr_begin_xn(sdr));
+	for (schemeElt = sm_list_first(bpwm, vdb->schemes); schemeElt;
+			schemeElt = sm_list_next(bpwm, schemeElt))
+	{
+		vscheme = (VScheme *) psp(bpwm, sm_list_data(bpwm, schemeElt));
+		if (vscheme == NULL)
+		{
+			continue;
+		}
+
+		/*	Check if this is the requested scheme.		*/
+
+		if (strcmp(vscheme->name, scheme) != 0)
+		{
+			continue;
+		}
+
+		/*	Collect all endpoint EIDs in this scheme.	*/
+
+		for (endpointElt = sm_list_first(bpwm, vscheme->endpoints);
+				endpointElt;
+				endpointElt = sm_list_next(bpwm, endpointElt))
+		{
+			vpoint = (VEndpoint *) psp(bpwm,
+					sm_list_data(bpwm, endpointElt));
+			if (vpoint == NULL || count >= MAX_BULK_REMOVE_ITEMS)
+			{
+				continue;
+			}
+
+			/*	Construct the full EID.			*/
+
+			isprintf(eidBuf, sizeof(eidBuf), "%s:%s",
+					vscheme->name, vpoint->nss);
+			eids[count] = MTAKE(strlen(eidBuf) + 1);
+			if (eids[count] != NULL)
+			{
+				istrcpy(eids[count], eidBuf,
+						strlen(eidBuf) + 1);
+				count++;
+			}
+		}
+
+		break;	/*	Found the scheme, no need to continue.	*/
+	}
+
+	sdr_exit_xn(sdr);
+
+	/*	Now remove each endpoint.				*/
+
+	for (i = 0; i < count; i++)
+	{
+		result = removeEndpoint(eids[i]);
+		if (result == 1)
+		{
+			removed++;
+		}
+		else if (result < 0)
+		{
+			writeMemoNote("[?] bp_remove_all_endpoints: Error \
+removing endpoint", eids[i]);
+		}
+		/*	result == 0 means endpoint not found or has
+		 *	pending data; continue with others.		*/
+
+		MRELEASE(eids[i]);
+	}
+
+	return removed;
+}
+
+int	bp_remove_all_inducts(char *protocol)
+{
+	Sdr		sdr = getIonsdr();
+	PsmPartition	bpwm = getIonwm();
+	BpVdb		*vdb = getBpVdb();
+	PsmAddress	elt;
+	VInduct		*vinduct;
+	char		*protocolNames[MAX_BULK_REMOVE_ITEMS];
+	char		*ductNames[MAX_BULK_REMOVE_ITEMS];
+	int		count = 0;
+	int		removed = 0;
+	int		i;
+	int		result;
+
+	if (vdb == NULL)
+	{
+		writeMemo("[?] bp_remove_all_inducts: BP not initialized.");
+		return -1;
+	}
+
+	if (protocol == NULL)
+	{
+		writeMemo("[?] bp_remove_all_inducts: protocol is NULL.");
+		return -1;
+	}
+
+	/*	First, collect all induct identifiers for the specified
+	 *	protocol to avoid iterator invalidation.		*/
+
+	CHKERR(sdr_begin_xn(sdr));
+	for (elt = sm_list_first(bpwm, vdb->inducts); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		vinduct = (VInduct *) psp(bpwm, sm_list_data(bpwm, elt));
+		if (vinduct == NULL || count >= MAX_BULK_REMOVE_ITEMS)
+		{
+			continue;
+		}
+
+		/*	Check if this induct matches the protocol.	*/
+
+		if (strcmp(vinduct->protocolName, protocol) != 0)
+		{
+			continue;
+		}
+
+		/*	Store protocol name and duct name.		*/
+
+		protocolNames[count] = MTAKE(strlen(vinduct->protocolName) + 1);
+		ductNames[count] = MTAKE(strlen(vinduct->ductName) + 1);
+		if (protocolNames[count] != NULL && ductNames[count] != NULL)
+		{
+			istrcpy(protocolNames[count], vinduct->protocolName,
+					strlen(vinduct->protocolName) + 1);
+			istrcpy(ductNames[count], vinduct->ductName,
+					strlen(vinduct->ductName) + 1);
+			count++;
+		}
+		else
+		{
+			if (protocolNames[count] != NULL)
+			{
+				MRELEASE(protocolNames[count]);
+			}
+
+			if (ductNames[count] != NULL)
+			{
+				MRELEASE(ductNames[count]);
+			}
+		}
+	}
+
+	sdr_exit_xn(sdr);
+
+	/*	Now remove each induct.					*/
+
+	for (i = 0; i < count; i++)
+	{
+		result = removeInduct(protocolNames[i], ductNames[i]);
+		if (result == 1)
+		{
+			removed++;
+		}
+		else if (result < 0)
+		{
+			writeMemoNote("[?] bp_remove_all_inducts: Error \
+removing induct", ductNames[i]);
+		}
+		/*	result == 0 means induct not found; continue
+		 *	with others.					*/
+
+		MRELEASE(protocolNames[i]);
+		MRELEASE(ductNames[i]);
+	}
+
+	return removed;
+}
+
+int	bp_remove_all_outducts(char *protocol)
+{
+	Sdr		sdr = getIonsdr();
+	PsmPartition	bpwm = getIonwm();
+	BpVdb		*vdb = getBpVdb();
+	PsmAddress	elt;
+	VOutduct	*voutduct;
+	char		*protocolNames[MAX_BULK_REMOVE_ITEMS];
+	char		*ductNames[MAX_BULK_REMOVE_ITEMS];
+	int		count = 0;
+	int		removed = 0;
+	int		i;
+	int		result;
+
+	if (vdb == NULL)
+	{
+		writeMemo("[?] bp_remove_all_outducts: BP not initialized.");
+		return -1;
+	}
+
+	if (protocol == NULL)
+	{
+		writeMemo("[?] bp_remove_all_outducts: protocol is NULL.");
+		return -1;
+	}
+
+	/*	First, collect all outduct identifiers for the specified
+	 *	protocol to avoid iterator invalidation.		*/
+
+	CHKERR(sdr_begin_xn(sdr));
+	for (elt = sm_list_first(bpwm, vdb->outducts); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		voutduct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
+		if (voutduct == NULL || count >= MAX_BULK_REMOVE_ITEMS)
+		{
+			continue;
+		}
+
+		/*	Check if this outduct matches the protocol.	*/
+
+		if (strcmp(voutduct->protocolName, protocol) != 0)
+		{
+			continue;
+		}
+
+		/*	Store protocol name and duct name.		*/
+
+		protocolNames[count] = MTAKE(strlen(voutduct->protocolName) + 1);
+		ductNames[count] = MTAKE(strlen(voutduct->ductName) + 1);
+		if (protocolNames[count] != NULL && ductNames[count] != NULL)
+		{
+			istrcpy(protocolNames[count], voutduct->protocolName,
+					strlen(voutduct->protocolName) + 1);
+			istrcpy(ductNames[count], voutduct->ductName,
+					strlen(voutduct->ductName) + 1);
+			count++;
+		}
+		else
+		{
+			if (protocolNames[count] != NULL)
+			{
+				MRELEASE(protocolNames[count]);
+			}
+
+			if (ductNames[count] != NULL)
+			{
+				MRELEASE(ductNames[count]);
+			}
+		}
+	}
+
+	sdr_exit_xn(sdr);
+
+	/*	Now remove each outduct.				*/
+
+	for (i = 0; i < count; i++)
+	{
+		result = removeOutduct(protocolNames[i], ductNames[i]);
+		if (result == 1)
+		{
+			removed++;
+		}
+		else if (result < 0)
+		{
+			writeMemoNote("[?] bp_remove_all_outducts: Error \
+removing outduct", ductNames[i]);
+		}
+		/*	result == 0 means outduct not found or attached
+		 *	to a plan; continue with others.		*/
+
+		MRELEASE(protocolNames[i]);
+		MRELEASE(ductNames[i]);
+	}
+
+	return removed;
+}

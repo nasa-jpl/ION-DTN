@@ -2687,7 +2687,8 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/admin_public_api/ltp_span_management/dotest \
 	tests/admin_public_api/bp_plan_crash_recovery/dotest \
 	tests/admin_public_api/ltp_span_crash_recovery/dotest \
-	tests/admin_public_api/tcp_2nodes/dotest
+	tests/admin_public_api/tcp_2nodes/dotest \
+	tests/admin_public_api/bulk_removal/dotest
 #	tests/nm-unit/primitives/ari/dotest
 
 # Only build semaphore deferred deletion test if using POSIX Named Semaphores
@@ -2797,6 +2798,10 @@ tests_admin_public_api_tcp_2nodes_tcp_single_node_CFLAGS = $(icicflags) $(bpcfla
 tests_admin_public_api_tcp_2nodes_dotest_SOURCES = tests/admin_public_api/tcp_2nodes/tcp_2nodes_launcher.c
 tests_admin_public_api_tcp_2nodes_dotest_LDADD = libici.la -lm $(bplib)
 tests_admin_public_api_tcp_2nodes_dotest_CFLAGS = $(icicflags) $(bpcflags) $(AM_CFLAGS)
+
+tests_admin_public_api_bulk_removal_dotest_SOURCES = tests/admin_public_api/bulk_removal/bulk_removal_test.c tests/admin_public_api/ltp_loopback/ion_test_utils.c
+tests_admin_public_api_bulk_removal_dotest_LDADD = libici.la -lm $(bplib) $(ltplib)
+tests_admin_public_api_bulk_removal_dotest_CFLAGS = $(icicflags) $(bpcflags) $(ltpcflags) $(AM_CFLAGS)
 
 # Build rules for semaphore deferred deletion test (POSIX Named Semaphores only)
 if USING_POSIX_NAMED_SEMAPHORES
