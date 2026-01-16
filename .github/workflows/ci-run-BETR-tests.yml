@@ -2,6 +2,8 @@ name: Run All Best Effort Test and Report (BETR) Supported Platforms Manually
 
 permissions:
   contents: read
+  statuses: write
+  pull-requests: read
 
 on:
   workflow_dispatch:  # Manual trigger only
