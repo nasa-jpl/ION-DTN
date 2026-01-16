@@ -233,7 +233,7 @@ System lifecycle functions (C<bp_init()>, C<bp_start()>, C<ipn_init()>) return 0
 
 =head1 SEE ALSO
 
-bpadmin(1), bp(3), bp_attach(3), ipn_admin(3)
+bpadmin(1), bp(3), ipn_admin(3)
 
 =head1 COPYRIGHT
 
