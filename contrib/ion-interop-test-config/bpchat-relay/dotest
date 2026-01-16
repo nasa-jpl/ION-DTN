@@ -31,17 +31,8 @@ echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 
-# Start nodes.
-echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	cd ./2.ipn.ltp
-	./ionstart-acs &
-else
-	cd ./2.ipn.ltp
-	./ionstart &
-fi
-
+cd ./2.ipn.ltp
+./ionstart &
 
 sleep 10
 echo "Starting bpchat on IOn node 2..."
