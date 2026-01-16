@@ -20,11 +20,7 @@
 
 static time_t	bpSeconds(BpTimestamp ts)
 {
-#if (BP_VERSION == 6)
-	return ts.seconds;
-#else
 	return (time_t) (ts.msec / 1000);
-#endif
 }
 
 int	_running(int *newValue)

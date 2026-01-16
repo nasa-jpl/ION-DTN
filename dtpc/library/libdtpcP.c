@@ -1893,13 +1893,8 @@ static time_t	getPlaceholderDeletionTime(BpDelivery *dlv)
 	time_t	currentTime;
 	time_t	deletionTime;
 
-#if (BP_VERSION == 6)
-	seconds = dlv->bundleCreationTime.seconds;
-	ttl = dlv->timeToLive;
-#else
 	seconds = (time_t) (dlv->bundleCreationTime.msec / 1000);
 	ttl = dlv->timeToLive / 1000;
-#endif
 	currentTime = getCtime();
 	deletionTime = (seconds + EPOCH_2000_SEC + ttl) - 1;
 	if (deletionTime < currentTime)
@@ -2981,11 +2976,7 @@ send ACK.");
 		/*	No profile found - Estimate lifetime.		*/
 
 		currentTime = getCtime();
-#if (BP_VERSION == 6)
-		seconds = dlv->bundleCreationTime.seconds;
-#else
 		seconds = (time_t) (dlv->bundleCreationTime.msec / 1000);
-#endif
 		lifetime = currentTime - (seconds + EPOCH_2000_SEC) + 10;
 			/*	Add 10 seconds for safety.		*/							
 	}

@@ -306,11 +306,7 @@ long	 bssSeek(bssNav *nav, time_t time, time_t *curTime,
 	}
 	
 	updateNavInfo(nav, position, entry.datOffset, entry.prev, entry.next);
-#if (BP_VERSION == 6)
-	*curTime = (time_t) entry.crtnTime.seconds;
-#else
 	*curTime = (time_t) entry.crtnTime.msec / 1000;
-#endif
 	*count = entry.crtnTime.count;
 	oK(_lockMutex(0));
 	return entry.pLen;
@@ -461,11 +457,7 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 
 	updateNavInfo(nav, curPosition, entry.datOffset, entry.prev,
 			entry.next);
-#if (BP_VERSION == 6)
-	*curTime = (time_t) entry.crtnTime.seconds;
-#else
 	*curTime = (time_t) entry.crtnTime.msec / 1000;
-#endif
 	*count = entry.crtnTime.count;
 
 	oK(_lockMutex(0));
@@ -595,11 +587,7 @@ long	bssPrev(bssNav *nav, time_t *curTime, unsigned long *count)
 
 	updateNavInfo(nav, curPosition, entry.datOffset, entry.prev, 
 			entry.next);
-#if (BP_VERSION == 6)
-	*curTime = (time_t) entry.crtnTime.seconds;
-#else
 	*curTime = (time_t) entry.crtnTime.msec / 1000;
-#endif
 	*count = entry.crtnTime.count;
 	oK(_lockMutex(0));
 	return entry.pLen;
