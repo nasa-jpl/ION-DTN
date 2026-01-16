@@ -11,6 +11,8 @@
 #ifndef BULK_H
 #define BULK_H
 
+#include "platform.h"
+
 extern int		bulk_create(unsigned long item);
 extern int		bulk_write(unsigned long item, vast offset,
 				char *buffer, vast length);
