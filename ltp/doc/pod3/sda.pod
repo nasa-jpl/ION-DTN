@@ -42,7 +42,7 @@ function must return -1 on any system error, zero otherwise.
 
 =over 4
 
-=item int sda_send(uvast destinationEngineId, unsigned int clientId, Object clientServiceData);
+=item int sda_send(uvast destinationEngineId, unsigned int clientId, Object clientServiceData)
 
 Sends a client service data unit to an application, identified by I<clientId>,
 at the LTP engine identified by I<destinationEngineId>.  clientServiceData must
@@ -56,7 +56,7 @@ performed.
 
 Returns 0 on success, -1 on any system failure.
 
-=item int sda_run(SdaDelimiterFn delimiter, SdaHandlerFn handler);
+=item int sda_run(SdaDelimiterFn delimiter, SdaHandlerFn handler)
 
 sda_run() executes an infinite loop that receives LTP client service data items,
 calls I<delimiter> to determine the length of each client service data unit

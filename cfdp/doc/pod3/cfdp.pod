@@ -352,7 +352,7 @@ Sends to the indicated respondent entity a request to prepare a directory
 listing, save that listing in a file, and send it to the local entity.  The
 request is subject to the configuration values in I<dirListTask>. 
 
-=item int cfdp_preview(CfdpTransactionId *transactionId, uvast offset, unsigned int length, char *buffer);
+=item int cfdp_preview(CfdpTransactionId *transactionId, uvast offset, unsigned int length, char *buffer)
 
 This function is provided to enable the application to get an advance look
 at the content of a file that CFDP has not yet fully received.  Reads I<length>
@@ -362,7 +362,7 @@ I<buffer>.  On user error (transaction is nonexistent or is outbound, or
 offset is beyond the end of file) returns 0.  On system failure, returns -1.
 Otherwise returns number of bytes read.
 
-=item int cfdp_map(CfdpTransactionId *transactionId, unsigned int *extentCount, CfdpExtent *extentsArray);
+=item int cfdp_map(CfdpTransactionId *transactionId, unsigned int *extentCount, CfdpExtent *extentsArray)
 
 This function is provided to enable the application to report on the portions
 of a partially-received file that have been received and written.  Lists the

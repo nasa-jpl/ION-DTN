@@ -107,7 +107,7 @@ any error.
 Returns the address of the element following/preceding I<elt>
 in that element's list, or zero on any error.
 
-=item Object sdr_list_search(Sdr sdr, Object elt, int reverse, SdrListCompareFn fn, void *dataBuffer);
+=item Object sdr_list_search(Sdr sdr, Object elt, int reverse, SdrListCompareFn fn, void *dataBuffer)
 
 Search a list for an element whose data matches the data in I<dataBuffer>,
 starting at the indicated initial list element.  If the I<compare>

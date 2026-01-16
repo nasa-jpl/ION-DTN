@@ -100,7 +100,7 @@ Searches for the hash table entry matching I<key> in this hash table; if the
 entry is found, stores its value in I<value>, deletes the entry, and returns
 1.  Returns zero if no such entry exists, -1 on any other failure.
 
-=item void sdr_hash_destroy(Sdr sdr, Object hash);
+=item void sdr_hash_destroy(Sdr sdr, Object hash)
 
 Destroys I<hash>, destroying all entries in all linked lists of the
 array and destroying the hash table array structure itself.  DO NOT

@@ -41,7 +41,8 @@ Unwedge, as necessary, the mutex semaphore protecting shared access to the
 indicated list.  For details, see the explanation of the sm_SemUnwedge()
 function in platform(3).
 
-=item int sm_list_clear(PsmPartition partition, PsmAddress list, SmListDeleteFn delete, void *argument);
+=item int sm_list_clear(PsmPartition partition, PsmAddress list,
+SmListDeleteFn delete, void *argument)
 
 Empty a list.  Frees each element of the list.  If the I<delete> function 
 is non-NULL, that function is called once for each freed element; when
@@ -49,12 +50,14 @@ called, that function is passed the PsmAddress of the list element
 and the I<argument> pointer passed to sm_list_clear().  Returns 0 on success,
 -1 on any error.
 
-=item int sm_list_destroy(PsmPartition partition, PsmAddress list, SmListDeleteFn delete, void *argument);
+=item int sm_list_destroy(PsmPartition partition, PsmAddress list,
+SmListDeleteFn delete, void *argument)
 
 Destroy a list.  Same as sm_list_clear(), but additionally frees the list
 structure itself.  Returns 0 on success, -1 on any error.
 
-=item int sm_list_user_data_set(PsmPartition partition, PsmAddress list, PsmAddress userData);
+=item int sm_list_user_data_set(PsmPartition partition, PsmAddress list,
+PsmAddress userData)
 
 Set the value of a user data variable associated with the list as a whole.
 This value may be used for any purpose; it is typically used to store the
@@ -62,7 +65,7 @@ PsmAddress of a shared memory block containing data (e.g., state data) which
 the user wishes to associate with the list.  Returns 0 on success, -1 on any
 error.
 
-=item PsmAddress sm_list_user_data(PsmPartition partition, PsmAddress list);
+=item PsmAddress sm_list_user_data(PsmPartition partition, PsmAddress list)
 
 Return the value of the user data variable associated with the list as a
 whole, or 0 on any error.
@@ -71,7 +74,8 @@ whole, or 0 on any error.
 
 Return the number of elements in the list.
 
-=item PsmAddress sm_list_insert(PsmPartition partition, PsmAddress list, PsmAddress data, SmListCompareFn compare, void *dataBuffer);
+=item PsmAddress sm_list_insert(PsmPartition partition, PsmAddress list,
+PsmAddress data, SmListCompareFn compare, void *dataBuffer)
 
 Create a new list element whose data value is I<data> and insert it
 into the given list.  If the I<compare> function is NULL, the new list element
@@ -81,43 +85,49 @@ the data value of the new element (in I<dataBuffer>) according to the
 collating sequence established by I<compare>.  Returns the PsmAddress of
 the new element, or 0 on any error.
 
-=item PsmAddress sm_list_insert_first(PsmPartition partition, PsmAddress list, PsmAddress data);
+=item PsmAddress sm_list_insert_first(PsmPartition partition, PsmAddress list,
+PsmAddress data)
 
-=item PsmAddress sm_list_insert_last(PsmPartition partition, PsmAddress list, PsmAddress data);
+=item PsmAddress sm_list_insert_last(PsmPartition partition, PsmAddress list,
+PsmAddress data)
 
 Create a new list element and insert it at the start/end of a list.  Returns
 the PsmAddress of the new element on success, or 0 on any
 error.  Disregards any established sort order in the list.
 
-=item PsmAddress sm_list_insert_before(PsmPartition partition, PsmAddress elt, PsmAddress data);
+=item PsmAddress sm_list_insert_before(PsmPartition partition, PsmAddress elt,
+PsmAddress data)
 
-=item PsmAddress sm_list_insert_after(PsmPartition partition, PsmAddress elt, PsmAddress data);
+=item PsmAddress sm_list_insert_after(PsmPartition partition, PsmAddress elt,
+PsmAddress data)
 
 Create a new list element and insert it before/after a given element.
 Returns the PsmAddress of the new element on success, or 0
 on any error.  Disregards any established sort order in the list.
 
-=item int sm_list_delete(PsmPartition partition, PsmAddress elt, SmListDeleteFn delete, void *argument);
+=item int sm_list_delete(PsmPartition partition, PsmAddress elt,
+SmListDeleteFn delete, void *argument)
 
 Delete an element from a list.  If the I<delete> function is non-NULL, that
 function is called upon deletion of I<elt>; when called, that function is
 passed the PsmAddress of the list element and the I<argument>
 pointer passed to sm_list_delete().  Returns 0 on success, -1 on any error.
 
-=item PsmAddress sm_list_first(PsmPartition partition, PsmAddress list);
+=item PsmAddress sm_list_first(PsmPartition partition, PsmAddress list)
 
-=item PsmAddress sm_list_last(PsmPartition partition, PsmAddress list);
+=item PsmAddress sm_list_last(PsmPartition partition, PsmAddress list)
 
 Return the PsmAddress of the first/last element in I<list>, or 0 on any error.
 
-=item PsmAddress sm_list_next(PsmPartition partition, PsmAddress elt);
+=item PsmAddress sm_list_next(PsmPartition partition, PsmAddress elt)
 
-=item PsmAddress sm_list_prev(PsmPartition partition, PsmAddress elt);
+=item PsmAddress sm_list_prev(PsmPartition partition, PsmAddress elt)
 
 Return the PsmAddress of the element following/preceding I<elt> in
 that element's list, or 0 on any error.
 
-=item PsmAddress sm_list_search(PsmPartition partition, PsmAddress elt, SmListCompareFn compare, void *dataBuffer);
+=item PsmAddress sm_list_search(PsmPartition partition, PsmAddress elt,
+SmListCompareFn compare, void *dataBuffer)
 
 Search a list for an element whose data matches the data in I<dataBuffer>.  If
 the I<compare> function is non-NULL, the list is assumed to be sorted
@@ -131,17 +141,18 @@ If I<compare> is NULL, then the entire list is searched until an element is
 located whose data value is equal to ((PsmAddress) I<dataBuffer>).
 Returns the PsmAddress of the matching element if one is found, 0 otherwise.
 
-=item PsmAddress sm_list_list(PsmPartition partition, PsmAddress elt);
+=item PsmAddress sm_list_list(PsmPartition partition, PsmAddress elt)
 
 Return the PsmAddress of the list to which I<elt> belongs, or 0
 on any error.
 
-=item PsmAddress sm_list_data(PsmPartition partition, PsmAddress elt);
+=item PsmAddress sm_list_data(PsmPartition partition, PsmAddress elt)
 
 Return the PsmAddress that is the data value for I<elt>, or 0
 on any error.
 
-=item PsmAddress sm_list_data_set(PsmPartition partition, PsmAddress elt, PsmAddress data);
+=item PsmAddress sm_list_data_set(PsmPartition partition, PsmAddress elt,
+PsmAddress data)
 
 Set the data value for I<elt> to I<data>, replacing the
 original value.  Returns the original data value for I<elt>, or 0 on any

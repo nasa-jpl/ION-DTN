@@ -41,7 +41,8 @@ Unwedge, as necessary, the mutex semaphore protecting shared access to the
 indicated rbt.  For details, see the explanation of the sm_SemUnwedge()
 function in platform(3).
 
-=item int sm_rbt_clear(PsmPartition partition, PsmAddress rbt, SmRbtDeleteFn delete, void *argument);
+=item int sm_rbt_clear(PsmPartition partition, PsmAddress rbt,
+SmRbtDeleteFn delete, void *argument)
 
 Frees every node of the rbt, leaving the rbt empty.  If the I<delete> function 
 is non-NULL, that function is called once for each freed node; when
@@ -49,12 +50,14 @@ called, that function is passed the PsmAddress that is the node's data
 and the I<argument> pointer passed to sm_rbt_clear().  Returns 0 on success,
 -1 on any error.
 
-=item void sm_rbt_destroy(PsmPartition partition, PsmAddress rbt, SmRbtDeleteFn delete, void *argument);
+=item void sm_rbt_destroy(PsmPartition partition, PsmAddress rbt,
+SmRbtDeleteFn delete, void *argument)
 
 Destroy an rbt.  Frees all nodes of the rbt as in sm_rbt_clear(), then
 frees the rbt structure itself.
 
-=item int sm_rbt_user_data_set(PsmPartition partition, PsmAddress rbt, PsmAddress userData);
+=item int sm_rbt_user_data_set(PsmPartition partition, PsmAddress rbt,
+PsmAddress userData)
 
 Set the value of a user data variable associated with the rbt as a whole.
 This value may be used for any purpose; it is typically used to store the
@@ -62,16 +65,17 @@ PsmAddress of a shared memory block containing data (e.g., state data) which
 the user wishes to associate with the rbt.  Returns 0 on success, -1 on any
 error.
 
-=item PsmAddress sm_rbt_user_data(PsmPartition partition, PsmAddress rbt);
+=item PsmAddress sm_rbt_user_data(PsmPartition partition, PsmAddress rbt)
 
 Return the value of the user data variable associated with the rbt as a
 whole, or 0 on any error.
 
-=item int sm_rbt_length(PsmPartition partition, PsmAddress rbt);
+=item int sm_rbt_length(PsmPartition partition, PsmAddress rbt)
 
 Return the number of nodes in the rbt.
 
-=item PsmAddress sm_rbt_insert(PsmPartition partition, PsmAddress rbt, PsmAddress data, SmRbtCompareFn compare, void *dataBuffer);
+=item PsmAddress sm_rbt_insert(PsmPartition partition, PsmAddress rbt,
+PsmAddress data, SmRbtCompareFn compare, void *dataBuffer)
 
 Create a new rbt node whose data value is I<data> and insert it into
 I<rbt>.  The nodes of an rbt are ordered by their notional "key" values;
@@ -87,7 +91,8 @@ any other path.  This makes searching the tree for a given data value
 quite rapid even if the number of nodes in the tree is very large.  Returns
 the PsmAddress of the new node, or 0 on any error.
 
-=item void sm_rbt_delete(PsmPartition partition, PsmAddress rbt, SmRbtCompareFn compare, void *dataBuffer, SmRbtDeleteFn delete, void *argument);
+=item void sm_rbt_delete(PsmPartition partition, PsmAddress rbt,
+SmRbtCompareFn compare, void *dataBuffer, SmRbtDeleteFn delete, void *argument)
 
 Delete a node from I<rbt>.  I<compare> must be the same function that was
 used to insert the node: the tree must be dynamically re-balanced upon node
@@ -112,15 +117,15 @@ insertions, and especially no deletions) while you are traversing a
 red-black tree sequentially.  If you do, the result will not be what you
 expect.
 
-=item PsmAddress sm_rbt_first(PsmPartition partition, PsmAddress rbt);
+=item PsmAddress sm_rbt_first(PsmPartition partition, PsmAddress rbt)
 
-=item PsmAddress sm_rbt_last(PsmPartition partition, PsmAddress rbt);
+=item PsmAddress sm_rbt_last(PsmPartition partition, PsmAddress rbt)
 
 Return the PsmAddress of the first/last node in I<rbt>, or 0 on any error.
 
-=item PsmAddress sm_rbt_next(PsmPartition partition, PsmAddress node);
+=item PsmAddress sm_rbt_next(PsmPartition partition, PsmAddress node)
 
-=item PsmAddress sm_rbt_prev(PsmPartition partition, PsmAddress node);
+=item PsmAddress sm_rbt_prev(PsmPartition partition, PsmAddress node)
 
 Return the PsmAddress of the node following/preceding I<node> in
 that node's rbt, or 0 on any error.
@@ -132,7 +137,8 @@ deletions) while you are traversing a red-black tree sequentially, using
 sm_rbt_next() or sm_rbt_prev().  If you do, the result will not be what you
 expect.
 
-=item PsmAddress sm_rbt_search(PsmPartition partition, PsmAddress rbt, SmRbtCompareFn compare, void *dataBuffer, PsmAddress *successor);
+=item PsmAddress sm_rbt_search(PsmPartition partition, PsmAddress rbt,
+SmRbtCompareFn compare, void *dataBuffer, PsmAddress *successor)
 
 Search I<rbt> for a node whose data matches the data in I<dataBuffer>.
 I<compare> must be the same function that was used to insert all nodes
@@ -145,12 +151,12 @@ returned and I<*successor> is set to the PsmAddress of the first node in
 the tree whose key value is greater than the key value of I<dataBuffer>,
 according to I<compare>, or to zero if there is no such successor node.
 
-=item PsmAddress sm_rbt_rbt(PsmPartition partition, PsmAddress node);
+=item PsmAddress sm_rbt_rbt(PsmPartition partition, PsmAddress node)
 
 Return the PsmAddress of the rbt to which I<node> belongs, or 0
 on any error.
 
-=item PsmAddress sm_rbt_data(PsmPartition partition, PsmAddress node);
+=item PsmAddress sm_rbt_data(PsmPartition partition, PsmAddress node)
 
 Return the PsmAddress that is the data value for I<node>, or 0
 on any error.
@@ -185,8 +191,8 @@ will include the shared memory block's PsmAddress) and insert it into the rbt.
 When inserting or deleting nodes or searching a rbt, the user must
 provide a compare function of the form:
 
-    int user_comp_name(PsmPartition partition, PsmAddress node, 
-                       void *dataBuffer);
+    int user_comp_name(PsmPartition partition, PsmAddress node,
+                       void *dataBuffer)
 
 This function is automatically called by the smrbt function being invoked;
 when the function is called it is passed the data content of an rbt node
