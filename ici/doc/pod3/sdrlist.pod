@@ -40,7 +40,7 @@ the I<argument> pointer passed to sdr_list_destroy().
 Do not use I<sdr_free> to destroy an SDR list, as this would
 leave the elements of the list allocated yet unreferenced.
 
-=item int sdr_list_length(Sdr sdr, Object list)
+=item size_t sdr_list_length(Sdr sdr, Object list)
 
 Returns the number of elements in the list, or -1 on any error.
 

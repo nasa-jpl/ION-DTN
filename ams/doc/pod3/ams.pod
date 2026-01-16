@@ -9,10 +9,10 @@ ams - CCSDS Asynchronous Message Service(AMS) communications library
     typedef void		(*AmsMsgHandler)(AmsModule module,
 					void *userData,
 					AmsEvent *eventRef,
-					int continuumNbr,
+					short continuumNbr,
 					int unitNbr,
 					int moduleNbr,
-					int subjectNbr,
+					short subjectNbr,
 					int contentLength,
 					char *content,
 					int context,
@@ -39,9 +39,9 @@ ams - CCSDS Asynchronous Message Service(AMS) communications library
 					int unitNbr,
 					int moduleNbr,
 					int domainRoleNbr,
-					int domainContinuumNbr,
+					short domainContinuumNbr,
 					int domainUnitNbr,
-					int subjectNbr,
+					short subjectNbr,
 					int priority,
 					unsigned char flowLabel,
 					AmsSequence sequence,
@@ -53,9 +53,9 @@ ams - CCSDS Asynchronous Message Service(AMS) communications library
 					int unitNbr,
 					int moduleNbr,
 					int domainRoleNbr,
-					int domainContinuumNbr,
+					short domainContinuumNbr,
 					int domainUnitNbr,
-					int subjectNbr);
+					short subjectNbr);
 
     typedef void		(*AmsSubscriptionHandler)(AmsModule module,
 					void *userData,
@@ -63,9 +63,9 @@ ams - CCSDS Asynchronous Message Service(AMS) communications library
 					int unitNbr,
 					int moduleNbr,
 					int domainRoleNbr,
-					int domainContinuumNbr,
+					short domainContinuumNbr,
 					int domainUnitNbr,
-					int subjectNbr,
+					short subjectNbr,
 					int priority,
 					unsigned char flowLabel,
 					AmsSequence sequence,
@@ -77,9 +77,9 @@ ams - CCSDS Asynchronous Message Service(AMS) communications library
 					int unitNbr,
 					int moduleNbr,
 					int domainRoleNbr,
-					int domainContinuumNbr,
+					short domainContinuumNbr,
 					int domainUnitNbr,
-					int subjectNbr);
+					short subjectNbr);
 
     typedef void		(*AmsUserEventHandler)(AmsModule module,
 					void *userData,
@@ -257,7 +257,9 @@ Returns 0 on success.  On any error, sets I<module> to NULL and returns -1.
 Reverses the operation of ams_unregister(), destroying I<module>.  Returns
 0 on success, -1 on any error.
 
-=item int ams_invite(AmsModule module, int roleNbr, int continuumNbr, int unitNbr, int subjectNbr, int priority, unsigned char flowLabel, AmsSequence sequence, AmsDiligence diligence)
+=item int ams_invite(AmsModule module, int roleNbr, short continuumNbr,
+int unitNbr, short subjectNbr, int priority, unsigned char flowLabel,
+AmsSequence sequence, AmsDiligence diligence)
 
 Announces this module's agreement to receive messages on the subject
 identified by I<subjectNbr>.
@@ -279,12 +281,15 @@ parameters define the "class of service" of the invitation.
 
 Returns 0 on success, -1 on any error.
 
-=item int ams_disinvite(AmsModule module, int roleNbr, int continuumNbr, int unitNbr, int subjectNbr)
+=item int ams_disinvite(AmsModule module, int roleNbr, short continuumNbr,
+int unitNbr, short subjectNbr)
 
 Rescinds the invitation characterized by the indicated subject and
 domain.  Returns 0 on success, -1 on any error.
 
-=item int ams_subscribe(AmsModule module, int roleNbr, int continuumNbr, int unitNbr, int subjectNbr, int priority, unsigned char flowLabel, AmsSequence sequence, AmsDiligence diligence)
+=item int ams_subscribe(AmsModule module, int roleNbr, short continuumNbr,
+int unitNbr, short subjectNbr, int priority, unsigned char flowLabel,
+AmsSequence sequence, AmsDiligence diligence)
 
 Announces this module's subscription to messages on the indicated subject,
 constrained by the indicated domain, and transmitted subject to the indicated
@@ -293,12 +298,14 @@ reception of these messages is actively solicited, not just permitted.
 
 Returns 0 on success, -1 on any error.
 
-=item int ams_unsubscribe(AmsModule module, int roleNbr, int continuumNbr, int unitNbr, int subjectNbr)
+=item int ams_unsubscribe(AmsModule module, int roleNbr, short continuumNbr,
+int unitNbr, short subjectNbr)
 
 Cancels the subscription characterized by the indicated subject and
 domain.  Returns 0 on success, -1 on any error.
 
-=item int ams_publish(AmsModule module, int subjectNbr, int priority, unsigned char flowLabel, int contentLength, char *content, int context)
+=item int ams_publish(AmsModule module, short subjectNbr, int priority,
+unsigned char flowLabel, int contentLength, char *content, int context)
 
 Publishes I<contentLength> bytes of data starting at I<content> as the content
 of a message that is sent to all modules whose subscriptions to I<subjectNbr>
@@ -309,7 +316,9 @@ its use is application-specific.
 
 Returns 0 on success, -1 on any error.
 
-=item int ams_send(AmsModule module, int continuumNbr, int unitNbr, int moduleNbr, int subjectNbr, int priority, unsigned char flowLabel, int contentLength, char *content, int context)
+=item int ams_send(AmsModule module, short continuumNbr, int unitNbr,
+int moduleNbr, short subjectNbr, int priority, unsigned char flowLabel,
+int contentLength, char *content, int context)
 
 Sends I<contentLength> bytes of data starting at I<content> as the content
 of a message that is transmitted privately to the module in the continuum
@@ -322,7 +331,9 @@ module; its use is application-specific.
 
 Returns 0 on success, -1 on any error.
 
-=item int ams_query(AmsModule module, int continuumNbr, int unitNbr, int moduleNbr, int subjectNbr, int priority, unsigned char flowLabel, int contentLength, char *content, int context, int term, AmsEvent *event)
+=item int ams_query(AmsModule module, short continuumNbr, int unitNbr,
+int moduleNbr, short subjectNbr, int priority, unsigned char flowLabel,
+int contentLength, char *content, int context, int term, AmsEvent *event)
 
 Sends a message exactly is described above for ams_send(), but additionally
 suspends the delivery and processing of newly received messages until either
@@ -338,7 +349,8 @@ message.
 
 Returns 0 on success, -1 on any error.
 
-=item int ams_reply(AmsModule module, AmsEvent msg, int subjectNbr, int priority, unsigned char flowLabel, int contentLength, char *content)
+=item int ams_reply(AmsModule module, AmsEvent msg, short subjectNbr,
+int priority, unsigned char flowLabel, int contentLength, char *content)
 
 Sends a message exactly is described above for ams_send(), except that the
 destination of the message is the sender of the message identified by I<msg>
@@ -349,7 +361,9 @@ that message was issued by means of ams_query() rather than ams_send().
 
 Returns 0 on success, -1 on any error.
 
-=item int ams_announce(AmsModule module, int roleNbr, int continuumNbr, int unitNbr, int subjectNbr, int priority, unsigned char flowLabel, int contentLength, char *content, int context)
+=item int ams_announce(AmsModule module, int roleNbr, short continuumNbr,
+int unitNbr, short subjectNbr, int priority, unsigned char flowLabel,
+int contentLength, char *content, int context)
 
 Sends a message exactly is described above for ams_send(), except that one
 copy of the message is sent to every module in the domain of this function
@@ -387,7 +401,9 @@ Returns 0 on success, -1 on any error.
 
 Returns the event type of I<event>, or -1 on any error.
 
-=item int ams_parse_msg(AmsEvent event, int *continuumNbr, int *unitNbr, int *moduleNbr, int *subjectNbr, int *contentLength, char **content, int *context, AmsMsgType *msgType, int *priority, unsigned char *flowLabel);
+=item int ams_parse_msg(AmsEvent event, short *continuumNbr, int *unitNbr,
+int *moduleNbr, short *subjectNbr, int *contentLength, char **content,
+int *context, AmsMsgType *msgType, int *priority, unsigned char *flowLabel)
 
 Extracts all relevant information pertaining to the AMS message encapsulated
 in I<event>, populating the indicated fields.  Must only be called when
@@ -395,7 +411,10 @@ the event type of I<event> is known to be AMS_MSG_EVT.
 
 Returns 0 on success, -1 on any error.
 
-=item int ams_parse_notice(AmsEvent event, AmsStateType *state, AmsChangeType *change, int *unitNbr, int *moduleNbr, int *roleNbr, int *domainContinuumNbr, int *domainUnitNbr, int *subjectNbr, int *priority, unsigned char *flowLabel, AmsSequence *sequence, AmsDiligence *diligence)
+=item int ams_parse_notice(AmsEvent event, AmsStateType *state,
+AmsChangeType *change, int *unitNbr, int *moduleNbr, int *roleNbr,
+short *domainContinuumNbr, int *domainUnitNbr, short *subjectNbr, int *priority,
+unsigned char *flowLabel, AmsSequence *sequence, AmsDiligence *diligence)
 
 Extracts all relevant information pertaining to the AMS configuration change
 notice encapsulated in I<event>, populating the relevant fields.  Must only
@@ -462,7 +481,7 @@ Returns a dynamically allocated linked list of all message spaces identified
 in the MIB for this module, or -1 on any error.  See lyst(3) for operations
 that can be performed on the returned linked list.
 
-=item int ams_get_continuum_nbr()
+=item int ams_get_continuum_nbr(void)
 
 Returns the continuum number assigned to the continuum within which this
 module operates, or -1 on any error.
@@ -473,9 +492,9 @@ Returns 1 if the RAMS net for the venture in which this module is registered
 is configured as a tree, 0 if that RAMS net is configured as a mesh, -1 on
 any error.
 
-=item int ams_continuum_is_neighbor(int continuumNbr)
+=item int ams_msgspace_is_neighbor(AmsModule module, short continuumNbr)
 
-Returns 1 if I<continuumNbr> identifies a continuum whose RAMS gateways
+Returns 1 if I<continuumNbr> identifies a message space whose RAMS gateways
 are immediate neighbors (within the applicable RAMS networks) of the
 RAMS gateways in the local continuum.  Returns 0 otherwise.
 
@@ -520,12 +539,12 @@ the venture within which this module is registered, or -1 on any error.
 Returns the name of the role identified by I<roleNbr>, in
 the venture within which this module is registered, or -1 on any error.
 
-=item char *ams_lookup_subject_name(AmsModule module, int subjectNbr)
+=item char *ams_lookup_subject_name(AmsModule module, short subjectNbr)
 
 Returns the name of the subject identified by I<subjectNbr>, in
 the venture within which this module is registered, or -1 on any error.
 
-=item char *ams_lookup_continuum_name(AmsModule module, int continuumNbr)
+=item char *ams_lookup_continuum_name(AmsModule module, short continuumNbr)
 
 Returns the name of the continuum identified by I<continuumNbr>, or -1
 on any error.

@@ -28,16 +28,16 @@ to improve link utiliization.
 
 =over 4
 
-=item int dptc_attach( )
+=item int dtpc_attach(void)
 
 Attaches the application to DTPC functionality on the local computer.  Returns
 0 on success, -1 on any error.
 
-=item void dptc_detach( )
+=item void dtpc_detach(void)
 
 Terminates all access to DTPC functionality on the local computer.
 
-=item int dtpc_entity_is_started( )
+=item int dtpc_entity_is_started(void)
 
 Returns 1 if the local DTPC entity has been started and not yet stopped,
 0 otherwise.

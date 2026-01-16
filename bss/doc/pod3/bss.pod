@@ -6,7 +6,8 @@ bss - Bundle Streaming Service library
 
     #include "bss.h"
 
-    typedef int (*RTBHandler)(time_t time, unsigned long count, char *buffer, int bufLength);
+    typedef int (*RTBHandler)(time_t time, unsigned long count, char *buffer,
+                              unsigned long bufLength);
 
     [see description for available functions]
 
@@ -42,13 +43,13 @@ this structure; it's strictly for the private use of the BSS library.
 
 =over 4
 
-=item int bssOpen(char *bssName, char *path, char *eid)
+=item int bssOpen(char *bssName, char *path)
 
 Opens READ-ONLY access to a BSS database, to enable data playback.  I<bssName>
 identifies the specific BSS database that is to be opened.  I<path> identifies
-the directory in which the database resides.  I<eid> is ignored.  On detection
-of existing opened database, do nothing and returns -2; on failure to open database
-returns -1; on success, returns 0.
+the directory in which the database resides.  On detection of existing opened
+database, do nothing and returns -2; on failure to open database returns -1; on
+success, returns 0.
 
 =item int bssStart(char *bssName, char *path, char *eid, char *buffer, int bufLen, RTBHandler handler)
 
@@ -71,25 +72,26 @@ I<handler> will terminate the BSS data acquisition background thread.
 
 On any failure, returns -1.  On success, returns zero.
 
-=item int bssRun(char *bssName, char *path, char *eid, char *buffer, int bufLen, RTBHandler handler)
+=item int bssRun(char *bssName, char *path, char *eid, char *buffer,
+long bufLen, RTBHandler handler)
 
 A convenience function that performs both bssOpen() and bssStart().  On any
 failure, returns -1.  On success, returns zero. This function essentially 
 instantiates both realtime and playback modes simultaneously.
 
-=item void bssClose()
+=item void bssClose(void)
 
 Terminates data playback access to the most recently opened BSS database. (playback mode)
 
-=item void bssStop()
+=item void bssStop(void)
 
 Terminates the most recently initiated BSS data acquisition background thread. (realtime mode)
 
-=item void bssExit()
+=item void bssExit(void)
 
 A convenience function that performs both bssClose() and bssStop() - stops both modes.
 
-=item long bssRead(bssNav nav, char *data, int dataLen)
+=item long bssRead(bssNav nav, char *data, long dataLen)
 
 Copies the data at the current playback position in the database, as indicated
 by I<nav>, into I<data>; if the length of the data is in excess of I<dataLen>
@@ -106,7 +108,8 @@ or equal to I<time>.  Populates I<nav> and also returns the creation time and
 bundle ID count of that bundle in I<curTime> and I<count>.  Returns the length
 of data at this location, or -1 on any error.
 
-=item long bssSeek_read(bssNav *nav, time_t time, time_t *curTime, unsigned long *count, char *data, int dataLen)
+=item long bssSeek_read(bssNav *nav, time_t time, time_t *curTime,
+unsigned long *count, char *data, long dataLen)
 
 A convenience function that performs bssSeek() followed by an immediate
 bssRead() to return the data at the new playback position.  Returns the length
@@ -121,7 +124,8 @@ returns the creation time and bundle ID count of that bundle in I<curTime>
 and I<count>.  Returns the length of data at this location (if any),
 -2 on reaching end of list, or -1 on any error.
 
-=item long bssNext_read(bssNav *nav, time_t *curTime, unsigned long *count, char *data, int dataLen)
+=item long bssNext_read(bssNav *nav, time_t *curTime, unsigned long *count,
+char *data, long dataLen)
 
 A convenience function that performs bssNext() followed by an immediate
 bssRead() to return the data at the new playback position.  Returns the
@@ -136,7 +140,8 @@ returns the creation time and bundle ID count of that bundle in I<curTime>
 and I<count>.  Returns the length of data at this location (if any), -2 on
 reaching end of list, or -1 on any error.
 
-=item long bssPrev_read(bssNav *nav, time_t *curTime, unsigned long *count, char *data, int dataLen)
+=item long bssPrev_read(bssNav *nav, time_t *curTime, unsigned long *count,
+char *data, long dataLen)
 
 A convenience function that performs bssPrev() followed by an immediate
 bssRead() to return the data at the new playback position.  Returns the

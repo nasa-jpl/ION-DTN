@@ -149,7 +149,7 @@ the first NULL character in I<sourceString>, provided that a NULL
 character appears somewhere within the first I<maxlen> characters of
 I<sourceString>; otherwise it returns I<maxlen>.
 
-=item char *istrcpy(char *buffer, char *sourceString, int bufSize)
+=item char *istrcpy(char *buffer, const char *sourceString, size_t bufSize)
 
 istrcpy() is a safe implementation of strcpy(); see the strcpy(3) man
 page for details.  istrcpy() differs from strcpy() in that it takes a
@@ -159,7 +159,7 @@ even if the length of I<sourceString> string would equal or exceed
 I<bufSize> (in which case I<sourceString> is truncated to fit within
 the buffer).
 
-=item char *istrcat(char *buffer, char *sourceString, int bufSize)
+=item char *istrcat(char *buffer, char *sourceString, size_t bufSize)
 
 istrcat() is a safe implementation of strcat(); see the strcat(3) man
 page for details.  istrcat() differs from strcat() in that it takes a
@@ -431,7 +431,7 @@ adhere to) is as follows:
 
 =over 4
 
-=item char *system_error_msg( )
+=item char *system_error_msg(void)
 
 Returns a brief text string describing the current system error, as identified
 by the current value of errno.
@@ -485,7 +485,7 @@ for immediate use as an argument to putErrmsg().
 Returns a string representation of I<size_t> in I<value>, nominally
 for immediate use as an argument to putErrmsg().
 
-=item void postErrmsg(char *text, char *argument)
+=item void postErrmsg(const char *text, const char *argument)
 
 Constructs an error message noting the name of the source file containing
 the line at which this function was called, the line number, the I<text> of
@@ -507,7 +507,7 @@ omitted.  In this case, provided at least two bytes of unused space remain
 in the pool, a message comprising a single newline character is appended to
 the list to indicate that a message was omitted due to excessive length.
 
-=item void postSysErrmsg(char *text, char *arg)
+=item void postSysErrmsg(const char *text, const char *arg)
 
 Like postErrmsg() except that the error message constructed by the function
 additionally contains text describing the current system error.  I<text> is
@@ -527,29 +527,29 @@ Note that a returned error message comprising only a single newline character
 always signifies an error message that was silently omitted because there
 wasn't enough space left on the message pool to contain it.
 
-=item void writeErrmsgMemos( )
+=item void writeErrmsgMemos(void)
 
 Calls getErrmsg() repeatedly until the message pool is empty, using
 writeMemo() to log all the messages in the pool.  Messages that were
 omitted due to excessive length are indicated by logged lines of the
 form "[message omitted due to excessive length]".
 
-=item void putErrmsg(char *text, char *argument)
+=item void putErrmsg(const char *text, const char *argument)
 
 The putErrmsg() function merely calls postErrmsg() and then
 writeErrmsgMemos().
 
-=item void putSysErrmsg(char *text, char *arg)
+=item void putSysErrmsg(const char *text, const char *arg)
 
 The putSysErrmsg() function merely calls postSysErrmsg() and then
 writeErrmsgMemos().
 
-=item void discardErrmsgs( )
+=item void discardErrmsgs(void)
 
 Calls getErrmsg() repeatedly until the message pool is empty, discarding all
 of the messages.
 
-=item void printStackTrace( )
+=item void printStackTrace(void)
 
 On Linux machines only, uses writeMemo() to print a trace of the process's
 current execution stack, starting with the lowest level of the stack and

@@ -33,6 +33,7 @@ cfdp - CCSDS File Delivery Protocol (CFDP) communications library
 
     typedef enum
     {
+        CfdpAccessEnded = -1,
         CfdpNoEvent = 0,
         CfdpTransactionInd,
         CfdpEofSentInd,
@@ -138,17 +139,17 @@ autonomous CFDP activity, e.g., the reception of a file data segment.
 
 =over 4
 
-=item int cfdp_attach()
+=item int cfdp_attach(void)
 
 Attaches the application to CFDP functionality on the local computer.  Returns
 0 on success, -1 on any error.
 
-=item int cfdp_entity_is_started()
+=item int cfdp_entity_is_started(void)
 
 Returns 1 if the local CFDP entity has been started and not yet stopped,
 0 otherwise.
 
-=item void cfdp_detach()
+=item void cfdp_detach(void)
 
 Terminates all access to CFDP functionality on the local computer.
 
@@ -157,7 +158,7 @@ Terminates all access to CFDP functionality on the local computer.
 Converts an unsigned B<vast> number into a CfdpNumber structure, e.g., for
 use when invoking the cfdp_put() function.
 
-=item void cfdp_decompress_number(uvast toNbr, CfdpNumber *from)
+=item void cfdp_decompress_number(uvast *toNbr, CfdpNumber *from)
 
 Converts a numeric value in a CfdpNumber structure to an unsigned B<vast>
 integer.
@@ -169,7 +170,7 @@ pass to cfdp_update_checksum() the value of each byte (octet) it reads.
 I<offset> must be I<octet>'s displacement in bytes from the start of the
 file.  The I<checksum> pointer is provided to the reader function by CFDP.
 
-=item MetadataList cfdp_create_usrmsg_list()
+=item MetadataList cfdp_create_usrmsg_list(void)
 
 Creates a non-volatile linked list, suitable for containing messages-to-user
 that are to be presented to cfdp_put().
@@ -178,7 +179,7 @@ that are to be presented to cfdp_put().
 
 Appends the indicated message-to-user to I<list>.
 
-=item int cfdp_get_usrmsg(MetadataList list, unsigned char *textBuf, int *length)
+=item int cfdp_get_usrmsg(MetadataList *list, unsigned char *textBuf, int *length)
 
 Removes from I<list> the first of the remaining messages-to-user contained in
 the list and delivers its text and length.  When the last message in the
@@ -188,7 +189,7 @@ list is delivered, destroys the list.
 
 Removes and destroys all messages-to-user in I<list> and destroys the list.
 
-=item MetadataList cfdp_create_fsreq_list()
+=item MetadataList cfdp_create_fsreq_list(void)
 
 Creates a non-volatile linked list, suitable for containing filestore requests
 that are to be presented to cfdp_put().
@@ -217,13 +218,15 @@ When the last response in the list is delivered, destroys the list.
 
 Removes and destroys all filestore responses in I<list> and destroys the list.
 
-=item int cfdp_read_space_packets(int fd, unsigned int *checksum)
+=item int cfdp_read_space_packets(int fd, unsigned int *checksum,
+CfdpCksumType ckType)
 
 This is a standard "reader" function that segments the source file on CCSDS
 space packet boundaries.  Multiple small packets may be aggregated into a
 single file data segment.
 
-=item int cfdp_read_text_lines(int fd, unsigned int *checksum)
+=item int cfdp_read_text_lines(int fd, unsigned int *checksum,
+CfdpCksumType ckType)
 
 This is a standard "reader" function that segments a source file of text lines
 on line boundaries.
@@ -293,7 +296,15 @@ that is returned in a CfdpEvent structure; use cfdp_get_event() to receive
 the event (which may be matched to the request by request number).  Returns
 request number on success, 0 if transaction is unknown, -1 on any error.
 
-=item int cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr, CfdpTransactionId *transactionId, char *sourceFileNameBuf, char *destFileNameBuf, uvast *fileSize, MetadataList *messagesToUser, uvast *offset, unsigned int *length, CfdpCondition *condition, uvast *progress, CfdpFileStatus *fileStatus, CfdpDeliveryCode *deliveryCode, CfdpTransactionId *originatingTransactionId, char *statusReportBuf, MetadataList *filestoreResponses, unsigned int *closureRequested);
+=item int cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
+CfdpTransactionId *transactionId, char *sourceFileNameBuf,
+char *destFileNameBuf, uvast *fileSize, MetadataList *messagesToUser,
+uvast *offset, unsigned int *length, unsigned int *recordBoundsRespected,
+CfdpContinuationState *continuationState, unsigned int *segMetadataLength,
+char *segMetadataBuffer, CfdpCondition *condition, uvast *progress,
+CfdpFileStatus *fileStatus, CfdpDeliveryCode *deliveryCode,
+CfdpTransactionId *originatingTransactionId, char *statusReportBuf,
+MetadataList *filestoreResponses, unsigned int *closureRequested)
 
 Populates return value fields with data from the oldest CFDP event not yet
 delivered to the application.  
@@ -311,7 +322,7 @@ operating in Acknowledged or Unacknowledged mode.
 On error, returns zero but sets errno to EINVAL.  Returns -1 on
 system failure, zero otherwise.
 
-=item void cfdp_interrupt()
+=item void cfdp_interrupt(void)
 
 Interrupts an cfdp_get_event() invocation.  This function is designed to be
 called from a signal handler.

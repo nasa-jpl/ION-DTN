@@ -40,16 +40,16 @@ transmission of Bundle Protocol data, identified by client ID = 1.
 
 =over 4
 
-=item int ltp_attach()
+=item int ltp_attach(void)
 
 Attaches the application to LTP functionality on the lcoal computer.  Returns
 0 on success, -1 on any error.
 
-=item void ltp_detach()
+=item void ltp_detach(void)
 
 Terminates all access to LTP functionality on the local computer.
 
-=item int ltp_engine_is_started()
+=item int ltp_engine_is_started(void)
 
 Returns 1 if the local LTP engine has been started and not yet stopped,
 0 otherwise.

@@ -7,11 +7,11 @@ sdrtable - Simple Data Recorder table management functions
     #include "sdr.h"
 
     Object  sdr_table_create        (Sdr sdr, int rowSize, int rowCount);
-    int     sdr_table_user_data_set (Sdr sdr, Object table, Address userData);
+    void    sdr_table_user_data_set (Sdr sdr, Object table, Address userData);
     Address sdr_table_user_data     (Sdr sdr, Object table);
-    int     sdr_table_dimensions    (Sdr sdr, Object table, int *rowSize, 
+    void    sdr_table_dimensions    (Sdr sdr, Object table, int *rowSize,
                                         int *rowCount);
-    int     sdr_table_stage         (Sdr sdr, Object table);
+    void    sdr_table_stage         (Sdr sdr, Object table);
     Address sdr_table_row           (Sdr sdr, Object table, 
                                         unsigned int rowNbr);
     int     sdr_table_destroy       (Sdr sdr, Object table);

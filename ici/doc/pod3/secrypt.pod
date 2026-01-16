@@ -31,7 +31,7 @@ parameters, see the comments in the F<secrypt.h> header file.>
 
 =over 4
 
-=item B<print_hex>(const unsigned char *data, uvast length)
+=item B<print_hex>(const unsigned char *data, size_t length)
 
 Prints binary data as hexadecimal. Useful for debugging and verifying data integrity.
 
@@ -39,7 +39,7 @@ B<Returns:>
 
 This function does not return a value.
 
-=item B<print_encrypted_data>(const unsigned char *data, uvast length)
+=item B<print_encrypted_data>(const unsigned char *data, size_t length)
 
 Prints encrypted data in a safe, human-readable format. Aids in verifying encryption operations.
 
@@ -75,7 +75,10 @@ B<Returns:>
 
 =over 4
 
-=item B<crypt_and_hash_buffer>(int mode, unsigned char *personalization_string, unsigned char *input_buffer, uvast *input_length, unsigned char **my_output_buffer, uvast *my_output_length, char *cipher, char *md, char *my_key)
+=item B<crypt_and_hash_buffer>(int mode, unsigned char *personalization_string,
+unsigned char *input_buffer, size_t *input_length,
+unsigned char **my_output_buffer, size_t *my_output_length, char *cipher,
+char *md, char *my_key)
 
 Performs authenticated encryption or decryption on a data buffer.
 

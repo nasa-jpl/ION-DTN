@@ -66,7 +66,7 @@ can only be executed while the sda_run() loop is still executing.
 
 Returns 0 on success, -1 on any system failure.
 
-=item void sda_interrupt();
+=item void sda_interrupt(void)
 
 Interrupts sda_run().
 

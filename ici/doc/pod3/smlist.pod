@@ -67,7 +67,7 @@ error.
 Return the value of the user data variable associated with the list as a
 whole, or 0 on any error.
 
-=item int sm_list_length(PsmPartition partition, PsmAddress list);
+=item size_t sm_list_length(PsmPartition partition, PsmAddress list)
 
 Return the number of elements in the list.
 

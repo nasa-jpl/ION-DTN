@@ -7,13 +7,13 @@ psm - Personal Space Management
     #include "psm.h"
 
     typedef enum { Okay, Redundant, Refused } PsmMgtOutcome;
-    typedef unsigned long PsmAddress;
+    typedef uaddr PsmAddress;
     typedef struct psm_str
     {
             char            *space;
-            int             freeNeeded;
+            long             freeNeeded;
             struct psm_str  *trace;
-            int             traceArea[3];
+            long             traceArea[3];
     } PsmView, *PsmPartition;
 
     [see description for available functions]
@@ -48,7 +48,7 @@ along with the conversion functions psa() and psp().
 
 =over 4
 
-=item int  psm_manage(char *start, unsigned int length, char *name, PsmPartition *partitionPointer, PsmMgtOutcome *outcome)
+=item int psm_manage(char *start, size_t length, char *name, PsmPartition *partitionPointer, PsmMgtOutcome *outcome)
 
 Puts the I<length> bytes of memory at I<start> under PSM management,
 associating this memory partition with the identifying string I<name>
@@ -100,7 +100,7 @@ the conversion of that offset into a locally usable pointer.
 Returns the conversion of I<pointer> into an offset within the space
 managed for the partition.
 
-=item PsmAddress psm_malloc(PsmPartition partition,  unsigned int length)
+=item PsmAddress psm_malloc(PsmPartition partition, size_t length)
 
 Allocates a block of memory from the "large pool" of
 the indicated partition.  (See the DETAILED DESCRIPTION below.)  I<length>
@@ -121,7 +121,7 @@ indicated  partition until a subsequent psm_relax() call reverses it.
 Reverses psm_panic().  Lets the "large pool" memory allocation  
 algorithm return NULL when no free block can be found easily.
 
-=item PsmAddress psm_zalloc(PsmPartition partition,  unsigned int length)
+=item PsmAddress psm_zalloc(PsmPartition partition, size_t length)
 
 Allocates a block of memory from the "small pool" of
 the indicated partition, if possible; if the requested
@@ -245,7 +245,7 @@ kinds of memory access problems to be readily investigated.
 
 =over 4
 
-=item int psm_start_trace(PsmPartition partition, int traceLogSize, char *traceLogAddress)
+=item int psm_start_trace(PsmPartition partition, size_t traceLogSize, char *traceLogAddress)
 
 Begins an episode of PSM memory usage tracing.  I<traceLogSize> is the
 number of bytes of shared memory to use for trace activity logging; the

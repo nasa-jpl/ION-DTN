@@ -191,7 +191,7 @@ the transaction must have succeeded.
 
 =over 4
 
-=item int sdr_initialize(int wmSize, char *wmPtr, int wmKey, char *wmName)
+=item int sdr_initialize(size_t wmSize, char *wmPtr, int wmKey, char *wmName)
 
 Initializes the SDR system.  sdr_initialize() must be
 called once every time the computer on which the system
@@ -224,7 +224,7 @@ Returns 0 on success, -1 on any failure.
 Loads I<summary> with a snapshot of the usage of the SDR system's private
 working memory.  To print the snapshot, use psm_report().  (See psm(3).)
 
-=item void sdr_shutdown( )
+=item void sdr_shutdown(void)
 
 Ends all access to all SDRs (see sdr_stop_using()), detaches from the
 SDR system's working memory (releasing the memory if it was dynamically
@@ -238,7 +238,8 @@ before any call to any other SDR library function.
 
 =over 4
 
-=item int sdr_load_profile(char *name, int configFlags, long heapWords, int heapKey, int logSize, int logKey, char *pathName, char *restartCmd, unsigned int restartLatency)
+=item int sdr_load_profile(char *name, int configFlags, size_t heapWords,
+int heapKey, size_t logSize, int logKey, char *pathName, char *restartCmd)
 
 Loads the profile for an SDR into the system's private list of SDR profiles.
 Although SDRs themselves are persistent, SDR profiles are not: in order
@@ -303,14 +304,13 @@ and filled with zeros if it does not exist at the time the SDR's profile
 is loaded.
 
 If a cleanup task must be run whenever a transaction is reversed, the command
-to execute this task must be provided in I<restartCmd> and the number of
-seconds to wait for this task to finish before resuming operations must be
-provided in I<restartLatency>.  If I<restartCmd> is NULL or I<restartLatency>
-is zero then no cleanup task will be run upon transaction reversal.
+to execute this task must be provided in I<restartCmd>. If I<restartCmd> is NULL
+then no cleanup task will be run upon transaction reversal.
 
 Returns 0 on success, -1 on any error.
 
-=item int sdr_reload_profile(char *name, int configFlags, long heapWords, int heapKey, int logSize, int logKey, char *pathName, char *restartCmd, unsigned int restartLatency)
+=item int sdr_reload_profile(char *name, int configFlags, size_t heapWords,
+int heapKey, size_t logSize, int logKey, char *pathName, char *restartCmd)
 
 For use when the state of an SDR is thought to be inconsistent, perhaps
 due to crash of a program that had a transaction open.  Unloads the
@@ -332,7 +332,7 @@ Returns the name of the sdr.
 
 Returns the total size of the SDR heap, in bytes.
 
-=item void sdr_stop_using(Sdr sdr)
+=item void sdr_stop_using(Sdr sdr, int shutdown)
 
 Terminates access to the SDR via this handle.  Other users of the SDR are
 not affected.  Frees the Sdr object.
@@ -342,7 +342,7 @@ not affected.  Frees the Sdr object.
 Terminates the task.  In flight configuration, also terminates all use
 of the SDR system by all tasks.
 
-=item void sdr_destroy(Sdr sdr)
+=item void sdr_destroy(Sdr sdr, int shutdown)
 
 Ends all access to this SDR, unloads the SDR's profile, and erases the SDR
 from memory and file system.
@@ -390,7 +390,7 @@ canceled.
 
 =over 4
 
-=item void sdr_read(Sdr sdr, char *into, Address from, int length)
+=item void sdr_read(Sdr sdr, char *into, Address from, size_t length)
 
 Copies I<length> characters at I<from> (a location in the
 indicated SDR) to the memory location given by I<into>.  The data are
@@ -403,7 +403,7 @@ sdr_peek() is a macro that uses sdr_read() to load I<variable> from
 the indicated address in the SDR dataspace; the size of I<variable> is
 used as the number of bytes to copy.
 
-=item void sdr_write(Sdr sdr, Address into, char *from, int length)
+=item void sdr_write(Sdr sdr, Address into, char *from, size_t length)
 
 Copies I<length> characters at I<from> (a location in memory) to the SDR
 heap location given by I<into>.  Can only be performed during a transaction, 
@@ -420,7 +420,7 @@ sdr_poke() is a macro that uses sdr_write() to store I<variable> at
 the indicated address in the SDR dataspace; the size of I<variable> is
 used as the number of bytes to copy.
 
-=item char *sdr_pointer(Sdr sdr, Address address)
+=item void *sdr_pointer(Sdr sdr, Address address)
 
 Returns a pointer to the indicated location in the heap - a "heap pointer" - or
 NULL if the indicated address is invalid.  NOTE that this
@@ -437,7 +437,7 @@ pointer in order to write directly into the heap: this makes
 transaction reversal impossible.  Whenever writing to the SDR, always use
 sdr_write().
 
-=item Address sdr_address(Sdr sdr, char *pointer)
+=item Address sdr_address(Sdr sdr, void *pointer)
 
 Returns the address within the SDR heap of the indicated location,
 which must be (or be derived from) a heap pointer as returned
@@ -465,7 +465,7 @@ of I<variable> is used as the number of bytes to copy.
 
 =over 4
 
-=item Object sdr_malloc(Sdr sdr, unsigned long size)
+=item Object sdr_malloc(Sdr sdr, size_t size)
 
 Allocates a block of space from the of the indicated SDR's
 heap.  I<size> is the size of the
@@ -473,7 +473,7 @@ block to allocate; the maximum size is 1/2 of the maximum
 address space size (i.e., 2G for a 32-bit machine).  Returns block address if
 successful, zero if block could not be allocated.
 
-=item Object sdr_insert(Sdr sdr, char *from, unsigned long size)
+=item Object sdr_insert(Sdr sdr, char *from, size_t size)
 
 Uses sdr_malloc() to obtain a block of space of size I<size> and, if this
 allocation is successful, uses sdr_write() to copy I<size> bytes of data
@@ -495,7 +495,7 @@ data at I<object>.
 
 Frees for subsequent re-allocation the heap space occupied by I<object>.
 
-=item void sdr_stage(Sdr sdr, char *into, Object from, int length)
+=item void sdr_stage(Sdr sdr, char *into, Object from, size_t length)
 
 Like sdr_read(), this function will copy I<length> characters
 at I<from> (a location in the heap of the indicated SDR)
@@ -523,17 +523,18 @@ usage status.  SdrUsageSummary is defined by:
 
     typedef struct
     {
-       	    char            sdrName[MAX_SDR_NAME + 1];
-       	    unsigned int    dsSize;
-       	    unsigned int    smallPoolSize;
-       	    unsigned int    smallPoolFreeBlockCount[SMALL_SIZES];
-       	    unsigned int    smallPoolFree;
-       	    unsigned int    smallPoolAllocated;
-       	    unsigned int    largePoolSize;
-       	    unsigned int    largePoolFreeBlockCount[LARGE_ORDERS];
-       	    unsigned int    largePoolFree;
-       	    unsigned int    largePoolAllocated;
-       	    unsigned int    unusedSize;
+            char            sdrName[MAX_SDR_NAME + 1];
+            size_t          heapSize;
+            size_t          smallPoolSize;
+            size_t          smallPoolFreeBlockCount[SMALL_SIZES];
+            size_t          smallPoolFree;
+            size_t          smallPoolAllocated;
+            size_t          largePoolSize;
+            size_t          largePoolFreeBlockCount[LARGE_ORDERS];
+            size_t          largePoolFree;
+            size_t          largePoolAllocated;
+            size_t          unusedSize;
+            size_t          maxLogLength;
     } SdrUsageSummary;
 
 =item void sdr_report(SdrUsageSummary *summary)
@@ -558,7 +559,7 @@ some other kinds of SDR heap access problems to be readily investigated.
 
 =over 4
 
-=item int sdr_start_trace(Sdr sdr, int traceLogSize, char *traceLogAddress)
+=item int sdr_start_trace(Sdr sdr, size_t traceLogSize, char *traceLogAddress)
 
 Begins an episode of SDR heap space usage tracing.  I<traceLogSize> is the
 number of bytes of shared memory to use for trace activity logging; the

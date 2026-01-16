@@ -17,7 +17,7 @@ in Internet RFC 5050.
 
 =over 4
 
-=item int bp_attach( )
+=item int bp_attach(void)
 
 Attaches the application to BP functionality on the local computer.  Returns
 0 on success, -1 on any error.
@@ -28,12 +28,12 @@ established when ION node functionality is initialized by ionadmin(1).  This
 is a precondition for initializing BP functionality by running bpadmin(1),
 which in turn is required in order for bp_attach() to succeed.
 
-=item Sdr bp_get_sdr( )
+=item Sdr bp_get_sdr(void)
 
 Returns handle for the SDR data store used for BP, to enable creation and
 interrogation of bundle payloads (application data units).
 
-=item void bp_detach( )
+=item void bp_detach(void)
 
 Terminates all access to BP functionality on the local computer.
 

@@ -30,7 +30,7 @@ All operations performed on this Lyst will use the
 allocation/deallocation functions of the default memory
 manager "std" (see memmgr(3)).  Returns NULL on any failure.
 
-=item Lyst lyst_create_using(unsigned memmgrId)
+=item Lyst lyst_create_using(int memmgrId)
 
 Create and return a new Lyst object without any elements in it.
 All operations performed on this Lyst will use the
@@ -85,7 +85,7 @@ When automatically called, the insertion function is passed two arguments:
 the element being inserted and the I<userdata> pointer specified in
 the lyst_insert_set() call.
 
-=item unsigned long lyst_length(Lyst list)
+=item size_t lyst_length(Lyst list)
 
 Return the number of elements in the Lyst.
 

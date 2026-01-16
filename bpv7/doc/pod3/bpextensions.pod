@@ -261,7 +261,7 @@ incorrect implementation of this function may result in a working memory leak.
 
 =over 4
 
-=item void discardExtensionBlock(AcqExtBlock *blk)
+=item void discardAcqExtensionBlock(AcqExtBlock *blk)
 
 Deletes this block from the bundle acquisition work area prior to the
 recording of the bundle in the ION database.
@@ -271,7 +271,7 @@ recording of the bundle in the ION database.
 Deletes this block from the bundle after the bundle has been recorded in the
 ION database.
 
-=item Object findExtensionBlock(Bundle *bundle, unsigned int type, unsigned char tag1, unsigned char tag2, unsigned char tag3)
+=item Object findExtensionBlock(Bundle *bundle, BpBlockType type, char tag)
 
 On success, returns the address of the ExtensionBlock in I<bundle> for the
 indicated I<type> and tag values.  If no such extension block exists, returns

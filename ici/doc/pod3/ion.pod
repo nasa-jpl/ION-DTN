@@ -99,13 +99,13 @@ yyyy/mm/dd-hh:mm:ss
 
 =back
 
-=item int ionAttach()
+=item int ionAttach(void)
 
 Attaches the invoking task to ION infrastructure as previously established
 by running the I<ionadmin> utility program.  Returns zero on success, -1 on
 any error.
 
-=item void ionDetach()
+=item void ionDetach(void)
 
 Detaches the invoking task from ION infrastructure.  In particular, releases
 handle allocated for access to ION's non-volatile database.  B<NOTE>, though,
@@ -114,7 +114,7 @@ non-memory-protected environment, such as VxWorks, where all ION resource
 access variables are shared by all tasks: no single task could detach
 without crashing all other ION tasks.
 
-=item void ionProd(uvast fromNode, uvast toNode, unsigned int xmitRate, unsigned int owlt)
+=item void ionProd(uvast fromFqnn, uvast fromFqnn, size_t xmitRate, unsigned int owlt)
 
 This function is designed to be called from an operating environment command
 or a fault protection routine, to enable operation of a node to resume when
@@ -130,7 +130,7 @@ ION status message logging functions.
 B<NOTE> that the ionProd() function must be invoked twice in order
 to establish bidirectional communication.
 
-=item void ionTerminate()
+=item void ionTerminate(int shutdown)
 
 Shuts down the entire ION node, terminating all daemons, and destroys the SDR.
 
@@ -171,12 +171,12 @@ the request for ZCO space has been definitively denied and, as always, the
 ticket must by destroyed by an invocation of ionShred().  Returns 0 on success,
 -1 on any failure.
 
-=item int ionSpaceAwarded(ReqTicket *ticket)
+=item int ionSpaceAwarded(ReqTicket ticket)
 
 Returns 1 if I<ticket> is for a ZCO space request that has been serviced
 (ZCO space has been reserved per this request), 0 otherwise.
 
-=item void ionShred(ReqTicket *ticket)
+=item void ionShred(ReqTicket ticket)
 
 Dismisses the reservation of ZCO space (if any) requested by the call to
 ionRequestZcoSpace() that returned I<ticket>.  Calling ionShred() indicates
@@ -219,44 +219,44 @@ Transmits the content of zero-copy object I<zco> to the TCP socket
 identified by I<*sock>.  Transmits in chunks of size I<buflen> or less,
 loading chunks of ZCO content into I<buffer> for this purpose.
 
-=item char *getIonVersionNbr()
+=item char *getIonVersionNbr(void)
 
 Returns the name of the ION version installed on the local machine.
 
-=item Sdr getIonsdr()
+=item Sdr getIonsdr(void)
 
 Returns a pointer to the SDR management object, previously acquired by calling
 ionAttach(), or zero on any error.
 
-=item Object getIonDbObject()
+=item Object getIonDbObject(void)
 
 Returns the SDR heap address of the node's non-volatile ION database.
 
-=item PsmPartition getIonwm()
+=item PsmPartition getIonwm(void)
 
 Returns a pointer to the ION working memory partition, previously acquired
 by calling ionAttach(), or zero on any error.
 
-=item int getIonMemoryMgr()
+=item int getIonMemoryMgr(void)
 
 Returns the memory manager ID for operations on ION's working memory partition,
 previously acquired by calling ionAttach(), or -1 on any error.
 
-=item IonVdb *getIonVdb()
+=item IonVdb *getIonVdb(void)
 
 Returns the address in memory of the node's volatile ION database.
 
-=item char *getIonWorkingDirectory()
+=item char *getIonWorkingDirectory(void)
 
 Returns the name of the directory in which the node resides.
 
-=item int ionLocked();
+=item int ionLocked(void)
 
 Returns 1 if the calling task is the owner of the current SDR transaction.
 Assuring that ION is locked while related critical operations are performed
 is essential to the avoidance of race conditions.
 
-=item uvast getOwnFqnn()
+=item uvast getOwnFqnn(void)
 
 Returns the fully qualified node number identifying this node, as derived from
 the IPN node number initialized by I<ionadmin> with or without the allocator.
@@ -266,14 +266,14 @@ the IPN node number initialized by I<ionadmin> with or without the allocator.
 Sets the value of the UTC "delta" adjustment that ION will apply to
 the system clock time order to obtain the correct UTC time.
 
-=item time_t getCtime()
+=item time_t getCtime(void)
 
 Returns the current calendar (i.e., Unix epoch) time, as computed from local
 clock time and the computer's current offset from UTC (due to clock drift,
 B<not> due to time zone difference; the B<utcdelta>) as managed from
 I<ionadmin>.
 
-=item int ionClockIsSynchronized()
+=item int ionClockIsSynchronized(void)
 
 Returns 1 if the computer on which the local ION node is running has a
 synchronized clock , i.e., a clock that reports the current calendar (i.e.,

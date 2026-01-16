@@ -97,7 +97,7 @@ used, for example, to notify tasks that are waiting for ZCO space to be
 made available so that they can resume some communication protocol
 procedure.
 
-=item void zco_unregister_callback( )
+=item void zco_unregister_callback(void)
 
 This function simply unregisters the currently registered callback function
 for ZCO destruction.
@@ -190,17 +190,17 @@ it is removed.
 Uses the ION logging function to write a report of the current contents of
 the ZCO space accounting database.
 
-=item vast zco_get_file_occupancy(Sdr sdr, ZcoAcct acct)
+=item double zco_get_file_occupancy(Sdr sdr, ZcoAcct acct)
 
 Returns the total number of file system space bytes occupied by ZCOs (inbound
 or outbound) created in this Sdr.
 
-=item void zco_set_max_file_occupancy(Sdr sdr, vast occupancy, ZcoAcct acct)
+=item void zco_set_max_file_occupancy(Sdr sdr, double occupancy, ZcoAcct acct)
 
 Declares the total number of file system space bytes that may be occupied by
 ZCOs (inbound or outbound) created in this Sdr.
 
-=item vast zco_get_max_file_occupancy(Sdr sdr, ZcoAcct acct)
+=item double zco_get_max_file_occupancy(Sdr sdr, ZcoAcct acct)
 
 Returns the total number of file system space bytes that may be occupied by
 ZCOs (inbound or outbound) created in this Sdr.
@@ -210,17 +210,17 @@ ZCOs (inbound or outbound) created in this Sdr.
 Returns 1 if the total remaining file system space available for ZCOs (inbound
 or outbound) in this Sdr is greater than I<length>.  Returns 0 otherwise.
 
-=item vast zco_get_bulk_occupancy(Sdr sdr, ZcoAcct acct)
+=item double zco_get_bulk_occupancy(Sdr sdr, ZcoAcct acct)
 
 Returns the total number of mass storage space bytes occupied by ZCOs (inbound
 or outbound) created in this Sdr.
 
-=item void zco_set_max_bulk_occupancy(Sdr sdr, vast occupancy, ZcoAcct acct)
+=item void zco_set_max_bulk_occupancy(Sdr sdr, double occupancy, ZcoAcct acct)
 
 Declares the total number of mass storage space bytes that may be occupied by
 ZCOs (inbound or outbound) created in this Sdr.
 
-=item vast zco_get_max_bulk_occupancy(Sdr sdr, ZcoAcct acct)
+=item double zco_get_max_bulk_occupancy(Sdr sdr, ZcoAcct acct)
 
 Returns the total number of mass storage space bytes that may be occupied by
 ZCOs (inbound or outbound) created in this Sdr.
@@ -230,17 +230,17 @@ ZCOs (inbound or outbound) created in this Sdr.
 Returns 1 if the total remaining mass storage space available for ZCOs (inbound
 or outbound) in this Sdr is greater than I<length>.  Returns 0 otherwise.
 
-=item vast zco_get_heap_occupancy(Sdr sdr, ZcoAcct acct)
+=item double zco_get_heap_occupancy(Sdr sdr, ZcoAcct acct)
 
 Returns the total number of SDR heap space bytes occupied by ZCOs (inbound or
 outbound) created in this Sdr.
 
-=item void zco_set_max_heap_occupancy(Sdr sdr, vast occupancy, ZcoAcct acct)
+=item void zco_set_max_heap_occupancy(Sdr sdr, double occupancy, ZcoAcct acct)
 
 Declares the total number of SDR heap space bytes that may be occupied by
 ZCOs (inbound or outbound) created in this Sdr.
 
-=item vast zco_get_max_heap_occupancy(Sdr sdr, ZcoAcct acct)
+=item double zco_get_max_heap_occupancy(Sdr sdr, ZcoAcct acct)
 
 Returns the total number of SDR heap space bytes that may be occupied by
 ZCOs (inbound or outbound) created in this Sdr.
