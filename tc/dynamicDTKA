@@ -385,7 +385,7 @@ create_local_bprc_file(){
 #   None
 ###############################################################################
 create_ionstart_script(){
-  echo '#! /bin/bash'
+  echo '#!/usr/bin/env bash'
   echo "ionadmin	$TEST_DIRECTORY/$GLOBAL_IONRC"
   echo 'sleep 1'
   echo "ionsecadmin	$LOCAL_IONSECRC"
@@ -403,7 +403,7 @@ create_ionstart_script(){
 #   None
 ###############################################################################
 create_ionstop_script(){
-  echo '#! /bin/bash'
+  echo '#!/usr/bin/env bash'
   echo "tccadmin 203 ."
   echo "sleep 1"
   echo "tcaadmin 203 ."
@@ -785,7 +785,7 @@ create_dtkarc_file(){
 #   $1 whether to include KA functionality or not
 ###############################################################################
 create_dtkastart_script(){
-  echo '#! /bin/bash'
+  echo '#!/usr/bin/env bash'
   # key authority?
   if [[ "$1" = true ]]; then
     echo "tcaadmin 203 $TEST_DIRECTORY/$BOOT_FILE"
