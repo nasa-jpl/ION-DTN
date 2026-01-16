@@ -6,23 +6,49 @@ bp_admin - ION Bundle Protocol programmatic administration library
 
 #include "bp_admin.h"
 
-int bp_init(void);
-int bp_start(void);
-void bp_stop(void);
-int ipn_init(void);
+=over
 
-int add_scheme(char *I<name>, char *I<fwdCmd>, char *I<admAppCmd>);
-int remove_scheme(char *I<name>);
+=item int bp_init(void);
 
-int bp_start_scheme(char *I<name>);
-void bp_stop_scheme(char *I<name>);
-int add_endpoint(char *I<eid>, BpRecvRule I<recvRule>, char *I<script>);
-int remove_endpoint(char *I<eid>);
+=item int bp_start(void);
 
-void bp_list_schemes(void);
-void bp_list_endpoints(void);
-void bp_list_protocols(void);
-void report_all_state_stats(void);
+=item void bp_stop(void);
+
+=item int ipn_init(void);
+
+=back
+
+=over
+
+=item int add_scheme(char *I<name>, char *I<fwdCmd>, char *I<admAppCmd>);
+
+=item int remove_scheme(char *I<name>);
+
+=back
+
+=over
+
+=item int bp_start_scheme(char *I<name>);
+
+=item void bp_stop_scheme(char *I<name>);
+
+=item int add_endpoint(char *I<eid>, BpRecvRule I<recvRule>, char *I<script>);
+
+=item int remove_endpoint(char *I<eid>);
+
+=back
+
+=over
+
+=item void bp_list_schemes(void);
+
+=item void bp_list_endpoints(void);
+
+=item void bp_list_protocols(void);
+
+=item void report_all_state_stats(void);
+
+=back
 
 =head1 DESCRIPTION
 
