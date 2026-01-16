@@ -4,22 +4,12 @@
 # Nov 9, 2010
 # documentation boilerplate
 
-BPV=`bpversion`
-if [ $BPV == "bpv6" ] ; then
-CONFIGFILES=" \
-./config/loopback-v6.bprc \
-./config/loopback.ionsecrc \
-./config/loopback-v6.dtn2rc \
-./config/loopback.ionrc \
-"
-else
 CONFIGFILES=" \
 ./config/loopback.bprc \
 ./config/loopback.ionsecrc \
 ./config/loopback.dtn2rc \
 ./config/loopback.ionrc \
 "
-fi
 
 echo "########################################"
 echo
@@ -56,19 +46,11 @@ rm -rf ./ion_nodes
 
 echo "Starting ION..."
 CONFIGDIR="./config"
-if [ $BPV == "bpv6" ] ; then
-ionstart                           \
-    -i ${CONFIGDIR}/loopback.ionrc \
-    -b ${CONFIGDIR}/loopback-v6.bprc  \
-    -s ${CONFIGDIR}/loopback.ionsecrc \
-    -d ${CONFIGDIR}/loopback-v6.dtn2rc 
-else
 ionstart                           \
     -i ${CONFIGDIR}/loopback.ionrc \
     -b ${CONFIGDIR}/loopback.bprc  \
     -s ${CONFIGDIR}/loopback.ionsecrc \
-    -d ${CONFIGDIR}/loopback.dtn2rc 
-fi
+    -d ${CONFIGDIR}/loopback.dtn2rc
 
 # starting bpecho on dtn://host1.dtn/b
 echo "Starting bpecho on dtn://host1.dtn/b ..."
