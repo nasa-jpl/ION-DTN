@@ -423,9 +423,7 @@ ln -s ../ltp/utils/ltpsecadmin.c
 #ln -s ../ams/library/amsP.h
 #ln -s ../ams/library/amsd.c
 #ln -s ../ams/library/crypt.c
-#ln -s ../ams/library/default.crypt.c
 #ln -s ../ams/library/marshal.c
-#ln -s ../ams/library/default.marshal.c
 #ln -s ../ams/library/libams.c
 #ln -s ../ams/library/loadmib.c
 #ln -s ../ams/library/dgrts.c

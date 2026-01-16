@@ -370,8 +370,6 @@ def build(bld):
         'amsstop.c'
     ]
     # marshal.c is part of libams.c
-    # default.marshal.c not needed
-    # default.crypt.c not needed
 
     amslibsources=[
         'amscommon.c',

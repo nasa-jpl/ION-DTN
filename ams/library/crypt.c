@@ -1,5 +1,5 @@
 /*
-	default.crypt.c:	stub encryption and decryption functions
+	crypt.c:	stub encryption and decryption functions
 				for public distribution of AMS.
 
 	Author: Scott Burleigh, JPL

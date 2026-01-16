@@ -2075,8 +2075,6 @@ amsinclude = \
 amsnoinst = \
 	ams/library/amscommon.h \
 	ams/library/amsP.h \
-	ams/library/default.crypt.c \
-	ams/library/default.marshal.c \
 	ams/library/marshal.c \
 	ams/rams/rams.h \
 	ams/rams/ramscommon.h
