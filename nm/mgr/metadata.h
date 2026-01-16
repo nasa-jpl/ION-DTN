@@ -176,4 +176,4 @@ void        metacol_release(meta_col_t*col, int destroy);
 }
 #endif
 
-#endif  /* _METADATA_H_ */
+#endif /* METADATA_H_ */

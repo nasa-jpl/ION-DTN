@@ -101,4 +101,4 @@ char* ui_str_from_var(var_t *var);
 }
 #endif
 
-#endif  /* _NM_MGR_PRINT_H_ */
+#endif /* MGR_PRINT_H_ */

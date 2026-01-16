@@ -272,4 +272,4 @@ void dtn_ion_ltpadmin_init_tblt(void);
 }
 #endif
 
-#endif  /* _ADM_ION_LTP_ADMIN_H_ */
+#endif /* ADM_ION_LTP_ADMIN_H_ */

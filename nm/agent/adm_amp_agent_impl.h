@@ -199,4 +199,4 @@ tbl_t *amp_agent_tblt_tblts(ari_t *id);
 }
 #endif
 
-#endif  /* _ADM_AMP_AGENT_IMPL_H_ */
+#endif /* ADM_AMP_AGENT_IMPL_H_ */

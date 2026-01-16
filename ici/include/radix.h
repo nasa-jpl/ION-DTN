@@ -121,4 +121,4 @@ int   radix_insert(PsmPartition partition, PsmAddress radixAddr, char *key, PsmA
 int  radix_prettyprint(PsmPartition partition, PsmAddress tree, char *buffer, int buf_size);
 
 
-#endif
+#endif /* RADIX_H_ */

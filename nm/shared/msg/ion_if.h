@@ -89,4 +89,4 @@ int     iif_send_msg(iif_t *iif, int msg_type, void *msg, char *recipient);
 }
 #endif
 
-#endif  /* _ION_IF_H_ */
+#endif /* ION_IF_H_ */

@@ -115,4 +115,4 @@ AMP_DEBUG(AMP_DEBUG_LVL,':',func,format, __VA_ARGS__)
 }
 #endif
 
-#endif  /* _DEBUG_H_ */
+#endif /* DEBUG_H_ */

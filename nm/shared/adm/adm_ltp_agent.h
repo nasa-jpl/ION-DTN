@@ -332,4 +332,4 @@ void dtn_ltp_agent_init_tblt(void);
 }
 #endif
 
-#endif  /* _ADM_LTP_AGENT_H_ */
+#endif /* ADM_LTP_AGENT_H_ */

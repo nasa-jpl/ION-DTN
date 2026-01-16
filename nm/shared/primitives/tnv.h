@@ -237,4 +237,4 @@ int      tnvc_update(tnvc_t *tnvc, uint8_t idx, tnv_t *src_tnv);
 }
 #endif
 
-#endif  /* _TNV_H_ */
+#endif /* TNV_H_ */

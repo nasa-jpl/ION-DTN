@@ -421,4 +421,4 @@ void dtn_ion_ionadmin_init_tblt(void);
 }
 #endif
 
-#endif  /* _ADM_ION_ADMIN_H_ */
+#endif /* ADM_ION_ADMIN_H_ */

@@ -252,9 +252,6 @@ void db_logf_msg(size_t dbidx, const char* msg, const char* details, int level, 
 }
 #endif
 
-#endif  /* _BPSEC_H_ */
+#endif /* NM_MGR_DB_H */
 
 #endif // HAVE_MYSQL
-
-
-

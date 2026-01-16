@@ -111,4 +111,4 @@ tbl_t *dtn_ion_ionsecadmin_tblt_ltp_tx_rules(ari_t *id);
 }
 #endif
 
-#endif  /* _ADM_IONSEC_ADMIN_IMPL_H_ */
+#endif /* ADM_IONSEC_ADMIN_IMPL_H_ */

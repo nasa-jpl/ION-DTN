@@ -176,4 +176,4 @@ PsmAddress radixP_remove_child(PsmPartition partition, RadixNode *node, int orde
 
 int radixP_split_insert_node(PsmPartition partition, RadixTree *radixPtr, PsmAddress splitNodeAddr, PsmAddress newChildAddr, int offset, radix_del_fn del_fn);
 
-#endif
+#endif /* RADIX_P_H_ */

@@ -156,4 +156,4 @@ void*     tblt_col_cb_copy_fn(void *item);
 }
 #endif
 
-#endif  /* _TABLE_H_ */
+#endif /* TABLE_H_ */

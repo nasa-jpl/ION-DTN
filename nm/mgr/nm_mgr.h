@@ -102,4 +102,4 @@ void*    mgr_rx_thread(void *arg);
 }
 #endif
 
-#endif  /* _NM_MGR_H_ */
+#endif /* NM_MGR_H */

@@ -140,4 +140,4 @@ void adm_common_init(void);
 }
 #endif
 
-#endif  /* _ADM_H_*/
+#endif /* ADM_H_ */

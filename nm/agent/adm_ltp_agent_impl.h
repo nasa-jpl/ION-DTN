@@ -122,4 +122,4 @@ tbl_t *dtn_ltp_agent_tblt_engines(ari_t *id);
 }
 #endif
 
-#endif  /* _ADM_LTP_AGENT_IMPL_H_ */
+#endif /* ADM_LTP_AGENT_IMPL_H_ */

@@ -90,4 +90,4 @@ void     agent_rotate_log(agent_t *agent, int force);
 }
 #endif
 
-#endif  /* _AGENTS_H */
+#endif /* AGENTS_H */

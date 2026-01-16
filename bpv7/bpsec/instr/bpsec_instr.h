@@ -123,4 +123,4 @@ int      bpsec_instr_init(void);
 void     bpsec_instr_reset(void);
 void     bpsec_instr_reset_src(char *src_id);
 
-#endif
+#endif /* BPSEC_INSTR_H_ */

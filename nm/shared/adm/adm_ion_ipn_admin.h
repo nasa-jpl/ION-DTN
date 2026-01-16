@@ -195,4 +195,4 @@ void dtn_ion_ipnadmin_init_tblt(void);
 }
 #endif
 
-#endif  /* _ADM_ION_IPN_ADMIN_H_ */
+#endif /* ADM_ION_IPN_ADMIN_H_ */

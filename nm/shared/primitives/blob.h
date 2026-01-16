@@ -101,4 +101,4 @@ int8_t    blob_trim(blob_t *blob, uint32_t length);
 }
 #endif
 
-#endif  /* _BLOB_H_ */
+#endif /* BLOB_H_ */

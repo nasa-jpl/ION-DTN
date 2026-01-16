@@ -107,4 +107,4 @@ vast     utils_time_cur_delta(struct timeval *t1);
 }
 #endif
 
-#endif  /* _UTILS_H_ */
+#endif /* UTILS_H_ */

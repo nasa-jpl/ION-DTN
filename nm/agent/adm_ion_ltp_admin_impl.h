@@ -86,4 +86,4 @@ tbl_t *dtn_ion_ltpadmin_tblt_spans(ari_t *id);
 }
 #endif
 
-#endif  /* _ADM_ION_LTP_ADMIN_IMPL_H_ */
+#endif /* ADM_ION_LTP_ADMIN_IMPL_H_ */

@@ -86,4 +86,4 @@ tbl_t *dtn_ion_ipnadmin_tblt_plans(ari_t *id);
 }
 #endif
 
-#endif  /* _ADM_ION_IPN_ADMIN_IMPL_H_ */
+#endif /* ADM_ION_IPN_ADMIN_IMPL_H_ */

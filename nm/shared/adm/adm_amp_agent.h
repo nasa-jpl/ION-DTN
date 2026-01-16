@@ -480,4 +480,4 @@ void amp_agent_init_tblt(void);
 }
 #endif
 
-#endif  /* _ADM_AMP_AGENT_H_ */
+#endif /* ADM_AMP_AGENT_H_ */

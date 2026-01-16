@@ -107,4 +107,4 @@ tbl_t *dtn_ion_ionadmin_tblt_ranges(ari_t *id);
 }
 #endif
 
-#endif  /* _ADM_ION_ADMIN_IMPL_H_ */
+#endif /* ADM_ION_ADMIN_IMPL_H_ */

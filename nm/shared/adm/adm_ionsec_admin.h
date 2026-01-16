@@ -254,4 +254,4 @@ void dtn_ion_ionsecadmin_init_tblt(void);
 }
 #endif
 
-#endif  /* _ADM_IONSEC_ADMIN_H_ */
+#endif /* ADM_IONSEC_ADMIN_H_ */

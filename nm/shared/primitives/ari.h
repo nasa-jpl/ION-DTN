@@ -232,4 +232,4 @@ blob_t*   ac_serialize_wrapper(ac_t *ac);
 }
 #endif
 
-#endif  /* _ARI_H_ */
+#endif /* ARI_H_ */
