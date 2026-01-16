@@ -79,14 +79,23 @@ extern char		gAmpMsg[];		/*	Debug message buffer.	*/
 
 #if defined (ION_LWT)
 
-#define AMP_DEBUG(level, type, func, format,...) if(level >= AMP_DEBUG_LVL) \
-{_isprintf(gAmpMsg, AMP_GMSG_BUFLEN, format, __VA_ARGS__); putErrmsg(func, gAmpMsg);}
+#define AMP_DEBUG(level, type, func, format, ...)                         \
+	if (level >= AMP_DEBUG_LVL)                                       \
+	{                                                                 \
+		_isprintf(gAmpMsg, AMP_GMSG_BUFLEN, format, __VA_ARGS__); \
+		putErrmsg(func, gAmpMsg);                                 \
+	}
 
 #else
 
-#define AMP_DEBUG(level, type, func, format,...) if(level >= AMP_DEBUG_LVL) \
-{isprintf(gAmpMsg, AMP_GMSG_BUFLEN, (char *) format, __VA_ARGS__); \
-fprintf(stderr, "[%s:%d] %c %s %s\n",__FILE__,__LINE__,type, func, gAmpMsg);}
+#define AMP_DEBUG(level, type, func, format, ...)                         \
+	if (level >= AMP_DEBUG_LVL)                                       \
+	{                                                                 \
+		isprintf(gAmpMsg, AMP_GMSG_BUFLEN, (char *) format,       \
+				__VA_ARGS__);                             \
+		fprintf(stderr, "[%s:%d] %c %s %s\n", __FILE__, __LINE__, \
+				type, func, gAmpMsg);                     \
+	}
 
 #endif
 

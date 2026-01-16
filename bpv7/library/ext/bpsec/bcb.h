@@ -118,8 +118,12 @@
  * BCB_DEBUGGING #define.
  */
 
-   #define BCB_DEBUG(level, format,...) if(level >= BCB_DEBUG_LVL) \
-{_isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); writeMemo(gMsg);}
+#define BCB_DEBUG(level, format, ...)                              \
+	if (level >= BCB_DEBUG_LVL)                                \
+	{                                                          \
+		_isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); \
+		writeMemo(gMsg);                                   \
+	}
 
    #define BCB_DEBUG_PROC(format,...) \
            BCB_DEBUG(BCB_DEBUG_LVL_PROC,format, __VA_ARGS__)
@@ -134,8 +138,10 @@
            BCB_DEBUG(BCB_DEBUG_LVL_ERR,format, __VA_ARGS__)
 
 #else
-   #define BCB_DEBUG(level, format,...) if(level >= BCB_DEBUG_LVL) \
-{}
+#define BCB_DEBUG(level, format, ...) \
+	if (level >= BCB_DEBUG_LVL)   \
+	{                             \
+	}
 
    #define BCB_DEBUG_PROC(format,...) \
            BCB_DEBUG(BCB_DEBUG_LVL_PROC,format, __VA_ARGS__)

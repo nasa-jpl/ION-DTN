@@ -72,8 +72,12 @@ extern char	gCsiMsg[GMSG_BUFLEN];
  * CSI_DEBUGGING #define.
  */
 
-   #define CSI_DEBUG(level, format,...) if(level >= CSI_DEBUG_LVL) \
-{_isprintf(gCsiMsg, GMSG_BUFLEN, format, __VA_ARGS__); putErrmsg(gCsiMsg, NULL);}
+#define CSI_DEBUG(level, format, ...)                                 \
+	if (level >= CSI_DEBUG_LVL)                                   \
+	{                                                             \
+		_isprintf(gCsiMsg, GMSG_BUFLEN, format, __VA_ARGS__); \
+		putErrmsg(gCsiMsg, NULL);                             \
+	}
 
    #define CSI_DEBUG_PROC(format,...) \
            CSI_DEBUG(CSI_DEBUG_LVL_PROC,format, __VA_ARGS__)
@@ -87,8 +91,10 @@ extern char	gCsiMsg[GMSG_BUFLEN];
    #define CSI_DEBUG_ERR(format,...) \
            CSI_DEBUG(CSI_DEBUG_LVL_ERR,format, __VA_ARGS__)
 #else
-   #define CSI_DEBUG(level, format,...) if(level >= CSI_DEBUG_LVL) \
-{}
+#define CSI_DEBUG(level, format, ...) \
+	if (level >= CSI_DEBUG_LVL)   \
+	{                             \
+	}
 
    #define CSI_DEBUG_PROC(format,...) \
            CSI_DEBUG(CSI_DEBUG_LVL_PROC,format, __VA_ARGS__)

@@ -117,12 +117,14 @@
  * BIB_DEBUGGING #define.
  */
 
-#define BIB_DEBUG(level, prefix, format,...) if(level >= BIB_DEBUG_LVL) \
-{                                                                              \
-  int len = _isprintf(gMsg, GMSG_BUFLEN, "%s: (%s) ", __func__, prefix);        \
-  _isprintf(gMsg+len, GMSG_BUFLEN-len, format, __VA_ARGS__);                   \
-   putErrmsg(gMsg, NULL);                                                      \
-}
+#define BIB_DEBUG(level, prefix, format, ...)                                  \
+	if (level >= BIB_DEBUG_LVL)                                            \
+	{                                                                      \
+		int len = _isprintf(gMsg, GMSG_BUFLEN, "%s: (%s) ", __func__,  \
+				prefix);                                       \
+		_isprintf(gMsg + len, GMSG_BUFLEN - len, format, __VA_ARGS__); \
+		putErrmsg(gMsg, NULL);                                         \
+	}
 
    #define BIB_DEBUG_PROC(format,...) \
            BIB_DEBUG(BIB_DEBUG_LVL_PROC, ">", format, __VA_ARGS__)
@@ -137,8 +139,10 @@
            BIB_DEBUG(BPSEC_DEBUG_LVL_ERR,  "e", format, __VA_ARGS__)
 
 #else
-   #define BIB_DEBUG(level, format,...) if(level >= BIB_DEBUG_LVL) \
-{}
+#define BIB_DEBUG(level, format, ...) \
+	if (level >= BIB_DEBUG_LVL)   \
+	{                             \
+	}
 
    #define BIB_DEBUG_PROC(format,...) \
            BIB_DEBUG(BIB_DEBUG_LVL_PROC,format, __VA_ARGS__)

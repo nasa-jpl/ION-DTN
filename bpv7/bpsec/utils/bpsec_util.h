@@ -108,12 +108,15 @@ extern char	gMsg[GMSG_BUFLEN];
  * BPSEC_DEBUGGING #define.
  */
 
-   #define BPSEC_DEBUG(level, prefix, format,...) if(level >= BPSEC_DEBUG_LVL) \
-{                                                                              \
-  int dbg_len = _isprintf(gMsg, GMSG_BUFLEN, "%s: (%s) ", __func__, prefix);        \
-  _isprintf(gMsg+dbg_len, GMSG_BUFLEN-dbg_len, format, __VA_ARGS__);                   \
-   putErrmsg(gMsg, NULL);                                                      \
-}
+#define BPSEC_DEBUG(level, prefix, format, ...)                          \
+	if (level >= BPSEC_DEBUG_LVL)                                    \
+	{                                                                \
+		int dbg_len = _isprintf(gMsg, GMSG_BUFLEN, "%s: (%s) ",  \
+				__func__, prefix);                       \
+		_isprintf(gMsg + dbg_len, GMSG_BUFLEN - dbg_len, format, \
+				__VA_ARGS__);                            \
+		putErrmsg(gMsg, NULL);                                   \
+	}
 
    #define BPSEC_DEBUG_PROC(format,...) \
            BPSEC_DEBUG(BPSEC_DEBUG_LVL_PROC, ">", format, __VA_ARGS__)
@@ -127,8 +130,10 @@ extern char	gMsg[GMSG_BUFLEN];
    #define BPSEC_DEBUG_ERR(format,...) \
            BPSEC_DEBUG(BPSEC_DEBUG_LVL_ERR,  "e", format, __VA_ARGS__)
 #else
-   #define BPSEC_DEBUG(level, format,...) if(level >= BPSEC_DEBUG_LVL) \
-{}
+#define BPSEC_DEBUG(level, format, ...) \
+	if (level >= BPSEC_DEBUG_LVL)   \
+	{                               \
+	}
 
    #define BPSEC_DEBUG_PROC(format,...) \
            BPSEC_DEBUG(BPSEC_DEBUG_LVL_PROC,format, __VA_ARGS__)
