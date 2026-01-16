@@ -44,6 +44,10 @@ ltp_admin - LTP Administration API
     void ltp_list_spans(void);
     void ltp_list_seats(void);
 
+    /* Bulk removal */
+    int ltp_remove_all_spans(void);
+    int ltp_remove_all_seats(void);
+
 =head1 DESCRIPTION
 
 The ltp_admin library provides programmatic access to LTP (Licklider
@@ -239,6 +243,49 @@ Output is written to stdout.
 List all configured seats.  Displays LSI commands and process IDs.
 
 Output is written to stdout.
+
+=back
+
+=head2 Bulk Removal Functions
+
+These functions remove all items of a specific type. Useful for runtime
+reconfiguration or selective cleanup without full shutdown.
+
+=over 4
+
+=item int ltp_remove_all_spans(void)
+
+Remove all LTP spans. Stops LSO processes and removes all configured spans.
+Useful for runtime reconfiguration or cleanup.
+
+Spans with pending data (segments, sessions) will be skipped.
+For complete shutdown, use ltp_stop() + ionTerminate(1) instead.
+
+Returns the number of spans successfully removed (>= 0), or -1 on fatal error.
+
+Example:
+
+    /* Stop BP first for safe removal */
+    bp_stop();
+
+    /* Remove all spans */
+    int removed = ltp_remove_all_spans();
+    printf("Removed %d spans\n", removed);
+
+=item int ltp_remove_all_seats(void)
+
+Remove all LTP seats. Stops LSI processes and removes all configured seats.
+Useful for runtime reconfiguration or cleanup.
+
+For complete shutdown, use ltp_stop() + ionTerminate(1) instead.
+
+Returns the number of seats successfully removed (>= 0), or -1 on fatal error.
+
+Example:
+
+    /* Remove all seats */
+    int removed = ltp_remove_all_seats();
+    printf("Removed %d seats\n", removed);
 
 =back
 

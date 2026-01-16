@@ -581,6 +581,198 @@ int main(void)
 	printf("  Bulk Removal Tests Complete\n");
 	printf("========================================\n");
 
+	/*
+	 * =================================================================
+	 * Phase 2: Reconfigure and Test Bundle Transfer
+	 * Demonstrates that after bulk removal, the system can be
+	 * reconfigured and used for bundle transfer.
+	 * =================================================================
+	 */
+
+	printf("\n========================================\n");
+	printf("  Phase 2: Reconfigure After Removal\n");
+	printf("========================================\n");
+
+	/* Re-add LTP span and seat */
+	printf("\n--- Re-adding LTP Configuration ---\n");
+	if (test_add_ltp_span(1, 100, 100, 1400, 10000, 1,
+			"udplso localhost:1113", 1, 0) < 0)
+	{
+		goto cleanup;
+	}
+
+	if (test_add_ltp_seat("udplsi localhost:1113") < 0)
+	{
+		goto cleanup;
+	}
+
+	/* Re-add BP configuration */
+	printf("\n--- Re-adding BP Configuration ---\n");
+
+	/* Re-add endpoints (scheme still exists, just endpoints were removed) */
+	if (test_add_endpoint("ipn:1.1", EnqueueBundle, NULL) < 0)
+	{
+		goto cleanup;
+	}
+
+	if (test_add_endpoint("ipn:1.2", EnqueueBundle, NULL) < 0)
+	{
+		goto cleanup;
+	}
+
+	/* Re-add induct, outduct, plan, and planduct */
+	if (test_add_induct("ltp", "1", "ltpcli") < 0)
+	{
+		goto cleanup;
+	}
+
+	if (test_add_outduct("ltp", "1", "ltpclo", 0) < 0)
+	{
+		goto cleanup;
+	}
+
+	if (test_add_plan("ipn:1.0", 0) < 0)
+	{
+		goto cleanup;
+	}
+
+	if (test_add_planduct("ipn:1.0", "ltp", "1") < 0)
+	{
+		goto cleanup;
+	}
+
+	/* Display reconfigured state */
+	printf("\n--- Configuration After Re-adding ---\n");
+	LOG_INFO("LTP Spans:");
+	ltp_list_spans();
+	printf("\n");
+	LOG_INFO("LTP Seats:");
+	ltp_list_seats();
+	printf("\n");
+	LOG_INFO("BP Endpoints:");
+	bp_list_endpoints();
+	printf("\n");
+
+	/* Restart LTP and BP */
+	printf("\n--- Restarting LTP and BP ---\n");
+	if (test_ltp_start() < 0)
+	{
+		goto cleanup;
+	}
+
+	if (test_bp_start() < 0)
+	{
+		goto cleanup;
+	}
+
+	/*
+	 * =================================================================
+	 * Phase 3: Bundle Send/Receive Test via LTP Loopback
+	 * Verifies that the reconfigured system can transfer bundles.
+	 * =================================================================
+	 */
+
+	printf("\n========================================\n");
+	printf("  Phase 3: Bundle Transfer Test\n");
+	printf("========================================\n");
+	printf(" * Sending bundle to ipn:1.2 via LTP loopback\n");
+
+	/* Clean up temporary file */
+	if (system("rm -f ./bpsink_output.txt")) { /* ignored */ }
+
+	/* Start bpsink in background to receive bundles at ipn:1.2 */
+	LOG_INFO("Starting bpsink to receive at ipn:1.2...");
+	{
+		int bpsink_result = system("bpsink ipn:1.2 > ./bpsink_output.txt 2>&1 &");
+		if (bpsink_result != 0)
+		{
+			LOG_INFO("Warning: bpsink command returned non-zero: %d",
+					bpsink_result);
+		}
+		else
+		{
+			LOG_INFO("bpsink command executed");
+		}
+	}
+	sleep(2);  /* Give bpsink time to attach to endpoint */
+
+	/* Send a bundle using bpsource */
+	LOG_INFO("Sending bundle to ipn:1.2 using bpsource...");
+	{
+		int bpsource_result = system(
+			"echo 'Hello from bulk removal test!' | bpsource ipn:1.2");
+		if (bpsource_result != 0)
+		{
+			LOG_INFO("Warning: bpsource command returned non-zero: %d",
+					bpsource_result);
+		}
+		else
+		{
+			LOG_INFO("bpsource command executed");
+		}
+	}
+
+	/* Wait for bundle delivery */
+	sleep(5);
+
+	/* Stop bpsink */
+	LOG_INFO("Stopping bpsink...");
+	ensure_process_terminated("bpsink");
+	sleep(2);  /* Give system time to cleanup */
+
+	/* Check if bundle was received */
+	TEST_START("LTP Bundle Transfer After Reconfiguration");
+	LOG_INFO("Checking bpsink output...");
+	{
+		FILE *fp = fopen("./bpsink_output.txt", "r");
+		if (fp == NULL)
+		{
+			TEST_FAIL("LTP Bundle Transfer",
+					"Cannot open bpsink output file");
+			LOG_INFO("Error: %s", strerror(errno));
+		}
+		else
+		{
+			char line[256];
+			int found = 0;
+
+			while (fgets(line, sizeof(line), fp) != NULL)
+			{
+				if (strstr(line, "Payload delivered") != NULL)
+				{
+					found = 1;
+					break;
+				}
+			}
+			fclose(fp);
+
+			if (found)
+			{
+				TEST_PASS("LTP Bundle Transfer After Reconfiguration");
+				LOG_INFO("Bundle successfully delivered via LTP!");
+				LOG_INFO("bpsink output:");
+				if (system("cat ./bpsink_output.txt 2>/dev/null"))
+				{
+					/* ignored */
+				}
+			}
+			else
+			{
+				TEST_FAIL("LTP Bundle Transfer",
+						"Bundle not received");
+				LOG_INFO("bpsink output (for debugging):");
+				if (system("cat ./bpsink_output.txt 2>/dev/null"))
+				{
+					/* ignored */
+				}
+			}
+		}
+	}
+
+	printf("\n========================================\n");
+	printf("  All Tests Complete\n");
+	printf("========================================\n");
+
 cleanup:
 	test_cleanup();
 

@@ -50,6 +50,11 @@ bp_admin - ION Bundle Protocol programmatic administration library
 
 =back
 
+int bp_remove_all_endpoints(char *I<scheme>);
+int bp_remove_all_inducts(char *I<protocol>);
+int bp_remove_all_outducts(char *I<protocol>);
+int ipn_remove_all_plans(void);
+
 =head1 DESCRIPTION
 
 The B<bp_admin> library provides a set of functions for programmatically configuring and managing an ION (Interplanetary Overlay Network) node's Bundle Protocol (BP) agent. This API serves as an alternative to using the interactive I<bpadmin>(1) command-line utility, allowing applications to automate the setup, control, and monitoring of the BP service.
@@ -210,6 +215,84 @@ Displays protocol names and their classes (Scheduled, Unscheduled, or OnDemand).
 Prints a summary of bundle processing statistics to standard output.  Includes
 counts for sourced, received, forwarded, delivered, expired, and other bundle
 state transitions.
+
+=back
+
+=head2 Bulk Removal Functions
+
+These functions remove all items of a specific type. Useful for runtime
+reconfiguration or selective cleanup without full shutdown.
+
+=over 4
+
+=item B<int bp_remove_all_endpoints(char *I<scheme>)>
+
+Remove all endpoints registered under a scheme.
+
+I<scheme> is the scheme name ("ipn" or "dtn").
+
+Endpoints with pending bundles or open applications will be skipped.
+For complete shutdown, use bp_stop() + ionTerminate(1) instead.
+
+Returns the number of endpoints successfully removed (>= 0), or -1 on fatal error.
+
+Note: This includes the administrative endpoint (e.g., ipn:N.0) that is
+automatically created when add_scheme() is called.
+
+Example:
+
+    bp_stop();
+    int removed = bp_remove_all_endpoints("ipn");
+    printf("Removed %d endpoints\n", removed);
+
+=item B<int bp_remove_all_inducts(char *I<protocol>)>
+
+Remove all inducts for a protocol.
+
+I<protocol> is the protocol name (e.g., "ltp", "tcp", "udp").
+
+For complete shutdown, use bp_stop() + ionTerminate(1) instead.
+
+Returns the number of inducts successfully removed (>= 0), or -1 on fatal error.
+
+Example:
+
+    int removed = bp_remove_all_inducts("ltp");
+    printf("Removed %d LTP inducts\n", removed);
+
+=item B<int bp_remove_all_outducts(char *I<protocol>)>
+
+Remove all outducts for a protocol.
+
+I<protocol> is the protocol name (e.g., "ltp", "tcp", "udp").
+
+Outducts attached to plans will be skipped (remove plans first using
+ipn_remove_all_plans()).
+For complete shutdown, use bp_stop() + ionTerminate(1) instead.
+
+Returns the number of outducts successfully removed (>= 0), or -1 on fatal error.
+
+Example:
+
+    /* Remove plans first, then outducts */
+    ipn_remove_all_plans();
+    int removed = bp_remove_all_outducts("ltp");
+    printf("Removed %d LTP outducts\n", removed);
+
+=item B<int ipn_remove_all_plans(void)>
+
+Remove all IPN egress plans.
+
+Plans with pending bundles in queues will be skipped.
+For complete shutdown, use bp_stop() + ionTerminate(1) instead.
+
+Returns the number of plans successfully removed (>= 0), or -1 on fatal error.
+
+Example:
+
+    bp_stop();
+    int removed = ipn_remove_all_plans();
+    printf("Removed %d IPN plans\n", removed);
 
 =back
 

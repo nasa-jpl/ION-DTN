@@ -1137,7 +1137,55 @@ bp_start_scheme("ipn");
 add_scheme("ipn", ...);  // May cause instability!
 ```
 
-### 6. Timing and Synchronization
+### 6. Bulk Removal for Runtime Reconfiguration
+
+For selective cleanup or reconfiguration without full shutdown, use the bulk
+removal functions. These remove all items of a specific type while respecting
+pending data constraints.
+
+```c
+// Stop BP first for safe removal
+bp_stop();
+
+// Remove all LTP configuration
+int seats_removed = ltp_remove_all_seats();
+int spans_removed = ltp_remove_all_spans();
+
+// Remove all BP configuration for IPN scheme
+int plans_removed = ipn_remove_all_plans();
+int outducts_removed = bp_remove_all_outducts("ltp");
+int inducts_removed = bp_remove_all_inducts("ltp");
+int endpoints_removed = bp_remove_all_endpoints("ipn");
+
+printf("Removed: %d seats, %d spans, %d plans, %d outducts, %d inducts, %d endpoints\n",
+       seats_removed, spans_removed, plans_removed,
+       outducts_removed, inducts_removed, endpoints_removed);
+
+// Reconfigure and restart
+add_span(1, 100, 100, 1400, 10000, 1, "udplso localhost:1113", 1, 0);
+add_seat("udplsi localhost:1113");
+add_endpoint("ipn:1.1", EnqueueBundle, NULL);
+add_induct("ltp", "1", "ltpcli");
+add_outduct("ltp", "1", "ltpclo", 0);
+add_plan("ipn:1.0", 0);
+add_planduct("ipn:1.0", "ltp", "1");
+
+ltp_start();
+bp_start();
+```
+
+**Important:** For simple shutdown, bulk removal is unnecessary:
+```c
+bp_stop();
+ltp_stop();
+ionTerminate(1);  // Destroys all configuration
+```
+
+Bulk removal is for **selective reconfiguration** while preserving other parts
+of the system, such as switching protocols or updating network topology without
+a full restart.
+
+### 7. Timing and Synchronization
 
 Allow time for daemons to start:
 
@@ -1149,20 +1197,20 @@ bp_start();
 sleep(5);  // Give BP time to start
 ```
 
-### 7. Contact Plan Configuration
+### 8. Contact Plan Configuration
 
 - Set ranges before relying on OWLT calculations
 - Use realistic confidence values (0.0-1.0) for probabilistic contacts
 - Avoid overlapping contacts with different rates to the same destination
 
-### 8. LTP Configuration
+### 9. LTP Configuration
 
 - Set `max_export_sessions` based on expected concurrent outbound traffic
 - Set `max_import_sessions` based on expected concurrent inbound traffic
 - Tune `aggr_size_limit` and `aggr_time_limit` for your latency requirements
 - Use appropriate `max_segment_size` for your network MTU
 
-### 9. Monitoring and Debugging
+### 10. Monitoring and Debugging
 
 Use the list functions for real-time visibility:
 
@@ -1174,7 +1222,7 @@ bp_list_endpoints();
 report_all_state_stats();
 ```
 
-### 10. Production Deployment
+### 11. Production Deployment
 
 ```c
 // Set realistic production/consumption rates
@@ -1286,6 +1334,8 @@ Or during actual crash recovery:
 | `ltp_stop_span()` | Stop span LSO | Yes |
 | `add_seat()` | Add reception seat | Yes |
 | `remove_seat()` | Remove seat | Yes |
+| `ltp_remove_all_spans()` | Remove all spans | Yes (after bp_stop) |
+| `ltp_remove_all_seats()` | Remove all seats | Yes (after bp_stop) |
 
 ### BP Admin API (`bp_admin.h`)
 | Function | Purpose | Runtime Safe |
@@ -1304,9 +1354,13 @@ Or during actual crash recovery:
 | `add_outduct()` | Add output duct | Yes |
 | `add_plan()` | Add egress plan | Yes |
 | `add_planduct()` | Attach outduct to plan | Yes |
+| `bp_remove_all_endpoints()` | Remove all endpoints for scheme | Yes (after bp_stop) |
+| `bp_remove_all_inducts()` | Remove all inducts for protocol | Yes (after bp_stop) |
+| `bp_remove_all_outducts()` | Remove all outducts for protocol | Yes (after bp_stop) |
+| `ipn_remove_all_plans()` | Remove all IPN plans | Yes (after bp_stop) |
 
 ---
 
-**Document Version:** 1.1
-**Last Updated:** 2024-11-17
+**Document Version:** 1.2
+**Last Updated:** 2025-01-16
 **Based on:** ION Public Admin API Test Suite (`ltp_admin_api_test.c`)
