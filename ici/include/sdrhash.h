@@ -34,6 +34,8 @@
 #ifndef SDRHASH_H
 #define SDRHASH_H
 
+#include "sdrxn.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
