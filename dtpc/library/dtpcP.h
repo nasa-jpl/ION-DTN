@@ -221,7 +221,5 @@ extern void		deletePlaceholder(Sdr sdr, Object aduElt);
 extern int		parseInAdus(Sdr sdr);
 extern int		sendAck(BpSAP sap, unsigned int profileID,
 				Scalar seqNum, BpDelivery *dlv);
-extern void		scalarToSdnv(Sdnv *sdnv, Scalar *scalar);
-extern int		sdnvToScalar(Scalar *scalar, unsigned char *sdnvText);
 extern int		compareScalars(Scalar *scalar1, Scalar *scalar2);
 

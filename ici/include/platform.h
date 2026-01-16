@@ -1128,6 +1128,8 @@ extern void			copyScalar(Scalar *to, Scalar *from);
 extern void			addToScalar(Scalar *, Scalar *);
 extern void			subtractFromScalar(Scalar *, Scalar *);
 extern int			scalarIsValid(Scalar *);
+extern void			scalarToSdnv(Sdnv *sdnv, Scalar *scalar);
+extern int			sdnvToScalar(Scalar *scalar, unsigned char *sdnvText);
 
 extern uvast			htonv(uvast hostvast);
 extern uvast			ntohv(uvast netvast);
