@@ -418,28 +418,6 @@ void csi_cipherparms_free(csi_cipherparms_t parms)
 	MRELEASE(parms.aad.contents);
 }
 
-/* 
-*  Sky marks csi_entropy_poll for deprecation as it does not generate 
-*  cryptographically suitable material. 
-*
-*  It is replaced by: ici/crypto/entropy_src.c/poll_entropy_src().*  
-*  Am leaving in place for tracking purposes.
-*/
-
-/* int csi_entropy_poll( void *data,
-                      unsigned char *output, size_t len, size_t *olen )
-{
-	size_t i = 0;
-
-	for(i = 0; i < len; i++)
-	{
-		output[i] = rand();
-	}
-	*olen = len;
-
-	return (0);
-} */
-
 // 2/21
 int csi_init(void)
 {
