@@ -688,9 +688,7 @@ else
 fi
 
 #Determine BP version for exclustion of tests
-BP_VERSION=`bpversion`
-export BP_VERSION
-echo "BP version is $BP_VERSION"
+BP_VERSION="bpv7"
 
 # Parse --stress flag
 STRESS_MODE=""

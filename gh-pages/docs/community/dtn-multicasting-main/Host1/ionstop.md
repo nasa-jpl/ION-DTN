@@ -12,12 +12,6 @@ Note: place this in a file named ionstop.sh
 ION_OPEN_SOURCE=1
 
 echo "IONSTOP will now stop ion and clean up the node for you..."
-bpversion
-if [ $? -eq 6 ]; then
-echo "acsadmin ."
-acsadmin .
-sleep 1
-fi
 echo "bpadmin ."
 bpadmin .
 sleep 1

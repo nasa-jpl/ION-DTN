@@ -157,7 +157,6 @@ KILLPROCESSLIST=(
     udpclo lt-udpclo
     udplsi lt-udplsi
     udplso lt-udplso
-    bpversion lt-bpversion
 )
 
 # From Makefile

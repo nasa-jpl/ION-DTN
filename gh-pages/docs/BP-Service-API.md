@@ -35,13 +35,6 @@ at line 963 of ici/library/ion.c, Can't initialize the SDR system.
 Stopping ionadmin.
 ```
 
-You can also run `bpversion` to determine the version of Bundle Protocol built in the host:
-
-```bash
-$ bpversion
-bpv7
-```
-
 ## Determine BP Service State
 
 Once it is determined that ION has been installed, a user may want to determine whether BP service is running by checking for the presence of various BP daemons and shared memory/semaphores, which are created by ION for interprocess communications among the various the BP service daemons.

@@ -30,15 +30,6 @@ else
     echo "cfdpadmin ."
     cfdpadmin .
     sleep 1
-    bpversion
-    if [ $? -eq 6 ]; then
-        echo "acsadmin ."
-        acsadmin .
-        sleep 1
-        echo "imcadmin ."
-        imcadmin .
-        sleep 1
-    fi
     echo "bpadmin ."
     bpadmin .
     sleep 1

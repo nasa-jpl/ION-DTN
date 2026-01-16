@@ -163,8 +163,7 @@ If the user plans to install multiple versions of ION in different directories, 
         * Verify that the `bping` test at the end passed.
 
 9. **Verify ION installation location**:
-    * Run `which bpversion`; the path shown should be either `/usr/local/bin` or the bin directory under the prefix you specified.
-    * Verify installed Bundle Protocol version by running `bpversion`.
+    * Run `which ionadmin`; the path shown should be either `/usr/local/bin` or the bin directory under the prefix you specified.
     * Verify ION version by running `ionadmin`, then followed by the `v` command at the prompt. Type `q` to quit.
     * Verify ION operation by running the basic `bping` test. You can skip this if you ran `make test` earlier, which would automatically trigger the `bping` test.
 
@@ -262,8 +261,8 @@ There are three main methods to stop ION:
 
 1. **Determine if you know the source directory of the existing installation**:
     * If you know this, `cd` to that directory and proceed to next step.
-    * If you don't know, use `bpversion` and `ionadmin` to get the bundle protocol version and ION release number. This may help you identify the probable ION source on the host. If you can identify the source code directory used to build the existing ION `cd` to that directory.
-      * If you can't find the source code or nothing matches the bundle protocol version and ION release:
+    * If you don't know, use `ionadmin` to get the ION release number. This may help you identify the probable ION source on the host. If you can identify the source code directory used to build the existing ION `cd` to that directory.
+      * If you can't find the source code or nothing matches the ION release:
           * Use `which ionadmin` to determine the installation location.
           * Delete all ION-related daemons (from bin) and libraries (from lib) manually. Remember, other programs and libraries may also be installed under the same prefix. **Be careful.**
           * Execute `sudo ldconfig` to update the shared library cache or update the LD library path. This completes the removal.

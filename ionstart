@@ -70,13 +70,7 @@ function USAGE {
 	echo "              immediately after all non-delayed rc files were executed."
 }
 
-# Check the bundle protocol version
-BP_VERSION=$(bpversion)
-if [[ "${BP_VERSION}" != "bpv6" ]]; then
-	BP_V6_ONLY=true
-else
-	BP_V6_ONLY=false
-fi
+BP_V6_ONLY=false
 
 # Declare an array to hold multiple ionrc files
 declare -a IONRC_FILES=()

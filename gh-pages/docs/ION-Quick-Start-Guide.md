@@ -293,15 +293,9 @@ For ION 4.1.3s, a [Windows 10 prototype](./Windows10-Installation.md) automake b
 
 ## Running ION
 
-### Check Installed BP and ION versions
+### Check Installed ION version
 
-Before running ION, let's confirm which version of Bundle Protocol is installed by running:
-
-`bpversion`
-
-You will see a simple string on the terminal window indicating "bpv7".
-
-Also check the ION version installed by running:
+Check the ION version installed by running:
 
 `ionadmin`
 

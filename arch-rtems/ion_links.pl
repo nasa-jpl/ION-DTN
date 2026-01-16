@@ -149,7 +149,6 @@ bpv7/utils/lgagent.c
 bpv7/utils/bpstats.c
 bpv7/utils/bptrace.c
 bpv7/utils/bpcancel.c
-bpv7/utils/bpversion.c
 bpv7/utils/bplist.c
 bpv7/utils/hmackeys.c
 bpv7/dtn2/dtn2fw.c
