@@ -22,9 +22,9 @@ network as currently configured.
 
 B<Listen-only mode:> When invoked with the B<-listen> flag, B<bptrace> opens
 the specified endpoint and displays bundle status reports as they arrive, without
-sending any trace bundles. This mode is useful for monitoring status reports from
-bundles sent by other applications. The program will continue listening until
-interrupted (Ctrl+C) or until 128 reports have been received. Status reports are
+sending any trace bundles.  This mode is useful for monitoring status reports from
+bundles sent by other applications.  The program will continue listening until
+interrupted (Ctrl+C) or until 128 reports have been received.  Status reports are
 displayed in real-time as they arrive.
 
 I<ttl> indicates the number of seconds the trace bundle may remain in the
@@ -55,10 +55,10 @@ I<flags> must be a sequence of status report flags, separated
 by commas, with no embedded whitespace.  Each status report flag must be one
 of the following: rcv, fwd, dlv, del.
 
-B<-listen> runs bptrace in listen-only mode. In this mode, only I<listenEid> is
-required. B<bptrace> will open the endpoint and display status reports as they
-arrive in real-time, without sending any bundles. The B<-v> flag can be used
-for verbose debug output. The program listens indefinitely until interrupted
+B<-listen> runs bptrace in listen-only mode.  In this mode, only I<listenEid> is
+required.  B<bptrace> will open the endpoint and display status reports as they
+arrive in real-time, without sending any bundles.  The B<-v> flag can be used
+for verbose debug output.  The program listens indefinitely until interrupted
 (Ctrl+C) or until 128 reports have been received.
 
 When I<traceEid> is the same node as I<srcEid> but with a differing, non-zero ID

@@ -58,7 +58,10 @@ All functions in this library require that the application first attach to the B
 
 =head1 NAMING CONVENTION
 
-All public API functions follow snake_case naming (e.g., C<bp_init()>, C<add_scheme()>). This distinguishes them from the private implementation functions which use camelCase (e.g., C<bpInit()>, C<addScheme()>). Applications should only use the public snake_case functions.
+All public API functions follow snake_case naming (e.g., C<bp_init()>,
+C<add_scheme()>).  This distinguishes them from the private implementation
+functions which use camelCase (e.g., C<bpInit()>, C<addScheme()>).  Applications
+should only use the public snake_case functions.
 
 =head1 FUNCTIONS
 
@@ -70,7 +73,9 @@ These functions manage the complete lifecycle of the BP agent and are intended f
 
 =item B<int bp_init(void)>
 
-Initializes the BP database and prepares the node for BP operations. This is one of the first functions that should be called when setting up a node from scratch.
+Initializes the BP database and prepares the node for BP operations.  This is
+one of the first functions that should be called when setting up a node from
+scratch.
 
 Returns 0 on success, -1 on error.
 
@@ -82,11 +87,14 @@ Returns 0 on success, -1 on error.
 
 =item B<void bp_stop(void)>
 
-Stops all running BP agent processes. This function should be called to gracefully shut down the BP service.
+Stops all running BP agent processes.  This function should be called to
+gracefully shut down the BP service.
 
 =item B<int ipn_init(void)>
 
-Initializes the database used for IPN (Interplanetary Networking) routing. This is an optional step required only if you intend to configure and use IPN routing plans.
+Initializes the database used for IPN (Interplanetary Networking) routing.  This
+is an optional step required only if you intend to configure and use IPN routing
+plans.
 
 Returns 0 on success, -1 on error.
 
@@ -116,7 +124,9 @@ Returns 1 on success, 0 if the scheme already exists, -1 on error.
 
 =item B<int remove_scheme(char *I<name>)>
 
-Removes an existing scheme. The scheme must not have any registered endpoints or queued bundles. This function will first stop the scheme's daemons before attempting removal.
+Removes an existing scheme.  The scheme must not have any registered endpoints
+or queued bundles.  This function will first stop the scheme's daemons before
+attempting removal.
 
 Returns 1 on success, 0 if the scheme is not found, -1 on error.
 
@@ -134,9 +144,12 @@ Adds a new endpoint to the BP configuration, registering it under the appropriat
 
 =item I<eid> is the full endpoint ID string (e.g., "ipn:1.2").
 
-=item I<recvRule> specifies the behavior when a bundle arrives for an endpoint that is not currently open. It can be B<EnqueueBundle> (the default) or B<DiscardBundle>.
+=item I<recvRule> specifies the behavior when a bundle arrives for an endpoint
+that is not currently open.  It can be B<EnqueueBundle> (the default) or
+B<DiscardBundle>.
 
-=item I<script> is an optional command to be executed when a bundle arrives for an endpoint that is not open. May be NULL.
+=item I<script> is an optional command to be executed when a bundle arrives for
+an endpoint that is not open.  May be NULL.
 
 =back
 
@@ -144,7 +157,8 @@ Returns 1 on success, 0 if the endpoint already exists, -1 on error.
 
 =item B<int remove_endpoint(char *I<eid>)>
 
-Removes an existing endpoint. The endpoint must not be currently open by any application and must not have any bundles in its delivery queue.
+Removes an existing endpoint.  The endpoint must not be currently open by any
+application and must not have any bundles in its delivery queue.
 
 Returns 1 on success, 0 if the endpoint is not found, -1 on error.
 
@@ -158,13 +172,16 @@ These functions manage the operational state of individual schemes.
 
 =item B<int bp_start_scheme(char *I<name>)>
 
-Starts the forwarder and administrative daemons for a single, already-configured scheme. This is a safe operation to perform while the main BP agent is running.
+Starts the forwarder and administrative daemons for a single, already-configured
+scheme.  This is a safe operation to perform while the main BP agent is running.
 
 Returns 1 on success, 0 if the scheme is not found, -1 on error.
 
 =item B<void bp_stop_scheme(char *I<name>)>
 
-Stops the daemons for a single scheme. Bundles destined for this scheme will accumulate in its forward queue until it is restarted. This is a safe operation to perform while the main BP agent is running.
+Stops the daemons for a single scheme.  Bundles destined for this scheme will
+accumulate in its forward queue until it is restarted.  This is a safe operation
+to perform while the main BP agent is running.
 
 =back
 
@@ -174,19 +191,25 @@ Stops the daemons for a single scheme. Bundles destined for this scheme will acc
 
 =item B<void bp_list_schemes(void)>
 
-Prints a list of all configured schemes and their current status to standard output. Displays scheme names, code numbers, admin endpoints, and process IDs for forwarder and admin daemons.
+Prints a list of all configured schemes and their current status to standard
+output.  Displays scheme names, code numbers, admin endpoints, and process IDs
+for forwarder and admin daemons.
 
 =item B<void bp_list_endpoints(void)>
 
-Prints a list of all registered endpoints and their status to standard output. Shows endpoint IDs, receive rules, application PIDs, and associated scripts.
+Prints a list of all registered endpoints and their status to standard output.
+Shows endpoint IDs, receive rules, application PIDs, and associated scripts.
 
 =item B<void bp_list_protocols(void)>
 
-Prints a list of all configured convergence-layer protocols to standard output. Displays protocol names and their classes (Scheduled, Unscheduled, or OnDemand).
+Prints a list of all configured convergence-layer protocols to standard output.
+Displays protocol names and their classes (Scheduled, Unscheduled, or OnDemand).
 
 =item B<void report_all_state_stats(void)>
 
-Prints a summary of bundle processing statistics to standard output. Includes counts for sourced, received, forwarded, delivered, expired, and other bundle state transitions.
+Prints a summary of bundle processing statistics to standard output.  Includes
+counts for sourced, received, forwarded, delivered, expired, and other bundle
+state transitions.
 
 =back
 
@@ -196,17 +219,29 @@ When managing BP schemes, it is critical to distinguish between operations that 
 
 =head2 Configuration Changes (add/remove)
 
-Functions like B<add_scheme()> and B<remove_scheme()> perform structural configuration changes. They create or permanently destroy a scheme's underlying data structures, such as its forward queue.
+Functions like B<add_scheme()> and B<remove_scheme()> perform structural
+configuration changes.  They create or permanently destroy a scheme's underlying
+data structures, such as its forward queue.
 
-B<WARNING:> These operations are B<not safe> to perform while the main BP agent (e.g., bptransit) is running. Doing so can create a race condition where the agent might try to access a data structure that is being deleted, leading to a crash or memory corruption. Scheme configuration changes should ONLY be made when the main BP agent is stopped (i.e., between a call to B<bp_stop()> and B<bp_start()>).
+B<WARNING:> These operations are B<not safe> to perform while the main BP agent
+(e.g., bptransit) is running.  Doing so can create a race condition where the
+agent might try to access a data structure that is being deleted, leading to a
+crash or memory corruption.  Scheme configuration changes should ONLY be made
+when the main BP agent is stopped (i.e., between a call to B<bp_stop()> and
+B<bp_start()>).
 
 =head2 State Changes (start/stop)
 
 Functions like B<bp_start_scheme()> and B<bp_stop_scheme()> are operational state changes designed to be used while the BP agent is running.
 
-B<bp_stop_scheme()> safely terminates a scheme's forwarder process but leaves its data structures intact. The main I<bptransit> daemon can still route bundles to the scheme's forward queue, where they will wait until the scheme is restarted.
+B<bp_stop_scheme()> safely terminates a scheme's forwarder process but leaves
+its data structures intact.  The main I<bptransit> daemon can still route
+bundles to the scheme's forward queue, where they will wait until the scheme is
+restarted.
 
-B<bp_start_scheme()> starts a scheme's forwarder, allowing it to begin processing its queue. It is the intended method for dynamically activating a scheme without stopping the entire BP node.
+B<bp_start_scheme()> starts a scheme's forwarder, allowing it to begin
+processing its queue.  It is the intended method for dynamically activating a
+scheme without stopping the entire BP node.
 
 =head1 RETURN VALUES
 

@@ -15,7 +15,7 @@ specified, port number defaults to 4556.
 
 Each "span" of BSSP data interchange between the local BSSP engine and a
 neighboring BSSP engine requires its own best-effort and reliable link service
-output tasks. All link service output tasks are spawned automatically by
+output tasks.  All link service output tasks are spawned automatically by
 B<bsspadmin> in response to the 's' command that starts operation of the
 BSSP protocol, and they are all terminated by B<bsspadmin> in response to an
 'x' (STOP) command.

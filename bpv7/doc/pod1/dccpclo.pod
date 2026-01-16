@@ -9,14 +9,14 @@ B<dccpclo> I<remote_hostname>[:I<remote_port_nbr>]
 =head1 DESCRIPTION
 
 B<dccpclo> is a background "daemon" task that connects to a remote node's
-DCCP socket at I<remote_hostname> and I<remote_port_nbr>. It then begins
+DCCP socket at I<remote_hostname> and I<remote_port_nbr>.  It then begins
 extracting bundles from the queues of bundles ready for transmission via
 DCCP to this remote bundle protocol agent and transmitting those bundles
 as DCCP datagrams to the remote host.
 
 If not specified, I<remote_port_nbr> defaults to 4556.
 
-Note that B<dccpclo> has no fragmentation support at all. Therefore, the
+Note that B<dccpclo> has no fragmentation support at all.  Therefore, the
 largest bundle that can be sent via this convergence layer is limited to
 just under the link's MTU (typically 1500 bytes).
 
@@ -86,9 +86,9 @@ Operating system error.  Check errtext, correct problem, and restart B<dccpclo>.
 
 =item CLO can't open DCCP socket. This probably means DCCP is not supported on your system.
 
-Operating system error. This probably means that you are not using an
-operating system that supports DCCP. Make sure that you are using a current
-Linux kernel and that the DCCP modules are being compiled. Check errtext, 
+Operating system error.  This probably means that you are not using an
+operating system that supports DCCP.  Make sure that you are using a current
+Linux kernel and that the DCCP modules are being compiled.  Check errtext,
 correct problem, and restart B<dccpclo>.
 
 =item CLO can't initialize socket.

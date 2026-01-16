@@ -9,7 +9,7 @@ B<ltpcancel> I<segment_type> I<dest_host> I<dest_port> I<source_engine_id> I<ses
 =head1 DESCRIPTION
 
 B<ltpcancel> is a testing utility that crafts and sends artificial LTP
-Cancel Segments to a specified destination. It is primarily used for
+Cancel Segments to a specified destination.  It is primarily used for
 testing and debugging LTP cancel segment handling, particularly the
 acknowledgment behavior for cancel segments.
 
@@ -19,7 +19,7 @@ This allows testing of cancel segment processing without requiring
 an actual LTP session to be in progress.
 
 B<Note:> This is a testing/debugging tool and should not be used in
-production environments. Injecting cancel segments for non-existent
+production environments.  Injecting cancel segments for non-existent
 or arbitrary sessions may cause unexpected behavior in the receiving
 LTP engine.
 
@@ -35,19 +35,19 @@ The type of cancel segment to send:
 
 =item B<CS>
 
-Cancel Segment from sender (segment type code 12). This indicates
+Cancel Segment from sender (segment type code 12).  This indicates
 the sending engine is canceling the session.
 
 =item B<CR>
 
-Cancel Segment from receiver (segment type code 14). This indicates
+Cancel Segment from receiver (segment type code 14).  This indicates
 the receiving engine is canceling the session.
 
 =back
 
 =item I<dest_host>
 
-The hostname or IP address of the target LTP engine. Can be a DNS name
+The hostname or IP address of the target LTP engine.  Can be a DNS name
 (e.g., "localhost", "node2.example.com") or an IP address
 (e.g., "127.0.0.1", "192.168.1.100").
 
@@ -66,7 +66,7 @@ to a configured span on the target).
 
 =item I<session_number>
 
-The session number to include in the cancel segment. For testing
+The session number to include in the cancel segment.  For testing
 cancel acknowledgment behavior, this can be any session number,
 including sessions that don't exist on the target.
 
@@ -82,7 +82,7 @@ The cancel segment was successfully sent.
 
 =item "1"
 
-An error occurred. Possible causes include:
+An error occurred.  Possible causes include:
 
 =over 4
 
@@ -193,12 +193,12 @@ Check the hostname spelling or use an IP address instead.
 
 =item socket: I<error message>
 
-Failed to create a UDP socket. Check system resources and
+Failed to create a UDP socket.  Check system resources and
 network configuration.
 
 =item sendto: I<error message>
 
-Failed to send the UDP packet. This may indicate network
+Failed to send the UDP packet.  This may indicate network
 connectivity issues or firewall restrictions.
 
 =back
@@ -210,7 +210,7 @@ connectivity issues or firewall restrictions.
 =item *
 
 This utility does not require ION or LTP to be running on the
-local machine. It operates independently by directly constructing
+local machine.  It operates independently by directly constructing
 and sending UDP packets.
 
 =item *
@@ -220,7 +220,7 @@ Other reason codes are not currently supported.
 
 =item *
 
-No response is expected or waited for. To verify that the target
+No response is expected or waited for.  To verify that the target
 processed the cancel segment, check the target's LTP logs or use
 B<ltpwatch> to observe session state changes.
 

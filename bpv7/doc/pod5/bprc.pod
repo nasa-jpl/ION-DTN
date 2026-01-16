@@ -65,19 +65,19 @@ event that all acquisition is into a file.
 =item B<m primarycrc> I<CRC type for primary block>
 
 The B<manage primary CRC type for source bundle> command.  This command sets
-the CRC type for the primary block in every locally sourced bundle. CRC types
-are indicated by '0' for no CRC applied, '1' for CRC16, and '2' for CRC32. See
-the Bundle Protocol specficiation for detailed definition of the CRC types. The 
-default value is 1 (CRC16). Primary CRC types for bundles being relayed will 
+the CRC type for the primary block in every locally sourced bundle.  CRC types
+are indicated by '0' for no CRC applied, '1' for CRC16, and '2' for CRC32.  See
+the Bundle Protocol specficiation for detailed definition of the CRC types.  The
+default value is 1 (CRC16).  Primary CRC types for bundles being relayed will
 preserve the original setting at the source node, not impacted by these settings.
 
 =item B<m payloadcrc> I<CRC type for payload block>
 
 The B<manage payload CRC type for source bundle> command.  This command sets
-the CRC type for the payload block in every locally sourced bundle. CRC types
-are indicated by '0' for no CRC applied, '1' for CRC16, and '2' for CRC32. See
-the Bundle Protocol specficiation for detailed definition of the CRC types. The 
-default value is 1 (CRC16). Payload CRC types for bundles being relayed will 
+the CRC type for the payload block in every locally sourced bundle.  CRC types
+are indicated by '0' for no CRC applied, '1' for CRC16, and '2' for CRC32.  See
+the Bundle Protocol specficiation for detailed definition of the CRC types.  The
+default value is 1 (CRC16).  Payload CRC types for bundles being relayed will
 preserve the original setting at the source node, not impacted by these settings.
 
 =item B<m maxcount> I<max_value_of_bundle_ID_sequence_nbr>

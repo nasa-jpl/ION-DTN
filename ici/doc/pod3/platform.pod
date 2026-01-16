@@ -164,7 +164,7 @@ the buffer).
 istrcat() is a safe implementation of strcat(); see the strcat(3) man
 page for details.  istrcat() differs from strcat() in that it takes a
 third argument, the total size of the buffer for the string that is being
-aggregated. istrcat() always NULL-terminates the string in I<buffer>, even
+aggregated.  istrcat() always NULL-terminates the string in I<buffer>, even
 if the length of I<sourceString> string would equal or exceed the sum of
 I<bufSize> and the length of the string currently occupying the buffer
 (in which case I<sourceString> is truncated to fit within the buffer).

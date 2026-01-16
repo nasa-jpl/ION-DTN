@@ -9,23 +9,23 @@ B<hmackeys> [ I<key_length_in_bytes> ] [ I<key_names_file> ]
 =head1 DESCRIPTION
 
 B<hmackeys> is a convenience utility that writes files containing
-cryptographically secure random key values. These keys are suitable for
+cryptographically secure random key values.  These keys are suitable for
 use in support of BPv7 Bundle Protocol Security (BPSec), Bundle Relay
 Service (BRS), or any other function that requires symmetric keyed-hash
 authentication.
 
 The key length is configurable via a command-line argument, specified in
-bytes. If no length is provided, it defaults to 32 bytes (256 bits),
-which is appropriate for HMAC-SHA-256. The key material is sourced from
+bytes.  If no length is provided, it defaults to 32 bytes (256 bits),
+which is appropriate for HMAC-SHA-256.  The key material is sourced from
 the best available platform-native entropy source (e.g., C<getrandom()>,
 C<BCryptGenRandom>, C</dev/urandom>) for maximum security and portability.
 
-One key file is written for each key name provided to B<hmackeys>. The
+One key file is written for each key name provided to B<hmackeys>.  The
 content of each file is the raw binary key data, and the name given to
 each file is "I<keyname>.hmk".
 
 B<hmackeys> operates in response to the key names found in the file
-I<keynames_filename>, one name per line, if provided. If no file is given,
+I<keynames_filename>, one name per line, if provided.  If no file is given,
 B<hmackeys> prints a simple prompt (C<:>) so that you can type key names
 directly into standard input.
 
@@ -93,7 +93,7 @@ key length.
 
 =item C<Could not generate key material: [reason]>
 
-The underlying entropy source failed. The reason will indicate the
+The underlying entropy source failed.  The reason will indicate the
 specific system error.
 
 =item C<Can't write key to [file]: [reason]>

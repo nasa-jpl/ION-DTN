@@ -15,7 +15,7 @@ retransmission parameters, even if no B<manage> commands have been issued.
 The default values are: maxRetries=5 and maxSegmentLossRate=0.01 (1% packet
 loss rate) in unified mode, or the corresponding split-mode defaults
 (maxRetriesXmit=5, maxRetriesRecv=5, maxSegLossRateXmit=0.01,
-maxSegLossRateRecv=0.01) if split mode is enabled globally. An informational
+maxSegLossRateRecv=0.01) if split mode is enabled globally.  An informational
 message is logged showing the applied defaults, for example:
 
     [i] Span 2 initialized with global unified mode defaults:
@@ -126,7 +126,7 @@ transmitted.
 
 The B<add seat> command.  This command declares that the local LTP engine
 can receive LTP segments via the link service input daemon that begins
-running when I<'LSI_command'> is executed. When there are multiple incoming
+running when I<'LSI_command'> is executed.  When there are multiple incoming
 LTP data streams (serviced by link service daemon such as udplsi), each
 stream can be added as separate B<seat>. 
 
@@ -187,10 +187,10 @@ limit will be written to a temporary file pending extraction and dispatching
 of the acquired block.  Default is the minimum allowed value (560 bytes),
 which is the approximate size of a ZCO file reference object; this is the
 minimum SDR heap space occupancy in the event that all acquisition is into
-a file. It is recommended that users properly configure this value - if not
+a file.  It is recommended that users properly configure this value - if not
 using the default - and keep it constant for the duration of ION operation.
 Although it can be enlarged during run-time, it is not recommended because it
-will use more working memory. If heapmax is increased from initial value 
+will use more working memory.  If heapmax is increased from initial value
 during run-time, reducing it later will not reduce the working memory.  
 
 =item B<m screening> { y | n }
@@ -239,11 +239,11 @@ B<m maxseglossrate> instead for explicit configuration of retransmission
 parameters.
 
 B<CRITICAL ORDERING REQUIREMENT:> The B<m maxber> command applies only to
-spans that already exist when the command is executed. It does NOT affect
-spans created afterward. For correct operation, all B<a span> commands MUST
+spans that already exist when the command is executed.  It does NOT affect
+spans created afterward.  For correct operation, all B<a span> commands MUST
 be issued BEFORE B<m maxber>, or those spans will use default values instead.
 
-This ordering restriction is one reason why this command is deprecated. The
+This ordering restriction is one reason why this command is deprecated.  The
 modern B<m maxretries> and B<m maxseglossrate> commands can be issued in any
 order and will correctly apply to all existing spans without per-span overrides.
 
@@ -258,7 +258,7 @@ This command applies globally to all spans that have not been configured with
 per-span overrides.  It switches spans to explicit unified configuration mode.
 
 B<NOTE:> Even if this command is never issued, spans will automatically be
-initialized with the default value of 5 retries upon creation. This command
+initialized with the default value of 5 retries upon creation.  This command
 is only needed if you wish to change the global default to a different value.
 
 B<IMPORTANT:> For proper explicit configuration, both B<m maxretries> and
@@ -296,7 +296,7 @@ for asymmetric links.
 
 B<NOTE:> Even if split mode commands are never issued, spans will automatically
 be initialized with default values (5 retries, 0.01 loss rate in both directions)
-upon creation. These commands are only needed if you wish to use split mode
+upon creation.  These commands are only needed if you wish to use split mode
 (asymmetric configuration) or change the defaults.
 
 B<IMPORTANT:> For proper split mode configuration, all four parameters

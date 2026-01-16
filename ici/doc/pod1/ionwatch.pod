@@ -13,7 +13,7 @@ by reading their process IDs (PIDs) from the volatile database and checking
 whether those processes are actually running.
 
 For each daemon, B<ionwatch> displays the protocol name, daemon name, PID,
-current status, and a brief description. The status can be one of:
+current status, and a brief description.  The status can be one of:
 
 =over 4
 
@@ -27,7 +27,7 @@ The daemon has not been started (PID is -1 or unset).
 
 =item B<STALE>
 
-The daemon's PID is registered but the process no longer exists. This indicates
+The daemon's PID is registered but the process no longer exists.  This indicates
 the daemon terminated without properly clearing its PID from the volatile database,
 which should not occur in ION 4.1.5 and later with daemon self-cleanup.
 
@@ -70,33 +70,33 @@ Bundle Streaming Service Protocol (bsspclock)
 =item B<-w>, B<--watch> I<interval>
 
 Watch mode: continuously refresh the daemon status display every I<interval>
-seconds. Press Ctrl-C to exit. Without this option, B<ionwatch> displays
+seconds.  Press Ctrl-C to exit.  Without this option, B<ionwatch> displays
 the status once and exits.
 
 =item B<-c>, B<--count> I<count>
 
-Number of refresh cycles to perform in watch mode. After I<count> updates,
-B<ionwatch> will exit. Default is 1 (single display). Only meaningful
+Number of refresh cycles to perform in watch mode.  After I<count> updates,
+B<ionwatch> will exit.  Default is 1 (single display).  Only meaningful
 when used with B<-w>.
 
 =item B<-r>, B<--running-only>
 
-Show only daemons that are currently running. Daemons with "Not Started"
+Show only daemons that are currently running.  Daemons with "Not Started"
 or "STALE" status will be hidden.
 
 =item B<-l>, B<--log>
 
-Log mode: output to F<ion.log> instead of stdout. All daemon status information
+Log mode: output to F<ion.log> instead of stdout.  All daemon status information
 is written to the ION log file with the C<[i]> informational prefix, following
-ION logging conventions. This is useful for automated monitoring and creating
+ION logging conventions.  This is useful for automated monitoring and creating
 audit trails of daemon status.
 
 =item B<-q>, B<--quiet>, B<--changes-only>
 
 Quiet mode: show full daemon status on the first iteration to establish a
-baseline, then remain silent unless daemon status changes are detected. On
+baseline, then remain silent unless daemon status changes are detected.  On
 subsequent iterations, only output is produced when a daemon starts, stops,
-or changes state. When combined with B<-l>, provides minimal-logging watchdog
+or changes state.  When combined with B<-l>, provides minimal-logging watchdog
 functionality ideal for long-running monitoring.
 
 =item B<-h>, B<--help>
@@ -136,20 +136,20 @@ Display daemon status once, logging output to F<ion.log> instead of stdout.
 =item B<ionwatch -w 10 -q -l>
 
 Recommended watchdog mode: monitor daemons every 10 seconds, logging only status
-changes to F<ion.log>. On the first iteration, logs the complete daemon inventory.
+changes to F<ion.log>.  On the first iteration, logs the complete daemon inventory.
 Subsequent iterations are silent unless a daemon starts, stops, or changes state.
 This provides an audit trail of daemon lifecycle events without flooding the log.
 
 =item B<ionwatch -w 5 -q>
 
 Watch mode with change detection: display full daemon status initially, then
-only show output when daemon states change. Useful for interactive monitoring
+only show output when daemon states change.  Useful for interactive monitoring
 where you only care about events, not stable states.
 
 =item B<ionwatch -q -c 5>
 
 Run 5 status checks: show full status on first check, then only display when
-changes occur. Useful for periodic automated checks.
+changes occur.  Useful for periodic automated checks.
 
 =back
 
@@ -183,33 +183,33 @@ The following diagnostics may be issued to the B<ion.log> log file:
 
 =item Can't attach to ION.
 
-ION system error. One possible cause is that ION has not yet been
+ION system error.  One possible cause is that ION has not yet been
 initialized on the local computer; run ionadmin(1) to correct this.
 
 =item Can't display daemon status.
 
-ION system error. The volatile database may be corrupted or inaccessible.
+ION system error.  The volatile database may be corrupted or inaccessible.
 
 =back
 
 =head1 NOTES
 
-B<ionwatch> requires ION to be running and properly initialized. It attaches
+B<ionwatch> requires ION to be running and properly initialized.  It attaches
 to the ION volatile database to read daemon PIDs and uses the platform abstraction
 layer (B<sm_TaskExists>) to verify process existence.
 
 B<ionwatch> uses a simplified, low-overhead approach that relies solely on ION's
-platform abstraction layer. It does not access OS-specific features like the
+platform abstraction layer.  It does not access OS-specific features like the
 F</proc> filesystem or execute B<ps> commands, making it suitable for all
 platforms including embedded RTOS environments.
 
 Starting with ION 4.1.5, all daemons implement self-cleanup, automatically clearing
-their PIDs from the volatile database upon termination. This ensures B<ionwatch>
-displays accurate status information. If STALE entries appear, it indicates a daemon
+their PIDs from the volatile database upon termination.  This ensures B<ionwatch>
+displays accurate status information.  If STALE entries appear, it indicates a daemon
 crashed or was forcibly killed (kill -9) before it could clean up.
 
 B<ionwatch> only displays daemons for protocols that were compiled into the
-ION build. Optional protocols (CFDP, DTPC, BSSP) will only appear if they were
+ION build.  Optional protocols (CFDP, DTPC, BSSP) will only appear if they were
 enabled during compilation.
 
 =head1 BUGS

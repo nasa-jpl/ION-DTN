@@ -11,7 +11,7 @@ B<ionunlock> [I<sdr_name>]
 The B<ionunlock> program is designed to be run when some ION thread has
 terminated while it is the owner of the node's system mutex, i.e., while
 in the midst of an SDR transaction.  IT MUST NEVER BE RUN AT ANY OTHER TIME
-as it will totally corrupt a node that is not locked up. The program simply
+as it will totally corrupt a node that is not locked up.  The program simply
 declares itself to be the owner of the incomplete transaction and cancels it,
 enabling the rest of the system to resume operations.
 

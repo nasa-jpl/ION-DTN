@@ -330,7 +330,7 @@ If you're done with the partition forever, call psm_erase().
 =head1 DETAILED DESCRIPTION
 
 PSM supports user management of an application-configured memory
-partition. The partition is functionally divided into two pools
+partition.  The partition is functionally divided into two pools
 of variable size: a "small pool" of low-overhead blocks aligned
 on 4-byte boundaries that can each contain up to 256 bytes of
 user data, and a "large pool" of high-overhead blocks aligned on

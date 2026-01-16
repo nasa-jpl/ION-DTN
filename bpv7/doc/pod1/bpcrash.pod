@@ -14,7 +14,7 @@ B<bpcrash> issues a SDR transaction cancellation which will cause a restart of I
 This behavior prior to ION 4.1.3.
 
 For ION 4.1.3 or later, due to changes in the transaction termination process, bpcrash
-will no longer be able to trigger a restart of ION. A future upgrade is planned to 
+will no longer be able to trigger a restart of ION.  A future upgrade is planned to
 make sure that it can accurately emulate an ION crash condition.
 
 =head1 EXIT STATUS

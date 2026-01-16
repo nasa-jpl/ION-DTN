@@ -19,7 +19,7 @@ message space, which maps the continuum to a specific network gateway address
 (e.g., a Bundle Protocol endpoint).
 
 AMS entities automatically load their MIBs from initialization files at
-startup. When AMS is built with the -DNOEXPAT compiler option set, the
+startup.  When AMS is built with the -DNOEXPAT compiler option set, the
 MIB initialization file must conform to the I<amsrc> syntax described
 below; otherwise the I<expat> XML parsing library must be linked into
 the AMS executable and the MIB initialization file must conform to the

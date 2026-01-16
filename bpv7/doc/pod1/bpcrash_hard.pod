@@ -9,7 +9,7 @@ B<bpcrash_hard>
 =head1 DESCRIPTION
 
 B<bpcrash_hard> is an enhanced test utility that forces a Bundle Protocol
-transaction to be cancelled after the SDR has been modified. This ensures
+transaction to be cancelled after the SDR has been modified.  This ensures
 that transaction reversal logic is properly exercised in ION 4.1.3 and later
 versions.
 
@@ -87,7 +87,7 @@ B<bpcrash_hard> was unable to attach to Bundle Protocol or allocate SDR space.
 =head1 USAGE
 
 B<bpcrash_hard> is typically used in automated tests of ION's transaction
-reversibility mechanisms. It is run while ION is operational to simulate
+reversibility mechanisms.  It is run while ION is operational to simulate
 a crash condition that requires transaction reversal.
 
 Example test sequence:

@@ -49,11 +49,11 @@ ltp_admin - LTP Administration API
 The ltp_admin library provides programmatic access to LTP (Licklider
 Transmission Protocol) configuration and management functions that are
 traditionally accessible only through the B<ltpadmin>(1) command-line
-interface. This enables applications to dynamically configure and manage
+interface.  This enables applications to dynamically configure and manage
 LTP operations at runtime.
 
 LTP manages communication with remote LTP engines through "spans" (for
-transmission) and "seats" (for reception). Unlike BP scheme operations,
+transmission) and "seats" (for reception).  Unlike BP scheme operations,
 LTP span and seat operations are SAFE to perform while LTP is running,
 as they use SDR transactions for synchronization and automatically manage
 LSO/LSI process lifecycles.
@@ -64,12 +64,12 @@ LSO/LSI process lifecycles.
 
 =item B<Span>
 
-Configuration for transmitting data to a remote LTP engine. Each span
+Configuration for transmitting data to a remote LTP engine.  Each span
 manages sessions, segmentation, and retransmission for outbound traffic.
 
 =item B<Seat>
 
-Configuration for receiving data from remote LTP engines. Defines the
+Configuration for receiving data from remote LTP engines.  Defines the
 Link Service Input (LSI) endpoint.
 
 =item B<LSO>
@@ -94,7 +94,7 @@ Identifier for an LTP engine, typically corresponding to an IPN node number.
 
 =item int ltp_init(unsigned int est_max_sessions)
 
-Initialize the LTP engine. Creates or recovers the LTP database in SDR.
+Initialize the LTP engine.  Creates or recovers the LTP database in SDR.
 Must be called after ionAttach().
 
 I<est_max_sessions> - Estimated maximum number of concurrent sessions.
@@ -103,14 +103,14 @@ Returns 0 on success, -1 on error.
 
 =item int ltp_start(void)
 
-Start the LTP engine and all its daemons. Launches ltpclock, ltpdeliv,
+Start the LTP engine and all its daemons.  Launches ltpclock, ltpdeliv,
 and all configured LSO/LSI processes.
 
 Returns 0 on success, -1 on error.
 
 =item void ltp_stop(void)
 
-Stop the LTP engine and all its daemons. Terminates ltpclock, ltpdeliv,
+Stop the LTP engine and all its daemons.  Terminates ltpclock, ltpdeliv,
 and all LSO/LSI processes.
 
 =back
@@ -121,7 +121,7 @@ and all LSO/LSI processes.
 
 =item int add_span(uvast engine_id, ...)
 
-Add a span to a remote LTP engine. A span defines how to transmit data
+Add a span to a remote LTP engine.  A span defines how to transmit data
 to a specific remote LTP engine.
 
 Parameters:
@@ -174,26 +174,26 @@ Example:
 
 =item int update_span(uvast engine_id, ...)
 
-Update an existing span's parameters. Parameters are the same as add_span().
+Update an existing span's parameters.  Parameters are the same as add_span().
 
 Returns 1 on success, 0 if span not found, -1 on error.
 
 =item int remove_span(uvast engine_id)
 
-Remove a span to a remote LTP engine. Automatically stops the LSO process
-before removal. The span must have no pending segments or open sessions.
+Remove a span to a remote LTP engine.  Automatically stops the LSO process
+before removal.  The span must have no pending segments or open sessions.
 
 Returns 1 on success, 0 if span not found or has pending data, -1 on error.
 
 =item int ltp_start_span(uvast engine_id)
 
-Start transmission on a span. Starts the LSO process for the specified span.
+Start transmission on a span.  Starts the LSO process for the specified span.
 
 Returns 1 on success, 0 if span not found, -1 on error.
 
 =item void ltp_stop_span(uvast engine_id)
 
-Stop transmission on a span. Stops the LSO process for the specified span.
+Stop transmission on a span.  Stops the LSO process for the specified span.
 
 =back
 
@@ -203,7 +203,7 @@ Stop transmission on a span. Stops the LSO process for the specified span.
 
 =item int add_seat(char *lsi_command)
 
-Add a seat (link service input). A seat defines how to receive data from
+Add a seat (link service input).  A seat defines how to receive data from
 remote LTP engines.
 
 I<lsi_command> - Link Service Input command (e.g., "udplsi localhost:1113").
@@ -216,7 +216,7 @@ Example:
 
 =item int remove_seat(char *lsi_command)
 
-Remove a seat (link service input). Automatically stops the LSI process
+Remove a seat (link service input).  Automatically stops the LSI process
 before removal.
 
 Returns 1 on success, 0 if seat not found, -1 on error.
@@ -229,14 +229,14 @@ Returns 1 on success, 0 if seat not found, -1 on error.
 
 =item void ltp_list_spans(void)
 
-List all configured spans. Displays span engine IDs, session limits,
+List all configured spans.  Displays span engine IDs, session limits,
 segment sizes, aggregation parameters, LSO commands, and process IDs.
 
 Output is written to stdout.
 
 =item void ltp_list_seats(void)
 
-List all configured seats. Displays LSI commands and process IDs.
+List all configured seats.  Displays LSI commands and process IDs.
 
 Output is written to stdout.
 

@@ -153,7 +153,7 @@ local node.
 =item B<a exit> I<first_node_identifier> I<last_node_identifier> I<gateway_node_ID>
 
 The B<add exit> command.  This command establishes an "exit" for static 
-default routing as described above. The gateway node ID is a BP endpoint
+default routing as described above.  The gateway node ID is a BP endpoint
 ID; for the ipn scheme, this would simply be any ipn-scheme endpoint ID
 with service number equal to zero.
 

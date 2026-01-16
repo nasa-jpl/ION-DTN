@@ -42,7 +42,7 @@ in operation on the local ION node and most I<cfdpadmin> commands will fail.
 The B<add entity> command.  This command will add a new remote CFDP entity to
 the CFDP management information base.  Valid UT protocol names are bp and
 tcp.  Endpoint name is EID for bp, socket spec (I<IP address>:I<port number>)
-for tcp.  RTT is round-trip time, used to set acknowledgement timers. incstype
+for tcp.  RTT is round-trip time, used to set acknowledgement timers.  incstype
 is the type of checksum to use when validating data received from this entity;
 valid values are 0 (modular checksum), 2 (CRC32C), and 15 (the null checksum).
 outcstype is the type of checksum to use when computing the checksum for
@@ -72,7 +72,7 @@ protocol, endpoint, RTT, and checksum types.
 
 =item B<s> 'I<UTA command>'
 
-The B<start> command. Starts the CFDP UT adapter task and the 
+The B<start> command.  Starts the CFDP UT adapter task and the
 CFDP clock task for the local CFDP entity.
 
 The I<UTA command> can be:
@@ -143,22 +143,22 @@ function.  The default value is 65000.
 
 =item B<m inactivity> I<inactivity_period>
 
-The B<manage inactivity period> command. This command establishes the number
+The B<manage inactivity period> command.  This command establishes the number
 of seconds that a CFDP file transfer is allowed to go idle before being
-canceled for inactivity. The default is one day.
+canceled for inactivity.  The default is one day.
 
 =item B<m throttle> I<bits_per_second>
 
-The B<manage throttle> command. This command establishes the maximum transmit
-rate for CFDP PDUs in bits per second. The throttle enforces a constant
+The B<manage throttle> command.  This command establishes the maximum transmit
+rate for CFDP PDUs in bits per second.  The throttle enforces a constant
 transmission rate by introducing a delay between consecutive PDU transmissions.
 The delay for each PDU is calculated as:
 
     delay = (PDU_size_in_bits / max_rate_in_bps) seconds
 
-A value of 0 disables throttling (unlimited rate). The default value is 0.
+A value of 0 disables throttling (unlimited rate).  The default value is 0.
 
-Note: Changes take effect immediately if the UT layer (bputa) is running. The
+Note: Changes take effect immediately if the UT layer (bputa) is running.  The
 setting is also persisted to the CFDP database for future restarts.
 
 Examples:
@@ -215,7 +215,7 @@ Initiates attachment of CRCs to all subsequently issued CFDP PDUs.
 =head1 NOTE
 
 As of ION 4.1.3s, all CFDP parameter are loaded only once per start of
-UT Layer. Changes made to CFDP configuration via subsequent cfdpadmin
+UT Layer.  Changes made to CFDP configuration via subsequent cfdpadmin
 command will be stored in SDR but not loaded into running instance.
 
 To reload CFDP configuration, one needs to stop UT Layer and restart.

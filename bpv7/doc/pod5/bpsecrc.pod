@@ -8,7 +8,7 @@ BP security policy management commands are passed to B<bpsecadmin> either
 in a file of text lines or interactively at B<bpsecadmin>'s command prompt
 (:).  Commands are interpreted line-by line, with exactly one command per
 line.  JSON commands may span multiple lines when provided as part of a config
-file. The formats and effects of the BP security policy management commands 
+file.  The formats and effects of the BP security policy management commands
 are described below.
 
 A parameter identifed as an I<eid_expr> is an "endpoint ID expression."  For
@@ -52,20 +52,20 @@ combine with B<e 1> command to log the version number at startup.
 
 =item B<a> { B<event_set> : { B<name> : event set name, B<desc> : (opt) description } }
 
-The B<add event_set> command. This command will add a named security operation
+The B<add event_set> command.  This command will add a named security operation
 event set to the local security policy database.
 
 =item B<i> { B<event_set> : { B<name> : event set name } }
 
 The B<info event_set> command for event sets displays the information the system
-maintains for a named event set. The security operation events and configured, 
+maintains for a named event set.  The security operation events and configured,
 optional processing actions associated with that event set are shown.
 
 =item B<d> { B<event_set> : { B<name> : event set name } }
 
 The B<delete event_set> command deletes a named event set from the system. 
 A named event set cannot be deleted if it is referenced by a security policy 
-rule. All security policy rules associated with the named event set must be deleted 
+rule.  All security policy rules associated with the named event set must be deleted
 before the event set itself may be deleted.
 
 =item B<l> {B<event_set>}
@@ -80,7 +80,7 @@ system.
                     {B<id>: processing action, (opt.) action parm key, (opt.) parm value} ] } }
 
 The B<add event> command adds security operation event and associated optional 
-processing action(s) to an event set. Multiple processing actions can be specified 
+processing action(s) to an event set.  Multiple processing actions can be specified
 for a single security operation event.
 
 =item B<d> { B<event> : { 
@@ -88,7 +88,7 @@ for a single security operation event.
 	B<event_id> : security operation event ID } }
 
 The B<delete event> command is used to delete optional processing actions from a
-named event set. This command currently deletes B<all> of the optional processing
+named event set.  This command currently deletes B<all> of the optional processing
 actions associated with the security operation event provided.
 
 =item B<a> { B<policyrule> : {
@@ -114,7 +114,7 @@ actions associated with the security operation event provided.
 	
 The B<add policyrule> command adds a policy rule to the system, describing a 
 required security operation and the security policy role of the BPA applying 
-the policy statement. The above command adds a policy rule referencing a 
+the policy statement.  The above command adds a policy rule referencing a
 named event set to the system.
 	
 =item B<d> { B<policyrule> : { B<rule_id> : Security policy rule ID } }

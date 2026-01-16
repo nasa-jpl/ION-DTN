@@ -28,7 +28,7 @@ partition was initially managed; if they don't match, B<psmwatch> immediately
 terminates.
 
 If I<interval> is zero, B<psmwatch> merely prints a current usage summary
-for the indicated shared-memory partition and terminates. If negative, B<psmwatch>
+for the indicated shared-memory partition and terminates.  If negative, B<psmwatch>
 will repeat with intervals of -I<interval> seconds until interrupted but
 will disable any memory tracing.
 

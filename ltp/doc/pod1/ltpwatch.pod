@@ -9,12 +9,12 @@ B<ltpwatch> [B<-t> I<type>] [B<-s> I<session>] [B<-e> I<engineId>] [I<interval> 
 =head1 DESCRIPTION
 
 B<ltpwatch> displays the current status of LTP sessions for all configured
-spans (or a specific span if filtered). It shows both active sessions and
+spans (or a specific span if filtered).  It shows both active sessions and
 recently completed sessions that are still in the "dead" lists awaiting
 cleanup.
 
 For each session, B<ltpwatch> displays the session number, current status,
-client service ID, data lengths, and retransmission count. Sessions are
+client service ID, data lengths, and retransmission count.  Sessions are
 organized by span and separated into export (outbound) and import (inbound)
 categories.
 
@@ -45,14 +45,14 @@ If not specified, both export and import sessions are displayed.
 
 =item B<-s> I<session>
 
-Filter by a specific session number. Only sessions matching this number
-will be displayed. Useful for tracking a particular session across
+Filter by a specific session number.  Only sessions matching this number
+will be displayed.  Useful for tracking a particular session across
 multiple spans.
 
 =item B<-e> I<engineId>
 
-Filter by span engine ID. Only the span with the specified remote engine
-ID will be displayed. If not specified, all configured spans are shown.
+Filter by span engine ID.  Only the span with the specified remote engine
+ID will be displayed.  If not specified, all configured spans are shown.
 
 =item B<-h>
 
@@ -66,7 +66,7 @@ Display usage information and exit.
 
 =item I<interval>
 
-Refresh interval in seconds. If set to 0 or omitted, B<ltpwatch> runs in
+Refresh interval in seconds.  If set to 0 or omitted, B<ltpwatch> runs in
 one-shot mode: it displays the current status and exits immediately.
 
 If a positive interval is specified, B<ltpwatch> will refresh the display
@@ -75,7 +75,7 @@ reached.
 
 =item I<count>
 
-Number of iterations to perform. Only meaningful when I<interval> is
+Number of iterations to perform.  Only meaningful when I<interval> is
 greater than 0.
 
 =over 4
@@ -304,7 +304,7 @@ B<ltpadmin> has not yet initialized LTP protocol operations.
 
 =item LTP is not initialized.
 
-The LTP database has not been created. Run B<ltpadmin> first.
+The LTP database has not been created.  Run B<ltpadmin> first.
 
 =item No spans configured.
 
@@ -324,7 +324,7 @@ The specified engine ID does not match any configured span.
 
 Recently completed sessions are only visible for a short time (typically
 around 30 seconds) while they remain in the "dead" session lists awaiting
-final cleanup. After cleanup, they will no longer appear in B<ltpwatch>
+final cleanup.  After cleanup, they will no longer appear in B<ltpwatch>
 output.
 
 =item *

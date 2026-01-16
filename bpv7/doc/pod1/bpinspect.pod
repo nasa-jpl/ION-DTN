@@ -9,7 +9,7 @@ B<bpinspect> [I<options>]
 =head1 DESCRIPTION
 
 B<bpinspect> is a comprehensive utility program for inspecting, filtering, and managing
-bundles that currently reside in the local node. It combines and extends the functionality
+bundles that currently reside in the local node.  It combines and extends the functionality
 of B<bplist> and B<bpcancel>, providing advanced filtering, sorting, batch operations,
 and export capabilities.
 
@@ -36,7 +36,7 @@ Detail level for bundle display:
 
 =item B<-c>
 
-Cancel matching bundles. Requires user confirmation unless B<-n> is specified.
+Cancel matching bundles.  Requires user confirmation unless B<-n> is specified.
 Bundles are identified and canceled using the same mechanism as B<bpcancel>.
 
 =item B<-n>
@@ -45,12 +45,12 @@ Skip confirmation prompts (use with B<-c> for automated cancellation).
 
 =item B<-D>
 
-Dry-run mode. Show what would be done without actually performing the action.
+Dry-run mode.  Show what would be done without actually performing the action.
 Useful for previewing which bundles would be canceled by filter criteria.
 
 =item B<-e> I<file>
 
-Export bundle details to the specified file. Appends to file if it exists.
+Export bundle details to the specified file.  Appends to file if it exists.
 
 =item B<-h>
 
@@ -64,12 +64,12 @@ Display usage information and exit.
 
 =item B<-s> I<eid>
 
-Filter by source EID using prefix matching. Example: -s ipn:1. matches all bundles
+Filter by source EID using prefix matching.  Example: -s ipn:1. matches all bundles
 from node 1 (ipn:1.1, ipn:1.2, etc.).
 
 =item B<-S> I<eid>
 
-Filter by source EID using exact matching. Example: -S ipn:1.1 matches only bundles
+Filter by source EID using exact matching.  Example: -S ipn:1.1 matches only bundles
 from service 1 on node 1.
 
 =item B<-t> I<eid>
@@ -97,7 +97,7 @@ Filter by maximum payload size in bytes.
 
 =item B<-x> I<seconds>
 
-Filter bundles expiring within the specified number of seconds. Useful for finding
+Filter bundles expiring within the specified number of seconds.  Useful for finding
 bundles that are about to expire.
 
 =item B<-a>
@@ -144,7 +144,7 @@ Reverse sort order (ascending instead of descending).
 
 =item B<-L> I<count>
 
-Limit results to the first I<count> bundles (default: 1000). Useful for large
+Limit results to the first I<count> bundles (default: 1000).  Useful for large
 bundle sets to prevent excessive output.
 
 =back
@@ -155,7 +155,7 @@ bundle sets to prevent excessive output.
 
 =item B<--color>
 
-Force color output using ANSI escape codes. Overrides auto-detection.
+Force color output using ANSI escape codes.  Overrides auto-detection.
 Colors are used to highlight:
   - Priority levels (Bulk=Blue, Standard=White, Urgent=Yellow)
   - Queue states (Forwarding=Green, Delivery=Cyan, Transmission/Planned=Yellow, Limbo=Red)
@@ -163,14 +163,14 @@ Colors are used to highlight:
 
 =item B<--no-color>
 
-Disable color output. Overrides auto-detection and the NO_COLOR environment variable.
+Disable color output.  Overrides auto-detection and the NO_COLOR environment variable.
 
 =back
 
 =head1 COLOR SUPPORT
 
 B<bpinspect> automatically detects terminal color support and enables color output
-when appropriate. Color output is enabled when:
+when appropriate.  Color output is enabled when:
 
 =over 4
 
@@ -251,7 +251,7 @@ B<bpinspect> terminated successfully.
 
 =item "1"
 
-B<bpinspect> encountered an error. Common causes include:
+B<bpinspect> encountered an error.  Common causes include:
   - Unable to attach to Bundle Protocol operations (bpadmin not run)
   - Invalid command-line arguments
   - Errors during bundle enumeration or operations
@@ -318,17 +318,17 @@ to be restarted.
 
 =item Can't allocate bundle cache.
 
-Insufficient memory to create the in-memory bundle cache. Try reducing the
+Insufficient memory to create the in-memory bundle cache.  Try reducing the
 maximum results limit with B<-L>.
 
 =item Can't enumerate bundles.
 
-Error accessing the bundle timeline. This may indicate a serious database
+Error accessing the bundle timeline.  This may indicate a serious database
 error requiring node restart.
 
 =item Can't find bundle to cancel.
 
-The specified bundle could not be located. It may have already been transmitted,
+The specified bundle could not be located.  It may have already been transmitted,
 delivered, or expired.
 
 =item Can't destroy bundle.
@@ -341,15 +341,15 @@ bundle has already been cloned for transmission.
 =head1 IMPLEMENTATION NOTES
 
 B<bpinspect> uses internal Bundle Protocol APIs to access bundle metadata and
-perform operations. It enumerates bundles from the SDR timeline list and caches
+perform operations.  It enumerates bundles from the SDR timeline list and caches
 key metadata in memory for efficient filtering and sorting.
 
 Bundle cancellation uses the same mechanism as B<bpcancel>, destroying bundles
-by simulating immediate TTL expiration. Bundles that have been cloned for
+by simulating immediate TTL expiration.  Bundles that have been cloned for
 transmission cannot be canceled.
 
 All database operations are performed within SDR transactions to ensure
-consistency. The utility keeps transactions brief to minimize lock contention.
+consistency.  The utility keeps transactions brief to minimize lock contention.
 
 =head1 PERFORMANCE CONSIDERATIONS
 

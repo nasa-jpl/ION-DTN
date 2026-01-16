@@ -11,7 +11,7 @@ B<recvfile> I<own_endpoint_ID> [I<-o|--overwrite>] [I<key_file_path | literal_ke
 B<recvfile> is intended to serve as the counterpart to B<sendfile>.  It
 uses bp_receive() to receive bundles containing the file content.  The content
 of each bundle is written to a file and named using data extracted from
-the metadata header. The program's default behavior auto-encrements file 
+the metadata header.  The program's default behavior auto-encrements file
 names but this behavior can be disabled with the -o (or --overwrite) flag.
 
 Additionally, if used with ION-NASA Baseline, B<recvfile> allows for

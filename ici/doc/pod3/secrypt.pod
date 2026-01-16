@@ -18,9 +18,9 @@ It implements a robust B<Encrypt-then-MAC> scheme to provide both
 confidentiality (encryption) and integrity/authenticity (message authentication code).
 
 This implementation leverages the power of the Mbed TLS library and adheres to
-modern cryptographic best practices. Key security features include the use of the
+modern cryptographic best practices.  Key security features include the use of the
 standard HMAC-based Key Derivation Function (B<HKDF>, RFC 5869) to derive separate,
-single-use keys for encryption and authentication from a master secret. This
+single-use keys for encryption and authentication from a master secret.  This
 prevents key reuse and ensures a strong separation between cryptographic
 operations.
 
@@ -33,7 +33,7 @@ parameters, see the comments in the F<secrypt.h> header file.>
 
 =item B<print_hex>(const unsigned char *data, size_t length)
 
-Prints binary data as hexadecimal. Useful for debugging and verifying data integrity.
+Prints binary data as hexadecimal.  Useful for debugging and verifying data integrity.
 
 B<Returns:>
 
@@ -41,7 +41,7 @@ This function does not return a value.
 
 =item B<print_encrypted_data>(const unsigned char *data, size_t length)
 
-Prints encrypted data in a safe, human-readable format. Aids in verifying encryption operations.
+Prints encrypted data in a safe, human-readable format.  Aids in verifying encryption operations.
 
 B<Returns:>
 
@@ -124,7 +124,10 @@ B<Timing Attack Resistance:> Uses a constant-time comparison for HMAC verificati
 
 =head1 NOTES
 
-Proper use of these cryptographic functions is crucial for maintaining data security. Familiarize yourself with cryptographic principles and Mbed TLS specifics to ensure the security of your data. The master key material provided should have sufficient entropy.
+Proper use of these cryptographic functions is crucial for maintaining data
+security.  Familiarize yourself with cryptographic principles and Mbed TLS
+specifics to ensure the security of your data.  The master key material provided
+should have sufficient entropy.
 
 =head1 WARNING
 

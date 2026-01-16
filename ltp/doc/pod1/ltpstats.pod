@@ -9,12 +9,12 @@ B<ltpstats> [B<-a> | B<-k> | B<-g>] [B<-r>]
 =head1 DESCRIPTION
 
 B<ltpstats> logs messages containing the current values of LTP processing
-statistics accumulators for all configured LTP spans, then terminates. The
+statistics accumulators for all configured LTP spans, then terminates.  The
 utility provides flexible reporting options to display statistics in different
 formats and with varying levels of detail.
 
 B<ltpstats> reports statistics on a per-span basis, identified by the remote
-engine ID. Each statistic includes both a count (number of occurrences) and
+engine ID.  Each statistic includes both a count (number of occurrences) and
 bytes (total bytes processed).
 
 Statistics are accumulated from the time of span creation or from the last
@@ -27,13 +27,13 @@ after reporting.
 
 =item B<-a>
 
-Report all 27 LTP statistics. This mode provides comprehensive visibility into
+Report all 27 LTP statistics.  This mode provides comprehensive visibility into
 all aspects of LTP operation including segments queued, transmitted, received,
 acknowledgments, errors, and discards.
 
 =item B<-k>
 
-Report key statistics only (default). This mode reports the most important
+Report key statistics only (default).  This mode reports the most important
 statistics for monitoring LTP performance:
 
 =over 4
@@ -70,7 +70,7 @@ Import (reception) completions
 
 =item B<-g>
 
-Report grouped statistics. This mode organizes statistics into logical
+Report grouped statistics.  This mode organizes statistics into logical
 categories for easier analysis:
 
 =over 4
@@ -99,7 +99,7 @@ miscolored segments, and cancellations
 
 =item B<-r>
 
-Reset current statistics after reporting. This option resets the currentCount
+Reset current statistics after reporting.  This option resets the currentCount
 and currentBytes fields to zero and updates the resetTime to the current time.
 The reset operation is performed after the statistics are logged.
 
@@ -109,7 +109,7 @@ Note: This option modifies the SDR database and requires write access.
 
 =head1 OUTPUT
 
-B<ltpstats> writes statistics to the B<ion.log> file. All output is logged
+B<ltpstats> writes statistics to the B<ion.log> file.  All output is logged
 between start and end markers:
 
     [i] Start of LTP statistics snapshot...
@@ -122,7 +122,7 @@ Each statistics line contains:
 
 =item B<span <engineId>>
 
-The remote engine ID identifying the LTP span. Statistics are reported
+The remote engine ID identifying the LTP span.  Statistics are reported
 separately for each configured span.
 
 =item B<statistic>
@@ -132,7 +132,7 @@ in_seg_recv_red).
 
 =item B<from <resetTime> to <currentTime>>
 
-The time range over which statistics were accumulated. The resetTime is either
+The time range over which statistics were accumulated.  The resetTime is either
 the span creation time (shown as 1969/12/31-16:00:00 for epoch) or the last
 time statistics were reset with the B<-r> option.
 
@@ -144,9 +144,9 @@ queued for transmission.
 
 =item B<bytes>
 
-The second number: total bytes processed for this statistic. For example,
+The second number: total bytes processed for this statistic.  For example,
 for out_seg_queued, this is the total size in bytes of all segments that
-were queued. Note that some statistics (like checkpoints) may report 0 bytes
+were queued.  Note that some statistics (like checkpoints) may report 0 bytes
 as they track control events rather than data transfer.
 
 =back
@@ -221,13 +221,13 @@ is not configured correctly.
 
 =item LTP is not initialized.
 
-The LTP constants database has not been created yet. Run B<ltpadmin> to
+The LTP constants database has not been created yet.  Run B<ltpadmin> to
 initialize LTP.
 
 =item Failed to commit statistics reset.
 
 An SDR error occurred while attempting to reset statistics (only when B<-r>
-is used). Check SDR status and available memory.
+is used).  Check SDR status and available memory.
 
 =back
 

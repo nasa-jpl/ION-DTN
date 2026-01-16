@@ -33,7 +33,7 @@ statistics bundle is generated and sent to I<default destEID>.
 
 =item "0"
 
-B<bpstats2> has terminated. Any problems encountered during operation will be
+B<bpstats2> has terminated.  Any problems encountered during operation will be
 noted in the B<ion.log> log file.
 
 =item "1"

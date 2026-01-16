@@ -61,11 +61,11 @@ B<ltpadmin> has not yet initialized LTP protocol operations.
 
 Redundant initiation of B<dccplsi>.
 
-=item LSI can't open DCCP socket. This probably means DCCP is not supported on your system.
+=item LSI can't open DCCP socket.  This probably means DCCP is not supported on your system.
 
-Operating system error. This probably means that you are not using an
-operating system that supports DCCP. Make sure that you are using a current
-Linux kernel and that the DCCP modules are being compiled. Check errtext,
+Operating system error.  This probably means that you are not using an
+operating system that supports DCCP.  Make sure that you are using a current
+Linux kernel and that the DCCP modules are being compiled.  Check errtext,
 correct problem, and restart B<dccplsi>.
 
 =item LSI can't initialize socket.

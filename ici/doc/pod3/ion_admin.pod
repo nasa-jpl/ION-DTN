@@ -29,7 +29,7 @@ B<Parameters:>
 
 =item rate_bytes_per_sec
 
-The production rate in bytes per second. Special values:
+The production rate in bytes per second.  Special values:
 
 =over 4
 
@@ -145,7 +145,7 @@ B<Parameters:>
 =item horizon_time
 
 End time for congestion forecasts as a Unix timestamp (seconds since 
-epoch). Special values:
+epoch).  Special values:
 
 =over 4
 
@@ -207,7 +207,7 @@ mechanisms)
 =head1 ERROR HANDLING
 
 Functions in this API return -1 on error and use ION's standard error 
-reporting mechanism (putErrmsg). Common error conditions include:
+reporting mechanism (putErrmsg).  Common error conditions include:
 
 =over 4
 
@@ -233,7 +233,7 @@ Use ION's error reporting facilities to retrieve detailed error messages.
 
 =head1 THREAD SAFETY
 
-These functions are not inherently thread-safe. If multiple threads need 
+These functions are not inherently thread-safe.  If multiple threads need
 to modify ION configuration parameters, the caller must provide 
 appropriate synchronization.
 

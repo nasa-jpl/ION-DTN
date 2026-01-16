@@ -10,9 +10,9 @@ B<bpcp> [OPTIONS] [I<source_host>:]I<source_file_or_directory> ... [I<destinatio
 =head1 DESCRIPTION
 
 B<bpcp> copies files and directories between hosts utilizing NASA JPL's Interplanetary
-Overlay Network (ION) to provide a delay tolerant network. File copies from local to 
-remote, remote to local, or remote to remote are permitted. B<bpcp> depends on ION to 
-do any authentication or encryption of file transfers. All convergence layers over 
+Overlay Network (ION) to provide a delay tolerant network.  File copies from local to
+remote, remote to local, or remote to remote are permitted.  B<bpcp> depends on ION to
+do any authentication or encryption of file transfers.  All convergence layers over
 which B<bpcp> runs MUST be reliable.
 
 The command-line options are as follows:
@@ -21,18 +21,18 @@ The command-line options are as follows:
 
 =item B< -d>
 
-Enable debug output. This option can be repeated (e.g., `-dd`) to increase
+Enable debug output.  This option can be repeated (e.g., `-dd`) to increase
 the verbosity level of debug messages.
 
 =item B< -q>
 
-Quiet mode. Suppress all standard status and progress messages. Only error
+Quiet mode.  Suppress all standard status and progress messages.  Only error
 messages will be displayed.
 
 =item B< -r>
 
-Recursive mode. If a source path is a directory, B<bpcp> will recursively
-copy its contents to the destination. If this option is not used and a source
+Recursive mode.  If a source path is a directory, B<bpcp> will recursively
+copy its contents to the destination.  If this option is not used and a source
 is a directory, it will be omitted with a warning message.
 
 =item B< -v>
@@ -41,16 +41,16 @@ Display the B<bpcp> version information and then exit.
 
 =item B< -L> I<bundle_lifetime>
 
-Specify the Bundle Protocol (BP) bundle lifetime in seconds. This value
+Specify the Bundle Protocol (BP) bundle lifetime in seconds.  This value
 determines how long a bundle will be stored in the network before being
-discarded if it cannot be delivered. The default value is 86400 seconds (1 day).
+discarded if it cannot be delivered.  The default value is 86400 seconds (1 day).
 A value of 0 results in the default lifetime.
 
 =item B< -C> I<custody_transfer_setting>
 
 Control whether CFDP custody transfer is requested for the file transfer.
 Custody transfer ensures that the bundle is acknowledged by each hop in the
-path. Acceptable values (case-insensitive) are:
+path.  Acceptable values (case-insensitive) are:
 
 =over 4
 
@@ -64,13 +64,13 @@ To disable custody transfer.
 
 =back
 
-The default is B<OFF>. Custody transfer may not be provided if the underlying
+The default is B<OFF>.  Custody transfer may not be provided if the underlying
 Bundle Protocol does not offer the service, e.g., BPv7.
 
 =item B< -S> I<class_of_service>
 
-Specify the Bundle Protocol Class of Service for this transfer. This influences
-the priority and handling of the bundle within the BP network. Available options are:
+Specify the Bundle Protocol Class of Service for this transfer.  This influences
+the priority and handling of the bundle within the BP network.  Available options are:
 
 =over 4
 
@@ -100,9 +100,9 @@ executed (e.g., C</home/user/my_file.txt> or C<./documents/report.pdf>).
 
 =item B<Remote Paths>
 
-A remote path specifies a file or directory on another ION node. It is
-formatted as I<host>B<:>I<remote_path>. The I<host> is the numeric ION node
-number (e.g., C<1> for a node with Endpoint ID 'ipn:1.0'). The I<remote_path>
+A remote path specifies a file or directory on another ION node.  It is
+formatted as I<host>B<:>I<remote_path>.  The I<host> is the numeric ION node
+number (e.g., C<1> for a node with Endpoint ID 'ipn:1.0').  The I<remote_path>
 is the absolute or relative file system path on the remote host (e.g.,
 C<1:/remote/data/file.bin> or C<1:./data/file.bin>).
 
@@ -151,7 +151,7 @@ into this I<destination directory>.
 =item 
 
 If the I<destination directory> does not exist locally, B<bpcp> will
-report an error. If it is a remote destination, B<bpcp> will attempt to create
+report an error.  If it is a remote destination, B<bpcp> will attempt to create
 it if CFDP supports it, but typically it expects the remote directory to exist
 or will copy files into the specified remote path as if it were a file name.
 
@@ -173,7 +173,7 @@ This implies:
 
 =item
 
-2. File permissions are NOT transferred. Copied files will typically be made
+2. File permissions are NOT transferred.  Copied files will typically be made
 executable on the destination system. 
 
 =item
@@ -209,7 +209,7 @@ B<bpcp> terminated normally, indicating successful completion of the copy operat
 
 =item B<1>
 
-B<bpcp> terminated abnormally, indicating an error occurred. Refer to the console
+B<bpcp> terminated abnormally, indicating an error occurred.  Refer to the console
 output and the B<ion.log> file for specific error messages and details.
 
 =back

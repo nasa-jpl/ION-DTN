@@ -10,7 +10,11 @@ Usage of core functions and utilities for handling file metadata, including encr
 
 =head1 DESCRIPTION
 
-This library provides functionalities for handling file metadata, encompassing encryption flags, timestamp, versioning, file name, and auxiliary command strings. It facilitates the serialization and deserialization of metadata, generating unique filenames, checking file existence, and writing data to files, among other operations.
+This library provides functionalities for handling file metadata, encompassing
+encryption flags, timestamp, versioning, file name, and auxiliary command
+strings.  It facilitates the serialization and deserialization of metadata,
+generating unique filenames, checking file existence, and writing data to files,
+among other operations.
 
 =head2 Data Structures
 
@@ -18,7 +22,10 @@ This library provides functionalities for handling file metadata, encompassing e
 
 =item B<Metadata>
 
-Stores information about a file, including encryption status, version number, timestamp, auxiliary commands, file type, name, and content. Designed for handling metadata in file transfer operations, ensuring all information is structured together.
+Stores information about a file, including encryption status, version number,
+timestamp, auxiliary commands, file type, name, and content.  Designed for
+handling metadata in file transfer operations, ensuring all information is
+structured together.
 
 Fields:
 
@@ -26,7 +33,8 @@ Fields:
 
 =item B<eFlag>
 
-Encryption flag indicating file content encryption status. 1 indicates encrypted, other values indicate not encrypted.
+Encryption flag indicating file content encryption status.  1 indicates
+encrypted, other values indicate not encrypted.
 
 =item B<versionNumber>
 
@@ -78,7 +86,8 @@ Pointer to an array of unsigned characters for the file content.
 
 =item B<createBufferFromMetadata>(Metadata *meta, size_t *offset)
 
-Serializes metadata into a buffer for storage or transmission. Returns a pointer to the buffer.
+Serializes metadata into a buffer for storage or transmission.  Returns a
+pointer to the buffer.
 
 =item B<extractMetadataFromFile>(const char *filename, Metadata *meta)
 

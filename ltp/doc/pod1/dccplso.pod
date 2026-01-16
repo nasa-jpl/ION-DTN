@@ -69,16 +69,16 @@ Redundant initiation of B<dccplso>.
 
 Operating system error.  Check errtext, correct problem, and restart B<dccplso>.
 
-=item LSO can't open DCCP socket. This probably means DCCP is not supported on your system.
+=item LSO can't open DCCP socket.  This probably means DCCP is not supported on your system.
 
-Operating system error. This probably means that you are not using an
-operating system that supports DCCP. Make sure that you are using a current
-Linux kernel and that the DCCP modules are being compiled. Check errtext,
+Operating system error.  This probably means that you are not using an
+operating system that supports DCCP.  Make sure that you are using a current
+Linux kernel and that the DCCP modules are being compiled.  Check errtext,
 correct problem, and restart B<dccplso>.
 
 =item LSO can't connect DCCP socket.
 
-Remote host's B<dccplsi> isn't listening or has terminated. Restart B<dccplsi>
+Remote host's B<dccplsi> isn't listening or has terminated.  Restart B<dccplsi>
 on the remote host and then restart B<dccplso>.
 
 =item Segment is too big for DCCP LSO.

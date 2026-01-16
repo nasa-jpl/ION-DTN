@@ -16,7 +16,7 @@ are sent at BP's standard priority (1).
 The bundles issued by B<bssStreamingApp> all have 20866-byte payloads, where
 the ASCII representation of a positive integer (increasing monotonically
 from 0, by 1, like a sequence number) appears at the start
-of each payload. The application meters output by sleeping for
+of each payload.  The application meters output by sleeping for
 55642 microseconds after issuing each bundle to achieve an
 nominal bit rate of 3Mbps, assuming the underlying system can
 support that throughput rate.
