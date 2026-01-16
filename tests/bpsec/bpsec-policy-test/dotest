@@ -63,9 +63,6 @@ touch 3.ipn.ltp/3_results.txt
 #cd ..
 
 sleep 1
-# Determine BP version (6/7) for correct bpsecadmin rule syntax
-BPV=`bpversion`
-
 
 #########
 # Test 1

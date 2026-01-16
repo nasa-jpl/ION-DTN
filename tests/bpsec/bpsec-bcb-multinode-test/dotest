@@ -72,8 +72,6 @@ bpsink ipn:3.1 >> 3_results.txt &
 cd ..
 
 sleep 1
-# Determine BP version (6/7) for correct bpsecadmin rule syntax
-BPV=`bpversion`
 
 #############
 # Test 1 ....
@@ -116,22 +114,9 @@ sleep ${TIMETODISPLAYTEXT}
 
 cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a key key1 key1.hmk 
-ENDOFIONSECADMINCOMMANDS
-
-if [ $BPV == "bpv6" ] ; then
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key1
-ENDOFBPSECADMINCOMMANDS
-
-cd ../3.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 a key key1 key1.hmk
 ENDOFIONSECADMINCOMMANDS
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key1
-ENDOFBPSECADMINCOMMANDS
-else
+
 bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 a bcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key1
 ENDOFBPSECADMINCOMMANDS
@@ -143,7 +128,6 @@ ENDOFIONSECADMINCOMMANDS
 bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 a bcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key1
 ENDOFBPSECADMINCOMMANDS
-fi
 
 cd ../2.ipn.ltp
 bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test2_trace" rcv,ct,fwd,dlv,del
@@ -182,23 +166,8 @@ echo -e "the key that is used.  So we skip this test."
 #
 #cd 2.ipn.ltp
 #ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-#a key key2 key2.hmk 
+#a key key2 key2.hmk
 #ENDOFIONSECADMINCOMMANDS
-#if [ $BPV == "bpv6" ] ; then
-#bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-#x
-#a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key2
-#ENDOFBPSECADMINCOMMANDS
-#
-#cd ../3.ipn.ltp
-#ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-#a key key1 key1.hmk
-#ENDOFIONSECADMINCOMMANDS
-#bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-#x
-#a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key1
-#ENDOFBPSECADMINCOMMANDS
-#else
 #bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 #x
 #a bcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key2
@@ -212,7 +181,6 @@ echo -e "the key that is used.  So we skip this test."
 #x
 #a bcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key1
 #ENDOFBPSECADMINCOMMANDS
-#fi
 #
 #cd ../2.ipn.ltp
 #bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test3_trace" rcv,ct,fwd,dlv,del
@@ -287,16 +255,6 @@ sleep ${TIMETODISPLAYTEXT}
 
 cd 2.ipn.ltp
 
-if [ $BPV == "bpv6" ] ; then
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key1
-ENDOFBPSECADMINCOMMANDS
-
-cd ../3.ipn.ltp
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key1
-ENDOFBPSECADMINCOMMANDS
-else
 bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 a bcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key1
 ENDOFBPSECADMINCOMMANDS
@@ -305,7 +263,6 @@ cd ../3.ipn.ltp
 bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 a bcbrule ipn:2.* ipn:3.* 1 'BCB-SHA256-AES128' key1
 ENDOFBPSECADMINCOMMANDS
-fi
 
 bprecvfile ipn:3.2 &
 
@@ -380,29 +337,9 @@ sleep ${TIMETODISPLAYTEXT}
 
 cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a key key1 key1.hmk 
-ENDOFIONSECADMINCOMMANDS
-
-if [ $BPV == "bpv6" ] ; then
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-x
-a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-SHA256-AES128' key1
-ENDOFBPSECADMINCOMMANDS
-
-cd ../3.ipn.ltp
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-x
-ENDOFBPSECADMINCOMMANDS
-
-cd ../4.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 a key key1 key1.hmk
 ENDOFIONSECADMINCOMMANDS
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-x
-a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-SHA256-AES128' key1
-ENDOFBPSECADMINCOMMANDS
-else
+
 bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 x
 a bcbrule ipn:2.* ipn:4.* 1 'BCB-SHA256-AES128' key1
@@ -421,7 +358,6 @@ bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 x
 a bcbrule ipn:2.* ipn:4.* 1 'BCB-SHA256-AES128' key1
 ENDOFBPSECADMINCOMMANDS
-fi
 
 cd ../2.ipn.ltp
 bptrace ipn:2.1 ipn:4.1 ipn:2.0 3600 0.1 "test_trace6" rcv,ct,fwd,dlv,del
@@ -456,32 +392,9 @@ echo -e "Sending ANONYMOUS Bundle with BCBs from ipn:2.1 through ipn:3.1 to ipn:
 sleep ${TIMETODISPLAYTEXT}
 cd 2.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a key key1 key1.hmk 
-ENDOFIONSECADMINCOMMANDS
-
-if [ $BPV == "bpv6" ] ; then
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-x
-a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-SHA256-AES128' key1
-ENDOFBPSECADMINCOMMANDS
-
-cd ../3.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a key key1 key1.hmk 
-ENDOFIONSECADMINCOMMANDS
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-x
-ENDOFBPSECADMINCOMMANDS
-
-cd ../4.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
 a key key1 key1.hmk
 ENDOFIONSECADMINCOMMANDS
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-x
-a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-SHA256-AES128' key1
-ENDOFBPSECADMINCOMMANDS
-else
+
 bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 x
 a bcbrule ipn:2.* ipn:4.* 1 'BCB-SHA256-AES128' key1
@@ -503,7 +416,6 @@ bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 x
 a bcbrule ipn:2.* ipn:4.* 1 'BCB-SHA256-AES128' key1
 ENDOFBPSECADMINCOMMANDS
-fi
 
 cd ../2.ipn.ltp
 bpsource ipn:4.1 "test_trace7"
