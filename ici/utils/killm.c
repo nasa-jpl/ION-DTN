@@ -14,7 +14,7 @@
 #include "ion.h"
 #include <tlhelp32.h>
 
-char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
+char *processes[] = {
 "acslist.exe", "lt-acslist.exe", \
 "amsbenchr.exe", "lt-amsbenchr.exe", \
 "amsbenchs.exe", "lt-amsbenchs.exe", \
@@ -83,9 +83,7 @@ char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
 "file2sm.exe", "lt-file2sm.exe", \
 "file2tcp.exe", "lt-file2tcp.exe", \
 "file2udp.exe", "lt-file2udp.exe", \
-"imcadmin.exe", "lt-imcadmin.exe", \
 "imcfw.exe", "lt-imcfw.exe", \
-"imcadmin.exe", "lt-imcadmin.exe", \
 "imcadminep.exe", "lt-imcadminep.exe", \
 "ionadmin.exe", "lt-ionadmin.exe", \
 "ionexit.exe", "lt-ionexit.exe", \

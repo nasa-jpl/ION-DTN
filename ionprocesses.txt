@@ -3,8 +3,6 @@
 # Lines starting with # are comments.
 # The lt-* variants are libtool wrapper names used during development builds.
 
-acsadmin
-lt-acsadmin
 acslist
 lt-acslist
 amsbenchr
@@ -159,8 +157,6 @@ file2udp
 lt-file2udp
 hmackeys
 lt-hmackeys
-imcadmin
-lt-imcadmin
 imcadminep
 lt-imcadminep
 imcfw

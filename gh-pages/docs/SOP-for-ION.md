@@ -495,7 +495,6 @@ Another indication of anomaly is by examine whether a critical set of daemons ar
 
 Here is a list of all possible ION daemons:
 
-* acsadmin lt-acsadmin \\
 * acslist lt-acslist \\
 * aoslsi lt-aoslsi \\
 * aoslso lt-aoslso \\
@@ -555,7 +554,6 @@ Here is a list of all possible ION daemons:
 * file2tcp lt-file2tcp \\
 * file2udp lt-file2udp \\
 * hmackeys lt-hmackeys \\
-* imcadmin lt-imcadmin \\
 * imcadminep lt-imcadminep \\
 * imcfw lt-imcfw \\
 * ionadmin lt-ionadmin \\

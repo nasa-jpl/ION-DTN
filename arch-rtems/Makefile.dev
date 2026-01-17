@@ -98,7 +98,6 @@ BPSOURCES =      \
 	meb.c        \
 	bae.c
 
-#	imcadmin.c   \
 #	imcfw.c      \
 #	libimcfw.c   \
 #	cteb.c       \
@@ -107,7 +106,6 @@ BPSOURCES =      \
 #	acstx.c      \
 #	acsrx.c      \
 #	acsserialize.c \
-#	acsadmin.c   \
 #	acslist.c    \
 #	beacon.c     \
 #	helper.c     \

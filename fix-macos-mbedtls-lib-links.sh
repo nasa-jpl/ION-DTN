@@ -16,7 +16,6 @@ LIBRARIES=("libmbedtls.dylib" "libmbedx509.dylib" "libmbedcrypto.dylib")
 
 # From Killm script
 KILLPROCESSLIST=(
-    acsadmin lt-acsadmin
     acslist lt-acslist
     amsbenchr lt-amsbenchr
     amsbenchs lt-amsbenchs
@@ -94,7 +93,6 @@ KILLPROCESSLIST=(
     file2tcp lt-file2tcp
     file2udp lt-file2udp
     hmackeys lt-hmackeys
-    imcadmin lt-imcadmin
     imcadminep lt-imcadminep
     imcfw lt-imcfw
     ionadmin lt-ionadmin

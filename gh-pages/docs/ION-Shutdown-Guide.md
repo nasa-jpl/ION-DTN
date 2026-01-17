@@ -46,8 +46,6 @@ ionadmin .     # Stop ION core (rfxclock)
 | `cfdpadmin .` | CFDP | cfdpclock, UT layer service |
 | `bsspadmin .` | BSSP | bsspclock, link service adapters |
 | `dtpcadmin .` | DTPC | dtpcclock, dtpcd |
-| `acsadmin .` | ACS | Aggregate Custody Signaling daemons |
-| `imcadmin .` | IMC | Multicast forwarder |
 
 ### Method 2: ionexit (Recommended for Normal Shutdown)
 

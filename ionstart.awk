@@ -26,7 +26,7 @@
 # information to both nodes with the same file.
 #
 # program names accepted are:
-# ionadmin ionsecadmin bpsecadmin ltpsecrc ltpadmin bpadmin cfdpadmin ipnadmin bibeadmin dtn2admin dtpcadmin acsadmin imcadmin bsspadmin
+# ionadmin ionsecadmin bpsecadmin ltpsecrc ltpadmin bpadmin cfdpadmin ipnadmin bibeadmin dtn2admin dtpcadmin bsspadmin
 #
 # Program sections may not overlap.
 # Lines with unsupported program names will be ignored.
@@ -46,8 +46,6 @@
 # configfile.tag.ipnrc
 # configfile.tag.dtn2rc
 # configfile.tag.dtpcrc
-# configfile.tag.acsrc
-# configfile.tag.imcrc
 # configfile.tag.bssprc
 # it will NOT check for the file existence beforehand.
 # it will NOT run the program.
@@ -66,15 +64,13 @@ BEGIN {
     programs[3]   = "bpsecadmin"
     programs[4]   = "ltpsecadmin"
     programs[5]   = "ltpadmin"
-    programs[6]   = "acsadmin"
-    programs[7]   = "bpadmin"
-    programs[8]   = "cfdpadmin"
-    programs[9]   = "ipnadmin"
-    programs[10]  = "bibeadmin"
-    programs[11]  = "dtn2admin"
-    programs[12]  = "dtpcadmin"
-    programs[13]  = "imcadmin"
-    programs[14]  = "bsspadmin"
+    programs[6]   = "bpadmin"
+    programs[7]   = "cfdpadmin"
+    programs[8]   = "ipnadmin"
+    programs[9]   = "bibeadmin"
+    programs[10]  = "dtn2admin"
+    programs[11]  = "dtpcadmin"
+    programs[12]  = "bsspadmin"
 
     # programoptions are special options for certain programs that take them
     # rcname is the name of an rc file associated with the program
@@ -82,7 +78,6 @@ BEGIN {
     rcname["ionsecadmin"]  = ionsecrc
     rcname["bpsecadmin"]   = bpsecrc
     rcname["ltpsecadmin"]  = ltpsecrc
-    rcname["acsadmin"]     = acsrc
     rcname["bpadmin"]      = bprc
     rcname["cfdpadmin"]    = cfdprc
     rcname["ipnadmin"]     = ipnrc
@@ -90,7 +85,6 @@ BEGIN {
     rcname["dtn2admin"]    = dtn2rc
     rcname["dtpcadmin"]    = dtpcrc
     rcname["ltpadmin"]     = ltprc
-    rcname["imcadmin"]     = imcrc
     rcname["bsspadmin"]    = bssprc
 
     # firstline is associative array of the "first line" for a program

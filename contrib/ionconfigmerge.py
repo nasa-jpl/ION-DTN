@@ -41,7 +41,7 @@ import subprocess
 if len(sys.argv) < 4:
     sys.exit('Usage: {0} </path/to/ionscript> <rc filename> </path/to/rc files/>'.format(sys.argv[0]))
 
-rcTypes = {'acsrc':'-a','bprc':'-b','bssrc':'-B','dtn2rc':'-d','dtpcrc':'-D','ionrc':'-i','ltprc':'-l','imcrc':'-m','ipnrc':'-p','ionsecrc':'-s','cfdprc':'-c'}
+rcTypes = {'bprc':'-b','bssrc':'-B','dtn2rc':'-d','dtpcrc':'-D','ionrc':'-i','ltprc':'-l','ipnrc':'-p','ionsecrc':'-s','cfdprc':'-c'}
 
 ionScriptPath = sys.argv[1]
 rcName = sys.argv[2]
