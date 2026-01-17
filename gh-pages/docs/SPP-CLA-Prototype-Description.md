@@ -59,7 +59,7 @@ __NOTE__: additional configuration and service limitations for an SPP provider i
 ### Setup Requirements:
 1. Two ION-DTN nodes running SPP CLA (node ID 10 & 12)
 2. Bi-directional SPP transmit and receive (*diagram shows only single direction*)
-3. A template setup is available under the `/demos/two-nodes-spp` folder.
+3. A template setup is available under the `configs/two-node-spp` folder.
 
 ### Architecture Components:
 
@@ -140,7 +140,7 @@ However, the user wishes to implement the internals of the Space Packet Protocol
 
 ## Induct and Outduct Configuration
 
-### Sample demo files included in /ion-ios-dev/demos/two-node-spp
+### Sample demo files included in ION-DTN/configs/two-node-spp/
 
 ![Figure 5: Induct and Outduct Configuration Command](./spp-cla/SPP-CLA-Induct-Outduct-Config.png)
 
