@@ -554,7 +554,7 @@ fi
 # Control whether AMS debugging info is printed.
 #
 	AC_ARG_ENABLE([ams-debug],
-		[  --enable-ams-debug    Enable AMS debugging info],
+		AS_HELP_STRING([--enable-ams-debug], [Enable AMS debugging info])
 		[ AC_DEFINE([AMSDEBUG], 1, [Enable AMS debugging info])
 		  PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DAMSDEBUG" ])
 
