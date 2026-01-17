@@ -1,4 +1,4 @@
-## begin ionadmin 
+## begin ionadmin
 
 1 100.25 ''
 
@@ -10,20 +10,20 @@ a range +1 +3600 100.25 100.25 0
 
 m production 1000000
 m consumption 1000000
-## end ionadmin 
+## end ionadmin
 
-## begin ltpadmin 
+## begin ltpadmin
 
 1 128
 
 a span 100.25 128 128 1024 1024 1 'udplso localhost:1113'
 
 s 'udplsi 0.0.0.0:1113'
-## end ltpadmin 
+## end ltpadmin
 
-## begin bpadmin 
+## begin bpadmin
 
-1 
+1
 
 a scheme ipn 'ipnfw' 'ipnadminep'
 
@@ -37,9 +37,9 @@ a induct ltp 100.25 ltpcli
 a outduct ltp 100.25 ltpclo
 
 s
-## end bpadmin 
+## end bpadmin
 
-## begin ipnadmin 
+## begin ipnadmin
 
 a plan 100.25 ltp/100.25
-## end ipnadmin 
+## end ipnadmin

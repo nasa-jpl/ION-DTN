@@ -329,7 +329,7 @@ int main(void)
 	} else {
 		char line[256];
 		int found = 0;
-		
+
 		while (fgets(line, sizeof(line), fp) != NULL) {
 			if (strstr(line, "Payload delivered") != NULL) {
 				found = 1;
@@ -337,22 +337,22 @@ int main(void)
 			}
 		}
 		fclose(fp);
-		
+
 		if (found) {
 			TEST_PASS("LTP Bundle send/receive test");
 			LOG_INFO("Bundle successfully delivered via LTP!");
 			/* Display the actual output for verification */
 			LOG_INFO("bpsink output:");
-			if (system("cat ./bpsink_ltp_output.txt 2>/dev/null")) 
-			{ 
-				/* ignored */ 
+			if (system("cat ./bpsink_ltp_output.txt 2>/dev/null"))
+			{
+				/* ignored */
 			}
 		} else {
 			TEST_FAIL("LTP Bundle Transfer", "Bundle not received");
 			LOG_INFO("bpsink output (for debugging):");
-			if (system("cat ./bpsink_ltp_output.txt 2>/dev/null")) 
-			{ 
-				/* ignored */ 
+			if (system("cat ./bpsink_ltp_output.txt 2>/dev/null"))
+			{
+				/* ignored */
 			}
 		}
 	}

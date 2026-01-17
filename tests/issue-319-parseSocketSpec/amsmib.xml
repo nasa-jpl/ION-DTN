@@ -5,7 +5,7 @@
 		<continuum nbr="3" name="ion3" desc="ION node 3"/>
 		<csendpoint epspec="@:2357"/>
 		<application name="amsdemo"/>
-		<venture nbr="19" appname="amsdemo" authname="test" net_config="tree"> 
+		<venture nbr="19" appname="amsdemo" authname="test" net_config="tree">
 			<role nbr="2" name="shell"/>
 			<role nbr="3" name="log"/>
 			<role nbr="4" name="pitch"/>

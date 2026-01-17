@@ -80,4 +80,3 @@ fi
 rm -f $contactfile
 
 exit $RETVAL
-

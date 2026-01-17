@@ -1,10 +1,10 @@
 echo OFF
 
-REM Windows batch file to create import libraries for linking ION DLLs in a 
+REM Windows batch file to create import libraries for linking ION DLLs in a
 REM Windows development environment such as Visual Studio.  The batch file
 REM should be executed at a Visual Studio command prompt after a successful ION
 REM build using mingw.
-REM 
+REM
 REM    Example Usage:
 REM         winimplib.bat i386
 REM         winimplib.bat x64

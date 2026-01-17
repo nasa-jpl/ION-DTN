@@ -13,7 +13,7 @@
 	Date       Who     What
 	9-24-13    TC      Added functions (find, add, remove, change) to
 			   manage ltpXmitAuthRule and ltpRecvAuthRule
-			   Updated secInitialize to initialize SecDB's 
+			   Updated secInitialize to initialize SecDB's
 			   ltpXmitAuthRule and ltpRecvAuthRule lists
 			   Added writeRuleMessage to print rule-related message
 	11-15-13  romanoTC Check for valid ciphersuite values (0,1,255)
@@ -21,7 +21,7 @@
 									*/
 #include "ltpsec.h"
 
-static void	writeRuleMessage(char* ruleMessage, uvast engineId, 
+static void	writeRuleMessage(char* ruleMessage, uvast engineId,
 			unsigned char ciphersuiteNbr, char *keyName)
 {
 	char	buf[512];
@@ -36,13 +36,13 @@ static void	writeRuleMessage(char* ruleMessage, uvast engineId,
 
 /******************************************************************************
  *
- * \par Function Name: sec_findLtpXmitAuthRule 
+ * \par Function Name: sec_findLtpXmitAuthRule
  *
  * \par Purpose: This function is used to find an LTP signing rule.
- * 		 There is a match if there is a rule in Sdr with the
- *		 same ltpEngineId. 
+ *		 There is a match if there is a rule in Sdr with the
+ *		 same ltpEngineId.
  *
- *		 Return 1 if there is a match, return 0 if not, return -1 on 
+ *		 Return 1 if there is a match, return 0 if not, return -1 on
  *		 error.
  *
  * \param[in]	ltpEngineId the LTP engine ID
@@ -61,13 +61,13 @@ int	sec_findLtpXmitAuthRule(uvast ltpEngineId, Object *ruleAddr,
 	SecDB	*secdb = getSecConstants();
 	Object	elt;
 	int	result = 0;
-		OBJ_POINTER(LtpXmitAuthRule, rule);	
+		OBJ_POINTER(LtpXmitAuthRule, rule);
 
 	if (secdb == NULL)	/*	No security database declared.	*/
 	{
 		return 0;
 	}
-	
+
 	CHKERR(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, secdb->ltpXmitAuthRules); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -90,11 +90,11 @@ int	sec_findLtpXmitAuthRule(uvast ltpEngineId, Object *ruleAddr,
 
 /******************************************************************************
  *
- * \par Function Name: sec_addLtpXmitAuthRule 
+ * \par Function Name: sec_addLtpXmitAuthRule
  *
- * \par Purpose: This function is used to add an LTP signing rule. 
+ * \par Purpose: This function is used to add an LTP signing rule.
  *
- *		 Return 1 if added successfully, return 0 if not, return -1 on 
+ *		 Return 1 if added successfully, return 0 if not, return -1 on
  *		 error.
  *
  * \param[in]	ltpEngineId the LTP engine ID
@@ -113,7 +113,7 @@ int	sec_addLtpXmitAuthRule(uvast ltpEngineId,
 	Object		ruleObj;
 	Object		elt;
 
-	CHKERR(secdb);	
+	CHKERR(secdb);
 	CHKERR(keyName);
 	if (cipher != 0 && cipher != 1 && cipher != 255)
 	{
@@ -140,7 +140,7 @@ is NULL (255).");
 	/* Don't expect a rule here already...*/
 	if (sec_findLtpXmitAuthRule(ltpEngineId, &ruleObj, &elt) != 0)
 	{
-		writeRuleMessage("[?] This rule is already defined", 
+		writeRuleMessage("[?] This rule is already defined",
 				ltpEngineId, ciphersuiteNbr, keyName);
 		return 0;
 	}
@@ -172,11 +172,11 @@ is NULL (255).");
 
 /******************************************************************************
  *
- * \par Function Name: sec_updateLtpXmitAuthRule 
+ * \par Function Name: sec_updateLtpXmitAuthRule
  *
- * \par Purpose: This function is used to update an LTP signing rule. 
+ * \par Purpose: This function is used to update an LTP signing rule.
  *
- *		 Return 1 if updated successfully, return 0 if not, 
+ *		 Return 1 if updated successfully, return 0 if not,
  *		 return -1 on error.
  *
  * \param[in]	ltpEngineId the LTP engine ID
@@ -220,7 +220,7 @@ is NULL (255).");
 	/* Need to have a rule to update it. */
 	if (sec_findLtpXmitAuthRule(ltpEngineId, &ruleObj, &elt) == 0)
 	{
-		writeRuleMessage("[?] No rule defined for this engine", 
+		writeRuleMessage("[?] No rule defined for this engine",
 				ltpEngineId, ciphersuiteNbr, keyName);
 		return 0;
 	}
@@ -241,11 +241,11 @@ is NULL (255).");
 
 /******************************************************************************
  *
- * \par Function Name: sec_removeLtpXmitAuthRule 
+ * \par Function Name: sec_removeLtpXmitAuthRule
  *
- * \par Purpose: This function is used to remove an LTP signing rule. 
+ * \par Purpose: This function is used to remove an LTP signing rule.
  *
- *		 Return 1 if removed successfully, return 0 if not, 
+ *		 Return 1 if removed successfully, return 0 if not,
  *		 return -1 on error.
  *
  * \param[in]	ltpEngineId the LTP engine ID
@@ -261,7 +261,7 @@ int	sec_removeLtpXmitAuthRule(uvast ltpEngineId)
 	/* Need to have a rule to delete it. */
 	if (sec_findLtpXmitAuthRule(ltpEngineId, &ruleObj, &elt) == 0)
 	{
-		writeRuleMessage("[?] No rule defined for this engine.", 
+		writeRuleMessage("[?] No rule defined for this engine.",
 				ltpEngineId, 0, "");
 		return 0;
 	}
@@ -280,13 +280,13 @@ int	sec_removeLtpXmitAuthRule(uvast ltpEngineId)
 
 /******************************************************************************
  *
- * \par Function Name: sec_findLtpRecvAuthRule 
+ * \par Function Name: sec_findLtpRecvAuthRule
  *
- * \par Purpose: This function is used to find an LTP authentication 
+ * \par Purpose: This function is used to find an LTP authentication
  *		 rule.  There is a match if there is a rule in Sdr with the
- *		 same ltpEngineId. 
+ *		 same ltpEngineId.
  *
- *		 Return 1 if there is a match, return 0 if not, return -1 on 
+ *		 Return 1 if there is a match, return 0 if not, return -1 on
  *		 error.
  *
  * \param[in]	ltpEngineId the LTP engine ID
@@ -305,13 +305,13 @@ int	sec_findLtpRecvAuthRule(uvast ltpEngineId, Object *ruleAddr,
 	SecDB	*secdb = getSecConstants();
 	Object	elt;
 	int	result = 0;
-		OBJ_POINTER(LtpRecvAuthRule, rule);	
+		OBJ_POINTER(LtpRecvAuthRule, rule);
 
 	if (secdb == NULL)	/*	No security database declared.	*/
 	{
 		return 0;
 	}
-	
+
 	CHKERR(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, secdb->ltpRecvAuthRules); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -334,11 +334,11 @@ int	sec_findLtpRecvAuthRule(uvast ltpEngineId, Object *ruleAddr,
 
 /******************************************************************************
  *
- * \par Function Name: sec_addLtpRecvAuthRule 
+ * \par Function Name: sec_addLtpRecvAuthRule
  *
- * \par Purpose: This function is used to add an LTP authentication rule. 
+ * \par Purpose: This function is used to add an LTP authentication rule.
  *
- *		Return 1 if added successfully, return 0 if not, return -1 on 
+ *		Return 1 if added successfully, return 0 if not, return -1 on
  *		error.
  *
  * \param[in]	ltpEngineId the LTP engine ID
@@ -357,7 +357,7 @@ int	sec_addLtpRecvAuthRule(uvast ltpEngineId,
 	Object		ruleObj;
 	Object		elt;
 
-	CHKERR(secdb);	
+	CHKERR(secdb);
 	CHKERR(keyName);
 	if (cipher != 0 && cipher != 1 && cipher != 255)
 	{
@@ -384,7 +384,7 @@ is NULL (255).");
 	/* Don't expect a rule here already...*/
 	if (sec_findLtpRecvAuthRule(ltpEngineId, &ruleObj, &elt) != 0)
 	{
-		writeRuleMessage("[?] This rule is already defined", 
+		writeRuleMessage("[?] This rule is already defined",
 				ltpEngineId, ciphersuiteNbr, keyName);
 		return 0;
 	}
@@ -416,12 +416,12 @@ is NULL (255).");
 
 /******************************************************************************
  *
- * \par Function Name: sec_updateLtpRecvAuthRule 
+ * \par Function Name: sec_updateLtpRecvAuthRule
  *
- * \par Purpose: This function is used to update an LTP authentication 
- *		 rule. 
+ * \par Purpose: This function is used to update an LTP authentication
+ *		 rule.
  *
- *		 Return 1 if updated successfully, return 0 if not, 
+ *		 Return 1 if updated successfully, return 0 if not,
  *		 return -1 on error.
  *
  * \param[in]	ltpEngineId the LTP engine ID
@@ -465,7 +465,7 @@ is NULL (255).");
 	/* Need to have a rule to update it. */
 	if (sec_findLtpRecvAuthRule(ltpEngineId, &ruleObj, &elt) == 0)
 	{
-		writeRuleMessage("[?] No rule defined for this engine", 
+		writeRuleMessage("[?] No rule defined for this engine",
 				ltpEngineId, ciphersuiteNbr, keyName);
 		return 0;
 	}
@@ -486,12 +486,12 @@ is NULL (255).");
 
 /******************************************************************************
  *
- * \par Function Name: sec_removeLtpRecvAuthRule 
+ * \par Function Name: sec_removeLtpRecvAuthRule
  *
- * \par Purpose: This function is used to remove an LTP authentication 
- *		 rule. 
+ * \par Purpose: This function is used to remove an LTP authentication
+ *		 rule.
  *
- *		 Return 1 if removed successfully, return 0 if not, 
+ *		 Return 1 if removed successfully, return 0 if not,
  *		 return -1 on error.
  *
  * \param[in]	ltpEngineId the LTP engine ID
@@ -507,7 +507,7 @@ int	sec_removeLtpRecvAuthRule(uvast ltpEngineId)
 	/* Need to have a rule to delete it. */
 	if (sec_findLtpRecvAuthRule(ltpEngineId, &ruleObj, &elt) == 0)
 	{
-		writeRuleMessage("[?] No rule defined for this engine.", 
+		writeRuleMessage("[?] No rule defined for this engine.",
 				ltpEngineId, 0, "");
 		return 0;
 	}

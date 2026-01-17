@@ -46,7 +46,7 @@ typedef void (*vec_del_fn)(void *item); /* Item Delete Function. */
 typedef struct
 {
 	uint8_t occupied;
-    void *value;
+	void *value;
 } vector_entry_t;
 
 
@@ -97,7 +97,7 @@ void       vec_unlock(vector_t *vec);
 /** Free resources associated with a value previously returned by this vector */
 static inline void vec_free_value(vector_t *vec, void *value)
 {
-   vec->delete_fn(value);
+	vec->delete_fn(value);
 }
 
 /**
@@ -106,7 +106,7 @@ static inline void vec_free_value(vector_t *vec, void *value)
  */
 static inline int vec_insert_copy(vector_t *vec, void *value, vec_idx_t *idx)
 {
-   return vec_insert(vec, vec->copy_fn(value), idx);
+	return vec_insert(vec, vec->copy_fn(value), idx);
 }
 
 

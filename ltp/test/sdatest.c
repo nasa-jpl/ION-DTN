@@ -4,7 +4,7 @@
 			engine ID on command line, acts as sender.
 			Sender obtains data from redirected stdin,
 			one service data item per line of text.
-			NULL-terminated text lines (minus newlines) 
+			NULL-terminated text lines (minus newlines)
 			are the transmitted SDA service data items.
 			Receiver handles service data items by
 			simply printing them to stdout.

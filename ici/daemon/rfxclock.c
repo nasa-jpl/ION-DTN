@@ -6,7 +6,7 @@
 	Copyright (c) 2007, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "rfx.h"
 
@@ -20,7 +20,7 @@ static uaddr	_running(uaddr *newValue)
 {
 	void	*value;
 	uaddr	state;
-	
+
 	if (newValue)			/*	Changing state.		*/
 	{
 		value = (void *) (*newValue);
@@ -602,13 +602,13 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 			}
 		}
 
-		/*	Must repeat alarm.  Delete the expired event, 
+		/*	Must repeat alarm.  Delete the expired event,
 		 *	without deleting the alarm structure.		*/
 
 		event->ref = 0;
 		sm_rbt_delete(ionwm, vdb->timeline, rfx_order_events, event,
 				rfx_erase_data, NULL);
-		
+
 		/*	Now post next event for this alarm.		*/
 
 		currentTime = getCtime();

@@ -18,10 +18,10 @@ echo "CONFIG: A single LTP engine transmitting to a nonexistent peer engine:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Searching for ltpdriver output indicating that transmission of all-green service data units was unimpeded by session limit."
 echo
@@ -40,10 +40,10 @@ export ION_NODE_LIST_DIR=$PWD
 
 if [ $? -eq 2 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node not started: Aborting Test"
-	exit 1
+    echo "Node not started: Aborting Test"
+    exit 1
 fi
 
 # Start ltpdriver sending 10 red blocks to nonexistent engine 5.
@@ -68,20 +68,20 @@ echo "Checking red_driver.output for completion message..."
 COUNT=`grep "Bytes: 100000" red_driver.output | wc -l`
 if [ $COUNT -eq 1 ]
 then
-	echo "ERROR: Red transmission not blocked."
-	RETVAL=1
+    echo "ERROR: Red transmission not blocked."
+    RETVAL=1
 else
-	echo "OK: Red transmission blocked."
+    echo "OK: Red transmission blocked."
 fi
 
 echo "Checking green_driver.output for completion message..."
 COUNT=`grep "Bytes: 100000" green_driver.output | wc -l`
 if [ $COUNT -eq 1 ]
 then
-	echo "OK: Green data sent."
+    echo "OK: Green data sent."
 else
-	echo "ERROR: Green data not sent."
-	RETVAL=1
+    echo "ERROR: Green data not sent."
+    RETVAL=1
 fi
 
 # Shut down ION processes.

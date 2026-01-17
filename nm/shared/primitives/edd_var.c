@@ -320,52 +320,52 @@ var_t *var_deserialize_ptr(QCBORDecodeContext *it, int *success)
 {
 	var_t *result = NULL;
 
-    AMP_DEBUG_ENTRY("var_deserialize","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")", (uaddr)it, (uaddr)success);
+	AMP_DEBUG_ENTRY("var_deserialize","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")", (uaddr)it, (uaddr)success);
 
-    CHKNULL(success);
-    *success = AMP_FAIL;
+	CHKNULL(success);
+	*success = AMP_FAIL;
 
-    CHKNULL(it);
+	CHKNULL(it);
 
-    result = STAKE(sizeof(var_t));
-    CHKNULL(result);
+	result = STAKE(sizeof(var_t));
+	CHKNULL(result);
 
 
-    /* Grab the var ARI. */
+	/* Grab the var ARI. */
 #if AMP_VERSION < 7
-    blob_t *tmp = blob_deserialize_ptr(it, success);
-    result->id = ari_deserialize_raw(tmp, success);
-    blob_release(tmp, 1);
+	blob_t *tmp = blob_deserialize_ptr(it, success);
+	result->id = ari_deserialize_raw(tmp, success);
+	blob_release(tmp, 1);
 #else
 	QCBORDecode_StartOctets(it);
 	result->id = ari_deserialize_ptr(it, success);
 	QCBORDecode_EndOctets(it);
 #endif
-    if((result->id == NULL) || (*success != AMP_OK))
-    {
-    	SRELEASE(result);
-    	return NULL;
-    }
-	
-    /* Grab the TNV. */
+	if((result->id == NULL) || (*success != AMP_OK))
+	{
+		SRELEASE(result);
+		return NULL;
+	}
+
+	/* Grab the TNV. */
 #if AMP_VERSION < 7
-    tmp = blob_deserialize_ptr(it, success);
-    result->value = tnv_deserialize_raw(tmp, success);
-    blob_release(tmp, 1);
+	tmp = blob_deserialize_ptr(it, success);
+	result->value = tnv_deserialize_raw(tmp, success);
+	blob_release(tmp, 1);
 #else
 	QCBORDecode_StartOctets(it);
 	result->value = tnv_deserialize_ptr(it, success);
 	QCBORDecode_EndOctets(it);
 #endif
 
-    if((result->value == NULL) || (*success != AMP_OK))
-    {
-    	*success = AMP_FAIL;
-    	var_release(result, 1);
-    	return NULL;
-    }
+	if((result->value == NULL) || (*success != AMP_OK))
+	{
+		*success = AMP_FAIL;
+		var_release(result, 1);
+		return NULL;
+	}
 
-    return result;
+	return result;
 }
 
 var_t* var_deserialize_raw(blob_t *data, int *success)
@@ -379,11 +379,11 @@ var_t* var_deserialize_raw(blob_t *data, int *success)
 	*success = AMP_FAIL;
 
 	QCBORDecode_Init(&it,
-					 (UsefulBufC){data->value,data->length},
-					 QCBOR_DECODE_MODE_NORMAL);
+			(UsefulBufC){data->value,data->length},
+			QCBOR_DECODE_MODE_NORMAL);
 
 	var_t *tmp = var_deserialize_ptr(&it, success);
-	
+
 	// Verify Decoding Completed Successfully
 	cut_decode_finish(&it);
 
@@ -468,7 +468,7 @@ int var_serialize(QCBOREncodeContext *encoder, void *item)
 	err = ari_serialize(encoder, var->id);
 	QCBOREncode_CloseArrayOctet(encoder);
 #endif
-	
+
 	if(err != AMP_OK)
 	{
 		AMP_DEBUG_ERR("var_serialize","CBOR Error: %d", err);
@@ -507,28 +507,28 @@ var_def_t  vardef_deserialize(QCBORDecodeContext *it, int *success)
 	CHKUSR(success, result);
 	*success = AMP_FAIL;
 
-    CHKUSR(it, result);
+	CHKUSR(it, result);
 
-    /* Grab the Id. */
-    result.id = ari_deserialize_ptr(it, success);
-    if((result.id == NULL) || (*success != AMP_OK))
-    {
-    	return result;
-    }
+	/* Grab the Id. */
+	result.id = ari_deserialize_ptr(it, success);
+	if((result.id == NULL) || (*success != AMP_OK))
+	{
+		return result;
+	}
 
-    /* Grab the expression. */
-    result.expr = expr_deserialize_ptr(it, success);
-    if((result.expr == NULL) || (*success != AMP_OK))
-    {
-    	*success = AMP_FAIL;
-    	ari_release(result.id, 1);
-    	result.type = AMP_TYPE_UNK;
-    	return result;
-    }
+	/* Grab the expression. */
+	result.expr = expr_deserialize_ptr(it, success);
+	if((result.expr == NULL) || (*success != AMP_OK))
+	{
+		*success = AMP_FAIL;
+		ari_release(result.id, 1);
+		result.type = AMP_TYPE_UNK;
+		return result;
+	}
 
-    *success = AMP_OK;
+	*success = AMP_OK;
 
-    return result;
+	return result;
 }
 
 
@@ -588,4 +588,3 @@ blob_t*    vardef_serialize_wrapper(var_def_t *def)
 {
 	return cut_serialize_wrapper(VARDEF_DEFAULT_ENC_SIZE, def, (cut_enc_fn)vardef_serialize);
 }
-

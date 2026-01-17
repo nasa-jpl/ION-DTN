@@ -41,8 +41,8 @@ static int	run_ltpdriver(uvast destEngineId, int clientId,
 		PUTS("  Payload size defaults to 60000 bytes.");
 		PUTS("");
 		PUTS("  To use payload sizes chosen at random from the");
-	       	PUTS("	range 1024 to 62464, in multiples of 1024,");
-	       	PUTS("	specify payload size 1.");
+		PUTS("  range 1024 to 62464, in multiples of 1024,");
+		PUTS("  specify payload size 1.");
 		PUTS("");
 		PUTS("  Expected destination (receiving) application is");
 		PUTS("  ltpcounter.");
@@ -108,7 +108,7 @@ static int	run_ltpdriver(uvast destEngineId, int clientId,
 		putErrmsg("ltpdriver can't create file ref.", NULL);
 		return 0;
 	}
-	
+
 	startTime = time(NULL);
 	while (running && cyclesRemaining > 0)
 	{
@@ -217,15 +217,15 @@ int	main(int argc, char **argv)
 	switch (argc)
 	{
 	case 6:
-	  	aduLen = strtol(argv[5], NULL, 0);
+		aduLen = strtol(argv[5], NULL, 0);
 		/* FALLTHROUGH */
 
 	case 5:
-	  	greenLen = strtol(argv[4], NULL, 0);
+		greenLen = strtol(argv[4], NULL, 0);
 		/* FALLTHROUGH */
 
 	case 4:
-	  	cycles = strtol(argv[3], NULL, 0);
+		cycles = strtol(argv[3], NULL, 0);
 		/* FALLTHROUGH */
 
 	case 3:

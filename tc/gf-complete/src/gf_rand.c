@@ -77,4 +77,3 @@ void MOA_Fill_Random_Region (void *reg, int size)
   for (i = 0; i < size/4; i++) r32[i] = MOA_Random_32();
   for (i *= 4; i < size; i++) r8[i] = MOA_Random_W(8, 1);
 }
-

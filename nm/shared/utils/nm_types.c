@@ -24,51 +24,51 @@
 #include "nm_types.h"
 
 const char * const amp_type_str[] = {
-										 "CNST",    /* AMP_TYPE_CNST    */
-										 "CTRL",    /* AMP_TYPE_CTRL    */
-										 "EDD",     /* AMP_TYPE_EDD     */
-										 "LIT",     /* AMP_TYPE_LIT     */
-										 "MAC",     /* AMP_TYPE_MAC     */
-										 "OPER",    /* AMP_TYPE_OPER    */
-										 "RPT",     /* AMP_TYPE_RPT     */
-										 "RPTT",    /* AMP_TYPE_RPTT    */
-										 "SBR",     /* AMP_TYPE_SBR     */
-										 "TBL",     /* AMP_TYPE_TBL     */
-										 "TBLT",    /* AMP_TYPE_TBLT    */
-										 "TBR",     /* AMP_TYPE_TBR     */
-										 "VAR",     /* AMP_TYPE_VAR     */
-										 "RSV1",
-										 "RSV2",
-										 "RSV3",
+	"CNST",    /* AMP_TYPE_CNST    */
+	"CTRL",    /* AMP_TYPE_CTRL    */
+	"EDD",     /* AMP_TYPE_EDD     */
+	"LIT",     /* AMP_TYPE_LIT     */
+	"MAC",     /* AMP_TYPE_MAC     */
+	"OPER",    /* AMP_TYPE_OPER    */
+	"RPT",     /* AMP_TYPE_RPT     */
+	"RPTT",    /* AMP_TYPE_RPTT    */
+	"SBR",     /* AMP_TYPE_SBR     */
+	"TBL",     /* AMP_TYPE_TBL     */
+	"TBLT",    /* AMP_TYPE_TBLT    */
+	"TBR",     /* AMP_TYPE_TBR     */
+	"VAR",     /* AMP_TYPE_VAR     */
+	"RSV1",
+	"RSV2",
+	"RSV3",
 
-										 /* Primitive Types */
-										 "BOOL",    /* AMP_TYPE_BOOL    */
-										 "BYTE",    /* AMP_TYPE_BYTE    */
-										 "STR",     /* AMP_TYPE_STR     */
-										 "INT",     /* AMP_TYPE_INT     */
-										 "UINT",    /* AMP_TYPE_UINT    */
-										 "VAST",    /* AMP_TYPE_VAST    */
-										 "UVAST",   /* AMP_TYPE_UVAST   */
-										 "REAL32",  /* AMP_TYPE_REAL32  */
-										 "REAL64",  /* AMP_TYPE_REAL64  */
-										 "RSV4",
-										 "RSV5",
-										 "RSV6",
-										 "RSV7",
-										 "RSV8",
-										 "RSV9",
-										 "RSV10",
+	/* Primitive Types */
+	"BOOL",    /* AMP_TYPE_BOOL    */
+	"BYTE",    /* AMP_TYPE_BYTE    */
+	"STR",     /* AMP_TYPE_STR     */
+	"INT",     /* AMP_TYPE_INT     */
+	"UINT",    /* AMP_TYPE_UINT    */
+	"VAST",    /* AMP_TYPE_VAST    */
+	"UVAST",   /* AMP_TYPE_UVAST   */
+	"REAL32",  /* AMP_TYPE_REAL32  */
+	"REAL64",  /* AMP_TYPE_REAL64  */
+	"RSV4",
+	"RSV5",
+	"RSV6",
+	"RSV7",
+	"RSV8",
+	"RSV9",
+	"RSV10",
 
-										 /* Compound Objects */
-										 "TV",      /* AMP_TYPE_TV      */
-										 "TS",      /* AMP_TYPE_TS      */
-										 "TNV",     /* AMP_TYPE_TNV     */
-										 "TNVC",    /* AMP_TYPE_TNVC    */
-										 "ARI",     /* AMP_TYPE_ARI     */
-										 "AC",      /* AMP_TYPE_AC      */
-										 "EXPR",    /* AMP_TYPE_EXPR    */
-										 "BYTESTR", /* AMP_TYPE_BYTESTR */
-										 "UNK"
+	/* Compound Objects */
+	"TV",      /* AMP_TYPE_TV      */
+	"TS",      /* AMP_TYPE_TS      */
+	"TNV",     /* AMP_TYPE_TNV     */
+	"TNVC",    /* AMP_TYPE_TNVC    */
+	"ARI",     /* AMP_TYPE_ARI     */
+	"AC",      /* AMP_TYPE_AC      */
+	"EXPR",    /* AMP_TYPE_EXPR    */
+	"BYTESTR", /* AMP_TYPE_BYTESTR */
+	"UNK"
 };
 
 

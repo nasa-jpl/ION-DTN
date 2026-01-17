@@ -1,5 +1,5 @@
 /*
- 	brscla.h:	common definitions for Bundle Relay Service
+	brscla.h:	common definitions for Bundle Relay Service
 			convergence layer adapter modules.
 
 	Author: Scott Burleigh, JPL
@@ -10,7 +10,7 @@
 	Copyright (c) 2006, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
- 									*/
+									*/
 
 #ifndef BRSCLA_H
 #define BRSCLA_H

@@ -192,7 +192,7 @@ static Object	getZcoDB(Sdr sdr)
 void	zco_status(Sdr sdr)
 {
 	Object		obj;
-			OBJ_POINTER(ZcoDB, db);
+	OBJ_POINTER(ZcoDB, db);
 	int		i;
 	ZcoBook		*book;
 	char		buffer[128];
@@ -296,7 +296,7 @@ writeMemo(buf);
 double	zco_get_file_occupancy(Sdr sdr, ZcoAcct acct)
 {
 	Object	obj;
-		OBJ_POINTER(ZcoDB, db);
+	OBJ_POINTER(ZcoDB, db);
 	ZcoBook	*book;
 
 	CHKZERO(sdr);
@@ -334,7 +334,7 @@ void	zco_set_max_file_occupancy(Sdr sdr, double limit, ZcoAcct acct)
 double	zco_get_max_file_occupancy(Sdr sdr, ZcoAcct acct)
 {
 	Object	obj;
-		OBJ_POINTER(ZcoDB, db);
+	OBJ_POINTER(ZcoDB, db);
 	ZcoBook	*book;
 
 	CHKZERO(sdr);
@@ -354,7 +354,7 @@ double	zco_get_max_file_occupancy(Sdr sdr, ZcoAcct acct)
 int	zco_enough_file_space(Sdr sdr, vast length, ZcoAcct acct)
 {
 	Object	obj;
-		OBJ_POINTER(ZcoDB, db);
+	OBJ_POINTER(ZcoDB, db);
 	ZcoBook	*book;
 	vast	increment;
 
@@ -424,7 +424,7 @@ writeMemo(buf);
 double	zco_get_bulk_occupancy(Sdr sdr, ZcoAcct acct)
 {
 	Object	obj;
-		OBJ_POINTER(ZcoDB, db);
+	OBJ_POINTER(ZcoDB, db);
 	ZcoBook	*book;
 
 	CHKZERO(sdr);
@@ -462,7 +462,7 @@ void	zco_set_max_bulk_occupancy(Sdr sdr, double limit, ZcoAcct acct)
 double	zco_get_max_bulk_occupancy(Sdr sdr, ZcoAcct acct)
 {
 	Object	obj;
-		OBJ_POINTER(ZcoDB, db);
+	OBJ_POINTER(ZcoDB, db);
 	ZcoBook	*book;
 
 	CHKZERO(sdr);
@@ -482,7 +482,7 @@ double	zco_get_max_bulk_occupancy(Sdr sdr, ZcoAcct acct)
 int	zco_enough_bulk_space(Sdr sdr, vast length, ZcoAcct acct)
 {
 	Object	obj;
-		OBJ_POINTER(ZcoDB, db);
+	OBJ_POINTER(ZcoDB, db);
 	ZcoBook	*book;
 	vast	increment;
 
@@ -556,7 +556,7 @@ writeMemo(buf);
 double	zco_get_heap_occupancy(Sdr sdr, ZcoAcct acct)
 {
 	Object	obj;
-		OBJ_POINTER(ZcoDB, db);
+	OBJ_POINTER(ZcoDB, db);
 	ZcoBook	*book;
 
 	CHKZERO(sdr);
@@ -594,7 +594,7 @@ void	zco_set_max_heap_occupancy(Sdr sdr, double limit, ZcoAcct acct)
 double	zco_get_max_heap_occupancy(Sdr sdr, ZcoAcct acct)
 {
 	Object	obj;
-		OBJ_POINTER(ZcoDB, db);
+	OBJ_POINTER(ZcoDB, db);
 	ZcoBook	*book;
 
 	CHKZERO(sdr);
@@ -614,7 +614,7 @@ double	zco_get_max_heap_occupancy(Sdr sdr, ZcoAcct acct)
 int	zco_enough_heap_space(Sdr sdr, vast length, ZcoAcct acct)
 {
 	Object	obj;
-		OBJ_POINTER(ZcoDB, db);
+	OBJ_POINTER(ZcoDB, db);
 	ZcoBook	*book;
 	vast	increment;
 
@@ -976,7 +976,7 @@ int	zco_extent_too_large(Sdr sdr, ZcoMedium source, vast length,
 {
 	vast	heapSpaceNeeded = sizeof(SourceExtent);
 	Object	obj;
-		OBJ_POINTER(ZcoDB, db);
+	OBJ_POINTER(ZcoDB, db);
 	ZcoBook	*book;
 	double	fileSpaceAvbl;
 	double	bulkSpaceAvbl;
@@ -1150,13 +1150,13 @@ static int	aggregateExtentTooLarge(Sdr sdr, Object location, vast offset,
 	vast		bulkSpaceNeeded = 0;
 	vast		heapSpaceNeeded = 0;
 	Object		obj;
-			OBJ_POINTER(ZcoDB, db);
+	OBJ_POINTER(ZcoDB, db);
 	ZcoBook		*book;
 	double		fileSpaceAvbl;
 	double		bulkSpaceAvbl;
 	double		heapSpaceAvbl;
 
-	zco_get_aggregate_length(sdr, location, offset, length, 
+	zco_get_aggregate_length(sdr, location, offset, length,
 			&fileSpaceNeeded, &bulkSpaceNeeded, &heapSpaceNeeded);
 	obj = getZcoDB(sdr);
 	if (obj == 0)
@@ -1466,7 +1466,7 @@ static int	appendExtent(Sdr sdr, Object zcoObj, Zco *zco,
 		sourceMedium = ZcoObjSource;
 
 		/*	Flag new object reference for deletion as soon
-		*	as reference counts drop to zero.		*/
+		 *	as reference counts drop to zero.		*/
 
 		sdr_stage(sdr, (char *) &objRef, location, sizeof(ObjRef));
 		objRef.okayToDestroy = 1;
@@ -1742,7 +1742,7 @@ Object	zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium,
 					firstExtentLocation, firstExtentOffset,
 					firstExtentLength);
 		}
-		
+
 		if (result < 0)
 		{
 			putErrmsg("Can't append initial extent.", NULL);
@@ -2813,7 +2813,7 @@ void	zco_destroy(Sdr sdr, Object zco)
 
 vast	zco_length(Sdr sdr, Object zcoObj)
 {
-		OBJ_POINTER(Zco, zco);
+	OBJ_POINTER(Zco, zco);
 
 	CHKZERO(sdr);
 	CHKZERO(zcoObj);
@@ -2823,7 +2823,7 @@ vast	zco_length(Sdr sdr, Object zcoObj)
 
 vast	zco_source_data_length(Sdr sdr, Object zcoObj)
 {
-		OBJ_POINTER(Zco, zco);
+	OBJ_POINTER(Zco, zco);
 	int	headersLength;
 	int	trailersLength;
 
@@ -2842,7 +2842,7 @@ vast	zco_source_data_length(Sdr sdr, Object zcoObj)
 
 ZcoAcct	zco_acct(Sdr sdr, Object zcoObj)
 {
-		OBJ_POINTER(Zco, zco);
+	OBJ_POINTER(Zco, zco);
 
 	CHKZERO(sdr);
 	CHKZERO(zcoObj);

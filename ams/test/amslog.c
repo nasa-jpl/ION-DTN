@@ -231,7 +231,7 @@ int	main(int argc, char **argv)
 	char		unitName[33];
 	char		roleName[33];
 	char		continName[33];			// CW, 5/1/06
-	short		subjectNbr;              
+	short		subjectNbr;
 	int		unitNbr;
 	int		roleNbr;
 	short		continNbr;			// CW, 5/1/06
@@ -276,7 +276,7 @@ messages to stdout.\n", stderr);
 
 	/* attach for ionsec database (for key retrieval) */
 	if (bp_attach() != 0)
-	{		
+	{
 		return -1;
 	}
 
@@ -286,7 +286,7 @@ messages to stdout.\n", stderr);
 		if (fgets(cmdString, 256, stdin) == NULL)
 		{
 			if (ferror(stdin))
-			{ 
+			{
 				putSysErrmsg("amslog can't read from stdin",
 						NULL);
 			}
@@ -304,7 +304,7 @@ messages to stdout.\n", stderr);
 		case '+':		/*	Asserting.		*/
 			cmdString++;
 			break;		/*	Out of switch.		*/
-	
+
 		case '-':		/*	Canceling.		*/
 			asserting = 0;
 			cmdString++;
@@ -313,7 +313,7 @@ messages to stdout.\n", stderr);
 		default:		/*	Assume no control char.	*/
 			break;		/*	Out of switch.		*/
 		}
-	
+
 		/*	Get rid of terminal newline.			*/
 
 		stringLength = strlen(cmdString);
@@ -333,8 +333,8 @@ messages to stdout.\n", stderr);
 		unitNbr = 0;	/*	Default is root unit.		*/
 		continNbr = 0;	/*	Default is "all continua".	*/
 		parmCount = sscanf(cmdString, "%32s %32s %32s %32s",
-				subjectName, continName,	// CW, 5/1/06  
-				unitName, roleName);                     
+				subjectName, continName,	// CW, 5/1/06
+				unitName, roleName);
 		switch (parmCount)
 		{
 		case 4:						// CW 5/1/06
@@ -363,7 +363,7 @@ messages to stdout.\n", stderr);
 
 			/* FALLTHROUGH */
 
-		case 2:  
+		case 2:
 			if (strcmp(continName, "_") != 0)	// CW, 5/19/06
 			{
 				continNbr = ams_lookup_continuum_nbr(me,

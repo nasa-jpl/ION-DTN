@@ -39,7 +39,7 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  CONSTANTS  								  +
+ * |                              CONSTANTS                                   +
  * +--------------------------------------------------------------------------+
  */
 
@@ -51,13 +51,13 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  	MACROS  								  +
+ * |                                MACROS                                    +
  * +--------------------------------------------------------------------------+
  */
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  DATA TYPES  								  +
+ * |                              DATA TYPES                                  +
  * +--------------------------------------------------------------------------+
  */
 
@@ -73,13 +73,13 @@ typedef tnv_t* (*ctrldef_run_fn)(eid_t *def_mgr, tnvc_t *params, int8_t *status)
  */
 typedef struct
 {
-    ari_t *ari;			  /**> The ID identifying this def.        */
+	ari_t *ari;	    /**> The ID identifying this def. */
 
-    uint8_t num_parms;    /**> # params needed to complete this MID.*/
+	uint8_t num_parms;  /**> # params needed to complete this MID. */
 
-    ctrldef_run_fn run;  /**> Function implementing the control.   */
+	ctrldef_run_fn run; /**> Function implementing the control. */
 
-    db_desc_t desc;
+	db_desc_t desc;
 } ctrldef_t;
 
 
@@ -112,7 +112,7 @@ typedef struct
 
 /*
  * +--------------------------------------------------------------------------+
- * |						  FUNCTION PROTOTYPES  							  +
+ * |                          FUNCTION PROTOTYPES                             +
  * +--------------------------------------------------------------------------+
  */
 

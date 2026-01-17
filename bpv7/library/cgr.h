@@ -1,5 +1,5 @@
 /*
- 	cgr.h:	definitions supporting the utilization of Contact
+	cgr.h:	definitions supporting the utilization of Contact
 		Graph Routing in forwarding infrastructure.
 
 	Author: Scott Burleigh, JPL
@@ -10,7 +10,7 @@
 	Copyright (c) 2011, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
- 									*/
+									*/
 
 #ifndef CGR_H
 #define CGR_H
@@ -209,7 +209,7 @@ typedef struct
 	 *	systems, so "routing object" is an abstraction.  The
 	 *	particular structure of the routing objects used in
 	 *	forwarding to "ipn"-scheme endpoints is defined here.
- 	 *
+	 *
 	 *	Routing objects are properties of nodes, which are
 	 *	realized in IonNode objects.  Each CgrRtgObject
 	 *	structure containing the addresses of two SmLists
@@ -218,7 +218,7 @@ typedef struct
 	 *	is the B list.
 	 *
 	 *	The *list user data* of each of these SmList objects
-	 *	is the address of the IonNode structure for the 
+	 *	is the address of the IonNode structure for the
 	 *	destination node of which the routing object is a
 	 *	property.
 	 *
@@ -270,7 +270,7 @@ extern int		cgr_start_SAP(uvast, time_t, CgrSAP *sap);
 extern int		cgr_identify_best_routes(IonNode *terminusNode,
 				Bundle *bundle, Lyst excludedNodes,
 				time_t currentTime, CgrSAP sap,
-				CgrTrace *trace, Lyst bestRoutes); 
+				CgrTrace *trace, Lyst bestRoutes);
 extern void		cgr_stop_SAP(CgrSAP sap);
 extern float		cgr_get_dlv_confidence(Bundle *bundle, CgrRoute *route);
 extern int		cgr_preview_forward(uvast terminusNodeNbr,

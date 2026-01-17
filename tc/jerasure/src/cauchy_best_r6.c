@@ -70,13 +70,13 @@ static int cbest_7[127];
 static int cbest_8[255];
 static int cbest_9[511];
 static int cbest_10[1023];
-static int cbest_11[1023]; 
+static int cbest_11[1023];
 static int cbest_12[1023], cbest_13[1023], cbest_14[1023], cbest_15[1023], cbest_16[1023], cbest_17[1023], cbest_18[1023],
            cbest_19[1023], cbest_20[1023], cbest_21[1023], cbest_22[1023], cbest_23[1023], cbest_24[1023], cbest_25[1023],
            cbest_26[1023], cbest_27[1023], cbest_28[1023], cbest_29[1023], cbest_30[1023], cbest_31[1023];
 static unsigned int cbest_32[1023];
 
-static int cbest_max_k[33] = { -1, -1, 3, 7, 15, 31, 63, 127, 255, 511, 1023, 1023, 
+static int cbest_max_k[33] = { -1, -1, 3, 7, 15, 31, 63, 127, 255, 511, 1023, 1023,
      1023, 1023, 1023, 1023, 1023, 1023, 1023, 1023, 1023, 1023, 1023, 1023, 1023, 1023, 1023, 1023, 1023,
      1023, 1023, 1023, 1023 };
 
@@ -123,12 +123,12 @@ int cauchy_n_ones(int n, int w)
       }
     } else {
       n <<= 1;
-    } 
+    }
     no += cno;
   }
   return no;
 }
-  
+
 int *cauchy_original_coding_matrix(int k, int m, int w)
 {
   int *matrix;

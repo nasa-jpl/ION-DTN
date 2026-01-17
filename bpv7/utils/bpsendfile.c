@@ -99,7 +99,7 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 		putErrmsg("bpsendfile can't create file ref.", NULL);
 		return 0;
 	}
-	
+
 	bundleZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength,
 			priority, ancillaryData.ordinal, ZcoOutbound, NULL);
 	if (bundleZco == 0 || bundleZco == (Object) ERROR)
@@ -185,7 +185,7 @@ int	main(int argc, char **argv)
 	case 2:
 		ownEid = argv[1];
 		/* FALLTHROUGH */
-		
+
 	default:
 		break;
 	}

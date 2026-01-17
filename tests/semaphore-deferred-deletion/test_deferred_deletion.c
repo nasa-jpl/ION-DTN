@@ -76,9 +76,9 @@ static TestResults results = {0, 0, 0};
 /* The main C99-compliant LOG_INFO macro */
 #define LOG_INFO(...) \
 	LOG_INFO__GET_MACRO(__VA_ARGS__, \
-						LOG_INFO__N, LOG_INFO__N, LOG_INFO__N, LOG_INFO__N, \
-						LOG_INFO__N, LOG_INFO__N, LOG_INFO__N, LOG_INFO__N, \
-						LOG_INFO__N, LOG_INFO__1, 0) \
+			LOG_INFO__N, LOG_INFO__N, LOG_INFO__N, LOG_INFO__N, \
+			LOG_INFO__N, LOG_INFO__N, LOG_INFO__N, LOG_INFO__N, \
+			LOG_INFO__N, LOG_INFO__1, 0) \
 	(__VA_ARGS__)
 
 /* Thread argument structure */
@@ -105,7 +105,7 @@ void *semaphore_holder_thread(void *arg)
 	}
 
 	LOG_INFO("Thread %d: Successfully took semaphore, holding for %d seconds",
-	         targ->thread_num, targ->sleep_seconds);
+			targ->thread_num, targ->sleep_seconds);
 
 	/* Hold the semaphore for specified duration */
 	sleep(targ->sleep_seconds);

@@ -548,17 +548,17 @@ static void list_bundles(const BundleCacheEntry *entries, int count, int detail)
 		if (g_useColor)
 		{
 			printf("%s%s%-24s%s%s%s%-24s%s%s%8s%s%6s%s%s%s%s%-10s%s%s\n",
-			       BOX_V, bold, "Source", reset, BOX_V,
-			       bold, "Destination", reset, BOX_V,
-			       "Size", BOX_V,
-			       "TTL", BOX_V,
-			       "P", BOX_V,
-			       bold, "Queue", reset, BOX_V);
+				BOX_V, bold, "Source", reset, BOX_V,
+				bold, "Destination", reset, BOX_V,
+				"Size", BOX_V,
+				"TTL", BOX_V,
+				"P", BOX_V,
+				bold, "Queue", reset, BOX_V);
 		}
 		else
 		{
 			printf("|%-24s|%-24s|%8s|%6s|%s|%-10s|\n",
-			       "Source", "Destination", "Size", "TTL", "P", "Queue");
+				"Source", "Destination", "Size", "TTL", "P", "Queue");
 		}
 
 		/* Header separator */
@@ -667,7 +667,7 @@ static int confirm_action(const char *message, int count)
  * Cancel bundles
  */
 static int cancel_bundles(BundleCacheEntry *entries, int count,
-			  int dryRun, int noConfirm)
+		int dryRun, int noConfirm)
 {
 	int	i;
 	int	canceledCount;
@@ -727,7 +727,7 @@ static int cancel_bundles(BundleCacheEntry *entries, int count,
  * Suspend bundles
  */
 static int suspend_bundles(BundleCacheEntry *entries, int count,
-			   int dryRun, int noConfirm)
+		int dryRun, int noConfirm)
 {
 	int	i;
 	int	suspendedCount;
@@ -787,7 +787,7 @@ static int suspend_bundles(BundleCacheEntry *entries, int count,
  * Resume bundles
  */
 static int resume_bundles(BundleCacheEntry *entries, int count,
-			  int dryRun, int noConfirm)
+		int dryRun, int noConfirm)
 {
 	int	i;
 	int	resumedCount;
@@ -965,7 +965,7 @@ int main(int argc, char **argv)
 					if (remainingCount < state.count)
 					{
 						printf("Successfully removed %d bundles from system\n",
-						       state.count - remainingCount);
+							state.count - remainingCount);
 					}
 					else
 					{
@@ -996,7 +996,7 @@ int main(int argc, char **argv)
 		int	i;
 
 		printf("Exporting %d bundles to %s...\n",
-		       filteredCount, opts.exportFile);
+			filteredCount, opts.exportFile);
 
 		for (i = 0; i < filteredCount; i++)
 		{

@@ -60,7 +60,7 @@ static void *handleDatagrams(void *parm)
 	{
 		/* Use dual-stack receive with automatic shutdown detection */
 		bundleLength = receiveUdpClaDatagram(&rtp->claSock, buffer,
-		                UDPCLA_BUFSZ, &fromAddr, &is_shutdown);
+				UDPCLA_BUFSZ, &fromAddr, &is_shutdown);
 
 		/* Handle shutdown signal */
 		if (is_shutdown)
@@ -89,9 +89,9 @@ static void *handleDatagrams(void *parm)
 		}
 
 		if (bpBeginAcq(work, 0, NULL) < 0
-		                || bpContinueAcq(work, buffer, bundleLength, 0, 0)
-		                                < 0
-		                || bpEndAcq(work) < 0)
+				|| bpContinueAcq(work, buffer, bundleLength, 0, 0)
+						< 0
+				|| bpEndAcq(work) < 0)
 		{
 			putErrmsg("Can't acquire bundle.", NULL);
 			ionKillMainThread(procName);
@@ -136,7 +136,7 @@ static void interruptThread(int signum)
 
 #if defined(ION_LWT)
 int udpcli(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5, saddr a6, saddr a7,
-                saddr a8, saddr a9, saddr a10)
+		saddr a8, saddr a9, saddr a10)
 {
 	char *ductName = (char *) a1;
 #else
@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
 	if (vduct->cliPid != ERROR && vduct->cliPid != sm_TaskIdSelf())
 	{
 		putErrmsg("CLI task is already started for this duct.",
-		                itoa(vduct->cliPid));
+				itoa(vduct->cliPid));
 		return -1;
 	}
 
@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
 	sdr = getIonsdr();
 	CHKZERO(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &duct, sdr_list_data(sdr, vduct->inductElt),
-	                sizeof(Induct));
+			sizeof(Induct));
 	sdr_read(sdr, (char *) &protocol, duct.protocol, sizeof(ClProtocol));
 	sdr_exit_xn(sdr);
 
@@ -200,14 +200,14 @@ int main(int argc, char *argv[])
 
 	/* Log what we're listening on */
 	formatNetworkAddress(&rtp.claSock.local_addr, localAddrStr,
-	                sizeof(localAddrStr));
+			sizeof(localAddrStr));
 	{
 		char memo[256];
 		snprintf(memo, sizeof(memo), "[i] udpcli listening on %s (%s)",
-		                localAddrStr,
-		                (rtp.claSock.local_addr.family == AF_INET6) ?
-		                                "IPv6" :
-		                                "IPv4");
+				localAddrStr,
+				(rtp.claSock.local_addr.family == AF_INET6) ?
+						"IPv6" :
+						"IPv4");
 		writeMemo(memo);
 	}
 
@@ -238,12 +238,12 @@ int main(int argc, char *argv[])
 
 		char addrStr[INET6_ADDR_WITH_PORT_STRLEN];
 		formatNetworkAddress(&rtp.claSock.local_addr, addrStr,
-		                sizeof(addrStr));
+				sizeof(addrStr));
 		isprintf(txt, sizeof(txt), "[i] udpcli is running on %s (%s).",
-		                addrStr,
-		                (rtp.claSock.local_addr.family == AF_INET6) ?
-		                                "IPv6" :
-		                                "IPv4");
+				addrStr,
+				(rtp.claSock.local_addr.family == AF_INET6) ?
+						"IPv6" :
+						"IPv4");
 		writeMemo(txt);
 	}
 

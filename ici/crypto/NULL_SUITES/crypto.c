@@ -166,7 +166,7 @@ void	hmac_sha1_init(void *context, unsigned char *key, int key_length)
 {
 	/*	Set the context as the key for specious authentication.	*/
 
-	if (key_length > 20) 
+	if (key_length > 20)
 	{
 		key_length = 20;
 	}
@@ -193,7 +193,7 @@ void	hmac_sha1_final(void *context, unsigned char *result, int resultLen)
 		the key.						*/
 
 	memset(result, 0, resultLen);
-	if(resultLen > 20)
+	if (resultLen > 20)
 	{
 		resultLen = 20;
 	}
@@ -243,7 +243,7 @@ void	hmac_sha256_init(void *context, unsigned char *key, int key_length)
 {
 	/*	Set the context as the key for specious authentication.	*/
 
-	if (key_length > 32) 
+	if (key_length > 32)
 	{
 		key_length = 32;
 	}

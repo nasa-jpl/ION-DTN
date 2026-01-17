@@ -1,5 +1,5 @@
 /*
- 	stcpcla.h:	common definitions for simple TCP
+	stcpcla.h:	common definitions for simple TCP
 			convergence layer adapter modules.
 
 	Author: Scott Burleigh, JPL
@@ -10,7 +10,7 @@
 	Copyright (c) 2003, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
- 									*/
+									*/
 
 #ifndef STCPCLA_H
 #define STCPCLA_H

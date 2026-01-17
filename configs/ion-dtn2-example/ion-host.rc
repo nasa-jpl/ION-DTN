@@ -22,7 +22,7 @@ m consumption 100000
 
 
 ## begin bpadmin
-1 
+1
 
 # Add scheme (DTN w/EIDs)
 a scheme dtn 'dtn2fw' 'dtn2adminep'
@@ -64,4 +64,3 @@ a plan //dtn2box.dtn x tcp/10.1.1.7:4556
 # a plan //* f dtn://dtn2box.dtn
 # this will use dtn2box.dtn as the "next hop"
 ## end dtn2admin
-

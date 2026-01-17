@@ -1,11 +1,11 @@
 # configuration file for the loopback-dccp test.
 #	Command: ionstart -Iloopback-dccp.rc
-#	This command should be run AFTER ionadmin and ltpadmin and 
+#	This command should be run AFTER ionadmin and ltpadmin and
 #	BEFORE ipnadmin or dtnadmin.
 #
 #	Ohio University, November 2010
 #
-## begin ionadmin 
+## begin ionadmin
 # ionrc configuration file for the loopback-dccp test.
 #	This uses ltp as the primary convergence layer.
 #	command: % ionadmin loopback-dccp.ionrc
@@ -13,7 +13,7 @@
 #
 #	Ohio University, November 2010
 
-# Initialization command (command 1). 
+# Initialization command (command 1).
 #	Set this node to be node 1 (as in ipn:1).
 #	Use default sdr configuration (empty configuration file name '').
 1 1 ''
@@ -43,7 +43,7 @@ m consumption 1000000
 1
 ## end ionsecadmin
 
-## begin ltpadmin 
+## begin ltpadmin
 # ltprc configuration file for the loopback-dccp test.
 #	Command: % ltpadmin loopback-dccp.ltprc
 #	This command should be run AFTER ionadmin and BEFORE bpadmin.
@@ -54,8 +54,8 @@ m consumption 1000000
 #	please consult manual pages and other documentation for a
 #	better description.
 
-# Initialization command (command 1). 
-# Establishes the LTP retransmission window. 
+# Initialization command (command 1).
+# Establishes the LTP retransmission window.
 # (Prohibiting LTP from seizing all available storage).
 #	A maximum of 32 sessions.  A session is assumed to be around one
 #	second of transmission.  This value should be estimated at the sum
@@ -64,7 +64,7 @@ m consumption 1000000
 #	long sessions which contain an actual retransmission.
 1 128
 
-# Add a span. (a connection) 
+# Add a span. (a connection)
 #	Identify the span as engine number 1.  That is the ipn node number
 #	of the node on the other end of this span.
 #	Use 128 as the maximum number of export sessions.
@@ -92,18 +92,18 @@ a span 1 128 1024 128 1024 1024 1024 1 'dccplso localhost:1113'
 #	Also starts the link service INPUT task 'dccplsi localhost:1113' to
 #	listen locally on DCCP port 1113 for incoming LTP traffic.
 s 'dccplsi localhost:1113'
-## end ltpadmin 
+## end ltpadmin
 
-## begin bpadmin 
+## begin bpadmin
 # bprc configuration file for the loopback-dccp test.
 #	Command: % bpadmin loopback-dccp.bprc
-#	This command should be run AFTER ionadmin and ltpadmin and 
+#	This command should be run AFTER ionadmin and ltpadmin and
 #	BEFORE ipnadmin or dtnadmin.
 #
 #	Ohio University, November 2010
 
 # Initialization command (command 1).
-1 
+1
 
 # Add an EID scheme.
 #	The scheme's name is ipn.
@@ -122,7 +122,7 @@ a scheme ipn 'ipnfw' 'ipnadminep'
 a endpoint ipn:1.1 q
 a endpoint ipn:1.2 q
 
-# Add a protocol. 
+# Add a protocol.
 #	Add the protocol named ltp.
 #	Estimate transmission capacity assuming 1400 bytes of each frame (in
 #	this case, udp on ethernet) for payload, and 100 bytes for overhead.
@@ -144,9 +144,9 @@ a outduct ltp 1 ltpclo
 
 # Start the daemons
 s
-## end bpadmin 
+## end bpadmin
 
-## begin ipnadmin 
+## begin ipnadmin
 # ipnrc configuration file for the loopback-dccp test.
 #	Essentially, this is the IPN scheme's routing table.
 #	Command: % ipnadmin loopback-dccp.ipnrc
@@ -160,4 +160,4 @@ s
 #	the outduct identified as '1.'
 #	See your bprc file or bpadmin for outducts/protocols you can use.
 a plan 1 ltp/1
-## end ipnadmin 
+## end ipnadmin

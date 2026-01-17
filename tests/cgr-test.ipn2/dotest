@@ -19,20 +19,20 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: To test out Contact Graph Routing behavior in a very large
-	contact graph.  Only one node is actually run, though there are several
-	nodes defined in the graph."
+    contact graph.  Only one node is actually run, though there are several
+    nodes defined in the graph."
 echo
 echo "CONFIG: Large contact graph, with only one configured node:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
-echo "OUTPUT: Searching for bundle forwarding messages in ion.log to ensure 
-	that the CGR engine is capable of making decisions."
+echo "OUTPUT: Searching for bundle forwarding messages in ion.log to ensure
+    that the CGR engine is capable of making decisions."
 echo
 echo "########################################"
 
@@ -52,10 +52,10 @@ rm -f ./ion_nodes
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node not started: Aborting Test"
-	exit 1
+    echo "Node not started: Aborting Test"
+    exit 1
 fi
 
 echo "Send a bundle from ipn:9.1 destined for (nonexistent) node ipn:1.1..."
@@ -78,10 +78,10 @@ echo "Searching ion.log for a single 'fwd' message '(+) 1 3'..."
 COUNT=`grep fwd ion.log | grep "(+) 1 3" | wc -l`
 if [ $COUNT -gt 0 ]
 then
-	echo "OK: Route was computed."
+    echo "OK: Route was computed."
 else
-	echo "ERROR: Route was not computed."
-	RETVAL=1
+    echo "ERROR: Route was not computed."
+    RETVAL=1
 fi
 
 # Shut down ION processes.

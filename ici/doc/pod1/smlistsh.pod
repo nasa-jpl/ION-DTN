@@ -13,8 +13,8 @@ necessary, and placing it under PSM management as necessary) and offers
 the user an interactive "shell" for testing various shared-memory linked
 list management functions.
 
-B<smlistsh> prints a prompt string (": ") to stdout, accepts a command from 
-stdin, executes the command (possibly printing a diagnostic message), 
+B<smlistsh> prints a prompt string (": ") to stdout, accepts a command from
+stdin, executes the command (possibly printing a diagnostic message),
 then prints another prompt string and so on.
 
 The following commands are supported:

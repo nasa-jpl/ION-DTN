@@ -67,4 +67,3 @@ LTP-level service client ID 2 (routing LTP blocks to the SDA service)
 SDA application-level client ID 135 (demonstrating SDA's multiplexing capability as defined in the CCSDS standard)
 
 Both client IDs are essential for demonstrating compliance with the CCSDS SDA specification. The application-level ID (e.g., 135) demonstrate the ability to carrying multiple applications to efficiently share a single LTP transport.
-

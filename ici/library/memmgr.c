@@ -2,7 +2,7 @@
  *	memmgr.c:	functions for enabling multiple dynamic
  *			memory management systems to coexist in
  *			a single address space.
- *									
+ *
  *	Copyright (c) 2001, California Institute of Technology.
  *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
  *	acknowledged.
@@ -163,8 +163,8 @@ static int	_mem_mgrs(int nbr, char *name, MemAllocator take,
 			if (mgr == NULL || mgr->name == NULL || name == NULL)
 			{
 				continue;
-			} 
-			else if (strcmp(mgr->name, name) != 0)	
+			}
+			else if (strcmp(mgr->name, name) != 0)
 			{
 				continue;
 			}

@@ -101,7 +101,7 @@ static int	run_file2sm(char *fileName)
 				usec = ((endTime.tv_sec - startTime.tv_sec)
 						* 1000000) + (endTime.tv_usec -
 						startTime.tv_usec);
-				
+
 				if (usec == 0)
 				{
 					PUTMEMO("Testfile is probably too small. Number of lines processed within 1 microsecond",

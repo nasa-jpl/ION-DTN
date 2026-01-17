@@ -43,7 +43,7 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  CONSTANTS  								  +
+ * |                              CONSTANTS                                   +
  * +--------------------------------------------------------------------------+
  */
 
@@ -70,7 +70,7 @@ extern vector_t g_adm_info;
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  DATA TYPES  								  +
+ * |                              DATA TYPES                                  +
  * +--------------------------------------------------------------------------+
  */
 
@@ -84,7 +84,7 @@ extern vector_t g_adm_info;
 
 /*
  * +--------------------------------------------------------------------------+
- * |						  DATA DEFINITIONS  							  +
+ * |                          DATA DEFINITIONS                                +
  * +--------------------------------------------------------------------------+
  */
 
@@ -97,7 +97,7 @@ typedef struct
 
 /*
  * +--------------------------------------------------------------------------+
- * |						  FUNCTION PROTOTYPES  							  +
+ * |                          FUNCTION PROTOTYPES                             +
  * +--------------------------------------------------------------------------+
  */
 
@@ -116,9 +116,8 @@ int adm_add_op_ari(ari_t *id, uint8_t num_parm, op_fn apply_fn);
 
 int adm_add_rpttpl(rpttpl_t *def);
 int adm_add_tblt(tblt_t *def);
-int	adm_add_var_from_expr(ari_t *id, amp_type_e type, expr_t *expr);
-int adm_add_var_from_tnv(ari_t *id, tnv_t value)
-;
+int adm_add_var_from_expr(ari_t *id, amp_type_e type, expr_t *expr);
+int adm_add_var_from_tnv(ari_t *id, tnv_t value);
 
 ari_t* adm_build_ari(amp_type_e type, uint8_t has_parms, vec_idx_t nn, uvast id);
 ari_t *adm_build_ari_parm_6(amp_type_e type, vec_idx_t nn, uvast id, tnv_t *p1, tnv_t *p2, tnv_t* p3, tnv_t *p4, tnv_t *p5, tnv_t *p6);

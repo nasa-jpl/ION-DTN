@@ -72,16 +72,16 @@ int main(int argc, char **argv)
 
 	printf("Starting CFDP Transaction...\n");
 	fail_unless(cfdp_put(&(parms.destinationEntityNbr),
-						sizeof(BpUtParms),
-						(unsigned char *) &(parms.utParms),
-						parms.sourceFileName,
-						parms.destFileName, NULL,
-						parms.segMetadataFn,
-						parms.faultHandlers, 0, NULL,
-						parms.closureLatency,
-						parms.msgsToUser,
-						parms.fsRequests,
-						&(parms.transactionId)) >= 0);
+			sizeof(BpUtParms),
+			(unsigned char *) &(parms.utParms),
+			parms.sourceFileName,
+			parms.destFileName, NULL,
+			parms.segMetadataFn,
+			parms.faultHandlers, 0, NULL,
+			parms.closureLatency,
+			parms.msgsToUser,
+			parms.fsRequests,
+			&(parms.transactionId)) >= 0);
 	printf("Call returned...\n");
 
 	/* Stop ION */

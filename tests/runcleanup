@@ -1,6 +1,6 @@
 #!/usr/bin/env bash -x
-# Script that runs the runtests’ cleanup feature. 
-# The latter was well hidden and probably not 
-# widely known; this script documents this existing 
+# Script that runs the runtests’ cleanup feature.
+# The latter was well hidden and probably not
+# widely known; this script documents this existing
 # cleanup feature.
 ./runtests cleanup .

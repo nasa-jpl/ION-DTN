@@ -55,7 +55,7 @@ jobs:
         with:
           clean: true
           # clear workspace after
-        
+
       - name: Display OS and Arch
         run: |
           cat /etc/os-release

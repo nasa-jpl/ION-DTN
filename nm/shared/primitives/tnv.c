@@ -158,7 +158,7 @@ int tnv_compare(tnv_t *v1, tnv_t *v2)
 		case AMP_TYPE_CNST:
 		case AMP_TYPE_EDD:
 		case AMP_TYPE_ARI:
-		case AMP_TYPE_LIT:     diff = ari_compare((ari_t*)v1->value.as_ptr, (ari_t*)v2->value.as_ptr, 0);       break;
+		case AMP_TYPE_LIT:     diff = ari_compare((ari_t*)v1->value.as_ptr, (ari_t*)v2->value.as_ptr, 0);    break;
 		case AMP_TYPE_CTRL:    diff = ctrl_cb_comp_fn((ctrl_t*)v1->value.as_ptr, (ctrl_t*)v2->value.as_ptr); break;
 		case AMP_TYPE_OPER:    diff = op_cb_comp_fn((op_t*)v1->value.as_ptr, (op_t*)v2->value.as_ptr);       break;
 		case AMP_TYPE_RPT:     diff = rpt_cb_comp_fn((rpt_t*)v1->value.as_ptr, (rpt_t*)v2->value.as_ptr);    break;
@@ -226,12 +226,12 @@ tnv_t tnv_copy(tnv_t val, int *success)
 		case AMP_TYPE_CNST:
 		case AMP_TYPE_EDD:
 		case AMP_TYPE_LIT:
-		case AMP_TYPE_ARI:     result.value.as_ptr = ari_copy_ptr((ari_t*)result.value.as_ptr);  		break;
-		case AMP_TYPE_CTRL:    result.value.as_ptr = ctrl_copy_ptr((ctrl_t*) result.value.as_ptr);   	break;
+		case AMP_TYPE_ARI:     result.value.as_ptr = ari_copy_ptr((ari_t*)result.value.as_ptr);         break;
+		case AMP_TYPE_CTRL:    result.value.as_ptr = ctrl_copy_ptr((ctrl_t*) result.value.as_ptr);      break;
 		case AMP_TYPE_MAC:     result.value.as_ptr = macdef_copy_ptr((macdef_t*) result.value.as_ptr);  break;
-		case AMP_TYPE_AC:      result.value.as_ptr = ac_copy_ptr((ac_t*) result.value.as_ptr);   		break;
-		case AMP_TYPE_OPER:    result.value.as_ptr = op_copy_ptr((op_t*) result.value.as_ptr);     	    break;
-		case AMP_TYPE_RPT:     result.value.as_ptr = rpt_copy_ptr((rpt_t*) result.value.as_ptr);    	break;
+		case AMP_TYPE_AC:      result.value.as_ptr = ac_copy_ptr((ac_t*) result.value.as_ptr);          break;
+		case AMP_TYPE_OPER:    result.value.as_ptr = op_copy_ptr((op_t*) result.value.as_ptr);          break;
+		case AMP_TYPE_RPT:     result.value.as_ptr = rpt_copy_ptr((rpt_t*) result.value.as_ptr);        break;
 		case AMP_TYPE_RPTTPL:  result.value.as_ptr = rpttpl_copy_ptr((rpttpl_t*) result.value.as_ptr);  break;
 		case AMP_TYPE_TBR:
 		case AMP_TYPE_SBR:     result.value.as_ptr = rule_copy_ptr((rule_t*) result.value.as_ptr);      break;
@@ -344,60 +344,60 @@ tnv_t *tnv_create(void)
 
 tnv_t tnv_deserialize(QCBORDecodeContext *it, int *success)
 {
-    uint8_t type = 0;
-    size_t array_len = 0;
-    QCBORItem item;
-    QCBORError err;
-    tnv_t result;
+	uint8_t type = 0;
+	size_t array_len = 0;
+	QCBORItem item;
+	QCBORError err;
+	tnv_t result;
 
-    AMP_DEBUG_ENTRY("tnv_deserialize","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")", (uaddr)it, (uaddr)success);
+	AMP_DEBUG_ENTRY("tnv_deserialize","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")", (uaddr)it, (uaddr)success);
 
-    tnv_init(&result, AMP_TYPE_UNK);
+	tnv_init(&result, AMP_TYPE_UNK);
 
-    CHKUSR(it, result);
-    CHKUSR(success, result);
+	CHKUSR(it, result);
+	CHKUSR(success, result);
 
-    /* This should be an array... */
-    err = QCBORDecode_GetNext(it, &item);
-    if (err != QCBOR_SUCCESS || item.uDataType != QCBOR_TYPE_ARRAY)
-    {
-    	AMP_DEBUG_ERR("tnv_deserialize","Invalid Array", NULL);
-    	*success = AMP_FAIL;
-        return result;
+	/* This should be an array... */
+	err = QCBORDecode_GetNext(it, &item);
+	if (err != QCBOR_SUCCESS || item.uDataType != QCBOR_TYPE_ARRAY)
+	{
+		AMP_DEBUG_ERR("tnv_deserialize","Invalid Array", NULL);
+		*success = AMP_FAIL;
+		return result;
 	}
-    
-    /* Step 1: Grab the TNV and Flags byte. */
-    cut_get_cbor_numeric(it, AMP_TYPE_BYTE, &type);
 
-    result.type = (type & 0x7F);
-    array_len--;
+	/* Step 1: Grab the TNV and Flags byte. */
+	cut_get_cbor_numeric(it, AMP_TYPE_BYTE, &type);
 
-    /* Step 2: Deserialize name, if we have a name. */
-    if(type & 0x80)
-    {
-    	char *name = cut_get_cbor_str(it, success);
-    	if(name == NULL)
-    	{
-    		AMP_DEBUG_ERR("tnv_deserialize","Error getting name.", NULL);
-    		result.type = AMP_TYPE_UNK;
-    		*success = AMP_FAIL;
-    		return result;
-    	}
-    	array_len--;
-    }
+	result.type = (type & 0x7F);
+	array_len--;
 
-    if(array_len > 0)
-    {
-    	if(tnv_deserialize_val_by_type(it, &result) != AMP_OK)
-    	{
-    		AMP_DEBUG_ERR("tnv_deserialize","Deserialize error: AMP %d", *success);
-    		tnv_release(&result,0);
-    		result.type = AMP_TYPE_UNK;
-    		return result;
+	/* Step 2: Deserialize name, if we have a name. */
+	if(type & 0x80)
+	{
+		char *name = cut_get_cbor_str(it, success);
+		if(name == NULL)
+		{
+			AMP_DEBUG_ERR("tnv_deserialize","Error getting name.", NULL);
+			result.type = AMP_TYPE_UNK;
+			*success = AMP_FAIL;
+			return result;
 		}
-    }
+		array_len--;
+	}
 
-    *success = AMP_OK;
+	if(array_len > 0)
+	{
+		if(tnv_deserialize_val_by_type(it, &result) != AMP_OK)
+		{
+			AMP_DEBUG_ERR("tnv_deserialize","Deserialize error: AMP %d", *success);
+			tnv_release(&result,0);
+			result.type = AMP_TYPE_UNK;
+			return result;
+		}
+	}
+
+	*success = AMP_OK;
 	return result;
 }
 
@@ -437,18 +437,18 @@ tnv_t* tnv_deserialize_raw(blob_t *data, int *success)
 	{
 		return NULL;
 	}
-    *success = AMP_FAIL;
+	*success = AMP_FAIL;
 
-    QCBORDecode_Init(&it,
-                     (UsefulBufC){data->value,data->length},
-                     QCBOR_DECODE_MODE_NORMAL);
+	QCBORDecode_Init(&it,
+			(UsefulBufC){data->value,data->length},
+			QCBOR_DECODE_MODE_NORMAL);
 
 	tnv_t *tmp = tnv_deserialize_ptr(&it, success);
 
-    // Verify Decoding Completed Successfully
-    cut_decode_finish(&it);
+	// Verify Decoding Completed Successfully
+	cut_decode_finish(&it);
 
-    return tmp;
+	return tmp;
 }
 
 
@@ -480,43 +480,43 @@ int tnv_deserialize_val_by_type(QCBORDecodeContext *it, tnv_t *result)
 	switch(result->type)
 	{
 		/* AMM Objects and Compound Objects.*/
-	    case AMP_TYPE_EDD:
-	    case AMP_TYPE_CNST:
-	    case AMP_TYPE_ARI:
-	    case AMP_TYPE_LIT:    result->value.as_ptr = ari_deserialize_ptr(it, &success);     can_alloc = 1; break;
-	    case AMP_TYPE_CTRL:   result->value.as_ptr = ctrl_deserialize_ptr(it, &success);    can_alloc = 1; break;
-	   	case AMP_TYPE_MAC:    result->value.as_ptr = macdef_deserialize_ptr(it, &success);  can_alloc = 1; break;
-	   	case AMP_TYPE_RPT:    result->value.as_ptr = rpt_deserialize_ptr(it, &success);     can_alloc = 1; break;
-	   	case AMP_TYPE_RPTTPL: result->value.as_ptr = rpttpl_deserialize_ptr(it, &success);  can_alloc = 1; break;
-	   	case AMP_TYPE_TBL:    result->value.as_ptr = tbl_deserialize_ptr(it, &success);     can_alloc = 1; break;
-	   	case AMP_TYPE_TBR:
-	   	case AMP_TYPE_SBR:    result->value.as_ptr = rule_deserialize_ptr(it, &success);    can_alloc = 1; break;
-	   	case AMP_TYPE_VAR:    result->value.as_ptr = var_deserialize_ptr(it, &success);     can_alloc = 1; break;
-	   	case AMP_TYPE_AC:     result->value.as_ptr = ac_deserialize_ptr(it, &success);      can_alloc = 1; break;
-	   	case AMP_TYPE_EXPR:   result->value.as_ptr = expr_deserialize_ptr(it, &success);    can_alloc = 1; break;
-	   	case AMP_TYPE_BYTESTR:result->value.as_ptr = blob_deserialize_ptr(it, &success);    can_alloc = 1; break;
-	   	case AMP_TYPE_TNVC:   result->value.as_ptr = tnvc_deserialize_ptr(it, &success);    can_alloc = 1; break;
+		case AMP_TYPE_EDD:
+		case AMP_TYPE_CNST:
+		case AMP_TYPE_ARI:
+		case AMP_TYPE_LIT:    result->value.as_ptr = ari_deserialize_ptr(it, &success);     can_alloc = 1; break;
+		case AMP_TYPE_CTRL:   result->value.as_ptr = ctrl_deserialize_ptr(it, &success);    can_alloc = 1; break;
+		case AMP_TYPE_MAC:    result->value.as_ptr = macdef_deserialize_ptr(it, &success);  can_alloc = 1; break;
+		case AMP_TYPE_RPT:    result->value.as_ptr = rpt_deserialize_ptr(it, &success);     can_alloc = 1; break;
+		case AMP_TYPE_RPTTPL: result->value.as_ptr = rpttpl_deserialize_ptr(it, &success);  can_alloc = 1; break;
+		case AMP_TYPE_TBL:    result->value.as_ptr = tbl_deserialize_ptr(it, &success);     can_alloc = 1; break;
+		case AMP_TYPE_TBR:
+		case AMP_TYPE_SBR:    result->value.as_ptr = rule_deserialize_ptr(it, &success);    can_alloc = 1; break;
+		case AMP_TYPE_VAR:    result->value.as_ptr = var_deserialize_ptr(it, &success);     can_alloc = 1; break;
+		case AMP_TYPE_AC:     result->value.as_ptr = ac_deserialize_ptr(it, &success);      can_alloc = 1; break;
+		case AMP_TYPE_EXPR:   result->value.as_ptr = expr_deserialize_ptr(it, &success);    can_alloc = 1; break;
+		case AMP_TYPE_BYTESTR:result->value.as_ptr = blob_deserialize_ptr(it, &success);    can_alloc = 1; break;
+		case AMP_TYPE_TNVC:   result->value.as_ptr = tnvc_deserialize_ptr(it, &success);    can_alloc = 1; break;
 
-	   	/* Primitive Types and Derived Types */
-	   	case AMP_TYPE_STR:    result->value.as_ptr = cut_get_cbor_str(it, &success);        can_alloc = 1; break;
-	   	case AMP_TYPE_BOOL:
-	   	case AMP_TYPE_BYTE:   success = cut_get_cbor_numeric(it, result->type, (uint8_t*) &(result->value.as_byte));  break;
-	   	case AMP_TYPE_INT:    success = cut_get_cbor_numeric(it, result->type, (int32_t*) &(result->value.as_int));   break;
-	   	case AMP_TYPE_UINT:   success = cut_get_cbor_numeric(it, result->type, (uint32_t*) &(result->value.as_uint)); break;
-	   	case AMP_TYPE_VAST:   success = cut_get_cbor_numeric(it, result->type, (vast*) &(result->value.as_vast));     break;
-	   	case AMP_TYPE_TV:
-	   	case AMP_TYPE_TS:
-	   	case AMP_TYPE_UVAST:  success = cut_get_cbor_numeric(it, result->type, (uvast*) &(result->value.as_uvast));   break;
-	   	case AMP_TYPE_REAL32: success = cut_get_cbor_numeric(it, result->type, (float*) &(result->value.as_real32));  break;
-	   	case AMP_TYPE_REAL64: success = cut_get_cbor_numeric(it, result->type, (double*) &(result->value.as_real64)); break;
+		/* Primitive Types and Derived Types */
+		case AMP_TYPE_STR:    result->value.as_ptr = cut_get_cbor_str(it, &success);        can_alloc = 1; break;
+		case AMP_TYPE_BOOL:
+		case AMP_TYPE_BYTE:   success = cut_get_cbor_numeric(it, result->type, (uint8_t*) &(result->value.as_byte));  break;
+		case AMP_TYPE_INT:    success = cut_get_cbor_numeric(it, result->type, (int32_t*) &(result->value.as_int));   break;
+		case AMP_TYPE_UINT:   success = cut_get_cbor_numeric(it, result->type, (uint32_t*) &(result->value.as_uint)); break;
+		case AMP_TYPE_VAST:   success = cut_get_cbor_numeric(it, result->type, (vast*) &(result->value.as_vast));     break;
+		case AMP_TYPE_TV:
+		case AMP_TYPE_TS:
+		case AMP_TYPE_UVAST:  success = cut_get_cbor_numeric(it, result->type, (uvast*) &(result->value.as_uvast));   break;
+		case AMP_TYPE_REAL32: success = cut_get_cbor_numeric(it, result->type, (float*) &(result->value.as_real32));  break;
+		case AMP_TYPE_REAL64: success = cut_get_cbor_numeric(it, result->type, (double*) &(result->value.as_real64)); break;
 
-	   	case AMP_TYPE_TBLT:
-	   	case AMP_TYPE_OPER:
-	   	case AMP_TYPE_TNV:
-	   	case AMP_TYPE_UNK:
-	   	default:
-	   		AMP_DEBUG_ERR("tnv_deserialize_val_by_type","Cannot deserialize TNV of type %d", result->type);
-	   		break;
+		case AMP_TYPE_TBLT:
+		case AMP_TYPE_OPER:
+		case AMP_TYPE_TNV:
+		case AMP_TYPE_UNK:
+		default:
+			AMP_DEBUG_ERR("tnv_deserialize_val_by_type","Cannot deserialize TNV of type %d", result->type);
+			break;
 	}
 
 	if((success == AMP_OK) && (can_alloc == 1))
@@ -537,8 +537,8 @@ int tnv_deserialize_val_raw(blob_t *data, tnv_t *result)
 	}
 
 	QCBORDecode_Init(&it,
-					 (UsefulBufC){data->value,data->length},
-					 QCBOR_DECODE_MODE_NORMAL);
+			(UsefulBufC){data->value,data->length},
+			QCBOR_DECODE_MODE_NORMAL);
 
 	int tmp = tnv_deserialize_val_by_type(&it, result);
 
@@ -957,12 +957,12 @@ int tnv_serialize_value(QCBOREncodeContext *encoder, void *item)
 	/* Step 3: Encode the value. */
 	switch(tnv->type)
 	{
-	    /* AMM Object Types. */
+		/* AMM Object Types. */
 		case AMP_TYPE_EDD:
-	    case AMP_TYPE_CNST:
-	    case AMP_TYPE_ARI:
-	    case AMP_TYPE_LIT:    err = ari_serialize(encoder, (ari_t*) tnv->value.as_ptr);       break;
-	    case AMP_TYPE_CTRL:   err = ctrl_serialize(encoder, (ctrl_t*) tnv->value.as_ptr);     break;
+		case AMP_TYPE_CNST:
+		case AMP_TYPE_ARI:
+		case AMP_TYPE_LIT:    err = ari_serialize(encoder, (ari_t*) tnv->value.as_ptr);       break;
+		case AMP_TYPE_CTRL:   err = ctrl_serialize(encoder, (ctrl_t*) tnv->value.as_ptr);     break;
 		case AMP_TYPE_MAC:    err = macdef_serialize(encoder, (macdef_t*)tnv->value.as_ptr);  break;
 		case AMP_TYPE_RPT:    err = rpt_serialize(encoder, (rpt_t*)tnv->value.as_ptr);        break;
 		case AMP_TYPE_RPTTPL: err = rpttpl_serialize(encoder, (rpttpl_t*)tnv->value.as_ptr);  break;
@@ -985,9 +985,9 @@ int tnv_serialize_value(QCBOREncodeContext *encoder, void *item)
 		case AMP_TYPE_TS:
 		case AMP_TYPE_UVAST:  QCBOREncode_AddInt64(encoder, tnv->value.as_uvast);             break;
 
-           /* NOTE: QCBOR Only provides one method for encoding floating point, but will automatically
-            * pack it into the smallest form that does not result in a loss of precision.
-            */
+		/* NOTE: QCBOR Only provides one method for encoding floating point, but will automatically
+		 * pack it into the smallest form that does not result in a loss of precision.
+		 */
 		case AMP_TYPE_REAL32: QCBOREncode_AddDouble(encoder, tnv->value.as_real32);           break;
 
 		case AMP_TYPE_REAL64: QCBOREncode_AddDouble(encoder, tnv->value.as_real64);           break;
@@ -998,7 +998,7 @@ int tnv_serialize_value(QCBOREncodeContext *encoder, void *item)
 		default:
 			/* Invalid type. */
 			printf("DEBUG: Invalid AMP_TYPE: %i\n", tnv->type);
-           err = AMP_FAIL;
+			err = AMP_FAIL;
 	}
 
 	return err;
@@ -1109,7 +1109,7 @@ void tnv_release(tnv_t *val, int destroy)
 			case AMP_TYPE_VAR:     var_release((var_t*) val->value.as_ptr, 1);       break;
 			case AMP_TYPE_EXPR:    expr_release((expr_t*) val->value.as_ptr, 1);     break;
 			case AMP_TYPE_BYTESTR: blob_release((blob_t*) val->value.as_ptr, 1);     break;
-			case AMP_TYPE_STR:	   SRELEASE((char*)val->value.as_ptr);               break;
+			case AMP_TYPE_STR:     SRELEASE((char*)val->value.as_ptr);               break;
 			case AMP_TYPE_TNVC:    tnvc_release((tnvc_t*) val->value.as_ptr, 1);     break;
 			default: break;
 		}
@@ -1200,8 +1200,8 @@ float  tnv_to_real32(tnv_t val, int *success)
 		case AMP_TYPE_INT:   result = (float) val.value.as_int;    break;
 		case AMP_TYPE_UINT:  result = (float) val.value.as_uint;   break;
 		case AMP_TYPE_VAST:  result = (float) val.value.as_vast;   break;
-        case AMP_TYPE_TV:
-        case AMP_TYPE_TS:
+		case AMP_TYPE_TV:
+		case AMP_TYPE_TS:
 		case AMP_TYPE_UVAST: result = (float) val.value.as_uvast;  break;
 		case AMP_TYPE_REAL32:result = (float) val.value.as_real32; break;
 		case AMP_TYPE_REAL64:result = (float) val.value.as_real64; break;
@@ -1244,8 +1244,8 @@ double  tnv_to_real64(tnv_t val, int *success)
 		case AMP_TYPE_INT:   result = (double) val.value.as_int;    break;
 		case AMP_TYPE_UINT:  result = (double) val.value.as_uint;   break;
 		case AMP_TYPE_VAST:  result = (double) val.value.as_vast;   break;
-        case AMP_TYPE_TV:
-        case AMP_TYPE_TS:
+		case AMP_TYPE_TV:
+		case AMP_TYPE_TS:
 		case AMP_TYPE_UVAST: result = (double) val.value.as_uvast;  break;
 		case AMP_TYPE_REAL32:result = (double) val.value.as_real32; break;
 		case AMP_TYPE_REAL64:result = (double) val.value.as_real64; break;
@@ -1287,8 +1287,8 @@ uint32_t  tnv_to_uint(tnv_t val, int *success)
 		case AMP_TYPE_INT:    result = (uint32_t) val.value.as_int;    break;
 		case AMP_TYPE_UINT:   result = val.value.as_uint;              break;
 		case AMP_TYPE_VAST:   result = (uint32_t) val.value.as_vast;   break;
-        case AMP_TYPE_TV:
-        case AMP_TYPE_TS:
+		case AMP_TYPE_TV:
+		case AMP_TYPE_TS:
 		case AMP_TYPE_UVAST:  result = (uint32_t) val.value.as_uvast;  break;
 		case AMP_TYPE_REAL32: result = (uint32_t) val.value.as_real32; break;
 		case AMP_TYPE_REAL64: result = (uint32_t) val.value.as_real64; break;
@@ -1376,8 +1376,8 @@ vast  tnv_to_vast(tnv_t val, int *success)
 		case AMP_TYPE_INT:    result = (vast) val.value.as_int;    break;
 		case AMP_TYPE_UINT:   result = (vast) val.value.as_uint;   break;
 		case AMP_TYPE_VAST:   result = val.value.as_vast;          break;
-        case AMP_TYPE_TV:
-        case AMP_TYPE_TS:
+		case AMP_TYPE_TV:
+		case AMP_TYPE_TS:
 		case AMP_TYPE_UVAST:  result = (vast) val.value.as_uvast;  break;
 		case AMP_TYPE_REAL32: result = (vast) val.value.as_real32; break;
 		case AMP_TYPE_REAL64: result = (vast) val.value.as_real64; break;
@@ -1581,19 +1581,19 @@ tnvc_t *tnvc_create(uint8_t num)
 
 tnvc_t* tnvc_copy(tnvc_t *src)
 {
-   tnvc_t *result = NULL;
+	tnvc_t *result = NULL;
 
-   if((src == NULL) ||
-      ((result = tnvc_create(vec_size(&(src->values)))) == NULL))
-   {
-	   return NULL;
-   }
+	if((src == NULL) ||
+		((result = tnvc_create(vec_size(&(src->values)))) == NULL))
+	{
+		return NULL;
+	}
 
-   if(tnvc_append(result, src) != AMP_OK)
-   {
-	   tnvc_release(result, 1);
-	   return NULL;
-   }
+	if(tnvc_append(result, src) != AMP_OK)
+	{
+		tnvc_release(result, 1);
+		return NULL;
+	}
 
 	return result;
 }
@@ -1621,18 +1621,18 @@ tnvc_t tnvc_deserialize(QCBORDecodeContext *it, int *success)
 	QCBORError err;
 	size_t array_len = 0;
 
-    memset(&result,0,sizeof(result));
+	memset(&result,0,sizeof(result));
 
 #if AMP_VERSION < 7
-    err = QCBORDecode_GetNext(it, &item);
-    if ( err != QCBOR_SUCCESS || item.uDataType != QCBOR_TYPE_ARRAY)
+	err = QCBORDecode_GetNext(it, &item);
+	if ( err != QCBOR_SUCCESS || item.uDataType != QCBOR_TYPE_ARRAY)
 	{
 		AMP_DEBUG_ERR("tnvc_deserialize","CBOR Item Not An Array", NULL);
 		*success = AMP_FAIL;
 		return result;
 	}
 	array_len = item.val.uCount;
-    
+
 	/* Handle special case of empty TNVC. */
 	if(array_len == 0)
 	{
@@ -1644,7 +1644,7 @@ tnvc_t tnvc_deserialize(QCBORDecodeContext *it, int *success)
 #else
 	QCBORDecode_StartOctets(it);
 #endif
-    
+
 	/* Get the first byte (the flags). */
 	*success = cut_get_cbor_numeric(it, AMP_TYPE_BYTE, &type);
 
@@ -1655,9 +1655,9 @@ tnvc_t tnvc_deserialize(QCBORDecodeContext *it, int *success)
 	}
 
 #if AMP_VERSION >= 7
-    /* Special Case: Is this an empty collection? */
-    if(type == 0)
-    {
+	/* Special Case: Is this an empty collection? */
+	if(type == 0)
+	{
 		*success = AMP_OK;
 		tnvc_init(&result, 0);
 		/* Skip over empty array,. */
@@ -1665,14 +1665,14 @@ tnvc_t tnvc_deserialize(QCBORDecodeContext *it, int *success)
 		return result;
 	}
 
-    /* Read Collection Length */
-    *success = cut_get_cbor_numeric(it, AMP_TYPE_UINT, &array_len);
-    if (*success != AMP_OK)
-    {
+	/* Read Collection Length */
+	*success = cut_get_cbor_numeric(it, AMP_TYPE_UINT, &array_len);
+	if (*success != AMP_OK)
+	{
 		AMP_DEBUG_ERR("tnvc_deserialize","CBOR Item Length field not a number", NULL);
 		return result;
 	}
-	
+
 	// Extra Sanity Check
 	if (array_len == 0)
 	{
@@ -1769,11 +1769,11 @@ tnvc_t*  tnvc_deserialize_ptr_raw(blob_t *data, int *success)
 	CHKNULL(data);
 
 	QCBORDecode_Init(&decoder,
-					 (UsefulBufC){data->value,data->length},
-					 QCBOR_DECODE_MODE_NORMAL);
+			(UsefulBufC){data->value,data->length},
+			QCBOR_DECODE_MODE_NORMAL);
 
 	tnvc_t *tmp = tnvc_deserialize_ptr(&decoder, success);
-	
+
 	// Verify Decoding Completed Successfully
 	cut_decode_finish(&decoder);
 
@@ -1804,8 +1804,8 @@ tnvc_t   tnvc_deserialize_raw(blob_t *data, int *success)
 	}
 
 	QCBORDecode_Init(&decoder,
-					 (UsefulBufC){data->value,data->length},
-					 QCBOR_DECODE_MODE_NORMAL);
+			(UsefulBufC){data->value,data->length},
+			QCBOR_DECODE_MODE_NORMAL);
 	result = tnvc_deserialize(&decoder, success);
 
 	// Verify Decoding Completed Successfully
@@ -1853,7 +1853,7 @@ static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_le
 		blob_release(&types, 0);
 		return result;
 	}
-	
+
 	result.values = vec_create(array_len - 2, tnv_cb_del,tnv_cb_comp,tnv_cb_copy, VEC_FLAG_AS_STACK, success);
 
 	if(*success != AMP_OK)
@@ -1880,7 +1880,7 @@ static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_le
 			}
 			blob_release(blob, 1);
 		}
-		
+
 		if(*success != AMP_OK)
 		{
 			break;
@@ -2198,7 +2198,7 @@ int tnvc_serialize(QCBOREncodeContext *encoder, void *item)
 	switch(type)
 	{
 		case TNVC_TVC:
-		   return tnvc_serialize_tvc(encoder, tnvc);
+			return tnvc_serialize_tvc(encoder, tnvc);
 
 		default:
 			return AMP_FAIL;
@@ -2238,30 +2238,30 @@ static int tnvc_serialize_tvc(QCBOREncodeContext *encoder, tnvc_t *tnvc)
 
 	// Start an Array. (Octets Array for AMP_VERSION >=7)
 	QCBOREncode_OpenArray(encoder);
-	
+
 #if AMP_VERSION < 7
 
 	/* Special case of an empty TNVC. Just write an empty array */
 	if(num == 0)
 	{
-	   QCBOREncode_CloseArray(encoder);
-	   return AMP_OK;
+		QCBOREncode_CloseArray(encoder);
+		return AMP_OK;
 	}
 #else
 	/* Special case of an empty TNVC. Just write a zero flag for type */
 	if(num == 0)
 	{
-       err = cut_enc_byte(encoder, 0);
-       if (err != AMP_OK)
-       {
-          AMP_DEBUG_ERR("tnvc_serialize","Cbor Error: %d encoding empty TNVC", err);
-          return err;
-       }
-	   QCBOREncode_CloseArrayOctet(encoder);
-	   return AMP_OK;
-	}    
+		err = cut_enc_byte(encoder, 0);
+		if (err != AMP_OK)
+		{
+			AMP_DEBUG_ERR("tnvc_serialize", "Cbor Error: %d encoding empty TNVC", err);
+			return err;
+		}
+		QCBOREncode_CloseArrayOctet(encoder);
+		return AMP_OK;
+	}
 #endif
-    
+
 	/* Step 2: Write the type (Flags) as the first encoded byte. */
 	err = cut_enc_byte(encoder, TNVC_TVC);
 	if(err != AMP_OK)
@@ -2271,8 +2271,8 @@ static int tnvc_serialize_tvc(QCBOREncodeContext *encoder, tnvc_t *tnvc)
 	}
 
 #if AMP_VERSION >= 7
-    /* Step 2a: Write the # of Item as an encoded uint */
-    QCBOREncode_AddUInt64(encoder, num);
+	/* Step 2a: Write the # of Item as an encoded uint */
+	QCBOREncode_AddUInt64(encoder, num);
 #endif
 
 	/* Step 2: Construct and serialize the type bytestring. */

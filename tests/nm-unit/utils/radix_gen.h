@@ -9,7 +9,7 @@
 
 PsmAddress makeDataFromString(PsmPartition wm, char *str);
 
-int	radixpt_gen_eidsMatch(char *firstEid, int firstEidLen, char *secondEid, int secondEidLen);
+int  radixpt_gen_eidsMatch(char *firstEid, int firstEidLen, char *secondEid, int secondEidLen);
 char *radixpt_gen_make_addr(void);
 void radixpc_gen_printconfig(void);
 void radixpt_gen_printstats(void);

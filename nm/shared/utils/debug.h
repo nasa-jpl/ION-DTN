@@ -20,6 +20,7 @@
  **  10/21/11  E. Birrane     Initial Implementation. (JHU/APL)
  **  08/03/16  E. Birrane     Cleanup from DTNMP to AMP (Secure DTN - NASA: NNX14CS58P)
  *****************************************************************************/
+
 #ifndef DEBUG_H_
 #define DEBUG_H_
 
@@ -59,11 +60,11 @@ extern char		gAmpMsg[];		/*	Debug message buffer.	*/
  * 2: Information logging.  Information statements are peppered through the
  *    code to provide insight into the state of the module at processing
  *    points considered useful by AMP module software engineers.
- * 3: Warning logging.  Warning statements are used to flag unexpected 
+ * 3: Warning logging.  Warning statements are used to flag unexpected
  *    values that, based on context, may not constitute errors.
  * 4: Error logging.  Errors are areas in the code where some sanity check
- *    or other required condition fails to be met by the software. 
- * 
+ *    or other required condition fails to be met by the software.
+ *
  * Error logging within the AMP module is of the form:
  * <id> <function name>: <message>
  * Where id is one of:
@@ -72,7 +73,7 @@ extern char		gAmpMsg[];		/*	Debug message buffer.	*/
  * i (information statement)
  * ? (warning statement)
  * x (error statement)
- * 
+ *
  * Debugging can be turned off at compile time by removing the
  * AMP_DEBUGGING #define.
  */
@@ -99,26 +100,25 @@ extern char		gAmpMsg[];		/*	Debug message buffer.	*/
 
 #endif
 
-#define AMP_DEBUG_ENTRY(func, format,...) \
-AMP_DEBUG(AMP_DEBUG_LVL_PROC,'+',func,format, __VA_ARGS__)
+#define AMP_DEBUG_ENTRY(func, format, ...) \
+	AMP_DEBUG(AMP_DEBUG_LVL_PROC, '+', func, format, __VA_ARGS__)
 
-#define AMP_DEBUG_EXIT(func, format,...) \
-AMP_DEBUG(AMP_DEBUG_LVL_PROC,'-',func,format, __VA_ARGS__)
+#define AMP_DEBUG_EXIT(func, format, ...) \
+	AMP_DEBUG(AMP_DEBUG_LVL_PROC, '-', func, format, __VA_ARGS__)
 
-#define AMP_DEBUG_INFO(func, format,...) \
-AMP_DEBUG(AMP_DEBUG_LVL_INFO,'i',func,format, __VA_ARGS__)
+#define AMP_DEBUG_INFO(func, format, ...) \
+	AMP_DEBUG(AMP_DEBUG_LVL_INFO, 'i', func, format, __VA_ARGS__)
 
-#define AMP_DEBUG_WARN(func, format,...) \
-AMP_DEBUG(AMP_DEBUG_LVL_WARN,'w',func,format, __VA_ARGS__)
+#define AMP_DEBUG_WARN(func, format, ...) \
+	AMP_DEBUG(AMP_DEBUG_LVL_WARN, 'w', func, format, __VA_ARGS__)
 
-#define AMP_DEBUG_ERR(func, format,...) \
-AMP_DEBUG(AMP_DEBUG_LVL_ERR,'x',func,format, __VA_ARGS__)
+#define AMP_DEBUG_ERR(func, format, ...) \
+	AMP_DEBUG(AMP_DEBUG_LVL_ERR, 'x', func, format, __VA_ARGS__)
 
-#define AMP_DEBUG_ALWAYS(func, format,...) \
-AMP_DEBUG(AMP_DEBUG_LVL,':',func,format, __VA_ARGS__)
+#define AMP_DEBUG_ALWAYS(func, format, ...) \
+	AMP_DEBUG(AMP_DEBUG_LVL, ':', func, format, __VA_ARGS__)
 
-#define AMP_DBG_ERR(format,...) AMP_DEBUG_ERR(__func__,format,__VA_ARGS__)
-
+#define AMP_DBG_ERR(format, ...) AMP_DEBUG_ERR(__func__, format, __VA_ARGS__)
 
 #ifdef __cplusplus
 }

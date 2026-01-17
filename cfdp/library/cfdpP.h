@@ -21,7 +21,7 @@
 extern "C" {
 #endif
 
-#define	CFDP_MAX_PDU_SIZE	65535
+#define CFDP_MAX_PDU_SIZE	65535
 
 typedef struct
 {
@@ -47,28 +47,28 @@ typedef struct
 
 typedef struct
 {
-	CfdpEventType		type;
-	time_t			time;
-	int			reqNbr;
-	CfdpTransactionId	transactionId;
-	Object			sourceFileName;	/*	sdrstring	*/
-	Object			destFileName;	/*	sdrstring	*/
-	uvast			fileSize;
-	Object			messagesToUser;		/*	MdList	*/
-	uvast			offset;
-	unsigned int		length;
-	unsigned int		recordBoundsRespected;
-	unsigned int        closureRequested;
-	CfdpContinuationState	continuationState;
-	unsigned int		segMetadataLength;
-	char			segMetadata[63];
-	CfdpCondition		condition;
-	uvast			progress;
-	CfdpDeliveryCode	deliveryCode;
-	CfdpFileStatus		fileStatus;
-	CfdpTransactionId	originatingTransactionId;
-	Object			statusReport;	/*	sdrstring	*/
-	Object			filestoreResponses;	/*	MdList	*/
+	CfdpEventType	      type;
+	time_t		      time;
+	int		      reqNbr;
+	CfdpTransactionId     transactionId;
+	Object		      sourceFileName; /* sdrstring */
+	Object		      destFileName;   /* sdrstring */
+	uvast		      fileSize;
+	Object		      messagesToUser; /* MdList */
+	uvast		      offset;
+	unsigned int	      length;
+	unsigned int	      recordBoundsRespected;
+	unsigned int	      closureRequested;
+	CfdpContinuationState continuationState;
+	unsigned int	      segMetadataLength;
+	char		      segMetadata[63];
+	CfdpCondition	      condition;
+	uvast		      progress;
+	CfdpDeliveryCode      deliveryCode;
+	CfdpFileStatus	      fileStatus;
+	CfdpTransactionId     originatingTransactionId;
+	Object		      statusReport;	  /* sdrstring */
+	Object		      filestoreResponses; /* MdList */
 } CfdpEvent;
 
 typedef enum
@@ -90,38 +90,38 @@ typedef struct
 typedef struct
 {
 	time_t			deadline;
-	Object			fdu;	
+	Object			fdu;
 } FinishPending;
 
 typedef struct
 {
-	CfdpTransactionId	transactionId;
-	CfdpNumber		destinationEntityNbr;
-	CfdpCksumType		ckType;
-	unsigned char		utParms[128];
-	int			utParmsLength;
-	int			reqNbr;		/*	Creation req.	*/
-	CfdpTransactionId	originatingTransactionId;
-	char			sourceFileName[256];
-	unsigned int		recordBoundsRespected;	/*	Boolean.*/
-	unsigned int		closureLatency;		/*	Seconds.*/
-	unsigned int		finishReceived;		/*	Boolean.*/
+	CfdpTransactionId transactionId;
+	CfdpNumber	  destinationEntityNbr;
+	CfdpCksumType	  ckType;
+	unsigned char	  utParms[128];
+	int		  utParmsLength;
+	int		  reqNbr;		 /* Creation req. */
+	CfdpTransactionId originatingTransactionId;
+	char		  sourceFileName[256];
+	unsigned int	  recordBoundsRespected; /* Boolean. */
+	unsigned int	  closureLatency;	 /* Seconds. */
+	unsigned int	  finishReceived;	 /* Boolean. */
 
-	/*	File Delivery Unit transmission status			*/
+	/* File Delivery Unit transmission status */
 
-	FduState		state;
-	CfdpHandler		faultHandlers[16];
-	Object			metadataPdu;	/*	bytes		*/
-	unsigned int		mpduLength;	/*	in bytes	*/
-	uvast			fileSize;	/*	in bytes	*/
-	unsigned int		largeFile;	/*	Boolean		*/
-	uvast			progress;	/*	bytes issued	*/
-	unsigned int		transmitted;	/*	Boolean		*/
-	Object			fileRef;	/*	ZCO file ref	*/
-	Object			fileDataPdus;	/*	sdrlist		*/
-	Object			eofPdu;		/*	bytes		*/
-	unsigned int		epduLength;	/*	in bytes	*/
-	Object			closureElt;	/*	in sdrlist	*/
+	FduState     state;
+	CfdpHandler  faultHandlers[16];
+	Object	     metadataPdu;  /* bytes */
+	unsigned int mpduLength;   /* in bytes */
+	uvast	     fileSize;	   /* in bytes */
+	unsigned int largeFile;	   /* Boolean */
+	uvast	     progress;	   /* bytes issued */
+	unsigned int transmitted;  /* Boolean */
+	Object	     fileRef;	   /* ZCO file ref */
+	Object	     fileDataPdus; /* sdrlist */
+	Object	     eofPdu;	   /* bytes */
+	unsigned int epduLength;   /* in bytes */
+	Object	     closureElt;   /* in sdrlist */
 } OutFdu;
 
 /*	Each CfdpExtent in "extents" indicates a range of bytes of file
@@ -150,39 +150,39 @@ typedef struct
 
 typedef struct
 {
-	CfdpTransactionId	transactionId;
+	CfdpTransactionId transactionId;
 
-	/*	File Delivery Unit metadata				*/
+	/* File Delivery Unit metadata */
 
-	Object			sourceFileName;	/*	sdrstring	*/
-	Object			destFileName;	/*	sdrstring	*/
-	unsigned int		closureRequested;	/*	Boolean	*/
-	CfdpHandler		faultHandlers[16];
-	int			flowLabelLength;
-	Object			flowLabel;
-	Object			messagesToUser;		/*	sdrlist	*/
-	Object			filestoreRequests;	/*	sdrlist	*/
+	Object	     sourceFileName;   /* sdrstring */
+	Object	     destFileName;     /* sdrstring */
+	unsigned int closureRequested; /* Boolean */
+	CfdpHandler  faultHandlers[16];
+	int	     flowLabelLength;
+	Object	     flowLabel;
+	Object	     messagesToUser;	/* sdrlist */
+	Object	     filestoreRequests; /* sdrlist */
 
-	/*	File reception status					*/
+	/* File reception status */
 
-	FduState		state;
-	unsigned int		metadataReceived;	/*	Boolean	*/
-	unsigned int		eofReceived;		/*	Boolean	*/
-	CfdpCondition		eofCondition;
-	CfdpNumber		eofFaultLocation;
-	unsigned int		eofChecksum;
-	CfdpCksumType		ckType;
-	unsigned int		computedChecksum;
-	int			checksumVerified;
-	CfdpCondition		finishCondition;
-	uvast			fileSize;
-	Object			workingFileName;/*	sdrstring	*/
-	uvast			progress;
-	time_t			checkTime;
-	int			checkTimeouts;
-	uvast			bytesReceived;
-	Object			extents;		/*	sdrlist	*/
-	time_t			inactivityDeadline;
+	FduState      state;
+	unsigned int  metadataReceived; /* Boolean */
+	unsigned int  eofReceived;	/* Boolean */
+	CfdpCondition eofCondition;
+	CfdpNumber    eofFaultLocation;
+	unsigned int  eofChecksum;
+	CfdpCksumType ckType;
+	unsigned int  computedChecksum;
+	int	      checksumVerified;
+	CfdpCondition finishCondition;
+	uvast	      fileSize;
+	Object	      workingFileName; /* sdrstring */
+	uvast	      progress;
+	time_t	      checkTime;
+	int	      checkTimeouts;
+	uvast	      bytesReceived;
+	Object	      extents; /* sdrlist */
+	time_t	      inactivityDeadline;
 } InFdu;
 
 typedef enum
@@ -210,25 +210,25 @@ typedef struct
 
 typedef struct
 {
-	CfdpTransactionId	originatingTransactionId;
-	CfdpNumber		proxyDestinationEntityNbr;
-	char			proxySourceFileName[256];
-	char			proxyDestFileName[256];
-	Object			proxyMsgsToUser;	/*	sdrlist	*/
-	Object			proxyFilestoreRequests;	/*	sdrlist	*/
-	CfdpHandler		proxyFaultHandlers[16];
-	unsigned int		proxyUnacknowledged;	/*	Boolean	*/
-	int			proxyFlowLabelLength;
-	unsigned char		proxyFlowLabel[256];
-	unsigned int		proxyRecordBoundsRespected;/*	Boolean	*/
-	unsigned int		proxyClosureRequested;	/*	Boolean	*/
-	CfdpCondition		proxyCondition;
-	CfdpDeliveryCode	proxyDeliveryCode;
-	CfdpFileStatus		proxyFileStatus;
-	Object			proxyFilestoreResponses;/*	sdrlist	*/
-	char			directoryName[256];
-	char			directoryDestFileName[256];
-	int			directoryListingResponseCode;
+	CfdpTransactionId originatingTransactionId;
+	CfdpNumber	  proxyDestinationEntityNbr;
+	char		  proxySourceFileName[256];
+	char		  proxyDestFileName[256];
+	Object		  proxyMsgsToUser;	      /* sdrlist */
+	Object		  proxyFilestoreRequests;     /* sdrlist */
+	CfdpHandler	  proxyFaultHandlers[16];
+	unsigned int	  proxyUnacknowledged;	      /* Boolean */
+	int		  proxyFlowLabelLength;
+	unsigned char	  proxyFlowLabel[256];
+	unsigned int	  proxyRecordBoundsRespected; /* Boolean */
+	unsigned int	  proxyClosureRequested;      /* Boolean */
+	CfdpCondition	  proxyCondition;
+	CfdpDeliveryCode  proxyDeliveryCode;
+	CfdpFileStatus	  proxyFileStatus;
+	Object		  proxyFilestoreResponses; /* sdrlist */
+	char		  directoryName[256];
+	char		  directoryDestFileName[256];
+	int		  directoryListingResponseCode;
 } CfdpUserOpsData;
 
 /*	*	*	Database structure	*	*	*	*/
@@ -275,16 +275,16 @@ typedef struct
 
 typedef struct
 {
-	int		utaPid;		/*	For stopping the UTA.	*/
-	int     bpcpdPid;	/*	For stopping the BPCP daemon.	*/
-	int		clockPid;	/*	For stopping cfdpclock.	*/
-	int		watching;	/*	Activity watch.		*/
+	int		utaPid;		/* For stopping the UTA. */
+	int		bpcpdPid;	/* For stopping the BPCP daemon. */
+	int		clockPid;	/* For stopping cfdpclock. */
+	int		watching;	/* Activity watch. */
 
 	/*	Producer-consumer synchronization for event queue.
 	 *	eventMutex protects access to the event queue.
 	 *	eventSemaphore signals availability of events.		*/
 
-	sm_SemId	eventMutex;	/*	Binary semaphore as mutex */
+	sm_SemId	eventMutex;	/* Binary semaphore as mutex */
 	sm_SemId	eventSemaphore;
 
 	/*	The fduSemaphore of the CFDP entity is given whenever
@@ -316,7 +316,7 @@ typedef struct
 
 	/*	Throttle control: loaded from DB at startup.		*/
 
-	uvast		maxTransmitRate;	/*	bits per second	*/
+	uvast		maxTransmitRate;	/* bits per second */
 
 	/*	FOR TESTING ONLY: if the environment value named
 	 *	CFDP_CORRUPTION_MODULUS exists and is a positive

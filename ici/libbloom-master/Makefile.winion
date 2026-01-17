@@ -13,7 +13,7 @@ LIBBLOOMOBJS = \
 	bloom.o \
 	MurmurHash2.o \
 
-ALL = libbloom.dll 
+ALL = libbloom.dll
 
 all:		$(ALL)
 
@@ -36,7 +36,7 @@ install:
 
 #	-	-	Libraries	-	-	-	-	-
 
-libbloom.dll:	$(LIBBLOOMOBJS) 
+libbloom.dll:	$(LIBBLOOMOBJS)
 		$(LD) -o libbloom.dll $(LIBBLOOMOBJS) -Wl,--output-def,libbloom.def -lpthread -lws2_32
 		mkdir -p ./lib
 		cp libbloom.dll ./lib
@@ -48,4 +48,3 @@ libbloom.dll:	$(LIBBLOOMOBJS)
 
 %.o:		$(MSRC)/%.c
 		$(CC) -c $<
-

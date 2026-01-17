@@ -4,7 +4,7 @@
 
 ### Basic Components
 
-ION implement CFDP's core network engine in `bputa`, which handles all CFDP protocol processing, PDU handling, transaction state management, and network I/O. This engine is designed to be efficient and responsive to incoming CFDP traffic. 
+ION implement CFDP's core network engine in `bputa`, which handles all CFDP protocol processing, PDU handling, transaction state management, and network I/O. This engine is designed to be efficient and responsive to incoming CFDP traffic.
 
 `bputa` has two threads, one receives network packets quickly and queues them for processing, while the other processes these packets and manages transaction state. This design ensures that incoming PDUs are handled promptly without blocking.
 
@@ -12,7 +12,7 @@ The CFDP engine generates events for significant occurrences, such as transactio
 
 The event queue is designed to have only one consumer at a time to prevent conflicts. Applications like `bpcp`, `bpcpd`, and `cfdptest` (CFDP test utility) can all events from this queue so they must not run simultaneously on a host to avoid conflicts.
 
-Currently, `bpcp` and `bpcpd` operate in a client-server model, where `bpcp` initiates file transfers and get remote directory listing through `bpcpd`. 
+Currently, `bpcp` and `bpcpd` operate in a client-server model, where `bpcp` initiates file transfers and get remote directory listing through `bpcpd`.
 
 ### Consideration for Implementing CFDP Applications
 
@@ -20,7 +20,7 @@ For most typical CFDP file transfer, file store, and transaction control operati
 
 For a number of more complex operations, such as recursive file copying and remote directory listing, the `bpcpd` daemon is introduced as a prototype to demonstrate how to separately handle user requests that may either slow down CFDP engine performance or are extensions that require a more complex series of steps to complete.
 
-For example, the core CFDP engine `bputa` is designed not to handle incoming remote directory listing requests. Although such capability exists as part of CFDP directory operation API, the `bputa` engine does not process request directly. Instead, it reports the event to applications such as the `bpcpd` service daemon to handle separately. 
+For example, the core CFDP engine `bputa` is designed not to handle incoming remote directory listing requests. Although such capability exists as part of CFDP directory operation API, the `bputa` engine does not process request directly. Instead, it reports the event to applications such as the `bpcpd` service daemon to handle separately.
 
 Another example is recursive copying, which requires listing the files in a directory and invoke file transfer for each file. This is best carried out in a service daemon, as demonstrated by `bpcpd`.
 
@@ -37,30 +37,30 @@ graph TD
         PeerB["Remote CFDP Peer B"]
         PeerA -.->|CFDP Protocol| PeerB
     end
-    
+
     subgraph Engine["⚙️ CFDP ENGINE"]
         bputa["bputa<br/>• CFDP Protocol Handler<br/>• Network I/O Bundle Protocol<br/>• Transaction Management<br/>• PDU Processing<br/>• Event Generation"]
     end
-    
+
     subgraph EventSys["📬 EVENT SYSTEM"]
         EventQueue["Event Queue<br/>• Transaction Started<br/>• File Segment Received<br/>• EOF Sent/Received<br/>• Metadata Received<br/>• Transaction End<br/>• Fault Indications"]
     end
-    
+
     subgraph Apps["🖥️ APPLICATION LAYER"]
         subgraph ClientServer["Client-Server Pair"]
             bpcp["bpcp Client<br/>• CLI Interface<br/>• User Commands<br/>• Progress Display<br/>• Error Handling"]
             bpcpd["bpcpd Server<br/>• Event Consumer<br/>• Directory Listings<br/>• File Services<br/>• Remote Operations"]
         end
-        
+
         subgraph Symmetric["Test Application"]
             cfdptest["cfdptest test<br/>Send File, Monitor Events, Request Directory Listing from bpcpd"]
         end
     end
-    
+
     %% Network connections
     Network -.-> Engine
     Engine -.-> Network
-    
+
     %% Event flow
     Engine --> EventSys
     EventSys -->|CONFLICT only one consumer allowed at a time| bpcpd
@@ -70,11 +70,11 @@ graph TD
     %% Direct CFDP API calls - Fixed syntax
     bpcp -.-> bputa
     cfdptest -.-> bputa
-    
+
     %% Client-server relationship
     bpcp -.->|File Operations| bpcpd
     cfdptest -.->|Remote Directory Listing| bpcpd
-    
+
     style EventQueue fill:#ffcccc
     style bpcp fill:#ffe6e6
     style bpcpd fill:#ffe6e6
@@ -83,34 +83,34 @@ graph TD
 
 
 ### COMPONENT RELATIONSHIPS
-                               
+
 ```mermaid
 graph LR
     bputa["bputa<br/>CFDP Engine"]
     EventQueue["Event Queue<br/>⚠️ Single Consumer"]
-    
+
     bpcp["bpcp<br/>Client"]
     bpcpd["bpcpd<br/>Server"]
     cfdptest["cfdptest<br/>Tester"]
-    
+
     Network["Remote Peers"]
-    
+
     %% Core relationships
     bputa --> EventQueue
     bputa <--> Network
-    
+
     %% API calls (simplified)
     bpcp --> bputa
     cfdptest --> bputa
-    
+
     %% Event consumption conflicts
     EventQueue -.-> bpcp
     EventQueue -.-> bpcpd
     EventQueue -.-> cfdptest
-    
+
     %% Service relationship
     bpcp -.-> bpcpd
-    
+
     style EventQueue fill:#ff9999
     style bpcp fill:#ffcccc
     style bpcpd fill:#ffcccc
@@ -119,7 +119,7 @@ graph LR
 ```
 
 ### INTERACTION PATTERNS
-                                  
+
 #### Normal File Copy:
 ```mermaid
 sequenceDiagram
@@ -143,8 +143,8 @@ sequenceDiagram
     bpcp_event->>bpcp: Transfer completed
     bpcp->>User: Success/Failure status
 ```
-    
-Bpcp Directory Listing:  
+
+Bpcp Directory Listing:
 ```mermaid
 sequenceDiagram
     participant User

@@ -8,10 +8,10 @@ cfdp - CCSDS File Delivery Protocol (CFDP) communications library
 
     typedef enum
     {
-	CksumTypeUnknown = -1,
-	ModularChecksum = 0,
-	CRC32CChecksum = 2,
-	NullChecksum = 15
+        CksumTypeUnknown = -1,
+        ModularChecksum = 0,
+        CRC32CChecksum = 2,
+        NullChecksum = 15
     } CfdpCksumType;
 
     typedef int (*CfdpReaderFn)(int fd, unsigned int *checksum, CfdpCksumType ckType);
@@ -50,22 +50,22 @@ cfdp - CCSDS File Delivery Protocol (CFDP) communications library
 
     typedef struct
     {
-	char		*sourceFileName;
-	char		*destFileName;
-	MetadataList	messagesToUser;
-	MetadataList	filestoreRequests;
-	CfdpHandler	*faultHandlers;
-	int		unacknowledged;
-	unsigned int	flowLabelLength;
-	unsigned char	*flowLabel;
-	int		recordBoundsRespected;
-	int		closureRequested;
+        char            *sourceFileName;
+        char            *destFileName;
+        MetadataList    messagesToUser;
+        MetadataList    filestoreRequests;
+        CfdpHandler     *faultHandlers;
+        int             unacknowledged;
+        unsigned int    flowLabelLength;
+        unsigned char   *flowLabel;
+        int             recordBoundsRespected;
+        int             closureRequested;
     } CfdpProxyTask;
 
     typedef struct
     {
-	char		*directoryName;
-	char		*destFileName;
+        char            *directoryName;
+        char            *destFileName;
     } CfdpDirListTask;
 
     [see description for available functions]
@@ -99,7 +99,7 @@ purges any unused MetadataLists from the CFDP database.  The "user data"
 variable of the MetadataList itself is used to implement this feature:
 while the list is reachable only from the database root, its user data
 variable points to the database root list from which it is referenced;
-while the list is attached to a File Delivery Unit, its user data is null. 
+while the list is attached to a File Delivery Unit, its user data is null.
 
 By default, CFDP transmits the data in a source file in segments of fixed size.
 The user application can override this behavior at the time transmission of
@@ -236,7 +236,7 @@ on line boundaries.
 Sends the file identified by I<sourceFileName> to the CFDP entity identified by
 I<destinationEntityNbr>.  I<destinationFileName> is used to indicate the name
 by which the file will be catalogued upon arrival at its final destination; if
-NULL, the destination file name defaults to I<sourceFileName>.  If 
+NULL, the destination file name defaults to I<sourceFileName>.  If
 I<sourceFileName> is NULL, it is assumed that the application is requesting
 transmission of metadata only (as discussed below) and I<destinationFileName>
 is ignored.  Note that both I<sourceFileName> and I<destinationFileName> are
@@ -250,7 +250,7 @@ The byte array identified by I<utParms>, if non-NULL, is interpreted as
 transmission control information that is to be passed on to the UT layer.  The
 nominal UT layer for ION's CFDP being Bundle Protocol, the I<utParms> array is
 normally a pointer to a structure of type BpUtParms; see the I<bp> man page
-for a discussion of the parameters in that structure. 
+for a discussion of the parameters in that structure.
 
 I<closureLatency> is the length of time following transmission of the EOF PDU
 within which a responding Transaction Finish PDU is expected.  If no Finish
@@ -307,16 +307,16 @@ CfdpTransactionId *originatingTransactionId, char *statusReportBuf,
 MetadataList *filestoreResponses, unsigned int *closureRequested)
 
 Populates return value fields with data from the oldest CFDP event not yet
-delivered to the application.  
+delivered to the application.
 
 cfdp_get_event() always blocks indefinitely until an CFDP processing
 event is delivered or the function is interrupted by an invocation of
 cfdp_interrupt().
 
-The closureRequested field is defined as unsigned int and is used as a 
-Boolean flag with the following values: 0 = No closure requested 
+The closureRequested field is defined as unsigned int and is used as a
+Boolean flag with the following values: 0 = No closure requested
 (Unacknowledged mode), and 1 = Closure requested (Acknowledged mode).
-Applications can use this field to determine whether a transaction is 
+Applications can use this field to determine whether a transaction is
 operating in Acknowledged or Unacknowledged mode.
 
 On error, returns zero but sets errno to EINVAL.  Returns -1 on
@@ -350,7 +350,7 @@ entity is the implicit beneficiary of the request.
 
 Sends to the indicated respondent entity a request to prepare a directory
 listing, save that listing in a file, and send it to the local entity.  The
-request is subject to the configuration values in I<dirListTask>. 
+request is subject to the configuration values in I<dirListTask>.
 
 =item int cfdp_preview(CfdpTransactionId *transactionId, uvast offset, unsigned int length, char *buffer)
 

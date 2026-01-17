@@ -29,21 +29,21 @@ source "$SCRIPT_DIR/../verify_sdr_recovery.sh"
 # Global timeout watchdog - kill test if it runs too long
 TEST_TIMEOUT=300  # 5 minutes max for entire test
 (
-	sleep $TEST_TIMEOUT
-	echo ""
-	echo "ERROR: Test timeout after ${TEST_TIMEOUT} seconds - forcing cleanup"
-	killm 2>/dev/null
-	exit 1
+    sleep $TEST_TIMEOUT
+    echo ""
+    echo "ERROR: Test timeout after ${TEST_TIMEOUT} seconds - forcing cleanup"
+    killm 2>/dev/null
+    exit 1
 ) &
 WATCHDOG_PID=$!
 
 function end(){
-	# Kill the watchdog timer
-	kill $WATCHDOG_PID 2>/dev/null
-	# Shut down ION
-	echo "Stopping ION..."
-	killm 2>/dev/null
-	exit $RETVAL
+    # Kill the watchdog timer
+    kill $WATCHDOG_PID 2>/dev/null
+    # Shut down ION
+    echo "Stopping ION..."
+    killm 2>/dev/null
+    exit $RETVAL
 }
 
 CONFIGFILES=" \
@@ -63,10 +63,10 @@ echo "CONFIG: 1 node custom (with unreachable destination)"
 echo ""
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo ""
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo ""
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo ""
@@ -128,12 +128,12 @@ ABORT_COUNT=$(count_messages "Transaction aborted" "ion.log")
 echo "Transaction aborts detected: $ABORT_COUNT"
 
 if [ "$ABORT_COUNT" -lt 1 ]; then
-	echo "FAIL: Didn't cause SDR exhaustion"
-	echo "      Please update test configuration or increase bundle count"
-	RETVAL=2
-	end
+    echo "FAIL: Didn't cause SDR exhaustion"
+    echo "      Please update test configuration or increase bundle count"
+    RETVAL=2
+    end
 else
-	echo "PASS: SDR exhaustion caused transaction to abort"
+    echo "PASS: SDR exhaustion caused transaction to abort"
 fi
 
 #==============================================================================
@@ -144,27 +144,27 @@ echo "=== PHASE 3: Verifying Transaction Reversal ==="
 
 # ION 4.1.3+ specific: Check for reversal attempt message
 if check_reversal_attempted "ion.log"; then
-	echo "PASS: Transaction reversal was attempted (sdr->modified was true)"
+    echo "PASS: Transaction reversal was attempted (sdr->modified was true)"
 else
-	echo "FAIL: Expected 'Attempting transaction reversal' message not found"
-	echo "      This suggests the transaction had no modifications, which is unexpected"
-	RETVAL=1
-	end
+    echo "FAIL: Expected 'Attempting transaction reversal' message not found"
+    echo "      This suggests the transaction had no modifications, which is unexpected"
+    RETVAL=1
+    end
 fi
 
 # Verify NO unrecoverable errors
 if ! check_no_unrecoverable_error "ion.log"; then
-	echo "FAIL: Unrecoverable SDR error detected - reversal failed!"
-	RETVAL=1
-	end
+    echo "FAIL: Unrecoverable SDR error detected - reversal failed!"
+    RETVAL=1
+    end
 fi
 
 # Verify ionrestart executed
 if check_ionrestart_executed "ion.log"; then
-	echo "PASS: ionrestart executed as expected"
+    echo "PASS: ionrestart executed as expected"
 else
-	echo "WARNING: ionrestart may not have executed (checking logs)"
-	print_log_context "ionrestart" "ion.log" 3 3
+    echo "WARNING: ionrestart may not have executed (checking logs)"
+    print_log_context "ionrestart" "ion.log" 3 3
 fi
 
 echo "Transaction reversal verification complete"
@@ -196,32 +196,32 @@ if bpadmin . <<EOF 2>&1 | grep -q "bpclock is running"
 w 0
 EOF
 then
-	echo "PASS: BP daemon is running after ionrestart"
+    echo "PASS: BP daemon is running after ionrestart"
 else
-	echo "WARNING: BP daemon may not be running, attempting manual restart..."
-	# If BP didn't restart, manually restart it
-	if command -v timeout >/dev/null 2>&1; then
-		timeout 30 bpadmin restart.bprc || echo "bpadmin restart timed out or failed"
-	else
-		bpadmin restart.bprc &
-		BPADMIN_PID=$!
-		sleep 30
-		if kill -0 $BPADMIN_PID 2>/dev/null; then
-			echo "bpadmin restart appears hung, killing..."
-			kill -9 $BPADMIN_PID 2>/dev/null
-		fi
-		wait $BPADMIN_PID 2>/dev/null || true
-	fi
-	sleep 5
+    echo "WARNING: BP daemon may not be running, attempting manual restart..."
+    # If BP didn't restart, manually restart it
+    if command -v timeout >/dev/null 2>&1; then
+        timeout 30 bpadmin restart.bprc || echo "bpadmin restart timed out or failed"
+    else
+        bpadmin restart.bprc &
+        BPADMIN_PID=$!
+        sleep 30
+        if kill -0 $BPADMIN_PID 2>/dev/null; then
+            echo "bpadmin restart appears hung, killing..."
+            kill -9 $BPADMIN_PID 2>/dev/null
+        fi
+        wait $BPADMIN_PID 2>/dev/null || true
+    fi
+    sleep 5
 fi
 
 # Verify SDR is operational
 if check_sdr_operational; then
-	echo "PASS: SDR is operational after ionrestart"
+    echo "PASS: SDR is operational after ionrestart"
 else
-	echo "FAIL: SDR is not operational after ionrestart"
-	RETVAL=1
-	end
+    echo "FAIL: SDR is not operational after ionrestart"
+    RETVAL=1
+    end
 fi
 
 #==============================================================================
@@ -247,21 +247,21 @@ echo "Transaction aborts after test: $ABORT_COUNT_AFTER"
 echo "New aborts during test: $NEW_ABORTS"
 
 if [ "$NEW_ABORTS" -gt 0 ]; then
-	echo "FAIL: New transaction aborts occurred during recovery test"
-	echo "      System did not recover properly"
-	RETVAL=1
-	end
+    echo "FAIL: New transaction aborts occurred during recovery test"
+    echo "      System did not recover properly"
+    RETVAL=1
+    end
 else
-	echo "PASS: No new transaction aborts - system accepted test bundles"
+    echo "PASS: No new transaction aborts - system accepted test bundles"
 fi
 
 # Final check for unrecoverable errors
 if ! check_no_unrecoverable_error "ion.log"; then
-	echo "FAIL: Unrecoverable SDR error detected during recovery test"
-	RETVAL=1
-	end
+    echo "FAIL: Unrecoverable SDR error detected during recovery test"
+    RETVAL=1
+    end
 else
-	echo "PASS: No unrecoverable errors during recovery test"
+    echo "PASS: No unrecoverable errors during recovery test"
 fi
 
 #==============================================================================

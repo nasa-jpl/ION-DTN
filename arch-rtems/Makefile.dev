@@ -1,7 +1,7 @@
 IONFLAGS_T = -DRTEMS -DBP_EXTENDED -DGDSSYMTAB -DGDSLOGGER \
 -DUSING_SDR_POINTERS -DNO_SDR_TRACE -DNO_PSM_TRACE \
 -DNO_PROXY -DNO_DIRLIST -DNOEXPAT -DUDPTS -DTCPTS -DDGRTS
-# -DION_NO_DNS 
+# -DION_NO_DNS
 # Add -DSBSP if building with sbsp.
 # -DSBSP
 # Add -DAGENT_ROLE if building with nm.
@@ -166,7 +166,7 @@ SBSPSOURCES =       \
 
 BSSSOURCES =      \
 	libbss.c     \
-	libbssP.c    
+	libbssP.c
 
 BSSPSOURCES =      \
 	libbssp.c     \
@@ -177,7 +177,7 @@ BSSPSOURCES =      \
 	udpbso.c      \
 	libtcpbsa.c   \
 	tcpbsi.c      \
-	tcpbso.c 
+	tcpbso.c
 
 CFDPSOURCES =      \
 	bputa.c      \
@@ -185,7 +185,7 @@ CFDPSOURCES =      \
 	cfdpadmin.c  \
 	libcfdp.c    \
 	libcfdpP.c   \
-	libcfdpops.c 
+	libcfdpops.c
 
 AMSSOURCES =      \
 	libdgr.c	   \
@@ -220,7 +220,7 @@ TESTSOURCES =      \
 #	bpdriver.c   \
 #	bpecho.c     \
 #	bpsendfile.c \
-#	bprecvfile.c 
+#	bprecvfile.c
 
 CSRCS_I = ionrtems.c $(ICISOURCES) $(LTPSOURCES) $(BPSOURCES) $(TESTSOURCES) $(BSSSOURCES) $(BSSPSOURCES) $(AMSSOURCES)
 #	*** NOTE *** ION will build with SBSPSOURCES and NMSOURCES included.

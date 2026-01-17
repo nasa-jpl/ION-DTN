@@ -339,7 +339,7 @@ int main(int argc, char *argv[])
 	if (ion_add_contact(now + 2, now + 86400, node_num, node_num, 1000000, 1.0) < 0)
 	{
 		snprintf(buffer, sizeof(buffer), "Failed to add self contact (Node %d -> Node %d)",
-		         node_num, node_num);
+				node_num, node_num);
 		print_error(buffer);
 		print_error("Check ion.log for details");
 		return 1;

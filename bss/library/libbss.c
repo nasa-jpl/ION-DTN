@@ -1,16 +1,16 @@
 /*
- *	libbss.c:	BSS API, functions enabling the implementation 
+ *	libbss.c:	BSS API, functions enabling the implementation
  *			of BSS applications that support the reception
  *			of a bundle stream and are able to provide
  *			playback control over the stream.
- *								
- *									
+ *
+ *
  *	Copyright (c) 2011, Space Internetworking Center,
  *	Democritus University of Thrace.
- *	Copyright (c) 2011, California Institute of Technology.	
+ *	Copyright (c) 2011, California Institute of Technology.
  *
- *	All rights reserved.						
- *	
+ *	All rights reserved.
+ *
  *	Author: Sotirios-Angelos Lenas, Space Internetworking Center (SPICE)
  */
 
@@ -89,11 +89,11 @@ void	bssExit(void)
 int	bssOpen(char* bssName, char* path)
 {
 	CHKERR(bssName);
-	CHKERR(path); 
+	CHKERR(path);
 	/*
-	 *  This function loads BSS receiver's database with	
-	 *  RDONLY access rights that is necessary for stream's 	
-	 *  playback functionality.				
+	 *  This function loads BSS receiver's database with
+	 *  RDONLY access rights that is necessary for stream's
+	 *  playback functionality.
 	 */
 
 	if (ionAttach() < 0)
@@ -105,8 +105,8 @@ int	bssOpen(char* bssName, char* path)
 	if (_datFile(0,0) == -1 && _lstFile(0,0) == -1 && _tblFile(0,0) == -1)
 	{
 		if (loadRDonlyDB(bssName, path)!=0)
-		{	
-			putErrmsg("BSS library: Failed to read from database.", 
+		{
+			putErrmsg("BSS library: Failed to read from database.",
 				   path);
 			bssClose();
 			return -1;
@@ -120,32 +120,32 @@ wish to initiate a new one, please first close the active playback session.");
 		/* do nothing, keep existing database opened */
 		return -2;
 	}
-	
+
 	return 0;
 }
 
 int	bssStart(char* bssName, char* path, char* eid, char* buffer,
 		long bufLength, RTBHandler display)
-{	
+{
 	int 			dat;
 	int			lst;
 	int 			tbl;
 	static bss_thread_data	DB;
- 	pthread_t    		bssRecvThread;
+	pthread_t    		bssRecvThread;
 	int			enableLoop = 1;
 
 	CHKERR(bssName);
-	CHKERR(path); 
-	CHKERR(eid); 
-	CHKERR(buffer); 
-	CHKERR(bufLength > 0); 
+	CHKERR(path);
+	CHKERR(eid);
+	CHKERR(buffer);
+	CHKERR(bufLength > 0);
 	CHKERR(display);
-	
+
 	/*
-	 *  This function loads BSS receiver's database with       
-	 *  read/write access rights that are necessary for the     
-	 *  real-time mode.					
-         */
+	 *  This function loads BSS receiver's database with
+	 *  read/write access rights that are necessary for the
+	 *  real-time mode.
+	 */
 
 	if (ionAttach() < 0)
 	{
@@ -156,9 +156,9 @@ int	bssStart(char* bssName, char* path, char* eid, char* buffer,
 	if (_recvThreadId(NULL, 0) == 0)/*	No receiver thread.	*/
 	{
 		if (loadRDWRDB(bssName, path, &dat, &lst, &tbl) != 0)
-		{	
-			putErrmsg("BSS library: Database creation failed.", 
-				   path);
+		{
+			putErrmsg("BSS library: Database creation failed.",
+					path);
 			bssStop();
 			return -1;
 		}
@@ -176,13 +176,13 @@ session in order to initiate a new one.");
 	DB.lst = lst;
 	DB.tbl = tbl;
 	DB.buffer = buffer;
-	DB.bufLength = bufLength; 
+	DB.bufLength = bufLength;
 	DB.function = display;
 
 	oK(_running(&enableLoop));
 
 	if (pthread_begin(&bssRecvThread, NULL, recvBundles,
-		(void *) &DB, "libbss_receiver") < 0) 
+		(void *) &DB, "libbss_receiver") < 0)
 	{
 		putSysErrmsg("Can't create recvBundles thread", NULL);
 		bssStop();
@@ -196,7 +196,7 @@ session in order to initiate a new one.");
 int	bssRun(char* bssName, char* path, char* eid, char* buffer,
 		long bufLength, RTBHandler display)
 {
-	if (_datFile(0,0) == -1 && _lstFile(0,0) == -1 && _tblFile(0,0) == -1 
+	if (_datFile(0,0) == -1 && _lstFile(0,0) == -1 && _tblFile(0,0) == -1
 		&& _recvThreadId(NULL, 0) == 0)
 	{
 		if (bssStart(bssName, path, eid, buffer, bufLength, display)
@@ -204,7 +204,7 @@ int	bssRun(char* bssName, char* path, char* eid, char* buffer,
 		{
 			return -1;
 		}
-		
+
 		if (bssOpen(bssName, path) < 0)
 		{
 			return -1;
@@ -225,13 +225,13 @@ long	bssRead(bssNav nav, char* data, long dataLen)
 {
 	dataRecord rec;
 
-	CHKERR(data); 
+	CHKERR(data);
 	CHKERR(dataLen > 0);
 
-	/* 
-	 *  This function copies the contents of a data record 
-	 *  into a provided external buffer. 			
-   	 */
+	/*
+	 *  This function copies the contents of a data record
+	 *  into a provided external buffer.
+	 */
 
 	if (_lockMutex(1) == -1)
 	{
@@ -247,15 +247,15 @@ long	bssRead(bssNav nav, char* data, long dataLen)
 	if (dataLen < rec.pLen)	/*	prevent buffer overflow		*/
 	{
 		oK(_lockMutex(0));
-		return -1;	
-	}	
+		return -1;
+	}
 
 	if (readPayload(_datFile(0,0), data, rec.pLen) < 0)
 	{
 		oK(_lockMutex(0));
 		return -1;
 	}
-	
+
 	oK(_lockMutex(0));
 
 	return rec.pLen;
@@ -280,10 +280,10 @@ long	 bssSeek(bssNav *nav, time_t time, time_t *curTime,
 
 	CHKERR(nav);
 	CHKERR(time >= 0);
-	CHKERR(curTime); 
+	CHKERR(curTime);
 	CHKERR(count);
 	CHKERR(index);
-	
+
 	if (_lockMutex(1) == -1)	/*	Protecting transaction.	*/
 	{
 		return -1;
@@ -304,7 +304,7 @@ long	 bssSeek(bssNav *nav, time_t time, time_t *curTime,
 		oK(_lockMutex(0));
 		return -1;
 	}
-	
+
 	updateNavInfo(nav, position, entry.datOffset, entry.prev, entry.next);
 	*curTime = (time_t) entry.crtnTime.msec / 1000;
 	*count = entry.crtnTime.count;
@@ -345,7 +345,7 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 	unsigned long 	startingTime;
 
 	CHKERR(nav);
-	CHKERR(curTime); 
+	CHKERR(curTime);
 	CHKERR(count);
 	CHKERR(index);
 	hdr = &(index->header);
@@ -364,17 +364,17 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 		curPosition = hdr->oldestRowIndex;
 		startingPosition = hdr->oldestRowIndex;
 	}
-	
-	if (nav->nextOffset == -1) 
+
+	if (nav->nextOffset == -1)
 	{
 		/*	The end of the current doubly-linked list was
 		 *	reached.
-		 * 
+		 *
 		 *  TO DO: bssNext will jump to next second and skip any
-		 *  new data arriving later that filled in the 
+		 *  new data arriving later that filled in the
 		 *  rest of the second. This may be fixed
 		 *
-		 *	The following check ensures that bssNext 
+		 *	The following check ensures that bssNext
 		 *	 function will either break or return.		*/
 
 		if (hdr->oldestTime == 0)
@@ -391,7 +391,7 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 		curPosition = (curPosition + 1) % WINDOW;
 		while (i < WINDOW)
 		{
-			/*	 
+			/*
 			 *  Each row of the tables stored in .tbl file
 			 *  represents a specific second (from the last
 			 *  WINDOW seconds stored).  The curPosition value
@@ -401,7 +401,7 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 			 *  second stored in the hdr->oldestRowIndex
 			 *  position. The time (in seconds) represented
 			 *  by the curPosition is calculated by
-			 *  comparing the curPosition with the 
+			 *  comparing the curPosition with the
 			 *  hdr->oldestRowIndex value.
 			 */
 
@@ -409,7 +409,7 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 					+ curPosition - hdr->oldestRowIndex;
 
 			/* Check reaching end of WINDOW when
-			 * nextTime rolled back to starting 
+			 * nextTime rolled back to starting
 			 */
 
 			if (nextTime <= startingTime)
@@ -421,10 +421,10 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 			row = index->rows + curPosition;
 			if (row->firstEntryOffset == -1)
 			{
-				/*  
+				/*
 				 *  If there is no doubly-linked list
 				 *  created for that particular second,
-				 *  move to the next position. 
+				 *  move to the next position.
 				 */
 				curPosition = (curPosition + 1) % WINDOW;
 			}
@@ -432,7 +432,7 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 			{
 				break;
 			}
-			
+
 			i++;
 		}
 
@@ -470,7 +470,7 @@ long	bssNext_read(bssNav *nav, time_t *curTime, unsigned long *count,
 {
 	long	pLen;
 
-	pLen = bssNext(nav, curTime, count); 
+	pLen = bssNext(nav, curTime, count);
 	if (pLen == -2)
 	{
 		return -2;	/*	Indicates end of list.		*/
@@ -498,9 +498,9 @@ long	bssPrev(bssNav *nav, time_t *curTime, unsigned long *count)
 	long		curPosition = nav->curPosition;
 	int 		i=0;
 	unsigned long	prevTime;
-	
+
 	CHKERR(nav);
-	CHKERR(curTime); 
+	CHKERR(curTime);
 	CHKERR(count);
 	CHKERR(index);
 	hdr = &(index->header);
@@ -510,7 +510,7 @@ long	bssPrev(bssNav *nav, time_t *curTime, unsigned long *count)
 		return -1;
 	}
 
-	if (nav->prevOffset == -1) 
+	if (nav->prevOffset == -1)
 	{
 		/*	The following check ensures that bssPrev  	*
 		 *	 function will either break or return.		*/
@@ -527,9 +527,9 @@ long	bssPrev(bssNav *nav, time_t *curTime, unsigned long *count)
 		while (i < WINDOW)
 		{
 			/*
-		 	 *  The time (in seconds) represented by the
+			 *  The time (in seconds) represented by the
 			 *  curPosition is calculated by comparing
-			 *  the curPosition with the 
+			 *  the curPosition with the
 			 *  hdr->oldestRowIndex value.
 			 */
 
@@ -540,8 +540,8 @@ long	bssPrev(bssNav *nav, time_t *curTime, unsigned long *count)
 			}
 			else
 			{
-				prevTime = hdr->oldestTime + WINDOW 
-					- hdr->oldestRowIndex + curPosition;	
+				prevTime = hdr->oldestTime + WINDOW
+					- hdr->oldestRowIndex + curPosition;
 			}
 
 			if (prevTime >= (unsigned long) *curTime)
@@ -553,10 +553,10 @@ long	bssPrev(bssNav *nav, time_t *curTime, unsigned long *count)
 			row = index->rows + curPosition;
 			if (row->firstEntryOffset == -1)
 			{
-				/*  
+				/*
 				 *  If there is no doubly-linked list
 				 *  created for that particular second,
-				 *  move to the next position. 
+				 *  move to the next position.
 				 */
 				curPosition--;
 				if (curPosition < 0) curPosition = WINDOW - 1;
@@ -585,7 +585,7 @@ long	bssPrev(bssNav *nav, time_t *curTime, unsigned long *count)
 		}
 	}
 
-	updateNavInfo(nav, curPosition, entry.datOffset, entry.prev, 
+	updateNavInfo(nav, curPosition, entry.datOffset, entry.prev,
 			entry.next);
 	*curTime = (time_t) entry.crtnTime.msec / 1000;
 	*count = entry.crtnTime.count;
@@ -598,7 +598,7 @@ long	bssPrev_read(bssNav *nav, time_t *curTime, unsigned long *count,
 {
 	long	pLen;
 
-	pLen = bssPrev(nav, curTime, count); 
+	pLen = bssPrev(nav, curTime, count);
 	if (pLen == -2)
 	{
 		return -2;	/*	Indicates start of list.	*/

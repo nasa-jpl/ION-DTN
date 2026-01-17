@@ -1,5 +1,5 @@
 /*
- 	dccpcla.h:	common definitions for DCCP convergence layer
+	dccpcla.h:	common definitions for DCCP convergence layer
 			adapter modules.
 
 	Author: Samuel Jero, Ohio University
@@ -11,7 +11,7 @@
 	This convergence-layer does not provide ANY
 	fragmentation support. Maximum packet size is
 	link MTU.
- 										*/
+										*/
 
 #ifndef DCCPCLA_H
 #define DCCPCLA_H

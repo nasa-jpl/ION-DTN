@@ -119,8 +119,8 @@ cd ../2.ipn.ltp
 COUNT=`ls -l testfile* | egrep 150 | wc -l`
 if [ $COUNT -ne 1 ]
 then
-	echo "Error: node 2 did not get file150."
-	RETVAL=1
+    echo "Error: node 2 did not get file150."
+    RETVAL=1
 fi
 
 # Wait 10 seconds.  Node 4 should have received the file.
@@ -131,10 +131,10 @@ cd ../4.ipn.ltp
 COUNT=`ls -l testfile* | egrep 150 | wc -l`
 if [ $COUNT -ne 1 ]
 then
-	echo "Error: node 4 did not get file150."
-	RETVAL=1
+    echo "Error: node 4 did not get file150."
+    RETVAL=1
 else
-	echo "SUCCESS"
+    echo "SUCCESS"
 fi
 
 # Shut down ION processes.

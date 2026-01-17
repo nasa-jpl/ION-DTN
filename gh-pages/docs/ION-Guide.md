@@ -257,10 +257,10 @@ scheme defined in [RFC 9758](https://datatracker.ietf.org/doc/html/rfc9758):
 ipn-uri = "ipn:" [allocator-identifier "."] node-number "." service-number
 ```
 
-`allocator-identifier`: An unsigned integer identifying the allocation 
-authority. If the authority is the default (IANA, Allocator ID 0), this 
+`allocator-identifier`: An unsigned integer identifying the allocation
+authority. If the authority is the default (IANA, Allocator ID 0), this
 part and the following dot (.) may be omitted for brevity. ION is backward
-compatible with IPN URIs that omit the allocator identifier, which is 
+compatible with IPN URIs that omit the allocator identifier, which is
 interpreted as having the default value of 0.
 
 ### Structure and function
@@ -681,7 +681,7 @@ PSM Working Memory Partitions:
 │
 └── ION Working Memory (_ionwm) - SHARED by all protocols
     ├── IonVdb (ION core volatile database)
-    ├── BpVdb (Bundle Protocol volatile database)  
+    ├── BpVdb (Bundle Protocol volatile database)
     ├── CfdpVdb (CFDP volatile database)
     ├── LtpVdb (LTP volatile database)
     ├── Security policy structures
@@ -2492,11 +2492,11 @@ Persistent References: Objects referenced by `Object` handles (addresses)
 ```text
 SDR Dataspace Structure:
 ├── SdrMap (heap metadata)
-│   ├── Small pool free lists  
+│   ├── Small pool free lists
 │   ├── Large pool free lists
 │   └── Heap management info
 ├── Small Pool (≤256 byte objects)
-├── Large Pool (>256 byte objects)  
+├── Large Pool (>256 byte objects)
 └── Unassigned Space
 ```
 Purpose: Persistent application data storage
@@ -2509,7 +2509,7 @@ Access: Via SDR transactions (`sdr_malloc`, `sdr_free`)
 
 ## PSM (Platform Specific Memory) Module
 
-The PSM module provides the foundation for managing memory partitions 
+The PSM module provides the foundation for managing memory partitions
 in ION. It's a general-purpose memory management system that supports:
 
 - Working Memory Role: PSM manages volatile shared memory partitions that serve as "working memory"
@@ -2525,7 +2525,7 @@ in ION. It's a general-purpose memory management system that supports:
 ```text
 SDR Working Memory = PSM Partition
 ├── SdrControlHeader (coordination between processes)
-├── SdrState objects (per-SDR metadata) 
+├── SdrState objects (per-SDR metadata)
 ├── Transaction logs (for rollback)
 └── Management structures
 ```

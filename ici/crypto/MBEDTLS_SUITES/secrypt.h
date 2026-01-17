@@ -34,11 +34,11 @@
  * provides a reliable foundation for secure communication and data protection.
  * * Detailed function descriptions, parameters, and return values are provided to
  * ensure ease of use for developers.
- * 
+ *
  * @note Proper use of cryptographic functions is crucial for maintaining data security.
  * Familiarize with cryptographic principles and Mbed TLS specifics to ensure security.
  * * Developed and tested with Mbed TLS v2.28.5, v2.28.7, and v2.28.9
- * 
+ *
  * @warning Regular updates to Mbed TLS and adherence to cryptographic standards are
  * essential for maintaining security.
  *
@@ -67,37 +67,37 @@
 
 /* Include cryptographic primitives if available */
 #if defined(MBEDTLS_CTR_DRBG_C) && defined(MBEDTLS_ENTROPY_C) && \
-    defined(MBEDTLS_FS_IO)
-    /*  Entropy and DRBG for random number generation */
-    #include "mbedtls/entropy.h"
-    #include "mbedtls/ctr_drbg.h"
+		defined(MBEDTLS_FS_IO)
+	/*  Entropy and DRBG for random number generation */
+	#include "mbedtls/entropy.h"
+	#include "mbedtls/ctr_drbg.h"
 #endif
 
 #if defined(MBEDTLS_CIPHER_C) && defined(MBEDTLS_MD_C) && \
-    defined(MBEDTLS_FS_IO)
-    /*  Cipher and message digest for encryption and hashing */
-    #include "mbedtls/cipher.h"
-    #include "mbedtls/md.h"
-    #include "mbedtls/platform_util.h"
+		defined(MBEDTLS_FS_IO)
+	/*  Cipher and message digest for encryption and hashing */
+	#include "mbedtls/cipher.h"
+	#include "mbedtls/md.h"
+	#include "mbedtls/platform_util.h"
 
-    /*  Standard libraries for basic operations */
-    #include <stdio.h>
-    #include <stdlib.h>
-    #include <string.h>
-    #include <ctype.h>  // For isprint
+	/*  Standard libraries for basic operations */
+	#include <stdio.h>
+	#include <stdlib.h>
+	#include <string.h>
+	#include <ctype.h>  // For isprint
 #endif
 
-    /* Platform-specific includes and adjustments */
+/* Platform-specific includes and adjustments */
 #if defined(_WIN32)
-    // Windows-specific headers
-    #include <windows.h>
-    #if !defined(_WIN32_WCE)
-        #include <io.h>
-    #endif
+	// Windows-specific headers
+	#include <windows.h>
+	#if !defined(_WIN32_WCE)
+		#include <io.h>
+	#endif
 #else
-    /*  POSIX-specific headers for Unix, Linux, and others */
-    #include <sys/types.h>
-    #include <unistd.h>
+	/*  POSIX-specific headers for Unix, Linux, and others */
+	#include <sys/types.h>
+	#include <unistd.h>
 #endif
 
 #include <fcntl.h>
@@ -113,11 +113,11 @@
 #define MODE_DECRYPT    1
 
 #define USAGE   \
-    "\n  crypt_and_hash <mode> <input filename> <output filename> <cipher> <mbedtls_md> <key>\n" \
-    "\n   <mode>: 0 = encrypt, 1 = decrypt\n" \
-    "\n  example: crypt_and_hash 0 'personalization_string' file file.aes AES-128-GCM SHA1 hex:E76B2413958B00E193\n" \
-    "\n  example: crypt_and_hash 0 'xVc538Fa1773L5' file file.aes AES-256-GCM SHA256 ../my_key.hmk\n" \
-    "\n"
+	"\n  crypt_and_hash <mode> <input filename> <output filename> <cipher> <mbedtls_md> <key>\n" \
+	"\n   <mode>: 0 = encrypt, 1 = decrypt\n" \
+	"\n  example: crypt_and_hash 0 'personalization_string' file file.aes AES-128-GCM SHA1 hex:E76B2413958B00E193\n" \
+	"\n  example: crypt_and_hash 0 'xVc538Fa1773L5' file file.aes AES-256-GCM SHA256 ../my_key.hmk\n" \
+	"\n"
 
 
 /******************************************************************************/
@@ -181,10 +181,10 @@ void print_encrypted_data(const unsigned char *data, size_t length);
 /**
  * @brief Initialize the entropy context.
  *
- * This function initializes the entropy context, using strong entropy source, 
- * in preparation for generating cryptographically secure random numbers. 
- * It initializes the context structure used by subsequent entropy generation 
- * functions. This is a crucial step in ensuring that the entropy source is ready 
+ * This function initializes the entropy context, using strong entropy source,
+ * in preparation for generating cryptographically secure random numbers.
+ * It initializes the context structure used by subsequent entropy generation
+ * functions. This is a crucial step in ensuring that the entropy source is ready
  * and capable of providing high-quality random data for cryptographic operations.
  *
  * @param entropy Pointer to the mbedtls_entropy_context structure to be
@@ -220,7 +220,7 @@ int entropy_init(mbedtls_entropy_context *entropy);
  * @param mode Operation mode: MODE_ENCRYPT (0) for encryption or MODE_DECRYPT (1)
  *             for decryption.
  * @param personalization_string A personalization string used to augment the
- *                               cryptographic operation, enhancing security by 
+ *                               cryptographic operation, enhancing security by
  *                               introducing additional variation. This provides
  *                               an additional layer of randomization on top of the
  *                               strong entropy source used.
@@ -236,21 +236,21 @@ int entropy_init(mbedtls_entropy_context *entropy);
  *                         of the output data.
  * @param cipher String identifying the encryption algorithm to be used.
  * @param md String identifying the hash algorithm to be used.
- * @param my_key The encryption key for the cryptographic operation. This may 
+ * @param my_key The encryption key for the cryptographic operation. This may
  *               be the path to a symetric HMAC key, or a literal value (i.e. string).
  *
  * @return 0 on success, or a non-zero error code on failure.
  */
 int crypt_and_hash_buffer(
-    int mode, 
-    unsigned char *personalization_string,
-    unsigned char *input_buffer, 
-    size_t *input_length, 
-    unsigned char **my_output_buffer, 
-    size_t *my_output_length, 
-    char *cipher, 
-    char *md, 
-    char *my_key
+	int mode,
+	unsigned char *personalization_string,
+	unsigned char *input_buffer,
+	size_t *input_length,
+	unsigned char **my_output_buffer,
+	size_t *my_output_length,
+	char *cipher,
+	char *md,
+	char *my_key
 );
 
-#endif  /* CRYPT_AND_HASH_H */
+#endif /* CRYPT_AND_HASH_H */

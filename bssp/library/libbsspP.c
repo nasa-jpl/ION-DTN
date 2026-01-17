@@ -5,9 +5,9 @@
  *	Copyright (c) 2013, California Institute of Technology.
  *	Copyright (c) 2013, Space Internetworking Center,
  *	Democritus University of Thrace.
- *	
+ *
  *	All rights reserved. U.S. Government and E.U. Sponsorship acknowledged.
- *				
+ *
  *	Author: Sotirios-Angelos Lenas, Space Internetworking Center
  */
 
@@ -313,7 +313,7 @@ int	startBsspExportSession(Sdr sdr, Object spanObj, BsspVspan *vspan)
 	/*	Get next session number.				*/
 
 	dbobj = getBsspDbObject();
-	
+
 	sdr_stage(sdr, (char *) &bsspdb, dbobj, sizeof(BsspDB));
 	bsspdb.sessionCount++;
 	sdr_write(sdr, dbobj, (char *) &bsspdb, sizeof(BsspDB));
@@ -385,7 +385,7 @@ static void	startSpan(BsspVspan *vspan)
 
 	spanObj = sdr_list_data(sdr, vspan->spanElt);
 	sdr_read(sdr, (char *) &span, spanObj, sizeof(BsspSpan));
-	
+
 	if (span.currentExportSessionObj == 0)	/*	New span.	*/
 	{
 		/*	Must start span's initial session.		*/
@@ -497,7 +497,7 @@ static char 	*_bsspvdbName(void)
 static BsspVdb		*_bsspvdb(char **name)
 {
 	static BsspVdb	*vdb = NULL;
-	
+
 	if (name)
 	{
 		if (*name == NULL)	/*	Terminating.		*/
@@ -643,7 +643,7 @@ int	bsspInit(int estMaxExportSessions)
 			putErrmsg("Must supply estMaxExportSessions.", NULL);
 			return -1;
 		}
-		
+
 		sdr_read(sdr, (char *) &iondb, getIonDbObject(),
 				sizeof(IonDB));
 		bsspdbObject = sdr_malloc(sdr, sizeof(BsspDB));
@@ -673,7 +673,7 @@ int	bsspInit(int estMaxExportSessions)
 		bsspdbBuf.spans = sdr_list_create(sdr);
 		bsspdbBuf.seats = sdr_list_create(sdr);
 		bsspdbBuf.timeline = sdr_list_create(sdr);
-		
+
 		/*	Initialize sessionCount with a random value, 	*
 		 *	to minimize the risk of DoS attacks since	*
 		 *	this value also serves as the unique serial	*
@@ -1034,7 +1034,7 @@ int	addBsspSeat(char *beBsiCmd, char *rlBsiCmd)
 	Object		addr;
 	Object		seatElt = 0;
 
-	if (beBsiCmd == NULL || *beBsiCmd == '\0' || 
+	if (beBsiCmd == NULL || *beBsiCmd == '\0' ||
 		rlBsiCmd == NULL || *rlBsiCmd == '\0')
 	{
 		writeMemoNote("[?] Missing BSI command(s), can't add BSI",
@@ -1176,7 +1176,7 @@ void	findBsspSpan(uvast engineId, BsspVspan **vspan, PsmAddress *vspanElt)
 }
 
 int	addBsspSpan(uvast engineId, unsigned int maxExportSessions,
-		unsigned int maxBlockSize, char *bsoBECmd, char *bsoRLCmd, 
+		unsigned int maxBlockSize, char *bsoBECmd, char *bsoRLCmd,
 		unsigned int qTime, int purge)
 {
 	Sdr		sdr = getIonsdr();
@@ -1186,7 +1186,7 @@ int	addBsspSpan(uvast engineId, unsigned int maxExportSessions,
 	Object		addr;
 	Object		spanElt = 0;
 
-	if (bsoBECmd == NULL || *bsoBECmd == '\0' || 
+	if (bsoBECmd == NULL || *bsoBECmd == '\0' ||
 		bsoRLCmd == NULL || *bsoRLCmd == '\0')
 	{
 		writeMemoNote("[?] BSO commands missing, can't add span",
@@ -1251,7 +1251,7 @@ int	addBsspSpan(uvast engineId, unsigned int maxExportSessions,
 	spanBuf.exportSessions = sdr_list_create(sdr);
 	spanBuf.beBlocks = sdr_list_create(sdr);
 	spanBuf.rlBlocks = sdr_list_create(sdr);
-	
+
 	addr = sdr_malloc(sdr, sizeof(BsspSpan));
 	if (addr)
 	{
@@ -1279,7 +1279,7 @@ int	addBsspSpan(uvast engineId, unsigned int maxExportSessions,
 }
 
 int	updateBsspSpan(uvast engineId, unsigned int maxExportSessions,
-		unsigned int maxBlockSize, char *bsoBECmd, char *bsoRLCmd, 
+		unsigned int maxBlockSize, char *bsoBECmd, char *bsoRLCmd,
 		unsigned int qTime, int purge)
 {
 	Sdr		sdr = getIonsdr();
@@ -1364,7 +1364,7 @@ string too long.", bsoRLCmd);
 
 		spanBuf.bsoBECmd = sdr_string_create(sdr, bsoBECmd);
 	}
-	
+
 	if (bsoRLCmd)
 	{
 		if (spanBuf.bsoRLCmd)
@@ -1643,7 +1643,7 @@ void	bsspDetachClient(unsigned int clientSvcId)
 /*	*	*	Service interface functions	*	*	*/
 
 int	enqueueBsspNotice(BsspVclient *client, uvast sourceEngineId,
-		unsigned int sessionNbr, unsigned int dataLength, 
+		unsigned int sessionNbr, unsigned int dataLength,
 		BsspNoticeType type, unsigned char reasonCode,
 		Object data)
 {
@@ -1695,7 +1695,7 @@ static void	getExportSession(unsigned int sessionNbr, Object *sessionObj)
 			(char *) &sessionNbr, (Address *) &elt, NULL) == 1)
 	{
 		*sessionObj = sdr_list_data(sdr, elt);
-		return; 
+		return;
 	}
 
 	/*	Unknown session.					*/
@@ -1753,15 +1753,15 @@ static void	closeExportSession(Object sessionObj)
 	 *	the block's service data object to be passed up to
 	 *	the user in BsspXmitFailure notice, destroys the
 	 *	svcDataObject, and sets the svcDataObject to zero.
-	 *  	In that event, review of the service data object 
-	 *	in this function is foregone.					
+	 *	In that event, review of the service data object
+	 *	in this function is foregone.
 	 */
 
 	if (session->svcDataObject)
 	{
 		if (enqueueBsspNotice(bsspvdb->clients
 				+ session->clientSvcId, db.ownEngineId,
-				session->sessionNbr, 0, 
+				session->sessionNbr, 0,
 				BsspXmitSuccess, 0, session->svcDataObject)
 				< 0)
 		{
@@ -1773,7 +1773,7 @@ static void	closeExportSession(Object sessionObj)
 	}
 
 	sdr_write(sdr, dbobj, (char *) &db, sizeof(BsspDB));
-	
+
 	session->block = 0;
 
 	/*	Finally erase the session itself, reducing the session
@@ -1843,7 +1843,7 @@ static void	serializeDataPDU(BsspXmitBlock *block, char *buf)
 	encodeSdnv(&sdnv, block->pdu.length);
 	memcpy(cursor, sdnv.text, sdnv.length);
 	cursor += sdnv.length;
-	
+
 
 	/*	Note: client service data was copied into the trailing
 	 *	bytes of the buffer before this function was called.	*/
@@ -2070,8 +2070,8 @@ UVAST_FIELDSPEC " is stopped.", vspan->engineId);
 
 		currentTime = getCtime();
 
-//	Temporary patch to prevent premature retransmission.
-currentTime += 5;	/*	s/b += RTT from contact plan.	*/
+		// Temporary patch to prevent premature retransmission.
+		currentTime += 5; /*	s/b += RTT from contact plan.	*/
 
 		event.parm = 0;
 		event.type = BsspResendBlock;
@@ -2104,7 +2104,7 @@ currentTime += 5;	/*	s/b += RTT from contact plan.	*/
 
 	if (bsspvdb->watching & WATCH_g)
 	{
-		/* 
+		/*
 		putchar('G');
 		fflush(stdout);
 		*/
@@ -2421,7 +2421,7 @@ static int	constructAck(BsspXmitBlock *rs, Object spanObj)
 		return -1;
 	}
 
-	sdr_write(sdr, rsObj, (char *) rs, sizeof(BsspXmitBlock)); 
+	sdr_write(sdr, rsObj, (char *) rs, sizeof(BsspXmitBlock));
 	GET_OBJ_POINTER(sdr, BsspSpan, span, spanObj);
 	signalBeBso(span->engineId);
 #if BSSPDEBUG
@@ -2440,10 +2440,10 @@ static int	sendAck(unsigned int sessionNbr, Object spanObj)
 
 	CHKERR(ionLocked());
 	CHKERR(spanObj);
-	
+
 	GET_OBJ_POINTER(sdr, BsspSpan, span, spanObj);
 	encodeSdnv(&sessionNbrSdnv, sessionNbr);
-	baseOhdLength = 1 + span->engineIdSdnv.length 
+	baseOhdLength = 1 + span->engineIdSdnv.length
 			+ sessionNbrSdnv.length + 1;
 
 	/*	Set the acknowledgement values.		*/
@@ -2454,7 +2454,7 @@ static int	sendAck(unsigned int sessionNbr, Object spanObj)
 	rsBuf.pduClass = BsspAckn;
 	rsBuf.pdu.blkTypeCode = BsspAck;
 	rsBuf.ohdLength = baseOhdLength;
-	
+
 	/*		Ship this Ack.			*/
 
 	if (constructAck(&rsBuf, spanObj) < 0)
@@ -2571,7 +2571,7 @@ utoa(pdu->length));
 	}
 
 	/*	Pass additive inverse of length to zco_create to
- 	*	indicate that space has already been awarded.		*/
+	 *	indicate that space has already been awarded.		*/
 
 	pduLength -= pdu->length;
 	clientSvcData = zco_create(sdr, ZcoSdrSource, pduObj, 0, pduLength,
@@ -2655,16 +2655,16 @@ char		buf[256];
 	/*	Determine length of block. 	*/
 
 	/*	Compute worst-case block size.		*/
-	
-	length = session->totalLength;	
+
+	length = session->totalLength;
 	encodeSdnv(&lengthSdnv, length);
 	dataBlockOverhead = block.ohdLength + lengthSdnv.length;
 	worstCaseDataPDUSize = length + dataBlockOverhead;
 	if (worstCaseDataPDUSize >= 0 && (unsigned int)worstCaseDataPDUSize > span->maxBlockSize)
 	{
 		putErrmsg("Bssp XmitDataBlock size exceeds maximum block size.",
-		 NULL);
-		
+			NULL);
+
 		/* free block from SDR before return 0 	*/
 		sdr_free(sdr,blockObj);
 
@@ -2681,7 +2681,7 @@ char		buf[256];
 	}
 	else
 	{
-		block.queueListElt = sdr_list_insert_last(sdr, 
+		block.queueListElt = sdr_list_insert_last(sdr,
 				span->rlBlocks, blockObj);
 	}
 
@@ -2744,8 +2744,8 @@ int	issueXmitBlock(Sdr sdr, BsspSpan *span, BsspVspan *vspan,
 	CHKERR(ionLocked());
 	CHKERR(span);
 	CHKERR(vspan);
-	
-	switch (constructDataBlock(sdr, session, sessionObj, 
+
+	switch (constructDataBlock(sdr, session, sessionObj,
 			vspan, span, inOrder))
 	{
 	case -1:
@@ -2756,7 +2756,7 @@ int	issueXmitBlock(Sdr sdr, BsspSpan *span, BsspVspan *vspan,
 		putErrmsg("BSSP block size exceeds max limit",NULL);
 		return 0;
 	}
-		
+
 	/*	Block processing succeeded			*/
 
 	return 1;
@@ -2845,8 +2845,8 @@ putErrmsg("Handling acknowledgment.", utoa(sessionNbr));
 		 *	import session is an erroneous resurrection
 		 *	of a closed session and we need to help the
 		 *	remote engine terminate it. We do so by
-		 *	ignoring the acknowledgement. 			
-	 	 */
+		 *	ignoring the acknowledgement.
+		 */
 
 		sdr_exit_xn(sdr);
 		return 0;
@@ -2871,10 +2871,10 @@ putErrmsg("Discarding report.", NULL);
 	dsBuf.pdu.timer.pduArrivalTime = 0;
 	sdr_write(sdr, sessionBuf.block, (char *) &dsBuf,
 			sizeof(BsspXmitBlock));
-	
+
 	stopExportSession(&sessionBuf);
 	closeExportSession(sessionObj);
-		
+
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't handle report block.", NULL);
@@ -2949,10 +2949,10 @@ int	bsspHandleInboundBlock(char *buf, int length)
 	}
 
 	/*	Check whether block is an ACK block.			*/
- 
+
 	if ((pdu->blkTypeCode & BSSP_ACK_FLAG) == 1)	/*	Ack.	*/
 	{
-		return handleAck(bsspdb, sessionNbr, &block, pdu, &cursor, 
+		return handleAck(bsspdb, sessionNbr, &block, pdu, &cursor,
 				&bytesRemaining);
 	}
 
@@ -3248,7 +3248,7 @@ putErrmsg("Session is gone.", itoa(sessionNbr));
 
 	sdr_stage(sdr, (char *) &sessionBuf, sessionObj,
 			sizeof(BsspExportSession));
-	
+
 	if (sessionBuf.block == 0)	/*	Block is gone.		*/
 	{
 #if BSSPDEBUG
@@ -3274,7 +3274,7 @@ putErrmsg("Checkpoint is already acknowledged.", itoa(sessionNbr));
 			sizeof(BsspXmitBlock));
 	signalRlBso(span->engineId);
 	if ((_bsspvdb(NULL))->watching & WATCH_resendBlk)
-	{	
+	{
 		/*
 		putchar('-');
 		fflush(stdout);

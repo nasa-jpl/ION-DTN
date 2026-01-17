@@ -7,7 +7,7 @@
 	Copyright (c) 2020, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "tc.h"
 
@@ -28,7 +28,7 @@ int	tc_serialize(char *buffer, unsigned int buflen, uvast fqnn,
 
 	int requiredSize = fqnnSdnv.length + 14 + datLength;
 	CHKERR(requiredSize >= 0 && buflen > (unsigned int)requiredSize);
-	
+
 	memcpy(cursor, fqnnSdnv.text, fqnnSdnv.length);
 	cursor += fqnnSdnv.length;
 	length += fqnnSdnv.length;
@@ -60,7 +60,7 @@ int	tc_serialize(char *buffer, unsigned int buflen, uvast fqnn,
 int	tc_deserialize(char **cursor, int *bytesRemaining,
 		unsigned short maxDatLength, uvast *fqnn,
 		time_t *effectiveTime, time_t *assertionTime,
-		unsigned short *datLength, unsigned char *datValue) 
+		unsigned short *datLength, unsigned char *datValue)
 {
 	int	originalBytesRemaining;
 	uint32_t u4;

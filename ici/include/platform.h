@@ -67,7 +67,7 @@ extern "C" {
 #define __BSD_VISIBLE 1
 #endif
 /* Ensure all BSD extensions are available with C11 */
-#ifndef _BSD_SOURCE  
+#ifndef _BSD_SOURCE
 #define _BSD_SOURCE
 #endif
 /* Use XPG6/UNIX 03 for broader compatibility than strict POSIX.1-2008 */
@@ -376,7 +376,7 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #include <sys/types.h>
 #include <ws2tcpip.h>
 #include <winerror.h>
-  
+
 #ifndef EMSGSIZE
 #define EMSGSIZE WSAEMSGSIZE
 #endif
@@ -463,10 +463,10 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 
 /* Feature Test for Thread-Local Storage Support */
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__)
-    #include <threads.h>
-    #define ION_THREAD_LOCAL thread_local
+	#include <threads.h>
+	#define ION_THREAD_LOCAL thread_local
 #else
-    #define ION_THREAD_LOCAL __thread
+	#define ION_THREAD_LOCAL __thread
 #endif
 
 
@@ -556,7 +556,7 @@ oK(_isprintf(buffer, bufsize, format, __VA_ARGS__))
 
 #ifndef ION4WIN			/*	None of these apply in VS.	*/
 
-#define POSIX_NAMED_SEMAPHORES		/****	default			*********/
+#define POSIX_NAMED_SEMAPHORES	/****	default			*********/
 #define SVR4_SHM		/****	default			*********/
 #define	UNIX_TASKS		/****	default			*********/
 
@@ -917,7 +917,7 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 #ifndef SEM_NSEMS_MAX
 // larger because these are global on the node across ALL Ion instances - 256 is fine for a single instance
 #define	SEM_NSEMS_MAX		2048
-#endif  			 
+#endif
 
 int pthread_setname_np(const char *name);
 
@@ -1081,10 +1081,10 @@ extern int			_coreFileNeeded(int *);
 
 /* check arg for NULL and return requested return value.  As side effect,   */
 /* proves to the compiler that the pointer is not NULL afterward. 			*/
-#define CHKERR(e)    		if (!(e) && (iEnd(#e)||1)) return ERROR
-#define CHKZERO(e)    		if (!(e) && (iEnd(#e)||1)) return 0
-#define CHKNULL(e)    		if (!(e) && (iEnd(#e)||1)) return NULL
-#define CHKVOID(e)    		if (!(e) && (iEnd(#e)||1)) return
+#define CHKERR(e)		if (!(e) && (iEnd(#e)||1)) return ERROR
+#define CHKZERO(e)		if (!(e) && (iEnd(#e)||1)) return 0
+#define CHKNULL(e)		if (!(e) && (iEnd(#e)||1)) return NULL
+#define CHKVOID(e)		if (!(e) && (iEnd(#e)||1)) return
 
 extern void			printStackTrace(void);
 

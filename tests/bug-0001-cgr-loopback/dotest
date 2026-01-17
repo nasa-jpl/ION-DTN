@@ -36,10 +36,10 @@ echo "CONFIG: 2 node custom LTP:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo
@@ -59,10 +59,10 @@ cd 3.ipn.ltp
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 3 not started: Aborting Test"
-	exit 1
+    echo "Node 3 not started: Aborting Test"
+    exit 1
 fi
 
 cd ../2.ipn.ltp
@@ -71,10 +71,10 @@ cd ../2.ipn.ltp
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 2 not started: Aborting Test"
-	exit 1
+    echo "Node 2 not started: Aborting Test"
+    exit 1
 fi
 
 
@@ -103,15 +103,15 @@ num2=`grep "[s].* on ipn:2.0" statusReports.txt | grep "status 9" | wc -l`
 num3=`grep "[s].* on ipn:3.0" statusReports.txt | wc -l`
 
 if [ $num2 -ne 1 ]; then
-	echo ""
-	echo "ERROR: bptrace to loopback not received"
-	RETVAL=1
+    echo ""
+    echo "ERROR: bptrace to loopback not received"
+    RETVAL=1
 else
-	if [ $num3 -gt 0 ]; then
-		echo ""
-		echo "ERROR: bptrace to loopback went through another node"
-		RETVAL=1
-	fi
+    if [ $num3 -gt 0 ]; then
+        echo ""
+        echo "ERROR: bptrace to loopback went through another node"
+        RETVAL=1
+    fi
 fi
 
 echo ""

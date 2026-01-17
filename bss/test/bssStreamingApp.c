@@ -1,19 +1,19 @@
 /*
- *	bssStreamingApp.c:	a test program that creates and sends a 
+ *	bssStreamingApp.c:	a test program that creates and sends a
  *				stream of bundles.
- *									
- *	BSS Streaming Application Specifications			
+ *
+ *	BSS Streaming Application Specifications
  *	Simulated Compression: H.264/MPEG-4
  *	Resolution: 1280×720 @ 30fps. Constant Bit Rate: 3Mbps
- *								
- *	Copyright (c) 2011, California Institute of Technology.	
+ *
+ *	Copyright (c) 2011, California Institute of Technology.
  *	Copyright (c) 2011, Space Internetworking Center,
  *	Democritus University of Thrace.
  *
- *	All rights reserved.						
- *	
- *	Authors: Sotirios-Angelos Lenas, SPICE	 
- */			
+ *	All rights reserved.
+ *
+ *	Authors: Sotirios-Angelos Lenas, SPICE
+ */
 
 #include "bp.h"
 #include "bsstest.h"
@@ -70,7 +70,7 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 	Object		newBundle;
 	int 		i=0;
 
-	/*	bitrate = 3Mbps, CBR = 20866 bytes per 55642 usec	*/    
+	/*	bitrate = 3Mbps, CBR = 20866 bytes per 55642 usec	*/
 
 	char		framePayload[RCV_LENGTH];
 	char		info[100];
@@ -132,7 +132,7 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 			putErrmsg("No space for frame payload.", NULL);
 			break;
 		}
-		
+
 		sdr_write(sdr, bundlePayload, framePayload,
 				sizeof(framePayload));
 
@@ -141,7 +141,7 @@ static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 		 *	control.  The transmission loop is metered by
 		 *	time.						*/
 
-		bundleZco = ionCreateZco(ZcoSdrSource, bundlePayload, 0, 
+		bundleZco = ionCreateZco(ZcoSdrSource, bundlePayload, 0,
 				sizeof(framePayload), priority,
 				ancillaryData.ordinal, ZcoOutbound, NULL);
 		switch (bundleZco)
@@ -219,7 +219,7 @@ int	main(int argc, char **argv)
 	case 2:
 		ownEid = argv[1];
 		/* FALLTHROUGH */
-		
+
 	default:
 		break;
 	}

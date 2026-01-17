@@ -253,11 +253,11 @@ int	main(int argc, char **argv)
 				}
 
 				bytesSent += eofLineLen;
-	 			if ((rand() % nbrOfPeers) >= fdPoolSize)
-	 			{
-	 				close(contactSocket);
-	 				contactSocket = -1;
-	 			}
+				if ((rand() % nbrOfPeers) >= fdPoolSize)
+				{
+					close(contactSocket);
+					contactSocket = -1;
+				}
 
 				fclose(inputFile);
 				inputFile = fopen(fileName, "r");
@@ -286,11 +286,11 @@ int	main(int argc, char **argv)
 		}
 
 		bytesSent += lineLen;
-	 	if ((rand() % nbrOfPeers) >= fdPoolSize)
-	 	{
-	 		close(contactSocket);
-	 		contactSocket = -1;
-	 	}
+		if ((rand() % nbrOfPeers) >= fdPoolSize)
+		{
+			close(contactSocket);
+			contactSocket = -1;
+		}
 	}
 
 	report(&startTime, bytesSent);

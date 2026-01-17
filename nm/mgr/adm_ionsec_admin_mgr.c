@@ -8,10 +8,10 @@
  **
  ** Assumptions: TODO
  **
- ** Modification History: 
+ ** Modification History:
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2020-04-13  AUTO             Auto-generated c file 
+ **  2020-04-13  AUTO             Auto-generated c file
  **
  ****************************************************************************/
 

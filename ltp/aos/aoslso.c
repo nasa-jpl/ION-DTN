@@ -13,7 +13,7 @@
 static sm_SemId		aoslsoSemaphore(sm_SemId *semid)
 {
 	static sm_SemId	semaphore = -1;
-	
+
 	if (semid)
 	{
 		semaphore = *semid;
@@ -164,7 +164,7 @@ int	main(int argc, char *argv[])
 		isprintf(txt, sizeof(txt),
 			"[i] aolslso is running, spec=[%s:%d], txbps=%d \
 (0=unlimited), rengine=" UVAST_FIELDSPEC ".",
-			(char *) inet_ntoa(inetName->sin_addr), 
+			(char *) inet_ntoa(inetName->sin_addr),
 			ntohs(portNbr), txbps, remoteEngineId);
 		writeMemo(txt);
 	}
@@ -227,4 +227,3 @@ int	main(int argc, char *argv[])
 	writeMemo("[i] aoslso duct has ended.");
 	return 0;
 }
-

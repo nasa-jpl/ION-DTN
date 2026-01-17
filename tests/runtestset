@@ -25,9 +25,9 @@ while [ $# -gt 0 ]; do
         if ! [ $1 = "retest" ]; then
             echo "Testset file $1 doesn't exist"
             usage
-            exit 1  
+            exit 1
         fi
-        
+
         # We looked for, but did not find retest. We should do all tests
         echo "No retests file found. Running full test suite."
         TESTS="."

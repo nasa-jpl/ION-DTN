@@ -22,7 +22,7 @@ clean:
 install:
 		cp bin/* $(ROOT)/bin
 
-uninstall:		
+uninstall:
 		for file in $(UTILITIES); \
 			do rm $(ROOT)/bin/$(notdir $$file); done
 

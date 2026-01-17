@@ -6,19 +6,19 @@
 	Copyright (c) 2005, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
 
-	Modified by Sky DeBaun	
+	Modified by Sky DeBaun
 	Jet Propulsion Laboratory 2023
 
 	Modifications address the following issues:
 
-	1.) Resolution of petition assert/cancel flip-flop on RAMSGATE start: 
+	1.) Resolution of petition assert/cancel flip-flop on RAMSGATE start:
 	    Note: required two restarts to revert petition state
-	
+
 	2.) Refactoring for SANA range of ipn-scheme fully qualified node
 		numbers in gateway ID.
 
-	   	Modifications include switching arrays and for-loops using the 
-	   	MAX_CONTIN_NBR to use ici's lyst (managed linked list)
+	    Modifications include switching arrays and for-loops using the
+	    MAX_CONTIN_NBR to use ici's lyst (managed linked list)
 
 	3.) Resolution of multiple TSan data race and thread safety issues.
 
@@ -160,7 +160,7 @@ static int	RehandlePetition(RamsNetProtocol protocol, char *gwEid,
 		ErrMsg("Can't find sending node.");
 		return -1;
 	}
-	
+
 	/* This function is called during startup, before multiple threads
 	 * are running, so lock is not strictly necessary but is good practice.
 	 */
@@ -433,7 +433,7 @@ EnvelopeHeader(buffer, Env_UnitField),
 EnvelopeHeader(buffer, Env_SourceIDField),
 EnvelopeHeader(buffer, Env_DestIDField),
 EnvelopeHeader(buffer, Env_SubjectNbr),
-enclosureLength, fromNode->continuumNbr);				
+enclosureLength, fromNode->continuumNbr);
 #endif
 	if (enclosureLength > 0)
 	{
@@ -508,7 +508,7 @@ EnvelopeHeader(buffer, Env_UnitField),
 EnvelopeHeader(buffer, Env_SourceIDField),
 EnvelopeHeader(buffer, Env_DestIDField),
 EnvelopeHeader(buffer, Env_SubjectNbr),
-enclosureLength, fromNode->continuumNbr);				
+enclosureLength, fromNode->continuumNbr);
 #endif
 	if (enclosureLength > 0)
 	{
@@ -641,7 +641,7 @@ static void *_bpManagerThread(void *args)
 	 *	for an incoming bundle. It can be interrupted by a call to
 	 *	bp_interrupt(), which signals that there are queued outgoing
 	 *	bundles to process or that shutdown is beginning.	*/
-	
+
 	pthread_mutex_lock(&gWay->bpQueueMutex);
 	shutdown_flag = gWay->final_shutdown;
 	pthread_mutex_unlock(&gWay->bpQueueMutex);
@@ -664,7 +664,7 @@ static void *_bpManagerThread(void *args)
 		{
 			outRpdu = (BpOutboundRpdu *) lyst_data(elt);
 			lyst_delete(elt);
-			
+
 			pthread_mutex_unlock(&gWay->bpQueueMutex);
 
 			if (_sendQueuedRpdu(gWay, outRpdu) < 0)
@@ -679,7 +679,7 @@ static void *_bpManagerThread(void *args)
 			pthread_mutex_lock(&gWay->bpQueueMutex);
 		}
 		pthread_mutex_unlock(&gWay->bpQueueMutex);
-		
+
 		/* 3. Now process the result of the bp_receive() call. */
 		if (dlv.result == BpEndpointStopped)
 		{
@@ -688,7 +688,7 @@ static void *_bpManagerThread(void *args)
 			 * handle shutdown. Otherwise, just loop. */
 			bp_release_delivery(&dlv, 1);
 		}
-		
+
 		if (dlv.result == BpPayloadPresent)
 		{
 			if (sdr_begin_xn(sdr) < 0)
@@ -712,7 +712,7 @@ static void *_bpManagerThread(void *args)
 			}
 			bp_release_delivery(&dlv, 1);
 		}
-		
+
 		pthread_mutex_lock(&gWay->bpQueueMutex);
 		shutdown_flag = gWay->final_shutdown;
 		pthread_mutex_unlock(&gWay->bpQueueMutex);
@@ -821,7 +821,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	{
 		gWay->netType = TREETYPE;
 	}
-	else 
+	else
 	{
 		gWay->netType = MESHTYPE;
 	}
@@ -842,7 +842,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 		if (!ams_msgspace_is_neighbor(amsModule, cId))
 		{
 			continue;
-		} 	
+		}
 
 		ramsNode = (RamsNode *) MTAKE(sizeof(RamsNode));
 		if (ramsNode == NULL)
@@ -890,7 +890,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	rules.errHandlerUserData = gWay;
 	rules.msgHandler = HandleAamsMessage;
 	rules.msgHandlerUserData = gWay;
-	ams_set_event_mgr(amsModule, &rules);	
+	ams_set_event_mgr(amsModule, &rules);
 
 	/*	Subscribe to message on the pseudo-subject for the
 	 *	local continuum.					*/
@@ -928,7 +928,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 			oK(_gWay(gWay));
 			return -1;
 		}
-		
+
 		/* Initialize the thread-safe queue for BP */
 		gWay->bpSendQueue = lyst_create_using(amsMemory);
 		CHKERR(gWay->bpSendQueue);
@@ -1028,7 +1028,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 		ramsNode = (RamsNode *) lyst_data(elt);
 		if (ramsNode->continuumNbr != gWay->amsMib->localContinuumNbr)
 		{
-	    		if (lyst_insert_last(pet->SourceNodeSet, ramsNode)
+			if (lyst_insert_last(pet->SourceNodeSet, ramsNode)
 					== NULL)
 			{
 				pthread_mutex_unlock(&gWay->gwayStateMutex);
@@ -1090,7 +1090,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 			ErrMsg("Can't allocate RPDU buffer for UDP.");
 			g_ramsgate_interrupted = 1;
 		}
-		
+
 		while(!g_ramsgate_interrupted)
 		{
 			nameLength = sizeof(struct sockaddr_in);
@@ -1123,7 +1123,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 
 	/*	--- Shutdown Sequence ---				*/
 	writeMemo("[i] Stopping RAMS gateway...");
-	
+
 	/* 1. Gracefully shut down application logic. This will queue
 	 * final cancellation messages. The manager thread is still
 	 * running to process them.					*/
@@ -1138,7 +1138,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 			pthread_join(gWay->bpManagerThread, NULL);
 		}
 	}
-	
+
 	if (gWay->netProtocol == RamsUdp)
 	{
 		MRELEASE(buffer);
@@ -1158,7 +1158,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 		pthread_mutex_destroy(&gWay->bpQueueMutex);
 		pthread_cond_destroy(&gWay->bpQueueCond);
 	}
-	
+
 	pthread_mutex_destroy(&gWay->gwayStateMutex);
 	oK(_petitionLog(NULL, 0));	/*	Close petition log.	*/
 	oK(_gWay(gWay));		/*	Release gateway singleton. */
@@ -1177,7 +1177,7 @@ static void	TerminateGateway(RamsGateway *gWay)
 
 	/*	First cancel petitions as necessary.  To do so, begin
 	 *	by locating the local continuum's declaration petition.	*/
-	
+
 	pthread_mutex_lock(&gWay->gwayStateMutex);
 
 	ownPseudoSubject = 0 - gWay->amsMib->localContinuumNbr;
@@ -1203,7 +1203,7 @@ printf("<terminate gateway> terminating %d\n", gWay->amsMib->localContinuumNbr);
 		/*	Now retract self from all neighbors.		*/
 
 		for (elt = lyst_first(gWay->declaredNeighbors); elt;
-    				elt = lyst_next(elt))
+				elt = lyst_next(elt))
 		{
 			node = (RamsNode *) lyst_data(elt);
 			if ((sgsElt = NodeSetMember(node, pet->SourceNodeSet))
@@ -1233,7 +1233,7 @@ ownPseudoSubject, node->continuumNbr);
 			lyst_delete(sgsElt);
 		}
 	}
-	
+
 	pthread_mutex_unlock(&gWay->gwayStateMutex);
 
 	/*	Wait up to 2 seconds for all retraction RPDUs to be sent.
@@ -1281,7 +1281,7 @@ ownPseudoSubject, node->continuumNbr);
 	lockMib();
 	ams_unregister(gWay->amsModule);
 	/* ams_unregister releases MIB lock internally. */
-	
+
 	/* Clean up state lists, now under mutex protection. */
 	pthread_mutex_lock(&gWay->gwayStateMutex);
 
@@ -1290,7 +1290,7 @@ ownPseudoSubject, node->continuumNbr);
 	{
 		LystElt q_elt;
 		BpOutboundRpdu *rpdu;
-		
+
 		/* The bpSendQueue is protected by a different mutex */
 		pthread_mutex_unlock(&gWay->gwayStateMutex);
 		pthread_mutex_lock(&gWay->bpQueueMutex);
@@ -1313,7 +1313,7 @@ ownPseudoSubject, node->continuumNbr);
 	for (elt = lyst_first(gWay->petitionSet); elt; elt = lyst_next(elt))
 	{
 		pet = (Petition *) lyst_data(elt);
-        	DeletePetition(pet);
+		DeletePetition(pet);
 	}
 
 	lyst_destroy(gWay->petitionSet);
@@ -1321,7 +1321,7 @@ ownPseudoSubject, node->continuumNbr);
 	for (elt = lyst_first(gWay->invitationSet); elt; elt = lyst_next(elt))
 	{
 		inv = (Invitation *) lyst_data(elt);
-        	DeleteInvitation(inv);
+		DeleteInvitation(inv);
 	}
 
 	lyst_destroy(gWay->invitationSet);
@@ -1337,7 +1337,7 @@ ownPseudoSubject, node->continuumNbr);
 	{
 		lyst_destroy(gWay->udpRpdus);
 	}
-	
+
 	pthread_mutex_unlock(&gWay->gwayStateMutex);
 }
 
@@ -1475,7 +1475,7 @@ subjectNbr=%d\n", moduleNbr, subjectNbr);
 	sourceModule = LookupModule(unitNbr, moduleNbr, gWay);
 	if (domainContinuumNbr != gWay->amsMib->localContinuumNbr
 	&& !ModuleIsMyself(sourceModule, gWay))
-	{		
+	{
 		pthread_mutex_lock(&gWay->gwayStateMutex);
 		AddPetitioner(sourceModule, gWay, domainRoleNbr,
 				domainContinuumNbr, domainUnitNbr, subjectNbr);
@@ -1503,7 +1503,7 @@ moduleNbr, subjectNbr);
 	sourceModule = LookupModule(unitNbr, moduleNbr, gWay);
 	if (domainContinuumNbr != gWay->amsMib->localContinuumNbr
 	&& !ModuleIsMyself(sourceModule, gWay))
-	{		
+	{
 		pthread_mutex_lock(&gWay->gwayStateMutex);
 		RemovePetitioner(sourceModule, gWay, domainRoleNbr,
 				domainContinuumNbr, domainUnitNbr, subjectNbr);
@@ -1602,7 +1602,7 @@ printf("in HandleInvitation subjectNbr=%d from unit=%d module=%d to domain \
 role=%d domain unit=%d\n", subjectNbr, unitNbr, moduleNbr, domainRoleNbr,
 domainUnitNbr);
 #endif
-	if (subjectNbr <= 0) 
+	if (subjectNbr <= 0)
 	{
 		return;
 	}
@@ -1746,7 +1746,7 @@ printf("in HandleAamsMessage, subject = %d\n", subjectNbr);
 		pthread_mutex_lock(&gWay->gwayStateMutex);
 		ForwardTargetedMessage(gWay, flowLabel, content, contentLength);
 		pthread_mutex_unlock(&gWay->gwayStateMutex);
-	} 
+	}
 	else if (subjectNbr > 0)
 	{
 		/*	This is a message that was published by a module
@@ -2051,7 +2051,7 @@ static int	HandlePetitionAssertion(RamsNode *fromNode, RamsGateway *gWay,
 	Petition	*pet;
 	LystElt		nodeElt;
 	Lyst		assertionSet;
-	Petition	*aPet;	
+	Petition	*aPet;
 	int		result;
 
 #if RAMSDEBUG
@@ -2090,9 +2090,9 @@ domainContinuum, domainUnit, domainRole);
 					return 0;
 				}
 
-				/* Sky removes call to HandlePetitionCancellation() here 
-				 * to correct petition assert/cancel flip-flop on ramsgate 
-				 * restart: this required RAMSgate to be restarted twice 
+				/* Sky removes call to HandlePetitionCancellation() here
+				 * to correct petition assert/cancel flip-flop on ramsgate
+				 * restart: this required RAMSgate to be restarted twice
 				 * to re-enable cross-network AMS messaging */
 			}
 
@@ -2241,7 +2241,7 @@ PUTS("<handle petition assertion> propagation error");
 
 	/*	Now propagate the petition assertion to neighbors as
 	 *	needed.							*/
-		
+
 	if (AssertPetition(gWay, pet) < 0)
 	{
 #if RAMSDEBUG
@@ -2290,7 +2290,7 @@ domainContinuum, domainUnit, domainRole);
 			if ((dgsElt = NodeSetMember(fromNode,
 					pet->DestinationNodeSet)) != NULL)
 			{
-				lyst_delete(dgsElt);				
+				lyst_delete(dgsElt);
 #if RAMSDEBUG
 printf("<handle petition cancellation> removed continuum %d from DGS for %d \n",
 fromNode->continuumNbr, petSubject);
@@ -2563,7 +2563,7 @@ EnclosureHeader(EnvelopeContent(msg, -1), Enc_ModuleNbr));
 				}
 			}
 		}
-	}			
+	}
 
 	/*	Now send the message to all of those nodes and modules.	*/
 
@@ -2586,7 +2586,7 @@ PUTS("<handle published message> sending to continuum failed");
 			return -1;
 		}
 	}
-    
+
 	for (modulesElt = lyst_first(destinationModules); modulesElt;
 			modulesElt = lyst_next(modulesElt))
 	{
@@ -2802,7 +2802,7 @@ destinationContinuumNbr);
 			return 0;	/*	Nothing more to do.	*/
 		}
 	}
-  
+
 	/*	The destination continuum is either the local continuum
 	 *	or all continua, so must announce the message locally.	*/
 
@@ -2877,7 +2877,7 @@ PUTS("<handle announced message> sending to module failed");
 }
 
 /*	*	Utility functions for AMS event handlers	*	*/
-	
+
 static int	AddPetitioner(Module *sourceModule, RamsGateway *gWay,
 			int domainRole, short domainContinuum, int domainUnit,
 			short subjectNbr)
@@ -2955,10 +2955,10 @@ static int	RemovePetitioner(Module *sourceModule, RamsGateway *gWay,
 			int domainRole, short domainContinuum, int domainUnit,
 			short subjectNbr)
 {
-	 LystElt	elt;
-	 LystElt	modulesElt;
-	 Petition	*pet;
-	 
+	LystElt	  elt;
+	LystElt	  modulesElt;
+	Petition *pet;
+
 #if RAMSDEBUG
 printf("<remove petitioner> removing module unit %d nbr %d from petition for \
 subject %d continuum %d unit %d role %d\n", sourceModule->unitNbr,
@@ -2970,14 +2970,14 @@ sourceModule->nbr, subjectNbr, domainContinuum, domainUnit, domainRole);
 		if (PetitionMatchesDomain(pet, domainContinuum,
 				 domainRole, domainUnit, subjectNbr))
 		{
-			 if ((modulesElt = ModuleSetMember(sourceModule,
-					 pet->DistributionModuleSet)) != NULL)
-			 {
-				 lyst_delete(modulesElt);		
-			 }
+			if ((modulesElt = ModuleSetMember(sourceModule,
+					pet->DistributionModuleSet)) != NULL)
+			{
+				lyst_delete(modulesElt);
+			}
 
-			 break;
-		 }
+			break;
+		}
 	}
 
 	if (elt == NULL)   	/*	No such petition.		*/
@@ -3026,7 +3026,7 @@ static int ForwardPublishedMessage(RamsGateway *gWay, AmsEvent amsEvent)
 	int         sourceRoleNbr;
 
 	// Define a hard sanity limit to prevent DoS attacks or memory exhaustion
-	#define MAX_AMS_MSG_SIZE 65535 
+	#define MAX_AMS_MSG_SIZE 65535
 
 	ams_parse_msg(amsEvent, &continuumNbr, &unitNbr, &moduleNbr,
 			&subjectNbr, &contentLen, &content, &context,
@@ -3035,7 +3035,7 @@ static int ForwardPublishedMessage(RamsGateway *gWay, AmsEvent amsEvent)
 	/* -----------------------------------------------------------
 	* SECURITY & SAFETY CHECKS
 	* ----------------------------------------------------------- */
-	
+
 	/* 1. Prevent Integer Overflow / Underflow */
 	if (contentLen < 0)
 	{
@@ -3054,7 +3054,7 @@ static int ForwardPublishedMessage(RamsGateway *gWay, AmsEvent amsEvent)
 	if (contentLen > MAX_AMS_MSG_SIZE)
 	{
 		char errBuf[128];
-		sprintf(errBuf, "ForwardPublishedMessage: Content too large (%d bytes). Max is %d.", 
+		sprintf(errBuf, "ForwardPublishedMessage: Content too large (%d bytes). Max is %d.",
 				contentLen, MAX_AMS_MSG_SIZE);
 		ErrMsg(errBuf);
 		return -1;
@@ -3069,12 +3069,12 @@ static int ForwardPublishedMessage(RamsGateway *gWay, AmsEvent amsEvent)
 	sourceRoleNbr = RoleNumber(gWay->amsModule, unitNbr, moduleNbr);
 
 	/* Package the message in an Enclosure structure so that
-	* it can be forwarded.                    */
+	 * it can be forwarded.                    */
 
 	enc = ConstructEnclosure(continuumNbr, unitNbr, moduleNbr, subjectNbr,
 			contentLen, content, context, msgType, priority,
 			flowLabel);
-			
+
 	// Explicitly check if allocation failed (e.g., if MTAKE returned NULL)
 	if (enc == NULL)
 	{
@@ -3083,21 +3083,21 @@ static int ForwardPublishedMessage(RamsGateway *gWay, AmsEvent amsEvent)
 	}
 
 	/* Normally the published message's flow label is used
-	* as the Bundle Protocol Class of Service (which includes
-	* priority) in the event that the message is forwarded
-	* over a BP RAMS network.  The publisher can instead
-	* choose to let the RAMS gateway compute the BP Class
-	* of Service (priority only) from the AMS priority and
-	* use it as a replacement flow label, by specifying in
-	* flow label the invalid BP COS value 3.          */
-	
+	 * as the Bundle Protocol Class of Service (which includes
+	 * priority) in the event that the message is forwarded
+	 * over a BP RAMS network.  The publisher can instead
+	 * choose to let the RAMS gateway compute the BP Class
+	 * of Service (priority only) from the AMS priority and
+	 * use it as a replacement flow label, by specifying in
+	 * flow label the invalid BP COS value 3.          */
+
 	if ((flowLabel & 0x03) == 3)
 	{
 		flowLabel = (15 - priority) / 5;
 	}
 
 	/* Compile a list of all RAMS nodes to forward the
-	* published message to. */
+	 * published message to. */
 
 	nodesList = lyst_create_using(getIonMemoryMgr());
 	if (nodesList == NULL)
@@ -3107,10 +3107,10 @@ static int ForwardPublishedMessage(RamsGateway *gWay, AmsEvent amsEvent)
 		return -1;
 	}
 
-	// Note: Ensure gWay->petitionSet is not being modified by another thread 
+	// Note: Ensure gWay->petitionSet is not being modified by another thread
 	// during this iteration, or add a semaphore lock here.
 	for (elt = lyst_first(gWay->petitionSet); elt; elt = lyst_next(elt))
-	{       
+	{
 		pet = (Petition *) lyst_data(elt);
 		if (lyst_length(pet->DestinationNodeSet) == 0)
 		{
@@ -3125,11 +3125,11 @@ static int ForwardPublishedMessage(RamsGateway *gWay, AmsEvent amsEvent)
 	}
 
 	/* Now forward the published message to every node in
-	* the list.                       */
+	 * the list.                       */
 
 	for (elt = lyst_first(nodesList); elt; elt = lyst_next(elt))
 	{
-		node = (RamsNode *) lyst_data(elt);         
+		node = (RamsNode *) lyst_data(elt);
 #if RAMSDEBUG
 		printf("<forward published message> send to continuum %d\n", node->continuumNbr);
 #endif
@@ -3140,8 +3140,8 @@ static int ForwardPublishedMessage(RamsGateway *gWay, AmsEvent amsEvent)
 			PUTS("<forward published message> sending to continuum failed");
 #endif
 			ErrMsg("Error in sending published message to node.");
-			// Note: We do NOT return -1 here immediately because we might 
-			// succeed sending to other nodes in the list. 
+			// Note: We do NOT return -1 here immediately because we might
+			// succeed sending to other nodes in the list.
 			// If strict failure is required, uncomment the return below.
 			// DeleteEnclosure(enc);
 			// return -1;
@@ -3204,7 +3204,7 @@ PUTS("<forward targeted message> sending to continuum failed");
 				ErrMsg("Error in sending targeted message \
 to node.");
 				return -1;
-			 }
+			}
 		}
 
 		return 0;

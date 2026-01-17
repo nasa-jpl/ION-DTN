@@ -1,7 +1,7 @@
 /*
 
 	issue-260-teach-valgrind-mtake/domtake.c:	MTAKE-in-valgrind test.
-	
+
 	This test does some MTAKEing and MRELEASEing; you should run it from
 	inside of valgrind and observe some leaks.
 
@@ -19,7 +19,7 @@ int main(int argc, char **argv)
 	/* Parameter intentionally unused. */
 	(void)argc;
 
-    ionAttach();
+	ionAttach();
 
 	stringToLeak = MTAKE(128);
 	fail_unless(stringToLeak != NULL);

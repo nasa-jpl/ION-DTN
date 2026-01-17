@@ -71,9 +71,9 @@ extern "C" {
 
 
 typedef enum mgr_ui_mode_enum {
-   MGR_UI_STANDARD, // Standard Shell-Based UI
-   MGR_UI_NCURSES, // NCURSES-Based UI (currently a compile-time flag mutually exclusive with MGR_UI_STANDARD)
-   MGR_UI_AUTOMATOR, // Special Altenrative UI Optimized for Automation
+	MGR_UI_STANDARD, // Standard Shell-Based UI
+	MGR_UI_NCURSES, // NCURSES-Based UI (currently a compile-time flag mutually exclusive with MGR_UI_STANDARD)
+	MGR_UI_AUTOMATOR, // Special Altenrative UI Optimized for Automation
 } mgr_ui_mode_enum;
 extern mgr_ui_mode_enum mgr_ui_mode;
 
@@ -134,49 +134,49 @@ void ui_db_write();
 /** NCURSES Style UI Helper API.  These functions will gracefully fallback to non-curses implementations if not available **/
 // UI Helper Structures
 typedef enum form_types_enum {
-   TYPE_CHECK_NONE = 0,
-   TYPE_CHECK_ALPHA,
-   TYPE_CHECK_ALNUM,
-   TYPE_CHECK_ENUM,
-   TYPE_CHECK_INT,
-   TYPE_CHECK_NUM,
-   TYPE_CHECK_REGEXP,
-   TYPE_CHECK_BOOL,
+	TYPE_CHECK_NONE = 0,
+	TYPE_CHECK_ALPHA,
+	TYPE_CHECK_ALNUM,
+	TYPE_CHECK_ENUM,
+	TYPE_CHECK_INT,
+	TYPE_CHECK_NUM,
+	TYPE_CHECK_REGEXP,
+	TYPE_CHECK_BOOL,
 } form_types_enum;
 
 typedef struct form_fields_t {
-   char* title;
-   char* value;
-   uint32_t width; // Maximum length for value field (null-char included)
-   int opts_off; // NCURSES Field Options to disable
-   form_types_enum type; // If not NULL, use validation
-   void *parsed_value;
-   union args {
-      // For ALPHA or ALNUM types
-      int width; // Minimum length for value field (excluded null-char)
-      struct en { // Enums
-         char ** valuelist;
-         int checkcase;
-         int checkunique;
-      } en;
-      struct num { // Used for integer and numeric types
-         int padding;
-         int vmin;
-         int vmax;
-      } num;
-      // Regex type
-      char *regex;
-   } args;
+	char* title;
+	char* value;
+	uint32_t width; // Maximum length for value field (null-char included)
+	int opts_off; // NCURSES Field Options to disable
+	form_types_enum type; // If not NULL, use validation
+	void *parsed_value;
+	union args {
+		// For ALPHA or ALNUM types
+		int width; // Minimum length for value field (excluded null-char)
+		struct en { // Enums
+			char ** valuelist;
+			int checkcase;
+			int checkunique;
+		} en;
+		struct num { // Used for integer and numeric types
+			int padding;
+			int vmin;
+			int vmax;
+		} num;
+		// Regex type
+		char *regex;
+	} args;
 } form_fields_t;
 
 typedef struct ui_menu_list_t
 {
-   char* name;
-   char* description;
-   char* data; /**< User data field */
+	char* name;
+	char* description;
+	char* data; /**< User data field */
 } ui_menu_list_t;
 
-/** UI Menu Options 
+/** UI Menu Options
  *   Unless otherwise indicated, these options have no effect in no-curses mode.
  */
 #define UI_OPT_AUTO_LABEL        0x1
@@ -195,11 +195,11 @@ typedef struct ui_menu_list_t
 
 typedef enum ui_cb_return_values_t
 {
-   UI_CB_RTV_ERR = -1, /**< Abort menu with error code. Any value <0 will be returned in this manner */
-   UI_CB_RTV_CONTINUE = 0, /**< Continue displaying menu */
-   UI_CB_RTV_STATUS = 1,  /**< Continue displaying menu with updated status message (if ui_menu_listing was given a status_msg buffer) */
-   UI_CB_RTV_CHOICE = 2, /** Abort menu with current selection index as return value */
-   
+	UI_CB_RTV_ERR = -1, /**< Abort menu with error code. Any value <0 will be returned in this manner */
+	UI_CB_RTV_CONTINUE = 0, /**< Continue displaying menu */
+	UI_CB_RTV_STATUS = 1,  /**< Continue displaying menu with updated status message (if ui_menu_listing was given a status_msg buffer) */
+	UI_CB_RTV_CHOICE = 2, /** Abort menu with current selection index as return value */
+
 } ui_cb_return_values_t;
 
 typedef struct ui_print_cfg_t
@@ -211,10 +211,10 @@ typedef struct ui_print_cfg_t
 
 /** Callback function prototype for ui_menu_listing
  * @param[in] idx Index into the menu listing configuration for the currently selected item.
- * @param[in] keypress The key that the user pressed to make the current selection. 
+ * @param[in] keypress The key that the user pressed to make the current selection.
  *    For NCURSES mode, this is any keypress that does not cause the menu to navigate or cancel.
  *    This is not applicable in stdio/fallback mode, where 0 will always be given here.
- * @param[in,out] data The optional user data field associated with the list menu definition.  
+ * @param[in,out] data The optional user data field associated with the list menu definition.
  * @param[in,out] status_msg A copy of the status_msg buffer given to ui_menu_listing. If not NULL,
  *    callback may update the contents of this message and return 2 to indicate menu should
  *    refresh status message and continue.
@@ -223,7 +223,7 @@ typedef struct ui_print_cfg_t
  */
 typedef ui_cb_return_values_t (*ui_menu_listing_cb_fn)(int idx, int keypress, void* data, char* status_msg);
 
-/** Display a menu of options for the user to select from 
+/** Display a menu of options for the user to select from
  * @param title  A title to display for this menu
  * @param choices An array of strings used or the menu selection names.
  * @param descriptions An optional array of detailed descriptions for each menu item.
@@ -231,7 +231,7 @@ typedef ui_cb_return_values_t (*ui_menu_listing_cb_fn)(int idx, int keypress, vo
  *    array and, if present, the descriptions array.
  * @param msg An optional user-defined message to display at the bottom of the menu.
  *    This is intended for informational or error message from the previous action.
- * @return -1 if the user cancels the operation or an error occurs, the 0-based index into the 
+ * @return -1 if the user cancels the operation or an error occurs, the 0-based index into the
  *    choices array representing the user selection otherwise.
  */
 int ui_menu(char* title, char** choices, char** descriptions, int n_choices, char* msg);
@@ -266,26 +266,26 @@ int ui_prompt(char* title, char* choiceA, char* choiceB, char* choiceC);
  *    - upon user selection of a menu item.
  *    - NCURSES Mode Only: Any keypress not used for navigation or cancellation of menu.
  *    The return value of the callback will determine if the menu will continue to be displayed,
- *      a user defined status message updated, or if this menu shall exit.  
+ *      a user defined status message updated, or if this menu shall exit.
  *      See ui_menu_lsiting_cb_fn definition for details.
  * @returns Index of user selection.
  */
 int ui_menu_listing(char* title, ui_menu_list_t* list, int n_choices,
-                    char* status_msg, int default_idx, char* usage_msg,
-                    ui_menu_listing_cb_fn fn, int flags);
+		char* status_msg, int default_idx, char* usage_msg,
+		ui_menu_listing_cb_fn fn, int flags);
 
 /** This is a variant of ui_menu supporting a multi-column layout (NCURSES-mode only) */
 int ui_menu_select(char* title, const char* const* choices, const char* const* descriptions, int n_choices, char* msg, int menu_cols);
 
 /** ui_display_to_file
  *  Redirect subsequent ui_init() and ui_printf() output to the specified file.
- *  The file will be closed and normal behavior restored when ui_display_exec() 
+ *  The file will be closed and normal behavior restored when ui_display_exec()
  *  is called (or ui_display_to_file_close).
  * @returns AMP_OK on success, AMP_FAIL otherwise.
  */
 int ui_display_to_file(char* filename);
 
-/** This function will end the redirection of ui_printf() and close the open file (if any). 
+/** This function will end the redirection of ui_printf() and close the open file (if any).
  *    See ui_display_to_file() for details.
  */
 void ui_display_to_file_close(void);
@@ -317,7 +317,7 @@ int ui_display_exec(void);
 void ui_init();
 
 /** This function will reset the internal display buffer and output the specified title banner with
- *    appropriate formatting to the buffer.  The buffer will be appended to be subsequent calls to 
+ *    appropriate formatting to the buffer.  The buffer will be appended to be subsequent calls to
  *    ui_printf(), and displayed with ui_display_exec().  The display function can be suppressed
  *    in favor of file logging by calling ui_display_to_file() first.
  */

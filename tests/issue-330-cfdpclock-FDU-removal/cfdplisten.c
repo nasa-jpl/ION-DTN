@@ -32,25 +32,25 @@ int main(void)
 void poll_cfdp_messages(void)
 {
 	char *eventTypes[] =	{
-					"no event",
-					"transaction started",
-					"EOF sent",
-					"transaction finished",
-					"metadata received",
-					"file data segment received",
-					"EOF received",
-					"suspended",
-					"resumed",
-					"transaction report",
-					"fault",
-					"abandoned"
-				};
+		"no event",
+		"transaction started",
+		"EOF sent",
+		"transaction finished",
+		"metadata received",
+		"file data segment received",
+		"EOF received",
+		"suspended",
+		"resumed",
+		"transaction report",
+		"fault",
+		"abandoned"
+	};
 	CfdpEventType		type;
-	time_t				time;
-	int					reqNbr;
+	time_t			time;
+	int			reqNbr;
 	CfdpTransactionId	transactionId;
-	char				sourceFileNameBuf[256];
-	char				destFileNameBuf[256];
+	char			sourceFileNameBuf[256];
+	char			destFileNameBuf[256];
 	uvast			fileSize;
 	MetadataList		messagesToUser;
 	uvast			offset;
@@ -65,10 +65,10 @@ void poll_cfdp_messages(void)
 	CfdpFileStatus		fileStatus;
 	CfdpDeliveryCode	deliveryCode;
 	CfdpTransactionId	originatingTransactionId;
-	char				statusReportBuf[256];
+	char			statusReportBuf[256];
 	unsigned char		usrmsgBuf[256];
 	MetadataList		filestoreResponses;
-	uvast 			TID11;
+	uvast			TID11;
 	uvast			TID12;
 
 	/*Main Event loop*/
@@ -76,16 +76,16 @@ void poll_cfdp_messages(void)
 
 		/*Grab a CFDP event*/
 		if (cfdp_get_event(&type, &time, &reqNbr, &transactionId,
-						sourceFileNameBuf, destFileNameBuf,
-						&fileSize, &messagesToUser, &offset, &length,
-						&recordBoundsRespected, &continuationState,
-						&segMetadataLength, segMetadata, &condition,
-						&progress, &fileStatus, &deliveryCode,
-						&originatingTransactionId, statusReportBuf,
-						&filestoreResponses, &closureRequested) < 0){
-					fprintf(stderr, "Error: Failed getting CFDP event.");
-					exit(1);
-				}
+				sourceFileNameBuf, destFileNameBuf,
+				&fileSize, &messagesToUser, &offset, &length,
+				&recordBoundsRespected, &continuationState,
+				&segMetadataLength, segMetadata, &condition,
+				&progress, &fileStatus, &deliveryCode,
+				&originatingTransactionId, statusReportBuf,
+				&filestoreResponses, &closureRequested) < 0){
+			fprintf(stderr, "Error: Failed getting CFDP event.");
+			exit(1);
+		}
 
 		if (type == CfdpNoEvent){
 			continue;	/*	Interrupted.		*/

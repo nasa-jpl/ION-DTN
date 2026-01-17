@@ -60,7 +60,7 @@ REASON_NO_ROUTE_TO_DEST           = 0x06
 REASON_NO_TIMELY_CONTACT          = 0x07
 REASON_BLOCK_UNINTELLIGIBLE       = 0x08
 REASON_SECURITY_FAILED            = 0x09
-    
+
 #
 # Custody transfer reason codes
 #
@@ -117,7 +117,7 @@ END = 1 << 0
 START = 1 << 1
 
 #depends on the above, so need to be imported after
-import bundle 
+import bundle
 
 
 def encode_noncbheeids(bundle):
@@ -133,7 +133,7 @@ def encode_noncbheeids(bundle):
                  bundle.custodian ) :
 
         (scheme, ssp) = eid.split(':')
-        
+
         if dict_offsets.has_key(scheme):
             scheme_offset = dict_offsets[scheme]
         else:
@@ -150,7 +150,7 @@ def encode_noncbheeids(bundle):
 
         eids_buffer += sdnv.sdnv_encode(scheme_offset)
         eids_buffer += sdnv.sdnv_encode(ssp_offset)
-    
+
     return (eids_buffer, dict_buffer)
 
 def encode_cbheeids(bundle):
@@ -179,7 +179,7 @@ def can_cbhe(bundle):
                  bundle.source,
                  bundle.replyto,
                  bundle.custodian ) :
-        
+
         (scheme, ssp) = eid.split(':')
         if scheme != "ipn" and eid != "dtn:none":
             return False
@@ -199,14 +199,14 @@ def encode(bundle):
     payload block or the payload data itself, into a binary string."""
 
     data = ''
-    
+
     #------------------------------
     # Primary block
     #------------------------------
-    
+
     (eids_buffer, dict_buffer) = encode_eids(bundle)
     data += eids_buffer
-    
+
     # Now append the creation time and expiration sdnvs, the
     # dictionary length, and the dictionary itself
     data += sdnv.sdnv_encode(int(bundle.creation_secs))
@@ -227,7 +227,7 @@ def encode(bundle):
 #----------------------------------------------------------------------
 def encode_block_preamble(type, flags, eid_offsets, length):
     """Encode the standard preamble for a block"""
-    
+
     eid_data = ''
     if len(eid_offsets) != 0:
         flags = flags | BLOCK_FLAG_EID_REFS
@@ -283,10 +283,10 @@ def decode_blocks(bytes):
             blocks[type] = [ { "flags" : flags, "payload" : blockpayload } ]
         bytes = bytes[totalblocklength:]
     return blocks
-    
+
 
 #----------------------------------------------------------------------
-#This should decode an encoded bundle, presumably including 
+#This should decode an encoded bundle, presumably including
 #the block preamble but not including the payload
 #this is likely to explode from a bad block, i'm not adding
 #error checks
@@ -313,7 +313,7 @@ def decode(message):
     (creation_ts, creation_ts_sq_no, i) = __decode_assist(
         i,bytes)
     (lifetime, dict_len, i) = __decode_assist(i,bytes)
-    #should test if fragment, then see a fragment offset. 
+    #should test if fragment, then see a fragment offset.
     #Skipping as we say no fragments at this point
 
     #build the bundle
@@ -352,8 +352,8 @@ def decode(message):
 
     # Return
     if b.blocks.has_key(PAYLOAD_BLOCK):
-        return (b, 
-                len(b.blocks[PAYLOAD_BLOCK][0]["payload"]), 
+        return (b,
+                len(b.blocks[PAYLOAD_BLOCK][0]["payload"]),
                 b.blocks[PAYLOAD_BLOCK][0]["payload"])
     else:
         return (b, 0, "")
@@ -400,7 +400,7 @@ if (__name__ == "__main__"):
     b.bundle_flags  |= BUNDLE_CUSTODY_XFER_REQUESTED
     b.srr_flags     |= STATUS_DELETED | STATUS_DELIVERED
     b.payload = StringPayload("test")
-    
+
     d = encode(b)
     preamble = encode_block_preamble(PAYLOAD_BLOCK,
                                      BLOCK_FLAG_LAST_BLOCK,
@@ -409,9 +409,8 @@ if (__name__ == "__main__"):
     print "encoded data: ", hexlify(message)
     (bundle, bundle_len, remainder) = decode(message)
     bundle.payload = StringPayload(remainder)
-    
+
     print(b)
     print(bundle)
-    
-    assert(bundle == b)
 
+    assert(bundle == b)

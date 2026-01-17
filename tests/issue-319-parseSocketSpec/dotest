@@ -24,10 +24,10 @@ echo "CONFIG: A simple AMS message space:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Searching for message reception stats in the amsbenchr output."
 echo
@@ -61,10 +61,10 @@ COUNT=$(grep "Received 10 messages, a total of 1000 bytes" test_output | wc -l)
 echo -e "\nAMS basic functionality test completed."
 if [ "$COUNT" -eq 1 ]
 then
-	echo -e "OK: Messages received: test success.\n"
+    echo -e "OK: Messages received: test success.\n"
 else
-	echo -e "ERROR: Messages not received.\n"
-	RETVAL=1
+    echo -e "ERROR: Messages not received.\n"
+    RETVAL=1
 fi
 
 # Shut down ION processes.

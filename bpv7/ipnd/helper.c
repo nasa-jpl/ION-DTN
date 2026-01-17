@@ -19,7 +19,7 @@
 #include "bpa.h"
 #include "ipndP.h"
 
-#include <stdint.h> 
+#include <stdint.h>
 
 static int	toBinary(const char *string, char *buf)
 {

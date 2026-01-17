@@ -11,7 +11,7 @@
 ###############################################################################
 
 #------------------------------------------------------------------------------
-# Step 1.1: Create a Macro that 
+# Step 1.1: Create a Macro that
 #   1) Generates a BP Agent Full Report
 #   2) Issues a reset all counts command to reset the counters in the BP Agent
 #      full report
@@ -21,7 +21,7 @@
 #
 # Type: Macro (mac)
 # Nickname (NN): 1
-# Issuer (ISS): 1 
+# Issuer (ISS): 1
 # Name: test_full_rpt
 # Macro ARI: ari:/1:1/Mac.test_full_rpt
 # CBOR Macro ARI: 0x344d746573745f66756c6c5f72707441314131
@@ -88,7 +88,7 @@ c115410805012581344d746573745f66756c6c5f72707441314131
 WAIT 1
 
 #------------------------------------------------------------------------------
-# Step 1.8: Request table of known macros. Make sure the macro is no longer 
+# Step 1.8: Request table of known macros. Make sure the macro is no longer
 #           listed.
 #------------------------------------------------------------------------------
 #
@@ -105,7 +105,7 @@ WAIT 1
 
 
 #------------------------------------------------------------------------------
-# Step 1.10: Request table of known macros. Make sure the macro is no longer 
+# Step 1.10: Request table of known macros. Make sure the macro is no longer
 #           listed.
 #------------------------------------------------------------------------------
 #

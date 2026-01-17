@@ -47,7 +47,7 @@ install:
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
 
-uninstall:		
+uninstall:
 		rm $(ROOT)/lib/libcfdp.so
 		for file in $(PUBINCLS); \
 			do rm $(ROOT)/include/$(notdir $$file); done
@@ -84,13 +84,13 @@ bputa:		bputa.o libcfdp.so
 tcputa:		tcputa.o libcfdp.so
 		$(CC) -o tcputa tcputa.o -L./lib -L$(ROOT)/lib -lcfdp -lici -lpthread -lm
 		cp tcputa ./bin
-		
+
 #	-	-	BPCP executables	-	-	-	-
 
 bpcp:		bpcp.o
 		$(CC) -o bpcp bpcp.o -L./lib -L$(ROOT)/lib -lici -lcfdp -lpthread -I$(UTILS) -lm
 		cp bpcp ./bin
-		
+
 bpcpd:		bpcpd.o
 		$(CC) -o bpcpd bpcpd.o -L./lib -L$(ROOT)/lib -lici -lcfdp -lpthread -I$(UTILS) -lm
 		cp bpcpd ./bin

@@ -60,7 +60,7 @@ int	raiseProfile(Sdr sdr, Object sdrElt, DtpcVdb *vdb)
 	Object		profileObj;
 			OBJ_POINTER(Profile, profile);
 	PsmPartition	wm = getIonwm();
-	
+
 	profileObj = sdr_list_data(sdr, sdrElt);
 	GET_OBJ_POINTER(sdr, Profile, profile, profileObj);
 
@@ -101,7 +101,7 @@ int	raiseVSap(Sdr sdr, Object elt, DtpcVdb *vdb, unsigned int topicID)
 	{
 		return -1;
 	}
-	
+
 	vsapElt = sm_list_insert_last(wm, vdb->vsaps, addr);
 	if (vsapElt == 0)
 	{
@@ -137,9 +137,9 @@ static DtpcVdb  *_dtpcvdb(char **name)
 			vdb = NULL;
 			return vdb;
 		}
-	
+
 		/*	Attaching to volatile database.			*/
-		
+
 		wm = getIonwm();
 		if (psm_locate(wm, *name, &vdbAddress, &elt) < 0)
 		{
@@ -155,7 +155,7 @@ static DtpcVdb  *_dtpcvdb(char **name)
 
 		/*	DTPC volatile database doesn't exist yet.	*/
 
-		CHKNULL(sdr_begin_xn(sdr));	/*	Lock memory.	*/	
+		CHKNULL(sdr_begin_xn(sdr));	/*	Lock memory.	*/
 		vdbAddress = psm_zalloc(wm, sizeof(DtpcVdb));
 		if (vdbAddress == 0)
 		{
@@ -175,7 +175,7 @@ static DtpcVdb  *_dtpcvdb(char **name)
 			sdr_exit_xn(sdr);
 			putErrmsg("Can't initialize volatile database.", NULL);
 			return NULL;
-			
+
 		}
 
 		if ((vdb->profiles = sm_list_create(wm)) == 0)
@@ -216,12 +216,12 @@ static DtpcVdb  *_dtpcvdb(char **name)
 				return NULL;
 			}
 		}
-		
+
 		/* 	Raise profiles	*/
 
 		for (sdrElt = sdr_list_first(sdr, (_dtpcConstants())->profiles);
 			sdrElt; sdrElt = sdr_list_next(sdr, sdrElt))
-		{	
+		{
 			if (raiseProfile(sdr, sdrElt, vdb) < 0)
 			{
 				sdr_exit_xn(sdr);
@@ -253,7 +253,7 @@ int	dtpcInit(void)
 		putErrmsg("DTPC can't attach to ION.", NULL);
 		return -1;
 	}
-	
+
 	sdr = getIonsdr();
 
 	/*	Recover the DTPC database, creating it if necessary.	*/
@@ -287,7 +287,7 @@ int	dtpcInit(void)
 		dtpcdbBuf.profiles = sdr_list_create(sdr);
 		dtpcdbBuf.queues = sdr_list_create(sdr);
 		dtpcdbBuf.outboundAdus = sdr_list_create(sdr);
-		
+
 		sdr_write(sdr, dtpcdbObject, (char *) &dtpcdbBuf,
 				sizeof(DtpcDB));
 		sdr_catlg(sdr, _dtpcdbName(), 0, dtpcdbObject);
@@ -318,7 +318,7 @@ int	dtpcInit(void)
 Object	getDtpcDbObject(void)
 {
 	return _dtpcdbObject(NULL);
-}		
+}
 
 DtpcDB	*getDtpcConstants(void)
 {
@@ -338,7 +338,7 @@ int	_dtpcStart(void)
 	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 
 	/*	Start the DTPC clock if necessary.			*/
-	
+
 	if (dtpcvdb->clockPid < 1 || sm_TaskExists(dtpcvdb->clockPid) == 0)
 	{
 		dtpcvdb->clockPid = pseudoshell("dtpcclock");
@@ -444,7 +444,7 @@ void	_dtpcStop(void)		/*	Reverses dtpcStart.		*/
 		if (vsap->semaphore == SM_SEM_NONE)
 		{
 			vsap->semaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
-                }
+		}
 		else
 		{
 			sm_SemUnend(vsap->semaphore);
@@ -453,7 +453,7 @@ void	_dtpcStop(void)		/*	Reverses dtpcStart.		*/
 
 		sm_SemTake(vsap->semaphore);		/*	Lock	*/
 		vsap->appPid = ERROR;
-        }
+	}
 
 	sdr_exit_xn(sdr);
 }
@@ -486,7 +486,7 @@ int	dtpcAttach(void)
 		{
 			putErrmsg("Can't find DTPC database.", NULL);
 			return -1;
-		}	
+		}
 
 		oK(_dtpcdbObject(&dtpcdbObject));
 	}
@@ -503,7 +503,7 @@ int	dtpcAttach(void)
 			return -1;
 		}
 	}
-	
+
 	return 0;		/*	DTPC service is available.	*/
 
 }
@@ -511,11 +511,11 @@ int	dtpcAttach(void)
 int	initOutAdu(Profile *profile, Object outAggrAddr, Object outAggrElt,
 		Object *outAduObj, Object *outAduElt)
 {
-	Sdr		sdr = getIonsdr();	
+	Sdr		sdr = getIonsdr();
 	OutAggregator	outAggr;
 	OutAdu		outAduBuf;
 
-        sdr_stage(sdr, (char *) &outAggr, outAggrAddr, sizeof(OutAggregator));
+	sdr_stage(sdr, (char *) &outAggr, outAggrAddr, sizeof(OutAggregator));
 	memset((char *) &outAduBuf, 0, sizeof(OutAdu));
 	outAduBuf.ageOfAdu = -1;
 	outAduBuf.rtxCount = -1;
@@ -539,7 +539,7 @@ int	initOutAdu(Profile *profile, Object outAggrAddr, Object outAggrElt,
 		return -1;
 	}
 
-	sdr_write(sdr, *outAduObj, (char *) &outAduBuf, sizeof(OutAdu)); 
+	sdr_write(sdr, *outAduObj, (char *) &outAduBuf, sizeof(OutAdu));
 	*outAduElt = sdr_list_insert_last(sdr, outAggr.outAdus, *outAduObj);
 	outAggr.inProgressAduElt = *outAduElt;
 	sdr_write(sdr, outAggrAddr, (char *) &outAggr, sizeof(OutAggregator));
@@ -573,7 +573,7 @@ static Object	insertToTopic(unsigned int topicID, Object outAduObj,
 	sdr_stage(sdr, (char *) &outAdu, outAduObj, sizeof(OutAdu));
 	for (elt = sdr_list_first(sdr, outAdu.topics); elt;
 		elt = sdr_list_next(sdr, elt))
-        {
+	{
 		topicAddr = (Object) sdr_list_data(sdr, elt);
 		sdr_stage(sdr, (char *) &topicBuf, topicAddr, sizeof(Topic));
 		if (topicBuf.topicID == topicID)
@@ -581,7 +581,7 @@ static Object	insertToTopic(unsigned int topicID, Object outAduObj,
 			break;
 		}
 	}
-	
+
 	if (elt == 0)		/*	No Topic found - Create new	*/
 	{
 		memset((char *) &topicBuf, 0, sizeof(Topic));
@@ -595,7 +595,7 @@ static Object	insertToTopic(unsigned int topicID, Object outAduObj,
 			return 0;
 		}
 
-		sdr_write(sdr, topicAddr, (char *) &topicBuf, sizeof(Topic)); 
+		sdr_write(sdr, topicAddr, (char *) &topicBuf, sizeof(Topic));
 		elt = sdr_list_insert_last(sdr, outAdu.topics, topicAddr);
 	}
 
@@ -638,11 +638,11 @@ static int	estimateLength(OutAdu *outAdu)
 	Sdr	sdr = getIonsdr();
 	Object	elt1;
 	Object	elt2;
-		OBJ_POINTER(Topic, topic);
-		OBJ_POINTER(PayloadRecord, record);
+	OBJ_POINTER(Topic, topic);
+	OBJ_POINTER(PayloadRecord, record);
 	uvast	recordLength;
 	int	totalLength = 0;
-	
+
 	for (elt1 = sdr_list_first(sdr, outAdu->topics); elt1;
 			elt1 = sdr_list_next(sdr, elt1))
 	{
@@ -650,7 +650,7 @@ static int	estimateLength(OutAdu *outAdu)
 		for (elt2 = sdr_list_first(sdr, topic->payloadRecords); elt2;
 				elt2 = sdr_list_next(sdr, elt2))
 		{
-			GET_OBJ_POINTER(sdr, PayloadRecord, record, 
+			GET_OBJ_POINTER(sdr, PayloadRecord, record,
 					sdr_list_data(sdr, elt2));
 			oK(decodeSdnv(&recordLength, record->length.text));
 			totalLength += (int) recordLength;
@@ -667,7 +667,7 @@ static Profile	*findProfileByNumber(unsigned int profNum)
 	PsmAddress	psmElt;
 	Profile		*profile;
 
-	for (psmElt = sm_list_first(wm, vdb->profiles); psmElt; 
+	for (psmElt = sm_list_first(wm, vdb->profiles); psmElt;
 			psmElt = sm_list_next(wm, psmElt))
 	{
 		profile = (Profile *) psp(wm, sm_list_data(wm, psmElt));
@@ -693,7 +693,7 @@ int	insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
 	Object		outAduElt;
 	OutAggregator	outAggr;
 	Object		outAggrAddr;
-	Profile		*vprofile;	
+	Profile		*vprofile;
 	Object		sdrElt;
 	char		eidBuf[SDRSTRING_BUFSZ];
 	Sdnv		lengthSdnv;
@@ -729,14 +729,14 @@ int	insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
 	encodeSdnv(&lengthSdnv, length);
 	record.length = lengthSdnv;
 	record.payload = item;
-	
-	/*	Search for an existing outbound payload aggregator.	*/ 
+
+	/*	Search for an existing outbound payload aggregator.	*/
 
 	for (sdrElt = sdr_list_first(sdr, dtpcConstants->outAggregators);
 			sdrElt; sdrElt = sdr_list_next(sdr, sdrElt))
 	{
 		outAggrAddr = (Object) sdr_list_data(sdr, sdrElt);
-		sdr_stage(sdr, (char *) &outAggr, outAggrAddr, 
+		sdr_stage(sdr, (char *) &outAggr, outAggrAddr,
 			sizeof(OutAggregator));
 		if (sdr_string_read(sdr, eidBuf, outAggr.dstEid) < 0)
 		{
@@ -781,7 +781,7 @@ int	insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
 
 		sdr_write(sdr, outAggrAddr, (char *) &outAggr,
 				sizeof(OutAggregator));
-		sdrElt = sdr_list_insert_last(sdr, 
+		sdrElt = sdr_list_insert_last(sdr,
 				dtpcConstants->outAggregators, outAggrAddr);
 		if (vdb->watching & WATCH_o)
 		{
@@ -875,7 +875,7 @@ static Object	insertDtpcTimelineEvent(DtpcEvent *newEvent)
 	DtpcDB		*dtpcConstants = _dtpcConstants();
 	Address		addr;
 	Object		elt;
-			OBJ_POINTER(DtpcEvent, event);
+	OBJ_POINTER(DtpcEvent, event);
 
 	CHKZERO(ionLocked());
 	addr = sdr_malloc(sdr,sizeof(DtpcEvent));
@@ -919,8 +919,8 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 	Object 			addr;
 	Object			zco;
 	Object			extent;
-				OBJ_POINTER(Topic, topic);
-				OBJ_POINTER(PayloadRecord, payloadRec);
+	OBJ_POINTER(Topic, topic);
+	OBJ_POINTER(PayloadRecord, payloadRec);
 
 	/* Parameter intentionally unused. */
 	(void)outAduElt;
@@ -1074,7 +1074,7 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 		fflush(stdout);
 		*/
 		iwatch('>');
-	}	
+	}
 
 	sm_SemGive(vdb->aduSemaphore);
 	return 0;
@@ -1113,7 +1113,7 @@ int	sendAdu(BpSAP sap)
 		{
 			putErrmsg("dtpcd can't take ADU semaphore.", NULL);
 			return -1;
-		}	
+		}
 
 		if (sm_SemEnded(vdb->aduSemaphore))
 		{
@@ -1376,7 +1376,7 @@ int	resendAdu(Sdr sdr, Object aduElt, time_t currentTime)
 		for (elt = sdr_list_first(sdr, dtpcConstants->profiles); elt;
 				elt = sdr_list_next(sdr, elt))
 		{
-			GET_OBJ_POINTER(sdr, Profile, profile, 
+			GET_OBJ_POINTER(sdr, Profile, profile,
 					sdr_list_data(sdr, elt));
 			if (outAggr->profileID == profile->profileID)
 			{
@@ -1487,54 +1487,54 @@ unsigned int     dtpcGetProfile(unsigned int maxRtx, unsigned int aggrSizeLimit,
 	return profile->profileID;
 }
 
-static void     setFlag(int *srrFlags, char *arg)
+static void setFlag(int *srrFlags, char *arg)
 {
-        if (strcmp(arg, "rcv") == 0)
-        {
-                (*srrFlags) |= BP_RECEIVED_RPT;
-        }
+	if (strcmp(arg, "rcv") == 0)
+	{
+		(*srrFlags) |= BP_RECEIVED_RPT;
+	}
 
-        if (strcmp(arg, "ct") == 0)
-        {
-                (*srrFlags) |= BP_CUSTODY_RPT;
-        }
+	if (strcmp(arg, "ct") == 0)
+	{
+		(*srrFlags) |= BP_CUSTODY_RPT;
+	}
 
-        if (strcmp(arg, "fwd") == 0)
-        {
-                (*srrFlags) |= BP_FORWARDED_RPT;
-        }
+	if (strcmp(arg, "fwd") == 0)
+	{
+		(*srrFlags) |= BP_FORWARDED_RPT;
+	}
 
-        if (strcmp(arg, "dlv") == 0)
-        {
-                (*srrFlags) |= BP_DELIVERED_RPT;
-        }
+	if (strcmp(arg, "dlv") == 0)
+	{
+		(*srrFlags) |= BP_DELIVERED_RPT;
+	}
 
-        if (strcmp(arg, "del") == 0)
-        {
-                (*srrFlags) |= BP_DELETED_RPT;
-        }
+	if (strcmp(arg, "del") == 0)
+	{
+		(*srrFlags) |= BP_DELETED_RPT;
+	}
 }
 
-static void     setFlags(int *srrFlags, char *flagString)
+static void setFlags(int *srrFlags, char *flagString)
 {
-        char    *cursor = flagString;
-        char    *comma;
+	char *cursor = flagString;
+	char *comma;
 
-        while (1)
-        {
-                comma = strchr(cursor, ',');
-                if (comma)
-                {
-                        *comma = '\0';
-                        setFlag(srrFlags, cursor);
-                        *comma = ',';
-                        cursor = comma + 1;
-                        continue;
-                }
+	while (1)
+	{
+		comma = strchr(cursor, ',');
+		if (comma)
+		{
+			*comma = '\0';
+			setFlag(srrFlags, cursor);
+			*comma = ',';
+			cursor = comma + 1;
+			continue;
+		}
 
-                setFlag(srrFlags, cursor);
-                return;
-        }
+		setFlag(srrFlags, cursor);
+		return;
+	}
 }
 
 int	addProfile(unsigned int profileID, unsigned int maxRtx,
@@ -1549,7 +1549,7 @@ int	addProfile(unsigned int profileID, unsigned int maxRtx,
 	Profile		*vprofile;
 	Profile		profile;
 	Object		addr;
-	Object		elt2;	
+	Object		elt2;
 	int		priority = 0;
 	int		srrFlags = 0;
 
@@ -1558,7 +1558,7 @@ int	addProfile(unsigned int profileID, unsigned int maxRtx,
 		reportToEid == NULL || *reportToEid == '\0')
 	{
 		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Missing profile parameters.", 
+		writeMemoNote("[?] Missing profile parameters.",
 				utoa(profileID));
 		return 0;
 	}
@@ -1581,17 +1581,17 @@ int	addProfile(unsigned int profileID, unsigned int maxRtx,
 		return 0;
 	}
 
-	if (!bp_parse_quality_of_service(svcClass, &ancillaryData, 
+	if (!bp_parse_quality_of_service(svcClass, &ancillaryData,
 			&custodySwitch, &priority))
-        {
-                sdr_exit_xn(sdr);
+	{
+		sdr_exit_xn(sdr);
 		putErrmsg("Can't parse class of service.", NULL);
-                return 0;
-        }
+		return 0;
+	}
 
 	if (flags)
-	{	
-        	setFlags(&srrFlags, flags);
+	{
+		setFlags(&srrFlags, flags);
 	}
 
 	if (dtpcGetProfile(maxRtx, aggrSizeLimit, aggrTimeLimit, lifespan,
@@ -1600,9 +1600,9 @@ int	addProfile(unsigned int profileID, unsigned int maxRtx,
 	{
 		sdr_exit_xn(sdr);
 		writeMemo("[?] A profile with the same parameters exists.");
-		return 0;	
-	} 
-	
+		return 0;
+	}
+
 	profile.profileID = profileID;
 	profile.maxRtx = maxRtx;
 	profile.aggrSizeLimit = aggrSizeLimit;
@@ -1611,7 +1611,7 @@ int	addProfile(unsigned int profileID, unsigned int maxRtx,
 	profile.ancillaryData = ancillaryData;
 	profile.custodySwitch = custodySwitch;
 	profile.classOfService = priority;
-	profile.srrFlags = srrFlags;	
+	profile.srrFlags = srrFlags;
 	profile.reportToEid = sdr_string_create(sdr, reportToEid);
 	addr = sdr_malloc(sdr, sizeof(Profile));
 	if (addr == 0)
@@ -1635,7 +1635,7 @@ int	addProfile(unsigned int profileID, unsigned int maxRtx,
 		putErrmsg("Can't add profile.", NULL);
 		return -1;
 	}
-	
+
 	return 0;
 }
 
@@ -1650,33 +1650,33 @@ int	removeProfile(unsigned int profileID)
 	Object		profileAddr;
 	Profile		profile;
 	Profile		*vprofile;
-	
+
 	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 
 	for (elt = sm_list_first(wm, vdb->profiles); elt;
-                        elt = sm_list_next(wm, elt))
-        {
+			elt = sm_list_next(wm, elt))
+	{
 		vprofileAddr = sm_list_data(wm, elt);
 		vprofile = (Profile *) psp(wm, vprofileAddr);
-                if (vprofile->profileID == profileID)
-                {
-                        break;
-                }
-        }
+		if (vprofile->profileID == profileID)
+		{
+			break;
+		}
+	}
 
 	if (elt == 0)
-	{	
+	{
 		sdr_exit_xn(sdr);
 		writeMemoNote("[?] Profile unkown.", itoa(profileID));
-		return 0;	
+		return 0;
 	}
-	
+
 	/*	Remove profile from the volatile database.		*/
 
 	if (vprofile->reportToEid)
 	{
 		sdr_free(sdr, vprofile->reportToEid);
-	}	
+	}
 
 	oK(sm_list_delete(wm, elt, NULL, NULL));
 	psm_free(wm, vprofileAddr);
@@ -1693,8 +1693,8 @@ int	removeProfile(unsigned int profileID)
 		{
 			break;
 		}
-	}	
-	
+	}
+
 	if (sdrElt)
 	{
 		sdr_free(sdr, profileAddr);
@@ -1751,7 +1751,7 @@ static int	resetInAggregator(Sdr sdr, Object aggrElt)
 		elt = sdr_list_next(sdr, elt);
 		GET_OBJ_POINTER(sdr, InAdu, inAdu, sdr_list_data(sdr, aduElt));
 		if (inAdu->aggregatedZCO == 0)
-		{	
+		{
 			deletePlaceholder(sdr, aduElt);
 		}
 	}
@@ -1774,7 +1774,7 @@ static int	resetInAggregator(Sdr sdr, Object aggrElt)
 		putchar('$');
 		fflush(stdout);
 	}
-	
+
 	return 0;
 }
 #endif
@@ -2071,7 +2071,7 @@ static int	handleOutOfSeq(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
 			*/
 			iwatch('?');
 		}
-	
+
 		return 0;
 	}
 
@@ -2172,7 +2172,7 @@ static int	handleOutOfSeq(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
 	inAdu.inAggrElt = aggrElt;
 	inAdu.gapEventElt = 0;
 	sdr_write(sdr, inAduObj, (char *) &inAdu, sizeof(InAdu));
-		
+
 	/*	Check to see if another placeholder is needed after
 	 *	the newly inserted ADU, i.e., the sequence number
 	 *	of the true ADU that immediately follows this one
@@ -2258,9 +2258,9 @@ int	handleInAdu(Sdr sdr, BpSAP txSap, BpDelivery *dlv, unsigned int profNum,
 		}
 
 		/*	Need bogus reportTo EID to ensure that the
- 		 *	profile is added.  Otherwise it might have
- 		 *	the same parameters as some existing profile
- 		 *	and therefore be rejected; must be unique.	*/
+		 *	profile is added.  Otherwise it might have
+		 *	the same parameters as some existing profile
+		 *	and therefore be rejected; must be unique.	*/
 
 		isprintf(bogusEid, sizeof bogusEid, "ipn:%u.2097151", profNum);
 		if (addProfile(profNum, maxRtx, 0, 0, dlv->timeToLive, "0.1",
@@ -2343,7 +2343,7 @@ int	handleInAdu(Sdr sdr, BpSAP txSap, BpDelivery *dlv, unsigned int profNum,
 			putErrmsg("Can't create inbound aggregator.", NULL);
 			return -1;
 		}
-		
+
 		if (vdb->watching & WATCH_i)
 		{
 			/*
@@ -2351,7 +2351,7 @@ int	handleInAdu(Sdr sdr, BpSAP txSap, BpDelivery *dlv, unsigned int profNum,
 			fflush(stdout);
 			*/
 			iwatch('i');
-		}	
+		}
 	}
 #if 0
 	if (seqNum.units < 1000 && seqNum.gigs == 0)
@@ -2438,7 +2438,7 @@ int	handleInAdu(Sdr sdr, BpSAP txSap, BpDelivery *dlv, unsigned int profNum,
 			*/
 			iwatch('?');
 		}
-		
+
 		if (sdr_end_xn(sdr) < 0)
 		{
 			putErrmsg("Can't discard unusable inbound ADU.", NULL);
@@ -2468,7 +2468,7 @@ int	handleInAdu(Sdr sdr, BpSAP txSap, BpDelivery *dlv, unsigned int profNum,
 			return -1;
 		}
 	}
-	
+
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't handle inbound adu.", NULL);
@@ -2536,7 +2536,7 @@ static int	parseTopic(Sdr sdr, char *srcEid, ZcoReader *reader,
 
 		*cursor = buffer;
 		*bytesUnparsed += bytesReceived;
-	} 
+	}
 
 	/*	Get topic ID			*/
 
@@ -2739,7 +2739,7 @@ int	parseInAdus(Sdr sdr)
 			GET_OBJ_POINTER(sdr, InAdu, inAdu, aduObj);
 			if (inAdu->aggregatedZCO == 0)
 			{
-				break;	/*	Found gap		*/ 
+				break;	/*	Found gap		*/
 			}
 
 			remainingBytes = zco_source_data_length(sdr,
@@ -2760,7 +2760,7 @@ int	parseInAdus(Sdr sdr)
 						NULL);
 				return -1;
 			}
-			
+
 			cursor = buffer;
 			zco_start_receiving(inAdu->aggregatedZCO, &reader);
 			bytesReceived = zco_receive_source(sdr, &reader, buflen,
@@ -2978,7 +2978,7 @@ send ACK.");
 		currentTime = getCtime();
 		seconds = (time_t) (dlv->bundleCreationTime.msec / 1000);
 		lifetime = currentTime - (seconds + EPOCH_2000_SEC) + 10;
-			/*	Add 10 seconds for safety.		*/							
+			/*	Add 10 seconds for safety.		*/
 	}
 	else
 	{
@@ -3035,7 +3035,7 @@ send ACK.");
 	}
 
 	if (bp_send(sap, dstEid, NULL, lifetime, priority, custodySwitch,
-			0, 0, &ancillaryData, ackZco, &newBundle) <= 0) 
+			0, 0, &ancillaryData, ackZco, &newBundle) <= 0)
 	{
 		putErrmsg("DTPC can't send ack.", NULL);
 		sdr_cancel_xn(sdr);
@@ -3059,7 +3059,7 @@ send ACK.");
 		fflush(stdout);
 		*/
 		iwatch('l');
-	}	
+	}
 
 	return 0;
 }
@@ -3082,4 +3082,3 @@ int	compareScalars(Scalar *scalar1, Scalar *scalar2)
 
 	return 2;
 }
-

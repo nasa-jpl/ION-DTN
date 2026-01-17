@@ -18,33 +18,33 @@
 The following coding guidelines apply to all software delivered as part of the Interplanetary Overlay Network (ION) distribution, except:
 
 * Where the delivered software is legacy code rather than code developed specifically for ION.
-* Where conformance to some other standard is clearly appropriate. For example, when using a framework library like Motif it may be appropriate to modify these guidelines so as to be consistent with the practices of the framework. 
-* Where, in the judgment of the programmer, deviating from the guidelines in a particular case results in manifestly clearer code. This is not a license to ignore the guidelines; it is intended to cover special circumstances. 
+* Where conformance to some other standard is clearly appropriate. For example, when using a framework library like Motif it may be appropriate to modify these guidelines so as to be consistent with the practices of the framework.
+* Where, in the judgment of the programmer, deviating from the guidelines in a particular case results in manifestly clearer code. This is not a license to ignore the guidelines; it is intended to cover special circumstances.
 Adherence to these guidelines is the responsibility of the individual programmer but will be considered during peer reviews of new ION code.
 
 ## Application Behavior
 
-Every process should return an exit code on termination. 
-* On normal termination, the exit code should be 0. 
-* On abnormal or error termination, the exit code should be a non-zero number in the range 1-255. 
+Every process should return an exit code on termination.
+* On normal termination, the exit code should be 0.
+* On abnormal or error termination, the exit code should be a non-zero number in the range 1-255.
     * In this case the code should be 1 unless specific codes are used to distinguish between different kinds of errors.
 
 ## Function Design Guidelines
 
-All file I/O should be performed using POSIX functions rather than the buffered I/O functions `fopen`, `fread`, `fseek`, etc.  This is because buffered I/O entails the dynamic allocation of system memory, which some missions may prohibit in flight software.  
+All file I/O should be performed using POSIX functions rather than the buffered I/O functions `fopen`, `fread`, `fseek`, etc.  This is because buffered I/O entails the dynamic allocation of system memory, which some missions may prohibit in flight software.
 
 The iputs function provided in `platform.c` should be used in place of `fputs`, and the `igets` function should be used in place of `fgets`.  Rather than `fscanf`, use `igets` and `sscanf`; rather than `fprintf`, use `isprintf` and `iputs`.
 
-All varargs-based string composition should be performed using `isprintf` rather than `sprintf`, to minimize the chance of overrunning string composition buffers.  (`isprintf` is similar to `snprintf`.  Since VxWorks 5.4 does not support `snprintf`, `isnprintf` is included in `platform.c`.)  
+All varargs-based string composition should be performed using `isprintf` rather than `sprintf`, to minimize the chance of overrunning string composition buffers.  (`isprintf` is similar to `snprintf`.  Since VxWorks 5.4 does not support `snprintf`, `isnprintf` is included in `platform.c`.)
 
 Similarly, all string copying should be performed using `istrcpy` rather than `strcpy`, `strncpy`, and `strcat`.
 
-The `isignal` function should be used instead of `signal`; it ensures that reception of a signal will always interrupt system calls in SVR4 fashion even when running on a FreeBSD platform. 
+The `isignal` function should be used instead of `signal`; it ensures that reception of a signal will always interrupt system calls in SVR4 fashion even when running on a FreeBSD platform.
 
 The `iblock` function provides a simple, portable means of preventing reception of the indicated signal by the calling thread.
 
-Data objects larger than 1024 bytes should not be declared in stack space.  This is to 
-  * Minimize complaints by Coverity, and 
+Data objects larger than 1024 bytes should not be declared in stack space.  This is to
+  * Minimize complaints by Coverity, and
   * Minimize the chance of overrunning allocated stack space when running on a VxWorks platform.
 
 __Static variables that must be made globally accessible should be declared within external functions, rather than declared as external variables.__  This is per the JPL C Coding Standard, but it also has the useful property of providing an easy way to track all access to a global static variable in `gdb`: you just set a breakpoint at the start of the function in which the variable is declared.
@@ -53,7 +53,7 @@ __Static variables that must be made globally accessible should be declared with
 
 In the implementation of any ION library function or any ION task’s top-level driver function, any condition that prevents the function from continuing execution toward producing the effect it is designed to produce is considered an “error”.
 
-Detection of an error should result in the printing of an error message and, normally, the immediate return of whatever return value is used to indicate the failure of the function in which the error was detected. 
+Detection of an error should result in the printing of an error message and, normally, the immediate return of whatever return value is used to indicate the failure of the function in which the error was detected.
 
 By convention this value is usually -1, but both zero and NULL are appropriate failure indications under some circumstances such as object  creation.
 
@@ -113,7 +113,7 @@ oK(_coreFileNeeded(&off));
 /* ... test code that may trigger assertions ... */
 ```
 
-In the absence of any error, the function returns a value that indicates nominal completion. By convention this value is usually zero, but under some circumstances other values (such as pointers or addresses) are appropriate indications of nominal completion. Any additional information produced by the function, such as an indication of “success”, is usually returned as the value of a reference argument.  
+In the absence of any error, the function returns a value that indicates nominal completion. By convention this value is usually zero, but under some circumstances other values (such as pointers or addresses) are appropriate indications of nominal completion. Any additional information produced by the function, such as an indication of “success”, is usually returned as the value of a reference argument.
 
 However, database management functions and the SDR hash table management functions deviate from this rule: most return 0 to indicate nominal completion but functional failure (e.g., duplicate key or object not found) and return 1 to indicate functional success.
 
@@ -137,18 +137,18 @@ To write a simple status message, use `writeMemo`.  To write a status message an
 To write a simple diagnostic message, use `putErrmsg`; the source file name and line number will automatically be inserted into the message text, and a context-dependent string may be provided.  (Again the `itoa` and `utoa` functions may be helpful here.)  The diagnostic message should normally begin with a capital letter and end with a period.
 
 To write a diagnostic message in response to the failure of a system call or some other non-ION function that sets errno, use `putSysErrmsg` instead.  In this case, the diagnostic message should normally begin with a capital letter and not end with a period.
- 
+
 ## ‘C’ Coding Style
 
 This page contains guidelines for programming in the C language.
 
 ### Naming Conventions
 
-Names of global variables, local variables, structure fields, and function arguments are in mixed upper and lower case, without embedded underscores, and beginning with a lowercase letter. 
+Names of global variables, local variables, structure fields, and function arguments are in mixed upper and lower case, without embedded underscores, and beginning with a lowercase letter.
 ```c
 int	numItems;
 ```
-Private function names are in mixed upper and lower case, without embedded underscores, and beginning with a lowercase letter. 
+Private function names are in mixed upper and lower case, without embedded underscores, and beginning with a lowercase letter.
 
 ```c
 void	computeSomething(int firstArg, int secondArg);
@@ -157,14 +157,14 @@ Public function names are in lower case with tokens separated by underscores.  T
 ```c
 	extern int	ltp_open(unsigned long clientId);
 ```
-Macro names are written in upper case with tokens separated by underscores. 
+Macro names are written in upper case with tokens separated by underscores.
 ```c
 #define SYMBOLIC_CONSTANT 5
 ```
 
 Unions are not used.
 
-Typedef names are in mixed upper and lower case, with the first token capitalized.  Type names are never the same as the structure or enum tags for the structures and enums that they name. 
+Typedef names are in mixed upper and lower case, with the first token capitalized.  Type names are never the same as the structure or enum tags for the structures and enums that they name.
 ```c
 typedef struct gloplist_str
 {
@@ -268,13 +268,13 @@ Comments are so rare and valuable that we hesitate to risk discouraging them by 
 ```
 ### Miscellaneous Rules
 
-Use – and write – thread-safe library functions where possible.  E.g., normally prefer `strtok_r()` to `strtok()`. 
+Use – and write – thread-safe library functions where possible.  E.g., normally prefer `strtok_r()` to `strtok()`.
 
-Avoid writing non-portable code, e.g., prefer POSIX library calls to OS-specific library calls. 
+Avoid writing non-portable code, e.g., prefer POSIX library calls to OS-specific library calls.
 
 Template for ".c" files
 ```c
- 1 2 3 4 5 6 7  
+ 1 2 3 4 5 6 7
 123456789012345678901234567890123456789012345678901234567890123456789012
 /*
 	platform_sm.c:	platform-dependent implementation of common
@@ -288,7 +288,7 @@ Template for ".c" files
 									                                */
 ```
 
-Each file should have a header comment like the one shown above. 
+Each file should have a header comment like the one shown above.
 
 ```c
 #include <stdio.h>
@@ -304,7 +304,7 @@ Each file should have a header comment like the one shown above.
 #define SYMBOLIC_CONSTANT 5
 ```
 
-Next, symbolic constants and macros (if any) are defined. They normally go first, because they might be used in the definitions of data types and static variables.  However, symbolic constants and macros may be inserted later in the source text if that will improve the readability of the file. 
+Next, symbolic constants and macros (if any) are defined. They normally go first, because they might be used in the definitions of data types and static variables.  However, symbolic constants and macros may be inserted later in the source text if that will improve the readability of the file.
 
 ```c
 typedef struct fb_str
@@ -314,7 +314,7 @@ typedef struct fb_str
 } Foobar;
 ```
 
-Data types are defined next because they might be used by static variables. 
+Data types are defined next because they might be used by static variables.
 ```c
 static int numFoobars = 0;  /* Number of foobars in the program. */
   .
@@ -322,12 +322,12 @@ static int numFoobars = 0;  /* Number of foobars in the program. */
   .
 ```
 
-Global functions used only within the program should be declared static. 
+Global functions used only within the program should be declared static.
 Public function prototypes should be in a header file; the definitions of those functions, with their headers, are included in the corresponding .c file.  Low-level functions, such as commonly-used utility functions, appear first in the .c file.  They are followed by the functions that call those functions directly, followed by higher-level-functions that call those functions, and so on.
 
 Template for ".h" Files
 ```c
- 1 2 3 4 5 6 7  
+ 1 2 3 4 5 6 7
 123456789012345678901234567890123456789012345678901234567890123456789012
 /*
 	platform_sm.h:	portable definitions of types and functions.
@@ -346,22 +346,22 @@ Each header file begins with a standard header comment like the one shown above.
 #define _PLATFORM_SM_H_
 ```
 
-Each header file must have an "include" guard. 
+Each header file must have an "include" guard.
 ```c
 #include "platform.h"
   .
   .
   .
 ```
-Next come any includes required by the declarations in the header. 
+Next come any includes required by the declarations in the header.
 ```c
 #ifdef __cplusplus
 extern "C" {
 #endif
 ```
-Next comes the beginning of the C++ guard. This allows the header to be included in a C++ program without error. 
+Next comes the beginning of the C++ guard. This allows the header to be included in a C++ program without error.
 
-Next come declarations of various sorts, followed by the ends of the C++ and “include” guards. 
+Next come declarations of various sorts, followed by the ends of the C++ and “include” guards.
 ```c
 #ifdef __cplusplus
 }
@@ -370,11 +370,11 @@ Next come declarations of various sorts, followed by the ends of the C++ and “
 #endif
 ```
 
-Nothing should go after the "#endif" of the include guard. 
+Nothing should go after the "#endif" of the include guard.
 
 ## SDR Transaction
 
-All writing to an SDR heap must occur during a transaction that was initiated by the task issuing the write.  Transactions are single-threaded; if task B wants to start a transaction while a transaction begun by task A is still in progress, it must wait until A's transaction is either ended or cancelled.  
+All writing to an SDR heap must occur during a transaction that was initiated by the task issuing the write.  Transactions are single-threaded; if task B wants to start a transaction while a transaction begun by task A is still in progress, it must wait until A's transaction is either ended or cancelled.
 
 A transaction is begun by calling `sdr_begin_xn()`, and the current transaction is normally ended by calling the `sdr_end_xn()` function, which returns an error code in the event that any serious SDR-related processing error was encountered in the course of the transaction Transactions may safely be nested, provided that every level of transaction activity that is begun
 is properly ended.

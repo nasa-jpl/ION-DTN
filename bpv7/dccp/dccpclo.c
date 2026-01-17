@@ -101,7 +101,7 @@ int connectDCCPsock(int* sock, struct sockaddr* socketName, int* MPS)
 		*MPS = 1400;
 		return -1;
 	}
-return 0;
+	return 0;
 }
 
 int	sendBytesByDCCP(int linkSocket, char *from, int length)
@@ -275,7 +275,7 @@ int	sendBundleByDCCP(clo_state* itp, Object* bundleZco,
 
 	/*Send Data
 	 * retry until success or fatal error 		*/
-	do{
+	do {
 		bytesSent = sendBytesByDCCP(itp->linksocket, buffer, bundleLength);
 		if (bytesSent < bundleLength)
 		{
@@ -298,7 +298,7 @@ int	sendBundleByDCCP(clo_state* itp, Object* bundleZco,
 		}
 		itp->active = 1;
 		break; /*sent successfully		*/
-	}while(1);
+	} while(1);
 
 	/* Notify BP of success transmitting		*/
 	if (bpHandleXmitSuccess(*bundleZco) < 0)
@@ -422,12 +422,12 @@ int	main(int argc, char *argv[])
 		pthread_mutex_destroy(&itp.mutex);
 		return 1;
 	}
-	
+
 	/*	Can now begin transmitting to remote engine.		*/
 	writeMemo("[i] dccpclo is running.");
 	while (running && !(sm_SemEnded(vduct->semaphore)))
 	{
-		
+
 		if (bpDequeue(vduct, &bundleZco, &ancillaryData, -1) < 0)
 		{
 			putErrmsg("Can'e dequeue bundle.", NULL);
@@ -502,7 +502,7 @@ int	dccpcli(int a1, int a2, int a3, int a4, int a5,
 #else
 int	main(void)
 {
-#endif	
+#endif
 putErrmsg("dccpclo (and the DCCP protocol) are only available under Linux (>=3.2.0). Please see the README in the bp/dccp source directory for more information.", NULL);
 writeErrmsgMemos();
 return 0;

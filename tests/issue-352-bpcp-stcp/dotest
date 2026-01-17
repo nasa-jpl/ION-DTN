@@ -43,10 +43,10 @@ echo "CONFIG: 3 node custom configuration:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo
@@ -66,10 +66,10 @@ cd 1.ipn.cfdp.bp.stcp
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 1 not started: Aborting Test"
-	exit 1
+    echo "Node 1 not started: Aborting Test"
+    exit 1
 fi
 cd ../2.ipn.cfdp.bp.stcp
 ./ionstart
@@ -77,10 +77,10 @@ cd ../2.ipn.cfdp.bp.stcp
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 2 not started: Aborting Test"
-	exit 1
+    echo "Node 2 not started: Aborting Test"
+    exit 1
 fi
 cd ../3.ipn.cfdp.bp.stcp
 ./ionstart
@@ -88,10 +88,10 @@ cd ../3.ipn.cfdp.bp.stcp
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 3 not started: Aborting Test"
-	exit 1
+    echo "Node 3 not started: Aborting Test"
+    exit 1
 fi
 
 cd ..
@@ -116,7 +116,7 @@ cd ../1.ipn.cfdp.bp.stcp || { echo "ERROR: Cannot change back to 1.ipn.cfdp.bp.s
 
 echo "Starting bpcp..."
 bpcp ../dotest 3:test1
-BPCP_EXIT_STATUS=$? 
+BPCP_EXIT_STATUS=$?
 
 # Ensure we're in the correct directory for file check
 cd ../3.ipn.cfdp.bp.stcp || { echo "ERROR: Cannot change to 3.ipn.cfdp.bp.stcp for post-check."; killm; exit 1; }

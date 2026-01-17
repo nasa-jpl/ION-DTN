@@ -7,7 +7,7 @@
 	Copyright (c) 2007, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "ltpcla.h"
 #include "ipnfw.h"
@@ -18,7 +18,7 @@ static sm_SemId		ltpcloSemaphore(sm_SemId *semid)
 	uaddr		temp;
 	void		*value;
 	sm_SemId	semaphore;
-	
+
 	if (semid)			/*	Add task variable.	*/
 	{
 		temp = *semid;

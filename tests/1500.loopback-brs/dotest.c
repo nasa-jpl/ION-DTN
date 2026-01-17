@@ -23,12 +23,12 @@ void do_brs_startup(void)
 	sleep(15);
 
 	/* Start the base of the ION node. */
-	ionstart_default_config("loopback-brs/loopback.ionrc", 
-			 "loopback-brs/loopback.ionsecrc",
-			 NULL,
-			 NULL, /* Must start bpadmin after adding 1.brs key */
-			 NULL, /* Must start ipnadmin after starting bpadmin */
-			 NULL);
+	ionstart_default_config("loopback-brs/loopback.ionrc",
+			"loopback-brs/loopback.ionsecrc",
+			NULL,
+			NULL, /* Must start bpadmin after adding 1.brs key */
+			NULL, /* Must start ipnadmin after starting bpadmin */
+			NULL);
 
 	/* The ionsecrc file tries to add the key we need, named "1.brs", but when
 	 * running with a working directory inside the tests/ tree, it will fail.
@@ -104,7 +104,7 @@ int main(int argc, char **argv)
 	rxContentLength = zco_source_data_length(sdr, rxDlv.adu);
 	fail_unless(rxContentLength == sizeof(testLine) - 1);
 	zco_start_receiving(rxDlv.adu, &rxReader);
-	rxLen = zco_receive_source(sdr, &rxReader, rxContentLength, 
+	rxLen = zco_receive_source(sdr, &rxReader, rxContentLength,
 		rxContent);
 	fail_unless(rxLen == rxContentLength);
 	fail_unless(sdr_end_xn(sdr) >= 0);

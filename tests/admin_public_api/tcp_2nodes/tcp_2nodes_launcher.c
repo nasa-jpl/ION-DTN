@@ -188,16 +188,16 @@ int get_executable_dir(char *buf, size_t size)
  * Spawn a node process
  */
 pid_t spawn_node(const char *tcp_single_node_path,
-                 const char *node_name,
-                 const char *node_num,
-                 const char *wmkey,
-                 const char *sdr,
-                 const char *workdir,
-                 const char *local_ip,
-                 const char *local_port,
-                 const char *peer_num,
-                 const char *peer_ip,
-                 const char *peer_port)
+		const char *node_name,
+		const char *node_num,
+		const char *wmkey,
+		const char *sdr,
+		const char *workdir,
+		const char *local_ip,
+		const char *local_port,
+		const char *peer_num,
+		const char *peer_ip,
+		const char *peer_port)
 {
 	pid_t pid = fork();
 
@@ -211,15 +211,15 @@ pid_t spawn_node(const char *tcp_single_node_path,
 		printf(COLOR_BLUE "[%s] Starting node %s...\n" COLOR_RESET, node_name, node_num);
 
 		execl(tcp_single_node_path, "tcp_single_node",
-		      node_num, wmkey, sdr, workdir,
-		      local_ip, local_port,
-		      peer_num, peer_ip, peer_port,
-		      NULL);
+				node_num, wmkey, sdr, workdir,
+				local_ip, local_port,
+				peer_num, peer_ip, peer_port,
+				NULL);
 
 		/* If exec fails */
 		perror("execl");
 		fprintf(stderr, COLOR_RED "[%s] Failed to exec: %s\n" COLOR_RESET,
-		        node_name, tcp_single_node_path);
+				node_name, tcp_single_node_path);
 		exit(1);
 	}
 
@@ -269,12 +269,12 @@ int main(void)
 		return 1;
 	}
 	snprintf(tcp_single_node_path, sizeof(tcp_single_node_path),
-	         "%s/tcp_single_node", exe_dir);
+			"%s/tcp_single_node", exe_dir);
 
 	/* Check if tcp_single_node exists */
 	if (access(tcp_single_node_path, X_OK) != 0) {
 		fprintf(stderr, COLOR_RED "[LAUNCHER] tcp_single_node not found at: %s\n" COLOR_RESET,
-		        tcp_single_node_path);
+				tcp_single_node_path);
 		fprintf(stderr, COLOR_RED "[LAUNCHER] Make sure tcp_single_node is built\n" COLOR_RESET);
 		return 1;
 	}
@@ -285,7 +285,7 @@ int main(void)
 
 	/* Create working directories and get absolute paths */
 	if (create_directory(NODE1_WORKDIR) != 0 ||
-	    create_directory(NODE2_WORKDIR) != 0) {
+			create_directory(NODE2_WORKDIR) != 0) {
 		fprintf(stderr, COLOR_RED "[LAUNCHER] Failed to create working directories\n" COLOR_RESET);
 		return 1;
 	}
@@ -308,9 +308,9 @@ int main(void)
 	/* Spawn Node 1 */
 	printf(COLOR_CYAN "\n[LAUNCHER] Spawning Node 1...\n" COLOR_RESET);
 	node1_pid = spawn_node(tcp_single_node_path, "NODE1",
-	                       NODE1_NUM, NODE1_WMKEY, NODE1_SDR, node1_abs_path,
-	                       NODE1_IP, NODE1_PORT,
-	                       NODE2_NUM, NODE2_IP, NODE2_PORT);
+			NODE1_NUM, NODE1_WMKEY, NODE1_SDR, node1_abs_path,
+			NODE1_IP, NODE1_PORT,
+			NODE2_NUM, NODE2_IP, NODE2_PORT);
 	if (node1_pid < 0) {
 		fprintf(stderr, COLOR_RED "[LAUNCHER] Failed to spawn Node 1\n" COLOR_RESET);
 		return 1;
@@ -322,9 +322,9 @@ int main(void)
 	/* Spawn Node 2 */
 	printf(COLOR_CYAN "\n[LAUNCHER] Spawning Node 2...\n" COLOR_RESET);
 	node2_pid = spawn_node(tcp_single_node_path, "NODE2",
-	                       NODE2_NUM, NODE2_WMKEY, NODE2_SDR, node2_abs_path,
-	                       NODE2_IP, NODE2_PORT,
-	                       NODE1_NUM, NODE1_IP, NODE1_PORT);
+			NODE2_NUM, NODE2_WMKEY, NODE2_SDR, node2_abs_path,
+			NODE2_IP, NODE2_PORT,
+			NODE1_NUM, NODE1_IP, NODE1_PORT);
 	if (node2_pid < 0) {
 		fprintf(stderr, COLOR_RED "[LAUNCHER] Failed to spawn Node 2\n" COLOR_RESET);
 		kill(node1_pid, SIGTERM);

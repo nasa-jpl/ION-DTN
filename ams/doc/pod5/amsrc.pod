@@ -10,12 +10,12 @@ enable the entity to initiate participation in AMS message exchange, such
 as the network location of the configuration server and the roles and message
 subjects defined for some venture.
 
-A recent update to AMS introduced an explicit routing model to support modern 
-three-part IPN endpoint IDs and work around the 16-bit limitation of continuum 
-numbers.  This change decouples the application-layer AMS continuum number 
-from the transport-layer network node number.  Routing information is now 
-explicitly defined using a mandatory Gateway Endpoint ID (gweid) for each 
-message space, which maps the continuum to a specific network gateway address 
+A recent update to AMS introduced an explicit routing model to support modern
+three-part IPN endpoint IDs and work around the 16-bit limitation of continuum
+numbers.  This change decouples the application-layer AMS continuum number
+from the transport-layer network node number.  Routing information is now
+explicitly defined using a mandatory Gateway Endpoint ID (gweid) for each
+message space, which maps the continuum to a specific network gateway address
 (e.g., a Bundle Protocol endpoint).
 
 AMS entities automatically load their MIBs from initialization files at
@@ -55,7 +55,7 @@ or more items of AMS configuration information in the MIB.
 
 Note that an aggregate configuration element (i.e., one which may contain
 other interior configuration elements; venture, for example) may be presented
-outside of any control element, simply to establish the context in which 
+outside of any control element, simply to establish the context in which
 subsequent control elements are to be interpreted.
 
 =head1 CONTROL ELEMENTS
@@ -481,7 +481,7 @@ Identifies the remote continuum within which the message space operates.
 
 =item B<gweid>
 
-(Mandatory) Identifies the RAMS network endpoint ID of the RAMS gateway 
+(Mandatory) Identifies the RAMS network endpoint ID of the RAMS gateway
 module for this message space.  Gateway endpoint ID is expressed as
 <protocol_name>@<eid_string> where I<protocol_name> is either "bp"
 or "udp".  If protocol name is "bp" then I<eid_string> must be a
@@ -501,8 +501,8 @@ nominally by ionsecadmin(1).
 =item neighbor
 
 Signifies adjacency of the message space with the parent continuum using
-a Boolean value (i.e. 1 is adjacent, 0 is non-adjacent). Note that in this 
-context message space is analogous to continuum. If the neighbor attribute 
+a Boolean value (i.e. 1 is adjacent, 0 is non-adjacent). Note that in this
+context message space is analogous to continuum. If the neighbor attribute
 is omitted the default value is 1.
 
 =back

@@ -1,7 +1,7 @@
 /*
 	ionsec.h:	definition of the application programming
 			interface for accessing the information in
-		       	ION's global security database.
+			ION's global security database.
 
 	Copyright (c) 2009, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
@@ -16,6 +16,7 @@
 			   structures, added lists of ltpXmitAuthRule
 			   and ltpRecvAuthRules in SecDB structure
 									*/
+
 #ifndef SEC_H
 #define SEC_H
 
@@ -66,25 +67,25 @@ typedef struct
 
 typedef struct
 {
-	Object	publicKeys;			/*	SdrList PublicKey	*/
-	Object	ownPublicKeys;		/*	SdrList OwnPublicKey	*/
-	Object	privateKeys;		/*	SdrList PrivateKey	*/
-	time_t	nextRekeyTime;		/*	1970 epoch time.	*/
-	Object	keys;				/*	SdrList of SecKey	*/
-	Object	rules[5];			/*	SdrLists of sec rules	*/
-	Object  bpSecPolicyRules;   /*  BPSec Policy Engine Database */
-	Object  bpSecEventSets;
+	Object publicKeys;	 /* SdrList PublicKey */
+	Object ownPublicKeys;	 /* SdrList OwnPublicKey */
+	Object privateKeys;	 /* SdrList PrivateKey */
+	time_t nextRekeyTime;	 /* 1970 epoch time. */
+	Object keys;		 /* SdrList of SecKey */
+	Object rules[5];	 /* SdrLists of sec rules */
+	Object bpSecPolicyRules; /* Policy Engine Database */
+	Object bpSecEventSets;
 } SecDB;
 
 typedef struct
 {
-	PsmAddress	publicKeys;	/*	SM RB tree of PubKeyRef	*/
-	PsmAddress  bpsecPolicyRules;    /* sm_list of BpSecPolRule */
-	PsmAddress  bpsecRuleIdxBySrc;   /* Radix tree of BpSecPolRule */
-	PsmAddress  bpsecRuleIdxByDest;  /* Radix tree of BpSecPolRule */
-	PsmAddress  bpsecRuleIdxBySSrc;  /* Radix tree of BpSecPolRule */
-	PsmAddress  bpsecEidDictionary;  /* Radix tree of char[]       */
-	PsmAddress  bpsecEventSet;       /* SM RB tree of BpSecPolEventSet */
+	PsmAddress publicKeys;	       /* SM RB tree of PubKeyRef */
+	PsmAddress bpsecPolicyRules;   /* sm_list of BpSecPolRule */
+	PsmAddress bpsecRuleIdxBySrc;  /* Radix tree of BpSecPolRule */
+	PsmAddress bpsecRuleIdxByDest; /* Radix tree of BpSecPolRule */
+	PsmAddress bpsecRuleIdxBySSrc; /* Radix tree of BpSecPolRule */
+	PsmAddress bpsecEidDictionary; /* Radix tree of char[] */
+	PsmAddress bpsecEventSet;      /* SM RB tree of BpSecPolEventSet */
 } SecVdb;
 
 extern int	secInitialize(void);

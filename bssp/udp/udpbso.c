@@ -1,6 +1,6 @@
 /*
  *	udpbso.c:	BSSP UDP-based link service output daemon.
- *			Dedicated to UDP datagrams transmission to 
+ *			Dedicated to UDP datagrams transmission to
  *			a single remote BSSP engine.
  *
  *	Authors: Sotirios-Angelos Lenas, SPICE
@@ -9,7 +9,7 @@
  *	Copyright (c) 2013, California Institute of Technology.
  *	Copyright (c) 2013, Space Internetworking Center,
  *	Democritus University of Thrace.
- *	
+ *
  *	All rights reserved. U.S. Government and E.U. Sponsorship acknowledged.
  *
  */
@@ -36,7 +36,7 @@
 static sm_SemId		udpbsoSemaphore(sm_SemId *semid)
 {
 	static sm_SemId	semaphore = -1;
-	
+
 	if (semid)
 	{
 		semaphore = *semid;
@@ -87,7 +87,7 @@ static void	*handleDatagrams(void *parm)
 
 	iblock(SIGTERM);
 	while (rtp->running)
-	{	
+	{
 		fromSize = sizeof fromAddr;
 		blockLength = irecvfrom(rtp->linkSocket, buffer, UDPBSA_BUFSZ,
 				0, (struct sockaddr *) &fromAddr, &fromSize);
@@ -157,8 +157,8 @@ int	sendBlockByUDP(int linkSocket, char *from, int length,
 
 				isprintf(memoBuf, sizeof(memoBuf),
 					"udpbso sendto() error, dest=[%s:%d], \
-nbytes=%d, rv=%d, errno=%d", (char *) inet_ntoa(sockAddr->sin_addr), 
-					ntohs(sockAddr->sin_port), 
+nbytes=%d, rv=%d, errno=%d", (char *) inet_ntoa(sockAddr->sin_addr),
+					ntohs(sockAddr->sin_port),
 					length, bytesWritten, errno);
 				writeMemo(memoBuf);
 			}
@@ -178,7 +178,7 @@ static unsigned long	getUsecTimestamp(void)
 
 #if defined (ION_LWT)
 int	udpbso(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
-	       saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char		*endpointSpec = (char *) a1;
 	unsigned int	txbps = (a2 != 0 ?  strtoul((char *) a2, NULL, 0) : 0);
@@ -434,7 +434,7 @@ compatibility, but it is ignored.");
 		{
 			timeCostPerByte = 1.0 / (neighbor->xmitRate);
 		}
-		else	/*	No link service rate control.		*/ 
+		else	/*	No link service rate control.		*/
 		{
 			timeCostPerByte = 0.0;
 		}

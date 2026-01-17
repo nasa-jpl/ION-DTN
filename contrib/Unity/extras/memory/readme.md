@@ -1,13 +1,13 @@
 # Unity Memory
 
 This Framework is an optional add-on to Unity.  By including unity.h and then
-unity_memory.h, you have the added ability to track malloc and free calls. This 
+unity_memory.h, you have the added ability to track malloc and free calls. This
 addon requires that the stdlib functions be overridden by its own defines. These
 defines will still malloc / realloc / free etc, but will also track the calls
 in order to ensure that you don't have any memory leaks in your programs.
 
 Note that this is only useful in situations where a unit is in charge of both
-the allocation and deallocation of memory. When it is not symmetric, unit testing 
+the allocation and deallocation of memory. When it is not symmetric, unit testing
 can report a number of false failures. A more advanced runtime tool is required to
 track complete system memory handling.
 
@@ -24,16 +24,16 @@ unity_memory.h is included.
 
 This can be called from the tests themselves. Passing this function a number will
 force the reference counter to start keeping track of malloc calls. During that test,
-if the number of malloc calls exceeds the number given, malloc will immediately 
-start returning `NULL`. This allows you to test error conditions. Think of it as a 
+if the number of malloc calls exceeds the number given, malloc will immediately
+start returning `NULL`. This allows you to test error conditions. Think of it as a
 simplified mock.
 
 # Configuration
 
 ## `UNITY_MALLOC` and `UNITY_FREE`
 
-By default, this module tries to use the real stdlib `malloc` and `free` internally. 
-If you would prefer it to use something else, like FreeRTOS's `pvPortMalloc` and 
+By default, this module tries to use the real stdlib `malloc` and `free` internally.
+If you would prefer it to use something else, like FreeRTOS's `pvPortMalloc` and
 `pvPortFree`, then you can use these defines to make it so.
 
 ## `UNITY_EXCLUDE_STDLIB_MALLOC`

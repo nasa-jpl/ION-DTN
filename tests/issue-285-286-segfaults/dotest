@@ -22,10 +22,10 @@ echo "CONFIG: Basic initialization, just enough to enable administration."
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Successful if we don't segfault."
 echo
@@ -46,10 +46,10 @@ rm -f ./ion_nodes
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node not started: Aborting Test"
-	exit 1
+    echo "Node not started: Aborting Test"
+    exit 1
 fi
 
 echo "Issuing erroneous screening and ownqtime mgt commands in ltpadmin."

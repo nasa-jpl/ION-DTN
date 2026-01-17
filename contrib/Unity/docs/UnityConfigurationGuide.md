@@ -350,7 +350,7 @@ specifying `UNITY_USE_FLUSH_STDOUT`. No other defines are required.
 ##### `UNITY_OUTPUT_FOR_QT_CREATOR`
 
 When managing your own builds, it is often handy to have messages output in a format which is
-recognized by your IDE. These are some standard formats which can be supported. If you're using 
+recognized by your IDE. These are some standard formats which can be supported. If you're using
 Ceedling to manage your builds, it is better to stick with the standard format (leaving these
 all undefined) and allow Ceedling to use its own decorators.
 
@@ -441,12 +441,12 @@ will allow you to specify how Unity will treat these assertions.
 
 #### `UNITY_SUPPORT_VARIADIC_MACROS`
 
-This will force Unity to support variadic macros when using its own built-in 
+This will force Unity to support variadic macros when using its own built-in
 RUN_TEST macro. This will rarely be necessary. Most often, Unity will automatically
 detect if the compiler supports variadic macros by checking to see if it's C99+
 compatible. In the event that the compiler supports variadic macros, but is primarily
-C89 (ANSI), defining this option will allow you to use them. This option is also not 
-necessary when using Ceedling or the test runner generator script. 
+C89 (ANSI), defining this option will allow you to use them. This option is also not
+necessary when using Ceedling or the test runner generator script.
 
 ## Getting Into The Guts
 

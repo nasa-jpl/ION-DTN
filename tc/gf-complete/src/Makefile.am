@@ -29,4 +29,3 @@ libgf_complete_la_SOURCES += neon/gf_w4_neon.c  \
 endif
 
 libgf_complete_la_LDFLAGS = -version-info 1:0:0
-

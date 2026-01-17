@@ -871,9 +871,9 @@ def test9(inputScId=testUtils.BIB_HMAC_SHA2_SCID, inputScParams=testUtils.bibScP
             print("TEST PASSED")
             testUtils.g_tests_passed += 1
             return
-        
+
         elif vers == "ION-NASA-BASELINE":
-        
+
             # Tracking current position in log
             log2 = testUtils.log_position("2")
             log3 = testUtils.log_position("3")
@@ -948,7 +948,7 @@ def test9(inputScId=testUtils.BIB_HMAC_SHA2_SCID, inputScParams=testUtils.bibScP
 
             # Process all test results
             testUtils.check_test_results([3], ["test_trace9"], [log2_events, log3_events])
-        
+
         else:
             print("Invalid ION version detected.")
             print("TEST FAILED")
@@ -985,9 +985,9 @@ def test10(inputScId=testUtils.BCB_AES_GCM_SCID, inputScParams=testUtils.bcbScPa
             print("TEST PASSED")
             testUtils.g_tests_passed += 1
             return
-        
+
         elif vers == "ION-NASA-BASELINE":
-        
+
             # Tracking current position in log
             log2 = testUtils.log_position("2")
             log3 = testUtils.log_position("3")
@@ -1062,7 +1062,7 @@ def test10(inputScId=testUtils.BCB_AES_GCM_SCID, inputScParams=testUtils.bcbScPa
 
             # Process all test results
             testUtils.check_test_results([3], ["test_trace10"], [log2_events, log3_events])
-        
+
         else:
             print("Invalid ION version detected.")
             print("TEST FAILED")
@@ -1254,7 +1254,7 @@ def test17(inputScId=testUtils.BIB_HMAC_SHA2_SCID, inputSourceScParams=testUtils
             print("TEST PASSED")
             testUtils.g_tests_passed += 1
             return
-        
+
         elif vers == "ION-NASA-BASELINE":
 
             # Tracking current position in log
@@ -1306,7 +1306,7 @@ def test17(inputScId=testUtils.BIB_HMAC_SHA2_SCID, inputSourceScParams=testUtils
             testUtils.del_policy_rule(2, "1")
             testUtils.del_event_set(2, "d_integrity")
             testUtils.del_key(2, "key_1_32bytes")
-            
+
             print("Clear Node 3 Policy\n")
             testUtils.del_policy_rule(3, "2")
             testUtils.del_event_set(3, "d_integrity")
@@ -1365,9 +1365,9 @@ def test18(inputScId=testUtils.BCB_AES_GCM_SCID, inputSourceScParams=testUtils.b
             print("TEST PASSED")
             testUtils.g_tests_passed += 1
             return
-        
+
         elif vers == "ION-NASA-BASELINE":
-        
+
             # Tracking current position in log
             log2 = testUtils.log_position("2")
             log3 = testUtils.log_position("3")
@@ -1439,7 +1439,7 @@ def test18(inputScId=testUtils.BCB_AES_GCM_SCID, inputSourceScParams=testUtils.b
         else:
             print("Invalid ION version detected.")
             print("TEST FAILED")
-            testUtils.g_tests_failed += 1  
+            testUtils.g_tests_failed += 1
 
     except subprocess.TimeoutExpired as e:
         print(e)
@@ -1475,9 +1475,9 @@ def test19(inputScId=testUtils.BIB_HMAC_SHA2_SCID, inputSourceScParams=testUtils
             print("TEST PASSED")
             testUtils.g_tests_passed += 1
             return
-        
+
         elif vers == "ION-NASA-BASELINE":
-        
+
             # Tracking current position in log
             log2 = testUtils.log_position("2")
             log3 = testUtils.log_position("3")
@@ -1579,10 +1579,10 @@ def test20(inputScId=testUtils.BCB_AES_GCM_SCID, inputSourceScParams=testUtils.b
                   "Skipping test case.\n\n")
 
         time.sleep(testUtils.TIME_DISPLAYTEXT)
-           
+
         '''
         This test is not needed for IOS 4.1.3 testing as the Security Verifier role
-        for bcb-confidentiality has not been implemented yet. 
+        for bcb-confidentiality has not been implemented yet.
         '''
 
         '''
@@ -1639,7 +1639,7 @@ def test20(inputScId=testUtils.BCB_AES_GCM_SCID, inputSourceScParams=testUtils.b
         testUtils.g_tests_failed += 1
         os.chdir("..")
 
-        
+
     print("###############################################################################")
 
 
@@ -1741,14 +1741,14 @@ def test21(inputScId=testUtils.BIB_HMAC_SHA2_SCID, inputScParams=testUtils.bibSc
         testUtils.del_policy_rule(4, "12")
         testUtils.del_event_set(4, "d_integrity")
         testUtils.del_key(4, "key_1_32bytes")
-        
+
         # Verify results on ipn:2.1
         log2_events = testUtils.get_test_events(2, log2)
         te_1, log2_events = testUtils.find_test_event(
             log2_events, 'sop_added_at_src', 'ipn:2.1', 'ipn:4.1', 'bib-integrity', '1', None, None)
         te_2, log2_events = testUtils.find_test_event(
             log2_events, 'sop_added_at_src', 'ipn:2.1', 'ipn:3.1', 'bib-integrity', '1', None, None)
-        
+
         # Verify results on ipn:3.1
         log3_events = testUtils.get_test_events(3, log3)
         te_3, log3_events = testUtils.find_test_event(
@@ -1784,7 +1784,7 @@ def test22(inputBibScId=testUtils.BIB_HMAC_SHA2_SCID, inputBcbScId= testUtils.BC
                   "Bundle Path: ipn:2.1 -> ipn:3.1\n\n")
         time.sleep(testUtils.TIME_DISPLAYTEXT)
 
-        
+
         vers = testUtils.get_version(2)
 
         if vers == "ION-OPEN-SOURCE":
@@ -1792,9 +1792,9 @@ def test22(inputBibScId=testUtils.BIB_HMAC_SHA2_SCID, inputBcbScId= testUtils.BC
             "ION TEST SUITE supports both confidentiality and integrity operations and \n"
             "will not be impacted by a security context \"misconfiguration\".\n")
             return
-        
+
         elif vers == "ION-NASA-BASELINE":
-        
+
             # Tracking current position in log
             log2 = testUtils.log_position("2")
             log3 = testUtils.log_position("3")
@@ -1865,7 +1865,7 @@ def test22(inputBibScId=testUtils.BIB_HMAC_SHA2_SCID, inputBcbScId= testUtils.BC
             print("Invalid ION version detected.")
             print("TEST FAILED")
             testUtils.g_tests_failed += 1
-        
+
     except subprocess.TimeoutExpired as e:
         print(e)
         print("TEST FAILED")
@@ -2091,7 +2091,7 @@ def test24(inputScId=testUtils.BCB_AES_GCM_SCID, inputScParams=testUtils.bcbScPa
     print("###############################################################################")
 
 
-def test25(inputBcbScId=testUtils.BCB_AES_GCM_SCID, inputBibScId=testUtils.BIB_HMAC_SHA2_SCID, 
+def test25(inputBcbScId=testUtils.BCB_AES_GCM_SCID, inputBibScId=testUtils.BIB_HMAC_SHA2_SCID,
 inputBcbScParams=testUtils.bcbScParms, inputBibScParams=testUtils.bibScParms):
     print("###############################################################################")
 
@@ -2213,7 +2213,7 @@ inputBcbScParams=testUtils.bcbScParms, inputBibScParams=testUtils.bibScParms):
     print("###############################################################################")
 
 
-def test26(inputBcbScId=testUtils.BCB_AES_GCM_SCID, inputBibScId=testUtils.BIB_HMAC_SHA2_SCID, 
+def test26(inputBcbScId=testUtils.BCB_AES_GCM_SCID, inputBibScId=testUtils.BIB_HMAC_SHA2_SCID,
 inputBcbScParams=testUtils.bcbScParms, inputBibScParams=testUtils.bibScParms):
     try:
         testUtils.start_test(
@@ -2444,7 +2444,7 @@ def test27(inputScId=testUtils.BIB_HMAC_SHA2_SCID, inputScParams=testUtils.bibSc
     print("###############################################################################")
 
 
-def test28(inputBcbScId=testUtils.BCB_AES_GCM_SCID, inputBibScId=testUtils.BIB_HMAC_SHA2_SCID, 
+def test28(inputBcbScId=testUtils.BCB_AES_GCM_SCID, inputBibScId=testUtils.BIB_HMAC_SHA2_SCID,
 inputBcbScParams=testUtils.bcbScParms, inputBibScParams=testUtils.bibScParms):
     print("###############################################################################")
 
@@ -2560,7 +2560,7 @@ inputBcbScParams=testUtils.bcbScParms, inputBibScParams=testUtils.bibScParms):
     print("##############################################################################")
 
 
-def test29(inputBcbScId=testUtils.BCB_AES_GCM_SCID, inputBibScId=testUtils.BIB_HMAC_SHA2_SCID, 
+def test29(inputBcbScId=testUtils.BCB_AES_GCM_SCID, inputBibScId=testUtils.BIB_HMAC_SHA2_SCID,
 inputBcbScParams=testUtils.bcbScParms, inputBibScParams=testUtils.bibScParms):
     print("##############################################################################")
 
@@ -2681,7 +2681,7 @@ inputBcbScParams=testUtils.bcbScParms, inputBibScParams=testUtils.bibScParms):
     print("##############################################################################")
 
 
-def test30(inputBcbScId=testUtils.BCB_AES_GCM_SCID, inputBibScId=testUtils.BIB_HMAC_SHA2_SCID, 
+def test30(inputBcbScId=testUtils.BCB_AES_GCM_SCID, inputBibScId=testUtils.BIB_HMAC_SHA2_SCID,
 inputScParams=testUtils.bibScParms):
     print("###############################################################################")
 
@@ -2755,7 +2755,7 @@ inputScParams=testUtils.bibScParms):
             testUtils.info_event_set(3, "d_conf")
             testUtils.info_policy_rule(3, 3)
             testUtils.info_policy_rule(3, 4)
-        
+
         print("Node ipn:4.1 Configuration \n")
         testUtils.add_key(4, "key_1_32bytes")
         testUtils.add_event_set(4, "d_integrity", "default bib")
@@ -2846,7 +2846,7 @@ inputScParams=testUtils.bibScParms):
             log4_events, 'sop_processed', 'ipn:2.1', 'ipn:4.1', 'bib-integrity', BUNDLEAGE, te_1['msec'], te_1['count'])
         te_8, log4_events = testUtils.find_test_event(
             log4_events, 'sop_processed', 'ipn:2.1', 'ipn:4.1', 'bib-integrity', PAYLOAD, te_1['msec'], te_1['count'])
-   
+
         # Process all test results
         testUtils.check_test_results([4], ["test_trace30"], [log2_events, log3_events, log4_events])
         '''
@@ -2860,7 +2860,7 @@ inputScParams=testUtils.bibScParms):
     print("###############################################################################")
 
 
-def test31(inputBcbScId=testUtils.BCB_AES_GCM_SCID, inputBibScId=testUtils.BIB_HMAC_SHA2_SCID, 
+def test31(inputBcbScId=testUtils.BCB_AES_GCM_SCID, inputBibScId=testUtils.BIB_HMAC_SHA2_SCID,
 inputBcbScParams=testUtils.bcbPrimaryScParms, inputBibScParams=testUtils.bibPrimaryScParms):
     print("###############################################################################")
     try:
@@ -2990,7 +2990,7 @@ inputBcbScParams=testUtils.bcbPrimaryScParms, inputBibScParams=testUtils.bibPrim
             log2_events, 'sop_added_at_src', 'ipn:2.1', 'ipn:4.1', 'bib-integrity', '0', None, None)
         te_2, log2_events = testUtils.find_test_event(
             log2_events, 'sop_added_at_src', 'ipn:2.1', 'ipn:4.1', 'bib-integrity', '1', te_1['msec'], te_1['count'])
-        
+
         # Verify results on ipn:3.1
         log3_events = testUtils.get_test_events(3, log3)
         te_3, log3_events = testUtils.find_test_event(
@@ -3004,7 +3004,7 @@ inputBcbScParams=testUtils.bcbPrimaryScParms, inputBibScParams=testUtils.bibPrim
             log4_events, 'sop_processed', 'ipn:2.1', 'ipn:4.1', 'bib-integrity', '1', te_1['msec'], te_1['count'])
         te_6, log4_events = testUtils.find_test_event(
             log4_events, 'sop_processed', 'ipn:2.1', 'ipn:4.1', 'bcb-confidentiality', '1', te_1['msec'], te_1['count'])
-        
+
         # Process all test results
         testUtils.check_test_results([4], ["test_trace31"], [log2_events, log3_events, log4_events])
         '''
@@ -3018,7 +3018,7 @@ inputBcbScParams=testUtils.bcbPrimaryScParms, inputBibScParams=testUtils.bibPrim
     print("###############################################################################")
 
 
-def test32(inputBcbScId=testUtils.BCB_AES_GCM_SCID, inputBibScId=testUtils.BIB_HMAC_SHA2_SCID, 
+def test32(inputBcbScId=testUtils.BCB_AES_GCM_SCID, inputBibScId=testUtils.BIB_HMAC_SHA2_SCID,
 inputScParams=testUtils.bibScParms):
     print("###############################################################################")
 
@@ -3086,7 +3086,7 @@ inputScParams=testUtils.bibScParms):
             testUtils.info_event_set(3, "d_conf")
             testUtils.info_policy_rule(3, 2)
             testUtils.info_policy_rule(3, 3)
-        
+
         print("Node ipn:4.1 Configuration \n")
         testUtils.add_key(4, "key_1_32bytes")
         testUtils.add_event_set(4, "d_integrity", "default bib")
@@ -3164,7 +3164,7 @@ inputScParams=testUtils.bibScParms):
             log4_events, 'sop_processed', 'ipn:2.1', 'ipn:4.1', 'bcb-confidentiality', PAYLOAD, te_1['msec'], te_1['count'])
         te_6, log4_events = testUtils.find_test_event(
             log4_events, 'sop_processed', 'ipn:2.1', 'ipn:4.1', 'bib-integrity', PAYLOAD, te_1['msec'], te_1['count'])
-   
+
         # Process all test results
         testUtils.check_test_results([4], ["test_trace32"], [log2_events, log3_events, log4_events])
         '''
@@ -3570,7 +3570,7 @@ def test40():
         log2 = testUtils.log_position("2")
 
         # Track overall success of find command contents
-        success = True 
+        success = True
 
         print("Node 2.1 Configuration \n")
         testUtils.add_key(2, "key_1_32bytes")
@@ -3803,14 +3803,14 @@ def test41():
             filter = testUtils.build_filter("2", "v", "ipn:2.1", tgt=1)
             spec = testUtils.build_spec("bcb-confidentiality", sc_id=invalid_bcb_scid, sc_params=testUtils.bcbScParms)
             es_ref = "d_conf"
-            testUtils.add_policy_rule(2, desc, filter, spec, es_ref)        
+            testUtils.add_policy_rule(2, desc, filter, spec, es_ref)
 
             desc = "bcb valid str sec ctxt"
             filter = testUtils.build_filter("3", "v", "ipn:2.1", tgt=1)
             spec = testUtils.build_spec("bcb-confidentiality", sc_id="ION Test Contexts", sc_params=testUtils.bcbScParms)
             es_ref = "d_conf"
             testUtils.add_policy_rule(2, desc, filter, spec, es_ref)
-            
+
             desc = "bcb invalid str sec ctxt"
             filter = testUtils.build_filter("4", "v", "ipn:2.1", tgt=1)
             spec = testUtils.build_spec("bcb-confidentiality", sc_id="NOT ION Test Contexts", sc_params=testUtils.bcbScParms)
@@ -3856,14 +3856,14 @@ def test41():
             filter = testUtils.build_filter("2", "v", "ipn:2.1", tgt=1)
             spec = testUtils.build_spec("bcb-confidentiality", sc_id=invalid_bcb_scid, sc_params=testUtils.bcbScParms)
             es_ref = "d_conf"
-            testUtils.add_policy_rule(2, desc, filter, spec, es_ref)        
+            testUtils.add_policy_rule(2, desc, filter, spec, es_ref)
 
             desc = "bcb valid str sec ctxt"
             filter = testUtils.build_filter("3", "v", "ipn:2.1", tgt=1)
             spec = testUtils.build_spec("bcb-confidentiality", sc_id="BCB-AES-GCM", sc_params=testUtils.bcbScParms)
             es_ref = "d_conf"
             testUtils.add_policy_rule(2, desc, filter, spec, es_ref)
-            
+
             desc = "bcb invalid str sec ctxt"
             filter = testUtils.build_filter("4", "v", "ipn:2.1", tgt=1)
             spec = testUtils.build_spec("bcb-confidentiality", sc_id="NOT-BCB-AES-GCM", sc_params=testUtils.bcbScParms)
@@ -4126,8 +4126,8 @@ def test44(inputScId=testUtils.BIB_HMAC_SHA2_SCID, inputScParams=testUtils.bibSc
         print("Node ipn:3.1 Configuration \n")
         testUtils.add_key(3, "key_2_32bytes")
         testUtils.add_event_set(3, "d_integrity", "default bib")
-        testUtils.add_event(3, "d_integrity", "sop_corrupt_at_acceptor", [["remove_sop_target"]])        
-       
+        testUtils.add_event(3, "d_integrity", "sop_corrupt_at_acceptor", [["remove_sop_target"]])
+
         desc = "bib acceptor tgt:BAB"
         filter = testUtils.build_filter("2", "a", "ipn:2.1", tgt=BUNDLEAGE)
         spec = testUtils.build_spec("bib-integrity", sc_id=inputScId, sc_params=inputScParams)
@@ -4220,7 +4220,7 @@ def test45(inputScId=testUtils.BCB_AES_GCM_SCID, inputScParams=testUtils.bcbScPa
         testUtils.add_key(3, "bcb_key_2_32bytes")
         testUtils.add_event_set(3, "d_bcb_conf", "default bcb")
         testUtils.add_event(3, "d_bcb_conf", "sop_corrupt_at_acceptor", [["remove_sop_target"]])
-        
+
         desc = "bcb acceptor tgt:BAB"
         filter = testUtils.build_filter("5", "a", "ipn:2.1", tgt=BUNDLEAGE)
         spec = testUtils.build_spec("bcb-confidentiality", sc_id=inputScId, sc_params=inputScParams)
@@ -4666,8 +4666,8 @@ test_dict = {1: test1, 2: test2, 3: test3, 4: test4, 5: test5, 6: test6, 7: test
              30: test30, 31: test31, 32: test32, 33: test33, 34: test34, 35: test35, 36: test36,
              37: test37, 38: test38, 39: test39, 40: test40, 41: test41, 42: test42, 43:test43,
              44: test44, 45: test45, 46: test46, 47: test47, 48: test48, 49: test49, 50: test50,
-             "all": all_tests, 
-             "bib_tests": bib_tests, "bib": bib_tests, 
-             "bcb_tests": bcb_tests, "bcb": bcb_tests, 
-             "payload tests": payload_tgt, "payload": payload_tgt, 
+             "all": all_tests,
+             "bib_tests": bib_tests, "bib": bib_tests,
+             "bcb_tests": bcb_tests, "bcb": bcb_tests,
+             "payload tests": payload_tgt, "payload": payload_tgt,
              "primary tests": primary_tgt, "primary": primary_tgt }

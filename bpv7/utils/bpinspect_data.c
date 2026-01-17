@@ -85,7 +85,7 @@ static int expand_cache(BundleListState *state)
 	/* Copy existing entries */
 	memcpy(newEntries, state->entries, state->count * sizeof(BundleCacheEntry));
 	memset(newEntries + state->count, 0,
-	       (newCapacity - state->count) * sizeof(BundleCacheEntry));
+		(newCapacity - state->count) * sizeof(BundleCacheEntry));
 
 	/* Free old array and use new one */
 	MRELEASE(state->entries);
@@ -268,7 +268,7 @@ int bpinspect_data_refresh(BundleListState *state)
 
 	/* Iterate through timeline */
 	for (elt = sdr_list_first(sdr, bpConstants->timeline); elt;
-	     elt = sdr_list_next(sdr, elt))
+			elt = sdr_list_next(sdr, elt))
 	{
 		addr = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &event, addr, sizeof(BpEvent));

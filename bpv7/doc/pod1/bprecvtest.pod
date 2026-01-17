@@ -10,18 +10,18 @@ B<bprecvtest> I<own_endpoint_ID> [I<max_files>]
 
 B<NOTE: THIS UTILITY IS FOR TESTING PURPOSES ONLY>
 
-B<bprecvtest> is a modified variant of B<bprecvfile> and is intended 
-to serve as the counterpart to B<bpsendtest>. 
-It uses bp_receive() to receive bundles containing file content. 
-The content of each bundle is simply discarded upon full reception 
+B<bprecvtest> is a modified variant of B<bprecvfile> and is intended
+to serve as the counterpart to B<bpsendtest>.
+It uses bp_receive() to receive bundles containing file content.
+The content of each bundle is simply discarded upon full reception
 after counting the size of the recieved data.
 
 If a I<max_files> value of N (where N > 0) is provided, the program will
 terminate automatically upon completing its Nth file reception.  Otherwise
 it will run indefinitely; use ^C to terminate the program.
 
-Upon termination, the program will display the number of bytes recieved in 
-files, the time between the reception of the pilot bundle and the final 
+Upon termination, the program will display the number of bytes recieved in
+files, the time between the reception of the pilot bundle and the final
 completed bundle, and the calculated throughput.
 
 =head1 EXIT STATUS

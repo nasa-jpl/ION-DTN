@@ -8,10 +8,10 @@
  **
  ** Assumptions: TODO
  **
- ** Modification History: 
+ ** Modification History:
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2020-04-16  AUTO             Auto-generated c file 
+ **  2020-04-16  AUTO             Auto-generated c file
  **
  ****************************************************************************/
 
@@ -135,7 +135,7 @@ tnv_t *amp_agent_binary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e re
 		return NULL;
 	}
 
-    switch(result->type)
+	switch(result->type)
 	{
 	case AMP_TYPE_INT:
 		switch(op)
@@ -238,9 +238,9 @@ tnv_t *amp_agent_binary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e re
 
 	if((ls != AMP_OK) || (rs != AMP_OK))
 	{
-        AMP_DEBUG_ERR("adm_agent_binary_num_op","Bad op (%d) or type (%d -> %d).",op, lval->type, rval->type);
-        tnv_release(result, 1);
-        result = NULL;
+		AMP_DEBUG_ERR("adm_agent_binary_num_op","Bad op (%d) or type (%d -> %d).",op, lval->type, rval->type);
+		tnv_release(result, 1);
+		result = NULL;
 	}
 
 	tnv_release(lval, 1);
@@ -283,7 +283,7 @@ tnv_t *adm_agent_unary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e res
 		return NULL;
 	}
 
-    switch(result->type)
+	switch(result->type)
 	{
 	case AMP_TYPE_INT:
 		switch(op)
@@ -348,9 +348,9 @@ tnv_t *adm_agent_unary_num_op(amp_agent_op_e op, vector_t *stack, amp_type_e res
 
 	if(ls != AMP_OK)
 	{
-        AMP_DEBUG_ERR("adm_agent_binary_num_op","Bad op (%d) or type (%d -> %d).",op, lval->type);
-        tnv_release(result, 1);
-        result = NULL;
+		AMP_DEBUG_ERR("adm_agent_binary_num_op","Bad op (%d) or type (%d -> %d).",op, lval->type);
+		tnv_release(result, 1);
+		result = NULL;
 	}
 
 	tnv_release(lval, 1);
@@ -433,11 +433,11 @@ tnv_t *adm_agent_unary_log_op(amp_agent_op_e op, vector_t *stack)
 		break;
 	}
 
-    if(s == 0)
+	if (s == 0)
 	{
-        AMP_DEBUG_ERR("adm_agent_unary_log_op","Bad op (%d) or type (%d).",op, val->type);
-        tnv_release(result, 1);
-        result = NULL;
+		AMP_DEBUG_ERR("adm_agent_unary_log_op","Bad op (%d) or type (%d).",op, val->type);
+		tnv_release(result, 1);
+		result = NULL;
 	}
 
 	tnv_release(val, 1);
@@ -481,7 +481,7 @@ tnv_t *adm_agent_binary_log_op(amp_agent_op_e op, vector_t *stack)
 	result->type = AMP_TYPE_BOOL;
 
 	/* Step 3: Based on result type, convert and perform operations. */
-    switch(lval->type)
+	switch(lval->type)
 	{
 	case AMP_TYPE_INT:
 		switch(op)
@@ -566,14 +566,14 @@ tnv_t *adm_agent_binary_log_op(amp_agent_op_e op, vector_t *stack)
 		break;
 	}
 
-    if((ls == 0) || (rs == 0))
+	if((ls == 0) || (rs == 0))
 	{
-        AMP_DEBUG_ERR("adm_agent_binary_log_op","Bad op (%d) or type (%d -> %d).",op, lval->type, rval->type);
-        tnv_release(result, 1);
-        result = NULL;
+		AMP_DEBUG_ERR("adm_agent_binary_log_op","Bad op (%d) or type (%d -> %d).",op, lval->type, rval->type);
+		tnv_release(result, 1);
+		result = NULL;
 	}
 
-    tnv_release(lval, 1);
+	tnv_release(lval, 1);
 	tnv_release(rval, 1);
 
 	return result;
@@ -3382,7 +3382,7 @@ tnv_t *amp_agent_op_stor(vector_t *stack)
 
 	/* Parameters intentionally unused. */
 	(void)stack;
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |START CUSTOM FUNCTION op_stor BODY
@@ -3397,4 +3397,3 @@ tnv_t *amp_agent_op_stor(vector_t *stack)
 	 */
 	return result;
 }
-

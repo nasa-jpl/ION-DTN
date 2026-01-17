@@ -1,5 +1,5 @@
 # Makefile -- UNIX-style make for qcbor as a lib and command line test
-# 
+#
 # Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause

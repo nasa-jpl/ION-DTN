@@ -138,7 +138,7 @@ layer protocol transmission error.
 It causes the serialized (catenated)
 outbound bundle in zco to be queued
 up for re-forwarding.
- 
+
 Return Values
 
 * 1: if bundle failure was handled
@@ -202,7 +202,7 @@ node that sent this inbound bundle.
 Return Values
 
 * 0: on success
-* -1: on any failure				
+* -1: on any failure
 
 ### bpContinueAcq
 
@@ -245,7 +245,7 @@ will flag the acquisition work area
 for refusal of the bundle due to
 resource exhaustion (congestion).
 Otherwise, (i.e., "attendant" points
-to a ReqAttendant structure, which 
+to a ReqAttendant structure, which
 MUST have already been initialized by
 ionStartAttendant()), bpContinueAcq
 will block until sufficient space
@@ -298,7 +298,7 @@ bundle acquisition ZCO of workArea.
 
 Return Value
 
-* 1: on success, the bundle has been 
+* 1: on success, the bundle has been
 fully acquired and dispatched (that is,
 queued for delivery and/or forwarding).
 In this case, the invoking convergence-
@@ -307,7 +307,7 @@ continue with the next cycle of
 bundle acquisition, i.e., it should
 call bpBeginAcq().
 
-* 0: on any failure pertaining only to this bundle. 
+* 0: on any failure pertaining only to this bundle.
 The failure
 is transient, applying only to the
 bundle that is currently being
@@ -319,7 +319,7 @@ should simply continue with the next
 cycle of bundle acquisition just as
 if the return code had been 1.
 
-* -1: on any other (i.e., system) failure.  
+* -1: on any other (i.e., system) failure.
 
 ### bpLoadAcq (suitable for certain CLA types)
 
@@ -344,7 +344,7 @@ bundles into zero-copy objects such as LTP.
 Return Value
 
 * 0: on success
-* -1: on any failure	
+* -1: on any failure
 
 ## Setting up a custom CLA in ION
 

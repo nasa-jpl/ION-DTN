@@ -42,7 +42,7 @@ int radixpt_user_match(PsmPartition partition, PsmAddress user_data, void *tag)
 
 void radixpt_radix_search(PsmPartition partition, PsmAddress radixAddr, char *value)
 {
-	
+
 	// Replace strdup with malloc+strncpy for C17 compliance
 	//char *src_key = strndup(value, RADIX_MAX_SUBSTR);
 	size_t len = strlen(value);
@@ -52,7 +52,7 @@ void radixpt_radix_search(PsmPartition partition, PsmAddress radixAddr, char *va
 
 	// avoid fortified string warnings
 	memcpy(src_key, value, len);
-    src_key[len] = '\0';
+	src_key[len] = '\0';
 
 //	if(gConfig.verbose)
 //	{
@@ -151,8 +151,8 @@ void radixpt_gen_printstats(void)
 	printf("Sizes:\nLyst is %d. Elt is %d.\n", sizeof(struct LystStruct), sizeof(struct LystEltStruct));
 
 	est_size = (gConfig.type == RADIX_TEST) ?
-			      sizeof(struct RadixTree_s) + (gStats.nodes * sizeof(struct RadixNode_s)) :
-				  sizeof(struct LystStruct)  + (gStats.nodes * sizeof(struct LystEltStruct));
+			sizeof(struct RadixTree_s) + (gStats.nodes * sizeof(struct RadixNode_s)) :
+			sizeof(struct LystStruct)  + (gStats.nodes * sizeof(struct LystEltStruct));
 */
 	if(gConfig.verbose)
 	{
@@ -195,7 +195,7 @@ void radixpt_radix_populate(PsmPartition partition, PsmAddress radixAddr)
 			if(gConfig.verbose)
 			{
 				printf("ADDING: %s with addr " ADDR_FIELDSPEC_INT
-				       "\n", tmp, dataAddr);
+						"\n", tmp, dataAddr);
 			}
 		}
 
@@ -232,7 +232,7 @@ void radixpt_radix_runtest(void)
 
 	if(gConfig.verbose)
 	{
-      char tree_str[4096];
+		char tree_str[4096];
 		radix_prettyprint(wm, radixAddr, tree_str, 4096);
 		printf("Tree is:\n%s\n",tree_str);
 	}
@@ -254,4 +254,3 @@ void radixpt_gen_initconfig(void)
 	gConfig.verbose = 0;
 	gConfig.wildcard_pct = 0;
 }
-

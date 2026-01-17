@@ -279,7 +279,7 @@ static void executeInfo(void)
 	writeTimestampUTC(db->nextKeyGenTime, next);
 	isprintf(buffer, sizeof buffer, "\nnextKeyGentime=%s, keyGenInterval=\
 %u, effectiveLeadTime=%u",
-			 next, db->keyGenInterval, db->effectiveLeadTime);
+			next, db->keyGenInterval, db->effectiveLeadTime);
 	printText(buffer);
 	sdr_exit_xn(sdr);
 }

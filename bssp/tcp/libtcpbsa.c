@@ -7,7 +7,7 @@
  *	Copyright (c) 2013, California Institute of Technology.
  *	Copyright (c) 2013, Space Internetworking Center,
  *	Democritus University of Thrace.
- *	
+ *
  *	All rights reserved. U.S. Government and E.U. Sponsorship acknowledged.
  */
 

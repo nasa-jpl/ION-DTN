@@ -3,7 +3,7 @@
  **      (c) 2009 The Johns Hopkins University Applied Physics Laboratory
  **                         All rights reserved.
  ******************************************************************************/
- 
+
 // TODO: Update documentation
 /*****************************************************************************
  **
@@ -16,7 +16,7 @@
  ** Subsystem:
  **             Extensions: bpsec_util_
  **
- ** Description: This file provides all structures, variables, and function 
+ ** Description: This file provides all structures, variables, and function
  **              definitions necessary for a full implementation of Bundle
  **		 Protocol Security (bpsec).  This implementation utilizes
  **		 the ION Extension Interface to manage the creation,
@@ -90,11 +90,11 @@ extern char	gMsg[GMSG_BUFLEN];
  * 2: Information logging.  Information statements are peppered through the
  *    code to provide insight into the state of the module at processing
  *    points considered useful by bpsec module software engineers.
- * 3: Warning logging.  Warning statements are used to flag unexpected 
+ * 3: Warning logging.  Warning statements are used to flag unexpected
  *    values that, based on runtime context, may not constitute errors.
  * 4: Error logging.  Errors are areas in the code where some sanity check
- *    or other required condition fails to be met by the software. 
- * 
+ *    or other required condition fails to be met by the software.
+ *
  * Error logging within the bpsec module is of the form:
  * <id> <function name>: <message>
  * Where id is one of:
@@ -103,7 +103,7 @@ extern char	gMsg[GMSG_BUFLEN];
  * i (information statement)
  * ? (warning statement)
  * x (error statement)
- * 
+ *
  * Debugging can be turned off at compile time by removing the
  * BPSEC_DEBUGGING #define.
  */
@@ -118,34 +118,34 @@ extern char	gMsg[GMSG_BUFLEN];
 		putErrmsg(gMsg, NULL);                                   \
 	}
 
-   #define BPSEC_DEBUG_PROC(format,...) \
-           BPSEC_DEBUG(BPSEC_DEBUG_LVL_PROC, ">", format, __VA_ARGS__)
+#define BPSEC_DEBUG_PROC(format, ...) \
+	BPSEC_DEBUG(BPSEC_DEBUG_LVL_PROC, ">", format, __VA_ARGS__)
 
-   #define BPSEC_DEBUG_INFO(format,...) \
-           BPSEC_DEBUG(BPSEC_DEBUG_LVL_INFO, "i", format, __VA_ARGS__)
+#define BPSEC_DEBUG_INFO(format, ...) \
+	BPSEC_DEBUG(BPSEC_DEBUG_LVL_INFO, "i", format, __VA_ARGS__)
 
-   #define BPSEC_DEBUG_WARN(format,...) \
-           BPSEC_DEBUG(BPSEC_DEBUG_LVL_WARN, "w", format, __VA_ARGS__)
+#define BPSEC_DEBUG_WARN(format, ...) \
+	BPSEC_DEBUG(BPSEC_DEBUG_LVL_WARN, "w", format, __VA_ARGS__)
 
-   #define BPSEC_DEBUG_ERR(format,...) \
-           BPSEC_DEBUG(BPSEC_DEBUG_LVL_ERR,  "e", format, __VA_ARGS__)
+#define BPSEC_DEBUG_ERR(format, ...) \
+	BPSEC_DEBUG(BPSEC_DEBUG_LVL_ERR, "e", format, __VA_ARGS__)
 #else
 #define BPSEC_DEBUG(level, format, ...) \
 	if (level >= BPSEC_DEBUG_LVL)   \
 	{                               \
 	}
 
-   #define BPSEC_DEBUG_PROC(format,...) \
-           BPSEC_DEBUG(BPSEC_DEBUG_LVL_PROC,format, __VA_ARGS__)
+#define BPSEC_DEBUG_PROC(format, ...) \
+	BPSEC_DEBUG(BPSEC_DEBUG_LVL_PROC, format, __VA_ARGS__)
 
-   #define BPSEC_DEBUG_INFO(format,...) \
-           BPSEC_DEBUG(BPSEC_DEBUG_LVL_INFO,format, __VA_ARGS__)
+#define BPSEC_DEBUG_INFO(format, ...) \
+	BPSEC_DEBUG(BPSEC_DEBUG_LVL_INFO, format, __VA_ARGS__)
 
-   #define BPSEC_DEBUG_WARN(format,...) \
-           BPSEC_DEBUG(BPSEC_DEBUG_LVL_WARN,format, __VA_ARGS__)
+#define BPSEC_DEBUG_WARN(format, ...) \
+	BPSEC_DEBUG(BPSEC_DEBUG_LVL_WARN, format, __VA_ARGS__)
 
-   #define BPSEC_DEBUG_ERR(format,...) \
-           BPSEC_DEBUG(BPSEC_DEBUG_LVL_ERR,format, __VA_ARGS__)
+#define BPSEC_DEBUG_ERR(format, ...) \
+	BPSEC_DEBUG(BPSEC_DEBUG_LVL_ERR, format, __VA_ARGS__)
 
 #endif
 
@@ -184,8 +184,8 @@ extern char	gMsg[GMSG_BUFLEN];
  */
 typedef struct
 {
-    unsigned int    scSerializedLength;
-    unsigned char   *scSerializedText;
+	unsigned int   scSerializedLength;
+	unsigned char *scSerializedText;
 } BpsecSerializeData;
 
 
@@ -211,8 +211,8 @@ extern int      bpsec_util_destIsLocalCheck(Bundle *bundle);
 extern char     *bpsec_util_localAdminEIDGet(char *eid);
 extern void     bpsec_util_outboundItemGet(uint8_t itemNeeded, Object items, Object *tvp);
 extern int      bpsec_util_zcoFileSourceTransferTo(Sdr sdr, ZcoAcct acct,
-                Object *resultZco, Object *acqFileRef,
-                char *fname, char *bytes, uvast length);
+		Object *resultZco, Object *acqFileRef,
+		char *fname, char *bytes, uvast length);
 Object        bspsec_util_findOutboundBpsecTargetBlock(Bundle *bundle, int tgtBlkNum, BpBlockType sopType);
 
 unsigned char *bpsec_util_primaryBlkSerialize(Bundle *bundle, int *length);
@@ -246,8 +246,8 @@ int32_t bpsec_util_sdrBlkConvert(uint32_t suite, uint8_t *context, csi_blocksize
 
 
 int32_t bpsec_util_fileBlkConvert(uint32_t suite, uint8_t *csi_ctx, csi_blocksize_t *blocksize,
-		                          ZcoReader *dataReader, uvast outputBufLen, Object *outputZco, char *filename,
-								  uint8_t function);
+		ZcoReader *dataReader, uvast outputBufLen, Object *outputZco, char *filename,
+		uint8_t function);
 
 
 /** Deprecated functions kept to compile */

@@ -26,8 +26,8 @@ of searching for a particular element.
 
 =item Object sdr_list_create(Sdr sdr)
 
-Creates a new list object in the SDR; the new list object initially 
-contains no list elements.  Returns the address of the new list, or 
+Creates a new list object in the SDR; the new list object initially
+contains no list elements.  Returns the address of the new list, or
 zero on any error.
 
 =item void sdr_list_destroy(Sdr sdr, Object list, SdrListDeleteFn fn, void *arg)
@@ -51,7 +51,7 @@ I<userData> is nominally an Address but can in fact be any value
 that occupies a single word.  It is typically used to point to an SDR
 object that somehow characterizes the list as a whole, such as a name.
 
-=item Address  sdr_list_user_data(Sdr sdr, Object list)
+=item Address sdr_list_user_data(Sdr sdr, Object list)
 
 Returns the value of the "user data" word of I<list>, or zero on any error.
 
@@ -71,8 +71,8 @@ of the newly created element, or zero on any error.
 =item Object sdr_list_insert_last(Sdr sdr, Object list, Address data)
 
 Creates a new element and inserts it at the front/end
-of the list.  This function should not be used to insert a new 
-element into any ordered list; use sdr_list_insert() instead.  
+of the list.  This function should not be used to insert a new
+element into any ordered list; use sdr_list_insert() instead.
 Returns the address of the newly created list element on success,
 or zero on any error.
 
@@ -83,7 +83,7 @@ or zero on any error.
 Creates a new element and inserts it before/after the
 specified list element.  This function should not be
 used to insert a new element into any ordered list; use
-sdr_list_insert() instead.  Returns the address of the newly 
+sdr_list_insert() instead.  Returns the address of the newly
 created list element, or zero on any error.
 
 =item void sdr_list_delete(Sdr sdr, Object elt, SdrListDeleteFn fn, void *arg)
@@ -164,7 +164,7 @@ The user-supplied function normally compares some key values of the two
 data items and returns 0 if they are equal, an integer less
 than 0 if I<eltData>'s key value is less than that of I<dataBuffer>, and an
 integer greater than 0 if I<eltData>'s key value is greater than that of
-I<dataBuffer>.  These return values will produce a list in ascending order.  
+I<dataBuffer>.  These return values will produce a list in ascending order.
 If the user desires the list to be in descending
 order, the function must reverse the signs of these return values.
 

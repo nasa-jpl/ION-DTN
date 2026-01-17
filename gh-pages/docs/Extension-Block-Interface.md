@@ -8,7 +8,7 @@ Standard structures for recording extension blocks -- both in transient storage 
 
 ## Extension Definition: `ExtensionDef` & `extensionDefs`
 
-The definition of each extension is asserted in an ExtensionDef structure, also as defined in the `bei.h` header file. 
+The definition of each extension is asserted in an ExtensionDef structure, also as defined in the `bei.h` header file.
 
 ```c
 /**
@@ -82,7 +82,7 @@ Each ExtensionDef must supply:
 
 All extension definitions must be coded into an array of ExtensionDef structures named extensionDefs.
 
-## ExtensionSpec - specification for producing an extension block 
+## ExtensionSpec - specification for producing an extension block
 
 ```c
 /*	ExtensionSpec provides the specification for producing an
@@ -102,7 +102,7 @@ An array of ExtensionSpec structures named extensionSpecs is also required. Each
 
 1. block definition (identified by block type number),
 2. a discriminator tag whose semantics are block-type-specific, and
-3. CRC type indicating what type of CRC must be used to protect this extension block. 
+3. CRC type indicating what type of CRC must be used to protect this extension block.
 
 The order of appearance of extension specifications in the extensionSpecs array determines the order in which extension blocks will be inserted into locally sourced bundles.
 

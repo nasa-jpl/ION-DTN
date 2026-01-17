@@ -4,7 +4,7 @@
 
 This script can create, update, or remove symlinks of ION source files to aide manual builds for embedded targets.
 
-Include files are not symlinked and should be handled by providing the appropriate include (-I) flags to your compiler. 
+Include files are not symlinked and should be handled by providing the appropriate include (-I) flags to your compiler.
 
 If run without arguments, it will create the default set of C symlinks to the current directory ('.') assuming that the root of the ION repository is in the parent directory ('..').  To overwrite these values explicitly:
 
@@ -45,29 +45,29 @@ pod2usage(-exitval => 0, -verbose => 2) if $man;
 
 
 my @ici_sources = qw(
-			ici/library/cbor.c 
-			ici/library/crc.c 
-			ici/library/ion.c 
-			ici/library/ionsec.c 
-			ici/library/libicinm.c 
-			ici/library/llcv.c 
-			ici/library/lyst.c 
-			ici/library/memmgr.c 
-			ici/library/platform.c 
-			ici/library/platform_sm.c 
-			ici/library/psm.c 
-			ici/library/rfx.c 
-			ici/library/smlist.c 
-			ici/library/smrbt.c 
-			ici/library/sptrace.c 
-			ici/library/zco.c 
-			ici/sdr/sdrcatlg.c 
-			ici/sdr/sdrhash.c 
-			ici/sdr/sdrlist.c 
-			ici/sdr/sdrmgt.c 
-			ici/sdr/sdrstring.c 
-			ici/sdr/sdrtable.c 
-			ici/sdr/sdrxn.c 
+			ici/library/cbor.c
+			ici/library/crc.c
+			ici/library/ion.c
+			ici/library/ionsec.c
+			ici/library/libicinm.c
+			ici/library/llcv.c
+			ici/library/lyst.c
+			ici/library/memmgr.c
+			ici/library/platform.c
+			ici/library/platform_sm.c
+			ici/library/psm.c
+			ici/library/rfx.c
+			ici/library/smlist.c
+			ici/library/smrbt.c
+			ici/library/sptrace.c
+			ici/library/zco.c
+			ici/sdr/sdrcatlg.c
+			ici/sdr/sdrhash.c
+			ici/sdr/sdrlist.c
+			ici/sdr/sdrmgt.c
+			ici/sdr/sdrstring.c
+			ici/sdr/sdrtable.c
+			ici/sdr/sdrxn.c
 			ici/bulk/STUB_BULK/bulk.c
     );
 my @ici_utils = qw(
@@ -81,11 +81,11 @@ ici/utils/ionunlock.c
 ici/utils/ionlog.c
                  );
 my @ltp_sources = qw(
-	ltp/library/libltp.c 
-	ltp/library/libltpnm.c 
-	ltp/library/libltpP.c 
-	ltp/library/ltpei.c 
-	ltp/library/ltpsec.c 
+	ltp/library/libltp.c
+	ltp/library/libltpnm.c
+	ltp/library/libltpP.c
+	ltp/library/ltpei.c
+	ltp/library/ltpsec.c
 	ltp/sda/libsda.c
 ltp/udp/libudplsa.c
 ltp/utils/ltpadmin.c
@@ -112,30 +112,30 @@ dgr/test/tcp2file.c
 my @bp_sources; # Quick approach
 if ($use_bpv7) {
 @bp_sources = qw(
-	bpv7/bibe/bibe.c 
-	bpv7/dtn2/libdtn2fw.c 
-	bpv7/library/libbp.c 
-	bpv7/library/libbpP.c 
-	bpv7/library/libbpnm.c 
-	bpv7/library/eureka.c 
-	bpv7/library/bei.c 
-	bpv7/library/bpsec.c 
-	bpv7/library/ext/bae/bae.c 
-	bpv7/library/ext/bpq/bpq.c 
-	bpv7/library/ext/bpsec/bcb.c 
-	bpv7/library/ext/bpsec/bib.c 
-	bpv7/library/ext/bpsec/bpsec_instr.c 
-	bpv7/library/ext/bpsec/bpsec_util.c 
-	bpv7/library/ext/bpsec/profiles.c 
-	bpv7/library/ext/hcb/hcb.c 
-	bpv7/library/ext/meb/meb.c 
-	bpv7/library/ext/pnb/pnb.c 
-	bpv7/library/ext/pnb/pnb.h 
-	bpv7/library/ext/snw/snw.c 
-	bpv7/ipn/libipnfw.c 
-	bpv7/saga/saga.c 
-	ici/libbloom-master/bloom.h 
-	ici/libbloom-master/bloom.c 
+	bpv7/bibe/bibe.c
+	bpv7/dtn2/libdtn2fw.c
+	bpv7/library/libbp.c
+	bpv7/library/libbpP.c
+	bpv7/library/libbpnm.c
+	bpv7/library/eureka.c
+	bpv7/library/bei.c
+	bpv7/library/bpsec.c
+	bpv7/library/ext/bae/bae.c
+	bpv7/library/ext/bpq/bpq.c
+	bpv7/library/ext/bpsec/bcb.c
+	bpv7/library/ext/bpsec/bib.c
+	bpv7/library/ext/bpsec/bpsec_instr.c
+	bpv7/library/ext/bpsec/bpsec_util.c
+	bpv7/library/ext/bpsec/profiles.c
+	bpv7/library/ext/hcb/hcb.c
+	bpv7/library/ext/meb/meb.c
+	bpv7/library/ext/pnb/pnb.c
+	bpv7/library/ext/pnb/pnb.h
+	bpv7/library/ext/snw/snw.c
+	bpv7/ipn/libipnfw.c
+	bpv7/saga/saga.c
+	ici/libbloom-master/bloom.h
+	ici/libbloom-master/bloom.c
 	ici/libbloom-master/murmur2/MurmurHash2.c
 	ici/crypto/NULL_SUITES/crypto.c
 	ici/crypto/NULL_SUITES/csi.c
@@ -200,52 +200,52 @@ bpv7/daemon/bpclm.c
 # Skipped: NM Manager not intended for embedded use
 # TODO: Hard-coded for bpv7 ADMs.  This array should be split
 my @nm_agent_sources = qw(
-	nm/contrib/QCBOR/src/UsefulBuf.c 
-	nm/contrib/QCBOR/src/qcbor_encode.c 
-	nm/contrib/QCBOR/src/qcbor_decode.c 
+	nm/contrib/QCBOR/src/UsefulBuf.c
+	nm/contrib/QCBOR/src/qcbor_encode.c
+	nm/contrib/QCBOR/src/qcbor_decode.c
 	nm/contrib/QCBOR/src/ieee754.c
-	nm/shared/adm/adm.c 
-	nm/shared/msg/msg.c 
-	nm/shared/primitives/ari.c 
-	nm/shared/primitives/blob.c 
-	nm/shared/primitives/ctrl.c 
-	nm/shared/primitives/edd_var.c 
-	nm/shared/primitives/expr.c 
-	nm/shared/primitives/report.c 
-	nm/shared/primitives/rules.c 
-	nm/shared/primitives/table.c 
-	nm/shared/primitives/tnv.c 
-	nm/shared/utils/cbor_utils.c 
-	nm/shared/utils/db.c 
-	nm/shared/utils/nm_types.c 
-	nm/shared/utils/rhht.c 
-	nm/shared/utils/utils.c 
-	nm/shared/utils/vector.c 
-	nm/agent/ingest.c 
-	nm/agent/instr.c 
-	nm/agent/lcc.c 
-	nm/agent/nmagent.c 
-	nm/agent/ldc.c 
-	nm/agent/rda.c 
-	nm/shared/msg/ion_if.c 
-	nm/agent/adm_amp_agent_impl.c 
-	nm/agent/adm_amp_agent_agent.c 
+	nm/shared/adm/adm.c
+	nm/shared/msg/msg.c
+	nm/shared/primitives/ari.c
+	nm/shared/primitives/blob.c
+	nm/shared/primitives/ctrl.c
+	nm/shared/primitives/edd_var.c
+	nm/shared/primitives/expr.c
+	nm/shared/primitives/report.c
+	nm/shared/primitives/rules.c
+	nm/shared/primitives/table.c
+	nm/shared/primitives/tnv.c
+	nm/shared/utils/cbor_utils.c
+	nm/shared/utils/db.c
+	nm/shared/utils/nm_types.c
+	nm/shared/utils/rhht.c
+	nm/shared/utils/utils.c
+	nm/shared/utils/vector.c
+	nm/agent/ingest.c
+	nm/agent/instr.c
+	nm/agent/lcc.c
+	nm/agent/nmagent.c
+	nm/agent/ldc.c
+	nm/agent/rda.c
+	nm/shared/msg/ion_if.c
+	nm/agent/adm_amp_agent_impl.c
+	nm/agent/adm_amp_agent_agent.c
 	nm/shared/adm/adm_init.c
-	bpv7/adm/adm_bp_agent_impl.c 
-	bpv7/adm/adm_bp_agent_agent.c 
-	bpv7/adm/adm_bpsec_impl.c 
-	bpv7/adm/adm_bpsec_agent.c 
-	bpv7/adm/adm_ion_bp_admin_impl.c 
-	bpv7/adm/adm_ion_bp_admin_agent.c 
-	nm/agent/adm_ion_admin_agent.c 
-	nm/agent/adm_ion_admin_impl.c 
-	nm/agent/adm_ionsec_admin_impl.c 
-	nm/agent/adm_ionsec_admin_agent.c 
-	nm/agent/adm_ion_ipn_admin_impl.c 
-	nm/agent/adm_ion_ipn_admin_agent.c 
-	nm/agent/adm_ion_ltp_admin_impl.c 
-	nm/agent/adm_ion_ltp_admin_agent.c 
-	nm/agent/adm_ltp_agent_impl.c 
+	bpv7/adm/adm_bp_agent_impl.c
+	bpv7/adm/adm_bp_agent_agent.c
+	bpv7/adm/adm_bpsec_impl.c
+	bpv7/adm/adm_bpsec_agent.c
+	bpv7/adm/adm_ion_bp_admin_impl.c
+	bpv7/adm/adm_ion_bp_admin_agent.c
+	nm/agent/adm_ion_admin_agent.c
+	nm/agent/adm_ion_admin_impl.c
+	nm/agent/adm_ionsec_admin_impl.c
+	nm/agent/adm_ionsec_admin_agent.c
+	nm/agent/adm_ion_ipn_admin_impl.c
+	nm/agent/adm_ion_ipn_admin_agent.c
+	nm/agent/adm_ion_ltp_admin_impl.c
+	nm/agent/adm_ion_ltp_admin_agent.c
+	nm/agent/adm_ltp_agent_impl.c
 	nm/agent/adm_ltp_agent_agent.c
     );
 
@@ -264,7 +264,7 @@ if ($link_nm || $link_all) {
     parse_files(\@nm_agent_sources);
     parse_files(\@test_files);
 }
-    
+
 sub clean_links { # TODO
     # Open $tgt dir
     # For each file, unlink if -l
@@ -280,11 +280,9 @@ sub parse_files {
             say "Warning: $fn already exists and is not a symlink";
             continue;
         }
-        
+
         my $cmd = "ln -s $base/$file $tgt/";
         my $out = `$cmd`;
         say $out if $verbose && $out;
     }
 }
-
-

@@ -24,17 +24,17 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: Testing the functionality of issue 132: a transmission rate
-	limit on udp link service adapter to ltp.  Beyond the configuration
-	options, this is a simple loopback test."
+    limit on udp link service adapter to ltp.  Beyond the configuration
+    options, this is a simple loopback test."
 echo
 echo "CONFIG: Custom loopback: "
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo
@@ -109,11 +109,11 @@ else
     tsdiff=$((recvfilets - sendfilets))
 
     if [ $tsdiff -ge 10 ]; then
-	echo "bundle transfer successful!"
-	RETVAL=0
+        echo "bundle transfer successful!"
+        RETVAL=0
     else
-	echo "Oh noes, data OK but recv file timestamp not 10secs older than send file!"
-	RETVAL=1
+        echo "Oh noes, data OK but recv file timestamp not 10secs older than send file!"
+        RETVAL=1
     fi
 
 fi

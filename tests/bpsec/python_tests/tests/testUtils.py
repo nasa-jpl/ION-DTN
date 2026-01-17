@@ -73,7 +73,7 @@ def print_debug(output):
         print("\tSecurity policy command:")
 
         cmd = output.args.splitlines()
-        
+
         for line in cmd:
             line.strip()
             if line:
@@ -85,7 +85,7 @@ def print_debug(output):
 
         if output.stdout != None:
             print("\tstdout:")
-            
+
             out = output.stdout.splitlines()
             for line in out:
                 print("\t\t", line)
@@ -97,7 +97,7 @@ def print_debug(output):
             for line in err:
                 print("\t\t", line)
         print()
-        
+
 
 def print_ion_text(ion_text):
     """
@@ -124,10 +124,10 @@ def get_version(node_num):
     """[get_version] returns the version of ION running at [node_num], either:
         'ION-NASA-BASELINE' for the ION NASA Baseline (INB)
         'ION-OPEN-SOURCE' for ION Open Source (IOS)
-    
+
     Precondition: node_num identifies an ION node that has been initialized.
 
-    Assumption: node_num is in the bundle path for the test checking 
+    Assumption: node_num is in the bundle path for the test checking
             the ION version.
 
     ION utility used: bpsecadmin
@@ -147,8 +147,8 @@ def get_version(node_num):
         return "ION-OPEN-SOURCE"
     else:
         return "ERROR"
-    
-    
+
+
 
 def add_key(node_num, k_name):
     """[add_key] adds a key to a node with a name [k_name] to the node at
@@ -286,8 +286,8 @@ def list_event_set(node_num):
 
 def info_event_set(node_num, es_name):
     """
-    [info_event_set] Provides the results of the 'info' event set command run at [node_num] 
-    for the named event set (identified by [es_name]) provided. 
+    [info_event_set] Provides the results of the 'info' event set command run at [node_num]
+    for the named event set (identified by [es_name]) provided.
 
     ION Utility Used: bpsecadmin
     """
@@ -296,7 +296,7 @@ def info_event_set(node_num, es_name):
     cmd = "bpsecadmin<<END\ni {\"event_set\" : {\"name\" : \"" + str(es_name) + "\" }}\nEND"
 
     result = subprocess.run(cmd, shell=True, timeout=TIME_TESTTIMEOUT, capture_output=True, text=True)
-    
+
     print_debug(result)
 
     es_info = result.stdout.splitlines()
@@ -424,13 +424,13 @@ def build_sc_param(sc_param):
 
      TODO: make function more robust and fix header
     """
-   
+
     if len(sc_param) == 2:
         cmd = {sc_param[0] : sc_param[1]}
 
     else:
         raise AssertionError("Not a valid security context parameter. Expected an id and value pair.")
-    
+
     return cmd
 
 
@@ -523,17 +523,17 @@ def add_policy_rule(node_num, desc, filter, spec, es_ref):
 
     out = subprocess.run(cmd, shell=True, timeout=TIME_TESTTIMEOUT, capture_output=True, text=True)
 
-    print_debug(out)    
+    print_debug(out)
 
     os.chdir("..")
 
 
 def find_policy_rule(node_num, type, role=None, src=None, dest=None, sec_src=None, tgt=None, sc_id=None, svc=None, es_ref=None):
     """
-    [find_policy_rule] executes a find command for policy rules, based on [type] 
+    [find_policy_rule] executes a find command for policy rules, based on [type]
     which is set to "best" or "all". The find command matches any criteria
     provided to the set of existing policy rules at the provided [node_num].
-    
+
     ION Utility Used: bpsecadmin
     """
 
@@ -581,7 +581,7 @@ def list_policy_rule(node_num):
     cmd = "bpsecadmin<<END\nl {\"policyrule\"}\nEND"
 
     result = subprocess.run(cmd, shell=True, timeout=TIME_TESTTIMEOUT, capture_output=True, text=True)
-    
+
     print_debug(result)
 
     rule_list = result.stdout.splitlines()
@@ -595,8 +595,8 @@ def list_policy_rule(node_num):
 
 def info_policy_rule(node_num, rule_id):
     """
-    [info_policy_rule] Provides the results of the 'info' policy command run at [node_num] for the [rule_id] 
-    provided. 
+    [info_policy_rule] Provides the results of the 'info' policy command run at [node_num] for the [rule_id]
+    provided.
 
     ION Utility Used: bpsecadmin
     """
@@ -605,9 +605,9 @@ def info_policy_rule(node_num, rule_id):
     cmd = "bpsecadmin<<END\ni {\"policyrule\" : {\"rule_id\" : " + str(rule_id) + " }}\nEND"
 
     result = subprocess.run(cmd, shell=True, timeout=TIME_TESTTIMEOUT, capture_output=True, text=True)
-    
+
     print_debug(result)
-    
+
     rule_info = result.stdout.splitlines()
 
     # Display the rules found at the node
@@ -653,13 +653,13 @@ def recv_file(node_num):
 
     time.sleep(TIME_TESTFINISH)
     print("bprecvfile run at node ipn:" + str(node_num) + ".1\n")
-    
+
     os.chdir("..")
 
 
 def send_file(src, dest, file_name, transmit_time):
     """
-    [send_file] sends a file with [filename] from [src] to [dest] node taking 
+    [send_file] sends a file with [filename] from [src] to [dest] node taking
     [transmit_time] specified in seconds.
 
     Precondition: [file_name] is an existing file at [src].
@@ -678,7 +678,7 @@ def send_file(src, dest, file_name, transmit_time):
     subprocess.run(cmd, shell=True, stdout=verbose, timeout=TIME_TESTTIMEOUT)
 
     time.sleep(transmit_time)
-    
+
     print("bpsendfile complete")
 
     os.chdir("..")
@@ -721,12 +721,12 @@ def start_bpsink(node_num):
     """
     node = node_num + ".ipn.ltp"
     file = node_num + "_results.txt"
-    
+
     try:
         os.remove(node + "/" + file)
     except FileNotFoundError:
         pass
-    
+
     os.chdir(node)
     open(file, 'w')
 
@@ -741,7 +741,7 @@ def clean_ion():
     existing ion.log files from each node directory.
     """
     print("Cleaning environment from previous ION runs\n\n")
-   
+
     # Removes old ION Logs from each node
     dirs = os.scandir()
     for i in dirs:
@@ -815,9 +815,9 @@ def stop_and_clean():
             os.chdir(i.name)
             subprocess.run("./ionstop", shell=True, stdout=verbose)
             os.chdir("..")
-    
+
     time.sleep(TIME_TESTFINISH)
-    
+
     subprocess.run("killm")
 
 
@@ -834,17 +834,17 @@ def start_test(test_num, desc):
 
 def gen_large_file(node_num, filename, size):
     """
-    [gen_large_file] creates a file [filename] at [node_num] with [size] 
-    to be used as a message payload. 
+    [gen_large_file] creates a file [filename] at [node_num] with [size]
+    to be used as a message payload.
 
-    This function provided from: 
+    This function provided from:
     https://www.bswen.com/2018/04/python-How-to-generate-random-large-file-using-python.html
     """
 
     node = str(node_num) + ".ipn.ltp"
     os.chdir(node)
 
-    chars = ''.join([random.choice(string.ascii_letters) for i in range(size)]) 
+    chars = ''.join([random.choice(string.ascii_letters) for i in range(size)])
 
     with open(filename, 'w') as f:
         f.write(chars)
@@ -853,15 +853,15 @@ def gen_large_file(node_num, filename, size):
 
 def check_policy_rules(rule_results, rule_id_list):
     """
-    [check_policy_rules] accepts the output from a find policyrule command as 
+    [check_policy_rules] accepts the output from a find policyrule command as
     [rule_results] and checks to ensure that only the [rule_id_list] provided is
     present in those results.
 
-    If each rule ID in the [rule_id_list] is present and no additional rule IDs 
-    appear in the [rule_results], the check is determined to be successful. 
-    
-    This means that an unsuccessful check can indicate either that a rule ID is not 
-    present in the [rule_results], or there is an additional rule ID in the 
+    If each rule ID in the [rule_id_list] is present and no additional rule IDs
+    appear in the [rule_results], the check is determined to be successful.
+
+    This means that an unsuccessful check can indicate either that a rule ID is not
+    present in the [rule_results], or there is an additional rule ID in the
     [rule_results] that was not expected (part of the [rule_id_list]).
 
     Return:
@@ -875,7 +875,7 @@ def check_policy_rules(rule_results, rule_id_list):
     for line in rule_results:
         line.strip()
         if (line and (line[0] != ':')):
-            
+
             # Find rule ID in results
             idx = line.find("#")
             if idx != -1:
@@ -896,7 +896,7 @@ def print_test_event(name, bsrc, bdest, svc, tgt):
     a security operation event, providing the bundle source, destination,
     security service and target block type.
     """
-    print("\t\tTest event: " + name + " from bundle source " + bsrc + " to bundle " 
+    print("\t\tTest event: " + name + " from bundle source " + bsrc + " to bundle "
             "destination " + bdest + " for " + svc + " on target block " + tgt)
 
 
@@ -911,13 +911,13 @@ def create_bundle_dict(te_lst):
 
     # For each test event provided for each ion.log file (one per node)
     for log in te_lst:
-        
+
         for te in log:
 
             # If the bundle identifier is not already known
             # Bundle identifier: bundle source, time (msec), count
             if (te['bsrc'], te['msec'], te['count']) not in bundles:
-                
+
                 # Add the new bundle identifier
                 bundles[(te['bsrc'], te['msec'], te['count'])] = i
                 i += 1
@@ -927,18 +927,18 @@ def create_bundle_dict(te_lst):
 
 def find_bptrace_msg(node_num, msg, deliver_bundle):
     """
-    [find_bptrace_msg] This function  determines if a bptrace [msg] 
-    is in the _results.txt file of node [node_num]. 
+    [find_bptrace_msg] This function  determines if a bptrace [msg]
+    is in the _results.txt file of node [node_num].
 
     A test may be designed in which bundle delivery is expected to fail. In this case,
-    [deliver_bundle] is set to False. In this case, the check function ensures that 
-    the message is not in the results file from bptrace. Otherwise, [deliver_bundle] 
+    [deliver_bundle] is set to False. In this case, the check function ensures that
+    the message is not in the results file from bptrace. Otherwise, [deliver_bundle]
     is set to True and this function returns success if the message is found.
 
     Precondition: msg is a string
     Precondition: node_num is an int that represents a node in the bundle's path. Typically
                   the bundle destination.
-    Precondition: deliver_bundle is a boolean indicating if the bptrace message is expected to 
+    Precondition: deliver_bundle is a boolean indicating if the bptrace message is expected to
                   be found or not, as a result of successful or unsuccessful bundle delivery.
                   Expected failures are typically intentional security policy misconfigurations.
 
@@ -951,7 +951,7 @@ def find_bptrace_msg(node_num, msg, deliver_bundle):
     Sample Usage:
         find_bptrace_msg(3, "test_trace_ex", False)
     """
-    
+
     try:
 
         node = str(node_num) + ".ipn.ltp"
@@ -973,18 +973,18 @@ def find_bptrace_msg(node_num, msg, deliver_bundle):
         elif (msg in results) and (deliver_bundle is False):
             print("Bundle transmission succeeded unexpectedly.")
             return 0
-        
+
         # If a result message is expected from bptrace and NOT found
         # Bundle transmission was not successful
         # (msg not in results) and (deliver_bundle is True)
-        else: 
+        else:
             print("Bundle transmission was unsuccessful.")
             return 0
 
     except:
 
         # When handling the results of bptrace, a non utf-8 char
-        # may be encountered indicating the bundle payload is: 
+        # may be encountered indicating the bundle payload is:
         # encrypted OR corrupted
         if deliver_bundle is True:
             print("Bundle transmission was unsuccessful.")
@@ -1006,14 +1006,14 @@ def inc_failed_tests():
 def check_test_results(node_num, msg, te_lst, deliver_bundle=True):
     """
     [check_test_results] This function first determines the bundle each test event
-    in [te_lst] represents and prints this information to the screen. [te_lst] provides a 
-    list of test events associated with EACH ion.log file examined for the test case. 
+    in [te_lst] represents and prints this information to the screen. [te_lst] provides a
+    list of test events associated with EACH ion.log file examined for the test case.
     This is typically the same as the number of nodes used for the test case.
 
-    Second, the check function determines if the bptrace [msg] is in the _results.txt 
-    file of node [node_num]. If [deliver_bundle] is True, the bundle is expected to 
+    Second, the check function determines if the bptrace [msg] is in the _results.txt
+    file of node [node_num]. If [deliver_bundle] is True, the bundle is expected to
     be delivered and this message should be present.
-    
+
     Third, the function checks the test events that accompany the bundles received
     during the test. Test events may be identified as missing or unexpected in the case
     of a test failure.
@@ -1032,7 +1032,7 @@ def check_test_results(node_num, msg, te_lst, deliver_bundle=True):
         check_test_results(3, "test_trace_ex", [test_event_one, test_event_two], False)
     """
     passed = 1
-    
+
     #node = str(node_num) + ".ipn.ltp"
     #file = str(node_num) + "_results.txt"
     #results = open(node + "/" + file, 'r').read()
@@ -1042,7 +1042,7 @@ def check_test_results(node_num, msg, te_lst, deliver_bundle=True):
 
     # Assemble bundle dictionaries based on test events
     for log in te_lst:
-        
+
         for te in log:
 
             if(te['status'] == STATUS_MISSING):
@@ -1053,7 +1053,7 @@ def check_test_results(node_num, msg, te_lst, deliver_bundle=True):
                 te['status'] = STATUS_UNEXPECT
                 passed = 0
                 output_line = "Unexpected test event: " + str(te['name']) + " for " + str(te['svc']) + " on target " + str(te['tgt'])
-            
+
             else:
                 output_line = str(te['name']) + " for " + str(te['svc']) + " on target " + str(te['tgt'])
 
@@ -1064,14 +1064,14 @@ def check_test_results(node_num, msg, te_lst, deliver_bundle=True):
             # to an existing bundle dictionary
             if bundle_id in bundle_output_dict:
                 bundle_output_dict[bundle_id] = bundle_output_dict[bundle_id] + "\n\t" + output_line
-            
+
             # Otherwise, add this bundle to the bundle dictionary
             else:
                 bundle_output_dict[bundle_id] = "\t" + output_line
 
     # Print the test events for each bundle
     for id, num in zip(bundle_dict, bundle_output_dict):
-        
+
         print("\nBundle " + str(num) + ": " + str(id))
         print("Received with the following test event(s) checked: ")
         print(bundle_output_dict[num])
@@ -1080,7 +1080,7 @@ def check_test_results(node_num, msg, te_lst, deliver_bundle=True):
 
     # Check the bundle delivery status
     for i in range(len(node_num)):
-        
+
         msg_success = find_bptrace_msg(node_num[i], msg[i], deliver_bundle)
 
         if msg_success == 0:
@@ -1090,7 +1090,7 @@ def check_test_results(node_num, msg, te_lst, deliver_bundle=True):
     if passed == 1:
         print("TEST PASSED")
         inc_passed_tests()
-    
+
     else:
         print("TEST FAILED")
         inc_failed_tests()
@@ -1120,7 +1120,7 @@ def parse_test_event(line):
     Precondition: [line] is a string from the ion.log file
     """
     keys = ['bsrc', 'bdest', 'svc', 'tgt', 'msec', 'count']
-    
+
     # Strip the test event identifier "[te] <security op event> - "
     new_line = line[line.find(' - ') + 3:]
 
@@ -1138,7 +1138,7 @@ def parse_test_event(line):
     # Extract the name of the test event separately as it is included in the test event
     # identifier "[te - <name>]"
     test_event_dict['name'] = line[line.rfind(']') + 1:line.rfind(' - '):].strip(' ')
-    
+
     return test_event_dict
 
 
@@ -1147,15 +1147,15 @@ def te_equal(expected_te, curr_te):
     [te_equal] compares an expected test event [expected_te] and an actual
     test event from the ion.log file [curr_te].
 
-    Precondition: [expected_te] and [curr_te] are dictionaries that represent 
-    test events. Parse a test event using the parse_test_event function to 
+    Precondition: [expected_te] and [curr_te] are dictionaries that represent
+    test events. Parse a test event using the parse_test_event function to
     create this dictionary.
     """
-    
+
     keys = ['name', 'bsrc', 'bdest', 'svc', 'tgt', 'msec', 'count']
 
     # If working with a security operation from the security source,
-    # do not compare the bundle identifiers 'msec' and 'count' 
+    # do not compare the bundle identifiers 'msec' and 'count'
     # as this is the first place they are populated.
     if 'src' in expected_te['name']:
         keys.remove('msec')
@@ -1177,7 +1177,7 @@ def get_test_events(curr_node, log_position):
     starting at [log_position], providing every test event that has been generated by running
     the current test case.
     """
-    # Open the ion log at the provided position to read all test events added by the 
+    # Open the ion log at the provided position to read all test events added by the
     # current test case
     node = str(curr_node) + ".ipn.ltp"
     log = open(node + "/ion.log", 'r+')
@@ -1198,20 +1198,20 @@ def get_test_events(curr_node, log_position):
             test_event['status'] = STATUS_UNCHECKED
 
             test_event_list.append(test_event)
-    
+
     return test_event_list
 
 
 def find_test_event(te_list, name, bsrc, bdest, svc, tgt, msec, count, find=True):
     """
     [find_test_event] examines the test events in te_list extracted from the local ion.log file
-    to locate the test event identified by the [name], [bsrc], [bdest], [svc], [tgt], [msec], 
-    and [count] fields. 
+    to locate the test event identified by the [name], [bsrc], [bdest], [svc], [tgt], [msec],
+    and [count] fields.
 
-    [find] indicates if the test event is expected to be found or not in the ion.log. 
+    [find] indicates if the test event is expected to be found or not in the ion.log.
     [find] defaults to true.
 
-    This function populates the 'status' field to the test event returned, providing one of the 
+    This function populates the 'status' field to the test event returned, providing one of the
     following statuses:
         STATUS_SUCCESS = 1  Test event found if expected, or not found if not expected
         STATUS_MISSING = 2  Test event not found but expected - failure indicator
@@ -1230,18 +1230,18 @@ def find_test_event(te_list, name, bsrc, bdest, svc, tgt, msec, count, find=True
         tgt: '0','1', '11' blocks that bib/bcb target (ie. payload bock, primary block)
         msec: None
         count: None, '0', '1'
-        curr_node: '2', '3', '4'  Number of the node in the bundle path 
+        curr_node: '2', '3', '4'  Number of the node in the bundle path
         log_position: position to start scanning in the ion.log file
     """
     expected_test_event = {'name': name, 'bsrc': bsrc, 'bdest': bdest, 'svc': svc,
                            'tgt': tgt, 'msec': msec, 'count': count}
 
-    # Check if the provided test event is present in the list of all known test events at the 
+    # Check if the provided test event is present in the list of all known test events at the
     # current node
     for te in te_list:
 
         if te_equal(expected_test_event, te):
-            
+
             # If this test event was expected to be found
             if find is True:
                 te['status'] = STATUS_SUCCESS

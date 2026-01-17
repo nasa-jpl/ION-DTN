@@ -203,21 +203,21 @@ int	main(int argc, char *argv[])
 	int		ipcsInUse;
 	HANDLE		hPipe = INVALID_HANDLE_VALUE;
 	int		ionRunning = 1;
- 	BOOL		fConnected = FALSE;
+	BOOL		fConnected = FALSE;
 	char		msg[1 + sizeof(DWORD)];
 	DWORD		bytesRead;
- 	BOOL		fSuccess = FALSE;
+	BOOL		fSuccess = FALSE;
 	DWORD		key;
 	char		reply[1];
 	DWORD		bytesWritten;
- 
+
 	hPipe = CreateNamedPipe("\\\\.\\pipe\\ion.pipe", PIPE_ACCESS_DUPLEX,
 			PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
 			1, sizeof reply, sizeof msg, 0, NULL);
-	if (hPipe == INVALID_HANDLE_VALUE) 
+	if (hPipe == INVALID_HANDLE_VALUE)
 	{
 		printf("winion failed creating pipe, error code %u.\n",
-				(unsigned int) GetLastError()); 
+				(unsigned int) GetLastError());
 		return 0;
 	}
 
@@ -226,11 +226,11 @@ int	main(int argc, char *argv[])
 	while (ionRunning)
 	{
 		fConnected = ConnectNamedPipe(hPipe, NULL) ? TRUE
-				: (GetLastError() == ERROR_PIPE_CONNECTED); 
-		if (!fConnected) 
+				: (GetLastError() == ERROR_PIPE_CONNECTED);
+		if (!fConnected)
 		{
 			printf("winion failed on connect, error code %u.\n",
-					(unsigned int) GetLastError()); 
+					(unsigned int) GetLastError());
 			break;
 		}
 
@@ -238,7 +238,7 @@ int	main(int argc, char *argv[])
 
 		fSuccess = ReadFile(hPipe, msg, sizeof msg, &bytesRead, NULL);
 		if (!fSuccess || bytesRead == 0)
-		{   
+		{
 			if (GetLastError() == ERROR_BROKEN_PIPE)
 			{
 				CloseHandle(hPipe);
@@ -246,7 +246,7 @@ int	main(int argc, char *argv[])
 			}
 
 			printf("winion failed reading msg, error code %u.\n",
-					(unsigned int) GetLastError()); 
+					(unsigned int) GetLastError());
 			break;
 		}
 
@@ -296,26 +296,26 @@ int	main(int argc, char *argv[])
 		}
 
 		/*	Tell the client to continue.			*/
- 
+
 		fSuccess = WriteFile(hPipe, reply, sizeof reply, &bytesWritten,
 				NULL);
 		if (!fSuccess || bytesWritten != sizeof reply)
 		{
 			printf("winion failed writing reply, error code %u.\n",
-					(unsigned int) GetLastError()); 
+					(unsigned int) GetLastError());
 			break;
 		}
 
 		/*	Now disconnect pipe so it can be reconnected.	*/
 
-		FlushFileBuffers(hPipe); 
-		DisconnectNamedPipe(hPipe); 
+		FlushFileBuffers(hPipe);
+		DisconnectNamedPipe(hPipe);
 	}
- 
+
 	/*	Disconnect pipe and terminate.				*/
 
-	FlushFileBuffers(hPipe); 
-	DisconnectNamedPipe(hPipe); 
+	FlushFileBuffers(hPipe);
+	DisconnectNamedPipe(hPipe);
 
 	/*	Termination of process closes all handles.		*/
 

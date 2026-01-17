@@ -14,7 +14,7 @@ static uaddr	_running(uaddr *newValue)
 {
 	void	*value;
 	uaddr	state;
-	
+
 	if (newValue)		/*	Changing state.			*/
 	{
 		value = (void *) (*newValue);
@@ -47,8 +47,8 @@ static int	updateAdus(Sdr sdr)
 	Object		aduObj;
 	Object		aggrObj;
 	OutAdu		adu;
-			OBJ_POINTER(OutAggregator, outAggr);
-			OBJ_POINTER(Profile, profile);
+	OBJ_POINTER(OutAggregator, outAggr);
+	OBJ_POINTER(Profile, profile);
 	CHKERR(sdr_begin_xn(sdr));
 	for (aggrElt = sdr_list_first(sdr, dtpcConstants->outAggregators);
 			aggrElt; aggrElt = sdr_list_next(sdr, aggrElt))
@@ -115,7 +115,7 @@ static int	handleEvents(Sdr sdr, time_t currentTime)
 	Object		elt;
 	Object		eventObj;
 	int		result;
-			OBJ_POINTER(DtpcEvent, event);
+	OBJ_POINTER(DtpcEvent, event);
 
 	while (1)
 	{
@@ -125,7 +125,7 @@ static int	handleEvents(Sdr sdr, time_t currentTime)
 		{
 			sdr_exit_xn(sdr);
 			return 0;
-		}	
+		}
 
 		eventObj = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, DtpcEvent, event, eventObj);

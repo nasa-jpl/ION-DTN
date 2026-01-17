@@ -417,8 +417,8 @@ Thread synchronization ensures safe access to shared tracking data and SDR opera
     --- ------------ ------- ------------- -------------------- ---------------
     1   TRANSMITTED  45      ipn:1.1       2024-01-15 14:30:25.123.1  CLEAR
     2   PENDING      12      ipn:1.1       2024-01-15 14:30:25.223.2  PLAN DUCT
-    3   SUSPENDED    8       ipn:1.1       2024-01-15 14:30:25.323.3  
-    
+    3   SUSPENDED    8       ipn:1.1       2024-01-15 14:30:25.323.3
+
     > suspend 2         # Suspend bundle 2 (if still local)
     > status            # Check current statistics
     > resume 2          # Resume bundle 2

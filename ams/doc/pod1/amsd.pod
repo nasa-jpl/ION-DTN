@@ -25,7 +25,7 @@ automatically computed as the default endpoint specification for the primary
 transport service as noted in the MIB: "I<hostname>:2357".
 
 If an AMS module is B<NOT> to be run in a background thread for this daemon
-(enabling shutdown by amsstop(1) and/or runtime MIB update by amsmib(1)), 
+(enabling shutdown by amsstop(1) and/or runtime MIB update by amsmib(1)),
 then either the last three command-line arguments must be omitted or else the
 "amsd" role must not be defined in the MIB loaded for this daemon.  Otherwise
 the I<application_name> and I<authority_name> arguments are required and

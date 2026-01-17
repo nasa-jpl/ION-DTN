@@ -32,7 +32,7 @@ static int openUdpSocket(int *sock)
 }
 
 int sendBytesByUDP(int *bundleSocket, char *from, int length,
-                struct sockaddr *socketName)
+		struct sockaddr *socketName)
 {
 	int bytesWritten;
 
@@ -40,7 +40,7 @@ int sendBytesByUDP(int *bundleSocket, char *from, int length,
 	while (1) /*	Continue until not interrupted.		*/
 	{
 		bytesWritten = isendto(*bundleSocket, from, length, 0,
-		                socketName, sizeof(struct sockaddr));
+				socketName, sizeof(struct sockaddr));
 		if (bytesWritten < 0)
 		{
 			switch (errno)
@@ -64,8 +64,8 @@ int sendBytesByUDP(int *bundleSocket, char *from, int length,
 }
 
 int sendBundleByUDP(struct sockaddr *socketName, int *bundleSocket,
-                unsigned int bundleLength, Object bundleZco,
-                unsigned char *buffer)
+		unsigned int bundleLength, Object bundleZco,
+		unsigned char *buffer)
 {
 	Sdr       sdr;
 	ZcoReader reader;
@@ -106,7 +106,7 @@ int sendBundleByUDP(struct sockaddr *socketName, int *bundleSocket,
 	}
 
 	bytesSent = sendBytesByUDP(bundleSocket, (char *) buffer, bytesToSend,
-	                socketName);
+			socketName);
 	if (bytesSent < 0)
 	{
 		if (bpHandleXmitFailure(bundleZco) < 0)
@@ -148,7 +148,7 @@ when connectivity is restored.");
 /*	*	*	Receiver functions	*	*	*	*/
 
 int receiveBytesByUDP(int bundleSocket, struct sockaddr_in *fromAddr,
-                char *into, int length)
+		char *into, int length)
 {
 	int       bytesRead;
 	socklen_t fromSize;
@@ -156,7 +156,7 @@ int receiveBytesByUDP(int bundleSocket, struct sockaddr_in *fromAddr,
 	CHKERR(fromAddr && length);
 	fromSize = sizeof(struct sockaddr_in);
 	bytesRead = irecvfrom(bundleSocket, into, length, 0,
-	                (struct sockaddr *) fromAddr, &fromSize);
+			(struct sockaddr *) fromAddr, &fromSize);
 	if (bytesRead < 0)
 	{
 		if (errno == EBADF) /*	Shutdown.		*/
@@ -177,7 +177,7 @@ int receiveBytesByUDP(int bundleSocket, struct sockaddr_in *fromAddr,
 
 /* Helper function for shutdown signal detection */
 static int isUdpClaShutdownSignal(UdpClaSocket *claSock,
-                const IonNetworkAddress        *from_addr)
+		const IonNetworkAddress        *from_addr)
 {
 	if (from_addr->family != claSock->local_addr.family)
 	{
@@ -187,22 +187,22 @@ static int isUdpClaShutdownSignal(UdpClaSocket *claSock,
 	if (from_addr->family == AF_INET)
 	{
 		const struct sockaddr_in *from4 =
-		                (const struct sockaddr_in *) &from_addr->addr;
+				(const struct sockaddr_in *) &from_addr->addr;
 		struct sockaddr_in *local4 =
-		                (struct sockaddr_in *) &claSock->local_addr.addr;
+				(struct sockaddr_in *) &claSock->local_addr.addr;
 
 		return (from4->sin_addr.s_addr == htonl(INADDR_LOOPBACK)
-		                && from4->sin_port == local4->sin_port);
+				&& from4->sin_port == local4->sin_port);
 	}
 	else if (from_addr->family == AF_INET6)
 	{
 		const struct sockaddr_in6 *from6 =
-		                (const struct sockaddr_in6 *) &from_addr->addr;
+				(const struct sockaddr_in6 *) &from_addr->addr;
 		struct sockaddr_in6 *local6 =
-		                (struct sockaddr_in6 *) &claSock->local_addr.addr;
+				(struct sockaddr_in6 *) &claSock->local_addr.addr;
 
 		return (IN6_IS_ADDR_LOOPBACK(&from6->sin6_addr)
-		                && from6->sin6_port == local6->sin6_port);
+				&& from6->sin6_port == local6->sin6_port);
 	}
 
 	return 0;
@@ -240,9 +240,9 @@ int initUdpClaSocket(const char *endpoint, UdpClaSocket *claSock)
 	/* Get actual bound address using getsockname() */
 	addr_len = sizeof(claSock->local_addr.addr);
 	if (getsockname(claSock->main_socket,
-	                    (struct sockaddr *) &claSock->local_addr.addr,
-	                    &addr_len)
-	                < 0)
+			(struct sockaddr *) &claSock->local_addr.addr,
+			&addr_len)
+			< 0)
 	{
 		closesocket(claSock->main_socket);
 		putSysErrmsg("Can't get socket name", NULL);
@@ -259,7 +259,7 @@ int initUdpClaSocket(const char *endpoint, UdpClaSocket *claSock)
 	if (bind_addr.family == AF_INET)
 	{
 		struct sockaddr_in *sin =
-		                (struct sockaddr_in *) &claSock->shutdown_target.addr;
+				(struct sockaddr_in *) &claSock->shutdown_target.addr;
 		if (sin->sin_addr.s_addr == INADDR_ANY)
 		{
 			sin->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
@@ -268,8 +268,8 @@ int initUdpClaSocket(const char *endpoint, UdpClaSocket *claSock)
 	else if (bind_addr.family == AF_INET6)
 	{
 		struct sockaddr_in6 *sin6 =
-		                (struct sockaddr_in6 *) &claSock
-		                                ->shutdown_target.addr;
+				(struct sockaddr_in6 *) &claSock
+						->shutdown_target.addr;
 		if (IN6_IS_ADDR_UNSPECIFIED(&sin6->sin6_addr))
 		{
 			sin6->sin6_addr = in6addr_loopback;
@@ -282,15 +282,15 @@ int initUdpClaSocket(const char *endpoint, UdpClaSocket *claSock)
 
 	char memo[256];
 	snprintf(memo, sizeof(memo), "UDP CLA socket bound to %s (%s)", addr_str,
-	                (claSock->local_addr.family == AF_INET6) ? "IPv6" :
-	                                                           "IPv4");
+			(claSock->local_addr.family == AF_INET6) ? "IPv6" :
+								   "IPv4");
 	writeMemo(memo);
 
 	return 0;
 }
 
 int receiveUdpClaDatagram(UdpClaSocket *claSock, char *buffer, size_t buffer_size,
-                IonNetworkAddress *from_addr, int *is_shutdown)
+		IonNetworkAddress *from_addr, int *is_shutdown)
 {
 	int bytes_received;
 
@@ -304,8 +304,8 @@ int receiveUdpClaDatagram(UdpClaSocket *claSock, char *buffer, size_t buffer_siz
 	/* Receive datagram - works automatically for IPv4 and IPv6 */
 	from_addr->addr_len = sizeof(from_addr->addr);
 	bytes_received = recvfrom(claSock->main_socket, buffer, buffer_size, 0,
-	                (struct sockaddr *) &from_addr->addr,
-	                &from_addr->addr_len);
+			(struct sockaddr *) &from_addr->addr,
+			&from_addr->addr_len);
 
 	if (bytes_received < 0)
 	{
@@ -359,7 +359,7 @@ int sendUdpClaShutdown(UdpClaSocket *claSock)
 	if (claSock->shutdown_socket < 0)
 	{
 		claSock->shutdown_socket = socket(claSock->local_addr.family,
-		                SOCK_DGRAM, IPPROTO_UDP);
+				SOCK_DGRAM, IPPROTO_UDP);
 		if (claSock->shutdown_socket < 0)
 		{
 			pthread_mutex_unlock(&claSock->shutdown_mutex);
@@ -370,8 +370,8 @@ int sendUdpClaShutdown(UdpClaSocket *claSock)
 
 	/* Send 1-byte shutdown signal */
 	bytes_sent = sendto(claSock->shutdown_socket, &shutdown_byte, 1, 0,
-	                (struct sockaddr *) &claSock->shutdown_target.addr,
-	                claSock->shutdown_target.addr_len);
+			(struct sockaddr *) &claSock->shutdown_target.addr,
+			claSock->shutdown_target.addr_len);
 
 	if (bytes_sent < 0)
 	{
@@ -384,11 +384,11 @@ int sendUdpClaShutdown(UdpClaSocket *claSock)
 
 	char target_str[INET6_ADDR_WITH_PORT_STRLEN];
 	formatNetworkAddress(&claSock->shutdown_target, target_str,
-	                sizeof(target_str));
+			sizeof(target_str));
 
 	char memo[256];
 	snprintf(memo, sizeof(memo), "Sent UDP CLA shutdown signal to %s",
-	                target_str);
+			target_str);
 	writeMemo(memo);
 
 	pthread_mutex_unlock(&claSock->shutdown_mutex);
@@ -419,8 +419,8 @@ void cleanupUdpClaSocket(UdpClaSocket *claSock)
 }
 
 int sendBundleByUDPDualStack(const IonNetworkAddress *destAddr,
-                int *bundleSocket, unsigned int bundleLength, Object bundleZco,
-                unsigned char *buffer)
+		int *bundleSocket, unsigned int bundleLength, Object bundleZco,
+		unsigned char *buffer)
 {
 	Sdr       sdr;
 	ZcoReader reader;
@@ -460,7 +460,7 @@ int sendBundleByUDPDualStack(const IonNetworkAddress *destAddr,
 
 	/* Send using dual-stack address - works for IPv4 and IPv6 */
 	bytesSent = sendto(*bundleSocket, (char *) buffer, bytesToSend, 0,
-	                (const struct sockaddr *) &destAddr->addr, destAddr->addr_len);
+			(const struct sockaddr *) &destAddr->addr, destAddr->addr_len);
 
 	if (bytesSent < 0)
 	{

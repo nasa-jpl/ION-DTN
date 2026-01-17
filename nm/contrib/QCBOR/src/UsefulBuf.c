@@ -350,4 +350,3 @@ const void * UsefulInputBuf_GetBytes(UsefulInputBuf *pMe, size_t uAmount)
    pMe->cursor += uAmount; // this will not overflow because of check using UsefulInputBuf_BytesAvailable()
    return result;
 }
-

@@ -8,10 +8,10 @@
  **
  ** Assumptions: TODO
  **
- ** Modification History: 
+ ** Modification History:
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2020-04-13  AUTO             Auto-generated c file 
+ **  2020-04-13  AUTO             Auto-generated c file
  **
  ****************************************************************************/
 
@@ -220,7 +220,7 @@ tnv_t *dtn_ltp_agent_get_span_cur_expt_sess(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.currentExportSessions);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_cur_expt_sess BODY
@@ -248,7 +248,7 @@ tnv_t *dtn_ltp_agent_get_span_cur_out_seg(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.currentOutboundSegments);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_cur_out_seg BODY
@@ -276,7 +276,7 @@ tnv_t *dtn_ltp_agent_get_span_cur_imp_sess(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.currentImportSessions);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_cur_imp_sess BODY
@@ -304,7 +304,7 @@ tnv_t *dtn_ltp_agent_get_span_cur_in_seg(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.currentInboundSegments);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_cur_in_seg BODY
@@ -332,7 +332,7 @@ tnv_t *dtn_ltp_agent_get_span_reset_time(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.lastResetTime);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_reset_time BODY
@@ -360,7 +360,7 @@ tnv_t *dtn_ltp_agent_get_span_out_seg_q_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.outputSegQueuedCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_out_seg_q_cnt BODY
@@ -388,7 +388,7 @@ tnv_t *dtn_ltp_agent_get_span_out_seg_q_bytes(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.outputSegQueuedBytes);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_out_seg_q_bytes BODY
@@ -416,7 +416,7 @@ tnv_t *dtn_ltp_agent_get_span_out_seg_pop_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.outputSegPoppedCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_out_seg_pop_cnt BODY
@@ -444,7 +444,7 @@ tnv_t *dtn_ltp_agent_get_span_out_seg_pop_bytes(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.outputSegPoppedBytes);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_out_seg_pop_bytes BODY
@@ -472,7 +472,7 @@ tnv_t *dtn_ltp_agent_get_span_out_ckpt_xmit_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.outputCkptXmitCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_out_ckpt_xmit_cnt BODY
@@ -500,7 +500,7 @@ tnv_t *dtn_ltp_agent_get_span_out_pos_ack_rx_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.outputPosAckRecvCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_out_pos_ack_rx_cnt BODY
@@ -528,7 +528,7 @@ tnv_t *dtn_ltp_agent_get_span_out_neg_ack_rx_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.outputNegAckRecvCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_out_neg_ack_rx_cnt BODY
@@ -556,7 +556,7 @@ tnv_t *dtn_ltp_agent_get_span_out_cancel_rx_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.outputCancelRecvCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_out_cancel_rx_cnt BODY
@@ -584,7 +584,7 @@ tnv_t *dtn_ltp_agent_get_span_out_ckpt_rexmit_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.outputCkptReXmitCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_out_ckpt_rexmit_cnt BODY
@@ -612,7 +612,7 @@ tnv_t *dtn_ltp_agent_get_span_out_cancel_xmit_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.outputCancelXmitCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_out_cancel_xmit_cnt BODY
@@ -640,7 +640,7 @@ tnv_t *dtn_ltp_agent_get_span_out_complete_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.outputCompleteCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_out_complete_cnt BODY
@@ -668,7 +668,7 @@ tnv_t *dtn_ltp_agent_get_span_in_seg_rx_red_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputSegRecvRedCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_seg_rx_red_cnt BODY
@@ -696,7 +696,7 @@ tnv_t *dtn_ltp_agent_get_span_in_seg_rx_red_bytes(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputSegRecvRedBytes);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_seg_rx_red_bytes BODY
@@ -724,7 +724,7 @@ tnv_t *dtn_ltp_agent_get_span_in_seg_rx_green_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputSegRecvGreenCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_seg_rx_green_cnt BODY
@@ -752,7 +752,7 @@ tnv_t *dtn_ltp_agent_get_span_in_seg_rx_green_bytes(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputSegRecvGreenBytes);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_seg_rx_green_bytes BODY
@@ -780,7 +780,7 @@ tnv_t *dtn_ltp_agent_get_span_in_seg_rx_redundant_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputSegRedundantCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_seg_rx_redundant_cnt BODY
@@ -808,7 +808,7 @@ tnv_t *dtn_ltp_agent_get_span_in_seg_rx_redundant_bytes(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputSegRedundantBytes);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_seg_rx_redundant_bytes BODY
@@ -836,7 +836,7 @@ tnv_t *dtn_ltp_agent_get_span_in_seg_rx_mal_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputSegMalformedCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_seg_rx_mal_cnt BODY
@@ -864,7 +864,7 @@ tnv_t *dtn_ltp_agent_get_span_in_seg_rx_mal_bytes(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputSegMalformedBytes);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_seg_rx_mal_bytes BODY
@@ -892,7 +892,7 @@ tnv_t *dtn_ltp_agent_get_span_in_seg_rx_unk_sender_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputSegUnkSenderCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_seg_rx_unk_sender_cnt BODY
@@ -920,7 +920,7 @@ tnv_t *dtn_ltp_agent_get_span_in_seg_rx_unk_sender_bytes(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputSegUnkSenderBytes);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_seg_rx_unk_sender_bytes BODY
@@ -948,7 +948,7 @@ tnv_t *dtn_ltp_agent_get_span_in_seg_rx_unk_client_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputSegUnkClientCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_seg_rx_unk_client_cnt BODY
@@ -976,7 +976,7 @@ tnv_t *dtn_ltp_agent_get_span_in_seg_rx_unk_client_bytes(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputSegUnkClientBytes);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_seg_rx_unk_client_bytes BODY
@@ -1004,7 +1004,7 @@ tnv_t *dtn_ltp_agent_get_span_in_seg_stray_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputSegStrayCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_seg_stray_cnt BODY
@@ -1032,7 +1032,7 @@ tnv_t *dtn_ltp_agent_get_span_in_seg_stray_bytes(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputSegStrayBytes);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_seg_stray_bytes BODY
@@ -1060,7 +1060,7 @@ tnv_t *dtn_ltp_agent_get_span_in_seg_miscolor_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputSegMiscolorCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_seg_miscolor_cnt BODY
@@ -1088,7 +1088,7 @@ tnv_t *dtn_ltp_agent_get_span_in_seg_miscolor_bytes(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputSegMiscolorBytes);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_seg_miscolor_bytes BODY
@@ -1116,7 +1116,7 @@ tnv_t *dtn_ltp_agent_get_span_in_seg_closed_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputSegClosedCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_seg_closed_cnt BODY
@@ -1144,7 +1144,7 @@ tnv_t *dtn_ltp_agent_get_span_in_seg_closed_bytes(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputSegClosedBytes);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_seg_closed_bytes BODY
@@ -1172,7 +1172,7 @@ tnv_t *dtn_ltp_agent_get_span_in_ckpt_rx_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputCkptRecvCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_ckpt_rx_cnt BODY
@@ -1200,7 +1200,7 @@ tnv_t *dtn_ltp_agent_get_span_in_pos_ack_tx_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputPosAckXmitCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_pos_ack_tx_cnt BODY
@@ -1228,7 +1228,7 @@ tnv_t *dtn_ltp_agent_get_span_in_neg_ack_tx_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputNegAckXmitCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_neg_ack_tx_cnt BODY
@@ -1256,7 +1256,7 @@ tnv_t *dtn_ltp_agent_get_span_in_cancel_tx_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputCancelXmitCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_cancel_tx_cnt BODY
@@ -1284,7 +1284,7 @@ tnv_t *dtn_ltp_agent_get_span_in_ack_retx_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputAckReXmitCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_ack_retx_cnt BODY
@@ -1312,7 +1312,7 @@ tnv_t *dtn_ltp_agent_get_span_in_cancel_rx_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputCancelRecvCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_cancel_rx_cnt BODY
@@ -1340,7 +1340,7 @@ tnv_t *dtn_ltp_agent_get_span_in_complete_cnt(tnvc_t *parms)
 	{
 		result = tnv_from_uint(stats.inputCompleteCount);
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_span_in_complete_cnt BODY
@@ -1382,7 +1382,7 @@ tnv_t *dtn_ltp_agent_ctrl_reset(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 		}
 	}
 
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_reset BODY

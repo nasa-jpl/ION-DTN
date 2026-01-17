@@ -162,19 +162,19 @@ KILLPROCESSLIST=(
 # From Makefile
 check_PROGRAMS=(
     tests/1000.loopback/.libs/dotest
-	tests/1500.loopback-brs/.libs/dotest
-	tests/issue-260-teach-valgrind-mtake/.libs/domtake
-	tests/issue-188-common-cos-syntax/.libs/dotest
-	tests/bug-0015-tcpclo-bpcp-sig-handling/.libs/test
-	tests/issue-330-cfdpclock-FDU-removal/.libs/cfdplisten
-	tests/issue-334-cfdp-transaction-id/.libs/dotest
-	tests/nm-unit/.libs/dotest
-	tests/nm-unit/utils/vector/.libs/dotest
-	tests/nm-unit/utils/rhht/.libs/dotest
-	tests/nm-unit/utils/radix_pt/.libs/dotest
-	tests/nm-unit/utils/radix_ut/.libs/dotest
-	tests/sm_subsystem/.libs/dotest
-) 
+    tests/1500.loopback-brs/.libs/dotest
+    tests/issue-260-teach-valgrind-mtake/.libs/domtake
+    tests/issue-188-common-cos-syntax/.libs/dotest
+    tests/bug-0015-tcpclo-bpcp-sig-handling/.libs/test
+    tests/issue-330-cfdpclock-FDU-removal/.libs/cfdplisten
+    tests/issue-334-cfdp-transaction-id/.libs/dotest
+    tests/nm-unit/.libs/dotest
+    tests/nm-unit/utils/vector/.libs/dotest
+    tests/nm-unit/utils/rhht/.libs/dotest
+    tests/nm-unit/utils/radix_pt/.libs/dotest
+    tests/nm-unit/utils/radix_ut/.libs/dotest
+    tests/sm_subsystem/.libs/dotest
+)
 
 
 # Iterate through KILLPROCESSLIST

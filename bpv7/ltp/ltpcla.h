@@ -1,5 +1,5 @@
 /*
- 	ltpcla.h:	common definitions for LTP convergence layer
+	ltpcla.h:	common definitions for LTP convergence layer
 			adapter modules.
 
 	Author: Chris Krupiarz, APL
@@ -11,7 +11,7 @@
 	Copyright (c) 2007, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
- 									*/
+									*/
 
 #ifndef LTPCLA_H
 #define LTPCLA_H

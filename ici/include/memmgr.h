@@ -17,12 +17,12 @@
 extern "C" {
 #endif
 
-typedef void		*(* MemAllocator)(const char *fileName, int lineNbr,
+typedef void		*(*MemAllocator)(const char *fileName, int lineNbr,
 				size_t size);
-typedef void		(* MemDeallocator)(const char *fileName, int lineNbr,
-				void * block);
-typedef void    	*(* MemAtoPConverter)(uaddr address);
-typedef uaddr		(* MemPtoAConverter)(void * pointer);
+typedef void		(*MemDeallocator)(const char *fileName, int lineNbr,
+				void *block);
+typedef void    	*(*MemAtoPConverter)(uaddr address);
+typedef uaddr		(*MemPtoAConverter)(void *pointer);
 
 /*	NOTE: memmgr_add is NOT thread-safe.  In a multithreaded
 	execution image (e.g., VxWorks), all memory managers must be

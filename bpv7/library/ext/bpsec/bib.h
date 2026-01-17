@@ -99,11 +99,11 @@
  * 2: Information logging.  Information statements are peppered through the
  *    code to provide insight into the state of the module at processing
  *    points considered useful by bpsec module software engineers.
- * 3: Warning logging.  Warning statements are used to flag unexpected 
+ * 3: Warning logging.  Warning statements are used to flag unexpected
  *    values that, based on context, may not constitute errors.
  * 4: Error logging.  Errors are areas in the code where some sanity check
- *    or other required condition fails to be met by the software. 
- * 
+ *    or other required condition fails to be met by the software.
+ *
  * Error logging within the BIB module is of the form:
  * <id> <function name>: <message>
  * Where id is one of:
@@ -112,7 +112,7 @@
  * i (information statement)
  * ? (warning statement)
  * x (error statement)
- * 
+ *
  * Debugging can be turned off at compile time by removing the
  * BIB_DEBUGGING #define.
  */
@@ -126,17 +126,17 @@
 		putErrmsg(gMsg, NULL);                                         \
 	}
 
-   #define BIB_DEBUG_PROC(format,...) \
-           BIB_DEBUG(BIB_DEBUG_LVL_PROC, ">", format, __VA_ARGS__)
+#define BIB_DEBUG_PROC(format, ...) \
+	BIB_DEBUG(BIB_DEBUG_LVL_PROC, ">", format, __VA_ARGS__)
 
-   #define BIB_DEBUG_INFO(format,...) \
-           BIB_DEBUG(BIB_DEBUG_LVL_INFO, "i", format, __VA_ARGS__)
+#define BIB_DEBUG_INFO(format, ...) \
+	BIB_DEBUG(BIB_DEBUG_LVL_INFO, "i", format, __VA_ARGS__)
 
-   #define BIB_DEBUG_WARN(format,...) \
-           BIB_DEBUG(BIB_DEBUG_LVL_WARN, "w", format, __VA_ARGS__)
+#define BIB_DEBUG_WARN(format, ...) \
+	BIB_DEBUG(BIB_DEBUG_LVL_WARN, "w", format, __VA_ARGS__)
 
-   #define BIB_DEBUG_ERR(format,...) \
-           BIB_DEBUG(BPSEC_DEBUG_LVL_ERR,  "e", format, __VA_ARGS__)
+#define BIB_DEBUG_ERR(format, ...) \
+	BIB_DEBUG(BPSEC_DEBUG_LVL_ERR, "e", format, __VA_ARGS__)
 
 #else
 #define BIB_DEBUG(level, format, ...) \
@@ -144,17 +144,17 @@
 	{                             \
 	}
 
-   #define BIB_DEBUG_PROC(format,...) \
-           BIB_DEBUG(BIB_DEBUG_LVL_PROC,format, __VA_ARGS__)
+#define BIB_DEBUG_PROC(format, ...) \
+	BIB_DEBUG(BIB_DEBUG_LVL_PROC, format, __VA_ARGS__)
 
-   #define BIB_DEBUG_INFO(format,...) \
-           BIB_DEBUG(BIB_DEBUG_LVL_INFO,format, __VA_ARGS__)
+#define BIB_DEBUG_INFO(format, ...) \
+	BIB_DEBUG(BIB_DEBUG_LVL_INFO, format, __VA_ARGS__)
 
-   #define BIB_DEBUG_WARN(format,...) \
-           BIB_DEBUG(BIB_DEBUG_LVL_WARN,format, __VA_ARGS__)
+#define BIB_DEBUG_WARN(format, ...) \
+	BIB_DEBUG(BIB_DEBUG_LVL_WARN, format, __VA_ARGS__)
 
-   #define BIB_DEBUG_ERR(format,...) \
-           BIB_DEBUG(BIB_DEBUG_LVL_ERR,format, __VA_ARGS__)
+#define BIB_DEBUG_ERR(format, ...) \
+	BIB_DEBUG(BIB_DEBUG_LVL_ERR, format, __VA_ARGS__)
 #endif
 
 /**

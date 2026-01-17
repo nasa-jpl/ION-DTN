@@ -73,9 +73,9 @@ msg_agent_t *msg_agent_deserialize(blob_t *data, int *success)
 	CHKNULL(result);
 
 	QCBORDecode_Init(&decoder,
-					 (UsefulBufC){data->value,data->length},
-					 QCBOR_DECODE_MODE_NORMAL);
-	
+			(UsefulBufC){data->value,data->length},
+			QCBOR_DECODE_MODE_NORMAL);
+
 	/* Step 1: Grab the header. */
 	result->hdr = msg_hdr_deserialize(&decoder, success);
 	if(*success != AMP_OK)
@@ -94,7 +94,7 @@ msg_agent_t *msg_agent_deserialize(blob_t *data, int *success)
 		msg_agent_release(result, 1);
 		return NULL;
 	}
-		
+
 	// Verify Decoding Completed Successfully
 	cut_decode_finish(&decoder);
 
@@ -103,14 +103,14 @@ msg_agent_t *msg_agent_deserialize(blob_t *data, int *success)
 
 	if (len >= AMP_MAX_EID_LEN)
 	{
-	   AMP_DEBUG_WARN("msg_agent_deserialize", "String length (%d) greater than AMP_MAX_EID_LEN, truncating", len);
-	   len = AMP_MAX_EID_LEN - 1;
+		AMP_DEBUG_WARN("msg_agent_deserialize", "String length (%d) greater than AMP_MAX_EID_LEN, truncating", len);
+		len = AMP_MAX_EID_LEN - 1;
 	}
 	memcpy(tmp.name, item.val.string.ptr, len);
 	tmp.name[len] = 0; // Ensure it's NULL-terminated
 
-	msg_agent_set_agent(result, tmp);	 
-	
+	msg_agent_set_agent(result, tmp);
+
 	return result;
 }
 
@@ -198,8 +198,8 @@ msg_ctrl_t* msg_ctrl_deserialize(blob_t *data, int *success)
 	CHKNULL(result);
 
 	QCBORDecode_Init(&decoder,
-					 (UsefulBufC){data->value,data->length},
-					 QCBOR_DECODE_MODE_NORMAL);
+			(UsefulBufC){data->value,data->length},
+			QCBOR_DECODE_MODE_NORMAL);
 
 	/* Step 1: Grab the header. */
 	result->hdr = msg_hdr_deserialize(&decoder, success);
@@ -248,7 +248,7 @@ int msg_ctrl_serialize(QCBOREncodeContext *encoder, void *item)
 {
 	msg_ctrl_t *msg = (msg_ctrl_t*) item;
 
- 	if( msg_hdr_serialize(encoder, msg->hdr) != AMP_OK)
+	if( msg_hdr_serialize(encoder, msg->hdr) != AMP_OK)
 	{
 		return AMP_FAIL;
 	}
@@ -316,7 +316,7 @@ msg_rpt_t* msg_rpt_create(char *rx_name)
 		}
 		memcpy(name_copy, rx_name, len );
 		name_copy[len] = 0; // Ensure null-termination
-		
+
 		if(vec_push(&(result->rx), name_copy) != VEC_OK)
 		{
 			vec_release(&(result->rx), 0);
@@ -351,8 +351,8 @@ msg_rpt_t *msg_rpt_deserialize(blob_t *data, int *success)
 	CHKNULL(result);
 
 	QCBORDecode_Init(&it,
-					 (UsefulBufC){data->value,data->length},
-					 QCBOR_DECODE_MODE_NORMAL);
+			(UsefulBufC){data->value,data->length},
+			QCBOR_DECODE_MODE_NORMAL);
 
 	/* Step 1: Grab the header. */
 	result->hdr = msg_hdr_deserialize(&it, success);
@@ -380,7 +380,7 @@ msg_rpt_t *msg_rpt_deserialize(blob_t *data, int *success)
 
 	// Verify Decoding Completed Successfully
 	cut_decode_finish(&it);
-	
+
 	return result;
 }
 
@@ -440,7 +440,7 @@ int msg_tbl_add_tbl(msg_tbl_t *msg, tbl_t *tbl)
 		return AMP_FAIL;
 	}
 
-	return AMP_OK;	
+	return AMP_OK;
 }
 
 void msg_tbl_cb_del_fn(void *item)
@@ -508,8 +508,8 @@ msg_tbl_t *msg_tbl_deserialize(blob_t *data, int *success)
 	CHKNULL(result);
 
 	QCBORDecode_Init(&it,
-					 (UsefulBufC){data->value,data->length},
-					 QCBOR_DECODE_MODE_NORMAL);
+			(UsefulBufC){data->value,data->length},
+			QCBOR_DECODE_MODE_NORMAL);
 
 	/* Step 1: Grab the header. */
 	result->hdr = msg_hdr_deserialize(&it, success);
@@ -537,7 +537,7 @@ msg_tbl_t *msg_tbl_deserialize(blob_t *data, int *success)
 
 	// Verify Decoding Completed Successfully
 	cut_decode_finish(&it);
-	
+
 	return result;
 }
 
@@ -603,7 +603,7 @@ int msg_grp_add_msg(msg_grp_t *grp, blob_t *msg, uint8_t type)
 	CHKUSR(msg, AMP_FAIL);
 
 	if( (blob_append(&(grp->types), &type, 1) != AMP_OK) ||
-        (vec_push(&(grp->msgs), msg) == VEC_OK))
+			(vec_push(&(grp->msgs), msg) == VEC_OK))
 	{
 		return AMP_OK;
 	}
@@ -717,21 +717,21 @@ msg_grp_t* msg_grp_deserialize(blob_t *data, int *success)
 	CHKNULL(data);
 
 	QCBORDecode_Init(&decoder,
-					 (UsefulBufC){data->value,data->length},
-					 QCBOR_DECODE_MODE_NORMAL);
+			(UsefulBufC){data->value,data->length},
+			QCBOR_DECODE_MODE_NORMAL);
 
 	/* Step 1: are we at an array? */
 	err = QCBORDecode_GetNext(&decoder, &item);
 	if (err != QCBOR_SUCCESS || item.uDataType != QCBOR_TYPE_ARRAY || item.val.uCount == 0)
 	{
-	   AMP_DEBUG_ERR("msg_grp_deserialize",
-					 "First item not a valid array: err %d type %d cnt %d",
-					 err, item.uDataType, item.val.uCount);
+		AMP_DEBUG_ERR("msg_grp_deserialize",
+				"First item not a valid array: err %d type %d cnt %d",
+				err, item.uDataType, item.val.uCount);
 		return NULL;
 	}
 
 	length = item.val.uCount;
-	   
+
 	// first element of the array is the timestamp.
 	result = msg_grp_create(length-1);
 	CHKNULL(result);
@@ -826,5 +826,3 @@ blob_t *msg_grp_serialize_wrapper(msg_grp_t *msg_grp)
 {
 	return cut_serialize_wrapper(MSG_DEFAULT_ENC_SIZE, msg_grp, (cut_enc_fn)msg_grp_serialize);
 }
-
-

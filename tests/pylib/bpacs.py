@@ -5,7 +5,7 @@
 #				University of Colorado at Boulder
 #	Copyright (c) 2008-2011, Regents of the University of Colorado.
 #	This work was supported by NASA contracts NNJ05HE10G, NNC06CB40C, and
-#	NNC07CB47C.			
+#	NNC07CB47C.
 
 import pdb
 from sdnv import sdnv_encode, sdnv_decode
@@ -55,21 +55,21 @@ class BpAcs:
             self.succeeded = kwargs["succeeded"]
         if kwargs.has_key("reason"):
             self.reason = kwargs["reason"]
-                
-    
+
+
     def add(self, custodyId):
         """Adds a custodyId to the set of custodyIds that this ACS covers.
         """
         fillsAsBlocks = lengthBlocksToBlocks(self.fills)
         fillsAsBlocks = mergeBlocks(fillsAsBlocks + [(custodyId, custodyId)])
         self.fills = blocksToLengthBlocks(fillsAsBlocks)
-    
+
     def __repr__(self):
         """Prints a friendly representation of the bundles this ACS covers, like:
              SACK: #0 1(3) +9(2)
-           (Reporting custody acceptance of bundles with custody IDs 
+           (Reporting custody acceptance of bundles with custody IDs
             1, 2, 3, 12 and 13.)
-        """   
+        """
         toReturn = ""
         if self.succeeded == 1:
             toReturn += "SACK:"
@@ -84,7 +84,7 @@ class BpAcs:
             else:
                 toReturn += " +%d(%d)" % (start, length)
         return toReturn
-   
+
     def serialize(self):
         """Serializes this ACS into a string of bytes that constitute the payload
            of an aggregate custody signal.  This serialization does not include the
@@ -96,13 +96,13 @@ class BpAcs:
 
         # Encode status byte
         toReturn += struct.pack('!B', 128*self.succeeded)
-        
+
         # Encode the array of fills.
         for (start, length) in self.fills:
             toReturn += sdnv_encode(start)
             toReturn += sdnv_encode(length)
         return toReturn
-    
+
     def __cmp__(self, other):
         try:
             if  self.succeeded == other.succeeded and \
@@ -121,18 +121,18 @@ def unserialize_acs(acs_string):
        block, or the payload block header).
     """
     toReturn = BpAcs()
-    
+
     (adminrecordheader, status, ) = struct.unpack("!BB", acs_string[0:2])
     acs_string = acs_string[2:]
-    
+
     # Parse the administrative record header byte.
     if (adminrecordheader & 0xF0) != 0x40:
         # Not an aggregate custody signal.
         return None
     if (adminrecordheader & 0x0F) != 0x00:
-        print "Administrative record flags are %x, not 0x00" % (adminrecordheader & 0x0F) 
+        print "Administrative record flags are %x, not 0x00" % (adminrecordheader & 0x0F)
         raise TypeError
-    
+
     # Parse the status byte
     if (status & 0x80) == 0:
         toReturn.succeeded = 0
@@ -140,7 +140,7 @@ def unserialize_acs(acs_string):
         toReturn.succeeded = 1
     if status & 0x7F:
         toReturn.reason = status & 0x7F
-    
+
     # Parse the fills
     lengthBlocks = []
     while acs_string != "":
@@ -158,7 +158,7 @@ dtntime = lambda x: timegm(strptime(x, "%m/%d/%Y %H:%M:%S")) - DTNEPOCH
 
 if __name__ == '__main__':
     acs = BpAcs()
-    
+
     # Check serialization
     acs_one = BpAcs(0)
     acs_one.add(1)
@@ -167,15 +167,15 @@ if __name__ == '__main__':
     acs_one.add(8)
     acs_one.add(9)
     acs_one.add(15)
-    
+
     assert repr(acs_one) == "SACK: 0(2) +2(1) +4(3) +6(1)"
     assert acs_one.serialize() == "\x40\x80\x00\x02\x02\x01\x04\x03\x06\x01"
-    
+
     acs_two = BpAcs(0, succeeded = 0)
     acs_two.add(3)
     assert repr(acs_two) == "SNACK: 0(1) +3(1)"
     assert acs_two.serialize() == "\x40\x00\x00\x01\x03\x01"
-    
+
     # Check unserialization
     assert acs_two == unserialize_acs(acs_two.serialize())
     assert acs_one == unserialize_acs(acs_one.serialize())
@@ -185,7 +185,7 @@ if __name__ == '__main__':
     acs_one.add(2)
     assert acs_one.serialize() == "\x40\x80\x00\x04\x04\x03\x06\x01"
     assert acs_one == unserialize_acs(acs_one.serialize())
-    
+
     # Check comparison
     assert acs_one != acs_two
     assert acs_one == acs_one

@@ -199,7 +199,7 @@ int ldc_fill_rpt(rpttpl_t *rpttpl, rpt_t *rpt)
 	int success;
 
 	AMP_DEBUG_ENTRY("ldc_fill_rpt","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
-			          (uaddr) rpttpl, (uaddr) rpt);
+			(uaddr) rpttpl, (uaddr) rpt);
 
 	CHKUSR(rpttpl, AMP_FAIL);
 	CHKUSR(rpt, AMP_FAIL);
@@ -260,14 +260,13 @@ int ldc_fill_rpt(rpttpl_t *rpttpl, rpt_t *rpt)
 	}
 
 
-    /* Step 4: If there was an error, roll back. */
-    if(success != AMP_OK)
-    {
-    	tnvc_clear(rpt->entries);
-    }
+	/* Step 4: If there was an error, roll back. */
+	if(success != AMP_OK)
+	{
+		tnvc_clear(rpt->entries);
+	}
 
 	nesting--;
 
 	return success;
 }
-

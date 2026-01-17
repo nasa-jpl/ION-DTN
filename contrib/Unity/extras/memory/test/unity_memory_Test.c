@@ -35,8 +35,8 @@ void setUp(void);
 void tearDown(void);
 
 /* Let's Go! */
-void setUp(void) 
-{ 
+void setUp(void)
+{
 #ifdef UNITY_EXCLUDE_STDLIB_MALLOC
     UnityOutputCharSpy_Create(200);
 #else
@@ -45,8 +45,8 @@ void setUp(void)
     UnityMalloc_StartTest();
 }
 
-void tearDown(void) 
-{ 
+void tearDown(void)
+{
     UnityMalloc_EndTest();
     UnityOutputCharSpy_Destroy();
 }
@@ -157,7 +157,7 @@ void test_FreeNULLSafety(void)
   #define USING_OUTPUT_SPY
 #endif
 #undef UnityOutputCharSpy_OutputChar
-  
+
 #endif /* __STDC_VERSION__ */
 
 void test_DetectsLeak(void)

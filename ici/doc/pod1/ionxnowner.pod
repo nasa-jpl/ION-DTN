@@ -9,7 +9,7 @@ B<ionxnowner> [I<interval> [I<count> [I<echo>]]]
 =head1 DESCRIPTION
 
 For I<count> interations (defaulting to 1), B<ionxnowner> prints the
-process ID and thread ID of the thread that currently "owns" the 
+process ID and thread ID of the thread that currently "owns" the
 local node's SDR data store (i.e., started the current transaction), then
 sleeps I<interval> seconds (minimum 1).  If the optional I<echo> parameter
 is set to 1, then the transaction owner message is logged as well as

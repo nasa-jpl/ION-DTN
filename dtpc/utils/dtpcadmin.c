@@ -80,25 +80,25 @@ static void     printUsage(void)
 	PUTS("\t1\tInitialize");
 	PUTS("\t   1");
 	PUTS("\ta\tAdd");
-        PUTS("\t   a profile <profileID> <maxRtx> <aggrSizeLimit> \
+	PUTS("\t   a profile <profileID> <maxRtx> <aggrSizeLimit> \
 <aggrTimeLimit> <ttl> <custody>.<priority>[.<ordinal>\
 [.<unreliable>.<critical>[.<flow_label>]]] <report-to-endpoint> \
 [<status_report_flags>]");
-	
+
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} profile <profileID>");
 	PUTS("\tl\tList");
 	PUTS("\t   l profile");
 	PUTS("\ts\tStart");
-        PUTS("\tx\tStop");
+	PUTS("\tx\tStop");
 	PUTS("\t   w { 0 | 1 | <activity spec> }");
-        PUTS("\t\tActivity spec is a string of all requested activity \
+	PUTS("\t\tActivity spec is a string of all requested activity \
 indication characters, e.g., pq.  See man(5) for dtpcrc.");
-        PUTS("\te\tEnable or disable echo of printed output to log file");
-        PUTS("\t   e { 0 | 1 }");
-        PUTS("\t#\tComment");
-        PUTS("\t   # <comment text>");
+	PUTS("\te\tEnable or disable echo of printed output to log file");
+	PUTS("\t   e { 0 | 1 }");
+	PUTS("\t#\tComment");
+	PUTS("\t   # <comment text>");
 }
 
 static void	initializeDtpc(int tokenCount, char **tokens)
@@ -134,9 +134,9 @@ static void	printProfile(Profile *vprofile)
 	Sdr	sdr = getIonsdr();
 	char	buffer[256];
 	char	sdrBuf[SDRSTRING_BUFSZ];
-	
+
 	sdr_string_read(sdr, sdrBuf, vprofile->reportToEid);
-	
+
 	isprintf(buffer, sizeof buffer, "profileID: %u maxRtx: %u lifespan: %u",
 			vprofile->profileID, vprofile->maxRtx,
 			vprofile->lifespan);
@@ -148,7 +148,7 @@ static void	printProfile(Profile *vprofile)
 	isprintf(buffer, sizeof buffer, "reportToEid: %s", sdrBuf);
 	printText(buffer);
 	isprintf(buffer, sizeof buffer, "Ordinal: %d Unreliable: %d  Critical: \
-%d", vprofile->ancillaryData.ordinal, 
+%d", vprofile->ancillaryData.ordinal,
 		vprofile->ancillaryData.flags & BP_BEST_EFFORT ? 1 : 0,
 		vprofile->ancillaryData.flags & BP_MINIMUM_LATENCY ? 1 : 0);
 	printText(buffer);
@@ -175,7 +175,7 @@ static void	infoProfile(int tokenCount, char **tokens)
 		SYNTAX_ERROR;
 		return;
 	}
-	
+
 	profileID = atoi(tokens[2]);
 	for (elt = sm_list_first(wm, vdb->profiles); elt;
 			elt = sm_list_next(wm, elt))
@@ -218,9 +218,9 @@ static void	executeAdd(int tokenCount, char **tokens)
 				strtol(tokens[5], NULL, 0),
 				strtol(tokens[6], NULL, 0),
 				tokens[7], tokens[8], tokens[9]));
-		return; 
+		return;
 	}
-	
+
 	SYNTAX_ERROR;
 }
 
@@ -243,9 +243,9 @@ static void	executeDelete(int tokenCount, char **tokens)
 		oK(removeProfile(strtol(tokens[2], NULL, 0)));
 		return;
 	}
-	
+
 	SYNTAX_ERROR;
-}	
+}
 
 static void	executeInfo(int tokenCount, char **tokens)
 {
@@ -277,7 +277,7 @@ static void	listProfiles(int tokenCount, char **tokens)
 	{
 		SYNTAX_ERROR;
 		return;
-	}	
+	}
 
 	for (elt = sm_list_first(wm, (getDtpcVdb())->profiles); elt;
 			elt = sm_list_next(wm, elt))
@@ -298,7 +298,7 @@ static void	executeList(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "profile") == 0)
 	{
 		listProfiles(tokenCount, tokens);
-		return; 
+		return;
 	}
 
 	SYNTAX_ERROR;
@@ -368,7 +368,7 @@ static void	switchWatch(int tokenCount, char **tokens)
 		case 'i':
 			vdb->watching |= WATCH_i;
 			break;
-		
+
 		case 'u':
 			vdb->watching |= WATCH_u;
 			break;
@@ -404,7 +404,7 @@ static void 	switchEcho(int tokenCount, char **tokens)
 	int     state;
 
 	if (tokenCount < 2)
-        {
+	{
 		printText("Echo on or off?");
 		return;
 	}
@@ -547,7 +547,7 @@ command.");
 				{
 					snooze(1);
 					getCurrentTime(&cur_time);
-					if (cur_time.tv_sec >= done_time.tv_sec 
+					if (cur_time.tv_sec >= done_time.tv_sec
 					&& cur_time.tv_usec >=
 							done_time.tv_usec)
 					{
@@ -684,7 +684,7 @@ int	main(int argc, char **argv)
 #ifdef INPUT_HISTORY
 	char *input;
 #endif
-	
+
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
 #ifdef NON_INTERACTIVE
@@ -760,7 +760,7 @@ the program.");
 				putErrmsg("igets failed.", NULL);
 				break;		/*	Out of loop.	*/
 			}
-			
+
 			if (len == 0)
 			{
 				continue;

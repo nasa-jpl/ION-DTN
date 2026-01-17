@@ -183,7 +183,7 @@ int *reed_sol_extended_vandermonde_matrix(int rows, int cols, int w)
 
   vdm = talloc(int, rows*cols);
   if (vdm == NULL) { return NULL; }
-  
+
   vdm[0] = 1;
   for (j = 1; j < cols; j++) vdm[j] = 0;
   if (rows == 1) return vdm;
@@ -210,7 +210,7 @@ int *reed_sol_big_vandermonde_distribution_matrix(int rows, int cols, int w)
   int sindex, srindex, siindex, tmp;
 
   if (cols >= rows) return NULL;
-  
+
   dist = reed_sol_extended_vandermonde_matrix(rows, cols, w);
   if (dist == NULL) return NULL;
 
@@ -222,11 +222,11 @@ int *reed_sol_big_vandermonde_distribution_matrix(int rows, int cols, int w)
     srindex = sindex+i;
     for (j = i; j < rows && dist[srindex] == 0; j++) srindex += cols;
     if (j >= rows) {   /* This should never happen if rows/w are correct */
-      fprintf(stderr, "reed_sol_big_vandermonde_distribution_matrix(%d,%d,%d) - couldn't make matrix\n", 
+      fprintf(stderr, "reed_sol_big_vandermonde_distribution_matrix(%d,%d,%d) - couldn't make matrix\n",
              rows, cols, w);
       assert(0);
     }
- 
+
     /* If necessary, swap rows */
     if (j != i) {
       srindex -= i;
@@ -236,7 +236,7 @@ int *reed_sol_big_vandermonde_distribution_matrix(int rows, int cols, int w)
         dist[sindex+k] = tmp;
       }
     }
-  
+
     /* If Element i,i is not equal to 1, multiply the column by 1/i */
 
     if (dist[sindex+i] != 1) {
@@ -247,10 +247,10 @@ int *reed_sol_big_vandermonde_distribution_matrix(int rows, int cols, int w)
         srindex += cols;
       }
     }
- 
+
     /* Now, for each element in row i that is not in column 1, you need
        to make it zero.  Suppose that this is column j, and the element
-       at i,j = e.  Then you want to replace all of column j with 
+       at i,j = e.  Then you want to replace all of column j with
        (col-j + col-i*e).   Note, that in row i, col-i = 1 and col-j = e.
        So (e + 1e) = 0, which is indeed what we want. */
 
@@ -273,7 +273,7 @@ int *reed_sol_big_vandermonde_distribution_matrix(int rows, int cols, int w)
   sindex = cols*cols;
   for (j = 0; j < cols; j++) {
     tmp = dist[sindex];
-    if (tmp != 1) { 
+    if (tmp != 1) {
       tmp = galois_single_divide(1, tmp, w);
       srindex = sindex;
       for (i = cols; i < rows; i++) {
@@ -290,7 +290,7 @@ int *reed_sol_big_vandermonde_distribution_matrix(int rows, int cols, int w)
   sindex = cols*(cols+1);
   for (i = cols+1; i < rows; i++) {
     tmp = dist[sindex];
-    if (tmp != 1) { 
+    if (tmp != 1) {
       tmp = galois_single_divide(1, tmp, w);
       for (j = 0; j < cols; j++) dist[sindex+j] = galois_single_multiply(dist[sindex+j], tmp, w);
     }
@@ -299,4 +299,3 @@ int *reed_sol_big_vandermonde_distribution_matrix(int rows, int cols, int w)
 
   return dist;
 }
-

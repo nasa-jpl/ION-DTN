@@ -28,21 +28,21 @@ source "$SCRIPT_DIR/../verify_sdr_recovery.sh"
 # Global timeout watchdog - kill test if it runs too long
 TEST_TIMEOUT=300  # 5 minutes max for entire test
 (
-	sleep $TEST_TIMEOUT
-	echo ""
-	echo "ERROR: Test timeout after ${TEST_TIMEOUT} seconds - forcing cleanup"
-	killm 2>/dev/null
-	exit 1
+    sleep $TEST_TIMEOUT
+    echo ""
+    echo "ERROR: Test timeout after ${TEST_TIMEOUT} seconds - forcing cleanup"
+    killm 2>/dev/null
+    exit 1
 ) &
 WATCHDOG_PID=$!
 
 function end(){
-	# Kill the watchdog timer
-	kill $WATCHDOG_PID 2>/dev/null
-	# Shut down ION and clean up
-	echo "Stopping ION and cleaning up..."
-	killm 2>/dev/null
-	exit $RETVAL
+    # Kill the watchdog timer
+    kill $WATCHDOG_PID 2>/dev/null
+    # Shut down ION and clean up
+    echo "Stopping ION and cleaning up..."
+    killm 2>/dev/null
+    exit $RETVAL
 }
 
 CONFIGFILES=" \
@@ -62,10 +62,10 @@ echo "CONFIG: 1 node standard configuration"
 echo ""
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo ""
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo ""
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo ""
@@ -105,20 +105,20 @@ echo "Using sdr_test_util to create and abort a modified transaction..."
 sdr_test_util test_reversal ion
 
 if [ $? -ne 0 ]; then
-	echo "FAIL: sdr_test_util failed"
-	RETVAL=1
-	end
+    echo "FAIL: sdr_test_util failed"
+    RETVAL=1
+    end
 else
-	echo "PASS: Transaction created and cancelled"
+    echo "PASS: Transaction created and cancelled"
 fi
 
 sleep 3
 
 # Verify transaction abort occurred
 if check_transaction_aborted "ion.log"; then
-	echo "PASS: Transaction was aborted as expected"
+    echo "PASS: Transaction was aborted as expected"
 else
-	echo "WARNING: Expected transaction abort message not found"
+    echo "WARNING: Expected transaction abort message not found"
 fi
 
 #==============================================================================
@@ -165,20 +165,20 @@ sleep 1
 # Verify processes are stopped
 REMAINING=$(pgrep -f "rfxclock\|bpclock\|ipnfw\|ipnadmin\|bpclm\|tcpcli\|bptransit" 2>/dev/null | wc -l)
 if [ "$REMAINING" -gt 0 ]; then
-	echo "WARNING: $REMAINING ION processes still running"
+    echo "WARNING: $REMAINING ION processes still running"
 else
-	echo "All ION processes stopped"
+    echo "All ION processes stopped"
 fi
 
 # Verify SDR file still exists (should NOT be deleted)
 # With configFlags=15, the SDR should be persisted to /tmp/ion1.sdr
 if [ -f "/tmp/ion1.sdr" ]; then
-	SDR_SIZE=$(stat -f%z "/tmp/ion1.sdr" 2>/dev/null || stat -c%s "/tmp/ion1.sdr" 2>/dev/null)
-	echo "PASS: SDR file preserved at /tmp/ion1.sdr (size: ${SDR_SIZE} bytes)"
+    SDR_SIZE=$(stat -f%z "/tmp/ion1.sdr" 2>/dev/null || stat -c%s "/tmp/ion1.sdr" 2>/dev/null)
+    echo "PASS: SDR file preserved at /tmp/ion1.sdr (size: ${SDR_SIZE} bytes)"
 else
-	echo "WARNING: SDR file /tmp/ion1.sdr not found"
-	echo "         This may indicate the file hasn't been created yet"
-	ls -la /tmp/*.sdr* 2>/dev/null | head -5 || echo "         No .sdr files in /tmp"
+    echo "WARNING: SDR file /tmp/ion1.sdr not found"
+    echo "         This may indicate the file hasn't been created yet"
+    ls -la /tmp/*.sdr* 2>/dev/null | head -5 || echo "         No .sdr files in /tmp"
 fi
 
 echo "ION stopped (SDR preserved for sdrmend)"
@@ -198,10 +198,10 @@ echo "=== PHASE 4: Extracting SDR Configuration ==="
 SDR_CONFIG=$(grep "^1 " config.ionrc | grep -v "^#" | head -1)
 
 if [ -z "$SDR_CONFIG" ]; then
-	echo "FAIL: Could not find SDR configuration in config.ionrc"
-	echo "       Looking for line starting with '1 ' in config.ionrc"
-	RETVAL=1
-	end
+    echo "FAIL: Could not find SDR configuration in config.ionrc"
+    echo "       Looking for line starting with '1 ' in config.ionrc"
+    RETVAL=1
+    end
 fi
 
 echo "Found SDR configuration line: $SDR_CONFIG"
@@ -211,50 +211,50 @@ read -r cmd subcmd PARAM3 REST <<< "$SDR_CONFIG"
 
 # Check if PARAM3 is a filename (external config)
 if [ -f "$PARAM3" ]; then
-	echo "Using external configuration file: $PARAM3"
-	CONFIG_FILE="$PARAM3"
+    echo "Using external configuration file: $PARAM3"
+    CONFIG_FILE="$PARAM3"
 
-	# Parse config.ionconfig file
-	CONFIG_FLAGS=$(grep "^configFlags" "$CONFIG_FILE" | awk '{print $2}')
-	SDR_NAME=$(grep "^sdrName" "$CONFIG_FILE" | awk '{print $2}')
-	HEAP_KEY=$(grep "^heapKey" "$CONFIG_FILE" | awk '{print $2}')
-	LOG_SIZE=$(grep "^logSize" "$CONFIG_FILE" | awk '{print $2}')
-	HEAP_WORDS=$(grep "^heapWords" "$CONFIG_FILE" | awk '{print $2}')
-	PATHNAME="/tmp"  # Default from config
+    # Parse config.ionconfig file
+    CONFIG_FLAGS=$(grep "^configFlags" "$CONFIG_FILE" | awk '{print $2}')
+    SDR_NAME=$(grep "^sdrName" "$CONFIG_FILE" | awk '{print $2}')
+    HEAP_KEY=$(grep "^heapKey" "$CONFIG_FILE" | awk '{print $2}')
+    LOG_SIZE=$(grep "^logSize" "$CONFIG_FILE" | awk '{print $2}')
+    HEAP_WORDS=$(grep "^heapWords" "$CONFIG_FILE" | awk '{print $2}')
+    PATHNAME="/tmp"  # Default from config
 
-	# Extract logKey - not in config file, use default
-	LOG_KEY=-1
+    # Extract logKey - not in config file, use default
+    LOG_KEY=-1
 
-	echo "  Config Flags: $CONFIG_FLAGS"
-	echo "  SDR Name: ${SDR_NAME:-ion}"
-	echo "  Heap Words: $HEAP_WORDS"
-	echo "  Heap Key: $HEAP_KEY"
-	echo "  Log Size: $LOG_SIZE"
-	echo "  Log Key: $LOG_KEY"
-	echo "  Path: $PATHNAME"
+    echo "  Config Flags: $CONFIG_FLAGS"
+    echo "  SDR Name: ${SDR_NAME:-ion}"
+    echo "  Heap Words: $HEAP_WORDS"
+    echo "  Heap Key: $HEAP_KEY"
+    echo "  Log Size: $LOG_SIZE"
+    echo "  Log Key: $LOG_KEY"
+    echo "  Path: $PATHNAME"
 
-	# Use extracted SDR name or default to 'ion'
-	SDR_NAME=${SDR_NAME:-ion}
+    # Use extracted SDR name or default to 'ion'
+    SDR_NAME=${SDR_NAME:-ion}
 else
-	echo "Using inline configuration"
-	# Inline format: 1 17 heapWords heapKey logSize logKey [pathName]
-	read -r cmd subcmd HEAP_WORDS HEAP_KEY LOG_SIZE LOG_KEY PATHNAME RESTART_CMD <<< "$SDR_CONFIG"
+    echo "Using inline configuration"
+    # Inline format: 1 17 heapWords heapKey logSize logKey [pathName]
+    read -r cmd subcmd HEAP_WORDS HEAP_KEY LOG_SIZE LOG_KEY PATHNAME RESTART_CMD <<< "$SDR_CONFIG"
 
-	CONFIG_FLAGS=$subcmd
-	SDR_NAME="ion"
+    CONFIG_FLAGS=$subcmd
+    SDR_NAME="ion"
 
-	echo "  Config Flags: $CONFIG_FLAGS"
-	echo "  SDR Name: $SDR_NAME"
-	echo "  Heap Words: $HEAP_WORDS"
-	echo "  Heap Key: $HEAP_KEY"
-	echo "  Log Size: $LOG_SIZE"
-	echo "  Log Key: $LOG_KEY"
-	echo "  Path: ${PATHNAME:-.}"
+    echo "  Config Flags: $CONFIG_FLAGS"
+    echo "  SDR Name: $SDR_NAME"
+    echo "  Heap Words: $HEAP_WORDS"
+    echo "  Heap Key: $HEAP_KEY"
+    echo "  Log Size: $LOG_SIZE"
+    echo "  Log Key: $LOG_KEY"
+    echo "  Path: ${PATHNAME:-.}"
 
-	# Set defaults if not specified
-	HEAP_KEY=${HEAP_KEY:--1}
-	LOG_KEY=${LOG_KEY:--1}
-	PATHNAME=${PATHNAME:-.}
+    # Set defaults if not specified
+    HEAP_KEY=${HEAP_KEY:--1}
+    LOG_KEY=${LOG_KEY:--1}
+    PATHNAME=${PATHNAME:-.}
 fi
 
 #==============================================================================
@@ -284,18 +284,18 @@ sdrmend $SDR_NAME $CONFIG_FLAGS $HEAP_WORDS $HEAP_KEY $LOG_SIZE $LOG_KEY $PATHNA
 SDRMEND_EXIT=$?
 
 if [ $SDRMEND_EXIT -eq 0 ]; then
-	echo "PASS: sdrmend completed successfully (exit code 0)"
+    echo "PASS: sdrmend completed successfully (exit code 0)"
 else
-	echo "FAIL: sdrmend failed with exit code $SDRMEND_EXIT"
-	echo "      Check ion.log for details"
+    echo "FAIL: sdrmend failed with exit code $SDRMEND_EXIT"
+    echo "      Check ion.log for details"
 
-	# Show relevant error from ion.log
-	echo ""
-	echo "Recent errors from ion.log:"
-	tail -20 ion.log | grep -i "error\|fail" || echo "(no recent errors found)"
+    # Show relevant error from ion.log
+    echo ""
+    echo "Recent errors from ion.log:"
+    tail -20 ion.log | grep -i "error\|fail" || echo "(no recent errors found)"
 
-	RETVAL=1
-	end
+    RETVAL=1
+    end
 fi
 
 sleep 2
@@ -304,9 +304,9 @@ sleep 2
 echo ""
 echo "Checking ion.log for sdrmend activity..."
 if grep -q "sdr_reload_profile" ion.log; then
-	echo "PASS: sdr_reload_profile was called"
+    echo "PASS: sdr_reload_profile was called"
 else
-	echo "WARNING: sdr_reload_profile message not found in log"
+    echo "WARNING: sdr_reload_profile message not found in log"
 fi
 
 #==============================================================================
@@ -329,11 +329,11 @@ echo "ION restarted"
 
 # Verify SDR is operational
 if check_sdr_operational; then
-	echo "PASS: SDR is operational after sdrmend repair"
+    echo "PASS: SDR is operational after sdrmend repair"
 else
-	echo "FAIL: SDR is not operational after repair"
-	RETVAL=1
-	end
+    echo "FAIL: SDR is not operational after repair"
+    RETVAL=1
+    end
 fi
 
 #==============================================================================
@@ -352,18 +352,18 @@ NEW_ABORTS=$(grep "Transaction aborted" ion.log | tail -5 | wc -l)
 echo "Recent transaction aborts: $NEW_ABORTS"
 
 if [ "$NEW_ABORTS" -gt 0 ]; then
-	echo "WARNING: Transaction aborts occurred during normal operations"
-	echo "         This may indicate incomplete recovery"
-	# Don't fail, as some aborts might be from earlier
+    echo "WARNING: Transaction aborts occurred during normal operations"
+    echo "         This may indicate incomplete recovery"
+    # Don't fail, as some aborts might be from earlier
 fi
 
 # Final check for unrecoverable errors
 if ! check_no_unrecoverable_error "ion.log"; then
-	echo "FAIL: Unrecoverable SDR error detected"
-	RETVAL=1
-	end
+    echo "FAIL: Unrecoverable SDR error detected"
+    RETVAL=1
+    end
 else
-	echo "PASS: No unrecoverable errors"
+    echo "PASS: No unrecoverable errors"
 fi
 
 # Verify BP stats
@@ -387,9 +387,9 @@ echo ""
 # Final verification that ION is still running
 echo "Verifying ION is still operational..."
 if check_sdr_operational; then
-	echo "PASS: ION remains operational"
+    echo "PASS: ION remains operational"
 else
-	echo "WARNING: ION may need attention"
+    echo "WARNING: ION may need attention"
 fi
 
 #==============================================================================

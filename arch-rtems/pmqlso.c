@@ -7,7 +7,7 @@
 	Copyright (c) 2010, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "pmqlsa.h"
 

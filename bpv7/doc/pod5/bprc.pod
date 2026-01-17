@@ -27,7 +27,7 @@ Comment line.  Lines beginning with B<#> are not interpreted.
 Echo control.  Setting echo to 1 causes all output printed by bpadmin to be
 logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
 
-=item B<v> 
+=item B<v>
 
 Version number.  Prints out the version of ION currently installed and the
 crypto suite BP was compiled with.  HINT: combine with B<e 1> command to log
@@ -160,7 +160,7 @@ status reports.
 
 =item B<c scheme> I<scheme_name> 'I<forwarder_command>' 'I<admin_app_command>'
 
-The B<change scheme> command.  This command sets the indicated scheme's 
+The B<change scheme> command.  This command sets the indicated scheme's
 I<forwarder_command> and I<admin_app_command> to the strings provided
 as arguments.
 
@@ -319,12 +319,12 @@ all locally established inducts, regardless of protocol.
 
 =item B<s induct> I<protocol_name> I<duct_name>
 
-The B<start induct> command.  This command starts the indicated induct 
+The B<start induct> command.  This command starts the indicated induct
 task as defined for the indicated CL protocol on the local node.
 
 =item B<x induct> I<protocol_name> I<duct_name>
 
-The B<stop induct> command.  This command stops the indicated induct 
+The B<stop induct> command.  This command stops the indicated induct
 task as defined for the indicated CL protocol on the local node.
 
 =back
@@ -367,12 +367,12 @@ all locally established outducts, regardless of protocol.
 
 =item B<s outduct> I<protocol_name> I<duct_name>
 
-The B<start outduct> command.  This command starts the indicated outduct 
+The B<start outduct> command.  This command starts the indicated outduct
 task as defined for the indicated CL protocol on the local node.
 
 =item B<x outduct> I<protocol_name> I<duct_name>
 
-The B<stop outduct> command.  This command stops the indicated outduct 
+The B<stop outduct> command.  This command stops the indicated outduct
 task as defined for the indicated CL protocol on the local node.
 
 =back
@@ -446,7 +446,7 @@ the indicated egress plan.
 =item B<x plan> I<endpoint_name>
 
 The B<stop plan> command.  This command stops the bpclm(1) task for
-the indicated egress plan. 
+the indicated egress plan.
 
 =item B<b plan> I<endpoint_name>
 

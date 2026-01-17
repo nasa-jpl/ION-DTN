@@ -41,7 +41,7 @@ WAIT 1
 #------------------------------------------------------------------------------
 #
 # ARI: ari:/IANA:amp.agent/Ctrl.gen_rpts(
-#         [ari:/IANA:amp.agent/Rptt.full_report(), 
+#         [ari:/IANA:amp.agent/Rptt.full_report(),
 #          ari:/IANA:bp.agent/Rptt.full_report()],[])
 #
 #------------------------------------------------------------------------------
@@ -74,14 +74,14 @@ WAIT 5
 
 #------------------------------------------------------------------------------
 # Step 2.3 Generate Endpoint report for 3 endpoints:
-#              ipn:1.0, 
-#              ipn:1.1, 
+#              ipn:1.0,
+#              ipn:1.1,
 #              ipn:1.2
 #------------------------------------------------------------------------------
 #
 # ARI: ari:/IANA:amp.agent/Ctrl.gen_rpts(
-#         [ari:/IANA:dtn.bp_agent/Rptt.endpoint_report(ipn:1.0), 
-#          ari:/IANA:dtn.bp_agent/Rptt.endpoint_report(ipn:1.1), 
+#         [ari:/IANA:dtn.bp_agent/Rptt.endpoint_report(ipn:1.0),
+#          ari:/IANA:dtn.bp_agent/Rptt.endpoint_report(ipn:1.1),
 #          ari:/IANA:dtn.bp_agent/Rptt.endpoint_report(ipn:1.2)], [])
 #
 #------------------------------------------------------------------------------
@@ -97,7 +97,7 @@ WAIT 5
 
 
 ###################################################
-# Test Case 3: Report on basic elements 
+# Test Case 3: Report on basic elements
 ###################################################
 
 #------------------------------------------------------------------------------
@@ -137,7 +137,7 @@ WAIT 1
 #------------------------------------------------------------------------------
 #
 # ARI: ari:/IANA:amp.agent/Ctrl.gen_rpts(
-#         [ari:/IANA:amp.agent/Edd.num_tbl_tpls, 
+#         [ari:/IANA:amp.agent/Edd.num_tbl_tpls,
 #          ari:/IANA:amp.agent/Var.num_rules], [])
 #
 #------------------------------------------------------------------------------
@@ -150,27 +150,27 @@ WAIT 1
 
 
 ###################################################
-# Test Case 4: Report templates 
+# Test Case 4: Report templates
 ###################################################
 
 #------------------------------------------------------------------------------
-# Step 4.1: Add a report template (R1) that provides the number of table 
-#           templates (num_tbl_tpls) and number of report templates 
+# Step 4.1: Add a report template (R1) that provides the number of table
+#           templates (num_tbl_tpls) and number of report templates
 #           (num_rpt_tpls) known to the Agent.
 #
 #------------------------------------------------------------------------------
 #
 # Type: Report Template (rptt)
 # Nickname (NN): 1
-# Issuer (ISS): 1 
+# Issuer (ISS): 1
 # Name: R1
 # RPTT ARI: ari:/1:1/Rptt.R1
 # CBOR RPTT ARI: 0x3742523141314131
 #
 #------------------------------------------------------------------------------
 #
-# ARI: ari:/IANA:amp.agent/Ctrl.add_rptt(ari:/1:1/Rptt.R1, 
-#        [ari:/IANA:amp.agent/Edd.num_tbl_tpls, 
+# ARI: ari:/IANA:amp.agent/Ctrl.add_rptt(ari:/1:1/Rptt.R1,
+#        [ari:/IANA:amp.agent/Edd.num_tbl_tpls,
 #         ari:/IANA:amp.agent/Edd.num_rpt_tpls])
 #
 #------------------------------------------------------------------------------
@@ -216,7 +216,7 @@ WAIT 1
 #------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
-# Step 4.7: Generate a table of all known report templates and make sure 
+# Step 4.7: Generate a table of all known report templates and make sure
 #           R1 still exists.
 #------------------------------------------------------------------------------
 #
@@ -237,7 +237,7 @@ c1154103050125813742523141314131
 WAIT 1
 
 #------------------------------------------------------------------------------
-# Step 4.9: Generate a table of all known report templates and make sure 
+# Step 4.9: Generate a table of all known report templates and make sure
 #            R1 has been deleted (is not represented in the table).
 #------------------------------------------------------------------------------
 #
@@ -252,7 +252,7 @@ WAIT 1
 #------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
-# Step 4.11: Generate a table of all known report templates and make sure 
+# Step 4.11: Generate a table of all known report templates and make sure
 #            R1 is not represented in the table.
 #------------------------------------------------------------------------------
 #

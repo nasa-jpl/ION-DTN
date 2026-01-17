@@ -19,34 +19,34 @@ The command-line options are as follows:
 
 =over 5
 
-=item B< -d>
+=item B<-d>
 
 Enable debug output.  This option can be repeated (e.g., `-dd`) to increase
 the verbosity level of debug messages.
 
-=item B< -q>
+=item B<-q>
 
 Quiet mode.  Suppress all standard status and progress messages.  Only error
 messages will be displayed.
 
-=item B< -r>
+=item B<-r>
 
 Recursive mode.  If a source path is a directory, B<bpcp> will recursively
 copy its contents to the destination.  If this option is not used and a source
 is a directory, it will be omitted with a warning message.
 
-=item B< -v>
+=item B<-v>
 
 Display the B<bpcp> version information and then exit.
 
-=item B< -L> I<bundle_lifetime>
+=item B<-L> I<bundle_lifetime>
 
 Specify the Bundle Protocol (BP) bundle lifetime in seconds.  This value
 determines how long a bundle will be stored in the network before being
 discarded if it cannot be delivered.  The default value is 86400 seconds (1 day).
 A value of 0 results in the default lifetime.
 
-=item B< -C> I<custody_transfer_setting>
+=item B<-C> I<custody_transfer_setting>
 
 Control whether CFDP custody transfer is requested for the file transfer.
 Custody transfer ensures that the bundle is acknowledged by each hop in the
@@ -54,11 +54,11 @@ path.  Acceptable values (case-insensitive) are:
 
 =over 4
 
-=item B<ON>, B<YES>, B<Y>, B<1> 
+=item B<ON>, B<YES>, B<Y>, B<1>
 
 To enable custody transfer.
 
-=item B<OFF>, B<NO>, B<N>, B<0> 
+=item B<OFF>, B<NO>, B<N>, B<0>
 
 To disable custody transfer.
 
@@ -121,12 +121,12 @@ When two arguments are provided (e.g., B<bpcp> I<source> I<destination>):
 
 =over 4
 
-=item 
+=item
 
 If I<destination> is an existing directory, I<source> will be copied
 into that directory, retaining its original filename.
 
-=item 
+=item
 
 If I<destination> does not exist or is a file, I<source> will be copied
 to I<destination> with the specified name.
@@ -139,16 +139,16 @@ When more than two arguments are provided (e.g., B<bpcp> I<source1> I<source2> .
 
 =over 4
 
-=item 
+=item
 
 The last argument is always interpreted as the I<destination directory>.
 
-=item 
+=item
 
 All preceding I<source> arguments (files or directories) will be copied
 into this I<destination directory>.
 
-=item 
+=item
 
 If the I<destination directory> does not exist locally, B<bpcp> will
 report an error.  If it is a remote destination, B<bpcp> will attempt to create
@@ -169,12 +169,12 @@ This implies:
 
 =item
 
-1. ION's CFDP implementation requires the use of reliable convergence layers. 
+1. ION's CFDP implementation requires the use of reliable convergence layers.
 
 =item
 
 2. File permissions are NOT transferred.  Copied files will typically be made
-executable on the destination system. 
+executable on the destination system.
 
 =item
 
@@ -184,7 +184,7 @@ the target of the symbolic link is copied, not the link itself.
 
 =item
 
-4. All hosts must be specified using ION's IPN naming scheme (e.g., 
+4. All hosts must be specified using ION's IPN naming scheme (e.g.,
 `ipn:node_number.service_number`).
 
 =item

@@ -70,9 +70,9 @@ AGENT_SOURCES = \
 	$(AGENT)/adm_ion_ltp_admin_impl.c	\
 	$(AGENT)/adm_ion_ltp_admin_agent.c	\
 	$(AGENT)/adm_ltp_agent_impl.c	\
-	$(AGENT)/adm_ltp_agent_agent.c 
-#	$(AGENT)/adm_sbsp_impl.c	
-#	$(AGENT)/adm_sbsp_agent.c	
+	$(AGENT)/adm_ltp_agent_agent.c
+#	$(AGENT)/adm_sbsp_impl.c
+#	$(AGENT)/adm_sbsp_agent.c
 
 
 MGR_SOURCES = \
@@ -144,7 +144,7 @@ clean:
 install:
 		cp bin/* $(ROOT)/bin
 
-uninstall:		
+uninstall:
 		for file in $(ALL); \
 			do rm $(ROOT)/bin/$(notdir $$file); done
 
@@ -162,4 +162,3 @@ nm_mgr:		$(SHARED_OBJS) $(MGR_OBJS)
 
 %.o: %.c
 	${CC} -c $<
-

@@ -8,8 +8,8 @@
 #	please consult manual pages and other documentation for a
 #	better description.
 
-# Initialization command (command 1). 
-# Establishes the LTP retransmission window. 
+# Initialization command (command 1).
+# Establishes the LTP retransmission window.
 # (Prohibiting LTP from seizing all available storage).
 #	A maximum of 32 sessions.  A session is assumed to be around one
 #	second of transmission.  This value should be estimated at the sum
@@ -18,7 +18,7 @@
 #	long sessions which contain an actual retransmission.
 1 8
 
-# Add a span. (a connection) 
+# Add a span. (a connection)
 #	Identify the span as engine number 1.  That is the ipn node number
 #	of the node on the other end of this span.
 #	Use 128 as the maximum number of export sessions.

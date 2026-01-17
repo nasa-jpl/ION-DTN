@@ -10,13 +10,13 @@ B<bpadmin> [ I<commands_filename> | . | ! ]
 
 B<bpadmin> configures, starts, manages, and stops bundle protocol operations
 for the local ION node.
-	
+
 It operates in response to BP configuration commands found in the file
 I<commands_filename>, if provided; if not, B<bpadmin> prints
 a simple prompt (:) so that the user may type commands
 directly into standard input.  If I<commands_filename> is a period (.), the
 effect is the same as if a command file containing the single command 'x'
-were passed to B<bpadmin> -- that is, the ION node's I<bpclock> task, 
+were passed to B<bpadmin> -- that is, the ION node's I<bpclock> task,
 forwarder tasks, and convergence layer adapter tasks are stopped.
 If I<commands_filename> is an exclamation point (!), that effect is
 reversed: the ION node's I<bpclock> task, forwarder tasks, and convergence
@@ -76,8 +76,8 @@ The following diagnostics may be issued to the logfile ion.log:
 =item ION can't set custodian EID information.
 
 The I<custodial_endpoint_id> specified in the BP initialization ('1')
-command is malformed.  Remember that the format for this argument is 
-ipn:I<element_number>.0 and that the final 0 is required, as 
+command is malformed.  Remember that the format for this argument is
+ipn:I<element_number>.0 and that the final 0 is required, as
 custodial/administration service is always service 0.  Additional detail
 for this error is provided if one of the following other errors is present:
 

@@ -94,7 +94,7 @@ int agent_add(eid_t id)
 	}
 
 	agent_rotate_log(agent, 1);
-	
+
 	return AMP_OK;
 }
 
@@ -176,15 +176,15 @@ void agent_cb_del(void *item)
 	agent_t *agent = (agent_t *) item;
 
 	CHKVOID(agent);
-	
+
 	vec_release(&(agent->rpts), 0);
 	vec_release(&(agent->tbls), 0);
-	
+
 	if (agent->log_fd != NULL)
 	{
 		fclose(agent->log_fd);
 	}
-	
+
 
 	SRELEASE(item);
 }
@@ -244,7 +244,7 @@ agent_t* agent_create(eid_t *eid)
 		agent = NULL;
 	}
 
-	
+
 	return agent;
 }
 
@@ -321,6 +321,3 @@ void agent_release(agent_t *agent, int destroy)
 		SRELEASE(agent);
 	}
 }
-
-
-

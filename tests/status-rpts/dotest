@@ -49,13 +49,13 @@ echo "CONFIG: 3 node custom configuration:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Various status messages are expected to be found in
-	./2.ipn.ltp/ion.log"
+    ./2.ipn.ltp/ion.log"
 echo
 echo "########################################"
 
@@ -82,62 +82,62 @@ cd ../5.ipn.ltp
 ionadmin amroc.ionrc
 
 cd ../2.ipn.ltp
-ionadmin global.ionrc 
+ionadmin global.ionrc
 cd ../3.ipn.ltp
-ionadmin global.ionrc 
+ionadmin global.ionrc
 cd ../5.ipn.ltp
-ionadmin global.ionrc 
+ionadmin global.ionrc
 
 cd ../2.ipn.ltp
-ionsecadmin amroc.ionsecrc 
+ionsecadmin amroc.ionsecrc
 cd ../3.ipn.ltp
-ionsecadmin amroc.ionsecrc 
+ionsecadmin amroc.ionsecrc
 cd ../5.ipn.ltp
-ionsecadmin amroc.ionsecrc 
+ionsecadmin amroc.ionsecrc
 
 cd ../2.ipn.ltp
-ltpadmin amroc.ltprc 
+ltpadmin amroc.ltprc
 cd ../3.ipn.ltp
-ltpadmin amroc.ltprc 
+ltpadmin amroc.ltprc
 cd ../5.ipn.ltp
-ltpadmin amroc.ltprc 
+ltpadmin amroc.ltprc
 
 cd ../2.ipn.ltp
-bpadmin amroc.bprc 
+bpadmin amroc.bprc
 cd ../3.ipn.ltp
-bpadmin amroc.bprc 
+bpadmin amroc.bprc
 cd ../5.ipn.ltp
-bpadmin amroc.bprc 
+bpadmin amroc.bprc
 
 cd ../2.ipn.ltp
 ../../../system_up -i "p 30" -l "p 30" -b "p 30"
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 2 not started: Aborting Test"
-	exit 1
+    echo "Node 2 not started: Aborting Test"
+    exit 1
 fi
 cd ../3.ipn.ltp
 ../../../system_up -i "p 30" -l "p 30" -b "p 30"
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 3 not started: Aborting Test"
-	exit 1
+    echo "Node 3 not started: Aborting Test"
+    exit 1
 fi
 cd ../5.ipn.ltp
 ../../../system_up -i "p 30" -l "p 30" -b "p 30"
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 5 not started: Aborting Test"
-	exit 1
+    echo "Node 5 not started: Aborting Test"
+    exit 1
 fi
 
 echo "Starting bpsink on ipn:5.1 ..."
@@ -169,10 +169,10 @@ echo "Checking for 'status 4' in ./2.ipn.ltp/ion.log..."
 COUNT=`grep " \[s\] " ion.log | grep "status 4" | wc -l`
 if [ $COUNT -eq 4 ]
 then
-	echo "OK: Both bundles forwarded twice."
+    echo "OK: Both bundles forwarded twice."
 else
-	echo "ERROR: Bundles not forwarded."
-	RETVAL=1
+    echo "ERROR: Bundles not forwarded."
+    RETVAL=1
 fi
 
 echo
@@ -183,10 +183,10 @@ echo "Checking for 'status 1' in ./2.ipn.ltp/ion.log..."
 COUNT=`grep " \[s\] " ion.log | grep "status 1 " | wc -l`
 if [ $COUNT -eq 2 ]
 then
-	echo "OK: report of reciept found for both bundles."
+    echo "OK: report of reciept found for both bundles."
 else
-	echo "ERROR: No report of receipt."
-	RETVAL=1
+    echo "ERROR: No report of receipt."
+    RETVAL=1
 fi
 echo
 # status 9 is the deleted (8) + recieved (1) status.
@@ -194,10 +194,10 @@ echo "Checking for 'status 9' in ./2.ipn.ltp/ion.log..."
 COUNT=`grep " \[s\] " ion.log | grep "status 9" | wc -l`
 if [ $COUNT -eq 1 ]
 then
-	echo "OK: One bundle delivered."
+    echo "OK: One bundle delivered."
 else
-	echo "ERROR: Bundle not delivered."
-	RETVAL=1
+    echo "ERROR: Bundle not delivered."
+    RETVAL=1
 fi
 
 echo
@@ -206,10 +206,10 @@ echo "Checking for 'status 17' in ./2.ipn.ltp/ion.log..."
 COUNT=`grep " \[s\] " ion.log | grep "status 17" | wc -l`
 if [ $COUNT -eq 1 ]
 then
-	echo "OK: One bundle deleted upon expiration."
+    echo "OK: One bundle deleted upon expiration."
 else
-	echo "ERROR: No deletion upon expiration reported."
-	RETVAL=1
+    echo "ERROR: No deletion upon expiration reported."
+    RETVAL=1
 fi
 
 # Shut down ION processes.

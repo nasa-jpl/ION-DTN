@@ -1,5 +1,5 @@
 /*
- 	icinm.h:	definitions supporting the ICI instrumentation
+	icinm.h:	definitions supporting the ICI instrumentation
 			API.
 
 	Copyright (c) 2011, California Institute of Technology.
@@ -8,7 +8,7 @@
 
 	Author: Scott Burleigh, JPL
 	Adapted by Vinny Ramachandran, JHU/APL
- 									*/
+									*/
 
 #ifndef ICINM_H
 #define ICINM_H

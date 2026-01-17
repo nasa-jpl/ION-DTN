@@ -51,14 +51,14 @@ char gCsiMsg[GMSG_BUFLEN];      /*  Debug message buffer.  */
 
 int csi_keywrap(int wrap, csi_val_t kek, csi_val_t input, csi_val_t *output)
 {
-    /* Parameters intentionally unused. */
-    (void)wrap;
-    (void)kek;
-    (void)input;
+	/* Parameters intentionally unused. */
+	(void) wrap;
+	(void) kek;
+	(void) input;
 
-    output->contents = MTAKE(NCS_LEN_VAL);
-    output->len = NCS_LEN_VAL;
-    return 1;
+	output->contents = MTAKE(NCS_LEN_VAL);
+	output->len = NCS_LEN_VAL;
+	return 1;
 }
 
 
@@ -66,15 +66,15 @@ int csi_keywrap(int wrap, csi_val_t kek, csi_val_t input, csi_val_t *output)
  *
  * \par Function Name: csi_memAlloc
  *
- * \par Allocates memory, assigns it to a pointer based on the length passed 
+ * \par Allocates memory, assigns it to a pointer based on the length passed
  *      in.  After assignment, the memory is zeroized.
  *
  * \param[in]     mem   Pointer to the pointer that holds the new memory
  *                      allocation
- * 
+ *
  * \param[in]     len   Length in bytes of the new memory to be allocated
  *
- * \par Notes: mem is passed as a double pointer so we can cleanly update 
+ * \par Notes: mem is passed as a double pointer so we can cleanly update
  *             the original pointer with the new memory location.
  *
  * \return 1 on success, 0 or ERROR on failure
@@ -82,22 +82,22 @@ int csi_keywrap(int wrap, csi_val_t kek, csi_val_t input, csi_val_t *output)
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *  03/02/22  C. Dunbar      Initial Implementation 
+ *  03/02/22  C. Dunbar      Initial Implementation
  *****************************************************************************/
 
 static int8_t csi_memAlloc(uint8_t **mem, int32_t *len)
 {
-    if((*mem = (uint8_t *) MTAKE(*len)) == NULL)
-    {
-        CSI_DEBUG_ERR("x csi_memAlloc: Cannot allocate result of size %d",
-        *len);
-        *len = 0;
-        return ERROR;
-    }
+	if ((*mem = (uint8_t *) MTAKE(*len)) == NULL)
+	{
+		CSI_DEBUG_ERR("x csi_memAlloc: Cannot allocate result of size %d",
+				*len);
+		*len = 0;
+		return ERROR;
+	}
 
-    memset(*mem, 0, *len);
+	memset(*mem, 0, *len);
 
-    return 1;
+	return 1;
 }
 
 
@@ -142,10 +142,10 @@ void csi_teardown(void)
 
 uint32_t csi_blocksize(csi_csid_t suite)
 {
-    /* Parameter intentionally unused. */
-    (void)suite;
+	/* Parameter intentionally unused. */
+	(void) suite;
 
-    return NCS_BLOCKSIZE;
+	return NCS_BLOCKSIZE;
 }
 
 /******************************************************************************
@@ -172,10 +172,10 @@ uint32_t csi_blocksize(csi_csid_t suite)
 
 uint32_t csi_ctx_len(csi_csid_t suite)
 {
-    /* Parameter intentionally unused. */
-    (void)suite;
+	/* Parameter intentionally unused. */
+	(void) suite;
 
-    return NCS_LEN_VAL;
+	return NCS_LEN_VAL;
 }
 
 /******************************************************************************
@@ -201,12 +201,12 @@ uint32_t csi_ctx_len(csi_csid_t suite)
 
 uint8_t csi_ctx_free(csi_csid_t suite, void *context)
 {
-    /* Parameter intentionally unused. */
-    (void)suite;
+	/* Parameter intentionally unused. */
+	(void) suite;
 
-    CHKZERO(context);
-    MRELEASE(context);    
-    return 1;
+	CHKZERO(context);
+	MRELEASE(context);
+	return 1;
 }
 
 /******************************************************************************
@@ -229,11 +229,11 @@ uint8_t csi_ctx_free(csi_csid_t suite, void *context)
 
 uint32_t csi_sign_res_len(csi_csid_t suite, void *context)
 {
-    /* Parameter intentionally unused. */
-    (void)suite;
+	/* Parameter intentionally unused. */
+	(void) suite;
 
-    CHKZERO(context);
-    return NCS_LEN_VAL;  
+	CHKZERO(context);
+	return NCS_LEN_VAL;
 }
 
 /******************************************************************************
@@ -287,14 +287,14 @@ uint32_t csi_crypt_parm_get_len(csi_csid_t suite, csi_parmid_t parmid)
 
 uint32_t csi_crypt_res_len(csi_csid_t suite, void *context, csi_blocksize_t blocksize, csi_svcid_t svc)
 {
-    /* Parameters intentionally unused. */
-    (void)suite;
-    (void)svc;
+	/* Parameters intentionally unused. */
+	(void) suite;
+	(void) svc;
 
-    CHKZERO(context);
-    CHKZERO(blocksize.plaintextLen);
+	CHKZERO(context);
+	CHKZERO(blocksize.plaintextLen);
 
-    return blocksize.plaintextLen;
+	return blocksize.plaintextLen;
 }
 
 /*****************************************************************************
@@ -328,29 +328,29 @@ uint32_t csi_crypt_res_len(csi_csid_t suite, void *context, csi_blocksize_t bloc
 
 csi_cipherparms_t csi_build_parms(unsigned char *buf, uint32_t len)
 {
-    csi_cipherparms_t result;
+	csi_cipherparms_t result;
 
-    memset(&result, 0, sizeof(csi_cipherparms_t));
+	memset(&result, 0, sizeof(csi_cipherparms_t));
 
-    if((buf == NULL) || (len == 0))
-    {
-        CSI_DEBUG_ERR("x csi_build_parms - Bad buf.", NULL);
-        CSI_DEBUG_ERR("x csi_build_parms - Bad len.", len);
-        return result;
-    }
+	if ((buf == NULL) || (len == 0))
+	{
+		CSI_DEBUG_ERR("x csi_build_parms - Bad buf.", NULL);
+		CSI_DEBUG_ERR("x csi_build_parms - Bad len.", len);
+		return result;
+	}
 
-    CSI_DEBUG_PROC("+ csi_build_parms(0x"ADDR_FIELDSPEC",%d", (uaddr)buf,
-            len);
+	CSI_DEBUG_PROC("+ csi_build_parms(0x" ADDR_FIELDSPEC ",%d", (uaddr) buf,
+			len);
 
-    result.iv = csi_extract_tlv(CSI_PARM_IV, buf, len);
-    result.intsig = csi_extract_tlv(CSI_PARM_INTSIG, buf, len);
-    result.salt = csi_extract_tlv(CSI_PARM_SALT, buf, len);
-    result.icv = csi_extract_tlv(CSI_PARM_ICV, buf, len);
-    result.keyinfo = csi_extract_tlv(CSI_PARM_KEYINFO, buf, len);
+	result.iv = csi_extract_tlv(CSI_PARM_IV, buf, len);
+	result.intsig = csi_extract_tlv(CSI_PARM_INTSIG, buf, len);
+	result.salt = csi_extract_tlv(CSI_PARM_SALT, buf, len);
+	result.icv = csi_extract_tlv(CSI_PARM_ICV, buf, len);
+	result.keyinfo = csi_extract_tlv(CSI_PARM_KEYINFO, buf, len);
 
-    CSI_DEBUG_PROC("- csi_build_parms -> parms", NULL);
+	CSI_DEBUG_PROC("- csi_build_parms -> parms", NULL);
 
-    return result;
+	return result;
 }
 
 /******************************************************************************
@@ -385,105 +385,105 @@ csi_cipherparms_t csi_build_parms(unsigned char *buf, uint32_t len)
 
 csi_val_t csi_extract_tlv(uint8_t itemNeeded, uint8_t *buf, uint32_t bufLen)
 {
-    csi_val_t result;
-    uint8_t   *cursor = buf;
-    uint8_t   itemType;
-    uvast     sdnvLength;
-    uvast     longNumber;
-    uint32_t  itemLength;
+	csi_val_t result;
+	uint8_t	 *cursor = buf;
+	uint8_t	  itemType;
+	uvast	  sdnvLength;
+	uvast	  longNumber;
+	uint32_t  itemLength;
 
-    CSI_DEBUG_PROC("+ csi_extract_tlv(%d, 0x"ADDR_FIELDSPEC",%d)",
-                   itemNeeded, (uaddr)buf, bufLen);
+	CSI_DEBUG_PROC("+ csi_extract_tlv(%d, 0x" ADDR_FIELDSPEC ",%d)",
+			itemNeeded, (uaddr) buf, bufLen);
 
-    memset(&result,0, sizeof(csi_val_t));
+	memset(&result, 0, sizeof(csi_val_t));
 
-    /* Step 0 - Sanity Check. */
-    if((buf == NULL) || (bufLen == 0))
-    {
-        CSI_DEBUG_ERR("x csi_extract_tlv - Bad Parms.", NULL);
-        CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)",
-                result.len);
-        return result;
-    }
+	/* Step 0 - Sanity Check. */
+	if ((buf == NULL) || (bufLen == 0))
+	{
+		CSI_DEBUG_ERR("x csi_extract_tlv - Bad Parms.", NULL);
+		CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)",
+				result.len);
+		return result;
+	}
 
-    /**
-     *  Step 1 - Walk through all items in the buffer searching for an
-     *           item of the indicated type.
-     */
+	/**
+	 *  Step 1 - Walk through all items in the buffer searching for an
+	 *           item of the indicated type.
+	 */
 
-    while (bufLen > 0)
-    {
-        /* Step 1a - Grab the type, which should be the first byte. */
-        itemType = *cursor;
+	while (bufLen > 0)
+	{
+		/* Step 1a - Grab the type, which should be the first byte. */
+		itemType = *cursor;
 
-        cursor++;
-        bufLen--;
+		cursor++;
+		bufLen--;
 
-        if (bufLen == 0)
-        {
-            CSI_DEBUG_ERR("x csi_extract_tlv: Read type %d and \
+		if (bufLen == 0)
+		{
+			CSI_DEBUG_ERR("x csi_extract_tlv: Read type %d and \
 ran out of space.", itemType);
-            CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)",
-                    result.len);
+			CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)",
+					result.len);
 
-            return result;
-        }
+			return result;
+		}
 
-        /* Step 1b - Grab the length, which is an SDNV. */
-        sdnvLength = decodeSdnv(&longNumber, cursor);
+		/* Step 1b - Grab the length, which is an SDNV. */
+		sdnvLength = decodeSdnv(&longNumber, cursor);
 
-        itemLength = longNumber;
-        cursor += sdnvLength;
-        bufLen -= sdnvLength;
+		itemLength = longNumber;
+		cursor += sdnvLength;
+		bufLen -= sdnvLength;
 
-        if (sdnvLength == 0 || sdnvLength > bufLen)
-        {
-            CSI_DEBUG_ERR("x csi_extract_tlv: Bad Len of %d \
+		if (sdnvLength == 0 || sdnvLength > bufLen)
+		{
+			CSI_DEBUG_ERR("x csi_extract_tlv: Bad Len of %d \
 with %d buffer remaining.", sdnvLength, bufLen);
-            CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)",
-                    result.len);
+			CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)",
+					result.len);
 
-            return result;
-        }
+			return result;
+		}
 
-        /**
-         * Step 1c - Evaluate this item. If the item is empty
-         * or not a match, skip over it. Otherwise, copy it out
-         * and return.                                       */
+		/**
+		 * Step 1c - Evaluate this item. If the item is empty
+		 * or not a match, skip over it. Otherwise, copy it out
+		 * and return.                                       */
 
-        if (itemLength == 0)     /*Empty item.      */
-        {
-            continue;
-        }
+		if (itemLength == 0) /*Empty item.      */
+		{
+			continue;
+		}
 
-        if (itemType == itemNeeded)
-        {
-            if((result.contents = MTAKE(itemLength)) == NULL)
-            {
-                CSI_DEBUG_ERR("x csi_extract_tlv: Cannot \
+		if (itemType == itemNeeded)
+		{
+			if ((result.contents = MTAKE(itemLength)) == NULL)
+			{
+				CSI_DEBUG_ERR("x csi_extract_tlv: Cannot \
 allocate size of %d.", itemLength);
-                CSI_DEBUG_PROC("- csi_extract_tlv -> result \
+				CSI_DEBUG_PROC("- csi_extract_tlv -> result \
 (len=%d)", result.len);
 
-                return result;
-            }
+				return result;
+			}
 
-            memcpy(result.contents, cursor, itemLength);
-            result.len = itemLength;
+			memcpy(result.contents, cursor, itemLength);
+			result.len = itemLength;
 
-            CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)",
-                    result.len);
-            return result;
-        }
+			CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)",
+					result.len);
+			return result;
+		}
 
-        /*    Look at next item in buffer.*/
+		/*    Look at next item in buffer.*/
 
-        cursor += itemLength;
-        bufLen -= itemLength;
-    }
+		cursor += itemLength;
+		bufLen -= itemLength;
+	}
 
-    CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)", result.len);
-    return result;
+	CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)", result.len);
+	return result;
 }
 
 /******************************************************************************
@@ -516,222 +516,222 @@ allocate size of %d.", itemLength);
 
 csi_val_t csi_build_tlv(uint8_t id, uint32_t len, uint8_t *contents)
 {
-    csi_val_t result;
-    Sdnv      lenSdnv;
+	csi_val_t result;
+	Sdnv	  lenSdnv;
 
-    CSI_DEBUG_PROC("+ csi_build_tlv(%d, %d, 0x"ADDR_FIELDSPEC")", id, len,
-            (uaddr)contents);
+	CSI_DEBUG_PROC("+ csi_build_tlv(%d, %d, 0x" ADDR_FIELDSPEC ")", id, len,
+			(uaddr) contents);
 
-    memset(&result, 0, sizeof(result));
+	memset(&result, 0, sizeof(result));
 
-    /* Step 0 - Sanity checks. */
+	/* Step 0 - Sanity checks. */
 
-    if((len == 0) || (contents == NULL))
-    {
-        CSI_DEBUG_ERR("x csi_build_tlv: Bad parms.", NULL);
-        CSI_DEBUG_PROC("- csi_build_tlv -> result (len=%d)",
-                result.len);
-        return result;
-    }
+	if ((len == 0) || (contents == NULL))
+	{
+		CSI_DEBUG_ERR("x csi_build_tlv: Bad parms.", NULL);
+		CSI_DEBUG_PROC("- csi_build_tlv -> result (len=%d)",
+				result.len);
+		return result;
+	}
 
-    /* Step 1 - Encode the length of the parameter. */
-    encodeSdnv(&lenSdnv, len);
+	/* Step 1 - Encode the length of the parameter. */
+	encodeSdnv(&lenSdnv, len);
 
-    /* Step 2 - Allocate space for the parameter. */
-    result.len = 1 + lenSdnv.length + len;
-    if((result.contents = MTAKE(result.len)) == NULL)
-    {
-        CSI_DEBUG_ERR("x csi_build_tlv: Can't allocate result of length %d.", result.len);
-        result.len = 0;
-        CSI_DEBUG_PROC("- csi_build_tlv -> result (len=%d)",
-                result.len);
-        return result;
-    }
+	/* Step 2 - Allocate space for the parameter. */
+	result.len = 1 + lenSdnv.length + len;
+	if ((result.contents = MTAKE(result.len)) == NULL)
+	{
+		CSI_DEBUG_ERR("x csi_build_tlv: Can't allocate result of length %d.", result.len);
+		result.len = 0;
+		CSI_DEBUG_PROC("- csi_build_tlv -> result (len=%d)",
+				result.len);
+		return result;
+	}
 
-    /* Step 3 - Populate parameter. */
-    result.contents[0] = id;
-    memcpy(&(result.contents[1]), lenSdnv.text, lenSdnv.length);
-    memcpy(&(result.contents[1+lenSdnv.length]), contents, len);
+	/* Step 3 - Populate parameter. */
+	result.contents[0] = id;
+	memcpy(&(result.contents[1]), lenSdnv.text, lenSdnv.length);
+	memcpy(&(result.contents[1 + lenSdnv.length]), contents, len);
 
-    CSI_DEBUG_PROC("- csi_build_tlv -> result (len=%d)", result.len);
-    return result;
+	CSI_DEBUG_PROC("- csi_build_tlv -> result (len=%d)", result.len);
+	return result;
 }
 
 csi_val_t csi_serialize_parms(csi_cipherparms_t parms)
 {
-    csi_val_t result;
-    uint32_t offset = 0;
-    csi_val_t iv;
-    csi_val_t aad;
-    csi_val_t keyinfo;
-    csi_val_t salt;
-    csi_val_t icv;
-    csi_val_t intsig;
+	csi_val_t result;
+	uint32_t offset = 0;
+	csi_val_t iv;
+	csi_val_t aad;
+	csi_val_t keyinfo;
+	csi_val_t salt;
+	csi_val_t icv;
+	csi_val_t intsig;
 
-    memset(&result, 0, sizeof(csi_val_t));
+	memset(&result, 0, sizeof(csi_val_t));
 
-    if(parms.aad.len <= 0 ||
-       parms.icv.len <= 0 ||
-       parms.intsig.len <= 0 ||
-       parms.iv.len <= 0 || 
-       parms.keyinfo.len <= 0 ||
-       parms.salt.len <= 0)
-    {
-        CSI_DEBUG_ERR("x csi_build_tlv: Parms len=%d.", result.len);
-        return result;
-    }
+	if (parms.aad.len <= 0 ||
+		parms.icv.len <= 0 ||
+		parms.intsig.len <= 0 ||
+		parms.iv.len <= 0 ||
+		parms.keyinfo.len <= 0 ||
+		parms.salt.len <= 0)
+	{
+		CSI_DEBUG_ERR("x csi_build_tlv: Parms len=%d.", result.len);
+		return result;
+	}
 
-    /* Step 1 - Initialize the individual TLV fields. */
-    memset(&iv, 0, sizeof(csi_val_t));
-    memset(&aad, 0, sizeof(csi_val_t));
-    memset(&salt, 0, sizeof(csi_val_t));
-    memset(&icv, 0, sizeof(csi_val_t));
-    memset(&keyinfo, 0, sizeof(csi_val_t));
-    memset(&intsig, 0, sizeof(csi_val_t));
+	/* Step 1 - Initialize the individual TLV fields. */
+	memset(&iv, 0, sizeof(csi_val_t));
+	memset(&aad, 0, sizeof(csi_val_t));
+	memset(&salt, 0, sizeof(csi_val_t));
+	memset(&icv, 0, sizeof(csi_val_t));
+	memset(&keyinfo, 0, sizeof(csi_val_t));
+	memset(&intsig, 0, sizeof(csi_val_t));
 
-    /* Step 2 - Populate TLV fields */
-    if(parms.intsig.len > 0)
-    {
-        intsig = csi_build_tlv(CSI_PARM_INTSIG, parms.intsig.len,
-                   parms.intsig.contents);
-        result.len += intsig.len;
-    }
+	/* Step 2 - Populate TLV fields */
+	if (parms.intsig.len > 0)
+	{
+		intsig = csi_build_tlv(CSI_PARM_INTSIG, parms.intsig.len,
+				parms.intsig.contents);
+		result.len += intsig.len;
+	}
 
-    if(parms.icv.len > 0)
-    {
-        icv = csi_build_tlv(CSI_PARM_ICV, parms.icv.len,
-                parms.icv.contents);
-        result.len += icv.len;
-    }
+	if (parms.icv.len > 0)
+	{
+		icv = csi_build_tlv(CSI_PARM_ICV, parms.icv.len,
+				parms.icv.contents);
+		result.len += icv.len;
+	}
 
-    if(parms.iv.len > 0)
-    {
-        iv = csi_build_tlv(CSI_PARM_IV, parms.iv.len,
-                parms.iv.contents);
-        result.len += iv.len;
-    }
+	if (parms.iv.len > 0)
+	{
+		iv = csi_build_tlv(CSI_PARM_IV, parms.iv.len,
+				parms.iv.contents);
+		result.len += iv.len;
+	}
 
-    if(parms.salt.len > 0)
-    {
-        salt = csi_build_tlv(CSI_PARM_SALT, parms.salt.len,
-                parms.salt.contents);
-        result.len += salt.len;
-    }
+	if (parms.salt.len > 0)
+	{
+		salt = csi_build_tlv(CSI_PARM_SALT, parms.salt.len,
+				parms.salt.contents);
+		result.len += salt.len;
+	}
 
-    if(parms.keyinfo.len > 0)
-    {
-        keyinfo = csi_build_tlv(CSI_PARM_KEYINFO, parms.keyinfo.len,
-                parms.keyinfo.contents);
-        result.len += keyinfo.len;
-    }
+	if (parms.keyinfo.len > 0)
+	{
+		keyinfo = csi_build_tlv(CSI_PARM_KEYINFO, parms.keyinfo.len,
+				parms.keyinfo.contents);
+		result.len += keyinfo.len;
+	}
 
 
-    /* Step 3 - Allocate the SDR space. */
-    if((result.contents = MTAKE(result.len)) == 0)
-    {
-        CSI_DEBUG_ERR("csi_serialize_parms: Can't allocate result of length %d.", result.len);
-        result.len = 0;
-        MRELEASE(intsig.contents);
-        MRELEASE(icv.contents);
-        MRELEASE(iv.contents);
-        MRELEASE(salt.contents);
-        MRELEASE(keyinfo.contents);
-        return result;
-    }
+	/* Step 3 - Allocate the SDR space. */
+	if ((result.contents = MTAKE(result.len)) == 0)
+	{
+		CSI_DEBUG_ERR("csi_serialize_parms: Can't allocate result of length %d.", result.len);
+		result.len = 0;
+		MRELEASE(intsig.contents);
+		MRELEASE(icv.contents);
+		MRELEASE(iv.contents);
+		MRELEASE(salt.contents);
+		MRELEASE(keyinfo.contents);
+		return result;
+	}
 
-    if(parms.aad.len > 0)
-    {
-        memcpy(result.contents+offset, (char *) intsig.contents,
-                intsig.len);
-        offset += intsig.len;
-        MRELEASE(intsig.contents);
-    }
+	if (parms.aad.len > 0)
+	{
+		memcpy(result.contents + offset, (char *) intsig.contents,
+				intsig.len);
+		offset += intsig.len;
+		MRELEASE(intsig.contents);
+	}
 
-    if(parms.icv.len > 0)
-    {
-        memcpy(result.contents+offset, (char *) icv.contents, icv.len);
-        offset += icv.len;
-        MRELEASE(icv.contents);
-    }
+	if (parms.icv.len > 0)
+	{
+		memcpy(result.contents + offset, (char *) icv.contents, icv.len);
+		offset += icv.len;
+		MRELEASE(icv.contents);
+	}
 
-    if(parms.iv.len > 0)
-    {
-        memcpy(result.contents+offset, (char *) iv.contents, iv.len);
-        offset += iv.len;
-        MRELEASE(iv.contents);
-    }
+	if (parms.iv.len > 0)
+	{
+		memcpy(result.contents + offset, (char *) iv.contents, iv.len);
+		offset += iv.len;
+		MRELEASE(iv.contents);
+	}
 
-    if(parms.salt.len > 0)
-    {
-        memcpy(result.contents+offset, (char *) salt.contents,
-                salt.len);
-        offset += salt.len;
-        MRELEASE(salt.contents);
-    }
+	if (parms.salt.len > 0)
+	{
+		memcpy(result.contents + offset, (char *) salt.contents,
+				salt.len);
+		offset += salt.len;
+		MRELEASE(salt.contents);
+	}
 
-    if(parms.keyinfo.len > 0)
-    {
-        memcpy(result.contents+offset, (char *) keyinfo.contents,
-                keyinfo.len);
-        offset += keyinfo.len;
-        MRELEASE(keyinfo.contents);
-    }
+	if (parms.keyinfo.len > 0)
+	{
+		memcpy(result.contents + offset, (char *) keyinfo.contents,
+				keyinfo.len);
+		offset += keyinfo.len;
+		MRELEASE(keyinfo.contents);
+	}
 
-    return result;
+	return result;
 }
 
-int8_t csi_crypt_key(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parms, 
-                     csi_val_t longtermkey, csi_val_t input, csi_val_t *output)
+int8_t csi_crypt_key(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parms,
+		csi_val_t longtermkey, csi_val_t input, csi_val_t *output)
 {
-    int8_t retval;
-    /* Parameter intentionally unused. */
-    (void)suite;
-    (void)svc;
-    (void)parms;
-    (void)longtermkey;
-    (void)input;
+	int8_t retval;
+	/* Parameter intentionally unused. */
+	(void) suite;
+	(void) svc;
+	(void) parms;
+	(void) longtermkey;
+	(void) input;
 
-    output->len = NCS_LEN_VAL;
-    retval = csi_memAlloc(&output->contents, &output->len);
-    CSI_DEBUG_PROC("- csi_crypt_key ->%d", retval);
-    return retval;
+	output->len = NCS_LEN_VAL;
+	retval = csi_memAlloc(&output->contents, &output->len);
+	CSI_DEBUG_PROC("- csi_crypt_key ->%d", retval);
+	return retval;
 }
 
 //2/21
 void csi_cipherparms_free(csi_cipherparms_t parms)
 {
-        
-    MRELEASE(parms.aad.contents);
-    MRELEASE(parms.icv.contents);
-    MRELEASE(parms.intsig.contents);
-    MRELEASE(parms.iv.contents);
-    MRELEASE(parms.keyinfo.contents);
-    MRELEASE(parms.salt.contents);
 
-    return;
+	MRELEASE(parms.aad.contents);
+	MRELEASE(parms.icv.contents);
+	MRELEASE(parms.intsig.contents);
+	MRELEASE(parms.iv.contents);
+	MRELEASE(parms.keyinfo.contents);
+	MRELEASE(parms.salt.contents);
+
+	return;
 }
 
 // 2/21
 csi_val_t csi_rand(csi_csid_t suite, uint32_t len)
 {
-    csi_val_t result;
+	csi_val_t result;
 
-    /* Parameter intentionally unused. */
-    (void)suite;
+	/* Parameter intentionally unused. */
+	(void) suite;
 
-    memset(&result, 0, sizeof(result)); 
+	memset(&result, 0, sizeof(result));
 
-    if (len == 0)
-    {
-        CSI_DEBUG_ERR("x csi_rand: Can't allocate result of length %d.", len);
-        return result;
-    }
-    
-    result.len = len;
-    
-    csi_memAlloc(&result.contents, &result.len);
+	if (len == 0)
+	{
+		CSI_DEBUG_ERR("x csi_rand: Can't allocate result of length %d.", len);
+		return result;
+	}
 
-    return result;
+	result.len = len;
+
+	csi_memAlloc(&result.contents, &result.len);
+
+	return result;
 }
 
 /******************************************************************************
@@ -758,23 +758,23 @@ csi_val_t csi_rand(csi_csid_t suite, uint32_t len)
 
 uint8_t *csi_ctx_init(csi_csid_t suite, csi_val_t key_info, csi_svcid_t svc)
 {
-    uint8_t *context = NULL;
-    int32_t temp_len = csi_ctx_len(suite);
+	uint8_t *context = NULL;
+	int32_t	 temp_len = csi_ctx_len(suite);
 
-    /* Parameter intentionally unused. */
-    (void)svc;
+	/* Parameter intentionally unused. */
+	(void) svc;
 
-    if(csi_memAlloc(&context, &temp_len) <= 0)
-    {
-        return NULL;
-    }
+	if (csi_memAlloc(&context, &temp_len) <= 0)
+	{
+		return NULL;
+	}
 
-    if(key_info.len > 0)
-    {
-        memcpy(context, key_info.contents, MIN(temp_len, key_info.len));
-    }
+	if (key_info.len > 0)
+	{
+		memcpy(context, key_info.contents, MIN(temp_len, key_info.len));
+	}
 
-    return context;
+	return context;
 }
 
 /******************************************************************************
@@ -800,12 +800,12 @@ uint8_t *csi_ctx_init(csi_csid_t suite, csi_val_t key_info, csi_svcid_t svc)
 
 int8_t csi_sign_start(csi_csid_t suite, void *context)
 {
-    /* Parameter intentionally unused. */
-    (void)suite;
+	/* Parameter intentionally unused. */
+	(void) suite;
 
-    CHKERR(context);
+	CHKERR(context);
 
-    return 1;
+	return 1;
 }
 
 /******************************************************************************
@@ -832,22 +832,22 @@ int8_t csi_sign_start(csi_csid_t suite, void *context)
 
 int8_t csi_sign_update(csi_csid_t suite, void *context, csi_val_t data, csi_svcid_t svc)
 {
-    /* Parameters intentionally unused. */
-    (void)suite;
-    (void)svc;
+	/* Parameters intentionally unused. */
+	(void) suite;
+	(void) svc;
 
-    CHKERR(context);
+	CHKERR(context);
 
-    if(data.contents == NULL || data.len <= 0)
-    {
-        return ERROR;
-    }
+	if (data.contents == NULL || data.len <= 0)
+	{
+		return ERROR;
+	}
 
 #ifdef NULL_FAIL
-    return 0;
+	return 0;
 #endif
-    
-    return 1;
+
+	return 1;
 }
 
 /******************************************************************************
@@ -875,19 +875,19 @@ int8_t csi_sign_update(csi_csid_t suite, void *context, csi_val_t data, csi_svci
 
 int8_t csi_sign_finish(csi_csid_t suite, void *context, csi_val_t *result, csi_svcid_t svc)
 {
-    /* Parameters intentionally unused. */
-    (void)suite;
-    (void)svc;
+	/* Parameters intentionally unused. */
+	(void) suite;
+	(void) svc;
 
-    CHKERR(context);
+	CHKERR(context);
 
 #ifdef NULL_FAIL
-    return 0;
+	return 0;
 #endif
 
-    result->len = NCS_LEN_VAL;
+	result->len = NCS_LEN_VAL;
 
-    return csi_memAlloc(&result->contents, &result->len);
+	return csi_memAlloc(&result->contents, &result->len);
 }
 
 /******************************************************************************
@@ -921,22 +921,22 @@ int8_t csi_sign_finish(csi_csid_t suite, void *context, csi_val_t *result, csi_s
 
 int8_t csi_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_t *result, csi_svcid_t svc)
 {
-    /* Parameters intentionally unused. */
-    (void)suite;
-    (void)input;
-    (void)key;
-    (void)svc;
+	/* Parameters intentionally unused. */
+	(void) suite;
+	(void) input;
+	(void) key;
+	(void) svc;
 
-    CHKERR(result);
+	CHKERR(result);
 
 #ifdef NULL_FAIL
-    return 4;
+	return 4;
 #endif
 
-    memset(result,0,sizeof(csi_val_t));
+	memset(result, 0, sizeof(csi_val_t));
 
-    result->len = NCS_LEN_VAL;
-    return csi_memAlloc(&result->contents, &result->len);
+	result->len = NCS_LEN_VAL;
+	return csi_memAlloc(&result->contents, &result->len);
 }
 
 /******************************************************************************
@@ -966,19 +966,19 @@ int8_t csi_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_t
 
 int8_t csi_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc, csi_cipherparms_t *parms)
 {
-   /* Parameters intentionally unused. */
-    (void)suite;
-    (void)svc;
+	/* Parameters intentionally unused. */
+	(void) suite;
+	(void) svc;
 
-    CHKERR(context);
-    CHKERR(parms);
+	CHKERR(context);
+	CHKERR(parms);
 
 #ifdef NULL_FAIL
-    return 0;
+	return 0;
 #endif
 
-    parms->icv.len = NCS_ICV_LEN;
-    return csi_memAlloc(&parms->icv.contents, &parms->icv.len);;
+	parms->icv.len = NCS_ICV_LEN;
+	return csi_memAlloc(&parms->icv.contents, &parms->icv.len);
 }
 
 /******************************************************************************
@@ -1008,38 +1008,38 @@ int8_t csi_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc, csi_ci
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int8_t csi_crypt_full(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parms, 
-                      csi_val_t key, csi_val_t input, csi_val_t *output)
+int8_t csi_crypt_full(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parms,
+		csi_val_t key, csi_val_t input, csi_val_t *output)
 {
-    int8_t retval = ERROR;
+	int8_t retval = ERROR;
 
 	CSI_DEBUG_PROC("+ csi_crypt_full(%d, %d, key (len=%d), input(len=%d),"ADDR_FIELDSPEC")",
-			       suite, svc, (uaddr)parms, key.len, input.len, (uaddr)output);
+			suite, svc, (uaddr)parms, key.len, input.len, (uaddr)output);
 
 	CHKERR(parms);
 	CHKERR(output);
 
 #ifdef NULL_FAIL
-    return 0;
+	return 0;
 #endif
 
-    switch(suite)
+	switch (suite)
 	{
 
 	case CSTYPE_SHA256_AES128:
 	case CSTYPE_SHA384_AES256:
 	case CSTYPE_AES128_GCM:
 	case CSTYPE_AES256_GCM:
-		 output->len = input.len;
-    
-        if(csi_memAlloc(&output->contents, &output->len) == ERROR)
-        {
-            return ERROR;
-        }
+		output->len = input.len;
 
-        /* TODO: Check return value. */
-        memcpy(output->contents, input.contents, MIN(output->len, input.len));
-        retval = 1;
+		if (csi_memAlloc(&output->contents, &output->len) == ERROR)
+		{
+			return ERROR;
+		}
+
+		/* TODO: Check return value. */
+		memcpy(output->contents, input.contents, MIN(output->len, input.len));
+		retval = 1;
 		break;
 
 	default:
@@ -1047,9 +1047,9 @@ int8_t csi_crypt_full(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parm
 		break;
 	}
 
-    /* TODO: Check return value. */
-    parms->icv.len = NCS_ICV_LEN;
-    csi_memAlloc(&parms->icv.contents, &parms->icv.len);
+	/* TODO: Check return value. */
+	parms->icv.len = NCS_ICV_LEN;
+	csi_memAlloc(&parms->icv.contents, &parms->icv.len);
 
 	CSI_DEBUG_PROC("- csi_crypt_full ->%d", retval);
 	return retval;
@@ -1078,14 +1078,14 @@ int8_t csi_crypt_full(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parm
 
 csi_val_t csi_crypt_parm_get(csi_csid_t suite, csi_parmid_t parmid)
 {
-    csi_val_t result;
+	csi_val_t result;
 
-    result.len = csi_crypt_parm_get_len(suite,  parmid);
-    result.contents = NULL;
+	result.len = csi_crypt_parm_get_len(suite, parmid);
+	result.contents = NULL;
 
-    csi_memAlloc(&result.contents, &result.len);
+	csi_memAlloc(&result.contents, &result.len);
 
-    return result;
+	return result;
 }
 
 /******************************************************************************
@@ -1111,12 +1111,12 @@ csi_val_t csi_crypt_parm_get(csi_csid_t suite, csi_parmid_t parmid)
 
 int8_t csi_crypt_start(csi_csid_t suite, void *context, csi_cipherparms_t parms)
 {
-    /* Parameters intentionally unused. */
-    (void)suite;
-    (void)parms;
+	/* Parameters intentionally unused. */
+	(void) suite;
+	(void) parms;
 
-    CHKERR(context);
-    return 1;
+	CHKERR(context);
+	return 1;
 }
 
 /******************************************************************************
@@ -1145,30 +1145,29 @@ int8_t csi_crypt_start(csi_csid_t suite, void *context, csi_cipherparms_t parms)
 
 csi_val_t csi_crypt_update(csi_csid_t suite, void *context, csi_svcid_t svc, csi_val_t data)
 {
-    csi_val_t result;
-    
-    /* Parameters intentionally unused. */
-    (void)suite;
-    (void)svc;
+	csi_val_t result;
 
-    memset(&result, 0, sizeof(result)); 
+	/* Parameters intentionally unused. */
+	(void) suite;
+	(void) svc;
 
-    if(context == NULL || (data.contents == NULL && data.len <= 0))
-    {
-        CSI_DEBUG_ERR("x csi_crypt_update: Bad argument.", NULL);
-        return result;
-    }
+	memset(&result, 0, sizeof(result));
+
+	if (context == NULL || (data.contents == NULL && data.len <= 0))
+	{
+		CSI_DEBUG_ERR("x csi_crypt_update: Bad argument.", NULL);
+		return result;
+	}
 
 #ifdef NULL_FAIL
-    return result;
+	return result;
 #endif
 
-    result.len = data.len;
-    if(csi_memAlloc(&result.contents, &result.len) <= 0)
-    {
-        return result;
-    }
-    memcpy(result.contents, data.contents, result.len);
-    return result;
+	result.len = data.len;
+	if (csi_memAlloc(&result.contents, &result.len) <= 0)
+	{
+		return result;
+	}
+	memcpy(result.contents, data.contents, result.len);
+	return result;
 }
-

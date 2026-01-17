@@ -20,7 +20,7 @@
 static sm_SemId	dccplsoSemaphore(sm_SemId *semid)
 {
 	static sm_SemId	semaphore = -1;
-	
+
 	if (semid)
 	{
 		semaphore = *semid;
@@ -104,7 +104,7 @@ int connectDCCPsock(int* sock, struct sockaddr* socketName, int* MPS)
 		*MPS=1400;
 		return -1;
 	}
-return 0;
+	return 0;
 }
 
 int	sendDataByDCCP(int linkSocket, char *from, int length)
@@ -216,7 +216,7 @@ void* send_keepalives(void* param)
 		}
 		pthread_mutex_unlock(&itp->mutex);
 	}
-return NULL;
+	return NULL;
 }
 
 
@@ -275,7 +275,7 @@ int sendSegmentByDCCP(lso_state* itp, char* segment, int segmentLength)
 		itp->active = 1;
 		break; /* sent successfully				*/
 	} while(1);
-return bytesSent;
+	return bytesSent;
 }
 
 #if defined (ION_LWT)
@@ -378,12 +378,12 @@ int	main(int argc, char *argv[])
 		pthread_mutex_destroy(&itp.mutex);
 		return 1;
 	}
-	
+
 	/*	Can now begin transmitting to remote engine.		*/
 	writeMemo("[i] dccplso is running.");
 	while (running && !(sm_SemEnded(vspan->segSemaphore)))
 	{
-		
+
 		segmentLength = ltpDequeueOutboundSegment(vspan, &segment);
 		if (segmentLength < 0)
 		{
@@ -446,9 +446,9 @@ int	dccplso(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 int	main(void)
 {
 #endif
-putErrmsg("dccplso (and the DCCP protocol) are only available under Linux (>=3.2.0). Please see the README in the ltp/dccp source directory for more information.", NULL);
-writeErrmsgMemos();
-return 0;
+	putErrmsg("dccplso (and the DCCP protocol) are only available under Linux (>=3.2.0). Please see the README in the ltp/dccp source directory for more information.", NULL);
+	writeErrmsgMemos();
+	return 0;
 }
 
 #endif /*build_dccp*/

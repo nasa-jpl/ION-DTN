@@ -27,10 +27,10 @@ echo "CONFIG: 1 node standard:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo
@@ -83,9 +83,9 @@ grep "${IONMESSAGE}" "${IONRECEIVEFILE}"  >/dev/null 2>/dev/null
 RETVAL=${?}
 
 if [ "${RETVAL}" -ne 0 ] ; then
-	echo "Files do not match. FAILURE!"
+    echo "Files do not match. FAILURE!"
 else
-	echo "Files match. SUCCESS!"
+    echo "Files match. SUCCESS!"
 fi
 
 # shut down ion processes

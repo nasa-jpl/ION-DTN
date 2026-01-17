@@ -2122,5 +2122,3 @@ static inline int UsefulInputBuf_GetError(UsefulInputBuf *pMe)
 #endif
 
 #endif  // _UsefulBuf_h
-
-

@@ -52,7 +52,7 @@ Technology_
  name is used; the reserved continuum number zero corresponds to this
  continuum name.
 
- Note that within the AMS protocol, the continuum number is represented 
+ Note that within the AMS protocol, the continuum number is represented
  as an unsigned 15-bit integer, limiting its range of values from 0 to 32,767.
 
  An *application* is a data system implementation, typically taking the
@@ -558,11 +558,11 @@ g.  encryption parameters, including a symmetric encryption key,
  This information may be used to support secure transmission of
  messages on selected subjects.
 
- Note: As of version 3.1 (this document), the JPL implementation of AMS 
- supports per-subject symmetric key encryption for message content when 
- the  MBEDTLS 2.28.x library is installed. This feature uses HMAC for 
- authentication and AES in CBC mode for encryption. It is enabled on a 
- per-subject basis by adding the symkey attribute to a subject's 
+ Note: As of version 3.1 (this document), the JPL implementation of AMS
+ supports per-subject symmetric key encryption for message content when
+ the  MBEDTLS 2.28.x library is installed. This feature uses HMAC for
+ authentication and AES in CBC mode for encryption. It is enabled on a
+ per-subject basis by adding the symkey attribute to a subject's
  definition in the MIB.
 
 13. **Subject Catalog**
@@ -985,8 +985,8 @@ AmsMgtErrHandler	errHandler;
 void	*errHandlerUserData;
 } AmsEventMgt;
 
-/*  Predefined term values for ams_query and ams_get_event.  */ 
-#define AMS_POLL (0)	/* Return immediately. */ 
+/*  Predefined term values for ams_query and ams_get_event.  */
+#define AMS_POLL (0)	/* Return immediately. */
 #define AMS_BLOCKING  (-1)	/*   Wait forever.    */
 ```
 
@@ -1104,7 +1104,7 @@ void ams_remove_event_mgr(AmsModule module);
  ams_remove_event_mgr. Following completion of this function the prime
  thread is once again able to receive and process AMS events.
 
-```c 
+```c
 int ams_unregister(AmsModule module);
 ```
  The function terminates the module's registration, ending the ability
@@ -1615,11 +1615,11 @@ int  ams_parse_notice (AmsEvent event, AmsStateType
  *roleName, int lifetime);
 ```
  This function initiates a RAMS gateway operations loop. *mibSource*,
- *tsorder*, *applicationName*, *authorityName*, *unitName*, and 
- *roleName* are as discussed in the documentation of  ams_register  
- above; they are used to register the RAMS gateway process as an AMS 
- module. *lifetime* is the user-specified maximum time to live for all 
- DTN bundles issued by the RAMS gateway in the course of its 
+ *tsorder*, *applicationName*, *authorityName*, *unitName*, and
+ *roleName* are as discussed in the documentation of  ams_register
+ above; they are used to register the RAMS gateway process as an AMS
+ module. *lifetime* is the user-specified maximum time to live for all
+ DTN bundles issued by the RAMS gateway in the course of its
  communications over the RAMS network.
 
  Note that the priority assigned to any DTN bundle that conveys a
@@ -1678,83 +1678,83 @@ int  ams_parse_notice (AmsEvent event, AmsStateType
 
 The elements of the XML files used to load AMS MIBs are as follows:
 
-**[ams_mib_load]** : contains a series of MIB load commands.  
-Attributes:  
+**[ams_mib_load]** : contains a series of MIB load commands.
+Attributes:
 none
 
 ---
-**[ams_mib_init]** : command that initializes the MIB.  
-Attributes:  
-[continuum_nbr]: the number identifying the local continuum  
+**[ams_mib_init]** : command that initializes the MIB.
+Attributes:
+[continuum_nbr]: the number identifying the local continuum
 [ptsname]: the name of the primary transport service
 
 ---
-**[ams_mib_add]** : contains a series of elements that add items to the MIB.  
-Attributes:  
+**[ams_mib_add]** : contains a series of elements that add items to the MIB.
+Attributes:
 none
 
 ---
-**[continuum]** :  
-Attributes:  
-[nbr]: the number that identifies this continuum  
-[name]: the name that identifies this continuum  
-[neighbor]: a Boolean indication ("1" or "0") of whether or not this is a neighboring continuum. If omitted, the default is "1".  
+**[continuum]** :
+Attributes:
+[nbr]: the number that identifies this continuum
+[name]: the name that identifies this continuum
+[neighbor]: a Boolean indication ("1" or "0") of whether or not this is a neighboring continuum. If omitted, the default is "1".
 [desc]: a brief textual description of this continuum
 
 ---
-**[csendpoint]** : configuration server endpoint specification.  
-Attributes:  
+**[csendpoint]** : configuration server endpoint specification.
+Attributes:
 [epspec]: PTS-specific endpoint specification string
 
 ---
-**[application]** : defines an application.  
-Attributes:  
+**[application]** : defines an application.
+Attributes:
 [name]: name of application
 
 ---
-**[venture]** : defines a venture (an instance of an application).  
-Attributes:  
-[nbr]: the number that identifies this venture  
-[appname]: the name of the application served by this venture  
-[authname]: the name of the authority responsible for this instance of this application  
-[net_config]: the configuration ("mesh" or "tree") of the RAMS network. If omitted, the default is "mesh".  
-[gweid]: a string identifying the endpoint for the local continuum's RAMS gateway; default is "bp@ipn:local_continuum_nbr.venture_nbr"  
+**[venture]** : defines a venture (an instance of an application).
+Attributes:
+[nbr]: the number that identifies this venture
+[appname]: the name of the application served by this venture
+[authname]: the name of the authority responsible for this instance of this application
+[net_config]: the configuration ("mesh" or "tree") of the RAMS network. If omitted, the default is "mesh".
+[gweid]: a string identifying the endpoint for the local continuum's RAMS gateway; default is "bp@ipn:local_continuum_nbr.venture_nbr"
 [root_cell_resync_period]: the period (expressed as a count of registrar heartbeats) on which the configuration of the root unit of this venture will automatically be resynchronized. If omitted or set to zero, automatic resync is disabled within the root unit.
 
 ---
-**[role]** : defines a role within a venture.  
-Attributes:  
-[nbr]: the number that identifies this role  
+**[role]** : defines a role within a venture.
+Attributes:
+[nbr]: the number that identifies this role
 [name]: the name that identifies this role
 
 ---
-**[subject]** : defines a message subject within a venture.  
-Attributes:  
-[nbr]: the number that identifies this subject  
-[name]: the name that identifies this subject  
-[symkey]: (Optional) The name of the symmetric key for message content encryption. This key must be pre-loaded into the ION security database via the `ionsecadmin` utility. Requires the MBEDTLS library (v2.28.x).  
+**[subject]** : defines a message subject within a venture.
+Attributes:
+[nbr]: the number that identifies this subject
+[name]: the name that identifies this subject
+[symkey]: (Optional) The name of the symmetric key for message content encryption. This key must be pre-loaded into the ION security database via the `ionsecadmin` utility. Requires the MBEDTLS library (v2.28.x).
 [desc]: a brief textual description of this message subject
 
 ---
-**[element]** : defines one of the elements (fields) of a message on a given subject.  
-Attributes:  
-[type]: a number that specifies the data type of this element (1=long, 2=int, 3=short, 4=char, 5=string)  
-[name]: the name that identifies this element  
+**[element]** : defines one of the elements (fields) of a message on a given subject.
+Attributes:
+[type]: a number that specifies the data type of this element (1=long, 2=int, 3=short, 4=char, 5=string)
+[name]: the name that identifies this element
 [desc]: a brief textual description of this message field.
 
 ---
-**[unit]** : defines a unit of a venture.  
-Attributes:  
-[nbr]: the number that identifies this unit  
-[name]: the name that identifies this unit  
+**[unit]** : defines a unit of a venture.
+Attributes:
+[nbr]: the number that identifies this unit
+[name]: the name that identifies this unit
 [resync_period]: the period (expressed as a count of registrar heartbeats) on which the configuration of this unit will automatically be resynchronized. If omitted or set to zero, automatic resync is disabled within this unit.
 
 ---
-**[msgspace]** : identifies a remote continuum that contains a message space that is part of this venture.  
-Attributes:  
-[nbr]: the number that identifies the continuum containing this message space  
-[gweid]: (Mandatory) A string defining the explicit network route to the remote gateway. The format is '`<protocol_name>`@`<eid_string>`'.  
-[neighbor]: Signifies adjacency with the parent continuum using a Boolean value (1=adjacent, 0=non-adjacent). If omitted, the default is 1.  
+**[msgspace]** : identifies a remote continuum that contains a message space that is part of this venture.
+Attributes:
+[nbr]: the number that identifies the continuum containing this message space
+[gweid]: (Mandatory) A string defining the explicit network route to the remote gateway. The format is '`<protocol_name>`@`<eid_string>`'.
+[neighbor]: Signifies adjacency with the parent continuum using a Boolean value (1=adjacent, 0=non-adjacent). If omitted, the default is 1.
 
 
 ## A Sample MIB
@@ -1882,14 +1882,14 @@ using the ams_register() function):
 amshello.c
 "Hello world" demonstration using AMS - Unix platform (only)
 
-Copyright (c) 2023, California Institute of Technology.	
+Copyright (c) 2023, California Institute of Technology.
 Sky DeBaun, Jet Propulsion Laboratory.
 
 
 This program assumes the following conditions---------------
 1.) ION is running
-2.) An AMS Registrar is running 	
-3.) An AMS Configuration Server is running 
+2.) An AMS Registrar is running
+3.) An AMS Configuration Server is running
 4.) An MIB configuration file has been created and is specified for use (see note below)
 
 *NOTE: the following command completes steps 2, 3, and 4 above (run this command after other ION processes start, then run the ‘amshello’ command from terminal to run the program):
@@ -1918,10 +1918,10 @@ static int	runPitcher()
 
 	//register pitch module using default in-memory MIB (i.e. using the @)
 	oK(ams_register("@", NULL, "amsdemo", "test", "", "pitch", &me));
-	
+
 	while (1)
 	{
-		if (ams_get_event(me, AMS_BLOCKING, &evt) < 0) 
+		if (ams_get_event(me, AMS_BLOCKING, &evt) < 0)
 {
 return 0;
 }
@@ -1937,7 +1937,7 @@ else
 			printf("Process %d sending:  '%s'\n", (int) getpid(), buffer);
 			fflush(stdout);
 			ams_send(me, -1, zn, nn, 1, 0, 0, textlen, buffer, 0);
-			ams_unregister(me); 
+			ams_unregister(me);
 return 0;
 		}
 	}
@@ -1955,7 +1955,7 @@ static int	runCatcher()
 	//register catch module using default in-memory MIB (i.e. @)
 	oK(ams_register("@", NULL, "amsdemo", "test", "", "catch", &me));
 	ams_invite(me, 0, 0, 0, 1, 8, 0, AmsArrivalOrder, AmsAssured);
-	
+
 	while (1)
 	{
 		if (ams_get_event(me, AMS_BLOCKING, &evt) < 0) return 0;
@@ -1969,7 +1969,7 @@ static int	runCatcher()
 }
 
 
-int main(void) 
+int main(void)
 {
     pid_t pid = fork();
 
@@ -1981,7 +1981,7 @@ int main(void)
     if (pid == 0)
         //child process runs transmitter----------------------
         runPitcher();
-    else 
+    else
     {
         //parent process runs receiver------------------------
         runCatcher();

@@ -35,7 +35,7 @@ The QCBOR code included is distributed with the following condition
 Copyright (c) 2016-2018, The Linux Foundation.
 Copyright (c) 2018-2019, Laurence Lundblade.
 All rights reserved.
- 
+
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
 are met:
@@ -49,7 +49,7 @@ are met:
       contributors, nor the name "Laurence Lundblade" may be used to
       endorse or promote products derived from this software without
       specific prior written permission.
- 
+
 THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
 WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
@@ -70,7 +70,7 @@ platform, cd into ion-open-source and enter three commands:
 	make
 	sudo make install
 
-NOTE: if you want to set overriding compile-time switches for a build, 
+NOTE: if you want to set overriding compile-time switches for a build,
 the place to do this is in the ./configure command.  For details,
 
 	./configure -h
@@ -86,7 +86,7 @@ on Windows.pdf" document.
 
 To build ION for the ARM-based AT91SAM9G20 board, cd into
 ion-open-source/arch-uClibc and see the instructions in the
-"ARM build.pdf" file. 
+"ARM build.pdf" file.
 
 It's also possible to build the individual packages of ION, using
 platform-specific Makefiles in the package subdirectories.  If you choose
@@ -117,4 +117,4 @@ Tutorials can be found on the ION-DTN Sourceforge page at
 https://sourceforge.net/p/ion-dtn/wiki/Tutorial_Home/.
 
 Scott Burleigh, JPL
-scott.c.burleigh@jpl.nasa.gov 
+scott.c.burleigh@jpl.nasa.gov

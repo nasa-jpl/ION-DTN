@@ -6,7 +6,7 @@
 /*	All rights reserved.						*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*	Enhanced by Ryan Metzger (MITRE Corp.) August 2006		*/
-/*	Andrew Jenkins <andrew.jenkins@colorado.edu> made it echo received 
+/*	Andrew Jenkins <andrew.jenkins@colorado.edu> made it echo received
 		data, March 2009 			*/
 
 #include <bp.h>
@@ -69,7 +69,7 @@ int	main(int argc, char **argv)
 #endif
 /*	Indication marks:	"." for BpPayloadPresent (1),
 				"*" for BpReceptionTimedOut (2).
- 				"!" for BpReceptionInterrupted (3).
+				"!" for BpReceptionInterrupted (3).
 				"X" for BpEndpointStopped (4).	*/
 	static char	dlvmarks[] = "?.*!X";
 	BptestState	state;
@@ -80,7 +80,7 @@ int	main(int argc, char **argv)
 	Object		extent;
 	BpDelivery	dlv;
 	ZcoReader	reader;
- 	char		sourceEid[1024];
+	char		sourceEid[1024];
 	int		bytesToEcho = 0;
 	int		result;
 

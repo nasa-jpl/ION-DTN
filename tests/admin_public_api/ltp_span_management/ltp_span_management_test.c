@@ -65,14 +65,14 @@ static int test_add_ltp_span(uvast engine_id, unsigned int max_export_sessions,
 	TEST_START("Add LTP Span");
 	LOG_INFO("Adding LTP span to engine " UVAST_FIELDSPEC "...", engine_id);
 	if (add_span(engine_id,
-	             max_export_sessions,
-	             max_import_sessions,
-	             max_segment_size,
-	             aggr_size_limit,
-	             aggr_time_limit,
-	             lso_command,
-	             queuing_latency,
-	             purge_enabled) <= 0)
+			max_export_sessions,
+			max_import_sessions,
+			max_segment_size,
+			aggr_size_limit,
+			aggr_time_limit,
+			lso_command,
+			queuing_latency,
+			purge_enabled) <= 0)
 	{
 		TEST_FAIL("add_span", "Failed to add LTP span");
 		return -1;
@@ -170,7 +170,7 @@ static int test_ltp_start_span(uvast engine_id)
 
 /* Helper: Send bundle test */
 static int send_bundle_test(const char *test_name, const char *message,
-                           const char *output_file, int expect_delivery)
+		const char *output_file, int expect_delivery)
 {
 	FILE *fp;
 	char line[256];
@@ -437,9 +437,9 @@ int main(void)
 	LOG_INFO("Testing bundle delivery with span running...");
 	time_t bundle_sent_time = time(NULL);  /* Record time for diagnostics */
 	if (send_bundle_test("Test 1: Initial Transmission",
-	                     "Test 1: Initial transmission",
-	                     "./bpsink_test1.txt",
-	                     1) < 0)  /* expect_delivery = 1 */
+			"Test 1: Initial transmission",
+			"./bpsink_test1.txt",
+			1) < 0)  /* expect_delivery = 1 */
 	{
 		goto cleanup;
 	}
@@ -554,9 +554,9 @@ int main(void)
 	printf("\n--- Step 13: Test 2 - Bundle During Span Removal ---\n");
 	LOG_INFO("Testing bundle buffering with span removed...");
 	if (send_bundle_test("Test 2: Buffered During Removal",
-	                     "Test 2: Buffered during span removal",
-	                     "./bpsink_test2.txt",
-	                     0) < 0)  /* expect_delivery = 0 (buffered) */
+			"Test 2: Buffered during span removal",
+			"./bpsink_test2.txt",
+			0) < 0)  /* expect_delivery = 0 (buffered) */
 	{
 		goto cleanup;
 	}

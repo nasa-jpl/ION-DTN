@@ -8,7 +8,7 @@ convergence-layer protocol for use with BP's Custody Transfer.
 Please note that there is no fragmentation support in this convergence layer and
 we do not intend to add any. This means that this convergence layer is limited
 to transmitting bundles no larger than the MTU of the link it is running on.
-The DCCP RFCs make it clear that IP fragmentation is strongly discouraged 
+The DCCP RFCs make it clear that IP fragmentation is strongly discouraged
 (and Linux doesn't implement DCCP fragmentation). Further, because DCCP is not a
 reliable protocol, fragmentation will increase the apparent loss rate on a link
 and make it nearly impossible to receive an entire bundle at even medium error
@@ -32,7 +32,7 @@ Hence, my first recommendation to those desiring to use DCCP is to update to the
 most recent version of your favorite distro.
 
 If for some reason you can't do that, you will need to build a recent kernel from
-source. The following article does a very good job at describing the process: 
+source. The following article does a very good job at describing the process:
 http://www.cyberciti.biz/tips/compiling-linux-kernel-26.html
 
 

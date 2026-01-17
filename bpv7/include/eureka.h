@@ -31,13 +31,13 @@ extern "C" {
 	data from the local node at xmitRate
 	bytes/sec and send data to the local
 	node at recvRate bytes/sec.  socketSpec
-	will have the appropriate format for 
+	will have the appropriate format for
 	the applicable convergence-layer protocol.
 	For example if the convergence-layer
 	protocol is tcp, the socketSpec will have
 	the form ipaddress:port or hostname:port.
  * @param  socketSpec      socketSpec for the required CLA.
- * @param  discoveryEid    Node identification. 
+ * @param  discoveryEid    Node identification.
  * @param  claProtocol     Target CLA.
  * @param  xmitRate        Discovered node's rate of receiving data.
  * @param  recvRate        Discovered node's rate of sending data.
@@ -55,7 +55,7 @@ extern int	bp_discovery_acquired(
 	communication contact previously noted
 	by bp_discover_contact_acquired().
  * @param  socketSpec      socketSpec of the terminated contact.
- * @param  discoveryEid    Node identification. 
+ * @param  discoveryEid    Node identification.
  * @param  claProtocol	   Target CLA.
  * @return                 0 on success, -1 on error.
  */
@@ -67,7 +67,7 @@ extern int	bp_discovery_lost(
 /**
  * Locates a discovery previously noted
 	by bp_discover_contact_acquired().
- * @param  discoveryEid    Node identification. 
+ * @param  discoveryEid    Node identification.
  * @return                 SmList elt on success, 0 if discovery not found.
  */
 extern PsmAddress	bp_find_discovery(

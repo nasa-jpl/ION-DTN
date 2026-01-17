@@ -1,6 +1,6 @@
 # bprc configuration file for the src-eid truncation test.
 #	Command: % bpadmin loopback.bprc
-#	This command should be run AFTER ionadmin and 
+#	This command should be run AFTER ionadmin and
 #	BEFORE dtnadmin.
 #
 #	Ohio University, Oct 2008
@@ -26,7 +26,7 @@ a endpoint dtn://host1.dtn/ x
 a endpoint dtn://host1.dtn/a q
 a endpoint dtn://host1.dtn/b q
 
-# Add a protocol. 
+# Add a protocol.
 #	Add the protocol named stcp.
 #	Estimate transmission capacity assuming 1400 bytes of each frame (in
 #	this case, udp on ethernet) for payload, and 100 bytes for overhead.

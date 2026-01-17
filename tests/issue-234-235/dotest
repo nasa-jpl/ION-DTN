@@ -26,22 +26,22 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: To test the elimination of bug issues 234 & 235; both having
-	to do with mutex bugs in PSM and SDR. This scripts starts ION on 3 
-	nodes, and then uses bpdriver/bpcounter streaming mode to transfer
-	10000 bundles.  Node 1 runs bpdriver and Node 3 runs bpcounter. If 
-	node 3 receives all the bundles the test passes."
+    to do with mutex bugs in PSM and SDR. This scripts starts ION on 3
+    nodes, and then uses bpdriver/bpcounter streaming mode to transfer
+    10000 bundles.  Node 1 runs bpdriver and Node 3 runs bpcounter. If
+    node 3 receives all the bundles the test passes."
 echo
 echo "CONFIG: 3 node custom configuration:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: If node 3 receives all the bundles the test passes, this is
-	determined by checking the contents of bpcounter.txt"
+    determined by checking the contents of bpcounter.txt"
 echo
 echo "########################################"
 
@@ -112,11 +112,11 @@ kill -9 $BPCOUNTERPID >/dev/null 2>&1
 
 # Shut down ION processes.
 #echo "Stopping ION..."
-#cd ../1.ipn.tcp 
+#cd ../1.ipn.tcp
 #./ionstop &
-#cd ../2.ipn.tcp 
+#cd ../2.ipn.tcp
 #./ionstop &
-#cd ../3.ipn.tcp 
+#cd ../3.ipn.tcp
 #./ionstop &
 
 # Give all three nodes time to shut down, then clean up.
@@ -128,7 +128,7 @@ cd ../3.ipn.tcp
 if ! grep "$BUNDLEMESSAGE" $BPCOUNTERFILE; then
     echo "ERROR: bpcounter/bpdriver failed!!"
     RETVAL=1
-else 
+else
     echo "OK: bpcounter/bpdriver successful!"
     RETVAL=0
 fi

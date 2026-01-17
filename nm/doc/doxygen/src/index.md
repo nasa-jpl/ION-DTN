@@ -17,6 +17,6 @@ NM implements or utilizes the following:
 
 The following third party libraries are included as part of NM.
 
-- [QCBOR](https://github.com/laurencelundblade/QCBOR) - A small CBOR encoder/decoder. 
+- [QCBOR](https://github.com/laurencelundblade/QCBOR) - A small CBOR encoder/decoder.
     -  Provided under a BSD-compatible license.
     -  Bundled distribution includes enhancements made to support the AMP OCTETS model.

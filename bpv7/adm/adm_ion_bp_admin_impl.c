@@ -8,10 +8,10 @@
  **
  ** Assumptions: TODO
  **
- ** Modification History: 
+ ** Modification History:
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2020-04-13  AUTO             Auto-generated c file 
+ **  2020-04-13  AUTO             Auto-generated c file
  **
  ****************************************************************************/
 
@@ -596,7 +596,7 @@ tnv_t *dtn_ion_bpadmin_get_bp_version(tnvc_t *parms)
 /*
  * Establish DTN endpoint named endpointId on the local node. The remaining parameters indicate what is
  *  to be done when bundles destined for this endpoint arrive at a time when no application has the end
- * point open for bundle reception. If type is 'x', then such bundles are to be discarded silently and 
+ * point open for bundle reception. If type is 'x', then such bundles are to be discarded silently and
  * immediately. If type is 'q', then such bundles are to be enqueued for later delivery and, if recvScr
  * ipt is provided, recvScript is to be executed.
  */
@@ -616,10 +616,10 @@ tnv_t *dtn_ion_bpadmin_ctrl_endpoint_add(eid_t *def_mgr, tnvc_t *parms, int8_t *
 	BpRecvRule	rule;
 
 	char *id = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
-    uint32_t type = adm_get_parm_uint(parms, 1, &success);
-    char *rcv = adm_get_parm_obj(parms, 2, AMP_TYPE_STR);
+	uint32_t type = adm_get_parm_uint(parms, 1, &success);
+	char *rcv = adm_get_parm_obj(parms, 2, AMP_TYPE_STR);
 
-    rule = (type == 'q') ? EnqueueBundle : DiscardBundle;
+	rule = (type == 'q') ? EnqueueBundle : DiscardBundle;
 
 	if(addEndpoint(id, rule, rcv) > 0)
 	{
@@ -656,10 +656,10 @@ tnv_t *dtn_ion_bpadmin_ctrl_endpoint_change(eid_t *def_mgr, tnvc_t *parms, int8_
 	BpRecvRule	rule;
 
 	char *id = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
-    uint32_t type = adm_get_parm_uint(parms, 1, &success);
-    char *rcv = adm_get_parm_obj(parms, 2, AMP_TYPE_STR);
+	uint32_t type = adm_get_parm_uint(parms, 1, &success);
+	char *rcv = adm_get_parm_obj(parms, 2, AMP_TYPE_STR);
 
-    rule = (type == 'q') ? EnqueueBundle : DiscardBundle;
+	rule = (type == 'q') ? EnqueueBundle : DiscardBundle;
 
 	if(updateEndpoint(id, rule, rcv) > 0)
 	{
@@ -780,7 +780,7 @@ tnv_t *dtn_ion_bpadmin_ctrl_induct_change(eid_t *def_mgr, tnvc_t *parms, int8_t 
 
 
 /*
- * Delete the induct identified by protocolName and ductName. The control will fail if any bundles are 
+ * Delete the induct identified by protocolName and ductName. The control will fail if any bundles are
  * currently pending acquisition via this induct.
  */
 tnv_t *dtn_ion_bpadmin_ctrl_induct_del(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
@@ -881,7 +881,7 @@ tnv_t *dtn_ion_bpadmin_ctrl_induct_stop(eid_t *def_mgr, tnvc_t *parms, int8_t *s
  * Declare the maximum number of bytes of SDR heap space that will be occupied by any single bundle acq
  * uisition activity (nominally the acquisition of a single bundle, but this is at the discretion of th
  * e convergence-layer input task). All data acquired in excess of this limit will be written to a temp
- * orary file pending extraction and dispatching of the acquired bundle or bundles. The default is the 
+ * orary file pending extraction and dispatching of the acquired bundle or bundles. The default is the
  * minimum allowed value (560 bytes), which is the approximate size of a ZCO file reference object; thi
  * s is the minimum SDR heap space occupancy in the event that all acquisition is into a file.
  */
@@ -970,7 +970,7 @@ tnv_t *dtn_ion_bpadmin_ctrl_outduct_add(eid_t *def_mgr, tnvc_t *parms, int8_t *s
 
 
 /*
- * Set new values for the indicated duct's payload size limit and the control that is used to initiate 
+ * Set new values for the indicated duct's payload size limit and the control that is used to initiate
  * operation of the outduct task for this duct.
  */
 tnv_t *dtn_ion_bpadmin_ctrl_outduct_change(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
@@ -1076,7 +1076,7 @@ tnv_t *dtn_ion_bpadmin_ctrl_outduct_start(eid_t *def_mgr, tnvc_t *parms, int8_t 
 
 /*
  * Disable transmission of bundles queued for transmission to the indicated node and reforwards all non
- * -critical bundles currently queued for transmission to this node. This may result in some or all of 
+ * -critical bundles currently queued for transmission to this node. This may result in some or all of
  * these bundles being enqueued for transmission to the psuedo-node limbo.
  */
 tnv_t *dtn_ion_bpadmin_ctrl_egress_plan_block(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
@@ -1272,7 +1272,7 @@ tnv_t *dtn_ion_bpadmin_ctrl_protocol_start(eid_t *def_mgr, tnvc_t *parms, int8_t
 
 
 /*
- * Stop all induct and outduct tasks for inducts and outducts that have been defined for the indicated 
+ * Stop all induct and outduct tasks for inducts and outducts that have been defined for the indicated
  * CL protocol on the local node.
  */
 tnv_t *dtn_ion_bpadmin_ctrl_protocol_stop(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
@@ -1377,7 +1377,7 @@ tnv_t *dtn_ion_bpadmin_ctrl_scheme_change(eid_t *def_mgr, tnvc_t *parms, int8_t 
 
 
 /*
- * Delete the scheme identified by schemeName. The control will fail if any bundles identified in this 
+ * Delete the scheme identified by schemeName. The control will fail if any bundles identified in this
  * scheme are pending forwarding, transmission, or delivery.
  */
 tnv_t *dtn_ion_bpadmin_ctrl_scheme_del(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
@@ -1477,13 +1477,13 @@ tnv_t *dtn_ion_bpadmin_ctrl_scheme_stop(eid_t *def_mgr, tnvc_t *parms, int8_t *s
  * Enable/Disable production of a continuous stream of user selected Bundle Protocol activity indicatio
  * n characters. A watch parameter of 1 selects all BP activity indication characters, 0 deselects allB
  * P activity indication characters; any other activitySpec such as acz~ selects all activity indicatio
- * n characters in the string, deselecting all others. BP will print each selected activity indication 
+ * n characters in the string, deselecting all others. BP will print each selected activity indication
  * character to stdout every time a processing event of the associated type occurs: a new bundle is que
  * ued for forwarding, b bundle is queued for transmission, c bundle is popped from its transmission qu
  * eue, m custody acceptance signal is recieved, w custody of bundle is accepted, x custody of bundle i
  * s refused, y bundle is accepted upon arrival, z bundle is queued for delivery to an application, ~ b
  * undle is abandoned (discarded) on attempt to forward it, ! bundle is destroyed due to TTL expiration
- * , &amp; custody refusal signal is recieved, # bundle is queued for re-forwarding due to CL protocol 
+ * , &amp; custody refusal signal is recieved, # bundle is queued for re-forwarding due to CL protocol
  * failures, j bundle is placed in 'limbo' for possible future reforwarding, k bundle is removed from '
  * limbo' and queued for reforwarding, $ bundle's custodial retransmission timeout interval expired.
  */

@@ -33,10 +33,10 @@ echo "CONFIG: 2 node custom:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat "$N"
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat "$N"
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo

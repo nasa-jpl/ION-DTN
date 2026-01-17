@@ -21,7 +21,7 @@ static TcarecvState	*_tcarecvState(TcarecvState *newState)
 {
 	void		*value;
 	TcarecvState	*state;
-	
+
 	if (newState)			/*	Add task variable.	*/
 	{
 		value = (void *) (newState);
@@ -40,7 +40,7 @@ static void	shutDown(int signum)	/*	Commands tcarecv termination.	*/
 	TcarecvState	*state;
 
 	/* Tell the compiler that we are not using 'signum' */
-	(void)signum;	
+	(void)signum;
 
 	isignal(SIGTERM, shutDown);
 	writeMemo("TCA receiver daemon interrupted.");
@@ -149,7 +149,7 @@ writeMemoNote("tcarecv: Got record from", itoa(metaEid.elementNbr));
 	zco_start_receiving(adu, &reader);
 	recordLength = zco_receive_source(sdr, &reader, TC_MAX_REC, buffer);
 	len = recordLength;
-	if (tc_deserialize(&cursor, &len, TC_MAX_DATLEN, 
+	if (tc_deserialize(&cursor, &len, TC_MAX_DATLEN,
 			&(record.fqnn), &(record.effectiveTime),
 			&(record.assertionTime), &(record.datLength),
 			record.datValue) == 0)

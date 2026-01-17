@@ -19,7 +19,7 @@ echo "Stopping ION..."
 killm
 
 echo "bpdriver ttl option test complete."
-exit $RETVAL	
+exit $RETVAL
 }
 
 CONFIGFILES=" \
@@ -39,10 +39,10 @@ echo "CONFIG: 1 node custom:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo
@@ -60,12 +60,12 @@ WHICHFAILMESSAGE=$?
 # which could return the proper fail condition, or the results could be
 # empty, or you're on solaris and your results will be "no netcat in $PATH".
 if [ $WHICHRETURN -ne 0 -o -z "${RESULTS}" -o $WHICHFAILMESSAGE -eq 0 ] ; then
-	echo "${PROGRAMTEST} is not present in this system; skipping..."
-	exit 2
+    echo "${PROGRAMTEST} is not present in this system; skipping..."
+    exit 2
 elif [ "$OS" = "SunOS" ]; then
-	echo "Using SunOS netcat at `which netcat`."
+    echo "Using SunOS netcat at `which netcat`."
 else
-	echo "Using standard netcat at `which netcat`."
+    echo "Using standard netcat at `which netcat`."
 
 fi
 
@@ -84,28 +84,28 @@ cd 1.ipn.bp.udp
 
 if [ $? -eq 2 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node not started: Aborting Test"
-	exit 1
+    echo "Node not started: Aborting Test"
+    exit 1
 fi
 
 cd ../
 
 # Run the platform-specific netcat server
 run_netcat() {
-	if [ "$OS" = "SunOS" ]; then
-		netcat -u -l -p 4556 > response.bpseg &
-		NETCAT_SVR_PID=$!
-	# GNU netcat has a -V (version) flag, so test for that.
-	elif netcat -V 2>/dev/null; then
-		netcat -u -l -p 4556 > response.bpseg &
-		NETCAT_SVR_PID=$!
-	# Fall back to BSD netcat
-	else
-		netcat -u -l 4556 > response.bpseg &
-		NETCAT_SVR_PID=$!
-	fi
+    if [ "$OS" = "SunOS" ]; then
+        netcat -u -l -p 4556 > response.bpseg &
+        NETCAT_SVR_PID=$!
+    # GNU netcat has a -V (version) flag, so test for that.
+    elif netcat -V 2>/dev/null; then
+        netcat -u -l -p 4556 > response.bpseg &
+        NETCAT_SVR_PID=$!
+    # Fall back to BSD netcat
+    else
+        netcat -u -l 4556 > response.bpseg &
+        NETCAT_SVR_PID=$!
+    fi
 }
 
 #Test 1---default TTL (300sec)
@@ -125,7 +125,7 @@ sleep 2
 
 echo "Stopping netcat server..."
 kill -2 $NETCAT_SVR_PID >/dev/null 2>&1
-sleep 1 
+sleep 1
 kill -9 $NETCAT_SVR_PID >/dev/null 2>&1
 
 # assemble the packet to be readable by wireshark
@@ -142,16 +142,16 @@ RESULTS=`cat response.cap | tail  -c123 | xxd -p -c 256 | cut -c 1-4 | tr -d '\n
 echo "Expected value: 822c"
 echo "  Actual value: $RESULTS"
 if [ "$RESULTS" = "822c" ]; then
-	echo "The Bundle set by ION had the correct default TTL."
-	echo ""
-	RETVAL=0
+    echo "The Bundle set by ION had the correct default TTL."
+    echo ""
+    RETVAL=0
 else
-	# We have a problem.  The BP response doesn't have the ttl we expect it to have.  Test failed.
-	echo "The Bundle sent by ION did not have the correct default TTL.  FAILURE!"
-	echo ""
-	RETVAL=1
-	cd ..
-	end
+    # We have a problem.  The BP response doesn't have the ttl we expect it to have.  Test failed.
+    echo "The Bundle sent by ION did not have the correct default TTL.  FAILURE!"
+    echo ""
+    RETVAL=1
+    cd ..
+    end
 fi
 cd ..
 
@@ -173,7 +173,7 @@ sleep 2
 
 echo "Stopping netcat server..."
 kill -2 $NETCAT_SVR_PID >/dev/null 2>&1
-sleep 1 
+sleep 1
 kill -9 $NETCAT_SVR_PID >/dev/null 2>&1
 
 # assemble the packet to be readable by wireshark
@@ -190,16 +190,16 @@ RESULTS=`cat response.cap | tail  -c121 | xxd -p -c 256 | cut -c 1-4 | tr -d '\n
 echo "Expected value: 9738"
 echo "  Actual value: $RESULTS"
 if [ "$RESULTS" = "9738" ]; then
-	echo "The Bundle set by ION had the correct TTL."
-	echo ""
-	RETVAL=0
+    echo "The Bundle set by ION had the correct TTL."
+    echo ""
+    RETVAL=0
 else
-	# We have a problem.  The BP response doesn't have the ttl we expect it to have.  Test failed.
-	echo "The Bundle sent by ION did not have the correct TTL.  FAILURE!"
-	echo ""
-	RETVAL=1
-	cd ..
-	end
+    # We have a problem.  The BP response doesn't have the ttl we expect it to have.  Test failed.
+    echo "The Bundle sent by ION did not have the correct TTL.  FAILURE!"
+    echo ""
+    RETVAL=1
+    cd ..
+    end
 fi
 cd ..
 
@@ -221,7 +221,7 @@ sleep 2
 
 echo "Stopping netcat server..."
 kill -2 $NETCAT_SVR_PID >/dev/null 2>&1
-sleep 1 
+sleep 1
 kill -9 $NETCAT_SVR_PID >/dev/null 2>&1
 
 # assemble the packet to be readable by wireshark
@@ -238,16 +238,15 @@ RESULTS=`cat response.cap | tail  -c120 | xxd -p -c 256 | cut -c 1-2 | tr -d '\n
 echo "Expected value: 1e"
 echo "  Actual value: $RESULTS"
 if [ "$RESULTS" = "1e" ]; then
-	echo "The Bundle set by ION had the correct TTL. SUCCESS!"
-	echo ""
-	RETVAL=0
+    echo "The Bundle set by ION had the correct TTL. SUCCESS!"
+    echo ""
+    RETVAL=0
 else
-	# We have a problem.  The BP response doesn't have the ttl we expect it to have.  Test failed.
-	echo "The Bundle sent by ION did not have the correct TTL.  FAILURE!"
-	echo ""
-	RETVAL=1
+    # We have a problem.  The BP response doesn't have the ttl we expect it to have.  Test failed.
+    echo "The Bundle sent by ION did not have the correct TTL.  FAILURE!"
+    echo ""
+    RETVAL=1
 fi
 cd ..
 
 end
-

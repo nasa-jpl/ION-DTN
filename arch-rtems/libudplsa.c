@@ -8,7 +8,7 @@
 	Copyright (c) 2020, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "udplsa.h"
 
@@ -71,7 +71,7 @@ void	*udplsa_handle_datagrams(void *parm)
 	/*	Can now start receiving bundles.  On failure, take
 	 *	down the daemon.					*/
 
-	 
+
 	while (1)
 	{
 		int keepRunning;
@@ -159,10 +159,10 @@ void	*udplsa_handle_datagrams(void *parm)
 	/*	Can now start receiving bundles.  On failure, take
 	 *	down the link service input thread.			*/
 
-	 
+
 
 	while (1)
-	{	 
+	{
 		int keepRunning;
 
 		pthread_mutex_lock(&rtp->lock);
@@ -199,7 +199,7 @@ void	*udplsa_handle_datagrams(void *parm)
 		{
 			putErrmsg("Can't handle inbound segment.", NULL);
 			ionKillMainThread(procName);
-			
+
 			pthread_mutex_lock(&rtp->lock);
 			rtp->running = 0;
 			pthread_mutex_unlock(&rtp->lock);

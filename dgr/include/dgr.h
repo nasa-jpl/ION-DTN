@@ -1,17 +1,17 @@
 /*
- 	dgr.h:	definitions supporting the implementation of DGR
-       		applications.
+	dgr.h:	definitions supporting the implementation of DGR
+		applications.
 
 	Author: Scott Burleigh, JPL
 
 	Modification History:
-	Date  		Who 	What
+	Date		Who 	What
 	4 July 2010	Scott	Revise to align with LTP spec.
 
 	Copyright (c) 2003, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
- 									*/
+									*/
 
 #ifndef DGR_H
 #define DGR_H

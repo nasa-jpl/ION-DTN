@@ -44,23 +44,23 @@
 /*  Values for Sender and Receiver BPAs. A Sender BPA may assume a policy role
  *  of security source, and a Receiver BPA may assume a policy role of
  *  security verifier or security acceptor.  */
-#define BSL_SENDER							(0x1)   /*  0001  */
-#define BSL_RECEIVER                        (0x2)   /*  0010  */
+#define BSL_SENDER		    (0x1) /* 0001 */
+#define BSL_RECEIVER		    (0x2) /* 0010 */
 
 /*  Masks for Security Operation Event */
-#define BSL_SRC_FOR_SOP						(0x0001) /* 0000 0000 0000 0001 */
-#define BSL_SOP_ADDED_AT_SRC				(0x0002) /* 0000 0000 0000 0010 */
-#define BSL_SOP_MISCONF_AT_SRC				(0x0004) /* 0000 0000 0000 0100 */
-#define BSL_VERIFIER_FOR_SOP 				(0x0008) /* 0000 0000 0000 1000 */
-#define BSL_SOP_MISCONF_AT_VERIFIER			(0x0010) /* 0000 0000 0001 0000 */
-#define BSL_SOP_MISSING_AT_VERIFIER			(0x0020) /* 0000 0000 0010 0000 */
-#define BSL_SOP_CORRUPT_AT_VERIFIER			(0x0040) /* 0000 0000 0100 0000 */
-#define BSL_SOP_VERIFIED                    (0x0080) /* 0000 0000 1000 0000 */
-#define BSL_ACCEPTOR_FOR_SOP				(0x0100) /* 0000 0001 0000 0000 */
-#define BSL_SOP_MISCONF_AT_ACCEPTOR 		(0x0200) /* 0000 0010 0000 0000 */
-#define BSL_SOP_MISSING_AT_ACCEPTOR			(0x0400) /* 0000 0100 0000 0000 */
-#define BSL_SOP_CORRUPT_AT_ACCEPTOR			(0x0800) /* 0000 1000 0000 0000 */
-#define BSL_SOP_PROCESSED					(0x1000) /* 0001 0000 0000 0000 */
+#define BSL_SRC_FOR_SOP		    (0x0001) /* 0000 0000 0000 0001 */
+#define BSL_SOP_ADDED_AT_SRC	    (0x0002) /* 0000 0000 0000 0010 */
+#define BSL_SOP_MISCONF_AT_SRC	    (0x0004) /* 0000 0000 0000 0100 */
+#define BSL_VERIFIER_FOR_SOP	    (0x0008) /* 0000 0000 0000 1000 */
+#define BSL_SOP_MISCONF_AT_VERIFIER (0x0010) /* 0000 0000 0001 0000 */
+#define BSL_SOP_MISSING_AT_VERIFIER (0x0020) /* 0000 0000 0010 0000 */
+#define BSL_SOP_CORRUPT_AT_VERIFIER (0x0040) /* 0000 0000 0100 0000 */
+#define BSL_SOP_VERIFIED	    (0x0080) /* 0000 0000 1000 0000 */
+#define BSL_ACCEPTOR_FOR_SOP	    (0x0100) /* 0000 0001 0000 0000 */
+#define BSL_SOP_MISCONF_AT_ACCEPTOR (0x0200) /* 0000 0010 0000 0000 */
+#define BSL_SOP_MISSING_AT_ACCEPTOR (0x0400) /* 0000 0100 0000 0000 */
+#define BSL_SOP_CORRUPT_AT_ACCEPTOR (0x0800) /* 0000 1000 0000 0000 */
+#define BSL_SOP_PROCESSED	    (0x1000) /* 0001 0000 0000 0000 */
 
 typedef enum
 {
@@ -87,7 +87,7 @@ typedef enum
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  DATA TYPES  								  +
+ * |                              DATA TYPES                                  +
  * +--------------------------------------------------------------------------+
  */
 
@@ -118,24 +118,24 @@ void       bsl_cb_ed_delete(PsmPartition partition, PsmAddress user_data);
 
 /*
  * +--------------------------------------------------------------------------+
- * |	      	     SECURITY OPERATION EVENT HANDLING  	     			  +
+ * |                 SECURITY OPERATION EVENT HANDLING                        +
  * +--------------------------------------------------------------------------+
  */
 int        bsl_handle_sender_sop_event(Bundle *bundle, BpSecEventId sopEvent,
-		     ExtensionBlock *sop, BpsecOutboundASB *asb, unsigned char tgtNum);
+		ExtensionBlock *sop, BpsecOutboundASB *asb, unsigned char tgtNum);
 int        bsl_handle_receiver_sop_event(AcqWorkArea *wk, int role,
-		     BpSecEventId sopEvent, LystElt sop, LystElt tgt, unsigned char tgtNum);
+		BpSecEventId sopEvent, LystElt sop, LystElt tgt, unsigned char tgtNum);
 
 /*
  * +--------------------------------------------------------------------------+
- * |	      	     OPTIONAL PROCESSING ACTION CALLBACKS  	     			  +
+ * |                 OPTIONAL PROCESSING ACTION CALLBACKS                     +
  * +--------------------------------------------------------------------------+
  */
 
 /* Sender Optional Processing Action Callbacks */
 void       bsl_remove_sop_at_sender(Bundle *bundle, ExtensionBlock *sopBlk);
 void       bsl_remove_sop_target_at_sender(Bundle *bundle, ExtensionBlock *sopBlk,
-		     BpsecOutboundASB *asb, unsigned char tgtNum);
+		BpsecOutboundASB *asb, unsigned char tgtNum);
 void       bsl_remove_all_target_sops_at_sender(Bundle *bundle, unsigned char tgtNum);
 void       bsl_do_not_forward_at_sender(Bundle *bundle);
 void       bsl_report_reason_code_at_sender(Bundle *bundle, BpSrReason reason);

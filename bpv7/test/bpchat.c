@@ -65,7 +65,7 @@ static void *       sendLines(void *args)
 			break;
 		}
 
-		bundleZco = ionCreateZco(ZcoSdrSource, bundlePayload, 0, 
+		bundleZco = ionCreateZco(ZcoSdrSource, bundlePayload, 0,
 			lineLength, BP_STD_PRIORITY, 0, ZcoOutbound, NULL);
 		if(bundleZco == 0 || bundleZco == (Object) ERROR) {
 			pthread_mutex_unlock(&sdrmutex);
@@ -137,7 +137,7 @@ static void *       recvBundles(void *args)
 			{
 				/* A negative remaining length is an error/impossible state.
 				* Set bytesToRead to 0 to be safe and prevent a read. */
-				bytesToRead = 0; 
+				bytesToRead = 0;
 			}
 			else if ((size_t)bundleLenRemaining < maxBytes)
 			{
@@ -165,7 +165,7 @@ static void *       recvBundles(void *args)
 
 		pthread_mutex_unlock(&sdrmutex);
 		bp_release_delivery(&dlv, 1);
-	}        
+	}
 	return NULL;
 }
 
@@ -199,7 +199,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	if(bp_open(ownEid, &sap) < 0) 
+	if(bp_open(ownEid, &sap) < 0)
 	{
 		putErrmsg("Can't open own endpoint.", ownEid);
 		exit(1);

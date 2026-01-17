@@ -26,7 +26,7 @@ contact headers, because connection parameters need to be negotiated.
 B<tcpcli> records the acknowledgement flags, reactive fragmentation flag,
 and negative acknowledgements flag in the contact header it receives from
 its peer TCPCL entity.
- 
+
 Each reception thread receives bundles over the associated connected socket.
 Each bundle received on the connection is preceded by message type,
 fragmentation flags, and size represented as an SDNV.  The received bundles

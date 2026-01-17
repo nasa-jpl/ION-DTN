@@ -98,7 +98,7 @@ static void	toggleScheduledContacts(uvast fromFqnn, uvast toFqnn,
 		{
 			neighborFqnn = fromFqnn;
 		}
-		
+
 		neighbor = getNeighbor(ionvdb, neighborFqnn);
 	}
 
@@ -129,7 +129,7 @@ static void	toggleScheduledContacts(uvast fromFqnn, uvast toFqnn,
 			{
 				continue;
 			}
-			
+
 			if (contact->fromTime <= currentTime
 			&& contact->toTime > currentTime)
 			{
@@ -419,7 +419,7 @@ static int	discoveryAcquired(char *socketSpec, char *discoveryEid,
 	if (cbhe)
 	{
 		/*	Insert contact into contact plan.  This is
-	 	 *	to enable CGR, regardless of outduct protocol.	*/
+		 *	to enable CGR, regardless of outduct protocol.	*/
 
 		if (noteContactAcquired(discoveryFqnn, xmitRate, recvRate))
 		{

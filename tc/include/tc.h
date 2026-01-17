@@ -16,7 +16,7 @@
 #include "bpP.h"
 
 #ifndef TC_DEBUG
-#define	TC_DEBUG	(0)
+#define TC_DEBUG	(0)
 #endif
 
 #ifdef __cplusplus

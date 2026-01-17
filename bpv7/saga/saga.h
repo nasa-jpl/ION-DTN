@@ -22,8 +22,8 @@ extern "C" {
 #include "ion.h"
 
 /*		Functions for managing "sagas".
- 
- 		A saga is the history of all discovered contacts
+
+		A saga is the history of all discovered contacts
 		between nodes within some region over the past N
 		days, where N is 30 by default.				*/
 

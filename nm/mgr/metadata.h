@@ -42,7 +42,7 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  CONSTANTS  								  +
+ * |                              CONSTANTS                                   +
  * +--------------------------------------------------------------------------+
  */
 #define META_NAME_MAX 64
@@ -52,14 +52,14 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  	MACROS  								  +
+ * |                                MACROS                                    +
  * +--------------------------------------------------------------------------+
  */
 
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  DATA TYPES  								  +
+ * |                              DATA TYPES                                  +
  * +--------------------------------------------------------------------------+
  */
 
@@ -126,10 +126,10 @@ typedef struct
 
 	amp_type_e type;            /**> Base type of this AMM Object.         */
 
-    char name[META_NAME_MAX];   /**> The string name of the item.          */
-    char descr[META_DESCR_MAX]; /**> The string description of the item.   */
+	char name[META_NAME_MAX];   /**> The string name of the item.          */
+	char descr[META_DESCR_MAX]; /**> The string description of the item.   */
 
-    vector_t parmspec;          /**> Contains items of type (meta_fp_t*)   */
+	vector_t parmspec;          /**> Contains items of type (meta_fp_t*)   */
 
 } metadata_t;
 
@@ -137,7 +137,7 @@ typedef struct
 
 /*
  * +--------------------------------------------------------------------------+
- * |						  FUNCTION PROTOTYPES  							  +
+ * |                          FUNCTION PROTOTYPES                             +
  * +--------------------------------------------------------------------------+
  */
 

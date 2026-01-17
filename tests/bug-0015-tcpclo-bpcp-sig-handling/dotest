@@ -30,11 +30,11 @@ echo "########################################"
 
 #Check for test program
 if ! [ -e ./test ]; then
-	echo ""
-	echo "Test program not available! Make sure to run make test to build it."
-	echo "Skipping this test"
-	echo ""
-	exit 2
+    echo ""
+    echo "Test program not available! Make sure to run make test to build it."
+    echo "Skipping this test"
+    echo ""
+    exit 2
 fi
 
 # Starting ION
@@ -56,10 +56,10 @@ cd 1.ipn.tcp/
 
 if [ "$?" -eq 2 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 1 not started: Aborting Test"
-	exit 1
+    echo "Node 1 not started: Aborting Test"
+    exit 1
 fi
 
 #Set up node 2
@@ -70,10 +70,10 @@ cd ../2.ipn.tcp/
 
 if [ "$?" -eq 2 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 2 not started: Aborting Test"
-	exit 1
+    echo "Node 2 not started: Aborting Test"
+    exit 1
 fi
 
 #Starting receiving data
@@ -101,30 +101,30 @@ TST=$!
 echo "Fire signals at test program..."
 for i in {1..20}
 do
-	kill -SIGINT $TST 2>/dev/null
-	kill -SIGINT $TST 2>/dev/null
-	kill -SIGINT $TST 2>/dev/null
-	kill -SIGINT $TST 2>/dev/null
-	sleep 1
+    kill -SIGINT $TST 2>/dev/null
+    kill -SIGINT $TST 2>/dev/null
+    kill -SIGINT $TST 2>/dev/null
+    kill -SIGINT $TST 2>/dev/null
+    sleep 1
 done
 
 #Test
 test1=$(grep "Assertion failed" ./2.ipn.tcp/ion.log 2>/dev/null)
 echo $test1
 if [ -z "$test1" ]; then
-	echo "OK: Checked node 2, ION worked correctly when bombarded by signals. SUCCESS!!"
+    echo "OK: Checked node 2, ION worked correctly when bombarded by signals. SUCCESS!!"
 else
-	echo "ERROR: ION crashed as a result of a signal. FAILED!!"
-	RETVAL=1
+    echo "ERROR: ION crashed as a result of a signal. FAILED!!"
+    RETVAL=1
 fi
 
 test2=$(grep "Assertion failed" ./1.ipn.tcp/ion.log 2>/dev/null)
 echo $test2
 if [ -z "$test2" ]; then
-	echo "OK: Checked node 1, ION worked correctly when bombarded by signals. SUCCESS!!"
+    echo "OK: Checked node 1, ION worked correctly when bombarded by signals. SUCCESS!!"
 else
-	echo "ERROR: ION crashed as a result of a signal. FAILED!!"
-	RETVAL=1
+    echo "ERROR: ION crashed as a result of a signal. FAILED!!"
+    RETVAL=1
 fi
 
 sleep 10

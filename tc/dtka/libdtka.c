@@ -7,7 +7,7 @@
 	Copyright (c) 2020, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "dtka.h"
 

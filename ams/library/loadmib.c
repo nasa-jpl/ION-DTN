@@ -8,7 +8,7 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
 
-	Modified by Sky DeBaun	
+	Modified by Sky DeBaun
 	Jet Propulsion Laboratory 2023
 
 	Modifications address the following issues:
@@ -18,21 +18,21 @@
 		identifying) message spaces.  Note that continuum number
 		function as ION node identifiers (FQNNs) when and only when
 		ION is initialized from within AMS.
-		
+
 		Modifications include switching arrays and for-loops
 		using the MAX_CONTIN_NBR to use ici's lyst.
 
 	2.) Modified loadMib() to align with documentation. The 'test MIB' is
 		now initialized and loaded using '@' character (as specified
-		in man pages). 
-		
-		Additional modifications include removal of nested (redundant) checks 
-		for the NULL argument (as relates to the MIB filename). This update 
-		provides a more clearly delineated path for the desired functionality 
+		in man pages).
+
+		Additional modifications include removal of nested (redundant) checks
+		for the NULL argument (as relates to the MIB filename). This update
+		provides a more clearly delineated path for the desired functionality
 		(i.e. consolidating the parameter check to a single logical location)
-	
+
 	3.) Resolution of multiple TSan data race and thread safety issues.
-	
+
 	4.) Fixed conditional compilation error when building with NOEXPAT.
 
 */
@@ -93,13 +93,13 @@ static int	loadTestMib(void)
 	getNameOfHost(ownHostName, sizeof ownHostName);
 	isprintf(eps, sizeof eps, "%s:2357", ownHostName);
 	elt = createCsEndpoint(eps, NULL);
-       	if (elt == NULL)
+	if (elt == NULL)
 	{
 		return crash();
 	}
 
 	elt = createApp("amsdemo", NULL, NULL);
-       	if (elt == NULL)
+	if (elt == NULL)
 	{
 		return crash();
 	}
@@ -336,7 +336,7 @@ static void	handle_continuum_start(LoadMibState *state, const char **atts)
 			desc = value;
 		}
 		else
-		{	
+		{
 			noteLoadError(state, "Unknown attribute.");
 			return;
 		}
@@ -356,7 +356,7 @@ static void	handle_continuum_start(LoadMibState *state, const char **atts)
 	else
 	{
 		if (contnbr == 0 || contnbr == idx)
-		{			
+		{
 			/*Sky modifies to use continuum_lyst instead of array */
 			contin = getContinuaByNbr(idx);
 		}
@@ -1899,7 +1899,7 @@ AmsMib	*loadMib(char *mibSource)
 		unlockMib();
 		return mib;	/*	MIB is already loaded.		*/
 	}
-	
+
 	if (mibSource == NULL)
 	{
 		/* Use default file name based on parsing library in use. */
@@ -1969,7 +1969,7 @@ void unloadMib(void)
 	AmsMib				*mib;
 	AmsMibParameters	parms = { 0, NULL, NULL, NULL };
 	int					destroy = 0;
-	
+
 	lockMib();
 	mib = _mib(NULL);
 	if (mib)
@@ -1980,18 +1980,18 @@ void unloadMib(void)
 			destroy = 1;
 		}
 	}
-	
+
 	/*
-	* Always unlock before attempting to destroy the MIB.
-	*/
+	 * Always unlock before attempting to destroy the MIB.
+	 */
 	unlockMib();
 
 	if (destroy)
 	{
 		/*
-		* Now that the lock is released, it is safe to erase the
-		* MIB and destroy the associated mutex.
-		*/
+		 * Now that the lock is released, it is safe to erase the
+		 * MIB and destroy the associated mutex.
+		 */
 		oK(_mib(&parms));       /* Erase.  */
 	}
 }

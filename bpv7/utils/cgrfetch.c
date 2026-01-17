@@ -144,7 +144,7 @@ static LystElt nextConsidered(LystElt routeElt)
 }
 
 static void outputTraceMsg(void *data, unsigned int lineNbr,
-		           CgrTraceType traceType, va_list args)
+		CgrTraceType traceType, va_list args)
 {
 	/* Parameter intentionally unused. */
 	(void)data;
@@ -167,7 +167,7 @@ static void outputTraceMsg(void *data, unsigned int lineNbr,
 		fputc(' ', stderr);
 		fputs(cgr_reason_text(va_arg(args, CgrReason)), stderr);
 		/* FALLTHROUGH */
-	
+
 	default:
 		break;
 	}
@@ -176,7 +176,7 @@ static void outputTraceMsg(void *data, unsigned int lineNbr,
 }
 
 static void handleTraceState(void *data, unsigned int lineNbr,
-		             CgrTraceType traceType, va_list args)
+		CgrTraceType traceType, va_list args)
 {
 	TraceState *traceState = data;
 	LystElt routeElt;
@@ -241,7 +241,7 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 		// Find the proximate node being replaced and mark it as no
 		// longer considered.
 		for (routeElt = nextConsidered(lyst_first(traceState->routes));
-		     routeElt; routeElt = nextConsidered(lyst_next(routeElt)))
+			routeElt; routeElt = nextConsidered(lyst_next(routeElt)))
 		{
 			route = lyst_data(routeElt);
 
@@ -299,7 +299,7 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 		// CGR decided to use all proximate nodes, so mark all
 		// considered routes as selected.
 		for (routeElt = nextConsidered(lyst_first(traceState->routes));
-		     routeElt; routeElt = nextConsidered(lyst_next(routeElt)))
+			routeElt; routeElt = nextConsidered(lyst_next(routeElt)))
 		{
 			route = lyst_data(routeElt);
 			route->flag = SELECTED;
@@ -314,7 +314,7 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 
 // Build the routes list and output trace messages.
 static void traceFnDefault(void *data, unsigned int lineNbr,
-		           CgrTraceType traceType, ...)
+		CgrTraceType traceType, ...)
 {
 	va_list args;
 
@@ -329,7 +329,7 @@ static void traceFnDefault(void *data, unsigned int lineNbr,
 
 // Build the routes list but don't output trace messages.
 static void traceFnQuiet(void *data, unsigned int lineNbr,
-		         CgrTraceType traceType, ...)
+		CgrTraceType traceType, ...)
 {
 	va_list args;
 
@@ -465,7 +465,7 @@ static void output_json(Lyst routes, time_t dispatchTime,
 	);
 
 	for (routeElt = lyst_first(routes), r = 0; routeElt;
-	     routeElt = lyst_next(routeElt), r += 1)
+		routeElt = lyst_next(routeElt), r += 1)
 	{
 		route = lyst_data(routeElt);
 
@@ -494,7 +494,7 @@ static void output_json(Lyst routes, time_t dispatchTime,
 			destNode);
 
 		for (contactElt = sm_rbt_first(ionwm, ionvdb->contactIndex);
-		     contactElt; contactElt = sm_rbt_next(ionwm, contactElt))
+			contactElt; contactElt = sm_rbt_next(ionwm, contactElt))
 		{
 			contact = psp(ionwm, sm_rbt_data(ionwm, contactElt));
 
@@ -504,7 +504,7 @@ static void output_json(Lyst routes, time_t dispatchTime,
 				contact->fromFqnn, contact->toFqnn);
 
 			if (contact->fromTime > route->deliveryTime ||
-			    contact->toTime < route->fromTime)
+				contact->toTime < route->fromTime)
 			{
 				fputs(" [color = " DISABLED ", fontcolor = "
 					DISABLED "]", f);
@@ -549,8 +549,8 @@ static void output_json(Lyst routes, time_t dispatchTime,
 		);
 
 		ret = system("dot -Tsvg '" GRAPHVIZ_FILENAME "' >'" IMAGE_FILENAME ".svg' && "
-		             "base64 <'" IMAGE_FILENAME ".svg' | tr -d '\\n' >'" IMAGE_FILENAME "' && "
-		             "rm -f '" IMAGE_FILENAME ".svg'");
+				"base64 <'" IMAGE_FILENAME ".svg' | tr -d '\\n' >'" IMAGE_FILENAME "' && "
+				"rm -f '" IMAGE_FILENAME ".svg'");
 
 		if (ret != EXIT_SUCCESS)
 		{
@@ -696,7 +696,7 @@ static void listOutducts(void) {
 	VOutduct *duct;
 
 	for (elt = sm_list_first(bpwm, getBpVdb()->outducts); elt;
-	     elt = sm_list_next(bpwm, elt))
+			elt = sm_list_next(bpwm, elt))
 	{
 		duct = (VOutduct *) psp(bpwm, sm_list_data(bpwm, elt));
 		printf("%s:%s\n", duct->protocolName, duct->ductName);

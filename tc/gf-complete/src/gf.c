@@ -118,7 +118,7 @@ void gf_error()
   fprintf(stderr, "%s\n", s);
 }
 
-uint64_t gf_composite_get_default_poly(gf_t *base) 
+uint64_t gf_composite_get_default_poly(gf_t *base)
 {
   gf_internal_t *h;
   uint64_t rv;
@@ -128,7 +128,7 @@ uint64_t gf_composite_get_default_poly(gf_t *base)
     if (h->mult_type == GF_MULT_COMPOSITE) return 0;
     if (h->prim_poly == 0x13) return 2;
     return 0;
-  } 
+  }
   if (h->w == 8) {
     if (h->mult_type == GF_MULT_COMPOSITE) return 0;
     if (h->prim_poly == 0x11d) return 3;
@@ -168,7 +168,7 @@ uint64_t gf_composite_get_default_poly(gf_t *base)
       if (rv == 2) return 0x100000004ULL;
       if (rv == 0x10005) return 0x100000003ULL;
       if (rv == 0x10002) return 0x100000005ULL;
-      if (rv == 0x10008) return 0x100000006ULL;  /* JSP: (0x0x100000003 works too, 
+      if (rv == 0x10008) return 0x100000006ULL;  /* JSP: (0x0x100000003 works too,
                                                     but I want to differentiate cases). */
       return 0;
     } else {
@@ -197,7 +197,7 @@ int gf_error_check(int w, int mult_type, int region_type, int divide_type,
   rcauchy = (region_type & GF_REGION_CAUCHY);
 
   if (divide_type != GF_DIVIDE_DEFAULT &&
-      divide_type != GF_DIVIDE_MATRIX && 
+      divide_type != GF_DIVIDE_MATRIX &&
       divide_type != GF_DIVIDE_EUCLID) {
     _gf_errno = GF_E_UNK_DIV;
     return 0;
@@ -235,7 +235,7 @@ int gf_error_check(int w, int mult_type, int region_type, int divide_type,
 
 
   if (w < 1 || (w > 32 && w != 64 && w != 128)) { _gf_errno = GF_E_BAD___W; return 0; }
-    
+
   if (mult_type != GF_MULT_COMPOSITE && w < 64) {
     if ((poly >> (w+1)) != 0)                   { _gf_errno = GF_E_BADPOLY; return 0; }
   }
@@ -246,13 +246,13 @@ int gf_error_check(int w, int mult_type, int region_type, int divide_type,
     if (arg1 != 0 || arg2 != 0)           { _gf_errno = GF_E_MDEFARG; return 0; }
     return 1;
   }
-  
+
   if (rsimd && rnosimd)                              { _gf_errno = GF_E_SIMD_NO; return 0; }
   if (rcauchy && w > 32)                             { _gf_errno = GF_E_CAUGT32; return 0; }
   if (rcauchy && region_type != GF_REGION_CAUCHY)    { _gf_errno = GF_E_CAUCHYB; return 0; }
   if (rcauchy && mult_type == GF_MULT_COMPOSITE)     { _gf_errno = GF_E_CAUCOMP; return 0; }
 
-  if (arg1 != 0 && mult_type != GF_MULT_COMPOSITE && 
+  if (arg1 != 0 && mult_type != GF_MULT_COMPOSITE &&
       mult_type != GF_MULT_SPLIT_TABLE && mult_type != GF_MULT_GROUP) {
     _gf_errno = GF_E_ARG1SET;
     return 0;
@@ -337,14 +337,14 @@ int gf_error_check(int w, int mult_type, int region_type, int divide_type,
     if (arg1 <= 0 || arg2 <= 0)                 { _gf_errno = GF_E_GR_ARGX; return 0; }
     if (w == 4 || w == 8)                       { _gf_errno = GF_E_GR_W_48; return 0; }
     if (w == 16 && (arg1 != 4 || arg2 != 4))     { _gf_errno = GF_E_GR_W_16; return 0; }
-    if (w == 128 && (arg1 != 4 || 
+    if (w == 128 && (arg1 != 4 ||
        (arg2 != 4 && arg2 != 8 && arg2 != 16))) { _gf_errno = GF_E_GR_128A; return 0; }
     if (arg1 > 27 || arg2 > 27)                 { _gf_errno = GF_E_GR_A_27; return 0; }
     if (arg1 > w || arg2 > w)                   { _gf_errno = GF_E_GR_AR_W; return 0; }
     if (raltmap || rsimd || rnosimd)            { _gf_errno = GF_E_GR____J; return 0; }
     return 1;
   }
-  
+
   if (mult_type == GF_MULT_TABLE) {
     if (w != 16 && w >= 15)                     { _gf_errno = GF_E_TABLE_W; return 0; }
     if (w != 4 && (rsimd || rnosimd))           { _gf_errno = GF_E_TAB_SSE; return 0; }
@@ -407,7 +407,7 @@ int gf_error_check(int w, int mult_type, int region_type, int divide_type,
   }
 
   if (mult_type == GF_MULT_COMPOSITE) {
-    if (w != 8 && w != 16 && w != 32 
+    if (w != 8 && w != 16 && w != 32
                && w != 64 && w != 128)          { _gf_errno = GF_E_COMP__W; return 0; }
     if (w < 128 && (poly >> (w/2)) != 0)                   { _gf_errno = GF_E_COMP_PP; return 0; }
     if (divide_type != GF_DIVIDE_DEFAULT)       { _gf_errno = GF_E_DIVCOMP; return 0; }
@@ -423,15 +423,15 @@ int gf_error_check(int w, int mult_type, int region_type, int divide_type,
     return 1;
   }
 
-  _gf_errno = GF_E_UNKNOWN; 
+  _gf_errno = GF_E_UNKNOWN;
   return 0;
 }
 
-int gf_scratch_size(int w, 
-                    int mult_type, 
-                    int region_type, 
-                    int divide_type, 
-                    int arg1, 
+int gf_scratch_size(int w,
+                    int mult_type,
+                    int region_type,
+                    int divide_type,
+                    int arg1,
                     int arg2)
 {
   if (gf_error_check(w, mult_type, region_type, divide_type, arg1, arg2, 0, NULL) == 0) return 0;
@@ -462,7 +462,7 @@ extern int gf_size(gf_t *gf)
 
 int gf_init_easy(gf_t *gf, int w)
 {
-  return gf_init_hard(gf, w, GF_MULT_DEFAULT, GF_REGION_DEFAULT, GF_DIVIDE_DEFAULT, 
+  return gf_init_hard(gf, w, GF_MULT_DEFAULT, GF_REGION_DEFAULT, GF_DIVIDE_DEFAULT,
                       0, 0, 0, NULL, NULL);
 }
 
@@ -472,26 +472,26 @@ int gf_init_easy(gf_t *gf, int w)
        those aspects of initialization that don't rely on word size,
        and then take care of word-size-specific stuff. */
 
-int gf_init_hard(gf_t *gf, int w, int mult_type, 
+int gf_init_hard(gf_t *gf, int w, int mult_type,
                         int region_type,
                         int divide_type,
                         uint64_t prim_poly,
                         int arg1, int arg2,
                         gf_t *base_gf,
-                        void *scratch_memory) 
+                        void *scratch_memory)
 {
   int sz;
   gf_internal_t *h;
- 
+
   gf_cpu_identify();
 
-  if (gf_error_check(w, mult_type, region_type, divide_type, 
+  if (gf_error_check(w, mult_type, region_type, divide_type,
                      arg1, arg2, prim_poly, base_gf) == 0) return 0;
 
   sz = gf_scratch_size(w, mult_type, region_type, divide_type, arg1, arg2);
   if (sz <= 0) return 0;  /* This shouldn't happen, as all errors should get caught
                              in gf_error_check() */
-  
+
   if (scratch_memory == NULL) {
     h = (gf_internal_t *) malloc(sz);
     h->free_me = 1;
@@ -544,7 +544,7 @@ void gf_alignment_error(char *s, int a)
   assert(0);
 }
 
-static 
+static
 void gf_invert_binary_matrix(uint32_t *mat, uint32_t *inv, int rows) {
   int cols, i, j;
   uint32_t tmp;
@@ -591,7 +591,7 @@ void gf_invert_binary_matrix(uint32_t *mat, uint32_t *inv, int rows) {
   }
 }
 
-uint32_t gf_bitmatrix_inverse(uint32_t y, int w, uint32_t pp) 
+uint32_t gf_bitmatrix_inverse(uint32_t y, int w, uint32_t pp)
 {
   uint32_t mat[32], inv[32], mask;
   int i;
@@ -622,7 +622,7 @@ void gf_two_byte_region_table_multiply(gf_region_data *rd, uint16_t *base)
   d64 = rd->d_start;
   top = rd->d_top;
   xor = rd->xor;
-  
+
   if (xor) {
     while (d64 != top) {
       a = *s64;
@@ -674,13 +674,13 @@ static void gf_slow_multiply_region(gf_region_data *rd, void *src, void *dest, v
   h = rd->gf->scratch;
   wb = (h->w)/8;
   if (wb == 0) wb = 1;
-  
+
   while (src < s_top) {
     switch (h->w) {
     case 8:
       s8 = (uint8_t *) src;
       d8 = (uint8_t *) dest;
-      *d8 = (rd->xor) ? (*d8 ^ rd->gf->multiply.w32(rd->gf, rd->val, *s8)) : 
+      *d8 = (rd->xor) ? (*d8 ^ rd->gf->multiply.w32(rd->gf, rd->val, *s8)) :
                       rd->gf->multiply.w32(rd->gf, rd->val, *s8);
       break;
     case 4:
@@ -695,19 +695,19 @@ static void gf_slow_multiply_region(gf_region_data *rd, void *src, void *dest, v
     case 16:
       s16 = (uint16_t *) src;
       d16 = (uint16_t *) dest;
-      *d16 = (rd->xor) ? (*d16 ^ rd->gf->multiply.w32(rd->gf, rd->val, *s16)) : 
+      *d16 = (rd->xor) ? (*d16 ^ rd->gf->multiply.w32(rd->gf, rd->val, *s16)) :
                       rd->gf->multiply.w32(rd->gf, rd->val, *s16);
       break;
     case 32:
       s32 = (uint32_t *) src;
       d32 = (uint32_t *) dest;
-      *d32 = (rd->xor) ? (*d32 ^ rd->gf->multiply.w32(rd->gf, rd->val, *s32)) : 
+      *d32 = (rd->xor) ? (*d32 ^ rd->gf->multiply.w32(rd->gf, rd->val, *s32)) :
                       rd->gf->multiply.w32(rd->gf, rd->val, *s32);
       break;
     case 64:
       s64 = (uint64_t *) src;
       d64 = (uint64_t *) dest;
-      *d64 = (rd->xor) ? (*d64 ^ rd->gf->multiply.w64(rd->gf, rd->val, *s64)) : 
+      *d64 = (rd->xor) ? (*d64 ^ rd->gf->multiply.w64(rd->gf, rd->val, *s64)) :
                       rd->gf->multiply.w64(rd->gf, rd->val, *s64);
       break;
     default:
@@ -806,7 +806,7 @@ void gf_set_region_data(gf_region_data *rd,
     wb = (h->w)/8;
     if (wb == 0) wb = 1;
   }
-  
+
   rd->gf = gf;
   rd->src = src;
   rd->dest = dest;
@@ -827,7 +827,7 @@ void gf_set_region_data(gf_region_data *rd,
       fprintf(stderr, "The size must be a multiple of %d bytes.\n", h->w);
       assert(0);
     }
-  
+
     rd->s_start = src;
     rd->d_start = dest;
     rd->s_top = (uint8_t *)src + bytes;
@@ -879,7 +879,7 @@ void gf_do_final_region_alignment(gf_region_data *rd)
   gf_slow_multiply_region(rd, rd->s_top, rd->d_top, (uint8_t *)rd->src+rd->bytes);
 }
 
-void gf_multby_zero(void *dest, int bytes, int xor) 
+void gf_multby_zero(void *dest, int bytes, int xor)
 {
   if (xor) return;
   memset(dest, 0, bytes);
@@ -911,7 +911,7 @@ void gf_multby_zero(void *dest, int bytes, int xor)
 
 static void gf_unaligned_xor(void *src, void *dest, int bytes);
 
-void gf_multby_one(void *src, void *dest, int bytes, int xor) 
+void gf_multby_one(void *src, void *dest, int bytes, int xor)
 {
   unsigned long uls, uld;
   uint8_t *s8, *d8;
@@ -1015,7 +1015,7 @@ void gf_multby_one(void *src, void *dest, int bytes, int xor)
     gf_unaligned_xor(src, dest, bytes);
     return;
   }
-  
+
   gf_set_region_data(&rd, NULL, src, dest, bytes, 1, xor, 8);
   s8 = (uint8_t *) src;
   d8 = (uint8_t *) dest;
@@ -1057,9 +1057,9 @@ static void gf_unaligned_xor(void *src, void *dest, int bytes)
 
   /* JSP - call gf_set_region_data(), but use dest in both places.  This is
      because I only want to set up dest.  If I used src, gf_set_region_data()
-     would fail because src and dest are not aligned to each other wrt 
+     would fail because src and dest are not aligned to each other wrt
      8-byte pointers.  I know this will actually align d_start to 16 bytes.
-     If I change gf_set_region_data() to split alignment & chunksize, then 
+     If I change gf_set_region_data() to split alignment & chunksize, then
      I could do this correctly. */
 
   gf_set_region_data(&rd, NULL, dest, dest, bytes, 1, 1, 8*UNALIGNED_BUFSIZE);
@@ -1071,7 +1071,7 @@ static void gf_unaligned_xor(void *src, void *dest, int bytes)
     d8++;
     s8++;
   }
-  
+
   d64 = (uint64_t *) d8;
   while (d64 < (uint64_t *) rd.d_top) {
     memcpy(scopy, s8, 8*UNALIGNED_BUFSIZE);
@@ -1081,7 +1081,7 @@ static void gf_unaligned_xor(void *src, void *dest, int bytes)
       d64++;
     }
   }
-  
+
   d8 = (uint8_t *) d64;
   while (d8 < (uint8_t *) ((uint8_t *)dest+bytes)) {
     *d8 ^= *s8;

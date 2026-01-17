@@ -25,10 +25,10 @@ echo "CONFIG: 1 node custom configuration:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo
@@ -47,10 +47,10 @@ cd ipn.cfdp.bp.tcp
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node not started: Aborting Test"
-	exit 1
+    echo "Node not started: Aborting Test"
+    exit 1
 fi
 
 cd ..
@@ -93,17 +93,17 @@ kill -9 $CT_PID >/dev/null 2>&1
 test=`grep "type 10, 'fault'" output`
 echo $test
 if  [ -e ./output ] && [ -n "$test" ]; then
-	echo "OK: Inactivity deadline trigger fired. SUCCESS!!"
-	cd ..
-	#./cleanup
-	cd ipn.cfdp.bp.tcp
-	RETVAL=0
+    echo "OK: Inactivity deadline trigger fired. SUCCESS!!"
+    cd ..
+    #./cleanup
+    cd ipn.cfdp.bp.tcp
+    RETVAL=0
 else
-	echo "ERROR: Inactivity deadline trigger didn't fire. FAILED!!"
-	RETVAL=1
+    echo "ERROR: Inactivity deadline trigger didn't fire. FAILED!!"
+    RETVAL=1
 fi
 
-sleep 10 
+sleep 10
 #End ION
 echo "Killing ION..."
 killm

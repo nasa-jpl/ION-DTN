@@ -196,7 +196,7 @@ static int match_queue_state(const BundleCacheEntry *entry, const FilterCriteria
 	}
 
 	if (strcmp(entry->queueState, "Transmit") == 0 ||
-	    strcmp(entry->queueState, "Planned") == 0)
+			strcmp(entry->queueState, "Planned") == 0)
 	{
 		return filter->showTransmission;
 	}
@@ -297,7 +297,7 @@ int bpinspect_filter_apply(const BundleListState *state,
 		if (bpinspect_filter_match(&state->entries[i], filter))
 		{
 			memcpy(&results[matchCount], &state->entries[i],
-			       sizeof(BundleCacheEntry));
+					sizeof(BundleCacheEntry));
 			matchCount++;
 		}
 	}

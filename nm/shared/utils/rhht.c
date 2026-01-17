@@ -44,7 +44,7 @@
 
 /*
  * +--------------------------------------------------------------------------+
- * |					   Private Functions  								  +
+ * |                       Private Functions                                  +
  * +--------------------------------------------------------------------------+
  */
 
@@ -63,32 +63,32 @@ static void p_rhht_bkwrd_shft(rhht_t *ht, rh_idx_t idx)
 	}
 
 	/* Better to avoid recursion when you have very large hash tables. */
-    for(i = 0; i < ht->num_bkts; i++)
-    {
-    	/* Calculate the next index. */
-        next_idx = (idx + 1) % ht->num_bkts;
+	for(i = 0; i < ht->num_bkts; i++)
+	{
+		/* Calculate the next index. */
+		next_idx = (idx + 1) % ht->num_bkts;
 
-        /* If the next bucket is empty or perfect, we are done shifting. */
-        if( (ht->buckets[next_idx].value == NULL) ||
-        	(ht->buckets[next_idx].delta == 0))
-        {
-        	return;
-        }
+		/* If the next bucket is empty or perfect, we are done shifting. */
+		if( (ht->buckets[next_idx].value == NULL) ||
+				(ht->buckets[next_idx].delta == 0))
+		{
+			return;
+		}
 
-        /* pull the next index into the one that was just vacated. */
-        ht->buckets[idx] = ht->buckets[next_idx];
+		/* pull the next index into the one that was just vacated. */
+		ht->buckets[idx] = ht->buckets[next_idx];
 
-        /* We just got 1 closer to our ideal index. */
-        ht->buckets[idx].delta--;
+		/* We just got 1 closer to our ideal index. */
+		ht->buckets[idx].delta--;
 
-        /* Set the next index to be empty. */
-        ht->buckets[next_idx].value = NULL;
-        ht->buckets[next_idx].key = NULL;
-        ht->buckets[next_idx].delta = 0;
+		/* Set the next index to be empty. */
+		ht->buckets[next_idx].value = NULL;
+		ht->buckets[next_idx].key = NULL;
+		ht->buckets[next_idx].delta = 0;
 
-        /* adjust to consider the newly vacated slot and do it again... */
-        idx = next_idx;
-    }
+		/* adjust to consider the newly vacated slot and do it again... */
+		idx = next_idx;
+	}
 }
 
 static rh_idx_t p_rh_calc_ideal_idx(rh_idx_t size, rh_idx_t cur, rh_idx_t delta)
@@ -115,33 +115,33 @@ static rh_idx_t p_rh_calc_ideal_idx(rh_idx_t size, rh_idx_t cur, rh_idx_t delta)
 static rh_idx_t p_rh_calc_placement(rhht_t *ht, rh_idx_t idx, rh_elt_t *elt)
 {
 	rh_idx_t iter = 0;
-    rh_idx_t index = idx;
+	rh_idx_t index = idx;
 
-    /*
-     * Walk the array until either:
-     *    1. Our current spot is empty.
-     *    2. Our delta is larger than the delta of the item in this spot.
-     *    3. Our delta is the same but we hash lower (tie breaker).
-     *    4. We have walked the list fully once.
-     */
+	/*
+	 * Walk the array until either:
+	 *    1. Our current spot is empty.
+	 *    2. Our delta is larger than the delta of the item in this spot.
+	 *    3. Our delta is the same but we hash lower (tie breaker).
+	 *    4. We have walked the list fully once.
+	 */
 
-    for(iter = 0; iter < ht->num_bkts; iter++)
-    {
-    	if( (ht->buckets[index].value == NULL) ||         /* Condition 1 - Empty Spot. */
+	for(iter = 0; iter < ht->num_bkts; iter++)
+	{
+		if( (ht->buckets[index].value == NULL) ||         /* Condition 1 - Empty Spot. */
 			(elt->delta > ht->buckets[index].delta) ||   /* Condition 2 - We are poorer. */
 			((elt->delta == ht->buckets[index].delta) && (idx < ht->hash(ht, ht->buckets[index].key))) /* Condition 3. We are even. */
-		  )
-    	{
-    		break;
-    	}
-    	else                                            /* Try the next spot. */
-    	{
-    		elt->delta++;
-    		index = (idx + elt->delta) % ht->num_bkts;
-    	}
-    }
+		)
+		{
+			break;
+		}
+		else                                            /* Try the next spot. */
+		{
+			elt->delta++;
+			index = (idx + elt->delta) % ht->num_bkts;
+		}
+	}
 
-    return index;
+	return index;
 }
 
 
@@ -181,7 +181,7 @@ static rh_idx_t p_rh_default_hash(void *table, void *key)
 
 /*
  * +--------------------------------------------------------------------------+
- * |					   Public Functions  								  +
+ * |                       Public Functions                                   +
  * +--------------------------------------------------------------------------+
  */
 
@@ -224,13 +224,13 @@ rhht_t rhht_create(rh_idx_t buckets, rh_comp_fn compare, rh_hash_fn hash, rh_del
 	else
 	{
 		ht.num_elts = ht.max_delta = 0;
-                ht.num_bkts = buckets;
+		ht.num_bkts = buckets;
 
 		if(initResourceLock(&(ht.lock)))
 		{
-	        AMP_DEBUG_ERR("rhht_create","Unable to initialize mutex, errno = %s",
-	        		        strerror(errno));
-	        *success = RH_SYSERR;
+			AMP_DEBUG_ERR("rhht_create","Unable to initialize mutex, errno = %s",
+					strerror(errno));
+			*success = RH_SYSERR;
 		}
 		else
 		{
@@ -261,9 +261,9 @@ void rhht_del_idx(rhht_t *ht, rh_idx_t idx)
 	ht->buckets[idx].delta = 0;
 	ht->num_elts--;
 
-    p_rhht_bkwrd_shft(ht, idx);
+	p_rhht_bkwrd_shft(ht, idx);
 
-    unlockResource(&(ht->lock));
+	unlockResource(&(ht->lock));
 }
 
 void rhht_del_key(rhht_t *ht, void *item)
@@ -308,12 +308,12 @@ int rhht_find(rhht_t *ht, void *key, rh_idx_t *idx)
 
 	CHKZERO(key);
 
-    if (ht->num_elts == 0)
-    {
-       // HT is empty. Nothing to be found (and not an error)
-       return RH_NOT_FOUND;
-    }
-    
+	if (ht->num_elts == 0)
+	{
+		// HT is empty. Nothing to be found (and not an error)
+		return RH_NOT_FOUND;
+	}
+
 	CHKZERO(idx);
 
 	/* Step 1: Hash the item. */
@@ -473,7 +473,7 @@ int rhht_insert(rhht_t *ht, void *key, void *value, rh_idx_t *idx)
 
 	unlockResource(&(ht->lock));
 
-    return RH_OK;
+	return RH_OK;
 }
 
 
@@ -494,25 +494,25 @@ int rhht_insert(rhht_t *ht, void *key, void *value, rh_idx_t *idx)
  ******************************************************************************/
 void rhht_release(rhht_t *ht, int destroy)
 {
-    rh_idx_t i;
-    rh_elt_t elt;
+	rh_idx_t i;
+	rh_elt_t elt;
 
-    for (i = 0; i < ht->num_bkts; i++)
-    {
-    	if(ht->delete && ht->buckets[i].value != NULL)
-    	{
-    		elt = ht->buckets[i];
-    		ht->delete(&elt);
-    	}
-    }
+	for (i = 0; i < ht->num_bkts; i++)
+	{
+		if(ht->delete && ht->buckets[i].value != NULL)
+		{
+			elt = ht->buckets[i];
+			ht->delete(&elt);
+		}
+	}
 
-    SRELEASE(ht->buckets);
+	SRELEASE(ht->buckets);
 
-    if(destroy)
-    {
-    	killResourceLock(&(ht->lock));
-    	SRELEASE(ht);
-    }
+	if(destroy)
+	{
+		killResourceLock(&(ht->lock));
+		SRELEASE(ht);
+	}
 }
 
 
@@ -534,10 +534,3 @@ void* rhht_retrieve_key(rhht_t *ht, void *key)
 
 	return ht->buckets[idx].value;
 }
-
-
-
-
-
-
-

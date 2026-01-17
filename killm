@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # shell script to remove all of my IPC keys
-# Modified by Robert Martin to work on Mac 10.4, due to IPCS requiring sudo to list any 
-# shared memory usage, even if you own it; also modified using Jim Wyllie's "kill 
+# Modified by Robert Martin to work on Mac 10.4, due to IPCS requiring sudo to list any
+# shared memory usage, even if you own it; also modified using Jim Wyllie's "kill
 # all related processes" idea
 # Simplified by Shawn Ostermann in October, 2023 to remove Enhanced Regular Expressions, "grep -E", and "sed -E"
 # to make it more portable (to Solaris in particular).  Also quieted down the output a little.
@@ -34,53 +34,53 @@ fi
 sw_vers 2> /dev/null > /dev/null
 
 #if sw_vers ran, then we're on a mac system
-if [ "$?" -eq 0 ]; then  
-	OS_VERS=$(sw_vers | grep 10.4)
+if [ "$?" -eq 0 ]; then
+    OS_VERS=$(sw_vers | grep 10.4)
 fi
 
 OSNAME=`uname`
 if [ "$OSNAME" = "SunOS" ]; then
     KILLCMD="pkill"
-	PS="/usr/bin/ps"
-	PS_ARGS="-fe"
-	PROCESS_LIMIT=1
+    PS="/usr/bin/ps"
+    PS_ARGS="-fe"
+    PROCESS_LIMIT=1
 elif [[ "$OSNAME" == "MINGW"* ]]; then
-  	KILLCMD="taskkill /f /im"
-  	PS="tasklist"
-  	PS_ARGS=""
-  	PROCESS_LIMIT=64
-  	MINGW="true"
+    KILLCMD="taskkill /f /im"
+    PS="tasklist"
+    PS_ARGS=""
+    PROCESS_LIMIT=64
+    MINGW="true"
 else
     KILLCMD="killall"
-	PS="ps"
-	PS_ARGS="-fe"
-	if [ "$(uname -m)" = "x86_64" ]; then
-		PROCESS_LIMIT=64
-	else
-    	PROCESS_LIMIT=32
-	fi
+    PS="ps"
+    PS_ARGS="-fe"
+    if [ "$(uname -m)" = "x86_64" ]; then
+        PROCESS_LIMIT=64
+    else
+        PROCESS_LIMIT=32
+    fi
 fi
 
 if [ "$MINGW" != "true" ]; then
-	#echo "Sending TERM to ${IONPROCESSLIST}..."   # (too noisy)
-	echo "Sending TERM to the processes..."
-	echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
-	
-	# DEBUG: show killall command error
-	#echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD
+    #echo "Sending TERM to ${IONPROCESSLIST}..."   # (too noisy)
+    echo "Sending TERM to the processes..."
+    echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
 
-	sleep 2
+    # DEBUG: show killall command error
+    #echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD
 
-	echo "Sending KILL to the processes..."
-	echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL 2> /dev/null
-	
-	# DEBUG: show killall command error
-	#echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL
+    sleep 2
 
-	sleep 2
+    echo "Sending KILL to the processes..."
+    echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL 2> /dev/null
+
+    # DEBUG: show killall command error
+    #echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL
+
+    sleep 2
 else
-	# note that the TERM signal isn't supported in Windows, so processes are only killed. This also must be done via powershell
-	echo "Killing processes using PowerShell..."
+    # note that the TERM signal isn't supported in Windows, so processes are only killed. This also must be done via powershell
+    echo "Killing processes using PowerShell..."
     powershell -Command "foreach (\$proc in '${IONPROCESSLIST}'.Split(' ')) { \$proc = \$proc.Trim(); taskkill /F /IM \"\$proc.exe\" }" 2> /dev/null
 fi
 
@@ -109,29 +109,29 @@ rm -f ${PSFILE}
 
 echo "Deleting shared memory to remove SDR..."
 
-if [ "$MINGW" == "true" ]; then 
-	# for 2024 redesign of Windows MSYS
-	powershell remove_win_shmem.ps1 
-elif [[ -z "$OS_VERS" ]]; then 
-	# For mac >=10.5 and Linux
-	
-	# DEBUG: show ipcs before ipcrm
-	#echo "Before ipcrm, SRV4 IPC:"
-	#ipcs
-	
-	for Q in `ipcs -q | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -q $Q; done
-	for M in `ipcs -m | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -m $M; done
-	for S in `ipcs -s | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -s $S; done
-	
-	# DEBUG: show ipcs after ipcrm
-	#echo "After ipcrm, SRV4 IPC:"
-	#ipcs
+if [ "$MINGW" == "true" ]; then
+    # for 2024 redesign of Windows MSYS
+    powershell remove_win_shmem.ps1
+elif [[ -z "$OS_VERS" ]]; then
+    # For mac >=10.5 and Linux
+
+    # DEBUG: show ipcs before ipcrm
+    #echo "Before ipcrm, SRV4 IPC:"
+    #ipcs
+
+    for Q in `ipcs -q | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -q $Q; done
+    for M in `ipcs -m | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -m $M; done
+    for S in `ipcs -s | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -s $S; done
+
+    # DEBUG: show ipcs after ipcrm
+    #echo "After ipcrm, SRV4 IPC:"
+    #ipcs
 else
-	# For mac 10.4, since ipcs on it is weird.
-	echo "Since ipcs on Apple OSX 10.4 is weird, this script (killm) needs to use sudo, and will ask for your password"
-	for Q in `sudo ipcs -q | grep $USERNAME_CUT | awk '{ print $3 }'`; do ipcrm -Q $Q; done
-	for M in `sudo ipcs -m | grep $USERNAME_CUT | awk '{ print $3 }'`; do ipcrm -M $M; done
-	for S in `sudo ipcs -s | grep $USERNAME_CUT | awk '{ print $3 }'`; do ipcrm -S $S; done
+    # For mac 10.4, since ipcs on it is weird.
+    echo "Since ipcs on Apple OSX 10.4 is weird, this script (killm) needs to use sudo, and will ask for your password"
+    for Q in `sudo ipcs -q | grep $USERNAME_CUT | awk '{ print $3 }'`; do ipcrm -Q $Q; done
+    for M in `sudo ipcs -m | grep $USERNAME_CUT | awk '{ print $3 }'`; do ipcrm -M $M; done
+    for S in `sudo ipcs -s | grep $USERNAME_CUT | awk '{ print $3 }'`; do ipcrm -S $S; done
 fi
 
 # remove posix named semaphores if this platform maps them into the file system
@@ -149,7 +149,7 @@ echo "Deleting Posix Named Semaphores..."
 remove_semaphores() {
     local path="$1"
     local pattern="$2"
-    
+
     if [ -d "$path" ]; then
         local files=$(find "$path" -name "$pattern" 2>/dev/null)
         if [ -n "$files" ]; then
@@ -163,7 +163,7 @@ remove_semaphores() {
 # Function to find remaining semaphores
 find_remaining() {
     local remaining=""
-    
+
     # Check all possible paths
     for path in "/dev/shm" "/tmp" "/tmp/.LIBRT/SEMD" "/tmp/.LIBRT/SEML"; do
         if [ -d "$path" ]; then
@@ -173,7 +173,7 @@ find_remaining() {
             fi
         fi
     done
-    
+
     echo -e "$remaining"
 }
 
@@ -211,5 +211,5 @@ find_remaining
 #ls /tmp/.SEM*ion:GLOBAL*
 #ls /tmp/SEM*ion:GLOBAL*
 
-echo "Killm completed."	
+echo "Killm completed."
 exit 0

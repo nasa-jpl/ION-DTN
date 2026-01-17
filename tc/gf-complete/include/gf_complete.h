@@ -1,11 +1,11 @@
-/* 
+/*
  * GF-Complete: A Comprehensive Open Source Library for Galois Field Arithmetic
  * James S. Plank, Ethan L. Miller, Kevin M. Greenan,
  * Benjamin A. Arnold, John A. Burnum, Adam W. Disney, Allen C. McBride.
  *
  * gf_complete.h
  *
- * The main include file for gf_complete. 
+ * The main include file for gf_complete.
  */
 
 #ifndef _GF_COMPLETE_H_
@@ -56,11 +56,11 @@ typedef enum {GF_MULT_DEFAULT,
               GF_MULT_SPLIT_TABLE,
               GF_MULT_COMPOSITE } gf_mult_type_t;
 
-/* These are the different ways to optimize region 
+/* These are the different ways to optimize region
    operations.  They are bits because you can compose them.
-   Certain optimizations only apply to certain gf_mult_type_t's.  
+   Certain optimizations only apply to certain gf_mult_type_t's.
    Again, please see documentation for how to use these */
-   
+
 #define GF_REGION_DEFAULT      (0x0)
 #define GF_REGION_DOUBLE_TABLE (0x1)
 #define GF_REGION_QUAD_TABLE   (0x2)
@@ -85,9 +85,9 @@ typedef enum { GF_DIVIDE_DEFAULT,
 
 /* We support w=4,8,16,32,64 and 128 with their own data types and
    operations for multiplication, division, etc.  We also support
-   a "gen" type so that you can do general gf arithmetic for any 
+   a "gen" type so that you can do general gf arithmetic for any
    value of w from 1 to 32.  You can perform a "region" operation
-   on these if you use "CAUCHY" as the mapping. 
+   on these if you use "CAUCHY" as the mapping.
  */
 
 typedef uint32_t    gf_val_32_t;
@@ -104,13 +104,13 @@ typedef union gf_func_a_b {
     gf_val_64_t  (*w64) (GFP gf, gf_val_64_t a,  gf_val_64_t b);
     void         (*w128)(GFP gf, gf_val_128_t a, gf_val_128_t b, gf_val_128_t c);
 } gf_func_a_b;
-  
+
 typedef union {
   gf_val_32_t  (*w32) (GFP gf, gf_val_32_t a);
   gf_val_64_t  (*w64) (GFP gf, gf_val_64_t a);
   void         (*w128)(GFP gf, gf_val_128_t a, gf_val_128_t b);
 } gf_func_a;
-  
+
 typedef union {
   void  (*w32) (GFP gf, void *src, void *dest, gf_val_32_t val,  int bytes, int add);
   void  (*w64) (GFP gf, void *src, void *dest, gf_val_64_t val,  int bytes, int add);
@@ -131,7 +131,7 @@ typedef struct gf {
   gf_extract     extract_word;
   void           *scratch;
 } gf_t;
-    
+
 /* Initializes the GF to defaults.  Pass it a pointer to a gf_t.
    Returns 0 on failure, 1 on success. */
 
@@ -140,32 +140,32 @@ extern int gf_init_easy(GFP gf, int w);
 /* Initializes the GF changing the defaults.
    Returns 0 on failure, 1 on success.
    Pass it a pointer to a gf_t.
-   For mult_type and divide_type, use one of gf_mult_type_t gf_divide_type_t .  
-   For region_type, OR together the GF_REGION_xxx's defined above.  
+   For mult_type and divide_type, use one of gf_mult_type_t gf_divide_type_t .
+   For region_type, OR together the GF_REGION_xxx's defined above.
    Use 0 as prim_poly for defaults.  Otherwise, the leading 1 is optional.
    Use NULL for scratch_memory to have init_hard allocate memory.  Otherwise,
    use gf_scratch_size() to determine how big scratch_memory has to be.
  */
 
-extern int gf_init_hard(GFP gf, 
-                        int w, 
-                        int mult_type, 
-                        int region_type, 
-                        int divide_type, 
+extern int gf_init_hard(GFP gf,
+                        int w,
+                        int mult_type,
+                        int region_type,
+                        int divide_type,
                         uint64_t prim_poly,
-                        int arg1, 
+                        int arg1,
                         int arg2,
                         GFP base_gf,
                         void *scratch_memory);
 
-/* Determines the size for scratch_memory.  
+/* Determines the size for scratch_memory.
    Returns 0 on failure and non-zero on success. */
 
-extern int gf_scratch_size(int w, 
-                           int mult_type, 
-                           int region_type, 
-                           int divide_type, 
-                           int arg1, 
+extern int gf_scratch_size(int w,
+                           int mult_type,
+                           int region_type,
+                           int divide_type,
+                           int arg1,
                            int arg2);
 
 /* This reports the gf_scratch_size of a gf_t that has already been created */
@@ -179,9 +179,9 @@ extern int gf_free(GFP gf, int recursive);
 
 /* This is support for inline single multiplications and divisions.
    I know it's yucky, but if you've got to be fast, you've got to be fast.
-   We support inlining for w=4, w=8 and w=16.  
+   We support inlining for w=4, w=8 and w=16.
 
-   To use inline multiplication and division with w=4 or 8, you should use the 
+   To use inline multiplication and division with w=4 or 8, you should use the
    default gf_t, or one with a single table.  Otherwise, gf_w4/8_get_mult_table()
    will return NULL. Similarly, with w=16, the gf_t must be LOG */
 

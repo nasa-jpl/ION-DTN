@@ -159,7 +159,7 @@ privately managed by the application.  Upon destruction of the bundle this
 list element will automatically be deleted, thus removing the bundle from
 the application's privately managed list of bundles.  This enables the
 application to keep track of bundles that it is operating on without risk
-of inadvertently de-referencing the address of a nonexistent bundle. 
+of inadvertently de-referencing the address of a nonexistent bundle.
 
 =item void bp_untrack(Object bundle, Object trackingElt)
 

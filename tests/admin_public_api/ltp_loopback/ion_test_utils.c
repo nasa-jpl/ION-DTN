@@ -206,8 +206,8 @@ int test_rfx_start(void)
 }
 
 int test_add_contact(time_t from_time, time_t to_time,
-                     uvast from_node, uvast to_node,
-                     unsigned int xmit_rate, float confidence)
+		uvast from_node, uvast to_node,
+		unsigned int xmit_rate, float confidence)
 {
 	TEST_START("Add Contact");
 	LOG_INFO("Adding contact: from=" UVAST_FIELDSPEC " to=" UVAST_FIELDSPEC
@@ -228,8 +228,8 @@ int test_add_contact(time_t from_time, time_t to_time,
 }
 
 int test_add_range(time_t from_time, time_t to_time,
-                   uvast from_node, uvast to_node,
-                   unsigned int owlt)
+		uvast from_node, uvast to_node,
+		unsigned int owlt)
 {
 	TEST_START("Add Range");
 	LOG_INFO("Adding range: from=" UVAST_FIELDSPEC " to=" UVAST_FIELDSPEC
@@ -393,7 +393,7 @@ int test_add_scheme(const char *name, const char *fwdCmd, const char *admAppCmd)
 			"Calling add_scheme('%s', '%s', '%s')...", name, fwdCmd,
 			admAppCmd);
 	LOG_INFO("%s", logMsg);
-	rc = add_scheme((char *)(uintptr_t) name, (char *)(uintptr_t) fwdCmd, 
+	rc = add_scheme((char *)(uintptr_t) name, (char *)(uintptr_t) fwdCmd,
 			(char *)(uintptr_t) admAppCmd);
 	if (rc <= 0)
 	{
@@ -498,7 +498,7 @@ int test_add_protocol(const char *protocol_name, int protocol_class)
 }
 
 int test_add_induct(const char *protocol_name, const char *duct_name,
-                    const char *cli_command)
+		const char *cli_command)
 {
 	int	rc;
 	char	testName[256];
@@ -528,7 +528,7 @@ int test_add_induct(const char *protocol_name, const char *duct_name,
 }
 
 int test_add_outduct(const char *protocol_name, const char *duct_name,
-                     const char *clo_command, unsigned int max_payload_length)
+		const char *clo_command, unsigned int max_payload_length)
 {
 	int	rc;
 	char	testName[256];

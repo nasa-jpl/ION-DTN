@@ -377,7 +377,7 @@ int	cbor_decode_initial_byte(unsigned char **cursor,
 			additionalInfo);
 }
 
-static int	decodeInteger(uvast *value, int class, int additionalInfo, 
+static int	decodeInteger(uvast *value, int class, int additionalInfo,
 			unsigned char **cursor, unsigned int *bytesBuffered,
 			uvast mask)
 {

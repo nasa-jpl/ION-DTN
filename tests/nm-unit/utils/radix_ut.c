@@ -383,31 +383,31 @@ void radix_query(void)
 
 int main(void)
 {
-   UNITY_BEGIN();
+	UNITY_BEGIN();
 
-   ionAttach();
+	ionAttach();
 
-   /* Basic Test */
-   RUN_TEST(radix_basic);
+	/* Basic Test */
+	RUN_TEST(radix_basic);
 
-   /* Basic Wildcard Tests */
-   RUN_TEST(radix_wildcard1);
-   RUN_TEST(radix_wildcard2);
+	/* Basic Wildcard Tests */
+	RUN_TEST(radix_wildcard1);
+	RUN_TEST(radix_wildcard2);
 
-   /* Shallow Tree Test */
-   RUN_TEST(shallow);
+	/* Shallow Tree Test */
+	RUN_TEST(shallow);
 
-   /* Deep Tree Test */
-   RUN_TEST(deep);
+	/* Deep Tree Test */
+	RUN_TEST(deep);
 
-   /* Large keys test */
-   RUN_TEST(big_keys);
+	/* Large keys test */
+	RUN_TEST(big_keys);
 
-   /* Large Inserts Test */
-//   RUN_TEST(radix_large);
+	/* Large Inserts Test */
+	//   RUN_TEST(radix_large);
 
-   /* Large Queries Test */
-   RUN_TEST(radix_query);
+	/* Large Queries Test */
+	RUN_TEST(radix_query);
 
-   return UNITY_END();
+	return UNITY_END();
 }

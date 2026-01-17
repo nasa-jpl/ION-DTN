@@ -7,7 +7,7 @@
 	Copyright (c) 2020, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "tcaP.h"
 
@@ -15,7 +15,7 @@ static saddr	_running(saddr *newValue)
 {
 	void	*value;
 	saddr	state;
-	
+
 	if (newValue)			/*	Changing state.		*/
 	{
 		value = (void *) (*newValue);

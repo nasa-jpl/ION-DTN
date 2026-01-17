@@ -8,7 +8,7 @@
 #				University of Colorado at Boulder
 #	Copyright (c) 2008-2011, Regents of the University of Colorado.
 #	This work was supported by NASA contracts NNJ05HE10G, NNC06CB40C, and
-#	NNC07CB47C.	
+#	NNC07CB47C.
 
 def listToBlocks(list):
     list = sorted(list)
@@ -77,11 +77,11 @@ if __name__ == '__main__':
     testCase1 = [ [1,2,3,4,7,8,9,17],
                   [(1,4),(7,9),(17,17)],
                   [(1,4),(3,3),(8,1)] ]
-    
+
     testCase2 = [ [1],
                   [ (1,1) ],
                   [ (1,1) ] ]
-    
+
     testCase3 = [ range(1,75) + range(77,86),
                   [ (1,74), (77, 85) ],
                   [ (1,74), (3, 9) ] ]

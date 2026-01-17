@@ -10,7 +10,7 @@ class Bundle:
     def next_seqno(self):
         Bundle.last_seqno += 1
         return Bundle.last_seqno - 1
-    
+
     #lots of defaults
     def __init__(self, bundle_flags = 0, priority = bp.COS_BULK, srr_flags = 0,
                  source = 'dtn:none', dest = 'dtn:none', replyto = 'dtn:none',
@@ -64,7 +64,7 @@ class Bundle:
         x += ("Creation Seq No: %d" % self.creation_seqno) + "\n"
         x += ("Expiration:      %d seconds" % self.expiration) + "\n"
         return x
-        
+
 class Payload:
     pass
 
@@ -102,7 +102,7 @@ class FilePayload(Payload):
         data = file.read()
         file.close()
         return data
-        
+
     #need a new file handle
     def get_file(self, mode='r'):
         file = open(self.filename, mode)

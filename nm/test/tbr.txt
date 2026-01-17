@@ -32,14 +32,14 @@ c115410a05062420201625120b413100050581c11541050502252381871819410000682018544252
 WAIT 1
 
 #------------------------------------------------------------------------------
-# Step 4.1.2: Verify that 5 reports are received approximately 
+# Step 4.1.2: Verify that 5 reports are received approximately
 # 5 seconds apart (variance up to 1 second between individual reports
 # are within tolerance due to the 1Hz rate of the agent autonomy
-# engine. 
+# engine.
 #------------------------------------------------------------------------------
- 
+
 WAIT 30
- 
+
 
 ###############################################################################
 # TC 4.2: Manipulate TBRs.
@@ -48,7 +48,7 @@ WAIT 30
 ###############################################################################
 
 #------------------------------------------------------------------------------
-# Step 4.2.1: Define a TBR  (TBR 2) that will generate an AGENT FULL REPORT 
+# Step 4.2.1: Define a TBR  (TBR 2) that will generate an AGENT FULL REPORT
 # every 30 seconds 100 times.
 #------------------------------------------------------------------------------
 #
@@ -61,7 +61,7 @@ WAIT 30
 #
 #------------------------------------------------------------------------------
 #
-# ARI: ari:/IANA:AMP.AGENT/CTRL.ADD_TBR(ari://Tbr.2, 0, 30, 100, 
+# ARI: ari:/IANA:AMP.AGENT/CTRL.ADD_TBR(ari://Tbr.2, 0, 30, 100,
 #         [ari:/IANA:amp.agent/Ctrl.gen_rpts([ari:/IANA:amp.agent/Rptt.full_report()],[])], ‘TBR2’)
 #
 #------------------------------------------------------------------------------
@@ -70,7 +70,7 @@ WAIT 1
 
 
 #------------------------------------------------------------------------------
-# Step 4.2.2: List TBRs on the agent. 
+# Step 4.2.2: List TBRs on the agent.
 #------------------------------------------------------------------------------
 #
 # ARI: ari:/IANA:amp.agent/Ctrl.gen_tbls([ari:/IANA:amp.agent/Tblt.rules()],[])
@@ -145,7 +145,7 @@ WAIT 1
 ###############################################################################
 # TC 4.3: Run macro by TBR
 ###############################################################################
-# 
+#
 ###############################################################################
 
 #------------------------------------------------------------------------------
@@ -158,7 +158,7 @@ WAIT 1
 #
 #------------------------------------------------------------------------------
 #
-# ARI: ari:/IANA:amp.agent/Ctrl.add_macro("bp_full_rpt_macro", 
+# ARI: ari:/IANA:amp.agent/Ctrl.add_macro("bp_full_rpt_macro",
 #        ari://Mac.bp_full_rpt_macro, [ari:/IANA:amp.agent/Ctrl.gen_rpts(
 #         [ari:/IANA:dtn.bp_agent/Rptt.full_report()], [])])
 #
@@ -168,7 +168,7 @@ WAIT 1
 
 
 #------------------------------------------------------------------------------
-# Step 4.3.2: Define TBR T7 to run Agent Macro bp_full_rpt_macro 1 time with 
+# Step 4.3.2: Define TBR T7 to run Agent Macro bp_full_rpt_macro 1 time with
 #             period 5.
 #------------------------------------------------------------------------------
 #
@@ -181,7 +181,7 @@ WAIT 1
 #
 #------------------------------------------------------------------------------
 #
-# ARI: ari:/IANA:AMP.AGENT/CTRL.ADD_TBR(ari://Tbr.7, 0, 5, 1, 
+# ARI: ari:/IANA:AMP.AGENT/CTRL.ADD_TBR(ari://Tbr.7, 0, 5, 1,
 #        [ari://Mac.bp_full_rpt_macro], ‘TBR7’)
 #
 #------------------------------------------------------------------------------

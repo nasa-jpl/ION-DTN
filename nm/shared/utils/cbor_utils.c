@@ -11,13 +11,13 @@
  ** Subsystem:
  **          Shared utilities
  **
- ** Description: This file provides CBOR encoding/decoding functions for 
- **              AMP structures.                
+ ** Description: This file provides CBOR encoding/decoding functions for
+ **              AMP structures.
  **
  ** Notes:
  **
  ** Assumptions:
- **              
+ **
  **
  **
  ** Modification History:
@@ -25,7 +25,7 @@
  **  --------  ------------   ---------------------------------------------
  **  08/31/18  E. Birrane     Initial Implementation (JHU/APL)
  *****************************************************************************/
- 
+
 #include "platform.h"
 #include "cbor_utils.h"
 #include "utils.h"
@@ -33,19 +33,19 @@
 
 
  uint8_t gEncBuf[CUT_ENC_BUFSIZE];
- 
- 
+
+
 
 /**
  - Used in tnv.c, tnv_deserialize_value_by_type
- - 
+ -
  */
 char *cut_get_cbor_str(QCBORDecodeContext *it, int *success)
 {
 	char *result = NULL;
 	QCBORItem value;
 	QCBORError err;
-	
+
 	CHKNULL(it);
 
 	err = QCBORDecode_GetNext(it, &value);
@@ -53,16 +53,16 @@ char *cut_get_cbor_str(QCBORDecodeContext *it, int *success)
 	{
 		AMP_DEBUG_ERR("cut_get_cbor_str", "Not a valid string: %d", err);
 		*success = AMP_FAIL;
-        return NULL;
+		return NULL;
 	}
-	
+
 	if(value.uDataType == QCBOR_TYPE_TEXT_STRING)
 	{
 		result = STAKE(value.val.string.len+1);
 		CHKNULL(result);
 		strncpy(result, value.val.string.ptr, value.val.string.len);
 		result[value.val.string.len] = 0; // Guarantee result is NULL-terminated
-        *success = AMP_OK;
+		*success = AMP_OK;
 	}
 
 	return result;
@@ -71,7 +71,7 @@ int cut_get_cbor_str_ptr(QCBORDecodeContext *it, char *dst, size_t length)
 {
 	QCBORItem item;
 	QCBORError err;
-	
+
 	CHKUSR(it, AMP_FAIL);
 	CHKUSR(dst, AMP_FAIL);
 
@@ -84,7 +84,7 @@ int cut_get_cbor_str_ptr(QCBORDecodeContext *it, char *dst, size_t length)
 	else if (item.val.string.len > length)
 	{
 		AMP_DEBUG_WARN("cut_get_cbor_str_ptr", "Encoded string (%d) is larger than buffer (%d); truncating",
-					   item.val.string.len, length);
+				item.val.string.len, length);
 	}
 	else if (item.val.string.len < length)
 	{
@@ -100,27 +100,27 @@ int cut_get_cbor_str_ptr(QCBORDecodeContext *it, char *dst, size_t length)
  */
 int cut_enc_bytes(QCBOREncodeContext *encoder, uint8_t *buf, size_t len)
 {
-   CHKUSR(encoder,AMP_FAIL);
+	CHKUSR(encoder,AMP_FAIL);
 
-   int remaining_space = QCBOR_MAX_ITEMS_IN_ARRAY - encoder->nesting.pCurrentNesting->uCount;
-   if(remaining_space < 0 || len >= (size_t)remaining_space) {
-      return AMP_FAIL; // QCBOR_ERR_ARRAY_TOO_LONG;
-   }
-   
-   UsefulOutBuf_InsertData(&(encoder->OutBuf),
-                           buf,
-                           len,
-                           UsefulOutBuf_GetEndPosition(&(encoder->OutBuf))
-      );
-   encoder->uError = Nesting_Increment(&(encoder->nesting));
-   if (encoder->uError != QCBOR_SUCCESS)
-   {
-      return AMP_FAIL;
-   }
-   else
-   {
-      return AMP_OK;
-   }
+	int remaining_space = QCBOR_MAX_ITEMS_IN_ARRAY - encoder->nesting.pCurrentNesting->uCount;
+	if(remaining_space < 0 || len >= (size_t)remaining_space) {
+		return AMP_FAIL; // QCBOR_ERR_ARRAY_TOO_LONG;
+	}
+
+	UsefulOutBuf_InsertData(&(encoder->OutBuf),
+			buf,
+			len,
+			UsefulOutBuf_GetEndPosition(&(encoder->OutBuf))
+	);
+	encoder->uError = Nesting_Increment(&(encoder->nesting));
+	if (encoder->uError != QCBOR_SUCCESS)
+	{
+		return AMP_FAIL;
+	}
+	else
+	{
+		return AMP_OK;
+	}
 }
 
 /** This function allows for decoding a series of raw bytes from a CBOR string.  As with cut_enc_byte, this is not
@@ -128,37 +128,37 @@ int cut_enc_bytes(QCBOREncodeContext *encoder, uint8_t *buf, size_t len)
  */
 int cut_dec_bytes(QCBORDecodeContext *it, uint8_t *buf, size_t len)
 {
-   // This isn't directly supported, so we get a reference to underlying data buf
-   UsefulInputBuf *inbuf = &(it->InBuf);
-   const void *tmp;
+	// This isn't directly supported, so we get a reference to underlying data buf
+	UsefulInputBuf *inbuf = &(it->InBuf);
+	const void *tmp;
 
-   // Check that there is space left in the decoder buffer
-   if (UsefulInputBuf_BytesUnconsumed(inbuf) < len)
-   {
-      AMP_DEBUG_ERR("cut_dec_bytes", "Can't read byte(s) past end of buffer", NULL);
-      return AMP_FAIL;
-   }
+	// Check that there is space left in the decoder buffer
+	if (UsefulInputBuf_BytesUnconsumed(inbuf) < len)
+	{
+		AMP_DEBUG_ERR("cut_dec_bytes", "Can't read byte(s) past end of buffer", NULL);
+		return AMP_FAIL;
+	}
 
-   // Retrieve bytes & advance it
-   tmp = UsefulInputBuf_GetBytes(inbuf, len);
-   if (tmp == NULL)
-   {
-      return AMP_FAIL;
-   }
-   memcpy(buf, tmp, len);
+	// Retrieve bytes & advance it
+	tmp = UsefulInputBuf_GetBytes(inbuf, len);
+	if (tmp == NULL)
+	{
+		return AMP_FAIL;
+	}
+	memcpy(buf, tmp, len);
 
-   // Decrement the nesting level
-   DecodeNesting_DecrementCount(&(it->nesting)); // VERIFY
+	// Decrement the nesting level
+	DecodeNesting_DecrementCount(&(it->nesting)); // VERIFY
 
-   // And check for errors
-   if (UsefulInputBuf_GetError(inbuf) == 0) {
-      return AMP_OK;
-   } else {
-      AMP_DEBUG_ERR("cut_cbor_numeric","Error retrieving byte", NULL);
-      return AMP_FAIL;
-   }
+	// And check for errors
+	if (UsefulInputBuf_GetError(inbuf) == 0) {
+		return AMP_OK;
+	} else {
+		AMP_DEBUG_ERR("cut_cbor_numeric","Error retrieving byte", NULL);
+		return AMP_FAIL;
+	}
 
-   return AMP_OK;
+	return AMP_OK;
 
 }
 
@@ -197,11 +197,11 @@ int cut_get_cbor_numeric_raw(blob_t *data, amp_type_e type, void *val)
 {
 	QCBORDecodeContext decoder;
 	QCBORDecode_Init(&decoder,
-					 (UsefulBufC){data->value,data->length},
-					 QCBOR_DECODE_MODE_NORMAL);
+			(UsefulBufC){data->value,data->length},
+			QCBOR_DECODE_MODE_NORMAL);
 	cut_get_cbor_numeric(&decoder, type, val);
 	cut_decode_finish(&decoder);
-    return AMP_OK;
+	return AMP_OK;
 }
 
 int cut_get_cbor_numeric(QCBORDecodeContext *it, amp_type_e type, void *val)
@@ -234,8 +234,8 @@ int cut_get_cbor_numeric(QCBORDecodeContext *it, amp_type_e type, void *val)
 		// Retrieve a byte & advance it
 		*((uint8_t*)val) = UsefulInputBuf_GetByte(buf);
 
-        // Decrement the nesting level
-        DecodeNesting_DecrementCount(&(it->nesting));
+		// Decrement the nesting level
+		DecodeNesting_DecrementCount(&(it->nesting));
 
 		// And check for errors
 		if (UsefulInputBuf_GetError(buf) == 0) {
@@ -250,20 +250,20 @@ int cut_get_cbor_numeric(QCBORDecodeContext *it, amp_type_e type, void *val)
 
 	// Get Next Item
 	if( (status = QCBORDecode_GetNext(it, &item)) != QCBOR_SUCCESS) {
-       AMP_DEBUG_ERR("cut_cbor_numeric", "QCBOR Error", status);
-       return AMP_FAIL;
-    }
+		AMP_DEBUG_ERR("cut_cbor_numeric", "QCBOR Error", status);
+		return AMP_FAIL;
+	}
 
 	switch(type)
 	{
 		case AMP_TYPE_BOOL:
-			if(item.uDataType == QCBOR_TYPE_TRUE) 
+			if(item.uDataType == QCBOR_TYPE_TRUE)
 			{
-               *(int*)val = 1;
+				*(int*)val = 1;
 			}
 			else if (item.uDataType == QCBOR_TYPE_FALSE)
 			{
-               *(int*)val = 0;
+				*(int*)val = 0;
 			}
 			else
 			{
@@ -272,8 +272,8 @@ int cut_get_cbor_numeric(QCBORDecodeContext *it, amp_type_e type, void *val)
 			break;
 
 		case AMP_TYPE_UINT:
-           // QCBOR may return type INT64 if value can fit in an unsigned integer
-           if(item.uDataType == QCBOR_TYPE_UINT64 || (item.uDataType == QCBOR_TYPE_INT64 && item.val.int64 >= 0))
+			// QCBOR may return type INT64 if value can fit in an unsigned integer
+			if(item.uDataType == QCBOR_TYPE_UINT64 || (item.uDataType == QCBOR_TYPE_INT64 && item.val.int64 >= 0))
 			{
 				uint64_t tmp = item.val.uint64;
 				*(uaddr*)val = (uaddr) tmp;
@@ -284,7 +284,7 @@ int cut_get_cbor_numeric(QCBORDecodeContext *it, amp_type_e type, void *val)
 			}
 			break;
 		case AMP_TYPE_INT:
-			if(item.uDataType == QCBOR_TYPE_INT64 ) 
+			if(item.uDataType == QCBOR_TYPE_INT64 )
 			{
 				*(uint32_t*)val = item.val.int64;
 			}
@@ -299,11 +299,11 @@ int cut_get_cbor_numeric(QCBORDecodeContext *it, amp_type_e type, void *val)
 		case AMP_TYPE_UVAST:
 			if(item.uDataType == QCBOR_TYPE_UINT64)
 			{
-               *(uint64_t*)val = item.val.uint64;
+				*(uint64_t*)val = item.val.uint64;
 			}
-			else if(item.uDataType == QCBOR_TYPE_INT64 ) 
+			else if(item.uDataType == QCBOR_TYPE_INT64 )
 			{
-               *(uint64_t*)val = item.val.int64;
+				*(uint64_t*)val = item.val.int64;
 			}
 			else
 			{
@@ -337,13 +337,13 @@ int cut_get_cbor_numeric(QCBORDecodeContext *it, amp_type_e type, void *val)
 
 	if(errorFlag > 0)
 	{
-       AMP_DEBUG_ERR("cut_get_cbor_numeric","Bad CBOR Data Type %d for AMP Type %d", item.uDataType, type);
+		AMP_DEBUG_ERR("cut_get_cbor_numeric","Bad CBOR Data Type %d for AMP Type %d", item.uDataType, type);
 		return AMP_FAIL;
 	}
 	return AMP_OK;
 }
 
-/** cut_serialize_wrapper() 
+/** cut_serialize_wrapper()
  * Wrapper function to serialize an object into a new CBOR-encoded blob_t
  * @param[in] size    Expected size of item.  Not currently used by QCBOR library.
  * @param[in] item    Pointer to an item to encode, which will be passed to callback function.
@@ -373,7 +373,7 @@ blob_t* cut_serialize_wrapper(size_t size, void *item, cut_enc_fn encode)
 		AMP_DEBUG_ERR("cut_serialize_wrapper", "Error in wrapped encoder: %d", err);
 		return NULL;
 	}
-	
+
 	// Initialize Blob to specified length
 	if((result = blob_create(NULL, 0, size)) == NULL)
 	{
@@ -384,26 +384,26 @@ blob_t* cut_serialize_wrapper(size_t size, void *item, cut_enc_fn encode)
 	// Encode to blob_t buffer
 	QCBOREncode_Init(&encoder, (UsefulBuf){result->value,result->alloc});
 	if( encode(&encoder, item) != AMP_OK) {
-       AMP_DEBUG_ERR("cut_serialize_wrapper", "Encoding Error", NULL);
+		AMP_DEBUG_ERR("cut_serialize_wrapper", "Encoding Error", NULL);
 		blob_release(result,1);
 		return NULL;
 	}
 
-    UsefulBufC Encoded;
-    err = QCBOREncode_Finish(&encoder, &Encoded);
+	UsefulBufC Encoded;
+	err = QCBOREncode_Finish(&encoder, &Encoded);
 
-    // Debugging Info.
-    if(err == QCBOR_ERR_BUFFER_TOO_SMALL)
-    {
-        AMP_DEBUG_ERR("cut_serialize_wrapper","Buffer too small. Orig size was %d. Calc size was %d.", orig_size, size);
-    }
+	// Debugging Info.
+	if(err == QCBOR_ERR_BUFFER_TOO_SMALL)
+	{
+		AMP_DEBUG_ERR("cut_serialize_wrapper","Buffer too small. Orig size was %d. Calc size was %d.", orig_size, size);
+	}
 
-    if (err != QCBOR_SUCCESS) {
+	if (err != QCBOR_SUCCESS) {
 		AMP_DEBUG_ERR("cut_serialize_wrapper", "Encoding Error %d", err);
 		blob_release(result,1);
 		return NULL;
-    }
-    result->length = Encoded.len;
+	}
+	result->length = Encoded.len;
 	return result;
 }
 
@@ -424,9 +424,9 @@ int cut_deserialize_vector(vector_t *vec, QCBORDecodeContext *it, vec_des_fn des
 
 	// Open the Array
 	if( (err = QCBORDecode_GetNext(it, &item)) != QCBOR_SUCCESS) {
-       AMP_DEBUG_ERR("cut_deserialize_vector", "QCBOR Error %d", err);
-       return AMP_FAIL;
-    }
+		AMP_DEBUG_ERR("cut_deserialize_vector", "QCBOR Error %d", err);
+		return AMP_FAIL;
+	}
 	else if (item.uDataType != QCBOR_TYPE_ARRAY)
 	{
 		AMP_DEBUG_ERR("cut_deserialize_vector","Not a container. Type is %d", item.uDataType);
@@ -437,8 +437,8 @@ int cut_deserialize_vector(vector_t *vec, QCBORDecodeContext *it, vec_des_fn des
 
 	for(i = 0; i < length; i++)
 	{
-       int success = AMP_FAIL;
-		
+		int success = AMP_FAIL;
+
 		// Decode Item Contents
 		void *cur_item = des_fn(it, &success);
 
@@ -469,7 +469,7 @@ int cut_deserialize_vector(vector_t *vec, QCBORDecodeContext *it, vec_des_fn des
 int cut_serialize_vector(QCBOREncodeContext *encoder, vector_t *vec, cut_enc_fn enc_fn)
 {
 	vecit_t it;
-    int err;
+	int err;
 	CHKUSR(encoder, AMP_FAIL);
 	CHKUSR(vec, AMP_FAIL);
 
@@ -482,7 +482,7 @@ int cut_serialize_vector(QCBOREncodeContext *encoder, vector_t *vec, cut_enc_fn 
 		if (err != AMP_OK)
 		{
 			AMP_DEBUG_ERR("cut_serialize_vector","Can't serialize item #%d. Err is %d.",vecit_idx(it), err);
-            QCBOREncode_CloseArray(encoder);
+			QCBOREncode_CloseArray(encoder);
 			return err;
 		}
 	}
@@ -505,7 +505,3 @@ int cut_char_serialize(QCBOREncodeContext *encoder, void *item)
 	QCBOREncode_AddSZString(encoder, (char *) item);
 	return AMP_OK;
 }
-
-
-
-

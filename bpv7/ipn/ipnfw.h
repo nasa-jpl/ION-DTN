@@ -1,5 +1,5 @@
 /*
- 	ipnfw.h:	definitions supporting the implementation
+	ipnfw.h:	definitions supporting the implementation
 			of the forwarding infrastructure for the "ipn"
 			endpoint ID scheme as originally developed
 			to support the Compressed Bundle Header
@@ -8,7 +8,7 @@
 			Prior to RFC 9758 the scheme-specific part
 			of an ipn-scheme endpoint ID was of the form
 
-				"node_number.service_number" 
+				"node_number.service_number"
 
 			where node_number was constrained to be a
 			64-bit unsigned integer.  RFC 9758 revised
@@ -38,7 +38,7 @@
 	Copyright (c) 2005, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
- 									*/
+									*/
 
 #ifndef IPNFW_H
 #define IPNFW_H

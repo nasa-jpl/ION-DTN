@@ -5,14 +5,14 @@
 #
 # This test is modeled off of Scott's limbo test.
 # The test checks if the tcpcl keepalive backoff timer
-# triggers a keepalive when the timer goes off. The 
+# triggers a keepalive when the timer goes off. The
 # timer should trigger a keepalive every 30, 60, 120 seconds....
 #
 # The test first sends a file over TCPCL, then it shuts down ION
 # on node 3 waits for 30 seconds to allow the CL to detect the
-# the closed socket.  Then we send a second file while 
-# the connection is closed. We then restart ION on node 3 and 
-# wait for 30 seconds. When the backoff timer(30 seconds) expires it 
+# the closed socket.  Then we send a second file while
+# the connection is closed. We then restart ION on node 3 and
+# wait for 30 seconds. When the backoff timer(30 seconds) expires it
 # will re-establish connection and resend the second file. A third
 # file is sent from node 2 to node 3 to test restored connectivity.
 
@@ -31,10 +31,10 @@ cd 3.ipn.tcp
 
 if [ "$?" -eq 2 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 3 not started: Aborting Test"
-	exit 1
+    echo "Node 3 not started: Aborting Test"
+    exit 1
 fi
 
 cd ../2.ipn.tcp
@@ -43,10 +43,10 @@ cd ../2.ipn.tcp
 
 if [ "$?" -eq 2 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 2 not started: Aborting Test"
-	exit 1
+    echo "Node 2 not started: Aborting Test"
+    exit 1
 fi
 
 echo "Sleeping 30 sec to give keepalive threads time to detect open sockets..."
@@ -70,12 +70,12 @@ cd ../3.ipn.tcp
 COUNT=$(ls -l testfile1 | grep 915 | wc -l)
 if [ "$COUNT" -eq 1 ]
 then
-	echo ""
-	echo "Okay: got a copy of file x."
+    echo ""
+    echo "Okay: got a copy of file x."
 else
-	echo ""
-	echo "Error: didn't get a copy of file x."
-	RETVAL=1
+    echo ""
+    echo "Error: didn't get a copy of file x."
+    RETVAL=1
 fi
 
 echo ""
@@ -100,12 +100,12 @@ cd ../3.ipn.tcp
 COUNT=$(ls -l testfile2 2>/dev/null | grep 1070 | wc -l)
 if [ "$COUNT" -eq 1 ]
 then
-	echo ""
-	echo "Error: got a copy of file y already."
-	RETVAL=1
+    echo ""
+    echo "Error: got a copy of file y already."
+    RETVAL=1
 else
-	echo ""
-	echo "Okay: didn't get a copy of file y."
+    echo ""
+    echo "Okay: didn't get a copy of file y."
 fi
 
 echo ""
@@ -125,12 +125,12 @@ echo "Bundle for 2nd file should have been released from limbo -- k."
 COUNT=$(ls -l testfile1 | grep 1070 | wc -l)
 if [ "$COUNT" -eq 1 ]
 then
-	echo ""
-	echo "Okay: got copy of file y."
+    echo ""
+    echo "Okay: got copy of file y."
 else
-	echo ""
-	echo "Error: didn't get a copy of file y."
-	RETVAL=1
+    echo ""
+    echo "Error: didn't get a copy of file y."
+    RETVAL=1
 fi
 
 echo ""
@@ -145,12 +145,12 @@ cd ../3.ipn.tcp
 COUNT=$(ls -l testfile2 | grep 885 | wc -l)
 if [ "$COUNT" -eq 1 ]
 then
-	echo ""
-	echo "Okay: got a copy of file z."
+    echo ""
+    echo "Okay: got a copy of file z."
 else
-	echo ""
-	echo "Error: didn't get a copy of file z."
-	RETVAL=1
+    echo ""
+    echo "Error: didn't get a copy of file z."
+    RETVAL=1
 fi
 
 echo ""

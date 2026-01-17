@@ -179,9 +179,9 @@ unsigned long utils_atox(char *s, int *success)
 		{
 		case '0': case '1': case '2': case '3': case '4': case '5': case '6':
 		case '7': case '8': case '9':
-				  temp = s[i] - '0';
-				  result += temp * mult;
-				  break;
+			temp = s[i] - '0';
+			result += temp * mult;
+			break;
 		case 'A': case 'a': result += 10 * mult; break;
 		case 'B': case 'b': result += 11 * mult; break;
 		case 'C': case 'c': result += 12 * mult; break;
@@ -227,46 +227,46 @@ unsigned long utils_atox(char *s, int *success)
 
 char *utils_hex_to_string(uint8_t *buffer, uint32_t size)
 {
-    char *result = NULL;
-    uint32_t char_size = 0;
+	char *result = NULL;
+	uint32_t char_size = 0;
 
-    char temp[3];
-    uint32_t  i = 0;
-    int r = 0;
+	char temp[3];
+	uint32_t  i = 0;
+	int r = 0;
 
-    AMP_DEBUG_ENTRY("utils_hex_to_string","(%x,%d)",
-    		          (size_t) buffer, size);
+	AMP_DEBUG_ENTRY("utils_hex_to_string","(%x,%d)",
+			(size_t) buffer, size);
 
-    /* Each byte requires 2 characters to represent in HEX. Also, require
-     * three additional bytes to capture '0x' and NULL terminator.
-     */
-    char_size = (2 * size) + 3;
-    result = (char *) STAKE(char_size);
+	/* Each byte requires 2 characters to represent in HEX. Also, require
+	 * three additional bytes to capture '0x' and NULL terminator.
+	 */
+	char_size = (2 * size) + 3;
+	result = (char *) STAKE(char_size);
 
-    if(result == NULL)
-    {
-        AMP_DEBUG_ERR("utils_hex_to_string", "Cannot allocate %d bytes.",
-        		        char_size);
-        AMP_DEBUG_EXIT("utils_hex_to_string", "-> NULL.", NULL);
-        return NULL;
-    }
+	if(result == NULL)
+	{
+		AMP_DEBUG_ERR("utils_hex_to_string", "Cannot allocate %d bytes.",
+				char_size);
+		AMP_DEBUG_EXIT("utils_hex_to_string", "-> NULL.", NULL);
+		return NULL;
+	}
 
-    result[0] = '0';
-    result[1] = 'x';
-    r = 2;
+	result[0] = '0';
+	result[1] = 'x';
+	r = 2;
 
-    for(i = 0; i < size; i++)
-    {
-        sprintf(temp, "%.2x", (unsigned int)buffer[i]);
-        result[r++] = temp[0];
-        result[r++] = temp[1];
-    }
+	for(i = 0; i < size; i++)
+	{
+		sprintf(temp, "%.2x", (unsigned int) buffer[i]);
+		result[r++] = temp[0];
+		result[r++] = temp[1];
+	}
 
-    result[r] = '\0';
+	result[r] = '\0';
 
-    AMP_DEBUG_EXIT("mid_to_string","->%s.", result);
+	AMP_DEBUG_EXIT("mid_to_string","->%s.", result);
 
-    return result;
+	return result;
 }
 
 
@@ -340,7 +340,7 @@ blob_t* utils_string_to_hex(char *value)
 	char tmp_s[3];
 	int len = 0;
 	int success = 0;
-	int pad = 0; 
+	int pad = 0;
 	size_t size = 0;
 
 	CHKNULL(value);
@@ -369,7 +369,7 @@ blob_t* utils_string_to_hex(char *value)
 	else
 	{
 		size = (len/2) + 1;
-       pad = 1;
+		pad = 1;
 	}
 
 	if((result = blob_create(NULL, 0, size+1)) == NULL)
@@ -382,7 +382,7 @@ blob_t* utils_string_to_hex(char *value)
 	/* Step 2 - For each byte, copy in the nibbles. */
 	tmp_s[2] = '\0';
 	int incr = 1;
-    int i = 0;
+	int i = 0;
 
 	for(i = 0; i < len;)
 	{
@@ -400,7 +400,7 @@ blob_t* utils_string_to_hex(char *value)
 		}
 		uint8_t tmp_x = (uint8_t) utils_atox(tmp_s, &success);
 		blob_append(result, &tmp_x, 1);
-	
+
 		i += incr;
 		if(success == 0)
 		{
@@ -472,9 +472,3 @@ vast    utils_time_cur_delta(struct timeval *t1)
 
 	return result;
 }
-
-
-
-
-
-

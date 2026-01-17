@@ -57,7 +57,7 @@ using I<data_value> as the data value of the node.
 =item B<f> I<data_value>
 
 The B<find> command.  Finds the rbt node whose value is I<data_value>,
-within the red-black tree, and prints the address of that node.  If the 
+within the red-black tree, and prints the address of that node.  If the
 node is not found, prints address zero and prints the address of the
 successor node in the tree.
 

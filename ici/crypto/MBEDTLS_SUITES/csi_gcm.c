@@ -41,10 +41,10 @@ int gcm_init(mbedtls_entropy_context *entropy)
 
 	mbedtls_ctr_drbg_init( &g_csi_ctr_drbg_ctx );
 	ret = mbedtls_ctr_drbg_seed(&g_csi_ctr_drbg_ctx,
-			                    mbedtls_entropy_func,
-								entropy,
-								(const unsigned char *) "CSI CIPHERSUITES",
-								16);
+				mbedtls_entropy_func,
+				entropy,
+				(const unsigned char *) "CSI CIPHERSUITES",
+				16);
 	mbedtls_ctr_drbg_set_prediction_resistance( &g_csi_ctr_drbg_ctx, MBEDTLS_CTR_DRBG_PR_OFF );
 
 	if(ret != 0)
@@ -58,7 +58,7 @@ int gcm_init(mbedtls_entropy_context *entropy)
 
 void gcm_teardown(void)
 {
-    mbedtls_ctr_drbg_free( &g_csi_ctr_drbg_ctx );
+	mbedtls_ctr_drbg_free(&g_csi_ctr_drbg_ctx);
 }
 
 /******************************************************************************
@@ -177,7 +177,7 @@ csi_gcm_context_t *gcm_ctx_init(csi_csid_t suite, csi_val_t key_info, csi_svcid_
 		if(key_info.len != 16)
 		{
 			CSI_DEBUG_ERR("x gcm_ctx_init: Expected key size 16 not %d for suite %d.",
-					         key_info.len, suite);
+					key_info.len, suite);
 			gcm_ctx_free(suite, result);
 			return NULL;
 		}
@@ -189,7 +189,7 @@ csi_gcm_context_t *gcm_ctx_init(csi_csid_t suite, csi_val_t key_info, csi_svcid_
 		if(key_info.len != 32)
 		{
 			CSI_DEBUG_ERR("x gcm_ctx_init: Expected key size 32 not %d for suite %d.",
-					         key_info.len, suite);
+					key_info.len, suite);
 			gcm_ctx_free(suite, result);
 			return NULL;
 		}
@@ -375,7 +375,7 @@ int8_t gcm_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc, csi_ci
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 int8_t  gcm_crypt_full(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parms,
-		               csi_val_t key, csi_val_t input, csi_val_t *output)
+		csi_val_t key, csi_val_t input, csi_val_t *output)
 {
 	uint32_t retval = 0;
 	mbedtls_gcm_context gcm_ctx;
@@ -459,16 +459,16 @@ int8_t  gcm_crypt_full(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *par
 	{
 
 		retval = mbedtls_gcm_crypt_and_tag(&gcm_ctx,
-		                       	   	       MBEDTLS_GCM_ENCRYPT,
-										   input.len,
-										   parms->iv.contents,
-										   parms->iv.len,
-										   parms->aad.contents,
-										   parms->aad.len,
-										   input.contents,
-										   output->contents,
-										   parms->icv.len,
-										   parms->icv.contents);
+						MBEDTLS_GCM_ENCRYPT,
+						input.len,
+						parms->iv.contents,
+						parms->iv.len,
+						parms->aad.contents,
+						parms->aad.len,
+						input.contents,
+						output->contents,
+						parms->icv.len,
+						parms->icv.contents);
 		if(retval != 0)
 		{
 			CSI_DEBUG_ERR("x gcm_crypt_full: Failed to encrypt. input %d, iv %d, aad %d, icv %d. "
@@ -489,15 +489,15 @@ int8_t  gcm_crypt_full(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *par
 	{
 
 		retval = mbedtls_gcm_auth_decrypt(&gcm_ctx,
-				                          input.len,
-										  parms->iv.contents,
-										  parms->iv.len,
-										  parms->aad.contents,
-										  parms->aad.len,
-										  parms->icv.contents,
-										  parms->icv.len,
-										  input.contents,
-										  output->contents);
+						input.len,
+						parms->iv.contents,
+						parms->iv.len,
+						parms->aad.contents,
+						parms->aad.len,
+						parms->icv.contents,
+						parms->icv.len,
+						input.contents,
+						output->contents);
 
 		if(retval != 0)
 		{
@@ -538,7 +538,7 @@ int8_t  gcm_crypt_full(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *par
  * \todo  check MTAKE results.
  */
 int8_t gcm_crypt_key(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parms, csi_val_t longtermkey,
-		             csi_val_t input, csi_val_t *output)
+		csi_val_t input, csi_val_t *output)
 {
 	int8_t result = ERROR;
 	csi_cipherparms_t keyparms;
@@ -822,11 +822,11 @@ int8_t gcm_crypt_start(csi_csid_t suite, void *context, csi_cipherparms_t parms)
 
 
 	retval = mbedtls_gcm_starts(&(csi_gcm_ctx->gcm_ctx),
-			                    csi_gcm_ctx->mode,
-								parms.iv.contents,
-								parms.iv.len,
-								parms.aad.contents,
-								parms.aad.len);
+				csi_gcm_ctx->mode,
+				parms.iv.contents,
+				parms.iv.len,
+				parms.aad.contents,
+				parms.aad.len);
 
 	if(retval != 0)
 	{

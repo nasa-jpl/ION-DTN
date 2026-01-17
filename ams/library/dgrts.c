@@ -437,7 +437,7 @@ printf("in dgrSendAms, tsep is %lu.\n", (unsigned long) tsep);
 	result = dgr_send(dgrSap, tsep->portNbr, tsep->ipAddress, 0, dgrAmsBuf,
 			len, &rc);
 	MRELEASE(dgrAmsBuf);
-       	if (result < 0)
+	if (result < 0)
 	{
 #if AMSDEBUG
 PUTS("dgrSendAms failed.");

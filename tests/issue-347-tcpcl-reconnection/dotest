@@ -21,10 +21,10 @@ cd 1.ipn.tcp/
 
 if [ $? -eq 2 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 1 not started: Aborting Test"
-	exit 1
+    echo "Node 1 not started: Aborting Test"
+    exit 1
 fi
 
 #Set up node 2
@@ -34,10 +34,10 @@ cd ../2.ipn.tcp/
 
 if [ $? -eq 2 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 2 not started: Aborting Test"
-	exit 1
+    echo "Node 2 not started: Aborting Test"
+    exit 1
 fi
 
 # Start file receiver on node 2.
@@ -57,12 +57,12 @@ cd ../2.ipn.tcp
 COUNT=`ls -l testfile1 | egrep 915 | wc -l`
 if [ $COUNT -eq 1 ]
 then
-	echo ""
-	echo "Okay: got a copy of file x. SUCCESS"
+    echo ""
+    echo "Okay: got a copy of file x. SUCCESS"
 else
-	echo ""
-	echo "Error: didn't get a copy of file x. FAIL"
-	RETVAL=1
+    echo ""
+    echo "Error: didn't get a copy of file x. FAIL"
+    RETVAL=1
 fi
 
 echo ""
@@ -91,12 +91,12 @@ cd ../2.ipn.tcp
 COUNT=`ls -l testfile2 | egrep 1070 | wc -l`
 if [ $COUNT -eq 1 ]
 then
-	echo ""
-	echo "Okay: got a copy of file y. SUCCESS" 
+    echo ""
+    echo "Okay: got a copy of file y. SUCCESS"
 else
-	echo ""
-	echo "Error: did not get a copy of file y. FAIL"
-	RETVAL=1
+    echo ""
+    echo "Error: did not get a copy of file y. FAIL"
+    RETVAL=1
 fi
 
 echo ""
@@ -112,4 +112,3 @@ echo "Stopping ION..."
 killm
 echo "TCPCL restart test complete."
 exit $RETVAL
-

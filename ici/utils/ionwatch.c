@@ -117,7 +117,7 @@ static int findDaemonInHistory(const char *protocol, const char *daemon, int pid
 	for (i = 0; i < g_previous_history.count; i++)
 	{
 		if (strcmp(g_previous_history.daemons[i].protocol, protocol) == 0 &&
-		    strcmp(g_previous_history.daemons[i].daemon, daemon) == 0)
+			strcmp(g_previous_history.daemons[i].daemon, daemon) == 0)
 		{
 			return i;
 		}
@@ -244,22 +244,22 @@ static void printDaemonEx(const char *protocol, const char *daemon, int pid,
 			if (idx >= 0)
 			{
 				snprintf(outputLine, sizeof(outputLine),
-				         "%s/%s %s (PID %d) - status changed from %s",
-				         protocol, daemon, getStatusString(status), pid,
-				         getStatusString(g_previous_history.daemons[idx].status));
+					"%s/%s %s (PID %d) - status changed from %s",
+					protocol, daemon, getStatusString(status), pid,
+					getStatusString(g_previous_history.daemons[idx].status));
 			}
 			else
 			{
 				snprintf(outputLine, sizeof(outputLine),
-				         "%s/%s %s (PID %d) - status changed",
-				         protocol, daemon, getStatusString(status), pid);
+					"%s/%s %s (PID %d) - status changed",
+					protocol, daemon, getStatusString(status), pid);
 			}
 		}
 		else
 		{
 			snprintf(outputLine, sizeof(outputLine),
-			         "%s/%s %s (PID %d)",
-			         protocol, daemon, getStatusString(status), pid);
+				"%s/%s %s (PID %d)",
+				protocol, daemon, getStatusString(status), pid);
 		}
 		logMessage(1, "%s", outputLine);
 	}
@@ -273,15 +273,15 @@ static void printDaemonEx(const char *protocol, const char *daemon, int pid,
 		}
 
 		printf("%-8s %-20s %-10d %-12s%-12s %s\n",
-		       protocol, daemon, pid, getStatusString(status),
-		       changeMarker, notes);
+			protocol, daemon, pid, getStatusString(status),
+			changeMarker, notes);
 	}
 }
 
 static void printHeader(void)
 {
 	printf("\n%-8s %-20s %-10s %-12s %s\n",
-	       "Protocol", "Daemon", "PID", "Status", "Notes");
+		"Protocol", "Daemon", "PID", "Status", "Notes");
 	printf("--------------------------------------------------------------------------------\n");
 }
 
@@ -341,8 +341,8 @@ static int displayDaemonStatus(int showOnlyRunning, int logToFile,
 		if (!showOnlyRunning || status == DAEMON_RUNNING)
 		{
 			printDaemonEx("ICI", "rfxclock", ionvdb->clockPid,
-			            status, "Contact plan manager",
-			            logToFile, quietMode, anyChanged);
+					status, "Contact plan manager",
+					logToFile, quietMode, anyChanged);
 		}
 	}
 
@@ -355,16 +355,16 @@ static int displayDaemonStatus(int showOnlyRunning, int logToFile,
 		if (!showOnlyRunning || status == DAEMON_RUNNING)
 		{
 			printDaemonEx("LTP", "ltpclock", ltpvdb->clockPid,
-			            status, "Event scheduler",
-		            logToFile, quietMode, anyChanged);
+					status, "Event scheduler",
+					logToFile, quietMode, anyChanged);
 		}
 
 		status = checkDaemonStatus(ltpvdb->delivPid, "ltpdeliv");
 		if (!showOnlyRunning || status == DAEMON_RUNNING)
 		{
 			printDaemonEx("LTP", "ltpdeliv", ltpvdb->delivPid,
-			            status, "Delivery service",
-		            logToFile, quietMode, anyChanged);
+					status, "Delivery service",
+					logToFile, quietMode, anyChanged);
 		}
 
 		/*	Per-span daemons (LSO, ltpmeter)		*/
@@ -373,7 +373,7 @@ static int displayDaemonStatus(int showOnlyRunning, int logToFile,
 		sdr = getIonsdr();
 
 		for (elt = sm_list_first(ltpwm, ltpvdb->spans); elt;
-		     elt = sm_list_next(ltpwm, elt))
+				elt = sm_list_next(ltpwm, elt))
 		{
 			addr = sm_list_data(ltpwm, elt);
 			vspan = (LtpVspan *) psp(ltpwm, addr);
@@ -385,8 +385,8 @@ static int displayDaemonStatus(int showOnlyRunning, int logToFile,
 			/* Read the span structure from SDR to get lsoCmd */
 			CHKZERO(sdr_begin_xn(sdr));
 			sdr_read(sdr, (char *) &span,
-			         sdr_list_data(sdr, vspan->spanElt),
-			         sizeof(LtpSpan));
+					sdr_list_data(sdr, vspan->spanElt),
+					sizeof(LtpSpan));
 			sdr_string_read(sdr, lsoCmd, span.lsoCmd);
 			sdr_exit_xn(sdr);
 
@@ -395,11 +395,11 @@ static int displayDaemonStatus(int showOnlyRunning, int logToFile,
 			if (!showOnlyRunning || status == DAEMON_RUNNING)
 			{
 				snprintf(daemonName, sizeof(daemonName),
-				         "%s [" UVAST_FIELDSPEC "]",
-				         lsoCmd, vspan->engineId);
+						"%s [" UVAST_FIELDSPEC "]",
+						lsoCmd, vspan->engineId);
 				printDaemonEx("LTP", daemonName, vspan->lsoPid,
-				            status, "Link service output",
-		            logToFile, quietMode, anyChanged);
+						status, "Link service output",
+						logToFile, quietMode, anyChanged);
 			}
 
 			/* Check ltpmeter daemon */
@@ -407,18 +407,18 @@ static int displayDaemonStatus(int showOnlyRunning, int logToFile,
 			if (!showOnlyRunning || status == DAEMON_RUNNING)
 			{
 				snprintf(daemonName, sizeof(daemonName),
-				         "ltpmeter [" UVAST_FIELDSPEC "]",
-				         vspan->engineId);
+						"ltpmeter [" UVAST_FIELDSPEC "]",
+						vspan->engineId);
 				printDaemonEx("LTP", daemonName, vspan->meterPid,
-				            status, "Meter",
-		            logToFile, quietMode, anyChanged);
+						status, "Meter",
+						logToFile, quietMode, anyChanged);
 			}
 		}
 
 		/*	Per-seat daemons (LSI)				*/
 
 		for (elt = sm_list_first(ltpwm, ltpvdb->seats); elt;
-		     elt = sm_list_next(ltpwm, elt))
+				elt = sm_list_next(ltpwm, elt))
 		{
 			addr = sm_list_data(ltpwm, elt);
 			vseat = (LtpVseat *) psp(ltpwm, addr);
@@ -432,10 +432,10 @@ static int displayDaemonStatus(int showOnlyRunning, int logToFile,
 			if (!showOnlyRunning || status == DAEMON_RUNNING)
 			{
 				snprintf(daemonName, sizeof(daemonName),
-				         "%s", vseat->lsiCmd);
+						"%s", vseat->lsiCmd);
 				printDaemonEx("LTP", daemonName, vseat->lsiPid,
-				            status, "Link service input",
-		            logToFile, quietMode, anyChanged);
+						status, "Link service input",
+						logToFile, quietMode, anyChanged);
 			}
 		}
 	}
@@ -450,24 +450,24 @@ static int displayDaemonStatus(int showOnlyRunning, int logToFile,
 		if (!showOnlyRunning || status == DAEMON_RUNNING)
 		{
 			printDaemonEx("BP", "bpclock", bpvdb->clockPid,
-			            status, "Event scheduler",
-		            logToFile, quietMode, anyChanged);
+					status, "Event scheduler",
+					logToFile, quietMode, anyChanged);
 		}
 
 		status = checkDaemonStatus(bpvdb->cpsdPid, "cpsd");
 		if (!showOnlyRunning || status == DAEMON_RUNNING)
 		{
 			printDaemonEx("BP", "cpsd", bpvdb->cpsdPid,
-			            status, "Contact plan sync",
-		            logToFile, quietMode, anyChanged);
+					status, "Contact plan sync",
+					logToFile, quietMode, anyChanged);
 		}
 
 		status = checkDaemonStatus(bpvdb->transitPid, "bptransit");
 		if (!showOnlyRunning || status == DAEMON_RUNNING)
 		{
 			printDaemonEx("BP", "bptransit", bpvdb->transitPid,
-			            status, "Transit processor",
-		            logToFile, quietMode, anyChanged);
+					status, "Transit processor",
+					logToFile, quietMode, anyChanged);
 		}
 
 		/*	Per-plan daemons (bpclm)				*/
@@ -488,17 +488,17 @@ static int displayDaemonStatus(int showOnlyRunning, int logToFile,
 			if (!showOnlyRunning || status == DAEMON_RUNNING)
 			{
 				snprintf(daemonName, sizeof(daemonName),
-				         "bpclm [%s]", vplan->neighborEid);
+					"bpclm [%s]", vplan->neighborEid);
 				printDaemonEx("BP", daemonName, vplan->clmPid,
-				            status, "CL manager",
-		            logToFile, quietMode, anyChanged);
+					status, "CL manager",
+					logToFile, quietMode, anyChanged);
 			}
 		}
 
 		/*	Per-induct daemons (CLIs)				*/
 
 		for (elt = sm_list_first(bpwm, bpvdb->inducts); elt;
-		     elt = sm_list_next(bpwm, elt))
+				elt = sm_list_next(bpwm, elt))
 		{
 			addr = sm_list_data(bpwm, elt);
 			vinduct = (VInduct *) psp(bpwm, addr);
@@ -508,23 +508,23 @@ static int displayDaemonStatus(int showOnlyRunning, int logToFile,
 			}
 
 			snprintf(daemonName, sizeof(daemonName),
-			         "%scli", vinduct->protocolName);
+					"%scli", vinduct->protocolName);
 			status = checkDaemonStatus(vinduct->cliPid, daemonName);
 			if (!showOnlyRunning || status == DAEMON_RUNNING)
 			{
 				snprintf(daemonName, sizeof(daemonName),
-				         "%scli [%s]", vinduct->protocolName,
-				         vinduct->ductName);
+						"%scli [%s]", vinduct->protocolName,
+						vinduct->ductName);
 				printDaemonEx("BP", daemonName, vinduct->cliPid,
-				            status, "CL input",
-		            logToFile, quietMode, anyChanged);
+						status, "CL input",
+						logToFile, quietMode, anyChanged);
 			}
 		}
 
 		/*	Per-outduct daemons (CLOs)				*/
 
 		for (elt = sm_list_first(bpwm, bpvdb->outducts); elt;
-		     elt = sm_list_next(bpwm, elt))
+				elt = sm_list_next(bpwm, elt))
 		{
 			addr = sm_list_data(bpwm, elt);
 			voutduct = (VOutduct *) psp(bpwm, addr);
@@ -534,16 +534,16 @@ static int displayDaemonStatus(int showOnlyRunning, int logToFile,
 			}
 
 			snprintf(daemonName, sizeof(daemonName),
-			         "%sclo", voutduct->protocolName);
+					"%sclo", voutduct->protocolName);
 			status = checkDaemonStatus(voutduct->cloPid, daemonName);
 			if (!showOnlyRunning || status == DAEMON_RUNNING)
 			{
 				snprintf(daemonName, sizeof(daemonName),
-				         "%sclo [%s]", voutduct->protocolName,
-				         voutduct->ductName);
+						"%sclo [%s]", voutduct->protocolName,
+						voutduct->ductName);
 				printDaemonEx("BP", daemonName, voutduct->cloPid,
-				            status, "CL output",
-		            logToFile, quietMode, anyChanged);
+						status, "CL output",
+						logToFile, quietMode, anyChanged);
 			}
 		}
 	}
@@ -559,16 +559,16 @@ static int displayDaemonStatus(int showOnlyRunning, int logToFile,
 		if (!showOnlyRunning || status == DAEMON_RUNNING)
 		{
 			printDaemonEx("CFDP", "cfdpclock", cfdpvdb->clockPid,
-			            status, "Event scheduler",
-		            logToFile, quietMode, anyChanged);
+					status, "Event scheduler",
+					logToFile, quietMode, anyChanged);
 		}
 
 		status = checkDaemonStatus(cfdpvdb->utaPid, "cfdp");
 		if (!showOnlyRunning || status == DAEMON_RUNNING)
 		{
 			printDaemonEx("CFDP", "cfdp UT layer", cfdpvdb->utaPid,
-			            status, "UT adapter",
-		            logToFile, quietMode, anyChanged);
+					status, "UT adapter",
+					logToFile, quietMode, anyChanged);
 		}
 	}
 #endif
@@ -583,16 +583,16 @@ static int displayDaemonStatus(int showOnlyRunning, int logToFile,
 		if (!showOnlyRunning || status == DAEMON_RUNNING)
 		{
 			printDaemonEx("DTPC", "dtpcclock", dtpcvdb->clockPid,
-			            status, "Event scheduler",
-		            logToFile, quietMode, anyChanged);
+					status, "Event scheduler",
+					logToFile, quietMode, anyChanged);
 		}
 
 		status = checkDaemonStatus(dtpcvdb->dtpcdPid, "dtpcd");
 		if (!showOnlyRunning || status == DAEMON_RUNNING)
 		{
 			printDaemonEx("DTPC", "dtpcd", dtpcvdb->dtpcdPid,
-			            status, "Main daemon",
-		            logToFile, quietMode, anyChanged);
+					status, "Main daemon",
+					logToFile, quietMode, anyChanged);
 		}
 	}
 #endif
@@ -607,8 +607,8 @@ static int displayDaemonStatus(int showOnlyRunning, int logToFile,
 		if (!showOnlyRunning || status == DAEMON_RUNNING)
 		{
 			printDaemonEx("BSSP", "bsspclock", bsspvdb->clockPid,
-			            status, "Event scheduler",
-		            logToFile, quietMode, anyChanged);
+					status, "Event scheduler",
+					logToFile, quietMode, anyChanged);
 		}
 	}
 #endif
@@ -657,7 +657,7 @@ static void handleQuit(int signum)
 }
 
 static int run_daemonwatch(int interval, int showOnlyRunning,
-                            int logToFile, int quietMode)
+		int logToFile, int quietMode)
 {
 	int secRemaining;
 	int decrement = 0;
@@ -696,7 +696,7 @@ static int run_daemonwatch(int interval, int showOnlyRunning,
 	anyChanged = 0;
 
 	if (displayDaemonStatus(showOnlyRunning, logToFile,
-	                         quietMode, &anyChanged) < 0)
+			quietMode, &anyChanged) < 0)
 	{
 		putErrmsg("Can't display daemon status.", NULL);
 		ionDetach();
@@ -730,7 +730,7 @@ static int run_daemonwatch(int interval, int showOnlyRunning,
 		anyChanged = 0;
 
 		if (displayDaemonStatus(showOnlyRunning, logToFile,
-		                         quietMode, &anyChanged) < 0)
+				quietMode, &anyChanged) < 0)
 		{
 			putErrmsg("Can't display daemon status.", NULL);
 			break;
@@ -755,7 +755,7 @@ static int run_daemonwatch(int interval, int showOnlyRunning,
 
 #if defined(ION_LWT)
 int ionwatch(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
-             saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	int interval = a1 ? strtol((char *) a1, NULL, 0) : 0;
 	int count = a2 ? strtol((char *) a2, NULL, 0) : 1;
@@ -810,7 +810,7 @@ int main(int argc, char **argv)
 			logToFile = 1;
 		}
 		else if (strcmp(argv[i], "-q") == 0 || strcmp(argv[i], "--quiet") == 0 ||
-		         strcmp(argv[i], "--changes-only") == 0)
+				strcmp(argv[i], "--changes-only") == 0)
 		{
 			quietMode = 1;
 		}
@@ -857,5 +857,5 @@ int main(int argc, char **argv)
 
 	oK(ionwatch_count(&count));
 	return run_daemonwatch(interval, showOnlyRunning,
-		            logToFile, quietMode);
+			logToFile, quietMode);
 }

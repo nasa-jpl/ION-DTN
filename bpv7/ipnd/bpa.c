@@ -9,7 +9,7 @@
  *	acknowledged.
  *	Author: Gerard Garcia, TrePe
  *	Version 1.0 2015/05/09 Gerard Garcia
- *	Version 2.0 DTN Neighbor Discovery 
+ *	Version 2.0 DTN Neighbor Discovery
  *		- ION IPND Implementation Assembly Part2
  *	Version 2.1 DTN Neighbor Discovery - ION IPND Fix Defects and Issues
  *	Version 2.2 Shared context ctx passed explicitely to threads to avoid shared library security change implications
@@ -965,7 +965,7 @@ allocating memory for new destination.", NULL);
 				newDest->addr = nb->addr;
 
 				lockResource(&ctx->configurationLock);
-				newDest->announcePeriod = 
+				newDest->announcePeriod =
 					ctx->announcePeriods[srcAddrType];
 				unlockResource(&ctx->configurationLock);
 

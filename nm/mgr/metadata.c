@@ -139,7 +139,7 @@ void meta_cb_filter(rh_elt_t *elt, void *tag)
 	meta = (metadata_t*) elt->value;
 
 	if(((col->adm_id == ADM_ENUM_ALL) || (meta->adm_id == col->adm_id)) &&
-	   ((col->type == AMP_TYPE_UNK) || (meta->id->type == col->type)))
+		((col->type == AMP_TYPE_UNK) || (meta->id->type == col->type)))
 	{
 		vec_push(&(col->results), meta);
 	}

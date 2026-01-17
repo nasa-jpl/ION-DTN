@@ -14,7 +14,7 @@ lyst - library for manipulating generalized doubly linked lists
 =head1 DESCRIPTION
 
 The "lyst" library uses two types of objects, I<Lyst> objects
-and I<LystElt> objects.  A Lyst knows how many elements it contains, 
+and I<LystElt> objects.  A Lyst knows how many elements it contains,
 its first and last elements, the memory manager used
 to create/destroy the Lyst and its elements, and how the elements are
 sorted.  A LystElt knows its content (normally a pointer to an item
@@ -51,7 +51,7 @@ deletion function if defined.
 
 =item LystCompareFn lyst_compare_get(Lyst list)
 
-Set/get comparison function for specified Lyst.  Comparison 
+Set/get comparison function for specified Lyst.  Comparison
 functions are called with two Lyst element data
 pointers, and must return a negative integer if first
 is less than second, 0 if both are equal, and a positive integer
@@ -65,7 +65,7 @@ functions.
 Set sort direction (either LIST_SORT_ASCENDING or
 LIST_SORT_DESCENDING) for specified Lyst.  If no comparison
 function is set, then this controls whether
-new elements are added to the end or beginning (respectively) 
+new elements are added to the end or beginning (respectively)
 of the Lyst when lyst_insert() is called.
 
 =item void lyst_delete_set(Lyst list, LystCallback deleteFn, void *userdata)
@@ -105,7 +105,7 @@ pointer to the newly created element, or NULL on any failure.
 Create a new element and insert it at the beginning/end
 of the Lyst.  If these functions are used when inserting elements
 into a Lyst with a defined comparison function, then the Lyst may
-get out of order and future calls to lyst_insert() can put new elements 
+get out of order and future calls to lyst_insert() can put new elements
 in unpredictable locations.  Returns a pointer to
 the newly created element, or NULL on any failure.
 
@@ -123,7 +123,7 @@ to the newly created element, or NULL on any failure.
 
 =item void lyst_delete(LystElt element)
 
-Delete the specified element from its Lyst and deallocate its memory.  
+Delete the specified element from its Lyst and deallocate its memory.
 Calls the user delete function if defined.
 
 =item LystElt lyst_first(Lyst list)
@@ -149,9 +149,9 @@ otherwise searches from the given element to the end of the Lyst.
 
 Return the Lyst to which the specified element belongs.
 
-=item void* lyst_data(LystElt element)
+=item void *lyst_data(LystElt element)
 
-=item void* lyst_data_set(LystElt element, void *data)
+=item void *lyst_data_set(LystElt element, void *data)
 
 Get/set the pointer value content of the specified Lyst element.  The
 set routine returns the element's previous content, and the

@@ -11,7 +11,7 @@ B<bpchat> I<sourceEID> I<destEID> [ct]
 B<bpchat> uses Bundle Protocol to send input text in bundles, and display the
 payload of received bundles as output.  It is similar to the B<talk> utility,
 but operates over the Bundle Protocol.  It operates like a combination of the
-B<bpsource> and B<bpsink> utilities in one program (unlike B<bpsource>, 
+B<bpsource> and B<bpsink> utilities in one program (unlike B<bpsource>,
 B<bpchat> emits bundles with a I<sourceEID>).
 
 If the I<sourceEID> and I<destEID> are both B<bpchat> applications, then two

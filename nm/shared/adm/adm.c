@@ -41,7 +41,7 @@
 
 vector_t g_adm_info;
 
-/** g_amp_agent_idx is utilized by all ADMs.  
+/** g_amp_agent_idx is utilized by all ADMs.
  * It is initialized in adm_amp_agent_(agent|mgr).c, but it is a resource global to all ADMs.
  * That initialization should be moved to this file at a later date (TODO)
  */
@@ -596,8 +596,8 @@ void *adm_get_parm_obj(tnvc_t *parms, uint8_t idx, amp_type_e type)
 	tnv_t *val = tnvc_get(parms, idx);
 
 	if((val == NULL) ||
-	   (val->value.as_ptr == NULL) ||
-	   (val->type != type))
+		(val->value.as_ptr == NULL) ||
+		(val->type != type))
 	{
 		AMP_DEBUG_ERR("adm_get_parm_obj","Parm error.", NULL);
 		return NULL;

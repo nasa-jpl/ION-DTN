@@ -1,4 +1,3 @@
 #!/usr/bin/env bash
 
 rm -f ionexelinks.dot  ionliblinks.dot
-

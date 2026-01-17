@@ -37,7 +37,7 @@ void	icopy(char *fromPath, char *toPath)
 #else
 	int	pid = fork();
 	int	status;
- 
+
 	if (pid)	/*	Parent process.				*/
 	{
 		waitpid(pid, &status, 0);
@@ -57,7 +57,7 @@ typedef struct rlock_str
 	int	owner;
 	short	count;
 	short	init;
-} Rlock;		/*	Private-memory semaphore.		*/ 
+} Rlock;		/*	Private-memory semaphore.		*/
 /* the next line won't compile if the semaphore structure isn't large enough -  increase size of ResourceLock in platform.h */
 int verify_sufficient_semaphore_space[(sizeof(Rlock) <= sizeof(ResourceLock))?1:-1];    /* compile-time assertion check */
 
@@ -433,7 +433,7 @@ int verify_sufficient_semaphore_space[(sizeof(Rlock) <= sizeof(ResourceLock))?1:
 /*
  * This global "meta-lock" is the core of the thread-safe
  * initialization pattern for all ResourceLock instances. It prevents
- * a race condition where multiple threads attempt to initialize the 
+ * a race condition where multiple threads attempt to initialize the
  * same lock simultaneously.
  *
  * By acquiring this mutex first, the check for the 'init' flag
@@ -539,7 +539,7 @@ void killResourceLock(ResourceLock *rl)
 	}
 	else
 	{
-		/* The mutex is currently locked by another thread. It is unsafe 
+		/* The mutex is currently locked by another thread. It is unsafe
 		 * to destroy it. We will just leave it. */
 		writeMemo("[!] killResourceLock: Attempted to destroy a locked mutex.");
 	}
@@ -1076,12 +1076,12 @@ int	reUseAddress(int fd)
 	return result;
 #endif
 }
- 
+
 int	makeIoNonBlocking(int fd)
 {
 	int		result = 0;
 	unsigned long	setting = 1;
- 
+
 	if (_winsock(0) < 0)
 	{
 		putErrmsg("Can't start WinSock.", NULL);
@@ -1167,39 +1167,39 @@ char	*getNameOfUser(char *buffer)
 /* use getaddrinfo for Linux, FreeBSD, macOS, RTEMS */
 unsigned int getInternetAddress(char *hostName)
 {
-    struct addrinfo hints, *res;
-    unsigned int hostInetAddress = BAD_HOST_NAME;
-    int status;
+	struct addrinfo hints, *res;
+	unsigned int hostInetAddress = BAD_HOST_NAME;
+	int status;
 
-    CHKZERO(hostName);
+	CHKZERO(hostName);
 
-    /* Set up hints for IPv4-only resolution */
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_INET;      /* IPv4 only */
-    hints.ai_socktype = SOCK_STREAM; /* TCP, consistent with existing usage */
-    hints.ai_flags = 0;
+	/* Set up hints for IPv4-only resolution */
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_INET;      /* IPv4 only */
+	hints.ai_socktype = SOCK_STREAM; /* TCP, consistent with existing usage */
+	hints.ai_flags = 0;
 
-    /* Resolve hostname */
-    status = getaddrinfo(hostName, NULL, &hints, &res);
-    if (status != 0)
-    {
-        putSysErrmsg("can't get address for host", gai_strerror(status));
-        return BAD_HOST_NAME;
-    }
+	/* Resolve hostname */
+	status = getaddrinfo(hostName, NULL, &hints, &res);
+	if (status != 0)
+	{
+		putSysErrmsg("can't get address for host", gai_strerror(status));
+		return BAD_HOST_NAME;
+	}
 
-    /* Extract IPv4 address from first result */
-    if (res->ai_addrlen >= sizeof(struct sockaddr_in))
-    {
-        struct sockaddr_in *addr = (struct sockaddr_in *)(void *) res->ai_addr;
-        hostInetAddress = ntohl(addr->sin_addr.s_addr);
-    }
-    else
-    {
-        putErrmsg("Address length invalid.", hostName);
-    }
+	/* Extract IPv4 address from first result */
+	if (res->ai_addrlen >= sizeof(struct sockaddr_in))
+	{
+		struct sockaddr_in *addr = (struct sockaddr_in *)(void *) res->ai_addr;
+		hostInetAddress = ntohl(addr->sin_addr.s_addr);
+	}
+	else
+	{
+		putErrmsg("Address length invalid.", hostName);
+	}
 
-    freeaddrinfo(res);
-    return hostInetAddress;
+	freeaddrinfo(res);
+	return hostInetAddress;
 }
 
 char	*getInternetHostName(unsigned int hostNbr, char *buffer)
@@ -1259,12 +1259,12 @@ int	reUseAddress(int fd)
 #endif
 }
 #endif	/*	ION_NO_DNS						*/
- 
+
 int	makeIoNonBlocking(int fd)
 {
 	int	result;
 	int	setting = 1;
- 
+
 	result = ioctl(fd, FIONBIO, &setting);
 	if (result < 0)
 	{
@@ -1473,11 +1473,11 @@ static void	watchToStdout(char *token)
 {
 	/*  now handles string */
 	printf("%s",token);
-	
+
 	/* previous single char wchar
 		oK(putchar(token));
 	 */
-	
+
 	oK(fflush(stdout));
 }
 
@@ -1587,25 +1587,25 @@ char	*uToa(unsigned int arg)
 /* For vast values (which may be long or long long depending on platform) */
 char *vastToa(vast arg)
 {
-    static ION_THREAD_LOCAL char vast_str[33];
-    isprintf(vast_str, sizeof vast_str, VAST_FIELDSPEC, arg);
-    return vast_str;
+	static ION_THREAD_LOCAL char vast_str[33];
+	isprintf(vast_str, sizeof vast_str, VAST_FIELDSPEC, arg);
+	return vast_str;
 }
 
 /* For uvast values */
 char *uvastToa(uvast arg)
 {
-    static ION_THREAD_LOCAL char uvast_str[33];
-    isprintf(uvast_str, sizeof uvast_str, UVAST_FIELDSPEC, arg);
-    return uvast_str;
+	static ION_THREAD_LOCAL char uvast_str[33];
+	isprintf(uvast_str, sizeof uvast_str, UVAST_FIELDSPEC, arg);
+	return uvast_str;
 }
 
 /* For size_t values */
 char *sizeToa(size_t arg)
 {
-    static ION_THREAD_LOCAL char size_str[33];
-    isprintf(size_str, sizeof size_str, "%zu", arg);
-    return size_str;
+	static ION_THREAD_LOCAL char size_str[33];
+	isprintf(size_str, sizeof size_str, "%zu", arg);
+	return size_str;
 }
 
 static int	clipFileName(const char *qualifiedFileName, const char **fileName)
@@ -1928,7 +1928,7 @@ void    debugPrint(const char *format, ...)
 	putchar('\n');
 	va_end(args);
 #else
-	/* When DEBUG_PRINT is disabled, tell the compiler we 
+	/* When DEBUG_PRINT is disabled, tell the compiler we
 	 * are not using 'format' */
 	(void)format;
 #endif
@@ -1944,7 +1944,7 @@ void	encodeSdnv(Sdnv *sdnv, uvast val)
 
 	/*	Thanks to Cheol Koo of KARI for optimizing this
 	 *	function.  29 August 2019				*/
-	
+
 	CHKVOID(sdnv);
 
 	/*	First extract the value of what will become the low-
@@ -2161,7 +2161,7 @@ void	scalarToSdnv(Sdnv *sdnv, Scalar *scalar)
 
 	gigs = scalar->gigs;
 	units = scalar->units;
-	if (gigs) 
+	if (gigs)
 	{
 		/*	The scalar is greater than 2^30 - 1, so start
 		 *	with the length occupied by all 30 bits of
@@ -2172,7 +2172,7 @@ void	scalarToSdnv(Sdnv *sdnv, Scalar *scalar)
 		 *	gigs is greater than 2^5 -1, increase sdnv
 		 *	length accordingly.				*/
 
-		sdnv->length += 5;			
+		sdnv->length += 5;
 		gigs >>= 5;
 		while (gigs)
 		{
@@ -2637,104 +2637,104 @@ char	*addressToString(struct in_addr address, char *buffer)
 int parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 	unsigned int *ipAddress)
 {
-char		*delimiter;
-char		*hostname;
-char		hostnameBuf[MAXHOSTNAMELEN + 1];
-unsigned int	i4;
-int		portValid = 0;
-int		ipValid = 0;
+	char		*delimiter;
+	char		*hostname;
+	char		hostnameBuf[MAXHOSTNAMELEN + 1];
+	unsigned int	i4;
+	int		portValid = 0;
+	int		ipValid = 0;
 
-CHKERR(portNbr);
-CHKERR(ipAddress);
-*portNbr = 0;			/*	Use default port nbr.	*/
-*ipAddress = INADDR_ANY;	/*	Use local host address.	*/
+	CHKERR(portNbr);
+	CHKERR(ipAddress);
+	*portNbr = 0;			/*	Use default port nbr.	*/
+	*ipAddress = INADDR_ANY;	/*	Use local host address.	*/
 
-if (socketSpec == NULL || *socketSpec == '\0')
-{
-	writeMemoNote("[?] parseSocketSpec: Empty or NULL socketSpec", socketSpec);
-	return -1;		/*	Error: invalid input.	*/
-}
-
-/*	Parse port number first, so it's set even if DNS fails.	*/
-
-delimiter = strchr(socketSpec, ':');
-if (delimiter)
-{
-	*delimiter = '\0';	/*	Delimit host name.	*/
-	hostname = socketSpec;	/*	Hostname without port.	*/
-	i4 = atoi(delimiter + 1);	/*	Get port number.	*/
-	if (i4 == 0)
+	if (socketSpec == NULL || *socketSpec == '\0')
 	{
-		writeMemoNote("[?] parseSocketSpec: Non-numeric or missing port", socketSpec);
+		writeMemoNote("[?] parseSocketSpec: Empty or NULL socketSpec", socketSpec);
+		return -1;		/*	Error: invalid input.	*/
 	}
-	else if (i4 < 1024 || i4 > 65535)
-	{
-		writeMemoNote("[?] parseSocketSpec: Invalid port number", utoa(i4));
-	}
-	else
-	{
-		*portNbr = i4;
-		portValid = 1;
-	}
-}
-else
-{
-	hostname = socketSpec;	/*	No port, use full string.	*/
-	writeMemoNote("[?] parseSocketSpec: No port specified", socketSpec);
-}
 
-/*	Now figure out the IP address.  @ is local host.	*/
+	/*	Parse port number first, so it's set even if DNS fails.	*/
 
-if (strlen(hostname) != 0)
-{
-	if (strcmp(hostname, "0.0.0.0") == 0)
+	delimiter = strchr(socketSpec, ':');
+	if (delimiter)
 	{
-		*ipAddress = INADDR_ANY;
-		ipValid = 1;
-	}
-	else if (strcmp(hostname, "@") == 0)
-	{
-		getNameOfHost(hostnameBuf, sizeof hostnameBuf);
-		hostname = hostnameBuf;
-		i4 = getInternetAddress(hostname);
-		if (i4 < 1)	/*	Invalid hostname.	*/
+		*delimiter = '\0';	/*	Delimit host name.	*/
+		hostname = socketSpec;	/*	Hostname without port.	*/
+		i4 = atoi(delimiter + 1);	/*	Get port number.	*/
+		if (i4 == 0)
 		{
-			writeMemoNote("[?] parseSocketSpec: Can't get IP address", hostname);
-			*ipAddress = BAD_HOST_NAME;
+			writeMemoNote("[?] parseSocketSpec: Non-numeric or missing port", socketSpec);
+		}
+		else if (i4 < 1024 || i4 > 65535)
+		{
+			writeMemoNote("[?] parseSocketSpec: Invalid port number", utoa(i4));
 		}
 		else
 		{
-			*ipAddress = i4;
-			ipValid = 1;
+			*portNbr = i4;
+			portValid = 1;
 		}
 	}
 	else
 	{
-		i4 = getInternetAddress(hostname);
-		if (i4 < 1)	/*	Invalid hostname.	*/
+		hostname = socketSpec;	/*	No port, use full string.	*/
+		writeMemoNote("[?] parseSocketSpec: No port specified", socketSpec);
+	}
+
+	/*	Now figure out the IP address.  @ is local host.	*/
+
+	if (strlen(hostname) != 0)
+	{
+		if (strcmp(hostname, "0.0.0.0") == 0)
 		{
-			writeMemoNote("[?] parseSocketSpec: Can't get IP address", hostname);
-			*ipAddress = BAD_HOST_NAME;
+			*ipAddress = INADDR_ANY;
+			ipValid = 1;
+		}
+		else if (strcmp(hostname, "@") == 0)
+		{
+			getNameOfHost(hostnameBuf, sizeof hostnameBuf);
+			hostname = hostnameBuf;
+			i4 = getInternetAddress(hostname);
+			if (i4 < 1)	/*	Invalid hostname.	*/
+			{
+				writeMemoNote("[?] parseSocketSpec: Can't get IP address", hostname);
+				*ipAddress = BAD_HOST_NAME;
+			}
+			else
+			{
+				*ipAddress = i4;
+				ipValid = 1;
+			}
 		}
 		else
 		{
-			*ipAddress = i4;
-			ipValid = 1;
+			i4 = getInternetAddress(hostname);
+			if (i4 < 1)	/*	Invalid hostname.	*/
+			{
+				writeMemoNote("[?] parseSocketSpec: Can't get IP address", hostname);
+				*ipAddress = BAD_HOST_NAME;
+			}
+			else
+			{
+				*ipAddress = i4;
+				ipValid = 1;
+			}
 		}
 	}
-}
 
-/*	Restore socketSpec for logging and caller.	*/
-if (delimiter)
-{
-	*delimiter = ':';
-}
+	/*	Restore socketSpec for logging and caller.	*/
+	if (delimiter)
+	{
+		*delimiter = ':';
+	}
 
-/*	Return -1 if either port or IP parsing failed.	*/
-if (!portValid || !ipValid)
-{
-	return -1;
-}
+	/*	Return -1 if either port or IP parsing failed.	*/
+	if (!portValid || !ipValid)
+	{
+		return -1;
+	}
 
 	writeMemoNote("[i] parseSocketSpec: Parsed", socketSpec);
 	return 0;
@@ -2775,7 +2775,7 @@ static void	snGetFlags(char **cursor, char *fmt, int *fmtLen)
 
 	memset((char *) flags, 0, sizeof flags);
 	while (1)
-	{	
+	{
 		switch (**cursor)
 		{
 		case '-':
@@ -3340,8 +3340,8 @@ static SignalHandler	_signalRules(int signbr, SignalHandler handler)
 	if (handler)	/*	Declaring a new signal rule.		*/
 	{
 		/*	We take this as an opportunity to clear out any
- 		 *	existing rules that are no longer needed, due to
- 		 *	termination of the threads that declared them.	*/
+		 *	existing rules that are no longer needed, due to
+		 *	termination of the threads that declared them.	*/
 
 		for (i = 0, rule = rules; i < SIGNAL_RULE_CT; i++, rule++)
 		{
@@ -3700,7 +3700,7 @@ int	itcp_connect(char *socketSpec, unsigned short defaultPort, int *sock)
 				putSysErrmsg("Can't connect to TCP socket", socketTag);
 				iciTcpConnectionOK = 0;
 			}
-			
+
 		}
 
 		closesocket(*sock);

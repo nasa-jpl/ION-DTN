@@ -99,7 +99,7 @@ jobs:
       pr_number: ${{ needs.get-pr-number.outputs.pr_number }}
       tests_to_run: ${{ inputs.tests_to_run || '' }}
       env_vars: ${{ inputs.env_vars || '' }}
-    
+
   ol9:
     needs: get-pr-number
     uses: ./.github/workflows/ci-workflow-ol9.yml
@@ -107,7 +107,7 @@ jobs:
       pr_number: ${{ needs.get-pr-number.outputs.pr_number }}
       tests_to_run: ${{ inputs.tests_to_run || '' }}
       env_vars: ${{ inputs.env_vars || '' }}
-    
+
   ol8:
     needs: get-pr-number
     uses: ./.github/workflows/ci-workflow-ol8.yml

@@ -8,7 +8,7 @@
 	Copyright (c) 2007, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "ltpcla.h"
 #include "ipnfw.h"
@@ -61,7 +61,8 @@ static int	acquireRedBundles(AcqWorkArea *work, Object zco,
 
 static int	handleGreenSegment(AcqWorkArea *work, LtpSessionId *sessionId,
 			unsigned char endOfBlock, unsigned int offset,
-			unsigned int length, Object zco, unsigned int *buflen,				char **buffer)
+			unsigned int length, Object zco, unsigned int *buflen,
+			char **buffer)
 {
 	Sdr			sdr = getIonsdr();
 	static LtpSessionId	currentSessionId = { 0, 0 };
@@ -283,12 +284,12 @@ static void	*handleNotices(void *parm)
 		pthread_mutex_lock(&rtp->lock);
 		keepRunning = rtp->running;
 		pthread_mutex_unlock(&rtp->lock);
-	
+
 		if (!keepRunning)
 		{
 			break;
 		}
-		 
+
 		if (ltp_get_notice(BpLtpClientId, &type, &sessionId,
 				&reasonCode, &endOfBlock, &dataOffset,
 				&dataLength, &data) < 0)
@@ -329,7 +330,7 @@ static void	*handleNotices(void *parm)
 				break;		/*	Out of switch.	*/
 			}
 
-		       	if (bpHandleXmitFailure(data) < 0)
+			if (bpHandleXmitFailure(data) < 0)
 			{
 				putErrmsg("Crashed on xmit failure.", NULL);
 				ionKillMainThread(procName);
@@ -513,11 +514,11 @@ int	main(int argc, char *argv[])
 	isignal(SIGTERM, interruptThread);
 
 	/* Initialize rtp mutex */
-	
+
 	pthread_mutex_init(&rtp.lock, NULL);
 
 	/*	Start the receiver thread.				*/
-	
+
 	rtp.vduct = vduct;
 	rtp.running = 1;
 

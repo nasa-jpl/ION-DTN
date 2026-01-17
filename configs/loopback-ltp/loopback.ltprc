@@ -8,8 +8,8 @@
 #	please consult manual pages and other documentation for a
 #	better description.
 
-# Initialization command (command 1). 
-# Establishes the LTP retransmission window. 
+# Initialization command (command 1).
+# Establishes the LTP retransmission window.
 # (Prohibiting LTP from seizing all available storage).
 #	A maximum of 32 sessions.  A session is assumed to be around one
 #	second of transmission.  This value should be estimated at the sum
@@ -17,10 +17,10 @@
 #	Suggest throwing 20% higher number of sessions to account for extra-
 #	long sessions which contain an actual retransmission.
 
-# Initialization command (command 1). 
+# Initialization command (command 1).
 1 128
 
-# Add a span. (a connection) 
+# Add a span. (a connection)
 a span 1 128 128 1024 1024 1 'udplso 127.0.0.1:1113'
 
 # Start command.

@@ -38,10 +38,10 @@ echo "CONFIG: 2 node custom LTP with owltsim (asymmetric loss):"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Test results and asymmetric configuration verification."
 echo
@@ -68,11 +68,11 @@ cd 2.ipn.ltp
 
 if [ $? -eq 3 ]
 then
-	echo "Node 2 started successfully"
+    echo "Node 2 started successfully"
 else
-	echo "Node 2 not started: Aborting Test"
-	kill $OWLTSIM_PID 2>/dev/null
-	exit 1
+    echo "Node 2 not started: Aborting Test"
+    kill $OWLTSIM_PID 2>/dev/null
+    exit 1
 fi
 
 # Start node 3
@@ -82,11 +82,11 @@ cd ../3.ipn.ltp
 
 if [ $? -eq 3 ]
 then
-	echo "Node 3 started successfully"
+    echo "Node 3 started successfully"
 else
-	echo "Node 3 not started: Aborting Test"
-	kill $OWLTSIM_PID 2>/dev/null
-	exit 1
+    echo "Node 3 not started: Aborting Test"
+    kill $OWLTSIM_PID 2>/dev/null
+    exit 1
 fi
 
 echo "Starting bpcounter on node 3..."
@@ -104,29 +104,29 @@ RUNNING=1
 TIMER=0
 while [ $RUNNING -eq 1 ]
 do
-	TIMER=$((++TIMER))
-	sleep 1
-	echo "...receiving..."
-	# Check if bpcounter is still running
-	if [ "$1" == "windows" ]
-	then
-		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	else
-		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	fi
-	if [ $RETURN_VALUE -eq 0 ]
-	then
-		echo "...transmission finished."
-		RUNNING=0
-	fi
-	if [ $TIMER -gt 120 ]
-	then
-		#infinite loop protection
-		echo "...120 seconds passed; giving up."
-		RUNNING=0
-		RETVAL=1
-		kill -9 $BPCOUNTER_PID 2>/dev/null
-	fi
+    TIMER=$((++TIMER))
+    sleep 1
+    echo "...receiving..."
+    # Check if bpcounter is still running
+    if [ "$1" == "windows" ]
+    then
+        ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+    else
+        ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+    fi
+    if [ $RETURN_VALUE -eq 0 ]
+    then
+        echo "...transmission finished."
+        RUNNING=0
+    fi
+    if [ $TIMER -gt 120 ]
+    then
+        #infinite loop protection
+        echo "...120 seconds passed; giving up."
+        RUNNING=0
+        RETVAL=1
+        kill -9 $BPCOUNTER_PID 2>/dev/null
+    fi
 done
 
 echo "Verifying results..."
@@ -136,44 +136,44 @@ cd ..
 COUNT=`grep "@" 2.ipn.ltp/node2.stdout | wc -l`
 if [ $COUNT -eq 0 ]
 then
-	echo "FAIL: No LTP retransmissions detected (expected with 20% loss)"
-	RETVAL=1
+    echo "FAIL: No LTP retransmissions detected (expected with 20% loss)"
+    RETVAL=1
 else
-	echo "PASS: $COUNT retransmissions detected"
+    echo "PASS: $COUNT retransmissions detected"
 fi
 
 # Check for explicit config message (ion.log contains span configuration)
 if grep -q "explicit config" 2.ipn.ltp/ion.log
 then
-	echo "PASS: Explicit config mode confirmed in node 2"
+    echo "PASS: Explicit config mode confirmed in node 2"
 else
-	echo "FAIL: Not using explicit config mode"
-	RETVAL=1
+    echo "FAIL: Not using explicit config mode"
+    RETVAL=1
 fi
 
 # Check split mode (different xmit/recv loss rates)
 # Node 2: xmit=0.20, recv=0.05 - grep to find final configuration
 if grep "engine 2" 2.ipn.ltp/ion.log | grep "explicit config" | tail -1 | grep -q "xmit segment loss rate 0.20" && grep "engine 2" 2.ipn.ltp/ion.log | grep "explicit config" | tail -1 | grep -q "recv segment loss rate 0.05"
 then
-	echo "PASS: Split mode confirmed in node 2 (asymmetric xmit/recv rates)"
+    echo "PASS: Split mode confirmed in node 2 (asymmetric xmit/recv rates)"
 else
-	echo "WARNING: Could not verify split mode rates in node 2"
+    echo "WARNING: Could not verify split mode rates in node 2"
 fi
 
 # Check for max timeouts = 12 (12 retries * SIGNAL_REDUNDANCY=1)
 if grep "engine 2" 2.ipn.ltp/ion.log | grep "explicit config" | tail -1 | grep -q "max timeouts 12"
 then
-	echo "PASS: Max timeouts = 12 confirmed (12 retries * 1 redundancy)"
+    echo "PASS: Max timeouts = 12 confirmed (12 retries * 1 redundancy)"
 else
-	echo "WARNING: Could not verify max timeouts value"
+    echo "WARNING: Could not verify max timeouts value"
 fi
 
 # Check node 3 has opposite configuration
 if grep "engine 3" 3.ipn.ltp/ion.log | grep "explicit config" | tail -1 | grep -q "xmit segment loss rate 0.05" && grep "engine 3" 3.ipn.ltp/ion.log | grep "explicit config" | tail -1 | grep -q "recv segment loss rate 0.20"
 then
-	echo "PASS: Node 3 has opposite split configuration"
+    echo "PASS: Node 3 has opposite split configuration"
 else
-	echo "WARNING: Could not verify node 3 split mode rates"
+    echo "WARNING: Could not verify node 3 split mode rates"
 fi
 
 echo "Stopping..."
@@ -183,9 +183,9 @@ killm
 
 if [ $RETVAL -eq 0 ]
 then
-	echo "LTP config split test PASSED"
+    echo "LTP config split test PASSED"
 else
-	echo "LTP config split test FAILED"
+    echo "LTP config split test FAILED"
 fi
 
 exit $RETVAL

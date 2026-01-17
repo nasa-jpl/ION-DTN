@@ -29,10 +29,10 @@ echo "CONFIG: A contact graph that enables a large block to be sent."
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Ensure that block size limit is ignored and large file arrives."
 echo
@@ -56,10 +56,10 @@ cd ../2.ipn.ltp
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 2 not started: Aborting Test"
-	exit 1
+    echo "Node 2 not started: Aborting Test"
+    exit 1
 fi
 
 cd ../3.ipn.ltp
@@ -67,10 +67,10 @@ cd ../3.ipn.ltp
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 3 not started: Aborting Test"
-	exit 1
+    echo "Node 3 not started: Aborting Test"
+    exit 1
 fi
 
 echo "Starting bprecvfile on node 3..."
@@ -90,9 +90,9 @@ cd ../3.ipn.ltp
 COUNT=`ls -l testfile1 | wc -l`
 if [ $COUNT -eq 0 ]
 then
-	echo "Error: block size limit was applied, somehow."
+    echo "Error: block size limit was applied, somehow."
 else
-	echo "Okay: bundle arrived."
+    echo "Okay: bundle arrived."
 fi
 
 # Shut down ION processes.

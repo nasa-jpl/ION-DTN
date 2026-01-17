@@ -31,7 +31,7 @@ a endpoint ipn:1.1 q
 a endpoint ipn:1.2 q
 # Define ltp as the protocol used
 a protocol ltp 1400 100
-# Listen 
+# Listen
 a induct ltp 1 ltpcli
 # Send to yourself
 a outduct ltp 1 ltpclo

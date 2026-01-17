@@ -6,7 +6,7 @@
  *	Copyright (c) 2014, California Institute of Technology.
  *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
  *	acknowledged.
- *									
+ *
  *  Author: TCSASSEMBLER, TopCoder
  *
  *  Modification History:
@@ -243,7 +243,7 @@ int	invokeInboundBeforeContentProcessingCallbacks(LtpRecvSeg* segment,
 		char *segmentRawData, LtpVspan* vspan)
 {
 	int		count = extensionsCount;
-	int		 i;
+	int		i;
 	ExtensionDef	*def;
 	int		result;
 

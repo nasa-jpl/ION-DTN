@@ -16,7 +16,7 @@ Enhanced watch characters were added ION 4.1.3 to provide detailed state informa
 
 ```bash
 ./configure --enable-ewchar
-or 
+or
 ./configure CFLAGS=-DEWCHAR
 ```
 
@@ -42,10 +42,10 @@ To activate customized processing, use the following steps:
   static void processWatchChar(char* token)
   {
       //your code goes here
-  } 
+  }
 
   static void ionRedirectWatchCharacters()
-  { 
+  {
       setWatcher(processWatchChar);
   }
   ```

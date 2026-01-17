@@ -5,7 +5,7 @@ Given to ltpadmin as a file or from the command line, this file configures the L
 ## Initialize the LTP engine
 
 ````
-1 32    
+1 32
 ````
 
 `1` refers to this being the initialization or ''first'' command.
@@ -48,7 +48,7 @@ s 'udplsi localhost:1113'
 `'udplsi localhost:1113'` is the link service input task. In this case, the input ''duct' is a UDP listener on the local host using port 1113.
 
 
-## The final configuration file - `host1.ltprc` 
+## The final configuration file - `host1.ltprc`
 
 
 ````

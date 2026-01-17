@@ -22,7 +22,7 @@ function stop_and_exit() {
     if [ "$retval" -eq 0 ]; then
         echo -e "AMS benchtest successfully completed."
         echo -e "SUCCESS SUCCESS SUCCESS SUCCESS SUCCESS SUCCESS SUCCESS SUCCESS\n"
-        
+
         # The ION_NODE_LIST_DIR variable should point to the test's root directory.
         cat "${ION_NODE_LIST_DIR}/node3/bench.log"
     else

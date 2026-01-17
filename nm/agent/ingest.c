@@ -55,74 +55,74 @@
 
 void *rx_thread(void *arg) {
 #ifndef mingw
-    AMP_DEBUG_ENTRY("rx_thread","(0x%X)",(unsigned long) pthread_self());
+	AMP_DEBUG_ENTRY("rx_thread","(0x%X)",(unsigned long) pthread_self());
 #endif
-    AMP_DEBUG_INFO("rx_thread","Receiver thread running...", NULL);
+	AMP_DEBUG_INFO("rx_thread","Receiver thread running...", NULL);
 
-    /* Cast the generic void* argument back to the real type we need. */
-    int *running = (int *)arg;
+	/* Cast the generic void* argument back to the real type we need. */
+	int *running = (int *)arg;
 
-    vecit_t it;
-    blob_t *result = NULL;
-    int success;
-    msg_grp_t *grp = NULL;
-    msg_metadata_t meta;
-    int msg_type;
+	vecit_t it;
+	blob_t *result = NULL;
+	int success;
+	msg_grp_t *grp = NULL;
+	msg_metadata_t meta;
+	int msg_type;
 
-    /* 
-     * g_running controls the overall execution of threads in the
-     * NM Agent.
-     */
-    while(*running)
-    {
-        
-    	result = iif_receive(&ion_ptr, &meta, NM_RECEIVE_TIMEOUT_SEC, &success);
-    	if(success != AMP_OK)
-    	{
-    		*running = 0;
-    	}
-    	else if(result != NULL)
-        {
-    		/* This MUST be a message group. Get the group. */
-    		grp = msg_grp_deserialize(result, &success);
-    		blob_release(result, 1);
+	/*
+	 * g_running controls the overall execution of threads in the
+	 * NM Agent.
+	 */
+	while(*running)
+	{
 
-    		if((grp == NULL) || (success != AMP_OK))
-    		{
-    			AMP_DEBUG_ERR("rx_thread","Discarding invalid message.", NULL);
-    			break;
-    		}
+		result = iif_receive(&ion_ptr, &meta, NM_RECEIVE_TIMEOUT_SEC, &success);
+		if(success != AMP_OK)
+		{
+			*running = 0;
+		}
+		else if(result != NULL)
+		{
+			/* This MUST be a message group. Get the group. */
+			grp = msg_grp_deserialize(result, &success);
+			blob_release(result, 1);
 
-            AMP_DEBUG_ALWAYS("rx_thread","Group had %d msgs", vec_num_entries(grp->msgs));
-            AMP_DEBUG_ALWAYS("rx_thread","Group timestamp %lu", grp->time);
+			if((grp == NULL) || (success != AMP_OK))
+			{
+				AMP_DEBUG_ERR("rx_thread","Discarding invalid message.", NULL);
+				break;
+			}
 
-            /* For each message in the bundle. */
-            for(it = vecit_first(&grp->msgs); vecit_valid(it); it = vecit_next(it))
-            {
-            	vec_idx_t i = vecit_idx(it);
-            	/* Get the message type. */
-            	msg_type = msg_grp_get_type(grp, i);
+			AMP_DEBUG_ALWAYS("rx_thread","Group had %d msgs", vec_num_entries(grp->msgs));
+			AMP_DEBUG_ALWAYS("rx_thread","Group timestamp %lu", grp->time);
 
-            	switch(msg_type)
-            	{
-            		case MSG_TYPE_PERF_CTRL:
-            			AMP_DEBUG_ALWAYS("rx_thread","Received perform control msg.", NULL);
-            			rx_handle_perf_ctrl(&meta, vecit_data(it));
-            			break;
-            		default:
-            			AMP_DEBUG_ERR("rx_thread","Unknown Msg. id %d, type %d.",i,msg_type);
-            			break;
-            	}
-            }
+			/* For each message in the bundle. */
+			for(it = vecit_first(&grp->msgs); vecit_valid(it); it = vecit_next(it))
+			{
+				vec_idx_t i = vecit_idx(it);
+				/* Get the message type. */
+				msg_type = msg_grp_get_type(grp, i);
 
-            msg_grp_release(grp, 1);
-        }
-    }
-   
-    AMP_DEBUG_ALWAYS("rx_thread","Shutting Down Agent Receive Thread.",NULL);
-    AMP_DEBUG_EXIT("rx_thread","->.", NULL);
-    pthread_exit(NULL);
-    return NULL; /* Defensive. */
+				switch(msg_type)
+				{
+				case MSG_TYPE_PERF_CTRL:
+					AMP_DEBUG_ALWAYS("rx_thread","Received perform control msg.", NULL);
+					rx_handle_perf_ctrl(&meta, vecit_data(it));
+					break;
+				default:
+					AMP_DEBUG_ERR("rx_thread","Unknown Msg. id %d, type %d.",i,msg_type);
+					break;
+				}
+			}
+
+			msg_grp_release(grp, 1);
+		}
+	}
+
+	AMP_DEBUG_ALWAYS("rx_thread","Shutting Down Agent Receive Thread.",NULL);
+	AMP_DEBUG_EXIT("rx_thread","->.", NULL);
+	pthread_exit(NULL);
+	return NULL; /* Defensive. */
 }
 
 
@@ -220,8 +220,3 @@ void rx_handle_perf_ctrl(msg_metadata_t *meta, blob_t *contents)
 
 	msg_ctrl_release(msg, 1);
 }
-
-
-
-
-

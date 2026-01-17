@@ -11,16 +11,15 @@ tests_dir=$1
 
 # For each plain file in tests/ (skip directories and source files)
 for file in "$tests_dir"/*; do
-  [ -f "$file" ] || continue
-  name=$(basename "$file")
+    [ -f "$file" ] || continue
+    name=$(basename "$file")
 
-  # Skip anything with a dot (.) or colon (:) in its name,
-  # so we only get plain test-set files like "normaltests", "quicktests", etc.
-  case "$name" in
-    *.*|*:* ) continue ;;
-  esac
+    # Skip anything with a dot (.) or colon (:) in its name,
+    # so we only get plain test-set files like "normaltests", "quicktests", etc.
+    case "$name" in
+        *.*|*:* ) continue ;;
+    esac
 
-  printf 'test-%s: buildcheck\n'  "$name"
-  printf '\tcd $(srcdir)/tests && ./runtestset %s\n\n' "$name"
+    printf 'test-%s: buildcheck\n'  "$name"
+    printf '\tcd $(srcdir)/tests && ./runtestset %s\n\n' "$name"
 done
-

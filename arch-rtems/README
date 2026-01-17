@@ -500,7 +500,7 @@ send a loopback bundle via LTP to bpsink, which will print the text in the
 bundle payload.
 
 The ION RTEMS Makefile is configured to optimize the resulting executable.
-To see the actual size of the executable (with the debugging information 
+To see the actual size of the executable (with the debugging information
 inserted by the compiler removed):
 
 $ cd o-optimize

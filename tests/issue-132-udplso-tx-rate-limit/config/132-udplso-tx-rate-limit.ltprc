@@ -8,8 +8,8 @@
 #	please consult manual pages and other documentation for a
 #	better description.
 
-# Initialization command (command 1). 
-# Establishes the LTP retransmission window. 
+# Initialization command (command 1).
+# Establishes the LTP retransmission window.
 # (Prohibiting LTP from seizing all available storage).
 #	A maximum of 32 sessions.  A session is assumed to be around one
 #	second of transmission.  This value should be estimated at the sum
@@ -18,7 +18,7 @@
 #	long sessions which contain an actual retransmission.
 1 2
 
-# Add a span. (a connection) 
+# Add a span. (a connection)
 #	Identify the span as engine number 1.  That is the ipn node number
 #	of the node on the other end of this span.
 #	Use 2 as the maximum number of export sessions.
@@ -50,4 +50,3 @@ a span 1 2 1250000 2 1250000 1024 1024 1 'udplso localhost:1113'
 #	Also starts the link service INPUT task 'udplsi localhost:1113' to
 #	listen locally on UDP port 1113 for incoming LTP traffic.
 s 'udplsi localhost:1113'
-

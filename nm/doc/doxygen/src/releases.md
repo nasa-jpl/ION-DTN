@@ -6,7 +6,7 @@ This page describes significant changes in NM in recent releases of ION.
 ## ION 4.0.0
 NM has been upgraded to support the latest revision of the AMP specification.  Prior releases were based on [AMPv6](https://tools.ietf.org/html/draft-birrane-dtn-amp-06).  This version has been updated to support [AMPv8](https://tools.ietf.org/html/draft-birrane-dtn-amp-08).
 
-These updates change the format of the CBOR-encoded messages and, as such, break backwards compatibility when enabled.  The updated specification optimizes the size of the CBOR encodings by eliminating selected CBOR container delimiters when not required for processing by NM through the newly introduced concept of 'OCTETS'.  
+These updates change the format of the CBOR-encoded messages and, as such, break backwards compatibility when enabled.  The updated specification optimizes the size of the CBOR encodings by eliminating selected CBOR container delimiters when not required for processing by NM through the newly introduced concept of 'OCTETS'.
 
 An OCTETS sequence is functionally equivalent to a CBOR indefinite-length array for which the header and size bytes are omitted from the encoded CBOR data.  The NM application explicitly instructs the QCBOR encoder as to the start and end of an octets sequence.  This enables the entirety of the OCTETS sequence to be counted as a single element in any encapsulating CBOR array and for error detection (ie: of unmatched array opens & closes) to proceed as normal.
 

@@ -45,10 +45,10 @@ echo "CONFIG: 1 node custom:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo
@@ -70,17 +70,17 @@ cd 1.ipn.bp.ltp.udp
 
 if [ "$?" -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node not started: Aborting Test"
-	exit 1
+    echo "Node not started: Aborting Test"
+    exit 1
 fi
 
 
 echo ""
 echo "Test 1---Use bpdriver and bpcounter to send a bunch of bundles and check log for error messages"
 echo "Starting bpcounter..."
-bpcounter ipn:1.1 &	
+bpcounter ipn:1.1 &
 BPR_PID=$!
 
 echo "Sending bundles..."
@@ -92,24 +92,24 @@ sleep 5
 
 echo "Stopping bprecvfile..."
 kill -2 $BPR_PID >/dev/null 2>&1
-sleep 1 
+sleep 1
 kill -9 $BPR_PID >/dev/null 2>&1
 
 #Compare files
 GREP=$(grep "Wrong bundle version (should be 6)" ion.log)
 if [ -n "$GREP" ]; then
-	#We have a problem. The Bundles were corrupted in transit.
-	echo "The Bundles were corrupted in transit.	FAILURE!"
-	echo ""
-	RETVAL=1
-	end
+    #We have a problem. The Bundles were corrupted in transit.
+    echo "The Bundles were corrupted in transit.	FAILURE!"
+    echo ""
+    RETVAL=1
+    end
 else
-	# Success.
-	echo "ION Successfully transmitted the bundles	 SUCCESS!"
-	echo ""
-	RETVAL=0
+    # Success.
+    echo "ION Successfully transmitted the bundles	 SUCCESS!"
+    echo ""
+    RETVAL=0
 fi
-	
+
 
 echo "Test 2---if cfdptest is installed, send and verify a file"
 # Check if CFDP is available on this system
@@ -144,15 +144,15 @@ sleep 5
 
 DIFF=$(diff ../dotest test)
 if [ -n "$DIFF" ] && [ -e "test" ]; then
-	#we have a problem
-	echo "The file was corrupted in transit. FAILURE!"
-	echo ""
-	RETVAL=1
+    #we have a problem
+    echo "The file was corrupted in transit. FAILURE!"
+    echo ""
+    RETVAL=1
 else
-	#Success
-	echo "The file was transfered successfully. SUCCESS!"
-	echo ""
-	RETVAL=0
+    #Success
+    echo "The file was transfered successfully. SUCCESS!"
+    echo ""
+    RETVAL=0
 fi
 
 #Stopping CFDP

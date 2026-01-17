@@ -28,7 +28,7 @@ Comment line.  Lines beginning with B<#> are not interpreted.
 Echo control.  Setting echo to 1 causes all output printed by tcaadmin to be
 logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
 
-=item B<v> 
+=item B<v>
 
 Version number.  Prints out the version of ION currently installed.  HINT:
 combine with B<e 1> command to log the version number at startup.
@@ -85,7 +85,7 @@ I<time> must be in yyyy/mm/dd-hh:mm:ss format.
 =item B<m interval> I<bulletin_compilation_interval>
 
 The B<manage bulletin compilation interval> command.  This interval,
-expressed as a number of seconds, controls the period on which the 
+expressed as a number of seconds, controls the period on which the
 authority function for the selected TC appliction on this node will
 compile new key information bulletins.  The default value is 3600 (one hour).
 

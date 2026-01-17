@@ -22,10 +22,10 @@ echo "CONFIG: 1 node custom:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo
@@ -43,14 +43,14 @@ ionadmin ./config.ionrc > tmp.txt
 #the contacts). There should only be 1 contact, plus the registration contact.
 RESULTS=`cat tmp.txt | grep "the xmit rate from node" | wc -l`
 if [ -e "tmp.txt" ] && [ $RESULTS -eq 2 ]; then
-	echo "The Contact was not duplicated! SUCCESS!"
-	echo ""
-	rm tmp.txt
-	RETVAL=0
+    echo "The Contact was not duplicated! SUCCESS!"
+    echo ""
+    rm tmp.txt
+    RETVAL=0
 else
-	echo "The Contact was duplicated!  FAILURE!"
-	echo ""
-	RETVAL=1
+    echo "The Contact was duplicated!  FAILURE!"
+    echo ""
+    RETVAL=1
 fi
 
 # Shut down ION processes.

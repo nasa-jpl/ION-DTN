@@ -27,7 +27,7 @@ extern "C" {
  * These functions manage ION's congestion forecasting parameters:
  * - Production rate: Expected mean rate of continuous data origination by
  *   local BP applications (bytes/sec)
- * - Consumption rate: Expected mean rate of data delivery to local BP 
+ * - Consumption rate: Expected mean rate of data delivery to local BP
  *   applications (bytes/sec)
  * - Horizon: End time for congestion forecasts (UTC timestamp)
  */
@@ -38,21 +38,21 @@ extern "C" {
  *   Use 0 for router-only nodes with no local data production.
  *
  * return 0 on success, -1 on error.
- */ 
+ */
 extern int ion_set_production_rate(int rate_bytes_per_sec);
 extern int ion_set_consumption_rate(int rate_bytes_per_sec);
 
 /*
  * Set the congestion forecast horizon time.
  * horizon_time - End time for congestion forecasts as a Unix timestamp
- *   (seconds since epoch). 
+ *   (seconds since epoch).
  *   Use 0 to disable congestion forecasting entirely.
  *
  * return 0 on success, -1 on error.
- * 
+ *
  *   // Set horizon to 24 hours from now
  *   time_t now = time(NULL);
- *   time_t horizon = now + (24 * 3600);  
+ *   time_t horizon = now + (24 * 3600);
  *
  *   // Set horizon to a specific future date (2025-12-31 23:59:59 UTC)
  *   struct tm target_time = {0};

@@ -26,21 +26,21 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: Testing the functionality configFlags value 2, running with
-	the SDR heap only in files (no copy in RAM).  We simply configure
-	two nodes with configFlags set to 2, send 30 bundles from one node
-	to the other, and verify that bundles arrive and are delivered.
-	We detect the delivery of these bundles by looking for 'z' watch
-	characters in stdout at the receiver."
+    the SDR heap only in files (no copy in RAM).  We simply configure
+    two nodes with configFlags set to 2, send 30 bundles from one node
+    to the other, and verify that bundles arrive and are delivered.
+    We detect the delivery of these bundles by looking for 'z' watch
+    characters in stdout at the receiver."
 
 echo
 echo "CONFIG: 2 node custom:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo
@@ -73,27 +73,27 @@ RUNNING=1
 TIMER=0
 while [ $RUNNING -eq 1 ]
 do
-	TIMER=$((++TIMER))
-	sleep 1
-	echo "...receiving..."
-	# some ps don't like -p syntax, most do.
-	if [ "$1" == "windows" ]
-	then
-		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	else
-		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	fi
-	if [ $RETURN_VALUE -eq 0 ]
-	then
-		echo "done running"
-		RUNNING=0
-	fi
-	if [ $TIMER -gt 600 ]
-	then
-		#infinite loop protection
-		echo "10 minutes passed; giving up."
-		RUNNING=0
-	fi
+    TIMER=$((++TIMER))
+    sleep 1
+    echo "...receiving..."
+    # some ps don't like -p syntax, most do.
+    if [ "$1" == "windows" ]
+    then
+        ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+    else
+        ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+    fi
+    if [ $RETURN_VALUE -eq 0 ]
+    then
+        echo "done running"
+        RUNNING=0
+    fi
+    if [ $TIMER -gt 600 ]
+    then
+        #infinite loop protection
+        echo "10 minutes passed; giving up."
+        RUNNING=0
+    fi
 done
 
 echo "Transmission finished.  Verifying results..."
@@ -105,10 +105,10 @@ RETVAL=0
 COUNT=`grep "z" node3.stdout | wc -l`
 if [ $COUNT -eq 0 ]
 then
-	echo "No delivery of bundles detected."
-	RETVAL=1
+    echo "No delivery of bundles detected."
+    RETVAL=1
 else
-	echo "Bundle(s) delivered; configFlags=2 is okay."
+    echo "Bundle(s) delivered; configFlags=2 is okay."
 fi
 
 # Shut down ION processes.

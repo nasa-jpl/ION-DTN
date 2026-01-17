@@ -13,4 +13,3 @@ The `ionsecadmin` section is used to enable bundle security. Adding it will also
 1
 ## end ionsecadmin
 ````
-  

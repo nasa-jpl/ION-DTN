@@ -5348,7 +5348,7 @@ static int	findIncomplete(Bundle *bundle, VEndpoint *vpoint,
 	if (bundle->id.source.schemeCodeNbr == dtn)
 	{
 		readEid(&(bundle->id.source), &bundleEid);
-	       	if (bundleEid == NULL)
+		if (bundleEid == NULL)
 		{
 			putErrmsg("Can't get bundle's source EID.", NULL);
 			return -1;
@@ -5380,7 +5380,7 @@ static int	findIncomplete(Bundle *bundle, VEndpoint *vpoint,
 		/*	First compare source endpoint IDs.		*/
 
 		if (fragment->id.source.schemeCodeNbr
-			       	!= bundle->id.source.schemeCodeNbr)
+				!= bundle->id.source.schemeCodeNbr)
 		{
 			continue;
 		}
@@ -5816,7 +5816,7 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 	if (oldBundle->clDossier.senderEid.schemeCodeNbr == dtn)
 	{
 		readEid(&(oldBundle->clDossier.senderEid), &eidString);
-	       	if (eidString == NULL)
+		if (eidString == NULL)
 		{
 			putErrmsg("Can't recover sender EID string.", NULL);
 			return -1;
@@ -7600,7 +7600,7 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 
 	arrayLength = 2;	/*	Decode array of size 2.		*/
 	length = cbor_decode_array_open(&arrayLength, cursor, bytesRemaining);
-       	if (length < 1)
+	if (length < 1)
 	{
 		writeMemo("[?] Can't decode endpoint ID.");
 		return 0;
@@ -7628,7 +7628,7 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 		istrcpy(eidString, "dtn:", sizeof eidString);
 		length = cbor_decode_initial_byte(cursor, bytesRemaining,
 				&majorType, &additionalInfo);
-	       	if (length < 1)
+		if (length < 1)
 		{
 			writeMemo("[?] Can't decode dtn EID NSS type.");
 			return 0;
@@ -7674,7 +7674,7 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 			sspLen = 255;
 			length = cbor_decode_text_string(eidString + 4,
 					&sspLen, cursor, bytesRemaining);
-		       	if (length < 1)
+			if (length < 1)
 			{
 				writeMemo("[?] Can't decode dtn string SSP.");
 				return 0;
@@ -7689,7 +7689,7 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 		arrayLength = 0;	/*	Decode array of 2 or 3.	*/
 		length = cbor_decode_array_open(&arrayLength, cursor,
 				bytesRemaining);
-       		if (length < 1)
+		if (length < 1)
 		{
 			writeMemo("[?] Can't decode ipn SSP.");
 			return 0;
@@ -7796,7 +7796,7 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 		arrayLength = 0;	/*	Decode array of 2 or 3.	*/
 		length = cbor_decode_array_open(&arrayLength, cursor,
 				bytesRemaining);
-       		if (length < 1)
+		if (length < 1)
 		{
 			writeMemo("[?] Can't decode imc SSP.");
 			return 0;
@@ -8046,7 +8046,7 @@ int	computeZcoCrc(BpCrcType crcType, int crcSize, ZcoReader *reader,
 
 		bytesReceived = zco_receive_source(getIonsdr(), reader,
 				bytesToReceive, buffer);
-	       	if (bytesReceived != bytesToReceive)
+		if (bytesReceived != bytesToReceive)
 		{
 			return -1;
 		}
@@ -8175,7 +8175,7 @@ bundle containing administrative record.");
 	/*	Acquire destination EID.				*/
 
 	length = acquireEid(&(bundle->destination), &cursor, &unparsedBytes);
-       	if (length < 1)
+	if (length < 1)
 	{
 		writeMemo("[?] Can't acquire destination EID.");
 		return length;
@@ -8231,7 +8231,7 @@ requests prohibited for anonymous bundle.");
 	/*	Acquire report-to EID.					*/
 
 	length = acquireEid(&(bundle->reportTo), &cursor, &unparsedBytes);
-       	if (length < 1)
+	if (length < 1)
 	{
 		writeMemo("[?] Can't acquire destination EID.");
 		return length;
@@ -8355,42 +8355,42 @@ requests prohibited for anonymous bundle.");
 
 		/*	CRC is encoded as a CBOR byte string.		*/
 
- 		uvtemp = (uvast) -1;
- 		if (cbor_decode_byte_string(NULL, &uvtemp, &cursor,
- 				&unparsedBytes) < 1)
- 		{
- 			writeMemo("[?] Can't decode CRC.");
- 			return 0;
- 		}
+		uvtemp = (uvast) -1;
+		if (cbor_decode_byte_string(NULL, &uvtemp, &cursor,
+				&unparsedBytes) < 1)
+		{
+			writeMemo("[?] Can't decode CRC.");
+			return 0;
+		}
 
 		/*	Note, because the decoding destination is
- 		 *	NULL, the cursor was advanced only to the
- 		 *	end of the *size* of the CRC, not to the
- 		 *	end of the CRC itself.  The unparsedBytes
- 		 *	counter was reduced only by the length of
- 		 *	the *size* of the CRC, not by the length
- 		 *	of the CRC itself.  However, itemsRemaining
- 		 *	is reduced by 1 at this time.			*/
+		 *	NULL, the cursor was advanced only to the
+		 *	end of the *size* of the CRC, not to the
+		 *	end of the CRC itself.  The unparsedBytes
+		 *	counter was reduced only by the length of
+		 *	the *size* of the CRC, not by the length
+		 *	of the CRC itself.  However, itemsRemaining
+		 *	is reduced by 1 at this time.			*/
 
 		crcLength = uvtemp;
 
 		if (bundle->primaryBlkCrcType == X25CRC16)
 		{
 			if (crcLength != 2)
- 			{
- 				writeMemoNote("[?] Wrong CRC size for CRC16",
- 						itoa(crcLength));
- 				return 0;
- 			}
+			{
+				writeMemoNote("[?] Wrong CRC size for CRC16",
+						itoa(crcLength));
+				return 0;
+			}
 		}
 		else
 		{
 			if (crcLength != 4)
- 			{
- 				writeMemoNote("[?] Wrong CRC size for CRC32C",
- 						itoa(crcLength));
- 				return 0;
- 			}
+			{
+				writeMemoNote("[?] Wrong CRC size for CRC32C",
+						itoa(crcLength));
+				return 0;
+			}
 		}
 
 		if (crcLength >= 0 && (unsigned int)crcLength > unparsedBytes)
@@ -8400,9 +8400,9 @@ requests prohibited for anonymous bundle.");
 		}
 
 		/*	Compute CRC over entire block including the
- 		 *	CRC itself.					*/
+		 *	CRC itself.					*/
 
- 		length = cursor - startOfBlock;
+		length = cursor - startOfBlock;
 
 		crcComputed = computeBufferCrc(bundle->primaryBlkCrcType, startOfBlock,
 				length + crcLength, 1, 0, &crcReceived);
@@ -8686,40 +8686,40 @@ undefined block.");
 		/*	CRC is encoded as a CBOR byte string.		*/
 
 		uvtemp = (uvast) -1;
- 		if (cbor_decode_byte_string(NULL, &uvtemp, &cursor,
- 				&unparsedBytes) < 1)
- 		{
- 			writeMemo("[?] Can't decode CRC.");
- 			return 0;
- 		}
+		if (cbor_decode_byte_string(NULL, &uvtemp, &cursor,
+				&unparsedBytes) < 1)
+		{
+			writeMemo("[?] Can't decode CRC.");
+			return 0;
+		}
 
 		/*	Note, because the decoding destination is
- 		 *	NULL, the cursor was advanced only to the
- 		 *	end of the *size* of the CRC, not to the
- 		 *	end of the CRC itself.  The unparsedBytes
- 		 *	counter was reduced only by the length of
- 		 *	the *size* of the CRC, not by the length
- 		 *	of the CRC itself.  However, itemsRemaining
- 		 *	is reduced by 1 at this time.			*/
+		 *	NULL, the cursor was advanced only to the
+		 *	end of the *size* of the CRC, not to the
+		 *	end of the CRC itself.  The unparsedBytes
+		 *	counter was reduced only by the length of
+		 *	the *size* of the CRC, not by the length
+		 *	of the CRC itself.  However, itemsRemaining
+		 *	is reduced by 1 at this time.			*/
 
- 		crcLength = uvtemp;
+		crcLength = uvtemp;
 		if (crcType == X25CRC16)
 		{
 			if (crcLength != 2)
- 			{
- 				writeMemoNote("[?] Wrong CRC size for CRC16",
- 						itoa(crcLength));
- 				return 0;
- 			}
+			{
+				writeMemoNote("[?] Wrong CRC size for CRC16",
+						itoa(crcLength));
+				return 0;
+			}
 		}
 		else
 		{
 			if (crcLength != 4)
- 			{
- 				writeMemoNote("[?] Wrong CRC size for CRC32C",
- 						itoa(crcLength));
- 				return 0;
- 			}
+			{
+				writeMemoNote("[?] Wrong CRC size for CRC32C",
+						itoa(crcLength));
+				return 0;
+			}
 		}
 
 		if (crcLength >= 0 && (unsigned int)crcLength > unparsedBytes)
@@ -8729,10 +8729,10 @@ undefined block.");
 		}
 
 		/*	Compute CRC over entire block including the
- 		 *	CRC itself.					*/
+		 *	CRC itself.					*/
 
- 		length = cursor - startOfBlock;
- 		crcComputed = computeBufferCrc(crcType, startOfBlock,
+		length = cursor - startOfBlock;
+		crcComputed = computeBufferCrc(crcType, startOfBlock,
 				length + crcLength, 1, 0, &crcReceived);
 		if (crcComputed != crcReceived)
 		{
@@ -9352,9 +9352,9 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		readEid(&(work->senderEid), &eidString);
 		if (eidString == NULL)
 		{
-		       putErrmsg("Can't read EID.", NULL);
-		       sdr_cancel_xn(sdr);
-		       return -1;
+			putErrmsg("Can't read EID.", NULL);
+			sdr_cancel_xn(sdr);
+			return -1;
 		}
 
 		if (parseEidString(eidString, &senderMetaEid, &vscheme,
@@ -9940,7 +9940,7 @@ int	sendStatusRpt(Bundle *bundle)
 			NoCustodyRequested, 0, 0, &ecos, payloadZco, NULL,
 			BP_STATUS_REPORT);
 	MRELEASE(reportToEid);
-       	switch (result)
+	switch (result)
 	{
 	case -1:
 		putErrmsg("Can't send status report.", NULL);
@@ -9968,7 +9968,7 @@ int	sendStatusRpt(Bundle *bundle)
 }
 
 int	parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
-	       		unsigned int unparsedBytes)
+		unsigned int unparsedBytes)
 {
 	uvast		arrayLength;
 	uvast		uvtemp;
@@ -10268,7 +10268,7 @@ int	serializeEid(EndpointId *eid, unsigned char *buffer)
 
 void	serializePrimaryBlock(Bundle *bundle, unsigned char **cursor,
 			unsigned char *destinationEid, int destinationEidLength,
-		       	unsigned char *sourceEid, int sourceEidLength,
+			unsigned char *sourceEid, int sourceEidLength,
 			unsigned char *reportToEid, int reportToEidLength)
 {
 	unsigned char	*startOfPrimaryBlock;
@@ -10640,7 +10640,7 @@ static int	catenateBundle(Bundle *bundle)
 
 	serializePrimaryBlock(bundle, &cursor,
 			destinationEid, destinationEidLength,
-		       	sourceEid, sourceEidLength,
+			sourceEid, sourceEidLength,
 			reportToEid, reportToEidLength);
 
 	/*	Done with primary block, now insert extension blocks.	*/
@@ -11100,7 +11100,7 @@ int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
 		/* spec is for 64 bit, non-Window */
 		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)j",
 				bundle->id.source.ssp.ipn.fqnn,
-		     		bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->id.source.ssp.ipn.serviceNbr,
 				bundle->id.creationTime.count);
 		iwatch_str(ewchar);
 #else
@@ -11150,7 +11150,7 @@ int	reverseEnqueue(Object xmitElt, BpPlan *plan, int sendToLimbo)
 	if (bundle.overdueElt)
 	{
 		/*	Bundle was un-queued before "overdue"
-	 	*	alarm went off, so disable the alarm.		*/
+		 *	alarm went off, so disable the alarm.		*/
 
 		destroyBpTimelineEvent(bundle.overdueElt);
 		bundle.overdueElt = 0;
@@ -11165,7 +11165,7 @@ int	bpBlockPlan(char *eid)
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 	Object		planObj;
-       	BpPlan		plan;
+	BpPlan		plan;
 	Object		xmitElt;
 	Object		nextElt;
 
@@ -11318,7 +11318,7 @@ int	bpUnblockPlan(char *eid)
 	PsmAddress	vplanElt;
 	BpDB		*bpConstants = getBpConstants();
 	Object		planObj;
-       	BpPlan		plan;
+	BpPlan		plan;
 	Object		xmitElt;
 	Object		nextElt;
 
@@ -11608,19 +11608,19 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 		return sdr_end_xn(sdr);
 	}
 
-    /* check for changes to bundle overhead */
-    if (bundle.dbOverhead != oldDbOverhead)
-    {
+	/* check for changes to bundle overhead */
+	if (bundle.dbOverhead != oldDbOverhead)
+	{
 #if ZCODEBUG
-        char    buf[128];
-        sprintf(buf, "[i] bpDequeu: after bpsec ops, old dbOverhead = %d, new dbOverhead = %d",
-        oldDbOverhead, bundle.dbOverhead);
-        writeMemo(buf);
+		char    buf[128];
+		sprintf(buf, "[i] bpDequeu: after bpsec ops, old dbOverhead = %d, new dbOverhead = %d",
+		oldDbOverhead, bundle.dbOverhead);
+		writeMemo(buf);
 #endif
-        zco_reduce_heap_occupancy(sdr, oldDbOverhead, bundle.acct);
-        zco_increase_heap_occupancy(sdr, bundle.dbOverhead,
-                        bundle.acct);
-    }
+		zco_reduce_heap_occupancy(sdr, oldDbOverhead, bundle.acct);
+		zco_increase_heap_occupancy(sdr, bundle.dbOverhead,
+				bundle.acct);
+	}
 
 	/*	We now serialize the bundle header and prepend that
 	 *	header to the payload of the bundle.  This transforms
@@ -12157,7 +12157,7 @@ int	retrieveSerializedBundle(Object bundleZco, Object *bundleObj)
 	memset((char *) & image, 0, sizeof image);
 	result = decodeBundle(sdr, bundleZco, buffer, &image);
 	MRELEASE(buffer);
-       	if (result < 0)
+	if (result < 0)
 	{
 		putErrmsg("Can't extract bundle ID.", NULL);
 		return -1;

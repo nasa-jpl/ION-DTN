@@ -180,7 +180,7 @@ int	checkForCongestion(void)
 	fileOccupancy = zco_get_file_occupancy(sdr, ZcoOutbound);
 	heapOccupancy = zco_get_heap_occupancy(sdr, ZcoOutbound);
 	currentOccupancy = fileOccupancy + heapOccupancy;
- 	forecastOccupancy = maxOccupancy = currentOccupancy;
+	forecastOccupancy = maxOccupancy = currentOccupancy;
 
 	/*	Get net domestic contribution to congestion.		*/
 
@@ -256,7 +256,7 @@ int	checkForCongestion(void)
 
 				continue;
 			}
-			
+
 			if (contact->fromFqnn != iondb.ownFqnn)
 			{
 				continue;	/*	Not relevant.	*/
@@ -295,7 +295,7 @@ int	checkForCongestion(void)
 
 				continue;
 			}
-			
+
 			if (contact->fromFqnn != iondb.ownFqnn)
 			{
 				continue;	/*	Not relevant.	*/
@@ -334,7 +334,7 @@ int	checkForCongestion(void)
 
 				continue;
 			}
-			
+
 			if (contact->toFqnn != iondb.ownFqnn)
 			{
 				continue;	/*	Not relevant.	*/
@@ -373,7 +373,7 @@ int	checkForCongestion(void)
 
 				continue;
 			}
-			
+
 			if (contact->toFqnn != iondb.ownFqnn)
 			{
 				continue;	/*	Not relevant.	*/
@@ -424,7 +424,7 @@ int	checkForCongestion(void)
 			continue;
 		}
 
-		if (iondb.horizon > 0 && iondb.horizon < change->time) 
+		if (iondb.horizon > 0 && iondb.horizon < change->time)
 		{
 			secInEpoch = iondb.horizon - forecastTime;
 		}
@@ -533,7 +533,7 @@ int	checkForCongestion(void)
 		/*	Unconstrained growth; will max out eventually,
 		 *	just need to determine when.  Final epoch.	*/
 
-		if (iondb.horizon > 0) 
+		if (iondb.horizon > 0)
 		{
 			secInEpoch = iondb.horizon - forecastTime;
 		}

@@ -43,14 +43,14 @@ int	main(void)
 		PERROR("can't attach to shared memory");
 		return 0;
 	}
-	
+
 	if (psm_manage(wmspace, 100000000, "file2sm", &wm, &outcome) < 0
 	|| outcome == Refused)
 	{
 		PUTS("can't manage shared memory");
 		return 0;
 	}
-	
+
 	testlist = psm_get_root(wm);
 	if (testlist == 0)
 	{
@@ -60,7 +60,7 @@ int	main(void)
 			PUTS("can't create shared memory list");
 			return 0;
 		}
-		
+
 		psm_set_root(wm, testlist);
 	}
 

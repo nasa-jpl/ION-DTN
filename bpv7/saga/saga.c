@@ -1,7 +1,7 @@
 /*
 
 	saga.c:	API for managing ION's distributed history of
-       		discovered contacts and generating predicted
+		discovered contacts and generating predicted
 		contacts from that history.
 
 	Author:	Scott Burleigh, JPL
@@ -48,7 +48,7 @@ static int	removePredictedContacts(int regionIdx)
 	regionNbr = iondb.regions[regionIdx].regionNbr;
 	CHKERR(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, iondb.regions[regionIdx].contacts); elt;
-		       	elt = nextElt)
+			elt = nextElt)
 	{
 		nextElt = sdr_list_next(sdr, elt);
 		obj = sdr_list_data(sdr, elt);

@@ -16,9 +16,9 @@ names but this behavior can be disabled with the -o (or --overwrite) flag.
 
 Additionally, if used with ION-NASA Baseline, B<recvfile> allows for
 the decryption of encrypted files sent by B<sendfile>. To enable decryption use
-the path to a valid HMAC key or a literal key value. 
+the path to a valid HMAC key or a literal key value.
 
-Note: decryption requires a suitable cryptographic library and interface (which is 
+Note: decryption requires a suitable cryptographic library and interface (which is
 avaiable with the ITAR controlled ION NASA Baseline).
 
 Use ^C to terminate the program at any time.

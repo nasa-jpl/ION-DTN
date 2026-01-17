@@ -13,7 +13,7 @@
 	Date       Who     What
 	9-24-13    TC      Added functions (find, add, remove, change) to
 			   manage ltpXmitAuthRule and ltpRecvAuthRule
-			   Updated secInitialize to initialize SecDB's 
+			   Updated secInitialize to initialize SecDB's
 			   ltpXmitAuthRule and ltpRecvAuthRule lists
 			   Added writeRuleMessage to print rule-related message
 	11-15-13  romanoTC Check for valid ciphersuite values (0,1,255)
@@ -35,12 +35,12 @@ static char	*_secVdbName(void)
 static Object	_secdbObject(Object *newDbObj)
 {
 	static Object	obj = 0;
-	
+
 	if (newDbObj)
 	{
 		obj = *newDbObj;
 	}
-	
+
 	return obj;
 }
 
@@ -617,7 +617,7 @@ static Object	locateOwnPublicKey(time_t effectiveTime, Object *nextKey)
 	return 0;
 }
 
-int	sec_addOwnPublicKey(time_t effectiveTime, int keyLen, 
+int	sec_addOwnPublicKey(time_t effectiveTime, int keyLen,
 		unsigned char *keyValue)
 {
 	Sdr		sdr = getIonsdr();

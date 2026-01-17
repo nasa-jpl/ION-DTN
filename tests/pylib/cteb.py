@@ -6,7 +6,7 @@ from sdnv import sdnv_decode
 CTE_BLOCK = 0x0a
 
 class Cteb:
-    
+
     def __init__(self, bundle = None):
         # See if the bundle parser found one CTEB.
         if bundle == None or not bundle.blocks.has_key(CTE_BLOCK):
@@ -15,7 +15,7 @@ class Cteb:
             self.ctebPresent = False
             return
         if len(bundle.blocks[CTE_BLOCK]) != 1:
-            raise Exception("Bundle has %d CTEBs, cannot handle." % 
+            raise Exception("Bundle has %d CTEBs, cannot handle." %
                                 (len(bundle.blocks[CTE_BLOCK])) )
 
         # Parse the CTEB.

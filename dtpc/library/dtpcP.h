@@ -13,9 +13,9 @@
 #include "dtpc.h"
 
 #define DTPC_SEND_SVC_NBR	(128)
-#define	DTPC_RECV_SVC_NBR	(129)
+#define DTPC_RECV_SVC_NBR	(129)
 #define DTPC_MAX_SEQ_NBR	999999999
-#define	EPOCH_2000_SEC		946684800
+#define EPOCH_2000_SEC		946684800
 #define BUFMAXSIZE		(65536)
 
 /*	"Watch" switches for DTPC protocol operation.			*/
@@ -24,8 +24,8 @@
 #define WATCH_r			(4)
 #define WATCH_complete		(8)
 #define WATCH_send		(16)
-#define	WATCH_l			(32)
-#define	WATCH_m			(64)
+#define WATCH_l			(32)
+#define WATCH_m			(64)
 #define WATCH_n			(128)
 #define WATCH_i			(256)
 #define WATCH_u			(512)
@@ -43,14 +43,14 @@ typedef enum
 
 typedef struct
 {
-        Object          text;           /*      Not NULL-terminated.    */
-        unsigned int    textLength;
+	Object	     text; /* Not NULL-terminated. */
+	unsigned int textLength;
 } BpString;
 
 typedef struct
 {
 	Object		dstEid;		/*	SDR string		*/
-	unsigned int	profileID;	
+	unsigned int	profileID;
 	Scalar		aduCounter;
 	Object		outAdus;	/*	SDR list of outAdus	*/
 	Object		queuedAdus;	/* SDR list of queued bundles	*/
@@ -71,7 +71,7 @@ typedef struct
 	Object		aggregatedZCO;	/* ZCO Ref.			*/
 	Object		bundleObj;	/* Bundle object		*/
 	Object		outAggrElt;	/* Ref. to OutboundAggregator	*/
-	Object		topics;		/* SDR list of Topics		*/ 
+	Object		topics;		/* SDR list of Topics		*/
 	Object		rtxEventElt;	/* Ref. to retransmission event	*/
 	Object		delEventElt;	/* Ref. to deletion event	*/
 } OutAdu;
@@ -89,7 +89,7 @@ typedef struct
 	time_t		scheduledTime;
 	Object		aduElt;
 } DtpcEvent;
-	
+
 typedef struct
 {
 	Object		srcEid;		/* SDR string			*/
@@ -99,15 +99,15 @@ typedef struct
 					   reset range.			*/
 	time_t		resetTimestamp;	/* Expiration time of
 					   resetSeqNum			*/
-	Object		inAdus;		/* SDR list of InAdus		*/	
+	Object		inAdus;		/* SDR list of InAdus		*/
 } InAggregator;
 
 typedef struct
 {
-	Scalar		seqNum;
-        Object          aggregatedZCO;  /* ZCO Ref.			*/
-        Object          inAggrElt;	/* Ref. to InboundAggretor	*/
-	Object		gapEventElt;	/* Ref. to gap deletion event	*/
+	Scalar seqNum;
+	Object aggregatedZCO; /* ZCO Ref. */
+	Object inAggrElt;     /* Ref. to InboundAggretor */
+	Object gapEventElt;   /* Ref. to gap deletion event */
 } InAdu;
 
 typedef struct
@@ -121,8 +121,8 @@ typedef struct
 typedef struct dtpcsap_st
 {
 	VSap		*vsap;
-	DtpcElisionFn	elisionFn;	
-	sm_SemId	semaphore;	
+	DtpcElisionFn	elisionFn;
+	sm_SemId	semaphore;
 } Sap;
 
 
@@ -132,23 +132,23 @@ typedef struct
 	Object		inAggregators;	/* SDR list InboundAggregators	*/
 	Object		events;		/* SDR list dtpcEvents		*/
 	Object		profiles;	/* SDR list Profiles		*/
-	Object		queues;		/* SDR list topic delivery queues 
+	Object		queues;		/* SDR list topic delivery queues
 					 * identified by list USER DATA	*/
 	Object		outboundAdus;	/* SDR list: OutAdus		*/
-} DtpcDB; 
+} DtpcDB;
 
 typedef struct
 {
 	unsigned int	profileID;
 	unsigned int	maxRtx;
-	unsigned int    lifespan;
-	unsigned int    aggrSizeLimit;
-	unsigned int    aggrTimeLimit;
-        BpAncillaryData	ancillaryData;
-        int		srrFlags;
+	unsigned int	lifespan;
+	unsigned int	aggrSizeLimit;
+	unsigned int	aggrTimeLimit;
+	BpAncillaryData ancillaryData;
+	int		srrFlags;
 	BpCustodySwitch custodySwitch;
-	Object		reportToEid;	/*	SDR String		*/
-        int             classOfService;
+	Object		reportToEid; /* SDR String */
+	int		classOfService;
 } Profile;
 
 typedef struct
@@ -158,7 +158,7 @@ typedef struct
 	int		watching;	/* Activity watch.		*/
 
 	/* The aduSemaphore of the DTPC protocol is given whenever
-	 * a new outAdu is inserted in the outbounAdus list.		*/ 
+	 * a new outAdu is inserted in the outbounAdus list.		*/
 
 	sm_SemId	aduSemaphore;
 	PsmAddress	vsaps;		/* SM list: VSaps		*/
@@ -206,7 +206,7 @@ extern int		addProfile(unsigned int profileID,
 				unsigned int aggrSizeLimit,
 				unsigned int aggrTimeLimit,
 				unsigned int lifespan,
-				char *svcClass, 
+				char *svcClass,
 				char* reportToEid,
 				char *flags);
 extern int		removeProfile(unsigned int profileID);
@@ -222,4 +222,3 @@ extern int		parseInAdus(Sdr sdr);
 extern int		sendAck(BpSAP sap, unsigned int profileID,
 				Scalar seqNum, BpDelivery *dlv);
 extern int		compareScalars(Scalar *scalar1, Scalar *scalar2);
-

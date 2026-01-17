@@ -15,7 +15,7 @@ exiting.  It is very similar to B<ping>, except it works with the bundle
 protocol.
 
 B<-r> I<flags> can be any combination of rcv,ct,fwd,dlv,del,ctr
-delimited by ',' (without spaces).  It sets the corresponding report 
+delimited by ',' (without spaces).  It sets the corresponding report
 request flag.
 
 B<-t> I<ttl> sets the time-to-live for the bundles sent by B<bping> in

@@ -1,5 +1,5 @@
 /*
- 	dccplsa.h:	common definitions for DCCP link service
+	dccplsa.h:	common definitions for DCCP link service
 			adapter modules.
 
 	Author: Samuel Jero, Ohio University
@@ -7,7 +7,7 @@
 	Copyright (c) 2010.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
- 									*/
+									*/
 
 #ifndef DCCPLSA_H
 #define DCCPLSA_H
@@ -41,13 +41,13 @@ extern "C" {
 
 /* Keepalive Settings*/
 #define KEEPALIVE_PERIOD	15
-#define MAX_BACKOFF			1024
+#define MAX_BACKOFF		1024
 
 /*DCCP Defines */
 #ifndef SOCK_DCCP
-#define SOCK_DCCP 6  
+#define SOCK_DCCP 6
 #endif
-#ifndef IPPROTO_DCCP    
+#ifndef IPPROTO_DCCP
 #define IPPROTO_DCCP 33
 #endif
 #ifndef SOL_DCCP
@@ -65,7 +65,7 @@ extern "C" {
 
 
 #define DCCPLSA_BUFSZ		((256 * 256) - 1)
-#define DCCP_MAX_CON	5
+#define DCCP_MAX_CON		5
 #define LtpDccpDefaultPortNbr	1113
 
 #ifdef __cplusplus

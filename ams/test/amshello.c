@@ -2,14 +2,14 @@
 amshello.c
 "Hello world" demonstration using AMS - Unix platform (only)
 
-Copyright (c) 2023, California Institute of Technology.	
+Copyright (c) 2023, California Institute of Technology.
 Sky DeBaun, Jet Propulsion Laboratory.
 
 
 This program assumes the following conditions---------------
 1.) ION is running
-2.) An AMS Registrar is running 	
-3.) An AMS Configuration Server is running 
+2.) An AMS Registrar is running
+3.) An AMS Configuration Server is running
 4.) An MIB configuration file has been created
 
 NOTE: the following command completes steps 2, 3, and 4 (run this after ION starts):
@@ -38,7 +38,7 @@ static int	runPitcher(void)
 
 	//register pitch module using default in-memory MIB (i.e. @)
 	oK(ams_register("@", NULL, "amsdemo", "test", "", "pitch", &me));
-	
+
 	while (1)
 	{
 		if (ams_get_event(me, AMS_BLOCKING, &evt) < 0) return 0;
@@ -70,7 +70,7 @@ static int	runCatcher(void)
 	//register catch module using default in-memory MIB (i.e. @)
 	oK(ams_register("@", NULL, "amsdemo", "test", "", "catch", &me));
 	ams_invite(me, 0, 0, 0, 1, 8, 0, AmsArrivalOrder, AmsAssured);
-	
+
 	while (1)
 	{
 		if (ams_get_event(me, AMS_BLOCKING, &evt) < 0) return 0;
@@ -84,23 +84,23 @@ static int	runCatcher(void)
 }
 
 
-int main(void) 
+int main(void)
 {
-    pid_t pid = fork();
+	pid_t pid = fork();
 
-    if (pid == -1) {
-        fprintf(stderr, "Failed to create child process.\n");
-        return EXIT_FAILURE;
-    }
+	if (pid == -1) {
+		fprintf(stderr, "Failed to create child process.\n");
+		return EXIT_FAILURE;
+	}
 
-    if (pid == 0)
-        //child process runs transmitter----------------------
-        runPitcher();
-    else 
-    {
-        //parent process runs receiver------------------------
-        runCatcher();
-    }
+	if (pid == 0)
+		//child process runs transmitter----------------------
+		runPitcher();
+	else
+	{
+		//parent process runs receiver------------------------
+		runCatcher();
+	}
 
 	return 0;
 }

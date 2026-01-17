@@ -131,7 +131,7 @@ jobs:
         with:
           name: build-and-test-log-ubuntu20-${{ env.TIMESTAMP }}
           path: build-and-test.log
-    
+
       - name: Show progress file
         if: ${{ always() }}
         run: |

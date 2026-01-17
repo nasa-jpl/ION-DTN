@@ -37,19 +37,19 @@ $ bprecvfile imc:19.0 1
 
 In this section I will give a little overview of the basic concepts of the Interplanetary Overlay Network from Nasa.
 
-Digital communication between interplanetary spacecraft and space flight control centres on Earth is subject to constraints that differ in some ways from those that characterize terrestrial communications. 
+Digital communication between interplanetary spacecraft and space flight control centres on Earth is subject to constraints that differ in some ways from those that characterize terrestrial communications.
 
 ## Basic Concepts of Interplanetary Overlay Network
 
 Delay-Disruption Tolerant Networking (DTN) is NASA’s solution for reliable, automated network communications in space missions. The [DTN2](http://www.dtnrg.org/docs/presentations/IETF60/dtn-impl-ietf-8-6-04-demmer.pdf) reference implementation of the Delay-Tolerant Networking (DTN) [RFC 4838](https://tools.ietf.org/html/rfc4838)
-and the current version of the [Bundle Protocol (BP)](https://tools.ietf.org/html/draft-ietf-dtn-bpbis-31) is the foundation for a wide range of current DTN industrial and research applications. 
+and the current version of the [Bundle Protocol (BP)](https://tools.ietf.org/html/draft-ietf-dtn-bpbis-31) is the foundation for a wide range of current DTN industrial and research applications.
 
-The Jet Propulsion Laboratory (JPL) has developed an alternative implementation of BP, named “Interplanetary Overlay Network” (ION). ION addresses those constraints and enables delay-tolerant network communications in interplanetary mission operations. 
+The Jet Propulsion Laboratory (JPL) has developed an alternative implementation of BP, named “Interplanetary Overlay Network” (ION). ION addresses those constraints and enables delay-tolerant network communications in interplanetary mission operations.
 
 ## Space communication challenges
 
 - Extreme distances and high rates of data loss due to radio signal interference make communicating between Earth and interplanetary spacecraft a challenge.
-- Constant orbital movement of the satellites, 
+- Constant orbital movement of the satellites,
 the link handovers and the acquisition and loss of signal as satellites come into and out of visibility of the ground antena, and discontinuous vehicle operations make the challenge even more difficult, even in near-Earth space.
 
 To give you a sense of signal propagation -> send a message and receive a response (RRT) back:
@@ -66,7 +66,7 @@ network nodes are continuously connected. The following assumptions are valid fo
 - Data links are symmetric and bidirectional
 - Bit error rates are low
 
-These assumptions are not valid in the space environment - a new sort of network is needed. In a space environment: 
+These assumptions are not valid in the space environment - a new sort of network is needed. In a space environment:
 - Connections can be routinely interrupted
 - Interplanetary distances impose delays
 - Link data rates are often asymmetric and some links are simplex
@@ -75,9 +75,7 @@ These assumptions are not valid in the space environment - a new sort of network
 To communicate across these vast distances, NASA manages three communication networks consisting of distributed ground stations and space relay satellites for data transmission and reception that support both NASA and non-NASA missions. These are:
 - the Deep Space Network (DSN)
 - the Near Earth Network (NEN)
-- the Space Network (SN). 
+- the Space Network (SN).
 
 Communication opportunities are scheduled, based on orbit dynamics and operation plans. Sometimes a spacecraft is on the far side of a planet and you cannot communicate with it.
 Transmission and reception episodes are individually configured, started and ended by command. Reliability over deeps space links is by management: on loss of data, command retransmission. More recently for Mars missions we have managed forwarding through relay points so that data from these surface vehicles is relayed thought Odyssey and other orbiting mars vehicles.
-
-

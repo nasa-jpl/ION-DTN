@@ -1,5 +1,5 @@
 /*
- 	amscommon.h:	common definitions shared by libams, amsd,
+	amscommon.h:	common definitions shared by libams, amsd,
 			and the transport service adapters.
 	Author: Scott Burleigh, JPL
 	Modification History:
@@ -7,10 +7,10 @@
 	Copyright (c) 2005, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
-	Modified by Sky DeBaun	
+
+	Modified by Sky DeBaun
 	Jet Propulsion Laboratory 2022
-	
+
 	Modifications address the following:
 	1.) Allow for SANA range of ipn-scheme fully qualified node numbers
 		in the gateway IDs corresponding to (and implicitly
@@ -21,21 +21,21 @@
 		Modifications include changing arrays and for-loops using the
 		MAX_CONTIN_NBR to use ici's lyst (managed linked list) instead.
 
-	2.) New associated function definitions for: 
+	2.) New associated function definitions for:
 		getContinuaByNbr() and getMsgSpaceByNbr()
 
-	3.) Modified N1, N2, N3 INTERVAL directives for faster 
+	3.) Modified N1, N2, N3 INTERVAL directives for faster
 		cell census periods (set for 9 seconds)
 
-		Note: Cell Census Period derived from: 
+		Note: Cell Census Period derived from:
 		(N6_COUNT x N4_INTERVAL) + (N6_COUNT * N3_INTERVAL)
-	
+
 */
 
 #ifndef AMSCOMMON_H
 #define AMSCOMMON_H
 
-#ifndef	AMSDEBUG
+#ifndef AMSDEBUG
 #define AMSDEBUG	0
 #endif
 
@@ -67,78 +67,78 @@ extern "C" {
 #define SUBSCRIBE_LEN	(9)
 #define CANCEL_LEN	(7)
 
-#define	MAX_APP_NAME	32
-#define	MAX_AUTH_NAME	32
-#define	MAX_UNIT_NAME	32
-#define	MAX_ROLE_NAME	32
-#define	MAX_ELEM_NAME	32
-#define	MAX_SUBJ_NAME	32
-#define	MAX_EP_NAME	255
-#define	MAX_EP_SPEC	255
+#define MAX_APP_NAME	32
+#define MAX_AUTH_NAME	32
+#define MAX_UNIT_NAME	32
+#define MAX_ROLE_NAME	32
+#define MAX_ELEM_NAME	32
+#define MAX_SUBJ_NAME	32
+#define MAX_EP_NAME	255
+#define MAX_EP_SPEC	255
 
-#define	AUTHENTICAT_LEN	(MAX_APP_NAME + MAX_AUTH_NAME + MAX_UNIT_NAME + 9)
+#define AUTHENTICAT_LEN	(MAX_APP_NAME + MAX_AUTH_NAME + MAX_UNIT_NAME + 9)
 
-#define	SUBJ_LIST_CT	257		/*	Must be prime for hash.	*/
+#define SUBJ_LIST_CT	257		/*	Must be prime for hash.	*/
 
-#define	TS_INDEX_LIMIT	5
+#define TS_INDEX_LIMIT	5
 
 #ifndef MAX_CONTIN_NBR
-#define	MAX_CONTIN_NBR	32767 /*	As constrained by AMS Blue Book.*/
+#define MAX_CONTIN_NBR	32767 /*	As constrained by AMS Blue Book.*/
 #endif
 
 #ifndef MAX_VENTURE_NBR
-#define	MAX_VENTURE_NBR	20
+#define MAX_VENTURE_NBR	20
 #endif
 
 #ifndef MAX_UNIT_NBR
-#define	MAX_UNIT_NBR	10
+#define MAX_UNIT_NBR	10
 #endif
 
 #ifndef MAX_MODULE_NBR
-#define	MAX_MODULE_NBR	255
+#define MAX_MODULE_NBR	255
 #endif
 
 #ifndef MAX_ROLE_NBR
-#define	MAX_ROLE_NBR	255
+#define MAX_ROLE_NBR	255
 #endif
 
 #ifndef MAX_SUBJ_NBR
-#define	MAX_SUBJ_NBR	500
+#define MAX_SUBJ_NBR	500
 #endif
 
 /*		Note: all intervals are in seconds.			*/
 
 #ifndef N1_INTERVAL
-#define	N1_INTERVAL	1
+#define N1_INTERVAL	1
 #endif
 
 #ifndef N2_INTERVAL
-#define	N2_INTERVAL	1
+#define N2_INTERVAL	1
 #endif
 
 #ifndef N3_INTERVAL
-#define	N3_INTERVAL	1
+#define N3_INTERVAL	1
 #endif
 
-#define	N4_INTERVAL	(N3_INTERVAL * 2)
+#define N4_INTERVAL	(N3_INTERVAL * 2)
 
 #ifndef N6_COUNT
-#define	N6_COUNT	3
+#define N6_COUNT	3
 #endif
 
 #define N5_INTERVAL	(N4_INTERVAL * N6_COUNT)
 
 /*	Reason codes for "rejection" MAMS messages.			*/
-#define	REJ_DUPLICATE	1
-#define	REJ_NO_CENSUS	2
-#define	REJ_CELL_FULL	3
-#define	REJ_NO_UNIT	4
+#define REJ_DUPLICATE	1
+#define REJ_NO_CENSUS	2
+#define REJ_CELL_FULL	3
+#define REJ_NO_UNIT	4
 
 /*	Common event types.						*/
 #define CRASH_EVT	11
 #define MAMS_MSG_EVT	12
 #define MSG_TO_SEND_EVT	13
-#define	REJECTED_EVT	14
+#define REJECTED_EVT	14
 
 typedef void		*(*ThreadMain)(void *parms);
 

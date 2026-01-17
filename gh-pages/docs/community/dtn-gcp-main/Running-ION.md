@@ -1,4 +1,4 @@
-# Testing your connection 
+# Testing your connection
 
 A script has been created which allows a more streamlined configuration and startup of an ION node. This script is called `ionstart`, and it has the following syntax. Don't run it yet; we still have to configure it!
 
@@ -6,7 +6,7 @@ A script has been created which allows a more streamlined configuration and star
 ionstart -I <rc filename >
 ````
 
-- `filename`: This is the name for configuration file which the script will attempt to use for the various configuration commands. The script will perform a sanity check on the file, splitting it into command sections appropriate for each of the administration programs.  
+- `filename`: This is the name for configuration file which the script will attempt to use for the various configuration commands. The script will perform a sanity check on the file, splitting it into command sections appropriate for each of the administration programs.
 - Configuration information (such as routes, connections, etc) can be specified one of two ways for any of the individual administration programs:
 
 - (Recommended) Creating a configuration file and passing it to ionadmin, bpadmin, ipnadmin, ltpadmin, etc. either directly or via the ionstart helper script.
@@ -14,7 +14,7 @@ ionstart -I <rc filename >
 
 # Loopback communication
 
-Assuming no errors occur with the configuration above, we are now ready to test loopback communications. In one terminal, we have to run the start script alongside the configuration files. 
+Assuming no errors occur with the configuration above, we are now ready to test loopback communications. In one terminal, we have to run the start script alongside the configuration files.
 
 ````
 ionstart -i host1.ionrc -l host1.ltprc -b host1.bprc -p host1.ipnrc
@@ -36,7 +36,7 @@ Now run the command:
 
 ````
 bpsource ipn:1.1
-```` 
+````
 
 This will begin sending messages you type to the Endpoint ID ipn:1.1, which is currently being listened to by bpsink. Type messages into bpsource, press enter, and see if they are reported by bpsink. In the example below I am using the Endpoint ID ipn:2.1.
 
@@ -94,9 +94,8 @@ The image below illustrates the loopback communication using `bpsink` and `bpsou
 
 ![](images/img6.png)
 
-To stop ION in the VM instance, use the command 
+To stop ION in the VM instance, use the command
 
 ```
-$ ionstop. 
+$ ionstop.
 ```
-

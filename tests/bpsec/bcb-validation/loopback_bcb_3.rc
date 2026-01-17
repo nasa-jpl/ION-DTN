@@ -2,7 +2,7 @@
 ##	% ionstart -I "loopback.rc"
 # This is a bad configuration that tries to use BIB-HMAC-SHA256 as a BCB scheme
 
-## begin ionadmin 
+## begin ionadmin
 # ionrc configuration file for loopback test.
 #	This uses tcp as the primary convergence layer.
 #	command: % ionadmin loopback.ionrc
@@ -10,7 +10,7 @@
 #
 #	Ohio University, July 2009
 
-# Initialization command (command 1). 
+# Initialization command (command 1).
 #	Set this node to be node 1 (as in ipn:1).
 #	Use default sdr configuration (empty configuration file name '').
 1 1 ''
@@ -34,18 +34,18 @@ a range +1 +3600 1 1 1
 # set this node to consume and produce a mean of 1000000 bytes/second.
 m production 1000000
 m consumption 1000000
-## end ionadmin 
+## end ionadmin
 
-## begin bpadmin 
+## begin bpadmin
 # bprc configuration file for the loopback test.
 #	Command: % bpadmin loopback.bprc
-#	This command should be run AFTER ionadmin and ltpadmin and 
+#	This command should be run AFTER ionadmin and ltpadmin and
 #	BEFORE ipnadmin or dtnadmin.
 #
 #	Ohio University, July 2009
 
 # Initialization command (command 1).
-1 
+1
 
 # Add an EID scheme.
 #	The scheme's name is ipn.
@@ -64,7 +64,7 @@ a scheme ipn 'ipnfw' 'ipnadminep'
 a endpoint ipn:1.1 q
 a endpoint ipn:1.2 q
 
-# Add a protocol. 
+# Add a protocol.
 #	Add the protocol named tcp.
 #	Estimate transmission capacity assuming 1400 bytes of each frame (in
 #	this case, tcp on ethernet) for payload, and 100 bytes for overhead.
@@ -87,9 +87,9 @@ a outduct udp localhost:4556 udpclo
 
 # Start the Daemons.
 s
-## end bpadmin 
+## end bpadmin
 
-## begin ipnadmin 
+## begin ipnadmin
 # ipnrc configuration file for the loopback test.
 #	Essentially, this is the IPN scheme's routing table.
 #	Command: % ipnadmin loopback.ipnrc
@@ -102,7 +102,7 @@ s
 #	Transmission should use the tcp convergence layer for 127.0.0.1:4556
 #	See your bprc file or bpadmin for outducts/protocols you can use.
 a plan 1 udp/localhost:4556
-## end ipnadmin 
+## end ipnadmin
 
 ## begin ionsecadmin
 1

@@ -1,11 +1,11 @@
 # configuration file for the loopback-dccp test.
 #	Command: ionstart -Iloopback-dccp.rc
-#	This command should be run AFTER ionadmin and ltpadmin and 
+#	This command should be run AFTER ionadmin and ltpadmin and
 #	BEFORE ipnadmin or dtnadmin.
 #
 #	Ohio University, December 2010
 
-## begin ionadmin 
+## begin ionadmin
 # ionrc configuration file for the loopback-dccp test.
 #	This uses ltp as the primary convergence layer.
 #	command: % ionadmin loopback-dccp.ionrc
@@ -33,17 +33,17 @@ a range +1 +3600 1 1 1
 # set this node to consume and produce a mean of 1000000 bytes/second.
 m production 1000000
 m consumption 1000000
-## end ionadmin 
+## end ionadmin
 
 ## begin bpadmin
 # bprc configuration file for the loopback-dccp test.
 #	Command: % bpadmin loopback-dccp.bprc
-#	This command should be run AFTER ionadmin and ltpadmin and 
+#	This command should be run AFTER ionadmin and ltpadmin and
 #	BEFORE ipnadmin or dtnadmin.
 #
 #	Ohio University, December 2010
 
-# Initialization command (command 1). 
+# Initialization command (command 1).
 1
 
 # Add an EID scheme.
@@ -63,7 +63,7 @@ a scheme ipn 'ipnfw' 'ipnadminep'
 a endpoint ipn:1.1 q
 a endpoint ipn:1.2 q
 
-# Add a protocol. 
+# Add a protocol.
 #	Add the protocol named dccp.
 #	Estimate transmission capacity assuming 1400 bytes of each frame (in
 #	this case, udp on ethernet) for payload, and 100 bytes for overhead.
@@ -83,7 +83,7 @@ a outduct dccp 127.0.0.1:4556 dccpclo
 
 # Start the daemons
 s
-## end bpadmin 
+## end bpadmin
 
 ## begin ipnadmin
 # ipnrc configuration file for the loopback-dccp test.
@@ -97,9 +97,9 @@ s
 #	Bundles to be transmitted to element number 1 (that is, yourself).
 #	The plan is to queue for transmission (x) on protocol 'dccp' using
 #	the outduct identified as '127.0.0.1:4556'
-#	See your bprc file or bpadmin for outducts/protocols you can use. 
+#	See your bprc file or bpadmin for outducts/protocols you can use.
 a plan 1 dccp/127.0.0.1:4556
-## end ipnadmin 
+## end ipnadmin
 
 ## begin ionsecadmin
 1

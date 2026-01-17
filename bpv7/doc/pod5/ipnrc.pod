@@ -92,7 +92,7 @@ Comment line.  Lines beginning with B<#> are not interpreted.
 Echo control.  Setting echo to 1 causes all output printed by ipnadmin to be
 logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
 
-=item B<v> 
+=item B<v>
 
 Version number.  Prints out the version of ION currently installed.  HINT:
 combine with B<e 1> command to log the version number at startup.
@@ -152,7 +152,7 @@ local node.
 
 =item B<a exit> I<first_node_identifier> I<last_node_identifier> I<gateway_node_ID>
 
-The B<add exit> command.  This command establishes an "exit" for static 
+The B<add exit> command.  This command establishes an "exit" for static
 default routing as described above.  The gateway node ID is a BP endpoint
 ID; for the ipn scheme, this would simply be any ipn-scheme endpoint ID
 with service number equal to zero.

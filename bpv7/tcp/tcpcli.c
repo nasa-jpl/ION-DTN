@@ -23,7 +23,7 @@
 #if defined (TCPCL_LOW_CYCLE)
 #define MAX_RESCAN_INTERVAL	(240)
 #else
-   #define MAX_RESCAN_INTERVAL (20)
+#define MAX_RESCAN_INTERVAL	(20)
 #endif
 #endif
 
@@ -338,7 +338,7 @@ static void	cancelXmit(LystElt elt, void *userdata)
 		return;
 	}
 
-       	if (bpHandleXmitFailure(bundleZco) < 0)
+	if (bpHandleXmitFailure(bundleZco) < 0)
 	{
 		putErrmsg("tcpcli neighbor closure can't handle failed xmit.",
 				NULL);
@@ -564,7 +564,7 @@ static int	sendSignal(TcpclSession *session, saddr lengthReceived)
 	pthread_mutex_lock(&session->sigMutex);
 	result = lyst_insert_last(session->signals, (void *) lengthReceived);
 	pthread_mutex_unlock(&session->sigMutex);
-       	if (result== NULL)
+	if (result== NULL)
 	{
 		putErrmsg("tcpcli can't enqueue admin signal", NULL);
 		return -1;
@@ -1572,7 +1572,7 @@ plan for neighbor.", eidbuf);
 	stp = (SenderThreadParms *) MTAKE(sizeof(SenderThreadParms));
 	if (stp == NULL)
 	{
-		putErrmsg("tcpcli can't allocate space for sender parms.", 
+		putErrmsg("tcpcli can't allocate space for sender parms.",
 				neighbor->vplan->neighborEid);
 		return -1;
 	}
@@ -1581,7 +1581,7 @@ plan for neighbor.", eidbuf);
 	if (pthread_begin(&(session->sender), NULL, sendBundles, stp))
 	{
 		MRELEASE(stp);
-		putSysErrmsg("tcpcli can't create new sender thread", 
+		putSysErrmsg("tcpcli can't create new sender thread",
 				neighbor->vplan->neighborEid);
 		return -1;
 	}
@@ -1589,7 +1589,7 @@ plan for neighbor.", eidbuf);
 	if (pthread_begin(&(session->admin), NULL, sendSignals, stp))
 	{
 		stopSenderThread(session);
-		putSysErrmsg("tcpcli can't create new admin thread", 
+		putSysErrmsg("tcpcli can't create new admin thread",
 				neighbor->vplan->neighborEid);
 		return -1;
 	}
@@ -1761,7 +1761,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 	if (lengthAcked <= session->lengthAcked
 	|| lengthAcked > session->lengthSent)
 	{
-		/*	Acknowledgment sequence is violated, so 
+		/*	Acknowledgment sequence is violated, so
 		 *	didn't ack the end of the oldest bundle.	*/
 
 		pthread_mutex_lock(&(session->plMutex));
@@ -2360,7 +2360,7 @@ static int	beginSessionForDuct(ClockThreadParms *ctp, LystElt neighborElt,
 		{
 			closesocket(sock);
 			writeMemoNote("[?] Already have an accepted TCPCL \
-session with this neighbor", eid); 
+session with this neighbor", eid);
 			return 0;
 		}
 
@@ -2690,7 +2690,7 @@ static void	checkSession(TcpclSession *session)
 	if (session->keepaliveInterval != 0)
 	{
 		session->secSinceReception++;
-		if (session->secSinceReception == 
+		if (session->secSinceReception ==
 				session->keepaliveInterval)
 		{
 			session->timeoutCount++;

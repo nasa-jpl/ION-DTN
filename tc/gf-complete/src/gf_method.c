@@ -174,10 +174,10 @@ int create_gf_from_argv(gf_t *gf, int w, int argc, char **argv, int starting)
         }
       } else if (strcmp(argv[starting], "-") == 0) {
          /*
-         printf("Scratch size: %d\n", gf_scratch_size(w, 
+         printf("Scratch size: %d\n", gf_scratch_size(w,
                                       mult_type, region_type, divide_type, arg1, arg2));
          */
-        if (gf_init_hard(gf, w, mult_type, region_type, divide_type, 
+        if (gf_init_hard(gf, w, mult_type, region_type, divide_type,
                          prim_poly, arg1, arg2, base, NULL) == 0) {
           if (base != NULL) gf_free(base, 1);
           return 0;

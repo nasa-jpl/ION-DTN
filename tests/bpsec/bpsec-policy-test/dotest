@@ -75,7 +75,7 @@ echo -e "\n\nNode 2.1 Configuration \n\n"
 cd 2.ipn.ltp
 
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a key key1 key1.hmk 
+a key key1 key1.hmk
 l key
 ENDOFIONSECADMINCOMMANDS
 
@@ -93,7 +93,7 @@ echo -e "\n\nNode 3.1 Configuration \n\n"
 cd ../3.ipn.ltp
 
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a key key1 key1.hmk 
+a key key1 key1.hmk
 ENDOFIONSECADMINCOMMANDS
 
 bpsecadmin<<ENDOFBPSECADMINCOMMANDS
@@ -142,7 +142,7 @@ echo -e "\n\nNode 2.1 Configuration \n\n"
 cd 2.ipn.ltp
 
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a key bcbkey bcbkey.hmk 
+a key bcbkey bcbkey.hmk
 l key
 ENDOFIONSECADMINCOMMANDS
 bpsecadmin<<ENDOFBPSECADMINCOMMANDS
@@ -157,7 +157,7 @@ echo -e "\n\nNode 3.1 Configuration \n\n"
 cd ../3.ipn.ltp
 
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a key bcbkey bcbkey.hmk 
+a key bcbkey bcbkey.hmk
 l key
 ENDOFIONSECADMINCOMMANDS
 

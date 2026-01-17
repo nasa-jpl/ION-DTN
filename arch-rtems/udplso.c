@@ -8,7 +8,7 @@
 	Copyright (c) 2007, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 	7/6/2010, modified as per issue 132-udplso-tx-rate-limit
 	Greg Menke, Raytheon, under contract METS-MR-679-0909
 	with NASA GSFC.
@@ -54,7 +54,7 @@
 static sm_SemId		udplsoSemaphore(sm_SemId *semid)
 {
 	static sm_SemId	semaphore = -1;
-	
+
 	if (semid)
 	{
 		semaphore = *semid;
@@ -123,7 +123,7 @@ int	sendSegmentByUDP(int linkSocket, char *from, int length,
 			/* Enhanced error logging with dual-stack support */
 			char memoBuf[1000];
 			char addrStr[INET6_ADDRSTRLEN + 10];
-			
+
 			if (destAddr->sa_family == AF_INET)
 			{
 				struct sockaddr_in *sin = (struct sockaddr_in*)destAddr;
@@ -211,7 +211,7 @@ static void	applyRateControl(RateControlState *rc, int bytesSent)
 	{
 		timeCostPerByte = 1.0 / (rc->neighbor->xmitRate);
 	}
-	else	/*	No link service rate control.			*/ 
+	else	/*	No link service rate control.			*/
 	{
 		timeCostPerByte = 0.0;
 	}
@@ -238,7 +238,7 @@ int	udplso(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 {
 	char		*endpointSpec = (char *) a1;
 	uvast		remoteEngineId = a3 != 0 ? getFqn((char *) a3) :
-	       				(a2 != 0 ? getFqn((char *) a2) : 0);
+					(a2 != 0 ? getFqn((char *) a2) : 0);
 #else
 int	main(int argc, char *argv[])
 {
@@ -275,8 +275,8 @@ int	main(int argc, char *argv[])
 
 	/* Initialize the mutex.  */
 
-	pthread_mutex_init(&rtp.lock, NULL); 
-	
+	pthread_mutex_init(&rtp.lock, NULL);
+
 	if (remoteEngineId == 0 || endpointSpec == NULL)
 	{
 		PUTS("Usage: udplso {<remote engine's host name> | @}[:<its port number>] <remote engine ID>");
@@ -323,7 +323,7 @@ int	main(int argc, char *argv[])
 	{
 		int retries = UDPLSO_DNS_RETRY_COUNT;
 		int resolveResult = -1;
-		
+
 		while (retries > 0)
 		{
 			resolveResult = resolveNetworkAddressCached(endpointSpec, &rtp.peer_addr);
@@ -331,16 +331,16 @@ int	main(int argc, char *argv[])
 			{
 				break;  /* Success */
 			}
-			
+
 			char memoBuf[256];
-			isprintf(memoBuf, sizeof(memoBuf), 
+			isprintf(memoBuf, sizeof(memoBuf),
 					"udplso: DNS resolution failed for %s, retrying %d more times, retry interval %d second(s).",
 					endpointSpec, retries - 1, UDPLSO_DNS_RETRY_DELAY);
 			writeMemoNote("[i] udplso", memoBuf);
 			snooze(UDPLSO_DNS_RETRY_DELAY);
 			retries--;
 		}
-		
+
 		if (resolveResult < 0)
 		{
 			putErrmsg("udplso: Maximum DNS retries reached, can't resolve peer address", endpointSpec);
@@ -364,7 +364,7 @@ int	main(int argc, char *argv[])
 		{
 			sin6->sin6_port = htons(LtpUdpDefaultPortNbr);
 		}
-	}	
+	}
 
 	/* Prepare local socket address (any address, system-chosen port) */
 	memset(&rtp.local_addr, 0, sizeof(rtp.local_addr));
@@ -564,7 +564,7 @@ int	main(int argc, char *argv[])
 		}
 
 		/* If no segments ready, wait .1 sec,
-		 * then eventually send partial batch if needed.	 */	
+		 * then eventually send partial batch if needed.	 */
 		if (sdr_list_length(sdr, spanBuf.segments) == 0)
 		{
 			/*	No segments ready to append to batch.	*/
@@ -615,7 +615,7 @@ segment batch.", NULL);
 		{
 			pthread_mutex_lock(&rtp.lock);
 			rtp.running = 0;	/*	Terminate LSO.	*/
-			pthread_mutex_unlock(&rtp.lock);			
+			pthread_mutex_unlock(&rtp.lock);
 			continue;
 		}
 
@@ -668,10 +668,10 @@ segment batch.", NULL);
 	rc.prevPaid = 0;
 	rc.remoteEngineId = remoteEngineId;
 	rc.neighbor = NULL;
-	
+
 	static int dnsFailed = 0; /* Track DNS failure state */
 	static time_t lastDnsCheck = 0; /* Track last DNS check time */
-	
+
 	while (1)
 	{
 		int keepRunning;
@@ -693,7 +693,7 @@ segment batch.", NULL);
 			if (resolveNetworkAddressCached(endpointSpec, &newPeerAddr) < 0)
 			{
 				char memoBuf[256];
-				isprintf(memoBuf, sizeof(memoBuf), 
+				isprintf(memoBuf, sizeof(memoBuf),
 						"udplso: Periodic DNS resolution failed for %s", endpointSpec);
 				writeMemoNote("[i] udplso", memoBuf);
 				dnsFailed = 1;
@@ -724,18 +724,18 @@ segment batch.", NULL);
 						changed = 1;
 					}
 				}
-				
+
 				if (changed)
 				{
 					pthread_mutex_lock(&rtp.lock);
 					rtp.peer_addr = newPeerAddr;
 					pthread_mutex_unlock(&rtp.lock);
-					
+
 					if (dnsFailed)
 					{
 						formatNetworkAddress(&newPeerAddr, peerAddrStr, sizeof(peerAddrStr));
 						char memoBuf[256];
-						isprintf(memoBuf, sizeof(memoBuf), 
+						isprintf(memoBuf, sizeof(memoBuf),
 								"udplso: Updated peer address to %s", peerAddrStr);
 						writeMemoNote("[i] udplso", memoBuf);
 						dnsFailed = 0;
@@ -770,7 +770,7 @@ segment batch.", NULL);
 		}
 
 		bytesSent = sendSegmentByUDP(rtp.linkSocket, segment, segmentLength,
-                            (struct sockaddr*)&rtp.peer_addr.addr, 
+                            (struct sockaddr*)&rtp.peer_addr.addr,
                             rtp.peer_addr.addr_len);
 		if (bytesSent < segmentLength)
 		{

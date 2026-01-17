@@ -7,7 +7,7 @@
  *	Copyright (c) 2013, California Institute of Technology.
  *	Copyright (c) 2013, Space Internetworking Center,
  *	Democritus University of Thrace.
- *	
+ *
  *	All rights reserved. U.S. Government and E.U. Sponsorship acknowledged.
  */
 
@@ -54,7 +54,7 @@ static void	*handleDatagrams(void *parm)
 	 *	down the BSI.						*/
 
 	while (rtp->running)
-	{	
+	{
 		fromSize = sizeof fromAddr;
 		blockLength = irecvfrom(rtp->linkSocket, buffer, UDPBSA_BUFSZ,
 				0, (struct sockaddr *) &fromAddr, &fromSize);
@@ -122,7 +122,7 @@ int	main(int argc, char *argv[])
 
 	/*	Note that bsspadmin must be run before the first
 	 *	invocation of bsspbsi, to initialize the BSSP database
-	 *	(as necessary) and dynamic database.			*/ 
+	 *	(as necessary) and dynamic database.			*/
 
 	if (bsspInit(0) < 0)
 	{
@@ -212,7 +212,7 @@ int	main(int argc, char *argv[])
 		char	txt[500];
 
 		isprintf(txt, sizeof(txt),
-			"[i] udpbsi is running, spec=[%s:%d].", 
+			"[i] udpbsi is running, spec=[%s:%d].",
 			inet_ntoa(inetName->sin_addr), ntohs(portNbr));
 		writeMemo(txt);
 	}

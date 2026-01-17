@@ -10,7 +10,7 @@
  *	Author: Scott Burleigh, JPL
  */
 
-#include "bei.h" 
+#include "bei.h"
 
 extern int	snw_offer(ExtensionBlock *, Bundle *);
 extern int	snw_serialize(ExtensionBlock *, Bundle *);

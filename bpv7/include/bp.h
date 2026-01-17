@@ -1,5 +1,5 @@
 /*
- 	bp.h:	definitions supporting applications built on the
+	bp.h:	definitions supporting applications built on the
 		implementation of the Bundle Protocol in the ION
 		(Interplanetary Overlay Network) stack.
 
@@ -11,7 +11,7 @@
 	Copyright (c) 2007, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
- 									*/
+									*/
 
 #ifndef BP_H
 #define BP_H
@@ -306,14 +306,14 @@ typedef struct
 } BpDelivery;
 
 extern int		bp_attach(void);
-			/* 	Note that all ION libraries and
-			 * 	applications draw memory dynamically,
-			 * 	as needed, from a shared pool of ION
-			 * 	working memory.  The size of the pool
-			 * 	is established when it is first
-			 * 	accessed by one of the ION
-			 * 	administrative programs, either
-			 * 	bpadmin or ltpadmin.
+			/*	Note that all ION libraries and
+			 *	applications draw memory dynamically,
+			 *	as needed, from a shared pool of ION
+			 *	working memory.  The size of the pool
+			 *	is established when it is first
+			 *	accessed by one of the ION
+			 *	administrative programs, either
+			 *	bpadmin or ltpadmin.
 			 *
 			 *	Returns 0 on success, -1 on any error.	*/
 
@@ -333,13 +333,13 @@ extern void		bp_detach(void);
 extern int		bp_open(	char *eid,
 					BpSAP *ionsapPtr);
 			/*	Arguments are:
-		 	 *  		name of the endpoint 
+			 *		name of the endpoint
 			 *		pointer to variable in which
 			 *			address of BP service
 			 *			access point will be
 			 *			returned
 			 *
-			 * 	Initiates ability to take delivery
+			 *	Initiates ability to take delivery
 			 *	of bundles destined for the indicated
 			 *	endpoint and to send bundles whose
 			 *	source is the indicated endpoint.
@@ -350,7 +350,7 @@ extern int		bp_open_source(	char *eid,
 					BpSAP *ionsapPtr,
 					int detain);
 			/*	Arguments are:
-		 	 *  		name of the endpoint 
+			 *		name of the endpoint
 			 *		pointer to variable in which
 			 *			address of BP service
 			 *			access point will be
@@ -362,21 +362,21 @@ extern int		bp_open_source(	char *eid,
 			 *			in storage until
 			 *			explicitly released
 			 *
-			 * 	Initiates ability to send bundles whose
+			 *	Initiates ability to send bundles whose
 			 *	source is the indicated endpoint.  If
 			 *	"detain" is non-zero then each bundle
 			 *	address returned when this BpSAP is
 			 *	passed to bp_send will remain valid and
 			 *	usable (i.e., the bundle object will
 			 *	continue to occupy storage resources)
-			 *	until the bundle is explicitly released 
+			 *	until the bundle is explicitly released
 			 *	by an invocation of bp_release OR
 			 *	the bundle's time to live expires.
 			 *
 			 *	Returns 0 on success, -1 on any error.	*/
 
-#define BP_PARSE_QUALITY_OF_SERVICE_USAGE				\
-	"<custody-requested>.<priority>[.<ordinal>" 			\
+#define BP_PARSE_QUALITY_OF_SERVICE_USAGE           \
+	"<custody-requested>.<priority>[.<ordinal>" \
 	"[.<unreliable>.<critical>[.<data-label>]]]"
 
 extern int		bp_parse_quality_of_service(const char *token,
@@ -384,7 +384,7 @@ extern int		bp_parse_quality_of_service(const char *token,
 					BpCustodySwitch *custodySwitch,
 					int *classOfService);
 			/*  Parses the token string specifying service
-			 *  parameters into appropriate service-related 
+			 *  parameters into appropriate service-related
 			 *  arguments that may be passed to bp_send(),
 			 *  according to the format specified in
 			 *  BP_QUALITY_OF_SERVICE_USAGE.
@@ -477,7 +477,7 @@ extern void		bp_untrack(	Object bundleObj,
 			 *	trackingElt itself.			*/
 
 extern int		bp_memo(	Object bundleObj,
-					unsigned int interval); 
+					unsigned int interval);
 			/*	Inserts a "custody-acceptance due"
 			 *	event into the timeline.  The event
 			 *	causes the indicated bundle to be

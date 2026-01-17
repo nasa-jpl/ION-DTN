@@ -4,7 +4,7 @@
 			in shared memory.
 
 	Author: Scott Burleigh, JPL
-	
+
 	Modification History:
 	Date      Who	What
 	11-17-11  SCB	Adapted from Julienne Walker tutorial, public
@@ -64,7 +64,7 @@ extern void		Sm_rbt_destroy(const char *file, int line,
 
 extern PsmAddress	sm_rbt_user_data(PsmPartition partition,
 				PsmAddress rbt);
-extern void		sm_rbt_user_data_set( PsmPartition partition,
+extern void		sm_rbt_user_data_set(PsmPartition partition,
 				PsmAddress rbt, PsmAddress userData);
 extern size_t		sm_rbt_length(PsmPartition partition, PsmAddress rbt);
 

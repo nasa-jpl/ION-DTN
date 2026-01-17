@@ -2,7 +2,7 @@
 	ionsecadmin.c:	security database adminstration interface.
 
 
-	Copyright (c) 2009, California Institute of Technology.	
+	Copyright (c) 2009, California Institute of Technology.
 	All rights reserved.
 	Author: Scott Burleigh, Jet Propulsion Laboratory
 	Modifications: TCSASSEMBLER, TopCoder

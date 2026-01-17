@@ -11,8 +11,8 @@
 
 #include "bss.h"
 
-#define	RCV_LENGTH		20866
-#define	SNOOZE_INTERVAL		55642
+#define RCV_LENGTH		20866
+#define SNOOZE_INTERVAL		55642
 
-#define	BSSRECV_EXIT_SUCCESS	(0)
-#define	BSSRECV_EXIT_ERROR	(1)
+#define BSSRECV_EXIT_SUCCESS	(0)
+#define BSSRECV_EXIT_ERROR	(1)

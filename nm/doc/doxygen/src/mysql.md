@@ -2,7 +2,7 @@ Manager Database Support          {#mysql}
 =================
 
 To build with MySQL support, specify "--with-mysql" when running
-configure.  
+configure.
 
 The database schema and associated documentation can be found in the
 contrib folder under amp-sql.
@@ -34,7 +34,7 @@ or 'error' as appropriate.
 The RX thread, which handles receipt of reports from agents, performs
 all SQL operations within the context of a transaction. This ensures
 that other DB clients will not see a message set until it is full
-processed.  
+processed.
 
 At this time, transactions are always committed after
 parsing of each received message set.  If an error occurred, the message set
@@ -44,7 +44,7 @@ encoded message will be inserted into the log table.  For this entry,
 message set id.
 
 If the db_log_always flag is set, the raw HEX CBOR encoding will be
-logged for all messages, regardless of status.  
+logged for all messages, regardless of status.
 
 NOTE: For this initial release, db_log_always is enabled by
 default.  Future releases will disable this unless explicitly enabled

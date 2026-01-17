@@ -22,10 +22,10 @@ fi
 TESTUTIL="domtake"
 
 if [ ! -x "$TESTUTIL" ]; then
-  echo -e "\nWARNING: $TESTUTIL does not exist: Skipping test."
-  echo -e "Please run 'make test' in ION root to generate test binaries and scripts.\n"
-  sleep 3
-  exit 2
+    echo -e "\nWARNING: $TESTUTIL does not exist: Skipping test."
+    echo -e "Please run 'make test' in ION root to generate test binaries and scripts.\n"
+    sleep 3
+    exit 2
 fi
 
 

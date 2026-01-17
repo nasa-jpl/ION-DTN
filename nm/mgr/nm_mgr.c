@@ -67,115 +67,114 @@ void mgr_print_usage(void);
 
 int main(int argc, char *argv[])
 {
-    pthread_t rx_thr;
-    pthread_t ui_thr;
+	pthread_t rx_thr;
+	pthread_t ui_thr;
 
 #ifdef HAVE_MYSQL
-    pthread_t db_thr;
-    char db_thr_name[] = "db_thread";
+	pthread_t db_thr;
+	char	  db_thr_name[] = "db_thread";
 #endif
 
-    char rx_thr_name[]     = "rx_thread";
-    char ui_thr_name[]     = "ui_thread";
-    char daemon_thr_name[] = "run_daemon";
-    char *mgr_eid;
+	char  rx_thr_name[] = "rx_thread";
+	char  ui_thr_name[] = "ui_thread";
+	char  daemon_thr_name[] = "run_daemon";
+	char *mgr_eid;
 
-    errno = 0;
+	errno = 0;
 
-    /* Initialize the non-volatile database.
-     *   Note: Initializing the structure here allows some attributes to be pre-defined by
-     *   command line parsing if not re-initialized later.
-     */
-    memset((char*) &(gMgrDB), 0, sizeof(gMgrDB));
+	/* Initialize the non-volatile database.
+	 *   Note: Initializing the structure here allows some attributes to be pre-defined by
+	 *   command line parsing if not re-initialized later.
+	 */
+	memset((char *) &(gMgrDB), 0, sizeof(gMgrDB));
 
-    if (argc > 2)
-    {
-        // Assume argv[1] is required manager_eid
-        mgr_eid = mgr_parse_args(argc, argv);
-        if (mgr_eid == NULL)
-        {
-            mgr_print_usage();
-            return 1;
-        }
+	if (argc > 2)
+	{
+		// Assume argv[1] is required manager_eid
+		mgr_eid = mgr_parse_args(argc, argv);
+		if (mgr_eid == NULL)
+		{
+			mgr_print_usage();
+			return 1;
+		}
+	}
+	else if (argc != 2)
+	{
+		fprintf(stderr,"Invalid number of arguments for nm_mgr\n");
+		mgr_print_usage();
+		return 1;
+	}
+	else
+	{
+		mgr_eid = argv[1];
+	}
 
-    }
-    else if(argc != 2)
-    {
-        fprintf(stderr,"Invalid number of arguments for nm_mgr\n");
-        mgr_print_usage();
-        return 1;
-    }
-    else
-    {
-        mgr_eid = argv[1];
-    }
+	/* Indicate that the threads should run once started. */
+	gRunning = 1;
 
-    /* Indicate that the threads should run once started. */
-    gRunning = 1;
+	/* Initialize the AMP Manager. */
+	if (mgr_init(mgr_eid) != AMP_OK)
+	{
+		AMP_DEBUG_ERR("main", "Can't init Manager.", NULL);
+		exit(EXIT_FAILURE);
+	}
 
-    /* Initialize the AMP Manager. */
-    if(mgr_init(mgr_eid) != AMP_OK)
-    {
-    	AMP_DEBUG_ERR("main","Can't init Manager.", NULL);
-    	exit(EXIT_FAILURE);
-    }
-
-    AMP_DEBUG_INFO("main","Manager EID: %s", argv[1]);
-
-
-    /* Spawn threads for receiving msgs, user interface, and db connection. */
-    if(pthread_begin(&rx_thr, NULL, mgr_rx_thread, (void *)&gRunning, "nm_mgr_rx"))
-    {
-        AMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
-        		        rx_thr_name, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
+	AMP_DEBUG_INFO("main","Manager EID: %s", argv[1]);
 
 
-    if(pthread_begin(&ui_thr, NULL, ui_thread, (void *)&gRunning, "nm_mgr_ui"))
-    {
-        AMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
-        		        ui_thr_name, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
+	/* Spawn threads for receiving msgs, user interface, and db connection. */
+	if(pthread_begin(&rx_thr, NULL, mgr_rx_thread, (void *)&gRunning, "nm_mgr_rx"))
+	{
+		AMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
+				rx_thr_name, strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+
+	if(pthread_begin(&ui_thr, NULL, ui_thread, (void *)&gRunning, "nm_mgr_ui"))
+	{
+		AMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
+				ui_thr_name, strerror(errno));
+		exit(EXIT_FAILURE);
+	}
 
 #ifdef HAVE_MYSQL
 
-    if(pthread_begin(&db_thr, NULL, (void *)db_mgt_daemon, (void *)&gRunning ,"nm_mgr_db"))
-    {
-    	AMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
-    			db_thr_name, strerror(errno));
-    	exit(EXIT_FAILURE);
-    }
+	if(pthread_begin(&db_thr, NULL, (void *)db_mgt_daemon, (void *)&gRunning ,"nm_mgr_db"))
+	{
+		AMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
+				db_thr_name, strerror(errno));
+		exit(EXIT_FAILURE);
+	}
 #endif
 
-    if (pthread_join(rx_thr, NULL))
-    {
-        AMP_DEBUG_ERR("main","Can't join pthread %s. Errnor = %s",
-        		        rx_thr_name, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-    if (pthread_join(ui_thr, NULL))
-    {
-        AMP_DEBUG_ERR("main","Can't join pthread %s. Errnor = %s",
-        		         ui_thr_name, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-    
+	if (pthread_join(rx_thr, NULL))
+	{
+		AMP_DEBUG_ERR("main","Can't join pthread %s. Errnor = %s",
+				rx_thr_name, strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	if (pthread_join(ui_thr, NULL))
+	{
+		AMP_DEBUG_ERR("main","Can't join pthread %s. Errnor = %s",
+				ui_thr_name, strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
 #ifdef HAVE_MYSQL
-    if (pthread_join(db_thr, NULL))
-    {
-    	AMP_DEBUG_ERR("main","Can't join pthread %s. Errnor = %s",
-    			        db_thr_name, strerror(errno));
-    	exit(EXIT_FAILURE);
-    }
+	if (pthread_join(db_thr, NULL))
+	{
+		AMP_DEBUG_ERR("main","Can't join pthread %s. Errnor = %s",
+				db_thr_name, strerror(errno));
+		exit(EXIT_FAILURE);
+	}
 #endif
 
-    AMP_DEBUG_ALWAYS("main","Shutting down manager.", NULL);
-    mgr_cleanup();
+	AMP_DEBUG_ALWAYS("main","Shutting down manager.", NULL);
+	mgr_cleanup();
 
-    AMP_DEBUG_INFO("main","Exiting Manager after cleanup.", NULL);
-    exit(0);
+	AMP_DEBUG_INFO("main","Exiting Manager after cleanup.", NULL);
+	exit(0);
 }
 
 
@@ -237,7 +236,7 @@ int mgr_init(char *arg_eid)
 
 	AMP_DEBUG_ENTRY("mgr_init","("ADDR_FIELDSPEC")",(uaddr) arg_eid);
 
-    /* Step 2: Make sure that ION is running and we can attach. */
+	/* Step 2: Make sure that ION is running and we can attach. */
 	if (ionAttach() < 0)
 	{
 		AMP_DEBUG_ERR("mgr_init", "Manager can't attach to ION.", NULL);
@@ -262,47 +261,47 @@ int mgr_init(char *arg_eid)
 
 
 	gMgrDB.tot_rpts = 0;
-    gMgrDB.tot_tbls = 0;
-    istrcpy((char *) gMgrDB.mgr_eid.name, arg_eid, AMP_MAX_EID_LEN);
+	gMgrDB.tot_tbls = 0;
+	istrcpy((char *) gMgrDB.mgr_eid.name, arg_eid, AMP_MAX_EID_LEN);
 
 
 	/* Step 2:  Attach to ION. */
-    if(iif_register_node(&ion_ptr, gMgrDB.mgr_eid) == 0)
-    {
-        AMP_DEBUG_ERR("mgr_init","Unable to register BP Node. Exiting.", NULL);
-        return AMP_FAIL;
-    }
+	if(iif_register_node(&ion_ptr, gMgrDB.mgr_eid) == 0)
+	{
+		AMP_DEBUG_ERR("mgr_init","Unable to register BP Node. Exiting.", NULL);
+		return AMP_FAIL;
+	}
 
-    if (iif_is_registered(&ion_ptr))
-    {
-        AMP_DEBUG_INFO("mgr_init", "Mgr registered with ION, EID: %s",
-        		         iif_get_local_eid(&ion_ptr).name);
-    }
-    else
-    {
-        AMP_DEBUG_ERR("mgr_init","Failed to register mgr with ION, EID %s",
-        				 iif_get_local_eid(&ion_ptr).name);
-        AMP_DEBUG_EXIT("mgr_init","->-1.",NULL);
-        return AMP_FAIL;
-    }
+	if (iif_is_registered(&ion_ptr))
+	{
+		AMP_DEBUG_INFO("mgr_init", "Mgr registered with ION, EID: %s",
+				iif_get_local_eid(&ion_ptr).name);
+	}
+	else
+	{
+		AMP_DEBUG_ERR("mgr_init","Failed to register mgr with ION, EID %s",
+				iif_get_local_eid(&ion_ptr).name);
+		AMP_DEBUG_EXIT("mgr_init","->-1.",NULL);
+		return AMP_FAIL;
+	}
 
 
-    if((utils_mem_int()       != AMP_OK) ||
-       (db_init("nmmgr_db", &adm_init) != AMP_OK))
-    {
-    	db_destroy();
-    	AMP_DEBUG_ERR("mgr_init","Unable to initialize DB.", NULL);
-    	return AMP_FAIL;
-    }
+	if((utils_mem_int()       != AMP_OK) ||
+		(db_init("nmmgr_db", &adm_init) != AMP_OK))
+	{
+		db_destroy();
+		AMP_DEBUG_ERR("mgr_init", "Unable to initialize DB.", NULL);
+		return AMP_FAIL;
+	}
 
 #ifdef HAVE_MYSQL
 	db_mgr_sql_init();
 	success = db_mgt_init(gMgrDB.sql_info, 0, 1);
 #endif
 
-    success = AMP_OK;
+	success = AMP_OK;
 
-    return success;
+	return success;
 }
 
 /**
@@ -310,133 +309,133 @@ int mgr_init(char *arg_eid)
  */
 char* mgr_parse_args(int argc, char* argv[])
 {
-    int i;
-    int c;
-    int option_index = 0;
-    static struct option long_options[] =
-        {
-            {"log", no_argument, 0,'l'},
-            {"log-to-dirs", no_argument, 0,'d'},
-            {"log-rx-rpt", no_argument, 0,'r'},
-            {"log-rx-tbl", no_argument, 0,'t'},
-            {"log-tx-cbor", no_argument, 0,'T'},
-            {"log-rx-cbor", no_argument, 0,'R'},
-            {"log-tx-cbor", no_argument, 0,'j'},
-            {"log-rx-cbor", no_argument, 0,'J'},
-            
-            {"sql-user", required_argument, 0,'u'},
-            {"sql-pass", required_argument, 0,'p'},
-            {"sql-db", required_argument,0, 'S'},
-            {"sql-host", required_argument,0, 's'},
-            
-            {"log-dir", required_argument, 0,'D'},
-            {"log-limit", required_argument, 0,'L'},
-            {"automator", required_argument, 0,'a'},
-            {"help", required_argument, 0,'h'},
-        };
-    while ((c = getopt_long(argc, argv, "ldL:D:rtTRaAjJs:u:p:S:", long_options, &option_index)) != -1)
-    {
-        switch(c)
-        {
-        case 'l':
-            agent_log_cfg.enabled = 1;
-            break;
-        case 'd':
-            agent_log_cfg.agent_dirs = 1;
-            break;
-        case 'r':
-            agent_log_cfg.rx_rpt = 1;
-            break;
-        case 't':
-            agent_log_cfg.rx_tbl = 1;
-            break;
-        case 'T':
-            agent_log_cfg.tx_cbor = 1;
-            break;
-        case 'R':
-            agent_log_cfg.rx_cbor = 1;
-            break;
+	int i;
+	int c;
+	int option_index = 0;
+	static struct option long_options[] =
+		{
+			{"log", no_argument, 0,'l'},
+			{"log-to-dirs", no_argument, 0,'d'},
+			{"log-rx-rpt", no_argument, 0,'r'},
+			{"log-rx-tbl", no_argument, 0,'t'},
+			{"log-tx-cbor", no_argument, 0,'T'},
+			{"log-rx-cbor", no_argument, 0,'R'},
+			{"log-tx-cbor", no_argument, 0,'j'},
+			{"log-rx-cbor", no_argument, 0,'J'},
+
+			{"sql-user", required_argument, 0,'u'},
+			{"sql-pass", required_argument, 0,'p'},
+			{"sql-db", required_argument,0, 'S'},
+			{"sql-host", required_argument,0, 's'},
+
+			{"log-dir", required_argument, 0,'D'},
+			{"log-limit", required_argument, 0,'L'},
+			{"automator", required_argument, 0,'a'},
+			{"help", required_argument, 0,'h'},
+		};
+	while ((c = getopt_long(argc, argv, "ldL:D:rtTRaAjJs:u:p:S:", long_options, &option_index)) != -1)
+	{
+		switch (c)
+		{
+		case 'l':
+			agent_log_cfg.enabled = 1;
+			break;
+		case 'd':
+			agent_log_cfg.agent_dirs = 1;
+			break;
+		case 'r':
+			agent_log_cfg.rx_rpt = 1;
+			break;
+		case 't':
+			agent_log_cfg.rx_tbl = 1;
+			break;
+		case 'T':
+			agent_log_cfg.tx_cbor = 1;
+			break;
+		case 'R':
+			agent_log_cfg.rx_cbor = 1;
+			break;
 #ifdef USE_JSON
-        case 'j':
-            agent_log_cfg.rx_json_rpt = 1;
-            break;
-        case 'J':
-            agent_log_cfg.rx_json_tbl = 1;
-            break;
+		case 'j':
+			agent_log_cfg.rx_json_rpt = 1;
+			break;
+		case 'J':
+			agent_log_cfg.rx_json_tbl = 1;
+			break;
 #endif
 #ifdef HAVE_MYSQL
-        case 's': // MySQL Server
-            strncpy(gMgrDB.sql_info.server, optarg, UI_SQL_SERVERLEN-1);
-            break;
-        case 'u': // MySQL Username
-            strncpy(gMgrDB.sql_info.username, optarg, UI_SQL_ACCTLEN-1);
-            break;
-        case 'p': // MySQL Password
-            strncpy(gMgrDB.sql_info.password, optarg, UI_SQL_ACCTLEN-1);
-            break;
-        case 'S': // MySQL Database Name
-            strncpy(gMgrDB.sql_info.database, optarg, UI_SQL_DBLEN-1);
-            break;
+		case 's': // MySQL Server
+			strncpy(gMgrDB.sql_info.server, optarg, UI_SQL_SERVERLEN - 1);
+			break;
+		case 'u': // MySQL Username
+			strncpy(gMgrDB.sql_info.username, optarg, UI_SQL_ACCTLEN - 1);
+			break;
+		case 'p': // MySQL Password
+			strncpy(gMgrDB.sql_info.password, optarg, UI_SQL_ACCTLEN - 1);
+			break;
+		case 'S': // MySQL Database Name
+			strncpy(gMgrDB.sql_info.database, optarg, UI_SQL_DBLEN - 1);
+			break;
 
 #endif
-        case 'D':
-            strncpy(agent_log_cfg.dir, optarg, sizeof(agent_log_cfg.dir)-1);
-            break;
-        case 'L':
-            agent_log_cfg.limit = atoi(optarg);
-            break;
-        case 'a':
-        case 'A':
-            mgr_ui_mode = MGR_UI_AUTOMATOR;
-            break;
-        case 'h':
-            return NULL;
-        default:
-            fprintf(stderr, "Error parsing arguments\n");
-            return NULL;
-        }
-    }
+		case 'D':
+			strncpy(agent_log_cfg.dir, optarg, sizeof(agent_log_cfg.dir) - 1);
+			break;
+		case 'L':
+			agent_log_cfg.limit = atoi(optarg);
+			break;
+		case 'a':
+		case 'A':
+			mgr_ui_mode = MGR_UI_AUTOMATOR;
+			break;
+		case 'h':
+			return NULL;
+		default:
+			fprintf(stderr, "Error parsing arguments\n");
+			return NULL;
+		}
+	}
 
-    // Check for any remaining unrecognized arguments
-    if ((argc-optind) != 1)
-    {
-        fprintf(stderr,"%d unrecognized arguments:\n", (argc-optind));
-        for(i = optind; i < argc; i++)
-        {
-            printf("\t%s\n", argv[i]);
-        }
-        return NULL;
-    }
-    else
-    {
-        return argv[optind];
-    }
+	// Check for any remaining unrecognized arguments
+	if ((argc-optind) != 1)
+	{
+		fprintf(stderr, "%d unrecognized arguments:\n", (argc - optind));
+		for (i = optind; i < argc; i++)
+		{
+			printf("\t%s\n", argv[i]);
+		}
+		return NULL;
+	}
+	else
+	{
+		return argv[optind];
+	}
 }
 
 void mgr_print_usage(void)
 {
 
-    printf("AMP Protocol Version %d - %s, built on %s %s\n",
-           AMP_VERSION,
-           AMP_PROTOCOL_URL,
-           __DATE__, __TIME__);
+	printf("AMP Protocol Version %d - %s, built on %s %s\n",
+			AMP_VERSION,
+			AMP_PROTOCOL_URL,
+			__DATE__, __TIME__);
 
-    printf("Usage: nm_mgr [options] <manager eid>\n");
-    printf("Supported Options:\n");
-    printf("-A       Startup directly in the alternative Automator UI mode\n");
-    printf("-l       If specified, enable file-based logging of Manager Activity.\n");
-    printf("           If logging is not enabled, the following have no affect until enabled in UI\n");
-    printf("-d       Log each agent to a different directory\n");
-    printf("-L #      Specify maximum number of entries (reports+tables) per file before rotating\n");
-    printf("-D DIR   NM logs will be placed in this directory\n");
-    printf("-r       Log all received reports to file in text format (as shown in UI)\n");
-    printf("-t       Log all received tables to file in text format (as shown in UI)\n");
-    printf("-T       Log all transmitted message as ASCII-encoded CBOR HEX strings\n");
-    printf("-R       Log all received messages as ASCII-encoded CBOR HEX strings\n");
+	printf("Usage: nm_mgr [options] <manager eid>\n");
+	printf("Supported Options:\n");
+	printf("-A       Startup directly in the alternative Automator UI mode\n");
+	printf("-l       If specified, enable file-based logging of Manager Activity.\n");
+	printf("           If logging is not enabled, the following have no affect until enabled in UI\n");
+	printf("-d       Log each agent to a different directory\n");
+	printf("-L #      Specify maximum number of entries (reports+tables) per file before rotating\n");
+	printf("-D DIR   NM logs will be placed in this directory\n");
+	printf("-r       Log all received reports to file in text format (as shown in UI)\n");
+	printf("-t       Log all received tables to file in text format (as shown in UI)\n");
+	printf("-T       Log all transmitted message as ASCII-encoded CBOR HEX strings\n");
+	printf("-R       Log all received messages as ASCII-encoded CBOR HEX strings\n");
 #ifdef HAVE_MYSQL
-    printf("--sql-user MySQL Username\n");
-    printf("--sql-pass MySQL Password\n");
-    printf("--sql-db MySQL Datbase Name\n");
-    printf("--sql-host MySQL Host\n");
+	printf("--sql-user MySQL Username\n");
+	printf("--sql-pass MySQL Password\n");
+	printf("--sql-db MySQL Datbase Name\n");
+	printf("--sql-host MySQL Host\n");
 #endif
 }

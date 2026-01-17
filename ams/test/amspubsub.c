@@ -3,7 +3,7 @@
 			two functions: amssub(), which subscribes to
 			messages on a given subject, and amspub(),
 			which publishes one message on a given subject.
- 									*/
+									*/
 /*	Copyright (c) 2006, California Institute of Technology.		*/
 /*	All rights reserved.						*/
 /*	Author: Amalaye Oyake, Jet Propulsion Laboratory		*/

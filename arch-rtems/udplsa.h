@@ -1,5 +1,5 @@
 /*
- 	udplsa.h:	common definitions for UDP link service
+	udplsa.h:	common definitions for UDP link service
 			adapter modules.
 
 	Author: Scott Burleigh, JPL
@@ -7,13 +7,13 @@
 	Copyright (c) 2007, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
- 									*/
+									*/
 
 #ifndef UDPLSA_H
 #define UDPLSA_H
 
 #include "ltpP.h"
-#include "ion_network.h" 
+#include "ion_network.h"
 #include <pthread.h>
 
 #ifdef __cplusplus

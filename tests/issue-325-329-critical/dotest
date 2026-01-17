@@ -41,19 +41,19 @@ cd ../4.ipn.ltp
 COUNT=`ls -l testfile1 | wc -l`
 if [ $COUNT -eq 1 ]
 then
-	echo "Okay: copy 1 arrived."
+    echo "Okay: copy 1 arrived."
 else
-	echo "Error: copy 1 did not arrive."
-	RETVAL=1
+    echo "Error: copy 1 did not arrive."
+    RETVAL=1
 fi
 
 COUNT=`ls -l testfile2 | wc -l`
 if [ $COUNT -eq 1 ]
 then
-	echo "Okay: copy 2 arrived."
+    echo "Okay: copy 2 arrived."
 else
-	echo "Error: copy 2 did not arrive."
-	RETVAL=1
+    echo "Error: copy 2 did not arrive."
+    RETVAL=1
 fi
 
 # Shut down ION processes.

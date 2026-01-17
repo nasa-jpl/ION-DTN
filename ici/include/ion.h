@@ -1,12 +1,12 @@
 /*
- 	ion.h:	private definitions supporting the implementation of
+	ion.h:	private definitions supporting the implementation of
 		protocols in the ION stack.
 
 	Author: Scott Burleigh, JPL
 
 	Copyright (c) 2007, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
- 									*/
+									*/
 
 #ifndef ION_H
 #define ION_H
@@ -86,7 +86,7 @@ typedef struct
  *	Additionally, IonContacts for which either the fromFqnn or the
  *	toFqnn is the local node's own node number are used in
  *	congestion forecasting, by computation of maximum scheduled
- *	bundle space occupancy.	
+ *	bundle space occupancy.
  *
  *	Six different types of contact may be intermixed within a
  *	contact plan.
@@ -139,7 +139,7 @@ typedef struct
  *	by ipnd, in the course of neighbor discovery, whenever
  *	one or more new contact history records for that pair
  *	of nodes are received; new predicted contacts are never
- *	posted in any other way.  
+ *	posted in any other way.
  *
  *	(5)  A "hypothetical" contact is an opportunity to
  *	transmit data BETWEEN THE LOCAL NODE AND SOME OTHER
@@ -275,13 +275,13 @@ typedef struct
 	int		maxClockError;	/*	In seconds.		*/
 	char		clockIsSynchronized;	/*	Boolean.	*/
 	char		workingDirectoryName[256];
-        IonParms        parmcopy;       /*	Copy of the ion config
+	IonParms        parmcopy;       /*	Copy of the ion config
 						parms as asserted to
 						ionadmin at startup.	*/
-	char		enablePsmwatch;		/*	Auto-launch flag.	*/
-	char		enableSdrwatch;		/*	Auto-launch flag.	*/
-	int		psmwatchPid;		/*	Daemon process ID.	*/
-	int		sdrwatchPid;		/*	Daemon process ID.	*/
+	char		enablePsmwatch;	/*	Auto-launch flag.	*/
+	char		enableSdrwatch;	/*	Auto-launch flag.	*/
+	int		psmwatchPid;	/*	Daemon process ID.	*/
+	int		sdrwatchPid;	/*	Daemon process ID.	*/
 } IonDB;
 
 /*	The IonVdb red-black tree of IonNodes, in volatile memory,
@@ -321,13 +321,13 @@ typedef struct
 
 typedef struct
 {
-	uvast		fqnn;	/*	Of the embargoed node.	*/
+	uvast		fqnn;		/*	Of the embargoed node.	*/
 	int		probeIsDue;	/*	Boolean.		*/
 } Embargo;		/*	An uncooperative neighboring node.	*/
 
 typedef struct
 {
-	uvast		fqnn;	/*	As from IonContact.	*/
+	uvast		fqnn;		/*	As from IonContact.	*/
 	PsmAddress	embargoes;	/*	SM list: Embargo	*/
 	PsmAddress	routingObject;	/*	Routing-dependent.	*/
 } IonNode;		/*	A potential bundle destination node.	*/
@@ -481,10 +481,10 @@ extern int		ionInitialize(	IonParms *parms,
 					uvast ownFqnn);
 extern int		ionAttach(void);
 extern void		ionDetach(void);
-extern void		ionProd(	uvast fromFqnn,
-					uvast toFqnn,
-					size_t xmitRate,
-					unsigned int owlt);
+extern void		ionProd(uvast fromFqnn,
+				uvast toFqnn,
+				size_t xmitRate,
+				unsigned int owlt);
 extern void		ionTerminate(int shutdown);
 
 #define	FQN_MAX_LENGTH	(22)

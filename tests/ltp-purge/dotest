@@ -37,25 +37,25 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: To test out the functionality of LTP Purge.  Described in issue
-	173, an option is added to cancel all LTP sessions when the contact
-	time period is over.  This allows bundles mid-transfer to be re-inserted
-	into the routing engine, where they can be reforwarded on a different
-	and possibly more-efficient path immediately.  Otherwise bundles would
-	normally sit in the LTP session awaiting completion when the LTP contact
-	is renewed."
+    173, an option is added to cancel all LTP sessions when the contact
+    time period is over.  This allows bundles mid-transfer to be re-inserted
+    into the routing engine, where they can be reforwarded on a different
+    and possibly more-efficient path immediately.  Otherwise bundles would
+    normally sit in the LTP session awaiting completion when the LTP contact
+    is renewed."
 echo
 echo "CONFIG: 3 node custom configuration:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Various message bundles are expected to have been received
-	at the end of the test.  There is also a large description of activities
-	mid-test."
+    at the end of the test.  There is also a large description of activities
+    mid-test."
 echo
 echo "########################################"
 
@@ -79,61 +79,61 @@ cd ../5.ipn.ltp
 ionadmin amroc.ionrc
 
 cd ../2.ipn.ltp
-ionadmin ../global.ionrc 
+ionadmin ../global.ionrc
 cd ../3.ipn.ltp
-ionadmin ../global.ionrc 
+ionadmin ../global.ionrc
 cd ../5.ipn.ltp
-ionadmin ../global.ionrc 
+ionadmin ../global.ionrc
 
 cd ../2.ipn.ltp
-ionsecadmin amroc.ionsecrc 
+ionsecadmin amroc.ionsecrc
 cd ../3.ipn.ltp
-ionsecadmin amroc.ionsecrc 
+ionsecadmin amroc.ionsecrc
 cd ../5.ipn.ltp
-ionsecadmin amroc.ionsecrc 
+ionsecadmin amroc.ionsecrc
 
 cd ../2.ipn.ltp
-ltpadmin amroc.ltprc 
+ltpadmin amroc.ltprc
 cd ../3.ipn.ltp
-ltpadmin amroc.ltprc 
+ltpadmin amroc.ltprc
 cd ../5.ipn.ltp
-ltpadmin amroc.ltprc 
+ltpadmin amroc.ltprc
 
 cd ../2.ipn.ltp
-bpadmin amroc.bprc 
+bpadmin amroc.bprc
 cd ../3.ipn.ltp
-bpadmin amroc.bprc 
+bpadmin amroc.bprc
 cd ../5.ipn.ltp
-bpadmin amroc.bprc 
+bpadmin amroc.bprc
 
 ../../../system_up -i "p 30" -l "p 30" -b "p 30"
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 2 not started: Aborting Test"
-	exit 1
+    echo "Node 2 not started: Aborting Test"
+    exit 1
 fi
 
 ../../../system_up -i "p 30" -l "p 30" -b "p 30"
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 3 not started: Aborting Test"
-	exit 1
+    echo "Node 3 not started: Aborting Test"
+    exit 1
 fi
 
 ../../../system_up -i "p 30" -l "p 30" -b "p 30"
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 5 not started: Aborting Test"
-	exit 1
+    echo "Node 5 not started: Aborting Test"
+    exit 1
 fi
 
 # Start file receivers on nodes 3 and 5.
@@ -191,20 +191,20 @@ RETVAL=0
 COUNT=`ls -l testfile* | grep 915 | wc -l`
 if [ $COUNT -eq 2 ]
 then
-	echo "OK: node 3 got two copies of file x."
+    echo "OK: node 3 got two copies of file x."
 else
-	echo "ERROR: node 3 didn't get two copies of file x."
-	RETVAL=1
+    echo "ERROR: node 3 didn't get two copies of file x."
+    RETVAL=1
 fi
 
 cd ../5.ipn.ltp
 COUNT=`ls -l testfile* | grep 1070 | wc -l`
 if [ $COUNT -eq 1 ]
 then
-	echo "OK: node 5 got one copy of file y."
+    echo "OK: node 5 got one copy of file y."
 else
-	echo "ERROR: node 5 didn't get one copy of file y."
-	RETVAL=1
+    echo "ERROR: node 5 didn't get one copy of file y."
+    RETVAL=1
 fi
 
 # Shut down ION processes.

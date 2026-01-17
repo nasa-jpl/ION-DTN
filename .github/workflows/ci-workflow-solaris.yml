@@ -71,8 +71,8 @@ jobs:
 
       - name: Display Runner Host OS and Arch
         run: |
-          cat /etc/os-release 
-          echo "Arch:" 
+          cat /etc/os-release
+          echo "Arch:"
           uname -m
           echo "User ID:"
           id
@@ -84,8 +84,8 @@ jobs:
       - name: Display VM OS and Arch
         run: |
           ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
-            cat /etc/os-release && 
-            echo "Arch:" && 
+            cat /etc/os-release &&
+            echo "Arch:" &&
             uname -m &&
             echo "User ID:" &&
             id &&
@@ -149,7 +149,7 @@ jobs:
         with:
           name: build-and-test-log-solaris-${{ env.TIMESTAMP }}
           path: build-and-test.log
-      
+
       - name: Show progress file
         if: ${{ always() }}
         run: |

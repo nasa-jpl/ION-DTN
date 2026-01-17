@@ -40,7 +40,7 @@ convert_pod_to_md() {
   # Create an index.md file with links to all Markdown files except itself
   echo "Creating index.md in $LINK_DIR..."
   echo "# Index of Man Pages" > "$LINK_DIR/index.md" || { echo "Failed to create index.md in $LINK_DIR"; exit 1; }
-  
+
   for mdfile in "$LINK_DIR"/*.md; do
     filename=$(basename "$mdfile")
     if [ "$filename" != "index.md" ]; then

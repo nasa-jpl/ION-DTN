@@ -38,5 +38,3 @@ void agent_instr_clear(void)
 {
 	memset(&gAgentInstr,0, sizeof(gAgentInstr));
 }
-
-

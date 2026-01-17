@@ -194,60 +194,60 @@ function run_a_test () {
 
     # check if test is excluded because it is obsolete
     if [ -f "$TEST/.exclude_obsolete" ]; then
-    	echo "Test excluded because it is obsolete, skipping $TEST" | tee -a $PROGRESSFILE
-	    cat "$TEST/.exclude_obsolete"
-    	excludeObsolete_test "$TEST"
-    	echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (obsolete)" >&2
-    	return
+        echo "Test excluded because it is obsolete, skipping $TEST" | tee -a $PROGRESSFILE
+        cat "$TEST/.exclude_obsolete"
+        excludeObsolete_test "$TEST"
+        echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (obsolete)" >&2
+        return
     fi
 
     # check if test is excluded on all platforms
     if [ -f "$TEST/.exclude_all" ]; then
-    	echo "Test universally excluded, skipping $TEST" | tee -a $PROGRESSFILE
-	    cat "$TEST/.exclude_all"
-    	skip_test "$TEST"
-    	echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (excluded)" >&2
-    	return
+        echo "Test universally excluded, skipping $TEST" | tee -a $PROGRESSFILE
+        cat "$TEST/.exclude_all"
+        skip_test "$TEST"
+        echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (excluded)" >&2
+        return
     fi
 
     # check for environment variable to skip these
     if [ -f "$TEST/.exclude_expert" ]; then
-	    if [ -z "$ION_RUN_EXPERT" ]; then
-		echo "Test excluded by expertise class, skipping $TEST" | tee -a $PROGRESSFILE
-		cat "$TEST/.exclude_expert"
-		skip_test "$TEST"
-		echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (expert test)" >&2
-		return
-	    fi
+        if [ -z "$ION_RUN_EXPERT" ]; then
+            echo "Test excluded by expertise class, skipping $TEST" | tee -a $PROGRESSFILE
+            cat "$TEST/.exclude_expert"
+            skip_test "$TEST"
+            echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (expert test)" >&2
+            return
+        fi
     fi
 
     # check for environment variable to skip these
     if [ -f "$TEST/.exclude_cbased" ]; then
-	    if [ -n "$ION_EXCLUDE_CBASED" ]; then
-		echo "Test excluded because of C code, skipping $TEST" | tee -a $PROGRESSFILE
-		cat "$TEST/.exclude_cbased"
-		skip_test "$TEST"
-		echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (C-based)" >&2
-		return
-	    fi
+        if [ -n "$ION_EXCLUDE_CBASED" ]; then
+            echo "Test excluded because of C code, skipping $TEST" | tee -a $PROGRESSFILE
+            cat "$TEST/.exclude_cbased"
+            skip_test "$TEST"
+            echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (C-based)" >&2
+            return
+        fi
     fi
 
     # check if test is excluded by OS version
     if [ -f "$TEST/.exclude_$OS_VERSION" ]; then
-    	echo "Test excluded by OS type, skipping $TEST" | tee -a $PROGRESSFILE
-	    cat "$TEST/.exclude_$OS_VERSION"
-    	excludeOS_test "$TEST"
-    	echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (OS excluded)" >&2
-    	return
+        echo "Test excluded by OS type, skipping $TEST" | tee -a $PROGRESSFILE
+        cat "$TEST/.exclude_$OS_VERSION"
+        excludeOS_test "$TEST"
+        echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (OS excluded)" >&2
+        return
     fi
 
     # check if test is excluded by BP version
     if [ -f "$TEST/.exclude_$BP_VERSION" ]; then
-    	echo "Test excluded by BP version, skipping $TEST" | tee -a $PROGRESSFILE
-	    cat "$TEST/.exclude_$BP_VERSION"
-    	excludeBPv_test "$TEST"
-    	echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (BP version excluded)" >&2
-    	return
+        echo "Test excluded by BP version, skipping $TEST" | tee -a $PROGRESSFILE
+        cat "$TEST/.exclude_$BP_VERSION"
+        excludeBPv_test "$TEST"
+        echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (BP version excluded)" >&2
+        return
     fi
 
     # check for existance of dotest script
@@ -388,7 +388,7 @@ function run_a_test () {
 
     # Allow some extra time for ION to fully shutdown on Windows and Solaris
     if [[ "$OS_VERSION" == "solaris" ]] || [[ "$OS_VERSION" == "windows" ]] ; then
-    	sleep 15
+        sleep 15
     fi
 
     popd > /dev/null
@@ -666,19 +666,19 @@ OS_VERSION=''
 version=`uname -a`
 if [[ "$version" == *"MINGW"* ]] || [[ "$version" == *"Msys"* ]]
 then
-	OS_VERSION=windows;
+    OS_VERSION=windows;
 elif [[ "$version" == *"raspberrypi"* ]]
 then
-	OS_VERSION=raspberrypi;
+    OS_VERSION=raspberrypi;
 elif [[ "$version" == *"Linux"* ]] || [[ "$version" == *"LINUX"* ]]
 then
-	OS_VERSION=linux;
+    OS_VERSION=linux;
 elif [[ "$version" == *"Mac"* ]] || [[ "$version" == *"MAC"* ]] || [[ "$version" == *"Darwin"* ]]
 then
-	OS_VERSION=mac;
+    OS_VERSION=mac;
 elif [[ "$version" == *"Solaris"* ]] || [[ "$version" == *"SunOS"* ]]
 then
-        OS_VERSION=solaris;
+    OS_VERSION=solaris;
 elif [[ "$version" == *"FreeBSD"* ]] || [[ "$version" == *"OpenBSD"* ]]
 then
     OS_VERSION=freebsd;

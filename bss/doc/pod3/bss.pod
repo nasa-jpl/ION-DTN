@@ -76,7 +76,7 @@ On any failure, returns -1.  On success, returns zero.
 long bufLen, RTBHandler handler)
 
 A convenience function that performs both bssOpen() and bssStart().  On any
-failure, returns -1.  On success, returns zero. This function essentially 
+failure, returns -1.  On success, returns zero. This function essentially
 instantiates both realtime and playback modes simultaneously.
 
 =item void bssClose(void)

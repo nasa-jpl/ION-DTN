@@ -13,17 +13,17 @@
  ** Description:
  **     This file contains a custom implementation of a Radix Tree. This tree
  **     stores strings in a space-optimized tree structure. This implementation
- **     is augmented to include a visitor pattern and user-defined 
+ **     is augmented to include a visitor pattern and user-defined
  **     key-associated data.
- **     
+ **
  **     This tree structure supports very fast search times, but additions
  **     and deletions may be very expensive because they (1) lock the structure
- **     and (2) may cause cascading rebalancing.   
- **     
+ **     and (2) may cause cascading rebalancing.
+ **
  **     User-defined callbacks provide the ability to manipulate user data
  **     stored in the tree.
- **     
- **     The implementation supports re-entrancy via blocking writes. 
+ **
+ **     The implementation supports re-entrancy via blocking writes.
  **
  ** Notes:
  **     This implementation *only* supports wildcard prefix searches (data*)
@@ -46,7 +46,7 @@
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  CONSTANTS  								  +
+ * |                              CONSTANTS                                   +
  * +--------------------------------------------------------------------------+
  */
 
@@ -58,7 +58,7 @@
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  	MACROS  								  +
+ * |                                MACROS                                    +
  * +--------------------------------------------------------------------------+
  */
 
@@ -67,34 +67,34 @@
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  DATA TYPES  								  +
+ * |                              DATA TYPES                                  +
  * +--------------------------------------------------------------------------+
  */
 
 
 /**
  * RadixNode
- * 
+ *
  * Each node in a radix tree stores information relating to the structure
  * of the tree, its contribution to the held keys, and any user information
- * associated with keys for which the node acts as a leaf. 
- * 
+ * associated with keys for which the node acts as a leaf.
+ *
  * The structural information includes references to its parent and zero or more
- * children. 
- * 
- * Key information is stored as a fixed-length string representing a subset of 
+ * children.
+ *
+ * Key information is stored as a fixed-length string representing a subset of
  * a larger string.
- * 
+ *
  * User information is treated as a vector of information which may be added
- * to over time. 
+ * to over time.
  */
 
 struct RadixNode_s
-{ 
+{
 	/* Tree Structure Information */
 	PsmAddress parent;     /**> Parent node (RadixNode*) */
 
-    PsmAddress children;   /**> Children node (PsmAddress *) */
+	PsmAddress children;   /**> Children node (PsmAddress *) */
 
 	uint8_t order;         /**> The (0-based) order amongst siblings. */
 	uint8_t depth;         /**> The 0-based depth of this node. */
@@ -105,13 +105,13 @@ struct RadixNode_s
 
 	/* User Information */
 	PsmAddress user_data;  /**> sm_list of user information. */
-}; 
+};
 
 
 /**
  * RadixStats
- * 
- * Simple statistics for measuring the performance of the tree. 
+ *
+ * Simple statistics for measuring the performance of the tree.
  */
 struct RadixStats_s
 {
@@ -121,31 +121,31 @@ struct RadixStats_s
 
 /**
  * RadixTree
- * 
+ *
  * The radix tree contains the tree structure, statistics, protection
- * mechanisms, and information on how to handle individual user data. 
- * 
+ * mechanisms, and information on how to handle individual user data.
+ *
  */
 struct RadixTree_s
 {
 	/* Tree structure */
 	PsmAddress root;   /**> The root node of the tree (RadixNode *). */
-	
+
 	/* Statistics */
 	struct RadixStats_s stats;  /**> Statistics related to the tree. */
-	
+
 	/* Protection */
-    sm_SemId lock;          /**> Mutex - locks on write. */
-    
-    /* User Data Handling */
-    //radix_del_fn     del_fn;    /**> Optional user-data delete function. */
-    //radix_insert_fn  ins_fn;    /**> Optional user-defined insert function */
+	sm_SemId lock;          /**> Mutex - locks on write. */
+
+	/* User Data Handling */
+	//radix_del_fn     del_fn;    /**> Optional user-data delete function. */
+	//radix_insert_fn  ins_fn;    /**> Optional user-defined insert function */
 };
 
 
 /*
  * +--------------------------------------------------------------------------+
- * |						  FUNCTION PROTOTYPES  							  +
+ * |                          FUNCTION PROTOTYPES                             +
  * +--------------------------------------------------------------------------+
  */
 

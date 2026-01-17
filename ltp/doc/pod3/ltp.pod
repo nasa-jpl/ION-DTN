@@ -8,14 +8,14 @@ ltp - Licklider Transmission Protocol (LTP) communications library
 
     typedef enum
     {
-	LtpNoNotice = 0,
-	LtpExportSessionStart,
-	LtpXmitComplete,
-	LtpExportSessionCanceled,
-	LtpExportSessionComplete,
-	LtpRecvGreenSegment,
-	LtpRecvRedPart,
-	LtpImportSessionCanceled
+        LtpNoNotice = 0,
+        LtpExportSessionStart,
+        LtpXmitComplete,
+        LtpExportSessionCanceled,
+        LtpExportSessionComplete,
+        LtpRecvGreenSegment,
+        LtpRecvRedPart,
+        LtpImportSessionCanceled
     } LtpNoticeType;
 
     [see description for available functions]

@@ -22,7 +22,7 @@ static int	_blocksGroupNbr(int *newValue)
 static int	_echo(int *newValue)
 {
 	static int	state = 0;
-	
+
 	if (newValue)
 	{
 		if (*newValue == 1)
@@ -748,7 +748,7 @@ static int	processLine(char *line, int lineLength)
 					snooze(1);
 					getCurrentTime(&cur_time);
 					if (cur_time.tv_sec >=
-						done_time.tv_sec 
+						done_time.tv_sec
 					&& cur_time.tv_usec >=
 						done_time.tv_usec)
 					{

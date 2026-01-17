@@ -36,15 +36,15 @@
 #endif
 
 ui_menu_list_t agent_submenu_list[] = {
-   {"De-register agent", NULL, NULL},
-   {"Build Control", NULL, NULL},
-   {"Send Raw Command", NULL, NULL},
-   {"Send Command File", NULL, NULL},
-   {"Print Agent Reports", NULL, NULL},
-   {"Print Agent Tables", NULL, NULL},
-   {"Write Agent Reports to file", NULL, NULL},
-   {"Clear Agent Reports", NULL, NULL},
-   {"Clear Agent Tables", NULL, NULL},
+	{ "De-register agent", NULL, NULL },
+	{ "Build Control", NULL, NULL },
+	{ "Send Raw Command", NULL, NULL },
+	{ "Send Command File", NULL, NULL },
+	{ "Print Agent Reports", NULL, NULL },
+	{ "Print Agent Tables", NULL, NULL },
+	{ "Write Agent Reports to file", NULL, NULL },
+	{ "Clear Agent Reports", NULL, NULL },
+	{ "Clear Agent Tables", NULL, NULL },
 };
 
 static int ui_print_agents_cb_parse(int idx, int keypress, void* data, char* status_msg);
@@ -68,225 +68,225 @@ static void ui_print_report_entry(ui_print_cfg_t *fd, char *name, tnv_t *val);
  *  10/07/18  E. Birrane     Update top AMP v0.5 (JHU/APL)
  *****************************************************************************/
 ui_cb_return_values_t ui_print_agents_cb_fn(int idx, int keypress, void* data, char* status_msg) {
-   ui_cb_return_values_t rtv = UI_CB_RTV_CONTINUE;
-   agent_t *agent = (agent_t*)data;
+	ui_cb_return_values_t rtv = UI_CB_RTV_CONTINUE;
+	agent_t *agent = (agent_t*)data;
 
 #ifdef USE_NCURSES
-   if (keypress == KEY_ENTER || keypress == 10)
-   {
-      // User selected an agent. Let's loop on the sub-menu
-      while(rtv == UI_CB_RTV_CONTINUE )
-      {
-         keypress = ui_menu_listing(agent->eid.name,
-                                    agent_submenu_list, ARRAY_SIZE(agent_submenu_list),
-                                    NULL, 0,
-                                    "F1 or 'e' to cancel. Arrow keys to navigate and enter to select. (x) indicates key that can be pressed directly from agent listing (parent) menu to perform this action.",
-                                    NULL,
-                                    UI_OPT_AUTO_LABEL | UI_OPT_ENTER_SEL);
-         rtv = ui_print_agents_cb_parse(idx, keypress, data, status_msg);
-      }
-   }
-   else
-   {
-      return ui_print_agents_cb_parse(idx, keypress, data, status_msg);
-   }
+	if (keypress == KEY_ENTER || keypress == 10)
+	{
+		// User selected an agent. Let's loop on the sub-menu
+		while(rtv == UI_CB_RTV_CONTINUE )
+		{
+			keypress = ui_menu_listing(agent->eid.name,
+					agent_submenu_list, ARRAY_SIZE(agent_submenu_list),
+					NULL, 0,
+					"F1 or 'e' to cancel. Arrow keys to navigate and enter to select. (x) indicates key that can be pressed directly from agent listing (parent) menu to perform this action.",
+					NULL,
+					UI_OPT_AUTO_LABEL | UI_OPT_ENTER_SEL);
+			rtv = ui_print_agents_cb_parse(idx, keypress, data, status_msg);
+		}
+	}
+	else
+	{
+		return ui_print_agents_cb_parse(idx, keypress, data, status_msg);
+	}
 #else
-   while(rtv == UI_CB_RTV_CONTINUE)
-   {
-         keypress = ui_menu_listing(agent->eid.name,
-                                    agent_submenu_list, ARRAY_SIZE(agent_submenu_list),
-                                    NULL, 0,
-                                    NULL,
-                                    NULL,
-                                    UI_OPT_AUTO_LABEL | UI_OPT_ENTER_SEL);
-      rtv = ui_print_agents_cb_parse(idx, keypress, data, status_msg);
-   }
+	while(rtv == UI_CB_RTV_CONTINUE)
+	{
+		keypress = ui_menu_listing(agent->eid.name,
+				agent_submenu_list, ARRAY_SIZE(agent_submenu_list),
+				NULL, 0,
+				NULL,
+				NULL,
+				UI_OPT_AUTO_LABEL | UI_OPT_ENTER_SEL);
+		rtv = ui_print_agents_cb_parse(idx, keypress, data, status_msg);
+	}
 #endif
-   return rtv;
+	return rtv;
 }
 
 static int ui_print_agents_cb_parse(int idx, int keypress, void* data, char* status_msg) {
-   int choice;
-   int rtv = UI_CB_RTV_CONTINUE;
-   agent_t *agent = (agent_t*)data;
-   char *subtitle = "";
-   char *tmp;
+	int choice;
+	int rtv = UI_CB_RTV_CONTINUE;
+	agent_t *agent = (agent_t*)data;
+	char *subtitle = "";
+	char *tmp;
 
-    /* Parameter intentionally unused. */
-    (void)idx;
+	/* Parameter intentionally unused. */
+	(void)idx;
 
-   switch(keypress)
-   {
-   case 'e':
-   case 'E':
-   case -1:
-      return UI_CB_RTV_ERR; // Exit Listing
-   case 'd':
-   case 'D':
-   case 0:
-      choice = ui_prompt("Delete selected agent?", "Yes", "No", NULL);
-      if (choice == 0)
-      {
-         ui_deregister_agent(agent);
-         return UI_CB_RTV_ERR; // Exit from parent menu to force agent listing to be refreshed.
-      }
-      break;
-   case 'b':
-   case 'B':
-   case 1:
-      choice = ui_build_control(agent);
-      if (status_msg != NULL)
-      {
-         if (choice == 1)
-         {
-            sprintf(status_msg, "Succcessfully built & sent control to '%s'", agent->eid.name);
-         }
-         else
-         {
-            sprintf(status_msg, "Build Control aborted or transmission to '%s' failed", agent->eid.name);
-         }
-         return UI_CB_RTV_STATUS;
-      }
-      break;
-   case 'r':
-   case 'R':
-   case 2:
-      ui_send_raw(agent,0);
-      break;
-   case 'f':
-   case 'F':
-   case 3:
-      ui_send_file(agent,0);
-      break;
-   case 'p':
-   case 'P':
-   case 4:
-      ui_print_report_set(agent);
-      break;
-   case 't':
-   case 5:
-      ui_print_table_set(agent);
-      break;
-   case 'w':
-   case 'W':
-   case 6:
-      tmp = ui_input_string("Enter file name");
-      if (tmp)
-      {
-         // Redirect the next display page to a file
-         ui_display_to_file(tmp);
-         SRELEASE(tmp);
+	switch(keypress)
+	{
+	case 'e':
+	case 'E':
+	case -1:
+		return UI_CB_RTV_ERR; // Exit Listing
+	case 'd':
+	case 'D':
+	case 0:
+		choice = ui_prompt("Delete selected agent?", "Yes", "No", NULL);
+		if (choice == 0)
+		{
+			ui_deregister_agent(agent);
+			return UI_CB_RTV_ERR; // Exit from parent menu to force agent listing to be refreshed.
+		}
+		break;
+	case 'b':
+	case 'B':
+	case 1:
+		choice = ui_build_control(agent);
+		if (status_msg != NULL)
+		{
+			if (choice == 1)
+			{
+				sprintf(status_msg, "Succcessfully built & sent control to '%s'", agent->eid.name);
+			}
+			else
+			{
+				sprintf(status_msg, "Build Control aborted or transmission to '%s' failed", agent->eid.name);
+			}
+			return UI_CB_RTV_STATUS;
+		}
+		break;
+	case 'r':
+	case 'R':
+	case 2:
+		ui_send_raw(agent, 0);
+		break;
+	case 'f':
+	case 'F':
+	case 3:
+		ui_send_file(agent, 0);
+		break;
+	case 'p':
+	case 'P':
+	case 4:
+		ui_print_report_set(agent);
+		break;
+	case 't':
+	case 5:
+		ui_print_table_set(agent);
+		break;
+	case 'w':
+	case 'W':
+	case 6:
+		tmp = ui_input_string("Enter file name");
+		if (tmp)
+		{
+			// Redirect the next display page to a file
+			ui_display_to_file(tmp);
+			SRELEASE(tmp);
 
-         // Print reports. ui_display_exec() will automatically close the file
-         ui_print_report_set(agent);
-      }
-      break;
-   case 'c':
-   case 'C':
-   case 7:
-      // clear agent reports
-      choice = ui_prompt("Clear reports for this agent?", "Yes", "No", NULL);
-      if (choice == 0)
-      {
-         ui_clear_reports(agent);
-         return UI_CB_RTV_ERR; // Return from parent to force update of report counts in display
-      }
-      break;
-   case 'T':
-   case 8:
-      // clear agent tables
-      choice = ui_prompt("Clear tables for this agent?", "Yes", "No", NULL);
-      if (choice == 0)
-      {
-         ui_clear_tables(agent);
-         return UI_CB_RTV_ERR; // Return from parent to force update of report counts in display
-      }
-      break;
-   }
+			// Print reports. ui_display_exec() will automatically close the file
+			ui_print_report_set(agent);
+		}
+		break;
+	case 'c':
+	case 'C':
+	case 7:
+		// clear agent reports
+		choice = ui_prompt("Clear reports for this agent?", "Yes", "No", NULL);
+		if (choice == 0)
+		{
+			ui_clear_reports(agent);
+			return UI_CB_RTV_ERR; // Return from parent to force update of report counts in display
+		}
+		break;
+	case 'T':
+	case 8:
+		// clear agent tables
+		choice = ui_prompt("Clear tables for this agent?", "Yes", "No", NULL);
+		if (choice == 0)
+		{
+			ui_clear_tables(agent);
+			return UI_CB_RTV_ERR; // Return from parent to force update of report counts in display
+		}
+		break;
+	}
 
-   // Default behavior is to return 0, indicating parent menu should continue on.
-   return UI_CB_RTV_CONTINUE;
+	// Default behavior is to return 0, indicating parent menu should continue on.
+	return UI_CB_RTV_CONTINUE;
 }
 
 int ui_print_agents(void)
 {
-  vecit_t it;
-  int i = 0, tmp, tmp2;
-  int num_agents = vec_num_entries(gMgrDB.agents);
-  agent_t * agent = NULL;
-  ui_menu_list_t* list;
-  char status_msg[80] = "";
+	vecit_t it;
+	int i = 0, tmp, tmp2;
+	int num_agents = vec_num_entries(gMgrDB.agents);
+	agent_t * agent = NULL;
+	ui_menu_list_t* list;
+	char status_msg[80] = "";
 
-  if(num_agents == 0)
-  {
-	  printf("[None]\n");
-	  return 0;
-  }
+	if (num_agents == 0)
+	{
+		printf("[None]\n");
+		return 0;
+	}
 
-  list = calloc(num_agents, sizeof(ui_menu_list_t) );
+	list = calloc(num_agents, sizeof(ui_menu_list_t) );
 
-  for(it = vecit_first(&(gMgrDB.agents)); vecit_valid(it); it = vecit_next(it))
-  {
-	  agent = (agent_t *) vecit_data(it);
-      list[i].name = agent->eid.name;
+	for(it = vecit_first(&(gMgrDB.agents)); vecit_valid(it); it = vecit_next(it))
+	{
+		agent = (agent_t *) vecit_data(it);
+		list[i].name = agent->eid.name;
 
-      tmp = vec_num_entries(agent->rpts);
-      tmp2 = vec_num_entries(agent->tbls);
-      if (tmp > 0)
-      {
-         list[i].description = malloc(32);
-         snprintf(list[i].description, 32, "%d reports & %d tables", tmp, tmp2);
-      }
-      else
-      {
-         // Nothing to describe except number of reports
-         list[i].description = NULL;
-      }
+		tmp = vec_num_entries(agent->rpts);
+		tmp2 = vec_num_entries(agent->tbls);
+		if (tmp > 0)
+		{
+			list[i].description = malloc(32);
+			snprintf(list[i].description, 32, "%d reports & %d tables", tmp, tmp2);
+		}
+		else
+		{
+			// Nothing to describe except number of reports
+			list[i].description = NULL;
+		}
 
-      
-      list[i].data = (void*)agent;
-      i++;
-  }
 
-  ui_menu_listing("Known Agents", list, num_agents, status_msg, 0,
+		list[i].data = (void*)agent;
+		i++;
+	}
+
+	ui_menu_listing("Known Agents", list, num_agents, status_msg, 0,
 #ifdef USE_NCURSES
-                  "F1 to exit, Enter for Agent actions menu & additional usage informationo",
+			"F1 to exit, Enter for Agent actions menu & additional usage informationo",
 #else
-                  NULL,
+			NULL,
 #endif
-                  ui_print_agents_cb_fn,
-                  UI_OPT_AUTO_LABEL);
-  
-  for(i = 0; i < num_agents; i++)
-  {
-     if (list[i].description != NULL)
-     {
-        free(list[i].description);
-     }
-  }
-  
-  free(list);
-  return num_agents;
+			ui_print_agents_cb_fn,
+			UI_OPT_AUTO_LABEL);
+
+	for(i = 0; i < num_agents; i++)
+	{
+		if (list[i].description != NULL)
+		{
+			free(list[i].description);
+		}
+	}
+
+	free(list);
+	return num_agents;
 }
 
 void ui_fprint_table(ui_print_cfg_t *fd, tbl_t *tbl)
 {
 
-  /* Step 1: Print the table name */
-  char *tbl_name = ui_str_from_ari(tbl->id, NULL, 0);
-  ui_fprintf(fd, "\nTable Name: %s \n", (tbl_name == NULL) ? "Unknown" : tbl_name);
-  SRELEASE(tbl_name);
+	/* Step 1: Print the table name */
+	char *tbl_name = ui_str_from_ari(tbl->id, NULL, 0);
+	ui_fprintf(fd, "\nTable Name: %s \n", (tbl_name == NULL) ? "Unknown" : tbl_name);
+	SRELEASE(tbl_name);
 
-  /* Step 2: Print table contents */
-  char *tmp = ui_str_from_tbl(tbl);
-   if (tmp != NULL) {
-      ui_fprintf(fd,"%s\n", tmp);
-      SRELEASE(tmp);
-   }
-   else
-   {
-      ui_fprintf(fd, "***ERROR: Unable to prepare Table for output\n");
-   }
+	/* Step 2: Print table contents */
+	char *tmp = ui_str_from_tbl(tbl);
+	if (tmp != NULL) {
+		ui_fprintf(fd,"%s\n", tmp);
+		SRELEASE(tmp);
+	}
+	else
+	{
+		ui_fprintf(fd, "***ERROR: Unable to prepare Table for output\n");
+	}
 }
 
 void ui_fprint_report(ui_print_cfg_t *fd, rpt_t *rpt)
@@ -306,38 +306,38 @@ void ui_fprint_report(ui_print_cfg_t *fd, rpt_t *rpt)
 	 *         name.
 	 */
 	rpt_info = rhht_retrieve_key(&(gMgrDB.metadata), rpt->id);
-    num_entries = tnvc_get_count(rpt->entries);
+	num_entries = tnvc_get_count(rpt->entries);
 
-    ui_fprintf(fd,"\n----------------------------------------");
-    ui_fprintf(fd,"\n             AMP DATA REPORT            ");
-    ui_fprintf(fd,"\n----------------------------------------");
-    ui_fprintf(fd,"\nSent to   : %s", rpt->recipient.name);
+	ui_fprintf(fd,"\n----------------------------------------");
+	ui_fprintf(fd,"\n             AMP DATA REPORT            ");
+	ui_fprintf(fd,"\n----------------------------------------");
+	ui_fprintf(fd,"\nSent to   : %s", rpt->recipient.name);
 
-    if(rpt_info == NULL)
-    {
-    	char *rpt_str = ui_str_from_ari(rpt->id, NULL, 0);
-        ui_fprintf(fd,"\nRpt Name  : %s", (rpt_str == NULL) ? "Unknown" : rpt_str);
-        SRELEASE(rpt_str);
-    }
-    else
-    {
-    	if(vec_num_entries(rpt->id->as_reg.parms.values) > 0)
-    	{
-    		char *parm_str = ui_str_from_tnvc(&(rpt->id->as_reg.parms));
-    		ui_fprintf(fd,"\nRpt Name  : %s(%s)", rpt_info->name, (parm_str == NULL) ? "" : parm_str);
-    		SRELEASE(parm_str);
-    	}
-    	else
-    	{
-    		ui_fprintf(fd,"\nRpt Name  : %s", rpt_info->name);
-    	}
-    }
-    ui_fprintf(fd,"\nTimestamp : %s", ctime(&(rpt->time)));
-    ui_fprintf(fd,"\n# Entries : %d", num_entries);
-    ui_fprintf(fd,"\n----------------------------------------\n");
+	if(rpt_info == NULL)
+	{
+		char *rpt_str = ui_str_from_ari(rpt->id, NULL, 0);
+		ui_fprintf(fd,"\nRpt Name  : %s", (rpt_str == NULL) ? "Unknown" : rpt_str);
+		SRELEASE(rpt_str);
+	}
+	else
+	{
+		if(vec_num_entries(rpt->id->as_reg.parms.values) > 0)
+		{
+			char *parm_str = ui_str_from_tnvc(&(rpt->id->as_reg.parms));
+			ui_fprintf(fd,"\nRpt Name  : %s(%s)", rpt_info->name, (parm_str == NULL) ? "" : parm_str);
+			SRELEASE(parm_str);
+		}
+		else
+		{
+			ui_fprintf(fd,"\nRpt Name  : %s", rpt_info->name);
+		}
+	}
+	ui_fprintf(fd,"\nTimestamp : %s", ctime(&(rpt->time)));
+	ui_fprintf(fd,"\n# Entries : %d", num_entries);
+	ui_fprintf(fd,"\n----------------------------------------\n");
 
 
-    /* Step 2: Print individual entries, based on type. */
+	/* Step 2: Print individual entries, based on type. */
 
 	if(rpt->id->type == AMP_TYPE_RPTTPL)
 	{
@@ -347,9 +347,9 @@ void ui_fprint_report(ui_print_cfg_t *fd, rpt_t *rpt)
 		if((tpl != NULL) && (ac_get_count(&(tpl->contents)) != num_entries))
 		{
 			AMP_DEBUG_ERR("ui_print_report",
-					      "Template mismatch. Expected %d entries but have %d. Not using template.",
-						  ac_get_count(&(tpl->contents)),
-						  num_entries);
+					"Template mismatch. Expected %d entries but have %d. Not using template.",
+					ac_get_count(&(tpl->contents)),
+					num_entries);
 			tpl = NULL;
 		}
 
@@ -379,14 +379,14 @@ void ui_fprint_report(ui_print_cfg_t *fd, rpt_t *rpt)
 
 				if(parm_str != NULL)
 				{
-                   if(snprintf(name, sizeof(name),"%s(%s)", entry_info->name, parm_str) < 0) {
-                      snprintf(name, sizeof(name), "%s(.)", entry_info->name);
-                   }
+					if(snprintf(name, sizeof(name),"%s(%s)", entry_info->name, parm_str) < 0) {
+						snprintf(name, sizeof(name), "%s(.)", entry_info->name);
+					}
 					SRELEASE(parm_str);
 				}
 				else
 				{
-                   strncpy(name, entry_info->name, sizeof(name));
+					strncpy(name, entry_info->name, sizeof(name));
 				}
 			}
 
@@ -406,7 +406,7 @@ void ui_fprint_report(ui_print_cfg_t *fd, rpt_t *rpt)
 			if(val->type == AMP_TYPE_TBL)
 			{
 				tbl = (tbl_t *) val->value.as_ptr;
-                ui_fprint_table(fd, tbl);
+				ui_fprint_table(fd, tbl);
 			}
 		}
 	}
@@ -429,7 +429,7 @@ void ui_fprint_report(ui_print_cfg_t *fd, rpt_t *rpt)
 
 
 	/* Step 3: Print report trailer. */
-    ui_fprintf(fd,"\n----------------------------------------\n\n");
+	ui_fprintf(fd,"\n----------------------------------------\n\n");
 }
 
 static void ui_print_report_entry(ui_print_cfg_t *fd, char *name, tnv_t *val)
@@ -469,68 +469,68 @@ static void ui_print_report_entry(ui_print_cfg_t *fd, char *name, tnv_t *val)
  *****************************************************************************/
 void ui_print_report_set(agent_t* agent)
 {
-   rpt_t *cur_report = NULL;
-   vecit_t rpt_it;
-   int num_rpts;
-   char title[40];
+	rpt_t *cur_report = NULL;
+	vecit_t rpt_it;
+	int num_rpts;
+	char title[40];
 
-   if(agent == NULL)
-   {
-	   return;
-   }
+	if(agent == NULL)
+	{
+		return;
+	}
 
-   num_rpts = vec_num_entries(agent->rpts);
+	num_rpts = vec_num_entries(agent->rpts);
 
-   snprintf(title, 39, "Agent Reports for %s", agent->eid.name);
-   ui_display_init(title);
+	snprintf(title, 39, "Agent Reports for %s", agent->eid.name);
+	ui_display_init(title);
 
-   if (num_rpts == 0)
-   {
-      ui_printf("No reports received from this agent");
-      AMP_DEBUG_ALWAYS("ui_print_reports","[No reports received from this agent.]", NULL);
-      ui_display_exec();
-      return;
-   }
+	if (num_rpts == 0)
+	{
+		ui_printf("No reports received from this agent");
+		AMP_DEBUG_ALWAYS("ui_print_reports","[No reports received from this agent.]", NULL);
+		ui_display_exec();
+		return;
+	}
 
-   /* Iterate through all reports for this agent. */
-   for(rpt_it = vecit_first(&(agent->rpts)); vecit_valid(rpt_it); rpt_it = vecit_next(rpt_it))
-   {
-      ui_print_report((rpt_t*)vecit_data(rpt_it));
-   }
-   ui_display_exec();
+	/* Iterate through all reports for this agent. */
+	for(rpt_it = vecit_first(&(agent->rpts)); vecit_valid(rpt_it); rpt_it = vecit_next(rpt_it))
+	{
+		ui_print_report((rpt_t*)vecit_data(rpt_it));
+	}
+	ui_display_exec();
 }
 
 void ui_print_table_set(agent_t* agent)
 {
-   tbl_t *cur_report = NULL;
-   vecit_t tbl_it;
-   int num_tbls;
-   char title[40];
+	tbl_t *cur_report = NULL;
+	vecit_t tbl_it;
+	int num_tbls;
+	char title[40];
 
-   if(agent == NULL)
-   {
-	   return;
-   }
+	if(agent == NULL)
+	{
+		return;
+	}
 
-   num_tbls = vec_num_entries(agent->tbls);
+	num_tbls = vec_num_entries(agent->tbls);
 
-   snprintf(title, 39, "Agent Tables for %s", agent->eid.name);
-   ui_display_init(title);
+	snprintf(title, 39, "Agent Tables for %s", agent->eid.name);
+	ui_display_init(title);
 
-   if (num_tbls == 0)
-   {
-      ui_printf("No tables received from this agent");
-      AMP_DEBUG_ALWAYS("ui_print_tables","[No tables received from this agent.]", NULL);
-      ui_display_exec();
-      return;
-   }
+	if (num_tbls == 0)
+	{
+		ui_printf("No tables received from this agent");
+		AMP_DEBUG_ALWAYS("ui_print_tables","[No tables received from this agent.]", NULL);
+		ui_display_exec();
+		return;
+	}
 
-   /* Iterate through all reports for this agent. */
-   for(tbl_it = vecit_first(&(agent->tbls)); vecit_valid(tbl_it); tbl_it = vecit_next(tbl_it))
-   {
-      ui_print_table((tbl_t*)vecit_data(tbl_it));
-   }
-   ui_display_exec();
+	/* Iterate through all reports for this agent. */
+	for(tbl_it = vecit_first(&(agent->tbls)); vecit_valid(tbl_it); tbl_it = vecit_next(tbl_it))
+	{
+		ui_print_table((tbl_t*)vecit_data(tbl_it));
+	}
+	ui_display_exec();
 
 }
 
@@ -676,31 +676,31 @@ char *ui_str_from_fp(metadata_t *meta)
 	char *str = STAKE(1024);
 	CHKNULL(str);
 
-    vecit_t itp;
-    int j = 0;
+	vecit_t itp;
+	int j = 0;
 
-    strcat(str, "(");
+	strcat(str, "(");
 
-    for(j=0, itp = vecit_first(&(meta->parmspec)); vecit_valid(itp); itp = vecit_next(itp), j++)
-    {
-    	meta_fp_t *parm = (meta_fp_t *) vecit_data(itp);
-    	if(j != 0)
-    	{
-    		strcat(str, ",");
-    	}
-    	if(parm == NULL)
-    	{
-    		strcat(str, "? ?");
-    	}
-    	else
-    	{
-    		strcat(str, type_to_str(parm->type));
-    		strcat(str, " ");
-    		strcat(str, parm->name);
-    	}
-    }
+	for(j=0, itp = vecit_first(&(meta->parmspec)); vecit_valid(itp); itp = vecit_next(itp), j++)
+	{
+		meta_fp_t *parm = (meta_fp_t *) vecit_data(itp);
+		if(j != 0)
+		{
+			strcat(str, ",");
+		}
+		if(parm == NULL)
+		{
+			strcat(str, "? ?");
+		}
+		else
+		{
+			strcat(str, type_to_str(parm->type));
+			strcat(str, " ");
+			strcat(str, parm->name);
+		}
+	}
 
-    strcat(str, ")");
+	strcat(str, ")");
 
 	return str;
 }
@@ -910,9 +910,9 @@ char *ui_str_from_tbr(rule_t *tbr)
 				UVAST_FIELDSPEC ", A=%s\n",
 				(id_str == NULL) ? "null" :id_str,
 				tbr->start,
-			    tbr->def.as_tbr.period,
-			    tbr->def.as_tbr.max_fire,
-		        (ac_str == NULL) ? "null" : ac_str);
+				tbr->def.as_tbr.period,
+				tbr->def.as_tbr.max_fire,
+				(ac_str == NULL) ? "null" : ac_str);
 
 		SRELEASE(id_str);
 		SRELEASE(ac_str);
@@ -1018,8 +1018,3 @@ char *ui_str_from_var(var_t *var)
 {
 	return ui_str_from_tnv(var->value);
 }
-
-
-
-
-

@@ -7,9 +7,9 @@ smrbt - shared-memory red-black tree management library
     #include "smrbt.h"
 
     typedef int (*SmRbtCompareFn)
-	(PsmPartition partition, PsmAddress nodeData, void *dataBuffer);
+        (PsmPartition partition, PsmAddress nodeData, void *dataBuffer);
     typedef void (*SmRbtDeleteFn)
-	(PsmPartition partition, PsmAddress nodeData, void *argument);
+        (PsmPartition partition, PsmAddress nodeData, void *argument);
 
     [see description for available functions]
 
@@ -21,7 +21,7 @@ smrbt uses two types of objects, I<rbt> objects and
 I<node> objects; as these objects are stored in
 shared memory which is managed by psm(3), pointers to these
 objects are carried as PsmAddress values.  An rbt knows how
-many nodes it contains and what its root node is.  
+many nodes it contains and what its root node is.
 An node knows what rbt it belongs to and which nodes are its
 parent and (up to 2) children.
 A node also knows its content, which is normally the PsmAddress of some
@@ -44,7 +44,7 @@ function in platform(3).
 =item int sm_rbt_clear(PsmPartition partition, PsmAddress rbt,
 SmRbtDeleteFn delete, void *argument)
 
-Frees every node of the rbt, leaving the rbt empty.  If the I<delete> function 
+Frees every node of the rbt, leaving the rbt empty.  If the I<delete> function
 is non-NULL, that function is called once for each freed node; when
 called, that function is passed the PsmAddress that is the node's data
 and the I<argument> pointer passed to sm_rbt_clear().  Returns 0 on success,
@@ -130,7 +130,7 @@ Return the PsmAddress of the first/last node in I<rbt>, or 0 on any error.
 Return the PsmAddress of the node following/preceding I<node> in
 that node's rbt, or 0 on any error.
 
-B<NOTE> that the red-black tree node insertion and deletion functions 
+B<NOTE> that the red-black tree node insertion and deletion functions
 B<WILL MOVE NODES WITHIN THE TREE>.
 This is important: do not apply updates (no insertions, and especially no
 deletions) while you are traversing a red-black tree sequentially, using
@@ -203,12 +203,12 @@ normally compares some key values of the two data items and returns 0 if
 they are equal, an integer less than 0 if I<node>'s key value is less
 than that of I<dataBuffer>, and an integer greater than 0 if I<node>'s
 key value is greater than that of I<dataBuffer>.  These return values
-will produce an rbt in ascending order.  
+will produce an rbt in ascending order.
 
 When deleting an node or destroying a rbt, the user may
 optionally provide a delete function of the form:
 
-    void user_delete_name(PsmPartition partition, PsmAddress node, 
+    void user_delete_name(PsmPartition partition, PsmAddress node,
                           void *argData)
 
 When provided, this function is automatically called by the smrbt function

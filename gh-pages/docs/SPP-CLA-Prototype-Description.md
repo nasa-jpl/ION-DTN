@@ -47,7 +47,7 @@ __NOTE__: additional configuration and service limitations for an SPP provider i
 - **SPP CLA will access the SPP-UCP** (a simple python-based space packet library wrapped in a c-function prototype) transmit and receive.
 - **SPP-UCP is under development** as open source repo (currently private) under nasa-jpl as emulation for testing.
 - **NOTE:** Each instance of SPP-UCP library will be built via unique IP/port assignments made at the time of library build. To facilitate a bidirectional connection, each instance will need to be separately compiled with its specific IP/port configuration.
-  
+
 ### Communication Flow:
 - **spp formatting via CCSDS request primitive** → **spp parsing via CCSDS indication primitive**
 - Communication between SPP-UCP instances happens over UDP sockets
@@ -98,9 +98,9 @@ __NOTE__: additional configuration and service limitations for an SPP provider i
 
 ### Configuration via bpadmin and ipnadmin
   - Add `protocol`, `induct` and `outduct` via `bpadmin`
-  - duct name will be the node number of 
+  - duct name will be the node number of
   - Add egress plan via `ipnadmin`
-  - 
+  -
 
 ### Compatibility Concerns
 - Embedded RTOS compatibility might be limited, i.e, FREE-RTOS does not support dlopen. Custom embedded Linux systems built using Yocto or Buildroot should be supported.

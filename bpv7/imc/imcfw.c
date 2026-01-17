@@ -1026,13 +1026,13 @@ puts("received from unknown node");
 					 *	it was either received
 					 *	via loopback, in which
 					 *	case no need to relay
-				 	*	(self can't be on
-					*	CGR path to any other
-					*	node) or received
-				 	*	from some other node,
-					*	in which case relaying
-					*	would introduce a
-					*	routing loop.		*/
+					 *	(self can't be on
+					 *	CGR path to any other
+					 *	node) or received
+					 *	from some other node,
+					 *	in which case relaying
+					 *	would introduce a
+					 *	routing loop.		*/
 #if IMCDEBUG
 puts("destroying bundle to prevent routing loop");
 #endif

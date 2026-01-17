@@ -25,12 +25,12 @@ int main(int argc, char **argv)
 	char rxContent[sizeof(testLine)];
 
 	/* Start ION */
-	ionstart_default_config("loopback-stcp/loopback.ionrc", 
-			 NULL,
-			 NULL,
-			 "loopback-stcp/loopback.bprc",
-			 "loopback-stcp/loopback.ipnrc",
-			 NULL);
+	ionstart_default_config("loopback-stcp/loopback.ionrc",
+			NULL,
+			NULL,
+			"loopback-stcp/loopback.bprc",
+			"loopback-stcp/loopback.ipnrc",
+			NULL);
 
 	/* Attach to ION */
 	fail_unless(bp_attach() >= 0);
@@ -54,7 +54,7 @@ int main(int argc, char **argv)
 	rxContentLength = zco_source_data_length(sdr, rxDlv.adu);
 	fail_unless(rxContentLength == sizeof(testLine) - 1);
 	zco_start_receiving(rxDlv.adu, &rxReader);
-	rxLen = zco_receive_source(sdr, &rxReader, rxContentLength, 
+	rxLen = zco_receive_source(sdr, &rxReader, rxContentLength,
 		rxContent);
 	fail_unless(rxLen == rxContentLength);
 	fail_unless(sdr_end_xn(sdr) >= 0);

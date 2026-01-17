@@ -16,14 +16,14 @@ theme:
   palette:
     - scheme: default
       toggle:
-        icon: material/toggle-switch-off-outline 
+        icon: material/toggle-switch-off-outline
         name: Switch to dark mode
       primary: blue
-      accent: purple 
-    - scheme: slate 
+      accent: purple
+    - scheme: slate
       toggle:
         icon: material/toggle-switch
-        name: Switch to light mode    
+        name: Switch to light mode
       primary: blue
       accent: lime
 
@@ -50,7 +50,7 @@ markdown_extensions:
 
 
 copyright:
-  Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.  
+  Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.
 
 nav:
   - ION Overview:
@@ -117,5 +117,3 @@ nav:
     - LTP and TCP on Azure: community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure.md
     - Multicast: community/dtn-multicasting-main/Multicasting-over-ION.md
     - Video Intelligence: community/dtn-video-intelligence-main/Video-Intelligence.md
-
-      

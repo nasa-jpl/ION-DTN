@@ -19,7 +19,7 @@ static void	handleQuit(int signum)
 {
 	/* Tell the compiler that we are not using 'signum' */
 	(void)signum;
-	
+
 	dgr2file_stopped = 1;
 	dgr_interrupt(dgr2file_dgr);
 }

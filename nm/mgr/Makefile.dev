@@ -1,6 +1,6 @@
-SOURCES = ../shared/adm/*.c ../shared/msg/*.c ../shared/utils/*.c ../shared/primitives/*.c ./*.c 
+SOURCES = ../shared/adm/*.c ../shared/msg/*.c ../shared/utils/*.c ../shared/primitives/*.c ./*.c
 IONDIR = ../../
-OPTS = -Wno-write-strings -g 
+OPTS = -Wno-write-strings -g
 
 all:with-db
 
@@ -18,7 +18,7 @@ without-db:
 	-L/usr/local/lib \
 	-lbp -lici -lltp \
 	-DMAXPATHLEN=2048 \
-	-c ${SOURCES} 
+	-c ${SOURCES}
 
 	gcc -o nm_mgr *.o -lltp -lbp -lici -lpthread
 
@@ -39,9 +39,6 @@ with-db:
 	-lbp -lici -lltp -lmysqlclient \
 	-DMAXPATHLEN=2048 \
 	-DHAVE_MYSQL=1 \
-	-c ${SOURCES} 
+	-c ${SOURCES}
 
 	gcc -o nm_mgr *.o -lltp -lbp -lici -lmysqlclient -lpthread
-
-
-

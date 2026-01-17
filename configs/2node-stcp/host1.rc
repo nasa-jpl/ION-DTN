@@ -3,7 +3,7 @@
 ## Run the following command to start ION node:
 ##	% ionstart -I "host1.rc"
 
-## begin ionadmin 
+## begin ionadmin
 # ionrc configuration file for host1 in a 2node stcp test.
 #	This uses stcp as the primary convergence layer.
 #	command: % ionadmin host1.ionrc
@@ -11,10 +11,10 @@
 #
 #	Ohio University, Oct 2008
 
-# Initialization command (command 1). 
+# Initialization command (command 1).
 #	Set this node to be node 1 (as in ipn:1).
 #	Use default sdr configuration (empty configuration file name '').
-1 1 '' 
+1 1 ''
 
 # start ion node
 s
@@ -49,9 +49,9 @@ a range +1 +3600 2 1 1
 # set this node to consume and produce a mean of 1000000 bytes/second.
 m production 1000000
 m consumption 1000000
-## end ionadmin 
+## end ionadmin
 
-## begin bpadmin 
+## begin bpadmin
 # bprc configuration file for host1 in a 2node test.
 #	Command: % bpadmin host1.bprc
 #	This command should be run AFTER ionadmin and BEFORE ipnadmin
@@ -88,7 +88,7 @@ a endpoint ipn 1.0 x
 a endpoint ipn 1.1 x
 a endpoint ipn 1.2 x
 
-# Add a protocol. 
+# Add a protocol.
 #	Add the protocol named stcp.
 #	Estimate transmission capacity assuming 1400 bytes of each frame (in
 #	this case, tcp on ethernet) for payload, and 100 bytes for overhead.
@@ -116,9 +116,9 @@ a outduct stcp 10.1.1.1:4556 stcpclo
 #	The outduct itself is implemented by the 'stcpclo' command.
 a outduct stcp 10.1.1.2:4556 stcpclo
 
-## end bpadmin 
+## end bpadmin
 
-## begin ipnadmin 
+## begin ipnadmin
 # ipnrc configuration file for host1 in the 2node stcp network.
 #	Essentially, this is the IPN scheme's routing table.
 #	Command: % ipnadmin host1.ipnrc
@@ -150,4 +150,4 @@ a plan 1 host1 x stcp/10.1.1.1:4556
 #	the outduct identified as '10.1.1.2:4556'
 #	See your bprc file or bpadmin for outducts/protocols you can use.
 a plan 2 host2 x stcp/10.1.1.2:4556
-## end ipnadmin 
+## end ipnadmin

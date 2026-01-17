@@ -7,7 +7,7 @@
  *	Copyright (c) 2013, California Institute of Technology.
  *	Copyright (c) 2013, Space Internetworking Center,
  *	Democritus University of Thrace.
- *	
+ *
  *	All rights reserved. U.S. Government and E.U. Sponsorship acknowledged.
  *
  */
@@ -48,7 +48,7 @@ extern int	bssp_send(uvast destinationEngineId,
 			BsspSessionId *sessionId);
 
 		/*	clientServiceData must be a "zero-copy object"
-	 	 *	reference as returned by ionCreateZco().  Note
+		 *	reference as returned by ionCreateZco().  Note
 		 *	that BSSP will privately make and destroy its
 		 *	own reference to the client service data; the
 		 *	application is free to destroy its reference
@@ -62,7 +62,7 @@ extern int	bssp_send(uvast destinationEngineId,
 		 *	be transmitted using the "reliable" channel),
 		 *	1 if yes (meaning that the item must be
 		 *	transmitted using the "best-efforts" channel).
-	         */
+		 */
 
 /*	*	*	BSSP data reception	*	*	*	*/
 
@@ -87,8 +87,8 @@ extern int	bssp_get_notice(unsigned int clientId,
 		 *	in "zco.h" to retrieve the content of that
 		 *	object.
 		 *
-		 *	When the notice is a BsspRecvSuccess, the ZCO 
-		 *	returned in *data contains the content of a 
+		 *	When the notice is a BsspRecvSuccess, the ZCO
+		 *	returned in *data contains the content of a
 		 *	single BSSP block.
 		 *
 		 *	The cancellation of an export session results

@@ -10,13 +10,13 @@
 
 #Check for the test binary (skips if not present)
 if ! [ -e ./checksemaphores ]; then
-	echo
-	echo "The checksemaphores test program is not present!"
-	sleep 1 # delay for user feedback
-	echo ">>> Please run 'make test' to build test binaries <<<"
-	echo
-	sleep 1 # delay for user feedback
-	exit 2
+    echo
+    echo "The checksemaphores test program is not present!"
+    sleep 1 # delay for user feedback
+    echo ">>> Please run 'make test' to build test binaries <<<"
+    echo
+    sleep 1 # delay for user feedback
+    exit 2
 fi
 
 OS=$1
@@ -26,39 +26,39 @@ echo
 # TODO Might need to check shared resources differently on each platform, either
 #      due to different formatting of ipcs output or different utility entirely
 function getSharedResources() {
-	memory_lines=()
-	semaphore_lines=()
+    memory_lines=()
+    semaphore_lines=()
 
-	if [ "$OS" == "linux" ]; then
+    if [ "$OS" == "linux" ]; then
 
-		ipcs > ipcs.txt
+        ipcs > ipcs.txt
 
-		local section=""
-		while IFS="" read -r line || [ -n "$line" ]; do
-			if [[ -n $(echo $line | grep "Shared Memory Segments") ]]; then
-				section="memory"
-				read -r # Skip column header line
-			elif [[ -n $(echo "$line" | grep "Semaphore Arrays") ]]; then
-				section="semaphore"
-				read -r # Skip column header line
-			elif [[ -n $(echo "$line" | grep "\-\-\-\-\-\-") ]]; then
-				section=""
-			elif [[ -n ${line//[ \t]/} ]]; then
-				if [[ $section == "memory" ]]; then
-					memory_lines[${#memory_lines[@]}]=$line
-				elif [[ $section == "semaphore" ]]; then
-					semaphore_lines[${#semaphore_lines[@]}]=$line
-				fi
-			fi
-		done < ipcs.txt
+        local section=""
+        while IFS="" read -r line || [ -n "$line" ]; do
+            if [[ -n $(echo $line | grep "Shared Memory Segments") ]]; then
+                section="memory"
+                read -r # Skip column header line
+            elif [[ -n $(echo "$line" | grep "Semaphore Arrays") ]]; then
+                section="semaphore"
+                read -r # Skip column header line
+            elif [[ -n $(echo "$line" | grep "\-\-\-\-\-\-") ]]; then
+                section=""
+            elif [[ -n ${line//[ \t]/} ]]; then
+                if [[ $section == "memory" ]]; then
+                    memory_lines[${#memory_lines[@]}]=$line
+                elif [[ $section == "semaphore" ]]; then
+                    semaphore_lines[${#semaphore_lines[@]}]=$line
+                fi
+            fi
+        done < ipcs.txt
 
-	elif [ "$OS" == "mac" ]; then
-		# Use another method
-		echo "$0: Unsupported OS: mac"
-	else
-		# Fail outright, or try and probably fail some default method
-		echo "$0: Unsupported OS: $1"
-	fi
+    elif [ "$OS" == "mac" ]; then
+        # Use another method
+        echo "$0: Unsupported OS: mac"
+    else
+        # Fail outright, or try and probably fail some default method
+        echo "$0: Unsupported OS: $1"
+    fi
 }
 
 # Given the name of two arrays of shared resources (memory regions XOR semaphores), produce the set
@@ -66,61 +66,61 @@ function getSharedResources() {
 #	If a resource R exists in the 2nd array that does not exist in the 1st array,
 #	then R will be in the produced "diff" array.
 function diffResourceLists() {
-	local list_before_name=$1['@']
-	local list_after_name=$2['@']
+    local list_before_name=$1['@']
+    local list_after_name=$2['@']
 
-	local list_before=("${!list_before_name}")
-	local list_after=("${!list_after_name}")
+    local list_before=("${!list_before_name}")
+    local list_after=("${!list_after_name}")
 
-	# DEBUG
-	### echo "diffResourceLists(): list_before(${#list_before[@]}) ="
-	### for (( l=0 ; $l < ${#list_before[@]} ; l=$l+1 )); do
-	###		echo ${list_before[$l]}
-	### done
-	### echo
-	### echo "diffResourceLists(): list_after(${#list_after[@]}) ="
-	### for (( l=0 ; $l < ${#list_after[@]} ; l=$l+1 )); do
-	###		echo ${list_after[$l]}
-	### done
-	### echo
+    # DEBUG
+    ### echo "diffResourceLists(): list_before(${#list_before[@]}) ="
+    ### for (( l=0 ; $l < ${#list_before[@]} ; l=$l+1 )); do
+    ###     echo ${list_before[$l]}
+    ### done
+    ### echo
+    ### echo "diffResourceLists(): list_after(${#list_after[@]}) ="
+    ### for (( l=0 ; $l < ${#list_after[@]} ; l=$l+1 )); do
+    ###     echo ${list_after[$l]}
+    ### done
+    ### echo
 
-	resource_list_diff=()
+    resource_list_diff=()
 
-	if [ "$OS" == "linux" ]; then
+    if [ "$OS" == "linux" ]; then
 
-		for (( a=0 ; $a < ${#list_after[@]}; a=$a+1 )); do
-			local found=0
-			for (( b=0 ; $b < ${#list_before[@]}; b=$b+1 )); do
-				local id_after=$(echo ${list_after[$a]} | awk '{ print $2 }')
-				local id_before=$(echo ${list_before[$b]} | awk '{ print $2 }')
-				if [[ "$id_after" == "$id_before" ]]; then
-					found=1
-				fi
-			done
-			if [[ $found -eq 0 ]]; then
-				resource_list_diff[${#resource_list_diff[@]}]=${list_after[$a]}
-			fi
-		done
+        for (( a=0 ; $a < ${#list_after[@]}; a=$a+1 )); do
+            local found=0
+            for (( b=0 ; $b < ${#list_before[@]}; b=$b+1 )); do
+                local id_after=$(echo ${list_after[$a]} | awk '{ print $2 }')
+                local id_before=$(echo ${list_before[$b]} | awk '{ print $2 }')
+                if [[ "$id_after" == "$id_before" ]]; then
+                    found=1
+                fi
+            done
+            if [[ $found -eq 0 ]]; then
+                resource_list_diff[${#resource_list_diff[@]}]=${list_after[$a]}
+            fi
+        done
 
-	elif [ "$OS" == "mac" ]; then
-		# Use another method
-		echo "$0: Unsupported OS: mac"
-	else
-		# Fail outright, or try and probably fail some default method
-		echo "$0: Unsupported OS: $1"
-	fi
+    elif [ "$OS" == "mac" ]; then
+        # Use another method
+        echo "$0: Unsupported OS: mac"
+    else
+        # Fail outright, or try and probably fail some default method
+        echo "$0: Unsupported OS: $1"
+    fi
 }
 
 function printArray() {
-	local array_name=$1['@']
-	local array=("${!array_name}")
+    local array_name=$1['@']
+    local array=("${!array_name}")
 
-	for (( l=0 ; $l < ${#array[@]} ; l=$l+1 )); do
-		echo ${array[$l]}
-	done
-	if [[ ${#array[@]} -eq 0 ]]; then
-		echo "(None)"
-	fi
+    for (( l=0 ; $l < ${#array[@]} ; l=$l+1 )); do
+        echo ${array[$l]}
+    done
+    if [[ ${#array[@]} -eq 0 ]]; then
+        echo "(None)"
+    fi
 }
 
 
@@ -236,9 +236,9 @@ ionexit_retval=$?
 
 echo
 if [[ $ionexit_retval -ne 0 ]]; then
-	echo "ERROR: Unexpected return code ($ionexit_retval) from ionexit (expecting 0)"
-	echo
-	retval=1
+    echo "ERROR: Unexpected return code ($ionexit_retval) from ionexit (expecting 0)"
+    echo
+    retval=1
 fi
 
 # Return from node directory
@@ -276,13 +276,13 @@ diffResourceLists "memory_lines_ion_destroyed" "memory_lines_ion"
 memory_lines_ion_didnt_destroy=("${resource_list_diff[@]}")
 
 if [[    ${#memory_lines_ion_didnt_destroy[@]} -eq 0
-	  && ${#memory_lines_ion_destroyed[@]} -eq ${#memory_lines_ion[@]} ]]; then
-	echo "Success: All ION shared memory regions were destroyed."
-	echo
+      && ${#memory_lines_ion_destroyed[@]} -eq ${#memory_lines_ion[@]} ]]; then
+    echo "Success: All ION shared memory regions were destroyed."
+    echo
 else
-	echo "ERROR: Not all ION shared memory regions were destroyed."
-	echo
-	retval=1
+    echo "ERROR: Not all ION shared memory regions were destroyed."
+    echo
+    retval=1
 fi
 
 echo "Remaining ION shared memory regions (${#memory_lines_ion_didnt_destroy[@]}):"
@@ -308,13 +308,13 @@ diffResourceLists "semaphore_lines_ion_destroyed" "semaphore_lines_ion"
 semaphore_lines_ion_didnt_destroy=("${resource_list_diff[@]}")
 
 if [[    ${#semaphore_lines_ion_didnt_destroy[@]} -eq 0
-	  && ${#semaphore_lines_ion_destroyed[@]} -eq ${#semaphore_lines_ion[@]} ]]; then
-	echo "Success: All ION SVR4 semaphores were destroyed."
-	echo
+      && ${#semaphore_lines_ion_destroyed[@]} -eq ${#semaphore_lines_ion[@]} ]]; then
+    echo "Success: All ION SVR4 semaphores were destroyed."
+    echo
 else
-	echo "ERROR: Not all ION SVR4 semaphores were destroyed."
-	echo
-	retval=1
+    echo "ERROR: Not all ION SVR4 semaphores were destroyed."
+    echo
+    retval=1
 fi
 
 echo "Remaining ION SVR4 semaphores (${#semaphore_lines_ion_didnt_destroy[@]}):"
@@ -329,12 +329,12 @@ echo "Checking if ION POSIX named semaphores no longer exist..."
 checksemaphores_retval=$?
 
 if [[ $checksemaphores_retval -ne 0 ]]; then
-	echo "ERROR: Some POSIX named semaphores still exist after ionexit"
-	echo
-	retval=1
+    echo "ERROR: Some POSIX named semaphores still exist after ionexit"
+    echo
+    retval=1
 else
-	echo "Success: No ION POSIX named semaphores exist after ionexit."
-	echo
+    echo "Success: No ION POSIX named semaphores exist after ionexit."
+    echo
 fi
 
 
@@ -352,14 +352,14 @@ fi
 
 OSNAME=`uname`
 if [ "$OSNAME" = "SunOS" ]; then
-	PS="/usr/bin/ps"
-	PS_ARGS="-fe"
+    PS="/usr/bin/ps"
+    PS_ARGS="-fe"
 elif [[ "$OSNAME" == "MINGW"* ]]; then
-	PS="tasklist"
-	PS_ARGS=""
+    PS="tasklist"
+    PS_ARGS=""
 else
-	PS="ps"
-	PS_ARGS="-fe"
+    PS="ps"
+    PS_ARGS="-fe"
 fi
 
 PSFILE="/tmp/ps.$$"
@@ -374,18 +374,18 @@ ${PS} ${PS_ARGS} > ${PSFILE}
 # see if any of those still-running processes belong to ION
 processes_running=0
 for PROC in ${IONPROCESSLIST}; do
-	#grep "[^-a-zA-Z]${PROC}$" "${PSFILE}" | grep -v "defunct" | \
-	#    awk '{printf("  *** Unknown error: process %s not killed...try rebooting\n", $NF);}'
-	processline=$(grep -w "${PROC}" "${PSFILE}" | grep -v "defunct")
-	if [ -n "$processline" ]; then
-		echo "ERROR: process $PROC not killed..."
-		processes_running=$(($processes_running + 1))
-	fi
+    #grep "[^-a-zA-Z]${PROC}$" "${PSFILE}" | grep -v "defunct" | \
+    #    awk '{printf("  *** Unknown error: process %s not killed...try rebooting\n", $NF);}'
+    processline=$(grep -w "${PROC}" "${PSFILE}" | grep -v "defunct")
+    if [ -n "$processline" ]; then
+        echo "ERROR: process $PROC not killed..."
+        processes_running=$(($processes_running + 1))
+    fi
 done
 if [ $processes_running -eq 0 ]; then
-	echo "Success: All ION processes were stopped by ionexit."
+    echo "Success: All ION processes were stopped by ionexit."
 else
-	retval=1
+    retval=1
 fi
 rm -f ${PSFILE}
 echo
@@ -410,4 +410,3 @@ echo ""
 echo "ionexit test completed."
 
 exit $retval
-

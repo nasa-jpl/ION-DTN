@@ -4,7 +4,7 @@
 *continuum nbr=33 name=ion3 desc='ION node 3'
 *csendpoint epspec=127.0.0.1:2502
 *application name='amsdemo'
-+venture nbr=9 appname=amsdemo authname=test net_config=tree 
++venture nbr=9 appname=amsdemo authname=test net_config=tree
 *role nbr=2 name=shell
 *role nbr=3 name=log
 *role nbr=4 name=pitch

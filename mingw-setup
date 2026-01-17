@@ -7,10 +7,10 @@ makefiles=(ici ltp dgr bssp bpv6 bpv7 tc nm cfdp ams bss dtpc restart)
 ismingw=`uname | awk '{print match($0, "MINGW")}'`
 
 if [ $ismingw -eq 1 ]; then
-	echo "Configuring ION for compilation under MINGW..."
+    echo "Configuring ION for compilation under MINGW..."
 else
-	echo "This setup is only for use under MINGW!"
-	exit
+    echo "This setup is only for use under MINGW!"
+    exit
 fi
 
 if [ -a Makefile ] ; then
@@ -30,21 +30,21 @@ mkdir -p /local/man/man1
 mkdir -p /local/man/man3
 mkdir -p /local/man/man5
 
-for f in ${makefiles[@]}; do 
-	fname=`echo "$f/Makefile"`
-	fnameold=`echo "$fname.old"`
+for f in ${makefiles[@]}; do
+    fname=`echo "$f/Makefile"`
+    fnameold=`echo "$fname.old"`
 
-	cp `echo $fname $fnameold`
+    cp `echo $fname $fnameold`
 
-	awk '
-	{
-		if($1=="PLATFORMS")
-			$3="i86-mingw"
-		print $0
-	}
-	' $fnameold > $fname
+    awk '
+    {
+        if($1=="PLATFORMS")
+            $3="i86-mingw"
+        print $0
+    }
+    ' $fnameold > $fname
 
-	rm $fnameold
+    rm $fnameold
 done
 
 # move mingw makefile for libbloom

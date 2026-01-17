@@ -1,9 +1,9 @@
 /*
-  	psm.c:	personal space management library implementation.
-  
-  	Originally designed for managing a spacecraft solid-state recorder
-  	that takes the form of a fixed-size pool of static RAM with a flat
-  	address space.
+	psm.c:	personal space management library implementation.
+
+	Originally designed for managing a spacecraft solid-state recorder
+	that takes the form of a fixed-size pool of static RAM with a flat
+	address space.
 									*/
 /*	Copyright (c) 1997, California Institute of Technology.		*/
 /*	ALL RIGHTS RESERVED.  U.S. Government Sponsorship		*/
@@ -180,10 +180,10 @@ static void lockPartition(PartitionMap *map)
 	selfTask = sm_TaskIdSelf();
 	selfThread = pthread_self();
 
-	/* 
-	* Acquire local mutex to safely read the ownership fields; 
-	* prevents data races within this process. 
-	*/
+	/*
+	 * Acquire local mutex to safely read the ownership fields;
+	 * prevents data races within this process.
+	 */
 	pthread_mutex_lock(&_psmLocalMutex);
 
 	/* Re-entrant call by this thread; just increment depth. */
@@ -196,18 +196,18 @@ static void lockPartition(PartitionMap *map)
 	}
 
 	/*  If we get here, we do NOT own the partition, so we must release
-	*  the local mutex before blocking on the named semaphore, which is
-	*  shared across processes.  (Otherwise we can deadlock ourselves.)
-	*/
+	 *  the local mutex before blocking on the named semaphore, which is
+	 *  shared across processes.  (Otherwise we can deadlock ourselves.)
+	 */
 	pthread_mutex_unlock(&_psmLocalMutex);
 
 	CHKVOID(map->semaphore != -1);
 	oK(sm_SemTake(map->semaphore));
 
-	/* 
-	* Now that we hold the partition across processes, lock the local mutex 
-	* again to safely update the ownership fields in this process. 
-	*/
+	/*
+	 * Now that we hold the partition across processes, lock the local mutex
+	 * again to safely update the ownership fields in this process.
+	 */
 	pthread_mutex_lock(&_psmLocalMutex);
 	map->ownerThread = selfThread;
 	map->ownerTask   = selfTask;
@@ -222,7 +222,7 @@ static void lockPartition(PartitionMap *map)
  *  If the calling thread owns the partition, decrements the re-entrant depth.
  *  Once depth is zero, releases cross-process ownership (via sm_SemGive()).
  *
- *  Uses the same local mutex (_psmLocalMutex) to protect reads/writes of 
+ *  Uses the same local mutex (_psmLocalMutex) to protect reads/writes of
  *  ownerTask, ownerThread, and depth in this process.
  ******************************************************************************/
 static void unlockPartition(PartitionMap *map)
@@ -241,10 +241,10 @@ static void unlockPartition(PartitionMap *map)
 
 			if (map->semaphore != -1)
 			{
-				/* 
-                 * Release local mutex before calling sm_SemGive()
-                 * to avoid holding two locks simultaneously.
-                 */
+				/*
+				 * Release local mutex before calling sm_SemGive()
+				 * to avoid holding two locks simultaneously.
+				 */
 				sm_SemId semId = map->semaphore;
 				pthread_mutex_unlock(&_psmLocalMutex);
 
@@ -746,7 +746,7 @@ static void	removeFromBucket(PartitionMap *map, int bucket,
 	struct big_ohd2	*trailerOfNext;
 	struct big_ohd1	*prev;
 
-	map->largePoolFree[bucket].freeBytes -= blk->userDataSize; 
+	map->largePoolFree[bucket].freeBytes -= blk->userDataSize;
 	map->largePoolFree[bucket].freeBlocks--;
 	if (blk->next != 0)
 	{
@@ -795,7 +795,7 @@ static void	insertFreeBlock(PartitionMap *map, struct big_ohd1 *blk,
 	struct big_ohd2	*trailer2;
 
 	bucket = computeBucket(blk->userDataSize);
-	map->largePoolFree[bucket].freeBytes += blk->userDataSize; 
+	map->largePoolFree[bucket].freeBytes += blk->userDataSize;
 	map->largePoolFree[bucket].freeBlocks++;
 	firstBlock = map->largePoolFree[bucket].firstFreeBlock;
 	if (firstBlock == 0)
@@ -1384,7 +1384,7 @@ void	psm_usage(PsmPartition partition, PsmUsageSummary *usage)
 	freeTotal = 0;
 	for (i = 0; i < LARGE_ORDERS; i++)
 	{
-		usage->largePoolFreeBlockCount[i] = 
+		usage->largePoolFreeBlockCount[i] =
 				map->largePoolFree[i].freeBlocks;
 		freeTotal += map->largePoolFree[i].freeBytes;
 	}
@@ -1475,7 +1475,7 @@ int	psm_start_trace(PsmPartition partition, size_t shmSize, char *shm)
 	if (map->traceSize > 0)	/*	Trace is already enabled.	*/
 	{
 		if (map->traceSize != shmSize)
-        	{
+		{
 			unlockPartition(map);
 			putErrmsg("Asserted trace memory size doesn't match \
 actual.", itoa(map->traceSize));

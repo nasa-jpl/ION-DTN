@@ -4,7 +4,7 @@
 			transaction mechanism.
 
 	Author: Scott Burleigh, JPL
-	
+
 	Modification History:
 	Date      Who	What
 	06-05-07  SCB	Initial abstraction from original SDR API.
@@ -51,7 +51,7 @@ extern int		Sdr_initialize(size_t wmSize, char *wmPtr, int wmKey,
 				necessary, unless wmPtr is non-NULL)
 				and creates a semaphor to serialize
 				access to the sdrs array.  If the
-	 			sdr system is to share a common pool
+				sdr system is to share a common pool
 				of pre-allocated memory with one or
 				more other systems, provide the shared
 				memory key and partition name of that
@@ -60,12 +60,12 @@ extern int		Sdr_initialize(size_t wmSize, char *wmPtr, int wmKey,
 				wmName.					*/
 
 extern void		sdr_wm_usage(PsmUsageSummary *summary);
-                        /*	Loads PsmUsageSummary structure with
-			 	snapshot of usage of the PSM-managed
+			/*	Loads PsmUsageSummary structure with
+				snapshot of usage of the PSM-managed
 				dynamic working memory privately
 				allocated to the SDR system for its
 				internal operations.  To print the
-		      		snapshot, use psm_report().		*/ 
+				snapshot, use psm_report().		*/
 
 extern void		sdr_shutdown(void);
 			/*	Ends all access to all SDRs and
@@ -96,7 +96,7 @@ extern int		sdr_load_profile(char *name, int configFlags,
 				it does not, then we create and
 				initialize the SDR.
 
-			 	"name" is the name of the SDR.
+				"name" is the name of the SDR.
 				The "configFlags" value must be some
 				logical disjunction of configuration
 				flags as defined above.  "heapWords"
@@ -104,7 +104,7 @@ extern int		sdr_load_profile(char *name, int configFlags,
 				of the SDR's data space in "words"
 				(long integers).  The SDR's total data
 				space size in bytes is given by
-			       	(heapWords * word size) + map size.
+				(heapWords * word size) + map size.
 
 				On creation of the SDR, where the
 				SDR_IN_DRAM option is selected, if
@@ -228,7 +228,7 @@ typedef uaddr		SdrAddress;
 #define	Address		SdrAddress
 
 /*	Both SdrObjects and SdrAddresses are absolute offsets from
- 	the start of an SDR heap; they are functionally equivalent
+	the start of an SDR heap; they are functionally equivalent
 	to pointers in DRAM.  They are differentiated to enable
 	compile-time type checking to detect some possible SDR access
 	errors: an SdrObject is the address of some block of SDR

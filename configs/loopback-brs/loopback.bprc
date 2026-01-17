@@ -1,12 +1,12 @@
 # bprc configuration file for BRS loopback
 #	Command: % bpadmin loopback.bprc
-#	This command should be run AFTER ionadmin and ltpadmin and 
+#	This command should be run AFTER ionadmin and ltpadmin and
 #	BEFORE ipnadmin or dtnadmin.
 #
 #	Ohio University, July 2009 and University of Colorado, Nov 2010
 
 # Initialization command (command 1).
-1 
+1
 
 # Add an EID scheme.
 #	The scheme's name is ipn.
@@ -35,7 +35,7 @@ a protocol brss 1450 68
 a induct brss 0.0.0.0:4556 brsscla
 a outduct brss 0.0.0.0:4556 ''
 
-# Add a protocol. 
+# Add a protocol.
 #	Add the protocol named brsc.
 #	Estimate transmission capacity assuming 1450 bytes of each frame (in
 #	this case, tcp on ethernet) for payload, and 68 bytes for overhead.

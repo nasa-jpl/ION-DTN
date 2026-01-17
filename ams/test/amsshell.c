@@ -341,7 +341,7 @@ messages.\n", stderr);
 
 	/* attach for ionsec database (for key retrieval) */
 	if (bp_attach() != 0)
-	{		
+	{
 		return -1;
 	}
 

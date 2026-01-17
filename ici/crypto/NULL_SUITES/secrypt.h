@@ -43,33 +43,33 @@
  *             for decryption.
  * @param personalization_string A personalization string used to augment
  *                               entropy.
- * 
+ *
  * @param input_buffer Pointer to the input data buffer.
  * @param input_length Pointer to the size of the input data buffer. On
  *                     return, this may be updated to reflect the size of
  *                     the processed data.
  * @param my_output_buffer Pointer to a pointer that will be allocated and
- *                         filled with the output data (non-encrypted). The 
+ *                         filled with the output data (non-encrypted). The
  *                         caller is responsible for freeing this memory.
  * @param my_output_length Pointer to a variable that will store the length
  *                         of the output data.
  * @param cipher String identifying the encryption algorithm to be used.
  * @param md String identifying the hash algorithm to be used.
- * @param my_key The encryption key for the cryptographic operation. This may 
+ * @param my_key The encryption key for the cryptographic operation. This may
  *               be the path to a key, or a literal value (i.e. string).
  *
  * @return 0 on success, or a non-zero error code on failure.
  */
 int crypt_and_hash_buffer(
-    int mode, 
-    unsigned char *personalization_string,
-    unsigned char *input_buffer, 
-    size_t *input_length, 
-    unsigned char **my_output_buffer, 
-    size_t *my_output_length, 
-    char *cipher, 
-    char *md, 
-    char *my_key
+	int mode,
+	unsigned char *personalization_string,
+	unsigned char *input_buffer,
+	size_t *input_length,
+	unsigned char **my_output_buffer,
+	size_t *my_output_length,
+	char *cipher,
+	char *md,
+	char *my_key
 );
 
 
@@ -84,26 +84,26 @@ int crypt_and_hash_buffer(
  *             for decryption.
 * @param personalization_string A personalization string used to augment
  *                               entropy.
- * 
+ *
  * @param file_in Path to the input file.
  * @param file_out Path to the output file where the processed data will be
  *                 written.
  * @param cipher String identifying the encryption algorithm to be used.
  * @param md String identifying the hash algorithm to be used.
- * @param my_key The encryption key for the cryptographic operation. This may 
+ * @param my_key The encryption key for the cryptographic operation. This may
  *               be the path to a symetric HMAC key, or a literal value (i.e. string).
- * 
+ *
  * @return 0 on success, or a non-zero error code on failure.
  */
 
 int crypt_and_hash_file(
-    int mode, 
-    unsigned char *personalization_string, 
-    char *file_in, 
-    char *file_out, 
-    char *cipher, 
-    char *md, 
-    char *key
+	int mode,
+	unsigned char *personalization_string,
+	char *file_in,
+	char *file_out,
+	char *cipher,
+	char *md,
+	char *key
 );
 
 #endif // CRYPT_AND_HASH_H

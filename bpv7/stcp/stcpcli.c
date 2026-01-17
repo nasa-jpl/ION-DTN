@@ -8,7 +8,7 @@
 	Copyright (c) 2004, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "stcpcla.h"
 
@@ -430,7 +430,7 @@ int	main(int argc, char *argv[])
 		char	txt[500];
 
 		isprintf(txt, sizeof(txt),
-			"[i] stcpcli is running, spec=[%s:%d].", 
+			"[i] stcpcli is running, spec=[%s:%d].",
 			inet_ntoa(atp.inetName->sin_addr), ntohs(portNbr));
 		writeMemo(txt);
 	}

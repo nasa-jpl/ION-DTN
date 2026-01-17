@@ -229,7 +229,7 @@ int	rfx_order_events(PsmPartition partition, PsmAddress nodeData,
 	}
 
 	/*	Matching cross-referenced object also.			*/
-	
+
 	return 0;
 }
 
@@ -513,7 +513,7 @@ PsmAddress	postProbeEvent(IonNode *node, Embargo *embargo)
 	 *	time that is the current time plus 2x the round-trip
 	 *	light time from the local node to the neighbor (but
 	 *	at least 6 seconds).					*/
-	 
+
 	ionvdb = getIonVdb();
 	neighbor = findNeighbor(ionvdb, embargo->fqnn, &nextElt);
 	if (neighbor)
@@ -800,7 +800,7 @@ static int	updateAdjacentStopEvents(IonVdb *vdb, IonCXref *precedingCxref,
 static PsmAddress	insertCXref(IonCXref *cxref)
 {
 	PsmPartition	ionwm = getIonwm();
-	IonVdb 		*vdb = getIonVdb();
+	IonVdb		*vdb = getIonVdb();
 	IonCXref	arg;
 	IonNode		*node;
 	PsmAddress	nextElt;
@@ -957,7 +957,7 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 			else
 			{
 				cxref->startFire = cxref->fromTime
-			      	 		+ iondb.maxClockError;
+						+ iondb.maxClockError;
 			}
 
 			if (adjacentContact && !isPreceding)
@@ -1177,7 +1177,7 @@ static void	deleteContact(PsmAddress cxaddr)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
-	IonVdb 		*vdb = getIonVdb();
+	IonVdb		*vdb = getIonVdb();
 	time_t		currentTime = getCtime();
 	IonCXref	*cxref;
 	Object		obj;
@@ -1712,7 +1712,7 @@ static void	handleRegistrationContact(uint32_t regionNbr, uvast fqnn,
 		return;
 	}
 
-       	if (fqnn == getOwnFqnn())
+	if (fqnn == getOwnFqnn())
 	{
 		/*	Registering self in a region.			*/
 
@@ -1919,7 +1919,7 @@ must be later than From time.");
 		 *	past all potentially overlapping contacts we
 		 *	break out of the loop and insert the new
 		 *	contact.					*/
-		
+
 		*cxaddr = sm_rbt_data(ionwm, cxelt);
 		cxref = (IonCXref *) psp(ionwm, *cxaddr);
 		if (cxref->fromFqnn != fromFqnn || cxref->toFqnn != toFqnn)
@@ -2104,7 +2104,7 @@ int	rfx_revise_contact(uint32_t regionNbr, time_t fromTime, uvast fromFqnn,
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
-	IonVdb 		*vdb = getIonVdb();
+	IonVdb		*vdb = getIonVdb();
 	time_t		currentTime = getCtime();
 	IonCXref	arg;
 	PsmAddress	cxelt;
@@ -2246,7 +2246,7 @@ static void	removeAllContacts(uint32_t regionNbr, uvast fromFqnn,
 			break;	/*	No more matches.		*/
 		}
 
-		nextElt = sm_rbt_next(ionwm, cxelt); 
+		nextElt = sm_rbt_next(ionwm, cxelt);
 		if (announce)
 		{
 			postCpsNotice(regionNbr, cxref->fromTime, 0,
@@ -2278,7 +2278,7 @@ static void	unregisterFromRegion(uvast fromFqnn, IonCXref *cxref,
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
-	IonVdb 		*vdb = getIonVdb();
+	IonVdb		*vdb = getIonVdb();
 	int		regionIdx;
 	Object		iondbObj;
 	IonDB		iondb;
@@ -2521,7 +2521,7 @@ void	rfx_brief_contacts(uint32_t regionNbr)
 	}
 
 	isprintf(buffer, sizeof buffer, "^ %lu\n", regionNbr);
-       	textLen = strlen(buffer);
+	textLen = strlen(buffer);
 	if (write(briefingFile, buffer, textLen) < 0)
 	{
 		close(briefingFile);
@@ -2565,7 +2565,7 @@ void	rfx_brief_contacts(uint32_t regionNbr)
 UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %lu %f\n", fromTimeBuffer, toTimeBuffer,
 				contact->fromFqnn, contact->toFqnn,
 				contact->xmitRate, contact->confidence);
-       		textLen = strlen(buffer);
+		textLen = strlen(buffer);
 		if (write(briefingFile, buffer, textLen) < 0)
 		{
 			putSysErrmsg("Can't write briefing command", fileName);
@@ -2601,7 +2601,7 @@ UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %lu %f\n", fromTimeBuffer, toTimeBuffer,
 UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %lu %f\n", fromTimeBuffer, toTimeBuffer,
 				contact->fromFqnn, contact->toFqnn,
 				contact->xmitRate, contact->confidence);
-       		textLen = strlen(buffer);
+		textLen = strlen(buffer);
 		if (write(briefingFile, buffer, textLen) < 0)
 		{
 			putSysErrmsg("Can't write briefing command", fileName);
@@ -2862,7 +2862,7 @@ static PsmAddress	insertRXref(IonRXref *rxref)
 		psm_free(ionwm, addr);
 		return 0;
 	}
-	
+
 	addr = psm_zalloc(ionwm, sizeof(IonEvent));
 	if (addr == 0)
 	{
@@ -3212,7 +3212,7 @@ static void	removeAllRanges(uvast fromFqnn, uvast toFqnn, IonRXref *arg,
 			break;	/*	No more matches.		*/
 		}
 
-		nextElt = sm_rbt_next(ionwm, rxelt); 
+		nextElt = sm_rbt_next(ionwm, rxelt);
 		if (announce)
 		{
 			postCpsNotice(0, rxref->fromTime, 0, fromFqnn, toFqnn,
@@ -3371,11 +3371,11 @@ void	rfx_brief_ranges(void)
 		isprintf(buffer, sizeof buffer, "a range %20s %20s "
 UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %u\n", fromTimeBuffer, toTimeBuffer,
 				range->fromFqnn, range->toFqnn, range->owlt);
-       		textLen = strlen(buffer);
+		textLen = strlen(buffer);
 		if (write(briefingFile, buffer, textLen) < 0)
 		{
 			putSysErrmsg("Can't write to ranges.ionrc file",
-				       NULL);
+					NULL);
 			break;
 		}
 	}
@@ -3391,7 +3391,7 @@ extern PsmAddress	rfx_insert_alarm(unsigned int term, unsigned int cycles)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
-	IonVdb 		*vdb = getIonVdb();
+	IonVdb		*vdb = getIonVdb();
 	time_t		currentTime = getCtime();
 	PsmAddress	alarmAddr;
 	IonAlarm	*alarm;

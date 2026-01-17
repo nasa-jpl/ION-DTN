@@ -25,7 +25,7 @@
 #endif
 
 #ifndef RESTART_GRACE_PERIOD
-#define	RESTART_GRACE_PERIOD	3
+#define RESTART_GRACE_PERIOD	3
 #endif
 
 #define	RESTART_LOOP_INTERVAL	(RESTART_GRACE_PERIOD * 5)
@@ -504,9 +504,9 @@ int	main(void)
 	 *	transactions and perform the restart.			*/
 
 	snooze(RESTART_GRACE_PERIOD);
-    sdrv->sdr->sdrSemaphore = sdrSemaphore;
+	sdrv->sdr->sdrSemaphore = sdrSemaphore;
 
-	/* Given transaction reversal was successful, set the 
+	/* Given transaction reversal was successful, set the
 	 * modified flag to 0 from this point on ward */
 	sdrv->sdr->modified = 0;
 	restartION(sdrv);

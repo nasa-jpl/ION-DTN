@@ -42,8 +42,8 @@ int bpinspect_ops_cancel_bundle(const BundleCacheEntry *entry)
 
 	/* Re-validate that bundle still exists (safe against race conditions) */
 	if (findBundle((char *)(uintptr_t)entry->source, &creationTime,
-		       entry->fragmentOffset, entry->fragmentLength,
-		       &bundleObj) < 0)
+			entry->fragmentOffset, entry->fragmentLength,
+			&bundleObj) < 0)
 	{
 		sdr_cancel_xn(sdr);
 		putErrmsg("Can't search for bundle.", entry->source);
@@ -55,10 +55,10 @@ int bpinspect_ops_cancel_bundle(const BundleCacheEntry *entry)
 		/* Bundle no longer exists - already destroyed */
 		sdr_cancel_xn(sdr);
 		snprintf(diagBuf, sizeof(diagBuf),
-			 "Bundle %s [%llu.%u] no longer exists (already destroyed)",
-			 entry->source,
-			 (unsigned long long) entry->creationMsec,
-			 entry->creationCount);
+			"Bundle %s [%llu.%u] no longer exists (already destroyed)",
+			entry->source,
+			(unsigned long long) entry->creationMsec,
+			entry->creationCount);
 		writeMemo(diagBuf);
 		return 0;	/* Not an error - bundle is gone */
 	}
@@ -66,17 +66,17 @@ int bpinspect_ops_cancel_bundle(const BundleCacheEntry *entry)
 	/* Read bundle state before cancellation for diagnostics */
 	sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 	snprintf(diagBuf, sizeof(diagBuf),
-		 "Canceling bundle %s [%llu.%u]: queue state before: "
-		 "fwd=%lu dlv=%lu xmit=%lu plan=%lu duct=%lu detained=%d",
-		 entry->source,
-		 (unsigned long long) entry->creationMsec,
-		 entry->creationCount,
-		 (unsigned long) bundle.fwdQueueElt,
-		 (unsigned long) bundle.dlvQueueElt,
-		 (unsigned long) bundle.transitElt,
-		 (unsigned long) bundle.planXmitElt,
-		 (unsigned long) bundle.ductXmitElt,
-		 bundle.detained);
+		"Canceling bundle %s [%llu.%u]: queue state before: "
+		"fwd=%lu dlv=%lu xmit=%lu plan=%lu duct=%lu detained=%d",
+		entry->source,
+		(unsigned long long) entry->creationMsec,
+		entry->creationCount,
+		(unsigned long) bundle.fwdQueueElt,
+		(unsigned long) bundle.dlvQueueElt,
+		(unsigned long) bundle.transitElt,
+		(unsigned long) bundle.planXmitElt,
+		(unsigned long) bundle.ductXmitElt,
+		bundle.detained);
 	writeMemo(diagBuf);
 
 	destroyResult = bpDestroyBundle(bundleObj, 3);  /* 3 = canceled */
@@ -98,17 +98,17 @@ int bpinspect_ops_cancel_bundle(const BundleCacheEntry *entry)
 		/* Bundle still exists - it wasn't fully destroyed */
 		sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 		snprintf(diagBuf, sizeof(diagBuf),
-			 "WARNING: Bundle %s [%llu.%u] still exists after cancel! "
-			 "Queue state: fwd=%lu dlv=%lu xmit=%lu plan=%lu duct=%lu detained=%d",
-			 entry->source,
-			 (unsigned long long) entry->creationMsec,
-			 entry->creationCount,
-			 (unsigned long) bundle.fwdQueueElt,
-			 (unsigned long) bundle.dlvQueueElt,
-			 (unsigned long) bundle.transitElt,
-			 (unsigned long) bundle.planXmitElt,
-			 (unsigned long) bundle.ductXmitElt,
-			 bundle.detained);
+			"WARNING: Bundle %s [%llu.%u] still exists after cancel! "
+			"Queue state: fwd=%lu dlv=%lu xmit=%lu plan=%lu duct=%lu detained=%d",
+			entry->source,
+			(unsigned long long) entry->creationMsec,
+			entry->creationCount,
+			(unsigned long) bundle.fwdQueueElt,
+			(unsigned long) bundle.dlvQueueElt,
+			(unsigned long) bundle.transitElt,
+			(unsigned long) bundle.planXmitElt,
+			(unsigned long) bundle.ductXmitElt,
+			bundle.detained);
 		writeMemo(diagBuf);
 
 		/* This is not an error - bpDestroyBundle returns 0 when it
@@ -117,10 +117,10 @@ int bpinspect_ops_cancel_bundle(const BundleCacheEntry *entry)
 	else
 	{
 		snprintf(diagBuf, sizeof(diagBuf),
-			 "Successfully destroyed bundle %s [%llu.%u]",
-			 entry->source,
-			 (unsigned long long) entry->creationMsec,
-			 entry->creationCount);
+			"Successfully destroyed bundle %s [%llu.%u]",
+			entry->source,
+			(unsigned long long) entry->creationMsec,
+			entry->creationCount);
 		writeMemo(diagBuf);
 	}
 
@@ -159,7 +159,7 @@ int bpinspect_ops_cancel_bundles(const BundleCacheEntry *entries, int count)
 			/* Log error but continue with remaining bundles */
 			char	buf[256];
 			snprintf(buf, sizeof(buf),
-				 "Failed to cancel bundle %d of %d", i + 1, count);
+				"Failed to cancel bundle %d of %d", i + 1, count);
 			writeMemo(buf);
 		}
 	}
@@ -250,7 +250,7 @@ int bpinspect_ops_suspend_bundles(const BundleCacheEntry *entries, int count)
 			/* Log error but continue with remaining bundles */
 			char	buf[256];
 			snprintf(buf, sizeof(buf),
-				 "Failed to suspend bundle %d of %d", i + 1, count);
+				"Failed to suspend bundle %d of %d", i + 1, count);
 			writeMemo(buf);
 		}
 	}
@@ -282,7 +282,7 @@ int bpinspect_ops_resume_bundles(const BundleCacheEntry *entries, int count)
 			/* Log error but continue with remaining bundles */
 			char	buf[256];
 			snprintf(buf, sizeof(buf),
-				 "Failed to resume bundle %d of %d", i + 1, count);
+				"Failed to resume bundle %d of %d", i + 1, count);
 			writeMemo(buf);
 		}
 	}
@@ -304,19 +304,19 @@ char* bpinspect_ops_format_bundle_id(const BundleCacheEntry *entry, char *buf, i
 	{
 		/* Fragment */
 		snprintf(buf, len, "%s [%llu.%u] frag[%u:%u]",
-			 entry->source,
-			 (unsigned long long) entry->creationMsec,
-			 entry->creationCount,
-			 entry->fragmentOffset,
-			 entry->fragmentLength);
+			entry->source,
+			(unsigned long long) entry->creationMsec,
+			entry->creationCount,
+			entry->fragmentOffset,
+			entry->fragmentLength);
 	}
 	else
 	{
 		/* Non-fragment */
 		snprintf(buf, len, "%s [%llu.%u]",
-			 entry->source,
-			 (unsigned long long) entry->creationMsec,
-			 entry->creationCount);
+			entry->source,
+			(unsigned long long) entry->creationMsec,
+			entry->creationCount);
 	}
 
 	return buf;
@@ -339,13 +339,13 @@ static char* format_timestamp(uvast msec, char *buf, int len)
 	if (tm != NULL)
 	{
 		snprintf(buf, len, "%04d-%02d-%02d %02d:%02d:%02d.%03d UTC",
-			 tm->tm_year + 1900,
-			 tm->tm_mon + 1,
-			 tm->tm_mday,
-			 tm->tm_hour,
-			 tm->tm_min,
-			 tm->tm_sec,
-			 milliseconds);
+			tm->tm_year + 1900,
+			tm->tm_mon + 1,
+			tm->tm_mday,
+			tm->tm_hour,
+			tm->tm_min,
+			tm->tm_sec,
+			milliseconds);
 	}
 	else
 	{
@@ -372,18 +372,18 @@ static char* format_expiration(time_t expirationTime, int timeRemaining, char *b
 		if (tm != NULL)
 		{
 			snprintf(buf, len, "%04d-%02d-%02d %02d:%02d:%02d UTC (%d sec)",
-				 tm->tm_year + 1900,
-				 tm->tm_mon + 1,
-				 tm->tm_mday,
-				 tm->tm_hour,
-				 tm->tm_min,
-				 tm->tm_sec,
-				 timeRemaining);
+				tm->tm_year + 1900,
+				tm->tm_mon + 1,
+				tm->tm_mday,
+				tm->tm_hour,
+				tm->tm_min,
+				tm->tm_sec,
+				timeRemaining);
 		}
 		else
 		{
 			snprintf(buf, len, "%ld (%d sec)",
-				 (long) expirationTime, timeRemaining);
+				(long) expirationTime, timeRemaining);
 		}
 	}
 
@@ -450,16 +450,16 @@ void bpinspect_ops_print_bundle(const BundleCacheEntry *entry, int verbose)
 	/* Basic information (always shown) */
 	printf("\n");
 	printf("Bundle ID:    %s\n",
-	       bpinspect_ops_format_bundle_id(entry, buf, sizeof(buf)));
+		bpinspect_ops_format_bundle_id(entry, buf, sizeof(buf)));
 	printf("Source:       %s\n", entry->source);
 	printf("Destination:  %s\n", entry->dest);
 	printf("Created:      %s\n",
-	       format_timestamp(entry->creationMsec, timeBuf, sizeof(timeBuf)));
+		format_timestamp(entry->creationMsec, timeBuf, sizeof(timeBuf)));
 	printf("Expires:      %s\n",
-	       format_expiration(entry->expirationTime, entry->timeRemaining,
-				 timeBuf, sizeof(timeBuf)));
+		format_expiration(entry->expirationTime, entry->timeRemaining,
+				timeBuf, sizeof(timeBuf)));
 	printf("Payload Size: %s\n",
-	       format_size(entry->payloadLength, sizeBuf, sizeof(sizeBuf)));
+		format_size(entry->payloadLength, sizeBuf, sizeof(sizeBuf)));
 	printf("Priority:     %s\n", get_priority_name(entry->priority));
 	printf("Queue State:  %s\n", entry->queueState);
 
@@ -481,7 +481,7 @@ void bpinspect_ops_print_bundle(const BundleCacheEntry *entry, int verbose)
 		if (entry->fragmentOffset > 0 || entry->fragmentLength > 0)
 		{
 			printf("Fragment:     Offset=%u Length=%u\n",
-			       entry->fragmentOffset, entry->fragmentLength);
+				entry->fragmentOffset, entry->fragmentLength);
 		}
 	}
 
@@ -497,9 +497,9 @@ void bpinspect_ops_print_bundle(const BundleCacheEntry *entry, int verbose)
 
 		printf("\nExtended Information:\n");
 		printf("  SDR Address:      " UVAST_FIELDSPEC "\n",
-		       (uvast) entry->bundleObj);
+			(uvast) entry->bundleObj);
 		printf("  Extension Blocks: %d\n",
-		       (int) sdr_list_length(sdr, bundle.extensions));
+			(int) sdr_list_length(sdr, bundle.extensions));
 		printf("  Payload CRC Type: %d\n", bundle.payload.crcType);
 		printf("  Primary CRC Type: %d\n", bundle.primaryBlkCrcType);
 
@@ -513,7 +513,7 @@ void bpinspect_ops_print_bundle(const BundleCacheEntry *entry, int verbose)
 
 			printf("  Extension Block Types: ");
 			for (elt = sdr_list_first(sdr, bundle.extensions); elt;
-			     elt = sdr_list_next(sdr, elt))
+					elt = sdr_list_next(sdr, elt))
 			{
 				blkAddr = sdr_list_data(sdr, elt);
 				sdr_read(sdr, (char *) &blk, blkAddr,

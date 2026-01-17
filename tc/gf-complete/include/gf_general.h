@@ -46,12 +46,12 @@ void gf_general_multiply(gf_t *gf, gf_general_t *a, gf_general_t *b, gf_general_
 void gf_general_divide(gf_t *gf, gf_general_t *a, gf_general_t *b, gf_general_t *c);
 void gf_general_inverse(gf_t *gf, gf_general_t *a, gf_general_t *b);
 
-void gf_general_do_region_multiply(gf_t *gf, gf_general_t *a, 
-                                   void *ra, void *rb, 
+void gf_general_do_region_multiply(gf_t *gf, gf_general_t *a,
+                                   void *ra, void *rb,
                                    int bytes, int xor);
 
-void gf_general_do_region_check(gf_t *gf, gf_general_t *a, 
-                                void *orig_a, void *orig_target, void *final_target, 
+void gf_general_do_region_check(gf_t *gf, gf_general_t *a,
+                                void *orig_a, void *orig_target, void *final_target,
                                 int bytes, int xor);
 
 

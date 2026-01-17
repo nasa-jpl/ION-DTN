@@ -8,9 +8,9 @@ ion_admin - Public API for ION (Interplanetary Overlay Network) Administration
 
 =head1 DESCRIPTION
 
-The B<ion_admin.h> header provides public interfaces for managing ION 
-configuration parameters that are currently accessible only through the 
-ionadmin CLI. 
+The B<ion_admin.h> header provides public interfaces for managing ION
+configuration parameters that are currently accessible only through the
+ionadmin CLI.
 
 =head1 FUNCTIONS
 
@@ -20,7 +20,7 @@ ionadmin CLI.
 
 =item B<int ion_set_production_rate(int rate_bytes_per_sec)>
 
-Sets the expected mean rate of continuous data origination by local 
+Sets the expected mean rate of continuous data origination by local
 Bundle Protocol applications.
 
 B<Parameters:>
@@ -45,10 +45,10 @@ The production rate in bytes per second.  Special values:
 
 B<Returns:> 0 on success, -1 on error.
 
-B<Prerequisites:> ION must be attached via ionAttach() before calling 
+B<Prerequisites:> ION must be attached via ionAttach() before calling
 this function.
 
-B<Notes:> Changes to production rate trigger an update to ION's congestion 
+B<Notes:> Changes to production rate trigger an update to ION's congestion
 forecast by invoking the ionwarn utility.
 
 =item B<int ion_get_production_rate(int *rate_bytes_per_sec)>
@@ -67,7 +67,7 @@ Pointer to an integer where the current production rate will be stored.
 
 B<Returns:> 0 on success, -1 on error.
 
-B<Prerequisites:> ION must be attached via ionAttach() before calling 
+B<Prerequisites:> ION must be attached via ionAttach() before calling
 this function.
 
 =back
@@ -78,7 +78,7 @@ this function.
 
 =item B<int ion_set_consumption_rate(int rate_bytes_per_sec)>
 
-Sets the expected mean rate of data delivery to local Bundle Protocol 
+Sets the expected mean rate of data delivery to local Bundle Protocol
 applications.
 
 B<Parameters:>
@@ -103,10 +103,10 @@ The consumption rate in bytes per second. Special values:
 
 B<Returns:> 0 on success, -1 on error.
 
-B<Prerequisites:> ION must be attached via ionAttach() before calling 
+B<Prerequisites:> ION must be attached via ionAttach() before calling
 this function.
 
-B<Notes:> Changes to consumption rate trigger an update to ION's 
+B<Notes:> Changes to consumption rate trigger an update to ION's
 congestion forecast by invoking the ionwarn utility.
 
 =item B<int ion_get_consumption_rate(int *rate_bytes_per_sec)>
@@ -125,7 +125,7 @@ Pointer to an integer where the current consumption rate will be stored.
 
 B<Returns:> 0 on success, -1 on error.
 
-B<Prerequisites:> ION must be attached via ionAttach() before calling 
+B<Prerequisites:> ION must be attached via ionAttach() before calling
 this function.
 
 =back
@@ -144,7 +144,7 @@ B<Parameters:>
 
 =item horizon_time
 
-End time for congestion forecasts as a Unix timestamp (seconds since 
+End time for congestion forecasts as a Unix timestamp (seconds since
 epoch).  Special values:
 
 =over 4
@@ -159,10 +159,10 @@ epoch).  Special values:
 
 B<Returns:> 0 on success, -1 on error.
 
-B<Prerequisites:> ION must be attached via ionAttach() before calling 
+B<Prerequisites:> ION must be attached via ionAttach() before calling
 this function.
 
-B<Notes:> Changes to the horizon trigger an update to ION's congestion 
+B<Notes:> Changes to the horizon trigger an update to ION's congestion
 forecast by invoking the ionwarn utility.
 
 =item B<int ion_get_congestion_forecast_horizon(time_t *horizon_time)>
@@ -175,14 +175,14 @@ B<Parameters:>
 
 =item horizon_time
 
-Pointer to a time_t variable where the current horizon timestamp will 
+Pointer to a time_t variable where the current horizon timestamp will
 be stored.
 
 =back
 
 B<Returns:> 0 on success, -1 on error.
 
-B<Prerequisites:> ION must be attached via ionAttach() before calling 
+B<Prerequisites:> ION must be attached via ionAttach() before calling
 this function.
 
 =back
@@ -199,14 +199,14 @@ Success
 
 =item B<-1>
 
-Error (detailed error message available via ION's error reporting 
+Error (detailed error message available via ION's error reporting
 mechanisms)
 
 =back
 
 =head1 ERROR HANDLING
 
-Functions in this API return -1 on error and use ION's standard error 
+Functions in this API return -1 on error and use ION's standard error
 reporting mechanism (putErrmsg).  Common error conditions include:
 
 =over 4
@@ -234,7 +234,7 @@ Use ION's error reporting facilities to retrieve detailed error messages.
 =head1 THREAD SAFETY
 
 These functions are not inherently thread-safe.  If multiple threads need
-to modify ION configuration parameters, the caller must provide 
+to modify ION configuration parameters, the caller must provide
 appropriate synchronization.
 
 =head1 PREREQUISITES
@@ -259,7 +259,7 @@ The ION database must be accessible and properly configured
 
 =head1 RELATIONSHIP TO IONADMIN
 
-These functions provide programmatic access to configuration parameters 
+These functions provide programmatic access to configuration parameters
 that can also be set through the ionadmin command-line interface:
 
 =over 4
@@ -278,7 +278,7 @@ B<ion_set_congestion_forecast_horizon()> is equivalent to: C<m horizon E<lt>time
 
 =back
 
-Changes made through this API are immediately visible to ionadmin and 
+Changes made through this API are immediately visible to ionadmin and
 vice versa, as both operate on the same underlying ION database.
 
 
@@ -298,7 +298,7 @@ Should not be called in high-frequency loops or time-critical code paths
 
 =back
 
-For best performance, set configuration parameters during initialization 
+For best performance, set configuration parameters during initialization
 or infrequently during runtime.
 
 =head1 SEE ALSO
@@ -316,7 +316,7 @@ NASA/JPL Interplanetary Overlay Network (ION) Project
 
 =head1 BUGS
 
-Report bugs to the ION development team or through the ION project's 
+Report bugs to the ION development team or through the ION project's
 issue tracking system.
 
 =cut

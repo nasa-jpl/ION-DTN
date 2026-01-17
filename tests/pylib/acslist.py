@@ -33,11 +33,11 @@ def acslist_lines_to_cbids(lines):
     for line in lines:
         acslist_line_to_ids(line, cbids, mismatches)
     return (cbids, mismatches)
-    
+
 
 def acslist():
     """
-    Executes the "acslist" command, and returns a dictionary of 
+    Executes the "acslist" command, and returns a dictionary of
     custody/bundle IDs that acslist reports, and any mismatches reported, like:
 
     ( { ("ipn:1.2", 946684800, 2, 0, 0) : ( 0 ) },
@@ -93,7 +93,7 @@ Mismatch: creation time in database (331231628, 17) != in key (331231628, 27)
                       ("ipn:13.42", 331231628, 15, 0, 0) : (8),
                       ("ipn:13.42", 331231628, 11, 0, 0) : (4),
                       ("ipn:13.42", 331231628,  0, 0, 0) : (13) }
-    assertedMismatches = [ "creation time in database (331231628, 17) != in key (331231628, 27)" ] 
+    assertedMismatches = [ "creation time in database (331231628, 17) != in key (331231628, 27)" ]
 
     assert (cbids == assertedCbids)
     assert (mismatches == assertedMismatches)

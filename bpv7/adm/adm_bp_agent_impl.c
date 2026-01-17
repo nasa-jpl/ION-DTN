@@ -8,10 +8,10 @@
  **
  ** Assumptions: TODO
  **
- ** Modification History: 
+ ** Modification History:
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2020-04-13  AUTO             Auto-generated c file 
+ **  2020-04-13  AUTO             Auto-generated c file
  **
  ****************************************************************************/
 
@@ -244,7 +244,7 @@ tnv_t *dtn_bp_agent_get_num_registrations(tnvc_t *parms)
 	bpnm_node_get(&node_state);
 
 	result = tnv_from_uint(node_state.nbrOfRegistrations);
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_registrations BODY
@@ -272,7 +272,7 @@ tnv_t *dtn_bp_agent_get_num_pend_fwd(tnvc_t *parms)
 	bpnm_disposition_get(&state);
 
 	result = tnv_from_uvast(state.currentForwardPending);
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_pend_fwd BODY
@@ -300,7 +300,7 @@ tnv_t *dtn_bp_agent_get_num_pend_dis(tnvc_t *parms)
 	bpnm_disposition_get(&state);
 
 	result = tnv_from_uvast(state.currentDispatchPending);
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_pend_dis BODY
@@ -328,7 +328,7 @@ tnv_t *dtn_bp_agent_get_num_in_cust(tnvc_t *parms)
 	bpnm_disposition_get(&state);
 
 	result = tnv_from_uvast(state.currentInCustody);
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_in_cust BODY
@@ -411,7 +411,7 @@ tnv_t *dtn_bp_agent_get_bundles_by_priority(tnvc_t *parms)
 
 /*
  * number of bytes of the given priority. Priority is given as a priority mask where bulk=0x1, normal=0
- * x2, express=0x4. Any bundles matching any of the masked priorities will be included in the returned 
+ * x2, express=0x4. Any bundles matching any of the masked priorities will be included in the returned
  * count.
  */
 tnv_t *dtn_bp_agent_get_bytes_by_priority(tnvc_t *parms)
@@ -559,7 +559,7 @@ tnv_t *dtn_bp_agent_get_num_fragmented_bundles(tnvc_t *parms)
 	bpnm_disposition_get(&state);
 
 	result = tnv_from_uvast(state.bundlesFragmented);
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fragmented_bundles BODY
@@ -587,7 +587,7 @@ tnv_t *dtn_bp_agent_get_num_fragments_produced(tnvc_t *parms)
 	bpnm_disposition_get(&state);
 
 	result = tnv_from_uvast(state.fragmentsProduced);
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_fragments_produced BODY
@@ -709,7 +709,7 @@ tnv_t *dtn_bp_agent_get_failed_custody_bundles(tnvc_t *parms)
 	bpnm_disposition_get(&state);
 
 	result = tnv_from_uvast(state.custodyRefusedCount);
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_failed_custody_bundles BODY
@@ -737,7 +737,7 @@ tnv_t *dtn_bp_agent_get_failed_custody_bytes(tnvc_t *parms)
 	bpnm_disposition_get(&state);
 
 	result = tnv_from_uvast(state.custodyRefusedBytes);
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_failed_custody_bytes BODY
@@ -765,7 +765,7 @@ tnv_t *dtn_bp_agent_get_failed_forward_bundles(tnvc_t *parms)
 	bpnm_disposition_get(&state);
 
 	result = tnv_from_uvast(state.bundleFwdFailedCount);
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_failed_forward_bundles BODY
@@ -793,7 +793,7 @@ tnv_t *dtn_bp_agent_get_failed_forward_bytes(tnvc_t *parms)
 	bpnm_disposition_get(&state);
 
 	result = tnv_from_uvast(state.bundleFwdFailedBytes);
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_failed_forward_bytes BODY
@@ -821,7 +821,7 @@ tnv_t *dtn_bp_agent_get_abandoned_bundles(tnvc_t *parms)
 	bpnm_disposition_get(&state);
 
 	result = tnv_from_uvast(state.bundleAbandonCount);
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_abandoned_bundles BODY
@@ -849,7 +849,7 @@ tnv_t *dtn_bp_agent_get_abandoned_bytes(tnvc_t *parms)
 	bpnm_disposition_get(&state);
 
 	result = tnv_from_uvast(state.bundleAbandonBytes);
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_abandoned_bytes BODY
@@ -877,7 +877,7 @@ tnv_t *dtn_bp_agent_get_discarded_bundles(tnvc_t *parms)
 	bpnm_disposition_get(&state);
 
 	result = tnv_from_uvast(state.bundleDiscardCount);
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_discarded_bundles BODY

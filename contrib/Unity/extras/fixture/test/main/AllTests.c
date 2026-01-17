@@ -17,4 +17,3 @@ int main(int argc, const char* argv[])
 {
     return UnityMain(argc, argv, runAllTests);
 }
-

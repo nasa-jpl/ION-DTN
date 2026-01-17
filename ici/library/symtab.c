@@ -1,8 +1,8 @@
 /*
 	symtab.c:	baseline private symbol table for ION stack
-			with definition of sm_FindFunction(), which 
+			with definition of sm_FindFunction(), which
 			accesses this table.
-			
+
 			Note that this is a canonical private symbol
 			table, provided as a model for mission-
 			specific symbol tables.  A mission desiring

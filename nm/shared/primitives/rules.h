@@ -39,7 +39,7 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  CONSTANTS  								  +
+ * |                              CONSTANTS                                   +
  * +--------------------------------------------------------------------------+
  */
 
@@ -51,7 +51,7 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  	MACROS  								  +
+ * |                                MACROS                                    +
  * +--------------------------------------------------------------------------+
  */
 
@@ -62,14 +62,14 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  DATA TYPES  								  +
+ * |                              DATA TYPES                                  +
  * +--------------------------------------------------------------------------+
  */
 
 
 typedef struct
 {
-	expr_t expr;       /**> If this evals to true, run action.      */
+	expr_t expr;    /**> If this evals to true, run action.      */
 	uvast max_fire; /**> # times to run action.                  */
 	uvast max_eval; /**> # times to eval expression.             */
 } sbr_def_t;
@@ -120,7 +120,7 @@ typedef struct {
 
 /*
  * +--------------------------------------------------------------------------+
- * |						  FUNCTION PROTOTYPES  							  +
+ * |                          FUNCTION PROTOTYPES                             +
  * +--------------------------------------------------------------------------+
  */
 
@@ -158,7 +158,7 @@ int rule_serialize_helper(QCBOREncodeContext *encoder, rule_t *rule);
 
 blob_t*   rule_serialize_wrapper(rule_t *rule);
 
-int	      sbr_should_fire(rule_t *rule);
+int       sbr_should_fire(rule_t *rule);
 
 sbr_def_t sbrdef_deserialize(QCBORDecodeContext *array_it, int *success);
 

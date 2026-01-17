@@ -105,9 +105,9 @@ void rpt_cb_del_fn(void *item)
 
 void  rpt_clear(rpt_t *rpt)
 {
-    AMP_DEBUG_ENTRY("rpt_clear_lyst","("ADDR_FIELDSPEC")", (uaddr) rpt);
-    CHKVOID(rpt);
-    tnvc_clear(rpt->entries);
+	AMP_DEBUG_ENTRY("rpt_clear_lyst", "(" ADDR_FIELDSPEC ")", (uaddr) rpt);
+	CHKVOID(rpt);
+	tnvc_clear(rpt->entries);
 }
 
 rpt_t* rpt_copy_ptr(rpt_t *src)
@@ -162,13 +162,13 @@ rpt_t* rpt_create(ari_t *id, time_t timestamp, tnvc_t *entries)
 	rpt_t *result = NULL;
 
 	AMP_DEBUG_ENTRY("rpt_create","("ADDR_FIELDSPEC",%d,entries)",
-			        (uaddr) id, time);
+			(uaddr) id, time);
 
 	/* Step 1: Allocate the message. */
 	if((result = (rpt_t*) STAKE(sizeof(rpt_t))) == NULL)
 	{
 		AMP_DEBUG_ERR("rpt_create","Can't alloc %d bytes.",
-				        sizeof(rpt_t));
+				sizeof(rpt_t));
 		AMP_DEBUG_EXIT("rpt_create","->NULL",NULL);
 		return NULL;
 	}
@@ -227,8 +227,8 @@ void* rpt_deserialize_ptr(QCBORDecodeContext *it, int *success)
 	QCBORItem item;
 
 	AMP_DEBUG_ENTRY("rpt_deserialize_ptr",
-			        "("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
-					(uaddr)it, (uaddr)success);
+			"("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
+			(uaddr)it, (uaddr)success);
 
 	/* Sanity Checks. */
 	CHKNULL(success);
@@ -253,7 +253,7 @@ void* rpt_deserialize_ptr(QCBORDecodeContext *it, int *success)
 	id = ari_deserialize_ptr(it, success);
 	QCBORDecode_EndOctets(it);
 #endif
-	
+
 	if((id == NULL) || (*success != AMP_OK))
 	{
 		return NULL;
@@ -312,9 +312,9 @@ rpt_t*   rpt_deserialize_raw(blob_t *data, int *success)
 	*success = AMP_FAIL;
 
 	QCBORDecode_Init(&it,
-					 (UsefulBufC){data->value,data->length},
-					 QCBOR_DECODE_MODE_NORMAL);
-	
+			(UsefulBufC){data->value,data->length},
+			QCBOR_DECODE_MODE_NORMAL);
+
 	rpt_t *tmp = rpt_deserialize_ptr(&it, success);
 
 	// Verify Decoding Completed Successfully
@@ -388,15 +388,15 @@ int rpt_serialize(QCBOREncodeContext *encoder, void *item)
 	err = ari_serialize(encoder, rpt->id);
 	QCBOREncode_CloseArrayOctet(encoder);
 #endif
-	
+
 	if(err != AMP_OK)
 	{
 		return err;
 	}
-	
+
 	if(num == 3)
 	{
-	   QCBOREncode_AddUInt64(encoder, rpt->time);
+		QCBOREncode_AddUInt64(encoder, rpt->time);
 	}
 
 	/* Step 3: Encode the entries. */
@@ -407,7 +407,7 @@ int rpt_serialize(QCBOREncodeContext *encoder, void *item)
 #else
 	QCBOREncode_OpenArray(encoder);
 	err = tnvc_serialize(encoder, rpt->entries);
-	QCBOREncode_CloseArrayOctet(encoder);	
+	QCBOREncode_CloseArrayOctet(encoder);
 #endif
 
 	QCBOREncode_CloseArray(encoder);
@@ -578,7 +578,7 @@ rpttpl_t* rpttpl_deserialize_ptr(QCBORDecodeContext *it, int *success)
 	ari = ari_deserialize_ptr(it, success);
 	QCBORDecode_EndOctets(it);
 #endif
-	
+
 	if((ari == NULL) || (*success != AMP_OK))
 	{
 		return NULL;
@@ -622,11 +622,11 @@ rpttpl_t* rpttpl_deserialize_raw(blob_t *data, int *success)
 	*success = AMP_FAIL;
 
 	QCBORDecode_Init(&it,
-					 (UsefulBufC){data->value,data->length},
-					 QCBOR_DECODE_MODE_NORMAL);
+			(UsefulBufC){data->value,data->length},
+			QCBOR_DECODE_MODE_NORMAL);
 
 	rpttpl_t *tmp = rpttpl_deserialize_ptr(&it, success);
-	
+
 	// Verify Decoding Completed Successfully
 	cut_decode_finish(&it);
 
@@ -692,7 +692,7 @@ int rpttpl_serialize(QCBOREncodeContext *encoder, void *item)
 		AMP_DEBUG_ERR("rpttpl_serialize","CBOR Error: %d", err);
 		return err;
 	}
-	
+
 	/* Step 2: Encode the type. */
 #if AMP_VERSION < 7
 	result = ac_serialize_wrapper(&(rpttpl->contents));
@@ -713,4 +713,3 @@ blob_t*   rpttpl_serialize_wrapper(rpttpl_t *rpttpl)
 {
 	return cut_serialize_wrapper(RPTTPL_DEFAULT_ENC_SIZE, rpttpl, (cut_enc_fn)rpttpl_serialize);
 }
-

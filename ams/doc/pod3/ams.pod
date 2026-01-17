@@ -6,144 +6,144 @@ ams - CCSDS Asynchronous Message Service(AMS) communications library
 
     #include "ams.h"
 
-    typedef void		(*AmsMsgHandler)(AmsModule module,
-					void *userData,
-					AmsEvent *eventRef,
-					short continuumNbr,
-					int unitNbr,
-					int moduleNbr,
-					short subjectNbr,
-					int contentLength,
-					char *content,
-					int context,
-					AmsMsgType msgType,
-					int priority,
-					unsigned char flowLabel);
+    typedef void                (*AmsMsgHandler)(AmsModule module,
+                                        void *userData,
+                                        AmsEvent *eventRef,
+                                        short continuumNbr,
+                                        int unitNbr,
+                                        int moduleNbr,
+                                        short subjectNbr,
+                                        int contentLength,
+                                        char *content,
+                                        int context,
+                                        AmsMsgType msgType,
+                                        int priority,
+                                        unsigned char flowLabel);
 
-    typedef void		(*AmsRegistrationHandler)(AmsModule module,
-					void *userData,
-					AmsEvent *eventRef,
-					int unitNbr,
-					int moduleNbr,
-					int roleNbr);
+    typedef void                (*AmsRegistrationHandler)(AmsModule module,
+                                        void *userData,
+                                        AmsEvent *eventRef,
+                                        int unitNbr,
+                                        int moduleNbr,
+                                        int roleNbr);
 
-    typedef void		(*AmsUnregistrationHandler)(AmsModule module,
-					void *userData,
-					AmsEvent *eventRef,
-					int unitNbr,
-					int moduleNbr);
+    typedef void                (*AmsUnregistrationHandler)(AmsModule module,
+                                        void *userData,
+                                        AmsEvent *eventRef,
+                                        int unitNbr,
+                                        int moduleNbr);
 
-    typedef void		(*AmsInvitationHandler)(AmsModule module,
-					void *userData,
-					AmsEvent *eventRef,
-					int unitNbr,
-					int moduleNbr,
-					int domainRoleNbr,
-					short domainContinuumNbr,
-					int domainUnitNbr,
-					short subjectNbr,
-					int priority,
-					unsigned char flowLabel,
-					AmsSequence sequence,
-					AmsDiligence diligence);
+    typedef void                (*AmsInvitationHandler)(AmsModule module,
+                                        void *userData,
+                                        AmsEvent *eventRef,
+                                        int unitNbr,
+                                        int moduleNbr,
+                                        int domainRoleNbr,
+                                        short domainContinuumNbr,
+                                        int domainUnitNbr,
+                                        short subjectNbr,
+                                        int priority,
+                                        unsigned char flowLabel,
+                                        AmsSequence sequence,
+                                        AmsDiligence diligence);
 
-    typedef void		(*AmsDisinvitationHandler)(AmsModule module,
-					void *userData,
-					AmsEvent *eventRef,
-					int unitNbr,
-					int moduleNbr,
-					int domainRoleNbr,
-					short domainContinuumNbr,
-					int domainUnitNbr,
-					short subjectNbr);
+    typedef void                (*AmsDisinvitationHandler)(AmsModule module,
+                                        void *userData,
+                                        AmsEvent *eventRef,
+                                        int unitNbr,
+                                        int moduleNbr,
+                                        int domainRoleNbr,
+                                        short domainContinuumNbr,
+                                        int domainUnitNbr,
+                                        short subjectNbr);
 
-    typedef void		(*AmsSubscriptionHandler)(AmsModule module,
-					void *userData,
-					AmsEvent *eventRef,
-					int unitNbr,
-					int moduleNbr,
-					int domainRoleNbr,
-					short domainContinuumNbr,
-					int domainUnitNbr,
-					short subjectNbr,
-					int priority,
-					unsigned char flowLabel,
-					AmsSequence sequence,
-					AmsDiligence diligence);
+    typedef void                (*AmsSubscriptionHandler)(AmsModule module,
+                                        void *userData,
+                                        AmsEvent *eventRef,
+                                        int unitNbr,
+                                        int moduleNbr,
+                                        int domainRoleNbr,
+                                        short domainContinuumNbr,
+                                        int domainUnitNbr,
+                                        short subjectNbr,
+                                        int priority,
+                                        unsigned char flowLabel,
+                                        AmsSequence sequence,
+                                        AmsDiligence diligence);
 
-    typedef void		(*AmsUnsubscriptionHandler)(AmsModule module,
-					void *userData,
-					AmsEvent *eventRef,
-					int unitNbr,
-					int moduleNbr,
-					int domainRoleNbr,
-					short domainContinuumNbr,
-					int domainUnitNbr,
-					short subjectNbr);
+    typedef void                (*AmsUnsubscriptionHandler)(AmsModule module,
+                                        void *userData,
+                                        AmsEvent *eventRef,
+                                        int unitNbr,
+                                        int moduleNbr,
+                                        int domainRoleNbr,
+                                        short domainContinuumNbr,
+                                        int domainUnitNbr,
+                                        short subjectNbr);
 
-    typedef void		(*AmsUserEventHandler)(AmsModule module,
-					void *userData,
-					AmsEvent *eventRef,
-					int code,
-					int dataLength,
-					char *data);
+    typedef void                (*AmsUserEventHandler)(AmsModule module,
+                                        void *userData,
+                                        AmsEvent *eventRef,
+                                        int code,
+                                        int dataLength,
+                                        char *data);
 
-    typedef void		(*AmsMgtErrHandler)(void *userData,
-					AmsEvent *eventRef);
+    typedef void                (*AmsMgtErrHandler)(void *userData,
+                                        AmsEvent *eventRef);
 
     typedef struct
     {
-	AmsMsgHandler			msgHandler;
-	void				*msgHandlerUserData;
-	AmsRegistrationHandler		registrationHandler;
-	void				*registrationHandlerUserData;
-	AmsUnregistrationHandler	unregistrationHandler;
-	void				*unregistrationHandlerUserData;
-	AmsInvitationHandler		invitationHandler;
-	void				*invitationHandlerUserData;
-	AmsDisinvitationHandler		disinvitationHandler;
-	void				*disinvitationHandlerUserData;
-	AmsSubscriptionHandler		subscriptionHandler;
-	void				*subscriptionHandlerUserData;
-	AmsUnsubscriptionHandler	unsubscriptionHandler;
-	void				*unsubscriptionHandlerUserData;
-	AmsUserEventHandler		userEventHandler;
-	void				*userEventHandlerUserData;
-	AmsMgtErrHandler		errHandler;
-	void				*errHandlerUserData;
+        AmsMsgHandler                   msgHandler;
+        void                            *msgHandlerUserData;
+        AmsRegistrationHandler          registrationHandler;
+        void                            *registrationHandlerUserData;
+        AmsUnregistrationHandler        unregistrationHandler;
+        void                            *unregistrationHandlerUserData;
+        AmsInvitationHandler            invitationHandler;
+        void                            *invitationHandlerUserData;
+        AmsDisinvitationHandler         disinvitationHandler;
+        void                            *disinvitationHandlerUserData;
+        AmsSubscriptionHandler          subscriptionHandler;
+        void                            *subscriptionHandlerUserData;
+        AmsUnsubscriptionHandler        unsubscriptionHandler;
+        void                            *unsubscriptionHandlerUserData;
+        AmsUserEventHandler             userEventHandler;
+        void                            *userEventHandlerUserData;
+        AmsMgtErrHandler                errHandler;
+        void                            *errHandlerUserData;
     } AmsEventMgt;
 
     typedef enum
     {
-	AmsArrivalOrder = 0,
-	AmsTransmissionOrder
+        AmsArrivalOrder = 0,
+        AmsTransmissionOrder
     } AmsSequence;
 
     typedef enum
     {
-	AmsBestEffort = 0,
-	AmsAssured
+        AmsBestEffort = 0,
+        AmsAssured
     } AmsDiligence;
 
     typedef enum
     {
-	AmsRegistrationState,
-	AmsInvitationState,
-	AmsSubscriptionState
+        AmsRegistrationState,
+        AmsInvitationState,
+        AmsSubscriptionState
     } AmsStateType;
 
     typedef enum
     {
-	AmsStateBegins = 1,
-	AmsStateEnds
+        AmsStateBegins = 1,
+        AmsStateEnds
     } AmsChangeType;
 
     typedef enum
     {
-	AmsMsgUnary = 0,
-	AmsMsgQuery,
-	AmsMsgReply,
-	AmsMsgNone
+        AmsMsgUnary = 0,
+        AmsMsgQuery,
+        AmsMsgReply,
+        AmsMsgNone
     } AmsMsgType;
 
     [see description for available functions]
@@ -199,7 +199,7 @@ named "mib.amsrc" if AMS was built with -DNOEXPAT, "amsmib.xml" otherwise.
 The transport services that are made available to AMS communicating entities
 are declared by the transportServiceLoaders array in the libams.c source
 file.  This array is fixed at compile time.  The order of preference of the
-transport services in the array is hard-coded, but the inclusion or omission 
+transport services in the array is hard-coded, but the inclusion or omission
 of individual transport services is controlled by setting compiler options.
 The "udp" transport service -- nominally the most preferred because it
 imposes the least processing and transmission overhead -- is included by
@@ -244,7 +244,7 @@ transport service preference order defined by the hard-coded array of
 transportServiceLoaders in the libams.c source file.  Each character of
 the I<tsorder> string must represent the index position of one of the
 transport services within the array.  For example, if services "udp", "dgr",
-"vmq", and "tcp" are all available in the array, a I<tsorder> string of "32" 
+"vmq", and "tcp" are all available in the array, a I<tsorder> string of "32"
 would indicate that this application will only communicate using the tcp
 and vmq services; services 0 (udp) and 1 (dgr) will not be used, and tcp
 is preferred to vmq when both are candidate services for transmission of
@@ -293,7 +293,7 @@ AmsSequence sequence, AmsDiligence diligence)
 
 Announces this module's subscription to messages on the indicated subject,
 constrained by the indicated domain, and transmitted subject to the indicated
-class of service.  Note that subscriptions differ from invitations in that 
+class of service.  Note that subscriptions differ from invitations in that
 reception of these messages is actively solicited, not just permitted.
 
 Returns 0 on success, -1 on any error.
@@ -340,7 +340,7 @@ suspends the delivery and processing of newly received messages until either
 (a) a "reply" message sent in response to this message is received or (b) the
 time interval indicated by I<term>, in seconds, expires.  The event (reply or
 timeout) that ends the suspension of processing is provided in I<event> (as
-if from ams_get_event() when the function returns. 
+if from ams_get_event() when the function returns.
 
 If I<term> is AMS_BLOCKING then the timeout interval is indefinite; only
 reception of a reply message enables the function to return.  If I<term> is
@@ -369,7 +369,7 @@ Sends a message exactly is described above for ams_send(), except that one
 copy of the message is sent to every module in the domain of this function
 (role, continuum, unit) whose invitation for messages on this subject is
 itself characterized by a domain that includes the the sending module, rather
-than to any specific module.  
+than to any specific module.
 
 Returns 0 on success, -1 on any error.
 
@@ -389,7 +389,7 @@ The nature of the event returned by ams_get_event() can be determined by
 passing I<event> to ams_get_event_type() as described below.  Event type can
 then be used to determine whether the information content of the event
 must be obtained by calling ams_parse_msg(), ams_parse_notice(), or
-ams_parse_user_event().  
+ams_parse_user_event().
 
 In any case, the memory occupied by I<event> must be released after the
 event object is no longer needed.  The ams_recycle_event() function is

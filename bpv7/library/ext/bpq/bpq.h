@@ -9,7 +9,7 @@
  *	Author: Scott Burleigh, JPL
  */
 
-#include "bei.h" 
+#include "bei.h"
 
 extern int	qos_offer(ExtensionBlock *, Bundle *);
 extern int	qos_serialize(ExtensionBlock *, Bundle *);

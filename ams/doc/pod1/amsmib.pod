@@ -54,7 +54,7 @@ same memory space share a single MIB.  MIB updates are idempotent, so this
 is harmless (though some diagnostics may be printed).
 
 Moreover, an B<amsd> daemon will have a relevant "MIB update" module running
-in a background thread if I<application_name> and I<authority_name> were cited 
+in a background thread if I<application_name> and I<authority_name> were cited
 on the command line that started the daemon (provided the role "amsd" was
 defined in the initial MIB loaded at the time B<amsd> began running).  The
 MIB exposed to the configuration server and/or registrar running in that

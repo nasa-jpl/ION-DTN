@@ -43,7 +43,7 @@ install:
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
 
-uninstall:		
+uninstall:
 		rm $(ROOT)/lib/libbsspP.so
 		rm $(ROOT)/lib/libbssp.so
 		rm $(ROOT)/lib/libtcpbsa.so

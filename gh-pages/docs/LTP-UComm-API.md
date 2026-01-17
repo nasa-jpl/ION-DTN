@@ -116,7 +116,7 @@ Example Call
 if (ltpInit(0) < 0)
 {
     putErrmsg("aoslso can't initialize LTP.", NULL);
-    
+
     /* user error handling routine here */
 }
 ```

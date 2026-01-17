@@ -61,4 +61,3 @@ killm
 echo ""
 echo "BP-Chat test completed."
 exit $RETVAL
-

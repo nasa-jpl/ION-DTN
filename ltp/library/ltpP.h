@@ -13,9 +13,9 @@
  *	Date       Who   What
  *	09-24-13    TC   Added LtpAuthHeaderExtension and
  *			 LtpAuthTrailerExtension structures.
- *                  	 Added authHeaderExtensions and authTrailerExtensions 
+ *                  	 Added authHeaderExtensions and authTrailerExtensions
  *                       attributes to LtpPdu structure.
- *                  	 Added firstSegmentLength and firstSegmentOffset 
+ *                  	 Added firstSegmentLength and firstSegmentOffset
  *                       attributes to ExportSession structure.
  *	02-06-14    TC   Added headerExtensions and trailerExtensions
  *                       attributes to LtpPdu structure.
@@ -169,7 +169,7 @@ typedef struct
 	 *	serializing the PDUs.  Extensions of incoming PDUs
 	 *	are simply processed in the course of handling the
 	 *	PDUs and are immediately discarded.			*/
-	
+
 	Object			headerExtensions;/*	SDR list.	*/
 	Object			trailerExtensions;/*	SDR list.	*/
 
@@ -781,7 +781,7 @@ extern int		addSpan(uvast engineId,
 				unsigned int aggrTimeLimit,
 				char *lsoCmd, unsigned int qTime, int purge);
 extern int		updateSpan(uvast engineId,
-	       			unsigned int maxExportSessions,
+				unsigned int maxExportSessions,
 				unsigned int maxImportSessions,
 				unsigned int maxSegmentSize,
 				unsigned int aggrSizeLimit,

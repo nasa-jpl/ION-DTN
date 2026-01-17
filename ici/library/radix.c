@@ -84,9 +84,9 @@ PsmAddress radix_alloc(PsmPartition partition, int size)
  *****************************************************************************/
 PsmAddress radix_create(PsmPartition partition)
 {
-	sm_SemId	lock;
-	PsmAddress	radixAddr;
-	RadixTree  *radixPtr;
+	sm_SemId   lock;
+	PsmAddress radixAddr;
+	RadixTree *radixPtr;
 
 	/* Step 1: Start by creating a shared-memory lock for the radix. */
 	if((lock = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO)) < 0)
@@ -264,7 +264,7 @@ PsmAddress radix_find(PsmPartition partition, PsmAddress radixAddr, char *key, i
 			case RADIX_MATCH_FULL:
 				user_data = nodePtr->user_data;
 				nodeAddr = 0;
-			    break;
+				break;
 
 			/* Step 4.1.2: If we partial match... */
 			case RADIX_MATCH_PARTIAL:
@@ -282,7 +282,7 @@ PsmAddress radix_find(PsmPartition partition, PsmAddress radixAddr, char *key, i
 				 */
 				tmpAddr = radixP_get_child(partition, nodePtr, 0);
 				if((tmpAddr == 0) ||
-				   (offset + strlen(nodeKeyPtr) >= (size_t)len))
+					(offset + strlen(nodeKeyPtr) >= (size_t)len))
 				{
 					/* Step 4.1.2.2.1: Get next node and adjust key offset. */
 					nodeAddr = radixP_get_next_node(partition, nodeAddr, 0, &delta);
@@ -494,11 +494,11 @@ void radix_foreach_match(PsmPartition partition, PsmAddress radixAddr, char *key
 				 */
 				if((flags & RADIX_MATCH_FULL) && (nodePtr->user_data != 0))
 				{
-				   if(match_fn(partition, nodePtr->user_data, tag) == RADIX_STOP_FOREACH)
-				   {
-					   radix_unlock(radixPtr);
-					   return;
-				   }
+					if(match_fn(partition, nodePtr->user_data, tag) == RADIX_STOP_FOREACH)
+					{
+						radix_unlock(radixPtr);
+						return;
+					}
 				}
 				/* Step 4.1.1.2: On a full match (including wildcards) we stop
 				 *               descending. No child nodes will offer anything
@@ -528,11 +528,11 @@ void radix_foreach_match(PsmPartition partition, PsmAddress radixAddr, char *key
 				 */
 				if(flags & RADIX_MATCH_PARTIAL)
 				{
-				  if(match_fn(partition, nodePtr->user_data, tag) == RADIX_STOP_FOREACH)
-				  {
-					  radix_unlock(radixPtr);
-					  return;
-				  }
+					if(match_fn(partition, nodePtr->user_data, tag) == RADIX_STOP_FOREACH)
+					{
+						radix_unlock(radixPtr);
+						return;
+					}
 				}
 
 				/*
@@ -549,7 +549,7 @@ void radix_foreach_match(PsmPartition partition, PsmAddress radixAddr, char *key
 				 */
 				tmpAddr = radixP_get_child(partition, nodePtr, 0);
 				if((tmpAddr == 0) ||
-				   (offset + strlen(nodeKeyPtr) >= (size_t)len))
+					(offset + strlen(nodeKeyPtr) >= (size_t)len))
 				{
 					/* Step 4.1.2.2.1: Get next node and adjust key offset. */
 					nodeAddr = radixP_get_next_node(partition, nodeAddr, 0, &delta);
@@ -904,10 +904,10 @@ PsmAddress radixP_create_node(PsmPartition partition, char *key, int keyLen, Psm
 	/* Step 3: Populate other node items and return. */
 	if((key != NULL) && (keyLen > 0))
 	{
-	  nodePtr->key = radix_alloc(partition, keyLen+1);
-	  CHKZERO(nodePtr->key);
-	  keyPtr = (char *) psp(partition, nodePtr->key);
-	  memcpy(keyPtr, key, keyLen);
+		nodePtr->key = radix_alloc(partition, keyLen+1);
+		CHKZERO(nodePtr->key);
+		keyPtr = (char *) psp(partition, nodePtr->key);
+		memcpy(keyPtr, key, keyLen);
 	}
 	else
 	{
@@ -1560,7 +1560,7 @@ int radixP_node_matches_key(char *node_key, char *key, int *idx, int wildcard)
 		{
 //			if(((node_key[i] == RADIX_PREFIX_WILDCARD) && (key[i] != RADIX_PREFIX_WILDCARD)) ||
 //((key[i] == RADIX_PREFIX_WILDCARD) && (node_key[i] != RADIX_PREFIX_WILDCARD)))
-		  if((node_key[i] == RADIX_PREFIX_WILDCARD) && (key[i] != RADIX_PREFIX_WILDCARD))
+			if((node_key[i] == RADIX_PREFIX_WILDCARD) && (key[i] != RADIX_PREFIX_WILDCARD))
 			{
 				/* Step 2.1.1: The key index is just before the wildcard. */
 				*idx = i-1;

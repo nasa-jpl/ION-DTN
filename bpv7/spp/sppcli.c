@@ -8,20 +8,20 @@
 	Copyright (c) 2025, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "sppcla.h"
 #include "ipnfw.h"
 #include "dtn2fw.h"
 #include <dlfcn.h>
 
-//static void	*handleSpacePackets(void *parm)
-//{
-//    char			*buffer;
-//    int			bundleLength;
-    
-//    return 0;
-//}
+// static void	*handleSpacePackets(void *parm)
+// {
+// 	char *buffer;
+// 	int   bundleLength;
+//
+// 	return 0;
+// }
 
 /*	*	*	Main thread functions	*	*	*	*/
 typedef size_t (*packet_recv_ptr)(char*,int*);
@@ -30,7 +30,7 @@ typedef struct
 {
 	VInduct		*vduct;
 	int		running;
-        packet_recv_ptr packet_indication;
+	packet_recv_ptr packet_indication;
 } ReceiverThreadParms;
 
 static void	interruptThread(int signum)
@@ -46,23 +46,23 @@ static void	*handleSpacePackets(void *parm)
 {
 	/*	Main loop for UDP datagram reception and handling.	*/
 
-	ReceiverThreadParms	*rtp = (ReceiverThreadParms *) parm;
-	char			*procName = "sppcli";
-	AcqWorkArea		*work;
-	char			*buffer = NULL;
-	size_t              	bundleLength;
-	int             	received_apid;
+	ReceiverThreadParms *rtp = (ReceiverThreadParms *) parm;
+	char		    *procName = "sppcli";
+	AcqWorkArea	    *work;
+	char		    *buffer = NULL;
+	size_t		     bundleLength;
+	int		     received_apid;
 
 	snooze(1);	/*	Let main thread become interruptible.	*/
 	work = bpGetAcqArea(rtp->vduct);
-	
+
 	if (work == NULL)
 	{
 		putErrmsg("sppcli can't get acquisition work area.", NULL);
 		ionKillMainThread(procName);
 		return NULL;
 	}
-	
+
 	buffer = MTAKE(SPPCLA_BUFSZ);
 	if (buffer == NULL)
 	{
@@ -77,53 +77,53 @@ static void	*handleSpacePackets(void *parm)
 		switch (bundleLength)
 		{
 		case -1:
-		/* FALLTHROUGH */
+			/* FALLTHROUGH */
 
 		case 0:
-		putErrmsg("Can't acquire bundle.", NULL);
-		ionKillMainThread(procName);
+			putErrmsg("Can't acquire bundle.", NULL);
+			ionKillMainThread(procName);
 
-		/* FALLTHROUGH */
+			/* FALLTHROUGH */
 
 		case 1:				/*	Normal stop.	*/
-		rtp->running = 0;
-		continue;
+			rtp->running = 0;
+			continue;
 
 		default:
-		break;			/*	Out of switch.	*/
+			break;			/*	Out of switch.	*/
 		}
 
 		if (bpBeginAcq(work, 0, NULL) < 0
 		|| bpContinueAcq(work, buffer, bundleLength, 0, 0) < 0
 		|| bpEndAcq(work) < 0)
 		{
-		putErrmsg("Can't acquire bundle.", NULL);
-		ionKillMainThread(procName);
-		rtp->running = 0;
-		continue;
+			putErrmsg("Can't acquire bundle.", NULL);
+			ionKillMainThread(procName);
+			rtp->running = 0;
+			continue;
 		}
 
 		sm_TaskYield();
 	}
-	
+
 	writeErrmsgMemos();
 	writeMemo("[i] sppcli receiver thread has ended.");
 	bpReleaseAcqArea(work);
 	MRELEASE(buffer);
-	
+
 	return NULL;
 }
 
 /*
-static int openSharedLibrary(char* sharedLibPath, void* handle)
+static int openSharedLibrary(char *sharedLibPath, void *handle)
 {
-    handle = dlopen(sharedLibPath, RTLD_NOW);
-    if (!handle)
-    {
-	putErrmsg("Error opening dlopen.", dlerror());
-	return -1;
-    }
-    return 0;
+	handle = dlopen(sharedLibPath, RTLD_NOW);
+	if (!handle)
+	{
+		putErrmsg("Error opening dlopen.", dlerror());
+		return -1;
+	}
+	return 0;
 }
 */
 
@@ -149,7 +149,7 @@ static int openSPPFunctions(ReceiverThreadParms *rtp,void *handle)
 int	sppcli(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-		char	                *ductName = (char *)a1;
+	char	                *ductName = (char *)a1;
 	char                    *sharedLibPath = (char *) a2;
 #else
 int	main(int argc, char *argv[])
@@ -172,7 +172,7 @@ int	main(int argc, char *argv[])
 		PUTS("Usage: sppcli <duct_name> <shared_library_path>");
 		return 0;
 	}
-	
+
 	if (bpAttach() < 0)
 	{
 		putErrmsg("sppcli can't attach to BP.", NULL);
@@ -189,15 +189,15 @@ int	main(int argc, char *argv[])
 	funcHandle = dlopen(sharedLibPath, RTLD_NOW);
 	if (!funcHandle)
 	{
-	    putErrmsg("Error opening dlopen.", dlerror());
-	    return -1;
+		putErrmsg("Error opening dlopen.", dlerror());
+		return -1;
 	}
 	/*
 	if (openSharedLibrary(sharedLibPath, funcHandle) == -1)
 	{
-	    putErrmsg("sppclo can not open shared protocol library.",sharedLibPath);
-	    return -1;
-	    }*/
+		putErrmsg("sppclo can not open shared protocol library.", sharedLibPath);
+		return -1;
+	}*/
 
 	openSPPFunctions(&rtp,funcHandle);
 
@@ -227,7 +227,7 @@ int	main(int argc, char *argv[])
 
 	/*	Start the receiver thread.				*/
 	rtp.running = 1;
-	
+
 	if (pthread_begin(&receiverThread, NULL, handleSpacePackets, &rtp))
 	{
 		putSysErrmsg("sppcli can't create receiver thread", NULL);
@@ -236,7 +236,7 @@ int	main(int argc, char *argv[])
 
 	{
 		char	txt[500];
-		
+
 		isprintf(txt, sizeof(txt),
 			"[i] sppcli is running for duct '%s'.", ductName);
 		writeMemo(txt);

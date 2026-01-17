@@ -6,7 +6,7 @@
  *	Copyright (c) 2014, California Institute of Technology.
  *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
  *	acknowledged.
- *									
+ *
  *  Author: TCSASSEMBLER, TopCoder
  *
  *  Modification History:

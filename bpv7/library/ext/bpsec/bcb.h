@@ -100,11 +100,11 @@
  * 2: Information logging.  Information statements are peppered through the
  *    code to provide insight into the state of the module at processing
  *    points considered useful by bpsec module software engineers.
- * 3: Warning logging.  Warning statements are used to flag unexpected 
+ * 3: Warning logging.  Warning statements are used to flag unexpected
  *    values that, based on context, may not constitute errors.
  * 4: Error logging.  Errors are areas in the code where some sanity check
- *    or other required condition fails to be met by the software. 
- * 
+ *    or other required condition fails to be met by the software.
+ *
  * Error logging within the BCB module is of the form:
  * <id> <function name>: <message>
  * Where id is one of:
@@ -113,7 +113,7 @@
  * i (information statement)
  * ? (warning statement)
  * x (error statement)
- * 
+ *
  * Debugging can be turned off at compile time by removing the
  * BCB_DEBUGGING #define.
  */
@@ -125,17 +125,17 @@
 		writeMemo(gMsg);                                   \
 	}
 
-   #define BCB_DEBUG_PROC(format,...) \
-           BCB_DEBUG(BCB_DEBUG_LVL_PROC,format, __VA_ARGS__)
+#define BCB_DEBUG_PROC(format, ...) \
+	BCB_DEBUG(BCB_DEBUG_LVL_PROC, format, __VA_ARGS__)
 
-   #define BCB_DEBUG_INFO(format,...) \
-           BCB_DEBUG(BCB_DEBUG_LVL_INFO,format, __VA_ARGS__)
+#define BCB_DEBUG_INFO(format, ...) \
+	BCB_DEBUG(BCB_DEBUG_LVL_INFO, format, __VA_ARGS__)
 
-   #define BCB_DEBUG_WARN(format,...) \
-           BCB_DEBUG(BCB_DEBUG_LVL_WARN,format, __VA_ARGS__)
+#define BCB_DEBUG_WARN(format, ...) \
+	BCB_DEBUG(BCB_DEBUG_LVL_WARN, format, __VA_ARGS__)
 
-   #define BCB_DEBUG_ERR(format,...) \
-           BCB_DEBUG(BCB_DEBUG_LVL_ERR,format, __VA_ARGS__)
+#define BCB_DEBUG_ERR(format, ...) \
+	BCB_DEBUG(BCB_DEBUG_LVL_ERR, format, __VA_ARGS__)
 
 #else
 #define BCB_DEBUG(level, format, ...) \
@@ -143,17 +143,17 @@
 	{                             \
 	}
 
-   #define BCB_DEBUG_PROC(format,...) \
-           BCB_DEBUG(BCB_DEBUG_LVL_PROC,format, __VA_ARGS__)
+#define BCB_DEBUG_PROC(format, ...) \
+	BCB_DEBUG(BCB_DEBUG_LVL_PROC, format, __VA_ARGS__)
 
-   #define BCB_DEBUG_INFO(format,...) \
-           BCB_DEBUG(BCB_DEBUG_LVL_INFO,format, __VA_ARGS__)
+#define BCB_DEBUG_INFO(format, ...) \
+	BCB_DEBUG(BCB_DEBUG_LVL_INFO, format, __VA_ARGS__)
 
-   #define BCB_DEBUG_WARN(format,...) \
-           BCB_DEBUG(BCB_DEBUG_LVL_WARN,format, __VA_ARGS__)
+#define BCB_DEBUG_WARN(format, ...) \
+	BCB_DEBUG(BCB_DEBUG_LVL_WARN, format, __VA_ARGS__)
 
-   #define BCB_DEBUG_ERR(format,...) \
-           BCB_DEBUG(BCB_DEBUG_LVL_ERR,format, __VA_ARGS__)
+#define BCB_DEBUG_ERR(format, ...) \
+	BCB_DEBUG(BCB_DEBUG_LVL_ERR, format, __VA_ARGS__)
 
 #endif
 

@@ -39,7 +39,7 @@ install:
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
 
-uninstall:		
+uninstall:
 		rm $(ROOT)/lib/libdgr.so
 		for file in $(PUBINCLS); \
 			do rm $(ROOT)/include/$(notdir $$file); done

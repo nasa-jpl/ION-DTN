@@ -157,7 +157,7 @@ int bslevt_add(PsmPartition wm, char *esName, BpSecEventId eventId, uint8_t acti
  *****************************************************************************/
 
 int bslevt_create(PsmPartition wm, BpSecEventId eventId, uint8_t actions,
-	              BpSecEvtActionParms *actionParms, PsmAddress *addr)
+		BpSecEvtActionParms *actionParms, PsmAddress *addr)
 {
 	uint8_t pre_actions = actions;
 

@@ -1,11 +1,11 @@
-# DTN 101 - Running the Interplanetary Internet on Cloud VM 
+# DTN 101 - Running the Interplanetary Internet on Cloud VM
 
 This project has been developed by Dr Lara Suzuki, a visiting researcher at NASA JPL.
 
 ## Introduction
 
 In this project we demonstrate how to run DTN on a cloud VM using NASA's implementation of the bundle protocol - ION. DTN stands for delay-tolerant and disruption-tolerant networks.
-> *"It is an evolution of the architecture originally designed for the Interplanetary Internet, a communication system envisioned to provide Internet-like services across interplanetary distances in support of deep space exploration"* [Cerf et al, 2007](https://tools.ietf.org/html/rfc4838). 
+> *"It is an evolution of the architecture originally designed for the Interplanetary Internet, a communication system envisioned to provide Internet-like services across interplanetary distances in support of deep space exploration"* [Cerf et al, 2007](https://tools.ietf.org/html/rfc4838).
 
 The ION (interplanetary overlay network) software is a suite of communication protocol implementations designed to support mission operation communications across an end-to-end interplanetary network, which might include on-board (flight) subnets, in-situ planetary or lunar networks, proximity links, deep space links, and terrestrial internets.
 
@@ -25,12 +25,12 @@ Mac and Linux support SSH connection natively. You just need to generate an SSH 
 
 To generate the SSH key pair to connect securely to the virtual machine, follow these steps:
 
-1. Enter the following command in Terminal: `ssh-keygen -t rsa .` 
-2. It will start the key generation process. 
-3. You will be prompted to choose the location to store the SSH key pair. 
+1. Enter the following command in Terminal: `ssh-keygen -t rsa .`
+2. It will start the key generation process.
+3. You will be prompted to choose the location to store the SSH key pair.
 4. Press `ENTER` to accept the default location
-5. Now run the following command: `cat ~/.ssh/id_rsa.pub .` 
-6. It will display the public key in the terminal. 
+5. Now run the following command: `cat ~/.ssh/id_rsa.pub .`
+6. It will display the public key in the terminal.
 7. Highlight and copy this key
 
 Back in the Cloud VM tools, follow your provider's direction on how to SSH into the VM. If you are requested to provide your SSH Keys, locate the SSH key file in your computer and inform it here.
@@ -96,11 +96,11 @@ The following tools are a few examples of programs availale to you after ION is 
 - `bpcounter` acts as receiver for streaming mode, outputting markers on receipt of data from bpdriver and computing throughput metrics.
 
 **4. Logging:**
-- By default, the administrative programs will all trigger the creation of a log file called `ion.log` in the directory where the program is called. This means that write-access in your current working directory is required. The log file itself will contain the expected log information from administrative daemons, but it will also contain error reports from simple applications such as bpsink. 
+- By default, the administrative programs will all trigger the creation of a log file called `ion.log` in the directory where the program is called. This means that write-access in your current working directory is required. The log file itself will contain the expected log information from administrative daemons, but it will also contain error reports from simple applications such as bpsink.
 
 ### The Configuration Files
 
-Below we present the configuration files that you should be aware and configure for ION to execute correctly. 
+Below we present the configuration files that you should be aware and configure for ION to execute correctly.
 
 1. `ionadmin's` configuration file, assigns an identity (node number) to the node, optionally configures the resources that will be made available to the node, and specifies contact bandwidths and one-way transmission times. Specifying the "contact plan" is important in deep-space scenarios where the bandwidth must be managed and where acknowledgments must be timed according to propagation delays. It is also vital to the function of contact-graph routing - [How To](ion-config.md)
 

@@ -103,7 +103,7 @@ extern int	cfdp_rls(CfdpNumber	*respondentEntityNbr,
 			MetadataList	filestoreRequests,
 			CfdpDirListTask	*dirListTask,
 			CfdpTransactionId *transactionId);
-#endif 
+#endif
 
 #ifdef __cplusplus
 }

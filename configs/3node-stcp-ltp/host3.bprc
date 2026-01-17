@@ -1,6 +1,6 @@
 # bprc configuration file for host3 in a 3node ltp/stcp test.
 #	Command: % bpadmin host3.bprc
-#	This command should be run AFTER ionadmin and 
+#	This command should be run AFTER ionadmin and
 #	BEFORE ipnadmin or dtnadmin.
 #
 #	Ohio University, Oct 2008
@@ -35,7 +35,7 @@ a endpoint ipn 3.0 x
 a endpoint ipn 3.1 x
 a endpoint ipn 3.2 x
 
-# Add a protocol. 
+# Add a protocol.
 #	Add the protocol named stcp.
 #	Estimate transmission capacity assuming 1400 bytes of each frame (in
 #	this case, stcp on ethernet) for payload, and 100 bytes for overhead.

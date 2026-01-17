@@ -1,10 +1,10 @@
 /*
-	bprecvtest.c:	Test program for receiving files from bptestfiles 
-		expects a pilot bundle to start timer followed by a specified 
-		number of files, whose length are recorded then the contents 
-		are discarded.									*/
-/*	Modified from bprecvfile.c by Silas Springer		*/
-/*														*/
+	bprecvtest.c:	Test program for receiving files from bptestfiles
+		expects a pilot bundle to start timer followed by a specified
+		number of files, whose length are recorded then the contents
+		are discarded.							*/
+/*	Modified from bprecvfile.c by Silas Springer				*/
+/*										*/
 
 #include <bp.h>
 #include <time.h>
@@ -193,7 +193,7 @@ int	main(int argc, char **argv)
 	double interval = (endt.tv_usec - startt.tv_usec)
 	+ (1e6 * (endt.tv_sec - startt.tv_sec));
 	interval /= 1e6;
-	
+
 	printf("Received %d bytes in %lf seconds: %f Mbps\n", bytesReceived, interval, (((double)bytesReceived)/interval)/125000 );
 
 	bp_close(state.sap);

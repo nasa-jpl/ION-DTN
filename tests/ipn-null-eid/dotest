@@ -41,17 +41,17 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: To test ION behavior using dtn:none eids to ensure that the
-	null eid does not crash the node. Bptrace uses dtn:none as one of
-	the report/custodian eids to test this."
+    null eid does not crash the node. Bptrace uses dtn:none as one of
+    the report/custodian eids to test this."
 echo
 echo "CONFIG: 3 node custom configuration:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Terminal messages relay results."
 echo
@@ -80,42 +80,42 @@ cd ../5.ipn.ltp
 ionadmin amroc.ionrc
 
 cd ../2.ipn.ltp
-ionadmin global.ionrc 
+ionadmin global.ionrc
 cd ../3.ipn.ltp
-ionadmin global.ionrc 
+ionadmin global.ionrc
 cd ../5.ipn.ltp
-ionadmin global.ionrc 
+ionadmin global.ionrc
 
 cd ../2.ipn.ltp
-ionsecadmin amroc.ionsecrc 
+ionsecadmin amroc.ionsecrc
 cd ../3.ipn.ltp
-ionsecadmin amroc.ionsecrc 
+ionsecadmin amroc.ionsecrc
 cd ../5.ipn.ltp
-ionsecadmin amroc.ionsecrc 
+ionsecadmin amroc.ionsecrc
 
 cd ../2.ipn.ltp
-ltpadmin amroc.ltprc 
+ltpadmin amroc.ltprc
 cd ../3.ipn.ltp
-ltpadmin amroc.ltprc 
+ltpadmin amroc.ltprc
 cd ../5.ipn.ltp
-ltpadmin amroc.ltprc 
+ltpadmin amroc.ltprc
 
 cd ../2.ipn.ltp
-bpadmin amroc.bprc 
+bpadmin amroc.bprc
 cd ../3.ipn.ltp
-bpadmin amroc.bprc 
+bpadmin amroc.bprc
 cd ../5.ipn.ltp
-bpadmin amroc.bprc 
+bpadmin amroc.bprc
 
 cd ../2.ipn.ltp
 ../../../system_up -i "p 30" -l "p 30" -b "p 30"
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 2 not started: Aborting Test"
-	exit 1
+    echo "Node 2 not started: Aborting Test"
+    exit 1
 fi
 
 cd ../3.ipn.ltp
@@ -123,10 +123,10 @@ cd ../3.ipn.ltp
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 3 not started: Aborting Test"
-	exit 1
+    echo "Node 3 not started: Aborting Test"
+    exit 1
 fi
 
 cd ../5.ipn.ltp
@@ -134,10 +134,10 @@ cd ../5.ipn.ltp
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 5 not started: Aborting Test"
-	exit 1
+    echo "Node 5 not started: Aborting Test"
+    exit 1
 fi
 
 # message sent over ion
@@ -212,7 +212,7 @@ if ! grep -q $IONMESSAGE $IONRECEIVEFILE; then
     cat $IONRECEIVEFILE
     echo "----------------------------------------------------------------------"
     RETVAL=1
-else 
+else
     echo "bundle transfer successful!"
     RETVAL=0
 fi

@@ -50,7 +50,7 @@ static unsigned long getUsecTimestamp(void)
 
 #if defined(ION_LWT)
 int udpclo(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5, saddr a6, saddr a7,
-                saddr a8, saddr a9, saddr a10)
+		saddr a8, saddr a9, saddr a10)
 {
 	char *rttString = (a1 != 0 ? (char *) a1 : NULL);
 	char *endpointSpec = (char *) a2;
@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
 	else if (resolveResult < 0)
 	{
 		writeMemoNote("[?] udpclo: Initial hostname resolution failed",
-		                endpointSpec);
+				endpointSpec);
 		/* Continue - will retry during operation */
 	}
 	else
@@ -135,8 +135,8 @@ int main(int argc, char *argv[])
 		formatNetworkAddress(&destAddr, destAddrStr, sizeof(destAddrStr));
 		char memo[256];
 		snprintf(memo, sizeof(memo), "udpclo resolved %s to %s (%s)",
-		                endpointSpec, destAddrStr,
-		                (destAddr.family == AF_INET6) ? "IPv6" : "IPv4");
+				endpointSpec, destAddrStr,
+				(destAddr.family == AF_INET6) ? "IPv6" : "IPv4");
 		writeMemo(memo);
 	}
 
@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
 	if (vduct->cloPid != ERROR && vduct->cloPid != sm_TaskIdSelf())
 	{
 		putErrmsg("udpclo: CLO task is already started for this duct.",
-		                itoa(vduct->cloPid));
+				itoa(vduct->cloPid));
 		MRELEASE(buffer);
 		return -1;
 	}
@@ -169,7 +169,7 @@ int main(int argc, char *argv[])
 	sdr = getIonsdr();
 	CHKZERO(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr, vduct->outductElt),
-	                sizeof(Outduct));
+			sizeof(Outduct));
 	if (outduct.planDuctListElt)
 	{
 		planDuctList = sdr_list_list(sdr, outduct.planDuctListElt);
@@ -195,18 +195,18 @@ int main(int argc, char *argv[])
 		if (resolveResult >= 0)
 		{
 			formatNetworkAddress(&destAddr, destAddrStr,
-			                sizeof(destAddrStr));
+					sizeof(destAddrStr));
 			isprintf(memoBuf, sizeof(memoBuf),
-			                "[i] udpclo is running, spec='%s' resolved to %s (%s)",
-			                endpointSpec, destAddrStr,
-			                (destAddr.family == AF_INET6) ? "IPv6" :
-			                                                "IPv4");
+					"[i] udpclo is running, spec='%s' resolved to %s (%s)",
+					endpointSpec, destAddrStr,
+					(destAddr.family == AF_INET6) ? "IPv6" :
+									"IPv4");
 		}
 		else
 		{
 			isprintf(memoBuf, sizeof(memoBuf),
-			                "[i] udpclo is running, spec='%s' (address resolution pending)",
-			                endpointSpec);
+					"[i] udpclo is running, spec='%s' (address resolution pending)",
+					endpointSpec);
 		}
 		writeMemo(memoBuf);
 	}
@@ -241,12 +241,12 @@ int main(int argc, char *argv[])
 
 		/* Periodic address re-resolution using dual-stack cache */
 		int innerResolveResult = resolveNetworkAddressCached(endpointSpec,
-		                &destAddr);
+				&destAddr);
 		if (innerResolveResult == -2)
 		{
 			/* Fatal DNS failure - stop daemon */
 			putErrmsg("udpclo: Maximum DNS failures reached",
-			                endpointSpec);
+					endpointSpec);
 			if (sdr_begin_xn(sdr) >= 0)
 			{
 				zco_destroy(sdr, bundleZco);
@@ -260,7 +260,7 @@ int main(int argc, char *argv[])
 		{
 			/* Address resolution failed - abandon this bundle */
 			writeMemoNote("[?] udpclo: Address resolution failed, abandoning bundle",
-			                endpointSpec);
+					endpointSpec);
 			if (sdr_begin_xn(sdr) >= 0)
 			{
 				zco_destroy(sdr, bundleZco);
@@ -271,7 +271,7 @@ int main(int argc, char *argv[])
 
 		/* Send via Dual-stack */
 		bytesSent = sendBundleByUDPDualStack(&destAddr, &ductSocket,
-		                bundleLength, bundleZco, buffer);
+				bundleLength, bundleZco, buffer);
 		if (bytesSent < 0 || (unsigned int)bytesSent < bundleLength)
 		{
 			sm_SemEnd(udpcloSemaphore(NULL)); /* Stop. */

@@ -78,9 +78,9 @@ grep "${IONMESSAGE}" "${IONRECEIVEFILE}"  >/dev/null 2>/dev/null
 RETVAL=${?}
 
 if test "${RETVAL}" -ne 0 ; then
-	echo "Files do not match."
+    echo "Files do not match."
 else
-	echo "Files match."
+    echo "Files match."
 fi
 
 # shut down ion processes
@@ -106,9 +106,9 @@ echo
 
 # return the result of the match
 if test "${RETVAL}" -ne 0 ; then
-	echo "Returning '${RETVAL}' for failure."
+    echo "Returning '${RETVAL}' for failure."
 else
-	echo "Returning '${RETVAL}' for success."
+    echo "Returning '${RETVAL}' for success."
 fi
 
 exit ${RETVAL}

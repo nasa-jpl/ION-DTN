@@ -19,20 +19,20 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: To test out Contact Graph Routing behavior in a very large
-	contact graph.  Only one node is actually run, though there are several
-	nodes defined in the graph."
+    contact graph.  Only one node is actually run, though there are several
+    nodes defined in the graph."
 echo
 echo "CONFIG: Large contact graph, with only one configured node:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
-echo "OUTPUT: Searching for bundle forwarding messages in ion.log to ensure 
-	that the CGR engine is capable of making decisions."
+echo "OUTPUT: Searching for bundle forwarding messages in ion.log to ensure
+    that the CGR engine is capable of making decisions."
 echo
 echo "########################################"
 
@@ -51,10 +51,10 @@ rm -f ./ion_nodes
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node not started: Aborting Test"
-	exit 1
+    echo "Node not started: Aborting Test"
+    exit 1
 fi
 
 echo "Generating CGR visualization data with cgrfetch..."
@@ -65,58 +65,58 @@ echo "This creates JSON files for use with contrib/cgr-viewer tool."
 
 echo "  Generating cgr_to_mcc.json (node 9 -> node 1: Mission Control)..."
 if cgrfetch -d ltp:9 -e 86400 -o cgr_to_mcc.json 1 2>cgrfetch_error.log; then
-	rm -f cgrfetch_error.log
+    rm -f cgrfetch_error.log
 else
-	echo "    Warning: cgrfetch failed for node 1. See cgrfetch_error.log for details."
+    echo "    Warning: cgrfetch failed for node 1. See cgrfetch_error.log for details."
 fi
 
 echo "  Generating cgr_to_goldstone.json (node 9 -> node 2: Goldstone DSN)..."
 if cgrfetch -d ltp:9 -e 86400 -o cgr_to_goldstone.json 2 2>cgrfetch_error.log; then
-	rm -f cgrfetch_error.log
+    rm -f cgrfetch_error.log
 else
-	echo "    Warning: cgrfetch failed for node 2. See cgrfetch_error.log for details."
+    echo "    Warning: cgrfetch failed for node 2. See cgrfetch_error.log for details."
 fi
 
 echo "  Generating cgr_to_madrid.json (node 9 -> node 3: Madrid DSN)..."
 if cgrfetch -d ltp:9 -e 86400 -o cgr_to_madrid.json 3 2>cgrfetch_error.log; then
-	rm -f cgrfetch_error.log
+    rm -f cgrfetch_error.log
 else
-	echo "    Warning: cgrfetch failed for node 3. See cgrfetch_error.log for details."
+    echo "    Warning: cgrfetch failed for node 3. See cgrfetch_error.log for details."
 fi
 
 echo "  Generating cgr_to_canberra.json (node 9 -> node 4: Canberra DSN)..."
 if cgrfetch -d ltp:9 -e 86400 -o cgr_to_canberra.json 4 2>cgrfetch_error.log; then
-	rm -f cgrfetch_error.log
+    rm -f cgrfetch_error.log
 else
-	echo "    Warning: cgrfetch failed for node 4. See cgrfetch_error.log for details."
+    echo "    Warning: cgrfetch failed for node 4. See cgrfetch_error.log for details."
 fi
 
 echo "  Generating cgr_to_maven.json (node 9 -> node 5: MAVEN orbiter)..."
 if cgrfetch -d ltp:9 -e 86400 -o cgr_to_maven.json 5 2>cgrfetch_error.log; then
-	rm -f cgrfetch_error.log
+    rm -f cgrfetch_error.log
 else
-	echo "    Warning: cgrfetch failed for node 5. See cgrfetch_error.log for details."
+    echo "    Warning: cgrfetch failed for node 5. See cgrfetch_error.log for details."
 fi
 
 echo "  Generating cgr_to_mro.json (node 9 -> node 6: MRO orbiter)..."
 if cgrfetch -d ltp:9 -e 86400 -o cgr_to_mro.json 6 2>cgrfetch_error.log; then
-	rm -f cgrfetch_error.log
+    rm -f cgrfetch_error.log
 else
-	echo "    Warning: cgrfetch failed for node 6. See cgrfetch_error.log for details."
+    echo "    Warning: cgrfetch failed for node 6. See cgrfetch_error.log for details."
 fi
 
 echo "  Generating cgr_to_tgo.json (node 9 -> node 7: TGO orbiter)..."
 if cgrfetch -d ltp:9 -e 86400 -o cgr_to_tgo.json 7 2>cgrfetch_error.log; then
-	rm -f cgrfetch_error.log
+    rm -f cgrfetch_error.log
 else
-	echo "    Warning: cgrfetch failed for node 7. See cgrfetch_error.log for details."
+    echo "    Warning: cgrfetch failed for node 7. See cgrfetch_error.log for details."
 fi
 
 echo "  Generating cgr_to_exomars.json (node 9 -> node 8: ExoMars rover)..."
 if cgrfetch -d ltp:9 -e 86400 -o cgr_to_exomars.json 8 2>cgrfetch_error.log; then
-	rm -f cgrfetch_error.log
+    rm -f cgrfetch_error.log
 else
-	echo "    Warning: cgrfetch failed for node 8. See cgrfetch_error.log for details."
+    echo "    Warning: cgrfetch failed for node 8. See cgrfetch_error.log for details."
 fi
 
 echo "CGR JSON files generated successfully."
@@ -143,10 +143,10 @@ echo "Searching ion.log for a single 'fwd' message '(+) 1 3'..."
 COUNT=`grep fwd ion.log | grep "(+) 1 3" | wc -l`
 if [ $COUNT -gt 0 ]
 then
-	echo "OK: Route was computed."
+    echo "OK: Route was computed."
 else
-	echo "ERROR: Route was not computed."
-	RETVAL=1
+    echo "ERROR: Route was not computed."
+    RETVAL=1
 fi
 
 # Shut down ION processes.

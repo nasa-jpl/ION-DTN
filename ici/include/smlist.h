@@ -89,7 +89,7 @@ extern PsmAddress	Sm_list_insert_after(const char *file, int line,
 Sm_list_delete(__FILE__, __LINE__, partition, elt, fn, arg)
 extern int		Sm_list_delete(const char *file, int line,
 				PsmPartition partition, PsmAddress elt,
-			       SmListDeleteFn deleteFn, void *argument);
+				SmListDeleteFn deleteFn, void *argument);
 
 extern PsmAddress	sm_list_first(PsmPartition partition, PsmAddress list);
 extern PsmAddress	sm_list_last(PsmPartition partition, PsmAddress list);

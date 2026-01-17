@@ -41,7 +41,7 @@ WAIT 1
 #------------------------------------------------------------------------------
 #
 # ARI: ari:/IANA:amp.agent/Ctrl.gen_rpts(
-#         [ari:/IANA:amp.agent/Rptt.full_report(), 
+#         [ari:/IANA:amp.agent/Rptt.full_report(),
 #          ari:/IANA:bp.agent/Rptt.full_report()],[])
 #
 #------------------------------------------------------------------------------
@@ -74,14 +74,14 @@ WAIT 5
 
 #------------------------------------------------------------------------------
 # Step 2.3 Generate Endpoint report for 3 endpoints:
-#              ipn:1.0, 
-#              ipn:1.1, 
+#              ipn:1.0,
+#              ipn:1.1,
 #              ipn:1.2
 #------------------------------------------------------------------------------
 #
 # ARI: ari:/IANA:amp.agent/Ctrl.gen_rpts(
-#         [ari:/IANA:dtn.bp_agent/Rptt.endpoint_report(ipn:1.0), 
-#          ari:/IANA:dtn.bp_agent/Rptt.endpoint_report(ipn:1.1), 
+#         [ari:/IANA:dtn.bp_agent/Rptt.endpoint_report(ipn:1.0),
+#          ari:/IANA:dtn.bp_agent/Rptt.endpoint_report(ipn:1.1),
 #          ari:/IANA:dtn.bp_agent/Rptt.endpoint_report(ipn:1.2)], [])
 #
 #------------------------------------------------------------------------------
@@ -97,7 +97,7 @@ WAIT 5
 
 
 ###################################################
-# Test Case 3: Report on basic elements 
+# Test Case 3: Report on basic elements
 ###################################################
 
 #------------------------------------------------------------------------------
@@ -137,7 +137,7 @@ WAIT 1
 #------------------------------------------------------------------------------
 #
 # ARI: ari:/IANA:amp.agent/Ctrl.gen_rpts(
-#         [ari:/IANA:amp.agent/Edd.num_tbl_tpls, 
+#         [ari:/IANA:amp.agent/Edd.num_tbl_tpls,
 #          ari:/IANA:amp.agent/Var.num_rules], [])
 #
 #------------------------------------------------------------------------------
@@ -150,27 +150,27 @@ WAIT 1
 
 
 ###################################################
-# Test Case 4: Report templates 
+# Test Case 4: Report templates
 ###################################################
 
 #------------------------------------------------------------------------------
-# Step 4.1: Add a report template (R1) that provides the number of table 
-#           templates (num_tbl_tpls) and number of report templates 
+# Step 4.1: Add a report template (R1) that provides the number of table
+#           templates (num_tbl_tpls) and number of report templates
 #           (num_rpt_tpls) known to the Agent.
 #
 #------------------------------------------------------------------------------
 #
 # Type: Report Template (rptt)
 # Nickname (NN): 1
-# Issuer (ISS): 1 
+# Issuer (ISS): 1
 # Name: R1
 # RPTT ARI: ari:/1:1/Rptt.R1
 # CBOR RPTT ARI: 0x3742523141314131
 #
 #------------------------------------------------------------------------------
 #
-# ARI: ari:/IANA:amp.agent/Ctrl.add_rptt(ari:/1:1/Rptt.R1, 
-#        [ari:/IANA:amp.agent/Edd.num_tbl_tpls, 
+# ARI: ari:/IANA:amp.agent/Ctrl.add_rptt(ari:/1:1/Rptt.R1,
+#        [ari:/IANA:amp.agent/Edd.num_tbl_tpls,
 #         ari:/IANA:amp.agent/Edd.num_rpt_tpls])
 #
 #------------------------------------------------------------------------------
@@ -216,7 +216,7 @@ WAIT 1
 #------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
-# Step 4.7: Generate a table of all known report templates and make sure 
+# Step 4.7: Generate a table of all known report templates and make sure
 #           R1 still exists.
 #------------------------------------------------------------------------------
 #
@@ -237,7 +237,7 @@ c1154103050125813742523141314131
 WAIT 1
 
 #------------------------------------------------------------------------------
-# Step 4.9: Generate a table of all known report templates and make sure 
+# Step 4.9: Generate a table of all known report templates and make sure
 #            R1 has been deleted (is not represented in the table).
 #------------------------------------------------------------------------------
 #
@@ -252,7 +252,7 @@ WAIT 1
 #------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
-# Step 4.11: Generate a table of all known report templates and make sure 
+# Step 4.11: Generate a table of all known report templates and make sure
 #            R1 is not represented in the table.
 #------------------------------------------------------------------------------
 #
@@ -293,11 +293,11 @@ WAIT 1
 #------------------------------------------------------------------------------
 # Step 1.1: Define UINT V1 as "2 + 2"
 #------------------------------------------------------------------------------
-# 
+#
 # ARI: ari:/IANA:Amp.Agent/Ctrl.add_var(ari://var.v1, (UINT) 2 2 +, UINT)
 #
 #------------------------------------------------------------------------------
-# 
+#
 # V1 ARI: ari://var.v1
 # V1 encoding: 0x0c427631
 #
@@ -342,7 +342,7 @@ WAIT 1
 
 
 #------------------------------------------------------------------------------
-# Step 1.4: Restart the Agent. 
+# Step 1.4: Restart the Agent.
 #------------------------------------------------------------------------------
 
 
@@ -404,7 +404,7 @@ WAIT 1
 
 
 #------------------------------------------------------------------------------
-# Step 1.10: Restart the Agent. 
+# Step 1.10: Restart the Agent.
 #------------------------------------------------------------------------------
 
 
@@ -437,12 +437,12 @@ WAIT 1
 # Test Case 2.2: Complex Variables
 ###############################################################################
 # uint V2 = 4;         // Test that V2 = 4.
-# expr V3 = V2 + 1;     
+# expr V3 = V2 + 1;
 # uint V4 = eval(V3);  // Test that V4 = 5.
 # V2 = V4;             // Test that V2 = 5.
 # V4 = eval(V3);       // Test that V4 = 6.
 #
-# V2 ARI = 0x0c427632             
+# V2 ARI = 0x0c427632
 # V3 ARI = 0x0c427633
 # V4 ARI = 0x0c427634
 ###############################################################################
@@ -557,7 +557,7 @@ WAIT 1
 ###############################################################################
 
 #------------------------------------------------------------------------------
-# Step 1.1: Create a Macro that 
+# Step 1.1: Create a Macro that
 #   1) Generates a BP Agent Full Report
 #   2) Issues a reset all counts command to reset the counters in the BP Agent
 #      full report
@@ -567,7 +567,7 @@ WAIT 1
 #
 # Type: Macro (mac)
 # Nickname (NN): 1
-# Issuer (ISS): 1 
+# Issuer (ISS): 1
 # Name: test_full_rpt
 # Macro ARI: ari:/1:1/Mac.test_full_rpt
 # CBOR Macro ARI: 0x344d746573745f66756c6c5f72707441314131
@@ -634,7 +634,7 @@ c115410805012581344d746573745f66756c6c5f72707441314131
 WAIT 1
 
 #------------------------------------------------------------------------------
-# Step 1.8: Request table of known macros. Make sure the macro is no longer 
+# Step 1.8: Request table of known macros. Make sure the macro is no longer
 #           listed.
 #------------------------------------------------------------------------------
 #
@@ -651,7 +651,7 @@ WAIT 1
 
 
 #------------------------------------------------------------------------------
-# Step 1.10: Request table of known macros. Make sure the macro is no longer 
+# Step 1.10: Request table of known macros. Make sure the macro is no longer
 #           listed.
 #------------------------------------------------------------------------------
 #
@@ -707,14 +707,14 @@ c115410a05062420201625120b413100050581c11541050502252381871819410000682018544252
 WAIT 1
 
 #------------------------------------------------------------------------------
-# Step 4.1.2: Verify that 5 reports are received approximately 
+# Step 4.1.2: Verify that 5 reports are received approximately
 # 5 seconds apart (variance up to 1 second between individual reports
 # are within tolerance due to the 1Hz rate of the agent autonomy
-# engine. 
+# engine.
 #------------------------------------------------------------------------------
- 
+
 WAIT 30
- 
+
 
 ###############################################################################
 # TC 4.2: Manipulate TBRs.
@@ -723,7 +723,7 @@ WAIT 30
 ###############################################################################
 
 #------------------------------------------------------------------------------
-# Step 4.2.1: Define a TBR  (TBR 2) that will generate an AGENT FULL REPORT 
+# Step 4.2.1: Define a TBR  (TBR 2) that will generate an AGENT FULL REPORT
 # every 30 seconds 100 times.
 #------------------------------------------------------------------------------
 #
@@ -736,7 +736,7 @@ WAIT 30
 #
 #------------------------------------------------------------------------------
 #
-# ARI: ari:/IANA:AMP.AGENT/CTRL.ADD_TBR(ari://Tbr.2, 0, 30, 100, 
+# ARI: ari:/IANA:AMP.AGENT/CTRL.ADD_TBR(ari://Tbr.2, 0, 30, 100,
 #         [ari:/IANA:amp.agent/Ctrl.gen_rpts([ari:/IANA:amp.agent/Rptt.full_report()],[])], ‘TBR2’)
 #
 #------------------------------------------------------------------------------
@@ -745,7 +745,7 @@ WAIT 1
 
 
 #------------------------------------------------------------------------------
-# Step 4.2.2: List TBRs on the agent. 
+# Step 4.2.2: List TBRs on the agent.
 #------------------------------------------------------------------------------
 #
 # ARI: ari:/IANA:amp.agent/Ctrl.gen_tbls([ari:/IANA:amp.agent/Tblt.rules()],[])
@@ -819,7 +819,7 @@ WAIT 1
 ###############################################################################
 # TC 4.3: Run macro by TBR
 ###############################################################################
-# 
+#
 ###############################################################################
 
 #------------------------------------------------------------------------------
@@ -832,7 +832,7 @@ WAIT 1
 #
 #------------------------------------------------------------------------------
 #
-# ARI: ari:/IANA:amp.agent/Ctrl.add_macro("bp_full_rpt_macro", 
+# ARI: ari:/IANA:amp.agent/Ctrl.add_macro("bp_full_rpt_macro",
 #        ari://Mac.bp_full_rpt_macro, [ari:/IANA:amp.agent/Ctrl.gen_rpts(
 #         [ari:/IANA:dtn.bp_agent/Rptt.full_report()], [])])
 #
@@ -842,7 +842,7 @@ WAIT 1
 
 
 #------------------------------------------------------------------------------
-# Step 4.3.2: Define TBR T7 to run Agent Macro bp_full_rpt_macro 1 time with 
+# Step 4.3.2: Define TBR T7 to run Agent Macro bp_full_rpt_macro 1 time with
 #             period 5.
 #------------------------------------------------------------------------------
 #
@@ -855,7 +855,7 @@ WAIT 1
 #
 #------------------------------------------------------------------------------
 #
-# ARI: ari:/IANA:AMP.AGENT/CTRL.ADD_TBR(ari://Tbr.7, 0, 5, 1, 
+# ARI: ari:/IANA:AMP.AGENT/CTRL.ADD_TBR(ari://Tbr.7, 0, 5, 1,
 #        [ari://Mac.bp_full_rpt_macro], ‘TBR7’)
 #
 #------------------------------------------------------------------------------
@@ -886,10 +886,10 @@ WAIT 1
 #------------------------------------------------------------------------------
 #
 # V5 ARI = 0x0c427635
-# 
+#
 # ari:/IANA:Amp.Agent/Ctrl.add_var(ari://var.v5, (UINT) 0, UINT)
 #
-# 
+#
 # CBOR breakout:
 #
 # CONTROL  TNVC    PARM TYPES       PARM1    PARM2         PARM3
@@ -922,8 +922,8 @@ WAIT 1
 #------------------------------------------------------------------------------
 #
 # Macro M1 ARI: 0x04424d31
-# 
-# ARI: ari:/IANA:amp.agent/Ctrl.add_macro("m1", ari://Mac.M1, 
+#
+# ARI: ari:/IANA:amp.agent/Ctrl.add_macro("m1", ari://Mac.M1,
 #      [ari:/IANA:amp.agent/Ctrl.gen_rpts([ari:/IANA:amp.agent/Rptt.full_report()],[]),
 #       ari:/IANA:amp.agent/Ctrl.store_var(ari://var.v5, (UINT)0)])
 #
@@ -932,7 +932,7 @@ c11541070503122425626d3104424d3182c11541050502252381871819410000c115410e05022426
 WAIT 1
 
 #------------------------------------------------------------------------------
-# Step 1.5: List Macros 
+# Step 1.5: List Macros
 #------------------------------------------------------------------------------
 #
 # ARI: ari:/IANA:amp.agent/Ctrl.gen_tbls([ari:/IANA:amp.agent/Tblt.macros()],[])
@@ -960,7 +960,7 @@ WAIT 1
 #------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
-# Step 1.9: Define SRL S1 to run every time V5 >= 2 up to 3 times. 
+# Step 1.9: Define SRL S1 to run every time V5 >= 2 up to 3 times.
 #------------------------------------------------------------------------------
 #
 # S1 ARI = 0x08425331
@@ -972,7 +972,7 @@ WAIT 1
 #
 #------------------------------------------------------------------------------
 #
-# ARI: ari:/IANA:amp.agent/Ctrl.add_sbr(ari://Sbr.S1, 0, 
+# ARI: ari:/IANA:amp.agent/Ctrl.add_sbr(ari://Sbr.S1, 0,
 #       (UINT) ari://Var.v5 2 >=, 1000, 3, [ari://Mac.M1], "S1")
 #
 #------------------------------------------------------------------------------
@@ -1012,7 +1012,7 @@ WAIT 1
 # run the command: V5 = V5 + 1 which is: STOR(V5, {(UINT), V5 1 +})
 #------------------------------------------------------------------------------
 #
-# T1 ARI = 0x0b425431 
+# T1 ARI = 0x0b425431
 # T1 Start = 0
 # T1 Period = 20
 # T1 Count = 6
@@ -1020,7 +1020,7 @@ WAIT 1
 #
 #------------------------------------------------------------------------------
 #
-# ARI: ari:/IANA:amp.agent/Ctrl.add_tbr(ari://tbr.T1, 0, 20, 6, 
+# ARI: ari:/IANA:amp.agent/Ctrl.add_tbr(ari://tbr.T1, 0, 20, 6,
 #      [ari:/IANA:amp.agent/Ctrl.store_var(ari://var.v5, (UINT) ari://var.v5 1 +)], "T1")
 #
 #------------------------------------------------------------------------------
@@ -1061,7 +1061,7 @@ WAIT 1
 #------------------------------------------------------------------------------
 # Step 1.19: Delete S1. i.e. show no issue with deleting a deleted SBR.
 #            Expect to see the following in Agent output:
-#            "[nm/agent/adm_amp_agent_impl.c:1946] 
+#            "[nm/agent/adm_amp_agent_impl.c:1946]
 #            w DEL_RULE Cannot find RULE to be deleted."
 #
 #------------------------------------------------------------------------------
@@ -1088,7 +1088,7 @@ WAIT 1
 ###################################################
 
 #------------------------------------------------------------------------------
-# Step 1.1: Generate a table that lists all the adms that are supported by 
+# Step 1.1: Generate a table that lists all the adms that are supported by
 #           the agent using the AMP Agent adm table template.
 #------------------------------------------------------------------------------
 #
@@ -1103,7 +1103,7 @@ WAIT 1
 #------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
-# Step 1.3: Generate a table that lists all the table templates that are defined  
+# Step 1.3: Generate a table that lists all the table templates that are defined
 #           by the agent using the AMP Agent tblts table template.
 #------------------------------------------------------------------------------
 #
@@ -1114,7 +1114,7 @@ c115410605022523818a181b410500
 WAIT 1
 
 #------------------------------------------------------------------------------
-# Step 1.4: Verify TBLT table received and correct. 
+# Step 1.4: Verify TBLT table received and correct.
 #------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
@@ -1122,7 +1122,7 @@ WAIT 1
 #------------------------------------------------------------------------------
 #
 # ARI: ari:/IANA:amp.agent/Ctrl.gen_tbls(
-#         [ari:/IANA:amp.agent/Tblt.variables(), 
+#         [ari:/IANA:amp.agent/Tblt.variables(),
 #          ari:/IANA:amp.agent/Tblt.rules()],[])
 #
 #------------------------------------------------------------------------------

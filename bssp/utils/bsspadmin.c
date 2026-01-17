@@ -7,7 +7,7 @@
  *	Copyright (c) 2013, California Institute of Technology.
  *	Copyright (c) 2013, Space Internetworking Center,
  *	Democritus University of Thrace.
- *	
+ *
  *	All rights reserved. U.S. Government and E.U. Sponsorship acknowledged.
  */
 
@@ -113,7 +113,7 @@ indication characters, e.g., df{].  See man(5) for bssprc.");
 static void	initializeBssp(int tokenCount, char **tokens)
 {
 	unsigned int	estMaxNbrOfSessions;
-	
+
 	if (tokenCount != 2)
 	{
 		SYNTAX_ERROR;
@@ -237,7 +237,7 @@ static void	executeChange(int tokenCount, char **tokens)
 
 		engineId = strtouvast(tokens[2]);
 		oK(updateBsspSpan(engineId, strtol(tokens[3], NULL, 0),
-			strtol(tokens[4], NULL, 0), tokens[5], 
+			strtol(tokens[4], NULL, 0), tokens[5],
 			tokens[6], (unsigned int) qTime, purge));
 		return;
 	}
@@ -297,10 +297,10 @@ static void	printSeat(BsspVseat *vseat)
 	sdr_string_read(sdr, beCmd, seat->beBsiCmd);
 	sdr_string_read(sdr, rlCmd, seat->rlBsiCmd);
 	isprintf(buffer, sizeof buffer,
-                        "BE '%.128s' pid: %d   RL '%.128s' pid: %d",
-                        beCmd, vseat->beBsiPid, rlCmd, vseat->rlBsiPid);
-        sdr_exit_xn(sdr);
-        printText(buffer);
+			"BE '%.128s' pid: %d   RL '%.128s' pid: %d",
+			beCmd, vseat->beBsiPid, rlCmd, vseat->rlBsiPid);
+	sdr_exit_xn(sdr);
+	printText(buffer);
 }
 
 static void	printSpan(BsspVspan *vspan)
@@ -596,11 +596,11 @@ static void	switchWatch(int tokenCount, char **tokens)
 		case '-':
 			vdb->watching |= WATCH_resendBlk;
 			break;
-		
+
 		case 'F':
 			vdb->watching |= WATCH_f;
 			break;
-		
+
 		case 'H':
 			vdb->watching |= WATCH_h;
 			break;
@@ -608,7 +608,7 @@ static void	switchWatch(int tokenCount, char **tokens)
 		case 'T':
 			vdb->watching |= WATCH_t;
 			break;
-		
+
 		case '*':
 			vdb->watching |= WATCH_CBS;
 			break;
@@ -767,9 +767,9 @@ static int	processLine(char *line, int lineLength, int *rc)
 					snooze(1);
 					getCurrentTime(&cur_time);
 					if (cur_time.tv_sec >=
-					    done_time.tv_sec 
-					    && cur_time.tv_usec >=
-					    done_time.tv_usec)
+						done_time.tv_sec
+						&& cur_time.tv_usec >=
+						done_time.tv_usec)
 					{
 						printText("[?] BSSP start hung\
  up, abandoned.");

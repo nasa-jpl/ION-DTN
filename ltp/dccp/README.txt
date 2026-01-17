@@ -1,7 +1,7 @@
 README for DCCPLSO/DCCPLSI
 
 DCCPLSO/DCCPLSI are DCCP (Datagram Congestion Control Protocol) based link service
-daemons for LTP. DCCP provides congestion control without guaranteeing reliable, 
+daemons for LTP. DCCP provides congestion control without guaranteeing reliable,
 in-order delivery. As such, it is a good choice for use with LTP which can
 selectively provide reliable, in-order delivery via its red/green parts.
 
@@ -9,7 +9,7 @@ DCCP is a connection-oriented protocol that provides congestion control without
 reliability. It can be thought of as TCP without retransmissions or UDP with
 handshakes and congestion control. Despite being defined in an RFC in 2006, DCCP
 has yet to become popular on the general Internet. In fact, the only maintained
-implementation is in the Linux kernel. 
+implementation is in the Linux kernel.
 
 While DCCP was first added to the Linux Kernel in version 2.6.14, our experiments
 with the protocol in late 2010 revealed numerous bugs in the Linux implementation.
@@ -23,7 +23,7 @@ Hence, my first recommendation to those desiring to use DCCP is to update to the
 most recent version of your favorite distro.
 
 If for some reason you can't do that, you will need to build a recent kernel from
-source. The following article does a very good job at describing the process: 
+source. The following article does a very good job at describing the process:
 http://www.cyberciti.biz/tips/compiling-linux-kernel-26.html
 
 

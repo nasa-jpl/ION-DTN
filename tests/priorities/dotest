@@ -24,38 +24,38 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: Testing priority in transmission.  Node 2 sends 5 files to
-	node 3:
+    node 3:
 
-	1.  12 bytes with priority 1
-	2.  24 bytes with priority 2
-	3.  36 bytes with priority 0
-	4.  48 bytes with priority 2, ordinal 200
-	5.  60 bytes with priority 2, data label 6
+    1.  12 bytes with priority 1
+    2.  24 bytes with priority 2
+    3.  36 bytes with priority 0
+    4.  48 bytes with priority 2, ordinal 200
+    5.  60 bytes with priority 2, data label 6
 
-	Node 2 has an override rule that forces priority to be 1 for any
-	bundle whose data label is 6, regardless of source and destination.
+    Node 2 has an override rule that forces priority to be 1 for any
+    bundle whose data label is 6, regardless of source and destination.
 
-	All bundles are sent at a time when there is no contact between
-	nodes 2 and 3.  When contact begins 10 seconds later, the files
-	should arrive in this order:
+    All bundles are sent at a time when there is no contact between
+    nodes 2 and 3.  When contact begins 10 seconds later, the files
+    should arrive in this order:
 
-		file 4 (expedited with high ordinal)
-		file 2 (expedited but with default ordinal)
-		file 1 (standard)
-		file 5 (expedited but overridden to standard; FIFO)
-		file 3 (bulk)
+        file 4 (expedited with high ordinal)
+        file 2 (expedited but with default ordinal)
+        file 1 (standard)
+        file 5 (expedited but overridden to standard; FIFO)
+        file 3 (bulk)
 
-	The test succeeds if the files all arrive in the correct order."
+    The test succeeds if the files all arrive in the correct order."
 
 echo
 echo "CONFIG: 2 node custom:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo
@@ -75,10 +75,10 @@ cd 2.ipn.udp
 
 if [ $? -eq 2 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 2 not started: Aborting Test"
-	exit 1
+    echo "Node 2 not started: Aborting Test"
+    exit 1
 fi
 
 cd ../3.ipn.udp
@@ -87,10 +87,10 @@ cd ../3.ipn.udp
 
 if [ $? -eq 2 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 3 not started: Aborting Test"
-	exit 1
+    echo "Node 3 not started: Aborting Test"
+    exit 1
 fi
 
 echo "Starting bprecvfile on node 3..."
@@ -133,46 +133,46 @@ cd ../3.ipn.udp
 COUNT=`grep testfile1 ion.log | grep 48 | wc -l`
 if [ $COUNT -gt 0 ]
 then
-	echo "File 4 was received first."
+    echo "File 4 was received first."
 else
-	echo "File 4 was not received first."
-	RETVAL=1
+    echo "File 4 was not received first."
+    RETVAL=1
 fi
 
 COUNT=`grep testfile2 ion.log | grep 24 | wc -l`
 if [ $COUNT -gt 0 ]
 then
-	echo "File 2 was received second."
+    echo "File 2 was received second."
 else
-	echo "File 2 was not received second."
-	RETVAL=1
+    echo "File 2 was not received second."
+    RETVAL=1
 fi
 
 COUNT=`grep testfile3 ion.log | grep 12 | wc -l`
 if [ $COUNT -gt 0 ]
 then
-	echo "File 1 was received third."
+    echo "File 1 was received third."
 else
-	echo "File 1 was not received third."
-	RETVAL=1
+    echo "File 1 was not received third."
+    RETVAL=1
 fi
 
 COUNT=`grep testfile4 ion.log | grep 60 | wc -l`
 if [ $COUNT -gt 0 ]
 then
-	echo "File 5 was received fourth."
+    echo "File 5 was received fourth."
 else
-	echo "File 5 was not received fourth."
-	RETVAL=1
+    echo "File 5 was not received fourth."
+    RETVAL=1
 fi
 
 COUNT=`grep testfile5 ion.log | grep 36 | wc -l`
 if [ $COUNT -gt 0 ]
 then
-	echo "File 3 was received fifth."
+    echo "File 3 was received fifth."
 else
-	echo "File 3 was not received fifth."
-	RETVAL=1
+    echo "File 3 was not received fifth."
+    RETVAL=1
 fi
 
 # Shut down ION processes.

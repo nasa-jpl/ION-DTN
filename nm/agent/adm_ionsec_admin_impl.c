@@ -8,10 +8,10 @@
  **
  ** Assumptions: TODO
  **
- ** Modification History: 
+ ** Modification History:
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2020-04-13  AUTO             Auto-generated c file 
+ **  2020-04-13  AUTO             Auto-generated c file
  **
  ****************************************************************************/
 
@@ -414,8 +414,8 @@ tnv_t *dtn_ion_ionsecadmin_ctrl_ltp_rx_rule_del(eid_t *def_mgr, tnvc_t *parms, i
 
 /*
  * This control adds a rule specifying the manner in which LTP segments transmitted to the indicated LT
- * P engine mustbe signed. Signing a segment destined for the indicated LTP engineentails computing an 
- * authentication extension via the ciphersuite identified by ciphersuite_nbr using the applicable key 
+ * P engine mustbe signed. Signing a segment destined for the indicated LTP engineentails computing an
+ * authentication extension via the ciphersuite identified by ciphersuite_nbr using the applicable key
  * value. If ciphersuite_nbr is 255 then the applicable key value is a hard-coded constant and key_name
  *  must be omitted; otherwise key_nameis required and the applicable key value is the current value of
  *  the key named key_name in the local security policy database.Valid values of ciphersuite_nbr are: 0

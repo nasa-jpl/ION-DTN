@@ -49,8 +49,8 @@ echo
 echo "PURPOSE: Demonstrate the functionality of Bundle Streaming Service.
 Demonstrates BSS multicast:
 
-This demo simulates the multicast streaming by sending a stream 
-of bundles from node 1 to multicast group 19 for 30 seconds. The network 
+This demo simulates the multicast streaming by sending a stream
+of bundles from node 1 to multicast group 19 for 30 seconds. The network
 is a tree with the following edges all running LTP: (1,2), (2,3) and (2,4).
 Node 3 and 4 are part of multicast group 19."
 
@@ -59,10 +59,10 @@ echo "CONFIG: 4 node custom BSS:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat "$N"
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat "$N"
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo
@@ -144,13 +144,13 @@ pkill -f "sleep 86400" 2>/dev/null || true
 cd ../3.ipn.bss
 if [ ! -s bssDB.dat ]; then
     echo "Node 3 did not receive data, test failed."
-	exit 1
+    exit 1
 fi
 
 cd ../4.ipn.bss
 if [ ! -s bssDB.dat ]; then
     echo "Node 4 did not receive data, test failed."
-	exit 1
+    exit 1
 fi
 
 echo
@@ -173,18 +173,18 @@ pkill -f "sleep 86400" 2>/dev/null || true
 cd ../3.ipn.bss
 if ! grep -qF "**********10" node3_replay.stdout ; then
     echo "Relay failed in node 3."
-	exit 1
+    exit 1
 fi
 cd ../4.ipn.bss
 if ! grep -qF "**********10" node4_replay.stdout ; then
     echo "Replay failed in node 4."
-	exit 1
+    exit 1
 fi
 
 cd ../4.ipn.bss
 if [ ! -s bssDB.dat ]; then
     echo "Node 4 did not receive data, test failed."
-	exit 1
+    exit 1
 fi
 
 # Shut down ION processes

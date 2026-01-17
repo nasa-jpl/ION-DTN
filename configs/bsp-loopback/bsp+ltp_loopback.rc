@@ -1,5 +1,5 @@
 
-## begin ionadmin 
+## begin ionadmin
 # ionrc configuration file for loopback test.
 #	This uses ltp as the primary convergence layer.
 #	command: % ionadmin loopback.ionrc
@@ -7,7 +7,7 @@
 #
 #	Ohio University, July 2009
 
-# Initialization command (command 1). 
+# Initialization command (command 1).
 #	Set this node to be node 1 (as in ipn:1).
 #	Use default sdr configuration (empty configuration file name '').
 1 1 ''
@@ -31,9 +31,9 @@ a range +1 +3600 1 1 1
 # set this node to consume and produce a mean of 1000000 bytes/second.
 m production 1000000
 m consumption 1000000
-## end ionadmin 
+## end ionadmin
 
-## begin ltpadmin 
+## begin ltpadmin
 # ltprc configuration file for the loopback test.
 #	Command: % ltpadmin loopback.ltprc
 #	This command should be run AFTER ionadmin and BEFORE bpadmin.
@@ -44,8 +44,8 @@ m consumption 1000000
 #	please consult manual pages and other documentation for a
 #	better description.
 
-# Initialization command (command 1). 
-# Establishes the LTP retransmission window. 
+# Initialization command (command 1).
+# Establishes the LTP retransmission window.
 # (Prohibiting LTP from seizing all available storage).
 #	A maximum of 32 sessions.  A session is assumed to be around one
 #	second of transmission.  This value should be estimated at the sum
@@ -54,7 +54,7 @@ m consumption 1000000
 #	long sessions which contain an actual retransmission.
 1 128
 
-# Add a span. (a connection) 
+# Add a span. (a connection)
 #	Identify the span as engine number 1.  That is the ipn node number
 #	of the node on the other end of this span.
 #	Use 128 as the maximum number of export sessions.
@@ -82,18 +82,18 @@ a span 1 128 1024 128 1024 1024 1024 1 'udplso localhost:1113'
 #	Also starts the link service INPUT task 'udplsi localhost:1113' to
 #	listen locally on UDP port 1113 for incoming LTP traffic.
 s 'udplsi localhost:1113'
-## end ltpadmin 
+## end ltpadmin
 
-## begin bpadmin 
+## begin bpadmin
 # bprc configuration file for the loopback test.
 #	Command: % bpadmin loopback.bprc
-#	This command should be run AFTER ionadmin and ltpadmin and 
+#	This command should be run AFTER ionadmin and ltpadmin and
 #	BEFORE ipnadmin or dtnadmin.
 #
 #	Ohio University, Oct 2008
 
 # Initialization command (command 1).
-1 
+1
 
 # Add an EID scheme.
 #	The scheme's name is ipn.
@@ -112,7 +112,7 @@ a scheme ipn 'ipnfw' 'ipnadminep'
 a endpoint ipn:1.1 q
 a endpoint ipn:1.2 q
 
-# Add a protocol. 
+# Add a protocol.
 #	Add the protocol named ltp.
 #	Estimate transmission capacity assuming 1400 bytes of each frame (in
 #	this case, udp on ethernet) for payload, and 100 bytes for overhead.
@@ -134,9 +134,9 @@ a outduct ltp 1 ltpclo
 
 # Start the daemons
 s
-## end bpadmin 
+## end bpadmin
 
-## begin ipnadmin 
+## begin ipnadmin
 # ipnrc configuration file for the loopback test.
 #	Essentially, this is the IPN scheme's routing table.
 #	Command: % ipnadmin loopback.ipnrc
@@ -150,7 +150,7 @@ s
 #	the outduct identified as '1.'
 #	See your bprc file or bpadmin for outducts/protocols you can use.
 a plan 1 ltp/1
-## end ipnadmin 
+## end ipnadmin
 
 ## begin ionsecadmin
 1
@@ -161,4 +161,3 @@ a bspbabrule ipn:1.* ipn:1.* 'HMAC-SHA1' testkey
 a key 'testkey' testkey.bin
 
 ## end ionsecadmin
-

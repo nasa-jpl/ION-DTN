@@ -916,7 +916,7 @@ handler override.", NULL);
 	{
 		sdr_cancel_xn(sdr);
 		putErrmsg("Can't insert proxy transmission mode message.",
-			       NULL);
+				NULL);
 		return -1;
 	}
 
@@ -956,7 +956,7 @@ handler override.", NULL);
 	{
 		sdr_cancel_xn(sdr);
 		putErrmsg("Can't insert proxy segmentation control message.",
-			       NULL);
+				NULL);
 		return -1;
 	}
 

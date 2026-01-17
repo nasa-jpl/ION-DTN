@@ -14,11 +14,11 @@ SDR is a library of functions that support the use of an abstract
 data recording device called an "SDR" ("simple data recorder") for
 persistent storage of data.  The SDR abstraction insulates
 software not only from the specific characteristics of any single
-data storage device but also from some kinds of persistent 
+data storage device but also from some kinds of persistent
 data storage and retrieval chores.  The underlying
 principle is that an SDR provides standardized support for user
-data organization at object granularity, with direct access to persistent 
-user data objects, rather than supporting user data organization 
+data organization at object granularity, with direct access to persistent
+user data objects, rather than supporting user data organization
 only at "file" granularity and requiring the user to
 implement access to the data objects accreted within those files.
 
@@ -26,7 +26,7 @@ The SDR library is designed to provide some of the same kinds of
 directory services as a file system together with support for
 complex data structures that provide more operational flexibility
 than files.  (As an example of this flexibility, consider how
-much easier and faster it is to delete a given element from the middle 
+much easier and faster it is to delete a given element from the middle
 of a linked list than it is to delete a range of bytes from
 the middle of a text file.)  The intent is to enable the software
 developer to take maximum advantage of the high speed and direct
@@ -34,7 +34,7 @@ byte addressability of a non-volatile flat address space
 in the management of persistent data.  The SDR equivalent of a "record"
 of data is simply a block of nominally persistent memory allocated from
 this address space.  The SDR equivalent of a "file" is a I<collection>
-object.  Like files, collections can have names, can be located 
+object.  Like files, collections can have names, can be located
 by name within persistent storage, and can impose structure
 on the data items they encompass.  But, as discussed later, SDR
 collection objects can impose structures other than the strict
@@ -52,11 +52,11 @@ layers, each of which relies on the services implemented at lower levels:
 
 =over 4
 
-At the highest level, a cataloguing service enables retrieval 
+At the highest level, a cataloguing service enables retrieval
 of persistent objects by name.
 
-Services that manage three types of persistent data collections are 
-provided for use both by applications and by the cataloguing service:  
+Services that manage three types of persistent data collections are
+provided for use both by applications and by the cataloguing service:
 linked lists, self-delimiting tables (which function as arrays that
 remember their own dimensions), and self-delimiting strings (short
 character arrays that remember their lengths, for speedier retrieval).
@@ -64,10 +64,10 @@ character arrays that remember their lengths, for speedier retrieval).
 Basic SDR heap space management services, analogous to malloc() and free(),
 enable the creation and destruction of objects of arbitrary type.
 
-Farther down the service stack are memcpy-like low-level 
+Farther down the service stack are memcpy-like low-level
 functions for reading from and writing to the heap.
 
-Protection of SDR data integrity across a series of reads and writes is 
+Protection of SDR data integrity across a series of reads and writes is
 provided by a I<transaction> mechanism.
 
 =back
@@ -215,7 +215,7 @@ at I<wmPtr> is assumed to have been pre-allocated and is merely assigned
 to the newly created shared memory segment.
 
 sdr_initialize() also creates a semaphore to serialize access to the
-SDR system's private array of SDR profiles.  
+SDR system's private array of SDR profiles.
 
 Returns 0 on success, -1 on any failure.
 
@@ -244,10 +244,10 @@ int heapKey, size_t logSize, int logKey, char *pathName, char *restartCmd)
 Loads the profile for an SDR into the system's private list of SDR profiles.
 Although SDRs themselves are persistent, SDR profiles are not: in order
 for an application to access an SDR, sdr_load_profile() must have been called
-to load the profile of the SDR since the last invocation of sdr_initialize(). 
+to load the profile of the SDR since the last invocation of sdr_initialize().
 
 I<name> is the name of the SDR, required for any subsequent sdr_start_using()
-call.  
+call.
 
 I<configFlags> specifies the configuration of the
 SDR, the bitwise "or" of some combination of the following:
@@ -406,7 +406,7 @@ used as the number of bytes to copy.
 =item void sdr_write(Sdr sdr, Address into, char *from, size_t length)
 
 Copies I<length> characters at I<from> (a location in memory) to the SDR
-heap location given by I<into>.  Can only be performed during a transaction, 
+heap location given by I<into>.  Can only be performed during a transaction,
 and if the SDR is configured for object bounding then heap
 locations I<into> through (I<into> + (I<length> - 1)) must be within
 the extent of some object that was either allocated or staged within the
@@ -432,7 +432,7 @@ applications run very quickly, but it must be used WITH GREAT
 CAUTION!  Never use a direct pointer into the heap when not
 within a transaction, because you will have no assurance at
 any time that the object pointed to by that pointer has not changed
-(or is even still there).  And NEVER de-reference a heap 
+(or is even still there).  And NEVER de-reference a heap
 pointer in order to write directly into the heap: this makes
 transaction reversal impossible.  Whenever writing to the SDR, always use
 sdr_write().
@@ -502,9 +502,9 @@ at I<from> (a location in the heap of the indicated SDR)
 to the memory location given by I<into>.  Unlike
 sdr_get(), sdr_stage() requires that I<from> be the address of
 some allocated object, not just any location within the
-heap.  sdr_stage(), when called from within a transaction, 
-notifies the SDR library that the indicated object may be 
-updated later in the transaction; this enables the library 
+heap.  sdr_stage(), when called from within a transaction,
+notifies the SDR library that the indicated object may be
+updated later in the transaction; this enables the library
 to retrieve the object's size for
 later reference in validating attempts to write into
 some location within the object.  If I<length> is zero, the
@@ -573,7 +573,7 @@ success, -1 on any failure.
 
 =item void sdr_print_trace(Sdr sdr, int verbose)
 
-Prints a cumulative trace report and current usage report for 
+Prints a cumulative trace report and current usage report for
 I<sdr>.  If I<verbose> is zero, only exceptions (notably, trace
 log events that remain open -- potential SDR heap space leaks) are printed;
 otherwise all activity in the trace log is printed.
@@ -602,18 +602,18 @@ entries and a function for navigating through catalogue entries sequentially.
 
 =item void sdr_catlg(Sdr sdr, char *name, int type, Object object)
 
-Associates I<object> with I<name> in the indicated SDR's catalogue and notes 
-the I<type> that was declared for this object.  I<type> is optional and 
+Associates I<object> with I<name> in the indicated SDR's catalogue and notes
+the I<type> that was declared for this object.  I<type> is optional and
 has no significance other than that conferred on it by the application.
-  
-The SDR catalogue is flat, not hierarchical like a directory tree, 
+
+The SDR catalogue is flat, not hierarchical like a directory tree,
 and all names must be unique.  The length of I<name> is limited to
 15 characters.
 
 =item Object sdr_find(Sdr sdr, char *name, int *type)
 
-Locates the Object associated with I<name> in the indicated SDR's catalogue 
-and returns its address; also reports the catalogued type of the object in 
+Locates the Object associated with I<name> in the indicated SDR's catalogue
+and returns its address; also reports the catalogued type of the object in
 I<*type> if I<type> is non-NULL.  Returns zero if no object is currently
 catalogued under this name.
 

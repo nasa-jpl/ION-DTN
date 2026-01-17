@@ -27,7 +27,7 @@ static void	giveIpcLock(void);
 /* bounds for the GetUniqueKey for process architectures */
 /* can't be zero and can't be negative as a signed 32-bit number */
 #define UNIQUE_KEY_PROCESSES_INITIAL	0x00001000
-#define UNIQUE_KEY_PROCESSES_MAX		0x7fffffff
+#define UNIQUE_KEY_PROCESSES_MAX	0x7fffffff
 
 
 /************************* Shared-memory services *****************************/
@@ -68,7 +68,7 @@ sm_ShmAttach(int key, size_t size, char **shmPtr, uaddr *id)
 	CHKERR(shmPtr);
 	CHKERR(id);
 
-    /* If shared memory segment exists, return its location */
+	/* If shared memory segment exists, return its location */
 	if (key != SM_NO_KEY)
 	{
 		for (i = 0, shm = _shmTbl(); i < nShmIds; i++, shm++)
@@ -83,7 +83,7 @@ sm_ShmAttach(int key, size_t size, char **shmPtr, uaddr *id)
 		}
 	}
 
-    /* create a new "shared memory segment" */
+	/* create a new "shared memory segment" */
 	for (i = 0, shm = _shmTbl(); i < nShmIds; i++, shm++)
 	{
 		if (shm->ptr == NULL)
@@ -171,7 +171,7 @@ static int	trackIpc(int type, int key)
 	int	startedWinion = 0;
 	HANDLE	hPipe;
 	DWORD	dwMode;
-	BOOL	fSuccess = FALSE; 
+	BOOL	fSuccess = FALSE;
 	DWORD	bytesWritten;
 	char	reply[1];
 	DWORD	bytesRead;
@@ -180,10 +180,10 @@ static int	trackIpc(int type, int key)
 	memcpy(msg + 1, (char *) &keyDword, sizeof(DWORD));
 
 	/*	Keep trying to open pipe to winion until succeed.	*/
- 
-	while (1) 
+
+	while (1)
 	{
-      		if (WaitNamedPipe(pipeName, 100) == 0) 	/*	Failed.	*/
+		if (WaitNamedPipe(pipeName, 100) == 0) 	/*	Failed.	*/
 		{
 			if (GetLastError() != ERROR_FILE_NOT_FOUND)
 			{
@@ -210,45 +210,45 @@ static int	trackIpc(int type, int key)
 
 		hPipe = CreateFile(pipeName, GENERIC_READ | GENERIC_WRITE,
 				0, NULL, OPEN_EXISTING, 0, NULL);
-		if (hPipe != INVALID_HANDLE_VALUE) 
+		if (hPipe != INVALID_HANDLE_VALUE)
 		{
 			break; 		/*	Got it.			*/
 		}
- 
-		if (GetLastError() != ERROR_PIPE_BUSY) 
+
+		if (GetLastError() != ERROR_PIPE_BUSY)
 		{
 			putErrmsg("Can't open pipe to winion.",
 					itoa(GetLastError()));
 			return -1;
 		}
 	}
- 
+
 	/*	Connected to pipe.  Change read-mode to message(?!).	*/
- 
-	dwMode = PIPE_READMODE_MESSAGE; 
+
+	dwMode = PIPE_READMODE_MESSAGE;
 	fSuccess = SetNamedPipeHandleState(hPipe, &dwMode, NULL, NULL);
-	if (!fSuccess) 
+	if (!fSuccess)
 	{
 		putErrmsg("Can't change pipe's read mode.",
 				itoa(GetLastError()));
 		return -1;
 	}
- 
+
 	fSuccess = WriteFile(hPipe, msg, sizeof msg, &bytesWritten, NULL);
-	if (!fSuccess) 
+	if (!fSuccess)
 	{
 		putErrmsg("Can't write to pipe.", itoa(GetLastError()));
 		return -1;
 	}
- 
+
 	fSuccess = ReadFile(hPipe, reply, 1, &bytesRead, NULL);
-	if (!fSuccess) 
+	if (!fSuccess)
 	{
 		putErrmsg("Can't read from pipe.", itoa(GetLastError()));
 		return -1;
 	}
- 
-	CloseHandle(hPipe); 
+
+	CloseHandle(hPipe);
 	if (reply[0] == 0 && type != '?')
 	{
 		return -1;
@@ -321,7 +321,7 @@ sm_ShmAttach(int key, size_t size, char **shmPtr, uaddr *id)
 	CHKERR(shmPtr);
 	CHKERR(id);
 
-    	/*	If key is not specified, make one up.			*/
+	/*	If key is not specified, make one up.			*/
 
 	if (key == SM_NO_KEY)
 	{
@@ -423,7 +423,7 @@ sm_ShmAttach(int key, size_t size, char **shmPtr, uaddr *id)
 	CHKERR(shmPtr);
 	CHKERR(id);
 
-    /* if key is not specified, make up one */
+	/* if key is not specified, make up one */
 	if (key == SM_NO_KEY)
 	{
 		key = sm_GetUniqueKey();
@@ -516,7 +516,7 @@ static int _shmKeyExists(int key)
 	}
 	/* this will only succeed if the memory already exists and I can attach to it */
 	return(1);
-}	
+}
 
 void
 sm_ShmDetach(char *shmPtr)
@@ -859,7 +859,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	}
 
 	takeIpcLock();
-    /* If semaphore exists, return its ID */
+	/* If semaphore exists, return its ID */
 	for (i = 0; i < nSemIds; i++)
 	{
 		if (semTbl[i].key == key)
@@ -869,7 +869,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 		}
 	}
 
-    /* create a new semaphore */
+	/* create a new semaphore */
 	for (i = 0, sem = semTbl; i < nSemIds; i++, sem++)
 	{
 		if (sem->id == NULL)
@@ -1620,7 +1620,7 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 		{
 		case EINTR:
 			continue;
-			
+
 		case ETIMEDOUT:
 			break;	/*	Out of switch.			*/
 
@@ -1706,7 +1706,7 @@ static SemaphoreBase	*_sembase(int action)
 	if (action == IPC_ACTION_DETACH)
 	{
 		/* if sembase exists, detach from shared memory */
-		if (semaphoreBase != NULL) 
+		if (semaphoreBase != NULL)
 		{
 			oK(shmdt(semaphoreBase));
 		}
@@ -1714,7 +1714,7 @@ static SemaphoreBase	*_sembase(int action)
 		sembaseId = 0;
 		return NULL;
 	}
-	
+
 	if (action == IPC_ACTION_STOP)
 	{
 		if (semaphoreBase != NULL)
@@ -1724,7 +1724,7 @@ static SemaphoreBase	*_sembase(int action)
 			{
 				semset = semaphoreBase->semSets + semSetIdx;
 				oK(semctl(semset->semid, 0, IPC_RMID, NULL));
-            			semSetIdx++;
+				semSetIdx++;
 			}
 
 			sm_ShmDestroy(sembaseId);
@@ -1743,7 +1743,7 @@ static SemaphoreBase	*_sembase(int action)
 			putErrmsg("Can't create semaphore base.", NULL);
 			break;
 
-		case 0:	
+		case 0:
 			break;		/*	SemaphoreBase exists.	*/
 
 		default:		/*	New SemaphoreBase.	*/
@@ -1792,10 +1792,10 @@ static int	_ipcSemaphore(int action)
 	static int	ipcSem = -1;
 
 	/* 	reset but not stopping	*/
-	if (action == IPC_ACTION_DETACH)  	
+	if (action == IPC_ACTION_DETACH)
 	{
 		/* if semaphore exists */
-		if (ipcSem != -1) 
+		if (ipcSem != -1)
 		{
 			oK(_sembase(IPC_ACTION_DETACH));
 			ipcSem = -1;
@@ -1877,7 +1877,7 @@ static int _semKeyExists(int key) {
 	SemaphoreBase	*sembase;
 	IciSemaphore	*sem;
 	int i;
-	
+
 	sembase = _sembase(IPC_ACTION_LOOKUP);
 
 	for (i = 0, sem = sembase->semaphores; i < sembase->idsAllocated; i++, sem++) {
@@ -1888,7 +1888,7 @@ static int _semKeyExists(int key) {
 
 	return(0); /* not found */
 }
-	
+
 
 
 sm_SemId	sm_SemCreate(int key, int semType)
@@ -2473,13 +2473,13 @@ static pthread_mutex_t NamingParmsSem = PTHREAD_MUTEX_INITIALIZER;
 static void *naming_start_routine(void *parm){
 	NamingParms	*nmp = (NamingParms *) parm;
 	const char *name = nmp->name;
-	void *arg = nmp->arg; 
+	void *arg = nmp->arg;
 	void *(*start_routine) (void *) = nmp->start_routine;
 	void* ret;
 	pthread_setname_np(name);
 	/* release the mutex protecting the shared naming structure */
 	pthread_mutex_unlock(&NamingParmsSem);
-	
+
 	ret = (*start_routine)(arg);
 	return ret;
 }
@@ -2504,12 +2504,12 @@ int pthread_begin_named(pthread_t *thread, const pthread_attr_t *attr,
 		pthread_attr_setname(tattr, name);
 		result = pthread_begin(thread, &tattr, start_routine, arg);
 	}
-	
+
 	/*	Supported platforms for naming threads			*/
 #elif darwin
 	static NamingParms nmp;
-	/*	In OSX, pthread_setname_np must be called within the 
-	 *	the thread you wish to name. Achieved by wrapping 
+	/*	In OSX, pthread_setname_np must be called within the
+	 *	the thread you wish to name. Achieved by wrapping
 	 *	the start_routine of pthread_begin.			*/
 
 	/* protect the global naming structure from concurrent access	*/
@@ -3067,7 +3067,7 @@ int	sm_TaskExists(int task)
 
 	result = GetExitCodeProcess(process, &status);
 	CloseHandle(process);
-       	if (result == 0 || status != STILL_ACTIVE)
+	if (result == 0 || status != STILL_ACTIVE)
 	{
 		return 0;		/*	No such process.	*/
 	}
@@ -3372,7 +3372,7 @@ int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 	 *	it is removed immediately rather than waiting for
 	 *	the parent to wait() on it.				*/
 
-	isignal(SIGCHLD, SIG_IGN);	
+	isignal(SIGCHLD, SIG_IGN);
 	switch (pid = fork())
 	{
 	case -1:		/*	Error.				*/
@@ -3483,10 +3483,10 @@ void	sm_Abort(void)
 /* this file mode is the safest - meaning that other users on the computer can't */
 /* manipulate/delete the ION shared semaphores, but it will fail if multuple users */
 /* run ION after one-another because they can't clean up the global semaphores */
-// #define POSIX_NAMED_SEMAPHORES_FILEMODE 	(S_IRUSR | S_IWUSR)
+// #define POSIX_NAMED_SEMAPHORES_FILEMODE	(S_IRUSR | S_IWUSR)
 
 /* this file mode is easier to use if multiple _FRIENDLY_ users are using ION at the same time */
-#define POSIX_NAMED_SEMAPHORES_FILEMODE 	(S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)
+#define POSIX_NAMED_SEMAPHORES_FILEMODE		(S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)
 
 
 /* For ensuring that the per-process sem table is in sync with the global sem table */
@@ -3504,10 +3504,10 @@ typedef struct
 {
 	char		inUse;
 	char		ended;
-	int			key;
+	int		key;
 	smSequence	gseq;
-	atomic_int	refCount;		/* Number of active users across all processes (atomic for lock-free access) */
-	int			pendingDelete;	/* Marked for deletion when refCount reaches 0 */
+	atomic_int	refCount;	/* Number of active users across all processes (atomic for lock-free access) */
+	int		pendingDelete;	/* Marked for deletion when refCount reaches 0 */
 } SmGlobalSem;
 
 /* this structure makes up the process-local semaphore table */
@@ -3515,17 +3515,17 @@ typedef struct
 typedef struct
 {
 	sem_t		*id;
-	SmGlobalSem *semgl;  	/* pointer to ION-wide shared master semtable entry (to avoid multiplication)*/
+	SmGlobalSem	*semgl;		/* pointer to ION-wide shared master semtable entry (to avoid multiplication)*/
 	smSequence	lseq;
-	int			localRefCount;	/* Per-process reference count for tracking */
-	int			handleOpened;	/* Flag to track if handle has been opened (1=opened, 0=not opened) */
+	int		localRefCount;	/* Per-process reference count for tracking */
+	int		handleOpened;	/* Flag to track if handle has been opened (1=opened, 0=not opened) */
 } SmLocalSem;
 
 /* the data structure shared by ALL processes/threads for all ION Instances */
 /* kept in SVR4 shared memory */
 typedef struct {
 	/* the id of the shared memory that maps this structure */
-	uaddr		sembaseId;	
+	uaddr		sembaseId;
 
 	/* the global semaphore table */
 	SmGlobalSem	gsemtable[SEM_NSEMS_MAX];
@@ -3545,7 +3545,7 @@ typedef struct {
 /* the data structure shared by ALL threads for a single ION Process */
 typedef struct {
 	SmLocalSem	lsemtable[SEM_NSEMS_MAX];
-	SmGlobalSemtable *semtablegl;  	/* pointer to ION-wide shared master semtable */
+	SmGlobalSemtable *semtablegl;	/* pointer to ION-wide shared master semtable */
 } SmProcessSemtable;
 
 
@@ -3571,15 +3571,15 @@ void _semPrintTable(void)  // Only for debugging purposes
 
 	fprintf(stderr,"=========== Semaphore Table - pid %d =================\n", getpid());
 
-	fprintf(stderr,"  Global sem: %p (%s)\n", _ipcSemaphore(IPC_ACTION_LOOKUP), 
+	fprintf(stderr,"  Global sem: %p (%s)\n", _ipcSemaphore(IPC_ACTION_LOOKUP),
 		_semGenPosixSemname(sem_name,sizeof(sem_name),-1));
-	fprintf(stderr,"  Semaphore current usage: %u	max: %u   configured: %u\n", 
+	fprintf(stderr,"  Semaphore current usage: %u	max: %u   configured: %u\n",
 		semTbl->semtablegl->opensems_current, semTbl->semtablegl->opensems_max, SEM_NSEMS_MAX);
 
 	fprintf(stderr,"  SemNum InUse Key        ID    LocSeq     GloSeq     SemPath\n");
 	fprintf(stderr,"  ------ ----- ---------- ----- ---------- ---------- -----------------------\n");
 
-	for (i = 0; i < SEM_NSEMS_MAX; i++) {			
+	for (i = 0; i < SEM_NSEMS_MAX; i++) {
 		SmLocalSem *psem  = &semTbl->lsemtable[i];
 
 		if (psem->semgl->inUse || (psem->semgl->gseq > 0)) {
@@ -3643,7 +3643,7 @@ static int _semSync(SmProcessSemtable *plocal, sm_SemId semnum, int semlocked)
 	sem_t *psem;
 	mode_t oldmask;  /* save current umode() mask so we can restore it after open() */
 
-	SmLocalSem 	*plocalSem  = &plocal->lsemtable[semnum];
+	SmLocalSem  *plocalSem = &plocal->lsemtable[semnum];
 	SmGlobalSem *pglobalSem = plocalSem->semgl;
 
 	if (plocalSem->lseq == pglobalSem->gseq) {
@@ -3728,7 +3728,7 @@ static SmProcessSemtable *_semTbl(int action)
 				}
 			}
 		}
-		
+
 		semTableInitialized = 0;
 		return NULL;
 	}
@@ -3736,7 +3736,7 @@ static SmProcessSemtable *_semTbl(int action)
 	/* ... else ... case is IPC_ACTION_LOOKUP */
 	if (!semTableInitialized)
 	{
-		static SmGlobalSemtable	 *psemGlobal;  
+		static SmGlobalSemtable	 *psemGlobal;
 		int i;
 
 		/* make sure that the global shared structure is set up */
@@ -3755,7 +3755,7 @@ static SmProcessSemtable *_semTbl(int action)
 			semStruct.lsemtable[i].localRefCount = 0;
 		}
 
-		semStruct.semtablegl = psemGlobal;  
+		semStruct.semtablegl = psemGlobal;
 		semTableInitialized = 1;
 	}
 
@@ -3783,7 +3783,7 @@ static SmLocalSem *_semGetSem(SmProcessSemtable *psemtable, sm_SemId semnum, int
 		writeMemoNote("Operation attempted on semaphore that is no longer in use", itoa(semnum));
 		return(NULL);
 	}
-	
+
 	return(psemLocal);
 }
 
@@ -3794,8 +3794,8 @@ static char *_semGenPosixSemname(char *namebuf, unsigned bufsize, int semnum)
 	if (semnum == -1 ) {
 		snprintf(namebuf, bufsize, "/ion:GLOBAL:ipcSem");
 	} else {
-		snprintf(namebuf, bufsize, "/ion:GLOBAL:%u", (unsigned) semnum);   
-	}	
+		snprintf(namebuf, bufsize, "/ion:GLOBAL:%u", (unsigned) semnum);
+	}
 	return(namebuf);
 }
 
@@ -3824,11 +3824,11 @@ static SmGlobalSemtable	*_sembase(int action)
 	static uaddr sembaseId = 0;
 
 	/* 	detach & reset, but not stopping	*/
-	if (action == IPC_ACTION_DETACH)  	
+	if (action == IPC_ACTION_DETACH)
 	{
 		sembaseId = 0;
 		psemGlobal->sembaseId = 0;
-		
+
 		/* if sembase exists, detach from shared memory */
 		if (psemGlobal != NULL) {
 			oK(shmdt(psemGlobal));
@@ -3836,7 +3836,7 @@ static SmGlobalSemtable	*_sembase(int action)
 		psemGlobal = NULL;
 		return NULL;
 	}
-	
+
 	if (action == IPC_ACTION_STOP) {
 		if (psemGlobal != NULL) {
 			_semEraseNamedSems();
@@ -3849,7 +3849,7 @@ static SmGlobalSemtable	*_sembase(int action)
 	/* ... else ... case is IPC_ACTION_LOOKUP */
 	/* create/join the shared memory structure that ALL ION instances will share */
 	if (psemGlobal == NULL)
-	{	
+	{
 		uint32_t shmemkey = SM_SEMTBLKEY;
 		switch(sm_ShmAttach(shmemkey, sizeof(SmGlobalSemtable), (char **) &psemGlobal, &sembaseId))
 		{
@@ -3859,7 +3859,7 @@ static SmGlobalSemtable	*_sembase(int action)
 
 			case 0:
 				{
-					/* race condition - semaphore and shared memory initialization depend on each other. That */	
+					/* race condition - semaphore and shared memory initialization depend on each other. That */
 					/* means that there is no access to semaphores to ensure that this structure is initialized yet (default case below). */
 					/* If multiple processes get here at the same time, we'll have to do it old-school */
 					int snooze_usecs = 10000;  /* start at 10ms and back off by powers of 2 */
@@ -3965,7 +3965,7 @@ static sem_t	*_ipcSemaphore(int action)
 
 
 int	sm_ipc_init(void)
-{	
+{
 	if (_ipcSemaphore(IPC_ACTION_LOOKUP) == NULL) {
 		putErrmsg("Can't initialize IPC.", NULL);
 		return -1;
@@ -3982,7 +3982,7 @@ void 	sm_ipc_detach(void)
 
 void	sm_ipc_stop(void)
 {
-	oK(_ipcSemaphore(IPC_ACTION_STOP));	
+	oK(_ipcSemaphore(IPC_ACTION_STOP));
 }
 
 
@@ -4010,7 +4010,7 @@ static void	giveIpcLock(void)
 
 
 sm_SemId	sm_SemCreate(int key, int semType)
-{	
+{
 	SmProcessSemtable	*semTbl = _semTbl(IPC_ACTION_LOOKUP);
 	int	i;
 	int freeslot;
@@ -4030,7 +4030,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 		{
 			SmGlobalSem	*gsem = &semTbl->semtablegl->gsemtable[i];
 
-			if (!gsem->inUse) 
+			if (!gsem->inUse)
 				continue;
 
 			if (gsem->key == key) {
@@ -4044,9 +4044,9 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	/* at this point, the KEY was either specified and not found, or unspecified. */
 	freeslot = -1;
 	for (i = 0; i < SEM_NSEMS_MAX; i++)
-	{	
+	{
 		SmGlobalSem	*gsem = &semTbl->semtablegl->gsemtable[i];
-		if (!gsem->inUse) { 
+		if (!gsem->inUse) {
 			freeslot = i;
 			break;
 		}
@@ -4055,20 +4055,20 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	if (freeslot == -1) {
 		putErrmsg("Too many semaphores. Recompile to increase SEM_NSEMS_MAX", itoa(SEM_NSEMS_MAX));
 		giveIpcLock();
-		return SM_SEM_NONE;		
+		return SM_SEM_NONE;
 	}
 
 	/* at this point, it's a new semaphore and it goes in "freeslot" */
 	sem  = &semTbl->lsemtable[freeslot];
 
 	if (key == SM_NO_KEY) {
-		key = SEM_ANON_KEY; 
+		key = SEM_ANON_KEY;
 	}
 	_semGenPosixSemname(sem_name,sizeof(sem_name),freeslot);
 
 	/* ensure that we're using EXACTLY the mode bits in POSIX_NAMED_SEMAPHORES_FILEMODE regardless */
 	/* of the account's setting of umask() */
-    oldmask = umask(0);
+	oldmask = umask(0);
 
 	/* at this point, it's a new key and the name "sem_name" shouldn't be in use */
 	if ((psem = sem_open(sem_name, O_CREAT | O_EXCL, POSIX_NAMED_SEMAPHORES_FILEMODE, 0 )) == SEM_FAILED) {
@@ -4107,7 +4107,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	}
 
 	giveIpcLock();
-	
+
 	return freeslot;
 }
 
@@ -4196,7 +4196,7 @@ void	sm_SemDelete(sm_SemId i)
 		giveIpcLock();
 #ifdef DEBUG_POSIX_NAMED_SEMAPHORES
 		writeMemoNote("Semaphore deletion deferred, refCount",
-		              itoa(gsem->refCount));
+				itoa(gsem->refCount));
 #endif
 		return;
 	}
@@ -4467,7 +4467,7 @@ void	sm_SemUnend(sm_SemId i)
 static void	handleTimeout(int signum)
 {
 	/* Acknowledge unused parameter. */
-	(void)signum;	
+	(void)signum;
 	return;
 }
 
@@ -4503,7 +4503,7 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 
 			default:
 				putSysErrmsg("Can't unwedge semaphore", itoa(i));
-				oK(alarm(0)); 
+				oK(alarm(0));
 				isignal(SIGALRM, SIG_DFL);
 				return -1;
 		}
@@ -4511,7 +4511,7 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 
 	oK(alarm(0));
 	isignal(SIGALRM, SIG_DFL);
-	
+
 	if (sem_post(sem->id) < 0) {
 		putSysErrmsg("Can't unwedge semaphore", itoa(i));
 		return -1;
@@ -4561,14 +4561,14 @@ sm_SemId	sm_GetTaskSemaphore(int taskId)
 #if defined(POSIX_NAMED_SEMAPHORES) || defined(SVR4_SEMAPHORES)
 /* This is only for SVR4 / Posix Named Semaphores */
 /*  Because we already have an ION-wide semaphore table shared by all ION instances and processes,
-	We will use that table to store a GLOBAL "unique" key, much like the RTEMS version does.  However
-	Because the ION code uses that key, this code ensures that it will not return a "unique" key
-	that is already the key of an ION semaphore or the key of an SVR4 shared memory region (since)
-	that's what the random keys are used to name.  Note that this is only a heuristic; it's possible
-	that the unique key that wasn't in use when returned (by a memory region or semaphore), WILL be in use
-	by the time the code gets around to using that key to actually create such a thing.
-	Note that the ION code won't be able to cause that failure, 
-	but some other process (that is NOT part of ION) might. */
+    We will use that table to store a GLOBAL "unique" key, much like the RTEMS version does.  However
+    Because the ION code uses that key, this code ensures that it will not return a "unique" key
+    that is already the key of an ION semaphore or the key of an SVR4 shared memory region (since)
+    that's what the random keys are used to name.  Note that this is only a heuristic; it's possible
+    that the unique key that wasn't in use when returned (by a memory region or semaphore), WILL be in use
+    by the time the code gets around to using that key to actually create such a thing.
+    Note that the ION code won't be able to cause that failure,
+    but some other process (that is NOT part of ION) might. */
 
 /* internal version - assumes that IpcLock is already held!! */
 static int	_sm_GetUniqueKey_internal(
@@ -4593,7 +4593,7 @@ static int	_sm_GetUniqueKey_internal(
 	for (int retries=0; ; ++retries) {
 		/*	In the expected case, only one iteration is required.
 			In the worst case, you retry for a number of iterations
-			whose max is the sum of the number of shared memory segments and total semaphores. 
+			whose max is the sum of the number of shared memory segments and total semaphores.
 			In the fatal case, some new ION function does something really wrong
 			and we'll check just so there's a record in the log that we're looping 'a lot' */
 		CHKERR(retries < 10000);
@@ -4603,7 +4603,7 @@ static int	_sm_GetUniqueKey_internal(
 		/* keep it to 31 bits and not zero during wrap around */
 		if ((tryKey > UNIQUE_KEY_PROCESSES_MAX) || (tryKey == 0)) { /* zero test is redundant given code logic, but clearer */
 			tryKey = (*p_ipcUniqueKey) = UNIQUE_KEY_PROCESSES_INITIAL; /* start over at the bottom */
-		} 
+		}
 
 		if (_semKeyExists(tryKey)) {
 			/* loop around and try another */
@@ -4613,7 +4613,7 @@ static int	_sm_GetUniqueKey_internal(
 			/* we can use this one */
 			break;
 		}
-	}	
+	}
 
 	return(tryKey);
 }
@@ -4708,7 +4708,7 @@ int	pseudoshell(char *commandLine)
 	char	*argv[11];
 #ifdef ION_LWT
 	int	argc = 0;
-#endif	
+#endif
 	int	pid;
 
 	if (commandLine == NULL)

@@ -1,11 +1,11 @@
 /*
 	bpsendtest.c:	test program to send a file as a bundle repeatedly to bprecvtest.c.
-		also sends a pilot bundle at the beginning of transmission to inform bprecvtest 
+		also sends a pilot bundle at the beginning of transmission to inform bprecvtest
 		to start its clock
-														*/
-/*														*/
-/*	Modified from bpsendfile.c by Silas Springer 		*/
-/*	Random file generation modified from garbage.c 
+								*/
+/*								*/
+/*	Modified from bpsendfile.c by Silas Springer		*/
+/*	Random file generation modified from garbage.c
 	Which was originally writen by Dr. Shawn Ostermann	*/
 
 
@@ -102,7 +102,7 @@ static int	run_bpsendtest(char *ownEid, char *destEid, char *fileName,
 	}
 
 	/* Create and send pilot bundle */
-	
+
 	CHKZERO(sdr_begin_xn(sdr));
 	Object pilotAduString = sdr_string_create(sdr, "Go.");
 	if (sdr_end_xn(sdr) < 0)
@@ -112,7 +112,7 @@ static int	run_bpsendtest(char *ownEid, char *destEid, char *fileName,
 		return 0;
 	}
 
-	bundleZco = ionCreateZco(ZcoSdrSource, pilotAduString, 0, 
+	bundleZco = ionCreateZco(ZcoSdrSource, pilotAduString, 0,
 			sdr_string_length(sdr, pilotAduString),
 			BP_STD_PRIORITY, 0, ZcoOutbound, NULL);
 	if (bundleZco == 0 || bundleZco == (Object) ERROR)
@@ -135,8 +135,8 @@ static int	run_bpsendtest(char *ownEid, char *destEid, char *fileName,
 
 	/* end pilot bundle shenanigans */
 
-	isprintf(progressText, sizeof progressText, 
-		"[i] bpsendtest is sending '%s', size %d, %d times.", 
+	isprintf(progressText, sizeof progressText,
+		"[i] bpsendtest is sending '%s', size %d, %d times.",
 		fileName, aduLength, repetitions);
 	writeMemo(progressText);
 
@@ -209,18 +209,18 @@ int	bpsendtest(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 
 static void
 usage(
-    char *progname,
-    char *error,
-    ...)
+	char *progname,
+	char *error,
+	...)
 {
-    va_list ap;
-    
-    va_start(ap, error);
-    if (error) {
-	vfprintf(stderr,error,ap);
-	fprintf(stderr,"\n");
-    }
-    va_end(ap);
+	va_list ap;
+
+	va_start(ap, error);
+	if (error) {
+		vfprintf(stderr,error,ap);
+		fprintf(stderr,"\n");
+	}
+	va_end(ap);
 
 	fprintf(stderr, "usage: %s [-rep <repetitions>] [-ttl <ttl>] [-qos <qos>] [-nofile] <srcEid> <destEid> <file>\n", progname);
 	fprintf(stderr, "-rep <repetitions>  \tSpecifies the number of times to send the given file as a bundle.\n");
@@ -231,7 +231,7 @@ usage(
 	fprintf(stderr, "<srcEid>  \tSource endpoint to send from. e.g. 'ipn:2.4' \n");
 	fprintf(stderr, "<destEid> \tDestination endpoint to send to. e.g. 'ipn:3.2' \n");
 	fprintf(stderr, "<file>    \tPath to file to send as a bundle. If -nofile is specified, will instead be interpreted as a number of bytes defining the length of random data to generate for the bundle. Random data generated for the bundle will be saved in file 'bpsendtestRandFile'. WILL OVERWRITE files of the same name.\n");
-    exit(-1);
+	exit(-1);
 }
 
 #define FILENAME "bpsendtestRandFile"
@@ -242,14 +242,14 @@ void makegarbagefile(int len) {
 	if ((f = fopen(FILENAME,"w+")) == NULL) {
 		perror(FILENAME);
 		exit(-1);
-    }
+	}
 
 	for (i = 1; i <= len; ++i) {
-	    ch = rand()%256; // get random byte
-	    if (fputc(ch,f) != ch) {
+		ch = rand()%256; // get random byte
+		if (fputc(ch,f) != ch) {
 			perror("fputc");
 			exit(-2);
-	    }
+		}
 	}
 	fclose(f);
 }
@@ -260,14 +260,14 @@ int	main(int argc, char **argv)
 	char	*destEid = NULL;
 	char	fileName[PATH_MAX];
 	char	*classOfService = "0.1";
-	int 	numbytes = 0;
-	int		ttl = 300;
-	int 	repetitions = 1;
-	int		isfilename = 1; // true
+	int	numbytes = 0;
+	int	ttl = 300;
+	int	repetitions = 1;
+	int	isfilename = 1; // true
 
 	if (argc < 4)
 		usage(argv[0], "too few arguments.");
-	
+
 	int i = 1;
 	for (i=1; i < (argc -3); ++i)
 	{
@@ -277,25 +277,25 @@ int	main(int argc, char **argv)
 				ttl = atoi(argv[++i]);
 				if (ttl < 1) usage(argv[0], "-ttl requires a positive integer argument");
 				continue;	/* iterate back to for (i=1... loop */
-	    	}
+			}
 			else if (strcmp(argv[i],"-qos") == 0) {
 				if (i+1 >= argc) usage(argv[0],"-qos requires argument");
 				classOfService = argv[++i];
 				continue;	/* iterate back to for (i=1... loop */
-	    	}
+			}
 			else if (strcmp(argv[i],"-rep") == 0) {
 				if (i+1 >= argc) usage(argv[0],"-rep requires argument");
 				repetitions = atoi(argv[++i]);
 				if (repetitions < 1) usage(argv[0], "-rep requires a positive integer argument");
 				continue;	/* iterate back to for (i=1... loop */
-	    	}
+			}
 			else if (strcmp(argv[i], "-nofile") == 0) {
-				isfilename = 0; // false 
+				isfilename = 0; // false
 				continue;
 			}
 			else if (strcmp(argv[i],"-h") == 0) {
 				usage(argv[0], "");
-	    	}
+			}
 			else {
 				usage(argv[0], "unrecognized argument.");
 			}

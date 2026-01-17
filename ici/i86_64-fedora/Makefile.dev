@@ -10,7 +10,7 @@ CRYPTO_PARENT = ../crypto
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
-CC = gcc $(OPT) $(ADD_FLAGS) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I$(CRYPTO) -I$(CRYPTO_PARENT) 
+CC = gcc $(OPT) $(ADD_FLAGS) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I$(CRYPTO) -I$(CRYPTO_PARENT)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -107,7 +107,7 @@ install:
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
 
-uninstall:		
+uninstall:
 		rm $(ROOT)/lib/libici.so
 		for file in $(PUBINCLS); \
 			do rm $(ROOT)/include/$(notdir $$file); done

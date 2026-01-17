@@ -12,8 +12,8 @@
 
 #include "gf_complete.h"
 
-/* Parses argv starting at "starting".  
-   
+/* Parses argv starting at "starting".
+
    Returns 0 on failure.
    On success, it returns one past the last argument it read in argv. */
 

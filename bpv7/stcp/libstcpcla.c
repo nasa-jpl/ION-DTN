@@ -7,7 +7,7 @@
 	Copyright (c) 2006, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "stcpcla.h"
 
@@ -187,7 +187,7 @@ static int	handleStcpFailure(Object bundleZco)
 
 	/*	Handle the de-queued bundle.				*/
 
-       	if (bpHandleXmitFailure(bundleZco) < 0)
+	if (bpHandleXmitFailure(bundleZco) < 0)
 	{
 		putErrmsg("Can't handle STCP xmit failure.", NULL);
 		return -1;

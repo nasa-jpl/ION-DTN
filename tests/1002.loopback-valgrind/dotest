@@ -17,20 +17,20 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: To send a bundle over LTP. Uses the valgrind debugging/profiling
-	tool: http://valgrind.org/"
+    tool: http://valgrind.org/"
 echo
 echo "CONFIG: standard ltp loopback:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Various debugging messages associated with the valgrind tool.
-	valgrind output files will follow the pattern:
-	$PWD/out.valgrind..."
+    valgrind output files will follow the pattern:
+    $PWD/out.valgrind..."
 echo
 echo "########################################"
 
@@ -70,7 +70,7 @@ libtool --mode=execute                             \
         -i $CONFIGDIR/loopback.ionrc               \
         -l $CONFIGDIR/loopback.ltprc               \
         -b $CONFIGDIR/loopback.bprc                \
-		-s $CONFIGDIR/loopback.ionsecrc			   \
+        -s $CONFIGDIR/loopback.ionsecrc            \
         -p $CONFIGDIR/loopback.ipnrc               \
 
 # create the test message in a sent file
@@ -88,7 +88,7 @@ libtool --mode=execute                             \
     valgrind                                       \
     $GEN_SUPPRESSIONS                              \
     --quiet                                        \
-    --log-file=out.valgrind.loopback.bpsink.%p   \
+    --log-file=out.valgrind.loopback.bpsink.%p     \
     --num-callers=25                               \
     --tool=memcheck                                \
     --trace-children=yes                           \
@@ -162,7 +162,7 @@ else
     RETVAL=0
 fi
 
-# 
+#
 # see if valgrind noticed any problems
 #
 

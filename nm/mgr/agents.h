@@ -52,7 +52,7 @@ typedef struct {
 	vec_idx_t idx;
 	vector_t rpts;
 	vector_t tbls;
-	
+
 	FILE *log_fd;
 	int log_fd_cnt;
 	int log_file_num;
@@ -70,7 +70,7 @@ typedef struct {
 	int limit; // Number of entries (reports+tables) per file
 	int agent_dirs; // If true, create discrete directories for each agent
 	char dir[32]; // directory to save report logs to (or place sub-directories in)
-	
+
 } agent_autologging_cfg_t;
 extern agent_autologging_cfg_t agent_log_cfg;
 

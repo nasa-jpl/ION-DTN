@@ -34,7 +34,7 @@ packages=(
 
     # GitHub CLI
     "mingw-w64-x86_64-github-cli"   # gh CLI for GitHub
-    "git"    			    # git
+    "git"                           # git
 
     # Optional: SQLite and diffutils
     "libsqlite"                     # SQLite library

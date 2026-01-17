@@ -26,36 +26,36 @@ typedef struct
 Object	Sdr_hash_create(const char *file, int line, Sdr sdrv, int keyLength,
 		int estNbrOfEntries, int meanSearchLength)
 {
-	/*	Each row of an SDR hash table contains a linked list of 
- 	*	key/value pairs.  Given a key, we look up the corresponding
- 	*	value by hashing from the key to a row number and then
- 	*	searching through the key/value pairs in the linked list at
- 	*	that row.  Minimizing the lengths of the lists in the table
- 	*	minimizes lookup time, but in so doing it either increases
- 	*	the number of rows in the table (increasing the table's fixed
- 	*	size) or limits the number of entries.  We try to strike a
- 	*	balance by computing the number of rows automatically from
- 	*	A = the estimated total number of entries in the table and
- 	*	B = the desired mean list length:
- 	*
- 	*		1.	Raw preferred row count C = A / B.
- 	*
- 	*		2.	Actual row count must be a prime number
- 	*			in order for the hash function to work
- 	*			properly, so search the hash dimensions
- 	*			table for the smallest row count that is
- 	*			greater than or equal to C.		*/
+	/*	Each row of an SDR hash table contains a linked list of
+	 *	key/value pairs.  Given a key, we look up the corresponding
+	 *	value by hashing from the key to a row number and then
+	 *	searching through the key/value pairs in the linked list at
+	 *	that row.  Minimizing the lengths of the lists in the table
+	 *	minimizes lookup time, but in so doing it either increases
+	 *	the number of rows in the table (increasing the table's fixed
+	 *	size) or limits the number of entries.  We try to strike a
+	 *	balance by computing the number of rows automatically from
+	 *	A = the estimated total number of entries in the table and
+	 *	B = the desired mean list length:
+	 *
+	 *		1.	Raw preferred row count C = A / B.
+	 *
+	 *		2.	Actual row count must be a prime number
+	 *			in order for the hash function to work
+	 *			properly, so search the hash dimensions
+	 *			table for the smallest row count that is
+	 *			greater than or equal to C.		*/
 
 	static const int	hashDimensions[] =
 			{ 71, 131, 257, 521, 1031, 2053, 4099, 8209, 16411 };
 
 	/*	Each of the predefined possible hash table dimensions is the
- 	*	smallest prime number greater than some power of 2, starting
- 	*	with 2**6 = 64.  16411 is the maximum hash table dimension,
- 	*	used for any value of C that is greater than 8209; on a 32-bit
- 	*	machine, this limit assures that the table itself (excluding
- 	*	the lists at its rows) will occupy no more than 65644 bytes
- 	*	plus the table header size.				*/
+	 *	smallest prime number greater than some power of 2, starting
+	 *	with 2**6 = 64.  16411 is the maximum hash table dimension,
+	 *	used for any value of C that is greater than 8209; on a 32-bit
+	 *	machine, this limit assures that the table itself (excluding
+	 *	the lists at its rows) will occupy no more than 65644 bytes
+	 *	plus the table header size.				*/
 
 	int	rawRowCount;
 	int	i;

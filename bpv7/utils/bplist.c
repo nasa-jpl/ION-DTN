@@ -59,7 +59,7 @@ static void	printBytes(char *text, int length)
 			cursor++;
 			if ((((high - 10) / 3) % 3) == 2)
 			{
-				high += 3; 
+				high += 3;
 			}
 			else
 			{
@@ -251,11 +251,11 @@ frag offset %10lu", bundle->id.creationTime.msec, bundle->id.creationTime.count,
 	PUTS(buf);
 	isprintf(buf, sizeof buf,
 			"- is a fragment:        %d", bundle->bundleProcFlags
-		       	& BDL_IS_FRAGMENT ? 1 : 0);
+			& BDL_IS_FRAGMENT ? 1 : 0);
 	PUTS(buf);
 	isprintf(buf, sizeof buf,
 			"- is admin:             %d", bundle->bundleProcFlags
-		       	& BDL_IS_ADMIN ? 1 : 0);
+			& BDL_IS_ADMIN ? 1 : 0);
 	PUTS(buf);
 	isprintf(buf, sizeof buf,
 			"- does not fragment:    %d", bundle->bundleProcFlags
@@ -277,7 +277,7 @@ frag offset %10lu", bundle->id.creationTime.msec, bundle->id.creationTime.count,
 
 	isprintf(buf, sizeof buf,
 			"Ordinal                 %d",
-		       	bundle->ordinal);
+			bundle->ordinal);
 	PUTS(buf);
 	isprintf(buf, sizeof buf,
 			"Unreliable:             %d",

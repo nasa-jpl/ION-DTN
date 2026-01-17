@@ -82,7 +82,7 @@ pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: Test ION's IP address caching behavior in udplso for LTP. ION will periodically
                re-resolve IP address from hostname in order to detect DNS changes, and
-	       periodically provide ion.log report for IP address look up failure."
+               periodically provide ion.log report for IP address look up failure."
 
 echo -e "\n\tNOTE: This test requires sudo privilege to manually change /etc/hosts file
                    to simulate the effect of changes in DNS database."
@@ -94,10 +94,10 @@ echo "CONFIG: 2 node custom:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat "$N"
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat "$N"
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo
@@ -190,10 +190,10 @@ sleep 10
 LINE_NUM=$(search_log_after_line "$LOG_FILE" "$SEARCH_STRING1" "$LINE_NUM")
 return_code=$?
 if [ $return_code -eq 0 ]; then
-	echo "SUCCESS: ion.log reported DSN lookup failure at line $LINE_NUM"
+    echo "SUCCESS: ion.log reported DSN lookup failure at line $LINE_NUM"
 else
-	echo "FAIL: No match or error (return code: -1)"
-	RETVAL=1
+    echo "FAIL: No match or error (return code: -1)"
+    RETVAL=1
 fi
 
 # Step 2: Destination hostname added back to DNS or hosts file
@@ -219,10 +219,10 @@ sleep 65
 #LINE_NUM=$(search_log_after_line "$LOG_FILE" "$SEARCH_STRING2" "$LINE_NUM")
 #return_code=$?
 #if [ $return_code -eq 0 ]; then
-#	echo "SUCCESS: ion.log reported DNS lookup success at line $LINE_NUM"
+#    echo "SUCCESS: ion.log reported DNS lookup success at line $LINE_NUM"
 #else
-#	echo "FAIL: No match or error (return code: -1)"
-#	RETVAL=1
+#    echo "FAIL: No match or error (return code: -1)"
+#    RETVAL=1
 #fi
 
 # Step 3: Sending LTP data
@@ -262,16 +262,16 @@ cat ion.log | grep rcv
 LINE_NUM=$(search_log_after_line "$LOG_FILE" "$SEARCH_STRING3" "$LINE_NUM")
 return_code=$?
 if [ $return_code -eq 0 ]; then
-	echo "SUCCESS: ion.log confirm data reception at line: $LINE_NUM"
+    echo "SUCCESS: ion.log confirm data reception at line: $LINE_NUM"
 else
-	echo "FAIL: No match or error (return code: -1)"
-	RETVAL=1
+    echo "FAIL: No match or error (return code: -1)"
+    RETVAL=1
 fi
 
 
 if [ "$RETVAL" -eq 1 ]
 then
-        echo "Test did not complete."
+    echo "Test did not complete."
 fi
 
 echo -e "\nStopping ION..."

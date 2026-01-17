@@ -40,36 +40,36 @@ static int	_running(int *newState)
 static int	_sessionsCanceled(int increment)
 {
 	static int	count = 0;
-	
+
 	if (increment)
 	{
 		count += increment;
 	}
-	
+
 	return count;
 }
 
 static int	_blocksReceived(int increment)
 {
 	static int	count = 0;
-	
+
 	if (increment)
 	{
 		count += increment;
 	}
-	
+
 	return count;
 
 }
 static int	_bytesReceived(int increment)
 {
 	static int	count = 0;
-	
+
 	if (increment)
 	{
 		count += increment;
 	}
-	
+
 	return count;
 }
 
@@ -92,7 +92,7 @@ static void	*showProgress(void *parm)
 static void	handleQuit(int signum)
 {
 	int	stop = 0;
-	
+
 	/* Tell the compiler that we are not using 'signum' */
 	(void)signum;
 

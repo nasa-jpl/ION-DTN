@@ -1,9 +1,10 @@
-/* 
- * bp_admin.h - Minimum set of administrative functions that work with 
+/*
+ * bp_admin.h - Minimum set of administrative functions that work with
  *              existing bp_attach and bp_detach to
- *              to programmatically configure and start/stop the BP 
- *              system without using the bpadmin utility.                
-*/
+ *              to programmatically configure and start/stop the BP
+ *              system without using the bpadmin utility.
+ */
+
 #ifndef BP_ADMIN_H
 #define BP_ADMIN_H
 
@@ -13,8 +14,8 @@
 extern "C" {
 #endif
 
-/* 
- * PREREQUISITES: 
+/*
+ * PREREQUISITES:
  * - Must call bp_attach() first (from bp.h)
  * - These functions configure the BP system
  * - Can be called from same process as bp_send/receive
@@ -116,11 +117,11 @@ extern void bp_stop(void);
  *
  * Returns: 0 on success, -1 on error
  */
-extern int	ipn_init(void);
+extern int ipn_init(void);
 
 /*
  * Add a new URI scheme to the BP node.
- * 
+ *
  * Parameters:
  *   name      - Scheme name (e.g., "ipn", "dtn")
  *   fwdCmd    - Forwarder daemon command
@@ -139,7 +140,7 @@ extern int add_scheme(char *name, char *fwdCmd, char *admAppCmd);
  *
  * Returns: 1 on success, 0 if not found, -1 on error
  */
-extern int remove_scheme(char *name); 
+extern int remove_scheme(char *name);
 
 /* Scheme lifecycle control */
 
@@ -165,7 +166,7 @@ extern void bp_stop_scheme(char *name);
 
 /*
  * Register an endpoint for receiving bundles.
- * 
+ *
  * Parameters:
  *   eid      - Endpoint ID string (e.g., "ipn:1.1")
  *   recvRule - Reception rule (DiscardBundle or EnqueueBundle)
@@ -422,7 +423,7 @@ extern void bp_list_endpoints(void);
  *
  * Note: Future versions will return structured data.
  */
-extern void bp_list_protocols(void); 
+extern void bp_list_protocols(void);
 
 /*
  * Print statistics for all bundle states.

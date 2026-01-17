@@ -1,4 +1,3 @@
-
 #include "ici/library/lystP.h"
 
 #include "radix_gen.h"
@@ -25,7 +24,3 @@ typedef struct LystTestData_s
 	char key[RADIX_MAX_SUBSTR];
 	void *data;
 } LystTestData;
-
-
-
-

@@ -135,27 +135,27 @@ tbl_t *dtn_ion_ionadmin_tblt_contacts(ari_t *id)
 
 		if((contact = (IonCXref *) psp(getIonwm(), addr)) == NULL)
 		{
-		  AMP_DEBUG_WARN("dtn_ion_ionadmin_tblt_contacts","NULL contact encountered. Skipping.", NULL);
-		  continue;
+			AMP_DEBUG_WARN("dtn_ion_ionadmin_tblt_contacts","NULL contact encountered. Skipping.", NULL);
+			continue;
 		}
 
 		 /* Table is: (TV)Start, (TV)Stop, (STR)From Node, (STR)To Node, (UVAST)Xmit, (UVAST)Confidence */
 		if((cur_row = tnvc_create(6)) != NULL)
 		{
-		  tnvc_insert(cur_row, tnv_from_tv(contact->fromTime));
-		  tnvc_insert(cur_row, tnv_from_tv(contact->toTime));
-		  putFqn(fromBuf, contact->fromFqnn);
-		  tnvc_insert(cur_row, tnv_from_str(fromBuf));
-		  putFqn(fromBuf, contact->toFqnn);
-		  tnvc_insert(cur_row, tnv_from_str(toBuf));
-		  tnvc_insert(cur_row, tnv_from_uvast(contact->xmitRate));
-		  tnvc_insert(cur_row, tnv_from_uvast(contact->confidence));
-		  
-		  tbl_add_row(table, cur_row);
+			tnvc_insert(cur_row, tnv_from_tv(contact->fromTime));
+			tnvc_insert(cur_row, tnv_from_tv(contact->toTime));
+			putFqn(fromBuf, contact->fromFqnn);
+			tnvc_insert(cur_row, tnv_from_str(fromBuf));
+			putFqn(fromBuf, contact->toFqnn);
+			tnvc_insert(cur_row, tnv_from_str(toBuf));
+			tnvc_insert(cur_row, tnv_from_uvast(contact->xmitRate));
+			tnvc_insert(cur_row, tnv_from_uvast(contact->confidence));
+
+			tbl_add_row(table, cur_row);
 		}
 		else
 		{
-		  AMP_DEBUG_WARN("dtn_ion_ionadmin_tblt_contacts", "Can't allocate row. Skipping.", NULL);
+			AMP_DEBUG_WARN("dtn_ion_ionadmin_tblt_contacts", "Can't allocate row. Skipping.", NULL);
 		}
 	}
 
@@ -206,8 +206,8 @@ tbl_t *dtn_ion_ionadmin_tblt_ranges(ari_t *id)
 		addr = sm_rbt_data(ionwm, elt);
 		CHKNULL(addr);
 
-        if((range = (IonRXref *) psp(getIonwm(), addr)) == NULL)
-        {
+	if((range = (IonRXref *) psp(getIonwm(), addr)) == NULL)
+	{
 			AMP_DEBUG_WARN("dtn_ion_ionadmin_tblt_ranges","NULL contact encountered. Skipping.", NULL);
 			continue;
 		}
@@ -217,10 +217,10 @@ tbl_t *dtn_ion_ionadmin_tblt_ranges(ari_t *id)
 		{
 			tnvc_insert(cur_row, tnv_from_tv(range->fromTime));
 			tnvc_insert(cur_row, tnv_from_tv(range->toTime));
-		  	putFqn(fromBuf, range->fromFqnn);
-		  	tnvc_insert(cur_row, tnv_from_str(fromBuf));
-		  	putFqn(fromBuf, range->toFqnn);
-		  	tnvc_insert(cur_row, tnv_from_str(toBuf));
+			putFqn(fromBuf, range->fromFqnn);
+			tnvc_insert(cur_row, tnv_from_str(fromBuf));
+			putFqn(fromBuf, range->toFqnn);
+			tnvc_insert(cur_row, tnv_from_str(toBuf));
 			tnvc_insert(cur_row, tnv_from_uint(range->owlt));
 
 			tbl_add_row(table, cur_row);
@@ -231,7 +231,7 @@ tbl_t *dtn_ion_ionadmin_tblt_ranges(ari_t *id)
 		}
 	}
 
-	  sdr_exit_xn(sdr);
+	sdr_exit_xn(sdr);
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -258,14 +258,14 @@ tnv_t *dtn_ion_ionadmin_get_clock_error(tnvc_t *parms)
 	 * +-------------------------------------------------------------------------+
 	 */
 
-	 Sdr     sdr = getIonsdr();
-	 Object  iondbObj = getIonDbObject();
-	 IonDB   iondb;
+	Sdr     sdr = getIonsdr();
+	Object  iondbObj = getIonDbObject();
+	IonDB   iondb;
 
-	 CHKNULL(sdr_begin_xn(sdr));
-	 sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	 result = tnv_from_int(iondb.maxClockError);
-	 sdr_end_xn(sdr);
+	CHKNULL(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	result = tnv_from_int(iondb.maxClockError);
+	sdr_end_xn(sdr);
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -773,24 +773,24 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_clock_error_set(eid_t *def_mgr, tnvc_t *parms,
 	 * |START CUSTOM FUNCTION ctrl_node_clock_error_set BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	 Sdr      sdr = getIonsdr();
-	 Object   iondbObj = getIonDbObject();
-	 IonDB    iondb;
-	 uint32_t newMaxClockError;
-	 int      success = 0;
+	Sdr      sdr = getIonsdr();
+	Object   iondbObj = getIonDbObject();
+	IonDB    iondb;
+	uint32_t newMaxClockError;
+	int      success = 0;
 
 
-	 newMaxClockError = adm_get_parm_uint(parms,0,&success);
+	newMaxClockError = adm_get_parm_uint(parms,0,&success);
 
-	 if ((success) && (newMaxClockError >= 60) && (newMaxClockError <= 60))
-	 {
-		 CHKNULL(sdr_begin_xn(sdr));
-		 sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-		 iondb.maxClockError = newMaxClockError;
-		 sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
-		 sdr_end_xn(sdr);
-		 *status = CTRL_SUCCESS;
-	 }
+	if ((success) && (newMaxClockError >= 60) && (newMaxClockError <= 60))
+	{
+		CHKNULL(sdr_begin_xn(sdr));
+		sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+		iondb.maxClockError = newMaxClockError;
+		sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+		sdr_end_xn(sdr);
+		*status = CTRL_SUCCESS;
+	}
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -817,25 +817,25 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_clock_sync_set(eid_t *def_mgr, tnvc_t *parms, 
 	 * |START CUSTOM FUNCTION ctrl_node_clock_sync_set BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	 Sdr     sdr;
-	 Object  iondbObj;
-	 IonDB   iondb;
-	 int     newSyncVal;
-	 int     success = 0;
+	Sdr     sdr;
+	Object  iondbObj;
+	IonDB   iondb;
+	int     newSyncVal;
+	int     success = 0;
 
-	 newSyncVal = adm_get_parm_uint(parms,0,&success);
+	newSyncVal = adm_get_parm_uint(parms,0,&success);
 
-	 if(success)
-	 {
-		 sdr = getIonsdr();
-		 iondbObj = getIonDbObject();
-		 CHKNULL(sdr_begin_xn(sdr));
-		 sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-		 iondb.clockIsSynchronized = (!(newSyncVal == 0));
-		 sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
-		 sdr_end_xn(sdr);
-		 *status = CTRL_SUCCESS;
-	 }
+	if(success)
+	{
+		sdr = getIonsdr();
+		iondbObj = getIonDbObject();
+		CHKNULL(sdr_begin_xn(sdr));
+		sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+		iondb.clockIsSynchronized = (!(newSyncVal == 0));
+		sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+		sdr_end_xn(sdr);
+		*status = CTRL_SUCCESS;
+	}
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -875,15 +875,15 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_congestion_alarm_control_set(eid_t *def_mgr, t
 
 		CHKNULL(sdr_begin_xn(sdr));
 		sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-        if (iondb.alarmScript != 0)
-        {
-        	sdr_free(sdr, iondb.alarmScript);
-        }
+	if (iondb.alarmScript != 0)
+	{
+		sdr_free(sdr, iondb.alarmScript);
+	}
 
-        iondb.alarmScript = sdr_string_create(sdr, newAlarmScript);
-        sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
-        sdr_end_xn(sdr);
-        *status = CTRL_SUCCESS;
+	iondb.alarmScript = sdr_string_create(sdr, newAlarmScript);
+	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+	sdr_end_xn(sdr);
+	*status = CTRL_SUCCESS;
 	}
 
 	/*
@@ -975,7 +975,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_consumption_rate_set(eid_t *def_mgr, tnvc_t *p
 	Object  iondbObj = getIonDbObject();
 	IonDB   iondb;
 	int     newRate;
-	int 	success = 0;
+	int	success = 0;
 
 	newRate = adm_get_parm_uint(parms, 0, &success);
 
@@ -1024,15 +1024,15 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 	 * +-------------------------------------------------------------------------+
 	 */
 
-	time_t      fromTime = 0;
-	time_t      toTime = 0;
-	uvast       fromFqnn = 0;
-	uvast       toFqnn = 0;
-	uint32_t       regionNbr;
-	PsmAddress  xaddr;
-	uvast    	xmitRate;
-	uvast       confidence;
-	int     	success = 0;
+	time_t	   fromTime = 0;
+	time_t	   toTime = 0;
+	uvast	   fromFqnn = 0;
+	uvast	   toFqnn = 0;
+	uint32_t   regionNbr;
+	PsmAddress xaddr;
+	uvast	   xmitRate;
+	uvast	   confidence;
+	int	   success = 0;
 
 	fromTime = adm_get_parm_uvast(parms, 0, &success);
 
@@ -1068,27 +1068,27 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 
 	if(success)
 	{
-	    /* Sanity checks for contacts. */
-	    if((fromFqnn <= 0) || (toFqnn <= 0))
-	    {
-	        AMP_DEBUG_ERR("dtn_ion_ionadmin_ctrl_node_contact_add","Each node number must be greater than 0", NULL);
-	    }
-	    else if((confidence < 0.0 || confidence > 1.0))
-	    {
-            AMP_DEBUG_ERR("dtn_ion_ionadmin_ctrl_node_contact_add","Confidence must be in the range 0.0 to 1.0.", NULL);
-	    }
-	    else if(toTime <= fromTime)
-	    {
-	        AMP_DEBUG_ERR("dtn_ion_ionadmin_ctrl_node_contact_add","Interval end time must be later than start time", NULL);
-	    }
+		/* Sanity checks for contacts. */
+		if ((fromFqnn <= 0) || (toFqnn <= 0))
+		{
+			AMP_DEBUG_ERR("dtn_ion_ionadmin_ctrl_node_contact_add", "Each node number must be greater than 0", NULL);
+		}
+		else if ((confidence < 0.0 || confidence > 1.0))
+		{
+			AMP_DEBUG_ERR("dtn_ion_ionadmin_ctrl_node_contact_add", "Confidence must be in the range 0.0 to 1.0.", NULL);
+		}
+		else if (toTime <= fromTime)
+		{
+			AMP_DEBUG_ERR("dtn_ion_ionadmin_ctrl_node_contact_add", "Interval end time must be later than start time", NULL);
+		}
 
-	    // TODO: Need to accept region number.
-            if (rfx_insert_contact(1,fromTime, toTime,
-                fromFqnn, toFqnn, xmitRate, confidence,
-                &xaddr, 0) == 0)
-            {
-                *status = CTRL_SUCCESS;
-            }
+		// TODO: Need to accept region number.
+		if (rfx_insert_contact(1, fromTime, toTime,
+				fromFqnn, toFqnn, xmitRate, confidence,
+				&xaddr, 0) == 0)
+		{
+			*status = CTRL_SUCCESS;
+		}
 	}
 
 	/*
@@ -1117,11 +1117,11 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_del(eid_t *def_mgr, tnvc_t *parms, int
 	 * +-------------------------------------------------------------------------+
 	 */
 
-	time_t  timestamp = 0;
-	uvast   fromFqnn = 0;
-	uvast   toFqnn = 0;
-	int 	success = 0;
-	uint32_t	regionNbr;
+	time_t	 timestamp = 0;
+	uvast	 fromFqnn = 0;
+	uvast	 toFqnn = 0;
+	int	 success = 0;
+	uint32_t regionNbr;
 
 	timestamp = adm_get_parm_uvast(parms, 0, &success);
 
@@ -1271,47 +1271,47 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_range_add(eid_t *def_mgr, tnvc_t *parms, int8_
 	 * +-------------------------------------------------------------------------+
 	 */
 
-	time_t  start = 0;
-	time_t  stop  = 0;
-	uint32_t    fromFqnn = 0;
-	uint32_t    toFqnn   = 0;
-	uint32_t    distance  = 0;
-	int 	success   = 0;
+	time_t	   start = 0;
+	time_t	   stop = 0;
+	uint32_t   fromFqnn = 0;
+	uint32_t   toFqnn = 0;
+	uint32_t   distance = 0;
+	int	   success = 0;
 	PsmAddress xaddr;
 
 	start = adm_get_parm_uvast(parms, 0, &success);
 
 	if(success)
 	{
-	  stop = adm_get_parm_uvast(parms, 1, &success);
+		stop = adm_get_parm_uvast(parms, 1, &success);
 	}
 	if(success)
 	{
-	  fromFqnn = getFqn(adm_get_parm_obj(parms, 2, AMP_TYPE_STR));
-	  if (fromFqnn == 0) success = 0;
+		fromFqnn = getFqn(adm_get_parm_obj(parms, 2, AMP_TYPE_STR));
+		if (fromFqnn == 0) success = 0;
 	}
 	if(success)
 	{
-	  toFqnn = getFqn(adm_get_parm_obj(parms, 3, AMP_TYPE_STR));
-	  if (fromFqnn == 0) success = 0;
+		toFqnn = getFqn(adm_get_parm_obj(parms, 3, AMP_TYPE_STR));
+		if (fromFqnn == 0) success = 0;
 	}
 	if(success)
 	{
-	  distance = adm_get_parm_uint(parms, 4, &success);
+		distance = adm_get_parm_uint(parms, 4, &success);
 	}
 
 	if(success)
 	{
-	  if(stop <= start)
-	  {
-	    return NULL;
-	  }
+		if(stop <= start)
+		{
+			return NULL;
+		}
 
-	  if (rfx_insert_range(start, stop, fromFqnn, toFqnn, distance,
-			&xaddr, 0) >= 0 && xaddr != 0)
-	  {
-	    *status = CTRL_SUCCESS;
-	  }
+		if (rfx_insert_range(start, stop, fromFqnn, toFqnn, distance,
+				&xaddr, 0) >= 0 && xaddr != 0)
+		{
+			*status = CTRL_SUCCESS;
+		}
 	}
 
 	/*
@@ -1340,31 +1340,31 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_range_del(eid_t *def_mgr, tnvc_t *parms, int8_
 	 * +-------------------------------------------------------------------------+
 	 */
 
-	time_t  start = 0;
-	uvast    fromFqnn = 0;
-	uvast    toFqnn   = 0;
-	int 	success   = 0;
+	time_t	   start = 0;
+	uvast	   fromFqnn = 0;
+	uvast	   toFqnn = 0;
+	int	   success = 0;
 	PsmAddress xaddr;
 
 	start = adm_get_parm_uvast(parms, 0, &success);
 
 	if(success)
 	{
-	  fromFqnn = getFqn(adm_get_parm_obj(parms, 1, AMP_TYPE_STR));
-	  if (fromFqnn == 0) success = 0;
+		fromFqnn = getFqn(adm_get_parm_obj(parms, 1, AMP_TYPE_STR));
+		if (fromFqnn == 0) success = 0;
 	}
 	if(success)
 	{
-	  toFqnn = getFqn(adm_get_parm_obj(parms, 2, AMP_TYPE_STR));
-	  if (toFqnn == 0) success = 0;
+		toFqnn = getFqn(adm_get_parm_obj(parms, 2, AMP_TYPE_STR));
+		if (toFqnn == 0) success = 0;
 	}
 
 	if(success)
 	{
-	  if(rfx_remove_range(&start, fromFqnn, toFqnn, 0) >= 0)
-	  {
-	    *status = CTRL_SUCCESS;
-	  }
+		if(rfx_remove_range(&start, fromFqnn, toFqnn, 0) >= 0)
+		{
+			*status = CTRL_SUCCESS;
+		}
 	}
 
 	/*

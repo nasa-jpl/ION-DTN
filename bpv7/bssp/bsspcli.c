@@ -9,7 +9,7 @@
  *	Copyright (c) 2013, California Institute of Technology.
  *	Copyright (c) 2013, Space Internetworking Center,
  *	Democritus University of Thrace.
- *	
+ *
  *	All rights reserved. U.S. Government and E.U. Sponsorship acknowledged.
  *
  */
@@ -33,7 +33,7 @@ typedef struct
 } ReceiverThreadParms;
 
 int	acquireBundle(AcqWorkArea *work, BsspSessionId *sessionId,
-			unsigned int length, Object zco, 
+			unsigned int length, Object zco,
 			unsigned int *buflen, char **buffer)
 {
 	Sdr		sdr = getIonsdr();
@@ -75,7 +75,7 @@ int	acquireBundle(AcqWorkArea *work, BsspSessionId *sessionId,
 		*buffer = MTAKE(length);
 		if (*buffer == NULL)
 		{
-				
+
 			bpCancelAcq(work);
 			return 0;
 		}
@@ -133,7 +133,7 @@ static void	*handleNotices(void *parm)
 		ionKillMainThread(procName);
 		return NULL;
 	}
-	
+
 	work = bpGetAcqArea(rtp->vduct);
 	if (work == NULL)
 	{

@@ -46,11 +46,11 @@
 # Get the latest bp stat printed to an ion.log file.
 #
 function getStatsCounter() {
-	TYPE=$1
-	PRI=$2
-	FILE=$3
+    TYPE=$1
+    PRI=$2
+    FILE=$3
 
-	grep "$TYPE from [0-9]" "$FILE" | tail -n 1 | sed "s/^.*($PRI) *\\([0-9]*\\)  *\\([0-9]*\\).*$/\\1/"
+    grep "$TYPE from [0-9]" "$FILE" | tail -n 1 | sed "s/^.*($PRI) *\\([0-9]*\\)  *\\([0-9]*\\).*$/\\1/"
 }
 
 killm
@@ -70,10 +70,10 @@ cd 3.ipn.tcp
 
 if [ $? -eq 2 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 3 not started: Aborting Test"
-	exit 1
+    echo "Node 3 not started: Aborting Test"
+    exit 1
 fi
 
 cd ../5.ipn.tcp
@@ -82,10 +82,10 @@ cd ../5.ipn.tcp
 
 if [ $? -eq 2 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 5 not started: Aborting Test"
-	exit 1
+    echo "Node 5 not started: Aborting Test"
+    exit 1
 fi
 
 cd ../2.ipn.tcp
@@ -94,10 +94,10 @@ cd ../2.ipn.tcp
 
 if [ $? -eq 2 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 2 not started: Aborting Test"
-	exit 1
+    echo "Node 2 not started: Aborting Test"
+    exit 1
 fi
 
 echo "Sleeping 30 sec to give keepalive threads time to detect open sockets..."
@@ -120,12 +120,12 @@ cd ../3.ipn.tcp
 COUNT=`ls -l testfile1 | egrep 915 | wc -l`
 if [ $COUNT -eq 1 ]
 then
-	echo ""
-	echo "Okay: got first copy of file x."
+    echo ""
+    echo "Okay: got first copy of file x."
 else
-	echo ""
-	echo "Error: didn't get first copy of file x."
-	RETVAL=1
+    echo ""
+    echo "Error: didn't get first copy of file x."
+    RETVAL=1
 fi
 
 echo ""
@@ -145,12 +145,12 @@ cd ../3.ipn.tcp
 COUNT=`ls -l testfile2 2>/dev/null | egrep 1070 | wc -l`
 if [ $COUNT -eq 1 ]
 then
-	echo ""
-	echo "Error: got first copy of file y already."
-	RETVAL=1
+    echo ""
+    echo "Error: got first copy of file y already."
+    RETVAL=1
 else
-	echo ""
-	echo "Okay: didn't get first copy of file y."
+    echo ""
+    echo "Okay: didn't get first copy of file y."
 fi
 
 echo ""
@@ -165,12 +165,12 @@ cd ../3.ipn.tcp
 COUNT=`ls -l testfile2 | egrep 1070 | wc -l`
 if [ $COUNT -eq 1 ]
 then
-	echo ""
-	echo "Okay: got first copy of file y."
+    echo ""
+    echo "Okay: got first copy of file y."
 else
-	echo ""
-	echo "Error: didn't get first copy of file y."
-	RETVAL=1
+    echo ""
+    echo "Error: didn't get first copy of file y."
+    RETVAL=1
 fi
 
 echo ""
@@ -185,12 +185,12 @@ cd ../3.ipn.tcp
 COUNT=`ls -l testfile3 | egrep 885 | wc -l`
 if [ $COUNT -eq 1 ]
 then
-	echo ""
-	echo "Okay: got first copy of file z."
+    echo ""
+    echo "Okay: got first copy of file z."
 else
-	echo ""
-	echo "Error: didn't get first copy of file z."
-	RETVAL=1
+    echo ""
+    echo "Error: didn't get first copy of file z."
+    RETVAL=1
 fi
 
 echo ""
@@ -213,12 +213,12 @@ cd ../3.ipn.tcp
 COUNT=`ls -l testfile4 2>/dev/null | egrep 1070 | wc -l`
 if [ $COUNT -eq 1 ]
 then
-	echo ""
-	echo "Error: got second copy of file y already."
-	RETVAL=1
+    echo ""
+    echo "Error: got second copy of file y already."
+    RETVAL=1
 else
-	echo ""
-	echo "Okay: didn't get second copy of file y."
+    echo ""
+    echo "Okay: didn't get second copy of file y."
 fi
 
 echo ""
@@ -242,12 +242,12 @@ echo "Bundle for 4th file should have been transmitted."
 COUNT=`ls -l testfile1 | egrep 1070 | wc -l`
 if [ $COUNT -eq 1 ]
 then
-	echo ""
-	echo "Okay: got second copy of file y."
+    echo ""
+    echo "Okay: got second copy of file y."
 else
-	echo ""
-	echo "Error: didn't get second copy of file y."
-	RETVAL=1
+    echo ""
+    echo "Error: didn't get second copy of file y."
+    RETVAL=1
 fi
 
 echo ""
@@ -262,19 +262,19 @@ cd ../3.ipn.tcp
 COUNT=`ls -l testfile2 | egrep 885 | wc -l`
 if [ $COUNT -eq 1 ]
 then
-	echo ""
-	echo "Okay: got second copy of file z."
+    echo ""
+    echo "Okay: got second copy of file z."
 else
-	echo ""
-	echo "Error: didn't get second copy of file z."
-	RETVAL=1
+    echo ""
+    echo "Error: didn't get second copy of file z."
+    RETVAL=1
 fi
 
 echo ""
 # Get the stats from node 2
 echo "Getting stats from node 2..."
 cd ../2.ipn.tcp
-bpstats 
+bpstats
 sleep 2
 START_COUNT=`getStatsCounter 'fwd' '+' ion.log`
 echo " -> $START_COUNT fwd bundles"
@@ -290,32 +290,32 @@ sleep 8
 cd ../3.ipn.tcp
 if grep -q 'test file 5a' testfile3
 then
-	echo ""
-	echo "Okay: got a copy of file 5a."
+    echo ""
+    echo "Okay: got a copy of file 5a."
 else
-	echo ""
-	echo "Error: didn't get a copy of file 5a."
-	RETVAL=1
+    echo ""
+    echo "Error: didn't get a copy of file 5a."
+    RETVAL=1
 fi
 
 echo ""
 # Get the stats from node 2 again
 echo "Getting stats from node 2 to verify it increased..."
 cd ../2.ipn.tcp
-bpstats 
+bpstats
 sleep 2
 END_COUNT=`getStatsCounter 'fwd' '+' ion.log`
 echo " -> $END_COUNT fwd bundles"
 
 if [ "$START_COUNT" -lt "$END_COUNT" ]
 then
-	echo ""
-	echo "Okay: bundle routed through node 2"
+    echo ""
+    echo "Okay: bundle routed through node 2"
 else
-	echo ""
-	echo "Error: bundle didn't route through node 2. Results of test would be invalid"
-	echo "The configuration of node 5 needs to be setup to prefer to route through node 2"
-	RETVAL=1
+    echo ""
+    echo "Error: bundle didn't route through node 2. Results of test would be invalid"
+    echo "The configuration of node 5 needs to be setup to prefer to route through node 2"
+    RETVAL=1
 fi
 
 echo ""
@@ -336,22 +336,22 @@ sleep 30
 cd ../3.ipn.tcp
 if grep -q 'test file 5b' testfile4
 then
-	echo ""
-	echo "Okay: got first copy of file 5b"
+    echo ""
+    echo "Okay: got first copy of file 5b"
 else
-	echo ""
-	echo "Error: didn't get first copy of file 5b."
-	RETVAL=1
+    echo ""
+    echo "Error: didn't get first copy of file 5b."
+    RETVAL=1
 fi
 
 if grep -q 'test file 5b' testfile5
 then
-	echo ""
-	echo "Okay: got second copy of file 5b"
+    echo ""
+    echo "Okay: got second copy of file 5b"
 else
-	echo ""
-	echo "Error: didn't get second copy of file 5b."
-	RETVAL=1
+    echo ""
+    echo "Error: didn't get second copy of file 5b."
+    RETVAL=1
 fi
 
 # Print the bplist for debugging purposes

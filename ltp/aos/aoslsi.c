@@ -47,7 +47,7 @@ static void	*handleDatagrams(void *parm)
 	 *	down the LSI.						*/
 
 	while (rtp->running)
-	{	
+	{
 		fromSize = sizeof fromAddr;
 		segmentLength = irecvfrom(rtp->linkSocket, buffer, AOSLSA_BUFSZ,
 				0, (struct sockaddr *) &fromAddr, &fromSize);
@@ -114,7 +114,7 @@ int	main(int argc, char *argv[])
 
 	/*	Note that ltpadmin must be run before the first
 	 *	invocation of ltplsi, to initialize the LTP database
-	 *	(as necessary) and dynamic database.			*/ 
+	 *	(as necessary) and dynamic database.			*/
 
 	if (ltpInit(0) < 0)
 	{
@@ -204,7 +204,7 @@ int	main(int argc, char *argv[])
 		char	txt[500];
 
 		isprintf(txt, sizeof(txt),
-			"[i] aoslsi is running, spec=[%s:%d].", 
+			"[i] aoslsi is running, spec=[%s:%d].",
 			inet_ntoa(inetName->sin_addr), ntohs(portNbr));
 		writeMemo(txt);
 	}

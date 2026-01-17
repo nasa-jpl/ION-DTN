@@ -993,7 +993,7 @@ command (using the token '1'). This node is then referenced by its node
 number throughout the rest of the configuration file.
 
 ```bash
-## begin ionadmin  
+## begin ionadmin
 1   1  /home/spwdev/cstl/ion-configs/23/badajoz/3node-udp-ltp/badajoz.ionconfig
 s
 
@@ -1027,7 +1027,7 @@ m  consumption  50000000
 
 ## end ionadmin
 ##########################################################################
-## begin ltpadmin  
+## begin ltpadmin
 1  32
 
 a  span   25  1  1  1400  1400  1  'udplso 192.168.1.25:1113'
@@ -1036,9 +1036,9 @@ a  span    1  1  1  1400  1400  1  'udplso 192.168.1.1:1113'
 
 s  'udplsi 192.168.1.1:1113'
 
-## end ltpadmin  
+## end ltpadmin
 ##########################################################################
-## begin bpadmin  
+## begin bpadmin
 1
 
 a  scheme  ipn  'ipnfw'    'ipnadminep'
@@ -1065,7 +1065,7 @@ a  plan   25  ltp/25
 a  plan  101  ltp/101
 a  plan    1  ltp/1
 
-## end  ipnadmin  
+## end  ipnadmin
 ```
 
 #### IPN Parameters Cross-reference
@@ -1340,8 +1340,8 @@ operation is initiated by _CLI_command_ at the time the duct is started.
 > protocol. For any induct whose duct name includes an IP address, one may
 > IP address 0.0.0.0 (INADDR_ANY) if the machine on which the node
 > resides is multihomed and you want the node to be reachable via all of
-> the machine's network interfaces. 
-> 
+> the machine's network interfaces.
+>
 > For LTP, it is recommended to use the
 > `seat` command instead. See article [Configure Multiple Network Interfaces](./Configure-Multiple-Network-Interfaces.md) for more details.
 

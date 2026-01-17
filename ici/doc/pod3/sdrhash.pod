@@ -6,25 +6,25 @@ sdrhash - Simple Data Recorder hash table management functions
 
     #include "sdr.h"
 
-    Object  sdr_hash_create        (Sdr sdr, int keyLength,
-    					int estNbrOfEntries,
-					int meanSearchLength);
-    int     sdr_hash_insert 	   (Sdr sdr, Object hash, char *key,
-    					Address value, Object *entry);
-    int     sdr_hash_delete_entry  (Sdr sdr, Object entry);
-    Address sdr_hash_entry_value   (Sdr sdr, Object hash, Object entry);
-    int	    sdr_hash_retrieve      (Sdr sdr, Object hash, char *key,
-    					Address *value, Object *entry);
-    int	    sdr_hash_count         (Sdr sdr, Object hash);
-    int	    sdr_hash_revise        (Sdr sdr, Object hash, char *key,
-    					Address value);
-    int	    sdr_hash_remove        (Sdr sdr, Object hash, char *key,
-					Address *value);
-    int     sdr_hash_destroy       (Sdr sdr, Object hash);
+    Object sdr_hash_create(Sdr sdr, int keyLength,
+                           int estNbrOfEntries,
+                           int meanSearchLength);
+    int sdr_hash_insert(Sdr sdr, Object hash, char *key,
+                        Address value, Object *entry);
+    int sdr_hash_delete_entry(Sdr sdr, Object entry);
+    Address sdr_hash_entry_value(Sdr sdr, Object hash, Object entry);
+    int sdr_hash_retrieve(Sdr sdr, Object hash, char *key,
+                          Address *value, Object *entry);
+    int sdr_hash_count(Sdr sdr, Object hash);
+    int sdr_hash_revise(Sdr sdr, Object hash, char *key,
+                        Address value);
+    int sdr_hash_remove(Sdr sdr, Object hash, char *key,
+                        Address *value);
+    int sdr_hash_destroy(Sdr sdr, Object hash);
 
 =head1 DESCRIPTION
 
-The SDR hash functions manage hash table objects in an SDR.  
+The SDR hash functions manage hash table objects in an SDR.
 
 Hash tables associate values with keys.  A value is always in the form of
 an SDR Address, nominally the address of some stored object identified by

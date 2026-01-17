@@ -159,10 +159,3 @@ IEEE754_union IEEE754_FloatToSmallest(float f);
 
 
 #endif /* ieee754_h */
-
-
-
-
-
-
-

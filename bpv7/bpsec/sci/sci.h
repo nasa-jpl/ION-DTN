@@ -170,24 +170,24 @@ typedef sc_value_map* (*bpsec_sc_valMapGet)(void);
  */
 typedef struct
 {
-    char scName[BPSEC_SC_NAME_MAX_LEN]; /** Name of security context.    */
-    int  scId;                          /** Security context ID.         */
-    int  scServices;                    /** Supported security services. */
+	char scName[BPSEC_SC_NAME_MAX_LEN]; /** Name of security context.    */
+	int  scId;                          /** Security context ID.         */
+	int  scServices;                    /** Supported security services. */
 
-    /* Executive Functions */
-    bpsec_sc_init            scInit;
-    bpsec_sc_initOutboundASB scInitOutboundASB;
-    bpsec_sc_teardown        scTeardown;
+	/* Executive Functions */
+	bpsec_sc_init            scInit;
+	bpsec_sc_initOutboundASB scInitOutboundASB;
+	bpsec_sc_teardown        scTeardown;
 
-    /* Processing Functions */
-    bpsec_sc_stateInit       scStateInit;
-    bpsec_sc_stateIncr       scStateIncr;
-    bpsec_sc_stateClear      scStateClear;
+	/* Processing Functions */
+	bpsec_sc_stateInit       scStateInit;
+	bpsec_sc_stateIncr       scStateIncr;
+	bpsec_sc_stateClear      scStateClear;
 
-    bpsec_sc_procOutboundBlk scProcOutBlk;
-    bpsec_sc_procInboundBlk  scProcInBlk;
+	bpsec_sc_procOutboundBlk scProcOutBlk;
+	bpsec_sc_procInboundBlk  scProcInBlk;
 
-    bpsec_sc_valMapGet       scValMapGet;
+	bpsec_sc_valMapGet       scValMapGet;
 } sc_Def;
 
 
@@ -208,17 +208,17 @@ char* bpsec_sci_polParmPrint(PsmPartition wm, sc_Def *sc_def, PsmAddress pol_par
 
 
 int   bpsec_sci_parmFilter(sc_state *state, sc_Def *def, PsmPartition wm,
-		                    PsmAddress pol_parms, Lyst blk_parms);
+		PsmAddress pol_parms, Lyst blk_parms);
 
 int   bpsec_sci_initAsbFn(void *def, Bundle *bundle, BpsecOutboundASB *asb, Sdr sdr, PsmPartition wm, PsmAddress parms);
 void  bpsec_sci_stateClear(sc_state *state);
 int   bpsec_sci_stateIncr(sc_state *state);
 int   bpsec_sci_stateInit(PsmPartition wm, sc_state *state, unsigned char secBlkNum, void *sc_def,
-		                   sc_role role, sc_action action, EndpointId src, PsmAddress pol_parms,
-						   Lyst blk_parms, int num_tgts);
+		sc_role role, sc_action action, EndpointId src, PsmAddress pol_parms,
+		Lyst blk_parms, int num_tgts);
 
 int   bpsec_sci_multCheck(Sdr sdr, BpsecOutboundASB *asb, sc_Def *def,
-		                  PsmPartition wm, PsmAddress parms);
+		PsmPartition wm, PsmAddress parms);
 
 
 

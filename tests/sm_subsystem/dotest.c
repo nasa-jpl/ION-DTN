@@ -16,14 +16,14 @@ static int debug = 0;
 static float exhaustive_test_multiplier = 1.0000; /* can be less than 1 */
 
 /* signal handler for exited processes */
-int         reaper_exit_val_total = 0;
+int	    reaper_exit_val_total = 0;
 static void reaper(int sig)
 {
 	int status;
 	int pid;
 
 	/* Parameter intentionally unused. */
-	(void)sig;
+	(void) sig;
 
 	while ((pid = waitpid((pid_t) -1, &status, WNOHANG)) > 0)
 	{
@@ -31,8 +31,8 @@ static void reaper(int sig)
 		{
 			// clang-format off
 			fprintf(
-			    stderr, "Child process %d exited with status %u\n",
-			    pid, WEXITSTATUS(status)
+				stderr, "Child process %d exited with status %u\n",
+				pid, WEXITSTATUS(status)
 			);
 			// clang-format on
 		}
@@ -48,9 +48,9 @@ static void wait_for_children(void)
 	{
 		// clang-format off
 		fprintf(
-		    stderr,
-		    "Parent process %d Waiting for children to finish...\n",
-		    getpid()
+			stderr,
+			"Parent process %d Waiting for children to finish...\n",
+			getpid()
 		);
 		// clang-format on
 	}
@@ -78,13 +78,13 @@ static void wait_for_children(void)
 }
 
 static int check_unique_keys_guts(unsigned iterations, int sm_unique_key[],
-                int num_uniq_keys)
+		int num_uniq_keys)
 {
-	int k;
+	int	     k;
 	unsigned int l;
-	unsigned count_non_unique = 0;
-	unsigned key_min = 0xffffffff;
-	unsigned key_max = 0;
+	unsigned     count_non_unique = 0;
+	unsigned     key_min = 0xffffffff;
+	unsigned     key_max = 0;
 
 	for (l = 0; l < iterations; ++l)
 	{
@@ -97,10 +97,10 @@ static int check_unique_keys_guts(unsigned iterations, int sm_unique_key[],
 				printf(
 					"process %d (0x%08x) got unique key %d"
 					" (0x%08x) (diff 0x%08lx)\n",
-				        getpid(), getpid(), NEW_unique_key,
+					getpid(), getpid(), NEW_unique_key,
 					NEW_unique_key,
 					(unsigned long) sm_unique_key[0]
-					    - (unsigned long) NEW_unique_key
+						- (unsigned long) NEW_unique_key
 				);
 				// clang-format on
 				fflush(stdout);
@@ -108,7 +108,7 @@ static int check_unique_keys_guts(unsigned iterations, int sm_unique_key[],
 
 		for (k = 0; k < num_uniq_keys; ++k)
 		{
-			if (sm_unique_key[k] >= 0 && NEW_unique_key == (unsigned int)sm_unique_key[k])
+			if (sm_unique_key[k] >= 0 && NEW_unique_key == (unsigned int) sm_unique_key[k])
 			{
 				// clang-format off
 				printf(
@@ -141,13 +141,13 @@ static int check_unique_keys_guts(unsigned iterations, int sm_unique_key[],
 
 static int check_unique_keys(void)
 {
-	int          num_uniq_keys = 5;
+	int	     num_uniq_keys = 5;
 	sm_SemId     unique_sm_id[num_uniq_keys];
-	int          sm_unique_key[num_uniq_keys];
-	int          non_unique_count;
+	int	     sm_unique_key[num_uniq_keys];
+	int	     non_unique_count;
 	unsigned     iterations = 50000;
-	int          nprocs = 10;
-	int          p;
+	int	     nprocs = 10;
+	int	     p;
 	static uaddr id;
 	static char *ptr;
 
@@ -164,13 +164,13 @@ static int check_unique_keys(void)
 	// generate 2 'unique' keys to ensure that we never get them again below
 	sm_unique_key[0] = sm_GetUniqueKey();
 	sm_unique_key[1] = sm_unique_key[0]
-	                + 0x00001000; /* not the way it's supposed to work... */
+			+ 0x00001000; /* not the way it's supposed to work... */
 	sm_unique_key[2] = sm_unique_key[0]
-	                + 0x00a40000; /* not the way it's supposed to work... */
+			+ 0x00a40000; /* not the way it's supposed to work... */
 	sm_unique_key[3] = sm_unique_key[0]
-	                + 0x00005000; /* not the way it's supposed to work... */
+			+ 0x00005000; /* not the way it's supposed to work... */
 	sm_unique_key[4] = sm_unique_key[0]
-	                + 0x00005010; /* not the way it's supposed to work... */
+			+ 0x00005010; /* not the way it's supposed to work... */
 
 	// clang-format off
 	printf(
@@ -206,7 +206,7 @@ static int check_unique_keys(void)
 
 	// generate an ION semaphore with that unique key
 	if ((unique_sm_id[0] = sm_SemCreate(sm_unique_key[0], SM_SEM_FIFO))
-	                == SM_SEM_NONE)
+			== SM_SEM_NONE)
 	{
 		printf("Creation of target semaphore1 failed\n");
 		return (0);
@@ -215,7 +215,7 @@ static int check_unique_keys(void)
 	// generate an ION semaphore with that unique key Plus a little
 	// (cheating - but should check anyway)
 	if ((unique_sm_id[1] = sm_SemCreate(sm_unique_key[1], SM_SEM_FIFO))
-	                == SM_SEM_NONE)
+			== SM_SEM_NONE)
 	{
 		printf("Creation of target unique_sem2 failed\n");
 		return (0);
@@ -224,7 +224,7 @@ static int check_unique_keys(void)
 	// generate an ION semaphore with that unique key Plus a little
 	// (cheating - but should check anyway)
 	if ((unique_sm_id[2] = sm_SemCreate(sm_unique_key[2], SM_SEM_FIFO))
-	                == SM_SEM_NONE)
+			== SM_SEM_NONE)
 	{
 		printf("Creation of target unique_sem3 failed\n");
 		return (0);
@@ -233,7 +233,7 @@ static int check_unique_keys(void)
 	// generate an ION shared memory segment with that unique key Plus a
 	// little (cheating - but should check anyway)
 	if ((unique_sm_id[3] = sm_ShmAttach(sm_unique_key[3], 1000, &ptr, &id))
-	                == SM_SEM_NONE)
+			== SM_SEM_NONE)
 	{
 		// clang-format off
 		printf(
@@ -250,7 +250,7 @@ static int check_unique_keys(void)
 	if (fork() == 0)
 	{
 		if ((unique_sm_id[4] = sm_SemCreate(sm_unique_key[4], SM_SEM_FIFO))
-		                == SM_SEM_NONE)
+				== SM_SEM_NONE)
 		{
 			printf("Creation of target unique_sem3 failed\n");
 			exit(99);
@@ -264,13 +264,13 @@ static int check_unique_keys(void)
 		if (fork() == 0)
 		{
 			non_unique_count = check_unique_keys_guts(iterations,
-			                sm_unique_key, num_uniq_keys);
+					sm_unique_key, num_uniq_keys);
 			_exit((non_unique_count) != 0);
 		}
 	}
 	/* and run it in the CURRENT process, too */
 	non_unique_count = check_unique_keys_guts(iterations, sm_unique_key,
-	                num_uniq_keys);
+			num_uniq_keys);
 	reaper_exit_val_total += non_unique_count;
 
 	if (debug)
@@ -311,7 +311,7 @@ int counter = 0;
 
 static int thread_adder_guts(int *pcounter, unsigned iterations)
 {
-	unsigned  int iter;
+	unsigned int iter;
 	if (debug)
 	{
 		// clang-format off
@@ -346,7 +346,7 @@ static void *thread_adder(void *parg)
 
 static int multi_thread_semtest(void)
 {
-	unsigned int            i;
+	unsigned int   i;
 	struct timeval time_begin, time_end;
 	counter = 0;
 #define MAXTHREADS 100
@@ -354,7 +354,7 @@ static int multi_thread_semtest(void)
 	unsigned  nthreads = 10;
 	unsigned  iterations = 300000;
 	long int  critical_sections;
-	int       correct;
+	int	  correct;
 
 	if (exhaustive_test_multiplier > 0)
 		iterations *= exhaustive_test_multiplier;
@@ -373,8 +373,8 @@ static int multi_thread_semtest(void)
 	for (i = 0; i < nthreads; i++)
 	{
 		if (pthread_create(&threads[i], NULL, thread_adder,
-		                    (void *) &iterations)
-		                != 0)
+				    (void *) &iterations)
+				!= 0)
 		{
 			perror("pthread_create");
 		}
@@ -386,7 +386,7 @@ static int multi_thread_semtest(void)
 		pthread_join(threads[i], (void *) &exitValue);
 		if (exitValue != 0)
 			fprintf(stderr, "Thread %d returned with exit value %d\n",
-			                i, exitValue);
+					i, exitValue);
 	}
 
 	gettimeofday(&time_end, NULL);
@@ -394,16 +394,16 @@ static int multi_thread_semtest(void)
 	critical_sections = nthreads * iterations;
 	correct = (counter == (critical_sections));
 	fprintf(stderr, "\n  Main thread done, counter: %d   %s\n", counter,
-	                correct ? "CORRECT" : "WRONG!!!!!!!!!!!!");
+			correct ? "CORRECT" : "WRONG!!!!!!!!!!!!");
 
 	double elapsed_sec = (time_end.tv_sec + (time_end.tv_usec / 1000000.0))
-	                - (time_begin.tv_sec + (time_begin.tv_usec / 1000000.0));
+			- (time_begin.tv_sec + (time_begin.tv_usec / 1000000.0));
 
 	fprintf(stderr, "  Elapsed time: %.3lf seconds\n", elapsed_sec);
 	fprintf(stderr, "  Critical sections/second: %.0lf\n",
-	                (double) ((double) critical_sections / elapsed_sec));
+			(double) ((double) critical_sections / elapsed_sec));
 	fprintf(stderr, "  Microseconds/critical section: %.3lf\n",
-	                (elapsed_sec * 1000000.0) / critical_sections);
+			(elapsed_sec * 1000000.0) / critical_sections);
 
 	sm_SemDelete(semnum);
 
@@ -412,12 +412,12 @@ static int multi_thread_semtest(void)
 
 static int multi_process_semtest(void)
 {
-	int            i;
-	int            exitval;
-	int            correct;
+	int	       i;
+	int	       exitval;
+	int	       correct;
 	struct timeval time_begin, time_end;
-	uaddr          shmid;
-	int            nprocs = 10;
+	uaddr	       shmid;
+	int	       nprocs = 10;
 	unsigned       iterations = 300000;
 
 	struct shmem
@@ -438,12 +438,12 @@ static int multi_process_semtest(void)
 
 	/* create shared memory to store counter */
 	int fdshm = sm_ShmAttach(-1, sizeof(*pshmemInt), (void *) &pshmemInt,
-	                &shmid);
+			&shmid);
 	if (fdshm == -1)
 		return (-1);
 	if (debug)
 		fprintf(stderr, "Shared memory pointer for counter is %p\n",
-		                (void *) pshmemInt);
+				(void *) pshmemInt);
 	pshmemInt->counter = 0;
 
 	/*
@@ -464,10 +464,10 @@ static int multi_process_semtest(void)
 			// clang-format on
 		}
 		pshmemInt->semnum = sem; // stash semnum in shared memory
-		_exit(0);                // ION semaphore number is exit value
+		_exit(0);		 // ION semaphore number is exit value
 	}
 	wait(&exitval);
-	semnum = pshmemInt->semnum;      // pull semnum from shared memory
+	semnum = pshmemInt->semnum;	 // pull semnum from shared memory
 
 	gettimeofday(&time_begin, NULL);
 
@@ -488,17 +488,17 @@ static int multi_process_semtest(void)
 	long int critical_sections = nprocs * iterations;
 	correct = (pshmemInt->counter == (critical_sections));
 	fprintf(stderr, "\n  Main thread done, counter: %d   %s\n",
-	                pshmemInt->counter,
-	                correct ? "CORRECT" : "WRONG!!!!!!!!!!!!");
+			pshmemInt->counter,
+			correct ? "CORRECT" : "WRONG!!!!!!!!!!!!");
 
 	double elapsed_sec = (time_end.tv_sec + (time_end.tv_usec / 1000000.0))
-	                - (time_begin.tv_sec + (time_begin.tv_usec / 1000000.0));
+			- (time_begin.tv_sec + (time_begin.tv_usec / 1000000.0));
 
 	fprintf(stderr, "  Elapsed time: %.3lf seconds\n", elapsed_sec);
 	fprintf(stderr, "  Critical sections/second: %.0lf\n",
-	                (double) ((double) critical_sections / elapsed_sec));
+			(double) ((double) critical_sections / elapsed_sec));
 	fprintf(stderr, "  Microseconds/critical section: %.3lf\n",
-	                (elapsed_sec * 1000000.0) / critical_sections);
+			(elapsed_sec * 1000000.0) / critical_sections);
 
 	sm_ShmDetach((char *) pshmemInt);
 	sm_SemDelete(semnum);
@@ -522,9 +522,9 @@ int sem_errors(void)
 	{
 		correct = 0;
 		fprintf(stderr,
-		                "semerrors(): sm_SemCreate failed with"
-		                " return value %d\n",
-		                sem);
+				"semerrors(): sm_SemCreate failed with"
+				" return value %d\n",
+				sem);
 	}
 	printf("semerrors(): test semaphore is id %d\n", sem);
 
@@ -532,23 +532,23 @@ int sem_errors(void)
 	sm_SemDelete(sem);
 
 	printf("semerrors(): trying to sm_SemTake(%d) that closed semaphore\n",
-	                sem);
+			sem);
 	ret = sm_SemTake(sem);
 	if (ret != 0)
 	{
 		printf("    CORRECT: sm_SemTake failed with return value %d\n",
-		                ret);
+				ret);
 	}
 	else
 	{
 		correct = 0;
 		printf("    ** ERROR: sm_SemTake did NOT fail but had return"
 		       " value %d\n",
-		                ret);
+				ret);
 	}
 
 	printf("semerrors(): trying to sm_SemGive(%d) that closed semaphore\n",
-	                sem);
+			sem);
 	/*
 	 * this will fail, but there is no return value (only an assertion
 	 * failure)
@@ -557,7 +557,7 @@ int sem_errors(void)
 
 	printf("semerrors(): trying to sm_SemUnend(%d) that closed semaphore,"
 	       " then check with sm_SemEnded()\n",
-	                sem);
+			sem);
 	sm_SemUnend(sem);
 	ended = sm_SemEnded(sem);
 	if (ended != 0)
@@ -565,12 +565,12 @@ int sem_errors(void)
 		correct = 0;
 		printf("    ** ERROR: after sm_SemUnend() on closed sem,"
 		       " sm_SemEnded() did NOT return 0 (but returned %d)\n",
-		                ended);
+				ended);
 	}
 
 	printf("semerrors(): trying to sm_SemEnd(%d) that closed semaphore, then"
 	       " check with sm_SemEnded()\n",
-	                sem);
+			sem);
 	sm_SemEnd(sem);
 	ended = sm_SemEnded(sem);
 	if (ended != 1)
@@ -578,20 +578,20 @@ int sem_errors(void)
 		correct = 0;
 		printf("    ** ERROR: after sm_SemEnd() on closed sem,"
 		       " sm_SemEnded() did NOT return 1 (but returned %d)\n",
-		                ended);
+				ended);
 	}
 
 	printf("semerrors(): trying to sm_SemEnded(%d) that closed semaphore\n",
-	                sem);
+			sem);
 	ret = sm_SemEnded(sem); // return value ignored on purpose
 
 	printf("semerrors(): trying to sm_SemUnwedge(%d) that closed semaphore\n",
-	                sem);
+			sem);
 	ret = sm_SemUnwedge(sem, 1);
 	if (ret != 0)
 	{
 		printf("    CORRECT: sm_SemUnwedge failed with return value %d\n",
-		                ret);
+				ret);
 	}
 	else
 	{
@@ -601,11 +601,11 @@ int sem_errors(void)
 		// correct = 0;
 		printf("    ** ERROR: sm_SemUnwedge did NOT fail but had return"
 		       " value %d (error ignored)\n",
-		                ret);
+				ret);
 	}
 
 	printf("semerrors(): trying to sm_SemDelete(%d) that closed semaphore\n",
-	                sem);
+			sem);
 	sm_SemDelete(sem);
 
 	fprintf(stderr, "\n  %s errors seen\n", correct ? "NO" : "SOME");
@@ -615,13 +615,13 @@ int sem_errors(void)
 
 int do_churn(int p, unsigned iterations)
 {
-	int numsems_each = 10;
-	int s, d;
+	int	     numsems_each = 10;
+	int	     s, d;
 	unsigned int i;
-	int semlist[numsems_each];
+	int	     semlist[numsems_each];
 
 	/* Parameter intentionally unused. */
-	(void)p;
+	(void) p;
 
 	for (i = 0; i < iterations; ++i)
 	{
@@ -666,17 +666,17 @@ int do_churn(int p, unsigned iterations)
 
 int semaphore_churn(void)
 {
-	int      nprocs = 10;
+	int	 nprocs = 10;
 	unsigned iterations = 15000;
-	int      p;
-	int      pids[nprocs];
+	int	 p;
+	int	 pids[nprocs];
 
 	if (exhaustive_test_multiplier > 0)
 		iterations *= exhaustive_test_multiplier;
 
 	printf("  semaphore_churn() Running %u iterations in each of %d"
 	       " processes\n",
-	                iterations, nprocs);
+			iterations, nprocs);
 
 	reaper_exit_val_total = 0; /* watch child process exit values */
 	for (p = 0; p < nprocs; ++p)
@@ -690,9 +690,9 @@ int semaphore_churn(void)
 			int ret;
 			if (debug)
 				fprintf(stderr,
-				                "I am child %d (pid %d) and my"
-				                " parent is pid %d\n",
-				                p, getpid(), getppid());
+						"I am child %d (pid %d) and my"
+						" parent is pid %d\n",
+						p, getpid(), getppid());
 			/* child */
 			ret = do_churn(p, iterations);
 			_exit(ret);
@@ -721,7 +721,7 @@ int synch_command(char *cmd, int maxseconds)
 		{
 			printf("shell command '%s' is taking too long, giving"
 			       " up\n",
-			                cmd);
+					cmd);
 			sm_TaskDelete(pid);
 			return (0);
 		}
@@ -749,7 +749,7 @@ int main(void)
 	printf("Starting ION...\n");
 	fflush(stdout);
 	ionstart_default_config("loopback-ltp/loopback.ionrc", NULL, NULL, NULL,
-	                NULL, NULL);
+			NULL, NULL);
 	printf("DONE Starting ION...\n");
 	fflush(stdout);
 
@@ -760,7 +760,7 @@ int main(void)
 	{
 		printf("\nPerforming more/less exhaustive tests"
 		       " (multiplied by %f)\n\n",
-		                exhaustive_test_multiplier);
+				exhaustive_test_multiplier);
 	}
 
 	// run each of the scenarios...
@@ -771,7 +771,7 @@ int main(void)
 		passed = 0;
 	time(&time_stop);
 	printf("\nElapsed time: %lld seconds\n",
-	                (long long) (time_stop - time_start));
+			(long long) (time_stop - time_start));
 
 	printf("\n####################################################\n");
 	printf("Testing simple critical sections with multiple threads in"
@@ -781,7 +781,7 @@ int main(void)
 		passed = 0;
 	time(&time_stop);
 	printf("\nElapsed time: %lld seconds\n",
-	                (long long) (time_stop - time_start));
+			(long long) (time_stop - time_start));
 
 	printf("\n####################################################\n");
 	printf("Testing simple critical sections with multiple"
@@ -791,7 +791,7 @@ int main(void)
 		passed = 0;
 	time(&time_stop);
 	printf("\nElapsed time: %lld seconds\n",
-	                (long long) (time_stop - time_start));
+			(long long) (time_stop - time_start));
 
 	printf("\n####################################################\n");
 	printf("Testing get_unique_key()\n\n");
@@ -800,7 +800,7 @@ int main(void)
 		passed = 0;
 	time(&time_stop);
 	printf("\nElapsed time: %lld seconds\n",
-	                (long long) (time_stop - time_start));
+			(long long) (time_stop - time_start));
 
 	printf("\n####################################################\n");
 	printf("Testing semaphore error handling ...\n\n");
@@ -810,7 +810,7 @@ int main(void)
 		passed = 0;
 	time(&time_stop);
 	printf("\nElapsed time: %lld seconds\n",
-	                (long long) (time_stop - time_start));
+			(long long) (time_stop - time_start));
 
 	printf("\n####################################################\n");
 

@@ -13,17 +13,17 @@
  ** Description:
  **     This file contains a custom implementation of a Radix Tree. This tree
  **     stores strings in a space-optimized tree structure. This implementation
- **     is augmented to include a visitor pattern and user-defined 
+ **     is augmented to include a visitor pattern and user-defined
  **     key-associated data.
- **     
+ **
  **     This tree structure supports very fast search times, but additions
  **     and deletions may be very expensive because they (1) lock the structure
- **     and (2) may cause cascading rebalancing.   
- **     
+ **     and (2) may cause cascading rebalancing.
+ **
  **     User-defined callbacks provide the ability to manipulate user data
  **     stored in the tree.
- **     
- **     The implementation supports re-entrancy via blocking writes. 
+ **
+ **     The implementation supports re-entrancy via blocking writes.
  **
  ** Notes:
  **     This implementation *only* supports wildcard prefix searches (data*)
@@ -52,7 +52,7 @@
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  CONSTANTS  								  +
+ * |                              CONSTANTS                                   +
  * +--------------------------------------------------------------------------+
  */
 
@@ -71,14 +71,14 @@
 #define RADIX_STOP_FOREACH 2
 /*
  * +--------------------------------------------------------------------------+
- * |							  	MACROS  								  +
+ * |                                MACROS                                    +
  * +--------------------------------------------------------------------------+
  */
 
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  DATA TYPES  								  +
+ * |                              DATA TYPES                                  +
  * +--------------------------------------------------------------------------+
  */
 
@@ -101,7 +101,7 @@ typedef int (*radix_insert_fn)(PsmPartition partition, PsmAddress *node_data, Ps
 
 /*
  * +--------------------------------------------------------------------------+
- * |						  FUNCTION PROTOTYPES  							  +
+ * |                          FUNCTION PROTOTYPES                             +
  * +--------------------------------------------------------------------------+
  */
 

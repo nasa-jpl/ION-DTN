@@ -43,7 +43,7 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  CONSTANTS  								  +
+ * |                              CONSTANTS                                   +
  * +--------------------------------------------------------------------------+
  */
 #define RH_ERROR      0
@@ -55,7 +55,7 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  	MACROS  								  +
+ * |                                MACROS                                    +
  * +--------------------------------------------------------------------------+
  */
 
@@ -64,7 +64,7 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  DATA TYPES  								  +
+ * |                              DATA TYPES                                  +
  * +--------------------------------------------------------------------------+
  */
 typedef uint16_t rh_idx_t;
@@ -75,9 +75,9 @@ typedef uint16_t rh_idx_t;
  * A hash table is a collection of hash table entries.
  */
 typedef struct  {
-    void *value;
-    void *key;
-    rh_idx_t delta;
+	void *value;
+	void *key;
+	rh_idx_t delta;
 } rh_elt_t;
 
 
@@ -94,21 +94,21 @@ typedef struct rhht {
 	rh_elt_t   *buckets;
 
 	rh_idx_t   num_bkts;
-    rh_idx_t   num_elts;
-    rh_idx_t   max_delta;
+	rh_idx_t   num_elts;
+	rh_idx_t   max_delta;
 
-    ResourceLock lock;
+	ResourceLock lock;
 
-    rh_comp_fn compare;
-    rh_hash_fn hash;
-    rh_del_fn  delete;
+	rh_comp_fn compare;
+	rh_hash_fn hash;
+	rh_del_fn  delete;
 } rhht_t;
 
 
 
 /*
  * +--------------------------------------------------------------------------+
- * |						  FUNCTION PROTOTYPES  							  +
+ * |                          FUNCTION PROTOTYPES                             +
  * +--------------------------------------------------------------------------+
  */
 

@@ -96,7 +96,7 @@ typedef struct
 int cfdp_attach()
 ```
 
-Attaches the application to CFDP functionality on the local computer. 
+Attaches the application to CFDP functionality on the local computer.
 
 Return Value
 
@@ -257,7 +257,7 @@ The byte array identified by `utParms`, if non-NULL, is interpreted as transmiss
 
 Return Value
 
-* request number of this "put" request: On success, the function populates `*transactionID` with the source entity ID and the transaction number assigned to this transmission and returns the request number identifying this "put" request. The transaction ID may be used to suspend, resume, cancel, or request a report on the progress of this transmission. 
+* request number of this "put" request: On success, the function populates `*transactionID` with the source entity ID and the transaction number assigned to this transmission and returns the request number identifying this "put" request. The transaction ID may be used to suspend, resume, cancel, or request a report on the progress of this transmission.
 * -1: on any error
 
 ### cfdp_cancel
@@ -266,7 +266,7 @@ Return Value
 int cfdp_cancel(CfdpTransactionId *transactionId)
 ```
 
-Cancels transmission or reception of the indicated transaction. Note that, since the ION implementation of CFDP is Unacknowledged, cancellation of a file transmission may have little effect. 
+Cancels transmission or reception of the indicated transaction. Note that, since the ION implementation of CFDP is Unacknowledged, cancellation of a file transmission may have little effect.
 
 Return Value
 * request number: on success
@@ -278,7 +278,7 @@ Return Value
 int cfdp_suspend(CfdpTransactionId *transactionId)
 ```
 
-Suspends transmission of the indicated transaction. Note that, since the ION implementation of CFDP is Unacknowledged, suspension of a file transmission may have little effect. 
+Suspends transmission of the indicated transaction. Note that, since the ION implementation of CFDP is Unacknowledged, suspension of a file transmission may have little effect.
 
 Return Value
 * request number: on success
@@ -290,7 +290,7 @@ Return Value
 int cfdp_resume(CfdpTransactionId *transactionId)
 ```
 
-Resumes transmission of the indicated transaction. Note that, since the ION implementation of CFDP is Unacknowledged, resumption of a file transmission may have little effect. 
+Resumes transmission of the indicated transaction. Note that, since the ION implementation of CFDP is Unacknowledged, resumption of a file transmission may have little effect.
 
 Return Value
 * request number: on success
@@ -302,7 +302,7 @@ Return Value
 int cfdp_report(CfdpTransactionId *transactionId)
 ```
 
-Requests issuance of a report on the transmission or reception progress of the indicated transaction. The report takes the form of a character string that is returned in a CfdpEvent structure; use cfdp_get_event() to receive the event (which may be matched to the request by request number). 
+Requests issuance of a report on the transmission or reception progress of the indicated transaction. The report takes the form of a character string that is returned in a CfdpEvent structure; use cfdp_get_event() to receive the event (which may be matched to the request by request number).
 
 Return Value
 * request number: on success
@@ -318,7 +318,7 @@ int cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr, CfdpTransacti
 Populates return value fields with data from the oldest CFDP event not yet delivered to the application. cfdp_get_event() blocks indefinitely until a CFDP processing event is delivered or the function is interrupted by an invocation of cfdp_interrupt().
 
 Return Value
-* 0: on success -OR- on application error, returns zero but sets errno to EINVAL. 
+* 0: on success -OR- on application error, returns zero but sets errno to EINVAL.
 * -1: on system failure
 
 ### cfdp_interrupt
@@ -329,7 +329,7 @@ void cfdp_interrupt()
 
 Interrupts an cfdp_get_event() invocation. This function is designed to be called from a signal handler.
 
-### cfdp_rput 
+### cfdp_rput
 
 ```c
 int cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength, unsigned char *utParms, char *sourceFileName, char *destFileName, CfdpReaderFn readerFn, CfdpHandler *faultHandlers, unsigned int flowLabelLength, unsigned char *flowLabel, unsigned int closureLatency, MetadataList messagesToUser, MetadataList filestoreRequests, CfdpNumber *beneficiaryEntityNbr, CfdpProxyTask *proxyTask, CfdpTransactionId *transactionId)
@@ -367,12 +367,12 @@ Sends to the indicated respondent entity a request to prepare a directory listin
 int cfdp_preview(CfdpTransactionId *transactionId, uvast offset, unsigned int length, char *buffer);
 ```
 
-This function enables the application to get an advanced look at the content of a file that CFDP has not yet fully received. Reads length bytes starting at offset bytes from the start of the file that is the destination file of the transaction identified by `transactionID`, into `buffer`. 
+This function enables the application to get an advanced look at the content of a file that CFDP has not yet fully received. Reads length bytes starting at offset bytes from the start of the file that is the destination file of the transaction identified by `transactionID`, into `buffer`.
 
 Return Value
 * number of bytes read: on success
-* 0: on user error (transaction is nonexistent or is outbound, or offset is beyond the end of file) 
-* -1: on system failure 
+* 0: on user error (transaction is nonexistent or is outbound, or offset is beyond the end of file)
+* -1: on system failure
 
 ### cfdp_map
 
@@ -380,7 +380,7 @@ Return Value
 int cfdp_map(CfdpTransactionId *transactionId, unsigned int *extentCount, CfdpExtent *extentsArray);
 ```
 
-This function enables the application to report on the portions of a partially-received file that have been received and written. Lists the received continuous data extents in the destination file of the transaction identified by `transactionID`. The extents (offset and length) are returned in the elements of `extentsArray`; the number of extents returned in the array is the total number of continuous extents received so far, or `extentCount`, whichever is less. 
+This function enables the application to report on the portions of a partially-received file that have been received and written. Lists the received continuous data extents in the destination file of the transaction identified by `transactionID`. The extents (offset and length) are returned in the elements of `extentsArray`; the number of extents returned in the array is the total number of continuous extents received so far, or `extentCount`, whichever is less.
 
 Return Value
 * 0: on success, the total number of extents received so far is reported through `extentCount`
@@ -440,13 +440,13 @@ Several replay navigation functions in the BSS library require that the applicat
 
 The Bundle Streaming Service (BSS) and the Bundle Streaming Service Protocol (BSSP) CLA are independent modules.
 
-The BSSP CLA is designed to emulate a connection between two DTN neighboring nodes characterized by two delivery mechanisms: (a) a minimal delay, unreliable channel (physical or logical), and (b) a potentially delayed, but reliable channel. The minimal delay channel is emulated by transport UDP (with a timer mechanism added) and the reliable channel is emulated via TCP transport. 
+The BSSP CLA is designed to emulate a connection between two DTN neighboring nodes characterized by two delivery mechanisms: (a) a minimal delay, unreliable channel (physical or logical), and (b) a potentially delayed, but reliable channel. The minimal delay channel is emulated by transport UDP (with a timer mechanism added) and the reliable channel is emulated via TCP transport.
 
-A DTN user mission may decide to use a single CCSDS AOS or TM downlink with LTP CLA running on top as its reliability mechanism. In that case, it can directly use the LTP CLA in ION and interface it with the CCSDS framing protocol which could be implemented by the mission's avionics system or the radio. 
+A DTN user mission may decide to use a single CCSDS AOS or TM downlink with LTP CLA running on top as its reliability mechanism. In that case, it can directly use the LTP CLA in ION and interface it with the CCSDS framing protocol which could be implemented by the mission's avionics system or the radio.
 
 However, it is also possible that a mission may utilize different types of transports, for example, using multiple downlinks via  S, X, Ka-band or optical, each with different reliability mechanism (or not). Alternatively, a flight system may also use commercial communications services with differentiated delays and levels of reliability. In such case, BSSP can be used to approximate such configuration in a lab environment for prototyping and testing the impact on streaming data delivery, until the actual CLAs are implemented and tested.
 
-The Bundle Streaming Service, on the other hand, is an application-level service that can be used with any underlying CLAs to handle both realtime and delayed, in-order playback of streaming data including video, audio, and telemetry. When the user scenario is appropriate, BSS can certainly be used over BSSP CLA, but that is not a requirement. 
+The Bundle Streaming Service, on the other hand, is an application-level service that can be used with any underlying CLAs to handle both realtime and delayed, in-order playback of streaming data including video, audio, and telemetry. When the user scenario is appropriate, BSS can certainly be used over BSSP CLA, but that is not a requirement.
 
 ## BSS APIs
 

@@ -601,7 +601,7 @@ int	main(int argc, char **argv)
 #ifdef INPUT_HISTORY
 	char *input;
 #endif
-	
+
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
 #ifdef NON_INTERACTIVE
@@ -677,7 +677,7 @@ the program.");
 				putErrmsg("igets failed.", NULL);
 				break;		/*	Out of loop.	*/
 			}
-			
+
 			if (len == 0)
 			{
 				continue;

@@ -104,8 +104,8 @@ int	llcv_wait(Llcv llcv, LlcvPredicate condition, int usec)
 
 		case LLCV_BLOCKING:
 			/*	Atomically, unlock the mutex and wait
-		 	*	for some thread to signal on the cv,
-		 	*	and then re-lock the mutex.		*/
+			 *	for some thread to signal on the cv,
+			 *	and then re-lock the mutex.		*/
 
 			result = pthread_cond_wait(&llcv->cv, &llcv->mutex);
 			if (result)
@@ -134,8 +134,8 @@ int	llcv_wait(Llcv llcv, LlcvPredicate condition, int usec)
 			deadline.tv_nsec = workTime.tv_usec * 1000;
 
 			/*	Atomically, unlock the mutex and wait
-		 	*	for some thread to signal on the cv,
-		 	*	and then re-lock the mutex.		*/
+			 *	for some thread to signal on the cv,
+			 *	and then re-lock the mutex.		*/
 
 			result = pthread_cond_timedwait(&llcv->cv, &llcv->mutex,
 					&deadline);
@@ -245,7 +245,7 @@ void	llcv_close(Llcv llcv)
 			writeMemo("[?] Can't close llcv.");
 			return;
 		}
-		
+
 		memset((char *) llcv, 0, sizeof(struct llcv_str));
 	}
 }

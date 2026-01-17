@@ -67,4 +67,3 @@ void spec_ThisTestPassesWhenNormalTeardownRan(void)
 {
     TEST_ASSERT_EQUAL_MESSAGE(1, CounterTeardown, "Normal Teardown Wasn't Run");
 }
-

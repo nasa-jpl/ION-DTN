@@ -121,7 +121,7 @@ dtpcsend";
 		PUTS("  Rate must be bewteen 1000 and 200000000 bits/sec.");
 		PUTS("  Payload size must be between 2 and 1000000 bytes.");
 		PUTS("  To use payload sizes chosen at random from the");
-	       	PUTS("	range 1 to 65536, specify payload size 1.");
+		PUTS(" range 1 to 65536, specify payload size 1.");
 		PUTS("");
 		return 0;
 	}
@@ -295,7 +295,7 @@ int	main(int argc, char **argv)
 		/* FALLTHROUGH */
 
 	case 5:
-	  	topicID = atoi(argv[4]);
+		topicID = atoi(argv[4]);
 		/* FALLTHROUGH */
 
 	case 4:
@@ -309,7 +309,7 @@ int	main(int argc, char **argv)
 	case 2:
 		cycles = atoi(argv[1]);
 		/* FALLTHROUGH */
-		
+
 	default:
 		break;
 	}

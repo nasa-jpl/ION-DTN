@@ -57,17 +57,17 @@ extern "C" {
    m = Number of coding devices
    w = Word size
 
-   data_ptrs = An array of k pointers to data which is size bytes.  
+   data_ptrs = An array of k pointers to data which is size bytes.
                Size must be a multiple of sizeof(long).
                Pointers must also be longword aligned.
- 
+
    coding_ptrs = An array of m pointers to coding data which is size bytes.
 
-   packetsize = The size of a coding block with bitmatrix coding. 
+   packetsize = The size of a coding block with bitmatrix coding.
                 When you code with a bitmatrix, you will use w packets
                 of size packetsize.
 
-   matrix = an array of k*m integers.  
+   matrix = an array of k*m integers.
             It represents an m by k matrix.
             Element i,j is in matrix[i*k+j];
 
@@ -75,14 +75,14 @@ extern "C" {
             It represents an mw by kw matrix.
             Element i,j is in matrix[i*k*w+j];
 
-   erasures = an array of id's of erased devices. 
+   erasures = an array of id's of erased devices.
               Id's are integers between 0 and k+m-1.
               Id's 0 to k-1 are id's of data devices.
-              Id's k to k+m-1 are id's of coding devices: 
+              Id's k to k+m-1 are id's of coding devices:
                   Coding device id = id-k.
               If there are e erasures, erasures[e] = -1.
 
-   schedule = an array of schedule operations.  
+   schedule = an array of schedule operations.
 
               If there are m operations, then schedule[m][0] = -1.
 
@@ -103,7 +103,7 @@ extern "C" {
                               explained in the Cauchy Reed-Solomon coding
                               paper.
 
- - jerasure_dumb_bitmatrix_to_schedule turns a bitmatrix into a schedule 
+ - jerasure_dumb_bitmatrix_to_schedule turns a bitmatrix into a schedule
                               using the straightforward algorithm -- just
                               schedule the dot products defined by each
                               row of the matrix.
@@ -115,11 +115,11 @@ extern "C" {
 
  - jerasure_generate_schedule_cache precalcalculate all the schedule for the
                               given distribution bitmatrix.  M must equal 2.
- 
- - jerasure_free_schedule frees a schedule that was allocated with 
+
+ - jerasure_free_schedule frees a schedule that was allocated with
                               jerasure_XXX_bitmatrix_to_schedule.
- 
- - jerasure_free_schedule_cache frees a schedule cache that was created with 
+
+ - jerasure_free_schedule_cache frees a schedule cache that was created with
                               jerasure_generate_schedule_cache.
  */
 
@@ -133,7 +133,7 @@ void jerasure_free_schedule_cache(int k, int m, int ***cache);
 
 
 /* ------------------------------------------------------------ */
-/* Encoding - these are all straightforward.  jerasure_matrix_encode only 
+/* Encoding - these are all straightforward.  jerasure_matrix_encode only
    works with w = 8|16|32.  */
 
 void jerasure_do_parity(int k, char **data_ptrs, char *parity_ptr, int size);
@@ -150,8 +150,8 @@ void jerasure_schedule_encode(int k, int m, int w, int **schedule,
 /* ------------------------------------------------------------ */
 /* Decoding. -------------------------------------------------- */
 
-/* These return integers, because the matrix may not be invertible. 
-   
+/* These return integers, because the matrix may not be invertible.
+
    The parameter row_k_ones should be set to 1 if row k of the matrix
    (or rows kw to (k+1)w+1) of th distribution matrix are all ones
    (or all identity matrices).  Then you can improve the performance
@@ -176,18 +176,18 @@ void jerasure_schedule_encode(int k, int m, int w, int **schedule,
          times dm_ids equals data drive i.
 
          Both of these routines take "erased" instead of "erasures".
-         Erased is a vector with k+m elements, which has 0 or 1 for 
+         Erased is a vector with k+m elements, which has 0 or 1 for
          each device's id, according to whether the device is erased.
- 
+
    jerasure_erasures_to_erased allocates and returns erased from erasures.
-    
+
  */
 
-int jerasure_matrix_decode(int k, int m, int w, 
+int jerasure_matrix_decode(int k, int m, int w,
                           int *matrix, int row_k_ones, int *erasures,
                           char **data_ptrs, char **coding_ptrs, int size);
-                          
-int jerasure_bitmatrix_decode(int k, int m, int w, 
+
+int jerasure_bitmatrix_decode(int k, int m, int w,
                             int *bitmatrix, int row_k_ones, int *erasures,
                             char **data_ptrs, char **coding_ptrs, int size, int packetsize);
 
@@ -198,10 +198,10 @@ int jerasure_schedule_decode_lazy(int k, int m, int w, int *bitmatrix, int *eras
 int jerasure_schedule_decode_cache(int k, int m, int w, int ***scache, int *erasures,
                             char **data_ptrs, char **coding_ptrs, int size, int packetsize);
 
-int jerasure_make_decoding_matrix(int k, int m, int w, int *matrix, int *erased, 
+int jerasure_make_decoding_matrix(int k, int m, int w, int *matrix, int *erased,
                                   int *decoding_matrix, int *dm_ids);
 
-int jerasure_make_decoding_bitmatrix(int k, int m, int w, int *matrix, int *erased, 
+int jerasure_make_decoding_bitmatrix(int k, int m, int w, int *matrix, int *erased,
                                   int *decoding_matrix, int *dm_ids);
 
 int *jerasure_erasures_to_erased(int k, int m, int *erasures);
@@ -220,7 +220,7 @@ int *jerasure_erasures_to_erased(int k, int m, int *erasures);
    elements as the highest referenced device in the schedule.
 
  */
- 
+
 void jerasure_matrix_dotprod(int k, int w, int *matrix_row,
                           int *src_ids, int dest_id,
                           char **data_ptrs, char **coding_ptrs, int size);
@@ -270,7 +270,7 @@ int jerasure_invertible_bitmatrix(int *mat, int rows);
    jerasure_matrix_multiply is a simple matrix multiplier in GF(2^w).  It returns a r1*c2
    matrix, which is the product of the two input matrices.  It allocates
    the product.  Obviously, c1 should equal r2.  However, this is not
-   validated by the procedure.  
+   validated by the procedure.
 */
 
 void jerasure_print_matrix(int *matrix, int rows, int cols, int w);

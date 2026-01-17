@@ -15,7 +15,7 @@ project(unity LANGUAGES C DESCRIPTION "C Unit testing framework.")
 
 add_subdirectory(src)
 target_include_directories(unity
-    PUBLIC 
+    PUBLIC
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>"
         "$<INSTALL_INTERFACE:src>"
 

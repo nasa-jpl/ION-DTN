@@ -82,5 +82,5 @@ This project provides a solution for evaluating the quality of random byte strea
 
 ---
 
-**AUTHOR**: Sky DeBaun  
+**AUTHOR**: Sky DeBaun
 This suite was designed to provide a convenient means of randomness evaluation.

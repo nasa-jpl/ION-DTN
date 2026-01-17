@@ -5,7 +5,7 @@ Given to bpadmin either as a file or from the daemon command line, this file con
 ## Initialise the bundle protocol
 ````
 1
-````. 
+````.
 
 `1` refers to this being the initialization or ''first'' command.
 
@@ -95,7 +95,7 @@ a outduct ltp 1 ltpclo
 
 `ltp` is the convergence layer protocol of the outduct.
 
-`1` is the identifier of the outduct, the ID of the convergence-layer protocol induct of some remote node. 
+`1` is the identifier of the outduct, the ID of the convergence-layer protocol induct of some remote node.
 
 `ltpclo` is the name of the daemon used to implement the outduct.
 

@@ -78,7 +78,7 @@ static int	_forecastNeeded(int parm)
 static int	_echo(int *newValue)
 {
 	static int	state = 0;
-	
+
 	if (newValue)
 	{
 		if (*newValue == 1)
@@ -1132,7 +1132,7 @@ static void	executeRun(int tokenCount, char **tokens)
 		printText("Run what?");
 		return;
 	}
-	
+
 	if (pseudoshell(tokens[1]) < 0)
 	{
 		printText("pseudoshell failed.");
@@ -1360,9 +1360,9 @@ static int	processLine(char *line, int lineLength, int *rc)
 					snooze(1);
 					getCurrentTime(&cur_time);
 					if (cur_time.tv_sec >=
-					    done_time.tv_sec
-					    && cur_time.tv_usec >=
-					    done_time.tv_usec)
+						done_time.tv_sec
+						&& cur_time.tv_usec >=
+						done_time.tv_usec)
 					{
 						printText("[?] RFX start hung \
 up, abandoned.");
@@ -1580,7 +1580,7 @@ static int	runIonadmin(char *cmdFileName)
 #endif
 
 	currentTime = getCtime();
-	
+
 	oK(_referenceTime(&currentTime));
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{

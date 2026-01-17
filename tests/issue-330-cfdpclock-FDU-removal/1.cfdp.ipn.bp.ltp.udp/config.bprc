@@ -13,7 +13,7 @@ a endpoint ipn:1.2 x
 a endpoint ipn:1.64 x
 a endpoint ipn:1.65 x
 
-# Add a protocol. 
+# Add a protocol.
 a protocol ltp 1400 100
 
 # Add an induct. (listen)

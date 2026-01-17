@@ -26,6 +26,7 @@
  **  09/25/18  E. Birrane     Update to hold all DB abd vDB structures and
  **                           migrate to AMP v05. (JHU/APL)
  *****************************************************************************/
+
 #ifndef DB_H_
 #define DB_H_
 
@@ -44,7 +45,7 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  CONSTANTS  								  +
+ * |                              CONSTANTS                                   +
  * +--------------------------------------------------------------------------+
  */
 #define DB_MAX_ATOMIC 300
@@ -64,11 +65,11 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  	MACROS  								  +
+ * |                                MACROS                                    +
  * +--------------------------------------------------------------------------+
  */
 
-#define VDB_ADD_EDD(key, value)     rhht_insert(&(gVDB.adm_edds),  key, value, NULL)
+#define VDB_ADD_EDD(key, value)     rhht_insert(&(gVDB.adm_edds),     key, value, NULL)
 #define VDB_ADD_CONST(key, value)   rhht_insert(&(gVDB.adm_atomics),  key, value, NULL)
 #define VDB_ADD_LIT(key, value)     rhht_insert(&(gVDB.adm_atomics),  key, value, NULL)
 #define VDB_ADD_CTRL(value, idx)    vec_insert(&(gVDB.ctrls),         value, idx)
@@ -87,7 +88,7 @@ extern "C" {
 #endif
 #define VDB_ADD_TAG(value, idx)     vec_blob_add(&(gVDB.tags),        value, idx)
 
-#define VDB_FINDKEY_EDD(key)     rhht_retrieve_key(&(gVDB.adm_edds),  key)
+#define VDB_FINDKEY_EDD(key)     rhht_retrieve_key(&(gVDB.adm_edds),     key)
 #define VDB_FINDKEY_CONST(key)   rhht_retrieve_key(&(gVDB.adm_atomics),  key)
 #define VDB_FINDKEY_LIT(key)     rhht_retrieve_key(&(gVDB.adm_atomics),  key)
 #define VDB_FINDKEY_CTRLDEF(key) rhht_retrieve_key(&(gVDB.adm_ctrl_defs),key)
@@ -98,7 +99,7 @@ extern "C" {
 #define VDB_FINDKEY_TBLT(key)    rhht_retrieve_key(&(gVDB.adm_tblts),    key)
 #define VDB_FINDKEY_VAR(key)     rhht_retrieve_key(&(gVDB.vars),         key)
 
-#define VDB_FINDIDX_EDD(idx)     rhht_retrieve_idx(&(gVDB.adm_edds),   idx)
+#define VDB_FINDIDX_EDD(idx)     rhht_retrieve_idx(&(gVDB.adm_edds),      idx)
 #define VDB_FINDIDX_CONST(idx)   rhht_retrieve_idx(&(gVDB.adm_atomics),   idx)
 #define VDB_FINDIDX_LIT(idx)     rhht_retrieve_idx(&(gVDB.adm_atomics),   idx)
 #define VDB_FINDIDX_CTRL(idx, s) vec_at(&(gVDB.ctrls),     idx, s)
@@ -113,18 +114,18 @@ extern "C" {
 #define VDB_FINDIDX_ISS(idx)   vec_at(&gVDB.issuers,   idx)
 #define VDB_FINDIDX_TAG(idx)   vec_at(&gVDB.tags,      idx)
 
-#define VDB_DELKEY_EDD(key)     rhht_del_key(&(gVDB.adm_edds),  key)
+#define VDB_DELKEY_EDD(key)     rhht_del_key(&(gVDB.adm_edds),     key)
 #define VDB_DELKEY_CONST(key)   rhht_del_key(&(gVDB.adm_atomics),  key)
 #define VDB_DELKEY_LIT(key)     rhht_del_key(&(gVDB.adm_atomics),  key)
 #define VDB_DELKEY_CTRLDEF(key) rhht_del_key(&(gVDB.adm_ctrl_defs),key)
-#define VDB_DELKEY_MACDEF(key)  rhht_del_key(&(gVDB.macdefs),       key)
+#define VDB_DELKEY_MACDEF(key)  rhht_del_key(&(gVDB.macdefs),      key)
 #define VDB_DELKEY_OP(key)      rhht_del_key(&(gVDB.adm_ops),      key)
 #define VDB_DELKEY_RPTT(key)    rhht_del_key(&(gVDB.rpttpls),      key)
 #define VDB_DELKEY_RULE(key)    rhht_del_key(&(gVDB.rules),        key)
 #define VDB_DELKEY_TBLT(key)    rhht_del_key(&(gVDB.adm_tblts),    key)
 #define VDB_DELKEY_VAR(key)     rhht_del_key(&(gVDB.vars),         key)
 
-#define VDB_DELIDX_EDD(idx)     rhht_del_idx(&(gVDB.adm_edds),   idx)
+#define VDB_DELIDX_EDD(idx)     rhht_del_idx(&(gVDB.adm_edds),      idx)
 #define VDB_DELIDX_CONST(idx)   rhht_del_idx(&(gVDB.adm_atomics),   idx)
 #define VDB_DELIDX_LIT(idx)     rhht_del_idx(&(gVDB.adm_atomics),   idx)
 #define VDB_DELIDX_CTRL(idx)    vec_del_idx(&(gVDB.ctrls),          idx)
@@ -137,7 +138,7 @@ extern "C" {
 #define VDB_DELIDX_VAR(idx)     rhht_del_idx(&(gVDB.vars),          idx)
 /*
  * +--------------------------------------------------------------------------+
- * |							  DATA TYPES  								  +
+ * |                              DATA TYPES                                  +
  * +--------------------------------------------------------------------------+
  */
 
@@ -173,12 +174,12 @@ extern "C" {
 
 typedef struct
 {
-   Object  ctrls;
-   Object  macdefs;
-   Object  rpttpls;
-   Object  rules;
-   Object  vars;
-   Object  descObj;  /**> The pointer to the store object in the SDR. */
+	Object ctrls;
+	Object macdefs;
+	Object rpttpls;
+	Object rules;
+	Object vars;
+	Object descObj; /**> The pointer to the store object in the SDR. */
 } db_store_t;
 
 
@@ -215,7 +216,7 @@ typedef struct
 	Object itemObj;     /**> Serialized object in an SDR. */
 	uint32_t itemSize;  /**> Size of object in itemObj.   */
 
-    /* Below is not kept in the SDR. */
+	/* Below is not kept in the SDR. */
 	Object descObj;     /**> This descriptor in SDR.      */
 } db_desc_t;
 
@@ -230,7 +231,7 @@ extern db_store_t  gDB;
 
 /*
  * +--------------------------------------------------------------------------+
- * |						  FUNCTION PROTOTYPES  							  +
+ * |                          FUNCTION PROTOTYPES                             +
  * +--------------------------------------------------------------------------+
  */
 
@@ -251,7 +252,7 @@ int  db_read_objs(char *name);
 
 void db_destroy(void);
 
-int db_init(char *name, void (*adm_init_cb)(void));
+int  db_init(char *name, void (*adm_init_cb)(void));
 
 
 int vdb_obj_init(Object sdr_list, vdb_init_cb_fn init_cb);

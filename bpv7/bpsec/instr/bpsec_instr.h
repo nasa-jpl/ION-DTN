@@ -67,8 +67,8 @@ typedef struct
 
 typedef struct
 {
-   Object  src;    /* SDR list: bpsec_src_instr_t  */
-   Object  misc;   /* bpsec_instr_misc_t           */
+	Object  src;    /* SDR list: bpsec_src_instr_t  */
+	Object  misc;   /* bpsec_instr_misc_t           */
 } BpsecInstrDB;
 
 typedef enum

@@ -10,7 +10,7 @@ B<dtpcadmin> [ I<commands_filename> | . ]
 
 B<dtpcadmin> configures, starts, manages, and stops DTPC operations for
 the local ION node.
-	
+
 It operates in response to DTPC configuration commands found in the file
 I<commands_filename>, if provided; if not, B<dtpcadmin> prints
 a simple prompt (:) so that the user may type commands

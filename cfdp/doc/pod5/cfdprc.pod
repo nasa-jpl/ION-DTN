@@ -27,7 +27,7 @@ Comment line.  Lines beginning with B<#> are not interpreted.
 Echo control.  Setting echo to 1 causes all output printed by cfdpadmin to be
 logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
 
-=item B<v> 
+=item B<v>
 
 Version number.  Prints out the version of ION currently installed.  HINT:
 combine with B<e 1> command to log the version number at startup.
@@ -100,14 +100,14 @@ value is 0;
 
 The B<manage fill character> command.  This command establishes the fill
 character to use for the portions of an incoming file that have not yet
-been received.  The fill character is normally expressed in hex, e.g., 
+been received.  The fill character is normally expressed in hex, e.g.,
 the default value is 0xaa.
 
 =item B<m ckperiod> I<check_cycle_period>
 
 The B<manage check interval> command.  This command establishes the number
 of seconds following reception of the EOF PDU -- or following expiration
-of a prior check cycle -- after which the local CFDP will check for 
+of a prior check cycle -- after which the local CFDP will check for
 completion of a file that is being received.  Default value is 86400 (i.e.,
 one day).
 
@@ -130,7 +130,7 @@ first) until the the limit is no longer exceeded.  Default value is 20.
 
 The B<manage transaction numbers> command.  This command establishes the
 largest possible transaction number used by the local CFDP entity for file
-transmission transactions.  After this number has been used, the 
+transmission transactions.  After this number has been used, the
 transaction number assigned to the next transaction will be 1.  The
 default value is 999999999.
 

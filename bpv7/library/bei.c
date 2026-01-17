@@ -1,6 +1,6 @@
 /******************************************************************************
- 	bei.c:	Implementation of functions that manipulate extension blocks
- 	        within bundles and acquisition structures.
+	bei.c:	Implementation of functions that manipulate extension blocks
+	        within bundles and acquisition structures.
 
 	Author: Scott Burleigh, JPL
 
@@ -197,10 +197,10 @@ Object	attachExtensionBlock(BpBlockType type, ExtensionBlock *blk,
 			+ blk->length + blk->size;
 	bundle->dbOverhead += additionalOverhead;
 #if ZCODEBUG
-    char    buf[128];
-    sprintf(buf, "[i] outbound: attachExtensionBlock(): type %d, dbOverhead = %d, increase = %d, suppresed = %d .",
-    (int) type, bundle->dbOverhead, additionalOverhead, blk->suppressed);
-    writeMemo(buf);
+	char    buf[128];
+	sprintf(buf, "[i] outbound: attachExtensionBlock(): type %d, dbOverhead = %d, increase = %d, suppresed = %d .",
+	(int) type, bundle->dbOverhead, additionalOverhead, blk->suppressed);
+	writeMemo(buf);
 #endif
 	return blkAddr;
 }
@@ -641,8 +641,8 @@ int	processExtensionBlocks(Bundle *bundle, int fnIdx, void *context)
 	if (bundle->dbOverhead != oldDbOverhead)
 	{
 #if ZCODEBUG
-    	char    buf[128];
-    	sprintf(buf, "[i] processExtensionBlocks: process id = %d, old dbOverhead = %d, new dbOverhead = %d",
+		char    buf[128];
+		sprintf(buf, "[i] processExtensionBlocks: process id = %d, old dbOverhead = %d, new dbOverhead = %d",
 		fnIdx, oldDbOverhead, bundle->dbOverhead);
 		writeMemo(buf);
 #endif

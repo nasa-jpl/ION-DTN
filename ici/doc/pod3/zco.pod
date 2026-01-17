@@ -8,18 +8,18 @@ zco - library for manipulating zero-copy objects
 
     typedef enum
     {
-	ZcoInbound = 0,
-	ZcoOutbound = 1,
-	ZcoUnknown = 2
+        ZcoInbound = 0,
+        ZcoOutbound = 1,
+        ZcoUnknown = 2
     } ZcoAcct;
 
     typedef enum
     {
-	ZcoFileSource = 1,
-	ZcoBulkSource = 2,
-	ZcoObjSource = 3,
-	ZcoSdrSource = 4,
-	ZcoZcoSource = 5
+        ZcoFileSource = 1,
+        ZcoBulkSource = 2,
+        ZcoObjSource = 3,
+        ZcoSdrSource = 4,
+        ZcoZcoSource = 5
     } ZcoMedium;
 
     typedef void (*ZcoCallback)(ZcoAcct);
@@ -302,7 +302,7 @@ the new source data extent, -1 on any error.
 =item void zco_discard_last_trailer(Sdr sdr, Object zco)
 
 These functions attach and remove the ZCO's headers and trailers.  I<header>
-and I<trailer> are assumed to be arrays of octets, not necessarily text.  
+and I<trailer> are assumed to be arrays of octets, not necessarily text.
 Attaching a header or trailer causes it to be written to the SDR.  The
 prepend and append functions return 0 on success, -1 on any error.
 

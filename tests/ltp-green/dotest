@@ -28,22 +28,22 @@ cd 2.ipn.ltp
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 2 not started: Aborting Test"
-	exit 1
+    echo "Node 2 not started: Aborting Test"
+    exit 1
 fi
 
 cd ../3.ipn.ltp
-./ionstart > node3.stdout 
+./ionstart > node3.stdout
 ../../../system_up -i "p 30" -l "p 30" -b "p 30"
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 3 not started: Aborting Test"
-	exit 1
+    echo "Node 3 not started: Aborting Test"
+    exit 1
 fi
 
 echo "Starting bprecvfile on node 3..."
@@ -63,15 +63,15 @@ cd ../3.ipn.ltp
 COUNT=`ls -l testfile1 2>/dev/null | wc -l`
 if [ $COUNT -eq 1 ]
 then
-	if diff testfile testfile1 > /dev/null;
-	then
-		echo "Error: Weird, all data arrived."
-		RETVAL=1
-	else
-		echo "Okay: bundle arrived but is corrupt."
-	fi
+    if diff testfile testfile1 > /dev/null;
+    then
+        echo "Error: Weird, all data arrived."
+        RETVAL=1
+    else
+        echo "Okay: bundle arrived but is corrupt."
+    fi
 else
-	echo "Okay: bundle didn't arrive."
+    echo "Okay: bundle didn't arrive."
 fi
 
 echo "Now sending multi-segment file to ipn:2.1, should succeed..."
@@ -85,15 +85,15 @@ cd ../2.ipn.ltp
 COUNT=`ls -l testfile1 | wc -l`
 if [ $COUNT -eq 0 ]
 then
-	echo "Error: bundle didn't arrive."
-	RETVAL=1
+    echo "Error: bundle didn't arrive."
+    RETVAL=1
 else
-	if  ! diff testfile testfile1 > /dev/null;
-	then
-		echo "Error: file not completely received."
-	else
-		echo "Okay: bundle arrived."
-	fi
+    if  ! diff testfile testfile1 > /dev/null;
+    then
+        echo "Error: file not completely received."
+    else
+        echo "Okay: bundle arrived."
+    fi
 fi
 
 # Shut down ION processes.

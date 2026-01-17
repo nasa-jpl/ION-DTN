@@ -48,7 +48,7 @@ typedef Object		MetadataList;	/*	SDR list		*/
  *	CFDP automatically purges any unused MetadataLists from
  *	the CFDP database.
  *
- *	The mechanism used to implement this feature is the 
+ *	The mechanism used to implement this feature is the
  *	"user data" variable of the MetadataList itself.  While
  *	the list is reachable only from the database root, its
  *	user data variable points to the database root list from
@@ -330,7 +330,7 @@ extern int	cfdp_get_event(CfdpEventType	*type,
 			CfdpTransactionId	*originatingTransactionId,
 			char			*statusReportBuf,
 			MetadataList		*filestoreResponses,
-			unsigned int 	*closureRequested);
+			unsigned int		*closureRequested);
 		/*	Populates return value fields with data
 		 *	from the oldest CFDP event not yet delivered
 		 *	to the application.  On application error,

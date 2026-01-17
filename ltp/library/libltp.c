@@ -149,7 +149,7 @@ int	ltp_send(uvast destinationEngineId, unsigned int clientSvcId,
 	unsigned int	dataLength;
 	Object		spanObj;
 	LtpSpan		span;
-			OBJ_POINTER(LtpExportSession, session);
+	OBJ_POINTER(LtpExportSession, session);
 
 	CHKERR(clientSvcId <= MAX_LTP_CLIENT_NBR);
 	CHKERR(clientServiceData);
@@ -496,7 +496,7 @@ void	ltp_list_spans(void)
 	LtpVdb		*vdb = getLtpVdb();
 	PsmPartition	ionwm = getIonwm();
 	Object		ltpdbObj = getLtpDbObject();
-			OBJ_POINTER(LtpDB, ltpdb);
+	OBJ_POINTER(LtpDB, ltpdb);
 	char		nbrBuf[FQN_MAX_LENGTH];
 	char		buffer[128];
 	PsmAddress	elt;
@@ -590,11 +590,11 @@ void	ltp_print_span_sessions(uvast engineId)
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
 	Object		spanObj;
-			OBJ_POINTER(LtpSpan, span);
+	OBJ_POINTER(LtpSpan, span);
 	char		buffer[256];
 	Object		elt;
 	Object		sessionObj;
-			OBJ_POINTER(LtpExportSession, session);
+	OBJ_POINTER(LtpExportSession, session);
 
 	CHKVOID(sdr_begin_xn(sdr));
 

@@ -37,7 +37,7 @@ extern "C" {
 
 /*	For all functions, *cursor is a pointer to the location in
  *	the CBOR coding buffer at which bytes are to be encoded
- *	or decoded.							*/ 
+ *	or decoded.							*/
 
 extern int	cbor_encode_integer(	uvast value,
 					unsigned char **cursor);

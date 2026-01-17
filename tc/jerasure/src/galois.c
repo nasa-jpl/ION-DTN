@@ -101,14 +101,14 @@ gf_t* galois_init_field(int w,
   }
 
   if(!gf_init_hard(gfp,
-                   w, 
-                   mult_type, 
-                   region_type, 
-                   divide_type, 
-                   prim_poly, 
-                   arg1, 
-                   arg2, 
-                   NULL, 
+                   w,
+                   mult_type,
+                   region_type,
+                   divide_type,
+                   prim_poly,
+                   arg1,
+                   arg2,
+                   NULL,
                    scratch_memory))
   {
     fprintf(stderr, "ERROR -- cannot init default Galois field for w=%d\n", w);
@@ -128,12 +128,12 @@ gf_t* galois_init_composite_field(int w,
   int scratch_size;
   void *scratch_memory;
   gf_t *gfp;
-  
+
   if (w <= 0 || w > 32) {
     fprintf(stderr, "ERROR -- cannot init composite field for w=%d\n", w);
     assert(0);
   }
-  
+
   gfp = (gf_t *) malloc(sizeof(gf_t));
   if (!gfp) {
     fprintf(stderr, "ERROR -- cannot allocate memory for Galois field w=%d\n", w);
@@ -157,9 +157,9 @@ gf_t* galois_init_composite_field(int w,
                    GF_MULT_COMPOSITE,
                    region_type,
                    divide_type,
-                   0, 
-                   degree, 
-                   0, 
+                   0,
+                   degree,
+                   0,
                    base_gf,
                    scratch_memory))
   {
@@ -265,7 +265,7 @@ void galois_change_technique(gf_t *gf, int w)
 int galois_single_multiply(int x, int y, int w)
 {
   if (x == 0 || y == 0) return 0;
-  
+
   if (gfp_array[w] == NULL) {
     galois_init(w);
   }
@@ -366,7 +366,7 @@ void galois_region_xor(char *src, char *dest, int nbytes)
       *dest ^= *src;
       dest++;
       src++;
-    } 
+    }
   }
 }
 

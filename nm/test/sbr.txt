@@ -17,10 +17,10 @@
 #------------------------------------------------------------------------------
 #
 # V5 ARI = 0x0c427635
-# 
+#
 # ari:/IANA:Amp.Agent/Ctrl.add_var(ari://var.v5, (UINT) 0, UINT)
 #
-# 
+#
 # CBOR breakout:
 #
 # CONTROL  TNVC    PARM TYPES       PARM1    PARM2         PARM3
@@ -53,8 +53,8 @@ WAIT 1
 #------------------------------------------------------------------------------
 #
 # Macro M1 ARI: 0x04424d31
-# 
-# ARI: ari:/IANA:amp.agent/Ctrl.add_macro("m1", ari://Mac.M1, 
+#
+# ARI: ari:/IANA:amp.agent/Ctrl.add_macro("m1", ari://Mac.M1,
 #      [ari:/IANA:amp.agent/Ctrl.gen_rpts([ari:/IANA:amp.agent/Rptt.full_report()],[]),
 #       ari:/IANA:amp.agent/Ctrl.store_var(ari://var.v5, (UINT)0)])
 #
@@ -63,7 +63,7 @@ c11541070503122425626d3104424d3182c11541050502252381871819410000c115410e05022426
 WAIT 1
 
 #------------------------------------------------------------------------------
-# Step 1.5: List Macros 
+# Step 1.5: List Macros
 #------------------------------------------------------------------------------
 #
 # ARI: ari:/IANA:amp.agent/Ctrl.gen_tbls([ari:/IANA:amp.agent/Tblt.macros()],[])
@@ -91,7 +91,7 @@ WAIT 1
 #------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
-# Step 1.9: Define SRL S1 to run every time V5 >= 2 up to 3 times. 
+# Step 1.9: Define SRL S1 to run every time V5 >= 2 up to 3 times.
 #------------------------------------------------------------------------------
 #
 # S1 ARI = 0x08425331
@@ -103,7 +103,7 @@ WAIT 1
 #
 #------------------------------------------------------------------------------
 #
-# ARI: ari:/IANA:amp.agent/Ctrl.add_sbr(ari://Sbr.S1, 0, 
+# ARI: ari:/IANA:amp.agent/Ctrl.add_sbr(ari://Sbr.S1, 0,
 #       (UINT) ari://Var.v5 2 >=, 1000, 3, [ari://Mac.M1], "S1")
 #
 #------------------------------------------------------------------------------
@@ -143,7 +143,7 @@ WAIT 1
 # run the command: V5 = V5 + 1 which is: STOR(V5, {(UINT), V5 1 +})
 #------------------------------------------------------------------------------
 #
-# T1 ARI = 0x0b425431 
+# T1 ARI = 0x0b425431
 # T1 Start = 0
 # T1 Period = 20
 # T1 Count = 6
@@ -151,7 +151,7 @@ WAIT 1
 #
 #------------------------------------------------------------------------------
 #
-# ARI: ari:/IANA:amp.agent/Ctrl.add_tbr(ari://tbr.T1, 0, 20, 6, 
+# ARI: ari:/IANA:amp.agent/Ctrl.add_tbr(ari://tbr.T1, 0, 20, 6,
 #      [ari:/IANA:amp.agent/Ctrl.store_var(ari://var.v5, (UINT) ari://var.v5 1 +)], "T1")
 #
 #------------------------------------------------------------------------------
@@ -192,7 +192,7 @@ WAIT 1
 #------------------------------------------------------------------------------
 # Step 1.19: Delete S1. i.e. show no issue with deleting a deleted SBR.
 #            Expect to see the following in Agent output:
-#            "[nm/agent/adm_amp_agent_impl.c:1946] 
+#            "[nm/agent/adm_amp_agent_impl.c:1946]
 #            w DEL_RULE Cannot find RULE to be deleted."
 #
 #------------------------------------------------------------------------------

@@ -1,14 +1,14 @@
-FreeBSD is excluded because the way this test emulates a different host by 
-assigning to an address in the 127.0.0.0/8 block is treated differently by 
+FreeBSD is excluded because the way this test emulates a different host by
+assigning to an address in the 127.0.0.0/8 block is treated differently by
 Linux and FreeBSD.
 
 Linux treats all addresses in 127.0.0.0/8 block as localhost address, thus
-it can route to the emulated hosts - in reality it just routes to itself - 
+it can route to the emulated hosts - in reality it just routes to itself -
 if the address is specified in the /etc/hosts file.
 
 In FreeBSD, an address assigned to interface lo0 must be explicit. By default
-that is 127.0.0.1. If you add another address to the loopback network, it is 
+that is 127.0.0.1. If you add another address to the loopback network, it is
 not assumed to be associated with lo0, thus it will not route to the emulated
 host, which is actually running locally. Thus this testing method, trying to
-use a loopback address to emulate two different hosts (different host names) 
+use a loopback address to emulate two different hosts (different host names)
 will not work. Thus it is excluded on FreeBSD.

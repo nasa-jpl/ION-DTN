@@ -57,12 +57,12 @@ cd ../5.ipn.ltp
 COUNT=`ls -al receivedFile | wc -l`
 if [ "$COUNT" -ne 1 ]
 then
-	echo ""
-	echo "Error: node 1.5 did not receive file from node 3."
-	RETVAL=1
+    echo ""
+    echo "Error: node 1.5 did not receive file from node 3."
+    RETVAL=1
 else
-	echo ""
-	echo "Okay: node 1.5 received file from node 3."
+    echo ""
+    echo "Okay: node 1.5 received file from node 3."
 fi
 
 cd ../3.ipn.ltp
@@ -70,12 +70,12 @@ cd ../3.ipn.ltp
 COUNT=`ls -al receivedFile | wc -l`
 if [ "$COUNT" -ne 1 ]
 then
-	echo ""
-	echo "Error: node 3 did not receive file from node 1.5."
-	RETVAL=1
+    echo ""
+    echo "Error: node 3 did not receive file from node 1.5."
+    RETVAL=1
 else
-	echo ""
-	echo "Okay: node 3 received file from node 1.5."
+    echo ""
+    echo "Okay: node 3 received file from node 1.5."
 fi
 
 #####################################################################

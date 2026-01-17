@@ -1,12 +1,12 @@
 # bprc configuration file for the loopback test.
 #	Command: % bpadmin loopback.bprc
-#	This command should be run AFTER ionadmin and ltpadmin and 
+#	This command should be run AFTER ionadmin and ltpadmin and
 #	BEFORE ipnadmin or dtnadmin.
 #
 #	Ohio University, Oct 2011
 
 # Initialization command (command 1).
-1 
+1
 
 # Add an EID scheme.
 #	The scheme's name is ipn.
@@ -27,7 +27,7 @@ a endpoint ipn:1.2 x
 a endpoint ipn:1.64 x
 a endpoint ipn:1.65 x
 
-# Add a protocol. 
+# Add a protocol.
 #	Add the protocol named ltp.
 #	Estimate transmission capacity assuming 1400 bytes of each frame (in
 #	this case, udp on ethernet) for payload, and 100 bytes for overhead.

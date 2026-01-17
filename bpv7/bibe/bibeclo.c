@@ -7,7 +7,7 @@
 	Copyright (c) 2020, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "bpP.h"
 #include "bibeP.h"
@@ -29,7 +29,7 @@ typedef struct
 static sm_SemId		bibecloSemaphore(sm_SemId *semid)
 {
 	static sm_SemId	semaphore = SM_SEM_NONE;
-	
+
 	if (semid)
 	{
 		semaphore = *semid;
@@ -623,7 +623,7 @@ int	main(int argc, char *argv[])
 
 		/*	Next element of array is admin record content.
 		 *	For a BPDU, admin record content is an array
-		 *	of 3 elements.					*/ 
+		 *	of 3 elements.					*/
 
 		uvtemp = 3;
 		oK(cbor_encode_array_open(uvtemp, &cursor));
@@ -741,7 +741,7 @@ int	main(int argc, char *argv[])
 				if (bpHandleXmitSuccess(bundleZco) < 0)
 				{
 					putErrmsg("Can't handle xmit success.",
-						       	NULL);
+							NULL);
 					shutDownClo();
 					continue;
 				}
@@ -754,7 +754,7 @@ int	main(int argc, char *argv[])
 				shutDownClo();
 				continue;
 			}
-		}	
+		}
 
 		/*	Make sure other tasks have a chance to run.	*/
 

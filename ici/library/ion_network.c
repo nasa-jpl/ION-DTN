@@ -53,10 +53,10 @@ int parseNetworkEndpoint(const char *endpoint, IonEndpointSpec *spec)
 		if (colon_pos)
 		{
 			strncpy(spec->service, colon_pos + 1,
-			                sizeof(spec->service) - 1);
+					sizeof(spec->service) - 1);
 			spec->service[sizeof(spec->service) - 1] = '\0';
 			spec->port = (unsigned short) strtoul(colon_pos + 1,
-			                NULL, 10);
+					NULL, 10);
 		}
 	}
 	else
@@ -68,7 +68,7 @@ int parseNetworkEndpoint(const char *endpoint, IonEndpointSpec *spec)
 		{
 			/* It's an IPv6 address without brackets and without port */
 			strncpy(spec->hostname, endpoint,
-			                sizeof(spec->hostname) - 1);
+					sizeof(spec->hostname) - 1);
 			spec->hostname[sizeof(spec->hostname) - 1] = '\0';
 			spec->family_hint = AF_INET6;
 			spec->is_numeric_host = 1;
@@ -96,7 +96,7 @@ int parseNetworkEndpoint(const char *endpoint, IonEndpointSpec *spec)
 				{
 					/* Could be IPv6:port format like 2001:db8::1:4556 */
 					/* This is ambiguous, so we'll be conservative and parse as
-           * hostname:port */
+					 * hostname:port */
 					/* User should use brackets for clarity: [2001:db8::1]:4556 */
 				}
 
@@ -110,23 +110,23 @@ int parseNetworkEndpoint(const char *endpoint, IonEndpointSpec *spec)
 				strncpy(spec->hostname, endpoint, host_len);
 				spec->hostname[host_len] = '\0';
 				strncpy(spec->service, colon_pos + 1,
-				                sizeof(spec->service) - 1);
+						sizeof(spec->service) - 1);
 				spec->service[sizeof(spec->service) - 1] = '\0';
 				spec->port = (unsigned short) strtoul(colon_pos
-				                                + 1,
-				                NULL, 10);
+								+ 1,
+						NULL, 10);
 			}
 			else
 			{
 				/* No colon found - entire string is hostname */
 				strncpy(spec->hostname, endpoint,
-				                sizeof(spec->hostname) - 1);
+						sizeof(spec->hostname) - 1);
 				spec->hostname[sizeof(spec->hostname) - 1] = '\0';
 			}
 
 			/* Determine if hostname is numeric after parsing */
 			spec->is_numeric_host = isIPv4Address(spec->hostname)
-			                || isIPv6Address(spec->hostname);
+					|| isIPv6Address(spec->hostname);
 		}
 	}
 
@@ -141,7 +141,7 @@ int parseNetworkEndpoint(const char *endpoint, IonEndpointSpec *spec)
 }
 
 int resolveNetworkAddressEx(const IonEndpointSpec *spec,
-                IonNetworkAddress *result, int socket_type, int protocol)
+		IonNetworkAddress *result, int socket_type, int protocol)
 {
 	struct addrinfo hints, *res, *rp;
 	int             status;
@@ -169,19 +169,19 @@ int resolveNetworkAddressEx(const IonEndpointSpec *spec,
 	{
 		char error_msg[512];
 		snprintf(error_msg, sizeof(error_msg),
-		                "getaddrinfo failed for %s:%s - %s",
-		                spec->hostname, service, gai_strerror(status));
+				"getaddrinfo failed for %s:%s - %s",
+				spec->hostname, service, gai_strerror(status));
 		putErrmsg("Network address resolution failed", error_msg);
 		return -1;
 	}
 
 	/* Try each address - test socket()
-     For now, this is used for only UDP client for remote address
-     so we don't check for bind() but in the future we might want to */
+	   For now, this is used for only UDP client for remote address
+	   so we don't check for bind() but in the future we might want to */
 	for (rp = res; rp != NULL; rp = rp->ai_next)
 	{
 		int test_sock = socket(rp->ai_family, rp->ai_socktype,
-		                rp->ai_protocol);
+				rp->ai_protocol);
 		if (test_sock == -1)
 		{
 			continue; /* Can't even create socket for this family */
@@ -209,7 +209,7 @@ int resolveNetworkAddress(const IonEndpointSpec *spec, IonNetworkAddress *result
 
 /* TCP convenience function */
 int resolveNetworkAddressTCP(const IonEndpointSpec *spec,
-                IonNetworkAddress                  *result)
+		IonNetworkAddress		   *result)
 {
 	return resolveNetworkAddressEx(spec, result, SOCK_STREAM, IPPROTO_TCP);
 }
@@ -228,8 +228,8 @@ int resolveNetworkAddressCached(const char *endpoint, IonNetworkAddress *result)
 
 	/* Check cache */
 	if (addr_cache.is_valid && strcmp(addr_cache.endpoint, endpoint) == 0
-	                && (current_time - addr_cache.cache_time)
-	                                < ION_ADDRESS_CACHE_INTERVAL_SEC)
+			&& (current_time - addr_cache.cache_time)
+					< ION_ADDRESS_CACHE_INTERVAL_SEC)
 	{
 
 		*result = addr_cache.cached_addr;
@@ -373,7 +373,7 @@ int createNetworkSocket(int socket_type, const IonNetworkAddress *local_addr,
 	/* Bind to local address - structure automatically correct from getaddrinfo()
 	*/
 	if (bind(sock, (const struct sockaddr *) &local_addr->addr, local_addr->addr_len)
-	                < 0)
+			< 0)
 	{
 		closesocket(sock);
 		putSysErrmsg("Can't bind network socket", NULL);

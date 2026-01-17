@@ -5,9 +5,9 @@
  *	Copyright (c) 2013, California Institute of Technology.
  *	Copyright (c) 2013, Space Internetworking Center,
  *	Democritus University of Thrace.
- *	
+ *
  *	All rights reserved. U.S. Government and E.U. Sponsorship acknowledged.
- *				
+ *
  *	Author: Sotirios-Angelos Lenas, Space Internetworking Center
  */
 
@@ -73,18 +73,18 @@ int	bssp_send(uvast destinationEngineId, unsigned int clientSvcId,
 		{
 			/*	Span has been initialized with a
 			 *	pdu buffer (block) into which
-		 	*	service data can be inserted.		*/
+			 *	service data can be inserted.		*/
 
 			if (sdr_list_length(sdr, span.exportSessions)
 				< span.maxExportSessions)
 			{
 				break; 		/*	Out of loop.	*/
 			}
-		
+
 		}
-		
-		/*	currentExportSessionObj not initialiazed 	* 
-		 *	yet or this is an overlimit export session.	* 
+
+		/*	currentExportSessionObj not initialiazed	*
+		 *	yet or this is an overlimit export session.	*
 		 *	Must wait for one to be released.		*/
 
 		sdr_exit_xn(sdr);
@@ -101,14 +101,14 @@ int	bssp_send(uvast destinationEngineId, unsigned int clientSvcId,
 					itoa(vspan->engineId));
 			return 0;
 		}
-		
+
 		CHKERR(sdr_begin_xn(sdr));
 		sdr_stage(sdr, (char *) &span, spanObj, sizeof(BsspSpan));
 	}
 
 	/*	Now append the outbound SDU to the block that is	*
-	 *	currently being available for this span and give 	*
-	 * 	the span's be/rl Semaphore.				*/
+	 *	currently being available for this span and give	*
+	 *	the span's be/rl Semaphore.				*/
 
 	sdr_stage(sdr, (char *) &session, span.currentExportSessionObj,
 			sizeof(BsspExportSession));
@@ -131,8 +131,8 @@ int	bssp_send(uvast destinationEngineId, unsigned int clientSvcId,
 
 	case 0:		/*	Database too full or block exceed max size	*/
 
-		/*		Reset span buffer but keep 						
-		 *	 	currentExportSessionObj	which was not used 		*/
+		/*		Reset span buffer but keep
+		 *		currentExportSessionObj	which was not used	*/
 		span.lengthOfBufferedBlock = 0;
 		span.clientSvcIdOfBufferedBlock = 0;
 		sdr_write(sdr, spanObj, (char *) &span, sizeof(BsspSpan));
@@ -181,7 +181,7 @@ int	bssp_send(uvast destinationEngineId, unsigned int clientSvcId,
 
 	if (vdb->watching & WATCH_d)
 	{
-		/* 
+		/*
 		putchar('D');
 		fflush(stdout);
 		*/

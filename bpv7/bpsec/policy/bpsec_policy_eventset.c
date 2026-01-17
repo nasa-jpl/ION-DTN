@@ -861,4 +861,3 @@ void bsles_cb_smlist_del(PsmPartition wm, PsmAddress elt, void *arg)
 
 	psm_free(wm, sm_list_data(wm, elt));
 }
-

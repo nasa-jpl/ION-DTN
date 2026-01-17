@@ -6,7 +6,7 @@
 	Copyright (c) 2021, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "imcfw.h"
 
@@ -16,7 +16,7 @@ static uaddr	_running(uaddr *newValue)
 {
 	void	*value;
 	uaddr	state;
-	
+
 	if (newValue)			/*	Changing state.		*/
 	{
 		value = (void *) (*newValue);
@@ -117,7 +117,7 @@ static int	handleCpsNotice(BpDelivery *dlv, unsigned char *cursor,
 	}
 	else			/*	Contact revision if >= 200.	*/
 	{
-		confidence = (float) (uvtemp / 100); 
+		confidence = (float) (uvtemp / 100);
 		if (confidence >= 2.0)
 		{
 			confidence -= 2.0;

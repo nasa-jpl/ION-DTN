@@ -12,7 +12,7 @@
 #define RAMSCOMMON_H
 
 #ifndef RAMSDEBUG
-#define	RAMSDEBUG	0
+#define RAMSDEBUG	0
 #endif
 
 #ifdef _cplusplus
@@ -36,10 +36,10 @@ extern void		ConstructEnvelope(unsigned char *envelope,
 				int controlCode);
 extern int		EnvelopeHeader(char *envelope, EnvelopeField conId);
 extern char		*EnvelopeContent(char *envelope, int contentLength);
-/* 
+/*
 Sky deprecates this: never used
 extern void		GetEnvelopeSpecification(char* env, int *continuumNbr,
-				int *unitNbr, int *roleNbr); 
+				int *unitNbr, int *roleNbr);
 */
 
 extern Enclosure	*ConstructEnclosure(short continuumNbr, int unitNbr,

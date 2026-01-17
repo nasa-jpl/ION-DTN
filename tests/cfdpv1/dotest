@@ -16,9 +16,9 @@
 
 # set timeouts based on OS type
 if [ "$1" = "linux" ] || [ "$1" = "mac" ] ; then
-	TIMETOWAIT=35
+    TIMETOWAIT=35
 else
-	TIMETOWAIT=55
+    TIMETOWAIT=55
 fi
 
 killm
@@ -52,12 +52,12 @@ cd ../1.ipn.ltp
 COUNT=$(ls -al receivedFile | wc -l)
 if [ "$COUNT" -ne 1 ]
 then
-	echo ""
-	echo "Error: node 1 did not receive file from node 2."
-	RETVAL=1
+    echo ""
+    echo "Error: node 1 did not receive file from node 2."
+    RETVAL=1
 else
-	echo ""
-	echo "Okay: node 1 received file from node 2."
+    echo ""
+    echo "Okay: node 1 received file from node 2."
 fi
 
 cd ../2.ipn.ltp
@@ -65,31 +65,31 @@ cd ../2.ipn.ltp
 COUNT=$(ls -al receivedFile | wc -l)
 if [ "$COUNT" -ne 1 ]
 then
-	echo ""
-	echo "Error: node 2 did not receive file from node 1."
-	RETVAL=1
+    echo ""
+    echo "Error: node 2 did not receive file from node 1."
+    RETVAL=1
 else
-	echo ""
-	echo "Okay: node 2 received file from node 1."
+    echo ""
+    echo "Okay: node 2 received file from node 1."
 fi
 
 COUNT=$(ls -al receivedEmptyFile 2>/dev/null | wc -l)
 if [ "$COUNT" -ne 1 ]
 then
-	echo ""
-	echo "Error: node 2 did not receive empty file from node 1."
-	RETVAL=1
+    echo ""
+    echo "Error: node 2 did not receive empty file from node 1."
+    RETVAL=1
 else
-	SIZE=$(wc -c < receivedEmptyFile)
-	if [ "$SIZE" -ne 0 ]
-	then
-		echo ""
-		echo "Error: received empty file has non-zero size ($SIZE bytes)."
-		RETVAL=1
-	else
-		echo ""
-		echo "Okay: node 2 received empty file correctly."
-	fi
+    SIZE=$(wc -c < receivedEmptyFile)
+    if [ "$SIZE" -ne 0 ]
+    then
+        echo ""
+        echo "Error: received empty file has non-zero size ($SIZE bytes)."
+        RETVAL=1
+    else
+        echo ""
+        echo "Okay: node 2 received empty file correctly."
+    fi
 fi
 
 echo ""
@@ -106,4 +106,3 @@ killm
 echo ""
 echo "CFDPv1 test completed."
 exit $RETVAL
-

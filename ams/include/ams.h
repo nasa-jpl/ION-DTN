@@ -1,5 +1,5 @@
 /*
- 	ams.h:	definitions supporting the implementation of AMS
+	ams.h:	definitions supporting the implementation of AMS
 		(Asynchronous Message Service) modules.
 
 	Author: Scott Burleigh, JPL
@@ -10,7 +10,7 @@
 	Copyright (c) 2005, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
- 									*/
+									*/
 
 #ifndef AMS_H
 #define AMS_H
@@ -197,18 +197,18 @@ extern int		ams_register(	char *mibSource,
 			 *		overriding transport service
 			 *			selection order (this
 			 *			is normally NULL)
-		 	 *  		name of application in which
-			 *  			this module wants to
-			 *  			participate
-		 	 *  		name of authority in charge of
-			 *  			the venture in which
-			 *  			this module wants to
-			 *  			participate
-			 *  		name of specific unit, in the
-			 *  			venture identified by
-			 *  			application and authority
-			 *  			names, in which this module
-			 *  			wants to participate
+			 *		name of application in which
+			 *			this module wants to
+			 *			participate
+			 *		name of authority in charge of
+			 *			the venture in which
+			 *			this module wants to
+			 *			participate
+			 *		name of specific unit, in the
+			 *			venture identified by
+			 *			application and authority
+			 *			names, in which this module
+			 *			wants to participate
 			 *		name of module's functional role
 			 *			within the application;
 			 *			need not be unique
@@ -218,7 +218,7 @@ extern int		ams_register(	char *mibSource,
 			 *
 			 *	Returns 0 on success, -1 on any error.	*/
 
-extern int		ams_unregister(	AmsModule module);
+extern int		ams_unregister(AmsModule module);
 
 extern int		ams_get_module_nbr(AmsModule module);
 

@@ -10,12 +10,12 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: To send 5 bundles with bundle report back from one BP endpoint
-	to another over UDP.  Uses the valgrind debugging/profiling tool:
-	http://valgrind.org/"
+    to another over UDP.  Uses the valgrind debugging/profiling tool:
+    http://valgrind.org/"
 
 echo "OUTPUT: Various debugging messages associated with the valgrind tool.
-	valgrind output files will follow the pattern:
-	$PWD/out.valgrind..."
+    valgrind output files will follow the pattern:
+    $PWD/out.valgrind..."
 echo
 echo "########################################"
 
@@ -68,10 +68,10 @@ tryreceive () {
     while [ $X -lt 200 ]
     do
         # sleep and kill process in case it didn't end properly
-        sleep 0.04 
+        sleep 0.04
 
         # Check if bpsink got the file.
-        if ! compare_files $IONEXPECTEDFILE $IONRECEIVEFILE 
+        if ! compare_files $IONEXPECTEDFILE $IONRECEIVEFILE
         then
             X=`expr $X + 1`
         else
@@ -81,7 +81,7 @@ tryreceive () {
         fi
     done
     # We didn't receive it, even after 200 tries; bummer.
-    echo "Try to receive but failed. Here is the difference between received and expected" 
+    echo "Try to receive but failed. Here is the difference between received and expected"
     diff $IONRECEIVEFILE $IONEXPECTEDFILE
     return 1
 }
@@ -126,7 +126,7 @@ libtool --mode=execute                             \
     --trace-children=yes                           \
     --leak-check=full                              \
     $IONDIR/ionstart                               \
-        -I $CONFIGDIR/host1.rc                     
+        -I $CONFIGDIR/host1.rc
 
 # pause here to test configuration
 #read -n 1 -s -r -p "Script paused. Press any key to continue..."
@@ -141,7 +141,7 @@ libtool --mode=execute                             \
     valgrind                                       \
     $GEN_SUPPRESSIONS                              \
     --quiet                                        \
-    --log-file=out.valgrind.loopback.bpsource.%p     \
+    --log-file=out.valgrind.loopback.bpsource.%p   \
     --num-callers=25                               \
     --tool=memcheck                                \
     --trace-children=yes                           \
@@ -185,14 +185,14 @@ do
         valgrind                                       \
         $GEN_SUPPRESSIONS                              \
         --quiet                                        \
-        --log-file=out.valgrind.loopback.bptrace.%p     \
+        --log-file=out.valgrind.loopback.bptrace.%p    \
         --num-callers=25                               \
         --tool=memcheck                                \
         --trace-children=yes                           \
         --leak-check=full                              \
         $IONDIR/bptrace ipn:1.2 ipn:1.4 ipn:1.2 8 1.0 "$IONMESSAGE" 31
 
-    if tryreceive 
+    if tryreceive
     then
         echo -n "."
         ITERATION=`expr $ITERATION + 1`
@@ -201,7 +201,7 @@ do
         echo "Failed an iteration"
         break
     fi
-    
+
 #    read -n 1 -s -r -p "Script paused. Press any key to continue..."
 
 done
@@ -245,7 +245,7 @@ else
     done
 fi
 
-# 
+#
 # see if valgrind noticed any problems
 #
 
@@ -260,4 +260,3 @@ done
 
 
 exit $RETVAL
-

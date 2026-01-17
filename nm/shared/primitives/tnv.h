@@ -27,6 +27,7 @@
  **  01/11/18  E. Birrane     Add update ability. (JHU/APL)
  **  09/01/18  E. Birrane     Migrate from TDC to TNV. (JHU/APL)
  *****************************************************************************/
+
 #ifndef TNV_H_
 #define TNV_H_
 
@@ -45,7 +46,7 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  CONSTANTS  								  +
+ * |                              CONSTANTS                                   +
  * +--------------------------------------------------------------------------+
  */
 
@@ -84,7 +85,7 @@ typedef enum
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  	MACROS  								  +
+ * |                                MACROS                                    +
  * +--------------------------------------------------------------------------+
  */
 #define TNV_IS_ALLOC(flags) (flags & TNV_FLAG_ALLOC)
@@ -98,7 +99,7 @@ typedef enum
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  DATA TYPES  								  +
+ * |                              DATA TYPES                                  +
  * +--------------------------------------------------------------------------+
  */
 
@@ -145,7 +146,7 @@ typedef struct
 
 /*
  * +--------------------------------------------------------------------------+
- * |						  FUNCTION PROTOTYPES  							  +
+ * |                          FUNCTION PROTOTYPES                             +
  * +--------------------------------------------------------------------------+
  */
 
@@ -188,10 +189,10 @@ int       tnv_set_map(tnv_t *tnv, uint32_t map);
 void      tnv_release(tnv_t *val, int destroy);
 int32_t   tnv_to_int(tnv_t val, int *success);
 float     tnv_to_real32(tnv_t val, int *success);
-double	  tnv_to_real64(tnv_t val, int *success);
+double    tnv_to_real64(tnv_t val, int *success);
 uint32_t  tnv_to_uint(tnv_t val, int *success);
-uvast 	  tnv_to_uvast(tnv_t val, int *success);
-vast 	  tnv_to_vast(tnv_t val, int *success);
+uvast     tnv_to_uvast(tnv_t val, int *success);
+vast      tnv_to_vast(tnv_t val, int *success);
 
 
 /*** TNVC Functions ***/

@@ -39,28 +39,28 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: Testing LTP stale import session protection via inactivity timeout."
-echo "	When a sender crashes before completing transmission (before sending"
-echo "	checkpoint/EORP/EOB segments), the import session on the receiver"
-echo "	would remain indefinitely, consuming buffer slots. This test verifies"
-echo "	that the inactivity timeout mechanism cancels such stale sessions."
+echo "    When a sender crashes before completing transmission (before sending"
+echo "    checkpoint/EORP/EOB segments), the import session on the receiver"
+echo "    would remain indefinitely, consuming buffer slots. This test verifies"
+echo "    that the inactivity timeout mechanism cancels such stale sessions."
 echo
-echo "	The test:"
-echo "	1. Starts sender (node 2) and receiver (node 3)"
-echo "	2. Configures inactivity timeout = 10 seconds on receiver's span"
-echo "	3. Begins large bundle transmission"
-echo "	4. Kills sender mid-transmission"
-echo "	5. Waits for inactivity timeout to expire"
-echo "	6. Verifies receiver detected and cleaned up the stale session"
+echo "    The test:"
+echo "    1. Starts sender (node 2) and receiver (node 3)"
+echo "    2. Configures inactivity timeout = 10 seconds on receiver's span"
+echo "    3. Begins large bundle transmission"
+echo "    4. Kills sender mid-transmission"
+echo "    5. Waits for inactivity timeout to expire"
+echo "    6. Verifies receiver detected and cleaned up the stale session"
 
 echo
 echo "CONFIG: 2 node custom:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo
@@ -79,10 +79,10 @@ cd 2.ipn.ltp
 
 if [ $? -eq 3 ]
 then
-	echo "Node 2 started."
+    echo "Node 2 started."
 else
-	echo "Node 2 not started: Aborting Test"
-	exit 1
+    echo "Node 2 not started: Aborting Test"
+    exit 1
 fi
 
 cd ../3.ipn.ltp
@@ -91,10 +91,10 @@ cd ../3.ipn.ltp
 
 if [ $? -eq 3 ]
 then
-	echo "Node 3 started."
+    echo "Node 3 started."
 else
-	echo "Node 3 not started: Aborting Test"
-	exit 1
+    echo "Node 3 not started: Aborting Test"
+    exit 1
 fi
 
 # Enable inactivity timeout on node 3's span to engine 2
@@ -153,9 +153,9 @@ WAIT_TIME=15
 TIMER=0
 while [ $TIMER -lt $WAIT_TIME ]
 do
-	TIMER=$((++TIMER))
-	sleep 1
-	echo "  ...waiting ($TIMER/$WAIT_TIME seconds)..."
+    TIMER=$((++TIMER))
+    sleep 1
+    echo "  ...waiting ($TIMER/$WAIT_TIME seconds)..."
 done
 
 echo ""
@@ -197,35 +197,35 @@ echo "========================================="
 
 if [ $INACTIVITY_MSG -gt 0 ]
 then
-	echo "SUCCESS: Stale import session was detected and canceled."
-	echo "  Found $INACTIVITY_MSG inactivity timeout cancellation(s) in ion.log."
-	echo "  The inactivity timeout mechanism is working correctly."
-	echo "  Import sessions from crashed peers are cleaned up automatically."
+    echo "SUCCESS: Stale import session was detected and canceled."
+    echo "  Found $INACTIVITY_MSG inactivity timeout cancellation(s) in ion.log."
+    echo "  The inactivity timeout mechanism is working correctly."
+    echo "  Import sessions from crashed peers are cleaned up automatically."
 elif [ $TOTAL_CR -gt 0 ]
 then
-	echo "SUCCESS: Cancel-by-receiver segments detected."
-	echo "  The session was canceled (inactivity timeout likely triggered)."
+    echo "SUCCESS: Cancel-by-receiver segments detected."
+    echo "  The session was canceled (inactivity timeout likely triggered)."
 else
-	echo "WARNING: Could not confirm stale session cancellation in logs."
-	echo "  This may be because:"
-	echo "  1. The session was not created before sender died"
-	echo "  2. Watch characters are not enabled"
-	echo ""
-	echo "  Checking if transmission started before sender was killed..."
+    echo "WARNING: Could not confirm stale session cancellation in logs."
+    echo "  This may be because:"
+    echo "  1. The session was not created before sender died"
+    echo "  2. Watch characters are not enabled"
+    echo ""
+    echo "  Checking if transmission started before sender was killed..."
 
-	# Check if any data was sent (look for 's' = segment received watch char)
-	DATA_RECV=`grep -c "s" node3.stdout 2>/dev/null || echo "0"`
-	if [ $DATA_RECV -gt 0 ]
-	then
-		echo "  Data segments were received, session should have been created."
-		echo "  The inactivity timeout should have fired."
-		echo "  Marking test as FAIL."
-		RETVAL=1
-	else
-		echo "  No data segments detected - sender may have died too quickly."
-		echo "  Marking test as INCONCLUSIVE."
-		RETVAL=2
-	fi
+    # Check if any data was sent (look for 's' = segment received watch char)
+    DATA_RECV=`grep -c "s" node3.stdout 2>/dev/null || echo "0"`
+    if [ $DATA_RECV -gt 0 ]
+    then
+        echo "  Data segments were received, session should have been created."
+        echo "  The inactivity timeout should have fired."
+        echo "  Marking test as FAIL."
+        RETVAL=1
+    else
+        echo "  No data segments detected - sender may have died too quickly."
+        echo "  Marking test as INCONCLUSIVE."
+        RETVAL=2
+    fi
 fi
 
 echo "========================================="

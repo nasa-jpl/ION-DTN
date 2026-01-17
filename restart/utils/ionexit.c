@@ -3,7 +3,7 @@
 	ionexit.c:	Cleanly shut down ION.
 
 
-        Written 5/2011 by Greg Menke, Columbus, under contract with NASA GSFC
+	Written 5/2011 by Greg Menke, Columbus, under contract with NASA GSFC
 
 */
 
@@ -57,211 +57,211 @@ int	ionexit(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 #else
 int	main(int argc, char **argv)
 {
-   char	*p1 = (argc > 1 ? argv[1] : NULL);
+	char	*p1 = (argc > 1 ? argv[1] : NULL);
 #endif
-   int loopcount, errcount= 0, deletesdr = -1;
+	int loopcount, errcount= 0, deletesdr = -1;
 #ifdef ENABLE_TC
-   char msgbuf[80];
-   int groupNbr;
+	char msgbuf[80];
+	int groupNbr;
 #endif
 
 
-   if( p1 != NULL )
-   {
-      if( strcmp( p1, "k" ) == 0 )
-      {
-         deletesdr = 0;
-      }
-   }
+	if( p1 != NULL )
+	{
+		if( strcmp( p1, "k" ) == 0 )
+		{
+			deletesdr = 0;
+		}
+	}
 
 
-   printText("Running ionexit" );
-   printText( ((deletesdr) ? "will delete SDR" : "keeping SDR") );
+	printText("Running ionexit" );
+	printText( ((deletesdr) ? "will delete SDR" : "keeping SDR") );
 
-   if (ionAttach() == 0)
-   {
+	if (ionAttach() == 0)
+	{
 #ifdef ENABLE_DTPC
-      if (dtpcAttach() == 0)
-      {
-         printText("Issuing DTPC stop.");
-         dtpcStop();
+		if (dtpcAttach() == 0)
+		{
+			printText("Issuing DTPC stop.");
+			dtpcStop();
 
-         for (loopcount = 5; dtpc_entity_is_started() && loopcount; loopcount--)
-         {
-            snooze(1);
-         }
-         if (!loopcount)
-         {
-            errcount++;
-            printText("***** DTPC did not shut down");
-         }
-      }
-      else
-         printText("Unable to attach to DTPC");
+			for (loopcount = 5; dtpc_entity_is_started() && loopcount; loopcount--)
+			{
+				snooze(1);
+			}
+			if (!loopcount)
+			{
+				errcount++;
+				printText("***** DTPC did not shut down");
+			}
+		}
+		else
+			printText("Unable to attach to DTPC");
 #endif
 
 #ifdef ENABLE_TC
-      /* Stop all TCA instances (try group numbers 1-10) */
-      for (groupNbr = 1; groupNbr <= 10; groupNbr++)
-      {
-         if (tcaAttach(groupNbr) == 0 && tcaIsStarted(groupNbr))
-         {
-            isprintf(msgbuf, sizeof(msgbuf), "Issuing TCA stop for group %d.", groupNbr);
-            printText(msgbuf);
-            tcaStop(groupNbr);
+		/* Stop all TCA instances (try group numbers 1-10) */
+		for (groupNbr = 1; groupNbr <= 10; groupNbr++)
+		{
+			if (tcaAttach(groupNbr) == 0 && tcaIsStarted(groupNbr))
+			{
+				isprintf(msgbuf, sizeof(msgbuf), "Issuing TCA stop for group %d.", groupNbr);
+				printText(msgbuf);
+				tcaStop(groupNbr);
 
-            for (loopcount = 5; tcaIsStarted(groupNbr) && loopcount; loopcount--)
-            {
-               snooze(1);
-            }
-            if (!loopcount)
-            {
-               errcount++;
-               isprintf(msgbuf, sizeof(msgbuf), "***** TCA group %d did not shut down", groupNbr);
-               printText(msgbuf);
-            }
-         }
-      }
+				for (loopcount = 5; tcaIsStarted(groupNbr) && loopcount; loopcount--)
+				{
+					snooze(1);
+				}
+				if (!loopcount)
+				{
+					errcount++;
+					isprintf(msgbuf, sizeof(msgbuf), "***** TCA group %d did not shut down", groupNbr);
+					printText(msgbuf);
+				}
+			}
+		}
 
-      /* Stop all TCC instances (try group numbers 1-10) */
-      for (groupNbr = 1; groupNbr <= 10; groupNbr++)
-      {
-         if (tccAttach(groupNbr) == 0 && tccIsStarted(groupNbr))
-         {
-            isprintf(msgbuf, sizeof(msgbuf), "Issuing TCC stop for group %d.", groupNbr);
-            printText(msgbuf);
-            tccStop(groupNbr);
+		/* Stop all TCC instances (try group numbers 1-10) */
+		for (groupNbr = 1; groupNbr <= 10; groupNbr++)
+		{
+			if (tccAttach(groupNbr) == 0 && tccIsStarted(groupNbr))
+			{
+				isprintf(msgbuf, sizeof(msgbuf), "Issuing TCC stop for group %d.", groupNbr);
+				printText(msgbuf);
+				tccStop(groupNbr);
 
-            for (loopcount = 5; tccIsStarted(groupNbr) && loopcount; loopcount--)
-            {
-               snooze(1);
-            }
-            if (!loopcount)
-            {
-               errcount++;
-               isprintf(msgbuf, sizeof(msgbuf), "***** TCC group %d did not shut down", groupNbr);
-               printText(msgbuf);
-            }
-         }
-      }
+				for (loopcount = 5; tccIsStarted(groupNbr) && loopcount; loopcount--)
+				{
+					snooze(1);
+				}
+				if (!loopcount)
+				{
+					errcount++;
+					isprintf(msgbuf, sizeof(msgbuf), "***** TCC group %d did not shut down", groupNbr);
+					printText(msgbuf);
+				}
+			}
+		}
 #endif
 
-      if (bpAttach() == 0)
-      {
-         printText("Issuing BP stop.");
-         bpStop();
+		if (bpAttach() == 0)
+		{
+			printText("Issuing BP stop.");
+			bpStop();
 
-         for( loopcount= 5; bp_agent_is_started() && loopcount; loopcount--)
-         {
-            snooze(1);
-         }
-         if( !loopcount )
-         {
-            errcount++;
-            printText("***** BP did not shut down");
-         }
-      }
-      else
-         printText("Unable to attach to BP");
+			for( loopcount= 5; bp_agent_is_started() && loopcount; loopcount--)
+			{
+				snooze(1);
+			}
+			if( !loopcount )
+			{
+				errcount++;
+				printText("***** BP did not shut down");
+			}
+		}
+		else
+			printText("Unable to attach to BP");
 
 
 
-      if (ltpAttach() == 0)
-      {
-         printText("Issuing LTP stop.");
-         ltpStop();
+		if (ltpAttach() == 0)
+		{
+			printText("Issuing LTP stop.");
+			ltpStop();
 
-         for( loopcount = 5; ltp_engine_is_started() && loopcount; loopcount-- )
-         {
-            snooze(1);
-         }
-         if( !loopcount )
-         {
-            errcount++;
-            printText("***** LTP did not shut down");
-         }
-      }
-      else
-         printText("Unable to attach to LTP");
+			for( loopcount = 5; ltp_engine_is_started() && loopcount; loopcount-- )
+			{
+				snooze(1);
+			}
+			if( !loopcount )
+			{
+				errcount++;
+				printText("***** LTP did not shut down");
+			}
+		}
+		else
+			printText("Unable to attach to LTP");
 
 #ifdef ENABLE_BSSP
-      if (bsspAttach() == 0)
-      {
-         printText("Issuing BSSP stop.");
-         bsspStop();
+		if (bsspAttach() == 0)
+		{
+			printText("Issuing BSSP stop.");
+			bsspStop();
 
-         for( loopcount = 5; bssp_engine_is_started() && loopcount; loopcount-- )
-         {
-            snooze(1);
-         }
-         if( !loopcount )
-         {
-            errcount++;
-            printText("***** BSSP did not shut down");
-         }
-      }
-      else
-         printText("Unable to attach to BSSP");
+			for( loopcount = 5; bssp_engine_is_started() && loopcount; loopcount-- )
+			{
+				snooze(1);
+			}
+			if( !loopcount )
+			{
+				errcount++;
+				printText("***** BSSP did not shut down");
+			}
+		}
+		else
+			printText("Unable to attach to BSSP");
 #endif
 #ifndef NASA_PROTECTED_FLIGHT_CODE
-      if (cfdpAttach() == 0)
-      {
-         printText("Issuing CFDP stop.");
-         cfdpStop();
+		if (cfdpAttach() == 0)
+		{
+			printText("Issuing CFDP stop.");
+			cfdpStop();
 
-         for( loopcount = 5; cfdp_entity_is_started() && loopcount; loopcount-- )
-         {
-            snooze(1);
-         }
-         if( !loopcount )
-         {
-            errcount++;
-            printText("***** CFDP did not shut down");
-         }
-      }
-      else
-         printText("Unable to attach to CFDP");
+			for( loopcount = 5; cfdp_entity_is_started() && loopcount; loopcount-- )
+			{
+				snooze(1);
+			}
+			if( !loopcount )
+			{
+				errcount++;
+				printText("***** CFDP did not shut down");
+			}
+		}
+		else
+			printText("Unable to attach to CFDP");
 #endif
 
 
 
 
-      {
-         printText("Issuing RFX stop.");
-         rfx_stop();
+		{
+			printText("Issuing RFX stop.");
+			rfx_stop();
 
-         for( loopcount= 5; rfx_system_is_started() && loopcount; loopcount-- )
-         {
-            snooze(1);
-         }
-         if( !loopcount )
-         {
-            errcount++;
-            printText("***** RFX did not shut down");
-         }
-      }
-
-
-      {
-         if( deletesdr )
-         {
-            printText("Deleting SDR");
-            ionTerminate(1);
-         }
-
-         printText("Shutting down the IPC system");
-
-         sm_ipc_stop();
-      }
-
-   }
-   else
-   {
-      printText("Unable to attach to ION");
-   }
+			for( loopcount= 5; rfx_system_is_started() && loopcount; loopcount-- )
+			{
+				snooze(1);
+			}
+			if( !loopcount )
+			{
+				errcount++;
+				printText("***** RFX did not shut down");
+			}
+		}
 
 
-   printText("Stopping ionexit.");
+		{
+			if( deletesdr )
+			{
+				printText("Deleting SDR");
+				ionTerminate(1);
+			}
 
-   return (errcount != 0)? -1 : 0;
+			printText("Shutting down the IPC system");
+
+			sm_ipc_stop();
+		}
+
+	}
+	else
+	{
+		printText("Unable to attach to ION");
+	}
+
+
+	printText("Stopping ionexit.");
+
+	return (errcount != 0)? -1 : 0;
 }

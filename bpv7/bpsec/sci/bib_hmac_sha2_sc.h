@@ -64,13 +64,13 @@
  * This enumeration lists these items.
  *
  */
-typedef enum 
+typedef enum
 {
-    BPSEC_BHSSC_PARM_LTK_NAME    = 4, /** Parm.   The LTK key name to use    */
+	BPSEC_BHSSC_PARM_LTK_NAME    = 4, /** Parm.   The LTK key name to use    */
 	BPSEC_BHSSC_PARM_SHA_VAR_ID  = 1, /** Parm.   The SHA Variant Used.      */
 	BPSEC_BHSSC_PARM_WRAPPED_KEY = 2, /** Parm.   The AES-Wrapped key.       */
 	BPSEC_BHSSC_PARM_SCOPE_FLAGS = 3, /** Parm.   The integrity Scope Flags. */
-    BPSEC_BHSSC_RESULT_EHMAC     = 1  /** Result. The Expected HMAC.         */
+	BPSEC_BHSSC_RESULT_EHMAC     = 1  /** Result. The Expected HMAC.         */
 } sc_bhs_ids_t;
 
 

@@ -185,6 +185,3 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ### Copyright for this README
 
 Copyright (c) 2018-2019, Laurence Lundblade. All rights reserved.
-
-
-

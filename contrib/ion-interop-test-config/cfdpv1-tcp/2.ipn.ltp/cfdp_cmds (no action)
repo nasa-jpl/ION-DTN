@@ -37,6 +37,3 @@ a entity 3 tcp 192.168.157.133:6001 7 0 0
 m discard 1
 m segsize 1000
 s 'tcputa'
-
-
-

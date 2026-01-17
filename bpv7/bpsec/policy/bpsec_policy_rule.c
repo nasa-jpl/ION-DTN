@@ -66,39 +66,39 @@
  *****************************************************************************/
 
 static int eidsMatch(char *firstEid, int firstEidLen, char *secondEid,
-        int secondEidLen)
+		int secondEidLen)
 {
-    int i;
+	int i;
 
-    /* We do not match NULL strings. */
-    if((firstEid == NULL) || (secondEid == NULL))
-    {
-        return 0;
-    }
+	/* We do not match NULL strings. */
+	if ((firstEid == NULL) || (secondEid == NULL))
+	{
+		return 0;
+	}
 
-    for (i = 0; i < MAX(firstEidLen, secondEidLen); i++)
-    {
-        /* EID length mismatch */
-        if ((firstEidLen < i) || (secondEidLen < i))
-        {
-            return 0;
-        }
+	for (i = 0; i < MAX(firstEidLen, secondEidLen); i++)
+	{
+		/* EID length mismatch */
+		if ((firstEidLen < i) || (secondEidLen < i))
+		{
+			return 0;
+		}
 
-        /* Perform wildcard matching */
-        else if ((firstEid[i] == '*') || (secondEid[i] == '*'))
-        {
-            return 1;
-        }
+		/* Perform wildcard matching */
+		else if ((firstEid[i] == '*') || (secondEid[i] == '*'))
+		{
+			return 1;
+		}
 
-        /* EIDs do not match */
-        else if (firstEid[i] != secondEid[i])
-        {
-            return 0;
-        }
-    }
+		/* EIDs do not match */
+		else if (firstEid[i] != secondEid[i])
+		{
+			return 0;
+		}
+	}
 
-    /* EIDs are an exact match */
-    return 1;
+	/* EIDs are an exact match */
+	return 1;
 }
 
 
@@ -286,80 +286,79 @@ void  bslpol_filter_score(PsmPartition partition, BpSecFilter *filter)
  *****************************************************************************/
 
 int bslpol_proc_applyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule,
-        int service,
-        AcqExtBlock *secBlk, BpsecInboundASB *asb, BpsecInboundTargetResult *tgtResult,
-        sc_Def *def, LystElt *tgtBlkElt, size_t *tgtBlkOrigLen)
+	int service,
+	AcqExtBlock *secBlk, BpsecInboundASB *asb, BpsecInboundTargetResult *tgtResult,
+	sc_Def *def, LystElt *tgtBlkElt, size_t *tgtBlkOrigLen)
 {
-     PsmPartition wm = getIonwm();
-     int result = -1;
-     sc_state state;
-     LystElt tmp = NULL;
+	PsmPartition wm = getIonwm();
+	int result = -1;
+	sc_state state;
+	LystElt tmp = NULL;
 
-     BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC","ADDR_FIELDSPEC",%d,"ADDR_FIELDSPEC","ADDR_FIELDSPEC","
-                         ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
-                      (uaddr) wk, (uaddr) polRule, service, (uaddr) secBlk, (uaddr) asb, (uaddr) tgtResult,
-                      (uaddr) def, (uaddr) tgtBlkElt, (uaddr) tgtBlkOrigLen);
-
-
-     /*
-      * Step 1 - Make sure the target block exists in the bundle. The only
-      *          way the target block would not exist in the bundle is if
-      *          it is an extension block, and the extension block does not
-      *          appear in the bundle.
-      */
-
-     if( (tgtResult->scTargetId != PrimaryBlk) &&
-         (tgtResult->scTargetId != PayloadBlk) &&
-         ((tmp = getAcqExtensionBlock(wk, tgtResult->scTargetId)) == NULL))
-     {
-         return -1;
-     }
-
-     /*
-      * If we caller wants us to return the target block and its original length
-      * store that information, unless we don't have it.
-      */
-     if(tgtBlkElt != NULL)
-     {
-         /* Store the LystELt of the target block in thew ACQ area. */
-         *tgtBlkElt = tmp;
-     }
-
-     /* Store the block length, if the caller wanted it. */
-     if(tgtBlkOrigLen != NULL)
-     {
-
-         if(tgtResult->scTargetId == PrimaryBlk)
-         {
-             *tgtBlkOrigLen = wk->headerLength; // TODO make sure this is right.
-         }
-         else if(tgtResult->scTargetId == PayloadBlk)
-         {
-             *tgtBlkOrigLen = wk->bundle.payload.length;
-         }
-         else
-         {
-             AcqExtBlock *tgtBlk = NULL;
-
-             /* If we can't find the block, that's a bigger issue.. */
-             if((tgtBlk = (AcqExtBlock *) lyst_data(tmp)) == NULL)
-             {
-                 *tgtBlkOrigLen = 0;
-                 return -1;
-             }
-             *tgtBlkOrigLen = tgtBlk->length;
-         }
-     }
+	BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC","ADDR_FIELDSPEC",%d,"ADDR_FIELDSPEC","ADDR_FIELDSPEC","
+			ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
+			(uaddr) wk, (uaddr) polRule, service, (uaddr) secBlk, (uaddr) asb, (uaddr) tgtResult,
+			(uaddr) def, (uaddr) tgtBlkElt, (uaddr) tgtBlkOrigLen);
 
 
-     def->scStateInit(wm, &state, secBlk->number, def, BPSEC_RULE_ROLE_IDX(polRule), service, asb->scSource, polRule->sc_parms, asb->scParms, lyst_length(asb->scResults));
+	/*
+	 * Step 1 - Make sure the target block exists in the bundle. The only
+	 *          way the target block would not exist in the bundle is if
+	 *          it is an extension block, and the extension block does not
+	 *          appear in the bundle.
+	 */
 
-     result = def->scProcInBlk(&state, wk, asb, tmp, tgtResult);
+	if( (tgtResult->scTargetId != PrimaryBlk) &&
+		(tgtResult->scTargetId != PayloadBlk) &&
+		((tmp = getAcqExtensionBlock(wk, tgtResult->scTargetId)) == NULL))
+	{
+		return -1;
+	}
 
-     def->scStateClear(&state);
+	/*
+	 * If we caller wants us to return the target block and its original length
+	 * store that information, unless we don't have it.
+	 */
+	if (tgtBlkElt != NULL)
+	{
+		/* Store the LystELt of the target block in thew ACQ area. */
+		*tgtBlkElt = tmp;
+	}
 
-     BPSEC_DEBUG_PROC("Returning %d", result);
-     return result;
+	/* Store the block length, if the caller wanted it. */
+	if(tgtBlkOrigLen != NULL)
+	{
+
+		if (tgtResult->scTargetId == PrimaryBlk)
+		{
+			*tgtBlkOrigLen = wk->headerLength; // TODO make sure this is right.
+		}
+		else if (tgtResult->scTargetId == PayloadBlk)
+		{
+			*tgtBlkOrigLen = wk->bundle.payload.length;
+		}
+		else
+		{
+			AcqExtBlock *tgtBlk = NULL;
+
+			/* If we can't find the block, that's a bigger issue.. */
+			if ((tgtBlk = (AcqExtBlock *) lyst_data(tmp)) == NULL)
+			{
+				*tgtBlkOrigLen = 0;
+				return -1;
+			}
+			*tgtBlkOrigLen = tgtBlk->length;
+		}
+	}
+
+	def->scStateInit(wm, &state, secBlk->number, def, BPSEC_RULE_ROLE_IDX(polRule), service, asb->scSource, polRule->sc_parms, asb->scParms, lyst_length(asb->scResults));
+
+	result = def->scProcInBlk(&state, wk, asb, tmp, tgtResult);
+
+	def->scStateClear(&state);
+
+	BPSEC_DEBUG_PROC("Returning %d", result);
+	return result;
 }
 
 // TODO update these comments.
@@ -382,40 +381,40 @@ int bslpol_proc_applyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule,
 
 int bslpol_proc_applySenderPolRule(Bundle *bundle, BpBlockType secBlkType, BpSecPolRule *polRule, int tgtNum)
 {
-    Sdr sdr = getIonsdr();
-    PsmPartition wm = getIonwm();
-    Object blkObj = 0;
-    ExtensionBlock blk;
-    BpsecOutboundASB asb;
-    sc_Def def;
+	Sdr sdr = getIonsdr();
+	PsmPartition wm = getIonwm();
+	Object blkObj = 0;
+	ExtensionBlock blk;
+	BpsecOutboundASB asb;
+	sc_Def def;
 
-    BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC",%d,"ADDR_FIELDSPEC",%d)",
-                     (uaddr)bundle, secBlkType, (uaddr) polRule, tgtNum);
+	BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC",%d,"ADDR_FIELDSPEC",%d)",
+			(uaddr)bundle, secBlkType, (uaddr) polRule, tgtNum);
 
-    /* Step 0: Sanity Checks */
-    CHKERR(bundle);
-    CHKERR(polRule);
-    CHKERR(tgtNum >= 0);
+	/* Step 0: Sanity Checks */
+	CHKERR(bundle);
+	CHKERR(polRule);
+	CHKERR(tgtNum >= 0);
 
-    /*
-     * Step 1: Retrieve the BIB profile using the security context ID provided
-     *         in the policy rule.
-     * */
+	/*
+	 * Step 1: Retrieve the BIB profile using the security context ID provided
+	 *         in the policy rule.
+	 * */
 
-    if(bpsec_sci_defFind(polRule->filter.scid, &def) < 1)
-    {
-        BPSEC_DEBUG_ERR("Unsupported SC id %d.", polRule->filter.scid);
-        return -1;
-    }
+	if(bpsec_sci_defFind(polRule->filter.scid, &def) < 1)
+	{
+		BPSEC_DEBUG_ERR("Unsupported SC id %d.", polRule->filter.scid);
+		return -1;
+	}
 
-    /*
-     * Step 2: Confirm that we can apply this security operation to the given
-     *         security target. If there is an existing BIB we can add to, we
-     *         will find that out, too.
-     */
+	/*
+	 * Step 2: Confirm that we can apply this security operation to the given
+	 *         security target. If there is an existing BIB we can add to, we
+	 *         will find that out, too.
+	 */
 
-    // TODO - when calling this for a BCB we need to get the bibObj back and
-    //        add it to the encryption list.
+	// TODO - when calling this for a BCB we need to get the bibObj back and
+	//        add it to the encryption list.
 
 #if 0
 // TODO
@@ -427,134 +426,134 @@ int bslpol_proc_applySenderPolRule(Bundle *bundle, BpBlockType secBlkType, BpSec
 
 
 
-    /*    The security block we found earlier must be a BIB.
-     *    (If it were a BCB, we wouldn't have added the target
-     *    block as a target of the new BCB.)            */
+	/*    The security block we found earlier must be a BIB.
+	 *    (If it were a BCB, we wouldn't have added the target
+	 *    block as a target of the new BCB.)            */
 
-    bibObj = (Object) sdr_list_data(sdr, bibElt);
-    sdr_read(sdr, (char *) &bib, bibObj, sizeof(ExtensionBlock));
-    sdr_read(sdr, (char *) &bibAsb, bib.object, bib.size);
-    if (sdr_list_length(sdr, bibAsb.secResults) == 1)
-    {
-        /*    The target block is the sole target of this
-         *    BIB.  Just add this BIB as a target of the BCB.    */
+	bibObj = (Object) sdr_list_data(sdr, bibElt);
+	sdr_read(sdr, (char *) &bib, bibObj, sizeof(ExtensionBlock));
+	sdr_read(sdr, (char *) &bibAsb, bib.object, bib.size);
+	if (sdr_list_length(sdr, bibAsb.secResults) == 1)
+	{
+		/*    The target block is the sole target of this
+		 *    BIB.  Just add this BIB as a target of the BCB.    */
 
-        if (bpsec_asb_outboundTargetInsert(sdr, asb, bib.number) < 0)
-        {
-            return -1;
-        }
+		if (bpsec_asb_outboundTargetInsert(sdr, asb, bib.number) < 0)
+		{
+			return -1;
+		}
 
-        return 0;
-    }
+		return 0;
+	}
 
-    /*    More complicated.  Must clone this BIB, such that
-     *    the original BIB no longer signs the target block
-     *    -- only the (new) clone BIB does so.  Then add the
-     *    clone BIB as an additional target of the new BCB.    */
+	/*    More complicated.  Must clone this BIB, such that
+	 *    the original BIB no longer signs the target block
+	 *    -- only the (new) clone BIB does so.  Then add the
+	 *    clone BIB as an additional target of the new BCB.    */
 
-    memcpy((char *) &clone, (char *) &bib, sizeof(ExtensionBlock));
-    memcpy((char *) &cloneAsb, (char*) &bibAsb, sizeof(BpsecOutboundASB));
-    for (resultElt = sdr_list_first(sdr, bibAsb.secResults); resultElt;
-            resultElt = sdr_list_next(sdr, resultElt))
-    {
-        resultObj = sdr_list_data(sdr, resultElt);
-        sdr_read(sdr, (char *) &result, resultObj,
-                sizeof(BpsecOutboundTargetResult));
-        if (result.secTargetId == targetBlockNumber)
-        {
-            break;
-        }
-    }
+	memcpy((char *) &clone, (char *) &bib, sizeof(ExtensionBlock));
+	memcpy((char *) &cloneAsb, (char*) &bibAsb, sizeof(BpsecOutboundASB));
+	for (resultElt = sdr_list_first(sdr, bibAsb.secResults); resultElt;
+		resultElt = sdr_list_next(sdr, resultElt))
+	{
+		resultObj = sdr_list_data(sdr, resultElt);
+		sdr_read(sdr, (char *) &result, resultObj,
+		sizeof(BpsecOutboundTargetResult));
+		if (result.secTargetId == targetBlockNumber)
+		{
+			break;
+		}
+	}
 
-    CHKERR(resultElt);    /*    System error if didn't find it.    */
+	CHKERR(resultElt);    /*    System error if didn't find it.    */
 
-    /*    Must move this target to the clone BIB.  First
-     *    remove it from the original BIB's list of targets
-     *    and re-serialize the original BIB.            */
+	/*    Must move this target to the clone BIB.  First
+	 *    remove it from the original BIB's list of targets
+	 *    and re-serialize the original BIB.            */
 
-    sdr_list_delete(sdr, resultElt, NULL, NULL);
-    serializedAsb = bpsec_asb_outboundAsbSerialize((uint32_t *) &(bib.dataLength),
-            &bibAsb);
-    CHKERR(serializedAsb);
-    if (serializeExtBlk(&bib, (char *) serializedAsb) < 0)
-    {
-        MRELEASE(serializedAsb);
-        putErrmsg("Failed re-serializing cloned BIB.", NULL);
-        return -1;
-    }
+	sdr_list_delete(sdr, resultElt, NULL, NULL);
+	serializedAsb = bpsec_asb_outboundAsbSerialize((uint32_t *) &(bib.dataLength),
+		&bibAsb);
+	CHKERR(serializedAsb);
+	if (serializeExtBlk(&bib, (char *) serializedAsb) < 0)
+	{
+		MRELEASE(serializedAsb);
+		putErrmsg("Failed re-serializing cloned BIB.", NULL);
+		return -1;
+	}
 
-    MRELEASE(serializedAsb);
+	MRELEASE(serializedAsb);
 
-    /*    Now fix up the clone BIB (its sole target is the
-     *    block we're adding as a BCB target) and add it as
-     *    an additional target of the new BCB.            */
+	/*    Now fix up the clone BIB (its sole target is the
+	 *    block we're adding as a BCB target) and add it as
+	 *    an additional target of the new BCB.            */
 
-    //TODO Watch the CHKERR here... they auto-return and we will leak created lists.
-    cloneAsb.secResults = sdr_list_create(sdr);
-    CHKERR(cloneAsb.secResults);
-    sdr_list_insert_last(sdr, cloneAsb.secResults, resultObj);
-    cloneAsb.secContextParms = sdr_list_create(sdr);
-    CHKERR(cloneAsb.secContextParms);
-    clone.object = sdr_malloc(sdr, clone.size);
-    CHKERR(clone.object);
-    sdr_write(sdr, clone.object, (char *) &cloneAsb, clone.size);
-    cloneObj = attachExtensionBlock(BlockIntegrityBlk, &clone, bundle);
-    CHKERR(cloneObj);
-    if (bibAttach(bundle, &clone, &cloneAsb) < 0)
-    {
-        putErrmsg("Failed attaching clone BIB.", NULL);
-        return -1;
-    }
+	//TODO Watch the CHKERR here... they auto-return and we will leak created lists.
+	cloneAsb.secResults = sdr_list_create(sdr);
+	CHKERR(cloneAsb.secResults);
+	sdr_list_insert_last(sdr, cloneAsb.secResults, resultObj);
+	cloneAsb.secContextParms = sdr_list_create(sdr);
+	CHKERR(cloneAsb.secContextParms);
+	clone.object = sdr_malloc(sdr, clone.size);
+	CHKERR(clone.object);
+	sdr_write(sdr, clone.object, (char *) &cloneAsb, clone.size);
+	cloneObj = attachExtensionBlock(BlockIntegrityBlk, &clone, bundle);
+	CHKERR(cloneObj);
+	if (bibAttach(bundle, &clone, &cloneAsb) < 0)
+	{
+		putErrmsg("Failed attaching clone BIB.", NULL);
+		return -1;
+	}
 
 #endif
 
 // TODO might not want to pass in NULL here is we can get the possible bibBlk that we must also encrypt if
-    // secBlkType == BCB.  See above #ifdef 0.
+	// secBlkType == BCB.  See above #ifdef 0.
 
-    if(bpsec_util_checkOutboundSopTarget(bundle, &def, wm, polRule->sc_parms, secBlkType, tgtNum, NULL, &blkObj) < 1)
-    {
-        BPSEC_DEBUG_INFO("Unable to apply security to target %d.", tgtNum);
-        return 0;
-    }
+	if(bpsec_util_checkOutboundSopTarget(bundle, &def, wm, polRule->sc_parms, secBlkType, tgtNum, NULL, &blkObj) < 1)
+	{
+		BPSEC_DEBUG_INFO("Unable to apply security to target %d.", tgtNum);
+		return 0;
+	}
 
-    /*
-     * Step 3:  If there isn't a usable security block in the bundle already, we need to
-     *          create our own.
-     *
-     *          TODO: If creating a block, just return the ASB and the blk itself,
-     *                 so we don't have to re-read it from the SDR in step 4.
-     */
-    if(blkObj == 0)
-    {
-        blkObj = bpsec_util_OutboundBlockCreate(bundle, secBlkType, &def, polRule->sc_parms);
-        if(blkObj == 0)
-        {
-            return 0;
-        }
-    }
+	/*
+	 * Step 3:  If there isn't a usable security block in the bundle already, we need to
+	 *          create our own.
+	 *
+	 *          TODO: If creating a block, just return the ASB and the blk itself,
+	 *                 so we don't have to re-read it from the SDR in step 4.
+	 */
+	if(blkObj == 0)
+	{
+		blkObj = bpsec_util_OutboundBlockCreate(bundle, secBlkType, &def, polRule->sc_parms);
+		if(blkObj == 0)
+		{
+			return 0;
+		}
+	}
 
-    /*
-     * Step 4: We now have a bibBlock, either one we are re-using or one that
-     *         was created for us. Read the ExtensionBlock and associated ASB
-     *         in from the SDR.
-     */
-    sdr_read(sdr, (char*) &blk, blkObj, sizeof(ExtensionBlock));
-    sdr_read(sdr, (char*) &asb, blk.object, blk.size);
-
-
-    /*
-     * Step 5: Add the target to the block. This doesn't add the result yet,
-     *         because we don't have a result. But it will add the target to
-     *         the block in the SDR so that when it is time to send the
-     *         bundle, a result over the target will be created.
-     */
-    if (bpsec_asb_outboundTargetInsert(sdr, &asb, tgtNum) < 0)
-    {
-        return -1;
-    }
+	/*
+	 * Step 4: We now have a bibBlock, either one we are re-using or one that
+	 *         was created for us. Read the ExtensionBlock and associated ASB
+	 *         in from the SDR.
+	 */
+	sdr_read(sdr, (char*) &blk, blkObj, sizeof(ExtensionBlock));
+	sdr_read(sdr, (char*) &asb, blk.object, blk.size);
 
 
-    return 1;
+	/*
+	 * Step 5: Add the target to the block. This doesn't add the result yet,
+	 *         because we don't have a result. But it will add the target to
+	 *         the block in the SDR so that when it is time to send the
+	 *         bundle, a result over the target will be created.
+	 */
+	if (bpsec_asb_outboundTargetInsert(sdr, &asb, tgtNum) < 0)
+	{
+		return -1;
+	}
+
+
+	return 1;
 }
 
 
@@ -586,7 +585,7 @@ int bslpol_proc_applySenderPolRule(Bundle *bundle, BpBlockType secBlkType, BpSec
  *****************************************************************************/
 
 PsmAddress bslpol_rule_create(PsmPartition partition, char *desc, uint16_t id, uint8_t flags,
-		                      BpSecFilter filter, PsmAddress sec_parms, PsmAddress events)
+			BpSecFilter filter, PsmAddress sec_parms, PsmAddress events)
 {
 	PsmAddress ruleAddr = 0;
 	BpSecPolRule *rulePtr = NULL;
@@ -597,8 +596,8 @@ PsmAddress bslpol_rule_create(PsmPartition partition, char *desc, uint16_t id, u
 	/* Step 1: Allocate the security policy rule. */
 	if (secvdb == NULL)
 	{
-	    BPSEC_DEBUG_ERR("Could not get security volitile DB.", NULL);
-	    return 0;
+		BPSEC_DEBUG_ERR("Could not get security volitile DB.", NULL);
+		return 0;
 	}
 
 	CHKZERO(ruleAddr = psm_zalloc(partition, sizeof(BpSecPolRule)));
@@ -805,7 +804,7 @@ Lyst bslpol_rule_get_all_match(PsmPartition partition, BpSecPolRuleSearchTag tag
  * @param[in] tag       - A search tag populated with rule-matching criteria.
  *
  * @note
- * The returned pointer is a rule in shared memory that is ONLY valid in the 
+ * The returned pointer is a rule in shared memory that is ONLY valid in the
  * context of the calling process.
  * @note
  * This function should only be used when performing a bpsec policy FIND
@@ -830,13 +829,13 @@ BpSecPolRule *bslpol_rule_find_best_match(PsmPartition partition, BpSecPolRuleSe
 		return NULL;
 	}
 
-	/* Step 2.2: If one or more rules are found that match the find criteria, 
+	/* Step 2.2: If one or more rules are found that match the find criteria,
 	 * return the rule with the greatest score (the best rule). This will always
 	 * be the first rule in the lyst as they are sorted by score. */
 	elt = lyst_first(match_rules);
 	BpSecPolRule *rulePtr = (BpSecPolRule *) lyst_data(elt);
 
-	/* Step 2.3: Destroy the rule lyst, created in the call to 
+	/* Step 2.3: Destroy the rule lyst, created in the call to
 	 * bslpol_rule_get_all_match */
 	lyst_destroy(match_rules);
 
@@ -1019,8 +1018,8 @@ int bslpol_rule_insert(PsmPartition partition, PsmAddress ruleAddr, int remember
  * @param[in] rulePtr   - The rule being evaluated
  * @param[in] tag       - Search criteria representing information associated with
  *                        an extension block
- * 
- * @note To check if the security policy rule provided matches the criteria in 
+ *
+ * @note To check if the security policy rule provided matches the criteria in
  *  the search tag, the following steps are taken:
  *  1. If the security role is present in the security policy rule, check that
  *     it matches the role in the search tag.
@@ -1036,7 +1035,7 @@ int bslpol_rule_insert(PsmPartition partition, PsmAddress ruleAddr, int remember
  *     that these EIDs match (accounting for wildcards).
  *  6. If the search tag and security policy rule specify the security source, check
  *     that these EIDs match (accounting for wildcards).
- * 
+ *
  * @retval 1  - The rule matches the search criteria
  * @retval 0  - The rule does not match
  * @retval -1 - There was a system error
@@ -1087,7 +1086,7 @@ int bslpol_rule_matches(PsmPartition partition, BpSecPolRule *rulePtr, BpSecPolR
 	{
 		BpSecEventSet *esPtr = NULL;
 		esPtr = (BpSecEventSet *) psp(partition, rulePtr->eventSet);
-	
+
 		if (bsles_match(esPtr, tag->es_name) != 0)
 		{
 			return 0;
@@ -1101,7 +1100,7 @@ int bslpol_rule_matches(PsmPartition partition, BpSecPolRule *rulePtr, BpSecPolR
 			return 0;
 		}
 	}
-	
+
 	/*
 	 * Step 2: Check the EIDs last - as strings with wildcards these operations
 	 *         are expensive.
@@ -1326,19 +1325,19 @@ BpSecPolRule* bslpol_get_sender_rule(Bundle *bundle, BpBlockType sopType,
 	 */
 	if (polRule != NULL)
 	{
-	    sc_Def def;
+		sc_Def def;
 
 // TODO - Remove the fitler.svc check once we pass the sopType into the filter criteria.
-	    if(
-//	            (polRule->filter.svc != sopType)                                             ||
-	      (bpsec_sci_defFind(polRule->filter.scid, &def) < 1)                           ||
-	      ((sopType != BlockIntegrityBlk) && (sopType != BlockConfidentialityBlk))      ||
-	      ((sopType != BlockIntegrityBlk) && (sopType != BlockConfidentialityBlk))      ||
-	      ((sopType == BlockIntegrityBlk) && !(def.scServices & SC_SVC_BIBINT))         ||
-	      ((sopType == BlockConfidentialityBlk) && !(def.scServices & SC_SVC_BCBCONF)))
-	    {
-            polRule = NULL;
-	    }
+		if(
+		// (polRule->filter.svc != sopType)                                              ||
+		(bpsec_sci_defFind(polRule->filter.scid, &def) < 1)                           ||
+		((sopType != BlockIntegrityBlk) && (sopType != BlockConfidentialityBlk))      ||
+		((sopType != BlockIntegrityBlk) && (sopType != BlockConfidentialityBlk))      ||
+		((sopType == BlockIntegrityBlk) && !(def.scServices & SC_SVC_BIBINT))         ||
+		((sopType == BlockConfidentialityBlk) && !(def.scServices & SC_SVC_BCBCONF)))
+		{
+			polRule = NULL;
+		}
 	}
 
 	MRELEASE(tag.bsrc);
@@ -1424,7 +1423,7 @@ PsmAddress bslpol_scparm_create(PsmPartition partition, int type, int length, vo
 	BpSecCtxParm *parm = psp(partition, result);
 
 	BPSEC_DEBUG_PROC("(partition, %d, %d, "ADDR_FIELDSPEC")",
-	                 type, length, (uaddr)value);
+			type, length, (uaddr)value);
 
 	if(parm)
 	{
@@ -1456,23 +1455,23 @@ PsmAddress bslpol_scparm_create(PsmPartition partition, int type, int length, vo
 
 PsmAddress bslpol_scparm_find(PsmPartition partition, PsmAddress parms, int type)
 {
-  PsmAddress result = 0;
-  PsmAddress elt = 0;
-  BpSecCtxParm *parm = NULL;
+	PsmAddress result = 0;
+	PsmAddress elt = 0;
+	BpSecCtxParm *parm = NULL;
 
-  for(elt = sm_list_first(partition, parms); elt; elt = sm_list_next(partition, elt))
-  {
-      result = sm_list_data(partition, elt);
-      if((parm = psp(partition, result)) != NULL)
-      {
-          if(parm->id == type)
-          {
-              return result;
-          }
-      }
-  }
+	for(elt = sm_list_first(partition, parms); elt; elt = sm_list_next(partition, elt))
+	{
+		result = sm_list_data(partition, elt);
+		if((parm = psp(partition, result)) != NULL)
+		{
+			if(parm->id == type)
+			{
+				return result;
+			}
+		}
+	}
 
-  return 0;
+	return 0;
 }
 
 
@@ -1480,17 +1479,17 @@ PsmAddress bslpol_scparm_find(PsmPartition partition, PsmAddress parms, int type
 
 void bslpol_scparms_destroy(PsmPartition partition, PsmAddress addr)
 {
-    BpSecCtxParm *parm = psp(partition, addr);
+	BpSecCtxParm *parm = psp(partition, addr);
 
-    if(parm)
-    {
-        void *valPtr = psp(partition, parm->addr);
-        memset(valPtr, 0, parm->length);
-        psm_free(partition, parm->addr);
+	if(parm)
+	{
+		void *valPtr = psp(partition, parm->addr);
+		memset(valPtr, 0, parm->length);
+		psm_free(partition, parm->addr);
 
-        memset(parm,0,sizeof(BpSecCtxParm));
-        psm_free(partition, addr);
-    }
+		memset(parm,0,sizeof(BpSecCtxParm));
+		psm_free(partition, addr);
+	}
 }
 
 
@@ -1587,7 +1586,7 @@ Address bslpol_scparms_restore(PsmPartition partition, PsmAddress *parms, char *
 		{
 			if((valPtr = MTAKE(length)) != NULL)
 			{
-			   cursor += bsl_bufread(&(valPtr), cursor, length, bytes_left);
+				cursor += bsl_bufread(&(valPtr), cursor, length, bytes_left);
 			}
 		}
 
@@ -1598,8 +1597,8 @@ Address bslpol_scparms_restore(PsmPartition partition, PsmAddress *parms, char *
 
 		if(valPtr)
 		{
-		   MRELEASE(valPtr);
-		   valPtr = NULL;
+			MRELEASE(valPtr);
+			valPtr = NULL;
 		}
 	}
 
@@ -1611,23 +1610,23 @@ Address bslpol_scparms_restore(PsmPartition partition, PsmAddress *parms, char *
 
 int bslpol_scparms_size(PsmPartition partition, PsmAddress parms)
 {
-    int size = 0;
-    PsmAddress elt = 0;
-    BpSecCtxParm *parm = NULL;
+	int size = 0;
+	PsmAddress elt = 0;
+	BpSecCtxParm *parm = NULL;
 
-    size += sizeof(uint16_t); // @ items in the list.
+	size += sizeof(uint16_t); // @ items in the list.
 
-    for(elt = sm_list_first(partition, parms); elt; elt = sm_list_next(partition, elt))
-    {
-        if((parm = psp(partition, sm_list_data(partition, elt))) != NULL)
-        {
-            size += sizeof(parm->id);
-            size += sizeof(parm->length);
-            size += parm->length;
-        }
-    }
+	for(elt = sm_list_first(partition, parms); elt; elt = sm_list_next(partition, elt))
+	{
+		if((parm = psp(partition, sm_list_data(partition, elt))) != NULL)
+		{
+			size += sizeof(parm->id);
+			size += sizeof(parm->length);
+			size += parm->length;
+		}
+	}
 
-    return size;
+	return size;
 }
 
 #endif
@@ -2502,4 +2501,3 @@ void bslpol_cb_smlist_delete(PsmPartition partition, PsmAddress eltAddr, void *t
 
 	bslpol_rule_delete(partition, sm_list_data(partition, eltAddr));
 }
-

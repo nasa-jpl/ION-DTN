@@ -8,7 +8,7 @@
  *	Copyright (c) 2013, California Institute of Technology.
  *	Copyright (c) 2013, Space Internetworking Center,
  *	Democritus University of Thrace.
- *	
+ *
  *	All rights reserved. U.S. Government and E.U. Sponsorship acknowledged.
  *
  */
@@ -21,7 +21,7 @@ static sm_SemId		bsspcloSemaphore(sm_SemId *semid)
 	uaddr		temp;
 	void		*value;
 	sm_SemId	semaphore;
-	
+
 	if (semid)			/*	Add task variable.	*/
 	{
 		temp = *semid;
@@ -304,7 +304,7 @@ int	main(int argc, char *argv[])
 		{
 		case 0:
 			putErrmsg("Unable to send this bundle via BSSP.", NULL);
-			
+
 			/* Destroy bundleZco Here */
 
 			putErrmsg("Destroy bundle.", NULL);

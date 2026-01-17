@@ -149,7 +149,7 @@ else
 fi
 
 RESULTS1=`grep "type 2" output | wc -l`           # cfdplisten format
-RESULTS2=`grep "EOF sent (2)" output | wc -l`     # cfdptest format  
+RESULTS2=`grep "EOF sent (2)" output | wc -l`     # cfdptest format
 TOTAL=$((RESULTS1 + RESULTS2))
 
 echo "Debug: Found $RESULTS1 'type 2' messages and $RESULTS2 'EOF sent (2)' messages, total: $TOTAL"
@@ -162,7 +162,7 @@ else
     echo "EOF Sent Message was not logged.  FAILURE!"
     echo ""
     echo "Expected 2 EOF sent messages total, found: $TOTAL"
-    echo "cfdplisten format ('type 2'): $RESULTS1"  
+    echo "cfdplisten format ('type 2'): $RESULTS1"
     echo "cfdptest format ('EOF sent (2)'): $RESULTS2"
     echo `ls -al`
     cat ion.log

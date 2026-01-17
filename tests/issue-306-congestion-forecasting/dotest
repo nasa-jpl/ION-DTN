@@ -4,7 +4,7 @@
 # May 23, 2012
 #
 # Modified March, 28, 2025
-# 
+#
 
 # documentation boilerplate
 CONFIGFILES=" \
@@ -27,16 +27,16 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: exercise congestion forecasting in various configurations
-	to demonstrate that it is working properly."
+    to demonstrate that it is working properly."
 echo
 echo "CONFIG: 2 node custom:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo
@@ -182,4 +182,3 @@ fi
 
 echo -e "...congestion forecasting test terminated.\n"
 exit $RETVAL
-

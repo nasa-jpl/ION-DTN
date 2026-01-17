@@ -111,7 +111,7 @@ install:
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
 
-uninstall:		
+uninstall:
 		for file in $(BPLIBS); \
 			do rm $(ROOT)/lib/$(notdir $$file); done
 		rm $(ROOT)/include/eureka.h

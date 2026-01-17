@@ -240,7 +240,7 @@ void	addDataToChecksum(unsigned char *data, int dLen, vast *offset,
 	unsigned char *octet;
 	int bytesToWrite;
 	vast local_offset = *offset;
-	
+
 	CHKVOID(checksum);
 	switch (ckType)
 	{
@@ -261,7 +261,7 @@ void	addDataToChecksum(unsigned char *data, int dLen, vast *offset,
 		*checksum = ion_CRC32_1EDC6F41_C_slice((char *) data,
 				dLen, *checksum);
 		break;
-	
+
 	case CRC32Checksum:
 		*checksum = ion_CRC32_04C11DB7_slice((char *) data,
 				dLen, *checksum);
@@ -330,8 +330,8 @@ static unsigned char	*_crcComputationBuf(void)
 static unsigned short	computeCRC(unsigned char *buffer, int length)
 {
 	static int		crcCalcValuesInitialized = 0;
-    	int			i;
-    	unsigned int		tmp;
+	int			i;
+	unsigned int		tmp;
 	static unsigned int	crcCalcValues[256];
 	unsigned char		*cursor = buffer;
 	unsigned int		crc = 0xffff;
@@ -357,10 +357,10 @@ static unsigned short	computeCRC(unsigned char *buffer, int length)
 
 	while (length > 0)
 	{
-	    crc = (((crc << 8) & 0xff00)
+		crc = (((crc << 8) & 0xff00)
 			^ crcCalcValues[(((crc >> 8) ^ (*cursor)) & 0x00ff)]);
-	    cursor++;
-	    length--;
+		cursor++;
+		length--;
 	}
 
 	return crc;
@@ -678,100 +678,100 @@ CfdpVdb	*getCfdpVdb(void)
 
 int _cfdpStart(char *utaCmd)
 {
-    Sdr     sdr = getIonsdr();
-    CfdpVdb *cfdpvdb = _cfdpvdb(NULL);
-    Object  cfdpdbobj = getCfdpDbObject();
-    CfdpDB  cfdpdb;
-    int     startBpcpd = 0;
-    char    *actualUtaCmd = utaCmd;
+	Sdr	 sdr = getIonsdr();
+	CfdpVdb *cfdpvdb = _cfdpvdb(NULL);
+	Object	 cfdpdbobj = getCfdpDbObject();
+	CfdpDB	 cfdpdb;
+	int	 startBpcpd = 0;
+	char	*actualUtaCmd = utaCmd;
 
-    /* Check if utaCmd contains proxy directive */
-    if (utaCmd)
-    {
-        /* tempCmd must be declared here (not inside inner block) so it
-         * remains in scope when actualUtaCmd is used below at line 708. */
-        char tempCmd[256];
+	/* Check if utaCmd contains proxy directive */
+	if (utaCmd)
+	{
+		/* tempCmd must be declared here (not inside inner block) so it
+		 * remains in scope when actualUtaCmd is used below at line 708. */
+		char tempCmd[256];
 
-        /* Check for "bputa proxy" format */
-        if (strstr(utaCmd, " proxy") != NULL)
-        {
-            startBpcpd = 1;
-            /* Create a copy without " proxy" for storage */
-            istrcpy(tempCmd, utaCmd, sizeof(tempCmd));
-            char *proxyPtr = strstr(tempCmd, " proxy");
-            if (proxyPtr)
-            {
-                *proxyPtr = '\0';  /* Remove " proxy" */
-            }
-            actualUtaCmd = tempCmd;
-        }
+		/* Check for "bputa proxy" format */
+		if (strstr(utaCmd, " proxy") != NULL)
+		{
+			startBpcpd = 1;
+			/* Create a copy without " proxy" for storage */
+			istrcpy(tempCmd, utaCmd, sizeof(tempCmd));
+			char *proxyPtr = strstr(tempCmd, " proxy");
+			if (proxyPtr)
+			{
+				*proxyPtr = '\0'; /* Remove " proxy" */
+			}
+			actualUtaCmd = tempCmd;
+		}
 
-        CHKERR(sdr_begin_xn(sdr));
-        sdr_stage(sdr, (char *) &cfdpdb, cfdpdbobj, sizeof(CfdpDB));
-        istrcpy(cfdpdb.utaCmd, actualUtaCmd, sizeof cfdpdb.utaCmd);
-        sdr_write(sdr, cfdpdbobj, (char *) &cfdpdb, sizeof(CfdpDB));
-        if (sdr_end_xn(sdr))
-        {
-            putErrmsg("Can't set UTA command.", NULL);
-            return -1;
-        }
-    }
-    else
-    {
-        sdr_read(sdr, (char *) &cfdpdb, cfdpdbobj, sizeof(CfdpDB));
-    }
+		CHKERR(sdr_begin_xn(sdr));
+		sdr_stage(sdr, (char *) &cfdpdb, cfdpdbobj, sizeof(CfdpDB));
+		istrcpy(cfdpdb.utaCmd, actualUtaCmd, sizeof cfdpdb.utaCmd);
+		sdr_write(sdr, cfdpdbobj, (char *) &cfdpdb, sizeof(CfdpDB));
+		if (sdr_end_xn(sdr))
+		{
+			putErrmsg("Can't set UTA command.", NULL);
+			return -1;
+		}
+	}
+	else
+	{
+		sdr_read(sdr, (char *) &cfdpdb, cfdpdbobj, sizeof(CfdpDB));
+	}
 
-    if (cfdpdb.utaCmd[0] == 0)
-    {
-        putErrmsg("CFDP can't start: no UTA command.", NULL);
-        return -1;
-    }
+	if (cfdpdb.utaCmd[0] == 0)
+	{
+		putErrmsg("CFDP can't start: no UTA command.", NULL);
+		return -1;
+	}
 
-    CHKERR(sdr_begin_xn(sdr));  /* Just to lock memory. */
+	CHKERR(sdr_begin_xn(sdr)); /* Just to lock memory. */
 
-    /* Start the CFDP events clock if necessary. */
-    if (cfdpvdb->clockPid == ERROR || sm_TaskExists(cfdpvdb->clockPid) == 0)
-    {
-        cfdpvdb->clockPid = pseudoshell("cfdpclock");
-    }
+	/* Start the CFDP events clock if necessary. */
+	if (cfdpvdb->clockPid == ERROR || sm_TaskExists(cfdpvdb->clockPid) == 0)
+	{
+		cfdpvdb->clockPid = pseudoshell("cfdpclock");
+	}
 
-    /* Load throttle setting into volatile database. */
-    cfdpvdb->maxTransmitRate = cfdpdb.maxTransmitRate;
-    if (cfdpvdb->maxTransmitRate > 0)
-    {
-        char    memo[128];
+	/* Load throttle setting into volatile database. */
+	cfdpvdb->maxTransmitRate = cfdpdb.maxTransmitRate;
+	if (cfdpvdb->maxTransmitRate > 0)
+	{
+		char    memo[128];
 
-        isprintf(memo, sizeof memo, "[i] CFDP throttle: " UVAST_FIELDSPEC \
-                " bps", cfdpvdb->maxTransmitRate);
-        writeMemo(memo);
-    }
+		isprintf(memo, sizeof memo, "[i] CFDP throttle: " UVAST_FIELDSPEC \
+				" bps", cfdpvdb->maxTransmitRate);
+		writeMemo(memo);
+	}
 
-    /* Start UT adapter service if necessary. */
-    if (cfdpvdb->utaPid == ERROR || sm_TaskExists(cfdpvdb->utaPid) == 0)
-    {
-        cfdpvdb->utaPid = pseudoshell(cfdpdb.utaCmd);
-    }
+	/* Start UT adapter service if necessary. */
+	if (cfdpvdb->utaPid == ERROR || sm_TaskExists(cfdpvdb->utaPid) == 0)
+	{
+		cfdpvdb->utaPid = pseudoshell(cfdpdb.utaCmd);
+	}
 
-    /* Start bpcpd if requested and bputa is the UTA */
-    if (startBpcpd && strstr(cfdpdb.utaCmd, "bputa") != NULL)
-    {
-        if (cfdpvdb->bpcpdPid == ERROR || sm_TaskExists(cfdpvdb->bpcpdPid) == 0)
-        {
-            cfdpvdb->bpcpdPid = pseudoshell("bpcpd");
-            if (cfdpvdb->bpcpdPid == ERROR)
-            {
-                writeMemo("[!] Warning: bpcpd failed to start");
-            }
-            else
-            {
-                writeMemoNote("[i] bpcpd proxy daemon started", 
-                             itoa(cfdpvdb->bpcpdPid));
-            }
-        }
-    }
+	/* Start bpcpd if requested and bputa is the UTA */
+	if (startBpcpd && strstr(cfdpdb.utaCmd, "bputa") != NULL)
+	{
+		if (cfdpvdb->bpcpdPid == ERROR || sm_TaskExists(cfdpvdb->bpcpdPid) == 0)
+		{
+			cfdpvdb->bpcpdPid = pseudoshell("bpcpd");
+			if (cfdpvdb->bpcpdPid == ERROR)
+			{
+				writeMemo("[!] Warning: bpcpd failed to start");
+			}
+			else
+			{
+				writeMemoNote("[i] bpcpd proxy daemon started",
+						itoa(cfdpvdb->bpcpdPid));
+			}
+		}
+	}
 
-    sdr_exit_xn(sdr);  /* Unlock memory. */
-    return 0;
+	sdr_exit_xn(sdr); /* Unlock memory. */
+	return 0;
 }
 
 void	_cfdpStop(void)		/*	Reverses cfdpStart.		*/
@@ -800,17 +800,17 @@ void	_cfdpStop(void)		/*	Reverses cfdpStart.		*/
 	}
 
 	/*	Stop UTA task.						*/
-	
+
 	if (cfdpvdb->fduSemaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(cfdpvdb->fduSemaphore);
 	}
 
 	/* Stop bpcpd task if running */
-    if (cfdpvdb->bpcpdPid != ERROR)
-    {
-        sm_TaskKill(cfdpvdb->bpcpdPid, SIGTERM);
-    }
+	if (cfdpvdb->bpcpdPid != ERROR)
+	{
+		sm_TaskKill(cfdpvdb->bpcpdPid, SIGTERM);
+	}
 
 	/*	Stop clock task.					*/
 
@@ -833,13 +833,13 @@ void	_cfdpStop(void)		/*	Reverses cfdpStart.		*/
 	}
 
 	/* Wait for bpcpd to stop */
-    if (cfdpvdb->bpcpdPid != ERROR)
-    {
-        while (sm_TaskExists(cfdpvdb->bpcpdPid))
-        {
-            microsnooze(100000);
-        }
-    }
+	if (cfdpvdb->bpcpdPid != ERROR)
+	{
+		while (sm_TaskExists(cfdpvdb->bpcpdPid))
+		{
+			microsnooze(100000);
+		}
+	}
 
 	if (cfdpvdb->clockPid != ERROR)
 	{
@@ -1321,7 +1321,7 @@ Object	addEntity(uvast entityId, char *protocolName, char *endpointName,
 	if (entity.inboundFdus == 0 || entityObj == 0
 	|| (nextElt == 0	?
 		sdr_list_insert_last(sdr, db->entities, entityObj)
-		: 
+		:
 		sdr_list_insert_before(sdr, nextElt, entityObj)) == 0)
 	{
 		return 0;	/*	System failure.		*/
@@ -1526,7 +1526,7 @@ Object	findInFdu(CfdpTransactionId *transactionId, InFdu *fduBuf,
 				break;
 			}
 		}
-	
+
 		if (foundIt)	/*	FDU is already started.		*/
 		{
 			*fduElt = elt;
@@ -1895,12 +1895,12 @@ static int	missingFileName(char *fileName, int parmNbr,
 	{
 		return 0;
 	}
-	
+
 	resp->status = 1;
 	isprintf(msgBuf, bufLen, "file name %d not provided", parmNbr);
 	return 1;
 }
-			
+
 static void	frCreateFile(char *firstFileName, char *secondFileName,
 			FilestoreResponse *resp, char *msgBuf, int bufLen)
 {
@@ -2377,7 +2377,7 @@ static int	getQualifiedFileName(char *pathNameBuf, int bufLen,
 			*pathNameBuf = '\0';
 			return 0;	/*	Too long.		*/
 		}
- 
+
 		*(pathNameBuf + wdnameLen) = ION_PATH_DELIMITER;
 		wdnameLen++;	/*	wdnamelen including delimiter	*/
 		istrcpy(pathNameBuf + wdnameLen, fileName, bufLen - wdnameLen);
@@ -2407,7 +2407,7 @@ static int	getQualifiedFileName(char *pathNameBuf, int bufLen,
 	size_t	pathNameLen;
 	char	*cursor;
 	char	*lastPathSeparator = NULL;
- 
+
 	pathNameLen = istrlen(pathNameBuf, bufLen);
 	if (pathNameLen > MAXPATHLEN)		/*	Too long.	*/
 	{
@@ -2454,7 +2454,7 @@ static int	getQualifiedFileName(char *pathNameBuf, int bufLen,
 				{
 					putSysErrmsg("Can't create directory.",
 							pathNameBuf);
-                			*cursor = ION_PATH_DELIMITER;
+					*cursor = ION_PATH_DELIMITER;
 					if (lastPathSeparator)
 					{
 						*lastPathSeparator
@@ -2468,7 +2468,7 @@ static int	getQualifiedFileName(char *pathNameBuf, int bufLen,
 				 *	no problem.			*/
 			}
 
-                	*cursor = ION_PATH_DELIMITER;
+			*cursor = ION_PATH_DELIMITER;
 		}
 	}
 
@@ -2570,7 +2570,7 @@ static int	constructFinishPdu(InFdu *fdu, CfdpEvent *event)
 		condition = fdu->finishCondition;
 	}
 
-	*cursor = ((condition & 0x0f) << 4) 
+	*cursor = ((condition & 0x0f) << 4)
 			+ ((event->deliveryCode & 0x01) << 2)
 			+ (event->fileStatus & 0x03);
 	cursor++;
@@ -2853,7 +2853,7 @@ int	completeInFdu(InFdu *fduBuf, Object fduObj, Object fduElt,
 			{
 				sdr_string_read(sdr, workingFileName,
 						fduBuf->workingFileName);
-				
+
 				unlink(workingFileName);
 				isprintf(logMsg, sizeof logMsg, "CFDP Error: Condition %d. File '%s' was deleted due to discardIncompleteFile.", condition, workingFileName);
 				writeMemo(logMsg);
@@ -3347,7 +3347,7 @@ static int	selectFduPdu(OutFdu *fdu, Object *pdu, int *pduIsFileData,
 
 static int	selectOutPdu(CfdpDB *db, Object *pdu, Object *fdu,
 			OutFdu *fduBuffer, FinishPdu *fpdu, int *direction,
-		       	int *pduIsFileData, int *haveMetadata)
+			int *pduIsFileData, int *haveMetadata)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -3933,7 +3933,7 @@ static int	handleFinishPdu(unsigned char *cursor, int bytesRemaining,
 
 static int	checkInFduComplete(InFdu *fdu, Object fduObj, Object fduElt)
 {
-#if CFDPDEBUG 
+#if CFDPDEBUG
 	/* comment out handler to quiet compiler
 	CfdpHandler	handler;
 	*/
@@ -3979,10 +3979,10 @@ printf("FDU checksum verification bypassed to provide received file for debuggin
 		{
 		case CfdpCancel:
 		case CfdpAbandon:
-			return 0;		
+			return 0;
 
 		default:
-			break;			
+			break;
 		}
 	}
 #endif
@@ -4202,17 +4202,17 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 		}
 	}
 
-	/*	Figure out how much of the file data PDU is new data.	
-	 *  Note: Each CFDP transaction has the same, fixed-size FileDataPDU 
-	 *  except possibly the last one. Therefore the size of each extent 
+	/*  Figure out how much of the file data PDU is new data.
+	 *  Note: Each CFDP transaction has the same, fixed-size FileDataPDU
+	 *  except possibly the last one. Therefore the size of each extent
 	 *  (contiguous block of file data) is an integer multiple of a segment
-	 *  (maximum FileDataPDU), unless that extent contains the last 
+	 *  (maximum FileDataPDU), unless that extent contains the last
 	 *  FileDataPDU of the file. This condition limits the number of ways
 	 *  in which each arriving data PDU maps to the extents of the file. */
 #if CFDPDEBUG
 printf("...FileData PDU Segment has segmentOffset = " UVAST_FIELDSPEC " segmentEnd = " UVAST_FIELDSPEC ".\n",
 segmentOffset, segmentEnd);
-printf("...Now iterate over list of current extent...\n"); 
+printf("...Now iterate over list of current extent...\n");
 #endif
 
 	for (elt = sdr_list_first(sdr, fdu->extents); elt;
@@ -4226,10 +4226,10 @@ printf("...... For extent from " UVAST_FIELDSPEC " to " UVAST_FIELDSPEC ".\n",
 extent.offset, extent.offset + extent.length);
 #endif
 		/*	data segment is not contiguous after current extent */
-		if (segmentOffset >= 0 && extentEnd < (uvast)segmentOffset)	
+		if (segmentOffset >= 0 && extentEnd < (uvast)segmentOffset)
 		{
 #if CFDPDEBUG
-printf("......... Segment is non-contiguous with current extent, extent.offset = " UVAST_FIELDSPEC 
+printf("......... Segment is non-contiguous with current extent, extent.offset = " UVAST_FIELDSPEC
 " extentEnd = " UVAST_FIELDSPEC " segmentOffset = " UVAST_FIELDSPEC "; .... Look for next extent.\n",
 extent.offset, extentEnd, segmentOffset);
 #endif
@@ -4238,13 +4238,13 @@ extent.offset, extentEnd, segmentOffset);
 
 		if (segmentOffset >= 0 && extent.offset <= (uvast)segmentOffset)
 		{
-			/*	This segment starts at the beginning of the extent, 
-			 *  within the scope of the current extent or  
+			/*	This segment starts at the beginning of the extent,
+			 *  within the scope of the current extent or
 			 *  or right after the extent with NO gap */
 
 #if CFDPDEBUG
-printf("......... Extent and segment overlap or are contiguous; extent.offset = " 
-UVAST_FIELDSPEC " extentEnd = " UVAST_FIELDSPEC " ; segmentOffset = " VAST_FIELDSPEC 
+printf("......... Extent and segment overlap or are contiguous; extent.offset = "
+UVAST_FIELDSPEC " extentEnd = " UVAST_FIELDSPEC " ; segmentOffset = " VAST_FIELDSPEC
 " ; segmentEnd = " UVAST_FIELDSPEC ".\n",
 extent.offset, extentEnd , segmentOffset, segmentEnd);
 #endif
@@ -4253,7 +4253,7 @@ extent.offset, extentEnd , segmentOffset, segmentEnd);
 			if (bytesRemaining < 0 || bytesToSkip >= (uvast)bytesRemaining)
 			{
 #if CFDPDEBUG
-printf("......... Complete overlap, ignore data. \n"); 
+printf("......... Complete overlap, ignore data. \n");
 #endif
 				/* complete overlap */
 				return 0;	/*	Ignore.		*/
@@ -4290,13 +4290,13 @@ segmentOffset, segmentEnd);
 
 			/* Note new extent may need require consolidation later.
 			 * Under the assumption of fixed sized File Data PDU, except the last one,
-			 * When a segment arrive at a position earlier than an extent's offset, it 
+			 * When a segment arrive at a position earlier than an extent's offset, it
 			 * is treated as a new extent, which either touch or not the current extent,
 			 * but does not "overlap." Without the fixed size FileData PDU assumption,
 			 * it is more complicated. */
 		}
 
-		/* No more search if you reach this point. The segment either extends an existing 
+		/* No more search if you reach this point. The segment either extends an existing
 		 * extent or is a new extent that come before an existing extent. */
 		segmentTrailsLastExtentWithGap = 0;
 		break;
@@ -4304,7 +4304,7 @@ segmentOffset, segmentEnd);
 
 	/* If you reach here it could be because the segment trails all existing extent with
 	 * a gap and you went through the entire loop. In that case a new extent is needed too.*/
-	
+
 	if(segmentTrailsLastExtentWithGap == 1)
 	{
 		/* Having a non-zero nextElt means you need to check for consolidation of extent. */
@@ -4323,9 +4323,9 @@ segmentOffset, segmentEnd);
 printf(".... Creating new extent " UVAST_FIELDSPEC " bytes to " UVAST_FIELDSPEC ".\n",
 segmentOffset, segmentEnd);
 #endif
-		/* This new extent is inserted "last" in the list if the segment is the first 
+		/* This new extent is inserted "last" in the list if the segment is the first
 		 * ever segment or has a gap beyond the last existing extent.
-		 * This new extent is inserted before "nextElt" if it is found to arrive 
+		 * This new extent is inserted before "nextElt" if it is found to arrive
 		 * before an existing extent. */
 		if (addr == 0
 		|| (elt = (nextElt == 0	?
@@ -4452,7 +4452,7 @@ extent.offset, extent.offset + extent.length);
 				return handleFilestoreRejection(fdu, -1,
 						&handler);
 			}
-	
+
 			fileLength += fillSize;
 		}
 
@@ -4477,7 +4477,7 @@ segmentOffset);
 	 *	in continuity is reached.  This may entail filling
 	 *	any number of inter-extent gaps.			*/
 
-	/* check if nextElt exists, if so the newly created or extended extent 
+	/* check if nextElt exists, if so the newly created or extended extent
 	 * is not the last extent. In that case, may need consolidation. */
 	while (nextElt)
 	{
@@ -4492,7 +4492,7 @@ nextExtent.offset + nextExtent.length, segmentOffset, segmentEnd);
 		if (nextExtent.offset > segmentEnd)
 		{
 #if CFDPDEBUG
-printf("...There is a gap, not need to consolidate.\n"); 
+printf("...There is a gap, not need to consolidate.\n");
 #endif
 			break;	/*	Reached an unbridged gap.	*/
 		}
@@ -4522,13 +4522,13 @@ Updated bytesRemaining = %d; \
 Updated curosr = %p. \n", bytesToWrite, segmentOffset, bytesRemaining, cursor);
 #endif
 		/*  For any remaining data (Rare Cases) */
-		
-		/* Note: current implementation has been tested 
-		* only for sender with fixed segment size 
-		* such that only the last file data segment of a file
-		* can be smaller. The following cases, therefore 
-		* are rare unless a different sending CFDP 
-		* entity implementation is used. */
+
+		/* Note: current implementation has been tested
+		 * only for sender with fixed segment size
+		 * such that only the last file data segment of a file
+		 * can be smaller. The following cases, therefore
+		 * are rare unless a different sending CFDP
+		 * entity implementation is used. */
 
 		/* Note: After writeSegmentData() call, bytesRemaining,
 		 * segmentOffset, and cursor are all updated. */
@@ -4539,16 +4539,16 @@ printf(".... Rare Case Detected: additional bytes (%d) remain after bridging gap
 #endif
 			if (bytesRemaining >= 0 && (uvast)bytesRemaining <= nextExtent.length) {
 
-            	/* the remainder is fully contained within the next extent */
+				/* the remainder is fully contained within the next extent */
 				bytesRemaining = 0;
 				segmentOffset += bytesRemaining;
 				cursor += bytesRemaining;
 #if CFDPDEBUG
 printf(".... Rare Case Detected: additional bytes were fully contained by next extent; \
 bytesRemaining set to 0.\n");
-#endif	
-         	} else {
-            	/* this segment extends past the nextExtent. */
+#endif
+			} else {
+				/* this segment extends past the nextExtent. */
 				bytesRemaining -= nextExtent.length;
 				segmentOffset += nextExtent.length;
 				cursor += nextExtent.length;
@@ -4556,8 +4556,8 @@ bytesRemaining set to 0.\n");
 printf(".... Rare Case Detected: segment extented beyond one full extent. This could signal an anomaly. \n");
 #endif
 				/* ignoring this. */
-         	}
-    	} 
+			}
+		}
 
 #if CFDPDEBUG
 printf(".... After bridging gap, skip over " UVAST_FIELDSPEC " bytes in segment, new segmentOffset = " VAST_FIELDSPEC " \
@@ -4587,7 +4587,7 @@ printf(".... Actually extending the prior extent, new offset =\
 		nextElt = elt;
 	}
 
-	/*	Write final hunk of segment data. 
+	/*  Write final hunk of segment data.
 	 *
 	 *  If you get here after consolidation, you shouldn't need to actually
 	 *  write any more data. If you didn't do any consolidation because the
@@ -4628,7 +4628,7 @@ printf("Written final hunk of segment data. After writing " VAST_FIELDSPEC " byt
 		putErrmsg("Can't post File-Segment-Recv indication.", NULL);
 		return -1;
 	}
-	
+
 	sdr_write(sdr, fduObj, (char *) fdu, sizeof(InFdu));
 	return checkInFduComplete(fdu, fduObj, fduElt);
 }
@@ -5257,7 +5257,7 @@ will not match", stringBuf);
 	 *	deleted twice.						*/
 
 	fdu->messagesToUser = 0;
-	event.progress = fdu->progress; 
+	event.progress = fdu->progress;
 	if (enqueueCfdpEvent(&event) < 0)
 	{
 		putErrmsg("Can't post Metadata-Recv indication.", NULL);
@@ -5332,7 +5332,7 @@ int	cfdpHandleInboundPdu(unsigned char *buf, int length)
 	int			result;
 
 #if CFDPDEBUG
-printf("...in cfdpHandleInboundPdu...\n"); 
+printf("...in cfdpHandleInboundPdu...\n");
 #endif
 	CHKERR(buf);
 	memset((char *) &sourceEntityNbr, 0, sizeof(CfdpNumber));
@@ -5377,7 +5377,7 @@ printf("...in cfdpHandleInboundPdu...\n");
 	{
 #if CFDPDEBUG
 printf("...malformed PDU (missing %d bytes)...\n",
-((entityNbrLength << 1) + transactionNbrLength) - bytesRemaining); 
+((entityNbrLength << 1) + transactionNbrLength) - bytesRemaining);
 #endif
 		return 0;		/*	Malformed PDU.		*/
 	}
@@ -5397,7 +5397,7 @@ printf("...malformed PDU (missing %d bytes)...\n",
 	cursor += entityNbrLength;
 	bytesRemaining -= entityNbrLength;
 #if CFDPDEBUG
-printf("...parsed the PDU...\n"); 
+printf("...parsed the PDU...\n");
 #endif
 
 	/*	Check CRC if necessary.					*/
@@ -5405,7 +5405,7 @@ printf("...parsed the PDU...\n");
 	if (crcIsPresent)
 	{
 #if CFDPDEBUG
-printf("...computing CRC...\n"); 
+printf("...computing CRC...\n");
 #endif
 		if (bytesRemaining < 2)
 		{
@@ -5425,7 +5425,7 @@ printf("...computing CRC...\n");
 		if (computedCRC != deliveredCRC)
 		{
 #if CFDPDEBUG
-printf("...CRC validation failed...\n"); 
+printf("...CRC validation failed...\n");
 #endif
 			return 0;	/*	Corrupted PDU.		*/
 		}
@@ -5434,12 +5434,12 @@ printf("...CRC validation failed...\n");
 	/*	PDU is known not to be corrupt, so process it.		*/
 
 #if CFDPDEBUG
-printf("...PDU known not to be corrupt...\n"); 
+printf("...PDU known not to be corrupt...\n");
 #endif
 	if (modeIsUnacknowledged == 0)	/*	Unusable PDU.		*/
 	{
 #if CFDPDEBUG
-printf("...wrong CFDP transmission mode...\n"); 
+printf("...wrong CFDP transmission mode...\n");
 #endif
 		return handleFault(&transactionId,
 				CfdpInvalidTransmissionMode, &handler);
@@ -5462,7 +5462,7 @@ printf("...wrong CFDP transmission mode...\n");
 		if (directiveCode != 5)	/*	Must be Finish.		*/
 		{
 #if CFDPDEBUG
-printf("...PDU type is invalid (must be Finish PDU)...\n"); 
+printf("...PDU type is invalid (must be Finish PDU)...\n");
 #endif
 			return 0;
 		}
@@ -5476,14 +5476,14 @@ printf("...PDU type is invalid (must be Finish PDU)...\n");
 		|| outFduBuf.eofPdu != 0)
 		{
 #if CFDPDEBUG
-printf("...spurious Finish PDU, not processed...\n"); 
+printf("...spurious Finish PDU, not processed...\n");
 #endif
 			sdr_exit_xn(sdr);
 			return 0;
 		}
 
 #if CFDPDEBUG
-printf("...processing Finish PDU...\n"); 
+printf("...processing Finish PDU...\n");
 #endif
 		result = handleFinishPdu(cursor, bytesRemaining, &outFduBuf,
 				fduObj);
@@ -5503,7 +5503,7 @@ printf("...processing Finish PDU...\n");
 			cfdpConstants->ownEntityNbr.buffer, 8) != 0)
 	{
 #if CFDPDEBUG
-printf("...PDU is misdirected...\n"); 
+printf("...PDU is misdirected...\n");
 #endif
 		return 0;		/*	Misdirected PDU.	*/
 	}
@@ -5512,7 +5512,7 @@ printf("...PDU is misdirected...\n");
 
 	CHKERR(sdr_begin_xn(sdr));
 #if CFDPDEBUG
-printf("...Inbound PDU is for an FDU, processing and creating if needed...\n"); 
+printf("...Inbound PDU is for an FDU, processing and creating if needed...\n");
 #endif
 	fduObj = findInFdu(&transactionId, &fduBuf, &fduElt, 1);
 	if (fduObj == 0)
@@ -5525,7 +5525,7 @@ printf("...Inbound PDU is for an FDU, processing and creating if needed...\n");
 	if (fduBuf.state == FduCanceled)
 	{
 #if CFDPDEBUG
-printf("...Found existing FDU which was canceled, PDU is misdirected, dropped...\n"); 
+printf("...Found existing FDU which was canceled, PDU is misdirected, dropped...\n");
 #endif
 		return sdr_end_xn(sdr); /*	Useless PDU.		*/
 	}
@@ -5551,7 +5551,7 @@ printf("...PDU is File Data PDU, processing...\n");
 	if (bytesRemaining < 1)
 	{
 #if CFDPDEBUG
-printf("...PDU is malformed...\n"); 
+printf("...PDU is malformed...\n");
 #endif
 		return sdr_end_xn(sdr); /*	Malformed PDU.		*/
 	}
@@ -5563,7 +5563,7 @@ printf("...PDU is malformed...\n");
 	{
 	case 4:				/*	EOF PDU.		*/
 #if CFDPDEBUG
-printf("...PDU is EoF, processing...\n"); 
+printf("...PDU is EoF, processing...\n");
 #endif
 		result = handleEofPdu(cursor, bytesRemaining, &fduBuf,
 				fduObj, fduElt, largeFile);
@@ -5571,7 +5571,7 @@ printf("...PDU is EoF, processing...\n");
 
 	case 7:				/*	Metadata PDU.		*/
 #if CFDPDEBUG
-printf("...PDU is Metadata PDU, processing...\n"); 
+printf("...PDU is Metadata PDU, processing...\n");
 #endif
 		result = handleMetadataPdu(cursor, bytesRemaining, &fduBuf,
 				fduObj, fduElt, largeFile);
@@ -5579,7 +5579,7 @@ printf("...PDU is Metadata PDU, processing...\n");
 
 	default:			/*	Invalid PDU for unack.	*/
 #if CFDPDEBUG
-printf("...PDU is invalid for unacknowledged mode, dropped...\n"); 
+printf("...PDU is invalid for unacknowledged mode, dropped...\n");
 #endif
 		return sdr_end_xn(sdr);
 	}

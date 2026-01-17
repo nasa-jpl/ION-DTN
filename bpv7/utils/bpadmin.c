@@ -1821,9 +1821,9 @@ static int	processLine(char *line, int lineLength, int *rc)
 					snooze(1);
 					getCurrentTime(&cur_time);
 					if (cur_time.tv_sec >=
-					    done_time.tv_sec 
-					    && cur_time.tv_usec >=
-					    done_time.tv_usec)
+						done_time.tv_sec
+						&& cur_time.tv_usec >=
+						done_time.tv_usec)
 					{
 						printText("[?] BP start hung\
  up, abandoned.");
@@ -2080,7 +2080,7 @@ the program.");
 				putErrmsg("igets failed.", NULL);
 				break;		/*	Out of loop.	*/
 			}
-		
+
 			if (len == 0)
 			{
 				continue;

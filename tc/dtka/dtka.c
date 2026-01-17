@@ -130,7 +130,7 @@ int	generateAESKey(int keysize, unsigned char *buf)
 	mbedtls_ctr_drbg_init(&ctr_drbg);
 
 	mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
-			  (const unsigned char *)pers, strlen(pers));
+			(const unsigned char *)pers, strlen(pers));
 
 	result = mbedtls_ctr_drbg_random(&ctr_drbg, buf, keysize);
 
@@ -580,8 +580,8 @@ static int	handleBulletin(char *buffer, int bufSize)
 	while (bytesRemaining >= 14)
 	{
 		if (tc_deserialize(&cursor, &bytesRemaining, TC_MAX_DATLEN,
-						   &fqnn, &effectiveTime, &assertionTime,
-						   &datLength, datValue) == 0)
+				&fqnn, &effectiveTime, &assertionTime,
+				&datLength, datValue) == 0)
 		{
 			writeMemo("[?] DTKA bulletin malformed, discarded.");
 			break;

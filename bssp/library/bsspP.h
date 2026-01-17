@@ -5,9 +5,9 @@
  *	Copyright (c) 2013, California Institute of Technology.
  *	Copyright (c) 2013, Space Internetworking Center,
  *	Democritus University of Thrace.
- *	
+ *
  *	All rights reserved. U.S. Government and E.U. Sponsorship acknowledged.
- *				
+ *
  *	Author: Sotirios-Angelos Lenas, Space Internetworking Center
  */
 
@@ -126,7 +126,7 @@ typedef struct
 	BsspTimer	timer;		/*	For cancellation.	*/
 	int		reasonCode;	/*	For cancellation.	*/
 	Object		svcDataObject;	/*	ZCO			*/
-	Object		block;		/* 	BsspXmitBlock 		*/	
+	Object		block;		/* 	BsspXmitBlock 		*/
 } BsspExportSession;
 
 /* Timeline event structure */
@@ -162,7 +162,7 @@ typedef struct
 	unsigned int	lengthOfBufferedBlock;
 	unsigned int	clientSvcIdOfBufferedBlock;
 	Object		exportSessions;
-	
+
 	Object		beBlocks;	/*	SDR list of BsspXmitBlocks
 						enqueued for best-effort
 						transmission		*/
@@ -314,20 +314,20 @@ extern BsspVdb		*getBsspVdb(void);
 extern void		findBsspSeat(char *beBsiCmd, char *rlBsiCmd,
 				BsspVseat **seat,
 				PsmAddress *vseatElt);
-extern int		addBsspSeat(char *beBsiCmd, char *rlBsiCmd); 
+extern int		addBsspSeat(char *beBsiCmd, char *rlBsiCmd);
 extern int		removeBsspSeat(char *beBsiCmd, char *rlBsiCmd);
 
 extern void		findBsspSpan(uvast engineId, BsspVspan **vspan,
 				PsmAddress *vspanElt);
-extern int		addBsspSpan(uvast engineId, 
+extern int		addBsspSpan(uvast engineId,
 				unsigned int maxExportSessions,
 				unsigned int maxBlockSize,
-				char *bsoBECmd, char *bsoRLCmd, 
+				char *bsoBECmd, char *bsoRLCmd,
 				unsigned int qTime, int purge);
-extern int		updateBsspSpan(uvast engineId, 
+extern int		updateBsspSpan(uvast engineId,
 				unsigned int maxExportSessions,
 				unsigned int maxBlockSize,
-				char *bsoBECmd, char *bsoRLCmd, 
+				char *bsoBECmd, char *bsoRLCmd,
 				unsigned int qTime, int purge);
 extern int		removeBsspSpan(uvast engineId);
 extern int		bsspStartSpan(uvast engineId);

@@ -90,9 +90,9 @@ int lcc_run_ac(ac_t *ac, tnvc_t *parent_parms)
 int lcc_run_ctrl(ctrl_t *ctrl, tnvc_t *parent_parms)
 {
 	int8_t status = CTRL_FAILURE;
-    tnv_t* retval = NULL;
-    tnvc_t *new_parms = NULL;
-    eid_t rx_eid;
+	tnv_t* retval = NULL;
+	tnvc_t *new_parms = NULL;
+	eid_t rx_eid;
 
 	AMP_DEBUG_ENTRY("lcc_run_ctrl","("ADDR_FIELDSPEC")", (uaddr) ctrl);
 
@@ -236,10 +236,3 @@ void lcc_send_retval(eid_t *rx, tnv_t *retval, ctrl_t *ctrl, tnvc_t *parms)
 	}
 
 }
-
-
-
-
-
-
-

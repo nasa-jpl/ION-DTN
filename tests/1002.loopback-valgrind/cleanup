@@ -18,4 +18,3 @@ fi
 
 # clean up files from previous runs
 rm -f ion.log ionreceivefile.txt ionsendfile.txt out.valgrind.*
-

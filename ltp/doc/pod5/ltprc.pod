@@ -43,7 +43,7 @@ Comment line.  Lines beginning with B<#> are not interpreted.
 Echo control.  Setting echo to 1 causes all output printed by ltpadmin to be
 logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
 
-=item B<v> 
+=item B<v>
 
 Version number.  Prints out the version of ION currently installed.  HINT:
 combine with B<e 1> command to log the version number at startup.
@@ -81,7 +81,7 @@ I<aggregation_size_threshold> limits the number of LTP service data units
 (e.g., bundles) that can be aggregated into a single block: when
 the sum of the sizes of all service data units aggregated into a block
 exceeds this threshold, aggregation into this block must cease and the block
-must be segmented and transmitted.  
+must be segmented and transmitted.
 
 I<aggregation_time_limit> alternatively limits the number of seconds that
 any single export session block for this span will await aggregation before
@@ -122,22 +122,22 @@ bundles in each session's block, to avoid having to wait for the restart
 of transmission on this span before those bundles can be successfully
 transmitted.
 
-=item B<a seat> 'I<LSI_command>' 
+=item B<a seat> 'I<LSI_command>'
 
 The B<add seat> command.  This command declares that the local LTP engine
 can receive LTP segments via the link service input daemon that begins
 running when I<'LSI_command'> is executed.  When there are multiple incoming
 LTP data streams (serviced by link service daemon such as udplsi), each
-stream can be added as separate B<seat>. 
+stream can be added as separate B<seat>.
 
-When all incoming LTP segments are handled by a single stream (for example, 
-in the case of udplsi, whereby all LTP segments are received at the same 
-IP address:port, then one can use B<'s'> command followed by a single 
+When all incoming LTP segments are handled by a single stream (for example,
+in the case of udplsi, whereby all LTP segments are received at the same
+IP address:port, then one can use B<'s'> command followed by a single
 I<'LSI_command'> as a short hand.
 
 =item B<c span> I<peer_engine_nbr> I<max_export_sessions> I<max_import_sessions> I<max_segment_size> I<aggregation_size_threshold> I<aggregation_time_limit> 'I<LSO_command>' [I<queuing_latency>]
 
-The B<change span> command.  This command sets the indicated span's 
+The B<change span> command.  This command sets the indicated span's
 configuration parameters to the values provided as arguments.
 
 =item B<d span> I<peer_engine_nbr>
@@ -150,7 +150,7 @@ peer engine are incomplete.
 =item B<d seat> 'I<LSI_command>'
 
 The B<delete seat> command.  This command deletes the seat identified
-by 'I<LSI_command>'.  
+by 'I<LSI_command>'.
 
 =item B<i span> I<peer_engine_nbr>
 
@@ -160,7 +160,7 @@ about the span identified by I<peer_engine_nbr>.
 =item B<i seat> 'I<LSI_command>'
 
 This command will print all information (i.e., process ID number) about
-the seat identified by 'I<LSI_command>'.  
+the seat identified by 'I<LSI_command>'.
 
 =item B<l span>
 
@@ -191,11 +191,11 @@ a file.  It is recommended that users properly configure this value - if not
 using the default - and keep it constant for the duration of ION operation.
 Although it can be enlarged during run-time, it is not recommended because it
 will use more working memory.  If heapmax is increased from initial value
-during run-time, reducing it later will not reduce the working memory.  
+during run-time, reducing it later will not reduce the working memory.
 
 =item B<m screening> { y | n }
 
-The B<manage screening> command.  
+The B<manage screening> command.
 
 The B<manage screening> command.  This command disables or enables the
 screening of received LTP segments per the periods of scheduled reception
@@ -211,7 +211,7 @@ which is needed in order to prevent resource exhaustion at the receiving node.
 Note, though, that the enabling of screening implies that the ranges declared
 in the contact graph must be accurate and clocks must be synchronized;
 otherwise, segments will be arriving at times other than the scheduled
-contact intervals and will be discarded.  
+contact intervals and will be discarded.
 
 For some research purposes this constraint may be difficult to satisfy.
 For such purposes ONLY, where resource exhaustion at the receiving node

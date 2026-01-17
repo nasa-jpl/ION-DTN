@@ -14,7 +14,7 @@
 	Copyright (c) 2004, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "stcpcla.h"
 #include "ipnfw.h"

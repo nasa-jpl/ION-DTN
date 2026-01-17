@@ -10,8 +10,8 @@
 #set -x
 
 if ! which ldd > /dev/null; then
-	echo "This system doesn't have 'ldd'; Skipping"
-	exit 2;
+    echo "This system doesn't have 'ldd'; Skipping"
+    exit 2;
 fi
 
 # vercmp ripped from
@@ -39,8 +39,8 @@ MINVERSION='2.2.5'
 OLDLIBTOOL=0
 vercmp $MYVERSION $MINVERSION
 if [ "$RETVAL" -le 0 ] ; then
-	echo "Libtool is older than $MINVERSION."
-	OLDLIBTOOL=1
+    echo "Libtool is older than $MINVERSION."
+    OLDLIBTOOL=1
 fi
 
 # end debug
@@ -54,58 +54,57 @@ CURDIR=$PWD
 (cd "$IONDIR" && "$CURDIR/make-link-graph.sh" -x -o "$CURDIR/ionexelinks.dot")
 
 bail () {
-	exit $RETVAL
+    exit $RETVAL
 }
 
 #Check library links first.
 if grep -q 'color=red' ionliblinks.dot; then
-	echo "Missing link between libraries:"
-	grep 'color=red' ionliblinks.dot | cut -d ' ' -f 1 | sort -u
-	echo
-	RETVAL=1
+    echo "Missing link between libraries:"
+    grep 'color=red' ionliblinks.dot | cut -d ' ' -f 1 | sort -u
+    echo
+    RETVAL=1
 fi
 if grep -q 'color=purple' ionliblinks.dot; then
-	echo "Unused link between libraries:"
-	grep 'color=purple' ionliblinks.dot | cut -d ' ' -f 1 | sort -u
-	if [ $OLDLIBTOOL -eq 1 ] ; then
-		echo "Libtool is too old and inserts spurious -pthreads; ignoring error."
-		RETVAL=0
-	else
-		RETVAL=1
-	fi
-	echo
+    echo "Unused link between libraries:"
+    grep 'color=purple' ionliblinks.dot | cut -d ' ' -f 1 | sort -u
+    if [ $OLDLIBTOOL -eq 1 ] ; then
+        echo "Libtool is too old and inserts spurious -pthreads; ignoring error."
+        RETVAL=0
+    else
+        RETVAL=1
+    fi
+    echo
 fi
 
 if [ "$RETVAL" != "0" ]; then
-	echo "Errors found in libraries."
-       	echo "Run 'dot -Tpng -o ionliblinks.png ionliblinks.dot' for details"
-	bail
+    echo "Errors found in libraries."
+        echo "Run 'dot -Tpng -o ionliblinks.png ionliblinks.dot' for details"
+    bail
 fi
 
 #If no errors, also check executables
 if grep -q 'color=red' ionliblinks.dot; then
-	echo "Missing link between libraries:"
-	grep 'color=red' ionliblinks.dot | cut -d ' ' -f 1 | sort -u
-	echo
-	RETVAL=1
+    echo "Missing link between libraries:"
+    grep 'color=red' ionliblinks.dot | cut -d ' ' -f 1 | sort -u
+    echo
+    RETVAL=1
 fi
 if grep -q 'color=purple' ionliblinks.dot; then
-	echo "Unused link between libraries:"
-	grep 'color=purple' ionliblinks.dot | cut -d ' ' -f 1 | sort -u
-	if [ $OLDLIBTOOL -eq 1 ] ; then
-		echo "Libtool is too old and inserts spurious -pthreads; ignoring error."
-		RETVAL=0
-	else
-		RETVAL=1
-	fi
-	echo
+    echo "Unused link between libraries:"
+    grep 'color=purple' ionliblinks.dot | cut -d ' ' -f 1 | sort -u
+    if [ $OLDLIBTOOL -eq 1 ] ; then
+        echo "Libtool is too old and inserts spurious -pthreads; ignoring error."
+        RETVAL=0
+    else
+        RETVAL=1
+    fi
+    echo
 fi
 
 if [ "$RETVAL" != "0" ]; then
-	echo "Errors found in executables."
-	echo "Your LD_LIBRARY_PATH is $LD_LIBRARY_PATH. Make sure it points to all needed libraries."
-       	echo "Run 'dot -Tpng -o ionexelinks.png ionexelinks.dot' for details"
+    echo "Errors found in executables."
+    echo "Your LD_LIBRARY_PATH is $LD_LIBRARY_PATH. Make sure it points to all needed libraries."
+    echo "Run 'dot -Tpng -o ionexelinks.png ionexelinks.dot' for details"
 fi
 
 bail
-

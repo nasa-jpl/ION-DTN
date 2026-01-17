@@ -1,12 +1,12 @@
 /*
- 	udplsi.c:	LTP UDP-based link service daemon.
+	udplsi.c:	LTP UDP-based link service daemon.
 
 	Author: Scott Burleigh, JPL
 
 	Copyright (c) 2007, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "udplsa.h"
 
@@ -55,7 +55,7 @@ int	main(int argc, char *argv[])
 
 	/*	Note that ltpadmin must be run before the first
 	 *	invocation of ltplsi, to initialize the LTP database
-	 *	(as necessary) and dynamic database.			*/ 
+	 *	(as necessary) and dynamic database.			*/
 
 	if (ltpInit(0) < 0)
 	{
@@ -83,7 +83,7 @@ int	main(int argc, char *argv[])
 	/*	All command-line arguments are now validated.		*/
 
 	/* Initialize the mutex.  */
-	pthread_mutex_init(&rtp.lock, NULL); 
+	pthread_mutex_init(&rtp.lock, NULL);
 
 	/* Dual-stack address resolution */
 	int resolveResult = resolveNetworkAddressCached(endpointSpec, &rtp.local_addr);
@@ -136,7 +136,7 @@ int	main(int argc, char *argv[])
 
 	/*	Start the receiver thread.				*/
 	rtp.running = 1;
-	
+
 	if (pthread_begin(&receiverThread, NULL, udplsa_handle_datagrams,
 			&rtp, "udplsi_receiver"))
 	{
@@ -163,9 +163,9 @@ int	main(int argc, char *argv[])
 	ionPauseMainThread(-1);
 
 	/*	Time to shut down.					*/
-	
+
 	writeMemo("[i] udplsi shutting down...");
-	
+
 	pthread_mutex_lock(&rtp.lock);
 	rtp.running = 0;
 	pthread_mutex_unlock(&rtp.lock);
@@ -176,7 +176,7 @@ int	main(int argc, char *argv[])
 	{
 		/* Prepare shutdown target address */
 		IonNetworkAddress shutdown_target = rtp.local_addr;
-		
+
 		/* NEW: Handle "any address" cases for shutdown signal */
 		if (rtp.local_addr.family == AF_INET)
 		{
@@ -196,9 +196,9 @@ int	main(int argc, char *argv[])
 		}
 
 		/* Send shutdown signal */
-		if (sendto(fd, &quit, 1, 0, 
-		          (struct sockaddr*)&shutdown_target.addr, 
-		          shutdown_target.addr_len) == 1)
+		if (sendto(fd, &quit, 1, 0,
+				(struct sockaddr*)&shutdown_target.addr,
+				shutdown_target.addr_len) == 1)
 		{
 			pthread_join(receiverThread, NULL);
 		}
@@ -208,7 +208,7 @@ int	main(int argc, char *argv[])
 			pthread_cancel(receiverThread);
 			pthread_join(receiverThread, NULL);
 		}
-		
+
 		closesocket(fd);
 	}
 	else

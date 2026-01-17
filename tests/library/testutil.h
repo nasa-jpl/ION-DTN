@@ -14,9 +14,9 @@
  * If path_prefix is NULL, it is replaced with "$CONFIGSROOT/", and then the
  * pseudoshell command "<xadmin> <path_prefix><xrc>" is executed.
  *
- *        call									pseudoshell equivalent
- * _xadmin("ionadmin", "", "node.ionrc");		ionadmin node.ionrc
- * _xadmin("ionadmin", NULL, "node.ionrc");		ionadmin $CONFIGSROOT/node.ionrc
+ *        call					pseudoshell equivalent
+ * _xadmin("ionadmin", "", "node.ionrc");	ionadmin node.ionrc
+ * _xadmin("ionadmin", NULL, "node.ionrc");	ionadmin $CONFIGSROOT/node.ionrc
  *
  * But, see the ionadmin()/ionsecadmin()/... wrappers first. */
 void _xadmin(const char *xadmin, const char *path_prefix, const char *xrc);
@@ -50,21 +50,21 @@ void _xadmin(const char *xadmin, const char *path_prefix, const char *xrc);
  * called.
  *
  * But, see the ionstart()/ionstart_default_config() wrappers first. */
-void _ionstart(const char* path_prefix, const char *ionrc, 
-    const char *ionsecrc, const char *ltprc, const char *bprc, 
-    const char *ipnrc, const char *dtn2rc);
+void _ionstart(const char* path_prefix, const char *ionrc,
+	const char *ionsecrc, const char *ltprc, const char *bprc,
+	const char *ipnrc, const char *dtn2rc);
 
 /* Convenient wrappers for _ionstart.
  * To start an ION node with configurations in your working directory:
  *
  *   ionstart("node.ionrc", "node.ionsecrc", "node.ltprc", "node.bprc",
- *				"node.ipnrc", "node.dtn2rc");
+ *		"node.ipnrc", "node.dtn2rc");
  *
  * To start an ION node using configurations in the default configs directory
  * defined by $CONFIGSROOT:
  *
- *   ionstart_default_config("node.ionrc", "node.ionsecrc", "node.ltprc", 
- *				"node.bprc", "node.ipnrc", "node.dtn2rc");
+ *   ionstart_default_config("node.ionrc", "node.ionsecrc", "node.ltprc",
+ *		"node.bprc", "node.ipnrc", "node.dtn2rc");
  *
  * Any argument for a config file not used by your node can be st to NULL. */
 #define ionstart_default_config(...)            _ionstart(NULL, __VA_ARGS__)
@@ -75,7 +75,7 @@ void _ionstart(const char* path_prefix, const char *ionrc,
 void ionstop(void);
 
 /* Returns a statically-allocated string like "../../configs/" that is the
- * prefix to the directory containing the default configurations, relative 
+ * prefix to the directory containing the default configurations, relative
  * to the working directory of "dotest"; this is obtained by the test
  * infrastructure setting the CONFIGSROOT environment variable.
  */

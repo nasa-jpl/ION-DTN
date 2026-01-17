@@ -7,7 +7,7 @@
 	Copyright (c) 2010, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "pmqlsa.h"
 
@@ -36,7 +36,7 @@ static void	*handleMessages(void *parm)
 
 	iblock(SIGTERM);
 	while (rtp->running)
-	{	
+	{
 		segLength = mq_receive(rtp->mq, msgbuf, sizeof msgbuf, &mqp);
 		switch (segLength)
 		{
@@ -98,7 +98,7 @@ int	main(int argc, char *argv[])
 
 	/*	Note that ltpadmin must be run before the first
 	 *	invocation of ltplsi, to initialize the LTP database
-	 *	(as necessary) and dynamic database.			*/ 
+	 *	(as necessary) and dynamic database.			*/
 
 	if (ltpInit(0) < 0)
 	{

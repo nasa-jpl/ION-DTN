@@ -102,7 +102,7 @@ static void	selectNextBundleForTransmission(Outflow *flows,
 	unsigned int	selectedFlowSvc;
 	int		i;
 	unsigned int	svcProvided;
-        int             selectedFlowNbr;
+	int             selectedFlowNbr;
 
 	*winner = NULL;		/*	Default.			*/
 	*eltp = 0;		/*	Default.			*/
@@ -136,7 +136,7 @@ static void	selectNextBundleForTransmission(Outflow *flows,
 		/*	Consider flow as transmission candidate.	*/
 
 		svcProvided = flow->totalBytesSent / flow->svcFactor;
-		if (svcProvided < selectedFlowSvc) 
+		if (svcProvided < selectedFlowSvc)
 		{
 			selectedFlow = flow;
 			selectedFlowSvc = svcProvided;

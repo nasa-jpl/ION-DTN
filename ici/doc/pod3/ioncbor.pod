@@ -50,7 +50,7 @@ Returns number of bytes written.
 I<size> is the number of bytes to write.  If value is NULL, only the size of
 the text string is written; otherwise the text string itself is written
 as well.  Cursor is advanced by the number of bytes written in either case.
-Returns number of bytes written.	
+Returns number of bytes written.
 
 =item int cbor_encode_array_open(uvast size, unsigned char **cursor)
 
@@ -69,7 +69,7 @@ This function just extracts major type and additional info from the byte
 identified by I<cursor>.  Cursor is automatically advanced.  Returns number of
 bytes decoded (always 1) or 0 on decoding error (e.g., no byte to decode).
 
-=item int cbor_decode_integer(	uvast *value, int class, unsigned char **cursor, unsigned int *bytesBuffered)
+=item int cbor_decode_integer(uvast *value, int class, unsigned char **cursor, unsigned int *bytesBuffered)
 
 If I<class> is CborAny, any class of data item is accepted; otherwise only an
 integer data item of the indicated class is accepted.  Cursor is automatically

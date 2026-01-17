@@ -7,7 +7,7 @@
 	Copyright (c) 2025, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "sppcla.h"
 #include <dlfcn.h>
@@ -15,7 +15,7 @@
 static sm_SemId		sppcloSemaphore(sm_SemId *semid)
 {
 	static sm_SemId	semaphore = -1;
-	
+
 	if (semid)
 	{
 		semaphore = *semid;
@@ -33,41 +33,41 @@ static void	shutDownClo(int signum)
 }
 
 
-static int openSPPFunctions(struct SppConfig* sppconfig,void *handle)
+static int openSPPFunctions(struct SppConfig *sppconfig, void *handle)
 {
 
-    char *error = NULL;
+	char *error = NULL;
 
-    dlerror(); // Clear existing error
+	dlerror(); // Clear existing error
 
-    // Look up the init function
-    *(void **)(&sppconfig->init_sender) = dlsym(handle, "init_space_packet_sender");
-    if ((error = dlerror()) != NULL)
-    {
-        fprintf(stderr, "dlsym error for init_space_packet_sender: %s\n", error);
-        dlclose(handle);
-        return -1;
-    }
+	// Look up the init function
+	*(void **) (&sppconfig->init_sender) = dlsym(handle, "init_space_packet_sender");
+	if ((error = dlerror()) != NULL)
+	{
+		fprintf(stderr, "dlsym error for init_space_packet_sender: %s\n", error);
+		dlclose(handle);
+		return -1;
+	}
 
-    // Look up the finalize function
-    *(void **)(&sppconfig->finalize_sender) = dlsym(handle, "finalize_space_packet_sender");
-    if ((error = dlerror()) != NULL)
-    {
-        fprintf(stderr, "dlsym error for finalize_space_packet_sender: %s\n", error);
-        dlclose(handle);
-        return -1;
-    }
-    
-    // Look up the packet_request function
-    *(void **)(&sppconfig->packet_request) = dlsym(handle,"packet_request");
-    if ((error = dlerror()) != NULL && handle != NULL)
-    {
-	fprintf(stderr, "%s\n", error);
-	dlclose(handle);
-	return -1;
-    }
+	// Look up the finalize function
+	*(void **) (&sppconfig->finalize_sender) = dlsym(handle, "finalize_space_packet_sender");
+	if ((error = dlerror()) != NULL)
+	{
+		fprintf(stderr, "dlsym error for finalize_space_packet_sender: %s\n", error);
+		dlclose(handle);
+		return -1;
+	}
 
-    return 0;
+	// Look up the packet_request function
+	*(void **) (&sppconfig->packet_request) = dlsym(handle, "packet_request");
+	if ((error = dlerror()) != NULL && handle != NULL)
+	{
+		fprintf(stderr, "%s\n", error);
+		dlclose(handle);
+		return -1;
+	}
+
+	return 0;
 }
 
 /*	*	*	Main thread functions	*	*	*	*/
@@ -78,20 +78,20 @@ static int openSPPFunctions(struct SppConfig* sppconfig,void *handle)
 
 	getCurrentTime(&tv);
 	return ((tv.tv_sec * 1000000) + tv.tv_usec);
-	}*/
+}*/
 
 #if defined (ION_LWT)
 int	sppclo(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-    char                    *endpointSpec = (char *)a1;
-    char                    *sppCLAConfigStr = (char *)a1;
+	char                    *endpointSpec = (char *)a1;
+	char                    *sppCLAConfigStr = (char *)a1;
 #else
 int	main(int argc, char *argv[])
 {
-    char                    *endpointSpec = (argc > 1 ? argv[1] : NULL);
-    char                    *sharedLibPath = (argc > 2 ? argv[2] : NULL);
-    char                    *spacePacketConfigStr = (argc > 3 ? argv[3] : NULL);
+	char                    *endpointSpec = (argc > 1 ? argv[1] : NULL);
+	char                    *sharedLibPath = (argc > 2 ? argv[2] : NULL);
+	char                    *spacePacketConfigStr = (argc > 3 ? argv[3] : NULL);
 #endif
 	unsigned char		*buffer;
 	VOutduct		*vduct;
@@ -116,14 +116,14 @@ int	main(int argc, char *argv[])
 	sppcfg = &sppcfgdefaults;
 
 	if (sharedLibPath != NULL && spacePacketConfigStr != NULL)
-	    printf("using shared library %s %s\n",sharedLibPath,spacePacketConfigStr);	
+		printf("using shared library %s %s\n",sharedLibPath,spacePacketConfigStr);
 
 	// Open SPP library
 	funcHandle = dlopen(sharedLibPath, RTLD_NOW);
 	if (funcHandle == NULL)
 	{
-	    putErrmsg("sppclo can not open shared protocol library.",sharedLibPath);
-	    return -1;
+		putErrmsg("sppclo can not open shared protocol library.",sharedLibPath);
+		return -1;
 	}
 
 	if (openSPPFunctions(sppcfg, funcHandle) != 0)
@@ -136,8 +136,8 @@ int	main(int argc, char *argv[])
 
 	if (parsed_count != 4 || parsed_count == 0)
 	{
-	    putErrmsg("Space Packet Configuration must be four values in the format %d,%d,%d,%d or omitted.",sharedLibPath);
-	    return -1;
+		putErrmsg("Space Packet Configuration must be four values in the format %d,%d,%d,%d or omitted.",sharedLibPath);
+		return -1;
 	}
 
 	sppcfg->apid = apid;
@@ -162,7 +162,7 @@ int	main(int argc, char *argv[])
 
 	if (vductElt == 0)
 	{
-	    putErrmsg("No such spp duct.",endpointSpec);
+		putErrmsg("No such spp duct.",endpointSpec);
 		MRELEASE(buffer);
 		return -1;
 	}
@@ -177,12 +177,12 @@ int	main(int argc, char *argv[])
 
 	/*	All command-line arguments are now validated.		*/
 
-	
+
 	sdr = getIonsdr();
 	CHKZERO(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
-	
+
 	if (outduct.planDuctListElt)
 	{
 		planDuctList = sdr_list_list(sdr, outduct.planDuctListElt);
@@ -268,7 +268,7 @@ int	main(int argc, char *argv[])
 
 	// Call the finalize function pointer after the loop ends.
 	sppcfg->finalize_sender();
-	
+
 	if (funcHandle != NULL)
 	{
 		dlclose(funcHandle);

@@ -2,7 +2,7 @@
 # shell script to get node running
 ionadmin	amroc.ionrc
 
-ionadmin	global.ionrc 
+ionadmin	global.ionrc
 
 ionsecadmin	amroc.ionsecrc
 

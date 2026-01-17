@@ -61,24 +61,24 @@ extern int csi_key_gen(csi_csid_t suite, csi_val_t *result)
 
 	memset(result, 0, sizeof(result));
 
-	switch(suite)
+	switch (suite)
 	{
-        case CSTYPE_HMAC_SHA1:
-	    case CSTYPE_HMAC_SHA256:
-	    case CSTYPE_HMAC_SHA384:
-	    case CSTYPE_HMAC_SHA512:
-		    return hsha_key_gen(suite, result);
+	case CSTYPE_HMAC_SHA1:
+	case CSTYPE_HMAC_SHA256:
+	case CSTYPE_HMAC_SHA384:
+	case CSTYPE_HMAC_SHA512:
+		return hsha_key_gen(suite, result);
 
-	    case CSTYPE_SHA256_AES128:
-	    case CSTYPE_SHA384_AES256:
-	    case CSTYPE_AES128_GCM:
-	    case CSTYPE_AES256_GCM:
-	    	return gcm_key_gen(suite, result);
+	case CSTYPE_SHA256_AES128:
+	case CSTYPE_SHA384_AES256:
+	case CSTYPE_AES128_GCM:
+	case CSTYPE_AES256_GCM:
+		return gcm_key_gen(suite, result);
 
-	    default:
-	    	CSI_DEBUG_ERR("x csi_key_gen: Unsupported suite: %d.", suite);
-	    	return -1;
-	    	break;
+	default:
+		CSI_DEBUG_ERR("x csi_key_gen: Unsupported suite: %d.", suite);
+		return -1;
+		break;
 	}
 
 	return 1;
@@ -97,14 +97,14 @@ int csi_keywrap(int wrap, csi_val_t kek, csi_val_t input, csi_val_t *output)
 	mbedtls_nist_kw_init(&kw_ctx);
 
 	output->len = 2 * input.len;
-	if((output->contents = MTAKE(output->len)) == NULL)
+	if ((output->contents = MTAKE(output->len)) == NULL)
 	{
 		CSI_DEBUG_ERR("x csi_keyWrap: Cannot allocate %d.", output->len);
 		return -1;
 	}
 
 	result = mbedtls_nist_kw_setkey(&kw_ctx, MBEDTLS_CIPHER_ID_AES, kek.contents, kek.len*8, wrap);
-	if(result != 0)
+	if (result != 0)
 	{
 		CSI_DEBUG_ERR("x csi_keyWrap: Failed to set key. Return is %d. kek bits len is %d", result, kek.len*8);
 		MRELEASE(output->contents);
@@ -114,20 +114,20 @@ int csi_keywrap(int wrap, csi_val_t kek, csi_val_t input, csi_val_t *output)
 		return -1;
 	}
 
-	if(wrap)
+	if (wrap)
 	{
 		result = mbedtls_nist_kw_wrap(&kw_ctx, MBEDTLS_KW_MODE_KW, input.contents, input.len,
-				                      output->contents, &result_len, output->len);
+				output->contents, &result_len, output->len);
 	}
 	else
 	{
 		result = mbedtls_nist_kw_unwrap(&kw_ctx, MBEDTLS_KW_MODE_KW, input.contents, input.len,
-				                      output->contents, &result_len, output->len);
+				output->contents, &result_len, output->len);
 	}
 
 	mbedtls_nist_kw_free(&kw_ctx);
 
-	if(result != 0)
+	if (result != 0)
 	{
 		CSI_DEBUG_ERR("x csi_keyWrap: Failed to (un)wrap key. Result is %d. Input len %d. Output len is %d. Result len is %ld.",
 				result, input.len, output->len, result_len);
@@ -229,13 +229,13 @@ csi_val_t csi_extract_tlv(uint8_t itemNeeded, uint8_t *buf, uint32_t bufLen)
 	uvast	  longNumber;
 	uint32_t  itemLength;
 
-	CSI_DEBUG_PROC("+ csi_extract_tlv(%d, "ADDR_FIELDSPEC",%d)",
-			       itemNeeded, (uaddr)buf, bufLen);
+	CSI_DEBUG_PROC("+ csi_extract_tlv(%d, " ADDR_FIELDSPEC ",%d)",
+			itemNeeded, (uaddr) buf, bufLen);
 
 	memset(&result,0, sizeof(csi_val_t));
 
 	/* Step 0 - Sanity Check. */
-	if((buf == NULL) || (bufLen == 0))
+	if ((buf == NULL) || (bufLen == 0))
 	{
 		CSI_DEBUG_ERR("x csi_extract_tlv - Bad Parms.", NULL);
 		CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)", result.len);
@@ -357,7 +357,7 @@ csi_val_t csi_build_tlv(uint8_t id, uint32_t len, uint8_t *contents)
 
 	/* Step 0 - Sanity checks. */
 
-	if((len == 0) || (contents == NULL))
+	if ((len == 0) || (contents == NULL))
 	{
 		CSI_DEBUG_ERR("x csi_build_tlv: Bad parms.", NULL);
 		CSI_DEBUG_PROC("- csi_build_tlv -> result (len=%d)", result.len);
@@ -370,7 +370,7 @@ csi_val_t csi_build_tlv(uint8_t id, uint32_t len, uint8_t *contents)
 
 	/* Step 2 - Allocate space for the parameter. */
 	result.len = 1 + lenSdnv.length + len;
-	if((result.contents = MTAKE(result.len)) == NULL)
+	if ((result.contents = MTAKE(result.len)) == NULL)
 	{
 		CSI_DEBUG_ERR("x csi_build_tlv: Can't allocate result of length %d.",
 				result.len);
@@ -426,18 +426,18 @@ int csi_init(void)
 	g_csi_init = 1;
 
 	mbedtls_entropy_init(&g_csi_entropy );
- 
+
 	/* Sky updates to use strong entropy source - 2024 */
 	mbedtls_entropy_add_source(&g_csi_entropy,
 			poll_entropy_src, NULL, 0, MBEDTLS_ENTROPY_SOURCE_STRONG);
 
-	if(gcm_init(&g_csi_entropy) != 1)
+	if (gcm_init(&g_csi_entropy) != 1)
 	{
 		CSI_DEBUG_ERR("x csi_int: Error initializing gcm.", NULL);
 		return -1;
 	}
 
-	if(hsha_init(&g_csi_entropy) != 1)
+	if (hsha_init(&g_csi_entropy) != 1)
 	{
 		CSI_DEBUG_ERR("x csi_int: Error initializing hsha.", NULL);
 		return -1;
@@ -460,12 +460,12 @@ char *csi_val_print(csi_val_t val, uint32_t maxLen)
 	int r = 0;
 
 
-	if(maxLen <= 4)
+	if (maxLen <= 4)
 	{
 		maxLen = 4;
 	}
 
-	if(val.len >= 0 && (uint32_t)val.len < maxLen)
+	if (val.len >= 0 && (uint32_t)val.len < maxLen)
 	{
 		maxLen = val.len;
 	}
@@ -476,7 +476,7 @@ char *csi_val_print(csi_val_t val, uint32_t maxLen)
 	char_size = (2 * maxLen) + 3;
 	result = (char *) MTAKE(char_size);
 
-	if(result == NULL)
+	if (result == NULL)
 	{
 		CSI_DEBUG_ERR("utils_hex_to_string", "Cannot allocate %d bytes.",
 				char_size);
@@ -491,7 +491,7 @@ char *csi_val_print(csi_val_t val, uint32_t maxLen)
 	result[1] = 'x';
 
 
-	if(val.contents == NULL)
+	if (val.contents == NULL)
 	{
 		result[2] = '0';
 		result[3] = '\0';
@@ -500,9 +500,9 @@ char *csi_val_print(csi_val_t val, uint32_t maxLen)
 
 	r = 2;
 
-	for(i = 0; i < maxLen; i++)
+	for (i = 0; i < maxLen; i++)
 	{
-		sprintf(temp, "%.2x", (unsigned int)val.contents[i]);
+		sprintf(temp, "%.2x", (unsigned int) val.contents[i]);
 		result[r++] = temp[0];
 		result[r++] = temp[1];
 	}
@@ -522,23 +522,23 @@ csi_val_t csi_rand(csi_csid_t suite, uint32_t len)
 
 	memset(&result, 0, sizeof(result));
 
-	switch(suite)
+	switch (suite)
 	{
-        case CSTYPE_HMAC_SHA1:
-	    case CSTYPE_HMAC_SHA256:
-	    case CSTYPE_HMAC_SHA384:
-	    case CSTYPE_HMAC_SHA512:
-		    return hsha_rand(suite, len);
+	case CSTYPE_HMAC_SHA1:
+	case CSTYPE_HMAC_SHA256:
+	case CSTYPE_HMAC_SHA384:
+	case CSTYPE_HMAC_SHA512:
+		return hsha_rand(suite, len);
 
-	    case CSTYPE_SHA256_AES128:
-	    case CSTYPE_SHA384_AES256:
-	    case CSTYPE_AES128_GCM:
-	    case CSTYPE_AES256_GCM:
-	    	return gcm_rand(suite, len);
+	case CSTYPE_SHA256_AES128:
+	case CSTYPE_SHA384_AES256:
+	case CSTYPE_AES128_GCM:
+	case CSTYPE_AES256_GCM:
+		return gcm_rand(suite, len);
 
-	    default:
-	    	CSI_DEBUG_ERR("Unsupported suite: %d.", suite);
-	    	break;
+	default:
+		CSI_DEBUG_ERR("Unsupported suite: %d.", suite);
+		break;
 	}
 
 	return result;
@@ -569,31 +569,31 @@ csi_val_t csi_serialize_parms(csi_cipherparms_t parms)
 	memset(&intsig, 0, sizeof(csi_val_t));
 
 	/* Step 2 - Populate TLV fields */
-	if(parms.intsig.len > 0)
+	if (parms.intsig.len > 0)
 	{
 		intsig = csi_build_tlv(CSI_PARM_INTSIG, parms.intsig.len, parms.intsig.contents);
 		result.len += intsig.len;
 	}
 
-	if(parms.icv.len > 0)
+	if (parms.icv.len > 0)
 	{
 		icv = csi_build_tlv(CSI_PARM_ICV, parms.icv.len, parms.icv.contents);
 		result.len += icv.len;
 	}
 
-	if(parms.iv.len > 0)
+	if (parms.iv.len > 0)
 	{
 		iv = csi_build_tlv(CSI_PARM_IV, parms.iv.len, parms.iv.contents);
 		result.len += iv.len;
 	}
 
-	if(parms.salt.len > 0)
+	if (parms.salt.len > 0)
 	{
 		salt = csi_build_tlv(CSI_PARM_SALT, parms.salt.len, parms.salt.contents);
 		result.len += salt.len;
 	}
 
-	if(parms.keyinfo.len > 0)
+	if (parms.keyinfo.len > 0)
 	{
 		keyinfo = csi_build_tlv(CSI_PARM_KEYINFO, parms.keyinfo.len, parms.keyinfo.contents);
 		result.len += keyinfo.len;
@@ -601,7 +601,7 @@ csi_val_t csi_serialize_parms(csi_cipherparms_t parms)
 
 
 	/* Step 3 - Allocate the SDR space. */
-	if((result.contents = MTAKE(result.len)) == 0)
+	if ((result.contents = MTAKE(result.len)) == 0)
 	{
 		CSI_DEBUG_ERR("bpsec_build_sdr_parm: Can't allocate result of length %d.",
 				result.len);
@@ -614,35 +614,35 @@ csi_val_t csi_serialize_parms(csi_cipherparms_t parms)
 		return result;
 	}
 
-	if(parms.aad.len > 0)
+	if (parms.aad.len > 0)
 	{
 		memcpy(result.contents+offset, (char *) intsig.contents, intsig.len);
 		offset += intsig.len;
 		MRELEASE(intsig.contents);
 	}
 
-	if(parms.icv.len > 0)
+	if (parms.icv.len > 0)
 	{
 		memcpy(result.contents+offset, (char *) icv.contents, icv.len);
 		offset += icv.len;
 		MRELEASE(icv.contents);
 	}
 
-	if(parms.iv.len > 0)
+	if (parms.iv.len > 0)
 	{
 		memcpy(result.contents+offset, (char *) iv.contents, iv.len);
 		offset += iv.len;
 		MRELEASE(iv.contents);
 	}
 
-	if(parms.salt.len > 0)
+	if (parms.salt.len > 0)
 	{
 		memcpy(result.contents+offset, (char *) salt.contents, salt.len);
 		offset += salt.len;
 		MRELEASE(salt.contents);
 	}
 
-	if(parms.keyinfo.len > 0)
+	if (parms.keyinfo.len > 0)
 	{
 		memcpy(result.contents+offset, (char *) keyinfo.contents, keyinfo.len);
 		offset += keyinfo.len;
@@ -655,8 +655,8 @@ csi_val_t csi_serialize_parms(csi_cipherparms_t parms)
 void      csi_teardown(void)
 {
 	gcm_teardown();
-    hsha_teardown();
-    mbedtls_entropy_free(&g_csi_entropy );
+	hsha_teardown();
+	mbedtls_entropy_free(&g_csi_entropy);
 }
 
 
@@ -690,7 +690,7 @@ uint32_t csi_blocksize(csi_csid_t suite)
 {
 	CSI_CHK
 
-	switch(suite)
+	switch (suite)
 	{
 	case CSTYPE_HMAC_SHA1:
 	case CSTYPE_HMAC_SHA256:
@@ -745,7 +745,7 @@ uint32_t csi_ctx_len(csi_csid_t suite)
 {
 	CSI_CHK
 
-	switch(suite)
+	switch (suite)
 	{
 	case CSTYPE_HMAC_SHA1:
 	case CSTYPE_HMAC_SHA256:
@@ -798,7 +798,7 @@ uint8_t *csi_ctx_init(csi_csid_t suite, csi_val_t key_info, csi_svcid_t svc)
 {
 	CSI_CHK
 
-	switch(suite)
+	switch (suite)
 	{
 	case CSTYPE_HMAC_SHA1:
 	case CSTYPE_HMAC_SHA256:
@@ -850,7 +850,7 @@ uint8_t  csi_ctx_free(csi_csid_t suite, void *context)
 {
 	CSI_CHK
 
-	switch(suite)
+	switch (suite)
 	{
 	case CSTYPE_HMAC_SHA1:
 	case CSTYPE_HMAC_SHA256:
@@ -900,7 +900,7 @@ uint32_t csi_sign_res_len(csi_csid_t suite, void *context)
 
 	CSI_CHK
 
-	switch(suite)
+	switch (suite)
 	{
 	case CSTYPE_HMAC_SHA1:
 	case CSTYPE_HMAC_SHA256:
@@ -948,7 +948,7 @@ int8_t csi_sign_start(csi_csid_t suite, void *context)
 
 	CSI_CHK
 
-	switch(suite)
+	switch (suite)
 	{
 	case CSTYPE_HMAC_SHA1:
 	case CSTYPE_HMAC_SHA256:
@@ -996,7 +996,7 @@ int8_t  csi_sign_update(csi_csid_t suite, void *context, csi_val_t data, csi_svc
 {
 	CSI_CHK
 
-	switch(suite)
+	switch (suite)
 	{
 	case CSTYPE_HMAC_SHA1:
 	case CSTYPE_HMAC_SHA256:
@@ -1047,30 +1047,30 @@ int8_t  csi_sign_finish(csi_csid_t suite, void *context, csi_val_t *result, csi_
 	int8_t retval = ERROR;
 
 	CSI_DEBUG_PROC("+ csi_sign_finish(%d, "ADDR_FIELDSPEC","ADDR_FIELDSPEC",%d)",
-				    suite, (uaddr)context, (uaddr)result, svc);
+			suite, (uaddr)context, (uaddr)result, svc);
 
 	CSI_CHK
 
-	switch(suite)
-		{
-		case CSTYPE_HMAC_SHA1:
-		case CSTYPE_HMAC_SHA256:
-		case CSTYPE_HMAC_SHA384:
-			retval = hsha_sign_finish(suite, context, result, svc);
-			break;
+	switch (suite)
+	{
+	case CSTYPE_HMAC_SHA1:
+	case CSTYPE_HMAC_SHA256:
+	case CSTYPE_HMAC_SHA384:
+		retval = hsha_sign_finish(suite, context, result, svc);
+		break;
 
-		case CSTYPE_ECDSA_SHA256:
-		case CSTYPE_ECDSA_SHA384:
-			retval = ecdsa_sign_finish(suite, context, result, svc);
-			break;
+	case CSTYPE_ECDSA_SHA256:
+	case CSTYPE_ECDSA_SHA384:
+		retval = ecdsa_sign_finish(suite, context, result, svc);
+		break;
 
-		default:
-			CSI_DEBUG_ERR("x csi_sign_finish: Unsupported suite %d.", suite);
-			break;
-		}
+	default:
+		CSI_DEBUG_ERR("x csi_sign_finish: Unsupported suite %d.", suite);
+		break;
+	}
 
 #ifdef CSI_DEBUGGING
-	if(retval != ERROR)
+	if (retval != ERROR)
 	{
 		CSI_DEBUG_INFO("i csi_sign_finish: Suite: %d. Svc: %d. Length %d", suite, svc, result->len);
 	}
@@ -1112,32 +1112,32 @@ int8_t csi_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_t
 	int8_t retval = ERROR;
 
 	CSI_DEBUG_PROC("+csi_sign_full(%d, input (len=%d), key (len=%d),"ADDR_FIELDSPEC",%d)",
-			       suite, input.len, key.len, (uaddr) result, svc);
+			suite, input.len, key.len, (uaddr) result, svc);
 
 	CSI_CHK
 
 	CHKERR(result);
 
-	switch(suite)
-		{
-		case CSTYPE_HMAC_SHA1:
-		case CSTYPE_HMAC_SHA256:
-		case CSTYPE_HMAC_SHA384:
-			retval = hsha_sign_full(suite, input, key, result, svc);
-			break;
+	switch (suite)
+	{
+	case CSTYPE_HMAC_SHA1:
+	case CSTYPE_HMAC_SHA256:
+	case CSTYPE_HMAC_SHA384:
+		retval = hsha_sign_full(suite, input, key, result, svc);
+		break;
 
-		case CSTYPE_ECDSA_SHA256:
-		case CSTYPE_ECDSA_SHA384:
-			retval = ecdsa_sign_full(suite, input, key, result, svc);
-			break;
+	case CSTYPE_ECDSA_SHA256:
+	case CSTYPE_ECDSA_SHA384:
+		retval = ecdsa_sign_full(suite, input, key, result, svc);
+		break;
 
-		default:
-			CSI_DEBUG_ERR("x csi_sign_full: Unsupported suite %d.", suite);
-			break;
-		}
+	default:
+		CSI_DEBUG_ERR("x csi_sign_full: Unsupported suite %d.", suite);
+		break;
+	}
 
 #ifdef CSI_DEBUGGING
-	if(retval != ERROR)
+	if (retval != ERROR)
 	{
 		char tmp[21];
 		memset(tmp,0,21);
@@ -1192,7 +1192,7 @@ int8_t csi_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc, csi_ci
 
 	CSI_CHK
 
-	switch(suite)
+	switch (suite)
 	{
 	case CSTYPE_SHA256_AES128:
 	case CSTYPE_SHA384_AES256:
@@ -1207,43 +1207,43 @@ int8_t csi_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc, csi_ci
 	}
 
 #ifdef CSI_DEBUGGING
-	if(retval != ERROR)
+	if (retval != ERROR)
 	{
 		char *tmp = NULL;
 
 		CSI_DEBUG_INFO("i csi_crypt_finish: Suite: %d. Svc: %d.", suite, svc);
 
-		if((tmp = csi_val_print(parms->iv, 20)) != NULL)
+		if ((tmp = csi_val_print(parms->iv, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_finish: IV - Len:%d  Val:%s...", parms->iv.len, tmp);
 			MRELEASE(tmp);
 		}
 
-		if((tmp = csi_val_print(parms->salt, 20)) != NULL)
+		if ((tmp = csi_val_print(parms->salt, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_finish: SALT - Len:%d  Val:%s...", parms->salt.len, tmp);
 			MRELEASE(tmp);
 		}
 
-		if((tmp = csi_val_print(parms->icv, 20)) != NULL)
+		if ((tmp = csi_val_print(parms->icv, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_finish: ICV - Len:%d  Val:%s...", parms->icv.len, tmp);
 			MRELEASE(tmp);
 		}
 
-		if((tmp = csi_val_print(parms->intsig, 20)) != NULL)
+		if ((tmp = csi_val_print(parms->intsig, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_finish: INTSIG - Len:%d  Val:%s...", parms->intsig.len, tmp);
 			MRELEASE(tmp);
 		}
 
-		if((tmp = csi_val_print(parms->aad, 20)) != NULL)
+		if ((tmp = csi_val_print(parms->aad, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_finish: ADD - Len:%d  Val:%s...", parms->aad.len, tmp);
 			MRELEASE(tmp);
 		}
 
-		if((tmp = csi_val_print(parms->keyinfo, 20)) != NULL)
+		if ((tmp = csi_val_print(parms->keyinfo, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_finish: KEYINFO - Len:%d  Val:%s...", parms->keyinfo.len, tmp);
 			MRELEASE(tmp);
@@ -1285,12 +1285,12 @@ int8_t csi_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc, csi_ci
  *****************************************************************************/
 
 int8_t csi_crypt_full(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parms,
-		              csi_val_t key, csi_val_t input, csi_val_t *output)
+		csi_val_t key, csi_val_t input, csi_val_t *output)
 {
 	int8_t retval = ERROR;
 
 	CSI_DEBUG_PROC("+ csi_crypt_full(%d, %d, key (len=%d), input(len=%d),"ADDR_FIELDSPEC")",
-			       suite, svc, (uaddr)parms, key.len, input.len, (uaddr)output);
+			suite, svc, (uaddr)parms, key.len, input.len, (uaddr)output);
 
 	CSI_CHK
 
@@ -1314,61 +1314,61 @@ int8_t csi_crypt_full(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parm
 
 
 #ifdef CSI_DEBUGGING
-	if(retval != ERROR)
+	if (retval != ERROR)
 	{
 		char *tmp = NULL;
 
 		CSI_DEBUG_INFO("i csi_crypt_full: Suite: %d. Svc: %d.", suite, svc);
 
-		if((tmp = csi_val_print(input, 20)) != NULL)
+		if ((tmp = csi_val_print(input, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_full: Input - Len:%d  Val:%s...", input.len, tmp);
 			MRELEASE(tmp);
 		}
 
-		if((tmp = csi_val_print(key, 20)) != NULL)
+		if ((tmp = csi_val_print(key, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_full: Key - Len:%d  Val:%s...", key.len, tmp);
 			MRELEASE(tmp);
 		}
 
-		if((tmp = csi_val_print(*output, 20)) != NULL)
+		if ((tmp = csi_val_print(*output, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_full: Key - Len:%d  Val:%s...", output->len, tmp);
 			MRELEASE(tmp);
 		}
 
-		if((tmp = csi_val_print(parms->iv, 20)) != NULL)
+		if ((tmp = csi_val_print(parms->iv, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_full: IV - Len:%d  Val:%s...", parms->iv.len, tmp);
 			MRELEASE(tmp);
 		}
 
-		if((tmp = csi_val_print(parms->salt, 20)) != NULL)
+		if ((tmp = csi_val_print(parms->salt, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_full: SALT - Len:%d  Val:%s...", parms->salt.len, tmp);
 			MRELEASE(tmp);
 		}
 
-		if((tmp = csi_val_print(parms->icv, 20)) != NULL)
+		if ((tmp = csi_val_print(parms->icv, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_full: ICV - Len:%d  Val:%s...", parms->icv.len, tmp);
 			MRELEASE(tmp);
 		}
 
-		if((tmp = csi_val_print(parms->intsig, 20)) != NULL)
+		if ((tmp = csi_val_print(parms->intsig, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_full: INTSIG - Len:%d  Val:%s...", parms->intsig.len, tmp);
 			MRELEASE(tmp);
 		}
 
-		if((tmp = csi_val_print(parms->aad, 20)) != NULL)
+		if ((tmp = csi_val_print(parms->aad, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_full: ADD - Len:%d  Val:%s...", parms->aad.len, tmp);
 			MRELEASE(tmp);
 		}
 
-		if((tmp = csi_val_print(parms->keyinfo, 20)) != NULL)
+		if ((tmp = csi_val_print(parms->keyinfo, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_full: KEYINFO - Len:%d  Val:%s...", parms->keyinfo.len, tmp);
 			MRELEASE(tmp);
@@ -1386,7 +1386,7 @@ int8_t csi_crypt_key(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parms
 	int8_t retval = ERROR;
 
 	CSI_DEBUG_PROC("+ csi_crypt_key(%d, %d, "ADDR_FIELDSPEC", longtermkey (len=%d), input(len=%d), "ADDR_FIELDSPEC")",
-			       suite, svc, (uaddr) parms, longtermkey.len, input.len, (uaddr)output);
+			suite, svc, (uaddr) parms, longtermkey.len, input.len, (uaddr)output);
 
 	CSI_CHK
 
@@ -1409,62 +1409,62 @@ int8_t csi_crypt_key(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parms
 	}
 
 #ifdef CSI_DEBUGGING
-	if(retval != ERROR)
+	if (retval != ERROR)
 	{
 		char *tmp = NULL;
 
 		CSI_DEBUG_INFO("i csi_crypt_key: Suite: %d. Svc: %d.", suite, svc);
 
 
-		if((tmp = csi_val_print(longtermkey, 20)) != NULL)
+		if ((tmp = csi_val_print(longtermkey, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_key: longtermkey - Len:%d  Val:%s...", longtermkey.len, tmp);
 			MRELEASE(tmp);
 		}
 
-		if((tmp = csi_val_print(input, 20)) != NULL)
+		if ((tmp = csi_val_print(input, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_key: input - Len:%d  Val:%s...", input.len, tmp);
 			MRELEASE(tmp);
 		}
 
-		if((tmp = csi_val_print(*output, 20)) != NULL)
+		if ((tmp = csi_val_print(*output, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_key: output - Len:%d  Val:%s...", output->len, tmp);
 			MRELEASE(tmp);
 		}
 
-		if((tmp = csi_val_print(parms->iv, 20)) != NULL)
+		if ((tmp = csi_val_print(parms->iv, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_key: IV - Len:%d  Val:%s...", parms->iv.len, tmp);
 			MRELEASE(tmp);
 		}
 
-		if((tmp = csi_val_print(parms->salt, 20)) != NULL)
+		if ((tmp = csi_val_print(parms->salt, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_key: SALT - Len:%d  Val:%s...", parms->salt.len, tmp);
 			MRELEASE(tmp);
 		}
 
-		if((tmp = csi_val_print(parms->icv, 20)) != NULL)
+		if ((tmp = csi_val_print(parms->icv, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_key: ICV - Len:%d  Val:%s...", parms->icv.len, tmp);
 			MRELEASE(tmp);
 		}
 
-		if((tmp = csi_val_print(parms->intsig, 20)) != NULL)
+		if ((tmp = csi_val_print(parms->intsig, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_key: INTSIG - Len:%d  Val:%s...", parms->intsig.len, tmp);
 			MRELEASE(tmp);
 		}
 
-		if((tmp = csi_val_print(parms->aad, 20)) != NULL)
+		if ((tmp = csi_val_print(parms->aad, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_key: ADD - Len:%d  Val:%s...", parms->aad.len, tmp);
 			MRELEASE(tmp);
 		}
 
-		if((tmp = csi_val_print(parms->keyinfo, 20)) != NULL)
+		if ((tmp = csi_val_print(parms->keyinfo, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_key: KEYINFO - Len:%d  Val:%s...", parms->keyinfo.len, tmp);
 			MRELEASE(tmp);
@@ -1500,28 +1500,28 @@ int8_t csi_crypt_key(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parms
 
 int csi_parm_len_get(csi_csid_t suite, csi_parmid_t parmid)
 {
-  int len = 0;
+	int len = 0;
 
-  switch(suite)
-  	{
-  		case CSTYPE_HMAC_SHA256:
-  		case CSTYPE_HMAC_SHA384:
-  		case CSTYPE_HMAC_SHA512:
-  			len = hsha_parm_get_len(suite, parmid);
-  			break;
+	switch (suite)
+	{
+	case CSTYPE_HMAC_SHA256:
+	case CSTYPE_HMAC_SHA384:
+	case CSTYPE_HMAC_SHA512:
+		len = hsha_parm_get_len(suite, parmid);
+		break;
 
-  		case CSTYPE_SHA256_AES128:
-  		case CSTYPE_SHA384_AES256:
-  		case CSTYPE_AES128_GCM:
-  		case CSTYPE_AES256_GCM:
-  			len = gcm_crypt_parm_get_len(suite, parmid);
-  			break;
-  		default:
-  			CSI_DEBUG_ERR("x csi_crypt_parm_get: Unsupported suite %d.", suite);
-  			break;
-  	}
+	case CSTYPE_SHA256_AES128:
+	case CSTYPE_SHA384_AES256:
+	case CSTYPE_AES128_GCM:
+	case CSTYPE_AES256_GCM:
+		len = gcm_crypt_parm_get_len(suite, parmid);
+		break;
+	default:
+		CSI_DEBUG_ERR("x csi_crypt_parm_get: Unsupported suite %d.", suite);
+		break;
+	}
 
-  return len;
+	return len;
 }
 
 csi_val_t csi_crypt_parm_get(csi_csid_t suite, csi_parmid_t parmid)
@@ -1535,13 +1535,13 @@ csi_val_t csi_crypt_parm_get(csi_csid_t suite, csi_parmid_t parmid)
 
 	len = csi_parm_len_get(suite, parmid);
 
-	if(len > 0)
+	if (len > 0)
 	{
 		result = csi_rand(suite, len);
 	}
 	else
 	{
-  	   CSI_DEBUG_ERR("x csi_crypt_parm_get: Bad length - suite %d Parm %d length %d.", suite, parmid, len);
+		CSI_DEBUG_ERR("x csi_crypt_parm_get: Bad length - suite %d Parm %d length %d.", suite, parmid, len);
 	}
 
 	return result;
@@ -1573,16 +1573,16 @@ uint32_t  csi_crypt_parm_get_len(csi_csid_t suite, csi_parmid_t parmid)
 {
 	CSI_CHK
 
-	switch(suite)
+	switch (suite)
 	{
-		case CSTYPE_SHA256_AES128:
-		case CSTYPE_SHA384_AES256:
-		case CSTYPE_AES128_GCM:
-  		case CSTYPE_AES256_GCM:
-			return gcm_crypt_parm_get_len(suite, parmid);
+	case CSTYPE_SHA256_AES128:
+	case CSTYPE_SHA384_AES256:
+	case CSTYPE_AES128_GCM:
+	case CSTYPE_AES256_GCM:
+		return gcm_crypt_parm_get_len(suite, parmid);
 
-		default:
-			break;
+	default:
+		break;
 	}
 
 	CSI_DEBUG_ERR("x csi_crypt_parm_get_len: Unsupported suite %d.", suite);
@@ -1616,7 +1616,7 @@ uint32_t csi_crypt_res_len(csi_csid_t suite, void *context, csi_blocksize_t bloc
 
 	CSI_CHK
 
-	switch(suite)
+	switch (suite)
 	{
 	case CSTYPE_SHA256_AES128:
 	case CSTYPE_SHA384_AES256:
@@ -1662,7 +1662,7 @@ int8_t csi_crypt_start(csi_csid_t suite, void *context, csi_cipherparms_t parms)
 
 	CSI_CHK
 
-	switch(suite)
+	switch (suite)
 	{
 	case CSTYPE_SHA256_AES128:
 	case CSTYPE_SHA384_AES256:
@@ -1712,43 +1712,43 @@ csi_val_t  csi_crypt_update(csi_csid_t suite, void *context, csi_svcid_t svc, cs
 	csi_val_t result;
 
 	CSI_DEBUG_PROC("+ csi_crypt_update(%d, "ADDR_FIELDSPEC",%d,data (len=%d)",
-			       suite, (uaddr) context, svc, data.len);
+			suite, (uaddr) context, svc, data.len);
 
 	CSI_CHK
 
 	memset(&result, 0, sizeof(csi_val_t));
 
-	switch(suite)
+	switch (suite)
 	{
 
-		case CSTYPE_SHA256_AES128:
-		case CSTYPE_SHA384_AES256:
-		case CSTYPE_AES128_GCM:
-		case CSTYPE_AES256_GCM:
-			result =  gcm_crypt_update(suite, context, svc, data);
-			break;
+	case CSTYPE_SHA256_AES128:
+	case CSTYPE_SHA384_AES256:
+	case CSTYPE_AES128_GCM:
+	case CSTYPE_AES256_GCM:
+		result =  gcm_crypt_update(suite, context, svc, data);
+		break;
 
-		default:
-			CSI_DEBUG_ERR("x csi_crypt_update: Unsupported suite %d.", suite);
-			break;
+	default:
+		CSI_DEBUG_ERR("x csi_crypt_update: Unsupported suite %d.", suite);
+		break;
 	}
 
 
 
 #ifdef CSI_DEBUGGING
-	if(result.len > 0)
+	if (result.len > 0)
 	{
 		char *tmp;
 
 		CSI_DEBUG_INFO("i csi_crypt_update: Suite: %d. Svc: %d.", suite, svc);
 
-		if((tmp = csi_val_print(data, 20)) != NULL)
+		if ((tmp = csi_val_print(data, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_update: Data   - Len: %d  Val: %s...", data.len, tmp);
 			MRELEASE(tmp);
 		}
 
-		if((tmp = csi_val_print(result, 20)) != NULL)
+		if ((tmp = csi_val_print(result, 20)) != NULL)
 		{
 			CSI_DEBUG_INFO("i csi_crypt_update: Result - Len: %d  Val: %s...", result.len, tmp);
 			MRELEASE(tmp);

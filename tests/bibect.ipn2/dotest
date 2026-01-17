@@ -195,10 +195,10 @@ cd 4.ipn.ltp
 COUNT=$(grep "test_trace4" ./results.txt | wc -l)
 if [ $COUNT -lt 20 ]
 then
-	echo "ERROR: bundles for node 4 not received."
-        PASS=0
+    echo "ERROR: bundles for node 4 not received."
+    PASS=0
 else
-	echo "Bundles for node 4 were received."
+    echo "Bundles for node 4 were received."
 fi
 
 killm
@@ -206,8 +206,7 @@ echo "BIBE custody transfer test completed."
 
 if [ $PASS -eq 1 ]
 then
-	exit 0
+    exit 0
 else
-	exit 1
+    exit 1
 fi
-

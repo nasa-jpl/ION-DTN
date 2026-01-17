@@ -60,7 +60,7 @@ static ExtensionDef	extensionDefs[] =
 			};
 
 /*	NOTE: the order of appearance of extension specifications in
- *	the extensionSpecs array determines the order in which 
+ *	the extensionSpecs array determines the order in which
  *	extension blocks will be inserted into locally sourced bundles
  *	prior to the payload block.					*/
 

@@ -215,7 +215,7 @@ fprintf(stderr,"FAILED*** allocFromIonMemory(%s, lineNbr:%d, length:%zu) called\
 	block = psp(ionwm, address);
 	memset(block, 0, length);
 #ifdef HAVE_VALGRIND_VALGRIND_H
-    VALGRIND_MALLOCLIKE_BLOCK(block, length, 0, 1);
+	VALGRIND_MALLOCLIKE_BLOCK(block, length, 0, 1);
 #endif
 	return block;
 }
@@ -226,7 +226,7 @@ void	releaseToIonMemory(const char *fileName, int lineNbr, void *block)
 
 	Psm_free(fileName, lineNbr, ionwm, psa(ionwm, (char *) block));
 #ifdef HAVE_VALGRIND_VALGRIND_H
-    VALGRIND_FREELIKE_BLOCK(block, 0);
+	VALGRIND_FREELIKE_BLOCK(block, 0);
 #endif
 }
 
@@ -327,13 +327,13 @@ static IonVdb	*_ionvdb(char **name)
 static ResourceLock   logFileLock;
 static void initLogLockOnce(void)
 {
-    memset(&logFileLock, 0, sizeof(ResourceLock));
-    if (initResourceLock(&logFileLock) < 0)
-    {
-        perror("Can't init ION log lock (initResourceLock failed)");
-        /* We can’t "return an error" from pthread_once callback,
-           so if this fails, subsequent lock usage might fail. */
-    }
+	memset(&logFileLock, 0, sizeof(ResourceLock));
+	if (initResourceLock(&logFileLock) < 0)
+	{
+		perror("Can't init ION log lock (initResourceLock failed)");
+		/* We can’t "return an error" from pthread_once callback,
+		   so if this fails, subsequent lock usage might fail. */
+	}
 }
 
 /*-------------------------------------------------------
@@ -346,104 +346,104 @@ static void initLogLockOnce(void)
  *-------------------------------------------------------*/
 void writeMemoToIonLog(char *text)
 {
-    static pthread_once_t  logOnceControl = PTHREAD_ONCE_INIT;
-    static char            ionLogFileName[264] = "";  /* Empty string == {0} */
-    static int             ionLogFile    = -1;        /* -1 => not open. */
-    static char            msgbuf[256] = {0};         /* For the final output line. */
+	static pthread_once_t logOnceControl = PTHREAD_ONCE_INIT;
+	static char ionLogFileName[264] = ""; /* Empty string == {0} */
+	static int  ionLogFile = -1;	      /* -1 => not open. */
+	static char msgbuf[256] = { 0 };      /* For the final output line. */
 
-    if (text == NULL)  /* No message to log. */
-    {
-        return;
-    }
+	if (text == NULL)		      /* No message to log. */
+	{
+		return;
+	}
 
-    if (*text == '\0')  /*	Claims that log file is closed.	*/
-    {
-        if (ionLogFile != -1)
-        {
-            close(ionLogFile);
-            ionLogFile = -1;
-        }
-        return; /*	Ignore zero-length memo.	*/
-    }
+	if (*text == '\0') /*	Claims that log file is closed.	*/
+	{
+		if (ionLogFile != -1)
+		{
+			close(ionLogFile);
+			ionLogFile = -1;
+		}
+		return; /*	Ignore zero-length memo.	*/
+	}
 
-    /*---------------------------------------------------------
-     * 1) the log file is shared, so access to it must be mutexed. 
-	 
+	/*---------------------------------------------------------
+	 * 1) the log file is shared, so access to it must be mutexed.
+
 	   Use pthread_once() to ensure lock is initialized only (once).
-     *---------------------------------------------------------*/
-    pthread_once(&logOnceControl, initLogLockOnce);
+	 *---------------------------------------------------------*/
+	pthread_once(&logOnceControl, initLogLockOnce);
 
-    /*---------------------------------------------------------
-     * 2) Lock the resource before before modifying ionLogFileName
-     *    or ionLogFile.
-     *---------------------------------------------------------*/
-    lockResource(&logFileLock);
+	/*---------------------------------------------------------
+	 * 2) Lock the resource before before modifying ionLogFileName
+	 *    or ionLogFile.
+	 *---------------------------------------------------------*/
+	lockResource(&logFileLock);
 
-    /*---------------------------------------------------------
-     * 3) Open the log file if it's not open yet.
-     *    - Build ionLogFileName if it's still empty.
-     *    - Then do iopen(...).
-     *---------------------------------------------------------*/
-    if (ionLogFile == -1)
-    {
-        if (ionLogFileName[0] == '\0')
-        {
+	/*---------------------------------------------------------
+	 * 3) Open the log file if it's not open yet.
+	 *    - Build ionLogFileName if it's still empty.
+	 *    - Then do iopen(...).
+	 *---------------------------------------------------------*/
+	if (ionLogFile == -1)
+	{
+		if (ionLogFileName[0] == '\0')
+		{
 #if defined(bionic)
-            isprintf(ionLogFileName, sizeof ionLogFileName,
-                     "%.255s%c..%cion.log",
-                     getIonWorkingDirectory(),
-                     ION_PATH_DELIMITER,
-                     ION_PATH_DELIMITER);
+			isprintf(ionLogFileName, sizeof ionLogFileName,
+				"%.255s%c..%cion.log",
+				getIonWorkingDirectory(),
+				ION_PATH_DELIMITER,
+				ION_PATH_DELIMITER);
 #else
-            isprintf(ionLogFileName, sizeof ionLogFileName,
-                     "%.255s%cion.log",
-                     getIonWorkingDirectory(),
-                     ION_PATH_DELIMITER);
+			isprintf(ionLogFileName, sizeof ionLogFileName,
+				"%.255s%cion.log",
+				getIonWorkingDirectory(),
+				ION_PATH_DELIMITER);
 #endif
-        }
+		}
 
-        /* Attempt to open or create the file in append mode. */
-        ionLogFile = iopen(ionLogFileName, O_WRONLY | O_APPEND | O_CREAT, 0666);
-        if (ionLogFile == -1)
-        {
-            perror("Can't redirect ION error msgs to log");
-            unlockResource(&logFileLock);
-            return;
-        }
-    }
+		/* Attempt to open or create the file in append mode. */
+		ionLogFile = iopen(ionLogFileName, O_WRONLY | O_APPEND | O_CREAT, 0666);
+		if (ionLogFile == -1)
+		{
+			perror("Can't redirect ION error msgs to log");
+			unlockResource(&logFileLock);
+			return;
+		}
+	}
 
-    /*---------------------------------------------------------
-     * 4) Build the "[timestamp] text\n" line.
-     *---------------------------------------------------------*/
-    {
-        time_t currentTime = getCtime();  /* or time(NULL) if you prefer. */
-        char   timestampBuffer[20];
-        writeTimestampLocal(currentTime, timestampBuffer); 
+	/*---------------------------------------------------------
+	 * 4) Build the "[timestamp] text\n" line.
+	 *---------------------------------------------------------*/
+	{
+		time_t currentTime = getCtime(); /* or time(NULL) if you prefer. */
+		char timestampBuffer[20];
+		writeTimestampLocal(currentTime, timestampBuffer);
 
-        isprintf(msgbuf, sizeof msgbuf, "[%s] %s\n", timestampBuffer, text);
-    }
+		isprintf(msgbuf, sizeof msgbuf, "[%s] %s\n", timestampBuffer, text);
+	}
 
-    /*---------------------------------------------------------
-     * 5) Write the line to the file.
-     *---------------------------------------------------------*/
-    {
-        int textLen = strlen(msgbuf);
-        if (write(ionLogFile, msgbuf, textLen) < 0)
-        {
-            writeErrMemo("Can't write ION error message to log file");
-        }
-    }
+	/*---------------------------------------------------------
+	 * 5) Write the line to the file.
+	 *---------------------------------------------------------*/
+	{
+		int textLen = strlen(msgbuf);
+		if (write(ionLogFile, msgbuf, textLen) < 0)
+		{
+			writeErrMemo("Can't write ION error message to log file");
+		}
+	}
 
 #ifdef TargetFFS
-    /* If your environment closes after each write: */
-    close(ionLogFile);
-    ionLogFile = -1;
+	/* If your environment closes after each write: */
+	close(ionLogFile);
+	ionLogFile = -1;
 #endif
 
-    /*---------------------------------------------------------
-     * 6) Unlock the resource when done.
-     *---------------------------------------------------------*/
-    unlockResource(&logFileLock);
+	/*---------------------------------------------------------
+	 * 6) Unlock the resource when done.
+	 *---------------------------------------------------------*/
+	unlockResource(&logFileLock);
 }
 
 static void	ionRedirectMemos(void)
@@ -818,7 +818,7 @@ int	ionInitialize(IonParms *parms, uvast ownFqnn)
 		iondbBuf.occupancyCeiling += (limit/4);
 		iondbBuf.maxClockError = 1;
 		iondbBuf.clockIsSynchronized = 1;
-                memcpy(&iondbBuf.parmcopy, parms, sizeof(IonParms));
+		memcpy(&iondbBuf.parmcopy, parms, sizeof(IonParms));
 		iondbObject = sdr_malloc(ionsdr, sizeof(IonDB));
 		if (iondbObject == 0)
 		{
@@ -1178,7 +1178,7 @@ void	ionDetach(void)
 		zco_unregister_callback();
 
 #if defined( SVR4_SEMAPHORES ) || defined( POSIX_NAMED_SEMAPHORES )
-		/* Completes detaching from Ion 				*
+		/* Completes detaching from Ion 			*
 		 * Reset and detach from ipc semaphore set		*
 		 * only implemented for SVR4 platform and Posix Named Semaphores			*/
 		sm_ipc_detach();
@@ -1253,7 +1253,7 @@ void	ionTerminate(int shutdown)
 
 	oK(_iondbObject(&obj));
 
-	/* 	Now will destroy ionwm. This   		*
+	/*	Now will destroy ionwm. This		*
 	 *	is different from resetting static.	*/
 	ionwmParms.wmKey = 0;
 	ionwmParms.wmSize = 0;
@@ -1361,7 +1361,7 @@ int	ionRegionOf(uvast fqnnA, uvast fqnnB, uint32_t *regionNbr)
 	localHomeRegion = iondb.regions[0].regionNbr;
 	localOuterRegion = iondb.regions[1].regionNbr;
 	for (elt = sdr_list_first(sdr, iondb.rolodex); elt;
-		       elt = sdr_list_next(sdr, elt))
+			elt = sdr_list_next(sdr, elt))
 	{
 		addr = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, RegionMember, member, addr);
@@ -1662,7 +1662,7 @@ void	writeTimestampUTC(time_t timestamp, char *timestampBuffer)
 {
 	struct tm	tsbuf;
 	struct tm	*ts = &tsbuf;
-	
+
 	CHKVOID(timestampBuffer);
 #if defined (mingw)
 	ts = gmtime(&timestamp);
@@ -2032,7 +2032,7 @@ void	printIonParms(IonParms *parms)
 			parms->sdrWmSize);
 	writeMemo(buffer);
 	isprintf(buffer, sizeof buffer, "configFlags:     %d",
-		       parms->configFlags);
+			parms->configFlags);
 	writeMemo(buffer);
 	isprintf(buffer, sizeof buffer, "heapWords:       %ld",
 			parms->heapWords);
@@ -2134,7 +2134,7 @@ void	ionKillMainThread(char *procName)
 	pthread_t	mainThread;
 
 	CHKVOID(procName);
-       	mainThread = _mainThread(procName);
+	mainThread = _mainThread(procName);
 	if (!pthread_equal(mainThread, pthread_self()))
 	{
 		pthread_kill(mainThread, SIGTERM);
@@ -2538,7 +2538,7 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 	}
 
 	/*	Pass additive inverse of length to zco_create to
- 	*	indicate that space has already been awarded.		*/
+	 *	indicate that space has already been awarded.		*/
 
 	oK(sdr_begin_xn(sdr));
 	zco = zco_create(sdr, source, location, offset, 0 - length, acct);

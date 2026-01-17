@@ -862,7 +862,7 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 
 	if (ionvdb->lastEditTime.tv_sec > cgrvdb->lastLoadTime.tv_sec
 	|| (ionvdb->lastEditTime.tv_sec == cgrvdb->lastLoadTime.tv_sec
-	    && ionvdb->lastEditTime.tv_usec > cgrvdb->lastLoadTime.tv_usec)) 
+	    && ionvdb->lastEditTime.tv_usec > cgrvdb->lastLoadTime.tv_usec))
 	{
 		/*	Contact plan has been modified, so must discard
 		 *	all route lists and reconstruct them as needed.	*/
@@ -1333,7 +1333,7 @@ int	main(void)
 		bundle.ordinal = bundle.ancillaryData.ordinal;
 		bundle.qosFlags = bundle.ancillaryData.flags;
 		if (ipn_lookupOvrd(bundle.ancillaryData.dataLabel,
-				bundle.destination.ssp.ipn.fqnn, 
+				bundle.destination.ssp.ipn.fqnn,
 				bundle.id.source.ssp.ipn.fqnn, &ovrdAddr))
 		{
 			sdr_read(sdr, (char *) &ovrd, ovrdAddr,

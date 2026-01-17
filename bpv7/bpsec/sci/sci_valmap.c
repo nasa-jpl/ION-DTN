@@ -81,21 +81,21 @@
  * @retval <0  - The value was not found.
  *****************************************************************************/
 
-int   bpsec_scvm_byIdIdxFind(sc_value_map map[], int id, sc_val_type type)
+int bpsec_scvm_byIdIdxFind(sc_value_map map[], int id, sc_val_type type)
 {
-    int idx = 0;
+	int idx = 0;
 
-    while(map[idx].scValName != NULL)
-    {
-        if((type == map[idx].scValType) &&
-           (id == map[idx].scValId))
-        {
-          return idx;
-        }
-        idx++;
-    }
+	while(map[idx].scValName != NULL)
+	{
+		if((type == map[idx].scValType) &&
+			(id == map[idx].scValId))
+		{
+			return idx;
+		}
+		idx++;
+	}
 
-    return -1;
+	return -1;
 }
 
 
@@ -121,14 +121,14 @@ int   bpsec_scvm_byIdIdxFind(sc_value_map map[], int id, sc_val_type type)
 
 char *bpsec_scvm_byIdNameFind(sc_value_map map[], int id, sc_val_type type)
 {
-    int idx = bpsec_scvm_byIdIdxFind(map, id, type);
+	int idx = bpsec_scvm_byIdIdxFind(map, id, type);
 
-    if(idx >= 0)
-    {
-        return map[idx].scValName;
-    }
+	if(idx >= 0)
+	{
+		return map[idx].scValName;
+	}
 
-    return NULL;
+	return NULL;
 }
 
 
@@ -150,18 +150,18 @@ char *bpsec_scvm_byIdNameFind(sc_value_map map[], int id, sc_val_type type)
 
 int bpsec_scvm_byNameIdxFind(sc_value_map map[], char *name)
 {
-    int idx = 0;
+	int idx = 0;
 
-    while(map[idx].scValName != NULL)
-    {
-        if(strcmp(name, map[idx].scValName) == 0)
-        {
-          return idx;
-        }
-        idx++;
-    }
+	while(map[idx].scValName != NULL)
+	{
+		if(strcmp(name, map[idx].scValName) == 0)
+		{
+			return idx;
+		}
+		idx++;
+	}
 
-    return -1;
+	return -1;
 }
 
 
@@ -193,49 +193,49 @@ int bpsec_scvm_hexCborDecode(PsmPartition wm, sc_value *val, unsigned int len, u
 
 	BPSEC_DEBUG_PROC("(wm,"ADDR_FIELDSPEC",%d,"ADDR_FIELDSPEC")", (uaddr)val, len, (uaddr)buffer);
 
-    CHKERR(val);
+	CHKERR(val);
 
 
-    /**
-     * For debugging...
-     *
-     * char *tmp_str = bpsec_scutl_hexStrCvt(buffer, len);
-     * BPSEC_DEBUG_INFO("CBOR buffer is %s.", tmp_str);
-     * MRELEASE(tmp_str);
-     */
+	/**
+	 * For debugging...
+	 *
+	 * char *tmp_str = bpsec_scutl_hexStrCvt(buffer, len);
+	 * BPSEC_DEBUG_INFO("CBOR buffer is %s.", tmp_str);
+	 * MRELEASE(tmp_str);
+	 */
 
 
-    // Init... decode_byte_string will do a length check before... setting this length...
-    val->scValLength = len;
-    cursor = buffer;
+	// Init... decode_byte_string will do a length check before... setting this length...
+	val->scValLength = len;
+	cursor = buffer;
 
- 	uv_temp = -1;
-    if(cbor_decode_byte_string(NULL, (uvast*) &uv_temp, &cursor, &tmp_len) < 1)
-    {
-    	BPSEC_DEBUG_ERR("Cannot determine SCI value length.", NULL);
-    	return -1;
-    }
+	uv_temp = -1;
+	if(cbor_decode_byte_string(NULL, (uvast*) &uv_temp, &cursor, &tmp_len) < 1)
+	{
+		BPSEC_DEBUG_ERR("Cannot determine SCI value length.", NULL);
+		return -1;
+	}
 
-    val->scValLength = (int) uv_temp;
-    if((dataPtr = bpsec_scv_rawAlloc(wm, val, val->scValLength)) == NULL)
-    {
-    	BPSEC_DEBUG_ERR("Cannot allocate %d bytes.", val->scValLength);
-    	return -1;
-    }
+	val->scValLength = (int) uv_temp;
+	if((dataPtr = bpsec_scv_rawAlloc(wm, val, val->scValLength)) == NULL)
+	{
+		BPSEC_DEBUG_ERR("Cannot allocate %d bytes.", val->scValLength);
+		return -1;
+	}
 
-    cursor = buffer;
-    tmp_len = len;
+	cursor = buffer;
+	tmp_len = len;
 
- 	uv_temp = val->scValLength;
-    if((bytesUsed = cbor_decode_byte_string((unsigned char *) val->scRawValue.asPtr, &uv_temp, &cursor, &tmp_len)) < 1)
-    {
-    	BPSEC_DEBUG_ERR("Cannot decode byte string.", NULL);
-    	bpsec_scv_clear(wm, val);
-    	return -1;
-    }
+	uv_temp = val->scValLength;
+	if((bytesUsed = cbor_decode_byte_string((unsigned char *) val->scRawValue.asPtr, &uv_temp, &cursor, &tmp_len)) < 1)
+	{
+		BPSEC_DEBUG_ERR("Cannot decode byte string.", NULL);
+		bpsec_scv_clear(wm, val);
+		return -1;
+	}
 
-    BPSEC_DEBUG_PROC("Returning %d:", bytesUsed);
-    return bytesUsed;
+	BPSEC_DEBUG_PROC("Returning %d:", bytesUsed);
+	return bytesUsed;
 }
 
 
@@ -282,7 +282,7 @@ uint8_t* bpsec_scvm_hexCborEncode(PsmPartition wm, sc_value *val, unsigned int *
 		}
 		else
 		{
-		    unsigned char *cursor = result;
+			unsigned char *cursor = result;
 			*len = cbor_encode_byte_string(rawVal, val->scValLength, &cursor);
 		}
 	}
@@ -307,64 +307,65 @@ uint8_t* bpsec_scvm_hexCborEncode(PsmPartition wm, sc_value *val, unsigned int *
  * @retval 0  - Success
  * @retval <0 - Error
  *****************************************************************************/
-int   bpsec_scvm_hexStrDecode(PsmPartition wm, sc_value *val, unsigned int len, char *value)
+int bpsec_scvm_hexStrDecode(PsmPartition wm, sc_value *val, unsigned int len, char *value)
 {
-    int isOdd = 0;
-    unsigned int i = 0;
-    int nib1 = 0;
-    int nib2 = 0;
-    char *cursor = NULL;
-    int value_start = 0;
+	int isOdd = 0;
+	unsigned int i = 0;
+	int nib1 = 0;
+	int nib2 = 0;
+	char *cursor = NULL;
+	int value_start = 0;
 
-    /* Step 0: Sanity checks. */
-    CHKERR(value);
-    CHKERR(val);
+	/* Step 0: Sanity checks. */
+	CHKERR(value);
+	CHKERR(val);
 
-    /* Step 1: Calculate Length */
-    val->scValLength = strlen(value)/2;
-    if((len % 2) != 0){
-        isOdd = 1;
-        val->scValLength += 1;
-    }
+	/* Step 1: Calculate Length */
+	val->scValLength = strlen(value)/2;
+	if ((len % 2) != 0)
+	{
+		isOdd = 1;
+		val->scValLength += 1;
+	}
 
-    /* Skip over any '0x" preamble in the key */
-    if((value[1] == 'x') || (value[1] == 'X'))
-    {
-        val->scValLength-= 1;
-        value_start = 2;
-    }
+	/* Skip over any '0x" preamble in the key */
+	if ((value[1] == 'x') || (value[1] == 'X'))
+	{
+		val->scValLength-= 1;
+		value_start = 2;
+	}
 
-    /* Step 2: Allocate and populate. */
-    if((cursor = (char *) bpsec_scv_rawAlloc(wm, val, val->scValLength)) == NULL)
-    {
-        bpsec_scv_clear(wm, val);
-        return -1;
-    }
+	/* Step 2: Allocate and populate. */
+	if ((cursor = (char *) bpsec_scv_rawAlloc(wm, val, val->scValLength)) == NULL)
+	{
+		bpsec_scv_clear(wm, val);
+		return -1;
+	}
 
-    for(i = 0; i < len; i++)
-    {
-        if((isOdd) && (i == 0))
-        {
-            nib1 = 0;
-            nib2 = bpsec_scutl_hexNibbleGet(value[0]);
-        }
-        else
-        {
-            int idx = (i*2) + value_start - isOdd;
-            nib1 = bpsec_scutl_hexNibbleGet(value[idx]);
-            nib2 = bpsec_scutl_hexNibbleGet(value[idx+1]);
-        }
+	for (i = 0; i < len; i++)
+	{
+		if ((isOdd) && (i == 0))
+		{
+			nib1 = 0;
+			nib2 = bpsec_scutl_hexNibbleGet(value[0]);
+		}
+		else
+		{
+			int idx = (i*2) + value_start - isOdd;
+			nib1 = bpsec_scutl_hexNibbleGet(value[idx]);
+			nib2 = bpsec_scutl_hexNibbleGet(value[idx+1]);
+		}
 
-        if((nib1 == -1) || (nib2 == -1))
-        {
-            bpsec_scv_clear(wm, val);
-            return -1;
-        }
+		if ((nib1 == -1) || (nib2 == -1))
+		{
+			bpsec_scv_clear(wm, val);
+			return -1;
+		}
 
-        cursor[i] = (nib1 << 4) | nib2;
-    }
+		cursor[i] = (nib1 << 4) | nib2;
+	}
 
-    return 0;
+	return 0;
 }
 
 
@@ -389,29 +390,29 @@ int   bpsec_scvm_hexStrDecode(PsmPartition wm, sc_value *val, unsigned int len, 
  *****************************************************************************/
 char* bpsec_scvm_hexStrEncode(PsmPartition wm, sc_value *val)
 {
-    char *data = bpsec_scv_rawGet(wm, val);
-    char *cursor = NULL;
-    char *result = NULL;
-    int i = 0;
+	char *data = bpsec_scv_rawGet(wm, val);
+	char *cursor = NULL;
+	char *result = NULL;
+	int   i = 0;
 
-    int value = 0;
+	int value = 0;
 
-    CHKNULL(data);
+	CHKNULL(data);
 
-    if((cursor = result = MTAKE((val->scValLength * 2) + 1)) == NULL)
-    {
-        return NULL;
-    }
+	if ((cursor = result = MTAKE((val->scValLength * 2) + 1)) == NULL)
+	{
+		return NULL;
+	}
 
-    for(i = 0; i < val->scValLength; i++)
-    {
-        value = (int) data[i];
-        sprintf(cursor,"%02x", value);
-        cursor += 2;
-    }
-    cursor = NULL;
+	for (i = 0; i < val->scValLength; i++)
+	{
+		value = (int) data[i];
+		sprintf(cursor, "%02x", value);
+		cursor += 2;
+	}
+	cursor = NULL;
 
-    return result;
+	return result;
 }
 
 
@@ -436,28 +437,28 @@ char* bpsec_scvm_hexStrEncode(PsmPartition wm, sc_value *val)
  * @retval !NULL - The string representation
  * @retval  NULL - Error
  *****************************************************************************/
-int   bpsec_scvm_intCborDecode(PsmPartition wm, sc_value *val, unsigned int len, uint8_t *value)
+int bpsec_scvm_intCborDecode(PsmPartition wm, sc_value *val, unsigned int len, uint8_t *value)
 {
-	int bytesUsed = 0;
+	int   bytesUsed = 0;
 	void *cursor = NULL;
 
-    CHKERR(val);
+	CHKERR(val);
 
-    val->scValLength = sizeof(uvast);
-    if((cursor = bpsec_scv_rawAlloc(wm, val, val->scValLength)) == NULL)
-    {
-    	BPSEC_DEBUG_ERR("Cannot allocate %d bytes.", val->scValLength);
-    	return -1;
-    }
+	val->scValLength = sizeof(uvast);
+	if ((cursor = bpsec_scv_rawAlloc(wm, val, val->scValLength)) == NULL)
+	{
+		BPSEC_DEBUG_ERR("Cannot allocate %d bytes.", val->scValLength);
+		return -1;
+	}
 
-    if((bytesUsed = cbor_decode_integer(cursor, CborAny, &value, &len)) < 1)
-    {
-    	BPSEC_DEBUG_ERR("Cannot decode byte string.", NULL);
-    	bpsec_scv_clear(wm, val);
-    	return -1;
-    }
+	if ((bytesUsed = cbor_decode_integer(cursor, CborAny, &value, &len)) < 1)
+	{
+		BPSEC_DEBUG_ERR("Cannot decode byte string.", NULL);
+		bpsec_scv_clear(wm, val);
+		return -1;
+	}
 
-    return bytesUsed;
+	return bytesUsed;
 }
 
 
@@ -478,7 +479,7 @@ int   bpsec_scvm_intCborDecode(PsmPartition wm, sc_value *val, unsigned int len,
  *****************************************************************************/
 uint8_t* bpsec_scvm_intCborEncode(PsmPartition wm, sc_value *val, unsigned int *len)
 {
-	uint8_t *result = NULL;
+	uint8_t	      *result = NULL;
 	unsigned char *rawVal = NULL;
 
 	CHKNULL(val);
@@ -486,17 +487,17 @@ uint8_t* bpsec_scvm_intCborEncode(PsmPartition wm, sc_value *val, unsigned int *
 
 	*len = 0;
 
-	if((result = MTAKE(sizeof(uvast) * 2)) != NULL)
+	if ((result = MTAKE(sizeof(uvast) * 2)) != NULL)
 	{
-		if((rawVal = bpsec_scv_rawGet(wm, val)) == NULL)
+		if ((rawVal = bpsec_scv_rawGet(wm, val)) == NULL)
 		{
 			MRELEASE(result);
 			result = NULL;
 		}
 		else
 		{
-   			uvast value = 0;
-   			unsigned char *cursor = result;
+			uvast	       value = 0;
+			unsigned char *cursor = result;
 			memcpy(&value, rawVal, sizeof(uvast));
 
 			/*
@@ -532,30 +533,30 @@ uint8_t* bpsec_scvm_intCborEncode(PsmPartition wm, sc_value *val, unsigned int *
  * @retval 0  - Success
  * @retval <0 - Error
  *****************************************************************************/
-int   bpsec_scvm_intStrDecode(PsmPartition wm, sc_value *val, unsigned int len, char *value)
+int bpsec_scvm_intStrDecode(PsmPartition wm, sc_value *val, unsigned int len, char *value)
 {
-    uvast *cursor = NULL;
-    /* Parameter intentionally unused. */
-    (void)len;
+	uvast *cursor = NULL;
+	/* Parameter intentionally unused. */
+	(void) len;
 
-    /* Step 0: Sanity checks. */
-    CHKERR(val);
-    CHKERR(value);
+	/* Step 0: Sanity checks. */
+	CHKERR(val);
+	CHKERR(value);
 
-    /* Step 1: Allocate and populate. */
-    if((cursor = (uvast *) bpsec_scv_rawAlloc(wm, val, sizeof(uvast))) == NULL)
-    {
-        bpsec_scv_clear(wm, val);
-        return -1;
-    }
+	/* Step 1: Allocate and populate. */
+	if ((cursor = (uvast *) bpsec_scv_rawAlloc(wm, val, sizeof(uvast))) == NULL)
+	{
+		bpsec_scv_clear(wm, val);
+		return -1;
+	}
 
-    if(sscanf(value,UVAST_FIELDSPEC, cursor) != 1)
-    {
-    	bpsec_scv_clear(wm, val);
-        return -1;
-    }
+	if (sscanf(value, UVAST_FIELDSPEC, cursor) != 1)
+	{
+		bpsec_scv_clear(wm, val);
+		return -1;
+	}
 
-    return 0;
+	return 0;
 }
 
 
@@ -579,23 +580,23 @@ int   bpsec_scvm_intStrDecode(PsmPartition wm, sc_value *val, unsigned int len, 
  *****************************************************************************/
 char* bpsec_scvm_intStrEncode(PsmPartition wm, sc_value *val)
 {
-    static int max_length = 20;
-    int *value = bpsec_scv_rawGet(wm, val);
-    char *result = NULL;
+	static int max_length = 20;
+	int	  *value = bpsec_scv_rawGet(wm, val);
+	char	  *result = NULL;
 
-    if(value == NULL)
-    {
-        return NULL;
-    }
+	if (value == NULL)
+	{
+		return NULL;
+	}
 
-    if((result = MTAKE(max_length)) == NULL)
-    {
-        return NULL;
-    }
+	if ((result = MTAKE(max_length)) == NULL)
+	{
+		return NULL;
+	}
 
-    snprintf(result, max_length, "%d", *value);
+	snprintf(result, max_length, "%d", *value);
 
-    return result;
+	return result;
 }
 
 
@@ -620,42 +621,42 @@ char* bpsec_scvm_intStrEncode(PsmPartition wm, sc_value *val)
  * @retval !NULL - The string representation
  * @retval  NULL - Error
  *****************************************************************************/
-int   bpsec_scvm_strCborDecode(PsmPartition wm, sc_value *val, unsigned int len, uint8_t *buffer)
+int bpsec_scvm_strCborDecode(PsmPartition wm, sc_value *val, unsigned int len, uint8_t *buffer)
 {
-    int bytesUsed = 0;
-    void *cursor = NULL;
-    uvast temp_len = 0; /* Temp var for safe 64-bit alignment/sizing */
+	int   bytesUsed = 0;
+	void *cursor = NULL;
+	uvast temp_len = 0; /* Temp var for safe 64-bit alignment/sizing */
 
-    CHKERR(val);
+	CHKERR(val);
 
-    /* Pass the aligned temp variable instead of the struct member */
-    if(cbor_decode_text_string(NULL, &temp_len, &buffer, &len) < 1)
-    {
-        BPSEC_DEBUG_ERR("Cannot determine SC value length.", NULL);
-        return -1;
-    }
-    
-    /* Copy the value back to the struct */
-    val->scValLength = temp_len;
+	/* Pass the aligned temp variable instead of the struct member */
+	if (cbor_decode_text_string(NULL, &temp_len, &buffer, &len) < 1)
+	{
+		BPSEC_DEBUG_ERR("Cannot determine SC value length.", NULL);
+		return -1;
+	}
 
-    if((cursor = bpsec_scv_rawAlloc(wm, val, val->scValLength)) == NULL)
-    {
-        BPSEC_DEBUG_ERR("Cannot allocate %d bytes.", val->scValLength);
-        return -1;
-    }
+	/* Copy the value back to the struct */
+	val->scValLength = temp_len;
 
-    /* Pass the aligned temp variable again */
-    if((bytesUsed = cbor_decode_text_string(cursor, &temp_len, &buffer, &len)) < 1)
-    {
-        BPSEC_DEBUG_ERR("Cannot decode text string.", NULL);
-        bpsec_scv_clear(wm, val);
-        return -1;
-    }
-    
-    /* Update struct again (just in case the decode updated the length) */
-    val->scValLength = temp_len;
+	if ((cursor = bpsec_scv_rawAlloc(wm, val, val->scValLength)) == NULL)
+	{
+		BPSEC_DEBUG_ERR("Cannot allocate %d bytes.", val->scValLength);
+		return -1;
+	}
 
-    return bytesUsed;
+	/* Pass the aligned temp variable again */
+	if ((bytesUsed = cbor_decode_text_string(cursor, &temp_len, &buffer, &len)) < 1)
+	{
+		BPSEC_DEBUG_ERR("Cannot decode text string.", NULL);
+		bpsec_scv_clear(wm, val);
+		return -1;
+	}
+
+	/* Update struct again (just in case the decode updated the length) */
+	val->scValLength = temp_len;
+
+	return bytesUsed;
 }
 
 
@@ -694,7 +695,7 @@ uint8_t* bpsec_scvm_strCborEncode(PsmPartition wm, sc_value *val, unsigned int *
 		}
 		else
 		{
-		    unsigned char *cursor = result;
+			unsigned char *cursor = result;
 			*len = cbor_encode_text_string(rawVal, val->scValLength, &cursor);
 		}
 	}
@@ -723,26 +724,26 @@ uint8_t* bpsec_scvm_strCborEncode(PsmPartition wm, sc_value *val, unsigned int *
  * @retval 0  - Success
  * @retval <0 - Error
  *****************************************************************************/
-int   bpsec_scvm_strStrDecode(PsmPartition wm, sc_value *val, unsigned int len, char *value)
+int bpsec_scvm_strStrDecode(PsmPartition wm, sc_value *val, unsigned int len, char *value)
 {
-    char *cursor = NULL;
-    /* Parameter intentionally unused. */
-    (void)len;
+	char *cursor = NULL;
+	/* Parameter intentionally unused. */
+	(void) len;
 
-    /* Step 0: Sanity checks. */
-    CHKERR(val);
-    CHKERR(value);
+	/* Step 0: Sanity checks. */
+	CHKERR(val);
+	CHKERR(value);
 
-    /* Step 1: Allocate and populate. */
-    if((cursor = (char *) bpsec_scv_rawAlloc(wm, val, strlen(value) + 1)) == NULL)
-    {
-    	bpsec_scv_clear(wm, val);
-        return -1;
-    }
+	/* Step 1: Allocate and populate. */
+	if ((cursor = (char *) bpsec_scv_rawAlloc(wm, val, strlen(value) + 1)) == NULL)
+	{
+		bpsec_scv_clear(wm, val);
+		return -1;
+	}
 
-    memcpy(cursor, value, strlen(value) + 1);
+	memcpy(cursor, value, strlen(value) + 1);
 
-    return 0;
+	return 0;
 }
 
 
@@ -766,22 +767,21 @@ int   bpsec_scvm_strStrDecode(PsmPartition wm, sc_value *val, unsigned int len, 
  *****************************************************************************/
 char* bpsec_scvm_strStrEncode(PsmPartition wm, sc_value *val)
 {
-    char *value = bpsec_scv_rawGet(wm, val);
-    char *result = NULL;
+	char *value = bpsec_scv_rawGet(wm, val);
+	char *result = NULL;
 
-    if(value == NULL)
-    {
-        return NULL;
-    }
+	if (value == NULL)
+	{
+		return NULL;
+	}
 
-    if((result = MTAKE(strlen(value)+1)) == NULL)
-    {
-        return NULL;
-    }
+	if ((result = MTAKE(strlen(value) + 1)) == NULL)
+	{
+		return NULL;
+	}
 
-    memset(result, 0, strlen(value)+1);
-    memcpy(result, value, strlen(value));
+	memset(result, 0, strlen(value) + 1);
+	memcpy(result, value, strlen(value));
 
-    return result;
+	return result;
 }
-

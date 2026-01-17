@@ -18,7 +18,7 @@
 	but neither strtok_r nor strtok_s are provided by MinGW.	*/
 
 const char usage[] =
-  "Usage: bping [options] <source EID> <destination EID> [report-to EID]\n\n" 
+  "Usage: bping [options] <source EID> <destination EID> [report-to EID]\n\n"
   "Sends bundles from <source EID> to <destination EID>.  If responses are\n"
   "received, prints the elapsed round trip time.\n"
   "Options:\n"
@@ -35,12 +35,12 @@ const char usage[] =
   "                   (default 3600)\n"
   "  -v             Set verbosity\n";
 
-static int count = -1;        /* -1: Indefinite.  Set from command line, 
+static int count = -1;        /* -1: Indefinite.  Set from command line,
                                  never written again. */
 static double interval = 1.0; /* Wait one second between bundles */
 static int payloadSize = 64;  /* Number of bytes of bping payload. */
 static int verbosity = 0;
-static int waitdelay = 10;    /* Number of seconds to wait after last 
+static int waitdelay = 10;    /* Number of seconds to wait after last
                                  bundle for its response. */
 static int ttl = 3600;        /* Lifetime to set in bundles. */
 static int priority = 0;      /* Priority level of bundles. */
@@ -71,8 +71,8 @@ static pid_t	myPid;
 static long min = LONG_MAX, max = 0, dev;
 static long long sum = 0, sum2 = 0;
 
-/* iputils uses Newton's method to ping; we copy that here.  The method below 
- * will find the largest integer less than or equal to the square root of a, 
+/* iputils uses Newton's method to ping; we copy that here.  The method below
+ * will find the largest integer less than or equal to the square root of a,
  * unless (a+1) is a perfect square, in which case it will return sqrt(a+1).
  * From iputils' ping_common.c */
 static long llsqrt(long long a)
@@ -258,9 +258,9 @@ static void *receiveResponses(void *x)
 		}
 		pidstr = strtok(NULL, " ");
 		if(pidstr == NULL) {
-			/* if the pid cant be parsed for this bundle, then something is wrong - 
-			the bundle is from an outdated bping source, corrupted, or something 
-			else bad happened. In any case, the bundle should not be considered 
+			/* if the pid cant be parsed for this bundle, then something is wrong -
+			the bundle is from an outdated bping source, corrupted, or something
+			else bad happened. In any case, the bundle should not be considered
 			as a successfully received echo. So ignore it. */
 			bp_release_delivery(&dlv, 1);
 			continue;
@@ -286,8 +286,8 @@ static void *receiveResponses(void *x)
 		}
 		resppid = strtoul(pidstr, &endptr, 0);
 		if(endptr == NULL) {
-			/* maybe remove error messages, if we cant convert the pid 
-			to an unsigned long it was probably from an outdated bping 
+			/* maybe remove error messages, if we cant convert the pid
+			to an unsigned long it was probably from an outdated bping
 			and not inteded for us. */
 			putErrmsg("Couldn't convert pidstr", pidstr);
 			fprintf(stderr, "Couldn't convert pidstr: %s\n", pidstr);
@@ -312,12 +312,12 @@ static void *receiveResponses(void *x)
 		if(diff_in_us < 0) {
 			printf("%d bytes from %s  seq=%lu time=-%lu.%06lu \
 s(future!)\n", contentLength, respSrcEid, respcount,
-					(unsigned long)tvDiff.tv_sec, 
+					(unsigned long)tvDiff.tv_sec,
 					(unsigned long)tvDiff.tv_usec);
 		} else {
 			printf("%d bytes from %s  seq=%lu time=%lu.%06lu s\n",
 					contentLength, respSrcEid, respcount,
-					(unsigned long)tvDiff.tv_sec, 
+					(unsigned long)tvDiff.tv_sec,
 					(unsigned long)tvDiff.tv_usec);
 		}
 
@@ -341,7 +341,7 @@ static Object bping_new_ping(void)
 	struct timeval tvNow;
 	char    pingPayload[BPING_PAYLOAD_MAX_LEN];
 	int     pingPayloadLen;
-	
+
 
 
 	if(gettimeofday(&tvNow, NULL) < 0) {
@@ -350,12 +350,12 @@ static Object bping_new_ping(void)
 		return 0;
 	}
 
-	
+
 
 	/* Construct the bundle payload */
-	pingPayloadLen = snprintf(pingPayload, sizeof(pingPayload), 
+	pingPayloadLen = snprintf(pingPayload, sizeof(pingPayload),
 			"%d %lu %lu %lu bping payload", totalsent,
-			(unsigned long) tvNow.tv_sec, 
+			(unsigned long) tvNow.tv_sec,
 			(unsigned long) tvNow.tv_usec,
 			(unsigned long) myPid);
 	if(pingPayloadLen < 0) {
@@ -381,7 +381,7 @@ static Object bping_new_ping(void)
 	}
 
 	/* Craft the bundle object */
-	bundleZco = ionCreateZco(ZcoSdrSource, bundleMessage, 0, 
+	bundleZco = ionCreateZco(ZcoSdrSource, bundleMessage, 0,
 			payloadSize, priority, 0, ZcoOutbound, NULL);
 	if(bundleZco == 0 || bundleZco == (Object) ERROR)
 	{
@@ -572,7 +572,7 @@ int main(int argc, char **argv)
 
 	if(verbosity) {
 		fprintf(stderr, "Sending %d bundles from %s to %s (rpt-to: %s) "
-				"every %0.2f seconds\n", count, srcEid, dstEid, 
+				"every %0.2f seconds\n", count, srcEid, dstEid,
 				rptEid ? rptEid : "none", interval);
 	}
 
@@ -585,7 +585,7 @@ int main(int argc, char **argv)
 
 	if (bp_open_source(srcEid, &xmitsap, 0) < 0) {
 		putErrmsg("Can't open source endpoint.", srcEid);
-		fprintf(stderr, "Can't open source endpoint (%s).\n", 
+		fprintf(stderr, "Can't open source endpoint (%s).\n",
 				srcEid);
 		bp_detach();
 		exit(BPING_EXIT_ERROR);
@@ -594,7 +594,7 @@ int main(int argc, char **argv)
 	if (bp_open(srcEid, &recvsap) < 0) {
 		bp_close(xmitsap);
 		putErrmsg("Can't open reception endpoint.", srcEid);
-		fprintf(stderr, "Can't open reception endpoint (%s).\n", 
+		fprintf(stderr, "Can't open reception endpoint (%s).\n",
 				srcEid);
 		bp_detach();
 		exit(BPING_EXIT_ERROR);
@@ -603,7 +603,7 @@ int main(int argc, char **argv)
 	sdr = bp_get_sdr();
 
 
-	if(pthread_begin(&receiveResponsesThread, NULL, receiveResponses, 
+	if(pthread_begin(&receiveResponsesThread, NULL, receiveResponses,
 				NULL) < 0) {
 		putErrmsg("Can't make recvResponsesThread.", NULL);
 		fprintf(stderr, "Can't make recvResponsesThread.\n");
@@ -656,7 +656,7 @@ int main(int argc, char **argv)
 
 		printf("rtt min/avg/max/sdev = "
 				"%ld.%03lu/%ld.%03lu/%ld.%03lu/%ld.%03ld ms\n",
-				min/1000L,          (unsigned long)(min)%1000UL, 
+				min/1000L,          (unsigned long)(min)%1000UL,
 				(long)(sum/1000LL), (unsigned long)(sum)%1000UL,
 				max/1000L,          (unsigned long)(max)%1000UL,
 				dev/1000L,          (unsigned long)(dev)%1000UL);

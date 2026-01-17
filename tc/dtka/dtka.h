@@ -40,8 +40,8 @@ extern "C"
 		time_t nextKeyGenTime;
 		unsigned int keyGenInterval;	/*	At least 60.	*/
 		unsigned int effectiveLeadTime; /*	At least 20.	*/
-		char keyType[6];				/* HMAC, ECDSA, AES are supported */
-		unsigned int keySize;			/* In bytes*/
+		char keyType[6];		/* HMAC, ECDSA, AES are supported */
+		unsigned int keySize;		/* In bytes*/
 	} DtkaDB;
 
 	extern int dtkaInit(void);

@@ -44,7 +44,7 @@ Example Call
 if (ionAttach() < 0)
 {
     putErrmsg("bpadmin can't attach to ION.", NULL);
-  
+
     /* User calls error handling routine. */
 }
 ```
@@ -244,7 +244,7 @@ typedef enum
 * `length`: the length of the ZCO to be created.
 * `coarsePriority`: this sets the bundle's Class of Service (COS) as an inherited feature from BPv6. Although COS is not specified in BPv7, ION API supports this feature when creating ZCOs. From the lowest to the highest priorities, it can be set to the following values:
 	- `BP_BULK_PRIORITY` (value =0)
-	- `BP_STD_PRIORITY` (value = 1), or 
+	- `BP_STD_PRIORITY` (value = 1), or
 	- `BP_EXPEDITED_PRIORITY` (value = 2)
 * `finePriority`: this is inherited from BPv6 COS and is the finer grain priority level (level 0 to 254) within the `BP_STD_PRIORITY` class. The default value is 0.
 * `acct`: The accounting category for the ZCO, which is either `ZcoInbound` (0), `ZcoOutbound` (1), or `ZcoUnknown` (2). If a ZCO is created for transmission to another node, this parameter is typically set to `ZcoOutbound`.

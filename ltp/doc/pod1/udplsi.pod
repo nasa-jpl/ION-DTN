@@ -18,8 +18,8 @@ to 1113.
 The link service input task is spawned automatically by B<ltpadmin> in
 response to the 's' command that starts operation of the LTP protocol;
 the text of the command that is used to spawn the task may be provided
-as a parameter to the 's' command if not using the 'seat' command. 
-The link service input task is terminated by B<ltpadmin> in response 
+as a parameter to the 's' command if not using the 'seat' command.
+The link service input task is terminated by B<ltpadmin> in response
 to an 'x' (STOP) command.
 
 =head1 EXIT STATUS

@@ -22,7 +22,7 @@
 static int BPTRACE_DEBUG = 0;
 #define printDBG(level, ...) \
 	do{ if(BPTRACE_DEBUG >= level ) \
- 		fprintf(stderr, __VA_ARGS__); } while(0)
+		fprintf(stderr, __VA_ARGS__); } while(0)
 
 // static int DEBUG = 0;
 
@@ -102,7 +102,7 @@ void print(statusReport *rpt){
 	if (rpt->creationCount > 0)
 		printf("%u/%u ", rpt->creationCount, rpt->fragmentOffset);
 	char* buffer = malloc(32);
-	printf("%8s at %s on %s, '%s'.\n", 
+	printf("%8s at %s on %s, '%s'.\n",
 		statusToString(rpt->statusFlags, buffer, 32), tmbuffer, rpt->bundleSourceEid,
 		rpt->reasonString);
 	free(buffer);
@@ -114,15 +114,15 @@ void sortByStatusTime(statusReport *rpts[], unsigned reportCount){
 	for(unsigned i = 0; i < reportCount-1; ++i){
 		for(unsigned j = 0; j < (reportCount-i)-1; ++j){
 			printDBG(3, "j: %u, J+1: %u, reportCount: %u\n", j, j+1, reportCount);
-			
+
 			printDBG(3, UVAST_FIELDSPEC"\n", rpts[j]->statusTime);
 			printDBG(3, UVAST_FIELDSPEC"\n", rpts[j+1]->statusTime);
 			if(rpts[j]->statusTime  > rpts[j+1]->statusTime){
 				statusReport *tmp = rpts[j];
 				rpts[j] = rpts[j+1];
 				rpts[j+1] = tmp;
-			} else if(rpts[j]->statusTime == rpts[j+1]->statusTime && 
-				strncmp(rpts[j+1]->sourceEid, rpts[j+1]->bundleSourceEid, 
+			} else if(rpts[j]->statusTime == rpts[j+1]->statusTime &&
+				strncmp(rpts[j+1]->sourceEid, rpts[j+1]->bundleSourceEid,
 					strchr(rpts[j+1]->sourceEid, '.') - rpts[j+1]->sourceEid) == 0)
 			{
 				statusReport *tmp = rpts[j];
@@ -134,33 +134,33 @@ void sortByStatusTime(statusReport *rpts[], unsigned reportCount){
 }
 void freeStatusReport(statusReport *rpt)
 {
-    if (rpt == NULL) {
-        return;
-    }
-    // Free any fields allocated by strdup
-    if (rpt->sourceEid)       free(rpt->sourceEid);
-    if (rpt->bundleSourceEid) free(rpt->bundleSourceEid);
-    if (rpt->reasonString)    free(rpt->reasonString);
+	if (rpt == NULL) {
+		return;
+	}
+	// Free any fields allocated by strdup
+	if (rpt->sourceEid)       free(rpt->sourceEid);
+	if (rpt->bundleSourceEid) free(rpt->bundleSourceEid);
+	if (rpt->reasonString)    free(rpt->reasonString);
 
-    // Now free the structure itself (since handleStatusRpt did `malloc(sizeof(statusReport))`)
-    free(rpt);
+	// Now free the structure itself (since handleStatusRpt did `malloc(sizeof(statusReport))`)
+	free(rpt);
 }
 
 // const char* header_rpt = "srcEid/creationTime:count/offset 'status' # 'at' time 'on' statusEid, statusMsg\n";
 void print_reports(void) {
-    if (reports && n_rpts > 0) {
-        printf("\nDone, printing in time order: \n");
-        printf("------------------------------\n");
-        sortByStatusTime(reports, n_rpts);
-        for (unsigned i = 0; i < n_rpts; ++i) {
-            print(reports[i]);
-            freeStatusReport(reports[i]); // <---- Instead of just free(reports[i]);
-        }
-    }
+	if (reports && n_rpts > 0) {
+		printf("\nDone, printing in time order: \n");
+		printf("------------------------------\n");
+		sortByStatusTime(reports, n_rpts);
+		for (unsigned i = 0; i < n_rpts; ++i) {
+			print(reports[i]);
+			freeStatusReport(reports[i]); // <---- Instead of just free(reports[i]);
+		}
+	}
 }
 
 
-void sighandler(int signum)	{
+void sighandler(int signum) {
 	printDBG(3, "signal number: %d\n", signum);
 	print_reports();
 	bp_close(state.sap);
@@ -311,7 +311,7 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
 		int		msgLength = strlen(trace) + 1;
 		Object	msg;
 		Object	traceZco;
-		
+
 		sdr = bp_get_sdr();
 		CHKZERO(sdr_begin_xn(sdr));
 		msg = sdr_malloc(sdr, msgLength);
@@ -384,7 +384,7 @@ static int	handleStatusRpt(BpDelivery *dlv, unsigned char *cursor,
 
 	if (parseStatusRpt(&rpt, cursor, unparsedBytes) < 1)
 	{
-		printf("unable to parse status report\n with %u unsigned bytes\n", unparsedBytes);	
+		printf("unable to parse status report\n with %u unsigned bytes\n", unparsedBytes);
 		return -1;
 	}
 
@@ -488,7 +488,7 @@ static int	handleStatusRpt(BpDelivery *dlv, unsigned char *cursor,
 			statusTime = rpt.deliveryTime;
 		}
 	}
-	
+
 	// TODO: update to release reports with a different creationTime or sourceEid
 	// need to get 'our' bundle's creationTime to do this first though.
 
@@ -514,19 +514,19 @@ static int run_listen_bptrace(char *listenEid)
 
 	printDBG(1, "running listen-only mode\n");
 
-	Sdr sdr;
-	BpDelivery dlv;
-	vast		recordLen;
-	ZcoReader	reader;
-	vast		bytesToParse;
-	unsigned char	headerBuf[10];
-	unsigned char	*cursor;
-	unsigned int	unparsedBytes;
-	vast		headerLen;
-	int		adminRecType;
-	unsigned int	buflen;
-	unsigned char	*buffer;
-	uvast		uvtemp;
+	Sdr	       sdr;
+	BpDelivery     dlv;
+	vast	       recordLen;
+	ZcoReader      reader;
+	vast	       bytesToParse;
+	unsigned char  headerBuf[10];
+	unsigned char *cursor;
+	unsigned int   unparsedBytes;
+	vast	       headerLen;
+	int	       adminRecType;
+	unsigned int   buflen;
+	unsigned char *buffer;
+	uvast	       uvtemp;
 
 	int rpt_rval = 0;
 
@@ -718,34 +718,34 @@ static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 		printf("running bptrace unsuccessful, err code %d\n", result);
 		return result;
 	}
-	
-	
-	Sdr sdr;
-	BpDelivery dlv;
-	vast		recordLen;
-	ZcoReader	reader;
-	vast		bytesToParse;
-	unsigned char	headerBuf[10];
-	unsigned char	*cursor;
-	unsigned int	unparsedBytes;
-	vast		headerLen;
-	int		adminRecType;
-	unsigned int	buflen;
-	unsigned char	*buffer;
-	uvast		uvtemp;		
+
+
+	Sdr	       sdr;
+	BpDelivery     dlv;
+	vast	       recordLen;
+	ZcoReader      reader;
+	vast	       bytesToParse;
+	unsigned char  headerBuf[10];
+	unsigned char *cursor;
+	unsigned int   unparsedBytes;
+	vast	       headerLen;
+	int	       adminRecType;
+	unsigned int   buflen;
+	unsigned char *buffer;
+	uvast	       uvtemp;
 
 	int rpt_rval = 0;
 
 	struct timeval timeoutTime;
 	struct timeval curTime;
-	
+
 
 	getCurrentTime(&timeoutTime);
 	curTime = timeoutTime;
 	if (!(rtt > 0)) rtt = ttl*2;// allow <ttl> seconds for travel of the packet sent and the returning status reports.
-	timeoutTime.tv_sec += rtt; 
+	timeoutTime.tv_sec += rtt;
 	printDBG(2, "current time: %lld timeouttime: %lld\n", (long long)curTime.tv_sec, (long long)timeoutTime.tv_sec);
-	
+
 	if (bp_attach() < 0)
 	{
 		printf("Can't attach to BP.\n");
@@ -761,7 +761,7 @@ static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 
 	while(state.running && curTime.tv_sec < timeoutTime.tv_sec && n_rpts < 128){
 		getCurrentTime(&curTime); // update the current time
-		if (bp_receive(state.sap, &dlv, BP_NONBLOCKING) < 0) 
+		if (bp_receive(state.sap, &dlv, BP_NONBLOCKING) < 0)
 		{
 			printf("Bundle reception failed, continuing\n");
 			continue;
@@ -769,15 +769,15 @@ static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 
 		switch (dlv.result)
 		{
-			case BpPayloadPresent:
-				printDBG(1, "recieved packet with payload\n");
-				break;
-			case BpEndpointStopped:
-				printf("endpoint has been stopped\n");
-				state.running = 0;
-				/*	Intentional fall-through to default.	*/
-			default:
-				continue;
+		case BpPayloadPresent:
+			printDBG(1, "recieved packet with payload\n");
+			break;
+		case BpEndpointStopped:
+			printf("endpoint has been stopped\n");
+			state.running = 0;
+			/*	Intentional fall-through to default.	*/
+		default:
+			continue;
 		}
 
 		/* only accept admin bundles */
@@ -792,7 +792,7 @@ static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 		*	9 bytes).					*/
 		printDBG(2, "checking sdr and pulling admin header...\n");
 		CHKERR(sdr_begin_xn(sdr));
-		
+
 		recordLen = zco_source_data_length(sdr, dlv.adu);
 		printDBG(2, "data length: " UVAST_FIELDSPEC "\n", recordLen);
 		zco_start_receiving(dlv.adu, &reader);
@@ -830,7 +830,7 @@ static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 		adminRecType = uvtemp;
 
 		/*	Now strip off the admin record header, leaving
-		*	just the admin record content.			*/
+		 *	just the admin record content.			*/
 
 		headerLen = cursor - headerBuf;
 		zco_delimit_source(sdr, dlv.adu, headerLen,
@@ -852,10 +852,10 @@ static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 		}
 
 		/*	read the entire admin record into memory buffer.	*/
-		printDBG(1, "Recieved admin bundle...\n");	
+		printDBG(1, "Recieved admin bundle...\n");
 		CHKERR(sdr_begin_xn(sdr));
 		buflen = zco_source_data_length(sdr, dlv.adu);
-		
+
 		if ((buffer = MTAKE(buflen)) == NULL)
 		{
 			printf("Can't handle admin record.\n");
@@ -874,7 +874,7 @@ static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 			bp_release_delivery(&dlv, 1);
 			continue;
 		}
-		
+
 		oK(sdr_end_xn(sdr));
 		cursor = buffer;
 		unparsedBytes = bytesToParse;
@@ -885,7 +885,7 @@ static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 		rpt_rval = handleStatusRpt(&dlv, cursor, unparsedBytes, reports[n_rpts]);
 		printDBG(3, "\n"UVAST_FIELDSPEC"\n", reports[n_rpts]->creationTime);
 		n_rpts++;
-		printDBG(2, "report handler returned %d\n", rpt_rval);			
+		printDBG(2, "report handler returned %d\n", rpt_rval);
 		bp_release_delivery(&dlv, 1);
 		if (rpt_rval < 0)
 		{
@@ -900,18 +900,18 @@ static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 
 static void
 usage(
-    char *progname,
-    char *error,
-    ...)
+	char *progname,
+	char *error,
+	...)
 {
-    va_list ap;
-    
-    va_start(ap, error);
-    if (error) {
-	vfprintf(stderr,error,ap);
-	fprintf(stderr,"\n");
-    }
-    va_end(ap);
+	va_list ap;
+
+	va_start(ap, error);
+	if (error) {
+		vfprintf(stderr,error,ap);
+		    fprintf(stderr,"\n");
+	}
+	va_end(ap);
 
 	fprintf(stderr, "usage: %s [-v] [-msg <msg>] [-ttl <ttl>] [-rtt <rtt>] [-qos <qos>] [-flags <flags>] <srcEid> <destEid> <traceEid>\n", progname);
 	fprintf(stderr, "listen mode usage: %s -listen [-v] <listenEid>\n", progname);
@@ -929,22 +929,22 @@ usage(
 	fprintf(stderr, "\t\t 1 = bundle received (rcv)\n");
 	fprintf(stderr, "\t\t 4 = bundle forwarded (fwd)\n");
 	fprintf(stderr, "\t\t 8 = bundle delivered (dlv)\n");
-	fprintf(stderr, "\t\t16 = bundle deleted (del)\n");	
-    exit(-1);
+	fprintf(stderr, "\t\t16 = bundle deleted (del)\n");
+	exit(-1);
 }
 
 
 int	main(int argc, char **argv)
 {
-	char	*ownEid = NULL;
-	char	*destEid = NULL;
-	char	*traceEid = NULL;
-	int	ttl = 0;
-	int rtt = -1;
-	char	*classOfService = NULL;
-	char	*trace = NULL;
-	char	*flagString = NULL;
-	int	listenOnly = 0;
+	char *ownEid = NULL;
+	char *destEid = NULL;
+	char *traceEid = NULL;
+	int   ttl = 0;
+	int   rtt = -1;
+	char *classOfService = NULL;
+	char *trace = NULL;
+	char *flagString = NULL;
+	int   listenOnly = 0;
 
 	int parsemode = 1;
 	int i = 1;
@@ -980,34 +980,34 @@ int	main(int argc, char **argv)
 				if (i+1 >= argc) usage(argv[0],"-ttl requires argument");
 				ttl = atoi(argv[++i]);
 				continue;	/* iterate back to for (i=1... loop */
-	    	}
+			}
 			else if (strcmp(argv[i],"-rtt") == 0) {
 				if (i+1 >= argc) usage(argv[0],"-rtt requires argument");
 				rtt = atoi(argv[++i]);
 				continue;	/* iterate back to for (i=1... loop */
-	    	}
+			}
 			else if (strcmp(argv[i],"-qos") == 0) {
 				if (i+1 >= argc) usage(argv[0],"-qos requires argument");
 				classOfService = argv[++i];
 				continue;	/* iterate back to for (i=1... loop */
-	    	}
+			}
 			else if (strcmp(argv[i],"-msg") == 0) {
 				if (i+1 >= argc) usage(argv[0],"-msg requires argument");
 				trace = argv[++i];
 				continue;	/* iterate back to for (i=1... loop */
-	    	}
+			}
 			else if (strcmp(argv[i],"-flags") == 0) {
 				if (i+1 >= argc) usage(argv[0],"-flags requires argument");
 				flagString = argv[++i];
 				continue;	/* iterate back to for (i=1... loop */
-	    	}
+			}
 			else if (strcmp(argv[i],"-listen") == 0) {
 				listenOnly = 1;
 				continue;	/* iterate back to for (i=1... loop */
-	    	}
+			}
 			else if (strcmp(argv[i],"-h") == 0) {
 				usage(argv[0], "");
-	    	}
+			}
 			else {
 				for (int j=1; argv[i][j]; ++j) {
 					switch (argv[i][j]) {
@@ -1015,7 +1015,7 @@ int	main(int argc, char **argv)
 						default:
 							usage(argv[0], "unrecognized argument.");
 					}
-	    		}
+				}
 			}
 		}
 		else {

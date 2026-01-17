@@ -43,7 +43,7 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  CONSTANTS  								  +
+ * |                              CONSTANTS                                   +
  * +--------------------------------------------------------------------------+
  */
 
@@ -52,7 +52,7 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  	MACROS  								  +
+ * |                                MACROS                                    +
  * +--------------------------------------------------------------------------+
  */
 #define RPT_MAP_GET_SRC_IDX(map) (map >> 4)
@@ -63,7 +63,7 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  DATA TYPES  								  +
+ * |                              DATA TYPES                                  +
  * +--------------------------------------------------------------------------+
  */
 
@@ -76,10 +76,10 @@ extern "C" {
 
 typedef struct
 {
-	ari_t *id;		   /**> The template id.   */
-	ac_t contents;     /**> Each item is of type (ari_t *)*/
+	ari_t *id;	 /**> The template id.   */
+	ac_t   contents; /**> Each item is of type (ari_t *) */
 
-	db_desc_t desc;    /**> Descriptor of def in the SDR. */
+	db_desc_t desc;	 /**> Descriptor of def in the SDR. */
 } rpttpl_t;
 
 
@@ -90,8 +90,8 @@ typedef struct {
 	ari_t *id;
 	tnvc_t *entries;
 
-    /* Non-serialized portions. */
-    eid_t recipient;
+	/* Non-serialized portions. */
+	eid_t recipient;
 } rpt_t;
 
 
@@ -99,7 +99,7 @@ typedef struct {
 
 /*
  * +--------------------------------------------------------------------------+
- * |						  FUNCTION PROTOTYPES  							  +
+ * |                          FUNCTION PROTOTYPES                             +
  * +--------------------------------------------------------------------------+
  */
 

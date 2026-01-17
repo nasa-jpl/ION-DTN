@@ -127,7 +127,7 @@ TEST_CASE(3, ";")
 TEST_CASE(4, "\"quoted\"")
 void test_StringsArePreserved(unsigned index, const char * str)
 {
-    static const char * const expected[] = 
+    static const char * const expected[] =
     {
         "abc",
         "{",

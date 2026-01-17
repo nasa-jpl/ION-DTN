@@ -863,7 +863,7 @@ static void	manageMaxSegLossRate(int tokenCount, char **tokens)
 	if (newLossRate < 0.0 || newLossRate >= 1.0)
 	{
 		writeMemoNote("[?] maxSegmentLossRate must be [0.0, 0.99]",
-			      tokens[2]);
+				tokens[2]);
 		return;
 	}
 
@@ -1026,7 +1026,7 @@ static void	manageMaxSegLossRateXmit(int tokenCount, char **tokens)
 	if (newLossRate < 0.0 || newLossRate >= 1.0)
 	{
 		writeMemoNote("[?] maxSegmentLossRate must be [0.0, 0.99]",
-			      tokens[2]);
+				tokens[2]);
 		return;
 	}
 
@@ -1079,7 +1079,7 @@ static void	manageMaxSegLossRateRecv(int tokenCount, char **tokens)
 	if (newLossRate < 0.0 || newLossRate >= 1.0)
 	{
 		writeMemoNote("[?] maxSegmentLossRate must be [0.0, 0.99]",
-			      tokens[2]);
+				tokens[2]);
 		return;
 	}
 
@@ -1894,9 +1894,9 @@ static int	processLine(char *line, int lineLength, int *checkNeeded,
 					snooze(1);
 					getCurrentTime(&cur_time);
 					if (cur_time.tv_sec >=
-					    done_time.tv_sec 
-					    && cur_time.tv_usec >=
-					    done_time.tv_usec)
+							done_time.tv_sec
+							&& cur_time.tv_usec >=
+							done_time.tv_usec)
 					{
 						printText("[?] LTP start hung \
 up, abandoned.");
@@ -2011,7 +2011,7 @@ up, abandoned.");
 			}
 
 			//attached to ltp system
-				
+
 			*rc = ltp_is_up(count, max);
 			return 1;
 

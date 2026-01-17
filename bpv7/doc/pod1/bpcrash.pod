@@ -1,12 +1,12 @@
 =head1 NAME
 
-bpcrash - a test support program that simply forces a 
+bpcrash - a test support program that simply forces a
 transaction cancellation in order to trigger a restart of ION when
 SDR reversibility is enabled.
 
 =head1 SYNOPSIS
 
-B<bpcrash> 
+B<bpcrash>
 
 =head1 DESCRIPTION
 

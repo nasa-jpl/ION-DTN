@@ -2,7 +2,7 @@
 	mysymtab.c:	template private symbol table for RTEMS port
 			of the ION stack, with definition of
 			sm_FindFunction(), which accesses this table.
-			
+
 	Author: Scott Burleigh, JPL
 
 	Copyright (c) 2010, California Institute of Technology.

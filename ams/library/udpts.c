@@ -492,7 +492,7 @@ printf("in udpSendAms, tsep is %lu.\n", (unsigned long) tsep);
 		return 0;	/*	Cannot send msg to endpoint.	*/
 	}
 
-	fd = (saddr) (tsif->sap); 
+	fd = (saddr) (tsif->sap);
 	portNbr = htons(tsep->portNbr);
 	hostNbr = htonl(tsep->ipAddress);
 	memset((char *) &socketName, 0, sizeof socketName);

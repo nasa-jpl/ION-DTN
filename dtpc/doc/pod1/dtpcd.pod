@@ -54,11 +54,11 @@ The following diagnostics may be issued to the B<ion.log> log file:
 
 =over 4
 
-=item DTPC can't open own 'send' endpoint. 
+=item DTPC can't open own 'send' endpoint.
 
 Bundle protocol agent has not been started.  See ion(3).
 
-=item dtpcd can't attach to DTPC. 
+=item dtpcd can't attach to DTPC.
 
 B<dtpcadmin> has not yet initialized DTPC protocol operations.
 

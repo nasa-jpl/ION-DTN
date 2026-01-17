@@ -1,5 +1,5 @@
 /*
- 	psm.h:		definitions supporting personal space
+	psm.h:		definitions supporting personal space
 			management.  See the psm man page for details.
 
 	Author: Scott Burleigh, JPL
@@ -11,7 +11,7 @@
 	Copyright (c) 2001, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
- 									*/
+									*/
 
 #ifndef PSM_H
 #define PSM_H
@@ -32,7 +32,7 @@ typedef struct
 	size_t	smallPoolAllocated;
 	size_t	largePoolSize;
 	size_t	largePoolFreeBlockCount[LARGE_ORDERS];
-	size_t 	largePoolFree;
+	size_t	largePoolFree;
 	size_t	largePoolAllocated;
 	size_t	unusedSize;
 } PsmUsageSummary;
@@ -62,7 +62,7 @@ extern int		psm_manage(char *, size_t, char *, PsmPartition *psmp,
 					pointer to variable in which
 						outcome will be returned
 
-		 		A new psm space management structure
+				A new psm space management structure
 				will be dynamically allocated (and its
 				address returned as the space management
 				handle) unless *psmp is non-NULL, i.e.,
@@ -152,7 +152,7 @@ extern int		psm_set_root(PsmPartition, PsmAddress);
 				"root object" -- is normally a pointer
 				to a list (or tree) of the lists or
 				trees that populate the partition.
-	 			Returns 0 on success, -1 on any failure
+				Returns 0 on success, -1 on any failure
 				(e.g., the partition already has some
 				other root object).			 */
 
@@ -162,18 +162,18 @@ extern PsmAddress	psm_get_root(PsmPartition);
 
 extern void		psm_erase_root(PsmPartition);
 			/*	Detaches the partition from its current
-			 	"root object".				*/
+				"root object".				*/
 
 #define psm_add_catlg(partition) \
 Psm_add_catlg(__FILE__, __LINE__, partition)
 
 extern int		Psm_add_catlg(const char *, int, PsmPartition);
 			/*	Allocates space for an object catalog
-			 	in the indicated partition, establishes
-			 	the new catalog as the partition's
-			 	root object.  Returns 0 on success, -1
-			 	on any failure (e.g., the partition
-			 	already has some other root object).	*/
+				in the indicated partition, establishes
+				the new catalog as the partition's
+				root object.  Returns 0 on success, -1
+				on any failure (e.g., the partition
+				already has some other root object).	*/
 
 #define psm_catlg(partition, name, address) \
 Psm_catlg(__FILE__, __LINE__, partition, name, address)
@@ -182,7 +182,7 @@ extern int		Psm_catlg(const char *, int, PsmPartition,
 					char *objName,
 					PsmAddress objLocation);
 			/*	Inserts an entry for the indicated
-			 	object into the catalog that is the
+				object into the catalog that is the
 				root object for this partition.  The
 				length of objName cannot exceed 32
 				bytes, and objName must be unique in
@@ -195,7 +195,7 @@ Psm_uncatlg(__FILE__, __LINE__, partition, name)
 extern int		Psm_uncatlg(const char *, int, PsmPartition,
 					char *objName);
 			/*	Removes the entry for the indicated
-			 	object from the catalog that is the
+				object from the catalog that is the
 				root object for this partition, if it
 				exists.  Returns 0 on success, -1 on
 				any failure.				*/
@@ -204,7 +204,7 @@ extern int		psm_locate(PsmPartition, char *objName,
 					PsmAddress *objLocation,
 					PsmAddress *entryElt);
 			/*	Places in "objLocation" the address
-			 	associated with the indicated object
+				associated with the indicated object
 				name in the catalog that is the root
 				object for this partition and places
 				in "entryElt" the address of the list
@@ -226,7 +226,7 @@ extern void		psm_report(PsmUsageSummary *);
 				partition's usage status.		*/
 
 extern int		psm_start_trace(PsmPartition, size_t, char *);
-                        /*	Begins an episode of psm space usage
+			/*	Begins an episode of psm space usage
 				tracing.  The size_t argument specifies
 				the amount of shared memory to use
 				for the trace operations; this memory
@@ -236,17 +236,17 @@ extern int		psm_start_trace(PsmPartition, size_t, char *);
 				on any error.				*/
 
 extern void		psm_print_trace(PsmPartition, int);
-                        /*	Prints cumulative trace report and
+			/*	Prints cumulative trace report and
 				usage report, using writeMemo.  If
 				'verbose' int argument is zero, only
 				exceptions are reported; otherwise,
 				a log of all activity is printed.	*/
 
 extern void		psm_clear_trace(PsmPartition);
-                        /*	Deletes closed trace log events.	*/
+			/*	Deletes closed trace log events.	*/
 
 extern void		psm_stop_trace(PsmPartition);
-                        /*	Ends the current episode of psm space
+			/*	Ends the current episode of psm space
 				management tracing and releases
 				the shared memory allocated to the
 				trace operations.			*/

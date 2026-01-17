@@ -2,7 +2,7 @@
 	bpsecadmin.c:	security database administration interface.
 
 
-	Copyright (c) 2019, California Institute of Technology.	
+	Copyright (c) 2019, California Institute of Technology.
 	All rights reserved.
 	Author: Scott Burleigh, Jet Propulsion Laboratory
 	Modifications: TCSASSEMBLER, TopCoder
@@ -40,9 +40,9 @@ TODO: Implement support for anonymous event sets in policyrules.
 
 PsmPartition gWm;
 char gUserText[USER_TEXT_LEN];
-const char *singleCmdCodes = "#?1ehvq";     /* Command codes that are used
-											 * on their own, not paired with
-											 * additional JSON */
+const char *singleCmdCodes = "#?1ehvq";		/* Command codes that are used
+						 * on their own, not paired with
+						 * additional JSON */
 
 typedef struct
 {
@@ -119,101 +119,101 @@ static void	bpsec_admin_printUsage(void)
 	PUTS("\t#\tComment");
 	PUTS("\t   # <comment text>");
 
-    PUTS("\n\n\tJSON Security Policy Commands");
-    PUTS("\t--------------------------------");
-    PUTS("\tJSON keys wrapped in ?'s are optional in a command.");
-    PUTS("\tIf included, the key should be represented without the ?'s.");
+	PUTS("\n\n\tJSON Security Policy Commands");
+	PUTS("\t--------------------------------");
+	PUTS("\tJSON keys wrapped in ?'s are optional in a command.");
+	PUTS("\tIf included, the key should be represented without the ?'s.");
 	PUTS("\tEvery eid expression must be a node identification expression, i.e., a partial eid expression ending in '*'.");
 
-    PUTS("\n\t   ADD\n");
+	PUTS("\n\t   ADD\n");
 
-    PUTS("\t   a { \"event\" :");
-    PUTS("\t       {");
-    PUTS("\t          \"es_ref\"   : \"<event set name>\",");
-    PUTS("\t          \"event_id\" : \"<event name>\",");
-    PUTS("\t          \"actions\"  : [{\"id\":\"<action>\", <parms if applicable>},...]");
-    PUTS("\t       }");
-    PUTS("\t     }\n");
+	PUTS("\t   a { \"event\" :");
+	PUTS("\t       {");
+	PUTS("\t          \"es_ref\"   : \"<event set name>\",");
+	PUTS("\t          \"event_id\" : \"<event name>\",");
+	PUTS("\t          \"actions\"  : [{\"id\":\"<action>\", <parms if applicable>},...]");
+	PUTS("\t       }");
+	PUTS("\t     }\n");
 
-    PUTS("\t   a { \"event_set\" :");
-    PUTS("\t       {");
-    PUTS("\t          \"?desc?\" : \"<description>\",");
-    PUTS("\t          \"name\"   : \"<event set name>\"");
-    PUTS("\t       }");
-    PUTS("\t     }\n");
+	PUTS("\t   a { \"event_set\" :");
+	PUTS("\t       {");
+	PUTS("\t          \"?desc?\" : \"<description>\",");
+	PUTS("\t          \"name\"   : \"<event set name>\"");
+	PUTS("\t       }");
+	PUTS("\t     }\n");
 
-    PUTS("\t   a { \"policyrule\" :");
-    PUTS("\t       {");
-    PUTS("\t          \"?desc?\"  : \"<description>\",");
-    PUTS("\t          \"es_ref\"  : \"<event set name>\",");
-    PUTS("\t          \"filter\"  : ");
-    PUTS("\t          {");
-    PUTS("\t             \"?rule_id?\" : <rule id>,");
-    PUTS("\t             \"role\"      : \"<security role>\", ");
-    PUTS("\t             \"src\"       : \"<source eid expression>\", ");
-    PUTS("\t             \"dest\"      : \"<destination eid expression>\",  (1 of src/dest/sec_src required)");
-    PUTS("\t             \"sec_src\"   : \"<security source eid expression>\",");
-    PUTS("\t             \"tgt\"       : <security target block type>,");
-    PUTS("\t             \"?sc_id?\"   : <security context id> (specified here if role is Security Verifier or Acceptor)");
-    PUTS("\t          },");
-    PUTS("\t          \"spec\" :");
-    PUTS("\t          {");
-    PUTS("\t             \"svc\"       : \"<security service>\",");
-    PUTS("\t             \"?sc_id?\"   : <security context id>, (specified here if role is Security Source)");
-    PUTS("\t             \"?sc_parms?\": [{\"<parm1_id>\":\"<parm1_value>\"},...,{\"<parm_id>\":\"<parm_value>\"}]");
-    PUTS("\t          }");
-    PUTS("\t       }");
-    PUTS("\t     }\n\n");
-
-    PUTS("\t   DELETE\n");
-
-    PUTS("\t   d { \"event\" : ");
-    PUTS("\t       {");
-    PUTS("\t         \"es_ref\"   : \"<event set name>\",");
-    PUTS("\t         \"event_id\" : \"<event name>\"");
-    PUTS("\t       }");
-    PUTS("\t     }\n");
-
-    PUTS("\t   d { \"event_set\" :");
-    PUTS("\t       {");
-    PUTS("\t         \"name\"    : \"<event set name>\"");
-    PUTS("\t       }");
-    PUTS("\t     }\n");
-
-    PUTS("\t   d { \"policyrule\" :");
-    PUTS("\t       {");
-    PUTS("\t         \"rule_id\"  : <rule id>");
-    PUTS("\t       }");
-    PUTS("\t     }\n\n");
-
-    PUTS("\t   FIND\n");
-    PUTS("\t   f { \"policyrule\" : ");
-    PUTS("\t       {");
-    PUTS("\t          \"type\"    : \"all\" | \"best\",");
-    PUTS("\t          \"src\"     : \"<source eid expression>\",");
-    PUTS("\t          \"dest\"    : \"<destination eid expression>\",   (1 of src/dest/sec_src required)");
-    PUTS("\t          \"sec_src\" : \"<security source eid expression>\",");
-    PUTS("\t          \"?sc_id?\"  : <security context id>,");
-    PUTS("\t          \"?role?\"  : \"<security role>\"");
-    PUTS("\t       }");
-    PUTS("\t     }\n\n");
-
-    PUTS("\t   INFO\n");
-    PUTS("\t   i { \"event_set\" :");
-    PUTS("\t       {");
-    PUTS("\t         \"name\"    : \"<event set name>\"");
-    PUTS("\t       }");
-    PUTS("\t     }\n");
-
-    PUTS("\t   i { \"policyrule\":");
-    PUTS("\t       {");
-    PUTS("\t         \"rule_id\": <rule id>");
-    PUTS("\t       }");
+	PUTS("\t   a { \"policyrule\" :");
+	PUTS("\t       {");
+	PUTS("\t          \"?desc?\"  : \"<description>\",");
+	PUTS("\t          \"es_ref\"  : \"<event set name>\",");
+	PUTS("\t          \"filter\"  : ");
+	PUTS("\t          {");
+	PUTS("\t             \"?rule_id?\" : <rule id>,");
+	PUTS("\t             \"role\"      : \"<security role>\", ");
+	PUTS("\t             \"src\"       : \"<source eid expression>\", ");
+	PUTS("\t             \"dest\"      : \"<destination eid expression>\",  (1 of src/dest/sec_src required)");
+	PUTS("\t             \"sec_src\"   : \"<security source eid expression>\",");
+	PUTS("\t             \"tgt\"       : <security target block type>,");
+	PUTS("\t             \"?sc_id?\"   : <security context id> (specified here if role is Security Verifier or Acceptor)");
+	PUTS("\t          },");
+	PUTS("\t          \"spec\" :");
+	PUTS("\t          {");
+	PUTS("\t             \"svc\"       : \"<security service>\",");
+	PUTS("\t             \"?sc_id?\"   : <security context id>, (specified here if role is Security Source)");
+	PUTS("\t             \"?sc_parms?\": [{\"<parm1_id>\":\"<parm1_value>\"},...,{\"<parm_id>\":\"<parm_value>\"}]");
+	PUTS("\t          }");
+	PUTS("\t       }");
 	PUTS("\t     }\n\n");
 
-    PUTS("\t   LIST\n");
-    PUTS("\t   l {\"event_set\"}");
-    PUTS("\t   l {\"policyrule\"}");
+	PUTS("\t   DELETE\n");
+
+	PUTS("\t   d { \"event\" : ");
+	PUTS("\t       {");
+	PUTS("\t         \"es_ref\"   : \"<event set name>\",");
+	PUTS("\t         \"event_id\" : \"<event name>\"");
+	PUTS("\t       }");
+	PUTS("\t     }\n");
+
+	PUTS("\t   d { \"event_set\" :");
+	PUTS("\t       {");
+	PUTS("\t         \"name\"    : \"<event set name>\"");
+	PUTS("\t       }");
+	PUTS("\t     }\n");
+
+	PUTS("\t   d { \"policyrule\" :");
+	PUTS("\t       {");
+	PUTS("\t         \"rule_id\"  : <rule id>");
+	PUTS("\t       }");
+	PUTS("\t     }\n\n");
+
+	PUTS("\t   FIND\n");
+	PUTS("\t   f { \"policyrule\" : ");
+	PUTS("\t       {");
+	PUTS("\t          \"type\"    : \"all\" | \"best\",");
+	PUTS("\t          \"src\"     : \"<source eid expression>\",");
+	PUTS("\t          \"dest\"    : \"<destination eid expression>\",   (1 of src/dest/sec_src required)");
+	PUTS("\t          \"sec_src\" : \"<security source eid expression>\",");
+	PUTS("\t          \"?sc_id?\"  : <security context id>,");
+	PUTS("\t          \"?role?\"  : \"<security role>\"");
+	PUTS("\t       }");
+	PUTS("\t     }\n\n");
+
+	PUTS("\t   INFO\n");
+	PUTS("\t   i { \"event_set\" :");
+	PUTS("\t       {");
+	PUTS("\t         \"name\"    : \"<event set name>\"");
+	PUTS("\t       }");
+	PUTS("\t     }\n");
+
+	PUTS("\t   i { \"policyrule\":");
+	PUTS("\t       {");
+	PUTS("\t         \"rule_id\": <rule id>");
+	PUTS("\t       }");
+	PUTS("\t     }\n\n");
+
+	PUTS("\t   LIST\n");
+	PUTS("\t   l {\"event_set\"}");
+	PUTS("\t   l {\"policyrule\"}");
 
 
 }
@@ -221,35 +221,35 @@ static void	bpsec_admin_printUsage(void)
 static int bpsec_admin_attach(int state)
 {
 
-    if (secAttach() != 0)
-    {
-        putErrmsg("Failed to attach to security database.", NULL);
-        return 0;
-    }
+	if (secAttach() != 0)
+	{
+		putErrmsg("Failed to attach to security database.", NULL);
+		return 0;
+	}
 
-    SecVdb *vdb = getSecVdb();
-    if (vdb == NULL)
-    {
-        putErrmsg("Failed to retrieve security database.", NULL);
-        return 0;
-    }
+	SecVdb *vdb = getSecVdb();
+	if (vdb == NULL)
+	{
+		putErrmsg("Failed to retrieve security database.", NULL);
+		return 0;
+	}
 
-    if((gWm = getIonwm()) == NULL)
-    {
-        putErrmsg("ION is not running.", NULL);
-        return 0;
-    }
+	if ((gWm = getIonwm()) == NULL)
+	{
+		putErrmsg("ION is not running.", NULL);
+		return 0;
+	}
 
-    if(state == 1)
-    {
-        if (bsl_all_init(gWm) < 1)
-        {
-            putErrmsg("Failed to initialize BPSec policy.", NULL);
-            return 0;
-        }
-    }
+	if (state == 1)
+	{
+		if (bsl_all_init(gWm) < 1)
+		{
+			putErrmsg("Failed to initialize BPSec policy.", NULL);
+			return 0;
+		}
+	}
 
-    return 1;
+	return 1;
 }
 
 /******************************************************************************
@@ -264,7 +264,7 @@ static int bpsec_admin_attach(int state)
 static int bpsec_admin_init(void)
 {
 
-    /* This will call ionAttach */
+	/* This will call ionAttach */
 	if (secInitialize() < 0)
 	{
 		putErrmsg("Can't initialize the ION security system.", NULL);
@@ -279,12 +279,12 @@ static int bpsec_admin_init(void)
  * 		  within the provided level.
  *
  * Example JSON: {K1 :
- * 					{K2 : V2,
- * 					 K3 :{K4:V4,
- * 					 	  K5:V5}
- * 					 K6: V6
- * 					}
- * 				  }
+ *                  {K2 : V2,
+ *                   K3 :{K4:V4,
+ *                        K5:V5}
+ *                   K6: V6
+ *                  }
+ *               }
  * 		To retrieve the index of the first key in the command:
  * 			currentKeyIndex = -1
  * 			level = 0
@@ -315,7 +315,7 @@ static int bpsec_admin_json_getNextKeyAtLevel(jsonObject job, int currKeyIdx, in
 	currKeyIdx++;
 
 	/* Step 2: Check if there are more keys to search in the JSON object. */
-	if(currKeyIdx >= job.tokenCount)
+	if (currKeyIdx >= job.tokenCount)
 	{
 		/* Step 2.1: No more keys to search */
 		return 0;
@@ -362,7 +362,7 @@ static int bpsec_admin_json_getValueIdx(jsonObject job, int keyIdx)
 	{
 		/* Step 2: The value for the key will have its parent index set to
 		 * the key index. */
-		if(job.tokens[idx].parent == keyIdx)
+		if (job.tokens[idx].parent == keyIdx)
 		{
 			return idx;
 		}
@@ -393,13 +393,13 @@ static int bpsec_admin_json_getValueAtIdx(jsonObject job, jsmntype_t type, int i
 	CHKERR(size >= 1);
 
 	/* Step 1: Check that the index is in bounds. */
-	if(idx < 0 || idx > job.tokenCount)
+	if (idx < 0 || idx > job.tokenCount)
 	{
 		return -1;
 	}
 
 	/* Step 2: Check that the token type matches expected. */
-	if(job.tokens[idx].type == type)
+	if (job.tokens[idx].type == type)
 	{
 		/* Step 3: Initialize the value field. */
 		memset(value, '\0', size);
@@ -408,7 +408,7 @@ static int bpsec_admin_json_getValueAtIdx(jsonObject job, jsmntype_t type, int i
 		 * check that the provided field can accommodate it */
 		int len = job.tokens[idx].end - job.tokens[idx].start;
 
-		if(len > size)
+		if (len > size)
 		{
 			isprintf(gUserText, USER_TEXT_LEN, "Length of value exceeds permitted size. Length of value: %i. Max size: %i.", len, size);
 			bpsec_admin_printText(gUserText);
@@ -416,7 +416,7 @@ static int bpsec_admin_json_getValueAtIdx(jsonObject job, jsmntype_t type, int i
 		}
 
 		/* Step 5: Copy JSON token value into the user-provided value field. */
-		if(istrcpy(value, job.line+job.tokens[idx].start, len+1) == NULL)
+		if (istrcpy(value, job.line+job.tokens[idx].start, len+1) == NULL)
 		{
 			isprintf(gUserText, USER_TEXT_LEN, "Command value was not successfully copied for JSON command at index %i.", idx);
 			bpsec_admin_printText(gUserText);
@@ -463,7 +463,7 @@ static int bpsec_admin_json_getTypedIdx(jsonObject job, int start, int end, char
 	int token_len = 0;
 
 	/* We need a key to search for. */
-	if(key == NULL)
+	if (key == NULL)
 	{
 		return -1;
 	}
@@ -471,7 +471,7 @@ static int bpsec_admin_json_getTypedIdx(jsonObject job, int start, int end, char
 	key_len = strlen(key);
 
 	/* Calculate end of token search. */
-	if(end <= 0)
+	if (end <= 0)
 	{
 		end = job.tokenCount - 1;
 	}
@@ -482,7 +482,7 @@ static int bpsec_admin_json_getTypedIdx(jsonObject job, int start, int end, char
 		token_len = job.tokens[i].end - job.tokens[i].start;
 
 		/* If we found the key... */
-		if( (job.tokens[i].type == JSMN_STRING) &&
+		if ((job.tokens[i].type == JSMN_STRING) &&
 			(key_len == token_len) &&
 			(strncmp(job.line + job.tokens[i].start, key, token_len) == 0))
 		{
@@ -535,7 +535,7 @@ static int bpsec_admin_json_getTypedValue(jsonObject job, int start, int end, in
 	/* Retrieve the index of the token holding the value. */
 	i = bpsec_admin_json_getTypedIdx(job, start, end, key, type);
 
-	if(i > 0)
+	if (i > 0)
 	{
 		/* Calculate the length of the found value. */
 		int len = MIN(job.tokens[i].end - job.tokens[i].start, max);
@@ -544,13 +544,13 @@ static int bpsec_admin_json_getTypedValue(jsonObject job, int start, int end, in
 		memset(value,0,max);
 
 		/* Copy JSON segment into the value. */
-		if(istrcpy(value, job.line+job.tokens[i].start, len+1) == NULL)
+		if (istrcpy(value, job.line+job.tokens[i].start, len+1) == NULL)
 		{
 			return -1;
 		}
 
 		/* Store value token index if needed. */
-		if(idx != NULL)
+		if (idx != NULL)
 		{
 			*idx = i;
 		}
@@ -586,7 +586,7 @@ static char *bpsec_admin_json_allocStrValue(jsonObject job, int start, int end, 
 {
 	char *tmp = (char*) MTAKE(max+1);
 
-	if(bpsec_admin_json_getTypedValue(job, start, end, JSMN_STRING, key, max, tmp, idx) <= 0)
+	if (bpsec_admin_json_getTypedValue(job, start, end, JSMN_STRING, key, max, tmp, idx) <= 0)
 	{
 		MRELEASE(tmp);
 		tmp = NULL;
@@ -615,13 +615,13 @@ static int bpsec_admin_getMappedValue(BpSecMap map[], char *key)
 {
 	int idx = 0;
 
-	while(map[idx].key != NULL)
+	while (map[idx].key != NULL)
 	{
-		if(strcmp(key, map[idx].key) == 0)
-	    {
-	      return map[idx].value;
-	    }
-	    idx++;
+		if (strcmp(key, map[idx].key) == 0)
+		{
+			return map[idx].value;
+		}
+		idx++;
 	}
 
 	return 0;
@@ -673,7 +673,7 @@ static int bpsec_admin_json_getEventId(jsonObject job, BpSecEventId *event)
 
 /******************************************************************************
  * @brief Using the text security service provided by the user, this function
- *        returns the security service number corresponding to the supported 
+ *        returns the security service number corresponding to the supported
  *        value.
  *
  * @param[in]  svc_str  - User-provided string name of security service.
@@ -688,10 +688,10 @@ static int bpsec_admin_getSvc(char *svc_str)
 	int svc = -1;
 
 	/* Find the security service value in the map of security services. */
-  	if((svc = bpsec_admin_getMappedValue(gSvcMap, svc_str)) > 0)
-  	{
+	if ((svc = bpsec_admin_getMappedValue(gSvcMap, svc_str)) > 0)
+	{
 		return svc;
-  	}
+	}
 	else
 	{
 		isprintf(gUserText, USER_TEXT_LEN, "Security service %s unknown. Supported security services are: \n\tbib-integrity\n\tbcb-confidentiality", svc_str);
@@ -702,7 +702,7 @@ static int bpsec_admin_getSvc(char *svc_str)
 	}
 
 	svc = -1;
-  	return svc;
+	return svc;
 }
 
 
@@ -723,32 +723,32 @@ static int bpsec_admin_getSvc(char *svc_str)
 
 static int bpsec_admin_setAction(char *action, uint8_t *actionMask)
 {
-  int value = 0;
+	int value = 0;
 
-  /* Find the action value in the map of action values. */
-  if((value = bpsec_admin_getMappedValue(gActionMap, action)) > 0)
-  {
-	  /* If the action was found but is not implemented...*/
-	  if(value == BSLACT_NOT_IMPLEMENTED)
-	  {
-		isprintf(gUserText, USER_TEXT_LEN, "Action %s currently not supported.", action);
+	/* Find the action value in the map of action values. */
+	if ((value = bpsec_admin_getMappedValue(gActionMap, action)) > 0)
+	{
+		/* If the action was found but is not implemented...*/
+		if (value == BSLACT_NOT_IMPLEMENTED)
+		{
+			isprintf(gUserText, USER_TEXT_LEN, "Action %s currently not supported.", action);
+			bpsec_admin_printText(gUserText);
+
+			value = 0;
+		}
+		else
+		{
+			*actionMask |= value;
+		}
+	}
+
+	else
+	{
+		isprintf(gUserText, USER_TEXT_LEN, "Unknown action: %s.", action);
 		bpsec_admin_printText(gUserText);
+	}
 
-		value = 0;
-	  }
-	  else
-	  {
-		  *actionMask |= value;
-	  }
-  }
-
-  else
-  {
-	  isprintf(gUserText, USER_TEXT_LEN, "Unknown action: %s.", action);
-	  bpsec_admin_printText(gUserText);
-  }
-
-  return value;
+	return value;
 }
 
 
@@ -760,7 +760,7 @@ static int bpsec_admin_setAction(char *action, uint8_t *actionMask)
  * @param[out] actionMask - The mask of enabled actions
  * @param[out] parms      - Parameters associated with actions (if any)
  *
- * @note 
+ * @note
  * JSON structure
  * "actions" : { [ {"id":"action name", (opt parms)}, ...]}
  *
@@ -787,7 +787,7 @@ static int bpsec_admin_json_getActions(jsonObject job, uint8_t *actionMask, BpSe
 	 */
 	start = bpsec_admin_json_getTypedIdx(job, 1, 0, KNS_ACTIONS, JSMN_ARRAY);
 
-	if(start <= 0)
+	if (start <= 0)
 	{
 		isprintf(gUserText, USER_TEXT_LEN, "Cannot find processing actions array object in JSON.", NULL);
 		bpsec_admin_printText(gUserText);
@@ -810,65 +810,65 @@ static int bpsec_admin_json_getActions(jsonObject job, uint8_t *actionMask, BpSe
 		curAct = bpsec_admin_setAction(actionStr, actionMask);
 
 		/* Process the action based on its enumeration. */
-		switch(curAct)
+		switch (curAct)
 		{
-			/* If this is a report action, reas in the reason code to report. */
-			case BSLACT_REPORT_REASON_CODE:
-				if(bpsec_admin_json_getTypedValue(job, start, start+1, JSMN_PRIMITIVE, KNS_REASON_CODE, 64, parmStr, &start) > 0)
-				{
-				   parms[parmIdx++].asReason.reasonCode = atoi(parmStr);
-				}
-				else
-				{
-					isprintf(gUserText, USER_TEXT_LEN, "No reason code supplied for action Report Reason Code %d.", curAct);
-					bpsec_admin_printText(gUserText);
-
-					return -1;
-				}
-				break;
-
-			/* If this is an override action, get the mask/value for the override. */
-			case BSLACT_OVERRIDE_TARGET_BPCF:
-			case BSLACT_OVERRIDE_SOP_BPCF:
-				numParm = 0;
-				if(bpsec_admin_json_getTypedValue(job, start, start+3, JSMN_PRIMITIVE, KNS_MASK, 64, parmStr, NULL) > 0)
-				{
-				   parms[parmIdx].asOverride.mask = (uint64_t) strtol(parmStr, NULL, 16);
-				   numParm++;
-				}
-				if(bpsec_admin_json_getTypedValue(job, start, start+3, JSMN_PRIMITIVE, KNS_NEW_VALUE, 64, parmStr, NULL) > 0)
-				{
-				   parms[parmIdx].asOverride.val = (uint64_t) strtol(parmStr, NULL, 16);
-				   numParm++;
-				}
-				if(numParm != 2)
-				{
-					isprintf(gUserText, USER_TEXT_LEN, "Invalid parameters for override action. Check block processing flags.", NULL);
-					bpsec_admin_printText(gUserText);
-
-					parms[parmIdx].asOverride.val = parms[parmIdx].asOverride.mask = 0;
-					return -1;
-				}
-				else
-				{
-					parmIdx++;
-				}
-				break;
-			/* if the action is unknown, stop processing. The JSON is malformed. */
-			case 0:
-				isprintf(gUserText, USER_TEXT_LEN, "Unknown processing action %s.", actionStr);
+		/* If this is a report action, reas in the reason code to report. */
+		case BSLACT_REPORT_REASON_CODE:
+			if(bpsec_admin_json_getTypedValue(job, start, start+1, JSMN_PRIMITIVE, KNS_REASON_CODE, 64, parmStr, &start) > 0)
+			{
+				parms[parmIdx++].asReason.reasonCode = atoi(parmStr);
+			}
+			else
+			{
+				isprintf(gUserText, USER_TEXT_LEN, "No reason code supplied for action Report Reason Code %d.", curAct);
 				bpsec_admin_printText(gUserText);
 
-				return 0;
-				break;
+				return -1;
+			}
+			break;
 
-			/* If the action is not implemented, skip and process other actions. */
-			case BSLACT_NOT_IMPLEMENTED:
-				isprintf(gUserText, USER_TEXT_LEN, "Action %s not implemented.", actionStr);
+		/* If this is an override action, get the mask/value for the override. */
+		case BSLACT_OVERRIDE_TARGET_BPCF:
+		case BSLACT_OVERRIDE_SOP_BPCF:
+			numParm = 0;
+			if(bpsec_admin_json_getTypedValue(job, start, start+3, JSMN_PRIMITIVE, KNS_MASK, 64, parmStr, NULL) > 0)
+			{
+				parms[parmIdx].asOverride.mask = (uint64_t) strtol(parmStr, NULL, 16);
+				numParm++;
+			}
+			if(bpsec_admin_json_getTypedValue(job, start, start+3, JSMN_PRIMITIVE, KNS_NEW_VALUE, 64, parmStr, NULL) > 0)
+			{
+				parms[parmIdx].asOverride.val = (uint64_t) strtol(parmStr, NULL, 16);
+				numParm++;
+			}
+			if(numParm != 2)
+			{
+				isprintf(gUserText, USER_TEXT_LEN, "Invalid parameters for override action. Check block processing flags.", NULL);
 				bpsec_admin_printText(gUserText);
-				break;
-			default:
-				break;
+
+				parms[parmIdx].asOverride.val = parms[parmIdx].asOverride.mask = 0;
+				return -1;
+			}
+			else
+			{
+				parmIdx++;
+			}
+			break;
+		/* if the action is unknown, stop processing. The JSON is malformed. */
+		case 0:
+			isprintf(gUserText, USER_TEXT_LEN, "Unknown processing action %s.", actionStr);
+			bpsec_admin_printText(gUserText);
+
+			return 0;
+			break;
+
+		/* If the action is not implemented, skip and process other actions. */
+		case BSLACT_NOT_IMPLEMENTED:
+			isprintf(gUserText, USER_TEXT_LEN, "Action %s not implemented.", actionStr);
+			bpsec_admin_printText(gUserText);
+			break;
+		default:
+			break;
 		}
 	}
 	return 1;
@@ -905,7 +905,7 @@ static int bpsec_admin_json_getScId(jsonObject job, int *sc_id)
 		/* Or the security context may be identified by its name */
 		if((result = bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_STRING, KNS_SC_ID, JSON_VAL_LEN, sc_id_str, NULL)) <= 0)
 		{
-			/* Security context ID is missing - not provided as an int or string. 
+			/* Security context ID is missing - not provided as an int or string.
 			 * This is permitted for filter/find criteria. */
 			return 0;
 		}
@@ -914,7 +914,7 @@ static int bpsec_admin_json_getScId(jsonObject job, int *sc_id)
 		result = bpsec_sci_idFind(sc_id_str, &input_sc_id);
 
 		/* If the SC ID is found, return it */
-		if(result == 1)
+		if (result == 1)
 		{
 			*sc_id = input_sc_id;
 			return 1;
@@ -1210,7 +1210,7 @@ static PsmAddress bpsec_admin_json_getSecCtxtParms(jsonObject job, sc_Def *secCt
 			/* Step 4: Add the SCI parameter to shared memory */
 			if(bpsec_sci_polParmAdd(wm, result, secCtx, curId, curVal) != 0)
 			{
-                isprintf(gUserText, USER_TEXT_LEN, "SCI cannot add sc_parm %s", curId);
+				isprintf(gUserText, USER_TEXT_LEN, "SCI cannot add sc_parm %s", curId);
 				bpsec_admin_printText(gUserText);
 				sm_list_destroy(wm, result, bpsec_scv_smlistCbDel, NULL);
 				return 0;
@@ -1221,7 +1221,7 @@ static PsmAddress bpsec_admin_json_getSecCtxtParms(jsonObject job, sc_Def *secCt
 			 * If we are at the end of parameters to process, scParkIdx is set to an out
 			 * of bounds value, handled in step 3.1. */
 			scKvPair = bpsec_admin_json_getNextKeyAtLevel(job, scParmValIdx, scParmArrIdx);
-			scParmIdx = scKvPair+1; 
+			scParmIdx = scKvPair+1;
 		}
 	}
 
@@ -1377,7 +1377,7 @@ static void	bpsec_admin_addEventSet(jsonObject job)
 	{
 		/* Step 2: Retrieve eventset description (optional). */
 		bpsec_admin_json_getTypedValue(job, start, 0, JSMN_STRING, KNS_DESC, MAX_EVENT_SET_DESC_LEN, desc, NULL);
-		
+
 		/* Step 3: Add the eventset with name and description. */
 		if(bsles_add(gWm, name, desc) < 0)
 		{
@@ -1394,7 +1394,7 @@ static void	bpsec_admin_addEventSet(jsonObject job)
 
 
 /******************************************************************************
- * @brief Add a security policy event to an existing event set from the 
+ * @brief Add a security policy event to an existing event set from the
  * provided JSON object.
  *
  * @param[in]  job  - The parsed JSON tokens.
@@ -1523,7 +1523,7 @@ static void	bpsec_admin_addPolicyrule(jsonObject job)
 			bpsec_admin_printText("\"sc_id\" field must be present in policy rules providing \"sc_parms\".");
 			return;
 		}
-		
+
 		if((ruleAddr = bslpol_rule_create(gWm, desc, id, 0, filter, sci_parms, esAddr)) == 0)
 		{
 			isprintf(gUserText, USER_TEXT_LEN, "Could not create rule %d.", id);
@@ -1726,26 +1726,26 @@ static void bpsec_admin_printEvent(BpSecEvent *event)
 		{
 			switch(gActionMap[idx].value)
 			{
-				case BSLACT_REPORT_REASON_CODE:
-					isprintf(tmp, sizeof(tmp), "- Report with reason code %i\n",
-						     event->action_parms[parmIdx].asReason.reasonCode);
-					strcat(buf,tmp);
-					parmIdx++;
-					break;
-				case BSLACT_OVERRIDE_TARGET_BPCF:
-				case BSLACT_OVERRIDE_SOP_BPCF:
-					isprintf(tmp, sizeof(tmp), "- %s\n\t Mask: %ll \n\t New values:%ll \n",
-							gActionMap[idx].key,
-							event->action_parms[parmIdx].asOverride.mask,
-							event->action_parms[parmIdx].asOverride.val);
-					strcat(buf,tmp);
-					parmIdx++;
-					break;
-				case BSLACT_NOT_IMPLEMENTED:
-					break;
-				default:
-					isprintf(tmp, sizeof(tmp), "  %s\n", gActionMap[idx].key);
-					strcat(buf, tmp);
+			case BSLACT_REPORT_REASON_CODE:
+				isprintf(tmp, sizeof(tmp), "- Report with reason code %i\n",
+						event->action_parms[parmIdx].asReason.reasonCode);
+				strcat(buf,tmp);
+				parmIdx++;
+				break;
+			case BSLACT_OVERRIDE_TARGET_BPCF:
+			case BSLACT_OVERRIDE_SOP_BPCF:
+				isprintf(tmp, sizeof(tmp), "- %s\n\t Mask: %ll \n\t New values:%ll \n",
+						gActionMap[idx].key,
+						event->action_parms[parmIdx].asOverride.mask,
+						event->action_parms[parmIdx].asOverride.val);
+				strcat(buf,tmp);
+				parmIdx++;
+				break;
+			case BSLACT_NOT_IMPLEMENTED:
+				break;
+			default:
+				isprintf(tmp, sizeof(tmp), "  %s\n", gActionMap[idx].key);
+				strcat(buf, tmp);
 			}
 		}
 		idx++;
@@ -1768,7 +1768,7 @@ static void bpsec_admin_printEventsetName(BpSecEventSet *esPtr)
 	memset(buf, '\0', sizeof(buf));
 
 	isprintf(buf, sizeof(buf), "\nEventset name: %s\n\tAssociated Policy Rules: %i",
-			 esPtr->name, esPtr->ruleCount);
+			esPtr->name, esPtr->ruleCount);
 
 	bpsec_admin_printText(buf);
 }
@@ -1783,7 +1783,7 @@ static void bpsec_admin_printEventsetName(BpSecEventSet *esPtr)
 
 static void bpsec_admin_printEventsetDesc(BpSecEventSet *esPtr)
 {
-	char buf[MAX_EVENT_SET_DESC_LEN + 1]; 
+	char buf[MAX_EVENT_SET_DESC_LEN + 1];
 	memset(buf, '\0', sizeof(buf));
 
 	isprintf(buf, sizeof(buf), "\tDescription: %s\n", esPtr->desc);
@@ -1850,21 +1850,21 @@ static void bpsec_admin_printPolicyrule(BpSecPolRule *rulePtr, int verbose)
 	}
 
 	strcat(buf,"\n\tRoles: ");
-    if(rulePtr->filter.flags & BPRF_SRC_ROLE)
-    {
+	if(rulePtr->filter.flags & BPRF_SRC_ROLE)
+	{
 		isprintf(tmp, sizeof(tmp), "Source ", NULL);
 		strcat(buf,tmp);
-    }
-    if(rulePtr->filter.flags & BPRF_VER_ROLE)
-    {
+	}
+	if(rulePtr->filter.flags & BPRF_VER_ROLE)
+	{
 		isprintf(tmp, sizeof(tmp), "Verifier ", NULL);
 		strcat(buf,tmp);
-    }
-    if(rulePtr->filter.flags & BPRF_ACC_ROLE)
-    {
+	}
+	if(rulePtr->filter.flags & BPRF_ACC_ROLE)
+	{
 		isprintf(tmp, sizeof(tmp), "Acceptor ", NULL);
 		strcat(buf,tmp);
-    }
+	}
 
 	esPtr = (BpSecEventSet *) psp(gWm, rulePtr->eventSet);
 	isprintf(tmp, sizeof(tmp), "\n\tEventset: %s", esPtr->name);
@@ -2076,18 +2076,18 @@ static void	bpsec_admin_findPolicyrule(jsonObject job)
 
 	switch(type)
 	{
-		case BPSEC_SEARCH_ALL:
-			rules = bslpol_rule_get_all_match(gWm, tag);
-			bpsec_admin_printPolicyruleLyst(rules, 1);
-			lyst_destroy(rules);
-			break;
+	case BPSEC_SEARCH_ALL:
+		rules = bslpol_rule_get_all_match(gWm, tag);
+		bpsec_admin_printPolicyruleLyst(rules, 1);
+		lyst_destroy(rules);
+		break;
 
-		case BPSEC_SEARCH_BEST:
-			bpsec_admin_printPolicyrule(bslpol_rule_find_best_match(gWm, tag), 1);
-			break;
-		default:
-			bpsec_admin_printText("Unknown find type. Supported types are: \"best\" or \"all\".");
-			break;
+	case BPSEC_SEARCH_BEST:
+		bpsec_admin_printPolicyrule(bslpol_rule_find_best_match(gWm, tag), 1);
+		break;
+	default:
+		bpsec_admin_printText("Unknown find type. Supported types are: \"best\" or \"all\".");
+		break;
 	}
 
 	return;
@@ -2260,95 +2260,95 @@ SecPolCmd bpsec_admin_json_getSecPolCmd(char *cmdCode, jsonObject job)
 	 * command code provided. */
 	switch (cmdCode[0])
 	{
-		/* Add command */
-		case 'a':
-			if(strcmp(cmdType, KNS_POLICYRULE) == 0)
-			{
-				return add_policyrule;
-			}
-			else if(strcmp(cmdType, KNS_EVENT_SET) == 0)
-			{
-				return add_event_set;
-			}
-			else if(strcmp(cmdType, KNS_EVENT) == 0)
-			{
-				return add_event;
-			}
-			else
-			{
-				bpsec_admin_printText("Malformed security policy add command. \n"
-						"Supported command types are: \n"
-						"\t \"event_set\" \t \"event\" \t \"policyrule\"");
-				return invalid;
-			}
-		/* Delete command */
-		case 'd':
-			if(strcmp(cmdType, KNS_POLICYRULE) == 0)
-			{
-				return delete_policyrule;
-			}
-			else if(strcmp(cmdType, KNS_EVENT_SET) == 0)
-			{
-				return delete_event_set;
-			}
-			else if(strcmp(cmdType, KNS_EVENT) == 0)
-			{
-				return delete_event;
-			}
-			else
-			{
-				bpsec_admin_printText("Malformed security policy delete command. \n"
-						"Supported command types are: \n"
-						"\t \"event_set\" \t \"event\" \t \"policyrule\"");
-				return invalid;
-			}
-		/* Find command */
-		case 'f':
-			if(strcmp(cmdType, KNS_POLICYRULE) == 0)
-			{
-				return find_policyrule;
-			}
-			else
-			{
-				bpsec_admin_printText("Malformed security policy find command. \n"
-						"Supported command types are: \n"
-						"\t \"policyrule\"");
-				return invalid;
-			}
-		/* Info command */
-		case 'i':
-			if(strcmp(cmdType, KNS_POLICYRULE) == 0)
-			{
-				return info_policyrule;
-			}
-			else if(strcmp(cmdType, KNS_EVENT_SET) == 0)
-			{
-				return info_event_set;
-			}
-			else
-			{
-				bpsec_admin_printText("Malformed security policy info command. \n"
-						"Supported command types are: \n"
-						"\t \"event_set\" \t \"policyrule\"");
-				return invalid;
-			}
-		/* List command */
-		case 'l':
-			if(strcmp(cmdType, KNS_POLICYRULE) == 0)
-			{
-				return list_policyrule;
-			}
-			else if(strcmp(cmdType, KNS_EVENT_SET) == 0)
-			{
-				return list_event_set;
-			}
-			else
-			{
-				bpsec_admin_printText("Malformed security policy list command. \n"
-						"Supported command types are: \n"
-						"\t \"event_set\" \t \"policyrule\"");
-				return invalid;
-			}
+	/* Add command */
+	case 'a':
+		if(strcmp(cmdType, KNS_POLICYRULE) == 0)
+		{
+			return add_policyrule;
+		}
+		else if(strcmp(cmdType, KNS_EVENT_SET) == 0)
+		{
+			return add_event_set;
+		}
+		else if(strcmp(cmdType, KNS_EVENT) == 0)
+		{
+			return add_event;
+		}
+		else
+		{
+			bpsec_admin_printText("Malformed security policy add command. \n"
+					"Supported command types are: \n"
+					"\t \"event_set\" \t \"event\" \t \"policyrule\"");
+			return invalid;
+		}
+	/* Delete command */
+	case 'd':
+		if(strcmp(cmdType, KNS_POLICYRULE) == 0)
+		{
+			return delete_policyrule;
+		}
+		else if(strcmp(cmdType, KNS_EVENT_SET) == 0)
+		{
+			return delete_event_set;
+		}
+		else if(strcmp(cmdType, KNS_EVENT) == 0)
+		{
+			return delete_event;
+		}
+		else
+		{
+			bpsec_admin_printText("Malformed security policy delete command. \n"
+					"Supported command types are: \n"
+					"\t \"event_set\" \t \"event\" \t \"policyrule\"");
+			return invalid;
+		}
+	/* Find command */
+	case 'f':
+		if(strcmp(cmdType, KNS_POLICYRULE) == 0)
+		{
+			return find_policyrule;
+		}
+		else
+		{
+			bpsec_admin_printText("Malformed security policy find command. \n"
+					"Supported command types are: \n"
+					"\t \"policyrule\"");
+			return invalid;
+		}
+	/* Info command */
+	case 'i':
+		if(strcmp(cmdType, KNS_POLICYRULE) == 0)
+		{
+			return info_policyrule;
+		}
+		else if(strcmp(cmdType, KNS_EVENT_SET) == 0)
+		{
+			return info_event_set;
+		}
+		else
+		{
+			bpsec_admin_printText("Malformed security policy info command. \n"
+					"Supported command types are: \n"
+					"\t \"event_set\" \t \"policyrule\"");
+			return invalid;
+		}
+	/* List command */
+	case 'l':
+		if(strcmp(cmdType, KNS_POLICYRULE) == 0)
+		{
+			return list_policyrule;
+		}
+		else if(strcmp(cmdType, KNS_EVENT_SET) == 0)
+		{
+			return list_event_set;
+		}
+		else
+		{
+			bpsec_admin_printText("Malformed security policy list command. \n"
+					"Supported command types are: \n"
+					"\t \"event_set\" \t \"policyrule\"");
+			return invalid;
+		}
 	}
 
 	bpsec_admin_printText("Malformed security policy command. \nCheck security policy user's manual for more information.");
@@ -2513,20 +2513,20 @@ int bpsec_admin_json_getCmd(char *line, char *jsonStr)
 
 int bpsec_admin_setKeyFlag(char *key, uint32_t *keyMask)
 {
-  int value = 0;
+	int value = 0;
 
-  /* Find the action value in the map of action values. */
-  if((value = bpsec_admin_getMappedValue(gKeyWords, key)) > 0)
-  {
-	  *keyMask |= value;
-  }
-  else
-  {
-	  isprintf(gUserText, USER_TEXT_LEN, "Unknown key in security policy command %s. \nCheck security policy user's manual for supported keys.", key);
-	  bpsec_admin_printText(gUserText);
-  }
+	/* Find the action value in the map of action values. */
+	if ((value = bpsec_admin_getMappedValue(gKeyWords, key)) > 0)
+	{
+		*keyMask |= value;
+	}
+	else
+	{
+		isprintf(gUserText, USER_TEXT_LEN, "Unknown key in security policy command %s. \nCheck security policy user's manual for supported keys.", key);
+		bpsec_admin_printText(gUserText);
+	}
 
-  return value;
+	return value;
 }
 
 
@@ -2549,85 +2549,85 @@ int bpsec_admin_json_checkKeys(SecPolCmd cmdId, uint32_t cmdKeyMask)
 
 	switch (cmdId)
 	{
-		case add_event_set:
-			if((HAS_MANDATORY_KEYS(cmdKeyMask, MAND_ES_ADD_KEYS)) &&
-				!(HAS_INVALID_KEYS(cmdKeyMask, MAND_ES_ADD_KEYS, OPT_ES_ADD_KEYS)))
-			{
-				return 1;
-			}
-			return 0;
-		case delete_event_set:
-			if((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_ES_DEL_KEYS)) &&
-				!(HAS_INVALID_KEYS(cmdKeyMask, MAND_ES_DEL_KEYS, 0)))
-			{
-				return 1;
-			}
-			return 0;
-		case info_event_set:
-			if((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_ES_INFO_KEYS)) &&
-				!(HAS_INVALID_KEYS(cmdKeyMask, MAND_ES_INFO_KEYS, 0)))
-			{
-				return 1;
-			}
-			return 0;
-		case list_event_set:
-			if((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_ES_LIST_KEYS)) &&
-				!(HAS_INVALID_KEYS(cmdKeyMask, MAND_ES_LIST_KEYS, 0)))
-			{
-				return 1;
-			}
-			return 0;
-		case add_event:
-			if((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_EVENT_ADD_KEYS)) &&
-				!(HAS_INVALID_KEYS(cmdKeyMask, MAND_EVENT_ADD_KEYS, 0)))
-			{
-				return 1;
-			}
-			return 0;
-		case delete_event:
-			if((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_EVENT_DEL_KEYS)) &&
-				!(HAS_INVALID_KEYS(cmdKeyMask, MAND_EVENT_DEL_KEYS, 0)))
-			{
-				return 1;
-			}
-			return 0;
-		case add_policyrule:
-			if((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_RULE_ADD_KEYS)) &&
-				!(HAS_INVALID_KEYS(cmdKeyMask, MAND_RULE_ADD_KEYS, OPT_RULE_ADD_KEYS)))
-			{
-				return 1;
-			}
-			return 0;
-		case delete_policyrule:
-			if((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_RULE_DEL_KEYS)) &&
-				!(HAS_INVALID_KEYS(cmdKeyMask, MAND_RULE_DEL_KEYS, 00)))
-			{
-				return 1;
-			}
-			return 0;
-		case info_policyrule:
-			if((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_RULE_INFO_KEYS)) &&
-				!(HAS_INVALID_KEYS(cmdKeyMask, MAND_RULE_INFO_KEYS, 0)))
-			{
-				return 1;
-			}
-			return 0;
-		case find_policyrule:
-			if((HAS_MANDATORY_KEYS(cmdKeyMask, MAND_RULE_FIND_KEYS)) &&
-				!(HAS_INVALID_KEYS(cmdKeyMask, MAND_RULE_FIND_KEYS, OPT_RULE_FIND_KEYS)))
-			{
-				return 1;
-			}
-			return 0;
-		case list_policyrule:
-			if((HAS_MANDATORY_KEYS(cmdKeyMask, MAND_RULE_LIST_KEYS)) &&
-				!(HAS_INVALID_KEYS(cmdKeyMask, MAND_RULE_LIST_KEYS, 0)))
-			{
-				return 1;
-			}
-			return 0;
-		default:
-			return 0;
+	case add_event_set:
+		if ((HAS_MANDATORY_KEYS(cmdKeyMask, MAND_ES_ADD_KEYS)) &&
+			!(HAS_INVALID_KEYS(cmdKeyMask, MAND_ES_ADD_KEYS, OPT_ES_ADD_KEYS)))
+		{
+			return 1;
+		}
+		return 0;
+	case delete_event_set:
+		if ((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_ES_DEL_KEYS)) &&
+			!(HAS_INVALID_KEYS(cmdKeyMask, MAND_ES_DEL_KEYS, 0)))
+		{
+			return 1;
+		}
+		return 0;
+	case info_event_set:
+		if ((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_ES_INFO_KEYS)) &&
+			!(HAS_INVALID_KEYS(cmdKeyMask, MAND_ES_INFO_KEYS, 0)))
+		{
+			return 1;
+		}
+		return 0;
+	case list_event_set:
+		if ((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_ES_LIST_KEYS)) &&
+			!(HAS_INVALID_KEYS(cmdKeyMask, MAND_ES_LIST_KEYS, 0)))
+		{
+			return 1;
+		}
+		return 0;
+	case add_event:
+		if ((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_EVENT_ADD_KEYS)) &&
+			!(HAS_INVALID_KEYS(cmdKeyMask, MAND_EVENT_ADD_KEYS, 0)))
+		{
+			return 1;
+		}
+		return 0;
+	case delete_event:
+		if ((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_EVENT_DEL_KEYS)) &&
+			!(HAS_INVALID_KEYS(cmdKeyMask, MAND_EVENT_DEL_KEYS, 0)))
+		{
+			return 1;
+		}
+		return 0;
+	case add_policyrule:
+		if ((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_RULE_ADD_KEYS)) &&
+			!(HAS_INVALID_KEYS(cmdKeyMask, MAND_RULE_ADD_KEYS, OPT_RULE_ADD_KEYS)))
+		{
+			return 1;
+		}
+		return 0;
+	case delete_policyrule:
+		if ((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_RULE_DEL_KEYS)) &&
+			!(HAS_INVALID_KEYS(cmdKeyMask, MAND_RULE_DEL_KEYS, 00)))
+		{
+			return 1;
+		}
+		return 0;
+	case info_policyrule:
+		if ((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_RULE_INFO_KEYS)) &&
+			!(HAS_INVALID_KEYS(cmdKeyMask, MAND_RULE_INFO_KEYS, 0)))
+		{
+			return 1;
+		}
+		return 0;
+	case find_policyrule:
+		if ((HAS_MANDATORY_KEYS(cmdKeyMask, MAND_RULE_FIND_KEYS)) &&
+			!(HAS_INVALID_KEYS(cmdKeyMask, MAND_RULE_FIND_KEYS, OPT_RULE_FIND_KEYS)))
+		{
+			return 1;
+		}
+		return 0;
+	case list_policyrule:
+		if ((HAS_MANDATORY_KEYS(cmdKeyMask, MAND_RULE_LIST_KEYS)) &&
+			!(HAS_INVALID_KEYS(cmdKeyMask, MAND_RULE_LIST_KEYS, 0)))
+		{
+			return 1;
+		}
+		return 0;
+	default:
+		return 0;
 	}
 	return -1;
 }
@@ -2804,25 +2804,25 @@ int bpsec_admin_executeCmd(char *line)
 	/* Step 2: Execute any single char commands ('h', 'q', etc.) */
 	switch (cmdCode[0])
 	{
-		case 0:			/*	Empty line.		*/
-		case '#':		/*	Comment.		*/
-			return 1;
-		case '?':		/*  Help command.   */
-		case 'h':
-			bpsec_admin_printUsage();
-			return 1;
-		case '1':		/*  Init command    */
-			if(bpsec_admin_init() < 0)
-			{
-				return -1;
-			}
-			return 1;
-		case 'v':		/*  Version command. */
-			isprintf(buffer, sizeof(buffer), "%s", IONVERSIONNUMBER);
-			bpsec_admin_printText(buffer);
-			return 1;
-		case 'q':       /* Quit command.     */
-			return 2;
+	case 0:			/*	Empty line.		*/
+	case '#':		/*	Comment.		*/
+		return 1;
+	case '?':		/*  Help command.   */
+	case 'h':
+		bpsec_admin_printUsage();
+		return 1;
+	case '1':		/*  Init command    */
+		if(bpsec_admin_init() < 0)
+		{
+			return -1;
+		}
+		return 1;
+	case 'v':		/*  Version command. */
+		isprintf(buffer, sizeof(buffer), "%s", IONVERSIONNUMBER);
+		bpsec_admin_printText(buffer);
+		return 1;
+	case 'q':       /* Quit command.     */
+		return 2;
 	}
 
 	/* Step 3: If the command code provided requires additional data, it is
@@ -2976,10 +2976,10 @@ int	main(int argc, char **argv)
 		cmdFile = fileno(stdin);
 		isignal(SIGINT, bpsec_admin_handleQuit);
 
-        if(bpsec_admin_init() <= 0)
-        {
-            return -1;
-        }
+		if(bpsec_admin_init() <= 0)
+		{
+			return -1;
+		}
 
 		while (1)
 		{
@@ -3066,7 +3066,7 @@ the program.");
 
 			result = bpsec_admin_executeCmd(line);
 
-			if (result == -1) 
+			if (result == -1)
 			{
 				printf("\nCommand execution error. Exiting.\n");
 				fflush(stdout);

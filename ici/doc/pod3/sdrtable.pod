@@ -6,15 +6,15 @@ sdrtable - Simple Data Recorder table management functions
 
     #include "sdr.h"
 
-    Object  sdr_table_create        (Sdr sdr, int rowSize, int rowCount);
-    void    sdr_table_user_data_set (Sdr sdr, Object table, Address userData);
-    Address sdr_table_user_data     (Sdr sdr, Object table);
-    void    sdr_table_dimensions    (Sdr sdr, Object table, int *rowSize,
-                                        int *rowCount);
-    void    sdr_table_stage         (Sdr sdr, Object table);
-    Address sdr_table_row           (Sdr sdr, Object table, 
-                                        unsigned int rowNbr);
-    int     sdr_table_destroy       (Sdr sdr, Object table);
+    Object sdr_table_create(Sdr sdr, int rowSize, int rowCount);
+    void sdr_table_user_data_set(Sdr sdr, Object table, Address userData);
+    Address sdr_table_user_data(Sdr sdr, Object table);
+    void sdr_table_dimensions(Sdr sdr, Object table, int *rowSize,
+                              int *rowCount);
+    void sdr_table_stage(Sdr sdr, Object table);
+    Address sdr_table_row(Sdr sdr, Object table,
+                          unsigned int rowNbr);
+    int sdr_table_destroy(Sdr sdr, Object table);
 
 =head1 DESCRIPTION
 
@@ -62,7 +62,7 @@ when the table was created.
 
 Stages I<table> so that the array it encapsulates may be updated; see the
 discussion of sdr_stage() in sdr(3).  The effect of this function is
-the same as: 
+the same as:
 
    sdr_stage(sdr, NULL, (Object) sdr_table_row(sdr, table, 0), 0)
 

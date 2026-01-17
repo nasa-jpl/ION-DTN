@@ -50,11 +50,11 @@ int hsha_init(mbedtls_entropy_context *entropy)
 
 
 	ret = mbedtls_hmac_drbg_seed(&g_csi_hmac_drbg_256_ctx,
-								mbedtls_md_info_from_type(MBEDTLS_MD_SHA256 ),
-			                    mbedtls_entropy_func,
-								entropy,
-								(const unsigned char *) "CSI SHA256",
-								strlen("CSI SHA256"));
+				mbedtls_md_info_from_type(MBEDTLS_MD_SHA256 ),
+				mbedtls_entropy_func,
+				entropy,
+				(const unsigned char *) "CSI SHA256",
+				strlen("CSI SHA256"));
 	mbedtls_hmac_drbg_set_prediction_resistance( &g_csi_hmac_drbg_256_ctx, MBEDTLS_HMAC_DRBG_PR_OFF );
 
 	if(ret != 0)
@@ -64,11 +64,11 @@ int hsha_init(mbedtls_entropy_context *entropy)
 	}
 
 	ret = mbedtls_hmac_drbg_seed(&g_csi_hmac_drbg_384_ctx,
-								mbedtls_md_info_from_type(MBEDTLS_MD_SHA384 ),
-			                    mbedtls_entropy_func,
-								entropy,
-								(const unsigned char *) "CSI SHA384",
-								strlen("CSI SHA384"));
+				mbedtls_md_info_from_type(MBEDTLS_MD_SHA384 ),
+				mbedtls_entropy_func,
+				entropy,
+				(const unsigned char *) "CSI SHA384",
+				strlen("CSI SHA384"));
 	mbedtls_hmac_drbg_set_prediction_resistance( &g_csi_hmac_drbg_384_ctx, MBEDTLS_HMAC_DRBG_PR_OFF );
 
 	if(ret != 0)
@@ -78,11 +78,11 @@ int hsha_init(mbedtls_entropy_context *entropy)
 	}
 
 	ret = mbedtls_hmac_drbg_seed(&g_csi_hmac_drbg_512_ctx,
-								mbedtls_md_info_from_type(MBEDTLS_MD_SHA512 ),
-			                    mbedtls_entropy_func,
-								entropy,
-								(const unsigned char *) "CSI SHA512",
-								strlen("CSI SHA512"));
+				mbedtls_md_info_from_type(MBEDTLS_MD_SHA512 ),
+				mbedtls_entropy_func,
+				entropy,
+				(const unsigned char *) "CSI SHA512",
+				strlen("CSI SHA512"));
 	mbedtls_hmac_drbg_set_prediction_resistance( &g_csi_hmac_drbg_512_ctx, MBEDTLS_HMAC_DRBG_PR_OFF );
 
 	if(ret != 0)
@@ -165,18 +165,18 @@ extern csi_val_t hsha_rand(csi_csid_t suite, uint32_t len)
 	result.len = len;
 	switch (suite)
 	{
-        case CSTYPE_HMAC_SHA256:
-        	retVal = mbedtls_hmac_drbg_random(&g_csi_hmac_drbg_256_ctx, result.contents, result.len);
-        	break;
-        case CSTYPE_HMAC_SHA384:
-        	retVal = mbedtls_hmac_drbg_random(&g_csi_hmac_drbg_384_ctx, result.contents, result.len);
-        	break;
-        case CSTYPE_HMAC_SHA512:
-        	retVal = mbedtls_hmac_drbg_random(&g_csi_hmac_drbg_512_ctx, result.contents, result.len);
-        	break;
-        default:
-        	retVal = -1;
-	    	CSI_DEBUG_ERR("x hsha_rand: Unsupported suite: %d.", suite);
+	case CSTYPE_HMAC_SHA256:
+		retVal = mbedtls_hmac_drbg_random(&g_csi_hmac_drbg_256_ctx, result.contents, result.len);
+		break;
+	case CSTYPE_HMAC_SHA384:
+		retVal = mbedtls_hmac_drbg_random(&g_csi_hmac_drbg_384_ctx, result.contents, result.len);
+		break;
+	case CSTYPE_HMAC_SHA512:
+		retVal = mbedtls_hmac_drbg_random(&g_csi_hmac_drbg_512_ctx, result.contents, result.len);
+		break;
+	default:
+		retVal = -1;
+		CSI_DEBUG_ERR("x hsha_rand: Unsupported suite: %d.", suite);
 	}
 
 	if (retVal != 0)
@@ -193,9 +193,9 @@ Error %d.", len, retVal);
 
 void hsha_teardown(void)
 {
-    mbedtls_hmac_drbg_free( &g_csi_hmac_drbg_256_ctx );
-    mbedtls_hmac_drbg_free( &g_csi_hmac_drbg_384_ctx );
-    mbedtls_hmac_drbg_free( &g_csi_hmac_drbg_512_ctx );
+	mbedtls_hmac_drbg_free(&g_csi_hmac_drbg_256_ctx);
+	mbedtls_hmac_drbg_free(&g_csi_hmac_drbg_384_ctx);
+	mbedtls_hmac_drbg_free(&g_csi_hmac_drbg_512_ctx);
 }
 
 
@@ -797,4 +797,3 @@ int8_t hsha_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_
 
 	return retval;
 }
-

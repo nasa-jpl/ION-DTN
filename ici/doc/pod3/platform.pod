@@ -11,19 +11,19 @@ platform - C software portability definitions and functions
 =head1 DESCRIPTION
 
 I<platform> is a library of functions that simplify the porting of
-software written in C.  It provides an API that enables application 
+software written in C.  It provides an API that enables application
 code to access the resources of an abstract POSIX-compliant
 "least common denominator" operating system -- typically a large
 subset of the resources of the actual underlying operating system.
 
 Most of the functionality provided by the platform library is
 aimed at making communication code portable: common functions for
-shared memory, semaphores, and IP sockets are provided.  
+shared memory, semaphores, and IP sockets are provided.
 The implementation of the abstract O/S API varies according
 to the actual operating system on which the application runs, but
 the API's behavior is always the same; applications that invoke
 the platform library functions rather than native O/S system
-calls may forego some O/S-specific capability, but they gain portability 
+calls may forego some O/S-specific capability, but they gain portability
 at little if any cost in performance.
 
 Differences in word size among platforms are implemented by values
@@ -42,18 +42,18 @@ The platform.h header file #includes many of the most frequently
 needed header files: sys/types.h, errno.h, string.h, stdio.h,
 sys/socket.h, signal.h, dirent.h, netinet/in.h, unistd.h,
 stdlib.h, sys/time.h, sys/resource.h, malloc.h, sys/param.h,
-netdb.h, sys/uni.h, and fcntl.h.  Beyond this, I<platform> attempts 
+netdb.h, sys/uni.h, and fcntl.h.  Beyond this, I<platform> attempts
 to enhance compatibility by providing standard macros,
-type definitions, external references, or function implementations 
+type definitions, external references, or function implementations
 that are missing from a few supported O/S's but supported
-by all others.  Finally, entirely new, generic functions are provided 
+by all others.  Finally, entirely new, generic functions are provided
 to establish a common body of functionality that subsumes
 significantly different O/S-specific capabilities.
 
 =head2 PLATFORM COMPATIBILITY PATCHES
 
 The platform library "patches" the APIs of supported O/S's to
-guarantee that all of the following items may be utilized by application 
+guarantee that all of the following items may be utilized by application
 software:
 
     The strchr(), strrchr(), strcasecmp(), and strncasecmp() functions.
@@ -73,8 +73,8 @@ software:
 =head2 PLATFORM GENERIC MACROS AND FUNCTIONS
 
 The generic macros and functions in this section may be used in
-place of comparable O/S-specific functions, to enhance the portability 
-of code.  (The implementations of these macros and functions are 
+place of comparable O/S-specific functions, to enhance the portability
+of code.  (The implementations of these macros and functions are
 no-ops in environments in which they are inapplicable,
 so they're always safe to call.)
 
@@ -99,26 +99,26 @@ handling function return codes that are not meaningful in this context.
 =item CHKERR(condition)
 
 The CHKERR macro is an "assert" mechanism.  It causes the calling function
-to return -1 immediately if I<condition> is false. 
+to return -1 immediately if I<condition> is false.
 
 =item CHKZERO(condition)
 
 The CHKZERO macro is an "assert" mechanism.  It causes the calling function
-to return 0 immediately if I<condition> is false. 
+to return 0 immediately if I<condition> is false.
 
 =item CHKNULL(condition)
 
 The CHKNULL macro is an "assert" mechanism.  It causes the calling function
-to return NULL immediately if I<condition> is false. 
+to return NULL immediately if I<condition> is false.
 
 =item CHKVOID(condition)
 
 The CHKVOID macro is an "assert" mechanism.  It causes the calling function
-to return immediately if I<condition> is false. 
+to return immediately if I<condition> is false.
 
 =item void snooze(unsigned int seconds)
 
-Suspends execution of the invoking task or process for the indicated 
+Suspends execution of the invoking task or process for the indicated
 number of seconds.
 
 =item void microsnooze(unsigned int microseconds)
@@ -141,7 +141,7 @@ reported by log message; unlike snprintf(), isprintf() returns void.
 
 =item size_t istrlen(const char *sourceString, size_t maxlen)
 
-istrlen() is a safe implementation of strlen(); see the strlen(3) man 
+istrlen() is a safe implementation of strlen(); see the strlen(3) man
 page for details.  istrlen() differs from strlen() in that it takes a second
 argument, the maximum valid length of I<sourceString>.  The function
 returns the number of non-NULL characters in I<sourceString> preceding
@@ -194,7 +194,7 @@ will receive the signal cited in an invocation of isignal().
 =item int ifopen(const char *fileName, int flags, int pmode)
 
 ifopen() is a portable function for opening "regular" files.  It operates
-in exactly the same way as open() except that it fails (returning -1) if 
+in exactly the same way as open() except that it fails (returning -1) if
 I<fileName> does not identify a regular file, i.e., it's a directory, a
 named pipe, etc.
 
@@ -307,7 +307,7 @@ stdio.h header file.  Returns I<buffer>.
 
 =item int reUseAddress(int fd)
 
-Makes the address that is bound to the socket identified by 
+Makes the address that is bound to the socket identified by
 I<fd> reusable, so that the socket can be closed
 and immediately reopened and re-bound to the same port number.
 Returns 0 on success, -1 on any error.
@@ -315,8 +315,8 @@ Returns 0 on success, -1 on any error.
 =item int makeIoNonBlocking(int fd)
 
 Makes I/O on the socket identified by I<fd> non-blocking; returns -1 on
-failure.  An attempt to read on a non-blocking socket when no data are pending, 
-or to write on it when its output buffer is full, will not block; 
+failure.  An attempt to read on a non-blocking socket when no data are pending,
+or to write on it when its output buffer is full, will not block;
 it will instead return -1 and cause errno to be set to EWOULDBLOCK.
 
 =item int watchSocket(int fd)
@@ -463,7 +463,7 @@ current system error.
 =item char *itoa(int value)
 
 Returns a string representation of the signed integer in I<value>, nominally
-for immediate use as an argument to putErrmsg(). 
+for immediate use as an argument to putErrmsg().
 
 =item char *utoa(unsigned int value)
 
@@ -740,7 +740,7 @@ that may occupy different address spaces but share access to a common system
 
 I<NOTE> that this is distinct from the VxWorks "VxMP" capability enabling
 tasks to share access to bus memory or dual-ported board memory from multiple
-processors.  The "platform" system will support IPC devices that 
+processors.  The "platform" system will support IPC devices that
 utilize this capability at some time in the future, but that support is
 not yet implemented.
 
@@ -765,7 +765,7 @@ values that uniquely identify them, so that different
 processes can access them independently.  Key values
 are typically defined as constants in application code.
 However, when a new communication object is required
-for which no specific need was anticipated in the application, 
+for which no specific need was anticipated in the application,
 the sm_GetUniqueKey() function can be invoked to obtain a new,
 arbitrary key value that is known not to be already in use.
 
@@ -860,22 +860,22 @@ a common system memory, but possibly multiple address spaces, all have
 access.
 
 This function registers the invoking task or process as a user of the
-shared memory segment identified by I<key>.  If I<key> is the constant value 
+shared memory segment identified by I<key>.  If I<key> is the constant value
 SM_NO_KEY, automatically sets I<key> to some unused key value.
 If a shared memory segment identified by I<key> already exists, then
 I<size> may be zero and the value of I<*shmPtr> is ignored.
 Otherwise the size of the shared memory segment must be provided
 in I<size> and a new shared memory segment is created in a manner that is
-dependent on I<*shmPtr>: if I<*shmPtr> is NULL then 
+dependent on I<*shmPtr>: if I<*shmPtr> is NULL then
 I<size> bytes of shared memory are dynamically acquired, allocated, and
 assigned to the newly created shared memory segment; otherwise the
 memory located at I<shmPtr> is assumed to have been pre-allocated
-and is merely assigned to the newly created shared memory segment. 
+and is merely assigned to the newly created shared memory segment.
 
 On success, stores the unique shared memory ID of the segment in I<*id>
 for possible future destruction, stores a pointer to the segment's
 assigned memory in I<*shmPtr>, and returns 1 (if the segment is newly
-created) or 0 (otherwise).  Returns -1 on any error.  
+created) or 0 (otherwise).  Returns -1 on any error.
 
 =item void sm_ShmDetach(char *shmPtr)
 
@@ -934,10 +934,10 @@ Relinquishes CPU temporarily for use by other tasks.
 
 Spawns/forks a new task/process, passing it up to ten
 command-line arguments.  I<name> is the name of the
-function (VxWorks) or executable image (UNIX) to be executed 
+function (VxWorks) or executable image (UNIX) to be executed
 in the new task/process.
 
-For UNIX, I<name> must be the name of some executable 
+For UNIX, I<name> must be the name of some executable
 program in the $PATH of the invoking process.
 
 For VxWorks, I<name> must be
@@ -974,7 +974,7 @@ Parses I<script> into a command name and up to 10 arguments, then passes the
 command name and arguments to sm_TaskSpawn() for execution.
 The sm_TaskSpawn() function is invoked with priority and stack size both
 set to zero, causing default values (possibly from an application-defined
-private symbol table) to be used.  Tokens in 
+private symbol table) to be used.  Tokens in
 I<script> are normally whitespace-delimited, but a token that is enclosed in
 single-quote characters (') may contain embedded whitespace and may contain
 escaped single-quote characters ("\'").  On any parsing

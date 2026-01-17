@@ -22,13 +22,13 @@ echo "CONFIG: A contact graph with 100-second loopback one-way light time:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
-echo "OUTPUT: Searching for bundle reforwarding messages in ion.log to ensure 
-	that non-zero loopback one-way light time is correctly handled."
+echo "OUTPUT: Searching for bundle reforwarding messages in ion.log to ensure
+    that non-zero loopback one-way light time is correctly handled."
 echo
 echo "########################################"
 
@@ -45,10 +45,10 @@ export ION_NODE_LIST_DIR=$PWD
 
 if [ $? -eq 3 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node not started: Aborting Test"
-	exit 1
+    echo "Node not started: Aborting Test"
+    exit 1
 fi
 
 # Send a loopback bundle with lifetime = 300.
@@ -78,30 +78,30 @@ echo "Checking ion.log for exactly 2 sourced bundles..."
 COUNT=`grep src ion.log | grep "(+) 2 " | wc -l`
 if [ $COUNT -gt 0 ]
 then
-	echo "OK: Exactly 2 bundles sourced."
+    echo "OK: Exactly 2 bundles sourced."
 else
-	echo "ERROR: Expected exactly 2 sourced bundles."
-	RETVAL=1
+    echo "ERROR: Expected exactly 2 sourced bundles."
+    RETVAL=1
 fi
 
 echo "Checking ion.log for non-zero forwarded bundles..."
 COUNT=`grep fwd ion.log | grep -v "(+) 0 0" | wc -l`
 if [ $COUNT -gt 0 ]
 then
-	echo "OK: Bundles were forwarded (non-zero)."
+    echo "OK: Bundles were forwarded (non-zero)."
 else
-	echo "ERROR: No bundles forwarded."
-	RETVAL=1
+    echo "ERROR: No bundles forwarded."
+    RETVAL=1
 fi
 
 echo "Checking ion.log for non-zero reforwarded bundles..."
 COUNT=`grep rfw ion.log | grep -v "(+) 0 0" | wc -l`
 if [ $COUNT -gt 0 ]
 then
-	echo "OK: Bundles were reforwarded (non-zero)."
+    echo "OK: Bundles were reforwarded (non-zero)."
 else
-	echo "ERROR: No bundles reforwarded."
-	RETVAL=1
+    echo "ERROR: No bundles reforwarded."
+    RETVAL=1
 fi
 
 # Shut down ION processes.

@@ -1,4 +1,4 @@
-# ipnrc configuration file for host2 in a 3node ltp/stcp test. 
+# ipnrc configuration file for host2 in a 3node ltp/stcp test.
 #	Essentially, this is the IPN scheme's routing table.
 #	Command: % ipnadmin host2.ipnrc
 #	This command should be run AFTER bpadmin (likely to be run last).

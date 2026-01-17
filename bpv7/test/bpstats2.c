@@ -20,7 +20,7 @@ char   theBuffer[2048];
 static int needSendDefault = 0;
 static int needShutdown = 0;
 
-const char usage[] = 
+const char usage[] =
 "Usage: bpstats2 <source EID> [<default dest EID>] [ct]\n\n"
 "Responds to receipt of any bundle by replying with a bundle \n"
 "containing the statistics of the BPA to which it is attached.\n\n"
@@ -64,7 +64,7 @@ void sendDefault(int signum)
 /* This is basically libbpP.c's "reportStateStats()" except to a buffer. */
 int appendStateStats(char *buffer, size_t len, int stateIdx)
 {
-	static char *classnames[] = 
+	static char *classnames[] =
 	{ "src", "fwd", "xmt", "rcv", "dlv", "ctr", "rfw", "exp" };
 	Sdr		sdrHandle = getIonsdr();
 	Object		bpDbObject = getBpDbObject();
@@ -284,7 +284,7 @@ int main(int argc, char **argv)
 	}
 
 	oK(_attendant(&attendant));
-	signal(SIGINT, handleQuit); 
+	signal(SIGINT, handleQuit);
 	signal(SIGUSR1, sendDefault);
 
 	while(needShutdown == 0)

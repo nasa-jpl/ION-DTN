@@ -10,36 +10,36 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: Testing the basic functionality of the bping application.
-	Described in issue 190, bping is a simple ping-like utility which sends
-	and receives bundles.  It doesn't strictly follow the standards of
-	ICMP echo messages, but performs a similar functionality."
+    Described in issue 190, bping is a simple ping-like utility which sends
+    and receives bundles.  It doesn't strictly follow the standards of
+    ICMP echo messages, but performs a similar functionality."
 echo
 echo "CONFIG: Standard loopback-udp: "
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Bping and bpecho are used to ensure that bping can send and
-	receive bundles, and to ensure that it ignores malformed/unsolicited
-	bundles from an unintended application like bptrace.  The time required
-	to close the bping program is also tested. ERROR messages are given on
-	failure.  No explicit PASS messages are given, but the overall test
-	return value will reflect test success."
+    receive bundles, and to ensure that it ignores malformed/unsolicited
+    bundles from an unintended application like bptrace.  The time required
+    to close the bping program is also tested. ERROR messages are given on
+    failure.  No explicit PASS messages are given, but the overall test
+    return value will reflect test success."
 echo
 echo "########################################"
 
 FAIL=0
 # set timeouts based on OS type
 if [[ $1 == "linux" ]] || [[ $1 == "mac" ]] ; then
-	TIMETOWAIT1=4
-	TIMETOWAIT2=15
+    TIMETOWAIT1=4
+    TIMETOWAIT2=15
 else
-	TIMETOWAIT1=5
-	TIMETOWAIT2=25
+    TIMETOWAIT1=5
+    TIMETOWAIT2=25
 fi
 
 echo "Killing old ION..."
@@ -121,4 +121,3 @@ echo "Terminating node."
 ionstop
 
 exit $FAIL
-

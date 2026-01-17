@@ -13,6 +13,6 @@ make clean
 
 # Rename manual Makefiles from Makefile.dev to Makefile
 MAKEFILES=`find . -name 'Makefile.dev'`
-for f in $MAKEFILES; do 
-		cp $f ${f%".dev"}
+for f in $MAKEFILES; do
+    cp $f ${f%".dev"}
 done

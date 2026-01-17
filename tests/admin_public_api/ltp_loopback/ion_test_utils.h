@@ -67,9 +67,9 @@ typedef struct
 /* The main C99-compliant LOG_INFO macro */
 #define LOG_INFO(...) \
 	LOG_INFO__GET_MACRO(__VA_ARGS__, \
-						LOG_INFO__N, LOG_INFO__N, LOG_INFO__N, LOG_INFO__N, \
-						LOG_INFO__N, LOG_INFO__N, LOG_INFO__N, LOG_INFO__N, \
-						LOG_INFO__N, LOG_INFO__1, 0) \
+			LOG_INFO__N, LOG_INFO__N, LOG_INFO__N, LOG_INFO__N, \
+			LOG_INFO__N, LOG_INFO__N, LOG_INFO__N, LOG_INFO__N, \
+			LOG_INFO__N, LOG_INFO__1, 0) \
 	(__VA_ARGS__)
 
 /* Global test results - must be defined in the test program */
@@ -147,8 +147,8 @@ int test_rfx_start(void);
  * @return 0 on success, -1 on error
  */
 int test_add_contact(time_t from_time, time_t to_time,
-                     uvast from_node, uvast to_node,
-                     unsigned int xmit_rate, float confidence);
+		uvast from_node, uvast to_node,
+		unsigned int xmit_rate, float confidence);
 
 /**
  * Test add range.
@@ -161,8 +161,8 @@ int test_add_contact(time_t from_time, time_t to_time,
  * @return 0 on success, -1 on error
  */
 int test_add_range(time_t from_time, time_t to_time,
-                   uvast from_node, uvast to_node,
-                   unsigned int owlt);
+		uvast from_node, uvast to_node,
+		unsigned int owlt);
 
 /*
  * =============================================================================
@@ -281,7 +281,7 @@ int test_add_plan(const char *eid, unsigned int nominal_rate);
  * @return 0 on success, -1 on error
  */
 int test_add_planduct(const char *eid, const char *protocol_name,
-                      const char *duct_name);
+		const char *duct_name);
 
 /**
  * Test list protocols.

@@ -6,7 +6,7 @@
 	Copyright (c) 2008, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "platform.h"
 #include "lyst.h"
@@ -239,7 +239,7 @@ static void	*receiveUdp(void *parm)
 	/*	Main loop for UDP datagram reception and handling.	*/
 
 	while (1)
-	{	
+	{
 		fromSize = sizeof fromAddr;
 		datagramLen = recvfrom(stp->insock, buffer, MAX_DATAGRAM,
 				0, (struct sockaddr *) &fromAddr, &fromSize);
@@ -395,7 +395,7 @@ int	main(int argc, char *argv[])
 		puts("where <to> and <from> are ipn-scheme node numbers");
 		puts("(ipn-scheme allocator number zero is always implicit).");
 		puts("These node numbers are intended to make the");
-	       	puts("configuration file somewhat self-documenting.  <from>");
+		puts("configuration file somewhat self-documenting.  <from>");
 		puts("may be '*' if 'all'.");
 		puts("Normally <modulus> should always be zero.  If you use");
 		puts("a value greater than 0 for <modulus> then owltsim will");
@@ -458,7 +458,7 @@ int	main(int argc, char *argv[])
 			continue;
 
 		default:
-			printf("owlt stopped: malformed config file line %d.\n",					lineNbr);
+			printf("owlt stopped: malformed config file line %d.\n", lineNbr);
 			owltsimExit(1);
 		}
 	}

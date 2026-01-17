@@ -2,7 +2,7 @@
 #
 # Scott Burleigh
 # August 28, 2012
-# 
+#
 # Modified by Jay L. Gao for BPv7
 # October 06, 2021
 #
@@ -189,36 +189,36 @@ cd ../1.ipn.ltp
 COUNT=`ls -l testfile* | egrep 200 | wc -l`
 if [ $COUNT -ne 1 ]
 then
-	echo "Error: node 1 did not get file200."
-	RETVAL=1
+    echo "Error: node 1 did not get file200."
+    RETVAL=1
 fi
 
 COUNT=`ls -l testfile* | egrep 400 | wc -l`
 if [ $COUNT -ne 1 ]
 then
-	echo "Error: node 1 did not get file400."
-	RETVAL=1
+    echo "Error: node 1 did not get file400."
+    RETVAL=1
 fi
 
 COUNT=`ls -l testfile* | egrep 300 | wc -l`
 if [ $COUNT -ne 1 ]
 then
-	echo "Error: node 1 did not get file300."
-	RETVAL=1
+    echo "Error: node 1 did not get file300."
+    RETVAL=1
 fi
 
 COUNT=`ls -l testfile* | egrep 310 | wc -l`
 if [ $COUNT -ne 1 ]
 then
-	echo "Error: node 1 did not get file310."
-	RETVAL=1
+    echo "Error: node 1 did not get file310."
+    RETVAL=1
 fi
 
 COUNT=`ls -l testfile* | egrep 320 | wc -l`
 if [ $COUNT -ne 1 ]
 then
-	echo "Error: node 1 did not get file320."
-	RETVAL=1
+    echo "Error: node 1 did not get file320."
+    RETVAL=1
 fi
 
 # Verify at node 2
@@ -228,43 +228,43 @@ cd ../2.ipn.ltp
 COUNT=`ls -l testfile* | egrep 150 | wc -l`
 if [ $COUNT -ne 0 ]
 then
-	echo "Error: node 2 got file150."
-	RETVAL=1
+    echo "Error: node 2 got file150."
+    RETVAL=1
 fi
 
 COUNT=`ls -l testfile* | egrep 100 | wc -l`
 if [ $COUNT -ne 1 ]
 then
-	echo "Error: node 2 did not get file100."
-	RETVAL=1
+    echo "Error: node 2 did not get file100."
+    RETVAL=1
 fi
 
 COUNT=`ls -l testfile* | egrep 400 | wc -l`
 if [ $COUNT -ne 1 ]
 then
-	echo "Error: node 2 did not get file400."
-	RETVAL=1
+    echo "Error: node 2 did not get file400."
+    RETVAL=1
 fi
 
 COUNT=`ls -l testfile* | egrep 300 | wc -l`
 if [ $COUNT -ne 0 ]
 then
-	echo "Error: node 2 got file300."
-	RETVAL=1
+    echo "Error: node 2 got file300."
+    RETVAL=1
 fi
 
 COUNT=`ls -l testfile* | egrep 310 | wc -l`
 if [ $COUNT -ne 0 ]
 then
-	echo "Error: node 2 got file310."
-	RETVAL=1
+    echo "Error: node 2 got file310."
+    RETVAL=1
 fi
 
 COUNT=`ls -l testfile* | egrep 320 | wc -l`
 if [ $COUNT -ne 1 ]
 then
-	echo "Error: node 2 did not get file320."
-	RETVAL=1
+    echo "Error: node 2 did not get file320."
+    RETVAL=1
 fi
 
 # Verify at node 3
@@ -274,29 +274,29 @@ cd ../3.ipn.ltp
 COUNT=`ls -l testfile* | egrep 150 | wc -l`
 if [ $COUNT -ne 1 ]
 then
-	echo "Error: node 3 did not get file150."
-	RETVAL=1
+    echo "Error: node 3 did not get file150."
+    RETVAL=1
 fi
 
 COUNT=`ls -l testfile* | egrep 100 | wc -l`
 if [ $COUNT -ne 1 ]
 then
-	echo "Error: node 3 did not get file100."
-	RETVAL=1
+    echo "Error: node 3 did not get file100."
+    RETVAL=1
 fi
 
 COUNT=`ls -l testfile* | egrep 200 | wc -l`
 if [ $COUNT -ne 1 ]
 then
-	echo "Error: node 3 did not get file200."
-	RETVAL=1
+    echo "Error: node 3 did not get file200."
+    RETVAL=1
 fi
 
 COUNT=`ls -l testfile* | egrep 400 | wc -l`
 if [ $COUNT -ne 1 ]
 then
-	echo "Error: node 3 did not get file400."
-	RETVAL=1
+    echo "Error: node 3 did not get file400."
+    RETVAL=1
 fi
 
 # Verify at node 4
@@ -306,43 +306,43 @@ cd ../4.ipn.ltp
 COUNT=`ls -l testfile* | egrep 150 | wc -l`
 if [ $COUNT -ne 0 ]
 then
-	echo "Error: node 4 got file150."
-	RETVAL=1
+    echo "Error: node 4 got file150."
+    RETVAL=1
 fi
 
 COUNT=`ls -l testfile* | egrep 100 | wc -l`
 if [ $COUNT -ne 1 ]
 then
-	echo "Error: node 4 did not get file100."
-	RETVAL=1
+    echo "Error: node 4 did not get file100."
+    RETVAL=1
 fi
 
 COUNT=`ls -l testfile* | egrep 200 | wc -l`
 if [ $COUNT -ne 1 ]
 then
-	echo "Error: node 4 did not get file200."
-	RETVAL=1
+    echo "Error: node 4 did not get file200."
+    RETVAL=1
 fi
 
 COUNT=`ls -l testfile* | egrep 300 | wc -l`
 if [ $COUNT -ne 1 ]
 then
-	echo "Error: node 4 did not get file300."
-	RETVAL=1
+    echo "Error: node 4 did not get file300."
+    RETVAL=1
 fi
 
 COUNT=`ls -l testfile* | egrep 310 | wc -l`
 if [ $COUNT -ne 0 ]
 then
-	echo "Error: node 4 got file310."
-	RETVAL=1
+    echo "Error: node 4 got file310."
+    RETVAL=1
 fi
 
 COUNT=`ls -l testfile* | egrep 320 | wc -l`
 if [ $COUNT -ne 1 ]
 then
-	echo "Error: node 4 did not get file320."
-	RETVAL=1
+    echo "Error: node 4 did not get file320."
+    RETVAL=1
 fi
 
 # Shut down ION processes.

@@ -19,14 +19,14 @@ extern "C" {
 
 #include "bibe.h"
 
-#define	CT_ACCEPTED	0
-#define	CT_REDUNDANT	3
-#define	CT_DEPLETED	4
-#define	CT_BAD_EID	5
-#define	CT_NO_ROUTE	6
-#define	CT_NO_CONTACT	7
-#define	CT_BAD_BLOCK	8
-#define	CT_DISPOSITIONS	9
+#define CT_ACCEPTED	0
+#define CT_REDUNDANT	3
+#define CT_DEPLETED	4
+#define CT_BAD_EID	5
+#define CT_NO_ROUTE	6
+#define CT_NO_CONTACT	7
+#define CT_BAD_BLOCK	8
+#define CT_DISPOSITIONS	9
 
 typedef struct
 {
@@ -49,8 +49,8 @@ typedef struct
 
 typedef struct
 {
-	Object		source;		/*	Own EID, an sdrstring.	*/ 
-	Object		dest;		/*	Peer EID, an sdrstring.	*/ 
+	Object		source;		/*	Own EID, an sdrstring.	*/
+	Object		dest;		/*	Peer EID, an sdrstring.	*/
 	uvast		count;		/*	xmitId counter.		*/
 	Object		bpdus;		/*	sdrlist of Bpdu objects.*/
 

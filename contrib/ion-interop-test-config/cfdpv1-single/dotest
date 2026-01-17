@@ -64,4 +64,3 @@ killm
 echo ""
 echo "CFDPv1 test completed."
 exit $RETVAL
-

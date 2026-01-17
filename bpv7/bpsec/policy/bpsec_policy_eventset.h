@@ -31,7 +31,7 @@
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  CONSTANTS  								  +
+ * |                              CONSTANTS                                   +
  * +--------------------------------------------------------------------------+
  */
 
@@ -45,12 +45,12 @@
 
 typedef struct BpSecEventSet
 {
-	//uint8_t 	id;							  /**< Event set ID			    */
-	char 		name[MAX_EVENT_SET_NAME_LEN]; /**< Unique event set name    */
-	char		desc[MAX_EVENT_SET_DESC_LEN]; /**< Event set description	*/
-	uint16_t 	mask;						  /**< Configured events 	    */
-	PsmAddress 	events; 					  /**< sm_list of BPsecPolEvent	*/
-	uint8_t		ruleCount;			          /**< # rules using the set.   */
+	// uint8_t	 id;			       /**< Event set ID */
+	char	 name[MAX_EVENT_SET_NAME_LEN]; /**< Unique event set name */
+	char	 desc[MAX_EVENT_SET_DESC_LEN]; /**< Event set description */
+	uint16_t mask;			       /**< Configured events */
+	PsmAddress events;		       /**< sm_list of BPsecPolEvent */
+	uint8_t	   ruleCount;		       /**< # rules using the set. */
 } BpSecEventSet;
 
 /*****************************************************************************

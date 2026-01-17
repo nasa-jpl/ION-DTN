@@ -1,7 +1,7 @@
 /**
  * @file metadata.h
  * @brief File handling and metadata processing functions for "embedding" metadata
- * during file transfers: includes encryption flags, time, versioning, file name, 
+ * during file transfers: includes encryption flags, time, versioning, file name,
  * and aux command strings
  *
  * This file contains function prototypes and structures for handling file metadata, including
@@ -16,13 +16,13 @@
  * Structs:
  * - Metadata: Stores information about a file, including name, type, content, and
  *   size.
- * 
+ *
  * Core Functions:
  * - createBufferFromMetadata: Serializes metadata into a buffer.
  * - extractMetadataFromFile: Extracts metadata from a file into a Metadata structure.
  * - writeMetaDataContentToFile: Writes metadata content to a file.
  * - writeBufferToFile: Writes a buffer to a file.
- * 
+ *
  * Metadata and Buffer Processing:
  * - htonll: Converts a 64-bit value from host to network byte order.
  * - ntohll: Converts a 64-bit value from network to host byte order.
@@ -45,12 +45,12 @@
  * @note This file is essential for handling file metadata within the context of file
  *       transfers, providing a robust set of functionalities for various file and
  *       metadata operations.
- * 
+ *
  * @warning Proper error handling and memory management are crucial in these functions
  *          to ensure data integrity and avoid potential memory leaks or data corruption.
  *
  * @author Sky DeBaun, Jet Propulsion Laboratory
- * @date January 2024 
+ * @date January 2024
  * @copyright 2024, California Institute of Technology. All rights reserved.
  */
 
@@ -141,21 +141,21 @@
  */
 typedef struct
 {
-    unsigned char eFlag;            // Encrypt flag, 1 for encrypted
-    unsigned char versionNumber;    // Metadata format version number
-    uint64_t timestamp;             // File creation or modification timestamp
+	unsigned char eFlag;            // Encrypt flag, 1 for encrypted
+	unsigned char versionNumber;    // Metadata format version number
+	uint64_t timestamp;             // File creation or modification timestamp
 
-    size_t aux_command_length;      // Auxiliary command length
-    unsigned char* aux_command;     // Auxiliary command
+	size_t aux_command_length;      // Auxiliary command length
+	unsigned char* aux_command;     // Auxiliary command
 
-    size_t filetypeLength;          // File type information length
-    unsigned char* filetype;        // File type
+	size_t filetypeLength;          // File type information length
+	unsigned char* filetype;        // File type
 
-    size_t fileNameLength;          // File name length
-    unsigned char* filename;        // File name
+	size_t fileNameLength;          // File name length
+	unsigned char* filename;        // File name
 
-    size_t fileContentLength;       // File content length
-    unsigned char* fileContent;     // File content
+	size_t fileContentLength;       // File content length
+	unsigned char* fileContent;     // File content
 
 } Metadata;
 
@@ -243,7 +243,7 @@ int extractMetadataFromFile(const char *filename, Metadata *meta);
  *          not provide detailed error codes for failure causes. Ensure metadata
  *          content and filename are valid before calling.
  */
-int writeMetaDataContentToFile(const Metadata* metaData, const char* tempFilename);
+int writeMetaDataContentToFile(const Metadata *metaData, const char *tempFilename);
 
 
 /******************************************************************************/
@@ -266,7 +266,7 @@ int writeMetaDataContentToFile(const Metadata* metaData, const char* tempFilenam
  * @warning If the file cannot be opened or an error occurs during writing, -1 is
  *          returned. Ensure error handling in such cases.
  */
-int writeBufferToFile(unsigned char* buffer, size_t bufferSize, const char* filename);
+int writeBufferToFile(unsigned char *buffer, size_t bufferSize, const char *filename);
 
 
 
@@ -504,7 +504,7 @@ int createUniqueFile(char *buffer, size_t bufferSize);
  * @warning If memory reallocation fails, the original array is not freed. Handle
  *          the original array's memory if NULL is returned.
  */
-unsigned char* appendNullChar(unsigned char* array, size_t currentSize);
+unsigned char *appendNullChar(unsigned char *array, size_t currentSize);
 
 
 /******************************************************************************/
@@ -576,7 +576,7 @@ int isOnlyWhitespace(const char* str);
  * @warning The caller is responsible for freeing the memory allocated for the array
  *          of tokens and for each individual token to prevent memory leaks.
  */
-char** parseCommandString(const char* inputString, int* count);
+char **parseCommandString(const char *inputString, int *count);
 
 
 /******************************************************************************/
@@ -604,7 +604,7 @@ char** parseCommandString(const char* inputString, int* count);
  *          contains. `commands` and the string pointers it contains should not
  *          be used after calling this function to avoid dangling pointer access.
  */
-void executeAndFreeCommands(char** commands, int commandCount);
+void executeAndFreeCommands(char **commands, int commandCount);
 
 
 /******************************************************************************/
@@ -626,7 +626,7 @@ void executeAndFreeCommands(char** commands, int commandCount);
  *       memory leaks. This function includes a check for successful memory
  *       allocation before proceeding with the duplication.
  */
-char* myStrdup(const char* s);
+char *myStrdup(const char *s);
 
 
 #endif // METADATA_H

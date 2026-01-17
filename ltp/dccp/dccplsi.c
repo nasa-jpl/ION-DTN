@@ -6,7 +6,7 @@
 	Copyright (c) 2010.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include <config.h>
 
@@ -58,7 +58,7 @@ ReceiverThreadParms* create_new_thread_data(Lyst *list)
 		return NULL;
 	}
 	lyst_insert(*list, (void*)tmp);
-return tmp;
+	return tmp;
 }
 
 int remove_thread(Lyst *list, ReceiverThreadParms *rtp)
@@ -71,27 +71,27 @@ int remove_thread(Lyst *list, ReceiverThreadParms *rtp)
 		return 0;
 	}
 
-	 for (elmt = lyst_first(*list); elmt; lyst_next(elmt))
-	 {
-		r=(ReceiverThreadParms*)lyst_data(elmt);
-		if (r->sock == rtp->sock && pthread_equal(r->me,rtp->me))
+	for (elmt = lyst_first(*list); elmt; lyst_next(elmt))
+	{
+		r = (ReceiverThreadParms *) lyst_data(elmt);
+		if (r->sock == rtp->sock && pthread_equal(r->me, rtp->me))
 		{
 			MRELEASE(r);
 			lyst_delete(elmt);
 			return 1;
 		}
 	}
-return 0;
+	return 0;
 }
 
 int no_threads(Lyst *list)
 {
-return (lyst_length(*list) == 0);
+	return (lyst_length(*list) == 0);
 }
 
 ReceiverThreadParms* get_first_thread(Lyst *list)
 {
-return (ReceiverThreadParms*)lyst_data(lyst_first(*list));
+	return (ReceiverThreadParms *) lyst_data(lyst_first(*list));
 }
 
 static void *Recieve_DCCP(void *param)
@@ -127,7 +127,7 @@ static void *Recieve_DCCP(void *param)
 			{
 				continue;
 			}
-			
+
 			putErrmsg("DCCPLSI recv() call failed.", NULL);
 			rtp->running = 0;
 			continue;
@@ -202,7 +202,7 @@ static void	*Listen_for_connections(void *parm)
 	list = lyst_create_using(getIonMemoryMgr());
 	lyst_clear(list);
 	pthread_mutex_init(&elk, NULL);
-	
+
 	iblock(SIGTERM);
 	isignal(SIGUSR1, siguser_thread);
 #ifndef mingw
@@ -212,7 +212,7 @@ static void	*Listen_for_connections(void *parm)
 	/*	Can now begin accepting connections from remote
 	 *	contacts.  On failure, take down the whole LSI.		*/
 	while (rtp->running)
-	{	
+	{
 		solen = sizeof(fromAddr);
 		consock = accept(rtp->linkSocket, &fromAddr, &solen);
 		if (consock < 0)
@@ -266,7 +266,7 @@ static void	*Listen_for_connections(void *parm)
 	while (!no_threads(&list))
 	{
 		pthread_mutex_lock(&elk);
-		rp=get_first_thread(&list);
+		rp = get_first_thread(&list);
 		pthread_mutex_unlock(&elk);
 		if (rp == NULL)
 		{
@@ -444,10 +444,10 @@ int	dccplsi(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 #else
 int	main(void)
 {
-#endif	
-putErrmsg("dccplsi (and the DCCP protocol) are only available under Linux (>=3.2.0). Please see the README in the ltp/dccp source directory for more information.", NULL);
-writeErrmsgMemos();
-return 0;
+#endif
+	putErrmsg("dccplsi (and the DCCP protocol) are only available under Linux (>=3.2.0). Please see the README in the ltp/dccp source directory for more information.", NULL);
+	writeErrmsgMemos();
+	return 0;
 }
 
 #endif /*build_dccp*/

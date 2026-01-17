@@ -31,7 +31,7 @@ static int	_running(int *newState)
 static void	handleQuit(int signum)
 {
 	int	stop = 0;
-	
+
 	/* Tell the compiler that we are not using 'signum' */
 	(void)signum;
 
@@ -101,7 +101,7 @@ static int	receiveSdaItems(SdaDelimiterFn delimiter, SdaHandlerFn handler,
 
 	zco_start_receiving(zco, &reader);
 	while (1)
-	{ 
+	{
 		/*	Get the first (up to) 2048 bytes of the
 		 *	unprocessed remainder of the LTP service
 		 *	data item.					*/

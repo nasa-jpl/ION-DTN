@@ -45,7 +45,7 @@ Comment line.  Lines beginning with B<#> are not interpreted.
 Echo control.  Setting echo to 1 causes all output printed by bpsecadmin to
 be logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
 
-=item B<v> 
+=item B<v>
 
 Version number.  Prints out the version of ION currently installed.  HINT:
 combine with B<e 1> command to log the version number at startup.
@@ -63,27 +63,27 @@ optional processing actions associated with that event set are shown.
 
 =item B<d> { B<event_set> : { B<name> : event set name } }
 
-The B<delete event_set> command deletes a named event set from the system. 
-A named event set cannot be deleted if it is referenced by a security policy 
+The B<delete event_set> command deletes a named event set from the system.
+A named event set cannot be deleted if it is referenced by a security policy
 rule.  All security policy rules associated with the named event set must be deleted
 before the event set itself may be deleted.
 
 =item B<l> {B<event_set>}
 
-The B<list event_set> command lists the names of all event sets defined in the 
+The B<list event_set> command lists the names of all event sets defined in the
 system.
 
-=item B<a> { B<event> : { 
+=item B<a> { B<event> : {
 	B<es_ref>   : event set name,
 	B<event_id> : security operation event ID,
 	B<actions>  : [ {B<id>: processing action, (opt.) action parm key, (opt.) parm value}, ... ,
                     {B<id>: processing action, (opt.) action parm key, (opt.) parm value} ] } }
 
-The B<add event> command adds security operation event and associated optional 
+The B<add event> command adds security operation event and associated optional
 processing action(s) to an event set.  Multiple processing actions can be specified
 for a single security operation event.
 
-=item B<d> { B<event> : { 
+=item B<d> { B<event> : {
     B<es_ref> : event set name,
 	B<event_id> : security operation event ID } }
 
@@ -101,47 +101,47 @@ actions associated with the security operation event provided.
 	    B<dest> : Bundle destination
 	    B<sec_src> : Security source
 	    B<tgt> : Security target block type,
-	    B<sc_id> : Security context ID, 
+	    B<sc_id> : Security context ID,
 	},
-	B<spec> : 
+	B<spec> :
 	{
 	    B<svc> : Security service,
 	    B<sc_id> : Security context ID,
 	    B<sc_parms> : [ {SC parm ID, SC parm value }, ... ,
-		                {SC parm ID, SC parm value } ] 
+		                {SC parm ID, SC parm value } ]
 	},
 	B<es_ref> : Event set name } }
-	
-The B<add policyrule> command adds a policy rule to the system, describing a 
-required security operation and the security policy role of the BPA applying 
+
+The B<add policyrule> command adds a policy rule to the system, describing a
+required security operation and the security policy role of the BPA applying
 the policy statement.  The above command adds a policy rule referencing a
 named event set to the system.
-	
+
 =item B<d> { B<policyrule> : { B<rule_id> : Security policy rule ID } }
 
 The B<delete policyrule> command deletes the policy rule identified by its
 rule ID.
 
 =item B<i> {B<policyrule> : { B<rule_id> : Security policy rule ID } }
-	
+
 The B<info policyrule> command displays the information for the
 policy rule matching the provided ID.
 
-=item B<f> {B<policyrule> : 
-    {B<type> : B<all | best>, 
+=item B<f> {B<policyrule> :
+    {B<type> : B<all | best>,
 	B<src> : Bundle source,
-	B<dest> : Bundle destination, 
-	B<sec_src> : Security source, 
+	B<dest> : Bundle destination,
+	B<sec_src> : Security source,
 	B<sc_id> : Security context ID,
 	B<role> : Security policy role } }
-	
-The B<find policyrule> command finds all policy rules matching the provided criteria 
-when type B<all> is selected, and finds the single policy rule that is determined to be 
-the best match when type B<best> is selected. 
+
+The B<find policyrule> command finds all policy rules matching the provided criteria
+when type B<all> is selected, and finds the single policy rule that is determined to be
+the best match when type B<best> is selected.
 
 =item B<l> {B<policyrule>}
 
-The B<list policyrule> command lists all policy rules currently 
+The B<list policyrule> command lists all policy rules currently
 defined in the system.
 
 =item B<h>

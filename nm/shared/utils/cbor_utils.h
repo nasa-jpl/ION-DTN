@@ -53,7 +53,7 @@ int cut_enc_bytes(QCBOREncodeContext *encoder, uint8_t *buf, size_t len);
 int cut_dec_bytes(QCBORDecodeContext *it, uint8_t *buf, size_t len);
 static inline int cut_enc_byte(QCBOREncodeContext *encoder, uint8_t buf)
 {
-   return cut_enc_bytes(encoder, &buf, sizeof(uint8_t));
+	return cut_enc_bytes(encoder, &buf, sizeof(uint8_t));
 }
 
 int cut_enc_uvast(uvast num, blob_t *result);
@@ -75,10 +75,10 @@ int cut_get_cbor_str_ptr(QCBORDecodeContext *it, char *dst, size_t length);
 
 /** Macro to check and report if decoding exited with any errors. These are logged as warnings, but no action is otherwise taken. */
 #define cut_decode_finish(qcbor) \
-   QCBORError tmperr = QCBORDecode_Finish(qcbor); \
-   if (tmperr != QCBOR_SUCCESS) { \
-     AMP_DEBUG_WARN(__func__, "Warning: CBOR Decoding finished with err %d", tmperr); \
-   }
+	QCBORError tmperr = QCBORDecode_Finish(qcbor); \
+	if (tmperr != QCBOR_SUCCESS) { \
+		AMP_DEBUG_WARN(__func__, "Warning: CBOR Decoding finished with err %d", tmperr); \
+	}
 
 
 #ifdef __cplusplus

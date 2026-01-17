@@ -14,7 +14,7 @@ import paho.mqtt.client as mqtt
 # block of variables that you need to edit in order to run this script
 
 ssl_private_key_filepath = '' # The .pem file of your Pi
-ssl_algorithm = 'RS256' 
+ssl_algorithm = 'RS256'
 root_cert_filepath = '' # The .pem file of Google
 project_id = '' # The project ID on Google Cloud
 gcp_location = '' # The zone where your project is deployed

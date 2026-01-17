@@ -1,14 +1,14 @@
 /*
  *	bssP.h:	private definitions supporting the implementation
  *		of BSS receiver operations API.
- *								
- *									
+ *
+ *
  *	Copyright (c) 2011, Space Internetworking Center,
  *	Democritus University of Thrace.
- *	Copyright (c) 2011, California Institute of Technology.	
+ *	Copyright (c) 2011, California Institute of Technology.
  *
- *	All rights reserved.						
- *	
+ *	All rights reserved.
+ *
  *	Author: Sotirios-Angelos Lenas, Space Internetworking Center (SPICE)
  */
 
@@ -26,7 +26,7 @@
 extern "C" {
 #endif
 
-typedef struct 
+typedef struct
 {
 	char		eid[32];
 	int		dat;
@@ -37,19 +37,19 @@ typedef struct
 	long		bufLength;
 } bss_thread_data;
 
-/* 
+/*
  ************************** BSS DATABASE analysis ******************************
- * BSS API operations are supported by the implementation of a fully customized 
- * database. The main role of the database is to store the actual data of the   
- * stream (without any bundle header information) and support the inherent      
+ * BSS API operations are supported by the implementation of a fully customized
+ * database. The main role of the database is to store the actual data of the
+ * stream (without any bundle header information) and support the inherent
  * capability of BSS for playback control over the last WINDOW seconds of the
  * stream.
  *
  * The BSS database consists of three different files: *.tbl, *.lst and *.dat.
  *
  * Table file (*.tbl) holds information about the last WINDOW seconds of the
- * stream. Each of these seconds is associated with four variables; the  
- * firstEntryOffset, lastEntryOffset, hgstCountVal and lwstCountVal variable. 
+ * stream. Each of these seconds is associated with four variables; the
+ * firstEntryOffset, lastEntryOffset, hgstCountVal and lwstCountVal variable.
  * These variables are stored in four tables, each one of size WINDOW, where
  * each row of the table contains the relevant valuse for the corresponding
  * second.
@@ -78,18 +78,18 @@ typedef struct
  * new ADU received by the BSS receiver application is stored in a new record
  * that is appended at the end of the file. It should be clearly stated that
  * the stream in its entirety is stored in the *.dat file, NOT only the last
- * WINDOW seconds.      
+ * WINDOW seconds.
  *******************************************************************************
  */
 
-/*  
+/*
  *  A structure that describes the format of the header of the *.tbl file:
- *    +-------------+-------------------+-------------+------------------+    
- *    | oldest time | oldest row index  | newest time | newest row index |    
- *    +-------------+-------------------+-------------+------------------+    
+ *    +-------------+-------------------+-------------+------------------+
+ *    | oldest time | oldest row index  | newest time | newest row index |
+ *    +-------------+-------------------+-------------+------------------+
  */
 
-typedef struct 
+typedef struct
 {
 	time_t		oldestTime;
 	long		oldestRowIndex;
@@ -97,17 +97,17 @@ typedef struct
 	long		newestRowIndex;
 } tblHeader;
 
-/*  
+/*
  *  A structure that describes the format of a single row (corresponding
  *  to a single second of streaming activity) in the *.tbl file:
- *    +-------------+-------------------+-------------+------------------+    
- *    |     first entry offset          |    last entry offset           |    
- *    +---------------------------------+--------------------------------+    
- *    |     highest count value         |    lowest count value          |    
- *    +---------------------------------+--------------------------------+    
+ *    +-------------+-------------------+-------------+------------------+
+ *    |     first entry offset          |    last entry offset           |
+ *    +---------------------------------+--------------------------------+
+ *    |     highest count value         |    lowest count value          |
+ *    +---------------------------------+--------------------------------+
  */
 
-typedef struct 
+typedef struct
 {
 	long		firstEntryOffset;
 	long		lastEntryOffset;
@@ -115,48 +115,48 @@ typedef struct
 	unsigned long	lwstCountVal;
 } tblRow;
 
-/*  
- *  A structure that describes the format of *.tbl file. A single instance of 
- *  tblIndex structure is stored in *.tbl file and has the following format:  
- *    +-------------+-------------------+-------------+------------------+    
- *    |                            table header                          |    
- *    +-------------+-------------------+-------------+------------------+    
- *    |                          table row[WINDOW]                       |    
- *    +---------------------------------+--------------------------------+    
+/*
+ *  A structure that describes the format of *.tbl file. A single instance of
+ *  tblIndex structure is stored in *.tbl file and has the following format:
+ *    +-------------+-------------------+-------------+------------------+
+ *    |                            table header                          |
+ *    +-------------+-------------------+-------------+------------------+
+ *    |                          table row[WINDOW]                       |
+ *    +---------------------------------+--------------------------------+
  */
 
-typedef struct 
+typedef struct
 {
 	tblHeader	header;
 	tblRow		rows[WINDOW];
 } tblIndex;
 
-/*   
- *  A structure that describes the format in which entries are written to   
- *  *.lst file. Each entry in *.lst file has the following format:    	    
- * 	+---------------+-------------+----------------+	     
- * 	| creation time | data offset | payload length | 	     
- * 	+---------------+-------------+----------------+ 	     
- * 	|     previous entry    |      next entry      | 	     
- * 	+-----------------------+----------------------+  	     
+/*
+ *  A structure that describes the format in which entries are written to
+ *  *.lst file. Each entry in *.lst file has the following format:
+ * 	+---------------+-------------+----------------+
+ * 	| creation time | data offset | payload length |
+ * 	+---------------+-------------+----------------+
+ * 	|     previous entry    |      next entry      |
+ * 	+-----------------------+----------------------+
  */
 
-typedef struct 
+typedef struct
 {
 	BpTimestamp 	crtnTime;
 	off_t		datOffset;
 	long		pLen;
 	long		prev;
 	long		next;
-	
+
 } lstEntry;
 
-/*  
- *  A structure that describes the format in which raw data are written to  
- *  *.dat file. Each record in *.dat file has the following format:	    
- * 		+---------------+----------------+----------+ 		    
- * 		| creation time | payload length | raw data | 		    
- * 		+---------------+----------------+----------+ 		    
+/*
+ *  A structure that describes the format in which raw data are written to
+ *  *.dat file. Each record in *.dat file has the following format:
+ * 		+---------------+----------------+----------+
+ * 		| creation time | payload length | raw data |
+ * 		+---------------+----------------+----------+
  */
 
 typedef struct
@@ -180,7 +180,7 @@ extern int 		getLstEntry(int fileD, lstEntry *entry,
 extern int 		readRecord(int fileD, dataRecord *rec, off_t datOffset);
 extern int 		readPayload(int fileD, char* buffer, long length);
 
-extern int 		loadRDWRDB(char* bssName, char* path, int* dat, 
+extern int 		loadRDWRDB(char* bssName, char* path, int* dat,
 				int* lst, int* tbl);
 extern int 		loadRDonlyDB(char* bssName, char* path);
 extern void		*recvBundles(void *args);

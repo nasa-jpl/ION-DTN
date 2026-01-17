@@ -474,9 +474,9 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 		 *	(suppression, prior visitation) that apply to
 		 *	this invocation of Dijkstra's Algorithm.
 		 *
-		*	Each time we cycle through the outer loop, we
-		*	perform two inner loops.  
-		*
+		 *	Each time we cycle through the outer loop, we
+		 *	perform two inner loops.
+		 *
 		 *	In the first innner loop, we consider all
 		 *	unvisited successors (i.e., topologically
 		 *	adjacent "next-hop" contacts; the "frontier")
@@ -816,7 +816,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 
 static int	computeRoute(PsmPartition ionwm, PsmAddress rootContactElt,
 			IonNode *terminusNode, time_t currentTime,
-		       	PsmAddress excludedEdges, PsmAddress *routeAddr,
+			PsmAddress excludedEdges, PsmAddress *routeAddr,
 			CgrTrace *trace)
 {
 	IonCXref	*rootContact;
@@ -957,7 +957,7 @@ static int	insertFirstRoute(IonNode *terminusNode, time_t currentTime,
 }
 
 static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
-			CgrRoute *lastSelectedRoute, time_t currentTime, 
+			CgrRoute *lastSelectedRoute, time_t currentTime,
 			PsmAddress rootOfSpur, CgrRtgObject *routingObj,
 			CgrTrace *trace)
 {
@@ -1059,7 +1059,7 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 			}
 
 //puts("*** Root path is the same up to this point. ***");
-		       	if (rootPathContactAddr == rootOfSpurAddr)
+			if (rootPathContactAddr == rootOfSpurAddr)
 			{
 				/*	Entire root path is shared,
 				 *	so suppress the next contact
@@ -1069,7 +1069,7 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 				if (nextContactElt)
 				{
 					contactAddr = sm_list_data(ionwm,
-					       		nextContactElt);
+							nextContactElt);
 					if (contactAddr)
 					{
 						if (sm_list_insert_last(ionwm,
@@ -2233,7 +2233,7 @@ static int	loadCriticalBestRoutesList(IonNode *terminusNode,
 
 			for (elt2 = sm_list_first(ionwm,
 					routingObj->proximateNodes); elt2;
-				       	elt2 = sm_list_next(ionwm, elt2))
+					elt2 = sm_list_next(ionwm, elt2))
 			{
 				fqnn = (uvast) sm_list_data(ionwm, elt2);
 				if (fqnn < contact->toFqnn)
@@ -2361,7 +2361,7 @@ int	cgr_start_SAP(uvast ownNodeNbr, time_t referenceTime, CgrSAP *sap)
 
 int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 			Lyst excludedNodes, time_t currentTime, CgrSAP sap,
-			CgrTrace *trace, Lyst bestRoutes) 
+			CgrTrace *trace, Lyst bestRoutes)
 {
 	PsmPartition	ionwm = getIonwm();
 	CgrVdb		*cgrvdb = cgr_get_vdb();
@@ -2500,7 +2500,7 @@ int	cgr_preview_forward(uvast terminusNodeNbr, Bundle *bundle,
 			excludedNodes, atTime, sap, trace, bestRoutes);
 	lyst_destroy(bestRoutes);
 	lyst_destroy(excludedNodes);
-       	if (result < 0)
+	if (result < 0)
 	{
 		putErrmsg("Can't compute route.", NULL);
 		return -1;

@@ -99,10 +99,10 @@ echo "'test_trace'" >> expected.txt
 
 if ! diff -w expected.txt 3.ipn.ltp/3_receive_file.txt
 then
-	echo "FAIL (test 1)"
-	PASS=0
+    echo "FAIL (test 1)"
+    PASS=0
 else
-	echo "SUCCESS (test 1)"
+    echo "SUCCESS (test 1)"
 fi
 
 #########
@@ -147,14 +147,14 @@ sleep 1
 
 if ! diff -w expected.txt ./3.ipn.ltp/3_receive_file.txt
 then
-	echo "FAIL (test2)"
-	PASS=0
-else 
-	echo "SUCCESS (test2)"
+    echo "FAIL (test2)"
+    PASS=0
+else
+    echo "SUCCESS (test2)"
 fi
 
 #############
-# Test 3 
+# Test 3
 
 echo -e "\n\n\n\n\n*****TEST 3*****"
 echo -e "Send encrypted bundle to ipn:3.1 where nodes 2 and 3 use different"
@@ -198,10 +198,10 @@ echo -e "the key that is used.  So we skip this test."
 #
 #if ! diff -w expected.txt ./3.ipn.ltp/3_receive_file.txt
 #then
-#	echo "SUCCESS (test3)"
-#else 
-#	echo "FAIL (test3)"
-#	PASS=0
+#    echo "SUCCESS (test3)"
+#else
+#    echo "FAIL (test3)"
+#    PASS=0
 #fi
 
 #############
@@ -237,10 +237,10 @@ sleep 1
 
 if ! diff -w expected.txt ./3.ipn.ltp/3_receive_file.txt
 then
-	echo "FAIL (test4)"
-	PASS=0
+    echo "FAIL (test4)"
+    PASS=0
 else
-	echo "SUCCESS (test4)"
+    echo "SUCCESS (test4)"
 fi
 
 #############
@@ -271,7 +271,7 @@ cd ../2.ipn.ltp
 # Create a ~4 MB file
 # 2^22 = ~ 4MB.  Do _NOT_ run this script with a large number
 perl file_make.pl 10
- 
+
 # Send the 5 MB file
 bpsendfile ipn:2.1 ipn:3.2 hugefile.big
 
@@ -287,25 +287,25 @@ WHICHFAILMESSAGE=$?
 # which could return the proper fail condition, or the results could be
 # empty, or you're on solaris and your results will be "no stat in $PATH".
 if [ $WHICHRETURN -ne 0 -o -z "${RESULTS}" -o $WHICHFAILMESSAGE -eq 0 ] ; then
-	echo "${PROGRAMTEST} is not present in this system; using ls"
+    echo "${PROGRAMTEST} is not present in this system; using ls"
 # ls -l on solaris (and other platforms) puts the byte size in the 5th column
 # of output and we use sed to eliminate long strings of whitespace since cut
 # is fragile and interprets each instance of space as a delimiter
 # IF ls changes its column order, this will break, but it is only a fallback.
-	RECV_SIZE=`ls -1l 3.ipn.ltp/testfile1 | sed 's/ [ ]*/ /g' | cut -d' ' -f5`
-	SEND_SIZE=`ls -1l 2.ipn.ltp/hugefile.big | sed 's/ [ ]*/ /g' | cut -d' ' -f5`
+    RECV_SIZE=`ls -1l 3.ipn.ltp/testfile1 | sed 's/ [ ]*/ /g' | cut -d' ' -f5`
+    SEND_SIZE=`ls -1l 2.ipn.ltp/hugefile.big | sed 's/ [ ]*/ /g' | cut -d' ' -f5`
 else
-	RECV_SIZE=`stat -c %s 3.ipn.ltp/testfile1`
-	SEND_SIZE=`stat -c %s 2.ipn.ltp/hugefile.big`
+    RECV_SIZE=`stat -c %s 3.ipn.ltp/testfile1`
+    SEND_SIZE=`stat -c %s 2.ipn.ltp/hugefile.big`
 fi
 
 echo "Receive size: $RECV_SIZE; Send size: $SEND_SIZE"
-if [ $RECV_SIZE = $SEND_SIZE ] 
+if [ $RECV_SIZE = $SEND_SIZE ]
 then
-	echo "SUCCESS (test5)" 
+    echo "SUCCESS (test5)"
 else
-	echo "FAIL (test5)"
-	PASS=0
+    echo "FAIL (test5)"
+    PASS=0
 fi
 
 rm -f 2.ipn.ltp/hugefile.big
@@ -376,10 +376,10 @@ echo "'test_trace6'" >> expected.txt
 
 if ! diff -w expected.txt 4.ipn.ltp/4_receive_file.txt
 then
-        echo "FAIL (test 6)"
-        PASS=0
+    echo "FAIL (test 6)"
+    PASS=0
 else
-        echo "SUCCESS (test 6)"
+    echo "SUCCESS (test 6)"
 fi
 
 #############
@@ -402,7 +402,7 @@ ENDOFBPSECADMINCOMMANDS
 
 cd ../3.ipn.ltp
 ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a key key1 key1.hmk 
+a key key1 key1.hmk
 ENDOFIONSECADMINCOMMANDS
 bpsecadmin<<ENDOFBPSECADMINCOMMANDS
 x
@@ -433,11 +433,11 @@ touch expected.txt
 echo "'test_trace7'" >> expected.txt
 
 if ! diff -w expected.txt 4.ipn.ltp/4_receive_file.txt
-then   
-        echo "FAIL (test 7)"
-        PASS=0
-else   
-        echo "SUCCESS (test 7)"
+then
+    echo "FAIL (test 7)"
+    PASS=0
+else
+    echo "SUCCESS (test 7)"
 fi
 
 ############################################################
@@ -463,7 +463,7 @@ echo "Status reports test completed."
 
 if [ $PASS -eq 1 ]
 then
-	exit 0
+    exit 0
 else
-	exit 1
+    exit 1
 fi

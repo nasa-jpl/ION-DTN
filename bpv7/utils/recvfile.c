@@ -3,11 +3,11 @@
  * @brief Bundle Protocol File Receiver Implementation.
  *
  * Implements file receiver functionality for the Bundle Protocol (BP), enabling
- * files transferred over BP to be correctly named upon reception. Includes 
+ * files transferred over BP to be correctly named upon reception. Includes
  * logic for receiving BP files, handling interruptions, and managing reception
  * state. Contains the main function, state management and signal handling utilities,
  * and the `BptestState` structure definition.
- * 
+ *
  * If compiled against a suitable security library decryption may be utilized (optional).
  *
  * @details
@@ -19,10 +19,10 @@
  *
  * Structures included:
  * - BptestState: Represents the BP test process state.
- * 
+ *
  * @note Based on bprecvfile by Scott Burleigh, Jet Propulsion Laboratory.
  * @note Use this utility with sendfile (see sendfile(1) for synopsis)
- * 
+ *
  * @warning Depends on proper BP infrastructure setup (ION DTN).
  * @warning The application's decryption features require a suitable cipher library.
  *
@@ -31,8 +31,8 @@
  * @copyright 2023, California Institute of Technology. All rights reserved.
  */
 
-/* 
- * CRITICAL: bp.h must be included FIRST to ensure platform.h 
+/*
+ * CRITICAL: bp.h must be included FIRST to ensure platform.h
  * feature test macros are processed before any system headers.
  * This provides proper POSIX compliance for all platforms.
  */
@@ -137,7 +137,7 @@ static void	handleQuit(int signum)
 /**
  * @brief Deletes files.
  *
- * This function is used to remove temporary files used by the program during 
+ * This function is used to remove temporary files used by the program during
  * the meta-extraction and decryption routine.
  *
  * @param filename File to remove
@@ -153,7 +153,7 @@ int cleanFile(char *filename)
 		return -1;
 	}
 	return 0;
-	
+
 } //---> end cleanFile()
 
 
@@ -162,19 +162,19 @@ int cleanFile(char *filename)
 /******************************************************************************/
 int rename_and_clean(char *oldFilename, char *newFilename)
 {
-    if (oldFilename && newFilename)
-    {
-        if (rename(oldFilename, newFilename) == 0)
-        {
-            return 0; //success
-        }
-        else
-        {
-            cleanFile(oldFilename); //Clean if rename fails
-        }
-    }
+	if (oldFilename && newFilename)
+	{
+		if (rename(oldFilename, newFilename) == 0)
+		{
+			return 0; //success
+		}
+		else
+		{
+			cleanFile(oldFilename); //Clean if rename fails
+		}
+	}
 
-    return -1; //failure to rename
+	return -1; //failure to rename
 }
 
 
@@ -184,36 +184,36 @@ int rename_and_clean(char *oldFilename, char *newFilename)
 /**
  * @brief receiveFile - Receives a file via Bundle Protocol and saves it.
  *
- * This function handles the reception of a file over the Bundle Protocol. It 
- * reads incoming data, processes it for metadata extraction, and writes the 
- * file content to a temporary file. Post successful reception, it renames the 
+ * This function handles the reception of a file over the Bundle Protocol. It
+ * reads incoming data, processes it for metadata extraction, and writes the
+ * file content to a temporary file. Post successful reception, it renames the
  * temporary file to its original name using extracted metadata.
  *
  * @param sdr The SDR (Source Data Record) object for BP data handling.
  * @param dlv Pointer to BpDelivery struct with received data.
  * @return Returns 0 on successful file reception and processing, -1 on error.
  *
- * @note Assumes received data includes metadata for file naming. Generates a 
+ * @note Assumes received data includes metadata for file naming. Generates a
  *       temporary filename for initial data storage.
  * @warning Implements error handling for data integrity and I/O errors.
  */
 static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInput)
 {
-	static char	buffer[BPRECVBUFSZ];
-	int			contentLength;
-	int			remainingLength;
-	int			fileHandle = -1;
-	ZcoReader	reader;
-	int			recvLength;
-	char		progressText[80];
-	Metadata 	metadata = {0};
-	char **commands = NULL; //metadata commands
-	int commandCount = 0;		
+	static char buffer[BPRECVBUFSZ];
+	int	    contentLength;
+	int	    remainingLength;
+	int	    fileHandle = -1;
+	ZcoReader   reader;
+	int	    recvLength;
+	char	    progressText[80];
+	Metadata    metadata = { 0 };
+	char	  **commands = NULL;   //metadata commands
+	int	    commandCount = 0;
 
 
 	unsigned char decryptFlag = 0; //default to no decryption
 	char randomPart[10];
-	char tmpFile[256];	
+	char tmpFile[256];
 	int result; //simple status flag
 
 	int delete_on_fail = 1; //to save or not to save (encrypted file)
@@ -221,7 +221,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 
 
 	/*CREATE RANDOM FILE(NAME)*/
-    createUniqueFile(tmpFile, sizeof(tmpFile)); //temp file
+	createUniqueFile(tmpFile, sizeof(tmpFile)); //temp file
 
 
 	/*ION ----------------------------------- */
@@ -243,7 +243,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	zco_start_receiving(dlv->adu, &reader);
 	remainingLength = contentLength;
 	oK(sdr_begin_xn(sdr));
-	
+
 	while (remainingLength > 0)
 	{
 		recvLength = BPRECVBUFSZ;
@@ -259,20 +259,20 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 			oK(sdr_end_xn(sdr));
 			goto exit;
 		}
-			/* write from buffer to temp file */
-			ssize_t bytesWritten = write(fileHandle, buffer, recvLength );
+		/* write from buffer to temp file */
+		ssize_t bytesWritten = write(fileHandle, buffer, recvLength );
 
-			if (bytesWritten < recvLength)
-				{
-					putSysErrmsg("[!] recvfile error: can't write to file.",
-							tmpFile);
-					close(fileHandle);
-					oK(sdr_end_xn(sdr));
-					goto exit;
-				}
+		if (bytesWritten < recvLength)
+		{
+			putSysErrmsg("[!] recvfile error: can't write to file.",
+					tmpFile);
+			close(fileHandle);
+			oK(sdr_end_xn(sdr));
+			goto exit;
+		}
 
-				remainingLength -= (recvLength);
-		
+		remainingLength -= (recvLength);
+
 	}//end while loop
 	close(fileHandle);
 
@@ -302,22 +302,22 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 		if (keyLength <= 0)
 		{
 			putErrmsg("Can't fetch symmetric key.",
-					keyInput);			
+					keyInput);
 			return -1;
 		} */
-		
-		
+
+
 		/* decrypt file content */
 		unsigned char *decrypted_fileContent = NULL;
 		size_t decrypted_fileContentLength = 0;
 
 		result = crypt_and_hash_buffer(1, metadata.aux_command, metadata.fileContent, &metadata.fileContentLength, &decrypted_fileContent, &decrypted_fileContentLength, CIPHER, MD, keyInput);
 		if(result != 0)
-		{				
-			decryption_failure = 1;			
+		{
+			decryption_failure = 1;
 		}
 		else
-		{			
+		{
 			/* update with decrypted data*/
 			if (metadata.fileContent)
 			{
@@ -327,7 +327,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 			metadata.fileContent = decrypted_fileContent; //free in Exit;
 			metadata.fileContentLength = decrypted_fileContentLength;
 		}
-		
+
 	} //end decryption routine
 
 	/* if failure to decrypt and no key */
@@ -335,7 +335,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	{
 		decryption_failure = 1;
 	}
-	
+
 
 	/*WRITE METADATA TO FILE--------------------------*/
 	result = writeMetaDataContentToFile(&metadata, tmpFile);
@@ -348,20 +348,20 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	/* extract any aux commands */
 	if(metadata.aux_command_length > 0)
 	{
-		commands = parseCommandString((const char*) metadata.aux_command, &commandCount);		
+		commands = parseCommandString((const char*) metadata.aux_command, &commandCount);
 	}
 
-	if (!overwriteFlag && fileExists((const char*)metadata.filename)) 
+	if (!overwriteFlag && fileExists((const char*)metadata.filename))
 	{
-		if (generateNewFilename(&metadata) != 0) 
+		if (generateNewFilename(&metadata) != 0)
 		{
 			/* failed to generate a new filename */
 			writeErrMemo("[!] recvfile error: temp filename creation.");
 			goto exit;
 		}
-}
+	}
 
-	/* rename temp file to correct filename */	
+	/* rename temp file to correct filename */
 	result = rename_and_clean(tmpFile, (char*) metadata.filename);
 
 	if(result >= 0)
@@ -371,17 +371,17 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 		writeMemo(file_receipt_msg);
 
 		/* Write to application window */
-		/* 
+		/*
 		float time_difference = (float)calculateTimeDifference(metadata.timestamp);
 		printf("\nFile received: %s \n", metadata.filename);
 		printf("\t" UVAST_FIELDSPEC " bytes in %f seconds\n", (uvast)metadata.fileContentLength, time_difference/1000.0);
- 		*/
+		*/
 	}
 	else
 	{
 		writeErrMemo("[!] recvfile error: filename NULL.");
 	}
-	
+
 
 	/* Print Aux commands (demonstration purposes only) */
 	if(metadata.aux_command_length > 0)
@@ -391,7 +391,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 
 
 	/* DELETE ENCRYPTED DATA ON DECRYPTION FAILURE */
-	if (delete_on_fail && decryption_failure) 
+	if (delete_on_fail && decryption_failure)
 	{
 		char decryption_failure_msg[256] = {0};
 		snprintf(decryption_failure_msg, sizeof(decryption_failure_msg), "Decryption failure: %s deleted.", (char *)metadata.filename);
@@ -402,8 +402,8 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 
 exit:
 
-	/* MEMORY OBFUSCATION AND CLEANUP*/	
-	if (metadata.filename) 
+	/* MEMORY OBFUSCATION AND CLEANUP*/
+	if (metadata.filename)
 	{
 		MRELEASE(metadata.filename);
 		metadata.filename = NULL;
@@ -460,55 +460,56 @@ exit:
  * @brief Main entry for the Bundle Protocol file receiver.
  *
  * This function is the main entry point for a file receiver application using
- * the Bundle Protocol (BP). It establishes the BP environment, opens an 
- * endpoint, and continuously processes files sent to this endpoint. Supports 
+ * the Bundle Protocol (BP). It establishes the BP environment, opens an
+ * endpoint, and continuously processes files sent to this endpoint. Supports
  * standard execution and ION Lightweight Threads (LWT).
  *
  * @param argc Argument count (standard execution).
  * @param argv Argument vector (standard execution).
  * @return Returns 0 on normal termination, -1 on error.
  *
- * @note In ION LWT context, the signature changes to use 'saddr' arguments. 
- *       Manages BP delivery objects and employs `receiveFile` for processing 
+ * @note In ION LWT context, the signature changes to use 'saddr' arguments.
+ *       Manages BP delivery objects and employs `receiveFile` for processing
  *       received files.
  * @warning Implements error handling for application robustness.
  */
 #if defined (ION_LWT)
 int recvfile(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
-             saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
+		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-    char *ownEid = (char *) a1;
-    unsigned char overwriteFlag = 0;
-    char *keyInput = NULL;
+	char	     *ownEid = (char *) a1;
+	unsigned char overwriteFlag = 0;
+	char	     *keyInput = NULL;
 
-    // Check each argument for the overwrite flag or key
-    saddr args[] = {a2, a3, a4, a5, a6, a7, a8, a9, a10};
-    for (int i = 0; i < sizeof(args) / sizeof(saddr); i++) 
+	// Check each argument for the overwrite flag or key
+	saddr args[] = { a2, a3, a4, a5, a6, a7, a8, a9, a10 };
+	for (int i = 0; i < sizeof(args) / sizeof(saddr); i++)
 	{
-        if (args[i] == NULL) 
+		if (args[i] == NULL)
 		{
-            continue; // Skip null arguments
-        }
+			continue; // Skip null arguments
+		}
 
-        if (!strcmp((char *)args[i], "-o") || !strcmp((char *)args[i], "--overwrite")) 
+		if (!strcmp((char *) args[i], "-o") || !strcmp((char *) args[i], "--overwrite"))
 		{
-            overwriteFlag = 1;
-        } else if (!keyInput) 
-		{ 			
-            keyInput = (char *) args[i]; // keyInput is not already set
-        }
-    }
-	
+			overwriteFlag = 1;
+		}
+		else if (!keyInput)
+		{
+			keyInput = (char *) args[i]; // keyInput is not already set
+		}
+	}
+
 #else
 int	main(int argc, char **argv)
 {
 	int status = 0; //default to good return value
-	char	*ownEid = NULL; 
+	char	*ownEid = NULL;
 	int 	overwriteFlag = 0; // flag for overwriting files
 	char 	*keyInput = NULL;  //file path or a literal value (if no key found)
 
 
-	if (argc < 2) 
+	if (argc < 2)
 	{
 		PUTS("Error: Missing own endpoint ID.");
 		PUTS("\nUsage: recvfile <own endpoint ID> [-o|--overwrite] [decryption <key file path | literal key value>]\n");
@@ -519,20 +520,20 @@ int	main(int argc, char **argv)
 	/* first argument is always ownEid */
 	ownEid = argv[1];
 
-	for (int i = 2; i < argc; i++) 
+	for (int i = 2; i < argc; i++)
 	{
-		if (!strcmp(argv[i], "-o") || !strcmp(argv[i], "--overwrite")) 
+		if (!strcmp(argv[i], "-o") || !strcmp(argv[i], "--overwrite"))
 		{
 			overwriteFlag = 1;
 			continue;
 		}
 
 		/* if keyInput is already set avoid overwriting with additional arguments */
-		if (!keyInput && argv[i][0] != '-') 
+		if (!keyInput && argv[i][0] != '-')
 		{
 			keyInput = argv[i];
 		}
-	}	
+	}
 
 #endif
 	BptestState	state = { NULL, 1 };
@@ -588,7 +589,7 @@ int	main(int argc, char **argv)
 		/*	fall-through to default */
 		default:
 			break;
-		}		
+		}
 
 		bp_release_delivery(&dlv, 1);
 	}
@@ -600,7 +601,7 @@ exit:
 	writeErrmsgMemos();
 	bp_detach();
 
-	ownEid = NULL; 
+	ownEid = NULL;
 	overwriteFlag = 0;
 	keyInput = NULL;
 

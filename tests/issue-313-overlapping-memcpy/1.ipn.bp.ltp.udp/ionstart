@@ -2,7 +2,7 @@
 # shell script to get node running
 ionadmin	config.ionrc
 sleep		1
-ionsecadmin 	config.ionsecrc 
+ionsecadmin 	config.ionsecrc
 sleep		1
 ltpadmin	config.ltprc
 sleep		1

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 
-#Note: I am seeing rogue udplsi process on port 9118 after test (on Solaris). 
+#Note: I am seeing rogue udplsi process on port 9118 after test (on Solaris).
 #pgrep -fl 'udplsi localhost:9118' | xargs kill -9
 
 

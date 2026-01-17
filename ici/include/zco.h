@@ -95,7 +95,7 @@ typedef struct
 } ZcoReader;
 
 /*	Commonly used functions for building, accessing, managing,
- 	and destroying a ZCO.						*/
+	and destroying a ZCO.						*/
 
 typedef void	(*ZcoCallback)(ZcoAcct);
 
@@ -211,7 +211,7 @@ extern void	zco_destroy_obj_ref(Sdr sdr,
 
 extern void	zco_status(Sdr sdr);
 			/*	Writes a report of the current contents
- 			 *	of the ZCO database to ion.log.		*/
+			 *	of the ZCO database to ion.log.		*/
 
 extern double	zco_get_file_occupancy(Sdr sdr,
 				ZcoAcct acct);
@@ -447,7 +447,7 @@ extern int	zco_revise(	Sdr sdr,
 				char *buffer,
 				vast length);
 			/*	Writes the contents of buffer, for
-			 *	the indicated length, into the 
+			 *	the indicated length, into the
 			 *	indicated ZCO at the indicated offset.
 			 *	Return 0 on success, -1 on any error.	*/
 

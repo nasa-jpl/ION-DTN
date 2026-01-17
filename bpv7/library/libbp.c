@@ -302,9 +302,9 @@ int	bp_parse_quality_of_service(const char *token,
 	{
 		ancillaryData->ordinal = myOrdinal;
 	}
- 
+
 	*priority = myPriority;
-	*custodySwitch = (myCustodyRequested ? 
+	*custodySwitch = (myCustodyRequested ?
 			SourceCustodyRequired : NoCustodyRequested);
 	return 1;
 }
@@ -514,7 +514,7 @@ int	recordEid(EndpointId *eid, MetaEid *meid, EidMode mode)
 			return 0;
 
 		case EidV:
-       			wm = getIonwm();
+			wm = getIonwm();
 			addr = psm_malloc(wm, meid->nssLength);
 			if (addr == 0)
 			{
@@ -850,7 +850,7 @@ int	bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
 
 	/* PICS-16: Enforce node number constraint at the point of transmission. */
 	/* If a source EID is provided, its node number must match the local node. */
-	
+
 	if (sourceMetaEid)	/*	Only check non-anonymous sources. */
 	{
 		uvast localNodeNbr = getOwnFqnn();
@@ -871,7 +871,7 @@ int	bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
 			return -1;
 		}
 	}
-	
+
 	/*	Note: lifespan must be converted from seconds to
 	 *	millisecnods for BP processing.				*/
 
@@ -1467,9 +1467,9 @@ void	bp_release_delivery(BpDelivery *dlvBuffer, int releasePayload)
 
 /********************************************
  * BP Management APIs (initial)
- * 
- * Listing APIs will be updated to return data in 
- * structure structure.   
+ *
+ * Listing APIs will be updated to return data in
+ * structure structure.
  **********************************************/
 
 int	bp_init(void)
@@ -1662,192 +1662,192 @@ void report_all_state_stats(void)
 
 void bp_list_schemes(void)
 {
-    Sdr          sdr;
-    PsmPartition bpwm;
-    BpVdb        *vdb;
-    PsmAddress   elt;
-    VScheme      *vscheme;
-    
-    sdr = getIonsdr();
-    bpwm = getIonwm();
-    vdb = getBpVdb();
-    
-    if (sdr_begin_xn(sdr) < 0)
-    {
-        writeErrMemo("bpListSchemes: Cannot begin transaction\n");
-    }
-    
-    // Iterate through all schemes
-    for (elt = sm_list_first(bpwm, vdb->schemes); elt;
-         elt = sm_list_next(bpwm, elt))
-    {
-        vscheme = (VScheme *) psp(bpwm, sm_list_data(bpwm, elt));
-        
-        // Access scheme information
-        PUTMEMO("Scheme", vscheme->name);
-        PUTMEMO("  Code Number", itoa(vscheme->codeNumber));
-        PUTMEMO("  Admin EID", vscheme->adminEid);
-        PUTMEMO("  Forwarder PID", itoa(vscheme->fwdPid));
-        PUTMEMO("  Admin App PID", itoa(vscheme->admAppPid));
-    }
-    
+	Sdr          sdr;
+	PsmPartition bpwm;
+	BpVdb        *vdb;
+	PsmAddress   elt;
+	VScheme      *vscheme;
+
+	sdr = getIonsdr();
+	bpwm = getIonwm();
+	vdb = getBpVdb();
+
+	if (sdr_begin_xn(sdr) < 0)
+	{
+		writeErrMemo("bpListSchemes: Cannot begin transaction\n");
+	}
+
+	// Iterate through all schemes
+	for (elt = sm_list_first(bpwm, vdb->schemes); elt;
+		elt = sm_list_next(bpwm, elt))
+	{
+		vscheme = (VScheme *) psp(bpwm, sm_list_data(bpwm, elt));
+
+		// Access scheme information
+		PUTMEMO("Scheme", vscheme->name);
+		PUTMEMO("  Code Number", itoa(vscheme->codeNumber));
+		PUTMEMO("  Admin EID", vscheme->adminEid);
+		PUTMEMO("  Forwarder PID", itoa(vscheme->fwdPid));
+		PUTMEMO("  Admin App PID", itoa(vscheme->admAppPid));
+	}
+
 	/* TO DO: Can add return structure in the future */
 
-    sdr_exit_xn(sdr);
+	sdr_exit_xn(sdr);
 
 }
 
 void bp_list_endpoints(void)
 {
-    Sdr          sdr = getIonsdr();
-    PsmPartition bpwm = getIonwm();
-    BpVdb        *vdb = getBpVdb();
-    PsmAddress   schemeElt;
-    PsmAddress   endpointElt;
-    VScheme      *vscheme;
-    VEndpoint    *vpoint;
-    Object       endpointObj;
-    Endpoint     endpoint;
-    Scheme       schemeBuf;
-    char         buffer[2048];
-    char         recvScriptBuf[SDRSTRING_BUFSZ];
-    char         *recvScript;
-    char         recvRuleChar;
-    int          endpointCount = 0;
+	Sdr          sdr = getIonsdr();
+	PsmPartition bpwm = getIonwm();
+	BpVdb        *vdb = getBpVdb();
+	PsmAddress   schemeElt;
+	PsmAddress   endpointElt;
+	VScheme      *vscheme;
+	VEndpoint    *vpoint;
+	Object       endpointObj;
+	Endpoint     endpoint;
+	Scheme       schemeBuf;
+	char         buffer[2048];
+	char         recvScriptBuf[SDRSTRING_BUFSZ];
+	char         *recvScript;
+	char         recvRuleChar;
+	int          endpointCount = 0;
 
-    CHKVOID(vdb);
-    CHKVOID(sdr_begin_xn(sdr));
+	CHKVOID(vdb);
+	CHKVOID(sdr_begin_xn(sdr));
 
-    // Iterate through all schemes
-    for (schemeElt = sm_list_first(bpwm, vdb->schemes); schemeElt;
-         schemeElt = sm_list_next(bpwm, schemeElt))
-    {
-        vscheme = (VScheme *) psp(bpwm, sm_list_data(bpwm, schemeElt));
-        
-        // Read scheme details
-        sdr_read(sdr, (char *)&schemeBuf, 
-                 sdr_list_data(sdr, vscheme->schemeElt), 
-                 sizeof(Scheme));
+	// Iterate through all schemes
+	for (schemeElt = sm_list_first(bpwm, vdb->schemes); schemeElt;
+		schemeElt = sm_list_next(bpwm, schemeElt))
+	{
+		vscheme = (VScheme *) psp(bpwm, sm_list_data(bpwm, schemeElt));
 
-        // Iterate through endpoints for this scheme
-        for (endpointElt = sm_list_first(bpwm, vscheme->endpoints); 
-             endpointElt;
-             endpointElt = sm_list_next(bpwm, endpointElt))
-        {
-            vpoint = (VEndpoint *) psp(bpwm, sm_list_data(bpwm, endpointElt));
-            
-            // Read endpoint details from SDR
-            endpointObj = sdr_list_data(sdr, vpoint->endpointElt);
-            sdr_read(sdr, (char *)&endpoint, endpointObj, sizeof(Endpoint));
+		// Read scheme details
+		sdr_read(sdr, (char *)&schemeBuf,
+			sdr_list_data(sdr, vscheme->schemeElt),
+			sizeof(Scheme));
 
-            // Format receive rule as character
-            recvRuleChar = (endpoint.recvRule == EnqueueBundle) ? 'q' : 'x';
+		// Iterate through endpoints for this scheme
+		for (endpointElt = sm_list_first(bpwm, vscheme->endpoints);
+			endpointElt;
+			endpointElt = sm_list_next(bpwm, endpointElt))
+		{
+			vpoint = (VEndpoint *) psp(bpwm, sm_list_data(bpwm, endpointElt));
 
-            // Read receive script if present
-            if (endpoint.recvScript == 0)
-            {
-                recvScript = "";
-            }
-            else
-            {
-                if (sdr_string_read(sdr, recvScriptBuf, endpoint.recvScript) < 0)
-                {
-                    recvScript = "?";
-                }
-                else
-                {
-                    recvScript = recvScriptBuf;
-                }
-            }
+			// Read endpoint details from SDR
+			endpointObj = sdr_list_data(sdr, vpoint->endpointElt);
+			sdr_read(sdr, (char *)&endpoint, endpointObj, sizeof(Endpoint));
 
-            // Format and print endpoint information
-            isprintf(buffer, sizeof(buffer),
-                     "%s:%s  rule=%c  app_pid=%d  script='%s'",
-                     vscheme->name,
-                     vpoint->nss,
-                     recvRuleChar,
-                     vpoint->appPid,
-                     recvScript);
-            PUTS(buffer);
+			// Format receive rule as character
+			recvRuleChar = (endpoint.recvRule == EnqueueBundle) ? 'q' : 'x';
 
-            endpointCount++;
-        }
-    }
+			// Read receive script if present
+			if (endpoint.recvScript == 0)
+			{
+				recvScript = "";
+			}
+			else
+			{
+				if (sdr_string_read(sdr, recvScriptBuf, endpoint.recvScript) < 0)
+				{
+					recvScript = "?";
+				}
+				else
+				{
+					recvScript = recvScriptBuf;
+				}
+			}
 
-    sdr_exit_xn(sdr);
+			// Format and print endpoint information
+			isprintf(buffer, sizeof(buffer),
+				"%s:%s  rule=%c  app_pid=%d  script='%s'",
+				vscheme->name,
+				vpoint->nss,
+				recvRuleChar,
+				vpoint->appPid,
+				recvScript);
+			PUTS(buffer);
 
-    // Print summary
-    if (endpointCount == 0)
-    {
-        PUTS("No endpoints registered.");
-    }
-    else
-    {
-        isprintf(buffer, sizeof(buffer), 
-                 "Total endpoints: %d", endpointCount);
-        PUTS(buffer);
-    }
+			endpointCount++;
+		}
+	}
+
+	sdr_exit_xn(sdr);
+
+	// Print summary
+	if (endpointCount == 0)
+	{
+		PUTS("No endpoints registered.");
+	}
+	else
+	{
+		isprintf(buffer, sizeof(buffer),
+			"Total endpoints: %d", endpointCount);
+		PUTS(buffer);
+	}
 }
 
 void bp_list_protocols(void)
 {
-    Sdr        sdr = getIonsdr();
-    BpDB       *bpConstants = getBpConstants();
-    Object     elt;
-    Object     protocolObj;
-    ClProtocol protocol;
-    char       buffer[2048];
-    int        protocolCount = 0;
-    char       *className;
+	Sdr        sdr = getIonsdr();
+	BpDB       *bpConstants = getBpConstants();
+	Object     elt;
+	Object     protocolObj;
+	ClProtocol protocol;
+	char       buffer[2048];
+	int        protocolCount = 0;
+	char       *className;
 
-    CHKVOID(bpConstants);
-    CHKVOID(sdr_begin_xn(sdr));
+	CHKVOID(bpConstants);
+	CHKVOID(sdr_begin_xn(sdr));
 
-    // Iterate through all protocols
-    for (elt = sdr_list_first(sdr, bpConstants->protocols); elt;
-         elt = sdr_list_next(sdr, elt))
-    {
-        protocolObj = sdr_list_data(sdr, elt);
-        sdr_read(sdr, (char *)&protocol, protocolObj, sizeof(ClProtocol));
+	// Iterate through all protocols
+	for (elt = sdr_list_first(sdr, bpConstants->protocols); elt;
+		elt = sdr_list_next(sdr, elt))
+	{
+		protocolObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *)&protocol, protocolObj, sizeof(ClProtocol));
 
-        // Determine protocol class name
-        switch (protocol.protocolClass)
-        {
-        case 0:
-            className = "Scheduled";
-            break;
-        case 1:
-            className = "Unscheduled";
-            break;
-        case 2:
-            className = "OnDemand";
-            break;
-        default:
-            className = "Unknown";
-        }
+		// Determine protocol class name
+		switch (protocol.protocolClass)
+		{
+		case 0:
+			className = "Scheduled";
+			break;
+		case 1:
+			className = "Unscheduled";
+			break;
+		case 2:
+			className = "OnDemand";
+			break;
+		default:
+			className = "Unknown";
+		}
 
-        // Format and print protocol information
-        isprintf(buffer, sizeof(buffer),
-                 "Protocol: %-12s  class=%d (%s)",
-                 protocol.name,
-                 protocol.protocolClass,
-                 className);
-        PUTS(buffer);
+		// Format and print protocol information
+		isprintf(buffer, sizeof(buffer),
+			"Protocol: %-12s  class=%d (%s)",
+			protocol.name,
+			protocol.protocolClass,
+			className);
+		PUTS(buffer);
 
-        protocolCount++;
-    }
+		protocolCount++;
+	}
 
-    sdr_exit_xn(sdr);
+	sdr_exit_xn(sdr);
 
-    // Print summary
-    if (protocolCount == 0)
-    {
-        PUTS("No convergence layer protocols configured.");
-    }
-    else
-    {
-        isprintf(buffer, sizeof(buffer), 
-                 "Total protocols: %d", protocolCount);
-        PUTS(buffer);
-    }
+	// Print summary
+	if (protocolCount == 0)
+	{
+		PUTS("No convergence layer protocols configured.");
+	}
+	else
+	{
+		isprintf(buffer, sizeof(buffer),
+			"Total protocols: %d", protocolCount);
+		PUTS(buffer);
+	}
 }

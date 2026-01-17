@@ -73,12 +73,12 @@
  */
 typedef enum
 {
-    BPSEC_BAGSC_PARM_LTK_NAME    = 5, /** Parm.   The LTK key name to use    */
-    BPSEC_BAGSC_PARM_IV          = 1, /** Parm.   The Initialization Vector Used.      */
-    BPSEC_BAGSC_PARM_AES_VAR_ID  = 2, /** Parm.   The AES Variant Used.      */
-    BPSEC_BAGSC_PARM_WRAPPED_KEY = 3, /** Parm.   The AES-Wrapped key.       */
-    BPSEC_BAGSC_PARM_AAD_SCOPE   = 4, /** Parm.   The AAD Scope Flags.       */
-    BPSEC_BAGSC_RESULT_TAG       = 1  /** Result. The Expected HMAC.         */
+	BPSEC_BAGSC_PARM_LTK_NAME    = 5, /** Parm.   The LTK key name to use    */
+	BPSEC_BAGSC_PARM_IV          = 1, /** Parm.   The Initialization Vector Used.      */
+	BPSEC_BAGSC_PARM_AES_VAR_ID  = 2, /** Parm.   The AES Variant Used.      */
+	BPSEC_BAGSC_PARM_WRAPPED_KEY = 3, /** Parm.   The AES-Wrapped key.       */
+	BPSEC_BAGSC_PARM_AAD_SCOPE   = 4, /** Parm.   The AAD Scope Flags.       */
+	BPSEC_BAGSC_RESULT_TAG       = 1  /** Result. The Expected HMAC.         */
 } sc_bag_ids_t;
 
 

@@ -102,9 +102,9 @@ sc_value_map* bpsec_itsci_valMapGet(void);
 
 
 int32_t bpsec_itsc_updatePayloadFromFile(uint32_t suite, csi_cipherparms_t *csi_parms,
-        uint8_t *context, csi_blocksize_t *blocksize, Object dataObj,
-        ZcoReader *dataReader, uvast cipherBufLen, Object *cipherZco,
-        uint8_t function);
+	uint8_t *context, csi_blocksize_t *blocksize, Object dataObj,
+	ZcoReader *dataReader, uvast cipherBufLen, Object *cipherZco,
+	uint8_t function);
 
 
 

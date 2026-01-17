@@ -1,11 +1,11 @@
 =head1 NAME
 
-sendfile - Bundle Protocol (BP) file transmission utility utilizing a "metadata 
-header" for file name, timestamp, versioning, and auxiliary command strings, 
+sendfile - Bundle Protocol (BP) file transmission utility utilizing a "metadata
+header" for file name, timestamp, versioning, and auxiliary command strings,
 enabling file naming at the recvfile utility.  Encryption is enabled when a HMAC
-key path (or literal value) is included in the command execution string. 
+key path (or literal value) is included in the command execution string.
 
-Note: encryption requires a suitable cryptographic library and interface (which 
+Note: encryption requires a suitable cryptographic library and interface (which
 is avaiable with the ITAR controlled ION NASA Baseline).
 
 =head1 SYNOPSIS

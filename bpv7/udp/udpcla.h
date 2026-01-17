@@ -1,17 +1,18 @@
 /*
-        udpcla.h:	common definitions for UDP convergence layer
-                        adapter modules.
+	udpcla.h:	common definitions for UDP convergence layer
+			adapter modules.
 
-        Author: Ted Piotrowski, APL
-                Scott Burleigh, JPL
+	Author: Ted Piotrowski, APL
+		Scott Burleigh, JPL
 
-        Modification History:
-        August 2025, Dual-stack Extension, ION Dev Team/JPL
+	Modification History:
+	August 2025, Dual-stack Extension, ION Dev Team/JPL
 
-        Copyright (c) 2003, California Institute of Technology.
-        ALL RIGHTS RESERVED.  U.S. Government Sponsorship
-        acknowledged.
-                                                                        */
+	Copyright (c) 2003, California Institute of Technology.
+	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
+	acknowledged.
+									*/
+
 #ifndef UDPCLA_H
 #define UDPCLA_H
 
@@ -40,22 +41,22 @@ typedef struct
 /* Enhanced functions for dual-stack with automatic shutdown handling */
 extern int  initUdpClaSocket(const char *endpoint, UdpClaSocket *claSock);
 extern int  receiveUdpClaDatagram(UdpClaSocket *claSock, char *buffer,
-                 size_t buffer_size, IonNetworkAddress *from_addr,
-                 int *is_shutdown);
+		size_t buffer_size, IonNetworkAddress *from_addr,
+		int *is_shutdown);
 extern int  sendUdpClaShutdown(UdpClaSocket *claSock);
 extern void cleanupUdpClaSocket(UdpClaSocket *claSock);
 extern int  sendBundleByUDPDualStack(const IonNetworkAddress *destAddr,
-                 int *bundleSocket, unsigned int bundleLength, Object bundleZco,
-                 unsigned char *buffer);
+		int *bundleSocket, unsigned int bundleLength, Object bundleZco,
+		unsigned char *buffer);
 
 /* Legacy IPv4 only UDP send & receive functions */
 extern int sendBytesByUDP(int *bundleSocket, char *from, int length,
-                struct sockaddr *socketName);
+		struct sockaddr *socketName);
 extern int sendBundleByUDP(struct sockaddr *socketName, int *bundleSocket,
-                unsigned int bundleLength, Object bundleZco,
-                unsigned char *buffer);
+		unsigned int bundleLength, Object bundleZco,
+		unsigned char *buffer);
 extern int receiveBytesByUDP(int bundleSocket, struct sockaddr_in *fromAddr,
-                char *into, int length);
+		char *into, int length);
 
 #ifdef __cplusplus
 }

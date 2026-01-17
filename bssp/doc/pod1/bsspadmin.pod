@@ -10,7 +10,7 @@ B<bsspadmin> [ I<commands_filename> | . ]
 
 B<bsspadmin> configures, starts, manages, and stops BSSP operations for
 the local ION node.
-	
+
 It operates in response to BSSP configuration commands found in the file
 I<commands_filename>, if provided; if not, B<bsspadmin> prints
 a simple prompt (:) so that the user may type commands

@@ -60,7 +60,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-          clean: true 
+          clean: true
           # clear workspace after
 
     # Add any setup steps before running the `github/codeql-action/init` action.

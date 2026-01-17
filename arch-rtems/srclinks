@@ -412,7 +412,7 @@ ln -s ../ltp/daemon/ltpmeter.c
 ln -s ../ltp/utils/ltpadmin.c
 ln -s ../ltp/utils/ltpsecadmin.c
 
-# ltp/udp - not included, this port 
+# ltp/udp - not included, this port
 #           POSIX msg queue under ltp
 #           for data transfer within
 #           a single host only

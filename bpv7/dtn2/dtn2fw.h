@@ -1,5 +1,5 @@
 /*
- 	dtn2fw.h:	definitions supporting the implementation
+	dtn2fw.h:	definitions supporting the implementation
 			of the forwarding infrastructure for
 			DTN2-style endpoint IDs.
 
@@ -11,7 +11,7 @@
 	Copyright (c) 2006, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
- 									*/
+									*/
 
 #ifndef DTN2FW_H
 #define DTN2FW_H

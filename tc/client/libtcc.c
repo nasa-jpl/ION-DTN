@@ -7,12 +7,12 @@
 	Copyright (c) 2020, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "tccP.h"
 
 int	tcc_getBulletin(int blocksGroupNbr, char **bulletinContent,
-	       	int *length)
+		int *length)
 {
 	Sdr		sdr;
 	Object		dbobj;

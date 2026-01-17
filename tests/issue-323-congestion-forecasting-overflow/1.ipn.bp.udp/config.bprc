@@ -24,13 +24,13 @@ a endpoint ipn:1.1 x
 a endpoint ipn:1.2 x
 a endpoint ipn:1.3 x
 
-# Add a protocol. 
+# Add a protocol.
 a protocol udp 1400 100
 
 # Add an induct. (listen)
 a induct udp 127.0.0.1:4556 udpcli
 
-# Add an outduct. (since one UDP socket can address any IP, use '*' 
+# Add an outduct. (since one UDP socket can address any IP, use '*'
 # for the destination address, then this clo can send to any udp cli)
 a outduct udp 127.0.0.1:4556 udpclo
 

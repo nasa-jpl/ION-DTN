@@ -8,10 +8,10 @@ bssp - Bundle Streaming Service Protocol (BSSP) communications library
 
     typedef enum
     {
-	BsspNoNotice = 0,
-	BsspXmitSuccess,
-	BsspXmitFailure,
-	BsspRecvSuccess
+        BsspNoNotice = 0,
+        BsspXmitSuccess,
+        BsspXmitFailure,
+        BsspRecvSuccess
     } BsspNoticeType;
 
     [see description for available functions]
@@ -108,7 +108,7 @@ zco_* functions defined in "zco.h" to retrieve the content of that object.
 When the notice is an BsspRecvSuccess, the ZCO returned in I<*data>
 contains the content of a single BSSP block.
 
-The cancellation of an export session results in delivery of a 
+The cancellation of an export session results in delivery of a
 BsspXmitFailure notice.  In this case, the ZCO returned in *data is a
 service data unit ZCO that had previously been passed to bssp_send().
 

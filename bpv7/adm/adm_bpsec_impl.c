@@ -8,10 +8,10 @@
  **
  ** Assumptions: TODO
  **
- ** Modification History: 
+ ** Modification History:
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2020-04-13  AUTO             Auto-generated c file 
+ **  2020-04-13  AUTO             Auto-generated c file
  **
  ****************************************************************************/
 
@@ -34,7 +34,7 @@
 
 static tnv_t *adm_bpsec_get_src_val(tnvc_t *parms, bpsec_instr_type_e type, query_type_e query)
 {
-    tnv_t *result = tnv_create();
+	tnv_t *result = tnv_create();
 	char *eid_id = NULL;
 	uvast num = 0;
 	int success = ERROR;
@@ -65,7 +65,7 @@ static tnv_t *adm_bpsec_get_src_val(tnvc_t *parms, bpsec_instr_type_e type, quer
 
 static tnv_t *adm_bpsec_get_tot_val(bpsec_instr_type_e type, query_type_e query)
 {
-        tnv_t *result = tnv_create();
+	tnv_t *result = tnv_create();
 	uvast num = 0;
 	int8_t success = 0;
 
@@ -1810,7 +1810,7 @@ tnv_t *dtn_bpsec_ctrl_rst_all_cnts(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 
 
 /*
- * This control causes the Agent to reset all counts (blocks and bytes) associated with a given bundle 
+ * This control causes the Agent to reset all counts (blocks and bytes) associated with a given bundle
  * source and set the Last Reset Time of the source statistics to the time when the control was run.
  */
 tnv_t *dtn_bpsec_ctrl_rst_src_cnts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)

@@ -7,7 +7,7 @@
  *	Copyright (c) 2013, California Institute of Technology.
  *	Copyright (c) 2013, Space Internetworking Center,
  *	Democritus University of Thrace.
- *	
+ *
  *	All rights reserved. U.S. Government and E.U. Sponsorship acknowledged.
  *
  */
@@ -432,7 +432,7 @@ int	main(int argc, char *argv[])
 		char	txt[500];
 
 		isprintf(txt, sizeof(txt),
-			"[i] tcpbsi is running, spec=[%s:%d].", 
+			"[i] tcpbsi is running, spec=[%s:%d].",
 			inet_ntoa(atp.inetName->sin_addr), ntohs(portNbr));
 		writeMemo(txt);
 	}

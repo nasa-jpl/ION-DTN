@@ -15,7 +15,7 @@
 
 echo "**** Starting ION..."
 CONFIGDIR="./config"
-ionstart                           \
+ionstart                                   \
     -i ${CONFIGDIR}/245-contactrange.ionrc \
     -l ${CONFIGDIR}/245-contactrange.ltprc \
     -b ${CONFIGDIR}/245-contactrange.bprc  \
@@ -96,7 +96,7 @@ if [ $numadded -eq 13 ]; then
         RETVAL=1
     fi
 else
-	echo "Oh Noes!  contact/range did not load; ${numadded} added"
+    echo "Oh Noes!  contact/range did not load; ${numadded} added"
     RETVAL=1
 fi
 

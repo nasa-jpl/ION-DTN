@@ -5,7 +5,7 @@
  *	Copyright (c) 2014, California Institute of Technology.
  *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
  *	acknowledged.
- *									
+ *
  *  Author: TCSASSEMBLER, TopCoder
  *
  *  Modification History:
@@ -94,7 +94,7 @@ static int	verify_sha1(LtpExtensionInbound *trailerExt,
 {
 	Sdnv		sdnv;
 	int		hashOffset;
-	unsigned char	hashValue[32];          
+	unsigned char	hashValue[32];
 	char		authVal[20];
 
 	if (trailerExt->length == 0 || trailerExt->length > sizeof authVal)
@@ -117,7 +117,7 @@ static int	verify_sha1(LtpExtensionInbound *trailerExt,
 	if (memcmp(authVal, hashValue, trailerExt->length) == 0)
 	{
 		return 1;	/*	Segment has been verified.	*/
-	}               
+	}
 
 	return 0;
 }
@@ -128,7 +128,7 @@ static int	verify_sha256(LtpExtensionInbound *trailerExt,
 	void		*ctx = NULL;
 	Sdnv		sdnv;
 	int		hashOffset;
-	unsigned char	hashValue[32];          
+	unsigned char	hashValue[32];
 	int		result = 0;
 
 	if (rsa_sha256_verify_init(&ctx, keyValue, keyLength))
@@ -256,7 +256,7 @@ static int	tryAuthHeader(LtpRecvSeg* segment, Lyst trailerExtensions,
 
 			return result;
 		}
-	} 
+	}
 
 	return 0;	/*	Not authenticated.			*/
 }
@@ -265,12 +265,12 @@ int	verifyAuthExtensionField(LtpRecvSeg* segment, Lyst headerExtensions,
 		Lyst trailerExtensions, char *segmentRawData, LtpVspan* vspan)
 {
 	Sdr			sdr = getIonsdr();
-				OBJ_POINTER(SecDB, secdb);
-	Object			elt;    
+	OBJ_POINTER(SecDB, secdb);
+	Object			elt;
 	Object			ruleAddr;
-				OBJ_POINTER(LtpRecvAuthRule, rule);
+	OBJ_POINTER(LtpRecvAuthRule, rule);
 	LystElt			headerElt;
-	LtpExtensionInbound	*headerExt;     
+	LtpExtensionInbound	*headerExt;
 	int			result;
 
 	if (secAttach() != 0)
@@ -294,11 +294,11 @@ int	verifyAuthExtensionField(LtpRecvSeg* segment, Lyst headerExtensions,
 			elt = sdr_list_next(sdr, elt))
 	{
 		ruleAddr = sdr_list_data(sdr, elt);
-		GET_OBJ_POINTER(sdr, LtpRecvAuthRule, rule, ruleAddr);      
-		if (rule->ltpEngineId != vspan->engineId)  
+		GET_OBJ_POINTER(sdr, LtpRecvAuthRule, rule, ruleAddr);
+		if (rule->ltpEngineId != vspan->engineId)
 		{
 			continue;
-		}       
+		}
 
 		/*	Found the matching rule.  Now process each
 		 *	LTP authentication extension header field
@@ -359,10 +359,10 @@ int	verifyAuthExtensionField(LtpRecvSeg* segment, Lyst headerExtensions,
 int	addAuthHeaderExtensionField(LtpXmitSeg *segment)
 {
 	Sdr	sdr = getIonsdr();
-		OBJ_POINTER(SecDB, secdb);
+	OBJ_POINTER(SecDB, secdb);
 	Object	elt;
 	Object	ruleAddr;
-		OBJ_POINTER(LtpXmitAuthRule, rule);
+	OBJ_POINTER(LtpXmitAuthRule, rule);
 	char	value[1];
 	int	result = 0;
 
@@ -414,15 +414,15 @@ int	addAuthHeaderExtensionField(LtpXmitSeg *segment)
 int	addAuthTrailerExtensionField(LtpXmitSeg *segment)
 {
 	Sdr	sdr = getIonsdr();
-		OBJ_POINTER(SecDB, secdb);
+	OBJ_POINTER(SecDB, secdb);
 	Object	elt;
 	Object	ruleAddr;
-		OBJ_POINTER(LtpXmitAuthRule, rule);
+	OBJ_POINTER(LtpXmitAuthRule, rule);
 	char	*keyValue;
 	int	keyLength;
 	int	valueLength = 0;
 	void	*ctx = NULL;
-	char	value[32] = "";      
+	char	value[32] = "";
 	int	result = 0;
 
 	if (secAttach() != 0)
@@ -547,18 +547,18 @@ int	serializeAuthTrailerExtensionField(Object fieldObj, LtpXmitSeg *segment,
 		char **cursor)
 {
 	Sdr		sdr = getIonsdr();
-			OBJ_POINTER(SecDB, secdb);
-			OBJ_POINTER(LtpExtensionOutbound, field);
+	OBJ_POINTER(SecDB, secdb);
+	OBJ_POINTER(LtpExtensionOutbound, field);
 	char		*buf;
 	int		authLength;
 	Sdnv		sdnv;
 	int		extensionLength;
 	Object		elt;
 	Object		ruleAddr;
-			OBJ_POINTER(LtpXmitAuthRule, rule);
+	OBJ_POINTER(LtpXmitAuthRule, rule);
 	char		*keyValue;
-	int		keyLength;      
-	unsigned char	authVal[512];      
+	int		keyLength;
+	unsigned char	authVal[512];
 
 	if (secAttach() != 0)
 	{

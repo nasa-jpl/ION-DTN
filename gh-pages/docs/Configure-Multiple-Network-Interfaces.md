@@ -55,13 +55,13 @@ as a alpha release feature. The new format is as follows:
 ipn-uri = "ipn:" [allocator-identifier "."] node-number "." service-number
 ```
 
-`allocator-identifier`: An unsigned integer identifying the allocation 
-authority. If the authority is the default (IANA, Allocator ID 0), this 
+`allocator-identifier`: An unsigned integer identifying the allocation
+authority. If the authority is the default (IANA, Allocator ID 0), this
 part and the following dot (.) may be omitted for brevity. ION is backward
-compatible with IPN URIs that omit the allocator identifier, which is 
+compatible with IPN URIs that omit the allocator identifier, which is
 interpreted as having the default value of 0.
 
-For all examples in this tutorial, the allocator identifier is omitted and 
+For all examples in this tutorial, the allocator identifier is omitted and
 defaults to 0.
 
 New IPN URI support is under alpha testing.
@@ -120,7 +120,7 @@ a induct ltp 23 ltpcli
 a outduct ltp 21 ltpclo
 a outduct ltp 22 ltpclo
 
-a plan ipn:21.0 
+a plan ipn:21.0
 a plan ipn:22.0
 
 a planduct ipn:21.0 ltp 21

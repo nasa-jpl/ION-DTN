@@ -28,26 +28,26 @@ echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
-echo "PURPOSE: produce a demonstration configuration for using the 
-	BIBE convergence-layer protocol (over UDP/IP) between neighboring 
-	DTN nodes, relying on BIBE custodial retransmission for reliability; 
-	bundles received via BIBE are forwarded to the final destination 
-	by STCP. Since the bundle size exceeds the maximum capacity of a UDP
-	packet, the test exercises BP fragmentation and reassembly as well.
-	Due to the inherent unreliability of UDP and the fact the way network
-	subsystem drops UDP data is implementation-dependent, the actual 
-	throughput will vary from system to system. A final note is that the
-	throughput is also a function of the size of the bundle."
+echo "PURPOSE: produce a demonstration configuration for using the
+    BIBE convergence-layer protocol (over UDP/IP) between neighboring
+    DTN nodes, relying on BIBE custodial retransmission for reliability;
+    bundles received via BIBE are forwarded to the final destination
+    by STCP. Since the bundle size exceeds the maximum capacity of a UDP
+    packet, the test exercises BP fragmentation and reassembly as well.
+    Due to the inherent unreliability of UDP and the fact the way network
+    subsystem drops UDP data is implementation-dependent, the actual
+    throughput will vary from system to system. A final note is that the
+    throughput is also a function of the size of the bundle."
 
 echo
 echo "CONFIG: 2 node custom:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat "$N"
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat "$N"
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo
@@ -59,10 +59,10 @@ echo "***PLEASE NOTE: this benchmark test requires Bundle Protocol version 7."
 sleep 1
 
 #echo "Checking for additional memory needed for this demo..."
-./check_memory 
+./check_memory
 if [ $? != 0 ]; then
-	echo "Can't run, need additional system resources"
-	exit 1
+    echo "Can't run, need additional system resources"
+    exit 1
 fi
 
 echo "Starting ION..."
@@ -90,15 +90,15 @@ sleep 1
 # some ps don't like -p syntax, most do.
 if [ "$1" == "windows" ]
 then
-		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+    ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 else
-		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+    ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 fi
 if [ "$RETURN_VALUE" -eq 0 ]
 then
-	echo "bpcounter couldn't be started."
-	echo "...benchmarking terminated."
-	exit 1
+    echo "bpcounter couldn't be started."
+    echo "...benchmarking terminated."
+    exit 1
 fi
 
 
@@ -111,12 +111,12 @@ COUNT=0
 while [ $COUNT -le 1001 ]
 do
 
-   bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-50KB
+    bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-50KB
 
-   # throttles load to contact rate; bibect is sensitive to saturation
-   sleep 0.005
+    # throttles load to contact rate; bibect is sensitive to saturation
+    sleep 0.005
 
-   COUNT=$(($COUNT+1))
+    COUNT=$(($COUNT+1))
 
 done
 sleep 5
@@ -127,33 +127,33 @@ RUNNING=1
 TIMER=0
 while [ "$RUNNING" -eq 1 ]
 do
-	TIMER=$((++TIMER))
-	sleep 1
-	echo "...receiving..."
-	# some ps don't like -p syntax, most do.
-	if [ "$1" == "windows" ]
-	then
-		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	else
-		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	fi
-	if [ "$RETURN_VALUE" -eq 0 ]
-	then
-		echo "...transmission finished."
-		RUNNING=0
-	fi
-	if [ "$TIMER" -gt 300 ]
-	then
-		#infinite loop protection
-		echo "...5 minutes passed; giving up."
-		RUNNING=0
-		RETVAL=1
-	fi
+    TIMER=$((++TIMER))
+    sleep 1
+    echo "...receiving..."
+    # some ps don't like -p syntax, most do.
+    if [ "$1" == "windows" ]
+    then
+        ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+    else
+        ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+    fi
+    if [ "$RETURN_VALUE" -eq 0 ]
+    then
+        echo "...transmission finished."
+        RUNNING=0
+    fi
+    if [ "$TIMER" -gt 300 ]
+    then
+        #infinite loop protection
+        echo "...5 minutes passed; giving up."
+        RUNNING=0
+        RETVAL=1
+    fi
 done
 
 if [ "$RETVAL" -eq 1 ]
 then
-	echo "Test did not complete."
+    echo "Test did not complete."
 fi
 
 #echo "Waiting 150 sec for transmission to complete and fragments to expire..."

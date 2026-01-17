@@ -14,7 +14,7 @@
 ## Three-node ION Configuration
 
 * Three-Node 'spacecraft-relay-ground' scenario with BPv7 and LTP [download](config-templates/3-node-GS-Relay-SC-LTP.zip)
-  
+
 ## Notes
 
 The choice of IP addresses, port IDs, contact delay ('range') and data rate, and memory/storage for 'heap', 'SDR working memory', 'ION working memory', etc, do not indicate a recommended setting. The approproiate setting for ION must be tailored to your specific use case.

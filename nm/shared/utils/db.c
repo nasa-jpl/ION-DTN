@@ -57,29 +57,29 @@ int  db_forget(db_desc_t *desc, Object list)
 	/* Free the item wherever it is in the SDR. */
 	if(desc->itemObj != 0)
 	{
-	  sdr_free(sdr, desc->itemObj);
-	  desc->itemObj = 0;
-	  desc->itemSize = 0;
+		sdr_free(sdr, desc->itemObj);
+		desc->itemObj = 0;
+		desc->itemSize = 0;
 	}
 
 	/* Remove the object descriptor from the list. */
 	if(desc->descObj != 0)
 	{
-	   elt = sdr_list_first(sdr, list);
-	   while(elt)
-	   {
-		   if(sdr_list_data(sdr, elt) == desc->descObj)
-		   {
-			   sdr_list_delete(sdr, elt, NULL, NULL);
-			   sdr_free(sdr, desc->descObj);
-			   desc->descObj = 0;
-			   elt = 0;
-		   }
-		   else
-		   {
-			   elt = sdr_list_next(sdr, elt);
-		   }
-	   }
+		elt = sdr_list_first(sdr, list);
+		while (elt)
+		{
+			if (sdr_list_data(sdr, elt) == desc->descObj)
+			{
+				sdr_list_delete(sdr, elt, NULL, NULL);
+				sdr_free(sdr, desc->descObj);
+				desc->descObj = 0;
+				elt = 0;
+			}
+			else
+			{
+				elt = sdr_list_next(sdr, elt);
+			}
+		}
 	}
 
 	sdr_end_xn(sdr);
@@ -162,7 +162,7 @@ int  db_persist(blob_t *blob, db_desc_t *desc, Object list)
 
 	/* Step 0: Sanity Checks. */
 	if (((desc->itemObj == 0) && (desc->itemSize != 0)) ||
-	   ((desc->itemObj != 0) && (desc->itemSize == 0)))
+			((desc->itemObj != 0) && (desc->itemSize == 0)))
 	{
 		AMP_DEBUG_ERR("db_persist","bad params.",NULL);
 		return AMP_FAIL;
@@ -183,52 +183,52 @@ int  db_persist(blob_t *blob, db_desc_t *desc, Object list)
 
 	CHKUSR(sdr_begin_xn(sdr), AMP_FAIL);
 
-   /* Step 1: Allocate a descriptor object for this item in the SDR. */
-   if((desc->descObj = sdr_malloc(sdr, sizeof(db_desc_t))) == 0)
-   {
-	   sdr_cancel_xn(sdr);
-	   AMP_DEBUG_ERR("db_persist",
-			   	     "Can't allocate descriptor of size %d.",
-					 sizeof(db_desc_t));
-	   return AMP_SYSERR;
-   }
+	/* Step 1: Allocate a descriptor object for this item in the SDR. */
+	if((desc->descObj = sdr_malloc(sdr, sizeof(db_desc_t))) == 0)
+	{
+		sdr_cancel_xn(sdr);
+		AMP_DEBUG_ERR("db_persist",
+				"Can't allocate descriptor of size %d.",
+				sizeof(db_desc_t));
+		return AMP_SYSERR;
+	}
 
-   /* Step 2: Allocate space for the serialized rule in the SDR. */
-   if((desc->itemObj = sdr_malloc(sdr, desc->itemSize)) == 0)
-   {
-	   sdr_free(sdr, desc->descObj);
-	   sdr_cancel_xn(sdr);
-	   desc->descObj = 0;
-	   AMP_DEBUG_ERR("db_persist",
-			         "Unable to allocate Item in SDR. Size %d.",
-					 desc->itemSize);
-	   return AMP_SYSERR;
-   }
+	/* Step 2: Allocate space for the serialized rule in the SDR. */
+	if((desc->itemObj = sdr_malloc(sdr, desc->itemSize)) == 0)
+	{
+		sdr_free(sdr, desc->descObj);
+		sdr_cancel_xn(sdr);
+		desc->descObj = 0;
+		AMP_DEBUG_ERR("db_persist",
+				"Unable to allocate Item in SDR. Size %d.",
+				desc->itemSize);
+		return AMP_SYSERR;
+	}
 
-   /* Step 3: Write the item to the SDR. */
-   sdr_write(sdr, desc->itemObj, (char *) blob->value, desc->itemSize);
+	/* Step 3: Write the item to the SDR. */
+	sdr_write(sdr, desc->itemObj, (char *) blob->value, desc->itemSize);
 
-   /* Step 4: Write the item descriptor to the SDR. */
-   sdr_write(sdr, desc->descObj, (char *) desc, sizeof(db_desc_t));
+	/* Step 4: Write the item descriptor to the SDR. */
+	sdr_write(sdr, desc->descObj, (char *) desc, sizeof(db_desc_t));
 
-   /* Step 5: Save the descriptor in the AgentDB active rules list. */
-   if (sdr_list_insert_last(sdr, list, desc->descObj) == 0)
-   {
-	   db_forget(desc, list);
+	/* Step 5: Save the descriptor in the AgentDB active rules list. */
+	if (sdr_list_insert_last(sdr, list, desc->descObj) == 0)
+	{
+		db_forget(desc, list);
 
-	   sdr_cancel_xn(sdr);
-	   AMP_DEBUG_ERR("db_persist",
-			         "Unable to insert item Descr. in SDR.", NULL);
-	   return AMP_SYSERR;
-   }
+		sdr_cancel_xn(sdr);
+		AMP_DEBUG_ERR("db_persist",
+				"Unable to insert item Descr. in SDR.", NULL);
+		return AMP_SYSERR;
+	}
 
-   if(sdr_end_xn(sdr))
-   {
-	   AMP_DEBUG_ERR("db_persist", "Can't persist db item.", NULL);
-	   return AMP_SYSERR;
-   }
+	if(sdr_end_xn(sdr))
+	{
+		AMP_DEBUG_ERR("db_persist", "Can't persist db item.", NULL);
+		return AMP_SYSERR;
+	}
 
-   return AMP_OK;
+	return AMP_OK;
 }
 
 
@@ -316,39 +316,39 @@ int vdb_obj_init(Object sdr_list, vdb_init_cb_fn init_cb)
 
 	/* Step 1: Walk through report definitions. */
 	for (elt = sdr_list_first(sdr, sdr_list); elt;
-	    		elt = sdr_list_next(sdr, elt))
+			elt = sdr_list_next(sdr, elt))
 	{
 
 		/* Step 1.1: Grab the descriptor. */
-	    descObj = sdr_list_data(sdr, elt);
-	    oK(sdr_read(sdr, (char *) &cur_desc, descObj, sizeof(cur_desc)));
+		descObj = sdr_list_data(sdr, elt);
+		oK(sdr_read(sdr, (char *) &cur_desc, descObj, sizeof(cur_desc)));
 
-	    cur_desc.descObj = descObj;
+		cur_desc.descObj = descObj;
 
-	    /* Step 1.2: Allocate space for the def. */
-	    if((data = blob_create(NULL, 0, cur_desc.itemSize)) == NULL)
-	    {
-	    	AMP_DEBUG_ERR("vdb_init","Can't allocate %d bytes.",
-	    					cur_desc.itemSize);
-	    }
-	    else
-	    {
-	    	/* Step 1.3: Grab the serialized rule */
-	    	oK(sdr_read(sdr, (char *) data->value, cur_desc.itemObj, cur_desc.itemSize));
-	    	data->length = cur_desc.itemSize;
+		/* Step 1.2: Allocate space for the def. */
+		if((data = blob_create(NULL, 0, cur_desc.itemSize)) == NULL)
+		{
+			AMP_DEBUG_ERR("vdb_init","Can't allocate %d bytes.",
+					cur_desc.itemSize);
+		}
+		else
+		{
+			/* Step 1.3: Grab the serialized rule */
+			oK(sdr_read(sdr, (char *) data->value, cur_desc.itemObj, cur_desc.itemSize));
+			data->length = cur_desc.itemSize;
 
-	    	if(init_cb(data, cur_desc) != AMP_OK)
-	    	{
-		    	AMP_DEBUG_ERR("vdb_init","Unable to insert new data item. Removing item.", NULL);
-		    	//db_forget(&cur_desc, sdr_list);
-	    	}
-	    	else
-	    	{
-	    		num++;
-	    	}
+			if(init_cb(data, cur_desc) != AMP_OK)
+			{
+				AMP_DEBUG_ERR("vdb_init","Unable to insert new data item. Removing item.", NULL);
+				//db_forget(&cur_desc, sdr_list);
+			}
+			else
+			{
+				num++;
+			}
 
-	    	blob_release(data, 1);
-	    }
+			blob_release(data, 1);
+		}
 	}
 	sdr_end_xn(sdr);
 
@@ -504,7 +504,7 @@ void db_destroy(void)
 }
 
 
-int db_init(char *name, void (*adm_init_cb)(void)) 
+int db_init(char *name, void (*adm_init_cb)(void))
 {
 	int success = AMP_FAIL;
 	int num;

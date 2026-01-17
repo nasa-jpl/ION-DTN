@@ -8,7 +8,7 @@ The Management Information Base (MIB) for an AMS communicating entity (either
 B<amsd> or an AMS application module) must contain enough information to
 enable the entity to initiate participation in AMS message exchange, such
 as the network location of the configuration server and the roles and message
-subjects defined for some venture. 
+subjects defined for some venture.
 
 A recent update to AMS introduced an explicit routing model to support modern
 three-part IPN endpoint IDs and work around the 16-bit limitation of continuum

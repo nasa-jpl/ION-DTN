@@ -1,6 +1,6 @@
 /*
  *	tcpbso.c:	BSSP TCP-based link service output daemon.
- *			Dedicated to TCP blocks transmission to a 
+ *			Dedicated to TCP blocks transmission to a
  *			single remote BSSP engine.
  *
  *	Authors: Sotirios-Angelos Lenas, SPICE
@@ -9,7 +9,7 @@
  *	Copyright (c) 2013, California Institute of Technology.
  *	Copyright (c) 2013, Space Internetworking Center,
  *	Democritus University of Thrace.
- *	
+ *
  *	All rights reserved. U.S. Government and E.U. Sponsorship acknowledged.
  *
  */
@@ -160,10 +160,10 @@ engine number>");
 
 	/*	All command-line arguments are now validated.		*/
 
-	hostName = flowName;	
+	hostName = flowName;
 	if (parseSocketSpec(flowName, &portNbr, &hostNbr) != 0)
 	{
-	    putErrmsg("TCPBSO can't get IP/port for host.", hostName);
+		putErrmsg("TCPBSO can't get IP/port for host.", hostName);
 		return -1;
 	}
 
@@ -209,7 +209,7 @@ engine number>");
 		char	txt[500];
 
 		isprintf(txt, sizeof(txt),
-			"[i] tcpbso is running, spec=[%s:%d].", 
+			"[i] tcpbso is running, spec=[%s:%d].",
 			inet_ntoa(inetName->sin_addr),
 			ntohs(inetName->sin_port));
 		writeMemo(txt);
@@ -217,7 +217,7 @@ engine number>");
 
 	while (!(sm_SemEnded(tcpbsoSemaphore(NULL))))
 	{
-		
+
 		blockLength = bsspDequeueRLOutboundBlock(vspan, &block);
 		if (blockLength < 0)
 		{
@@ -248,7 +248,7 @@ engine number>");
 				continue;
 			}
 		}
-		
+
 		/*	Make sure other tasks have a chance to run.	*/
 
 		sm_TaskYield();

@@ -289,7 +289,7 @@ puts("Handling briefing.");
 			sdr_cancel_xn(sdr);
 			break;
 		}
-		
+
 		sdr_stage(sdr, (char *) &group, groupAddr, sizeof(ImcGroup));
 		fqnn = 0;
 		for (elt = sdr_list_first(sdr, group.members); elt;

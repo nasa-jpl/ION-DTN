@@ -152,7 +152,7 @@ in the event of an operating error.
 
 =item void dgr_interrupt(Dgr dgr)
 
-Interrupts a dgr_receive() invocation that is currently blocked.  Designed 
+Interrupts a dgr_receive() invocation that is currently blocked.  Designed
 to be called from a signal handler; for this purpose, I<dgr> may need to
 be obtained from a static variable.
 

@@ -177,7 +177,7 @@ void kill(char *name)
 	{
 		if (!strcmp(pe.szExeFile, name))
 		{
-			found = 1;	
+			found = 1;
 			proc = OpenProcess(PROCESS_TERMINATE, 0,
 					pe.th32ProcessID);
 			TerminateProcess(proc, 0);

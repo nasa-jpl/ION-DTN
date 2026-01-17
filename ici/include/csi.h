@@ -113,7 +113,7 @@ typedef struct
 } csi_blocksize_t;
 
 /************************************************************************
- * 		Structures supporting BPv6 crypto			*
+ *              Structures supporting BPv6 crypto                       *
  ************************************************************************/
 
 typedef struct
@@ -134,34 +134,34 @@ typedef struct
 
 
 /*****************************************************************************
- *          ION Ciphersuite Interface (CSI)  Functions                 *
+ *                ION Ciphersuite Interface (CSI)  Functions                 *
  *****************************************************************************/
-extern csi_cipherparms_t	csi_build_parms(unsigned char *buf,	uint32_t len);
+extern csi_cipherparms_t	csi_build_parms(unsigned char *buf, uint32_t len);
 
 int csi_keywrap(int wrap, csi_val_t kek, csi_val_t input, csi_val_t *output);
 
 
-extern void			     csi_cipherparms_free(csi_cipherparms_t parms);
-extern char			    *csi_val_print(csi_val_t val, uint32_t maxLen);
-extern csi_val_t 		 csi_rand(csi_csid_t suite, uint32_t len);
-extern csi_val_t		 csi_serialize_parms(csi_cipherparms_t parms);
+extern void	         csi_cipherparms_free(csi_cipherparms_t parms);
+extern char		*csi_val_print(csi_val_t val, uint32_t maxLen);
+extern csi_val_t	 csi_rand(csi_csid_t suite, uint32_t len);
+extern csi_val_t	 csi_serialize_parms(csi_cipherparms_t parms);
 extern csi_cipherparms_t csi_deserialize_parms(uint8_t *buffer, uint32_t len);
-extern csi_val_t		 csi_extract_tlv(uint8_t itemNeeded,	unsigned char *buf, uint32_t buflen);
-extern csi_val_t		 csi_build_tlv(uint8_t id, uint32_t len, uint8_t *contents);
+extern csi_val_t	 csi_extract_tlv(uint8_t itemNeeded, unsigned char *buf, uint32_t buflen);
+extern csi_val_t	 csi_build_tlv(uint8_t id, uint32_t len, uint8_t *contents);
 
-extern uint8_t			*csi_ctx_init(csi_csid_t suite,	csi_val_t key_info, csi_svcid_t svc);
+extern uint8_t		*csi_ctx_init(csi_csid_t suite, csi_val_t key_info, csi_svcid_t svc);
 
-extern int8_t			 csi_sign_start(csi_csid_t suite, void *context);
-extern int8_t			 csi_sign_update(csi_csid_t suite, void *context,csi_val_t data, csi_svcid_t svc);
-extern int8_t			 csi_sign_finish(csi_csid_t suite, void *context,csi_val_t *result, csi_svcid_t svc);
-extern int8_t			 csi_sign_full(csi_csid_t suite, csi_val_t input,csi_val_t key, csi_val_t *result,	csi_svcid_t svc);
+extern int8_t		 csi_sign_start(csi_csid_t suite, void *context);
+extern int8_t		 csi_sign_update(csi_csid_t suite, void *context, csi_val_t data, csi_svcid_t svc);
+extern int8_t		 csi_sign_finish(csi_csid_t suite, void *context, csi_val_t *result, csi_svcid_t svc);
+extern int8_t		 csi_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_t *result, csi_svcid_t svc);
 
-extern csi_val_t		 csi_crypt_parm_get(csi_csid_t suite,	csi_parmid_t parmid);
-extern int8_t			 csi_crypt_key(csi_csid_t suite, csi_svcid_t svc,csi_cipherparms_t *parms,csi_val_t longtermkey, csi_val_t input,	csi_val_t *output);
-extern int8_t			 csi_crypt_start(csi_csid_t suite, void *context,	csi_cipherparms_t parms);
-extern csi_val_t		 csi_crypt_update(csi_csid_t suite,	void *context, csi_svcid_t svc,	csi_val_t data);
-extern int8_t			 csi_crypt_finish(csi_csid_t suite,	void *context, csi_svcid_t svc,	csi_cipherparms_t *parms);
-extern int8_t			 csi_crypt_full(csi_csid_t suite,	csi_svcid_t svc,	csi_cipherparms_t *parms, csi_val_t key,	csi_val_t input, csi_val_t *output);
+extern csi_val_t	 csi_crypt_parm_get(csi_csid_t suite, csi_parmid_t parmid);
+extern int8_t		 csi_crypt_key(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parms, csi_val_t longtermkey, csi_val_t input, csi_val_t *output);
+extern int8_t		 csi_crypt_start(csi_csid_t suite, void *context, csi_cipherparms_t parms);
+extern csi_val_t	 csi_crypt_update(csi_csid_t suite, void *context, csi_svcid_t svc, csi_val_t data);
+extern int8_t		 csi_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc, csi_cipherparms_t *parms);
+extern int8_t		 csi_crypt_full(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parms, csi_val_t key, csi_val_t input, csi_val_t *output);
 
 
 /*****************************************************************************

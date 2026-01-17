@@ -63,7 +63,7 @@ else
       "Hint: use  sudo -E  if you need to preserve ION_RUN_EXPERT."
 
     sudo -n -v 2>/dev/null & SUDO_PID=$!
-    
+
     # start watchdog
     ( sleep 15 && kill -s TERM "$SUDO_PID" 2>/dev/null && \
     sleep 2 && kill -s KILL "$SUDO_PID" 2>/dev/null ) & WATCH_PID=$!
@@ -82,7 +82,7 @@ else
     s() { sudo -n "$@"; }             # carry -n to every sudo call
 fi
 
-# Sudo privileges confirmed, begin test 
+# Sudo privileges confirmed, begin test
 SENDER_PORT=4555
 RECEIVER_PORT=4556
 

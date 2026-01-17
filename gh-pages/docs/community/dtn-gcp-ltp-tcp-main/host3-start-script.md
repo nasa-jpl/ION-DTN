@@ -3,11 +3,11 @@ Note: place this in a file named host3.rc
 
 ````
 
-## begin ionadmin 
+## begin ionadmin
 # ionrc configuration file for host3 in a 3node tcp/ltp test.
 # This uses tcp from 1 to 3.
-# 
-# Initialization command (command 1). 
+#
+# Initialization command (command 1).
 # Set this node to be node 3 (as in ipn:3).
 # Use default sdr configuration (empty configuration file name '').
 1 3 ''
@@ -36,9 +36,9 @@ a range +1 +3600 2 3 1
 # set this node to consume and produce a mean of 1000000 bytes/second.
 m production 1000000
 m consumption 1000000
-## end ionadmin 
+## end ionadmin
 
-## begin bpadmin 
+## begin bpadmin
 # bprc configuration file for host3 in a 3node test.
 # Initialization command (command 1).
 1
@@ -51,7 +51,7 @@ a endpoint ipn:3.0 q
 a endpoint ipn:3.1 q
 a endpoint ipn:3.2 q
 
-# Add a protocol. 
+# Add a protocol.
 # Add the protocol named tcp.
 a protocol tcp 1400 100
 
@@ -67,9 +67,9 @@ a outduct tcp external_ip_of_host_2:4556 tcpclo
 # Start bundle protocol engine, also running all of the induct, outduct,
 # and administration programs defined above.
 s
-## end bpadmin 
+## end bpadmin
 
-## begin ipnadmin 
+## begin ipnadmin
 # ipnrc configuration file for host1 in the 3node tcp network.
 # Add an egress plan (to yourself).
 a plan 2 tcp/10.0.0.3:4556

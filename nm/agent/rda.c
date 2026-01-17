@@ -6,7 +6,7 @@
  ******************************************************************************/
 /*****************************************************************************
  ** \file rda.c
- ** 
+ **
  ** File Name: rda.c
  **
  **
@@ -19,7 +19,7 @@
  **              rules, constructs the appropriate data reports, and queues
  **              them for transmission.
  **
- ** Notes:  
+ ** Notes:
  **
  ** Assumptions:
  **      1. We assume that this code is not under such tight profiling
@@ -122,40 +122,40 @@ msg_rpt_t *rda_get_msg_rpt(eid_t recipient)
 	int success;
 	msg_rpt_t *msg_rpt;
 
-    AMP_DEBUG_ENTRY("rda_get_report","(%s)", recipient.name);
-    
-    /* Step 0: Sanity check. */
-    if(strlen(recipient.name) <= 0)
-    {
-    	AMP_DEBUG_ERR("rda_get_report","Bad parms.",NULL);
-    	return NULL;
-    }
+	AMP_DEBUG_ENTRY("rda_get_report", "(%s)", recipient.name);
 
-    /* Step 1: See if we already have a report message going to
-     * that recipient. If so, return it.
-     */
-    for(it = vecit_first(&(gAgentDb.rpt_msgs)); vecit_valid(it); it = vecit_next(it))
-    {
-    	msg_rpt_t *cur = vecit_data(it);
+	/* Step 0: Sanity check. */
+	if (strlen(recipient.name) <= 0)
+	{
+		AMP_DEBUG_ERR("rda_get_report", "Bad parms.", NULL);
+		return NULL;
+	}
 
-    	vec_find(&(cur->rx), recipient.name, &success);
-    	if(success == AMP_OK)
-    	{
-    		return cur;
-    	}
-    }
+	/* Step 1: See if we already have a report message going to
+	 * that recipient. If so, return it.
+	 */
+	for (it = vecit_first(&(gAgentDb.rpt_msgs)); vecit_valid(it); it = vecit_next(it))
+	{
+		msg_rpt_t *cur = vecit_data(it);
 
-    /* Step 2; If we get here, create a new report for that recipient. */
-    if((msg_rpt = msg_rpt_create(recipient.name)) != NULL)
-    {
-    	if(vec_push(&(gAgentDb.rpt_msgs), msg_rpt) != VEC_OK)
-    	{
-    		msg_rpt_release(msg_rpt, 1);
-    		return NULL;
-    	}
-    }
+		vec_find(&(cur->rx), recipient.name, &success);
+		if (success == AMP_OK)
+		{
+			return cur;
+		}
+	}
 
-    return msg_rpt;
+	/* Step 2; If we get here, create a new report for that recipient. */
+	if ((msg_rpt = msg_rpt_create(recipient.name)) != NULL)
+	{
+		if (vec_push(&(gAgentDb.rpt_msgs), msg_rpt) != VEC_OK)
+		{
+			msg_rpt_release(msg_rpt, 1);
+			return NULL;
+		}
+	}
+
+	return msg_rpt;
 }
 
 
@@ -185,44 +185,44 @@ msg_rpt_t *rda_get_msg_rpt(eid_t recipient)
 
 msg_tbl_t *rda_get_msg_tbl(eid_t recipient)
 {
-    vecit_t it;
-    msg_tbl_t *msg_tbl;
+	vecit_t	   it;
+	msg_tbl_t *msg_tbl;
 
-    AMP_DEBUG_ENTRY("rda_get_msg_tbl","(%s)", recipient.name);
+	AMP_DEBUG_ENTRY("rda_get_msg_tbl", "(%s)", recipient.name);
 
-    /* Step 0: Sanity check. */
-    if(strlen(recipient.name) <= 0)
-    {
-        AMP_DEBUG_ERR("rda_get_msg_tbl","Bad parms.",NULL);
-        return NULL;
-    }
+	/* Step 0: Sanity check. */
+	if (strlen(recipient.name) <= 0)
+	{
+		AMP_DEBUG_ERR("rda_get_msg_tbl", "Bad parms.", NULL);
+		return NULL;
+	}
 
-    /* Step 1: See if we already have a report message going to
-     * that recipient. If so, return it.
-     */
-    for(it = vecit_first(&(gAgentDb.tbl_msgs)); vecit_valid(it); it = vecit_next(it))
-    {
-        int success;
-        msg_tbl_t *cur = vecit_data(it);
+	/* Step 1: See if we already have a report message going to
+	 * that recipient. If so, return it.
+	 */
+	for (it = vecit_first(&(gAgentDb.tbl_msgs)); vecit_valid(it); it = vecit_next(it))
+	{
+		int	   success;
+		msg_tbl_t *cur = vecit_data(it);
 
-        vec_find(&(cur->rx), recipient.name, &success);
-        if(success == AMP_OK)
-        {
-            return cur;
-        }
-    }
+		vec_find(&(cur->rx), recipient.name, &success);
+		if (success == AMP_OK)
+		{
+			return cur;
+		}
+	}
 
-    /* Step 2; If we get here, create a new report for that recipient. */
-    if((msg_tbl = msg_tbl_create(recipient.name)) != NULL)
-    {
-        if(vec_push(&(gAgentDb.tbl_msgs), msg_tbl) != VEC_OK)
-        {
-            msg_tbl_release(msg_tbl, 1);
-            return NULL;
-        }
-    }
+	/* Step 2; If we get here, create a new report for that recipient. */
+	if ((msg_tbl = msg_tbl_create(recipient.name)) != NULL)
+	{
+		if (vec_push(&(gAgentDb.tbl_msgs), msg_tbl) != VEC_OK)
+		{
+			msg_tbl_release(msg_tbl, 1);
+			return NULL;
+		}
+	}
 
-    return msg_tbl;
+	return msg_tbl;
 }
 
 
@@ -247,12 +247,12 @@ int rda_process_ctrls(void)
 	vec_idx_t i;
 	ctrl_t *ctrl;
 	time_t curtime = getCtime();
-    vecit_t it;
+	vecit_t it;
 
 	vec_lock(&(gVDB.ctrls));
-    for(i = 0, it = vecit_first(&(gVDB.ctrls)); vecit_valid(it); it = vecit_next(it),i++)
+	for(i = 0, it = vecit_first(&(gVDB.ctrls)); vecit_valid(it); it = vecit_next(it),i++)
 	{
-        ctrl = vecit_data(it);
+		ctrl = vecit_data(it);
 
 		if(ctrl != NULL)
 		{
@@ -318,7 +318,7 @@ void rda_scan_tbrs_cb(rh_elt_t *elt, void *tag)
 	if((rule->ticks_left <= 0) && (RULE_IS_ACTIVE(rule->flags)))
 	{
 		vec_push(vec, rule);
-    }
+	}
 }
 
 
@@ -357,7 +357,7 @@ void rda_scan_sbrs_cb(rh_elt_t *elt, void *tag)
 			/* Rule is SBR with no evals left. Disable and skip. */
 			RULE_CLEAR_ACTIVE(rule->flags);
 		}
-    }
+	}
 }
 
 
@@ -383,21 +383,21 @@ void rda_scan_sbrs_cb(rh_elt_t *elt, void *tag)
 
 int rda_process_rules(void)
 {
-    vecit_t it;
+	vecit_t it;
 
 	lockResource(&(gVDB.rules.lock));
-    vec_lock(&(gAgentDb.rpt_msgs));
+	vec_lock(&(gAgentDb.rpt_msgs));
 
-    rhht_foreach(&(gVDB.rules), rda_scan_tbrs_cb, &(gAgentDb.tbrs));
-    rhht_foreach(&(gVDB.rules), rda_scan_sbrs_cb, &(gAgentDb.sbrs));
+	rhht_foreach(&(gVDB.rules), rda_scan_tbrs_cb, &(gAgentDb.tbrs));
+	rhht_foreach(&(gVDB.rules), rda_scan_sbrs_cb, &(gAgentDb.sbrs));
 
-    for(it = vecit_first(&(gAgentDb.tbrs)); vecit_valid(it); it = vecit_next(it))
-    {
-    	rule_t *rule = vecit_data(it);
+	for (it = vecit_first(&(gAgentDb.tbrs)); vecit_valid(it); it = vecit_next(it))
+	{
+		rule_t *rule = vecit_data(it);
 
 		gAgentInstr.num_tbrs_run++;
 
-    	lcc_run_ac(&(rule->action), &(rule->id.as_reg.parms));
+		lcc_run_ac(&(rule->action), &(rule->id.as_reg.parms));
 
 		rule->num_eval++;
 		rule->num_fire++;
@@ -418,41 +418,41 @@ int rda_process_rules(void)
 				AMP_DEBUG_ERR("rda_process_rules", "Unable to persist new TBR state.", NULL);
 			}
 		}
-    }
+	}
 
 
-    for(it = vecit_first(&(gAgentDb.sbrs)); vecit_valid(it); it = vecit_next(it))
-    {
-    	rule_t *rule = (rule_t*) vecit_data(it);
+	for(it = vecit_first(&(gAgentDb.sbrs)); vecit_valid(it); it = vecit_next(it))
+	{
+		rule_t *rule = (rule_t*) vecit_data(it);
 
-    	rule->num_eval++;
-    	if(sbr_should_fire(rule))
-    	{
-        	gAgentInstr.num_sbrs_run++;
+		rule->num_eval++;
+		if(sbr_should_fire(rule))
+		{
+			gAgentInstr.num_sbrs_run++;
 
-    		lcc_run_ac(&(rule->action), &(rule->id.as_reg.parms));
+			lcc_run_ac(&(rule->action), &(rule->id.as_reg.parms));
 
-        	rule->num_fire++;
-    	}
+			rule->num_fire++;
+		}
 
-    	if((rule->num_eval >= rule->def.as_sbr.max_eval && rule->def.as_sbr.max_eval != 0) ||
-    	   (rule->num_fire >= rule->def.as_sbr.max_fire && rule->def.as_sbr.max_fire != 0))
-    	{
-    		/* Remove the rule. */
-    		db_forget(&(rule->desc), gDB.rules);
-    		VDB_DELKEY_RULE(&(rule->id));
-    		gAgentInstr.num_sbrs--;
-    	}
-    }
+		if((rule->num_eval >= rule->def.as_sbr.max_eval && rule->def.as_sbr.max_eval != 0) ||
+			(rule->num_fire >= rule->def.as_sbr.max_fire && rule->def.as_sbr.max_fire != 0))
+		{
+			/* Remove the rule. */
+			db_forget(&(rule->desc), gDB.rules);
+			VDB_DELKEY_RULE(&(rule->id));
+			gAgentInstr.num_sbrs--;
+		}
+	}
 
-    vec_clear(&(gAgentDb.sbrs));
-    vec_clear(&(gAgentDb.tbrs));
+	vec_clear(&(gAgentDb.sbrs));
+	vec_clear(&(gAgentDb.tbrs));
 
-    vec_unlock(&(gAgentDb.rpt_msgs));
+	vec_unlock(&(gAgentDb.rpt_msgs));
 	unlockResource(&(gVDB.rules.lock));
 
-    AMP_DEBUG_EXIT("rda_eval_pending_rules","-> 0", NULL);
-    return AMP_OK;
+	AMP_DEBUG_EXIT("rda_eval_pending_rules", "-> 0", NULL);
+	return AMP_OK;
 }
 
 
@@ -484,49 +484,49 @@ int rda_process_rules(void)
 
 int rda_send_reports(void)
 {
-    vecit_t it1;
-    vecit_t it2;
-    
-    AMP_DEBUG_ENTRY("rda_send_reports","()", NULL);
+	vecit_t it1;
+	vecit_t it2;
+
+	AMP_DEBUG_ENTRY("rda_send_reports","()", NULL);
 
 
-    vec_lock(&(gAgentDb.rpt_msgs));
+	vec_lock(&(gAgentDb.rpt_msgs));
 
-    for(it1 = vecit_first(&(gAgentDb.rpt_msgs)); vecit_valid(it1); it1 = vecit_next(it1))
-    {
-    	msg_rpt_t *msg_rpt = (msg_rpt_t*)vecit_data(it1);
+	for(it1 = vecit_first(&(gAgentDb.rpt_msgs)); vecit_valid(it1); it1 = vecit_next(it1))
+	{
+		msg_rpt_t *msg_rpt = (msg_rpt_t*)vecit_data(it1);
 
-    	if(msg_rpt == NULL)
-    	{
-    		continue;
-    	}
+		if(msg_rpt == NULL)
+		{
+			continue;
+		}
 
-    	for(it2 = vecit_first(&(msg_rpt->rx)); vecit_valid(it2); it2 = vecit_next(it2))
-    	{
-    		char *rx = vecit_data(it2);
+		for(it2 = vecit_first(&(msg_rpt->rx)); vecit_valid(it2); it2 = vecit_next(it2))
+		{
+			char *rx = vecit_data(it2);
 
-    		if(rx == NULL)
-    		{
-    			AMP_DEBUG_ERR("rda_send_reports", "NULL rx", NULL);
-    			continue;
-    		}
-    		if(iif_send_msg(&ion_ptr, MSG_TYPE_RPT_SET, msg_rpt, rx) == AMP_OK)
-    		{
-    			gAgentInstr.num_sent_rpts += vec_num_entries(msg_rpt->rpts);
-    		}
-    		else
-    		{
-    			AMP_DEBUG_ERR("rda_send_reports", "Error sending reports to %s", rx);
-    		}
-    	}
-    }
+			if(rx == NULL)
+			{
+				AMP_DEBUG_ERR("rda_send_reports", "NULL rx", NULL);
+				continue;
+			}
+			if(iif_send_msg(&ion_ptr, MSG_TYPE_RPT_SET, msg_rpt, rx) == AMP_OK)
+			{
+				gAgentInstr.num_sent_rpts += vec_num_entries(msg_rpt->rpts);
+			}
+			else
+			{
+				AMP_DEBUG_ERR("rda_send_reports", "Error sending reports to %s", rx);
+			}
+		}
+	}
 
-    /* Sent successfully or not, clear the reports. */
-    vec_clear(&(gAgentDb.rpt_msgs));
+	/* Sent successfully or not, clear the reports. */
+	vec_clear(&(gAgentDb.rpt_msgs));
 
-    vec_unlock(&(gAgentDb.rpt_msgs));
+	vec_unlock(&(gAgentDb.rpt_msgs));
 
-    return AMP_OK;
+	return AMP_OK;
 }
 
 
@@ -557,49 +557,49 @@ int rda_send_reports(void)
 
 int rda_send_tables(void)
 {
-    vecit_t it1;
-    vecit_t it2;
+	vecit_t it1;
+	vecit_t it2;
 
-    AMP_DEBUG_ENTRY("rda_send_tables","()", NULL);
+	AMP_DEBUG_ENTRY("rda_send_tables","()", NULL);
 
 
-    vec_lock(&(gAgentDb.tbl_msgs));
+	vec_lock(&(gAgentDb.tbl_msgs));
 
-    for(it1 = vecit_first(&(gAgentDb.tbl_msgs)); vecit_valid(it1); it1 = vecit_next(it1))
-    {
-        msg_tbl_t *msg_tbl = (msg_tbl_t*)vecit_data(it1);
+	for(it1 = vecit_first(&(gAgentDb.tbl_msgs)); vecit_valid(it1); it1 = vecit_next(it1))
+	{
+		msg_tbl_t *msg_tbl = (msg_tbl_t*)vecit_data(it1);
 
-        if(msg_tbl == NULL)
-        {
-            continue;
-        }
+		if(msg_tbl == NULL)
+		{
+			continue;
+		}
 
-        for(it2 = vecit_first(&(msg_tbl->rx)); vecit_valid(it2); it2 = vecit_next(it2))
-        {
-            char *rx = vecit_data(it2);
+		for(it2 = vecit_first(&(msg_tbl->rx)); vecit_valid(it2); it2 = vecit_next(it2))
+		{
+			char *rx = vecit_data(it2);
 
-            if(rx == NULL)
-            {
-                AMP_DEBUG_ERR("rda_send_tables", "NULL rx", NULL);
-                continue;
-            }
-            if(iif_send_msg(&ion_ptr, MSG_TYPE_TBL_SET, msg_tbl, rx) == AMP_OK)
-            {
-                gAgentInstr.num_sent_tbls += vec_num_entries(msg_tbl->tbls);
-            }
-            else
-            {
-                AMP_DEBUG_ERR("rda_send_tables", "Error sending reports to %s", rx);
-            }
-        }
-    }
+			if(rx == NULL)
+			{
+				AMP_DEBUG_ERR("rda_send_tables", "NULL rx", NULL);
+				continue;
+			}
+			if(iif_send_msg(&ion_ptr, MSG_TYPE_TBL_SET, msg_tbl, rx) == AMP_OK)
+			{
+				gAgentInstr.num_sent_tbls += vec_num_entries(msg_tbl->tbls);
+			}
+			else
+			{
+				AMP_DEBUG_ERR("rda_send_tables", "Error sending reports to %s", rx);
+			}
+		}
+	}
 
-    /* Sent successfully or not, clear the reports. */
-    vec_clear(&(gAgentDb.tbl_msgs));
+	/* Sent successfully or not, clear the reports. */
+	vec_clear(&(gAgentDb.tbl_msgs));
 
-    vec_unlock(&(gAgentDb.tbl_msgs));
+	vec_unlock(&(gAgentDb.tbl_msgs));
 
-    return AMP_OK;
+	return AMP_OK;
 }
 
 
@@ -631,64 +631,62 @@ int rda_send_tables(void)
 
 void* rda_thread(void* arg)
 {
-    struct timeval start_time;
-    vast delta = 0;
+	struct timeval start_time;
+	vast	       delta = 0;
 
-    /* Cast the generic void* argument back to the real type we need. */
-    int *running = (int *)arg;
+	/* Cast the generic void* argument back to the real type we need. */
+	int *running = (int *) arg;
 
 #ifndef mingw
-    AMP_DEBUG_ENTRY("rda_thread","(0x%X)", (unsigned long) pthread_self()); //threadId);
+	AMP_DEBUG_ENTRY("rda_thread", "(0x%X)", (unsigned long) pthread_self()); //threadId);
 #endif
 
+	AMP_DEBUG_INFO("rda_thread", "Running Remote Data Aggregator Thread.", NULL);
 
-    AMP_DEBUG_INFO("rda_thread","Running Remote Data Aggregator Thread.", NULL);
+	rda_init();
 
-    rda_init();
-
-    /* While the DTNMP Agent is running...*/
-    while(*running)
-    {
-    	getCurrentTime(&start_time);
-
-
-    	/* Run, then forget, any controls that are due to execute. */
-    	if(rda_process_ctrls() != AMP_OK)
-    	{
-            AMP_DEBUG_ERR("rda_thread","Problem processing controls.", NULL);
-    	}
-
-    	/* Run any rules that are due and forget them if they are done. */
-    	else if(rda_process_rules() != AMP_OK)
-    	{
-    		AMP_DEBUG_ERR("rda_thread","Problem processing rules.", NULL);
-    	}
-
-    	else if(rda_send_reports() != AMP_OK)
-    	{
-    		AMP_DEBUG_ERR("rda_thread","Problem sending reports.", NULL);
-    	}
-
-        else if(rda_send_tables() != AMP_OK)
-        {
-            AMP_DEBUG_ERR("rda_thread","Problem sending tables.", NULL);
-        }
-
-    	delta = utils_time_cur_delta(&start_time);
-
-        // Sleep for 1 second (10^6 microsec) subtracting the processing time.
-        if((delta < 1000000) && (delta > 0))
-        {
-        	microsnooze((unsigned int)(1000000 - delta));
-        }
-        
-    } // end while
-    
-    rda_cleanup();
-
-    AMP_DEBUG_ALWAYS("rda_thread","Shutting Down Agent Data Aggregator Thread.",NULL);
+	/* While the DTNMP Agent is running...*/
+	while (*running)
+	{
+		getCurrentTime(&start_time);
 
 
-    pthread_exit(NULL);
-    return NULL; /* Defensive */
+		/* Run, then forget, any controls that are due to execute. */
+		if(rda_process_ctrls() != AMP_OK)
+		{
+			AMP_DEBUG_ERR("rda_thread", "Problem processing controls.", NULL);
+		}
+
+		/* Run any rules that are due and forget them if they are done. */
+		else if(rda_process_rules() != AMP_OK)
+		{
+			AMP_DEBUG_ERR("rda_thread","Problem processing rules.", NULL);
+		}
+
+		else if(rda_send_reports() != AMP_OK)
+		{
+			AMP_DEBUG_ERR("rda_thread","Problem sending reports.", NULL);
+		}
+
+		else if(rda_send_tables() != AMP_OK)
+		{
+			AMP_DEBUG_ERR("rda_thread", "Problem sending tables.", NULL);
+		}
+
+		delta = utils_time_cur_delta(&start_time);
+
+		// Sleep for 1 second (10^6 microsec) subtracting the processing time.
+		if((delta < 1000000) && (delta > 0))
+		{
+			microsnooze((unsigned int)(1000000 - delta));
+		}
+
+	} // end while
+
+	rda_cleanup();
+
+	AMP_DEBUG_ALWAYS("rda_thread", "Shutting Down Agent Data Aggregator Thread.", NULL);
+
+	pthread_exit(NULL);
+	return NULL; /* Defensive */
 }

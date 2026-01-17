@@ -141,17 +141,17 @@ blob_t*      msg_agent_serialize_wrapper(msg_agent_t *msg);
 
 void         msg_agent_set_agent(msg_agent_t *msg, eid_t agent);
 
-msg_ctrl_t* msg_ctrl_create(void);
+msg_ctrl_t*  msg_ctrl_create(void);
 
-msg_ctrl_t* msg_ctrl_create_ari(ari_t *id);
+msg_ctrl_t*  msg_ctrl_create_ari(ari_t *id);
 
-msg_ctrl_t* msg_ctrl_deserialize(blob_t *data, int *success);
+msg_ctrl_t*  msg_ctrl_deserialize(blob_t *data, int *success);
 
-void        msg_ctrl_release(msg_ctrl_t *msg, int destroy);
+void         msg_ctrl_release(msg_ctrl_t *msg, int destroy);
 
 int msg_ctrl_serialize(QCBOREncodeContext *encoder, void *item);
 
-blob_t*     msg_ctrl_serialize_wrapper(msg_ctrl_t *msg);
+blob_t*      msg_ctrl_serialize_wrapper(msg_ctrl_t *msg);
 
 
 

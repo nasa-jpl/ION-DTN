@@ -77,7 +77,7 @@ port number         : Conventionally, a LTP node in ION interfaces with each
                       |      SUT      |           |               |
                       |               |           |               |
                       +---------------+           +---------------+
-                      
+
                       * NOTE: ION also provides TCP interface for CFDP
                               transaction test without LTP/BP
 
@@ -135,7 +135,7 @@ Finishing the tests
 
 A test can be terminated either by an intended time-out or by the user's
 Ctrl + C keystroke, which will exit the current "dotest" script actions.
-Residual ION processes can be removed by running the "cleanup" script, 
+Residual ION processes can be removed by running the "cleanup" script,
 which will clean up any processes of ION that may remain in case of an abrupt
 exit from the normal execution stream.
 
@@ -155,16 +155,16 @@ For example, the following methods can be suggested:
 
 1) Record all transactions through Wireshark and examine the captured transaction
    data to check whether the current test was successful or not.
-   
+
    You can see a detailed protocol dissection via Wireshark display filter with
    "udp.port == 2113 || udp.port == 3113" and so on.
-   
+
    You may want to find and configure current LTP/Bundle transaction, then try
    Wireshark's menu->Analyze->Decode As->add UDP 2113 and 3113 port as LTP
 
 2) Modify the "dotest" script to report runtime information on stdout and stderr
    which provides its return value and the status of the test:
-   
+
    For example, each test can be configured to provide below result status
    as a return value.
     0: Success

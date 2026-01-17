@@ -265,7 +265,7 @@ int	sdr_start_trace(Sdr sdrv, size_t shmSize, char *shm)
 	sdr = sdrv->sdr;
 	CHKERR(takeSdr(sdr) == 0);
 	if (shmSize < 1)	/*	Must allocate some space.	*/
-        {
+	{
 		releaseSdr(sdr);
 		putErrmsg("Need some shared memory to start trace.", NULL);
 		return -1;
@@ -274,7 +274,7 @@ int	sdr_start_trace(Sdr sdrv, size_t shmSize, char *shm)
 	if (sdr->traceSize > 0)	/*	Trace is already enabled.	*/
 	{
 		if (sdr->traceSize != shmSize)
-        	{
+		{
 			releaseSdr(sdr);
 			putErrmsg("Asserted trace memory size doesn't match \
 actual.", NULL);
@@ -1144,7 +1144,7 @@ static void	computeFreeSpace(SdrMap *map, SdrUsageSummary *usage)
 	{
 		size += WORD_SIZE;
 		usage->smallPoolFreeBlockCount[i] =
-		       		map->smallPoolFree[i].freeBlocks;
+				map->smallPoolFree[i].freeBlocks;
 		freeTotal += (map->smallPoolFree[i].freeBlocks * size);
 	}
 
@@ -1154,7 +1154,7 @@ static void	computeFreeSpace(SdrMap *map, SdrUsageSummary *usage)
 	for (i = 0; i < LARGE_ORDERS; i++)
 	{
 		usage->largePoolFreeBlockCount[i] =
-		       		map->largePoolFree[i].freeBlocks;
+				map->largePoolFree[i].freeBlocks;
 		freeTotal += map->largePoolFree[i].freeBytes;
 	}
 
@@ -1203,7 +1203,7 @@ void	sdr_report(SdrUsageSummary *usage)
 		{
 			isprintf(buf, sizeof buf, "    %12d of size %12ld",
 					count, size);
-	                writeMemo(buf);
+			writeMemo(buf);
 		}
 	}
 
@@ -1227,32 +1227,32 @@ void	sdr_report(SdrUsageSummary *usage)
 		{
 			isprintf(buf, sizeof buf, "    %12d of order %12ld",
 					count, size);
-	                writeMemo(buf);
+			writeMemo(buf);
 		}
 	}
 
 	isprintf(buf, sizeof buf, "       total avbl: %12ld",
 			usage->largePoolFree);
-        writeMemo(buf);
+	writeMemo(buf);
 	isprintf(buf, sizeof buf, "     total unavbl: %12ld",
-		       	usage->largePoolAllocated);
-        writeMemo(buf);
+			usage->largePoolAllocated);
+	writeMemo(buf);
 	isprintf(buf, sizeof buf, "       total size: %12ld",
-		       	usage->largePoolSize);
-        writeMemo(buf);
+			usage->largePoolSize);
+	writeMemo(buf);
 	isprintf(buf, sizeof buf, "total heap size:   %12ld",
 			usage->heapSize);
 	writeMemo(buf);
 	isprintf(buf, sizeof buf, "total unused:      %12ld",
-		       	usage->unusedSize);
-        writeMemo(buf);
+			usage->unusedSize);
+	writeMemo(buf);
 	isprintf(buf, sizeof buf, "max total used:    %12ld",
 			usage->heapSize - usage->unusedSize);
 	writeMemo(buf);
 	isprintf(buf, sizeof buf, "total now in use:  %12ld",
 			usage->heapSize - (usage->smallPoolFree +
 			usage->largePoolFree + usage->unusedSize));
-        writeMemo(buf);
+	writeMemo(buf);
 
 	isprintf(buf, sizeof buf, "max xn log len:    %12ld",
 			usage->maxLogLength);
@@ -1426,6 +1426,6 @@ void	sdr_reset_stats(Sdr sdrv)
 	 *	completes.						*/
 
 	sdr = sdrv->sdr;
-        sdr->maxLogLength = 0;
+	sdr->maxLogLength = 0;
 	sdr_stats(sdrv);
 }

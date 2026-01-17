@@ -14,7 +14,7 @@
 static DtpcSAP	_dtpcsap(DtpcSAP *newSAP)
 {
 	static DtpcSAP	sap = NULL;
-	
+
 	if (newSAP)
 	{
 		sap = *newSAP;
@@ -75,12 +75,12 @@ static int	_bytesReceived(int increment)
 static int	_startTime(time_t newStartTime)
 {
 	static time_t start = 0;
-	
+
 	if (newStartTime)
 	{
 		start = newStartTime;
 	}
-	
+
 	return start;
 }
 

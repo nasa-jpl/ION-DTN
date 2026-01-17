@@ -27,10 +27,10 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: Testing LTP Cancel Segment acknowledgment for completed sessions.
-	This test verifies the fix for issue where Cancel Segments received
-	after sessions were completed were being ignored, causing unnecessary
-	retransmissions and resource consumption. The LTP engine should always
-	acknowledge Cancel Segments regardless of session state."
+    This test verifies the fix for issue where Cancel Segments received
+    after sessions were completed were being ignored, causing unnecessary
+    retransmissions and resource consumption. The LTP engine should always
+    acknowledge Cancel Segments regardless of session state."
 echo
 echo "CONFIG: 2 node custom:"
 echo

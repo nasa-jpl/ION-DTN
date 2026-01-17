@@ -179,7 +179,7 @@ int	main(int argc, char **argv)
 			bundleSize = zco_length(sdr, dlv.adu);
 			if (bundlesReceived < 0)
 			{
-				/*	This is the first bundle arriving. 
+				/*	This is the first bundle arriving.
 				 *  Whether it is pilot not, we will start
 				 *  the bpcounter's timer.	*/
 

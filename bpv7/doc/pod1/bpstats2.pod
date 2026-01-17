@@ -38,7 +38,7 @@ noted in the B<ion.log> log file.
 
 =item "1"
 
-B<bpstats2> failed to start up or receive bundles.  Diagnose the issue 
+B<bpstats2> failed to start up or receive bundles.  Diagnose the issue
 reported in the B<ion.log> file and try again.
 
 =back
@@ -94,7 +94,7 @@ Bundle Protocol service to the remote endpoint has been stopped.
 
 The destination EID printed is an invalid destination EID.  The destination
 EID may be specified in I<default destEID> or the source EID of the
-interrogation bundle.  Ensure that I<default destEID> is an EID that 
+interrogation bundle.  Ensure that I<default destEID> is an EID that
 is valid for ION, and that the interrogator is a source EID that is also
 a valid destination EID.  Note that "dtn:none" is not a valid destination
 EID, but is a valid source EID.

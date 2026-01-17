@@ -55,46 +55,46 @@ static int getBpInstrDb(BpsecInstrDB *result, Object *addr)
 	Sdr sdr = getIonsdr();
 	bpsec_instr_misc_t misc;
 
-    CHKERR(sdr_begin_xn(sdr));
+	CHKERR(sdr_begin_xn(sdr));
 
-    if(dbObj == 0)
-    {
-    	dbObj = sdr_find(sdr, BPSEC_INSTR_SDR_NAME, NULL);
+	if (dbObj == 0)
+	{
+		dbObj = sdr_find(sdr, BPSEC_INSTR_SDR_NAME, NULL);
 
-    	switch(dbObj)
-    	{
-    	case -1:  /* SDR error. */
-    		sdr_cancel_xn(sdr);
-    		*addr = 0;
-    		return ERROR;
-    		break;
+		switch (dbObj)
+		{
+		case -1: /* SDR error. */
+			sdr_cancel_xn(sdr);
+			*addr = 0;
+			return ERROR;
+			break;
 
-    	case 0: /* Not found; Must create new DB. */
+		case 0: /* Not found; Must create new DB. */
 
-    		dbObj = sdr_malloc(sdr, sizeof(BpsecInstrDB));
-    		result->src = sdr_list_create(sdr);
-    		result->misc = sdr_malloc(sdr, sizeof(bpsec_instr_misc_t));
-    		memset(&misc, 0, sizeof(bpsec_instr_misc_t));
-    		sdr_write(sdr, result->misc, (char *) &misc,
-				sizeof(bpsec_instr_misc_t));
-    		sdr_write(sdr, dbObj, (char *) result, sizeof(BpsecInstrDB));
-    		sdr_catlg(sdr, BPSEC_INSTR_SDR_NAME, 0, dbObj);
-    		break;
+			dbObj = sdr_malloc(sdr, sizeof(BpsecInstrDB));
+			result->src = sdr_list_create(sdr);
+			result->misc = sdr_malloc(sdr, sizeof(bpsec_instr_misc_t));
+			memset(&misc, 0, sizeof(bpsec_instr_misc_t));
+			sdr_write(sdr, result->misc, (char *) &misc,
+					sizeof(bpsec_instr_misc_t));
+			sdr_write(sdr, dbObj, (char *) result, sizeof(BpsecInstrDB));
+			sdr_catlg(sdr, BPSEC_INSTR_SDR_NAME, 0, dbObj);
+			break;
 
-    	default: /* Found. */
-    		sdr_read(sdr, (char *) result, dbObj, sizeof(BpsecInstrDB));
-    		break;
-    	}
-    }
-    else
-    {
+		default: /* Found. */
+			sdr_read(sdr, (char *) result, dbObj, sizeof(BpsecInstrDB));
+			break;
+		}
+	}
+	else
+	{
 		sdr_read(sdr, (char *) result, dbObj, sizeof(BpsecInstrDB));
-    }
+	}
 
-    *addr = dbObj;
+	*addr = dbObj;
 	sdr_end_xn(sdr);
 
-    return 1;
+	return 1;
 }
 
 
@@ -313,7 +313,7 @@ void bpsec_instr_update(char *src, uvast blk, uvast bytes, bpsec_instr_type_e ty
 
 	sdr_write(sdr, sdrData, (char *) &instr, sizeof(bpsec_src_instr_t));
 
- 	sdr_end_xn(sdr);
+	sdr_end_xn(sdr);
 }
 
 
@@ -1086,7 +1086,7 @@ bytes", total_size);
 	{
 		data = sdr_list_data(sdr, sdrElt);
 
-     	/* Read in source item. */
+		/* Read in source item. */
 		sdr_read(sdr, (char *) &tmp, data, sizeof(bpsec_src_instr_t));
 
 		if(first == 0)
@@ -1250,7 +1250,7 @@ static BpsecInstrVdb *getBpInstrVDb()
 
 			/ *	Volatile database doesn't exist yet.	* /
 			if(((vdb->src = sm_list_create(wm)) == 0) ||
-			  (psm_catlg(wm, name, vdbAddress) < 0))
+				(psm_catlg(wm, name, vdbAddress) < 0))
 			{
 				sdr_cancel_xn(sdr);
 				putErrmsg("Can't initialize bpsec volatile \
@@ -1340,13 +1340,13 @@ int bpsec_instr_init()
 	BpsecInstrVdb *instr_vdb = getBpInstrDb();
 	BpsecInstrDB instr_db;
 	Object dbObj;
-    Object elt;
-    bpsec_src_instr_t* cur_src;
-    bpsec_src_instr_t* tmp_src;
-    PsmAddress	addr;
+	Object elt;
+	bpsec_src_instr_t* cur_src;
+	bpsec_src_instr_t* tmp_src;
+	PsmAddress	addr;
 	PsmPartition	bpwm = getIonwm();
 
-    CHKERR(instr_vdb);
+	CHKERR(instr_vdb);
 
 	/ * Initialize the non-volatile database. * /
 	memset((char*) &instr_db, 0, sizeof(BpsecInstrDB));

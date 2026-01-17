@@ -1,5 +1,5 @@
 /*
- 	imcfw.h:	definitions supporting the implementation
+	imcfw.h:	definitions supporting the implementation
 			of Interplanetary Multicast.
 
 	Author: Scott Burleigh, JPL
@@ -10,7 +10,8 @@
 	Copyright (c) 2020, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
- 									*/
+									*/
+
 #ifndef IMCFW_H
 #define IMCFW_H
 

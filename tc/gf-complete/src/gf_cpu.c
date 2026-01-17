@@ -47,7 +47,7 @@ void cpuid(int info[4], int InfoType){
 
 #else
 
-#error please add a way to detect CPU SIMD support at runtime 
+#error please add a way to detect CPU SIMD support at runtime
 
 #endif
 
@@ -121,7 +121,7 @@ void gf_cpu_identify(void)
 #include <fcntl.h>
 
 unsigned long get_hwcap(unsigned long type) {
-    unsigned long hwcap = 0; 
+    unsigned long hwcap = 0;
     int fd = open("/proc/self/auxv", O_RDONLY);
     if (fd > 0) {
         Elf32_auxv_t auxv;

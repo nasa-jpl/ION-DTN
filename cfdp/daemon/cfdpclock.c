@@ -6,7 +6,7 @@
 	Copyright (c) 2007, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "cfdpP.h"
 
@@ -14,7 +14,7 @@ static uaddr	_running(uaddr *newValue)
 {
 	void	*value;
 	uaddr	state;
-	
+
 	if (newValue)			/*	Changing state.		*/
 	{
 		value = (void *) (*newValue);
@@ -105,7 +105,7 @@ static int	scanInFdus(Sdr sdr, time_t currentTime)
 						sizeof(InFdu));
 			}
 
-			if (fdu->checkTimeouts >= 0 && (unsigned int)fdu->checkTimeouts > 
+			if (fdu->checkTimeouts >= 0 && (unsigned int)fdu->checkTimeouts >
 				cfdpConstants->checkTimeoutLimit)
 			{
 				if (handleFault(&(fdu->transactionId),

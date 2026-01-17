@@ -54,7 +54,7 @@ gf_w16_multiply_region_from_single(gf_t *gf, void *src, void *dest, gf_val_32_t 
   gf_region_data rd;
   uint16_t *s16;
   uint16_t *d16;
-  
+
   if (val == 0) { gf_multby_zero(dest, bytes, xor); return; }
   if (val == 1) { gf_multby_one(src, dest, bytes, xor); return; }
 
@@ -69,13 +69,13 @@ gf_w16_multiply_region_from_single(gf_t *gf, void *src, void *dest, gf_val_32_t 
       *d16 ^= gf->multiply.w32(gf, val, *s16);
       d16++;
       s16++;
-    } 
+    }
   } else {
     while (d16 < ((uint16_t *) rd.d_top)) {
       *d16 = gf->multiply.w32(gf, val, *s16);
       d16++;
       s16++;
-    } 
+    }
   }
   gf_do_final_region_alignment(&rd);
 }
@@ -102,7 +102,7 @@ gf_w16_clm_multiply_region_from_single_2(gf_t *gf, void *src, void *dest, gf_val
   gf_do_initial_region_alignment(&rd);
 
   a = _mm_insert_epi32 (_mm_setzero_si128(), val, 0);
-  
+
   s16 = (uint16_t *) rd.s_start;
   d16 = (uint16_t *) rd.d_start;
 
@@ -110,7 +110,7 @@ gf_w16_clm_multiply_region_from_single_2(gf_t *gf, void *src, void *dest, gf_val
     while (d16 < ((uint16_t *) rd.d_top)) {
 
       /* see gf_w16_clm_multiply() to see explanation of method */
-      
+
       b = _mm_insert_epi32 (a, (gf_val_32_t)(*s16), 0);
       result = _mm_clmulepi64_si128 (a, b, 0);
       w = _mm_clmulepi64_si128 (prim_poly, _mm_srli_si128 (result, 2), 0);
@@ -121,23 +121,23 @@ gf_w16_clm_multiply_region_from_single_2(gf_t *gf, void *src, void *dest, gf_val
       *d16 ^= ((gf_val_32_t)_mm_extract_epi32(result, 0));
       d16++;
       s16++;
-    } 
+    }
   } else {
     while (d16 < ((uint16_t *) rd.d_top)) {
-      
+
       /* see gf_w16_clm_multiply() to see explanation of method */
-      
+
       b = _mm_insert_epi32 (a, (gf_val_32_t)(*s16), 0);
       result = _mm_clmulepi64_si128 (a, b, 0);
       w = _mm_clmulepi64_si128 (prim_poly, _mm_srli_si128 (result, 2), 0);
       result = _mm_xor_si128 (result, w);
       w = _mm_clmulepi64_si128 (prim_poly, _mm_srli_si128 (result, 2), 0);
       result = _mm_xor_si128 (result, w);
-      
+
       *d16 = ((gf_val_32_t)_mm_extract_epi32(result, 0));
       d16++;
       s16++;
-    } 
+    }
   }
   gf_do_final_region_alignment(&rd);
 }
@@ -163,7 +163,7 @@ gf_w16_clm_multiply_region_from_single_3(gf_t *gf, void *src, void *dest, gf_val
   if (val == 1) { gf_multby_one(src, dest, bytes, xor); return; }
 
   a = _mm_insert_epi32 (_mm_setzero_si128(), val, 0);
-  
+
   gf_set_region_data(&rd, gf, src, dest, bytes, val, xor, 2);
   gf_do_initial_region_alignment(&rd);
 
@@ -172,9 +172,9 @@ gf_w16_clm_multiply_region_from_single_3(gf_t *gf, void *src, void *dest, gf_val
 
   if (xor) {
     while (d16 < ((uint16_t *) rd.d_top)) {
-      
+
       /* see gf_w16_clm_multiply() to see explanation of method */
-      
+
       b = _mm_insert_epi32 (a, (gf_val_32_t)(*s16), 0);
       result = _mm_clmulepi64_si128 (a, b, 0);
       w = _mm_clmulepi64_si128 (prim_poly, _mm_srli_si128 (result, 2), 0);
@@ -187,12 +187,12 @@ gf_w16_clm_multiply_region_from_single_3(gf_t *gf, void *src, void *dest, gf_val
       *d16 ^= ((gf_val_32_t)_mm_extract_epi32(result, 0));
       d16++;
       s16++;
-    } 
+    }
   } else {
     while (d16 < ((uint16_t *) rd.d_top)) {
-      
+
       /* see gf_w16_clm_multiply() to see explanation of method */
-      
+
       b = _mm_insert_epi32 (a, (gf_val_32_t)(*s16), 0);
       result = _mm_clmulepi64_si128 (a, b, 0);
       w = _mm_clmulepi64_si128 (prim_poly, _mm_srli_si128 (result, 2), 0);
@@ -201,11 +201,11 @@ gf_w16_clm_multiply_region_from_single_3(gf_t *gf, void *src, void *dest, gf_val
       result = _mm_xor_si128 (result, w);
       w = _mm_clmulepi64_si128 (prim_poly, _mm_srli_si128 (result, 2), 0);
       result = _mm_xor_si128 (result, w);
-      
+
       *d16 = ((gf_val_32_t)_mm_extract_epi32(result, 0));
       d16++;
       s16++;
-    } 
+    }
   }
   gf_do_final_region_alignment(&rd);
 }
@@ -234,15 +234,15 @@ gf_w16_clm_multiply_region_from_single_4(gf_t *gf, void *src, void *dest, gf_val
   gf_do_initial_region_alignment(&rd);
 
   a = _mm_insert_epi32 (_mm_setzero_si128(), val, 0);
-  
+
   s16 = (uint16_t *) rd.s_start;
   d16 = (uint16_t *) rd.d_start;
 
   if (xor) {
     while (d16 < ((uint16_t *) rd.d_top)) {
-      
+
       /* see gf_w16_clm_multiply() to see explanation of method */
-      
+
       b = _mm_insert_epi32 (a, (gf_val_32_t)(*s16), 0);
       result = _mm_clmulepi64_si128 (a, b, 0);
       w = _mm_clmulepi64_si128 (prim_poly, _mm_srli_si128 (result, 2), 0);
@@ -257,12 +257,12 @@ gf_w16_clm_multiply_region_from_single_4(gf_t *gf, void *src, void *dest, gf_val
       *d16 ^= ((gf_val_32_t)_mm_extract_epi32(result, 0));
       d16++;
       s16++;
-    } 
+    }
   } else {
     while (d16 < ((uint16_t *) rd.d_top)) {
-      
+
       /* see gf_w16_clm_multiply() to see explanation of method */
-      
+
       b = _mm_insert_epi32 (a, (gf_val_32_t)(*s16), 0);
       result = _mm_clmulepi64_si128 (a, b, 0);
       w = _mm_clmulepi64_si128 (prim_poly, _mm_srli_si128 (result, 2), 0);
@@ -273,11 +273,11 @@ gf_w16_clm_multiply_region_from_single_4(gf_t *gf, void *src, void *dest, gf_val
       result = _mm_xor_si128 (result, w);
       w = _mm_clmulepi64_si128 (prim_poly, _mm_srli_si128 (result, 2), 0);
       result = _mm_xor_si128 (result, w);
-      
+
       *d16 = ((gf_val_32_t)_mm_extract_epi32(result, 0));
       d16++;
       s16++;
-    } 
+    }
   }
   gf_do_final_region_alignment(&rd);
 }
@@ -390,7 +390,7 @@ gf_val_32_t gf_w16_matrix (gf_t *gf, gf_val_32_t b)
 
 /* JSP: GF_MULT_SHIFT: The world's dumbest multiplication algorithm.  I only
    include it for completeness.  It does have the feature that it requires no
-   extra memory.  
+   extra memory.
  */
 
 #if defined(INTEL_SSE4_PCLMUL)
@@ -413,7 +413,7 @@ gf_w16_clm_multiply_2 (gf_t *gf, gf_val_32_t a16, gf_val_32_t b16)
   prim_poly = _mm_set_epi32(0, 0, 0, (uint32_t)(h->prim_poly & 0x1ffffULL));
 
   /* Do the initial multiply */
-  
+
   result = _mm_clmulepi64_si128 (a, b, 0);
 
   /* Ben: Do prim_poly reduction twice. We are guaranteed that we will only
@@ -431,7 +431,7 @@ gf_w16_clm_multiply_2 (gf_t *gf, gf_val_32_t a16, gf_val_32_t b16)
   result = _mm_xor_si128 (result, w);
 
   /* Extracts 32 bit value from result. */
-  
+
   rv = ((gf_val_32_t)_mm_extract_epi32(result, 0));
 
   return rv;
@@ -458,7 +458,7 @@ gf_w16_clm_multiply_3 (gf_t *gf, gf_val_32_t a16, gf_val_32_t b16)
   prim_poly = _mm_set_epi32(0, 0, 0, (uint32_t)(h->prim_poly & 0x1ffffULL));
 
   /* Do the initial multiply */
-  
+
   result = _mm_clmulepi64_si128 (a, b, 0);
 
   w = _mm_clmulepi64_si128 (prim_poly, _mm_srli_si128 (result, 2), 0);
@@ -469,7 +469,7 @@ gf_w16_clm_multiply_3 (gf_t *gf, gf_val_32_t a16, gf_val_32_t b16)
   result = _mm_xor_si128 (result, w);
 
   /* Extracts 32 bit value from result. */
-  
+
   rv = ((gf_val_32_t)_mm_extract_epi32(result, 0));
 
   return rv;
@@ -496,7 +496,7 @@ gf_w16_clm_multiply_4 (gf_t *gf, gf_val_32_t a16, gf_val_32_t b16)
   prim_poly = _mm_set_epi32(0, 0, 0, (uint32_t)(h->prim_poly & 0x1ffffULL));
 
   /* Do the initial multiply */
-  
+
   result = _mm_clmulepi64_si128 (a, b, 0);
 
   w = _mm_clmulepi64_si128 (prim_poly, _mm_srli_si128 (result, 2), 0);
@@ -509,7 +509,7 @@ gf_w16_clm_multiply_4 (gf_t *gf, gf_val_32_t a16, gf_val_32_t b16)
   result = _mm_xor_si128 (result, w);
 
   /* Extracts 32 bit value from result. */
-  
+
   rv = ((gf_val_32_t)_mm_extract_epi32(result, 0));
 
   return rv;
@@ -532,23 +532,23 @@ gf_w16_shift_multiply (gf_t *gf, gf_val_32_t a16, gf_val_32_t b16)
 
   product = 0;
 
-  for (i = 0; i < GF_FIELD_WIDTH; i++) { 
+  for (i = 0; i < GF_FIELD_WIDTH; i++) {
     if (a & (1 << i)) product ^= (b << i);
   }
   for (i = (GF_FIELD_WIDTH*2-2); i >= GF_FIELD_WIDTH; i--) {
-    if (product & (1 << i)) product ^= (pp << (i-GF_FIELD_WIDTH)); 
+    if (product & (1 << i)) product ^= (pp << (i-GF_FIELD_WIDTH));
   }
   return product;
 }
 
-static 
+static
 int gf_w16_shift_init(gf_t *gf)
 {
   SET_FUNCTION(gf,multiply,w32,gf_w16_shift_multiply)
   return 1;
 }
 
-static 
+static
 int gf_w16_cfm_init(gf_t *gf)
 {
 #if defined(INTEL_SSE4_PCLMUL)
@@ -556,9 +556,9 @@ int gf_w16_cfm_init(gf_t *gf)
     gf_internal_t *h;
 
     h = (gf_internal_t *) gf->scratch;
-    
+
     /*Ben: Determining how many reductions to do */
-    
+
     if ((0xfe00 & h->prim_poly) == 0) {
       SET_FUNCTION(gf,multiply,w32,gf_w16_clm_multiply_2)
       SET_FUNCTION(gf,multiply_region,w32,gf_w16_clm_multiply_region_from_single_2)
@@ -570,7 +570,7 @@ int gf_w16_cfm_init(gf_t *gf)
       SET_FUNCTION(gf,multiply_region,w32,gf_w16_clm_multiply_region_from_single_4)
     } else {
       return 0;
-    } 
+    }
     return 1;
   }
 #endif
@@ -663,7 +663,7 @@ int gf_w16_log_init(gf_t *gf)
 
   h = (gf_internal_t *) gf->scratch;
   ltd = h->private;
-  
+
   for (i = 0; i < GF_MULT_GROUP_SIZE+1; i++)
     ltd->log_tbl[i] = 0;
   ltd->d_antilog = ltd->antilog_tbl + GF_MULT_GROUP_SIZE;
@@ -681,7 +681,7 @@ int gf_w16_log_init(gf_t *gf)
   }
 
   /* If you can't construct the log table, there's a problem.  This code is used for
-     some other implementations (e.g. in SPLIT), so if the log table doesn't work in 
+     some other implementations (e.g. in SPLIT), so if the log table doesn't work in
      that instance, use CARRY_FREE / SHIFT instead. */
 
   if (check) {
@@ -717,7 +717,7 @@ int gf_w16_log_init(gf_t *gf)
 /* Ben: Does alternate mapping multiplication using a split table in the
  lazy method without sse instructions*/
 
-static 
+static
 void
 gf_w16_split_4_16_lazy_nosse_altmap_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
 {
@@ -730,7 +730,7 @@ gf_w16_split_4_16_lazy_nosse_altmap_multiply_region(gf_t *gf, void *src, void *d
   if (val == 1) { gf_multby_one(src, dest, bytes, xor); return; }
 
   gf_set_region_data(&rd, gf, src, dest, bytes, val, xor, 32);
-  gf_do_initial_region_alignment(&rd);    
+  gf_do_initial_region_alignment(&rd);
 
   /*Ben: Constructs lazy multiplication table*/
 
@@ -742,31 +742,31 @@ gf_w16_split_4_16_lazy_nosse_altmap_multiply_region(gf_t *gf, void *src, void *d
   }
 
   /*Ben: s8 is the start of source, d8 is the start of dest, top is end of dest region. */
-  
+
   s8 = (uint8_t *) rd.s_start;
   d8 = (uint8_t *) rd.d_start;
   top = (uint8_t *) rd.d_top;
 
 
   while (d8 < top) {
-    
-    /*Ben: Multiplies across 16 two byte quantities using alternate mapping 
+
+    /*Ben: Multiplies across 16 two byte quantities using alternate mapping
        high bits are on the left, low bits are on the right. */
-  
+
     for (j=0;j<16;j++) {
-    
+
       /*Ben: If the xor flag is set, the product should include what is in dest */
       prod = (xor) ? ((uint16_t)(*d8)<<8) ^ *(d8+16) : 0;
 
       /*Ben: xors all 4 table lookups into the product variable*/
-      
+
       prod ^= ((table[0][*(s8+16)&0xf]) ^
           (table[1][(*(s8+16)&0xf0)>>4]) ^
           (table[2][*(s8)&0xf]) ^
           (table[3][(*(s8)&0xf0)>>4]));
 
       /*Ben: Stores product in the destination and moves on*/
-      
+
       *d8 = (uint8_t)(prod >> 8);
       *(d8+16) = (uint8_t)(prod & 0x00ff);
       s8++;
@@ -791,7 +791,7 @@ gf_w16_split_4_16_lazy_multiply_region(gf_t *gf, void *src, void *dest, gf_val_3
   if (val == 1) { gf_multby_one(src, dest, bytes, xor); return; }
 
   gf_set_region_data(&rd, gf, src, dest, bytes, val, xor, 2);
-  gf_do_initial_region_alignment(&rd);    
+  gf_do_initial_region_alignment(&rd);
 
   for (j = 0; j < 16; j++) {
     for (i = 0; i < 4; i++) {
@@ -831,7 +831,7 @@ gf_w16_split_8_16_lazy_multiply_region(gf_t *gf, void *src, void *dest, gf_val_3
 
   gf_set_region_data(&rd, gf, src, dest, bytes, val, xor, 8);
   gf_do_initial_region_alignment(&rd);
-  
+
   h = (gf_internal_t *) gf->scratch;
 
   v = val;
@@ -849,7 +849,7 @@ gf_w16_split_8_16_lazy_multiply_region(gf_t *gf, void *src, void *dest, gf_val_3
   s64 = (uint64_t *) rd.s_start;
   d64 = (uint64_t *) rd.d_start;
   top64 = (uint64_t *) rd.d_top;
-  
+
 /* Does Unrolling Matter?  -- Doesn't seem to.
   while (d64 != top64) {
     a = *s64;
@@ -875,13 +875,13 @@ gf_w16_split_8_16_lazy_multiply_region(gf_t *gf, void *src, void *dest, gf_val_3
     prod ^= htable[a >> 56];
     a <<= 8;
     prod ^= ltable[a >> 56];
-    prod ^= ((xor) ? *d64 : 0); 
+    prod ^= ((xor) ? *d64 : 0);
     *d64 = prod;
     s64++;
     d64++;
   }
 */
-  
+
   while (d64 != top64) {
     a = *s64;
 
@@ -895,8 +895,8 @@ gf_w16_split_8_16_lazy_multiply_region(gf_t *gf, void *src, void *dest, gf_val_3
     }
 
     //JSP: We can move the conditional outside the while loop, but we need to fully test it to understand which is better.
-   
-    prod ^= ((xor) ? *d64 : 0); 
+
+    prod ^= ((xor) ? *d64 : 0);
     *d64 = prod;
     s64++;
     d64++;
@@ -940,7 +940,7 @@ gf_w16_table_lazy_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t v
   for (c = 1; c < GF_FIELD_SIZE; c++) {
     ltd->lazytable[c] = gf_w16_shift_multiply(gf, c, val);
   }
-   
+
   gf_two_byte_region_table_multiply(&rd, ltd->lazytable);
   gf_do_final_region_alignment(&rd);
 }
@@ -987,7 +987,7 @@ gf_w16_split_4_16_lazy_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_v
 
   if (xor) {
     while (d64 != top64) {
-      
+
       ta = _mm_load_si128((__m128i *) s64);
       tb = _mm_load_si128((__m128i *) (s64+2));
 
@@ -1002,7 +1002,7 @@ gf_w16_split_4_16_lazy_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_v
       ti = _mm_and_si128 (mask, tb);
       tph = _mm_shuffle_epi8 (thigh[0], ti);
       tpl = _mm_shuffle_epi8 (tlow[0], ti);
-  
+
       tb = _mm_srli_epi16(tb, 4);
       ti = _mm_and_si128 (mask, tb);
       tpl = _mm_xor_si128(_mm_shuffle_epi8 (tlow[1], ti), tpl);
@@ -1011,7 +1011,7 @@ gf_w16_split_4_16_lazy_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_v
       ti = _mm_and_si128 (mask, ta);
       tpl = _mm_xor_si128(_mm_shuffle_epi8 (tlow[2], ti), tpl);
       tph = _mm_xor_si128(_mm_shuffle_epi8 (thigh[2], ti), tph);
-  
+
       ta = _mm_srli_epi16(ta, 4);
       ti = _mm_and_si128 (mask, ta);
       tpl = _mm_xor_si128(_mm_shuffle_epi8 (tlow[3], ti), tpl);
@@ -1023,17 +1023,17 @@ gf_w16_split_4_16_lazy_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_v
       tta = _mm_load_si128((__m128i *) d64);
       ta = _mm_xor_si128(ta, tta);
       ttb = _mm_load_si128((__m128i *) (d64+2));
-      tb = _mm_xor_si128(tb, ttb); 
+      tb = _mm_xor_si128(tb, ttb);
       _mm_store_si128 ((__m128i *)d64, ta);
       _mm_store_si128 ((__m128i *)(d64+2), tb);
 
       d64 += 4;
       s64 += 4;
-      
+
     }
   } else {
     while (d64 != top64) {
-      
+
       ta = _mm_load_si128((__m128i *) s64);
       tb = _mm_load_si128((__m128i *) (s64+2));
 
@@ -1048,7 +1048,7 @@ gf_w16_split_4_16_lazy_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_v
       ti = _mm_and_si128 (mask, tb);
       tph = _mm_shuffle_epi8 (thigh[0], ti);
       tpl = _mm_shuffle_epi8 (tlow[0], ti);
-  
+
       tb = _mm_srli_epi16(tb, 4);
       ti = _mm_and_si128 (mask, tb);
       tpl = _mm_xor_si128(_mm_shuffle_epi8 (tlow[1], ti), tpl);
@@ -1057,7 +1057,7 @@ gf_w16_split_4_16_lazy_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_v
       ti = _mm_and_si128 (mask, ta);
       tpl = _mm_xor_si128(_mm_shuffle_epi8 (tlow[2], ti), tpl);
       tph = _mm_xor_si128(_mm_shuffle_epi8 (thigh[2], ti), tph);
-  
+
       ta = _mm_srli_epi16(ta, 4);
       ti = _mm_and_si128 (mask, ta);
       tpl = _mm_xor_si128(_mm_shuffle_epi8 (tlow[3], ti), tpl);
@@ -1125,7 +1125,7 @@ gf_w16_split_4_16_lazy_sse_altmap_multiply_region(gf_t *gf, void *src, void *des
       ti = _mm_and_si128 (mask, tb);
       tph = _mm_shuffle_epi8 (thigh[0], ti);
       tpl = _mm_shuffle_epi8 (tlow[0], ti);
-  
+
       tb = _mm_srli_epi16(tb, 4);
       ti = _mm_and_si128 (mask, tb);
       tpl = _mm_xor_si128(_mm_shuffle_epi8 (tlow[1], ti), tpl);
@@ -1134,7 +1134,7 @@ gf_w16_split_4_16_lazy_sse_altmap_multiply_region(gf_t *gf, void *src, void *des
       ti = _mm_and_si128 (mask, ta);
       tpl = _mm_xor_si128(_mm_shuffle_epi8 (tlow[2], ti), tpl);
       tph = _mm_xor_si128(_mm_shuffle_epi8 (thigh[2], ti), tph);
-  
+
       ta = _mm_srli_epi16(ta, 4);
       ti = _mm_and_si128 (mask, ta);
       tpl = _mm_xor_si128(_mm_shuffle_epi8 (tlow[3], ti), tpl);
@@ -1159,7 +1159,7 @@ gf_w16_split_4_16_lazy_sse_altmap_multiply_region(gf_t *gf, void *src, void *des
       ti = _mm_and_si128 (mask, tb);
       tph = _mm_shuffle_epi8 (thigh[0], ti);
       tpl = _mm_shuffle_epi8 (tlow[0], ti);
-  
+
       tb = _mm_srli_epi16(tb, 4);
       ti = _mm_and_si128 (mask, tb);
       tpl = _mm_xor_si128(_mm_shuffle_epi8 (tlow[1], ti), tpl);
@@ -1168,7 +1168,7 @@ gf_w16_split_4_16_lazy_sse_altmap_multiply_region(gf_t *gf, void *src, void *des
       ti = _mm_and_si128 (mask, ta);
       tpl = _mm_xor_si128(_mm_shuffle_epi8 (tlow[2], ti), tpl);
       tph = _mm_xor_si128(_mm_shuffle_epi8 (thigh[2], ti), tph);
-  
+
       ta = _mm_srli_epi16(ta, 4);
       ti = _mm_and_si128 (mask, ta);
       tpl = _mm_xor_si128(_mm_shuffle_epi8 (tlow[3], ti), tpl);
@@ -1179,7 +1179,7 @@ gf_w16_split_4_16_lazy_sse_altmap_multiply_region(gf_t *gf, void *src, void *des
 
       d64 += 4;
       s64 += 4;
-      
+
     }
   }
   gf_do_final_region_alignment(&rd);
@@ -1187,7 +1187,7 @@ gf_w16_split_4_16_lazy_sse_altmap_multiply_region(gf_t *gf, void *src, void *des
 }
 #endif
 
-uint32_t 
+uint32_t
 gf_w16_split_8_8_multiply(gf_t *gf, gf_val_32_t a, gf_val_32_t b)
 {
   uint32_t alow, blow;
@@ -1208,7 +1208,7 @@ gf_w16_split_8_8_multiply(gf_t *gf, gf_val_32_t a, gf_val_32_t b)
          d8->tables[2][a][b];
 }
 
-static 
+static
 int gf_w16_split_init(gf_t *gf)
 {
   gf_internal_t *h;
@@ -1287,7 +1287,7 @@ int gf_w16_split_init(gf_t *gf)
 #if defined(INTEL_SSSE3)
       else if(h->region_type & GF_REGION_ALTMAP && gf_cpu_supports_intel_ssse3)
         SET_FUNCTION(gf,multiply_region,w32,gf_w16_split_4_16_lazy_sse_altmap_multiply_region)
-#endif        
+#endif
     } else {
 #endif
       if(h->region_type & GF_REGION_SIMD)
@@ -1304,12 +1304,12 @@ int gf_w16_split_init(gf_t *gf)
   return 1;
 }
 
-static 
+static
 int gf_w16_table_init(gf_t *gf)
 {
   gf_w16_log_init(gf);
 
-  SET_FUNCTION(gf,multiply_region,w32,gf_w16_table_lazy_multiply_region) 
+  SET_FUNCTION(gf,multiply_region,w32,gf_w16_table_lazy_multiply_region)
   return 1;
 }
 
@@ -1348,7 +1348,7 @@ gf_w16_log_zero_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val
   }
 
   /* This isn't necessary. */
-  
+
   gf_do_final_region_alignment(&rd);
 }
 
@@ -1397,11 +1397,11 @@ gf_w16_bytwo_p_multiply (gf_t *gf, gf_val_32_t a, gf_val_32_t b)
 {
   uint32_t prod, pp, pmask, amask;
   gf_internal_t *h;
-  
+
   h = (gf_internal_t *) gf->scratch;
   pp = h->prim_poly;
 
-  
+
   prod = 0;
   pmask = 0x8000;
   amask = 0x8000;
@@ -1425,7 +1425,7 @@ gf_w16_bytwo_b_multiply (gf_t *gf, gf_val_32_t a, gf_val_32_t b)
 {
   uint32_t prod, pp, bmask;
   gf_internal_t *h;
-  
+
   h = (gf_internal_t *) gf->scratch;
   pp = h->prim_poly;
 
@@ -1445,13 +1445,13 @@ gf_w16_bytwo_b_multiply (gf_t *gf, gf_val_32_t a, gf_val_32_t b)
 }
 
 static
-void 
+void
 gf_w16_bytwo_p_nosse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
 {
   uint64_t *s64, *d64, t1, t2, ta, prod, amask;
   gf_region_data rd;
   struct gf_w16_bytwo_data *btd;
-    
+
   if (val == 0) { gf_multby_zero(dest, bytes, xor); return; }
   if (val == 1) { gf_multby_one(src, dest, bytes, xor); return; }
 
@@ -1477,7 +1477,7 @@ gf_w16_bytwo_p_nosse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_
       d64++;
       s64++;
     }
-  } else { 
+  } else {
     while (s64 < (uint64_t *) rd.s_top) {
       prod = 0;
       amask = 0x8000;
@@ -1505,7 +1505,7 @@ gf_w16_bytwo_p_nosse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_
 
 #ifdef INTEL_SSE2
 static
-void 
+void
 gf_w16_bytwo_p_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
 {
   int i;
@@ -1514,7 +1514,7 @@ gf_w16_bytwo_p_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t 
   __m128i pp, m1, m2, ta, prod, t1, t2, tp, one, v;
   struct gf_w16_bytwo_data *btd;
   gf_region_data rd;
-    
+
   if (val == 0) { gf_multby_zero(dest, bytes, xor); return; }
   if (val == 1) { gf_multby_one(src, dest, bytes, xor); return; }
 
@@ -1621,7 +1621,7 @@ gf_w16_bytwo_b_sse_region_2_xor(gf_region_data *rd, struct gf_w16_bytwo_data *bt
 
 #ifdef INTEL_SSE2
 static
-void 
+void
 gf_w16_bytwo_b_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
 {
   int itb;
@@ -1629,7 +1629,7 @@ gf_w16_bytwo_b_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t 
   __m128i pp, m1, m2, t1, t2, va, vb;
   struct gf_w16_bytwo_data *btd;
   gf_region_data rd;
-    
+
   if (val == 0) { gf_multby_zero(dest, bytes, xor); return; }
   if (val == 1) { gf_multby_one(src, dest, bytes, xor); return; }
 
@@ -1675,7 +1675,7 @@ gf_w16_bytwo_b_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t 
 #endif
 
 static
-void 
+void
 gf_w16_bytwo_b_nosse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
 {
   uint64_t *s64, *d64, t1, t2, ta, tb, prod;
@@ -1711,7 +1711,7 @@ gf_w16_bytwo_b_nosse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_
         s64++;
       }
     }
-    break; 
+    break;
   case 3:
     if (xor) {
       while (d64 < (uint64_t *) rd.d_top) {
@@ -1732,7 +1732,7 @@ gf_w16_bytwo_b_nosse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_
         s64++;
       }
     }
-    break; 
+    break;
   case 4:
     if (xor) {
       while (d64 < (uint64_t *) rd.d_top) {
@@ -1753,7 +1753,7 @@ gf_w16_bytwo_b_nosse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_
         s64++;
       }
     }
-    break; 
+    break;
   case 5:
     if (xor) {
       while (d64 < (uint64_t *) rd.d_top) {
@@ -2027,7 +2027,7 @@ gf_w16_composite_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t va
 
   cd = (struct gf_w16_composite_data *) h->private;
   mt = cd->mult_table;
-  
+
   if (val == 0) { gf_multby_zero(dest, bytes, xor); return; }
   gf_set_region_data(&rd, gf, src, dest, bytes, val, xor, 2);
 
@@ -2041,10 +2041,10 @@ gf_w16_composite_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t va
         a0 = (*s16) & 0x00ff;
         a1 = ((*s16) & 0xff00) >> 8;
         a1b1 = base_gf->multiply.w32(base_gf, a1, b1);
-  
+
         (*d16) ^= ((base_gf->multiply.w32(base_gf, a0, b0) ^ a1b1) |
-                  ((base_gf->multiply.w32(base_gf, a1, b0) ^ 
-                    base_gf->multiply.w32(base_gf, a0, b1) ^ 
+                  ((base_gf->multiply.w32(base_gf, a1, b0) ^
+                    base_gf->multiply.w32(base_gf, a0, b1) ^
                     base_gf->multiply.w32(base_gf, a1b1, h->prim_poly)) << 8));
         s16++;
         d16++;
@@ -2054,10 +2054,10 @@ gf_w16_composite_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t va
         a0 = (*s16) & 0x00ff;
         a1 = ((*s16) & 0xff00) >> 8;
         a1b1 = base_gf->multiply.w32(base_gf, a1, b1);
-  
+
         (*d16) = ((base_gf->multiply.w32(base_gf, a0, b0) ^ a1b1) |
-                  ((base_gf->multiply.w32(base_gf, a1, b0) ^ 
-                    base_gf->multiply.w32(base_gf, a0, b1) ^ 
+                  ((base_gf->multiply.w32(base_gf, a1, b0) ^
+                    base_gf->multiply.w32(base_gf, a0, b1) ^
                     base_gf->multiply.w32(base_gf, a1b1, h->prim_poly)) << 8));
         s16++;
         d16++;
@@ -2069,10 +2069,10 @@ gf_w16_composite_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t va
         a0 = (*s16) & 0x00ff;
         a1 = ((*s16) & 0xff00) >> 8;
         a1b1 = GF_W8_INLINE_MULTDIV(mt, a1, b1);
-  
+
         (*d16) ^= ((GF_W8_INLINE_MULTDIV(mt, a0, b0) ^ a1b1) |
-                  ((GF_W8_INLINE_MULTDIV(mt, a1, b0) ^ 
-                    GF_W8_INLINE_MULTDIV(mt, a0, b1) ^ 
+                  ((GF_W8_INLINE_MULTDIV(mt, a1, b0) ^
+                    GF_W8_INLINE_MULTDIV(mt, a0, b1) ^
                     GF_W8_INLINE_MULTDIV(mt, a1b1, h->prim_poly)) << 8));
         s16++;
         d16++;
@@ -2082,10 +2082,10 @@ gf_w16_composite_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t va
         a0 = (*s16) & 0x00ff;
         a1 = ((*s16) & 0xff00) >> 8;
         a1b1 = GF_W8_INLINE_MULTDIV(mt, a1, b1);
-  
+
         (*d16) = ((GF_W8_INLINE_MULTDIV(mt, a0, b0) ^ a1b1) |
-                  ((GF_W8_INLINE_MULTDIV(mt, a1, b0) ^ 
-                    GF_W8_INLINE_MULTDIV(mt, a0, b1) ^ 
+                  ((GF_W8_INLINE_MULTDIV(mt, a1, b0) ^
+                    GF_W8_INLINE_MULTDIV(mt, a0, b1) ^
                     GF_W8_INLINE_MULTDIV(mt, a1b1, h->prim_poly)) << 8));
         s16++;
         d16++;
@@ -2107,9 +2107,9 @@ gf_w16_composite_multiply_region_alt(gf_t *gf, void *src, void *dest, gf_val_32_
   uint8_t *slow, *shigh;
   uint8_t *dlow, *dhigh, *top;;
 
-  /* JSP: I want the two pointers aligned wrt each other on 16 byte 
-     boundaries.  So I'm going to make sure that the area on 
-     which the two operate is a multiple of 32. Of course, that 
+  /* JSP: I want the two pointers aligned wrt each other on 16 byte
+     boundaries.  So I'm going to make sure that the area on
+     which the two operate is a multiple of 32. Of course, that
      junks up the mapping, but so be it -- that's why we have extract_word.... */
 
   gf_set_region_data(&rd, gf, src, dest, bytes, val, xor, 32);
@@ -2215,7 +2215,7 @@ void gf_w16_group_4_4_region_multiply(gf_t *gf, void *src, void *dest, gf_val_32
   struct gf_w16_group_4_4_data *d44;
   gf_region_data rd;
   uint16_t *s16, *d16, *top;
-  
+
   if (val == 0) { gf_multby_zero(dest, bytes, xor); return; }
   if (val == 1) { gf_multby_one(src, dest, bytes, xor); return; }
 
@@ -2301,18 +2301,18 @@ int gf_w16_scratch_size(int mult_type, int region_type, int divide_type, int arg
       return sizeof(gf_internal_t) + sizeof(struct gf_w16_logtable_data) + 64;
       break;
     case GF_MULT_DEFAULT:
-    case GF_MULT_SPLIT_TABLE: 
+    case GF_MULT_SPLIT_TABLE:
       if (arg1 == 8 && arg2 == 8) {
         return sizeof(gf_internal_t) + sizeof(struct gf_w16_split_8_8_data) + 64;
       } else if ((arg1 == 8 && arg2 == 16) || (arg2 == 8 && arg1 == 16)) {
         return sizeof(gf_internal_t) + sizeof(struct gf_w16_logtable_data) + 64;
-      } else if (mult_type == GF_MULT_DEFAULT || 
+      } else if (mult_type == GF_MULT_DEFAULT ||
                  (arg1 == 4 && arg2 == 16) || (arg2 == 4 && arg1 == 16)) {
         return sizeof(gf_internal_t) + sizeof(struct gf_w16_logtable_data) + 64;
       }
       return 0;
       break;
-    case GF_MULT_GROUP:     
+    case GF_MULT_GROUP:
       return sizeof(gf_internal_t) + sizeof(struct gf_w16_group_4_4_data) + 64;
       break;
     case GF_MULT_CARRY_FREE:
@@ -2343,9 +2343,9 @@ int gf_w16_init(gf_t *gf)
     if (h->mult_type == GF_MULT_COMPOSITE) {
       h->prim_poly = gf_composite_get_default_poly(h->base_gf);
       if (h->prim_poly == 0) return 0;
-    } else { 
+    } else {
 
-     /* Allen: use the following primitive polynomial to make 
+     /* Allen: use the following primitive polynomial to make
                carryless multiply work more efficiently for GF(2^16).
 
         h->prim_poly = 0x1002d;
@@ -2353,7 +2353,7 @@ int gf_w16_init(gf_t *gf)
         The following is the traditional primitive polynomial for GF(2^16) */
 
       h->prim_poly = 0x1100b;
-    } 
+    }
   }
 
   if (h->mult_type != GF_MULT_COMPOSITE) h->prim_poly |= (1 << 16);
@@ -2366,13 +2366,13 @@ int gf_w16_init(gf_t *gf)
   switch(h->mult_type) {
     case GF_MULT_LOG_ZERO:    if (gf_w16_log_zero_init(gf) == 0) return 0; break;
     case GF_MULT_LOG_TABLE:   if (gf_w16_log_init(gf) == 0) return 0; break;
-    case GF_MULT_DEFAULT: 
+    case GF_MULT_DEFAULT:
     case GF_MULT_SPLIT_TABLE: if (gf_w16_split_init(gf) == 0) return 0; break;
     case GF_MULT_TABLE:       if (gf_w16_table_init(gf) == 0) return 0; break;
     case GF_MULT_CARRY_FREE:  if (gf_w16_cfm_init(gf) == 0) return 0; break;
     case GF_MULT_SHIFT:       if (gf_w16_shift_init(gf) == 0) return 0; break;
     case GF_MULT_COMPOSITE:   if (gf_w16_composite_init(gf) == 0) return 0; break;
-    case GF_MULT_BYTWO_p: 
+    case GF_MULT_BYTWO_p:
     case GF_MULT_BYTWO_b:     if (gf_w16_bytwo_init(gf) == 0) return 0; break;
     case GF_MULT_GROUP:       if (gf_w16_group_init(gf) == 0) return 0; break;
     default: return 0;

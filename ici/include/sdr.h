@@ -12,7 +12,7 @@
 		persistent shared memory with a flat address space.
 
 	Author: Scott Burleigh, JPL
-	
+
 	Modification History:
 	Date      Who	What
 	06-05-07  SCB	Split into multiple separable modules.

@@ -1,6 +1,6 @@
 /******************************************************************************
- 	bei.h:	Private header file used to encapsulate structures, constants,
- 	        and function prototypes that deal with BP extension blocks.
+	bei.h:	Private header file used to encapsulate structures, constants,
+	        and function prototypes that deal with BP extension blocks.
 
 	Author: Scott Burleigh, JPL
 
@@ -101,7 +101,7 @@ typedef struct
 	BpBlockType	type;		/**	Per definitions array.	*/
 	unsigned char	number;		/**	Identifies the block.	*/
 	unsigned char	blkProcFlags;	/**	Per BP spec.		*/
-	BpCrcType	crcType;	/** 	Extension blk crc type 	*/	
+	BpCrcType	crcType;	/** 	Extension blk crc type 	*/
 	unsigned int	dataLength;	/**	Block content.		*/
 	unsigned int	length;		/**	Length of bytes array.	*/
 	unsigned int	size;		/**	Size of scratchpad obj.	*/
@@ -236,7 +236,7 @@ extern void	suppressExtensionBlock(ExtensionBlock *blk);
 extern int	acquireExtensionBlock(AcqWorkArea *wk, ExtensionDef *def,
 			unsigned char *startOfBlock, unsigned int blockLength,
 			BpBlockType blkType, unsigned int blkNumber,
-			unsigned char blkProcFlags, BpCrcType crcType, 
+			unsigned char blkProcFlags, BpCrcType crcType,
 			unsigned int dataLength);
 extern int	reviewExtensionBlocks(AcqWorkArea *wk);
 extern int	decryptPerExtensionBlocks(AcqWorkArea *wk);

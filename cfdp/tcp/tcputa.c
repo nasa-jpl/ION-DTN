@@ -329,7 +329,7 @@ int	tcputa(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 {
 #else
 int	main(void)
-	
+
 {
 #endif
 	RxThreadParms		parms;
@@ -492,7 +492,7 @@ terminating.");
 			/*	Not currently connected; wake up the
 			 *	access thread by connecting to it.	*/
 
-			destinationEntityNbr = getCfdpConstants()->ownEntityId; 
+			destinationEntityNbr = getCfdpConstants()->ownEntityId;
 			if (connectToPeerEntity(destinationEntityNbr,
 					&currentPeerEntity, &xmitSocket) < 0)
 			{

@@ -39,7 +39,7 @@ To build, type:
 	make install
 
 The "install" target assumes that you want binaries copied into /opt/bin
-(which is assumed to be in your execution path), libraries copied into 
+(which is assumed to be in your execution path), libraries copied into
 /opt/lib (which is assumed to be in your library path), header files
 copied into /opt/include, and man pages copied into /opt/man/man1 and
 man3 and man5.  If you want everything in some other top-level directory,

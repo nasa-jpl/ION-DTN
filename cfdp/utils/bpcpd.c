@@ -197,13 +197,13 @@ void poll_cfdp_messages(void)
 /*Debug Printf*/
 void dbgprintf(int level, const char *fmt, ...)
 {
-    va_list args;
-    if(debug>=level)
-    {
-    	va_start(args, fmt);
-    	vfprintf(stderr, fmt, args);
-    	va_end(args);
-    }
+	va_list args;
+	if(debug>=level)
+	{
+		va_start(args, fmt);
+		vfprintf(stderr, fmt, args);
+		va_end(args);
+	}
 }
 
 /*Print Command usage to stderr and exit*/

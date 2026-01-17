@@ -17,8 +17,8 @@ distribution are the following packages:
   storage management, and inter-task communication via shared memory.
   The ici libraries are designed to make the porting of IPN software to
   multiple operating systems - Linux, VxWorks, Solaris, etc. - as easy as
-  possible. Ici now includes zco (zero-copy object), a library that 
-  minimizes the copying of application data as it is encapsulated in 
+  possible. Ici now includes zco (zero-copy object), a library that
+  minimizes the copying of application data as it is encapsulated in
   multiple layers of protocol structure while traversing the protocol
   stack.
 
@@ -304,56 +304,56 @@ September 19, 2025
 = NOTES ON RELEASE 4.1.4-a.2 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-This release introduces several new experimental features, key updates, and 
+This release introduces several new experimental features, key updates, and
 bug fixes while removing obsolete code.
 
 Removal of BPv6
 
-The BPv6 codebase has been removed starting with this release. This legacy 
-code had remained unchanged since ION version 3.7.4. For users who still 
+The BPv6 codebase has been removed starting with this release. This legacy
+code had remained unchanged since ION version 3.7.4. For users who still
 require BPv6, the final stable release containing it is ION 4.1.3s.
 
 Experimental Features
 
-- Dual-Stack for UDPCLA: Introduced experimental support for IPv4 and IPv6 
+- Dual-Stack for UDPCLA: Introduced experimental support for IPv4 and IPv6
   dual-stack networking in the UDP Convergence Layer Adapter.
 
-- 'IPN' URI Scheme: Added a prototype implementation for the updated 'IPN' 
+- 'IPN' URI Scheme: Added a prototype implementation for the updated 'IPN'
   URI scheme, as specified in RFC 9758.
 
-- SPP Convergence Layer: Included a prototype of the Space Packet Protocol 
+- SPP Convergence Layer: Included a prototype of the Space Packet Protocol
   (SPP) convergence layer adapter for experimentation.
 
 Improvements & Stability Fixes
 
-- Security: A new, robust, and platform-native entropy polling module has 
+- Security: A new, robust, and platform-native entropy polling module has
   been added to meet high-integrity standards for cryptographic key generation.
 
-- Networking: An address caching and re-resolution mechanism was added for 
+- Networking: An address caching and re-resolution mechanism was added for
   the UDPCL output and LSO daemons (UDPCLO/UDPLSO).
 
-- The ION codebase has been decoupled from GNU-C extensions to improve 
+- The ION codebase has been decoupled from GNU-C extensions to improve
   portability.
 
-- ION can now be compiled on MUSL libc using the Clang compiler. 
-    Due to limitation of the maximum allowed named semaphores for MUSL, it 
+- ION can now be compiled on MUSL libc using the Clang compiler.
+    Due to limitation of the maximum allowed named semaphores for MUSL, it
     is recommended that user deploy only 1 instance of ION per host. Many
     regression tests are expected to fail since they require multiple instances
     of ION running simultaneously on the same host.
 
 - Fixed a bug in the ionlauncher capability.
 
-- Resolved an issue in the ionTerminate function that caused crashes 
+- Resolved an issue in the ionTerminate function that caused crashes
   during the ION shutdown process.
 
-- Corrected a bug that allowed a node to source a bundle with an incorrect 
+- Corrected a bug that allowed a node to source a bundle with an incorrect
   node number.
 
-- The cfdptest program was updated to provide detailed event reporting and 
-  a new directory listing command. The event reporting API was also enhanced 
+- The cfdptest program was updated to provide detailed event reporting and
+  a new directory listing command. The event reporting API was also enhanced
   to deliver more detailed file transfer status and progress.
 
-- The obsolete civetweb-based REST API for the network management module 
+- The obsolete civetweb-based REST API for the network management module
   has been removed.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -407,7 +407,7 @@ update-4.1.4-address-sanitizer-rebase
 
 update-4.1.4-issue_455_mc_doc
   * Adds best practices for multicast to documentation
-  
+
 update-4.1.4-tc-dtka-duration
   * Reduce regression test time for dtka using only 1 key type; can be changed by env variables set at test time.
 
@@ -432,7 +432,7 @@ with Mbed TLS cryptographic library. ION version 4.1.3s includes support for Mbe
 
 To enable use of Mbed TLS cryptogrpahic library in ION, you must have already built the Mbed TLS
   version 2.28.x shared libraries with #define MBEDTLS_NIST_KW_C enabled (see mbedtls/include/mbedtls/config.h).
-    
+
   Make sure the Mbed TLS assets are installed in /usr/local/include/ and
   /usr/local/lib with correct permissions, or you can define alternate
   locations by running:
@@ -453,8 +453,8 @@ To build Mbed TLS:
 
 To compile ION with MBEDTLS_SUITES configure with:
   ./configure --enable-crypto-mbedtls
-  
-To enable BPSec logging (recommended for verification of BPSec functionality and required by BPSec regression tests) 
+
+To enable BPSec logging (recommended for verification of BPSec functionality and required by BPSec regression tests)
     use the following configuration flag:
     --enable-bpsec-debugging
 
@@ -529,7 +529,7 @@ integration-4.1.3s-util-signals-fix
   * Added signal handler for SIGTERM for graceful termination of the process.
 
 integration-4.1.3s-smart-file-update
-  * Updated smart file transfer utilities with file size reporting and improved 
+  * Updated smart file transfer utilities with file size reporting and improved
   message logging.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -542,14 +542,14 @@ update-4.1.3-ams
   * Add AMS demo (benchtest).
   * Update AMS programmer's guide (v3.0).
   * Fix amshello demonstration program (resolves multi-thread errors).
-  
+
 update-4.1.3-ams-test-fix
    * Update AMS regression tests (ams-sana and issue-319-parseSocketSpec).
    * Fix pointer arithmetic error on big-endian OS.
 
 update-4.1.3-android
   * ION 361 port for Android 64bit snapdragon 855 HDK.
-   
+
 update-4.1.3-bench-ltp-fix
   * Update bench test for faster machines like Mac M1.
 
@@ -574,35 +574,35 @@ update-4.1.3-demo-tests
 
 update-4.1.3-dispatchBundle
   * Fix loopback problem with imc and CRC parsing for multiple bundle ZCO.
-  
+
 update-4.1.3-enhance-wchar
   * Add bp level information such as node number, and service number to enhanced
     watch character.
   * Convert watch character from char to string.
   * Configure with --enable-ewchar when building ION.
-    
+
 update-4.1.3-extension-zco-bpdequeue
   * Fix bpsec extension block ZCO accounting.
-  
+
 update-4.1.3-gcc12fix
   * Fix errors from gcc12.
-    
+
 update-4.1.3-ionrestart
   * Updated ionrestart program to prevent restart loop.
-   
+
 update-4.1.3-key-value
   * Prevent unique key value from turning negative.
-   
+
 update-4.1.3-killm
   * Updates to killm script to work correctly (and nearly the same) on all
     supported non-windows platforms (and fixing solaris)
-   
+
 update-4.1.3-ltp-udplso
   * Import fix for udplso hanging at shutdown from IONe.
-     
+
 update-4.1.3-malformed_eid_fix
   * Fix copies eid string to correct critical malformed EID error.
-     
+
 update-4.1.3-misc
   * Remove ION_OPEN_SOURCE conditions in start and stop scripts.
   * Add and update various man pages.
@@ -610,52 +610,52 @@ update-4.1.3-misc
 
 update-4.1.3-named_posix_semaphores
   * Added a test for the semaphore subsystem called sm_subsystem that performs
-    a stress test on whatever low-level OS semaphore system was configured to 
+    a stress test on whatever low-level OS semaphore system was configured to
     look for problems that have occurred in previous versions
   * Added a new platform-dependent semaphore system based on Posix Named
     Semaphores. The old default was to use the AT&T System V Release 4 (SVR4)
     semaphores that are supported on just about ANY OS platform. Those
     semaphores predate modern multi-core architectures and multi-thread
-    instructions and rely instead on system calls for all operations, which 
-    makes them extremely slow. Posix Named Semaphores will use modern CPU 
-    multi-core instructions when available on most platforms so that most 
-    signal() and lock() semaphore operations can be performed in user-space 
-    in the current process/thread. Our tests show decrease in signal()/lock() 
-    times from 50% to 3300% depending on the platform. The end effect is 
-    that, when using small bundle sizes (less than 1000 bytes), network data 
-    throughput using LTP (as one example, but applies to all convergence 
-    layers) increases at least 11% (Solaris Intel VM) and as much as 350% 
-    (Ubuntu Intel VM) with no other changes. Improvement varies greatly 
-    between different CPUs and systems, but was always faster than the old 
+    instructions and rely instead on system calls for all operations, which
+    makes them extremely slow. Posix Named Semaphores will use modern CPU
+    multi-core instructions when available on most platforms so that most
+    signal() and lock() semaphore operations can be performed in user-space
+    in the current process/thread. Our tests show decrease in signal()/lock()
+    times from 50% to 3300% depending on the platform. The end effect is
+    that, when using small bundle sizes (less than 1000 bytes), network data
+    throughput using LTP (as one example, but applies to all convergence
+    layers) increases at least 11% (Solaris Intel VM) and as much as 350%
+    (Ubuntu Intel VM) with no other changes. Improvement varies greatly
+    between different CPUs and systems, but was always faster than the old
     system.
-  * When built on Linux / Solaris / MacOS, the ION build system will default 
-    to using the new Posix Named Semaphores.  
-    To use the old SVR4 semaphores instead, configure using 
+  * When built on Linux / Solaris / MacOS, the ION build system will default
+    to using the new Posix Named Semaphores.
+    To use the old SVR4 semaphores instead, configure using
       ./configure  --enable-force-svr4-semaphores
-  * When built on all other platforms, the ION build system will default to 
-    using the previous semaphore subsystem default (SVR4 for most systems)  
-    You can try to force the new semaphores instead by configuring with 
-       ./configure    --enable-force-posix-named-semaphores 
-    Note that we haven't tested the new semaphores on any systems other than 
+  * When built on all other platforms, the ION build system will default to
+    using the previous semaphore subsystem default (SVR4 for most systems)
+    You can try to force the new semaphores instead by configuring with
+       ./configure    --enable-force-posix-named-semaphores
+    Note that we haven't tested the new semaphores on any systems other than
     the ones for which the build system recommends their use.
-  * The quickest way to see if the new semaphores are being used is to run 
-    the sm_subsystem test, which will identify the semaphore system when it 
-    starts. It will also tell how many Posix Named Semaphores are configured 
-    into the system. The output will also tell you how many lock()/signal() 
+  * The quickest way to see if the new semaphores are being used is to run
+    the sm_subsystem test, which will identify the semaphore system when it
+    starts. It will also tell how many Posix Named Semaphores are configured
+    into the system. The output will also tell you how many lock()/signal()
     operations per second it can run if you want to do your own comparisons.
-  * Like the SVR4 semaphores, the new Posix Named Semaphores require an 
-    internal data structure which occupies a small amount of memory per 
-    configured semaphore and per process. The current default build system 
-    creates 2048 semaphores. That's more than a single production 
-    instance of ION is likely to need by a factor of 10 (likely). A modern 
-    multiprocessor OS would consider that extra memory negligible, but on a 
-    constrained platform, that setting should be tuned more carefully to save 
-    memory. The system keeps track of the maximum number of Posix Named 
-    Semaphores ever used, but there is currently no interface to provide that 
+  * Like the SVR4 semaphores, the new Posix Named Semaphores require an
+    internal data structure which occupies a small amount of memory per
+    configured semaphore and per process. The current default build system
+    creates 2048 semaphores. That's more than a single production
+    instance of ION is likely to need by a factor of 10 (likely). A modern
+    multiprocessor OS would consider that extra memory negligible, but on a
+    constrained platform, that setting should be tuned more carefully to save
+    memory. The system keeps track of the maximum number of Posix Named
+    Semaphores ever used, but there is currently no interface to provide that
     number (see routine _semPrintTable() ).
-  * Like the SVR4 semaphores, the new Posix Named Semaphores are global to 
-    ALL running instances of ION on the local computer, so the max number 
-    configured must support all local ION instances 
+  * Like the SVR4 semaphores, the new Posix Named Semaphores are global to
+    ALL running instances of ION on the local computer, so the max number
+    configured must support all local ION instances
 
 update-4.1.3-platform-c
   * Fixed isprintf() parsing bug.
@@ -664,18 +664,18 @@ update-4.1.3-psm
   * Fixed problems with psm and sptrace.
 
 update-4.1.3-runtests_scripts
-  * Enhancements to runtests script to quiet unnecessary output and add 
+  * Enhancements to runtests script to quiet unnecessary output and add
     progress files.
-  * Now also creates a file called "progress" (also with a date as file name 
-    suffix for archiving results) that lists the test date, testing host, 
-    testing kernel, and the results of each test without all the noisy 
+  * Now also creates a file called "progress" (also with a date as file name
+    suffix for archiving results) that lists the test date, testing host,
+    testing kernel, and the results of each test without all the noisy
     output. This makes it easier to check on the status of a
     long-running test session that has many individual tests.
   * Setting environment variable as in:
       export RUNTESTS_OUTPUTDIR="/tmp"
     will save the detailed output from EACH test in its own file of the form
     /tmp/results.bping   (using the directory in the envariable)
-    INSTEAD of on the screen to make it easier to find the output from a 
+    INSTEAD of on the screen to make it easier to find the output from a
     failed test in the middle of a long run.
 
 update-4.1.3-sdrxn
@@ -714,13 +714,13 @@ Feature-4.1.3-bpsendtest-bprecvtest
     - bprecvtest:
       * Discards all incoming data, just tracking the quantity of data received.
     - bpsendtest:
-      * Ingests the file to memory once and allows sending the generated bundle 
+      * Ingests the file to memory once and allows sending the generated bundle
         repeatedly without needing to reopen the file.
       * Accepts a -nofile option, allowing one to specify the length of a bundle
         to send in bytes; random data of that length will be generated and sent.
   * These act as an improvement to the testing suite available as bpdriver/bpcounter
     have performance issues with generating small bundles rapidly enough to saturate
-    higher bandwidth links due to generating new data for each bundle. 
+    higher bandwidth links due to generating new data for each bundle.
   * They also improve upon using bpsendfile/bprecvfile as they allow for sending the
     same data multiple times without needing to rerun the sending utility or reopen
     the file, and do not run into storage or memory bottlenecks on the receiving
@@ -770,7 +770,7 @@ integration-4.1.3-quiet-posix-semaphores
     status information going into the ION log.
 
 integration-4.1.3-update-bpv6-bssp-test
-  * Fixes the bssp and bssp-planrule tests failure.   
+  * Fixes the bssp and bssp-planrule tests failure.
 
 python-test-fixes
   * Bug fixes for bpsec Python test suite.
@@ -802,7 +802,7 @@ Bugfix-4.1.3-tests-shebang-fix
 
 bugfix-integration-4.1.3-status-assertion-encoding
   * Added cbor_encode_boolean, cbor_decode_boolean functions to the cbor files.
-  * Updated serializeStatusRpt, parseStatusRpt functions to correctly utilize 
+  * Updated serializeStatusRpt, parseStatusRpt functions to correctly utilize
     these boolean constants.
 
 
@@ -852,7 +852,7 @@ bugfix-4.1.2-custodyRefusedCountBytes
 
 bugfix-4.1.2-cp-duplicate-reddata
   * fixed CP handling with duplicate data
-  * fixed out-of-order red part reception 
+  * fixed out-of-order red part reception
 
 dso-bprecvfile-integration-4.1.2
   * new bprecvfile2 application that adds filename and pipe capabilities
@@ -862,7 +862,7 @@ Makefile-cleanup-integration-4.1.2
   * added uninstall target for developmental Makefiles
 
 update-4.1.2-bssp-wchar
-  * updated bssp watch characters 
+  * updated bssp watch characters
 
 update-4.1.2-shared-mem
   * fix various shared memory issues with detaching from and resetting the
@@ -897,7 +897,7 @@ upgrade-4.1.2-ams-sana-numbers
 Added new TCPCL_LOW_CYCLE macro and configure option (--enable-tcpcl-low-cycle)
   * This option reduces the TCP connection timeout from several minutes down to
     a few seconds and lowers the frequency of repeated connection attempts with
-    TCPCL peer nodes that are not responding to handshaking messages. 
+    TCPCL peer nodes that are not responding to handshaking messages.
     This is an experimental feature only available on Ubuntu as of ION 4.1.2.
 
 To verify the SHA256 hash provided with the release, please
@@ -910,11 +910,11 @@ If you have any issues, please submit a SourceForge ticket here:
 = NOTES ON RELEASE 4.1.1 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Beginning with the ION 4.1.1 release, we will no longer be distributing 
-two separate .tar.gz files (one that builds with BP version 6 by default and 
+Beginning with the ION 4.1.1 release, we will no longer be distributing
+two separate .tar.gz files (one that builds with BP version 6 by default and
 one that builds with BP version 7 by default). Instead, we will distribute a
-single ION .tar.gz file that builds with BP version 7 by default. If you wish 
-to use ION with BP version 6, you can use use the --enable-bpv6 configure 
+single ION .tar.gz file that builds with BP version 7 by default. If you wish
+to use ION with BP version 6, you can use use the --enable-bpv6 configure
 option. If you are building ION from source on Windows for BP version 6, you
 will need to run the command "make bpv6".
 
@@ -924,7 +924,7 @@ unless explicitly identified as otherwise.
 Branches included in this release:
 
 misc-4.1.1-fixes
-  * Improve the killm script 
+  * Improve the killm script
   * Update pilot delay and add rate control for bpdriver
   * Change SourceCustodyRequired to NoCustodyRequested for AMS
   * Add a version of the req-003-multicast test for BP version 7
@@ -935,7 +935,7 @@ misc-4.1.1-fixes
 apl-4.1.1-security-patches
   * Added BPSec Python test suite
   * Added accommodation of NULL terminator in security policy parameters
-  * Added checks for NULL pointer references when a BCB targets an 
+  * Added checks for NULL pointer references when a BCB targets an
     extension block
   * Added TEST_POINT macros to BIB and BCB code to log test events
 
@@ -1034,7 +1034,7 @@ Additional features of the 4.0.2 release:
 	IF ANY NODE ON THE END-TO-END PATH TO THE DESTINATION IS NOT
 	CONFIGURED FOR BIBE FORWARDING THEN THE BUNDLE WILL BE DISCARDED
 	AS UNFORWARDABLE.  BE CAREFUL.
- 
+
 -  A shortcut option for resuming the operation of a node that has been
 	"stopped" (all daemon tasks ave been terminated) but not destroyed
 	(node state has been preserved) has been added: just pass command
@@ -1216,7 +1216,7 @@ Other changes:
 
 - Deterministic data loss capability was added to owltsim.
 
-- cgrfetch was repaired. 
+- cgrfetch was repaired.
 
 - Assorted bugs were fixed.
 
@@ -1442,17 +1442,17 @@ ION version 3.6.1 includes the following changes:
      continuous bidirectional file transfer. That is now fixed.
 - The erasure-coded link service adapter from University of Bologna has been
      updated, now including proactive fragmentation for improved performance.
-- The "bpsec" bundle security system has been renamed "sbsp" (Streamlined 
+- The "bpsec" bundle security system has been renamed "sbsp" (Streamlined
      Bundle Security Protocol) to align with specifications that are being
      standardized by the Consultative Committee for Space Data Systems (CCSDS).
-- Asynchronous Message Service and Bundle Streaming Service have been added to 
+- Asynchronous Message Service and Bundle Streaming Service have been added to
      the RTEMs port.
-- Contact Graph Routing in the Bundle Protocol has been updated to align with 
-     the new Schedule-Aware Bundle Routing (SABR) specification that is being 
+- Contact Graph Routing in the Bundle Protocol has been updated to align with
+     the new Schedule-Aware Bundle Routing (SABR) specification that is being
      standardized by CCSDS.
-- The delay-tolerant key administration system in the "contrib" directory has 
+- The delay-tolerant key administration system in the "contrib" directory has
      been updated with a model for optimizing the configuration of an aggregate
-     key authority, plus scripts for testing various key authority 
+     key authority, plus scripts for testing various key authority
      configurations.
 - The ION Design Guide has finally been updated.
 - Loopback transmission has been restored to the TCPCL convergence-layer
@@ -1559,7 +1559,7 @@ documentation will be provided in release 3.6.1.
      the runtests script.
 
 --- ION interface changes in version 3.6.0 ---
- 
+
 In ION version 3.6.0 we introduce a new degree of indirection between routing
 (next-hop bundle-layer endpoint selection) and forwarding (next-hop
 convergence-layer endpoint selection).  This new capability, named "convergence
@@ -1568,18 +1568,18 @@ Unfortunately, in order to realize those benefits we had to revise some ION
 interfaces more drastically than we usually do in moving to a new version.
 Please be aware of the following significant changes as you adjust your test
 and deployment environments to utilize ION 3.6.0.
- 
+
 -- API changes
- 
+
 None of the "public" application programming interfaces in ION are affected
 by the introduction of CLM, but the Bundle Protocol private internal API has
 changed in some significant ways; these changes particularly affect the
 implementation of convergence-layer adapters.  Most important of these is a
 change to the function prototype for bpDequeue; see the comments in the bpP.h
 header file.
- 
+
 -- Behavioral changes
- 
+
 BP flow control is now exerted at node granularity, in a new daemon process
 named "bpclm", rather than at outduct granularity. One effect of this change
 is that the data rates declared in the contact plan now are enforced for all
@@ -1588,11 +1588,11 @@ bundle egress to a given neighboring node may now comprise multiple
 convergence-layer outducts, not just one; the ipnadmin and dtn2admin utilities
 don't support this option, but new commands implemented in the bpadmin utility
 do.
- 
+
 -- Configuration changes
- 
+
 Several changes in ION 3.6.0 may affect your configuration files.
- 
+
 There are no longer any "promiscuous" outducts.  The "*" command-line argument
 to udpclo is no longer valid: you need a separate udpclo task, allocated to an
 explicit socket expression (<ip_address> [:<port_number>]), for each neighbor
@@ -1601,12 +1601,12 @@ commands passed to bpadmin and also "plan" commands passed to ipnadmin and
 dtn2admin.  There is a similar impact on the DGR convergence-layer adapter:
 the dgrcla daemon no longer exists, having been replaced by dgrcli and dgrclo
 daemons; see the man pages for these new daemon programs.
- 
+
 There are no longer any "plan rules" that override default egress plan
 directives.  User-written outduct selection functions may be inserted at
 compile time to achieve the objectives of plan rules (and much more), but
 at this time no such functions are delivered with ION 3.6.0.
- 
+
 The operation of the dtn2admin utility has been expanded, conceptually
 enabling the declaration of egress plans for sets of nodes whose EIDs conform
 to any wild-carded EID string regardless of URL scheme, without any sensitivity
@@ -1614,7 +1614,7 @@ to trailing "/" characters or "demux" strings.  Enabling this expansion,
 though, it is now necessary to include scheme name and ":" (in addition to
 the scheme-specific part of the EID) when declaring, editing, or deleting a
 plan.
- 
+
 Finally, the TCP convergence-layer protocol implementation has been
 significantly revised: it now enables bundle to be transmitted to a
 neighboring node over a TCP connection that was established by that node,
@@ -1845,7 +1845,7 @@ warnings, try the following procedure to build from this alternate Makefile:
                checkpoint may be retransmitted is now computed dynamically as a
                function of segment loss rate rather than a static number.
 
-- SourceForge Bug #74: Obsolete IPCs are now properly reclaimed when running 
+- SourceForge Bug #74: Obsolete IPCs are now properly reclaimed when running
      under Windows and SVr4.
      - ION now tracks the release of semaphores in winion's array of IPC handles
        as well as the semaphore tables themselves.
@@ -1861,7 +1861,7 @@ warnings, try the following procedure to build from this alternate Makefile:
 
 - Fixed a memory leak in CFDP that could occur when TargetFFS is defined.
 
-- Several fixes have been applied in response to the successful completion of 
+- Several fixes have been applied in response to the successful completion of
      CCSDS BP interoperability testing.
 
 - Delay Tolerant Payload Conditioning (DTPC) has been updated for conformance
@@ -2398,7 +2398,7 @@ An additional daemon task named "bptransit" has been added to standard
 - Feature Request #6: LTP screening is now disabled (rather than enabled)
   by default.  This should eliminate one often mystifying source of apparent
   connectivity loss.
-  
+
 - Bug #23: Updated build configuration to fix build problems due to problems
   linking various pthread libraries when using bleeding-edge automake tools.
 
@@ -2506,7 +2506,7 @@ An additional daemon task named "bptransit" has been added to standard
     - Aggregate custody signals (ACS)
 
 - Feature Request #2: Added support for bundle age extension blocks to help
-  accomodate platforms that may not be able to provide a stable clock. 
+  accomodate platforms that may not be able to provide a stable clock.
   For more information on the bundle age extension, refer to internet draft
       draft-irtf-dtnrg-bundle-age-block-01
 
@@ -2551,7 +2551,7 @@ An additional daemon task named "bptransit" has been added to standard
 
 - Issue #358: Fixed a bug in computing the CFDP inactivity deadline.
   Updated the "cfdprc" man page to expose the parameters for configuring the
-  CFDP inactivity timeout interval. 
+  CFDP inactivity timeout interval.
 
 - Issue #360: Updated the MinGW port of ION to supply definitions for various
   required macros that are no longer supplied by newer versions of MinGW.
@@ -2582,7 +2582,7 @@ An additional daemon task named "bptransit" has been added to standard
   remote, remote to local, and remote to remote transfers in recursive and
   non-recursive modes.
 
-- Issue #353:  Scrubbed various test configurations in the test suite that 
+- Issue #353:  Scrubbed various test configurations in the test suite that
   produced superfluous messages regarding the bundle security database not
   being initialized properly.
 
@@ -2614,7 +2614,7 @@ An additional daemon task named "bptransit" has been added to standard
 
 - Issue #262: ION is now wired with a rudimentary instrumentation framework for
   insight into run-time status, including bundle processing statistics and node
-  state metrics.  This is in preparation for standardized network management. 
+  state metrics.  This is in preparation for standardized network management.
 
 - Issue #302: Implemented red-black trees as an alternative data structure to
   linked lists for some performance-sensitive applications.  Migrated the BP
@@ -2642,7 +2642,7 @@ An additional daemon task named "bptransit" has been added to standard
     - Changed the bpDequeue "stewardship accepted" flag to a custodial timeout
       interval value (in seconds) that is computed by the CL output daemon,
       based on CL-specific knowledge, in the event that the CL protocol is not
-      reliable and therefore can't accept stewardship of the bundle. 
+      reliable and therefore can't accept stewardship of the bundle.
     - Added the same custodial timeout interval value to bpHandleXmitSuccess, to
       trigger reforwarding of the bundle even when stewardship has been taken
       and CL transmission has been nominally successful and reliable, in the
@@ -2652,7 +2652,7 @@ An additional daemon task named "bptransit" has been added to standard
   which the destination endpoint is not a singleton.
 
 - Issue #329: ION now supports sending (rather than just receiving) fragmented
-  bundles.  (NOTE: this entailed several changes to the ZCO API.) 
+  bundles.  (NOTE: this entailed several changes to the ZCO API.)
 
 - Issue #339: Aggregate Custody Signals (ACS) have been added to ION.
     - ACS is a technology that combines information from various separate
@@ -2660,7 +2660,7 @@ An additional daemon task named "bptransit" has been added to standard
       "ack channel" bandwidth.
     - For more information on ACS, see the following document:
         <http://bioserve.colorado.edu/bp-acs/draft-kuzminsky-aggregate-custody-signals-02.txt>
-  
+
 - Issue #342: Changed several invocations of lyst_create() to
   lyst_create_using(), to ensure that ION's private memory management is always
   used.
@@ -2732,12 +2732,12 @@ An additional daemon task named "bptransit" has been added to standard
   to detect and build DCCP for linux kernels that meet or exceed version 3.2.0,
   which puts several key DCCP fixes into the kernel baseline.
 
-- Status reporting support has been added to cfdptest. 
+- Status reporting support has been added to cfdptest.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.5.2 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
- 
+
 - Issue #297: The ION design guide "ION.pdf" now dynamically incorporates the
   ION manpages.
   This feature requires ghostscript, psutils, groff, and groff-base.
@@ -2746,17 +2746,17 @@ An additional daemon task named "bptransit" has been added to standard
   ION.pdf is built automatically via the "make" command.
   To explicitly build the ION design guide document, use the following command:
      make ION.pdf
- 
-- Issue #298+: Fixed build incompatibility between gcc v4.6.1 and later with 
+
+- Issue #298+: Fixed build incompatibility between gcc v4.6.1 and later with
   valgrind v3.6.1 and earlier.  If needed to compile with Valgrind support,
   ION will add -Wno-unused-but-set-variable to AM_CFLAGS.
   Valgrind inclusion can also be explicitly controlled via the following flags:
      ./configure --enable-valgrind:  Build with Valgrind support
      ./configure --disable-valgrind: Build without Valgrind support
- 
+
 - Issue #299: ION now prints a warning when given any BAB rule that is not for a
   wild-carded EID signifying "all endpoints at the indicated node".
- 
+
 - Issue #300: Fixed several bugs in ipnfw:
     - lookupRule() function of libipnfw.c incorrectly used srcServiceNbr
       instead of srcNodeNbr.
@@ -2764,25 +2764,25 @@ An additional daemon task named "bptransit" has been added to standard
       sdr_begin_xn/sdr_exit_xn blocks to protect against assertion failures.
     - Before putting a bundle into the Limbo list, ipnfw now searches for
       blocked outducts and discards the bundle if none are found.
- 
+
 - Issue #301: Fixed issue where Ctl+C no longer terminated the bpsink and
   bprecvfile utilities.
- 
+
 - Issue #303: Fixed issue where new all-green transmission sessions could be
   inhibited by the LTP limit on the total number of export sessions.
   Since LTP green is unreliable, LTP green sessions don't need to occupy
   resources at the sender for retransmissions, so the sessions need not be
   restricted.
- 
+
 - Issue #307: Fixed overflow bugs in the increaseScalar() and reduceScalar()
   functions.
   Added Scalar to SDNV conversion functions.
- 
+
 - Issue #313: Fixed issue with overlapping bundle source/destination memory
   addresses that could cause bundle corruption on 64-bit systems.
 
 - Issue #319: Fixed issue with AMS where the parseSocketSpec() function could
-  return INADDR_ANY, which isn't an acceptable IP address within AMS. 
+  return INADDR_ANY, which isn't an acceptable IP address within AMS.
   Now possible to enable  AMS debug output via the following configure flag:
      ./configure --enable-ams-debug:  Build with AMS debugging output
 
@@ -2832,7 +2832,7 @@ An additional daemon task named "bptransit" has been added to standard
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 2.4.2 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
- 
+
 - Issue #264: Removed checks for maximum block size in LTP, simplifying LTP
   configuration and fixing a bug.
   Related to the fix for issue #293, upgrading the LTP configuration worksheet.
@@ -2877,7 +2877,7 @@ An additional daemon task named "bptransit" has been added to standard
   parameterized to enable better support for deployment-specific variations
   of the algorithm.
 
-- ION now has native Windows support via MingW.  
+- ION now has native Windows support via MingW.
   Support for Cygwin and Interix has been removed.
 
 - Added support for inactivity timer in CFDP.
@@ -2898,7 +2898,7 @@ An additional daemon task named "bptransit" has been added to standard
 = NOTES ON RELEASE 2.4.1 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-- *Issue #240: Added DCCP link service adapters to ION for the purpose of 
+- *Issue #240: Added DCCP link service adapters to ION for the purpose of
   providing congestion control without reliability guarantees, which is
   beneficial for LTP deployments over IP networks, particularly when traversing
   the Internet. The sender program is called "dccplso" and the receiver program

@@ -115,4 +115,3 @@ Affected code:
 - bpv7/library/libbpP.c (bpStartPlan, resetPlan, startPlan)
 - bpv7/daemon/bpclm.c (semaphore wait loop)
 - ltp/library/libltpP.c (ltpStartSpan, resetSpan, startSpan)
-

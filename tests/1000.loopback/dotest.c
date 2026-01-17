@@ -30,7 +30,7 @@ int main(int argc, char **argv)
 	sleep(15);
 
 	/* Start ION */
-	ionstart_default_config("loopback-ltp/loopback.ionrc", 
+	ionstart_default_config("loopback-ltp/loopback.ionrc",
 			"loopback-ltp/loopback.ionsecrc",
 			"loopback-ltp/loopback.ltprc",
 			"loopback-ltp/loopback.bprc",
@@ -64,7 +64,7 @@ int main(int argc, char **argv)
 	rxContentLength = zco_source_data_length(sdr, rxDlv.adu);
 	fail_unless(rxContentLength == sizeof(testLine) - 1);
 	zco_start_receiving(rxDlv.adu, &rxReader);
-	rxLen = zco_receive_source(sdr, &rxReader, rxContentLength, 
+	rxLen = zco_receive_source(sdr, &rxReader, rxContentLength,
 		rxContent);
 	fail_unless(rxLen == rxContentLength);
 	fail_unless(sdr_end_xn(sdr) >= 0);

@@ -8,7 +8,7 @@
 //TODO: update documentation
 /*****************************************************************************
  ** \file bpsec_util.c
- ** 
+ **
  ** File Name: bpsec_util.c (originally extbsputil.c)
  **
  **
@@ -49,8 +49,8 @@
  **         block.  While less efficient, this provides easy maintainability.
  **         As such, we assume that the time and space necessary to use the
  **         scratchpad in this way does not exceed available margin.
- **      
- **      3. We assume that the extensions interface never passes us a NULL 
+ **
+ **      3. We assume that the extensions interface never passes us a NULL
  **         value.
  **
  ** Modification History:
@@ -84,7 +84,7 @@
  *****************************************************************************/
 
 /** \var gMsg
- * Global variable used to hold a constructed error message. NOT RE-ENTRANT! 
+ * Global variable used to hold a constructed error message. NOT RE-ENTRANT!
  * This is accessed by the BPSEC_DEBUG macros.
  */
 char	gMsg[GMSG_BUFLEN];
@@ -130,22 +130,21 @@ int bpsec_util_EIDCopy(EndpointId *toEID, EndpointId *fromEID)
 
 int bpsec_util_eidIsLocalCheck(EndpointId eid)
 {
-    VScheme     *vscheme;
-    VEndpoint   *vpoint;
-    int     result = 0;
+	VScheme	  *vscheme;
+	VEndpoint *vpoint;
+	int	   result = 0;
 
-    lookUpEidScheme(&(eid), &vscheme);
-    if (vscheme)    /*  EID scheme is known on this node.   */
-    {
-        lookUpEndpoint(&(eid), vscheme, &vpoint);
-        if (vpoint) /*  Node is registered in endpoint. */
-        {
-            result = 1;
-        }
-    }
+	lookUpEidScheme(&(eid), &vscheme);
+	if (vscheme)	    /*  EID scheme is known on this node.   */
+	{
+		lookUpEndpoint(&(eid), vscheme, &vpoint);
+		if (vpoint) /*  Node is registered in endpoint. */
+		{
+			result = 1;
+		}
+	}
 
-    return result;
-
+	return result;
 }
 
 /******************************************************************************
@@ -171,8 +170,8 @@ int bpsec_util_eidIsLocalCheck(EndpointId eid)
 
 int	bpsec_util_destIsLocalCheck(Bundle *bundle)
 {
-    CHKZERO(bundle);
-    return bpsec_util_eidIsLocalCheck(bundle->destination);
+	CHKZERO(bundle);
+	return bpsec_util_eidIsLocalCheck(bundle->destination);
 }
 
 /******************************************************************************
@@ -217,7 +216,7 @@ char	*bpsec_util_localAdminEIDGet(char *peerEid)
 	}
 
 	clearMetaEid(&metaEid);
-   	return vscheme->adminEid;
+	return vscheme->adminEid;
 }
 
 /******************************************************************************
@@ -266,13 +265,13 @@ int	bpsec_util_zcoFileSourceTransferTo(Sdr sdr, ZcoAcct acct,
 	CHKERR(bytes);
 
 	BPSEC_DEBUG_PROC("+bpsec_util_zcoFileSourceTransferTo(sdr, 0x"
-			         ADDR_FIELDSPEC ", 0x"
-			         ADDR_FIELDSPEC ", 0x"
-				 ADDR_FIELDSPEC ", 0x"
-				 ADDR_FIELDSPEC ","
-				 UVAST_FIELDSPEC ")",
-			         (uaddr) resultZco, (uaddr) acqFileRef,
-				 (uaddr) fname, (uaddr) bytes, length);
+				ADDR_FIELDSPEC ", 0x"
+				ADDR_FIELDSPEC ", 0x"
+				ADDR_FIELDSPEC ", 0x"
+				ADDR_FIELDSPEC ","
+				UVAST_FIELDSPEC ")",
+				(uaddr) resultZco, (uaddr) acqFileRef,
+				(uaddr) fname, (uaddr) bytes, length);
 
 	/* Step 1: If we don't have a ZCO, we need to make one. */
 	if (*resultZco == 0)     /*      First extent of acquisition.    */
@@ -403,7 +402,7 @@ to acq file %s.", fileName);
 
 	CHKERR(sdr_begin_xn(sdr));
 	switch (zco_append_extent(sdr, *resultZco, ZcoFileSource, *acqFileRef,
-		      fileLength, length))
+			fileLength, length))
 	{
 	case ERROR:
 		BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: Can't append \
@@ -464,41 +463,41 @@ destroy ZCO file reference.", NULL);
 
 unsigned char *bpsec_util_primaryBlkSerialize(Bundle *bundle, int *length)
 {
-    unsigned char dstEid[300];
-    int           dstEidLength;
-    unsigned char srcEid[300];
-    int           srcEidLength;
-    unsigned char rptToEid[300];
-    int           rptToEidLength;
-    int           maxBlockLength;
-    unsigned char *buffer = NULL;
-    unsigned char *cursor = NULL;
+	unsigned char dstEid[300];
+	int           dstEidLength;
+	unsigned char srcEid[300];
+	int           srcEidLength;
+	unsigned char rptToEid[300];
+	int           rptToEidLength;
+	int           maxBlockLength;
+	unsigned char *buffer = NULL;
+	unsigned char *cursor = NULL;
 
-    CHKNULL(bundle);
-    CHKNULL(length);
+	CHKNULL(bundle);
+	CHKNULL(length);
 
-    *length = 0;
+	*length = 0;
 
-    /*  Can now compute max primary block length: EID lengths
-     *  plus 50 for remainder of primary block.         */
+	/*  Can now compute max primary block length: EID lengths
+	 *  plus 50 for remainder of primary block.         */
 
-    CHKNULL((dstEidLength = serializeEid(&(bundle->destination), dstEid))   > 0);
-    CHKNULL((srcEidLength = serializeEid(&(bundle->id.source),   srcEid))   > 0);
-    CHKNULL((rptToEidLength = serializeEid(&(bundle->reportTo),  rptToEid)) > 0);
+	CHKNULL((dstEidLength = serializeEid(&(bundle->destination), dstEid))   > 0);
+	CHKNULL((srcEidLength = serializeEid(&(bundle->id.source),   srcEid))   > 0);
+	CHKNULL((rptToEidLength = serializeEid(&(bundle->reportTo),  rptToEid)) > 0);
 
-    maxBlockLength = dstEidLength + srcEidLength + rptToEidLength + 50;
+	maxBlockLength = dstEidLength + srcEidLength + rptToEidLength + 50;
 
-    if((buffer = MTAKE(maxBlockLength)) == NULL)
-    {
-        BPSEC_DEBUG_ERR("Can't allocate %d bytes.", maxBlockLength);
-        return NULL;
-    }
+	if((buffer = MTAKE(maxBlockLength)) == NULL)
+	{
+		BPSEC_DEBUG_ERR("Can't allocate %d bytes.", maxBlockLength);
+		return NULL;
+	}
 
-    cursor = buffer;
-    serializePrimaryBlock(bundle, &cursor, dstEid, dstEidLength, srcEid, srcEidLength,  rptToEid, rptToEidLength);
+	cursor = buffer;
+	serializePrimaryBlock(bundle, &cursor, dstEid, dstEidLength, srcEid, srcEidLength,  rptToEid, rptToEidLength);
 
-    *length = (cursor - buffer);
-    return buffer;
+	*length = (cursor - buffer);
+	return buffer;
 }
 
 static int	canonicalizePrimaryBlock(Bundle *bundle, Object *zcoOut)
@@ -515,8 +514,8 @@ static int	canonicalizePrimaryBlock(Bundle *bundle, Object *zcoOut)
 
 	if((buffer = bpsec_util_primaryBlkSerialize(bundle, &blkLength)) == NULL)
 	{
-        putErrmsg("Can't serialize primary block.", NULL);
-        return -1;
+		putErrmsg("Can't serialize primary block.", NULL);
+		return -1;
 	}
 
 	blkBytes = sdr_malloc(sdr, blkLength);
@@ -681,28 +680,28 @@ static int	canonicalizeExtensionBlock(Bundle *bundle, uint8_t blkNbr,
 //	NOTE: this function is not used anywhere.  SB 1 June 2024
 int bpsec_util_acqBlkDataAsZco(AcqExtBlock *blk, Object *zco)
 {
-    Sdr    sdr = getIonsdr();
-    Object bytesObj = 0;
-    int    offset = 0;
+	Sdr    sdr = getIonsdr();
+	Object bytesObj = 0;
+	int    offset = 0;
 
-    CHKERR(blk);
-    CHKERR(zco);
+	CHKERR(blk);
+	CHKERR(zco);
 
-    offset = blk->length - blk->dataLength;
+	offset = blk->length - blk->dataLength;
 
-    bytesObj = sdr_malloc(sdr, blk->dataLength);
+	bytesObj = sdr_malloc(sdr, blk->dataLength);
 
-    CHKERR(bytesObj);
-    sdr_write(sdr, bytesObj, (char *) (blk->bytes + offset), blk->dataLength);
+	CHKERR(bytesObj);
+	sdr_write(sdr, bytesObj, (char *) (blk->bytes + offset), blk->dataLength);
 
-    if((*zco = zco_create(sdr, ZcoSdrSource, bytesObj, 0, 0 - blk->dataLength,  ZcoInbound)) <= 0)
-    {
-        BPSEC_DEBUG_ERR("Cannot make ZCO out of block data.", NULL);
-        sdr_free(sdr, bytesObj);
-        return ERROR;
-    }
+	if((*zco = zco_create(sdr, ZcoSdrSource, bytesObj, 0, 0 - blk->dataLength,  ZcoInbound)) <= 0)
+	{
+		BPSEC_DEBUG_ERR("Cannot make ZCO out of block data.", NULL);
+		sdr_free(sdr, bytesObj);
+		return ERROR;
+	}
 
-    return blk->dataLength;
+	return blk->dataLength;
 }
 
 // TODO Document function
@@ -919,56 +918,56 @@ int	bpsec_util_canonicalizeIn(AcqWorkArea *work, uint8_t blkNbr, Object *zcoOut)
  *****************************************************************************/
 Object bspsec_util_findOutboundBpsecTargetBlock(Bundle *bundle, int tgtBlkNum, BpBlockType sopType)
 {
-    /* Step 0: Sanity checks. */
-    CHKERR(bundle);
-    CHKERR(tgtBlkNum);
-    CHKERR(sopType);
+	/* Step 0: Sanity checks. */
+	CHKERR(bundle);
+	CHKERR(tgtBlkNum);
+	CHKERR(sopType);
 
-    Sdr                 sdr = getIonsdr();
-    Object              elt;
-    Object              blockObj;
-    ExtensionBlock      block;
-    BpsecOutboundASB    asb;
-    Object              elt2;
-    Object              targetObj;
-    BpsecOutboundTargetResult   target;
+	Sdr                 sdr = getIonsdr();
+	Object              elt;
+	Object              blockObj;
+	ExtensionBlock      block;
+	BpsecOutboundASB    asb;
+	Object              elt2;
+	Object              targetObj;
+	BpsecOutboundTargetResult   target;
 
-    /*
-     * Step 1: Check each extension block in the bundle, looking for a
-     * bpsec block whose type (BIB or BCB) matches the provided sopType.
-     */
-    for (elt = sdr_list_first(sdr, bundle->extensions); elt;
-            elt = sdr_list_next(sdr, elt))
-    {
-        blockObj = sdr_list_data(sdr, elt);
-        sdr_read(sdr, (char *) &block, blockObj,
-                sizeof(ExtensionBlock));
-        if (block.type != sopType)
-        {
-            continue;
-        }
+	/*
+	 * Step 1: Check each extension block in the bundle, looking for a
+	 * bpsec block whose type (BIB or BCB) matches the provided sopType.
+	 */
+	for (elt = sdr_list_first(sdr, bundle->extensions); elt;
+		elt = sdr_list_next(sdr, elt))
+	{
+		blockObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &block, blockObj,
+			sizeof(ExtensionBlock));
+		if (block.type != sopType)
+		{
+			continue;
+		}
 
-        sdr_read(sdr, (char *) &asb, block.object,
-                sizeof(BpsecOutboundASB));
+		sdr_read(sdr, (char *) &asb, block.object,
+		sizeof(BpsecOutboundASB));
 
-        /*
-         * Step 2: Check the targets of the bpsec block, looking for a
-         * match to the tgtBlkNum provided.
-         */
-        for (elt2 = sdr_list_first(sdr, asb.scResults); elt2;
-                elt2 = sdr_list_next(sdr, elt2))
-        {
-            targetObj = sdr_list_data(sdr, elt2);
-            sdr_read(sdr, (char *) &target, targetObj,
-                    sizeof(BpsecOutboundTargetResult));
-            if (tgtBlkNum >= 0 && target.scTargetId == (uvast)tgtBlkNum)
-            {
-                return elt; /* bpsec block with target found */
-            }
-        }
-    }
+		/*
+		 * Step 2: Check the targets of the bpsec block, looking for a
+		 * match to the tgtBlkNum provided.
+		 */
+		for (elt2 = sdr_list_first(sdr, asb.scResults); elt2;
+			elt2 = sdr_list_next(sdr, elt2))
+		{
+			targetObj = sdr_list_data(sdr, elt2);
+			sdr_read(sdr, (char *) &target, targetObj,
+				sizeof(BpsecOutboundTargetResult));
+			if (tgtBlkNum >= 0 && target.scTargetId == (uvast)tgtBlkNum)
+			{
+				return elt; /* bpsec block with target found */
+			}
+		}
+	}
 
-    return 0;   /* bpsec block with specified target not found */
+	return 0;   /* bpsec block with specified target not found */
 }
 
 // TODO Document function
@@ -979,25 +978,25 @@ Object bspsec_util_findOutboundBpsecTargetBlock(Bundle *bundle, int tgtBlkNum, B
  */
 int bpsec_util_checkSop(BpBlockType target, BpBlockType sec)
 {
-    /* No one can ever target a BCB. */
-    if(target == BlockConfidentialityBlk)
-    {
-        return 0;
-    }
+	/* No one can ever target a BCB. */
+	if (target == BlockConfidentialityBlk)
+	{
+		return 0;
+	}
 
-    /* Cannot encrypt primary block. */
-    if((sec == BlockConfidentialityBlk) && (target == PrimaryBlk))
-    {
-        return 0;
-    }
+	/* Cannot encrypt primary block. */
+	if ((sec == BlockConfidentialityBlk) && (target == PrimaryBlk))
+	{
+		return 0;
+	}
 
-    /* Security blocks cannot target their own types. */
-    else if(sec == target)
-    {
-        return 0;
-    }
+	/* Security blocks cannot target their own types. */
+	else if (sec == target)
+	{
+		return 0;
+	}
 
-    return 1;
+	return 1;
 }
 
 /******************************************************************************
@@ -1024,57 +1023,57 @@ int bpsec_util_checkSop(BpBlockType target, BpBlockType sec)
 
 Object bpsec_util_OutboundBlockCreate(Bundle *bundle, BpBlockType type, sc_Def *def, PsmAddress parms)
 {
-    Sdr sdr = getIonsdr();
-    PsmPartition wm = getIonwm();
-    ExtensionBlock blk;
-    BpsecOutboundASB asb;
-    Object result = 0;
+	Sdr sdr = getIonsdr();
+	PsmPartition wm = getIonwm();
+	ExtensionBlock blk;
+	BpsecOutboundASB asb;
+	Object result = 0;
 
 
-    BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC",%d,"ADDR_FIELDSPEC",%d",
-                     (uaddr) bundle, type, (uaddr)def, parms);
+	BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC",%d,"ADDR_FIELDSPEC",%d",
+			(uaddr) bundle, type, (uaddr)def, parms);
 
-    /* Step 0: Sanity Checks. */
-    CHKZERO(bundle);
-    CHKZERO(def);
+	/* Step 0: Sanity Checks. */
+	CHKZERO(bundle);
+	CHKZERO(def);
 
-    /* Step 1: Initialize the extension block. . */
-    memset((char*) &blk, 0, sizeof(ExtensionBlock));
-    blk.type = type;
-    blk.tag = 0;
-    blk.crcType = NoCRC;
-    blk.size = sizeof(BpsecOutboundASB);
-    if ((blk.object = sdr_malloc(sdr, blk.size)) == 0)
-    {
-        BPSEC_DEBUG_ERR("Cannot SDR allocate %d bytes", blk.size);
-        return 0;
-    }
+	/* Step 1: Initialize the extension block. . */
+	memset((char*) &blk, 0, sizeof(ExtensionBlock));
+	blk.type = type;
+	blk.tag = 0;
+	blk.crcType = NoCRC;
+	blk.size = sizeof(BpsecOutboundASB);
+	if ((blk.object = sdr_malloc(sdr, blk.size)) == 0)
+	{
+		BPSEC_DEBUG_ERR("Cannot SDR allocate %d bytes", blk.size);
+		return 0;
+	}
 
-    /*
-     * Step 2: Initialize the ASB comprising the block-type-specific
-     *         portion of the extension block.
-     */
-    if(def->scInitOutboundASB(def, bundle, &asb, sdr, wm, parms) < 1)
-    {
-        BPSEC_DEBUG_ERR("Failed to initialize BIB ASB.", NULL);
-        bpsec_asb_outboundAsbDelete(sdr, &asb);
-        sdr_free(sdr, blk.object);
-        return 0;
-    }
+	/*
+	 * Step 2: Initialize the ASB comprising the block-type-specific
+	 *         portion of the extension block.
+	 */
+	if(def->scInitOutboundASB(def, bundle, &asb, sdr, wm, parms) < 1)
+	{
+		BPSEC_DEBUG_ERR("Failed to initialize BIB ASB.", NULL);
+		bpsec_asb_outboundAsbDelete(sdr, &asb);
+		sdr_free(sdr, blk.object);
+		return 0;
+	}
 
-    /* Step 3: Write the block to the SDR. */
-    sdr_write(sdr, blk.object, (char* ) &asb, blk.size);
+	/* Step 3: Write the block to the SDR. */
+	sdr_write(sdr, blk.object, (char* ) &asb, blk.size);
 
-    /* Step 4: Attach the block to the list of blocks for the given bundle. */
-    if((result = attachExtensionBlock(type, &blk, bundle)) == 0)
-    {
-    	BPSEC_DEBUG_ERR("Cannot SDR allocate %d bytes", blk.size);
-        sdr_free(sdr, blk.object);
-        bpsec_asb_outboundAsbDelete(sdr, &asb);
-    }
+	/* Step 4: Attach the block to the list of blocks for the given bundle. */
+	if((result = attachExtensionBlock(type, &blk, bundle)) == 0)
+	{
+		BPSEC_DEBUG_ERR("Cannot SDR allocate %d bytes", blk.size);
+		sdr_free(sdr, blk.object);
+		bpsec_asb_outboundAsbDelete(sdr, &asb);
+	}
 
 
-    return result;
+	return result;
 }
 
 
@@ -1101,121 +1100,121 @@ Object bpsec_util_OutboundBlockCreate(Bundle *bundle, BpBlockType type, sc_Def *
  *****************************************************************************/
 int bpsec_util_generateSecurityResults(Bundle *bundle, char *fromEid, ExtensionBlock *secBlk, BpsecOutboundASB *secAsb, sc_action action)
 {
-    Sdr sdr = getIonsdr();
-    int8_t result = 1;
+	Sdr sdr = getIonsdr();
+	int8_t result = 1;
 
 
-    Object elt = 0;
-    Object targetObj = 0;
-    BpsecOutboundTargetResult tgtResult;
-    sc_Def def;
-    sc_state state;
-    PsmPartition wm = getIonwm();
+	Object elt = 0;
+	Object targetObj = 0;
+	BpsecOutboundTargetResult tgtResult;
+	sc_Def def;
+	sc_state state;
+	PsmPartition wm = getIonwm();
 
-    LystElt sopResultElt = NULL;
-    sc_value *sopResult = NULL;
+	LystElt sopResultElt = NULL;
+	sc_value *sopResult = NULL;
 
-    int numTgts = 0;
+	int numTgts = 0;
 
-    BPSEC_DEBUG_PROC("(" ADDR_FIELDSPEC "," ADDR_FIELDSPEC "," ADDR_FIELDSPEC ")",
-                     (uaddr ) bundle, (uaddr ) secBlk, (uaddr ) secAsb);
+	BPSEC_DEBUG_PROC("(" ADDR_FIELDSPEC "," ADDR_FIELDSPEC "," ADDR_FIELDSPEC ")",
+			(uaddr ) bundle, (uaddr ) secBlk, (uaddr ) secAsb);
 
-    /* Step 0 - Sanity checks. */
-    CHKERR(bundle);
-    CHKERR(secBlk);
-    CHKERR(secAsb);
-    CHKERR(fromEid);
-
-
-    /*
-     * Step 1: Make sure there are security targets associated with this security
-     *         block. The actual results should be empty, but the target block ID
-     *         for each needs to be populated.
-     *
-     *         If this list is empty, it is not necessarily a processing error
-     *         but maybe a misconfiguration?
-     *
-     *         TODO: Sarah Heiner - is this something that requires a sop_event?
-     *
-     */
-    if ((numTgts = sdr_list_length(sdr, secAsb->scResults)) == 0)
-    {
-        result = 0;
-        BPSEC_DEBUG_WARN("BIB block %d has no targets", secBlk->number);
-        scratchExtensionBlock(secBlk);
-        BPSEC_DEBUG_PROC("--> %d", result);
-        return result;
-    }
-
-    BPSEC_DEBUG_INFO("Block has %d targets.", numTgts);
-    /*
-     * Step 2 - Grab the security context that will generate the results for
-     *          the security operations for this BIB block.
-     */
-    if(bpsec_sci_defFind(secAsb->scId, &def) < 1)
-    {
-        BPSEC_DEBUG_ERR("SCI %d not supported.", secAsb->scId);
-        result = -1;
-        bundle->corrupt = 1;
-        scratchExtensionBlock(secBlk);
-        BPSEC_DEBUG_PROC("--> %d", result);
-        return result;
-    }
-
-    /*
-     * Step 3 - Initialize the security context state. We will be using
-     *          it to process every security operation in the bundle.
-     */
-    Lyst blkParms = bpsec_scv_sdrListRead(sdr, secAsb->scParms);
-    Lyst extraParms = lyst_create_using(getIonMemoryMgr()); // TODO what if this call fails?
-
-    lyst_delete_set(extraParms, bpsec_scv_lystCbDel, NULL);
-
-    def.scStateInit(wm, &state, secBlk->number, &def, SC_ROLE_SOURCE, action, secAsb->scSource, 0, blkParms, numTgts);
+	/* Step 0 - Sanity checks. */
+	CHKERR(bundle);
+	CHKERR(secBlk);
+	CHKERR(secAsb);
+	CHKERR(fromEid);
 
 
-    /* Step 4 - For each target in the security block... */
-    for(elt = sdr_list_first(sdr, secAsb->scResults); elt; elt = sdr_list_next(sdr, elt))
-    {
-        /* Step 4.1 - extract the target ID */
+	/*
+	 * Step 1: Make sure there are security targets associated with this security
+	 *         block. The actual results should be empty, but the target block ID
+	 *         for each needs to be populated.
+	 *
+	 *         If this list is empty, it is not necessarily a processing error
+	 *         but maybe a misconfiguration?
+	 *
+	 *         TODO: Sarah Heiner - is this something that requires a sop_event?
+	 *
+	 */
+	if ((numTgts = sdr_list_length(sdr, secAsb->scResults)) == 0)
+	{
+		result = 0;
+		BPSEC_DEBUG_WARN("BIB block %d has no targets", secBlk->number);
+		scratchExtensionBlock(secBlk);
+		BPSEC_DEBUG_PROC("--> %d", result);
+		return result;
+	}
 
-        // TODO - check return codes.
-        targetObj = sdr_list_data(sdr, elt);
-        sdr_read(sdr, (char *) &tgtResult, targetObj, sizeof(BpsecOutboundTargetResult));
+	BPSEC_DEBUG_INFO("Block has %d targets.", numTgts);
+	/*
+	 * Step 2 - Grab the security context that will generate the results for
+	 *          the security operations for this BIB block.
+	 */
+	if(bpsec_sci_defFind(secAsb->scId, &def) < 1)
+	{
+		BPSEC_DEBUG_ERR("SCI %d not supported.", secAsb->scId);
+		result = -1;
+		bundle->corrupt = 1;
+		scratchExtensionBlock(secBlk);
+		BPSEC_DEBUG_PROC("--> %d", result);
+		return result;
+	}
 
-        /* Step 4.2 - Calculate the security result. */
-        // TODO - check return codes.
+	/*
+	 * Step 3 - Initialize the security context state. We will be using
+	 *          it to process every security operation in the bundle.
+	 */
+	Lyst blkParms = bpsec_scv_sdrListRead(sdr, secAsb->scParms);
+	Lyst extraParms = lyst_create_using(getIonMemoryMgr()); // TODO what if this call fails?
 
-        if(def.scProcOutBlk(&state, extraParms, bundle, secAsb, &tgtResult) < 1)
-        {
-        	BPSEC_DEBUG_ERR("Failed processing target number %d", tgtResult.scTargetId);
-        	result = 0;
-        }
+	lyst_delete_set(extraParms, bpsec_scv_lystCbDel, NULL);
+
+	def.scStateInit(wm, &state, secBlk->number, &def, SC_ROLE_SOURCE, action, secAsb->scSource, 0, blkParms, numTgts);
 
 
-        /* Step 4.3 - Write the result back to the SDR. */
-        for(sopResultElt = lyst_first(state.scStResults); sopResultElt; sopResultElt = lyst_next(sopResultElt))
-        {
-            sopResult = lyst_data(sopResultElt);
-            bpsec_scv_memSdrListAppend(sdr, tgtResult.scIndTargetResults, sopResult);
-        }
+	/* Step 4 - For each target in the security block... */
+	for(elt = sdr_list_first(sdr, secAsb->scResults); elt; elt = sdr_list_next(sdr, elt))
+	{
+		/* Step 4.1 - extract the target ID */
 
-        if(def.scStateIncr(&state) < 1)
-        {
-            BPSEC_DEBUG_ERR("Unable to advance SC state.", NULL);
-            // TODO: Panic.
-        }
-    }
+		// TODO - check return codes.
+		targetObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &tgtResult, targetObj, sizeof(BpsecOutboundTargetResult));
 
-    bpsec_scv_memListRecord(sdr, secAsb->scParms, extraParms);
+		/* Step 4.2 - Calculate the security result. */
+		// TODO - check return codes.
 
-    /* Step 5: Clean up any remaining state. */
-    def.scStateClear(&state);
-    lyst_destroy(blkParms);
-    lyst_destroy(extraParms);
+		if(def.scProcOutBlk(&state, extraParms, bundle, secAsb, &tgtResult) < 1)
+		{
+			BPSEC_DEBUG_ERR("Failed processing target number %d", tgtResult.scTargetId);
+			result = 0;
+		}
 
-    BPSEC_DEBUG_PROC("--> %d", result);
-    return result;
+
+		/* Step 4.3 - Write the result back to the SDR. */
+		for(sopResultElt = lyst_first(state.scStResults); sopResultElt; sopResultElt = lyst_next(sopResultElt))
+		{
+			sopResult = lyst_data(sopResultElt);
+			bpsec_scv_memSdrListAppend(sdr, tgtResult.scIndTargetResults, sopResult);
+		}
+
+		if(def.scStateIncr(&state) < 1)
+		{
+			BPSEC_DEBUG_ERR("Unable to advance SC state.", NULL);
+			// TODO: Panic.
+		}
+	}
+
+	bpsec_scv_memListRecord(sdr, secAsb->scParms, extraParms);
+
+	/* Step 5: Clean up any remaining state. */
+	def.scStateClear(&state);
+	lyst_destroy(blkParms);
+	lyst_destroy(extraParms);
+
+	BPSEC_DEBUG_PROC("--> %d", result);
+	return result;
 }
 
 
@@ -1264,140 +1263,140 @@ int bpsec_util_generateSecurityResults(Bundle *bundle, char *fromEid, ExtensionB
 int bpsec_util_checkOutboundSopTarget(Bundle *bundle, sc_Def *def, PsmPartition wm, PsmAddress parms,
                                       BpBlockType sopType, int tgtBlkNum, Object *bibBlk, Object *secBlk)
 {
-    Sdr                 sdr = getIonsdr();
-    Object              elt;
-    Object              blockObj;
-    ExtensionBlock      block;
-    BpsecOutboundASB    asb;
-    Object              elt2;
-    Object              targetObj;
-    BpsecOutboundTargetResult   target;
+	Sdr                 sdr = getIonsdr();
+	Object              elt;
+	Object              blockObj;
+	ExtensionBlock      block;
+	BpsecOutboundASB    asb;
+	Object              elt2;
+	Object              targetObj;
+	BpsecOutboundTargetResult   target;
 
-    int targetFound = 0;
+	int targetFound = 0;
 
-    BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC","ADDR_FIELDSPEC",wm,%d,%d,%d,"ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
-                     (uaddr) bundle, (uaddr) def, parms, sopType, tgtBlkNum, (uaddr)bibBlk, (uaddr) secBlk);
+	BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC","ADDR_FIELDSPEC",wm,%d,%d,%d,"ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
+			(uaddr) bundle, (uaddr) def, parms, sopType, tgtBlkNum, (uaddr)bibBlk, (uaddr) secBlk);
 
-    /* Step 0: Sanity checks. */
-    CHKERR(bundle);
-    CHKERR(def);
+	/* Step 0: Sanity checks. */
+	CHKERR(bundle);
+	CHKERR(def);
 
-    /*
-     * Step 1: If the tgtBlockNum is not an extension block, then we
-     *         need to do a quick sop check before looping through
-     *         extension blocks.
-     */
-    if((tgtBlkNum == PrimaryBlk) || (tgtBlkNum == PayloadBlk))
-    {
-        if(bpsec_util_checkSop(tgtBlkNum, sopType) < 1)
-        {
-            BPSEC_DEBUG_ERR("Security block type %d cannot target a block of type %d.", sopType, tgtBlkNum);
-            return 0;
-        }
-        targetFound = 1;
-    }
+	/*
+	 * Step 1: If the tgtBlockNum is not an extension block, then we
+	 *         need to do a quick sop check before looping through
+	 *         extension blocks.
+	 */
+	if((tgtBlkNum == PrimaryBlk) || (tgtBlkNum == PayloadBlk))
+	{
+		if(bpsec_util_checkSop(tgtBlkNum, sopType) < 1)
+		{
+			BPSEC_DEBUG_ERR("Security block type %d cannot target a block of type %d.", sopType, tgtBlkNum);
+			return 0;
+		}
+		targetFound = 1;
+	}
 
-    /* Step 2: Loop through known extension blocks in the bundle. */
-    for (elt = sdr_list_first(sdr, bundle->extensions); elt; elt = sdr_list_next(sdr, elt))
-    {
-        /* Step 2.1: Read the block from the SDR. */
-        blockObj = sdr_list_data(sdr, elt);
-        sdr_read(sdr, (char *) &block, blockObj, sizeof(ExtensionBlock));
+	/* Step 2: Loop through known extension blocks in the bundle. */
+	for (elt = sdr_list_first(sdr, bundle->extensions); elt; elt = sdr_list_next(sdr, elt))
+	{
+		/* Step 2.1: Read the block from the SDR. */
+		blockObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &block, blockObj, sizeof(ExtensionBlock));
 
-        BPSEC_DEBUG_INFO("Checking block type %d.", block.type);
+		BPSEC_DEBUG_INFO("Checking block type %d.", block.type);
 
-        /*
-         * Step 2.2: If this block is the target block, note that the target block
-         *           exists in this bundle.
-         */
-        if(block.number == tgtBlkNum)
-        {
-            targetFound = 1;
-            if(bpsec_util_checkSop(block.type, sopType) < 1)
-            {
-                BPSEC_DEBUG_ERR("Security block type %d cannot target a block of type %d.", sopType, block.type);
-                return 0;
-            }
-        }
+		/*
+		 * Step 2.2: If this block is the target block, note that the target block
+		 *           exists in this bundle.
+		 */
+		if(block.number == tgtBlkNum)
+		{
+			targetFound = 1;
+			if(bpsec_util_checkSop(block.type, sopType) < 1)
+			{
+				BPSEC_DEBUG_ERR("Security block type %d cannot target a block of type %d.", sopType, block.type);
+				return 0;
+			}
+		}
 
-        /* Step 2.3: Skip non security blocks. */
-        if ((block.type != BlockIntegrityBlk) &&
-           (block.type != BlockConfidentialityBlk))
-        {
-            continue;   /*  Not a BPSec block.  */
-        }
+		/* Step 2.3: Skip non security blocks. */
+		if ((block.type != BlockIntegrityBlk) &&
+			(block.type != BlockConfidentialityBlk))
+		{
+			continue;   /*  Not a BPSec block.  */
+		}
 
 
-        /*
-         * Step 2.4: This is a security block! We need to check a few things:
-         *           1. Does this security block have our target block as a target?
-         *              1a. If it is a BIB and sopType is a BCB, that's OK.
-         *              1b. In any other case, it isn't OK.
-         *           2. Can we use this security block to hold the target?
-         */
+		/*
+		 * Step 2.4: This is a security block! We need to check a few things:
+		 *           1. Does this security block have our target block as a target?
+		 *              1a. If it is a BIB and sopType is a BCB, that's OK.
+		 *              1b. In any other case, it isn't OK.
+		 *           2. Can we use this security block to hold the target?
+		 */
 
-        sdr_read(sdr, (char *) &asb, block.object, sizeof(BpsecOutboundASB));
+		sdr_read(sdr, (char *) &asb, block.object, sizeof(BpsecOutboundASB));
 
-        BPSEC_DEBUG_INFO("Security block has %d results.", sdr_list_length(sdr, asb.scResults));
+		BPSEC_DEBUG_INFO("Security block has %d results.", sdr_list_length(sdr, asb.scResults));
 
-        /*
-         * Step 2.5: Check the targets of this security block to be sure that we
-         *           don't have any disallowed re-targeting of our tgtBlkNum.
-         */
-        for (elt2 = sdr_list_first(sdr, asb.scResults); elt2; elt2 = sdr_list_next(sdr, elt2))
-        {
+		/*
+		 * Step 2.5: Check the targets of this security block to be sure that we
+		 *           don't have any disallowed re-targeting of our tgtBlkNum.
+		 */
+		for (elt2 = sdr_list_first(sdr, asb.scResults); elt2; elt2 = sdr_list_next(sdr, elt2))
+		{
 
-            targetObj = sdr_list_data(sdr, elt2);
-            sdr_read(sdr, (char *) &target, targetObj, sizeof(BpsecOutboundTargetResult));
+			targetObj = sdr_list_data(sdr, elt2);
+			sdr_read(sdr, (char *) &target, targetObj, sizeof(BpsecOutboundTargetResult));
 
-            BPSEC_DEBUG_INFO("Security result target is %d.", target.scTargetId);
+			BPSEC_DEBUG_INFO("Security result target is %d.", target.scTargetId);
 
-            /*
-             * Step 2.5.1 - Our target is also the target of this security block.
-             *              This is ONLY ok if the current block is a BIB and we
-             *              are applying a BCB. Otherwise, this is a problem.
-             */
-            if (tgtBlkNum >= 0 && target.scTargetId == (uvast)tgtBlkNum)
-            {
-                if((sopType == BlockConfidentialityBlk) && (block.type == BlockIntegrityBlk))
-                {
-                    if(bibBlk)
-                    {
-                        *bibBlk = blockObj;
-                    }
-                    else
-                    {
-                        BPSEC_DEBUG_ERR("BIB on BCB target %d but no bibBlk?.", tgtBlkNum);
-                        return -1;
-                    }
-                }
-                else
-                {
-                    return 0;
-                }
-            }
-        }
+			/*
+			 * Step 2.5.1 - Our target is also the target of this security block.
+			 *              This is ONLY ok if the current block is a BIB and we
+			 *              are applying a BCB. Otherwise, this is a problem.
+			 */
+			if (tgtBlkNum >= 0 && target.scTargetId == (uvast)tgtBlkNum)
+			{
+				if((sopType == BlockConfidentialityBlk) && (block.type == BlockIntegrityBlk))
+				{
+					if(bibBlk)
+					{
+						*bibBlk = blockObj;
+					}
+					else
+					{
+						BPSEC_DEBUG_ERR("BIB on BCB target %d but no bibBlk?.", tgtBlkNum);
+						return -1;
+					}
+				}
+				else
+				{
+					return 0;
+				}
+			}
+		}
 
-        /*
-         * Step 2.6: See if we can re-use this security block to hold the result of
-         *           applying security to the tgtBlkNum.
-         */
-        if(bpsec_sci_multCheck(sdr, &asb, def, wm, parms) > 0)
-        {
-            *secBlk = blockObj;
-        }
+		/*
+		 * Step 2.6: See if we can re-use this security block to hold the result of
+		 *           applying security to the tgtBlkNum.
+		 */
+		if(bpsec_sci_multCheck(sdr, &asb, def, wm, parms) > 0)
+		{
+			*secBlk = blockObj;
+		}
 
-    }
+	}
 
-    /*
-     * Step 3: If we get here, there is either no security block that targets our tgtBlkNum
-     *         or our sopType is BCB and a BIB is targeting our tgtBlkNum
-     *
-     *         Now the success of this function lies on whether or not we found the target
-     *         block number in the bundle at all. If we found the target then we can
-     *         proceed. If the target is missing, it cannot be targeted by a SOP!
-     */
-    return targetFound;
+	/*
+	 * Step 3: If we get here, there is either no security block that targets our tgtBlkNum
+	 *         or our sopType is BCB and a BIB is targeting our tgtBlkNum
+	 *
+	 *         Now the success of this function lies on whether or not we found the target
+	 *         block number in the bundle at all. If we found the target then we can
+	 *         proceed. If the target is missing, it cannot be targeted by a SOP!
+	 */
+	return targetFound;
 }
 
 
@@ -1411,85 +1410,85 @@ int bpsec_util_checkOutboundSopTarget(Bundle *bundle, sc_Def *def, PsmPartition 
 
 int bpsec_util_attachSecurityBlocks(Bundle *bundle, BpBlockType secBlkType, sc_action action)
 {
-    Sdr sdr = getIonsdr();
-    Object elt;
-    Object blockObj;
-    ExtensionBlock block;
-    BpsecOutboundASB asb;
-    uint8_t *serializedAsb = NULL;
-    char *fromEid = NULL; /*    Instrumentation.*/
-    int result = 0;
+	Sdr sdr = getIonsdr();
+	Object elt;
+	Object blockObj;
+	ExtensionBlock block;
+	BpsecOutboundASB asb;
+	uint8_t *serializedAsb = NULL;
+	char *fromEid = NULL; /*    Instrumentation.*/
+	int result = 0;
 
-    BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC",%d,%d)", (uaddr)bundle, secBlkType, action);
+	BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC",%d,%d)", (uaddr)bundle, secBlkType, action);
 
-    for (elt = sdr_list_first(sdr, bundle->extensions); elt; elt = sdr_list_next(sdr, elt))
-    {
-        blockObj = sdr_list_data(sdr, elt);
+	for (elt = sdr_list_first(sdr, bundle->extensions); elt; elt = sdr_list_next(sdr, elt))
+	{
+		blockObj = sdr_list_data(sdr, elt);
 
-        sdr_read(sdr, (char*) &block, blockObj, sizeof(ExtensionBlock));
+		sdr_read(sdr, (char*) &block, blockObj, sizeof(ExtensionBlock));
 
-        if (block.bytes) /*    Already serialized.    */
-        {
-            continue; /*    Not newly sourced.    */
-        }
+		if (block.bytes) /*    Already serialized.    */
+		{
+			continue; /*    Not newly sourced.    */
+		}
 
-        if (block.type != secBlkType) {
-            continue; /*    Doesn't apply.        */
-        }
+		if (block.type != secBlkType) {
+			continue; /*    Doesn't apply.        */
+		}
 
-        /*    This is a new BIB: compute all signatures,
-         *    insert all security results, serialize.        */
+		/*    This is a new BIB: compute all signatures,
+		 *    insert all security results, serialize.        */
 
-        sdr_read(sdr, (char*) &asb, block.object, sizeof(BpsecOutboundASB));
+		sdr_read(sdr, (char*) &asb, block.object, sizeof(BpsecOutboundASB));
 
-        /* TODO - can we pull this out of the for loop? */
-        readEid(&(asb.scSource), &fromEid);
+		/* TODO - can we pull this out of the for loop? */
+		readEid(&(asb.scSource), &fromEid);
 
-        BPSEC_DEBUG_INFO("Attaching security block with source %s", fromEid);
-        if(bpsec_util_generateSecurityResults(bundle, fromEid, &block, &asb, action) <= 0)
-        {
-        	BPSEC_DEBUG_ERR("Unable to populate security block (type %d, id %d) with source %s.", block.type, block.number, fromEid);
-            MRELEASE(fromEid);
-            return -1;
-        }
+		BPSEC_DEBUG_INFO("Attaching security block with source %s", fromEid);
+		if(bpsec_util_generateSecurityResults(bundle, fromEid, &block, &asb, action) <= 0)
+		{
+			BPSEC_DEBUG_ERR("Unable to populate security block (type %d, id %d) with source %s.", block.type, block.number, fromEid);
+			MRELEASE(fromEid);
+			return -1;
+		}
 
-        /* Step 6 - serialize the BIB ASB into the BIB blk.  */
-        /* Step 6.1 - Create a serialized version of the BIB ASB. */
-         if ((serializedAsb = bpsec_asb_outboundAsbSerialize((uint32_t*) &(block.dataLength), &asb)) == NULL)
-         {
-             BPSEC_DEBUG_ERR("Unable to serialize ASB. bibBlk->dataLength = %d", block.dataLength);
-             // TODO: Issue #74 ADD_BIB_TX_FAIL(fromEid, 1, length);
-             MRELEASE(fromEid);
-             result = -1;
-             bundle->corrupt = 1;
-             scratchExtensionBlock(&block);
-             BPSEC_DEBUG_PROC("--> %d", result);
-             return result;
-         }
+		/* Step 6 - serialize the BIB ASB into the BIB blk.  */
+		/* Step 6.1 - Create a serialized version of the BIB ASB. */
+		if ((serializedAsb = bpsec_asb_outboundAsbSerialize((uint32_t*) &(block.dataLength), &asb)) == NULL)
+		{
+			BPSEC_DEBUG_ERR("Unable to serialize ASB. bibBlk->dataLength = %d", block.dataLength);
+			// TODO: Issue #74 ADD_BIB_TX_FAIL(fromEid, 1, length);
+			MRELEASE(fromEid);
+			result = -1;
+			bundle->corrupt = 1;
+			scratchExtensionBlock(&block);
+			BPSEC_DEBUG_PROC("--> %d", result);
+			return result;
+		}
 
-         /* Step 6.2 - Copy serializedBIB ASB into the BIB extension block. */
-         if ((result = serializeExtBlk(&block, (char*) serializedAsb)) < 0)
-         {
-             BPSEC_DEBUG_ERR("Unable to serialize the extension block.", NULL);
-             bundle->corrupt = 1;
-             // TODO: Should we scratch the extension block here like we do in the
-             //        failure case above?
-         }
+		/* Step 6.2 - Copy serializedBIB ASB into the BIB extension block. */
+		if ((result = serializeExtBlk(&block, (char*) serializedAsb)) < 0)
+		{
+			BPSEC_DEBUG_ERR("Unable to serialize the extension block.", NULL);
+			bundle->corrupt = 1;
+			// TODO: Should we scratch the extension block here like we do in the
+			//        failure case above?
+		}
 
-        sdr_write(sdr, block.object, (char* ) &asb, sizeof(BpsecOutboundASB));
-        sdr_write(sdr, blockObj, (char* ) &block, sizeof(ExtensionBlock));
+		sdr_write(sdr, block.object, (char* ) &asb, sizeof(BpsecOutboundASB));
+		sdr_write(sdr, blockObj, (char* ) &block, sizeof(ExtensionBlock));
 
-        MRELEASE(serializedAsb);
-	bundle->extensionsLength += block.length;
+		MRELEASE(serializedAsb);
+		bundle->extensionsLength += block.length;
 
-       // TODO: Issue #74 ADD_BIB_TX_PASS(fromEid, 1, length);
-        MRELEASE(fromEid);
-    }
+		// TODO: Issue #74 ADD_BIB_TX_PASS(fromEid, 1, length);
+		MRELEASE(fromEid);
+	}
 
 
 
-    BPSEC_DEBUG_PROC("-->0", NULL);
-    return 0;
+	BPSEC_DEBUG_PROC("-->0", NULL);
+	return 0;
 }
 
 
@@ -1498,68 +1497,68 @@ int bpsec_util_attachSecurityBlocks(Bundle *bundle, BpBlockType secBlkType, sc_a
 // TODO I think we can delete this function... verify..
 LystElt bpsec_util_findInboundTarget(AcqWorkArea *work, int blockNumber, LystElt *bibElt)
 {
-    LystElt elt;
-    AcqExtBlock *block;
-    BpsecInboundASB *asb;
-    LystElt elt2;
-    BpsecInboundTargetResult *target;
+	LystElt elt;
+	AcqExtBlock *block;
+	BpsecInboundASB *asb;
+	LystElt elt2;
+	BpsecInboundTargetResult *target;
 
-    for (elt = lyst_first(work->extBlocks); elt; elt = lyst_next(elt))
-    {
-        block = (AcqExtBlock*) lyst_data(elt);
+	for (elt = lyst_first(work->extBlocks); elt; elt = lyst_next(elt))
+	{
+		block = (AcqExtBlock*) lyst_data(elt);
 
-        if (block->type != BlockIntegrityBlk)
-        {
-            continue;
-        }
+		if (block->type != BlockIntegrityBlk)
+		{
+			continue;
+		}
 
-        /*    This is a BIB.  See if the indicated
-         *    non-BPSec block is one of its targets.        */
+		/*    This is a BIB.  See if the indicated
+		 *    non-BPSec block is one of its targets.        */
 
-        asb = (BpsecInboundASB*) (block->object);
-        for (elt2 = lyst_first(asb->scResults); elt2; elt2 = lyst_next(elt2)) {
-            target = (BpsecInboundTargetResult*) lyst_data(elt2);
-            if (target->scTargetId== blockNumber) {
-                *bibElt = elt;
-                return elt2;
-            }
-        }
-    }
+		asb = (BpsecInboundASB*) (block->object);
+		for (elt2 = lyst_first(asb->scResults); elt2; elt2 = lyst_next(elt2)) {
+			target = (BpsecInboundTargetResult*) lyst_data(elt2);
+			if (target->scTargetId== blockNumber) {
+				*bibElt = elt;
+				return elt2;
+			}
+		}
+	}
 
-    return NULL; /*    No such target.                */
+	return NULL; /*    No such target.                */
 }
 
 
 // TODO Document function
 void bpsec_util_inboundBlkClear(AcqExtBlock *blk)
 {
-    BpsecInboundASB    *asb = NULL;
+	BpsecInboundASB *asb = NULL;
 
-    BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC")", (uaddr) blk);
+	BPSEC_DEBUG_PROC("(" ADDR_FIELDSPEC ")", (uaddr) blk);
 
-    if(blk == NULL)
-    {
-        BPSEC_DEBUG_WARN("Attempt to clear NULL blk?", NULL);
-        return;
-    }
+	if (blk == NULL)
+	{
+		BPSEC_DEBUG_WARN("Attempt to clear NULL blk?", NULL);
+		return;
+	}
 
-    if (blk->object)
-    {
-        asb = (BpsecInboundASB *) (blk->object);
-        bpsec_asb_inboundAsbDelete(asb);
-        blk->object = NULL;
-        blk->size = 0;
-    }
+	if (blk->object)
+	{
+		asb = (BpsecInboundASB *) (blk->object);
+		bpsec_asb_inboundAsbDelete(asb);
+		blk->object = NULL;
+		blk->size = 0;
+	}
 }
 // TODO Document function
 void bpsec_util_outboundBlkRelease(ExtensionBlock *blk)
 {
-    BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC")", (uaddr) blk);
+	BPSEC_DEBUG_PROC("(" ADDR_FIELDSPEC ")", (uaddr) blk);
 
-    if(blk)
-    {
-       bpsec_asb_outboundAsbDeleteObj(getIonsdr(), blk->object);
-    }
+	if (blk)
+	{
+		bpsec_asb_outboundAsbDeleteObj(getIonsdr(), blk->object);
+	}
 }
 // TODO Document function
 /*
@@ -1569,14 +1568,14 @@ void bpsec_util_outboundBlkRelease(ExtensionBlock *blk)
  */
 int bpsec_util_swapOutboundSop(Bundle *bundle, ExtensionBlock *src, ExtensionBlock *dest, int tgtBlkNum)
 {
-    /* Parameter intentionally unused. */
-    (void)bundle;
-    (void)src;
-    (void)dest;
-    (void)tgtBlkNum;
+	/* Parameter intentionally unused. */
+	(void) bundle;
+	(void) src;
+	(void) dest;
+	(void) tgtBlkNum;
 
-    BPSEC_DEBUG_ERR("Not implemented yet.", NULL);
-    return -1;
+	BPSEC_DEBUG_ERR("Not implemented yet.", NULL);
+	return -1;
 }
 
 
@@ -1612,101 +1611,101 @@ int bpsec_util_swapOutboundSop(Bundle *bundle, ExtensionBlock *src, ExtensionBlo
 
 sc_value bpsec_util_keyRetrieve(char *keyName)
 {
-    int     keyLength;
-    sc_value   key;
-    char        stdBuffer[100];
-    int     ReqBufLen = 0;
+	int     keyLength;
+	sc_value   key;
+	char        stdBuffer[100];
+	int     ReqBufLen = 0;
 
-    BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC")", (uaddr) keyName);
+	BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC")", (uaddr) keyName);
 
-    /*
-     * We first guess that the key will normally be no more than 100
-     * bytes long, so we call sec_get_key with a buffer of that size.
-     * If this works, great; we make a copy of the retrieved key
-     * value and pass it back.  If not, then the function has told
-     * us what the actual length of this key is; we allocate a new
-     * buffer of sufficient length and call sec_get_key again to
-     * retrieve the key value into that buffer.
-     */
+	/*
+	 * We first guess that the key will normally be no more than 100
+	 * bytes long, so we call sec_get_key with a buffer of that size.
+	 * If this works, great; we make a copy of the retrieved key
+	 * value and pass it back.  If not, then the function has told
+	 * us what the actual length of this key is; we allocate a new
+	 * buffer of sufficient length and call sec_get_key again to
+	 * retrieve the key value into that buffer.
+	 */
 
-    memset(&key, 0, sizeof(sc_value));
+	memset(&key, 0, sizeof(sc_value));
 
-    if(keyName == NULL || strlen(keyName) == 0)
-    {
-        BPSEC_DEBUG_ERR("Bad Parms", NULL);
-        BPSEC_DEBUG_PROC("-> key (len=%d)", key.scValLength);
-        return key;
-    }
+	if(keyName == NULL || strlen(keyName) == 0)
+	{
+		BPSEC_DEBUG_ERR("Bad Parms", NULL);
+		BPSEC_DEBUG_PROC("-> key (len=%d)", key.scValLength);
+		return key;
+	}
 
-    ReqBufLen = sizeof(stdBuffer);
-    keyLength = sec_get_key(keyName, &ReqBufLen, stdBuffer);
+	ReqBufLen = sizeof(stdBuffer);
+	keyLength = sec_get_key(keyName, &ReqBufLen, stdBuffer);
 
-    /**
-     *  Step 1 - Check the key length.
-     *           <  0 indicated system failure.
-     *           == 0 indicated key not found.
-     *           > 0  inicates success.
-     */
-    if (keyLength < 0)  /* Error. */
-    {
-        BPSEC_DEBUG_ERR("Can't get length of key '%s'.", keyName);
-        BPSEC_DEBUG_PROC("-> key (len=%d)", keyLength);
-        return key;
-    }
-    else if(keyLength > 0) /*   Key has been retrieved.     */
-    {
-        if(bpsec_scv_memCreate(&key, SC_VAL_TYPE_PARM, 0, keyLength) < 1)
-        {
-            BPSEC_DEBUG_ERR("Can't allocate key of size %d", keyLength);
-            BPSEC_DEBUG_PROC("-> key (len=%d)", key.scValLength);
-            return key;
-        }
+	/**
+	 *  Step 1 - Check the key length.
+	 *           <  0 indicated system failure.
+	 *           == 0 indicated key not found.
+	 *           > 0  inicates success.
+	 */
+	if (keyLength < 0)  /* Error. */
+	{
+		BPSEC_DEBUG_ERR("Can't get length of key '%s'.", keyName);
+		BPSEC_DEBUG_PROC("-> key (len=%d)", keyLength);
+		return key;
+	}
+	else if(keyLength > 0) /*   Key has been retrieved.     */
+	{
+		if(bpsec_scv_memCreate(&key, SC_VAL_TYPE_PARM, 0, keyLength) < 1)
+		{
+			BPSEC_DEBUG_ERR("Can't allocate key of size %d", keyLength);
+			BPSEC_DEBUG_PROC("-> key (len=%d)", key.scValLength);
+			return key;
+		}
 
-        memcpy(key.scRawValue.asPtr, stdBuffer, key.scValLength);
-        BPSEC_DEBUG_PROC("-> key (len=%d)", key.scValLength);
+		memcpy(key.scRawValue.asPtr, stdBuffer, key.scValLength);
+		BPSEC_DEBUG_PROC("-> key (len=%d)", key.scValLength);
 
-        return key;
-    }
+		return key;
+	}
 
-    /**
-     *  Step 2 - At this point, if we did not find a key and did
-     *  not have a system error, either the key was not found or
-     *  it was found and was larger than the standard buffer.
-     *
-     *  If we ran out of space, the ReqBufLen will be less than
-     *  the provided buffer. Otherwise, the neededBufLen will be
-     *  the required size of the buffer to hold the key.        */
+	/**
+	 *  Step 2 - At this point, if we did not find a key and did
+	 *  not have a system error, either the key was not found or
+	 *  it was found and was larger than the standard buffer.
+	 *
+	 *  If we ran out of space, the ReqBufLen will be less than
+	 *  the provided buffer. Otherwise, the neededBufLen will be
+	 *  the required size of the buffer to hold the key.        */
 
-    /* Step 2a - If we did not find a key... */
-    if(ReqBufLen >= 0 && (size_t)ReqBufLen <= sizeof(stdBuffer))
-    {
-        BPSEC_DEBUG_WARN("Unable to find key '%s'", keyName);
-        BPSEC_DEBUG_PROC("--> key (len=%d)", key.scValLength);
-        return key;
-    }
+	/* Step 2a - If we did not find a key... */
+	if(ReqBufLen >= 0 && (size_t)ReqBufLen <= sizeof(stdBuffer))
+	{
+		BPSEC_DEBUG_WARN("Unable to find key '%s'", keyName);
+		BPSEC_DEBUG_PROC("--> key (len=%d)", key.scValLength);
+		return key;
+	}
 
-    /* Step 2b - If the buffer was just not big enough, make a
-     * larger buffer and try again.
-     */
+	/* Step 2b - If the buffer was just not big enough, make a
+	 * larger buffer and try again.
+	 */
 
-    if(bpsec_scv_memCreate(&key, SC_VAL_TYPE_PARM, 0, ReqBufLen) < 1)
-    {
-        BPSEC_DEBUG_ERR("Can't allocate key of size %d", ReqBufLen);
-        BPSEC_DEBUG_PROC("--> key (len=%d)", ReqBufLen);
-        return key;
-    }
+	if(bpsec_scv_memCreate(&key, SC_VAL_TYPE_PARM, 0, ReqBufLen) < 1)
+	{
+		BPSEC_DEBUG_ERR("Can't allocate key of size %d", ReqBufLen);
+		BPSEC_DEBUG_PROC("--> key (len=%d)", ReqBufLen);
+		return key;
+	}
 
-    /* Step 3 - Call get key again and it should work this time. */
-    if (sec_get_key(keyName, &ReqBufLen, (char *) (key.scRawValue.asPtr)) <= 0)
-    {
-    	bpsec_scv_clear(0, &key);
-        BPSEC_DEBUG_ERR("Can't get key '%s'", keyName);
-        BPSEC_DEBUG_PROC("--> key (len=%d)", key.scValLength);
-        return key;
-    }
+	/* Step 3 - Call get key again and it should work this time. */
+	if (sec_get_key(keyName, &ReqBufLen, (char *) (key.scRawValue.asPtr)) <= 0)
+	{
+		bpsec_scv_clear(0, &key);
+		BPSEC_DEBUG_ERR("Can't get key '%s'", keyName);
+		BPSEC_DEBUG_PROC("--> key (len=%d)", key.scValLength);
+		return key;
+	}
 
-    BPSEC_DEBUG_PROC("--> key (len=%d)", key.scValLength);
-    return key;
+	BPSEC_DEBUG_PROC("--> key (len=%d)", key.scValLength);
+	return key;
 }
 
 
@@ -1743,163 +1742,163 @@ sc_value bpsec_util_keyRetrieve(char *keyName)
  *****************************************************************************/
 
 int32_t bpsec_util_sdrBlkConvert(uint32_t suite, uint8_t *csi_ctx,
-		                         csi_blocksize_t *blocksize, ZcoReader *dataReader,
-							     uvast outputBufLen, Object *outputZco, uint8_t function)
+		csi_blocksize_t *blocksize, ZcoReader *dataReader,
+		uvast outputBufLen, Object *outputZco, uint8_t function)
 {
-    Sdr          sdr = getIonsdr();
-    ZcoAcct	 acct;
-    csi_val_t    csiInputChunk;
-    csi_val_t    csiOutputChunk;
-    uvast        chunkSize = 0;
-    uvast        bytesRemaining = 0;
-    Object       outputBuffer = 0;
-    uvast        writeOffset = 0;
-    SdrUsageSummary    summary;
-    uvast        memmax = 0;
-    int          result = 1;
+	Sdr          sdr = getIonsdr();
+	ZcoAcct	 acct;
+	csi_val_t    csiInputChunk;
+	csi_val_t    csiOutputChunk;
+	uvast        chunkSize = 0;
+	uvast        bytesRemaining = 0;
+	Object       outputBuffer = 0;
+	uvast        writeOffset = 0;
+	SdrUsageSummary    summary;
+	uvast        memmax = 0;
+	int          result = 1;
 
-    BPSEC_DEBUG_PROC("(%d," ADDR_FIELDSPEC"," ADDR_FIELDSPEC ","
-                      ADDR_FIELDSPEC "," UVAST_FIELDSPEC "," ADDR_FIELDSPEC", %d)",
-			          suite, (uaddr) csi_ctx, (uaddr) blocksize, (uaddr) dataReader,
-			          outputBufLen, (uaddr) outputZco, function);
-
-
-    /* Step 0 - Sanity Checks. */
-    CHKERR(csi_ctx);
-    CHKERR(blocksize);
-    CHKERR(dataReader);
-    CHKERR(outputZco);
-    switch (function)
-    {
-    case CSI_SVC_ENCRYPT:
-	    acct = ZcoOutbound;
-	    break;
-
-    case CSI_SVC_DECRYPT:
-	    acct = ZcoInbound;
-	    break;
-
-    default:
-	    acct = ZcoUnknown;
-    }
-
-    /*
-     * Step 1 - Get information about the SDR storage space. If the expected
-     *          cipher text length is less than half the available space, we
-     *          will attempt the conversion using the SDR.
-     *
-     *          Note, ">> 1" means divide by 2.
-     */
-    sdr_usage(sdr, &summary);
-    memmax = (summary.largePoolFree + summary.unusedSize) >> (uvast) 1;
-
-    if (outputBufLen > memmax)
-    {
-        BPSEC_DEBUG_ERR("Buffer len will not fit. " UVAST_FIELDSPEC " > " UVAST_FIELDSPEC, outputBufLen, memmax);
-        sdr_report(&summary);
-        BPSEC_DEBUG_PROC("--> 0", NULL);
-        return 0;
-    }
-
-    /*
-     * Step 2 - Allocate space in the SDR to hold the converted text.
-     *
-     *          Also, create a ZCO to this allocated space. When creating
-     *          the ZCO, we pass the additive inverse of the length to
-     *          zco_create as that tells the ZCO library that space has
-     *          already been allocated.
-     *
-     */
-    if ((outputBuffer = sdr_malloc(sdr, outputBufLen)) == 0)
-    {
-        BPSEC_DEBUG_ERR("Cannot allocate" UVAST_FIELDSPEC " from SDR.", NULL);
-        BPSEC_DEBUG_PROC("--> -1", NULL);
-        return -1;
-    }
-
-    if ((*outputZco = zco_create(sdr, ZcoSdrSource, outputBuffer, 0,
-                                 0 - outputBufLen, acct)) == 0)
-    {
-        BPSEC_DEBUG_ERR("Cannot create zco.", NULL);
-        sdr_free(sdr, outputBuffer);
-        BPSEC_DEBUG_PROC("--> -1", NULL);
-        return -1;
-    }
+	BPSEC_DEBUG_PROC("(%d," ADDR_FIELDSPEC"," ADDR_FIELDSPEC ","
+			ADDR_FIELDSPEC "," UVAST_FIELDSPEC "," ADDR_FIELDSPEC", %d)",
+			suite, (uaddr) csi_ctx, (uaddr) blocksize, (uaddr) dataReader,
+			outputBufLen, (uaddr) outputZco, function);
 
 
-    /*
-     * Step 3 - Set up read buffers to read input text in chunk sizes
-     *          and pass them to the cipher suite until there are no
-     *          more chunks remaining.
-     */
+	/* Step 0 - Sanity Checks. */
+	CHKERR(csi_ctx);
+	CHKERR(blocksize);
+	CHKERR(dataReader);
+	CHKERR(outputZco);
+	switch (function)
+	{
+	case CSI_SVC_ENCRYPT:
+		acct = ZcoOutbound;
+		break;
 
-    chunkSize = blocksize->chunkSize;
-    bytesRemaining = blocksize->plaintextLen;
+	case CSI_SVC_DECRYPT:
+		acct = ZcoInbound;
+		break;
 
-    csiInputChunk.len = chunkSize;
-    if((csiInputChunk.contents = MTAKE(chunkSize)) == NULL)
-    {
-        BPSEC_DEBUG_ERR("Can't allocate buffer of size %d.", chunkSize);
+	default:
+		acct = ZcoUnknown;
+	}
 
-        sdr_free(sdr, outputBuffer);
-        zco_destroy(sdr, *outputZco);
-        *outputZco = 0;
-        BPSEC_DEBUG_PROC("--> -1", NULL);
-        return -1;
-    }
+	/*
+	 * Step 1 - Get information about the SDR storage space. If the expected
+	 *          cipher text length is less than half the available space, we
+	 *          will attempt the conversion using the SDR.
+	 *
+	 *          Note, ">> 1" means divide by 2.
+	 */
+	sdr_usage(sdr, &summary);
+	memmax = (summary.largePoolFree + summary.unusedSize) >> (uvast) 1;
+
+	if (outputBufLen > memmax)
+	{
+		BPSEC_DEBUG_ERR("Buffer len will not fit. " UVAST_FIELDSPEC " > " UVAST_FIELDSPEC, outputBufLen, memmax);
+		sdr_report(&summary);
+		BPSEC_DEBUG_PROC("--> 0", NULL);
+		return 0;
+	}
+
+	/*
+	 * Step 2 - Allocate space in the SDR to hold the converted text.
+	 *
+	 *          Also, create a ZCO to this allocated space. When creating
+	 *          the ZCO, we pass the additive inverse of the length to
+	 *          zco_create as that tells the ZCO library that space has
+	 *          already been allocated.
+	 *
+	 */
+	if ((outputBuffer = sdr_malloc(sdr, outputBufLen)) == 0)
+	{
+		BPSEC_DEBUG_ERR("Cannot allocate" UVAST_FIELDSPEC " from SDR.", NULL);
+		BPSEC_DEBUG_PROC("--> -1", NULL);
+		return -1;
+	}
+
+	if ((*outputZco = zco_create(sdr, ZcoSdrSource, outputBuffer, 0,
+			0 - outputBufLen, acct)) == 0)
+	{
+		BPSEC_DEBUG_ERR("Cannot create zco.", NULL);
+		sdr_free(sdr, outputBuffer);
+		BPSEC_DEBUG_PROC("--> -1", NULL);
+		return -1;
+	}
 
 
-    /*
-     * Step 4: Walk through the data object converting input chunks to
-     *         output chunks. We will read an input chunk, pass it to
-     *         the cipher suite for conversion, and then write the
-     *         output to the output buffer.
-     */
-    while (bytesRemaining > 0)
-    {
-         /* Step 4.1 - Catch "final" iteration. */
-         if (bytesRemaining < chunkSize)
-         {
-             chunkSize = bytesRemaining;
-         }
+	/*
+	 * Step 3 - Set up read buffers to read input text in chunk sizes
+	 *          and pass them to the cipher suite until there are no
+	 *          more chunks remaining.
+	 */
 
-         /* Step 4.2 - Read an input chunk. */
-         csiInputChunk.len = zco_transmit(sdr, dataReader, chunkSize, (char *) csiInputChunk.contents);
-         if (csiInputChunk.len <= 0)
-         {
-             BPSEC_DEBUG_ERR("Can't do priming read of length %d.", chunkSize);
-        	 break;
-         }
+	chunkSize = blocksize->chunkSize;
+	bytesRemaining = blocksize->plaintextLen;
 
-         /* Step 4.3 - Pass input to the cipher suite and generate output. */
-         csiOutputChunk = csi_crypt_update(suite, csi_ctx, function, csiInputChunk);
-         if (csiOutputChunk.contents == NULL)
-         {
-            BPSEC_DEBUG_ERR("Could not encrypt input of %d with chunk size of %d.", csiInputChunk.len, chunkSize);
-            break;
-         }
+	csiInputChunk.len = chunkSize;
+	if((csiInputChunk.contents = MTAKE(chunkSize)) == NULL)
+	{
+		BPSEC_DEBUG_ERR("Can't allocate buffer of size %d.", chunkSize);
 
-         /* Step 4.4 - Write output chunk to the output buffer. */
-        sdr_write(sdr, outputBuffer + writeOffset, (char *) csiOutputChunk.contents, csiOutputChunk.len);
-        MRELEASE(csiOutputChunk.contents);
+		sdr_free(sdr, outputBuffer);
+		zco_destroy(sdr, *outputZco);
+		*outputZco = 0;
+		BPSEC_DEBUG_PROC("--> -1", NULL);
+		return -1;
+	}
 
-        /* Step 4.5 - Prep for next iteration. */
-        bytesRemaining -= csiInputChunk.len;
-        writeOffset += csiOutputChunk.len;
-    }
 
-    MRELEASE(csiInputChunk.contents);
+	/*
+	 * Step 4: Walk through the data object converting input chunks to
+	 *         output chunks. We will read an input chunk, pass it to
+	 *         the cipher suite for conversion, and then write the
+	 *         output to the output buffer.
+	 */
+	while (bytesRemaining > 0)
+	{
+		/* Step 4.1 - Catch "final" iteration. */
+		if (bytesRemaining < chunkSize)
+		{
+			chunkSize = bytesRemaining;
+		}
 
-    if(bytesRemaining > 0)
-    {
-    	result = ERROR;
-    	sdr_free(sdr, outputBuffer);
-    	zco_destroy(sdr, *outputZco);
-    	*outputZco = 0;
-    }
+		/* Step 4.2 - Read an input chunk. */
+		csiInputChunk.len = zco_transmit(sdr, dataReader, chunkSize, (char *) csiInputChunk.contents);
+		if (csiInputChunk.len <= 0)
+		{
+			BPSEC_DEBUG_ERR("Can't do priming read of length %d.", chunkSize);
+			break;
+		}
 
-    BPSEC_DEBUG_PROC("--> %d", result);
-    return result;
+		/* Step 4.3 - Pass input to the cipher suite and generate output. */
+		csiOutputChunk = csi_crypt_update(suite, csi_ctx, function, csiInputChunk);
+		if (csiOutputChunk.contents == NULL)
+		{
+			BPSEC_DEBUG_ERR("Could not encrypt input of %d with chunk size of %d.", csiInputChunk.len, chunkSize);
+			break;
+		}
+
+		/* Step 4.4 - Write output chunk to the output buffer. */
+		sdr_write(sdr, outputBuffer + writeOffset, (char *) csiOutputChunk.contents, csiOutputChunk.len);
+		MRELEASE(csiOutputChunk.contents);
+
+		/* Step 4.5 - Prep for next iteration. */
+		bytesRemaining -= csiInputChunk.len;
+		writeOffset += csiOutputChunk.len;
+	}
+
+	MRELEASE(csiInputChunk.contents);
+
+	if(bytesRemaining > 0)
+	{
+		result = ERROR;
+		sdr_free(sdr, outputBuffer);
+		zco_destroy(sdr, *outputZco);
+		*outputZco = 0;
+	}
+
+	BPSEC_DEBUG_PROC("--> %d", result);
+	return result;
 }
 
 
@@ -1937,117 +1936,117 @@ int32_t bpsec_util_sdrBlkConvert(uint32_t suite, uint8_t *csi_ctx,
  * @retval -1 - System error
  *****************************************************************************/
 int32_t bpsec_util_fileBlkConvert(uint32_t suite, uint8_t *csi_ctx,
-		                          csi_blocksize_t *blocksize, ZcoReader *dataReader,
-								  uvast outputBufLen, Object *outputZco, char *filename, uint8_t function)
+		csi_blocksize_t *blocksize, ZcoReader *dataReader,
+		uvast outputBufLen, Object *outputZco, char *filename, uint8_t function)
 {
-    Sdr        sdr = getIonsdr();
-    ZcoAcct    acct;
-    csi_val_t  csiInputChunk;
-    csi_val_t  csiOutputChunk;
-    uvast      chunkSize = 0;
-    uvast      bytesRemaining = 0;
-    Object     fileRef = 0;
-    int        result = 1;
+	Sdr        sdr = getIonsdr();
+	ZcoAcct    acct;
+	csi_val_t  csiInputChunk;
+	csi_val_t  csiOutputChunk;
+	uvast      chunkSize = 0;
+	uvast      bytesRemaining = 0;
+	Object     fileRef = 0;
+	int        result = 1;
 
-    BPSEC_DEBUG_PROC("(%d," ADDR_FIELDSPEC"," ADDR_FIELDSPEC "," ADDR_FIELDSPEC ","
-                          UVAST_FIELDSPEC "," ADDR_FIELDSPEC","ADDR_FIELDSPEC", %d)",
-    			          suite, (uaddr) csi_ctx, (uaddr) blocksize, (uaddr) dataReader,
-    			          outputBufLen, (uaddr) outputZco, (uaddr) filename, function);
+	BPSEC_DEBUG_PROC("(%d," ADDR_FIELDSPEC"," ADDR_FIELDSPEC "," ADDR_FIELDSPEC ","
+			UVAST_FIELDSPEC "," ADDR_FIELDSPEC","ADDR_FIELDSPEC", %d)",
+			suite, (uaddr) csi_ctx, (uaddr) blocksize, (uaddr) dataReader,
+			outputBufLen, (uaddr) outputZco, (uaddr) filename, function);
 
-    /* Step 0 - Sanity Checks. */
-    CHKERR(csi_ctx);
-    CHKERR(blocksize);
-    CHKERR(dataReader);
-    CHKERR(outputZco);
-    switch (function)
-    {
-    case CSI_SVC_ENCRYPT:
-	    acct = ZcoOutbound;
-	    break;
+	/* Step 0 - Sanity Checks. */
+	CHKERR(csi_ctx);
+	CHKERR(blocksize);
+	CHKERR(dataReader);
+	CHKERR(outputZco);
+	switch (function)
+	{
+	case CSI_SVC_ENCRYPT:
+		acct = ZcoOutbound;
+		break;
 
-    case CSI_SVC_DECRYPT:
-	    acct = ZcoInbound;
-	    break;
+	case CSI_SVC_DECRYPT:
+		acct = ZcoInbound;
+		break;
 
-    default:
-	    acct = ZcoUnknown;
-    }
-
-
-    /* Step 1 - Initialization */
-    chunkSize = blocksize->chunkSize;
-    bytesRemaining = blocksize->plaintextLen;
-    *outputZco = 0;
+	default:
+		acct = ZcoUnknown;
+	}
 
 
-    /*
-     * Step 2 - Set up read buffers to read input text in chunk sizes
-     *          and pass them to the cipher suite until there are no
-     *          more chunks remaining.
-     */
-    csiInputChunk.len = chunkSize;
-    if((csiInputChunk.contents = MTAKE(chunkSize)) == NULL)
-    {
-        BPSEC_DEBUG_ERR("Can't allocate buffer of size %d.", chunkSize);
-        BPSEC_DEBUG_PROC("--> -1", NULL);
-        return -1;
-    }
+	/* Step 1 - Initialization */
+	chunkSize = blocksize->chunkSize;
+	bytesRemaining = blocksize->plaintextLen;
+	*outputZco = 0;
 
 
-    /*
-     * Step 3: Walk through the data object converting input chunks to
-     *         output chunks. We will read an input chunk, pass it to
-     *         the cipher suite for conversion, and then write the
-     *         output to the output buffer.
-     */
-     while (bytesRemaining > 0)
-     {
-         /* Step 3.1 - Catch "final" iteration. */
-         if (bytesRemaining < chunkSize)
-         {
-             chunkSize = bytesRemaining;
-         }
+	/*
+	 * Step 2 - Set up read buffers to read input text in chunk sizes
+	 *          and pass them to the cipher suite until there are no
+	 *          more chunks remaining.
+	 */
+	csiInputChunk.len = chunkSize;
+	if((csiInputChunk.contents = MTAKE(chunkSize)) == NULL)
+	{
+		BPSEC_DEBUG_ERR("Can't allocate buffer of size %d.", chunkSize);
+		BPSEC_DEBUG_PROC("--> -1", NULL);
+		return -1;
+	}
 
-         /* Step 3.2 - Read an input chunk. */
-         csiInputChunk.len = zco_transmit(sdr, dataReader, chunkSize, (char *) csiInputChunk.contents);
-         if (csiInputChunk.len <= 0)
-         {
-             BPSEC_DEBUG_ERR("Can't do priming read of length %d.", chunkSize);
-             break;
-         }
 
-         /* Step 3.3 - Pass input to the cipher suite and generate output. */
-         csiOutputChunk = csi_crypt_update(suite, csi_ctx, function, csiInputChunk);
-         if (csiOutputChunk.contents == NULL)
-         {
-            BPSEC_DEBUG_ERR("Could not encrypt.", csiInputChunk.len, chunkSize);
-            break;
-         }
+	/*
+	 * Step 3: Walk through the data object converting input chunks to
+	 *         output chunks. We will read an input chunk, pass it to
+	 *         the cipher suite for conversion, and then write the
+	 *         output to the output buffer.
+	 */
+	while (bytesRemaining > 0)
+	{
+		/* Step 3.1 - Catch "final" iteration. */
+		if (bytesRemaining < chunkSize)
+		{
+			chunkSize = bytesRemaining;
+		}
 
-         /* Step 3.4 - Write output chunk to file. */
-         if (bpsec_util_zcoFileSourceTransferTo(sdr, acct, outputZco, &fileRef,
-        		filename, (char *) csiOutputChunk.contents, csiOutputChunk.len) <= 0)
-         {
-            BPSEC_DEBUG_ERR("Transfer of chunk has failed..", NULL);
-            MRELEASE(csiOutputChunk.contents);
-            break;
-         }
+		/* Step 3.2 - Read an input chunk. */
+		csiInputChunk.len = zco_transmit(sdr, dataReader, chunkSize, (char *) csiInputChunk.contents);
+		if (csiInputChunk.len <= 0)
+		{
+			BPSEC_DEBUG_ERR("Can't do priming read of length %d.", chunkSize);
+			break;
+		}
 
-         /* Step 3.5 - Prep for next iteration. */
-         bytesRemaining -= csiInputChunk.len;
-         //microsnooze(1000); // TODO: COnsider if a sleep here will help filesystem catch up.
-         MRELEASE(csiOutputChunk.contents);
-    }
+		/* Step 3.3 - Pass input to the cipher suite and generate output. */
+		csiOutputChunk = csi_crypt_update(suite, csi_ctx, function, csiInputChunk);
+		if (csiOutputChunk.contents == NULL)
+		{
+			BPSEC_DEBUG_ERR("Could not encrypt.", csiInputChunk.len, chunkSize);
+			break;
+		}
 
-    MRELEASE(csiInputChunk.contents);
+		/* Step 3.4 - Write output chunk to file. */
+		if (bpsec_util_zcoFileSourceTransferTo(sdr, acct, outputZco, &fileRef,
+			filename, (char *) csiOutputChunk.contents, csiOutputChunk.len) <= 0)
+		{
+			BPSEC_DEBUG_ERR("Transfer of chunk has failed..", NULL);
+			MRELEASE(csiOutputChunk.contents);
+			break;
+		}
 
-    if(bytesRemaining > 0)
-    {
-    	result = ERROR;
-    }
+		/* Step 3.5 - Prep for next iteration. */
+		bytesRemaining -= csiInputChunk.len;
+		//microsnooze(1000); // TODO: COnsider if a sleep here will help filesystem catch up.
+		MRELEASE(csiOutputChunk.contents);
+	}
 
-    BPSEC_DEBUG_PROC("--> %d", result);
-    return result;
+	MRELEASE(csiInputChunk.contents);
+
+	if(bytesRemaining > 0)
+	{
+		result = ERROR;
+	}
+
+	BPSEC_DEBUG_PROC("--> %d", result);
+	return result;
 }
 
 
@@ -2056,48 +2055,48 @@ int32_t bpsec_util_fileBlkConvert(uint32_t suite, uint8_t *csi_ctx,
 
 int bpsec_util_numKeysGet(int *size)
 {
-    // TODO - remove calls to this function.
+	// TODO - remove calls to this function.
 
-    /* Parameter intentionally unused. */
-    (void)size;
+	/* Parameter intentionally unused. */
+	(void) size;
 
-    BPSEC_DEBUG_ERR("DEPRECATED FUNCTION CALL", NULL)
-    CHKERR(0);
-    return -1;
+	BPSEC_DEBUG_ERR("DEPRECATED FUNCTION CALL", NULL)
+	CHKERR(0);
+	return -1;
 }
 
 void bpsec_util_keysGet(char *buffer, int length)
 {
-    // TODO - remove calls to this function.
+	// TODO - remove calls to this function.
 
-    /* Parameters intentionally unused. */
-    (void)buffer;
-    (void)length;
+	/* Parameters intentionally unused. */
+	(void) buffer;
+	(void) length;
 
-    BPSEC_DEBUG_ERR("DEPRECATED FUNCTION CALL", NULL)
-    CHKVOID(0);
+	BPSEC_DEBUG_ERR("DEPRECATED FUNCTION CALL", NULL)
+	CHKVOID(0);
 }
 
 int  bpsec_util_numCSNamesGet(int *size)
 {
-    // TODO - remove calls to this function.
+	// TODO - remove calls to this function.
 
-    /* Parameter intentionally unused. */
-    (void)size;
+	/* Parameter intentionally unused. */
+	(void) size;
 
-    BPSEC_DEBUG_ERR("DEPRECATED FUNCTION CALL", NULL)
-    CHKERR(0);
-    return -1;
+	BPSEC_DEBUG_ERR("DEPRECATED FUNCTION CALL", NULL)
+	CHKERR(0);
+	return -1;
 }
 
 void bpsec_util_cSNamesGet(char *buffer, int length)
 {
-    // TODO - remove calls to this function.
+	// TODO - remove calls to this function.
 
-    /* Parameters intentionally unused. */
-    (void)buffer;
-    (void)length;
+	/* Parameters intentionally unused. */
+	(void) buffer;
+	(void) length;
 
-    BPSEC_DEBUG_ERR("DEPRECATED FUNCTION CALL", NULL)
-    CHKVOID(0);
+	BPSEC_DEBUG_ERR("DEPRECATED FUNCTION CALL", NULL)
+	CHKVOID(0);
 }

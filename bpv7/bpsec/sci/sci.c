@@ -62,61 +62,61 @@
  *                           CONSTANTS DEFINITIONS                           *
  *****************************************************************************/
 
-
 static sc_Def gScDefs[] =
 {
-   { BPSEC_ITSC_SC_NAME,             /** Name                      **/
-     BPSEC_ITSC_SC_ID,               /** Context Id                **/
-     SC_SVC_BIBINT | SC_SVC_BCBCONF, /** Services Offered.         **/
+	{
+		BPSEC_ITSC_SC_NAME,	/** Name                      **/
+		BPSEC_ITSC_SC_ID,	/** Context Id                **/
+		SC_SVC_BIBINT | SC_SVC_BCBCONF, /** Services Offered. **/
 
-     NULL,                           /** bpsec_sc_init             **/
-     bpsec_itsci_initAsbFn,          /** bpsec_sc_initOutboundASB  **/
-     NULL,                           /** bpsec_sc_teardown         **/
+		NULL,			/** bpsec_sc_init             **/
+		bpsec_itsci_initAsbFn,	/** bpsec_sc_initOutboundASB  **/
+		NULL,			/** bpsec_sc_teardown         **/
 
-     bpsec_sci_stateInit,            /** bpsec_sc_stateInit        **/
-     bpsec_sci_stateIncr,            /** bpsec_sc_stateIncr        **/
-     bpsec_sci_stateClear,           /** bpsec_sc_stateClear       **/
+		bpsec_sci_stateInit,	/** bpsec_sc_stateInit        **/
+		bpsec_sci_stateIncr,	/** bpsec_sc_stateIncr        **/
+		bpsec_sci_stateClear,	/** bpsec_sc_stateClear       **/
 
-     bpsec_itsci_procOutBlk,         /** bpsec_sc_procOutboundBlk  **/
-     bpsec_itsci_procInBlk,          /** bpsec_sc_procInboundBlk   **/
-	 bpsec_itsci_valMapGet           /** bpsec_sc_valMapGet        **/
-   },
+		bpsec_itsci_procOutBlk, /** bpsec_sc_procOutboundBlk  **/
+		bpsec_itsci_procInBlk,	/** bpsec_sc_procInboundBlk   **/
+		bpsec_itsci_valMapGet	/** bpsec_sc_valMapGet        **/
+	},
 
-   {
-    "BIB_HMAC_SHA2",                 /** Name                      **/
-    BPSEC_BIB_HMAC_SHA2_SC_ID,       /** Context Id                **/
-     SC_SVC_BIBINT,                  /** Services Offered.         **/
+	{
+		"BIB_HMAC_SHA2",	   /** Name                      **/
+		BPSEC_BIB_HMAC_SHA2_SC_ID, /** Context Id                **/
+		SC_SVC_BIBINT,		   /** Services Offered.         **/
 
-     NULL,                           /** bpsec_sc_init             **/
-	 bpsec_sci_initAsbFn,            /** bpsec_sc_initOutboundASB  **/
-     NULL,                           /** bpsec_sc_teardown         **/
+		NULL,			   /** bpsec_sc_init             **/
+		bpsec_sci_initAsbFn,	   /** bpsec_sc_initOutboundASB  **/
+		NULL,			   /** bpsec_sc_teardown         **/
 
-     bpsec_sci_stateInit,            /** bpsec_sc_stateInit        **/
-     bpsec_sci_stateIncr,            /** bpsec_sc_stateIncr        **/
-     bpsec_sci_stateClear,           /** bpsec_sc_stateClear       **/
+		bpsec_sci_stateInit,	   /** bpsec_sc_stateInit        **/
+		bpsec_sci_stateIncr,	   /** bpsec_sc_stateIncr        **/
+		bpsec_sci_stateClear,	   /** bpsec_sc_stateClear       **/
 
-     bpsec_bhssci_procOutBlk,        /** bpsec_sc_procOutboundBlk  **/
-     bpsec_bhssci_procInBlk,         /** bpsec_sc_procInboundBlk   **/
-	 bpsec_bhssci_valMapGet          /** bpsec_sc_valMapGet        **/
-   },
+		bpsec_bhssci_procOutBlk,   /** bpsec_sc_procOutboundBlk  **/
+		bpsec_bhssci_procInBlk,	   /** bpsec_sc_procInboundBlk   **/
+		bpsec_bhssci_valMapGet	   /** bpsec_sc_valMapGet        **/
+	},
 
-   {
-     "BCB_AES_GCM",                  /** Name                      **/
-     BPSEC_BCB_AES_GCM_SC_ID,        /** Context Id                **/
-	 SC_SVC_BCBCONF,                 /** Services Offered.         **/
+	{
+		"BCB_AES_GCM",		 /** Name                      **/
+		BPSEC_BCB_AES_GCM_SC_ID, /** Context Id                **/
+		SC_SVC_BCBCONF,		 /** Services Offered.         **/
 
-     NULL,                           /** bpsec_sc_init             **/
-	 bpsec_sci_initAsbFn,            /** bpsec_sc_initOutboundASB  **/
-     NULL,                           /** bpsec_sc_teardown         **/
+		NULL,			 /** bpsec_sc_init             **/
+		bpsec_sci_initAsbFn,	 /** bpsec_sc_initOutboundASB  **/
+		NULL,			 /** bpsec_sc_teardown         **/
 
-     bpsec_sci_stateInit,            /** bpsec_sc_stateInit        **/
-     bpsec_sci_stateIncr,            /** bpsec_sc_stateIncr        **/
-     bpsec_sci_stateClear,           /** bpsec_sc_stateClear       **/
+		bpsec_sci_stateInit,	 /** bpsec_sc_stateInit        **/
+		bpsec_sci_stateIncr,	 /** bpsec_sc_stateIncr        **/
+		bpsec_sci_stateClear,	 /** bpsec_sc_stateClear       **/
 
-     bpsec_bagsci_procOutBlk,        /** bpsec_sc_procOutboundBlk  **/
-     bpsec_bagsci_procInBlk,         /** bpsec_sc_procInboundBlk   **/
-	 bpsec_bagsci_valMapGet          /** bpsec_sc_valMapGet        **/
-   }
+		bpsec_bagsci_procOutBlk, /** bpsec_sc_procOutboundBlk  **/
+		bpsec_bagsci_procInBlk,	 /** bpsec_sc_procInboundBlk   **/
+		bpsec_bagsci_valMapGet	 /** bpsec_sc_valMapGet        **/
+	}
 };
 
 static int gNumScDefs = sizeof(gScDefs) / sizeof(sc_Def);
@@ -139,7 +139,7 @@ static int gNumScDefs = sizeof(gScDefs) / sizeof(sc_Def);
 
 int bpsec_sci_defCount(void)
 {
-    return gNumScDefs;
+	return gNumScDefs;
 }
 
 
@@ -161,21 +161,21 @@ int bpsec_sci_defCount(void)
 
 int bpsec_sci_defFind(int sci_id, sc_Def *def)
 {
-    int i = 0;
+	int i = 0;
 
-    for (i = 0; i < gNumScDefs; i++)
-    {
-        if (gScDefs[i].scId == sci_id)
-        {
-            if(def != NULL)
-            {
-                *def = gScDefs[i];
-            }
-            return 1;
-        }
-    }
+	for (i = 0; i < gNumScDefs; i++)
+	{
+		if (gScDefs[i].scId == sci_id)
+		{
+			if (def != NULL)
+			{
+				*def = gScDefs[i];
+			}
+			return 1;
+		}
+	}
 
-    return 0;
+	return 0;
 }
 
 
@@ -195,22 +195,22 @@ int bpsec_sci_defFind(int sci_id, sc_Def *def)
 
 int bpsec_sci_idFind(char *sc_name, int *sc_id)
 {
-    int count = bpsec_sci_defCount();
-    int i = 0;
+	int count = bpsec_sci_defCount();
+	int i = 0;
 
-    for (i = 0; i < count; i++)
-    {
-        /* If a security context is found matching the provided name, return success and
-         * populate the SC ID */
-        if ((strcmp(gScDefs[i].scName, sc_name)) == 0)
-        {
-            *sc_id = gScDefs[i].scId;
-            return 1;
-        }
-    }
+	for (i = 0; i < count; i++)
+	{
+		/* If a security context is found matching the provided name, return success and
+		 * populate the SC ID */
+		if ((strcmp(gScDefs[i].scName, sc_name)) == 0)
+		{
+			*sc_id = gScDefs[i].scId;
+			return 1;
+		}
+	}
 
-    /* Return 0 if a security context by the provided name is not found */
-    return 0;
+	/* Return 0 if a security context by the provided name is not found */
+	return 0;
 }
 
 
@@ -231,22 +231,22 @@ int bpsec_sci_idFind(char *sc_name, int *sc_id)
 
 int bpsec_sci_execInit(void)
 {
-    int i = 0;
-    int result = 1;
+	int i = 0;
+	int result = 1;
 
-    for (i = 0; i < gNumScDefs; i++)
-    {
-        if(gScDefs[i].scInit)
-        {
-            if((result = gScDefs[i].scInit()) <= 0)
-            {
-                BPSEC_DEBUG_ERR("Failed to initialize context %s (id %d).", gScDefs[i].scName, gScDefs[i].scId);
-                return result;
-            }
-        }
-    }
+	for (i = 0; i < gNumScDefs; i++)
+	{
+		if(gScDefs[i].scInit)
+		{
+			if((result = gScDefs[i].scInit()) <= 0)
+			{
+				BPSEC_DEBUG_ERR("Failed to initialize context %s (id %d).", gScDefs[i].scName, gScDefs[i].scId);
+				return result;
+			}
+		}
+	}
 
-    return 1;
+	return 1;
 }
 
 
@@ -261,15 +261,15 @@ int bpsec_sci_execInit(void)
 
 void bpsec_sci_execTeardown(void)
 {
-    int i = 0;
+	int i = 0;
 
-    for (i = 0; i < gNumScDefs; i++)
-    {
-        if(gScDefs[i].scTeardown)
-        {
-            gScDefs[i].scTeardown();
-        }
-    }
+	for (i = 0; i < gNumScDefs; i++)
+	{
+		if (gScDefs[i].scTeardown)
+		{
+			gScDefs[i].scTeardown();
+		}
+	}
 }
 
 
@@ -294,69 +294,69 @@ void bpsec_sci_execTeardown(void)
 
 int bpsec_sci_polParmAdd(PsmPartition wm, PsmAddress parms, sc_Def *def, char *key, char *value)
 {
-    PsmAddress addr = 0;
-    sc_value_map *map = NULL;
-    int idx = 0;
+	PsmAddress addr = 0;
+	sc_value_map *map = NULL;
+	int idx = 0;
 
-    /* Step 0: Sanity Check. */
-    CHKERR(wm);
-    CHKERR(parms);
-    CHKERR(def);
+	/* Step 0: Sanity Check. */
+	CHKERR(wm);
+	CHKERR(parms);
+	CHKERR(def);
 
-    /*
-     * Step 1: Grab the value map for this SC and check that the requested key
-     *         exists and is of the right type.
-     */
-    map = def->scValMapGet();
-    idx = bpsec_scvm_byNameIdxFind(map, key);
-
-
-    /*
-     * Step 2: If the index was not found, or was found by was not a parameter
-     *         then we cannot add the policy parameter.
-     */
-    if((idx < 0) ||
-       (map[idx].scValType != SC_VAL_TYPE_PARM))
-    {
-        BPSEC_DEBUG_ERR("Parameter %s unrecognized by context %s (id %d).",
-                        (key == NULL) ? "null" : key,
-                        def->scName, def->scId);
-
-        return -1;
-    }
+	/*
+	 * Step 1: Grab the value map for this SC and check that the requested key
+	 *         exists and is of the right type.
+	 */
+	map = def->scValMapGet();
+	idx = bpsec_scvm_byNameIdxFind(map, key);
 
 
-    /* Step 3: Allocate space for the parameter in shared memory. */
-    if((addr = bpsec_scv_smCreate(wm, SC_VAL_TYPE_PARM)) != 0)
-    {
-        /*
-         * Step 3.1: Use the security context to decode the strings into an
-         *           appropriately-structured parameter.
-         */
-        sc_value *val = psp(wm, addr);
-        val->scValId = map[idx].scValId;
-        val->scValType = map[idx].scValType;
+	/*
+	 * Step 2: If the index was not found, or was found by was not a parameter
+	 *         then we cannot add the policy parameter.
+	 */
+	if((idx < 0) ||
+		(map[idx].scValType != SC_VAL_TYPE_PARM))
+	{
+		BPSEC_DEBUG_ERR("Parameter %s unrecognized by context %s (id %d).",
+				(key == NULL) ? "null" : key,
+				def->scName, def->scId);
 
-        if(map[idx].scValFromStr(wm, val, strlen(value), value) != 0)
-        {
-            BPSEC_DEBUG_ERR("Value %s could not be decoded by context %s (id %d).",
-                                    (value == NULL) ? "null" : value,
-                                    def->scName, def->scId);
+		return -1;
+	}
 
-            bpsec_scv_clear(wm, val);
-            psm_free(wm, addr);
 
-            return -1;
-        }
+	/* Step 3: Allocate space for the parameter in shared memory. */
+	if((addr = bpsec_scv_smCreate(wm, SC_VAL_TYPE_PARM)) != 0)
+	{
+		/*
+		 * Step 3.1: Use the security context to decode the strings into an
+		 *           appropriately-structured parameter.
+		 */
+		sc_value *val = psp(wm, addr);
+		val->scValId = map[idx].scValId;
+		val->scValType = map[idx].scValType;
 
-        /* Step 1.2: Add the parameter to this list. */
-        sm_list_insert_last(wm, parms, addr);
-        return 0;
-    }
+		if(map[idx].scValFromStr(wm, val, strlen(value), value) != 0)
+		{
+			BPSEC_DEBUG_ERR("Value %s could not be decoded by context %s (id %d).",
+					(value == NULL) ? "null" : value,
+					def->scName, def->scId);
 
-    /* Step 2: If we were not able to add the parm, return error. */
+			bpsec_scv_clear(wm, val);
+			psm_free(wm, addr);
 
-    return -1;
+			return -1;
+		}
+
+		/* Step 1.2: Add the parameter to this list. */
+		sm_list_insert_last(wm, parms, addr);
+		return 0;
+	}
+
+	/* Step 2: If we were not able to add the parm, return error. */
+
+	return -1;
 }
 
 
@@ -381,48 +381,48 @@ int bpsec_sci_polParmAdd(PsmPartition wm, PsmAddress parms, sc_Def *def, char *k
 
 char* bpsec_sci_polParmPrint(PsmPartition wm, sc_Def *sc_def, PsmAddress pol_parms)
 {
-    char **tmp_array;
-    int num_items = 0;
-    int i = 0;
-    int size = 0;
-    PsmAddress eltAddr = 0;
-    sc_value_map *map = NULL;
-    int idx = 0;
+	char **tmp_array;
+	int num_items = 0;
+	int i = 0;
+	int size = 0;
+	PsmAddress eltAddr = 0;
+	sc_value_map *map = NULL;
+	int idx = 0;
 
 
-    CHKNULL(wm);
-    CHKNULL(sc_def);
-    CHKNULL(pol_parms);
+	CHKNULL(wm);
+	CHKNULL(sc_def);
+	CHKNULL(pol_parms);
 
-    /*
-     * Step 1: Grab the value map for this SC and check that the requested key
-     *         exists and is of the right type.
-     */
-    map = sc_def->scValMapGet();
-    num_items = sm_list_length(wm, pol_parms);
+	/*
+	 * Step 1: Grab the value map for this SC and check that the requested key
+	 *         exists and is of the right type.
+	 */
+	map = sc_def->scValMapGet();
+	num_items = sm_list_length(wm, pol_parms);
 
-    if((tmp_array = (char **) MTAKE(num_items * sizeof(char*))) == NULL)
-    {
-        return NULL;
-    }
+	if((tmp_array = (char **) MTAKE(num_items * sizeof(char*))) == NULL)
+	{
+		return NULL;
+	}
 
-    /* Step 1: Walk through the list... */
-    for(eltAddr = sm_list_first(wm, pol_parms); eltAddr; eltAddr = sm_list_next(wm, eltAddr))
-    {
-        sc_value *val = psp(wm, sm_list_data(wm, eltAddr));
+	/* Step 1: Walk through the list... */
+	for(eltAddr = sm_list_first(wm, pol_parms); eltAddr; eltAddr = sm_list_next(wm, eltAddr))
+	{
+		sc_value *val = psp(wm, sm_list_data(wm, eltAddr));
 
-        if((idx = bpsec_scvm_byIdIdxFind(map, val->scValId, val->scValType)) >= 0)
-        {
-            tmp_array[i++] = map[idx].scValToStr(wm, val);
-            size += strlen(tmp_array[i++]);
-        }
-        else
-        {
-            BPSEC_DEBUG_ERR("Cannot convert value of type %d to string.", val->scValId);
-        }
-    }
+		if((idx = bpsec_scvm_byIdIdxFind(map, val->scValId, val->scValType)) >= 0)
+		{
+			tmp_array[i++] = map[idx].scValToStr(wm, val);
+			size += strlen(tmp_array[i++]);
+		}
+		else
+		{
+			BPSEC_DEBUG_ERR("Cannot convert value of type %d to string.", val->scValId);
+		}
+	}
 
-    return bpsec_scutl_strFromStrsCreate(tmp_array, size, num_items);
+	return bpsec_scutl_strFromStrsCreate(tmp_array, size, num_items);
 }
 
 
@@ -458,76 +458,76 @@ char* bpsec_sci_polParmPrint(PsmPartition wm, sc_Def *sc_def, PsmAddress pol_par
 
 int bpsec_sci_parmFilter(sc_state *state, sc_Def *def, PsmPartition wm, PsmAddress pol_parms, Lyst blk_parms)
 {
-    LystElt elt = NULL;
-    PsmAddress eltAddr = 0;
-    int found = 0;
-    sc_value *val = NULL;
-    PsmAddress polAddr = 0;
-    sc_value *polval = NULL;
-    sc_value *polvalCopy = NULL;
+	LystElt elt = NULL;
+	PsmAddress eltAddr = 0;
+	int found = 0;
+	sc_value *val = NULL;
+	PsmAddress polAddr = 0;
+	sc_value *polval = NULL;
+	sc_value *polvalCopy = NULL;
 
-    BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC","ADDR_FIELDSPEC",wm,%d,"ADDR_FIELDSPEC")",
-                    (uaddr)state, (uaddr)def, pol_parms, (uaddr)blk_parms);
+	BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC","ADDR_FIELDSPEC",wm,%d,"ADDR_FIELDSPEC")",
+			(uaddr)state, (uaddr)def, pol_parms, (uaddr)blk_parms);
 
-    /* Step 0: Sanity checks on inputs */
-    CHKERR(wm);
-    CHKERR(state);
-    CHKERR(state->scStParms);
-    CHKERR(def);
+	/* Step 0: Sanity checks on inputs */
+	CHKERR(wm);
+	CHKERR(state);
+	CHKERR(state->scStParms);
+	CHKERR(def);
 
-    /*
-     * Step 2: For each block-defined parameter, create an sci_parm for this
-     *         state. This involved de-serializing the parm from its CBOR
-     *         encoding.
-     */
+	/*
+	 * Step 2: For each block-defined parameter, create an sci_parm for this
+	 *         state. This involved de-serializing the parm from its CBOR
+	 *         encoding.
+	 */
 
-    BPSEC_DEBUG_INFO("There are %d blk parms.", lyst_length(blk_parms));
+	BPSEC_DEBUG_INFO("There are %d blk parms.", lyst_length(blk_parms));
 
 
-    for(elt = lyst_first(blk_parms); elt; elt = lyst_next(elt))
-    {
-        if((val = bpsec_scv_memCopy((sc_value *) lyst_data(elt))) != NULL)
-        {
-            lyst_insert_last(state->scStParms, val);
-        }
-    }
-
-    /* Step 3: Copy in any non-redundant policy parameters. */
-    if(pol_parms != 0)
-    {
-        for(eltAddr = sm_list_first(wm, pol_parms); eltAddr; eltAddr = sm_list_next(wm, eltAddr))
-        {
-            polAddr = sm_list_data(wm, eltAddr);
-            found = 0;
-
-            if((polval = psp(wm, polAddr)) == NULL)
-            {
-                continue;
-            }
-
-            for(elt = lyst_first(state->scStParms); elt; elt = lyst_next(elt))
-            {
-                val = (sc_value*) lyst_data(elt);
-
-                if((val != NULL) && (val->scValLength == polval->scValId))
-                {
-                    found = 1;
-                    break;
-                }
-            }
-
-            if(found == 0)
-            {
-		if ((polvalCopy = bpsec_scv_memCopy(polval)) != NULL)
+	for(elt = lyst_first(blk_parms); elt; elt = lyst_next(elt))
+	{
+		if((val = bpsec_scv_memCopy((sc_value *) lyst_data(elt))) != NULL)
 		{
-			lyst_insert_last(state->scStParms, polvalCopy);
+			lyst_insert_last(state->scStParms, val);
 		}
-            }
-        }
-    }
+	}
 
-    BPSEC_DEBUG_PROC("-->0", NULL);
-    return 0;
+	/* Step 3: Copy in any non-redundant policy parameters. */
+	if(pol_parms != 0)
+	{
+		for(eltAddr = sm_list_first(wm, pol_parms); eltAddr; eltAddr = sm_list_next(wm, eltAddr))
+		{
+			polAddr = sm_list_data(wm, eltAddr);
+			found = 0;
+
+			if((polval = psp(wm, polAddr)) == NULL)
+			{
+			continue;
+			}
+
+			for(elt = lyst_first(state->scStParms); elt; elt = lyst_next(elt))
+			{
+				val = (sc_value*) lyst_data(elt);
+
+				if((val != NULL) && (val->scValLength == polval->scValId))
+				{
+					found = 1;
+					break;
+				}
+			}
+
+			if(found == 0)
+			{
+				if ((polvalCopy = bpsec_scv_memCopy(polval)) != NULL)
+				{
+					lyst_insert_last(state->scStParms, polvalCopy);
+				}
+			}
+		}
+	}
+
+	BPSEC_DEBUG_PROC("-->0", NULL);
+	return 0;
 }
 
 
@@ -553,44 +553,44 @@ int bpsec_sci_parmFilter(sc_state *state, sc_Def *def, PsmPartition wm, PsmAddre
  * @retval -1 - System error
  *****************************************************************************/
 
-int   bpsec_sci_initAsbFn(void *def, Bundle *bundle, BpsecOutboundASB *asb, Sdr sdr, PsmPartition wm, PsmAddress parms)
+int bpsec_sci_initAsbFn(void *def, Bundle *bundle, BpsecOutboundASB *asb, Sdr sdr, PsmPartition wm, PsmAddress parms)
 {
 	sc_Def *ctx_def = (sc_Def*) def;
 
 	BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC",sdr,wm,%d",
-	                 (uaddr)def, (uaddr)bundle, (uaddr)asb, parms);
+			(uaddr)def, (uaddr)bundle, (uaddr)asb, parms);
 
-    /* Step 0: Sanity Checks. */
-    CHKERR(def);
-    CHKERR(asb);
+	/* Step 0: Sanity Checks. */
+	CHKERR(def);
+	CHKERR(asb);
 
-    /* Step 1 - Allocate SDR space for ASB elements. */
-    if((asb->scResults = sdr_list_create(sdr)) == 0)
-    {
-        BPSEC_DEBUG_ERR("Cannot allocate sdr list.", NULL);
-        return -1;
-    }
+	/* Step 1 - Allocate SDR space for ASB elements. */
+	if((asb->scResults = sdr_list_create(sdr)) == 0)
+	{
+		BPSEC_DEBUG_ERR("Cannot allocate sdr list.", NULL);
+		return -1;
+	}
 
-    /*
-     * Step 2 - If there are security context parameters, record them with the
-     *          outbound ASB.
-     */
+	/*
+	 * Step 2 - If there are security context parameters, record them with the
+	 *          outbound ASB.
+	 */
 
-    if(sm_list_length(wm, parms) > 0)
-    {
-        if((asb->scParms = bpsec_scv_smListRecord(sdr, 0, wm, parms)) == 0)
-        {
-            BPSEC_DEBUG_ERR("Cannot record parms list to SDR.", NULL);
-            sdr_list_destroy(sdr, asb->scResults, NULL, NULL);
-            return 0;
-        }
-    }
+	if(sm_list_length(wm, parms) > 0)
+	{
+		if((asb->scParms = bpsec_scv_smListRecord(sdr, 0, wm, parms)) == 0)
+		{
+			BPSEC_DEBUG_ERR("Cannot record parms list to SDR.", NULL);
+			sdr_list_destroy(sdr, asb->scResults, NULL, NULL);
+			return 0;
+		}
+	}
 
-    /* Step 3: Populate portions of the ABS. */
-    bpsec_asb_outboundSecuritySourceInsert(bundle, asb);
-    asb->scId = ctx_def->scId;
+	/* Step 3: Populate portions of the ABS. */
+	bpsec_asb_outboundSecuritySourceInsert(bundle, asb);
+	asb->scId = ctx_def->scId;
 
-    return 1;
+	return 1;
 }
 
 
@@ -610,22 +610,22 @@ int   bpsec_sci_initAsbFn(void *def, Bundle *bundle, BpsecOutboundASB *asb, Sdr 
 
 void bpsec_sci_stateClear(sc_state *state)
 {
-    CHKVOID(state);
+	CHKVOID(state);
 
-    /* There are delete callbacks on these Lysts. */
- 
-    /* Destroy the parameters list. */
-    lyst_destroy(state->scStParms);	/*	SB 12/20/2023		*/
+	/* There are delete callbacks on these Lysts. */
 
-    /* Delete the results list and DO destroy its deep-copy results. */
-    lyst_destroy(state->scStResults);
+	/* Destroy the parameters list. */
+	lyst_destroy(state->scStParms);	/*	SB 12/20/2023		*/
 
-    if (state->scRawKey.scValLoc != 0)	/*	Must clear copy of key.	*/
-    {
-	bpsec_scv_clear(0, &(state->scRawKey));
-    }
+	/* Delete the results list and DO destroy its deep-copy results. */
+	lyst_destroy(state->scStResults);
 
-    memset(state, 0, sizeof(sc_state));
+	if (state->scRawKey.scValLoc != 0)	/*	Must clear copy of key.	*/
+	{
+		bpsec_scv_clear(0, &(state->scRawKey));
+	}
+
+	memset(state, 0, sizeof(sc_state));
 }
 
 
@@ -653,12 +653,12 @@ void bpsec_sci_stateClear(sc_state *state)
 
 int  bpsec_sci_stateIncr(sc_state *state)
 {
-    CHKERR(state);
+	CHKERR(state);
 
-    state->scStCurTgt++;
-    lyst_clear(state->scStResults);
+	state->scStCurTgt++;
+	lyst_clear(state->scStResults);
 
-    return 1;
+	return 1;
 }
 
 
@@ -691,60 +691,60 @@ int  bpsec_sci_stateIncr(sc_state *state)
  *****************************************************************************/
 
 int bpsec_sci_stateInit(PsmPartition wm, sc_state *state, unsigned char secBlkNum, void *def, sc_role role, sc_action action,
-                      EndpointId src, PsmAddress pol_parms, Lyst blk_parms, int num_tgts)
+		EndpointId src, PsmAddress pol_parms, Lyst blk_parms, int num_tgts)
 {
-    sc_Def *sc_def = (sc_Def *) def;
+	sc_Def *sc_def = (sc_Def *) def;
 
-    BPSEC_DEBUG_PROC("(wm,"ADDR_FIELDSPEC","ADDR_FIELDSPEC",%d, src, %d,"ADDR_FIELDSPEC",%d)",
-                    (uaddr)state, (uaddr)def, action, pol_parms, (uaddr)blk_parms, num_tgts);
+	BPSEC_DEBUG_PROC("(wm,"ADDR_FIELDSPEC","ADDR_FIELDSPEC",%d, src, %d,"ADDR_FIELDSPEC",%d)",
+			(uaddr)state, (uaddr)def, action, pol_parms, (uaddr)blk_parms, num_tgts);
 
-    /* Step 0: Sanity checks. */
-    CHKERR(wm);
-    CHKERR(state);
-    CHKERR(sc_def);
+	/* Step 0: Sanity checks. */
+	CHKERR(wm);
+	CHKERR(state);
+	CHKERR(sc_def);
 
-    if((state->scStResults = lyst_create_using(getIonMemoryMgr())) == NULL)
-    {
-        BPSEC_DEBUG_ERR("Unable to create lyst.", NULL);
-        bpsec_sci_stateClear(state);
-        return -1;
-    }
+	if((state->scStResults = lyst_create_using(getIonMemoryMgr())) == NULL)
+	{
+		BPSEC_DEBUG_ERR("Unable to create lyst.", NULL);
+		bpsec_sci_stateClear(state);
+		return -1;
+	}
 
-    lyst_delete_set(state->scStResults, bpsec_scv_lystCbDel, NULL);
+	lyst_delete_set(state->scStResults, bpsec_scv_lystCbDel, NULL);
 
 
-    if((state->scStParms = lyst_create_using(getIonMemoryMgr())) == NULL)
-    {
-        BPSEC_DEBUG_ERR("Unable to create lyst.", NULL);
-        bpsec_sci_stateClear(state);
-        return -1;
-    }
+	if((state->scStParms = lyst_create_using(getIonMemoryMgr())) == NULL)
+	{
+		BPSEC_DEBUG_ERR("Unable to create lyst.", NULL);
+		bpsec_sci_stateClear(state);
+		return -1;
+	}
 
-    lyst_delete_set(state->scStParms, bpsec_scv_lystCbDel, NULL);
+	lyst_delete_set(state->scStParms, bpsec_scv_lystCbDel, NULL);
 
-    memset(&(state->scRawKey), 0, sizeof(sc_value));
+	memset(&(state->scRawKey), 0, sizeof(sc_value));
 
-    state->scStWm = wm;
-    state->scSecBlkNum = secBlkNum;
-    state->scStId = sc_def->scId;
-    state->scRole = role;
-    state->scStAction = action;
-    state->scStSize = 0;
-    state->scStStatus = SC_STAT_OK;
-    state->scStCurTgt = 0;
-    state->scStTotTgts = num_tgts;
-    state->scStSource = src;
-    state->sdr = getIonsdr();
+	state->scStWm = wm;
+	state->scSecBlkNum = secBlkNum;
+	state->scStId = sc_def->scId;
+	state->scRole = role;
+	state->scStAction = action;
+	state->scStSize = 0;
+	state->scStStatus = SC_STAT_OK;
+	state->scStCurTgt = 0;
+	state->scStTotTgts = num_tgts;
+	state->scStSource = src;
+	state->sdr = getIonsdr();
 
-    if(bpsec_sci_parmFilter(state, def, wm, pol_parms, blk_parms) != 0)
-    {
-        BPSEC_DEBUG_ERR("Unable to filter parameters.", NULL);
+	if(bpsec_sci_parmFilter(state, def, wm, pol_parms, blk_parms) != 0)
+	{
+		BPSEC_DEBUG_ERR("Unable to filter parameters.", NULL);
 
-        bpsec_sci_stateClear(state);
-        return -1;
-    }
+		bpsec_sci_stateClear(state);
+		return -1;
+	}
 
-    return 0;
+	return 0;
 }
 
 
@@ -782,91 +782,89 @@ int bpsec_sci_stateInit(PsmPartition wm, sc_state *state, unsigned char secBlkNu
  *****************************************************************************/
 int  bpsec_sci_multCheck(Sdr sdr, BpsecOutboundASB *asb, sc_Def *def, PsmPartition wm, PsmAddress parms)
 {
-    Lyst blk_parms = NULL;
-    PsmAddress sop_elt;
-    LystElt blk_elt;
-    sc_value *blk_val = NULL;
-    sc_value *sop_val = NULL;
-    int matched = 0;
+	Lyst blk_parms = NULL;
+	PsmAddress sop_elt;
+	LystElt blk_elt;
+	sc_value *blk_val = NULL;
+	sc_value *sop_val = NULL;
+	int matched = 0;
 
-    CHKERR(asb);
-    CHKERR(def);
+	CHKERR(asb);
+	CHKERR(def);
 
 
-    /*
-     * Step 1: Make sure the security contexts are compatible. The security
-     *         context used by the block must be the security context that
-     *         will be used by the SOP.
-     */
-    if(asb->scId != def->scId)
-    {
-        return 0;
-    }
+	/*
+	 * Step 1: Make sure the security contexts are compatible. The security
+	 *         context used by the block must be the security context that
+	 *         will be used by the SOP.
+	 */
+	if(asb->scId != def->scId)
+	{
+		return 0;
+	}
 
-    /* Step 2: Make sure the number of parameters are the same.  */
-    if(sdr_list_length(sdr, asb->scParms) != sm_list_length(wm, parms))
-    {
-        return 0;
-    }
+	/* Step 2: Make sure the number of parameters are the same.  */
+	if(sdr_list_length(sdr, asb->scParms) != sm_list_length(wm, parms))
+	{
+		return 0;
+	}
 
-    /*
-     * Step 3: Make sure this security block is created locally. We can only
-     *         add SOPs to local security blocks.
-     */
-    if(bpsec_util_eidIsLocalCheck(asb->scSource) <= 0)
-    {
-        return 0;
-    }
+	/*
+	 * Step 3: Make sure this security block is created locally. We can only
+	 *         add SOPs to local security blocks.
+	 */
+	if(bpsec_util_eidIsLocalCheck(asb->scSource) <= 0)
+	{
+		return 0;
+	}
 
-    /*
-     * Step 4: Make sure every parameter in the security block is the
-     *         same as every parameter in the SOP.
-     *
-     *         Start by pulling SDR parms into memory.
-     *
-     *         TODO: This might be slower than reading them in 1 by 1
-     *               from SDR...
-     */
-    blk_parms = bpsec_scv_sdrListRead(sdr, asb->scParms);
+	/*
+	 * Step 4: Make sure every parameter in the security block is the
+	 *         same as every parameter in the SOP.
+	 *
+	 *         Start by pulling SDR parms into memory.
+	 *
+	 *         TODO: This might be slower than reading them in 1 by 1
+	 *               from SDR...
+	 */
+	blk_parms = bpsec_scv_sdrListRead(sdr, asb->scParms);
 
-    for(blk_elt = lyst_first(blk_parms); blk_elt; blk_elt = lyst_next(blk_elt))
-    {
-        /* Step 4.1: Grab block param and assume there is no match for it. */
-        blk_val = (sc_value *) lyst_data(blk_elt);
-        matched = 0;
+	for(blk_elt = lyst_first(blk_parms); blk_elt; blk_elt = lyst_next(blk_elt))
+	{
+		/* Step 4.1: Grab block param and assume there is no match for it. */
+		blk_val = (sc_value *) lyst_data(blk_elt);
+		matched = 0;
 
-        for(sop_elt = sm_list_first(wm, parms); sop_elt; sop_elt = sm_list_next(wm, sop_elt))
-        {
-           sop_val = (sc_value *) psp(wm, sm_list_data(wm, sop_elt));
-           if(sop_val->scValId == (blk_val->scValId))
-           {
-               if((sop_val->scValId == blk_val->scValId) &&
-                  (sop_val->scValLength == blk_val->scValLength))
-               {
-                   if(memcmp(psp(wm,sop_val->scRawValue.asAddr), blk_val->scRawValue.asPtr, sop_val->scValLength) == 0)
-                   {
-                       /* Step 4.2: If we find a match, note it and move on. */
-                       matched = 1;
-                       break;
-                   }
-               }
-           }
-        }
+		for(sop_elt = sm_list_first(wm, parms); sop_elt; sop_elt = sm_list_next(wm, sop_elt))
+		{
+			sop_val = (sc_value *) psp(wm, sm_list_data(wm, sop_elt));
+			if(sop_val->scValId == (blk_val->scValId))
+			{
+				if((sop_val->scValId == blk_val->scValId) &&
+					(sop_val->scValLength == blk_val->scValLength))
+				{
+					if(memcmp(psp(wm,sop_val->scRawValue.asAddr), blk_val->scRawValue.asPtr, sop_val->scValLength) == 0)
+					{
+						/* Step 4.2: If we find a match, note it and move on. */
+						matched = 1;
+						break;
+					}
+				}
+			}
+		}
 
-        /*
-         * Step 4.3: If there is no match for the block param, the SOP cannot go into the
-         *           security block, because the block parameters and SOP parameters are
-         *           different.
-         */
-        if(matched == 0)
-        {
-            break;
-        }
-    }
-    lyst_destroy(blk_parms);
+		/*
+		 * Step 4.3: If there is no match for the block param, the SOP cannot go into the
+		 *           security block, because the block parameters and SOP parameters are
+		 *           different.
+		 */
+		if(matched == 0)
+		{
+			break;
+		}
+	}
+	lyst_destroy(blk_parms);
 
-    /* Step 5: If all parameters matched, then the SOP can go in the security block. */
-    return matched;
+	/* Step 5: If all parameters matched, then the SOP can go in the security block. */
+	return matched;
 }
-
-

@@ -8,7 +8,7 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
 
-	Modified by Sky DeBaun	
+	Modified by Sky DeBaun
 	Jet Propulsion Laboratory 2022
 
 	Modifications address the following issue:
@@ -303,7 +303,7 @@ void	eraseVenture(Venture *venture)
 			lyst_destroy(venture->subjLysts[i]);
 		}
 	}
-	
+
 	LystElt elt;
 
 	for(elt = lyst_first(venture->msgspace_lyst); elt; elt = lyst_next(elt))
@@ -313,8 +313,8 @@ void	eraseVenture(Venture *venture)
 			eraseMsgspace(venture, (Subject *) lyst_data(elt));
 
 			/* then we can safely delete the lyst element */
-			lyst_delete(elt);		
-		}		
+			lyst_delete(elt);
+		}
 	}
 
 	(_mib(NULL))->ventures[venture->nbr] = NULL;
@@ -388,17 +388,17 @@ static void destroyMIBContinua(LystElt elt, void *userdata)
 }
 
  /*	required function for lyst initialization (msgspace_lyst)
-	 Note: special consideration must be given to the 
+	 Note: special consideration must be given to the
 	 msgspaces pointers */
 static void destroyMsgSpace(LystElt elt, void *userdata)
 {
 	/* Parameter intentionally unused. */
 	(void)userdata;
 
-	/*  msgspace is of type: Subject, so we cast the element 
+	/*  msgspace is of type: Subject, so we cast the element
 		to Subject pointer here */
 	Subject *my_msgspace = (Subject *) lyst_data(elt);
-	MRELEASE(my_msgspace);	
+	MRELEASE(my_msgspace);
 }
 
 static void	destroyAmsEpspec(LystElt elt, void *userdata)
@@ -554,15 +554,15 @@ static int	initializeMib(AmsMib *mib, short continuumNbr, char *ptsName,
 	mib->amsEndpointSpecs = lyst_create_using(amsMemory);
 	CHKERR(mib->amsEndpointSpecs);
 	lyst_delete_set(mib->amsEndpointSpecs, destroyAmsEpspec, NULL);
-	
+
 	mib->applications = lyst_create_using(amsMemory);
 	CHKERR(mib->applications);
 	lyst_delete_set(mib->applications, destroyApplication, NULL);
-	
+
 	mib->csEndpoints = lyst_create_using(amsMemory);
 	CHKERR(mib->csEndpoints);
 	lyst_delete_set(mib->csEndpoints, destroyCsEndpoint, NULL);
-	
+
 	mib->localContinuumNbr = continuumNbr;
 	if (pubkeyname)
 	{
@@ -633,10 +633,10 @@ static void initializeMibLock(void)
 	if (initResourceLock(&mibLock) < 0)
 	{
 		putErrmsg("Can't initialize mibLock.", NULL);
-	/* 
-		* If this fails, something is catastrophically wrong. 
-		* It is appropriate to abort. 
-		*/
+		/*
+		 * If this fails, something is catastrophically wrong.
+		 * It is appropriate to abort.
+		 */
 		sm_Abort();
 	}
 }
@@ -644,22 +644,22 @@ static void initializeMibLock(void)
 static void _mibLock(int lock)
 {
 	/*
-	* The MIB is shared among threads, so access to it must
-	* be mutexed.
-	*/
+	 * The MIB is shared among threads, so access to it must
+	 * be mutexed.
+	 */
 
 	/*
-	* This guarantees that initializeMibLock() is called by exactly
-	* one thread, exactly once. After the first call, all subsequent
-	* calls to pthread_once with this control variable do nothing
-	* and return immediately with negligible overhead.
-	*/
+	 * This guarantees that initializeMibLock() is called by exactly
+	 * one thread, exactly once. After the first call, all subsequent
+	 * calls to pthread_once with this control variable do nothing
+	 * and return immediately with negligible overhead.
+	 */
 	pthread_once(&mibLockIsInitialized, initializeMibLock);
 
 	/*
-	* Because we now know the lock is initialized, we can proceed
-	* directly to the lock, unlock, or kill operation.
-	*/
+	 * Because we now know the lock is initialized, we can proceed
+	 * directly to the lock, unlock, or kill operation.
+	 */
 	switch (lock)
 	{
 	case -1:
@@ -874,7 +874,7 @@ static int	hashSubjectName(char *name)
 
 		h &= ~g;
 	}
-	
+
 	return h % SUBJ_LIST_CT;
 }
 
@@ -986,9 +986,9 @@ Subject *getMsgSpaceByNbr(Venture *myVenture, short continuum_nbr)
 		/*	Msg spaces are stored in pseudonumber
 		 *	notation (i.e. negative..)			*/
 
-		if (0 - myMsgSpace->nbr == continuum_nbr) 
+		if (0 - myMsgSpace->nbr == continuum_nbr)
 		{
-			/* We have a match */		
+			/* We have a match */
 			return myMsgSpace;
 		}
 	}
@@ -1001,7 +1001,7 @@ Continuum	*getContinuaByNbr(short contnbr)
 	Continuum 	*myContinuum = NULL;
 	LystElt		elt = NULL;
 
-	
+
 	for (elt = lyst_first(_mib(NULL)->continuum_lyst); elt;
 			elt = lyst_next(elt))
 	{
@@ -1009,18 +1009,18 @@ Continuum	*getContinuaByNbr(short contnbr)
 
 		if (myContinuum->nbr == contnbr)
 		{
-			/* We have a match */		
+			/* We have a match */
 			return myContinuum;
 		}
 	}
-	
+
 	return NULL;
 }
 
 short	lookUpContinuum(const char *contName)
 {
 	lockMib();
-	
+
 	Continuum 	*myContinuum = NULL;
 	LystElt		elt;
 
@@ -1032,8 +1032,8 @@ short	lookUpContinuum(const char *contName)
 		{
 			unlockMib();
 			return myContinuum->nbr;
-		}	
-	}	
+		}
+	}
 
 	unlockMib();
 	return -1;
@@ -1110,7 +1110,7 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 			}
 			else if (getKey(keyName, authKeyLen, authKey) < 0)
 			{
-				writeMemoNote("[?] Can't get role private key", 
+				writeMemoNote("[?] Can't get role private key",
 					role->privateKeyName);
 			}
 		}
@@ -1123,7 +1123,7 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 			}
 			else if (getKey(keyName, authKeyLen, authKey) < 0)
 			{
-				writeMemoNote("[?] Can't get role public key", 
+				writeMemoNote("[?] Can't get role public key",
 					role->publicKeyName);
 			}
 		}
@@ -1140,7 +1140,7 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 			}
 			else if (getKey(keyName, authKeyLen, authKey) < 0)
 			{
-				writeMemoNote("[?] Can't get app private key", 
+				writeMemoNote("[?] Can't get app private key",
 					(*venture)->app->privateKeyName);
 			}
 		}
@@ -1153,17 +1153,17 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 			}
 			else if (getKey(keyName, authKeyLen, authKey) < 0)
 			{
-				writeMemoNote("[?] Can't get app public key", 
+				writeMemoNote("[?] Can't get app public key",
 					(*venture)->app->publicKeyName);
 			}
 		}
 	}
 	else			/*	Sender is CS.		*/
-	{		
+	{
 		Continuum *my_continuum = getContinuaByNbr(mib->localContinuumNbr);
 		*authName = my_continuum->name;
 
-		
+
 		if (sending)
 		{
 			keyName = mib->csPrivateKeyName;
@@ -1173,7 +1173,7 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 			}
 			else if (getKey(keyName, authKeyLen, authKey) < 0)
 			{
-				writeMemoNote("[?] Can't get CS private key", 
+				writeMemoNote("[?] Can't get CS private key",
 					mib->csPrivateKeyName);
 			}
 		}
@@ -1186,7 +1186,7 @@ static int	getAuthenticationParms(int ventureNbr, int unitNbr, int roleNbr,
 			}
 			else if (getKey(keyName, authKeyLen, authKey) < 0)
 			{
-				writeMemoNote("[?] Can't get CS public key", 
+				writeMemoNote("[?] Can't get CS public key",
 					mib->csPublicKeyName);
 			}
 		}
@@ -1321,7 +1321,7 @@ Subject	*createSubject(Venture *venture, short nbr, char *name,
 	venture->subjects[nbr] = subj;
 	idx = hashSubjectName(name);
 	subj->elt = lyst_insert_last(venture->subjLysts[idx], subj);
-       	CHKNULL(subj->elt);
+	CHKNULL(subj->elt);
 	return subj;
 }
 
@@ -1554,12 +1554,12 @@ Subject	*createMsgspace(Venture *venture, short continNbr, int isNeighbor,
 	CHKNULL(continNbr > 0);
 
 	/* return null if no match */
-	if(getContinuaByNbr((_mib(NULL), continNbr)) == NULL ) 
+	if(getContinuaByNbr((_mib(NULL), continNbr)) == NULL )
 	{
 		return NULL;
-	}	
+	}
 	/* if already exists */
-	if (getMsgSpaceByNbr(venture, continNbr) != NULL) 
+	if (getMsgSpaceByNbr(venture, continNbr) != NULL)
 	{
 		return NULL;
 	}
@@ -1600,11 +1600,11 @@ Subject	*createMsgspace(Venture *venture, short continNbr, int isNeighbor,
 	msgspace->modules = lyst_create_using(amsMemory);
 	CHKNULL(msgspace->modules);
 	lyst_delete_set(msgspace->modules, destroyFanModule, NULL);
-	
+
 
 	elt = lyst_insert(venture->msgspace_lyst, msgspace);
 	CHKNULL(elt);/* error check me */
-	
+
 	return msgspace;
 }
 
@@ -1826,7 +1826,7 @@ static Venture	*createVenture2(int nbr, char *appname, char *authname,
 	Unit		*rootUnit;
 	Subject		*msgspace;	/*	In local continuum.	*/
 
-	
+
 	CHKNULL(nbr > 0);
 	CHKNULL(nbr <= MAX_VENTURE_NBR);
 	CHKNULL(mib->ventures[nbr] == NULL);
@@ -1967,7 +1967,7 @@ static Continuum	*createContinuum2(int nbr, char *name,
 
 	CHKNULL(nbr > 0);
 	CHKNULL(nbr <= MAX_CONTIN_NBR);
-	
+
 	if(getContinuaByNbr(nbr) != NULL)
 	{
 		return NULL;
@@ -1994,7 +1994,7 @@ static Continuum	*createContinuum2(int nbr, char *name,
 
 	elt = lyst_insert(mib->continuum_lyst, contin);
 	CHKNULL(elt);
-	
+
 	return contin;
 }
 
@@ -2178,7 +2178,7 @@ int	constructMamsEndpoint(MamsEndpoint *endpoint, int eptLength, char *ept)
 	 *	in the tsep of the endpoint.				*/
 
 	lockMib();
-	result = ((_mib(NULL))->pts->parseMamsEndpointFn)(endpoint); 
+	result = ((_mib(NULL))->pts->parseMamsEndpointFn)(endpoint);
 	unlockMib();
 	if (result < 0)
 	{
@@ -2245,7 +2245,7 @@ int	sendMamsMsg(MamsEndpoint *endpoint, MamsInterface *tsif,
 	Unit			*unit;
 	char			*authName;
 	char			authKey[32];
-	int				authKeyLen = sizeof authKey; 
+	int				authKeyLen = sizeof authKey;
 	int				authNameLen;
 	int				nonce;
 	unsigned char	authenticator[AUTHENTICAT_LEN];
@@ -2274,7 +2274,7 @@ int	sendMamsMsg(MamsEndpoint *endpoint, MamsInterface *tsif,
 	{
 		return 0;		/*	Don't send message.	*/
 	}
-	
+
 	if (authKeyLen > 0)
 	{
 		authNameLen = strlen(authName);
@@ -2592,7 +2592,7 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 	{
 		return 0;		/*	Don't deliver message.	*/
 	}
-	
+
 	if (authKeyLen > 0)
 	{
 		/*	Authentication is required.			*/

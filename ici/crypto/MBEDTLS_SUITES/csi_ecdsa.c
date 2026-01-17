@@ -489,18 +489,18 @@ int8_t ecdsa_sign_finish(csi_csid_t suite, void *context, csi_val_t *digest, csi
 			digest->len = 0;
 			return ERROR;
 		}
-		
+
 		/* Initialize temp length with the buffer size */
 		sig_len = digest->len;
 
 		retval = mbedtls_ecdsa_write_signature(ici_ecdsa_ctx->ecdsa_ctx, // ECDSA context
-												hashalg,                  // Algorithm used to hash the message.
-												hashval.contents,        // Message hash
-												hashval.len,             // Length of hash
-												digest->contents,         // Buffer that will hold the signature
-												&sig_len,                // Use temp variable instead of cast
-												mbedtls_ctr_drbg_random,
-												(void *) &ctr_drbg);
+							hashalg,                 // Algorithm used to hash the message.
+							hashval.contents,        // Message hash
+							hashval.len,             // Length of hash
+							digest->contents,        // Buffer that will hold the signature
+							&sig_len,                // Use temp variable instead of cast
+							mbedtls_ctr_drbg_random,
+							(void *) &ctr_drbg);
 		if(retval != 0)
 		{
 			CSI_DEBUG_ERR("x ecdsa_sign_finish: Unable to write signature. Error %x.", retval);
@@ -516,10 +516,10 @@ int8_t ecdsa_sign_finish(csi_csid_t suite, void *context, csi_val_t *digest, csi
 	else if(svc == CSI_SVC_VERIFY)
 	{
 		retval = mbedtls_ecdsa_read_signature(ici_ecdsa_ctx->ecdsa_ctx, // ECDSA context
- 		                          	  	      hashval.contents,         // Message Hash
-											  hashval.len,              // Length of Hash
-		                                      digest->contents,
-											  digest->len);
+							hashval.contents,       // Message Hash
+							hashval.len,            // Length of Hash
+							digest->contents,
+							digest->len);
 		if(retval != 0)
 		{
 			CSI_DEBUG_ERR("x ecdsa_sign_finish: Unable to verify signature. Error %x.", retval);
@@ -650,13 +650,13 @@ int8_t ecdsa_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val
 
 		/* Step 4: Sign the result. */
 		retval = mbedtls_ecdsa_write_signature(ecdsa_ctx, // ECDSA context
-													hashalg,                  // Algorithm used to hash the message.
-													hashval.contents,        // Message hash
-													hashval.len,             // Length of hash
-													result->contents,         // Buffer that will hold the signature
-													&sig_len,                 // Use temp variable instead of cast!
-													mbedtls_ctr_drbg_random,
-													(void *)&ctr_drbg);
+					hashalg,                  // Algorithm used to hash the message.
+					hashval.contents,         // Message hash
+					hashval.len,              // Length of hash
+					result->contents,         // Buffer that will hold the signature
+					&sig_len,                 // Use temp variable instead of cast!
+					mbedtls_ctr_drbg_random,
+					(void *)&ctr_drbg);
 
 		if(retval != 0)
 		{
@@ -681,10 +681,10 @@ int8_t ecdsa_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val
 		}
 
 		retval = mbedtls_ecdsa_read_signature(ecdsa_ctx, // ECDSA context
- 		                          	  	      hashval.contents,         // Message Hash
-											  hashval.len,              // Length of Hash
-		                                      result->contents,
-											  result->len);
+					hashval.contents,        // Message Hash
+					hashval.len,             // Length of Hash
+					result->contents,
+					result->len);
 		if(retval != 0)
 		{
 			CSI_DEBUG_ERR("x ecdsa_sign_finish: Unable to verify signature. Error %x.", retval);

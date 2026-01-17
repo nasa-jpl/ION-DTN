@@ -494,4 +494,3 @@ IEEE754_union IEEE754_DoubleToSmallestInternal(double d, int bAllowHalfPrecision
 
     return result;
 }
-

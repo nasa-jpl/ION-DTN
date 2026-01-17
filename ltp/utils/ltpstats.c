@@ -215,8 +215,8 @@ static void	processSpanStats(DisplayMode mode, int doReset)
 	writeTimestampLocal(currentTime, toTimestamp);
 
 	for (sdrElt = sdr_list_first(sdr, (getLtpConstants())->spans);
-	     sdrElt;
-	     sdrElt = sdr_list_next(sdr, sdrElt))
+			sdrElt;
+			sdrElt = sdr_list_next(sdr, sdrElt))
 	{
 		spanObj = sdr_list_data(sdr, sdrElt);
 		sdr_read(sdr, (char *) &span, spanObj, sizeof(LtpSpan));

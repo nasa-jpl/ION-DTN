@@ -25,8 +25,8 @@ extern "C" {
 
 typedef struct
 {
-        Object          	payload;
-        Sdnv            	length;
+	Object          	payload;
+	Sdnv            	length;
 } PayloadRecord;
 
 typedef int			(*DtpcElisionFn) (Object recordsList);
@@ -35,18 +35,18 @@ typedef struct dtpcsap_st	*DtpcSAP;
 
 typedef enum
 {
-        PayloadPresent = 1,
-        ReceptionTimedOut,
-        ReceptionInterrupted,
-        DtpcServiceStopped
+	PayloadPresent = 1,
+	ReceptionTimedOut,
+	ReceptionInterrupted,
+	DtpcServiceStopped
 } DtpcIndResult;
 
 typedef struct
 {
-        DtpcIndResult   result;
-	char		*srcEid;
-	unsigned int	length;
-        Object          item;
+	DtpcIndResult result;
+	char	     *srcEid;
+	unsigned int  length;
+	Object	      item;
 } DtpcDelivery;
 
 /*      *       *       DTPC initilization       *       *       *	*/
@@ -55,7 +55,7 @@ extern int      dtpc_attach(void);
 
 extern int      dtpc_entity_is_started(void);
 
-extern void      dtpc_detach(void);
+extern void     dtpc_detach(void);
 
 /*      *       *       DTPC local services      *       *       *	*/
 

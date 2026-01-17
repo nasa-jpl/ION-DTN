@@ -1,6 +1,6 @@
 # bprc configuration file for the tcpcl dos loopback test.
 #	Command: % bpadmin loopback.bprc
-#	This command should be run AFTER ionadmin and 
+#	This command should be run AFTER ionadmin and
 #	BEFORE ipnadmin or dtnadmin.
 #
 #	Ohio University, Oct 2008
@@ -27,7 +27,7 @@ a scheme ipn 'ipnfw' 'ipnadminep'
 a endpoint ipn:1.1 q
 a endpoint ipn:1.2 q
 
-# Add a protocol. 
+# Add a protocol.
 #	Add the protocol named tcp.
 #	Estimate transmission capacity assuming 1400 bytes of each frame (in
 #	this case, udp on ethernet) for payload, and 100 bytes for overhead.

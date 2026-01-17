@@ -3,7 +3,7 @@
 # dotest.sh
 # Samuel Jero
 # December 2010
-# 
+#
 # Mostly loopbacktest.sh by David Young
 #
 # script runs an LTP over DCCP loopback test
@@ -14,8 +14,8 @@ DCCPTEST=./dccptest.txt
 DCCPMSG="Usage: "
 dccplso >>$DCCPTEST
 if ! grep -q $DCCPMSG $DCCPTEST; then
-	echo "DCCP Support isn't available. Test not run."
-	exit 2
+    echo "DCCP Support isn't available. Test not run."
+    exit 2
 fi
 
 # check if the Operating System is Linux. Return 2 if it isn't
@@ -23,8 +23,8 @@ LINUXCHECK="Linux"
 LINUXTEST=./linuxtest.txt
 uname -o >>$LINUXTEST
 if ! grep -q $LINUXCHECK $LINUXTEST; then
-	echo "DCCP Support isn't available. Test not run."
-	exit 2
+    echo "DCCP Support isn't available. Test not run."
+    exit 2
 fi
 
 
@@ -89,7 +89,7 @@ if ! grep -q $IONMESSAGE $IONRECEIVEFILE; then
     cat $IONRECEIVEFILE
     echo "----------------------------------------------------------------------"
     RETVAL=1
-else 
+else
     echo "bundle transfer successful!"
     RETVAL=0
 fi
@@ -100,4 +100,3 @@ fi
 
 
 exit $RETVAL
-

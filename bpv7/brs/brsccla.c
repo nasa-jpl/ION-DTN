@@ -8,7 +8,7 @@
 	Copyright (c) 2006, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "brscla.h"
 
@@ -407,7 +407,7 @@ number>");
 	receiverParms.vduct = vinduct;
 	receiverParms.ductSocket = &ductSocket;
 	receiverParms.running = &running;
-        if (pthread_begin(&receiverThread, NULL, receiveBundles,
+	if (pthread_begin(&receiverThread, NULL, receiveBundles,
 			&receiverParms))
 	{
 		putSysErrmsg("brsccla can't create receiver thread", NULL);

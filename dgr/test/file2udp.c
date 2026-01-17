@@ -13,9 +13,9 @@ static int			cyclesRequested = 1;
 static struct sockaddr		socketName;
 static struct sockaddr_in	*inetName;
 
-static struct rtt_struct  	rttinfo;	/* used by rtt_XXX() */
-static int		   	rttfirst = 1;
-static int		   	tout_flag;	/* used in this file only */
+static struct rtt_struct	rttinfo;	/* used by rtt_XXX() */
+static int			rttfirst = 1;
+static int			tout_flag;	/* used in this file only */
 
 /*
  * Timer routines for round-trip timing of datagrams.

@@ -12,7 +12,7 @@ $(info ION ROOT: ADD_FLAGS is $(ADD_FLAGS))
 all:	with$(BP)
 
 withbpv6:
-	gmake -C ici all ADD_FLAGS="$(ADD_FLAGS)" 
+	gmake -C ici all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C ltp all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C dgr all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C bssp all ADD_FLAGS="$(ADD_FLAGS)"

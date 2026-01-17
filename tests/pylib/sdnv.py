@@ -55,7 +55,7 @@ if __name__ == '__main__':
              (0x1234, chr(0xA4) + chr (0x34)),
              (0x4234, chr(0x81) + chr(0x84) + chr(0x34)),
              (0x7F, chr(0x7F))]
-    
+
     for tp in tests:
         # test encoding function
         if sdnv_encode(tp[0]) != tp[1]:
@@ -64,4 +64,3 @@ if __name__ == '__main__':
         if sdnv_decode(tp[1])[0] != tp[0]:
             print "sdnv_decode fails on input %s, giving %s" % \
                     (hex(tp[0]), sdnv_decode(tp[1]))
-

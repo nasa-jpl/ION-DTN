@@ -3,13 +3,13 @@
  *	Send beacons thread.
  *	Receive beacon thread.
  *	Expire neighbors thread.
- *  
+ *
  *	Copyright (c) 2015, California Institute of Technology.
  *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
  *	acknowledged.
  *	Author: Gerard Garcia, TrePe
  *	Version 1.0 2015/05/09 Gerard Garcia
- *	Version 2.0 DTN Neighbor Discovery 
+ *	Version 2.0 DTN Neighbor Discovery
  *		- ION IPND Implementation Assembly Part2
  */
 

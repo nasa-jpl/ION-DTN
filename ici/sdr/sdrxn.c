@@ -505,7 +505,7 @@ int	Sdr_initialize(size_t wmSize, char *wmPtr, int wmKey, char *wmName)
 	/*	Attach to SDR's own shared working memory partition.	*/
 
 	if (_sdrwm(NULL) != NULL)	/*	Already initialized.	*/
-        {
+	{
 		sm_SemGive(lock);
 		return 0;
 	}
@@ -545,7 +545,7 @@ void	sdr_shutdown(void)	/*	Ends SDR service on machine.	*/
 		wmparms.wmKey = 0;
 		wmparms.wmSize = 0;
 		wmparms.wmAddress = NULL;
- 		wmparms.wmName = NULL;
+		wmparms.wmName = NULL;
 		oK(_sdrwm(&wmparms));
 	}
 
@@ -1085,7 +1085,7 @@ static int	createDsFile(SdrState *sdr, char *dsfilename)
 		{
 			lengthToWrite = bufsize;
 		}
-		
+
 		bytesWritten = write(dsfile, buffer, lengthToWrite);
 		if (bytesWritten < 0 || (size_t)bytesWritten < lengthToWrite)
 		{
@@ -1889,7 +1889,7 @@ int	sdr_begin_xn(Sdr sdrv)
 	{
 		return 0;	/*	Failed to begin transaction.	*/
 	}
-	
+
 	return 1;		/*	Began transaction.		*/
 }
 
@@ -2243,7 +2243,7 @@ entry.", NULL);
 			crashXn(sdrv);
 			return;
 		}
-		
+
 		bytesWritten = write(sdrv->dsfile, from, length);
 		if (bytesWritten < 0 || (size_t)bytesWritten < length)
 		{

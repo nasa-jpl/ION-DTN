@@ -63,7 +63,7 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  CONSTANTS  								  +
+ * |                              CONSTANTS                                   +
  * +--------------------------------------------------------------------------+
  */
 
@@ -111,7 +111,7 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  	MACROS  								  +
+ * |                                MACROS                                    +
  * +--------------------------------------------------------------------------+
  */
 
@@ -120,7 +120,7 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  DATA TYPES  								  +
+ * |                              DATA TYPES                                  +
  * +--------------------------------------------------------------------------+
  */
 
@@ -131,7 +131,7 @@ extern "C" {
  */
 typedef struct
 {
-    ResourceLock lock;
+	ResourceLock lock;
 
 	char server[UI_SQL_SERVERLEN];
 	char username[UI_SQL_ACCTLEN];
@@ -143,7 +143,7 @@ typedef struct
 
 /*
  * +--------------------------------------------------------------------------+
- * |						  FUNCTION PROTOTYPES  							  +
+ * |                          FUNCTION PROTOTYPES                             +
  * +--------------------------------------------------------------------------+
  */
 
@@ -218,7 +218,7 @@ int32_t           db_fetch_nn_idx(uint32_t nn);
 uint8_t*          db_fetch_oid_val(uint32_t idx, uint32_t *size);
 oid_t             db_fetch_oid(uint32_t nn_idx, uint32_t parm_idx, uint32_t oid_idx);
 int32_t           db_fetch_oid_idx(oid_t oid);
-Lyst			  db_fetch_parms(uint32_t idx);
+Lyst              db_fetch_parms(uint32_t idx);
 int32_t           db_fetch_protomid_idx(mid_t *mid);
 
 

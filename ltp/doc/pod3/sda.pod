@@ -8,7 +8,7 @@ sda - LTP Service Data Aggregation (SDA) library
 
     typedef vast (*SdaDelimiterFn)(unsigned int clientId, unsigned char *buffer, vast bufferLength);
 
-    typedef int	(*SdaHandlerFn)(uvast sourceEngineId, unsigned int clientId, Object clientServiceData);
+    typedef int (*SdaHandlerFn)(uvast sourceEngineId, unsigned int clientId, Object clientServiceData);
 
     [see description for available functions]
 

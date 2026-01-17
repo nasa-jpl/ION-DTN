@@ -13,61 +13,61 @@
 # defining the environment variable AWKSCRIPT before running this script
 # will work (for things like make test) before installation
 if [[ ! -r "${AWKSCRIPT}" ]] ; then
-	SUBFOLDER=`dirname "${0}"`
-	# assuming this bash script is installed with the usual binaries from autoconf
-	AWKSCRIPT="${SUBFOLDER}/../share/ion/ionstart.awk"
-	if [[ ! -r "${AWKSCRIPT}" ]] ; then
-		echo
-		echo "Didn't find awk script in ${AWKSCRIPT} now searching locally..."
-		# assume the bash script is in the same location as the awk script
-		AWKSCRIPT="${SUBFOLDER}/ionstart.awk"
-		if [[ ! -r "${AWKSCRIPT}" ]] ; then
-			echo
-			echo "Cannot find the location of the awk script."
-			echo "I thought it would be ${AWKSCRIPT} , but nothing is there."
-			echo "Set the environment variable AWKSCRIPT or edit me in ${0}"
-			exit 1
-		fi
-	fi
+    SUBFOLDER=`dirname "${0}"`
+    # assuming this bash script is installed with the usual binaries from autoconf
+    AWKSCRIPT="${SUBFOLDER}/../share/ion/ionstart.awk"
+    if [[ ! -r "${AWKSCRIPT}" ]] ; then
+        echo
+        echo "Didn't find awk script in ${AWKSCRIPT} now searching locally..."
+        # assume the bash script is in the same location as the awk script
+        AWKSCRIPT="${SUBFOLDER}/ionstart.awk"
+        if [[ ! -r "${AWKSCRIPT}" ]] ; then
+            echo
+            echo "Cannot find the location of the awk script."
+            echo "I thought it would be ${AWKSCRIPT} , but nothing is there."
+            echo "Set the environment variable AWKSCRIPT or edit me in ${0}"
+            exit 1
+        fi
+    fi
 fi
 
 function USAGE {
-	echo
-	echo    "IONSTART: Interplanetary Overlay Network startup script"
-	echo    "USAGE:"
-	echo    "	ionstart [-I config]	[-t tag]		[-a acsrc]		[-b bprc]		[-B bssprc]"
-	echo    "	         [-c cfdprc]	[-d dtn2rc]		[-e biberc]		[-i ionrc]		[-l ltprc]"
-	echo -n "	         [-m imcrc]		[-p ipnrc]		[-s ionsecrc]	[-S bpsecrc] 	[-L ltpsecrc]"
-	echo    ""
-	echo    "	Defined configurations will be run in the following order:"
-	echo -n "	config, ionrc, ionsecrc, bpsecrc, ltpsecrc, ltprc, bprc, ipnrc, biberc, dtn2rc, acsrc, imcrc, bssrc, cfdprc"
-	echo
-	echo "	-I config	Specifies file containing the configuration for each"
-	echo "			ion administration program. Each section must be"
-	echo "			preceded by: ## begin programname tag"
-	echo "			and proceeded by: ## end programname tag"
-	echo
-	echo "	-t tag		Optional tag, used to specify which sections are used"
-	echo "			in config file.  If unspecified, sections with no tag"
-	echo "			are used."
-	echo
-    echo "  -a acsrc    Specifies file acsrc to be used to configure acsadmin. (BPv6 only)"
-	echo "	-b bprc	<opt: seconds>		Specifies file bprc to be used to configure bpadmin with delay."
-	echo "	-B bssprc	Specifies file bssprc to be used to configure bsspadmin."
-	echo "	-c cfdprc	Specifies file cfdprc to be used to configure cfdpadmin."
-	echo "	-d dtn2rc	Specifies file dtn2rc to be used to configure dtn2admin."
-	echo "	-e biberc	Specifies file biberc to be used to configure bibeadmin."
-	echo "	-i ionrc <opt: seconds> 	Specifies file ionrc to be used to configure ionadmin with delay."
-	echo "	-l ltprc	Specifies file ltprc to be used to configure ltpadmin."
-	echo "	-m imcrc	Specifies file imcrc to be used to configure imcdmin. (BPv6 only)"
-	echo "	-p ipnrc	Specifies file ipnrc to be used to configure ipnadmin."
-	echo "	-s ionsecrc	Specifies file ionsecrc to be used to configure ionsecadmin."
-	echo "	-S bpsecrc	Specifies file bpsecrc to be used to configure bpsecadmin."
-	echo "	-L ltpsecrc	Specifies file ltpsecrc to be used to configure ltpsecadmin."
-	echo ""
-	echo "  <second>:   optional for -i and -b. Admin program will run these files after initial launch"
-	echo "              of non-delayed rc files. If delay is set as 0 explicitly, file will launch"
-	echo "              immediately after all non-delayed rc files were executed."
+    echo
+    echo    "IONSTART: Interplanetary Overlay Network startup script"
+    echo    "USAGE:"
+    echo    "	ionstart [-I config]	[-t tag]	[-a acsrc]	[-b bprc]	[-B bssprc]"
+    echo    "	         [-c cfdprc]	[-d dtn2rc]	[-e biberc]	[-i ionrc]	[-l ltprc]"
+    echo -n "	         [-m imcrc]	[-p ipnrc]	[-s ionsecrc]	[-S bpsecrc]	[-L ltpsecrc]"
+    echo    ""
+    echo    "	Defined configurations will be run in the following order:"
+    echo -n "	config, ionrc, ionsecrc, bpsecrc, ltpsecrc, ltprc, bprc, ipnrc, biberc, dtn2rc, acsrc, imcrc, bssrc, cfdprc"
+    echo
+    echo "	-I config	Specifies file containing the configuration for each"
+    echo "			ion administration program. Each section must be"
+    echo "			preceded by: ## begin programname tag"
+    echo "			and proceeded by: ## end programname tag"
+    echo
+    echo "	-t tag		Optional tag, used to specify which sections are used"
+    echo "			in config file.  If unspecified, sections with no tag"
+    echo "			are used."
+    echo
+    echo "	-a acsrc	Specifies file acsrc to be used to configure acsadmin. (BPv6 only)"
+    echo "	-b bprc <opt: seconds>		Specifies file bprc to be used to configure bpadmin with delay."
+    echo "	-B bssprc	Specifies file bssprc to be used to configure bsspadmin."
+    echo "	-c cfdprc	Specifies file cfdprc to be used to configure cfdpadmin."
+    echo "	-d dtn2rc	Specifies file dtn2rc to be used to configure dtn2admin."
+    echo "	-e biberc	Specifies file biberc to be used to configure bibeadmin."
+    echo "	-i ionrc <opt: seconds>		Specifies file ionrc to be used to configure ionadmin with delay."
+    echo "	-l ltprc	Specifies file ltprc to be used to configure ltpadmin."
+    echo "	-m imcrc	Specifies file imcrc to be used to configure imcdmin. (BPv6 only)"
+    echo "	-p ipnrc	Specifies file ipnrc to be used to configure ipnadmin."
+    echo "	-s ionsecrc	Specifies file ionsecrc to be used to configure ionsecadmin."
+    echo "	-S bpsecrc	Specifies file bpsecrc to be used to configure bpsecadmin."
+    echo "	-L ltpsecrc	Specifies file ltpsecrc to be used to configure ltpsecadmin."
+    echo ""
+    echo "  <second>:   optional for -i and -b. Admin program will run these files after initial launch"
+    echo "              of non-delayed rc files. If delay is set as 0 explicitly, file will launch"
+    echo "              immediately after all non-delayed rc files were executed."
 }
 
 BP_V6_ONLY=false
@@ -81,9 +81,9 @@ declare -a DELAYED_BPRC_FILES=()
 # check for all the options
 
 while getopts ":t:i:c:I:d:e:p:b:l:L:s:S:a:B:m:h" options; do
-	case $options in
-		t ) TAG="${OPTARG}";;
-		i ) IONRC="${OPTARG}"
+    case $options in
+        t ) TAG="${OPTARG}";;
+        i ) IONRC="${OPTARG}"
             if [[ ! -r "${IONRC}" ]]; then
                 echo "The ionrc file ${IONRC} can't be read."
                 failure="TRUE"
@@ -96,60 +96,60 @@ while getopts ":t:i:c:I:d:e:p:b:l:L:s:S:a:B:m:h" options; do
                     IONRC_FILES+=("${IONRC}")
                 fi
             fi;;
-		c ) CFDPRC="${OPTARG}"
-			if [[ ! -r "${OPTARG}" ]]; then
-				echo
-				echo "The cfdprc file ${OPTARG} can't be read."
-				failure="TRUE"
-			fi
-			;;
-		d ) DTN2RC="${OPTARG}"
-			if [[ ! -r "${OPTARG}" ]] ; then
-				echo
-				echo "The dtn2rc file ${OPTARG} can't be read."
-				failure="TRUE"
-			fi;;
-		e ) BIBERC="${OPTARG}"
-			if [[ ! -r "${OPTARG}" ]] ; then
-				echo
-				echo "The biberc file ${OPTARG} can't be read."
-				failure="TRUE"
-			fi;;
-		p ) IPNRC="${OPTARG}"
-			if [[ ! -r "${OPTARG}" ]] ; then
-				echo
-				echo "The ipnrc file ${OPTARG} can't be read."
-				failure="TRUE"
-			fi;;
-		s ) IONSECRC="${OPTARG}"
-			if [[ ! -r "${OPTARG}" ]] ; then
-				echo
-				echo "The ionsecrc file ${OPTARG} can't be read."
-				failure="TRUE"
-			fi;;
-		S ) BPSECRC="${OPTARG}"
-			if [[ ! -r "${OPTARG}" ]] ; then
-				echo
-				echo "The bpsecrc file ${OPTARG} can't be read."
-				failure="TRUE"
-			fi;;
-		L ) LTPSECRC="${OPTARG}"
-			if [[ ! -r "${OPTARG}" ]] ; then
-				echo
-				echo "The ltpsecrc file ${OPTARG} can't be read."
-				failure="TRUE"
-			fi;;
-		a ) ACSRC="${OPTARG}"
-			if [[ ! -r "${OPTARG}" ]] ; then
-				echo
-				echo "The acsrc file ${OPTARG} can't be read."
-				failure="TRUE"
-			fi
-			if [[ "$BP_V6_ONLY" == true ]]; then
-				echo "Error: ACSRC is not supported by bpv7. Stopping ionstart."
-				exit 1
-			fi;;
-		b ) BPRC="${OPTARG}"
+        c ) CFDPRC="${OPTARG}"
+            if [[ ! -r "${OPTARG}" ]]; then
+                echo
+                echo "The cfdprc file ${OPTARG} can't be read."
+                failure="TRUE"
+            fi
+            ;;
+        d ) DTN2RC="${OPTARG}"
+            if [[ ! -r "${OPTARG}" ]] ; then
+                echo
+                echo "The dtn2rc file ${OPTARG} can't be read."
+                failure="TRUE"
+            fi;;
+        e ) BIBERC="${OPTARG}"
+            if [[ ! -r "${OPTARG}" ]] ; then
+                echo
+                echo "The biberc file ${OPTARG} can't be read."
+                failure="TRUE"
+            fi;;
+        p ) IPNRC="${OPTARG}"
+            if [[ ! -r "${OPTARG}" ]] ; then
+                echo
+                echo "The ipnrc file ${OPTARG} can't be read."
+                failure="TRUE"
+            fi;;
+        s ) IONSECRC="${OPTARG}"
+            if [[ ! -r "${OPTARG}" ]] ; then
+                echo
+                echo "The ionsecrc file ${OPTARG} can't be read."
+                failure="TRUE"
+            fi;;
+        S ) BPSECRC="${OPTARG}"
+            if [[ ! -r "${OPTARG}" ]] ; then
+                echo
+                echo "The bpsecrc file ${OPTARG} can't be read."
+                failure="TRUE"
+            fi;;
+        L ) LTPSECRC="${OPTARG}"
+            if [[ ! -r "${OPTARG}" ]] ; then
+                echo
+                echo "The ltpsecrc file ${OPTARG} can't be read."
+                failure="TRUE"
+            fi;;
+        a ) ACSRC="${OPTARG}"
+            if [[ ! -r "${OPTARG}" ]] ; then
+                echo
+                echo "The acsrc file ${OPTARG} can't be read."
+                failure="TRUE"
+            fi
+            if [[ "$BP_V6_ONLY" == true ]]; then
+                echo "Error: ACSRC is not supported by bpv7. Stopping ionstart."
+                exit 1
+            fi;;
+        b ) BPRC="${OPTARG}"
             if [[ ! -r "${BPRC}" ]]; then
                 echo "The bprc file ${BPRC} can't be read."
                 failure="TRUE"
@@ -162,148 +162,148 @@ while getopts ":t:i:c:I:d:e:p:b:l:L:s:S:a:B:m:h" options; do
                     BPRC_FILES+=("${BPRC}")
                 fi
             fi;;
-		B ) BSSPRC="${OPTARG}"
-			if [[ ! -r "${OPTARG}" ]] ; then
-				echo
-				echo "The bssprc file ${OPTARG} can't be read."
-				failure="TRUE"
-			fi;;
-		m ) IMCRC="${OPTARG}"
-			if [[ ! -r "${OPTARG}" ]] ; then
-				echo
-				echo "The imcrc file ${OPTARG} can't be read."
-				failure="TRUE"
-			fi
-			if [[ "$BP_V6_ONLY" == true ]]; then
-				echo "Error: IMCRC is not supported by bpv7. Stopping ionstart."
-				exit 1
-			fi;;
-		l ) LTPRC="${OPTARG}"
-			if [[ ! -r "${OPTARG}" ]] ; then
-				echo
-				echo "The ltprc file ${OPTARG} can't be read."
-				failure="TRUE"
-			fi;;
-		I ) CONFIGFILE="${OPTARG}"
-			if [[ ! -r "${OPTARG}" ]] ; then
-				echo
-				echo "The config file ${OPTARG} can't be read."
-				failure="TRUE"
-			fi;;
-		h ) USAGE
-			exit 1;;
-		\? ) USAGE
-			exit 1;;
-		* ) USAGE
-			exit 1;;
-	esac
+        B ) BSSPRC="${OPTARG}"
+            if [[ ! -r "${OPTARG}" ]] ; then
+                echo
+                echo "The bssprc file ${OPTARG} can't be read."
+                failure="TRUE"
+            fi;;
+        m ) IMCRC="${OPTARG}"
+            if [[ ! -r "${OPTARG}" ]] ; then
+                echo
+                echo "The imcrc file ${OPTARG} can't be read."
+                failure="TRUE"
+            fi
+            if [[ "$BP_V6_ONLY" == true ]]; then
+                echo "Error: IMCRC is not supported by bpv7. Stopping ionstart."
+                exit 1
+            fi;;
+        l ) LTPRC="${OPTARG}"
+            if [[ ! -r "${OPTARG}" ]] ; then
+                echo
+                echo "The ltprc file ${OPTARG} can't be read."
+                failure="TRUE"
+            fi;;
+        I ) CONFIGFILE="${OPTARG}"
+            if [[ ! -r "${OPTARG}" ]] ; then
+                echo
+                echo "The config file ${OPTARG} can't be read."
+                failure="TRUE"
+            fi;;
+        h ) USAGE
+            exit 1;;
+        \? ) USAGE
+            exit 1;;
+        * ) USAGE
+            exit 1;;
+    esac
 done
 
 if [[ -z "${CONFIGFILE}" && -z "${IONRC_FILES}" && -z "${BPRC}" && -z "${CFDPRC}" && -z "${LTPRC}" && -z "${IPNRC}" && -z "${IONSECRC}" && -z "${BPSECRC}" && -z "${LTPSECRC}" && -z "${DTN2RC}" && -z "${BIBERC}" && -z "${ACSRC}" && -z "${BSSPRC}" && -z "${IMCRC}" ]] ; then
-	echo
-	echo "You must define some configuration files for input, use any combination of the"
-	echo "-b -B -c -d -e -i -I -l -L -m -p -s -S -a options to define them."
-	USAGE
-	exit 1
+    echo
+    echo "You must define some configuration files for input, use any combination of the"
+    echo "-b -B -c -d -e -i -I -l -L -m -p -s -S -a options to define them."
+    USAGE
+    exit 1
 fi
 
 if [[ "${failure}" == "TRUE" ]] ; then
-	exit 1
+    exit 1
 fi
 
 if [[ ! -z "${BSSPRC}" ]] && [[ ! -z "${IPNRC}" ]] ; then
-	echo "Error: bss and ipn are mutually exclusive!"
-	exit 1
+    echo "Error: bss and ipn are mutually exclusive!"
+    exit 1
 fi
 
 if [[ ! -z "${CONFIGFILE}" ]] ; then
-	echo
-	echo "Now running startup script using ${CONFIGFILE}"
-	awk -f "${AWKSCRIPT}" -v configfile="${CONFIGFILE}" -v tag="${TAG}" "${CONFIGFILE}"
+    echo
+    echo "Now running startup script using ${CONFIGFILE}"
+    awk -f "${AWKSCRIPT}" -v configfile="${CONFIGFILE}" -v tag="${TAG}" "${CONFIGFILE}"
 fi
 
 # Process each IONRC file in the order provided
 for IONRC in "${IONRC_FILES[@]}"; do
-	if [[ ! -z "${IONRC}" ]] ; then
-		echo
-		echo "Now running ionadmin using ${IONRC}"
-		ionadmin "${IONRC}"
-	fi
+    if [[ ! -z "${IONRC}" ]] ; then
+        echo
+        echo "Now running ionadmin using ${IONRC}"
+        ionadmin "${IONRC}"
+    fi
 done
 
 if [[ ! -z "${ACSRC}" ]] ; then
-        echo
-        echo "Now running acsadmin using ${ACSRC}"
-        acsadmin "${ACSRC}"
+    echo
+    echo "Now running acsadmin using ${ACSRC}"
+    acsadmin "${ACSRC}"
 fi
 
 if [[ ! -z "${IONSECRC}" ]]; then
-	echo
-	echo "Now running ionsecadmin using ${IONSECRC}"
-	ionsecadmin "${IONSECRC}"
+    echo
+    echo "Now running ionsecadmin using ${IONSECRC}"
+    ionsecadmin "${IONSECRC}"
 fi
 
 if [[ ! -z "${BPSECRC}" ]]; then
-	echo
-	echo "Now running bpsecadmin using ${BPSECRC}"
-	bpsecadmin "${BPSECRC}"
+    echo
+    echo "Now running bpsecadmin using ${BPSECRC}"
+    bpsecadmin "${BPSECRC}"
 fi
 
 if [[ ! -z "${LTPSECRC}" ]]; then
-	echo
-	echo "Now running ltpsecadmin using ${LTPSECRC}"
-	ltpsecadmin "${LTPSECRC}"
+    echo
+    echo "Now running ltpsecadmin using ${LTPSECRC}"
+    ltpsecadmin "${LTPSECRC}"
 fi
 
 if [[ ! -z "${LTPRC}" ]] ; then
-	echo
-	echo "Now running ltpadmin using ${LTPRC}"
-	ltpadmin "${LTPRC}"
+    echo
+    echo "Now running ltpadmin using ${LTPRC}"
+    ltpadmin "${LTPRC}"
 fi
 
 # Process each BPRC file in the order provided
 for BPRC in "${BPRC_FILES[@]}"; do
-	if [[ ! -z "${BPRC}" ]] ; then
-		echo
-		echo "Now running bpadmin using ${BPRC}"
-		bpadmin "${BPRC}"
-	fi
+    if [[ ! -z "${BPRC}" ]] ; then
+        echo
+        echo "Now running bpadmin using ${BPRC}"
+        bpadmin "${BPRC}"
+    fi
 done
 
 if [[ ! -z "${IPNRC}" ]] ; then
-	echo
-	echo "Now running ipnadmin using ${IPNRC}"
-	ipnadmin "${IPNRC}"
+    echo
+    echo "Now running ipnadmin using ${IPNRC}"
+    ipnadmin "${IPNRC}"
 fi
 
 if [[ ! -z "${BIBERC}" ]] ; then
-	echo
-	echo "Now running bibeadmin using ${BIBERC}"
-	bibeadmin "${BIBERC}"
+    echo
+    echo "Now running bibeadmin using ${BIBERC}"
+    bibeadmin "${BIBERC}"
 fi
 
 if [[ ! -z "${DTN2RC}" ]] ; then
-	echo
-	echo "Now running dtn2admin using ${DTN2RC}"
-	dtn2admin ${DTN2NODE} "${DTN2RC}"
+    echo
+    echo "Now running dtn2admin using ${DTN2RC}"
+    dtn2admin ${DTN2NODE} "${DTN2RC}"
 fi
 
 if [[ ! -z "${IMCRC}" ]] ; then
-        echo
-        echo "Now running imcadmin using ${IMCRC}"
-        imcadmin "${IMCRC}"
+    echo
+    echo "Now running imcadmin using ${IMCRC}"
+    imcadmin "${IMCRC}"
 fi
 
 if [[ ! -z "${BSSPRC}" ]] ; then
-        echo
-        echo "Now running bsspadmin using ${BSSPRC}"
-        bsspadmin "${BSSPRC}"
+    echo
+    echo "Now running bsspadmin using ${BSSPRC}"
+    bsspadmin "${BSSPRC}"
 fi
 
 if [[ ! -z "${CFDPRC}" ]] ; then
-	echo
-	echo "Now running cfdpadmin using ${CFDPRC}"
-	cfdpadmin "${CFDPRC}"
+    echo
+    echo "Now running cfdpadmin using ${CFDPRC}"
+    cfdpadmin "${CFDPRC}"
 fi
 
 echo
@@ -314,24 +314,24 @@ sleep 5
 # Execute delayed IONRC and BPRC configuration, if any
 # Process delayed IONRC files
 for ((i=0; i<${#DELAYED_IONRC_FILES[@]}; i+=2)); do
-	DELAYED_IONRC="${DELAYED_IONRC_FILES[i]}"
-	DELAY="${DELAYED_IONRC_FILES[i+1]}"
-	echo
-	echo "Waiting for ${DELAY} seconds before running ionadmin using ${DELAYED_IONRC}"
-	sleep "${DELAY}"
-	echo "Now running ionadmin using ${DELAYED_IONRC}"
-	ionadmin "${DELAYED_IONRC}"
+    DELAYED_IONRC="${DELAYED_IONRC_FILES[i]}"
+    DELAY="${DELAYED_IONRC_FILES[i+1]}"
+    echo
+    echo "Waiting for ${DELAY} seconds before running ionadmin using ${DELAYED_IONRC}"
+    sleep "${DELAY}"
+    echo "Now running ionadmin using ${DELAYED_IONRC}"
+    ionadmin "${DELAYED_IONRC}"
 done
 
 # Process delayed BPRC files
 for ((i=0; i<${#DELAYED_BPRC_FILES[@]}; i+=2)); do
-	DELAYED_BPRC="${DELAYED_BPRC_FILES[i]}"
-	DELAY="${DELAYED_BPRC_FILES[i+1]}"
-	echo
-	echo "Waiting for ${DELAY} seconds before running ionadmin using ${DELAYED_BPRC}"
-	sleep "${DELAY}"
-	echo "Now running ionadmin using ${DELAYED_BPRC}"
-	bpadmin "${DELAYED_BPRC}"
+    DELAYED_BPRC="${DELAYED_BPRC_FILES[i]}"
+    DELAY="${DELAYED_BPRC_FILES[i+1]}"
+    echo
+    echo "Waiting for ${DELAY} seconds before running ionadmin using ${DELAYED_BPRC}"
+    sleep "${DELAY}"
+    echo "Now running ionadmin using ${DELAYED_BPRC}"
+    bpadmin "${DELAYED_BPRC}"
 done
 
 

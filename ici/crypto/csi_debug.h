@@ -79,34 +79,34 @@ extern char	gCsiMsg[GMSG_BUFLEN];
 		putErrmsg(gCsiMsg, NULL);                             \
 	}
 
-   #define CSI_DEBUG_PROC(format,...) \
-           CSI_DEBUG(CSI_DEBUG_LVL_PROC,format, __VA_ARGS__)
+#define CSI_DEBUG_PROC(format, ...) \
+	CSI_DEBUG(CSI_DEBUG_LVL_PROC, format, __VA_ARGS__)
 
-   #define CSI_DEBUG_INFO(format,...) \
-           CSI_DEBUG(CSI_DEBUG_LVL_INFO,format, __VA_ARGS__)
+#define CSI_DEBUG_INFO(format, ...) \
+	CSI_DEBUG(CSI_DEBUG_LVL_INFO, format, __VA_ARGS__)
 
-   #define CSI_DEBUG_WARN(format,...) \
-           CSI_DEBUG(CSI_DEBUG_LVL_WARN,format, __VA_ARGS__)
+#define CSI_DEBUG_WARN(format, ...) \
+	CSI_DEBUG(CSI_DEBUG_LVL_WARN, format, __VA_ARGS__)
 
-   #define CSI_DEBUG_ERR(format,...) \
-           CSI_DEBUG(CSI_DEBUG_LVL_ERR,format, __VA_ARGS__)
+#define CSI_DEBUG_ERR(format, ...) \
+	CSI_DEBUG(CSI_DEBUG_LVL_ERR, format, __VA_ARGS__)
 #else
 #define CSI_DEBUG(level, format, ...) \
 	if (level >= CSI_DEBUG_LVL)   \
 	{                             \
 	}
 
-   #define CSI_DEBUG_PROC(format,...) \
-           CSI_DEBUG(CSI_DEBUG_LVL_PROC,format, __VA_ARGS__)
+#define CSI_DEBUG_PROC(format, ...) \
+	CSI_DEBUG(CSI_DEBUG_LVL_PROC, format, __VA_ARGS__)
 
-   #define CSI_DEBUG_INFO(format,...) \
-           CSI_DEBUG(CSI_DEBUG_LVL_INFO,format, __VA_ARGS__)
+#define CSI_DEBUG_INFO(format, ...) \
+	CSI_DEBUG(CSI_DEBUG_LVL_INFO, format, __VA_ARGS__)
 
-   #define CSI_DEBUG_WARN(format,...) \
-           CSI_DEBUG(CSI_DEBUG_LVL_WARN,format, __VA_ARGS__)
+#define CSI_DEBUG_WARN(format, ...) \
+	CSI_DEBUG(CSI_DEBUG_LVL_WARN, format, __VA_ARGS__)
 
-   #define CSI_DEBUG_ERR(format,...) \
-           CSI_DEBUG(CSI_DEBUG_LVL_ERR,format, __VA_ARGS__)
+#define CSI_DEBUG_ERR(format, ...) \
+	CSI_DEBUG(CSI_DEBUG_LVL_ERR, format, __VA_ARGS__)
 
 #endif
 

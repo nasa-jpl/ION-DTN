@@ -60,7 +60,7 @@ tnv_t *expr_apply_op(ari_t *id, vector_t *stack)
 	tnv_t *result = NULL;
 
 	AMP_DEBUG_ENTRY("expr_apply_op","("ADDR_FIELDSPEC", "ADDR_FIELDSPEC")",
-			        (uaddr) id, (uaddr) stack);
+			(uaddr) id, (uaddr) stack);
 
 	if((id == NULL) || (stack == NULL))
 	{
@@ -197,44 +197,44 @@ expr_t expr_deserialize(QCBORDecodeContext *it, int *success)
 	cut_get_cbor_numeric(it, AMP_TYPE_BYTE, &expr_type);
 	result.type = expr_type;
 #endif
-    if(type_is_known(result.type) == 0)
-    {
-    	AMP_DEBUG_ERR("expr_deserialize","Unknown expression type %d", result.type);
-    	*success = AMP_FAIL;
-		
-#if AMP_VERSION < 7
-    	blob_release(data, 1);
-#endif
-		
-    	return result;
-    }
+	if(type_is_known(result.type) == 0)
+	{
+		AMP_DEBUG_ERR("expr_deserialize","Unknown expression type %d", result.type);
+		*success = AMP_FAIL;
 
 #if AMP_VERSION < 7
-    /* Create fake blob to point after first byte. */
-    blob_t tmp;
-    tmp.value = data->value + sizeof(uint8_t);
-    tmp.length = data->length - 1;
-    tmp.alloc = data->alloc-1;
+		blob_release(data, 1);
 #endif
 
-    /* Deserialize the AC list holding the RPN expression. */
+		return result;
+	}
+
 #if AMP_VERSION < 7
-    result.rpn = ac_deserialize_raw(&tmp, success);
-    blob_release(data, 1);
+	/* Create fake blob to point after first byte. */
+	blob_t tmp;
+	tmp.value = data->value + sizeof(uint8_t);
+	tmp.length = data->length - 1;
+	tmp.alloc = data->alloc-1;
+#endif
+
+	/* Deserialize the AC list holding the RPN expression. */
+#if AMP_VERSION < 7
+	result.rpn = ac_deserialize_raw(&tmp, success);
+	blob_release(data, 1);
 #else
 	result.rpn = ac_deserialize(it, success);
 #endif
-	
-    if(*success != AMP_OK)
-    {
-    	result.type = AMP_TYPE_UNK;
-    	ac_release(&(result.rpn), 0);
-    	return result;
-    }
 
-    *success = AMP_OK;
+	if(*success != AMP_OK)
+	{
+		result.type = AMP_TYPE_UNK;
+		ac_release(&(result.rpn), 0);
+		return result;
+	}
 
-    return result;
+	*success = AMP_OK;
+
+	return result;
 }
 
 expr_t* expr_deserialize_ptr(QCBORDecodeContext *it, int *success)
@@ -268,11 +268,11 @@ expr_t* expr_deserialize_raw(blob_t *data, int *success)
 	*success = AMP_FAIL;
 
 	QCBORDecode_Init(&it,
-					 (UsefulBufC){data->value,data->length},
-					 QCBOR_DECODE_MODE_NORMAL);
+			(UsefulBufC){data->value,data->length},
+			QCBOR_DECODE_MODE_NORMAL);
 
 	expr_t *tmp = expr_deserialize_ptr(&it, success);
-	
+
 	// Verify Decoding Completed Successfully
 	cut_decode_finish(&it);
 
@@ -420,11 +420,11 @@ tnv_t *expr_get_atomic(ari_t *ari)
 {
 	tnv_t *result = NULL;
 
-    AMP_DEBUG_ENTRY("expr_get_edd","("ADDR_FIELDSPEC")", (uaddr) ari);
+	AMP_DEBUG_ENTRY("expr_get_edd","("ADDR_FIELDSPEC")", (uaddr) ari);
 
 	CHKNULL(ari);
 
-    /* Step 1: Handle special case of literal. */
+	/* Step 1: Handle special case of literal. */
 	if(ari->type == AMP_TYPE_LIT)
 	{
 		result = tnv_copy_ptr(&(ari->as_lit));
@@ -443,18 +443,18 @@ tnv_t *expr_get_atomic(ari_t *ari)
 		}
 
 		if(edd == NULL)
-	    {
-	      	AMP_DEBUG_INFO("expr_get_edd","Can't find def.", NULL);
-	    	return NULL;
-	    }
+		{
+			AMP_DEBUG_INFO("expr_get_edd","Can't find def.", NULL);
+			return NULL;
+		}
 		else if(edd->def.collect == NULL)
 		{
 			AMP_DEBUG_INFO("expr_get_edd","No collect function defined.", NULL);
 			return NULL;
 		}
 
-	    /* Step 2: Collect the value. */
-	    result = edd->def.collect(&(ari->as_reg.parms));
+		/* Step 2: Collect the value. */
+		result = edd->def.collect(&(ari->as_reg.parms));
 	}
 
 	AMP_DEBUG_EXIT("expr_get_edd", "("ADDR_FIELDSPEC")", (uaddr) result);
@@ -496,26 +496,26 @@ tnv_t *expr_get_var(ari_t *ari)
 	tnv_t *result = NULL;
 	var_t *var = NULL;
 
-    AMP_DEBUG_ENTRY("expr_get_var","("ADDR_FIELDSPEC")", (uaddr) ari);
+	AMP_DEBUG_ENTRY("expr_get_var","("ADDR_FIELDSPEC")", (uaddr) ari);
 
-    CHKNULL(ari);
+	CHKNULL(ari);
 
-    if((var = VDB_FINDKEY_VAR(ari)) == NULL)
-    {
-    	AMP_DEBUG_ERR("expr_get_computed","Can't find var.", NULL);
-    	return result;
+	if((var = VDB_FINDKEY_VAR(ari)) == NULL)
+	{
+		AMP_DEBUG_ERR("expr_get_computed","Can't find var.", NULL);
+		return result;
 	}
 
-    /* Step 2: create ephermeral value to use in this evaluation. */
-    if(var->value->type == AMP_TYPE_EXPR)
-    {
-    	/* \todo: limit recursion. */
-        result = expr_eval((expr_t*)var->value->value.as_ptr);
-    }
-    else
-    {
-        result = tnv_copy_ptr(var->value);
-    }
+	/* Step 2: create ephermeral value to use in this evaluation. */
+	if(var->value->type == AMP_TYPE_EXPR)
+	{
+		/* \todo: limit recursion. */
+		result = expr_eval((expr_t*)var->value->value.as_ptr);
+	}
+	else
+	{
+		result = tnv_copy_ptr(var->value);
+	}
 
 	return result;
 }
@@ -574,7 +574,7 @@ int expr_serialize(QCBOREncodeContext *encoder, void *item)
 	ac_serialize(encoder, &(expr->rpn));
 
 #endif
-	
+
 	return err;
 }
 
@@ -651,4 +651,3 @@ void op_release(op_t *op, int destroy)
 		SRELEASE(op);
 	}
 }
-

@@ -1,8 +1,8 @@
 /*
 
-        psmwatch.c:	PSM memory activity monitor.
+	psmwatch.c:	PSM memory activity monitor.
 
-                                                                        */
+									*/
 /*									*/
 /*	Copyright (c) 2007, California Institute of Technology.		*/
 /*	All rights reserved.						*/
@@ -250,7 +250,7 @@ static int	run_psmwatch_daemon(int memKey, long memSize,
 }
 
 static int run_psmwatch(int memKey, long memSize, char *partitionName,
-                int interval, int verbose, int noTrace)
+		int interval, int verbose, int noTrace)
 {
 	char           *memory = NULL;
 	uaddr           smId = 0;
@@ -269,8 +269,8 @@ static int run_psmwatch(int memKey, long memSize, char *partitionName,
 	}
 
 	if (memmgr_open(memKey, memSize, &memory, &smId, partitionName, &psm,
-	                    &memmgrIdx, NULL, NULL, NULL, NULL)
-	                < 0)
+			    &memmgrIdx, NULL, NULL, NULL, NULL)
+			< 0)
 	{
 		putErrmsg("Can't attach to psm.", NULL);
 		writeErrmsgMemos();
@@ -366,7 +366,7 @@ auto-detected from ION configuration.");
 
 #if defined(ION_LWT)
 int psmwatch(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5, saddr a6,
-                saddr a7, saddr a8, saddr a9, saddr a10)
+		saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	int   memKey = a1 ? strtol((char *) a1, NULL, 0) : 0;
 	int   memSize = a2 ? strtol((char *) a2, NULL, 0) : 0;
@@ -384,7 +384,7 @@ int psmwatch(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5, saddr a6,
 
 	oK(psmwatch_count(&count));
 	return run_psmwatch(memKey, memSize, partitionName, interval, verbose,
-	                noTrace);
+			noTrace);
 }
 #else
 int main(int argc, char **argv)
@@ -590,6 +590,6 @@ to ION.", NULL);
 
 	oK(psmwatch_count(&count));
 	return run_psmwatch(memKey, memSize, partitionName, interval, verbose,
-	                noTrace);
+			noTrace);
 }
 #endif

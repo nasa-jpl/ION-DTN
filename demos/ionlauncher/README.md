@@ -101,8 +101,8 @@ For example, say the 3 node simple file is called `3node.json` and it is stored 
 * `$WKDIR/3node-ion` - this folder will contain the following:
     * _ION model_ file in json format. Its name is the simple model filename + `-ion.json`. In this case, it will be called `3node-ion.json`. This file can be opened and edited by the ION Config Tool's browser-based GUI
     * _ION network model_ in json format. Its name is the simple model filename + `-net_model.json`. In this case, it will be called `3node-net_model.json`. This file can be opened and edited by the ION Network Model's browser-based GUI.
-    * For details on how to use these files, please download the _ION Config Tool_ and the _ION Network Model_ from GitHub.com. 
-* Each node will have its own subfolder: `$WKDIR/3node/SC`, `$WKDIR/3node/Relay`, and `$WKDIR/3node/GS` 
+    * For details on how to use these files, please download the _ION Config Tool_ and the _ION Network Model_ from GitHub.com.
+* Each node will have its own subfolder: `$WKDIR/3node/SC`, `$WKDIR/3node/Relay`, and `$WKDIR/3node/GS`
 * Within each subfolder there will be a set of ION configutration files and a start script called `start_<node name>.sh`, that you can use to launch ION again.
 
 After the initial ionlauncher run, the ION configuration files are generated for you based on the simple model file's description and a set of default settings. To activate additional features, optimize parameters settings, and refine protocol behavior, you will need to edit the ION config files individually. For those changes to take effect, you need to stop ION and restart ION using the start script.

@@ -26,7 +26,7 @@ ITERATIONS="1"
 
 
 #================================================================
-# You shouldn't need to adjust anything below this point 
+# You shouldn't need to adjust anything below this point
 #================================================================
 
 # identify the test for later analysis
@@ -57,24 +57,24 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: produce simple throughput benchmark results, for direct
-	comparison among computing platforms running ION.  All tests are
-	performed using the DTNRG-standard TCP convergence-layer protocol
-	between neighboring nodes residing on the same computer using IPv6.
-	The results exercise BP in a non-loopback configuration, over
-	loopback TCP/IPv6; the results are therefore unaffected by network
-	traffic, router performance, or network interface card performance."
+    comparison among computing platforms running ION.  All tests are
+    performed using the DTNRG-standard TCP convergence-layer protocol
+    between neighboring nodes residing on the same computer using IPv6.
+    The results exercise BP in a non-loopback configuration, over
+    loopback TCP/IPv6; the results are therefore unaffected by network
+    traffic, router performance, or network interface card performance."
 
 if [ -n "$DEBUG" ]; then
-	echo
-	echo "CONFIG: 2 node custom:"
-	echo
-	for N in $CONFIGFILES
-	do
-		echo "$N:"
-		cat "$N"
-		echo "# EOF"
-		echo
-	done
+    echo
+    echo "CONFIG: 2 node custom:"
+    echo
+    for N in $CONFIGFILES
+    do
+        echo "$N:"
+        cat "$N"
+        echo "# EOF"
+        echo
+    done
 fi
 
 echo "OUTPUT: Terminal messages will relay results."
@@ -90,111 +90,111 @@ RETVAL=0
 
 ITERNUM=0
 while [ "${ITERNUM}" -lt ${ITERATIONS} ]; do
-	let "++ITERNUM"
-	echo "#########################################################################"
-	echo "##   Starting Iteration ${ITERNUM}"
-	echo "#########################################################################"
-	echo
+    let "++ITERNUM"
+    echo "#########################################################################"
+    echo "##   Starting Iteration ${ITERNUM}"
+    echo "#########################################################################"
+    echo
 
 
-	echo "#########################################################################"
-	echo "##  Starting ION Nodes"
-	echo "#########################################################################"
-	echo
+    echo "#########################################################################"
+    echo "##  Starting ION Nodes"
+    echo "#########################################################################"
+    echo
 
 
-	# Start nodes.
-	(cd 2.bench.tcpv6; ./ionstart)
-	(cd 3.bench.tcpv6; ./ionstart)
+    # Start nodes.
+    (cd 2.bench.tcpv6; ./ionstart)
+    (cd 3.bench.tcpv6; ./ionstart)
 
-	TESTNUM=0
-	for BUNDLESIZE in ${BUNDLESIZES}; do
-		let "++TESTNUM"
-		let "NUMBUNDLES = TOTALBYTES/BUNDLESIZE"
-		if [ $NUMBUNDLES -lt 1 ]; then
-			NUMBUNDLES=1
-			echo "Adjusting to $NUMBUNDLES of size $BUNDLESIZE"
-		elif [ $NUMBUNDLES -gt $MAXBUNDLES ]; then
-			echo "Truncating to $MAXBUNDLES of size $BUNDLESIZE (instead of $NUMBUNDLES)"
-			NUMBUNDLES=$MAXBUNDLES
-		fi
-		let "ACTUALBYTES = NUMBUNDLES*BUNDLESIZE"
+    TESTNUM=0
+    for BUNDLESIZE in ${BUNDLESIZES}; do
+        let "++TESTNUM"
+        let "NUMBUNDLES = TOTALBYTES/BUNDLESIZE"
+        if [ $NUMBUNDLES -lt 1 ]; then
+            NUMBUNDLES=1
+            echo "Adjusting to $NUMBUNDLES of size $BUNDLESIZE"
+        elif [ $NUMBUNDLES -gt $MAXBUNDLES ]; then
+            echo "Truncating to $MAXBUNDLES of size $BUNDLESIZE (instead of $NUMBUNDLES)"
+            NUMBUNDLES=$MAXBUNDLES
+        fi
+        let "ACTUALBYTES = NUMBUNDLES*BUNDLESIZE"
 
-		sleep 1
+        sleep 1
 
-		cat << ==EOF==
+        cat << ==EOF==
 ===============================================================================================================================
 RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: ${NUMBUNDLES} bundles of ${BUNDLESIZE} bytes each - ${ACTUALBYTES} total bytes
 ===============================================================================================================================
 ==EOF==
-		
 
-	cd 3.bench.tcpv6
-	bpcounter ipn:3.1 ${NUMBUNDLES} &
-	BPCOUNTER_PID=$!
-	cd ..
-	sleep 1
 
-	(cd 2.bench.tcpv6; bpdriver ${NUMBUNDLES} ipn:2.1 ipn:3.1 -${BUNDLESIZE} > /dev/null) &
-	BPDRIVER_PID=$!
+    cd 3.bench.tcpv6
+    bpcounter ipn:3.1 ${NUMBUNDLES} &
+    BPCOUNTER_PID=$!
+    cd ..
+    sleep 1
 
-	# Wait for transmission to finish.
-	echo "Waiting for transmission to finish..."
-	RUNNING=1
-	TIMER=0
-	while [ "$RUNNING" -eq 1 ]
-	do
-		TIMER=$((++TIMER))
-		sleep 1
-		echo "...receiving..."
-		# some ps don't like -p syntax, most do.
-		if [ "$1" == "windows" ]
-		then
-			ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-		else
-			ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-		fi
-		if [ "$RETURN_VALUE" -eq 0 ]
-		then
-			echo "...transmission finished."
-			RUNNING=0
-		fi
-		if [ "$TIMER" -gt 300 ]
-		then
-			#infinite loop protection
-			echo "...5 minutes passed; giving up."
-			RUNNING=0
-			RETVAL=1
-		fi
-	done
+    (cd 2.bench.tcpv6; bpdriver ${NUMBUNDLES} ipn:2.1 ipn:3.1 -${BUNDLESIZE} > /dev/null) &
+    BPDRIVER_PID=$!
 
-	if [ "$RETVAL" -eq 1 ]
-	then
-		echo "Test did not complete."
-		echo "Killing bpcounter..."
-		kill -9 $BPCOUNTER_PID $BPDRIVER_PID
-		sleep 10
-		echo "Stopping ION..."
-		#(cd 2.bench.tcpv6; ./ionstop) &
-		#(cd 3.bench.tcpv6; ./ionstop) &
-		sleep 3
-		killm
-		sleep 3
-		echo "Re-starting ION..."
-		(cd 2.bench.tcpv6; ./ionstart)
-		(cd 3.bench.tcpv6; ./ionstart)
-		RETVAL=0;   # allow next test to proceed
-	fi
+    # Wait for transmission to finish.
+    echo "Waiting for transmission to finish..."
+    RUNNING=1
+    TIMER=0
+    while [ "$RUNNING" -eq 1 ]
+    do
+        TIMER=$((++TIMER))
+        sleep 1
+        echo "...receiving..."
+        # some ps don't like -p syntax, most do.
+        if [ "$1" == "windows" ]
+        then
+            ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+        else
+            ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+        fi
+        if [ "$RETURN_VALUE" -eq 0 ]
+        then
+            echo "...transmission finished."
+            RUNNING=0
+        fi
+        if [ "$TIMER" -gt 300 ]
+        then
+            #infinite loop protection
+            echo "...5 minutes passed; giving up."
+            RUNNING=0
+            RETVAL=1
+        fi
+    done
 
-	# loop to next bundle size
-	done
+    if [ "$RETVAL" -eq 1 ]
+    then
+        echo "Test did not complete."
+        echo "Killing bpcounter..."
+        kill -9 $BPCOUNTER_PID $BPDRIVER_PID
+        sleep 10
+        echo "Stopping ION..."
+        #(cd 2.bench.tcpv6; ./ionstop) &
+        #(cd 3.bench.tcpv6; ./ionstop) &
+        sleep 3
+        killm
+        sleep 3
+        echo "Re-starting ION..."
+        (cd 2.bench.tcpv6; ./ionstart)
+        (cd 3.bench.tcpv6; ./ionstart)
+        RETVAL=0;   # allow next test to proceed
+    fi
 
-	# loop to next iteration
-	done
+    # loop to next bundle size
+    done
+
+    # loop to next iteration
+    done
 
 if [ "$RETVAL" -eq 1 ]
 then
-	echo "Test did not complete correctly."
+    echo "Test did not complete correctly."
 fi
 
 echo "Stopping ION..."

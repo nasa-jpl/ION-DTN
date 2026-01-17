@@ -23,28 +23,28 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: Testing modifications for issues 325 and 329, bundle replication.
-	This test exercises the partial replication that is done when a bundle
-	is fragmented, i.e., it is split into two bundles containing different
-	portions of the original bundle's payload.  To test this capability,
-	we use bpsendfile to send a file that is larger than a single UDP
-	datagram, from a node whose only convergence-layer adapter is UDP.
-	The file is initially encapsulated in a single bundle, but as udpclo
-	dequeues bundles for transmission it forces that bundle to be fragmented
-	into multiple bundles that are small enough for transmission by UDP;
-	at the destination node, the fragments are reassembled so that the
-	complete orginal bundle payload can be reconstituted and written to
-	the file system by bprecvfile.  The test succeeds if the destination
-	file is identical to the source file."
+    This test exercises the partial replication that is done when a bundle
+    is fragmented, i.e., it is split into two bundles containing different
+    portions of the original bundle's payload.  To test this capability,
+    we use bpsendfile to send a file that is larger than a single UDP
+    datagram, from a node whose only convergence-layer adapter is UDP.
+    The file is initially encapsulated in a single bundle, but as udpclo
+    dequeues bundles for transmission it forces that bundle to be fragmented
+    into multiple bundles that are small enough for transmission by UDP;
+    at the destination node, the fragments are reassembled so that the
+    complete orginal bundle payload can be reconstituted and written to
+    the file system by bprecvfile.  The test succeeds if the destination
+    file is identical to the source file."
 
 echo
 echo "CONFIG: 2 node custom:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo
@@ -64,10 +64,10 @@ cd 2.ipn.udp
 
 if [ $? -eq 2 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 2 not started: Aborting Test"
-	exit 1
+    echo "Node 2 not started: Aborting Test"
+    exit 1
 fi
 
 cd ../3.ipn.udp
@@ -76,10 +76,10 @@ cd ../3.ipn.udp
 
 if [ $? -eq 2 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 3 not started: Aborting Test"
-	exit 1
+    echo "Node 3 not started: Aborting Test"
+    exit 1
 fi
 
 echo "Starting bprecvfile on node 3..."
@@ -102,10 +102,10 @@ RETVAL=0
 COUNT=`diff my.file ../3.ipn.udp/testfile1 | wc -l`
 if [ $COUNT -eq 0 ]
 then
-	echo "Bundle was reassembled from fragments."
+    echo "Bundle was reassembled from fragments."
 else
-	echo "Bundle was NOT successfully reassembled at node 3."
-	RETVAL=1
+    echo "Bundle was NOT successfully reassembled at node 3."
+    RETVAL=1
 fi
 
 # Shut down ION processes.

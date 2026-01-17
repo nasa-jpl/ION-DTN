@@ -21,7 +21,7 @@ Protocol on the local ION node, and it is terminated by B<bpadmin> in
 response to an 'x' (STOP) command.
 
 Whenever a received bundle is determined to have a destination other than the
-local node, a pointer to that bundle is appended to one of two queues of 
+local node, a pointer to that bundle is appended to one of two queues of
 "in-transit" bundles, one for bundles whose forwarding is provisional
 (depending on the availability of Outbound ZCO buffer space; bundles in
 this queue are potentially subject to congestion loss) and one for bundles

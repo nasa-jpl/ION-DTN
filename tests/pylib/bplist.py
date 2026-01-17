@@ -5,7 +5,7 @@
 #				University of Colorado at Boulder
 #	Copyright (c) 2008-2011, Regents of the University of Colorado.
 #	This work was supported by NASA contracts NNJ05HE10G, NNC06CB40C, and
-#	NNC07CB47C.			
+#	NNC07CB47C.
 
 import subprocess
 import re
@@ -18,7 +18,7 @@ def readOptionalMatchesThenNext(bundle, line, statename, **kwargs):
     assert kwargs.has_key("re")
 
     mo = kwargs["re"].match(line)
-    
+
     # If we didn't match our expected line, then short circuit.
     if mo == None:
         if kwargs["nextifunmatched"] == None:
@@ -32,17 +32,17 @@ def readOptionalMatchesThenNext(bundle, line, statename, **kwargs):
 
     for k, v in mo.groupdict().items():
         # If we're dealing with an integer field, convert it.
-        if k in [ "timestamp", "count", "fragOffset", 
+        if k in [ "timestamp", "count", "fragOffset",
                   "priority", "ordinal", "expiration", "aduLen", "dictLen", "paylen" ]:
             v = int(v)
-        
+
         # If we're dealing with a binary field, convert it.
         if k in [ "frag", "admin", "dontFrag", "custodial", "destSingleton",
                   "appAckRequested", "unreliable", "critical" ]:
             v = bool(int(v))
-        
+
         bundle[k] = v
-    
+
     return kwargs["nextifmatched"]
 
 # Simple state implementation that takes a regular expression with named
@@ -68,7 +68,7 @@ def readUnlimitedChunksThenNext(bundle, line, statename, **kwargs):
     assert kwargs.has_key("re")
 
     mo = kwargs["re"].match(line)
-    
+
     # If we didn't match our expected line, then short circuit.
     if mo == None:
         if kwargs["next"] == None:
@@ -86,7 +86,7 @@ def readUnlimitedChunksThenNext(bundle, line, statename, **kwargs):
         bundle[kwargs["chunkName"]] += strippedchunk
     else:
         bundle[kwargs["chunkName"]] = strippedchunk
-        
+
     # We did match a chunk, so come back to this state again.
     return statename
 
@@ -132,9 +132,9 @@ def parseExtensionBytes(bundle, line, statename, **kwargs):
         line,
         next_name,
         **next_value[1])
-    
 
- 
+
+
 # The definition of the state machine that takes text from bplist and parses
 # it into a representation of bundles.  A dictionary:
 #  statename : ( stateImplementation, kwargs )
@@ -157,18 +157,18 @@ def parseExtensionBytes(bundle, line, statename, **kwargs):
 bplistline_statemachine = {
     "start" :           (readMatchesThenNext,
                             { "re" : r"",
-                              "next" : "beginbundle" } ), 
+                              "next" : "beginbundle" } ),
     "beginbundle" :     (readMatchesThenNext,
                             { "re" : r"\*\*\*\* Bundle",
                               "next" : "source" } ),
     "source" :          (readMatchesThenNext,
                             { "re" : r"Source EID\s*'(?P<sourceEid>[^']*)'",
                               "next" : "dest" } ),
-    "dest" :            (readMatchesThenNext, 
-                            { "re" : r"Destination EID\s*'(?P<destEid>[^']*)'", 
+    "dest" :            (readMatchesThenNext,
+                            { "re" : r"Destination EID\s*'(?P<destEid>[^']*)'",
                               "next" : "rptto" } ),
-    "rptto" :           (readMatchesThenNext, 
-                            { "re" : r"Report-to EID\s*'(?P<rpttoEid>[^']*)'", 
+    "rptto" :           (readMatchesThenNext,
+                            { "re" : r"Report-to EID\s*'(?P<rpttoEid>[^']*)'",
                               "next" : "cust" } ),
     "cust" :            (readMatchesThenNext,
                             { "re" : r"Custodian EID\s*'(?P<custEid>[^']*)'",
@@ -201,24 +201,24 @@ bplistline_statemachine = {
     "unreliable" :      (readMatchesThenNext,
                             { "re" : r"Unreliable:\s*(?P<unreliable>[01])",
                               "next" : "critical" } ),
-    "critical" :        (readMatchesThenNext, 
+    "critical" :        (readMatchesThenNext,
                             { "re" : r"Critical:\s*(?P<critical>[01])",
                               "next" : "expires" } ),
-    "expires" :         (readMatchesThenNext, 
+    "expires" :         (readMatchesThenNext,
                             { "re" : r"Expiration sec\s*(?P<expiration>[0-9]+)",
                               "next" : "adulen" } ),
-    "adulen" :          (readMatchesThenNext, 
+    "adulen" :          (readMatchesThenNext,
                             { "re" : r"Total ADU len\s*(?P<aduLen>[0-9]+)",
                               "next" : "dictionarylen" } ),
-    "dictionarylen" :   (readMatchesThenNext, 
+    "dictionarylen" :   (readMatchesThenNext,
                             { "re" : r"Dictionary len\s*(?P<dictLen>[0-9]+)",
                               "next" : "dictionary" } ),
-    "dictionary" :      (readMatchesThenNext, 
+    "dictionary" :      (readMatchesThenNext,
                             { "re" : r"Dictionary:\s*(?P<dictionary>.*)",
                               "next" : "extensionheader" } ),
-    "extensionheader" : (readOptionalMatchesThenNext, 
-                            { "re" : r"\*\*\*\*\*\* Extension", 
-                              "nextifmatched" : "extensionbytes", 
+    "extensionheader" : (readOptionalMatchesThenNext,
+                            { "re" : r"\*\*\*\*\*\* Extension",
+                              "nextifmatched" : "extensionbytes",
                               "nextifunmatched" : "payloadlen" }),
     "extensionbytes" :  (readUnlimitedChunksThenNext,
                          { "re" : r"\(\s*[0-9]+\)  (?P<chunkbytes>[0-9a-f ]{44})",
@@ -226,7 +226,7 @@ bplistline_statemachine = {
                            "next" : "parseextbytes" }),
     "parseextbytes" :   (parseExtensionBytes,
                          { "fallthroughname" : "extensionheader" }),
-    "payloadlen" :   (readMatchesThenNext, 
+    "payloadlen" :   (readMatchesThenNext,
                             { "re" : r"Payload len\s*(?P<payLen>[0-9]+)",
                               "next" : "payloadheader" } ),
     "payloadheader" :   (readOptionalMatchesThenNext,
@@ -240,7 +240,7 @@ bplistline_statemachine = {
     "queue" :          (readMatchesThenNext,
                             { "re" : r"\*\*\*\*\*\* Awaiting completion of convergence-layer transmission.",
                               "next" : "endofbundle" } ),
-    "endofbundle" :     (readMatchesThenNext, 
+    "endofbundle" :     (readMatchesThenNext,
                          { "re" : r"\*\*\*\* End of bundle",
                            "next" : "done" })
 }
@@ -251,7 +251,7 @@ for k, v in bplistline_statemachine.items():
     if v[1] == None or not v[1].has_key("re"):
         # No regexp to compile.
         continue
-    
+
     bplistline_statemachine[k][1]["re"] = re.compile(v[1]["re"])
 
 
@@ -286,7 +286,7 @@ def bplist_lines_to_bundles(lines):
             #return None
 
     return bundles
-    
+
 
 def bplist():
     """
@@ -531,7 +531,7 @@ Dictionary:
 
     #bundles = bplist_lines_to_bundles(sample_bplist_output)
 
-    assertedBundle = { 
+    assertedBundle = {
         'sourceEid' : 'ipn:2.1',
         'timestamp' : 332267883,
         'count' : 1,

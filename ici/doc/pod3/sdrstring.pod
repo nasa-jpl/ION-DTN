@@ -6,10 +6,10 @@ sdrstring - Simple Data Recorder string functions
 
     #include "sdr.h"
 
-    Object sdr_string_create (Sdr sdr, char *from);
-    Object sdr_string_dup    (Sdr sdr, Object from);
-    int    sdr_string_length (Sdr sdr, Object string);
-    int    sdr_string_read   (Sdr sdr, char *into, Object string);
+    Object sdr_string_create(Sdr sdr, char *from);
+    Object sdr_string_dup(Sdr sdr, Object from);
+    int sdr_string_length(Sdr sdr, Object string);
+    int sdr_string_read(Sdr sdr, char *into, Object string);
 
 =head1 DESCRIPTION
 

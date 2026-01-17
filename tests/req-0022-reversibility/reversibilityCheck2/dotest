@@ -30,23 +30,23 @@ source "$SCRIPT_DIR/../verify_sdr_recovery.sh"
 # Global timeout watchdog - kill test if it runs too long
 TEST_TIMEOUT=300  # 5 minutes max for entire test
 (
-	sleep $TEST_TIMEOUT
-	echo ""
-	echo "ERROR: Test timeout after ${TEST_TIMEOUT} seconds - forcing cleanup"
-	cd "$SCRIPT_DIR"
-	killm 2>/dev/null
-	exit 1
+    sleep $TEST_TIMEOUT
+    echo ""
+    echo "ERROR: Test timeout after ${TEST_TIMEOUT} seconds - forcing cleanup"
+    cd "$SCRIPT_DIR"
+    killm 2>/dev/null
+    exit 1
 ) &
 WATCHDOG_PID=$!
 
 function end(){
-	# Kill the watchdog timer
-	kill $WATCHDOG_PID 2>/dev/null
-	# Shut down ION
-	echo "Stopping ION..."
-	cd "$SCRIPT_DIR"
-	killm 2>/dev/null
-	exit $RETVAL
+    # Kill the watchdog timer
+    kill $WATCHDOG_PID 2>/dev/null
+    # Shut down ION
+    echo "Stopping ION..."
+    cd "$SCRIPT_DIR"
+    killm 2>/dev/null
+    exit $RETVAL
 }
 
 CONFIGFILES=" \
@@ -72,10 +72,10 @@ echo "CONFIG: 2 node custom configuration (UDP convergence layer)"
 echo ""
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo ""
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo ""
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo ""
@@ -127,32 +127,32 @@ ABORT_COUNT=$(count_messages "Transaction aborted" "ion.log")
 echo "Transaction aborts detected: $ABORT_COUNT"
 
 if [ "$ABORT_COUNT" -lt 1 ]; then
-	echo "FAIL: No transaction abort occurred - test cannot proceed"
-	echo "      bpcrash_hard should have triggered a transaction abort"
-	RETVAL=2
-	cd ..
-	end
+    echo "FAIL: No transaction abort occurred - test cannot proceed"
+    echo "      bpcrash_hard should have triggered a transaction abort"
+    RETVAL=2
+    cd ..
+    end
 else
-	echo "PASS: Transaction abort occurred ($ABORT_COUNT abort(s))"
+    echo "PASS: Transaction abort occurred ($ABORT_COUNT abort(s))"
 fi
 
 # ION 4.1.3+ specific: Check for reversal attempt message
 if check_reversal_attempted "ion.log"; then
-	echo "PASS: Transaction reversal was attempted (bpcrash_hard worked correctly)"
+    echo "PASS: Transaction reversal was attempted (bpcrash_hard worked correctly)"
 else
-	echo "WARNING: Expected 'Attempting transaction reversal' message not found"
-	echo "         bpcrash_hard should have modified the SDR"
-	# Don't fail here, as the test might still work
+    echo "WARNING: Expected 'Attempting transaction reversal' message not found"
+    echo "         bpcrash_hard should have modified the SDR"
+    # Don't fail here, as the test might still work
 fi
 
 # Verify NO unrecoverable errors
 if ! check_no_unrecoverable_error "ion.log"; then
-	echo "FAIL: Unrecoverable SDR error detected - recovery failed!"
-	RETVAL=1
-	cd ..
-	end
+    echo "FAIL: Unrecoverable SDR error detected - recovery failed!"
+    RETVAL=1
+    cd ..
+    end
 else
-	echo "PASS: No unrecoverable SDR errors"
+    echo "PASS: No unrecoverable SDR errors"
 fi
 
 echo "Node 2 recovered from crash"
@@ -169,29 +169,29 @@ sleep 5
 
 # Run with timeout to prevent hanging on Solaris
 if command -v timeout >/dev/null 2>&1; then
-	timeout 30 ionadmin restart.ionrc || echo "ionadmin restart timed out or failed"
-	sleep 3
-	timeout 30 bpadmin restart.bprc || echo "bpadmin restart timed out or failed"
+    timeout 30 ionadmin restart.ionrc || echo "ionadmin restart timed out or failed"
+    sleep 3
+    timeout 30 bpadmin restart.bprc || echo "bpadmin restart timed out or failed"
 else
-	# Fallback for systems without timeout command (e.g., older Solaris)
-	ionadmin restart.ionrc &
-	IONADMIN_PID=$!
-	sleep 30
-	if kill -0 $IONADMIN_PID 2>/dev/null; then
-		echo "ionadmin restart appears hung, killing..."
-		kill -9 $IONADMIN_PID 2>/dev/null
-	fi
-	wait $IONADMIN_PID 2>/dev/null || true
-	sleep 3
+    # Fallback for systems without timeout command (e.g., older Solaris)
+    ionadmin restart.ionrc &
+    IONADMIN_PID=$!
+    sleep 30
+    if kill -0 $IONADMIN_PID 2>/dev/null; then
+        echo "ionadmin restart appears hung, killing..."
+        kill -9 $IONADMIN_PID 2>/dev/null
+    fi
+    wait $IONADMIN_PID 2>/dev/null || true
+    sleep 3
 
-	bpadmin restart.bprc &
-	BPADMIN_PID=$!
-	sleep 30
-	if kill -0 $BPADMIN_PID 2>/dev/null; then
-		echo "bpadmin restart appears hung, killing..."
-		kill -9 $BPADMIN_PID 2>/dev/null
-	fi
-	wait $BPADMIN_PID 2>/dev/null || true
+    bpadmin restart.bprc &
+    BPADMIN_PID=$!
+    sleep 30
+    if kill -0 $BPADMIN_PID 2>/dev/null; then
+        echo "bpadmin restart appears hung, killing..."
+        kill -9 $BPADMIN_PID 2>/dev/null
+    fi
+    wait $BPADMIN_PID 2>/dev/null || true
 fi
 
 sleep 5
@@ -200,12 +200,12 @@ echo "Daemons restarted"
 
 # Verify SDR is operational
 if check_sdr_operational; then
-	echo "PASS: SDR is operational after restart"
+    echo "PASS: SDR is operational after restart"
 else
-	echo "FAIL: SDR is not operational after restart"
-	RETVAL=1
-	cd ..
-	end
+    echo "FAIL: SDR is not operational after restart"
+    RETVAL=1
+    cd ..
+    end
 fi
 
 #==============================================================================
@@ -250,22 +250,22 @@ echo "Transaction aborts after test: $ABORT_COUNT_AFTER"
 echo "New aborts during test: $NEW_ABORTS"
 
 if [ "$NEW_ABORTS" -gt 0 ]; then
-	echo "FAIL: New transaction aborts occurred - system did not recover properly"
-	RETVAL=1
-	cd ..
-	end
+    echo "FAIL: New transaction aborts occurred - system did not recover properly"
+    RETVAL=1
+    cd ..
+    end
 else
-	echo "PASS: No new transaction aborts"
+    echo "PASS: No new transaction aborts"
 fi
 
 # Final check for unrecoverable errors
 if ! check_no_unrecoverable_error "ion.log"; then
-	echo "FAIL: Unrecoverable SDR error detected"
-	RETVAL=1
-	cd ..
-	end
+    echo "FAIL: Unrecoverable SDR error detected"
+    RETVAL=1
+    cd ..
+    end
 else
-	echo "PASS: No unrecoverable errors"
+    echo "PASS: No unrecoverable errors"
 fi
 
 #==============================================================================
@@ -288,15 +288,15 @@ echo "Bundles received: ${BUNDLES:-0}"
 
 # Check if we received enough bundles (≥7 to account for UDP losses)
 if [ -e output3 ] && [ -n "$BUNDLES" ] && [ "$BUNDLES" -ge 7 ]; then
-	echo "PASS: Bundles successfully received ($BUNDLES/10)"
-	echo "      (UDP may lose some packets, ≥7/10 is acceptable)"
-	RETVAL=0
+    echo "PASS: Bundles successfully received ($BUNDLES/10)"
+    echo "      (UDP may lose some packets, ≥7/10 is acceptable)"
+    RETVAL=0
 else
-	echo "FAIL: Insufficient bundles received (${BUNDLES:-0}/10)"
-	echo "      Expected at least 7 bundles"
-	RETVAL=1
-	cd ..
-	end
+    echo "FAIL: Insufficient bundles received (${BUNDLES:-0}/10)"
+    echo "      Expected at least 7 bundles"
+    RETVAL=1
+    cd ..
+    end
 fi
 
 #==============================================================================

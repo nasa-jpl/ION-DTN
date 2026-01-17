@@ -41,7 +41,7 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  CONSTANTS  								  +
+ * |                              CONSTANTS                                   +
  * +--------------------------------------------------------------------------+
  */
 
@@ -50,7 +50,7 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  	MACROS  								  +
+ * |                                MACROS                                    +
  * +--------------------------------------------------------------------------+
  */
 
@@ -60,7 +60,7 @@ typedef tnv_t* (*edd_collect_fn)(tnvc_t *parms);
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  DATA TYPES  								  +
+ * |                              DATA TYPES                                  +
  * +--------------------------------------------------------------------------+
  */
 
@@ -94,16 +94,16 @@ typedef struct
 {
 	ari_t *id;
 
-    tnv_t *value; /**> The value of the variable. */
+	tnv_t *value; /**> The value of the variable. */
 
-    /* Below items are not serialized with this structure. */
-    db_desc_t desc; /**> Descriptor of def in the SDR. */
+	/* Below items are not serialized with this structure. */
+	db_desc_t desc; /**> Descriptor of def in the SDR. */
 } var_t;
 
 
 /*
  * +--------------------------------------------------------------------------+
- * |						  FUNCTION PROTOTYPES  							  +
+ * |                          FUNCTION PROTOTYPES                             +
  * +--------------------------------------------------------------------------+
  */
 

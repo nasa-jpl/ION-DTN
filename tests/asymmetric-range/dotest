@@ -17,23 +17,23 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: Test out behavior using asymmetrically configured ranges in the
-	contact graph.  Bundle forwarding, reforwarding, and expiration are
-	expected."
+    contact graph.  Bundle forwarding, reforwarding, and expiration are
+    expected."
 echo
 echo "CONFIG: A contact graph with asymmetric delay between nodes.
-	Only one node is actually configured and run in this network:"
+    Only one node is actually configured and run in this network:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
-echo "OUTPUT: Searching for bundle forwarding messages in ion.log to ensure 
-	that the CGR engine can make correct decisions with asymmetric ranges.
-	The terminal output should also contain a variety of 'watch' characters
-	for further debugging."
+echo "OUTPUT: Searching for bundle forwarding messages in ion.log to ensure
+    that the CGR engine can make correct decisions with asymmetric ranges.
+    The terminal output should also contain a variety of 'watch' characters
+    for further debugging."
 echo
 echo "########################################"
 
@@ -53,16 +53,16 @@ echo "This creates JSON files for use with contrib/cgr-viewer tool."
 
 echo "  Generating cgr_to_node5.json (node 9 -> node 5)..."
 if cgrfetch -d ltp:9 -e 86400 -o cgr_to_node5.json 5 2>cgrfetch_error.log; then
-	rm -f cgrfetch_error.log
+    rm -f cgrfetch_error.log
 else
-	echo "    Warning: cgrfetch failed for node 5. See cgrfetch_error.log for details."
+    echo "    Warning: cgrfetch failed for node 5. See cgrfetch_error.log for details."
 fi
 
 echo "  Generating cgr_to_node6.json (node 9 -> node 6)..."
 if cgrfetch -d ltp:9 -e 86400 -o cgr_to_node6.json 6 2>cgrfetch_error.log; then
-	rm -f cgrfetch_error.log
+    rm -f cgrfetch_error.log
 else
-	echo "    Warning: cgrfetch failed for node 6. See cgrfetch_error.log for details."
+    echo "    Warning: cgrfetch failed for node 6. See cgrfetch_error.log for details."
 fi
 
 echo "CGR JSON files generated successfully."
@@ -118,10 +118,10 @@ echo "Checking ion.log for 'src' message '(+) 3 9'..."
 COUNT=`grep src ion.log | grep "(+) 3 9" | wc -l`
 if [ $COUNT -gt 0 ]
 then
-	echo "OK: All bundles sourced."
+    echo "OK: All bundles sourced."
 else
-	echo "ERROR: Bundles not sourced."
-	RETVAL=1
+    echo "ERROR: Bundles not sourced."
+    RETVAL=1
 fi
 
 echo "Checking ion.log for 'fwd' message '(+) 3 9'..."
@@ -130,20 +130,20 @@ COUNT2=`grep fwd ion.log | grep "(+) 4 12" | wc -l`
 COUNT=$(($COUNT1 + $COUNT2))
 if [ $COUNT -gt 0 ]
 then
-	echo "OK: At least three bundle forwarding attempts including reforward."
+    echo "OK: At least three bundle forwarding attempts including reforward."
 else
-	echo "ERROR: Bundle forwarding is incomplete."
-	RETVAL=1
+    echo "ERROR: Bundle forwarding is incomplete."
+    RETVAL=1
 fi
 
 echo "Checking ion.log for 'exp' message '(+) 2 6'..."
 COUNT=`grep exp ion.log | grep "(+) 2 6" | wc -l`
 if [ $COUNT -gt 0 ]
 then
-	echo "OK: Two bundles expired."
+    echo "OK: Two bundles expired."
 else
-	echo "ERROR: Bad bundle expiration count."
-	RETVAL=1
+    echo "ERROR: Bad bundle expiration count."
+    RETVAL=1
 fi
 
 echo "Checking ion.log for 'rfw' message '(+) 1 3'..."
@@ -152,10 +152,10 @@ COUNT2=`grep rfw ion.log | grep "(+) 2 6" | wc -l`
 COUNT=$(($COUNT1 + $COUNT2))
 if [ $COUNT -gt 0 ]
 then
-	echo "OK: At least one bundle presented for reforwarding."
+    echo "OK: At least one bundle presented for reforwarding."
 else
-	echo "ERROR: Bundle not reforwarded."
-	RETVAL=1
+    echo "ERROR: Bundle not reforwarded."
+    RETVAL=1
 fi
 
 # Shut down ION processes.

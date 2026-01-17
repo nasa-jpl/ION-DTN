@@ -8,4 +8,3 @@ configured manager endpoint.
 ## Usage
 
 > nm_agent agent_eid manager_eid
-

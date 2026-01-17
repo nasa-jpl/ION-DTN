@@ -1,6 +1,6 @@
-## begin ionadmin 
+## begin ionadmin
 
-# Initialization command (command 1). 
+# Initialization command (command 1).
 #	Set this node to be node 1 (as in ipn:1).
 #	Use default sdr configuration (empty configuration file name '').
 1 1 ''
@@ -31,9 +31,9 @@ m consumption 1000000
 
 # Disable congestion forecasting
 m horizon +0
-## end ionadmin 
+## end ionadmin
 
-## begin bpadmin 
+## begin bpadmin
 
 # Initialization command (command 1).
 1
@@ -57,19 +57,19 @@ a scheme ipn 'ipnfw' 'ipnadminep'
 a endpoint ipn:1.1 q
 a endpoint ipn:1.2 q
 
-# Add a protocol. 
+# Add a protocol.
 a protocol stcp 1400 100
 
 # Add an induct. (listen)
 a induct stcp 127.0.0.1:4556 stcpcli
 
-# Add an outduct. 
+# Add an outduct.
 a outduct stcp 127.0.0.1:4556 stcpclo
 
 s
-## end bpadmin 
+## end bpadmin
 
-## begin ipnadmin 
+## begin ipnadmin
 
 # Add an egress plan.
 #	Bundles to be transmitted to element number 1 (that is, yourself).
@@ -77,7 +77,7 @@ s
 #	The plan is to queue for transmission (x) on protocol 'stcp' using
 #	the outduct identified as '127.0.0.1:4556'.
 a plan 1 stcp/127.0.0.1:4556
-## end ipnadmin 
+## end ipnadmin
 
 ## begin ionsecadmin
 1

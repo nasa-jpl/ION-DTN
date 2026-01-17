@@ -21,7 +21,7 @@ Sign up for a free account on [Windows Azure](http://www.azure.microsoft.com). O
 9. For `Select inbound ports` leave SSH(22)
 10. Click `Review and Create`, then click `Create`
 
-To get ION working you must enable the inbound traffic to port 1113 and port 4556 - IANA assigned default DTN TCP port. To enable inbound traffic in those ports, at the top right of your window, hit `Home`, then `Virtual Machines`. Click on the Virtual Machine you have just created. On the new loaded page, under `Settings` click `Networking` as shown in the image below. 
+To get ION working you must enable the inbound traffic to port 1113 and port 4556 - IANA assigned default DTN TCP port. To enable inbound traffic in those ports, at the top right of your window, hit `Home`, then `Virtual Machines`. Click on the Virtual Machine you have just created. On the new loaded page, under `Settings` click `Networking` as shown in the image below.
 
 ![](images/azure_net.png)
 
@@ -52,11 +52,11 @@ For the configuration files `host 1` and `host 2`, follow the examples given in 
 
 The `ionadmin` configuration uses tcp from `host 2` to `host 3`
 ````
-## begin ionadmin 
+## begin ionadmin
 # ionrc configuration file for host3 in a 3node tcp/ltp test.
 # This uses tcp from 1 to 3.
-# 
-# Initialization command (command 1). 
+#
+# Initialization command (command 1).
 # Set this node to be node 3 (as in ipn:3).
 # Use default sdr configuration (empty configuration file name '').
 1 3 ''
@@ -85,12 +85,12 @@ a range +1 +3600 2 3 1
 # set this node to consume and produce a mean of 1000000 bytes/second.
 m production 1000000
 m consumption 1000000
-## end ionadmin 
+## end ionadmin
 ````
 
 The `bpadmin` configuration uses adds the endpoints and the protocol `tcp`. In the protocol section, it estimates transmission capacity assuming 1400 bytes of each frame (in this case, tcp on ethernet) for payload, and 100 bytes for overhead. The induct and outduct will listen on `port 4556`, the IANA assigned default DTN TCP convergence layer port. The induct itself is implemented by the `tcpcli` command and the outduct is implemented by the `tcpclo`
 ````
-## begin bpadmin 
+## begin bpadmin
 # bprc configuration file for host3 in a 3node test.
 # Initialization command (command 1).
 1
@@ -103,7 +103,7 @@ a endpoint ipn:3.0 q
 a endpoint ipn:3.1 q
 a endpoint ipn:3.2 q
 
-# Add a protocol. 
+# Add a protocol.
 # Add the protocol named tcp.
 a protocol tcp 1400 100
 
@@ -119,12 +119,12 @@ a outduct tcp external_ip_of_host_2:4556 tcpclo
 # Start bundle protocol engine, also running all of the induct, outduct,
 # and administration programs defined above.
 s
-## end bpadmin 
+## end bpadmin
 ````
 
 The `ipnadmin` configuration adds the egress plans (to host 3 itself and to host 2) using `tcp`.
 ````
-## begin ipnadmin 
+## begin ipnadmin
 # ipnrc configuration file for host1 in the 3node tcp network.
 # Add an egress plan (to yourself).
 a plan 2 tcp/10.0.0.3:4556

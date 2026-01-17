@@ -63,4 +63,3 @@ int RunTests(const char *szTestNames[], OutputStringCB pfOutput, void *pOutCtx, 
  @param[in] pOutCtx      Context pointer passed to output function.
  */
 void PrintSizes(OutputStringCB pfOutput, void *pOutCtx);
-

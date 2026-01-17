@@ -23,6 +23,7 @@
  **  07/31/16  E. Birrane      Rename DTNMP items to AMP_(Secure DTN - NASA: NNX14CS58P)
  **  09/02/18  E. Birrane      Cleanup and update to latest spec. (JHU/APL)
  *****************************************************************************/
+
 #ifndef NM_TYPES_H
 #define NM_TYPES_H
 
@@ -39,7 +40,7 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  CONSTANTS  								  +
+ * |                              CONSTANTS                                   +
  * +--------------------------------------------------------------------------+
  */
 
@@ -47,43 +48,43 @@ extern "C" {
 typedef enum
 {
 
-  /* AMM Objects */
-  AMP_TYPE_CNST    =  0, /* Hex: 0x00. Struct: ari_t    */
-  AMP_TYPE_CTRL    =  1, /* Hex: 0x01. Struct: ctrl_t   */
-  AMP_TYPE_EDD     =  2, /* Hex: 0x02. Struct: edd_t    */
-  AMP_TYPE_LIT     =  3, /* Hex: 0x03. Struct: ari_t    */
-  AMP_TYPE_MAC     =  4, /* Hex: 0x04. Struct: mac_t    */
-  AMP_TYPE_OPER    =  5, /* Hex: 0x05. Struct: op_t     */
-  AMP_TYPE_RPT     =  6, /* Hex: 0x06. Struct: rpt_t    */
-  AMP_TYPE_RPTTPL  =  7, /* Hex: 0x07. Struct: rpttpl_t */
-  AMP_TYPE_SBR     =  8, /* Hex: 0x08. Struct: sbr_t    */
-  AMP_TYPE_TBL     =  9, /* Hex: 0x09. Struct: tbl_t    */
-  AMP_TYPE_TBLT    = 10, /* Hex: 0x0A. Struct: tblt_t   */
-  AMP_TYPE_TBR     = 11, /* Hex: 0x0B. Struct: tbr_t    */
-  AMP_TYPE_VAR     = 12, /* Hex: 0x0C. Struct: var_t    */
+	/* AMM Objects */
+	AMP_TYPE_CNST    =  0, /* Hex: 0x00. Struct: ari_t    */
+	AMP_TYPE_CTRL    =  1, /* Hex: 0x01. Struct: ctrl_t   */
+	AMP_TYPE_EDD     =  2, /* Hex: 0x02. Struct: edd_t    */
+	AMP_TYPE_LIT     =  3, /* Hex: 0x03. Struct: ari_t    */
+	AMP_TYPE_MAC     =  4, /* Hex: 0x04. Struct: mac_t    */
+	AMP_TYPE_OPER    =  5, /* Hex: 0x05. Struct: op_t     */
+	AMP_TYPE_RPT     =  6, /* Hex: 0x06. Struct: rpt_t    */
+	AMP_TYPE_RPTTPL  =  7, /* Hex: 0x07. Struct: rpttpl_t */
+	AMP_TYPE_SBR     =  8, /* Hex: 0x08. Struct: sbr_t    */
+	AMP_TYPE_TBL     =  9, /* Hex: 0x09. Struct: tbl_t    */
+	AMP_TYPE_TBLT    = 10, /* Hex: 0x0A. Struct: tblt_t   */
+	AMP_TYPE_TBR     = 11, /* Hex: 0x0B. Struct: tbr_t    */
+	AMP_TYPE_VAR     = 12, /* Hex: 0x0C. Struct: var_t    */
 
-  /* Primitive Types */
-  AMP_TYPE_BOOL    = 16, /* Hex: 0x10.  Type: uint8_t   */
-  AMP_TYPE_BYTE    = 17, /* Hex: 0x11.  Type: uint8_t   */
-  AMP_TYPE_STR     = 18, /* Hex: 0x12.  Type: char      */
-  AMP_TYPE_INT     = 19, /* Hex: 0x13.  Type: int32_t   */
-  AMP_TYPE_UINT    = 20, /* Hex: 0x14.  Type: uint32_t  */
-  AMP_TYPE_VAST    = 21, /* Hex: 0x15.  Type: vast_t    */
-  AMP_TYPE_UVAST   = 22, /* Hex: 0x16.  Type: uvast_t   */
-  AMP_TYPE_REAL32  = 23, /* Hex: 0x17.  Type: float     */
-  AMP_TYPE_REAL64  = 24, /* Hex: 0x18.  Type: double    */
+	/* Primitive Types */
+	AMP_TYPE_BOOL    = 16, /* Hex: 0x10.  Type: uint8_t   */
+	AMP_TYPE_BYTE    = 17, /* Hex: 0x11.  Type: uint8_t   */
+	AMP_TYPE_STR     = 18, /* Hex: 0x12.  Type: char      */
+	AMP_TYPE_INT     = 19, /* Hex: 0x13.  Type: int32_t   */
+	AMP_TYPE_UINT    = 20, /* Hex: 0x14.  Type: uint32_t  */
+	AMP_TYPE_VAST    = 21, /* Hex: 0x15.  Type: vast_t    */
+	AMP_TYPE_UVAST   = 22, /* Hex: 0x16.  Type: uvast_t   */
+	AMP_TYPE_REAL32  = 23, /* Hex: 0x17.  Type: float     */
+	AMP_TYPE_REAL64  = 24, /* Hex: 0x18.  Type: double    */
 
-  /* Compound Objects */
-  AMP_TYPE_TV      = 32, /* Hex: 0x20.   Type: uvast_t  */
-  AMP_TYPE_TS      = 33, /* Hex: 0x21.   Type: uvast_t  */
-  AMP_TYPE_TNV     = 34, /* Hex: 0x22. Struct: tnv_t    */
-  AMP_TYPE_TNVC    = 35, /* Hex: 0x23. Struct: tnvc_t   */
-  AMP_TYPE_ARI     = 36, /* Hex: 0x24. Struct: ari_t    */
-  AMP_TYPE_AC      = 37, /* Hex: 0x25. Struct: ac_t     */
-  AMP_TYPE_EXPR    = 38, /* Hex: 0x26. Struct: expr_t   */
-  AMP_TYPE_BYTESTR = 39, /* Hex: 0x27. Struct: blob_t   */
+	/* Compound Objects */
+	AMP_TYPE_TV      = 32, /* Hex: 0x20.   Type: uvast_t  */
+	AMP_TYPE_TS      = 33, /* Hex: 0x21.   Type: uvast_t  */
+	AMP_TYPE_TNV     = 34, /* Hex: 0x22. Struct: tnv_t    */
+	AMP_TYPE_TNVC    = 35, /* Hex: 0x23. Struct: tnvc_t   */
+	AMP_TYPE_ARI     = 36, /* Hex: 0x24. Struct: ari_t    */
+	AMP_TYPE_AC      = 37, /* Hex: 0x25. Struct: ac_t     */
+	AMP_TYPE_EXPR    = 38, /* Hex: 0x26. Struct: expr_t   */
+	AMP_TYPE_BYTESTR = 39, /* Hex: 0x27. Struct: blob_t   */
 
-  AMP_TYPE_UNK     = 40
+	AMP_TYPE_UNK     = 40
 } amp_type_e;
 
 
@@ -100,14 +101,14 @@ typedef enum
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  	MACROS  								  +
+ * |                                MACROS                                    +
  * +--------------------------------------------------------------------------+
  */
 
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  DATA TYPES  								  +
+ * |                              DATA TYPES                                  +
  * +--------------------------------------------------------------------------+
  */
 
@@ -119,13 +120,13 @@ extern const char * const amp_type_str[];
  */
 typedef struct
 {
-    char name[AMP_MAX_EID_LEN];
+	char name[AMP_MAX_EID_LEN];
 } eid_t;
 
 
 /*
  * +--------------------------------------------------------------------------+
- * |						  FUNCTION PROTOTYPES  							  +
+ * |                          FUNCTION PROTOTYPES                             +
  * +--------------------------------------------------------------------------+
  */
 

@@ -18,7 +18,7 @@
  **
  ** Assumptions:
  **              BLOBs will be capped at 65KB in size, allowing for a 2 byte
-                 length. 
+                 length.
  **
  **
  ** Modification History:
@@ -235,8 +235,8 @@ blob_t blob_deserialize(QCBORDecodeContext *it, int *success)
 	*success = AMP_FAIL;
 
 	if( (status = QCBORDecode_GetNext(it, &item)) != QCBOR_SUCCESS) {
-	   AMP_DEBUG_ERR("blob_deserialize", "QCBOR Error", status);
-	   return result;
+		AMP_DEBUG_ERR("blob_deserialize", "QCBOR Error", status);
+		return result;
 	}
 
 	if(item.uDataType != QCBOR_TYPE_BYTE_STRING)
@@ -294,9 +294,9 @@ blob_t blob_deserialize_as_bytes(QCBORDecodeContext *it, int *success, size_t le
 {
 	blob_t result;
 
-    AMP_DEBUG_ENTRY("blob_deserialize_as_bytes","(0x"ADDR_FIELDSPEC",0x"ADDR_FIELDSPEC"), %d", (uaddr) it, (uaddr) success, len);
-    
-    memset(&result, 0, sizeof(blob_t));
+	AMP_DEBUG_ENTRY("blob_deserialize_as_bytes","(0x"ADDR_FIELDSPEC",0x"ADDR_FIELDSPEC"), %d", (uaddr) it, (uaddr) success, len);
+
+	memset(&result, 0, sizeof(blob_t));
 	*success = AMP_FAIL;
 
 	/* Create an empty-but-allocated blob. */
@@ -536,23 +536,23 @@ int blob_serialize(QCBOREncodeContext *it, blob_t *blob)
  */
 int blob_serialize_as_bytes(QCBOREncodeContext *it, blob_t *blob)
 {
-   size_t  i = 0;
-   int err;
-   
+	size_t  i = 0;
+	int err;
+
 	if(blob == NULL || it == NULL)
 	{
 		return AMP_FAIL;
 	}
 
-    for(i = 0; i < blob->length; i++)
-    {
-       err = cut_enc_byte(it, blob->value[i]);
-       if (err != AMP_OK)
-       {
-          AMP_DEBUG_ERR("blob_serialize_as_bytes", "Cbor Error: %d", err);
-          return err;
-       }
-    }
+	for(i = 0; i < blob->length; i++)
+	{
+		err = cut_enc_byte(it, blob->value[i]);
+		if (err != AMP_OK)
+		{
+			AMP_DEBUG_ERR("blob_serialize_as_bytes", "Cbor Error: %d", err);
+			return err;
+		}
+	}
 
 	return AMP_OK;
 }

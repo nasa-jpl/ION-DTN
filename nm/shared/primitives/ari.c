@@ -34,7 +34,7 @@
 
 /*
  * +--------------------------------------------------------------------------+
- * |					   Private Functions  								  +
+ * |                       Private Functions                                  +
  * +--------------------------------------------------------------------------+
  */
 
@@ -243,7 +243,7 @@ static int p_ari_serialize_reg(QCBOREncodeContext *encoder, ari_t *ari)
 
 		if (nn != NULL)
 		{
-		   QCBOREncode_AddUInt64(encoder, *nn);
+			QCBOREncode_AddUInt64(encoder, *nn);
 		}
 	}
 
@@ -276,7 +276,7 @@ static int p_ari_serialize_reg(QCBOREncodeContext *encoder, ari_t *ari)
 
 		if (iss != NULL)
 		{
-		   QCBOREncode_AddUInt64(encoder, *iss);
+			QCBOREncode_AddUInt64(encoder, *iss);
 		}
 #else
 		result = (blob_t *)VDB_FINDIDX_ISS(ari->as_reg.iss_idx);
@@ -299,7 +299,7 @@ static int p_ari_serialize_reg(QCBOREncodeContext *encoder, ari_t *ari)
 
 /*
  * +--------------------------------------------------------------------------+
- * |					   Public Functions  								  +
+ * |                       Public Functions                                   +
  * +--------------------------------------------------------------------------+
  */
 
@@ -317,8 +317,8 @@ static int p_ari_serialize_reg(QCBOREncodeContext *encoder, ari_t *ari)
 int ari_add_parm_set(ari_t *ari, tnvc_t *parms)
 {
 	if((ari == NULL) ||
-	   (ari->type == AMP_TYPE_LIT) ||
-	   (ARI_GET_FLAG_PARM(ari->as_reg.flags) == 0))
+		(ari->type == AMP_TYPE_LIT) ||
+		(ARI_GET_FLAG_PARM(ari->as_reg.flags) == 0))
 	{
 		return AMP_FAIL;
 	}
@@ -345,8 +345,8 @@ int ari_add_parm_set(ari_t *ari, tnvc_t *parms)
 int ari_add_parm_val(ari_t *ari, tnv_t *parm)
 {
 	if((ari == NULL) ||
-	   (ari->type == AMP_TYPE_LIT) ||
-	   (ARI_GET_FLAG_PARM(ari->as_reg.flags) == 0))
+		(ari->type == AMP_TYPE_LIT) ||
+		(ARI_GET_FLAG_PARM(ari->as_reg.flags) == 0))
 	{
 		return AMP_FAIL;
 	}
@@ -357,7 +357,7 @@ int ari_add_parm_val(ari_t *ari, tnv_t *parm)
 
 int ari_cb_comp_no_parm_fn(void *i1, void *i2)
 {
- 	return ari_compare((ari_t*)i1, (ari_t*)i2, 0);
+	return ari_compare((ari_t*)i1, (ari_t*)i2, 0);
 }
 
 int ari_cb_comp_fn(void *i1, void *i2)
@@ -395,7 +395,7 @@ void ari_cb_del_fn(void *item)
 rh_idx_t  ari_cb_hash(void *table, void *key)
 {
 	unsigned int seed = 131; /* 31 131 1313 13131 131313 etc.. */
-    unsigned int hash = 0;
+	unsigned int hash = 0;
 	unsigned int i    = 0;
 	rhht_t *ht = (rhht_t*) table;
 	ari_t *id = (ari_t*) key;
@@ -427,7 +427,7 @@ rh_idx_t  ari_cb_hash(void *table, void *key)
 		}
 	}
 
-   return hash % ht->num_bkts;
+	return hash % ht->num_bkts;
 }
 
 
@@ -497,60 +497,60 @@ void ari_cb_ht_del(rh_elt_t *elt)
 
 int ari_compare(ari_t *ari1, ari_t *ari2, int parms)
 {
-    AMP_DEBUG_ENTRY("ari_compare","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
-    		         (uaddr) ari1, (uaddr) ari2);
+	AMP_DEBUG_ENTRY("ari_compare","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
+			(uaddr) ari1, (uaddr) ari2);
 
-    if((ari1 == NULL) || (ari2 == NULL))
-    {
-    	return -1;
-    }
+	if((ari1 == NULL) || (ari2 == NULL))
+	{
+		return -1;
+	}
 
-    if(ari1->type != ari2->type)
-    {
-    	return 1;
-    }
-    else if(ari1->type == AMP_TYPE_LIT)
-    {
-    	return tnv_compare(&(ari1->as_lit), &(ari2->as_lit));
-    }
-    else
-    {
-    	if( (ari1->as_reg.flags    != ari2->as_reg.flags) ||
-    		(ari1->as_reg.iss_idx  != ari2->as_reg.iss_idx) ||
+	if(ari1->type != ari2->type)
+	{
+		return 1;
+	}
+	else if(ari1->type == AMP_TYPE_LIT)
+	{
+		return tnv_compare(&(ari1->as_lit), &(ari2->as_lit));
+	}
+	else
+	{
+		if( (ari1->as_reg.flags    != ari2->as_reg.flags) ||
+			(ari1->as_reg.iss_idx  != ari2->as_reg.iss_idx) ||
 			(ari1->as_reg.nn_idx   != ari2->as_reg.nn_idx) ||
 			(ari1->as_reg.tag_idx  != ari2->as_reg.tag_idx))
-    	{
-    		return 1;
-    	}
-    	else if(blob_compare(&(ari1->as_reg.name), &(ari2->as_reg.name)))
-    	{
-    		return 1;
-    	}
+		{
+			return 1;
+		}
+		else if(blob_compare(&(ari1->as_reg.name), &(ari2->as_reg.name)))
+		{
+			return 1;
+		}
 
-    	/* IFF both ARIs have actual parms, do a parm compare.
-    	 *
-    	 * We only get here if the flags for both ARIs are equal, so
-    	 * if both ARIs have the parm flag set, but only 1 (or 0) ARIs
-    	 * have actual parms, then we are comparing an ARI prototype
-    	 * versus an actual ARI, or comparing 2 ARI prototypes. In those
-    	 * cases, we do not (and cannot) compare parms, but that does
-    	 * not mean there isn't a match.
-    	 */
-    	if(parms)
-    	{
-    		if((tnvc_get_count(&(ari1->as_reg.parms)) > 0) &&
-    				(tnvc_get_count(&(ari2->as_reg.parms)) > 0))
-    		{
-    			return tnvc_compare(&(ari1->as_reg.parms), &(ari2->as_reg.parms));
-    		}
-    	}
-    	else
-    	{
-    		return 0;
-    	}
-    }
+		/* IFF both ARIs have actual parms, do a parm compare.
+		 *
+		 * We only get here if the flags for both ARIs are equal, so
+		 * if both ARIs have the parm flag set, but only 1 (or 0) ARIs
+		 * have actual parms, then we are comparing an ARI prototype
+		 * versus an actual ARI, or comparing 2 ARI prototypes. In those
+		 * cases, we do not (and cannot) compare parms, but that does
+		 * not mean there isn't a match.
+		 */
+		if(parms)
+		{
+			if((tnvc_get_count(&(ari1->as_reg.parms)) > 0) &&
+				(tnvc_get_count(&(ari2->as_reg.parms)) > 0))
+			{
+				return tnvc_compare(&(ari1->as_reg.parms), &(ari2->as_reg.parms));
+			}
+		}
+		else
+		{
+			return 0;
+		}
+	}
 
-    return 0;
+	return 0;
 }
 
 
@@ -578,42 +578,42 @@ int ari_compare(ari_t *ari1, ari_t *ari2, int parms)
 
 ari_t ari_copy(ari_t val, int *success)
 {
-    ari_t result;
+	ari_t result;
 
-    /* Shallow copy bulk items. */
-    result = val;
+	/* Shallow copy bulk items. */
+	result = val;
 
-    /* Deep copy as needed. */
-    if(result.type == AMP_TYPE_LIT)
-    {
-    	result.as_lit = tnv_copy(val.as_lit, success);
-    	if(*success != AMP_OK)
-    	{
-    		tnv_release(&(result.as_lit), 0);
-    	}
-    }
-    else
-    {
-    	if((*success = blob_copy(val.as_reg.name, &(result.as_reg.name))) != AMP_OK)
-    	{
-    		return result;
-    	}
+	/* Deep copy as needed. */
+	if(result.type == AMP_TYPE_LIT)
+	{
+		result.as_lit = tnv_copy(val.as_lit, success);
+		if(*success != AMP_OK)
+		{
+			tnv_release(&(result.as_lit), 0);
+		}
+	}
+	else
+	{
+		if((*success = blob_copy(val.as_reg.name, &(result.as_reg.name))) != AMP_OK)
+		{
+			return result;
+		}
 
-    	if((*success = tnvc_init(&(result.as_reg.parms), tnvc_get_count(&(val.as_reg.parms)))) != AMP_OK)
-    	{
-    		blob_release(&(result.as_reg.name), 0);
-    		return result;
-    	}
+		if((*success = tnvc_init(&(result.as_reg.parms), tnvc_get_count(&(val.as_reg.parms)))) != AMP_OK)
+		{
+			blob_release(&(result.as_reg.name), 0);
+			return result;
+		}
 
-    	if((*success = tnvc_append(&(result.as_reg.parms), &(val.as_reg.parms))) != AMP_OK)
-    	{
-        	blob_release(&(result.as_reg.name), 0);
-        	tnvc_release(&(result.as_reg.parms), 0);
-        	return result;
-    	}
-    }
+		if((*success = tnvc_append(&(result.as_reg.parms), &(val.as_reg.parms))) != AMP_OK)
+		{
+			blob_release(&(result.as_reg.name), 0);
+			tnvc_release(&(result.as_reg.parms), 0);
+			return result;
+		}
+	}
 
-    return result;
+	return result;
 }
 
 
@@ -684,25 +684,25 @@ ari_t ari_deserialize(QCBORDecodeContext *it, int *success)
 {
 	uint8_t flag;
 
-    AMP_DEBUG_ENTRY("ari_deserialize","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")", (uaddr)it, (uaddr)success);
+	AMP_DEBUG_ENTRY("ari_deserialize","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")", (uaddr)it, (uaddr)success);
 
-    CHKUSR(it, ari_null());
-    CHKUSR(success, ari_null());
+	CHKUSR(it, ari_null());
+	CHKUSR(success, ari_null());
 
-    /* Grab the first byte to see what we've got. */
-    *success = cut_get_cbor_numeric(it, AMP_TYPE_BYTE, &flag);
-    if (*success != AMP_OK)
-    {
-    	AMP_DEBUG_ERR("ari_deserialize", "Can't get first byte: %d", success);
-    	return ari_null();
-    }
+	/* Grab the first byte to see what we've got. */
+	*success = cut_get_cbor_numeric(it, AMP_TYPE_BYTE, &flag);
+	if (*success != AMP_OK)
+	{
+		AMP_DEBUG_ERR("ari_deserialize", "Can't get first byte: %d", success);
+		return ari_null();
+	}
 
-    if(ARI_GET_FLAG_TYPE(flag) == AMP_TYPE_LIT)
-    {
-       return p_ari_deserialize_lit(it, flag, success);
-    }
+	if(ARI_GET_FLAG_TYPE(flag) == AMP_TYPE_LIT)
+	{
+		return p_ari_deserialize_lit(it, flag, success);
+	}
 
-    return p_ari_deserialize_reg(it, flag, success);
+	return p_ari_deserialize_reg(it, flag, success);
 }
 
 
@@ -736,8 +736,8 @@ ari_t* ari_deserialize_raw(blob_t *data, int *success)
 	}
 
 	QCBORDecode_Init(&parser,
-					 (UsefulBufC){data->value,data->length},
-					 QCBOR_DECODE_MODE_NORMAL);
+			(UsefulBufC){data->value,data->length},
+			QCBOR_DECODE_MODE_NORMAL);
 
 	ari_t *tmp = ari_deserialize_ptr(&parser, success);
 
@@ -763,10 +763,10 @@ ari_t*   ari_from_uvast(uvast val)
 	QCBORDecodeContext it;
 	int success = AMP_FAIL;
 	ari_t *result = NULL;
-    
+
 	QCBORDecode_Init(&it,
-					 (UsefulBufC){&val,sizeof(uvast)},
-					 QCBOR_DECODE_MODE_NORMAL);
+			(UsefulBufC){&val,sizeof(uvast)},
+			QCBOR_DECODE_MODE_NORMAL);
 
 	result = ari_deserialize_ptr(&it, &success);
 
@@ -789,7 +789,7 @@ tnv_t* ari_get_param(ari_t *ari, int i)
 	CHKNULL(ari);
 
 	if((ari->type == AMP_TYPE_LIT) ||
-	   (ARI_GET_FLAG_PARM(ari->as_reg.flags) == 0))
+		(ARI_GET_FLAG_PARM(ari->as_reg.flags) == 0))
 	{
 		return NULL;
 	}
@@ -805,7 +805,7 @@ uint8_t  ari_get_num_parms(ari_t *ari)
 	CHKZERO(ari);
 
 	if((ari->type == AMP_TYPE_LIT) ||
-	   (ARI_GET_FLAG_PARM(ari->as_reg.flags) == 0))
+		(ARI_GET_FLAG_PARM(ari->as_reg.flags) == 0))
 	{
 		return 0;
 	}
@@ -911,8 +911,8 @@ tnvc_t *ari_resolve_parms(tnvc_t *src_parms, tnvc_t *parent_parms)
 	}
 
 	if((parent_parms == NULL) ||
-	   (tnvc_size(src_parms) == 0) ||
-	   (tnvc_size(parent_parms) == 0))
+		(tnvc_size(src_parms) == 0) ||
+		(tnvc_size(parent_parms) == 0))
 	{
 		return result;
 	}
@@ -929,7 +929,7 @@ tnvc_t *ari_resolve_parms(tnvc_t *src_parms, tnvc_t *parent_parms)
 			if(tnvc_update(result, idx, new_tnv) != AMP_OK)
 			{
 				AMP_DEBUG_ERR("ari_resolve_parms",
-						      "Can't apply parm map: %d -> %d", idx, parent_idx);
+					"Can't apply parm map: %d -> %d", idx, parent_idx);
 				tnv_release(new_tnv, 1);
 				tnvc_release(result, 1);
 				result = NULL;
@@ -1125,7 +1125,7 @@ ac_t ac_deserialize(QCBORDecodeContext *it, int *success)
 		ari_t *cur_ari = ari_deserialize_ptr(it, success);
 		QCBORDecode_EndOctets(it);
 #endif
-		
+
 		if((*success = ac_insert(&result, cur_ari)) != AMP_OK)
 		{
 			AMP_DEBUG_ERR("ac_deserialize","Can't grab ARI #%d.", i);
@@ -1134,11 +1134,11 @@ ac_t ac_deserialize(QCBORDecodeContext *it, int *success)
 		}
 	}
 
-	/* NOTE: We are not checking if we successfully completed array traversal here. 
+	/* NOTE: We are not checking if we successfully completed array traversal here.
 	 *	To do so with provided APIs requires access to last retrieved sub-item, not available with current API
 	 *	Caller should use QCBORDecode_Finish() to check state on completion to catch errors.
 	 */
-    
+
 	*success = AMP_OK;
 	return result;
 }
@@ -1176,11 +1176,11 @@ ac_t ac_deserialize_raw(blob_t *data, int *success)
 	}
 
 	QCBORDecode_Init(&parser,
-					 (UsefulBufC){data->value,data->length},
-					 QCBOR_DECODE_MODE_NORMAL);
-	
+			(UsefulBufC){data->value,data->length},
+			QCBOR_DECODE_MODE_NORMAL);
+
 	ac_t tmp = ac_deserialize(&parser, success);
-	
+
 	// Verify Decoding Completed Successfully
 	cut_decode_finish(&parser);
 
@@ -1271,5 +1271,3 @@ blob_t*	 ac_serialize_wrapper(ac_t *ac)
 
 	return cut_serialize_wrapper(vec_num_entries(ac->values) * ARI_DEFAULT_ENC_SIZE, ac, (cut_enc_fn)ac_serialize);
 }
-
-

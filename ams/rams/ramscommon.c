@@ -6,7 +6,7 @@
 	Copyright (c) 2005, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
 
-	Modified by Sky DeBaun	
+	Modified by Sky DeBaun
 	Jet Propulsion Laboratory 2023
 
 	Modifications include the following issues:
@@ -117,7 +117,7 @@ int	EnvelopeHeader(char *envelope, EnvelopeField conId)
 	CHKZERO(envelope);
 	switch (conId)
 	{
-	case Env_ControlCode: 
+	case Env_ControlCode:
 		num = envl[0] & 0x0f;
 		break;
 
@@ -154,7 +154,7 @@ int	EnvelopeHeader(char *envelope, EnvelopeField conId)
 		break;
 	}
 
-	return num; 
+	return num;
 }
 
 char	*EnvelopeContent(char *envelope, int contentLength)
@@ -240,7 +240,7 @@ void	GetEnvelopeSpecification(char *envelope, int *continuumNbr,
 	*continuumNbr = ((env[2] << 8) & 0x00007f00) + env[3];
 	*unitNbr = ((env[4] << 8) & 0x0000ff00) + env[5];
 	*roleNbr = env[7];
-} 
+}
 */
 
 Enclosure	*ConstructEnclosure(short continuumNbr, int unitNbr,
@@ -288,7 +288,7 @@ Enclosure	*ConstructEnclosure(short continuumNbr, int unitNbr,
 		CHKNULL(content);
 		memcpy(enc->text + AMSMSGHEADER, content, contentLength);
 	}
-	
+
 	return enc;
 }
 
@@ -349,7 +349,7 @@ Petition	*ConstructPetitionFromEnvelope(char* envelope)
 	CHKNULL(pet->specification);
 	pet->specification->envelope = NULL;
 	pet->specification->envelopeLength = 0;
-	pet->specification->toContinuumNbr = -1; 
+	pet->specification->toContinuumNbr = -1;
 	if (envelope != NULL)
 	{
 		pet->specification->envelopeLength = ENVELOPELENGTH
@@ -404,7 +404,7 @@ int	PetitionMatchesDomain(Petition *pet, short domainContinuum,
 	&& EnvelopeHeader(env, Env_PublishUnitNbr) == domainUnit
 	&& EnvelopeHeader(env, Env_PublishRoleNbr) == domainRole
 	&& EnvelopeHeader(env, Env_SubjectNbr) == subNbr)
-	{	
+	{
 		return 1;
 	}
 
@@ -556,7 +556,7 @@ int	EnclosureSatisfiesInvitation(RamsGateway *gWay, char* rpdu,
 
 	/*	Enclosure matches domain role of invitation.		*/
 
-	return 1; 
+	return 1;
 }
 
 int	RoleNumber(AmsModule module, int unitNbr, int moduleNbr)
@@ -566,10 +566,10 @@ int	RoleNumber(AmsModule module, int unitNbr, int moduleNbr)
 	roleName = ams_get_role_name(module, unitNbr, moduleNbr);
 	if (roleName == NULL)
 	{
-		return -1; 
+		return -1;
 	}
 
-   	return ams_lookup_role_nbr(module, roleName);
+	return ams_lookup_role_nbr(module, roleName);
 }
 
 int	MessageSatisfiesPetition(AmsModule module, short msgCont, int msgUnit,
@@ -631,7 +631,7 @@ LystElt	ModuleSetMember(Module *module, Lyst lyst)
 		if (module->unitNbr == member->unitNbr
 		&& module->nbr == member->nbr)
 		{
-        		return elt;
+			return elt;
 		}
 	}
 
@@ -642,7 +642,7 @@ LystElt InvitationSetMember(int dUnit, int dRole, short dCont, int sub,
 		Lyst lyst)
 {
 	LystElt		elt;
-	Invitation	*inv; 
+	Invitation	*inv;
 
 	CHKNULL(lyst);
 	for (elt = lyst_first(lyst); elt != NULL; elt = lyst_next(elt))
@@ -755,7 +755,7 @@ void	AddNodeSets(Lyst set1, Lyst set2)
 RamsNode	*GetConduitForContinuum(short continuumNbr, RamsGateway *gWay)
 {
 	LystElt		elt;
-	Petition	*pet; 
+	Petition	*pet;
 	int		subN;
 	LystElt		nodeElt;
 
@@ -801,7 +801,7 @@ int	PetitionIsAssertable(RamsGateway *gWay, Petition *pet)
 
 Lyst	AssertionSet(RamsGateway *gWay, Petition *pet)
 {
-	Lyst		assertionSet; 
+	Lyst		assertionSet;
 	short		domainCont;
 	LystElt		elt;
 	RamsNode	*node;
@@ -831,8 +831,8 @@ Lyst	AssertionSet(RamsGateway *gWay, Petition *pet)
 			}
 		}
 	}
-	else   
-	{ 
+	else
+	{
 		/*	Domain of petition is a single remote
 		 *	continuum; find conduit to that continuum.	*/
 
@@ -849,7 +849,7 @@ Lyst	AssertionSet(RamsGateway *gWay, Petition *pet)
 #if RAMSDEBUG
 printf("<assertion set> initial set size is %lu\n", lyst_length(assertionSet));
 #endif
-		
+
 	/*	Now REMOVE from the assertion set all members of
 	 *	the source gateway set of this petition.		*/
 
@@ -862,7 +862,7 @@ lyst_length(assertionSet));
 	/*	Also REMOVE from the assertion set the sole member
 	 *	of the DGS if the petition's DMS is empty and its DGS
 	 *	contains only one member.				*/
-	
+
 	if (lyst_length(pet->DistributionModuleSet) == 0
 	&& lyst_length(pet->DestinationNodeSet) == 1)
 	{
@@ -910,10 +910,10 @@ int	MessageIsInvited(RamsGateway *gWay, char* msg)
 {
 	char		*enc;
 	int		destUnitNbr;
-	int		destModuleNbr; 
-	Module		*destModule; 
+	int		destModuleNbr;
+	Module		*destModule;
 	LystElt		elt;
-	Invitation	*inv; 
+	Invitation	*inv;
 
 	CHKZERO(gWay);
 	CHKZERO(msg);
@@ -928,7 +928,7 @@ int	MessageIsInvited(RamsGateway *gWay, char* msg)
 	destModule = LookupModule(destUnitNbr, destModuleNbr, gWay);
 	if (destModule == NULL)
 	{
-		return 0;  
+		return 0;
 	}
 
 	for (elt = lyst_first(gWay->invitationSet); elt != NULL;
@@ -964,7 +964,7 @@ int	ModuleIsInAnnouncementDomain(RamsGateway* gWay, Module *module,
 		 *	module is registered.  Is it a super-unit of
 		 *	the unit in which this module is registered?	*/
 
-        	if (!ams_subunit_of(gWay->amsModule, mUnit, dUnit)) 
+		if (!ams_subunit_of(gWay->amsModule, mUnit, dUnit))
 		{
 			return 0;
 		}
@@ -993,7 +993,7 @@ static int	SendRPDUviaBp(RamsGateway *gWay, RamsNode *ramsNode,
 {
 	BpOutboundRpdu *outRpdu;
 	int destEidLen;
-	
+
 	CHKERR(gWay);
 	CHKERR(ramsNode);
 	CHKERR(envelope);
@@ -1046,7 +1046,7 @@ static int	SendRPDUviaBp(RamsGateway *gWay, RamsNode *ramsNode,
 		return -1;
 	}
 	pthread_mutex_unlock(&gWay->bpQueueMutex);
-	
+
 	/*	Signal the BP manager thread that new data is available
 	 *	by interrupting its blocking bp_receive() call.	This is
 	 *	the standard way to wake up an I/O thread.		*/
@@ -1054,7 +1054,7 @@ static int	SendRPDUviaBp(RamsGateway *gWay, RamsNode *ramsNode,
 	{
 		bp_interrupt(gWay->sap);
 	}
-	
+
 	return 0;
 }
 
@@ -1242,13 +1242,13 @@ int	SendNewRPDU(RamsGateway *gWay, short destContinuumNbr,
 	int	result;
 
 	CHKERR(gWay);
-	envelope = NULL; 
+	envelope = NULL;
 	if (enclosure)
 	{
 		if (enclosure->length > 0 && enclosure->text == NULL)
 		{
 			ErrMsg("SendNewRPDU: Enclosure corrupted (len > 0 but text is NULL)");
-			return -1; 
+			return -1;
 		}
 
 		encLength = enclosure->length;
@@ -1259,7 +1259,7 @@ int	SendNewRPDU(RamsGateway *gWay, short destContinuumNbr,
 				enclosure->length, enclosure->text,
 				controlCode);
 	}
-	else 
+	else
 	{
 		encLength = 0;
 		envelope = (char *) MTAKE(ENVELOPELENGTH);
@@ -1310,11 +1310,11 @@ void	*CheckUdpRpdus(void *parm)
 		{
 			nextElt = lyst_next(elt);
 			rpdu = (UdpRpdu	 *) lyst_data(elt);
-			
+
 			/* Optimization: The list is sorted by time, so we can stop early */
 			if (rpdu->checkTime > currentTime)
 			{
-				break;	
+				break;
 			}
 
 			/* Time to re-send this RPDU via UDP. */
@@ -1323,10 +1323,10 @@ void	*CheckUdpRpdus(void *parm)
 					rpdu->envelopeLength) < 0)
 			{
 				ErrMsg("Failed re-sending UDP RPDU.");
-				
+
 				/* IMPORTANT: Unlock before returning to avoid deadlock! */
 				pthread_mutex_unlock(&gWay->gwayStateMutex);
-				
+
 				return NULL;
 			}
 

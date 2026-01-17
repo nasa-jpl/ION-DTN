@@ -12,15 +12,15 @@ B<psmshell> allocates a region of I<partition_size> bytes of system memory,
 places it under PSM management, and offers the user an interactive "shell"
 for testing various PSM management functions.
 
-B<psmshell> prints a prompt string (": ") to stdout, accepts a command from 
-stdin, executes the command (possibly printing a diagnostic message), 
+B<psmshell> prints a prompt string (": ") to stdout, accepts a command from
+stdin, executes the command (possibly printing a diagnostic message),
 then prints another prompt string and so on.
 
 The locations of objects allocated from the PSM-managed region of memory
 are referred to as "cells" in psmshell operations.  That is, when an object
 is to be allocated, a cell number in the range 0-99 must be specified as
 the notional "handle" for that object, for use in future commands.
-	
+
 The following commands are supported:
 
 =over 4

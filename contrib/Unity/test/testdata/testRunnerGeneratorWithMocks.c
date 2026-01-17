@@ -194,4 +194,3 @@ void test_ShouldCallMockInitAndVerifyFunctionsForEachTest(void)
     TEST_ASSERT_EQUAL_MESSAGE(Unity.NumberOfTests - 1, mockMock_Destroy_Counter, "Mock Destroy Should Be Called Once Per Test Completed");
     TEST_ASSERT_EQUAL_MESSAGE(0,                       CMockMemFreeFinalCounter, "Mock MemFreeFinal Should Not Be Called Until End");
 }
-

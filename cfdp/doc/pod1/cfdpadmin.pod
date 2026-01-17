@@ -10,13 +10,13 @@ B<cfdpadmin> [ I<commands_filename> | . | ! ]
 
 B<cfdpadmin> configures, starts, manages, and stops CFDP operations for
 the local ION node.
-	
+
 It operates in response to CFDP configuration commands found in the file
 I<commands_filename>, if provided; if not, B<cfdpadmin> prints
 a simple prompt (:) so that the user may type commands
 directly into standard input.  If I<commands_filename> is a period (.), the
 effect is the same as if a command file containing the single command 'x'
-were passed to B<cfdpadmin> -- that is, the ION node's I<cfdpclock> task 
+were passed to B<cfdpadmin> -- that is, the ION node's I<cfdpclock> task
 and UT layer service task (nominally I<bputa>) are stopped.
 If I<commands_filename> is an exclamation point (!), that effect is
 reversed: the ION node's I<cfdpclock> task and UT layer service task

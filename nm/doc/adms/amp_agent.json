@@ -285,7 +285,7 @@
       }],
       "description": "This control removes one or more report template definitions from the Agent."
     },
-    
+
     {
       "name": "desc_rptt",
       "parmspec": [{

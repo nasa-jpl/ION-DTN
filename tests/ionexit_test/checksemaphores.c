@@ -59,9 +59,8 @@ int main(void) {
 #else
 	// For unsupported platforms, always return error; this test should have
 	// been excluded from running on its unsupported platforms.
-    printf("ionexit_test/checksemaphores: Unsupported platform\n");
+	printf("ionexit_test/checksemaphores: Unsupported platform\n");
 	return -1;
 #endif
 
 }
-

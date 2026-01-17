@@ -1,5 +1,5 @@
 /*
- *	bsscounter.c:	A test application that demonstrates the 
+ *	bsscounter.c:	A test application that demonstrates the
  *			functionality of BSS API.  It receives and
  *			processes a stream of bundles.
  *
@@ -8,8 +8,8 @@
  *
  *	Copyright (c) 2012, California Institute of Technology.
  *
- *	All rights reserved.						
- *	
+ *	All rights reserved.
+ *
  *	Author: Scott Burleigh
  */
 
@@ -41,12 +41,12 @@ static int	display(time_t sec, unsigned long count, char *buf,
 		return -1;
 	}
 
-	/*  Debugging only: we check realtime bundles are in-order. 
-	 *  BSS callback for realtime bundles already perform this 
-	 *  check. 
+	/*  Debugging only: we check realtime bundles are in-order.
+	 *  BSS callback for realtime bundles already perform this
+	 *  check.
 	 *  Such check can be turned-off to reduce overhead.     */
 	if (sec < prevSec)
-	{	
+	{
 		writeMemoNote("[?] bsscounter: Real-time stream out of order, prev bundle time second",
 				itoa((unsigned int) prevSec));
 		writeMemoNote("[?] bsscounter: Real-time stream out of order, prev bundle seq. number",
@@ -92,16 +92,16 @@ static int	checkReceptionStatus(char *buffer, int limit, long playback_wait)
 	/* This function performs a database read.
 	 * NOTE: it reads "forward" and will not
 	 * pick up any delayed bundled. Therefore
-	 * to make sure *all* bundles are read, 
+	 * to make sure *all* bundles are read,
 	 * the "playback_wait" should be set
-	 * sufficiently long. */ 
+	 * sufficiently long. */
 
 	/* reset nav data structure */
 	memset((char *) &nav, 0, sizeof nav);
 
-	/* 	Wait for initial data arrival, we 
-	 *  assume database is empty, otherwise
-	 *  we will pick up previous data stream. */
+	/* Wait for initial data arrival, we
+	 * assume database is empty, otherwise
+	 * we will pick up previous data stream. */
 	if (bundleSec == 0)
 	{
 		puts("Waiting for stream...");
@@ -120,7 +120,7 @@ static int	checkReceptionStatus(char *buffer, int limit, long playback_wait)
 		}
 	}
 
-	/* Now we reset nav in case the first arrival is 
+	/* Now we reset nav in case the first arrival is
 	 * not the actual first bundle in the stream */
 	if (bssSeek(&nav, 0, &bundleSec, &bundleCount) < 0)
 	{
@@ -134,7 +134,7 @@ static int	checkReceptionStatus(char *buffer, int limit, long playback_wait)
 	while (1)
 	{
 		bytesRead = bssRead(nav, buffer, RCV_LENGTH);
-		
+
 		if (bytesRead < 0)
 		{
 			putErrmsg("Failed in bssRead.", NULL);
@@ -211,7 +211,7 @@ int	main(int argc, char **argv)
 	case 6:
 		playback_wait = strtol(argv[5], NULL, 0);
 		/* FALLTHROUGH */
-	
+
 	case 5:
 		eid = argv[4];
 		/* FALLTHROUGH */
@@ -253,13 +253,13 @@ for complete accounting of out-or-order delivery, default 5 seconds.");
 	}
 #endif
 	/*
-     * ********************************************************
+	 * ********************************************************
 	 * In order for the BSS receiving thread to work properly,
 	 * the receiving application must always allocate a buffer
-	 * of a certain size and provide its address and its length 
+	 * of a certain size and provide its address and its length
 	 * to bssRun or bssStart function.
-     * ********************************************************
-	 */ 
+	 * ********************************************************
+	 */
 
 	buffer = calloc(2 * RCV_LENGTH, sizeof(char));
 	if (buffer == NULL)
@@ -278,7 +278,7 @@ for complete accounting of out-or-order delivery, default 5 seconds.");
 	while (1)
 	{
 		snooze(5);
-		
+
 		recv_count = checkReceptionStatus(buffer + RCV_LENGTH, limit, playback_wait);
 		switch (recv_count)
 		{

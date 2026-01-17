@@ -3,11 +3,11 @@
 									*/
 /*									*/
 /*	Copyright (c) 2004, California Institute of Technology.		*/
-/*	All rights reserved.									*/
+/*	All rights reserved.						*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*	Enhanced by Ryan Metzger (MITRE Corp.) August 2006.		*/
-/*  Injection rate control added by Jay L. Gao, JPL, 2021 	*/
-/*															*/
+/*	Injection rate control added by Jay L. Gao, JPL, 2021		*/
+/*									*/
 
 #include <bp.h>
 
@@ -95,10 +95,10 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	struct timeval	endTime;
 	double		interval;
 	char		textBuf[256];
-	unsigned long		startTimestamp; /* cycle start time in usec */
-	unsigned long		endTimestamp; 	/* cycle end time in usec */
-	float				cycleTime;		/* desired cycle time in usec */
-	float				delayTime;		/* delay added in usec */
+	unsigned long	startTimestamp; /* cycle start time in usec */
+	unsigned long	endTimestamp;	/* cycle end time in usec */
+	float		cycleTime;	/* desired cycle time in usec */
+	float		delayTime;	/* delay added in usec */
 
 	if (cyclesRemaining == 0 || ownEid == NULL || destEid == NULL
 	|| aduLength == 0)
@@ -116,15 +116,15 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 		PUTS("  will be used as the actual payload size.");
 		PUTS("");
 		PUTS("  To use payload sizes chosen at random from the");
-	    PUTS("  range 1024 to 62464, in multiples of 1024,");
-	    PUTS("  specify payload size 1 (or -1 for streaming mode).");
+		PUTS("  range 1024 to 62464, in multiples of 1024,");
+		PUTS("  specify payload size 1 (or -1 for streaming mode).");
 		PUTS("");
 		PUTS("  bpdriver normally runs with custody transfer");
-	    PUTS("  disabled.  To request custody transfer for all");
-	    PUTS("  bundles sent, specify number of cycles as a");
-	    PUTS("  negative number; the absolute value of this");
-	    PUTS("  parameter will be used as the actual number of");
-	    PUTS("  cycles.");
+		PUTS("  disabled.  To request custody transfer for all");
+		PUTS("  bundles sent, specify number of cycles as a");
+		PUTS("  negative number; the absolute value of this");
+		PUTS("  parameter will be used as the actual number of");
+		PUTS("  cycles.");
 		PUTS("");
 		PUTS("  Inject data rate specifies in bits-per-second");
 		PUTS("  the average rate at which bpdriver will");
@@ -235,7 +235,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	_attendant(&attendant);
 
 	/*	Send pilot bundle to start bpcounter's timer.		*/
-		
+
 	CHKZERO(sdr_begin_xn(sdr));
 	pilotAduString = sdr_string_create(sdr, "Go.");
 	if (sdr_end_xn(sdr) < 0)
@@ -245,7 +245,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 		return 0;
 	}
 
-	bundleZco = ionCreateZco(ZcoSdrSource, pilotAduString, 0, 
+	bundleZco = ionCreateZco(ZcoSdrSource, pilotAduString, 0,
 			sdr_string_length(sdr, pilotAduString),
 			BP_STD_PRIORITY, 0, ZcoOutbound, &attendant);
 	if (bundleZco == 0 || bundleZco == (Object) ERROR)
@@ -310,7 +310,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	{
 		/* measure cycle starting time */
 
-		if ( bCount == 0 ) 
+		if ( bCount == 0 )
 		{
 			startTimestamp = getUsecTimestamp();
 		}
@@ -372,7 +372,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 
 						bSize += 1;
 						cycleTime = (float) aduLength * 8 * 1000000 / (float) injectRate * bSize;
-					
+
 						if ( bSize > 10000 )
 						{
 							putErrmsg("bpdriver cannot keep up injection rate with burst size < 10,000.", itoa(injectRate));
@@ -494,11 +494,11 @@ int	main(int argc, char **argv)
 	case 7:
 		if(argv[6][0] == 't')
 		{
-				ttl = atoi(&argv[6][1]);
+			ttl = atoi(&argv[6][1]);
 		}
 		else if (argv[6][0] == 'i')
 		{
-				injectRate = atoi(&argv[6][1]);
+			injectRate = atoi(&argv[6][1]);
 		}
 		else
 		{
@@ -509,11 +509,11 @@ int	main(int argc, char **argv)
 	case 6:
 		if(argv[5][0] == 't')
 		{
-				ttl = atoi(&argv[5][1]);
+			ttl = atoi(&argv[5][1]);
 		}
 		else if (argv[5][0] == 'i')
 		{
-				injectRate = atoi(&argv[5][1]);
+			injectRate = atoi(&argv[5][1]);
 		}
 		else
 		{
@@ -524,11 +524,11 @@ int	main(int argc, char **argv)
 	case 5:
 		if(argv[4][0] == 't')
 		{
-				ttl = atoi(&argv[4][1]);
+			ttl = atoi(&argv[4][1]);
 		}
 		else if (argv[4][0] == 'i')
 		{
-				injectRate = atoi(&argv[4][1]);
+			injectRate = atoi(&argv[4][1]);
 		}
 		else
 		{

@@ -12,4 +12,3 @@ void test_TheSecondThingToTest(void);
 void test_TheThirdThingToTest(void);
 void test_TheFourthThingToTest(void);
 #endif
-

@@ -1,14 +1,14 @@
 /*
  *	libbssP.c:	functions enabling the implementation of
  *			BSS API.
- *								
- *									
+ *
+ *
  *	Copyright (c) 2011, Space Internetworking Center,
  *	Democritus University of Thrace.
- *	Copyright (c) 2011, California Institute of Technology.	
+ *	Copyright (c) 2011, California Institute of Technology.
  *
- *	All rights reserved.						
- *	
+ *	All rights reserved.
+ *
  *	Author: Sotirios-Angelos Lenas, Space Internetworking Center (SPICE)
  */
 
@@ -32,7 +32,7 @@ int	_running(int *newValue)
 		running = *newValue;
 	}
 
-	return  running;	
+	return  running;
 }
 
 int	_recvThreadId(pthread_t *id, int control)
@@ -86,7 +86,7 @@ int	_lockMutex(int value)
 		}
 	}
 
-	return 0;		
+	return 0;
 }
 
 int	_datFile(int control, int fileDescriptor)
@@ -95,7 +95,7 @@ int	_datFile(int control, int fileDescriptor)
 
 	switch (control)
 	{
-		case 1: 
+		case 1:
 			dat = fileDescriptor;
 			break;
 
@@ -108,7 +108,7 @@ int	_datFile(int control, int fileDescriptor)
 			break;
 	}
 
-	return  dat;		
+	return  dat;
 }
 
 int	_lstFile(int control, int fileDescriptor)
@@ -117,7 +117,7 @@ int	_lstFile(int control, int fileDescriptor)
 
 	switch (control)
 	{
-	case 1: 
+	case 1:
 		lst = fileDescriptor;
 		break;
 
@@ -130,7 +130,7 @@ int	_lstFile(int control, int fileDescriptor)
 		break;
 	}
 
-	return  lst;		
+	return  lst;
 }
 
 int	_tblFile(int control, int fileDescriptor)
@@ -139,7 +139,7 @@ int	_tblFile(int control, int fileDescriptor)
 
 	switch (control)
 	{
-	case 1: 
+	case 1:
 		tbl = fileDescriptor;
 		break;
 
@@ -152,7 +152,7 @@ int	_tblFile(int control, int fileDescriptor)
 		break;
 	}
 
-	return  tbl;		
+	return  tbl;
 }
 
 BpSAP	_bpsap(BpSAP *newSAP)
@@ -193,7 +193,7 @@ static int	writeTblFile(int fd, long offset, char *from, long length)
 }
 
 static int	initializeTblIndex(int fd, tblIndex *index)
-{	
+{
 	tblHeader	*hdr = &(index->header);
 	int		i;
 	tblRow		*row;
@@ -258,9 +258,9 @@ tblIndex	*_tblIndex(int *control)
 int	getLstEntry(int fileD, lstEntry *entry, long lstEntryOffset)
 {
 	if ((lseek(fileD, (off_t) lstEntryOffset, SEEK_SET) < 0) ||
-	    (read(fileD, entry, sizeof(lstEntry)) < 0))
+		(read(fileD, entry, sizeof(lstEntry)) < 0))
 	{
-		putSysErrmsg("BSS library: can't seek or read from .lst file", 
+		putSysErrmsg("BSS library: can't seek or read from .lst file",
 				NULL);
 		return -1;
 	}
@@ -272,42 +272,42 @@ static int	addEntry(int fileD, BpTimestamp time, off_t datOffset,
 			long prev, long next, long dataLength)
 {
 	lstEntry entry;
-	
+
 	entry.crtnTime = time;
 	entry.datOffset = datOffset;
 	entry.prev = prev;
 	entry.next = next;
 	entry.pLen = dataLength;
-		
+
 	if ((lseek(fileD, 0, SEEK_END) < 0) ||
-	    (write(fileD, &entry, sizeof(lstEntry)) < 0))
+			(write(fileD, &entry, sizeof(lstEntry)) < 0))
 	{
-		putSysErrmsg("BSS library: can't seek or write to .lst file", 
+		putSysErrmsg("BSS library: can't seek or write to .lst file",
 				NULL);
 		return -1;
 	}
 
-	return 0;		
+	return 0;
 }
 
-static int	updateEntry(int fileD, lstEntry *entry, long prev, long next, 
+static int	updateEntry(int fileD, lstEntry *entry, long prev, long next,
 			long offset)
 {
 	entry->prev = prev;
 	entry->next = next;
-		
+
 	if ((lseek(fileD, offset, SEEK_SET) < 0) ||
-	    (write(fileD, entry, sizeof(lstEntry)) < 0))
+			(write(fileD, entry, sizeof(lstEntry)) < 0))
 	{
-		putSysErrmsg("BSS library: can't seek or write to .lst file", 
+		putSysErrmsg("BSS library: can't seek or write to .lst file",
 				NULL);
 		return -1;
 	}
 
-	return 0;		
+	return 0;
 }
 
-static int	insertLstEdge(int fileD, lstEntry *curEntry, long curPrev, 
+static int	insertLstEdge(int fileD, lstEntry *curEntry, long curPrev,
 			long curNext, long offset, BpTimestamp time,
 			off_t datOffset, long prev, long next, long dataLength)
 {
@@ -316,14 +316,14 @@ static int	insertLstEdge(int fileD, lstEntry *curEntry, long curPrev,
 		putErrmsg("Update of .lst file failed", NULL);
 		return -1;
 	}
-			
+
 	if (addEntry(fileD, time, datOffset, prev, next, dataLength) < 0)
 	{
 		putErrmsg("Update of .lst file failed", NULL);
 		return -1;
 	}
 
-	return 1;		
+	return 1;
 }
 
 static int	insertLstIntrmd(int fileD, lstEntry *curEntry,
@@ -332,44 +332,44 @@ static int	insertLstIntrmd(int fileD, lstEntry *curEntry,
 {
 	lstEntry	nextEntry;
 
-	if (addEntry(fileD, time, datOffset, lstEntryOffset, curEntry->next, 
+	if (addEntry(fileD, time, datOffset, lstEntryOffset, curEntry->next,
 			dataLength) < 0)
 	{
 		putErrmsg("Update of .lst file failed", NULL);
 		return -1;
 	}
-						
+
 	if (getLstEntry(fileD, &nextEntry, curEntry->next) < 0)
 	{
 		putErrmsg("Retrieval of .lst entry failed", NULL);
 		return -1;
 	}
 
-	if (updateEntry(fileD, &nextEntry, newEntryOffset, nextEntry.next, 
+	if (updateEntry(fileD, &nextEntry, newEntryOffset, nextEntry.next,
 			curEntry->next) < 0)
 	{
 		putErrmsg("Update of .lst file failed", NULL);
 		return -1;
 	}
 
-	if (updateEntry(fileD, curEntry, curEntry->prev, newEntryOffset, 
+	if (updateEntry(fileD, curEntry, curEntry->prev, newEntryOffset,
 			lstEntryOffset) < 0)
 	{
 		putErrmsg("Update of .lst file failed", NULL);
 		return -1;
 	}
 #if BSSLIBDEBUG
-printf("Adding an intermediate entry into the list for %lu second\n", 
+printf("Adding an intermediate entry into the list for %lu second\n",
 		bpSeconds(time));
-printf("ADD // new Entry Offset: %ld - previous offset: %ld - next offset: %ld\n", 
+printf("ADD // new Entry Offset: %ld - previous offset: %ld - next offset: %ld\n",
 	newEntryOffset, lstEntryOffset, curEntry->next);
-printf("UPDATE NEXT // offset: %ld - previous offset: %ld - next offset: %ld\n", 
+printf("UPDATE NEXT // offset: %ld - previous offset: %ld - next offset: %ld\n",
 	curEntry->next,  newEntryOffset, nextEntry.next);
-printf("UPDATE CURRENT // offset: %ld - previous offset: %ld - next offset: %ld\n", 
+printf("UPDATE CURRENT // offset: %ld - previous offset: %ld - next offset: %ld\n",
 	lstEntryOffset, curEntry->prev,  newEntryOffset);
 #endif
 
-	return 1;	
+	return 1;
 }
 
 /* .dat database file management functions */
@@ -377,7 +377,7 @@ printf("UPDATE CURRENT // offset: %ld - previous offset: %ld - next offset: %ld\
 int	readRecord(int fileD, dataRecord *rec, off_t datOffset)
 {
 	if ((lseek(fileD, datOffset, SEEK_SET) < 0) ||
-	    (read(fileD, rec, sizeof(dataRecord)) < 0))
+			(read(fileD, rec, sizeof(dataRecord)) < 0))
 	{
 		putSysErrmsg("BSS library: can't seek to read from .dat file",
 				NULL);
@@ -391,7 +391,7 @@ int	readPayload(int fileD, char* buffer, long length)
 {
 	if (read(fileD, buffer, length*sizeof(char)) < 0)
 	{
-		putSysErrmsg("BSS library: can't read payload from .dat file", 
+		putSysErrmsg("BSS library: can't read payload from .dat file",
 				NULL);
 		return -1;
 	}
@@ -420,7 +420,7 @@ printf("New data record added to the database\n");
 printf("-------------------------------------\n");
 printf("creation time: %lu - length: %ld\n", bpSeconds(time), payloadLength);
 #endif
-	return 0;		
+	return 0;
 }
 
 /* Receiver's operations - section */
@@ -430,7 +430,7 @@ static int	updateLstEntries(int lstFile, long lstEntryOffset,
 			long dataLength)
 {
 	lstEntry 	curEntry;
-	
+
 	/*
 	 *  This function adds new entries and applies appropriate
 	 *  updates on the contents of *.lst file, as needed. The
@@ -454,7 +454,7 @@ static int	updateLstEntries(int lstFile, long lstEntryOffset,
 	 *  pointer to lstEntryOffset is used as a starting point
 	 *  for stepping through the other entries of that doubly-
 	 *  linked list so that they can get updated (based on their
-	 *  count value), placing the new entry at the right spot.	       
+	 *  count value), placing the new entry at the right spot.
 	 */
 
 	if (lstEntryOffset == 1)
@@ -471,17 +471,17 @@ printf("ADD // new Entry Offset: %ld - previous offset: -1 - next offset: -1\n",
 #endif
 		return 1;
 	}
-	
+
 	if (getLstEntry(lstFile, &curEntry, lstEntryOffset) < 0)
 	{
 		putErrmsg("Retrieval of .lst entry failed", NULL);
 		return -1;
 	}
-	
+
 	if (curEntry.crtnTime.count < time.count)
 	{
-		if (insertLstEdge(lstFile, &curEntry, curEntry.prev, 
-			newEntryOffset, lstEntryOffset, time, datOffset, 
+		if (insertLstEdge(lstFile, &curEntry, curEntry.prev,
+			newEntryOffset, lstEntryOffset, time, datOffset,
 			lstEntryOffset, -1, dataLength) < 0)
 		{
 			return -1;
@@ -489,7 +489,7 @@ printf("ADD // new Entry Offset: %ld - previous offset: -1 - next offset: -1\n",
 #if BSSLIBDEBUG
 printf("Same as end of list. Adding an entry at the end of the list for %lu \
 second\n", bpSeconds(time));
-printf("UPDATE // offset: %ld - previous offset: %ld - next offset: %ld\n", 
+printf("UPDATE // offset: %ld - previous offset: %ld - next offset: %ld\n",
 lstEntryOffset, curEntry.prev, newEntryOffset);
 printf("ADD // new Entry Offset: %ld - previous offset: %ld - next offset: -1\n", newEntryOffset, lstEntryOffset);
 #endif
@@ -512,11 +512,11 @@ printf("ADD // new Entry Offset: %ld - previous offset: %ld - next offset: -1\n"
 
 		if (curEntry.crtnTime.count < time.count)
 		{
-			if (insertLstIntrmd(lstFile, &curEntry, lstEntryOffset, 
+			if (insertLstIntrmd(lstFile, &curEntry, lstEntryOffset,
 		 			newEntryOffset, time, datOffset,
 					dataLength) < 0)
 			{
-				return -1;	
+				return -1;
 			}
 
 			return 1;
@@ -532,18 +532,18 @@ printf("ADD // new Entry Offset: %ld - previous offset: %ld - next offset: -1\n"
 		return 0;		/*	Avoid duplicate entry.	*/
 	}
 
-	if (insertLstEdge(lstFile, &curEntry, newEntryOffset, 
-			curEntry.next, lstEntryOffset, time, datOffset, 
+	if (insertLstEdge(lstFile, &curEntry, newEntryOffset,
+			curEntry.next, lstEntryOffset, time, datOffset,
 			-1, lstEntryOffset, dataLength) < 0)
 	{
 		return -1;
 	}
 #if BSSLIBDEBUG
-printf("Adding an entry at the beginning of the list for %lu second\n", 
+printf("Adding an entry at the beginning of the list for %lu second\n",
 	bpSeconds(time));
-printf("UPDATE // offset: %ld - previous offset: %ld - next offset: %ld\n", 
+printf("UPDATE // offset: %ld - previous offset: %ld - next offset: %ld\n",
 	lstEntryOffset, newEntryOffset,  curEntry.next);
-printf("ADD // Entry Offset: %ld - previous offset: -1 - next offset: %ld\n", 
+printf("ADD // Entry Offset: %ld - previous offset: -1 - next offset: %ld\n",
 	newEntryOffset, lstEntryOffset);
 #endif
 	return 1;
@@ -552,17 +552,17 @@ printf("ADD // Entry Offset: %ld - previous offset: -1 - next offset: %ld\n",
 static void	updateTbl(tblRow *row, int _switch, long offset,
 			BpTimestamp time)
 {
-	/*  
-	 *  This function updates the values of tblIndex structure based      
-	 *  on _switch value. In the first case, it updates the variables     
-	 *  that hold the details for the bundle with the oldest creation     
-	 *  time of a particular second. In the second case it updates the    
-	 *  variables that hold the details for the bundle with the newest    
-	 *  creation time of a particular second. Finally, in the third case, 
-	 *  the bundle that just got received is the first received bundle  
-	 *  of a particular second, so both variables that hold the details    
-	 *  for the oldest and newest bundle are being initialized with the   
-	 *  same value.		     			               
+	/*
+	 *  This function updates the values of tblIndex structure based
+	 *  on _switch value. In the first case, it updates the variables
+	 *  that hold the details for the bundle with the oldest creation
+	 *  time of a particular second. In the second case it updates the
+	 *  variables that hold the details for the bundle with the newest
+	 *  creation time of a particular second. Finally, in the third case,
+	 *  the bundle that just got received is the first received bundle
+	 *  of a particular second, so both variables that hold the details
+	 *  for the oldest and newest bundle are being initialized with the
+	 *  same value.
 	 */
 
 	if (_switch == 0)
@@ -600,11 +600,11 @@ static long	getEntryPosition(int tblFile, BpTimestamp time, long entry)
 	time_t		oldestTime = 0;
 	long		lastEntry; 	/*	offset of last in list	*/
 
-	/* 
-	 *  This function calculates in which position (row number),  
-	 *  of the lists stored in .tbl, the new entry should be     
+	/*
+	 *  This function calculates in which position (row number),
+	 *  of the lists stored in .tbl, the new entry should be
 	 *  inserted, updates the proper elements as needed and returns
-	 *  last entry's offset in .lst file for the indicated second.         
+	 *  last entry's offset in .lst file for the indicated second.
 	 */
 
 #if BSSLIBDEBUG
@@ -646,7 +646,7 @@ printf("(BEFORE) Creation time of the newest frame stored in *.tbl file: %lu\n",
 		 * *.dat file but it will not be trackable by *.tbl or
 		 * *.lst files.			    			*/
 
-		return -2; 
+		return -2;
 	}
 
 #if BSSLIBDEBUG
@@ -768,7 +768,7 @@ position, hdr->newestRowIndex);
 	if (row->lastEntryOffset == -1)
 	{
 		lastEntry = 1;	 /*	no entries for this second yet	*/
-		updateTbl(row, 2, entry, time);	
+		updateTbl(row, 2, entry, time);
 	}
 	else
 	{
@@ -800,7 +800,7 @@ position, hdr->newestRowIndex);
 		hdr->oldestTime = oldestTime;
 		hdr->oldestRowIndex = oldestRow;
 	}
-	
+
 	if (newestRow != -1)
 	{
 		hdr->newestTime = newestTime;
@@ -813,11 +813,11 @@ position, hdr->newestRowIndex);
 	}
 
 #if BSSLIBDEBUG
-printf("(AFTER) Creation time of the oldest frame stored in *.tbl file: %lu\n", 
+printf("(AFTER) Creation time of the oldest frame stored in *.tbl file: %lu\n",
 	hdr->oldestTime);
-printf("(AFTER) Creation time of the newest frame stored in *.tbl file: %lu\n", 
+printf("(AFTER) Creation time of the newest frame stored in *.tbl file: %lu\n",
 	hdr->newestTime);
-printf("firstEntryOffset: %lu - lastEntryOffset: %lu  returned value: %ld\n", 
+printf("firstEntryOffset: %lu - lastEntryOffset: %lu  returned value: %ld\n",
 index->rows[position].firstEntryOffset, index->rows[position].lastEntryOffset, lastEntry);
 #endif
 
@@ -825,7 +825,7 @@ index->rows[position].firstEntryOffset, index->rows[position].lastEntryOffset, l
 }
 
 static int	receiveFrame(Sdr sdr, BpDelivery *dlv, int datFile, int lstFile,
-			int tblFile, BpTimestamp *lastDis, char *buffer, 
+			int tblFile, BpTimestamp *lastDis, char *buffer,
 			long bufLength, RTBHandler display)
 {
 	time_t		bundleSeconds = bpSeconds(dlv->bundleCreationTime);
@@ -881,7 +881,7 @@ printf("receiveFrame: received frame with creation time %ld (sec) and \
 			return -1;
 		}
 #if BSSLIBDEBUG
-printf("new Entry Offset returned from seeking to the end of .lst file: %ld\n", 
+printf("new Entry Offset returned from seeking to the end of .lst file: %ld\n",
 newEntryOffset);
 #endif
 		/*	Locate the offset within datFile at which the
@@ -895,11 +895,11 @@ newEntryOffset);
 			oK(_lockMutex(0));
 			return -1;
 		}
-	
-		/* 
+
+		/*
 		 *  Find offset of last entry in the doubly-linked list
 		 *  that  holds the entries for the second on which this
-		 *  bundle was created. 
+		 *  bundle was created.
 		 */
 		lstEntryOffset = getEntryPosition(tblFile,
 				dlv->bundleCreationTime, newEntryOffset);
@@ -910,16 +910,16 @@ newEntryOffset);
 			return -1;	/*	Unresolved error.	*/
 
 		case -2:
-			break; /* 
-				*  Bundle is too old. It will be 
-				*  discarded from .lst file but its 
- 				*  payload will be saved for later 
-				*  processing in .dat file.			
+			break; /*
+				*  Bundle is too old. It will be
+				*  discarded from .lst file but its
+				*  payload will be saved for later
+				*  processing in .dat file.
 				*/
 		default:
-			updateStat = updateLstEntries(lstFile, lstEntryOffset, 
-						newEntryOffset, datOffset, 
-						dlv->bundleCreationTime, 
+			updateStat = updateLstEntries(lstFile, lstEntryOffset,
+						newEntryOffset, datOffset,
+						dlv->bundleCreationTime,
 						contentLength);
 			switch (updateStat)
 			{
@@ -944,11 +944,11 @@ printf("UpdateLstEntries failed, return -1 to receiveFrame");
 printf(".lst file Entry Offset that was returned from getEntryPosition function: \
 	%ld\n", lstEntryOffset);
 #endif
-	
+
 		/*	OK to write dataRecord information and payload
 		 *	into .dat file.					*/
 
-		if (addDataRecord(datFile, datOffset, dlv->bundleCreationTime, 
+		if (addDataRecord(datFile, datOffset, dlv->bundleCreationTime,
 				contentLength) < 0
 		|| write(datFile, buffer, contentLength) < 0)
 		{
@@ -958,18 +958,18 @@ printf(".lst file Entry Offset that was returned from getEntryPosition function:
 		}
 
 		oK(_lockMutex(0));	/*	Unlock mutex 		*/
-		
+
 #if BSSLIBDEBUG
 printf("from this point on, the execution of the provided display function begins\n");
 #endif
 		/*	Display function is called only if the current
 		 *	frame has a creation time greater than the last
-		 *	displayed frame.  				*/ 
+		 *	displayed frame.  				*/
 
 		if (bundleSeconds > displaySeconds)
 		{
 			res = display(bundleSeconds,
-				dlv->bundleCreationTime.count, buffer, 
+				dlv->bundleCreationTime.count, buffer,
 				contentLength);
 #if BSSLIBDEBUG
 printf("#1 display function returns res value = %d\n",res);
@@ -982,7 +982,7 @@ printf("#1 display function returns res value = %d\n",res);
 			if (dlv->bundleCreationTime.count > lastDis->count)
 			{
 				res = display(bundleSeconds,
-					dlv->bundleCreationTime.count, buffer, 
+					dlv->bundleCreationTime.count, buffer,
 					contentLength);
 #if BSSLIBDEBUG
 printf("#2 display function returns res value = %d\n",res);
@@ -1010,12 +1010,12 @@ void	*recvBundles(void *args)
 	BpDelivery	dlv;
 	bss_thread_data	*db;
 	BpTimestamp	lastDis;
-	
-	/*	Initialize the variable that holds the time of the 
-	 *	last displayed frame from receiving thread.		*/	
+
+	/*	Initialize the variable that holds the time of the
+	 *	last displayed frame from receiving thread.		*/
 
 	memset((char *) &lastDis, 0, sizeof lastDis);
-   	db = (bss_thread_data *) args;
+	db = (bss_thread_data *) args;
 
 	if (bp_attach() < 0)
 	{
@@ -1057,7 +1057,7 @@ void	*recvBundles(void *args)
 
 		case BpPayloadPresent:
 			if (receiveFrame(sdr, &dlv, db->dat, db->lst, db->tbl,
-				&lastDis, db->buffer, db->bufLength, 
+				&lastDis, db->buffer, db->bufLength,
 				db->function) < 0)
 			{
 				putErrmsg("bss failed.", NULL);
@@ -1083,9 +1083,9 @@ void	*recvBundles(void *args)
 	writeErrmsgMemos();
 	writeMemo("[i] Stopping bss reception thread.");
 
-	/* note: not detaching from ION yet, playback mode may 
+	/* note: not detaching from ION yet, playback mode may
 	 *        still be operating    	*/
-	
+
 	oK(_recvThreadId(NULL, -1));
 	return NULL;
 }
@@ -1093,7 +1093,7 @@ void	*recvBundles(void *args)
 /*	Create/Load database - section		*/
 
 static int	checkDb(int dat, int lst, int tbl)
-{	
+{
 	dataRecord 	data;
 	lstEntry 	entry;
 	tblIndex 	*index = _tblIndex(NULL);
@@ -1111,7 +1111,7 @@ static int	checkDb(int dat, int lst, int tbl)
 	{
 		return -1;
 	}
-	
+
 	if (hdr->newestRowIndex != 0)
 	{
 		if (getLstEntry(lst, &entry,
@@ -1126,7 +1126,7 @@ static int	checkDb(int dat, int lst, int tbl)
 			oK(_lockMutex(0));
 			return -1;
 		}
-			
+
 		payload = MTAKE(data.pLen);
 		if (payload == NULL)
 		{
@@ -1135,7 +1135,7 @@ static int	checkDb(int dat, int lst, int tbl)
 		}
 
 		result = readPayload(dat, payload, data.pLen);
-		MRELEASE(payload);			
+		MRELEASE(payload);
 		if (result < 0)
 		{
 			oK(_lockMutex(0));
@@ -1193,7 +1193,7 @@ int	loadRDWRDB(char* bssName, char* path, int* dat, int* lst, int* tbl)
 		close(*dat);
 		return -1;
 	}
-	
+
 	/*	Checks if DB already exists. If not, initializes the
 	 *	*.tbl file contents.					*/
 
@@ -1311,7 +1311,7 @@ int	loadRDonlyDB(char* bssName, char* path)
 		oK(_tblIndex(&destroy));
 		return -1;
 	}
-	
+
 	/*	Database's integrity check	*/
 
 	if (checkDb(_datFile(0,0), _lstFile(0,0), _tblFile(0,0)) == -1)

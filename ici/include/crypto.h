@@ -103,7 +103,7 @@ extern void	sha256_hash(unsigned char *data, int dataLength,
 			unsigned char *result, int resultLen);
 
 /*****************************************************************************
- *                       SHA-2 FUNCTION DEFINITIONS                        *
+ *                       SHA-2 FUNCTION DEFINITIONS                          *
  *****************************************************************************/
 
 extern void	sha2(const unsigned char *input, size_t inputLength,

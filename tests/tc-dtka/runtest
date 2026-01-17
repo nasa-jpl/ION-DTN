@@ -148,11 +148,11 @@ cd ../9.ipn.ltp
 # Then create all initial keys and load them to each node.
 
 if [[ $1 == "linux" ]] ; then
-	echo "Waiting 30 seconds for node startup..."
-	sleep 30
+    echo "Waiting 30 seconds for node startup..."
+    sleep 30
 else
-	echo "Waiting 60 seconds for node startup..."
-	sleep 60
+    echo "Waiting 60 seconds for node startup..."
+    sleep 60
 fi
 
 echo "Finished starting DTKA, now loading initial keys to all nodes..."
@@ -233,23 +233,23 @@ cd ../7.ipn.ltp
 COUNT=`cat revised.keys | wc -l`
 if [ $COUNT -ge 17 ]
 then
-	echo ""
-	echo "Node 7 got first key distribution."
+    echo ""
+    echo "Node 7 got first key distribution."
 else
-	echo ""
-	echo "Error: node 7 didn't get first key distribution."
-	RETVAL=1
+    echo ""
+    echo "Error: node 7 didn't get first key distribution."
+    RETVAL=1
 fi
 
 COUNT=`cat final.keys | wc -l`
 if [ $COUNT -ge 24 ]
 then
-	echo ""
-	echo "Node 7 got second key distribution."
+    echo ""
+    echo "Node 7 got second key distribution."
 else
-	echo ""
-	echo "Error: node 7 didn't get second key distribution."
-	RETVAL=1
+    echo ""
+    echo "Error: node 7 didn't get second key distribution."
+    RETVAL=1
 fi
 
 # Verify at node 8
@@ -258,23 +258,23 @@ cd ../8.ipn.ltp
 COUNT=`cat revised.keys | wc -l`
 if [ $COUNT -ge 17 ]
 then
-	echo ""
-	echo "Node 8 got first key distribution."
+    echo ""
+    echo "Node 8 got first key distribution."
 else
-	echo ""
-	echo "Error: node 8 didn't get first key distribution."
-	RETVAL=1
+    echo ""
+    echo "Error: node 8 didn't get first key distribution."
+    RETVAL=1
 fi
 
 COUNT=`cat final.keys | wc -l`
 if [ $COUNT -ge 24 ]
 then
-	echo ""
-	echo "Node 8 got second key distribution."
+    echo ""
+    echo "Node 8 got second key distribution."
 else
-	echo ""
-	echo "Error: node 8 didn't get second key distribution."
-	RETVAL=1
+    echo ""
+    echo "Error: node 8 didn't get second key distribution."
+    RETVAL=1
 fi
 
 # Verify at node 9
@@ -283,23 +283,23 @@ cd ../9.ipn.ltp
 COUNT=`cat revised.keys | wc -l`
 if [ $COUNT -ge 17 ]
 then
-	echo ""
-	echo "Node 9 got first key distribution."
+    echo ""
+    echo "Node 9 got first key distribution."
 else
-	echo ""
-	echo "Error: node 9 didn't get first key distribution."
-	RETVAL=1
+    echo ""
+    echo "Error: node 9 didn't get first key distribution."
+    RETVAL=1
 fi
 
 COUNT=`cat final.keys | wc -l`
 if [ $COUNT -ge 24 ]
 then
-	echo ""
-	echo "Node 9 got second key distribution."
+    echo ""
+    echo "Node 9 got second key distribution."
 else
-	echo ""
-	echo "Error: node 9 didn't get second key distribution."
-	RETVAL=1
+    echo ""
+    echo "Error: node 9 didn't get second key distribution."
+    RETVAL=1
 fi
 
 # Shut down ION processes.

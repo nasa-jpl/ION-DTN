@@ -19,7 +19,7 @@
 
 /*
  * +--------------------------------------------------------------------------+
- * |					   Private Functions  								  +
+ * |                       Private Functions                                  +
  * +--------------------------------------------------------------------------+
  */
 
@@ -32,7 +32,7 @@ int p_vec_default_comp(void *i1, void *i2)
 
 /*
  * +--------------------------------------------------------------------------+
- * |					   Public Functions  								  +
+ * |                       Public Functions                                   +
  * +--------------------------------------------------------------------------+
  */
 
@@ -104,7 +104,7 @@ void vec_clear(vector_t *vec)
 	}
 
 	vec->next_idx = 0;
-    vec->num_free = vec->total_slots;
+	vec->num_free = vec->total_slots;
 	unlockResource(&vec->lock);
 }
 
@@ -128,10 +128,10 @@ vector_t vec_copy(vector_t *src, int *success)
 	{
 
 		result.data[i].occupied = src->data[i].occupied;
-        if (result.data[i].occupied)
-        {
-           result.data[i].value = result.copy_fn(src->data[i].value);
-        }
+		if (result.data[i].occupied)
+		{
+			result.data[i].value = result.copy_fn(src->data[i].value);
+		}
 	}
 
 	result.next_idx = src->next_idx;
@@ -231,7 +231,7 @@ int vec_insert(vector_t *vec, void *value, vec_idx_t *idx)
 		/* Store the data */
 		vec->data[vec->next_idx].occupied = 1;
 		vec->data[vec->next_idx].value = value;
-        
+
 		if(idx != NULL)
 		{
 			*idx = vec->next_idx;
@@ -309,7 +309,7 @@ int vec_make_room(vector_t *vec, vec_idx_t extra)
 	 * Note, if next_idx has been pointing to total_num_slots (meaning the
 	 * vector was full) then it now points to the first open spot.
 	 */
-        vec->num_free += new_size - vec->total_slots;
+	vec->num_free += new_size - vec->total_slots;
 	vec->total_slots = new_size;
 
 	return VEC_OK;
@@ -340,11 +340,11 @@ void vec_release(vector_t *vec, int destroy)
 {
 	vec_clear(vec);
 
-    if (vec->data != NULL)
-    {
-       SRELEASE(vec->data);
-       vec->data = NULL;
-    }
+	if (vec->data != NULL)
+	{
+		SRELEASE(vec->data);
+		vec->data = NULL;
+	}
 
 
 	if(destroy)
@@ -411,17 +411,17 @@ void* vec_set(vector_t *vec, vec_idx_t idx, void *data, int *success)
 
 	*success = VEC_OK;
 
-    if (vec->data[idx].occupied == 0)
-    {
-       vec->data[idx].occupied=1;
-       vec->num_free--;
-       result = NULL;
-    }
-    else
-    {
-       result = vec->data[idx].value;
-    }
-    
+	if (vec->data[idx].occupied == 0)
+	{
+		vec->data[idx].occupied=1;
+		vec->num_free--;
+		result = NULL;
+	}
+	else
+	{
+		result = vec->data[idx].value;
+	}
+
 	vec->data[idx].value = data;
 	unlockResource(&(vec->lock));
 
@@ -506,9 +506,9 @@ int vec_blob_add(vector_t *vec, blob_t value, vec_idx_t *idx)
 	blob_t *new_entry;
 	vecit_t it;
 	vec_idx_t tmp_idx;
-	
+
 	// Check for uniqueness
-    tmp_idx = vec_find(vec, &value, &success);
+	tmp_idx = vec_find(vec, &value, &success);
 	if (success == VEC_OK)
 	{
 		if (idx != NULL)
@@ -517,7 +517,7 @@ int vec_blob_add(vector_t *vec, blob_t value, vec_idx_t *idx)
 		}
 		return success;
 	}
-	
+
 	// Create a copy to insert
 	if((new_entry = blob_create(value.value, value.length, value.alloc)) == NULL)
 	{
@@ -684,4 +684,3 @@ int vec_uvast_find_idx(vector_t *vec, uvast value, vec_idx_t *idx)
 	}
 	return VEC_FAIL;
 }
-

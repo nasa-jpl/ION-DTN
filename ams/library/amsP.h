@@ -1,5 +1,5 @@
 /*
- 	amsP.h:	private definitions supporting the implementation of
+	amsP.h:	private definitions supporting the implementation of
 		Asynchronous Message Service.
 
 	Author: Scott Burleigh, JPL
@@ -10,7 +10,7 @@
 	Copyright (c) 2005, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
- 									*/
+									*/
 
 #ifndef AMSP_H
 #define AMSP_H
@@ -22,7 +22,7 @@
 extern "C" {
 #endif
 
-#define	NBR_OF_PRIORITY_LEVELS	(16)
+#define NBR_OF_PRIORITY_LEVELS	(16)
 
 /*	Flag values for XmitRule structures (message acceptance
  *	relationships).							*/
@@ -176,7 +176,7 @@ typedef struct amssapst
 	TransSvc	*transportServices[TS_INDEX_LIMIT + 1];
 	AmsEventMgt	eventMgtRules;
 	pthread_t	eventMgr;
-	pthread_t	authorizedEventMgr;		
+	pthread_t	authorizedEventMgr;
 
 	Venture		*venture;
 	Unit		*unit;

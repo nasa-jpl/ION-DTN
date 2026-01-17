@@ -1,6 +1,6 @@
-SOURCES = ../shared/adm/*.c ../shared/msg/*.c ../shared/utils/*.c ../shared/primitives/*.c ./*.c 
+SOURCES = ../shared/adm/*.c ../shared/msg/*.c ../shared/utils/*.c ../shared/primitives/*.c ./*.c
 IONDIR = ../../
-OPTS = -Wno-write-strings -g 
+OPTS = -Wno-write-strings -g
 
 all:
 	gcc ${OPTS} \
@@ -17,7 +17,6 @@ all:
 	-lm -lbp -lici -lltp \
 	-DMAXPATHLEN=2048 \
 	-DAGENT_ROLE=1 \
-	-c ${SOURCES} 
+	-c ${SOURCES}
 
 	gcc -o nm_agent *.o -lm -lltp -lbp -lici -lpthread
-

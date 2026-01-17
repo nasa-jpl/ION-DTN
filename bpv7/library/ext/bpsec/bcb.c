@@ -52,7 +52,7 @@
  **                           [Secure DTN implementation (NASA: NNX14CS58P)]
  **  09/02/19  S. Burleigh    Rename everything for bpsec
  **  10/14/20  S. Burleigh    Restructure for target multiplicity
- **  
+ **
  *****************************************************************************/
 
 #include "zco.h"
@@ -79,85 +79,85 @@ extern char        gMsg[];        /*    Debug message buffer.    */
  *****************************************************************************/
 
 // TODO document function
-int    bpsec_encrypt(Bundle *bundle)
+int bpsec_encrypt(Bundle *bundle)
 {
-    Sdr                    sdr = getIonsdr();
-    Object                elt;
-    Object                blockObj;
-    ExtensionBlock        block;
-// TODO Figure this out...   size_t                xmitRate = 125000;
+	Sdr                    sdr = getIonsdr();
+	Object                elt;
+	Object                blockObj;
+	ExtensionBlock        block;
+	// TODO Figure this out...   size_t                xmitRate = 125000;
 
 
-    /*    NOTE: need to reinstate a processOnDequeue method
-     *    for BCB extension blocks: extracts xmitRate from
-     *    DequeueContext and stashes it in the Bundle so that
-     *    bpsec_encrypt can retrieve it.  Or else libbpP.c
-     *    could pass that value directly to bpsec_encrypt
-     *    as an API parameter.                    */
+	/*    NOTE: need to reinstate a processOnDequeue method
+	 *    for BCB extension blocks: extracts xmitRate from
+	 *    DequeueContext and stashes it in the Bundle so that
+	 *    bpsec_encrypt can retrieve it.  Or else libbpP.c
+	 *    could pass that value directly to bpsec_encrypt
+	 *    as an API parameter.                    */
 
-    /**** Apply all applicable security policy rules ****/
+	/**** Apply all applicable security policy rules ****/
 
-    BpSecPolRule *curRule = NULL;
+	BpSecPolRule *curRule = NULL;
 
-    /* If there is a policy rule for the payload block, apply it */
-    if((curRule = bslpol_get_sender_rule(bundle, BlockConfidentialityBlk, PayloadBlk)) != NULL)
-    {
-        BPSEC_DEBUG_INFO("Found rule id %d.", curRule->user_id);
+	/* If there is a policy rule for the payload block, apply it */
+	if((curRule = bslpol_get_sender_rule(bundle, BlockConfidentialityBlk, PayloadBlk)) != NULL)
+	{
+		BPSEC_DEBUG_INFO("Found rule id %d.", curRule->user_id);
 
-        if (bslpol_proc_applySenderPolRule(bundle, BlockConfidentialityBlk, curRule, 1) < 0)
-        {
-            BPSEC_DEBUG_ERR("Failed applying rule %d (payload blk).", curRule->user_id);
-            /* Handle sop_misconf_at_src event */
-            bsl_handle_sender_sop_event(bundle, sop_misconf_at_src, NULL, NULL, 1);
-            BCB_TEST_POINT("sop_misconf_at_src", bundle, PayloadBlk);
+		if (bslpol_proc_applySenderPolRule(bundle, BlockConfidentialityBlk, curRule, 1) < 0)
+		{
+			BPSEC_DEBUG_ERR("Failed applying rule %d (payload blk).", curRule->user_id);
+			/* Handle sop_misconf_at_src event */
+			bsl_handle_sender_sop_event(bundle, sop_misconf_at_src, NULL, NULL, 1);
+			BCB_TEST_POINT("sop_misconf_at_src", bundle, PayloadBlk);
 
-	    bundle->insecure = 1;
-	    return 0;
-        }
-        BCB_TEST_POINT("sop_added_at_src", bundle, PayloadBlk);
-    }
+			bundle->insecure = 1;
+			return 0;
+		}
+		BCB_TEST_POINT("sop_added_at_src", bundle, PayloadBlk);
+	}
 
 
-    /*
-     * We don't serialize the BCB, because we might be adding more security results to BIBs
-     * as we loop through all of this.
-     */
-    for (elt = sdr_list_first(sdr, bundle->extensions); elt; elt = sdr_list_next(sdr, elt))
-    {
-        if((blockObj = sdr_list_data(sdr, elt)) == 0)
-        {
-            continue;
-        }
-        sdr_read(sdr, (char*) &block, blockObj, sizeof(ExtensionBlock));
+	/*
+	 * We don't serialize the BCB, because we might be adding more security results to BIBs
+	 * as we loop through all of this.
+	 */
+	for (elt = sdr_list_first(sdr, bundle->extensions); elt; elt = sdr_list_next(sdr, elt))
+	{
+		if((blockObj = sdr_list_data(sdr, elt)) == 0)
+		{
+			continue;
+		}
+		sdr_read(sdr, (char*) &block, blockObj, sizeof(ExtensionBlock));
 
-        if((curRule = bslpol_get_sender_rule(bundle, BlockConfidentialityBlk, block.type)) != NULL)
-        {
-            if (bslpol_proc_applySenderPolRule(bundle, BlockConfidentialityBlk, curRule, block.number) < 0)
-            {
-                BPSEC_DEBUG_ERR("Failed applying rule %d (ext blk type %d).", curRule->user_id, block.type);
-                bsl_handle_sender_sop_event(bundle, sop_misconf_at_src, NULL, NULL, block.number);
-                BCB_TEST_POINT("sop_misconf_at_src", bundle, block.type);
+		if((curRule = bslpol_get_sender_rule(bundle, BlockConfidentialityBlk, block.type)) != NULL)
+		{
+			if (bslpol_proc_applySenderPolRule(bundle, BlockConfidentialityBlk, curRule, block.number) < 0)
+			{
+				BPSEC_DEBUG_ERR("Failed applying rule %d (ext blk type %d).", curRule->user_id, block.type);
+				bsl_handle_sender_sop_event(bundle, sop_misconf_at_src, NULL, NULL, block.number);
+				BCB_TEST_POINT("sop_misconf_at_src", bundle, block.type);
+				bundle->insecure = 1;
+				return 0;
+			}
+			BCB_TEST_POINT("sop_added_at_src", bundle, block.type);
+			curRule = NULL;
+		}
+	}
+
+
+	/* Now, for each BCB block in the bundle, serialize each BCB and
+	 * add it to the bundle structure.
+	 */
+
+	/*    Now attach all new BCBs, signing all targets. */
+	if (bpsec_util_attachSecurityBlocks(bundle, BlockConfidentialityBlk, SC_ACT_ENCRYPT) < 0)
+	{
+		BCB_DEBUG_ERR("Unable to attach all BCB blocks.", NULL);
 		bundle->insecure = 1;
-		return 0;
-            }
-            BCB_TEST_POINT("sop_added_at_src", bundle, block.type);
-            curRule = NULL;
-        }
-    }
+	}
 
-
-    /* Now, for each BCB block in the bundle, serialize each BCB and
-     * add it to the bundle structure.
-     */
-
-    /*    Now attach all new BCBs, signing all targets. */
-    if (bpsec_util_attachSecurityBlocks(bundle, BlockConfidentialityBlk, SC_ACT_ENCRYPT) < 0)
-    {
-        BCB_DEBUG_ERR("Unable to attach all BCB blocks.", NULL);
-	bundle->insecure = 1;
-    }
-
-    return 0;
+	return 0;
 }
 
 
@@ -168,227 +168,227 @@ int    bpsec_encrypt(Bundle *bundle)
 
 // TODO document function
 void bcb_handle_rx_error(AcqWorkArea *work, LystElt bcbBlkElt, LystElt tgtBlkElt,
-                         AcqExtBlock *tgtBlk, int tgtId, int result, size_t tgtBlkOrigLen,
-                         uint8_t tgtBlkType)
+		AcqExtBlock *tgtBlk, int tgtId, int result, size_t tgtBlkOrigLen,
+		uint8_t tgtBlkType)
 {
 
-    /*
-     * The 'tgtBlkType' parameter is only used in the BCB_TEST_POINT macro.
-     * When BCB_TEST_LOGGING is not enabled (i.e., not equal to 1),
-     * that macro is empty, leaving the parameter unused.
-     */
+	/*
+	 * The 'tgtBlkType' parameter is only used in the BCB_TEST_POINT macro.
+	 * When BCB_TEST_LOGGING is not enabled (i.e., not equal to 1),
+	 * that macro is empty, leaving the parameter unused.
+	 */
 #if (BCB_TEST_LOGGING != 1)
-    /* Parameter intentionally unused. */
-    (void)tgtBlkType;
+	/* Parameter intentionally unused. */
+	(void)tgtBlkType;
 #endif
 
-    switch(result)
-    {
+	switch(result)
+	{
 
-        /* TODO: add checks for tgtId validity in test point statements */
+		/* TODO: add checks for tgtId validity in test point statements */
 
-        case 0:  /* Corrupt target */
-        case -1: /* System error handled as corrupt block. */
+		case 0:  /* Corrupt target */
+		case -1: /* System error handled as corrupt block. */
 
-            work->malformed = 1;
+			work->malformed = 1;
 
-            /* Handle sop_corrupt_at_acceptor event */
-            bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE, sop_corrupt_at_acceptor, bcbBlkElt, tgtBlkElt, tgtId);
-            BCB_TEST_POINT("sop_corrupt_at_acceptor", (&(work->bundle)), tgtBlkType);
-            break;
+			/* Handle sop_corrupt_at_acceptor event */
+			bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE, sop_corrupt_at_acceptor, bcbBlkElt, tgtBlkElt, tgtId);
+			BCB_TEST_POINT("sop_corrupt_at_acceptor", (&(work->bundle)), tgtBlkType);
+			break;
 
-        case -2: /* Misconfiguration of BCB. */
-        default: /* Anything else is treated as a misconfiguration. */
+		case -2: /* Misconfiguration of BCB. */
+		default: /* Anything else is treated as a misconfiguration. */
 
-            /* Experimental correction for missing BCB policy at security acceptor - per Scott Burleigh */
-            work->bundle.insecure = 1;
-            
-            /* Handle sop_misconf_at_acceptor event */
-            bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE, sop_misconf_at_acceptor, bcbBlkElt, tgtBlkElt, tgtId);
-            BCB_TEST_POINT("sop_misconf_at_acceptor", (&(work->bundle)), tgtBlkType);
-            break;
-    }
+			/* Experimental correction for missing BCB policy at security acceptor - per Scott Burleigh */
+			work->bundle.insecure = 1;
 
-    /* TODO: Make sure the policy actions don't preempt any of the below processing. */
+			/* Handle sop_misconf_at_acceptor event */
+			bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE, sop_misconf_at_acceptor, bcbBlkElt, tgtBlkElt, tgtId);
+			BCB_TEST_POINT("sop_misconf_at_acceptor", (&(work->bundle)), tgtBlkType);
+			break;
+	}
 
-    /* If target block was an extension block and it was discarded during decryption */
-    /* TODO: What if the tgtBlk was NULL? Should that ever happen? */
-    if ((tgtBlk != NULL) && (tgtBlk->length == 0))
-    {
-        deleteAcqExtBlock(tgtBlkElt);
-        work->bundle.extensionsLength -= tgtBlkOrigLen;
-    }
+	/* TODO: Make sure the policy actions don't preempt any of the below processing. */
 
-    /* If target block was the payload block and it was discarded during decryption */
-    if ((tgtId == PayloadBlk) && (work->bundle.payload.length == 0))
-    {
-        /* A bundle without a payload is malformed */
-        work->malformed = 1;
-    }
+	/* If target block was an extension block and it was discarded during decryption */
+	/* TODO: What if the tgtBlk was NULL? Should that ever happen? */
+	if ((tgtBlk != NULL) && (tgtBlk->length == 0))
+	{
+		deleteAcqExtBlock(tgtBlkElt);
+		work->bundle.extensionsLength -= tgtBlkOrigLen;
+	}
+
+	/* If target block was the payload block and it was discarded during decryption */
+	if ((tgtId == PayloadBlk) && (work->bundle.payload.length == 0))
+	{
+		/* A bundle without a payload is malformed */
+		work->malformed = 1;
+	}
 }
 
 // TODO document function
 // TODO we must become default security acceptor if we are bundle destination.
 int    bpsec_decrypt(AcqWorkArea *work)
 {
-    Bundle			*bundle = &(work->bundle);
-    LystElt			bcbBlkElt;
-    LystElt			nextBcbBlkElt;
-    AcqExtBlock			*bcbBlk;
-    BpsecInboundASB		*asb;
-    BpsecInboundTargetResult    *tgtResult;
-    LystElt			tgtResultElt;
-    LystElt			nextTgtResultElt;
-    LystElt			tgtBlkElt;
-    size_t			tgtBlkOrigLen = 0;
-    sc_Def			def;
-    int				result = 0;
-    int				secBlkMisconf = 0;
-    char			fromEid[MAX_EID_LEN];
-    AcqExtBlock			*tgtBlk = NULL;
+	Bundle			*bundle = &(work->bundle);
+	LystElt			bcbBlkElt;
+	LystElt			nextBcbBlkElt;
+	AcqExtBlock		*bcbBlk;
+	BpsecInboundASB		*asb;
+	BpsecInboundTargetResult    *tgtResult;
+	LystElt			tgtResultElt;
+	LystElt			nextTgtResultElt;
+	LystElt			tgtBlkElt;
+	size_t			tgtBlkOrigLen = 0;
+	sc_Def			def;
+	int			result = 0;
+	int			secBlkMisconf = 0;
+	char			fromEid[MAX_EID_LEN];
+	AcqExtBlock		*tgtBlk = NULL;
 
-    BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC")", (uaddr) work);
+	BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC")", (uaddr) work);
 
-    /**** Apply all applicable security policy rules ****/
+	/**** Apply all applicable security policy rules ****/
 
-    BpSecPolRule *polRule = NULL;
+	BpSecPolRule *polRule = NULL;
 
-    /* For each BCB in the bundle */
-    for (bcbBlkElt = lyst_first(work->extBlocks); bcbBlkElt; bcbBlkElt = nextBcbBlkElt)
-    {
-	nextBcbBlkElt = lyst_next(bcbBlkElt);
-        /* Grab the block and see if it is a BCB. */
-        bcbBlk = (AcqExtBlock *) lyst_data(bcbBlkElt);
-        if ((bcbBlk != NULL) && (bcbBlk->type == BlockConfidentialityBlk))
-        {
-            char *tmp = NULL;
-            asb = (BpsecInboundASB *) (bcbBlk->object);
-
-            readEid(&(asb->scSource), &tmp); /* Wish readEid did not allocate buffer if one were provided...*/
-            istrcpy(fromEid, tmp, MAX_EID_LEN);
-            MRELEASE(tmp);
-
-            secBlkMisconf = (bpsec_sci_defFind(asb->scId, &def) != 1) ? 1 : 0;
-
-            /* Check each target block for applicable rule */
-            for (tgtResultElt = lyst_first(asb->scResults); tgtResultElt; tgtResultElt = nextTgtResultElt)
-            {
-		nextTgtResultElt = lyst_next(tgtResultElt);
-                tgtResult = (BpsecInboundTargetResult *) lyst_data(tgtResultElt);
-                polRule = bslpol_get_receiver_rule(work, tgtResult->scTargetId, asb->scId);
-
-                if (polRule == NULL)	/*	No BCB rule for target.	*/
+	/* For each BCB in the bundle */
+	for (bcbBlkElt = lyst_first(work->extBlocks); bcbBlkElt; bcbBlkElt = nextBcbBlkElt)
+	{
+		nextBcbBlkElt = lyst_next(bcbBlkElt);
+		/* Grab the block and see if it is a BCB. */
+		bcbBlk = (AcqExtBlock *) lyst_data(bcbBlkElt);
+		if ((bcbBlk != NULL) && (bcbBlk->type == BlockConfidentialityBlk))
 		{
-			/*	SB 7/26/2024				*/
-			if (bundle->deliverable == 0)
+			char *tmp = NULL;
+			asb = (BpsecInboundASB *) (bcbBlk->object);
+
+			readEid(&(asb->scSource), &tmp); /* Wish readEid did not allocate buffer if one were provided...*/
+			istrcpy(fromEid, tmp, MAX_EID_LEN);
+			MRELEASE(tmp);
+
+			secBlkMisconf = (bpsec_sci_defFind(asb->scId, &def) != 1) ? 1 : 0;
+
+			/* Check each target block for applicable rule */
+			for (tgtResultElt = lyst_first(asb->scResults); tgtResultElt; tgtResultElt = nextTgtResultElt)
 			{
-				/*	Missing rule is not a problem
-				 *	at a waypoint node.		*/
+				nextTgtResultElt = lyst_next(tgtResultElt);
+				tgtResult = (BpsecInboundTargetResult *) lyst_data(tgtResultElt);
+				polRule = bslpol_get_receiver_rule(work, tgtResult->scTargetId, asb->scId);
 
-				continue;
+				if (polRule == NULL)	/*	No BCB rule for target.	*/
+				{
+					/*	SB 7/26/2024				*/
+					if (bundle->deliverable == 0)
+					{
+						/*	Missing rule is not a problem
+						 *	at a waypoint node.		*/
+
+						continue;
+					}
+
+					/*	SB 5/26/2024				*/
+					BCB_DEBUG_ERR("No rule for decrypting target block %d.",
+							tgtResult->scTargetId);
+					ADD_BCB_RX_FAIL(fromEid, 1, tgtBlkOrigLen);
+					bcb_handle_rx_error(work, bcbBlkElt, tgtBlkElt,
+							tgtBlk, tgtResult->scTargetId,
+							-3, tgtBlkOrigLen, -1);
+				}
+				else	/*	Applicable policy rule was found.	*/
+				{
+					/*
+					 * If the security block is corrupted (meaning we cannot process items
+					 * due to issues with security context or parameters, then we need to
+					 * individually handle events associated with each policy rule.
+					 */
+					result = (secBlkMisconf) ?
+						-2 :
+						bslpol_proc_applyReceiverPolRule(work, polRule, SC_ACT_DECRYPT, bcbBlk, asb, tgtResult, &def, &tgtBlkElt, &tgtBlkOrigLen);
+
+
+					tgtBlk = (tgtBlkElt != NULL) ? (AcqExtBlock*) lyst_data(tgtBlkElt) : NULL;
+
+					if (result < 1)
+					{
+						BCB_DEBUG_ERR("Rule %d failed to process block %d. Error: %d", polRule->user_id, tgtResult->scTargetId, result);
+						ADD_BCB_RX_FAIL(fromEid, 1, tgtBlkOrigLen);
+
+						bcb_handle_rx_error(work, bcbBlkElt, tgtBlkElt, tgtBlk, tgtResult->scTargetId, result, tgtBlkOrigLen, polRule->filter.blk_type);
+
+						// TODO do we remove block from bundle here?
+						if(result == -1)
+						{
+							bundle->insecure = 1;
+							return 0;
+						}
+					}
+					else
+					{
+						BCB_DEBUG_INFO("Processing of block %d by rule %d successful.", tgtResult->scTargetId, polRule->user_id);
+
+						/* Handle sop_processed event */
+						bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE, sop_processed, bcbBlkElt, tgtResultElt, tgtResult->scTargetId);
+
+						/* If the block was an extension block. */
+						if (tgtBlk != NULL)
+						{
+							BCB_TEST_POINT("sop_processed", bundle, tgtBlk->type);
+						}
+						/* Else if the block was the payload or primary block, it cannot be represented
+						 * as an AcqExtBlock, making the TgtBlk pointer NULL and requiring use of the
+						 * security context target ID as the block identifier. */
+						else /* changed from an always true comparison of unsigned type >= 0 here*/
+						{
+							BCB_TEST_POINT("sop_processed", bundle, tgtResult->scTargetId);
+						}
+
+						if (bpsec_util_destIsLocalCheck(&(work->bundle)))
+						{
+							ADD_BCB_RX_PASS(fromEid, 1, 0);
+						}
+						else
+						{
+							ADD_BCB_FWD(fromEid, 1, 0);
+						}
+
+						/*
+						 * If we accepted the BCB (not just verified) then we must deal with the
+						 * fact that the target block was decrypted and also remove the SOP from the
+						 * BCB.
+						 */
+						if(BPSEC_RULE_ROLE_IDX(polRule) == BPRF_ACC_ROLE)
+						{
+							/*
+							 * If target block is an extension block and its length has changed.
+							 *
+							 * If the target is the payload, we believe that length is recorded
+							 * during the decryption.  This only updated the bundle extensionsLength
+							 * field, which is only affected by changes to the extension block length.
+							 */
+							if ((tgtResult->scTargetId != PayloadBlk) &&
+								(tgtBlk != NULL) &&
+								(tgtBlk->length != tgtBlkOrigLen))
+							{
+								bundle->extensionsLength -= tgtBlkOrigLen;
+								bundle->extensionsLength += tgtBlk->length;
+							}
+
+							/* Remove this target result from the security block.... */
+							bpsec_asb_inboundTargetResultRemove(tgtResultElt, bcbBlkElt);
+
+							/*
+							 * TODO: At this point, we need to see if the target block was protected by a BIB, such that the
+							 *       BIB also needs to be decrypted.
+							 */
+						}
+					}
+
+					polRule = NULL;
+				}
 			}
-
-			/*	SB 5/26/2024				*/
-                        BCB_DEBUG_ERR("No rule for decrypting target block %d.",
-					tgtResult->scTargetId);
-                        ADD_BCB_RX_FAIL(fromEid, 1, tgtBlkOrigLen);
-                        bcb_handle_rx_error(work, bcbBlkElt, tgtBlkElt,
-					tgtBlk, tgtResult->scTargetId,
-					-3, tgtBlkOrigLen, -1);
 		}
-		else	/*	Applicable policy rule was found.	*/
-                {
-                    /*
-                     * If the security block is corrupted (meaning we cannot process items
-                     * due to issues with security context or parameters, then we need to
-                     * individually handle events associated with each policy rule.
-                     */
-                    result = (secBlkMisconf) ?
-                             -2 :
-                             bslpol_proc_applyReceiverPolRule(work, polRule, SC_ACT_DECRYPT, bcbBlk, asb, tgtResult, &def, &tgtBlkElt, &tgtBlkOrigLen);
-
-
-                    tgtBlk = (tgtBlkElt != NULL) ? (AcqExtBlock*) lyst_data(tgtBlkElt) : NULL;
-
-                    if (result < 1)
-                    {
-                        BCB_DEBUG_ERR("Rule %d failed to process block %d. Error: %d", polRule->user_id, tgtResult->scTargetId, result);
-                        ADD_BCB_RX_FAIL(fromEid, 1, tgtBlkOrigLen);
-
-                        bcb_handle_rx_error(work, bcbBlkElt, tgtBlkElt, tgtBlk, tgtResult->scTargetId, result, tgtBlkOrigLen, polRule->filter.blk_type);
-
-                        // TODO do we remove block from bundle here?
-                        if(result == -1)
-                        {
-			    bundle->insecure = 1;
-                            return 0;
-                        }
-                    }
-                    else
-                    {
-                        BCB_DEBUG_INFO("Processing of block %d by rule %d successful.", tgtResult->scTargetId, polRule->user_id);
-
-                        /* Handle sop_processed event */
-                        bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE, sop_processed, bcbBlkElt, tgtResultElt, tgtResult->scTargetId);
-                        
-                        /* If the block was an extension block. */
-                        if (tgtBlk != NULL)
-                        {
-                            BCB_TEST_POINT("sop_processed", bundle, tgtBlk->type);
-                        }
-                        /* Else if the block was the payload or primary block, it cannot be represented
-                         * as an AcqExtBlock, making the TgtBlk pointer NULL and requiring use of the 
-                         * security context target ID as the block identifier. */
-                        else /* changed from an always true comparison of unsigned type >= 0 here*/
-                        {
-                            BCB_TEST_POINT("sop_processed", bundle, tgtResult->scTargetId);
-                        }
-                        
-                        if (bpsec_util_destIsLocalCheck(&(work->bundle)))
-                        {
-                            ADD_BCB_RX_PASS(fromEid, 1, 0);
-                        }
-                        else
-                        {
-                            ADD_BCB_FWD(fromEid, 1, 0);
-                        }
-
-                        /*
-                         * If we accepted the BCB (not just verified) then we must deal with the
-                         * fact that the target block was decrypted and also remove the SOP from the
-                         * BCB.
-                         */
-                        if(BPSEC_RULE_ROLE_IDX(polRule) == BPRF_ACC_ROLE)
-                        {
-                        	/*
-                        	 * If target block is an extension block and its length has changed.
-                        	 *
-                        	 * If the target is the payload, we believe that length is recorded
-                        	 * during the decryption.  This only updated the bundle extensionsLength
-                        	 * field, which is only affected by changes to the extension block length.
-                        	 */
-                        	if ((tgtResult->scTargetId != PayloadBlk) &&
-                        			(tgtBlk != NULL) &&
-									(tgtBlk->length != tgtBlkOrigLen))
-                        	{
-                        		bundle->extensionsLength -= tgtBlkOrigLen;
-                        		bundle->extensionsLength += tgtBlk->length;
-                        	}
-
-                            /* Remove this target result from the security block.... */
-                            bpsec_asb_inboundTargetResultRemove(tgtResultElt, bcbBlkElt);
-
-                            /*
-                             * TODO: At this point, we need to see if the target block was protected by a BIB, such that the
-                             *       BIB also needs to be decrypted.
-                             */
-                        }
-                    }
-
-                    polRule = NULL;
-                }
-            }
-        }
-    }
-    return 0;
+	}
+	return 0;
 }

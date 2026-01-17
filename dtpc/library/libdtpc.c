@@ -19,24 +19,24 @@ typedef struct
 
 int     dtpc_attach(void)
 {
-        return dtpcAttach();
+	return dtpcAttach();
 }
 
 void     dtpc_detach(void)
 {
-        ionDetach();
+	ionDetach();
 }
 
 int     dtpc_entity_is_started(void)
 {
-        DtpcVdb *vdb = getDtpcVdb();
+	DtpcVdb *vdb = getDtpcVdb();
 
-        return (vdb && vdb->clockPid > 0) ? 1 : 0;
+	return (vdb && vdb->clockPid > 0) ? 1 : 0;
 }
 
 char    *dtpc_working_directory(void)
 {
-        return getIonWorkingDirectory();
+	return getIonWorkingDirectory();
 }
 
 int      dtpc_send(unsigned int profileID, DtpcSAP sap, char *dstEid,
@@ -47,7 +47,7 @@ int      dtpc_send(unsigned int profileID, DtpcSAP sap, char *dstEid,
 			int classOfService, Object item, unsigned int length)
 {
 	unsigned int	topicID;
-	
+
 	CHKERR(item);
 	if (sap)
 	{
@@ -59,7 +59,7 @@ int      dtpc_send(unsigned int profileID, DtpcSAP sap, char *dstEid,
 		return -1;
 	}
 
-	if (profileID == 0)	
+	if (profileID == 0)
 	{
 		profileID = dtpcGetProfile(maxRtx, aggrSizeLimit, aggrTimeLimit,
 				lifespan, ancillaryData, srrFlags,
@@ -70,7 +70,7 @@ int      dtpc_send(unsigned int profileID, DtpcSAP sap, char *dstEid,
 			return 0;
 		}
 	}
-	
+
 	return insertRecord(sap, dstEid, profileID, topicID, item, length);
 }
 
@@ -84,8 +84,8 @@ int	dtpc_open(unsigned int topicID, DtpcElisionFn elisionFn,
 	PsmAddress	vsapElt;
 	PsmAddress	addr;
 	Sdr		sdr;
-	
-	CHKERR(dtpcsapPtr);	
+
+	CHKERR(dtpcsapPtr);
 	vdb = getDtpcVdb();
 	*dtpcsapPtr = NULL;	/*	Default, in case of failure.	*/
 	sdr = getIonsdr();
@@ -100,7 +100,7 @@ int	dtpc_open(unsigned int topicID, DtpcElisionFn elisionFn,
 		if (vsap->topicID == topicID)
 		{
 			break;
-                }
+		}
 	}
 
 	if (vsapElt == 0)	/* No VSap found. Create a new one */
@@ -111,7 +111,7 @@ int	dtpc_open(unsigned int topicID, DtpcElisionFn elisionFn,
 			sdr_exit_xn(sdr);
 			return -1;
 		}
-		
+
 		vsapElt = sm_list_insert_last(wm, vdb->vsaps, addr);
 		if (vsapElt == 0)
 		{
@@ -137,11 +137,11 @@ int	dtpc_open(unsigned int topicID, DtpcElisionFn elisionFn,
 		sdr_list_user_data_set(sdr, vsap->dlvQueue, topicID);
 		sm_SemTake(vsap->semaphore);     /*      Lock.   */
 	}
-	else 
+	else
 	{
 		/*	VSap exists; make sure it's not already opened
 		 *	by some application.				*/
-	
+
 		addr = sm_list_data(wm, vsapElt);
 		vsap = (VSap *) psp(wm, addr);
 		if (vsap->appPid > 0)  /*	VSap not closed.	*/
@@ -159,7 +159,7 @@ int	dtpc_open(unsigned int topicID, DtpcElisionFn elisionFn,
 				sdr_exit_xn(sdr);
 				return -1;
 			}
-			
+
 			/* 	Application terminated without closing the
 				VSap, so simply close it now.		*/
 
@@ -168,7 +168,7 @@ int	dtpc_open(unsigned int topicID, DtpcElisionFn elisionFn,
 	}
 
 	/*	Construct the service access point.	*/
-	
+
 	sap.vsap = vsap;
 	sap.elisionFn = elisionFn;
 	sap.semaphore = vsap->semaphore;
@@ -196,16 +196,16 @@ void	dtpc_close(DtpcSAP sap)
 {
 	VSap	*vsap;
 
-        if (sap == NULL)
-        {
-                return;
-        }
-	
+	if (sap == NULL)
+	{
+		return;
+	}
+
 	vsap = sap->vsap;
-        if (vsap->appPid == sm_TaskIdSelf())
-        {
-                vsap->appPid = -1;
-        }
+	if (vsap->appPid == sm_TaskIdSelf())
+	{
+		vsap->appPid = -1;
+	}
 
 	MRELEASE(sap);
 }
@@ -301,7 +301,7 @@ int	dtpc_receive(DtpcSAP sap, DtpcDelivery *dlvBuffer, int timeoutSeconds)
 	}
 
 	/*	Get oldest payload  record in delivery queue, if any;
-         *	wait for one if necessary.				*/
+	 *	wait for one if necessary.				*/
 
 	dlvElt = sdr_list_first(sdr, vsap->dlvQueue);
 	 if (dlvElt == 0)
@@ -314,15 +314,15 @@ int	dtpc_receive(DtpcSAP sap, DtpcDelivery *dlvBuffer, int timeoutSeconds)
 		}
 
 		/*	Wait for semaphore to be given, either by the
-		 *	enqueueForDelivery() function or by timer 
+		 *	enqueueForDelivery() function or by timer
 		 *	thread.						*/
 
 		if (timeoutSeconds == DTPC_BLOCKING)
 		{
 			timerParms.interval = -1;
 		}
- 		else	/*	This is a receive() with a deadline.	*/
-                {
+		else	/* This is a receive() with a deadline. */
+		{
 			timerParms.interval = timeoutSeconds;
 			timerParms.semaphore = vsap->semaphore;
 			if (pthread_create(&timerThread, NULL, timerMain,
@@ -391,7 +391,7 @@ been stopped", itoa(vsap->topicID));
 			}
 		}
 	}
-	
+
 	/*	At this point, we have got a dlvElt and are in an SDR
 	 *	transaction.						*/
 
@@ -452,7 +452,7 @@ void	dtpc_release_delivery(DtpcDelivery *dlvBuffer)
 		{
 			MRELEASE(dlvBuffer->srcEid);
 			dlvBuffer->srcEid = NULL;
-		}	
+		}
 
 		CHKVOID(sdr_begin_xn(sdr));
 		sdr_free(sdr, dlvBuffer->item);

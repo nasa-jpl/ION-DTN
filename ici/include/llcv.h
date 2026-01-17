@@ -3,7 +3,7 @@
 	llcv.h:	definitions enabling the use of in-memory doubly-
 		linked lists (Lysts) as inter-thread communication
 		flows.
-			
+
 		Like sdrpipes and sdrcvs, llcvs transmit variable-
 		length messages without flow control: the writing
 		rate is completely decoupled from the reading rate.
@@ -43,11 +43,11 @@ extern "C" {
 
 typedef struct llcv_str
 {
-	Lyst			list;
-	pthread_mutex_t		mutex;
-	int 			mutex_initialized;
-	pthread_mutex_t* 	mutex_address;
-	pthread_cond_t		cv;
+	Lyst		 list;
+	pthread_mutex_t	 mutex;
+	int		 mutex_initialized;
+	pthread_mutex_t *mutex_address;
+	pthread_cond_t	 cv;
 } *Llcv;
 
 typedef int	(*LlcvPredicate)(Llcv);

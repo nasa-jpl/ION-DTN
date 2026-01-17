@@ -87,7 +87,7 @@ static void	destroyNode(PsmPartition partition, PsmAddress nodeData,
 
 
 	data = (unsigned long) nodeData;
-	PUTMEMO("Destroying node", utoa(data)); 
+	PUTMEMO("Destroying node", utoa(data));
 }
 
 static int	processLine(PsmPartition partition, PsmAddress rbt, char *line,

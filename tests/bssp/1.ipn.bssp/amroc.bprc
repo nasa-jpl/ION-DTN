@@ -16,7 +16,7 @@ a endpoint ipn:1.77 q
 a endpoint ipn:1.78 q
 a endpoint ipn:1.79 q
 
-# Add a protocol. 
+# Add a protocol.
 a protocol bssp 1400 100
 
 # Add an induct. (listen)

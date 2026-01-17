@@ -5,8 +5,8 @@
  *
  * gf_int.h
  *
- * Internal code for Galois field routines.  This is not meant for 
- * users to include, but for the internal GF files to use. 
+ * Internal code for Galois field routines.  This is not meant for
+ * users to include, but for the internal GF files to use.
  */
 
 #pragma once
@@ -213,4 +213,3 @@ typedef enum {GF_E_MDEFDIV, /* Dev != Default && Mult == Default */
               GF_E_GROUPAR, /* Ran out of arguments in GROUP */
               GF_E_GROUPNU, /* Arguments not integers in GROUP. */
               GF_E_DEFAULT } gf_error_type_t;
-

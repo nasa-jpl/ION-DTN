@@ -60,7 +60,7 @@ follows:
 =item B<?>
 
 The B<help> command.  This will display a listing of the commands and their
-formats.  It is the same as the B<h> command.  
+formats.  It is the same as the B<h> command.
 
 =item B<h>
 
@@ -190,7 +190,7 @@ following: rcv, ct, fwd, dlv, del.
 The B<criticality> command.  This command establishes the criticality
 for all subsequently issued bundles containing CFDP PDUs.  Valid values
 are 0 (not critical) and 1 (critical).  If not specified, criticality is 0.
-Critical bundles are handled specially by the BP agent to minimize delay. 
+Critical bundles are handled specially by the BP agent to minimize delay.
 A bundle agent can forward multiple copies of a critical bundle to improve
 the chance of the bundle reaching the destination as soon as possible.  Critical
 bundles are never placed in limbo, reforwarded, fragmented, status reported,
@@ -296,7 +296,7 @@ as absolute paths.
 B<Example Usage:>
 
   r 2 old_config.txt old_config.backup    # Backup existing file
-  r 4 old_config.txt new_config.txt       # Replace with new content  
+  r 4 old_config.txt new_config.txt       # Replace with new content
   r 1 new_config.txt                      # Clean up source file
   &                                       # Execute transfer with operations
 

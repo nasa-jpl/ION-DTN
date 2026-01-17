@@ -23,7 +23,7 @@ static TccState	*_tccState(TccState *newState)
 {
 	void		*value;
 	TccState	*state;
-	
+
 	if (newState)			/*	Add task variable.	*/
 	{
 		value = (void *) (newState);
@@ -180,8 +180,8 @@ static void	printBlockText(Object text, int offset, int blksize)
 }
 
 static void	snap(TccDB *db, TccBulletin *bulletin,
-			unsigned int *inputSharenums, 
-			char **outputBlocks) 
+			unsigned int *inputSharenums,
+			char **outputBlocks)
 {
 	Sdr		sdr = getIonsdr();
 	size_t		blksize = bulletin->blksize;

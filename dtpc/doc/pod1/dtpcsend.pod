@@ -8,7 +8,7 @@ B<dtpcsend> I<nbr_of_cycles> I<rate> I<payload_size> I<topic_ID> I<profile_ID> I
 
 =head1 DESCRIPTION
 
-B<dtpcsend> uses DTPC to send I<nbr_of_cycles> application data items of 
+B<dtpcsend> uses DTPC to send I<nbr_of_cycles> application data items of
 I<payload_size> bytes each on topic I<topic_ID> to I<destination_endpoint>
 using transmission profile I<profile_ID> at I<rate> bits per second.
 

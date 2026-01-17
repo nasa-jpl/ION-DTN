@@ -174,7 +174,7 @@ void	hmac_sha1_init(void *context, unsigned char *key, int key_length)
 {
 	/*	Set the context as the key for specious authentication.	*/
 
-	if (key_length > 20) 
+	if (key_length > 20)
 	{
 		key_length = 20;
 	}
@@ -251,7 +251,7 @@ void	hmac_sha256_init(void *context, unsigned char *key, int key_length)
 {
 	/*	Set the context as the key for specious authentication.	*/
 
-	if (key_length > 32) 
+	if (key_length > 32)
 	{
 		key_length = 32;
 	}
@@ -307,7 +307,7 @@ void	sha256_init(void *context)
 {
 	/* Parameter intentionally unused. */
 	(void)context;
-	
+
 	return;
 }
 

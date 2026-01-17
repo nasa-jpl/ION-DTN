@@ -1,5 +1,5 @@
 /*
- 	bpP.h:	private definitions supporting the implementation
+	bpP.h:	private definitions supporting the implementation
 		of BP (Bundle Protocol) version 7 nodes in the ION
 		(Interplanetary Overlay Network) stack, including
 		scheme-specific forwarders and the convergence-layer
@@ -13,7 +13,7 @@
 	Copyright (c) 2019, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
- 									*/
+									*/
 
 #ifndef BPP_H
 #define BPP_H
@@ -382,7 +382,7 @@ typedef struct
 	 *	prior bundle, and the sum of the fragment offset and
 	 *	payload length of the last bundle is equal to the
 	 *	total ADU length -- the payloads are concatenated
-	 *	into the original ADU, the payload for a new 
+	 *	into the original ADU, the payload for a new
 	 *	aggregate bundle that is queued for delivery to
 	 *	the application, and all fragments (including the
 	 *	final one) are destroyed.				*/
@@ -862,7 +862,7 @@ extern int		bpAbandon(	Object bundleObj,
 					int reason);
 			/*	This is the common processing for any
 			 *	bundle that a forwarder decides it
-			 *	cannot accept for forwarding.  It 
+			 *	cannot accept for forwarding.  It
 			 *	sends any applicable status reports
 			 *	and then deletes the bundle from
 			 *	local storage.
@@ -1153,7 +1153,7 @@ extern int		bpContinueAcq(	AcqWorkArea *workArea,
 			 *	for refusal of the bundle due to
 			 *	resource exhaustion (congestion).
 			 *	Otherwise, (i.e., "attendant" points
-			 *	to a ReqAttendant structure, which 
+			 *	to a ReqAttendant structure, which
 			 *	MUST have already been initialized by
 			 *	ionStartAttendant()), bpContinueAcq
 			 *	will block until sufficient space
@@ -1168,7 +1168,7 @@ extern int		bpContinueAcq(	AcqWorkArea *workArea,
 			 *	extent of TCPCL data delays the
 			 *	processing of TCPCL control messages,
 			 *	potentially killing TCPCL performance.
-			 *	
+			 *
 			 *	Returns 0 on success (even if
 			 *	"attendant" was paused or the
 			 *	acquisition work area is flagged
@@ -1276,7 +1276,7 @@ extern int		acquireEid(EndpointId *eid,
 				unsigned char **cursor,
 				unsigned int *bytesRemaining);
 extern uvast		computeBufferCrc(BpCrcType crcType,
-				unsigned char *buffer, 
+				unsigned char *buffer,
 				int bytesToProcess,
 				int endOfBlock,
 				uvast aggregateCrc,
@@ -1321,7 +1321,7 @@ extern void		serializePrimaryBlock(Bundle *bundle,
 				unsigned char **cursor,
 				unsigned char *destinationEid,
 				int destinationEidLength,
-		       		unsigned char *sourceEid,
+				unsigned char *sourceEid,
 				int sourceEidLength,
 				unsigned char *reportToEid,
 				int reportToEidLength);

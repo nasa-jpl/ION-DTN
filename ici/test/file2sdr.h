@@ -1,9 +1,9 @@
 /*
  *
- * 	file2sdr.h:	definitions used for the file2sdr SDR
- * 			activity test system.
+ *	file2sdr.h:	definitions used for the file2sdr SDR
+ *			activity test system.
  *
- * 									*/
+ *									*/
 
 #include "platform.h"
 #include "sdr.h"

@@ -75,7 +75,7 @@ static void	*getBundles(void *parm)
 			bytesRemaining = aduLength;
 			if (aduLength < 21)	/* Just in case we receive
 						 * a very small adu.	*/
-			{			
+			{
 				bytesToRead = aduLength;
 			}
 			else
@@ -151,7 +151,7 @@ adu.", NULL);
 					/*	Intentional fall-through
 					 *	to remaining cases.	*/
 
-				case 0: 
+				case 0:
 				default:
 					break;	/*	Inner switch.	*/
 				}
@@ -245,7 +245,7 @@ int	main(void)
 		putSysErrmsg("dtpcd can't create receiver thread", NULL);
 		return -1;
 	}
-	
+
 	writeMemo("[i] dtpcd is running.");
 	while (parms.running)
 	{
@@ -258,12 +258,12 @@ terminating.");
 			parms.running = 0;
 			continue;
 		}
-		
+
 		/*	Make sure other tasks have a chance to run.	*/
 
 		sm_TaskYield();
 	}
-	
+
 	bp_interrupt(parms.rxSap);
 	pthread_join(rxThread, NULL);
 	bp_close(txSap);

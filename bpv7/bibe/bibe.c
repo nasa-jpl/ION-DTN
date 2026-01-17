@@ -525,7 +525,7 @@ int	bibeHandleBpdu(BpDelivery *dlv)
 	Object		bclaObj;
 	Object		bclaElt;
 	VInduct		*vinduct;
-	PsmAddress	vinductElt;	
+	PsmAddress	vinductElt;
 	AcqWorkArea	*work;
 
 	/*	The ADU in the dlv structure is the ZCO representation

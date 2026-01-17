@@ -10,10 +10,10 @@ cd "$srcdir" || exit 1
 
 # find all man pages, strip leading "./", sort
 find . -type f \( -name '*.1' -o -name '*.3' -o -name '*.5' \) \
-  | sed 's|^\./||' \
-  | sort \
-  | while read man; do
-      echo "${man}.ps: ${man}"
-      printf '%b\n\n' '\tgroff -mandoc $^ > $@'
-      echo
-    done
+    | sed 's|^\./||' \
+    | sort \
+    | while read man; do
+          echo "${man}.ps: ${man}"
+          printf '%b\n\n' '\tgroff -mandoc $^ > $@'
+          echo
+      done

@@ -702,8 +702,8 @@ void	Sm_rbt_delete(const char *file, int line, PsmPartition partition,
 				target = node;
 			}
 		}
- 
- 		if (nodeIsRed(partition, node)
+
+		if (nodeIsRed(partition, node)
 		|| nodeIsRed(partition, nodePtr->child[direction]))
 		{
 			continue;	/*	No recolor needed.	*/
@@ -824,12 +824,12 @@ void	Sm_rbt_delete(const char *file, int line, PsmPartition partition,
 				stepparentPtr->child[RIGHT]);
 		childPtr[RIGHT]->isRed = 0;
 	}
- 
+
 	/*	At this point the current node is NOT the one we're
 	 *	trying to delete.  It is the inorder predecessor of
 	 *	the node we're trying to delete -- a node whose
 	 *	content we want to retain.  The data that's in this
-	 *	predecessor is retained by copying it into the 
+	 *	predecessor is retained by copying it into the
 	 *	target node -- which effectively deletes the target
 	 *	node without actually removing it from the tree.
 	 *	Then the current node (the inorder predecessor of
@@ -876,7 +876,7 @@ void	Sm_rbt_delete(const char *file, int line, PsmPartition partition,
 	}
 
 	/*	Update root in rbt object.				*/
- 
+
 	rbtPtr->root = dummyRootBuffer.child[RIGHT];
 
 	/*	Make sure root is BLACK.				*/

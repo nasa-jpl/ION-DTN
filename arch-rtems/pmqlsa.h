@@ -1,5 +1,5 @@
 /*
- 	pmqlsa.h:	common definitions for PMQ link service
+	pmqlsa.h:	common definitions for PMQ link service
 			adapter modules.
 
 	Author: Scott Burleigh, JPL
@@ -7,7 +7,7 @@
 	Copyright (c) 2010, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
- 									*/
+									*/
 
 #ifndef PMQLSA_H
 #define PMQLSA_H

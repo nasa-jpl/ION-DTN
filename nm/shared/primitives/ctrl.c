@@ -57,7 +57,7 @@ int  ctrl_cb_comp_fn(void *i1, void *i2)
 	if((result = ari_compare(a1, a2, 0)) == 0)
 	{
 		if(ARI_GET_FLAG_PARM(a1->as_reg.flags) ||
-    	   ARI_GET_FLAG_PARM(a2->as_reg.flags))
+				ARI_GET_FLAG_PARM(a2->as_reg.flags))
 		{
 			result = tnvc_compare(c1->parms, c2->parms);
 		}
@@ -178,17 +178,17 @@ ctrl_t *ctrl_create(ari_t *ari)
 		}
 	}
 
-    /* Store any parameters needed for this control. */
-    if(ARI_GET_FLAG_PARM(ari->as_reg.flags))
-    {
-    	result->parms = tnvc_copy(&(ari->as_reg.parms));
-    }
-    else
-    {
-    	result->parms = NULL;
-    }
+	/* Store any parameters needed for this control. */
+	if(ARI_GET_FLAG_PARM(ari->as_reg.flags))
+	{
+		result->parms = tnvc_copy(&(ari->as_reg.parms));
+	}
+	else
+	{
+		result->parms = NULL;
+	}
 
-  	AMP_DEBUG_EXIT("ctrl_create","->"ADDR_FIELDSPEC".",(uaddr)result);
+	AMP_DEBUG_EXIT("ctrl_create","->"ADDR_FIELDSPEC".",(uaddr)result);
 	return result;
 }
 
@@ -204,8 +204,8 @@ ctrl_t *ctrl_db_deserialize(blob_t *data)
 	CHKNULL(data);
 	memset(&caller, 0, sizeof(caller));
 	QCBORDecode_Init(&it,
-					 (UsefulBufC){data->value,data->length},
-					 QCBOR_DECODE_MODE_NORMAL);
+			(UsefulBufC){data->value,data->length},
+			QCBOR_DECODE_MODE_NORMAL);
 
 	/* Step 1: Deserialize the main control. */
 	if((result = ctrl_deserialize_ptr(&it, &success)) == NULL)
@@ -259,9 +259,9 @@ blob_t *ctrl_db_serialize(ctrl_t *ctrl)
 	err = QCBOREncode_Finish(&encoder, &Encoded);
 	if (err != QCBOR_SUCCESS)
 	{
-	   AMP_DEBUG_ERR("ctrl_db_serialize","CBOR Encoding Err %d", err);
-	   blob_release(result,1);
-	   return NULL;
+		AMP_DEBUG_ERR("ctrl_db_serialize","CBOR Encoding Err %d", err);
+		blob_release(result,1);
+		return NULL;
 	}
 
 	if(blob_append(result, data, Encoded.len) != AMP_OK)
@@ -289,7 +289,7 @@ void*    ctrl_deserialize_ptr(QCBORDecodeContext *it, int *success)
 	ari_t *ari = ari_deserialize_ptr(it, success);
 	QCBORDecode_EndOctets(it);
 #endif
-	
+
 	if((ari == NULL) || (*success != AMP_OK))
 	{
 		return NULL;
@@ -307,10 +307,10 @@ ctrl_t* ctrl_deserialize_raw(blob_t *data, int *success)
 	CHKNULL(success);
 	*success = AMP_FAIL;
 	CHKNULL(data);
-	
+
 	QCBORDecode_Init(&it,
-					 (UsefulBufC){data->value,data->length},
-					 QCBOR_DECODE_MODE_NORMAL);
+			(UsefulBufC){data->value,data->length},
+			QCBOR_DECODE_MODE_NORMAL);
 
 	ctrl_t *tmp = ctrl_deserialize_ptr(&it, success);
 
@@ -661,7 +661,7 @@ macdef_t  macdef_deserialize(QCBORDecodeContext *it, int *success)
 	new_ari = ari_deserialize_ptr(it, success);
 	QCBORDecode_EndOctets(it);
 #endif
-	
+
 	if((new_ari == NULL) || (*success != AMP_OK))
 	{
 		return result;
@@ -706,13 +706,13 @@ macdef_t macdef_deserialize_raw(blob_t *data, int *success)
 	*success = AMP_FAIL;
 	memset(&result, 0, sizeof(macdef_t));
 	CHKUSR(data, result);
-    
+
 	QCBORDecode_Init(&it,
-					 (UsefulBufC){data->value,data->length},
-					 QCBOR_DECODE_MODE_NORMAL);
+			(UsefulBufC){data->value,data->length},
+			QCBOR_DECODE_MODE_NORMAL);
 
 	result = macdef_deserialize(&it, success);
-	
+
 	// Verify Decoding Completed Successfully
 	cut_decode_finish(&it);
 
@@ -781,7 +781,7 @@ int macdef_serialize(QCBOREncodeContext *encoder, void *item)
 		AMP_DEBUG_ERR("macdef_serialize", "CBOR Error: %d", err);
 		return err;
 	}
-	
+
 	return AMP_OK;
 }
 

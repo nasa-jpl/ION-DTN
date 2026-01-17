@@ -113,8 +113,8 @@
  */
 typedef struct
 {
-    unsigned char scTargetId;           /* The target block within the bundle.        */
-    Lyst          scIndTargetResults;   /* (sci_val *) target security individual results. */
+	unsigned char scTargetId;           /* The target block within the bundle.        */
+	Lyst          scIndTargetResults;   /* (sci_val *) target security individual results. */
 } BpsecInboundTargetResult;
 
 
@@ -141,14 +141,14 @@ typedef struct
  */
 typedef struct
 {
-    EndpointId scSource;       /* BPSec block security source.              */
+	EndpointId scSource;       /* BPSec block security source.              */
 
-    uint16_t   scId;           /* The BPSec Security Context Identifier.    */
-    uint32_t   scFlags;        /* BPSec Security Context Flags.             */
+	uint16_t   scId;           /* The BPSec Security Context Identifier.    */
+	uint32_t   scFlags;        /* BPSec Security Context Flags.             */
 
-    Lyst       scParms;        /* (sci_val) Security Context parameters.    */
+	Lyst       scParms;        /* (sci_val) Security Context parameters.    */
 
-    Lyst       scResults;      /* (BpsecInboundTargetResult) Results by target.   */
+	Lyst       scResults;      /* (BpsecInboundTargetResult) Results by target.   */
 } BpsecInboundASB;
 
 
@@ -173,8 +173,8 @@ typedef struct
 
 typedef struct
 {
-    uvast  scTargetId; /* The target block within the bundle.     */
-    Object scIndTargetResults;  /* sdr_list of security individual results. */
+	uvast  scTargetId; /* The target block within the bundle.     */
+	Object scIndTargetResults;  /* sdr_list of security individual results. */
 } BpsecOutboundTargetResult;
 
 
@@ -200,14 +200,14 @@ typedef struct
 
 typedef struct
 {
-    EndpointId scSource;       /* BPSec block security source.               */
+	EndpointId scSource;       /* BPSec block security source.               */
 
-    uint16_t   scId;           /* The BPSec Security Context Identifier.     */
-    uint32_t   scFlags;        /* BPSec Security Context Flags.              */
+	uint16_t   scId;           /* The BPSec Security Context Identifier.     */
+	uint32_t   scFlags;        /* BPSec Security Context Flags.              */
 
-    Object     scParms;        /* (sci_val) Security Context Parms. */
+	Object     scParms;        /* (sci_val) Security Context Parms. */
 
-    Object     scResults;      /* (BpsecOutboundResult) sdr_list of results  */
+	Object     scResults;      /* (BpsecOutboundResult) sdr_list of results  */
 } BpsecOutboundASB;
 
 

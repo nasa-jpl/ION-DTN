@@ -12,7 +12,7 @@ B<bpdriver> uses Bundle Protocol to send I<nbrOfCycles> application data
 units of length indicated by I<length>, to a counterpart application task
 that has opened the BP endpoint identified by I<destinationEndpointId>.
 
-If omitted, I<length> defaults to 60000.  
+If omitted, I<length> defaults to 60000.
 
 I<TTL> indicates the number of seconds the bundles may remain in the
 network, undelivered, before they are automatically destroyed.  If omitted, I<TTL>
@@ -32,7 +32,7 @@ If the effective value of I<length> is 1, the sizes of the transmitted
 service data units will be randomly selected multiples of 1024 in the
 range 1024 to 62464.
 
-I<Injection Rate> specifies in bits-per-second the equivalent, average 
+I<Injection Rate> specifies in bits-per-second the equivalent, average
 rate at which bpdriver will send bundles into the network.  A negative
 or 0 rate value will turn off injection rate control.  By default,
 bpdriver will inject bundle as fast as it can be handled by ION unless

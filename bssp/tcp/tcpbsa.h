@@ -7,7 +7,7 @@
  *	Copyright (c) 2013, California Institute of Technology.
  *	Copyright (c) 2013, Space Internetworking Center,
  *	Democritus University of Thrace.
- *	
+ *
  *	All rights reserved. U.S. Government and E.U. Sponsorship acknowledged.
  *
  */
@@ -30,7 +30,7 @@ extern "C" {
 #define bsspTcpDefaultPortNbr	4556
 
 /*	TCP has congestion control, so rate control not needed.	*/
-#define	DEFAULT_TCP_RATE	-1	
+#define	DEFAULT_TCP_RATE	-1
 
 #ifndef KEEPALIVE_PERIOD
 #define KEEPALIVE_PERIOD	(15)

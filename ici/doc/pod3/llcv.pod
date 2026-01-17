@@ -15,7 +15,7 @@ llcv - library for manipulating linked-list condition variable objects
         pthread_cond_t   cv;
     } *Llcv;
 
-    typedef int	(*LlcvPredicate)(Llcv);
+    typedef int (*LlcvPredicate)(Llcv);
 
     [see description for available functions]
 
@@ -55,7 +55,7 @@ Opens an LLCV, initializing as necessary.  The I<list> argument must point
 to an existing Lyst, which may reside in either private or shared dynamic
 memory.  I<llcv> must point to an existing llcv_str management object, which
 may reside in either static or dynamic (private or shared) memory -- but
-I<NOT> in stack space.  Returns I<llcv> on success, NULL on any error. 
+I<NOT> in stack space.  Returns I<llcv> on success, NULL on any error.
 
 =item void llcv_lock(Llcv llcv)
 

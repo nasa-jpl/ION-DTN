@@ -1,6 +1,6 @@
 /*
 
-	paths.c:	Helper code to map from test suite paths to 
+	paths.c:	Helper code to map from test suite paths to
 				config/executable paths.
 
 									*/
@@ -11,13 +11,13 @@
 const char *get_configs_path_prefix(void)
 {
 	static char path_prefix[256] = "";
-    const char * cfgroot = getenv("CONFIGSROOT");
-	
+	const char * cfgroot = getenv("CONFIGSROOT");
+
 	if(cfgroot) {
 		int neededSize;
 		neededSize = snprintf(path_prefix, sizeof(path_prefix), "%s/", cfgroot);
 
-		/* 
+		/*
 		 * Check for snprintf errors. A return value < 0 is an error.
 		 * A return value >= sizeof(buffer) means the output was truncated.
 		 */

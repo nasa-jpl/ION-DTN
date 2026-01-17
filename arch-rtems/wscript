@@ -74,11 +74,11 @@ def build(bld):
         iondefines+=['ENABLE_BSSP']
 
     # Not including the following
-    # -DION_NO_DNS 
+    # -DION_NO_DNS
     # Not building with nm
     # -DAGENT_ROLE
     # Not buidling with CFDP
-    # -DNASA_PROTECTED_FLIGHT_CODE    
+    # -DNASA_PROTECTED_FLIGHT_CODE
 
     ionflags='-g -Wall -Werror -Wno-unused-variable'
 
@@ -129,19 +129,19 @@ def build(bld):
         'psm.c',
         'radix.c',
         'rfx.c',
-        'smlist.c',     
-        'smrbt.c', 
+        'smlist.c',
+        'smrbt.c',
         'sptrace.c',
         'zco.c',
         'sdrcatlg.c',
-        'sdrhash.c',     
-        'sdrxn.c',       
-        'sdrmgt.c',      
-        'sdrstring.c',   
+        'sdrhash.c',
+        'sdrxn.c',
+        'sdrmgt.c',
+        'sdrstring.c',
         'sdrlist.c',
-        'sdrtable.c' 
+        'sdrtable.c'
     ]
-    
+
     ltpsource=[
 	    'ltpclock.c',
 	    'ltpdeliv.c',
@@ -237,7 +237,7 @@ def build(bld):
         'saga.c' ,
         'bloom.c' ,
         'MurmurHash2.c',
-        'libcgr.c'        
+        'libcgr.c'
     ]
 
     bpinclude=[
@@ -253,9 +253,9 @@ def build(bld):
         '../bpv7/library/ext/bae',
         '../bpv7/ipn',
         '../bpv7/ipnd',
-        '../bpv7/library/crypto', 
+        '../bpv7/library/crypto',
         '../bpv7/tcp',
-        '../bpv7/udp', 
+        '../bpv7/udp',
         '../bpv7/library/ext/snw',
         '../bpv7/bibe',
         '../bpv7/imc',
@@ -268,7 +268,7 @@ def build(bld):
         '../bpv7/library/ext/imc',
         '../bpv7/utils'
     ]
-    
+
     # nm and adm are not used, list not vetted
     nmsource=[
         'adm.c',
@@ -333,7 +333,7 @@ def build(bld):
     ]
 
     bssplibsources=[
-        'libbssp.c', 
+        'libbssp.c',
 	    'libbsspP.c'
     ]
 
@@ -343,7 +343,7 @@ def build(bld):
         'cfdpadmin.c',
         'bpcp.c',
         'bpcpd.c'
-    ] 
+    ]
 
     cfdplibsources=[
         'libcfdp.c',
@@ -415,7 +415,7 @@ def build(bld):
         csrcs += cfdpsources
 
     # cfdpsources - not compiled into final executable,
-    #      building CFDP library was okay but have issue 
+    #      building CFDP library was okay but have issue
     #      building the final executable with WAF in RTEMS 5.1
     #      complain of unknown type in header files.
     #      To be fixed in future release. Current demo does
@@ -502,7 +502,7 @@ def build(bld):
 
     # AMS and BSS libraries excluded for minimal port
 
-    if ION_OPEN_SOURCE == 1: 
+    if ION_OPEN_SOURCE == 1:
         bld.stlib(
             target='cfdp',
             cflags= ionflags,

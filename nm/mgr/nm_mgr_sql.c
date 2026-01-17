@@ -99,7 +99,7 @@ enum queries {
 	TNVC_INSERT_UVAST,
 	TNVC_INSERT_REAL32,
 	TNVC_INSERT_REAL64,
-	
+
 	TNVC_PARMSPEC_INSERT_AC, // TODO: Is this deprecated?
 	TNVC_PARMSPEC_INSERT_TNVC,
 	TNVC_PARMSPEC_CREATE,
@@ -134,17 +134,17 @@ enum queries {
 static MYSQL_STMT* queries[MGR_NUM_SQL_CONNECTIONS][MGR_NUM_QUERIES];
 
 /******** SQL Utility Macros ******************/
-#define dbprep_bind_res_cmn(idx,var,type) \
-	bind_res[idx].buffer_type = type; \
-	bind_res[idx].buffer = (char*)var; \
-   bind_res[idx].is_null = &is_null[idx];        \
-   bind_res[idx].error = &is_err[idx];
+#define dbprep_bind_res_cmn(idx, var, type)    \
+	bind_res[idx].buffer_type = type;      \
+	bind_res[idx].buffer = (char *) var;   \
+	bind_res[idx].is_null = &is_null[idx]; \
+	bind_res[idx].error = &is_err[idx];
 
-#define dbprep_bind_param_cmn(idx,var,type) \
-	bind_param[idx].buffer_type = type; \
-	bind_param[idx].buffer = (char*)&var; \
-    bind_param[idx].is_null = 0;          \
-    bind_param[idx].error = 0;
+#define dbprep_bind_param_cmn(idx, var, type)   \
+	bind_param[idx].buffer_type = type;     \
+	bind_param[idx].buffer = (char *) &var; \
+	bind_param[idx].is_null = 0;            \
+	bind_param[idx].error = 0;
 
 
 #define dbprep_bind_param_int(idx,var) dbprep_bind_param_cmn(idx,var,MYSQL_TYPE_LONG);
@@ -157,20 +157,20 @@ static MYSQL_STMT* queries[MGR_NUM_SQL_CONNECTIONS][MGR_NUM_QUERIES];
 
 
 
-#define dbprep_bind_param_str(idx,var) \
-	size_t len_##var = (var==NULL) ? 0 : strlen(var);					\
-	bind_param[idx].buffer_length = len_##var;							\
-	bind_param[idx].length = &len_##var;								\
-	bind_param[idx].buffer_type = MYSQL_TYPE_STRING;					\
-	bind_param[idx].buffer = (char*)var;								\
-    bind_param[idx].is_null = 0;										\
-    bind_param[idx].error = 0;
+#define dbprep_bind_param_str(idx, var)                     \
+	size_t len_##var = (var == NULL) ? 0 : strlen(var); \
+	bind_param[idx].buffer_length = len_##var;          \
+	bind_param[idx].length = &len_##var;                \
+	bind_param[idx].buffer_type = MYSQL_TYPE_STRING;    \
+	bind_param[idx].buffer = (char *) var;              \
+	bind_param[idx].is_null = 0;                        \
+	bind_param[idx].error = 0;
 
-#define dbprep_bind_param_null(idx)					  \
-	bind_param[idx].buffer_type = MYSQL_TYPE_NULL;	  \
-	bind_param[idx].buffer = 0;						  \
-    bind_param[idx].is_null = 0;					  \
-    bind_param[idx].error = 0;
+#define dbprep_bind_param_null(idx)                    \
+	bind_param[idx].buffer_type = MYSQL_TYPE_NULL; \
+	bind_param[idx].buffer = 0;                    \
+	bind_param[idx].is_null = 0;                   \
+	bind_param[idx].error = 0;
 
 
 #define dbprep_bind_res_int(idx,var) dbprep_bind_res_cmn(idx,&var,MYSQL_TYPE_LONG);
@@ -184,15 +184,15 @@ static MYSQL_STMT* queries[MGR_NUM_SQL_CONNECTIONS][MGR_NUM_QUERIES];
 /* NOTE: my_bool is replaceed with 'bool' for MySQL 8.0.1+, but is still used for MariaDB
  *  A build flag may be needed to switch between them based on My/Maria-SQL version to support both.
  */
-#define dbprep_declare(dbidx,idx, params, cols)				\
-	MYSQL_STMT* stmt = queries[dbidx][idx];					\
-	MYSQL_BIND bind_res[cols];								\
-	MYSQL_BIND bind_param[params];							\
-	bool is_null[cols];										\
-	bool is_err[cols];										\
-	unsigned long lengths[params];							\
-	memset(bind_res,0,sizeof(bind_res));					\
-	memset(bind_param,0,sizeof(bind_param));
+#define dbprep_declare(dbidx, idx, params, cols)  \
+	MYSQL_STMT   *stmt = queries[dbidx][idx]; \
+	MYSQL_BIND    bind_res[cols];             \
+	MYSQL_BIND    bind_param[params];         \
+	bool	      is_null[cols];              \
+	bool	      is_err[cols];               \
+	unsigned long lengths[params];            \
+	memset(bind_res, 0, sizeof(bind_res));    \
+	memset(bind_param, 0, sizeof(bind_param));
 
 #define DB_CHKVOID(status) if(status!=0) { query_log_err(status); return; }
 #define DB_CHKINT(status) if (status!=0) { query_log_err(status); return AMP_FAIL; }
@@ -212,14 +212,14 @@ void db_logf_msg(size_t dbidx, const char* msg, const char* details, int level, 
 	char buf[1024];
 	vsnprintf(buf, 1024, details, args);
 	va_end(args);
-	
+
 	db_log_msg(dbidx, msg, buf, level, fun, file, line);
 }
 void db_log_msg(size_t dbidx, const char* msg, const char* details, int level, const char *fun, const char* file, size_t line)
 {
 	AMP_DEBUG(level, 'd', fun, "%s \t %s",
-			  msg,
-			  ( (details == NULL) ? "" : details )
+			msg,
+			( (details == NULL) ? "" : details )
 		);
 	if (dbidx >= MGR_NUM_SQL_CONNECTIONS || gConn[dbidx] == NULL) {
 		// DB Not connected or invalid idx
@@ -333,9 +333,9 @@ int32_t db_incoming_finalize(uint32_t id, uint32_t grp_status, char* src_eid, ch
 	// If logging is set, or status is not successful
 	if (grp_status != AMP_OK || db_log_always) {
 		db_log_msg(DB_RPT_CON, "Received Message Set", raw_input, grp_status,
-				   src_eid, // Source is Agent EID instead of file for this record
-				   NULL, // File is n/a
-				   id // Override line as a debug record of associated group_id
+				src_eid, // Source is Agent EID instead of file for this record
+				NULL, // File is n/a
+				id // Override line as a debug record of associated group_id
 			);
 	}
 	db_mgt_txn_commit(DB_RPT_CON);
@@ -377,20 +377,20 @@ void *db_mgt_daemon(int *running)
 
 	while (*running)
 	{
-    	getCurrentTime(&start_time);
+		getCurrentTime(&start_time);
 
-    	if(db_mgt_connected(DB_CTRL_CON) == 0)
-    	{
+		if(db_mgt_connected(DB_CTRL_CON) == 0)
+		{
 			db_process_outgoing();
-    	}
+		}
 
-        delta = utils_time_cur_delta(&start_time);
+		delta = utils_time_cur_delta(&start_time);
 
-        // Sleep for 1 second (10^6 microsec) subtracting the processing time.
-        if((delta < 2000000) && (delta > 0))
-        {
-        	microsnooze((unsigned int)(2000000 - delta));
-        }
+		// Sleep for 1 second (10^6 microsec) subtracting the processing time.
+		if((delta < 2000000) && (delta > 0))
+		{
+			microsnooze((unsigned int)(2000000 - delta));
+		}
 	}
 
 	AMP_DEBUG_ALWAYS("db_mgt_daemon","Cleaning up Manager Database Daemon", NULL);
@@ -435,9 +435,9 @@ uint32_t db_mgt_init(sql_db_t parms, uint32_t clear, uint32_t log)
 	if (gConn[DB_RPT_CON] != NULL)
 	{
 		mysql_autocommit(gConn[DB_RPT_CON], 0);
-		DB_LOG_INFO(DB_CTRL_CON, "NM Manager Connections Initialized"); 
+		DB_LOG_INFO(DB_CTRL_CON, "NM Manager Connections Initialized");
 	}
-	
+
 
 	AMP_DEBUG_EXIT("db_mgt_init", "-->1", NULL);
 	return 1;
@@ -448,7 +448,7 @@ uint32_t db_mgt_init(sql_db_t parms, uint32_t clear, uint32_t log)
 **/
 uint32_t db_mgt_init_con(size_t idx, sql_db_t parms)
 {
-	
+
 	if(gConn[idx] == NULL)
 	{
 		gConn[idx] = mysql_init(NULL);
@@ -464,9 +464,9 @@ uint32_t db_mgt_init_con(size_t idx, sql_db_t parms)
 			}
 			gConn[idx] = NULL;
 			if(log > 0)
-            {
+			{
 				AMP_DEBUG_WARN("db_mgt_init", "SQL Error: %s", mysql_error(gConn[idx]));
-            }
+			}
 			AMP_DEBUG_EXIT("db_mgt_init", "-->0", NULL);
 			return 0;
 		}
@@ -478,26 +478,26 @@ uint32_t db_mgt_init_con(size_t idx, sql_db_t parms)
 		queries[idx][AC_INSERT]         = db_mgr_sql_prepare(idx,"SELECT insert_ac_actual_entry(?,?, ?)"); // ac_id, obj_actual_definition_id, idx
 
 		queries[idx][AC_GET] = db_mgr_sql_prepare(idx, "SELECT ace.obj_actual_definition_id "
-												  "FROM ari_collection_entry ac "
-												  "LEFT JOIN ari_collection_actual_entry ace ON ace.ac_entry_id=ac.ac_entry_id "
-												  "WHERE ac.ac_id=? "
-												  "ORDER BY ac.order_num ASC"
-												  //"SELECT obj_actual_definition_id FROM vw_ac WHERE ac_id=?"
+							"FROM ari_collection_entry ac "
+							"LEFT JOIN ari_collection_actual_entry ace ON ace.ac_entry_id=ac.ac_entry_id "
+							"WHERE ac.ac_id=? "
+							"ORDER BY ac.order_num ASC"
+							//"SELECT obj_actual_definition_id FROM vw_ac WHERE ac_id=?"
 			);
 
 
 		queries[idx][ARI_GET]           = db_mgr_sql_prepare(idx,"SELECT data_type_id, adm_type, adm_enum, obj_enum, tnvc_id, issuing_org FROM vw_ari WHERE obj_actual_definition_id=?");
 		queries[idx][ARI_GET_META]      = db_mgr_sql_prepare(idx, "SELECT vof.obj_metadata_id, cfd.fp_spec_id "
-															 "FROM vw_obj_formal_def vof "
-															 "LEFT JOIN control_formal_definition cfd ON cfd.obj_formal_definition_id=vof.obj_formal_definition_id "
-															 "WHERE vof.obj_enum=? AND vof.data_type_id=? AND vof.adm_enum=?"
+								"FROM vw_obj_formal_def vof "
+								"LEFT JOIN control_formal_definition cfd ON cfd.obj_formal_definition_id=vof.obj_formal_definition_id "
+								"WHERE vof.obj_enum=? AND vof.data_type_id=? AND vof.adm_enum=?"
 			);
-		
+
 		queries[idx][ARI_INSERT_CTRL]   = db_mgr_sql_prepare(idx,"SELECT insert_ari_ctrl(?,?,NULL)"); // obj_metadata_id, actual_parmspec_id, description
-		
+
 		queries[idx][TNVC_CREATE]       = db_mgr_sql_prepare(idx,"SELECT create_tnvc(NULL)"); // use_desc
 		queries[idx][TNVC_INSERT_AC]    = db_mgr_sql_prepare(idx,"SELECT insert_tnvc_ac_entry(?,NULL,NULL,?) "); // tnvc_id, ac_id
-		queries[idx][TNVC_INSERT_ARI]    = db_mgr_sql_prepare(idx,"SELECT insert_tnvc_obj_entry(?,NULL,NULL,?) "); // tnvc_id, obj_id		
+		queries[idx][TNVC_INSERT_ARI]    = db_mgr_sql_prepare(idx,"SELECT insert_tnvc_obj_entry(?,NULL,NULL,?) "); // tnvc_id, obj_id
 		queries[idx][TNVC_INSERT_TNVC]    = db_mgr_sql_prepare(idx,"SELECT insert_tnvc_tnvc_entry(?,NULL,NULL,?) "); // tnvc_id, tnvc_id
 
 		queries[idx][TNVC_INSERT_STR]    = db_mgr_sql_prepare(idx,"SELECT insert_tnvc_str_entry(?,NULL,NULL,?) "); // tnvc_id, ac_id
@@ -511,11 +511,11 @@ uint32_t db_mgt_init_con(size_t idx, sql_db_t parms)
 		queries[idx][TNVC_INSERT_REAL32]    = db_mgr_sql_prepare(idx,"SELECT insert_tnvc_real32_entry(?,NULL,NULL,?) "); // tnvc_id, ac_id
 		queries[idx][TNVC_INSERT_REAL64]    = db_mgr_sql_prepare(idx,"SELECT insert_tnvc_real64_entry(?,NULL,NULL,?) "); // tnvc_id, ac_id
 
-		
-		
+
+
 		queries[idx][TNVC_VIEW]         = db_mgr_sql_prepare(idx,"SELECT * FROM type_name_value_collection WHERE tnvc_id = ?");
 		queries[idx][TNVC_ENTRIES] = db_mgr_sql_prepare(idx,"SELECT data_type_id, int_value, uint_value, obj_value, str_value, ac_value, tnvc_value FROM vw_tnvc_entries WHERE tnvc_id = ? ORDER BY order_num ASC");
-		
+
 		queries[idx][TNVC_PARMSPEC_INSERT_AC]   = db_mgr_sql_prepare(idx,"CALL SP__insert_actual_parms_ac(?,?,?)"); // ap_spec_id, order_num, ac_id
 		queries[idx][TNVC_PARMSPEC_INSERT_TNVC] = db_mgr_sql_prepare(idx,"CALL SP__insert_actual_parms_tnvc(?,?,?)"); // ap_spec_id, order_num, tnvc_id
 		queries[idx][TNVC_PARMSPEC_CREATE]      = db_mgr_sql_prepare(idx,"SELECT create_actual_parmspec_tnvc(?,?,NULL)"); // formal_def_id, tnvc_id, description
@@ -528,7 +528,7 @@ uint32_t db_mgt_init_con(size_t idx, sql_db_t parms)
 		queries[idx][MSGS_UPDATE_GROUP_STATE] = db_mgr_sql_prepare(idx,"UPDATE message_group mg SET state_id=? WHERE group_id=?");
 		queries[idx][MSGS_OUTGOING_GET]    = db_mgr_sql_prepare(idx,"SELECT group_id, ts FROM vw_ready_outgoing_message_groups");
 		queries[idx][MSGS_OUTGOING_CREATE] = db_mgr_sql_prepare(idx,"INSERT INTO message_group (state_id, is_outgoing) VALUES(1, TRUE)");
-		
+
 		//skywalker uses anms patch to fix these reported issues
 		//queries[idx][MSGS_INCOMING_GET]    = db_mgr_sql_prepare(idx,"SELECT * FROM vw_ready_INCOMING_message_groups");
 		//queries[idx][MSGS_INCOMING_CREATE] = db_mgr_sql_prepare(idx,"SELECT create_incoming_message_group(FROM_UNIXTIME(?), ? )"); // Received timestamp, From Agent name (ie: ipn:2.1)
@@ -552,11 +552,11 @@ uint32_t db_mgt_init_con(size_t idx, sql_db_t parms)
 		queries[idx][MSGS_PERF_CTRL_GET] = db_mgr_sql_prepare(idx,"SELECT tv, ac_id FROM message_perform_control WHERE message_id=?");
 		queries[idx][MSGS_REPORT_SET_INSERT] = db_mgr_sql_prepare(idx,"SELECT add_message_report_set(?,?,?,?,NULL)"); // group_id, ack, nak, acl, idx
 		queries[idx][MSGS_REPORT_SET_GET] = db_mgr_sql_prepare(idx,"SELECT * FROM report_template_actual_definition WHERE obj_actual_definition_id=?");
-		
+
 		// TODO MSGS_TABLE_SET_INSERT/GET
 
 		queries[idx][DB_LOG_MSG] = db_mgr_sql_prepare(idx, "INSERT INTO nm_mgr_log (msg,details,level,source,file,line) VALUES(?,?,?,?,?,?)");
-		
+
 	}
 
 	AMP_DEBUG_EXIT("db_mgt_init", "-->1", NULL);
@@ -755,7 +755,7 @@ int   db_mgt_connected(size_t idx)
 					// A mysql_commit or mysql_rollback will automatically start a new transaction as the old one is closed
 					mysql_autocommit(gConn[DB_RPT_CON], 0);
 				}
-				DB_LOG_MSG(idx, "NM DB Connection Restored", NULL, AMP_OK); 
+				DB_LOG_MSG(idx, "NM DB Connection Restored", NULL, AMP_OK);
 				return 0;
 			}
 
@@ -872,7 +872,7 @@ blob_t*	  db_mgr_sql_info_serialize(sql_db_t *item)
 		blob_release(result,1);
 		return NULL;
 	}
-	
+
 	result->length = Encoded.len;
 	return result;
 }
@@ -980,7 +980,7 @@ int32_t db_mgt_query_fetch(MYSQL_RES **res, char *format, ...)
 	size_t idx = DB_RPT_CON; // TODO
 
 	AMP_DEBUG_ENTRY("db_mgt_query_fetch","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
-			        (uaddr)res, (uaddr)format);
+			(uaddr)res, (uaddr)format);
 
 	/* Step 0: Sanity check. */
 	if(format == NULL)
@@ -1204,7 +1204,7 @@ int32_t db_tx_msg_group_agents(int group_id, msg_grp_t *msg_group)
 
 	char agent_name[AMP_MAX_EID_LEN];
 	dbprep_bind_res_str(0, agent_name,AMP_MAX_EID_LEN);
-	
+
 	// Execute Get Number of results
 	mysql_stmt_execute(stmt);
 	mysql_stmt_bind_result(stmt, bind_res);
@@ -1214,14 +1214,14 @@ int32_t db_tx_msg_group_agents(int group_id, msg_grp_t *msg_group)
 	{
 		if (iif_send_grp(&ion_ptr, msg_group, agent_name) != AMP_OK) {
 			rtv = AMP_FAIL;
-			DB_LOG_MSG(DB_CTRL_CON, "Failed to send group to agent", agent_name, AMP_FAIL); 
+			DB_LOG_MSG(DB_CTRL_CON, "Failed to send group to agent", agent_name, AMP_FAIL);
 		}
 	}
 	mysql_stmt_free_result(stmt);
 	return rtv;
 
 }
-	  
+
 int db_query_tnvc(size_t dbidx, int tnvc_id, tnvc_t *parms)
 {
 	int rtv = AMP_FAIL;
@@ -1258,17 +1258,17 @@ int db_query_tnvc(size_t dbidx, int tnvc_id, tnvc_t *parms)
 
 	char str_val[255];
 	dbprep_bind_res_str(C_STR_VALUE, str_val,255);
-	
+
 	dbprep_dec_res_int(C_AC_VALUE, ac_val);
 	dbprep_dec_res_int(C_TNVC_VALUE, tnvc_val);
-	
+
 	// Execute Get Number of results
 	mysql_stmt_execute(stmt);
 	mysql_stmt_bind_result(stmt, bind_res);
 	mysql_stmt_store_result(stmt);
 	int array_len = mysql_stmt_num_rows(stmt);
 	int *cache_ids = STAKE(array_len * sizeof(int) );
-	
+
 	// Create vector
 	parms->values = vec_create(array_len, tnv_cb_del,tnv_cb_comp,tnv_cb_copy, VEC_FLAG_AS_STACK, &rtv);
 	if (rtv != AMP_OK) {
@@ -1280,7 +1280,7 @@ int db_query_tnvc(size_t dbidx, int tnvc_id, tnvc_t *parms)
 	{
 		tnv_t *val = tnv_create();
 		val->type = tnv_type;
-		
+
 		switch(tnv_type) {
 		case AMP_TYPE_AC:
 			cache_ids[i] = ac_val;
@@ -1355,7 +1355,7 @@ ari_t* db_query_ari(size_t dbidx, int ari_id)
 
 	char issuing_org[255];
 	dbprep_bind_res_str(C_ISSUING_ORG, issuing_org,255);
-	
+
 
 	// Bind results
 	DB_CHKNULL(mysql_stmt_bind_result(stmt, bind_res));
@@ -1375,9 +1375,9 @@ ari_t* db_query_ari(size_t dbidx, int ari_id)
 
 	// Free result (all data is already retrieveed)
 	mysql_stmt_free_result(stmt);
-		
-	// Build ARI	
-	
+
+	// Build ARI
+
 	if (ari_type == AMP_TYPE_LIT) // TODO
 	{
 		AMP_DBG_ERR("TODO: ARI LIT", NULL);
@@ -1418,7 +1418,7 @@ ari_t* db_query_ari(size_t dbidx, int ari_id)
 		blob_release(name,0);
 	}
 
-	
+
 	// Tag
 	// TODO
 
@@ -1439,9 +1439,9 @@ ari_t* db_query_ari(size_t dbidx, int ari_id)
 ac_t* db_query_ac(size_t dbidx, int ac_id)
 {
 	ac_t *ac = ac_create();
-	
+
 	// Query AC
-    // Note: While we can query ARI contents as part of a single
+	// Note: While we can query ARI contents as part of a single
 	// query, we split into discrete queries to simplify C API when a
 	// single ARI may need to be retrieved
 	dbprep_declare(dbidx, AC_GET, 1, 1);
@@ -1449,7 +1449,7 @@ ac_t* db_query_ac(size_t dbidx, int ac_id)
 	mysql_stmt_bind_param(stmt, bind_param);
 
 	dbprep_dec_res_int(0, ari_id);
-	
+
 	mysql_stmt_execute(stmt);
 	mysql_stmt_bind_result(stmt, bind_res);
 	mysql_stmt_store_result(stmt); // Results must be buffered to allow execution of nested queries
@@ -1476,7 +1476,7 @@ ac_t* db_query_ac(size_t dbidx, int ac_id)
 	}
 
 	SRELEASE(ari_ids);
-	
+
 	return ac;
 }
 
@@ -1491,7 +1491,7 @@ msg_ctrl_t* db_tx_build_perf_ctrl(int msg_id, int ack, int nak, int acl)
 
 	dbprep_dec_res_int(0,tv);
 	dbprep_dec_res_int(1,ac_id);
-	
+
 	DB_CHKINT(mysql_stmt_execute(stmt));
 	DB_CHKINT(mysql_stmt_bind_result(stmt, bind_res));
 
@@ -1529,7 +1529,7 @@ msg_ctrl_t* db_tx_build_perf_ctrl(int msg_id, int ack, int nak, int acl)
 	if (acl) {
 		ctrl->hdr.flags = MSG_HDR_SET_ACL(ctrl->hdr.flags);
 	}
-	
+
 
 	return ctrl;
 }
@@ -1569,7 +1569,7 @@ int32_t db_tx_build_group(int32_t grp_idx, msg_grp_t *msg_group)
 	dbprep_bind_param_int(0,grp_idx);
 	DB_CHKINT(mysql_stmt_bind_param(stmt, bind_param));
 
-    // Declare result columns	
+	// Declare result columns
 	dbprep_bind_res_int(0,r_grp_id);
 	dbprep_bind_res_int(1,r_msg_id);
 	dbprep_bind_res_int(2,r_ack);
@@ -1578,10 +1578,10 @@ int32_t db_tx_build_group(int32_t grp_idx, msg_grp_t *msg_group)
 	dbprep_bind_res_int(5,r_order_num);
 	dbprep_bind_res_int(6,r_type_id);
 
-	
+
 	AMP_DEBUG_ENTRY("db_tx_build_group",
-					  "(%d, "ADDR_FIELDSPEC")",
-			          grp_idx, (uaddr) msg_group);
+			"(%d, "ADDR_FIELDSPEC")",
+			grp_idx, (uaddr) msg_group);
 
 	/* Step 0: Sanity check. */
 	if(msg_group == NULL)
@@ -1602,7 +1602,7 @@ int32_t db_tx_build_group(int32_t grp_idx, msg_grp_t *msg_group)
 
 	/* Step 2: For each message that belongs in this group....*/
 	while(!mysql_stmt_fetch(stmt))
-    {
+	{
 		// NOTE: Support for other types can be added here in the future if needed, for debugging or other uses.
 		switch(r_type_id) {
 		case MSG_TYPE_PERF_CTRL:
@@ -1626,7 +1626,7 @@ int32_t db_tx_build_group(int32_t grp_idx, msg_grp_t *msg_group)
 		AMP_DEBUG_ERR("db_tx_build_group", "No valid entries in this group",NULL);
 		result = AMP_FAIL;
 	}
-	
+
 	mysql_stmt_free_result(stmt);
 
 	AMP_DEBUG_EXIT("db_tx_build_group","-->%d", result);
@@ -1670,8 +1670,8 @@ int db_tx_collect_agents(int32_t grp_idx, vector_t *vec)
 	 */
 
 	if(db_mgt_query_fetch(&res,
-			              "SELECT AgentID FROM dbtOutgoingRecipients "
-			              "WHERE OutgoingID=%d", grp_idx) != AMP_OK)
+			"SELECT AgentID FROM dbtOutgoingRecipients "
+			"WHERE OutgoingID=%d", grp_idx) != AMP_OK)
 	{
 		AMP_DEBUG_ERR("db_tx_collect_agents",
 				        "Can't get agents for grp: %d", grp_idx);
@@ -1691,15 +1691,15 @@ int db_tx_collect_agents(int32_t grp_idx, vector_t *vec)
 			if((agent = db_fetch_agent(atoi(row[0]))) != NULL)
 			{
 				AMP_DEBUG_INFO("db_outgoing_process_recipients",
-						         "Adding agent name %s.",
-						         agent->eid.name);
+						"Adding agent name %s.",
+						agent->eid.name);
 
 				vec_push(vec, agent);
 			}
 			else
 			{
 				AMP_DEBUG_ERR("db_outgoing_process_recipients",
-						        "Cannot fetch registered agent",NULL);
+						"Cannot fetch registered agent",NULL);
 			}
 		}
 	}
@@ -1707,7 +1707,7 @@ int db_tx_collect_agents(int32_t grp_idx, vector_t *vec)
 	mysql_free_result(res);
 
 	AMP_DEBUG_EXIT("db_outgoing_process_recipients","-->0x%#llx",
-			         vec_num_entries(*vec));
+			vec_num_entries(*vec));
 
 	return AMP_OK;
 }
@@ -1742,8 +1742,8 @@ agent_t *db_fetch_agent(int32_t id)
 
 	/* Step 1: Grab the OID row. */
 	if(db_mgt_query_fetch(&res,
-			              "SELECT * FROM registered_agents WHERE registered_agents_id=%d",
-						  id) != AMP_OK)
+			"SELECT * FROM registered_agents WHERE registered_agents_id=%d",
+			id) != AMP_OK)
 	{
 		AMP_DEBUG_ERR("db_fetch_agent","Can't fetch", NULL);
 		AMP_DEBUG_EXIT("db_fetch_agent","-->NULL", NULL);
@@ -1809,8 +1809,8 @@ int32_t db_fetch_agent_idx(eid_t *eid)
 
 	/* Step 1: Grab the OID row. */
 	if(db_mgt_query_fetch(&res,
-			              "SELECT * FROM registered_agents WHERE agent_id_string='%s'",
-						  eid->name) != AMP_OK)
+			"SELECT * FROM registered_agents WHERE agent_id_string='%s'",
+			eid->name) != AMP_OK)
 	{
 		AMP_DEBUG_ERR("db_fetch_agent_idx","Can't fetch", NULL);
 		AMP_DEBUG_EXIT("db_fetch_agent_idx","-->%d", AMP_FAIL);
@@ -1885,7 +1885,7 @@ int32_t db_add_adm(char *name, char *version, char *oid_root)
 	uint32_t row_idx = 0;
 
 	AMP_DEBUG_ENTRY("db_add_adm,"ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
-			        (uaddr)name, (uaddr)version, (uaddr)oid_root);
+			(uaddr)name, (uaddr)version, (uaddr)oid_root);
 
 	/* Step 0: Sanity check. */
 	if((name == NULL) || (version == NULL) || (oid_root == NULL))
@@ -2046,11 +2046,11 @@ int32_t db_add_tdc(tdc_t tdc)
 		 */
 
 		if(db_mgt_query_insert(&dc_idx,
-				           "INSERT INTO dbtDataCollection(CollectionID, DataOrder, DataType,DataBlob)"
-		 	                "VALUES(%d,1,%d,'%s')",
-							tdc_idx,
-							tdc.hdr.data[i],
-							content+2) != AMP_OK)
+				"INSERT INTO dbtDataCollection(CollectionID, DataOrder, DataType,DataBlob)"
+				"VALUES(%d,1,%d,'%s')",
+				tdc_idx,
+				tdc.hdr.data[i],
+				content+2) != AMP_OK)
 		{
 			AMP_DEBUG_ERR("db_add_tdc","Can't insert entry %d.", i);
 			SRELEASE(content);
@@ -2141,7 +2141,7 @@ int32_t db_add_mid(mid_t *mid)
 
 	/* Step 2: If this MID has a nickname, grab the index. */
 	if((MID_GET_FLAG_OID(mid->flags) == OID_TYPE_COMP_FULL) ||
-	   (MID_GET_FLAG_OID(mid->flags) == OID_TYPE_COMP_PARAM))
+			(MID_GET_FLAG_OID(mid->flags) == OID_TYPE_COMP_PARAM))
 	{
 		if((nn_idx = db_fetch_nn_idx(mid->oid.nn_id)) <= 0)
 		{
@@ -2181,22 +2181,22 @@ int32_t db_add_mid(mid_t *mid)
 	 */
 
 	if(db_mgt_query_insert(&mid_idx,
-			            "INSERT INTO dbtMIDs(NicknameID,OID,ParametersID,Type,Category,IssuerFlag,TagFlag,"
-			            "OIDType,IssuerID,TagValue,DataType,Name,Description)"
-			            "VALUES (%s, %d, %s, %d, %d, %d, %d, %d, "UVAST_FIELDSPEC","UVAST_FIELDSPEC",%d,'%s','%s')",
-			            (nn_idx == 0) ? "NULL" : itoa(nn_idx),
-			            oid_idx,
-			            (parm_idx == 0) ? "NULL" : itoa(parm_idx),
-			            0,
-			            MID_GET_FLAG_ID(mid->flags),
-			            (MID_GET_FLAG_ISS(mid->flags)) ? 1 : 0,
-			            (MID_GET_FLAG_TAG(mid->flags)) ? 1 : 0,
-			            MID_GET_FLAG_OID(mid->flags),
-			            mid->issuer,
-			            mid->tag,
-			            AMP_TYPE_MID,
-			            "No Name",
-			            "No Descr") != AMP_OK)
+			"INSERT INTO dbtMIDs(NicknameID,OID,ParametersID,Type,Category,IssuerFlag,TagFlag,"
+			"OIDType,IssuerID,TagValue,DataType,Name,Description)"
+			"VALUES (%s, %d, %s, %d, %d, %d, %d, %d, "UVAST_FIELDSPEC","UVAST_FIELDSPEC",%d,'%s','%s')",
+			(nn_idx == 0) ? "NULL" : itoa(nn_idx),
+			oid_idx,
+			(parm_idx == 0) ? "NULL" : itoa(parm_idx),
+			0,
+			MID_GET_FLAG_ID(mid->flags),
+			(MID_GET_FLAG_ISS(mid->flags)) ? 1 : 0,
+			(MID_GET_FLAG_TAG(mid->flags)) ? 1 : 0,
+			MID_GET_FLAG_OID(mid->flags),
+			mid->issuer,
+			mid->tag,
+			AMP_TYPE_MID,
+			"No Name",
+			"No Descr") != AMP_OK)
 	{
 		AMP_DEBUG_ERR("db_add_mid", "Can't add MID.", NULL);
 
@@ -2289,7 +2289,7 @@ int32_t db_add_mc(Lyst mc)
 
 	/* Step 1 - Create a new entry in the dbtMIDCollections DB. */
 	if(db_mgt_query_insert(&mc_idx,
-			            "INSERT INTO dbtMIDCollections (Comment) VALUES ('No Comment')") != AMP_OK)
+			"INSERT INTO dbtMIDCollections (Comment) VALUES ('No Comment')") != AMP_OK)
 	{
 		AMP_DEBUG_ERR("db_add_mc","Can't insert MC",NULL);
 
@@ -2324,10 +2324,10 @@ int32_t db_add_mc(Lyst mc)
 
 		/* Step 2c - Insert entry into DB MC list from this MC. */
 		if(db_mgt_query_insert(NULL,
-				            "INSERT INTO dbtMIDCollection"
-							"(CollectionID, MIDID, MIDOrder)"
-							"VALUES (%d, %d, %d",
-							mc_idx, mid_idx, i) != AMP_OK)
+				"INSERT INTO dbtMIDCollection"
+				"(CollectionID, MIDID, MIDOrder)"
+				"VALUES (%d, %d, %d",
+				mc_idx, mid_idx, i) != AMP_OK)
 		{
 			AMP_DEBUG_ERR("db_add_mc","Can't insert MID %d", i);
 
@@ -2413,7 +2413,7 @@ int32_t db_add_nn(oid_nn_t *nn)
 	/* Step 2 - Ensure OID. */
 	oid = oid_construct(OID_TYPE_FULL, NULL, 0, nn->raw, nn->raw_size);
 	if( (oid.type == OID_TYPE_UNK) ||
-	    ((oid_idx = db_add_oid(oid)) <= 0))
+			((oid_idx = db_add_oid(oid)) <= 0))
 	{
 		AMP_DEBUG_ERR("db_add_nn","Can't create OID.",NULL);
 		oid_release(&oid);
@@ -2436,9 +2436,9 @@ int32_t db_add_nn(oid_nn_t *nn)
 
 	/* Step 3 - Create a new entry in the dbtADMNicknames DB. */
 	if(db_mgt_query_insert(&nn_idx,
-			            "INSERT INTO dbtADMNicknames (ADM_ID, Nickname_UID, Nickname_Label, OID)"
-						"VALUES (%d, "UVAST_FIELDSPEC", 'No Comment', %d)",
-						adm_idx, nn->id, oid_idx) != AMP_OK)
+			"INSERT INTO dbtADMNicknames (ADM_ID, Nickname_UID, Nickname_Label, OID)"
+			"VALUES (%d, "UVAST_FIELDSPEC", 'No Comment', %d)",
+			adm_idx, nn->id, oid_idx) != AMP_OK)
 	{
 		AMP_DEBUG_ERR("db_add_nn","Can't insert Nickname", NULL);
 
@@ -2596,10 +2596,10 @@ int32_t db_add_oid(oid_t oid)
 	/* Step 3: Build and execute query to add row to dbtOIDs. */
 
 	if(db_mgt_query_insert(&oid_idx,
-			            "INSERT INTO dbtOIDs"
-						"(IRI_Label, Dot_Label, Encoded, Description)"
-						"VALUES ('empty','empty','%s','empty')",
-					    oid_str) != AMP_OK)
+			"INSERT INTO dbtOIDs"
+			"(IRI_Label, Dot_Label, Encoded, Description)"
+			"VALUES ('empty','empty','%s','empty')",
+			oid_str) != AMP_OK)
 	{
 		AMP_DEBUG_ERR("db_add_oid","Can't insert Nickname", NULL);
 
@@ -2718,7 +2718,7 @@ int32_t db_add_protomid(mid_t *mid, ui_parm_spec_t *spec, amp_type_e type)
 	uint32_t num_parms = 0;
 
 	AMP_DEBUG_ENTRY("db_add_protomid", "("ADDR_FIELDSPEC","ADDR_FIELDSPEC",%d)",
-			       (uaddr)mid, (uaddr)spec, type);
+			(uaddr)mid, (uaddr)spec, type);
 
 	/* Step 0: Sanity check arguments. */
 	if((mid == NULL) || (spec==NULL))
@@ -2737,7 +2737,7 @@ int32_t db_add_protomid(mid_t *mid, ui_parm_spec_t *spec, amp_type_e type)
 
 	/* Step 2: If this MID has a nickname, grab the index. */
 	if((MID_GET_FLAG_OID(mid->flags) == OID_TYPE_COMP_FULL) ||
-	   (MID_GET_FLAG_OID(mid->flags) == OID_TYPE_COMP_PARAM))
+			(MID_GET_FLAG_OID(mid->flags) == OID_TYPE_COMP_PARAM))
 	{
 		if((nn_idx = db_fetch_nn_idx(mid->oid.nn_id)) <= 0)
 		{
@@ -2769,18 +2769,18 @@ int32_t db_add_protomid(mid_t *mid, ui_parm_spec_t *spec, amp_type_e type)
 
 	if(db_mgt_query_insert((uint32_t*)&result,
 			"INSERT INTO dbtProtoMIDs"
-						"(NicknameID,OID,ParametersID,Type,Category,"
-						"OIDType,DataType,Name,Description)"
-						"VALUES (%s, %d, %d, %d, %d, %d, %d, '%s','%s')",
-						(nn_idx == 0) ? "NULL" : itoa(nn_idx),
-						oid_idx,
-						parm_idx,
-						0,
-						MID_GET_FLAG_ID(mid->flags),
-						MID_GET_FLAG_OID(mid->flags),
-						type,
-						"No Name",
-						"No Descr") != AMP_OK)
+				"(NicknameID,OID,ParametersID,Type,Category,"
+				"OIDType,DataType,Name,Description)"
+				"VALUES (%s, %d, %d, %d, %d, %d, %d, '%s','%s')",
+				(nn_idx == 0) ? "NULL" : itoa(nn_idx),
+				oid_idx,
+				parm_idx,
+				0,
+				MID_GET_FLAG_ID(mid->flags),
+				MID_GET_FLAG_OID(mid->flags),
+				type,
+				"No Name",
+				"No Descr") != AMP_OK)
 	{
 		AMP_DEBUG_ERR("db_add_protomid", "Can't add protomid.", NULL);
 		db_mgt_txn_rollback();
@@ -2850,7 +2850,7 @@ int32_t db_add_protoparms(ui_parm_spec_t *spec)
 	uint32_t parm_idx = 0;
 
 	AMP_DEBUG_ENTRY("db_add_protoparms", "("ADDR_FIELDSPEC")",
-					  (uaddr) spec);
+			(uaddr) spec);
 
 	/* Step 0: Sanity check arguments. */
 	if(spec == NULL)
@@ -2872,7 +2872,7 @@ int32_t db_add_protoparms(ui_parm_spec_t *spec)
 	/* Step 1: Add an entry in the parameters table. */
 	if(db_mgt_query_insert(&result,
 			"INSERT INTO dbtProtoMIDParameters (Comment) "
-						"VALUES ('No comment')") != AMP_OK)
+				"VALUES ('No comment')") != AMP_OK)
 	{
 		AMP_DEBUG_ERR("db_add_protoparms","Can't insert Protoparm", NULL);
 
@@ -2891,9 +2891,9 @@ int32_t db_add_protoparms(ui_parm_spec_t *spec)
 
 		if(db_mgt_query_insert(&parm_idx,
 				"INSERT INTO dbtProtoMIDParameter "
-								"(CollectionID, ParameterOrder, ParameterTypeID) "
-								"VALUES (%d, %d, %d)",
-								result, i, spec->parm_type[i]) != AMP_OK)
+					"(CollectionID, ParameterOrder, ParameterTypeID) "
+					"VALUES (%d, %d, %d)",
+					result, i, spec->parm_type[i]) != AMP_OK)
 		{
 			AMP_DEBUG_ERR("db_add_protoparms","Can't insert Parm", NULL);
 
@@ -2937,7 +2937,7 @@ int32_t db_fetch_adm_idx(char *name, char *version)
 	MYSQL_ROW row;
 
 	AMP_DEBUG_ENTRY("db_fetch_adm_idx","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
-					  (uaddr)name, (uaddr) version);
+			(uaddr)name, (uaddr) version);
 
 	if((name == NULL) || (version == NULL))
 	{
@@ -3003,10 +3003,10 @@ tdc_t db_fetch_tdc(int32_t tdc_idx)
 
 	/* Step 1: Construct/run the Query and capture results. */
 	if(db_mgt_query_fetch(&res,
-			              "SELECT * FROM dbtDataCollection "
-			              "WHERE CollectionID=%d "
-						  "ORDER BY DataOrder",
-						  tdc_idx) != AMP_OK)
+			"SELECT * FROM dbtDataCollection "
+			"WHERE CollectionID=%d "
+			"ORDER BY DataOrder",
+			tdc_idx) != AMP_OK)
 	{
 		AMP_DEBUG_ERR("db_fetch_tdc","Can't fetch", NULL);
 		AMP_DEBUG_EXIT("db_fetch_tdc","-->NULL", NULL);
@@ -3068,7 +3068,7 @@ blob_t* db_fetch_tdc_entry_from_row(MYSQL_ROW row, amp_type_e *type)
 	uint32_t length = 0;
 
 	AMP_DEBUG_ENTRY("db_fetch_tdc_entry_from_row","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
-					  (uaddr)row, (uaddr)type);
+			(uaddr)row, (uaddr)type);
 
 	/* Step 1: grab data from the row. */
 	value = utils_string_to_hex(row[3], &length);
@@ -3128,7 +3128,7 @@ mid_t *db_fetch_mid(int32_t idx)
 
 	/* Step 1: Construct and run the query to get the MID information. */
 	if(db_mgt_query_fetch(&res,
-			              "SELECT * FROM dbtMIDs WHERE ID=%d", idx) != AMP_OK)
+			"SELECT * FROM dbtMIDs WHERE ID=%d", idx) != AMP_OK)
 	{
 		AMP_DEBUG_ERR("db_fetch_mid","Can't fetch", NULL);
 		AMP_DEBUG_EXIT("db_fetch_mid","-->%d", AMP_FAIL);
@@ -3193,8 +3193,8 @@ Lyst db_fetch_mid_col(int idx)
 
 	/* Step 1: Construct and run the query to get the MID information. */
 	if(db_mgt_query_fetch(&res,
-			              "SELECT MIDID FROM dbtMIDCollection WHERE CollectionID=%d ORDER BY MIDOrder",
-						  idx) != AMP_OK)
+			"SELECT MIDID FROM dbtMIDCollection WHERE CollectionID=%d ORDER BY MIDOrder",
+			idx) != AMP_OK)
 	{
 		AMP_DEBUG_ERR("db_fetch_mid_col","Can't fetch", NULL);
 		AMP_DEBUG_EXIT("db_fetch_mid_col","-->%d", AMP_FAIL);
@@ -3209,7 +3209,7 @@ Lyst db_fetch_mid_col(int idx)
 		if((new_mid = db_fetch_mid(atoi(row[0]))) == NULL)
 		{
 			AMP_DEBUG_ERR("db_fetch_mid_col", "Can't grab MID with ID %d.",
-					        atoi(row[0]));
+					atoi(row[0]));
 
 			midcol_destroy(&result);
 			mysql_free_result(res);
@@ -3273,7 +3273,7 @@ mid_t* db_fetch_mid_from_row(MYSQL_ROW row)
 	uvast issuer      = (uvast) (row[9] == NULL) ? 0 : atoll(row[9]);
 	uvast tag         = (uvast) (row[10] == NULL) ? 0 : atoll(row[10]);
 	uint32_t dtype    = (row[11] == NULL) ? 0 : atoi(row[11]);
- 	uint32_t mid_type = 0;
+	uint32_t mid_type = 0;
 
 	/* Step 2: Create the OID. */
 	oid = db_fetch_oid(nn_idx, parm_idx, oid_idx);
@@ -3287,24 +3287,24 @@ mid_t* db_fetch_mid_from_row(MYSQL_ROW row)
 
 	oid.type = oidType;
 
-        switch(cat)
-        {
-          case 0: mid_type = MID_ATOMIC; break;
-          case 1: mid_type = MID_COMPUTED; break;
-          case 2: mid_type = MID_REPORT; break;
-          case 3: mid_type = MID_CONTROL; break;
-	  case 4: mid_type = MID_SRL; break;
-          case 5: mid_type = MID_TRL; break;
-          case 6: mid_type = MID_MACRO; break;
-          case 7: mid_type = MID_LITERAL; break;
-          case 8: mid_type = MID_OPERATOR; break;
-          default: mid_type = MID_ANY;
-        }
-          
+	switch(cat)
+	{
+		case 0: mid_type = MID_ATOMIC; break;
+		case 1: mid_type = MID_COMPUTED; break;
+		case 2: mid_type = MID_REPORT; break;
+		case 3: mid_type = MID_CONTROL; break;
+		case 4: mid_type = MID_SRL; break;
+		case 5: mid_type = MID_TRL; break;
+		case 6: mid_type = MID_MACRO; break;
+		case 7: mid_type = MID_LITERAL; break;
+		case 8: mid_type = MID_OPERATOR; break;
+		default: mid_type = MID_ANY;
+	}
+
 	if ((result = mid_construct(mid_type,
-			                    issFlag ? &issuer : NULL,
-					            tagFlag ? &tag : NULL,
-				                oid)) == NULL)
+			issFlag ? &issuer : NULL,
+			tagFlag ? &tag : NULL,
+			oid)) == NULL)
 	{
 		AMP_DEBUG_ERR("db_fetch_mid_from_row", "Cannot construct MID", NULL);
 		oid_release(&oid);
@@ -3367,17 +3367,17 @@ int32_t db_fetch_mid_idx(mid_t *mid)
 	}
 
 	if(db_mgt_query_fetch(&res,
-			            "SELECT * FROM dbtMIDs WHERE "
-						"Type=%d AND Category=%d AND IssuerFlag=%d AND TagFlag=%d "
-						"AND OIDType=%d AND IssuerID="UVAST_FIELDSPEC" "
-						"AND TagValue="UVAST_FIELDSPEC,
-						0,
-						MID_GET_FLAG_ID(mid->flags),
-						(MID_GET_FLAG_ISS(mid->flags)) ? 1 : 0,
-						(MID_GET_FLAG_TAG(mid->flags)) ? 1 : 0,
-						MID_GET_FLAG_OID(mid->flags),
-						mid->issuer,
-						mid->tag) != AMP_OK)
+			"SELECT * FROM dbtMIDs WHERE "
+			"Type=%d AND Category=%d AND IssuerFlag=%d AND TagFlag=%d "
+			"AND OIDType=%d AND IssuerID="UVAST_FIELDSPEC" "
+			"AND TagValue="UVAST_FIELDSPEC,
+			0,
+			MID_GET_FLAG_ID(mid->flags),
+			(MID_GET_FLAG_ISS(mid->flags)) ? 1 : 0,
+			(MID_GET_FLAG_TAG(mid->flags)) ? 1 : 0,
+			MID_GET_FLAG_OID(mid->flags),
+			mid->issuer,
+			mid->tag) != AMP_OK)
 	{
 		AMP_DEBUG_ERR("db_fetch_mid_col","Can't fetch", NULL);
 		AMP_DEBUG_EXIT("db_fetch_mid_col","-->%d", AMP_FAIL);
@@ -3397,7 +3397,7 @@ int32_t db_fetch_mid_idx(mid_t *mid)
 		oid_t   oid      = db_fetch_oid(nn_idx, parm_idx, oid_idx);
 
 		if((oid.type != OID_TYPE_UNK) &&
-	       (oid_compare(oid, mid->oid, 1) == 0))
+				(oid_compare(oid, mid->oid, 1) == 0))
 		{
 			oid_release(&oid);
 			result = cur_idx;
@@ -3453,8 +3453,8 @@ int32_t db_fetch_nn(uint32_t idx)
 
 	/* Step 1: Grab the NN row */
 	if(db_mgt_query_fetch(&res,
-			              "SELECT * FROM dbtADMNicknames WHERE ID=%d",
-						   idx) != AMP_OK)
+			"SELECT * FROM dbtADMNicknames WHERE ID=%d",
+			idx) != AMP_OK)
 	{
 		AMP_DEBUG_ERR("db_fetch_nn","Can't fetch", NULL);
 		AMP_DEBUG_EXIT("db_fetch_nn","-->%d", AMP_FAIL);
@@ -3508,8 +3508,8 @@ int32_t db_fetch_nn_idx(uint32_t nn)
 
 
 	if(db_mgt_query_fetch(&res,
-			              "SELECT * FROM dbtADMNicknames WHERE Nickname_UID=%d",
-						  nn) != AMP_OK)
+			"SELECT * FROM dbtADMNicknames WHERE Nickname_UID=%d",
+			nn) != AMP_OK)
 	{
 		AMP_DEBUG_ERR("db_fetch_nn_idx","Can't fetch", NULL);
 		AMP_DEBUG_EXIT("db_fetch_nn_idx","-->%d", AMP_FAIL);
@@ -3556,7 +3556,7 @@ uint8_t* db_fetch_oid_val(uint32_t idx, uint32_t *size)
 	MYSQL_ROW row;
 
 	AMP_DEBUG_ENTRY("db_fetch_oid_val","(%d,"ADDR_FIELDSPEC")",
-			          idx, (uaddr)size);
+			idx, (uaddr)size);
 
 	/* Step 0: Sanity check. */
 	if((idx == 0) || (size == NULL))
@@ -3568,8 +3568,8 @@ uint8_t* db_fetch_oid_val(uint32_t idx, uint32_t *size)
 
 
 	if(db_mgt_query_fetch(&res,
-			              "SELECT Encoded FROM dbtOIDs WHERE ID=%d",
-						  idx) != AMP_OK)
+			"SELECT Encoded FROM dbtOIDs WHERE ID=%d",
+			idx) != AMP_OK)
 	{
 		AMP_DEBUG_ERR("db_fetch_oid_val","Can't fetch", NULL);
 		AMP_DEBUG_EXIT("db_fetch_oid_val","-->NULL", NULL);
@@ -3627,7 +3627,7 @@ oid_t db_fetch_oid(uint32_t nn_idx, uint32_t parm_idx, uint32_t oid_idx)
 	uint32_t oid_type = OID_TYPE_FULL;
 
 	AMP_DEBUG_ENTRY("db_fetch_oid","(%d, %d, %d)",
-					  nn_idx, parm_idx, oid_idx);
+			nn_idx, parm_idx, oid_idx);
 
 	oid_init(&result);
 	tdc_init(&parms);
@@ -3731,8 +3731,8 @@ int32_t db_fetch_oid_idx(oid_t oid)
 
 	/* Step 2: Grab the OID row. */
 	if(db_mgt_query_fetch(&res,
-			              "SELECT * FROM dbtOIDs WHERE Encoded='%s'",
-						  oid_str) != AMP_OK)
+			"SELECT * FROM dbtOIDs WHERE Encoded='%s'",
+			oid_str) != AMP_OK)
 	{
 		AMP_DEBUG_ERR("db_fetch_oid_idx","Can't fetch", NULL);
 		SRELEASE(oid_str);
@@ -3799,9 +3799,9 @@ Lyst db_fetch_parms(uint32_t idx)
 
 	/* Step 1: Grab the OID row. */
 	if(db_mgt_query_fetch(&res,
-			              "SELECT DataCollectionID FROM dbtMIDParameter "
-			              "WHERE CollectionID=%d ORDER BY ItemOrder",
-			              idx) != AMP_OK)
+			"SELECT DataCollectionID FROM dbtMIDParameter "
+			"WHERE CollectionID=%d ORDER BY ItemOrder",
+			idx) != AMP_OK)
 	{
 		AMP_DEBUG_ERR("db_fetch_parms","Can't fetch", NULL);
 		AMP_DEBUG_EXIT("db_fetch_parms","-->NULL", NULL);
@@ -3882,11 +3882,11 @@ int32_t db_fetch_protomid_idx(mid_t *mid)
 
 	/* Step 1: Grab the OID row. */
 	if(db_mgt_query_fetch(&res,
-			              "SELECT * FROM dbtProtoMIDs WHERE "
-						  "Type=%d AND Category=%d AND OIDType=%d",
-						  0,
-						  MID_GET_FLAG_ID(mid->flags),
-						  MID_GET_FLAG_OID(mid->flags)) != AMP_OK)
+			"SELECT * FROM dbtProtoMIDs WHERE "
+			"Type=%d AND Category=%d AND OIDType=%d",
+			0,
+			MID_GET_FLAG_ID(mid->flags),
+			MID_GET_FLAG_OID(mid->flags)) != AMP_OK)
 	{
 		AMP_DEBUG_ERR("db_fetch_parms","Can't fetch", NULL);
 		AMP_DEBUG_EXIT("db_fetch_parms","-->%d", AMP_FAIL);
@@ -3923,17 +3923,17 @@ int32_t db_fetch_protomid_idx(mid_t *mid)
 #endif // End deprecated section
 
 void query_update_msg_group_state(size_t dbidx, int group_id, int is_error) {
-   int status;
-   int state = (is_error) ? 3 : 2;
-   dbprep_declare(dbidx,MSGS_UPDATE_GROUP_STATE, 2, 0);
-   
-   dbprep_bind_param_int(0,state);
-   dbprep_bind_param_int(1,group_id);
-   DB_CHKVOID(mysql_stmt_bind_param(stmt, bind_param));
+	int status;
+	int state = (is_error) ? 3 : 2;
+	dbprep_declare(dbidx,MSGS_UPDATE_GROUP_STATE, 2, 0);
 
-   DB_CHKVOID(mysql_stmt_execute(stmt));
+	dbprep_bind_param_int(0,state);
+	dbprep_bind_param_int(1,group_id);
+	DB_CHKVOID(mysql_stmt_bind_param(stmt, bind_param));
 
-   return;
+	DB_CHKVOID(mysql_stmt_execute(stmt));
+
+	return;
 }
 
 void db_process_outgoing(void) {
@@ -3943,11 +3943,11 @@ void db_process_outgoing(void) {
 	dbprep_declare(DB_CTRL_CON, MSGS_OUTGOING_GET, 0, 2); // FUTURE: May add MgrEid parameter to allow a single DB to serve multiple managers
 	dbprep_bind_res_int(0,group_id);
 	dbprep_bind_res_int(1,ts);
-	
+
 	DB_CHKVOID(mysql_stmt_execute(stmt));
 	DB_CHKVOID(mysql_stmt_bind_result(stmt, bind_res));
 	DB_CHKVOID(mysql_stmt_store_result(stmt)); // Results must be buffered to allow execution of nested queries
-		
+
 	// Fetch all rows
 	while(!mysql_stmt_fetch(stmt)) {
 
@@ -3961,20 +3961,20 @@ void db_process_outgoing(void) {
 
 		// Set timestamp
 		msg_group->time = ts;
-				
+
 		// Query Group Contents & Build
 		if((db_tx_build_group(group_id, msg_group)) != AMP_OK)
 		{
 			msg_grp_release(msg_group, 1);
 
 			// Set status to error to avoid re-parsing the same set
-			query_update_msg_group_state(DB_CTRL_CON, group_id, AMP_FAIL); 
+			query_update_msg_group_state(DB_CTRL_CON, group_id, AMP_FAIL);
 			continue; // to next group
 		}
 
 		// Send Group
 		int status = db_tx_msg_group_agents(group_id, msg_group);
-		
+
 		// Update Status (note: outgoing thread does not use transactions)
 		query_update_msg_group_state(DB_CTRL_CON, group_id, status);
 
@@ -4012,18 +4012,18 @@ int db_query_ari_metadata(db_con_t dbidx, ari_t *ari, uint32_t *metadata_id, uin
 	int namespace = *nn/20;
 	int adm_type = *nn % 20;
 
-	
+
 	dbprep_declare(dbidx, ARI_GET_META, 3, 2);
-	
+
 	dbprep_bind_param_int(0, name_idx);
 	dbprep_bind_param_int(1, ari->type);
-	dbprep_bind_param_int(2, namespace);	
+	dbprep_bind_param_int(2, namespace);
 	mysql_stmt_bind_param(stmt, bind_param);
-	
+
 	dbprep_bind_res_int_ptr(0, metadata_id);
 	dbprep_bind_res_int_ptr(1, fp_spec_id);
 	mysql_stmt_bind_result(stmt, bind_res);
-	
+
 	mysql_stmt_execute(stmt);
 
 	if (mysql_stmt_fetch(stmt) != 0)
@@ -4046,13 +4046,13 @@ uint32_t db_insert_ari_reg(db_con_t dbidx, ari_t *ari, int *status)
 	uint32_t fp_spec_id = 0;
 	uint32_t params_id = 0;
 	uint32_t rtv = 0;
-	
+
 	// If Nickname (including Namespace) is defined
 	if(ARI_GET_FLAG_NN(ari->as_reg.flags))
 	{
 		int adm_enum; // ari->as_reg.nn_idx
 		int adm_obj_type;
-		
+
 		// Query metadata
 		if (db_query_ari_metadata(dbidx, ari, &metadata_id, &fp_spec_id) == AMP_FAIL)
 		{
@@ -4073,10 +4073,10 @@ uint32_t db_insert_ari_reg(db_con_t dbidx, ari_t *ari, int *status)
 	// Insert Parameters (if any)
 	params_id = db_insert_tnvc_params(dbidx, fp_spec_id, &(ari->as_reg.parms), status);
 
-	
+
 	// Insert Ctrl( metadata_id, parms_id )
 	dbprep_declare(dbidx, ARI_INSERT_CTRL, 2, 1);
-	
+
 	dbprep_bind_param_int(0, metadata_id);
 	if (params_id == 0)
 	{
@@ -4087,10 +4087,10 @@ uint32_t db_insert_ari_reg(db_con_t dbidx, ari_t *ari, int *status)
 		dbprep_bind_param_int(1, params_id);
 	}
 	mysql_stmt_bind_param(stmt, bind_param);
-	
+
 	dbprep_bind_res_int(0, rtv);
 	mysql_stmt_bind_result(stmt, bind_res);
-	
+
 	mysql_stmt_execute(stmt);
 
 	if (mysql_stmt_fetch(stmt) != 0)
@@ -4115,10 +4115,10 @@ uint32_t db_insert_ari(db_con_t dbidx, ari_t *ari, int *status)
 void db_insert_ac_entry(db_con_t dbidx, uint32_t ac_id, size_t idx, uint32_t ari_id, int *status)
 {
 	dbprep_declare(dbidx, AC_INSERT, 3, 0);
-	
+
 	dbprep_bind_param_int(0, ac_id);
 	dbprep_bind_param_int(1, ari_id);
-	dbprep_bind_param_int(2, idx);	
+	dbprep_bind_param_int(2, idx);
 	mysql_stmt_bind_param(stmt, bind_param);
 	mysql_stmt_execute(stmt);
 
@@ -4139,13 +4139,13 @@ uint32_t db_insert_ac(db_con_t dbidx, ac_t *ac, int *status)
 {
 	int rtv = 0;
 	CHKZERO(ac);
-	
+
 	int num = vec_num_entries(ac->values);
 	if (num == 0) {
 		// We won't create a tnvc if empty (0 will be converted to NULL by calller)
 		return 0;
 	}
-	
+
 	/* Create AC */
 	dbprep_declare(dbidx, AC_CREATE, 0, 1);
 
@@ -4179,12 +4179,12 @@ uint32_t db_insert_ac(db_con_t dbidx, ac_t *ac, int *status)
 		{
 			db_insert_ac_entry(dbidx, rtv, i, ari_id, status);
 		}
-		
+
 	}
-	
+
 	return rtv;
 
-	
+
 }
 
 void db_insert_tnv(db_con_t dbidx, uint32_t tnvc_id, tnv_t *tnv, int *status)
@@ -4198,10 +4198,10 @@ void db_insert_tnv(db_con_t dbidx, uint32_t tnvc_id, tnv_t *tnv, int *status)
 	size_t id;
 	int do_bind_id = 0; // Flag, to consolidate NULL handling
 	dbprep_bind_param_int(0, tnvc_id);
-	
+
 	switch(tnv->type)
 	{
-    // Primitives
+	// Primitives
 	case AMP_TYPE_STR:
 		stmt = queries[dbidx][TNVC_INSERT_STR];
 
@@ -4313,7 +4313,7 @@ void db_insert_tnv(db_con_t dbidx, uint32_t tnvc_id, tnv_t *tnv, int *status)
 	}
 
 	mysql_stmt_free_result(stmt);
-	
+
 }
 uint32_t db_insert_tnvc_params(db_con_t dbidx, uint32_t fp_spec_id, tnvc_t *tnvc, int *status)
 {
@@ -4325,14 +4325,14 @@ uint32_t db_insert_tnvc_params(db_con_t dbidx, uint32_t fp_spec_id, tnvc_t *tnvc
 	}
 
 	dbprep_declare(dbidx, TNVC_PARMSPEC_CREATE, 2, 1);
-	
+
 	dbprep_bind_param_int(0, fp_spec_id);
 	dbprep_bind_param_int(1, tnvc_id);
 	mysql_stmt_bind_param(stmt, bind_param);
-	
+
 	dbprep_bind_res_int(0, rtv);
 	mysql_stmt_bind_result(stmt, bind_res);
-	
+
 	mysql_stmt_execute(stmt);
 
 	if (mysql_stmt_fetch(stmt) != 0)
@@ -4348,13 +4348,13 @@ uint32_t db_insert_tnvc_params(db_con_t dbidx, uint32_t fp_spec_id, tnvc_t *tnvc
 uint32_t db_insert_tnvc(db_con_t dbidx, tnvc_t *tnvc, int *status)
 {
 	CHKZERO(tnvc);
-	
+
 	int num = vec_num_entries(tnvc->values);
 	if (num == 0) {
 		// We won't create a tnvc if empty (0 will be converted to NULL by calller)
 		return 0;
 	}
-	
+
 	/* Create TNVC */
 	uint32_t rtv = 0;
 	dbprep_declare(dbidx, TNVC_CREATE, 0, 1);
@@ -4383,7 +4383,7 @@ uint32_t db_insert_tnvc(db_con_t dbidx, tnvc_t *tnvc, int *status)
 		db_insert_tnv(dbidx, rtv, tnv, status);
 
 	}
-	
+
 	return rtv;
 
 }
@@ -4410,7 +4410,7 @@ void db_insert_msg_rpt_set_rpt(db_con_t dbidx, uint32_t entry_id, rpt_t* rpt, in
 		return;
 	}
 	dbprep_bind_param_int(C_ARI_ID, ari_id);
-	
+
 	uint32_t parms_id = db_insert_tnvc(dbidx, rpt->entries, status);
 	if (parms_id > 0) { // Parameters are defined and inserted
 		dbprep_bind_param_int(C_PARMS_ID,parms_id);
@@ -4418,7 +4418,7 @@ void db_insert_msg_rpt_set_rpt(db_con_t dbidx, uint32_t entry_id, rpt_t* rpt, in
 		// Either status==AMP_OK and this message has no parameters, or we failed to create tnvc record for some reason
 		dbprep_bind_param_null(C_PARMS_ID);
 	}
-	/** Insert Report **/	
+	/** Insert Report **/
 	mysql_stmt_bind_param(stmt, bind_param);
 #if 0 // We don't need ID at this time
 	dbprep_bind_res_int(0, rtv);
@@ -4437,7 +4437,7 @@ void db_insert_msg_rpt_set_rpt(db_con_t dbidx, uint32_t entry_id, rpt_t* rpt, in
 		return;
 	}
 	mysql_stmt_free_result(stmt);
-	
+
 	return;
 }
 
@@ -4447,7 +4447,7 @@ void db_insert_msg_rpt_set_name(db_con_t dbidx, uint32_t entry_id, char* name, i
 	dbprep_declare(dbidx, MSGS_AGENT_MSG_ADD, 2, 0);
 	dbprep_bind_param_int(0,entry_id);
 	dbprep_bind_param_str(1,name);
-	
+
 	DB_CHKUSR(mysql_stmt_bind_param(stmt, bind_param), {*status = AMP_FAIL; return;});
 
 	DB_CHKUSR(mysql_stmt_execute(stmt), {*status = AMP_FAIL; return;});
@@ -4484,7 +4484,7 @@ uint32_t db_insert_msg_reg_agent(uint32_t grp_id, msg_agent_t *msg, int *status)
 
 	char *name = msg->agent_id.name;
 	dbprep_bind_param_str(C_EID, name);
-	
+
 	mysql_stmt_bind_param(stmt, bind_param);
 
 	dbprep_bind_res_int(0, rtv);
@@ -4534,19 +4534,19 @@ uint32_t db_insert_msg_rpt_set(uint32_t grp_id, msg_rpt_t *rpt, int *status)
 	int is_ack = MSG_HDR_GET_ACK(rpt->hdr.flags);
 	int is_nak = MSG_HDR_GET_NACK(rpt->hdr.flags);
 	int is_acl = MSG_HDR_GET_ACL(rpt->hdr.flags);
-	
+
 	dbprep_declare(DB_RPT_CON, MSGS_REPORT_SET_INSERT, C_NUM_COLS, 1);
 	dbprep_bind_param_int(C_GRP_ID,grp_id);
 	dbprep_bind_param_int(C_ACK,is_ack);
 	dbprep_bind_param_int(C_NAK,is_nak);
 	dbprep_bind_param_int(C_ACL,is_acl);
-	
+
 	DB_CHKINT(mysql_stmt_bind_param(stmt, bind_param));
 
 	dbprep_bind_res_int(0, rtv);
 	DB_CHKINT(mysql_stmt_bind_result(stmt, bind_res));
 	DB_CHKINT(mysql_stmt_execute(stmt));
-	
+
 	// Fetch results (Note: Because we are using a stored procedure, we can't depend on LAST_INSERT_ID)
 	// We fetch the (single) row, which will automatically populate our rtv.
 	// In the case of an error, it will remain at the default error value of 0
@@ -4554,8 +4554,8 @@ uint32_t db_insert_msg_rpt_set(uint32_t grp_id, msg_rpt_t *rpt, int *status)
 	if (dbstatus != 0)
 	{
 		DB_LOGF_ERR(DB_RPT_CON, "Failed to Create MSG_RPT_SET Entry", "status=%d, msg=%s, MSGS_REPORT_SET_INSERT(%i,%i,%i,%i)",
-					dbstatus, mysql_stmt_error(stmt),
-					grp_id, is_ack, is_nak, is_acl
+				dbstatus, mysql_stmt_error(stmt),
+				grp_id, is_ack, is_nak, is_acl
 			);
 
 		CHKZERO(status);
@@ -4571,9 +4571,9 @@ uint32_t db_insert_msg_rpt_set(uint32_t grp_id, msg_rpt_t *rpt, int *status)
 		for(it = vecit_first(&(rpt->rx)); vecit_valid(it); it = vecit_next(it))
 		{
 			db_insert_msg_rpt_set_name(DB_RPT_CON,
-									   rtv,
-									   (char*)vecit_data(it),
-									   status);
+					rtv,
+					(char*)vecit_data(it),
+					status);
 		}
 	}
 
@@ -4581,14 +4581,14 @@ uint32_t db_insert_msg_rpt_set(uint32_t grp_id, msg_rpt_t *rpt, int *status)
 	for(it = vecit_first(&(rpt->rpts)); vecit_valid(it); it = vecit_next(it))
 	{
 		db_insert_msg_rpt_set_rpt(DB_RPT_CON,
-								  rtv,
-								 (rpt_t*)vecit_data(it),
-								 status);
+				rtv,
+				(rpt_t*)vecit_data(it),
+				status);
 	}
 
 	return rtv;
 
-		
+
 }
 
 #endif /* ifdef HAVE_MYSQL */

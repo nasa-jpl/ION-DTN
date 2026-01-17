@@ -10,13 +10,13 @@ B<ltpadmin> [ I<commands_filename> | . | ! ]
 
 B<ltpadmin> configures, starts, manages, and stops LTP operations for
 the local ION node.
-	
+
 It operates in response to LTP configuration commands found in the file
 I<commands_filename>, if provided; if not, B<ltpadmin> prints
 a simple prompt (:) so that the user may type commands
 directly into standard input.  If I<commands_filename> is a period (.), the
 effect is the same as if a command file containing the single command 'x'
-were passed to B<ltpadmin> -- that is, the ION node's I<ltpclock> task, 
+were passed to B<ltpadmin> -- that is, the ION node's I<ltpclock> task,
 I<ltpmeter> tasks, and link service adapter tasks are stopped.
 If I<commands_filename> is an exclamation point (!), that effect is
 reversed: the ION node's I<ltpclock> task, I<ltpmeter> tasks, and link

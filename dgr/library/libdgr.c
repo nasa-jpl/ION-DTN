@@ -7,7 +7,7 @@
 	Copyright (c) 2003, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "dgr.h"
 #include "memmgr.h"
@@ -120,7 +120,7 @@ typedef struct
 typedef enum
 {
 	DgrMsgOut = 1,
-	DgrMsgIn, 
+	DgrMsgIn,
 	DgrDeliverySuccess,
 	DgrDeliveryFailure
 } DgrRecordType;
@@ -213,7 +213,7 @@ typedef struct
 	EpisodeHistory	episodes[8];
 	int		currentEpisode;
 	int		totalCapacity;
-	vast	totalServiceLoad;
+	vast		totalServiceLoad;
 	int		totalBytesTransmitted;
 	int		totalBytesAcknowledged;
 	int		totalUnusedCapacity;
@@ -361,7 +361,7 @@ static int	hashDestId(unsigned short portNbr, unsigned int ipAddress)
 
 		h &= ~g;
 	}
-	
+
 	return h % DGR_BIN_COUNT;
 }
 
@@ -1085,7 +1085,7 @@ tracePredictedResends = dest->predictedResends;
 		/*	Adjust transmission limit: diminishes as an
 		 *	exponential function of increase in backlog
 		 *	of unacknowledged messages:
-		 *	
+		 *
 		 *	If dest's backlog < this	...then transmission
 		 *	fraction of max backlog...	limit is ...
 		 *		1/(2**6 = 64)			5

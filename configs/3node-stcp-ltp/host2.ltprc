@@ -4,8 +4,8 @@
 #
 #	Ohio University, Oct 2008
 
-# Initialization command (command 1). 
-# Establishes the LTP retransmission window. 
+# Initialization command (command 1).
+# Establishes the LTP retransmission window.
 # (Prohibiting LTP from seizing all available storage).
 #	A maximum of 32 sessions.  A session is assumed to be around one
 #	second of transmission.  This value should be estimated at the sum
@@ -14,7 +14,7 @@
 #	long sessions which contain an actual retransmission.
 1 32
 
-# Add a span. (a connection) 
+# Add a span. (a connection)
 #	Identify the span as engine number 1.
 #	Use 1400 byte segments (assuming a standard ethernet frame
 #	underlying this link and accounting for ip/udp/eth header overhead).
@@ -30,7 +30,7 @@
 #	important, don't use double quotes.
 a span 1 1400 10000 'udplso 10.1.1.1:1113'
 
-# Add another span. (to yourself) 
+# Add another span. (to yourself)
 #	Identify the span as engine number 2.
 #	Use the command 'udplso 10.1.1.2:1113' to implement the link
 #	itself.  In this case, we use udp to connect to host2 using the

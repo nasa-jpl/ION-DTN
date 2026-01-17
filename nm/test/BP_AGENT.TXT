@@ -40,8 +40,8 @@ WAIT 5
 # Step 1.5: Request an endpoint report for endpoints ipn:1.0, ipn:1.1, ipn:1.2
 #------------------------------------------------------------------------------
 #
-# ARI: ari:/IANA:amp.agent/Ctrl.gen_rpts([ari:/IANA:dtn.bp_agent/Rptt.endpoint_report(ipn:1.0), 
-#          ari:/IANA:dtn.bp_agent/Rptt.endpoint_report(ipn:1.1), 
+# ARI: ari:/IANA:amp.agent/Ctrl.gen_rpts([ari:/IANA:dtn.bp_agent/Rptt.endpoint_report(ipn:1.0),
+#          ari:/IANA:dtn.bp_agent/Rptt.endpoint_report(ipn:1.1),
 #          ari:/IANA:dtn.bp_agent/Rptt.endpoint_report(ipn:1.2)], [])
 #
 #------------------------------------------------------------------------------

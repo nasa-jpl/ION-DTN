@@ -28,10 +28,10 @@ echo "CONFIG: 1 node custom:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo
@@ -65,14 +65,14 @@ log=`grep "Transaction aborted" ion.log | wc -l`
 bundles=`bplist | wc -l`
 echo $bundles
 if [ $log -eq 1 ];then
-	echo "SDR transaction aborted! FAILURE!"
-	RETVAL=1
+    echo "SDR transaction aborted! FAILURE!"
+    RETVAL=1
 elif [ $bundles -ne 3 ];then
-	echo "Bundles still exist! FAILURE!"
-	RETVAL=1
+    echo "Bundles still exist! FAILURE!"
+    RETVAL=1
 else
-	echo "ION successfully expired the bundles! SUCCESS!"
-	RETVAL=0
+    echo "ION successfully expired the bundles! SUCCESS!"
+    RETVAL=0
 fi
 
 echo "Stopping ION..."

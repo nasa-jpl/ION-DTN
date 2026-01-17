@@ -12,7 +12,7 @@
  * It is designed to be self-contained and easily integrated into any
  * subsystem requiring a reliable source of entropy.
  *
-* <hr>
+ * <hr>
  *
  * @section tiers_sec Implementation Strategy
  *
@@ -60,10 +60,10 @@
  *
  * int result = poll_entropy_src(NULL, buffer, sizeof(buffer), &bytes_read);
  *
- * if (result == 0 && bytes_read == sizeof(buffer)) 
+ * if (result == 0 && bytes_read == sizeof(buffer))
  *     {
  *         printf("Successfully read %zu random bytes.\n", bytes_read);
- *     } else 
+ *     } else
  *     {
  *         fprintf(stderr, "Error: %s\n", get_error_message(result));
  *         return 1;
@@ -95,14 +95,14 @@
  * This enumeration defines error codes that are returned by the entropy
  * source operations to indicate various types of failures.
  */
-typedef enum 
+typedef enum
 {
-    INVALID_ARGUMENTS = -1,                 /**< Invalid arguments passed to a function. */
-    ERROR_GETRANDOM_FAILED = -2,            /**< The getrandom() glibc wrapper call failed on Linux. */
-    ERROR_BCRYPT_FAILED = -3,               /**< The BCryptGenRandom function failed on Windows. */
-    ERROR_SECRANDOM_FAILED = -4,            /**< The SecRandomCopyBytes function failed on macOS. */
-    ERROR_OPENING_ENTROPY_SOURCE = -5,      /**< [Fallback] Could not open an entropy device file. */
-    ERROR_READING_ENTROPY_SOURCE = -6       /**< [Fallback] Could not read from an entropy device file. */
+	INVALID_ARGUMENTS = -1,                 /**< Invalid arguments passed to a function. */
+	ERROR_GETRANDOM_FAILED = -2,            /**< The getrandom() glibc wrapper call failed on Linux. */
+	ERROR_BCRYPT_FAILED = -3,               /**< The BCryptGenRandom function failed on Windows. */
+	ERROR_SECRANDOM_FAILED = -4,            /**< The SecRandomCopyBytes function failed on macOS. */
+	ERROR_OPENING_ENTROPY_SOURCE = -5,      /**< [Fallback] Could not open an entropy device file. */
+	ERROR_READING_ENTROPY_SOURCE = -6       /**< [Fallback] Could not read from an entropy device file. */
 } ErrorCode;
 
 

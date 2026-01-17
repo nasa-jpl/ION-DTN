@@ -1,6 +1,6 @@
 # bprc configuration file for host1 in a 3node ltp/tcp test.
 #	Command: % bpadmin host1.bprc
-#	This command should be run AFTER ionadmin and ltpadmin and 
+#	This command should be run AFTER ionadmin and ltpadmin and
 #	BEFORE ipnadmin or dtnadmin.
 #
 #	Ohio University, Oct 2008
@@ -35,7 +35,7 @@ a endpoint ipn 1.0 x
 a endpoint ipn 1.1 x
 a endpoint ipn 1.2 x
 
-# Add a protocol. 
+# Add a protocol.
 #	Add the protocol named ltp.
 #	Estimate transmission capacity assuming 1400 bytes of each frame (in
 #	this case, udp on ethernet) for payload, and 100 bytes for overhead.
@@ -44,7 +44,7 @@ a protocol ltp 1400 100
 # Add an induct. (listen)
 #	Add an induct to accept bundles using the ltp protocol.
 #	The duct's name is 1 (this is for future changing/deletion of the
-#	induct). 
+#	induct).
 #	The induct itself is implemented by the 'ltpcli' command.
 a induct ltp 1 ltpcli
 

@@ -28,25 +28,25 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: demonstrate correct bundle expiration time computations
-	for nodes both with and without synchronized clocks.  Node 2
-	is configured as a node with a synchronized clock, while node
-	3 is configured as a node with no synchronized clock.  Transmission
-	between nodes 2 and 3 is blocked after initial connection;
-	then bundles are issued by both nodes and 3 seconds later the
-	plans are unblocked.
-	First bundle sent by 2 and second bundle sent by 3 expire at node 2.
-	First bundle sent by 3 and second bundle sent by 2 expire at node 3.
-	Third bundle sent by each node is still alive at end of test."
+    for nodes both with and without synchronized clocks.  Node 2
+    is configured as a node with a synchronized clock, while node
+    3 is configured as a node with no synchronized clock.  Transmission
+    between nodes 2 and 3 is blocked after initial connection;
+    then bundles are issued by both nodes and 3 seconds later the
+    plans are unblocked.
+    First bundle sent by 2 and second bundle sent by 3 expire at node 2.
+    First bundle sent by 3 and second bundle sent by 2 expire at node 3.
+    Third bundle sent by each node is still alive at end of test."
 
 echo
 echo "CONFIG: 2 node custom:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo
@@ -65,10 +65,10 @@ cd 2.bench.tcp
 
 if [ $? -eq 2 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 2 not started: Aborting Test"
-	exit 1
+    echo "Node 2 not started: Aborting Test"
+    exit 1
 fi
 
 cd ../3.bench.tcp
@@ -77,10 +77,10 @@ cd ../3.bench.tcp
 
 if [ $? -eq 2 ]
 then
-	echo ""
+    echo ""
 else
-	echo "Node 3 not started: Aborting Test"
-	exit 1
+    echo "Node 3 not started: Aborting Test"
+    exit 1
 fi
 
 sleep 3
@@ -125,10 +125,10 @@ bpstats
 COUNT=`grep "(+) 2 25" ion.log | egrep "exp" | wc -l`
 if [ $COUNT -eq 0 ]
 then
-	echo "Expirations wrong on node 2."
-	RETVAL=1
+    echo "Expirations wrong on node 2."
+    RETVAL=1
 else
-	echo "Expirations okay on node 2."
+    echo "Expirations okay on node 2."
 fi
 
 cd ../3.bench.tcp
@@ -136,10 +136,10 @@ bpstats
 COUNT=`grep "(+) 2 25" ion.log | egrep "exp" | wc -l`
 if [ $COUNT -eq 0 ]
 then
-	echo "Expirations wrong on node 3."
-	RETVAL=1
+    echo "Expirations wrong on node 3."
+    RETVAL=1
 else
-	echo "Expirations okay on node 3."
+    echo "Expirations okay on node 3."
 fi
 
 echo "Stopping ION..."

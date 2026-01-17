@@ -279,7 +279,7 @@ try again.");
 			}
 
 			/* FALLTHROUGH */
-			
+
 		default:
 			puts("invalid command");
 		}

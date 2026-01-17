@@ -29,15 +29,15 @@ echo "PURPOSE: produce simple throughput benchmark results, for direct
         in a non-loopback configuration, over loopback IP; the results are
         therefore unaffected by network traffic, router performance, or
         network interface card performance. Since UDP is not reliable, many more
-		bundles were sent than need to be received for throughput calculation."
+        bundles were sent than need to be received for throughput calculation."
 
-echo -e "\n\tNOTE: various factors may contribute to UDP packet loss, but rate control and 
-	kernel buffer size are critical factors to consider when configuring networks 
-	for UDP-based communications. If this bench test fails please consider increasing 
-	the kernel buffer size to allow for higher performance UDP transmissions. On FreeBSD
-	and macOS, the kernel parameter is net.inet.udp.recvspace; on Linux, it is
-	net.core.rmem_max. Increasing these parameter to above 200KB will be helpful. Higher
-	value may be required."
+echo -e "\n\tNOTE: various factors may contribute to UDP packet loss, but rate control and
+    kernel buffer size are critical factors to consider when configuring networks
+    for UDP-based communications. If this bench test fails please consider increasing
+    the kernel buffer size to allow for higher performance UDP transmissions. On FreeBSD
+    and macOS, the kernel parameter is net.inet.udp.recvspace; on Linux, it is
+    net.core.rmem_max. Increasing these parameter to above 200KB will be helpful. Higher
+    value may be required."
 
 sleep 3
 
@@ -46,10 +46,10 @@ echo "CONFIG: 2 node custom:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat "$N"
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat "$N"
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo
@@ -57,10 +57,10 @@ echo "########################################"
 echo
 
 echo "Checking for additional memory needed for this demo..."
-./check_memory 
+./check_memory
 if [ $? != 0 ]; then
-	echo "Can't run, need additional system resources"
-	exit 1
+    echo "Can't run, need additional system resources"
+    exit 1
 fi
 
 ./cleanup
@@ -96,28 +96,28 @@ RUNNING=1
 TIMER=0
 while [ "$RUNNING" -eq 1 ]
 do
-	TIMER=$((++TIMER))
-	sleep 1
-	echo "...receiving..."
-	# some ps don't like -p syntax, most do.
-	if [ "$1" == "windows" ]
-	then
-		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	else
-		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	fi
-	if [ "$RETURN_VALUE" -eq 0 ]
-	then
-		echo "...transmission finished."
-		RUNNING=0
-	fi
-	if [ "$TIMER" -gt 300 ]
-	then
-		#infinite loop protection
-		echo "...5 minutes passed; giving up."
-		RUNNING=0
-		RETVAL=1
-	fi
+    TIMER=$((++TIMER))
+    sleep 1
+    echo "...receiving..."
+    # some ps don't like -p syntax, most do.
+    if [ "$1" == "windows" ]
+    then
+        ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+    else
+        ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+    fi
+    if [ "$RETURN_VALUE" -eq 0 ]
+    then
+        echo "...transmission finished."
+        RUNNING=0
+    fi
+    if [ "$TIMER" -gt 300 ]
+    then
+        #infinite loop protection
+        echo "...5 minutes passed; giving up."
+        RUNNING=0
+        RETVAL=1
+    fi
 done
 
 if [ "$RETVAL" -eq 1 ]
@@ -154,28 +154,28 @@ RUNNING=1
 TIMER=0
 while [ "$RUNNING" -eq 1 ]
 do
-	TIMER=$((++TIMER))
-	sleep 1
-	echo "...receiving..."
-	# some ps don't like -p syntax, most do.
-	if [ "$1" == "windows" ]
-	then
-		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	else
-		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	fi
-	if [ "$RETURN_VALUE" -eq 0 ]
-	then
-		echo "...transmission finished."
-		RUNNING=0
-	fi
-	if [ "$TIMER" -gt 300 ]
-	then
-		#infinite loop protection
-		echo "...5 minutes passed; giving up."
-		RUNNING=0
-		RETVAL=1
-	fi
+    TIMER=$((++TIMER))
+    sleep 1
+    echo "...receiving..."
+    # some ps don't like -p syntax, most do.
+    if [ "$1" == "windows" ]
+    then
+        ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+    else
+        ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+    fi
+    if [ "$RETURN_VALUE" -eq 0 ]
+    then
+        echo "...transmission finished."
+        RUNNING=0
+    fi
+    if [ "$TIMER" -gt 300 ]
+    then
+        #infinite loop protection
+        echo "...5 minutes passed; giving up."
+        RUNNING=0
+        RETVAL=1
+    fi
 done
 
 if [ "$RETVAL" -eq 1 ]
@@ -215,28 +215,28 @@ RUNNING=1
 TIMER=0
 while [ "$RUNNING" -eq 1 ]
 do
-	TIMER=$((++TIMER))
-	sleep 1
-	echo "...receiving..."
-	# some ps don't like -p syntax, most do.
-	if [ "$1" == "windows" ]
-	then
-		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	else
-		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	fi
-	if [ "$RETURN_VALUE" -eq 0 ]
-	then
-		echo -e "...transmission finished.\n"
-		RUNNING=0
-	fi
-	if [ "$TIMER" -gt 300 ]
-	then
-		#infinite loop protection
-		echo -e "...5 minutes passed; giving up.\n"
-		RUNNING=0
-		RETVAL=1
-	fi
+    TIMER=$((++TIMER))
+    sleep 1
+    echo "...receiving..."
+    # some ps don't like -p syntax, most do.
+    if [ "$1" == "windows" ]
+    then
+        ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+    else
+        ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+    fi
+    if [ "$RETURN_VALUE" -eq 0 ]
+    then
+        echo -e "...transmission finished.\n"
+        RUNNING=0
+    fi
+    if [ "$TIMER" -gt 300 ]
+    then
+        #infinite loop protection
+        echo -e "...5 minutes passed; giving up.\n"
+        RUNNING=0
+        RETVAL=1
+    fi
 done
 
 

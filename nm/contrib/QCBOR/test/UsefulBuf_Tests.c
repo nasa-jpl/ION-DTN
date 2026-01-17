@@ -724,6 +724,3 @@ const char *UBUTest_CopyUtil()
 
    return NULL;
 }
-
-
-

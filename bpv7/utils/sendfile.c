@@ -6,8 +6,8 @@
  * It includes the main logic for sending files over BP, handling command-line arguments,
  * and managing the sending process. The file contains the main function (or `sendfile` in
  * the ION Lightweight Threads context), and the `run_bpsendfile` function for the actual
- * file sending operation. 
- * 
+ * file sending operation.
+ *
  * If compiled against a suitable security library encryption may be utilized (optional).
  *
  * @details
@@ -16,9 +16,9 @@
  * - run_bpsendfile: Handles the setup and sending of a file over BP.
  *
  * @note This program based on bpsendfile by Scott Burleigh, Jet Propulsion Laboratory.
- * 
+ *
  * @note Pair this utility with recvfile - see recvfile(1)
- * 
+ *
  * @warning The application relies on the correct configuration of the
  *          underlying BP infrastructure (i.e. ION DTN)
  * @warning The application's encryption features require a suitable cipher library.
@@ -28,15 +28,15 @@
  * @copyright 2023, California Institute of Technology.	All rights reserved.
  */
 
- /* 
- * CRITICAL: bp.h must be included FIRST to ensure platform.h 
+ /*
+ * CRITICAL: bp.h must be included FIRST to ensure platform.h
  * feature test macros are processed before any system headers.
  * This provides proper POSIX compliance for all platforms.
  */
  #include <bp.h>
 
 #include "ionsec.h"
-#include <metadata.h> 
+#include <metadata.h>
 #include <secrypt.h>
 
 
@@ -47,41 +47,41 @@
  * @brief extractBasename - Returns pointer to the basename (skipping directories).
  *        Handles both forward slash '/' and backslash '\' for cross-platform paths.
  *        If there is no slash, returns the original path string.
- * 
+ *
  * @param path file name with (or without) path.
  */
 static const char* extractBasename(const char *path)
 {
-    /* find the last occurrence of forward slash and backslash */
-    const char *slashPosForward  = strrchr(path, '/');
-    const char *slashPosBackward = strrchr(path, '\\');
-    const char *slashPos         = NULL;
+	/* find the last occurrence of forward slash and backslash */
+	const char *slashPosForward  = strrchr(path, '/');
+	const char *slashPosBackward = strrchr(path, '\\');
+	const char *slashPos         = NULL;
 
-    /* pick whichever is furthest to the right */
-    if (slashPosForward == NULL)
-    {
-        slashPos = slashPosBackward;
-    }
-    else if (slashPosBackward == NULL)
-    {
-        slashPos = slashPosForward;
-    }
-    else
-    {
-        /* both non-null; pick the one with the greater pointer value */
-        slashPos = (slashPosForward > slashPosBackward)
-                    ? slashPosForward
-                    : slashPosBackward;
-    }
+	/* pick whichever is furthest to the right */
+	if (slashPosForward == NULL)
+	{
+		slashPos = slashPosBackward;
+	}
+	else if (slashPosBackward == NULL)
+	{
+		slashPos = slashPosForward;
+	}
+	else
+	{
+		/* both non-null; pick the one with the greater pointer value */
+		slashPos = (slashPosForward > slashPosBackward)
+				? slashPosForward
+				: slashPosBackward;
+	}
 
-    /* if no slash found, return the original string */
-    if (slashPos == NULL)
-    {
-        return path;
-    }	
+	/* if no slash found, return the original string */
+	if (slashPos == NULL)
+	{
+		return path;
+	}
 
-    /* otherwise, skip beyond the slash and return pointer to the basename */
-    return slashPos + 1;
+	/* otherwise, skip beyond the slash and return pointer to the basename */
+	return slashPos + 1;
 }
 
 
@@ -91,9 +91,9 @@ static const char* extractBasename(const char *path)
 /**
  * @brief run_sendfile - Sends a file using the Bundle Protocol.
  *
- * This function is responsible for sending a file over the Bundle Protocol (BP). 
- * It handles the setup of BP parameters, file preparation, and the actual sending 
- * process. The function also includes the creation of a temporary file with 
+ * This function is responsible for sending a file over the Bundle Protocol (BP).
+ * It handles the setup of BP parameters, file preparation, and the actual sending
+ * process. The function also includes the creation of a temporary file with
  * metadata, which is then transmitted.
  *
  * @param ownEid The endpoint ID of the sender.
@@ -103,24 +103,24 @@ static const char* extractBasename(const char *path)
  * @param svcClass The service class for the bundle (e.g., priority).
  * @return Returns 0 on successful file transmission, or 0 in case of an error.
  *
- * @note The function attaches to BP, opens an endpoint, and sends the file as a 
+ * @note The function attaches to BP, opens an endpoint, and sends the file as a
  * bundle.  It uses ancillary data and custody options for BP transmission.
- * @warning The function assumes that BP is properly set up and that the file 
+ * @warning The function assumes that BP is properly set up and that the file
  * to be sent exists.
  */
 static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 			int ttl, char *aux, char *svcClass, unsigned char encryptFlag, char *keyInput)
 {
-	int		    priority = 0;
-	BpAncillaryData	ancillaryData = {0};
-	BpCustodySwitch	custodySwitch = NoCustodyRequested;
+	int		priority = 0;
+	BpAncillaryData ancillaryData = { 0 };
+	BpCustodySwitch custodySwitch = NoCustodyRequested;
 	BpSAP		sap = NULL;
-	Sdr		    sdr = NULL;
+	Sdr		sdr = NULL;
 	Object		fileRef = 0;
 	struct stat	statbuf;
-	int		    aduLength = 0;
+	int		aduLength = 0;
 	Object		bundleZco;
-	char		progressText[300] = {0};
+	char		progressText[300] = { 0 };
 	Object		newBundle;
 	size_t		readResult = 0;
 
@@ -216,12 +216,12 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 		goto exit;
 	}
 
-	/*CREATE RANDOM FILENAME (AND IV PERSONALIZER)*/    
+	/*CREATE RANDOM FILENAME (AND IV PERSONALIZER)*/
 	createUniqueFile(randInitializer, sizeof(randInitializer));
 
 	/* READ THE FILE-------------------------------------*/
 	FILE *file = fopen(fileName, "rb");
-	if (!file) 
+	if (!file)
 	{
 		char open_file_error[256] = {0};
 		snprintf(open_file_error, sizeof(open_file_error), "[!] sendfile: error opening file %s.", fileName);
@@ -259,7 +259,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 
 	/* encryption flag */
 	metadata.eFlag = encryptFlag;
-		
+
 	/*metadata library version*/
 	versionNumber = 1;
 	metadata.versionNumber = versionNumber;
@@ -273,7 +273,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	metadata.filetype = (unsigned char *)(uintptr_t)filetype;
 	metadata.filetypeLength = strlen((const char*) metadata.filetype);
 
-	/* aux command string */		
+	/* aux command string */
 	if(aux)
 	{
 		aux_length = strlen(aux)+1;
@@ -285,7 +285,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 			goto exit;
 		}
 		memset(aux_command, 0, aux_length+1);
-		memcpy(aux_command, aux, aux_length);		
+		memcpy(aux_command, aux, aux_length);
 	}
 	else
 	{
@@ -303,7 +303,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	}
 	metadata.aux_command = aux_command;
 	metadata.aux_command_length = aux_length; //always at least zero length
-	
+
 	/* FILE NAME */
 	/* Use only the basename for metadata. */
 	const char *baseName = extractBasename(fileName);
@@ -337,23 +337,23 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 		if (keyLength <= 0)
 		{
 			putErrmsg("Can't fetch symmetric key.",
-					keyInput);			
+					keyInput);
 			return -1;
 		} */
 
 
-		int result = -1; //default to failure	
+		int result = -1; //default to failure
 
-		/* ENCRYPT FILE CONTENTS */ 
-		result = crypt_and_hash_buffer(0, (unsigned char*) randInitializer, input_buffer, (size_t *)&fileSize, &encrypted_content_buffer, &out_contentLength, CIPHER, MD, keyInput);			
+		/* ENCRYPT FILE CONTENTS */
+		result = crypt_and_hash_buffer(0, (unsigned char*) randInitializer, input_buffer, (size_t *)&fileSize, &encrypted_content_buffer, &out_contentLength, CIPHER, MD, keyInput);
 		if(result != 0)
-		{				
+		{
 			writeErrMemo("[!] sendfile error: encryption.");
 			goto exit;
-		}			
+		}
 		metadata.fileContent = encrypted_content_buffer;
 		metadata.fileContentLength = out_contentLength;
-	}		
+	}
 	else /*if no encrypt flag*/
 	{
 		metadata.fileContent = input_buffer;
@@ -365,16 +365,16 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	metadata_buffer = createBufferFromMetadata(&metadata, &metabuffer_size);
 
 	/* write  buffer to file */
-	if (writeBufferToFile(metadata_buffer, metabuffer_size, randInitializer) != 0)		
-	{			
+	if (writeBufferToFile(metadata_buffer, metabuffer_size, randInitializer) != 0)
+	{
 		writeErrMemo("[!] sendfile: error writing meta data to file.");
 		goto exit;
 	}
 
-	aduLength = metabuffer_size; 
+	aduLength = metabuffer_size;
 
 
-    /*PREPARE FILE FOR TRANSMISSION-------------------------------
+	/*PREPARE FILE FOR TRANSMISSION-------------------------------
 	Note: "" specifies auto-deletion of randInitializer (temp) file after delivery 	*/
 	fileRef = zco_create_file_ref(sdr, randInitializer,"", ZcoOutbound);
 
@@ -387,7 +387,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 
 		putErrmsg("sendfile can't create file ref.", NULL);
 		goto exit;
-	}	
+	}
 
 	bundleZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength,
 			priority, ancillaryData.ordinal, ZcoOutbound, NULL);
@@ -416,7 +416,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 
 
 exit:
-	
+
 	/*CLEAN ALL TRACES OF ENCRYPTION-----------------------------*/
 	if( metadata_buffer)
 	{
@@ -438,13 +438,13 @@ exit:
 		MRELEASE(input_buffer);
 		input_buffer = NULL;
 	}
-	
+
 	if(name != NULL)
 	{
 		MRELEASE(name);
 		name = NULL;
 	}
-	
+
 
 	if(encryptFlag == 1)
 	{
@@ -454,11 +454,11 @@ exit:
 	}
 
 	memset(&metadata, 0, sizeof(metadata));
-	
 
-    
+
+
 	/*ION CLEANUP------------------------------------------------*/
-	CHKZERO(sdr_begin_xn(sdr));	
+	CHKZERO(sdr_begin_xn(sdr));
 	zco_destroy_file_ref(sdr, fileRef);
 
 	if (sdr_end_xn(sdr) < 0)
@@ -479,23 +479,23 @@ exit:
 	/*SANITIZE USER INPUT AND WORKING DATA STRUCTURES------------*/
 	memset(&statbuf, 0, sizeof(statbuf));
 	memset(fileName, 0, strlen(fileName));
-	fileName = NULL;	
+	fileName = NULL;
 
 	if(keyInput)
 	{
 		memset(keyInput, 0, strlen(keyInput));
 		keyInput = NULL;
-	}	
+	}
 
 	memset(ownEid, 0, strlen(ownEid));
 	ownEid = NULL;
 
 	memset(destEid, 0, strlen(destEid));
 	destEid = NULL;
-	
+
 	memset(randInitializer, 0, randomizer_size);
 	memset(progressText, 0, 300);
-	
+
 	/*ION specific*/
 	memset(&sdr, 0, sizeof(sdr)); //looks crazy..
 	memset(&sap, 0, sizeof(sap));
@@ -503,7 +503,7 @@ exit:
 	bundleZco = 0;
 	newBundle = 0;
 	fileRef = 0;
-    
+
 	return 0; //success
 
 } //---> end run_bpsendfile()
@@ -548,23 +548,23 @@ int	sendfile(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 
 	/* Assign keyInput to the first non-null additional argument
 	and set the encryptFlag accordingly */
-	if (a6) 
+	if (a6)
 	{
 		keyInput = (char *) a6;
 		encryptFlag = 1;
-	} else if (a7) 
+	} else if (a7)
 	{
 		keyInput = (char *) a7;
 		encryptFlag = 1;
-	} else if (a8) 
+	} else if (a8)
 	{
 		keyInput = (char *) a8;
 		encryptFlag = 1;
-	} else if (a9) 
+	} else if (a9)
 	{
 		keyInput = (char *) a9;
 		encryptFlag = 1;
-	} else if (a10) 
+	} else if (a10)
 	{
 		keyInput = (char *) a10;
 		encryptFlag = 1;
@@ -583,35 +583,35 @@ int	main(int argc, char **argv)
 	int result = -1;
 
 	/* Parse user input------------------------------------------ */
-	if (argc < 4) 
+	if (argc < 4)
 	{
 		PUTS("\nUsage: sendfile <own endpoint ID> <destination endpoint ID> "
-     "<file name> [-c|--class <class of service>] [-t|--ttl <time to live "
-     "(seconds)>] [<-a | --aux <comma delimited command string>] [<key file path | literal key value>]\n");
-		
-    return 0;
+			"<file name> [-c|--class <class of service>] [-t|--ttl <time to live "
+			"(seconds)>] [<-a | --aux <comma delimited command string>] [<key file path | literal key value>]\n");
+
+		return 0;
 	}
 
 	ownEid = argv[1];
 	destEid = argv[2];
 	fileName = argv[3];
 
-	for (int i = 4; i < argc; i++) 
+	for (int i = 4; i < argc; i++)
 	{
-		if (!strcmp(argv[i], "-a") || !strcmp(argv[i], "--aux")) 
+		if (!strcmp(argv[i], "-a") || !strcmp(argv[i], "--aux"))
 		{
-			if (i + 1 >= argc) 
+			if (i + 1 >= argc)
 			{
 				fprintf(stderr,"Error: Missing value after aux flag.");
 				return 0;
 			}
 			aux = argv[++i];
 			continue;
-		}		
-		
-		if (!strcmp(argv[i], "-t") || !strcmp(argv[i], "--ttl")) 
+		}
+
+		if (!strcmp(argv[i], "-t") || !strcmp(argv[i], "--ttl"))
 		{
-			if (i + 1 >= argc) 
+			if (i + 1 >= argc)
 			{
 				fprintf(stderr,"Error: Missing TTL value after TTL flag.");
 				return 0;
@@ -620,9 +620,9 @@ int	main(int argc, char **argv)
 			continue;
 		}
 
-		if (!strcmp(argv[i], "-c") || !strcmp(argv[i], "--class")) 
+		if (!strcmp(argv[i], "-c") || !strcmp(argv[i], "--class"))
 		{
-			if (i + 1 >= argc) 
+			if (i + 1 >= argc)
 			{
 				PUTS("Error: Missing class of service value after class flag.");
 				PUTS("\nclass of service: " BP_PARSE_QUALITY_OF_SERVICE_USAGE "\n");
@@ -633,14 +633,14 @@ int	main(int argc, char **argv)
 		}
 
 		/* If the argument does not match any known flag, treat it as the encryption key */
-		if (argv[i][0] != '-') 
+		if (argv[i][0] != '-')
 		{
 			keyInput = argv[i];
 			encryptFlag = 1;
 		}
-	}	
+	}
 #endif
-	
+
 	if (strcmp(ownEid, "dtn:none") == 0)	/*	Anonymous.	*/
 	{
 		ownEid = NULL;

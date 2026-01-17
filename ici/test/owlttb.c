@@ -7,7 +7,7 @@
 	Copyright (c) 2008, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "platform.h"
 #include "lyst.h"
@@ -408,7 +408,7 @@ static void	*sendUplink(void *parm)
 
 			/*	It's time to send this segment.	*/
 
-			if (sendBytesByTCP(stp->uplinkXmitSocket, 
+			if (sendBytesByTCP(stp->uplinkXmitSocket,
 					seg->content, seg->length) < 0)
 			{
 				perror("owlttb failed writing to NetAcquire");

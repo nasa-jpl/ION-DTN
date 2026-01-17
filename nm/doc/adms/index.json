@@ -1,5 +1,5 @@
 {
-    "namespaces" : 
+    "namespaces" :
     [
         {"reserved" : true},
         {"file" : "amp_agent.json", "ns" : "IANA:Amp.Agent", "issuer" : "IANA", "name" : "amp.agent", "uri" : "https://tools.ietf.org/html/draft-birrane-dtn-adm-agent-05"},

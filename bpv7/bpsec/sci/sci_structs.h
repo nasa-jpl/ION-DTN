@@ -44,8 +44,8 @@ typedef enum {
 } sc_action;
 
 enum sc_services {
-    SC_SVC_BIBINT  = 0x01,
-    SC_SVC_BCBCONF = 0x02
+	SC_SVC_BIBINT = 0x01,
+	SC_SVC_BCBCONF = 0x02
 };
 
 
@@ -65,9 +65,9 @@ enum sc_services {
  *                     a security block.
 */
 typedef enum {
-    SC_VAL_TYPE_PARM     = 0x01,
-    SC_VAL_TYPE_RESULT   = 0x02,
-    SC_VAL_TYPE_UNKNOWN  = 0xFF
+	SC_VAL_TYPE_PARM     = 0x01,
+	SC_VAL_TYPE_RESULT   = 0x02,
+	SC_VAL_TYPE_UNKNOWN  = 0xFF
 } sc_val_type;
 
 
@@ -89,9 +89,9 @@ typedef enum {
  */
 
 typedef enum {
-    SC_VAL_STORE_MEM     = 0x01,
-    SC_VAL_STORE_SM      = 0x02,
-    SC_VAL_STORE_SDR     = 0x04
+	SC_VAL_STORE_MEM     = 0x01,
+	SC_VAL_STORE_SM      = 0x02,
+	SC_VAL_STORE_SDR     = 0x04
 } sc_val_store;
 
 
@@ -173,16 +173,16 @@ typedef enum {
 
 typedef struct
 {
-    sc_val_type  scValType;    /** Whether this value is a result or a parameter. */
-    sc_val_store scValLoc;     /** Where this SCI value is stored.                */
-    int           scValId;     /** Value id. Unique within a security context.    */
-    int           scValLength; /** Length of the value data.                      */
+	sc_val_type scValType; /** Whether this value is a result or a parameter. */
+	sc_val_store scValLoc; /** Where this SCI value is stored.                */
+	int scValId;	 /** Value id. Unique within a security context.    */
+	int scValLength; /** Length of the value data.                      */
 
-    union {
-        PsmAddress asAddr;
-        void       *asPtr;
-        Object     asSdr;
-    } scRawValue;              /** Value data.    Actual (not CBOE encoded)       */
+	union {
+		PsmAddress asAddr;
+		void	  *asPtr;
+		Object	   asSdr;
+	} scRawValue; /** Value data.    Actual (not CBOE encoded)       */
 } sc_value;
 
 
@@ -263,14 +263,14 @@ typedef uint8_t* (*bpsec_scvm_cborEncode) (PsmPartition wm, sc_value *val, unsig
 
 typedef struct
 {
-    char                 *scValName;
-    int                   scValId;
-    sc_val_type           scValType;
-    bpsec_scvm_strDecode  scValFromStr;
-    bpsec_scvm_clear      scValClear;
-    bpsec_scvm_strEncode  scValToStr;
-    bpsec_scvm_cborEncode scValToCBOR;
-    bpsec_scvm_cborDecode scValFromCBOR;
+	char                 *scValName;
+	int                   scValId;
+	sc_val_type           scValType;
+	bpsec_scvm_strDecode  scValFromStr;
+	bpsec_scvm_clear      scValClear;
+	bpsec_scvm_strEncode  scValToStr;
+	bpsec_scvm_cborEncode scValToCBOR;
+	bpsec_scvm_cborDecode scValFromCBOR;
 } sc_value_map;
 
 
@@ -314,20 +314,20 @@ typedef struct
 // TODO Document why we carry a raw key.
 typedef struct
 {
-    PsmPartition  scStWm;       /** Partition associated with this state.   */
-    Sdr           sdr;          /** SDR associated with outbound blocks.    */
-    unsigned char scSecBlkNum;  /** Security block being processed.         */
-    int           scStId;       /** Id of the SC using this state.          */
-    sc_role       scRole;       /** Security role (source, verifier, acceptor */
-    sc_action     scStAction;   /** The security service action.            */
-    int           scStSize;     /** Max size for data into update function. */
-    sc_status     scStStatus;   /** Processing status.                      */
-    int           scStCurTgt;   /** The current target being processed.     */
-    int           scStTotTgts;  /** Number of targets in security block.    */
-    EndpointId    scStSource;   /** Security source for the security block. */
-    Lyst          scStParms;    /** (sc_value*) Security context parms.     */
-    Lyst          scStResults;  /** (sc_value*) Current op results.         */
-    sc_value      scRawKey;     /** Current unwrapped key value, is applicable. */
+	PsmPartition  scStWm;       /** Partition associated with this state.   */
+	Sdr           sdr;          /** SDR associated with outbound blocks.    */
+	unsigned char scSecBlkNum;  /** Security block being processed.         */
+	int           scStId;       /** Id of the SC using this state.          */
+	sc_role       scRole;       /** Security role (source, verifier, acceptor */
+	sc_action     scStAction;   /** The security service action.            */
+	int           scStSize;     /** Max size for data into update function. */
+	sc_status     scStStatus;   /** Processing status.                      */
+	int           scStCurTgt;   /** The current target being processed.     */
+	int           scStTotTgts;  /** Number of targets in security block.    */
+	EndpointId    scStSource;   /** Security source for the security block. */
+	Lyst          scStParms;    /** (sc_value*) Security context parms.     */
+	Lyst          scStResults;  /** (sc_value*) Current op results.         */
+	sc_value      scRawKey;     /** Current unwrapped key value, is applicable. */
 } sc_state;
 
 

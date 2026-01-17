@@ -9,7 +9,7 @@
  *	Author: Scott Burleigh, JPL
  */
 
-#include "bei.h" 
+#include "bei.h"
 
 extern int	hcb_offer(ExtensionBlock *, Bundle *);
 extern int	hcb_serialize(ExtensionBlock *, Bundle *);

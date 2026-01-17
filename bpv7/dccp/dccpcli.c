@@ -59,7 +59,7 @@ ReceiverThreadParms* create_new_thread_data(Lyst *list)
 	{
 		return NULL;
 	}
-return tmp;
+	return tmp;
 }
 
 int remove_thread(Lyst *list, ReceiverThreadParms *rtp)
@@ -82,17 +82,17 @@ int remove_thread(Lyst *list, ReceiverThreadParms *rtp)
 			return 1;
 		}
 	}
-return 0;
+	return 0;
 }
 
 int no_threads(Lyst *list)
 {
-return (lyst_length(*list) == 0);
+	return (lyst_length(*list) == 0);
 }
 
 ReceiverThreadParms* get_first_thread(Lyst *list)
 {
-return (ReceiverThreadParms*)lyst_data(lyst_first(*list));
+	return (ReceiverThreadParms*)lyst_data(lyst_first(*list));
 }
 
 int bindDCCPsock(int* sock, struct sockaddr* socketName)
@@ -128,7 +128,7 @@ int bindDCCPsock(int* sock, struct sockaddr* socketName)
 		putSysErrmsg("dccpcli can't initialize socket.", "listen()");
 		return -1;
 	}
-return 0;
+	return 0;
 }
 
 static void *Recieve_DCCP(void *param)
@@ -139,7 +139,7 @@ static void *Recieve_DCCP(void *param)
 	char			*buffer;
 	AcqWorkArea		*work;
 	int 			bundleLength;
-	
+
 	iblock(SIGTERM);
 	isignal(SIGUSR1, siguser_thread);
 #ifndef mingw
@@ -174,7 +174,7 @@ static void *Recieve_DCCP(void *param)
 			{
 				continue;
 			}
-			
+
 			putErrmsg("dccpcli recv() call failed.", NULL);
 			rtp->running = 0;
 			continue;
@@ -202,7 +202,7 @@ static void *Recieve_DCCP(void *param)
 		}
 
 		pthread_mutex_lock(rtp->elk);
-		if (bpBeginAcq(work, 0, NULL) < 0 
+		if (bpBeginAcq(work, 0, NULL) < 0
 		|| bpContinueAcq(work, buffer, bundleLength, 0, 0) < 0
 		|| bpEndAcq(work) < 0)
 		{
@@ -216,7 +216,7 @@ static void *Recieve_DCCP(void *param)
 
 		/*	Make sure other tasks have a chance to run.	*/
 		sm_TaskYield();
-		
+
 	}
 
 	close(rtp->sock);
@@ -253,7 +253,7 @@ static void	*Listen_for_connections(void *parm)
 	list = lyst_create_using(getIonMemoryMgr());
 	lyst_clear(list);
 	pthread_mutex_init(&elk, NULL);
-	
+
 	iblock(SIGTERM);
 #ifndef mingw
 	iblock(SIGPIPE);
@@ -263,7 +263,7 @@ static void	*Listen_for_connections(void *parm)
 	/*	Can now begin accepting connections from remote
 	 *	contacts.  On failure, take down the whole CLI.		*/
 	while (rtp->running)
-	{	
+	{
 		solen = sizeof(fromAddr);
 		consock = accept(rtp->linkSocket, &fromAddr, &solen);
 		if (consock < 0)
@@ -384,7 +384,7 @@ int	main(int argc, char *argv[])
 					itoa(vduct->cliPid));
 		return 1;
 	}
-	
+
 	/*	All command-line arguments are now validated.
 	 * 	Get Data induct data structures from SDR 		*/
 	sdr = getIonsdr();
@@ -465,7 +465,7 @@ int	dccpcli(int a1, int a2, int a3, int a4, int a5,
 #else
 int	main(void)
 {
-#endif	
+#endif
 putErrmsg("dccpcli (and the DCCP protocol) are only available under Linux (>=3.2.0). Please see the README in the bp/dccp source directory for more information.", NULL);
 writeErrmsgMemos();
 return 0;

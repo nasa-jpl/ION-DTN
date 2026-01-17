@@ -141,7 +141,7 @@ inline static QCBORError DecodeNesting_BreakAscend(QCBORDecodeNesting *pNesting)
 
    // Decrement the count of items in this array/map
    pNesting->pCurrent->uCount--;
-   
+
    // Pop up nesting levels if the counts at the levels are zero
    while(DecodeNesting_IsNested(pNesting) && 0 == pNesting->pCurrent->uCount) {
       pNesting->pCurrent--;
@@ -1089,7 +1089,7 @@ QCBORError QCBORDecode_EndOctets(QCBORDecodeContext *me) {
    QCBORDecodeNesting *pNesting = &(me->nesting);
 
    // Close Nesting Level
-   QCBORError err = DecodeNesting_BreakAscend(&(me->nesting));  
+   QCBORError err = DecodeNesting_BreakAscend(&(me->nesting));
    if (err != QCBOR_SUCCESS) {
       return err;
    }
@@ -1101,7 +1101,7 @@ QCBORError QCBORDecode_EndOctets(QCBORDecodeContext *me) {
 
    // Otherwise adjust count and pop nesting level as needed
    pNesting->pCurrent->uCount--;
-   
+
    // Pop up nesting levels if the counts at the levels are zero
    while(DecodeNesting_IsNested(pNesting) && 0 == pNesting->pCurrent->uCount) {
       pNesting->pCurrent--;

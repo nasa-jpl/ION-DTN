@@ -1,4 +1,4 @@
-# ION Archive 
+# ION Archive
 
 Updated: September 21, 2025
 
@@ -26,6 +26,6 @@ The following platform-specific development Makefiles have been removed from the
 - `i86-redhat` - Intel Red Hat Linux
 - `spart-sol9` - SPARC Solaris 9
 
-They were not actively maintained and are provided "as is" for historical reference only. Please see [ION 4.1.3s Release](https://github.com/nasa-jpl/ION-DTN/releases/tag/ion-open-source-4.1.3s) or earlier versions and consult the README documentation for dependencies and build instructions. 
+They were not actively maintained and are provided "as is" for historical reference only. Please see [ION 4.1.3s Release](https://github.com/nasa-jpl/ION-DTN/releases/tag/ion-open-source-4.1.3s) or earlier versions and consult the README documentation for dependencies and build instructions.
 
 The only development Makefile for each submodule that will be actively maintained is `i86_64-fedora` for Intel-based Linux systems. Although named for Fedora (historical reasons), it is designed to work on most modern Linux distributions with GNU Make and GCC installed.

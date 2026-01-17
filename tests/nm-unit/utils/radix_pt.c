@@ -30,7 +30,7 @@ int radixpt_lyst_search(Lyst eids, char *key)
 		{
 			if(gConfig.verbose)
 			{
-			  printf("Lyst matched %s and %s\n", value->key, key);
+				printf("Lyst matched %s and %s\n", value->key, key);
 			}
 			return 1;
 		}

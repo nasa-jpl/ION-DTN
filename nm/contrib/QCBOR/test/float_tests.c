@@ -469,6 +469,3 @@ static int NaNExperiments() {
     return 0;
 }
 #endif
-
-
-

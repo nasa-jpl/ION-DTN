@@ -4,14 +4,14 @@
 
 	Author: Scott Burleigh, JPL
 
-	Modified by Sky DeBaun	
+	Modified by Sky DeBaun
 	Jet Propulsion Laboratory 2023
 
 	Copyright (c) 2023, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
 
-	
+
 
 									*/
 #include "amscommon.h"
@@ -1322,7 +1322,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 			writeMemo("[?] Cell spec lacks endpoint name.");
 			return;
 		}
-		
+
 		unitNbr = (((unsigned char) (msg->supplement[0])) << 8) +
 				((unsigned char) (msg->supplement[1]));
 		if (unitNbr == rsState->cell->unit->nbr)
@@ -2085,7 +2085,7 @@ static int	run_amsd(char *mibSource, char *csEndpointSpec,
 #if AMSDEBUG
 PUTS("...in run_amsd...");
 #endif
-		
+
 	//if '@' set Config Server to ownHostName at default port
 	if (strcmp(csEndpointSpec, "@") == 0)
 	{

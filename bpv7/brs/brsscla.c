@@ -8,7 +8,7 @@
 	Copyright (c) 2006, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "brscla.h"
 
@@ -306,12 +306,12 @@ static void	*receiveBundles(void *parm)
 		{
 			case 1:
 				break;		/*	Out of switch.	*/
-	
+
 			case -1:
 				putErrmsg("Can't get duct number.", NULL);
-	
+
 				/*	Intentional fall-through.	*/
-	
+
 			default:		/*	Inauthentic.	*/
 				*parms->authenticated = 1;
 				terminateReceiverThread(parms);
@@ -771,7 +771,7 @@ port 80)", NULL);
 		char	txt[500];
 
 		isprintf(txt, sizeof(txt),
-			"[i] brsscla is running, spec=[%s:%d].", 
+			"[i] brsscla is running, spec=[%s:%d].",
 			inet_ntoa(atp.inetName->sin_addr), ntohs(portNbr));
 		writeMemo(txt);
 	}

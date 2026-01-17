@@ -5,7 +5,7 @@
 #
 #	Ohio University, Oct 2008
 
-# Initialization command (command 1). 
+# Initialization command (command 1).
 #	Set this node to be node 3 (as in ipn:3).
 #	Use default sdr configuration (empty configuration file name '').
 1 3 ''

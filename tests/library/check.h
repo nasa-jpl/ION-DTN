@@ -13,25 +13,25 @@
 
 /* Helper for fail_unless(expr) - provides a default message. */
 #define fail_unless__1(expr) \
-    _fail_unless((expr), __FILE__, __LINE__, "Failure '"#expr"' occurred", NULL)
+	_fail_unless((expr), __FILE__, __LINE__, "Failure '"#expr"' occurred", NULL)
 
 /* Helper for fail_unless(expr, ...) - passes the custom message. */
 #define fail_unless__N(expr, ...) \
-    _fail_unless((expr), __FILE__, __LINE__, __VA_ARGS__, NULL)
+	_fail_unless((expr), __FILE__, __LINE__, __VA_ARGS__, NULL)
 
 /* Argument-counting dispatcher macro. */
 #define fail_unless__GET_MACRO(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, NAME, ...) NAME
 
 /* The main fail_unless macro. */
 #define fail_unless(...) \
-    fail_unless__GET_MACRO(__VA_ARGS__, \
-                           fail_unless__N, fail_unless__N, fail_unless__N, fail_unless__N, \
-                           fail_unless__N, fail_unless__N, fail_unless__N, fail_unless__N, \
-                           fail_unless__N, fail_unless__1, 0) \
-    (__VA_ARGS__)
+	fail_unless__GET_MACRO(__VA_ARGS__, \
+			fail_unless__N, fail_unless__N, fail_unless__N, fail_unless__N, \
+			fail_unless__N, fail_unless__N, fail_unless__N, fail_unless__N, \
+			fail_unless__N, fail_unless__1, 0) \
+	(__VA_ARGS__)
 
 #define CHECK_FINISH \
-    return check_summary(argv[0])
+	return check_summary(argv[0])
 
 #define ABORT_ON_FAIL      0
 #define CONTINUE_ON_FAIL   1

@@ -19,10 +19,10 @@ shutdown_process() {
     for pid in $pids; do
         if [ -n "$pid" ]; then
             echo "  -> Terminating PID: $pid"
-            
+
             # Attempt graceful shutdown first
             kill "$pid"
-            
+
             local count=0
             local timeout=30 # 30 seconds timeout
             while kill -0 "$pid" 2>/dev/null; do

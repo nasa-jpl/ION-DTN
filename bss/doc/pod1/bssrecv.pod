@@ -24,7 +24,7 @@ will be displayed to request user input for the necessary parameters.
 If both I<menu_option> and I<parameters> are specified, bssrecv will directly
 execute the specified action.
 
-When initiating the acquisition or replay of data from B<bssStreamingApp>, 
+When initiating the acquisition or replay of data from B<bssStreamingApp>,
 which corresponds to menu option 1, 2 and 3, the user must provide the following
 three additional parameters:
 
@@ -55,7 +55,7 @@ In playback mode, you may specific specific time period starting from I<fromTime
 to I<toTime> as part of the command line argument.  If these are required but
 missing, the user will be prompted to enter them.  The time format is
 I<yyyy/mm/dd-hh:mm:ss>, where I<yyyy> is the year, I<mm> is the month, I<dd> is the
-day of the month, I<hh> is the hour, I<mm> is the minute, and I<ss> is the second. 
+day of the month, I<hh> is the hour, I<mm> is the minute, and I<ss> is the second.
 
 =back
 
@@ -105,9 +105,9 @@ to the BSS database, if currently open, is also terminated.
 
 B<bssrecv> terminates.
 
-For each streaming payload displayed, B<bssrecv> prints a string of "*" 
+For each streaming payload displayed, B<bssrecv> prints a string of "*"
 characters, whose length is the sequence number modulo 150 and at the end
-of the string, the sequence number, which is inserted as the first byte of 
+of the string, the sequence number, which is inserted as the first byte of
 the payload by the B<bssStreamingApp> program, is printed out.
 
 =back

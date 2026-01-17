@@ -5,8 +5,8 @@
 # Written by Sebastian Kuzminsky, based on loopbacktest.sh by David Young
 #
 CONFIGFILES=" \
-	${CONFIGSROOT}/loopback-udp/loopback.rc \
-	"
+    ${CONFIGSROOT}/loopback-udp/loopback.rc \
+    "
 
 ./cleanup
 killm
@@ -21,14 +21,14 @@ echo "CONFIG: Standard loopback-udp: "
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: A variety of contact volumes are configured while a test bundle
-	is sent on loopback.  If the expected bundle contents are received,
-	the test passed.
+    is sent on loopback.  If the expected bundle contents are received,
+    the test passed.
 NOTE: contact-volume/volume_functions.sh provides functions in this script."
 echo
 echo "########################################"
@@ -42,7 +42,7 @@ EXPECTEDCOUNT=9
 
 echo "Starting ION..."
 echo "ionstart -I ${CONFIGSROOT}/loopback-udp/loopback.rc"
-	"ionstart" -I "${CONFIGSROOT}/loopback-udp/loopback.rc"
+    "ionstart" -I "${CONFIGSROOT}/loopback-udp/loopback.rc"
 
 #The sample config has contacts we don't care about
 deleteallvolumes
@@ -104,7 +104,7 @@ if ! (( $RECEIVEDCOUNT == $EXPECTEDCOUNT )); then
     cat $IONRECEIVEFILE
     echo "----------------------------------------------------------------------"
     RETVAL=1
-else 
+else
     echo "bundle transfer successful!"
     RETVAL=0
 fi

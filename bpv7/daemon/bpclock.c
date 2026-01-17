@@ -6,7 +6,7 @@
 	Copyright (c) 2004, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "bpP.h"
 #include "bibe.h"
@@ -486,11 +486,11 @@ static int	flushLimbo(Sdr sdr, Object limboList, time_t currentTime,
 				{
 				case 0:		/*	Suspended.	*/
 					break;	/*	No log impact.	*/
-	
+
 				case 1:		/*	Successful.	*/
 					flushCount++;
 					break;
-	
+
 				default:
 					putErrmsg("Failed releasing bundle \
 from limbo.", NULL);

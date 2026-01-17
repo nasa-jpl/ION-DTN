@@ -262,31 +262,31 @@ System lifecycle functions (C<bp_init()>, C<bp_start()>, C<ipn_init()>) return 0
 =head1 EXAMPLE
 
     #include "bp_admin.h"
-    
+
     /* Initialize and start BP */
     if (bp_init() < 0) {
         fprintf(stderr, "Failed to initialize BP\n");
         return -1;
     }
-    
+
     /* Add IPN scheme */
     if (add_scheme("ipn", "ipnfw", "ipnadminep") < 0) {
         fprintf(stderr, "Failed to add IPN scheme\n");
         return -1;
     }
-    
+
     /* Add an endpoint */
     if (add_endpoint("ipn:1.1", EnqueueBundle, NULL) < 0) {
         fprintf(stderr, "Failed to add endpoint\n");
         return -1;
     }
-    
+
     /* Start the BP agent */
     if (bp_start() < 0) {
         fprintf(stderr, "Failed to start BP agent\n");
         return -1;
     }
-    
+
     /* Display current configuration */
     bp_list_schemes();
     bp_list_endpoints();

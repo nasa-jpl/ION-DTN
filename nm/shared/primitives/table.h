@@ -23,6 +23,7 @@
  **  05/15/16  E. Birrane    Initial Implementation. (Secure DTN - NASA: NNX14CS58P)
  **  09/30/18  E. Birrane    Updated to AMP v0.5. (JHU/APL)
  *****************************************************************************/
+
 #ifndef TABLE_H_
 #define TABLE_H_
 
@@ -41,7 +42,7 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  CONSTANTS  								  +
+ * |                              CONSTANTS                                   +
  * +--------------------------------------------------------------------------+
  */
 
@@ -53,19 +54,19 @@ extern "C" {
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  	MACROS  								  +
+ * |                                MACROS                                    +
  * +--------------------------------------------------------------------------+
  */
 
 
 /*
  * +--------------------------------------------------------------------------+
- * |							  DATA TYPES  								  +
+ * |                              DATA TYPES                                  +
  * +--------------------------------------------------------------------------+
  */
 typedef struct
 {
-	ari_t    *id;   /**> The ID of the table template that this populates. */
+	ari_t    *id;  /**> The ID of the table template that this populates. */
 	vector_t rows; /**> Vector of rows in the table. (tnvc_t*) */
 } tbl_t;
 
@@ -82,7 +83,7 @@ typedef struct
 
 typedef struct
 {
-	ari_t *id;      /* The ID of the template. */
+	ari_t *id;     /* The ID of the template. */
 	vector_t cols; /* Column information for each col. (table_col_t*). */
 
 	tblt_build_fn build;
@@ -93,7 +94,7 @@ typedef struct
 
 /*
  * +--------------------------------------------------------------------------+
- * |						  FUNCTION PROTOTYPES  							  +
+ * |                          FUNCTION PROTOTYPES                             +
  * +--------------------------------------------------------------------------+
  */
 
@@ -105,7 +106,7 @@ tbl_t*   tbl_copy_ptr(tbl_t *tbl);
 
 tbl_t*   tbl_create(ari_t *id);
 
-void*   tbl_deserialize_ptr(QCBORDecodeContext *it, int *success);
+void*    tbl_deserialize_ptr(QCBORDecodeContext *it, int *success);
 
 tbl_t*   tbl_deserialize_raw(blob_t *data, int *success);
 
@@ -117,10 +118,10 @@ int      tbl_num_rows(tbl_t *tbl);
 
 int      tbl_serialize(QCBOREncodeContext *encoder, void *item);
 
-blob_t*   tbl_serialize_wrapper(tbl_t *tbl);
+blob_t*  tbl_serialize_wrapper(tbl_t *tbl);
 
-void      tbl_cb_del_fn(void *item);
-void*     tbl_cb_copy_fn(void *item);
+void     tbl_cb_del_fn(void *item);
+void*    tbl_cb_copy_fn(void *item);
 int tbl_cb_comp_fn(void *i1, void *i2);
 
 

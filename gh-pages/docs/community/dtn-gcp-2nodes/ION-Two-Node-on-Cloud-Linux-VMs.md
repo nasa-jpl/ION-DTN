@@ -28,8 +28,8 @@ In this section we will walk you through the creation of the `host1.rc` file. Fo
 
 The `ionadmin` configuration assigns an identity (node number) to the node, optionally configures the resources that will be made available to the node, and specifies contact bandwidths and one-way transmission times.
 ````
-## begin ionadmin 
-# Initialization command (command 1). 
+## begin ionadmin
+# Initialization command (command 1).
 # Set this node to be node 1 (as in ipn:1).
 # Use default sdr configuration (empty configuration file name '').
 1 1 ''
@@ -59,7 +59,7 @@ a range +1 +3600 1 1 1
 
 # Add more ranges.
 # We will assume every range is one second.
-# Note that ranges cover both directions, so you 
+# Note that ranges cover both directions, so you
 #only need define one range for any combination of nodes.
 a range +1 +3600 1 2 1
 a range +1 +3600 2 2 1
@@ -67,7 +67,7 @@ a range +1 +3600 2 2 1
 # Set this node to consume and produce a mean of 1000000 bytes/second.
 m production 1000000
 m consumption 1000000
-## end ionadmin 
+## end ionadmin
 ````
 ### The `ltpadmin` configuration
 
@@ -80,24 +80,24 @@ The `ltpadmin` configuration specifies spans, transmission speeds, and resources
 # Add a span. (a connection)
 a span 1 10 10 1400 10000 1 'udplso `external_IP_of_node_1`:1113'
 
-# Add another span. (to host2) 
+# Add another span. (to host2)
 # Identify the span as engine number 2.
-# Use the command 'udplso 10.1.1.2:1113' to implement the link itself.  
+# Use the command 'udplso 10.1.1.2:1113' to implement the link itself.
 a span 2 10 10 1400 10000 1 'udplso `external_IP_of_node_2`:1113'
 
 # Start command.
 # This command actually runs the link service output commands.
-# It also starts the link service INPUT task 'udplsi `internal_IP_of_node_1`:1113' 
+# It also starts the link service INPUT task 'udplsi `internal_IP_of_node_1`:1113'
 # to listen locally on UDP port 1113 for incoming LTP traffic.
 s 'udplsi `internal_IP_of_node_1`:1113'
-## end ltpadmin 
+## end ltpadmin
 ````
 
 ### The `bpadmin` configuration
-The `bpadmin` configuration specifies all of the open endpoints for delivery on your local end and specifies which convergence layer protocol(s) you intend to use. 
+The `bpadmin` configuration specifies all of the open endpoints for delivery on your local end and specifies which convergence layer protocol(s) you intend to use.
 
 ````
-## begin bpadmin 
+## begin bpadmin
 # Initialization command (command 1).
 1
 
@@ -120,7 +120,7 @@ a endpoint ipn:1.0 q
 a endpoint ipn:1.1 q
 a endpoint ipn:1.2 q
 
-# Add a protocol. 
+# Add a protocol.
 # Add the protocol named ltp.
 # Estimate transmission capacity assuming 1400 bytes of each frame (in
 # this case, udp on ethernet) for payload, and 100 bytes for overhead.
@@ -129,7 +129,7 @@ a protocol ltp 1400 100
 # Add an induct. (listen)
 # Add an induct to accept bundles using the ltp protocol.
 # The duct's name is 1 (this is for future changing/deletion of the
-# induct). 
+# induct).
 # The induct itself is implemented by the 'ltpcli' command.
 a induct ltp 1 ltpcli
 
@@ -144,14 +144,14 @@ a outduct ltp 2 ltpclo
 # Start bundle protocol engine, also running all of the induct, outduct,
 # and administration programs defined above
 s
-## end bpadmin 
+## end bpadmin
 ````
 
 ## The `ipnadmin` configuration
 The `ipnadmin` configuration maps endpoints at "neighboring" (topologically adjacent, directly reachable) nodes to convergence-layer addresses.
 ````
-## begin ipnadmin 
-# ipnrc configuration file for host1 in a 3node ltp/tcp test. 
+## begin ipnadmin
+# ipnrc configuration file for host1 in a 3node ltp/tcp test.
 # Essentially, this is the IPN scheme's routing table.
 
 # Add an egress plan.
@@ -162,7 +162,7 @@ a plan 1 ltp/1
 
 # Add other egress plans.
 # Bundles for elemetn 2 can be transmitted directly to host2 using
-# ltp outduct identified as '2.' 
+# ltp outduct identified as '2.'
 a plan 2 ltp/2
 ## end ipnadmin
 ````
@@ -187,7 +187,7 @@ $ ionstart -I host2.rc
 To send a message from `host 1` to `host 2`, you must firstly start `bpsink` in `host 2` by executing the command below
 ````
 $ bpsink ipn:2.1 &
-```` 
+````
 On the terminal of `host 1`, enter the following command and hit enter
 ````
 $ echo "hi" | bpsource ipn:2.1
@@ -202,4 +202,3 @@ $	'hi'
 The image below illustrates the above scenario plus `host 2` sending a `hello` message to `host 1`.
 
 ![](images/ION_example.png)
-

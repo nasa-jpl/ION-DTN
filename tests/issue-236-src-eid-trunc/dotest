@@ -16,23 +16,23 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: To test the elimination of bug issue 236. The script runs
-	bpdriver and bpecho, if the src-eid gets truncated bpecho will not
-	respond back to bpdriver. Bpdriver will send one bundle at a time,
-	only after bpecho responds to one bundle, will it send the next one.
-	This test will try to send 10 bundles and only if bpdriver 
-	successfully sends 10 bundles, the test succeeds."
+    bpdriver and bpecho, if the src-eid gets truncated bpecho will not
+    respond back to bpdriver. Bpdriver will send one bundle at a time,
+    only after bpecho responds to one bundle, will it send the next one.
+    This test will try to send 10 bundles and only if bpdriver
+    successfully sends 10 bundles, the test succeeds."
 echo
 echo "CONFIG: custom configuration with dtn eids:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
-echo "OUTPUT: This test will try to send 10 bundles and only if bpdriver 
-	successfully sends 10 bundles, the test succeeds."
+echo "OUTPUT: This test will try to send 10 bundles and only if bpdriver
+    successfully sends 10 bundles, the test succeeds."
 echo
 echo "########################################"
 
@@ -94,7 +94,7 @@ echo "result:"
 if ! grep -q "$BUNDLEMESSAGE" $BPDRIVERFILE; then
     echo "ERROR: bpdriver didn't transfer all 10 bundles!"
     RETVAL=1
-else 
+else
     echo "OK: bpdriver-bpecho successful!!"
     RETVAL=0
 fi

@@ -71,9 +71,9 @@ functions are merely casts.
 =over 4
 
 =item unsigned int memmgr_add(char *name,
-                              MemAllocator take, 
-                              MemDeallocator release, 
-                              MemAtoPConverter AtoP, 
+                              MemAllocator take,
+                              MemDeallocator release,
+                              MemAtoPConverter AtoP,
                               MemPtoAConverter PtoA)
 
 Add a memory manager to the memory manager array, if not already defined;
@@ -82,7 +82,7 @@ error.  I<name> is the name of the memory manager.
 I<take> is a pointer to the manager's memory allocation
 function; I<release> is a pointer to the manager's
 memory deallocation function.  I<AtoP> is a pointer to
-the manager's function for converting an address 
+the manager's function for converting an address
 to a local memory pointer; I<PtoA> is a pointer to
 the manager's pointer-to-address converter function.
 Returns the memory manager ID number assigned to the named manager,
@@ -181,7 +181,7 @@ to destroy the shared memory object.
 
      #include "memmgr.h"
 
-     main() 
+     main()
      {
          int mgrId;
          MemAllocator myalloc;

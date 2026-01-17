@@ -30,7 +30,7 @@ extern "C" {
 #define ENVELOPELENGTH	12
 #define AMSMSGHEADER	16
 
-#define	ErrMsg(text)	putErrmsg(text, NULL)
+#define ErrMsg(text)	putErrmsg(text, NULL)
 
 typedef enum
 {
@@ -70,10 +70,10 @@ typedef  struct ramsgateway
 	AmsMib		*amsMib;
 	AmsModule	amsModule;	/* gateway's AMS module state	*/
 
-	Lyst		petitionSet;	/* list of (Petition *)		*/ 
+	Lyst		petitionSet;	/* list of (Petition *)		*/
 	Lyst		invitationSet;	/* list of (Invitation *)	*/
 	Lyst		registerSet;	/* list of registered modules	*/
-	
+
 	pthread_t	primeThread;
 	pthread_t	bpManagerThread; /* New BP Manager Thread ID.	*/
 	pthread_t	amsReceiveThread; /* Started by ams_set_event_mgr */
@@ -136,9 +136,9 @@ typedef struct
 	Lyst		DestinationNodeSet;
 	Lyst		SourceNodeSet;
 	int		stateIsFromPlayback;
-} Petition;	
+} Petition;
 
-typedef struct 
+typedef struct
 {
 	short		domainContNbr;
 	int		domainUnitNbr;
@@ -153,7 +153,7 @@ typedef struct
 } Invitation;
 
 /*	 Envelope control code list.					*/
-typedef enum 
+typedef enum
 {
 	InitialDeclaration = 1,
 	PetitionAssertion = 2,
@@ -164,7 +164,7 @@ typedef enum
 } EnvelopeControlCode;
 
 /*	Fields that can be extracted from envelope.			*/
-typedef enum 
+typedef enum
 {
 	Env_ControlCode = 1,
 	Env_ContinuumNbr = 2,

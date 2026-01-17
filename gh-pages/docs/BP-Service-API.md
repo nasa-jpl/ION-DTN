@@ -62,16 +62,16 @@ To further verify that BP service is running, you can check for presence of ION 
 
 ```bash
 ------ Shared Memory Segments --------
-key        shmid      owner         perms      bytes      nattch     status   
-0x0000ee02 47         userIon       666        641024     13                  
-0x0000ff00 48         userIon       666        50000000   13                  
-0x93de0005 49         userIon       666        1200002544 13                  
-0x0000ff01 50         userIon       666        500000000  13                  
+key        shmid      owner         perms      bytes      nattch     status
+0x0000ee02 47         userIon       666        641024     13
+0x0000ff00 48         userIon       666        50000000   13
+0x93de0005 49         userIon       666        1200002544 13
+0x0000ff01 50         userIon       666        500000000  13
 
 ------ Semaphore Arrays --------
-key        semid      owner         perms      nsems   
-0x0000ee01 23         userIon       666        1     
-0x18020001 24         userIon       666        250   
+key        semid      owner         perms      nsems
+0x0000ee01 23         userIon       666        1
+0x18020001 24         userIon       666        250
 ```
 
 In this example, the shared memory and semaphore keys for the SDR heap space (shmid 49) and the semaphorebase (semid 24) are created using a random key generated from the process ID of `ionadmin` and they will vary each time ION is instantiated. This is specific to SVR4 semaphore, which is the default for ION 4.1.2. However, starting with ION 4.1.3, the default semaphore will switch to POSIX semaphore and the output will be different. The other memory and semaphore keys listed in this example are typical default values, but they too, can be changed through ionconfig files.
@@ -410,7 +410,7 @@ Sdr sdr;
 /* get SDR handle */
 sdr = bp_get_sdr();
 
-/* user check sdr for NULL 
+/* user check sdr for NULL
  * and handle error */
 ```
 
@@ -541,7 +541,7 @@ Example Call
 if (bp_open_source(ownEid, &txSap, 1) < 0)
 {
         putErrmsg("can't open own 'send' endpoint.", ownEid);
-      
+
         /* user error handling routine here */
 }
 ```
@@ -561,9 +561,9 @@ On success, places a value in *ionsapPtr that can be supplied to future bp funct
 Function Prototype
 
 ```c
-int bp_send(BpSAP sap, char *destEid, char *reportToEid, 
-             int lifespan, int classOfService, BpCustodySwitch custodySwitch, 
-             unsigned char srrFlags, int ackRequested, 
+int bp_send(BpSAP sap, char *destEid, char *reportToEid,
+             int lifespan, int classOfService, BpCustodySwitch custodySwitch,
+             unsigned char srrFlags, int ackRequested,
              BpAncillaryData *ancillaryData, Object adu, Object *newBundle)
 ```
 
@@ -668,7 +668,7 @@ if (bp_track(outAdu.bundleObj, bundleElt) < 0)
 {
         sdr_cancel_xn(sdr);
         putErrmsg("Can't track bundle.", NULL);
-      
+
         /* user error handling code goes here */
 }
 ```

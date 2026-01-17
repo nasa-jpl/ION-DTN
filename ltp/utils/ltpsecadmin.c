@@ -2,7 +2,7 @@
 	ltpsecadmin.c:	security database adminstration interface.
 
 
-	Copyright (c) 2019, California Institute of Technology.	
+	Copyright (c) 2019, California Institute of Technology.
 	All rights reserved.
 	Author: Scott Burleigh, Jet Propulsion Laboratory
 	Modifications: TCSASSEMBLER, TopCoder
@@ -136,15 +136,15 @@ static void	executeAdd(int tokenCount, char **tokens)
 		switch (tokenCount)
 		{
 		case 5:
-                        keyName = tokens[4];
-                        break;
+			keyName = tokens[4];
+			break;
 
-                case 4:
-                        keyName = _omitted();
-                        break;
+		case 4:
+			keyName = _omitted();
+			break;
 
-                default:
-                        SYNTAX_ERROR;
+		default:
+			SYNTAX_ERROR;
 		}
 
 		sec_addLtpRecvAuthRule(atoi(tokens[2]), atouc(tokens[3]),
@@ -157,16 +157,16 @@ static void	executeAdd(int tokenCount, char **tokens)
 		switch (tokenCount)
 		{
 		case 5:
-                        keyName = tokens[4];
-                        break;
+			keyName = tokens[4];
+			break;
 
-                case 4:
-                        keyName = _omitted();
-                        break;
+		case 4:
+			keyName = _omitted();
+			break;
 
-                default:
-                        SYNTAX_ERROR;
-                        return;
+		default:
+			SYNTAX_ERROR;
+			return;
 		}
 
 		sec_addLtpXmitAuthRule(atoi(tokens[2]), atouc(tokens[3]),
@@ -192,16 +192,16 @@ static void	executeChange(int tokenCount, char **tokens)
 		switch (tokenCount)
 		{
 		case 5:
-                        keyName = tokens[4];
+			keyName = tokens[4];
 			break;
 
-                case 4:
-                        keyName = _omitted();
-                        break;
+		case 4:
+			keyName = _omitted();
+			break;
 
-                default:
-                        SYNTAX_ERROR;
-                        return;
+		default:
+			SYNTAX_ERROR;
+			return;
 		}
 
 		sec_updateLtpRecvAuthRule(atoi(tokens[2]), atouc(tokens[3]),
@@ -214,23 +214,23 @@ static void	executeChange(int tokenCount, char **tokens)
 		switch (tokenCount)
 		{
 		case 5:
-                        keyName = tokens[4];
-                        break;
+			keyName = tokens[4];
+			break;
 
-                case 4:
-                        keyName = _omitted();
-                        break;
+		case 4:
+			keyName = _omitted();
+			break;
 
-                default:
-                        SYNTAX_ERROR;
-                        return;
+		default:
+			SYNTAX_ERROR;
+			return;
 		}
 
 		sec_updateLtpXmitAuthRule(atoi(tokens[2]), atouc(tokens[3]),
 				keyName);
 		return;
 	}
-			
+
 	SYNTAX_ERROR;
 }
 
@@ -276,7 +276,7 @@ static void	printLtpRecvAuthRule(Object ruleAddr)
 	char	buf[512];
 	int	temp;
 
-	GET_OBJ_POINTER(sdr, LtpRecvAuthRule, rule, ruleAddr);	
+	GET_OBJ_POINTER(sdr, LtpRecvAuthRule, rule, ruleAddr);
 	temp = rule->ciphersuiteNbr;
 	isprintf(buf, sizeof buf, "LTPrecv rule: engine id " UVAST_FIELDSPEC,
 			rule->ltpEngineId);
@@ -294,7 +294,7 @@ static void	printLtpXmitAuthRule(Object ruleAddr)
 	char	buf[512];
 	int	temp;
 
-	GET_OBJ_POINTER(sdr, LtpXmitAuthRule, rule, ruleAddr);	
+	GET_OBJ_POINTER(sdr, LtpXmitAuthRule, rule, ruleAddr);
 	temp = rule->ciphersuiteNbr;
 	isprintf(buf, sizeof buf, "LTPxmit rule: engine id " UVAST_FIELDSPEC,
 			rule->ltpEngineId);

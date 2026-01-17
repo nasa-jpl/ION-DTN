@@ -1,5 +1,5 @@
 /*
- 	bpnm.h:	definitions supporting the BP instrumentation API.
+	bpnm.h:	definitions supporting the BP instrumentation API.
 
 	Copyright (c) 2011, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
@@ -7,7 +7,7 @@
 
 	Author: Larry Shackleford, GSFC
 	Modified by Scott Burleigh per changes in MIB definition
- 									*/
+									*/
 
 #ifndef BPNM_H
 #define BPNM_H

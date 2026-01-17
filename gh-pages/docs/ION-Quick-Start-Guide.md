@@ -299,7 +299,7 @@ Check the ION version installed by running:
 
 `ionadmin`
 
- At the  ":" prompt, please enter the single character command 'v' and you should see a response like this:
+At the ":" prompt, please enter the single character command 'v' and you should see a response like this:
 
 ```bash
  $ ionadmin
@@ -365,12 +365,12 @@ Go into the `demos/bench-udp/` folder, you will see two subfolders: `2.bench.udp
 Looking inside the `2.bench.udp` folder, you will see specific files used to configure ION. These include:
 
 ```text
-bench.bprc 
-bench.ionconfig  
-bench.ionrc  
-bench.ionsecrc  
-bench.ipnrc  
-ionstart  
+bench.bprc
+bench.ionconfig
+bench.ionrc
+bench.ionsecrc
+bench.ipnrc
+ionstart
 ionstop
 ```
 
@@ -1018,13 +1018,13 @@ as a alpha release feature. The new format is as follows:
 ipn-uri = "ipn:" [allocator-identifier "."] node-number "." service-number
 ```
 
-`allocator-identifier`: An unsigned integer identifying the allocation 
-authority. If the authority is the default (IANA, Allocator ID 0), this 
+`allocator-identifier`: An unsigned integer identifying the allocation
+authority. If the authority is the default (IANA, Allocator ID 0), this
 part and the following dot (.) may be omitted for brevity. ION is backward
-compatible with IPN URIs that omit the allocator identifier, which is 
+compatible with IPN URIs that omit the allocator identifier, which is
 interpreted as having the default value of 0.
 
-For all examples in this tutorial, the allocator identifier is omitted and 
+For all examples in this tutorial, the allocator identifier is omitted and
 defaults to 0.
 
 New IPN URI support is under alpha testing.

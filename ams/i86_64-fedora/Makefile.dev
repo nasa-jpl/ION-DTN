@@ -10,7 +10,7 @@ RAMS = ../rams
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -DUDPTS -DTCPTS -DDGRTS -DNOEXPAT -fPIC -DSPACE_ORDER=3
-CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(INCL) -I$(RAMS) -I$(ROOT)/include -I$(ICI_INCL) -I../../ici/crypto/NULL_SUITES -I../../ici/crypto -I../../dgr/include -I../../ici/library -I../../bpv7/include -I../../dgr/library -L$(ICI_LIB) -L$(BP_LIB) -L$(DGR_LIB) 
+CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(INCL) -I$(RAMS) -I$(ROOT)/include -I$(ICI_INCL) -I../../ici/crypto/NULL_SUITES -I../../ici/crypto -I../../dgr/include -I../../ici/library -I../../bpv7/include -I../../dgr/library -L$(ICI_LIB) -L$(BP_LIB) -L$(DGR_LIB)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -66,13 +66,13 @@ install:
 		cp ../include/* $(ROOT)/include
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
-		
-uninstall:		
+
+uninstall:
 		rm $(ROOT)/lib/libams*
 		rm $(ROOT)/include/ams*
 		rm $(ROOT)/include/rams*
 		rm $(ROOT)/bin/ams*
-		rm $(ROOT)/bin/ramsgate	
+		rm $(ROOT)/bin/ramsgate
 
 #	-	-	Daemon executable	-	-	-	-
 
@@ -119,7 +119,7 @@ amsmib:		amsmib.o libams.so $(INCL)/ams.h
 #	-	-	RAMS executable		-	-	-	-
 
 ramsgate:	$(RAMSTESTOBJS) $(RAMS)/rams.h $(RAMS)/ramscommon.h libams.so $(INCL)/ams.h
-		$(CC) -o ramsgate $(RAMSTESTOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lams -ldgr -lici -lpthread -lm 
+		$(CC) -o ramsgate $(RAMSTESTOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lams -ldgr -lici -lpthread -lm
 		cp ramsgate ./bin
 
 #	-	-	Libraries	-	-	-	-	-

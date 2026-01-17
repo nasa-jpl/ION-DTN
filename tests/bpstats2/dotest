@@ -13,24 +13,24 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: Testing the basic functionality of the bpstats2 application.
-	Described in issue 191, bpstats2 is a simple utility which creates 
-	bundles containing the current values of all BP processing statistics 
-	accumulators."
+    Described in issue 191, bpstats2 is a simple utility which creates
+    bundles containing the current values of all BP processing statistics
+    accumulators."
 echo
 echo "CONFIG: Custom loopback configuration: "
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
 done
 echo "OUTPUT: Bpstats2 is run to ensure that it can send bundles when needed
-	and that the statistics within the bundle match expected values.
-	The time required to close the program is also tested.
-	ERROR messages are given on failure. No explicit PASS messages are
-	given, but the overall test return value will reflect test success."
+    and that the statistics within the bundle match expected values.
+    The time required to close the program is also tested.
+    ERROR messages are given on failure. No explicit PASS messages are
+    given, but the overall test return value will reflect test success."
 echo
 echo "########################################"
 
@@ -76,7 +76,7 @@ diff_output_except_statstime ()
         return 0
     fi
 }
-    
+
 # Poke bpsend with a bundle.
 bptrace ipn:1.1 ipn:1.2 dtn:none 60 0.0 "test bundle please send stats" ""
 sleep 5
@@ -85,7 +85,7 @@ sleep 5
 bpstats2 ipn:1.2 ipn:1.1 & BPSTATS2PID=$!
 sleep 5
 
-# Start the listener that will receive the bundle queued in the 
+# Start the listener that will receive the bundle queued in the
 # ipn:1.1 endpoint.
 echo "Starting Message Listener..."
 bprecvfile ipn:1.1 &
