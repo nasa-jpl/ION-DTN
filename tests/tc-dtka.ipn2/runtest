@@ -35,7 +35,7 @@
 # 1, 4, and 6 are out of service are provided to nodes 2, 3, and 5.
 #
 # The test succeeds if all subscriber nodes receive their peers' new
-# public keys without error in each re-keying cycle.			*/
+# public keys without error in each re-keying cycle.
 
 echo "Starting ION..."
 rm -f ./ion_nodes
