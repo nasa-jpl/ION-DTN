@@ -37,9 +37,11 @@ terminate.
 =over 4
 
 =item "0"
+
 Successful completion of key generation for all provided names.
 
 =item "-1"
+
 Failure due to invalid arguments, system error (e.g., file creation),
 or inability to generate secure random data. Check stderr for a
 descriptive error message.
