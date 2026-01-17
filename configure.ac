@@ -741,7 +741,7 @@ AC_CHECK_LIB(
 	[pthread],
 	[pthread_create],
 	[ AM_LDFLAGS="$AM_LDFLAGS -pthread"
-+     THREAD_LIBS="-pthread"
+	  PTHREAD_LIBS="-pthread"
 	  AC_SUBST([PTHREAD_LIBS]) ],
 	[AC_MSG_ERROR([You need pthread library.]) ]
 )
