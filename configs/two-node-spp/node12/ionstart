@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # shell script to get ION node running
 echo "Starting ION node ipn:12 on `uname -n` from `pwd`"
 ionadmin	ipn.ionrc

@@ -1,5 +1,5 @@
+#!/usr/bin/env bash
 # Shell script to remove all node IPC keys
-#!/bin/bash
 
 kill -9 `pgrep sppcli`
 killall ltpadmin
