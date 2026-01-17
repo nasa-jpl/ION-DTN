@@ -1,4 +1,4 @@
-#/bin/bash
+#!/usr/bin/env bash
 rm -f 1.ipn.tcp/ion.log
 rm -f 2.ipn.tcp/ion.log
 rm -f 2.ipn.tcp/ionreceivefile.txt
