@@ -199,6 +199,8 @@ typedef enum
 	HopCountBlk = 10,
 	BlockIntegrityBlk = 11,
 	BlockConfidentialityBlk = 12,
+	CustodyTransferBlk = 13,		/*	CTEB per Orange Book	*/
+	CompressedReportingBlk = 14,		/*	CREB per Orange Book	*/
 	DataLabelBlk = 192,
 	QualityOfServiceBlk = 193,
 	SnwPermitsBlk = 194,

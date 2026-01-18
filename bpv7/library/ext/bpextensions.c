@@ -18,6 +18,7 @@
 #include "hcb.h"
 #include "snw.h"
 #include "imc.h"
+#include "creb.h"
 #if RGREB
 #include "rgr.h"
 #endif
@@ -233,6 +234,24 @@ static ExtensionDef	extensionDefs[] =
 				cgrr_clear
 		},
 #endif
+		{ "creb", CompressedReportingBlk,
+				creb_offer,
+				creb_serialize,
+				{creb_processOnFwd,
+				creb_processOnAccept,
+				creb_processOnEnqueue,
+				creb_processOnDequeue,
+				0},
+				creb_release,
+				creb_copy,
+				0,
+				0,
+				0,
+				creb_parse,
+				creb_check,
+				creb_record,
+				creb_clear
+		},
 		{ "unknown",-1,0,0,{0,0,0,0,0},0,0,0,0,0,0,0,0,0 }
 			};
 

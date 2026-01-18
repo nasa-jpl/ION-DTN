@@ -624,6 +624,23 @@ typedef enum
 	ctOverdue = 3
 } BpEventType;
 
+/**
+ * Status reporting mode for LOCALLY-SOURCED bundles.
+ * Controls whether bundles use traditional BPv7 status reports,
+ * compressed bundle reporting (CBR/CREB/CRS), or both.
+ *
+ * NOTE: For RECEIVED bundles, the reporting mechanism is determined
+ * by presence/absence of CREB block - this config does not apply.
+ * The node must always be prepared to handle both mechanisms for
+ * inbound bundles to support heterogeneous networks.
+ */
+typedef enum
+{
+	BP_SR_MODE_TRADITIONAL = 0,	/*	Standard status reports only	*/
+	BP_SR_MODE_COMPRESSED  = 1,	/*	CREB/CRS only			*/
+	BP_SR_MODE_BOTH        = 2	/*	Both (for testing)		*/
+} BpStatusReportMode;
+
 typedef struct
 {
 	BpEventType	type;
@@ -684,6 +701,10 @@ typedef struct
 	Object		xmitStats;	/*	BpCosStats address.	*/
 	Object		delStats;	/*	BpDelStats address.	*/
 	Object		dbStats;	/*	BpDbStats address.	*/
+
+	/*	Compressed Bundle Reporting (CBR) configuration		*/
+
+	BpStatusReportMode	statusRptMode;	/*	For local bundles.	*/
 } BpDB;
 
 #define BP_STATUS_RECEIVE	0

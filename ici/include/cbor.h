@@ -33,6 +33,7 @@ extern "C" {
 #define	CborByteString		2
 #define	CborTextString		3
 #define	CborArray		4
+#define	CborMap			5
 #define	CborSimpleValue		7
 
 /*	For all functions, *cursor is a pointer to the location in
@@ -86,6 +87,15 @@ extern int	cbor_encode_array_open(	uvast size,
 			 *	is of indefinite size; otherwise
 			 *	size indicates the number of items
 			 *	in the array.  Cursor is automatically
+			 *	advanced.  Returns number of bytes
+			 *	written.				*/
+
+extern int	cbor_encode_map_open(	uvast size,
+					unsigned char **cursor);
+			/*	If size is ((uvast) -1), the map
+			 *	is of indefinite size; otherwise
+			 *	size indicates the number of key/value
+			 *	pairs in the map.  Cursor is automatically
 			 *	advanced.  Returns number of bytes
 			 *	written.				*/
 
@@ -188,6 +198,23 @@ extern int	cbor_decode_array_open(	uvast *size,
 			 *	Otherwise, size indicates the
 			 *	required number of items in the
 			 *	array.  Cursor is automatically
+			 *	advanced.  Returns number of bytes
+			 *	read, 0 on decoding error.		*/
+
+extern int	cbor_decode_map_open(	uvast *size,
+					unsigned char **cursor,
+					unsigned int *bytesBuffered);
+			/*	If size is zero, any map
+			 *	is accepted and the actual size
+			 *	of the decoded map is returned
+			 *	in size; ((uvast) -1) is returned
+			 *	in size if the map is of
+			 *	indefinite size.  If size is
+			 *	((uvast) -1), only a map of
+			 *	indefinite length is accepted.
+			 *	Otherwise, size indicates the
+			 *	required number of key/value pairs
+			 *	in the map.  Cursor is automatically
 			 *	advanced.  Returns number of bytes
 			 *	read, 0 on decoding error.		*/
 

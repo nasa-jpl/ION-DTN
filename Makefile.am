@@ -1013,7 +1013,7 @@ bpPODM1 = pod2man -s 1 -c "BP executables"
 bpPODM3 = pod2man -s 3 -c "BP library functions"
 bpPODM5 = pod2man -s 5 -c "BP configuration files"
 
-bpcflags = -I$(BP_SRC_DIR)/bpsec/instr -I$(BP_SRC_DIR)/bpsec/policy -I$(BP_SRC_DIR)/bpsec/sci -I$(BP_SRC_DIR)/bpsec/utils -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)/library/ext/meb -I$(BP_SRC_DIR)/library/ext/bae -I$(BP_SRC_DIR)/include -I$(BP_SRC_DIR)/ipn -I$(BP_SRC_DIR)/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(BP_SRC_DIR)/dtn2 -I$(BP_SRC_DIR)/library/crypto -I$(BP_SRC_DIR)/tcp -I$(BP_SRC_DIR)/udp -I$(srcdir)/ici/include -I$(srcdir)/ici/library -I$(BP_SRC_DIR)/library/ext/snw -I$(BP_SRC_DIR)/bibe -I$(BP_SRC_DIR)/imc -DBP_EXTENDED -I$(BP_SRC_DIR)/saga -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library/ext/hcb -I$(BP_SRC_DIR)/library/ext/pnb -I$(BP_SRC_DIR)/library/ext/bpq -I$(srcdir)/bpv7/metadata -I$(srcdir)/ici/crypto/NULL_SUITES
+bpcflags = -I$(BP_SRC_DIR)/bpsec/instr -I$(BP_SRC_DIR)/bpsec/policy -I$(BP_SRC_DIR)/bpsec/sci -I$(BP_SRC_DIR)/bpsec/utils -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)/library/ext/meb -I$(BP_SRC_DIR)/library/ext/bae -I$(BP_SRC_DIR)/include -I$(BP_SRC_DIR)/ipn -I$(BP_SRC_DIR)/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(BP_SRC_DIR)/dtn2 -I$(BP_SRC_DIR)/library/crypto -I$(BP_SRC_DIR)/tcp -I$(BP_SRC_DIR)/udp -I$(srcdir)/ici/include -I$(srcdir)/ici/library -I$(BP_SRC_DIR)/library/ext/snw -I$(BP_SRC_DIR)/bibe -I$(BP_SRC_DIR)/imc -DBP_EXTENDED -I$(BP_SRC_DIR)/saga -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library/ext/hcb -I$(BP_SRC_DIR)/library/ext/pnb -I$(BP_SRC_DIR)/library/ext/bpq -I$(BP_SRC_DIR)/library/ext/creb -I$(srcdir)/bpv7/metadata  -I$(srcdir)/ici/crypto/NULL_SUITES
 
 if ENABLE_IMC
 bpcflags += -I$(BP_SRC_DIR)/imc -I$(BP_SRC_DIR)/library/ext/imc
@@ -1217,7 +1217,12 @@ bpextra = \
 	bpv7/library/ext/bpsec/bib.h \
 	bpv7/library/ext/hcb/hcb.h \
 	bpv7/library/ext/meb/meb.h \
-	bpv7/library/ext/bae/bae.h
+	bpv7/library/ext/meb/meb.c \
+	bpv7/library/ext/creb/creb.h \
+	bpv7/library/ext/bae/bae.h \
+	bpv7/library/ext/bae/bae.c \
+	ici/include/crypto.h \
+	ici/include/csi.h
 
 if ENABLE_IMC
 bpextra += \
@@ -1328,12 +1333,14 @@ libbp_la_SOURCES = \
 	bpv7/library/libbpnm.c \
 	bpv7/library/eureka.c \
 	bpv7/library/bei.c \
+	bpv7/library/cbr.c \
 	bpv7/library/ext/bae/bae.c \
 	bpv7/library/ext/bpq/bpq.c \
 	bpv7/library/ext/bpsec/bcb.c \
 	bpv7/library/ext/bpsec/bib.c \
 	bpv7/library/ext/hcb/hcb.c \
 	bpv7/library/ext/meb/meb.c \
+	bpv7/library/ext/creb/creb.c \
 	bpv7/library/ext/pnb/pnb.c \
 	bpv7/library/ext/pnb/pnb.h \
 	bpv7/library/ext/snw/snw.c \

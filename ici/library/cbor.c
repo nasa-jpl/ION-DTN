@@ -339,6 +339,32 @@ int	cbor_encode_array_open(uvast size, unsigned char **cursor)
 	return 1 + length;
 }
 
+int	cbor_encode_map_open(uvast size, unsigned char **cursor)
+{
+	unsigned char	bytes[8];
+	int		additionalInfo;
+	int		length;
+
+	if (size == ((uvast) -1))
+	{
+		additionalInfo = 31;	/*	Indefinite-size map.	*/
+		length = 0;
+	}
+	else
+	{
+		length = encodeInteger(size, &additionalInfo, bytes);
+	}
+
+	encodeFirstByte(cursor, CborMap, additionalInfo);
+	if (length > 0)
+	{
+		memcpy(*cursor, bytes, length);
+		*cursor += length;
+	}
+
+	return 1 + length;
+}
+
 int	cbor_encode_break(unsigned char **cursor)
 {
 	encodeFirstByte(cursor, CborSimpleValue, 31);
@@ -799,6 +825,72 @@ int	cbor_decode_array_open(uvast *size, unsigned char **cursor,
 	}
 
 	writeMemoNote("[?] CBOR array size is wrong", itoa(arrayLength));
+	return 0;
+}
+
+int	cbor_decode_map_open(uvast *size, unsigned char **cursor,
+		unsigned int *bytesBuffered)
+{
+	int	majorType;
+	int	additionalInfo;
+	int	length;
+	uvast	mapLength;
+
+	CHKZERO(cursor && *cursor && size && bytesBuffered);
+	if (decodeFirstByte(cursor, bytesBuffered, &majorType, &additionalInfo)
+			< 1)
+	{
+		return 0;
+	}
+
+	if (majorType != CborMap)
+	{
+		writeMemo("[?] CBOR error: not map.");
+		return 0;
+	}
+
+	if (additionalInfo == 31)	/*	Indefinite length.	*/
+	{
+		if (*size == 0			/*	Any size okay.	*/
+		|| *size == ((uvast) -1))	/*	Req indefinite.	*/
+		{
+			*size = ((uvast) -1);
+			return 1;
+		}
+	}
+
+	/*	This is a map of definite length.			*/
+
+	if (*size == ((uvast) -1))	/*	Req. indefinite-length.	*/
+	{
+		writeMemo("[?] CBOR map size is not indefinite.");
+		return 0;
+	}
+
+	/*	A map of definite length is expected.			*/
+
+	length = decodeInteger(&mapLength, CborAny, additionalInfo, cursor,
+			bytesBuffered, (uvast) -1);
+	if (length < 0)
+	{
+		writeMemo("[?] CBOR map decode failed.");
+		return 0;
+	}
+
+	if (*size == 0)			/*	Any size is okay.	*/
+	{
+		*size = mapLength;
+		return 1 + length;
+	}
+
+	/*	Map size must match.					*/
+
+	if (mapLength == *size)
+	{
+		return 1 + length;	/*	Size is correct.	*/
+	}
+
+	writeMemoNote("[?] CBOR map size is wrong", itoa(mapLength));
 	return 0;
 }
 

@@ -24,6 +24,7 @@
 #include "bei.h"
 #include "eureka.h"
 #include "bibe.h"
+#include "cbr.h"
 
 /*	Interfaces to other BP-related components of ION	*	*/
 
@@ -12689,6 +12690,26 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 			{
 				putErrmsg("BIBE custody signal handler failed.",
 						NULL);
+				running = 0;
+			}
+
+			break;
+
+		case CBR_ADMIN_RECORD_CCS:
+			if (cbr_handleCcs(sdr, cursor, unparsedBytes) < 0)
+			{
+				putErrmsg("CBR custody signal (CCS) handler \
+failed.", NULL);
+				running = 0;
+			}
+
+			break;
+
+		case CBR_ADMIN_RECORD_CRS:
+			if (cbr_handleCrs(sdr, cursor, unparsedBytes) < 0)
+			{
+				putErrmsg("CBR reporting signal (CRS) handler \
+failed.", NULL);
 				running = 0;
 			}
 
