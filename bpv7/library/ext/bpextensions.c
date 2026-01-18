@@ -19,6 +19,7 @@
 #include "snw.h"
 #include "imc.h"
 #include "creb.h"
+#include "cteb.h"
 #if RGREB
 #include "rgr.h"
 #endif
@@ -251,6 +252,24 @@ static ExtensionDef	extensionDefs[] =
 				creb_check,
 				creb_record,
 				creb_clear
+		},
+		{ "cteb", CustodyTransferBlk,
+				cteb_offer,
+				cteb_serialize,
+				{cteb_processOnFwd,
+				cteb_processOnAccept,
+				cteb_processOnEnqueue,
+				cteb_processOnDequeue,
+				0},
+				cteb_release,
+				cteb_copy,
+				0,
+				0,
+				0,
+				cteb_parse,
+				cteb_check,
+				cteb_record,
+				cteb_clear
 		},
 		{ "unknown",-1,0,0,{0,0,0,0,0},0,0,0,0,0,0,0,0,0 }
 			};
