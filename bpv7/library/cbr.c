@@ -1307,6 +1307,123 @@ int	cbr_encodeCrs(Sdr sdr, Object signalElt, unsigned char *buffer,
 	return cursor - buffer;
 }
 
+int	cbr_encodeCcs(Sdr sdr, Object signalElt, unsigned char *buffer,
+		size_t buflen)
+{
+	Object			signalObj;
+	PendingSignal		signal;
+	unsigned char		*cursor = buffer;
+	uvast			uvtemp;
+	Object			seqElt;
+	Object			entryObj;
+	BundleSequenceEntry	entry;
+	char			srcEidBuf[MAX_EID_LEN];
+	char			destEidBuf[MAX_EID_LEN];
+	int			seqBytes;
+	uvast			*rangeData = NULL;
+	int			rangeCount = 0;
+	Object			rangeElt;
+	int			i;
+
+	(void) buflen;		/*	Reserved for future use.	*/
+
+	signalObj = sdr_list_data(sdr, signalElt);
+	sdr_read(sdr, (char *) &signal, signalObj, sizeof(PendingSignal));
+	sdr_string_read(sdr, destEidBuf, signal.destEid);
+
+	/*	CCS format per Orange Book Section 5:
+	 *	Admin Record: [record-type, CCS-content]
+	 *	CCS-content: #6.13({ disposition => Bundle-Sequence-Collection })
+	 *
+	 *	For simplicity, we encode as:
+	 *	[13, {disposition => [Bundle-Sequence, ...]}]
+	 *
+	 *	Disposition is SIGNED: 1=accepted, -1=refused
+	 */
+
+	/*	Admin record array open (size 2)			*/
+	uvtemp = 2;
+	oK(cbor_encode_array_open(uvtemp, &cursor));
+
+	/*	Admin record type = 13 (CCS)				*/
+	uvtemp = CBR_ADMIN_RECORD_CCS;
+	oK(cbor_encode_integer(uvtemp, &cursor));
+
+	/*	CCS content: CBOR tag #6.13 followed by map		*/
+	/*	For now, skip the tag and just encode the map		*/
+
+	/*	Map with 1 entry: disposition => Bundle-Sequence-Collection */
+	uvtemp = 1;
+	oK(cbor_encode_map_open(uvtemp, &cursor));
+
+	/*	Key: disposition code (SIGNED integer)
+	 *	Per Orange Book: 1=accepted, -1=refused			*/
+	oK(cbor_encode_signed_int(signal.dispCode, &cursor));
+
+	/*	Value: array of Bundle-Sequence				*/
+	uvtemp = sdr_list_length(sdr, signal.sequences);
+	oK(cbor_encode_array_open(uvtemp, &cursor));
+
+	/*	Encode each Bundle-Sequence entry			*/
+	for (seqElt = sdr_list_first(sdr, signal.sequences);
+			seqElt; seqElt = sdr_list_next(sdr, seqElt))
+	{
+		entryObj = sdr_list_data(sdr, seqElt);
+		sdr_read(sdr, (char *) &entry, entryObj,
+				sizeof(BundleSequenceEntry));
+		sdr_string_read(sdr, srcEidBuf, entry.sourceEid);
+
+		/*	Build range array if non-contiguous		*/
+		if (entry.rangeArray != 0)
+		{
+			rangeCount = sdr_list_length(sdr, entry.rangeArray);
+			rangeData = MTAKE(rangeCount * sizeof(uvast));
+			if (rangeData == NULL)
+			{
+				return -1;
+			}
+
+			i = 0;
+			for (rangeElt = sdr_list_first(sdr, entry.rangeArray);
+					rangeElt;
+					rangeElt = sdr_list_next(sdr, rangeElt))
+			{
+				Object	lenObj = sdr_list_data(sdr, rangeElt);
+
+				sdr_read(sdr, (char *) &rangeData[i], lenObj,
+						sizeof(uvast));
+				i++;
+			}
+		}
+		else
+		{
+			rangeData = NULL;
+			rangeCount = 0;
+		}
+
+		seqBytes = cbr_encodeBundleSequence(entry.seqId,
+				entry.seqNumStart, entry.length,
+				rangeData, rangeCount,
+				srcEidBuf, destEidBuf, NULL,
+				cursor, buflen - (cursor - buffer));
+
+		if (rangeData)
+		{
+			MRELEASE(rangeData);
+			rangeData = NULL;
+		}
+
+		if (seqBytes < 0)
+		{
+			return -1;
+		}
+
+		cursor += seqBytes;
+	}
+
+	return cursor - buffer;
+}
+
 static void	cleanupSignal(Sdr sdr, Object signalElt)
 {
 	Object			signalObj;
@@ -1383,13 +1500,17 @@ int	cbr_transmitSignal(Sdr sdr, Object signalElt)
 		buflen = cbr_encodeCrs(sdr, signalElt, buffer,
 				CBR_MAX_SIGNAL_SIZE);
 	}
+	else if (signal.signalType == CBR_SIGNAL_CCS)
+	{
+		buflen = cbr_encodeCcs(sdr, signalElt, buffer,
+				CBR_MAX_SIGNAL_SIZE);
+	}
 	else
 	{
-		/*	CCS encoding - Phase 5				*/
-		writeMemo("[i] CCS transmission not yet implemented.");
+		writeMemo("[?] Unknown CBR signal type.");
 		MRELEASE(buffer);
 		cleanupSignal(sdr, signalElt);
-		return 0;
+		return -1;
 	}
 
 	if (buflen < 0)
@@ -1407,23 +1528,26 @@ int	cbr_transmitSignal(Sdr sdr, Object signalElt)
 
 	if (payloadZco == 0 || payloadZco == (Object) ERROR)
 	{
-		putErrmsg("Can't create ZCO for CRS.", NULL);
+		putErrmsg("Can't create ZCO for CBR signal.", NULL);
 		return -1;
 	}
 
 	/*	Send as admin bundle					*/
 	result = bpSend(NULL, destEidBuf, NULL, 3600, BP_STD_PRIORITY,
 			NoCustodyRequested, 0, 0, &ancillary, payloadZco,
-			NULL, CBR_ADMIN_RECORD_CRS);
+			NULL, signal.signalType == CBR_SIGNAL_CRS ?
+				CBR_ADMIN_RECORD_CRS : CBR_ADMIN_RECORD_CCS);
 
 	if (result < 0)
 	{
-		putErrmsg("Can't send CRS bundle.", destEidBuf);
+		putErrmsg("Can't send CBR signal bundle.", destEidBuf);
 		/*	ZCO already released by bpSend on failure	*/
 	}
 	else
 	{
-		writeMemoNote("[i] CBR CRS transmitted to", destEidBuf);
+		writeMemoNote(signal.signalType == CBR_SIGNAL_CRS ?
+				"[i] CBR CRS transmitted to" :
+				"[i] CBR CCS transmitted to", destEidBuf);
 	}
 
 	/*	Clean up signal structure				*/
@@ -1759,6 +1883,49 @@ void	cbr_untrackCustodyBundle(Sdr sdr, Object custodyElt)
 	/*	Free the CustodyBundle object and list element.		*/
 	sdr_free(sdr, cbObj);
 	sdr_list_delete(sdr, custodyElt, NULL, NULL);
+}
+
+/**
+ * Remove custody tracking for a bundle identified by its SDR object address.
+ * Called from bpDestroyBundle when a bundle expires or is otherwise destroyed.
+ * This ensures custody tracking doesn't hold orphaned references.
+ */
+void	cbr_untrackBundleByObj(Sdr sdr, Object bundleObj)
+{
+	CbrDb		*cbrConstants;
+	Object		elt;
+	Object		nextElt;
+	Object		cbObj;
+	CustodyBundle	cb;
+
+	if (bundleObj == 0)
+	{
+		return;
+	}
+
+	cbrConstants = getCbrConstants();
+	if (cbrConstants == NULL)
+	{
+		return;		/*	CBR not initialized.		*/
+	}
+
+	/*	Search custody list for entry with matching bundleObj.	*/
+	for (elt = sdr_list_first(sdr, cbrConstants->custodyBundles);
+			elt; elt = nextElt)
+	{
+		nextElt = sdr_list_next(sdr, elt);
+		cbObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &cb, cbObj, sizeof(CustodyBundle));
+
+		if (cb.bundleObj == bundleObj)
+		{
+			/*	Found matching entry. Remove it.	*/
+			writeMemo("[i] CBR: Removing custody tracking for "
+					"destroyed bundle.");
+			cbr_untrackCustodyBundle(sdr, elt);
+			return;		/*	Only one entry per bundle.*/
+		}
+	}
 }
 
 /**
@@ -2152,29 +2319,54 @@ int	cbr_retransmitBundle(Sdr sdr, char *sourceEid, uvast seqId,
 	Object		custodyElt;
 	Object		cbObj;
 	CustodyBundle	cb;
+	int		result;
+
+	CHKERR(sdr_begin_xn(sdr));
 
 	/*	Find the custody bundle.				*/
 	custodyElt = cbr_findCustodyBundle(sdr, sourceEid, seqId, seqNum);
 	if (custodyElt == 0)
 	{
 		writeMemo("[?] CBR: Bundle not found in custody.");
+		sdr_exit_xn(sdr);
 		return -1;
 	}
 
 	cbObj = sdr_list_data(sdr, custodyElt);
 	sdr_read(sdr, (char *) &cb, cbObj, sizeof(CustodyBundle));
 
-	/*	Update retransmit tracking.				*/
+	/*	Verify bundle object still exists (not expired/deleted).*/
+	if (cb.bundleObj == 0)
+	{
+		writeMemo("[?] CBR: Custody bundle has no bundle reference.");
+		sdr_exit_xn(sdr);
+		return -1;
+	}
+
+	/*	Update retransmit tracking before re-forwarding.	*/
 	cb.lastTransmit = getCtime();
 	cb.retransmitCount++;
 	sdr_write(sdr, cbObj, (char *) &cb, sizeof(CustodyBundle));
 
-	/*	TODO: Actually re-queue the bundle for transmission.
-	 *	This requires accessing the bundle and calling the
-	 *	appropriate forwarding function. For now, just log.	*/
-	writeMemoNote("[i] CBR: Manual retransmit requested for seqNum",
-			itoa(seqNum));
+	/*	Re-queue the bundle for transmission.
+	 *	bpReforwardBundle clears existing queue references
+	 *	and calls forwardBundle to compute a new route.		*/
+	result = bpReforwardBundle(cb.bundleObj);
+	if (result < 0)
+	{
+		putErrmsg("CBR: Failed to reforward custody bundle.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
 
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("CBR: Failed ending retransmit transaction.", NULL);
+		return -1;
+	}
+
+	writeMemoNote("[i] CBR: Retransmitted custody bundle, seqNum",
+			itoa(seqNum));
 	return 0;
 }
 
@@ -2182,10 +2374,12 @@ int	cbr_retransmitAllCustody(Sdr sdr, char *destEid)
 {
 	CbrDb		*cbrConstants;
 	Object		elt;
+	Object		nextElt;
 	Object		cbObj;
 	CustodyBundle	cb;
 	char		eidBuf[MAX_EID_LEN];
 	int		count = 0;
+	int		result;
 
 	cbrConstants = getCbrConstants();
 	if (cbrConstants == NULL)
@@ -2193,10 +2387,14 @@ int	cbr_retransmitAllCustody(Sdr sdr, char *destEid)
 		return -1;
 	}
 
-	/*	Iterate through all custody bundles.			*/
+	CHKERR(sdr_begin_xn(sdr));
+
+	/*	Iterate through all custody bundles.
+	 *	Cache nextElt before reforwarding since list may change.*/
 	for (elt = sdr_list_first(sdr, cbrConstants->custodyBundles);
-			elt; elt = sdr_list_next(sdr, elt))
+			elt; elt = nextElt)
 	{
+		nextElt = sdr_list_next(sdr, elt);
 		cbObj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &cb, cbObj, sizeof(CustodyBundle));
 
@@ -2210,16 +2408,38 @@ int	cbr_retransmitAllCustody(Sdr sdr, char *destEid)
 			}
 		}
 
+		/*	Skip if bundle reference is invalid.		*/
+		if (cb.bundleObj == 0)
+		{
+			continue;
+		}
+
 		/*	Update retransmit tracking.			*/
 		cb.lastTransmit = getCtime();
 		cb.retransmitCount++;
 		sdr_write(sdr, cbObj, (char *) &cb, sizeof(CustodyBundle));
 
-		/*	TODO: Actually re-queue the bundle.		*/
+		/*	Re-queue the bundle for transmission.		*/
+		result = bpReforwardBundle(cb.bundleObj);
+		if (result < 0)
+		{
+			putErrmsg("CBR: Failed reforward in bulk retransmit.",
+					NULL);
+			sdr_cancel_xn(sdr);
+			return -1;
+		}
+
 		count++;
 	}
 
-	writeMemoNote("[i] CBR: Bulk retransmit requested, count",
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("CBR: Failed ending bulk retransmit transaction.",
+				NULL);
+		return -1;
+	}
+
+	writeMemoNote("[i] CBR: Bulk retransmit completed, count",
 			itoa(count));
 	return count;
 }
@@ -2265,4 +2485,28 @@ int	cbr_listCustodyBundles(Sdr sdr, CbrCustodyCallback callback,
 	}
 
 	return count;
+}
+
+int	cbr_getCustodyStatus(Sdr sdr, char *sourceEid, uvast seqId,
+		uvast seqNum)
+{
+	Object		custodyElt;
+
+	/*	Look for the bundle in custody tracking.		*/
+	custodyElt = cbr_findCustodyBundle(sdr, sourceEid, seqId, seqNum);
+	if (custodyElt == 0)
+	{
+		/*	Bundle not in custody tracking.
+		 *	This means either:
+		 *	- Never tracked (not a custody bundle)
+		 *	- Released (CCS accepted received)
+		 *
+		 *	We can't distinguish these cases without
+		 *	additional tracking, so return NOT_FOUND.	*/
+		return CBR_CUSTODY_STATUS_NOT_FOUND;
+	}
+
+	/*	Bundle is in custody tracking, so we're still
+	 *	waiting for the next hop to acknowledge custody.	*/
+	return CBR_CUSTODY_STATUS_PENDING;
 }

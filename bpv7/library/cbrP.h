@@ -211,6 +211,16 @@ extern Object		cbr_trackCustodyBundle(Sdr sdr, Object bundleObj,
  */
 extern void		cbr_untrackCustodyBundle(Sdr sdr, Object custodyElt);
 
+/**
+ * Remove custody tracking for a bundle identified by its SDR object address.
+ * Called from bpDestroyBundle when a bundle expires or is otherwise destroyed.
+ * This ensures custody tracking doesn't hold orphaned references.
+ *
+ * @param sdr		SDR handle
+ * @param bundleObj	SDR object address of the bundle being destroyed
+ */
+extern void		cbr_untrackBundleByObj(Sdr sdr, Object bundleObj);
+
 /*	Retransmission						*/
 
 /**

@@ -1042,6 +1042,7 @@ bpbin = \
 	bpsendtest \
 	bpsink \
 	bpsource \
+	cbrcustodytest \
 	bpstats \
 	bptrace \
 	bptracker \
@@ -1681,6 +1682,10 @@ bpsink_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpsource_SOURCES = bpv7/test/bpsource.c
 bpsource_LDADD = libici.la $(bplib)
 bpsource_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+cbrcustodytest_SOURCES = bpv7/test/cbrcustodytest.c
+cbrcustodytest_LDADD = libici.la $(bplib)
+cbrcustodytest_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpstats2_SOURCES = bpv7/test/bpstats2.c
 bpstats2_LDADD = libici.la $(bplib)

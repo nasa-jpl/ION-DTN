@@ -30,6 +30,7 @@ extern "C" {
 
 /*	CBOR data item types						*/
 #define	CborUnsignedInteger	0
+#define	CborNegativeInteger	1
 #define	CborByteString		2
 #define	CborTextString		3
 #define	CborArray		4
@@ -56,6 +57,23 @@ extern int	cbor_encode_fixed_int(	uvast value,
 			 *	is automatically advanced.
 			 *	Returns number of bytes written,
 			 *	0 on encoding error.			*/
+
+extern int	cbor_encode_negative_int(uvast value,
+					unsigned char **cursor);
+			/*	Encode a CBOR negative integer.
+			 *	The encoded value represents -(value+1).
+			 *	For example, value=0 encodes -1,
+			 *	value=1 encodes -2, etc.
+			 *	Cursor is automatically advanced.
+			 *	Returns number of bytes written.	*/
+
+extern int	cbor_encode_signed_int(	vast value,
+					unsigned char **cursor);
+			/*	Encode a signed integer. If value >= 0,
+			 *	encodes as unsigned integer. If value < 0,
+			 *	encodes as negative integer per CBOR.
+			 *	Cursor is automatically advanced.
+			 *	Returns number of bytes written.	*/
 
 extern int	cbor_encode_byte_string(unsigned char *value,
 					uvast size,
@@ -145,6 +163,17 @@ extern int	cbor_decode_integer_destructive(uvast *value,
 			/*	Same as cbor_decode_integer except
 			 *	that the value in the buffer is
 			 *	ANDed with the mask value.		*/
+
+extern int	cbor_decode_signed_int(	vast *value,
+					unsigned char **cursor,
+					unsigned int *bytesBuffered);
+			/*	Decode a CBOR signed integer.
+			 *	Accepts both unsigned (major type 0)
+			 *	and negative (major type 1) integers.
+			 *	Returns the signed value in *value.
+			 *	Cursor is automatically advanced.
+			 *	Returns number of bytes read,
+			 *	0 on decoding error.			*/
 
 extern int	cbor_decode_byte_string(unsigned char *value,
 					uvast *size,

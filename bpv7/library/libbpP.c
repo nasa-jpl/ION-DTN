@@ -24,7 +24,7 @@
 #include "bei.h"
 #include "eureka.h"
 #include "bibe.h"
-#include "cbr.h"
+#include "cbrP.h"	/* Private CBR header for internal functions */
 
 /*	Interfaces to other BP-related components of ION	*	*/
 
@@ -2762,6 +2762,12 @@ int	bpDestroyBundle(Object bundleObj, int unconditional)
 	}
 
 	sdr_stage(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
+
+	/*	Clean up custody tracking if this bundle was being tracked.
+	 *	This must be done before the bundle is destroyed to prevent
+	 *	orphaned custody entries that reference invalid bundleObj.	*/
+
+	cbr_untrackBundleByObj(sdr, bundleObj);
 
 	/*	Special handling for TTL expiration.			*/
 
@@ -6014,6 +6020,18 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 	if (processExtensionBlocks(bundle, PROCESS_ON_FORWARD, NULL) < 0)
 	{
 		putErrmsg("Can't process extensions.", "forward");
+		return -1;
+	}
+
+	/*	If bundle has CTEB and custody transfer is requested,
+	 *	accept custody now. This triggers:
+	 *	1. Sending CCS to previous custodian
+	 *	2. Adding bundle to local custody tracking
+	 *	Per Orange Book, custody is accepted at forwarding time.	*/
+
+	if (processExtensionBlocks(bundle, PROCESS_ON_TAKE_CUSTODY, NULL) < 0)
+	{
+		putErrmsg("Can't process custody acceptance.", NULL);
 		return -1;
 	}
 

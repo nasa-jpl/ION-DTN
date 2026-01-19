@@ -83,6 +83,17 @@ extern "C" {
 #define CBR_CUSTODY_ACCEPTED		1	/* CBOR: 1 */
 #define CBR_CUSTODY_REFUSED		(-1)	/* CBOR: -1 */
 
+/*	*	*	Custody Query Status Results	*	*	*/
+
+/*
+ * Return values from cbr_getCustodyStatus().
+ * Used to query the state of a bundle in the custody system.
+ */
+#define CBR_CUSTODY_STATUS_NOT_FOUND	0	/* Bundle not in custody tracking */
+#define CBR_CUSTODY_STATUS_PENDING	1	/* Waiting for CCS from next hop */
+#define CBR_CUSTODY_STATUS_RELEASED	2	/* CCS accepted received, released */
+#define CBR_CUSTODY_STATUS_REFUSED	3	/* CCS refused received */
+
 /*	*	*	Signal Types	*	*	*	*	*/
 
 #define CBR_SIGNAL_CRS			1
@@ -478,6 +489,19 @@ typedef void		(*CbrCustodyCallback)(CbrCustodyInfo *info,
 
 extern int		cbr_listCustodyBundles(Sdr sdr,
 				CbrCustodyCallback callback, void *userData);
+
+/**
+ * Query the custody status of a specific bundle.
+ * Used by test applications to verify custody transfer completion.
+ *
+ * @param sdr		SDR handle
+ * @param sourceEid	Source EID of the bundle
+ * @param seqId		Sequence identifier
+ * @param seqNum	Sequence number
+ * @return		CBR_CUSTODY_STATUS_* value, or -1 on error
+ */
+extern int		cbr_getCustodyStatus(Sdr sdr, char *sourceEid,
+				uvast seqId, uvast seqNum);
 
 /*	CBOR Encoding/Decoding Utilities				*/
 

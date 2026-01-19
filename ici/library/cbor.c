@@ -144,6 +144,49 @@ int	cbor_encode_integer(uvast value, unsigned char **cursor)
 	return 1 + length;
 }
 
+int	cbor_encode_negative_int(uvast value, unsigned char **cursor)
+{
+	unsigned char	bytes[8];
+	int		additionalInfo;
+	int		length;
+
+	/*	CBOR negative integers: major type 1
+	 *	The value n encodes the integer -(n+1).
+	 *	So to encode -1, pass value=0; to encode -2, pass value=1.
+	 */
+
+	length = encodeInteger(value, &additionalInfo, bytes);
+	encodeFirstByte(cursor, CborNegativeInteger, additionalInfo);
+	if (length > 0)
+	{
+		memcpy(*cursor, bytes, length);
+		*cursor += length;
+	}
+
+	return 1 + length;
+}
+
+int	cbor_encode_signed_int(vast value, unsigned char **cursor)
+{
+	/*	Encode a signed integer using the appropriate CBOR type.
+	 *	Non-negative values use major type 0 (unsigned).
+	 *	Negative values use major type 1 (negative).
+	 */
+
+	if (value >= 0)
+	{
+		return cbor_encode_integer((uvast) value, cursor);
+	}
+	else
+	{
+		/*	For negative value v, CBOR encodes -(n+1) = v
+		 *	so n = -v - 1 = -(v+1) = -1 - v
+		 *	Example: v=-1 => n=0, v=-2 => n=1
+		 */
+		return cbor_encode_negative_int((uvast) (-1 - value), cursor);
+	}
+}
+
 static int	encodeFixedLengthInteger(uvast value, int class,
 			int *additionalInfo, unsigned char *cursor)
 {
@@ -633,6 +676,49 @@ int	cbor_decode_integer_destructive(uvast *value, int class,
 	{
 		writeMemo("[?] CBOR integer decode failed.");
 		return 0;
+	}
+
+	return 1 + length;
+}
+
+int	cbor_decode_signed_int(vast *value, unsigned char **cursor,
+		unsigned int *bytesBuffered)
+{
+	int	majorType;
+	int	additionalInfo;
+	int	length;
+	uvast	uvalue;
+
+	CHKZERO(value && cursor && *cursor && bytesBuffered);
+	if (decodeFirstByte(cursor, bytesBuffered, &majorType, &additionalInfo)
+			< 1)
+	{
+		return 0;
+	}
+
+	if (majorType != CborUnsignedInteger && majorType != CborNegativeInteger)
+	{
+		writeMemo("[?] CBOR error: not integer (signed).");
+		return 0;
+	}
+
+	length = decodeInteger(&uvalue, CborAny, additionalInfo, cursor,
+			bytesBuffered, (uvast) -1);
+	if (length < 0)
+	{
+		writeMemo("[?] CBOR signed integer decode failed.");
+		return 0;
+	}
+
+	if (majorType == CborUnsignedInteger)
+	{
+		*value = (vast) uvalue;
+	}
+	else
+	{
+		/*	Negative integer: value represents -(n+1)
+		 *	so actual value = -1 - n			*/
+		*value = -1 - (vast) uvalue;
 	}
 
 	return 1 + length;
