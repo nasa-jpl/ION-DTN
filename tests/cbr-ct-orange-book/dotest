@@ -84,7 +84,7 @@ print_driver_stats() {
     fi
 }
 
-# Cleanup function - stops ION and test processes
+# Cleanup function - stops ION and test processes (used only for startup failures)
 cleanup() {
     echo ""
     echo "Stopping test processes..."
@@ -97,7 +97,6 @@ cleanup() {
 
     for node in 3.node 2.node 1.node; do
         cd "$TESTDIR/$node" 2>/dev/null && killm 2>/dev/null || true
-        sleep 1
     done
 
     echo "Cleanup complete."
@@ -659,13 +658,6 @@ done
 
 echo ""
 echo "========================================="
-echo "Cleaning up..."
-echo "========================================="
-
-cleanup
-
-echo ""
-echo "========================================="
 echo "TEST SUMMARY"
 echo "========================================="
 echo "Tests run:    $TESTS_RUN"
@@ -675,7 +667,7 @@ echo ""
 
 if [ $TESTS_FAILED -eq 0 ]; then
     echo "All Phase 6 integration tests PASSED"
-    cleanup
+    # Note: cleanup is handled by runtests calling ./cleanup
     exit 0
 else
     echo "Some tests FAILED"

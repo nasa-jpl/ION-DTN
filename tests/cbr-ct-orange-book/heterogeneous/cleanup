@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-## Cleanup script for CBR aggregation stress test
+## Cleanup script for CBR/CT heterogeneous network test
 
 TESTDIR=$(cd "$(dirname "$0")" && pwd)
 
-echo "Cleaning up CBR aggregation stress test environment..."
+echo "Cleaning up CBR/CT heterogeneous test environment..."
 
 # Kill any test processes
 pkill -f "bpsource" 2>/dev/null || true
@@ -13,7 +13,7 @@ pkill -f "bpdriver" 2>/dev/null || true
 pkill -f "cbrcustodytest" 2>/dev/null || true
 
 # Stop all nodes
-for node in 1.node 2.node; do
+for node in 1.node 2.node 3.node; do
     if [ -d "$TESTDIR/$node" ]; then
         cd "$TESTDIR/$node"
         killm 2>/dev/null || true
@@ -23,7 +23,7 @@ done
 sleep 1
 
 # Remove working files
-for node in 1.node 2.node; do
+for node in 1.node 2.node 3.node; do
     if [ -d "$TESTDIR/$node" ]; then
         cd "$TESTDIR/$node"
         rm -f ion.log ion_startup.log ion_nodes 2>/dev/null || true

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-## Cleanup script for CBR/CT Orange Book tests
-## Cleans up main test, heterogeneous test, and aggregation-stress test
+## Cleanup script for CBR/CT Orange Book main test
+## Only cleans up nodes in this directory (1.node, 2.node, 3.node)
+## Subtests (heterogeneous, aggregation-stress) have their own cleanup scripts
 
 TESTDIR=$(cd "$(dirname "$0")" && pwd)
 
@@ -14,7 +15,7 @@ pkill -f "bpdriver" 2>/dev/null || true
 pkill -f "bpecho" 2>/dev/null || true
 pkill -f "cbrcustodytest" 2>/dev/null || true
 
-# Stop all nodes in main test
+# Stop all nodes in main test only
 for node in 1.node 2.node 3.node; do
     if [ -d "$TESTDIR/$node" ]; then
         cd "$TESTDIR/$node"
@@ -22,25 +23,9 @@ for node in 1.node 2.node 3.node; do
     fi
 done
 
-# Stop nodes in heterogeneous test
-for node in 1.node 2.node 3.node; do
-    if [ -d "$TESTDIR/heterogeneous/$node" ]; then
-        cd "$TESTDIR/heterogeneous/$node"
-        killm 2>/dev/null || true
-    fi
-done
+sleep 1
 
-# Stop nodes in aggregation-stress test
-for node in 1.node 2.node; do
-    if [ -d "$TESTDIR/aggregation-stress/$node" ]; then
-        cd "$TESTDIR/aggregation-stress/$node"
-        killm 2>/dev/null || true
-    fi
-done
-
-sleep 2
-
-# Remove working files from main test
+# Remove working files from main test only
 for node in 1.node 2.node 3.node; do
     if [ -d "$TESTDIR/$node" ]; then
         cd "$TESTDIR/$node"
@@ -50,29 +35,6 @@ for node in 1.node 2.node 3.node; do
     fi
 done
 
-# Remove working files from heterogeneous test
-for node in 1.node 2.node 3.node; do
-    if [ -d "$TESTDIR/heterogeneous/$node" ]; then
-        cd "$TESTDIR/heterogeneous/$node"
-        rm -f ion.log ion_startup.log ion_nodes 2>/dev/null || true
-        rm -f *.ionsdr *.ionwm 2>/dev/null || true
-        rm -f *.txt bpdriverAduFile 2>/dev/null || true
-    fi
-done
-
-# Remove working files from aggregation-stress test
-for node in 1.node 2.node; do
-    if [ -d "$TESTDIR/aggregation-stress/$node" ]; then
-        cd "$TESTDIR/aggregation-stress/$node"
-        rm -f ion.log ion_startup.log ion_nodes 2>/dev/null || true
-        rm -f *.ionsdr *.ionwm 2>/dev/null || true
-        rm -f *.txt bpdriverAduFile 2>/dev/null || true
-    fi
-done
-
-# Remove ion_nodes files from all locations
 rm -f "$TESTDIR/ion_nodes" 2>/dev/null || true
-rm -f "$TESTDIR/heterogeneous/ion_nodes" 2>/dev/null || true
-rm -f "$TESTDIR/aggregation-stress/ion_nodes" 2>/dev/null || true
 
 echo "Cleanup complete."

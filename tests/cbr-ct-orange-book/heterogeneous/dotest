@@ -53,7 +53,7 @@ test_result() {
     fi
 }
 
-# Cleanup function
+# Cleanup function (used only for startup failures)
 cleanup() {
     echo ""
     echo "Stopping test processes..."
@@ -65,7 +65,6 @@ cleanup() {
 
     for node in 3.node 2.node 1.node; do
         cd "$TESTDIR/$node" 2>/dev/null && killm 2>/dev/null || true
-        sleep 1
     done
 
     echo "Cleanup complete."
@@ -261,13 +260,6 @@ else
     kill $COUNTER_PID 2>/dev/null || true
     test_result 1 "Multiple custody bundles through heterogeneous path"
 fi
-
-echo ""
-echo "========================================="
-echo "Cleaning up..."
-echo "========================================="
-
-cleanup
 
 echo ""
 echo "========================================="
