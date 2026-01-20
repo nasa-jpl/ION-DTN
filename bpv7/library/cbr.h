@@ -450,6 +450,28 @@ extern int		cbr_getStatusReportMode(Sdr sdr);
  */
 extern int		cbr_setStatusReportMode(Sdr sdr, int mode);
 
+/**
+ * Get custody mode setting.
+ * Determines which custody transfer mechanism is active:
+ *   BP_CUSTODY_NONE       (0): No custody transfer
+ *   BP_CUSTODY_BIBE       (1): BIBE custody transfer (RFC 9171)
+ *   BP_CUSTODY_ORANGEBOOK (2): Orange Book CBR/CT (CTEB/CCS)
+ *
+ * @param sdr		SDR handle
+ * @return		Current mode, or -1 on error
+ */
+extern int		cbr_getCustodyMode(Sdr sdr);
+
+/**
+ * Set custody mode for the node.
+ * Only one custody mechanism can be active at a time.
+ *
+ * @param sdr		SDR handle
+ * @param mode		Custody mode (BP_CUSTODY_*)
+ * @return		0 on success, -1 on error
+ */
+extern int		cbr_setCustodyMode(Sdr sdr, int mode);
+
 /*	Manual Retransmission (Command-Based)				*/
 
 /**

@@ -11,6 +11,7 @@
 									*/
 #include "bpP.h"
 #include "bibeP.h"
+#include "cbr.h"
 
 #ifndef	BIBE_SIGNAL_TIME_MARGIN
 #define	BIBE_SIGNAL_TIME_MARGIN	10
@@ -486,13 +487,23 @@ int	main(int argc, char *argv[])
 
 	/*	The properties of the encapsulating bundle are taken
 	 *	from the bcla as configured by bibeadmin.  The
-	 *	BP_CT_REQUESTED flag is ignored everywhere in ION
-	 *	except here; in bibeclo it controls the construction
-	 *	of the BPDU header, and it is switched off in the
-	 *	ancillary data that is to be inserted into the BPDU
-	 *	after it has been interrogated for this purpose.	*/
+	 *	BP_CT_REQUESTED flag controls the construction of the
+	 *	BPDU header, and it is switched off in the ancillary
+	 *	data that is to be inserted into the BPDU after it
+	 *	has been interrogated for this purpose.
+	 *
+	 *	BIBE custody is only active when custody mode is set
+	 *	to BP_CUSTODY_BIBE; if Orange Book custody is active,
+	 *	BIBE should not use custody signaling (CTEB handles it).*/
 
-	ctRequested = ((bcla.ancillaryData.flags & BP_CT_REQUESTED) > 0);
+	if (cbr_getCustodyMode(sdr) == BP_CUSTODY_BIBE)
+	{
+		ctRequested = ((bcla.ancillaryData.flags & BP_CT_REQUESTED) > 0);
+	}
+	else
+	{
+		ctRequested = 0;	/*	BIBE custody disabled.	*/
+	}
 	bcla.ancillaryData.flags &= (BP_MINIMUM_LATENCY | BP_PROTOCOL_ANY);
 	ttl = bcla.fwdLatency + bcla.rtnLatency;	/*	seconds	*/
 	if (bcla.lifespan > ttl)

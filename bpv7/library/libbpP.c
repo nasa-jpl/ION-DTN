@@ -1682,6 +1682,18 @@ int	bpInit(void)
 		return -1;
 	}
 
+	/*	Initialize CBR/CT subsystem (creates database if needed).	*/
+
+	if (cbr_initialize(sdr) < 0)
+	{
+		writeMemo("[?] Warning: CBR/CT initialization failed.");
+	}
+	else
+	{
+		writeMemo("[i] CBR/CT (Compressed Bundle Reporting and "
+				"Custody Transfer) is enabled.");
+	}
+
 	if (secAttach() < 0)
 	{
 		writeMemo("[?] Warning: running without bundle security.");
@@ -2164,6 +2176,15 @@ int	bpAttach(void)
 	}
 
 	oK(secAttach());
+
+	/*	Attach to CBR/CT database for custody transfer support.	*/
+
+	if (cbr_attach() < 0)
+	{
+		writeMemo("[?] Warning: CBR/CT attach failed; custody "
+				"transfer disabled.");
+	}
+
 	return 0;		/*	BP service is now available.	*/
 }
 

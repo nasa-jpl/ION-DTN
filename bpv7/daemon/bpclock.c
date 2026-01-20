@@ -12,6 +12,7 @@
 #include "bibe.h"
 #include "sdrhash.h"
 #include "smlist.h"
+#include "cbr.h"
 
 #ifndef MAX_CLO_INACTIVITY
 #define	MAX_CLO_INACTIVITY	(3)
@@ -596,6 +597,17 @@ int	main(void)
 				&previousFlush) < 0)
 		{
 			putErrmsg("Can't flush limbo queue.", NULL);
+			state = 0;
+			oK(_running(&state));
+		}
+
+		/*	Process CBR signal timeouts - flush pending
+		 *	CRS/CCS signals that have exceeded aggregate
+		 *	timeout.					*/
+
+		if (cbr_processTimeouts(sdr) < 0)
+		{
+			putErrmsg("Can't process CBR signal timeouts.", NULL);
 			state = 0;
 			oK(_running(&state));
 		}

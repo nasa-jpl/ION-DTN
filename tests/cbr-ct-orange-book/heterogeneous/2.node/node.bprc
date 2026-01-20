@@ -1,0 +1,15 @@
+## Bundle Protocol configuration for heterogeneous test - Node 2 (no CBR)
+## Standard BP relay node - will transparently forward CTEB blocks
+## Using UDP CLA
+
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:2.0 x
+a endpoint ipn:2.1 x
+a endpoint ipn:2.2 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4562 udpcli
+a outduct udp 127.0.0.1:4561 udpclo
+a outduct udp 127.0.0.1:4563 udpclo
+r 'ipnadmin node.ipnrc'
+s

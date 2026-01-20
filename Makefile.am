@@ -1154,6 +1154,7 @@ bpextra = \
 	bpv7/doc/pod1/bpclm.pod \
 	bpv7/doc/pod1/bpclock.pod \
 	bpv7/doc/pod1/bpcounter.pod \
+	bpv7/doc/pod1/cbrcustodytest.pod \
 	bpv7/doc/pod1/bpdriver.pod \
 	bpv7/doc/pod1/bpecho.pod \
 	bpv7/doc/pod1/bping.pod \
@@ -1239,6 +1240,7 @@ bpmans = \
 	bpv7/doc/bpclm.1 \
 	bpv7/doc/bpclock.1 \
 	bpv7/doc/bpcounter.1 \
+	bpv7/doc/cbrcustodytest.1 \
 	bpv7/doc/bpdriver.1 \
 	bpv7/doc/bpecho.1 \
 	bpv7/doc/bping.1 \

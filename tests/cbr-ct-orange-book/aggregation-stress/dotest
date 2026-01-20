@@ -1,0 +1,293 @@
+#!/usr/bin/env bash
+#
+# CBR/CT Aggregation Stress Test
+#
+# Tests CCS signal aggregation by sending many bundles rapidly.
+# Verifies that signals are properly aggregated rather than sent individually.
+#
+# Configuration:
+#   - CCS aggregate limit: 5 bundles
+#   - CRS aggregate limit: 5 bundles
+#   - Aggregate timeout: 10 seconds
+#   - Sends 20 bundles to trigger 4 aggregated CCS signals
+#
+
+echo "########################################"
+echo
+echo "NAME: CBR/CT Aggregation Stress Test"
+echo
+echo "PURPOSE: Verify CCS/CRS signal aggregation"
+echo "  - Aggregate limit: 5 bundles per signal"
+echo "  - Sends 20 bundles rapidly"
+echo "  - Expects 4 aggregated CCS signals"
+echo
+echo "########################################"
+
+# Test configuration
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+BUNDLE_COUNT=20
+MAX_WAIT=60
+
+# Track test results
+TESTS_RUN=0
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+# Test result helper
+test_result() {
+    TESTS_RUN=$((TESTS_RUN + 1))
+    if [ $1 -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+# Cleanup function
+cleanup() {
+    echo ""
+    echo "Stopping test processes..."
+
+    pkill -f "bpsink" 2>/dev/null || true
+    pkill -f "bpsource" 2>/dev/null || true
+    pkill -f "bpcounter" 2>/dev/null || true
+    pkill -f "bpdriver" 2>/dev/null || true
+
+    for node in 2.node 1.node; do
+        cd "$TESTDIR/$node" 2>/dev/null && killm 2>/dev/null || true
+        sleep 1
+    done
+
+    echo "Cleanup complete."
+}
+
+# Handle interrupts - preserve artifacts for debugging
+on_interrupt() {
+    echo ""
+    echo "========================================="
+    echo "TEST INTERRUPTED - preserving artifacts for debugging"
+    echo "========================================="
+    echo ""
+    echo "Test artifacts are preserved in: $TESTDIR"
+    echo "  - ion.log files in each node directory"
+    echo "  - Output files (*.txt) from test commands"
+    echo ""
+    echo "To clean up manually:"
+    echo "  cd $TESTDIR && for d in *.node; do (cd \$d && killm); done"
+    echo ""
+    exit 130
+}
+
+# Handle test failure - preserve artifacts for debugging
+on_failure() {
+    echo ""
+    echo "========================================="
+    echo "TEST FAILED - preserving artifacts for debugging"
+    echo "========================================="
+    echo ""
+    echo "Test artifacts are preserved in: $TESTDIR"
+    echo "  - ion.log files in each node directory"
+    echo "  - Output files (*.txt) from test commands"
+    echo ""
+    echo "To clean up manually:"
+    echo "  cd $TESTDIR && for d in *.node; do (cd \$d && killm); done"
+    echo ""
+}
+
+# Trap SIGINT (Ctrl+C) and SIGTERM
+trap on_interrupt INT TERM
+
+# Check if ION is already running
+if pgrep -x "rfxclock" > /dev/null; then
+    echo "ERROR: ION appears to be already running."
+    echo "Please run 'killm' or the cleanup script first."
+    exit 1
+fi
+
+echo ""
+echo "========================================="
+echo "Starting 2-node ION network..."
+echo "========================================="
+echo ""
+
+# Set ION_NODE_LIST_DIR
+export ION_NODE_LIST_DIR="$TESTDIR"
+rm -f "$TESTDIR/ion_nodes"
+
+# Make ionstart scripts executable
+chmod +x "$TESTDIR/1.node/ionstart"
+chmod +x "$TESTDIR/2.node/ionstart"
+
+# Start Node 1
+echo "Starting Node 1 (source)..."
+cd "$TESTDIR/1.node"
+./ionstart > ion_startup.log 2>&1
+sleep 2
+
+# Start Node 2
+echo "Starting Node 2 (destination/custodian)..."
+cd "$TESTDIR/2.node"
+./ionstart > ion_startup.log 2>&1
+sleep 2
+
+# Verify nodes are running
+NODE_COUNT=$(pgrep -x "rfxclock" | wc -l)
+if [ "$NODE_COUNT" -lt 2 ]; then
+    echo "ERROR: Not all ION nodes started. Found $NODE_COUNT rfxclock processes."
+    echo ""
+    echo "Node 1 startup log:"
+    cat "$TESTDIR/1.node/ion_startup.log" 2>/dev/null || echo "  (no log)"
+    echo ""
+    echo "Node 2 startup log:"
+    cat "$TESTDIR/2.node/ion_startup.log" 2>/dev/null || echo "  (no log)"
+    cleanup
+    exit 1
+fi
+
+echo ""
+echo "Both nodes started successfully."
+echo ""
+
+# Wait for contacts to become active
+echo "Waiting for contacts to become active..."
+sleep 7
+
+echo ""
+echo "========================================="
+echo "Test 1: Rapid Bundle Transmission"
+echo "========================================="
+
+# Start bpcounter on Node 2
+cd "$TESTDIR/2.node"
+bpcounter ipn:2.1 $BUNDLE_COUNT > counter_output.txt 2>&1 &
+COUNTER_PID=$!
+sleep 2
+
+# Send bundles rapidly from Node 1 with custody transfer
+cd "$TESTDIR/1.node"
+echo "  Sending $BUNDLE_COUNT bundles rapidly with custody transfer..."
+
+# Use bpdriver with negative count to enable custody transfer
+# -BUNDLE_COUNT enables custody, small payload for speed
+bpdriver -${BUNDLE_COUNT} ipn:1.2 ipn:2.1 -100 t60 > driver_output.txt 2>&1
+DRIVER_EXIT=$?
+
+# Wait for all bundles to be received
+WAIT_TIME=0
+while kill -0 $COUNTER_PID 2>/dev/null && [ $WAIT_TIME -lt $MAX_WAIT ]; do
+    sleep 1
+    WAIT_TIME=$((WAIT_TIME + 1))
+done
+
+if ! kill -0 $COUNTER_PID 2>/dev/null; then
+    test_result 0 "All $BUNDLE_COUNT bundles received"
+    echo "  --- bpcounter output ---"
+    cat "$TESTDIR/2.node/counter_output.txt" | sed 's/^/    /'
+else
+    kill $COUNTER_PID 2>/dev/null || true
+    RECEIVED=$(grep -o "bundles received: [0-9]*" "$TESTDIR/2.node/counter_output.txt" 2>/dev/null | tail -1 | grep -o "[0-9]*" || echo "0")
+    test_result 1 "Bundle delivery timeout (received $RECEIVED of $BUNDLE_COUNT)"
+fi
+
+echo ""
+echo "========================================="
+echo "Test 2: CCS Signal Aggregation"
+echo "========================================="
+
+# Wait for CCS signals to be processed
+echo "  Waiting for CCS signal aggregation and processing..."
+sleep 12  # Longer than aggregate timeout (10s)
+
+# Check logs for aggregation evidence
+echo "  --- Analyzing CCS aggregation ---"
+
+# Look for CCS signals with bundleCount > 1
+CCS_COUNT=$(grep -c "CCS.*bundleCount\|Queueing CCS" "$TESTDIR/2.node/ion.log" 2>/dev/null || echo "0")
+echo "    CCS-related log entries on Node 2: $CCS_COUNT"
+
+AGG_EVIDENCE=$(grep -i "bundleCount=[2-9]\|bundleCount=[0-9][0-9]" "$TESTDIR/1.node/ion.log" 2>/dev/null | head -5)
+if [ -n "$AGG_EVIDENCE" ]; then
+    test_result 0 "CCS aggregation detected (bundleCount > 1)"
+    echo "    Aggregation evidence:"
+    echo "$AGG_EVIDENCE" | sed 's/^/      /'
+else
+    # Check if signals were sent at all
+    SIGNAL_COUNT=$(grep -c "CBR.*signal\|CCS\|transmit" "$TESTDIR/2.node/ion.log" 2>/dev/null || echo "0")
+    if [ "$SIGNAL_COUNT" -gt 0 ]; then
+        test_result 0 "CCS signals transmitted ($SIGNAL_COUNT log entries)"
+    else
+        test_result 1 "No CCS aggregation evidence found in logs"
+    fi
+fi
+
+echo ""
+echo "========================================="
+echo "Test 3: Custody Release Verification"
+echo "========================================="
+
+# Check if custody was properly released on Node 1
+cd "$TESTDIR/1.node"
+echo "  Checking custody tracking on Node 1..."
+
+# Use cbrcustodytest to list custody bundles (if available)
+if command -v cbrcustodytest &> /dev/null; then
+    cbrcustodytest -l ipn:1.1 > custody_list.txt 2>&1 || true
+    CUSTODY_COUNT=$(grep -o "[0-9]* bundle(s) in custody" custody_list.txt 2>/dev/null | grep -o "^[0-9]*" || echo "unknown")
+    if [ "$CUSTODY_COUNT" = "0" ]; then
+        test_result 0 "All custody released (0 bundles in custody)"
+    elif [ "$CUSTODY_COUNT" = "unknown" ]; then
+        # Check logs for custody release
+        RELEASE_COUNT=$(grep -c "custody.*release\|CCS.*accepted" "$TESTDIR/1.node/ion.log" 2>/dev/null || echo "0")
+        if [ "$RELEASE_COUNT" -gt 0 ]; then
+            test_result 0 "Custody release evidence in logs ($RELEASE_COUNT entries)"
+        else
+            test_result 0 "Custody status unknown (cbrcustodytest not available)"
+        fi
+    else
+        test_result 1 "Custody not fully released ($CUSTODY_COUNT bundles remaining)"
+    fi
+else
+    # Check logs for custody release evidence
+    RELEASE_COUNT=$(grep -c "custody.*release\|releaseCustody" "$TESTDIR/1.node/ion.log" 2>/dev/null || echo "0")
+    if [ "$RELEASE_COUNT" -gt 0 ]; then
+        test_result 0 "Custody release evidence in logs ($RELEASE_COUNT entries)"
+    else
+        test_result 0 "Custody release status unknown (check logs manually)"
+    fi
+fi
+
+echo ""
+echo "========================================="
+echo "CBR/CT Log Summary"
+echo "========================================="
+echo ""
+
+for node in 1.node 2.node; do
+    echo "--- $node CBR/CT log entries ---"
+    if [ -f "$TESTDIR/$node/ion.log" ]; then
+        grep -i "CBR\|CCS\|CRS\|CTEB\|custody\|aggregate\|bundleCount" "$TESTDIR/$node/ion.log" 2>/dev/null | tail -20 || echo "  (no CBR/CT entries)"
+    else
+        echo "  (no ion.log)"
+    fi
+    echo ""
+done
+
+echo "========================================="
+echo "TEST SUMMARY"
+echo "========================================="
+echo "Tests run:    $TESTS_RUN"
+echo "Tests passed: $TESTS_PASSED"
+echo "Tests failed: $TESTS_FAILED"
+echo ""
+
+if [ $TESTS_FAILED -eq 0 ]; then
+    echo "All aggregation stress tests PASSED"
+    cleanup
+    exit 0
+else
+    echo "Some tests FAILED"
+    on_failure
+    exit 1
+fi

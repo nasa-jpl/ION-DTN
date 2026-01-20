@@ -641,6 +641,13 @@ typedef enum
 	BP_SR_MODE_BOTH        = 2	/*	Both (for testing)		*/
 } BpStatusReportMode;
 
+typedef enum
+{
+	BP_CUSTODY_NONE      = 0,	/*	No custody transfer		*/
+	BP_CUSTODY_BIBE      = 1,	/*	BIBE custody (RFC 9171)		*/
+	BP_CUSTODY_ORANGEBOOK = 2	/*	Orange Book CBR/CT (CTEB/CCS)	*/
+} BpCustodyMode;
+
 typedef struct
 {
 	BpEventType	type;
@@ -705,6 +712,7 @@ typedef struct
 	/*	Compressed Bundle Reporting (CBR) configuration		*/
 
 	BpStatusReportMode	statusRptMode;	/*	For local bundles.	*/
+	BpCustodyMode		custodyMode;	/*	CT mechanism to use.	*/
 } BpDB;
 
 #define BP_STATUS_RECEIVE	0

@@ -1,0 +1,16 @@
+## Global contact plan for CBR aggregation stress test
+##
+## Topology: Node 1 (source) -> Node 2 (destination/custodian)
+##
+## This test verifies CCS signal aggregation when many bundles
+## are sent rapidly.
+
+m horizon +0
+
+## Ranges (OWLT = 1 second)
+a range +0 +600 1 2 1
+a range +0 +600 2 1 1
+
+## Contacts: Node 1 <-> Node 2 (high bandwidth for stress test)
+a contact +5 +600 1 2 1000000
+a contact +5 +600 2 1 1000000

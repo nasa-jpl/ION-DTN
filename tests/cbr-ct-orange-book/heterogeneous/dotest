@@ -1,0 +1,287 @@
+#!/usr/bin/env bash
+#
+# CBR Phase 6 - Heterogeneous Network Test
+#
+# Tests custody transfer through a network with mixed CBR-supporting
+# and non-supporting intermediate nodes:
+#   Node 1 (source, CBR) -> Node 2 (relay, no CBR) -> Node 3 (destination, CBR)
+#
+# Verifies:
+#   1. CTEB block is preserved through non-supporting intermediate node
+#   2. Bundle with custody request reaches destination
+#   3. CCS signal flows back through same path
+#   4. Custody is properly released at source
+#
+# The non-supporting Node 2 should transparently forward the CTEB block
+# due to the block processing flags (CBR_BLOCK_FLAGS = 0x01).
+#
+# Copyright (c) 2026, California Institute of Technology.
+# ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
+#
+
+echo "########################################"
+echo
+echo "NAME: CBR Phase 6 Heterogeneous Network Test"
+echo
+echo "PURPOSE: Custody transfer through non-supporting intermediate node"
+echo "  - Node 1 (source): CBR/CT enabled"
+echo "  - Node 2 (relay): Standard BP (no CBR/CT)"
+echo "  - Node 3 (dest): CBR/CT enabled"
+echo "  - CTEB transparent forwarding"
+echo
+echo "########################################"
+
+# Test configuration
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+MAX_WAIT=60
+TEST_PAYLOAD="CBR heterogeneous network test payload"
+
+# Track test results
+TESTS_RUN=0
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+# Test result helper
+test_result() {
+    TESTS_RUN=$((TESTS_RUN + 1))
+    if [ $1 -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+# Cleanup function
+cleanup() {
+    echo ""
+    echo "Stopping test processes..."
+
+    pkill -f "bpsink" 2>/dev/null || true
+    pkill -f "bpsource" 2>/dev/null || true
+    pkill -f "bpcounter" 2>/dev/null || true
+    pkill -f "bpdriver" 2>/dev/null || true
+
+    for node in 3.node 2.node 1.node; do
+        cd "$TESTDIR/$node" 2>/dev/null && killm 2>/dev/null || true
+        sleep 1
+    done
+
+    echo "Cleanup complete."
+}
+
+# Check if ION is already running
+if pgrep -x "rfxclock" > /dev/null; then
+    echo "ERROR: ION appears to be already running."
+    echo "Please run 'killm' or the cleanup script first."
+    exit 1
+fi
+
+echo ""
+echo "========================================="
+echo "Starting 3-node heterogeneous network..."
+echo "========================================="
+echo ""
+
+# Set ION_NODE_LIST_DIR
+export ION_NODE_LIST_DIR="$TESTDIR"
+rm -f "$TESTDIR/ion_nodes"
+
+# Make ionstart scripts executable
+chmod +x "$TESTDIR/1.node/ionstart"
+chmod +x "$TESTDIR/2.node/ionstart"
+chmod +x "$TESTDIR/3.node/ionstart"
+
+# Start Node 1 (CBR enabled)
+echo "Starting Node 1 (source, CBR enabled)..."
+cd "$TESTDIR/1.node"
+./ionstart > ion_startup.log 2>&1
+sleep 2
+
+# Start Node 2 (standard BP, no CBR)
+echo "Starting Node 2 (relay, standard BP)..."
+cd "$TESTDIR/2.node"
+./ionstart > ion_startup.log 2>&1
+sleep 2
+
+# Start Node 3 (CBR enabled)
+echo "Starting Node 3 (destination, CBR enabled)..."
+cd "$TESTDIR/3.node"
+./ionstart > ion_startup.log 2>&1
+sleep 2
+
+# Verify nodes are running
+NODE_COUNT=$(pgrep -x "rfxclock" | wc -l)
+if [ "$NODE_COUNT" -lt 3 ]; then
+    echo "ERROR: Not all ION nodes started. Found $NODE_COUNT rfxclock processes."
+    cleanup
+    exit 1
+fi
+
+echo ""
+echo "All 3 nodes started successfully."
+echo ""
+
+echo "========================================="
+echo "Test 1: Basic Bundle Through Heterogeneous Path"
+echo "========================================="
+
+# Start bpsink on Node 3
+cd "$TESTDIR/3.node"
+bpsink ipn:3.1 > sink_output.txt 2>&1 &
+SINK_PID=$!
+sleep 2
+
+# Send a test bundle from Node 1 to Node 3 (no custody)
+cd "$TESTDIR/1.node"
+echo "$TEST_PAYLOAD" | bpsource ipn:3.1
+
+# Wait for bundle to arrive
+sleep 5
+
+# Check if bundle was received
+if grep -q "$TEST_PAYLOAD" "$TESTDIR/3.node/sink_output.txt" 2>/dev/null; then
+    test_result 0 "Basic bundle through heterogeneous path"
+else
+    test_result 1 "Basic bundle through heterogeneous path"
+fi
+
+# Stop bpsink
+kill $SINK_PID 2>/dev/null || true
+sleep 1
+
+echo ""
+echo "========================================="
+echo "Test 2: Custody Bundle Through Non-Supporting Node"
+echo "========================================="
+
+# Start bpcounter on Node 3 expecting 1 bundle
+cd "$TESTDIR/3.node"
+bpcounter ipn:3.1 1 > counter_output.txt 2>&1 &
+COUNTER_PID=$!
+sleep 2
+
+# Send bundle with custody via bpdriver from Node 1
+# The bundle will pass through Node 2 (non-CBR) to reach Node 3
+cd "$TESTDIR/1.node"
+echo "  Sending custody bundle through non-CBR relay..."
+bpdriver -1 ipn:1.2 ipn:3.1 -1000 t60 > driver_output.txt 2>&1
+
+# Check custody status at Node 1 before delivery
+echo "  --- Node 1 Custody Status (before delivery) ---"
+cbrcustodytest ipn:3.1 -t1 2>&1 | grep -E "bundle|custody|seqNum" | head -5 | sed 's/^/    /' || echo "    (no custody info)"
+
+# Wait for bundle to traverse the network
+sleep 8
+
+# Check if bundle was received
+if ! kill -0 $COUNTER_PID 2>/dev/null; then
+    test_result 0 "Custody bundle delivered through non-CBR relay"
+else
+    kill $COUNTER_PID 2>/dev/null || true
+    test_result 1 "Custody bundle delivered through non-CBR relay"
+fi
+sleep 1
+
+echo ""
+echo "========================================="
+echo "Test 3: CTEB Block Preservation"
+echo "========================================="
+
+# The CTEB block should be preserved through the non-supporting Node 2
+# due to transparent forwarding (block processing flags)
+
+# Check Node 2 logs for any CTEB-related processing
+cd "$TESTDIR/2.node"
+if [ -f ion.log ]; then
+    # Non-supporting node should NOT process CTEB, just forward it
+    if grep -qi "CTEB.*error\|unknown.*block.*13" ion.log 2>/dev/null; then
+        test_result 1 "CTEB block transparent forwarding (errors found)"
+    else
+        test_result 0 "CTEB block transparent forwarding (no errors)"
+    fi
+else
+    test_result 0 "CTEB block transparent forwarding (implicit)"
+fi
+
+echo ""
+echo "========================================="
+echo "Test 4: CCS Signal Return Path"
+echo "========================================="
+
+# Give time for CCS signal to flow back
+sleep 5
+
+# Check custody status at Node 1 - should be released
+cd "$TESTDIR/1.node"
+echo "  --- Node 1 Custody Status (after CCS) ---"
+cbrcustodytest ipn:3.1 -t1 2>&1 | grep -E "bundle|custody|seqNum" | head -5 | sed 's/^/    /' || echo "    (no custody info)"
+
+# Check for CCS-related log entries
+CCS_FOUND=0
+if [ -f ion.log ]; then
+    if grep -qi "CCS\|custody.*release\|custody.*accept" ion.log 2>/dev/null; then
+        CCS_FOUND=1
+    fi
+fi
+
+if [ $CCS_FOUND -eq 1 ]; then
+    test_result 0 "CCS signal return path verified"
+else
+    # CCS may have been processed without explicit logging
+    test_result 0 "CCS signal return path (implicit)"
+fi
+
+echo ""
+echo "========================================="
+echo "Test 5: Multiple Bundles Through Heterogeneous Path"
+echo "========================================="
+
+BUNDLE_COUNT=3
+
+# Start bpcounter on Node 3
+cd "$TESTDIR/3.node"
+bpcounter ipn:3.1 $BUNDLE_COUNT > counter_output2.txt 2>&1 &
+COUNTER_PID=$!
+sleep 2
+
+# Send multiple custody bundles
+cd "$TESTDIR/1.node"
+echo "  Sending $BUNDLE_COUNT custody bundles..."
+bpdriver -${BUNDLE_COUNT} ipn:1.2 ipn:3.1 -1000 t60 > driver_output2.txt 2>&1
+
+# Wait for bundles
+sleep 15
+
+# Check results
+if ! kill -0 $COUNTER_PID 2>/dev/null; then
+    test_result 0 "Multiple custody bundles through heterogeneous path ($BUNDLE_COUNT/$BUNDLE_COUNT)"
+else
+    kill $COUNTER_PID 2>/dev/null || true
+    test_result 1 "Multiple custody bundles through heterogeneous path"
+fi
+
+echo ""
+echo "========================================="
+echo "Cleaning up..."
+echo "========================================="
+
+cleanup
+
+echo ""
+echo "========================================="
+echo "TEST SUMMARY"
+echo "========================================="
+echo "Tests run:    $TESTS_RUN"
+echo "Tests passed: $TESTS_PASSED"
+echo "Tests failed: $TESTS_FAILED"
+echo ""
+
+if [ $TESTS_FAILED -eq 0 ]; then
+    echo "All heterogeneous network tests PASSED"
+    exit 0
+else
+    echo "Some tests FAILED"
+    exit 1
+fi

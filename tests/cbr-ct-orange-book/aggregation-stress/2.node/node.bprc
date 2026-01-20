@@ -1,0 +1,15 @@
+## Bundle Protocol configuration for aggregation test - Node 2 (destination)
+## Uses higher aggregate limits to test CCS aggregation
+
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:2.0 x
+a endpoint ipn:2.1 x
+a endpoint ipn:2.2 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4562 udpcli
+a outduct udp 127.0.0.1:4561 udpclo
+r 'ipnadmin node.ipnrc'
+m custodymode orangebook
+m cbraggr 5 5 10
+s

@@ -1,0 +1,4 @@
+## IPN routing for Node 3
+## All traffic to nodes 1 and 2 goes through outduct to Node 2
+a plan 1 udp/127.0.0.1:4562
+a plan 2 udp/127.0.0.1:4562

@@ -88,6 +88,64 @@ for any bundle sourced at a node that lacks a synchronized clock (such that
 the creation time in the ID of every locally sourced bundle is always zero).
 The default value is -1, i.e., unlimited.
 
+=item B<m custodymode> { none | bibe | orangebook }
+
+The B<manage custody mode> command.  This command sets the custody transfer
+mode for the local node.  The available modes are:
+
+B<none>    Custody transfer is disabled.  Bundles requesting custody
+           transfer will be forwarded without custody tracking.
+
+B<bibe>    Bundle-In-Bundle Encapsulation mode.  This mode is reserved
+           for future implementation of BIBE-based custody transfer.
+
+B<orangebook>  CCSDS Orange Book mode.  Enables Compressed Bundle Reporting
+           (CBR) and Custody Transfer (CT) as specified in the CCSDS
+           Orange Book "Compressed Bundle Status Reporting and Custody
+           Signaling" specification.  When enabled, this mode:
+           - Adds CTEB (Custody Transfer Extension Block, type 13) to
+             bundles requesting custody transfer
+           - Adds CREB (Compressed Reporting Extension Block, type 14) to
+             bundles requesting status reports
+           - Generates and processes CCS (Compressed Custody Signals)
+           - Generates and processes CRS (Compressed Reporting Signals)
+           - Tracks bundles under custody for potential retransmission
+
+The default mode is B<none>.
+
+=item B<m cbraggr> I<crs_limit> I<ccs_limit> I<timeout_seconds>
+
+The B<manage CBR aggregation> command.  This command configures the
+aggregation parameters for Compressed Reporting Signals (CRS) and
+Compressed Custody Signals (CCS).  Signal aggregation allows multiple
+status reports or custody acknowledgments to be combined into a single
+administrative bundle, reducing overhead.
+
+I<crs_limit> specifies the maximum number of bundle sequence entries to
+aggregate into a single CRS before transmission.  When this limit is
+reached, the aggregated CRS is transmitted immediately.
+
+I<ccs_limit> specifies the maximum number of bundle sequence entries to
+aggregate into a single CCS before transmission.  When this limit is
+reached, the aggregated CCS is transmitted immediately.
+
+I<timeout_seconds> specifies the maximum time in seconds to wait before
+transmitting an aggregated signal, even if the aggregation limit has not
+been reached.  This ensures timely delivery of status information.
+
+For testing purposes, setting both limits to 1 and timeout to a small
+value (e.g., 2) causes immediate signal transmission:
+
+    m cbraggr 1 1 2
+
+For production use, higher limits reduce overhead:
+
+    m cbraggr 100 50 30
+
+The default values are 10 for both limits and 5 seconds for timeout.
+
+This command requires B<m custodymode orangebook> to be effective.
+
 =item B<x>
 
 The B<stop> command.  This command stops all schemes and all protocols

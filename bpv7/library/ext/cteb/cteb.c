@@ -50,23 +50,32 @@ typedef struct {
 int	cteb_offer(ExtensionBlock *blk, Bundle *bundle)
 {
 	Sdr		sdr = getIonsdr();
+	int		custodyMode;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	CtebScratchpad	scratch;
 	uvast		seqNum;
 	char		*sourceEidStr;
+	char		*destEidStr;
 	Object		scratchAddr;
 
-	/*	Check if custody transfer is requested for this bundle.
-	 *	Per BPv7, custody transfer is indicated by the
-	 *	BP_CT_REQUESTED flag (formerly in bundleProcFlags).
+	/*	Check if Orange Book custody mode is active.
+	 *	CTEB should only be attached when:
+	 *	  1. Custody mode is set to BP_CUSTODY_ORANGEBOOK, AND
+	 *	  2. Application requested custody (SourceCustodyRequired)
 	 *
-	 *	For now, we check if the bundle is marked for custody
-	 *	in the internal custody tracking field.			*/
+	 *	This ensures CTEB doesn't conflict with BIBE custody.	*/
 
-	if (!(bundle->qosFlags & BP_CT_REQUESTED))
+	custodyMode = cbr_getCustodyMode(sdr);
+	if (custodyMode != BP_CUSTODY_ORANGEBOOK)
 	{
-		/*	Custody transfer not requested.			*/
+		/*	Orange Book custody not active on this node.	*/
+		return 0;
+	}
+
+	if (!(bundle->ancillaryData.flags & BP_CT_REQUESTED))
+	{
+		/*	Custody transfer not requested by application.	*/
 		return 0;
 	}
 
@@ -88,14 +97,30 @@ int	cteb_offer(ExtensionBlock *blk, Bundle *bundle)
 		return -1;
 	}
 
+	/*	Read destination EID for sequence counter lookup.
+	 *	Per Orange Book, seqId 0 uses destination-specific counters. */
+
+	readEid(&bundle->destination, &destEidStr);
+	if (destEidStr == NULL)
+	{
+		MRELEASE(sourceEidStr);
+		putErrmsg("CTEB: can't read destination EID.", NULL);
+		return -1;
+	}
+
 	/*	Use seqId 0 (destination-specific counters).
 	 *	forCustody = 1 to use custody-specific counter.		*/
 
-	if (cbr_allocateSeqNum(sdr, sourceEidStr, NULL, 0, 1, &seqNum) < 0)
+	if (cbr_allocateSeqNum(sdr, sourceEidStr, destEidStr, 0, 1, &seqNum) < 0)
 	{
+		MRELEASE(sourceEidStr);
+		MRELEASE(destEidStr);
 		putErrmsg("CTEB: can't allocate sequence number.", NULL);
 		return -1;
 	}
+
+	MRELEASE(destEidStr);
+	MRELEASE(sourceEidStr);
 
 	/*	Populate scratchpad with CTEB data.			*/
 
@@ -132,7 +157,6 @@ int	cteb_offer(ExtensionBlock *blk, Bundle *bundle)
 	/*	Per Orange Book: bundles with CTEB MUST NOT be fragmented. */
 
 	bundle->bundleProcFlags |= BDL_DOES_NOT_FRAGMENT;
-
 	return 0;
 }
 
@@ -343,12 +367,16 @@ int	cteb_processOnAccept(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	 *	1. Send CCS acceptance to previous custodian
 	 *	2. Add bundle to local custody tracking		*/
 
+	writeMemoNote("[i] CTEB: Accepting custody from", ctebData.custodianEid ?
+			ctebData.custodianEid : "(null)");
+
 	if (cbr_acceptCustody(sdr, bundle, &ctebData) < 0)
 	{
 		putErrmsg("CTEB: custody acceptance failed.", NULL);
 		return -1;
 	}
 
+	writeMemo("[i] CTEB: Custody accepted, CCS queued.");
 	return 0;
 }
 

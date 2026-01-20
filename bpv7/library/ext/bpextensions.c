@@ -307,5 +307,10 @@ static ExtensionSpec		extensionSpecs[] =
 #if CGRREB
 					{ CGRRBlk, 0, NoCRC },
 #endif
+	/*	CBR/CT extension blocks for compressed reporting
+	 *	and custody transfer.  Block type 13 (CTEB) and
+	 *	block type 14 (CREB).				*/
+					{ CompressedReportingBlk, 0, NoCRC },
+					{ CustodyTransferBlk, 0, NoCRC },
 					{ UnknownBlk, 0, NoCRC }
 				};

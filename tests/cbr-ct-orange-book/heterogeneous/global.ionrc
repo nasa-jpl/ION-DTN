@@ -1,0 +1,21 @@
+## Global contact plan for heterogeneous network test
+##
+## Topology: Node 1 (CBR) -> Node 2 (no CBR) -> Node 3 (CBR)
+##
+## Tests CTEB transparent forwarding through non-supporting node
+
+m horizon +0
+
+## Ranges (OWLT = 1 second between adjacent nodes)
+a range +0 +600 1 2 1
+a range +0 +600 2 1 1
+a range +0 +600 2 3 1
+a range +0 +600 3 2 1
+
+## Contacts: Node 1 <-> Node 2
+a contact +5 +600 1 2 100000
+a contact +5 +600 2 1 100000
+
+## Contacts: Node 2 <-> Node 3
+a contact +5 +600 2 3 100000
+a contact +5 +600 3 2 100000

@@ -1,0 +1,167 @@
+=head1 NAME
+
+cbrcustodytest - Bundle Protocol custody transfer test program
+
+=head1 SYNOPSIS
+
+B<cbrcustodytest> [B<-v>] I<ownEid> I<destEid> [I<reportToEid>]
+
+=head1 DESCRIPTION
+
+B<cbrcustodytest> is a test program for verifying the Compressed Bundle
+Reporting (CBR) and Custody Transfer (CT) implementation as specified in
+the CCSDS Orange Book "Compressed Bundle Status Reporting and Custody
+Signaling" specification.
+
+The program sends a test bundle with custody transfer requested from
+I<ownEid> to I<destEid>, then monitors the custody transfer lifecycle
+to verify proper operation. It exercises the CBR/CT APIs including
+custody acceptance, CCS (Compressed Custody Signal) generation and
+processing, and custody release.
+
+B<cbrcustodytest> performs the following verification steps:
+
+=over 4
+
+=item 1.
+
+Attaches to the local ION node and opens the source endpoint I<ownEid>.
+
+=item 2.
+
+Creates and sends a test bundle with custody transfer requested, which
+causes the local node to track the bundle in custody storage.
+
+=item 3.
+
+Verifies that the bundle appears in the local custody tracking list
+via B<cbr_listCustodyBundles()>.
+
+=item 4.
+
+Waits for a CCS (Compressed Custody Signal) from the next custodian,
+polling B<cbr_getCustodyStatus()> periodically.
+
+=item 5.
+
+Upon receiving a CCS acceptance signal, verifies that the bundle is
+properly released from custody tracking.
+
+=item 6.
+
+Reports success or failure based on the custody transfer lifecycle.
+
+=back
+
+If I<reportToEid> is specified, bundle status reports will be sent to
+that endpoint. If omitted, status reports are sent to I<ownEid>.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-v>
+
+Verbose mode. Prints detailed progress information during the test,
+including custody tracking state and CCS signal status.
+
+=back
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<cbrcustodytest> completed successfully. The custody transfer lifecycle
+was verified to work correctly.
+
+=item "1"
+
+B<cbrcustodytest> encountered an error. Check the B<ion.log> file for
+diagnostic messages.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item cbrcustodytest ipn:1.1 ipn:2.1
+
+Sends a custody-enabled bundle from ipn:1.1 to ipn:2.1 and verifies
+the custody transfer lifecycle.
+
+=item cbrcustodytest -v ipn:1.1 ipn:3.1 ipn:1.2
+
+Sends a custody-enabled bundle from ipn:1.1 to ipn:3.1 with status
+reports directed to ipn:1.2, printing verbose progress information.
+
+=back
+
+=head1 CONFIGURATION
+
+For B<cbrcustodytest> to function properly, the ION nodes must be
+configured with CBR/CT support enabled:
+
+=over 4
+
+=item 1.
+
+Enable Orange Book custody mode in each node's B<bprc> file:
+
+    m custodymode orangebook
+
+=item 2.
+
+Configure CBR aggregation parameters (optional, for immediate signal
+transmission during testing):
+
+    m cbraggr 1 1 2
+
+This sets CRS limit to 1, CCS limit to 1, and timeout to 2 seconds.
+
+=back
+
+See bprc(5) for detailed configuration command documentation.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+Diagnostic messages produced by B<cbrcustodytest> are written to the ION
+log file I<ion.log>.
+
+=over 4
+
+=item Can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item Can't open source endpoint.
+
+Another application has already opened I<ownEid>. Terminate that
+application and rerun.
+
+=item Bundle not in custody tracking.
+
+The bundle was sent but did not appear in the local custody tracking
+database. This may indicate a configuration problem with custody mode.
+
+=item Custody release timeout.
+
+No CCS signal was received within the timeout period. The remote
+custodian may not have custody transfer enabled or may be unreachable.
+
+=back
+
+=head1 SEE ALSO
+
+bpadmin(1), bprc(5), bp(3)
+
+=head1 AUTHOR
+
+NASA Jet Propulsion Laboratory
+

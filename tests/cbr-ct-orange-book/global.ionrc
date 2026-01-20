@@ -1,0 +1,27 @@
+## Global contact plan for CBR Phase 6 - 3-node custody transfer test
+##
+## Topology: Node 1 (source) -> Node 2 (intermediate custodian) -> Node 3 (destination)
+##
+## This test verifies multi-hop custody transfer:
+##   1. Node 1 sends bundle with custody requested to Node 3
+##   2. Node 2 accepts custody and sends CCS back to Node 1
+##   3. Node 2 forwards bundle to Node 3
+##   4. Node 3 accepts custody and sends CCS back to Node 2
+##
+## All nodes support CBR/CT (compressed bundle reporting and custody transfer)
+
+m horizon +0
+
+## Ranges (OWLT = 1 second between adjacent nodes)
+a range +0 +600 1 2 1
+a range +0 +600 2 1 1
+a range +0 +600 2 3 1
+a range +0 +600 3 2 1
+
+## Contacts: Node 1 <-> Node 2
+a contact +5 +600 1 2 100000
+a contact +5 +600 2 1 100000
+
+## Contacts: Node 2 <-> Node 3
+a contact +5 +600 2 3 100000
+a contact +5 +600 3 2 100000

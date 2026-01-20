@@ -73,14 +73,19 @@ int	cbr_initialize(Sdr sdr)
 
 	CHKERR(sdr);
 
-	/*	Recover the CBR database if it already exists.		*/
+	/*	Recover the CBR database, creating it if necessary.
+	 *	Must be inside a transaction for sdr_find().		*/
 
+	CHKERR(sdr_begin_xn(sdr));
 	cbrDbObj = sdr_find(sdr, "cbrdb", NULL);
-	if (cbrDbObj == 0)
+	switch (cbrDbObj)
 	{
-		/*	CBR database doesn't exist; create it.		*/
+	case -1:		/*	SDR error.			*/
+		putErrmsg("Can't search for CBR database in SDR.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
 
-		CHKERR(sdr_begin_xn(sdr));
+	case 0:			/*	Not found; must create new DB.	*/
 		cbrDbObj = sdr_malloc(sdr, sizeof(CbrDb));
 		if (cbrDbObj == 0)
 		{
@@ -111,6 +116,11 @@ int	cbr_initialize(Sdr sdr)
 			putErrmsg("Can't create CBR database.", NULL);
 			return -1;
 		}
+
+		break;
+
+	default:		/*	Found DB in the SDR.		*/
+		sdr_exit_xn(sdr);	/*	Nothing to write.	*/
 	}
 
 	oK(_cbrDbObject(&cbrDbObj));
@@ -138,10 +148,21 @@ int	cbr_attach(void)
 		return -1;
 	}
 
+	/*	Must be inside a transaction for sdr_find().		*/
+
+	CHKERR(sdr_begin_xn(sdr));
 	cbrDbObj = sdr_find(sdr, "cbrdb", NULL);
+	sdr_exit_xn(sdr);		/*	Read-only transaction.	*/
+
 	if (cbrDbObj == 0)
 	{
 		putErrmsg("CBR database not found.", NULL);
+		return -1;
+	}
+
+	if (cbrDbObj == (Object) -1)
+	{
+		putErrmsg("Can't search for CBR database.", NULL);
 		return -1;
 	}
 
@@ -314,6 +335,54 @@ int	cbr_setStatusReportMode(Sdr sdr, int mode)
 	return 0;
 }
 
+/*	*	*	Custody Mode Functions	*	*	*	*/
+
+int	cbr_getCustodyMode(Sdr sdr)
+{
+	BpDB	*bpConstants;
+
+	(void) sdr;	/*	Needed for interface consistency.	*/
+
+	/*	Use getBpConstants() which caches the BpDB values
+	 *	and avoids needing a transaction for each read.		*/
+
+	bpConstants = getBpConstants();
+	if (bpConstants == NULL)
+	{
+		return BP_CUSTODY_NONE;	/*	Safe default.		*/
+	}
+
+	return (int) bpConstants->custodyMode;
+}
+
+int	cbr_setCustodyMode(Sdr sdr, int mode)
+{
+	Object		bpDbObj;
+	BpDB		bpDb;
+
+	CHKERR(mode >= BP_CUSTODY_NONE && mode <= BP_CUSTODY_ORANGEBOOK);
+
+	bpDbObj = getBpDbObject();
+	if (bpDbObj == 0)
+	{
+		putErrmsg("CBR: BpDB not available.", NULL);
+		return -1;
+	}
+
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &bpDb, bpDbObj, sizeof(BpDB));
+	bpDb.custodyMode = (BpCustodyMode) mode;
+	sdr_write(sdr, bpDbObj, (char *) &bpDb, sizeof(BpDB));
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("CBR: failed to set custody mode.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
 /*	*	*	Sequence Counter Functions	*	*	*/
 
 Object	cbr_findSeqCounter(Sdr sdr, char *sourceEid, char *destEid,
@@ -462,6 +531,7 @@ int	cbr_allocateSeqNum(Sdr sdr, char *sourceEid, char *destEid,
 	Object		counterObj;
 	BundleSeqCounter counter;
 	uvast		allocatedSeqNum;
+	int		ownTransaction = 0;
 
 	CHKERR(sdr);
 	CHKERR(sourceEid);
@@ -475,13 +545,25 @@ int	cbr_allocateSeqNum(Sdr sdr, char *sourceEid, char *destEid,
 		return -1;
 	}
 
-	CHKERR(sdr_begin_xn(sdr));
+	/*	Start transaction only if not already in one.
+	 *	This function may be called from cteb_offer()
+	 *	during bpSend() which already has an active
+	 *	transaction.					*/
+	if (!sdr_in_xn(sdr))
+	{
+		CHKERR(sdr_begin_xn(sdr));
+		ownTransaction = 1;
+	}
 
 	counterObj = cbr_getSeqCounter(sdr, sourceEid, destEid, seqId,
 			forCustody);
 	if (counterObj == 0)
 	{
-		sdr_cancel_xn(sdr);
+		if (ownTransaction)
+		{
+			sdr_cancel_xn(sdr);
+		}
+
 		putErrmsg("Can't get sequence counter.", sourceEid);
 		return -1;
 	}
@@ -506,10 +588,13 @@ int	cbr_allocateSeqNum(Sdr sdr, char *sourceEid, char *destEid,
 	sdr_write(sdr, counterObj, (char *) &counter,
 			sizeof(BundleSeqCounter));
 
-	if (sdr_end_xn(sdr) < 0)
+	if (ownTransaction)
 	{
-		putErrmsg("Can't allocate sequence number.", NULL);
-		return -1;
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't allocate sequence number.", NULL);
+			return -1;
+		}
 	}
 
 	*seqNum = allocatedSeqNum;
@@ -1136,7 +1221,11 @@ int	cbr_processTimeouts(Sdr sdr)
 
 	CHKERR(sdr);
 	cbrConstants = _cbrConstants();
-	CHKERR(cbrConstants);
+	if (cbrConstants == NULL)
+	{
+		/*	CBR not initialized; nothing to process.	*/
+		return 0;
+	}
 
 	now = getCtime();
 
@@ -1938,12 +2027,19 @@ static int	queueCcs(Sdr sdr, char *destEid, char *sourceEid,
 	Object		signalElt;
 	CbrDb		*cbrConstants;
 	PendingSignal	signal;
+	char		msgBuf[256];
 
 	cbrConstants = getCbrConstants();
 	if (cbrConstants == NULL)
 	{
 		return -1;
 	}
+
+	isprintf(msgBuf, sizeof(msgBuf),
+			"[i] CBR: Queueing CCS to %s (seqId=%lu seqNum=%lu disp=%d)",
+			destEid, (unsigned long) seqId,
+			(unsigned long) seqNum, disposition);
+	writeMemo(msgBuf);
 
 	/*	Find or create pending CCS signal to this destination.	*/
 	signalElt = cbr_findOrCreatePendingSignal(sdr, destEid,
@@ -1966,8 +2062,14 @@ static int	queueCcs(Sdr sdr, char *destEid, char *sourceEid,
 	sdr_read(sdr, (char *) &signal,
 			sdr_list_data(sdr, signalElt), sizeof(PendingSignal));
 
+	isprintf(msgBuf, sizeof(msgBuf),
+			"[i] CBR: CCS bundleCount=%u limit=%u",
+			signal.bundleCount, cbrConstants->ccsAggregateLimit);
+	writeMemo(msgBuf);
+
 	if (signal.bundleCount >= cbrConstants->ccsAggregateLimit)
 	{
+		writeMemo("[i] CBR: Aggregate limit reached, transmitting CCS now.");
 		if (cbr_transmitSignal(sdr, signalElt) < 0)
 		{
 			putErrmsg("CBR: Can't transmit CCS.", NULL);
@@ -2455,12 +2557,19 @@ int	cbr_listCustodyBundles(Sdr sdr, CbrCustodyCallback callback,
 	char		destEidBuf[MAX_EID_LEN];
 	int		count = 0;
 
+	CHKERR(sdr);
 	CHKERR(callback);
 
 	cbrConstants = getCbrConstants();
 	if (cbrConstants == NULL)
 	{
 		return -1;
+	}
+
+	/*	Must be in transaction to read from SDR.		*/
+	if (!sdr_in_xn(sdr))
+	{
+		CHKERR(sdr_begin_xn(sdr));
 	}
 
 	/*	Iterate through all custody bundles.			*/
@@ -2484,6 +2593,7 @@ int	cbr_listCustodyBundles(Sdr sdr, CbrCustodyCallback callback,
 		count++;
 	}
 
+	sdr_exit_xn(sdr);
 	return count;
 }
 
@@ -2491,9 +2601,25 @@ int	cbr_getCustodyStatus(Sdr sdr, char *sourceEid, uvast seqId,
 		uvast seqNum)
 {
 	Object		custodyElt;
+	int		startedXn = 0;
+
+	CHKERR(sdr);
+
+	/*	Must be in transaction to read from SDR.		*/
+	if (!sdr_in_xn(sdr))
+	{
+		CHKERR(sdr_begin_xn(sdr));
+		startedXn = 1;
+	}
 
 	/*	Look for the bundle in custody tracking.		*/
 	custodyElt = cbr_findCustodyBundle(sdr, sourceEid, seqId, seqNum);
+
+	if (startedXn)
+	{
+		sdr_exit_xn(sdr);
+	}
+
 	if (custodyElt == 0)
 	{
 		/*	Bundle not in custody tracking.

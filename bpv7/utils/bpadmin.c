@@ -10,6 +10,7 @@
 /*									*/
 
 #include "bpP.h"
+#include "cbr.h"
 #include "crypto.h"
 #include "csi.h"
 
@@ -128,6 +129,10 @@ payload length");
 	PUTS("\t   m primarycrc <set CRC type for locally sourced primary block, 0, 1, or 2>");
 	PUTS("\t   m payloadcrc <set CRC type for locally sourced payload block, 0, 1, or 2>");
 	PUTS("\t   m maxcount <max value of bundle ID sequence number>");
+	PUTS("\t   m custodymode <custody transfer mode: none | bibe | orangebook>");
+	PUTS("\t   m cbraggr <CRS limit> <CCS limit> <timeout seconds>");
+	PUTS("\t      Aggregate limits: max bundles before sending signal (0=immediate)");
+	PUTS("\t      Timeout: max seconds to wait before sending aggregated signal");
 	PUTS("\tr\tRun another admin program");
 	PUTS("\t   r '<admin command>'");
 	PUTS("\ts\tStart");
@@ -1524,6 +1529,72 @@ static void	manageMaxcount(int tokenCount, char **tokens)
 	}
 }
 
+static void	manageCustodyMode(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+	int	mode;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	if (strcmp(tokens[2], "none") == 0)
+	{
+		mode = BP_CUSTODY_NONE;
+	}
+	else if (strcmp(tokens[2], "bibe") == 0)
+	{
+		mode = BP_CUSTODY_BIBE;
+	}
+	else if (strcmp(tokens[2], "orangebook") == 0)
+	{
+		mode = BP_CUSTODY_ORANGEBOOK;
+	}
+	else
+	{
+		printText("Custody mode must be 'none', 'bibe', or 'orangebook'.");
+		return;
+	}
+
+	if (cbr_setCustodyMode(sdr, mode) < 0)
+	{
+		putErrmsg("Can't set custody mode.", NULL);
+	}
+	else
+	{
+		printText("Custody mode set.");
+	}
+}
+
+static void	manageCbrAggr(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	unsigned int	crsLimit;
+	unsigned int	ccsLimit;
+	unsigned int	timeout;
+
+	if (tokenCount != 5)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	crsLimit = atoi(tokens[2]);
+	ccsLimit = atoi(tokens[3]);
+	timeout = atoi(tokens[4]);
+
+	if (cbr_configure(sdr, crsLimit, ccsLimit, timeout) < 0)
+	{
+		putErrmsg("Can't set CBR aggregate config.", NULL);
+	}
+	else
+	{
+		printText("CBR aggregate config set.");
+	}
+}
+
 static void	executeManage(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -1553,6 +1624,18 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "maxcount") == 0)
 	{
 		manageMaxcount(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "custodymode") == 0)
+	{
+		manageCustodyMode(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "cbraggr") == 0)
+	{
+		manageCbrAggr(tokenCount, tokens);
 		return;
 	}
 

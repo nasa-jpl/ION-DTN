@@ -1,0 +1,5 @@
+## ION configuration for heterogeneous test - Node 2 (no CBR)
+1 2 node.ionconfig
+s
+m horizon +0
+m clockerr 0
