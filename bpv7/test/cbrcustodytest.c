@@ -9,7 +9,9 @@
 	4. Optionally triggering manual retransmission
 
 	Usage: cbrcustodytest <destEid> [-r] [-t<timeout_sec>]
-	  -r: Test retransmission
+	       cbrcustodytest -l
+	  -l: List-only mode (just list bundles in custody, don't send)
+	  -r: Also test retransmission
 	  -t<N>: Timeout in seconds (default 30)
 
 	Copyright (c) 2026, California Institute of Technology.
@@ -64,6 +66,8 @@ static void	printCustodyInfo(CbrCustodyInfo *info, void *userData)
 static void	printUsage(void)
 {
 	PUTS("Usage: cbrcustodytest <destination EID> [-r] [-t<timeout_sec>]");
+	PUTS("       cbrcustodytest -l");
+	PUTS("  -l: List-only mode (just list bundles in custody)");
 	PUTS("  -r: Also test retransmission");
 	PUTS("  -t<N>: Timeout in seconds (default 30)");
 }
@@ -102,6 +106,7 @@ int	main(int argc, char **argv)
 		}
 	}
 #endif
+	int		listOnly = 0;
 	int		testRetransmit = 0;
 	int		timeoutSec = DEFAULT_TIMEOUT;
 	Sdr		sdr;
@@ -119,7 +124,11 @@ int	main(int argc, char **argv)
 	/*	Parse optional arguments.				*/
 	if (arg2 != NULL)
 	{
-		if (strcmp(arg2, "-r") == 0)
+		if (strcmp(arg2, "-l") == 0)
+		{
+			listOnly = 1;
+		}
+		else if (strcmp(arg2, "-r") == 0)
 		{
 			testRetransmit = 1;
 		}
@@ -135,7 +144,11 @@ int	main(int argc, char **argv)
 
 	if (arg3 != NULL)
 	{
-		if (strcmp(arg3, "-r") == 0)
+		if (strcmp(arg3, "-l") == 0)
+		{
+			listOnly = 1;
+		}
+		else if (strcmp(arg3, "-r") == 0)
 		{
 			testRetransmit = 1;
 		}
@@ -149,7 +162,8 @@ int	main(int argc, char **argv)
 		}
 	}
 
-	if (destEid == NULL)
+	/*	List-only mode doesn't require destEid.			*/
+	if (destEid == NULL && !listOnly)
 	{
 		printUsage();
 		return 0;
@@ -178,6 +192,47 @@ int	main(int argc, char **argv)
 
 	sdr = bp_get_sdr();
 	isignal(SIGINT, handleQuit);
+
+	/*	Handle list-only mode.					*/
+	if (listOnly)
+	{
+		CbrStatistics	stats;
+
+		printf("cbrcustodytest: Listing bundles in custody...\n");
+		bundleCount = 0;
+		if (cbr_listCustodyBundles(sdr, printCustodyInfo, &bundleCount)
+				< 0)
+		{
+			putErrmsg("cbrcustodytest: Can't list custody bundles.",
+					NULL);
+			bp_detach();
+			return 1;
+		}
+
+		printf("cbrcustodytest: %d bundle(s) in custody.\n",
+				bundleCount);
+
+		/*	Display CBR/CT statistics.			*/
+		if (cbr_getStatistics(sdr, &stats) == 0)
+		{
+			printf("\nCBR/CT Statistics:\n");
+			printf("  CCS Accept Sent:     %u\n", stats.ccsAcceptSent);
+			printf("  CCS Refuse Sent:     %u\n", stats.ccsRefuseSent);
+			printf("  CCS Accept Received: %u\n", stats.ccsAcceptRecv);
+			printf("  CCS Refuse Received: %u\n", stats.ccsRefuseRecv);
+			printf("  Custody Accepted:    %u\n", stats.custodyAccepted);
+			printf("  Custody Released:    %u\n", stats.custodyReleased);
+			printf("  CRS Signals Sent:    %u\n", stats.crsSignalsSent);
+			printf("  CRS Signals Recv:    %u\n", stats.crsSignalsRecv);
+		}
+		else
+		{
+			printf("cbrcustodytest: Can't get CBR statistics.\n");
+		}
+
+		bp_detach();
+		return 0;
+	}
 
 	printf("cbrcustodytest: Destination=%s timeout=%d sec\n",
 			destEid, timeoutSec);

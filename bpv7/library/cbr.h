@@ -525,6 +525,41 @@ extern int		cbr_listCustodyBundles(Sdr sdr,
 extern int		cbr_getCustodyStatus(Sdr sdr, char *sourceEid,
 				uvast seqId, uvast seqNum);
 
+/*	Statistics							*/
+
+/**
+ * Statistics counters for CBR/CT operations.
+ * Used to verify that CCS signals are actually being generated and processed.
+ */
+typedef struct {
+	unsigned int	ccsAcceptSent;		/* CCS acceptance signals sent */
+	unsigned int	ccsRefuseSent;		/* CCS refusal signals sent */
+	unsigned int	ccsAcceptRecv;		/* CCS acceptance received */
+	unsigned int	ccsRefuseRecv;		/* CCS refusal received */
+	unsigned int	custodyAccepted;	/* Bundles accepted into custody */
+	unsigned int	custodyReleased;	/* Bundles released from custody */
+	unsigned int	crsSignalsSent;		/* CRS signals sent */
+	unsigned int	crsSignalsRecv;		/* CRS signals received */
+} CbrStatistics;
+
+/**
+ * Get CBR/CT statistics counters.
+ * Provides definitive proof that CCS/CRS signals were generated and processed.
+ *
+ * @param sdr		SDR handle
+ * @param stats		Output: statistics counters
+ * @return		0 on success, -1 on error
+ */
+extern int		cbr_getStatistics(Sdr sdr, CbrStatistics *stats);
+
+/**
+ * Reset CBR/CT statistics counters to zero.
+ *
+ * @param sdr		SDR handle
+ * @return		0 on success, -1 on error
+ */
+extern int		cbr_resetStatistics(Sdr sdr);
+
 /*	CBOR Encoding/Decoding Utilities				*/
 
 /**

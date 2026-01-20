@@ -288,6 +288,61 @@ int	cbr_getRetransmissionConfig(Sdr sdr, int *strategy,
 	return 0;
 }
 
+/*	*	*	Statistics Functions	*	*	*	*/
+
+int	cbr_getStatistics(Sdr sdr, CbrStatistics *stats)
+{
+	CbrDb	*cbrConstants;
+
+	(void) sdr;	/*	Needed for interface consistency.	*/
+	CHKERR(stats);
+	cbrConstants = _cbrConstants();
+	CHKERR(cbrConstants);
+
+	stats->ccsAcceptSent = cbrConstants->ccsAcceptSent;
+	stats->ccsRefuseSent = cbrConstants->ccsRefuseSent;
+	stats->ccsAcceptRecv = cbrConstants->ccsAcceptRecv;
+	stats->ccsRefuseRecv = cbrConstants->ccsRefuseRecv;
+	stats->custodyAccepted = cbrConstants->custodyAccepted;
+	stats->custodyReleased = cbrConstants->custodyReleased;
+	stats->crsSignalsSent = cbrConstants->crsSignalsSent;
+	stats->crsSignalsRecv = cbrConstants->crsSignalsRecv;
+
+	return 0;
+}
+
+int	cbr_resetStatistics(Sdr sdr)
+{
+	CbrDb		*cbrConstants;
+	Object		cbrDbObj;
+
+	cbrConstants = _cbrConstants();
+	CHKERR(cbrConstants);
+	cbrDbObj = getCbrDbObject();
+	CHKERR(cbrDbObj);
+
+	CHKERR(sdr_begin_xn(sdr));
+
+	cbrConstants->ccsAcceptSent = 0;
+	cbrConstants->ccsRefuseSent = 0;
+	cbrConstants->ccsAcceptRecv = 0;
+	cbrConstants->ccsRefuseRecv = 0;
+	cbrConstants->custodyAccepted = 0;
+	cbrConstants->custodyReleased = 0;
+	cbrConstants->crsSignalsSent = 0;
+	cbrConstants->crsSignalsRecv = 0;
+
+	sdr_write(sdr, cbrDbObj, (char *) cbrConstants, sizeof(CbrDb));
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Failed to reset CBR statistics.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
 /*	*	*	Status Report Mode Functions	*	*	*/
 
 int	cbr_getStatusReportMode(Sdr sdr)
@@ -1634,9 +1689,35 @@ int	cbr_transmitSignal(Sdr sdr, Object signalElt)
 	}
 	else
 	{
+		CbrDb	*cbrConst = _cbrConstants();
+		Object	cbrDbObj = getCbrDbObject();
+
 		writeMemoNote(signal.signalType == CBR_SIGNAL_CRS ?
 				"[i] CBR CRS transmitted to" :
 				"[i] CBR CCS transmitted to", destEidBuf);
+
+		/*	Increment statistics counters.			*/
+		if (cbrConst && cbrDbObj)
+		{
+			if (signal.signalType == CBR_SIGNAL_CRS)
+			{
+				cbrConst->crsSignalsSent++;
+			}
+			else if (signal.signalType == CBR_SIGNAL_CCS)
+			{
+				if (signal.dispCode == CBR_CUSTODY_ACCEPTED)
+				{
+					cbrConst->ccsAcceptSent++;
+				}
+				else
+				{
+					cbrConst->ccsRefuseSent++;
+				}
+			}
+
+			sdr_write(sdr, cbrDbObj, (char *) cbrConst,
+					sizeof(CbrDb));
+		}
 	}
 
 	/*	Clean up signal structure				*/
@@ -2127,6 +2208,19 @@ int	cbr_acceptCustody(Sdr sdr, Bundle *bundle, CtebBlk *cteb)
 		return -1;
 	}
 
+	/*	Increment custody accepted counter.			*/
+	{
+		CbrDb	*cbrConst = _cbrConstants();
+		Object	cbrDbObj = getCbrDbObject();
+
+		if (cbrConst && cbrDbObj)
+		{
+			cbrConst->custodyAccepted++;
+			sdr_write(sdr, cbrDbObj, (char *) cbrConst,
+					sizeof(CbrDb));
+		}
+	}
+
 	writeMemo("[i] CBR: Custody accepted.");
 	return 0;
 }
@@ -2182,7 +2276,19 @@ int	cbr_releaseCustody(Sdr sdr, char *sourceEid, uvast seqId,
 				seqNumStart + i);
 		if (custodyElt != 0)
 		{
+			CbrDb	*cbrConst = _cbrConstants();
+			Object	cbrDbObj = getCbrDbObject();
+
 			cbr_untrackCustodyBundle(sdr, custodyElt);
+
+			/*	Increment custody released counter.	*/
+			if (cbrConst && cbrDbObj)
+			{
+				cbrConst->custodyReleased++;
+				sdr_write(sdr, cbrDbObj, (char *) cbrConst,
+						sizeof(CbrDb));
+			}
+
 			writeMemoNote("[i] CBR: Custody released for seqNum",
 					itoa(seqNumStart + i));
 		}
@@ -2270,6 +2376,19 @@ int	cbr_handleCrs(Sdr sdr, unsigned char *adminRecord, int length)
 			}
 
 			arrayLen--;
+		}
+	}
+
+	/*	Increment CRS received counter.				*/
+	{
+		CbrDb	*cbrConst = _cbrConstants();
+		Object	cbrDbObj = getCbrDbObject();
+
+		if (cbrConst && cbrDbObj)
+		{
+			cbrConst->crsSignalsRecv++;
+			sdr_write(sdr, cbrDbObj, (char *) cbrConst,
+					sizeof(CbrDb));
 		}
 	}
 
@@ -2382,6 +2501,20 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 
 				writeMemoNote("[i] CCS: Custody accepted by next hop",
 						sourceEid ? sourceEid : "(null)");
+
+				/*	Increment CCS accept recv counter. */
+				{
+					CbrDb	*cbrConst = _cbrConstants();
+					Object	cbrDbObj = getCbrDbObject();
+
+					if (cbrConst && cbrDbObj)
+					{
+						cbrConst->ccsAcceptRecv++;
+						sdr_write(sdr, cbrDbObj,
+							(char *) cbrConst,
+							sizeof(CbrDb));
+					}
+				}
 			}
 			else
 			{
@@ -2390,6 +2523,20 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 				 *	configured strategy.		*/
 				writeMemoNote("[i] CCS: Custody refused by next hop",
 						sourceEid ? sourceEid : "(null)");
+
+				/*	Increment CCS refuse recv counter. */
+				{
+					CbrDb	*cbrConst = _cbrConstants();
+					Object	cbrDbObj = getCbrDbObject();
+
+					if (cbrConst && cbrDbObj)
+					{
+						cbrConst->ccsRefuseRecv++;
+						sdr_write(sdr, cbrDbObj,
+							(char *) cbrConst,
+							sizeof(CbrDb));
+					}
+				}
 
 				/*	TODO: Trigger retransmission based
 				 *	on configured strategy.		*/

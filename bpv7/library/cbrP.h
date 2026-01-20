@@ -44,6 +44,16 @@ typedef struct {
 	int		retransmitStrategy;	/* CBR_RETX_* */
 	unsigned int	retransmitIntervalSec;	/* Timer interval */
 	unsigned int	maxRetransmissions;	/* Max attempts (0=unlimited) */
+
+	/* Statistics counters (for verification/debugging) */
+	unsigned int	ccsAcceptSent;		/* CCS acceptance signals sent */
+	unsigned int	ccsRefuseSent;		/* CCS refusal signals sent */
+	unsigned int	ccsAcceptRecv;		/* CCS acceptance received */
+	unsigned int	ccsRefuseRecv;		/* CCS refusal received */
+	unsigned int	custodyAccepted;	/* Bundles accepted into custody */
+	unsigned int	custodyReleased;	/* Bundles released from custody */
+	unsigned int	crsSignalsSent;		/* CRS signals sent */
+	unsigned int	crsSignalsRecv;		/* CRS signals received */
 } CbrDb;
 
 /**

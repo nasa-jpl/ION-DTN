@@ -4,7 +4,9 @@ cbrcustodytest - Bundle Protocol custody transfer test program
 
 =head1 SYNOPSIS
 
-B<cbrcustodytest> [B<-v>] I<ownEid> I<destEid> [I<reportToEid>]
+B<cbrcustodytest> I<destEid> [B<-r>] [B<-t>I<timeout_sec>]
+
+B<cbrcustodytest> B<-l>
 
 =head1 DESCRIPTION
 
@@ -13,19 +15,22 @@ Reporting (CBR) and Custody Transfer (CT) implementation as specified in
 the CCSDS Orange Book "Compressed Bundle Status Reporting and Custody
 Signaling" specification.
 
-The program sends a test bundle with custody transfer requested from
-I<ownEid> to I<destEid>, then monitors the custody transfer lifecycle
+In normal mode, the program sends a test bundle with custody transfer
+requested to I<destEid>, then monitors the custody transfer lifecycle
 to verify proper operation. It exercises the CBR/CT APIs including
 custody acceptance, CCS (Compressed Custody Signal) generation and
 processing, and custody release.
 
-B<cbrcustodytest> performs the following verification steps:
+In list-only mode (B<-l>), the program simply lists all bundles currently
+held in custody tracking without sending any bundles.
+
+B<cbrcustodytest> performs the following verification steps in normal mode:
 
 =over 4
 
 =item 1.
 
-Attaches to the local ION node and opens the source endpoint I<ownEid>.
+Attaches to the local ION node's Bundle Protocol agent.
 
 =item 2.
 
@@ -39,8 +44,8 @@ via B<cbr_listCustodyBundles()>.
 
 =item 4.
 
-Waits for a CCS (Compressed Custody Signal) from the next custodian,
-polling B<cbr_getCustodyStatus()> periodically.
+Polls for custody release, waiting for a CCS (Compressed Custody Signal)
+from the next custodian.
 
 =item 5.
 
@@ -53,17 +58,25 @@ Reports success or failure based on the custody transfer lifecycle.
 
 =back
 
-If I<reportToEid> is specified, bundle status reports will be sent to
-that endpoint. If omitted, status reports are sent to I<ownEid>.
-
 =head1 OPTIONS
 
 =over 4
 
-=item B<-v>
+=item B<-l>
 
-Verbose mode. Prints detailed progress information during the test,
-including custody tracking state and CCS signal status.
+List-only mode. Lists all bundles currently in custody tracking and exits.
+Does not send any bundles. Useful for monitoring custody state.
+
+=item B<-r>
+
+Test retransmission. If custody release times out, triggers manual
+retransmission of all bundles in custody via B<cbr_retransmitAllCustody()>.
+
+=item B<-t>I<timeout_sec>
+
+Sets the timeout in seconds for waiting for custody release. Default is 30
+seconds. The program polls for custody status changes until either all
+bundles are released or the timeout expires.
 
 =back
 
@@ -73,8 +86,9 @@ including custody tracking state and CCS signal status.
 
 =item "0"
 
-B<cbrcustodytest> completed successfully. The custody transfer lifecycle
-was verified to work correctly.
+B<cbrcustodytest> completed successfully. In normal mode, the custody
+transfer lifecycle was verified to work correctly. In list-only mode,
+custody bundles were successfully listed.
 
 =item "1"
 
@@ -87,15 +101,23 @@ diagnostic messages.
 
 =over 4
 
-=item cbrcustodytest ipn:1.1 ipn:2.1
+=item cbrcustodytest ipn:2.1
 
-Sends a custody-enabled bundle from ipn:1.1 to ipn:2.1 and verifies
-the custody transfer lifecycle.
+Sends a custody-enabled bundle to ipn:2.1 and waits up to 30 seconds
+for custody release.
 
-=item cbrcustodytest -v ipn:1.1 ipn:3.1 ipn:1.2
+=item cbrcustodytest ipn:2.1 -t60
 
-Sends a custody-enabled bundle from ipn:1.1 to ipn:3.1 with status
-reports directed to ipn:1.2, printing verbose progress information.
+Sends a custody-enabled bundle to ipn:2.1 with a 60-second timeout.
+
+=item cbrcustodytest ipn:2.1 -r -t10
+
+Sends a custody-enabled bundle to ipn:2.1. If custody is not released
+within 10 seconds, triggers manual retransmission.
+
+=item cbrcustodytest -l
+
+Lists all bundles currently held in custody tracking.
 
 =back
 
@@ -125,6 +147,61 @@ This sets CRS limit to 1, CCS limit to 1, and timeout to 2 seconds.
 
 See bprc(5) for detailed configuration command documentation.
 
+=head1 OUTPUT FORMAT
+
+In list-only mode, each custody bundle is displayed as:
+
+    [N] destEid=<eid> seqId=<id> seqNum=<num>
+        custodyAccepted=<time> lastTransmit=<time> retransmitCount=<count>
+
+Where:
+
+=over 4
+
+=item destEid
+
+The destination endpoint ID of the bundle.
+
+=item seqId
+
+The sequence identifier (0 for destination-specific counters).
+
+=item seqNum
+
+The sequence number assigned to this bundle.
+
+=item custodyAccepted
+
+Unix timestamp when custody was accepted.
+
+=item lastTransmit
+
+Unix timestamp of last transmission.
+
+=item retransmitCount
+
+Number of times the bundle has been retransmitted.
+
+=back
+
+Following the bundle list, CBR/CT statistics are displayed:
+
+    CBR/CT Statistics:
+      CCS Accept Sent:     <count>
+      CCS Refuse Sent:     <count>
+      CCS Accept Received: <count>
+      CCS Refuse Received: <count>
+      Custody Accepted:    <count>
+      Custody Released:    <count>
+      CRS Signals Sent:    <count>
+      CRS Signals Recv:    <count>
+
+These statistics provide definitive proof that CCS signals were generated
+and processed. A non-zero B<CCS Accept Sent> indicates that the local node
+sent custody acceptance signals to prior custodians. A non-zero
+B<CCS Accept Received> indicates that next-hop custodians accepted
+custody and sent acceptance signals back to this node.
+
 =head1 ENVIRONMENT
 
 No environment variables apply.
@@ -140,10 +217,9 @@ log file I<ion.log>.
 
 B<bpadmin> has not yet initialized Bundle Protocol operations.
 
-=item Can't open source endpoint.
+=item Can't attach to CBR.
 
-Another application has already opened I<ownEid>. Terminate that
-application and rerun.
+The CBR/CT subsystem is not initialized. Ensure custody mode is configured.
 
 =item Bundle not in custody tracking.
 
