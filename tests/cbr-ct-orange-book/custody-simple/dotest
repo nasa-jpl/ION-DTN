@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+#
+# custody-simple: Simple end-to-end custody transfer test
+#
+# Verifies:
+#   - Bundle with custody request travels Node 1 -> Node 2 -> Node 3
+#   - CCS signals are sent back to release custody
+#   - Custody tracking is empty after transfer completes
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+echo "=== Custody Simple Test ==="
+echo "Topology: Node 1 (source) -> Node 2 (custodian) -> Node 3 (destination)"
+echo ""
+
+# Clean up any previous runs
+rm -f "$TESTDIR/ion_nodes"
+for node in 1.node 2.node 3.node; do
+    rm -f "$TESTDIR/$node/ion.log" "$TESTDIR/$node/*.txt"
+done
+
+# Track test results
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+test_result() {
+    if [ $1 -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+# Start all nodes
+echo "Starting ION nodes..."
+for node in 1 2 3; do
+    cd "$TESTDIR/${node}.node"
+    ./ionstart > ion_startup.log 2>&1
+    sleep 2
+done
+
+# Verify nodes are running
+NODE_COUNT=$(pgrep -x "rfxclock" | wc -l)
+if [ "$NODE_COUNT" -lt 3 ]; then
+    echo "ERROR: Not all ION nodes started. Found $NODE_COUNT rfxclock processes."
+    exit 1
+fi
+echo "All 3 nodes started successfully."
+echo ""
+
+# Test: Send bundle with custody and verify delivery + custody release
+echo "--- Test: Custody Transfer ---"
+
+# Start receiver on Node 3
+cd "$TESTDIR/3.node"
+bpcounter ipn:3.1 1 > counter_output.txt 2>&1 &
+COUNTER_PID=$!
+sleep 2
+
+# Send bundle with custody from Node 1
+cd "$TESTDIR/1.node"
+echo "Sending bundle with custody from Node 1 to Node 3..."
+bpdriver -1 ipn:1.2 ipn:3.1 -1000 t600 > driver_output.txt 2>&1
+
+# Wait for transfer and CCS exchange
+echo "Waiting for custody transfer and CCS signals..."
+sleep 15
+
+# Check custody released at Node 1
+echo ""
+echo "--- Node 1 Custody Status ---"
+cbrcustodytest -l > custody_status.txt 2>&1
+cat custody_status.txt | head -10 | sed 's/^/  /'
+
+# Check for "0 bundle(s) in custody" in the output
+if grep -q "0 bundle(s) in custody" custody_status.txt 2>/dev/null; then
+    test_result 0 "Custody released at Node 1 (CCS received)"
+else
+    CUSTODY=$(grep -c "destEid=" custody_status.txt 2>/dev/null || echo "?")
+    test_result 1 "Custody NOT released at Node 1 ($CUSTODY bundle(s) remaining)"
+fi
+
+# Check bundle delivery
+echo ""
+echo "--- Bundle Delivery ---"
+if ! kill -0 $COUNTER_PID 2>/dev/null; then
+    test_result 0 "Bundle delivered to Node 3"
+else
+    kill $COUNTER_PID 2>/dev/null || true
+    test_result 1 "Bundle NOT delivered to Node 3 (timeout)"
+fi
+
+# Show CCS activity from logs
+echo ""
+echo "--- CCS Activity Summary ---"
+for node in 1.node 2.node 3.node; do
+    if [ -f "$TESTDIR/$node/ion.log" ]; then
+        ccs_count=$(grep -c "CCS" "$TESTDIR/$node/ion.log" 2>/dev/null || echo "0")
+        echo "  $node: $ccs_count CCS-related log entries"
+    fi
+done
+
+# Summary
+echo ""
+echo "========================================="
+echo "SUMMARY: $TESTS_PASSED passed, $TESTS_FAILED failed"
+echo "========================================="
+
+[ $TESTS_FAILED -eq 0 ]

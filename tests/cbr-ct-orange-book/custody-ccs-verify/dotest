@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+#
+# custody-ccs-verify: Explicit CCS signal verification test
+#
+# Uses cbrcustodytest to verify:
+#   - Bundle enters custody tracking
+#   - CCS signal is received
+#   - Custody is released
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+echo "=== Custody CCS Verification Test ==="
+echo "Using cbrcustodytest to verify CCS signal flow"
+echo ""
+
+# Clean up any previous runs
+rm -f "$TESTDIR/ion_nodes"
+for node in 1.node 2.node 3.node; do
+    rm -f "$TESTDIR/$node/ion.log" "$TESTDIR/$node/*.txt"
+done
+
+# Track test results
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+test_result() {
+    if [ $1 -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+# Start all nodes
+echo "Starting ION nodes..."
+for node in 1 2 3; do
+    cd "$TESTDIR/${node}.node"
+    ./ionstart > ion_startup.log 2>&1
+    sleep 2
+done
+
+# Verify nodes are running
+NODE_COUNT=$(pgrep -x "rfxclock" | wc -l)
+if [ "$NODE_COUNT" -lt 3 ]; then
+    echo "ERROR: Not all ION nodes started. Found $NODE_COUNT rfxclock processes."
+    exit 1
+fi
+echo "All 3 nodes started successfully."
+echo ""
+
+# Test: Use cbrcustodytest to verify CCS flow
+echo "--- Test: CCS Signal Verification ---"
+cd "$TESTDIR/1.node"
+
+echo "Running cbrcustodytest with 30 second timeout..."
+cbrcustodytest ipn:3.1 -t30 > ccs_test_output.txt 2>&1
+CCS_EXIT=$?
+
+echo ""
+echo "--- cbrcustodytest output ---"
+cat ccs_test_output.txt | sed 's/^/  /'
+
+# Check for success indicators
+if grep -q "SUCCESS.*Custody transfer completed" ccs_test_output.txt 2>/dev/null; then
+    test_result 0 "CCS signal received - custody transfer completed"
+elif grep -q "Custody released after" ccs_test_output.txt 2>/dev/null; then
+    test_result 0 "CCS signal received - custody released"
+elif grep -q "0 bundle(s) in custody" ccs_test_output.txt 2>/dev/null; then
+    test_result 0 "CCS processed (fast release)"
+elif [ $CCS_EXIT -eq 0 ]; then
+    test_result 0 "cbrcustodytest completed successfully"
+else
+    if grep -q "Timeout.*bundle(s) still in custody" ccs_test_output.txt 2>/dev/null; then
+        test_result 1 "CCS NOT received - custody timeout"
+    else
+        test_result 1 "CCS verification failed (exit code: $CCS_EXIT)"
+    fi
+fi
+
+# Check ion.log for CCS-related entries
+echo ""
+echo "--- CCS Log Evidence ---"
+CCS_FOUND=0
+for node in 1.node 2.node 3.node; do
+    if [ -f "$TESTDIR/$node/ion.log" ]; then
+        ccs_lines=$(grep -i "CBR CCS\|CCS:.*Custody\|custody.*release\|custody.*accept" "$TESTDIR/$node/ion.log" 2>/dev/null | tail -3)
+        if [ -n "$ccs_lines" ]; then
+            CCS_FOUND=1
+            echo "  $node:"
+            echo "$ccs_lines" | sed 's/^/    /'
+        fi
+    fi
+done
+
+if [ $CCS_FOUND -eq 1 ]; then
+    test_result 0 "CCS log entries found"
+else
+    echo "  (No explicit CCS log entries found)"
+fi
+
+# Summary
+echo ""
+echo "========================================="
+echo "SUMMARY: $TESTS_PASSED passed, $TESTS_FAILED failed"
+echo "========================================="
+
+[ $TESTS_FAILED -eq 0 ]

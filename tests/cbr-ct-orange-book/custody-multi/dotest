@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+#
+# custody-multi: Multiple bundle custody transfer test
+#
+# Verifies:
+#   - Multiple bundles with custody are delivered correctly
+#   - All custody entries are released after CCS received
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+BUNDLE_COUNT=5
+
+echo "=== Custody Multi-Bundle Test ==="
+echo "Sending $BUNDLE_COUNT bundles with custody"
+echo ""
+
+# Clean up any previous runs
+rm -f "$TESTDIR/ion_nodes"
+for node in 1.node 2.node 3.node; do
+    rm -f "$TESTDIR/$node/ion.log" "$TESTDIR/$node/*.txt"
+done
+
+# Track test results
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+test_result() {
+    if [ $1 -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+# Start all nodes
+echo "Starting ION nodes..."
+for node in 1 2 3; do
+    cd "$TESTDIR/${node}.node"
+    ./ionstart > ion_startup.log 2>&1
+    sleep 2
+done
+
+# Verify nodes are running
+NODE_COUNT=$(pgrep -x "rfxclock" | wc -l)
+if [ "$NODE_COUNT" -lt 3 ]; then
+    echo "ERROR: Not all ION nodes started. Found $NODE_COUNT rfxclock processes."
+    exit 1
+fi
+echo "All 3 nodes started successfully."
+echo ""
+
+# Test: Send multiple bundles with custody
+echo "--- Test: Multiple Bundle Custody Transfer ---"
+
+# Start receiver on Node 3
+cd "$TESTDIR/3.node"
+bpcounter ipn:3.1 $BUNDLE_COUNT > counter_output.txt 2>&1 &
+COUNTER_PID=$!
+sleep 2
+
+# Send bundles with custody from Node 1
+cd "$TESTDIR/1.node"
+echo "Sending $BUNDLE_COUNT bundles with custody..."
+bpdriver -${BUNDLE_COUNT} ipn:1.2 ipn:3.1 -1000 t600 > driver_output.txt 2>&1
+
+# Wait for transfer and CCS exchange
+echo "Waiting for custody transfer and CCS signals..."
+sleep 20
+
+# Check bundle delivery
+echo ""
+echo "--- Bundle Delivery ---"
+if ! kill -0 $COUNTER_PID 2>/dev/null; then
+    test_result 0 "All $BUNDLE_COUNT bundles delivered to Node 3"
+    cat counter_output.txt | grep -i "received\|stopping" | sed 's/^/  /'
+else
+    kill $COUNTER_PID 2>/dev/null || true
+    test_result 1 "Not all bundles delivered (timeout)"
+fi
+
+# Check custody released at Node 1
+echo ""
+echo "--- Node 1 Custody Status ---"
+cbrcustodytest -l > custody_status.txt 2>&1
+cat custody_status.txt | head -10 | sed 's/^/  /'
+
+# Check for "0 bundle(s) in custody" in the output
+if grep -q "0 bundle(s) in custody" custody_status.txt 2>/dev/null; then
+    test_result 0 "All custody released at Node 1"
+else
+    CUSTODY=$(grep -c "destEid=" custody_status.txt 2>/dev/null || echo "?")
+    test_result 1 "Custody NOT fully released ($CUSTODY bundle(s) remaining)"
+fi
+
+# Summary
+echo ""
+echo "========================================="
+echo "SUMMARY: $TESTS_PASSED passed, $TESTS_FAILED failed"
+echo "========================================="
+
+[ $TESTS_FAILED -eq 0 ]

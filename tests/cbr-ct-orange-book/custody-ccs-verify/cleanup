@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Cleanup script for heterogeneous test
+# Cleanup script for custody-ccs-verify test
 #
 
 TESTDIR=$(cd "$(dirname "$0")" && pwd)

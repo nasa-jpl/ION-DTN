@@ -1,0 +1,31 @@
+## Unified ION configuration for CBR test - Node 2 (intermediate custodian)
+## Uses ionstart -I format
+
+## begin ionadmin
+1 2 node.ionconfig
+s
+m horizon +0
+m clockerr 0
+## end ionadmin
+
+## begin ionsecadmin
+1
+## end ionsecadmin
+
+## begin bpadmin
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:2.0 x
+a endpoint ipn:2.1 x
+a endpoint ipn:2.2 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4552 udpcli
+a outduct udp 127.0.0.1:4551 udpclo
+a outduct udp 127.0.0.1:4553 udpclo
+s
+## end bpadmin
+
+## begin ipnadmin
+a plan 1 udp/127.0.0.1:4551
+a plan 3 udp/127.0.0.1:4553
+## end ipnadmin
