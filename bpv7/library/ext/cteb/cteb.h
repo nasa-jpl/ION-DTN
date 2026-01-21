@@ -91,4 +91,16 @@ extern int	cteb_check(AcqExtBlock *, AcqWorkArea *);
  */
 extern void	cteb_clear(AcqExtBlock *);
 
+/**
+ * Get custody tracking info from CTEB block.
+ * Used by bpSend to track custody at bundle creation.
+ *
+ * @param blk		Extension block containing CTEB
+ * @param seqId		Output: sequence identifier
+ * @param seqNum	Output: sequence number
+ * @return		0 on success, -1 on error or no CTEB
+ */
+extern int	cteb_getCustodyInfo(ExtensionBlock *blk, uvast *seqId,
+				uvast *seqNum);
+
 #endif /* _CTEB_H_ */

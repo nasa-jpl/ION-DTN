@@ -37,12 +37,18 @@
 
 /*
  * CtebScratchpad holds CTEB data in working memory during block
- * processing. Stored in blk->object for outbound blocks.
+ * processing. Stored in blk->object for outbound blocks (SDR) and
+ * in AcqExtBlock->object for inbound blocks (working memory).
+ *
+ * custodianEid is stored as a char array to avoid SDR transaction
+ * issues: cteb_clear() is called outside of SDR transactions, so
+ * we cannot use sdr_free() there. This approach works for both
+ * outbound (SDR-stored) and inbound (working memory) scratchpads.
  */
 typedef struct {
-	uvast		seqNum;		/* Bundle sequence number */
-	uvast		seqId;		/* Sequence identifier */
-	Object		custodianEid;	/* SDR string: current custodian */
+	uvast		seqNum;			/* Bundle sequence number */
+	uvast		seqId;			/* Sequence identifier */
+	char		custodianEid[MAX_EID_LEN];	/* Current custodian */
 } CtebScratchpad;
 
 /*	*	*	Outbound Block Functions	*	*	*/
@@ -67,17 +73,23 @@ int	cteb_offer(ExtensionBlock *blk, Bundle *bundle)
 	 *	This ensures CTEB doesn't conflict with BIBE custody.	*/
 
 	custodyMode = cbr_getCustodyMode(sdr);
+	writeMemoNote("[DEBUG-CUSTODY-SRC] cteb_offer: custodyMode", itoa(custodyMode));
+
 	if (custodyMode != BP_CUSTODY_ORANGEBOOK)
 	{
 		/*	Orange Book custody not active on this node.	*/
+		writeMemo("[DEBUG-CUSTODY-SRC] cteb_offer: Orange Book custody not active");
 		return 0;
 	}
 
 	if (!(bundle->ancillaryData.flags & BP_CT_REQUESTED))
 	{
 		/*	Custody transfer not requested by application.	*/
+		writeMemo("[DEBUG-CUSTODY-SRC] cteb_offer: custody not requested");
 		return 0;
 	}
+
+	writeMemo("[DEBUG-CUSTODY-SRC] cteb_offer: creating CTEB block");
 
 	/*	Get our admin EID as initial custodian.			*/
 
@@ -127,19 +139,13 @@ int	cteb_offer(ExtensionBlock *blk, Bundle *bundle)
 	memset(&scratch, 0, sizeof(CtebScratchpad));
 	scratch.seqNum = seqNum;
 	scratch.seqId = 0;		/*	Default seqId		*/
-	scratch.custodianEid = sdr_string_create(sdr, vscheme->adminEid);
-	if (scratch.custodianEid == 0)
-	{
-		putErrmsg("CTEB: can't store custodian EID.", NULL);
-		return -1;
-	}
+	istrcpy(scratch.custodianEid, vscheme->adminEid, MAX_EID_LEN);
 
 	/*	Store scratchpad in SDR for later serialization.	*/
 
 	scratchAddr = sdr_malloc(sdr, sizeof(CtebScratchpad));
 	if (scratchAddr == 0)
 	{
-		sdr_free(sdr, scratch.custodianEid);
 		putErrmsg("CTEB: can't allocate scratchpad.", NULL);
 		return -1;
 	}
@@ -150,7 +156,15 @@ int	cteb_offer(ExtensionBlock *blk, Bundle *bundle)
 
 	blk->blkProcFlags = CTEB_BLOCK_PROC_FLAGS;
 	blk->dataLength = 0;	/*	Will serialize at dequeue time.	*/
-	blk->length = 0;
+
+	/*	blk->length serves two purposes:
+	 *	  1. Before serialization: non-zero indicates block is
+	 *	     viable and should not be deleted (length=0 means
+	 *	     "scratched" in processExtensionBlocks).
+	 *	  2. After serialization: holds actual serialized length.
+	 *	Set to 1 as placeholder; actual length set by
+	 *	cteb_serialize called from cteb_processOnDequeue.	*/
+	blk->length = 1;
 	blk->size = sizeof(CtebScratchpad);
 	blk->object = scratchAddr;
 
@@ -167,7 +181,6 @@ int	cteb_serialize(ExtensionBlock *blk, Bundle *bundle)
 	unsigned char	dataBuffer[CTEB_MAX_SERIALIZED_LEN];
 	unsigned char	*cursor;
 	uvast		uvtemp;
-	char		eidBuf[MAX_EID_LEN];
 
 	(void) bundle;
 
@@ -202,10 +215,10 @@ int	cteb_serialize(ExtensionBlock *blk, Bundle *bundle)
 
 	/*	Element 2: custodian_eid				*/
 
-	if (scratch.custodianEid != 0)
+	if (scratch.custodianEid[0] != '\0')
 	{
-		sdr_string_read(sdr, eidBuf, scratch.custodianEid);
-		oK(cbor_encode_text_string(eidBuf, strlen(eidBuf), &cursor));
+		oK(cbor_encode_text_string(scratch.custodianEid,
+				strlen(scratch.custodianEid), &cursor));
 	}
 	else
 	{
@@ -221,21 +234,14 @@ int	cteb_serialize(ExtensionBlock *blk, Bundle *bundle)
 void	cteb_release(ExtensionBlock *blk)
 {
 	Sdr		sdr = getIonsdr();
-	CtebScratchpad	scratch;
 
 	if (blk->object == 0)
 	{
 		return;
 	}
 
-	/*	Read scratchpad to release any SDR strings.		*/
-
-	sdr_read(sdr, (char *) &scratch, blk->object, sizeof(CtebScratchpad));
-
-	if (scratch.custodianEid != 0)
-	{
-		sdr_free(sdr, scratch.custodianEid);
-	}
+	/*	Free the scratchpad. custodianEid is embedded in the
+	 *	struct as a char array, so no separate free needed.	*/
 
 	sdr_free(sdr, blk->object);
 	blk->object = 0;
@@ -279,7 +285,6 @@ int	cteb_copy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 	Sdr		sdr = getIonsdr();
 	CtebScratchpad	scratch;
 	Object		newScratchAddr;
-	char		eidBuf[MAX_EID_LEN];
 
 	if (oldBlk->object == 0)
 	{
@@ -301,13 +306,8 @@ int	cteb_copy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 		return -1;
 	}
 
-	/*	Copy custodian EID string.				*/
-
-	if (scratch.custodianEid != 0)
-	{
-		sdr_string_read(sdr, eidBuf, scratch.custodianEid);
-		scratch.custodianEid = sdr_string_create(sdr, eidBuf);
-	}
+	/*	Write copy - custodianEid is embedded char array,
+	 *	so simple struct copy is sufficient.			*/
 
 	sdr_write(sdr, newScratchAddr, (char *) &scratch, sizeof(CtebScratchpad));
 
@@ -335,9 +335,9 @@ int	cteb_processOnAccept(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	Sdr		sdr = getIonsdr();
 	CtebScratchpad	scratch;
 	CtebBlk		ctebData;
-	char		custodianBuf[MAX_EID_LEN];
-
-	(void) ctxt;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
+	Object		bundleAddr = (Object) ctxt;	/* From forwardBundle */
 
 	if (blk->object == 0)
 	{
@@ -353,30 +353,65 @@ int	cteb_processOnAccept(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	ctebData.seqNum = scratch.seqNum;
 	ctebData.seqId = scratch.seqId;
 
-	if (scratch.custodianEid != 0)
+	if (scratch.custodianEid[0] != '\0')
 	{
-		sdr_string_read(sdr, custodianBuf, scratch.custodianEid);
-		ctebData.custodianEid = custodianBuf;
+		ctebData.custodianEid = scratch.custodianEid;
 	}
 	else
 	{
 		ctebData.custodianEid = NULL;
 	}
 
+	/*	Check if we are already the custodian (source-originated
+	 *	bundle). If so, skip custody acceptance - we don't need
+	 *	to accept custody from ourselves or send CCS to ourselves.
+	 *	Custody was already tracked in bpSend.			*/
+
+	findScheme("ipn", &vscheme, &vschemeElt);
+
+	writeMemoNote("[DEBUG-CUSTODY-SRC] cteb_processOnAccept: custodianEid",
+			ctebData.custodianEid ? ctebData.custodianEid : "(null)");
+	writeMemoNote("[DEBUG-CUSTODY-SRC] cteb_processOnAccept: adminEid",
+			(vschemeElt != 0) ? vscheme->adminEid : "(no scheme)");
+
+	if (vschemeElt != 0 && ctebData.custodianEid != NULL)
+	{
+		if (strcmp(ctebData.custodianEid, vscheme->adminEid) == 0)
+		{
+			/*	We are already the custodian - this is
+			 *	a source-originated bundle. Skip accept. */
+			writeMemo("[DEBUG-CUSTODY-SRC] CTEB: We are custodian, skipping accept");
+			return 0;
+		}
+	}
+
 	/*	Accept custody - this will:
 	 *	1. Send CCS acceptance to previous custodian
-	 *	2. Add bundle to local custody tracking		*/
+	 *	2. Add bundle to local custody tracking (if not destination) */
 
 	writeMemoNote("[i] CTEB: Accepting custody from", ctebData.custodianEid ?
 			ctebData.custodianEid : "(null)");
 
-	if (cbr_acceptCustody(sdr, bundle, &ctebData) < 0)
+	if (cbr_acceptCustody(sdr, bundle, bundleAddr, &ctebData) < 0)
 	{
 		putErrmsg("CTEB: custody acceptance failed.", NULL);
 		return -1;
 	}
 
-	writeMemo("[i] CTEB: Custody accepted, CCS queued.");
+	/*	If bundleAddr == 0, this is destination delivery.
+	 *	Don't detain - bundle will be delivered and destroyed.
+	 *	For intermediate nodes, detain until CCS from next hop.	*/
+
+	if (bundleAddr != 0)
+	{
+		bundle->detained = 1;
+		writeMemo("[i] CTEB: Custody accepted, CCS queued, bundle detained.");
+	}
+	else
+	{
+		writeMemo("[i] CTEB: Destination custody accepted, CCS queued.");
+	}
+
 	return 0;
 }
 
@@ -420,21 +455,9 @@ int	cteb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 
 	sdr_read(sdr, (char *) &scratch, blk->object, sizeof(CtebScratchpad));
 
-	/*	Free old custodian EID string.				*/
-
-	if (scratch.custodianEid != 0)
-	{
-		sdr_free(sdr, scratch.custodianEid);
-	}
-
 	/*	Set new custodian EID to our node.			*/
 
-	scratch.custodianEid = sdr_string_create(sdr, vscheme->adminEid);
-	if (scratch.custodianEid == 0)
-	{
-		putErrmsg("CTEB: can't update custodian EID.", NULL);
-		return -1;
-	}
+	istrcpy(scratch.custodianEid, vscheme->adminEid, MAX_EID_LEN);
 
 	/*	Write updated scratchpad.				*/
 
@@ -449,13 +472,11 @@ int	cteb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 
 int	cteb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 {
-	Sdr		sdr = getIonsdr();
 	unsigned char	*cursor;
 	unsigned int	unparsedBytes;
 	uvast		arrayLength;
 	uvast		uvtemp;
 	CtebScratchpad	*scratch;
-	char		eidBuf[MAX_EID_LEN];
 	uvast		eidLen;
 
 	(void) wk;	/*	May use later for bundle access.	*/
@@ -523,23 +544,14 @@ int	cteb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	/*	Element 2: custodian_eid				*/
 
 	eidLen = MAX_EID_LEN - 1;
-	if (cbor_decode_text_string(eidBuf, &eidLen, &cursor,
+	if (cbor_decode_text_string(scratch->custodianEid, &eidLen, &cursor,
 			&unparsedBytes) < 1)
 	{
 		writeMemo("[?] CTEB: can't decode custodian_eid.");
 		return 0;
 	}
 
-	eidBuf[eidLen] = '\0';
-
-	/*	Store custodian EID in SDR.				*/
-
-	scratch->custodianEid = sdr_string_create(sdr, eidBuf);
-	if (scratch->custodianEid == 0)
-	{
-		writeMemo("[?] CTEB: can't store custodian EID.");
-		return 0;
-	}
+	scratch->custodianEid[eidLen] = '\0';
 
 	if (unparsedBytes != 0)
 	{
@@ -562,23 +574,32 @@ int	cteb_check(AcqExtBlock *blk, AcqWorkArea *wk)
 
 void	cteb_clear(AcqExtBlock *blk)
 {
-	Sdr		sdr = getIonsdr();
-	CtebScratchpad	*scratch;
-
 	if (blk->object != NULL)
 	{
-		scratch = (CtebScratchpad *) blk->object;
-
-		/*	Free SDR string if allocated during parse.	*/
-
-		if (scratch->custodianEid != 0)
-		{
-			sdr_free(sdr, scratch->custodianEid);
-		}
+		/*	custodianEid is embedded char array in struct,
+		 *	so just free the working memory scratchpad.	*/
 
 		MRELEASE(blk->object);
 		blk->object = NULL;
 	}
 
 	blk->size = 0;
+}
+
+/*	*	*	Utility Functions	*	*	*	*/
+
+int	cteb_getCustodyInfo(ExtensionBlock *blk, uvast *seqId, uvast *seqNum)
+{
+	Sdr		sdr = getIonsdr();
+	CtebScratchpad	scratch;
+
+	if (blk == NULL || blk->object == 0)
+	{
+		return -1;
+	}
+
+	sdr_read(sdr, (char *) &scratch, blk->object, sizeof(CtebScratchpad));
+	*seqId = scratch.seqId;
+	*seqNum = scratch.seqNum;
+	return 0;
 }

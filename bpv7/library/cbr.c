@@ -760,7 +760,7 @@ int	cbr_extendRangeArray(Sdr sdr, Object rangeArray,
 		uvast seqNumStart, uvast seqNum)
 {
 	Object	elt;
-	Object	lastElt;
+	Object	lastElt = 0;
 	Object	lenObj;
 	uvast	position = seqNumStart;
 	uvast	lenBuf;
@@ -2056,9 +2056,16 @@ void	cbr_untrackCustodyBundle(Sdr sdr, Object custodyElt)
 }
 
 /**
- * Remove custody tracking for a bundle identified by its SDR object address.
- * Called from bpDestroyBundle when a bundle expires or is otherwise destroyed.
- * This ensures custody tracking doesn't hold orphaned references.
+ * Remove custody tracking for a bundle being destroyed.
+ *
+ * Called from bpDestroyBundle AFTER the detained check, so it is only
+ * invoked when the bundle is truly being destroyed (either TTL expired
+ * or custody was released via CCS and bundle is no longer detained).
+ *
+ * For custody bundles awaiting CCS, the detained flag keeps bpDestroyBundle
+ * from reaching this point - custody tracking is preserved. When CCS is
+ * received, cbr_releaseCustody clears detained and removes the custody
+ * entry before calling bpDestroyBundle.
  */
 void	cbr_untrackBundleByObj(Sdr sdr, Object bundleObj)
 {
@@ -2089,7 +2096,9 @@ void	cbr_untrackBundleByObj(Sdr sdr, Object bundleObj)
 
 		if (cb.bundleObj == bundleObj)
 		{
-			/*	Found matching entry. Remove it.	*/
+			/*	Bundle is being destroyed (TTL expired
+			 *	or custody released). Remove custody
+			 *	tracking entry entirely.		*/
 			writeMemo("[i] CBR: Removing custody tracking for "
 					"destroyed bundle.");
 			cbr_untrackCustodyBundle(sdr, elt);
@@ -2161,10 +2170,10 @@ static int	queueCcs(Sdr sdr, char *destEid, char *sourceEid,
 	return 0;
 }
 
-int	cbr_acceptCustody(Sdr sdr, Bundle *bundle, CtebBlk *cteb)
+int	cbr_acceptCustody(Sdr sdr, Bundle *bundle, Object bundleAddr,
+		CtebBlk *cteb)
 {
 	char		*sourceEid = NULL;
-	Object		bundleAddr;
 	int		result;
 
 	CHKERR(cteb);
@@ -2178,22 +2187,20 @@ int	cbr_acceptCustody(Sdr sdr, Bundle *bundle, CtebBlk *cteb)
 		return -1;
 	}
 
-	/*	Get bundle address for tracking.			*/
-	/*	NOTE: In a full implementation, we'd get this from
-	 *	the bundle's hash entry or similar. For now, we use
-	 *	a simplified approach - the bundle object address
-	 *	should be passed from the caller context.		*/
-	bundleAddr = 0;		/*	Placeholder - see note above.	*/
-
-	/*	Add bundle to custody tracking.				*/
-	if (cbr_trackCustodyBundle(sdr, bundleAddr,
-			bundle->proxNodeEid ? "" : cteb->custodianEid,
-			sourceEid, cteb->seqId, cteb->seqNum) == 0)
+	/*	Add bundle to custody tracking (skip for destination).
+	 *	bundleAddr == 0 indicates destination delivery - no need
+	 *	to track custody since there's no next hop to wait for.	*/
+	if (bundleAddr != 0)
 	{
-		/*	May already be tracked or allocation failed.	*/
-		writeMemoNote("[?] CBR: Failed to track custody bundle",
-				sourceEid);
-		/*	Continue anyway to send CCS.			*/
+		if (cbr_trackCustodyBundle(sdr, bundleAddr,
+				bundle->proxNodeEid ? "" : cteb->custodianEid,
+				sourceEid, cteb->seqId, cteb->seqNum) == 0)
+		{
+			/*	May already be tracked or allocation failed. */
+			writeMemoNote("[?] CBR: Failed to track custody bundle",
+					sourceEid);
+			/*	Continue anyway to send CCS.		*/
+		}
 	}
 
 	/*	Queue CCS acceptance to previous custodian.		*/
@@ -2266,8 +2273,10 @@ int	cbr_refuseCustody(Sdr sdr, Bundle *bundle, CtebBlk *cteb,
 int	cbr_releaseCustody(Sdr sdr, char *sourceEid, uvast seqId,
 		uvast seqNumStart, uvast length)
 {
-	uvast	i;
-	Object	custodyElt;
+	uvast		i;
+	Object		custodyElt;
+	CustodyBundle	cb;
+	Object		cbObj;
 
 	/*	Release custody for each bundle in the range.		*/
 	for (i = 0; i < length; i++)
@@ -2279,7 +2288,32 @@ int	cbr_releaseCustody(Sdr sdr, char *sourceEid, uvast seqId,
 			CbrDb	*cbrConst = _cbrConstants();
 			Object	cbrDbObj = getCbrDbObject();
 
-			cbr_untrackCustodyBundle(sdr, custodyElt);
+			/*	Get custody bundle data before untracking.	*/
+			cbObj = sdr_list_data(sdr, custodyElt);
+			sdr_read(sdr, (char *) &cb, cbObj, sizeof(CustodyBundle));
+
+			/*	Clear detained flag and destroy bundle.
+			 *	bpDestroyBundle will call cbr_untrackBundleByObj
+			 *	which removes the custody tracking entry.	*/
+			if (cb.bundleObj != 0)
+			{
+				Bundle	bundle;
+
+				sdr_stage(sdr, (char *) &bundle, cb.bundleObj,
+						sizeof(Bundle));
+				bundle.detained = 0;
+				sdr_write(sdr, cb.bundleObj, (char *) &bundle,
+						sizeof(Bundle));
+				bpDestroyBundle(cb.bundleObj, 0);
+				/*	Custody entry removed by bpDestroyBundle
+				 *	via cbr_untrackBundleByObj.		*/
+			}
+			else
+			{
+				/*	Bundle already destroyed (TTL expired).
+				 *	Remove orphaned custody entry.		*/
+				cbr_untrackCustodyBundle(sdr, custodyElt);
+			}
 
 			/*	Increment custody released counter.	*/
 			if (cbrConst && cbrDbObj)
@@ -2312,16 +2346,19 @@ int	cbr_handleCrs(Sdr sdr, unsigned char *adminRecord, int length)
 	char		*sourceEid;
 	uvast		i;
 
-	(void) sdr;		/*	May use later for state tracking. */
-
 	/*	CRS content format (after stripping admin record header):
 	 *	{ status-reason => [Bundle-Sequence, ...], ... }	*/
+
+	/*	Start transaction for SDR operations (statistics update). */
+
+	CHKERR(sdr_begin_xn(sdr));
 
 	/*	Decode map						*/
 	mapLen = 0;
 	if (cbor_decode_map_open(&mapLen, &cursor, &unparsedBytes) < 1)
 	{
 		writeMemo("[?] CRS: Can't decode map open.");
+		sdr_cancel_xn(sdr);
 		return -1;
 	}
 
@@ -2333,6 +2370,7 @@ int	cbr_handleCrs(Sdr sdr, unsigned char *adminRecord, int length)
 				&unparsedBytes) < 1)
 		{
 			writeMemo("[?] CRS: Can't decode status code.");
+			sdr_cancel_xn(sdr);
 			return -1;
 		}
 
@@ -2342,6 +2380,7 @@ int	cbr_handleCrs(Sdr sdr, unsigned char *adminRecord, int length)
 				&unparsedBytes) < 1)
 		{
 			writeMemo("[?] CRS: Can't decode sequence array.");
+			sdr_cancel_xn(sdr);
 			return -1;
 		}
 
@@ -2354,6 +2393,7 @@ int	cbr_handleCrs(Sdr sdr, unsigned char *adminRecord, int length)
 					&sourceEid) < 0)
 			{
 				writeMemo("[?] CRS: Can't decode Bundle-Sequence.");
+				sdr_cancel_xn(sdr);
 				return -1;
 			}
 
@@ -2392,6 +2432,12 @@ int	cbr_handleCrs(Sdr sdr, unsigned char *adminRecord, int length)
 		}
 	}
 
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("CRS: Transaction failed.", NULL);
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -2418,11 +2464,17 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 	 *
 	 *	Disposition is SIGNED: 1=accepted, -1=refused		*/
 
+	/*	Start transaction for SDR operations (custody release,
+	 *	statistics updates).					*/
+
+	CHKERR(sdr_begin_xn(sdr));
+
 	/*	Decode map						*/
 	mapLen = 0;
 	if (cbor_decode_map_open(&mapLen, &cursor, &unparsedBytes) < 1)
 	{
 		writeMemo("[?] CCS: Can't decode map open.");
+		sdr_cancel_xn(sdr);
 		return -1;
 	}
 
@@ -2438,6 +2490,7 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 				&unparsedBytes) < 1)
 		{
 			writeMemo("[?] CCS: Can't decode disposition.");
+			sdr_cancel_xn(sdr);
 			return -1;
 		}
 
@@ -2451,6 +2504,7 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 				&unparsedBytes) < 1)
 		{
 			writeMemo("[?] CCS: Can't decode sequence array.");
+			sdr_cancel_xn(sdr);
 			return -1;
 		}
 
@@ -2463,6 +2517,7 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 					&sourceEid) < 0)
 			{
 				writeMemo("[?] CCS: Can't decode Bundle-Sequence.");
+				sdr_cancel_xn(sdr);
 				return -1;
 			}
 
@@ -2555,6 +2610,12 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 
 			arrayLen--;
 		}
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("CCS: Transaction failed.", NULL);
+		return -1;
 	}
 
 	return 0;

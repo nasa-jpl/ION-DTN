@@ -25,6 +25,7 @@
 #include "eureka.h"
 #include "bibe.h"
 #include "cbrP.h"	/* Private CBR header for internal functions */
+#include "cteb.h"	/* For cteb_getCustodyInfo */
 
 /*	Interfaces to other BP-related components of ION	*	*/
 
@@ -2784,12 +2785,6 @@ int	bpDestroyBundle(Object bundleObj, int unconditional)
 
 	sdr_stage(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 
-	/*	Clean up custody tracking if this bundle was being tracked.
-	 *	This must be done before the bundle is destroyed to prevent
-	 *	orphaned custody entries that reference invalid bundleObj.	*/
-
-	cbr_untrackBundleByObj(sdr, bundleObj);
-
 	/*	Special handling for TTL expiration.			*/
 
 	if (unconditional)
@@ -2918,6 +2913,12 @@ incomplete bundle.", NULL);
 	{
 		return 0;	/*	Can't destroy bundle yet.	*/
 	}
+
+	/*	Clean up custody tracking if this bundle was being tracked.
+	 *	This is placed AFTER the detained check so custody tracking
+	 *	is preserved for detained bundles awaiting CCS.		*/
+
+	cbr_untrackBundleByObj(sdr, bundleObj);
 
 	/*	Verify transaction still active before destructive ops.	*/
 
@@ -6038,23 +6039,32 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 	/*	Do any forwarding-triggered extension block processing
 	 *	that is necessary.					*/
 
+	writeMemo("[DEBUG-CUSTODY-SRC] forwardBundle: about to PROCESS_ON_FORWARD");
+
 	if (processExtensionBlocks(bundle, PROCESS_ON_FORWARD, NULL) < 0)
 	{
 		putErrmsg("Can't process extensions.", "forward");
 		return -1;
 	}
 
+	writeMemo("[DEBUG-CUSTODY-SRC] forwardBundle: about to PROCESS_ON_TAKE_CUSTODY");
+
 	/*	If bundle has CTEB and custody transfer is requested,
 	 *	accept custody now. This triggers:
 	 *	1. Sending CCS to previous custodian
 	 *	2. Adding bundle to local custody tracking
-	 *	Per Orange Book, custody is accepted at forwarding time.	*/
+	 *	Per Orange Book, custody is accepted at forwarding time.
+	 *	Pass bundleObj as context so cteb_processOnAccept can
+	 *	track custody with the correct bundle address.		*/
 
-	if (processExtensionBlocks(bundle, PROCESS_ON_TAKE_CUSTODY, NULL) < 0)
+	if (processExtensionBlocks(bundle, PROCESS_ON_TAKE_CUSTODY,
+			(void *) bundleObj) < 0)
 	{
 		putErrmsg("Can't process custody acceptance.", NULL);
 		return -1;
 	}
+
+	writeMemo("[DEBUG-CUSTODY-SRC] forwardBundle: custody acceptance done");
 
 	/*	Queue this bundle for the scheme-specific forwarder.	*/
 
@@ -6588,14 +6598,59 @@ when asking for status reports.");
 		}
 	}
 
+	/*	Track custody at source if CTEB was added.		*/
+
+	if (custodySwitch != NoCustodyRequested)
+	{
+		Object ctebElt = findExtensionBlock(&bundle,
+				CBR_BLOCK_TYPE_CTEB, 0);
+
+		writeMemoNote("[DEBUG-CUSTODY-SRC] bpSend: custody requested, CTEB elt",
+				ctebElt ? "found" : "NOT FOUND");
+
+		if (ctebElt != 0)
+		{
+			ExtensionBlock	ctebBlk;
+			uvast		seqId;
+			uvast		seqNum;
+
+			sdr_read(sdr, (char *) &ctebBlk,
+					sdr_list_data(sdr, ctebElt),
+					sizeof(ExtensionBlock));
+
+			if (cteb_getCustodyInfo(&ctebBlk, &seqId, &seqNum) == 0)
+			{
+				char	*srcEid = NULL;
+
+				readEid(&bundle.id.source, &srcEid);
+				if (srcEid != NULL)
+				{
+					writeMemoNote("[DEBUG-CUSTODY-SRC] bpSend: tracking custody for",
+							srcEid);
+					if (cbr_trackCustodyBundle(sdr, bundleAddr,
+							destEidString, srcEid,
+							seqId, seqNum) != 0)
+					{
+						/*	Custody tracked - detain
+						 *	bundle until CCS received. */
+						bundle.detained = 1;
+					}
+
+					MRELEASE(srcEid);
+				}
+			}
+		}
+	}
+
 	noteBundleInserted(&bundle);
 	if (bundleObj)	/*	App. needs to reference the bundle.	*/
 	{
 		*bundleObj = bundleAddr;
 		bundle.detained = 1;
 	}
-	else
+	else if (!bundle.detained)
 	{
+		/*	Don't clear detained if already set for custody. */
 		bundle.detained = 0;
 	}
 
@@ -6977,6 +7032,18 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 	CHKERR(ionLocked());
 	if (bundle->deliverable)
 	{
+		/*	Destination node: accept custody and send CCS
+		 *	back to previous custodian. Pass 0 as context
+		 *	to indicate "destination delivery" - don't set
+		 *	detained flag since bundle will be delivered.	*/
+
+		if (processExtensionBlocks(bundle, PROCESS_ON_TAKE_CUSTODY,
+				(void *) 0) < 0)
+		{
+			putErrmsg("Can't process custody on delivery.", NULL);
+			return -1;
+		}
+
 		if (deliverBundle(bundleObj, bundle, *vpoint) < 0)
 		{
 			putErrmsg("Bundle delivery failed.", NULL);

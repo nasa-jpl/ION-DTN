@@ -11,6 +11,8 @@
 #include <stdarg.h>
 
 #include "ipnfw.h"
+#include "bei.h"	/* For findExtensionBlock */
+#include "cbr.h"	/* For CBR_BLOCK_TYPE_CTEB */
 
 #ifdef	ION_BANDWIDTH_RESERVED
 #define	MANAGE_OVERBOOKING	0
@@ -1225,14 +1227,32 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 	/*	No applicable exit.  If there's at least a route
 	 *	that might work if some hypothetical contact should
 	 *	materialize, we place the bundle in limbo and hope
-	 *	for the best.						*/
+	 *	for the best.
+	 *
+	 *	For custody bundles (Orange Book CT), always keep
+	 *	in limbo - the source has custody responsibility
+	 *	and must retain the bundle until custody is transferred.	*/
 
-	if (cgr_prospect(fqnn, bundle->expirationTime) > 0)
+	/*	Check if bundle has CTEB (custody transfer).
+	 *	Use findExtensionBlock which works for both locally
+	 *	sourced and received bundles.				*/
 	{
-		if (enqueueToLimbo(bundle, bundleObj) < 0)
+		Object	ctebElt = findExtensionBlock(bundle,
+				CBR_BLOCK_TYPE_CTEB, 0);
+		int	hasCustody = (ctebElt != 0);
+
+		if (cgr_prospect(fqnn, bundle->expirationTime) > 0 || hasCustody)
 		{
-			putErrmsg("Can't put bundle in limbo.", NULL);
-			return -1;
+			if (hasCustody)
+			{
+				writeMemo("[DEBUG-CUSTODY-SRC] ipnfw: custody bundle going to limbo");
+			}
+
+			if (enqueueToLimbo(bundle, bundleObj) < 0)
+			{
+				putErrmsg("Can't put bundle in limbo.", NULL);
+				return -1;
+			}
 		}
 	}
 
@@ -1243,6 +1263,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 		return bpAccept(bundleObj, bundle);
 	}
 
+	writeMemo("[DEBUG-CUSTODY-SRC] ipnfw: abandoning bundle (no route, no custody)");
 	return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 }
 

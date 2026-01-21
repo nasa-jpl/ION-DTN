@@ -302,11 +302,12 @@ extern int		cbr_reportStatus(Sdr sdr, Bundle *bundle,
  *
  * @param sdr		SDR handle
  * @param bundle	Bundle to take custody of
+ * @param bundleAddr	SDR address of bundle (for custody tracking)
  * @param cteb		CTEB block data
  * @return		0 on success, -1 on error
  */
 extern int		cbr_acceptCustody(Sdr sdr, Bundle *bundle,
-				CtebBlk *cteb);
+				Object bundleAddr, CtebBlk *cteb);
 
 /**
  * Refuse custody of a bundle.

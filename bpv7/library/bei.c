@@ -559,8 +559,18 @@ int	processExtensionBlocks(Bundle *bundle, int fnIdx, void *context)
 
 	CHKERR(bundle);
 	oldDbOverhead = bundle->dbOverhead;
+
+	{
+		char	buf[128];
+		isprintf(buf, sizeof(buf),
+			"[DEBUG-CUSTODY-SRC] processExtBlocks: fnIdx=%d, extensions=%lu",
+			fnIdx, bundle->extensions);
+		writeMemo(buf);
+	}
+
 	if (bundle->extensions == 0)
 	{
+		writeMemo("[DEBUG-CUSTODY-SRC] processExtBlocks: no extensions");
 		return 0;
 	}
 
@@ -571,11 +581,30 @@ int	processExtensionBlocks(Bundle *bundle, int fnIdx, void *context)
 		blkAddr = sdr_list_data(sdr, elt);
 		sdr_stage(sdr, (char *) &blk, blkAddr,
 				sizeof(ExtensionBlock));
+
+		{
+			char	buf[128];
+			isprintf(buf, sizeof(buf),
+				"[DEBUG-CUSTODY-SRC] processExtBlocks: block type=%d",
+				(int)blk.type);
+			writeMemo(buf);
+		}
+
 		def = findExtensionDef(blk.type);
 		if (def == NULL
 		|| (processExtension = def->process[fnIdx]) == NULL)
 		{
+			writeMemoNote("[DEBUG-CUSTODY-SRC] processExtBlocks: skipping, def or process NULL",
+				def ? def->name : "(no def)");
 			continue;
+		}
+
+		{
+			char	buf[128];
+			isprintf(buf, sizeof(buf),
+				"[DEBUG-CUSTODY-SRC] processExtBlocks: calling process for type=%d",
+				(int)blk.type);
+			writeMemo(buf);
 		}
 
 #ifdef DEBUG_CRC
