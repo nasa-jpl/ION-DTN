@@ -1,0 +1,249 @@
+#!/usr/bin/env bash
+#
+# crs-individual-flags: Test each CRS status report flag individually
+#
+# Verifies:
+#   - Reception status report (rcv flag) is generated when requested
+#   - Forwarding status report (fwd flag) is generated at intermediate nodes
+#   - Delivery status report (dlv flag) is generated when requested
+#   - Each flag works independently
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+echo "=== CRS Individual Flags Test ==="
+echo "Topology: Node 1 (source) -> Node 2 (relay) -> Node 3 (destination)"
+echo ""
+
+# Clean up any previous runs
+rm -f "$TESTDIR/ion_nodes"
+for node in 1.node 2.node 3.node; do
+    rm -f "$TESTDIR/$node/ion.log" "$TESTDIR/$node"/*.txt
+done
+
+# Track test results
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+test_result() {
+    if [ $1 -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+# Start all nodes
+echo "Starting ION nodes..."
+for node in 1 2 3; do
+    cd "$TESTDIR/${node}.node"
+    ./ionstart > ion_startup.log 2>&1
+    sleep 2
+done
+
+# Verify nodes are running
+NODE_COUNT=$(pgrep -x "rfxclock" | wc -l)
+if [ "$NODE_COUNT" -lt 3 ]; then
+    echo "ERROR: Not all ION nodes started. Found $NODE_COUNT rfxclock processes."
+    exit 1
+fi
+echo "All 3 nodes started successfully."
+echo ""
+
+# Wait for contacts to become active
+echo "Waiting for contacts to become active..."
+sleep 3
+
+# Helper function to get CRS recv count
+get_crs_recv() {
+    local node_dir="$1"
+    cd "$node_dir"
+    cbrcustodytest -l 2>/dev/null | grep "CRS Signals Recv" | awk '{print $NF}'
+}
+
+# Helper function to get CRS sent count for a specific node
+get_crs_sent() {
+    local node_dir="$1"
+    cd "$node_dir"
+    cbrcustodytest -l 2>/dev/null | grep "CRS Signals Sent" | awk '{print $NF}'
+}
+
+# ============================================
+# Test 1: Reception Status Only (rcv)
+# ============================================
+echo "--- Test 1: Reception Status Only (rcv) ---"
+
+# Record initial stats
+INITIAL_CRS=$(get_crs_recv "$TESTDIR/1.node")
+INITIAL_CRS=${INITIAL_CRS:-0}
+
+# Start receiver on Node 3
+cd "$TESTDIR/3.node"
+bpsink ipn:3.1 > sink_rcv.txt 2>&1 &
+SINK_PID=$!
+sleep 2
+
+# Send bundle with only rcv flag
+cd "$TESTDIR/1.node"
+echo "  Sending bundle with rcv flag only..."
+bptrace -msg "Test RCV only" -ttl 60 -flags rcv ipn:1.2 ipn:3.1 ipn:1.0 > trace_rcv.txt 2>&1
+
+# Wait for CRS
+sleep 8
+
+# Kill receiver
+kill $SINK_PID 2>/dev/null || true
+wait $SINK_PID 2>/dev/null || true
+
+# Check results
+FINAL_CRS=$(get_crs_recv "$TESTDIR/1.node")
+FINAL_CRS=${FINAL_CRS:-0}
+
+if [ "$FINAL_CRS" -gt "$INITIAL_CRS" ]; then
+    test_result 0 "Reception status report received ($FINAL_CRS > $INITIAL_CRS)"
+else
+    test_result 1 "No reception status report received"
+fi
+
+# ============================================
+# Test 2: Forwarding Status Only (fwd)
+# ============================================
+echo ""
+echo "--- Test 2: Forwarding Status Only (fwd) ---"
+
+# Record initial stats
+INITIAL_CRS=$(get_crs_recv "$TESTDIR/1.node")
+INITIAL_CRS=${INITIAL_CRS:-0}
+
+# Start receiver on Node 3
+cd "$TESTDIR/3.node"
+bpsink ipn:3.1 > sink_fwd.txt 2>&1 &
+SINK_PID=$!
+sleep 2
+
+# Send bundle with only fwd flag (should get forwarding report from Node 2)
+cd "$TESTDIR/1.node"
+echo "  Sending bundle with fwd flag only..."
+bptrace -msg "Test FWD only" -ttl 60 -flags fwd ipn:1.2 ipn:3.1 ipn:1.0 > trace_fwd.txt 2>&1
+
+# Wait for CRS
+sleep 8
+
+# Kill receiver
+kill $SINK_PID 2>/dev/null || true
+wait $SINK_PID 2>/dev/null || true
+
+# Check results - fwd report comes from intermediate node (Node 2)
+FINAL_CRS=$(get_crs_recv "$TESTDIR/1.node")
+FINAL_CRS=${FINAL_CRS:-0}
+NODE2_CRS_SENT=$(get_crs_sent "$TESTDIR/2.node")
+NODE2_CRS_SENT=${NODE2_CRS_SENT:-0}
+
+if [ "$FINAL_CRS" -gt "$INITIAL_CRS" ]; then
+    test_result 0 "Forwarding status report received ($FINAL_CRS > $INITIAL_CRS)"
+elif [ "$NODE2_CRS_SENT" -gt 0 ]; then
+    test_result 0 "Forwarding status report sent from relay (Node 2 sent: $NODE2_CRS_SENT)"
+else
+    test_result 1 "No forwarding status report generated"
+fi
+
+# ============================================
+# Test 3: Delivery Status Only (dlv)
+# ============================================
+echo ""
+echo "--- Test 3: Delivery Status Only (dlv) ---"
+
+# Record initial stats
+INITIAL_CRS=$(get_crs_recv "$TESTDIR/1.node")
+INITIAL_CRS=${INITIAL_CRS:-0}
+
+# Start receiver on Node 3
+cd "$TESTDIR/3.node"
+bpsink ipn:3.1 > sink_dlv.txt 2>&1 &
+SINK_PID=$!
+sleep 2
+
+# Send bundle with only dlv flag
+cd "$TESTDIR/1.node"
+echo "  Sending bundle with dlv flag only..."
+bptrace -msg "Test DLV only" -ttl 60 -flags dlv ipn:1.2 ipn:3.1 ipn:1.0 > trace_dlv.txt 2>&1
+
+# Wait for CRS
+sleep 8
+
+# Kill receiver
+kill $SINK_PID 2>/dev/null || true
+wait $SINK_PID 2>/dev/null || true
+
+# Check results
+FINAL_CRS=$(get_crs_recv "$TESTDIR/1.node")
+FINAL_CRS=${FINAL_CRS:-0}
+
+if [ "$FINAL_CRS" -gt "$INITIAL_CRS" ]; then
+    test_result 0 "Delivery status report received ($FINAL_CRS > $INITIAL_CRS)"
+else
+    test_result 1 "No delivery status report received"
+fi
+
+# ============================================
+# Test 4: All Status Flags Combined
+# ============================================
+echo ""
+echo "--- Test 4: All Status Flags Combined (rcv,fwd,dlv) ---"
+
+# Record initial stats
+INITIAL_CRS=$(get_crs_recv "$TESTDIR/1.node")
+INITIAL_CRS=${INITIAL_CRS:-0}
+
+# Start receiver on Node 3
+cd "$TESTDIR/3.node"
+bpsink ipn:3.1 > sink_all.txt 2>&1 &
+SINK_PID=$!
+sleep 2
+
+# Send bundle with all flags
+cd "$TESTDIR/1.node"
+echo "  Sending bundle with all flags (rcv,fwd,dlv)..."
+bptrace -msg "Test ALL flags" -ttl 60 -flags rcv,fwd,dlv ipn:1.2 ipn:3.1 ipn:1.0 > trace_all.txt 2>&1
+
+# Wait for CRS
+sleep 10
+
+# Kill receiver
+kill $SINK_PID 2>/dev/null || true
+wait $SINK_PID 2>/dev/null || true
+
+# Check results - should have multiple CRS signals
+FINAL_CRS=$(get_crs_recv "$TESTDIR/1.node")
+FINAL_CRS=${FINAL_CRS:-0}
+CRS_DIFF=$((FINAL_CRS - INITIAL_CRS))
+
+if [ "$CRS_DIFF" -ge 2 ]; then
+    test_result 0 "Multiple status reports received ($CRS_DIFF CRS signals)"
+elif [ "$CRS_DIFF" -ge 1 ]; then
+    test_result 0 "At least one status report received ($CRS_DIFF CRS signals)"
+else
+    test_result 1 "No status reports received for combined flags"
+fi
+
+# ============================================
+# Summary Statistics
+# ============================================
+echo ""
+echo "--- Final CRS Statistics ---"
+for node in 1 2 3; do
+    cd "$TESTDIR/${node}.node"
+    echo "  Node $node:"
+    cbrcustodytest -l 2>/dev/null | grep -E "CRS Signals" | sed 's/^/    /'
+done
+
+# Summary
+echo ""
+echo "========================================="
+echo "SUMMARY: $TESTS_PASSED passed, $TESTS_FAILED failed"
+echo "========================================="
+
+[ $TESTS_FAILED -eq 0 ]

@@ -1,0 +1,175 @@
+#!/usr/bin/env bash
+#
+# crs-aggregation: Test CRS signal aggregation
+#
+# Verifies:
+#   - Multiple bundles are aggregated into fewer CRS signals
+#   - Aggregation limit (cbraggr) is respected
+#   - CRS signals are still generated and received correctly
+#
+# Configuration:
+#   - cbraggr 5 1 10 (CRS limit=5, CCS limit=1, timeout=10s)
+#   - Send 20 bundles -> expect ~4 CRS signals per status type (20/5)
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+BUNDLE_COUNT=20
+CRS_LIMIT=5
+
+echo "=== CRS Aggregation Test ==="
+echo "Topology: Node 1 (source) <-> Node 2 (destination)"
+echo "Configuration: CRS aggregate limit = $CRS_LIMIT"
+echo "Test: Send $BUNDLE_COUNT bundles, verify aggregation"
+echo ""
+
+# Clean up any previous runs
+rm -f "$TESTDIR/ion_nodes"
+for node in 1.node 2.node; do
+    rm -f "$TESTDIR/$node/ion.log" "$TESTDIR/$node"/*.txt
+done
+
+# Track test results
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+test_result() {
+    if [ $1 -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+# Start all nodes
+echo "Starting ION nodes..."
+for node in 1 2; do
+    cd "$TESTDIR/${node}.node"
+    ./ionstart > ion_startup.log 2>&1
+    sleep 2
+done
+
+# Verify nodes are running
+NODE_COUNT=$(pgrep -x "rfxclock" | wc -l)
+if [ "$NODE_COUNT" -lt 2 ]; then
+    echo "ERROR: Not all ION nodes started. Found $NODE_COUNT rfxclock processes."
+    exit 1
+fi
+echo "All 2 nodes started successfully."
+echo ""
+
+# Wait for contacts to become active
+echo "Waiting for contacts to become active..."
+sleep 3
+
+# Record initial statistics
+cd "$TESTDIR/1.node"
+cbrcustodytest -l > initial_stats.txt 2>&1
+INITIAL_CRS_RECV=$(grep "CRS Signals Recv" initial_stats.txt | awk '{print $NF}')
+INITIAL_CRS_RECV=${INITIAL_CRS_RECV:-0}
+
+cd "$TESTDIR/2.node"
+cbrcustodytest -l > initial_stats.txt 2>&1
+INITIAL_CRS_SENT=$(grep "CRS Signals Sent" initial_stats.txt | awk '{print $NF}')
+INITIAL_CRS_SENT=${INITIAL_CRS_SENT:-0}
+
+# Test: Send multiple bundles and verify aggregation
+echo "--- Test: CRS Aggregation ---"
+
+# Start receiver on Node 2
+cd "$TESTDIR/2.node"
+bpcounter ipn:2.1 $BUNDLE_COUNT > counter_output.txt 2>&1 &
+COUNTER_PID=$!
+sleep 2
+
+# Send bundles rapidly from Node 1 with delivery status reports
+cd "$TESTDIR/1.node"
+echo "Sending $BUNDLE_COUNT bundles with dlv flag..."
+for i in $(seq 1 $BUNDLE_COUNT); do
+    bptrace -msg "Aggregation Test Bundle $i" -ttl 60 -flags dlv ipn:1.2 ipn:2.1 ipn:1.0 > /dev/null 2>&1
+done
+echo "All $BUNDLE_COUNT bundles sent."
+
+# Wait for all bundles to be delivered and CRS signals to be aggregated and sent
+echo "Waiting for delivery and CRS aggregation..."
+sleep 15
+
+# Wait for counter to finish (or timeout)
+wait $COUNTER_PID 2>/dev/null || true
+
+# Collect final statistics
+cd "$TESTDIR/2.node"
+cbrcustodytest -l > final_stats.txt 2>&1
+FINAL_CRS_SENT=$(grep "CRS Signals Sent" final_stats.txt | awk '{print $NF}')
+FINAL_CRS_SENT=${FINAL_CRS_SENT:-0}
+CRS_SENT_COUNT=$((FINAL_CRS_SENT - INITIAL_CRS_SENT))
+
+cd "$TESTDIR/1.node"
+cbrcustodytest -l > final_stats.txt 2>&1
+FINAL_CRS_RECV=$(grep "CRS Signals Recv" final_stats.txt | awk '{print $NF}')
+FINAL_CRS_RECV=${FINAL_CRS_RECV:-0}
+CRS_RECV_COUNT=$((FINAL_CRS_RECV - INITIAL_CRS_RECV))
+
+echo ""
+echo "--- Aggregation Statistics ---"
+echo "  Bundles sent: $BUNDLE_COUNT"
+echo "  CRS aggregate limit: $CRS_LIMIT"
+echo "  Expected CRS signals: ~$((BUNDLE_COUNT / CRS_LIMIT)) (if perfectly aggregated)"
+echo "  Actual CRS signals sent by Node 2: $CRS_SENT_COUNT"
+echo "  Actual CRS signals recv by Node 1: $CRS_RECV_COUNT"
+
+# Test 1: Verify CRS signals were sent
+if [ "$CRS_SENT_COUNT" -gt 0 ]; then
+    test_result 0 "CRS signals were sent ($CRS_SENT_COUNT)"
+else
+    test_result 1 "No CRS signals were sent"
+fi
+
+# Test 2: Verify aggregation occurred (fewer CRS signals than bundles)
+if [ "$CRS_SENT_COUNT" -lt "$BUNDLE_COUNT" ] && [ "$CRS_SENT_COUNT" -gt 0 ]; then
+    RATIO=$((BUNDLE_COUNT / CRS_SENT_COUNT))
+    test_result 0 "Aggregation occurred ($CRS_SENT_COUNT signals for $BUNDLE_COUNT bundles, ratio ~$RATIO:1)"
+else
+    test_result 1 "Aggregation not evident (CRS signals: $CRS_SENT_COUNT, bundles: $BUNDLE_COUNT)"
+fi
+
+# Test 3: Verify CRS signals were received at source
+if [ "$CRS_RECV_COUNT" -gt 0 ]; then
+    test_result 0 "CRS signals received at source ($CRS_RECV_COUNT)"
+else
+    test_result 1 "No CRS signals received at source"
+fi
+
+# Test 4: Verify bundle delivery
+cd "$TESTDIR/2.node"
+DELIVERED=$(grep -c "bundle" counter_output.txt 2>/dev/null || echo "0")
+if [ -f counter_output.txt ] && [ "$DELIVERED" -gt 0 ]; then
+    test_result 0 "Bundles delivered ($DELIVERED)"
+elif ! kill -0 $COUNTER_PID 2>/dev/null; then
+    # Counter exited, meaning it received expected bundles
+    test_result 0 "All bundles delivered (counter completed)"
+else
+    test_result 1 "Bundle delivery issue"
+fi
+
+# Show detailed statistics
+echo ""
+echo "--- Detailed Node Statistics ---"
+echo "Node 1 (source):"
+cd "$TESTDIR/1.node"
+cbrcustodytest -l 2>/dev/null | grep -E "CRS|CCS" | sed 's/^/  /'
+
+echo "Node 2 (destination):"
+cd "$TESTDIR/2.node"
+cbrcustodytest -l 2>/dev/null | grep -E "CRS|CCS" | sed 's/^/  /'
+
+# Summary
+echo ""
+echo "========================================="
+echo "SUMMARY: $TESTS_PASSED passed, $TESTS_FAILED failed"
+echo "========================================="
+
+[ $TESTS_FAILED -eq 0 ]

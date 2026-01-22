@@ -1,0 +1,5 @@
+## IPN routing configuration for Node 2 (intermediate)
+## Routes to Node 1 and Node 3
+
+a plan 1 udp/127.0.0.1:4551
+a plan 3 udp/127.0.0.1:4553

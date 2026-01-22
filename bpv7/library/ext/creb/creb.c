@@ -111,6 +111,7 @@ int	creb_offer(ExtensionBlock *blk, Bundle *bundle)
 	CrebScratchpad	scratch;
 	uvast		seqNum;
 	char		*sourceEidStr;
+	char		*destEidStr;
 	Object		scratchAddr;
 
 	/*	Check if CREB should be attached based on config mode.	*/
@@ -146,14 +147,27 @@ int	creb_offer(ExtensionBlock *blk, Bundle *bundle)
 		return -1;
 	}
 
+	readEid(&bundle->destination, &destEidStr);
+	if (destEidStr == NULL)
+	{
+		putErrmsg("CREB: can't read destination EID.", NULL);
+		MRELEASE(sourceEidStr);
+		return -1;
+	}
+
 	/*	Use seqId 0 (destination-specific counters) for now.
 	 *	This requires destEid for counter lookup.		*/
 
-	if (cbr_allocateSeqNum(sdr, sourceEidStr, NULL, 0, 0, &seqNum) < 0)
+	if (cbr_allocateSeqNum(sdr, sourceEidStr, destEidStr, 0, 0, &seqNum) < 0)
 	{
 		putErrmsg("CREB: can't allocate sequence number.", NULL);
+		MRELEASE(sourceEidStr);
+		MRELEASE(destEidStr);
 		return -1;
 	}
+
+	MRELEASE(destEidStr);
+	MRELEASE(sourceEidStr);
 
 	/*	Populate scratchpad with CREB data.			*/
 
@@ -180,7 +194,15 @@ int	creb_offer(ExtensionBlock *blk, Bundle *bundle)
 
 	blk->blkProcFlags = CREB_BLOCK_PROC_FLAGS;
 	blk->dataLength = 0;	/*	Will serialize at dequeue time.	*/
-	blk->length = 0;
+
+	/*	blk->length serves two purposes:
+	 *	  1. Before serialization: non-zero indicates block is
+	 *	     viable and should not be deleted (length=0 means
+	 *	     "scratched" in processExtensionBlocks).
+	 *	  2. After serialization: holds actual serialized length.
+	 *	Set to 1 as placeholder; actual length set by
+	 *	creb_serialize called from creb_processOnDequeue.	*/
+	blk->length = 1;
 	blk->size = sizeof(CrebScratchpad);
 	blk->object = scratchAddr;
 
@@ -456,9 +478,11 @@ int	creb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	cursor = blk->bytes + (blk->length - blk->dataLength);
 	unparsedBytes = blk->dataLength;
 
-	/*	Decode array open - get actual length.			*/
+	/*	Decode array open - get actual length.
+	 *	Set arrayLength to 0 to accept any size, then
+	 *	the actual size is returned in arrayLength.		*/
 
-	arrayLength = 5;	/*	Max expected length.		*/
+	arrayLength = 0;
 	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 1)
 	{
 		writeMemo("[?] CREB: can't decode array open.");
@@ -573,4 +597,22 @@ void	creb_clear(AcqExtBlock *blk)
 	}
 
 	blk->size = 0;
+}
+
+/*	*	*	Utility Functions	*	*	*	*/
+
+int	creb_getReportInfo(ExtensionBlock *blk, uvast *seqId, uvast *seqNum)
+{
+	Sdr		sdr = getIonsdr();
+	CrebScratchpad	scratch;
+
+	if (blk == NULL || blk->object == 0)
+	{
+		return -1;
+	}
+
+	sdr_read(sdr, (char *) &scratch, blk->object, sizeof(CrebScratchpad));
+	*seqId = scratch.seqId;
+	*seqNum = scratch.seqNum;
+	return 0;
 }

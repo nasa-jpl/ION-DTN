@@ -537,6 +537,7 @@ typedef struct {
 	unsigned int	ccsRefuseSent;		/* CCS refusal signals sent */
 	unsigned int	ccsAcceptRecv;		/* CCS acceptance received */
 	unsigned int	ccsRefuseRecv;		/* CCS refusal received */
+	unsigned int	custodyOriginated;	/* Bundles originated with custody */
 	unsigned int	custodyAccepted;	/* Bundles accepted into custody */
 	unsigned int	custodyReleased;	/* Bundles released from custody */
 	unsigned int	crsSignalsSent;		/* CRS signals sent */

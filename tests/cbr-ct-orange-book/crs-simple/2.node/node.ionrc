@@ -1,0 +1,6 @@
+## ION node configuration for CRS test - Node 2 (destination)
+
+1 2 node.ionconfig
+s
+m horizon +0
+m clockerr 0

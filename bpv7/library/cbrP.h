@@ -50,6 +50,7 @@ typedef struct {
 	unsigned int	ccsRefuseSent;		/* CCS refusal signals sent */
 	unsigned int	ccsAcceptRecv;		/* CCS acceptance received */
 	unsigned int	ccsRefuseRecv;		/* CCS refusal received */
+	unsigned int	custodyOriginated;	/* Bundles originated with custody */
 	unsigned int	custodyAccepted;	/* Bundles accepted into custody */
 	unsigned int	custodyReleased;	/* Bundles released from custody */
 	unsigned int	crsSignalsSent;		/* CRS signals sent */
@@ -215,6 +216,12 @@ extern Object		cbr_findCustodyBundle(Sdr sdr, char *sourceEid,
 extern Object		cbr_trackCustodyBundle(Sdr sdr, Object bundleObj,
 				char *destEid, char *sourceEid, uvast seqId,
 				uvast seqNum);
+
+/**
+ * Increment the custodyOriginated counter.
+ * Called when a bundle is originated with custody transfer at the source.
+ */
+extern void		cbr_noteCustodyOriginated(Sdr sdr);
 
 /**
  * Remove a bundle from custody tracking.

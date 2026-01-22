@@ -220,6 +220,7 @@ int	main(int argc, char **argv)
 			printf("  CCS Refuse Sent:     %u\n", stats.ccsRefuseSent);
 			printf("  CCS Accept Received: %u\n", stats.ccsAcceptRecv);
 			printf("  CCS Refuse Received: %u\n", stats.ccsRefuseRecv);
+			printf("  Custody Originated:  %u\n", stats.custodyOriginated);
 			printf("  Custody Accepted:    %u\n", stats.custodyAccepted);
 			printf("  Custody Released:    %u\n", stats.custodyReleased);
 			printf("  CRS Signals Sent:    %u\n", stats.crsSignalsSent);

@@ -130,6 +130,7 @@ payload length");
 	PUTS("\t   m payloadcrc <set CRC type for locally sourced payload block, 0, 1, or 2>");
 	PUTS("\t   m maxcount <max value of bundle ID sequence number>");
 	PUTS("\t   m custodymode <custody transfer mode: none | bibe | orangebook>");
+	PUTS("\t   m srmode <status report mode: traditional | compressed | both>");
 	PUTS("\t   m cbraggr <CRS limit> <CCS limit> <timeout seconds>");
 	PUTS("\t      Aggregate limits: max bundles before sending signal (0=immediate)");
 	PUTS("\t      Timeout: max seconds to wait before sending aggregated signal");
@@ -1568,6 +1569,45 @@ static void	manageCustodyMode(int tokenCount, char **tokens)
 	}
 }
 
+static void	manageSrMode(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+	int	mode;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	if (strcmp(tokens[2], "traditional") == 0)
+	{
+		mode = BP_SR_MODE_TRADITIONAL;
+	}
+	else if (strcmp(tokens[2], "compressed") == 0)
+	{
+		mode = BP_SR_MODE_COMPRESSED;
+	}
+	else if (strcmp(tokens[2], "both") == 0)
+	{
+		mode = BP_SR_MODE_BOTH;
+	}
+	else
+	{
+		printText("Status report mode must be 'traditional', 'compressed', or 'both'.");
+		return;
+	}
+
+	if (cbr_setStatusReportMode(sdr, mode) < 0)
+	{
+		putErrmsg("Can't set status report mode.", NULL);
+	}
+	else
+	{
+		printText("Status report mode set.");
+	}
+}
+
 static void	manageCbrAggr(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
@@ -1630,6 +1670,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "custodymode") == 0)
 	{
 		manageCustodyMode(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "srmode") == 0)
+	{
+		manageSrMode(tokenCount, tokens);
 		return;
 	}
 

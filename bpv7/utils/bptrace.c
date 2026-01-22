@@ -8,8 +8,11 @@
 /*									*/
 /*	Updated to intercept reports and display report directly
 	to terminal by Silas Springer	March 24, 2023	*/
+/*	Updated to handle CRS (Compressed Reporting Signal) admin
+	records in addition to traditional status reports.	*/
 #define _GNU_SOURCE
 #include <bpP.h>
+#include "cbr.h"	/* For CBR_ADMIN_RECORD_CRS, cbr_decodeBundleSequence */
 
 #if defined (ION_LWT)
 
@@ -506,6 +509,166 @@ static int	handleStatusRpt(BpDelivery *dlv, unsigned char *cursor,
 	return bundleDeath;
 }
 
+/*
+ * Convert CRS status code to BPv7-style status flags for display.
+ * CRS status codes: 0=received, 1=forwarded, 2=delivered, 3=deleted
+ * BPv7 flags: 1=received, 4=forwarded, 8=delivered, 16=deleted
+ */
+static int	crsStatusToFlags(int crsStatus)
+{
+	switch (crsStatus)
+	{
+	case CBR_STATUS_RECEIVED:
+		return BP_RECEIVED_RPT;
+	case CBR_STATUS_FORWARDED:
+		return BP_FORWARDED_RPT;
+	case CBR_STATUS_DELIVERED:
+		return BP_DELIVERED_RPT;
+	case CBR_STATUS_DELETED:
+		return BP_DELETED_RPT;
+	default:
+		return 0;
+	}
+}
+
+/*
+ * Handle a CRS (Compressed Reporting Signal) admin record.
+ * Parse the CRS format and populate statusReport structures.
+ * Returns number of reports created, or -1 on error.
+ *
+ * CRS format: { status-code => [Bundle-Sequence, ...], ... }
+ */
+static int	handleCrsReport(BpDelivery *dlv, unsigned char *cursor,
+			unsigned int unparsedBytes, statusReport **reportArray,
+			unsigned int maxReports, unsigned int *reportsCreated)
+{
+	uvast		mapLen;
+	uvast		statusCode;
+	uvast		arrayLen;
+	uvast		seqId;
+	uvast		seqNumStart;
+	uvast		bundleLen;
+	uvast		*rangeArray;
+	int		rangeCount;
+	char		*sourceEid;
+	uvast		i;
+	int		statusFlags;
+	char		*reasonString;
+	struct timeval	curTime;
+
+	*reportsCreated = 0;
+
+	/*	Get current time for status reports (CRS doesn't carry time) */
+	getCurrentTime(&curTime);
+
+	/*	Decode map						*/
+	mapLen = 0;
+	if (cbor_decode_map_open(&mapLen, &cursor, &unparsedBytes) < 1)
+	{
+		printf("[?] CRS: Can't decode map open.\n");
+		return -1;
+	}
+
+	printDBG(2, "CRS: map has " UVAST_FIELDSPEC " entries\n", mapLen);
+
+	/*	Process each status-reason entry			*/
+	for (i = 0; i < mapLen && *reportsCreated < maxReports; i++)
+	{
+		/*	Key: status-reason code				*/
+		if (cbor_decode_integer(&statusCode, CborAny, &cursor,
+				&unparsedBytes) < 1)
+		{
+			printf("[?] CRS: Can't decode status code.\n");
+			return -1;
+		}
+
+		/*	Convert CRS status to BPv7 flags		*/
+		statusFlags = crsStatusToFlags((int)statusCode);
+		if (statusFlags == 0)
+		{
+			reasonString = "(unknown CRS status)";
+		}
+		else if (statusFlags == BP_DELETED_RPT)
+		{
+			reasonString = "deleted (CRS)";
+		}
+		else
+		{
+			reasonString = "okay (CRS)";
+		}
+
+		/*	Value: array of Bundle-Sequence			*/
+		arrayLen = 0;
+		if (cbor_decode_array_open(&arrayLen, &cursor,
+				&unparsedBytes) < 1)
+		{
+			printf("[?] CRS: Can't decode sequence array.\n");
+			return -1;
+		}
+
+		printDBG(2, "CRS: status " UVAST_FIELDSPEC " has " UVAST_FIELDSPEC " sequences\n",
+				statusCode, arrayLen);
+
+		/*	Decode each Bundle-Sequence			*/
+		while (arrayLen > 0 && *reportsCreated < maxReports)
+		{
+			if (cbr_decodeBundleSequence(&cursor, &unparsedBytes,
+					&seqId, &seqNumStart, &bundleLen,
+					&rangeArray, &rangeCount,
+					&sourceEid) < 0)
+			{
+				printf("[?] CRS: Can't decode Bundle-Sequence.\n");
+				return -1;
+			}
+
+			/*	Create a status report for this entry.
+			 *	Note: CRS aggregates multiple bundles, so
+			 *	we may create multiple reports per CRS.	*/
+
+			statusReport *report = reportArray[*reportsCreated];
+			if (report == NULL)
+			{
+				report = malloc(sizeof(statusReport));
+				if (report == NULL)
+				{
+					if (rangeArray) MRELEASE(rangeArray);
+					if (sourceEid) MRELEASE(sourceEid);
+					return -1;
+				}
+				reportArray[*reportsCreated] = report;
+			}
+
+			report->sourceEid = sourceEid ? strdup(sourceEid) :
+					strdup("(unknown)");
+			report->creationTime = 0;	/*	Not in CRS	*/
+			report->creationCount = (unsigned)seqNumStart;
+			report->fragmentOffset = 0;
+			report->statusFlags = statusFlags;
+			report->statusTime = (uvast)curTime.tv_sec * 1000 +
+					curTime.tv_usec / 1000;
+			report->bundleSourceEid = strdup(dlv->bundleSourceEid);
+			report->reasonString = strdup(reasonString);
+
+			(*reportsCreated)++;
+
+			/*	Clean up				*/
+			if (rangeArray)
+			{
+				MRELEASE(rangeArray);
+			}
+
+			if (sourceEid)
+			{
+				MRELEASE(sourceEid);
+			}
+
+			arrayLen--;
+		}
+	}
+
+	return (int)(*reportsCreated);
+}
+
 static int run_listen_bptrace(char *listenEid)
 {
 	signal(SIGABRT, sighandler);
@@ -628,8 +791,9 @@ static int run_listen_bptrace(char *listenEid)
 			continue;
 		}
 
-		/* Ignore admin bundles other than status reports */
-		if (adminRecType != BP_STATUS_REPORT)
+		/* Accept status reports (type 1) and CRS (type 14) */
+		if (adminRecType != BP_STATUS_REPORT &&
+				adminRecType != CBR_ADMIN_RECORD_CRS)
 		{
 			printDBG(2, "Ignoring admin record type %d.\n",
 					adminRecType);
@@ -638,7 +802,7 @@ static int run_listen_bptrace(char *listenEid)
 		}
 
 		/*	Read the entire admin record into memory buffer.	*/
-		printDBG(1, "Received admin bundle...\n");
+		printDBG(1, "Received admin bundle (type %d)...\n", adminRecType);
 		CHKERR(sdr_begin_xn(sdr));
 		buflen = zco_source_data_length(sdr, dlv.adu);
 
@@ -666,21 +830,62 @@ static int run_listen_bptrace(char *listenEid)
 		cursor = buffer;
 		unparsedBytes = bytesToParse;
 
-		printDBG(1, "handling status report...\n");
-		reports[n_rpts] = malloc(sizeof(*reports[n_rpts]));
-		printDBG(3, "report pointer after malloc: %p\n", (void *)reports[n_rpts]);
-		rpt_rval = handleStatusRpt(&dlv, cursor, unparsedBytes, reports[n_rpts]);
-		printDBG(3, "\n"UVAST_FIELDSPEC"\n", reports[n_rpts]->creationTime);
+		/*	Handle based on admin record type		*/
+		if (adminRecType == BP_STATUS_REPORT)
+		{
+			printDBG(1, "handling traditional status report...\n");
+			reports[n_rpts] = malloc(sizeof(*reports[n_rpts]));
+			printDBG(3, "report pointer after malloc: %p\n", (void *)reports[n_rpts]);
+			rpt_rval = handleStatusRpt(&dlv, cursor, unparsedBytes, reports[n_rpts]);
+			printDBG(3, "\n"UVAST_FIELDSPEC"\n", reports[n_rpts]->creationTime);
 
-		/* Print the report immediately (real-time display) */
-		if (rpt_rval >= 0)
-		{
-			print(reports[n_rpts]);
-			fflush(stdout);
+			/* Print the report immediately (real-time display) */
+			if (rpt_rval >= 0)
+			{
+				print(reports[n_rpts]);
+				fflush(stdout);
+			}
+			else
+			{
+				printf("Status report handler failed.\n");
+			}
 		}
-		else
+		else /* CBR_ADMIN_RECORD_CRS */
 		{
-			printf("Status report handler failed.\n");
+			unsigned int crsReportsCreated = 0;
+			printDBG(1, "handling CRS (compressed status report)...\n");
+
+			/*	CRS may contain multiple bundle status reports.
+			 *	Allocate temp array for them.			*/
+			statusReport *crsReports[128];
+			memset(crsReports, 0, sizeof(crsReports));
+
+			rpt_rval = handleCrsReport(&dlv, cursor, unparsedBytes,
+					crsReports, 128, &crsReportsCreated);
+
+			if (rpt_rval >= 0)
+			{
+				for (unsigned int j = 0; j < crsReportsCreated; j++)
+				{
+					if (crsReports[j])
+					{
+						print(crsReports[j]);
+						fflush(stdout);
+						freeStatusReport(crsReports[j]);
+					}
+				}
+				printDBG(1, "CRS: displayed %u reports\n", crsReportsCreated);
+			}
+			else
+			{
+				printf("CRS handler failed.\n");
+			}
+
+			/*	For CRS, don't increment n_rpts for each
+			 *	individual report; skip directly to cleanup. */
+			MRELEASE(buffer);
+			bp_release_delivery(&dlv, 1);
+			continue;
 		}
 
 		/* Free the report immediately since we already printed it */
@@ -844,15 +1049,16 @@ static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 			continue;
 		}
 
-		// ignore admin bundles other than status reports.
-		if (adminRecType != BP_STATUS_REPORT)
+		/* Accept status reports (type 1) and CRS (type 14) */
+		if (adminRecType != BP_STATUS_REPORT &&
+				adminRecType != CBR_ADMIN_RECORD_CRS)
 		{
 			bp_release_delivery(&dlv, 0);
 			continue;
 		}
 
 		/*	read the entire admin record into memory buffer.	*/
-		printDBG(1, "Recieved admin bundle...\n");
+		printDBG(1, "Received admin bundle (type %d)...\n", adminRecType);
 		CHKERR(sdr_begin_xn(sdr));
 		buflen = zco_source_data_length(sdr, dlv.adu);
 
@@ -879,17 +1085,60 @@ static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 		cursor = buffer;
 		unparsedBytes = bytesToParse;
 
-		printDBG(1, "handling status report...\n");
-		reports[n_rpts] = malloc(sizeof(*reports[n_rpts]/*statusReport*/));
-		printDBG(3, "report pointer after malloc: %p\n", (void *)reports[n_rpts]);
-		rpt_rval = handleStatusRpt(&dlv, cursor, unparsedBytes, reports[n_rpts]);
-		printDBG(3, "\n"UVAST_FIELDSPEC"\n", reports[n_rpts]->creationTime);
-		n_rpts++;
-		printDBG(2, "report handler returned %d\n", rpt_rval);
-		bp_release_delivery(&dlv, 1);
-		if (rpt_rval < 0)
+		/*	Handle based on admin record type		*/
+		if (adminRecType == BP_STATUS_REPORT)
 		{
-			printf("Status report handler failed.\n");
+			printDBG(1, "handling traditional status report...\n");
+			reports[n_rpts] = malloc(sizeof(*reports[n_rpts]));
+			printDBG(3, "report pointer after malloc: %p\n", (void *)reports[n_rpts]);
+			rpt_rval = handleStatusRpt(&dlv, cursor, unparsedBytes, reports[n_rpts]);
+			printDBG(3, "\n"UVAST_FIELDSPEC"\n", reports[n_rpts]->creationTime);
+			n_rpts++;
+			printDBG(2, "report handler returned %d\n", rpt_rval);
+			MRELEASE(buffer);
+			bp_release_delivery(&dlv, 1);
+			if (rpt_rval < 0)
+			{
+				printf("Status report handler failed.\n");
+			}
+		}
+		else /* CBR_ADMIN_RECORD_CRS */
+		{
+			unsigned int crsReportsCreated = 0;
+			printDBG(1, "handling CRS (compressed status report)...\n");
+
+			/*	CRS may contain multiple bundle status reports.
+			 *	Store them in the reports array.		*/
+			statusReport *crsReports[128];
+			memset(crsReports, 0, sizeof(crsReports));
+
+			rpt_rval = handleCrsReport(&dlv, cursor, unparsedBytes,
+					crsReports, 128 - n_rpts, &crsReportsCreated);
+
+			if (rpt_rval >= 0)
+			{
+				/*	Copy CRS reports to main reports array.	*/
+				for (unsigned int j = 0; j < crsReportsCreated && n_rpts < 128; j++)
+				{
+					reports[n_rpts] = crsReports[j];
+					n_rpts++;
+				}
+				printDBG(1, "CRS: stored %u reports\n", crsReportsCreated);
+			}
+			else
+			{
+				printf("CRS handler failed.\n");
+				/*	Clean up any partially created reports.	*/
+				for (unsigned int j = 0; j < crsReportsCreated; j++)
+				{
+					if (crsReports[j])
+					{
+						freeStatusReport(crsReports[j]);
+					}
+				}
+			}
+			MRELEASE(buffer);
+			bp_release_delivery(&dlv, 1);
 		}
 	}
 	print_reports();

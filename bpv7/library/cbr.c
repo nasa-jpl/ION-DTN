@@ -303,6 +303,7 @@ int	cbr_getStatistics(Sdr sdr, CbrStatistics *stats)
 	stats->ccsRefuseSent = cbrConstants->ccsRefuseSent;
 	stats->ccsAcceptRecv = cbrConstants->ccsAcceptRecv;
 	stats->ccsRefuseRecv = cbrConstants->ccsRefuseRecv;
+	stats->custodyOriginated = cbrConstants->custodyOriginated;
 	stats->custodyAccepted = cbrConstants->custodyAccepted;
 	stats->custodyReleased = cbrConstants->custodyReleased;
 	stats->crsSignalsSent = cbrConstants->crsSignalsSent;
@@ -327,6 +328,7 @@ int	cbr_resetStatistics(Sdr sdr)
 	cbrConstants->ccsRefuseSent = 0;
 	cbrConstants->ccsAcceptRecv = 0;
 	cbrConstants->ccsRefuseRecv = 0;
+	cbrConstants->custodyOriginated = 0;
 	cbrConstants->custodyAccepted = 0;
 	cbrConstants->custodyReleased = 0;
 	cbrConstants->crsSignalsSent = 0;
@@ -347,19 +349,20 @@ int	cbr_resetStatistics(Sdr sdr)
 
 int	cbr_getStatusReportMode(Sdr sdr)
 {
-	Object		bpDbObj;
-	BpDB		bpDb;
+	BpDB	*bpConstants;
 
 	(void) sdr;	/*	Needed for interface consistency.	*/
-	bpDbObj = getBpDbObject();
-	if (bpDbObj == 0)
+
+	/*	Use getBpConstants() which caches the BpDB values
+	 *	and avoids needing a transaction for each read.		*/
+
+	bpConstants = getBpConstants();
+	if (bpConstants == NULL)
 	{
-		putErrmsg("CBR: BpDB not available.", NULL);
-		return -1;
+		return BP_SR_MODE_TRADITIONAL;	/*	Safe default.	*/
 	}
 
-	sdr_read(getIonsdr(), (char *) &bpDb, bpDbObj, sizeof(BpDB));
-	return (int) bpDb.statusRptMode;
+	return (int) bpConstants->statusRptMode;
 }
 
 int	cbr_setStatusReportMode(Sdr sdr, int mode)
@@ -2021,6 +2024,18 @@ Object	cbr_trackCustodyBundle(Sdr sdr, Object bundleObj, char *destEid,
 	}
 
 	return elt;
+}
+
+void	cbr_noteCustodyOriginated(Sdr sdr)
+{
+	CbrDb	*cbrConst = _cbrConstants();
+	Object	cbrDbObj = getCbrDbObject();
+
+	if (cbrConst && cbrDbObj)
+	{
+		cbrConst->custodyOriginated++;
+		sdr_write(sdr, cbrDbObj, (char *) cbrConst, sizeof(CbrDb));
+	}
 }
 
 /**

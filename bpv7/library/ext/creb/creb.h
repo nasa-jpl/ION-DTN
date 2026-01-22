@@ -87,4 +87,18 @@ extern int	creb_check(AcqExtBlock *, AcqWorkArea *);
  */
 extern void	creb_clear(AcqExtBlock *);
 
+/*	Utility Functions						*/
+
+/**
+ * Extract CREB reporting info from extension block.
+ * Used by sendStatusRpt() to get sequence info for CRS generation.
+ *
+ * @param blk		The CREB extension block
+ * @param seqId		Output: sequence identifier
+ * @param seqNum	Output: sequence number
+ * @return		0 on success, -1 on error
+ */
+extern int	creb_getReportInfo(ExtensionBlock *blk, uvast *seqId,
+			uvast *seqNum);
+
 #endif /* _CREB_H_ */

@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+#
+# crs-simple: Basic CRS (Compressed Reporting Signal) test
+#
+# Verifies:
+#   - CREB block is attached to bundles requesting status reports
+#   - CRS signals are generated at destination for reception and delivery
+#   - CRS signals are received back at the source
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+echo "=== CRS Simple Test ==="
+echo "Topology: Node 1 (source) <-> Node 2 (destination)"
+echo ""
+
+# Clean up any previous runs
+rm -f "$TESTDIR/ion_nodes"
+for node in 1.node 2.node; do
+    rm -f "$TESTDIR/$node/ion.log" "$TESTDIR/$node"/*.txt
+done
+
+# Track test results
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+test_result() {
+    if [ $1 -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+# Start all nodes
+echo "Starting ION nodes..."
+for node in 1 2; do
+    cd "$TESTDIR/${node}.node"
+    ./ionstart > ion_startup.log 2>&1
+    sleep 2
+done
+
+# Verify nodes are running
+NODE_COUNT=$(pgrep -x "rfxclock" | wc -l)
+if [ "$NODE_COUNT" -lt 2 ]; then
+    echo "ERROR: Not all ION nodes started. Found $NODE_COUNT rfxclock processes."
+    exit 1
+fi
+echo "All 2 nodes started successfully."
+echo ""
+
+# Wait for contacts to become active
+echo "Waiting for contacts to become active..."
+sleep 3
+
+# Record initial CRS statistics
+cd "$TESTDIR/1.node"
+cbrcustodytest -l > initial_stats.txt 2>&1
+INITIAL_CRS_RECV=$(grep "CRS Signals Recv" initial_stats.txt | awk '{print $NF}')
+INITIAL_CRS_RECV=${INITIAL_CRS_RECV:-0}
+
+# Test: Send bundle with status report requests
+echo "--- Test: CRS Generation and Reception ---"
+
+# Start receiver on Node 2
+cd "$TESTDIR/2.node"
+bpsink ipn:2.1 > sink_output.txt 2>&1 &
+SINK_PID=$!
+sleep 2
+
+# Send bundle from Node 1 with status report flags (rcv, dlv)
+# Note: fwd not expected in 2-node (no intermediate hop)
+cd "$TESTDIR/1.node"
+echo "Sending bundle with status report requests (rcv,dlv)..."
+bptrace -msg "CRS Test Bundle" -ttl 60 -flags rcv,dlv ipn:1.2 ipn:2.1 ipn:1.0 > trace_output.txt 2>&1
+
+# Wait for CRS signals to be generated and returned
+echo "Waiting for CRS signal processing..."
+sleep 10
+
+# Kill receiver
+kill $SINK_PID 2>/dev/null || true
+wait $SINK_PID 2>/dev/null || true
+
+# Check CRS reception statistics
+cd "$TESTDIR/1.node"
+cbrcustodytest -l > final_stats.txt 2>&1
+FINAL_CRS_RECV=$(grep "CRS Signals Recv" final_stats.txt | awk '{print $NF}')
+FINAL_CRS_RECV=${FINAL_CRS_RECV:-0}
+
+echo ""
+echo "--- Node 1 CRS Statistics ---"
+echo "  Initial CRS Signals Recv: $INITIAL_CRS_RECV"
+echo "  Final CRS Signals Recv:   $FINAL_CRS_RECV"
+
+# Verify CRS was received
+if [ "$FINAL_CRS_RECV" -gt "$INITIAL_CRS_RECV" ]; then
+    test_result 0 "CRS signals received at source ($FINAL_CRS_RECV > $INITIAL_CRS_RECV)"
+else
+    test_result 1 "No CRS signals received at source"
+fi
+
+# Check Node 2 for CRS sent
+cd "$TESTDIR/2.node"
+cbrcustodytest -l > crs_stats.txt 2>&1
+CRS_SENT=$(grep "CRS Signals Sent" crs_stats.txt | awk '{print $NF}')
+CRS_SENT=${CRS_SENT:-0}
+
+echo ""
+echo "--- Node 2 CRS Statistics ---"
+echo "  CRS Signals Sent: $CRS_SENT"
+
+if [ "$CRS_SENT" -gt 0 ]; then
+    test_result 0 "CRS signals sent from destination ($CRS_SENT)"
+else
+    test_result 1 "No CRS signals sent from destination"
+fi
+
+# Check bundle delivery (functional verification)
+cd "$TESTDIR/2.node"
+if [ -f sink_output.txt ] && [ -s sink_output.txt ]; then
+    test_result 0 "Bundle delivered to destination"
+else
+    # Check if bpsink received anything before timing out
+    test_result 1 "Bundle NOT delivered to destination"
+fi
+
+# Show CRS activity from logs
+echo ""
+echo "--- CRS Activity Summary ---"
+for node in 1.node 2.node; do
+    if [ -f "$TESTDIR/$node/ion.log" ]; then
+        crs_count=$(grep -ci "CRS\|CREB\|status.*report" "$TESTDIR/$node/ion.log" 2>/dev/null || echo "0")
+        echo "  $node: $crs_count CRS/CREB-related log entries"
+    fi
+done
+
+# Summary
+echo ""
+echo "========================================="
+echo "SUMMARY: $TESTS_PASSED passed, $TESTS_FAILED failed"
+echo "========================================="
+
+[ $TESTS_FAILED -eq 0 ]

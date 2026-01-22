@@ -574,3 +574,26 @@ tests/admin_public_api/ltp_span_management/dotest
 ltpstats
 ltpcancel
 ltpwatch
+
+# CBR/CT Orange Book test artifacts
+tests/cbr-ct-orange-book/*/ion_nodes
+tests/cbr-ct-orange-book/*/*.node/ion.log
+tests/cbr-ct-orange-book/*/*.node/ion_startup.log
+tests/cbr-ct-orange-book/*/*.node/bpdriverAduFile
+tests/cbr-ct-orange-book/*/*.node/custody_status.txt
+tests/cbr-ct-orange-book/*/*.node/driver_output.txt
+tests/cbr-ct-orange-book/*/*.node/sink_output.txt
+tests/cbr-ct-orange-book/*/*.node/trace_output.txt
+tests/cbr-ct-orange-book/*/*.node/trace_*.txt
+tests/cbr-ct-orange-book/*/*.node/sink_*.txt
+tests/cbr-ct-orange-book/*/*.node/initial_stats.txt
+tests/cbr-ct-orange-book/*/*.node/final_stats.txt
+tests/cbr-ct-orange-book/*/*.node/crs_stats.txt
+tests/cbr-ct-orange-book/*/*.node/bpacq.*
+tests/cbr-ct-orange-book/*/*.node/counter_output*.txt
+tests/cbr-ct-orange-book/*/*.node/ccs_test_output.txt
+tests/cbr-ct-orange-book/*/*.node/custody_list.txt
+tests/cbr-ct-orange-book/*/*.node/driver_output*.txt
+
+# CBR custody test binary
+cbrcustodytest

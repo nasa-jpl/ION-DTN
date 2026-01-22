@@ -26,6 +26,7 @@
 #include "bibe.h"
 #include "cbrP.h"	/* Private CBR header for internal functions */
 #include "cteb.h"	/* For cteb_getCustodyInfo */
+#include "creb.h"	/* For creb_getReportInfo */
 
 /*	Interfaces to other BP-related components of ION	*	*/
 
@@ -6634,6 +6635,9 @@ when asking for status reports.");
 						/*	Custody tracked - detain
 						 *	bundle until CCS received. */
 						bundle.detained = 1;
+
+						/*	Increment originated counter. */
+						cbr_noteCustodyOriginated(sdr);
 					}
 
 					MRELEASE(srcEid);
@@ -10017,8 +10021,104 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 	return 0;
 }
 
+/*
+ * Helper function to send CRS (Compressed Reporting Signal) for bundle.
+ * Called when status report mode is COMPRESSED or BOTH.
+ * Returns 0 on success, -1 on error.
+ */
+static int	sendCompressedStatusRpt(Sdr sdr, Bundle *bundle)
+{
+	Object		crebElt;
+	ExtensionBlock	crebBlk;
+	uvast		seqId;
+	uvast		seqNum;
+	CrebBlk		creb;
+	int		flags;
+
+	/*	Find CREB block in the bundle.				*/
+
+	crebElt = findExtensionBlock(bundle, CBR_BLOCK_TYPE_CREB, 0);
+	if (crebElt == 0)
+	{
+		/*	No CREB block - can't send CRS.
+		 *	This is not an error; just skip CRS.		*/
+		return 0;
+	}
+
+	/*	Read CREB extension block.				*/
+
+	sdr_read(sdr, (char *) &crebBlk, sdr_list_data(sdr, crebElt),
+			sizeof(ExtensionBlock));
+
+	/*	Extract sequence info from CREB scratchpad.		*/
+
+	if (creb_getReportInfo(&crebBlk, &seqId, &seqNum) < 0)
+	{
+		writeMemo("[?] Can't get CREB report info.");
+		return 0;	/*	Not fatal, just skip CRS.	*/
+	}
+
+	/*	Build CrebBlk structure for cbr_reportStatus().
+	 *	EIDs are NULL; cbr_reportStatus uses bundle's EIDs.	*/
+
+	memset(&creb, 0, sizeof(CrebBlk));
+	creb.seqId = seqId;
+	creb.seqNum = seqNum;
+	creb.sourceEid = NULL;
+	creb.reportToEid = NULL;
+
+	/*	Send CRS for each status flag that's set.
+	 *	Map BPv7 status flags to CBR status codes.		*/
+
+	flags = bundle->statusRpt.flags;
+
+	if (flags & BP_RECEIVED_RPT)
+	{
+		if (cbr_reportStatus(sdr, bundle, CBR_STATUS_RECEIVED,
+				&creb) < 0)
+		{
+			putErrmsg("Can't send CRS for reception.", NULL);
+			return -1;
+		}
+	}
+
+	if (flags & BP_FORWARDED_RPT)
+	{
+		if (cbr_reportStatus(sdr, bundle, CBR_STATUS_FORWARDED,
+				&creb) < 0)
+		{
+			putErrmsg("Can't send CRS for forwarding.", NULL);
+			return -1;
+		}
+	}
+
+	if (flags & BP_DELIVERED_RPT)
+	{
+		if (cbr_reportStatus(sdr, bundle, CBR_STATUS_DELIVERED,
+				&creb) < 0)
+		{
+			putErrmsg("Can't send CRS for delivery.", NULL);
+			return -1;
+		}
+	}
+
+	if (flags & BP_DELETED_RPT)
+	{
+		if (cbr_reportStatus(sdr, bundle, CBR_STATUS_DELETED,
+				&creb) < 0)
+		{
+			putErrmsg("Can't send CRS for deletion.", NULL);
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
 int	sendStatusRpt(Bundle *bundle)
 {
+	Sdr		sdr = getIonsdr();
+	int		srMode;
 	int		priority = bundle->priority;
 	BpAncillaryData ecos = { .ordinal = bundle->ancillaryData.ordinal };
 	Object		payloadZco = 0;
@@ -10027,6 +10127,27 @@ int	sendStatusRpt(Bundle *bundle)
 	int		result;
 
 	CHKERR(bundle);
+
+	/*	Check status report mode and send appropriate report.	*/
+
+	srMode = cbr_getStatusReportMode(sdr);
+	if (srMode == BP_SR_MODE_COMPRESSED)
+	{
+		/*	Send CRS instead of traditional status report.	*/
+
+		result = sendCompressedStatusRpt(sdr, bundle);
+
+		/*	Clear status report flags after processing.	*/
+
+		bundle->statusRpt.flags = 0;
+		bundle->statusRpt.reasonCode = 0;
+		bundle->statusRpt.receiptTime = 0;
+		bundle->statusRpt.forwardTime = 0;
+		bundle->statusRpt.deliveryTime = 0;
+		bundle->statusRpt.deletionTime = 0;
+		return result;
+	}
+
 	result = serializeStatusRpt(bundle, &payloadZco);
 	if (result < 0)
 	{
