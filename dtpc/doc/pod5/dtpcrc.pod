@@ -40,7 +40,7 @@ in operation on the local ION node and most I<dtpcadmin> commands will fail.
 =item B<a profile> I<profileID> I<maxRtx> I<aggrSizeLimit> I<aggrTimeLimit> I<TTL> I<class_of_service> I<report_to_endpointID> [I<statusReportFlags>]
 
 The B<add profile> command.  This command notes the definition of a single
-DPTC transmission profile.  A transmission profile asserts the BP and DTPC
+DTPC transmission profile.  A transmission profile asserts the BP and DTPC
 configuration parameter values that will be applied to all application
 data items (encapsulated in DTPC application data units and transmitted in
 bundles) that are issued subject to this profile.  Transmission profiles are
