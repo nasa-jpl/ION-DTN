@@ -191,16 +191,49 @@ Following the bundle list, CBR/CT statistics are displayed:
       CCS Refuse Sent:     <count>
       CCS Accept Received: <count>
       CCS Refuse Received: <count>
+      Custody Originated:  <count>
       Custody Accepted:    <count>
       Custody Released:    <count>
       CRS Signals Sent:    <count>
       CRS Signals Recv:    <count>
 
 These statistics provide definitive proof that CCS signals were generated
-and processed. A non-zero B<CCS Accept Sent> indicates that the local node
-sent custody acceptance signals to prior custodians. A non-zero
-B<CCS Accept Received> indicates that next-hop custodians accepted
-custody and sent acceptance signals back to this node.
+and processed:
+
+=over 4
+
+=item CCS Accept Sent / CCS Refuse Sent
+
+Count of CCS signals sent to prior custodians when this node received
+bundles with custody transfer requested.
+
+=item CCS Accept Received / CCS Refuse Received
+
+Count of CCS signals received from next-hop custodians for bundles this
+node sent with custody transfer.
+
+=item Custody Originated
+
+Count of bundles originated at this node with custody transfer requested.
+This counter is incremented when a bundle is first sent with the
+B<SourceCustodyRequired> flag.
+
+=item Custody Accepted
+
+Count of bundles for which this node accepted custody from another node.
+This applies to bundles received from prior custodians.
+
+=item Custody Released
+
+Count of bundles for which custody was released after receiving a CCS
+acceptance signal from the next custodian.
+
+=item CRS Signals Sent / CRS Signals Recv
+
+Count of Compressed Reporting Signals sent and received for status
+reporting (separate from custody transfer signals).
+
+=back
 
 =head1 ENVIRONMENT
 

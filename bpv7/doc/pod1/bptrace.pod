@@ -2,6 +2,7 @@
 
 bptrace - Bundle Protocol (BP) network trace utility
 Updated from original by Silas Springer - March 2023.
+Updated to support CRS (Compressed Reporting Signals) - January 2026.
 
 =head1 SYNOPSIS
 
@@ -19,6 +20,14 @@ destination endpoint, with status reporting options enabled as selected
 by the user, then terminates.  The status reports returned as the bundle
 makes its way through the network provide a view of the operation of the
 network as currently configured.
+
+B<bptrace> transparently handles both traditional BPv7 status reports
+(admin record type 1) and Compressed Reporting Signals (CRS, admin record
+type 14) as defined in the CCSDS Orange Book specification.  When nodes
+in the network are configured with B<m custodymode orangebook>, they will
+generate CRS instead of traditional status reports.  B<bptrace> automatically
+detects the report type and displays the status information in a unified
+format.
 
 B<Listen-only mode:> When invoked with the B<-listen> flag, B<bptrace> opens
 the specified endpoint and displays bundle status reports as they arrive, without
@@ -118,10 +127,52 @@ cause of the error; correct problem and rerun.
 
 =back
 
+=head1 CRS (COMPRESSED REPORTING SIGNALS) SUPPORT
+
+B<bptrace> supports both traditional BPv7 status reports and Compressed
+Reporting Signals (CRS) as specified in the CCSDS Orange Book "Compressed
+Bundle Status Reporting and Custody Signaling" specification.
+
+When a node is configured with B<m custodymode orangebook> in its bprc file,
+bundles with status report requests will receive a CREB (Compressed Reporting
+Extension Block) instead of setting the traditional BPv7 status report request
+flags.  Intermediate nodes generate CRS admin records (type 14) instead of
+traditional status reports (type 1).
+
+B<bptrace> automatically detects the admin record type and processes both
+formats identically.  The displayed output uses a unified format regardless
+of which reporting mechanism was used.
+
+CRS status codes are mapped to BPv7-equivalent flags:
+
+=over 4
+
+=item 0 (Received)
+
+Maps to BPv7 "received" status (flag 0x01)
+
+=item 1 (Forwarded)
+
+Maps to BPv7 "forwarded" status (flag 0x04)
+
+=item 2 (Delivered)
+
+Maps to BPv7 "delivered" status (flag 0x08)
+
+=item 3 (Deleted)
+
+Maps to BPv7 "deleted" status (flag 0x10)
+
+=back
+
+Note that CRS does not carry timestamp information, so status times shown
+for CRS reports reflect the local receive time rather than the time the
+status event occurred at the remote node.
+
 =head1 BUGS
 
 Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-bp(3)
+bp(3), bprc(5), cbrcustodytest(1)
