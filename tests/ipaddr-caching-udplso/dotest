@@ -107,10 +107,10 @@ echo
 # Configurations
 HOSTS_FILE="/etc/hosts"
 BACKUP_FILE="$PWD/hosts.bak"
-ENTRY="127.0.1.3    test3.local"
+ENTRY="127.0.1.3    test3.invalid"
 LOG_FILE="ion.log"
-SEARCH_STRING1="udplso: DNS resolution failed for test3.local:3113"
-SEARCH_STRING2="parseSocketSpec: Parsed: test3.local:3113"
+SEARCH_STRING1="udplso: DNS resolution failed for test3.invalid:3113"
+SEARCH_STRING2="parseSocketSpec: Parsed: test3.invalid:3113"
 SEARCH_STRING3="(0) 0 0 (1) 6 42 (2) 0 0 (+) 6 42"
 LINE_NUM=1
 
@@ -145,6 +145,12 @@ fi
 
 # Clean up
 ./cleanup
+
+# Remove any leftover test3.invalid entry from a previous interrupted run
+if grep -q "test3.invalid" "$HOSTS_FILE" 2>/dev/null; then
+    echo "Removing leftover test3.invalid entry from $HOSTS_FILE..."
+    snpwd sed -i '/test3\.invalid/d' "$HOSTS_FILE"
+fi
 
 # Backup /etc/hosts
 printf 'Backing up %s → %s …\n' "$HOSTS_FILE" "$BACKUP_FILE"
@@ -195,7 +201,7 @@ echo ""
 echo "Step 2: Destination hostname added back to DNS or hosts file."
 echo ""
 
-# Append test3.local to hosts file
+# Append test3.invalid to hosts file
 echo "Appending entry '$ENTRY' to $HOSTS_FILE..."
 echo "$ENTRY" | snpwd tee -a "$HOSTS_FILE" >/dev/null
 

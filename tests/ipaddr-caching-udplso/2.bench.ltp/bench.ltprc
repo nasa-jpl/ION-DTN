@@ -1,5 +1,5 @@
 1 200
-a span 3 100 100 1400 1000 1 'udplso test3.local:3113'
+a span 3 100 100 1400 1000 1 'udplso test3.invalid:3113'
 a seat 'udplsi 127.0.0.1:2113'
 w 1
 s

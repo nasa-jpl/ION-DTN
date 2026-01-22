@@ -251,8 +251,8 @@ run_test() {
 
     if [ "$TEST_IPv6" = "true" ]; then
         TEST_ADDRESS="::3"
-        TEST_HOSTNAME="test3.local"
-        HOSTS_ENTRY="::3    test3.local"
+        TEST_HOSTNAME="test3.invalid"
+        HOSTS_ENTRY="::3    test3.invalid"
         PROTOCOL_TYPE="IPv6"
         PING_CMD="ping6"
         # Fallback to regular ping with -6 if ping6 not available
@@ -266,8 +266,8 @@ run_test() {
         fi
     else
         TEST_ADDRESS="127.0.1.3"
-        TEST_HOSTNAME="test3.local"
-        HOSTS_ENTRY="127.0.1.3    test3.local"
+        TEST_HOSTNAME="test3.invalid"
+        HOSTS_ENTRY="127.0.1.3    test3.invalid"
         PROTOCOL_TYPE="IPv4"
         PING_CMD="ping"
     fi
@@ -335,6 +335,12 @@ run_test() {
     SEARCH_STRING4="(0) 0 0 (1) 3 24 (2) 0 0 (+) 3 24"
     LINE_NUM=1
     local RETVAL=0
+
+    # Remove any leftover test3.invalid entry from a previous interrupted run
+    if grep -q "test3.invalid" "$HOSTS_FILE" 2>/dev/null; then
+        echo "Removing leftover test3.invalid entry from $HOSTS_FILE..."
+        snpwd sed -i '/test3\.invalid/d' "$HOSTS_FILE"
+    fi
 
     # Backup /etc/hosts
     printf 'Backing up %s → %s …\n' "$HOSTS_FILE" "$BACKUP_FILE"
