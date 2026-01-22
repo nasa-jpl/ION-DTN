@@ -1,0 +1,276 @@
+=head1 NAME
+
+cbr - Compressed Bundle Reporting and Custody Transfer library
+
+=head1 SYNOPSIS
+
+    #include "cbr.h"
+
+    [see description for available functions]
+
+=head1 DESCRIPTION
+
+The cbr library provides functions enabling application software to use
+Compressed Bundle Reporting (CBR) and Custody Transfer (CT) features as
+defined in the CCSDS Orange Book "Compressed Bundle Status Reporting and
+Custody Signaling" specification.
+
+CBR/CT provides two key capabilities:
+
+=over 4
+
+=item *
+
+B<Compressed Reporting Signals (CRS)>: A more efficient alternative to
+traditional BPv7 status reports, allowing multiple bundle status events
+to be aggregated into a single administrative message.
+
+=item *
+
+B<Custody Transfer with Compressed Custody Signals (CCS)>: A mechanism
+for reliable bundle delivery through hop-by-hop custody transfer, where
+each node explicitly accepts responsibility for bundle delivery.
+
+=back
+
+Note that functions taking Bundle* parameters are internal APIs called from
+within libbpP.c. External applications should only use the configuration and
+query functions that do not require Bundle*.
+
+=head2 CONSTANTS
+
+=head3 Block and Admin Record Types
+
+    CBR_BLOCK_TYPE_CTEB     13   Custody Transfer Extension Block
+    CBR_BLOCK_TYPE_CREB     14   Compressed Reporting Extension Block
+    CBR_ADMIN_RECORD_CCS    13   Compressed Custody Signal
+    CBR_ADMIN_RECORD_CRS    14   Compressed Reporting Signal
+
+=head3 Custody Disposition Codes
+
+    CBR_CUSTODY_ACCEPTED     1   Custody accepted (positive)
+    CBR_CUSTODY_REFUSED     -1   Custody refused (negative)
+
+=head3 Custody Query Status Results
+
+    CBR_CUSTODY_STATUS_NOT_FOUND  0   Bundle not in custody tracking
+    CBR_CUSTODY_STATUS_PENDING    1   Waiting for CCS from next hop
+    CBR_CUSTODY_STATUS_RELEASED   2   CCS accepted received, released
+    CBR_CUSTODY_STATUS_REFUSED    3   CCS refused received
+
+=head3 Status Reason Codes (CRS)
+
+    CBR_STATUS_RECEIVED          0   Bundle was received
+    CBR_STATUS_FORWARDED         1   Bundle was forwarded
+    CBR_STATUS_DELIVERED         2   Bundle was delivered
+    CBR_STATUS_DELETED           3   Bundle was deleted
+    CBR_STATUS_CUSTODY_ACCEPTED  4   Custody acceptance (info)
+    CBR_STATUS_CUSTODY_REFUSED   5   Custody refusal (info)
+
+=head3 Retransmission Strategies
+
+    CBR_RETX_NONE    0   Manual/command-based (default)
+    CBR_RETX_TIMER   1   Automatic timer-based
+    CBR_RETX_SIGNAL  2   Signal-based (on CCS refusal)
+
+=head2 DATA STRUCTURES
+
+=head3 CbrCustodyInfo
+
+Information about a bundle under custody:
+
+    typedef struct {
+        char    *destEid;          /* Next custodian EID */
+        uvast   seqId;             /* CTEB sequence identifier */
+        uvast   seqNum;            /* CTEB sequence number */
+        time_t  custodyAccepted;   /* When custody was accepted */
+        time_t  lastTransmit;      /* When last transmitted */
+        int     retransmitCount;   /* Number of retransmissions */
+    } CbrCustodyInfo;
+
+=head3 CbrStatistics
+
+Statistics counters for CBR/CT operations:
+
+    typedef struct {
+        unsigned int ccsAcceptSent;     /* CCS acceptance signals sent */
+        unsigned int ccsRefuseSent;     /* CCS refusal signals sent */
+        unsigned int ccsAcceptRecv;     /* CCS acceptance received */
+        unsigned int ccsRefuseRecv;     /* CCS refusal received */
+        unsigned int custodyOriginated; /* Bundles originated with custody */
+        unsigned int custodyAccepted;   /* Bundles accepted into custody */
+        unsigned int custodyReleased;   /* Bundles released from custody */
+        unsigned int crsSignalsSent;    /* CRS signals sent */
+        unsigned int crsSignalsRecv;    /* CRS signals received */
+    } CbrStatistics;
+
+=head2 FUNCTIONS
+
+=over 4
+
+=item int cbr_attach( )
+
+Attaches to the CBR/CT subsystem for worker processes. Called automatically
+by bp_attach(). Returns 0 on success, -1 on error.
+
+=item int cbr_getStatistics(Sdr sdr, CbrStatistics *stats)
+
+Retrieves CBR/CT statistics counters into I<stats>. Provides definitive
+proof that CCS/CRS signals were generated and processed. Returns 0 on
+success, -1 on error.
+
+=item int cbr_resetStatistics(Sdr sdr)
+
+Resets all CBR/CT statistics counters to zero. Returns 0 on success, -1
+on error.
+
+=item int cbr_listCustodyBundles(Sdr sdr, CbrCustodyCallback callback, void *userData)
+
+Lists all bundles currently held in custody. For each custody bundle, invokes
+I<callback> with a CbrCustodyInfo structure and the provided I<userData>.
+Useful for administrative monitoring and manual retransmission decisions.
+Returns the number of custody bundles, -1 on error.
+
+The callback function type is:
+
+    typedef void (*CbrCustodyCallback)(CbrCustodyInfo *info, void *userData);
+
+=item int cbr_getCustodyStatus(Sdr sdr, char *sourceEid, uvast seqId, uvast seqNum)
+
+Queries the custody status of a specific bundle identified by I<sourceEid>,
+I<seqId>, and I<seqNum>. Returns one of the CBR_CUSTODY_STATUS_* values:
+
+    CBR_CUSTODY_STATUS_NOT_FOUND   Bundle not in custody tracking
+    CBR_CUSTODY_STATUS_PENDING     Waiting for CCS from next hop
+    CBR_CUSTODY_STATUS_RELEASED    CCS accepted, custody released
+    CBR_CUSTODY_STATUS_REFUSED     CCS refused received
+
+Returns -1 on error.
+
+=item int cbr_retransmitBundle(Sdr sdr, char *sourceEid, uvast seqId, uvast seqNum)
+
+Manually triggers retransmission of a custody bundle identified by
+I<sourceEid>, I<seqId>, and I<seqNum>. Used when retransmission strategy
+is CBR_RETX_NONE (manual mode). Returns 0 on success, -1 on error or
+bundle not found.
+
+=item int cbr_retransmitAllCustody(Sdr sdr, char *destEid)
+
+Manually triggers retransmission of all custody bundles destined for
+I<destEid>. If I<destEid> is NULL, retransmits all custody bundles.
+Used when retransmission strategy is CBR_RETX_NONE (manual mode).
+Returns the number of bundles retransmitted, -1 on error.
+
+=item int cbr_getCustodyMode(Sdr sdr)
+
+Returns the current custody mode setting:
+
+    BP_CUSTODY_NONE       (0)   No custody transfer
+    BP_CUSTODY_BIBE       (1)   BIBE custody transfer (RFC 9171)
+    BP_CUSTODY_ORANGEBOOK (2)   Orange Book CBR/CT (CTEB/CCS)
+
+Returns -1 on error.
+
+=item int cbr_configure(Sdr sdr, unsigned int crsAggregateLimit, unsigned int ccsAggregateLimit, unsigned int aggregateTimeoutSec)
+
+Configures CBR/CT signal aggregation parameters.
+
+I<crsAggregateLimit> is the maximum number of bundle sequence entries to
+aggregate before sending a CRS (0 means send immediately).
+
+I<ccsAggregateLimit> is the maximum number of bundle sequence entries to
+aggregate before sending a CCS (0 means send immediately).
+
+I<aggregateTimeoutSec> is the maximum seconds to wait before forcing signal
+transmission.
+
+Returns 0 on success, -1 on error.
+
+=item int cbr_getConfig(Sdr sdr, unsigned int *crsAggregateLimit, unsigned int *ccsAggregateLimit, unsigned int *aggregateTimeoutSec)
+
+Retrieves current CBR/CT configuration parameters. Returns 0 on success,
+-1 on error.
+
+=item int cbr_flushSignals(Sdr sdr, int signalType)
+
+Flushes pending signals for immediate transmission. I<signalType> can be:
+
+    CBR_SIGNAL_CRS   Flush CRS signals only
+    CBR_SIGNAL_CCS   Flush CCS signals only
+    CBR_SIGNAL_ALL   Flush all pending signals
+
+Returns the number of signals sent, -1 on error.
+
+=back
+
+=head1 CONFIGURATION
+
+CBR/CT is configured via bpadmin(1) commands in the bprc file:
+
+=over 4
+
+=item B<m custodymode E<lt>modeE<gt>>
+
+Sets the custody transfer mode. Valid modes are: B<none>, B<bibe>, or
+B<orangebook>.
+
+=item B<m cbraggr E<lt>crs_limitE<gt> E<lt>ccs_limitE<gt> E<lt>timeout_secE<gt>>
+
+Configures signal aggregation. For testing, use C<m cbraggr 1 1 2> for
+immediate signals. For production, use higher limits like C<m cbraggr 50 50 15>.
+
+=back
+
+=head1 EXAMPLE
+
+    #include "bp.h"
+    #include "cbr.h"
+
+    /* Callback to print custody bundles */
+    void printCustody(CbrCustodyInfo *info, void *userData)
+    {
+        printf("  destEid=%s seqId=%lu seqNum=%lu\n",
+               info->destEid, info->seqId, info->seqNum);
+    }
+
+    int main()
+    {
+        Sdr          sdr;
+        CbrStatistics stats;
+        int          count;
+
+        if (bp_attach() < 0) return 1;
+        sdr = bp_get_sdr();
+
+        /* List custody bundles */
+        CHKZERO(sdr_begin_xn(sdr));
+        count = cbr_listCustodyBundles(sdr, printCustody, NULL);
+        sdr_exit_xn(sdr);
+        printf("%d bundle(s) in custody\n", count);
+
+        /* Get statistics */
+        CHKZERO(sdr_begin_xn(sdr));
+        cbr_getStatistics(sdr, &stats);
+        sdr_exit_xn(sdr);
+
+        printf("CCS Accept Sent: %u\n", stats.ccsAcceptSent);
+        printf("CCS Accept Recv: %u\n", stats.ccsAcceptRecv);
+        printf("Custody Released: %u\n", stats.custodyReleased);
+
+        bp_detach();
+        return 0;
+    }
+
+=head1 SEE ALSO
+
+bpadmin(1), cbrcustodytest(1), bptrace(1), bp(3), bprc(5)
+
+=head1 NOTES
+
+This implementation follows the CCSDS Orange Book Draft K specification
+"Compressed Bundle Status Reporting and Custody Signaling" (August 2025).
+
+The current implementation uses manual (command-based) retransmission only.
+Per the Orange Book, implementations may choose between timer-based,
+signal-based, or command-based retransmission strategies.
+

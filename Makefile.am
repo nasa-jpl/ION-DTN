@@ -1206,6 +1206,7 @@ bpextra = \
 	bpv7/doc/pod3/bp.pod \
 	bpv7/doc/pod3/bp_admin.pod \
 	bpv7/doc/pod3/bpextensions.pod \
+	bpv7/doc/pod3/cbr.pod \
 	bpv7/doc/pod3/metadata.pod \
 	bpv7/doc/pod5/biberc.pod \
 	bpv7/doc/pod5/bprc.pod \
@@ -1292,6 +1293,7 @@ bpmans = \
 	bpv7/doc/bp.3 \
 	bpv7/doc/bp_admin.3 \
 	bpv7/doc/bpextensions.3 \
+	bpv7/doc/cbr.3 \
 	bpv7/doc/metadata.3 \
 	bpv7/doc/biberc.5 \
 	bpv7/doc/bprc.5 \
