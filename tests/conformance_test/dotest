@@ -45,8 +45,8 @@ echo
 
 # Check if python3 is available
 if ! command -v python3 &> /dev/null; then
-    echo "Error: python3 is required but not found. Please install Python 3."
-    exit 1
+    echo "SKIP: python3 is required but not found. Please install Python 3."
+    exit 2
 fi
 
 # Check Python version (need at least 3.9)
@@ -54,8 +54,8 @@ PYTHON_VERSION=$(python3 -c 'import sys; print(".".join(map(str, sys.version_inf
 PYTHON_MAJOR=$(python3 -c 'import sys; print(sys.version_info[0])')
 PYTHON_MINOR=$(python3 -c 'import sys; print(sys.version_info[1])')
 if [ "$PYTHON_MAJOR" -lt 3 ] || { [ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 9 ]; }; then
-    echo "Error: Python 3.9 or higher is required. Found version $PYTHON_VERSION"
-    exit 1
+    echo "SKIP: Python 3.9 or higher is required. Found version $PYTHON_VERSION"
+    exit 2
 fi
 echo "Using Python $PYTHON_VERSION"
 
