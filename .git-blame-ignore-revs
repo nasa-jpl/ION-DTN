@@ -1,0 +1,33 @@
+# List of revisions to be ignored by git-blame.
+# Include commits that you think will make git-blame more helpful by
+# filtering out non-functional changes (whitespace, typos, formatting).
+# This file is sorted in git log order (newest commits first).
+
+# Fix whitespace and indentation issues
+f4ae9253dd73af3c09df8d805670d17386d569f7
+# tests/tc-dtka*/runtest: Remove random tabs and */
+2d0f771d38ebd9b3f0c8bde28b487c637c4a8e4b
+# ipnadmin(1): Add blank line between EXIT STATUS items
+56e658c42da11608105beaba33d6fb979976cbe9
+# hmackeys(1): Add blank line between EXIT STATUS items
+ac6e95af8748b5146d403360e0e6c5b9b762c1c1
+# *.pod: Fix DPTC typos to DTPC
+f5572492989683ae30fa58971b89c35054ac8bf4
+# *.pod: Fix spacing after sentences
+b7f927303bf30b60a0bcf92f5aac0f018c073cde
+# **/pod3/*.pod: Remove trailing ; from functions
+dbf9cb0d939b50a418d3d8884115d5009326ed29
+# bp_admin(3): Fix formatting in SYNOPSIS
+3d14e24992cbfe28cd6d051eca3843bda38255d5
+# tcarc(5): Fix typo in `info` command description
+f0cfeafe9cd58c9faf9c51ffe989625ffe539a4e
+# tcc(1): Fix "tca" typos to "tcc"
+c54454e08043778b8a54d78a6b56fcf3bea5462b
+# udpbso(1): Fix grammar in description
+0d55c06752ea64b56402df67bcf65367d58689cd
+# ionrc(5): s/memory region/memory partition
+14cc39d32e8b3ce2f7cd2400acc4b29aa2e763c3
+# ion(3): Correct typo in ionTerminate() description
+9327cfa1a0a4cecd2d742d65b6fe0c07722c403e
+# tests/cpsync/dotest: Fix typo about contact expiration
+88e0fd27209da75e588f1be335d9d3fbe0ebb18c
