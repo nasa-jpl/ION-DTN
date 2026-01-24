@@ -68,6 +68,16 @@ jobs:
             id &&
             echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"'
 
+      - name: Sync VM time with host
+        run: |
+          CURRENT_TIME=$(date -u +"%Y-%m-%d %H:%M:%S")
+          ssh -o StrictHostKeyChecking=no jgao@$VM_IP "
+            echo 'VM time before sync:' &&
+            date &&
+            sudo date -s '$CURRENT_TIME' &&
+            echo 'VM time after sync:' &&
+            date"
+
       - name: Copy code to FreeBSD VM
         run: |
           ssh -o StrictHostKeyChecking=no jgao@$VM_IP 'rm -rf ~/ion-gh-test-dir && mkdir -p ~/ion-gh-test-dir/ion-ios-dev'
