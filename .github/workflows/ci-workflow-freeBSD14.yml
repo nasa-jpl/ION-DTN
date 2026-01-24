@@ -70,11 +70,12 @@ jobs:
 
       - name: Sync VM time with host
         run: |
-          CURRENT_TIME=$(date -u +"%Y-%m-%d %H:%M:%S")
+          # FreeBSD date format: YYYYMMDDhhmm.ss (no -s flag)
+          CURRENT_TIME=$(date -u +"%Y%m%d%H%M.%S")
           ssh -o StrictHostKeyChecking=no jgao@$VM_IP "
             echo 'VM time before sync:' &&
             date &&
-            sudo date -s '$CURRENT_TIME' &&
+            sudo date -u '$CURRENT_TIME' &&
             echo 'VM time after sync:' &&
             date"
 
