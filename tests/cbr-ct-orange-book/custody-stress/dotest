@@ -186,7 +186,9 @@ if ! kill -0 $COUNTER_PID 2>/dev/null; then
     cat "$TESTDIR/2.node/counter_output.txt" | sed 's/^/    /'
 else
     kill $COUNTER_PID 2>/dev/null || true
-    RECEIVED=$(grep -o "bundles received: [0-9]*" "$TESTDIR/2.node/counter_output.txt" 2>/dev/null | tail -1 | grep -o "[0-9]*" || echo "0")
+    # Use awk instead of grep -o for Solaris compatibility
+    RECEIVED=$(awk '/bundles received:/ {for(i=1;i<=NF;i++) if($i ~ /^[0-9]+$/) print $i}' "$TESTDIR/2.node/counter_output.txt" 2>/dev/null | tail -1)
+    [ -z "$RECEIVED" ] && RECEIVED="0"
     test_result 1 "Bundle delivery timeout (received $RECEIVED of $BUNDLE_COUNT)"
 fi
 
@@ -208,7 +210,9 @@ if command -v cbrcustodytest >/dev/null 2>&1; then
     cbrcustodytest -l > custody_list.txt 2>&1 || true
     echo "  --- cbrcustodytest -l output ---"
     cat custody_list.txt | sed 's/^/    /'
-    CUSTODY_COUNT=$(grep -o "[0-9]* bundle(s) in custody" custody_list.txt 2>/dev/null | grep -o "^[0-9]*" || echo "unknown")
+    # Use awk instead of grep -o for Solaris compatibility
+    CUSTODY_COUNT=$(awk '/bundle\(s\) in custody/ {print $1}' custody_list.txt 2>/dev/null)
+    [ -z "$CUSTODY_COUNT" ] && CUSTODY_COUNT="unknown"
     if [ "$CUSTODY_COUNT" = "0" ]; then
         test_result 0 "All custody released (0 bundles in custody)"
     elif [ "$CUSTODY_COUNT" = "unknown" ]; then
