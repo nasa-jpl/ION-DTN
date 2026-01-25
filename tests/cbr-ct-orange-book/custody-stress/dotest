@@ -211,7 +211,8 @@ if command -v cbrcustodytest >/dev/null 2>&1; then
     echo "  --- cbrcustodytest -l output ---"
     cat custody_list.txt | sed 's/^/    /'
     # Use awk instead of grep -o for Solaris compatibility
-    CUSTODY_COUNT=$(awk '/bundle\(s\) in custody/ {print $1}' custody_list.txt 2>/dev/null)
+    # Output format: "cbrcustodytest: 0 bundle(s) in custody." - count is $2
+    CUSTODY_COUNT=$(awk '/bundle\(s\) in custody/ {print $2}' custody_list.txt 2>/dev/null)
     [ -z "$CUSTODY_COUNT" ] && CUSTODY_COUNT="unknown"
     if [ "$CUSTODY_COUNT" = "0" ]; then
         test_result 0 "All custody released (0 bundles in custody)"
