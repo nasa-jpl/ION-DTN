@@ -224,7 +224,8 @@ if command -v cbrcustodytest >/dev/null 2>&1; then
 else
     # cbrcustodytest not available - check logs
     echo "  cbrcustodytest not available, checking logs..."
-    RELEASE_COUNT=$(grep -c "Custody released\|CCS.*accepted" "$TESTDIR/1.node/ion.log" 2>/dev/null || echo "0")
+    # Use grep -E for extended regex (Solaris compatibility)
+    RELEASE_COUNT=$(grep -E -c "Custody released|CCS.*accepted" "$TESTDIR/1.node/ion.log" 2>/dev/null || echo "0")
     if [ "$RELEASE_COUNT" -gt 0 ]; then
         test_result 0 "Custody release evidence in logs ($RELEASE_COUNT entries)"
     else
@@ -243,11 +244,13 @@ echo "========================================="
 echo "  Checking logs for CCS/CBR activity..."
 
 # Check for custody acceptance messages on node 2 (receiver)
-CCS_ACCEPTED=$(grep -c "Custody accepted\|CBR: Custody accepted" "$TESTDIR/2.node/ion.log" 2>/dev/null || echo "0")
+# Use grep -E for extended regex (Solaris compatibility)
+CCS_ACCEPTED=$(grep -E -c "Custody accepted|CBR: Custody accepted" "$TESTDIR/2.node/ion.log" 2>/dev/null || echo "0")
 echo "    Custody acceptance events on Node 2: $CCS_ACCEPTED"
 
 # Check for CCS sent messages
-CCS_SENT=$(grep -c "Transmitted CCS\|CCS signal\|transmitting CCS" "$TESTDIR/2.node/ion.log" 2>/dev/null || echo "0")
+# Use grep -E for extended regex (Solaris compatibility)
+CCS_SENT=$(grep -E -c "Transmitted CCS|CCS signal|transmitting CCS" "$TESTDIR/2.node/ion.log" 2>/dev/null || echo "0")
 echo "    CCS transmission events on Node 2: $CCS_SENT"
 
 # The aggregation test passes if:
@@ -275,7 +278,8 @@ echo ""
 for node in 1.node 2.node; do
     echo "--- $node CBR/CT log entries ---"
     if [ -f "$TESTDIR/$node/ion.log" ]; then
-        grep -i "CBR\|CCS\|CRS\|CTEB\|custody\|aggregate\|bundleCount" "$TESTDIR/$node/ion.log" 2>/dev/null | tail -20 || echo "  (no CBR/CT entries)"
+        # Use grep -E for extended regex (Solaris compatibility)
+        grep -E -i "CBR|CCS|CRS|CTEB|custody|aggregate|bundleCount" "$TESTDIR/$node/ion.log" 2>/dev/null | tail -20 || echo "  (no CBR/CT entries)"
     else
         echo "  (no ion.log)"
     fi
