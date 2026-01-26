@@ -18,6 +18,7 @@ a outduct bibe ipn:2.0 bibeclo
 a plan ipn:2.0 1000000000
 a planduct ipn:2.0 udp 127.0.0.1:5002
 a planduct ipn:2.0 bibe ipn:2.0
+m custodymode bibe
 r 'ipnadmin bench.ipnrc'
 w 1
 s

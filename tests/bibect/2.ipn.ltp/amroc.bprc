@@ -19,6 +19,7 @@ a plan ipn:3.0 1000000000
 #	udp outduct goes to OWLT sim
 a planduct ipn:3.0 udp 127.0.0.1:4546
 a planduct ipn:3.0 bibe ipn:3.0
+m custodymode bibe
 r 'ipnadmin amroc.ipnrc'
 w 1
 s
