@@ -73,12 +73,14 @@ static void	handleQuit(int signum)
 }
 
 static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
-			int aduLength, int streaming, int ttl, int injectRate)
+			int aduLength, int streaming, int ttl, int injectRate,
+			uvast seqId)
 {
 	static char	buffer[DEFAULT_ADU_LENGTH] = "test...";
 	BpSAP		sap;
 	Sdr		sdr;
 	BpCustodySwitch	custodySwitch;
+	BpAncillaryData	ancillaryData = {0};
 	int		cycles;
 	int		aduFile;
 	int		randomAduLength = 0;
@@ -105,7 +107,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	{
 		PUTS("Usage: bpdriver <number of cycles> <own endpoint ID> \
 <destination endpoint ID> [<payload size>] [t<Bundle TTL>] \
-[i<inject data rate>]");
+[i<inject data rate>] [s<CBR seqId>]");
 		PUTS("  Payload size defaults to 60000 bytes.");
 		PUTS("  Bundle TTL defaults to 300 seconds.");
 		PUTS("");
@@ -162,6 +164,8 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	{
 		custodySwitch = NoCustodyRequested;
 	}
+
+	ancillaryData.cbrSeqId = seqId;
 
 	cycles = cyclesRemaining;
 	if (aduLength == 1)
@@ -256,7 +260,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	}
 
 	if (bp_send(sap, destEid, NULL, ttl, BP_STD_PRIORITY, custodySwitch, 0,
-			0, NULL, bundleZco, &newBundle) < 1)
+			0, &ancillaryData, bundleZco, &newBundle) < 1)
 	{
 		putErrmsg("bpdriver can't send pilot bundle.",
 				itoa(aduLength));
@@ -330,7 +334,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 		}
 
 		if (bp_send(sap, destEid, NULL, ttl, BP_STD_PRIORITY,
-			custodySwitch, 0, 0, NULL, bundleZco, &newBundle) < 1)
+			custodySwitch, 0, 0, &ancillaryData, bundleZco, &newBundle) < 1)
 		{
 			putErrmsg("bpdriver can't send message.",
 					itoa(aduLength));
@@ -475,7 +479,8 @@ int	bpdriver(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 	int	aduLength = (a4 == 0 ? DEFAULT_ADU_LENGTH : atoi((char *) a4));
 	int	streaming = 0;
 	int 	ttl = (a5 == 0 ? DEFAULT_TTL : atoi((char *) a5));
-	int injectRate = (a6 == 0 ? 0 : atoi((char *) a6));
+	int	injectRate = (a6 == 0 ? 0 : atoi((char *) a6));
+	uvast	seqId = (a7 == 0 ? 0 : strtouvast((char *) a7));
 #else
 int	main(int argc, char **argv)
 {
@@ -484,13 +489,33 @@ int	main(int argc, char **argv)
 	char	*destEid = NULL;
 	int	aduLength = DEFAULT_ADU_LENGTH;
 	int	streaming = 0;
-	int ttl=0;
-	int injectRate = 0;
+	int	ttl = 0;
+	int	injectRate = 0;
+	uvast	seqId = 0;
 	running = 1;
 
-	if (argc > 7) argc = 7;
+	if (argc > 8) argc = 8;
 	switch (argc)
 	{
+	case 8:
+		if(argv[7][0] == 't')
+		{
+			ttl = atoi(&argv[7][1]);
+		}
+		else if (argv[7][0] == 'i')
+		{
+			injectRate = atoi(&argv[7][1]);
+		}
+		else if (argv[7][0] == 's')
+		{
+			seqId = strtouvast(&argv[7][1]);
+		}
+		else
+		{
+			aduLength = atoi(argv[7]);
+		}
+		/* FALLTHROUGH */
+
 	case 7:
 		if(argv[6][0] == 't')
 		{
@@ -499,6 +524,10 @@ int	main(int argc, char **argv)
 		else if (argv[6][0] == 'i')
 		{
 			injectRate = atoi(&argv[6][1]);
+		}
+		else if (argv[6][0] == 's')
+		{
+			seqId = strtouvast(&argv[6][1]);
 		}
 		else
 		{
@@ -515,6 +544,10 @@ int	main(int argc, char **argv)
 		{
 			injectRate = atoi(&argv[5][1]);
 		}
+		else if (argv[5][0] == 's')
+		{
+			seqId = strtouvast(&argv[5][1]);
+		}
 		else
 		{
 			aduLength = atoi(argv[5]);
@@ -529,6 +562,10 @@ int	main(int argc, char **argv)
 		else if (argv[4][0] == 'i')
 		{
 			injectRate = atoi(&argv[4][1]);
+		}
+		else if (argv[4][0] == 's')
+		{
+			seqId = strtouvast(&argv[4][1]);
 		}
 		else
 		{
@@ -559,5 +596,5 @@ int	main(int argc, char **argv)
 	}
 
 	return run_bpdriver(cyclesRemaining, ownEid, destEid, aduLength,
-			streaming, ttl, injectRate);
+			streaming, ttl, injectRate, seqId);
 }

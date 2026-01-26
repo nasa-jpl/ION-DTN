@@ -267,6 +267,14 @@ typedef struct
 	 *	be useful for network performance analysis purposes.	*/
 
 	unsigned char	doNotFragment;
+
+	/*	Sequence identifier for CBR (Compressed Bundle Reporting).
+	 *	Per Orange Book Section 3.2.4:
+	 *	  - seqId = 0: destination-specific sequence counters
+	 *	  - seqId > 0: global counter independent of destination
+	 *	Default is 0 for backward compatibility.		*/
+
+	uvast		cbrSeqId;
 } BpAncillaryData;
 
 /*	Quality-of-service flags.					*/

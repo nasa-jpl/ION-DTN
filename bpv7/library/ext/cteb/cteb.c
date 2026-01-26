@@ -120,10 +120,11 @@ int	cteb_offer(ExtensionBlock *blk, Bundle *bundle)
 		return -1;
 	}
 
-	/*	Use seqId 0 (destination-specific counters).
+	/*	Use bundle's cbrSeqId (0 = destination-specific counters).
 	 *	forCustody = 1 to use custody-specific counter.		*/
 
-	if (cbr_allocateSeqNum(sdr, sourceEidStr, destEidStr, 0, 1, &seqNum) < 0)
+	if (cbr_allocateSeqNum(sdr, sourceEidStr, destEidStr,
+			bundle->ancillaryData.cbrSeqId, 1, &seqNum) < 0)
 	{
 		MRELEASE(sourceEidStr);
 		MRELEASE(destEidStr);
@@ -138,7 +139,7 @@ int	cteb_offer(ExtensionBlock *blk, Bundle *bundle)
 
 	memset(&scratch, 0, sizeof(CtebScratchpad));
 	scratch.seqNum = seqNum;
-	scratch.seqId = 0;		/*	Default seqId		*/
+	scratch.seqId = bundle->ancillaryData.cbrSeqId;
 	istrcpy(scratch.custodianEid, vscheme->adminEid, MAX_EID_LEN);
 
 	/*	Store scratchpad in SDR for later serialization.	*/

@@ -1,0 +1,6 @@
+## ION node configuration for seqid-nonzero test - Node 2 (intermediate custodian)
+
+1 2 node.ionconfig
+s
+m horizon +0
+m clockerr 0

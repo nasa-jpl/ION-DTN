@@ -1,0 +1,16 @@
+## Bundle Protocol configuration for seqid-nonzero test - Node 2 (intermediate custodian)
+## Using UDP CLA for simplicity
+
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:2.0 x
+a endpoint ipn:2.1 x
+a endpoint ipn:2.2 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4562 udpcli
+a outduct udp 127.0.0.1:4561 udpclo
+a outduct udp 127.0.0.1:4563 udpclo
+r 'ipnadmin node.ipnrc'
+m custodymode orangebook
+m cbraggr 1 1 2
+s

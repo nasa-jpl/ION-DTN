@@ -224,7 +224,8 @@ static void	setFlags(int *srrFlags, char *flagString)
 }
 
 static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
-			int ttl, char *svcClass, char *trace, char *flags)
+			int ttl, char *svcClass, char *trace, char *flags,
+			uvast seqId)
 {
 	int		priority = 0;
 	BpAncillaryData	ancillaryData = {0};
@@ -240,6 +241,8 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
 		putErrmsg("Invalid class of service for bptrace.", svcClass);
 		return 0;
 	}
+
+	ancillaryData.cbrSeqId = seqId;
 
 	if (flags)
 	{
@@ -364,6 +367,7 @@ int	bptrace(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 	char	*classOfService = (char *) a5;
 	char	*trace = (char *) a6;
 	char	*flagString = (char *) a7;
+	uvast	seqId = a8 ? strtouvast((char *) a8) : 0;
 
 	if (ownEid == NULL || destEid == NULL || classOfService == NULL
 	|| trace == NULL)
@@ -371,7 +375,7 @@ int	bptrace(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		PUTS("Missing argument(s) for bptrace.  Ignored.");
 		return 0;
 	}
-	return run_bptrace(ownEid, destEid, traceEid, ttl, classOfService, trace, flagString);
+	return run_bptrace(ownEid, destEid, traceEid, ttl, classOfService, trace, flagString, seqId);
 }
 #else
 
@@ -911,14 +915,15 @@ static int run_listen_bptrace(char *listenEid)
 }
 
 static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
-			int ttl, char *classOfService, char *trace, char *flagString, int rtt){
+			int ttl, char *classOfService, char *trace, char *flagString,
+			int rtt, uvast seqId){
 	signal(SIGABRT, sighandler); // ensure that quit and interrupt signals still output trace as of that moment.
 	signal(SIGINT, sighandler);
 	reports = (statusReport **)malloc(sizeof(statusReport)*128); // allow storage of up to 128 reports.
 
 	printDBG(1, "running new code for terminal summary\n");
 
-	int result = run_bptrace(ownEid, destEid, traceEid, ttl, classOfService, trace, flagString);
+	int result = run_bptrace(ownEid, destEid, traceEid, ttl, classOfService, trace, flagString, seqId);
 	if(result != 0){
 		printf("running bptrace unsuccessful, err code %d\n", result);
 		return result;
@@ -1162,7 +1167,7 @@ usage(
 	}
 	va_end(ap);
 
-	fprintf(stderr, "usage: %s [-v] [-msg <msg>] [-ttl <ttl>] [-rtt <rtt>] [-qos <qos>] [-flags <flags>] <srcEid> <destEid> <traceEid>\n", progname);
+	fprintf(stderr, "usage: %s [-v] [-msg <msg>] [-ttl <ttl>] [-rtt <rtt>] [-qos <qos>] [-flags <flags>] [-seqid <seqid>] <srcEid> <destEid> <traceEid>\n", progname);
 	fprintf(stderr, "listen mode usage: %s -listen [-v] <listenEid>\n", progname);
 	fprintf(stderr,"legacy usage: %s <own EID> <destination EID> <report-to EID> <time to live (seconds)> <quality of service> '<trace text>' [<status report flag string>]\n", progname);
 	fprintf(stderr, "-v        \tChanges debug level, +1 per 'v' supplied. (e.g. -vv -> debug=2)\n");
@@ -1172,6 +1177,7 @@ usage(
 	fprintf(stderr, "-rtt <rtt>  \tInteger number of seconds to wait for status reports. Default: 2 * ttl\n");
 	fprintf(stderr, "-qos <qos>  \tQuality of service. Default: 0.1 \n\t\t" BP_PARSE_QUALITY_OF_SERVICE_USAGE "\n");
 	fprintf(stderr, "-flags <flags>\tStatus report flags. Default: none\n");
+	fprintf(stderr, "-seqid <seqid>\tCBR sequence ID (0=dest-specific, >0=global counter). Default: 0\n");
 	fprintf(stderr, "\tStatus report flag string is a sequence of status report flags separated by commas, with no embedded whitespace.\n");
 	fprintf(stderr, "\tEach status report flag must be one of the following: rcv, fwd, dlv, del.\n");
 	fprintf(stderr, "\tThe status reported in each bundle status report message will be the sum of the applicable status flags:\n");
@@ -1194,6 +1200,7 @@ int	main(int argc, char **argv)
 	char *trace = NULL;
 	char *flagString = NULL;
 	int   listenOnly = 0;
+	uvast seqId = 0;
 
 	int parsemode = 1;
 	int i = 1;
@@ -1248,6 +1255,11 @@ int	main(int argc, char **argv)
 			else if (strcmp(argv[i],"-flags") == 0) {
 				if (i+1 >= argc) usage(argv[0],"-flags requires argument");
 				flagString = argv[++i];
+				continue;	/* iterate back to for (i=1... loop */
+			}
+			else if (strcmp(argv[i],"-seqid") == 0) {
+				if (i+1 >= argc) usage(argv[0],"-seqid requires argument");
+				seqId = strtouvast(argv[++i]);
 				continue;	/* iterate back to for (i=1... loop */
 			}
 			else if (strcmp(argv[i],"-listen") == 0) {
@@ -1352,9 +1364,9 @@ int	main(int argc, char **argv)
 	if(strncmp(traceEid_num, ownEid_num, traceEid_dot - traceEid_num) == 0 &&
 		strcmp(traceEid_dot, "0") != 0){
 		// run terminal interface version if report endpoint is on this node and is not the admin endpoint.
-		return run_terminal_bptrace(ownEid, destEid, traceEid, ttl, classOfService, trace, flagString, rtt);
+		return run_terminal_bptrace(ownEid, destEid, traceEid, ttl, classOfService, trace, flagString, rtt, seqId);
 	}else{
-		return run_bptrace(ownEid, destEid, traceEid, ttl, classOfService, trace, flagString);
+		return run_bptrace(ownEid, destEid, traceEid, ttl, classOfService, trace, flagString, seqId);
 	}
 }
 #endif

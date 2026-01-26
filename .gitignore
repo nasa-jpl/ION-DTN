@@ -509,6 +509,7 @@ tests/crc_relay/5.ipn.ltp/case2_out.txt
 tests/crc_relay/5.ipn.ltp/case3_out.txt
 
 # ignore test artifacts
+tests/admin_public_api/bulk_removal/dotest
 tests/issue-352-bpcp-stcp/1.ipn.cfdp.bp.stcp/test2
 tests/issue-352-bpcp-stcp/2.ipn.cfdp.bp.stcp/test3
 tests/issue-352-bpcp-stcp/3.ipn.cfdp.bp.stcp/test1
@@ -580,23 +581,31 @@ tests/cbr-ct-orange-book/*/ion_nodes
 tests/cbr-ct-orange-book/*/*.node/ion.log
 tests/cbr-ct-orange-book/*/*.node/ion_startup.log
 tests/cbr-ct-orange-book/*/*.node/bpdriverAduFile
-tests/cbr-ct-orange-book/*/*.node/custody_status.txt
-tests/cbr-ct-orange-book/*/*.node/driver_output.txt
-tests/cbr-ct-orange-book/*/*.node/sink_output.txt
-tests/cbr-ct-orange-book/*/*.node/trace_output.txt
-tests/cbr-ct-orange-book/*/*.node/trace_*.txt
+tests/cbr-ct-orange-book/*/*.node/bpacq.*
+tests/cbr-ct-orange-book/*/*.node/custody_*.txt
+tests/cbr-ct-orange-book/*/*.node/driver_*.txt
+tests/cbr-ct-orange-book/*/*.node/counter_*.txt
 tests/cbr-ct-orange-book/*/*.node/sink_*.txt
+tests/cbr-ct-orange-book/*/*.node/trace_*.txt
 tests/cbr-ct-orange-book/*/*.node/initial_stats.txt
 tests/cbr-ct-orange-book/*/*.node/final_stats.txt
 tests/cbr-ct-orange-book/*/*.node/crs_stats.txt
-tests/cbr-ct-orange-book/*/*.node/bpacq.*
-tests/cbr-ct-orange-book/*/*.node/counter_output*.txt
 tests/cbr-ct-orange-book/*/*.node/ccs_test_output.txt
-tests/cbr-ct-orange-book/*/*.node/custody_list.txt
-tests/cbr-ct-orange-book/*/*.node/driver_output*.txt
 
 # CBR custody test binary
 cbrcustodytest
 
 # Reference documents (design docs, PDFs, etc.)
 ref-doc/
+
+# misc test check files
+ams/x86_64-linux/check
+bpv7/x86_64-linux/check
+bss/x86_64-linux/check
+bssp/x86_64-linux/check
+cfdp/x86_64-linux/check
+dgr/x86_64-linux/check
+dtpc/x86_64-linux/check
+ici/x86_64-linux/check
+ltp/x86_64-linux/check
+

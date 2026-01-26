@@ -155,10 +155,11 @@ int	creb_offer(ExtensionBlock *blk, Bundle *bundle)
 		return -1;
 	}
 
-	/*	Use seqId 0 (destination-specific counters) for now.
-	 *	This requires destEid for counter lookup.		*/
+	/*	Use bundle's cbrSeqId (0 = destination-specific counters).
+	 *	When seqId = 0, destEid is required for counter lookup.	*/
 
-	if (cbr_allocateSeqNum(sdr, sourceEidStr, destEidStr, 0, 0, &seqNum) < 0)
+	if (cbr_allocateSeqNum(sdr, sourceEidStr, destEidStr,
+			bundle->ancillaryData.cbrSeqId, 0, &seqNum) < 0)
 	{
 		putErrmsg("CREB: can't allocate sequence number.", NULL);
 		MRELEASE(sourceEidStr);
@@ -173,7 +174,7 @@ int	creb_offer(ExtensionBlock *blk, Bundle *bundle)
 
 	memset(&scratch, 0, sizeof(CrebScratchpad));
 	scratch.seqNum = seqNum;
-	scratch.seqId = 0;		/*	Default seqId		*/
+	scratch.seqId = bundle->ancillaryData.cbrSeqId;
 	scratch.requestFlags = mapSrrToCrebFlags(bundle->bundleProcFlags);
 	scratch.sourceEid = 0;		/*	Implicit (bundle source) */
 	scratch.reportToEid = 0;	/*	Implicit (bundle reportTo) */

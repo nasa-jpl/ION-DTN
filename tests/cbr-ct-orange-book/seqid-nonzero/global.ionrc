@@ -1,0 +1,17 @@
+## Static contact plan for seqid-nonzero test
+## 3-node custody transfer: Node 1 -> Node 2 -> Node 3
+## All contacts available immediately for 10 minutes
+
+m horizon +0
+
+## Ranges (OWLT = 1 second between adjacent nodes)
+a range +0 +600 1 2 1
+a range +0 +600 2 1 1
+a range +0 +600 2 3 1
+a range +0 +600 3 2 1
+
+## Contacts: Full connectivity
+a contact +0 +600 1 2 100000
+a contact +0 +600 2 1 100000
+a contact +0 +600 2 3 100000
+a contact +0 +600 3 2 100000
