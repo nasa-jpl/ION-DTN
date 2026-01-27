@@ -14,6 +14,34 @@ cleanup_processes() {
 trap 'echo "An error occurred. Exiting."; cleanup_processes; exit 1;' ERR
 trap 'cleanup_processes' EXIT
 
+# Portable timeout function (works on macOS, FreeBSD, and Linux)
+run_with_timeout() {
+    local timeout_sec=$1
+    shift
+
+    # Try native timeout first (Linux)
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$timeout_sec" "$@"
+        return $?
+    fi
+
+    # macOS/BSD fallback using background process
+    "$@" &
+    local cmd_pid=$!
+
+    ( sleep "$timeout_sec"; kill -TERM $cmd_pid 2>/dev/null ) &
+    local sleep_pid=$!
+
+    wait $cmd_pid 2>/dev/null
+    local exit_code=$?
+
+    # Clean up the sleep/kill process if command finished first
+    kill $sleep_pid 2>/dev/null
+    wait $sleep_pid 2>/dev/null
+
+    return $exit_code
+}
+
 # Documentation boilerplate
 CONFIGFILES=" \
 ./global.ionrc \
@@ -95,7 +123,9 @@ echo "Starting node 4..."
 ./ionstart >& node4.stdout &
 
 # Wait for all nodes to be configured
-sleep 5
+# Each ionstart takes ~5 seconds (5 x sleep 1), and nodes 3/4 start at T+6/T+7
+# Need to wait long enough for the last node's ionstart to complete
+sleep 10
 
 # Register node 3 and 4 in imc:19.0
 cd ../3.ipn.bss
@@ -119,7 +149,10 @@ BSSRECV3_PID=$!
 cd ../4.ipn.bss
 sleep 86400 | bssrecv 3 bssDB ./ imc:19.0 > /dev/null 2>&1 &
 BSSRECV4_PID=$!
-sleep 2
+
+# Wait for all nodes to be fully initialized before streaming
+# Node 2 (the central relay) needs time for imcfw to start
+sleep 10
 
 cd ../1.ipn.bss
 echo
@@ -156,10 +189,12 @@ fi
 echo
 echo "Replaying the received stream."
 cd ../3.ipn.bss
-timeout 65 bssrecv 1 bssDB ./ imc:19.0 +0 "$TOTIME" < /dev/null > node3_replay.stdout 2>&1 &
+# Use absolute timestamp 2000/01/01-00:00:01 (just after BSS epoch) as "from" time
+# to ensure replay starts from the beginning of the database
+run_with_timeout 65 bssrecv 1 bssDB ./ imc:19.0 2000/01/01-00:00:01 "$TOTIME" < /dev/null > node3_replay.stdout 2>&1 &
 REPLAY3_PID=$!
 cd ../4.ipn.bss
-timeout 65 bssrecv 1 bssDB ./ imc:19.0 +0 "$TOTIME" < /dev/null > node4_replay.stdout 2>&1 &
+run_with_timeout 65 bssrecv 1 bssDB ./ imc:19.0 2000/01/01-00:00:01 "$TOTIME" < /dev/null > node4_replay.stdout 2>&1 &
 REPLAY4_PID=$!
 echo
 sleep 70
@@ -172,7 +207,7 @@ pkill -f "sleep 86400" 2>/dev/null || true
 # This checks that the 10th bundle was replayed, which we expect.
 cd ../3.ipn.bss
 if ! grep -qF "**********10" node3_replay.stdout ; then
-    echo "Relay failed in node 3."
+    echo "Replay failed in node 3."
     exit 1
 fi
 cd ../4.ipn.bss
