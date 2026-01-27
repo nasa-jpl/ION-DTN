@@ -18,6 +18,34 @@ BUNDLESIZE=10000
 NUMBUNDLES=100
 MAXSECONDS=60
 
+# Portable timeout function (works on macOS and Linux)
+run_with_timeout() {
+    local timeout_sec=$1
+    shift
+
+    # Try native timeout first (Linux)
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$timeout_sec" "$@"
+        return $?
+    fi
+
+    # macOS/BSD fallback using background process
+    "$@" &
+    local cmd_pid=$!
+
+    ( sleep "$timeout_sec"; kill -TERM $cmd_pid 2>/dev/null ) &
+    local sleep_pid=$!
+
+    wait $cmd_pid 2>/dev/null
+    local exit_code=$?
+
+    # Clean up the sleep/kill process if command finished first
+    kill $sleep_pid 2>/dev/null
+    wait $sleep_pid 2>/dev/null
+
+    return $exit_code
+}
+
 echo "###############################################################################"
 echo "# Watchdog Daemon Test"
 echo "###############################################################################"
@@ -223,13 +251,13 @@ echo ""
 echo "Stopping node 2 using ionstop (ionadmin .) which calls rfx_stop()..."
 echo "(Using ionstop instead of ionexit to avoid sm_ipc_stop() breaking other nodes)"
 cd 2.watchdog.ltp
-timeout 30 ./ionstop || echo "[WARN] ionstop for node 2 timed out"
+run_with_timeout 30 ./ionstop || echo "[WARN] ionstop for node 2 timed out"
 cd ..
 sleep 2
 
 echo "Stopping node 3 using ionstop..."
 cd 3.watchdog.ltp
-timeout 30 ./ionstop || echo "[WARN] ionstop for node 3 timed out"
+run_with_timeout 30 ./ionstop || echo "[WARN] ionstop for node 3 timed out"
 cd ..
 sleep 3
 
@@ -264,7 +292,7 @@ fi
 
 echo ""
 echo "Cleaning up..."
-timeout 30 killm 2>/dev/null || echo "[WARN] killm timed out"
+run_with_timeout 30 killm 2>/dev/null || echo "[WARN] killm timed out"
 pkill -f psmwatch 2>/dev/null
 pkill -f sdrwatch 2>/dev/null
 
