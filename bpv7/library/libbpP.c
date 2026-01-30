@@ -10628,8 +10628,13 @@ void	serializePrimaryBlock(Bundle *bundle, unsigned char **cursor,
 		crc32 = 0;
 		oK(cbor_encode_byte_string((unsigned char *) &crc32, 4,
 				cursor));
+#ifdef ENABLE_HIGH_SPEED
+		crc32 = ion_CRC32_1EDC6F41_C_slice((char *) startOfPrimaryBlock,
+					*cursor - startOfPrimaryBlock, 0);
+#else
 		crc32 = ion_CRC32_1EDC6F41_C((char *) startOfPrimaryBlock,
 					*cursor - startOfPrimaryBlock, 0);
+#endif
 		crc32 = htonl(crc32);
 		memcpy((*cursor) - 4, (char *) &crc32, 4);
 	}
