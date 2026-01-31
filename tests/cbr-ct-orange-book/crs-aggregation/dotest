@@ -145,7 +145,8 @@ fi
 
 # Test 4: Verify bundle delivery
 cd "$TESTDIR/2.node"
-DELIVERED=$(grep -c "bundle" counter_output.txt 2>/dev/null || echo "0")
+# Parse actual bundle count from bpcounter output (format: "bundles received : N")
+DELIVERED=$(grep -i "bundles received" counter_output.txt 2>/dev/null | tail -1 | sed 's/.*: *//' || echo "0")
 if [ -f counter_output.txt ] && [ "$DELIVERED" -gt 0 ]; then
     test_result 0 "Bundles delivered ($DELIVERED)"
 elif ! kill -0 $COUNTER_PID 2>/dev/null; then
