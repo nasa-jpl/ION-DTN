@@ -250,7 +250,7 @@ void	addDataToChecksum(unsigned char *data, int dLen, vast *offset,
 		bytesToWrite = dLen;
 		while (bytesToWrite > 0)
 		{
-			addToModularChecksum(*octet, local_offset, checksum);
+			addToModularChecksum(*octet, &local_offset, checksum);
 			octet++;
 			bytesToWrite--;
 			local_offset++;
