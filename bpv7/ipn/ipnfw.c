@@ -194,7 +194,7 @@ static int	initializeHIRR(CgrRtgObject *routingObj)
 		{
 			/*	Node is a passageway.			*/
 
-			if (sdr_list_insert_last(sdr,
+			if (sm_list_insert_last(ionwm,
 					routingObj->viaPassageways,
 					member->fqnn) == 0)
 			{
