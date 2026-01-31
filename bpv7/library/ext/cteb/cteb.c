@@ -73,23 +73,31 @@ int	cteb_offer(ExtensionBlock *blk, Bundle *bundle)
 	 *	This ensures CTEB doesn't conflict with BIBE custody.	*/
 
 	custodyMode = cbr_getCustodyMode(sdr);
+#ifdef DEBUG_CUSTODY_SRC
 	writeMemoNote("[DEBUG-CUSTODY-SRC] cteb_offer: custodyMode", itoa(custodyMode));
+#endif
 
 	if (custodyMode != BP_CUSTODY_ORANGEBOOK)
 	{
 		/*	Orange Book custody not active on this node.	*/
+#ifdef DEBUG_CUSTODY_SRC
 		writeMemo("[DEBUG-CUSTODY-SRC] cteb_offer: Orange Book custody not active");
+#endif
 		return 0;
 	}
 
 	if (!(bundle->ancillaryData.flags & BP_CT_REQUESTED))
 	{
 		/*	Custody transfer not requested by application.	*/
+#ifdef DEBUG_CUSTODY_SRC
 		writeMemo("[DEBUG-CUSTODY-SRC] cteb_offer: custody not requested");
+#endif
 		return 0;
 	}
 
+#ifdef DEBUG_CUSTODY_SRC
 	writeMemo("[DEBUG-CUSTODY-SRC] cteb_offer: creating CTEB block");
+#endif
 
 	/*	Get our admin EID as initial custodian.			*/
 
@@ -370,10 +378,12 @@ int	cteb_processOnAccept(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 
 	findScheme("ipn", &vscheme, &vschemeElt);
 
+#ifdef DEBUG_CUSTODY_SRC
 	writeMemoNote("[DEBUG-CUSTODY-SRC] cteb_processOnAccept: custodianEid",
 			ctebData.custodianEid ? ctebData.custodianEid : "(null)");
 	writeMemoNote("[DEBUG-CUSTODY-SRC] cteb_processOnAccept: adminEid",
 			(vschemeElt != 0) ? vscheme->adminEid : "(no scheme)");
+#endif
 
 	if (vschemeElt != 0 && ctebData.custodianEid != NULL)
 	{
@@ -381,7 +391,9 @@ int	cteb_processOnAccept(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 		{
 			/*	We are already the custodian - this is
 			 *	a source-originated bundle. Skip accept. */
+#ifdef DEBUG_CUSTODY_SRC
 			writeMemo("[DEBUG-CUSTODY-SRC] CTEB: We are custodian, skipping accept");
+#endif
 			return 0;
 		}
 	}

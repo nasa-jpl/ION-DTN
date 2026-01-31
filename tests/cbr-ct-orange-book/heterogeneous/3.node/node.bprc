@@ -2,6 +2,7 @@
 ## Using UDP CLA
 
 1
+m custodymode orangebook
 a scheme ipn 'ipnfw' 'ipnadminep'
 a endpoint ipn:3.0 x
 a endpoint ipn:3.1 x

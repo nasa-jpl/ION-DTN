@@ -292,22 +292,36 @@ int	cbr_getRetransmissionConfig(Sdr sdr, int *strategy,
 
 int	cbr_getStatistics(Sdr sdr, CbrStatistics *stats)
 {
-	CbrDb	*cbrConstants;
+	CbrDb	cbrDb;
+	Object	cbrDbObj;
 
-	(void) sdr;	/*	Needed for interface consistency.	*/
 	CHKERR(stats);
-	cbrConstants = _cbrConstants();
-	CHKERR(cbrConstants);
+	CHKERR(sdr);
 
-	stats->ccsAcceptSent = cbrConstants->ccsAcceptSent;
-	stats->ccsRefuseSent = cbrConstants->ccsRefuseSent;
-	stats->ccsAcceptRecv = cbrConstants->ccsAcceptRecv;
-	stats->ccsRefuseRecv = cbrConstants->ccsRefuseRecv;
-	stats->custodyOriginated = cbrConstants->custodyOriginated;
-	stats->custodyAccepted = cbrConstants->custodyAccepted;
-	stats->custodyReleased = cbrConstants->custodyReleased;
-	stats->crsSignalsSent = cbrConstants->crsSignalsSent;
-	stats->crsSignalsRecv = cbrConstants->crsSignalsRecv;
+	/*	Read fresh from SDR to get current values.
+	 *	This is needed because cbrcustodytest runs as a
+	 *	separate process and won't see cached updates.	*/
+
+	cbrDbObj = getCbrDbObject();
+	if (cbrDbObj == 0)
+	{
+		memset(stats, 0, sizeof(CbrStatistics));
+		return 0;
+	}
+
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &cbrDb, cbrDbObj, sizeof(CbrDb));
+	sdr_exit_xn(sdr);
+
+	stats->ccsAcceptSent = cbrDb.ccsAcceptSent;
+	stats->ccsRefuseSent = cbrDb.ccsRefuseSent;
+	stats->ccsAcceptRecv = cbrDb.ccsAcceptRecv;
+	stats->ccsRefuseRecv = cbrDb.ccsRefuseRecv;
+	stats->custodyOriginated = cbrDb.custodyOriginated;
+	stats->custodyAccepted = cbrDb.custodyAccepted;
+	stats->custodyReleased = cbrDb.custodyReleased;
+	stats->crsSignalsSent = cbrDb.crsSignalsSent;
+	stats->crsSignalsRecv = cbrDb.crsSignalsRecv;
 
 	return 0;
 }
@@ -2230,16 +2244,25 @@ int	cbr_acceptCustody(Sdr sdr, Bundle *bundle, Object bundleAddr,
 		return -1;
 	}
 
-	/*	Increment custody accepted counter.			*/
+	/*	Increment custody accepted counter.
+	 *	Must use a transaction since queueCcs may have
+	 *	committed its own transaction already.			*/
 	{
 		CbrDb	*cbrConst = _cbrConstants();
 		Object	cbrDbObj = getCbrDbObject();
 
 		if (cbrConst && cbrDbObj)
 		{
+			CHKERR(sdr_begin_xn(sdr));
 			cbrConst->custodyAccepted++;
 			sdr_write(sdr, cbrDbObj, (char *) cbrConst,
 					sizeof(CbrDb));
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("CBR: Can't update custody counter.",
+						NULL);
+				return -1;
+			}
 		}
 	}
 

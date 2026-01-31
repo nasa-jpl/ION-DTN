@@ -155,6 +155,18 @@ echo "========================================="
 echo "Test 2: Custody Bundle Through Non-Supporting Node"
 echo "========================================="
 
+# Capture Node 1 baseline statistics BEFORE sending
+cd "$TESTDIR/1.node"
+echo "  --- Node 1 Statistics (baseline) ---"
+cbrcustodytest -l > custody_baseline.txt 2>&1 || true
+grep -E "Custody Originated|Custody Released|CCS Accept Received" custody_baseline.txt | sed 's/^/    /' || echo "    (no statistics)"
+# Field positions: "Custody Originated:" -> $1=Custody $2=Originated: $3=value
+#                  "CCS Accept Received:" -> $1=CCS $2=Accept $3=Received: $4=value
+BASELINE_ORIGINATED=$(awk '/Custody Originated:/ {print $3}' custody_baseline.txt 2>/dev/null)
+BASELINE_RELEASED=$(awk '/Custody Released:/ {print $3}' custody_baseline.txt 2>/dev/null)
+[ -z "$BASELINE_ORIGINATED" ] && BASELINE_ORIGINATED=0
+[ -z "$BASELINE_RELEASED" ] && BASELINE_RELEASED=0
+
 # Start bpcounter on Node 3 expecting 1 bundle
 cd "$TESTDIR/3.node"
 bpcounter ipn:3.1 1 > counter_output.txt 2>&1 &
@@ -167,19 +179,62 @@ cd "$TESTDIR/1.node"
 echo "  Sending custody bundle through non-CBR relay..."
 bpdriver -1 ipn:1.2 ipn:3.1 -1000 t60 > driver_output.txt 2>&1
 
-# Check custody status at Node 1 before delivery
-echo "  --- Node 1 Custody Status (before delivery) ---"
-cbrcustodytest ipn:3.1 -t1 2>&1 | grep -E "bundle|custody|seqNum" | head -5 | sed 's/^/    /' || echo "    (no custody info)"
+# Brief pause then check custody pending
+sleep 1
+echo "  --- Node 1 Custody (in-flight check) ---"
+cbrcustodytest -l 2>&1 | grep "bundle(s) in custody" | sed 's/^/    /' || echo "    (unable to check)"
 
-# Wait for bundle to traverse the network
-sleep 8
+# Wait for bundle to traverse the network and CCS to return
+sleep 10
 
 # Check if bundle was received
 if ! kill -0 $COUNTER_PID 2>/dev/null; then
-    test_result 0 "Custody bundle delivered through non-CBR relay"
+    BUNDLE_DELIVERED=0
 else
     kill $COUNTER_PID 2>/dev/null || true
-    test_result 1 "Custody bundle delivered through non-CBR relay"
+    BUNDLE_DELIVERED=1
+fi
+
+# Capture Node 1 statistics AFTER - key evidence
+echo "  --- Node 1 Statistics (after CCS expected) ---"
+cbrcustodytest -l > custody_after.txt 2>&1 || true
+grep -E "Custody Originated|Custody Released|CCS Accept Received" custody_after.txt | sed 's/^/    /' || echo "    (no statistics)"
+
+# Extract values for verification
+# "Custody Originated:" -> value is $3; "CCS Accept Received:" -> value is $4
+AFTER_ORIGINATED=$(awk '/Custody Originated:/ {print $3}' custody_after.txt 2>/dev/null)
+AFTER_RELEASED=$(awk '/Custody Released:/ {print $3}' custody_after.txt 2>/dev/null)
+CCS_RECV=$(awk '/CCS Accept Received:/ {print $4}' custody_after.txt 2>/dev/null)
+[ -z "$AFTER_ORIGINATED" ] && AFTER_ORIGINATED=0
+[ -z "$AFTER_RELEASED" ] && AFTER_RELEASED=0
+[ -z "$CCS_RECV" ] && CCS_RECV=0
+
+# Calculate changes
+ORIGINATED_DELTA=$((AFTER_ORIGINATED - BASELINE_ORIGINATED))
+RELEASED_DELTA=$((AFTER_RELEASED - BASELINE_RELEASED))
+
+echo "  --- Evidence Summary ---"
+echo "    Bundles originated this test: $ORIGINATED_DELTA"
+echo "    Bundles released (CCS recv):  $RELEASED_DELTA"
+echo "    Total CCS Accept Received:    $CCS_RECV"
+
+# Check Node 3 (destination) accepted custody and sent CCS
+echo "  --- Node 3 Statistics (custody acceptor) ---"
+cd "$TESTDIR/3.node"
+cbrcustodytest -l > custody_node3.txt 2>&1 || true
+grep -E "CCS Accept Sent|Custody Accepted" custody_node3.txt | sed 's/^/    /' || echo "    (no statistics)"
+# "CCS Accept Sent:" -> value is $4
+CCS_SENT_NODE3=$(awk '/CCS Accept Sent:/ {print $4}' custody_node3.txt 2>/dev/null)
+[ -z "$CCS_SENT_NODE3" ] && CCS_SENT_NODE3=0
+
+# Determine pass/fail based on evidence
+if [ $BUNDLE_DELIVERED -eq 0 ] && [ "$RELEASED_DELTA" -gt 0 ] && [ "$CCS_SENT_NODE3" -gt 0 ]; then
+    test_result 0 "Custody bundle delivered, CCS returned (released=$RELEASED_DELTA, CCS sent by dest=$CCS_SENT_NODE3)"
+elif [ $BUNDLE_DELIVERED -eq 0 ]; then
+    # Bundle delivered but weak CCS evidence - still pass with note
+    test_result 0 "Custody bundle delivered through non-CBR relay (CCS evidence: released=$RELEASED_DELTA)"
+else
+    test_result 1 "Custody bundle delivery failed"
 fi
 sleep 1
 
@@ -190,18 +245,40 @@ echo "========================================="
 
 # The CTEB block should be preserved through the non-supporting Node 2
 # due to transparent forwarding (block processing flags)
+# Evidence: Node 3 was able to accept custody (requires valid CTEB)
 
-# Check Node 2 logs for any CTEB-related processing
+echo "  Verifying CTEB traversed non-CBR relay intact..."
+
+# Check Node 2 logs for any CTEB-related errors
 cd "$TESTDIR/2.node"
+CTEB_ERRORS=0
 if [ -f ion.log ]; then
-    # Non-supporting node should NOT process CTEB, just forward it
-    if grep -qi "CTEB.*error\|unknown.*block.*13" ion.log 2>/dev/null; then
-        test_result 1 "CTEB block transparent forwarding (errors found)"
-    else
-        test_result 0 "CTEB block transparent forwarding (no errors)"
+    if grep -qi "CTEB.*error\|unknown.*block.*13\|discard.*block" ion.log 2>/dev/null; then
+        CTEB_ERRORS=1
+        echo "  WARNING: CTEB-related errors in relay node log"
+        grep -i "CTEB\|block.*13" ion.log 2>/dev/null | tail -5 | sed 's/^/    /'
     fi
+fi
+
+# Positive evidence: Node 3 accepted custody (proves CTEB arrived intact)
+cd "$TESTDIR/3.node"
+CUSTODY_ACCEPTED_NODE3=$(awk '/Custody Accepted:/ {print $3}' custody_node3.txt 2>/dev/null)
+[ -z "$CUSTODY_ACCEPTED_NODE3" ] && CUSTODY_ACCEPTED_NODE3=0
+echo "  --- CTEB Preservation Evidence ---"
+echo "    Node 2 (relay) CTEB errors: $CTEB_ERRORS"
+echo "    Node 3 Custody Accepted:    $CUSTODY_ACCEPTED_NODE3"
+echo "    Node 3 CCS Accept Sent:     $CCS_SENT_NODE3"
+
+# Pass if: no errors AND Node 3 accepted custody (proves CTEB was valid)
+if [ $CTEB_ERRORS -eq 0 ] && [ "$CUSTODY_ACCEPTED_NODE3" -gt 0 ]; then
+    test_result 0 "CTEB preserved through relay (Node 3 accepted custody=$CUSTODY_ACCEPTED_NODE3)"
+elif [ $CTEB_ERRORS -eq 0 ] && [ "$CCS_SENT_NODE3" -gt 0 ]; then
+    # CCS sent implies custody was accepted
+    test_result 0 "CTEB preserved through relay (Node 3 sent CCS=$CCS_SENT_NODE3)"
+elif [ $CTEB_ERRORS -eq 0 ]; then
+    test_result 0 "CTEB transparent forwarding (no errors, implicit)"
 else
-    test_result 0 "CTEB block transparent forwarding (implicit)"
+    test_result 1 "CTEB block handling errors detected"
 fi
 
 echo ""
@@ -209,27 +286,47 @@ echo "========================================="
 echo "Test 4: CCS Signal Return Path"
 echo "========================================="
 
-# Give time for CCS signal to flow back
-sleep 5
+# CCS must traverse: Node 3 -> Node 2 (non-CBR relay) -> Node 1
+# Evidence: Node 1 received CCS (custody released) AND Node 3 sent CCS
 
-# Check custody status at Node 1 - should be released
+echo "  Verifying CCS signal traversed heterogeneous return path..."
+
+# Re-check Node 1 final statistics
 cd "$TESTDIR/1.node"
-echo "  --- Node 1 Custody Status (after CCS) ---"
-cbrcustodytest ipn:3.1 -t1 2>&1 | grep -E "bundle|custody|seqNum" | head -5 | sed 's/^/    /' || echo "    (no custody info)"
+cbrcustodytest -l > custody_final.txt 2>&1 || true
+FINAL_CCS_RECV=$(awk '/CCS Accept Received:/ {print $4}' custody_final.txt 2>/dev/null)
+FINAL_RELEASED=$(awk '/Custody Released:/ {print $3}' custody_final.txt 2>/dev/null)
+BUNDLES_IN_CUSTODY=$(awk '/bundle\(s\) in custody/ {print $2}' custody_final.txt 2>/dev/null)
+[ -z "$FINAL_CCS_RECV" ] && FINAL_CCS_RECV=0
+[ -z "$FINAL_RELEASED" ] && FINAL_RELEASED=0
+[ -z "$BUNDLES_IN_CUSTODY" ] && BUNDLES_IN_CUSTODY="unknown"
 
-# Check for CCS-related log entries
-CCS_FOUND=0
+echo "  --- CCS Return Path Evidence ---"
+echo "    Node 3 CCS Accept Sent:     $CCS_SENT_NODE3"
+echo "    Node 1 CCS Accept Received: $FINAL_CCS_RECV"
+echo "    Node 1 Custody Released:    $FINAL_RELEASED"
+echo "    Node 1 Bundles in custody:  $BUNDLES_IN_CUSTODY"
+
+# Check Node 2 (relay) forwarded CCS without errors
+cd "$TESTDIR/2.node"
+CCS_RELAY_ERRORS=0
 if [ -f ion.log ]; then
-    if grep -qi "CCS\|custody.*release\|custody.*accept" ion.log 2>/dev/null; then
-        CCS_FOUND=1
+    if grep -qi "CCS.*error\|admin.*record.*error" ion.log 2>/dev/null; then
+        CCS_RELAY_ERRORS=1
     fi
 fi
+echo "    Node 2 (relay) CCS errors:  $CCS_RELAY_ERRORS"
 
-if [ $CCS_FOUND -eq 1 ]; then
-    test_result 0 "CCS signal return path verified"
+# Pass criteria: CCS was sent by Node 3 AND received by Node 1
+if [ "$CCS_SENT_NODE3" -gt 0 ] && [ "$FINAL_CCS_RECV" -gt 0 ]; then
+    test_result 0 "CCS return path verified (sent=$CCS_SENT_NODE3, received=$FINAL_CCS_RECV)"
+elif [ "$FINAL_RELEASED" -gt 0 ] && [ "$BUNDLES_IN_CUSTODY" = "0" ]; then
+    # Custody released and none pending - CCS must have worked
+    test_result 0 "CCS return path verified (custody released=$FINAL_RELEASED, pending=0)"
+elif [ "$BUNDLES_IN_CUSTODY" = "0" ]; then
+    test_result 0 "CCS return path (implicit - no bundles pending)"
 else
-    # CCS may have been processed without explicit logging
-    test_result 0 "CCS signal return path (implicit)"
+    test_result 1 "CCS return path incomplete (pending=$BUNDLES_IN_CUSTODY)"
 fi
 
 echo ""
@@ -238,6 +335,14 @@ echo "Test 5: Multiple Bundles Through Heterogeneous Path"
 echo "========================================="
 
 BUNDLE_COUNT=3
+
+# Capture baseline before sending multiple bundles
+cd "$TESTDIR/1.node"
+cbrcustodytest -l > multi_baseline.txt 2>&1 || true
+MULTI_BASELINE_ORIG=$(awk '/Custody Originated:/ {print $3}' multi_baseline.txt 2>/dev/null)
+MULTI_BASELINE_REL=$(awk '/Custody Released:/ {print $3}' multi_baseline.txt 2>/dev/null)
+[ -z "$MULTI_BASELINE_ORIG" ] && MULTI_BASELINE_ORIG=0
+[ -z "$MULTI_BASELINE_REL" ] && MULTI_BASELINE_REL=0
 
 # Start bpcounter on Node 3
 cd "$TESTDIR/3.node"
@@ -250,15 +355,43 @@ cd "$TESTDIR/1.node"
 echo "  Sending $BUNDLE_COUNT custody bundles..."
 bpdriver -${BUNDLE_COUNT} ipn:1.2 ipn:3.1 -1000 t60 > driver_output2.txt 2>&1
 
-# Wait for bundles
+# Wait for bundles and CCS signals
 sleep 15
 
-# Check results
+# Check if all bundles received
 if ! kill -0 $COUNTER_PID 2>/dev/null; then
-    test_result 0 "Multiple custody bundles through heterogeneous path ($BUNDLE_COUNT/$BUNDLE_COUNT)"
+    MULTI_DELIVERED=1
 else
     kill $COUNTER_PID 2>/dev/null || true
-    test_result 1 "Multiple custody bundles through heterogeneous path"
+    MULTI_DELIVERED=0
+fi
+
+# Check final statistics
+cd "$TESTDIR/1.node"
+cbrcustodytest -l > multi_final.txt 2>&1 || true
+MULTI_FINAL_ORIG=$(awk '/Custody Originated:/ {print $3}' multi_final.txt 2>/dev/null)
+MULTI_FINAL_REL=$(awk '/Custody Released:/ {print $3}' multi_final.txt 2>/dev/null)
+MULTI_PENDING=$(awk '/bundle\(s\) in custody/ {print $2}' multi_final.txt 2>/dev/null)
+[ -z "$MULTI_FINAL_ORIG" ] && MULTI_FINAL_ORIG=0
+[ -z "$MULTI_FINAL_REL" ] && MULTI_FINAL_REL=0
+[ -z "$MULTI_PENDING" ] && MULTI_PENDING="unknown"
+
+MULTI_ORIG_DELTA=$((MULTI_FINAL_ORIG - MULTI_BASELINE_ORIG))
+MULTI_REL_DELTA=$((MULTI_FINAL_REL - MULTI_BASELINE_REL))
+
+echo "  --- Multiple Bundle Evidence ---"
+echo "    Bundles sent:      $BUNDLE_COUNT"
+echo "    Custody originated: $MULTI_ORIG_DELTA"
+echo "    Custody released:   $MULTI_REL_DELTA"
+echo "    Pending custody:    $MULTI_PENDING"
+
+# Check results
+if [ $MULTI_DELIVERED -eq 1 ] && [ "$MULTI_REL_DELTA" -ge "$BUNDLE_COUNT" ]; then
+    test_result 0 "Multiple custody bundles through heterogeneous path ($BUNDLE_COUNT delivered, $MULTI_REL_DELTA released)"
+elif [ $MULTI_DELIVERED -eq 1 ]; then
+    test_result 0 "Multiple custody bundles through heterogeneous path ($BUNDLE_COUNT/$BUNDLE_COUNT delivered)"
+else
+    test_result 1 "Multiple custody bundles through heterogeneous path (delivery incomplete)"
 fi
 
 echo ""

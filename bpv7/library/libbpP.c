@@ -6040,7 +6040,9 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 	/*	Do any forwarding-triggered extension block processing
 	 *	that is necessary.					*/
 
+#ifdef DEBUG_CUSTODY_SRC
 	writeMemo("[DEBUG-CUSTODY-SRC] forwardBundle: about to PROCESS_ON_FORWARD");
+#endif
 
 	if (processExtensionBlocks(bundle, PROCESS_ON_FORWARD, NULL) < 0)
 	{
@@ -6048,7 +6050,9 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		return -1;
 	}
 
+#ifdef DEBUG_CUSTODY_SRC
 	writeMemo("[DEBUG-CUSTODY-SRC] forwardBundle: about to PROCESS_ON_TAKE_CUSTODY");
+#endif
 
 	/*	If bundle has CTEB and custody transfer is requested,
 	 *	accept custody now. This triggers:
@@ -6065,7 +6069,9 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		return -1;
 	}
 
+#ifdef DEBUG_CUSTODY_SRC
 	writeMemo("[DEBUG-CUSTODY-SRC] forwardBundle: custody acceptance done");
+#endif
 
 	/*	Queue this bundle for the scheme-specific forwarder.	*/
 
@@ -6606,8 +6612,10 @@ when asking for status reports.");
 		Object ctebElt = findExtensionBlock(&bundle,
 				CBR_BLOCK_TYPE_CTEB, 0);
 
+#ifdef DEBUG_CUSTODY_SRC
 		writeMemoNote("[DEBUG-CUSTODY-SRC] bpSend: custody requested, CTEB elt",
 				ctebElt ? "found" : "NOT FOUND");
+#endif
 
 		if (ctebElt != 0)
 		{
@@ -6626,8 +6634,10 @@ when asking for status reports.");
 				readEid(&bundle.id.source, &srcEid);
 				if (srcEid != NULL)
 				{
+#ifdef DEBUG_CUSTODY_SRC
 					writeMemoNote("[DEBUG-CUSTODY-SRC] bpSend: tracking custody for",
 							srcEid);
+#endif
 					if (cbr_trackCustodyBundle(sdr, bundleAddr,
 							destEidString, srcEid,
 							seqId, seqNum) != 0)

@@ -1245,7 +1245,9 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 		{
 			if (hasCustody)
 			{
+#ifdef DEBUG_CUSTODY_SRC
 				writeMemo("[DEBUG-CUSTODY-SRC] ipnfw: custody bundle going to limbo");
+#endif
 			}
 
 			if (enqueueToLimbo(bundle, bundleObj) < 0)
@@ -1263,7 +1265,9 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 		return bpAccept(bundleObj, bundle);
 	}
 
+#ifdef DEBUG_CUSTODY_SRC
 	writeMemo("[DEBUG-CUSTODY-SRC] ipnfw: abandoning bundle (no route, no custody)");
+#endif
 	return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 }
 
