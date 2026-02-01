@@ -46,19 +46,12 @@ test_result() {
 }
 
 # Cleanup function (used only for startup failures)
-cleanup() {
+cleanup_on_error() {
     echo ""
     echo "Stopping test processes..."
-
-    pkill -f "bpsink" 2>/dev/null || true
-    pkill -f "bpsource" 2>/dev/null || true
-    pkill -f "bpcounter" 2>/dev/null || true
-    pkill -f "bpdriver" 2>/dev/null || true
-
-    for node in 2.node 1.node; do
-        cd "$TESTDIR/$node" 2>/dev/null && killm 2>/dev/null || true
-    done
-
+    cd "$TESTDIR"
+    killm
+    ./cleanup
     echo "Cleanup complete."
 }
 
@@ -98,22 +91,18 @@ on_failure() {
 # Trap SIGINT (Ctrl+C) and SIGTERM
 trap on_interrupt INT TERM
 
-# Check if ION is already running
-if pgrep -x "rfxclock" > /dev/null; then
-    echo "ERROR: ION appears to be already running."
-    echo "Please run 'killm' or the cleanup script first."
-    exit 1
-fi
+# Set ION_NODE_LIST_DIR
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+# Clean up any previous ION and test artifacts
+killm
+./cleanup
 
 echo ""
 echo "========================================="
 echo "Starting 2-node ION network..."
 echo "========================================="
 echo ""
-
-# Set ION_NODE_LIST_DIR
-export ION_NODE_LIST_DIR="$TESTDIR"
-rm -f "$TESTDIR/ion_nodes"
 
 # Make ionstart scripts executable
 chmod +x "$TESTDIR/1.node/ionstart"
@@ -141,7 +130,7 @@ if [ "$NODE_COUNT" -lt 2 ]; then
     echo ""
     echo "Node 2 startup log:"
     cat "$TESTDIR/2.node/ion_startup.log" 2>/dev/null || echo "  (no log)"
-    cleanup
+    cleanup_on_error
     exit 1
 fi
 

@@ -16,11 +16,9 @@ echo "=== Custody Multi-Bundle Test ==="
 echo "Sending $BUNDLE_COUNT bundles with custody"
 echo ""
 
-# Clean up any previous runs
-rm -f "$TESTDIR/ion_nodes"
-for node in 1.node 2.node 3.node; do
-    rm -f "$TESTDIR/$node/ion.log" "$TESTDIR/$node/*.txt"
-done
+# Clean up any previous ION and test artifacts
+killm
+./cleanup
 
 # Track test results
 TESTS_PASSED=0

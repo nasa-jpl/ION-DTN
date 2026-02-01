@@ -1,20 +1,4 @@
 #!/usr/bin/env bash
-#
-# Cleanup script for seqid-nonzero test
-#
 
-TESTDIR=$(cd "$(dirname "$0")" && pwd)
-export ION_NODE_LIST_DIR="$TESTDIR"
-
-# Kill any test processes
-pkill -f "bpsink" 2>/dev/null || true
-pkill -f "bpcounter" 2>/dev/null || true
-pkill -f "bpdriver" 2>/dev/null || true
-
-# Stop ION on each node
-killm
-
-# Clean up node list
-rm -f "$TESTDIR/ion_nodes"
-
-echo "Cleanup complete."
+rm -f ion_nodes
+rm -f */ion.log */*.txt

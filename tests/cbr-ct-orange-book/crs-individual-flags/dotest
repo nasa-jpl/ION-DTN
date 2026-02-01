@@ -16,14 +16,9 @@ echo "=== CRS Individual Flags Test ==="
 echo "Topology: Node 1 (source) -> Node 2 (relay) -> Node 3 (destination)"
 echo ""
 
-# Clean up any previous runs
-rm -f "$TESTDIR/ion_nodes"
-for node in 1.node 2.node 3.node; do
-    rm -f "$TESTDIR/$node/ion.log" "$TESTDIR/$node"/*.txt
-done
-
-# Clear out ION
+# Clean up any previous ION and test artifacts
 killm
+./cleanup
 
 # Track test results
 TESTS_PASSED=0

@@ -15,11 +15,9 @@ echo "=== Custody CCS Verification Test ==="
 echo "Using cbrcustodytest to verify CCS signal flow"
 echo ""
 
-# Clean up any previous runs
-rm -f "$TESTDIR/ion_nodes"
-for node in 1.node 2.node 3.node; do
-    rm -f "$TESTDIR/$node/ion.log" "$TESTDIR/$node/*.txt"
-done
+# Clean up any previous ION and test artifacts
+killm
+./cleanup
 
 # Track test results
 TESTS_PASSED=0
