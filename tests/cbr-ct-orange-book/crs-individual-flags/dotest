@@ -22,6 +22,9 @@ for node in 1.node 2.node 3.node; do
     rm -f "$TESTDIR/$node/ion.log" "$TESTDIR/$node"/*.txt
 done
 
+# Clear out ION
+killm
+
 # Track test results
 TESTS_PASSED=0
 TESTS_FAILED=0
@@ -102,10 +105,11 @@ wait $SINK_PID 2>/dev/null || true
 FINAL_CRS=$(get_crs_recv "$TESTDIR/1.node")
 FINAL_CRS=${FINAL_CRS:-0}
 
+CRS_DIFF=$((FINAL_CRS - INITIAL_CRS))
 if [ "$FINAL_CRS" -gt "$INITIAL_CRS" ]; then
-    test_result 0 "Reception status report received ($FINAL_CRS > $INITIAL_CRS)"
+    test_result 0 "Reception status report received (+$CRS_DIFF CRS, total=$FINAL_CRS)"
 else
-    test_result 1 "No reception status report received"
+    test_result 1 "No reception status report received (total CRS unchanged at $FINAL_CRS)"
 fi
 
 # ============================================
@@ -142,12 +146,13 @@ FINAL_CRS=${FINAL_CRS:-0}
 NODE2_CRS_SENT=$(get_crs_sent "$TESTDIR/2.node")
 NODE2_CRS_SENT=${NODE2_CRS_SENT:-0}
 
+CRS_DIFF=$((FINAL_CRS - INITIAL_CRS))
 if [ "$FINAL_CRS" -gt "$INITIAL_CRS" ]; then
-    test_result 0 "Forwarding status report received ($FINAL_CRS > $INITIAL_CRS)"
+    test_result 0 "Forwarding status report received (+$CRS_DIFF CRS, total=$FINAL_CRS)"
 elif [ "$NODE2_CRS_SENT" -gt 0 ]; then
     test_result 0 "Forwarding status report sent from relay (Node 2 sent: $NODE2_CRS_SENT)"
 else
-    test_result 1 "No forwarding status report generated"
+    test_result 1 "No forwarding status report generated (total CRS unchanged at $FINAL_CRS)"
 fi
 
 # ============================================
@@ -181,11 +186,12 @@ wait $SINK_PID 2>/dev/null || true
 # Check results
 FINAL_CRS=$(get_crs_recv "$TESTDIR/1.node")
 FINAL_CRS=${FINAL_CRS:-0}
+CRS_DIFF=$((FINAL_CRS - INITIAL_CRS))
 
 if [ "$FINAL_CRS" -gt "$INITIAL_CRS" ]; then
-    test_result 0 "Delivery status report received ($FINAL_CRS > $INITIAL_CRS)"
+    test_result 0 "Delivery status report received (+$CRS_DIFF CRS, total=$FINAL_CRS)"
 else
-    test_result 1 "No delivery status report received"
+    test_result 1 "No delivery status report received (total CRS unchanged at $FINAL_CRS)"
 fi
 
 # ============================================
@@ -222,11 +228,11 @@ FINAL_CRS=${FINAL_CRS:-0}
 CRS_DIFF=$((FINAL_CRS - INITIAL_CRS))
 
 if [ "$CRS_DIFF" -ge 2 ]; then
-    test_result 0 "Multiple status reports received ($CRS_DIFF CRS signals)"
+    test_result 0 "Multiple status reports received (+$CRS_DIFF CRS, total=$FINAL_CRS)"
 elif [ "$CRS_DIFF" -ge 1 ]; then
-    test_result 0 "At least one status report received ($CRS_DIFF CRS signals)"
+    test_result 0 "At least one status report received (+$CRS_DIFF CRS, total=$FINAL_CRS)"
 else
-    test_result 1 "No status reports received for combined flags"
+    test_result 1 "No status reports received for combined flags (total CRS unchanged at $FINAL_CRS)"
 fi
 
 # ============================================
