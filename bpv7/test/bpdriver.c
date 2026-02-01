@@ -238,7 +238,8 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 
 	_attendant(&attendant);
 
-	/*	Send pilot bundle to start bpcounter's timer.		*/
+	/*	Send pilot bundle to start bpcounter's timer.
+	 *	Pilot is purely a timing device - no custody or reports.	*/
 
 	CHKZERO(sdr_begin_xn(sdr));
 	pilotAduString = sdr_string_create(sdr, "Go.");
@@ -259,8 +260,8 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 		return 0;
 	}
 
-	if (bp_send(sap, destEid, NULL, ttl, BP_STD_PRIORITY, custodySwitch, 0,
-			0, &ancillaryData, bundleZco, &newBundle) < 1)
+	if (bp_send(sap, destEid, NULL, ttl, BP_STD_PRIORITY, NoCustodyRequested,
+			0, 0, NULL, bundleZco, &newBundle) < 1)
 	{
 		putErrmsg("bpdriver can't send pilot bundle.",
 				itoa(aduLength));

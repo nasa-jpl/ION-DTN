@@ -1706,7 +1706,6 @@ int	cbr_transmitSignal(Sdr sdr, Object signalElt)
 	}
 	else
 	{
-		CbrDb	*cbrConst = _cbrConstants();
 		Object	cbrDbObj = getCbrDbObject();
 
 		writeMemoNote(signal.signalType == CBR_SIGNAL_CRS ?
@@ -1714,25 +1713,29 @@ int	cbr_transmitSignal(Sdr sdr, Object signalElt)
 				"[i] CBR CCS transmitted to", destEidBuf);
 
 		/*	Increment statistics counters.			*/
-		if (cbrConst && cbrDbObj)
+		if (cbrDbObj)
 		{
+			CbrDb	cbrDb;
+
+			sdr_stage(sdr, (char *) &cbrDb, cbrDbObj,
+					sizeof(CbrDb));
 			if (signal.signalType == CBR_SIGNAL_CRS)
 			{
-				cbrConst->crsSignalsSent++;
+				cbrDb.crsSignalsSent++;
 			}
 			else if (signal.signalType == CBR_SIGNAL_CCS)
 			{
 				if (signal.dispCode == CBR_CUSTODY_ACCEPTED)
 				{
-					cbrConst->ccsAcceptSent++;
+					cbrDb.ccsAcceptSent++;
 				}
 				else
 				{
-					cbrConst->ccsRefuseSent++;
+					cbrDb.ccsRefuseSent++;
 				}
 			}
 
-			sdr_write(sdr, cbrDbObj, (char *) cbrConst,
+			sdr_write(sdr, cbrDbObj, (char *) &cbrDb,
 					sizeof(CbrDb));
 		}
 	}
@@ -2042,13 +2045,15 @@ Object	cbr_trackCustodyBundle(Sdr sdr, Object bundleObj, char *destEid,
 
 void	cbr_noteCustodyOriginated(Sdr sdr)
 {
-	CbrDb	*cbrConst = _cbrConstants();
 	Object	cbrDbObj = getCbrDbObject();
 
-	if (cbrConst && cbrDbObj)
+	if (cbrDbObj)
 	{
-		cbrConst->custodyOriginated++;
-		sdr_write(sdr, cbrDbObj, (char *) cbrConst, sizeof(CbrDb));
+		CbrDb	cbrDb;
+
+		sdr_stage(sdr, (char *) &cbrDb, cbrDbObj, sizeof(CbrDb));
+		cbrDb.custodyOriginated++;
+		sdr_write(sdr, cbrDbObj, (char *) &cbrDb, sizeof(CbrDb));
 	}
 }
 
@@ -2248,14 +2253,17 @@ int	cbr_acceptCustody(Sdr sdr, Bundle *bundle, Object bundleAddr,
 	 *	Must use a transaction since queueCcs may have
 	 *	committed its own transaction already.			*/
 	{
-		CbrDb	*cbrConst = _cbrConstants();
 		Object	cbrDbObj = getCbrDbObject();
 
-		if (cbrConst && cbrDbObj)
+		if (cbrDbObj)
 		{
+			CbrDb	cbrDb;
+
 			CHKERR(sdr_begin_xn(sdr));
-			cbrConst->custodyAccepted++;
-			sdr_write(sdr, cbrDbObj, (char *) cbrConst,
+			sdr_stage(sdr, (char *) &cbrDb, cbrDbObj,
+					sizeof(CbrDb));
+			cbrDb.custodyAccepted++;
+			sdr_write(sdr, cbrDbObj, (char *) &cbrDb,
 					sizeof(CbrDb));
 			if (sdr_end_xn(sdr) < 0)
 			{
@@ -2323,7 +2331,6 @@ int	cbr_releaseCustody(Sdr sdr, char *sourceEid, uvast seqId,
 				seqNumStart + i);
 		if (custodyElt != 0)
 		{
-			CbrDb	*cbrConst = _cbrConstants();
 			Object	cbrDbObj = getCbrDbObject();
 
 			/*	Get custody bundle data before untracking.	*/
@@ -2354,10 +2361,14 @@ int	cbr_releaseCustody(Sdr sdr, char *sourceEid, uvast seqId,
 			}
 
 			/*	Increment custody released counter.	*/
-			if (cbrConst && cbrDbObj)
+			if (cbrDbObj)
 			{
-				cbrConst->custodyReleased++;
-				sdr_write(sdr, cbrDbObj, (char *) cbrConst,
+				CbrDb	cbrDb;
+
+				sdr_stage(sdr, (char *) &cbrDb, cbrDbObj,
+						sizeof(CbrDb));
+				cbrDb.custodyReleased++;
+				sdr_write(sdr, cbrDbObj, (char *) &cbrDb,
 						sizeof(CbrDb));
 			}
 
@@ -2459,13 +2470,16 @@ int	cbr_handleCrs(Sdr sdr, unsigned char *adminRecord, int length)
 
 	/*	Increment CRS received counter.				*/
 	{
-		CbrDb	*cbrConst = _cbrConstants();
 		Object	cbrDbObj = getCbrDbObject();
 
-		if (cbrConst && cbrDbObj)
+		if (cbrDbObj)
 		{
-			cbrConst->crsSignalsRecv++;
-			sdr_write(sdr, cbrDbObj, (char *) cbrConst,
+			CbrDb	cbrDb;
+
+			sdr_stage(sdr, (char *) &cbrDb, cbrDbObj,
+					sizeof(CbrDb));
+			cbrDb.crsSignalsRecv++;
+			sdr_write(sdr, cbrDbObj, (char *) &cbrDb,
 					sizeof(CbrDb));
 		}
 	}
@@ -2597,14 +2611,17 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 
 				/*	Increment CCS accept recv counter. */
 				{
-					CbrDb	*cbrConst = _cbrConstants();
 					Object	cbrDbObj = getCbrDbObject();
 
-					if (cbrConst && cbrDbObj)
+					if (cbrDbObj)
 					{
-						cbrConst->ccsAcceptRecv++;
+						CbrDb	cbrDb;
+
+						sdr_stage(sdr, (char *) &cbrDb,
+							cbrDbObj, sizeof(CbrDb));
+						cbrDb.ccsAcceptRecv++;
 						sdr_write(sdr, cbrDbObj,
-							(char *) cbrConst,
+							(char *) &cbrDb,
 							sizeof(CbrDb));
 					}
 				}
@@ -2619,14 +2636,17 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 
 				/*	Increment CCS refuse recv counter. */
 				{
-					CbrDb	*cbrConst = _cbrConstants();
 					Object	cbrDbObj = getCbrDbObject();
 
-					if (cbrConst && cbrDbObj)
+					if (cbrDbObj)
 					{
-						cbrConst->ccsRefuseRecv++;
+						CbrDb	cbrDb;
+
+						sdr_stage(sdr, (char *) &cbrDb,
+							cbrDbObj, sizeof(CbrDb));
+						cbrDb.ccsRefuseRecv++;
 						sdr_write(sdr, cbrDbObj,
-							(char *) cbrConst,
+							(char *) &cbrDb,
 							sizeof(CbrDb));
 					}
 				}
