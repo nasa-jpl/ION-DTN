@@ -206,7 +206,6 @@ static void manageLeadTime(int tokenCount, char **tokens)
 	Object dtkadbObj = getDtkaDbObject();
 	DtkaDB dtkadb;
 	int newLeadTime;
-	char test[5];
 
 	if (tokenCount != 3)
 	{
@@ -229,7 +228,6 @@ static void manageLeadTime(int tokenCount, char **tokens)
 	{
 		putErrmsg("Can't change leadtime.", NULL);
 	}
-	sprintf(test, "%u", dtkadb.effectiveLeadTime);
 }
 
 static void executeManage(int tokenCount, char **tokens)
