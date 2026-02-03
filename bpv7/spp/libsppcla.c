@@ -67,9 +67,9 @@ int	sendBundleBySPP(unsigned int bundleLength, Object bundleZco,
 			putErrmsg("Can't handle xmit failure.", NULL);
 			return -1;
 		}
-
-		// Look for other failure possiblities
-
+	}
+	else
+	{
 		if (bpHandleXmitSuccess(bundleZco) < 0)
 		{
 			putErrmsg("Can't handle xmit success.", NULL);
