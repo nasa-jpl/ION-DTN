@@ -1067,6 +1067,8 @@ bpbin = \
 	sendfile \
 	sppcli \
 	sppclo \
+	eppcli \
+	eppclo \
 	stcpcli \
 	stcpclo \
 	tcpcli \
@@ -1109,6 +1111,7 @@ bplib = \
 	libbp.la \
 	libcgr.la \
 	libsppcla.la \
+	libeppcla.la \
 	libstcpcla.la \
 	libudpcla.la
 
@@ -1136,6 +1139,7 @@ bpnoinst = \
 	bpv7/ltp/ltpcla.h \
 	bpv7/saga/saga.h \
 	bpv7/spp/sppcla.h \
+	bpv7/epp/eppcla.h \
 	bpv7/stcp/stcpcla.h \
 	bpv7/udp/udpcla.h
 
@@ -1408,6 +1412,10 @@ libsppcla_la_SOURCES = bpv7/spp/libsppcla.c
 libsppcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libsppcla_la_LIBADD = libbp.la libici.la
 
+libeppcla_la_SOURCES = bpv7/epp/libeppcla.c
+libeppcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+libeppcla_la_LIBADD = libbp.la libici.la
+
 # --- libmetadata --- #
 
 metadatalib = libmetadata.la
@@ -1586,6 +1594,16 @@ sppcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 sppclo_SOURCES = bpv7/spp/sppclo.c
 sppclo_LDADD = libici.la $(bplib) $(LIBS)
 sppclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+# --- EPP Executables --- #
+
+eppcli_SOURCES = bpv7/epp/eppcli.c
+eppcli_LDADD = libici.la $(bplib) $(PTHREAD_LIBS) $(LIBS)
+eppcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+eppclo_SOURCES = bpv7/epp/eppclo.c
+eppclo_LDADD = libici.la $(bplib) $(LIBS)
+eppclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- BIBE Executables --- #
 
@@ -2623,8 +2641,8 @@ restartclean-local:
 .PHONY:	test check buildcheck test-all test-% retest
 
 # "make buildcheck" will compile any of the compiled tests, but won't run
-# any of them.
-buildcheck: $(check_PROGRAMS)
+# any of them. Also builds check_LTLIBRARIES (e.g., stub provider libraries).
+buildcheck: $(check_PROGRAMS) $(check_LTLIBRARIES)
 
 # The runtests test runner script runs anything named "dotest" that is
 # executable inside the tests/ directory. This allows ION to have both
@@ -2678,6 +2696,20 @@ check_LTLIBRARIES += $(TESTUNITYOBJS)
 tests_library_libtestunity_la_SOURCES = contrib/Unity/src/unity.c
 tests_library_libtestunity_la_CFLAGS = $(TESTUNITYCFLAGS) $(AM_CFLAGS)
 
+# SPP and EPP loopback provider libraries for testing
+# These are separate shared libraries that can be loaded by sppcli/sppclo and eppcli/eppclo
+SPPSTUBLIB = bpv7/spp/stub/libspp_loopback_provider.la
+EPPSTUBLIB = bpv7/epp/stub/libepp_loopback_provider.la
+check_LTLIBRARIES += $(SPPSTUBLIB) $(EPPSTUBLIB)
+
+bpv7_spp_stub_libspp_loopback_provider_la_SOURCES = bpv7/spp/stub/spp_loopback_provider.c
+bpv7_spp_stub_libspp_loopback_provider_la_CFLAGS = $(AM_CFLAGS)
+bpv7_spp_stub_libspp_loopback_provider_la_LDFLAGS = -module -avoid-version -rpath '$(libdir)'
+
+bpv7_epp_stub_libepp_loopback_provider_la_SOURCES = bpv7/epp/stub/epp_loopback_provider.c
+bpv7_epp_stub_libepp_loopback_provider_la_CFLAGS = $(AM_CFLAGS)
+bpv7_epp_stub_libepp_loopback_provider_la_LDFLAGS = -module -avoid-version -rpath '$(libdir)'
+
 # TEST AUTHORS: README
 # If a test does not require compilation, it should not be listed here. Just make a
 #  script named "dotest" that is executable.
@@ -2707,6 +2739,7 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/admin_public_api/tcp_2nodes/dotest \
 	tests/admin_public_api/bulk_removal/dotest
 #	tests/nm-unit/primitives/ari/dotest
+# Note: SPP/EPP loopback tests use shell scripts, not C programs
 
 # Only build semaphore deferred deletion test if using POSIX Named Semaphores
 if USING_POSIX_NAMED_SEMAPHORES
@@ -2761,6 +2794,10 @@ tests_1000_loopback_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 tests_1500_loopback_brs_dotest_SOURCES = tests/1500.loopback-brs/dotest.c
 tests_1500_loopback_brs_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(TESTUTILOBJS)
 tests_1500_loopback_brs_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+
+# Note: SPP/EPP loopback tests (tests/loopback-spp, tests/loopback-epp) use
+# shell scripts instead of C programs because they need to pass the provider
+# library path to the CLI/CLO daemons.
 
 tests_ionexit_test_checksemaphores_SOURCES = tests/ionexit_test/checksemaphores.c
 tests_ionexit_test_checksemaphores_LDADD = -lpthread

@@ -1,0 +1,6 @@
+# ipnrc configuration file for the EPP loopback test.
+# Command: % ipnadmin loopback.ipnrc
+
+# Add an egress plan.
+# Bundles to node 1 go via epp/loopback outduct
+a plan 1 epp/loopback

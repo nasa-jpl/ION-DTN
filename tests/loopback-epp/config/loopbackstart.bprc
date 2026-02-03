@@ -1,0 +1,8 @@
+# bprc startup configuration file for the EPP loopback test.
+# Command: % bpadmin loopbackstart.bprc
+
+# Run ipnadmin to configure egress plans before starting
+r 'ipnadmin config/loopback.ipnrc'
+
+# Start the daemons
+s

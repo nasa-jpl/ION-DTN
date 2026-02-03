@@ -1,0 +1,9 @@
+# bprc startup configuration file for the SPP loopback test.
+#	Command: % bpadmin loopbackstart.bprc
+#	This command should be run AFTER ipnadmin and/or dtnadmin.
+#
+#	Copyright (c) 2025, California Institute of Technology.
+#	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
+
+# Start the daemons
+s

@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+#
+# EPP CLA Loopback Test
+#
+# Tests that bundles can be sent and received via the EPP CLA using
+# the loopback stub provider library.
+#
+# Copyright (c) 2025, California Institute of Technology.
+# ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
+#
+
+# documentation boilerplate
+CONFIGFILES=" \
+./config/loopback.ionrc \
+./config/loopback.bprc \
+./config/loopback.ipnrc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the EPP CLA with a loopback stub provider library."
+echo
+echo "CONFIG: Custom loopback configuration: "
+echo
+for N in $CONFIGFILES
+do
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
+done
+echo "OUTPUT: Uses bpsource and bpsink to send and receive a bundle via EPP."
+echo
+echo "########################################"
+
+FAIL=0
+
+# Find the stub library - check common locations
+SRCDIR="${SRCDIR:-.}"
+BUILDDIR="${BUILDDIR:-../..}"
+
+# Try to find the library
+if [ -f "${BUILDDIR}/bpv7/epp/stub/.libs/libepp_loopback_provider.so" ]; then
+    STUBLIB="${BUILDDIR}/bpv7/epp/stub/.libs/libepp_loopback_provider.so"
+elif [ -f "${BUILDDIR}/bpv7/epp/stub/.libs/libepp_loopback_provider.dylib" ]; then
+    STUBLIB="${BUILDDIR}/bpv7/epp/stub/.libs/libepp_loopback_provider.dylib"
+elif [ -f "${BUILDDIR}/.libs/libepp_loopback_provider.so" ]; then
+    STUBLIB="${BUILDDIR}/.libs/libepp_loopback_provider.so"
+elif [ -f "${BUILDDIR}/.libs/libepp_loopback_provider.dylib" ]; then
+    STUBLIB="${BUILDDIR}/.libs/libepp_loopback_provider.dylib"
+else
+    echo "ERROR: Cannot find libepp_loopback_provider library."
+    echo "Make sure to run 'make buildcheck' first to build the test libraries."
+    exit 1
+fi
+
+echo "Using stub library: ${STUBLIB}"
+STUBLIB=$(cd "$(dirname "$STUBLIB")" && pwd)/$(basename "$STUBLIB")
+echo "Absolute path: ${STUBLIB}"
+
+# SDLP channel for testing
+SDLP_CHANNEL=42
+
+echo "Killing old ION..."
+killm
+./cleanup
+sleep 1
+
+# Clean up any old FIFO and generated config
+rm -f /tmp/epp_loopback_fifo ion.log testfile1 testfile2
+
+# Generate runtime bprc with actual library path
+CONFIGDIR="./config"
+sed -e "s|STUBLIB|${STUBLIB}|g" -e "s|SDLP_CHANNEL|${SDLP_CHANNEL}|g" \
+    "${CONFIGDIR}/loopback.bprc" > "${CONFIGDIR}/loopback_runtime.bprc"
+
+echo "Starting ION..."
+ionadmin "${CONFIGDIR}/loopback.ionrc"
+sleep 1
+# loopback_runtime.bprc includes 'r ipnadmin' and 's' commands at the end
+bpadmin "${CONFIGDIR}/loopback_runtime.bprc"
+
+# Wait for EPP CLAs to be running
+echo "Waiting for EPP CLAs to start..."
+for i in 1 2 3 4 5 6 7 8 9 10; do
+    if pgrep -f "eppcli.*loopback" > /dev/null && pgrep -f "eppclo.*loopback" > /dev/null; then
+        echo "EPP CLAs are running."
+        break
+    fi
+    echo "  Waiting... ($i)"
+    sleep 1
+done
+sleep 2
+
+echo "Creating test file..."
+echo "This is a test message for EPP loopback" > testfile1
+
+echo "Starting bpsink..."
+bpsink ipn:1.1 > testfile2 &
+BPSINK_PID=$!
+sleep 1
+
+echo "Sending bundle via bpsource..."
+bpsource ipn:1.1 "This is a test message for EPP loopback"
+sleep 3
+
+echo "Checking received data..."
+if grep -q "This is a test message for EPP loopback" testfile2; then
+    echo "SUCCESS: Bundle received correctly via EPP loopback!"
+else
+    echo "ERROR: Bundle not received or content mismatch."
+    echo "Expected: This is a test message for EPP loopback"
+    echo "Received:"
+    cat testfile2
+    FAIL=1
+fi
+
+echo "Cleaning up..."
+kill $BPSINK_PID 2>/dev/null
+
+ionstop
+sleep 1
+killm
+
+# Clean up
+rm -f /tmp/epp_loopback_fifo testfile1 testfile2
+rm -f "${CONFIGDIR}/loopback_runtime.bprc"
+
+exit $FAIL

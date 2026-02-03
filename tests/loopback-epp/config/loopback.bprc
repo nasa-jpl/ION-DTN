@@ -1,0 +1,29 @@
+# bprc configuration file for the EPP loopback test.
+# Command: % bpadmin loopback.bprc
+
+# Initialization command (command 1).
+1
+
+# Add an EID scheme.
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+# Add endpoints.
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+
+# Add the EPP protocol.
+a protocol epp 1400 100
+
+# Add an induct. (receive from loopback)
+# STUBLIB will be replaced by dotest script with the actual library path
+a induct epp loopback 'eppcli loopback STUBLIB'
+
+# Add an outduct. (send to loopback)
+# STUBLIB and SDLP_CHANNEL will be replaced by dotest script
+a outduct epp loopback 'eppclo loopback STUBLIB SDLP_CHANNEL'
+
+# Run ipnadmin to configure egress plans
+r 'ipnadmin config/loopback.ipnrc'
+
+# Start the daemons
+s

@@ -1,0 +1,39 @@
+# bprc configuration file for the SPP loopback test.
+#	Command: % bpadmin loopback.bprc
+#	This command should be run AFTER ionadmin and
+#	BEFORE ipnadmin or dtnadmin.
+#
+#	Copyright (c) 2025, California Institute of Technology.
+#	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
+
+# Initialization command (command 1).
+1
+
+# Add an EID scheme.
+#	The scheme's name is ipn.
+#	This scheme's forwarding engine is handled by the program 'ipnfw.'
+#	This scheme's administration program is 'ipnadminep.'
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+# Add endpoints.
+#	Establish endpoints ipn:1.1 and ipn:1.2 on the local node.
+#	The behavior for receiving a bundle when there is no application
+#	currently accepting bundles, is to queue them 'q'.
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+
+# Add the SPP protocol.
+#	Estimate transmission capacity assuming 1400 bytes of each frame
+#	for payload, and 100 bytes for overhead.
+a protocol spp 1400 100
+
+# Add an induct. (receive from loopback)
+#	The SPP_LOOPBACK_LIB environment variable should be set to the
+#	path of the loopback provider library.
+#	The induct is implemented by the 'sppcli' command.
+a induct spp loopback sppcli
+
+# Add an outduct. (send to loopback)
+#	The outduct is implemented by the 'sppclo' command.
+#	Configuration: APID=123, seq_count=0, packet_type=0, sec_header_flag=0
+a outduct spp loopback sppclo
