@@ -102,6 +102,9 @@ BPSINK_PID=$!
 sleep 1
 
 echo "Sending bundle via bpsource..."
+echo "NOTE: The provider will report sent/received byte counts."
+echo "      For EPP, sent and received bytes should match (bundle data only)."
+echo "      EPP framing (SDLP channel, EPI, length) is handled separately."
 bpsource ipn:1.1 "This is a test message for EPP loopback"
 sleep 3
 

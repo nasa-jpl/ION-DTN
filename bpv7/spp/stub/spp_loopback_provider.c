@@ -80,31 +80,30 @@ void finalize_space_packet_sender(void)
 /*
  * packet_request - Send a space packet.
  *
- * Writes the packet to the FIFO with a simple framing format:
+ * Builds an SPP header, prepends it to the bundle data, and writes
+ * the complete packet to the FIFO with a simple framing format:
  *   - 4 bytes: total packet length (big-endian)
- *   - N bytes: SPP header + bundle data
+ *   - 6 bytes: SPP primary header
+ *   - N bytes: bundle data
  *
  * Parameters:
- *   buffer          - Buffer containing SPP header + bundle data
- *   apid            - Application Process ID
- *   seq_count       - Sequence count
+ *   buffer          - Buffer containing bundle data (no SPP header yet)
+ *   apid            - Application Process ID (11 bits)
+ *   seq_count       - Sequence count (14 bits)
  *   packet_type     - Packet type (0=TM, 1=TC)
  *   sec_header_flag - Secondary header flag
- *   total_length    - Total length including SPP header
+ *   total_length    - Total length including 6-byte SPP header
  *
  * Returns: Number of bytes sent, or -1 on error.
  */
 int packet_request(unsigned char *buffer, int apid, int seq_count,
 		int packet_type, int sec_header_flag, size_t total_length)
 {
-	unsigned char header[4];
+	unsigned char frame_header[4];
+	unsigned char spp_header[6];
 	ssize_t written;
-
-	/* Suppress unused parameter warnings - these are in SPP header already */
-	(void)apid;
-	(void)seq_count;
-	(void)packet_type;
-	(void)sec_header_flag;
+	size_t bundle_length;
+	int data_field_length;
 
 	if (write_fd < 0)
 	{
@@ -118,27 +117,69 @@ int packet_request(unsigned char *buffer, int apid, int seq_count,
 		return -1;
 	}
 
-	/* Write length header (big-endian) */
-	header[0] = (total_length >> 24) & 0xFF;
-	header[1] = (total_length >> 16) & 0xFF;
-	header[2] = (total_length >> 8) & 0xFF;
-	header[3] = total_length & 0xFF;
+	/* Bundle data length is total_length minus 6-byte SPP header */
+	bundle_length = total_length - 6;
+	data_field_length = (int)bundle_length - 1;  /* Per CCSDS, length = data - 1 */
+
+	/*
+	 * Build SPP Primary Header (6 bytes) per CCSDS 133.0-B-2:
+	 * Byte 0: Version(3) | Type(1) | SecHdrFlag(1) | APID[10:8](3)
+	 * Byte 1: APID[7:0](8)
+	 * Byte 2: SeqFlags(2) | SeqCount[13:8](6)
+	 * Byte 3: SeqCount[7:0](8)
+	 * Byte 4-5: Packet Data Length - 1 (big-endian)
+	 */
+
+	/* Byte 0: Version=0, Type, SecHdrFlag, APID high 3 bits */
+	spp_header[0] = ((packet_type & 0x01) << 4) |
+			((sec_header_flag & 0x01) << 3) |
+			((apid >> 8) & 0x07);
+
+	/* Byte 1: APID low 8 bits */
+	spp_header[1] = apid & 0xFF;
+
+	/* Byte 2: Sequence Flags = 3 (unsegmented), SeqCount high 6 bits */
+	spp_header[2] = 0xC0 | ((seq_count >> 8) & 0x3F);
+
+	/* Byte 3: SeqCount low 8 bits */
+	spp_header[3] = seq_count & 0xFF;
+
+	/* Bytes 4-5: Packet Data Length - 1 (big-endian) */
+	spp_header[4] = (data_field_length >> 8) & 0xFF;
+	spp_header[5] = data_field_length & 0xFF;
+
+	/* Write FIFO frame header: total length (big-endian) */
+	frame_header[0] = (total_length >> 24) & 0xFF;
+	frame_header[1] = (total_length >> 16) & 0xFF;
+	frame_header[2] = (total_length >> 8) & 0xFF;
+	frame_header[3] = total_length & 0xFF;
 
 	pthread_mutex_lock(&write_mutex);
 
-	written = write(write_fd, header, 4);
+	/* Write FIFO frame header */
+	written = write(write_fd, frame_header, 4);
 	if (written != 4)
 	{
 		pthread_mutex_unlock(&write_mutex);
-		fprintf(stderr, "spp_loopback: Failed to write length header.\n");
+		fprintf(stderr, "spp_loopback: Failed to write frame header.\n");
 		return -1;
 	}
 
-	written = write(write_fd, buffer, total_length);
-	if (written != (ssize_t)total_length)
+	/* Write SPP header */
+	written = write(write_fd, spp_header, 6);
+	if (written != 6)
 	{
 		pthread_mutex_unlock(&write_mutex);
-		fprintf(stderr, "spp_loopback: Failed to write packet data.\n");
+		fprintf(stderr, "spp_loopback: Failed to write SPP header.\n");
+		return -1;
+	}
+
+	/* Write bundle data */
+	written = write(write_fd, buffer, bundle_length);
+	if (written != (ssize_t)bundle_length)
+	{
+		pthread_mutex_unlock(&write_mutex);
+		fprintf(stderr, "spp_loopback: Failed to write bundle data.\n");
 		return -1;
 	}
 

@@ -106,6 +106,9 @@ BPSINK_PID=$!
 sleep 1
 
 echo "Sending bundle via bpsource..."
+echo "NOTE: The provider will report different sent/received byte counts."
+echo "      Sent bytes include the 6-byte SPP header prepended by the provider."
+echo "      Received bytes are bundle data only (SPP header is stripped)."
 bpsource ipn:1.1 "This is a test message for SPP loopback"
 sleep 3
 
