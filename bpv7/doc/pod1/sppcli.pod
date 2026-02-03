@@ -1,0 +1,123 @@
+=head1 NAME
+
+sppcli - DTN CCSDS Space Packet Protocol convergence layer input task
+
+=head1 SYNOPSIS
+
+B<sppcli> I<duct_name> I<library_path>
+
+=head1 DESCRIPTION
+
+B<sppcli> is a background "daemon" task that receives bundles encapsulated
+in CCSDS Space Packets (per CCSDS 133.0-B-2) using a dynamically loaded
+provider library.
+
+The task loads the provider library specified by I<library_path> using
+dynamic linking (dlopen) and uses it to receive space packets containing
+bundles via the OCTET_STRING.indication service primitive.
+
+I<duct_name> is the name of the induct as configured in the BP database.
+
+I<library_path> is the full path to the provider shared library
+(e.g., /usr/local/lib/libspp_loopback_provider.so).
+
+The provider library must implement the following functions:
+
+=over 4
+
+=item size_t packet_indication(char *buffer, int *received_apid)
+
+Returns the bundle data length on success, 0 on error, or 1 for normal stop.
+
+=back
+
+B<sppcli> is spawned automatically by B<bpadmin> in response to the 's'
+(START) command that starts operation of the Bundle Protocol; the text
+of the command that is used to spawn the task must be provided at the
+time the "spp" convergence layer protocol is added to the BP database.
+The convergence layer input task is terminated by B<bpadmin> in
+response to an 'x' (STOP) command.
+
+=head1 SPP CONSTRAINTS
+
+Per CCSDS BPv7 Orange Book:
+
+=over 4
+
+=item *
+
+Maximum bundle size: 65,536 bytes (minus secondary header if present)
+
+=item *
+
+Each octet string shall be a single CBOR serialized bundle
+
+=item *
+
+Packet Secondary Header Indicator shall be set to absent
+
+=back
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<sppcli> terminated normally, for reasons noted in the B<ion.log> file.
+
+=item "1"
+
+B<sppcli> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart B<sppcli>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed. The provider library must be accessible
+at the specified path.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item sppcli can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item No such spp duct.
+
+No SPP induct matching I<duct_name> has been added to the BP database.
+
+=item Failed to load provider library.
+
+The specified shared library could not be loaded.
+
+=item Failed to find required function in provider library.
+
+The provider library does not export the packet_indication function.
+
+=back
+
+=head1 EXAMPLES
+
+Example bprc configuration:
+
+    a protocol spp 1400 100
+    a induct spp loopback 'sppcli loopback /path/to/libspp_loopback_provider.so'
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
+
+=head1 SEE ALSO
+
+bpadmin(1), sppclo(1), bprc(5)

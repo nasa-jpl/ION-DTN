@@ -1,0 +1,6 @@
+# ipnrc configuration file for the File CLA file transfer test.
+# Command: % ipnadmin transfer.ipnrc
+
+# Add an egress plan.
+# Bundles to node 1 go via file/transfer outduct
+a plan 1 file/transfer

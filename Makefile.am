@@ -1069,6 +1069,8 @@ bpbin = \
 	sppclo \
 	eppcli \
 	eppclo \
+	filecli \
+	fileclo \
 	stcpcli \
 	stcpclo \
 	tcpcli \
@@ -1190,6 +1192,10 @@ bpextra = \
 	bpv7/doc/pod1/dtn2admin.pod \
 	bpv7/doc/pod1/dtn2adminep.pod \
 	bpv7/doc/pod1/dtn2fw.pod \
+	bpv7/doc/pod1/eppcli.pod \
+	bpv7/doc/pod1/eppclo.pod \
+	bpv7/doc/pod1/filecli.pod \
+	bpv7/doc/pod1/fileclo.pod \
 	bpv7/doc/pod1/hmackeys.pod \
 	bpv7/doc/pod1/ipnadmin.pod \
 	bpv7/doc/pod1/ipnadminep.pod \
@@ -1201,6 +1207,8 @@ bpextra = \
 	bpv7/doc/pod1/ltpclo.pod \
 	bpv7/doc/pod1/recvfile.pod \
 	bpv7/doc/pod1/sendfile.pod \
+	bpv7/doc/pod1/sppcli.pod \
+	bpv7/doc/pod1/sppclo.pod \
 	bpv7/doc/pod1/stcpcli.pod \
 	bpv7/doc/pod1/stcpclo.pod \
 	bpv7/doc/pod1/tcpcli.pod \
@@ -1277,6 +1285,10 @@ bpmans = \
 	bpv7/doc/dtn2admin.1 \
 	bpv7/doc/dtn2adminep.1 \
 	bpv7/doc/dtn2fw.1 \
+	bpv7/doc/eppcli.1 \
+	bpv7/doc/eppclo.1 \
+	bpv7/doc/filecli.1 \
+	bpv7/doc/fileclo.1 \
 	bpv7/doc/hmackeys.1 \
 	bpv7/doc/ipnadmin.1 \
 	bpv7/doc/ipnadminep.1 \
@@ -1288,6 +1300,8 @@ bpmans = \
 	bpv7/doc/ltpclo.1 \
 	bpv7/doc/recvfile.1 \
 	bpv7/doc/sendfile.1 \
+	bpv7/doc/sppcli.1 \
+	bpv7/doc/sppclo.1 \
 	bpv7/doc/stcpcli.1 \
 	bpv7/doc/stcpclo.1 \
 	bpv7/doc/tcpcli.1 \
@@ -1604,6 +1618,16 @@ eppcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 eppclo_SOURCES = bpv7/epp/eppclo.c
 eppclo_LDADD = libici.la $(bplib) $(LIBS)
 eppclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+# --- File CLA Executables --- #
+
+filecli_SOURCES = bpv7/file/filecli.c bpv7/file/libfilecla.c
+filecli_LDADD = libici.la $(bplib) $(PTHREAD_LIBS) $(LIBS)
+filecli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+fileclo_SOURCES = bpv7/file/fileclo.c bpv7/file/libfilecla.c
+fileclo_LDADD = libici.la $(bplib) $(LIBS)
+fileclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- BIBE Executables --- #
 
@@ -2696,11 +2720,12 @@ check_LTLIBRARIES += $(TESTUNITYOBJS)
 tests_library_libtestunity_la_SOURCES = contrib/Unity/src/unity.c
 tests_library_libtestunity_la_CFLAGS = $(TESTUNITYCFLAGS) $(AM_CFLAGS)
 
-# SPP and EPP loopback provider libraries for testing
-# These are separate shared libraries that can be loaded by sppcli/sppclo and eppcli/eppclo
+# SPP, EPP, and File loopback provider libraries for testing
+# These are separate shared libraries that can be loaded by sppcli/sppclo, eppcli/eppclo, and filecli/fileclo
 SPPSTUBLIB = bpv7/spp/stub/libspp_loopback_provider.la
 EPPSTUBLIB = bpv7/epp/stub/libepp_loopback_provider.la
-check_LTLIBRARIES += $(SPPSTUBLIB) $(EPPSTUBLIB)
+FILESTUBLIB = bpv7/file/stub/libfile_simple_provider.la
+check_LTLIBRARIES += $(SPPSTUBLIB) $(EPPSTUBLIB) $(FILESTUBLIB)
 
 bpv7_spp_stub_libspp_loopback_provider_la_SOURCES = bpv7/spp/stub/spp_loopback_provider.c
 bpv7_spp_stub_libspp_loopback_provider_la_CFLAGS = $(AM_CFLAGS)
@@ -2709,6 +2734,10 @@ bpv7_spp_stub_libspp_loopback_provider_la_LDFLAGS = -module -avoid-version -rpat
 bpv7_epp_stub_libepp_loopback_provider_la_SOURCES = bpv7/epp/stub/epp_loopback_provider.c
 bpv7_epp_stub_libepp_loopback_provider_la_CFLAGS = $(AM_CFLAGS)
 bpv7_epp_stub_libepp_loopback_provider_la_LDFLAGS = -module -avoid-version -rpath '$(libdir)'
+
+bpv7_file_stub_libfile_simple_provider_la_SOURCES = bpv7/file/stub/file_simple_provider.c
+bpv7_file_stub_libfile_simple_provider_la_CFLAGS = $(AM_CFLAGS)
+bpv7_file_stub_libfile_simple_provider_la_LDFLAGS = -module -avoid-version -rpath '$(libdir)'
 
 # TEST AUTHORS: README
 # If a test does not require compilation, it should not be listed here. Just make a

@@ -1,0 +1,29 @@
+# bprc configuration file for the File CLA loopback test.
+# Command: % bpadmin loopback.bprc
+
+# Initialization command (command 1).
+1
+
+# Add an EID scheme.
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+# Add endpoints.
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+
+# Add the file protocol.
+a protocol file 65536 12
+
+# Add an induct. (receive from loopback)
+# STUBLIB and DATAFILE will be replaced by dotest script
+a induct file loopback 'filecli loopback STUBLIB DATAFILE POLL_INTERVAL'
+
+# Add an outduct. (send to loopback)
+# STUBLIB and DATAFILE will be replaced by dotest script
+a outduct file loopback 'fileclo loopback STUBLIB DATAFILE'
+
+# Run ipnadmin to configure egress plans
+r 'ipnadmin config/loopback.ipnrc'
+
+# Start the daemons
+s

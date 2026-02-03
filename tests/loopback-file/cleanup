@@ -1,0 +1,5 @@
+#!/bin/bash
+# Cleanup script for File CLA loopback test
+killm
+rm -f /tmp/file_cla_loopback.dat
+rm -f ./config/loopback_runtime.bprc

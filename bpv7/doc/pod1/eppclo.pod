@@ -1,0 +1,131 @@
+=head1 NAME
+
+eppclo - DTN CCSDS Encapsulation Packet Protocol convergence layer output task
+
+=head1 SYNOPSIS
+
+B<eppclo> I<duct_name> I<library_path> I<sdlp_channel>
+
+=head1 DESCRIPTION
+
+B<eppclo> is a background "daemon" task that transmits bundles encapsulated
+in CCSDS Encapsulation Packets (per CCSDS 734.20-O-1) using a dynamically
+loaded provider library.
+
+The task loads the provider library specified by I<library_path> using
+dynamic linking (dlopen) and uses it to send encapsulation packets
+containing bundles via the ENCAPSULATION.request service primitive.
+
+I<duct_name> is the name of the outduct as configured in the BP database.
+
+I<library_path> is the full path to the provider shared library
+(e.g., /usr/local/lib/libepp_loopback_provider.so).
+
+I<sdlp_channel> is the SDLP (Space Data Link Protocol) channel identifier,
+a mission-specific integer.
+
+The provider library must implement the following functions:
+
+=over 4
+
+=item void init_epp_sender(void)
+
+=item void finalize_epp_sender(void)
+
+=item int encapsulation_request(unsigned char *data, size_t length, int sdlp_channel, int epi)
+
+Returns the number of bytes sent on success, or negative on error.
+
+=back
+
+The Encapsulation Protocol Identifier (EPI) for Bundle Protocol is 4
+(registered in SANA) and is set automatically by the CLA.
+
+B<eppclo> is spawned automatically by B<bpadmin> in response to the 's'
+(START) command that starts operation of the Bundle Protocol; the text
+of the command that is used to spawn the task must be provided at the
+time the "epp" convergence layer protocol is added to the BP database.
+The convergence layer output task is terminated by B<bpadmin> in
+response to an 'x' (STOP) command.
+
+=head1 EPP CHARACTERISTICS
+
+=over 4
+
+=item *
+
+Maximum bundle size: 4,294,967,287 bytes per CCSDS 734.20-O-1 (ION uses 1MB buffer)
+
+=item *
+
+EPI for Bundle Protocol: 4
+
+=item *
+
+Simpler than SPP with no sequence counting at the CLA level
+
+=back
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<eppclo> terminated normally, for reasons noted in the B<ion.log> file.
+
+=item "1"
+
+B<eppclo> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart B<eppclo>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed. The provider library must be accessible
+at the specified path.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item eppclo can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item No such epp duct.
+
+No EPP outduct matching I<duct_name> has been added to the BP database.
+
+=item Failed to load provider library.
+
+The specified shared library could not be loaded.
+
+=item Failed to find required function in provider library.
+
+The provider library does not export all required functions.
+
+=back
+
+=head1 EXAMPLES
+
+Example bprc configuration (SDLP channel = 42):
+
+    a protocol epp 1400 100
+    a outduct epp loopback 'eppclo loopback /path/to/libepp_loopback_provider.so 42'
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
+
+=head1 SEE ALSO
+
+bpadmin(1), eppcli(1), bprc(5)

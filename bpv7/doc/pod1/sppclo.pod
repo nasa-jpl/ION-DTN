@@ -1,0 +1,149 @@
+=head1 NAME
+
+sppclo - DTN CCSDS Space Packet Protocol convergence layer output task
+
+=head1 SYNOPSIS
+
+B<sppclo> I<duct_name> I<library_path> I<apid>,I<seq_count>,I<packet_type>,I<sec_header_flag>
+
+=head1 DESCRIPTION
+
+B<sppclo> is a background "daemon" task that transmits bundles encapsulated
+in CCSDS Space Packets (per CCSDS 133.0-B-2) using a dynamically loaded
+provider library.
+
+The task loads the provider library specified by I<library_path> using
+dynamic linking (dlopen) and uses it to send space packets containing
+bundles via the OCTET_STRING.request service primitive.
+
+I<duct_name> is the name of the outduct as configured in the BP database.
+
+I<library_path> is the full path to the provider shared library
+(e.g., /usr/local/lib/libspp_loopback_provider.so).
+
+The configuration string specifies SPP packet header parameters:
+
+=over 4
+
+=item I<apid>
+
+Application Process ID (0-2047, 11 bits). Determines the link destination.
+
+=item I<seq_count>
+
+Initial packet sequence count (0-16383, 14 bits). Auto-increments per packet.
+
+=item I<packet_type>
+
+Packet type: 0=TM (telemetry), 1=TC (telecommand).
+
+=item I<sec_header_flag>
+
+Secondary header flag: 0=absent, 1=present.
+
+=back
+
+The provider library must implement the following functions:
+
+=over 4
+
+=item void init_space_packet_sender(void)
+
+=item void finalize_space_packet_sender(void)
+
+=item int packet_request(unsigned char *buffer, int apid, int seq_count, int packet_type, int sec_header_flag, size_t total_length)
+
+Returns total bytes sent including SPP header, or negative on error.
+
+=back
+
+B<sppclo> is spawned automatically by B<bpadmin> in response to the 's'
+(START) command that starts operation of the Bundle Protocol; the text
+of the command that is used to spawn the task must be provided at the
+time the "spp" convergence layer protocol is added to the BP database.
+The convergence layer output task is terminated by B<bpadmin> in
+response to an 'x' (STOP) command.
+
+=head1 SPP CONSTRAINTS
+
+Per CCSDS BPv7 Orange Book:
+
+=over 4
+
+=item *
+
+Maximum bundle size: 65,536 bytes (minus secondary header if present)
+
+=item *
+
+Each octet string shall be a single CBOR serialized bundle
+
+=item *
+
+Packet Sequence Count shall always be used instead of Packet Name
+
+=back
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<sppclo> terminated normally, for reasons noted in the B<ion.log> file.
+
+=item "1"
+
+B<sppclo> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart B<sppclo>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed. The provider library must be accessible
+at the specified path.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item sppclo can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item No such spp duct.
+
+No SPP outduct matching I<duct_name> has been added to the BP database.
+
+=item Failed to load provider library.
+
+The specified shared library could not be loaded.
+
+=item Failed to find required function in provider library.
+
+The provider library does not export all required functions.
+
+=back
+
+=head1 EXAMPLES
+
+Example bprc configuration (APID=123, seq_count=0, TM packet, no secondary header):
+
+    a protocol spp 1400 100
+    a outduct spp loopback 'sppclo loopback /path/to/libspp_loopback_provider.so 123,0,0,0'
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
+
+=head1 SEE ALSO
+
+bpadmin(1), sppcli(1), bprc(5)

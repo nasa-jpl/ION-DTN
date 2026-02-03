@@ -1,0 +1,32 @@
+# bprc configuration file for the File CLA file transfer test.
+# Command: % bpadmin transfer.bprc
+#
+# This test uses separate files for sending and receiving to simulate
+# a store-and-forward / sneakernet scenario.
+
+# Initialization command (command 1).
+1
+
+# Add an EID scheme.
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+# Add endpoints.
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+
+# Add the file protocol.
+a protocol file 65536 12
+
+# Add an induct. (receive from inbound file)
+# STUBLIB, INFILE, and POLL_INTERVAL will be replaced by dotest script
+a induct file transfer 'filecli transfer STUBLIB INFILE POLL_INTERVAL'
+
+# Add an outduct. (send to outbound file)
+# STUBLIB and OUTFILE will be replaced by dotest script
+a outduct file transfer 'fileclo transfer STUBLIB OUTFILE'
+
+# Run ipnadmin to configure egress plans
+r 'ipnadmin config/transfer.ipnrc'
+
+# Start the daemons
+s

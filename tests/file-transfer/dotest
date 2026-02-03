@@ -1,0 +1,181 @@
+#!/usr/bin/env bash
+#
+# File CLA File Transfer Test (Store-and-Forward / Sneakernet)
+#
+# Tests that bundles can be written to one file, then the file is
+# renamed/moved to a different location where the receiver picks it up.
+# This simulates a store-and-forward or sneakernet scenario.
+#
+# Copyright (c) 2025, California Institute of Technology.
+# ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
+#
+
+# documentation boilerplate
+CONFIGFILES=" \
+./config/transfer.ionrc \
+./config/transfer.bprc \
+./config/transfer.ipnrc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the File CLA with separate send/receive files"
+echo "         (store-and-forward / sneakernet scenario)."
+echo
+echo "CONFIG: Custom file transfer configuration: "
+echo
+for N in $CONFIGFILES
+do
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
+done
+echo "OUTPUT: Writes bundle to outbound file, renames to inbound file,"
+echo "        then verifies bundle is received."
+echo
+echo "########################################"
+
+FAIL=0
+
+# Find the stub library - check common locations
+SRCDIR="${SRCDIR:-.}"
+BUILDDIR="${BUILDDIR:-../..}"
+
+# Try to find the library
+if [ -f "${BUILDDIR}/bpv7/file/stub/.libs/libfile_simple_provider.so" ]; then
+    STUBLIB="${BUILDDIR}/bpv7/file/stub/.libs/libfile_simple_provider.so"
+elif [ -f "${BUILDDIR}/bpv7/file/stub/.libs/libfile_simple_provider.dylib" ]; then
+    STUBLIB="${BUILDDIR}/bpv7/file/stub/.libs/libfile_simple_provider.dylib"
+elif [ -f "${BUILDDIR}/.libs/libfile_simple_provider.so" ]; then
+    STUBLIB="${BUILDDIR}/.libs/libfile_simple_provider.so"
+elif [ -f "${BUILDDIR}/.libs/libfile_simple_provider.dylib" ]; then
+    STUBLIB="${BUILDDIR}/.libs/libfile_simple_provider.dylib"
+else
+    echo "ERROR: Cannot find libfile_simple_provider library."
+    echo "Make sure to run 'make buildcheck' first to build the test libraries."
+    exit 1
+fi
+
+echo "Using stub library: ${STUBLIB}"
+STUBLIB=$(cd "$(dirname "$STUBLIB")" && pwd)/$(basename "$STUBLIB")
+echo "Absolute path: ${STUBLIB}"
+
+# Data files for bundle storage - separate files for send and receive
+OUTFILE="/tmp/file_cla_outbound.dat"
+INFILE="/tmp/file_cla_inbound.dat"
+
+# Polling interval in milliseconds
+POLL_INTERVAL=500
+
+echo "Killing old ION..."
+killm
+./cleanup 2>/dev/null
+sleep 1
+
+# Clean up any old data files and generated config
+rm -f "${OUTFILE}" "${INFILE}" ion.log testfile1 testfile2
+
+# Generate runtime bprc with actual library path and data files
+CONFIGDIR="./config"
+sed -e "s|STUBLIB|${STUBLIB}|g" \
+    -e "s|OUTFILE|${OUTFILE}|g" \
+    -e "s|INFILE|${INFILE}|g" \
+    -e "s|POLL_INTERVAL|${POLL_INTERVAL}|g" \
+    "${CONFIGDIR}/transfer.bprc" > "${CONFIGDIR}/transfer_runtime.bprc"
+
+echo ""
+echo "=== Test Setup ==="
+echo "Outbound file (CLO writes here): ${OUTFILE}"
+echo "Inbound file (CLI reads from here): ${INFILE}"
+echo ""
+
+echo "Starting ION..."
+ionadmin "${CONFIGDIR}/transfer.ionrc"
+sleep 1
+# transfer_runtime.bprc includes 'r ipnadmin' and 's' commands at the end
+bpadmin "${CONFIGDIR}/transfer_runtime.bprc"
+
+# Wait for File CLAs to be running
+echo "Waiting for File CLAs to start..."
+for i in 1 2 3 4 5 6 7 8 9 10; do
+    if pgrep -f "fileclo.*transfer" > /dev/null; then
+        echo "File CLO is running."
+        break
+    fi
+    echo "  Waiting... ($i)"
+    sleep 1
+done
+
+# Note: CLI will be waiting for inbound file to be created
+echo "CLI is waiting for inbound file to be created..."
+sleep 2
+
+echo ""
+echo "=== Sending Bundle ==="
+echo "Starting bpsink..."
+bpsink ipn:1.1 > testfile2 &
+BPSINK_PID=$!
+sleep 1
+
+echo "Sending bundle via bpsource..."
+bpsource ipn:1.1 "File transfer test message - sneakernet style"
+sleep 2
+
+# Check if bundle was written to outbound file
+echo ""
+echo "=== Checking Outbound File ==="
+if [ -f "${OUTFILE}" ]; then
+    OUTSIZE=$(stat -c%s "${OUTFILE}" 2>/dev/null || stat -f%z "${OUTFILE}" 2>/dev/null)
+    echo "Outbound file exists, size: ${OUTSIZE} bytes"
+    echo "Hex dump of first 128 bytes:"
+    xxd -l 128 "${OUTFILE}" 2>/dev/null || hexdump -C -n 128 "${OUTFILE}" 2>/dev/null || echo "(hexdump not available)"
+else
+    echo "ERROR: Outbound file was not created!"
+    FAIL=1
+fi
+
+echo ""
+echo "=== Simulating File Transfer (rename) ==="
+if [ -f "${OUTFILE}" ]; then
+    echo "Moving ${OUTFILE} -> ${INFILE}"
+    mv "${OUTFILE}" "${INFILE}"
+    if [ -f "${INFILE}" ]; then
+        echo "File transfer complete. CLI should now read the bundle."
+    else
+        echo "ERROR: File move failed!"
+        FAIL=1
+    fi
+fi
+
+# Wait for bundle to be received
+echo ""
+echo "=== Waiting for Bundle Reception ==="
+sleep 5
+
+echo ""
+echo "=== Checking Received Data ==="
+if grep -q "File transfer test message - sneakernet style" testfile2; then
+    echo "SUCCESS: Bundle received correctly after file transfer!"
+else
+    echo "ERROR: Bundle not received or content mismatch."
+    echo "Expected: File transfer test message - sneakernet style"
+    echo "Received:"
+    cat testfile2
+    FAIL=1
+fi
+
+echo ""
+echo "=== Cleanup ==="
+kill $BPSINK_PID 2>/dev/null
+
+ionstop
+sleep 1
+killm
+
+# Clean up
+rm -f "${OUTFILE}" "${INFILE}" testfile1 testfile2
+rm -f "${CONFIGDIR}/transfer_runtime.bprc"
+
+exit $FAIL

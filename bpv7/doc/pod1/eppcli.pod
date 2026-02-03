@@ -1,0 +1,124 @@
+=head1 NAME
+
+eppcli - DTN CCSDS Encapsulation Packet Protocol convergence layer input task
+
+=head1 SYNOPSIS
+
+B<eppcli> I<duct_name> I<library_path>
+
+=head1 DESCRIPTION
+
+B<eppcli> is a background "daemon" task that receives bundles encapsulated
+in CCSDS Encapsulation Packets (per CCSDS 734.20-O-1) using a dynamically
+loaded provider library.
+
+The task loads the provider library specified by I<library_path> using
+dynamic linking (dlopen) and uses it to receive encapsulation packets
+containing bundles via the ENCAPSULATION.indication service primitive.
+
+I<duct_name> is the name of the induct as configured in the BP database.
+
+I<library_path> is the full path to the provider shared library
+(e.g., /usr/local/lib/libepp_loopback_provider.so).
+
+The provider library must implement the following functions:
+
+=over 4
+
+=item size_t encapsulation_indication(char *buffer, int *sdlp_channel, int *epi)
+
+Returns the number of bytes received on success, 0 on error, or 1 for normal stop.
+
+=back
+
+The Encapsulation Protocol Identifier (EPI) for Bundle Protocol is 4
+(registered in SANA).
+
+B<eppcli> is spawned automatically by B<bpadmin> in response to the 's'
+(START) command that starts operation of the Bundle Protocol; the text
+of the command that is used to spawn the task must be provided at the
+time the "epp" convergence layer protocol is added to the BP database.
+The convergence layer input task is terminated by B<bpadmin> in
+response to an 'x' (STOP) command.
+
+=head1 EPP CHARACTERISTICS
+
+=over 4
+
+=item *
+
+Maximum bundle size: 4,294,967,287 bytes per CCSDS 734.20-O-1 (ION uses 1MB buffer)
+
+=item *
+
+EPI for Bundle Protocol: 4
+
+=item *
+
+Simpler than SPP with no sequence counting at the CLA level
+
+=back
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<eppcli> terminated normally, for reasons noted in the B<ion.log> file.
+
+=item "1"
+
+B<eppcli> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart B<eppcli>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed. The provider library must be accessible
+at the specified path.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item eppcli can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item No such epp duct.
+
+No EPP induct matching I<duct_name> has been added to the BP database.
+
+=item Failed to load provider library.
+
+The specified shared library could not be loaded.
+
+=item Failed to find required function in provider library.
+
+The provider library does not export the encapsulation_indication function.
+
+=back
+
+=head1 EXAMPLES
+
+Example bprc configuration:
+
+    a protocol epp 1400 100
+    a induct epp loopback 'eppcli loopback /path/to/libepp_loopback_provider.so'
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
+
+=head1 SEE ALSO
+
+bpadmin(1), eppclo(1), bprc(5)

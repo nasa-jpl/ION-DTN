@@ -1,0 +1,6 @@
+# ipnrc configuration file for the File CLA loopback test.
+# Command: % ipnadmin loopback.ipnrc
+
+# Add an egress plan.
+# Bundles to node 1 go via file/loopback outduct
+a plan 1 file/loopback

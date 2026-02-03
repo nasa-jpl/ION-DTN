@@ -1,0 +1,112 @@
+=head1 NAME
+
+fileclo - DTN file-based convergence layer output task
+
+=head1 SYNOPSIS
+
+B<fileclo> I<duct_name> I<library_path> I<output_file_path>
+
+=head1 DESCRIPTION
+
+B<fileclo> is a background "daemon" task that writes bundles to a file
+using a dynamically loaded provider library. It supports store-and-forward
+and "sneakernet" scenarios where bundles are transported via file storage.
+
+The task loads the provider library specified by I<library_path> using
+dynamic linking (dlopen) and uses it to write framed bundles to the
+file specified by I<output_file_path>.
+
+I<duct_name> is the name of the outduct as configured in the BP database.
+
+I<library_path> is the full path to the provider shared library
+(e.g., /usr/local/lib/libfile_simple_provider.so).
+
+I<output_file_path> is the path to the file where bundles will be written.
+
+The provider library must implement the following functions:
+
+=over 4
+
+=item int init_file_sender(const char *file_path)
+
+=item void finalize_file_sender(void)
+
+=item int file_write_bundle(unsigned char *data, size_t length)
+
+=back
+
+B<fileclo> is spawned automatically by B<bpadmin> in response to the 's'
+(START) command that starts operation of the Bundle Protocol; the text
+of the command that is used to spawn the task must be provided at the
+time the "file" convergence layer protocol is added to the BP database.
+The convergence layer output task is terminated by B<bpadmin> in
+response to an 'x' (STOP) command.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<fileclo> terminated normally, for reasons noted in the B<ion.log> file.
+
+=item "1"
+
+B<fileclo> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart B<fileclo>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed. The provider library must be accessible
+at the specified path. The output file will be created if it does not exist.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item fileclo can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item No such file duct.
+
+No file outduct matching I<duct_name> has been added to the BP database.
+Use B<bpadmin> to stop the file convergence-layer protocol, add the
+outduct, and then restart the file protocol.
+
+=item Failed to load provider library.
+
+The specified shared library could not be loaded. Check that the library
+exists and has correct permissions.
+
+=item Failed to find required function in provider library.
+
+The provider library does not export all required functions. Ensure the
+library implements init_file_sender, finalize_file_sender, and
+file_write_bundle.
+
+=back
+
+=head1 EXAMPLES
+
+Example bprc configuration:
+
+    a protocol file 65536 12
+    a outduct file loopback 'fileclo loopback /path/to/libfile_simple_provider.so /tmp/bundles.dat'
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
+
+=head1 SEE ALSO
+
+bpadmin(1), filecli(1), bprc(5)
