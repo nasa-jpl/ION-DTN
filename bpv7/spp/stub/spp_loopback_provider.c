@@ -14,6 +14,9 @@
 	packet_indication.
 
 									*/
+/* Enable POSIX.1-2001 for sigaction() */
+#define _POSIX_C_SOURCE 200112L
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,9 +25,15 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <pthread.h>
+#include <poll.h>
+#include <signal.h>
 
 #define LOOPBACK_FIFO_PATH "/tmp/spp_loopback_fifo"
 #define MAX_PACKET_SIZE (65536)
+#define POLL_TIMEOUT_MS (1000)  /* 1 second timeout for poll */
+
+/* Flag to signal shutdown */
+static volatile sig_atomic_t shutdown_requested = 0;
 
 /* File descriptors for FIFO */
 static int write_fd = -1;
@@ -230,15 +239,56 @@ static void init_receiver(void)
 }
 
 /*
+ * Helper function to read with poll timeout.
+ * Returns bytes read, 0 for timeout/shutdown, -1 for error.
+ */
+static ssize_t read_with_timeout(int fd, void *buf, size_t count)
+{
+	struct pollfd pfd;
+	int poll_result;
+
+	pfd.fd = fd;
+	pfd.events = POLLIN;
+
+	while (!shutdown_requested)
+	{
+		poll_result = poll(&pfd, 1, POLL_TIMEOUT_MS);
+		if (poll_result < 0)
+		{
+			if (errno == EINTR)
+			{
+				continue;  /* Interrupted, retry */
+			}
+			return -1;  /* Error */
+		}
+		if (poll_result == 0)
+		{
+			continue;  /* Timeout, check shutdown and retry */
+		}
+		if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL))
+		{
+			return 0;  /* Error or hangup */
+		}
+		if (pfd.revents & POLLIN)
+		{
+			return read(fd, buf, count);
+		}
+	}
+
+	return 0;  /* Shutdown requested */
+}
+
+/*
  * packet_indication - Receive a space packet.
  *
- * Reads the next packet from the FIFO.
+ * Reads the next packet from the FIFO using non-blocking poll.
+ * This allows the function to return when shutdown is requested.
  *
  * Parameters:
  *   buffer       - Buffer to receive packet data (without length header)
  *   received_apid - Output: APID extracted from SPP header
  *
- * Returns: Number of bytes received, 0 for EOF, 1 for normal stop.
+ * Returns: Number of bytes received, 0 for error, 1 for normal stop.
  */
 size_t packet_indication(char *buffer, int *received_apid)
 {
@@ -257,19 +307,20 @@ size_t packet_indication(char *buffer, int *received_apid)
 		}
 	}
 
-	/* Read length header */
-	bytes_read = read(read_fd, header, 4);
+	/* Read length header with timeout */
+	bytes_read = read_with_timeout(read_fd, header, 4);
 	if (bytes_read == 0)
 	{
-		/* EOF - sender closed */
-		close(read_fd);
-		read_fd = -1;
-		return 1; /* Signal normal stop */
+		/* Timeout/shutdown or EOF - signal normal stop */
+		return 1;
 	}
-	if (bytes_read != 4)
+	if (bytes_read < 0 || bytes_read != 4)
 	{
-		fprintf(stderr, "spp_loopback: Failed to read length header.\n");
-		return 0; /* Error */
+		if (!shutdown_requested)
+		{
+			fprintf(stderr, "spp_loopback: Failed to read length header.\n");
+		}
+		return 1; /* Signal normal stop on error */
 	}
 
 	/* Parse length (big-endian) */
@@ -284,15 +335,24 @@ size_t packet_indication(char *buffer, int *received_apid)
 
 	/* Read packet data */
 	total_read = 0;
-	while (total_read < length)
+	while (total_read < length && !shutdown_requested)
 	{
-		bytes_read = read(read_fd, buffer + total_read, length - total_read);
+		bytes_read = read_with_timeout(read_fd, buffer + total_read,
+					       length - total_read);
 		if (bytes_read <= 0)
 		{
-			fprintf(stderr, "spp_loopback: Failed to read packet data.\n");
-			return 0;
+			if (!shutdown_requested)
+			{
+				fprintf(stderr, "spp_loopback: Failed to read packet data.\n");
+			}
+			return 1; /* Signal normal stop */
 		}
 		total_read += bytes_read;
+	}
+
+	if (shutdown_requested)
+	{
+		return 1; /* Signal normal stop */
 	}
 
 	/* Extract APID from SPP primary header (bits 0-10 of bytes 0-1) */
@@ -310,11 +370,35 @@ size_t packet_indication(char *buffer, int *received_apid)
 }
 
 /*
+ * Signal handler to request graceful shutdown
+ */
+static void handle_shutdown_signal(int signum)
+{
+	(void)signum;
+	shutdown_requested = 1;
+}
+
+/*
+ * Constructor function - set up signal handlers when library is loaded
+ */
+__attribute__((constructor))
+static void setup(void)
+{
+	struct sigaction sa;
+	sa.sa_handler = handle_shutdown_signal;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	sigaction(SIGTERM, &sa, NULL);
+	sigaction(SIGINT, &sa, NULL);
+}
+
+/*
  * Cleanup function - called when library is unloaded
  */
 __attribute__((destructor))
 static void cleanup(void)
 {
+	shutdown_requested = 1;
 	if (write_fd >= 0)
 	{
 		close(write_fd);

@@ -64,6 +64,9 @@ SDLP_CHANNEL=42
 
 echo "Killing old ION..."
 killm
+# Kill any leftover EPP CLAs from previous runs (use SIGKILL to force)
+pkill -9 -f "eppcli" 2>/dev/null
+pkill -9 -f "eppclo" 2>/dev/null
 ./cleanup
 sleep 1
 
@@ -121,6 +124,12 @@ fi
 
 echo "Cleaning up..."
 kill $BPSINK_PID 2>/dev/null
+wait $BPSINK_PID 2>/dev/null
+
+# Kill the EPP CLAs explicitly (use SIGKILL - they may be blocked on FIFO reads)
+pkill -9 -f "eppcli" 2>/dev/null
+pkill -9 -f "eppclo" 2>/dev/null
+sleep 1
 
 ionstop
 sleep 1

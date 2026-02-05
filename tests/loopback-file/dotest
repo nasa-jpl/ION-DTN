@@ -67,6 +67,9 @@ POLL_INTERVAL=500
 
 echo "Killing old ION..."
 killm
+# Kill any leftover File CLAs from previous runs (use SIGKILL to force)
+pkill -9 -f "filecli" 2>/dev/null
+pkill -9 -f "fileclo" 2>/dev/null
 ./cleanup
 sleep 1
 
@@ -132,6 +135,12 @@ fi
 
 echo "Cleaning up..."
 kill $BPSINK_PID 2>/dev/null
+wait $BPSINK_PID 2>/dev/null
+
+# Kill the File CLAs explicitly (use SIGKILL - they may be blocked on file reads)
+pkill -9 -f "filecli" 2>/dev/null
+pkill -9 -f "fileclo" 2>/dev/null
+sleep 1
 
 ionstop
 sleep 1

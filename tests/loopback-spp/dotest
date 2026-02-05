@@ -64,6 +64,9 @@ SPP_CONFIG="123,0,0,0"
 
 echo "Killing old ION..."
 killm
+# Kill any leftover SPP CLAs from previous runs (use SIGKILL to force)
+pkill -9 -f "sppcli" 2>/dev/null
+pkill -9 -f "sppclo" 2>/dev/null
 ./cleanup
 sleep 1
 
@@ -125,6 +128,12 @@ fi
 
 echo "Cleaning up..."
 kill $BPSINK_PID 2>/dev/null
+wait $BPSINK_PID 2>/dev/null
+
+# Kill the SPP CLAs explicitly (use SIGKILL - they may be blocked on FIFO reads)
+pkill -9 -f "sppcli" 2>/dev/null
+pkill -9 -f "sppclo" 2>/dev/null
+sleep 1
 
 ionstop
 sleep 1

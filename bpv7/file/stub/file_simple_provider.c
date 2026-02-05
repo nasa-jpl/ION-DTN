@@ -16,7 +16,7 @@
 	Copyright (c) 2025, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
 								*/
-/* Enable POSIX.1-2001 for nanosleep() */
+/* Enable POSIX.1-2001 for nanosleep() and sigaction() */
 #define _POSIX_C_SOURCE 200112L
 
 #include <stdio.h>
@@ -29,6 +29,7 @@
 #include <sys/stat.h>
 #include <stdint.h>
 #include <time.h>
+#include <signal.h>
 
 #define FILECLA_BUFSZ		(1048576)
 #define FILECLA_MAX_PATH	(1024)
@@ -39,7 +40,30 @@ static FILE *input_file = NULL;
 static pthread_mutex_t write_mutex = PTHREAD_MUTEX_INITIALIZER;
 static char current_path[FILECLA_MAX_PATH];
 static int poll_interval_ms = 1000;  /* Default 1 second */
-static volatile int shutdown_requested = 0;
+static volatile sig_atomic_t shutdown_requested = 0;
+
+/*
+ * Signal handler to request graceful shutdown
+ */
+static void handle_shutdown_signal(int signum)
+{
+	(void)signum;
+	shutdown_requested = 1;
+}
+
+/*
+ * Constructor function - set up signal handlers when library is loaded
+ */
+__attribute__((constructor))
+static void setup(void)
+{
+	struct sigaction sa;
+	sa.sa_handler = handle_shutdown_signal;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	sigaction(SIGTERM, &sa, NULL);
+	sigaction(SIGINT, &sa, NULL);
+}
 
 /*
  * Portable millisecond sleep using POSIX nanosleep().
