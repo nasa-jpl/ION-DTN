@@ -1882,7 +1882,11 @@ void	sdr_destroy(Sdr sdrv, int shutdown)
 
 /*	*	Low-level transaction functions		*	*	*/
 
+#ifdef SDR_PERF_INSTRUMENTATION
+int	Sdr_begin_xn(const char *file, int line, Sdr sdrv)
+#else
 int	sdr_begin_xn(Sdr sdrv)
+#endif
 {
 	CHKZERO(sdrv);
 	if (takeSdr(sdrv->sdr) < 0)
@@ -1890,6 +1894,9 @@ int	sdr_begin_xn(Sdr sdrv)
 		return 0;	/*	Failed to begin transaction.	*/
 	}
 
+#ifdef SDR_PERF_INSTRUMENTATION
+	SDR_PERF_XN_BEGIN(&sdrv->perfStats, file, line);
+#endif
 	return 1;		/*	Began transaction.		*/
 }
 
@@ -1976,6 +1983,9 @@ int	sdr_end_xn(Sdr sdrv)
 		sdr->xnDepth--;
 		if (sdr->xnDepth == 0)
 		{
+#ifdef SDR_PERF_INSTRUMENTATION
+			SDR_PERF_XN_END(&sdr->perfCounters, &sdrv->perfStats);
+#endif
 			terminateXn(sdrv);
 		}
 
@@ -2107,6 +2117,9 @@ void	_sdrput(const char *file, int line, Sdr sdrv, Address into, char *from,
 	/* --- Added for safe I/O checks. --- */
 	ssize_t     bytesRead;
 	ssize_t     bytesWritten;
+#ifdef SDR_PERF_INSTRUMENTATION
+	struct timeval	perfStart;
+#endif
 
 	if (length == 0)
 	{
@@ -2155,6 +2168,9 @@ void	_sdrput(const char *file, int line, Sdr sdrv, Address into, char *from,
 		}
 	}
 
+#ifdef SDR_PERF_INSTRUMENTATION
+	SDR_PERF_WRITE_BEGIN(&sdrv->perfStats, &perfStart);
+#endif
 	if (sdr->configFlags & SDR_REVERSIBLE)
 	{
 		logOffset = sdr->logLength;	/*	Before writing.	*/
@@ -2259,6 +2275,9 @@ entry.", NULL);
 		memcpy(sdrv->dssm + into, from, length);
 	}
 
+#ifdef SDR_PERF_INSTRUMENTATION
+	SDR_PERF_WRITE_END(&sdrv->perfStats, &perfStart, length);
+#endif
 	sdr->modified = 1;
 }
 
@@ -2280,6 +2299,9 @@ void	_sdrfetch(Sdr sdrv, char *into, Address from, size_t length)
 	SdrState	*sdr;
 	Address		to;
 	ssize_t		bytesRead; /* Added for safe read() check. */
+#ifdef SDR_PERF_INSTRUMENTATION
+	struct timeval	perfStart;
+#endif
 
 	if (length == 0)			/*	Nothing to do.	*/
 	{
@@ -2300,6 +2322,9 @@ void	_sdrfetch(Sdr sdrv, char *into, Address from, size_t length)
 		return;
 	}
 
+#ifdef SDR_PERF_INSTRUMENTATION
+	SDR_PERF_READ_BEGIN(&sdrv->perfStats, &perfStart);
+#endif
 	if (sdr->configFlags & SDR_IN_DRAM)
 	{
 		memcpy(into, sdrv->dssm + from, length);
@@ -2326,6 +2351,9 @@ void	_sdrfetch(Sdr sdrv, char *into, Address from, size_t length)
 			}
 		}
 	}
+#ifdef SDR_PERF_INSTRUMENTATION
+	SDR_PERF_READ_END(&sdrv->perfStats, &perfStart, length);
+#endif
 }
 
 void	sdr_read(Sdr sdrv, char *into, Address from, size_t length)

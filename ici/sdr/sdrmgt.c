@@ -1415,6 +1415,10 @@ void	sdr_stats(Sdr sdrv)
 	isprintf(buf, sizeof buf, "        max sdr heap in use: %14ld",
 			sdrSnap.heapSize - mapSnap.unassignedSpace);
 	writeMemo(buf);
+
+#ifdef SDR_PERF_INSTRUMENTATION
+	SDR_PERF_REPORT(sdrSnap.name, &sdr->perfCounters);
+#endif
 }
 
 void	sdr_reset_stats(Sdr sdrv)
@@ -1427,5 +1431,8 @@ void	sdr_reset_stats(Sdr sdrv)
 
 	sdr = sdrv->sdr;
 	sdr->maxLogLength = 0;
+#ifdef SDR_PERF_INSTRUMENTATION
+	SDR_PERF_RESET(&sdr->perfCounters);
+#endif
 	sdr_stats(sdrv);
 }

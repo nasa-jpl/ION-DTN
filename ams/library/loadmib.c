@@ -1827,8 +1827,7 @@ static int	loadMibFromXmlSource(char *mibSource)
 		{
 		case -1:
 			putSysErrmsg("Failed reading MIB", mibSource);
-
-			/*	Intentional fall-through to next case.	*/
+			/* fall through */
 
 		case 0:			/*	End of file.		*/
 			done = 1;

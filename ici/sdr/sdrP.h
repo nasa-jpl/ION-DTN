@@ -29,6 +29,10 @@
 #include "sptrace.h"
 #endif
 
+#ifdef SDR_PERF_INSTRUMENTATION
+#include "sdr_perf.h"
+#endif
+
 #define SDR_SM_KEY	(255 * 256)
 #define SDR_SM_NAME	"sdrwm"
 
@@ -106,6 +110,12 @@ typedef struct sdr_str
 	int		halted;			/*	boolean		*/
 	char		restartCmd[32];
 	time_t		restartTime;
+
+#ifdef SDR_PERF_INSTRUMENTATION
+		/*	Performance instrumentation counters.		*/
+
+	SdrPerfCounters	perfCounters;
+#endif
 } SdrState;
 
 typedef struct
@@ -176,6 +186,12 @@ typedef struct sdrv_str
 	PsmView		*trace;		/*	local access to trace	*/
 	const char	*currentSourceFileName;	/*	for tracing	*/
 	int		currentSourceFileLine;	/*	for tracing	*/
+
+#ifdef SDR_PERF_INSTRUMENTATION
+		/*	Per-transaction performance stats.		*/
+
+	SdrPerfStats	perfStats;
+#endif
 } SdrView;
 
 typedef enum { UserPut = 0, SystemPut } PutSrc;

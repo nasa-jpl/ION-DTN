@@ -617,6 +617,7 @@ libici_la_SOURCES =	\
 	ici/sdr/sdrstring.c \
 	ici/sdr/sdrtable.c \
 	ici/sdr/sdrxn.c \
+	ici/sdr/sdr_perf.c \
 	ici/crypto/entropy_src.c
 
 libici_la_CFLAGS = $(icicflags) $(AM_CFLAGS)

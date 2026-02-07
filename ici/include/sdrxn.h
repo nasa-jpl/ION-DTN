@@ -215,7 +215,12 @@ extern void		sdr_destroy(Sdr sdr, int shutdown);
 
 /*		Basic, low-level SDR transaction functions.		*/
 
+#ifdef SDR_PERF_INSTRUMENTATION
+#define sdr_begin_xn(sdr)	Sdr_begin_xn(__FILE__, __LINE__, sdr)
+extern int		Sdr_begin_xn(const char *file, int line, Sdr sdr);
+#else
 extern int		sdr_begin_xn(Sdr sdr);
+#endif
 extern int		sdr_in_xn(Sdr sdr);		/*	Boolean	*/
 extern int		sdr_heap_is_halted(Sdr sdr);	/*	Boolean	*/
 extern void		sdr_exit_xn(Sdr sdr);

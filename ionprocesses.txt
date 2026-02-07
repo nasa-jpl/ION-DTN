@@ -135,6 +135,10 @@ dtn2adminep
 lt-dtn2adminep
 dtn2fw
 lt-dtn2fw
+eppcli
+lt-eppcli
+eppclo
+lt-eppclo
 dtpcadmin
 lt-dtpcadmin
 dtpcclock
@@ -149,6 +153,10 @@ file2dgr
 lt-file2dgr
 file2sdr
 lt-file2sdr
+filecli
+lt-filecli
+fileclo
+lt-fileclo
 file2sm
 lt-file2sm
 file2tcp
@@ -239,6 +247,10 @@ smlistsh
 lt-smlistsh
 smrbtsh
 lt-smrbtsh
+sppcli
+lt-sppcli
+sppclo
+lt-sppclo
 stcpcli
 lt-stcpcli
 stcpclo
