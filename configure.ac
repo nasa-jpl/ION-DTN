@@ -387,6 +387,18 @@ AC_ARG_ENABLE(
 AM_CONDITIONAL(ENABLE_HIGH_SPEED, test x$ENABLE_HIGH_SPEED = xyes)
 
 #
+# allow the user running configure to enable SDR performance instrumentation
+#
+AC_ARG_ENABLE(
+  sdr-perf,
+  [AS_HELP_STRING([--enable-sdr-perf],[Enable SDR transaction performance instrumentation])],
+  [AM_CFLAGS="$AM_CFLAGS -DSDR_PERF_INSTRUMENTATION"
+   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DSDR_PERF_INSTRUMENTATION"
+   ENABLE_SDR_PERF=yes],
+  [])
+AM_CONDITIONAL(ENABLE_SDR_PERF, test x$ENABLE_SDR_PERF = xyes)
+
+#
 # allow the user running configure to force the use of Posix Named Semaphores over the
 # otherwise recommended system. This might not produce a running system on some platforms
 AC_ARG_ENABLE(

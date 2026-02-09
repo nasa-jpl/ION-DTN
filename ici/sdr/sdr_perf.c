@@ -74,6 +74,21 @@ void	sdr_perf_xn_end(SdrPerfCounters *counters, SdrPerfStats *stats)
 		}
 
 		counters->maxXnLine = stats->callerLine;
+		counters->maxXnCallerCount = 1;	/*	New max caller.	*/
+	}
+	else if (counters->maxXnFile[0] != '\0' && stats->callerFile != NULL)
+	{
+		/*	Check if current caller is the max-time caller.	*/
+
+		const char	*basename;
+
+		basename = strrchr(stats->callerFile, '/');
+		basename = basename ? basename + 1 : stats->callerFile;
+		if (strcmp(basename, counters->maxXnFile) == 0
+				&& stats->callerLine == counters->maxXnLine)
+		{
+			counters->maxXnCallerCount++;
+		}
 	}
 
 	counters->totalReadCount += stats->readCount;
@@ -201,8 +216,12 @@ Run 'killm' and restart ION.");
 	if (counters->maxXnFile[0] != '\0')
 	{
 		isprintf(buf, sizeof(buf),
-				"             max xn from: %s:%d",
-				counters->maxXnFile, counters->maxXnLine);
+				"             max xn from: %s:%d (%lu calls, %.1f%%)",
+				counters->maxXnFile, counters->maxXnLine,
+				counters->maxXnCallerCount,
+				(counters->xnCount > 0) ?
+				(100.0 * counters->maxXnCallerCount
+				 / counters->xnCount) : 0.0);
 		writeMemo(buf);
 	}
 	isprintf(buf, sizeof(buf),
@@ -266,5 +285,11 @@ void	sdr_perf_reset_counters(SdrPerfCounters *counters)
 {
 	memset(counters, 0, sizeof(SdrPerfCounters));
 }
+
+#else	/*	!SDR_PERF_INSTRUMENTATION	*/
+
+/*	Provide a dummy symbol to avoid empty translation unit error.	*/
+
+typedef int	sdr_perf_placeholder;
 
 #endif	/*	SDR_PERF_INSTRUMENTATION	*/

@@ -15,7 +15,7 @@
 
 #ifdef SDR_PERF_INSTRUMENTATION
 
-#define SDR_PERF_CALLER_BUCKETS  32	/*	Hash table for caller tracking	*/
+#define SDR_PERF_CALLER_BUCKETS  128	/*	Hash table for caller tracking	*/
 #define SDR_PERF_FILENAME_LEN   32	/*	Max filename length to store	*/
 
 /*	Per-caller statistics for hot spot identification.		*/
@@ -52,6 +52,7 @@ typedef struct
 	unsigned long	maxXnTimeUs;
 	char		maxXnFile[SDR_PERF_FILENAME_LEN];	/*	Caller of max xn.	*/
 	int		maxXnLine;
+	unsigned long	maxXnCallerCount;	/*	Xn count for max-time caller.	*/
 	unsigned long	totalReadCount;
 	unsigned long	totalWriteCount;
 	size_t		totalBytesRead;
