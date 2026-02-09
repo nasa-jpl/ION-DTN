@@ -527,6 +527,69 @@ from limbo.", NULL);
 	return 0;
 }
 
+static int	flushBpStats(Sdr sdr)
+{
+	PsmPartition	bpwm = getIonwm();
+	BpVdb		*bpvdb = getBpVdb();
+	PsmAddress	elt;
+	PsmAddress	elt2;
+	VPlan		*vplan;
+	VInduct		*vduct;
+	VScheme		*vscheme;
+	VEndpoint	*vpoint;
+
+	/*	Flush global (BpVdb-level) statistics.			*/
+
+	if (bpFlushVdbStats(sdr, bpvdb) < 0)
+	{
+		return -1;
+	}
+
+	/*	Flush per-plan statistics.				*/
+
+	for (elt = sm_list_first(bpwm, bpvdb->plans); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		vplan = (VPlan *) psp(bpwm, sm_list_data(bpwm, elt));
+		if (bpFlushPlanStats(sdr, vplan) < 0)
+		{
+			return -1;
+		}
+	}
+
+	/*	Flush per-induct statistics.				*/
+
+	for (elt = sm_list_first(bpwm, bpvdb->inducts); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		vduct = (VInduct *) psp(bpwm, sm_list_data(bpwm, elt));
+		if (bpFlushInductStats(sdr, vduct) < 0)
+		{
+			return -1;
+		}
+	}
+
+	/*	Flush per-endpoint statistics (nested under schemes).	*/
+
+	for (elt = sm_list_first(bpwm, bpvdb->schemes); elt;
+			elt = sm_list_next(bpwm, elt))
+	{
+		vscheme = (VScheme *) psp(bpwm, sm_list_data(bpwm, elt));
+		for (elt2 = sm_list_first(bpwm, vscheme->endpoints); elt2;
+				elt2 = sm_list_next(bpwm, elt2))
+		{
+			vpoint = (VEndpoint *) psp(bpwm,
+					sm_list_data(bpwm, elt2));
+			if (bpFlushEndpointStats(sdr, vpoint) < 0)
+			{
+				return -1;
+			}
+		}
+	}
+
+	return 0;
+}
+
 #if defined (ION_LWT)
 int	bpclock(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
@@ -567,6 +630,26 @@ int	main(void)
 		{
 			putErrmsg("Can't dispatch events.", NULL);
 			state = 0;	/*	Terminate loop.		*/
+			oK(_running(&state));
+			continue;
+		}
+
+		/*	Flush accumulated statistics deltas to SDR.	*/
+
+		CHKERR(sdr_begin_xn(sdr));
+		if (flushBpStats(sdr) < 0)
+		{
+			sdr_cancel_xn(sdr);
+			putErrmsg("Can't flush BP statistics.", NULL);
+			state = 0;
+			oK(_running(&state));
+			continue;
+		}
+
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("bpclock failed flushing stats.", NULL);
+			state = 0;
 			oK(_running(&state));
 			continue;
 		}

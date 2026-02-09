@@ -467,6 +467,15 @@ typedef struct
 	uvast		currentBytes;
 } Tally;
 
+/*	Atomic delta counter for batched statistics collection.
+ *	Accumulates increments in volatile memory between flushes.	*/
+
+typedef struct
+{
+	atomic_uint	deltaCount;
+	atomic_ullong	deltaBytes;
+} TallyDelta;
+
 #ifndef MTAKE
 #define MTAKE(size)	allocFromIonMemory(__FILE__, __LINE__, size)
 #define MRELEASE(addr)	releaseToIonMemory(__FILE__, __LINE__, addr)

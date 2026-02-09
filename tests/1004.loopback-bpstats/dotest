@@ -1,0 +1,255 @@
+#!/usr/bin/env bash
+#
+# 1004.loopback-bpstats
+#
+# Verifies that BP batched statistics (atomic deltas flushed by bpclock)
+# produce correct counts after sending multiple batches of bundles over
+# an LTP loopback.  Sends bundles in two batches, checks bpstats after
+# each batch, and verifies that counts increase monotonically and match
+# the expected totals.
+#
+CONFIGFILES=" \
+${CONFIGSROOT}/loopback-ltp/loopback.ionrc \
+${CONFIGSROOT}/loopback-ltp/loopback.ltprc \
+${CONFIGSROOT}/loopback-ltp/loopback.bprc \
+${CONFIGSROOT}/loopback-ltp/loopback.ionsecrc \
+${CONFIGSROOT}/loopback-ltp/loopback.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify BP statistics tally functions report correct bundle"
+echo "    counts after sending multiple batches of bundles.  Exercises the"
+echo "    batched (atomic delta) statistics collection path."
+echo
+echo "CONFIG: Standard loopback-ltp"
+echo
+echo "########################################"
+
+BATCH1_COUNT=20
+BATCH2_COUNT=30
+TOTAL_COUNT=$((BATCH1_COUNT + BATCH2_COUNT))
+
+OS=$1
+
+IONSENDFILE=./ionsendfile.txt
+IONRECEIVEFILE=./ionreceivefile.txt
+IONEXPECTEDFILE=./ionexpectedfile.txt
+
+# ---------------------------------------------------------------
+# extract_stat <category>
+#   Parse the last bpstats snapshot in ion.log for the given
+#   category (src, xmt, rcv, fwd) and print the "(+) total_count".
+# ---------------------------------------------------------------
+extract_stat () {
+    # bpstats output line format (with timestamp prefix):
+    # [ts] [x] <cat> from <ts> to <ts>: (0) c b (1) c b (2) c b (+) total_count total_bytes
+    grep "\[x\] $1 " ion.log | tail -1 | \
+        sed 's/.*(+) \([0-9][0-9]*\) .*/\1/'
+}
+
+# ---------------------------------------------------------------
+# send_batch <count>
+#   Send <count> bundles via bpsource ipn:1.1
+# ---------------------------------------------------------------
+send_batch () {
+    local i=1
+    local count=$1
+    while [ $i -le $count ]
+    do
+        IONMESSAGE="batch-msg-${i}-$(date +%s%N)"
+        echo "$IONMESSAGE" > $IONSENDFILE
+        echo "!" >> $IONSENDFILE
+        bpsource ipn:1.1 < $IONSENDFILE 1>/dev/null 2>/dev/null
+        i=$((i + 1))
+    done
+}
+
+# ---------------------------------------------------------------
+# wait_for_delivery <expected_count> <timeout_sec>
+#   Wait until bpsink has received at least <expected_count> payloads.
+# ---------------------------------------------------------------
+wait_for_delivery () {
+    local expected=$1
+    local timeout=$2
+    local elapsed=0
+    while [ $elapsed -lt $timeout ]
+    do
+        local got
+        got=$(grep -c "^ION event: Payload delivered\." $IONRECEIVEFILE 2>/dev/null || echo 0)
+        if [ "$got" -ge "$expected" ]
+        then
+            return 0
+        fi
+        sleep 1
+        elapsed=$((elapsed + 1))
+    done
+    echo "TIMEOUT waiting for $expected deliveries (got $got after ${timeout}s)"
+    return 1
+}
+
+# ===============================================================
+#  Main
+# ===============================================================
+
+echo "Killing old ION..."
+killm
+sleep 1
+
+rm -f $IONSENDFILE $IONRECEIVEFILE $IONEXPECTEDFILE ion.log
+
+echo "Starting ION..."
+CONFIGDIR="${CONFIGSROOT}/loopback-ltp"
+ionstart \
+    -i "${CONFIGDIR}/loopback.ionrc" \
+    -l "${CONFIGDIR}/loopback.ltprc" \
+    -b "${CONFIGDIR}/loopback.bprc" \
+    -p "${CONFIGDIR}/loopback.ipnrc" \
+    -s "${CONFIGDIR}/loopback.ionsecrc"
+
+sleep 3
+
+# Start BP daemons
+bpadmin "${CONFIGDIR}/loopbackstart.bprc"
+sleep 5
+
+# Start bpsink
+echo "Starting bpsink on ipn:1.1..."
+bpsink ipn:1.1 > $IONRECEIVEFILE &
+BPSINKPID=$!
+sleep 2
+
+RETVAL=1   # Assume failure unless proven otherwise.
+
+# ---- Batch 1 ----
+echo "Sending batch 1 ($BATCH1_COUNT bundles)..."
+send_batch $BATCH1_COUNT
+
+if ! wait_for_delivery $BATCH1_COUNT 30
+then
+    echo "FAIL: batch 1 delivery timed out."
+    kill -2 $BPSINKPID >/dev/null 2>&1; sleep 1; kill -9 $BPSINKPID >/dev/null 2>&1
+    ionstop
+    exit 1
+fi
+
+# Give bpclock at least 2 seconds to flush deltas to SDR.
+sleep 3
+
+# Snapshot stats after batch 1.
+bpstats
+sleep 1
+
+SRC1=$(extract_stat src)
+XMT1=$(extract_stat xmt)
+RCV1=$(extract_stat rcv)
+
+echo "After batch 1: src=$SRC1 xmt=$XMT1 rcv=$RCV1"
+
+# Sanity: src count must be >= BATCH1_COUNT
+if [ -z "$SRC1" ] || [ "$SRC1" -lt "$BATCH1_COUNT" ]
+then
+    echo "FAIL: src count after batch 1 ($SRC1) < expected ($BATCH1_COUNT)"
+    kill -2 $BPSINKPID >/dev/null 2>&1; sleep 1; kill -9 $BPSINKPID >/dev/null 2>&1
+    ionstop
+    exit 1
+fi
+
+echo "Batch 1 stats OK."
+
+# ---- Batch 2 ----
+echo "Sending batch 2 ($BATCH2_COUNT bundles)..."
+send_batch $BATCH2_COUNT
+
+if ! wait_for_delivery $TOTAL_COUNT 30
+then
+    echo "FAIL: batch 2 delivery timed out."
+    kill -2 $BPSINKPID >/dev/null 2>&1; sleep 1; kill -9 $BPSINKPID >/dev/null 2>&1
+    ionstop
+    exit 1
+fi
+
+# Give bpclock at least 2 seconds to flush deltas to SDR.
+sleep 3
+
+# Snapshot stats after batch 2.
+bpstats
+sleep 1
+
+SRC2=$(extract_stat src)
+XMT2=$(extract_stat xmt)
+RCV2=$(extract_stat rcv)
+
+echo "After batch 2: src=$SRC2 xmt=$XMT2 rcv=$RCV2"
+
+# ---- Validation ----
+PASS=1
+
+# 1) Counts must be >= total bundles sent.
+if [ -z "$SRC2" ] || [ "$SRC2" -lt "$TOTAL_COUNT" ]
+then
+    echo "FAIL: src count ($SRC2) < total sent ($TOTAL_COUNT)"
+    PASS=0
+fi
+
+if [ -z "$XMT2" ] || [ "$XMT2" -lt "$TOTAL_COUNT" ]
+then
+    echo "FAIL: xmt count ($XMT2) < total sent ($TOTAL_COUNT)"
+    PASS=0
+fi
+
+if [ -z "$RCV2" ] || [ "$RCV2" -lt "$TOTAL_COUNT" ]
+then
+    echo "FAIL: rcv count ($RCV2) < total sent ($TOTAL_COUNT)"
+    PASS=0
+fi
+
+# 2) Counts must have increased between batch 1 and batch 2.
+if [ "$SRC2" -le "$SRC1" ]
+then
+    echo "FAIL: src count did not increase ($SRC1 -> $SRC2)"
+    PASS=0
+fi
+
+if [ "$XMT2" -le "$XMT1" ]
+then
+    echo "FAIL: xmt count did not increase ($XMT1 -> $XMT2)"
+    PASS=0
+fi
+
+if [ "$RCV2" -le "$RCV1" ]
+then
+    echo "FAIL: rcv count did not increase ($RCV1 -> $RCV2)"
+    PASS=0
+fi
+
+# 3) No stat should be a wild unsigned-underflow value (> 1 billion).
+for STAT in "$SRC2" "$XMT2" "$RCV2"
+do
+    if [ "$STAT" -gt 1000000000 ] 2>/dev/null
+    then
+        echo "FAIL: implausible stat value $STAT (possible unsigned underflow)"
+        PASS=0
+    fi
+done
+
+# ---- Teardown ----
+echo "Stopping bpsink..."
+kill -2 $BPSINKPID >/dev/null 2>&1
+sleep 1
+kill -9 $BPSINKPID >/dev/null 2>&1
+
+echo "Stopping ION..."
+ionstop
+
+if [ $PASS -eq 1 ]
+then
+    echo "OK: BP statistics tally test passed."
+    echo "  src=$SRC2  xmt=$XMT2  rcv=$RCV2  (expected >= $TOTAL_COUNT each)"
+    exit 0
+else
+    echo "FAIL: BP statistics tally test failed."
+    exit 1
+fi

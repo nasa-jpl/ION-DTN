@@ -154,364 +154,325 @@ int	endpointIsLocal(EndpointId eid)
 
 void	bpEndpointTally(VEndpoint *vpoint, unsigned int idx, unsigned int size)
 {
-	Sdr		sdr = getIonsdr();
-	EndpointStats	stats;
-	Tally		*tally;
-	int		offset;
-
-	CHKVOID(vpoint && vpoint->stats);
-	if (!(vpoint->updateStats))
-	{
-		return;
-	}
-
-	/*	Defensive check: skip stats update if not in transaction.
-	 *	Use sdr_in_xn directly to handle race with ionrestart.	*/
-
-	if (!(sdr_in_xn(sdr)))
-	{
-		return;
-	}
-
+	CHKVOID(vpoint);
 	CHKVOID(idx < BP_ENDPOINT_STATS);
-	sdr_stage(sdr, (char *) &stats, vpoint->stats, sizeof(EndpointStats));
-	tally = stats.tallies + idx;
-	tally->totalCount += 1;
-	tally->totalBytes += size;
-	tally->currentCount += 1;
-	tally->currentBytes += size;
-	offset = (char *) tally - ((char *) &stats);
-
-	/*	Re-check transaction before write in case of race.	*/
-
-	if (!(sdr_in_xn(sdr)))
-	{
-		return;
-	}
-
-	sdr_write(sdr, vpoint->stats + offset, (char *) tally, sizeof(Tally));
+	atomic_fetch_add(&vpoint->statsDeltas[idx].deltaCount, 1);
+	atomic_fetch_add(&vpoint->statsDeltas[idx].deltaBytes, (uvast) size);
 }
 
 void	bpInductTally(VInduct *vduct, unsigned int idx, unsigned int size)
 {
-	Sdr		sdr = getIonsdr();
-	InductStats	stats;
-	Tally		*tally;
-	int		offset;
-
-	CHKVOID(vduct && vduct->stats);
-	if (!(vduct->updateStats))
-	{
-		return;
-	}
-
-	/*	Defensive check: skip stats update if not in transaction.
-	 *	Use sdr_in_xn directly to handle race with ionrestart.	*/
-
-	if (!(sdr_in_xn(sdr)))
-	{
-		return;
-	}
-
+	CHKVOID(vduct);
 	CHKVOID(idx < BP_INDUCT_STATS);
-	sdr_stage(sdr, (char *) &stats, vduct->stats, sizeof(InductStats));
-	tally = stats.tallies + idx;
-	tally->totalCount += 1;
-	tally->totalBytes += size;
-	tally->currentCount += 1;
-	tally->currentBytes += size;
-	offset = (char *) tally - ((char *) &stats);
-
-	/*	Re-check transaction before write in case of race.	*/
-
-	if (!(sdr_in_xn(sdr)))
-	{
-		return;
-	}
-
-	sdr_write(sdr, vduct->stats + offset, (char *) tally, sizeof(Tally));
+	atomic_fetch_add(&vduct->statsDeltas[idx].deltaCount, 1);
+	atomic_fetch_add(&vduct->statsDeltas[idx].deltaBytes, (uvast) size);
 }
 
 void	bpPlanTally(VPlan *vplan, unsigned int idx, unsigned int size)
 {
-	Sdr		sdr = getIonsdr();
-	PlanStats	stats;
-	Tally		*tally;
-	int		offset;
-
-	CHKVOID(vplan && vplan->stats);
-	if (!(vplan->updateStats))
-	{
-		return;
-	}
-
-	/*	Defensive check: skip stats update if not in transaction.
-	 *	Use sdr_in_xn directly to handle race with ionrestart.	*/
-
-	if (!(sdr_in_xn(sdr)))
-	{
-		return;
-	}
-
+	CHKVOID(vplan);
 	CHKVOID(idx < BP_PLAN_STATS);
-	sdr_stage(sdr, (char *) &stats, vplan->stats, sizeof(PlanStats));
-	tally = stats.tallies + idx;
-	tally->totalCount += 1;
-	tally->totalBytes += size;
-	tally->currentCount += 1;
-	tally->currentBytes += size;
-	offset = (char *) tally - ((char *) &stats);
-
-	/*	Re-check transaction before write in case of race.	*/
-
-	if (!(sdr_in_xn(sdr)))
-	{
-		return;
-	}
-
-	sdr_write(sdr, vplan->stats + offset, (char *) tally, sizeof(Tally));
+	atomic_fetch_add(&vplan->statsDeltas[idx].deltaCount, 1);
+	atomic_fetch_add(&vplan->statsDeltas[idx].deltaBytes, (uvast) size);
 }
 
 void	bpSourceTally(unsigned int priority, unsigned int size)
 {
-	Sdr		sdr = getIonsdr();
-	BpVdb		*vdb = getBpVdb();
-	BpCosStats	stats;
-	Tally		*tally;
-	int		offset;
+	BpVdb	*vdb = getBpVdb();
 
-	CHKVOID(vdb && vdb->sourceStats);
-	if (!(vdb->updateStats))
-	{
-		return;
-	}
-
-	/*	Defensive check: skip stats update if not in transaction.
-	 *	Use sdr_in_xn directly to handle race with ionrestart.	*/
-
-	if (!(sdr_in_xn(sdr)))
-	{
-		return;
-	}
-
+	CHKVOID(vdb);
 	CHKVOID(priority < 3);
-	sdr_stage(sdr, (char *) &stats, vdb->sourceStats, sizeof(BpCosStats));
-	tally = stats.tallies + priority;
-	tally->totalCount += 1;
-	tally->totalBytes += size;
-	tally->currentCount += 1;
-	tally->currentBytes += size;
-	offset = (char *) tally - ((char *) &stats);
-
-	/*	Re-check transaction before write in case of race.	*/
-
-	if (!(sdr_in_xn(sdr)))
-	{
-		return;
-	}
-
-	sdr_write(sdr, vdb->sourceStats + offset, (char *) tally,
-			sizeof(Tally));
+	atomic_fetch_add(&vdb->sourceDeltas[priority].deltaCount, 1);
+	atomic_fetch_add(&vdb->sourceDeltas[priority].deltaBytes, (uvast) size);
 }
 
 void	bpRecvTally(unsigned int priority, unsigned int size)
 {
-	Sdr		sdr = getIonsdr();
-	BpVdb		*vdb = getBpVdb();
-	BpCosStats	stats;
-	Tally		*tally;
-	int		offset;
+	BpVdb	*vdb = getBpVdb();
 
-	CHKVOID(vdb && vdb->recvStats);
-	if (!(vdb->updateStats))
-	{
-		return;
-	}
-
-	/*	Defensive check: skip stats update if not in transaction.
-	 *	Use sdr_in_xn directly to handle race with ionrestart.	*/
-
-	if (!(sdr_in_xn(sdr)))
-	{
-		return;
-	}
-
+	CHKVOID(vdb);
 	CHKVOID(priority < 3);
-	sdr_stage(sdr, (char *) &stats, vdb->recvStats, sizeof(BpCosStats));
-	tally = stats.tallies + priority;
-	tally->totalCount += 1;
-	tally->totalBytes += size;
-	tally->currentCount += 1;
-	tally->currentBytes += size;
-	offset = (char *) tally - ((char *) &stats);
-
-	/*	Re-check transaction before write in case of race.	*/
-
-	if (!(sdr_in_xn(sdr)))
-	{
-		return;
-	}
-
-	sdr_write(sdr, vdb->recvStats + offset, (char *) tally, sizeof(Tally));
+	atomic_fetch_add(&vdb->recvDeltas[priority].deltaCount, 1);
+	atomic_fetch_add(&vdb->recvDeltas[priority].deltaBytes, (uvast) size);
 }
 
 void	bpDiscardTally(unsigned int priority, unsigned int size)
 {
-	Sdr		sdr = getIonsdr();
-	BpVdb		*vdb = getBpVdb();
-	BpCosStats	stats;
-	Tally		*tally;
-	int		offset;
+	BpVdb	*vdb = getBpVdb();
 
-	CHKVOID(vdb && vdb->discardStats);
-	if (!(vdb->updateStats))
-	{
-		return;
-	}
-
-	/*	Defensive check: skip stats update if not in transaction.
-	 *	Use sdr_in_xn directly to handle race with ionrestart.	*/
-
-	if (!(sdr_in_xn(sdr)))
-	{
-		return;
-	}
-
+	CHKVOID(vdb);
 	CHKVOID(priority < 3);
-	sdr_stage(sdr, (char *) &stats, vdb->discardStats, sizeof(BpCosStats));
-	tally = stats.tallies + priority;
-	tally->totalCount += 1;
-	tally->totalBytes += size;
-	tally->currentCount += 1;
-	tally->currentBytes += size;
-	offset = (char *) tally - ((char *) &stats);
-
-	/*	Re-check transaction before write in case of race.	*/
-
-	if (!(sdr_in_xn(sdr)))
-	{
-		return;
-	}
-
-	sdr_write(sdr, vdb->discardStats + offset, (char *) tally,
-			sizeof(Tally));
+	atomic_fetch_add(&vdb->discardDeltas[priority].deltaCount, 1);
+	atomic_fetch_add(&vdb->discardDeltas[priority].deltaBytes,
+			(uvast) size);
 }
 
 void	bpXmitTally(unsigned int priority, unsigned int size)
 {
-	Sdr		sdr = getIonsdr();
-	BpVdb		*vdb = getBpVdb();
-	BpCosStats	stats;
-	Tally		*tally;
-	int		offset;
+	BpVdb	*vdb = getBpVdb();
 
-	CHKVOID(vdb && vdb->xmitStats);
-	if (!(vdb->updateStats))
-	{
-		return;
-	}
-
-	/*	Defensive check: skip stats update if not in transaction.
-	 *	Use sdr_in_xn directly to handle race with ionrestart.	*/
-
-	if (!(sdr_in_xn(sdr)))
-	{
-		return;
-	}
-
+	CHKVOID(vdb);
 	CHKVOID(priority < 3);
-	sdr_stage(sdr, (char *) &stats, vdb->xmitStats, sizeof(BpCosStats));
-	tally = stats.tallies + priority;
-	tally->totalCount += 1;
-	tally->totalBytes += size;
-	tally->currentCount += 1;
-	tally->currentBytes += size;
-	offset = (char *) tally - ((char *) &stats);
-
-	/*	Re-check transaction before write in case of race.	*/
-
-	if (!(sdr_in_xn(sdr)))
-	{
-		return;
-	}
-
-	sdr_write(sdr, vdb->xmitStats + offset, (char *) tally, sizeof(Tally));
+	atomic_fetch_add(&vdb->xmitDeltas[priority].deltaCount, 1);
+	atomic_fetch_add(&vdb->xmitDeltas[priority].deltaBytes, (uvast) size);
 }
 
 void	bpDelTally(unsigned int reason)
 {
-	Sdr		sdr = getIonsdr();
-	BpVdb		*vdb = getBpVdb();
-	BpDelStats	stats;
+	BpVdb	*vdb = getBpVdb();
 
-	CHKVOID(vdb && vdb->delStats);
-	if (!(vdb->updateStats))
-	{
-		return;
-	}
-
-	/*	Defensive check: skip stats update if not in transaction.
-	 *	Use sdr_in_xn directly to handle race with ionrestart.	*/
-
-	if (!(sdr_in_xn(sdr)))
-	{
-		return;
-	}
-
+	CHKVOID(vdb);
 	CHKVOID(reason < BP_REASON_STATS);
-	sdr_stage(sdr, (char *) &stats, vdb->delStats, sizeof(BpDelStats));
-	stats.totalDelByReason[reason] += 1;
-	stats.currentDelByReason[reason] += 1;
-
-	/*	Re-check transaction before write in case of race.	*/
-
-	if (!(sdr_in_xn(sdr)))
-	{
-		return;
-	}
-
-	sdr_write(sdr, vdb->delStats, (char *) &stats, sizeof(BpDelStats));
+	atomic_fetch_add(&vdb->delDeltas[reason], 1);
 }
 
 void	bpDbTally(unsigned int idx, unsigned int size)
 {
-	Sdr		sdr = getIonsdr();
-	BpVdb		*vdb = getBpVdb();
-	BpDbStats	stats;
-	Tally		*tally;
-	int		offset;
+	BpVdb	*vdb = getBpVdb();
 
-	CHKVOID(vdb && vdb->dbStats);
+	CHKVOID(vdb);
+	CHKVOID(idx < BP_DB_STATS);
+	atomic_fetch_add(&vdb->dbDeltas[idx].deltaCount, 1);
+	atomic_fetch_add(&vdb->dbDeltas[idx].deltaBytes, (uvast) size);
+}
+
+/*	*	*	BP statistics flush functions	*	*	*/
+
+/*	Helper: flush a TallyDelta array into a Tally array.
+ *	Returns 1 if any deltas were nonzero, 0 otherwise.		*/
+
+static int	flushTallyDeltas(TallyDelta *deltas, Tally *tallies, int count)
+{
+	int		i;
+	unsigned int	dCount;
+	uvast		dBytes;
+	int		modified = 0;
+
+	for (i = 0; i < count; i++)
+	{
+		dCount = atomic_exchange(&deltas[i].deltaCount, 0);
+		dBytes = atomic_exchange(&deltas[i].deltaBytes, 0);
+		if (dCount > 0 || dBytes > 0)
+		{
+			tallies[i].totalCount += dCount;
+			tallies[i].totalBytes += dBytes;
+			tallies[i].currentCount += dCount;
+			tallies[i].currentBytes += dBytes;
+			modified = 1;
+		}
+	}
+
+	return modified;
+}
+
+/*	Helper: flush a BpCosStats (3-priority Tally array).		*/
+
+static int	flushCosDeltas(Sdr sdr, TallyDelta *deltas, Object statsAddr)
+{
+	BpCosStats	stats;
+
+	if (statsAddr == 0)
+	{
+		return 0;
+	}
+
+	sdr_stage(sdr, (char *) &stats, statsAddr, sizeof(BpCosStats));
+	if (flushTallyDeltas(deltas, stats.tallies, 3))
+	{
+		sdr_write(sdr, statsAddr, (char *) &stats, sizeof(BpCosStats));
+	}
+
+	return 0;
+}
+
+int	bpFlushVdbStats(Sdr sdr, BpVdb *vdb)
+{
+	BpDelStats	delStats;
+	int		i;
+	unsigned int	dCount;
+	int		modified;
+
+	CHKERR(vdb);
 	if (!(vdb->updateStats))
 	{
-		return;
+		/*	Stats disabled; just drain deltas.		*/
+
+		for (i = 0; i < 3; i++)
+		{
+			atomic_exchange(&vdb->sourceDeltas[i].deltaCount, 0);
+			atomic_exchange(&vdb->sourceDeltas[i].deltaBytes, 0);
+			atomic_exchange(&vdb->recvDeltas[i].deltaCount, 0);
+			atomic_exchange(&vdb->recvDeltas[i].deltaBytes, 0);
+			atomic_exchange(&vdb->discardDeltas[i].deltaCount, 0);
+			atomic_exchange(&vdb->discardDeltas[i].deltaBytes, 0);
+			atomic_exchange(&vdb->xmitDeltas[i].deltaCount, 0);
+			atomic_exchange(&vdb->xmitDeltas[i].deltaBytes, 0);
+		}
+
+		for (i = 0; i < BP_REASON_STATS; i++)
+		{
+			atomic_exchange(&vdb->delDeltas[i], 0);
+		}
+
+		for (i = 0; i < BP_DB_STATS; i++)
+		{
+			atomic_exchange(&vdb->dbDeltas[i].deltaCount, 0);
+			atomic_exchange(&vdb->dbDeltas[i].deltaBytes, 0);
+		}
+
+		return 0;
 	}
 
-	/*	Defensive check: skip stats update if not in transaction.
-	 *	Use sdr_in_xn directly to handle race with ionrestart.	*/
+	/*	Flush CoS stats (source, recv, discard, xmit).		*/
 
-	if (!(sdr_in_xn(sdr)))
+	if (flushCosDeltas(sdr, vdb->sourceDeltas, vdb->sourceStats) < 0)
 	{
-		return;
+		return -1;
 	}
 
-	CHKVOID(idx < BP_DB_STATS);
-	sdr_stage(sdr, (char *) &stats, vdb->dbStats, sizeof(BpDbStats));
-	tally = stats.tallies + idx;
-	tally->totalCount += 1;
-	tally->totalBytes += size;
-	tally->currentCount += 1;
-	tally->currentBytes += size;
-	offset = (char *) tally - ((char *) &stats);
-
-	/*	Re-check transaction before write in case of race.	*/
-
-	if (!(sdr_in_xn(sdr)))
+	if (flushCosDeltas(sdr, vdb->recvDeltas, vdb->recvStats) < 0)
 	{
-		return;
+		return -1;
 	}
 
-	sdr_write(sdr, vdb->dbStats + offset, (char *) tally, sizeof(Tally));
+	if (flushCosDeltas(sdr, vdb->discardDeltas, vdb->discardStats) < 0)
+	{
+		return -1;
+	}
+
+	if (flushCosDeltas(sdr, vdb->xmitDeltas, vdb->xmitStats) < 0)
+	{
+		return -1;
+	}
+
+	/*	Flush deletion stats (count only, no bytes).		*/
+
+	if (vdb->delStats != 0)
+	{
+		sdr_stage(sdr, (char *) &delStats, vdb->delStats,
+				sizeof(BpDelStats));
+		modified = 0;
+		for (i = 0; i < BP_REASON_STATS; i++)
+		{
+			dCount = atomic_exchange(&vdb->delDeltas[i], 0);
+			if (dCount > 0)
+			{
+				delStats.totalDelByReason[i] += dCount;
+				delStats.currentDelByReason[i] += dCount;
+				modified = 1;
+			}
+		}
+
+		if (modified)
+		{
+			sdr_write(sdr, vdb->delStats, (char *) &delStats,
+					sizeof(BpDelStats));
+		}
+	}
+
+	/*	Flush database-level stats.				*/
+
+	if (vdb->dbStats != 0)
+	{
+		BpDbStats	dbStats;
+
+		sdr_stage(sdr, (char *) &dbStats, vdb->dbStats,
+				sizeof(BpDbStats));
+		if (flushTallyDeltas(vdb->dbDeltas, dbStats.tallies,
+				BP_DB_STATS))
+		{
+			sdr_write(sdr, vdb->dbStats, (char *) &dbStats,
+					sizeof(BpDbStats));
+		}
+	}
+
+	return 0;
+}
+
+int	bpFlushPlanStats(Sdr sdr, VPlan *vplan)
+{
+	PlanStats	stats;
+
+	CHKERR(vplan);
+	if (!(vplan->updateStats) || vplan->stats == 0)
+	{
+		int	i;
+
+		for (i = 0; i < BP_PLAN_STATS; i++)
+		{
+			atomic_exchange(&vplan->statsDeltas[i].deltaCount, 0);
+			atomic_exchange(&vplan->statsDeltas[i].deltaBytes, 0);
+		}
+
+		return 0;
+	}
+
+	sdr_stage(sdr, (char *) &stats, vplan->stats, sizeof(PlanStats));
+	if (flushTallyDeltas(vplan->statsDeltas, stats.tallies, BP_PLAN_STATS))
+	{
+		sdr_write(sdr, vplan->stats, (char *) &stats,
+				sizeof(PlanStats));
+	}
+
+	return 0;
+}
+
+int	bpFlushInductStats(Sdr sdr, VInduct *vduct)
+{
+	InductStats	stats;
+
+	CHKERR(vduct);
+	if (!(vduct->updateStats) || vduct->stats == 0)
+	{
+		int	i;
+
+		for (i = 0; i < BP_INDUCT_STATS; i++)
+		{
+			atomic_exchange(&vduct->statsDeltas[i].deltaCount, 0);
+			atomic_exchange(&vduct->statsDeltas[i].deltaBytes, 0);
+		}
+
+		return 0;
+	}
+
+	sdr_stage(sdr, (char *) &stats, vduct->stats, sizeof(InductStats));
+	if (flushTallyDeltas(vduct->statsDeltas, stats.tallies,
+			BP_INDUCT_STATS))
+	{
+		sdr_write(sdr, vduct->stats, (char *) &stats,
+				sizeof(InductStats));
+	}
+
+	return 0;
+}
+
+int	bpFlushEndpointStats(Sdr sdr, VEndpoint *vpoint)
+{
+	EndpointStats	stats;
+
+	CHKERR(vpoint);
+	if (!(vpoint->updateStats) || vpoint->stats == 0)
+	{
+		int	i;
+
+		for (i = 0; i < BP_ENDPOINT_STATS; i++)
+		{
+			atomic_exchange(&vpoint->statsDeltas[i].deltaCount, 0);
+			atomic_exchange(&vpoint->statsDeltas[i].deltaBytes, 0);
+		}
+
+		return 0;
+	}
+
+	sdr_stage(sdr, (char *) &stats, vpoint->stats, sizeof(EndpointStats));
+	if (flushTallyDeltas(vpoint->statsDeltas, stats.tallies,
+			BP_ENDPOINT_STATS))
+	{
+		sdr_write(sdr, vpoint->stats, (char *) &stats,
+				sizeof(EndpointStats));
+	}
+
+	return 0;
 }
 
 /*	*	*	BP service control functions	*	*	*/
@@ -579,6 +540,16 @@ static int	raiseEndpoint(VScheme *vscheme, Object endpointElt)
 	vpoint->updateStats = endpoint.updateStats;
 	istrcpy(vpoint->nss, endpoint.nss, sizeof vpoint->nss);
 	vpoint->semaphore = SM_SEM_NONE;
+	{
+		int	i;
+
+		for (i = 0; i < BP_ENDPOINT_STATS; i++)
+		{
+			atomic_init(&vpoint->statsDeltas[i].deltaCount, 0);
+			atomic_init(&vpoint->statsDeltas[i].deltaBytes, 0);
+		}
+	}
+
 	resetEndpoint(vpoint);
 	return 0;
 }
@@ -967,6 +938,15 @@ static int	raisePlan(Object planElt, BpVdb *bpvdb)
 	istrcpy(vplan->neighborEid, plan.neighborEid, sizeof plan.neighborEid);
 	vplan->neighborFqnn = plan.neighborFqnn;
 	vplan->semaphore = SM_SEM_NONE;
+	{
+		int	i;
+
+		for (i = 0; i < BP_PLAN_STATS; i++)
+		{
+			atomic_init(&vplan->statsDeltas[i].deltaCount, 0);
+			atomic_init(&vplan->statsDeltas[i].deltaBytes, 0);
+		}
+	}
 	vplan->xmitThrottle.nominalRate = plan.nominalRate;
 	vplan->xmitThrottle.capacity = plan.nominalRate;
 	resetPlan(vplan);
@@ -1100,6 +1080,16 @@ static int	raiseInduct(Object inductElt, BpVdb *bpvdb)
 	vduct->updateStats = duct.updateStats;
 	istrcpy(vduct->protocolName, protocol.name, sizeof vduct->protocolName);
 	istrcpy(vduct->ductName, duct.name, sizeof vduct->ductName);
+	{
+		int	i;
+
+		for (i = 0; i < BP_INDUCT_STATS; i++)
+		{
+			atomic_init(&vduct->statsDeltas[i].deltaCount, 0);
+			atomic_init(&vduct->statsDeltas[i].deltaBytes, 0);
+		}
+	}
+
 	resetInduct(vduct);
 	return 0;
 }
@@ -1465,6 +1455,37 @@ static BpVdb	*_bpvdb(char **name)
 		vdb->delStats = db->delStats;
 		vdb->dbStats = db->dbStats;
 		vdb->updateStats = db->updateStats;
+		{
+			int	i;
+
+			for (i = 0; i < 3; i++)
+			{
+				atomic_init(&vdb->sourceDeltas[i].deltaCount,
+						0);
+				atomic_init(&vdb->sourceDeltas[i].deltaBytes,
+						0);
+				atomic_init(&vdb->recvDeltas[i].deltaCount, 0);
+				atomic_init(&vdb->recvDeltas[i].deltaBytes, 0);
+				atomic_init(&vdb->discardDeltas[i].deltaCount,
+						0);
+				atomic_init(&vdb->discardDeltas[i].deltaBytes,
+						0);
+				atomic_init(&vdb->xmitDeltas[i].deltaCount, 0);
+				atomic_init(&vdb->xmitDeltas[i].deltaBytes, 0);
+			}
+
+			for (i = 0; i < BP_REASON_STATS; i++)
+			{
+				atomic_init(&vdb->delDeltas[i], 0);
+			}
+
+			for (i = 0; i < BP_DB_STATS; i++)
+			{
+				atomic_init(&vdb->dbDeltas[i].deltaCount, 0);
+				atomic_init(&vdb->dbDeltas[i].deltaBytes, 0);
+			}
+		}
+
 		vdb->bundleCounter = 0;
 		vdb->clockPid = ERROR;
 		vdb->cpsdPid = ERROR;

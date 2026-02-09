@@ -430,6 +430,7 @@ typedef struct
 	char		nss[MAX_NSS_LEN + 1];
 	int		appPid;		/*	Consumes dlv notices.	*/
 	sm_SemId	semaphore;	/*	For dlv notices.	*/
+	TallyDelta	statsDeltas[BP_ENDPOINT_STATS];
 } VEndpoint;
 
 /*	Definitions supporting the use of QOS-sensitive bandwidth
@@ -519,6 +520,7 @@ typedef struct
 	int		clmPid;		/*	For stopping the CLM.	*/
 	sm_SemId	semaphore;	/*	Queue non-empty.	*/
 	Throttle	xmitThrottle;	/*	For rate control.	*/
+	TallyDelta	statsDeltas[BP_PLAN_STATS];
 } VPlan;
 
 /*	*	*	Induct structures	*	*	*	*/
@@ -552,6 +554,7 @@ typedef struct
 	char		protocolName[MAX_CL_PROTOCOL_NAME_LEN + 1];
 	char		ductName[MAX_CL_DUCT_NAME_LEN + 1];
 	int		cliPid;		/*	For stopping the CLI.	*/
+	TallyDelta	statsDeltas[BP_INDUCT_STATS];
 } VInduct;
 
 /*	*	*	Outduct structures	*	*	*	*/
@@ -792,6 +795,16 @@ typedef struct
 	Object		delStats;	/*	BpDelStats address.	*/
 	Object		dbStats;	/*	BpDbStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
+
+	/*	Batched statistics delta counters.			*/
+
+	TallyDelta	sourceDeltas[3];
+	TallyDelta	recvDeltas[3];
+	TallyDelta	discardDeltas[3];
+	TallyDelta	xmitDeltas[3];
+	atomic_uint	delDeltas[BP_REASON_STATS];	/*	Count only.	*/
+	TallyDelta	dbDeltas[BP_DB_STATS];
+
 	int		bundleCounter;
 	int		clockPid;	/*	For stopping bpclock.	*/
 	int		cpsdPid;	/*	For stopping cpsd.	*/
@@ -1431,6 +1444,11 @@ extern void		bpPlanTally(VPlan *vplan, unsigned int idx,
 				unsigned int size);
 extern void		bpXmitTally(unsigned int priority, unsigned int size);
 extern void		bpDbTally(unsigned int idx, unsigned int size);
+
+extern int		bpFlushVdbStats(Sdr sdr, BpVdb *vdb);
+extern int		bpFlushPlanStats(Sdr sdr, VPlan *vplan);
+extern int		bpFlushInductStats(Sdr sdr, VInduct *vduct);
+extern int		bpFlushEndpointStats(Sdr sdr, VEndpoint *vpoint);
 
 typedef int		(*StatusRptCB)(BpDelivery *, unsigned char *,
 				unsigned int);

@@ -1,0 +1,2 @@
+Tests that BP batched statistics tally functions produce correct counts
+after sending multiple batches of bundles over an LTP loopback.
