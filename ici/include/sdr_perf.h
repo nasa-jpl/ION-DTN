@@ -62,11 +62,13 @@ typedef struct
 	SdrPerfCaller	callers[SDR_PERF_CALLER_BUCKETS];
 } SdrPerfCounters;
 
-/*	Helper macro for time difference in microseconds.		*/
+/*	Helper macro for time difference in microseconds (signed).
+ *	Result is a long; callers must clamp negative values to 0
+ *	since gettimeofday is not monotonic and may go backwards.	*/
 
 #define SDR_PERF_TIME_DIFF_US(start, end) \
-	(((end).tv_sec - (start).tv_sec) * 1000000UL + \
-	 ((end).tv_usec - (start).tv_usec))
+	(((long)((end).tv_sec - (start).tv_sec)) * 1000000L + \
+	 ((long)(end).tv_usec - (long)(start).tv_usec))
 
 /*	Function prototypes.						*/
 

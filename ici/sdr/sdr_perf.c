@@ -41,12 +41,15 @@ void	sdr_perf_xn_begin(SdrPerfStats *stats, const char *file, int line)
 
 void	sdr_perf_xn_end(SdrPerfCounters *counters, SdrPerfStats *stats)
 {
+	long		xnTimeSigned;
 	unsigned long	xnTime;
 	unsigned int	bucket;
 	SdrPerfCaller	*caller;
 
 	getCurrentTime(&stats->xnEndTime);
-	xnTime = SDR_PERF_TIME_DIFF_US(stats->xnStartTime, stats->xnEndTime);
+	xnTimeSigned = SDR_PERF_TIME_DIFF_US(stats->xnStartTime,
+			stats->xnEndTime);
+	xnTime = (xnTimeSigned > 0) ? (unsigned long) xnTimeSigned : 0;
 
 	counters->xnCount++;
 	counters->totalXnTimeUs += xnTime;
@@ -136,11 +139,16 @@ void	sdr_perf_read_end(SdrPerfStats *stats, struct timeval *start,
 		size_t bytes)
 {
 	struct timeval	end;
+	long		diff;
 
 	getCurrentTime(&end);
 	stats->readCount++;
 	stats->bytesRead += bytes;
-	stats->readTimeUs += SDR_PERF_TIME_DIFF_US(*start, end);
+	diff = SDR_PERF_TIME_DIFF_US(*start, end);
+	if (diff > 0)
+	{
+		stats->readTimeUs += diff;
+	}
 }
 
 void	sdr_perf_write_begin(SdrPerfStats *stats, struct timeval *start)
@@ -153,11 +161,16 @@ void	sdr_perf_write_end(SdrPerfStats *stats, struct timeval *start,
 		size_t bytes)
 {
 	struct timeval	end;
+	long		diff;
 
 	getCurrentTime(&end);
 	stats->writeCount++;
 	stats->bytesWritten += bytes;
-	stats->writeTimeUs += SDR_PERF_TIME_DIFF_US(*start, end);
+	diff = SDR_PERF_TIME_DIFF_US(*start, end);
+	if (diff > 0)
+	{
+		stats->writeTimeUs += diff;
+	}
 }
 
 void	sdr_perf_report_counters(char *sdrName, SdrPerfCounters *counters)
