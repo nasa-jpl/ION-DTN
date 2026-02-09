@@ -1,0 +1,35 @@
+name: Regression Tests for ION on ARC
+
+permissions:
+  contents: read
+
+on:
+  workflow_call:
+    inputs:
+      env_vars:
+        description: 'Space-separated list of environment variables (e.g., "KEY1=VALUE1 KEY2=VALUE2").'
+        required: false
+        type: string
+        default: ""
+      timeout_minutes:
+        description: "Timeout for build and tests in minutes (default: 240 minutes / 4 hours)"
+        required: false
+        type: number
+        default: 240
+  workflow_dispatch:
+    inputs:
+      env_vars:
+        description: 'Space-separated list of environment variables (e.g., "KEY1=VALUE1 KEY2=VALUE2").'
+        required: false
+        type: string
+        default: ""
+      timeout_minutes:
+        description: "Timeout for build and tests in minutes (default: 240 minutes / 4 hours)"
+        required: false
+        type: number
+        default: 240
+
+jobs:
+  setup:
+
+  build-and-test:
