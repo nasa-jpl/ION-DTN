@@ -752,7 +752,7 @@ AC_CHECK_LIB(
   [AC_MSG_ERROR([You need pthread library.]) ]
 )
 
-Check for dynamic linking library and header
+# Check for dynamic linking library and header
 AC_CHECK_HEADER([dlfcn.h], [], [
   AC_MSG_ERROR([required header dlfcn.h not found. Please install the appropriate C library development package (e.g., glibc-devel or libc6-dev).])
 ])
