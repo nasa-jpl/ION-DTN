@@ -528,6 +528,7 @@ typedef struct
 	Object		spanElt;	/*	Reference to LtpSpan.	*/
 	Object		stats;		/*	LtpSpanStats address.	*/
 	int		updateStats;	/*	Boolean.		*/
+	TallyDelta	statsDeltas[LTP_SPAN_STATS];
 	uvast		engineId;	/*	ID of remote engine.	*/
 
 	/*	New explicit configuration parameters.			*/
@@ -849,6 +850,7 @@ extern int		ltpHandleStaleImportSession(uvast engineId,
 
 extern void		ltpSpanTally(LtpVspan *vspan, unsigned int idx,
 				unsigned int size);
+extern int		ltpFlushSpanStats(Sdr sdr, LtpVspan *vspan);
 #if CLOSED_EXPORTS_ENABLED
 extern void 		ltpForgetClosedExport(Object elt);
 #endif

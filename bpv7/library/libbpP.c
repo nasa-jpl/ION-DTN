@@ -2574,9 +2574,52 @@ void	reportAllStateStats(void)
 				recvStats.tallies[1].currentBytes +
 				recvStats.tallies[2].currentBytes);
 
-	/*	Delivered.  Nothing for now; need to poll endpoints.	*/
+	/*	Delivered.  Aggregate delivery tallies from all
+	 *	endpoints across all schemes.				*/
 
-	reportStateStats(4, fromTimestamp, toTimestamp, 0, 0, 0, 0, 0, 0, 0, 0);
+	{
+		Object		schemeElt;
+		Object		endpointElt;
+		Scheme		scheme;
+		Endpoint	endpoint;
+		EndpointStats	epStats;
+		unsigned int	dlvCount = 0;
+		uvast		dlvBytes = 0;
+
+		for (schemeElt = sdr_list_first(sdr, bpdb.schemes);
+				schemeElt;
+				schemeElt = sdr_list_next(sdr, schemeElt))
+		{
+			sdr_read(sdr, (char *) &scheme,
+				sdr_list_data(sdr, schemeElt),
+				sizeof(Scheme));
+			for (endpointElt = sdr_list_first(sdr,
+					scheme.endpoints);
+					endpointElt;
+					endpointElt = sdr_list_next(sdr,
+					endpointElt))
+			{
+				sdr_read(sdr, (char *) &endpoint,
+					sdr_list_data(sdr, endpointElt),
+					sizeof(Endpoint));
+				if (endpoint.stats == 0)
+				{
+					continue;
+				}
+
+				sdr_read(sdr, (char *) &epStats,
+					endpoint.stats,
+					sizeof(EndpointStats));
+				dlvCount += epStats.tallies[
+					BP_ENDPOINT_DELIVERED].currentCount;
+				dlvBytes += epStats.tallies[
+					BP_ENDPOINT_DELIVERED].currentBytes;
+			}
+		}
+
+		reportStateStats(4, fromTimestamp, toTimestamp,
+				0, 0, 0, 0, 0, 0, dlvCount, dlvBytes);
+	}
 
 	/*	Reforwarded.						*/
 

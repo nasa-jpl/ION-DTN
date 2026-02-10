@@ -1,0 +1,342 @@
+#!/usr/bin/env bash
+#
+# 1005.relay-stats
+#
+# Verifies that BP and LTP batched statistics (atomic deltas flushed by
+# bpclock/ltpclock) produce correct counts across a 3-node relay topology:
+#
+#   Node 2 (source) --LTP--> Node 3 (relay) --LTP--> Node 5 (destination)
+#
+# Sends bundles from Node 2 to Node 5 (via Node 3), then checks bpstats
+# and ltpstats on all three nodes to verify:
+#   - Source node: src, xmt counts
+#   - Relay node:  rcv, fwd counts
+#   - Dest node:   rcv, dlv counts
+#   - LTP stats:   segment queued/completed on each node
+#
+CONFIGFILES=" \
+./global.ionrc \
+./2.ipn.ltp/amroc.ltprc \
+./2.ipn.ltp/amroc.bprc \
+./2.ipn.ltp/amroc.ionconfig \
+./2.ipn.ltp/amroc.ionrc \
+./2.ipn.ltp/amroc.ionsecrc \
+./2.ipn.ltp/amroc.ipnrc \
+./3.ipn.ltp/amroc.ltprc \
+./3.ipn.ltp/amroc.bprc \
+./3.ipn.ltp/amroc.ionconfig \
+./3.ipn.ltp/amroc.ionrc \
+./3.ipn.ltp/amroc.ionsecrc \
+./3.ipn.ltp/amroc.ipnrc \
+./5.ipn.ltp/amroc.ltprc \
+./5.ipn.ltp/amroc.bprc \
+./5.ipn.ltp/amroc.ionconfig \
+./5.ipn.ltp/amroc.ionrc \
+./5.ipn.ltp/amroc.ionsecrc \
+./5.ipn.ltp/amroc.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify BP and LTP batched statistics produce correct counts"
+echo "    across a 3-node relay topology (source -> relay -> destination)."
+echo
+echo "CONFIG: 3 node custom: Node 2 (src) -> Node 3 (relay) -> Node 5 (dst)"
+echo
+echo "########################################"
+
+BUNDLE_COUNT=30
+IONRECEIVEFILE=./5.ipn.ltp/ionreceivefile.txt
+
+# ---------------------------------------------------------------
+# extract_bp_stat <category> <ion.log path>
+#   Parse the last bpstats snapshot for the given category and
+#   print the "(+) total_count".
+# ---------------------------------------------------------------
+extract_bp_stat () {
+    grep "\[x\] $1 " "$2" | tail -1 | \
+        sed 's/.*(+) \([0-9][0-9]*\) .*/\1/'
+}
+
+# ---------------------------------------------------------------
+# extract_ltp_stat <statName> <ion.log path>
+#   Parse ltpstats snapshot for the given stat name and print the
+#   sum of counts across all spans (a node may have multiple spans).
+# ---------------------------------------------------------------
+extract_ltp_stat () {
+    grep "\[x\] span [0-9]* $1 " "$2" | \
+        awk '{sum += $(NF-1)} END {print sum+0}'
+}
+
+# ---------------------------------------------------------------
+# check_ge <label> <actual> <expected>
+#   Verify actual >= expected.  Sets PASS=0 on failure.
+# ---------------------------------------------------------------
+check_ge () {
+    local label=$1
+    local actual=$2
+    local expected=$3
+
+    if [ -z "$actual" ] || [ "$actual" -lt "$expected" ] 2>/dev/null
+    then
+        echo "FAIL: $label ($actual) < expected ($expected)"
+        PASS=0
+    fi
+}
+
+# ---------------------------------------------------------------
+# check_gt_zero <label> <actual>
+#   Verify actual > 0.  Sets PASS=0 on failure.
+# ---------------------------------------------------------------
+check_gt_zero () {
+    local label=$1
+    local actual=$2
+
+    if [ -z "$actual" ] || [ "$actual" -le 0 ] 2>/dev/null
+    then
+        echo "FAIL: $label is zero or missing ($actual)"
+        PASS=0
+    fi
+}
+
+# ===============================================================
+#  Setup
+# ===============================================================
+
+echo "Cleaning up old ION..."
+rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 5.ipn.ltp/ion.log
+rm -f $IONRECEIVEFILE
+killm
+sleep 1
+
+echo "Starting ION (3 nodes)..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+cd 2.ipn.ltp
+ionadmin amroc.ionrc
+cd ../3.ipn.ltp
+ionadmin amroc.ionrc
+cd ../5.ipn.ltp
+ionadmin amroc.ionrc
+
+cd ../2.ipn.ltp
+ionadmin global.ionrc &
+cd ../3.ipn.ltp
+ionadmin global.ionrc &
+cd ../5.ipn.ltp
+ionadmin global.ionrc &
+
+cd ../2.ipn.ltp
+ionsecadmin amroc.ionsecrc &
+cd ../3.ipn.ltp
+ionsecadmin amroc.ionsecrc &
+cd ../5.ipn.ltp
+ionsecadmin amroc.ionsecrc &
+
+cd ../2.ipn.ltp
+ltpadmin amroc.ltprc &
+cd ../3.ipn.ltp
+ltpadmin amroc.ltprc &
+cd ../5.ipn.ltp
+ltpadmin amroc.ltprc &
+
+cd ../2.ipn.ltp
+bpadmin amroc.bprc &
+cd ../3.ipn.ltp
+bpadmin amroc.bprc &
+cd ../5.ipn.ltp
+bpadmin amroc.bprc &
+
+cd ../2.ipn.ltp
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+if [ $? -eq 3 ]
+then
+    echo ""
+else
+    echo "Node 2 not started: Aborting Test"
+    exit 1
+fi
+
+cd ../3.ipn.ltp
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+if [ $? -eq 3 ]
+then
+    echo ""
+else
+    echo "Node 3 not started: Aborting Test"
+    exit 1
+fi
+
+cd ../5.ipn.ltp
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+if [ $? -eq 3 ]
+then
+    echo ""
+else
+    echo "Node 5 not started: Aborting Test"
+    exit 1
+fi
+
+# Let all processes settle.
+sleep 5
+
+# ===============================================================
+#  Start receiver and send bundles
+# ===============================================================
+
+echo "Starting bpsink on ipn:5.1..."
+cd ../5.ipn.ltp
+bpsink ipn:5.1 > ionreceivefile.txt &
+BPSINKPID=$!
+sleep 2
+
+echo "Sending $BUNDLE_COUNT bundles from Node 2 to ipn:5.1..."
+cd ../2.ipn.ltp
+SENDFILE=./ionsendfile.txt
+i=1
+while [ $i -le $BUNDLE_COUNT ]
+do
+    echo "relay-stats-msg-${i}" > $SENDFILE
+    echo "!" >> $SENDFILE
+    bpsource ipn:5.1 < $SENDFILE 1>/dev/null 2>/dev/null
+    i=$((i + 1))
+done
+
+# Wait for delivery at Node 5.
+echo "Waiting for delivery..."
+cd ../5.ipn.ltp
+TIMEOUT=60
+ELAPSED=0
+while [ $ELAPSED -lt $TIMEOUT ]
+do
+    GOT=$(grep -c "^ION event: Payload delivered\." ionreceivefile.txt 2>/dev/null || echo 0)
+    if [ "$GOT" -ge "$BUNDLE_COUNT" ]
+    then
+        echo "All $BUNDLE_COUNT bundles delivered."
+        break
+    fi
+    sleep 1
+    ELAPSED=$((ELAPSED + 1))
+done
+
+if [ "$GOT" -lt "$BUNDLE_COUNT" ]
+then
+    echo "FAIL: delivery timed out (got $GOT of $BUNDLE_COUNT after ${TIMEOUT}s)"
+    kill -2 $BPSINKPID >/dev/null 2>&1; sleep 1; kill -9 $BPSINKPID >/dev/null 2>&1
+    cd ..
+    killm
+    exit 1
+fi
+
+# Give bpclock/ltpclock at least 3 seconds to flush deltas.
+sleep 3
+
+# ===============================================================
+#  Collect statistics on all 3 nodes
+# ===============================================================
+
+echo "Collecting statistics..."
+cd ../2.ipn.ltp
+bpstats
+ltpstats -a
+sleep 1
+
+cd ../3.ipn.ltp
+bpstats
+ltpstats -a
+sleep 1
+
+cd ../5.ipn.ltp
+bpstats
+ltpstats -a
+sleep 1
+
+cd ..
+
+# ===============================================================
+#  Validate BP statistics
+# ===============================================================
+
+PASS=1
+
+echo ""
+echo "=== BP Statistics ==="
+
+# Node 2 (source): src and xmt
+N2_SRC=$(extract_bp_stat src 2.ipn.ltp/ion.log)
+N2_XMT=$(extract_bp_stat xmt 2.ipn.ltp/ion.log)
+echo "Node 2 (source): src=$N2_SRC xmt=$N2_XMT"
+check_ge "Node 2 src" "$N2_SRC" "$BUNDLE_COUNT"
+check_ge "Node 2 xmt" "$N2_XMT" "$BUNDLE_COUNT"
+
+# Node 3 (relay): rcv and fwd
+N3_RCV=$(extract_bp_stat rcv 3.ipn.ltp/ion.log)
+N3_FWD=$(extract_bp_stat fwd 3.ipn.ltp/ion.log)
+echo "Node 3 (relay):  rcv=$N3_RCV fwd=$N3_FWD"
+check_ge "Node 3 rcv" "$N3_RCV" "$BUNDLE_COUNT"
+check_ge "Node 3 fwd" "$N3_FWD" "$BUNDLE_COUNT"
+
+# Node 5 (dest): rcv and dlv
+N5_RCV=$(extract_bp_stat rcv 5.ipn.ltp/ion.log)
+N5_DLV=$(extract_bp_stat dlv 5.ipn.ltp/ion.log)
+echo "Node 5 (dest):   rcv=$N5_RCV dlv=$N5_DLV"
+check_ge "Node 5 rcv" "$N5_RCV" "$BUNDLE_COUNT"
+check_ge "Node 5 dlv" "$N5_DLV" "$BUNDLE_COUNT"
+
+# ===============================================================
+#  Validate LTP statistics
+# ===============================================================
+
+echo ""
+echo "=== LTP Statistics ==="
+
+# Node 2 (source): sent segments out
+N2_LTP_OUT=$(extract_ltp_stat out_seg_queued 2.ipn.ltp/ion.log)
+N2_LTP_EXP=$(extract_ltp_stat export_complete 2.ipn.ltp/ion.log)
+echo "Node 2 (source): out_seg_queued=$N2_LTP_OUT export_complete=$N2_LTP_EXP"
+check_gt_zero "Node 2 out_seg_queued" "$N2_LTP_OUT"
+check_gt_zero "Node 2 export_complete" "$N2_LTP_EXP"
+
+# Node 3 (relay): both inbound and outbound
+N3_LTP_OUT=$(extract_ltp_stat out_seg_queued 3.ipn.ltp/ion.log)
+N3_LTP_IN=$(extract_ltp_stat in_seg_recv_red 3.ipn.ltp/ion.log)
+echo "Node 3 (relay):  out_seg_queued=$N3_LTP_OUT in_seg_recv_red=$N3_LTP_IN"
+check_gt_zero "Node 3 out_seg_queued" "$N3_LTP_OUT"
+check_gt_zero "Node 3 in_seg_recv_red" "$N3_LTP_IN"
+
+# Node 5 (dest): received segments
+N5_LTP_IN=$(extract_ltp_stat in_seg_recv_red 5.ipn.ltp/ion.log)
+N5_LTP_IMP=$(extract_ltp_stat import_complete 5.ipn.ltp/ion.log)
+echo "Node 5 (dest):   in_seg_recv_red=$N5_LTP_IN import_complete=$N5_LTP_IMP"
+check_gt_zero "Node 5 in_seg_recv_red" "$N5_LTP_IN"
+check_gt_zero "Node 5 import_complete" "$N5_LTP_IMP"
+
+# ===============================================================
+#  Teardown
+# ===============================================================
+
+echo ""
+echo "Stopping bpsink..."
+kill -2 $BPSINKPID >/dev/null 2>&1
+sleep 1
+kill -9 $BPSINKPID >/dev/null 2>&1
+
+echo "Stopping ION..."
+killm
+
+if [ $PASS -eq 1 ]
+then
+    echo ""
+    echo "OK: 3-node relay BP/LTP statistics test passed."
+    echo "  BP:  N2(src=$N2_SRC xmt=$N2_XMT) N3(rcv=$N3_RCV fwd=$N3_FWD) N5(rcv=$N5_RCV dlv=$N5_DLV)"
+    echo "  LTP: N2(out=$N2_LTP_OUT exp=$N2_LTP_EXP) N3(out=$N3_LTP_OUT in=$N3_LTP_IN) N5(in=$N5_LTP_IN imp=$N5_LTP_IMP)"
+    exit 0
+else
+    echo ""
+    echo "FAIL: 3-node relay BP/LTP statistics test failed."
+    exit 1
+fi

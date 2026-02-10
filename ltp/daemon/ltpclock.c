@@ -292,6 +292,26 @@ static int	manageLinks(Sdr sdr, time_t currentTime)
 	return 0;
 }
 
+static int	flushLtpStats(Sdr sdr)
+{
+	PsmPartition	ltpwm = getIonwm();
+	LtpVdb		*ltpvdb = getLtpVdb();
+	PsmAddress	elt;
+	LtpVspan	*vspan;
+
+	for (elt = sm_list_first(ltpwm, ltpvdb->spans); elt;
+			elt = sm_list_next(ltpwm, elt))
+	{
+		vspan = (LtpVspan *) psp(ltpwm, sm_list_data(ltpwm, elt));
+		if (ltpFlushSpanStats(sdr, vspan) < 0)
+		{
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
 #if defined (ION_LWT)
 int	ltpclock(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
@@ -335,6 +355,26 @@ int	main(void)
 		{
 			putErrmsg("Can't manage links.", NULL);
 			state = 0;	/*	Terminate loop.		*/
+			oK(_running(&state));
+			continue;
+		}
+
+		/*	Flush accumulated statistics deltas to SDR.	*/
+
+		CHKERR(sdr_begin_xn(sdr));
+		if (flushLtpStats(sdr) < 0)
+		{
+			sdr_cancel_xn(sdr);
+			putErrmsg("Can't flush LTP statistics.", NULL);
+			state = 0;
+			oK(_running(&state));
+			continue;
+		}
+
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("ltpclock failed flushing stats.", NULL);
+			state = 0;
 			oK(_running(&state));
 			continue;
 		}

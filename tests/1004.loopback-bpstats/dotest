@@ -51,6 +51,18 @@ extract_stat () {
 }
 
 # ---------------------------------------------------------------
+# extract_ltp_stat <statName>
+#   Parse the last ltpstats snapshot in ion.log for the given
+#   stat name and print the count value.
+# ---------------------------------------------------------------
+extract_ltp_stat () {
+    # ltpstats output line format (with timestamp prefix):
+    # [ts] [x] span <eid> <statName> from <ts> to <ts>: <count> <bytes>
+    grep "\[x\] span [0-9]* $1 " ion.log | tail -1 | \
+        awk '{print $(NF-1)}'
+}
+
+# ---------------------------------------------------------------
 # send_batch <count>
 #   Send <count> bundles via bpsource ipn:1.1
 # ---------------------------------------------------------------
@@ -145,8 +157,9 @@ sleep 1
 SRC1=$(extract_stat src)
 XMT1=$(extract_stat xmt)
 RCV1=$(extract_stat rcv)
+DLV1=$(extract_stat dlv)
 
-echo "After batch 1: src=$SRC1 xmt=$XMT1 rcv=$RCV1"
+echo "After batch 1: src=$SRC1 xmt=$XMT1 rcv=$RCV1 dlv=$DLV1"
 
 # Sanity: src count must be >= BATCH1_COUNT
 if [ -z "$SRC1" ] || [ "$SRC1" -lt "$BATCH1_COUNT" ]
@@ -181,8 +194,9 @@ sleep 1
 SRC2=$(extract_stat src)
 XMT2=$(extract_stat xmt)
 RCV2=$(extract_stat rcv)
+DLV2=$(extract_stat dlv)
 
-echo "After batch 2: src=$SRC2 xmt=$XMT2 rcv=$RCV2"
+echo "After batch 2: src=$SRC2 xmt=$XMT2 rcv=$RCV2 dlv=$DLV2"
 
 # ---- Validation ----
 PASS=1
@@ -206,6 +220,12 @@ then
     PASS=0
 fi
 
+if [ -z "$DLV2" ] || [ "$DLV2" -lt "$TOTAL_COUNT" ]
+then
+    echo "FAIL: dlv count ($DLV2) < total sent ($TOTAL_COUNT)"
+    PASS=0
+fi
+
 # 2) Counts must have increased between batch 1 and batch 2.
 if [ "$SRC2" -le "$SRC1" ]
 then
@@ -225,12 +245,44 @@ then
     PASS=0
 fi
 
+if [ "$DLV2" -le "$DLV1" ]
+then
+    echo "FAIL: dlv count did not increase ($DLV1 -> $DLV2)"
+    PASS=0
+fi
+
 # 3) No stat should be a wild unsigned-underflow value (> 1 billion).
-for STAT in "$SRC2" "$XMT2" "$RCV2"
+for STAT in "$SRC2" "$XMT2" "$RCV2" "$DLV2"
 do
     if [ "$STAT" -gt 1000000000 ] 2>/dev/null
     then
         echo "FAIL: implausible stat value $STAT (possible unsigned underflow)"
+        PASS=0
+    fi
+done
+
+# ---- LTP Statistics Validation ----
+echo "Checking LTP statistics..."
+ltpstats -a
+sleep 1
+
+LTP_OUT=$(extract_ltp_stat out_seg_queued)
+LTP_EXP=$(extract_ltp_stat export_complete)
+LTP_IN=$(extract_ltp_stat in_seg_recv_red)
+LTP_IMP=$(extract_ltp_stat import_complete)
+
+echo "LTP stats: out_seg_queued=$LTP_OUT export_complete=$LTP_EXP"
+echo "           in_seg_recv_red=$LTP_IN import_complete=$LTP_IMP"
+
+# 4) Key LTP stats must be nonzero (bundles were sent over LTP).
+for STAT_NAME in "out_seg_queued:$LTP_OUT" "export_complete:$LTP_EXP" \
+                 "in_seg_recv_red:$LTP_IN" "import_complete:$LTP_IMP"
+do
+    NAME="${STAT_NAME%%:*}"
+    VAL="${STAT_NAME##*:}"
+    if [ -z "$VAL" ] || [ "$VAL" -le 0 ] 2>/dev/null
+    then
+        echo "FAIL: LTP stat $NAME is zero or missing ($VAL)"
         PASS=0
     fi
 done
@@ -246,10 +298,11 @@ ionstop
 
 if [ $PASS -eq 1 ]
 then
-    echo "OK: BP statistics tally test passed."
-    echo "  src=$SRC2  xmt=$XMT2  rcv=$RCV2  (expected >= $TOTAL_COUNT each)"
+    echo "OK: BP/LTP statistics tally test passed."
+    echo "  BP:  src=$SRC2  xmt=$XMT2  rcv=$RCV2  dlv=$DLV2  (expected >= $TOTAL_COUNT each)"
+    echo "  LTP: out=$LTP_OUT  exp=$LTP_EXP  in=$LTP_IN  imp=$LTP_IMP"
     exit 0
 else
-    echo "FAIL: BP statistics tally test failed."
+    echo "FAIL: BP/LTP statistics tally test failed."
     exit 1
 fi

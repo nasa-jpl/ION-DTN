@@ -1,0 +1,1 @@
+Tests BP and LTP batched statistics across a 3-node relay (source, relay, destination).

@@ -138,27 +138,56 @@ static LtpDB	*_ltpConstants(void)
 
 void	ltpSpanTally(LtpVspan *vspan, unsigned int idx, unsigned int size)
 {
-	Sdr		sdr = getIonsdr();
-	LtpSpanStats	stats;
-	Tally		*tally;
-	int		offset;
+	CHKVOID(vspan);
+	CHKVOID(idx < LTP_SPAN_STATS);
+	atomic_fetch_add(&vspan->statsDeltas[idx].deltaCount, 1);
+	atomic_fetch_add(&vspan->statsDeltas[idx].deltaBytes, (uvast) size);
+}
 
-	CHKVOID(vspan && vspan->stats);
-	if (!(vspan->updateStats))
+int	ltpFlushSpanStats(Sdr sdr, LtpVspan *vspan)
+{
+	LtpSpanStats	stats;
+	int		i;
+	unsigned int	dCount;
+	uvast		dBytes;
+	int		modified = 0;
+
+	CHKERR(vspan);
+	if (!(vspan->updateStats) || vspan->stats == 0)
 	{
-		return;
+		/*	Stats disabled; just drain deltas.		*/
+
+		for (i = 0; i < LTP_SPAN_STATS; i++)
+		{
+			atomic_exchange(&vspan->statsDeltas[i].deltaCount, 0);
+			atomic_exchange(&vspan->statsDeltas[i].deltaBytes, 0);
+		}
+
+		return 0;
 	}
 
-	CHKVOID(ionLocked());
-	CHKVOID(idx < LTP_SPAN_STATS);
 	sdr_stage(sdr, (char *) &stats, vspan->stats, sizeof(LtpSpanStats));
-	tally = stats.tallies + idx;
-	tally->totalCount += 1;
-	tally->totalBytes += size;
-	tally->currentCount += 1;
-	tally->currentBytes += size;
-	offset = (char *) tally - ((char *) &stats);
-	sdr_write(sdr, vspan->stats + offset, (char *) tally, sizeof(Tally));
+	for (i = 0; i < LTP_SPAN_STATS; i++)
+	{
+		dCount = atomic_exchange(&vspan->statsDeltas[i].deltaCount, 0);
+		dBytes = atomic_exchange(&vspan->statsDeltas[i].deltaBytes, 0);
+		if (dCount > 0 || dBytes > 0)
+		{
+			stats.tallies[i].totalCount += dCount;
+			stats.tallies[i].totalBytes += dBytes;
+			stats.tallies[i].currentCount += dCount;
+			stats.tallies[i].currentBytes += dBytes;
+			modified = 1;
+		}
+	}
+
+	if (modified)
+	{
+		sdr_write(sdr, vspan->stats, (char *) &stats,
+				sizeof(LtpSpanStats));
+	}
+
+	return 0;
 }
 
 /*	*	*	Functions for LTP enhancements	*	*	*/
@@ -680,6 +709,16 @@ static int	raiseSpan(Object spanElt, LtpVdb *ltpvdb)
 	vspan->spanElt = spanElt;
 	vspan->stats = span.stats;
 	vspan->updateStats = span.updateStats;
+	{
+		int	i;
+
+		for (i = 0; i < LTP_SPAN_STATS; i++)
+		{
+			atomic_init(&vspan->statsDeltas[i].deltaCount, 0);
+			atomic_init(&vspan->statsDeltas[i].deltaBytes, 0);
+		}
+	}
+
 	vspan->engineId = span.engineId;
 	vspan->maxXmitSegSize = span.maxSegmentSize;
 	vspan->maxRecvSegSize = 1;
