@@ -19,6 +19,15 @@ if ! [ -e ./checksemaphores ]; then
     exit 2
 fi
 
+# Self-timeout: re-exec under a 2-minute timeout if not already.
+# This prevents the test from hanging indefinitely if ionstart or ionexit
+# gets stuck. Exit code 124 from timeout signals failure to runtests.
+IONEXIT_TIMEOUT=${IONEXIT_TIMEOUT:-120}
+if [ -z "$IONEXIT_TEST_UNDER_TIMEOUT" ]; then
+    export IONEXIT_TEST_UNDER_TIMEOUT=1
+    exec timeout "$IONEXIT_TIMEOUT" "$0" "$@"
+fi
+
 OS=$1
 echo "OS is $OS"
 echo
