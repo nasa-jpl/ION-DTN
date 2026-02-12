@@ -181,12 +181,6 @@ static void	detachRoutingObject(PsmPartition ionwm,
 		sm_list_destroy(ionwm, routingObject->proximateNodes, NULL,
 				NULL);
 	}
-
-	if (routingObject->viaPassageways)
-	{
-		sm_list_destroy(ionwm, routingObject->viaPassageways, NULL,
-				NULL);
-	}
 }
 
 void	cgr_clear_vdb(CgrVdb *vdb)

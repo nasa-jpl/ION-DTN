@@ -240,7 +240,6 @@ typedef struct
 	PsmAddress	selectedRoutes;	/*	SmList of CgrRoute.	*/
 	PsmAddress	knownRoutes;	/*	SmList of CgrRoute.	*/
 	PsmAddress	proximateNodes;	/*	SmList of uvast FQNNs.	*/
-	PsmAddress	viaPassageways;	/*	SmList of uvast FQNNs.	*/
 } CgrRtgObject;	/*	IonNode's routingObject is one of these.	*/
 
 /*		Data structure for the CGR volatile database.		*/

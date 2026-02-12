@@ -161,84 +161,6 @@ an egress plan that redirects to another EID; potential forwarding loop", eid);
 	return 0;
 }
 
-/*		HIRR invocation functions.				*/
-
-static int	initializeHIRR(CgrRtgObject *routingObj)
-{
-	Sdr		sdr = getIonsdr();
-	PsmPartition	ionwm = getIonwm();
-	IonDB		iondb;
-	Object		elt;
-	Object		addr;
-			OBJ_POINTER(RegionMember, member);
-
-	routingObj->viaPassageways = sm_list_create(ionwm);
-	if (routingObj->viaPassageways == 0)
-	{
-		putErrmsg("Can't initialize HIRR routing.", NULL);
-		return -1;
-	}
-
-	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
-
-	/*	Add to the viaPassageways list for this remote node
-	 *	one entry for every passageway residing in either of
-	 *	the local node's regions.				*/
-
-	for (elt = sdr_list_first(sdr, iondb.rolodex); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		addr = sdr_list_data(sdr, elt);
-		GET_OBJ_POINTER(sdr, RegionMember, member, addr);
-		if (member->outerRegionNbr != 0)
-		{
-			/*	Node is a passageway.			*/
-
-			if (sdr_list_insert_last(sdr,
-					routingObj->viaPassageways,
-					member->fqnn) == 0)
-			{
-				putErrmsg("Can't note passageway.", NULL);
-				return -1;
-			}
-		}
-	}
-
-	return 0;
-}
-
-static int 	tryHIRR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
-			time_t atTime)
-{
-	PsmPartition	ionwm = getIonwm();
-	CgrRtgObject	*routingObj;
-
-	/* Parameters intentionally unused. */
-	(void)bundle;
-	(void)bundleObj;
-	(void)atTime;
-
-	if (terminusNode->routingObject == 0)
-	{
-		if (cgr_create_routing_object(terminusNode) < 0)
-		{
-			putErrmsg("Can't initialize routing object.", NULL);
-			return -1;
-		}
-	}
-
-	routingObj = (CgrRtgObject *) psp(ionwm, terminusNode->routingObject);
-	if (routingObj->viaPassageways == 0)
-	{
-		if (initializeHIRR(routingObj) < 0)
-		{
-			return -1;
-		}
-	}
-
-	return 0;
-}
-
 /*		CGR invocation functions.				*/
 
 static void	deleteObject(LystElt elt, void *userdata)
@@ -1163,12 +1085,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 	{
 		/*	Terminus node is not in any region that
 		 *	the local node is in.  Send via passageway(s).	*/
-
-		if (tryHIRR(bundle, bundleObj, node, getCtime()))
-		{
-			putErrmsg("HIRR failed.", NULL);
-			return -1;
-		}
+		writeMemo("[?] IRF is not implemented.");
 	}
 	else
 	{
