@@ -53,6 +53,14 @@ function getStatsCounter() {
     grep "$TYPE from [0-9]" "$FILE" | tail -n 1 | sed "s/^.*($PRI) *\\([0-9]*\\)  *\\([0-9]*\\).*$/\\1/"
 }
 
+# Self-timeout: re-exec under a 5-minute timeout if not already.
+# This prevents the test from hanging indefinitely if a command gets stuck.
+LIMBO_TIMEOUT=${LIMBO_TIMEOUT:-300}
+if [ -z "$LIMBO_TEST_UNDER_TIMEOUT" ]; then
+    export LIMBO_TEST_UNDER_TIMEOUT=1
+    exec timeout "$LIMBO_TIMEOUT" "$0" "$@"
+fi
+
 killm
 ./cleanup
 sleep 1
