@@ -40,7 +40,7 @@ static TccState	*_tccState(TccState *newState)
 static void	shutDown(int signum)	/*	Commands tcc termination.	*/
 {
 	TccState	*state;
-	
+
 	/* Tell the compiler that we are not using 'signum' */
 	(void)signum;
 

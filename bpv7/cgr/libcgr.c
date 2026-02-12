@@ -1518,7 +1518,7 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 	contact = (IonCXref *) psp(ionwm, contactAddr);
 	CHKERR(contact->xmitRate > 0);
 
-	/*	Compute the expected initial transmit time 
+	/*	Compute the expected initial transmit time
 	 *	(Earliest Transmission Opportunity): start of
 	 *	initial contact plus delay imposed by transmitting
 	 *	all remaining prior claims, at the transmission

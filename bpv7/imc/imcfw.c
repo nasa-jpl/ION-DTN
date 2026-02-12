@@ -237,7 +237,7 @@ static uvast 	getBestEntryNode(Bundle *bundle, IonNode *terminusNode,
 
 	if (ionvdb->lastEditTime.tv_sec > cgrvdb->lastLoadTime.tv_sec
 	|| (ionvdb->lastEditTime.tv_sec == cgrvdb->lastLoadTime.tv_sec
-	    && ionvdb->lastEditTime.tv_usec > cgrvdb->lastLoadTime.tv_usec)) 
+	    && ionvdb->lastEditTime.tv_usec > cgrvdb->lastLoadTime.tv_usec))
 	{
 		/*	Contact plan has been modified, so must discard
 		 *	all route lists and reconstruct them as needed.	*/
@@ -816,7 +816,7 @@ puts("Bundle is a dispatch to region members");
 				return -1;
 			}
 
-			if (loadRegionMembers(bundle, 
+			if (loadRegionMembers(bundle,
 				iondb.regions[regionIdx].regionNbr, &iondb) < 0)
 			{
 				putErrmsg("Can't add IMC region member.", NULL);

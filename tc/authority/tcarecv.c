@@ -76,7 +76,7 @@ static unsigned short	fetchRecord(Object recordsList, uvast fqnn,
 		{
 			continue;
 		}
-		
+
 		if (record.fqnn > fqnn)
 		{
 			break;
@@ -86,7 +86,7 @@ static unsigned short	fetchRecord(Object recordsList, uvast fqnn,
 		{
 			continue;
 		}
-		
+
 		if (record.effectiveTime > effectiveTime)
 		{
 			break;
