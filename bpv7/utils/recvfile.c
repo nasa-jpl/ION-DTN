@@ -68,8 +68,8 @@ typedef struct
 /******************************************************************************/
 /**
  * @brief secure_wipe - Securely zeroes out memory.
- * * Uses a volatile pointer to ensure the compiler does not optimize 
- * away the zeroing operation (Dead Store Elimination), which often 
+ * * Uses a volatile pointer to ensure the compiler does not optimize
+ * away the zeroing operation (Dead Store Elimination), which often
  * happens with standard memset() at the end of a function.
  * * @param v Pointer to memory to wipe.
  * @param n Number of bytes to wipe.
@@ -77,7 +77,7 @@ typedef struct
 static void secure_wipe(void *v, size_t n)
 {
 	volatile unsigned char *p = (volatile unsigned char *)v;
-	while (n--) 
+	while (n--)
 	{
 		*p++ = 0;
 	}
@@ -264,14 +264,12 @@ int rename_and_clean(char *oldFilename, char *newFilename)
  */
 static int  receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInput)
 {
-	/* FIX: Heap allocate large buffer to prevent stack overflow (256KB is too big for stack) */
-	char        *buffer = NULL; 
-	
-	/* FIX: Use size_t/uvast for sizes to support >2GB files */
+	char        *buffer = NULL;
+
 	uvast       contentLength = 0;
 	uvast       remainingLength = 0;
 	size_t      recvLength;
-	
+
 	int         fileHandle = -1;
 	ZcoReader   reader;
 	char        progressText[300]; /* Increased size for safety */
@@ -333,7 +331,7 @@ static int  receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyIn
 	/*FILE RECEPTION---------------------------------*/
 	zco_start_receiving(dlv->adu, &reader);
 	remainingLength = contentLength;
-	
+
 	/* Start Transaction */
 	if (sdr_begin_xn(sdr) < 0)
 	{
@@ -341,7 +339,7 @@ static int  receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyIn
 		goto exit;
 	}
 	transaction_active = 1; /* Mark transaction as open */
-	
+
 	while (remainingLength > 0)
 	{
 		recvLength = BPRECVBUFSZ;
@@ -355,7 +353,7 @@ static int  receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyIn
 			putErrmsg("[!] recvfile error: can't receive bundle content.", tmpFile);
 			goto exit;
 		}
-		
+
 		ssize_t bytesWritten = write(fileHandle, buffer, recvLength );
 
 		if (bytesWritten < 0 || (size_t)bytesWritten < recvLength)
@@ -367,12 +365,12 @@ static int  receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyIn
 		remainingLength -= (recvLength);
 
 	}//end while loop
-	
+
 	/* End transaction on success path */
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("[!] recvfile error: SDR transaction failed.", NULL);
-		transaction_active = 0; 
+		transaction_active = 0;
 		goto exit;
 	}
 	transaction_active = 0; /* Transaction closed successfully */
@@ -394,7 +392,7 @@ static int  receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyIn
 	decryptFlag = metadata.eFlag;
 
 	/* Use localKey here instead of keyInput */
-	if(decryptFlag && localKey) 
+	if(decryptFlag && localKey)
 	{
 		/* decrypt file content */
 		unsigned char *decrypted_fileContent = NULL;
@@ -435,11 +433,11 @@ static int  receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyIn
 	}
 
 	/* SANITIZE FILENAME (CWE-22 Path Traversal)
-	* We MUST trust only the basename of the received file to prevent 
+	* We MUST trust only the basename of the received file to prevent
 	* malicious overwrites (e.g. "../../etc/passwd").
 	*/
 	const char *safeBasename = extractBasename((const char*)metadata.filename);
-	
+
 	/* Re-allocate metadata.filename to just the basename */
 	if (safeBasename != (const char*)metadata.filename)
 	{
@@ -454,7 +452,7 @@ static int  receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyIn
 	}
 
 
-	if (!overwriteFlag && fileExists((const char*)metadata.filename)) 
+	if (!overwriteFlag && fileExists((const char*)metadata.filename))
 	{
 		if (generateNewFilename(&metadata) != 0)
 		{
@@ -464,7 +462,7 @@ static int  receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyIn
 		}
 	}
 
-	/* rename temp file to correct filename */  
+	/* rename temp file to correct filename */
 	result = rename_and_clean(tmpFile, (char*) metadata.filename);
 
 	if(result >= 0)
@@ -477,13 +475,13 @@ static int  receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyIn
 	{
 		writeErrMemo("[!] recvfile error: filename NULL.");
 	}
-	
+
 	/* Print Aux commands (demonstration purposes only) */
 	/* Moved here (after potential goto exits) to prevent memory leaks */
 	if(metadata.aux_command_length > 0)
 	{
 		/* Parse logic moved here */
-		commands = parseCommandString((const char*) metadata.aux_command, &commandCount);       
+		commands = parseCommandString((const char*) metadata.aux_command, &commandCount);
 		if (commands)
 		{
 			executeAndFreeCommands(commands, commandCount);
@@ -509,8 +507,8 @@ exit:
 		fileHandle = -1;
 	}
 
-	/* MEMORY OBFUSCATION AND CLEANUP*/ 
-	if (metadata.filename) 
+	/* MEMORY OBFUSCATION AND CLEANUP*/
+	if (metadata.filename)
 	{
 		MRELEASE(metadata.filename);
 		metadata.filename = NULL;
@@ -612,17 +610,17 @@ int recvfile(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 
 	// Check each argument for the overwrite flag or key
 	saddr args[] = {a2, a3, a4, a5, a6, a7, a8, a9, a10};
-	for (int i = 0; i < sizeof(args) / sizeof(saddr); i++) 
+	for (int i = 0; i < sizeof(args) / sizeof(saddr); i++)
 	{
-		if (args[i] == NULL) 
+		if (args[i] == NULL)
 		{
 			continue; // Skip null arguments
 		}
 
-		if (!strcmp((char *)args[i], "-o") || !strcmp((char *)args[i], "--overwrite")) 
+		if (!strcmp((char *)args[i], "-o") || !strcmp((char *)args[i], "--overwrite"))
 		{
 			overwriteFlag = 1;
-		} else if (!keyInput) 
+		} else if (!keyInput)
 		{
 			keyInput = (char *) args[i]; // keyInput is not already set
 		}
@@ -631,7 +629,7 @@ int recvfile(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 int main(int argc, char **argv)
 {
 	int status = 0; //default to good return value
-	char    *ownEid = NULL; 
+	char    *ownEid = NULL;
 	int     overwriteFlag = 0; // flag for overwriting files
 	char    *keyInput = NULL;  //file path or a literal value (if no key found)
 

@@ -529,7 +529,7 @@ exit:
 	destEid = NULL;
 	keyInput = NULL;
 
-	secure_wipe(randInitializer, randomizer_size);
+	secure_wipe(randInitializer, RANDOMIZER_SIZE);
 	secure_wipe(progressText, sizeof(progressText));
 
 	/*ION specific handles */
