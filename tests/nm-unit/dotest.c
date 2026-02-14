@@ -319,5 +319,8 @@ int main(int argc, char **argv)
 
 	msgs_encoding_tests();
 
+	/* Stop ION */
+	ionstop();
+
 	CHECK_FINISH;
 }
