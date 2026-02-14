@@ -3,6 +3,8 @@
 # filtering out non-functional changes (whitespace, typos, formatting).
 # This file is sorted in git log order (newest commits first).
 
+# Remove trailing whitespace from some files
+4ecb5a2b61fec031927fa81edf0602be7c86630c
 # Fix whitespace and indentation issues
 f4ae9253dd73af3c09df8d805670d17386d569f7
 # tests/tc-dtka*/runtest: Remove random tabs and */
