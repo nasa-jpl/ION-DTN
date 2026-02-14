@@ -23,6 +23,9 @@ stamp-h1
 .DS_Store
 __pycache__/
 .build_finished
+settings.json
+settings.local.json
+settings.local-backup.json
 
 # Keep empty m4/ macro dir but ignore temp files inside it
 m4/*

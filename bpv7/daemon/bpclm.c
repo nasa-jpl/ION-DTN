@@ -630,6 +630,21 @@ int	main(int argc, char *argv[])
 		bundleObj = sdr_list_data(sdr, bundleElt);
 		sdr_stage(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
 
+		/*	Re-verify contact state after waking from semaphore.
+		 *	This prevents a TOCTOU race condition where the contact
+		 *	graph loads while bpclm is blocked waiting for bundles,
+		 *	causing immediate transmission instead of waiting for
+		 *	the scheduled future contact.  If contact state changed
+		 *	to "not ready", exit transaction and loop back to snooze.	*/
+
+		if (maxPayloadLengthKnown(vplan, &maxPayloadLength) == 0)
+		{
+			/*	Contact state changed - not ready yet.	*/
+
+			sdr_exit_xn(sdr);
+			continue;	/*	Loop back, will snooze at line 604.	*/
+		}
+
 		/*	Allocate transmittable bundle to an outduct.	*/
 
 		getOutduct(vplan, &bundle, &vduct);
