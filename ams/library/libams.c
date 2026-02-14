@@ -1115,7 +1115,7 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 	|| subject->symmetricKeyName == NULL)	/*	no encryption	*/
 	{
 
-		MRELEASE(content);
+		MRELEASE(*content);
 		*content = newContent;
 		*contentLength = newContentLength;
 
