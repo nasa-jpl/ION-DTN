@@ -126,7 +126,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 
 
 	/*metadata vars*/
-	const int randomizer_size = 21;
+#define RANDOMIZER_SIZE 21
 	uint64_t timestamp = 0;
 	size_t out_contentLength=0;
 	size_t nameSize = 0;
@@ -141,7 +141,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	unsigned char versionNumber = 0;
 
 	/*random name and supplemental iv personalizer*/
-	char randInitializer[randomizer_size];
+	char randInitializer[RANDOMIZER_SIZE];
 	char *name = NULL;
 
 
@@ -493,7 +493,7 @@ exit:
 	memset(destEid, 0, strlen(destEid));
 	destEid = NULL;
 
-	memset(randInitializer, 0, randomizer_size);
+	memset(randInitializer, 0, RANDOMIZER_SIZE);
 	memset(progressText, 0, 300);
 
 	/*ION specific*/
