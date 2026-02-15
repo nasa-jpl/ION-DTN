@@ -5,7 +5,6 @@
  *
  *	Copyright (c) 2026, California Institute of Technology.
  *	All rights reserved.
- *	Author: Claude Code, Anthropic
  */
 
 #ifndef _SDR_PERF_H_

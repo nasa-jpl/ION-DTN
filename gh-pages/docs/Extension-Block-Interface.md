@@ -671,7 +671,145 @@ Check `ion.log` for these messages during operation.
 
 ## ION Built-in Extension Blocks
 
-ION includes several built-in extension block implementations. This section documents their behavior and any special handling.
+ION includes several built-in extension block implementations. Each block is
+registered in `extensionDefs[]` (enabling parsing of inbound blocks) and may
+also be listed in `extensionSpecs[]` (enabling automatic attachment to
+outbound bundles). A block in `extensionDefs[]` but not in `extensionSpecs[]`
+can still be received and processed, but will not be generated locally.
+
+The `extensionSpecs[]` array in `bpv7/library/ext/bpextensions.c` controls
+which blocks are attached to locally-sourced bundles. Under `ION_CORE_BUILD`,
+individual blocks can be enabled via compile-time flags (e.g., `PNB_EXT`,
+`BAE_EXT`). In the standard build, all blocks listed in `extensionSpecs[]`
+are enabled.
+
+### Summary
+
+| Block | Type | Standard | In `extensionSpecs[]` | Behavior |
+|-------|------|----------|-----------------------|----------|
+| Previous Node (PNB) | 6 | RFC 9171 | Yes | Always attached; sole source of sender ID for routing |
+| Bundle Age (BAE) | 7 | RFC 9171 | Yes | Always attached; required for unsynced nodes |
+| Metadata (MEB) | 8 | -- | No | Conditional offer; only when metadata is set |
+| Hop Count (HCB) | 10 | RFC 9171 | No | Not attached; appropriate for loop-free topologies |
+| IMC Destinations | 11 | ION | Yes | Placeholder; zero wire overhead when unused |
+| SNW Permits | 12 | ION | Yes | Placeholder; zero wire overhead when unused |
+| Custody Transfer (CTEB) | 13 | ION | Yes | Conditional offer; only when custody mode is active |
+| Compressed Reporting (CREB) | 14 | ION | Yes | Conditional offer; only when CBR mode and SRR flags are set |
+| Quality of Service (QOS) | 254 | ION | Yes | Always attached; conveys class-of-service, ordinal, flow label |
+
+### Previous Node Block (PNB) - Block Type 6
+
+**Source:** `bpv7/library/ext/pnb/pnb.c`
+
+The Previous Node Block identifies the node that most recently forwarded the
+bundle. It is defined in RFC 9171 as an optional extension block.
+
+**Default behavior:** Always attached. At offer time, a placeholder is
+created. At dequeue time, the block is populated with the local node's admin
+EID matching the proximate node's scheme, or suppressed if the EID cannot be
+resolved (which in practice does not occur on a properly configured node).
+
+**Rationale:** PNB is the sole source of sender identification in ION. No
+convergence layer adapter provides sender EID out-of-band (all pass `NULL`
+to `bpBeginAcq()`). The parsed sender EID flows into
+`bundle->clDossier.senderFqnn`, which is used by:
+
+- `ipnfw.c` to exclude the sender from CGR next-hop candidates (loop
+  prevention)
+- `imcfw.c` to exclude the sender from multicast forwarding (duplicate
+  prevention)
+- `libbpP.c` to detect multicast self-delivery
+
+Removing PNB would eliminate sender-exclusion routing, increasing the risk
+of routing loops and multicast duplication.
+
+### Bundle Age Block (BAE) - Block Type 7
+
+**Source:** `bpv7/library/ext/bae/bae.c`
+
+The Bundle Age Block records how long a bundle has been in transit. RFC 9171
+Section 4.3.3 requires BAE when the creation timestamp is zero, but ION
+attaches it unconditionally.
+
+**Default behavior:** Always attached. At offer time, `bundle->age` is
+initialized to 0. At dequeue time, the age is computed from creation time
+(if the clock is synchronized and creation time is known) or accumulated
+from the arrival time.
+
+**Rationale:** ION supports mixed networks where nodes with synchronized
+clocks send bundles through nodes without synchronized clocks. An
+unsynchronized node (`clocksync 0`) sets creation time to zero and cannot
+compute expiration from another node's creation timestamp alone -- it
+relies on the Bundle Age block. Without BAE, bundles from synchronized nodes
+would never expire on unsynchronized forwarding nodes. The
+`req-0002-bundle-age` regression test explicitly validates this mixed
+scenario.
+
+### Quality of Service Block (QOS) - Block Type 254
+
+**Source:** `bpv7/library/ext/bpq/bpq.c`
+
+The QOS block is an ION-specific extension (not defined in RFC 9171) that
+conveys class-of-service, ordinal, and flow label values between ION nodes.
+
+**Default behavior:** Always attached. At offer time, a placeholder is
+created. At dequeue time, the block is serialized with the bundle's QoS
+values.
+
+**Rationale:** QoS support is required for the target deployment. The block
+conveys priority and scheduling information to ION peer nodes. Non-ION
+implementations will process it as an unknown block type per RFC 9171 block
+processing rules.
+
+### Hop Count Block (HCB) - Block Type 10
+
+**Source:** `bpv7/library/ext/hcb/hcb.c`
+
+The Hop Count Block provides loop prevention by limiting the number of times
+a bundle can be forwarded. It is defined in RFC 9171 as an optional
+extension block.
+
+**Default behavior:** Not in `extensionSpecs[]`. Locally-sourced bundles do
+not carry HCB. Incoming bundles with HCB are still parsed and processed
+correctly (the block definition remains in `extensionDefs[]`).
+
+**Rationale:** The target deployment uses point-to-point, loop-free
+topologies where hop count limiting is unnecessary. To re-enable, add
+`{ HopCountBlk, 0, NoCRC }` to the `extensionSpecs[]` array in
+`bpv7/library/ext/bpextensions.c`.
+
+### SNW Permits Block - Block Type 12
+
+**Source:** `bpv7/library/ext/snw/snw.c`
+
+The SNW (Spray and Wait) block is an ION-specific extension that limits
+bundle flooding on opportunistic (discovered) links.
+
+**Default behavior:** Always attached as a placeholder. The placeholder has
+zero wire overhead -- it is only serialized when `bundle->permits > 0`.
+Permits are assigned during forwarding by `ipnfw.c` when a discovered
+contact is selected, after the offer has already run.
+
+**Rationale:** The placeholder must be present at offer time because the
+data that determines whether SNW is needed (`bundle->permits`) does not
+exist until forwarding. Removing the placeholder would require restructuring
+the forwarding layer.
+
+### IMC Destinations Block - Block Type 11
+
+**Source:** `bpv7/library/ext/imc/imc.c`
+
+The IMC (IPN Multicast) block is an ION-specific extension that carries the
+list of multicast destination nodes.
+
+**Default behavior:** Always attached as a placeholder. The placeholder has
+zero wire overhead -- it is only serialized when multicast destinations
+exist. The destination list is populated during multicast forwarding, after
+the offer has already run.
+
+**Rationale:** Same pattern as SNW. The placeholder must be present at offer
+time because multicast destinations are assigned later. Removing the
+placeholder would break multicast functionality.
 
 ### Metadata Extension Block (MEB) - Block Type 8
 
@@ -687,6 +825,28 @@ ION registers block type 8 as the Metadata Extension Block, but handles non-conf
 This approach ensures interoperability with other BPv7 implementations that may use block type 8 for different purposes, while preserving MEB functionality for ION-to-ION communication.
 
 **Note:** The MEB implementation code is retained to allow ION to adapt should a Metadata Extension Block be standardized for BPv7 in the future.
+
+### Custody Transfer Block (CTEB) - Block Type 13
+
+**Source:** `bpv7/library/ext/cteb/cteb.c`
+
+The CTEB is an ION-specific extension that supports Orange Book custody
+transfer.
+
+**Default behavior:** Conditional. The offer function checks whether Orange
+Book custody mode is active and custody transfer was requested for the
+bundle. The block is only attached when both conditions are met.
+
+### Compressed Reporting Block (CREB) - Block Type 14
+
+**Source:** `bpv7/library/ext/creb/creb.c`
+
+The CREB is an ION-specific extension that supports Compressed Bundle
+Reporting (CBR).
+
+**Default behavior:** Conditional. The offer function checks whether CBR
+mode is not set to TRADITIONAL and status report request (SRR) flags are
+non-zero. The block is only attached when both conditions are met.
 
 ---
 
