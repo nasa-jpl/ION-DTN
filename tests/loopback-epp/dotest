@@ -52,7 +52,7 @@ elif [ -f "${BUILDDIR}/.libs/libepp_loopback_provider.dylib" ]; then
 else
     echo "ERROR: Cannot find libepp_loopback_provider library."
     echo "Make sure to run 'make buildcheck' first to build the test libraries."
-    exit 1
+    exit 2
 fi
 
 echo "Using stub library: ${STUBLIB}"

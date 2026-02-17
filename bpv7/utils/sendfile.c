@@ -538,9 +538,6 @@ exit:
 	secure_wipe(&sdr, sizeof(sdr));
 	secure_wipe(&sap, sizeof(sap));
 
-	memset(randInitializer, 0, RANDOMIZER_SIZE);
-	memset(progressText, 0, 300);
-
 	/*ION specific*/
 	memset(&sdr, 0, sizeof(sdr)); //looks crazy..
 	memset(&sap, 0, sizeof(sap));
@@ -582,14 +579,15 @@ exit:
 int	sendfile(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-	char	*ownEid = (char *) a1;
-	char	*destEid = (char *) a2;
-	char	*fileName = (char *) a3;
-	char	*classOfService = (char *) a4;
-	int	ttl = atoi((char *) a5);
-	unsigned char encryptFlag = 0;
-	char *keyInput = NULL;
-	int result = -1;
+	char    *ownEid = (char *) a1;
+	char    *destEid = (char *) a2;
+	char    *fileName = (char *) a3;
+	char    *classOfService = (char *) a4;
+	int    ttl = atoi((char *) a5);
+	unsigned char    encryptFlag = 0;
+	char    *keyInput = NULL;
+	int    result = -1;
+	char    *aux = NULL;
 
 	/* Assign keyInput to the first non-null additional argument
 	and set the encryptFlag accordingly */
@@ -617,15 +615,15 @@ int	sendfile(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 #else
 int	main(int argc, char **argv)
 {
-	char	*ownEid = NULL;
-	char	*destEid = NULL;
-	char	*fileName = NULL;
-	char	*classOfService = NULL;
-	char 	*aux = NULL;
-	int	ttl = 300; //time-to-live
-	unsigned char encryptFlag = 0; //encryption not enabled
-	char *keyInput = NULL;  //file path or literal key value
-	int result = -1;
+	char    *ownEid = NULL;
+	char    *destEid = NULL;
+	char    *fileName = NULL;
+	char    *classOfService = NULL;
+	char    *aux = NULL;
+	int    ttl = 300; //time-to-live
+	unsigned char     encryptFlag = 0; //encryption not enabled
+	char    *keyInput = NULL;  //file path or literal key value
+	int    result = -1;
 
 	/* Parse user input------------------------------------------ */
 	if (argc < 4)
@@ -678,11 +676,8 @@ int	main(int argc, char **argv)
 		}
 
 		/* If the argument does not match any known flag, treat it as the encryption key */
-		if (argv[i][0] != '-')
-		{
-			keyInput = argv[i];
-			encryptFlag = 1;
-		}
+		keyInput = argv[i];
+		encryptFlag = 1;
 	}
 #endif
 

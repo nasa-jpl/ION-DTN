@@ -607,10 +607,11 @@ int recvfile(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 	unsigned char overwriteFlag = 0;
 	char *keyInput = NULL;
 	int status = 0; /* FIX: Added status variable for ION_LWT build */
+	int i;
 
 	// Check each argument for the overwrite flag or key
 	saddr args[] = {a2, a3, a4, a5, a6, a7, a8, a9, a10};
-	for (int i = 0; i < sizeof(args) / sizeof(saddr); i++)
+	for (i = 0; i < sizeof(args) / sizeof(saddr); i++)
 	{
 		if (args[i] == NULL)
 		{
@@ -654,7 +655,7 @@ int main(int argc, char **argv)
 		}
 
 		/* if keyInput is already set avoid overwriting with additional arguments */
-		if (!keyInput && argv[i][0] != '-')
+		if (!keyInput)
 		{
 			keyInput = argv[i];
 		}
