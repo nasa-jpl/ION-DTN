@@ -600,6 +600,7 @@ cbrcustodytest
 
 # Reference documents (design docs, PDFs, etc.)
 ref-doc/
+dev-docs/
 
 # misc test check files
 ams/x86_64-linux/check

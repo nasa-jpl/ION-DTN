@@ -1,4 +1,5 @@
 OPT = /usr/local
+MANOPT = /usr/local/share
 HEAP_PTRS = 0
 PLATFORMS = x86_64-linux
 # i86-redhat
@@ -43,3 +44,4 @@ install:
 uninstall:
 		for PF in $(PLATFORMS); \
 			do cd $$PF; gmake -i uninstall ROOT=$(OPT); cd ..; done
+

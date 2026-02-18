@@ -105,18 +105,23 @@ TGT_SHARED_OBJS := $(notdir ${SHARED_OBJS})
 TGT_MGR_OBJS := $(notdir ${MGR_OBJS})
 TGT_AGENT_OBJS := $(notdir ${AGENT_OBJS})
 
+BSL_HOME = /usr/local
+BSL_INCLUDE = $(BSL_HOME)/include/bsl
+
 # OPT = -O -Dlinux
 OPT += -g -Wall -Werror -Wno-unused-variable -Dlinux -DAMP_VERSION=8
 #-DHEAP_PTRS=$(PTRS)  # Leave this at default for now
 # For database support, append -DHAVE_MYSQL
 
-INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/include -I../../ltp/include -I../../bpv7/include -I../../bpv7/library -I../../ltp/library -I../../ici/library -I$(BP_DIR)/adm -I$(BP_DIR) -I$(BP_DIR)/library -I$(BP_DIR)/library/ext/sbsp -I$(BP_DIR)/library/ext/bpsec -I$(ROOT)/include -I/usr/include/mysql -I/usr/local/mysql/include -I$(CONTRIB)/QCBOR/inc
+INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/include -I../../ltp/include -I../../bpv7/include -I../../bpv7/library -I../../bpv7/bsl -I$(BSL_INCLUDE) -I$(BSL_INCLUDE)/policy_provider -I$(BSL_INCLUDE)/security_context -I$(BSL_INCLUDE)/ION_integration -I$(BSL_HOME)/include/m-lib -I../../ltp/library -I../../ici/library -I$(BP_DIR)/adm -I$(BP_DIR) -I$(BP_DIR)/library -I$(BP_DIR)/library/ext/sbsp -I$(BP_DIR)/library/ext/bpsec -I$(ROOT)/include -I/usr/include/mysql -I/usr/local/mysql/include -I$(CONTRIB)/QCBOR/inc
 
 CC = gcc $(OPT) $(ADD_FLAGS) $(INCLDIRS)
 
 LIBDIRS = -L$(ROOT)/lib -L/usr/local/mysql/lib -L../../ici/x86_64-linux/lib -L../../bpv7/x86_64-linux/lib -L../../ltp/x86_64-linux/lib -L../../cfdp/x86_64-linux/lib
 
-LIBS = -lcfdp -lbp -lltp -lici -lpthread -lm
+LBSL = -lbsl_crypto -lbsl_default_sc -lbsl_dynamic -lbsl_front -lbsl_mock_bpa -lbsl_sample_pp -lqcbor -ljansson
+
+LIBS = -lcfdp -lbp $(LBSL) -lltp -lici -lpthread -lm
 
 LD = gcc $(OPT) $(LIBDIRS)
 

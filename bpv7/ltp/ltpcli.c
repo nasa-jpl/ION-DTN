@@ -314,7 +314,7 @@ static void	*handleNotices(void *parm)
 
 			if (bpHandleXmitSuccess(data) < 0)
 			{
-				putErrmsg("Crashed on xmit success.", NULL);
+				putErrmsg("Crashed handling xmit success.", NULL);
 				ionKillMainThread(procName);
 
 				pthread_mutex_lock(&rtp->lock);
@@ -332,7 +332,7 @@ static void	*handleNotices(void *parm)
 
 			if (bpHandleXmitFailure(data) < 0)
 			{
-				putErrmsg("Crashed on xmit failure.", NULL);
+				putErrmsg("Crashed handling xmit failure.", NULL);
 				ionKillMainThread(procName);
 
 				pthread_mutex_lock(&rtp->lock);

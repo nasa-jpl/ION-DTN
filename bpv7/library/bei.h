@@ -102,6 +102,7 @@ typedef struct
 	unsigned char	number;		/**	Identifies the block.	*/
 	unsigned char	blkProcFlags;	/**	Per BP spec.		*/
 	BpCrcType	crcType;	/** 	Extension blk crc type 	*/
+	unsigned int	parsed;		/**	Boolean.		*/
 	unsigned int	dataLength;	/**	Block content.		*/
 	unsigned int	length;		/**	Length of bytes array.	*/
 	unsigned int	size;		/**	Size of scratchpad obj.	*/

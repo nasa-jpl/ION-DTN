@@ -314,6 +314,8 @@ char	*_nullEid(void)
 	return "dtn:none";
 }
 
+/*	*	*	Operations on endpoint IDs	*	*	*/
+
 int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 		PsmAddress *vschemeElt)
 {
@@ -791,6 +793,511 @@ void	readEid(EndpointId *eid, char **buffer)
 		break;
 	}
 }
+
+/*	*	Operations on endpoint ID patterns	*	*	*/
+
+static void	destroyEidpInterval(LystElt elt, void *arg)
+{
+	EidpIpnInterval		*interval;
+
+	interval = (EidpIpnInterval *) lyst_data(elt);
+	MRELEASE(interval);
+}
+
+static void	destroyEidpIpnSSP(EidpItem *item)
+{
+	int			i;
+	EidpIpnComponent	component;
+
+	for (i = 0; i < 3; i++)
+	{
+		component = item->ssp.ipnSSP.components[i];
+		if (component.type == RangeValue)
+		{
+			lyst_destroy(component.value.range.intervals);
+		}
+	}
+}
+
+static void	destroyEidpItem(LystElt elt, void *arg)
+{
+	EidpItem	*item = (EidpItem *) lyst_data(elt);
+
+	if (item->schemeCodeNbr == ipn)
+	{
+		destroyEidpIpnSSP(item);
+	}
+
+	if (item->schemeName)
+	{
+		MRELEASE(item->schemeName);
+	}
+
+	memset((char *) item, 0, sizeof(EidpItem));
+	MRELEASE(item);
+}
+
+EidPattern	*createEidPattern()
+{
+	EidPattern	*eidp;
+
+	eidp = MTAKE(sizeof(EidPattern));
+	if (eidp == NULL)
+	{
+		writeMemo("[?] Not enough memory for EID pattern.");
+		return NULL;
+	}
+
+        memset(eidp, 0, sizeof(EidPattern));
+	eidp->items = lyst_create_using(getIonMemoryMgr());
+	if (eidp->items == NULL)
+	{
+		MRELEASE(eidp);
+		writeMemo("[?] Not enough memory for EID pattern items list.");
+		return NULL;
+	}
+
+	lyst_delete_set(eidp->items, destroyEidpItem, NULL);
+	return eidp;
+}
+
+void	destroyEidPattern(EidPattern *eidp)
+{
+	CHKVOID(eidp);
+	lyst_destroy(eidp->items);
+    	memset(eidp, 0, sizeof(EidPattern));
+	MRELEASE(eidp);
+}
+
+static int	loadIpnInterval(Lyst intervals, uvast startNbr, uvast endNbr)
+{
+	EidpIpnInterval	*interval;
+
+	interval = MTAKE(sizeof(EidpIpnInterval));
+	if (interval == NULL)
+	{
+		writeMemo("[?] Not enough memory for IPN EID Range Interval.");
+		return -1;
+	}
+
+	interval->first = startNbr;
+	interval->last = endNbr;
+	if (lyst_insert_last(intervals, interval) == NULL)
+	{
+		MRELEASE(interval);
+		writeMemo("[?] Can't record IPN EID Range interval.");
+		return -1;
+	}
+
+	return 0;
+}
+
+static int	loadIpnRange(EidpIpnComponent *component, char *text)
+{
+	char	*endOfRange;
+	char	*startOfInterval;
+	char	*endOfInterval;
+	char	*hyphen;
+	Lyst	intervals;
+	uvast	startNbr;
+	uvast	endNbr;
+
+	startOfInterval = text + 1;		/*	Skip over '['.	*/
+	endOfRange = strchr(startOfInterval, ']');
+	if (endOfRange == NULL)
+	{
+		writeMemo("[?] No end of IPN EID pattern Range.");
+		return -1;
+	}
+
+	*endOfRange = '\0';			/*	End range.	*/
+	intervals = lyst_create_using(getIonMemoryMgr());
+	if (intervals == NULL)
+	{
+		writeMemo("[?] Not enough memory for IPN EID pattern Range.");
+		return -1;
+	}
+
+	lyst_delete_set(intervals, destroyEidpInterval, NULL);
+	while (startOfInterval < endOfRange)
+	{
+		hyphen = strchr(startOfInterval, '-');
+		endOfInterval = strchr(startOfInterval, ',');
+		if (endOfInterval == NULL)
+		{
+			endOfInterval = endOfRange;
+		}
+
+		*endOfInterval = '\0';		/*	End interval.	*/
+		if (hyphen == NULL || endOfInterval < hyphen)
+		{
+			/*	Single-value interval.			*/
+
+			startNbr = strtouvast(startOfInterval);
+			endNbr = startNbr;
+		}
+		else	/*	An interval between two numbers.	*/
+		{
+			*hyphen = '\0';
+			startNbr = strtouvast(startOfInterval);
+			endNbr = strtouvast(hyphen + 1);
+		}
+
+		if (loadIpnInterval(intervals, startNbr, endNbr) < 0)
+		{
+			lyst_destroy(intervals);
+			return -1;
+		}
+
+		startOfInterval = endOfInterval + 1;
+	}
+
+	component->value.range.intervals = intervals;
+	return 0;
+}
+
+static int	loadIpnComponent(EidpItem *item, int i, char *text)
+{
+	EidpIpnComponent	*component;
+
+	component = item->ssp.ipnSSP.components + i;
+	switch (*text)
+	{
+	case '*':
+		component->type = AnyValue;
+		return 0;
+
+	case '[':
+		component->type = RangeValue;
+		return loadIpnRange(component, text);
+
+	default:
+		component->type = NumValue;
+		component->value.number = strtouvast(text);
+		return 0;
+	}
+}
+
+static EidpItem	*loadEidpIpnSSP(EidpItem *item, char *ssl)
+{
+	int	tokenCount = 0;
+	char	*cursor;
+	int	i;
+	char	*delimiter;
+	char	*tokens[3];
+
+	/*	Identify all components of the ipn-scheme EID SSP.	*/
+
+	cursor = ssl;
+	for (i = 0; i < 4; i++)	/*	4th, if found, is an error.	*/
+	{
+		tokens[i] = cursor;	/*	Text of component.	*/
+		tokenCount++;
+
+		/*	Find the end of this token.			*/
+
+		delimiter = strchr(cursor, '.');
+		if (delimiter == NULL)
+		{
+			break;	/*	This is the last token.	*/
+		}
+
+		*delimiter = '\0';	/*	End of token.	*/
+		cursor = delimiter + 1;	/*	Get next token.	*/
+	}
+
+	/*	Item must have exactly 3 tokens.			*/
+
+	if (tokenCount != 3)	/*	Invalid ipn EID item.	*/
+	{
+		MRELEASE(item);
+		return NULL;
+	}
+
+	for (i = 0; i < 3; i++)
+	{
+		if (loadIpnComponent(item, i, tokens[i]) < 0)
+		{
+			destroyEidpIpnSSP(item);
+			MRELEASE(item);
+			return NULL;
+		}
+	}
+
+	return item;
+}
+
+static EidpItem	*loadPatternItem(char *buffer)
+{
+	char		*colon;
+	EidpItem	*item;
+	char		*ssp;
+	char		*cursor;
+	int		schemeNameLen;
+
+	colon = strchr(buffer, ':');
+	if (colon == NULL)	/*	No scheme ID, not an eidp item.	*/
+	{
+		return NULL;	/*	Nothing for pattern.		*/
+	}
+
+	*colon = '\0';		/*	Terminate scheme identifier.	*/
+	item = (EidpItem *) MTAKE(sizeof(EidpItem));
+	if (item == NULL)
+	{
+		writeMemo("[?] Not enough memory for EID pattern item.");
+		return NULL;
+	}
+
+	item->schemeName = NULL;
+	ssp = colon + 1;
+	cursor = buffer;
+	if (*cursor == '*')	/*	Any scheme.			*/
+	{
+		item->schemeCodeNbr = unknown;
+		item->schemeName = NULL;
+		item->ssp.anySSP.any = NULL;
+		return item;
+	}
+
+	if (isalpha(*cursor))	/*	Have scheme name.		*/
+	{
+		if (strcmp(cursor, "dtn") == 0)
+		{
+			item->schemeCodeNbr = dtn;
+		}
+		else if (strcmp(cursor, "ipn") == 0)
+		{
+			item->schemeCodeNbr = ipn;
+		}
+		else if (strcmp(cursor, "imc") == 0)
+		{
+			item->schemeCodeNbr = imc;
+		}
+		else		/*	Unknown scheme.			*/
+		{
+			item->schemeCodeNbr = unknown;
+			schemeNameLen = strlen(cursor);
+			item->schemeName = MTAKE(schemeNameLen + 1);
+			if (item->schemeName == NULL)
+			{
+				writeMemoNote("[?] Not enough memory for EID \
+pattern item scheme name", cursor);
+				MRELEASE(item);
+				return NULL;
+			}
+
+			strcpy(item->schemeName, cursor);
+		}
+	}
+	else
+	{
+		if (isdigit(*cursor))	/*	Have scheme number.	*/
+		{
+			item->schemeCodeNbr = atoi(cursor);
+			item->schemeName = NULL;
+		}
+		else			/*	No scheme ID at all.	*/
+		{
+			MRELEASE(item);
+			return NULL;
+		}
+	}
+
+	if (item->schemeCodeNbr == ipn)
+	{
+		item = loadEidpIpnSSP(item, ssp);
+	}
+	else	/*	Unrecognized scheme ID, either number or name.	*/
+	{
+		/*	Matches any SSP formed in this scheme.		*/
+
+		item->ssp.anySSP.any = NULL;
+	}
+
+	return item;
+}
+
+int	loadEidPattern(EidPattern *eidp, const char *text)
+{
+	int		textLength;
+	char		*buffer;
+	char		*nextItem;
+	char		*cursor;
+	char		*itemDelimiter;
+	EidpItem	*item;
+
+	textLength = strlen(text);
+	buffer = MTAKE(textLength);
+	if (buffer == NULL)
+	{
+		writeMemo("[?] Not enough memory for EID pattern parsing \
+buffer.");
+		return -1;
+	}
+
+	nextItem = buffer;
+	while (nextItem)
+	{
+		cursor = nextItem;
+		itemDelimiter = strchr(cursor, '|');
+		if (itemDelimiter)
+		{
+			*itemDelimiter = '\0';
+			nextItem = itemDelimiter + 1;
+		}
+		else	/*	This is the last item in the pattern.	*/
+		{
+			nextItem = NULL;
+		}
+
+		item = loadPatternItem(cursor);
+		if (item)
+		{
+			if (lyst_insert_last(eidp->items, item) == NULL)
+			{
+				writeMemo("[?] Can't record EID pattern item.");
+				MRELEASE(buffer);
+				return -1;
+			}
+		}
+	}
+
+	MRELEASE(buffer);
+	return 0;
+}
+
+static int	isInRange(Lyst intervals, uvast val)
+{
+	LystElt		elt;
+	EidpIpnInterval	*interval;
+
+	for (elt = lyst_first(intervals); elt; elt = lyst_next(elt))
+	{
+		interval = (EidpIpnInterval *) lyst_data(elt);
+		if (val >= interval->first && val <= interval->last)
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+static int	ipnEidMatchesItem(EidpItem *item, uvast *eidComponents)
+{
+	int			matchCount = 0;
+	int			i;
+	EidpIpnComponent	component;
+	uvast			val;
+
+	for (i = 0; i < 3; i++)
+	{
+		component = item->ssp.ipnSSP.components[i];
+		val = eidComponents[i];
+		switch (component.type)
+		{
+		case NoValue:
+			break;
+
+		case AnyValue:
+			matchCount++;
+			break;
+
+		case NumValue:
+			if (component.value.number == val)
+			{
+				matchCount++;
+			}
+
+			break;
+
+		case RangeValue:
+			if (isInRange(component.value.range.intervals, val))
+			{
+				matchCount++;
+			}
+
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	if (matchCount == 3)
+	{
+		return 1;
+	}
+
+	return 0;
+}
+
+int	eidMatchesPattern(EidPattern *eidp, EndpointId *eid)
+{
+	uvast		eidComponents[3];
+	LystElt		elt;
+	EidpItem	*item;
+
+	if (eid->schemeCodeNbr == ipn)
+	{
+		eidComponents[0] = (eid->ssp.ipn.fqnn >> 32)
+				& 0x00000000ffffffff;
+		eidComponents[1] = eid->ssp.ipn.fqnn & 0x00000000ffffffff;
+		eidComponents[2] = eid->ssp.ipn.serviceNbr;
+	}
+
+	for (elt = lyst_first(eidp->items); elt; elt = lyst_next(elt))
+	{
+		item = (EidpItem *) lyst_data(elt);
+		if (item->schemeCodeNbr == ipn)
+		{
+			if (eid->schemeCodeNbr == ipn)
+			{
+				if (ipnEidMatchesItem(item, eidComponents))
+				{
+					return 1;
+				}
+			}
+
+			/*	EID doesn't match this pattern item.	*/
+
+			continue;
+		}
+
+		/*	Item is for a scheme whose SSP structure is
+		 *	not yet supported in EID patterns.		*/
+
+		if (item->schemeCodeNbr == eid->schemeCodeNbr)
+		{
+			/*	This item indicates that any EID
+			 *	formed in the indicated known but
+			 *	unsupported scheme is considered
+			 *	a match to this pattern.		*/
+
+			return 1;
+		}
+		else
+		{
+			if (item->schemeCodeNbr == unknown)
+			{
+				/*	This item indicates that any
+				 *	EID formed in any scheme
+				 *	formed in any unknown scheme
+				 *	is considered a match to this
+				 *	pattern.			*/
+
+				return 1;
+			}
+		}
+	}
+
+	/*	EID doesn't match any of this pattern's items.		*/
+
+	return 0;
+}
+
+/*	*	*	Operations on bundles	*	*	*	*/
 
 int	bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
 		int classOfService, BpCustodySwitch custodySwitch,
