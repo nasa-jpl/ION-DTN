@@ -106,6 +106,8 @@ TGT_MGR_OBJS := $(notdir ${MGR_OBJS})
 TGT_AGENT_OBJS := $(notdir ${AGENT_OBJS})
 
 BSL_HOME = ../../external/BSL/testroot/usr
+BSL_SRC = ../../external/BSL/src
+BSL_BUILD = ../../external/BSL/build/default/src
 BSL_INCLUDE = $(BSL_HOME)/include/bsl
 
 # OPT = -O -Dlinux
@@ -113,7 +115,7 @@ OPT += -g -Wall -Werror -Wno-unused-variable -Dlinux -DAMP_VERSION=8
 #-DHEAP_PTRS=$(PTRS)  # Leave this at default for now
 # For database support, append -DHAVE_MYSQL
 
-INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/include -I../../ltp/include -I../../bpv7/include -I../../bpv7/library -I../../bpv7/bsl -I$(BSL_INCLUDE) -I$(BSL_INCLUDE)/policy_provider -I$(BSL_INCLUDE)/security_context -I$(BSL_INCLUDE)/ION_integration -I$(BSL_HOME)/include/m-lib -I../../ltp/library -I../../ici/library -I$(BP_DIR)/adm -I$(BP_DIR) -I$(BP_DIR)/library -I$(BP_DIR)/library/ext/sbsp -I$(BP_DIR)/library/ext/bpsec -I$(ROOT)/include -I/usr/include/mysql -I/usr/local/mysql/include -I$(CONTRIB)/QCBOR/inc
+INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/include -I../../ltp/include -I../../bpv7/include -I../../bpv7/library -I../../bpv7/bsl -I$(BSL_SRC) -I$(BSL_BUILD) -I$(BSL_INCLUDE) -I$(BSL_INCLUDE)/policy_provider -I$(BSL_INCLUDE)/security_context -I$(BSL_INCLUDE)/ION_integration -I$(BSL_HOME)/include/m-lib -I../../ltp/library -I../../ici/library -I$(BP_DIR)/adm -I$(BP_DIR) -I$(BP_DIR)/library -I$(BP_DIR)/library/ext/sbsp -I$(BP_DIR)/library/ext/bpsec -I$(ROOT)/include -I/usr/include/mysql -I/usr/local/mysql/include -I$(CONTRIB)/QCBOR/inc
 
 CC = gcc $(OPT) $(ADD_FLAGS) $(INCLDIRS)
 

@@ -10,10 +10,12 @@ DGR_LIB = ../../dgr/x86_64-linux/lib
 BSSP_LIB = ../../bssp/x86_64-linux/lib
 BLOOM_LIB = ../../ici/libbloom-master/build
 BSL_HOME = ../../external/BSL/testroot/usr
+BSL_SRC = ../../external/BSL/src
+BSL_BUILD = ../../external/BSL/build/default/src
 BSL_LIB = $(BSL_HOME)/lib
 
 BSL_INCLUDE = $(BSL_HOME)/include/bsl
-BSL_INCL = -I$(BSL_INCLUDE) -I$(BSL_INCLUDE)/policy_provider -I$(BSL_INCLUDE)/security_context -I$(BSL_INCLUDE)/ION_integration -I$(BSL_HOME)/include/m-lib
+BSL_INCL = -I$(BSL_SRC) -I$(BSL_BUILD) -I$(BSL_INCLUDE) -I$(BSL_INCLUDE)/policy_provider -I$(BSL_INCLUDE)/security_context -I$(BSL_INCLUDE)/ION_integration -I$(BSL_HOME)/include/m-lib
 
 #BSL_PP_INCL = /home/scott/BSL/testroot/usr/include/bsl/policy_provider
 #BSL_SC_INCL = /home/scott/BSL/testroot/usr/include/bsl/security_context

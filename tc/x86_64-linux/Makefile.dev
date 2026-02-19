@@ -10,7 +10,9 @@ BP_V = ../../bpv7
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3 -DNDEBUG
 BSL_HOME = ../../external/BSL/testroot/usr
-BSL_INCL = -I$(BSL_HOME)/include/bsl -I$(BSL_HOME)/include/bsl/policy_provider -I$(BSL_HOME)/include/bsl/security_context -I$(BSL_HOME)/include/bsl/ION_integration -I$(BSL_HOME)/include/m-lib
+BSL_SRC = ../../external/BSL/src
+BSL_BUILD = ../../external/BSL/build/default/src
+BSL_INCL = -I$(BSL_SRC) -I$(BSL_BUILD) -I$(BSL_HOME)/include/bsl -I$(BSL_HOME)/include/bsl/policy_provider -I$(BSL_HOME)/include/bsl/security_context -I$(BSL_HOME)/include/bsl/ION_integration -I$(BSL_HOME)/include/m-lib
 CC = gcc $(OPT) -I$(AUTHORITY) -I$(CLIENT) -I$(INCL) -I$(JERASURE)/include -I$(GF_COMPLETE)/include -I$(BP_V)/include -I$(BP_V)/library -I$(BP_V)/bsl $(BSL_INCL) -I../../ici/include -I$(ROOT)/include -L../../ici/x86_64-linux/lib -L../../bpv7/x86_64-linux/lib -L$(BSL_HOME)/lib
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)

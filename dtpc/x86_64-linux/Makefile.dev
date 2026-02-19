@@ -9,10 +9,12 @@ DAEMON = ../daemon
 UTILS = ../utils
 
 BSL_HOME = ../../external/BSL/testroot/usr
+BSL_SRC = ../../external/BSL/src
+BSL_BUILD = ../../external/BSL/build/default/src
 BSL_INCLUDE = $(BSL_HOME)/include/bsl
 
 OPT = -g -Wall -Werror -Dlinux -fPIC
-CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(INCL) -I$(ROOT)/include -I$(BP_INCL) -I$(ICI_INCL) -I../../ici/library -I../../bpv7/library -I../../bpv7/bsl -I$(BSL_INCLUDE) -L$(ICI_LIB) -L$(BP_LIB) -L$(BSL_HOME)/lib
+CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(INCL) -I$(ROOT)/include -I$(BP_INCL) -I$(ICI_INCL) -I../../ici/library -I../../bpv7/library -I../../bpv7/bsl -I$(BSL_SRC) -I$(BSL_BUILD) -I$(BSL_INCLUDE) -L$(ICI_LIB) -L$(BP_LIB) -L$(BSL_HOME)/lib
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
