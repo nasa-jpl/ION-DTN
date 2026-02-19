@@ -598,10 +598,6 @@ tests/cbr-ct-orange-book/*/*.node/ccs_test_output.txt
 # CBR custody test binary
 cbrcustodytest
 
-# Reference documents (design docs, PDFs, etc.)
-ref-doc/
-dev-docs/
-
 # misc test check files
 ams/x86_64-linux/check
 bpv7/x86_64-linux/check
