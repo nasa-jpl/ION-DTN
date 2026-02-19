@@ -105,7 +105,7 @@ TGT_SHARED_OBJS := $(notdir ${SHARED_OBJS})
 TGT_MGR_OBJS := $(notdir ${MGR_OBJS})
 TGT_AGENT_OBJS := $(notdir ${AGENT_OBJS})
 
-BSL_HOME = /usr/local
+BSL_HOME = ../../external/BSL/testroot/usr
 BSL_INCLUDE = $(BSL_HOME)/include/bsl
 
 # OPT = -O -Dlinux
@@ -117,7 +117,7 @@ INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(
 
 CC = gcc $(OPT) $(ADD_FLAGS) $(INCLDIRS)
 
-LIBDIRS = -L$(ROOT)/lib -L/usr/local/mysql/lib -L../../ici/x86_64-linux/lib -L../../bpv7/x86_64-linux/lib -L../../ltp/x86_64-linux/lib -L../../cfdp/x86_64-linux/lib
+LIBDIRS = -L$(ROOT)/lib -L/usr/local/mysql/lib -L../../ici/x86_64-linux/lib -L../../bpv7/x86_64-linux/lib -L../../ltp/x86_64-linux/lib -L../../cfdp/x86_64-linux/lib -L$(BSL_HOME)/lib
 
 LBSL = -lbsl_crypto -lbsl_default_sc -lbsl_dynamic -lbsl_front -lbsl_mock_bpa -lbsl_sample_pp -lqcbor -ljansson
 

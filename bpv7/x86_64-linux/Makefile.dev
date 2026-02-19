@@ -9,7 +9,7 @@ LTP_LIB = ../../ltp/x86_64-linux/lib
 DGR_LIB = ../../dgr/x86_64-linux/lib
 BSSP_LIB = ../../bssp/x86_64-linux/lib
 BLOOM_LIB = ../../ici/libbloom-master/build
-BSL_HOME = /usr/local
+BSL_HOME = ../../external/BSL/testroot/usr
 BSL_LIB = $(BSL_HOME)/lib
 
 BSL_INCLUDE = $(BSL_HOME)/include/bsl
@@ -414,11 +414,11 @@ bpnmtest:	bpnmtest.o libbp.so $(BPLIBS)
 		cp bpnmtest ./bin
 
 sendfile:	sendfile.o libbp.so $(BPLIBS)
-		$(CC) -o sendfile sendfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lsecrypt -lmetadata -lpthread -lm
+		$(CC) -o sendfile sendfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lmetadata -lpthread -lm
 		cp sendfile ./bin
 
 recvfile:	recvfile.o libbp.so $(BPLIBS)
-		$(CC) -o recvfile recvfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lsecrypt -lmetadata -lpthread -lm
+		$(CC) -o recvfile recvfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lmetadata -lpthread -lm
 		cp recvfile ./bin
 
 #	-	-	Libraries	-	-	-	-	-

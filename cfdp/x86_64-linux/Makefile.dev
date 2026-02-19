@@ -11,7 +11,8 @@ TEST = ../test
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
-CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(INCL) -I$(ROOT)/include -I$(ICI_INCL) -I../../ici/library -I../../bpv7/include -I../../bpv7/library -L$(ICI_LIB) -L$(BP_LIB)
+BSL_LIB = ../../external/BSL/testroot/usr/lib
+CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(INCL) -I$(ROOT)/include -I$(ICI_INCL) -I../../ici/library -I../../bpv7/include -I../../bpv7/library -L$(ICI_LIB) -L$(BP_LIB) -L$(BSL_LIB)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
