@@ -40,9 +40,10 @@ static BslAgent			agent;
 #include "bpsec_instr.h"
 #include "bpsec_util.h"
 #include "bpsec_policy.h"
+#endif
+
 #include "bib.h"
 #include "bcb.h"
-#endif
 
 #define MAX_STARVATION		10
 #define NOMINAL_BYTES_PER_SEC	(256 * 1024)
@@ -7160,7 +7161,6 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 {
 	Sdr		sdr = getIonsdr();
 	BpDB		*db = getBpConstants();
-	BpVdb		*vdb = getBpVdb();
 	Bundle		newBundle;
 	Object		newBundleObj;
 

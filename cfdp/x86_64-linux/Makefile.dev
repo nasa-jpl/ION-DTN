@@ -23,7 +23,8 @@ CFDPINCLS = \
 	$(API)/cfdpP.h \
 	$(UTILS)/bpcp.h
 
-LBP = -lbp
+LBSL = -lbsl_crypto -lbsl_default_sc -lbsl_dynamic -lbsl_front -lbsl_mock_bpa -lbsl_sample_pp -lqcbor -ljansson
+LBP = -lbp $(LBSL)
 
 RUNTIMES = cfdpadmin cfdpclock bputa tcputa cfdptest bpcp bpcpd
 

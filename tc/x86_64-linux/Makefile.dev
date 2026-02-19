@@ -3,12 +3,15 @@ INCL = ../include
 AUTHORITY = ../authority
 CLIENT = ../client
 DTKA = ../dtka
-ZFEC = ../../ici/zfec-1.4.24/zfec
+JERASURE = ../jerasure
+GF_COMPLETE = ../gf-complete
 BP_V = ../../bpv7
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3 -DNDEBUG
-CC = gcc $(OPT) -I$(AUTHORITY) -I$(CLIENT) -I$(INCL) -I$(ZFEC) -I$(BP_V)/library -I$(ROOT)/include
+BSL_HOME = /usr/local
+BSL_INCL = -I$(BSL_HOME)/include/bsl -I$(BSL_HOME)/include/bsl/policy_provider -I$(BSL_HOME)/include/bsl/security_context -I$(BSL_HOME)/include/bsl/ION_integration -I$(BSL_HOME)/include/m-lib
+CC = gcc $(OPT) -I$(AUTHORITY) -I$(CLIENT) -I$(INCL) -I$(JERASURE)/include -I$(GF_COMPLETE)/include -I$(BP_V)/library -I$(BP_V)/bsl $(BSL_INCL) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -19,11 +22,12 @@ TCINCLS = \
 	$(CLIENT)/tccP.h \
 	$(INCL)/tc.h
 
-LBP = -lbp
+LBSL = -lbsl_crypto -lbsl_default_sc -lbsl_dynamic -lbsl_front -lbsl_mock_bpa -lbsl_sample_pp -lqcbor -ljansson
+LBP = -lbp $(LBSL)
 
 RUNTIMES = tcaboot tcarecv tcacompile tcapublish tcaadmin tcc tccadmin dtka dtkaadmin
 
-ALL = check libtc.so libtcaP.so libtcc.so libtccP.so libdtka.so libzfec.so $(RUNTIMES)
+ALL = check libtc.so libtcaP.so libtcc.so libtccP.so libdtka.so libjerasure.so libgf_complete.so $(RUNTIMES)
 
 all:		$(ALL)
 
@@ -52,8 +56,8 @@ tcacompile:	tcacompile.o libtcaP.so
 		$(CC) -o tcacompile tcacompile.o -L./lib -L$(ROOT)/lib -ltcaP -ltc $(LBP) -lici -lpthread -lm
 		cp tcacompile ./bin
 
-tcapublish:	tcapublish.o libtcaP.so
-		$(CC) -o tcapublish tcapublish.o -L./lib -L$(ROOT)/lib -ltcaP -ltc $(LBP) -lici -lzfec -lpthread -lm
+tcapublish:	tcapublish.o libtcaP.so libjerasure.so libgf_complete.so
+		$(CC) -o tcapublish tcapublish.o -L./lib -L$(ROOT)/lib -ltcaP -ltc $(LBP) -lici -ljerasure -lgf_complete -lpthread -lm
 		cp tcapublish ./bin
 
 tcaadmin:	tcaadmin.o libtcaP.so
@@ -70,16 +74,16 @@ libtcaP.so:	libtcaP.o
 
 #	-	-	Client executables	-	-	-	-
 
-tcc:		tcc.o libtc.so libtcc.so libtccP.so
-		$(CC) -o tcc tcc.o -L./lib -L$(ROOT)/lib -ltccP -ltcc -ltc $(LBP) -lici -lzfec -lpthread -lm
+tcc:		tcc.o libtc.so libtcc.so libtccP.so libjerasure.so libgf_complete.so
+		$(CC) -o tcc tcc.o -L./lib -L$(ROOT)/lib -ltccP -ltcc -ltc $(LBP) -lici -ljerasure -lgf_complete -lpthread -lm
 		cp tcc ./bin
 
 tccadmin:	tccadmin.o libtc.so libtcc.so libtccP.so
 		$(CC) -o tccadmin tccadmin.o -L./lib -L$(ROOT)/lib -ltccP -ltcc -ltc $(LBP) -lici -lpthread -lm
 		cp tccadmin ./bin
 
-libtcc.so:	libtcc.o
-		$(LD) -o libtcc.so libtcc.o
+libtcc.so:	libtcc.o libtccP.so
+		$(LD) -o libtcc.so libtcc.o -L./lib -ltccP
 		cp libtcc.so ./lib
 
 libtccP.so:	libtccP.o
@@ -88,15 +92,22 @@ libtccP.so:	libtccP.o
 
 #	-	-	Library	-	-	-	-	-	-
 
-libtc.so:	libtc.o
-		$(LD) -o libtc.so libtc.o
+libtc.so:	libtc.o ion_fec.o libjerasure.so libgf_complete.so
+		$(LD) -o libtc.so libtc.o ion_fec.o -L./lib -Wl,-rpath-link,./lib -ljerasure -lgf_complete
 		cp libtc.so ./lib
 
-#	-	-	zfec	-	-	-	-	-	-
+#	-	-	jerasure and gf-complete	-	-	-	-	-	-
 
-libzfec.so:	$(ZFEC)/fec.o
-		$(LD) -o libzfec.so $(ZFEC)/fec.o
-		cp libzfec.so ./lib
+JERASURE_OBJS = galois.o jerasure.o reed_sol.o cauchy.o liberation.o
+GF_COMPLETE_OBJS = gf.o gf_wgen.o gf_w4.o gf_w8.o gf_w16.o gf_w32.o gf_w64.o gf_w128.o gf_rand.o gf_general.o gf_cpu.o gf_method.o
+
+libjerasure.so:	$(JERASURE_OBJS)
+		$(LD) -o libjerasure.so $(JERASURE_OBJS)
+		cp libjerasure.so ./lib
+
+libgf_complete.so:	$(GF_COMPLETE_OBJS)
+		$(LD) -o libgf_complete.so $(GF_COMPLETE_OBJS)
+		cp libgf_complete.so ./lib
 
 #	-	-	Application -	-	-	-	-	-
 
@@ -126,5 +137,8 @@ libdtka.so:	libdtka.o
 %.o:		$(DTKA)/%.c
 		$(CC) -c $<
 
-%.o:		$(ZFEC)/%.c
-		$(CC) -c $(ZFEC)/%.c
+%.o:		$(JERASURE)/src/%.c
+		$(CC) -c $<
+
+%.o:		$(GF_COMPLETE)/src/%.c
+		$(CC) -c $<

@@ -41,7 +41,8 @@ RAMSTESTOBJS = \
 PUBINCLS = \
 	$(INCL)/ams.h
 
-LBP = -lbp
+LBSL = -lbsl_crypto -lbsl_default_sc -lbsl_dynamic -lbsl_front -lbsl_mock_bpa -lbsl_sample_pp -lqcbor -ljansson
+LBP = -lbp $(LBSL)
 
 RUNTIMES = amsd amshello amsshell amslog amslogprt amsbenchs amsbenchr ramsgate amsstop amsmib
 
@@ -97,11 +98,11 @@ amsbenchr:	amsbenchr.o libams.so $(INCL)/ams.h
 #	-	-	Utility executables	-	-	-	-
 
 amsshell:	amsshell.o libams.so $(INCL)/ams.h
-		$(CC) -o amsshell amsshell.o -L./lib -L$(ROOT)/lib -lbp -lams -ldgr -lici -lpthread -lm
+		$(CC) -o amsshell amsshell.o -L./lib -L$(ROOT)/lib $(LBP) -lams -ldgr -lici -lpthread -lm
 		cp amsshell ./bin
 
 amslog:		amslog.o libams.so $(INCL)/ams.h
-		$(CC) -o amslog amslog.o -L./lib -L$(ROOT)/lib -lbp -lams -ldgr -lici -lpthread -lm
+		$(CC) -o amslog amslog.o -L./lib -L$(ROOT)/lib $(LBP) -lams -ldgr -lici -lpthread -lm
 		cp amslog ./bin
 
 amslogprt:	amslogprt.o

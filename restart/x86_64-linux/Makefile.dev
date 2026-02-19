@@ -38,7 +38,7 @@ ionrestart:	ionrestart.o
 		cp ionrestart ./bin
 
 ionexit:	ionexit.o
-		$(CC) -o ionexit ionexit.o -L./lib -L../../ici/x86_64-linux/lib -L../../ltp/x86_64-linux/lib -L../../$(BP)/x86_64-linux/lib -L../../bssp/x86_64-linux/lib -L../../cfdp/x86_64-linux/lib -lcfdp -lbssp -lbsspP $(LBP) -lltp -lici -lpthread -lm
+		$(CC) -o ionexit ionexit.o -L./lib -L../../ici/x86_64-linux/lib -L../../ltp/x86_64-linux/lib -L../../$(BP)/x86_64-linux/lib -L../../bssp/x86_64-linux/lib -L../../cfdp/x86_64-linux/lib -lcfdp -lbssp $(LBP) -lltp -lici -lpthread -lm
 		cp ionexit ./bin
 
 #	-	-	Object modules	-	-	-	-	-
