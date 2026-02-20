@@ -55,9 +55,9 @@ UNIBO_CGR = 0
 # UNIBO_CGR = 1
 
 # OPT = -O -Dlinux
-OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3 -DENABLE_IMC -DBPSEC
+OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3 -DENABLE_IMC -DBPSEC -DBP_EXTENDED
 # OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3 -DENABLE_IMC -DBPSEC -DUNIBO_CGR -DUNIBO_CGR_ENH_WITHOUT_EXP_EXTENSIONS
-CC = gcc $(OPT) $(ADD_FLAGS) -I$(METADATA) -I$(IPN) -I$(IMC) -I$(SAGA) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/pnb -I$(API)/ext/bpq -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/hcb -I$(API)/ext/cteb -I$(API)/ext/creb -I$(API)/ext/bpsec -I$(API)/ext/snw -I$(API)/ext/imc -I$(BSL) $(BSL_INCL) -I$(BIBE) -I$(BPSEC)/instr -I$(BPSEC)/policy -I$(BPSEC)/sci -I$(BPSEC)/utils -I$(STCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -I$(ICI_INCL) -I../../ici/library -I../../ici/crypto -I../../ici/crypto/NULL_SUITES -I$(LTP_INCL) -I../../dgr/include -I$(BSSP_INCL) -I$(BLOOM_INCL) -L$(ICI_LIB) -L$(LTP_LIB) -L$(DGR_LIB) -L$(BSSP_LIB) -L$(BLOOM_LIB) -L$(BSL_LIB) -DBP_EXTENDED
+CC = gcc $(OPT) $(ADD_FLAGS) -I$(METADATA) -I$(IPN) -I$(IMC) -I$(SAGA) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/pnb -I$(API)/ext/bpq -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/hcb -I$(API)/ext/cteb -I$(API)/ext/creb -I$(API)/ext/bpsec -I$(API)/ext/snw -I$(API)/ext/imc -I$(BSL) $(BSL_INCL) -I$(BIBE) -I$(BPSEC)/instr -I$(BPSEC)/policy -I$(BPSEC)/sci -I$(BPSEC)/utils -I$(STCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -I$(ICI_INCL) -I../../ici/library -I../../ici/crypto -I../../ici/crypto/NULL_SUITES -I$(LTP_INCL) -I../../dgr/include -I$(BSSP_INCL) -I$(BLOOM_INCL) -L$(ICI_LIB) -L$(LTP_LIB) -L$(DGR_LIB) -L$(BSSP_LIB) -L$(BLOOM_LIB) -L$(BSL_LIB)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -77,6 +77,7 @@ BPINCLS = \
 	$(LTP)/ltpcla.h \
 	$(DCCP)/dccpcla.h \
 	$(INCL)/eureka.h \
+	$(BSL)/bsl.h \
 	$(BPSEC)/sci/sci.h \
 	$(BPSEC)/sci/ion_test_sc.h \
 	$(BPSEC)/sci/bib_hmac_sha2_sc.h \
@@ -101,6 +102,10 @@ BPLIBS = \
 
 BPPOBJS = libbpP.o libipnfw.o libimcfw.o libdtn2fw.o bibe.o eureka.o saga.o bei.o pnb.o bpq.o meb.o bae.o hcb.o cteb.o creb.o cbr.o snw.o imc.o bpsec_util.o bpsec_instr.o bib.o bcb.o bpsec_policy.o bpsec_policy_event.o bpsec_policy_eventset.o bpsec_policy_rule.o bcb_aes_gcm_sc.o bib_hmac_sha2_sc.o ion_test_sc.o rfc9173_utils.o sc_util.o sc_value.o sci.o sci_valmap.o bpsec_asb.o
 
+ifeq ($(USING_BSL),1)
+BPPOBJS += bsl.o ionpatch.o
+endif
+
 IPNDOBJS = ipnd.o beacon.o helper.o bpa.o
 
 CGROBJS = libcgr.o
@@ -114,7 +119,7 @@ endif
 
 LBP = -lbp $(LBSL)
 
-RUNTIMES = bpadmin bpsecadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpsendtest bprecvtest bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo sppcli sppclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat imcfw imcadminep bsspcli bsspclo bibeclo bibeadmin bpnmtest ipnd cgrfetch bpversion bpcrash bpcrash_hard bpinspect cpsd sendfile recvfile bptracker
+RUNTIMES = bpadmin bpsecadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpsendtest bprecvtest bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo sppcli sppclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat imcfw imcadminep bsspcli bsspclo bibeclo bibeadmin bpnmtest ipnd cgrfetch bpcrash bpcrash_hard bpinspect cpsd sendfile recvfile bptracker
 # dccpcli dccpclo
 
 ALL = check $(BPLIBS) $(RUNTIMES)
@@ -429,6 +434,7 @@ sendfile:	sendfile.o libbp.so $(BPLIBS)
 recvfile:	recvfile.o libbp.so $(BPLIBS)
 		$(CC) -o recvfile recvfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lmetadata -lpthread -lm
 		cp recvfile ./bin
+
 #	-	-	Libraries	-	-	-	-	-
 
 libbp.so:	libbp.o $(BPPOBJS) libbpnm.o
@@ -476,6 +482,12 @@ libmetadata.so:	metadata.o
 		$(CC) -c $<
 
 %.o:		$(API)/ext/pnb/%.c
+		$(CC) -c $<
+
+%.o:		$(API)/ext/cteb/%.c
+		$(CC) -c $<
+
+%.o:		$(API)/ext/creb/%.c
 		$(CC) -c $<
 
 %.o:		$(BPSEC)/instr/%.c
@@ -612,6 +624,5 @@ endif
 %.o:		$(API)/ext/creb/%.c
 		$(CC) -c $<
 
-# When USING_BSL=1, will need:
-# %.o:		$(BSL)/%.c
-#		$(CC) -I$(BSL) -c $<
+%.o:		$(BSL)/%.c
+		$(CC) -I$(BSL) -c $<

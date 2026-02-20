@@ -3,7 +3,6 @@ INCL = ../include
 AUTHORITY = ../authority
 CLIENT = ../client
 DTKA = ../dtka
-ZFEC = ../../ici/zfec-1.4.24/zfec
 JERASURE = ../jerasure
 GF_COMPLETE = ../gf-complete
 BP_V = ../../bpv7
@@ -103,8 +102,8 @@ tccadmin:	tccadmin.o libtc.so libtcc.so libtccP.so libjerasure.so libgf_complete
 		$(CC) -o tccadmin tccadmin.o -L./lib -L$(ROOT)/lib -ltccP -ltcc -ltc $(LBP) -lici -ljerasure -lgf_complete -lpthread -lm
 		cp tccadmin ./bin
 
-libtcc.so:	libtcc.o
-		$(LD) -o libtcc.so libtcc.o
+libtcc.so:	libtcc.o libtccP.so
+		$(LD) -o libtcc.so libtcc.o -L./lib -ltccP
 		cp libtcc.so ./lib
 
 libtccP.so:	libtccP.o
@@ -113,17 +112,22 @@ libtccP.so:	libtccP.o
 
 #	-	-	Library	-	-	-	-	-	-
 
-libtc.so:	libtc.o
-		$(LD) -o libtc.so libtc.o
+libtc.so:	libtc.o ion_fec.o libjerasure.so libgf_complete.so
+		$(LD) -o libtc.so libtc.o ion_fec.o -L./lib -Wl,-rpath-link,./lib -ljerasure -lgf_complete
 		cp libtc.so ./lib
 
 #	-	-	jerasure and gf-complete	-	-	-	-	-	-
 
-libjerasure.so:	$(JERASURE)/src/.libs/libJerasure.so
-		cp $(JERASURE)/src/.libs/libJerasure.so ./lib/libjerasure.so
+JERASURE_OBJS = galois.o jerasure.o reed_sol.o cauchy.o liberation.o
+GF_COMPLETE_OBJS = gf.o gf_wgen.o gf_w4.o gf_w8.o gf_w16.o gf_w32.o gf_w64.o gf_w128.o gf_rand.o gf_general.o gf_cpu.o gf_method.o
 
-libgf_complete.so:	$(GF_COMPLETE)/src/.libs/libgf_complete.so
-		cp $(GF_COMPLETE)/src/.libs/libgf_complete.so ./lib/libgf_complete.so
+libjerasure.so:	$(JERASURE_OBJS)
+		$(LD) -o libjerasure.so $(JERASURE_OBJS)
+		cp libjerasure.so ./lib
+
+libgf_complete.so:	$(GF_COMPLETE_OBJS)
+		$(LD) -o libgf_complete.so $(GF_COMPLETE_OBJS)
+		cp libgf_complete.so ./lib
 
 #	-	-	Application -	-	-	-	-	-
 
@@ -153,5 +157,8 @@ libdtka.so:	libdtka.o
 %.o:		$(DTKA)/%.c
 		$(CC) -c $<
 
-%.o:		$(ZFEC)/%.c
-		$(CC) -c $(ZFEC)/%.c
+%.o:		$(JERASURE)/src/%.c
+		$(CC) -c $<
+
+%.o:		$(GF_COMPLETE)/src/%.c
+		$(CC) -c $<

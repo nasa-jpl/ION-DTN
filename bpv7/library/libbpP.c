@@ -32,9 +32,16 @@
 
 #include "imcfw.h"
 #include "saga.h"
+
+#if (USING_BSL)
+/*	State of BPSec library instance.				*/
+static BslAgent			agent;
+#else
 #include "bpsec_instr.h"
 #include "bpsec_util.h"
 #include "bpsec_policy.h"
+#endif
+
 #include "bib.h"
 #include "bcb.h"
 
@@ -1779,6 +1786,8 @@ int	bpInit(void)
 				"Custody Transfer) is enabled.");
 	}
 
+
+#if !(USING_BSL)
 	if (secAttach() < 0)
 	{
 		writeMemo("[?] Warning: running without bundle security.");
@@ -1790,6 +1799,7 @@ int	bpInit(void)
 		writeMemo("[i] Bundle security is enabled.");
 	}
 
+#endif
 	return 0;		/*	BP service is now available.	*/
 }
 
@@ -1896,6 +1906,19 @@ int	bpStart(void)
 	PsmAddress	elt;
 
 	CHKERR(sdr_begin_xn(sdr));
+#if (USING_BSL)
+	if (bslInitialize(&agent))
+	{
+		writeMemo("[?] BSL agent initialization failed.");
+		return -1;
+	}
+
+	writeMemo("[i] BSL agent initialization succeeded.");
+#else
+	bsl_all_init(getIonwm());
+	bpsec_instr_init();
+	writeMemo("[i] Bundle security is enabled.");
+#endif
 
 	/*	Start the bundle expiration clock if necessary.		*/
 
@@ -1975,7 +1998,11 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 
 	writeMemo("[i] bpStop: Starting BP shutdown sequence.");
 
+#if (USING_BSL)
+	bslCleanup(&agent);
+#else
 	bpsec_instr_cleanup();
+#endif
 
 	/*	Tell all BP processes to stop.				*/
 
@@ -2260,7 +2287,17 @@ int	bpAttach(void)
 		}
 	}
 
+#if (USING_BSL)
+	if (bslInitialize(&agent))
+	{
+		writeMemo("[?] BSL initialization failed.");
+		return -1;
+	}
+
+	writeMemo("[i] BSL initialization succeeded.");
+#else
 	oK(secAttach());
+#endif
 
 	/*	Attach to CBR/CT database for custody transfer support.	*/
 
@@ -6074,6 +6111,11 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		return bpAbandon(bundleObj, bundle, BP_REASON_BLK_MALFORMED);
 	}
 
+	if (bundle->insecure)
+	{
+		return bpAbandon(bundleObj, bundle, BP_REASON_SECOP_FAILED);
+	}
+
 	/*	If bundle is already being forwarded, then a
 	 *	redundant failure of stewardship notification (is
 	 *	this possible?) has been received, and we haven't
@@ -6740,6 +6782,21 @@ when asking for status reports.");
 		}
 	}
 
+#if (USING_BSL)
+	AcqWorkArea	nullWorkArea;
+
+	memset((char *) &nullWorkArea, 0, sizeof(AcqWorkArea));
+	memcpy((char *) &nullWorkArea.bundle, (char *) &bundle, sizeof(Bundle));
+	if (bslProcess(&agent, &agent.transmit, BSL_POLICYLOCATION_APPIN,
+				&nullWorkArea))
+	{
+		/* system error */
+		putErrmsg("BSL check of bundle from app failed.", NULL);
+		sdr_cancel_xn(sdr);
+		return 0;
+	}
+#endif
+
 	/*	Track custody at source if CTEB was added.		*/
 
 	if (custodySwitch != NoCustodyRequested)
@@ -7163,8 +7220,9 @@ int	deliverBundle(Object bundleObj, Bundle *bundle, VEndpoint *vpoint)
 		return createIncompleteBundle(bundleObj, bundle, vpoint);
 	}
 
-	/*	Bundle is not a fragment, so we can deliver it right
-	 *	away if that's the current policy for this endpoint.	*/
+	/*	Bundle is not a fragment, so it can be examined for
+	 *	security problems and then delivered right away if
+	 *	that's the current policy for this endpoint.		*/
 
 	return enqueueForDelivery(bundleObj, bundle, vpoint);
 }
@@ -7174,13 +7232,35 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 {
 	Sdr		sdr = getIonsdr();
 	BpDB		*db = getBpConstants();
-	BpVdb		*vdb = getBpVdb();
 	Bundle		newBundle;
 	Object		newBundleObj;
 
 	CHKERR(ionLocked());
 	if (bundle->deliverable)
 	{
+#if (USING_BSL)
+		AcqWorkArea	nullWorkArea;
+
+		memset((char *) &nullWorkArea, 0, sizeof(AcqWorkArea));
+		memcpy((char *) &nullWorkArea.bundle, (char *) bundle,
+				sizeof(Bundle));
+		if (bslProcess(&agent, &agent.deliver,
+				BSL_POLICYLOCATION_APPOUT, &nullWorkArea))
+		{
+			/* system error */
+			putErrmsg("[?] BSL check of bundle to app failed.",
+					NULL);
+			sdr_cancel_xn(sdr);
+			return -1;
+		}
+
+		if (bundle->insecure)
+		{
+			return bpAbandon(bundleObj, bundle,
+					BP_REASON_SECOP_FAILED);
+		}
+#endif
+
 		/*	Destination node: accept custody and send CCS
 		 *	back to previous custodian. Pass 0 as context
 		 *	to indicate "destination delivery" - don't set
@@ -7317,7 +7397,7 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 	 *	space.							*/
 
 	bundle->transitElt = sdr_list_insert_last(sdr, db->transit, bundleObj);
-	sm_SemGive(vdb->transitSemaphore);
+	sm_SemGive((_bpvdb(NULL))->transitSemaphore);
 	sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
 	return 0;
 }
@@ -9306,7 +9386,9 @@ static int	discardReceivedBundle(AcqWorkArea *work, BpSrReason srReason)
 
 static void	initAuthenticity(AcqWorkArea *work)
 {
-	Object		secdbObj;
+#if !(USING_BSL)
+	Object	secdbObj;
+#endif
 
 	work->authentic = -1;		/*	Unknown.		*/
 
@@ -9318,13 +9400,23 @@ static void	initAuthenticity(AcqWorkArea *work)
 
 	/*	Bundle is not yet considered authentic.			*/
 
+#if (USING_BSL)
+	/*	If BSL determines that the received bundle is
+	 *	inauthentic, it may or may not choose to abandon
+	 *	it.  If so, it will invoke the DeleteBundle callback
+	 *	function which will set the bundle's "insecure"
+	 *	flag to 1.  If not, then the bundle must not be
+	 *	abandoned on the basis of authenticity.			*/
+
+	work->authentic = 1;		/*	Suppress this check.	*/
+#else
 	secdbObj = getSecDbObject();
 	if (secdbObj == 0)
 	{
 		work->authentic = 1;	/*	No security, proceed.	*/
 		return;
 	}
-
+#endif
 	return;				/*	Still unknown.		*/
 }
 
@@ -9381,6 +9473,8 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	if (work->malformed)
 	{
+		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+				bundle->payload.length);
 		work->bundleLength = 0;
 	}
 
@@ -9401,12 +9495,22 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	}
 
 	work->zcoBytesConsumed += work->bundleLength;
-	if (bundle->altered)	/*	Failed a CRC check.		*/
-	{
-		/*	Don't bother to complete bundle acquisition.	*/
 
+	/*	Discard raw bundle immediately if it is already known
+	 *	not to be usable.					*/
+
+	if (bundle->altered)	/*	Failed a CRC check in acq.	*/
+	{
 		zco_destroy(sdr, work->rawBundle);
 		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
+				bundle->payload.length);
+		return 0;
+	}
+
+	if (work->congestive)	/*	Discovered in acq.		*/
+	{
+		zco_destroy(sdr, work->rawBundle);
+		bpInductTally(work->vduct, BP_INDUCT_CONGESTIVE,
 				bundle->payload.length);
 		return 0;
 	}
@@ -9433,8 +9537,22 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		}
 	}
 
-	/*	Do all decryption indicated by extension blocks.	*/
+	/*	Do all decryption indicated by extension blocks, then
+		check authenticity and integrity.			*/
 
+	initAuthenticity(work);	/*	Set default.			*/
+#if (USING_BSL)
+	if (bslProcess(&agent, &agent.receive, BSL_POLICYLOCATION_CLIN, work)
+			!= 0)
+	{
+		/* system error */
+		putErrmsg("Failed checking security of inbound bundle.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
+
+	bundle->clDossier.authentic = work->authentic;
+#else
 	if (bpsec_decrypt(work) < 0)
 	{
 		/* system error */
@@ -9453,11 +9571,43 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		return abortBundleAcq(work);
 	}
 
-	if (work->malformed == 1)
+	if (bpsec_verify(work) < 0)
 	{
-		writeMemo("[?] Malformed Bundle: Failed decryption.");
+		/* system error */
+		putErrmsg("Can't check bundle authenticity.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
+#endif
+	if (bundle->corrupt == 1)
+	{
+		writeMemo("[?] primary block security verification failed.");
 		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
-			bundle->payload.length);
+				bundle->payload.length);
+		return abortBundleAcq(work);
+	}
+
+	if (bundle->altered == 1)
+	{
+		writeMemo("[?] security verification failed for target block.");
+		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
+				bundle->payload.length);
+		return abortBundleAcq(work);
+	}
+
+	if (bundle->insecure == 1)
+	{
+		writeMemo("[?] security verification failed for bundle.");
+		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
+				bundle->payload.length);
+		return abortBundleAcq(work);
+	}
+
+	if (bundle->clDossier.authentic == 0)
+	{
+		writeMemo("[?] Bundle judged inauthentic.");
+		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
+				bundle->payload.length);
 		return abortBundleAcq(work);
 	}
 
@@ -9498,7 +9648,15 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	}
 
 	/*	Now that acquisition is complete, check the bundle
-	 *	for problems.						*/
+	 *	once again for newly uncovered problems.		*/
+
+	if (bundle->altered)	/*	Failed a CRC check.		*/
+	{
+		writeMemo("[?] CRC check failed for unencrypted ext. block.");
+		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
+				bundle->payload.length);
+		return abortBundleAcq(work);
+	}
 
 	if (work->malformed)
 	{
@@ -9559,9 +9717,14 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	 *	and set the value of bundle->clDossier.authentic
 	 *	accordingly.			SB 5/26/2024		*/
 
+	/*	Or BSL was invoked and any determination of
+	 *	inauthenticicty might (or might not) have caused
+	 *	the bundle's "insecure" flag to have been set.
+	 *					SB 12/15/2025		*/
+
 	if (work->authentic == 0)
 	{
-		writeMemo("[?] security block misconfigured for target payload block.");
+		writeMemo("[?] payload block security block misconfigured.");
 		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
 			bundle->payload.length);
 		return abortBundleAcq(work);
@@ -11966,8 +12129,9 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 	 *	applicable BCB rules.					*/
 
 	/* track current to bundle overhead */
-    int     oldDbOverhead = bundle.dbOverhead;
+	int	oldDbOverhead = bundle.dbOverhead;
 
+#if !(USING_BSL)
 	if (bpsec_sign(&bundle) < 0)
 	{
 		putErrmsg("Failed signing bundle blocks.", NULL);
@@ -11988,14 +12152,29 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 
 		return sdr_end_xn(sdr);
 	}
+#endif
 
+#if USING_BSL
+	AcqWorkArea	nullWorkArea;
+
+	memset((char *) &nullWorkArea, 0, sizeof(AcqWorkArea));
+	memcpy((char *) &nullWorkArea.bundle, (char *) &bundle, sizeof(Bundle));
+	if (bslProcess(&agent, &agent.forward, BSL_POLICYLOCATION_CLOUT,
+			&nullWorkArea))
+	{
+		/* system error */
+		putErrmsg("Failed checking security of outbound bundle.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
+#else
 	if (bpsec_encrypt(&bundle) < 0)
 	{
 		putErrmsg("Failed encrypting bundle blocks.", NULL);
 		sdr_cancel_xn(sdr);
 		return -1;
 	}
-
+#endif
 	if (bundle.insecure)	/*	Not encrypted, can't be sent.	*/
 	{
 		*bundleZco = 1;		/*	Client need not stop.	*/
@@ -12015,7 +12194,7 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 	{
 #if ZCODEBUG
 		char    buf[128];
-		sprintf(buf, "[i] bpDequeu: after bpsec ops, old dbOverhead = %d, new dbOverhead = %d",
+		sprintf(buf, "[i] bpDequeue: after bpsec ops, old dbOverhead = %d, new dbOverhead = %d",
 		oldDbOverhead, bundle.dbOverhead);
 		writeMemo(buf);
 #endif

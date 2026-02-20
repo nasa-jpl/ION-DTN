@@ -96,6 +96,11 @@ int	pnb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	unsigned char	*cursor;
 	unsigned int	unparsedBytes = blk->dataLength;
 
+	if (blk->parsed)	/*	E.g., by BSL.			*/
+	{
+		return 1;
+	}
+
 	if (wk->senderEid.schemeCodeNbr != unknown)
 	{
 		/*	Sender EID was provided another way,
@@ -123,6 +128,7 @@ int	pnb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 		return 0;
 	}
 
+	blk->parsed = 1;
 	return 1;
 }
 

@@ -146,6 +146,14 @@ The default values are 10 for both limits and 5 seconds for timeout.
 
 This command requires B<m custodymode orangebook> to be effective.
 
+=item B<m bsl> I<local_ipn_eid> I<key_reg_file_path> I<policy_config_file_path>
+
+The B<manage BPSec library configuration> command.  This command sets the
+values of three characters strings used by the BPSec library: the canonical
+endpoint ID of the local node, the pathname of the file containing the node's
+crypto keys, and the pathname of the JSON file declaring the node's security
+policy.  There are no default values for these strings.
+
 =item B<x>
 
 The B<stop> command.  This command stops all schemes and all protocols

@@ -150,7 +150,7 @@ static void *receiveResponses(void *x)
 	unsigned long respcount, resppid;
 	long        diff_in_us;
 
-		/* Parameter intentionally unused. */
+	/* Parameter intentionally unused. */
 	(void)x;
 
 	while((shutdownnow == 0) && (count == -1 || totalreceived < count) &&

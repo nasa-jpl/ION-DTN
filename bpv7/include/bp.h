@@ -122,6 +122,8 @@ typedef struct
 	PsmAddress	endpoints;	/*	SM list: VEndpoint.	*/
 } VScheme;
 
+/*	*	*	Objects for managing endpoint IDs.		*/
+
 typedef enum
 {
 	EidNV = 0,			/*	Non-volatile.		*/
@@ -183,6 +185,88 @@ typedef struct
 	unsigned long	serviceNbr;
 	char		nullEndpoint;	/*	Boolean.		*/
 } MetaEid;
+
+/*	*	*	Objects for managing endpoint ID patterns.	*/
+
+typedef struct
+{
+	uvast		first;
+	uvast		last;
+} EidpIpnInterval;
+
+typedef struct
+{
+	Lyst		intervals;	/*	(EidpIpnInterval *)	*/
+} EidpIpnRange;
+
+typedef enum
+{
+	NoValue = 0,
+	AnyValue,
+	NumValue,
+	RangeValue
+} EidpIpnComponentType;
+
+typedef union
+{
+	uvast		number;
+	EidpIpnRange	range;
+} EidpIpnComponentValue;
+
+typedef struct
+{
+	EidpIpnComponentType	type;
+	EidpIpnComponentValue	value;
+} EidpIpnComponent;
+
+typedef struct
+{
+	EidpIpnComponent	components[3];
+} EidpIpnSSP;
+
+typedef struct
+{
+	char		*any;		/*	Always NULL.		*/
+} EidpAnySSP;
+
+typedef union
+{
+	EidpIpnSSP	ipnSSP;
+	EidpAnySSP	anySSP;
+} EidpSSP;
+
+/*	Note: EID pattern items may characterize EIDs for schemes
+ *	other than "ipn" in the future.  When this happens, the SSPs
+ *	of such items will have different structure.
+ *
+ *	At this time the only supported scheme is "ipn", i.e., 2.
+ *	All other schemes are unsupported.
+ *
+ *	The item EID pattern SSP for a scheme that is known
+ *	(i.e., has got a registered scheme code number) but not
+ *	supported will be "any SSP", which is encoded as an EID
+ *	pattern SSP that is simply a NULL pointer, indicating
+ *	that the item matches any EID formed in that known but
+ *	unsupported scheme.
+ *
+ *	The item EID pattern SSP for all schemes that are unknown
+ *	(i.e., have no registered scheme code numbers) will likewise
+ *	be "any SSP" indicating that the item matches any EID
+ *	formed in any unknown scheme.					*/
+
+typedef struct
+{
+	SchemeCodeNbr	schemeCodeNbr;
+	char		*schemeName;
+	EidpSSP		ssp;
+} EidpItem;
+
+typedef struct
+{
+	Lyst		items;		/*	(EidpItem *)		*/
+} EidPattern;
+
+/*	*	*	Objects for managing blocks.			*/
 
 #ifndef BP_MAX_METADATA_LEN
 #define	BP_MAX_METADATA_LEN	(30)
@@ -317,6 +401,8 @@ typedef struct
 	unsigned char	metadata[BP_MAX_METADATA_LEN];
 } BpDelivery;
 
+/*	*	*	Public function prototypes	*	*	*/
+
 extern int		bp_attach(void);
 			/*	Note that all ION libraries and
 			 *	applications draw memory dynamically,
@@ -421,6 +507,11 @@ extern int		recordEid(EndpointId *eid, MetaEid *meid, EidMode mode);
 extern void		eraseEid(EndpointId *eid);
 extern void		readEid(EndpointId *eid, char **str);
 extern char		*_nullEid(void);
+
+extern EidPattern	*createEidPattern();
+extern void		destroyEidPattern(EidPattern *eidp);
+extern int		loadEidPattern(EidPattern *eidp, const char *text);
+extern int		eidMatchesPattern(EidPattern *eidp, EndpointId *eid);
 
 extern int		bp_send(	BpSAP sap,
 					char *destEid,

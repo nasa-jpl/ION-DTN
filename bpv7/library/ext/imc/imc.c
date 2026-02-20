@@ -177,6 +177,11 @@ int	imc_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	/* Parameter intentionally unused. */
 	(void)wk;
 
+	if (blk->parsed)	/*	E.g., by BSL			*/
+	{
+		return 1;
+	}
+
 	if (unparsedBytes < 1)
 	{
 		writeMemo("[?] Can't decode IMC block.");
@@ -222,6 +227,7 @@ int	imc_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 		return 0;		/*	Malformed.		*/
 	}
 
+	blk->parsed = 1;
 	return 1;
 }
 
