@@ -508,7 +508,7 @@ extern void		eraseEid(EndpointId *eid);
 extern void		readEid(EndpointId *eid, char **str);
 extern char		*_nullEid(void);
 
-extern EidPattern	*createEidPattern();
+extern EidPattern	*createEidPattern(void);
 extern void		destroyEidPattern(EidPattern *eidp);
 extern int		loadEidPattern(EidPattern *eidp, const char *text);
 extern int		eidMatchesPattern(EidPattern *eidp, EndpointId *eid);

@@ -1531,6 +1531,7 @@ static void	manageMaxcount(int tokenCount, char **tokens)
 	}
 }
 
+#if USING_BSL
 static void	manageBSL(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
@@ -1577,6 +1578,7 @@ static void	manageBSL(int tokenCount, char **tokens)
 		putErrmsg("Can't update BSL config parameters.", NULL);
 	}
 }
+#endif
 
 static void	manageCustodyMode(int tokenCount, char **tokens)
 {
@@ -1715,11 +1717,13 @@ static void	executeManage(int tokenCount, char **tokens)
 		return;
 	}
 
+#if USING_BSL
 	if (strcmp(tokens[1], "bsl") == 0)
 	{
 		manageBSL(tokenCount, tokens);
 		return;
 	}
+#endif
 
 	if (strcmp(tokens[1], "custodymode") == 0)
 	{

@@ -33,7 +33,7 @@
 #include "imcfw.h"
 #include "saga.h"
 
-#if (USING_BSL)
+#if USING_BSL
 /*	State of BPSec library instance.				*/
 static BslAgent			agent;
 #else
@@ -1787,7 +1787,7 @@ int	bpInit(void)
 	}
 
 
-#if !(USING_BSL)
+#if !USING_BSL
 	if (secAttach() < 0)
 	{
 		writeMemo("[?] Warning: running without bundle security.");
@@ -1798,7 +1798,6 @@ int	bpInit(void)
 		bpsec_instr_init();
 		writeMemo("[i] Bundle security is enabled.");
 	}
-
 #endif
 	return 0;		/*	BP service is now available.	*/
 }
@@ -1906,7 +1905,7 @@ int	bpStart(void)
 	PsmAddress	elt;
 
 	CHKERR(sdr_begin_xn(sdr));
-#if (USING_BSL)
+#if USING_BSL
 	if (bslInitialize(&agent))
 	{
 		writeMemo("[?] BSL agent initialization failed.");
@@ -1998,7 +1997,7 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 
 	writeMemo("[i] bpStop: Starting BP shutdown sequence.");
 
-#if (USING_BSL)
+#if USING_BSL
 	bslCleanup(&agent);
 #else
 	bpsec_instr_cleanup();
@@ -2287,7 +2286,7 @@ int	bpAttach(void)
 		}
 	}
 
-#if (USING_BSL)
+#if USING_BSL
 	if (bslInitialize(&agent))
 	{
 		writeMemo("[?] BSL initialization failed.");
@@ -6782,7 +6781,7 @@ when asking for status reports.");
 		}
 	}
 
-#if (USING_BSL)
+#if USING_BSL
 	AcqWorkArea	nullWorkArea;
 
 	memset((char *) &nullWorkArea, 0, sizeof(AcqWorkArea));
@@ -7238,7 +7237,7 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 	CHKERR(ionLocked());
 	if (bundle->deliverable)
 	{
-#if (USING_BSL)
+#if USING_BSL
 		AcqWorkArea	nullWorkArea;
 
 		memset((char *) &nullWorkArea, 0, sizeof(AcqWorkArea));
@@ -9386,7 +9385,7 @@ static int	discardReceivedBundle(AcqWorkArea *work, BpSrReason srReason)
 
 static void	initAuthenticity(AcqWorkArea *work)
 {
-#if !(USING_BSL)
+#if !USING_BSL
 	Object	secdbObj;
 #endif
 
@@ -9400,7 +9399,7 @@ static void	initAuthenticity(AcqWorkArea *work)
 
 	/*	Bundle is not yet considered authentic.			*/
 
-#if (USING_BSL)
+#if USING_BSL
 	/*	If BSL determines that the received bundle is
 	 *	inauthentic, it may or may not choose to abandon
 	 *	it.  If so, it will invoke the DeleteBundle callback
@@ -9541,7 +9540,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		check authenticity and integrity.			*/
 
 	initAuthenticity(work);	/*	Set default.			*/
-#if (USING_BSL)
+#if USING_BSL
 	if (bslProcess(&agent, &agent.receive, BSL_POLICYLOCATION_CLIN, work)
 			!= 0)
 	{
@@ -12131,7 +12130,7 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 	/* track current to bundle overhead */
 	int	oldDbOverhead = bundle.dbOverhead;
 
-#if !(USING_BSL)
+#if !USING_BSL
 	if (bpsec_sign(&bundle) < 0)
 	{
 		putErrmsg("Failed signing bundle blocks.", NULL);
