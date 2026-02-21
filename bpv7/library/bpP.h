@@ -25,7 +25,7 @@
 #include "crc.h"
 
 #ifndef USING_BSL
-#define USING_BSL	1
+#define USING_BSL	0
 #endif
 
 #if USING_BSL
