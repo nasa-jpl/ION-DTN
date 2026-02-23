@@ -1000,6 +1000,46 @@ Use the Summary or the Files tab to download point releases
 
 ### Using the code repository
 
+There are two ways to obtain ION source code:
+
+#### Option 1: Download ZIP file (Recommended for most users)
+
+1. Visit the ION-DTN GitHub releases page: https://github.com/nasa-jpl/ION-DTN/releases
+2. Find the desired release version (e.g., `ion-open-source-4.1.4`)
+3. Click on "Assets" to expand the download options
+4. Download the source code archive:
+   - `Source code (zip)` for ZIP format
+   - `Source code (tar.gz)` for compressed tarball format
+5. Extract the downloaded archive:
+   ```bash
+   # For ZIP file:
+   unzip ION-DTN-<version>.zip
+   cd ION-DTN-<version>
+
+   # For tar.gz file:
+   tar -xzf ION-DTN-<version>.tar.gz
+   cd ION-DTN-<version>
+   ```
+6. Proceed with the build instructions in [Installing ION on Linux, MacOS, Solaris](#installing-ion-on-linux-macos-solaris)
+
+#### Option 2: Clone the Git repository
+
+For developers who want to track the latest development or contribute to ION:
+
+```bash
+# Clone the repository
+git clone https://github.com/nasa-jpl/ION-DTN.git
+cd ION-DTN
+
+# Checkout a specific release tag (optional)
+git checkout ion-open-source-4.1.4
+
+# Or checkout a branch
+git checkout integration  # For alpha/beta releases
+git checkout current      # For stable releases
+```
+
+**Branch Information:**
 - Track the tags for alpha, beta, and stable releases
 - Stable releases are on the `current` branch
 - Alpha and beta releases are on `integration` branch

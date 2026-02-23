@@ -104,11 +104,19 @@ I<ackRequested> is a Boolean parameter indicating whether or not the recipient
 application should be notified that the source application requests some sort
 of application-specific end-to-end acknowledgment upon receipt of the bundle.
 
-I<ancillaryData>, if not NULL, is used to populate the Extended Class Of
-Service block for this bundle.  The block's I<ordinal> value is used to
-provide fine-grained ordering within "expedited" traffic: ordinal values
-from 0 (the default) to 254 (used to designate the most urgent traffic)
-are valid, with 255 reserved for custody signals.  Note that the insertion
+I<ancillaryData>, if not NULL, is used to populate the Quality of Service
+(QoS) extension block for this bundle. This is an ION-specific, non-standard
+extension (block type 254) patterned after the IETF draft-burleigh-dtn-ecos-00
+Extended Class of Service (ECOS) specification. ION's wire format differs from
+the IETF draft and will not interoperate with other implementations.
+
+The block's I<ordinal> value is used to provide fine-grained ordering within
+"expedited" traffic: ordinal values from 0 (the default) to 254 (used to
+designate the most urgent traffic) are valid, with 255 reserved for custody
+signals. The ordinal is encoded as a full 8-bit unsigned integer in the wire
+format, not as the 6-bit field specified in the IETF draft.
+
+Note that the insertion
 of application-specific extension blocks into the bundle, in addition to the
 canonical extension blocks inserted automatically per the B<bpextensions.c>
 file, may be requested by listing those blocks in the I<extensions> variable

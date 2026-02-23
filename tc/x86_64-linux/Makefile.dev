@@ -4,11 +4,30 @@ AUTHORITY = ../authority
 CLIENT = ../client
 DTKA = ../dtka
 ZFEC = ../../ici/zfec-1.4.24/zfec
+JERASURE = ../jerasure
+GF_COMPLETE = ../gf-complete
 BP_V = ../../bpv7
+
+# BPSec implementation toggle (inherited from root, overridable locally).
+USING_BSL ?= 0
+
+ifeq ($(USING_BSL),1)
+BSL_HOME ?= ../../external/BSL/testroot/usr
+BSL_SRC = ../../external/BSL/src
+BSL_BUILD = ../../external/BSL/build/default/src
+BSL_INCL = -I$(BSL_SRC) -I$(BSL_BUILD) -I$(BSL_HOME)/include/bsl -I$(BSL_HOME)/include/bsl/policy_provider -I$(BSL_HOME)/include/bsl/security_context -I$(BSL_HOME)/include/bsl/ION_integration -I$(BSL_HOME)/include/m-lib
+BSL_LIBDIR = -L$(BSL_HOME)/lib
+else
+BSL_HOME =
+BSL_SRC =
+BSL_BUILD =
+BSL_INCL =
+BSL_LIBDIR =
+endif
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3 -DNDEBUG
-CC = gcc $(OPT) -I$(AUTHORITY) -I$(CLIENT) -I$(INCL) -I$(ZFEC) -I$(BP_V)/library -I$(ROOT)/include
+CC = gcc $(OPT) -I$(AUTHORITY) -I$(CLIENT) -I$(INCL) -I$(JERASURE)/include -I$(GF_COMPLETE)/include -I$(BP_V)/include -I$(BP_V)/library -I$(BP_V)/bsl $(BSL_INCL) -I../../ici/include -I$(ROOT)/include -L../../ici/x86_64-linux/lib -L../../bpv7/x86_64-linux/lib $(BSL_LIBDIR)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -19,11 +38,17 @@ TCINCLS = \
 	$(CLIENT)/tccP.h \
 	$(INCL)/tc.h
 
-LBP = -lbp
+ifeq ($(USING_BSL),1)
+LBSL = -lbsl_crypto -lbsl_default_sc -lbsl_dynamic -lbsl_front -lbsl_mock_bpa -lbsl_sample_pp -lqcbor -ljansson
+else
+LBSL =
+endif
+
+LBP = -lbp $(LBSL)
 
 RUNTIMES = tcaboot tcarecv tcacompile tcapublish tcaadmin tcc tccadmin dtka dtkaadmin
 
-ALL = check libtc.so libtcaP.so libtcc.so libtccP.so libdtka.so libzfec.so $(RUNTIMES)
+ALL = check libtc.so libtcaP.so libtcc.so libtccP.so libdtka.so libjerasure.so libgf_complete.so $(RUNTIMES)
 
 all:		$(ALL)
 
@@ -44,24 +69,24 @@ install:
 
 #	-	-	Authority executables	-	-	-	-
 
-tcarecv:		tcarecv.o libtcaP.so
-		$(CC) -o tcarecv tcarecv.o -L./lib -L$(ROOT)/lib -ltcaP -ltc $(LBP) -lici -lpthread -lm
+tcarecv:		tcarecv.o libtcaP.so libjerasure.so libgf_complete.so
+		$(CC) -o tcarecv tcarecv.o -L./lib -L$(ROOT)/lib -ltcaP -ltc $(LBP) -lici -ljerasure -lgf_complete -lpthread -lm
 		cp tcarecv ./bin
 
-tcacompile:	tcacompile.o libtcaP.so
-		$(CC) -o tcacompile tcacompile.o -L./lib -L$(ROOT)/lib -ltcaP -ltc $(LBP) -lici -lpthread -lm
+tcacompile:	tcacompile.o libtcaP.so libjerasure.so libgf_complete.so
+		$(CC) -o tcacompile tcacompile.o -L./lib -L$(ROOT)/lib -ltcaP -ltc $(LBP) -lici -ljerasure -lgf_complete -lpthread -lm
 		cp tcacompile ./bin
 
-tcapublish:	tcapublish.o libtcaP.so
-		$(CC) -o tcapublish tcapublish.o -L./lib -L$(ROOT)/lib -ltcaP -ltc $(LBP) -lici -lzfec -lpthread -lm
+tcapublish:	tcapublish.o libtcaP.so libjerasure.so libgf_complete.so
+		$(CC) -o tcapublish tcapublish.o -L./lib -L$(ROOT)/lib -ltcaP -ltc $(LBP) -lici -ljerasure -lgf_complete -lpthread -lm
 		cp tcapublish ./bin
 
-tcaadmin:	tcaadmin.o libtcaP.so
-		$(CC) -o tcaadmin tcaadmin.o -L./lib -L$(ROOT)/lib -ltcaP -ltc $(LBP) -lici -lpthread -lm
+tcaadmin:	tcaadmin.o libtcaP.so libjerasure.so libgf_complete.so
+		$(CC) -o tcaadmin tcaadmin.o -L./lib -L$(ROOT)/lib -ltcaP -ltc $(LBP) -lici -ljerasure -lgf_complete -lpthread -lm
 		cp tcaadmin ./bin
 
-tcaboot:	tcaboot.o libtcaP.so
-		$(CC) -o tcaboot tcaboot.o -L./lib -L$(ROOT)/lib -ltcaP -ltc $(LBP) -lici -lpthread -lm
+tcaboot:	tcaboot.o libtcaP.so libjerasure.so libgf_complete.so
+		$(CC) -o tcaboot tcaboot.o -L./lib -L$(ROOT)/lib -ltcaP -ltc $(LBP) -lici -ljerasure -lgf_complete -lpthread -lm
 		cp tcaboot ./bin
 
 libtcaP.so:	libtcaP.o
@@ -70,12 +95,12 @@ libtcaP.so:	libtcaP.o
 
 #	-	-	Client executables	-	-	-	-
 
-tcc:		tcc.o libtc.so libtcc.so libtccP.so
-		$(CC) -o tcc tcc.o -L./lib -L$(ROOT)/lib -ltccP -ltcc -ltc $(LBP) -lici -lzfec -lpthread -lm
+tcc:		tcc.o libtc.so libtcc.so libtccP.so libjerasure.so libgf_complete.so
+		$(CC) -o tcc tcc.o -L./lib -L$(ROOT)/lib -ltccP -ltcc -ltc $(LBP) -lici -ljerasure -lgf_complete -lpthread -lm
 		cp tcc ./bin
 
-tccadmin:	tccadmin.o libtc.so libtcc.so libtccP.so
-		$(CC) -o tccadmin tccadmin.o -L./lib -L$(ROOT)/lib -ltccP -ltcc -ltc $(LBP) -lici -lpthread -lm
+tccadmin:	tccadmin.o libtc.so libtcc.so libtccP.so libjerasure.so libgf_complete.so
+		$(CC) -o tccadmin tccadmin.o -L./lib -L$(ROOT)/lib -ltccP -ltcc -ltc $(LBP) -lici -ljerasure -lgf_complete -lpthread -lm
 		cp tccadmin ./bin
 
 libtcc.so:	libtcc.o
@@ -92,20 +117,22 @@ libtc.so:	libtc.o
 		$(LD) -o libtc.so libtc.o
 		cp libtc.so ./lib
 
-#	-	-	zfec	-	-	-	-	-	-
+#	-	-	jerasure and gf-complete	-	-	-	-	-	-
 
-libzfec.so:	$(ZFEC)/fec.o
-		$(LD) -o libzfec.so $(ZFEC)/fec.o
-		cp libzfec.so ./lib
+libjerasure.so:	$(JERASURE)/src/.libs/libJerasure.so
+		cp $(JERASURE)/src/.libs/libJerasure.so ./lib/libjerasure.so
+
+libgf_complete.so:	$(GF_COMPLETE)/src/.libs/libgf_complete.so
+		cp $(GF_COMPLETE)/src/.libs/libgf_complete.so ./lib/libgf_complete.so
 
 #	-	-	Application -	-	-	-	-	-
 
-dtka:		dtka.o libdtka.so libtcc.so
-		$(CC) -o dtka dtka.o -L./lib -L$(ROOT)/lib -ldtka -ltccP -ltcc -ltc $(LBP) -lici -lpthread -lm
+dtka:		dtka.o libdtka.so libtcc.so libjerasure.so libgf_complete.so
+		$(CC) -o dtka dtka.o -L./lib -L$(ROOT)/lib -ldtka -ltccP -ltcc -ltc $(LBP) -lici -ljerasure -lgf_complete -lpthread -lm
 		cp dtka ./bin
 
-dtkaadmin:	dtkaadmin.o libdtka.so
-		$(CC) -o dtkaadmin dtkaadmin.o -L./lib -L$(ROOT)/lib -ldtka -ltccP -ltcc -ltc $(LBP) -lici -lpthread -lm
+dtkaadmin:	dtkaadmin.o libdtka.so libjerasure.so libgf_complete.so
+		$(CC) -o dtkaadmin dtkaadmin.o -L./lib -L$(ROOT)/lib -ldtka -ltccP -ltcc -ltc $(LBP) -lici -ljerasure -lgf_complete -lpthread -lm
 		cp dtkaadmin ./bin
 
 libdtka.so:	libdtka.o

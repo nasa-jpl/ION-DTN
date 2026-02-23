@@ -695,7 +695,7 @@ are enabled.
 | SNW Permits | 12 | ION | Yes | Placeholder; zero wire overhead when unused |
 | Custody Transfer (CTEB) | 13 | ION | Yes | Conditional offer; only when custody mode is active |
 | Compressed Reporting (CREB) | 14 | ION | Yes | Conditional offer; only when CBR mode and SRR flags are set |
-| Quality of Service (QOS) | 254 | ION | Yes | Always attached; conveys class-of-service, ordinal, flow label |
+| Quality of Service (QOS) | 254 | ION | Yes | **Non-standard ION extension**; always attached; conveys class-of-service, ordinal, flow label |
 
 ### Previous Node Block (PNB) - Block Type 6
 
@@ -749,8 +749,24 @@ scenario.
 
 **Source:** `bpv7/library/ext/bpq/bpq.c`
 
-The QOS block is an ION-specific extension (not defined in RFC 9171) that
-conveys class-of-service, ordinal, and flow label values between ION nodes.
+The QOS block is an **ION-specific, non-standard extension** (not defined in
+RFC 9171) that conveys class-of-service, ordinal, and flow label values between
+ION nodes. It is patterned after the IETF draft-burleigh-dtn-ecos-00 Extended
+Class of Service (ECOS) specification, which was proposed for but not included
+in BPv7. ION maintains this extension for compatibility with BPv6-era QoS
+semantics and to provide fine-grained priority control within expedited traffic.
+
+**Wire Format:** ION's QoS block (type 254) uses a different wire format than
+the IETF ECOS draft:
+- **ION format:** CBOR array with 4 elements: [flags, classOfService, ordinal, dataLabel]
+  - classOfService and ordinal are separate CBOR integers
+  - ordinal is full 8-bit (0-254, with 255 reserved)
+- **IETF draft format:** CBOR array with 5 elements with priority and ordinal
+  bit-packed into a single byte (2 bits + 6 bits)
+
+**Interoperability:** This block will not interoperate with implementations
+following the IETF ECOS draft specification. It is intended for use only
+between ION nodes.
 
 **Default behavior:** Always attached. At offer time, a placeholder is
 created. At dequeue time, the block is serialized with the bundle's QoS

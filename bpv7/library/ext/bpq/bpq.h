@@ -2,6 +2,11 @@
  *	bpq.h:		definitions supporting implementation of
  *			the BP Quality of Service (QOS) block.
  *
+ *	NOTE: The QOS block (type 254) is an ION-specific, non-standard
+ *	extension patterned after IETF draft-burleigh-dtn-ecos-00 ECOS.
+ *	Wire format differs from IETF draft; not interoperable with other
+ *	implementations.
+ *
  *	Copyright (c) 2019, California Institute of Technology.
  *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
  *	acknowledged.

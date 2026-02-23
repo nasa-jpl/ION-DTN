@@ -1,12 +1,39 @@
 UTILS = ../utils
 
+# BPSec implementation toggle (inherited from root, overridable locally).
+USING_BSL ?= 0
+
+ifeq ($(USING_BSL),1)
+BSL_HOME ?= ../../external/BSL/testroot/usr
+BSL_SRC = ../../external/BSL/src
+BSL_BUILD = ../../external/BSL/build/default/src
+BSL_INCLUDE = $(BSL_HOME)/include/bsl
+BSL_LIB = $(BSL_HOME)/lib
+BSL_INCL = -I../../bpv7/bsl -I$(BSL_SRC) -I$(BSL_BUILD) -I$(BSL_INCLUDE) -I$(BSL_INCLUDE)/policy_provider -I$(BSL_INCLUDE)/security_context -I$(BSL_INCLUDE)/ION_integration -I$(BSL_HOME)/include/m-lib
+BSL_LIBDIR = -L$(BSL_LIB)
+else
+BSL_HOME =
+BSL_SRC =
+BSL_BUILD =
+BSL_INCLUDE =
+BSL_LIB =
+BSL_INCL =
+BSL_LIBDIR =
+endif
+
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
-CC = gcc $(OPT) $(ADD_FLAGS) -I../.. -I../../ici/include -I../../ici/sdr -I../../ltp/include -I../../$(BP)/include -I../../bssp/include -I../../cfdp/include -I../../ltp/library -I../../bpv7/library -I../../cfdp/library -L../../ici/x86_64-linux/lib -L../../bpv7/x86_64-linux/lib -L../../bssp/x86_64-linux/lib -L../../ltp/x86_64-linux/lib -L../../cfdp/x86_64-linux/lib
+CC = gcc $(OPT) $(ADD_FLAGS) -I../.. -I../../ici/include -I../../ici/sdr -I../../ltp/include -I../../bpv7/include -I../../bssp/include -I../../cfdp/include $(BSL_INCL) -I../../ltp/library -I../../bpv7/library -I../../cfdp/library -L../../ici/x86_64-linux/lib -L../../bpv7/x86_64-linux/lib -L../../bssp/x86_64-linux/lib -L../../ltp/x86_64-linux/lib -L../../cfdp/x86_64-linux/lib $(BSL_LIBDIR)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
-LBP = -lbp
+ifeq ($(USING_BSL),1)
+LBSL = -lbsl_crypto -lbsl_default_sc -lbsl_dynamic -lbsl_front -lbsl_mock_bpa -lbsl_sample_pp -lqcbor -ljansson
+else
+LBSL =
+endif
+
+LBP = -lbp $(LBSL)
 
 UTILITIES = ionrestart ionexit
 
@@ -29,11 +56,11 @@ uninstall:
 #	-	-	Utility executables	-	-	-	-
 
 ionrestart:	ionrestart.o
-		$(CC) -o ionrestart ionrestart.o -L./lib -L../../ici/x86_64-linux/lib -L../../ltp/x86_64-linux/lib -L../../$(BP)/x86_64-linux/lib -L../../cfdp/x86_64-linux/lib -lcfdp -lcgr $(LBP) -lltp -lici -lpthread -lm
+		$(CC) -o ionrestart ionrestart.o -L./lib -L../../ici/x86_64-linux/lib -L../../ltp/x86_64-linux/lib -L../../bpv7/x86_64-linux/lib -L../../cfdp/x86_64-linux/lib -lcfdp -lcgr $(LBP) -lltp -lici -lpthread -lm
 		cp ionrestart ./bin
 
 ionexit:	ionexit.o
-		$(CC) -o ionexit ionexit.o -L./lib -L../../ici/x86_64-linux/lib -L../../ltp/x86_64-linux/lib -L../../$(BP)/x86_64-linux/lib -L../../bssp/x86_64-linux/lib -L../../cfdp/x86_64-linux/lib -lcfdp -lbssp -lbsspP $(LBP) -lltp -lici -lpthread -lm
+		$(CC) -o ionexit ionexit.o -L./lib -L../../ici/x86_64-linux/lib -L../../ltp/x86_64-linux/lib -L../../bpv7/x86_64-linux/lib -L../../bssp/x86_64-linux/lib -L../../cfdp/x86_64-linux/lib -lcfdp -lbssp $(LBP) -lltp -lici -lpthread -lm
 		cp ionexit ./bin
 
 #	-	-	Object modules	-	-	-	-	-

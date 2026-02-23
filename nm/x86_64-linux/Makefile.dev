@@ -21,6 +21,19 @@ CONTRIB = ../contrib
 BP_DIR = ../../$(BP)
 ADM = $(BP_DIR)/adm
 
+# BPSec implementation toggle (inherited from root, overridable locally).
+USING_BSL ?= 0
+
+ifeq ($(USING_BSL),1)
+BSL_HOME ?= ../../external/BSL/testroot/usr
+BSL_LIB = $(BSL_HOME)/lib
+BSL_LIBDIR = -L$(BSL_LIB)
+else
+BSL_HOME =
+BSL_LIB =
+BSL_LIBDIR =
+endif
+
 SHARED_SOURCES = \
 	$(SHARED)/adm/adm.c			\
 	$(SHARED)/adm/adm_init.c	\
@@ -114,9 +127,17 @@ INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(
 
 CC = gcc $(OPT) $(ADD_FLAGS) $(INCLDIRS)
 
-LIBDIRS = -L$(ROOT)/lib -L/usr/local/mysql/lib -L../../ici/x86_64-linux/lib -L../../bpv7/x86_64-linux/lib -L../../ltp/x86_64-linux/lib -L../../cfdp/x86_64-linux/lib
+LIBDIRS = -L$(ROOT)/lib -L/usr/local/mysql/lib -L../../ici/x86_64-linux/lib -L../../bpv7/x86_64-linux/lib -L../../ltp/x86_64-linux/lib -L../../cfdp/x86_64-linux/lib $(BSL_LIBDIR)
 
-LIBS = -lcfdp -lbp -lltp -lici -lpthread -lm
+ifeq ($(USING_BSL),1)
+LBSL = -lbsl_crypto -lbsl_default_sc -lbsl_dynamic -lbsl_front -lbsl_mock_bpa -lbsl_sample_pp -lqcbor -ljansson
+else
+LBSL =
+endif
+
+LBP = -lbp $(LBSL)
+
+LIBS = -lcfdp $(LBP) -lltp -lici -lpthread -lm
 
 LD = gcc $(OPT) $(LIBDIRS)
 

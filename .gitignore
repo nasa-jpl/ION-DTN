@@ -250,6 +250,31 @@ ion_nodes
 out\.valgrind\.*
 **/bpacq.*
 
+# Build log files
+*.log
+*build.log
+*rebuild*.log
+automake-build.txt
+progress
+
+# External dependencies directory
+external/
+
+# Platform-specific build directories
+**/i86_64-fedora/
+**/tcp4/
+
+# Test convergence layer binaries (root level)
+tcp4_loopback
+tcp4cli
+tcp4clo
+
+# Test artifacts and directories
+tests/bpsec/bpsec-all-multinode-test.bsl/
+tests/issue-325-329-fragmentation/**/testfile*
+tests/tcp4-twonodes/
+tests/tcp4-twonodes-tls/
+
 # Produced test support
 tests/retest
 tests/progress

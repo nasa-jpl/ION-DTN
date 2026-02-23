@@ -228,7 +228,9 @@ typedef struct
 
 	unsigned int	dataLabel;	/*	Optional.		*/
 	unsigned char	flags;		/*	QoS flags; see below.	*/
-	unsigned char	ordinal;	/*	0 to 254 (most urgent).	*/
+	unsigned char	ordinal;	/*	0 to 254 (most urgent). 255 reserved.
+				 *	NOTE: ION uses full 8-bit range,
+				 *	not 6-bit (0-63) as in IETF ECOS draft. */
 
 	/*	Note that priority is likewise now carried in the QOS
 	 *	block.  However, the ION application protocol interface

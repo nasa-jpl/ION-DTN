@@ -2,11 +2,25 @@ INCL = ../include
 ICI_INCL = ../../ici/include
 ICI_LIB = ../../ici/x86_64-linux/lib
 BP_LIB = ../../bpv7/x86_64-linux/lib
+
+# BPSec implementation toggle (inherited from root, overridable locally).
+USING_BSL ?= 0
+
+ifeq ($(USING_BSL),1)
+BSL_HOME ?= ../../external/BSL/testroot/usr
+BSL_LIB = $(BSL_HOME)/lib
+BSL_LIBDIR = -L$(BSL_LIB)
+else
+BSL_HOME =
+BSL_LIB =
+BSL_LIBDIR =
+endif
+
 API = ../library
 TEST = ../test
 
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
-CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(TEST) -I$(INCL) -I$(ROOT)/include -I$(ICI_INCL) -I../../bpv7/include -I../../ici/library -I../../bpv7/library -L$(ICI_LIB) -L$(BP_LIB)
+CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(TEST) -I$(INCL) -I$(ROOT)/include -I$(ICI_INCL) -I../../bpv7/include -I../../ici/library -I../../bpv7/library -L$(ICI_LIB) -L$(BP_LIB) $(BSL_LIBDIR)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -17,7 +31,13 @@ LIBBSSOBJS = \
 PUBINCLS = \
 	$(INCL)/bss.h
 
-LBP = -lbp
+ifeq ($(USING_BSL),1)
+LBSL = -lbsl_crypto -lbsl_default_sc -lbsl_dynamic -lbsl_front -lbsl_mock_bpa -lbsl_sample_pp -lqcbor -ljansson
+else
+LBSL =
+endif
+
+LBP = -lbp $(LBSL)
 
 RUNTIMES = bssrecv bssStreamingApp bsscounter bssdriver
 

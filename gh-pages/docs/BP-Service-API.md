@@ -582,7 +582,9 @@ Parameters
 
 * `srrFlags`: if non-zero, is the logical OR of the status reporting behaviors requested for this bundle: BP_RECEIVED_RPT, BP_CUSTODY_RPT, BP_FORWARDED_RPT, BP_DELIVERED_RPT, BP_DELETED_RPT. **Note:** BP_CUSTODY_RPT no longer has any effect in BPv7, as custody transfer semantics have changed.
 * `ackRequested`: is a Boolean parameter indicating whether or not the recipient application should be notified that the source application requests some sort of application-specific end-to-end acknowledgment upon receipt of the bundle.
-* `ancillaryData`: if not NULL, is used to populate the Extended Class Of Service block for this bundle. The block's ordinal value is used to provide fine-grained ordering within "expedited" traffic: ordinal values from 0 (the default) to 254 (used to designate the most urgent traffic) are valid, with 255 reserved for custody signals. The value of the block's flags is the logical OR of the applicable extended class-of-service flags:
+* `ancillaryData`: if not NULL, is used to populate the Quality of Service (QoS) extension block for this bundle. **Note:** The QoS block (type 254) is an **ION-specific, non-standard extension** patterned after the IETF draft-burleigh-dtn-ecos-00 Extended Class of Service (ECOS) specification, which was removed from BPv7. ION's wire format encodes classOfService and ordinal as separate CBOR integers in a 4-element array, whereas the IETF draft specified a 5-element array with priority and ordinal bit-packed together. This block will not interoperate with implementations following the IETF ECOS draft.
+
+The block's ordinal value is used to provide fine-grained ordering within "expedited" traffic: ordinal values from 0 (the default) to 254 (used to designate the most urgent traffic) are valid, with 255 reserved for custody signals. The value of the block's flags is the logical OR of the applicable extended class-of-service flags:
 
 ```
 BP_MINIMUM_LATENCY designates the bundle as "critical" for the

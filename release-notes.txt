@@ -63,7 +63,268 @@ Features included:
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
 
-December 2025
+February 2026
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 4.1.4 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+This final release of ION 4.1.4 represents the culmination of extensive security
+hardening, protocol enhancements, and platform portability improvements since the
+4.1.4-b.1 beta release. The release includes 288 commits addressing critical security
+vulnerabilities, implementing CCSDS Orange Book custody transfer specifications, adding
+new convergence layer adapters, and improving system stability across all supported
+platforms.
+
+Critical Security Fixes
+
+- **File Transfer Security**: Fixed multiple critical vulnerabilities in sendfile/recvfile:
+  - Path traversal vulnerability allowing access outside designated directories
+  - Stack overflow in file path handling
+  - Time-of-check/time-of-use (TOCTOU) race conditions
+  - Resource leaks and improper memory cleanup
+  - Added input validation and secure path canonicalization
+
+- **BPSec Policy Engine**: Added NULL checks for security policy radix trees to prevent
+  crashes during rule lookup with missing or invalid policy configurations.
+
+- **Input Validation**: Enhanced validation throughout the codebase including:
+  - Canonical extension block number validation (must be < 255)
+  - Stricter sscanf return value checking to prevent buffer overflows
+  - Improved error handling for malformed configuration inputs
+
+Custody Transfer and Bundle Management (CCSDS Orange Book Compliance)
+
+- **Aggregate Custody Signals (CBR/CT)**: Complete implementation of CCSDS Custody
+  Transfer and Bundle Refusal specifications:
+  - CTEB (Custody Transfer Extension Block) for custody metadata
+  - CREB (Custody Refusal Extension Block) for refusal reasons
+  - CRS (Compressed Reporting Signals) using CBOR encoding
+  - Custody-originated tracking and bundle detention mechanisms
+  - Support for non-zero sequence IDs in custody signals
+  - Comprehensive test suite with isolated subtests for each feature
+  - Full API documentation and man pages
+
+- **Bundle Lifecycle Management**: Enhanced bundle state tracking throughout custody
+  transfer operations with proper validation of custody acceptance/refusal conditions.
+
+New Convergence Layer Adapters
+
+- **File CLA**: Production implementation of file-based convergence layer adapter
+  for applications requiring file system-based bundle exchange, with complete
+  documentation and man pages.
+
+- **SPP/EPP CLA Prototypes**: Initial prototypes for specialized convergence layers:
+  - SPP (Space Packet Protocol) CLA with loopback provider stub
+  - EPP (Encapsulation Packet Protocol) CLA with loopback provider stub
+  - Regression test templates and online documentation
+  - Error handling improvements for transmission success/failure cases
+
+LTP Protocol Enhancements
+
+- **Statistics Collection**: Implemented C11 atomic operations for lock-free LTP
+  statistics batching, significantly improving performance under high load.
+
+- **Session Management**:
+  - Fixed checkpoint timer cancellation when receiving partial segment coverage,
+    preventing sender from getting stuck in limbo state
+  - Added import session inactivity timeout to prevent denial-of-service from
+    incomplete sessions
+  - Improved LTP cancel segment acknowledgment for completed sessions
+
+- **Monitoring Tools**:
+  - New ltpstats utility for real-time LTP performance monitoring
+  - Enhanced ltpwatch with improved reporting capabilities
+
+Bundle Protocol (BP) Improvements
+
+- **Statistics and Monitoring**:
+  - Implemented C11 atomic operations for lock-free BP statistics collection
+  - Fixed BP statistics naming inconsistencies
+  - Exposed numBundlesDeleted counter in bpnmtest
+  - Corrected bpstats delivery (dlv) reporting
+
+- **Extension Block Management**:
+  - Fixed extension block number duplication when cloning bundles for multicast
+    or fragmentation
+  - Added verification that payload block number is always 1
+  - Improved extension block documentation explaining ION's behavior and rationales
+  - Removed obsolete HIRR (Hop-in-Route-Record) code
+
+- **Routing Enhancements**:
+  - Allow best-effort bundles to use reliable CLAs when no unreliable CLA available
+  - Fixed TOCTOU race in contact state checking during bundle transmission
+  - Fixed egress plan configuration errors
+
+SDR (Simple Data Recorder) Enhancements
+
+- **Performance Instrumentation**: Added comprehensive SDR transaction performance
+  monitoring controlled by --enable-sdr-perf configure option:
+  - Transaction timing and throughput measurement
+  - Caller tracking for performance profiling
+  - Improved diagnostics for SDR modification sources
+
+- **Reversibility and Recovery**:
+  - Enhanced ionrestart recovery with defensive checks for transaction cancellation
+  - Fixed SDR owner mismatch during ionrestart
+  - Improved sdr_exit_xn to trigger proper cancellation instead of aborting
+  - Converted fatal CHKZERO assertions in sdr_list operations to defensive warnings
+  - Added documentation on SDR reversibility mechanisms
+
+Error Handling and Reliability
+
+- **CHK Assertion Improvements**:
+  - Added fail-fast mode for CHK assertion macros
+  - Implemented stack trace support for FreeBSD, macOS, and Linux
+  - Graceful error handling for CHK assertions during shutdown/ionrestart
+  - Defensive ownership checks before SDR writes to handle transaction cancellation
+
+- **Daemon Management**:
+  - Daemonized psmwatch and sdrwatch with automatic configuration detection
+  - Fixed ionrestart race conditions in daemon startup
+  - Improved ionexit hang handling after TCP outduct stop/start
+  - Enhanced monitoring utility descriptions and usage documentation
+
+- **Semaphore Management**:
+  - Fixed POSIX named semaphore race conditions causing segmentation faults in bpcp
+  - Implemented reference counting and deferred deletion for semaphores
+  - Fixed sm_SemTake to return 0 when semaphore is ended
+  - Resolved semaphore cleanup ordering issues
+
+CFDP (File Delivery Protocol) Improvements
+
+- **Race Condition Fixes**:
+  - Fixed CFDP event queue race condition with producer-consumer mutex pattern
+  - Proper semaphore state management and cleanup ordering
+  - Fixed event_wait_id handling to prevent segmentation faults
+
+- **Compilation Fixes**:
+  - Fixed checksum function signature compatibility with --enable-high-speed option
+
+Network Management and Administration APIs
+
+- **Bulk Removal APIs**: Added runtime reconfiguration capabilities for:
+  - Outducts and inducts
+  - Endpoints and spans
+  - Seats and egress plans
+  - Complete test coverage in admin_public_api/bulk_removal
+
+- **AMP/NM Enhancements**:
+  - Fixed bp_agent ADM type mismatches with ION-specific extensions
+  - Fixed zero timestamp in AMP agent registration messages
+  - Updated conformance test infrastructure with Python 3.9+ requirement
+
+Platform Portability
+
+- **macOS**:
+  - Fixed VLA (variable length array) warnings on macOS clang in sendfile.c
+  - Added newline to ltpcancel.c to quiet compiler warnings
+  - Fixed watchdog test termination issues
+  - Fixed ipaddr-caching tests for mDNS-enabled systems
+
+- **FreeBSD**:
+  - Fixed date command syntax compatibility
+  - Improved backtrace linking
+  - Updated stack trace support
+  - Fixed LTP cancel tests with prerequisite checks
+  - Excluded problematic CFDP tcputa tests due to timing issues
+
+- **Solaris**:
+  - Replaced bzero with memset for POSIX compliance (gf-complete build)
+  - Fixed grep compatibility for POSIX compliance
+  - Improved UDP buffer handling for larger Solaris defaults
+  - Added Solaris-specific test adjustments
+
+Testing Infrastructure
+
+- **Test Framework Enhancements**:
+  - Added --from and --to options to runtests for selective test execution
+  - Implemented stress test mode for debugging
+  - Added timeout support to prevent tests from hanging
+  - Improved test cleanup scripts and IPC artifact management
+  - Skip tests gracefully when required tools or conditions are missing
+
+- **CI/CD Improvements**:
+  - Added Fedora 42 to BETR platform regression testing
+  - Added merge queue support to required CI workflows
+  - Updated RTEMS regression test PR status reporting
+  - Improved workflow permissions for security compliance
+
+Build System and Dependencies
+
+- **Third-Party Libraries**:
+  - Switched from ZFEC to Jerasure and GF-Complete libraries for erasure coding
+  - Updated licensing terms and TC README for third-party dependencies
+  - Added pkg-config support with comprehensive documentation
+
+- **Code Quality**:
+  - Added EditorConfig and clang-format configuration files
+  - Enforced .git-blame-ignore-revs for mass formatting changes
+  - Removed obsolete code (BPv6 references, ACS infrastructure, ECLSA v2)
+  - Fixed hundreds of compiler warnings across all warning levels
+
+Documentation Improvements
+
+- **Man Pages**:
+  - Fixed cross-references and formatting across all man pages
+  - Corrected DTPC typos to DTPC throughout documentation
+  - Added missing man pages for CBR/CT APIs
+  - Enhanced ionsecadmin, ionrc, ipnadmin, and other admin utility documentation
+  - Improved CFDP, TC, and DTKA utility documentation
+
+- **Technical Documentation**:
+  - Added SDR reversibility documents
+  - Reorganized documentation categorization
+  - Added IPN name transition document
+  - Enhanced documentation on monitoring tools usage
+  - Added regression test documentation for EXPERT setting
+
+Code Cleanup
+
+- **Standards Compliance**:
+  - Compliant #include guard names throughout codebase
+  - Proper #endif comments for all include guards
+  - Fixed header inclusion ordering and dependencies
+  - Removed redundant and commented-out code
+
+- **Removed Legacy Code**:
+  - Removed all BPv6-related code and configuration
+  - Removed bpversion utility (superseded by version commands in admin tools)
+  - Removed bprecvfile2 (obsolete)
+  - Removed duplicate source files (ams/library crypt.c and marshal.c)
+  - Cleaned up obsolete demos and redundant tests
+
+Bug Fixes
+
+- **Bundle Processing**:
+  - Fixed acquireEid return value check and bundleZco leak
+  - Fixed parseEidString concurrency issue with internal copy
+  - Fixed bpecho spurious "!" output and added TTL option
+  - Fixed bpcancel to use strtouvast() for creationMsec parsing
+  - Fixed bss-multicast infinite loop when stdin is redirected
+
+- **Network Operations**:
+  - Fixed CLA loopback tests leaving orphaned processes
+  - Fixed TCP outduct receive thread shutdown
+  - Fixed bpcp Remote_Remote transfer race condition on exit
+  - Fixed stdout redirection pattern compatibility
+
+- **Memory and Resource Management**:
+  - Fixed unsigned underflow in SDR performance time difference macro
+  - Improved reference counter management throughout codebase
+  - Fixed qualifier and const restriction issues
+
+Miscellaneous
+
+- **Command Line Tools**:
+  - Added linenoise library for command history support in interactive tools
+  - Updated system_up script to check only required programs per test
+  - Improved error messages and diagnostic output
+
+- **Development Tools**:
+  - Renamed dev makefile platform from i86_64-fedora to x86_64-linux
+  - Updated build configuration for TC module integration
+  - Fixed ionwatch compilation issues
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 4.1.4-b.1 =

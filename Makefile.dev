@@ -1,6 +1,18 @@
 BP = bpv7
-VNAME = ION-4.1.4-b.1
-ADD_FLAGS += -DVNAME=\"$(VNAME)\"
+VNAME = ION-OPEN-SOURCE-4.1.4
+
+# BPSec implementation toggle: set to 1 to use BSL, 0 for original BPSec.
+# Default is original BPSec (0).  Override on the command line:
+#   gmake -f Makefile.dev all USING_BSL=1
+USING_BSL ?= 0
+
+ADD_FLAGS += -DVNAME=\"$(VNAME)\" -DUSING_BSL=$(USING_BSL)
+
+ifeq ($(USING_BSL),1)
+BSL_HOME ?= $(CURDIR)/external/BSL/testroot/usr
+else
+BSL_HOME =
+endif
 
 SCRIPTS= ionstart ionstop killm ionscript ionstart.awk
 
@@ -16,28 +28,28 @@ withbpv6:
 	gmake -C ltp all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C dgr all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C bssp all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C $(BP) all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C tc all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C ams all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C cfdp all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C bss all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C dtpc all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C nm all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C restart all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)"
+	gmake -C $(BP) all ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
+	gmake -C tc all ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
+	gmake -C ams all ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
+	gmake -C cfdp all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
+	gmake -C bss all ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
+	gmake -C dtpc all ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
+	gmake -C nm all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
+	gmake -C restart all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
 
 withbpv7:
 	gmake -C ici all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C ltp all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C dgr all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C bssp all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C $(BP) all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C tc all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C ams all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C cfdp all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C bss all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C dtpc all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C nm all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C restart all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)"
+	gmake -C $(BP) all ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
+	gmake -C tc all ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
+	gmake -C ams all ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
+	gmake -C cfdp all ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
+	gmake -C bss all ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
+	gmake -C dtpc all ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
+	gmake -C nm all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
+	gmake -C restart all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
 
 clean:
 	gmake -C ici clean
@@ -51,7 +63,7 @@ clean:
 	gmake -C bss clean
 	gmake -C dtpc clean
 	gmake -C nm clean
-	gmake -C restart clean BP=$(BP)
+	gmake -C restart clean
 
 install:
 	gmake -C ici install
@@ -65,7 +77,7 @@ install:
 	gmake -C bss install
 	gmake -C dtpc install
 	gmake -C nm install BP=$(BP)
-	gmake -C restart install BP=$(BP)
+	gmake -C restart install
 	for file in $(SCRIPTS); \
 		do cp ./$(notdir $$file) /usr/local/bin; done
 
@@ -81,7 +93,7 @@ uninstall:
 	gmake -C bss uninstall
 	gmake -C dtpc uninstall
 	gmake -C nm uninstall
-	gmake -C restart uninstall BP=$(BP)
+	gmake -C restart uninstall
 	for file in $(SCRIPTS); \
 		do rm /usr/local/bin/$(notdir $$file); done
 
