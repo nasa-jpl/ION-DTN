@@ -1,4 +1,4 @@
-= Release Notes for ION 4.1.4-b.1 =
+= Release Notes for ION =
 
 %%%%%%%%%%%
 = GENERAL =
@@ -217,7 +217,6 @@ Network Management and Administration APIs
 Platform Portability
 
 - **macOS**:
-  - Fixed VLA (variable length array) warnings on macOS clang in sendfile.c
   - Added newline to ltpcancel.c to quiet compiler warnings
   - Fixed watchdog test termination issues
   - Fixed ipaddr-caching tests for mDNS-enabled systems

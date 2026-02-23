@@ -637,3 +637,7 @@ dtpc/x86_64-linux/check
 ici/x86_64-linux/check
 ltp/x86_64-linux/check
 
+eppcli
+eppclo
+filecli
+fileclo
