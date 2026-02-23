@@ -1581,12 +1581,12 @@ tnv_t *amp_agent_ctrl_gen_rpts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 		}
 
 		strncpy(mgr_eid.name, cur_mgr->value.as_ptr, AMP_MAX_EID_LEN-1);
-		msg_rpt = rda_get_msg_rpt(mgr_eid);
 
-		/* For each report being sent. */
 		for(ac_it = vecit_first(&(ids->values)); vecit_valid(ac_it); ac_it = vecit_next(ac_it))
 		{
 			ari_t *cur_id = vecit_data(ac_it);
+
+			/* Create the report (Time consuming, do outside lock) */
 			rpt_t *rpt = rpt_create(ari_copy_ptr(cur_id), getCtime(), NULL);
 
 			if(cur_id->type == AMP_TYPE_RPTTPL)
@@ -1600,7 +1600,40 @@ tnv_t *amp_agent_ctrl_gen_rpts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 				rpt_add_entry(rpt, cur_val);
 			}
 
-			msg_rpt_add_rpt(msg_rpt, rpt);
+			/* Safely add to message structure handling potential race with RDA thread */
+			int added = 0;
+			while(!added)
+			{
+				/*
+				 * Get the message structure (We cannot hold the lock while
+				 * calling this because it calls vec_push which locks internally
+				 * i.e. a Deadlock risk)
+				 */
+				msg_rpt_t* msg_rpt_candidate = rda_get_msg_rpt(mgr_eid);
+
+				/* Lock global vector to ensure object doesn't disappear */
+				vec_lock(&(gAgentDb.rpt_msgs));
+
+				/* Verify the message is still valid (wasn't cleared by rda_thread between get and lock) */
+				int valid = 0;
+				vecit_t it_check;
+				for(it_check = vecit_first(&(gAgentDb.rpt_msgs)); vecit_valid(it_check); it_check = vecit_next(it_check))
+				{
+					if((msg_rpt_t*)vecit_data(it_check) == msg_rpt_candidate)
+					{
+						valid = 1;
+						break;
+					}
+				}
+
+				if(valid)
+				{
+					msg_rpt_add_rpt(msg_rpt_candidate, rpt);
+					added = 1;
+				}
+
+				vec_unlock(&(gAgentDb.rpt_msgs));
+			}
 		}
 	}
 
