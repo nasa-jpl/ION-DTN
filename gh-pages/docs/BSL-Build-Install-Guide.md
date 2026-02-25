@@ -212,6 +212,145 @@ BSL uses JSON files for keys and policies:
 m bsl 'ipn:2.0' '/path/to/keys.json' '/path/to/policy.json'
 ```
 
+### EID Pattern Matching and Wildcards
+
+BSL policy files support wildcard patterns for matching source and destination EIDs. Understanding how 2-part and 3-part IPN formats interact with wildcards is essential for writing correct security policies.
+
+#### IPN Format Evolution
+
+The IPN addressing scheme has evolved to support allocator-based addressing:
+
+- **Legacy 2-part format**: `ipn:node.service` (e.g., `ipn:2.1`)
+  - Used before allocator support was added
+  - Assumes allocator = 0 (default allocator)
+
+- **Modern 3-part format**: `ipn:allocator.node.service` (e.g., `ipn:0.2.1`)
+  - Explicitly specifies all three components
+  - Required when using non-zero allocators
+
+**Backward Compatibility:**
+- ION automatically converts 2-part format to 3-part internally
+- `ipn:2.1` is internally represented as `ipn:0.2.1`
+- Existing policies using 2-part format continue to work
+
+#### Wildcard Interpretation
+
+The `*` wildcard matches any value in its position. The interpretation depends on the number of dot-separated components:
+
+| Pattern | Token Count | Interpretation | Matches | Does NOT Match |
+|---------|-------------|----------------|---------|----------------|
+| `ipn:2.*` | 2 (legacy) | allocator=0, node=2, service=* | `ipn:0.2.1`<br>`ipn:0.2.5`<br>`ipn:0.2.99` | `ipn:1.2.1` (allocator≠0)<br>`ipn:0.3.1` (node≠2) |
+| `ipn:0.2.*` | 3 (explicit) | allocator=0, node=2, service=* | `ipn:0.2.1`<br>`ipn:0.2.5`<br>`ipn:0.2.99` | `ipn:1.2.1` (allocator≠0)<br>`ipn:0.3.1` (node≠2) |
+| `ipn:2.*.*` | 3 (modern) | allocator=2, node=*, service=* | `ipn:2.1.1`<br>`ipn:2.3.5`<br>`ipn:2.99.99` | `ipn:0.2.1` (allocator≠2)<br>`ipn:1.2.1` (allocator≠2) |
+| `ipn:*.*.*` | 3 (universal) | allocator=*, node=*, service=* | All IPN EIDs | None |
+| `ipn:0.*.*` | 3 (default allocator) | allocator=0, node=*, service=* | `ipn:0.1.1`<br>`ipn:0.2.5`<br>`ipn:0.99.99` | `ipn:1.2.1` (allocator≠0) |
+
+**Key Principle**: The wildcard `*` matches **only the field in its position**, not multiple fields.
+
+#### 2-Part Format Behavior
+
+When ION sees a 2-part IPN pattern like `ipn:2.*`:
+
+1. Tokenizes by `.` → `["2", "*"]` (2 tokens)
+2. Recognizes as legacy format (tokenCount == 2)
+3. Transforms to 3-part: `["0", "2", "*"]`
+4. **Result**: Matches allocator=0, node=2, any service
+
+**The `*` in 2-part format is interpreted as the SERVICE field only.**
+
+#### 3-Part Format Behavior
+
+When ION sees a 3-part IPN pattern like `ipn:2.*.*`:
+
+1. Tokenizes by `.` → `["2", "*", "*"]` (3 tokens)
+2. Recognizes as modern format (tokenCount == 3)
+3. No transformation needed
+4. **Result**: First `*` is node, second `*` is service
+
+**Each `*` in 3-part format matches exactly one field in its position.**
+
+#### Implementation Details
+
+The format conversion happens in ION's EID parsing code (`bpv7/library/libbp.c`), not in BSL:
+
+1. **BSL**: Reads policy JSON, extracts pattern strings like `"ipn:2.*"`
+2. **BSL → ION**: Passes pattern string to ION's `loadEidPattern()` function
+3. **ION**: Parses pattern, detects 2-part vs 3-part, performs transformation
+4. **Result**: Internal representation always uses explicit 3-part format
+
+This architectural separation ensures:
+- BSL doesn't need to understand IPN allocator semantics
+- Policy files can use either format
+- Existing 2-part policies work indefinitely
+- Format conversion is centralized in ION
+
+#### Policy File Examples
+
+**Example 1: Secure traffic from node 2 to node 3 (default allocator):**
+```json
+{
+  "filter": {
+    "src": "ipn:2.*",     // Matches ipn:0.2.1, ipn:0.2.5, etc.
+    "dest": "ipn:3.*",    // Matches ipn:0.3.1, ipn:0.3.5, etc.
+    "role": "s",
+    "loc": "appin"
+  }
+}
+```
+
+**Example 2: Secure traffic within allocator 2 network:**
+```json
+{
+  "filter": {
+    "src": "ipn:2.*.*",   // Matches ipn:2.1.1, ipn:2.5.3, etc.
+    "dest": "ipn:2.*.*",  // Matches ipn:2.3.1, ipn:2.10.5, etc.
+    "role": "s",
+    "loc": "appin"
+  }
+}
+```
+
+**Example 3: Secure all traffic from any node in default allocator:**
+```json
+{
+  "filter": {
+    "src": "ipn:0.*.*",   // Matches all nodes in allocator 0
+    "dest": "ipn:3.*",    // Specific destination (allocator=0, node=3)
+    "role": "v",
+    "loc": "clin"
+  }
+}
+```
+
+**Example 4: Universal security policy (all traffic):**
+```json
+{
+  "filter": {
+    "src": "ipn:*.*.*",   // Matches any source EID
+    "dest": "ipn:*.*.*",  // Matches any destination EID
+    "role": "v",
+    "loc": "clin"
+  }
+}
+```
+
+#### Migration Strategy
+
+**Legacy systems using 2-part format:**
+- Continue using `ipn:node.service` format in policies
+- No changes required
+- ION automatically treats as allocator=0
+
+**New systems using allocators:**
+- Use explicit 3-part format: `ipn:allocator.node.service`
+- Clearly specify which allocator network policies apply to
+- Use wildcards for flexible matching: `ipn:2.*.*` (all of allocator 2)
+
+**Mixed environments:**
+- Policy files can contain both formats
+- Each pattern is independently parsed and interpreted
+- `ipn:2.*` and `ipn:0.2.*` are equivalent (both match allocator=0, node=2)
+
 ## Testing
 
 ### Run BSL Test Suite

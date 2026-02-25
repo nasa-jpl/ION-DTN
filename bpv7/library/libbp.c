@@ -1008,12 +1008,29 @@ static EidpItem	*loadEidpIpnSSP(EidpItem *item, char *ssl)
 		cursor = delimiter + 1;	/*	Get next token.	*/
 	}
 
-	/*	Item must have exactly 3 tokens.			*/
+	/*	Item must have exactly 2 or 3 tokens. Modern IPN uses
+	 *	3 components (allocator.node.service), legacy format
+	 *	uses 2 (node.service) with allocator=0 assumed.	*/
 
-	if (tokenCount != 3)	/*	Invalid ipn EID item.	*/
+	if (tokenCount < 2 || tokenCount > 3)
 	{
 		MRELEASE(item);
 		return NULL;
+	}
+
+	/*	If only 2 tokens (legacy format), insert allocator=0.	*/
+
+	if (tokenCount == 2)
+	{
+		/*	Legacy format: tokens[0]=node, tokens[1]=service
+		 *	Modern format: tokens[0]=allocator, tokens[1]=node,
+		 *		tokens[2]=service
+		 *	Transform: shift right and insert allocator=0.	*/
+
+		tokens[2] = tokens[1];	/* service → position 2 */
+		tokens[1] = tokens[0];	/* node → position 1 */
+		tokens[0] = "0";	/* allocator=0 → position 0 */
+		tokenCount = 3;
 	}
 
 	for (i = 0; i < 3; i++)
@@ -1130,7 +1147,7 @@ int	loadEidPattern(EidPattern *eidp, const char *text)
 	EidpItem	*item;
 
 	textLength = strlen(text);
-	buffer = MTAKE(textLength);
+	buffer = MTAKE(textLength + 1);
 	if (buffer == NULL)
 	{
 		writeMemo("[?] Not enough memory for EID pattern parsing \
@@ -1138,6 +1155,7 @@ buffer.");
 		return -1;
 	}
 
+	strcpy(buffer, text);
 	nextItem = buffer;
 	while (nextItem)
 	{

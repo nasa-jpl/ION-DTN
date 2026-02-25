@@ -1106,7 +1106,24 @@ static bool	ion_bsl_eidpat_match(const BSL_HostEIDPattern_t *patWrapper,
 	eidp = (EidPattern *) (patWrapper->handle);
 	eid = (EndpointId *) (eidWrapper->handle);
 
-	return (eidMatchesPattern(eidp, eid) ? true : false);
+	char		msgbuf[512];
+	char		*eidText = NULL;
+	int		result;
+
+	/* Debug: print the EID being matched */
+	readEid(eid, &eidText);
+	if (eidText != NULL)
+	{
+		isprintf(msgbuf, sizeof(msgbuf), "[DEBUG] Matching EID: '%s' against pattern", eidText);
+		writeMemo(msgbuf);
+		MRELEASE(eidText);
+	}
+
+	result = eidMatchesPattern(eidp, eid);
+	isprintf(msgbuf, sizeof(msgbuf), "[DEBUG] eidMatchesPattern returned: %d", result);
+	writeMemo(msgbuf);
+
+	return (result ? true : false);
 }
 
 static BSL_HostEIDPattern_t	get_eid_pattern_from_text(const char *text)
