@@ -1,406 +1,170 @@
 # BSL Build and Install Guide
 
-!!! note "Feature Branch"
-    BSL integration is available on the `feature-4.1.4-bsl` branch. This guide provides instructions for building the Bundle Protocol Security Library (BSL) and integrating it with ION.
+!!! note "Feature Branch & Build System"
+    - BSL integration is available on the `feature-4.1.4-bsl` branch
+    - This guide covers **development Makefiles only** (Makefile.dev)
+    - Automake build instructions are under development
 
 ## What is BSL?
 
-BSL (Bundle Protocol Security Library) is an external BPSec implementation that ION can link to as an alternative to ION's native BPSec. BSL is integrated as a git submodule at `external/BSL/`.
+BSL (Bundle Protocol Security Library) is an external BPSec implementation that ION can use as an alternative to ION's native BPSec. BSL implements RFC 9172/9173 security contexts and is integrated as a git submodule at `external/BSL/`.
 
-## Prerequisites and Dependencies
+**ION Integration Branch**: The `bsl-ion-integration` branch of BSL integrates BSL's memory allocation/deallocation with ION's SDR (Simple Data Recorder) memory management system. This creates a mutual dependency between BSL and ION that requires a specific 3-step build process.
 
-### System Requirements
-
-- **Operating System**: Linux (Ubuntu 22.04+, RHEL 9, or compatible)
-- **Compiler**: GCC 11+ (GCC 13+ recommended for BSL unit tests; GCC 11 builds all libraries but test code triggers `-Werror` on unused variables)
-- **Build Tools**: CMake 3.20+, Make/Ninja
-- **Git**: For submodule management
+## Prerequisites
 
 ### Required System Packages
 
-#### Ubuntu/Debian
-
+**Ubuntu/Debian:**
 ```bash
-sudo apt install -y \
-    build-essential \
-    cmake \
-    pkg-config \
-    git \
-    libssl-dev \
-    libjansson-dev \
-    valgrind \
-    ruby \
-    ninja-build
+sudo apt install -y build-essential cmake pkg-config git \
+    libssl-dev libjansson-dev ninja-build
 ```
 
-#### RHEL/Fedora/CentOS
-
+**RHEL/Fedora/CentOS:**
 ```bash
-sudo dnf install -y \
-    gcc \
-    gcc-c++ \
-    cmake \
-    pkg-config \
-    git \
-    openssl-devel \
-    jansson-devel \
-    valgrind \
-    ruby \
-    ninja-build
+sudo dnf install -y gcc gcc-c++ cmake pkg-config git \
+    openssl-devel jansson-devel ninja-build
 ```
 
-### Dependency Summary
+See [Appendix A](#appendix-a-detailed-prerequisites) for complete dependency information.
 
-| Package | Purpose | Version |
-|---------|---------|---------|
-| `gcc` or `clang` | C/C++ compiler | 11.0+ (13.0+ for tests) |
-| `cmake` | Build system generator | 3.20+ |
-| `pkg-config` | Library discovery for CMake | any |
-| `libssl-dev` / `openssl-devel` | Cryptographic functions (AES, HMAC) | 3.0+ |
-| `libjansson-dev` / `jansson-devel` | JSON parsing for policy/keys | 2.13+ |
-| `valgrind` | Memory leak detection in tests | 3.18+ |
-| `ruby` | Unity test framework code generation | 3.0+ |
-| `ninja-build` | Fast parallel build (optional, but `build.sh` may default to Ninja) | 1.10+ |
+## Quick Start Guide
 
-## Part 1: Building BSL
+### Overview
 
-### Step 1: Navigate to BSL Directory
+Building ION with BSL requires three steps in order:
 
-The BSL repository is defined as a git submodule at `external/BSL/` in `.gitmodules`.
+1. **Build ION without BSL** - Creates base ION libraries
+2. **Build and install BSL** - Uses `build-for-ion.sh` to compile BSL with ION integration
+3. **Rebuild ION with BSL** - Recompiles ION to link against BSL libraries
 
-**Important:** The submodule entry may exist in `.gitmodules` but not yet be registered in the git index. If `git submodule update --init external/BSL` fails with `error: pathspec 'external/BSL' did not match any file(s) known to git`, clone BSL manually:
+### Step 1: Build ION Without BSL
 
 ```bash
 cd /path/to/ion-ios-dev
-mkdir -p external
-git clone https://github.com/iondev33/BSL.git external/BSL
-cd external/BSL
+
+# Enable development Makefiles
+./enable_manual_build.sh --skip-clean
+
+# Build ION (without BSL)
+make clean
+make -j4
+
+# Install
+sudo make install
 ```
 
-The iondev33/BSL repository is a fork of the original BSL with some modifications for ION. If the submodule is properly registered, the standard approach works:
+!!! warning "Why This 3-Step Process?"
+    The `bsl-ion-integration` branch creates a **mutual dependency** between BSL and ION:
+
+    - **BSL depends on ION**: BSL's memory allocators (`ion_malloc`, `ion_free`) call ION's `allocFromIonMemory()` and `releaseToIonMemory()` functions. BSL's `bsl_ionpatch` library links against ION's `libici.so`.
+    - **ION depends on BSL**: When built with `USING_BSL=1`, ION links against BSL's security libraries.
+
+    This circular dependency requires the bootstrap process: Build ION first (creates `libici.so`) → Build BSL (links against `libici.so`) → Rebuild ION with BSL (links against BSL libraries).
+
+### Step 2: Build and Install BSL
 
 ```bash
 cd /path/to/ion-ios-dev
+
+# Clone BSL submodule (if not already present)
+# Note: The submodule is configured to use the bsl-ion-integration branch
 git submodule update --init external/BSL
 cd external/BSL
-```
 
-### Step 2: Initialize BSL Submodules
-
-BSL depends on several third-party libraries as submodules:
-
-- **QCBOR**: CBOR encoding/decoding library
-- **mlib**: M*LIB container library for C
-- **Unity**: Unit testing framework
-
-Initialize these submodules (run from within the `external/BSL` directory):
-
-```bash
+# Initialize BSL's dependencies (QCBOR, mlib, Unity)
 git submodule update --init --recursive
+
+# Build BSL with ION integration
+./build-for-ion.sh
 ```
+
+!!! info "BSL Branch"
+    The BSL submodule is configured to track the **`bsl-ion-integration`** branch (see `.gitmodules`). This branch includes ION memory integration code in `src/ION_integration/ionpatch.c` that implements BSL's memory allocators using ION's `allocFromIonMemory()` and `releaseToIonMemory()` functions.
+
+The `build-for-ion.sh` script:
+- Cleans previous builds
+- Builds dependencies (QCBOR, mlib, Unity)
+- Configures BSL with `-DION_INTEGRATION=ON` and `-DION_ROOT`
+- Finds and links against ION's `libici.so` (required for ION memory integration)
+- Builds BSL libraries with ION memory allocators
+- Installs to `external/BSL/testroot/usr/` (default BSL_HOME location)
 
 **Expected output:**
 ```
-Submodule 'deps/QCBOR' (https://github.com/laurencelundblade/QCBOR.git) registered
-Submodule 'deps/mlib' (https://github.com/P-p-H-d/mlib.git) registered
-Submodule 'deps/unity' (https://github.com/ThrowTheSwitch/Unity.git) registered
-Cloning into 'deps/QCBOR'...
-Cloning into 'deps/mlib'...
-Cloning into 'deps/unity'...
-```
-
-**Verify submodules:**
-```bash
-ls -la deps/
-# Should show: QCBOR/, mlib/, unity/
-```
-
-### Step 3: Build BSL Dependencies
-
-It's good to clean up everything before building:
-```bash
-./build.sh clean
-```
-Use `sudo` if previously built with root permissions. This will remove the build directory and installed files in `testroot/usr/` to ensure a clean state for the new build.
-
-BSL provides a `build.sh` script that wraps CMake commands. First, build the dependencies:
-
-```bash
-./build.sh deps
-```
-
-This will:
-
-1. Build QCBOR as a shared library
-2. Install mlib headers (header-only library)
-3. Build Unity test framework as a static library
-
-All dependencies are installed to `testroot/usr/` directory within the BSL tree.
-
-**Expected output:**
-```
-Building QCBOR...
-[100%] Built target qcbor
-Installing QCBOR to testroot/usr/
-
-Building MLIB...
-Installing MLIB headers to testroot/usr/include/m-lib/
-
-Building Unity...
-[100%] Built target unity
-Installing Unity to testroot/usr/
-```
-
-### Step 4: Configure BSL Build
-
-Configure BSL for Release build (optimized for production):
-
-```bash
-./build.sh prep -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$PWD/testroot/usr
-```
-
-OR set the PREFIX to /usr/local for system-wide install:
-```bash
-./build.sh prep -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local
-```
-
-To skip building tests (if using GCC 11/12):
-```bash
-./build.sh prep -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$PWD/testroot/usr -DBUILD_TESTING=OFF
-```
-
-**Build configuration options:**
-
-- `-DCMAKE_BUILD_TYPE=Release`: Optimized build (use `Debug` for development)
-- `-DCMAKE_INSTALL_PREFIX=$PWD/testroot/usr`: Install location
-
-!!! note "Build System"
-    `build.sh prep` may default to generating Ninja build files (not Makefiles). Check the output for `-- Build files have been written to: build/default`. If Ninja files are generated, use `ninja` instead of `make` in subsequent steps.
-
-**Expected output:**
-```
--- Using version marking 1.0.0 - 8.ga99ed4a
--- Using valgrind memcheck for tests: /usr/bin/valgrind
--- Searching for Unity tools in deps/unity
--- Found unity at testroot/usr/lib/cmake/unity
--- Adding unit test test_MockBPA_text_util
--- Adding unit test test_CryptoInterface
--- Adding unit test test_DefaultSecurityContext
+Using ION_ROOT: /path/to/ion-ios-dev
 ...
--- Configuring done
--- Generating done
--- Build files have been written to: build/default
+BSL built successfully with ION memory allocators
+Libraries installed to: /path/to/ion-ios-dev/external/BSL/testroot/usr/lib
 ```
 
-### Step 5: Build BSL
-
-Check `build/default/` for `build.ninja` (Ninja) or `Makefile` to determine which build tool to use:
-
+**Configure library path:**
 ```bash
-# If build.ninja exists (default):
-cd build/default
-ninja -j$(nproc)
+# Add BSL libraries to LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$(pwd)/testroot/usr/lib:$LD_LIBRARY_PATH
 
-# If Makefile exists:
-cd build/default
-make -j$(nproc)
-```
-
-Or use the build script wrapper (auto-detects build system):
-```bash
-cd ../../  # back to BSL root
-./build.sh  # equivalent to: cd build/default && ninja/make
-```
-
-!!! warning "GCC 11/12 Note"
-    BSL libraries will build successfully, but test code (`test/bsl_test_utils.c`) will fail with `-Werror` due to unused variables/parameters. This is expected with GCC < 13. The library targets still complete—only test binaries are affected.
-
-To build only the libraries (skipping test targets):
-```bash
-cd build/default
-ninja bsl_front bsl_dynamic bsl_crypto bsl_default_sc bsl_sample_pp bsl_mock_bpa
-```
-
-### Quick Build Summary
-
-For GCC 11/12 users who want to skip tests and build just the libraries:
-
-```bash
-cd external/BSL
-./build.sh deps
-./build.sh prep -DBUILD_TESTING=OFF  # add type and prefix options if needed
-./build.sh
-./build.sh install
-```
-
-### Step 6: Run BSL Unit Tests (Optional, requires GCC 13+)
-
-Verify BSL works correctly by running unit tests:
-
-```bash
-./build.sh check
-```
-
-Or manually:
-```bash
-cd build/default
-ctest --output-on-failure
-```
-
-!!! note
-    BSL unit tests require GCC 13+ to compile due to strict `-Werror` settings. With GCC 11, the test utility library fails to build. The core BSL libraries are unaffected.
-
-**Expected output (GCC 13+):**
-```
-Test project /path/to/BSL/build/default
-    Start  1: test_MockBPA_text_util
-1/11 Test  #1: test_MockBPA_text_util ............   Passed    0.05 sec
-    Start  2: test_MockBPA_EID
-2/11 Test  #2: test_MockBPA_EID ..................   Passed    0.03 sec
-    Start  3: test_CryptoInterface
-3/11 Test  #3: test_CryptoInterface ..............   Passed    0.08 sec
-...
-100% tests passed, 0 tests failed out of 11
-```
-
-### Step 7: Install BSL
-
-Install BSL libraries and headers to the configured prefix. Use `cmake --install` which installs already-built targets without attempting to rebuild failed test code:
-
-```bash
-cd build/default
-cmake --install . --prefix $PWD/../../testroot/usr
-```
-
-OR use /usr/local for system-wide install:
-```bash
-cd build/default
-cmake --install . --prefix /usr/local
-```
-
-**Important Notes:**
-
-1. **GCC < 13 Compatibility:** The `ninja install` or `make install` commands will attempt to build ALL targets first, including test utilities. With GCC < 13, test code (`test/bsl_test_utils.c`) fails with `-Werror` due to unused variables. Using `cmake --install` directly bypasses the build step and installs only the already-compiled targets.
-
-2. **Expected Error:** The install will report an error at the end:
-   ```
-   CMake Error: file INSTALL cannot find "libbsl_test_utils.so.1.0.0": No such file or directory
-   ```
-   This is expected with GCC < 13 and can be ignored. All production libraries and headers install successfully despite this error.
-
-3. **What Gets Installed:** The `cmake --install` command successfully installs:
-   - All 6 BSL production libraries (libbsl_*.so)
-   - All BSL headers including generated BSLConfig.h
-   - QCBOR library (libqcbor.so)
-   - Unity static library (libunity.a)
-
-If all targets built successfully (GCC 13+):
-```bash
-cd ../..  # back to BSL root
-./build.sh install
-```
-
-**Installed files in `testroot/usr/`:**
-
-**Libraries** (`lib/` on Ubuntu/Debian, `lib64/` on RHEL/Fedora):
-```
-libbsl_crypto.so          - Cryptographic interface (AES-GCM, HMAC-SHA2)
-libbsl_default_sc.so      - RFC 9173 default security contexts
-libbsl_dynamic.so         - Dynamic backend implementation
-libbsl_front.so           - BSL front-end API
-libbsl_mock_bpa.so        - Mock BPA for testing
-libbsl_sample_pp.so       - Sample policy provider
-libqcbor.so               - CBOR encoding/decoding
-libunity.a                - Unity test framework
-```
-
-**Headers** (`include/bsl/`):
-```
-BPSecLib_Public.h         - Public BSL API
-BPSecLib_Private.h        - Private BSL API (also in src/ source directory)
-BSLConfig.h               - Generated config header (build-time generated)
-CryptoInterface.h         - Crypto interface definitions
-Data.h                    - Data structure utilities
-policy_provider/          - Policy provider headers
-security_context/         - Security context headers
-backend/                  - Backend implementation headers
-mock_bpa/                 - Mock BPA headers
+# Make permanent (add to ~/.bashrc)
+echo "export LD_LIBRARY_PATH=$(pwd)/testroot/usr/lib:\$LD_LIBRARY_PATH" >> ~/.bashrc
 ```
 
 **Verify installation:**
 ```bash
-# Check library directory (lib/ on Ubuntu, lib64/ on RHEL)
-ls -la testroot/usr/lib/libbsl_*.so    # Ubuntu/Debian
-ls -la testroot/usr/lib64/libbsl_*.so  # RHEL/Fedora
-
-# Verify headers are installed
-ls -la testroot/usr/include/bsl/BPSecLib_Public.h
-ls -la testroot/usr/include/bsl/BPSecLib_Private.h
-ls -la testroot/usr/include/bsl/BSLConfig.h
+ls -la testroot/usr/lib/libbsl_*.so
+# Should show: libbsl_crypto.so, libbsl_default_sc.so, libbsl_dynamic.so,
+#              libbsl_front.so, libbsl_mock_bpa.so, libbsl_sample_pp.so
 ```
 
-### Runtime Library Configuration
-
-If you install BSL to the default prefix (`testroot/usr`) or a non-system-wide location, you need to configure the dynamic linker to find the BSL shared libraries at runtime:
-
-**Option 1: Set LD_LIBRARY_PATH**
-```bash
-export LD_LIBRARY_PATH=/path/to/external/BSL/testroot/usr/lib:$LD_LIBRARY_PATH
-```
-Add to `.bashrc` for persistence.
-
-**Option 2: Configure system linker (persistent)**
-```bash
-echo "/path/to/external/BSL/testroot/usr/lib" | sudo tee /etc/ld.so.conf.d/bsl.conf
-sudo ldconfig
-```
-
-### Uninstalling BSL
-
-BSL library has no "uninstall" target. To remove a previous installation, use the `./uninstall_bsl.sh` script in the ION root directory, or manually delete the installed files from the prefix directory (e.g., `testroot/usr/` or `/usr/local/`).
-
-## Part 2: Building ION with BSL
-
-### Step 1: Update ION Submodule Reference (if needed)
-
-If you cloned BSL manually, you may need to update the submodule reference in ION's `.gitmodules` and git index to point to the correct repository and commit. This ensures that future `git submodule update` commands work correctly for other developers.
-
-### Step 2: Configure ION Build to Use BSL
-
-The only way to build ION with BSL is to set `BSL_HOME` in the Makefile.dev files to point to the BSL installation prefix (e.g., `testroot/usr/` or `/usr/local/`). This allows ION's build system to find the BSL headers and libraries during compilation and linking.
-
-By default, `BSL_HOME` is set to `external/BSL/testroot/usr/` in the Makefile.dev files, which matches the default install prefix used in the BSL build instructions.
-
-If you installed BSL to a different location, pass the correct path to ION's build system:
+### Step 3: Rebuild ION with BSL
 
 ```bash
-make BSL_HOME=/path/to/your/bsl/installation
-```
+cd /path/to/ion-ios-dev
 
-### Step 3: Build ION
+# Clean previous build
+make clean
 
-Build ION using the `.dev` Makefile system:
+# Build with BSL enabled
+make -j4 USING_BSL=1
 
-```bash
-cd bpv7
-
-# Build using the .dev Makefile
-gmake -f Makefile.dev clean
-gmake -f Makefile.dev all
+# Verify BSL linkage
+ldd bpv7/x86_64-linux/lib/libbp.so | grep bsl
+# Should show BSL libraries from external/BSL/testroot/usr/lib
 
 # Install
-sudo gmake -f Makefile.dev install ROOT=/usr/local
+sudo make install
 ```
 
-The `-DUSING_BSL=1` flag is already set in the Makefile, which enables BSL code paths.
+**Verify installed binary has BSL:**
+```bash
+ldd /usr/local/lib/libbp.so | grep bsl
+strings /usr/local/bin/bpadmin | grep "m bsl"
+```
 
-## Configuring BSL in ION
+You should see:
+- BSL library paths in `ldd` output
+- "m bsl" command help text in `bpadmin`
 
-### Create Key Files
+## Configuration
 
-BSL uses JSON Web Key (JWK) format for key storage. Create a key file:
+### BSL_HOME Variable
 
-**Example**: `keys.json`
+By default, ION's development Makefiles expect BSL at:
+```
+BSL_HOME = external/BSL/testroot/usr
+```
+
+This matches the default install location used by `build-for-ion.sh`.
+
+To use a different location:
+```bash
+make USING_BSL=1 BSL_HOME=/custom/path/to/bsl/installation
+```
+
+### Runtime Configuration
+
+BSL uses JSON files for keys and policies:
+
+**Key file** (`keys.json`):
 ```json
 {
   "keys": [
@@ -413,13 +177,7 @@ BSL uses JSON Web Key (JWK) format for key storage. Create a key file:
 }
 ```
 
-Where `k` is the base64-encoded key material.
-
-### Create Policy Files
-
-BSL uses JSON for policy configuration. Create a policy file:
-
-**Example**: `policy.json`
+**Policy file** (`policy.json`):
 ```json
 {
   "policyrule_set": [
@@ -437,159 +195,138 @@ BSL uses JSON for policy configuration. Create a policy file:
         "spec": {
           "sc_id": 1,
           "sc_parms": [
-            {
-              "id": "key_name",
-              "value": "myHmacKey"
-            },
-            {
-              "id": "sha_variant",
-              "value": "5"
-            },
-            {
-              "id": "scope_flags",
-              "value": "7"
-            },
-            {
-              "id": "key_wrap",
-              "value": "0"
-            }
+            {"id": "key_name", "value": "myHmacKey"},
+            {"id": "sha_variant", "value": "5"},
+            {"id": "scope_flags", "value": "7"}
           ]
-        },
-        "_temp_not_ion_spec_policy_action_on_fail": "delete_bundle"
+        }
       }
     }
   ]
 }
 ```
 
-### Configure BSL in bprc
-
-In your `bprc` configuration file, add the BSL configuration command:
-
-```
+**Configure in bprc:**
+```bash
 # Initialize BSL with security EID, key file, and policy file
 m bsl 'ipn:2.0' '/path/to/keys.json' '/path/to/policy.json'
 ```
 
-**Parameters:**
+## Testing
 
-1. Security source EID (e.g., `ipn:2.0`)
-2. Path to key registry JSON file
-3. Path to policy configuration JSON file
-
-### Example bprc
+### Run BSL Test Suite
 
 ```bash
-# Standard BP configuration
-1
-a scheme ipn 'ipnfw' 'ipnadminep'
-a endpoint ipn:2.0 x
-a endpoint ipn:2.1 x
-a protocol ltp 1400 100
-a induct ltp 2 ltpcli
-a outduct ltp 3 ltpclo
+cd /path/to/ion-ios-dev/tests/bpsec/bpsec-all-multinode-test.bsl
 
-# Configure BSL
-m bsl 'ipn:2.0' '/etc/ion/bsl_keys.json' '/etc/ion/bsl_policy.json'
+# Clean up previous test runs
+killm
 
-# Start IPN admin
-r 'ipnadmin ipn.ipnrc'
-w 1
-s
-```
-
-## Verifying the Installation
-
-### Check BSL Libraries
-
-Verify BSL libraries are installed:
-
-```bash
-ls -la /usr/local/lib64/libbsl_*
-# Should show:
-# libbsl_crypto.so
-# libbsl_default_sc.so
-# libbsl_dynamic.so
-# libbsl_front.so
-# libbsl_mock_bpa.so
-# libbsl_sample_pp.so
-```
-
-### Check BSL Headers
-
-Verify BSL headers are installed:
-
-```bash
-ls -la /usr/local/include/bsl/
-# Should show:
-# BPSecLib_Private.h
-# BPSecLib_Public.h
-# CryptoInterface.h
-# (and subdirectories: policy_provider, security_context, ION_integration)
-```
-
-### Test ION with BSL
-
-Run the BSL test suite included with ION:
-
-```bash
-cd tests/bpsec/bpsec-all-multinode-test.bsl
+# Run test
 ./dotest
+```
+
+**Expected results:**
+- Tests 1-5 should pass (basic BPSec operations)
+- Test 6-7 test multi-hop forwarding (may require additional configuration)
+
+### Verify BSL Initialization
+
+Check `ion.log` files in test directories:
+```bash
+grep -i "BSL init" */ion.log
+```
+
+Expected output:
+```
+[i] BSL initialization succeeded.
 ```
 
 ## Troubleshooting
 
-### Library Not Found Errors
+### Symbol Errors: `undefined symbol: BSLX_BCB_Execute`
 
-If you get errors like `libbsl_front.so: cannot open shared object file`:
+**Cause:** ION was not rebuilt after BSL installation, or `USING_BSL=1` was not specified.
 
+**Solution:**
 ```bash
-# Add BSL library path to LD_LIBRARY_PATH
-export LD_LIBRARY_PATH=/usr/local/lib64:$LD_LIBRARY_PATH
-
-# Or add to /etc/ld.so.conf.d/
-echo "/usr/local/lib64" | sudo tee /etc/ld.so.conf.d/bsl.conf
-sudo ldconfig
+make clean
+make -j4 USING_BSL=1
+sudo make install
 ```
 
-### Compilation Errors
+### Library Not Found: `cannot open shared object file: libbsl_front.so`
 
-If BSL headers are not found during ION compilation:
+**Cause:** `LD_LIBRARY_PATH` not set correctly.
 
-1. Verify BSL is installed: `ls /usr/local/include/bsl/BPSecLib_Public.h`
-2. Check Makefile paths in `bpv7/x86_64-linux/Makefile.dev`
-3. Ensure `BSL_INCLUDE` points to the correct location
-
-### BSL Initialization Fails
-
-If ION fails with `[?] BSL init can't find SDR`:
-
-1. Ensure `ionadmin` is run before `bpadmin`
-2. Check that key and policy files exist and are readable
-3. Verify JSON syntax in key and policy files
-
-### Key/Policy File Errors
-
-Validate JSON files:
-
+**Solution:**
 ```bash
-# Check JSON syntax
-python3 -m json.tool keys.json
-python3 -m json.tool policy.json
+export LD_LIBRARY_PATH=/path/to/external/BSL/testroot/usr/lib:$LD_LIBRARY_PATH
+echo "export LD_LIBRARY_PATH=/path/to/external/BSL/testroot/usr/lib:\$LD_LIBRARY_PATH" >> ~/.bashrc
 ```
 
-## Cipher Suites Supported
+### Syntax Error at line 1746 of bpadmin.c
+
+**Cause:** `bpadmin` was built without `USING_BSL=1`, so it doesn't recognize the `m bsl` command.
+
+**Solution:** Rebuild ION with `USING_BSL=1` as shown in Step 3.
+
+### Build Error: `cannot find -lbsl_crypto`
+
+**Cause:** BSL libraries not installed or `BSL_HOME` incorrect.
+
+**Solution:**
+```bash
+# Verify BSL is installed
+ls external/BSL/testroot/usr/lib/libbsl_*.so
+
+# If missing, rebuild BSL
+cd external/BSL
+./build-for-ion.sh
+```
+
+## Development Workflow
+
+### Updating Makefiles
+
+When modifying `Makefile.dev` files:
+
+```bash
+# Copy updated Makefile.dev to Makefile (skip clean to avoid permission issues)
+./enable_manual_build.sh --skip-clean
+
+# Rebuild
+make -j4 USING_BSL=1
+```
+
+### Local Installation (No sudo)
+
+For development, install to a local directory:
+
+```bash
+# Build and install locally
+make -j4 USING_BSL=1
+make install ROOT=$HOME/ion-local
+
+# Update paths
+export PATH=$HOME/ion-local/bin:$PATH
+export LD_LIBRARY_PATH=$HOME/ion-local/lib:$LD_LIBRARY_PATH
+```
+
+Add to `~/.bashrc` for persistence.
+
+## Supported Cipher Suites
 
 ### BIB (Block Integrity Block) - Security Context 1
 
-- **HMAC-SHA256** (variant 5)
-- **HMAC-SHA384** (variant 6)
-- **HMAC-SHA512** (variant 7)
+- HMAC-SHA256 (variant 5)
+- HMAC-SHA384 (variant 6)
+- HMAC-SHA512 (variant 7)
 
 ### BCB (Block Confidentiality Block) - Security Context 2
 
-- **AES-128-GCM** (variant 1)
-- **AES-256-GCM** (variant 3)
+- AES-128-GCM (variant 1)
+- AES-256-GCM (variant 3)
 
 ## BSL vs Native BPSec
 
@@ -599,9 +336,303 @@ python3 -m json.tool policy.json
 | Key Storage | JSON Web Key (JWK) | ionsecadmin database |
 | Crypto Library | OpenSSL | mbedTLS |
 | Branch | feature-4.1.4-bsl | integration/main |
+| Build Flag | USING_BSL=1 | USING_BSL=0 (default) |
+
+---
+
+## Appendices
+
+### Appendix A: Detailed Prerequisites
+
+#### Dependency Summary
+
+| Package | Purpose | Version |
+|---------|---------|---------|
+| `gcc` or `clang` | C/C++ compiler | 11.0+ (13.0+ for BSL tests) |
+| `cmake` | Build system generator | 3.20+ |
+| `pkg-config` | Library discovery for CMake | any |
+| `libssl-dev` / `openssl-devel` | Cryptographic functions (AES, HMAC) | 3.0+ |
+| `libjansson-dev` / `jansson-devel` | JSON parsing for policy/keys | 2.13+ |
+| `valgrind` | Memory leak detection in tests (optional) | 3.18+ |
+| `ruby` | Unity test framework code generation (optional) | 3.0+ |
+| `ninja-build` | Fast parallel build (optional) | 1.10+ |
+
+!!! note "GCC Version Notes"
+    - **GCC 11/12**: Can build all BSL libraries but test code may fail with `-Werror`
+    - **GCC 13+**: Required for building BSL unit tests
+    - For production use, GCC 11+ is sufficient
+
+### Appendix B: Manual BSL Build (Advanced)
+
+If you need more control than `build-for-ion.sh` provides:
+
+!!! warning "Prerequisite"
+    ION must be built and installed **before** building BSL manually. BSL's `bsl_ionpatch` library links against ION's `libici.so`. See [Step 1](#step-1-build-ion-without-bsl) first.
+
+#### Build Dependencies
+
+```bash
+cd external/BSL
+./build.sh clean
+./build.sh deps
+```
+
+This builds:
+- **QCBOR**: Shared library for CBOR encoding/decoding
+- **mlib**: Header-only container library
+- **Unity**: Static library for unit testing
+
+#### Configure BSL
+
+```bash
+./build.sh prep \
+    -DION_INTEGRATION=ON \
+    -DION_ROOT=/path/to/ion-ios-dev \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=$PWD/testroot/usr \
+    -DBUILD_TESTING=OFF
+```
+
+**Configuration Options:**
+- `-DION_INTEGRATION=ON` - Enable ION memory allocator integration
+- `-DION_ROOT=/path/to/ion` - Path to ION source directory
+- `-DCMAKE_BUILD_TYPE=Release` - Optimized build (use `Debug` for development)
+- `-DCMAKE_INSTALL_PREFIX` - Installation directory
+- `-DBUILD_TESTING=OFF` - Skip unit tests (recommended with GCC < 13)
+
+#### Build BSL
+
+```bash
+./build.sh
+
+# Or manually:
+cd build/default
+ninja -j$(nproc)  # or: make -j$(nproc)
+```
+
+#### Install BSL
+
+```bash
+cd build/default
+cmake --install . --prefix $PWD/../../testroot/usr
+```
+
+!!! note "GCC < 13 Installation"
+    With GCC 11/12, `ninja install` may fail trying to build test utilities. Use `cmake --install` instead, which installs already-built targets without rebuilding tests.
+
+#### Verify Installation
+
+```bash
+cd ../..  # back to BSL root
+
+# Check libraries
+ls -la testroot/usr/lib/libbsl_*.so
+
+# Check headers
+ls -la testroot/usr/include/bsl/
+```
+
+### Appendix C: System-Wide BSL Installation
+
+To install BSL system-wide instead of locally:
+
+```bash
+cd external/BSL
+
+# Configure with system prefix
+./build.sh prep \
+    -DION_INTEGRATION=ON \
+    -DION_ROOT=/path/to/ion-ios-dev \
+    -DCMAKE_INSTALL_PREFIX=/usr/local \
+    -DBUILD_TESTING=OFF
+
+# Build
+./build.sh
+
+# Install (requires sudo)
+cd build/default
+sudo cmake --install . --prefix /usr/local
+sudo ldconfig
+
+# No LD_LIBRARY_PATH configuration needed
+```
+
+**Advantages:**
+- No `LD_LIBRARY_PATH` configuration required
+- Libraries available to all users
+- Standard system location
+
+**Disadvantages:**
+- Requires sudo for installation
+- System-wide changes
+- Potential conflicts with other software
+
+### Appendix D: Running BSL Unit Tests
+
+BSL unit tests require GCC 13+ to compile.
+
+```bash
+cd external/BSL
+
+# Configure with tests enabled
+./build.sh prep \
+    -DION_INTEGRATION=ON \
+    -DBUILD_TESTING=ON
+
+# Build
+./build.sh
+
+# Run tests
+./build.sh check
+
+# Or manually:
+cd build/default
+ctest --output-on-failure
+```
+
+**Expected output (GCC 13+):**
+```
+Test project /path/to/BSL/build/default
+100% tests passed, 0 tests failed out of 11
+```
+
+### Appendix E: BSL Key and Policy File Examples
+
+#### Complete Key File Example
+
+```json
+{
+  "keys": [
+    {
+      "kty": "oct",
+      "kid": "hmac-key-256",
+      "k": "cXdlcnR5dWlvcGFzZGZnaGprbHp4Y3Zibm0="
+    },
+    {
+      "kty": "oct",
+      "kid": "aes-gcm-key-128",
+      "k": "YWJjZGVmZ2hpamtsbW5vcA=="
+    }
+  ]
+}
+```
+
+Where:
+- `kty`: Key type (`oct` for symmetric keys)
+- `kid`: Key identifier (referenced in policy)
+- `k`: Base64-encoded key material
+
+#### Complete Policy File Example
+
+```json
+{
+  "policyrule_set": [
+    {
+      "policyrule": {
+        "filter": {
+          "rule_id": "1",
+          "role": "s",
+          "src": "ipn:2.*",
+          "dest": "ipn:3.*",
+          "tgt": 1,
+          "loc": "appin",
+          "sc_id": 1
+        },
+        "spec": {
+          "sc_id": 1,
+          "sc_parms": [
+            {"id": "key_name", "value": "hmac-key-256"},
+            {"id": "sha_variant", "value": "5"},
+            {"id": "scope_flags", "value": "7"},
+            {"id": "key_wrap", "value": "0"}
+          ]
+        },
+        "_temp_not_ion_spec_policy_action_on_fail": "delete_bundle"
+      }
+    },
+    {
+      "policyrule": {
+        "filter": {
+          "rule_id": "2",
+          "role": "s",
+          "src": "ipn:2.*",
+          "dest": "ipn:3.*",
+          "tgt": 1,
+          "loc": "appin",
+          "sc_id": 2
+        },
+        "spec": {
+          "sc_id": 2,
+          "sc_parms": [
+            {"id": "key_name", "value": "aes-gcm-key-128"},
+            {"id": "aes_variant", "value": "1"},
+            {"id": "scope_flags", "value": "7"},
+            {"id": "key_wrap", "value": "0"}
+          ]
+        }
+      }
+    }
+  ]
+}
+```
+
+**Policy Parameters:**
+- `rule_id`: Unique identifier for the rule
+- `role`: `s` (source), `v` (verifier), or `a` (acceptor)
+- `src`: Source EID pattern
+- `dest`: Destination EID pattern
+- `tgt`: Target block type (1 = payload)
+- `loc`: Location (`appin`, `appout`, etc.)
+- `sc_id`: Security context ID (1 = BIB, 2 = BCB)
+
+**Security Context Parameters (BIB):**
+- `key_name`: Key identifier from key file
+- `sha_variant`: `5` (SHA256), `6` (SHA384), `7` (SHA512)
+- `scope_flags`: Bitmask for protected bundle parts
+- `key_wrap`: `0` (no wrap), `1` (wrap)
+
+**Security Context Parameters (BCB):**
+- `key_name`: Key identifier from key file
+- `aes_variant`: `1` (AES-128-GCM), `3` (AES-256-GCM)
+- `scope_flags`: Bitmask for protected bundle parts
+- `key_wrap`: `0` (no wrap), `1` (wrap)
+
+#### Validating JSON Files
+
+```bash
+# Check JSON syntax
+python3 -m json.tool keys.json
+python3 -m json.tool policy.json
+```
+
+### Appendix F: Uninstalling BSL
+
+BSL does not provide an uninstall target. To remove:
+
+**Local installation (testroot):**
+```bash
+cd external/BSL
+rm -rf testroot/usr
+rm -rf build
+```
+
+**System-wide installation:**
+```bash
+sudo rm -f /usr/local/lib/libbsl_*.so*
+sudo rm -f /usr/local/lib/libqcbor.so*
+sudo rm -rf /usr/local/include/bsl
+sudo ldconfig
+```
+
+Or use ION's uninstall script:
+```bash
+cd /path/to/ion-ios-dev
+./uninstall_bsl.sh
+```
 
 ## Additional Resources
 
-- **BSL Repository**: https://github.com/iondev33/BSL
+- **BSL Repository**: https://github.com/iondev33/BSL (branch: `bsl-ion-integration`)
 - **RFC 9172**: Bundle Protocol Security (BPSec)
 - **RFC 9173**: Default Security Contexts for BPSec
+- **ION Documentation**: https://ion-dtn.readthedocs.io
