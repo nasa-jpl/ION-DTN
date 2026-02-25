@@ -1,0 +1,567 @@
+{
+  "policyrule_set": [
+    {
+      "policyrule": {
+      "desc": "Integrity source rule for ipn:2.* -> ipn:3.* (node 2 applies BIB)",
+      "filter": {
+        "rule_id": "1",
+        "role": "s",
+        "src": "ipn:2.*",
+        "dest": "ipn:3.*",
+        "tgt": 1,
+        "loc": "appin",
+        "sc_id": 1
+      },
+      "spec": {
+        "svc": "bib-integrity",
+        "sc_id": 1,
+        "sc_parms": [
+          {
+            "id": "key_name",
+            "value": "9100"
+          },
+          {
+            "id": "sha_variant",
+            "value": "7"
+          },
+          {
+            "id": "scope_flags",
+            "value": "0"
+          },
+          {
+            "id": "key_wrap",
+            "value": "0"
+          }
+        ]
+      },
+      "es_ref": "d_integrity",
+      "_temp_not_ion_spec_policy_action_on_fail": "delete_bundle"
+    },
+    "event_set": {
+      "es_ref": "d_integrity",
+      "events": [
+        {
+          "event_id": "sop_processed",
+          "actions": ["remove_all_target_sops"]
+        }
+      ]
+    }
+  },
+  {
+      "policyrule": {
+      "desc": "Confidentiality source rule for ipn:2.* -> ipn:3.* (node 2 applies BCB)",
+      "filter": {
+        "rule_id": "2",
+        "role": "s",
+        "src": "ipn:2.*",
+        "dest": "ipn:3.*",
+        "tgt": 1,
+        "loc": "appin",
+        "sc_id": 2
+      },
+      "spec": {
+        "svc": "bcb-confidentiality",
+        "sc_id": 2,
+        "sc_parms": [
+          {
+            "id": "key_name",
+            "value": "9103"
+          },
+          {
+            "id": "aes_variant",
+            "value": "1"
+          },
+          {
+            "id": "aad_scope",
+            "value": "0"
+          },
+          {
+            "id": "key_wrap",
+            "value": "1"
+          }
+        ]
+      },
+      "es_ref": "d_confidentiality",
+      "_temp_not_ion_spec_policy_action_on_fail": "delete_bundle"
+    },
+    "event_set": {
+      "es_ref": "d_confidentiality",
+      "events": [
+        {
+          "event_id": "sop_processed",
+          "actions": ["remove_all_target_sops"]
+        }
+      ]
+    }
+  },
+  {
+      "policyrule": {
+      "desc": "Integrity verifier rule for ipn:2.* -> ipn:3.* (node 3 verifies BIB on ingress)",
+      "filter": {
+        "rule_id": "3",
+        "role": "v",
+        "src": "ipn:2.*",
+        "dest": "ipn:3.*",
+        "tgt": 1,
+        "loc": "clin",
+        "sc_id": 1
+      },
+      "spec": {
+        "svc": "bib-integrity",
+        "sc_id": 1,
+        "sc_parms": [
+          {
+            "id": "key_name",
+            "value": "9100"
+          },
+          {
+            "id": "sha_variant",
+            "value": "7"
+          },
+          {
+            "id": "scope_flags",
+            "value": "0"
+          },
+          {
+            "id": "key_wrap",
+            "value": "0"
+          }
+        ]
+      },
+      "es_ref": "d_integrity",
+      "_temp_not_ion_spec_policy_action_on_fail": "delete_bundle"
+    },
+    "event_set": {
+      "es_ref": "d_integrity",
+      "events": [
+        {
+          "event_id": "sop_processed",
+          "actions": ["remove_all_target_sops"]
+        }
+      ]
+    }
+  },
+  {
+      "policyrule": {
+      "desc": "Confidentiality verifier rule for ipn:2.* -> ipn:3.* (node 3 verifies BCB on ingress)",
+      "filter": {
+        "rule_id": "4",
+        "role": "v",
+        "src": "ipn:2.*",
+        "dest": "ipn:3.*",
+        "tgt": 1,
+        "loc": "clin",
+        "sc_id": 2
+      },
+      "spec": {
+        "svc": "bcb-confidentiality",
+        "sc_id": 2,
+        "sc_parms": [
+          {
+            "id": "key_name",
+            "value": "9103"
+          },
+          {
+            "id": "aes_variant",
+            "value": "1"
+          },
+          {
+            "id": "aad_scope",
+            "value": "0"
+          },
+          {
+            "id": "key_wrap",
+            "value": "1"
+          }
+        ]
+      },
+      "es_ref": "d_confidentiality",
+      "_temp_not_ion_spec_policy_action_on_fail": "delete_bundle"
+    },
+    "event_set": {
+      "es_ref": "d_confidentiality",
+      "events": [
+        {
+          "event_id": "sop_processed",
+          "actions": ["remove_all_target_sops"]
+        }
+      ]
+    }
+  },
+  {
+      "policyrule": {
+      "desc": "Integrity acceptor rule for ipn:2.* -> ipn:3.* (node 3 accepts BIB for delivery)",
+      "filter": {
+        "rule_id": "5",
+        "role": "a",
+        "src": "ipn:2.*",
+        "dest": "ipn:3.*",
+        "tgt": 1,
+        "loc": "appout",
+        "sc_id": 1
+      },
+      "spec": {
+        "svc": "bib-integrity",
+        "sc_id": 1,
+        "sc_parms": [
+          {
+            "id": "key_name",
+            "value": "9100"
+          },
+          {
+            "id": "sha_variant",
+            "value": "7"
+          },
+          {
+            "id": "scope_flags",
+            "value": "0"
+          },
+          {
+            "id": "key_wrap",
+            "value": "0"
+          }
+        ]
+      },
+      "es_ref": "d_integrity",
+      "_temp_not_ion_spec_policy_action_on_fail": "delete_bundle"
+    },
+    "event_set": {
+      "es_ref": "d_integrity",
+      "events": [
+        {
+          "event_id": "sop_processed",
+          "actions": ["remove_all_target_sops"]
+        }
+      ]
+    }
+  },
+  {
+      "policyrule": {
+      "desc": "Confidentiality acceptor rule for ipn:2.* -> ipn:3.* (node 3 accepts BCB for delivery)",
+      "filter": {
+        "rule_id": "6",
+        "role": "a",
+        "src": "ipn:2.*",
+        "dest": "ipn:3.*",
+        "tgt": 1,
+        "loc": "appout",
+        "sc_id": 2
+      },
+      "spec": {
+        "svc": "bcb-confidentiality",
+        "sc_id": 2,
+        "sc_parms": [
+          {
+            "id": "key_name",
+            "value": "9103"
+          },
+          {
+            "id": "aes_variant",
+            "value": "1"
+          },
+          {
+            "id": "aad_scope",
+            "value": "0"
+          },
+          {
+            "id": "key_wrap",
+            "value": "1"
+          }
+        ]
+      },
+      "es_ref": "d_confidentiality",
+      "_temp_not_ion_spec_policy_action_on_fail": "delete_bundle"
+    },
+    "event_set": {
+      "es_ref": "d_confidentiality",
+      "events": [
+        {
+          "event_id": "sop_processed",
+          "actions": ["remove_all_target_sops"]
+        }
+      ]
+    }
+  },
+  {
+      "policyrule": {
+      "desc": "Integrity source rule for ipn:2.* -> ipn:4.* (node 2 applies BIB)",
+      "filter": {
+        "rule_id": "7",
+        "role": "s",
+        "src": "ipn:2.*",
+        "dest": "ipn:4.*",
+        "tgt": 1,
+        "loc": "appin",
+        "sc_id": 1
+      },
+      "spec": {
+        "svc": "bib-integrity",
+        "sc_id": 1,
+        "sc_parms": [
+          {
+            "id": "key_name",
+            "value": "9100"
+          },
+          {
+            "id": "sha_variant",
+            "value": "7"
+          },
+          {
+            "id": "scope_flags",
+            "value": "0"
+          },
+          {
+            "id": "key_wrap",
+            "value": "0"
+          }
+        ]
+      },
+      "es_ref": "d_integrity",
+      "_temp_not_ion_spec_policy_action_on_fail": "delete_bundle"
+    },
+    "event_set": {
+      "es_ref": "d_integrity",
+      "events": [
+        {
+          "event_id": "sop_processed",
+          "actions": ["remove_all_target_sops"]
+        }
+      ]
+    }
+  },
+  {
+      "policyrule": {
+      "desc": "Confidentiality source rule for ipn:2.* -> ipn:4.* (node 2 applies BCB)",
+      "filter": {
+        "rule_id": "8",
+        "role": "s",
+        "src": "ipn:2.*",
+        "dest": "ipn:4.*",
+        "tgt": 1,
+        "loc": "appin",
+        "sc_id": 2
+      },
+      "spec": {
+        "svc": "bcb-confidentiality",
+        "sc_id": 2,
+        "sc_parms": [
+          {
+            "id": "key_name",
+            "value": "9103"
+          },
+          {
+            "id": "aes_variant",
+            "value": "1"
+          },
+          {
+            "id": "aad_scope",
+            "value": "0"
+          },
+          {
+            "id": "key_wrap",
+            "value": "1"
+          }
+        ]
+      },
+      "es_ref": "d_confidentiality",
+      "_temp_not_ion_spec_policy_action_on_fail": "delete_bundle"
+    },
+    "event_set": {
+      "es_ref": "d_confidentiality",
+      "events": [
+        {
+          "event_id": "sop_processed",
+          "actions": ["remove_all_target_sops"]
+        }
+      ]
+    }
+  },
+  {
+      "policyrule": {
+      "desc": "Integrity verifier rule for ipn:2.* -> ipn:4.* (node 4 verifies BIB on ingress)",
+      "filter": {
+        "rule_id": "9",
+        "role": "v",
+        "src": "ipn:2.*",
+        "dest": "ipn:4.*",
+        "tgt": 1,
+        "loc": "clin",
+        "sc_id": 1
+      },
+      "spec": {
+        "svc": "bib-integrity",
+        "sc_id": 1,
+        "sc_parms": [
+          {
+            "id": "key_name",
+            "value": "9100"
+          },
+          {
+            "id": "sha_variant",
+            "value": "7"
+          },
+          {
+            "id": "scope_flags",
+            "value": "0"
+          },
+          {
+            "id": "key_wrap",
+            "value": "0"
+          }
+        ]
+      },
+      "es_ref": "d_integrity",
+      "_temp_not_ion_spec_policy_action_on_fail": "delete_bundle"
+    },
+    "event_set": {
+      "es_ref": "d_integrity",
+      "events": [
+        {
+          "event_id": "sop_processed",
+          "actions": ["remove_all_target_sops"]
+        }
+      ]
+    }
+  },
+  {
+      "policyrule": {
+      "desc": "Confidentiality verifier rule for ipn:2.* -> ipn:4.* (node 4 verifies BCB on ingress)",
+      "filter": {
+        "rule_id": "10",
+        "role": "v",
+        "src": "ipn:2.*",
+        "dest": "ipn:4.*",
+        "tgt": 1,
+        "loc": "clin",
+        "sc_id": 2
+      },
+      "spec": {
+        "svc": "bcb-confidentiality",
+        "sc_id": 2,
+        "sc_parms": [
+          {
+            "id": "key_name",
+            "value": "9103"
+          },
+          {
+            "id": "aes_variant",
+            "value": "1"
+          },
+          {
+            "id": "aad_scope",
+            "value": "0"
+          },
+          {
+            "id": "key_wrap",
+            "value": "1"
+          }
+        ]
+      },
+      "es_ref": "d_confidentiality",
+      "_temp_not_ion_spec_policy_action_on_fail": "delete_bundle"
+    },
+    "event_set": {
+      "es_ref": "d_confidentiality",
+      "events": [
+        {
+          "event_id": "sop_processed",
+          "actions": ["remove_all_target_sops"]
+        }
+      ]
+    }
+  },
+  {
+      "policyrule": {
+      "desc": "Integrity acceptor rule for ipn:2.* -> ipn:4.* (node 4 accepts BIB for delivery)",
+      "filter": {
+        "rule_id": "11",
+        "role": "a",
+        "src": "ipn:2.*",
+        "dest": "ipn:4.*",
+        "tgt": 1,
+        "loc": "appout",
+        "sc_id": 1
+      },
+      "spec": {
+        "svc": "bib-integrity",
+        "sc_id": 1,
+        "sc_parms": [
+          {
+            "id": "key_name",
+            "value": "9100"
+          },
+          {
+            "id": "sha_variant",
+            "value": "7"
+          },
+          {
+            "id": "scope_flags",
+            "value": "0"
+          },
+          {
+            "id": "key_wrap",
+            "value": "0"
+          }
+        ]
+      },
+      "es_ref": "d_integrity",
+      "_temp_not_ion_spec_policy_action_on_fail": "delete_bundle"
+    },
+    "event_set": {
+      "es_ref": "d_integrity",
+      "events": [
+        {
+          "event_id": "sop_processed",
+          "actions": ["remove_all_target_sops"]
+        }
+      ]
+    }
+  },
+  {
+      "policyrule": {
+      "desc": "Confidentiality acceptor rule for ipn:2.* -> ipn:4.* (node 4 accepts BCB for delivery)",
+      "filter": {
+        "rule_id": "12",
+        "role": "a",
+        "src": "ipn:2.*",
+        "dest": "ipn:4.*",
+        "tgt": 1,
+        "loc": "appout",
+        "sc_id": 2
+      },
+      "spec": {
+        "svc": "bcb-confidentiality",
+        "sc_id": 2,
+        "sc_parms": [
+          {
+            "id": "key_name",
+            "value": "9103"
+          },
+          {
+            "id": "aes_variant",
+            "value": "1"
+          },
+          {
+            "id": "aad_scope",
+            "value": "0"
+          },
+          {
+            "id": "key_wrap",
+            "value": "1"
+          }
+        ]
+      },
+      "es_ref": "d_confidentiality",
+      "_temp_not_ion_spec_policy_action_on_fail": "delete_bundle"
+    },
+    "event_set": {
+      "es_ref": "d_confidentiality",
+      "events": [
+        {
+          "event_id": "sop_processed",
+          "actions": ["remove_all_target_sops"]
+        }
+      ]
+    }
+  }]
+}

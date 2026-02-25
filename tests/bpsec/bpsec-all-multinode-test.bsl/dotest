@@ -21,7 +21,7 @@ rm -f ./ion_nodes
 # Verify BSL configuration files exist (using relative paths from node directories)
 ION_ROOT="$(cd ../../.. && pwd)"
 BSL_KEY_FILE="${ION_ROOT}/external/BSL/src/mock_bpa/key_set_1.json"
-BSL_POLICY_FILE="${ION_ROOT}/external/BSL/mock-bpa-test/policy_provider_test.json"
+BSL_POLICY_FILE="${PWD}/policy_provider_multinode.json"
 
 if [ ! -f "$BSL_KEY_FILE" ]; then
     echo "ERROR: BSL key file not found: $BSL_KEY_FILE"
@@ -34,6 +34,9 @@ if [ ! -f "$BSL_POLICY_FILE" ]; then
 fi
 
 PASS=1
+
+# Enable BSL debug logging to see policy matching details
+export BSL_LOG_LEVEL=DEBUG
 
 # Start nodes.
 cd 2.ipn.ltp
@@ -182,9 +185,29 @@ if ! diff -w expected.txt ./3.ipn.ltp/3_receive_file.txt
 then
 	echo "FAIL (test2)"
 	PASS=0
-else 
+else
 	echo "SUCCESS (test2)"
 fi
+
+# Verify BSL was initialized and operational
+echo "Verifying BSL initialization in TEST 2..."
+cd 2.ipn.ltp
+if ! grep -q "BSL agent initialization succeeded" ion.log; then
+    echo "FAIL (test2) - BSL did not initialize at source"
+    PASS=0
+else
+    echo "BSL initialized successfully at source"
+fi
+
+cd ../3.ipn.ltp
+if ! grep -q "BSL initialization succeeded" ion.log; then
+    echo "FAIL (test2) - BSL did not initialize at destination"
+    PASS=0
+else
+    echo "BSL initialized successfully at destination"
+fi
+
+cd ..
 
 #############
 # Test 3 ....
@@ -362,13 +385,21 @@ else
 fi
 
 echo "Receive size: $RECV_SIZE; Send size: $SEND_SIZE"
-if [ "$RECV_SIZE" = "$SEND_SIZE" ] 
+if [ "$RECV_SIZE" = "$SEND_SIZE" ]
 then
-	echo "SUCCESS (test5)" 
+	echo "SUCCESS (test5)"
 else
 	echo "FAIL (test5)"
 	PASS=0
 fi
+
+# Verify BSL was operational for large file
+echo "Verifying BSL initialization in TEST 5..."
+cd 2.ipn.ltp
+if grep -q "BSL initialization succeeded" ion.log; then
+    echo "BSL operational for large file transfer"
+fi
+cd ..
 
 rm -f 2.ipn.ltp/hugefile.big
 rm -f 3.ipn.ltp/testfile1
@@ -458,12 +489,26 @@ touch expected.txt
 echo "'test_trace6'" >> expected.txt
 
 if ! diff -w expected.txt 4.ipn.ltp/4_receive_file.txt
-then   
+then
         echo "FAIL (test 6)"
         PASS=0
-else   
+else
         echo "SUCCESS (test 6)"
 fi
+
+# Verify BSL operational at source and final destination
+echo "Verifying BSL initialization in TEST 6..."
+cd 2.ipn.ltp
+if grep -q "BSL initialization succeeded" ion.log; then
+    echo "BSL operational at source node"
+fi
+
+cd ../4.ipn.ltp
+if grep -q "BSL initialization succeeded" ion.log; then
+    echo "BSL operational at destination node"
+fi
+
+cd ..
 
 ##############################
 # Test 7
@@ -529,12 +574,20 @@ touch expected.txt
 echo "'test_trace7'" >> expected.txt
 
 if ! diff -w expected.txt 4.ipn.ltp/4_receive_file.txt
-then   
+then
         echo "FAIL (test 7)"
         PASS=0
-else   
+else
         echo "SUCCESS (test 7)"
 fi
+
+# Verify BSL operational for anonymous bundle
+echo "Verifying BSL initialization in TEST 7..."
+cd 4.ipn.ltp
+if grep -q "BSL initialization succeeded" ion.log; then
+    echo "BSL operational at destination for anonymous bundle"
+fi
+cd ..
 
 ############################################################
 #   END OF TESTS                ........

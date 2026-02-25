@@ -8,7 +8,7 @@ a endpoint ipn:4.65 x
 a protocol ltp 1400 100
 a induct ltp 4 ltpcli
 a outduct ltp 3 ltpclo
-m bsl 'ipn:2.0' '../../../../external/BSL/src/mock_bpa/key_set_1.json' '../../../../external/BSL/mock-bpa-test/policy_provider_test.json'
+m bsl 'ipn:4.0' '../../../../external/BSL/src/mock_bpa/key_set_1.json' '../policy_provider_multinode.json'
 r 'ipnadmin amroc.ipnrc'
 w 1
 s

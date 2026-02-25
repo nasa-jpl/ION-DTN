@@ -278,10 +278,7 @@ tcp4cli
 tcp4clo
 
 # Test artifacts and directories
-tests/bpsec/bpsec-all-multinode-test.bsl/
 tests/issue-325-329-fragmentation/**/testfile*
-tests/tcp4-twonodes/
-tests/tcp4-twonodes-tls/
 
 # Produced test support
 tests/retest
