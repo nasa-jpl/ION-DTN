@@ -60,7 +60,6 @@ pkgconfig_DATA = ion.pc
 # man page source files.
 EXTRA_DIST =	\
 	$(srcdir)/ion.pc.in \
-	$(srcdir)/loopbacktest.sh \
 	$(srcdir)/sysctl_script.sh \
 	$(srcdir)/README.md \
 	$(srcdir)/release-notes.txt \
