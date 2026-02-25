@@ -674,22 +674,37 @@ static int	writeBTSDtoSdr(BtsdIoRef *ref, const void *buf, size_t size)
 			OBJ_POINTER(ExtensionBlock, blk);
 	Address		startOfBTSD;
 	int		bytesWritten;
+	char		*mutableBuf;
 
 	work = ref->work;
 	bundle = &(work->bundle);
+
+	/*	ION's zco_revise and sdr_write APIs don't use const,
+	 *	so we need a mutable copy of the buffer.		*/
+
+	mutableBuf = MTAKE(size);
+	if (mutableBuf == NULL)
+	{
+		return BSL_ERR_FAILURE;
+	}
+
+	memcpy(mutableBuf, buf, size);
+
 	if (ref->blockNbr == 1)	/*	Writing to payload (ADU);	*/
 	{
 		CHKERR(sdr_begin_xn(sdr));
 		bytesWritten = zco_revise(sdr, bundle->payload.content, 0,
-				(char *) buf, size);
+				mutableBuf, size);
 		if (sdr_end_xn(sdr) < 0)
 		{
 			putErrmsg("Can't write to extension BTSD.",
 					itoa(ref->blockNbr));
+			MRELEASE(mutableBuf);
 			return -1;
 		}
 
-		if (bytesWritten < size)
+		MRELEASE(mutableBuf);
+		if (bytesWritten < (int) size)
 		{
 			return BSL_ERR_FAILURE;
 		}
@@ -702,6 +717,7 @@ static int	writeBTSDtoSdr(BtsdIoRef *ref, const void *buf, size_t size)
 	elt = getExtensionBlock(bundle, ref->blockNbr);
 	if (elt == 0)		/*	Block not found.		*/
 	{
+		MRELEASE(mutableBuf);
 		return -3;
 	}
 
@@ -709,14 +725,16 @@ static int	writeBTSDtoSdr(BtsdIoRef *ref, const void *buf, size_t size)
 	GET_OBJ_POINTER(sdr, ExtensionBlock, blk, addr);
 	startOfBTSD = blk->bytes + (blk->length - blk->dataLength);
 	CHKERR(sdr_begin_xn(sdr));
-	sdr_write(sdr, startOfBTSD, (char *) buf, size);
+	sdr_write(sdr, startOfBTSD, mutableBuf, size);
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't write to extension BTSD.",
 				itoa(ref->blockNbr));
+		MRELEASE(mutableBuf);
 		return -1;
 	}
 
+	MRELEASE(mutableBuf);
 	return BSL_SUCCESS;
 }
 
@@ -729,22 +747,35 @@ static int	writeBTSDtoRAM(BtsdIoRef *ref, const void *buf, size_t size)
 	AcqExtBlock	*blk;
 	unsigned char	*startOfBTSD;
 	int		bytesWritten;
+	char		*mutableBuf;
 
 	work = ref->work;
 	bundle = &(work->bundle);
 	if (ref->blockNbr == 1)	/*	Writing to payload (ADU);	*/
 	{
+		/*	ION's zco_revise API doesn't use const,
+		 *	so we need a mutable copy of the buffer.	*/
+
+		mutableBuf = MTAKE(size);
+		if (mutableBuf == NULL)
+		{
+			return BSL_ERR_FAILURE;
+		}
+
+		memcpy(mutableBuf, buf, size);
 		CHKERR(sdr_begin_xn(sdr));
 		bytesWritten = zco_revise(sdr, bundle->payload.content, 0,
-				(char *) buf, size);
+				mutableBuf, size);
 		if (sdr_end_xn(sdr) < 0)
 		{
 			putErrmsg("Can't write to extension BTSD.",
 					itoa(ref->blockNbr));
+			MRELEASE(mutableBuf);
 			return -1;
 		}
 
-		if (bytesWritten < size)
+		MRELEASE(mutableBuf);
+		if (bytesWritten < (int) size)
 		{
 			return BSL_ERR_FAILURE;
 		}
@@ -762,7 +793,7 @@ static int	writeBTSDtoRAM(BtsdIoRef *ref, const void *buf, size_t size)
 
 	blk = (AcqExtBlock *) lyst_data(elt);
 	startOfBTSD = blk->bytes + (blk->length - blk->dataLength);
-	memcpy((char *) buf, startOfBTSD, size);
+	memcpy(startOfBTSD, buf, size);
 	return BSL_SUCCESS;
 }
 
@@ -790,6 +821,7 @@ static struct BSL_SeqWriter_s	*ion_bsl_BTSD_writer(BSL_BundleRef_t
 	BSL_SeqWriter_t	*writer;
 	BtsdIoRef	*ref;
 
+	(void)totalSize;	/*	Unused parameter		*/
 	CHKNULL(bundle_ref);
 	CHKNULL(block_num > 0);
 
@@ -878,7 +910,7 @@ static int	ion_bsl_encode_eid(const BSL_HostEID_t *eidWrapper,
 		return 0;	/*	Failure.			*/
 	}
 
-	if (length <= cborText->len)
+	if ((size_t) length <= cborText->len)
 	{
 		memcpy(cborText->ptr, buffer, length);
 	}
@@ -921,13 +953,26 @@ static int	ion_bsl_eid_from_text(BSL_HostEID_t *eidWrapper,
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
+	char		*mutableText;
+	int		result;
 
 	CHKERR1(text);
 	CHKERR1(eidWrapper);
 	ASSERT_ARG_NONNULL(eidWrapper->handle);
 	eid = (EndpointId *) (eidWrapper->handle);
-	if (parseEidString((char *) text, &metaEid, &vscheme, &vschemeElt) == 0
-	|| jotEid(eid, &metaEid) < 0)
+
+	/*	Create mutable copy for parseEidString.		*/
+	mutableText = MTAKE(strlen(text) + 1);
+	if (mutableText == NULL)
+	{
+		return 2;	/*	Failure.			*/
+	}
+
+	strcpy(mutableText, text);
+	result = parseEidString(mutableText, &metaEid, &vscheme, &vschemeElt);
+	MRELEASE(mutableText);
+
+	if (result == 0 || jotEid(eid, &metaEid) < 0)
 	{
 		return 2;	/*	Failure.			*/
 	}
@@ -2372,6 +2417,8 @@ int	bslProcess(BslAgent *agent, BslContext *ctx,
 	int				returncode = 0;
 	BSL_SecurityActionSet_t		*malloced_action_set;
 	BSL_SecurityResponseSet_t	*malloced_response_set;
+
+	(void)agent;	/*	Unused parameter			*/
 	BSL_BundleRef_t			bundle_ref;
 
 	malloced_action_set = BSL_CALLOC(1, BSL_SecurityActionSet_Sizeof());

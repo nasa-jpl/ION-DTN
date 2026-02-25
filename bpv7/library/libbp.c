@@ -800,6 +800,7 @@ static void	destroyEidpInterval(LystElt elt, void *arg)
 {
 	EidpIpnInterval		*interval;
 
+	(void)arg;	/*	Unused parameter			*/
 	interval = (EidpIpnInterval *) lyst_data(elt);
 	MRELEASE(interval);
 }
@@ -823,6 +824,7 @@ static void	destroyEidpItem(LystElt elt, void *arg)
 {
 	EidpItem	*item = (EidpItem *) lyst_data(elt);
 
+	(void)arg;	/*	Unused parameter			*/
 	if (item->schemeCodeNbr == ipn)
 	{
 		destroyEidpIpnSSP(item);

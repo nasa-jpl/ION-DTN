@@ -556,6 +556,65 @@ else
 fi
 
 #
+# Allow user to enable BSL (Bundle Protocol Security Library)
+#
+# To Enable BSL, use "./configure --enable-bsl"
+AC_ARG_ENABLE(
+  bsl,
+  [AS_HELP_STRING([--enable-bsl],[Turn on BPSec using external BSL library])],
+  [
+    # Check if external/BSL directory exists
+    AC_MSG_CHECKING([for BSL submodule at external/BSL])
+    if test -d "$srcdir/external/BSL" && ls "$srcdir/external/BSL"/* >/dev/null 2>&1; then
+      AC_MSG_RESULT([yes])
+      ENABLE_BSL=yes
+
+      # Set BSL_HOME to default location
+      if test -z "${BSL_HOME}"; then
+        BSL_HOME="${srcdir}/external/BSL/testroot/usr"
+      fi
+
+      # Add preprocessor flag for conditional compilation
+      AM_CFLAGS="$AM_CFLAGS -DUSING_BSL=1"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DUSING_BSL=1"
+
+      # Add BSL include paths (including bpv7/bsl for ION's BSL wrapper headers)
+      AM_CFLAGS="$AM_CFLAGS -I${srcdir}/bpv7/bsl -I${srcdir}/external/BSL/src -I${srcdir}/external/BSL/build/default/src -I${BSL_HOME}/include/bsl -I${BSL_HOME}/include/bsl/policy_provider -I${BSL_HOME}/include/bsl/security_context -I${BSL_HOME}/include/bsl/ION_integration -I${BSL_HOME}/include/m-lib"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -I${BSL_HOME}/include/bsl"
+
+      # Set BSL library flags
+      BSL_LIBS="-lbsl_crypto -lbsl_default_sc -lbsl_dynamic -lbsl_front -lbsl_mock_bpa -lbsl_sample_pp -lqcbor -ljansson -L${BSL_HOME}/lib"
+
+      AC_MSG_NOTICE([BSL will be built with ION integration])
+      AC_MSG_NOTICE([BSL_HOME: ${BSL_HOME}])
+    else
+      AC_MSG_RESULT([no])
+      AC_MSG_ERROR([BSL submodule not found. Initialize with: git submodule update --init external/BSL])
+    fi
+  ],
+  [echo "BSL disabled (using ION native BPSec)"
+   ENABLE_BSL=no])
+
+AM_CONDITIONAL([ENABLE_BSL], [test "x$ENABLE_BSL" = "xyes"])
+
+if test "x$ENABLE_BSL" = "xyes"; then
+  # Check for required BSL dependencies
+  AC_CHECK_HEADER([jansson.h],
+    [],
+    [AC_MSG_ERROR([jansson development headers not found. Install libjansson-dev (Debian/Ubuntu) or jansson-devel (RHEL/Fedora)])])
+
+  AC_CHECK_LIB([jansson], [json_object],
+    [],
+    [AC_MSG_ERROR([jansson library not found. Install libjansson-dev (Debian/Ubuntu) or jansson-devel (RHEL/Fedora)])])
+
+  AC_SUBST([BSL_LIBS], ["$BSL_LIBS"])
+  AC_SUBST([BSL_HOME], ["$BSL_HOME"])
+else
+  AC_SUBST([BSL_LIBS], [""])
+  AC_SUBST([BSL_HOME], [""])
+fi
+
+#
 # Control whether AMS debugging info is printed.
 #
 AC_ARG_ENABLE([ams-debug],
@@ -937,10 +996,24 @@ AC_CONFIG_COMMANDS([podman-stubs], [
 dnl ===============================================================
 dnl  Configuration Summary
 dnl ===============================================================
+
+# Set native BPSec status based on ENABLE_BSL
+if test "x$ENABLE_BSL" = "xyes"; then
+  NATIVE_BPSEC_STATUS="no"
+else
+  NATIVE_BPSEC_STATUS="yes (default)"
+fi
+
 AC_MSG_NOTICE([
 ========================================================================
 ION Configuration Summary
 ========================================================================
+
+  Bundle Protocol Version: BPv7
+
+  BPSec Implementation:
+    BSL (Bundle Protocol Security Library):  ${ENABLE_BSL:-no}
+    Native ION BPSec:                        ${NATIVE_BPSEC_STATUS}
 
   Optional Convergence Layers:
     DGR (Datagram Retransmission):           ${ENABLE_DGR:-no}
@@ -951,6 +1024,10 @@ ION Configuration Summary
     DTPC (Delay Tolerant Payload Conditioning): ${ENABLE_DTPC:-no}
     TC (Trusted Collective TCA/TCC):            ${ENABLE_TC:-no}
 
+  Security:
+    Crypto Library:                          ${CRYPTO_MBEDTLS:-no (NULL suites)}
+
+  To enable BSL:    ./configure --enable-bsl
   To disable DGR:   ./configure --disable-dgr
   To disable BSSP:  ./configure --disable-bssp
   To disable DTPC:  ./configure --disable-dtpc

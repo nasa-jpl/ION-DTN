@@ -90,7 +90,35 @@ EXTRA_DIST =	\
 
 # This hook now explicitly depends on the completion of all programs and
 # libraries. It checks for a flag file to ensure it only runs ONCE per build.
+
+if ENABLE_BSL
+# For BSL builds, we need a two-stage process:
+# 1. Build libici.la (BSL depends on it)
+# 2. Build BSL (everything else depends on BSL headers)
+# 3. Build everything else
+
+# Override the default all target to do two-stage build
+all: all-bsl-two-stage
+
+all-bsl-two-stage:
+	@echo "========================================"
+	@echo "Stage 1: Building libici.la..."
+	@echo "========================================"
+	$(MAKE) $(AM_MAKEFLAGS) libici.la
+	@echo "========================================"
+	@echo "Stage 2: Building BSL with ION integration..."
+	@echo "========================================"
+	@cd $(srcdir)/external/BSL && \
+	ION_ROOT=$(abs_top_builddir) ./build-for-ion.sh
+	@echo "========================================"
+	@echo "Stage 3: Building remaining ION components..."
+	@echo "========================================"
+	$(MAKE) $(AM_MAKEFLAGS) all-am
+
 all-local: $(bin_PROGRAMS) $(lib_LTLIBRARIES) $(man_MANS)
+else
+all-local: $(bin_PROGRAMS) $(lib_LTLIBRARIES) $(man_MANS)
+endif # end ENABLE_BSL
 if ENABLE_INSTALL_MESSAGES
 	@if test -f configure && [ ! -f .build_finished ]; then \
 		echo ""; \
@@ -189,10 +217,21 @@ distclean-local:
 
 
 # clean-local refers to existing documents.
+if ENABLE_BSL
+clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local \
+	     amsclean-local cfdpclean-local restartclean-local tcclean-local bsl-clean-local
+	@rm -f .build_finished
+	@rm -f ion.pc
+
+bsl-clean-local:
+	@echo "Cleaning BSL build artifacts..."
+	@cd $(srcdir)/external/BSL && ./build.sh clean || true
+else
 clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local \
 	     amsclean-local cfdpclean-local restartclean-local tcclean-local
 	@rm -f .build_finished
 	@rm -f ion.pc
+endif # end ENABLE_BSL
 
 build-man-directories:
 	mkdir -p $(top_builddir)/ici/doc
@@ -1407,6 +1446,16 @@ libbp_la_SOURCES += \
 	bpv7/library/ext/imc/imc.h \
 	bpv7/library/ext/imc/imc.c
 endif # end ENABLE_IMC
+
+# BSL Integration - add BSL wrapper when enabled
+if ENABLE_BSL
+libbp_la_SOURCES += \
+	bpv7/bsl/bsl.c \
+	bpv7/bsl/ionpatch.c
+
+libbp_la_LIBADD += $(BSL_LIBS)
+libbp_la_LDFLAGS = -Wl,-rpath,$(BSL_HOME)/lib
+endif # end ENABLE_BSL
 
 
 libcgr_la_SOURCES = bpv7/cgr/libcgr.c
@@ -2662,7 +2711,7 @@ restartclean-local:
 # TESTS SECTION
 #
 ##########################
-.PHONY:	test check buildcheck test-all test-% retest
+.PHONY:	test check buildcheck test-all test-% retest bsl-clean-local all-bsl-two-stage
 
 # "make buildcheck" will compile any of the compiled tests, but won't run
 # any of them. Also builds check_LTLIBRARIES (e.g., stub provider libraries).
