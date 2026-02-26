@@ -801,17 +801,8 @@ static int	writeBTSDtoSdr(BtsdIoRef *ref, const void *buf, size_t size)
 	{
 		int	result;
 
-		CHKERR(sdr_begin_xn(sdr));
 		result = zco_revise(sdr, bundle->payload.content,
 				ref->position, mutableBuf, size);
-		if (sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("Can't write to payload BTSD.",
-					itoa(ref->blockNbr));
-			MRELEASE(mutableBuf);
-			return -1;
-		}
-
 		MRELEASE(mutableBuf);
 		if (result < 0)
 		{
@@ -835,15 +826,7 @@ static int	writeBTSDtoSdr(BtsdIoRef *ref, const void *buf, size_t size)
 	addr = sdr_list_data(sdr, elt);
 	GET_OBJ_POINTER(sdr, ExtensionBlock, blk, addr);
 	startOfBTSD = blk->bytes + (blk->length - blk->dataLength) + ref->position;
-	CHKERR(sdr_begin_xn(sdr));
 	sdr_write(sdr, startOfBTSD, mutableBuf, size);
-	if (sdr_end_xn(sdr) < 0)
-	{
-		putErrmsg("Can't write to extension BTSD.",
-				itoa(ref->blockNbr));
-		MRELEASE(mutableBuf);
-		return -1;
-	}
 
 	ref->position += size;	/*	Update position after write	*/
 	MRELEASE(mutableBuf);
@@ -876,17 +859,8 @@ static int	writeBTSDtoRAM(BtsdIoRef *ref, const void *buf, size_t size)
 		}
 
 		memcpy(mutableBuf, buf, size);
-		CHKERR(sdr_begin_xn(sdr));
 		result = zco_revise(sdr, bundle->payload.content,
 				ref->position, mutableBuf, size);
-		if (sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("Can't write to payload BTSD.",
-					itoa(ref->blockNbr));
-			MRELEASE(mutableBuf);
-			return -1;
-		}
-
 		MRELEASE(mutableBuf);
 		if (result < 0)
 		{
