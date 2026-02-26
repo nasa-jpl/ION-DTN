@@ -484,8 +484,8 @@ typedef struct
 	AcqWorkArea	*work;
 	uvast		blockNbr;
 	size_t		position;	/*	Current read/write position	*/
-	char		*payloadCache;	/*	Cached payload for reading	*/
-	size_t		payloadSize;	/*	Size of cached payload		*/
+	ZcoReader	reader;		/*	Persistent ZCO reader		*/
+	int		readerInitialized;	/*	Reader started?		*/
 } BtsdIoRef;
 
 static int	ion_bsl_ReallocBTSD(BSL_BundleRef_t *bundle_ref,
@@ -620,14 +620,7 @@ static int	ion_bsl_ReallocBTSD(BSL_BundleRef_t *bundle_ref,
 
 static void	destroyBtsdIoRef(void *user_data)
 {
-	BtsdIoRef	*ref = (BtsdIoRef *) user_data;
-
 	CHKVOID(user_data);
-	if (ref->payloadCache != NULL)
-	{
-		MRELEASE(ref->payloadCache);
-	}
-
 	BSL_FREE(user_data);
 }
 
@@ -636,7 +629,6 @@ static int	readBTSDfromSdr(BtsdIoRef *ref, void *buf, size_t *bufsize)
 	Sdr		sdr = getIonsdr();
 	AcqWorkArea	*work;
 	Bundle		*bundle;
-	ZcoReader	reader;
 	vast		bytesReceived;
 	Object		elt;
 	Object		addr;
@@ -647,41 +639,21 @@ static int	readBTSDfromSdr(BtsdIoRef *ref, void *buf, size_t *bufsize)
 	bundle = &(work->bundle);
 	if (ref->blockNbr == 1)	/*	Reading from payload (ADU).	*/
 	{
-		/*	Cache entire payload on first read.		*/
+		/*	Initialize reader on first access.		*/
 
-		if (ref->payloadCache == NULL)
+		if (!ref->readerInitialized)
 		{
-			ref->payloadSize = zco_source_data_length(sdr,
-					bundle->payload.content);
-			ref->payloadCache = MTAKE(ref->payloadSize);
-			if (ref->payloadCache == NULL)
-			{
-				return -1;
-			}
-
-			zco_start_receiving(bundle->payload.content, &reader);
-			bytesReceived = zco_receive_source(sdr, &reader,
-					ref->payloadSize, ref->payloadCache);
-			if (bytesReceived != (vast) ref->payloadSize)
-			{
-				MRELEASE(ref->payloadCache);
-				ref->payloadCache = NULL;
-				return -1;
-			}
+			zco_start_receiving(bundle->payload.content,
+					&ref->reader);
+			ref->readerInitialized = 1;
 		}
 
-		/*	Serve reads from the cache.			*/
+		/*	Read from persistent reader.			*/
 
-		if (ref->position + *bufsize > ref->payloadSize)
-		{
-			*bufsize = ref->payloadSize - ref->position;
-		}
-
-		if (*bufsize > 0)
-		{
-			memcpy(buf, ref->payloadCache + ref->position, *bufsize);
-			ref->position += *bufsize;
-		}
+		bytesReceived = zco_receive_source(sdr, &ref->reader,
+				*bufsize, buf);
+		*bufsize = bytesReceived;
+		ref->position += bytesReceived;
 
 		return 0;
 	}
@@ -707,7 +679,6 @@ static int	readBTSDfromRAM(BtsdIoRef *ref, void *buf, size_t *bufsize)
 	Sdr		sdr = getIonsdr();
 	AcqWorkArea	*work;
 	Bundle		*bundle;
-	ZcoReader	reader;
 	vast		bytesReceived;
 	LystElt		elt;
 	AcqExtBlock	*blk;
@@ -717,41 +688,21 @@ static int	readBTSDfromRAM(BtsdIoRef *ref, void *buf, size_t *bufsize)
 	bundle = &(work->bundle);
 	if (ref->blockNbr == 1)	/*	Reading from payload (ADU).	*/
 	{
-		/*	Cache entire payload on first read.		*/
+		/*	Initialize reader on first access.		*/
 
-		if (ref->payloadCache == NULL)
+		if (!ref->readerInitialized)
 		{
-			ref->payloadSize = zco_source_data_length(sdr,
-					bundle->payload.content);
-			ref->payloadCache = MTAKE(ref->payloadSize);
-			if (ref->payloadCache == NULL)
-			{
-				return -1;
-			}
-
-			zco_start_receiving(bundle->payload.content, &reader);
-			bytesReceived = zco_receive_source(sdr, &reader,
-					ref->payloadSize, ref->payloadCache);
-			if (bytesReceived != (vast) ref->payloadSize)
-			{
-				MRELEASE(ref->payloadCache);
-				ref->payloadCache = NULL;
-				return -1;
-			}
+			zco_start_receiving(bundle->payload.content,
+					&ref->reader);
+			ref->readerInitialized = 1;
 		}
 
-		/*	Serve reads from the cache.			*/
+		/*	Read from persistent reader.			*/
 
-		if (ref->position + *bufsize > ref->payloadSize)
-		{
-			*bufsize = ref->payloadSize - ref->position;
-		}
-
-		if (*bufsize > 0)
-		{
-			memcpy(buf, ref->payloadCache + ref->position, *bufsize);
-			ref->position += *bufsize;
-		}
+		bytesReceived = zco_receive_source(sdr, &ref->reader,
+				*bufsize, buf);
+		*bufsize = bytesReceived;
+		ref->position += bytesReceived;
 
 		return 0;
 	}
@@ -814,8 +765,7 @@ static struct BSL_SeqReader_s	*ion_bsl_BTSD_reader(const BSL_BundleRef_t
 	ref->work = (AcqWorkArea *) (bundle_ref->data);
 	ref->blockNbr = block_num;
 	ref->position = 0;	/*	Start at beginning		*/
-	ref->payloadCache = NULL;	/*	No cache yet		*/
-	ref->payloadSize = 0;
+	ref->readerInitialized = 0;	/*	Reader not started yet	*/
 	reader->user_data = ref;
 	reader->read = readBTSD;
 	reader->deinit = destroyBtsdIoRef;
@@ -831,7 +781,6 @@ static int	writeBTSDtoSdr(BtsdIoRef *ref, const void *buf, size_t size)
 	Object		addr;
 			OBJ_POINTER(ExtensionBlock, blk);
 	Address		startOfBTSD;
-	int		bytesWritten;
 	char		*mutableBuf;
 
 	work = ref->work;
@@ -850,24 +799,27 @@ static int	writeBTSDtoSdr(BtsdIoRef *ref, const void *buf, size_t size)
 
 	if (ref->blockNbr == 1)	/*	Writing to payload (ADU);	*/
 	{
+		int	result;
+
 		CHKERR(sdr_begin_xn(sdr));
-		bytesWritten = zco_revise(sdr, bundle->payload.content,
+		result = zco_revise(sdr, bundle->payload.content,
 				ref->position, mutableBuf, size);
 		if (sdr_end_xn(sdr) < 0)
 		{
-			putErrmsg("Can't write to extension BTSD.",
+			putErrmsg("Can't write to payload BTSD.",
 					itoa(ref->blockNbr));
 			MRELEASE(mutableBuf);
 			return -1;
 		}
 
-		ref->position += size;	/*	Update position after write	*/
 		MRELEASE(mutableBuf);
-		if (bytesWritten < (int) size)
+		if (result < 0)
 		{
+			putErrmsg("zco_revise failed for payload", NULL);
 			return BSL_ERR_FAILURE;
 		}
 
+		ref->position += size;	/*	Update position after write	*/
 		return BSL_SUCCESS;
 	}
 
@@ -906,13 +858,14 @@ static int	writeBTSDtoRAM(BtsdIoRef *ref, const void *buf, size_t size)
 	LystElt		elt;
 	AcqExtBlock	*blk;
 	unsigned char	*startOfBTSD;
-	int		bytesWritten;
 	char		*mutableBuf;
 
 	work = ref->work;
 	bundle = &(work->bundle);
 	if (ref->blockNbr == 1)	/*	Writing to payload (ADU);	*/
 	{
+		int	result;
+
 		/*	ION's zco_revise API doesn't use const,
 		 *	so we need a mutable copy of the buffer.	*/
 
@@ -924,23 +877,24 @@ static int	writeBTSDtoRAM(BtsdIoRef *ref, const void *buf, size_t size)
 
 		memcpy(mutableBuf, buf, size);
 		CHKERR(sdr_begin_xn(sdr));
-		bytesWritten = zco_revise(sdr, bundle->payload.content,
+		result = zco_revise(sdr, bundle->payload.content,
 				ref->position, mutableBuf, size);
 		if (sdr_end_xn(sdr) < 0)
 		{
-			putErrmsg("Can't write to extension BTSD.",
+			putErrmsg("Can't write to payload BTSD.",
 					itoa(ref->blockNbr));
 			MRELEASE(mutableBuf);
 			return -1;
 		}
 
-		ref->position += size;	/*	Update position after write	*/
 		MRELEASE(mutableBuf);
-		if (bytesWritten < (int) size)
+		if (result < 0)
 		{
+			putErrmsg("zco_revise failed for payload", NULL);
 			return BSL_ERR_FAILURE;
 		}
 
+		ref->position += size;	/*	Update position after write	*/
 		return BSL_SUCCESS;
 	}
 
@@ -1003,8 +957,7 @@ static struct BSL_SeqWriter_s	*ion_bsl_BTSD_writer(BSL_BundleRef_t
 	ref->work = (AcqWorkArea *) (bundle_ref->data);
 	ref->blockNbr = block_num;
 	ref->position = 0;	/*	Start at beginning		*/
-	ref->payloadCache = NULL;	/*	No cache yet		*/
-	ref->payloadSize = 0;
+	ref->readerInitialized = 0;	/*	Reader not started yet	*/
 	writer->user_data = ref;
 	writer->write = writeBTSD;
 	writer->deinit = destroyBtsdIoRef;
