@@ -74,6 +74,16 @@ typedef struct
 	unsigned char	blkProcFlags;	/**	Per BP spec.		*/
 	unsigned int	dataLength;	/**	Block content.		*/
 	unsigned int	length;		/**	Length of bytes array.	*/
+	/*	The parameter 'length' serves two purposes:
+	 *	  1. Before serialization: non-zero indicates block is
+	 *	     viable and should not be deleted (length=0 means
+	 *	     "scratched" in processExtensionBlocks).
+	 *	  2. After serialization: holds actual serialized length.
+	 *	Set to 1 as placeholder; actual length set by
+	 *	creb_serialize called from creb_processOnDequeue.
+	 * 	However BSL handling may deviate from this since it
+	 * 	does not wait until transmission to serialize block. 	*/
+
 	unsigned int	size;		/**	Size of scratchpad obj.	*/
 	Object		object;		/**	Opaque scratchpad.	*/
 	Object		bytes;		/**	Array in SDR heap.	*/

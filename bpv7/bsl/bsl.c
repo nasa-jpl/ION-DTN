@@ -324,6 +324,18 @@ static int	createBlockInSdr(uint64_t block_type_code,
 
 	newBlock.bytes = bytesObj;			/*	SDR address	*/
 	newBlock.dataLength = 0;			/*	No data yet	*/
+
+	{
+		char	msgbuf[128];
+
+		isprintf(msgbuf, sizeof msgbuf,
+			"[BSL-CREATE-SDR] Created type %lu: bytes=%lu len=%lu dataLen=%lu",
+			(unsigned long) block_type_code,
+			(unsigned long) bytesObj,
+			(unsigned long) newBlock.length,
+			(unsigned long) newBlock.dataLength);
+		writeMemo(msgbuf);
+	}
 	if (attachExtensionBlock(block_type_code, &newBlock, bundle) == 0)
 	{
 		sdr_free(sdr, bytesObj);		/*	Clean up	*/
@@ -494,7 +506,6 @@ static int	ion_bsl_ReallocBTSD(BSL_BundleRef_t *bundle_ref,
 	Sdr		sdr = getIonsdr();
 	AcqWorkArea	*work;
 	Bundle		*bundle;
-	Object		bundleObj;
 	Object		elt;
 #if 0
 	Object		addr;
@@ -505,10 +516,31 @@ static int	ion_bsl_ReallocBTSD(BSL_BundleRef_t *bundle_ref,
 	CHKERR(bundle_ref->data);
 	work = (AcqWorkArea *) (bundle_ref->data);
 	bundle = &(work->bundle);
-	bundleObj = (Object) bundle_ref->data;
+	/* During transmit, bundle is in AcqWorkArea (memory), not SDR. */
 	CHKERR(block_num > 0);
 	CHKERR(bytesize > 0);
-	sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
+
+	{
+		char	msgbuf[128];
+
+		isprintf(msgbuf, sizeof msgbuf,
+			"[BSL-REALLOC] Block %lu: requested size=%lu",
+			(unsigned long) block_num,
+			(unsigned long) bytesize);
+		writeMemo(msgbuf);
+	}
+
+	/*	Block 1 is the payload, stored as a ZCO (not an extension block).
+	 *	zco_revise() handles dynamic expansion, so no realloc needed.	*/
+	if (block_num == 1)
+	{
+		writeMemo("[BSL-REALLOC] Block 1 (payload): zco_revise will handle expansion");
+		return 0;	/*	Success - no action needed	*/
+	}
+
+	/* During transmit, bundle is already in memory (AcqWorkArea),
+	 * no need to sdr_read it. */
+	/* sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle)); */
 	elt = getExtensionBlock(bundle, block_num);
 	if (elt == 0)		/*	Block not found.		*/
 	{
@@ -573,12 +605,25 @@ static int	ion_bsl_ReallocBTSD(BSL_BundleRef_t *bundle_ref,
 
 	/*	Update bundle overhead accounting.			*/
 	bundle->dbOverhead += overhead_delta;
-	sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
+	/* During transmit, bundle is in memory (AcqWorkArea), not SDR.
+	 * The in-memory update above is sufficient. */
+	/* sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle)); */
 
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Failed to commit block realloc.", NULL);
 		return -1;
+	}
+
+	{
+		char	msgbuf[128];
+
+		isprintf(msgbuf, sizeof msgbuf,
+			"[BSL-REALLOC] Block %lu: OLD len=%d NEW len=%lu bytes=%lu overhead_delta=%d",
+			(unsigned long) block_num, oldSize,
+			(unsigned long) bytesize,
+			(unsigned long) newBytesObj, overhead_delta);
+		writeMemo(msgbuf);
 	}
 
 	return 0;
@@ -668,7 +713,7 @@ static int	readBTSDfromSdr(BtsdIoRef *ref, void *buf, size_t *bufsize)
 
 	addr = sdr_list_data(sdr, elt);
 	GET_OBJ_POINTER(sdr, ExtensionBlock, blk, addr);
-	startOfBTSD = blk->bytes + (blk->length - blk->dataLength) + ref->position;
+	startOfBTSD = blk->bytes + ref->position;
 	sdr_read(sdr, buf, startOfBTSD, *bufsize);
 	ref->position += *bufsize;	/*	Update position after read	*/
 	return 0;
@@ -716,7 +761,7 @@ static int	readBTSDfromRAM(BtsdIoRef *ref, void *buf, size_t *bufsize)
 	}
 
 	blk = (AcqExtBlock *) lyst_data(elt);
-	startOfBTSD = blk->bytes + (blk->length - blk->dataLength) + ref->position;
+	startOfBTSD = blk->bytes + ref->position;
 	memcpy(buf, startOfBTSD, *bufsize);
 	ref->position += *bufsize;	/*	Update position after read	*/
 	return 0;
@@ -800,10 +845,25 @@ static int	writeBTSDtoSdr(BtsdIoRef *ref, const void *buf, size_t size)
 	if (ref->blockNbr == 1)	/*	Writing to payload (ADU);	*/
 	{
 		int	result;
+		char	msgbuf[256];
+		vast	zcoLen;
+
+		zcoLen = zco_length(sdr, bundle->payload.content);
+		isprintf(msgbuf, sizeof msgbuf,
+			"[BSL-WRITE-SDR] Payload write: zco=%lu zcoLen=%ld pos=%lu size=%lu",
+			(unsigned long) bundle->payload.content, (long) zcoLen,
+			(unsigned long) ref->position,
+			(unsigned long) size);
+		writeMemo(msgbuf);
 
 		result = zco_revise(sdr, bundle->payload.content,
 				ref->position, mutableBuf, size);
 		MRELEASE(mutableBuf);
+
+		isprintf(msgbuf, sizeof msgbuf,
+			"[BSL-WRITE-SDR] zco_revise result=%d", result);
+		writeMemo(msgbuf);
+
 		if (result < 0)
 		{
 			putErrmsg("zco_revise failed for payload", NULL);
@@ -819,17 +879,53 @@ static int	writeBTSDtoSdr(BtsdIoRef *ref, const void *buf, size_t size)
 	elt = getExtensionBlock(bundle, ref->blockNbr);
 	if (elt == 0)		/*	Block not found.		*/
 	{
+		char	msgbuf[128];
+
+		isprintf(msgbuf, sizeof msgbuf,
+			"[BSL-WRITE-SDR] ERROR: Block %llu not found",
+			(unsigned long long) ref->blockNbr);
+		writeMemo(msgbuf);
 		MRELEASE(mutableBuf);
 		return -3;
 	}
 
 	addr = sdr_list_data(sdr, elt);
 	GET_OBJ_POINTER(sdr, ExtensionBlock, blk, addr);
-	startOfBTSD = blk->bytes + (blk->length - blk->dataLength) + ref->position;
-	sdr_write(sdr, startOfBTSD, mutableBuf, size);
+	startOfBTSD = blk->bytes + ref->position;
 
+	{
+		char	msgbuf[256];
+
+		isprintf(msgbuf, sizeof msgbuf,
+			"[BSL-WRITE-SDR] ExtBlk %lu: bytes=%lu len=%lu dataLen=%lu pos=%lu size=%lu addr=%lu",
+			(unsigned long) ref->blockNbr,
+			(unsigned long) blk->bytes,
+			(unsigned long) blk->length,
+			(unsigned long) blk->dataLength,
+			(unsigned long) ref->position,
+			(unsigned long) size,
+			(unsigned long) startOfBTSD);
+		writeMemo(msgbuf);
+
+		/* Verify we're not writing beyond allocated space */
+		if (ref->position + size > blk->length)
+		{
+			isprintf(msgbuf, sizeof msgbuf,
+				"[BSL-WRITE-SDR] ERROR: Write would overflow! pos=%lu size=%lu length=%lu",
+				(unsigned long) ref->position,
+				(unsigned long) size,
+				(unsigned long) blk->length);
+			writeMemo(msgbuf);
+			MRELEASE(mutableBuf);
+			return BSL_ERR_FAILURE;
+		}
+	}
+
+	sdr_write(sdr, startOfBTSD, mutableBuf, size);
 	ref->position += size;	/*	Update position after write	*/
 	MRELEASE(mutableBuf);
+
+	writeMemo("[BSL-WRITE-SDR] ExtBlk write completed successfully");
 	return BSL_SUCCESS;
 }
 
@@ -848,6 +944,8 @@ static int	writeBTSDtoRAM(BtsdIoRef *ref, const void *buf, size_t size)
 	if (ref->blockNbr == 1)	/*	Writing to payload (ADU);	*/
 	{
 		int	result;
+		char	msgbuf[256];
+		vast	zcoLen;
 
 		/*	ION's zco_revise API doesn't use const,
 		 *	so we need a mutable copy of the buffer.	*/
@@ -858,10 +956,23 @@ static int	writeBTSDtoRAM(BtsdIoRef *ref, const void *buf, size_t size)
 			return BSL_ERR_FAILURE;
 		}
 
+		zcoLen = zco_length(sdr, bundle->payload.content);
+		isprintf(msgbuf, sizeof msgbuf,
+			"[BSL-WRITE-RAM] Payload write: zco=%lu zcoLen=%ld pos=%lu size=%lu",
+			(unsigned long) bundle->payload.content, (long) zcoLen,
+			(unsigned long) ref->position,
+			(unsigned long) size);
+		writeMemo(msgbuf);
+
 		memcpy(mutableBuf, buf, size);
 		result = zco_revise(sdr, bundle->payload.content,
 				ref->position, mutableBuf, size);
 		MRELEASE(mutableBuf);
+
+		isprintf(msgbuf, sizeof msgbuf,
+			"[BSL-WRITE-RAM] zco_revise result=%d", result);
+		writeMemo(msgbuf);
+
 		if (result < 0)
 		{
 			putErrmsg("zco_revise failed for payload", NULL);
@@ -877,13 +988,49 @@ static int	writeBTSDtoRAM(BtsdIoRef *ref, const void *buf, size_t size)
 	elt = getAcqExtensionBlock(work, ref->blockNbr);
 	if (elt == 0)		/*	Block not found.		*/
 	{
+		char	msgbuf[128];
+
+		isprintf(msgbuf, sizeof msgbuf,
+			"[BSL-WRITE-RAM] ERROR: Block %llu not found",
+			(unsigned long long) ref->blockNbr);
+		writeMemo(msgbuf);
 		return -3;
 	}
 
 	blk = (AcqExtBlock *) lyst_data(elt);
-	startOfBTSD = blk->bytes + (blk->length - blk->dataLength) + ref->position;
+	startOfBTSD = blk->bytes + ref->position;
+
+	{
+		char	msgbuf[256];
+
+		isprintf(msgbuf, sizeof msgbuf,
+			"[BSL-WRITE-RAM] ExtBlk %lu: bytes=%p len=%lu dataLen=%lu pos=%lu size=%lu addr=%p",
+			(unsigned long) ref->blockNbr,
+			(void *) blk->bytes,
+			(unsigned long) blk->length,
+			(unsigned long) blk->dataLength,
+			(unsigned long) ref->position,
+			(unsigned long) size,
+			(void *) startOfBTSD);
+		writeMemo(msgbuf);
+
+		/* Verify we're not writing beyond allocated space */
+		if (ref->position + size > blk->length)
+		{
+			isprintf(msgbuf, sizeof msgbuf,
+				"[BSL-WRITE-RAM] ERROR: Write would overflow! pos=%lu size=%lu length=%lu",
+				(unsigned long) ref->position,
+				(unsigned long) size,
+				(unsigned long) blk->length);
+			writeMemo(msgbuf);
+			return BSL_ERR_FAILURE;
+		}
+	}
+
 	memcpy(startOfBTSD, buf, size);
 	ref->position += size;	/*	Update position after write	*/
+
+	writeMemo("[BSL-WRITE-RAM] ExtBlk write completed successfully");
 	return BSL_SUCCESS;
 }
 
