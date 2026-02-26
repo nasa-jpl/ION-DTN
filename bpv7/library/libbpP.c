@@ -9675,6 +9675,14 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	/*	Check authenticity and integrity.			*/
 
+#if !USING_BSL
+	/*	When BSL is enabled, all security verification
+	 *	(including post-decryption BIB checks) is handled
+	 *	by the BSL CLIN processing above.  The native
+	 *	bpsec_verify expects the ASB to have been parsed
+	 *	by bpsec_asb_inboundAsbDeserialize, which is
+	 *	skipped when BSL manages security blocks.		*/
+
 	initAuthenticity(work);	/*	Set default.			*/
 	if (bpsec_verify(work) < 0)
 	{
@@ -9707,6 +9715,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 			bundle->payload.length);
 		return abortBundleAcq(work);
 	}
+#endif
 
 	/* check additional error codes after security verification */
 

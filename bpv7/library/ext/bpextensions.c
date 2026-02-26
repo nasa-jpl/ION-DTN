@@ -61,7 +61,11 @@ static ExtensionDef	extensionDefs[] =
 				0}, /* Process on Transmit      - N/A. */
 				bpsec_util_outboundBlkRelease,   /* Outbound Release function. */
 				bpsec_asb_outboundAsbCopy,       /* Outbound Copy Function.    */
+#if USING_BSL
+				0,  /* BSL parses ASB directly; skip ION's native deserialize.   */
+#else
 				bpsec_asb_inboundAsbDeserialize, /* Inbound Acquire Function.  */
+#endif
 				0,  /* Inbound Review function  - N/A. */
 				0,  /* Inbound Decrypt function - N/A. */
 				0,  /* Inbound Parse function   - N/A. */
@@ -82,7 +86,11 @@ static ExtensionDef	extensionDefs[] =
 				0,  /* Inbound Acquire Function - N/A  */
 				0,  /* Inbound Review function  - N/A. */
 				0,  /* Inbound Decrypt function - N/A. */
+#if USING_BSL
+				0,  /* BSL parses ASB directly; skip ION's native deserialize.   */
+#else
 				bpsec_asb_inboundAsbDeserialize, /* Inbound Parse function - BIBs are deserialized in the PARSE callback. */
+#endif
 				0,  /* Inbound Check function - N/A.   */
 				bpsec_asb_inboundAsbRecord,      /* Inbound record function. */
 				bpsec_util_inboundBlkClear       /* Inbound clear function.  */

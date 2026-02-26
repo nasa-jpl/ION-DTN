@@ -761,7 +761,14 @@ static int	readBTSDfromRAM(BtsdIoRef *ref, void *buf, size_t *bufsize)
 	}
 
 	blk = (AcqExtBlock *) lyst_data(elt);
-	startOfBTSD = blk->bytes + ref->position;
+
+	/*	blk->bytes contains the full CBOR extension block
+	 *	(array header + fields + BTSD byte string + CRC).
+	 *	The BTSD content starts at offset
+	 *	(blk->length - blk->dataLength) within blk->bytes.	*/
+
+	startOfBTSD = blk->bytes + (blk->length - blk->dataLength)
+			+ ref->position;
 	memcpy(buf, startOfBTSD, *bufsize);
 	ref->position += *bufsize;	/*	Update position after read	*/
 	return 0;
@@ -1138,8 +1145,6 @@ static int	ion_bsl_encode_eid(const BSL_HostEID_t *eidWrapper,
 	EndpointId	*eid;
 	int		length;
 
-	CHKERR1(cborText);
-	ASSERT_ARG_NONNULL(cborText->ptr);
 	CHKERR1(eidWrapper);
 	ASSERT_ARG_NONNULL(eidWrapper->handle);
 	eid = (EndpointId *) (eidWrapper->handle);
@@ -1147,6 +1152,14 @@ static int	ion_bsl_encode_eid(const BSL_HostEID_t *eidWrapper,
 	if (length < 1)
 	{
 		return 0;	/*	Failure.			*/
+	}
+
+	/*	If cborText is NULL this is a size query;
+	 *	return the encoded length without copying.	*/
+
+	if (cborText == NULL)
+	{
+		return length;
 	}
 
 	if ((size_t) length <= cborText->len)
@@ -2721,6 +2734,81 @@ int	bslProcess(BslAgent *agent, BslContext *ctx,
 	if (pthread_mutex_unlock(&ctx->mutex))
 	{
 		BSL_LOG_CRIT("failed to unlock mutex");
+	}
+
+	/*	After BSL creates security blocks on the transmit path,
+	 *	we must CBOR-serialize them. BSL writes raw BTSD into
+	 *	blk->bytes, but ION expects blk->bytes to contain the
+	 *	fully CBOR-encoded extension block (header + BTSD as
+	 *	CBOR byte string + CRC). serializeExtBlk() performs
+	 *	this encoding.						*/
+
+	if (returncode == 0 && loc == BSL_POLICYLOCATION_APPIN)
+	{
+		Sdr		sdr = getIonsdr();
+		AcqWorkArea	*work;
+		Bundle		*bundle;
+		Object		elt;
+		Object		blkAddr;
+		ExtensionBlock	blk;
+		char		*rawData;
+
+		work = (AcqWorkArea *) bundleWorkArea;
+		bundle = &(work->bundle);
+
+		for (elt = sdr_list_first(sdr, bundle->extensions); elt;
+				elt = sdr_list_next(sdr, elt))
+		{
+			blkAddr = sdr_list_data(sdr, elt);
+			sdr_stage(sdr, (char *) &blk, blkAddr,
+					sizeof(ExtensionBlock));
+			if (blk.type != BlockIntegrityBlk
+			&& blk.type != BlockConfidentialityBlk)
+			{
+				continue;
+			}
+
+			if (blk.bytes == 0 || blk.length <= 1)
+			{
+				continue;
+			}
+
+			/*	Read raw BTSD from SDR into memory.	*/
+
+			rawData = MTAKE(blk.length);
+			if (rawData == NULL)
+			{
+				putErrmsg("No memory for BSL block \
+serialization.", NULL);
+				returncode = -1;
+				break;
+			}
+
+			sdr_read(sdr, rawData, blk.bytes,
+					blk.length);
+
+			/*	Set dataLength to actual BTSD size.
+			 *	serializeExtBlk will replace blk.bytes
+			 *	with fully CBOR-encoded block.		*/
+
+			blk.dataLength = blk.length;
+			if (serializeExtBlk(&blk, rawData) < 0)
+			{
+				MRELEASE(rawData);
+				putErrmsg("Failed to serialize BSL \
+block.", NULL);
+				returncode = -1;
+				break;
+			}
+
+			MRELEASE(rawData);
+
+			/*	Write updated block back to SDR.	*/
+
+			sdr_write(sdr, blkAddr, (char *) &blk,
+					sizeof(ExtensionBlock));
+			bundle->extensionsLength += blk.length;
+		}
 	}
 
 	BSL_SecurityActionSet_Deinit(malloced_action_set);

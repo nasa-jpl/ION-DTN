@@ -18,20 +18,23 @@ echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 
-# Verify BSL configuration files exist (using relative paths from node directories)
-ION_ROOT="$(cd ../../.. && pwd)"
-BSL_KEY_FILE="${ION_ROOT}/external/BSL/src/mock_bpa/key_set_1.json"
-BSL_POLICY_FILE="${PWD}/policy_provider_multinode.json"
+# Verify BSL configuration files exist (all within the test directory)
+BSL_KEY_FILE="${PWD}/key_set.json"
+BSL_POLICY_NODE2="${PWD}/policy_node2.json"
+BSL_POLICY_NODE3="${PWD}/policy_node3.json"
+BSL_POLICY_NODE4="${PWD}/policy_node4.json"
 
 if [ ! -f "$BSL_KEY_FILE" ]; then
     echo "ERROR: BSL key file not found: $BSL_KEY_FILE"
     exit 2  # Exit code 2 = skip test
 fi
 
-if [ ! -f "$BSL_POLICY_FILE" ]; then
-    echo "ERROR: BSL policy file not found: $BSL_POLICY_FILE"
-    exit 2  # Exit code 2 = skip test
-fi
+for pf in "$BSL_POLICY_NODE2" "$BSL_POLICY_NODE3" "$BSL_POLICY_NODE4"; do
+    if [ ! -f "$pf" ]; then
+        echo "ERROR: BSL policy file not found: $pf"
+        exit 2  # Exit code 2 = skip test
+    fi
+done
 
 PASS=1
 

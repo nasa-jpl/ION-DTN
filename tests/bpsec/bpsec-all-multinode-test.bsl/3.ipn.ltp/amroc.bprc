@@ -10,7 +10,7 @@ a induct ltp 3 ltpcli
 a outduct ltp 2 ltpclo
 #a induct ltp 5 ltpcli
 a outduct ltp 4 ltpclo
-m bsl 'ipn:3.0' '../../../../external/BSL/src/mock_bpa/key_set_1.json' '../policy_provider_multinode.json'
+m bsl 'ipn:3.0' '../key_set.json' '../policy_node3.json'
 r 'ipnadmin amroc.ipnrc'
 w 1
 s
