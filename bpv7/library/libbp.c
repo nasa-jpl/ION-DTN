@@ -1079,7 +1079,7 @@ static EidpItem	*loadPatternItem(char *buffer)
 		return item;
 	}
 
-	if (isalpha(*cursor))	/*	Have scheme name.		*/
+	if (isalpha((unsigned char)*cursor))	/*	Have scheme name.	*/
 	{
 		if (strcmp(cursor, "dtn") == 0)
 		{
@@ -1111,7 +1111,7 @@ pattern item scheme name", cursor);
 	}
 	else
 	{
-		if (isdigit(*cursor))	/*	Have scheme number.	*/
+		if (isdigit((unsigned char)*cursor))	/*	Have scheme number.	*/
 		{
 			item->schemeCodeNbr = atoi(cursor);
 			item->schemeName = NULL;
