@@ -35,8 +35,8 @@ fi
 
 PASS=1
 
-# Enable BSL debug logging to see policy matching details
-export BSL_LOG_LEVEL=DEBUG
+# Enable BSL logging (INFO level to avoid excessive debug output)
+export BSL_LOG_LEVEL=INFO
 
 # Start nodes.
 cd 2.ipn.ltp

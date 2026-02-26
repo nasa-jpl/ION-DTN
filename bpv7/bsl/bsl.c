@@ -299,22 +299,54 @@ static int	ion_bsl_GetBlockMetadata(const BSL_BundleRef_t *bundle_ref,
 static int	createBlockInSdr(uint64_t block_type_code,
 			uint64_t *result_block_num, Bundle *bundle)
 {
+	Sdr		sdr = getIonsdr();
 	ExtensionBlock	newBlock;
+	Object		bytesObj;
 
 	memset((char *) &newBlock, 0, sizeof(ExtensionBlock));
 	newBlock.type = block_type_code;
 	newBlock.crcType = 0;				/*	No CRC	*/
        	/*	Flag 1 for BCB, 0 for BIB.				*/
 	newBlock.blkProcFlags = block_type_code == 12 ? 1 : 0;
-	newBlock.length = 1;
-	newBlock.dataLength = newBlock.length + sizeof(ExtensionBlock);
+	newBlock.length = 1;				/*	Initial size	*/
+
+	/*	Allocate SDR space for the bytes array. BSL will write
+	 *	security block data here. The bytes field must be an SDR
+	 *	address (offset), not a pointer to working memory.	*/
+
+	bytesObj = sdr_malloc(sdr, newBlock.length);
+	if (bytesObj == 0)
+	{
+		putErrmsg("Can't allocate SDR space for block bytes.", NULL);
+		*result_block_num = 0;
+		return -1;
+	}
+
+	newBlock.bytes = bytesObj;			/*	SDR address	*/
+	newBlock.dataLength = 0;			/*	No data yet	*/
 	if (attachExtensionBlock(block_type_code, &newBlock, bundle) == 0)
 	{
-		*result_block_num = 0;		/*	Error.		*/
+		sdr_free(sdr, bytesObj);		/*	Clean up	*/
+		*result_block_num = 0;			/*	Error.		*/
+		writeMemo("[?] Failed to attach extension block.");
 		return -1;
 	}
 
 	*result_block_num = newBlock.number;
+	if (newBlock.number == 0)
+	{
+		writeMemo("[?] WARNING: Block number is 0 after attach!");
+	}
+	else
+	{
+		char	msgbuf[128];
+
+		isprintf(msgbuf, sizeof msgbuf,
+				"[i] Created block type %d, number %d",
+				(int) block_type_code, (int) newBlock.number);
+		writeMemo(msgbuf);
+	}
+
 	return 0;
 }
 
@@ -451,6 +483,7 @@ typedef struct
 {
 	AcqWorkArea	*work;
 	uvast		blockNbr;
+	size_t		position;	/*	Current write position	*/
 } BtsdIoRef;
 
 static int	ion_bsl_ReallocBTSD(BSL_BundleRef_t *bundle_ref,
@@ -480,26 +513,73 @@ static int	ion_bsl_ReallocBTSD(BSL_BundleRef_t *bundle_ref,
 		return -3;
 	}
 
-	/*	Ion ION, extension blocks reside in the SDR heap
-	 *	rather than in system memory.  An implementation
-	 *	would be required to read the bundle into a stack
-	 *	space object, find the indicated block and read it
-	 *	into a stack space object (blk), allocate bytesize
-	 *	bytes of heap space, sdr_read the current BTSD of
-	 *	the block (blk.bytes) into a temporary memory
-	 *	buffer of that size, sdr_free blk.bytes, sdr_write
-	 *	the current BTSD contents to the newly allocated
-	 *	heap space object, write the address of that heap
-	 *	space object into blk.bytes, write the modified
-	 *	block back to its heap location, modify the database
-	 *	overhead values in the bundle, and write the bundle
-	 *	back to its heap location.  Since this function is
-	 *	currently invoked nowhere in BSL, its implementation
-	 *	is deferred.						*/
+	/*	In ION, extension blocks reside in the SDR heap
+	 *	rather than in system memory. We need to:
+	 *	1. Read bundle and find the block
+	 *	2. Allocate new SDR space of requested size
+	 *	3. Copy existing BTSD to new space
+	 *	4. Free old space
+	 *	5. Update block to point to new space
+	 *	6. Update bundle overhead accounting		*/
 
-	writeMemo("[?]  ion_bsl_ReallocBTSD called.  Utility unknown, not \
-yet implemented in ION BSL integration.");
-	return -9;
+	Object		addr;
+	ExtensionBlock	blk;
+	Object		newBytesObj;
+	unsigned char	*tempBuf = NULL;
+	int		oldSize;
+	int		overhead_delta;
+
+	addr = sdr_list_data(sdr, elt);
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &blk, addr, sizeof(ExtensionBlock));
+
+	/*	Allocate new SDR space for expanded bytes array.	*/
+	newBytesObj = sdr_malloc(sdr, bytesize);
+	if (newBytesObj == 0)
+	{
+		sdr_cancel_xn(sdr);
+		putErrmsg("Can't allocate SDR space for block realloc.", NULL);
+		return -1;
+	}
+
+	/*	Copy existing data to new location if any exists.	*/
+	oldSize = blk.length;
+	if (oldSize > 0 && blk.bytes != 0)
+	{
+		tempBuf = MTAKE(oldSize);
+		if (tempBuf == NULL)
+		{
+			sdr_free(sdr, newBytesObj);
+			sdr_cancel_xn(sdr);
+			putErrmsg("No memory for block realloc buffer.", NULL);
+			return -1;
+		}
+
+		sdr_read(sdr, (char *) tempBuf, blk.bytes, oldSize);
+		sdr_write(sdr, newBytesObj, (char *) tempBuf, oldSize);
+		MRELEASE(tempBuf);
+
+		/*	Free old SDR space.				*/
+		sdr_free(sdr, blk.bytes);
+	}
+
+	/*	Update block to use new bytes array.			*/
+	overhead_delta = bytesize - blk.length;
+	blk.bytes = newBytesObj;
+	blk.length = bytesize;
+	sdr_write(sdr, addr, (char *) &blk, sizeof(ExtensionBlock));
+
+	/*	Update bundle overhead accounting.			*/
+	bundle->dbOverhead += overhead_delta;
+	sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Failed to commit block realloc.", NULL);
+		return -1;
+	}
+
+	return 0;
 
 	/*	Note: this function is only able to resize
 	 *	extension blocks, not all canonical blocks.  It
@@ -575,8 +655,9 @@ static int	readBTSDfromSdr(BtsdIoRef *ref, void *buf, size_t *bufsize)
 
 	addr = sdr_list_data(sdr, elt);
 	GET_OBJ_POINTER(sdr, ExtensionBlock, blk, addr);
-	startOfBTSD = blk->bytes + (blk->length - blk->dataLength);
+	startOfBTSD = blk->bytes + (blk->length - blk->dataLength) + ref->position;
 	sdr_read(sdr, buf, startOfBTSD, *bufsize);
+	ref->position += *bufsize;	/*	Update position after read	*/
 	return 0;
 }
 
@@ -611,8 +692,9 @@ static int	readBTSDfromRAM(BtsdIoRef *ref, void *buf, size_t *bufsize)
 	}
 
 	blk = (AcqExtBlock *) lyst_data(elt);
-	startOfBTSD = blk->bytes + (blk->length - blk->dataLength);
+	startOfBTSD = blk->bytes + (blk->length - blk->dataLength) + ref->position;
 	memcpy(buf, startOfBTSD, *bufsize);
+	ref->position += *bufsize;	/*	Update position after read	*/
 	return 0;
 }
 
@@ -658,6 +740,7 @@ static struct BSL_SeqReader_s	*ion_bsl_BTSD_reader(const BSL_BundleRef_t
 
 	ref->work = (AcqWorkArea *) (bundle_ref->data);
 	ref->blockNbr = block_num;
+	ref->position = 0;	/*	Start at beginning		*/
 	reader->user_data = ref;
 	reader->read = readBTSD;
 	reader->deinit = destroyBtsdIoRef;
@@ -723,7 +806,7 @@ static int	writeBTSDtoSdr(BtsdIoRef *ref, const void *buf, size_t size)
 
 	addr = sdr_list_data(sdr, elt);
 	GET_OBJ_POINTER(sdr, ExtensionBlock, blk, addr);
-	startOfBTSD = blk->bytes + (blk->length - blk->dataLength);
+	startOfBTSD = blk->bytes + (blk->length - blk->dataLength) + ref->position;
 	CHKERR(sdr_begin_xn(sdr));
 	sdr_write(sdr, startOfBTSD, mutableBuf, size);
 	if (sdr_end_xn(sdr) < 0)
@@ -734,6 +817,7 @@ static int	writeBTSDtoSdr(BtsdIoRef *ref, const void *buf, size_t size)
 		return -1;
 	}
 
+	ref->position += size;	/*	Update position after write	*/
 	MRELEASE(mutableBuf);
 	return BSL_SUCCESS;
 }
@@ -792,8 +876,9 @@ static int	writeBTSDtoRAM(BtsdIoRef *ref, const void *buf, size_t size)
 	}
 
 	blk = (AcqExtBlock *) lyst_data(elt);
-	startOfBTSD = blk->bytes + (blk->length - blk->dataLength);
+	startOfBTSD = blk->bytes + (blk->length - blk->dataLength) + ref->position;
 	memcpy(startOfBTSD, buf, size);
+	ref->position += size;	/*	Update position after write	*/
 	return BSL_SUCCESS;
 }
 
@@ -840,6 +925,7 @@ static struct BSL_SeqWriter_s	*ion_bsl_BTSD_writer(BSL_BundleRef_t
 
 	ref->work = (AcqWorkArea *) (bundle_ref->data);
 	ref->blockNbr = block_num;
+	ref->position = 0;	/*	Start at beginning		*/
 	writer->user_data = ref;
 	writer->write = writeBTSD;
 	writer->deinit = destroyBtsdIoRef;
@@ -2344,6 +2430,7 @@ int	bslInitialize(BslAgent *agent)
 	/*	BSL initialization parameters are now loaded.		*/
 
 	BSL_openlog();
+	BSL_LogSetLeastSeverity(LOG_INFO);	/*	Reduce debug spam	*/
 	BSL_CryptoInit();
 	if (initializeAgent(agent) < 0)
 	{
