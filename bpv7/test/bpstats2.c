@@ -22,11 +22,11 @@ static int needShutdown = 0;
 
 const char usage[] =
 "Usage: bpstats2 <source EID> [<default dest EID>] [ct]\n\n"
-"Responds to receipt of any bundle by replying with a bundle \n"
-"containing the statistics of the BPA to which it is attached.\n\n"
-"Alternatively, if and only if a default destination EID is specified, \n"
-"responds to SIGUSR1 by sending to that EID a bundle \n"
-"containing the statistics of the BPA to which it is attached.\n\n"
+"Listens on <source EID> for trigger bundles. On receipt of any\n"
+"bundle, or on SIGUSR1, sends a statistics bundle.\n\n"
+"If <default dest EID> is specified, statistics bundles are always\n"
+"sent to that EID. Otherwise, statistics are sent to the source\n"
+"of the trigger bundle (SIGUSR1 requires a dest EID).\n\n"
 "If ct is specified, the statistics bundles are sent by custody transfer.\n";
 
 static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
@@ -299,7 +299,8 @@ int main(int argc, char **argv)
 
 		if(dlv.result == BpPayloadPresent)
 		{
-			sendStats(dlv.bundleSourceEid, theBuffer,
+			sendStats(defaultDestEid ? defaultDestEid
+					: dlv.bundleSourceEid, theBuffer,
 					sizeof(theBuffer));
 			bp_release_delivery(&dlv, 1);
 			continue;

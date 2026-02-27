@@ -206,7 +206,7 @@ int	main(int argc, char **argv)
 	switch (argc)
 	{
 	case 2:
-		destEngineId = strtouvast(argv[1]);
+		destEngineId = getFqn(argv[1]);
 
 	default:
 		break;

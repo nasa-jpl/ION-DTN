@@ -126,7 +126,7 @@ void sortByStatusTime(statusReport *rpts[], unsigned reportCount){
 				rpts[j+1] = tmp;
 			} else if(rpts[j]->statusTime == rpts[j+1]->statusTime &&
 				strncmp(rpts[j+1]->sourceEid, rpts[j+1]->bundleSourceEid,
-					strchr(rpts[j+1]->sourceEid, '.') - rpts[j+1]->sourceEid) == 0)
+					strrchr(rpts[j+1]->sourceEid, '.') - rpts[j+1]->sourceEid) == 0)
 			{
 				statusReport *tmp = rpts[j];
 				rpts[j] = rpts[j+1];
@@ -1355,7 +1355,7 @@ int	main(int argc, char **argv)
 
 	/* Normal mode routing */
 	char* traceEid_num = strchr(traceEid, ':')+1;
-	char* traceEid_dot = strchr(traceEid, '.')+1;
+	char* traceEid_dot = strrchr(traceEid, '.')+1;
 	char* ownEid_num = strchr(ownEid, ':')+1;
 	printDBG(3, "trace id num: %s\n", traceEid_num);
 	printDBG(3, "own id num: %s\n", ownEid_num);

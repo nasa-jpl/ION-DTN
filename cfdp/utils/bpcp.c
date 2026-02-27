@@ -772,7 +772,7 @@ int ion_cfdp_put(struct transfer* t)
 	print_parsed(t);
 
 	/*Setup parameters*/
-	entityId=strtoul(t->dhost, NULL, 0);
+	entityId=getFqn(t->dhost);
 	cfdp_compress_number(&parms.destinationEntityNbr, entityId);
 	memset((char*)&parms.transactionId, 0 , sizeof(CfdpTransactionId));
 	snprintf(parms.sourceFileNameBuf, 255, "%.254s", t->sfile);
@@ -867,7 +867,7 @@ int ion_cfdp_get(struct transfer* t)
 	}
 
 	/*Setup parameters*/
-	entityId=strtouvast(t->shost);
+	entityId=getFqn(t->shost);
 	cfdp_compress_number(&parms.destinationEntityNbr, entityId);
 	memset((char*)&parms.transactionId, 0 , sizeof(CfdpTransactionId));
 	snprintf(parms.sourceFileNameBuf, 255, "%.254s", t->sfile);
@@ -971,10 +971,10 @@ int ion_cfdp_rput(struct transfer* t)
 	}
 
 	/*Setup parameters*/
-	entityId=strtouvast(t->dhost);
+	entityId=getFqn(t->dhost);
 	cfdp_compress_number(&parms.destinationEntityNbr, entityId);
 	memset((char*)&parms.transactionId, 0 , sizeof(CfdpTransactionId));
-	entityId=strtol(t->shost, NULL, 0);
+	entityId=getFqn(t->shost);
 	cfdp_compress_number(&src, entityId);
 	snprintf(parms.sourceFileNameBuf, 255, "%.254s", t->sfile);
 	snprintf(parms.destFileNameBuf, 255, "%.254s",t->dfile);

@@ -917,9 +917,9 @@ int	main(int argc, char **argv)
 		DIES("a destination node is required");
 	}
 
-	destNode = strtoul((char *)(a2), &end, 10);
+	destNode = getFqn((char *)(a2));
 
-	if (end == (char *)(a2))
+	if (destNode == 0)
 	{
 		DIES("invalid destination node");
 	}
@@ -931,9 +931,9 @@ int	main(int argc, char **argv)
 		DIES("a destination node is required");
 	}
 
-	destNode = strtoul(args[0], &end, 10);
+	destNode = getFqn(args[0]);
 
-	if (end == args[0])
+	if (destNode == 0)
 	{
 		DIEF("invalid destination node '%s'", args[0]);
 	}

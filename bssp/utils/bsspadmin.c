@@ -190,7 +190,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 			return;
 		}
 
-		engineId = strtouvast(tokens[2]);
+		engineId = getFqn(tokens[2]);
 		oK(addBsspSpan(engineId, strtol(tokens[3], NULL, 0),
 			strtol(tokens[4], NULL, 0), tokens[5],
 			tokens[6], (unsigned int) qTime, purge));
@@ -235,7 +235,7 @@ static void	executeChange(int tokenCount, char **tokens)
 			return;
 		}
 
-		engineId = strtouvast(tokens[2]);
+		engineId = getFqn(tokens[2]);
 		oK(updateBsspSpan(engineId, strtol(tokens[3], NULL, 0),
 			strtol(tokens[4], NULL, 0), tokens[5],
 			tokens[6], (unsigned int) qTime, purge));
@@ -275,7 +275,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 			return;
 		}
 
-		engineId = strtouvast(tokens[2]);
+		engineId = getFqn(tokens[2]);
 		removeBsspSpan(engineId);
 		return;
 	}
@@ -379,7 +379,7 @@ static void	infoSpan(int tokenCount, char **tokens)
 		return;
 	}
 
-	engineId = strtouvast(tokens[2]);
+	engineId = getFqn(tokens[2]);
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	findBsspSpan(engineId, &vspan, &vspanElt);
 	sdr_exit_xn(sdr);

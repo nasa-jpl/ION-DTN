@@ -1129,7 +1129,7 @@ static void	manageSpanMaxRetries(int tokenCount, char **tokens)
 		return;
 	}
 
-	engineId = strtouvast(tokens[2]);
+	engineId = getFqn(tokens[2]);
 	newMaxRetries = strtoul(tokens[4], NULL, 0);
 	if (newMaxRetries < 3)
 	{
@@ -1181,7 +1181,7 @@ static void	manageSpanMaxRetriesXmit(int tokenCount, char **tokens)
 		return;
 	}
 
-	engineId = strtouvast(tokens[2]);
+	engineId = getFqn(tokens[2]);
 	newMaxRetriesXmit = strtoul(tokens[4], NULL, 0);
 	if (newMaxRetriesXmit < 3)
 	{
@@ -1233,7 +1233,7 @@ static void	manageSpanMaxRetriesRecv(int tokenCount, char **tokens)
 		return;
 	}
 
-	engineId = strtouvast(tokens[2]);
+	engineId = getFqn(tokens[2]);
 	newMaxRetriesRecv = strtoul(tokens[4], NULL, 0);
 	if (newMaxRetriesRecv < 3)
 	{
@@ -1285,7 +1285,7 @@ static void	manageSpanMaxSegLossRate(int tokenCount, char **tokens)
 		return;
 	}
 
-	engineId = strtouvast(tokens[2]);
+	engineId = getFqn(tokens[2]);
 	newLossRate = atof(tokens[4]);
 	if (newLossRate < 0.0 || newLossRate >= 1.0)
 	{
@@ -1338,7 +1338,7 @@ static void	manageSpanMaxSegLossRateXmit(int tokenCount, char **tokens)
 		return;
 	}
 
-	engineId = strtouvast(tokens[2]);
+	engineId = getFqn(tokens[2]);
 	newLossRateXmit = atof(tokens[4]);
 	if (newLossRateXmit < 0.0 || newLossRateXmit >= 1.0)
 	{
@@ -1391,7 +1391,7 @@ static void	manageSpanMaxSegLossRateRecv(int tokenCount, char **tokens)
 		return;
 	}
 
-	engineId = strtouvast(tokens[2]);
+	engineId = getFqn(tokens[2]);
 	newLossRateRecv = atof(tokens[4]);
 	if (newLossRateRecv < 0.0 || newLossRateRecv >= 1.0)
 	{
@@ -1446,7 +1446,7 @@ static void	manageSpanInactivityLimit(int tokenCount, char **tokens)
 		return;
 	}
 
-	engineId = strtouvast(tokens[2]);
+	engineId = getFqn(tokens[2]);
 	newLimit = strtoul(tokens[4], NULL, 0);
 
 	/*	Find the span by engineId.				*/

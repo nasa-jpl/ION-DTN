@@ -800,7 +800,7 @@ int	main(int argc, char **argv)
 			}
 
 			i++;
-			filterEngineId = strtouvast(argv[i]);
+			filterEngineId = getFqn(argv[i]);
 			hasEngineFilter = 1;
 		}
 		else if (strcmp(argv[i], "-s") == 0)

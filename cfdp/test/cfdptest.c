@@ -694,8 +694,8 @@ static int parseTransactionId(char *idStr, CfdpTransactionId *transId)
 		return -1;
 	}
 
-	/* Find the dot separator */
-	dot = strchr(idStr, '.');
+	/* Find the last dot separator (to handle FQNN dotted notation) */
+	dot = strrchr(idStr, '.');
 	if (dot == NULL) {
 		PUTS("Transaction ID must be in format: sourceEntity.transactionNbr");
 		fflush(stdout);
@@ -704,7 +704,7 @@ static int parseTransactionId(char *idStr, CfdpTransactionId *transId)
 
 	/* Parse source entity number */
 	*dot = '\0';  /* Temporarily terminate the string */
-	sourceEntity = strtouvast(idStr);
+	sourceEntity = getFqn(idStr);
 	*dot = '.';   /* Restore the dot */
 
 	/* Parse transaction number */

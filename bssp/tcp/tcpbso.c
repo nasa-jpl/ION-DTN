@@ -101,12 +101,12 @@ int	tcpbso(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char	*flowName = (char *) a1;
-	uvast	remoteEngineId = a2 != 0 ? strtouvast((char *) a2) : 0;
+	uvast	remoteEngineId = a2 != 0 ? getFqn((char *) a2) : 0;
 #else
 int	main(int argc, char *argv[])
 {
 	char	*flowName = (argc > 1 ? argv[1] : NULL);
-	uvast	remoteEngineId = argc > 2 ? strtouvast(argv[2]) : 0;
+	uvast	remoteEngineId = argc > 2 ? getFqn(argv[2]) : 0;
 #endif
 	Sdr			sdr;
 	BsspVspan		*vspan;

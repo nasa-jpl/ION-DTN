@@ -19,6 +19,7 @@
  */
 
 #include "platform.h"
+#include "ion.h"
 
 typedef struct {
 	unsigned char version_type;     /* Version (4 bits) | Type (4 bits) */
@@ -60,7 +61,7 @@ int main(int argc, char *argv[]) {
 	char *seg_type_str = argv[1];
 	char *dest_host = argv[2];
 	int dest_port = atoi(argv[3]);
-	unsigned long source_engine = strtoul(argv[4], NULL, 10);
+	uvast source_engine = getFqn(argv[4]);
 	unsigned long session_number = strtoul(argv[5], NULL, 10);
 
 	/* Determine segment type */

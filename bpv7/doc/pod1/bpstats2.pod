@@ -16,14 +16,17 @@ statistics accumulators.  It creates these bundles when:
 =item *
 
 an interrogation bundle is delivered to I<sourceEID>: the contents of the
-bundle are discarded, a new statistics bundle is generated and sent to the
-source of the interrogation bundle.  The format of the interrogation bundle
-is irrelevant.
+bundle are discarded and a new statistics bundle is generated.  If
+I<default destEID> is specified, the statistics bundle is sent to that EID;
+otherwise it is sent to the source of the interrogation bundle.  The format
+of the interrogation bundle is irrelevant.
 
 =item *
 
 a SIGUSR1 signal is delivered to the B<bpstats2> application: a new
-statistics bundle is generated and sent to I<default destEID>.
+statistics bundle is generated and sent to I<default destEID>.  If no
+I<default destEID> was specified, the signal has no effect (there is no
+destination to send to).
 
 =back
 
@@ -103,8 +106,9 @@ EID, but is a valid source EID.
 
 =head1 NOTES
 
-A very simple interrogator is B<bpchat> which can repeatedly interrogate
-B<bpstats2> by just striking the enter key.
+When no I<default destEID> is given, a very simple interrogator is B<bpchat>,
+which can repeatedly interrogate B<bpstats2> by just striking the enter key;
+the statistics reply is sent back to B<bpchat>'s own EID.
 
 =head1 BUGS
 
