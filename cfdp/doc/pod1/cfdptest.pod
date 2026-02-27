@@ -142,13 +142,16 @@ establishes the transmission mode ("best-effort" or assured) for all
 subsequently issued bundles containing CFDP PDUs.  Valid values are
 0 (assured, reliable, with reliability provided by a reliable DTN
 convergence layer protocol), 1 (best-effort, unreliable), and 2 (assured,
-reliable, but with reliability provided by BP custody transfer, only for BPv6).
+reliable, but with reliability provided by BP custody transfer).
 If not specified, transmission mode is 0.  For mode 0, the BP agent will hold
 the bundle until it receives successful delivery confirmation from the underlying
 convergence layer protocol (e.g., LTP).  For mode 1, the BP agent will send the
 bundle and release it without waiting for underlying convergence layer's delivery
-confirmation it is best effort.  For mode 2, the BP agent will request custody
-transfer for the bundle which has been deprecated in BPv7.  It is recommended to use
+confirmation it is best effort.  B<For mode 2, NOTE: this option is NOT YET
+FUNCTIONAL.>  BPv7 does not include an official custody transfer mechanism.
+While ION contains an experimental custody transfer implementation for BPv7,
+it has not been confirmed to integrate correctly with CFDP.  Until this
+integration is validated, mode 2 should not be used.  It is recommended to use
 mode 0 for assured delivery and mode 1 for best-effort delivery.
 
 =item B<a> <latency in seconds>
@@ -173,10 +176,16 @@ insertion, while a value of 0 disables it.
 
 =item B<g> <srrflags>
 
-B<NOTE: This command is a prototype in progress and is NOT YET FUNCTIONAL.>
-While it sets BP status report request flags that are passed to bundles,
-CFDP does not currently process received status reports.  This feature is
-under development for a future release.
+B<NOTE: This command is NOT YET FUNCTIONAL and requires further development.>
+While this command sets BP status report request flags on bundles containing
+CFDP PDUs, the status reporting mechanism is not operational for CFDP for
+the following reasons: (1) there is no processing logic to receive and
+interpret BP status reports at the CFDP admin endpoint, and (2) there is
+no clear mapping between individual CFDP files (which may span multiple
+bundles) and the per-bundle status reports that BP generates.  Until these
+gaps are addressed, B<users should rely on CFDP closure> (the B<a> command
+with a non-zero closure latency) to determine delivery status, or use other
+out-of-band methods to confirm file delivery.
 
 The B<srrflags> command.  This command establishes the BP status reporting
 that will be requested for all subsequently issued bundles containing
