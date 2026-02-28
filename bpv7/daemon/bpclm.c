@@ -602,15 +602,15 @@ int	main(int argc, char *argv[])
 		{
 			sdr_exit_xn(sdr);
 
-			/*	Use sm_SemUnwedge for timed blocking with
-			 *	immediate wake capability. This blocks up
-			 *	to 1 second but wakes immediately when
-			 *	signaled (e.g., when an outduct is attached
-			 *	or throttle capacity becomes available).  */
+			/*	Wait for conditions to change. Signal
+			 *	sources: bpclock (rate capacity restored
+			 *	or contact topology changed),
+			 *	attachPlanDuct (outduct attached), or
+			 *	sm_SemEnd (shutdown).			*/
 
-			if (sm_SemUnwedge(vplan->semaphore, 1) < 0)
+			if (sm_SemTake(vplan->semaphore) < 0)
 			{
-				putErrmsg("bpclm semaphore unwedge failed.",
+				putErrmsg("bpclm can't take semaphore.",
 						nodeName);
 				running = 0;
 				continue;
@@ -649,14 +649,14 @@ int	main(int argc, char *argv[])
 		 *	graph loads while bpclm is blocked waiting for bundles,
 		 *	causing immediate transmission instead of waiting for
 		 *	the scheduled future contact.  If contact state changed
-		 *	to "not ready", exit transaction and loop back to snooze.	*/
+		 *	to "not ready", exit transaction and loop back to wait.	*/
 
 		if (maxPayloadLengthKnown(vplan, &maxPayloadLength) == 0)
 		{
 			/*	Contact state changed - not ready yet.	*/
 
 			sdr_exit_xn(sdr);
-			continue;	/*	Loop back, will snooze at line 604.	*/
+			continue;	/*	Loop back, will wait on sem.	*/
 		}
 
 		/*	Allocate transmittable bundle to an outduct.	*/

@@ -118,6 +118,23 @@ static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
 	}
 }
 
+static void	signalAllPlans(PsmPartition ionwm)
+{
+	BpVdb		*bpvdb = getBpVdb();
+	PsmAddress	elt;
+	VPlan		*vplan;
+
+	for (elt = sm_list_first(ionwm, bpvdb->plans); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vplan = (VPlan *) psp(ionwm, sm_list_data(ionwm, elt));
+		if (vplan->semaphore != SM_SEM_NONE)
+		{
+			sm_SemGive(vplan->semaphore);
+		}
+	}
+}
+
 static void	detectCurrentTopologyChanges(Sdr sdr)
 {
 	PsmPartition	ionwm = getIonwm();
@@ -125,6 +142,7 @@ static void	detectCurrentTopologyChanges(Sdr sdr)
 	PsmAddress	elt;
 	IonNeighbor	*neighbor;
 	int		mustPrintStats = 0;
+	int		xmitChanged = 0;
 
 	CHKVOID(sdr_begin_xn(sdr));
 	for (elt = sm_rbt_first(ionwm, ionvdb->neighbors); elt;
@@ -155,6 +173,7 @@ static void	detectCurrentTopologyChanges(Sdr sdr)
 			neighbor->prevXmitRate = neighbor->xmitRate;
 			neighbor->xmitThrottle.nominalRate = neighbor->xmitRate;
 			neighbor->xmitThrottle.capacity = neighbor->xmitRate;
+			xmitChanged = 1;
 		}
 
 		if (neighbor->recvRate != neighbor->prevRecvRate)
@@ -184,6 +203,16 @@ static void	detectCurrentTopologyChanges(Sdr sdr)
 	if (mustPrintStats)
 	{
 		reportAllStateStats();
+	}
+
+	/*	If any transmit rate changed, wake all bpclm daemons
+	 *	so they re-evaluate contact state via rfx_contact_state.
+	 *	This ensures bpclm responds promptly to contact start/stop
+	 *	events dispatched by rfxclock.				*/
+
+	if (xmitChanged)
+	{
+		signalAllPlans(ionwm);
 	}
 
 	oK(sdr_end_xn(sdr));
