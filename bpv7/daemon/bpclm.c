@@ -601,7 +601,21 @@ int	main(int argc, char *argv[])
 		|| (throttle->nominalRate > 0 && throttle->capacity <= 0))
 		{
 			sdr_exit_xn(sdr);
-			snooze(1);
+
+			/*	Use sm_SemUnwedge for timed blocking with
+			 *	immediate wake capability. This blocks up
+			 *	to 1 second but wakes immediately when
+			 *	signaled (e.g., when an outduct is attached
+			 *	or throttle capacity becomes available).  */
+
+			if (sm_SemUnwedge(vplan->semaphore, 1) < 0)
+			{
+				putErrmsg("bpclm semaphore unwedge failed.",
+						nodeName);
+				running = 0;
+				continue;
+			}
+
 			if (sm_SemEnded(vplan->semaphore))
 			{
 				running = 0;

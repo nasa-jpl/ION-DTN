@@ -2523,14 +2523,16 @@ aggregateDelay += delay;
 	usecToSnooze = dest->pendingDelay;
 	pthread_mutex_unlock(&sap->destsMutex);
 	usecSnoozed = 0;
-	while (usecToSnooze > clockResolution)
+	if (usecToSnooze > clockResolution)
 	{
+		/*	Single microsnooze call for the full delay instead
+		 *	of iterating in clockResolution increments. This
+		 *	reduces syscall overhead for longer delays.	*/
 #if DGRDEBUG
 rcSnoozes++;
 #endif
-		microsnooze(clockResolution);
-		usecToSnooze -= clockResolution;
-		usecSnoozed += clockResolution;
+		microsnooze(usecToSnooze);
+		usecSnoozed = usecToSnooze;
 	}
 
 	if (usecSnoozed > 0)

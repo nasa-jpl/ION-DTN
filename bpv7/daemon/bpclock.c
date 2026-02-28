@@ -229,10 +229,25 @@ static void	applyRateControl(Sdr sdr)
 
 		if (throttle->nominalRate > 0)
 		{
+			double	previousCapacity = throttle->capacity;
+
 			throttle->capacity += throttle->nominalRate;
 			if (throttle->capacity > throttle->nominalRate)
 			{
 				throttle->capacity = throttle->nominalRate;
+			}
+
+			/*	Signal the plan's bpclm daemon if capacity
+			 *	transitioned from exhausted to available.
+			 *	This wakes bpclm immediately instead of
+			 *	waiting for the next polling cycle.	*/
+
+			if (previousCapacity <= 0 && throttle->capacity > 0)
+			{
+				if (vplan->semaphore != SM_SEM_NONE)
+				{
+					sm_SemGive(vplan->semaphore);
+				}
 			}
 		}
 	}

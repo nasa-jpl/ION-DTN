@@ -4406,6 +4406,15 @@ int	attachPlanDuct(char *eid, Object outductElt)
 		return -1;
 	}
 
+	/*	Signal the plan's bpclm daemon to wake up and check
+	 *	for the newly attached outduct. This allows immediate
+	 *	transmission when a duct becomes available.		*/
+
+	if (vplan->semaphore != SM_SEM_NONE)
+	{
+		sm_SemGive(vplan->semaphore);
+	}
+
 	return 1;
 }
 
