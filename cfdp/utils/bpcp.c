@@ -1468,6 +1468,7 @@ void* rcv_msg_thread(void* param)
 	uvast			TID12;
 	uvast			TID21=0;
 	uvast			TID22=0;
+	char			nbrBuf[FQN_MAX_LENGTH];
 
 	/*Main Event loop*/
 	while (*running)
@@ -1495,11 +1496,12 @@ void* rcv_msg_thread(void* param)
 		/*Decompress transaction ID*/
 		cfdp_decompress_number(&TID11,&transactionId.sourceEntityNbr);
 		cfdp_decompress_number(&TID12,&transactionId.transactionNbr);
+		putFqn(nbrBuf, TID11);
 
 		/*Print Event type if debugging*/
-		dbgprintf(4,"\nEvent: type %d, '%s', From Node: " UVAST_FIELDSPEC ", Transaction ID: " UVAST_FIELDSPEC "." UVAST_FIELDSPEC ".\n", type,
+		dbgprintf(4,"\nEvent: type %d, '%s', From Node: %s, Transaction ID: %s." UVAST_FIELDSPEC ".\n", type,
 				(type > 0 && type < 12) ? eventTypes[type]
-				: "(unknown)",TID11, TID11, TID12);
+				: "(unknown)", nbrBuf, nbrBuf, TID12);
 
 		/*Check for and Handle directory listing events.*/
 		if (current_wait_status==dir_req || current_wait_status==dir_exists ||

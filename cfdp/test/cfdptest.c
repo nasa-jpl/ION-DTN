@@ -408,6 +408,7 @@ static void printTransactionSummary(CfdpTransactionId *transactionId)
 {
 	int idx = findTransactionIndex(transactionId);
 	uvast srcEntity, txnNbr;
+	char entityBuf[FQN_MAX_LENGTH];
 	char timeStr[64];
 	char durationStr[32];
 	int i;
@@ -420,9 +421,10 @@ static void printTransactionSummary(CfdpTransactionId *transactionId)
 
 	cfdp_decompress_number(&srcEntity, &transactionId->sourceEntityNbr);
 	cfdp_decompress_number(&txnNbr, &transactionId->transactionNbr);
+	putFqn(entityBuf, srcEntity);
 
 	PUTS("=== TRANSACTION SUMMARY ===");
-	PUTS_FMT("Transaction: " UVAST_FIELDSPEC "." UVAST_FIELDSPEC, srcEntity, txnNbr);
+	PUTS_FMT("Transaction: %s." UVAST_FIELDSPEC, entityBuf, txnNbr);
 
 	if (transactionTrackers[idx].sourceFileName[0] || transactionTrackers[idx].destFileName[0]) {
 		PUTS_FMT("File: %s -> %s",
@@ -490,6 +492,7 @@ static void printAllTransactionsSummary(void)
 	char timeStr[64];
 	char durationStr[32];
 	uvast srcEntity, txnNbr;
+	char entityBuf[FQN_MAX_LENGTH];
 	int i;
 	int activeCount = 0;
 	int completedCount = 0;
@@ -544,7 +547,7 @@ static void printAllTransactionsSummary(void)
 			}
 
 			char fileDisplay[26];
-			char transIdStr[21];
+			char transIdStr[FQN_MAX_LENGTH + 21];
 			char modeStr[8];
 			char progressStr[21];
 
@@ -554,8 +557,9 @@ static void printAllTransactionsSummary(void)
 				snprintf(fileDisplay, sizeof(fileDisplay), "(unknown)");
 			}
 
-			snprintf(transIdStr, sizeof(transIdStr), UVAST_FIELDSPEC "." UVAST_FIELDSPEC,
-				srcEntity, txnNbr);
+			putFqn(entityBuf, srcEntity);
+			snprintf(transIdStr, sizeof(transIdStr), "%s." UVAST_FIELDSPEC,
+				entityBuf, txnNbr);
 			snprintf(modeStr, sizeof(modeStr), "%s",
 				transactionTrackers[i].closureRequested ? "ClosReq" : "Unack");
 			snprintf(progressStr, sizeof(progressStr), UVAST_FIELDSPEC "/" UVAST_FIELDSPEC,
@@ -589,7 +593,7 @@ static void printAllTransactionsSummary(void)
 					durationStr, sizeof(durationStr));
 
 			char fileDisplay[26];
-			char transIdStr[21];
+			char transIdStr[FQN_MAX_LENGTH + 21];
 			char modeStr[8];
 
 			if (transactionTrackers[i].sourceFileName[0]) {
@@ -598,8 +602,9 @@ static void printAllTransactionsSummary(void)
 				snprintf(fileDisplay, sizeof(fileDisplay), "(unknown)");
 			}
 
-			snprintf(transIdStr, sizeof(transIdStr), UVAST_FIELDSPEC "." UVAST_FIELDSPEC,
-				srcEntity, txnNbr);
+			putFqn(entityBuf, srcEntity);
+			snprintf(transIdStr, sizeof(transIdStr), "%s." UVAST_FIELDSPEC,
+				entityBuf, txnNbr);
 			snprintf(modeStr, sizeof(modeStr), "%s",
 				transactionTrackers[i].closureRequested ? "ClosReq" : "Unack");
 
@@ -632,7 +637,7 @@ static void printAllTransactionsSummary(void)
 					durationStr, sizeof(durationStr));
 
 			char fileDisplay[26];
-			char transIdStr[21];
+			char transIdStr[FQN_MAX_LENGTH + 21];
 			char modeStr[8];
 
 			if (transactionTrackers[i].sourceFileName[0]) {
@@ -641,8 +646,9 @@ static void printAllTransactionsSummary(void)
 				snprintf(fileDisplay, sizeof(fileDisplay), "(unknown)");
 			}
 
-			snprintf(transIdStr, sizeof(transIdStr), UVAST_FIELDSPEC "." UVAST_FIELDSPEC,
-				srcEntity, txnNbr);
+			putFqn(entityBuf, srcEntity);
+			snprintf(transIdStr, sizeof(transIdStr), "%s." UVAST_FIELDSPEC,
+				entityBuf, txnNbr);
 			snprintf(modeStr, sizeof(modeStr), "%s",
 				transactionTrackers[i].closureRequested ? "ClosReq" : "Unack");
 
@@ -749,6 +755,7 @@ static int listTransactions(void)
 	InFdu inFdu;
 	Entity entity;
 	uvast srcEntity, txnNbr;
+	char entityBuf[FQN_MAX_LENGTH];
 	int count = 0;
 
 	CHKERR(sdr_begin_xn(sdr));
@@ -774,9 +781,10 @@ static int listTransactions(void)
 
 		cfdp_decompress_number(&srcEntity, &outFdu.transactionId.sourceEntityNbr);
 		cfdp_decompress_number(&txnNbr, &outFdu.transactionId.transactionNbr);
+		putFqn(entityBuf, srcEntity);
 
-		PUTS_FMT(UVAST_FIELDSPEC "." UVAST_FIELDSPEC " %-12s " UVAST_FIELDSPEC "/" UVAST_FIELDSPEC " %s",
-			srcEntity, txnNbr,
+		PUTS_FMT("%s." UVAST_FIELDSPEC " %-12s " UVAST_FIELDSPEC "/" UVAST_FIELDSPEC " %s",
+			entityBuf, txnNbr,
 			getStateName(outFdu.state),
 			outFdu.progress, outFdu.fileSize,
 			outFdu.sourceFileName);
@@ -809,14 +817,15 @@ static int listTransactions(void)
 
 			cfdp_decompress_number(&srcEntity, &inFdu.transactionId.sourceEntityNbr);
 			cfdp_decompress_number(&txnNbr, &inFdu.transactionId.transactionNbr);
+			putFqn(entityBuf, srcEntity);
 
 			strcpy(destFileName, "(unknown)");
 			if (inFdu.destFileName) {
 				sdr_string_read(sdr, destFileName, inFdu.destFileName);
 			}
 
-			PUTS_FMT(UVAST_FIELDSPEC "." UVAST_FIELDSPEC " %-12s " UVAST_FIELDSPEC "/" UVAST_FIELDSPEC " %s",
-				srcEntity, txnNbr,
+			PUTS_FMT("%s." UVAST_FIELDSPEC " %-12s " UVAST_FIELDSPEC "/" UVAST_FIELDSPEC " %s",
+				entityBuf, txnNbr,
 				getStateName(inFdu.state),
 				inFdu.progress, inFdu.fileSize,
 				destFileName);
@@ -889,15 +898,17 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
 		unsigned int closureRequested, char *destFileNameBuf)
 {
 	uvast srcEntityNbr, txnNbr;
+	char entityBuf[FQN_MAX_LENGTH];
 	char *ackMode;
 	int isReliableAckMode = 0;  /* Flag to indicate if we have reliable ack mode info */
 
 	/* DEBUG: Show what CFDP engine is actually providing
 	cfdp_decompress_number(&srcEntityNbr, &transactionId->sourceEntityNbr);
 	cfdp_decompress_number(&txnNbr, &transactionId->transactionNbr);
-	printf("[DEBUG] Event %d for " UVAST_FIELDSPEC "." UVAST_FIELDSPEC
+	putFqn(entityBuf, srcEntityNbr);
+	printf("[DEBUG] Event %d for %s." UVAST_FIELDSPEC
 		": progress=" UVAST_FIELDSPEC ", closureRequested=%u\n",
-		type, srcEntityNbr, txnNbr, progress, closureRequested);
+		type, entityBuf, txnNbr, progress, closureRequested);
 	*/
 
 	/* Handle special cases */
@@ -922,6 +933,7 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
 	/* Decompress transaction ID */
 	cfdp_decompress_number(&srcEntityNbr, &transactionId->sourceEntityNbr);
 	cfdp_decompress_number(&txnNbr, &transactionId->transactionNbr);
+	putFqn(entityBuf, srcEntityNbr);
 
 	/* Determine closure mode with enhanced reliability */
 	if (type == CfdpMetadataRecvInd) {
@@ -946,7 +958,7 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
 	PUTS("=== CFDP EVENT ===");
 	PUTS_FMT("Event: %s (%d)",
 		(type >= 0 && type < 12) ? eventTypes[type] : "unknown", type);
-	PUTS_FMT("Transaction: " UVAST_FIELDSPEC "." UVAST_FIELDSPEC, srcEntityNbr, txnNbr);
+	PUTS_FMT("Transaction: %s." UVAST_FIELDSPEC, entityBuf, txnNbr);
 
 	/* Show acknowledge mode with confidence indicator */
 	if (type == CfdpMetadataRecvInd) {

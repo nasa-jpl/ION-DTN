@@ -254,7 +254,8 @@ static void	printEntity(Entity *entity)
 	char	buffer[256];
 
 	CHKVOID(sdr_begin_xn(sdr));
-	isprintf(buffer, sizeof buffer, UVAST_FIELDSPEC, entity->entityId);
+	putFqn(nbrBuf, entity->entityId);
+	isprintf(buffer, sizeof buffer, "%s", nbrBuf);
 	printText(buffer);
 	switch (entity->utLayer)
 	{
@@ -369,6 +370,7 @@ static void	listEntities(int tokenCount, char **tokens)
 	Object	elt;
 	Object	entityObj;
 	Entity	entity;
+	char	nbrBuf[FQN_MAX_LENGTH];
 	char	buffer[128];
 
 	/* Parameter intentionally unused. */
@@ -381,8 +383,9 @@ static void	listEntities(int tokenCount, char **tokens)
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
-	isprintf(buffer, sizeof buffer,"(Entity " UVAST_FIELDSPEC "  Check \
-timer period: %u  Check timeout limit: %u)", db->ownEntityId,
+	putFqn(nbrBuf, db->ownEntityId);
+	isprintf(buffer, sizeof buffer,"(Entity %s  Check \
+timer period: %u  Check timeout limit: %u)", nbrBuf,
 			db->checkTimerPeriod, db->checkTimeoutLimit);
 	printText(buffer);
 	for (elt = sdr_list_first(sdr, db->entities); elt;
@@ -401,6 +404,7 @@ static void executeList(int tokenCount, char **tokens)
 	Sdr     sdr;
 	CfdpVdb *vdb;
 	CfdpDB  *db;
+	char    nbrBuf[FQN_MAX_LENGTH];
 	char    buffer[256];
 	char    utaCmd[256];
 
@@ -423,8 +427,9 @@ static void executeList(int tokenCount, char **tokens)
 
 		/* Show basic CFDP info */
 		CHKVOID(sdr_begin_xn(sdr));
+		putFqn(nbrBuf, db->ownEntityId);
 		isprintf(buffer, sizeof buffer,
-			"Local entity: " UVAST_FIELDSPEC, db->ownEntityId);
+			"Local entity: %s", nbrBuf);
 		printText(buffer);
 
 		isprintf(buffer, sizeof buffer,

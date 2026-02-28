@@ -166,9 +166,9 @@ void poll_cfdp_messages(void)
 
 		/*Print Event type if debugging*/
 		putFqn(nbrBuf, TID11);
-		dbgprintf(1,"\nEvent: type %d, '%s', From Node: %s, Transaction ID: %llu.%llu.\n", type,
+		dbgprintf(1,"\nEvent: type %d, '%s', From Node: %s, Transaction ID: %s." UVAST_FIELDSPEC ".\n", type,
 				(type > 0 && type < 12) ? eventTypes[type]
-				: "(unknown)",nbrBuf, (unsigned long long)TID11, (unsigned long long)TID12);
+				: "(unknown)", nbrBuf, nbrBuf, TID12);
 
 		/*Parse Messages to User to get directory information*/
 		while (messagesToUser)

@@ -4043,6 +4043,7 @@ static int	getFileName(InFdu *fdu, char *stringBuf, int bufLen)
 	Sdr	sdr = getIonsdr();
 	uvast	sourceEntityId;
 	uvast	transactionNbr;
+	char	entityBuf[FQN_MAX_LENGTH];
 
 	if (fdu->workingFileName == 0)
 	{
@@ -4050,10 +4051,11 @@ static int	getFileName(InFdu *fdu, char *stringBuf, int bufLen)
 				&fdu->transactionId.sourceEntityNbr);
 		cfdp_decompress_number(&transactionNbr,
 				&fdu->transactionId.transactionNbr);
+		putFqn(entityBuf, sourceEntityId);
 		isprintf(stringBuf, bufLen,
-				"%s%ccfdp." UVAST_FIELDSPEC "." UVAST_FIELDSPEC,
+				"%s%ccfdp.%s." UVAST_FIELDSPEC,
 				getIonWorkingDirectory(), ION_PATH_DELIMITER,
-				sourceEntityId, transactionNbr);
+				entityBuf, transactionNbr);
 		fdu->workingFileName = sdr_string_create(sdr, stringBuf);
 		if (fdu->workingFileName == 0)
 		{
