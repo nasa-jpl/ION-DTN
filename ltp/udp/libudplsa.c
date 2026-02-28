@@ -12,6 +12,18 @@
 									*/
 #include "udplsa.h"
 
+/*	Cleanup handler for pthread_cancel.  Ensures buffers allocated
+ *	from ION working memory are released even if the thread is
+ *	cancelled (e.g., when UDP shutdown signal fails to deliver).	*/
+
+static void	cleanupBuffer(void *arg)
+{
+	if (arg != NULL)
+	{
+		MRELEASE(arg);
+	}
+}
+
 void	*udplsa_handle_datagrams(void *parm)
 {
 	/*	Main loop for UDP datagram reception and handling.	*/
@@ -68,9 +80,17 @@ void	*udplsa_handle_datagrams(void *parm)
 		msgs[i].msg_hdr.msg_iovlen = 1;
 	}
 
+	/*	Register cleanup handlers for pthread_cancel.  These
+	 *	ensure buffers are freed even if the thread is cancelled
+	 *	(e.g., when UDP shutdown signal fails).  Push in reverse
+	 *	order of desired cleanup (LIFO stack).			*/
+
+	pthread_cleanup_push(cleanupBuffer, buffers);
+	pthread_cleanup_push(cleanupBuffer, iovecs);
+	pthread_cleanup_push(cleanupBuffer, msgs);
+
 	/*	Can now start receiving bundles.  On failure, take
 	 *	down the daemon.					*/
-
 
 	while (1)
 	{
@@ -137,9 +157,12 @@ void	*udplsa_handle_datagrams(void *parm)
 		sm_TaskYield();
 	}
 
-	MRELEASE(msgs);
-	MRELEASE(iovecs);
-	MRELEASE(buffers);
+	/*	Pop cleanup handlers, executing them to free buffers.
+	 *	Order is reverse of push: msgs, iovecs, buffers.	*/
+
+	pthread_cleanup_pop(1);	/*	Free msgs.			*/
+	pthread_cleanup_pop(1);	/*	Free iovecs.			*/
+	pthread_cleanup_pop(1);	/*	Free buffers.			*/
 #else
 	struct sockaddr_in	fromAddr;
 	socklen_t		fromSize;
@@ -156,10 +179,12 @@ void	*udplsa_handle_datagrams(void *parm)
 		return NULL;
 	}
 
+	/*	Register cleanup handler for pthread_cancel.		*/
+
+	pthread_cleanup_push(cleanupBuffer, buffer);
+
 	/*	Can now start receiving bundles.  On failure, take
 	 *	down the link service input thread.			*/
-
-
 
 	while (1)
 	{
@@ -211,7 +236,7 @@ void	*udplsa_handle_datagrams(void *parm)
 		sm_TaskYield();
 	}
 
-	MRELEASE(buffer);
+	pthread_cleanup_pop(1);	/*	Free buffer.			*/
 #endif
 	writeErrmsgMemos();
 	writeMemo("[i] udplsa receiver thread has ended.");

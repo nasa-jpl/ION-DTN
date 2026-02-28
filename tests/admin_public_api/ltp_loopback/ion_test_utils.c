@@ -153,7 +153,7 @@ int test_ion_initialization_and_attach(uvast nodeNbr)
 	TEST_START("ION Initialization");
 	memset(&parms, 0, sizeof(IonParms));
 	parms.wmKey = 0;
-	parms.wmSize = 5000000;
+	parms.wmSize = 100000000;	/*	100MB for UDP_MULTISEND span recycling.	*/
 	parms.wmAddress = NULL;
 	istrcpy(parms.sdrName, "ion", sizeof(parms.sdrName));
 	parms.sdrWmSize = 1000000;
