@@ -824,28 +824,76 @@ void	_cfdpStop(void)		/*	Reverses cfdpStart.		*/
 
 	/*	Wait until all CFDP processes have stopped.		*/
 
-	if (cfdpvdb->utaPid != ERROR)
 	{
-		while (sm_TaskExists(cfdpvdb->utaPid))
-		{
-			microsnooze(100000);
-		}
-	}
+		int	i;
 
-	/* Wait for bpcpd to stop */
-	if (cfdpvdb->bpcpdPid != ERROR)
-	{
-		while (sm_TaskExists(cfdpvdb->bpcpdPid))
+		if (cfdpvdb->utaPid != ERROR)
 		{
-			microsnooze(100000);
-		}
-	}
+			/*	Wait up to 5 seconds for UTA to stop.	*/
 
-	if (cfdpvdb->clockPid != ERROR)
-	{
-		while (sm_TaskExists(cfdpvdb->clockPid))
+			for (i = 0; i < 50 && sm_TaskExists(cfdpvdb->utaPid);
+					i++)
+			{
+				microsnooze(100000);
+			}
+
+			if (sm_TaskExists(cfdpvdb->utaPid))
+			{
+				writeMemo("[!] cfdpStop: UTA not responding \
+to SIGTERM, sending SIGKILL");
+				sm_TaskKill(cfdpvdb->utaPid, SIGKILL);
+				for (i = 0; i < 10
+					&& sm_TaskExists(cfdpvdb->utaPid); i++)
+				{
+					microsnooze(100000);
+				}
+			}
+		}
+
+		if (cfdpvdb->bpcpdPid != ERROR)
 		{
-			microsnooze(100000);
+			/*	Wait up to 5 seconds for bpcpd to stop.	*/
+
+			for (i = 0; i < 50 && sm_TaskExists(cfdpvdb->bpcpdPid);
+					i++)
+			{
+				microsnooze(100000);
+			}
+
+			if (sm_TaskExists(cfdpvdb->bpcpdPid))
+			{
+				writeMemo("[!] cfdpStop: bpcpd not responding \
+to SIGTERM, sending SIGKILL");
+				sm_TaskKill(cfdpvdb->bpcpdPid, SIGKILL);
+				for (i = 0; i < 10
+					&& sm_TaskExists(cfdpvdb->bpcpdPid); i++)
+				{
+					microsnooze(100000);
+				}
+			}
+		}
+
+		if (cfdpvdb->clockPid != ERROR)
+		{
+			/*	Wait up to 5 seconds for clock to stop.	*/
+
+			for (i = 0; i < 50 && sm_TaskExists(cfdpvdb->clockPid);
+					i++)
+			{
+				microsnooze(100000);
+			}
+
+			if (sm_TaskExists(cfdpvdb->clockPid))
+			{
+				writeMemo("[!] cfdpStop: clock not responding \
+to SIGTERM, sending SIGKILL");
+				sm_TaskKill(cfdpvdb->clockPid, SIGKILL);
+				for (i = 0; i < 10
+					&& sm_TaskExists(cfdpvdb->clockPid); i++)
+				{
+					microsnooze(100000);
+				}
+			}
 		}
 	}
 

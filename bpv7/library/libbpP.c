@@ -826,19 +826,49 @@ static void	stopScheme(VScheme *vscheme)
 
 static void	waitForScheme(VScheme *vscheme)
 {
+	int	i;
+
 	if (vscheme->fwdPid != ERROR)
 	{
-		while (sm_TaskExists(vscheme->fwdPid))
+		/*	Wait up to 5 seconds for forwarder to terminate. */
+
+		for (i = 0; i < 50 && sm_TaskExists(vscheme->fwdPid); i++)
 		{
 			microsnooze(100000);
+		}
+
+		if (sm_TaskExists(vscheme->fwdPid))
+		{
+			writeMemoNote("[!] bpStop: forwarder not responding \
+to SIGTERM, sending SIGKILL", vscheme->name);
+			sm_TaskKill(vscheme->fwdPid, SIGKILL);
+			for (i = 0; i < 10 && sm_TaskExists(vscheme->fwdPid);
+					i++)
+			{
+				microsnooze(100000);
+			}
 		}
 	}
 
 	if (vscheme->admAppPid != ERROR)
 	{
-		while (sm_TaskExists(vscheme->admAppPid))
+		/*	Wait up to 5 seconds for adminep to terminate.	*/
+
+		for (i = 0; i < 50 && sm_TaskExists(vscheme->admAppPid); i++)
 		{
 			microsnooze(100000);
+		}
+
+		if (sm_TaskExists(vscheme->admAppPid))
+		{
+			writeMemoNote("[!] bpStop: adminep not responding \
+to SIGTERM, sending SIGKILL", vscheme->name);
+			sm_TaskKill(vscheme->admAppPid, SIGKILL);
+			for (i = 0; i < 10 && sm_TaskExists(vscheme->admAppPid);
+					i++)
+			{
+				microsnooze(100000);
+			}
 		}
 	}
 }
@@ -1139,18 +1169,36 @@ static void	stopInduct(VInduct *vduct)
 static void	waitForInduct(VInduct *vduct)
 {
 	char	memo[256];
+	int	i;
 
 	if (vduct->cliPid != ERROR)
 	{
-		isprintf(memo, sizeof memo, "[i] waitForInduct: Waiting for induct '%s' (PID %d) to terminate...",
+		isprintf(memo, sizeof memo, "[i] waitForInduct: Waiting \
+for induct '%s' (PID %d) to terminate...",
 			vduct->ductName, (int)vduct->cliPid);
 		writeMemo(memo);
-		while (sm_TaskExists(vduct->cliPid))
+
+		/*	Wait up to 5 seconds for CLI to terminate.	*/
+
+		for (i = 0; i < 50 && sm_TaskExists(vduct->cliPid); i++)
 		{
 			microsnooze(100000);
 		}
-		isprintf(memo, sizeof memo, "[i] waitForInduct: Induct '%s' terminated.",
-			vduct->ductName);
+
+		if (sm_TaskExists(vduct->cliPid))
+		{
+			isprintf(memo, sizeof memo, "[!] bpStop: CLI '%s' \
+not responding to SIGTERM, sending SIGKILL", vduct->ductName);
+			writeMemo(memo);
+			sm_TaskKill(vduct->cliPid, SIGKILL);
+			for (i = 0; i < 10 && sm_TaskExists(vduct->cliPid); i++)
+			{
+				microsnooze(100000);
+			}
+		}
+
+		isprintf(memo, sizeof memo, "[i] waitForInduct: Induct \
+'%s' terminated.", vduct->ductName);
 		writeMemo(memo);
 	}
 }
@@ -1265,6 +1313,8 @@ static void	stopOutduct(VOutduct *vduct)
 
 static void	waitForOutduct(VOutduct *vduct)
 {
+	int	i;
+
 	microsnooze(100000);	/*	Maybe thread stops.		*/
 	if (vduct->hasThread)
 	{
@@ -1284,11 +1334,23 @@ static void	waitForOutduct(VOutduct *vduct)
 		return;
 	}
 
-	/*	Duct is being drained by a process.			*/
+	/*	Duct is being drained by a process.  Wait up to
+	 *	5 seconds for CLO to terminate.			*/
 
-	while (sm_TaskExists(vduct->cloPid))
+	for (i = 0; i < 50 && sm_TaskExists(vduct->cloPid); i++)
 	{
 		microsnooze(100000);
+	}
+
+	if (sm_TaskExists(vduct->cloPid))
+	{
+		writeMemoNote("[!] bpStop: CLO not responding to SIGTERM, \
+sending SIGKILL", vduct->ductName);
+		sm_TaskKill(vduct->cloPid, SIGKILL);
+		for (i = 0; i < 10 && sm_TaskExists(vduct->cloPid); i++)
+		{
+			microsnooze(100000);
+		}
 	}
 
 	vduct->cloPid = ERROR;

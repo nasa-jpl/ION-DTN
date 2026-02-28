@@ -397,26 +397,82 @@ void	_dtpcStop(void)		/*	Reverses dtpcStart.		*/
 
 	/*	Wait for all tasks to finish				*/
 
-	while (dtpcvdb->dtpcdPid != ERROR && sm_TaskExists(dtpcvdb->dtpcdPid))
 	{
-		microsnooze(100000);
-	}
+		int	i;
 
-	while (dtpcvdb->clockPid != ERROR && sm_TaskExists(dtpcvdb->clockPid))
-	{
-		microsnooze(100000);
-	}
-
-	for (elt = sm_list_first(wm, dtpcvdb->vsaps); elt; elt =
-			sm_list_next(wm, elt))
-	{
-		vsap = (VSap *) psp(wm, sm_list_data(wm, elt));
-		if (vsap->semaphore != SM_SEM_NONE)
+		if (dtpcvdb->dtpcdPid != ERROR)
 		{
-			while (vsap->appPid != ERROR
-			&& sm_TaskExists(vsap->appPid))
+			/*	Wait up to 5 seconds for dtpcd to stop.	*/
+
+			for (i = 0; i < 50
+				&& sm_TaskExists(dtpcvdb->dtpcdPid); i++)
 			{
 				microsnooze(100000);
+			}
+
+			if (sm_TaskExists(dtpcvdb->dtpcdPid))
+			{
+				writeMemo("[!] dtpcStop: dtpcd not responding \
+to SIGTERM, sending SIGKILL");
+				sm_TaskKill(dtpcvdb->dtpcdPid, SIGKILL);
+				for (i = 0; i < 10
+					&& sm_TaskExists(dtpcvdb->dtpcdPid); i++)
+				{
+					microsnooze(100000);
+				}
+			}
+		}
+
+		if (dtpcvdb->clockPid != ERROR)
+		{
+			/*	Wait up to 5 seconds for clock to stop.	*/
+
+			for (i = 0; i < 50
+				&& sm_TaskExists(dtpcvdb->clockPid); i++)
+			{
+				microsnooze(100000);
+			}
+
+			if (sm_TaskExists(dtpcvdb->clockPid))
+			{
+				writeMemo("[!] dtpcStop: clock not responding \
+to SIGTERM, sending SIGKILL");
+				sm_TaskKill(dtpcvdb->clockPid, SIGKILL);
+				for (i = 0; i < 10
+					&& sm_TaskExists(dtpcvdb->clockPid); i++)
+				{
+					microsnooze(100000);
+				}
+			}
+		}
+
+		for (elt = sm_list_first(wm, dtpcvdb->vsaps); elt;
+				elt = sm_list_next(wm, elt))
+		{
+			vsap = (VSap *) psp(wm, sm_list_data(wm, elt));
+			if (vsap->semaphore != SM_SEM_NONE
+					&& vsap->appPid != ERROR)
+			{
+				/*	Wait up to 5 seconds for app.	*/
+
+				for (i = 0; i < 50
+					&& sm_TaskExists(vsap->appPid); i++)
+				{
+					microsnooze(100000);
+				}
+
+				if (sm_TaskExists(vsap->appPid))
+				{
+					writeMemo("[!] dtpcStop: SAP app not \
+responding to SIGTERM, sending SIGKILL");
+					sm_TaskKill(vsap->appPid, SIGKILL);
+					for (i = 0; i < 10
+						&& sm_TaskExists(vsap->appPid);
+						i++)
+					{
+						microsnooze(100000);
+					}
+				}
 			}
 		}
 	}
