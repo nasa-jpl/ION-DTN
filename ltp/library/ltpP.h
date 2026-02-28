@@ -38,14 +38,24 @@
  *	This reduces the cost of sending LTP blocks in small segments,
  *	which in turn can limit IP fragmentation for LTP traffic.
  *
- *	Note that sendmmsg() has no built-in rate control and offers
- *	no opportunity to exercise the rate control algorithm that
- *	minimizes UDP congestion loss in non-MULTISEND LTP.  In order
- *	to achieve similar reduction in UDP congestion loss, a node
- *	that receives data sent by sendmmsg() may need to be configured
- *	for larger socket buffers.  The sysctl utility may be used
- *	for this purpose, setting new values for net.core.rmem_max
- *	and _default and net.core.wmem_max and _default.		*/
+ *	UDP_MULTISEND is now the default on Linux (non-bionic).
+ *	To disable it, compile with -DNO_UDP_MULTISEND.
+ *
+ *	Rate control is provided by a token bucket algorithm in
+ *	udplso, applied to both the sendmmsg() and single-send
+ *	code paths.  For high-throughput links, the receiving node
+ *	may still benefit from larger socket buffers.  The sysctl
+ *	utility may be used for this purpose, setting new values
+ *	for net.core.rmem_max and _default and net.core.wmem_max
+ *	and _default.							*/
+
+#if (defined(linux) && !(defined(bionic)))
+#ifndef NO_UDP_MULTISEND
+#ifndef UDP_MULTISEND
+#define	UDP_MULTISEND
+#endif
+#endif
+#endif
 
 #ifdef	UDP_MULTISEND
 #if (defined(linux) && !(defined(bionic)))

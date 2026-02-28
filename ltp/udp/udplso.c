@@ -69,13 +69,88 @@ static void	shutDownLso(int signum)	/*	Commands LSO termination.	*/
 
 /*	*	*	Main thread functions	*	*	*	*/
 
+static unsigned long	getUsecTimestamp(void)
+{
+	struct timeval	tv;
+
+	getCurrentTime(&tv);
+	return ((tv.tv_sec * 1000000) + tv.tv_usec);
+}
+
+typedef struct
+{
+	unsigned long	lastRefillTime;	/*	Microsec timestamp.	*/
+	uvast		remoteEngineId;
+	IonNeighbor	*neighbor;
+	long		tokens;		/*	Available bytes to send.*/
+	long		bucketSize;	/*	Max burst (bytes).	*/
+} TokenBucketState;
+
+static void	applyTokenBucket(TokenBucketState *tb, int bytesSent)
+{
+	unsigned long	now;
+	unsigned long	elapsed;
+	unsigned long	rate;
+	unsigned long	added;
+	PsmAddress	nextElt;
+
+	now = getUsecTimestamp();
+	elapsed = now - tb->lastRefillTime;
+	tb->lastRefillTime = now;
+
+	/*	Look up current xmit rate.				*/
+
+	if (tb->neighbor == NULL)
+	{
+		tb->neighbor = findNeighbor(getIonVdb(),
+				tb->remoteEngineId, &nextElt);
+	}
+
+	if (tb->neighbor && tb->neighbor->xmitRate > 0)
+	{
+		rate = tb->neighbor->xmitRate;
+	}
+	else	/*	No link service rate control.			*/
+	{
+		return;
+	}
+
+	/*	Refill tokens based on elapsed time.			*/
+
+	added = (elapsed * rate) / 1000000;
+	tb->tokens += added;
+	if (tb->tokens > tb->bucketSize)
+	{
+		tb->tokens = tb->bucketSize;
+	}
+
+	/*	Deduct bytes sent.					*/
+
+	tb->tokens -= bytesSent;
+
+	/*	If bucket is empty, sleep until replenished.		*/
+
+	if (tb->tokens < 0)
+	{
+		unsigned long	deficit;
+		unsigned long	waitUsec;
+
+		deficit = (unsigned long)(-(tb->tokens));
+		waitUsec = (deficit * 1000000) / rate;
+		if (waitUsec > 0)
+		{
+			microsnooze(waitUsec);
+		}
+	}
+}
+
 #ifdef UDP_MULTISEND
 static int	sendBatch(int linkSocket, struct mmsghdr *msgs,
 			unsigned int batchLength)
 {
-	int	totalBytesSent = 0;
-	int	bytesSent;
-	int	i;
+	int		totalBytesSent = 0;
+	int		bytesSent;
+	unsigned int	i;
 
 	if (sendmmsg(linkSocket, msgs, batchLength, 0) < 0)
 	{
@@ -142,90 +217,6 @@ int	sendSegmentByUDP(int linkSocket, char *from, int length,
 		return bytesWritten;
 	}
 }
-
-static unsigned long	getUsecTimestamp(void)
-{
-	struct timeval	tv;
-
-	getCurrentTime(&tv);
-	return ((tv.tv_sec * 1000000) + tv.tv_usec);
-}
-
-typedef struct
-{
-	unsigned long		startTimestamp;	/*	Billing cycle.	*/
-	uvast			remoteEngineId;
-	IonNeighbor		*neighbor;
-	unsigned int		prevPaid;
-} RateControlState;
-
-static void	applyRateControl(RateControlState *rc, int bytesSent)
-{
-	/*	Rate control calculation is based on treating elapsed
-	 *	time as a currency, the price you pay (by microsnooze)
-	 *	for sending a given number of bytes.  All cost figures
-	 *	are expressed in microseconds except the computed
-	 *	totalCostSecs of the transmission.			*/
-
-	unsigned int		totalPaid;	/*	Since last send.*/
-	float			timeCostPerByte;/*	In seconds.	*/
-	unsigned int		currentPaid;	/*	Sending seg.	*/
-	PsmAddress		nextElt;
-	float			totalCostSecs;	/*	For this seg.	*/
-	unsigned int		totalCost;	/*	Microseconds.	*/
-	unsigned int		balanceDue;	/*	Until next seg.	*/
-
-	totalPaid = getUsecTimestamp() - rc->startTimestamp;
-
-	/*	Start clock for next bill.				*/
-
-	rc->startTimestamp = getUsecTimestamp();
-
-	/*	Compute time balance due.				*/
-
-	if (totalPaid >= rc->prevPaid)
-	{
-	/*	This should always be true provided that
-	 *	clock_gettime() is supported by the O/S.		*/
-
-		currentPaid = totalPaid - rc->prevPaid;
-	}
-	else
-	{
-		currentPaid = 0;
-	}
-
-	/*	Get current time cost, in seconds, per byte.		*/
-
-	if (rc->neighbor == NULL)
-	{
-		rc->neighbor = findNeighbor(getIonVdb(), rc->remoteEngineId,
-				&nextElt);
-	}
-
-	if (rc->neighbor && rc->neighbor->xmitRate > 0)
-	{
-		timeCostPerByte = 1.0 / (rc->neighbor->xmitRate);
-	}
-	else	/*	No link service rate control.			*/
-	{
-		timeCostPerByte = 0.0;
-	}
-
-	totalCostSecs = timeCostPerByte * bytesSent;
-	totalCost = totalCostSecs * 1000000.0;		/*	usec.	*/
-	if (totalCost > currentPaid)
-	{
-		balanceDue = totalCost - currentPaid;
-	}
-	else
-	{
-		balanceDue = 1;
-	}
-
-	microsnooze(balanceDue);
-	rc->prevPaid = balanceDue;
-}
 #endif
 
 #if defined (ION_LWT)
@@ -265,9 +256,8 @@ int	main(int argc, char *argv[])
 	struct mmsghdr		*msgs;
 	struct mmsghdr		*msg;
 	unsigned int		batchLength;
-#else
-	RateControlState	rc;
 #endif
+	TokenBucketState	tb;
 
 	/* Initialize the mutex.  */
 
@@ -479,6 +469,12 @@ int	main(int argc, char *argv[])
 	batchLength = 0;
 	buffer = buffers;
 
+	tb.lastRefillTime = getUsecTimestamp();
+	tb.tokens = 0;
+	tb.bucketSize = UDPLSA_BUFSZ * 2;
+	tb.remoteEngineId = remoteEngineId;
+	tb.neighbor = NULL;
+
 	/*
 	 *  Loop on rtp.running and the segSemaphore.
 	 *  We'll do a local keepRunning to read rtp.running
@@ -586,6 +582,7 @@ segment batch.", NULL);
 						continue;
 					}
 
+					applyTokenBucket(&tb, bytesSent);
 					batchLength = 0;
 					buffer = buffers;
 
@@ -595,7 +592,7 @@ segment batch.", NULL);
 				}
 				else
 				{
-					snooze(1);
+					sm_SemTake(vspan->segSemaphore);
 				}
 			}
 
@@ -647,6 +644,7 @@ segment batch.", NULL);
 				continue;
 			}
 
+			applyTokenBucket(&tb, bytesSent);
 			batchLength = 0;
 			buffer = buffers;
 
@@ -660,10 +658,11 @@ segment batch.", NULL);
 	MRELEASE(iovecs);
 	MRELEASE(buffers);
 #else
-	rc.startTimestamp = getUsecTimestamp();
-	rc.prevPaid = 0;
-	rc.remoteEngineId = remoteEngineId;
-	rc.neighbor = NULL;
+	tb.lastRefillTime = getUsecTimestamp();
+	tb.tokens = 0;
+	tb.bucketSize = UDPLSA_BUFSZ * 2;
+	tb.remoteEngineId = remoteEngineId;
+	tb.neighbor = NULL;
 
 	static int dnsFailed = 0; /* Track DNS failure state */
 	static time_t lastDnsCheck = 0; /* Track last DNS check time */
@@ -777,7 +776,7 @@ segment batch.", NULL);
 		}
 
 		bytesSent += IPHDR_SIZE;
-		applyRateControl(&rc, bytesSent);
+		applyTokenBucket(&tb, bytesSent);
 
 		/*	Let other tasks run.				*/
 

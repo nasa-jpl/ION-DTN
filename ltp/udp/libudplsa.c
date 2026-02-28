@@ -26,7 +26,7 @@ void	*udplsa_handle_datagrams(void *parm)
 	struct iovec		*iovecs;
 	struct mmsghdr		*msgs;
 	unsigned int		batchLength;
-	int			i;
+	unsigned int		i;
 
 	snooze(1);	/*	Let main thread become interruptable.	*/
 
