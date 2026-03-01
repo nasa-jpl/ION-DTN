@@ -43,8 +43,16 @@ IONRECEIVEFILE=./ionreceivefile.txt
 EXPECTEDCOUNT=3
 
 echo "Starting ION..."
+<<<<<<< HEAD
 # Config files are local to test directory; ion.log will be written here
 ionstart -I loopback.rc
+=======
+# cd to config directory so ionconfig paths are resolved correctly
+SAVED_PWD="$(pwd)"
+cd "${CONFIGSROOT}/loopback-ltp"
+ionstart -I loopback.rc
+cd "${SAVED_PWD}"
+>>>>>>> 913441968 (Fix ionconfig path resolution and udplso batchLimit bug)
 
 #The sample config adds contacts we don't care about
 deleteallvolumes
