@@ -437,6 +437,10 @@ int	main(int argc, char *argv[])
 	batchLimit = MULTISEND_BATCH_LIMIT;
 #else
 	batchLimit = spanBuf.aggrSizeLimit / spanBuf.maxSegmentSize;
+	if (batchLimit < 1)
+	{
+		batchLimit = 1;
+	}
 #endif
 	buffers = MTAKE(spanBuf.maxSegmentSize * batchLimit);
 	if (buffers == NULL)

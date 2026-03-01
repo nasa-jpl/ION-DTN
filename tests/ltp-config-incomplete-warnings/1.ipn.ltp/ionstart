@@ -4,7 +4,6 @@
 
 # Start ion node
 ionadmin amroc.ionrc
-ionadmin amroc.ionconfig
 
 # Start LTP
 ltpadmin amroc.ltprc

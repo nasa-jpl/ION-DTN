@@ -31,8 +31,12 @@ fi
 
 echo "Starting ION..."
 CONFIGDIR="${CONFIGSROOT}/loopback-ltp"
-echo "ionstart -i ${CONFIGDIR}/loopback.ionrc -l ${CONFIGDIR}/loopback.ltprc -b ${CONFIGDIR}/loopback.bprc -p ${CONFIGDIR}/loopback.ipnrc -s ${CONFIGDIR}/loopback.ionsecrc"
-"ionstart" -i "${CONFIGDIR}/loopback.ionrc" -l "${CONFIGDIR}/loopback.ltprc" -b "${CONFIGDIR}/loopback.bprc" -p "${CONFIGDIR}/loopback.ipnrc" -s "${CONFIGDIR}/loopback.ionsecrc"
+# cd to config directory so ionconfig paths are resolved correctly
+SAVED_PWD="$(pwd)"
+cd "${CONFIGDIR}"
+echo "ionstart -i loopback.ionrc -l loopback.ltprc -b loopback.bprc -p loopback.ipnrc -s loopback.ionsecrc"
+ionstart -i loopback.ionrc -l loopback.ltprc -b loopback.bprc -p loopback.ipnrc -s loopback.ionsecrc
+cd "${SAVED_PWD}"
 
 libtool --mode=execute valgrind --tool=memcheck ./domtake 2> valgrind-output
 

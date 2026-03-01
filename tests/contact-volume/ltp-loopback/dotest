@@ -43,7 +43,11 @@ IONRECEIVEFILE=./ionreceivefile.txt
 EXPECTEDCOUNT=3
 
 echo "Starting ION..."
-ionstart -I ${CONFIGSROOT}/loopback-ltp/loopback.rc
+# cd to config directory so ionconfig paths are resolved correctly
+SAVED_PWD="$(pwd)"
+cd "${CONFIGSROOT}/loopback-ltp"
+ionstart -I loopback.rc
+cd "${SAVED_PWD}"
 
 #The sample config adds contacts we don't care about
 deleteallvolumes

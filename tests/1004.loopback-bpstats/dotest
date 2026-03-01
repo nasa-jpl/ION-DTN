@@ -114,12 +114,11 @@ rm -f $IONSENDFILE $IONRECEIVEFILE $IONEXPECTEDFILE ion.log
 
 echo "Starting ION..."
 CONFIGDIR="${CONFIGSROOT}/loopback-ltp"
-ionstart \
-    -i "${CONFIGDIR}/loopback.ionrc" \
-    -l "${CONFIGDIR}/loopback.ltprc" \
-    -b "${CONFIGDIR}/loopback.bprc" \
-    -p "${CONFIGDIR}/loopback.ipnrc" \
-    -s "${CONFIGDIR}/loopback.ionsecrc"
+# cd to config directory so ionconfig paths are resolved correctly
+SAVED_PWD="$(pwd)"
+cd "${CONFIGDIR}"
+ionstart -i loopback.ionrc -l loopback.ltprc -b loopback.bprc -p loopback.ipnrc -s loopback.ionsecrc
+cd "${SAVED_PWD}"
 
 sleep 3
 
