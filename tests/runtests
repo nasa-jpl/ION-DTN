@@ -314,17 +314,17 @@ function run_a_test () {
         if [ -n "$IS_OPTIONAL_TEST" ]; then
             echo "OPTIONAL TEST PASSED!"
             optional_pass_test "$TEST"
-            echo "OPTIONAL TEST PASSED: ${TEST}" >> "$PROGRESSFILE"
+            echo "OPTIONAL TEST PASSED: ${TEST} (${TEST_DURATION}s)" >> "$PROGRESSFILE"
             # Concise output to stderr
             echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}PASS: $TEST (${TEST_DURATION}s)" >&2
         else
             echo "TEST PASSED!"
             if [[ "$RETESTING" == "true" ]]; then
                 pass_test_after_retest "$TEST"
-                echo "PASSED AFTER RETEST: ${TEST}" >> "$PROGRESSFILE"
+                echo "PASSED AFTER RETEST: ${TEST} (${TEST_DURATION}s)" >> "$PROGRESSFILE"
             else
                 pass_test "$TEST"
-                echo "PASSED: ${TEST}" >> "$PROGRESSFILE"
+                echo "PASSED: ${TEST} (${TEST_DURATION}s)" >> "$PROGRESSFILE"
             fi
             # Concise output to stderr
             echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}PASS: $TEST (${TEST_DURATION}s)" >&2
@@ -336,16 +336,16 @@ function run_a_test () {
         if [ -n "$IS_OPTIONAL_TEST" ]; then
             echo "OPTIONAL TEST FAILED!"
             optional_fail_test "$TEST"
-            echo "OPTIONAL TEST FAILED: ${TEST}" >> "$PROGRESSFILE"
+            echo "OPTIONAL TEST FAILED: ${TEST} (${TEST_DURATION}s)" >> "$PROGRESSFILE"
             # Concise output to stderr
             echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${TEST_DURATION}s)" >&2
         else
             echo "TEST FAILED!"
             fail_test "$TEST"
             if [[ "$RETESTING" == "true" ]]; then
-                echo "FAILED AFTER RETEST: ${TEST}" >> "$PROGRESSFILE"
+                echo "FAILED AFTER RETEST: ${TEST} (${TEST_DURATION}s)" >> "$PROGRESSFILE"
             else
-                echo "FAILED: ${TEST}" >> "$PROGRESSFILE"
+                echo "FAILED: ${TEST} (${TEST_DURATION}s)" >> "$PROGRESSFILE"
             fi
             # Concise output to stderr
             echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${TEST_DURATION}s)" >&2
@@ -359,22 +359,22 @@ function run_a_test () {
     elif [ $TEST_RETVAL -eq 2 ]; then
         echo "TEST SKIPPED!"
         skip_test "$TEST"
-        echo "SKIPPED: ${TEST}" >> "$PROGRESSFILE"
+        echo "SKIPPED: ${TEST} (${TEST_DURATION}s)" >> "$PROGRESSFILE"
         # Concise output to stderr
         echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}SKIP: $TEST (${TEST_DURATION}s)" >&2
     else
         echo "test returned unknown value $TEST_RETVAL"
         if [ -n "$IS_OPTIONAL_TEST" ]; then
             optional_fail_test "$TEST"
-            echo "OPTIONAL TEST CONFUSED: ${TEST}: bad return value $TEST_RETVAL" >> "$PROGRESSFILE"
+            echo "OPTIONAL TEST CONFUSED: ${TEST}: bad return value $TEST_RETVAL (${TEST_DURATION}s)" >> "$PROGRESSFILE"
             # Concise output to stderr
             echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${TEST_DURATION}s) [unknown return value $TEST_RETVAL]" >&2
         else
             fail_test "$TEST"
             if [[ "$RETESTING" == "true" ]]; then
-                echo "CONFUSED AFTER RETEST: ${TEST}: bad return value $TEST_RETVAL" >> "$PROGRESSFILE"
+                echo "CONFUSED AFTER RETEST: ${TEST}: bad return value $TEST_RETVAL (${TEST_DURATION}s)" >> "$PROGRESSFILE"
             else
-                echo "CONFUSED: ${TEST}: bad return value $TEST_RETVAL" >> "$PROGRESSFILE"
+                echo "CONFUSED: ${TEST}: bad return value $TEST_RETVAL (${TEST_DURATION}s)" >> "$PROGRESSFILE"
             fi
             # Concise output to stderr
             echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${TEST_DURATION}s) [unknown return value $TEST_RETVAL]" >&2
