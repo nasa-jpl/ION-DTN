@@ -30,19 +30,9 @@ fi
 
 
 echo "Starting ION..."
-<<<<<<< HEAD
 # Config files are local to test directory; ion.log will be written here
 echo "ionstart -i loopback.ionrc -l loopback.ltprc -b loopback.bprc -p loopback.ipnrc -s loopback.ionsecrc"
 ionstart -i loopback.ionrc -l loopback.ltprc -b loopback.bprc -p loopback.ipnrc -s loopback.ionsecrc
-=======
-CONFIGDIR="${CONFIGSROOT}/loopback-ltp"
-# cd to config directory so ionconfig paths are resolved correctly
-SAVED_PWD="$(pwd)"
-cd "${CONFIGDIR}"
-echo "ionstart -i loopback.ionrc -l loopback.ltprc -b loopback.bprc -p loopback.ipnrc -s loopback.ionsecrc"
-ionstart -i loopback.ionrc -l loopback.ltprc -b loopback.bprc -p loopback.ipnrc -s loopback.ionsecrc
-cd "${SAVED_PWD}"
->>>>>>> 913441968 (Fix ionconfig path resolution and udplso batchLimit bug)
 
 CURDIR="$( cd "$( dirname "$0" )" && pwd )"
 libtool --mode=execute valgrind --tool=memcheck $CURDIR/domtake 2> valgrind-output
