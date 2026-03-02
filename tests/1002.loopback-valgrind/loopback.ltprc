@@ -1,0 +1,31 @@
+# ltprc configuration file for the loopback test.
+#	Command: % ltpadmin loopback.ltprc
+#	This command should be run AFTER ionadmin and BEFORE bpadmin.
+#
+#	Ohio University, July 2009
+#
+#	A warning: the ltp configuration is not ideal in this case.
+#	please consult manual pages and other documentation for a
+#	better description.
+
+# Initialization command (command 1).
+# Establishes the LTP retransmission window.
+# (Prohibiting LTP from seizing all available storage).
+#	A maximum of 32 sessions.  A session is assumed to be around one
+#	second of transmission.  This value should be estimated at the sum
+#	of maximum round-trip times (in seconds) for all "spans."
+#	Suggest throwing 20% higher number of sessions to account for extra-
+#	long sessions which contain an actual retransmission.
+
+# Initialization command (command 1).
+1 128
+
+# Add a span. (a connection)
+a span 1 128 128 1024 1024 1 'udplso 127.0.0.1:1113'
+
+# Start command.
+#	This command actually runs the link service output commands
+#	(defined above, in the "a span" commands).
+#	Also starts the link service INPUT task 'udplsi localhost:1113' to
+#	listen on UDP port 1113 for incoming LTP traffic.
+s 'udplsi 0.0.0.0:1113'

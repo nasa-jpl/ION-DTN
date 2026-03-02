@@ -1,0 +1,8 @@
+# bprc startup configuration file for the loopback test.
+#	Command: % bpadmin loopbackstart.bprc
+#	This command should be run AFTER ipnadmin and/or dtnadmin.
+#
+#	Scott Burleigh, August 2016
+
+# Start the daemons
+s

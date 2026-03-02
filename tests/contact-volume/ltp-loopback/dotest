@@ -7,7 +7,7 @@
 # documentation boilerplate
 
 CONFIGFILES=" \
-    ${CONFIGSROOT}/loopback-ltp/loopback.rc \
+    ./loopback.rc \
     "
 
 ./cleanup
@@ -43,11 +43,8 @@ IONRECEIVEFILE=./ionreceivefile.txt
 EXPECTEDCOUNT=3
 
 echo "Starting ION..."
-# cd to config directory so ionconfig paths are resolved correctly
-SAVED_PWD="$(pwd)"
-cd "${CONFIGSROOT}/loopback-ltp"
+# Config files are local to test directory; ion.log will be written here
 ionstart -I loopback.rc
-cd "${SAVED_PWD}"
 
 #The sample config adds contacts we don't care about
 deleteallvolumes

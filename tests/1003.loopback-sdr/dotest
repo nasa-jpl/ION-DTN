@@ -5,11 +5,11 @@
 # Written by Andrew Jenkins, based on loopbacktest.sh by David Young
 #
 CONFIGFILES=" \
-${CONFIGSROOT}/loopback-ltp/loopback.ionrc \
-${CONFIGSROOT}/loopback-ltp/loopback.ltprc \
-${CONFIGSROOT}/loopback-ltp/loopback.bprc \
-${CONFIGSROOT}/loopback-ltp/loopback.ionsecrc \
-${CONFIGSROOT}/loopback-ltp/loopback.ipnrc \
+./loopback.ionrc \
+./loopback.ltprc \
+./loopback.bprc \
+./loopback.ionsecrc \
+./loopback.ipnrc \
 "
 
 echo "########################################"
@@ -101,22 +101,18 @@ ITERATION=1
 
 echo "Starting ION..."
 srcdir=`pwd`
-CONFIGDIR="${CONFIGSROOT}/loopback-ltp"
 
 echo "Running ionstart..."
-# cd to config directory so ionconfig paths are resolved correctly
-SAVED_PWD="$(pwd)"
-cd "${CONFIGDIR}"
+# Config files are local to test directory; ion.log will be written here
 ionstart -i loopback.ionrc -l loopback.ltprc -b loopback.bprc -p loopback.ipnrc -s loopback.ionsecrc
-cd "${SAVED_PWD}"
 echo "...finished ionstart script"
 
 sleep 3
 
 # Start BP daemons, give them time to get going
 echo "Starting BP daemons..."
-echo "bpadmin ${CONFIGDIR}/loopbackstart.bprc"
-bpadmin "${CONFIGDIR}/loopbackstart.bprc"
+echo "bpadmin loopbackstart.bprc"
+bpadmin loopbackstart.bprc
 sleep 5
 echo "...all BP daemons should now be running."
 

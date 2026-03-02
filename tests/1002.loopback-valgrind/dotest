@@ -6,11 +6,11 @@
 #
 # documentation boilerplate
 CONFIGFILES=" \
-${CONFIGSROOT}/loopback-ltp/loopback.ionrc \
-${CONFIGSROOT}/loopback-ltp/loopback.ltprc \
-${CONFIGSROOT}/loopback-ltp/loopback.bprc \
-${CONFIGSROOT}/loopback-ltp/loopback.ionsecrc \
-${CONFIGSROOT}/loopback-ltp/loopback.ipnrc \
+./loopback.ionrc \
+./loopback.ltprc \
+./loopback.bprc \
+./loopback.ionsecrc \
+./loopback.ipnrc \
 "
 echo "########################################"
 echo
@@ -55,16 +55,13 @@ GEN_SUPPRESSIONS=""
 rm -f out.valgrind.*
 
 echo "Starting ION..."
-CONFIGDIR="${CONFIGSROOT}/loopback-ltp"
-# cd to config directory so ionconfig paths are resolved correctly
-SAVED_PWD="$(pwd)"
-cd "${CONFIGDIR}"
+# Config files are local to test directory; ion.log will be written here
 libtool --mode=execute                             \
     valgrind                                       \
     $GEN_SUPPRESSIONS                              \
-    --suppressions="${SAVED_PWD}/valgrind.suppressions.ionstart"  \
+    --suppressions=valgrind.suppressions.ionstart  \
     --quiet                                        \
-    --log-file="${SAVED_PWD}/out.valgrind.loopback.ionstart.%p"   \
+    --log-file=out.valgrind.loopback.ionstart.%p   \
     --num-callers=25                               \
     --tool=memcheck                                \
     --trace-children=yes                           \
@@ -75,7 +72,6 @@ libtool --mode=execute                             \
         -b loopback.bprc                           \
         -s loopback.ionsecrc                       \
         -p loopback.ipnrc
-cd "${SAVED_PWD}"               \
 
 # create the test message in a sent file
 # the exclamation point signals the bundle sender to quit
