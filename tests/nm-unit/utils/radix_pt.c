@@ -1,5 +1,6 @@
 // Framework
 #include "unity.h"
+#include "testutil.h"
 #include "lyst.h"
 #include "radix_pt.h"
 
@@ -340,15 +341,36 @@ void radixpt_ui_parse_args(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
+	int needsIon = 0;
 
 	radixpt_gen_initconfig();
 	radixpt_ui_parse_args(argc, argv);
 
 	radixpc_gen_printconfig();
 
+	/* Check if we need ION for this test type (RADIX_TEST or RBT test) */
+	if(gConfig.type != LYST_TEST)
+	{
+		needsIon = 1;
+		sleep(5);
+
+		/* Start ION */
+		ionstart_default_config("loopback-ltp/loopback.ionrc",
+				"loopback-ltp/loopback.ionsecrc",
+				"loopback-ltp/loopback.ltprc",
+				"loopback-ltp/loopback.bprc",
+				"loopback-ltp/loopback.ipnrc",
+				NULL);
+
+		if (ionAttach() < 0)
+		{
+			putErrmsg("Can't attach to ION.", NULL);
+			return -1;
+		}
+	}
+
 	if(gConfig.type == RADIX_TEST)
 	{
-		ionAttach();
 		radixpt_radix_runtest();
 	}
 	else if(gConfig.type == LYST_TEST)
@@ -357,13 +379,18 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
-		ionAttach();
 		radixpt_rbt_runtest();
 	}
 
 	radixpt_gen_printstats();
 
 	printf("Finishing\n");
+
+	/* Stop ION if we started it */
+	if(needsIon)
+	{
+		ionstop();
+	}
 
 	return(0);
 }

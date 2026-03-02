@@ -1,5 +1,6 @@
 // Framework
 #include "unity.h"
+#include "testutil.h"
 #include "radix_ut.h"
 
 RadixTestStats gStats;
@@ -383,9 +384,23 @@ void radix_query(void)
 
 int main(void)
 {
-	UNITY_BEGIN();
+	sleep(5);
 
-	ionAttach();
+	/* Start ION */
+	ionstart_default_config("loopback-ltp/loopback.ionrc",
+			"loopback-ltp/loopback.ionsecrc",
+			"loopback-ltp/loopback.ltprc",
+			"loopback-ltp/loopback.bprc",
+			"loopback-ltp/loopback.ipnrc",
+			NULL);
+
+	if (ionAttach() < 0)
+	{
+		putErrmsg("Can't attach to ION.", NULL);
+		return -1;
+	}
+
+	UNITY_BEGIN();
 
 	/* Basic Test */
 	RUN_TEST(radix_basic);
@@ -408,6 +423,9 @@ int main(void)
 
 	/* Large Queries Test */
 	RUN_TEST(radix_query);
+
+	/* Stop ION */
+	ionstop();
 
 	return UNITY_END();
 }

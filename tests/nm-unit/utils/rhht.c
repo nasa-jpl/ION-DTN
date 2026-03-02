@@ -1,5 +1,6 @@
 // Framework
 #include "unity.h"
+#include "testutil.h"
 
 // module being tested
 #include "utils/db.h"
@@ -182,6 +183,16 @@ void test_simple_int(void)
 
 int main(void)
 {
+	sleep(5);
+
+	/* Start ION */
+	ionstart_default_config("loopback-ltp/loopback.ionrc",
+			"loopback-ltp/loopback.ionsecrc",
+			"loopback-ltp/loopback.ltprc",
+			"loopback-ltp/loopback.bprc",
+			"loopback-ltp/loopback.ipnrc",
+			NULL);
+
 	// Memory initialization
 	if (ionAttach() < 0)
 	{
@@ -206,6 +217,9 @@ int main(void)
 	RUN_TEST(test_simple_int);
 
 	RUN_TEST(test_rhht_ari);
+
+	/* Stop ION */
+	ionstop();
 
 	return UNITY_END();
 }
