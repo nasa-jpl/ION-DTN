@@ -387,6 +387,18 @@ AC_ARG_ENABLE(
 AM_CONDITIONAL(ENABLE_HIGH_SPEED, test x$ENABLE_HIGH_SPEED = xyes)
 
 #
+# allow the user running configure to enable LTP UDP multisend (sendmmsg batching)
+#
+AC_ARG_ENABLE(
+  ltp-udp-multisend,
+  [AS_HELP_STRING([--enable-ltp-udp-multisend],[Enable LTP UDP multisend (sendmmsg batching, Linux only)])],
+  [AM_CFLAGS="$AM_CFLAGS -DUDP_MULTISEND"
+   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DUDP_MULTISEND"
+   ENABLE_LTP_UDP_MULTISEND=yes],
+  [])
+AM_CONDITIONAL(ENABLE_LTP_UDP_MULTISEND, test x$ENABLE_LTP_UDP_MULTISEND = xyes)
+
+#
 # allow the user running configure to enable SDR performance instrumentation
 #
 AC_ARG_ENABLE(

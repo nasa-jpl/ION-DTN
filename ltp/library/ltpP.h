@@ -38,8 +38,8 @@
  *	This reduces the cost of sending LTP blocks in small segments,
  *	which in turn can limit IP fragmentation for LTP traffic.
  *
- *	UDP_MULTISEND is now the default on Linux (non-bionic).
- *	To disable it, compile with -DNO_UDP_MULTISEND.
+ *	To enable, use ./configure --enable-ltp-udp-multisend or
+ *	compile with -DUDP_MULTISEND.
  *
  *	Rate control is provided by a token bucket algorithm in
  *	udplso, applied to both the sendmmsg() and single-send
@@ -48,14 +48,6 @@
  *	utility may be used for this purpose, setting new values
  *	for net.core.rmem_max and _default and net.core.wmem_max
  *	and _default.							*/
-
-#if (defined(linux) && !(defined(bionic)))
-#ifndef NO_UDP_MULTISEND
-#ifndef UDP_MULTISEND
-#define	UDP_MULTISEND
-#endif
-#endif
-#endif
 
 #ifdef	UDP_MULTISEND
 #if (defined(linux) && !(defined(bionic)))

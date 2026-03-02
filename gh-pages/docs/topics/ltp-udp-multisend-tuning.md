@@ -13,13 +13,13 @@ UDP datagrams. There are two code paths for sending segments:
 | Feature | Single-Send | Multisend (`UDP_MULTISEND`) |
 |---|---|---|
 | System call | One `sendto()` per segment | One `sendmmsg()` per batch |
-| Default on Linux | No (pre-4.1.4) | **Yes (4.1.4+)** |
+| Default on Linux | Yes | No (opt-in) |
 | Rate control | Token bucket | Token bucket |
 | Best for | Small aggregation limits | Large aggregation limits |
 
-Starting with ION 4.1.4, `UDP_MULTISEND` is **enabled by default on Linux**
-(non-bionic). Both code paths use the same token bucket rate control algorithm,
-which replaced the older per-segment sleep model.
+`UDP_MULTISEND` is opt-in via `./configure --enable-ltp-udp-multisend` or by
+compiling with `-DUDP_MULTISEND`. Both code paths use the same token bucket
+rate control algorithm, which replaced the older per-segment sleep model.
 
 ## When Multisend Helps
 
@@ -111,7 +111,7 @@ minimum granularity (typically 50-100+ microseconds on Linux).
 
 ## Building With and Without Multisend
 
-### Default Build (Multisend Enabled on Linux)
+### Default Build (Multisend Disabled)
 
 ```bash
 ./configure
@@ -119,23 +119,55 @@ make
 sudo make install && sudo ldconfig
 ```
 
-On Linux (non-bionic), `UDP_MULTISEND` is automatically defined. No extra
-flags are needed.
+The default build uses the single-send (`sendto()`) path. No multisend
+flags are defined.
 
-### Disabling Multisend
+### Enabling Multisend
 
-To use the single-send path on Linux:
+To enable the `sendmmsg()` batching path on Linux:
 
 ```bash
-./configure
-make CFLAGS="-DNO_UDP_MULTISEND"
+./configure --enable-ltp-udp-multisend
+make
 sudo make install && sudo ldconfig
 ```
 
-Or, to rebuild just `udplso` for quick testing:
+For users building with the development Makefiles (`.dev`) instead of
+autotools, pass the flag directly:
 
 ```bash
-make udplso CFLAGS="-DNO_UDP_MULTISEND"
+make CFLAGS="-DUDP_MULTISEND"
+```
+
+### Segment Size Override
+
+When `UDP_MULTISEND` is enabled, LTP automatically caps `maxSegmentSize`
+to `MULTISEND_SEGMENT_SIZE` (default 1450 bytes) if the span's configured
+value exceeds it. A memo is logged:
+
+```
+[i] Note max segment size reduced to work with UDP sendmmsg()
+```
+
+This ensures segments fit within the standard Ethernet MTU (1500 bytes)
+without IP fragmentation, since `sendmmsg()` sends many datagrams in one
+call and fragmentation of any one would degrade performance.
+
+The span's `.ltprc` `maxSegmentSize` parameter is effectively ignored
+when it exceeds 1450. This also affects the batch size calculation:
+
+```
+batchLimit = aggrSizeLimit / maxSegmentSize
+```
+
+where `maxSegmentSize` is the capped value (1450), not the span config
+value.
+
+Users on networks with larger MTU (e.g., jumbo frames) can override the
+cap at compile time:
+
+```bash
+./configure --enable-ltp-udp-multisend CFLAGS="-DMULTISEND_SEGMENT_SIZE=8800"
 ```
 
 ### Non-Linux Platforms
@@ -198,6 +230,12 @@ Then apply:
 ```bash
 sudo sysctl -p /etc/sysctl.d/90-ion-ltp.conf
 ```
+
+A convenience script is available in the ION repository for applying these settings:
+
+`ltp-sysctl-tuning.sh`
+
+Please review the script before running it, and adjust the values if you have specific requirements or constraints.
 
 ### What Each Parameter Does
 
