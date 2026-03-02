@@ -11,22 +11,27 @@ KB="000"
 MB="${KB}000"
 GB="${MB}000"
 # how many total bytes to transfer for each test
-TOTALBYTES=100${MB}
+TOTALBYTES=1${GB}
 # MAX number of bundles for any test (too many causes non-ION losses)
 # This really only affects really small size bundles
-MAXBUNDLES=10000
+MAXBUNDLES=500000
 # how many total seconds to allow each individual test to run before giving up
 # 5 minutes is probably plenty
 MAXSECONDS=120
 # what bundle sizes do you want to test
 # (list multiple values to cycle through them each)
-BUNDLESIZES="1${KB} 10${KB} 63,800 1${MB} 10${MB}"
+BUNDLESIZES="1${KB} 10${KB} 63800 1${MB} 10${MB}"
 # what THROUGHPUT to list in the contact plans (in ___BYTES___ per second)
 # (list multiple values to cycle through them each)
 THROUGHPUTS="10${GB}"
 # how many iterations of the test to run?
 ITERATIONS="1"
 
+
+# Format a number with commas for display (e.g., 63800 -> 63,800)
+fmt_num() {
+    printf "%'d" "$1" 2>/dev/null || printf "%d" "$1"
+}
 
 #================================================================
 # You shouldn't need to adjust anything below this point
@@ -133,23 +138,27 @@ EOF
         let "NUMBUNDLES = TOTALBYTES/BUNDLESIZE"
         if [ $NUMBUNDLES -lt 1 ]; then
             NUMBUNDLES=1
-            echo "Adjusting to $NUMBUNDLES of size $BUNDLESIZE"
+            echo "Adjusting to $NUMBUNDLES of size $(fmt_num $BUNDLESIZE)"
         elif [ $NUMBUNDLES -gt $MAXBUNDLES ]; then
-            echo "Truncating to $MAXBUNDLES of size $BUNDLESIZE (instead of $NUMBUNDLES)"
+            echo "Truncating to $(fmt_num $MAXBUNDLES) of size $(fmt_num $BUNDLESIZE) (instead of $(fmt_num $NUMBUNDLES))"
             NUMBUNDLES=$MAXBUNDLES
         fi
         let "ACTUALBYTES = NUMBUNDLES*BUNDLESIZE"
+        TARGETBUNDLES=$((NUMBUNDLES * 9 / 10))
+        if [ $TARGETBUNDLES -lt 1 ]; then
+            TARGETBUNDLES=1
+        fi
 
         sleep 1
 
         cat << ==EOF==
 ===============================================================================================================================
-RUNNING: IPv6 Test - Iteration ${ITERNUM}: Test ${TESTNUM}: ${NUMBUNDLES} bundles of ${BUNDLESIZE} bytes each - ${ACTUALBYTES} total bytes - Contact Plan MaxThroughput: ${THROUGHPUT}
+RUNNING: IPv6 Test - Iteration ${ITERNUM}: Test ${TESTNUM}: $(fmt_num ${NUMBUNDLES}) bundles of $(fmt_num ${BUNDLESIZE}) bytes each - $(fmt_num ${ACTUALBYTES}) total bytes - measuring at 90% ($(fmt_num ${TARGETBUNDLES})) - Contact Plan MaxThroughput: $(fmt_num ${THROUGHPUT})
 ===============================================================================================================================
 ==EOF==
 
         cd 3.bench.ltpv6
-        bpcounter ipn:3.1 ${NUMBUNDLES} &
+        bpcounter ipn:3.1 ${TARGETBUNDLES} &
         BPCOUNTER_PID=$!
         cd ..
         sleep 1
@@ -216,6 +225,26 @@ RUNNING: IPv6 Test - Iteration ${ITERNUM}: Test ${TESTNUM}: ${NUMBUNDLES} bundle
             (cd 2.bench.ltpv6; ./ionstart)
             (cd 3.bench.ltpv6; ./ionstart)
             RETVAL=0;   # allow next test to proceed
+        else
+            # Wait for bpdriver to finish sending
+            wait $BPDRIVER_PID 2>/dev/null
+
+            # Drain any remaining extra bundles
+            DRAINBUNDLES=$((NUMBUNDLES - TARGETBUNDLES - 1))
+            DRAIN_TIMEOUTS=(0 60 60 70 60 40)
+            DRAIN_LIMIT=${DRAIN_TIMEOUTS[$TESTNUM]}
+            if [ $DRAINBUNDLES -gt 0 ]; then
+                echo "Draining any remaining extra bundles (${DRAIN_LIMIT}s limit)..."
+                (cd 3.bench.ltpv6; bpcounter ipn:3.1 ${DRAINBUNDLES}) &
+                DRAIN_PID=$!
+                DRAIN_TIMER=0
+                while kill -0 $DRAIN_PID 2>/dev/null && [ $DRAIN_TIMER -lt $DRAIN_LIMIT ]; do
+                    sleep 1
+                    DRAIN_TIMER=$((DRAIN_TIMER + 1))
+                done
+                kill -9 $DRAIN_PID 2>/dev/null
+                wait $DRAIN_PID 2>/dev/null
+            fi
         fi
 
     # loop to next bundle size

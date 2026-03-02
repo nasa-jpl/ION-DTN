@@ -6,3 +6,4 @@
 echo "Cleaning up old ION..."
 killm
 rm -f ion_nodes 2.bench.ltp/ion.log 2.bench.ltp/bpdriverAduFile 3.bench.ltp/ion.log
+rm -f 3.bench.ltp/ltpblock.*

@@ -454,6 +454,17 @@ Smaller blocks mean:
   contain errors)
 - Less data retransmitted when errors occur
 
+**Finding the optimal block size:** There is a tradeoff between overhead
+and retransmission cost. Very small blocks increase per-block overhead
+(more sessions, more report traffic), reducing throughput. Very large
+blocks increase the probability that at least one segment is lost,
+triggering retransmission of potentially large amounts of data and
+adding delay. The optimal `aggrSizeLimit` balances these two effects,
+minimizing the combined impact of overhead and retransmission on
+throughput and latency. This balance depends on the link's error rate:
+lossy links favor smaller blocks, while clean links can afford larger
+ones.
+
 **Return channel constraint:** Each block generates at least one report
 segment from the receiver. The receiver's return link must support the
 resulting report traffic:

@@ -16,4 +16,7 @@ rm -f ion.log
 rm -f 2.bench.ltpv6/*.log 2>/dev/null
 rm -f 3.bench.ltpv6/*.log 2>/dev/null
 
+# Clean up leftover LTP acquisition files
+rm -f 3.bench.ltpv6/ltpblock.*
+
 exit 0
