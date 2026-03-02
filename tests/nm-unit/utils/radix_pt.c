@@ -352,7 +352,9 @@ int main(int argc, char *argv[])
 	if(gConfig.type != LYST_TEST)
 	{
 		needsIon = 1;
-		sleep(5);
+
+		/* Clean up any leftover ION instance from a previous test */
+		synch_killm(60);
 
 		/* Start ION */
 		ionstart_default_config("loopback-ltp/loopback.ionrc",

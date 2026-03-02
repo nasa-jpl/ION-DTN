@@ -20,7 +20,8 @@ void do_brs_startup(void)
 	VInduct *vBrscin;
 	PsmAddress vBrscinElt;	/* Don't use, but findInduct() requires. */
 
-	sleep(15);
+	/* Clean up any leftover ION instance from a previous test */
+	synch_killm(60);
 
 	/* Start the base of the ION node. */
 	ionstart_default_config("loopback-brs/loopback.ionrc",

@@ -70,6 +70,10 @@ void _ionstart(const char* path_prefix, const char *ionrc,
 #define ionstart_default_config(...)            _ionstart(NULL, __VA_ARGS__)
 #define ionstart(...)                           _ionstart("", __VA_ARGS__)
 
+/* Synchronously run killm, waiting up to maxseconds for it to finish.
+ * Returns 1 on success, 0 on failure or timeout. */
+int synch_killm(int maxseconds);
+
 /* Calls each admin program using the stop argument (e.g. "ionadmin ."), to
  * shut down an ION node. */
 void ionstop(void);

@@ -27,7 +27,8 @@ int main(int argc, char **argv)
 	/* Parameter intentionally unused. */
 	(void)argc;
 
-	sleep(15);
+	/* Clean up any leftover ION instance from a previous test */
+	synch_killm(60);
 
 	/* Start ION */
 	ionstart_default_config("loopback-ltp/loopback.ionrc",

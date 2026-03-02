@@ -7,6 +7,25 @@
 #include <bp.h>
 #include "check.h"
 
+int synch_killm(int maxseconds)
+{
+	int pid = pseudoshell("killm");
+	if (pid == ERROR)
+	{
+		return 0;
+	}
+	while (sm_TaskExists(pid))
+	{
+		if (--maxseconds < 1)
+		{
+			sm_TaskDelete(pid);
+			return 0;
+		}
+		sm_TaskDelay(1);
+	}
+	return 1;
+}
+
 void ionstop(void)
 {
 	int pid;
@@ -24,7 +43,6 @@ void ionstop(void)
 	sleep(1);
 
 #if ! defined (VXWORKS) && ! defined (RTEMS)
-	pid = pseudoshell("killm");
-	fail_unless(pid != ERROR);
+	synch_killm(60);
 #endif
 }
