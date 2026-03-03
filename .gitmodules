@@ -7,3 +7,6 @@
 [submodule "contrib/rtems_waf"]
 	path = contrib/rtems_waf
 	url = https://gitlab.rtems.org/rtems/tools/rtems_waf.git
+[submodule "images/actions-runner-controller"]
+	path = images/actions-runner-controller
+	url = https://github.com/actions/actions-runner-controller.git
