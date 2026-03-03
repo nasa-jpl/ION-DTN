@@ -1,4 +1,4 @@
-name: Regression Tests for ION on ARC
+name: Regression Tests for ION using GitHub ARC
 
 permissions:
   contents: read
@@ -6,30 +6,259 @@ permissions:
 on:
   workflow_call:
     inputs:
+      tests_to_run:
+        description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
+        required: false
+        type: string
+        default: ""
       env_vars:
         description: 'Space-separated list of environment variables (e.g., "KEY1=VALUE1 KEY2=VALUE2").'
         required: false
         type: string
         default: ""
       timeout_minutes:
-        description: "Timeout for build and tests in minutes (default: 240 minutes / 4 hours)"
+        description: "Timeout for build and tests in minutes (default: 90 minutes / 1.5 hours)"
         required: false
         type: number
-        default: 240
+        default: 90
+      num_runners:
+        description: "Number of runners to use within a runner set (default: 7)"
+        required: false
+        type: number
+        default: 7
+      runners:
+        description: 'JSON array of runner sets (e.g., ["arc-runner-set-u22", "arc-runner-set-ol8"])'
+        required: false
+        type: string
+        default: '["arc-runner-set-u20", "arc-runner-set-u22", "arc-runner-set-ol8", "arc-runner-set-ol9", "arc-runner-set-rhel8", "arc-runner-set-rhel9"]'
   workflow_dispatch:
     inputs:
+      tests_to_run:
+        description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
+        required: false
+        type: string
+        default: ""
       env_vars:
         description: 'Space-separated list of environment variables (e.g., "KEY1=VALUE1 KEY2=VALUE2").'
         required: false
         type: string
         default: ""
       timeout_minutes:
-        description: "Timeout for build and tests in minutes (default: 240 minutes / 4 hours)"
+        description: "Timeout for build and tests in minutes (default: 90 minutes / 1.5 hours)"
         required: false
         type: number
-        default: 240
+        default: 90
+      num_runners:
+        description: "Number of runners to use within a runner set (default: 7)"
+        required: false
+        type: number
+        default: 7
+      runners:
+        description: 'JSON array of runner sets (e.g., ["arc-runner-set-u22", "arc-runner-set-ol8"])'
+        required: false
+        type: string
+        default: '["arc-runner-set-u20", "arc-runner-set-u22", "arc-runner-set-ol8", "arc-runner-set-ol9", "arc-runner-set-rhel8", "arc-runner-set-rhel9"]'
 
 jobs:
   setup:
+    runs-on: arc-runner-set-u22
+    outputs:
+      testmatrix: ${{ steps.dataStep.outputs.testoutput }}
 
-  build-and-test:
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - id: dataStep
+        run: |
+          if [ -n "${{ inputs.tests_to_run }}" ]; then
+            TESTSET=$(./tests/git_matrix.py  -r ${{ inputs.num_runners }} -t ${{ inputs.tests_to_run }})
+          else
+            TESTSET=$(./tests/git_matrix.py -r ${{ inputs.num_runners }})
+          fi
+          echo "testoutput=$TESTSET" >> $GITHUB_OUTPUT
+
+  build:
+    needs: setup
+    strategy:
+      fail-fast: false
+      matrix:
+        # Build only once per runner type
+        runner: ${{ fromJSON(inputs.runners || '["arc-runner-set-u20", "arc-runner-set-u22", "arc-runner-set-ol8", "arc-runner-set-ol9", "arc-runner-set-rhel8", "arc-runner-set-rhel9"]') }}
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Cache Build Workspace
+        id: cache-build
+        uses: actions/cache@v4
+        with:
+          # Cache the current directory, but ignore .git to keep the tarball smaller
+          path: |
+            .
+            !.git
+            !autom4te.cache/
+            !.github/
+            !compile-and-buildcheck.log
+            !**/*.md
+          key: ion-build-${{ matrix.runner }}-${{ github.sha }}
+
+      - name: Build ION and Run Buildcheck
+        if: steps.cache-build.outputs.cache-hit != 'true'
+        timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '60') }}
+        run: |
+          {
+            export USER=$(whoami)
+            echo "USER is set to: $USER"
+            export ION_RUN_EXPERT="yes"
+            export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+            autoreconf -fi
+            ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
+            make all buildcheck
+          } > compile-and-buildcheck.log 2> >(tee -a compile-and-buildcheck.log >&2)
+
+          BUILD_STATUS=$?
+          wait  # Wait for background processes to complete
+
+          if [ $BUILD_STATUS -ne 0 ]; then
+            echo "Build or buildcheck failed with status $BUILD_STATUS" >&2
+            exit $BUILD_STATUS
+          fi
+
+      - name: Upload build and buildcheck logs
+        # Only attempt to upload if we actually ran the build step (cache miss)
+        # and use always() to ensure we get the log even if the build failed
+        if: ${{ always() && steps.cache-build.outputs.cache-hit != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: compile-and-buildcheck-log-${{ matrix.runner }}-${{ github.sha }}
+          path: compile-and-buildcheck.log
+          if-no-files-found: warn
+
+  install-and-test:
+    needs: [setup, build]
+    strategy:
+      fail-fast: false
+      matrix:
+        testset: ${{ fromJSON(needs.setup.outputs.testmatrix) }}
+        runner: ${{ fromJSON(inputs.runners || '["arc-runner-set-u20", "arc-runner-set-u22", "arc-runner-set-ol8", "arc-runner-set-ol9", "arc-runner-set-rhel8", "arc-runner-set-rhel9"]["arc-runner-set-u22", "arc-runner-set-ol8"]') }}
+
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Restore Cached Build
+        uses: actions/cache@v4
+        with:
+          path: |
+            .
+            !.git
+            !autom4te.cache/
+            !.github/
+            !compile-and-buildcheck.log
+            !**/*.md
+          key: ion-build-${{ matrix.runner }}-${{ github.sha }}
+
+      - name: Display OS and Arch
+        run: |
+          cat /etc/os-release
+          echo "Arch:"
+          uname -m
+          echo "User ID:"
+          id
+
+      - name: Generate timestamp for file names
+        id: timestamp
+        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+
+      - name: List tests and test matrix number
+        run: |
+          echo "Tests:"
+          echo "${{ matrix.testset }}"
+          echo "Matrix Index:"
+          echo "${{ strategy.job-index }}"
+
+      - name: Install ION and run tests
+        timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '60') }}
+        run: |
+          {
+            echo "Starting test installation and execution at $(date)"
+            export USER=$(whoami)
+            echo "USER is set to: $USER"
+            export ION_RUN_EXPERT="yes"
+            export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+            # Install binaries compiled in the 'build' job
+            sudo make install
+            sudo ldconfig
+            cd tests
+            # Set environment variables if provided
+            if [ -n "${{ inputs.env_vars }}" ]; then
+              echo "Setting environment variables: ${{ inputs.env_vars }}"
+              for env_var in ${{ inputs.env_vars }}; do
+                export "$env_var"
+              done
+            fi
+            ./runtests ${{ matrix.testset }}
+          } > build-and-test.log 2> >(tee -a build-and-test.log >&2)
+
+          TEST_STATUS=$?
+          wait  # Wait for background processes to complete
+
+          if [ $TEST_STATUS -ne 0 ]; then
+            echo "Tests failed with status $TEST_STATUS" >&2
+            exit $TEST_STATUS
+          fi
+
+      - name: Display Progress
+        if: ${{ always() }}
+        run: |
+          cat ./tests/progress | grep "FAILED" || { printf "No failed tests.\n"; exit 0; }
+
+      - name: Upload full test log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-and-test-log-${{ matrix.runner }}-${{ env.TIMESTAMP }}-index-${{ strategy.job-index }}
+          path: build-and-test.log
+
+      - name: Show progress file
+        if: ${{ always() }}
+        run: |
+          echo "Contents of ./tests/progress:"
+          cat ./tests/progress || echo "No progress file found."
+
+      - name: Upload progress file
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-progress-${{ matrix.runner }}-${{ env.TIMESTAMP }}-index-${{ strategy.job-index }}
+          path: ./tests/progress
+
+      - name: Collect and upload ion.log files from all test directories
+        if: ${{ always() }}
+        run: |
+          echo "Collecting ion.log files with unique names..."
+          mkdir -p ion-logs-collection
+          find ./tests -name "ion.log" -type f | while IFS= read -r logfile; do
+            # Extract test path and create unique filename
+            relpath=$(echo "$logfile" | sed 's|^\./tests/||' | sed 's|/ion\.log$||')
+            unique_name=$(echo "$relpath" | tr '/' '-')
+            cp "$logfile" "ion-logs-collection/${unique_name}-ion.log"
+            echo "Collected: $logfile -> ion-logs-collection/${unique_name}-ion.log"
+          done
+
+          # List all collected logs for verification
+          echo "Collected ion.log files:"
+          find ion-logs-collection -name "*.log" -type f | sort
+
+      - name: Upload ion.log files as artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ion-logs-${{ matrix.runner }}-${{ env.TIMESTAMP }}-index-${{ strategy.job-index }}
+          path: ion-logs-collection/
+          if-no-files-found: warn
