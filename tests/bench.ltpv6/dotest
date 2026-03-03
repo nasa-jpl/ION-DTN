@@ -11,7 +11,7 @@ KB="000"
 MB="${KB}000"
 GB="${MB}000"
 # how many total bytes to transfer for each test
-TOTALBYTES=1${GB}
+TOTALBYTES=200${MB}
 # MAX number of bundles for any test (too many causes non-ION losses)
 # This really only affects really small size bundles
 MAXBUNDLES=500000
@@ -20,7 +20,7 @@ MAXBUNDLES=500000
 MAXSECONDS=120
 # what bundle sizes do you want to test
 # (list multiple values to cycle through them each)
-BUNDLESIZES="1${KB} 10${KB} 63800 1${MB} 10${MB}"
+BUNDLESIZES="1000 5000 10000 20000 63000"
 # what THROUGHPUT to list in the contact plans (in ___BYTES___ per second)
 # (list multiple values to cycle through them each)
 THROUGHPUTS="10${GB}"
@@ -118,7 +118,7 @@ for THROUGHPUT in ${THROUGHPUTS}; do
     # Adjust the contact plan
     cat > ./global.ionrc << EOF
 m horizon  +0
-a range    +0 +600		2 3   1
+a range    +0 +600		2 3   4
 a contact  +0 +420		2 3   ${THROUGHPUT}
 a contact  +0 +600		3 2   ${THROUGHPUT}
 EOF
@@ -153,7 +153,7 @@ EOF
 
         cat << ==EOF==
 ===============================================================================================================================
-RUNNING: IPv6 Test - Iteration ${ITERNUM}: Test ${TESTNUM}: $(fmt_num ${NUMBUNDLES}) bundles of $(fmt_num ${BUNDLESIZE}) bytes each - $(fmt_num ${ACTUALBYTES}) total bytes - measuring at 90% ($(fmt_num ${TARGETBUNDLES})) - Contact Plan MaxThroughput: $(fmt_num ${THROUGHPUT})
+RUNNING: IPv6 Test - Iteration ${ITERNUM}: Test ${TESTNUM}: $(fmt_num ${NUMBUNDLES}) bundles of $(fmt_num ${BUNDLESIZE}) bytes each - $(fmt_num ${ACTUALBYTES}) total bytes - steady state throughput measured at 90% ($(fmt_num ${TARGETBUNDLES})) - Contact Plan MaxThroughput: $(fmt_num ${THROUGHPUT})
 ===============================================================================================================================
 ==EOF==
 
@@ -229,22 +229,10 @@ RUNNING: IPv6 Test - Iteration ${ITERNUM}: Test ${TESTNUM}: $(fmt_num ${NUMBUNDL
             # Wait for bpdriver to finish sending
             wait $BPDRIVER_PID 2>/dev/null
 
-            # Drain any remaining extra bundles
-            DRAINBUNDLES=$((NUMBUNDLES - TARGETBUNDLES - 1))
-            DRAIN_TIMEOUTS=(0 60 60 70 60 40)
-            DRAIN_LIMIT=${DRAIN_TIMEOUTS[$TESTNUM]}
-            if [ $DRAINBUNDLES -gt 0 ]; then
-                echo "Draining any remaining extra bundles (${DRAIN_LIMIT}s limit)..."
-                (cd 3.bench.ltpv6; bpcounter ipn:3.1 ${DRAINBUNDLES}) &
-                DRAIN_PID=$!
-                DRAIN_TIMER=0
-                while kill -0 $DRAIN_PID 2>/dev/null && [ $DRAIN_TIMER -lt $DRAIN_LIMIT ]; do
-                    sleep 1
-                    DRAIN_TIMER=$((DRAIN_TIMER + 1))
-                done
-                kill -9 $DRAIN_PID 2>/dev/null
-                wait $DRAIN_PID 2>/dev/null
-            fi
+            # Let remaining bundles be discarded (endpoints are set to x)
+            COOLDOWNS=(0 60 60 70 60 40)
+            echo "Pausing ${COOLDOWNS[$TESTNUM]}s for remaining bundles to clear the system..."
+            sleep ${COOLDOWNS[$TESTNUM]}
         fi
 
     # loop to next bundle size
