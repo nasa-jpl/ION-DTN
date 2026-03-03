@@ -20,7 +20,7 @@ done
 
 #
 # find all test directories
-DIRECTORIES=`find . \( -type f -o -type l \) -a -name 'dotest' | grep -v "\.libs/" | xargs -L 1 dirname | cut -d / -f 1- | sort`
+DIRECTORIES=`find . ../demos \( -type f -o -type l \) -a -name 'dotest' | grep -v "\.libs/" | xargs -L 1 dirname | cut -d / -f 1- | sort`
 
 #
 # find all the exclusion files that are in use
