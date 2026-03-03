@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+"""
+Finds executable demos and tests that run on Linux and has been benchmarked.
+Then balances the tests across a number of runners between 1 & 7 to ensure each
+runner has approximately the same execution time. The result is returned as a
+JSON array.
+
+Nate Richard 2026/03/03 JPL
+"""
 
 import argparse
 import heapq
@@ -92,7 +100,11 @@ def list_tests() -> list[Path]:
             test_path = Path(test_dir.parent.name) / Path(test_dir.name)
         # means there is sub-folder within the sub-folder
         elif len(test_dir.parents) == 4:
-            test_path =  Path(test_dir.parent.parent.name) / Path(test_dir.parent.name) / Path(test_dir.name)
+            test_path = (
+                Path(test_dir.parent.parent.name)
+                / Path(test_dir.parent.name)
+                / Path(test_dir.name)
+            )
         else:
             test_path = Path(test_dir.name)
 
@@ -140,7 +152,7 @@ def get_folder_durations(folder_list: list[Path]) -> list[Task]:
                     f"[Warning] Could not parse number in: {file_path}. Defaulting to 0s.",
                     file=sys.stderr,
                 )
-            except Exception as e:
+            except OSError as e:
                 print(f"[Warning] Error reading {file_path}: {e}", file=sys.stderr)
         else:
             print(f"[Warning] {file_path} not benchmarked, skipping.", file=sys.stderr)

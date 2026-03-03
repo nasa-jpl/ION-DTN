@@ -1,4 +1,13 @@
 #!/usr/bin/env python3
+"""
+Runs ION tests and demos that are executable on Linux for a given number of
+iterations (default: 5) to establish an estimated execution time. This
+execution time is written to a .DURATION in the test folder. The .DURATION file
+is used to help determine how the tests should be distributed across a number
+of runners based on execution time.
+
+Nate Richard 2026/03/03 JPL
+"""
 
 import argparse
 import os
