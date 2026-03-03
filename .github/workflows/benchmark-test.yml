@@ -1,0 +1,89 @@
+name: Benchmark Tests
+
+on:
+  pull_request:
+    paths:
+      - "tests/**"
+      - "demos/**"
+  workflow_call:
+    inputs:
+      tests_to_run:
+        description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
+        required: false
+        type: string
+        default: ""
+  workflow_dispatch:
+    inputs:
+      tests_to_run:
+        description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  run-benchmarks:
+    runs-on: arc-runner-set-ol8
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Generate timestamp for file names
+        id: timestamp
+        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+
+      - name: Install and run benchmark
+        timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '60') }}
+        run: |
+          {
+            echo "Starting test installation and execution at $(date)"
+            export USER=$(whoami)
+            echo "USER is set to: $USER"
+            export ION_RUN_EXPERT="yes"
+            export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+            autoreconf -fi
+            ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
+            make all buildcheck
+            sudo make install
+            sudo ldconfig
+            if [ -n "${{ inputs.tests_to_run }}" ]; then
+              ./tests/benchmark.py -p ${{ inputs.tests_to_run }}
+            else
+              ./tests/benchmark.py
+            fi
+          } > benchmark.log 2> >(tee -a benchmark.log >&2)
+
+          TEST_STATUS=$?
+          wait  # Wait for background processes to complete
+
+          if [ $TEST_STATUS -ne 0 ]; then
+            echo "Tests failed with status $TEST_STATUS" >&2
+            exit $TEST_STATUS
+          fi
+
+      - name: Upload full test log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-install-log-${{ env.TIMESTAMP }}
+          path: benchmark.log
+
+      - name: Upload benchmark stdout logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-logs
+          path: |
+            tests/**/*.stdout
+            demos/**/*.stdout
+
+      - name: Commit newly generated .DURATION files
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Add .DURATION file(s) for benchmarked tests"
+          file_pattern: "tests/**/.DURATION demos/**/.DURATION"

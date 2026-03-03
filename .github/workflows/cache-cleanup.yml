@@ -1,0 +1,40 @@
+name: Cache Maintenance
+
+on:
+  # Run automatically every Sunday at midnight
+  schedule:
+    - cron: '0 0 * * 0'
+
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Target branch to clear caches for (leave empty to delete ALL caches)'
+        required: false
+        type: string
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Delete caches using GitHub CLI
+        env:
+          GH_TOKEN: ${{ secrets.ION_DTN_PUSH_TOKEN }}
+        run: |
+          # If a specific branch was provided in the manual dispatch
+          if [ -n "${{ inputs.branch }}" ]; then
+            echo "Deleting caches specifically for branch: ${{ inputs.branch }}..."
+            gh cache delete --all --ref refs/heads/${{ inputs.branch }} || echo "No caches found for this branch."
+
+          # Otherwise, nuke everything (useful for the Sunday night scheduled run)
+          else
+            echo "Deleting ALL caches in the repository to free up space..."
+            gh cache delete --all || echo "No caches found."
+          fi
+
+          echo "Cache cleanup complete."

@@ -1,0 +1,46 @@
+name: Build and Push Runner Images to Registry
+
+on:
+  push:
+    branches: [ "integration" ]
+    paths:
+      - 'images/**'
+  workflow_dispatch:
+
+env:
+  REGISTRY_ADDRESS: ${{ secrets.REGISTRY_ADDRESS }}
+  REGISTRY_NAMESPACE: ${{ secrets.REGISTRY_NAMESPACE }}
+  REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+
+jobs:
+  build-and-push:
+    name: Build and Push ${{ matrix.os_image }}
+    runs-on: arc-runner-set-ol8
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os_image: [ubuntu-20, ubuntu-22, oraclelinux-8, oranclelinux-9, rhel-8, rhel-9]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Registry
+        uses: redhat-actions/podman-login@v1
+        with:
+          username: ${{ env.REGISTRY_NAMESPACE }}
+          password: ${{ env.REGISTRY_PASSWORD }}
+          registry: ${{ env.REGISTRY_ADDRESS }}
+
+      - name: Build the container image
+        run: |
+          make docker-build \
+            OS_IMAGE=${{ matrix.os_image }} \
+            DEFAULT_RUNNER_NAME=${{ env.REGISTRY_ADDRESS }}/${{ env.REGISTRY_NAMESPACE }}/ion-runner-images
+
+      - name: Push the container image
+        run: |
+          make docker-push \
+            OS_IMAGE=${{ matrix.os_image }} \
+            DEFAULT_RUNNER_NAME=${{ env.REGISTRY_ADDRESS }}/${{ env.REGISTRY_NAMESPACE }}/ion-runner-images
