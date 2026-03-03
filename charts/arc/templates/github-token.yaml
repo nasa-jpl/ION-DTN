@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gha-runner-token-secret
+  namespace: arc-runners
+type: Opaque
+stringData:
+  github_token: {{ .Values.githubToken }}
