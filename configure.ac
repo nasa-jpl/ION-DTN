@@ -101,7 +101,6 @@ AC_CHECK_FUNCS([pow])
 
 
 # Check Platform and Architecture
-m4_include([m4/dccp_macro.m4])
 PLATFORM=""
 S_LIB_END="so"
 # Initialize PKG_CONFIG_CFLAGS for external applications
@@ -155,8 +154,6 @@ case $host_os in
       PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=2"
       echo "Build 32-bit Linux specific platform code."
     fi
-    #check for DCCP support
-    CHECK_DCCP()
     ;;
   mingw*|cygwin*)
     AC_DEFINE([mingw],[1],[Build Mingw specific platform code.])
@@ -466,16 +463,6 @@ AC_ARG_ENABLE(
       PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=4 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
       ENABLE_BPSEC_DEBUGGING=yes;;
     esac],
-  [])
-
-#
-# Try to enable DCCP support
-#
-AC_ARG_ENABLE(
-  dccp,
-  [AS_HELP_STRING([--enable-dccp], [Enable Support for DCCP as a convergence layer])],
-  [AC_DEFINE([build_dccp],[1],[DCCP only supported on Linux >=3.2.0])
-   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dbuild_dccp"],
   [])
 
 #
