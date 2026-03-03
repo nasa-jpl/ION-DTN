@@ -30,15 +30,17 @@ IONMESSAGE="iontestmessage"
 IONSENDFILE=./ionsendfile.txt
 IONRECEIVEFILE=./ionreceivefile.txt
 
-PROGRAMTEST="netcat"
-RESULTS=`which ${PROGRAMTEST}`
-WHICHRETURN=$?
-echo "${RESULTS}" | grep "^no ${PROGRAMTEST} in"
-WHICHFAILMESSAGE=$?
-# which could return the proper fail condition, or the results could be
-# empty, or you're on solaris and your results will be "no netcat in $PATH".
-if [ $WHICHRETURN -ne 0 -o -z "${RESULTS}" -o $WHICHFAILMESSAGE -eq 0 ] ; then
-    echo "${PROGRAMTEST} is not present in this system; skipping..."
+if command -v nc >/dev/null 2>&1; then
+    NC_CMD="nc"
+    echo "Found 'nc'"
+elif command -v netcat >/dev/null 2>&1; then
+    NC_CMD="netcat"
+    echo "Found 'netcat'"
+elif command -v ncat >/dev/null 2>&1; then
+    NC_CMD="ncat"
+    echo "Found 'ncat'"
+else
+    echo "Error: No version of netcat (nc, netcat, ncat) found." >&2
     exit 2
 fi
 
@@ -112,7 +114,7 @@ echo "Ready to proceed to rest of the test..."
 # starting a bogus connection
 cd ../1.ipn.tcp/
 echo "starting netcat from node 1..."
-nc 127.0.0.1 $RECEIVER_PORT >/dev/null &
+$NC_CMD 127.0.0.1 $RECEIVER_PORT >/dev/null &
 NETCATPID=$!
 
 sleep 5

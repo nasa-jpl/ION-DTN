@@ -118,6 +118,6 @@ fi
 
 echo ""
 echo "Terminating node."
-ionstop
+killm
 
 exit $FAIL

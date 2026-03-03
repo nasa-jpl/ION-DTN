@@ -68,11 +68,23 @@ if ! command -v tcpdump >/dev/null 2>&1; then
     exit 2
 fi
 
+# Check if ifconfig or ip command is installed
+if command -v ip >/dev/null 2>&1; then
+    echo "Using 'ip' command."
+    NET_CMD="ip link show dev"
+elif command -v ifconfig >/dev/null 2>&1; then
+    echo "Using 'ifconfig' command."
+    NET_CMD="ifconfig"
+else
+    echo "Error: Neither 'ip' nor 'ifconfig' found." >&2
+    exit 2
+fi
+
 # Detect loopback interface (could be 'lo' on Linux or 'lo0' on FreeBSD/macOS)
 LOOPBACK_IF=""
-if ifconfig lo0 >/dev/null 2>&1; then
+if $NET_CMD lo0 >/dev/null 2>&1; then
     LOOPBACK_IF="lo0"
-elif ifconfig lo >/dev/null 2>&1; then
+elif $NET_CMD lo >/dev/null 2>&1; then
     LOOPBACK_IF="lo"
 else
     echo "Error: Could not find loopback interface (tried 'lo' and 'lo0')."
@@ -82,7 +94,7 @@ fi
 
 # Check if tcpdump can capture on loopback without sudo (required for packet capture)
 # Run a brief capture attempt to verify permissions
-if ! timeout 1 tcpdump -i "$LOOPBACK_IF" -c 1 -w /dev/null 2>/dev/null; then
+if ! timeout 3 tcpdump -i "$LOOPBACK_IF" -c 1 -w /dev/null 2>/dev/null; then
     echo "Error: tcpdump requires elevated permissions to capture on $LOOPBACK_IF."
     echo "Please run with sufficient privileges or configure tcpdump capabilities."
     echo "Skipping test due to insufficient permissions."
@@ -145,7 +157,7 @@ run_test_scenario() {
     sleep 1
 
     # Inject cancel segment
-    ltpcancel $cancel_type localhost $dest_port $engine_id $session_id
+    ltpcancel $cancel_type 127.0.0.1 $dest_port $engine_id $session_id
     if [ $? -ne 0 ]; then
         echo "Error: Failed to inject $cancel_type segment"
         kill $TCPDUMP_PID 2>/dev/null
@@ -210,7 +222,7 @@ echo "Running cancel segment acknowledgment tests..."
 # Note: CS for unknown sessions should NOT be acknowledged (this is correct behavior)
 echo "=== Test Scenario: CS for unknown session (should NOT be acknowledged) ==="
 echo "Sending CS segment for engine 2, session 99999"
-ltpcancel CS localhost 3113 2 99999
+ltpcancel CS 127.0.0.1 3113 2 99999
 if [ $? -eq 0 ]; then
     echo "SUCCESS: CS segment sent successfully (no acknowledgment expected for unknown session)"
 else

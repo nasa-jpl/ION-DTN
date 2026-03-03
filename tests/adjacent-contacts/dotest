@@ -215,6 +215,7 @@ fi
 
 echo ""
 
-# Cleanup will be handled by trap on exit and/or by runtests ./cleanup script
-# Note: If PRESERVE_TEST_LOGS is set, runtests will skip cleanup on failure
+# Cleanup is normally handled by runtests, but when benchmarking consecutive runs need to be cleanup
+# in between otherwise there are failures.
+cleanup
 exit $TEST_RESULT

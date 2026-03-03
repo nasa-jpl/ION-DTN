@@ -6,11 +6,15 @@
 #
 # documentation boilerplate
 CONFIGFILES=" \
+<<<<<<< HEAD
 ./loopback.ionrc \
 ./loopback.ltprc \
 ./loopback.bprc \
 ./loopback.ionsecrc \
 ./loopback.ipnrc \
+=======
+${CONFIGSROOT}/loopback-ltp/loopback.rc
+>>>>>>> a5fdad27e (Fix execution issues with some tests)
 "
 echo "########################################"
 echo
@@ -55,6 +59,7 @@ GEN_SUPPRESSIONS=""
 rm -f out.valgrind.*
 
 echo "Starting ION..."
+<<<<<<< HEAD
 # Config files are local to test directory; ion.log will be written here
 libtool --mode=execute                             \
     valgrind                                       \
@@ -72,6 +77,20 @@ libtool --mode=execute                             \
         -b loopback.bprc                           \
         -s loopback.ionsecrc                       \
         -p loopback.ipnrc
+=======
+
+cp $IONDIR/ionstart.awk $IONDIR/ionstart_valgrind.awk
+export AWKSCRIPT="$IONDIR/ionstart_valgrind.awk"
+
+# Set a trap to GUARANTEE the valgrind awk is wiped when this script exits,
+# even if the test fails, errors out, or you hit Ctrl+C.
+trap 'rm "$AWKSCRIPT"; echo "Cleaned up $AWKSCRIPT"' EXIT
+
+# Apply the sed patch to inject libtool and valgrind
+sed -i 's|if (0 != system(programs\[x\] " iontemprun")) {|valgrind_cmd = "libtool --mode=execute valgrind --suppressions=valgrind.suppressions.ionstart --quiet --log-file=out.valgrind." programs[x] ".%p --num-callers=25 --tool=memcheck --trace-children=yes --leak-check=full "; if (0 != system(valgrind_cmd programs[x] " iontemprun")) {|' "${AWKSCRIPT}"
+
+$IONDIR/ionstart -I $CONFIGFILES
+>>>>>>> a5fdad27e (Fix execution issues with some tests)
 
 # create the test message in a sent file
 # the exclamation point signals the bundle sender to quit

@@ -385,7 +385,8 @@ processes_running=0
 for PROC in ${IONPROCESSLIST}; do
     #grep "[^-a-zA-Z]${PROC}$" "${PSFILE}" | grep -v "defunct" | \
     #    awk '{printf("  *** Unknown error: process %s not killed...try rebooting\n", $NF);}'
-    processline=$(grep -w "${PROC}" "${PSFILE}" | grep -v "defunct")
+    # Exclude runtests that are running test names that include ION process names
+    processline=$(grep -w "${PROC}" "${PSFILE}" | grep -v "defunct" | grep -v "runtests")
     if [ -n "$processline" ]; then
         echo "ERROR: process $PROC not killed..."
         processes_running=$(($processes_running + 1))

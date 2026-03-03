@@ -34,13 +34,14 @@ echo "Starting ION..."
 echo "ionstart -i loopback.ionrc -l loopback.ltprc -b loopback.bprc -p loopback.ipnrc -s loopback.ionsecrc"
 ionstart -i loopback.ionrc -l loopback.ltprc -b loopback.bprc -p loopback.ipnrc -s loopback.ionsecrc
 
-libtool --mode=execute valgrind --tool=memcheck ./domtake 2> valgrind-output
+CURDIR="$( cd "$( dirname "$0" )" && pwd )"
+libtool --mode=execute valgrind --tool=memcheck $CURDIR/domtake 2> valgrind-output
 
 echo "Valgrind said..."
 cat valgrind-output
 
 echo -n "Verifying valgrind noticed the leaked block..."
-if grep -q "definitely lost: 128 bytes in 1 blocks" valgrind-output; then
+if grep -q "definitely lost: 128 bytes in 1 blocks" $CURDIR/valgrind-output; then
     echo "OK"
 else
     echo "FAIL"

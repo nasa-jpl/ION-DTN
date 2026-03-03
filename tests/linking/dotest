@@ -48,7 +48,7 @@ fi
 
 RETVAL=0
 
-CURDIR=$PWD
+CURDIR="$( cd "$( dirname "$0" )" && pwd )"
 
 (cd "$IONDIR" && "$CURDIR/make-link-graph.sh" -o "$CURDIR/ionliblinks.dot")
 (cd "$IONDIR" && "$CURDIR/make-link-graph.sh" -x -o "$CURDIR/ionexelinks.dot")
@@ -58,15 +58,15 @@ bail () {
 }
 
 #Check library links first.
-if grep -q 'color=red' ionliblinks.dot; then
+if grep -q 'color=red' $CURDIR/ionliblinks.dot; then
     echo "Missing link between libraries:"
-    grep 'color=red' ionliblinks.dot | cut -d ' ' -f 1 | sort -u
+    grep 'color=red' $CURDIR/ionliblinks.dot | cut -d ' ' -f 1 | sort -u
     echo
     RETVAL=1
 fi
-if grep -q 'color=purple' ionliblinks.dot; then
+if grep -q 'color=purple' $CURDIR/ionliblinks.dot; then
     echo "Unused link between libraries:"
-    grep 'color=purple' ionliblinks.dot | cut -d ' ' -f 1 | sort -u
+    grep 'color=purple' $CURDIR/ionliblinks.dot | cut -d ' ' -f 1 | sort -u
     if [ $OLDLIBTOOL -eq 1 ] ; then
         echo "Libtool is too old and inserts spurious -pthreads; ignoring error."
         RETVAL=0
@@ -83,15 +83,15 @@ if [ "$RETVAL" != "0" ]; then
 fi
 
 #If no errors, also check executables
-if grep -q 'color=red' ionliblinks.dot; then
+if grep -q 'color=red' $CURDIR/ionliblinks.dot; then
     echo "Missing link between libraries:"
-    grep 'color=red' ionliblinks.dot | cut -d ' ' -f 1 | sort -u
+    grep 'color=red' $CURDIR/ionliblinks.dot | cut -d ' ' -f 1 | sort -u
     echo
     RETVAL=1
 fi
-if grep -q 'color=purple' ionliblinks.dot; then
+if grep -q 'color=purple' $CURDIR/ionliblinks.dot; then
     echo "Unused link between libraries:"
-    grep 'color=purple' ionliblinks.dot | cut -d ' ' -f 1 | sort -u
+    grep 'color=purple' $CURDIR/ionliblinks.dot | cut -d ' ' -f 1 | sort -u
     if [ $OLDLIBTOOL -eq 1 ] ; then
         echo "Libtool is too old and inserts spurious -pthreads; ignoring error."
         RETVAL=0
