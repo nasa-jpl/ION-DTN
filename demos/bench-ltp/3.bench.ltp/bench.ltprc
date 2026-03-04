@@ -1,3 +1,4 @@
-1 100
-a span 2 100 100 64000 1000000 1 'udplso localhost:2112'
+1 2000
+a span 2 2000 2000 64000 1000000 1 'udplso localhost:2112'
+m span 2 inactivity 60
 s 'udplsi localhost:2113'

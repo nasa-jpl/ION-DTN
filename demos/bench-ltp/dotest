@@ -23,15 +23,34 @@ MAXBUNDLES=500000
 # how many total seconds to allow each individual test to run before giving up
 # 5 minutes is probably plenty
 MAXSECONDS=120
-# what bundle sizes do you want to test
-# (list multiple values to cycle through them each)
-BUNDLESIZES="1000 5000 10000 20000 63000"
 # what THROUGHPUT to list in the contact plans (in ___BYTES___ per second)
 # (list multiple values to cycle through them each)
 #THROUGHPUTS="100${MB} 1${GB} 10${GB} 100${GB}"
 THROUGHPUTS="10${GB}"
 # how many iterations of the test to run?
 ITERATIONS="1"
+# Test definitions: each entry is one test run.
+# Format: "bundle_size max_export max_import max_seg_size agg_size_thresh agg_time_limit"
+# Number of bundles is computed from TOTALBYTES/bundle_size (capped at MAXBUNDLES).
+# The LSO command is fixed: 'udplso localhost:2113'
+# NOTE the first entry's LTP parameters should be in the ltprc file
+# already for node 2. Node 3's ltprc file should not change and should
+# have the highest max_exp and max_imp values to avoid being the bottleneck.
+# Large bundle sizes will be dropped by the kernel if they exceed the UDP buffer size
+# so they are commented out for typical use.
+TESTS=(
+#    "500000 4 4 64000 100000 1"
+#    "200000 4 4 64000 100000 1"
+    "63000 4 4 64000 100000 1"
+    "20000 10 10 64000 100000 1"
+    "10000 20 20 64000 100000 1"
+    "5000  40 40 64000 100000 1"
+    "1000  40 40 64000 100000 1"
+)
+LSO_CMD="udplso localhost:2113"
+# Node directory names
+SENDER_DIR=2.bench.ltp
+RECEIVER_DIR=3.bench.ltp
 
 
 # Format a number with commas for display (e.g., 63800 -> 63,800)
@@ -55,18 +74,18 @@ echo "UnameAll: `uname -a`"
 # documentation boilerplate
 CONFIGFILES=" \
 ./global.ionrc \
-./2.bench.ltp/bench.ltprc \
-./2.bench.ltp/bench.bprc \
-./2.bench.ltp/bench.ionconfig \
-./2.bench.ltp/bench.ionrc \
-./2.bench.ltp/bench.ionsecrc \
-./2.bench.ltp/bench.ipnrc \
-./3.bench.ltp/bench.ltprc \
-./3.bench.ltp/bench.bprc \
-./3.bench.ltp/bench.ionconfig \
-./3.bench.ltp/bench.ionrc \
-./3.bench.ltp/bench.ionsecrc \
-./3.bench.ltp/bench.ipnrc \
+./${SENDER_DIR}/bench.ltprc \
+./${SENDER_DIR}/bench.bprc \
+./${SENDER_DIR}/bench.ionconfig \
+./${SENDER_DIR}/bench.ionrc \
+./${SENDER_DIR}/bench.ionsecrc \
+./${SENDER_DIR}/bench.ipnrc \
+./${RECEIVER_DIR}/bench.ltprc \
+./${RECEIVER_DIR}/bench.bprc \
+./${RECEIVER_DIR}/bench.ionconfig \
+./${RECEIVER_DIR}/bench.ionrc \
+./${RECEIVER_DIR}/bench.ionsecrc \
+./${RECEIVER_DIR}/bench.ipnrc \
 "
 
 TOPDIR=`pwd`
@@ -81,6 +100,11 @@ echo "PURPOSE: produce simple throughput benchmark results, for direct
     the results exercise BP and LTP in a non-loopback configuration,
     over loopback UDP/IP; the results are therefore unaffected by network
     traffic, router performance, or network interface card performance."
+echo
+echo "NOTE: adjusting kernel UDP size will have significant impact on
+    throughput due to artificially high silent drops caused by
+    can increase the effective segment loss rate far above typical design."
+echo
 
 if [ -n "$DEBUG" ]; then
     echo
@@ -141,12 +165,20 @@ EOF
     echo
 
     # Start nodes.
-    (cd 2.bench.ltp; ./ionstart)
-    (cd 3.bench.ltp; ./ionstart)
+    (cd ${SENDER_DIR}; ./ionstart)
+    (cd ${RECEIVER_DIR}; ./ionstart)
 
     TESTNUM=0
-    for BUNDLESIZE in ${BUNDLESIZES}; do
+    for TEST_CFG in "${TESTS[@]}"; do
         let "++TESTNUM"
+        read BUNDLESIZE MAX_EXP MAX_IMP MAX_SEG AGG_SIZE AGG_TIME <<< "$TEST_CFG"
+
+        # Reconfigure sending node's span at runtime (skip first test; bench.ltprc already loaded it)
+        if [ $TESTNUM -gt 1 ]; then
+            (cd ${SENDER_DIR}; echo "c span 3 $MAX_EXP $MAX_IMP $MAX_SEG $AGG_SIZE $AGG_TIME '$LSO_CMD'" | ltpadmin)
+            sleep 3
+        fi
+
         let "NUMBUNDLES = TOTALBYTES/BUNDLESIZE"
         if [ $NUMBUNDLES -lt 1 ]; then
             NUMBUNDLES=1
@@ -165,11 +197,12 @@ EOF
 
         cat << ==EOF==
 ===============================================================================================================================
-RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: $(fmt_num ${NUMBUNDLES}) bundles of $(fmt_num ${BUNDLESIZE}) bytes each - $(fmt_num ${ACTUALBYTES}) total bytes - steady state throughput measured at 90% ($(fmt_num ${TARGETBUNDLES})) - Contact Plan MaxThroughput: $(fmt_num ${THROUGHPUT})
+RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}/${#TESTS[@]}: $(fmt_num ${NUMBUNDLES}) bundles of $(fmt_num ${BUNDLESIZE}) bytes each - $(fmt_num ${ACTUALBYTES}) total bytes - steady state throughput measured at 90% ($(fmt_num ${TARGETBUNDLES})) - Contact Plan MaxThroughput: $(fmt_num ${THROUGHPUT})
+SpanConfig: max_exp=$MAX_EXP max_imp=$MAX_IMP max_seg=$MAX_SEG agg_size=$AGG_SIZE agg_time=$AGG_TIME
 ===============================================================================================================================
 ==EOF==
 
-        cd 3.bench.ltp
+        cd ${RECEIVER_DIR}
         bpcounter ipn:3.1 ${TARGETBUNDLES} &
         BPCOUNTER_PID=$!
         cd ..
@@ -191,7 +224,7 @@ RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: $(fmt_num ${NUMBUNDLES}) bundles
         fi
 
         # bpdriver sends the bundles in the background
-        (cd 2.bench.ltp; bpdriver ${NUMBUNDLES} ipn:2.1 ipn:3.1 -${BUNDLESIZE} > /dev/null) &
+        (cd ${SENDER_DIR}; bpdriver ${NUMBUNDLES} ipn:2.1 ipn:3.1 -${BUNDLESIZE} > /dev/null) &
         BPDRIVER_PID=$!
 
         # Wait for transmission to finish.
@@ -231,26 +264,26 @@ RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: $(fmt_num ${NUMBUNDLES}) bundles
             kill -9 $BPCOUNTER_PID $BPDRIVER_PID
             sleep 10
             echo "Stopping ION..."
-            #(cd 2.bench.ltp; ./ionstop) &
-            #(cd 3.bench.ltp; ./ionstop) &
+            #(cd ${SENDER_DIR}; ./ionstop) &
+            #(cd ${RECEIVER_DIR}; ./ionstop) &
             #ssleep 10
             killm
             sleep 10
             echo "Re-starting ION..."
-            (cd 2.bench.ltp; ./ionstart)
-            (cd 3.bench.ltp; ./ionstart)
+            (cd ${SENDER_DIR}; ./ionstart)
+            (cd ${RECEIVER_DIR}; ./ionstart)
             RETVAL=0;   # allow next test to proceed
         else
             # Wait for bpdriver to finish sending
             wait $BPDRIVER_PID 2>/dev/null
 
             # Let remaining bundles be discarded (endpoints are set to x)
-            COOLDOWNS=(0 60 60 70 60 40)
-            echo "Pausing ${COOLDOWNS[$TESTNUM]}s for remaining bundles to clear the system..."
-            sleep ${COOLDOWNS[$TESTNUM]}
+            COOLDOWN=30
+            echo "Pausing ${COOLDOWN}s for remaining bundles to clear the system..."
+            sleep ${COOLDOWN}
         fi
 
-    # loop to next bundle size
+    # loop to next test
     done
 
     # loop to next contact plan throughput
@@ -268,8 +301,8 @@ RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: $(fmt_num ${NUMBUNDLES}) bundles
     fi
 
     #echo "Stopping ION..."
-    #(cd 2.bench.ltp; ./ionstop) &
-    #(cd 3.bench.ltp; ./ionstop) &
+    #(cd ${SENDER_DIR}; ./ionstop) &
+    #(cd ${RECEIVER_DIR}; ./ionstop) &
     #wait
     #wait
 sleep 3

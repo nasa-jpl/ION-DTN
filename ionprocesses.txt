@@ -213,6 +213,8 @@ ltpmeter
 lt-ltpmeter
 ltpsecadmin
 lt-ltpsecadmin
+ltpwatch
+lt-ltpwatch
 nm_agent
 lt-nm_agent
 nm_mgr
