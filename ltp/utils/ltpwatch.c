@@ -18,6 +18,82 @@ typedef enum
 	FILTER_IMPORT
 } TypeFilter;
 
+#define NUM_STATUSES	15
+
+typedef struct
+{
+	const char	*name;
+	int		count;
+} StatusCounter;
+
+static const char	*statusNames[NUM_STATUSES] =
+{
+	"buffering",
+	"transmitting",
+	"awaiting-cleanup",
+	"green-only",
+	"receiving",
+	"complete-pending",
+	"awaiting-delivery",
+	"delivered",
+	"completed",
+	"canceled(user)",
+	"canceled(unreachable)",
+	"canceled(rexmit)",
+	"canceled(miscolor)",
+	"canceled(engine)",
+	"canceled(unknown)"
+};
+
+static void	tallyStatus(StatusCounter *counters, const char *status)
+{
+	int	i;
+
+	for (i = 0; i < NUM_STATUSES; i++)
+	{
+		if (strcmp(counters[i].name, status) == 0)
+		{
+			counters[i].count++;
+			return;
+		}
+	}
+}
+
+static void	initCounters(StatusCounter *counters)
+{
+	int	i;
+
+	for (i = 0; i < NUM_STATUSES; i++)
+	{
+		counters[i].name = statusNames[i];
+		counters[i].count = 0;
+	}
+}
+
+static void	printStatusSummary(StatusCounter *counters)
+{
+	char	buffer[256];
+	int	i;
+	int	printed = 0;
+
+	for (i = 0; i < NUM_STATUSES; i++)
+	{
+		if (counters[i].count > 0)
+		{
+			isprintf(buffer, sizeof buffer,
+				"  %-24s %d",
+				counters[i].name, counters[i].count);
+			PUTS(buffer);
+			printed++;
+		}
+	}
+
+	if (printed == 0)
+	{
+		PUTS("  (no sessions)");
+	}
+}
+
 static unsigned int	ltpwatch_count(int *newValue)
 {
 	static unsigned int	count = 1;
@@ -48,10 +124,12 @@ static void	handleQuit(int signum)
 
 static void	printUsage(void)
 {
-	PUTS("Usage: ltpwatch [-t <type>] [-s <session>] [-e <engineId>] \
-[<interval> [<count>]]");
+	PUTS("Usage: ltpwatch [-a] [-c] [-t <type>] [-s <session>] \
+[-e <engineId>] [<interval> [<count>]]");
 	PUTS("");
 	PUTS("Options:");
+	PUTS("  -a            Show only active sessions (omit dead/completed)");
+	PUTS("  -c            Summary count mode (counts by status)");
 	PUTS("  -t <type>     Filter by session type: 'import' or 'export' \
 (default: both)");
 	PUTS("  -s <number>   Filter by specific session number");
@@ -71,6 +149,9 @@ interval>0, 1 if interval=0)");
 	PUTS("  ltpwatch -t export         One-shot, export sessions only");
 	PUTS("  ltpwatch -e 2 -t import 3  Engine 2, imports only, every 3 sec");
 	PUTS("  ltpwatch -s 12345          Find session 12345 across all spans");
+	PUTS("  ltpwatch -a                Active sessions only");
+	PUTS("  ltpwatch -c                Summary counts by status");
+	PUTS("  ltpwatch -a -c -t import   Active import summary counts");
 }
 
 static const char	*getCancelReasonStr(int reasonCode)
@@ -217,7 +298,8 @@ static void	displayImportSession(LtpImportSession *session, int isDead,
 }
 
 static void	processSpan(Sdr sdr, Object spanObj, LtpSpan *span,
-			TypeFilter typeFilter, unsigned int filterSession)
+			TypeFilter typeFilter, unsigned int filterSession,
+			int activeOnly, int countMode)
 {
 	char			buffer[256];
 	Object			elt;
@@ -229,7 +311,10 @@ static void	processSpan(Sdr sdr, Object spanObj, LtpSpan *span,
 	int			activeImports = 0;
 	int			deadImports = 0;
 	int			displayCount;
+	int			totalCount;
 	LtpDB			*ltpConstants;
+	StatusCounter		counters[NUM_STATUSES];
+	const char		*status;
 
 	isprintf(buffer, sizeof buffer,
 		"\n--- Span " UVAST_FIELDSPEC " ---", span->engineId);
@@ -244,7 +329,7 @@ static void	processSpan(Sdr sdr, Object spanObj, LtpSpan *span,
 		activeExports = sdr_list_length(sdr, span->exportSessions);
 
 		ltpConstants = getLtpConstants();
-		if (ltpConstants != NULL)
+		if (!activeOnly && ltpConstants != NULL)
 		{
 			/*	Count dead exports for this span.	*/
 
@@ -265,51 +350,137 @@ static void	processSpan(Sdr sdr, Object spanObj, LtpSpan *span,
 			}
 		}
 
-		isprintf(buffer, sizeof buffer,
-			"\nEXPORT SESSIONS (Active: %d, Dead: %d)",
-			activeExports, deadExports);
-		PUTS(buffer);
-
-		PUTS("  Session    Status             Client TotalLen   RedLen     Rexmit");
-		PUTS("  -------    ------             ------ ---------  ---------  ------");
-
-		displayCount = 0;
-
-		/*	Display active export sessions.			*/
-
-		for (elt = sdr_list_first(sdr, span->exportSessions); elt;
-				elt = sdr_list_next(sdr, elt))
+		if (activeOnly)
 		{
-			sessionObj = sdr_list_data(sdr, elt);
-			sdr_read(sdr, (char *) &exportSession, sessionObj,
-				sizeof(LtpExportSession));
-			displayExportSession(&exportSession, 0,
-				filterSession, &displayCount);
+			isprintf(buffer, sizeof buffer,
+				"\nEXPORT SESSIONS (Active: %d)",
+				activeExports);
+		}
+		else
+		{
+			isprintf(buffer, sizeof buffer,
+				"\nEXPORT SESSIONS (Active: %d, Dead: %d)",
+				activeExports, deadExports);
 		}
 
-		/*	Display dead export sessions for this span.	*/
+		PUTS(buffer);
 
-		if (ltpConstants != NULL)
+		if (countMode)
 		{
-			for (elt = sdr_list_first(sdr, ltpConstants->deadExports);
-				elt; elt = sdr_list_next(sdr, elt))
+			initCounters(counters);
+			totalCount = 0;
+
+			/*	Tally active export sessions.		*/
+
+			for (elt = sdr_list_first(sdr,
+				span->exportSessions); elt;
+				elt = sdr_list_next(sdr, elt))
 			{
 				sessionObj = sdr_list_data(sdr, elt);
 				sdr_read(sdr, (char *) &exportSession,
-					sessionObj, sizeof(LtpExportSession));
-
-				if (exportSession.span == spanObj)
+					sessionObj,
+					sizeof(LtpExportSession));
+				if (filterSession != 0
+				&& exportSession.sessionNbr
+					!= filterSession)
 				{
-					displayExportSession(&exportSession,
-						1, filterSession,
-						&displayCount);
+					continue;
+				}
+
+				status = getExportSessionStatus(
+					&exportSession, 0);
+				tallyStatus(counters, status);
+				totalCount++;
+			}
+
+			/*	Tally dead export sessions.		*/
+
+			if (!activeOnly && ltpConstants != NULL)
+			{
+				for (elt = sdr_list_first(sdr,
+					ltpConstants->deadExports);
+					elt;
+					elt = sdr_list_next(sdr, elt))
+				{
+					sessionObj = sdr_list_data(sdr,
+						elt);
+					sdr_read(sdr,
+						(char *) &exportSession,
+						sessionObj,
+						sizeof(LtpExportSession));
+					if (exportSession.span != spanObj)
+					{
+						continue;
+					}
+
+					if (filterSession != 0
+					&& exportSession.sessionNbr
+						!= filterSession)
+					{
+						continue;
+					}
+
+					status = getExportSessionStatus(
+						&exportSession, 1);
+					tallyStatus(counters, status);
+					totalCount++;
 				}
 			}
-		}
 
-		if (displayCount == 0)
+			printStatusSummary(counters);
+		}
+		else
 		{
-			PUTS("  (no sessions)");
+			PUTS("  Session    Status             Client \
+TotalLen   RedLen     Rexmit");
+			PUTS("  -------    ------             ------ \
+---------  ---------  ------");
+
+			displayCount = 0;
+
+			/*	Display active export sessions.		*/
+
+			for (elt = sdr_list_first(sdr,
+				span->exportSessions); elt;
+				elt = sdr_list_next(sdr, elt))
+			{
+				sessionObj = sdr_list_data(sdr, elt);
+				sdr_read(sdr, (char *) &exportSession,
+					sessionObj,
+					sizeof(LtpExportSession));
+				displayExportSession(&exportSession, 0,
+					filterSession, &displayCount);
+			}
+
+			/*	Display dead export sessions.		*/
+
+			if (!activeOnly && ltpConstants != NULL)
+			{
+				for (elt = sdr_list_first(sdr,
+					ltpConstants->deadExports);
+					elt;
+					elt = sdr_list_next(sdr, elt))
+				{
+					sessionObj = sdr_list_data(sdr,
+						elt);
+					sdr_read(sdr,
+						(char *) &exportSession,
+						sessionObj,
+						sizeof(LtpExportSession));
+					if (exportSession.span == spanObj)
+					{
+						displayExportSession(
+							&exportSession,
+							1, filterSession,
+							&displayCount);
+					}
+				}
+			}
+
+			if (displayCount == 0)
+			{
+				PUTS("  (no sessions)");
+			}
 		}
 	}
 
@@ -318,52 +489,141 @@ static void	processSpan(Sdr sdr, Object spanObj, LtpSpan *span,
 	if (typeFilter == FILTER_ALL || typeFilter == FILTER_IMPORT)
 	{
 		activeImports = sdr_list_length(sdr, span->importSessions);
-		deadImports = sdr_list_length(sdr, span->deadImports);
 
-		isprintf(buffer, sizeof buffer,
-			"\nIMPORT SESSIONS (Active: %d, Dead: %d)",
-			activeImports, deadImports);
+		if (!activeOnly)
+		{
+			deadImports = sdr_list_length(sdr,
+				span->deadImports);
+		}
+
+		if (activeOnly)
+		{
+			isprintf(buffer, sizeof buffer,
+				"\nIMPORT SESSIONS (Active: %d)",
+				activeImports);
+		}
+		else
+		{
+			isprintf(buffer, sizeof buffer,
+				"\nIMPORT SESSIONS (Active: %d, Dead: %d)",
+				activeImports, deadImports);
+		}
+
 		PUTS(buffer);
 
-		PUTS("  Session    Status             Client RedLen     Received   Rexmit");
-		PUTS("  -------    ------             ------ ---------  ---------  ------");
+		if (countMode)
+		{
+			initCounters(counters);
+			totalCount = 0;
 
-		displayCount = 0;
+			/*	Tally active import sessions.		*/
 
-		/*	Display active import sessions.			*/
-
-		for (elt = sdr_list_first(sdr, span->importSessions); elt;
+			for (elt = sdr_list_first(sdr,
+				span->importSessions); elt;
 				elt = sdr_list_next(sdr, elt))
-		{
-			sessionObj = sdr_list_data(sdr, elt);
-			sdr_read(sdr, (char *) &importSession, sessionObj,
-				sizeof(LtpImportSession));
-			displayImportSession(&importSession, 0,
-				filterSession, &displayCount);
+			{
+				sessionObj = sdr_list_data(sdr, elt);
+				sdr_read(sdr, (char *) &importSession,
+					sessionObj,
+					sizeof(LtpImportSession));
+				if (filterSession != 0
+				&& importSession.sessionNbr
+					!= filterSession)
+				{
+					continue;
+				}
+
+				status = getImportSessionStatus(
+					&importSession, 0);
+				tallyStatus(counters, status);
+				totalCount++;
+			}
+
+			/*	Tally dead import sessions.		*/
+
+			if (!activeOnly)
+			{
+				for (elt = sdr_list_first(sdr,
+					span->deadImports); elt;
+					elt = sdr_list_next(sdr, elt))
+				{
+					sessionObj = sdr_list_data(sdr,
+						elt);
+					sdr_read(sdr,
+						(char *) &importSession,
+						sessionObj,
+						sizeof(LtpImportSession));
+					if (filterSession != 0
+					&& importSession.sessionNbr
+						!= filterSession)
+					{
+						continue;
+					}
+
+					status = getImportSessionStatus(
+						&importSession, 1);
+					tallyStatus(counters, status);
+					totalCount++;
+				}
+			}
+
+			printStatusSummary(counters);
 		}
+		else
+		{
+			PUTS("  Session    Status             Client \
+RedLen     Received   Rexmit");
+			PUTS("  -------    ------             ------ \
+---------  ---------  ------");
 
-		/*	Display dead import sessions.			*/
+			displayCount = 0;
 
-		for (elt = sdr_list_first(sdr, span->deadImports); elt;
+			/*	Display active import sessions.		*/
+
+			for (elt = sdr_list_first(sdr,
+				span->importSessions); elt;
 				elt = sdr_list_next(sdr, elt))
-		{
-			sessionObj = sdr_list_data(sdr, elt);
-			sdr_read(sdr, (char *) &importSession, sessionObj,
-				sizeof(LtpImportSession));
-			displayImportSession(&importSession, 1,
-				filterSession, &displayCount);
-		}
+			{
+				sessionObj = sdr_list_data(sdr, elt);
+				sdr_read(sdr, (char *) &importSession,
+					sessionObj,
+					sizeof(LtpImportSession));
+				displayImportSession(&importSession, 0,
+					filterSession, &displayCount);
+			}
 
-		if (displayCount == 0)
-		{
-			PUTS("  (no sessions)");
+			/*	Display dead import sessions.		*/
+
+			if (!activeOnly)
+			{
+				for (elt = sdr_list_first(sdr,
+					span->deadImports); elt;
+					elt = sdr_list_next(sdr, elt))
+				{
+					sessionObj = sdr_list_data(sdr,
+						elt);
+					sdr_read(sdr,
+						(char *) &importSession,
+						sessionObj,
+						sizeof(LtpImportSession));
+					displayImportSession(
+						&importSession, 1,
+						filterSession,
+						&displayCount);
+				}
+			}
+
+			if (displayCount == 0)
+			{
+				PUTS("  (no sessions)");
+			}
 		}
 	}
 }
 
 static int	runLtpWatch(uvast filterEngineId, int hasEngineFilter,
 			TypeFilter typeFilter, unsigned int filterSession,
-			int interval)
+			int interval, int activeOnly, int countMode)
 {
 	Sdr		sdr;
 	LtpDB		*ltpConstants;
@@ -421,7 +681,7 @@ static int	runLtpWatch(uvast filterEngineId, int hasEngineFilter,
 			}
 
 			processSpan(sdr, spanObj, &span, typeFilter,
-				filterSession);
+				filterSession, activeOnly, countMode);
 			spanCount++;
 		}
 
@@ -480,6 +740,8 @@ int	main(int argc, char **argv)
 	uvast		filterEngineId = 0;
 	int		hasEngineFilter = 0;
 	unsigned int	filterSession = 0;
+	int		activeOnly = 0;
+	int		countMode = 0;
 	int		interval = 0;
 	int		count = 0;
 	int		i;
@@ -494,6 +756,14 @@ int	main(int argc, char **argv)
 		{
 			printUsage();
 			return 0;
+		}
+		else if (strcmp(argv[i], "-a") == 0)
+		{
+			activeOnly = 1;
+		}
+		else if (strcmp(argv[i], "-c") == 0)
+		{
+			countMode = 1;
 		}
 		else if (strcmp(argv[i], "-t") == 0)
 		{
@@ -612,7 +882,7 @@ int	main(int argc, char **argv)
 	/*	Run the watch loop.					*/
 
 	result = runLtpWatch(filterEngineId, hasEngineFilter, typeFilter,
-		filterSession, interval);
+		filterSession, interval, activeOnly, countMode);
 
 	ltp_detach();
 	return result;

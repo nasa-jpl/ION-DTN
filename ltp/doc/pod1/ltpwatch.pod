@@ -4,7 +4,7 @@ ltpwatch - Licklider Transmission Protocol (LTP) session status monitor
 
 =head1 SYNOPSIS
 
-B<ltpwatch> [B<-t> I<type>] [B<-s> I<session>] [B<-e> I<engineId>] [I<interval> [I<count>]]
+B<ltpwatch> [B<-a>] [B<-c>] [B<-t> I<type>] [B<-s> I<session>] [B<-e> I<engineId>] [I<interval> [I<count>]]
 
 =head1 DESCRIPTION
 
@@ -24,6 +24,21 @@ display at a specified interval.
 =head1 OPTIONS
 
 =over 4
+
+=item B<-a>
+
+Show only active sessions.  When this flag is set, dead (completed and
+canceled) sessions are omitted from the output entirely and the header
+line shows only the active count (the "Dead: N" portion is suppressed).
+This is useful during bench testing or debugging to focus on sessions
+that are currently in-flight.
+
+=item B<-c>
+
+Summary count mode.  Instead of printing individual session rows,
+B<ltpwatch> prints a per-status count table for each section (export
+and/or import).  Only statuses with at least one session are shown.
+This flag composes with B<-a>, B<-t>, B<-e>, and B<-s>.
 
 =item B<-t> I<type>
 
@@ -118,6 +133,30 @@ B<ltpwatch> displays session information in a tabular format:
       -------    ------             ------ ---------  ---------  ------
       20001      receiving          1      65536      45000      0
       20003      completed          1      16384      16384      0
+
+When B<-c> (summary count mode) is used, individual session rows are
+replaced by a per-status count table:
+
+    === LTP Session Watch [2024-12-03 14:23:45] ===
+
+    --- Span 2 ---
+
+    EXPORT SESSIONS (Active: 15, Dead: 4)
+      buffering                3
+      transmitting             8
+      canceled(rexmit)         4
+
+    IMPORT SESSIONS (Active: 10, Dead: 2)
+      receiving                7
+      complete-pending         3
+      completed                2
+
+When B<-a> (active-only) is combined with B<-c>, the header omits the
+dead count and only active sessions are tallied:
+
+    EXPORT SESSIONS (Active: 15)
+      buffering                3
+      transmitting             8
 
 Note that the export and import tables have different column layouts.
 In particular, the last three data columns differ between the two tables
@@ -401,6 +440,18 @@ Find and display session 12345 across all spans.
 =item B<ltpwatch -e 2 -t export 3>
 
 Show export sessions for engine 2, refreshing every 3 seconds.
+
+=item B<ltpwatch -a>
+
+Show only active sessions (omit dead/completed/canceled), one-shot.
+
+=item B<ltpwatch -c>
+
+Summary count mode: show counts by status instead of individual sessions.
+
+=item B<ltpwatch -a -c -t import>
+
+Active import sessions only, summarized by status count.
 
 =back
 
