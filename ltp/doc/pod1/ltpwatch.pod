@@ -119,17 +119,108 @@ B<ltpwatch> displays session information in a tabular format:
       20001      receiving          1      65536      45000      0
       20003      completed          1      16384      16384      0
 
+Note that the export and import tables have different column layouts.
+In particular, the last three data columns differ between the two tables
+(see L</"Column Descriptions"> below).
+
+=head2 Export Session Columns
+
+=over 4
+
+=item B<Session>
+
+The LTP session number, assigned by the sending engine.
+
+=item B<Status>
+
+Current session state (see L</"Export Session Status Values"> below).
+
+=item B<Client>
+
+Client service ID that owns this session (e.g., 1 for Bundle Protocol).
+
+=item B<TotalLen>
+
+Total block size in bytes, including both red (reliable) and green
+(unreliable) portions.
+
+=item B<RedLen>
+
+Size of the red (reliable) portion of the block in bytes.  Only the red
+portion is subject to LTP's retransmission-based reliability mechanism.
+
+=item B<Rexmit>
+
+Number of times this session's B<cancel segment> (CS) has been
+retransmitted while awaiting a cancel-acknowledgment (CAS) from the
+receiver.  This counter is always 0 for active sessions that have not been
+canceled.  For canceled sessions (status C<canceled(...)>), it shows how
+many times the cancel segment itself had to be retransmitted.
+
+B<Important:> This is I<not> the checkpoint retransmission count.
+Checkpoint retransmissions are tracked per individual checkpoint segment
+and are not displayed by B<ltpwatch>.
+
+=back
+
+=head2 Import Session Columns
+
+=over 4
+
+=item B<Session>
+
+The LTP session number, as assigned by the sending engine.
+
+=item B<Status>
+
+Current session state (see L</"Import Session Status Values"> below).
+
+=item B<Client>
+
+Client service ID that owns this session (e.g., 1 for Bundle Protocol).
+
+=item B<RedLen>
+
+Expected size of the red (reliable) portion of the block in bytes,
+as declared by the sender.  This value is 0 until the receiver has
+received enough information (typically the End-of-Red-Part or
+End-of-Block marker) to determine the red part length.
+
+=item B<Received>
+
+Number of red-part bytes received so far.  When B<Received> equals
+B<RedLen>, all reliable data has arrived (though the session may still
+be waiting for report acknowledgments to complete).
+
+=item B<Rexmit>
+
+Number of times this session's B<cancel segment> (CR) has been
+retransmitted while awaiting a cancel-acknowledgment (CAR) from the
+sender.  This counter is always 0 for active sessions that have not been
+canceled.  For canceled sessions (status C<canceled(...)>), it shows how
+many times the cancel segment itself had to be retransmitted.
+
+B<Important:> This is I<not> the report segment retransmission count.
+Report retransmissions are tracked per individual report segment and
+are not displayed by B<ltpwatch>.
+
+=back
+
 =head2 Export Session Status Values
 
 =over 4
 
 =item B<buffering>
 
-Session is aggregating data blocks; End-of-Block has not been sent yet.
+Session is aggregating data into a block; the End-of-Block data segment
+has not been sent yet.
 
 =item B<transmitting>
 
-End-of-Block has been sent but final acknowledgment has not been received.
+End-of-Block has been sent but the final report acknowledgment has not
+been received.  The session may be waiting for reports, retransmitting
+checkpoints, or retransmitting data segments in response to negative
+reports.
 
 =item B<awaiting-cleanup>
 
@@ -137,31 +228,55 @@ Final acknowledgment received; session is being cleaned up.
 
 =item B<green-only>
 
-Session contains only green (unreliable) data with no red part.
+Session contains only green (unreliable, best-effort) data with no
+red part, so no LTP reliability mechanisms apply.
 
 =item B<completed>
 
-Session completed successfully (in dead exports list).
+Session completed successfully (in dead exports list, awaiting final
+cleanup).
 
 =item B<canceled(user)>
 
-Session was canceled by user request.
+Session was canceled by explicit user request (via B<ltpcancel>).
 
 =item B<canceled(unreachable)>
 
-Session was canceled because client service was unreachable.
+Session was canceled because the destination client service was
+unreachable.
 
 =item B<canceled(rexmit)>
 
-Session was canceled due to retransmission limit exceeded.
+Session was canceled because a retransmission limit was exceeded.
+On the sender (export) side, this occurs when:
+
+=over 4
+
+=item *
+
+A B<checkpoint> retransmission timer expired C<maxTimeouts> times without
+receiving a report segment from the receiver.  C<maxTimeouts> is computed
+from the link's segment loss rate (derived from C<maxBER> in legacy mode
+or set explicitly via span configuration).
+
+=item *
+
+The total number of checkpoints sent for this session reached
+C<maxCheckpoints>, a per-session limit computed from the block size
+and expected segment loss rate.
+
+=back
 
 =item B<canceled(miscolor)>
 
-Session was canceled due to segment color mismatch.
+Session was canceled due to a segment color mismatch (a green segment
+was received for a session that had already received red segments, or
+vice versa, in a way that violates LTP protocol rules).
 
 =item B<canceled(engine)>
 
-Session was canceled by the LTP engine.
+Session was canceled by the LTP engine for an internal reason not
+covered by the other cancellation codes.
 
 =back
 
@@ -171,61 +286,73 @@ Session was canceled by the LTP engine.
 
 =item B<receiving>
 
-Session is actively receiving data segments.
+Session is actively receiving data segments from the sender.
 
 =item B<complete-pending>
 
-All data received; waiting for processing.
+All red-part data has been received (B<Received> E<ge> B<RedLen>) and the
+End-of-Block marker has arrived, but the final report/acknowledgment
+exchange has not yet completed.
 
 =item B<awaiting-delivery>
 
-Final report acknowledged; awaiting delivery to client.
+Final report has been acknowledged by the sender; the complete block
+is awaiting delivery to the local client application.
 
 =item B<delivered>
 
-Data has been delivered to the client application.
+Data has been delivered to the client application (e.g., Bundle Protocol
+agent).
 
 =item B<completed>
 
-Session completed successfully (in dead imports list).
+Session completed successfully (in dead imports list, awaiting final
+cleanup).
 
-=item B<canceled(...)>
+=item B<canceled(user)>
 
-Same cancellation reasons as export sessions.
+Session was canceled by explicit user request (via B<ltpcancel>).
 
-=back
+=item B<canceled(unreachable)>
 
-=head2 Column Descriptions
+Session was canceled because the local client service was unreachable.
+
+=item B<canceled(rexmit)>
+
+Session was canceled because a retransmission limit was exceeded.
+On the receiver (import) side, this occurs when:
 
 =over 4
 
-=item B<Session>
+=item *
 
-The LTP session number.
+A B<report segment> retransmission timer expired C<maxTimeouts> times
+without receiving a report-acknowledgment from the sender.
+C<maxTimeouts> is computed from the link's segment loss rate (derived
+from C<maxBER> in legacy mode or set explicitly via span configuration).
 
-=item B<Status>
+=item *
 
-Current session state (see status values above).
+The total number of report segments sent for this session reached
+C<maxReports>, a per-session limit computed from the block size and
+expected segment loss rate.
 
-=item B<Client>
+=back
 
-Client service ID that owns this session.
+Note: a session may show B<Received> equal to B<RedLen> (all data
+received) yet still be C<canceled(rexmit)>.  This happens when the
+receiver received all data and sent a final report, but the sender
+never acknowledged that report.  After the report retransmission limit
+is exhausted, the receiver cancels the session even though all data
+arrived.
 
-=item B<TotalLen> (export only)
+=item B<canceled(miscolor)>
 
-Total block size in bytes.
+Session was canceled due to a segment color mismatch.
 
-=item B<RedLen>
+=item B<canceled(engine)>
 
-Size of the red (reliable) portion in bytes.
-
-=item B<Received> (import only)
-
-Number of red bytes received so far.
-
-=item B<Rexmit>
-
-Retransmission/expiration count from the session timer.
+Session was canceled by the LTP engine for an internal reason.
 
 =back
 
@@ -322,16 +449,44 @@ The specified engine ID does not match any configured span.
 
 =item *
 
-Recently completed sessions are only visible for a short time (typically
-around 30 seconds) while they remain in the "dead" session lists awaiting
-final cleanup.  After cleanup, they will no longer appear in B<ltpwatch>
+Recently completed or canceled sessions are only visible for a short
+time while they remain in the "dead" session lists awaiting final
+cleanup.  After cleanup, they will no longer appear in B<ltpwatch>
 output.
 
 =item *
 
-The B<Rexmit> column shows the timer expiration count, which is only
-meaningful for sessions that have experienced retransmissions or
-cancellation attempts.
+LTP uses several distinct retransmission mechanisms that should not be
+confused:
+
+B<Checkpoint retransmission> (sender side): When the sender transmits a
+checkpoint data segment and does not receive a report segment within the
+expected round-trip time, it retransmits the checkpoint.  Each checkpoint
+segment has its own retransmission timer and expiration count.  These
+per-checkpoint counts are I<not> shown by B<ltpwatch>.
+
+B<Report segment retransmission> (receiver side): When the receiver sends
+a report segment and does not receive a report-acknowledgment from the
+sender, it retransmits the report.  Each report segment has its own
+retransmission timer and expiration count.  These per-report counts are
+I<not> shown by B<ltpwatch>.
+
+B<Cancel segment retransmission> (either side): After a session is
+canceled, the canceling engine sends a cancel segment and waits for a
+cancel-acknowledgment.  If the acknowledgment does not arrive, the cancel
+segment is retransmitted.  The B<Rexmit> column in B<ltpwatch> shows
+this cancel-segment retransmission count.
+
+=item *
+
+The C<maxTimeouts> parameter that governs checkpoint and report
+retransmission limits is not directly configurable.  In legacy mode
+(no explicit span loss-rate configuration), it is computed from the
+link's bit error rate (C<maxBER>, default 0.000001) and the maximum
+segment size, with a minimum of 3.  The computed value is logged at
+span startup as:
+
+    [i] Span to engine N ... max timeouts M.
 
 =back
 
