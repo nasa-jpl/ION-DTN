@@ -293,7 +293,7 @@ SpanConfig: max_exp=$MAX_EXP max_imp=$MAX_IMP max_seg=$MAX_SEG agg_size=$AGG_SIZ
             wait $BPDRIVER_PID 2>/dev/null
 
             # Let remaining bundles be discarded (endpoints are set to x)
-            COOLDOWN=30
+            COOLDOWN=60
             echo "Pausing ${COOLDOWN}s for remaining bundles to clear the system..."
             sleep ${COOLDOWN}
         fi
