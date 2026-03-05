@@ -39,8 +39,9 @@
 #	for Licklider Transmission Protocol).  The single quote is
 #	important, don't use double quotes.
 #
-#       tx datarate is set to 750kbits/sec so the 1 megabyte data file will take
-#       at least 10 secs, which is how we verify rate limiting works
+#       tx datarate is set to 80000 bytes/sec (640kbits/sec) via the contact
+#       plan so the 1 megabyte data file will take ~13 secs, which is
+#       how we verify rate limiting works (threshold is 10 secs)
 #
 a span 1 2 1250000 2 1250000 1024 1024 1 'udplso localhost:1113'
 

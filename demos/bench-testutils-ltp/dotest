@@ -23,6 +23,8 @@ MAXBUNDLES=10000
 # how many total seconds to allow each individual test to run before giving up
 # 5 minutes is probably plenty
 MAXSECONDS=120
+# how many total seconds to allow the entire test script to run before aborting
+MAX_TOTAL_SECONDS=600
 # what bundle sizes do you want to test
 # (list multiple values to cycle through them each)
 BUNDLESIZES="1${KB} 10${KB} 63,800 1${MB} 10${MB}"
@@ -102,6 +104,19 @@ echo "Checking for additional memory needed for this demo..."
 if [ $? != 0 ]; then
     echo "Can't run, need additional system resources"
     exit 1
+fi
+
+# Start overall timeout watchdog
+if [ "$MAX_TOTAL_SECONDS" -gt 0 ] 2>/dev/null; then
+    (
+        sleep $MAX_TOTAL_SECONDS
+        echo ""
+        echo "OVERALL TIMEOUT: Test exceeded ${MAX_TOTAL_SECONDS}s. Aborting."
+        killm 2>/dev/null
+        kill $$ 2>/dev/null
+    ) &
+    WATCHDOG_PID=$!
+    trap "kill $WATCHDOG_PID 2>/dev/null; exit 1" TERM
 fi
 
 ITERNUM=0
@@ -255,6 +270,9 @@ RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: ${NUMBUNDLES} bundles of ${BUNDL
     #(cd 3.bench.ltp; ./ionstop) &
     #wait
     #wait
+# Cancel the overall timeout watchdog
+[ -n "$WATCHDOG_PID" ] && kill $WATCHDOG_PID 2>/dev/null
+
 killm
 sleep 3
 

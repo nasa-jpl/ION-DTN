@@ -122,8 +122,8 @@ do
     bpsendfile ipn:2.1 ipn:3.1 shakespeare4
 
     echo ""
-    echo "...wait for 4 minutes to complete data transfer..."
-    sleep 240
+    echo "...wait for 6 minutes to complete data transfer..."
+    sleep 360
     cd ../3.ipn.ltp
 
     # Verify that all four files arrived.

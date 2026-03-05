@@ -72,7 +72,7 @@ echo "Sending file (includes 45 sec pause for the limited tx)..."
 bpsendfile ipn:1.1 ipn:1.2 $IONSENDFILE &
 BPSENDFILEPID=$!
 
-# wait long enough for file to transfer
+# wait long enough for file to transfer at 80000 bytes/sec (~13s for 1MB)
 sleep 45
 
 # kill everything in case it didn't finish properly
@@ -107,6 +107,7 @@ else
     recvfilets=`perl -le 'print scalar  ((lstat shift)[9])' $IONRECEIVEFILE`
 
     tsdiff=$((recvfilets - sendfilets))
+    echo "Send file timestamp: $sendfilets  Recv file timestamp: $recvfilets  Difference: ${tsdiff}s"
 
     if [ $tsdiff -ge 10 ]; then
         echo "bundle transfer successful!"
