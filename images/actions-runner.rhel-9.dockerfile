@@ -30,6 +30,10 @@ RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.n
     openssl-devel \
     nmap-ncat \
     diffutils \
+    valgrind \
+    valgrind-devel \
+    cmake \
+    ninja-build \
     file \
     && dnf clean all
 

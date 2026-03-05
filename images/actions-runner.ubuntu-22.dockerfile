@@ -34,6 +34,9 @@ RUN apt-get update -y \
     libssl-dev \
     netcat \
     valgrind \
+    libtool-bin \
+    cmake \
+    ninja-build \
     && rm -rf /var/lib/apt/lists/*
 
 RUN export PATH=$HOME/.local/bin:$PATH

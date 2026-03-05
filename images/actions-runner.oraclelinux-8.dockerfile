@@ -34,11 +34,14 @@ RUN microdnf install -y oracle-epel-release-el8 \
     openssl-devel \
     netcat \
     valgrind \
+    valgrind-devel \
     shadow-utils \
     which \
     hostname \
     procps-ng \
     file \
+    cmake \
+    ninja-build \
     && microdnf clean all
 
 RUN export PATH=$HOME/.local/bin:$PATH
