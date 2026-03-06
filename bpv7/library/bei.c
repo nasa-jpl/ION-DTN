@@ -35,6 +35,7 @@
 #include "bpP.h"
 #include "bei.h"
 #include "bpsec_util.h"
+#include "bpsec_asb.h"
 
 /*	We hitchhike on the ZCO heap space management system to
  *	manage the space occupied by Bundle objects.  In effect,

@@ -1076,7 +1076,6 @@ bpbin = \
 	bpnmtest \
 	bprecvfile \
 	bprecvtest \
-	bpsecadmin \
 	bpsendfile \
 	bpsendtest \
 	bpsink \
@@ -1373,11 +1372,6 @@ bpclean-local:
 # -- Libraries --- #
 
 libbp_la_SOURCES = \
-	bpv7/bpsec/instr/bpsec_instr.c \
-	bpv7/bpsec/policy/bpsec_policy.c \
-	bpv7/bpsec/policy/bpsec_policy_eventset.c \
-	bpv7/bpsec/policy/bpsec_policy_event.c \
-	bpv7/bpsec/policy/bpsec_policy_rule.c \
 	bpv7/bpsec/sci/ion_test_sc.c \
 	bpv7/bpsec/sci/bib_hmac_sha2_sc.c \
 	bpv7/bpsec/sci/bcb_aes_gcm_sc.c \
@@ -1398,8 +1392,6 @@ libbp_la_SOURCES = \
 	bpv7/library/cbr.c \
 	bpv7/library/ext/bae/bae.c \
 	bpv7/library/ext/bpq/bpq.c \
-	bpv7/library/ext/bpsec/bcb.c \
-	bpv7/library/ext/bpsec/bib.c \
 	bpv7/library/ext/hcb/hcb.c \
 	bpv7/library/ext/meb/meb.c \
 	bpv7/library/ext/creb/creb.c \
@@ -1409,11 +1401,23 @@ libbp_la_SOURCES = \
 	bpv7/library/ext/snw/snw.c \
 	bpv7/ipn/libipnfw.c \
 	bpv7/saga/saga.c \
-	bpv7/utils/bpsecadmin_config.c \
 	bpv7/utils/jsmn.c \
 	ici/libbloom-master/bloom.h \
 	ici/libbloom-master/bloom.c \
 	ici/libbloom-master/murmur2/MurmurHash2.c
+
+# Native BPSec sources - only when BSL is NOT enabled
+if !ENABLE_BSL
+libbp_la_SOURCES += \
+	bpv7/bpsec/instr/bpsec_instr.c \
+	bpv7/bpsec/policy/bpsec_policy.c \
+	bpv7/bpsec/policy/bpsec_policy_eventset.c \
+	bpv7/bpsec/policy/bpsec_policy_event.c \
+	bpv7/bpsec/policy/bpsec_policy_rule.c \
+	bpv7/library/ext/bpsec/bcb.c \
+	bpv7/library/ext/bpsec/bib.c \
+	bpv7/utils/bpsecadmin_config.c
+endif
 
 
 if CRYPTO_MBEDTLS
@@ -1517,9 +1521,12 @@ bpinspect_SOURCES = bpv7/utils/bpinspect.c bpv7/utils/bpinspect_data.c bpv7/util
 bpinspect_LDADD = libici.la $(bplib)
 bpinspect_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
+if !ENABLE_BSL
+bin_PROGRAMS += bpsecadmin
 bpsecadmin_SOURCES = bpv7/utils/bpsecadmin.c
 bpsecadmin_LDADD = libici.la $(bplib) $(LINENOISE_LDADD)
 bpsecadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(LINENOISE_CFLAGS)
+endif
 
 bpstats_SOURCES = bpv7/utils/bpstats.c
 bpstats_LDADD = libici.la $(bplib)

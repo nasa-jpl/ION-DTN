@@ -52,9 +52,11 @@
 #include "bei.h"
 #include "csi.h"
 #include "sci.h"
+#include "sci_valmap.h"
+#if !USING_BSL
 #include "bpsec_policy.h"
 #include "bpsec_policy_rule.h"
-#include "sci_valmap.h"
+#endif
 
 /*****************************************************************************
  *                              DEBUG DEFINITIONS                            *
@@ -217,6 +219,22 @@ Object        bspsec_util_findOutboundBpsecTargetBlock(Bundle *bundle, int tgtBl
 
 unsigned char *bpsec_util_primaryBlkSerialize(Bundle *bundle, int *length);
 
+void bpsec_util_inboundBlkClear(AcqExtBlock *blk);
+void bpsec_util_outboundBlkRelease(ExtensionBlock *blk);
+
+int bpsec_util_acqBlkDataAsZco(AcqExtBlock *blk, Object *zco);
+
+sc_value bpsec_util_keyRetrieve(char *keyName);
+
+int32_t bpsec_util_sdrBlkConvert(uint32_t suite, uint8_t *context, csi_blocksize_t *blocksize,
+                                 ZcoReader *dataReader, uvast outputBufLen, Object *outputZco, uint8_t function);
+
+
+int32_t bpsec_util_fileBlkConvert(uint32_t suite, uint8_t *csi_ctx, csi_blocksize_t *blocksize,
+		ZcoReader *dataReader, uvast outputBufLen, Object *outputZco, char *filename,
+		uint8_t function);
+
+#if !USING_BSL
 int bpsec_util_swapOutboundSop(Bundle *bundle, ExtensionBlock *src, ExtensionBlock *dest, int tgtBlkNum);
 
 int bpsec_util_attachSecurityBlocks(Bundle *bundle, BpBlockType secBlkType, sc_action action);
@@ -234,27 +252,12 @@ Object bpsec_util_OutboundBlockCreate(Bundle *bundle, BpBlockType type, sc_Def *
 int bpsec_util_generateSecurityResults(Bundle *bundle, char *fromEid, ExtensionBlock *secBlk, BpsecOutboundASB *secAsb, sc_action action);
 
 
-void bpsec_util_inboundBlkClear(AcqExtBlock *blk);
-void bpsec_util_outboundBlkRelease(ExtensionBlock *blk);
-
-int bpsec_util_acqBlkDataAsZco(AcqExtBlock *blk, Object *zco);
-
-sc_value bpsec_util_keyRetrieve(char *keyName);
-
-int32_t bpsec_util_sdrBlkConvert(uint32_t suite, uint8_t *context, csi_blocksize_t *blocksize,
-                                 ZcoReader *dataReader, uvast outputBufLen, Object *outputZco, uint8_t function);
-
-
-int32_t bpsec_util_fileBlkConvert(uint32_t suite, uint8_t *csi_ctx, csi_blocksize_t *blocksize,
-		ZcoReader *dataReader, uvast outputBufLen, Object *outputZco, char *filename,
-		uint8_t function);
-
-
 /** Deprecated functions kept to compile */
 int                     bpsec_util_numKeysGet(int *size);
 void                    bpsec_util_keysGet(char *buffer, int length);
 int                     bpsec_util_numCSNamesGet(int *size);
 void                    bpsec_util_cSNamesGet(char *buffer, int length);
+#endif /* !USING_BSL */
 
 
 #endif /* BPSEC_UTIL_H */

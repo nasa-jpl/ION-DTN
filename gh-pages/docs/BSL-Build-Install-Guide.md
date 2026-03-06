@@ -479,9 +479,9 @@ Add to `~/.bashrc` for persistence.
 
 ### What Happens to Native BPSec When BSL Is Enabled
 
-When you build ION with `USING_BSL=1` (or `--enable-bsl` with automake), the native BPSec source files are **still compiled and linked** into `libbp`. BSL does not replace the native BPSec object files at the linker level. Instead, the `-DUSING_BSL=1` preprocessor flag activates `#if USING_BSL` / `#if !USING_BSL` guards throughout the shared source code, which selects BSL code paths and compiles out the native security operations.
+When you build ION with `USING_BSL=1` (or `--enable-bsl` with automake), the native BPSec policy framework and security processing code are **excluded from compilation**. The `-DUSING_BSL=1` preprocessor flag activates `#if USING_BSL` / `#if !USING_BSL` guards throughout the shared source code, and the build system conditionally excludes files that are not needed.
 
-**What BSL replaces (compiled out via `#if !USING_BSL`):**
+**What BSL replaces:**
 
 | Operation | Native BPSec Function | BSL Replacement |
 |-----------|----------------------|-----------------|
@@ -492,28 +492,52 @@ When you build ION with `USING_BSL=1` (or `--enable-bsl` with automake), the nat
 | Inbound verification/decryption | `bpsec_verify()` / `bpsec_decrypt()` | `bslProcess()` at `BSL_POLICYLOCATION_CLIN` |
 | ASB deserialization | Native deserializer in `bpextensions.c` | Set to NULL; BSL parses ASBs directly |
 
-**What remains active from native BPSec:**
+### BPSec Source Code Organization
 
-- **ASB data structures and serialization** (`bpsec_asb.c`, `bpsec_util.c`) — BSL uses some of these structures
-- **Extension block definitions** for BIB/BCB (`bcb.c`, `bib.c`) — block type registration and outbound handling remain; only the deserialize callback is nulled out
+The BPSec implementation is organized into layers. Some layers are shared infrastructure needed by both BSL and native BPSec, while others are native-only and excluded from BSL builds.
 
-**What is compiled but dormant at runtime:**
+#### Shared infrastructure (compiled in both BSL and non-BSL builds)
 
-- **Native BPSec policy framework** (`bpsec_policy.c`, `bpsec_policy_rule.c`, `bpsec_policy_event.c`, `bpsec_policy_eventset.c`) — These files implement ION's native BPSec policy engine (rule matching, event handling, event sets). Despite the `bsl_`/`bslpol_` function prefixes, they are part of ION's native BPSec, not the external BSL library. When BSL is active, these functions are never called at runtime because the entry points that invoke them (`bpsec_sign`, `bpsec_encrypt`, `bpsec_verify`, `bpsec_decrypt`) are compiled out. BSL uses its own JSON-based policy engine instead. However, these files **cannot be excluded** from the build because `bpsecadmin` calls their functions unconditionally (without `USING_BSL` guards) for managing rules, event sets, and events via the admin CLI.
-- **BPSec instrumentation** (`bpsec_instr.c`) — Statistics counters (e.g., `ADD_BIB_RX_PASS`, `ADD_BCB_TX_FAIL`) are only updated from within `bib.c`/`bcb.c` security processing functions, which are not called when BSL handles security. The `bpsec_instr_init()` and `bpsec_instr_cleanup()` calls are also in `#if !USING_BSL` blocks.
-- **Security context interface code** (`sci.c`, `sci_valmap.c`, etc.) — compiled but the actual crypto operations are handled by BSL's security contexts
+These components provide the low-level BPSec data structures and extension block plumbing that both BSL and native BPSec rely on:
 
-**Key source files involved in the toggle:**
+| Component | Source files | Purpose |
+|-----------|-------------|---------|
+| **ASB handling** | `bpsec_asb.c`, `bpsec_asb.h` | Abstract Security Block (ASB) creation, serialization, copy, and recording. Provides the extension block callbacks registered in `bpextensions.c` (`bpsec_asb_outboundAsbCopy`, `bpsec_asb_inboundAsbRecord`). |
+| **Security utilities** | `bpsec_util.c`, `bpsec_util.h` | Extension block release/clear callbacks (`bpsec_util_outboundBlkRelease`, `bpsec_util_inboundBlkClear`), EID helpers, canonicalization, key retrieval, and block conversion functions used by security contexts. |
+| **Security context interface (SCI)** | `sci.c`, `sci.h`, `sci_structs.h` | Security context registry and lookup. Defines the `sc_Def` structure that maps security context IDs to their implementations. |
+| **SC value system** | `sc_value.c`, `sc_value.h`, `sci_valmap.c`, `sci_valmap.h` | Typed value containers for security parameters and results. Used by ASB serialization/deserialization and by security context implementations. |
+| **SC utilities** | `sc_util.c`, `sc_util.h` | Shared helper functions used by security context implementations (key retrieval wrappers, parameter extraction). |
+| **SC implementations** | `bcb_aes_gcm_sc.c`, `bib_hmac_sha2_sc.c`, `ion_test_sc.c`, `rfc9173_utils.c` | Concrete security context implementations (AES-GCM, HMAC-SHA2, test SC). Registered in the static `gScDefs[]` table in `sci.c`. |
+| **Extension block registration** | `bpextensions.c` | BIB/BCB block type entries in the extension table. Deserialize callbacks are set to NULL when BSL is active; other callbacks (copy, record, release, clear) remain. |
+| **BSL wrapper code** | `bsl.c`, `ionpatch.c` | BSL initialization, `bslProcess()` dispatch, and ION memory allocator bridge. Only compiled when BSL is enabled. |
+
+> **Why SCI and the SC implementations remain:** `bpsec_asb.c` depends on `sc_value.c` for typed value serialization, `sc_value.c` depends on `sci_valmap.c` for value map lookups and `sci.c` for context definition lookups, and `sci.c` statically references function pointers from all three SC implementations. This dependency chain means the entire SCI layer must be compiled even in BSL builds. The SC implementation functions are not called at BSL runtime (BSL uses its own crypto via OpenSSL), but they compile cleanly and are linked as dead code.
+
+#### Native BPSec only (excluded from BSL builds)
+
+These components implement the native BPSec security processing pipeline and policy engine. They are not compiled when `USING_BSL=1`:
+
+| Component | Source files | Purpose |
+|-----------|-------------|---------|
+| **Policy engine** | `bpsec_policy.c`, `bpsec_policy_rule.c`, `bpsec_policy_event.c`, `bpsec_policy_eventset.c` | ION's native policy rule matching, event handling, and event set management. BSL replaces this with its own JSON-based policy engine. |
+| **BIB processing** | `bib.c`, `bib.h` | `bpsec_sign()` and `bpsec_verify()` — native integrity operations using the SCI/mbedTLS stack. |
+| **BCB processing** | `bcb.c`, `bcb.h` | `bpsec_encrypt()` and `bpsec_decrypt()` — native confidentiality operations using the SCI/mbedTLS stack. |
+| **Instrumentation** | `bpsec_instr.c` | BPSec statistics counters (`ADD_SRC_BYTES`, `ADD_RCV_BYTES`, etc.) only incremented by native BIB/BCB processing. |
+| **`bpsecadmin` utility** | `bpsecadmin.c`, `bpsecadmin_config.c` | CLI for managing native policy rules and event sets. Not built when BSL is active — use `m bsl` in `bpadmin` instead. |
+
+**Key source files involved in the build toggle:**
 
 - `bpv7/library/bpP.h` — Includes `bsl.h` and adds BSL config fields to `BpDB` when `USING_BSL=1`
 - `bpv7/library/libbpP.c` — Contains the main `#if USING_BSL` guards for init, shutdown, send-side and receive-side security processing
+- `bpv7/bpsec/utils/bpsec_util.h` — Guards policy header includes and native-only function declarations
 - `bpv7/library/ext/bpextensions.c` — Nulls out BIB/BCB ASB deserialization callbacks when BSL is active
-- `bpv7/bsl/bsl.c` and `bpv7/bsl/ionpatch.c` — BSL wrapper code, only compiled when BSL is enabled
+- `ici/include/ionsec.h` — Policy fields in `SecDB`/`SecVdb` are conditionally compiled out
+- `Makefile.am` / `Makefile.dev` — Conditionally exclude native BPSec sources and `bpsecadmin`
 
 **Practical implications:**
 
-- The resulting `libbp.so` is **larger** with BSL enabled (it contains both the native BPSec object code and the BSL wrapper/libraries)
-- `bpsecadmin` still compiles and links against the native policy framework. You can use it to add/remove rules and event sets, but those rules are never consulted at runtime — BSL uses its own JSON policy files configured via `m bsl` in `bpadmin`
+- The resulting `libbp.so` is **smaller** with BSL enabled (native policy, instrumentation, and BIB/BCB processing code are excluded)
+- `bpsecadmin` is **not built** when BSL is enabled — use BSL's JSON policy files configured via `m bsl` in `bpadmin` instead
 - The `bpadmin` utility gains the `m bsl` command for BSL-specific configuration
 - Switching between BSL and native BPSec requires a **full rebuild** (`make clean && make`) with the appropriate `USING_BSL` flag — it is not a runtime toggle
 

@@ -102,10 +102,12 @@ BPLIBS = \
 	libsppcla.so \
 	libmetadata.so
 
-BPPOBJS = libbpP.o libipnfw.o libimcfw.o libdtn2fw.o bibe.o eureka.o saga.o bei.o pnb.o bpq.o meb.o bae.o hcb.o cteb.o creb.o cbr.o snw.o imc.o bpsec_util.o bpsec_instr.o bib.o bcb.o bpsec_policy.o bpsec_policy_event.o bpsec_policy_eventset.o bpsec_policy_rule.o bcb_aes_gcm_sc.o bib_hmac_sha2_sc.o ion_test_sc.o rfc9173_utils.o sc_util.o sc_value.o sci.o sci_valmap.o bpsec_asb.o
+BPPOBJS_BASE = libbpP.o libipnfw.o libimcfw.o libdtn2fw.o bibe.o eureka.o saga.o bei.o pnb.o bpq.o meb.o bae.o hcb.o cteb.o creb.o cbr.o snw.o imc.o bpsec_util.o bpsec_asb.o bcb_aes_gcm_sc.o bib_hmac_sha2_sc.o ion_test_sc.o rfc9173_utils.o sc_util.o sc_value.o sci.o sci_valmap.o
 
 ifeq ($(USING_BSL),1)
-BPPOBJS += bsl.o ionpatch.o
+BPPOBJS = $(BPPOBJS_BASE) bsl.o ionpatch.o
+else
+BPPOBJS = $(BPPOBJS_BASE) bpsec_instr.o bib.o bcb.o bpsec_policy.o bpsec_policy_event.o bpsec_policy_eventset.o bpsec_policy_rule.o
 endif
 
 IPNDOBJS = ipnd.o beacon.o helper.o bpa.o
@@ -121,7 +123,13 @@ endif
 
 LBP = -lbp $(LBSL)
 
-RUNTIMES = bpadmin bpsecadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpsendtest bprecvtest bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo sppcli sppclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat imcfw imcadminep bsspcli bsspclo bibeclo bibeadmin bpnmtest ipnd cgrfetch bpcrash bpcrash_hard bpinspect cpsd sendfile recvfile bptracker
+RUNTIMES_BASE = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpsendtest bprecvtest bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo sppcli sppclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat imcfw imcadminep bsspcli bsspclo bibeclo bibeadmin bpnmtest ipnd cgrfetch bpcrash bpcrash_hard bpinspect cpsd sendfile recvfile bptracker
+
+ifeq ($(USING_BSL),1)
+RUNTIMES = $(RUNTIMES_BASE)
+else
+RUNTIMES = $(RUNTIMES_BASE) bpsecadmin
+endif
 # dccpcli dccpclo
 
 ALL = check $(BPLIBS) $(RUNTIMES)

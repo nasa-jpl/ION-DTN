@@ -63,7 +63,9 @@
 
 #include "bpsec_util.h"
 #include "bpsec_asb.h"
+#if !USING_BSL
 #include "sci.h"
+#endif
 #include "csi.h"
 
 
@@ -198,8 +200,10 @@ writeMemo(gMsg);}
  *****************************************************************************/
 
 
+#if !USING_BSL
 extern int		bpsec_encrypt(Bundle *bundle);
 
 extern int		bpsec_decrypt(AcqWorkArea *work);
+#endif /* !USING_BSL */
 
 #endif /* BCB_H_ */
