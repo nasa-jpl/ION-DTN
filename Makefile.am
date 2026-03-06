@@ -1382,6 +1382,7 @@ libbp_la_SOURCES = \
 	bpv7/bpsec/sci/sc_value.c \
 	bpv7/bpsec/utils/bpsec_util.c \
 	bpv7/bpsec/utils/bpsec_asb.c \
+	bpv7/bpsec/instr/bpsec_instr.c \
 	bpv7/bibe/bibe.c \
 	bpv7/dtn2/libdtn2fw.c \
 	bpv7/library/libbp.c \
@@ -1409,7 +1410,6 @@ libbp_la_SOURCES = \
 # Native BPSec sources - only when BSL is NOT enabled
 if !ENABLE_BSL
 libbp_la_SOURCES += \
-	bpv7/bpsec/instr/bpsec_instr.c \
 	bpv7/bpsec/policy/bpsec_policy.c \
 	bpv7/bpsec/policy/bpsec_policy_eventset.c \
 	bpv7/bpsec/policy/bpsec_policy_event.c \

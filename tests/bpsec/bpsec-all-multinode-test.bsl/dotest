@@ -1,10 +1,35 @@
 #!/usr/bin/env bash
 #
-# Based off earlier test by Scott Burleigh
-# April 12, 2010
+# bpsec-all-multinode-test.bsl
 #
-# Adapted to BSP, Ryan Brown
-# August 2011
+# BSL (Bundle Security Library) multinode BPSec integration test.
+# Verifies BIB (integrity) and BCB (confidentiality) security processing
+# across a 3-node topology using LTP convergence layer.
+#
+# Topology:
+#   Node 2 (ipn:2.*) --LTP--> Node 3 (ipn:3.*) --LTP--> Node 4 (ipn:4.*)
+#
+# BSL policy is loaded at startup via "m bsl" in each node's bprc.
+# Node 2 (source):  BIB + BCB source rules for 2->3 and 2->4
+# Node 3 (waypoint/dest): BIB + BCB verifier/acceptor rules for 2->3
+# Node 4 (dest):    BIB + BCB verifier/acceptor rules for 2->4
+#
+# All 6 bundles sent from node 2 have both BIB and BCB applied by BSL
+# policy. The old bpsecadmin commands (for native BPSec) are commented
+# out; BSL policy files control security for the entire test run.
+#
+# Tests:
+#   Test 1 - Small bundle node 2->3 with BIB+BCB (should deliver)
+#   Test 2 - Small bundle node 2->3 with BIB+BCB, verify BSL init (should deliver)
+#   Test 3 - SKIPPED (wrong-key test not feasible with NULL_SUITES)
+#   Test 4 - Small bundle node 2->3 with BIB+BCB (should deliver)
+#   Test 5 - Large ~4MB file node 2->3 with BIB+BCB (should deliver intact)
+#   Test 6 - Small bundle node 2->4 via node 3 with BIB+BCB (should deliver)
+#   Test 7 - Anonymous bundle node 2->4 via node 3 with BIB+BCB (should deliver)
+#
+# Originally based on test by Scott Burleigh, April 12, 2010.
+# Adapted to BSP by Ryan Brown, August 2011.
+# Adapted to BSL multinode test with per-node policy files.
 
 TIMETODISPLAYTEXT=2
 TIMETOWAITFORTESTFINISH=5

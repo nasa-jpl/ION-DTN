@@ -510,6 +510,7 @@ These components provide the low-level BPSec data structures and extension block
 | **SC implementations** | `bcb_aes_gcm_sc.c`, `bib_hmac_sha2_sc.c`, `ion_test_sc.c`, `rfc9173_utils.c` | Concrete security context implementations (AES-GCM, HMAC-SHA2, test SC). Registered in the static `gScDefs[]` table in `sci.c`. |
 | **Extension block registration** | `bpextensions.c` | BIB/BCB block type entries in the extension table. Deserialize callbacks are set to NULL when BSL is active; other callbacks (copy, record, release, clear) remain. |
 | **BSL wrapper code** | `bsl.c`, `ionpatch.c` | BSL initialization, `bslProcess()` dispatch, and ION memory allocator bridge. Only compiled when BSL is enabled. |
+| **Instrumentation** | `bpsec_instr.c`, `bpsec_instr.h` | BPSec statistics counters (`bpsec_instr_get_src_bytes`, `bpsec_instr_reset`, etc.). Required by the NM agent's BPSec ADM (`bpv7/adm/adm_bpsec_impl.c`) for security statistics reporting. When BSL is active, these functions compile and link but report zero values because the native BIB/BCB processing that increments the counters is excluded. Retained in the BSL build to keep the NM agent functional until it is updated with BSL-aware statistics. |
 
 > **Why SCI and the SC implementations remain:** `bpsec_asb.c` depends on `sc_value.c` for typed value serialization, `sc_value.c` depends on `sci_valmap.c` for value map lookups and `sci.c` for context definition lookups, and `sci.c` statically references function pointers from all three SC implementations. This dependency chain means the entire SCI layer must be compiled even in BSL builds. The SC implementation functions are not called at BSL runtime (BSL uses its own crypto via OpenSSL), but they compile cleanly and are linked as dead code.
 
@@ -522,7 +523,6 @@ These components implement the native BPSec security processing pipeline and pol
 | **Policy engine** | `bpsec_policy.c`, `bpsec_policy_rule.c`, `bpsec_policy_event.c`, `bpsec_policy_eventset.c` | ION's native policy rule matching, event handling, and event set management. BSL replaces this with its own JSON-based policy engine. |
 | **BIB processing** | `bib.c`, `bib.h` | `bpsec_sign()` and `bpsec_verify()` — native integrity operations using the SCI/mbedTLS stack. |
 | **BCB processing** | `bcb.c`, `bcb.h` | `bpsec_encrypt()` and `bpsec_decrypt()` — native confidentiality operations using the SCI/mbedTLS stack. |
-| **Instrumentation** | `bpsec_instr.c` | BPSec statistics counters (`ADD_SRC_BYTES`, `ADD_RCV_BYTES`, etc.) only incremented by native BIB/BCB processing. |
 | **`bpsecadmin` utility** | `bpsecadmin.c`, `bpsecadmin_config.c` | CLI for managing native policy rules and event sets. Not built when BSL is active — use `m bsl` in `bpadmin` instead. |
 
 **Key source files involved in the build toggle:**
@@ -536,7 +536,7 @@ These components implement the native BPSec security processing pipeline and pol
 
 **Practical implications:**
 
-- The resulting `libbp.so` is **smaller** with BSL enabled (native policy, instrumentation, and BIB/BCB processing code are excluded)
+- The resulting `libbp.so` is **smaller** with BSL enabled (native policy and BIB/BCB processing code are excluded; instrumentation is retained for NM agent compatibility)
 - `bpsecadmin` is **not built** when BSL is enabled — use BSL's JSON policy files configured via `m bsl` in `bpadmin` instead
 - The `bpadmin` utility gains the `m bsl` command for BSL-specific configuration
 - Switching between BSL and native BPSec requires a **full rebuild** (`make clean && make`) with the appropriate `USING_BSL` flag — it is not a runtime toggle

@@ -234,6 +234,12 @@ int32_t bpsec_util_fileBlkConvert(uint32_t suite, uint8_t *csi_ctx, csi_blocksiz
 		ZcoReader *dataReader, uvast outputBufLen, Object *outputZco, char *filename,
 		uint8_t function);
 
+/** Instrumentation support functions (needed by NM agent's BPSec ADM) */
+int                     bpsec_util_numKeysGet(int *size);
+void                    bpsec_util_keysGet(char *buffer, int length);
+int                     bpsec_util_numCSNamesGet(int *size);
+void                    bpsec_util_cSNamesGet(char *buffer, int length);
+
 #if !USING_BSL
 int bpsec_util_swapOutboundSop(Bundle *bundle, ExtensionBlock *src, ExtensionBlock *dest, int tgtBlkNum);
 
@@ -250,13 +256,6 @@ Object bpsec_util_OutboundBlockCreate(Bundle *bundle, BpBlockType type, sc_Def *
 
 
 int bpsec_util_generateSecurityResults(Bundle *bundle, char *fromEid, ExtensionBlock *secBlk, BpsecOutboundASB *secAsb, sc_action action);
-
-
-/** Deprecated functions kept to compile */
-int                     bpsec_util_numKeysGet(int *size);
-void                    bpsec_util_keysGet(char *buffer, int length);
-int                     bpsec_util_numCSNamesGet(int *size);
-void                    bpsec_util_cSNamesGet(char *buffer, int length);
 #endif /* !USING_BSL */
 
 
