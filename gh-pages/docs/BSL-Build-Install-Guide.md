@@ -477,6 +477,46 @@ Add to `~/.bashrc` for persistence.
 | Branch | feature-4.1.4-bsl | integration/main |
 | Build Flag | USING_BSL=1 | USING_BSL=0 (default) |
 
+### What Happens to Native BPSec When BSL Is Enabled
+
+When you build ION with `USING_BSL=1` (or `--enable-bsl` with automake), the native BPSec source files are **still compiled and linked** into `libbp`. BSL does not replace the native BPSec object files at the linker level. Instead, the `-DUSING_BSL=1` preprocessor flag activates `#if USING_BSL` / `#if !USING_BSL` guards throughout the shared source code, which selects BSL code paths and compiles out the native security operations.
+
+**What BSL replaces (compiled out via `#if !USING_BSL`):**
+
+| Operation | Native BPSec Function | BSL Replacement |
+|-----------|----------------------|-----------------|
+| Security initialization | `secAttach()` | `bslInitialize()` |
+| Security shutdown | `secDetach()` | `bslCleanup()` |
+| Outbound signing (BIB) | `bpsec_sign()` | `bslProcess()` at `BSL_POLICYLOCATION_APPIN` |
+| Outbound encryption (BCB) | `bpsec_encrypt()` | `bslProcess()` at `BSL_POLICYLOCATION_APPOUT` |
+| Inbound verification/decryption | `bpsec_verify()` / `bpsec_decrypt()` | `bslProcess()` at `BSL_POLICYLOCATION_CLIN` |
+| ASB deserialization | Native deserializer in `bpextensions.c` | Set to NULL; BSL parses ASBs directly |
+
+**What remains active from native BPSec:**
+
+- **ASB data structures and serialization** (`bpsec_asb.c`, `bpsec_util.c`) — BSL uses some of these structures
+- **Extension block definitions** for BIB/BCB (`bcb.c`, `bib.c`) — block type registration and outbound handling remain; only the deserialize callback is nulled out
+
+**What is compiled but dormant at runtime:**
+
+- **Native BPSec policy framework** (`bpsec_policy.c`, `bpsec_policy_rule.c`, `bpsec_policy_event.c`, `bpsec_policy_eventset.c`) — These files implement ION's native BPSec policy engine (rule matching, event handling, event sets). Despite the `bsl_`/`bslpol_` function prefixes, they are part of ION's native BPSec, not the external BSL library. When BSL is active, these functions are never called at runtime because the entry points that invoke them (`bpsec_sign`, `bpsec_encrypt`, `bpsec_verify`, `bpsec_decrypt`) are compiled out. BSL uses its own JSON-based policy engine instead. However, these files **cannot be excluded** from the build because `bpsecadmin` calls their functions unconditionally (without `USING_BSL` guards) for managing rules, event sets, and events via the admin CLI.
+- **BPSec instrumentation** (`bpsec_instr.c`) — Statistics counters (e.g., `ADD_BIB_RX_PASS`, `ADD_BCB_TX_FAIL`) are only updated from within `bib.c`/`bcb.c` security processing functions, which are not called when BSL handles security. The `bpsec_instr_init()` and `bpsec_instr_cleanup()` calls are also in `#if !USING_BSL` blocks.
+- **Security context interface code** (`sci.c`, `sci_valmap.c`, etc.) — compiled but the actual crypto operations are handled by BSL's security contexts
+
+**Key source files involved in the toggle:**
+
+- `bpv7/library/bpP.h` — Includes `bsl.h` and adds BSL config fields to `BpDB` when `USING_BSL=1`
+- `bpv7/library/libbpP.c` — Contains the main `#if USING_BSL` guards for init, shutdown, send-side and receive-side security processing
+- `bpv7/library/ext/bpextensions.c` — Nulls out BIB/BCB ASB deserialization callbacks when BSL is active
+- `bpv7/bsl/bsl.c` and `bpv7/bsl/ionpatch.c` — BSL wrapper code, only compiled when BSL is enabled
+
+**Practical implications:**
+
+- The resulting `libbp.so` is **larger** with BSL enabled (it contains both the native BPSec object code and the BSL wrapper/libraries)
+- `bpsecadmin` still compiles and links against the native policy framework. You can use it to add/remove rules and event sets, but those rules are never consulted at runtime — BSL uses its own JSON policy files configured via `m bsl` in `bpadmin`
+- The `bpadmin` utility gains the `m bsl` command for BSL-specific configuration
+- Switching between BSL and native BPSec requires a **full rebuild** (`make clean && make`) with the appropriate `USING_BSL` flag — it is not a runtime toggle
+
 ---
 
 ## Appendices
