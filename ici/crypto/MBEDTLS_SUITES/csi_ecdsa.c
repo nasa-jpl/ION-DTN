@@ -131,25 +131,21 @@ mbedtls_ecdsa_context *ecdsa_ctx_build(csi_csid_t suite, csi_val_t *key_info)
 	if((key_info->contents != NULL) && (key_info->len > 0))
 	{
 		/* Step 4: Extract the public and private key, encoded as a TLV, in
-		 *	 	       the passed-in key.
+		 *	 	the passed-in key.
 		 */
 
 		csi_val_t Q = csi_extract_tlv(0, key_info->contents, key_info->len);
 		csi_val_t d = csi_extract_tlv(1, key_info->contents, key_info->len);
 
 #ifdef CSI_DEBUGGING
-		char *str;
-		if((str = csi_val_print(Q, 20)) != NULL)
-		{
-			CSI_DEBUG_INFO("i ecdsa_ctx_build: Read Q value of %s...",str);
-			MRELEASE(str);
-		}
+		/* Refactored to use stack memory to prevent SDR fragmentation */
+		char str[64];
 
-		if((str = csi_val_print(d, 20)) != NULL)
-		{
-			CSI_DEBUG_INFO("i ecdsa_ctx_build: Read d value of %s...",str);
-			MRELEASE(str);
-		}
+		csi_val_to_hex(Q, str, sizeof(str), 20);
+		CSI_DEBUG_INFO("i ecdsa_ctx_build: Read Q value of %s...", str);
+
+		csi_val_to_hex(d, str, sizeof(str), 20);
+		CSI_DEBUG_INFO("i ecdsa_ctx_build: Read d value of %s...", str);
 #endif
 
 		if((Q.len == 0) || (Q.contents == NULL))

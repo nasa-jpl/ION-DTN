@@ -141,8 +141,8 @@ extern csi_cipherparms_t	csi_build_parms(unsigned char *buf, uint32_t len);
 int csi_keywrap(int wrap, csi_val_t kek, csi_val_t input, csi_val_t *output);
 
 
-extern void	         csi_cipherparms_free(csi_cipherparms_t parms);
-extern char		*csi_val_print(csi_val_t val, uint32_t maxLen);
+extern void		 csi_cipherparms_free(csi_cipherparms_t parms);
+extern void 		 csi_val_to_hex(csi_val_t val, char *buffer, uint32_t bufLen, uint32_t maxBytesToPrint);
 extern csi_val_t	 csi_rand(csi_csid_t suite, uint32_t len);
 extern csi_val_t	 csi_serialize_parms(csi_cipherparms_t parms);
 extern csi_cipherparms_t csi_deserialize_parms(uint8_t *buffer, uint32_t len);
