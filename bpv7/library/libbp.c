@@ -839,7 +839,7 @@ static void	destroyEidpItem(LystElt elt, void *arg)
 	MRELEASE(item);
 }
 
-EidPattern	*createEidPattern()
+EidPattern	*createEidPattern(void)
 {
 	EidPattern	*eidp;
 
