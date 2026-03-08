@@ -1458,7 +1458,7 @@ libbp_la_SOURCES += \
 	bpv7/bsl/ionpatch.c
 
 libbp_la_LIBADD += $(BSL_LIBS)
-libbp_la_LDFLAGS = -Wl,-rpath,$(BSL_HOME)/lib
+libbp_la_LDFLAGS = $(AM_LDFLAGS) -Wl,-rpath,$(BSL_HOME)/lib
 endif # end ENABLE_BSL
 
 
@@ -2107,7 +2107,7 @@ libampAgentADM_la_LIBADD = libamp.la libici.la $(bplib) libltp.la
 
 
 nm_agent_LDADD = libici.la $(bplib) libltp.la libamp.la libampAgentADM.la $(PTHREAD_LIBS)
-nm_agent_LDFLAGS = -L/usr/local/lib -lm -lpthread
+nm_agent_LDFLAGS = $(AM_LDFLAGS) -L/usr/local/lib -lm -lpthread
 
 nm_agent_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bpv7/library -I$(srcdir)/nm \
                   -I$(srcdir)/nm/agent -I$(srcdir)/nm/shared/adm $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
@@ -2130,7 +2130,7 @@ nm_mgr_SOURCES = \
 nm_mgr_LDADD = libamp.la libici.la $(bplib) libltp.la $(PTHREAD_LIBS)
 
 # Note: NCURSES and MySql support are optional and controlled at configure time with --with-mysql or --with-ncurses
-nm_mgr_LDFLAGS = -lpthread
+nm_mgr_LDFLAGS = $(AM_LDFLAGS) -lpthread
 nm_mgr_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bpv7/library -I$(srcdir)/ltp/library -I$(srcdir)/nm -I$(srcdir)/nm/mgr $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) $(NM_CBOR_CFLAGS) $(NM_ADM_INCLUDES)
 
 ##########################

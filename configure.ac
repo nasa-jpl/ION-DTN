@@ -585,6 +585,10 @@ AC_ARG_ENABLE(
       # Set BSL library flags
       BSL_LIBS="-lbsl_crypto -lbsl_default_sc -lbsl_dynamic -lbsl_front -lbsl_mock_bpa -lbsl_sample_pp -lqcbor -ljansson -L${BSL_HOME}/lib"
 
+      # Executables linking against libbp need rpath-link to resolve
+      # BSL's transitive dependencies (e.g. libqcbor) at link time
+      AM_LDFLAGS="$AM_LDFLAGS -Wl,-rpath-link,${BSL_HOME}/lib"
+
       AC_MSG_NOTICE([BSL will be built with ION integration])
       AC_MSG_NOTICE([BSL_HOME: ${BSL_HOME}])
     else
