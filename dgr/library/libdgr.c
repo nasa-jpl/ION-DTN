@@ -493,11 +493,14 @@ static void	loseOutboundMsg(DgrSAP *sap, DgrRecord rec)
 	SendReq		*req;
 
 	llcv_lock(sap->outboundCV);
-	req = (SendReq *) lyst_data(rec->outboundMsgsElt);
-	MRELEASE(req);
-	lyst_delete(rec->outboundMsgsElt);
+	if (rec->outboundMsgsElt)
+	{
+		req = (SendReq *) lyst_data(rec->outboundMsgsElt);
+		MRELEASE(req);
+		lyst_delete(rec->outboundMsgsElt);
+		rec->outboundMsgsElt = NULL;
+	}
 	llcv_unlock(sap->outboundCV);
-	rec->outboundMsgsElt = NULL;
 }
 
 static void	losePendingResend(DgrSAP *sap, DgrRecord rec)
@@ -2592,7 +2595,9 @@ rcSnoozes++;
 	if (insertSendReq(sap, rec) < 0)
 	{
 		putErrmsg("Can't append transmission request.", NULL);
+		pthread_mutex_lock(&rec->bucket->mutex);
 		lyst_delete(elt);
+		pthread_mutex_unlock(&rec->bucket->mutex);
 		MRELEASE(rec);
 		pthread_mutex_lock(&sap->sapMutex);
 		sap->backlog -= (length + sizeof(SegmentId));
