@@ -26,6 +26,7 @@
 #   Test 5 - Large ~4MB file node 2->3 with BIB+BCB (should deliver intact)
 #   Test 6 - Small bundle node 2->4 via node 3 with BIB+BCB (should deliver)
 #   Test 7 - Anonymous bundle node 2->4 via node 3 with BIB+BCB (should deliver)
+#   Test 8 - BIB on primary block node 2->4 via node 3 with relay verifier (SDR BTSD path)
 #
 # Originally based on test by Scott Burleigh, April 12, 2010.
 # Adapted to BSP by Ryan Brown, August 2011.
@@ -616,6 +617,39 @@ if grep -q "BSL initialization succeeded" ion.log; then
     echo "BSL operational at destination for anonymous bundle"
 fi
 cd ..
+
+##############################
+# Test 8
+# BIB on primary block (tgt: 0) from node 2 to node 4 via node 3.
+# Node 3 is a relay verifier (verifies BIB at CLIN but does NOT remove it).
+# Node 4 accepts the BIB on primary at APPOUT, exercising the SDR BTSD read path.
+
+echo -e "\n\n\n*****TEST 8*****"
+echo "Sending bundle with BIB on primary block from ipn:2.1 to ipn:4.1 via node 3 (relay verifier). Exercises SDR BTSD read path at acceptor."
+sleep ${TIMETODISPLAYTEXT}
+cd 2.ipn.ltp
+
+bptrace ipn:2.1 ipn:4.1 ipn:2.0 5 0.1 "test_trace8" rcv,ct,fwd,dlv,del
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+cd ..
+
+grep "test_trace8" 4.ipn.ltp/4_results.txt > 4.ipn.ltp/4_receive_file.txt
+
+echo ""
+rm -f expected.txt
+touch expected.txt
+
+echo "'test_trace8'" >> expected.txt
+
+if ! diff -w expected.txt 4.ipn.ltp/4_receive_file.txt
+then
+        echo "FAIL (test 8)"
+        PASS=0
+else
+        echo "SUCCESS (test 8)"
+fi
 
 ############################################################
 #   END OF TESTS                ........
