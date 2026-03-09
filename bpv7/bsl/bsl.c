@@ -2090,30 +2090,57 @@ of %s: %s", event_id_str, act_str);
 				sec_role, sec_block_type, target_block_type,
 				policy_action_enum);
 
-		// TODO validate params_got
-		(void) params_got;
-
 		if (sec_ctx_id == 2) // BCB
 		{
-			BSLP_PolicyRule_CopyParam(rule,
-					params->param_aes_variant);
-			if (sec_role == BSL_SECROLE_SOURCE)
+			if (params_got & 0x4)
 			{
 				BSLP_PolicyRule_CopyParam(rule,
+						params->param_aes_variant);
+			}
+
+			if (sec_role == BSL_SECROLE_SOURCE)
+			{
+				if (params_got & 0x8)
+				{
+					BSLP_PolicyRule_CopyParam(rule,
 						params->param_aad_scope_flag);
+				}
+
 				BSL_Crypto_SetRngGenerator(rfc9173_bcb_cek);
+			}
+
+			if (params_got & 0x10)
+			{
+				BSLP_PolicyRule_CopyParam(rule,
+						params->param_use_wrapped_key);
 			}
 		}
 		else
 		{
-			BSLP_PolicyRule_CopyParam(rule,
-					params->param_sha_variant);
-			BSLP_PolicyRule_CopyParam(rule,
-					params->param_integ_scope_flag);
+			if (params_got & 0x2)
+			{
+				BSLP_PolicyRule_CopyParam(rule,
+						params->param_sha_variant);
+			}
+
+			if (params_got & 0x4)
+			{
+				BSLP_PolicyRule_CopyParam(rule,
+						params->param_integ_scope_flag);
+			}
+
+			if (params_got & 0x8)
+			{
+				BSLP_PolicyRule_CopyParam(rule,
+						params->param_use_wrapped_key);
+			}
 		}
 
-		BSLP_PolicyRule_CopyParam(rule, params->param_test_key);
-		BSLP_PolicyRule_CopyParam(rule, params->param_use_wrapped_key);
+		if (params_got & 0x1)
+		{
+			BSLP_PolicyRule_CopyParam(rule,
+					params->param_test_key);
+		}
 	}
 
 	json_decref(root);

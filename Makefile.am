@@ -136,6 +136,13 @@ if ENABLE_INSTALL_MESSAGES
 	fi
 endif
 
+if ENABLE_BSL
+install-exec-hook:
+	@echo "Installing BSL shared libraries to $(DESTDIR)$(libdir)..."
+	@cp -a $(srcdir)/external/BSL/testroot/usr/lib/libbsl_*.so* $(DESTDIR)$(libdir)/
+	@cp -a $(srcdir)/external/BSL/testroot/usr/lib/libqcbor.so* $(DESTDIR)$(libdir)/
+endif
+
 # This hook contains the final message after a successful installation.
 install-data-hook:
 if ENABLE_INSTALL_MESSAGES
