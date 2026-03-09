@@ -597,10 +597,16 @@ static int	ion_bsl_ReallocBTSD(BSL_BundleRef_t *bundle_ref,
 		sdr_free(sdr, blk.bytes);
 	}
 
-	/*	Update block to use new bytes array.			*/
+	/*	Update block to use new bytes array.  For newly
+	 *	created blocks (BSL source), bytes holds raw BTSD
+	 *	only (no CBOR header yet), so dataLength == length.
+	 *	This ensures the write overflow check passes and
+	 *	the read/write offset (length - dataLength) is 0.	*/
+
 	overhead_delta = bytesize - blk.length;
 	blk.bytes = newBytesObj;
 	blk.length = bytesize;
+	blk.dataLength = bytesize;
 	sdr_write(sdr, addr, (char *) &blk, sizeof(ExtensionBlock));
 
 	/*	Update bundle overhead accounting.			*/
@@ -713,7 +719,15 @@ static int	readBTSDfromSdr(BtsdIoRef *ref, void *buf, size_t *bufsize)
 
 	addr = sdr_list_data(sdr, elt);
 	GET_OBJ_POINTER(sdr, ExtensionBlock, blk, addr);
-	startOfBTSD = blk->bytes + ref->position;
+
+	/*	blk->bytes contains the full CBOR extension block
+	 *	(array header + fields + BTSD byte string + CRC).
+	 *	The BTSD content starts at offset
+	 *	(blk->length - blk->dataLength) within blk->bytes,
+	 *	just like the RAM path in readBTSDfromRAM().		*/
+
+	startOfBTSD = blk->bytes + (blk->length - blk->dataLength)
+			+ ref->position;
 	sdr_read(sdr, buf, startOfBTSD, *bufsize);
 	ref->position += *bufsize;	/*	Update position after read	*/
 	return 0;
@@ -898,7 +912,12 @@ static int	writeBTSDtoSdr(BtsdIoRef *ref, const void *buf, size_t size)
 
 	addr = sdr_list_data(sdr, elt);
 	GET_OBJ_POINTER(sdr, ExtensionBlock, blk, addr);
-	startOfBTSD = blk->bytes + ref->position;
+
+	/*	blk->bytes contains the full CBOR extension block.
+	 *	Offset past the header to reach the BTSD content.	*/
+
+	startOfBTSD = blk->bytes + (blk->length - blk->dataLength)
+			+ ref->position;
 
 	{
 		char	msgbuf[256];
@@ -915,7 +934,7 @@ static int	writeBTSDtoSdr(BtsdIoRef *ref, const void *buf, size_t size)
 		writeMemo(msgbuf);
 
 		/* Verify we're not writing beyond allocated space */
-		if (ref->position + size > blk->length)
+		if (ref->position + size > blk->dataLength)
 		{
 			isprintf(msgbuf, sizeof msgbuf,
 				"[BSL-WRITE-SDR] ERROR: Write would overflow! pos=%lu size=%lu length=%lu",
@@ -1065,7 +1084,7 @@ static struct BSL_SeqWriter_s	*ion_bsl_BTSD_writer(BSL_BundleRef_t
 	BSL_SeqWriter_t	*writer;
 	BtsdIoRef	*ref;
 
-	(void)totalSize;	/*	Unused parameter		*/
+	(void)totalSize;	/*	Prealloc handled by ReallocBTSD	*/
 	CHKNULL(bundle_ref);
 	CHKNULL(block_num > 0);
 
