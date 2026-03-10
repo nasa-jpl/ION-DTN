@@ -508,10 +508,13 @@ static void	losePendingResend(DgrSAP *sap, DgrRecord rec)
 	ResendReq	*req;
 
 	pthread_mutex_lock(&sap->pendingResendsMutex);
-	req = (ResendReq *) lyst_data(rec->pendingResendsElt);
-	MRELEASE(req);
-	lyst_delete(rec->pendingResendsElt);
-	rec->pendingResendsElt = NULL;
+	if (rec->pendingResendsElt)
+	{
+		req = (ResendReq *) lyst_data(rec->pendingResendsElt);
+		MRELEASE(req);
+		lyst_delete(rec->pendingResendsElt);
+		rec->pendingResendsElt = NULL;
+	}
 	pthread_mutex_unlock(&sap->pendingResendsMutex);
 }
 
