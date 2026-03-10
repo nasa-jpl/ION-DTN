@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/ubi-init as build
+FROM registry.access.redhat.com/ubi8/ubi-init:8.10 as build
 
 ARG TARGETPLATFORM
 ARG RUNNER_VERSION
@@ -23,6 +23,8 @@ RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.n
     zip \
     bzip2 \
     gcc \
+    gcc-c++ \
+    ruby \
     automake \
     make \
     autoconf \
@@ -36,6 +38,8 @@ RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.n
     ninja-build \
     file \
     diffutils \
+    rsync \
+    jansson-devel \
     && dnf clean all
 
 RUN export PATH=$HOME/.local/bin:$PATH
@@ -63,7 +67,7 @@ RUN rm -rf mbedtls-2.28.10/ mbedtls-2.28.10.tar.bz2 && dnf remove -y bzip2 && dn
 
 # Download latest git-lfs version using the RPM script
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.rpm.sh | bash && \
-    dnf install -y git-lfs
+    dnf install -y git-lfs && dnf clean all
 
 # Setup runner user and docker group
 RUN groupadd docker --gid $DOCKER_GROUP_GID \
@@ -140,12 +144,15 @@ RUN chmod -R 777 /opt /usr/share
 
 FROM scratch AS final
 
+ARG BUILD_DATE
+ARG REV
+
 LABEL org.opencontainers.image.title="rhel-8"
 LABEL org.opencontainers.image.description="A RHEL 8 ubi-init base image for ION testing, includes all necessary ARC and ION build dependencies."
 LABEL org.opencontainers.image.authors="Nate Richard (nrichard@jpl.nasa.gov)"
 LABEL org.opencontainers.image.version="1.0.0"
-LABEL org.opencontainers.image.created="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-LABEL org.opencontainers.image.revision=""
+LABEL org.opencontainers.image.created="${BUILD_DATE}"
+LABEL org.opencontainers.image.revision="${REV}"
 
 # Add the Python "User Script Directory" to the PATH
 ENV PATH="${PATH}:${HOME}/.local/bin/"

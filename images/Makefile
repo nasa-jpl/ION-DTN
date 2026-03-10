@@ -30,6 +30,8 @@ docker-build:
 	  --build-arg RUNNER_VERSION=${RUNNER_VERSION} \
 	  --build-arg RUNNER_CONTAINER_HOOKS_VERSION=${RUNNER_CONTAINER_HOOKS_VERSION} \
 	  --build-arg DOCKER_VERSION=${DOCKER_VERSION} \
+	  --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
+	  --build-arg REV=$(shell git rev-parse --short HEAD) \
 	  -f actions-runner.${OS_IMAGE}.dockerfile \
 	  -t ${DEFAULT_RUNNER_NAME}:${OS_IMAGE} .
 

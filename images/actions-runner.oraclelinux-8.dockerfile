@@ -26,6 +26,8 @@ RUN microdnf install -y oracle-epel-release-el8 \
     tar \
     gzip \
     gcc \
+    gcc-c++ \
+    ruby \
     automake \
     make \
     autoconf \
@@ -41,7 +43,9 @@ RUN microdnf install -y oracle-epel-release-el8 \
     procps-ng \
     file \
     cmake \
-    ninja-build \
+    rsync \
+    jansson-devel \
+    && microdnf install -y --enablerepo=ol8_codeready_builder ninja-build \
     && microdnf clean all
 
 RUN export PATH=$HOME/.local/bin:$PATH
@@ -56,7 +60,7 @@ RUN rm -rf mbedtls-2.28.10/ mbedtls-2.28.10.tar.bz2 && microdnf remove -y bzip2 
 
 # Download latest git-lfs version using the RPM script
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.rpm.sh | bash && \
-    microdnf install -y git-lfs
+    microdnf install -y git-lfs && microdnf clean all
 
 # Setup runner user and docker group
 RUN groupadd docker --gid $DOCKER_GROUP_GID \
@@ -134,12 +138,15 @@ RUN chmod -R 777 /opt /usr/share
 
 FROM scratch AS final
 
+ARG BUILD_DATE
+ARG REV
+
 LABEL org.opencontainers.image.title="oraclelinux-8"
 LABEL org.opencontainers.image.description="A Oracle Linux 8-slim base image for ION testing, includes all necessary ARC and ION build dependencies."
 LABEL org.opencontainers.image.authors="Nate Richard (nrichard@jpl.nasa.gov)"
 LABEL org.opencontainers.image.version="1.0.0"
-LABEL org.opencontainers.image.created="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-# LABEL org.opencontainers.image.revision=""
+LABEL org.opencontainers.image.created=$BUILD_DATE
+LABEL org.opencontainers.image.revision=$REV
 
 # Add the Python "User Script Directory" to the PATH
 ENV PATH="${PATH}:${HOME}/.local/bin/"

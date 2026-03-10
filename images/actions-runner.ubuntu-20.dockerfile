@@ -12,10 +12,10 @@ ARG RUNNER_USER_UID=1001
 ARG DOCKER_GROUP_GID=121
 
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update -y \
-    && apt-get install -y software-properties-common \
+RUN apt-get update -y --no-install-recommends \
+    && apt-get install --no-install-recommends -y software-properties-common \
     && add-apt-repository -y ppa:git-core/ppa \
-    && apt-get update -y \
+    && apt-get update -y --no-install-recommends \
     && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
@@ -37,6 +37,10 @@ RUN apt-get update -y \
     libtool-bin \
     cmake \
     ninja-build \
+    libjansson-dev \
+    build-essential \
+    rsync \
+    ruby \
     && rm -rf /var/lib/apt/lists/*
 
 RUN export PATH=$HOME/.local/bin:$PATH
@@ -77,7 +81,7 @@ RUN export ARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2) \
     # libyaml-dev is required for ruby/setup-ruby action.
     # It is installed after installdependencies.sh and before removing /var/lib/apt/lists
     # to avoid rerunning apt-update on its own.
-    && apt-get install -y libyaml-dev \
+    && apt-get install --no-install-recommends -y libyaml-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install container hooks
@@ -130,12 +134,15 @@ RUN chmod -R 777 /opt /usr/share
 
 FROM scratch AS final
 
+ARG BUILD_DATE
+ARG REV
+
 LABEL org.opencontainers.image.title="ubuntu-20"
 LABEL org.opencontainers.image.description="A Ubuntu 20.04 base image for ION testing, includes all necessary ARC and ION build dependencies."
 LABEL org.opencontainers.image.authors="Nate Richard (nrichard@jpl.nasa.gov)"
 LABEL org.opencontainers.image.version="1.0.0"
-LABEL org.opencontainers.image.created="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-LABEL org.opencontainers.image.revision=""
+LABEL org.opencontainers.image.created="${BUILD_DATE}"
+LABEL org.opencontainers.image.revision="${REV}"
 
 # Add the Python "User Script Directory" to the PATH
 ENV PATH="${PATH}:${HOME}/.local/bin/"
