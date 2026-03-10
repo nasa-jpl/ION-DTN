@@ -1253,7 +1253,11 @@ int	SendNewRPDU(RamsGateway *gWay, short destContinuumNbr,
 
 		encLength = enclosure->length;
 		envelope = (char *) MTAKE(ENVELOPELENGTH + encLength);
-		CHKERR(envelope);
+		if (envelope == NULL)
+		{
+			ErrMsg("SendNewRPDU: Failed to allocate envelope.");
+			return -1;
+		}
 		ConstructEnvelope((unsigned char *) envelope, continuumNbr,
 				unitNbr, sourceID, destID, subjectNbr,
 				enclosure->length, enclosure->text,
@@ -1263,7 +1267,11 @@ int	SendNewRPDU(RamsGateway *gWay, short destContinuumNbr,
 	{
 		encLength = 0;
 		envelope = (char *) MTAKE(ENVELOPELENGTH);
-		CHKERR(envelope);
+		if (envelope == NULL)
+		{
+			ErrMsg("SendNewRPDU: Failed to allocate envelope.");
+			return -1;
+		}
 		ConstructEnvelope((unsigned char *) envelope, continuumNbr,
 				unitNbr, sourceID, destID, subjectNbr, 0, NULL,
 				controlCode);
