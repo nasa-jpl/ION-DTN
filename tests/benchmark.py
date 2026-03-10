@@ -192,9 +192,22 @@ def benchmark_and_log(script_dir: Path, iterations: int = 5) -> int | str:
     return avg_seconds
 
 
+def duration_sort(item: tuple[int, int | str]) -> tuple[int, int | str]:
+    """Sort function that handles FAILED in tuple.
+
+    Returns:
+        tuple of element with 0 if an integer and 1 if string
+
+    """
+    second_element = item[1]
+    if isinstance(second_element, int):
+        return (0, second_element)
+    return (1, second_element)
+
+
 def proc_results(results: list, display: bool = True) -> None:
     """Either print results to STDOUT or save to a file for later reference."""
-    results.sort(key=lambda tup: tup[1], reverse=True)
+    results.sort(key=duration_sort, reverse=True)
     if display:
         print("\n" + "=" * 65)
         print(f"{'Script Location':<50} | {'Avg Time (s)':<12}")
