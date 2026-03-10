@@ -467,6 +467,133 @@ Add to `~/.bashrc` for persistence.
 - AES-128-GCM (variant 1)
 - AES-256-GCM (variant 3)
 
+## BIB and BCB Policy Design (RFC 9172 Guidelines)
+
+When writing BSL policy files, the relationship between BIB (integrity) and BCB (confidentiality) blocks must follow RFC 9172 rules to avoid security processing failures.
+
+### Same Source, Same Target: Use a Single BCB
+
+!!! warning "RFC 9172 Section 4.7 Requirement"
+    If a single security source applies **both** integrity and confidentiality to the **same target block**, it **MUST** use a single BCB whose security context provides an integrity-protection mechanism as an additional security result — **not** separate BIB and BCB blocks.
+
+Applying separate BIB and BCB to the same target from the same node creates an ordering problem: the BIB computes its HMAC over plaintext, then the BCB encrypts the payload. At the receiver, the BCB must decrypt before the BIB can verify. If a verifier node inspects the bundle in transit without decrypting, the BIB cannot be verified because the payload is still ciphertext.
+
+**Incorrect** — separate BIB and BCB on the same target from the same source:
+```json
+{
+  "policyrule_set": [
+    {
+      "policyrule": {
+        "desc": "BIB on payload (WRONG - same target as BCB below)",
+        "filter": { "role": "s", "src": "ipn:2.*", "dest": "ipn:3.*", "tgt": 1, "sc_id": 1 }
+      }
+    },
+    {
+      "policyrule": {
+        "desc": "BCB on payload (WRONG - same target as BIB above)",
+        "filter": { "role": "s", "src": "ipn:2.*", "dest": "ipn:3.*", "tgt": 1, "sc_id": 2 }
+      }
+    }
+  ]
+}
+```
+
+### Different Targets: BIB on Primary, BCB on Payload
+
+When the same node needs to provide both integrity and confidentiality, apply each service to a **different** target block:
+
+- **BIB** targets the **primary block** (`tgt: 0`) for integrity
+- **BCB** targets the **payload block** (`tgt: 1`) for confidentiality
+
+**Correct** — different targets from the same source:
+```json
+{
+  "policyrule_set": [
+    {
+      "policyrule": {
+        "desc": "BIB on primary block",
+        "filter": { "role": "s", "src": "ipn:2.*", "dest": "ipn:3.*", "tgt": 0, "sc_id": 1 },
+        "spec": {
+          "sc_id": 1,
+          "sc_parms": [
+            {"id": "key_name", "value": "9100"},
+            {"id": "sha_variant", "value": "7"},
+            {"id": "scope_flags", "value": "0"},
+            {"id": "key_wrap", "value": "0"}
+          ]
+        }
+      }
+    },
+    {
+      "policyrule": {
+        "desc": "BCB on payload block",
+        "filter": { "role": "s", "src": "ipn:2.*", "dest": "ipn:3.*", "tgt": 1, "sc_id": 2 },
+        "spec": {
+          "sc_id": 2,
+          "sc_parms": [
+            {"id": "key_name", "value": "9103"},
+            {"id": "aes_variant", "value": "1"},
+            {"id": "aad_scope", "value": "0"},
+            {"id": "key_wrap", "value": "1"}
+          ]
+        }
+      }
+    }
+  ]
+}
+```
+
+### Different Sources: BIB and BCB on Same Target Is Allowed
+
+RFC 9172 permits separate BIB and BCB on the same target when they are applied by **different nodes**. For example:
+
+- **Node A** (bundle source) applies a BIB on the payload
+- **Node B** (waypoint) applies a BCB on the same payload
+
+This is valid because the nodes act as independent security sources.
+
+### Security Roles and Processing Locations
+
+BSL supports three security roles, each with a designated processing location:
+
+| Role | Code | Location | Description |
+|------|------|----------|-------------|
+| **Source** | `s` | `appin` | Creates the security block (BIB signs, BCB encrypts) |
+| **Verifier** | `v` | `clin` | Checks the security block in transit without consuming it |
+| **Acceptor** | `a` | `appout` | Processes and removes the security block at delivery |
+
+#### Verifier Behavior
+
+- **BIB verifier**: Computes the HMAC and compares it against the ASB result. Non-destructive — the BIB block is left intact for downstream acceptors.
+- **BCB verifier**: Validates that the ASB (Abstract Security Block) is decodable and contains valid parameters. Does **not** decrypt the payload. The ciphertext is left intact for downstream acceptors.
+
+!!! note "BIB Verifier Limitation with BCB"
+    A BIB verifier **cannot** operate at CLIN when a BCB is present on the same target block, because the BIB was computed over plaintext but the payload is still encrypted at CLIN. BIB verification on an encrypted target must wait until APPOUT, after the BCB acceptor decrypts. When BIB and BCB target **different** blocks (the recommended configuration), this limitation does not apply.
+
+### Multinode Policy Example
+
+A complete 3-node example with BIB on primary and BCB on payload:
+
+```
+Node 2 (source) → Node 3 (relay) → Node 4 (destination)
+
+Node 2 policy (source):
+  BIB source on primary (tgt 0) for 2→4
+  BCB source on payload (tgt 1) for 2→4
+
+Node 3 policy (relay):
+  BCB verifier at CLIN for payload (tgt 1) — validates ASB, no decrypt
+
+Node 4 policy (destination):
+  BCB verifier at CLIN for payload (tgt 1) — validates ASB, no decrypt
+  BIB acceptor at APPOUT for primary (tgt 0) — verifies HMAC
+  BCB acceptor at APPOUT for payload (tgt 1) — decrypts
+```
+
+See the regression test at `tests/bpsec/bpsec-all-multinode-test.bsl/` for complete working policy files.
+
+---
+
 ## BSL vs Native BPSec
 
 | Feature | BSL | Native BPSec |
@@ -732,16 +859,18 @@ Where:
   "policyrule_set": [
     {
       "policyrule": {
+        "desc": "BIB source targeting primary block",
         "filter": {
           "rule_id": "1",
           "role": "s",
           "src": "ipn:2.*",
           "dest": "ipn:3.*",
-          "tgt": 1,
+          "tgt": 0,
           "loc": "appin",
           "sc_id": 1
         },
         "spec": {
+          "svc": "bib-integrity",
           "sc_id": 1,
           "sc_parms": [
             {"id": "key_name", "value": "hmac-key-256"},
@@ -755,6 +884,7 @@ Where:
     },
     {
       "policyrule": {
+        "desc": "BCB source targeting payload block",
         "filter": {
           "rule_id": "2",
           "role": "s",
@@ -765,6 +895,7 @@ Where:
           "sc_id": 2
         },
         "spec": {
+          "svc": "bcb-confidentiality",
           "sc_id": 2,
           "sc_parms": [
             {"id": "key_name", "value": "aes-gcm-key-128"},
@@ -779,12 +910,15 @@ Where:
 }
 ```
 
+!!! important "RFC 9172 Compliance"
+    Note how the BIB targets the primary block (`tgt: 0`) and the BCB targets the payload block (`tgt: 1`). Per RFC 9172 Section 4.7, a single security source MUST NOT apply separate BIB and BCB to the same target block. See [BIB and BCB Policy Design](#bib-and-bcb-policy-design-rfc-9172-guidelines) for details.
+
 **Policy Parameters:**
 - `rule_id`: Unique identifier for the rule
 - `role`: `s` (source), `v` (verifier), or `a` (acceptor)
 - `src`: Source EID pattern
 - `dest`: Destination EID pattern
-- `tgt`: Target block type (1 = payload)
+- `tgt`: Target block type (0 = primary, 1 = payload)
 - `loc`: Location (`appin`, `appout`, etc.)
 - `sc_id`: Security context ID (1 = BIB, 2 = BCB)
 

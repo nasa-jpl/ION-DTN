@@ -9,24 +9,43 @@
 # Topology:
 #   Node 2 (ipn:2.*) --LTP--> Node 3 (ipn:3.*) --LTP--> Node 4 (ipn:4.*)
 #
-# BSL policy is loaded at startup via "m bsl" in each node's bprc.
-# Node 2 (source):  BIB + BCB source rules for 2->3 and 2->4
-# Node 3 (waypoint/dest): BIB + BCB verifier/acceptor rules for 2->3
-# Node 4 (dest):    BIB + BCB verifier/acceptor rules for 2->4
+# Security design (RFC 9172 compliant):
+#   Per RFC 9172 Section 4.7, a single security source MUST NOT apply
+#   separate BIB and BCB to the same target block. Instead:
+#     - BIB targets the PRIMARY block (tgt 0) for integrity
+#     - BCB targets the PAYLOAD block (tgt 1) for confidentiality
+#   This ensures each security service operates on a different block.
 #
-# All 6 bundles sent from node 2 have both BIB and BCB applied by BSL
-# policy. The old bpsecadmin commands (for native BPSec) are commented
-# out; BSL policy files control security for the entire test run.
+# BSL policy is loaded at startup via "m bsl" in each node's bprc.
+#   Node 2 (source):
+#     - BIB source on primary (tgt 0) for 2->3 and 2->4
+#     - BCB source on payload (tgt 1) for 2->3 and 2->4
+#   Node 3 (waypoint/dest for 2->3, relay for 2->4):
+#     - BCB verifier at CLIN (validates ASB, does NOT decrypt)
+#     - BIB acceptor at APPOUT for primary (verifies HMAC)
+#     - BCB acceptor at APPOUT for payload (decrypts)
+#     - BCB relay verifier at CLIN for 2->4 transit traffic
+#   Node 4 (dest for 2->4):
+#     - BCB verifier at CLIN (validates ASB, does NOT decrypt)
+#     - BIB acceptor at APPOUT for primary (verifies HMAC)
+#     - BCB acceptor at APPOUT for payload (decrypts)
+#
+# Note: BIB verifiers are NOT used at CLIN because BIB on the primary
+# block does not depend on BCB processing order (BIB targets a different
+# block than BCB). However, BIB verification at CLIN is unnecessary for
+# this test since the acceptor at APPOUT performs the same check. BCB
+# verifiers at CLIN perform a lightweight ASB validation without decrypting.
 #
 # Tests:
-#   Test 1 - Small bundle node 2->3 with BIB+BCB (should deliver)
-#   Test 2 - Small bundle node 2->3 with BIB+BCB, verify BSL init (should deliver)
+#   Test 1 - Small bundle node 2->3 with BIB(primary)+BCB(payload)
+#   Test 2 - Small bundle node 2->3, verify BSL initialization
 #   Test 3 - SKIPPED (wrong-key test not feasible with NULL_SUITES)
-#   Test 4 - Small bundle node 2->3 with BIB+BCB (should deliver)
-#   Test 5 - Large ~4MB file node 2->3 with BIB+BCB (should deliver intact)
-#   Test 6 - Small bundle node 2->4 via node 3 with BIB+BCB (should deliver)
-#   Test 7 - Anonymous bundle node 2->4 via node 3 with BIB+BCB (should deliver)
-#   Test 8 - BIB on primary block node 2->4 via node 3 with relay verifier (SDR BTSD path)
+#   Test 4 - Small bundle node 2->3 (baseline without dynamic rule changes)
+#   Test 5 - Large ~4MB file node 2->3 with BIB(primary)+BCB(payload)
+#   Test 6 - Small bundle node 2->4 via node 3 relay, BCB relay verification
+#   Test 7 - Anonymous bundle node 2->4 via node 3 relay
+#   Test 8 - Small bundle node 2->4 via node 3 relay (exercises SDR BTSD
+#            read path for BIB on primary at acceptor)
 #
 # Originally based on test by Scott Burleigh, April 12, 2010.
 # Adapted to BSP by Ryan Brown, August 2011.
@@ -125,7 +144,7 @@ BPV=`bpversion`
 
 cd 2.ipn.ltp
 echo -e "\n\n\n\n\n*****TEST 1*****"
-echo "Sending bundle (no security blocks) to ipn:3.1, should be delivered..."
+echo "Sending bundle to ipn:3.1 with BIB on primary + BCB on payload, should be delivered..."
 sleep ${TIMETODISPLAYTEXT}
 # Send first bundle from node 2 to node 3 requesting all status reports.
 # Bundle is sent to endpoint ipn:3.1, on which bpsink is listening, so
@@ -156,7 +175,7 @@ fi
 # Test 2
 
 echo -e "\n\n\n\n\n*****TEST 2*****"
-echo -e "Sending bundle with all security blocks to ipn:3.1, s/b delivered..."
+echo -e "Sending bundle with BIB(primary)+BCB(payload) to ipn:3.1, verifying BSL init..."
 sleep ${TIMETODISPLAYTEXT}
 
 cd 2.ipn.ltp
@@ -308,7 +327,7 @@ echo -e "the signature function is impossible.  So we skip this test."
 # Test 4 ....
 
 echo -e "\n\n\n\n\n*****TEST 4*****"
-echo -e "Clear security rules, send bundle without security blocks again (should deliver)."
+echo -e "Sending bundle with BIB(primary)+BCB(payload) to ipn:3.1 (should deliver)."
 sleep ${TIMETODISPLAYTEXT}
 cd 2.ipn.ltp
 #bpsecadmin<<ENDOFBPSECADMINCOMMANDS
@@ -348,7 +367,7 @@ fi
 # In this case we will use a script to generate a ~4MB file.
 
 echo -e "\n\n\n\n\n*****TEST 5*****"
-echo -e "Restore consistent rules, send BIG bundle with all security blocks (should deliver)."
+echo -e "Sending large ~4MB file with BIB(primary)+BCB(payload) to ipn:3.2 (should deliver intact)."
 sleep ${TIMETODISPLAYTEXT}
 
 cd 2.ipn.ltp
@@ -454,7 +473,7 @@ cd ..
 sleep 1
 
 echo -e "\n\n\n*****TEST 6*****"
-echo -e "Sending Bundle with BCB and BIB to ipn:4.1 from ipn:2.1. This will pass through node ipn:3.1 who doesn't have bib or bcb key...it should still be forwarded.\nThis should deliver."
+echo -e "Sending bundle with BIB(primary)+BCB(payload) to ipn:4.1 via node 3 relay.\nNode 3 performs BCB verification (no decrypt). Should deliver."
 sleep ${TIMETODISPLAYTEXT}
 cd 2.ipn.ltp
 
@@ -545,7 +564,7 @@ cd ..
 # anonymous bundle (no source id!)
 
 echo -e "\n\n\n*****TEST 7*****"
-echo "Sending Bundle with all blocks from ANONYMOUS bpsource on node 2 to ipn:4.1 via node 3. BIB and BCB should be authenticated at the destination. The bundle should be delivered."
+echo "Sending anonymous bundle with BIB(primary)+BCB(payload) to ipn:4.1 via node 3. Should be delivered."
 sleep ${TIMETODISPLAYTEXT}
 cd 2.ipn.ltp
 
@@ -625,7 +644,7 @@ cd ..
 # Node 4 accepts the BIB on primary at APPOUT, exercising the SDR BTSD read path.
 
 echo -e "\n\n\n*****TEST 8*****"
-echo "Sending bundle with BIB on primary block from ipn:2.1 to ipn:4.1 via node 3 (relay verifier). Exercises SDR BTSD read path at acceptor."
+echo "Sending bundle with BIB(primary)+BCB(payload) to ipn:4.1 via node 3. Exercises SDR BTSD read path for BIB acceptor on primary block."
 sleep ${TIMETODISPLAYTEXT}
 cd 2.ipn.ltp
 

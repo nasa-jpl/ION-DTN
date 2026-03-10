@@ -7253,6 +7253,7 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 			return -1;
 		}
 
+		bundle->insecure = nullWorkArea.bundle.insecure;
 		if (bundle->insecure)
 		{
 			return bpAbandon(bundleObj, bundle,
