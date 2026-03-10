@@ -650,3 +650,7 @@ fileclo
 
 # Secrets
 secrets.local.yaml
+
+# helm charts
+Chart.lock
+charts/arc/charts/*
