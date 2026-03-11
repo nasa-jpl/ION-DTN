@@ -92,6 +92,16 @@ jobs:
             echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
             echo "PATH=$PATH" '
 
+      - name: Sync VM time with host
+        run: |
+          CURRENT_TIME=$(date -u +"%m%d%H%M%Y.%S")
+          ssh -o StrictHostKeyChecking=no jgao@$VM_IP "
+            echo 'VM time before sync:' &&
+            date &&
+            sudo date $CURRENT_TIME &&
+            echo 'VM time after sync:' &&
+            date"
+
       - name: Copy code to Solaris VM
         run: |
           ssh -o StrictHostKeyChecking=no jgao@$VM_IP 'rm -rf ~/ion-gh-test-dir && mkdir -p ~/ion-gh-test-dir'
