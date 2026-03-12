@@ -405,7 +405,7 @@ static int	insertEvent(DgrSAP *sap, DgrRecord rec)
 	llcv_unlock(sap->inboundCV);
 	if (elt == NULL)
 	{
-		crashThread(sap, "Can't insert event");
+		putErrmsg("Can't insert event, dropping.", NULL);
 		return -1;
 	}
 
@@ -616,7 +616,7 @@ static int	insertResendReq(DgrSAP *sap, DgrRecord rec, DgrDest *dest,
 	req = MTAKE(sizeof(ResendReq));
 	if (req == NULL)
 	{
-		crashThread(sap, "Can't create resend request");
+		putErrmsg("Can't create resend request, dropping.", NULL);
 		return -1;
 	}
 
@@ -736,7 +736,7 @@ computedRtt = rtt;
 	pthread_mutex_unlock(&sap->pendingResendsMutex);
 	if (elt == NULL)
 	{
-		crashThread(sap, "Can't append resend request");
+		putErrmsg("Can't append resend request, dropping.", NULL);
 		return -1;
 	}
 
@@ -1023,7 +1023,7 @@ static int	insertSendReq(DgrSAP *sap, DgrRecord rec)
 	req = MTAKE(sizeof(SendReq));
 	if (req == NULL)
 	{
-		crashThread(sap, "Can't create send request");
+		putErrmsg("Can't create resend request, dropping.", NULL);
 		return -1;
 	}
 
@@ -1034,7 +1034,7 @@ static int	insertSendReq(DgrSAP *sap, DgrRecord rec)
 	llcv_unlock(sap->outboundCV);
 	if (elt == NULL)
 	{
-		crashThread(sap, "Can't append send request");
+		putErrmsg("Can't create resend request, dropping.", NULL);
 		return -1;
 	}
 
