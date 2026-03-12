@@ -96,91 +96,90 @@ echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
 
+# Establish absolute base directory for reliable pathing
+BASE_DIR="$PWD"
+
 ./cleanup
 echo "Starting ION..."
-export ION_NODE_LIST_DIR=$PWD
+export ION_NODE_LIST_DIR="$BASE_DIR"
 rm -f ./ion_nodes
 sleep 1
 
 # Start nodes
-cd 1.ipn.bss
+cd "$BASE_DIR/1.ipn.bss"
 echo "Starting node 1..."
 ./ionstart >& node1.stdout &
 sleep 5
 
-cd ../2.ipn.bss
+cd "$BASE_DIR/2.ipn.bss"
 echo "Starting node 2..."
 ./ionstart >& node2.stdout &
 sleep 1
 
-cd ../3.ipn.bss
+cd "$BASE_DIR/3.ipn.bss"
 echo "Starting node 3..."
 ./ionstart >& node3.stdout &
 sleep 1
 
-cd ../4.ipn.bss
+cd "$BASE_DIR/4.ipn.bss"
 echo "Starting node 4..."
 ./ionstart >& node4.stdout &
 
 # Wait for all nodes to be configured
-# Each ionstart takes ~5 seconds (5 x sleep 1), and nodes 3/4 start at T+6/T+7
-# Need to wait long enough for the last node's ionstart to complete
 sleep 10
 
 # Register node 3 and 4 in imc:19.0
-cd ../3.ipn.bss
+cd "$BASE_DIR/3.ipn.bss"
 echo "Register node 3 into multicast group imc:19.0"
 bpadmin node.bprc.2
 
-cd ../4.ipn.bss
+cd "$BASE_DIR/4.ipn.bss"
 echo "Register node 4 into multicast group imc:19.0"
 bpadmin node.bprc.2
 
 sleep 5
 
 # Start BSS receiver on nodes 3 and 4
-# Note: Use sleep with large value to keep stdin open without sending data
-# This prevents bssrecv from spinning in menu loop (it will block waiting for input)
 echo
 echo "Starting bssrecv application..."
-cd ../3.ipn.bss
+cd "$BASE_DIR/3.ipn.bss"
 sleep 86400 | bssrecv 3 bssDB ./ imc:19.0 > /dev/null 2>&1 &
 BSSRECV3_PID=$!
-cd ../4.ipn.bss
+cd "$BASE_DIR/4.ipn.bss"
 sleep 86400 | bssrecv 3 bssDB ./ imc:19.0 > /dev/null 2>&1 &
 BSSRECV4_PID=$!
 
 # Wait for all nodes to be fully initialized before streaming
-# Node 2 (the central relay) needs time for imcfw to start
 sleep 10
 
-cd ../1.ipn.bss
+cd "$BASE_DIR/1.ipn.bss"
 echo
 echo "Sending a stream of bundles from node 1 to group 19 for 30 seconds..."
 echo "bssStreamingApp started at $(date +"%Y/%m/%d-%T")"
 bssStreamingApp ipn:1.2 imc:19.0 > /dev/null 2>&1 &
 BSSSTREAM_PID=$!
 sleep 30
-pkill -INT bssStreamingApp
+
+# Silenced Solaris permission warnings
+pkill -INT bssStreamingApp 2>/dev/null || true
 TOTIME=$(date +"%Y/%m/%d-%T")
 echo
 
 # Give nodes enough time to receive all the reforwarded frames from node 1
 echo "Wait 15 seconds to ensure the complete reception of the stream from node 2..."
 sleep 15
-pkill bssrecv
+pkill bssrecv 2>/dev/null || true
 sleep 1
-# Clean up orphaned sleep processes that were piping to bssrecv
 pkill -f "sleep 86400" 2>/dev/null || true
 
 # Check that data was actually received in the database
-cd ../3.ipn.bss
+cd "$BASE_DIR/3.ipn.bss"
 if [ ! -s bssDB.dat ]; then
     echo "Node 3 did not receive data, test failed."
     exit 1
 fi
 
-cd ../4.ipn.bss
+cd "$BASE_DIR/4.ipn.bss"
 if [ ! -s bssDB.dat ]; then
     echo "Node 4 did not receive data, test failed."
     exit 1
@@ -188,35 +187,34 @@ fi
 
 echo
 echo "Replaying the received stream."
-cd ../3.ipn.bss
-# Use absolute timestamp 2000/01/01-00:00:01 (just after BSS epoch) as "from" time
-# to ensure replay starts from the beginning of the database
+cd "$BASE_DIR/3.ipn.bss"
 run_with_timeout 65 bssrecv 1 bssDB ./ imc:19.0 2000/01/01-00:00:01 "$TOTIME" < /dev/null > node3_replay.stdout 2>&1 &
 REPLAY3_PID=$!
-cd ../4.ipn.bss
+
+cd "$BASE_DIR/4.ipn.bss"
 run_with_timeout 65 bssrecv 1 bssDB ./ imc:19.0 2000/01/01-00:00:01 "$TOTIME" < /dev/null > node4_replay.stdout 2>&1 &
 REPLAY4_PID=$!
 echo
 sleep 70
+
 pkill bssrecv 2>/dev/null || true
 sleep 1
-# Clean up orphaned sleep processes that were piping to bssrecv
 pkill -f "sleep 86400" 2>/dev/null || true
 
 # Check that data was replayed
-# This checks that the 10th bundle was replayed, which we expect.
-cd ../3.ipn.bss
+cd "$BASE_DIR/3.ipn.bss"
 if ! grep -qF "**********10" node3_replay.stdout ; then
     echo "Replay failed in node 3."
     exit 1
 fi
-cd ../4.ipn.bss
+
+cd "$BASE_DIR/4.ipn.bss"
 if ! grep -qF "**********10" node4_replay.stdout ; then
     echo "Replay failed in node 4."
     exit 1
 fi
 
-cd ../4.ipn.bss
+# Removed the redundant cd call here
 if [ ! -s bssDB.dat ]; then
     echo "Node 4 did not receive data, test failed."
     exit 1
@@ -225,18 +223,14 @@ fi
 # Shut down ION processes
 echo
 echo "Stopping ION..."
-cd ../1.ipn.bss
-./ionstop &
-cd ../2.ipn.bss
-./ionstop &
-cd ../3.ipn.bss
-./ionstop &
-cd ../4.ipn.bss
-./ionstop &
 
 # Give all nodes time to shut down, then clean up
 sleep 15
+
+# Bypass graceful shutdown (ionstop is flaky on Solaris)
+cd "$BASE_DIR"
 killm
+
 echo "BSS multicast demo completed."
 echo "Output logs available:"
 echo "  - Node 1 streaming app: 1.ipn.bss/node1_bssStreamingApp.stdout"
