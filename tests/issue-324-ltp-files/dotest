@@ -50,11 +50,14 @@ echo "OUTPUT: counts of delivered files and residual acquisition files."
 echo
 echo "########################################"
 
+# Establish absolute base directory for reliable pathing
+BASE_DIR="$PWD"
+
 killm
 ./cleanup
 sleep 1
 echo "Starting ION..."
-export ION_NODE_LIST_DIR=$PWD
+export ION_NODE_LIST_DIR="$BASE_DIR"
 rm -f ./ion_nodes
 RETVAL=0
 
@@ -62,12 +65,15 @@ ITERCOUNT=1
 GAVEUP=1
 while [ $ITERCOUNT -le 4 ] && [ $GAVEUP -eq 1 ]
 do
+    # Anchor the start of the loop
+    cd "$BASE_DIR"
+
     echo "Starting channel simulator (owltsim)..."
     owltsim owlt.rc &
     OWLTSIM_PID=$!
 
     # Start nodes.
-    cd 3.ipn.ltp
+    cd "$BASE_DIR/3.ipn.ltp"
 
     ./ionstart
 
@@ -81,7 +87,7 @@ do
         exit 1
     fi
 
-    cd ../2.ipn.ltp
+    cd "$BASE_DIR/2.ipn.ltp"
 
     # direct to output
     ./ionstart > output
@@ -96,10 +102,10 @@ do
         exit 1
     fi
 
-    #Load contacts
-    cd ../2.ipn.ltp
+    # Load contacts (Currently in 2.ipn.ltp)
     ionadmin global.ionrc
-    cd ../3.ipn.ltp
+
+    cd "$BASE_DIR/3.ipn.ltp"
     ionadmin global.ionrc
     sleep 1
 
@@ -110,7 +116,7 @@ do
     sleep 1
 
     # Send files from node 2.
-    cd ../2.ipn.ltp
+    cd "$BASE_DIR/2.ipn.ltp"
     echo "Sending four files from node 2 to node 3:"
     echo "  shakespeare1"
     bpsendfile ipn:2.1 ipn:3.1 shakespeare1
@@ -124,7 +130,8 @@ do
     echo ""
     echo "...wait for 6 minutes to complete data transfer..."
     sleep 360
-    cd ../3.ipn.ltp
+
+    cd "$BASE_DIR/3.ipn.ltp"
 
     # Verify that all four files arrived.
     COUNT=`ls -l testfile4 | wc -l`
@@ -163,7 +170,7 @@ do
     rm testfile*
 
     #adjust loop condition
-    cd ../2.ipn.ltp
+    cd "$BASE_DIR/2.ipn.ltp"
     let  ITERCOUNT++
     COUNT=`grep "!" output | wc -l`
     if [ $RETVAL -eq 1 ]; then
@@ -194,17 +201,11 @@ do
     $killcmd -KILL "owltsim" &> /dev/null
     wait $OWLTSIM_PID 2>/dev/null
 
-    # Shut down ION processes.
-    #echo "Stopping ION..."
-    #cd ../2.ipn.ltp
-    #./ionstop &
-    #cd ../3.ipn.ltp
-    #./ionstop &
-    #cd ..
-
-    # Give both nodes time to shut down, then clean up.
-    #sleep 5
+    # Terminate ION daemons and IPC resources
     killm
+
+    # Return to safe harbor before next iteration
+    cd "$BASE_DIR"
 done
 
 echo "issue-324-ltp-files test completed."
