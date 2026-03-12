@@ -1719,8 +1719,7 @@ static int	sendAck(DgrSAP *sap, char *reportBuffer, int headerLength,
 	{
 		if (errno != EBADF)		/*	Socket closed.	*/
 		{
-			crashThread(sap, "Receiver thread failed sending \
-acknowledgement");
+			putErrmsg("Receiver thread failed sending acknowledgement, dropping.", NULL);
 		}
 
 		return -1;
@@ -1799,8 +1798,7 @@ static int	sendReport(DgrSAP *sap, char *reportBuffer, int headerLength,
 	{
 		if (errno != EBADF)		/*	Socket closed.	*/
 		{
-			crashThread(sap, "Receiver thread failed sending \
-report");
+			putErrmsg("Receiver thread failed sending acknowledgement, dropping.", NULL);
 		}
 
 		return -1;
