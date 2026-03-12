@@ -2105,9 +2105,8 @@ recvfrom");
 		rec = (DgrRecord) MTAKE(reclength);
 		if (rec == NULL)
 		{
-			crashThread(sap, "Receiver thread failed creating \
-content arrival event");
-			break;		/*	Out of main loop.	*/
+			putErrmsg("Receiver thread dropped packet due to memory exhaustion.", NULL);
+			continue; //Go back to top of receive loop
 		}
 
 		memset((char *) rec, 0, reclength);
