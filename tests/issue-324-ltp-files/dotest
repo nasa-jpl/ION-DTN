@@ -117,24 +117,41 @@ do
 
     # Send files from node 2.
     cd "$BASE_DIR/2.ipn.ltp"
-    echo "Sending four files from node 2 to node 3:"
+    echo "Sending four files from node 2 to node 3 (1-hour TTL):"
+
+    bpsendfile ipn:2.1 ipn:3.1 shakespeare1 0.1 3600
     echo "  shakespeare1"
-    bpsendfile ipn:2.1 ipn:3.1 shakespeare1
+
+    bpsendfile ipn:2.1 ipn:3.1 shakespeare2 0.1 3600
     echo "  shakespeare2"
-    bpsendfile ipn:2.1 ipn:3.1 shakespeare2
+
+    bpsendfile ipn:2.1 ipn:3.1 shakespeare3 0.1 3600
     echo "  shakespeare3"
-    bpsendfile ipn:2.1 ipn:3.1 shakespeare3
+
+    bpsendfile ipn:2.1 ipn:3.1 shakespeare4 0.1 3600
     echo "  shakespeare4"
-    bpsendfile ipn:2.1 ipn:3.1 shakespeare4
 
     echo ""
-    echo "...wait for 6 minutes to complete data transfer..."
-    sleep 360
+    echo "...waiting up to 5 minutes for data transfer to complete..."
 
+    # Jump to node 3 to monitor the file arrival
     cd "$BASE_DIR/3.ipn.ltp"
 
+    WAIT_TIME=0
+    MAX_WAIT=300
+    while [ $WAIT_TIME -le $MAX_WAIT ]; do
+        COUNT=`ls -l testfile4 2>/dev/null | wc -l`
+        if [ $COUNT -eq 1 ]; then
+            echo "Success: All files received early after $WAIT_TIME seconds!"
+            # Give LTP time to exchange the final RS/RA and delete the temp file
+            sleep 5
+            break
+        fi
+        sleep 5
+        let WAIT_TIME+=5
+    done
+
     # Verify that all four files arrived.
-    COUNT=`ls -l testfile4 | wc -l`
     if [ $COUNT -eq 1 ]
     then
         echo ""
@@ -147,6 +164,9 @@ do
     fi
 
     echo ""
+
+    # Allow LTP to cleanup any lingering ltpblock
+    sleep 5
 
     # Verify that no leftover files remain.
     COUNT=`ls -l *ltpblock* 2>/dev/null | wc -l`
