@@ -773,10 +773,9 @@ PsmAddress	sm_list_data(PsmPartition partition, PsmAddress elt)
 {
 	SmListElt	*eltBuffer;
 
-	CHKZERO(partition);
-	CHKZERO(elt);
+	if (partition == 0 || elt == 0) return 0;
 	eltBuffer = (SmListElt *) psp(partition, elt);
-	CHKZERO(eltBuffer);
+	if (eltBuffer == NULL) return 0;
 	return eltBuffer->data;
 }
 

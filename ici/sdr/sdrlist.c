@@ -244,7 +244,7 @@ Object	Sdr_list_insert_last(const char *file, int line, Sdr sdrv, Object list,
 	elt = _sdrzalloc(sdrv, sizeof(SdrListElt));
 	if (elt == 0)
 	{
-		oK(_iEnd(file, line, "elt"));
+		_putErrmsg(file, line, "Can't allocate SdrListElt", NULL);
 		return 0;
 	}
 

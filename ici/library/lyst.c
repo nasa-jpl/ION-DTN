@@ -385,8 +385,11 @@ Lyst_delete(const char *file, int line, LystElt elt)
 	}
 
 	list = elt->lyst;
-	CHKVOID(list);
-	CHKVOID(list->length > 0);
+	if (list == NULL || list->length == 0)
+	{
+		putErrmsg("Lyst_delete: invalid list state.", NULL);
+		return;
+	}
 	if (list->delete_cb != NULL) list->delete_cb(elt,list->delete_arg);
 
 	/* update previous pointers */
@@ -483,7 +486,7 @@ lyst_lyst(LystElt elt)
 void *
 lyst_data(LystElt elt)
 {
-	CHKNULL(elt);
+	if (elt == NULL) return NULL;
 	return elt->data;
 }
 
