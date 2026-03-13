@@ -795,7 +795,11 @@ static int	enqueueMsgToCS(RsState *rsState, MamsPduType msgType,
 	uvast totalSize = sizeof(AmsEvt) + dataSize;
 
 	evt = (AmsEvt *) MTAKE(totalSize);
-	CHKERR(evt);
+	if (evt == NULL)
+	{
+		putErrmsg("Memory exhausted. Can't allocate AmsEvt in enqueueMsgToCS.", NULL);
+		return -1;
+	}
 
 	memset(evt, 0, totalSize);
 	evt->type = MSG_TO_SEND_EVT;

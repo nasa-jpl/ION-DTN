@@ -989,7 +989,12 @@ unsolicited message.", subject->name);
 	/* Create and enqueue event, signal application thread.    */
 
 	evt = (AmsEvt *) MTAKE(1 + sizeof(AmsMsg));
-	CHKERR(evt);
+	if (evt == NULL)
+	{
+		writeMemo("[?] Memory exhausted. Dropping AMS message.");
+		unlockMib();
+		return -1;
+	}
 	evt->type = AMS_MSG_EVT;
 	memcpy(evt->value, (char *) &msg, sizeof(AmsMsg));
 	result = enqueueAmsEvent(sap, evt, msg.content, msg.contextNbr,
@@ -5165,7 +5170,11 @@ static int	ams_disinvite2(AmsSAP *sap, int roleNbr, short continuumNbr,
 	}
 
 	cancellation = MTAKE(CANCEL_LEN);
-	CHKERR(cancellation);
+	if (cancellation == NULL)
+	{
+		putErrmsg("Can't allocate cancellation buffer.", NULL);
+		return -1;
+	}
 	i2 = subjectNbr;
 	i2 = htons(i2);
 	memcpy(cancellation, (char *) &i2, 2);
@@ -5357,7 +5366,11 @@ static int	ams_unsubscribe2(AmsSAP *sap, int roleNbr, short continuumNbr,
 	}
 
 	cancellation = MTAKE(CANCEL_LEN);
-	CHKERR(cancellation);
+	if (cancellation == NULL)
+	{
+		putErrmsg("Can't allocate cancellation buffer.", NULL);
+		return -1;
+	}
 	i2 = subjectNbr;
 	i2 = htons(i2);
 	memcpy(cancellation, (char *) &i2, 2);
