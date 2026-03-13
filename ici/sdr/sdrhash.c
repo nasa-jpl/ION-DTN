@@ -205,7 +205,7 @@ int	Sdr_hash_insert(const char *file, int line, Sdr sdrv, Object hash,
 	kvpairAddr = Sdr_malloc(file, line, sdrv, kvpairLength);
 	if (kvpairAddr == 0)
 	{
-		oK(_iEnd(file, line, "kvpairAddr"));
+		_putErrmsg(file, line, "SDR memory exhausted during hash insertion.", NULL);
 		return -1;
 	}
 
