@@ -257,11 +257,20 @@ Enclosure	*ConstructEnclosure(short continuumNbr, int unitNbr,
 	/*	Enclosure within a RAMS message is an AAMS message.	*/
 
 	enc = (Enclosure *) MTAKE(sizeof(Enclosure));
-	CHKNULL(enc);
+	if (enc == NULL)
+	{
+		putErrmsg("Can't allocate Enclosure.", NULL);
+		return NULL;
+	}
 	memset((char *) enc, 0, sizeof(Enclosure));
 	enc->length = contentLength + AMSMSGHEADER;
 	enc->text = (char *) MTAKE(enc->length);
-	CHKNULL(enc->text);
+	if (enc->text == NULL)
+	{
+		putErrmsg("Can't allocate Enclosure text.", NULL);
+		MRELEASE(enc);
+		return NULL;
+	}
 	header = enc->text;
 	u8 = msgType;
 	u1 = ((u8 << 4) & 0x30) + (priority & 0x0f);
@@ -310,18 +319,29 @@ Petition	*ConstructPetition(short domainContinuum, int domainRole,
 	Petition	*pet;
 
 	pet = MTAKE(sizeof(Petition));
-	CHKNULL(pet);
+	if (pet == NULL) return NULL;
 	memset((char *) pet, 0, sizeof(Petition));
+
 	pet->DistributionModuleSet = lyst_create_using(amsMemory);
-	CHKNULL(pet->DistributionModuleSet);
 	pet->DestinationNodeSet = lyst_create_using(amsMemory);
-	CHKNULL(pet->DestinationNodeSet);
 	pet->SourceNodeSet = lyst_create_using(amsMemory);
-	CHKNULL(pet->SourceNodeSet);
 	pet->specification = (PetitionSpec *) MTAKE(sizeof(PetitionSpec));
-	CHKNULL(pet->specification);
+
+	if (pet->DistributionModuleSet == NULL ||
+	    pet->DestinationNodeSet == NULL ||
+	    pet->SourceNodeSet == NULL ||
+	    pet->specification == NULL)
+	{
+		DeletePetition(pet);
+		return NULL;
+	}
+
 	pet->specification->envelope = (char *) MTAKE(ENVELOPELENGTH);
-	CHKNULL(pet->specification->envelope);
+	if (pet->specification->envelope == NULL)
+	{
+		DeletePetition(pet);
+		return NULL;
+	}
 	pet->specification->envelopeLength = ENVELOPELENGTH;
 	pet->specification->toContinuumNbr = domainContinuum;
 	ConstructEnvelope((unsigned char *) (pet->specification->envelope),
@@ -335,33 +355,55 @@ Petition	*ConstructPetitionFromEnvelope(char* envelope)
 	int		amsMemory = getIonMemoryMgr();
 	Petition	*pet;
 
-	CHKNULL(envelope);
-	pet = MTAKE(sizeof(Petition));
-	CHKNULL(pet);
-	memset((char *) pet, 0, sizeof(Petition));
-	pet->DistributionModuleSet = lyst_create_using(amsMemory);
-	CHKNULL(pet->DistributionModuleSet);
-	pet->DestinationNodeSet = lyst_create_using(amsMemory);
-	CHKNULL(pet->DestinationNodeSet);
-	pet->SourceNodeSet = lyst_create_using(amsMemory);
-	CHKNULL(pet->SourceNodeSet);
-	pet->specification = (PetitionSpec *) MTAKE(sizeof(PetitionSpec));
-	CHKNULL(pet->specification);
-	pet->specification->envelope = NULL;
-	pet->specification->envelopeLength = 0;
-	pet->specification->toContinuumNbr = -1;
-	if (envelope != NULL)
+	if (envelope == NULL)
 	{
-		pet->specification->envelopeLength = ENVELOPELENGTH
-				+ EnvelopeHeader(envelope, Env_EnclosureLength);
-		pet->specification->toContinuumNbr = EnvelopeHeader(envelope,
-				Env_ContinuumNbr);
-		pet->specification->envelope = (char *)
-				MTAKE(pet->specification->envelopeLength);
-		CHKNULL(pet->specification->envelope);
-		memcpy(pet->specification->envelope, envelope,
-				pet->specification->envelopeLength);
+		putErrmsg("ConstructPetitionFromEnvelope: envelope is NULL.", NULL);
+		return NULL;
 	}
+
+	pet = (Petition *) MTAKE(sizeof(Petition));
+	if (pet == NULL)
+	{
+		putErrmsg("ConstructPetitionFromEnvelope: Can't allocate Petition.", NULL);
+		return NULL;
+	}
+
+	/* Zeroing out the struct ensures that if we fail later, DeletePetition
+	 * won't try to free garbage pointers. */
+	memset((char *) pet, 0, sizeof(Petition));
+
+	pet->DistributionModuleSet = lyst_create_using(amsMemory);
+	pet->DestinationNodeSet = lyst_create_using(amsMemory);
+	pet->SourceNodeSet = lyst_create_using(amsMemory);
+	pet->specification = (PetitionSpec *) MTAKE(sizeof(PetitionSpec));
+
+	if (pet->DistributionModuleSet == NULL ||
+	    pet->DestinationNodeSet == NULL ||
+	    pet->SourceNodeSet == NULL ||
+	    pet->specification == NULL)
+	{
+		putErrmsg("ConstructPetitionFromEnvelope: Can't allocate Petition internals.", NULL);
+		DeletePetition(pet);
+		return NULL;
+	}
+
+	pet->specification->envelope = NULL;
+	pet->specification->envelopeLength = ENVELOPELENGTH
+			+ EnvelopeHeader(envelope, Env_EnclosureLength);
+	pet->specification->toContinuumNbr = EnvelopeHeader(envelope,
+			Env_ContinuumNbr);
+
+	pet->specification->envelope = (char *) MTAKE(pet->specification->envelopeLength);
+
+	if (pet->specification->envelope == NULL)
+	{
+		putErrmsg("ConstructPetitionFromEnvelope: Can't allocate envelope copy.", NULL);
+		DeletePetition(pet);
+		return NULL;
+	}
+
+	memcpy(pet->specification->envelope, envelope,
+			pet->specification->envelopeLength);
 
 	return pet;
 }

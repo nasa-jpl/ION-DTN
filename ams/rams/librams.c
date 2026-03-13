@@ -1619,20 +1619,36 @@ domainUnitNbr);
 			subjectNbr, gWay->invitationSet)) == NULL)
 	{
 		inv = (Invitation *) MTAKE(sizeof(Invitation));
-		CHKVOID(inv);
+		if (inv == NULL) return;
+
+		inv->inviteSpecification = (InvitationSpec *) MTAKE(sizeof(InvitationSpec));
+		inv->moduleSet = lyst_create_using(getIonMemoryMgr());
+
+		if (inv->inviteSpecification == NULL || inv->moduleSet == NULL)
+		{
+			if (inv->inviteSpecification) MRELEASE(inv->inviteSpecification);
+			if (inv->moduleSet) lyst_destroy(inv->moduleSet);
+			MRELEASE(inv);
+			return;
+		}
+
 		invElt = lyst_insert_last(gWay->invitationSet, inv);
-		CHKVOID(invElt);
-		inv->inviteSpecification = (InvitationSpec *)
-				MTAKE(sizeof(InvitationSpec));
-		CHKVOID(inv->inviteSpecification);
+		elt = lyst_insert_last(inv->moduleSet, sourceModule);
+
+		if (invElt == NULL || elt == NULL)
+		{
+			if (invElt) lyst_delete(invElt);
+			if (elt) lyst_delete(elt);
+			lyst_destroy(inv->moduleSet);
+			MRELEASE(inv->inviteSpecification);
+			MRELEASE(inv);
+			return;
+		}
+
 		inv->inviteSpecification->domainUnitNbr = domainUnitNbr;
 		inv->inviteSpecification->domainRoleNbr = domainRoleNbr;
 		inv->inviteSpecification->domainContNbr = domainContinuumNbr;
 		inv->inviteSpecification->subjectNbr = subjectNbr;
-		inv->moduleSet = lyst_create_using(getIonMemoryMgr());
-		CHKVOID(inv->moduleSet);
-		elt = lyst_insert_last(inv->moduleSet, sourceModule);
-		CHKVOID(elt);
 	}
 	else
 	{
@@ -1640,7 +1656,11 @@ domainUnitNbr);
 		if (ModuleSetMember(sourceModule, inv->moduleSet) == NULL)
 		{
 			elt = lyst_insert_last(inv->moduleSet, sourceModule);
-			CHKVOID(elt);
+			if (elt == NULL)
+			{
+				putErrmsg("HandleInvitation: Can't insert module into existing invitation set.", NULL);
+				return;
+			}
 		}
 	}
 	pthread_mutex_unlock(&gWay->gwayStateMutex);
