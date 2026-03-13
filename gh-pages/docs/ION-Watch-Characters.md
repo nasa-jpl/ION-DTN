@@ -62,6 +62,54 @@ To activate customized processing, use the following steps:
   ./configure --enable-ewchar CFLAGS="-DGDSWATCHER -DGDSLOGGER -I/<path to the folder holding the gdswatcher.c file>"
   ```
 
+### Provided File Logger: `tools/gdswatcher/gdswatcher.c`
+
+ION ships a ready-to-use `gdswatcher.c` in `tools/gdswatcher/` that writes
+timestamped watch characters to a log file for offline analysis.
+
+**Build:**
+
+```bash
+./configure --enable-ewchar CFLAGS="-DGDSWATCHER -Itools/gdswatcher"
+make clean && make && sudo make install
+```
+
+**Configuration:**
+
+Set the `ION_WATCH_LOG` environment variable to choose the output file path.
+If unset, it defaults to `ion_watch.log` in the current working directory.
+
+```bash
+ION_WATCH_LOG=./watch.log ./dotest
+```
+
+**Output format** (one line per watch event):
+
+```
+<seconds>.<microseconds> <watch_string>
+```
+
+Example:
+
+```
+1710000001.234567 (ds42)g
+1710000001.567123 (cp42)g
+1710000003.890456 (d42)s
+1710000004.123456 (42)h
+```
+
+**Visualization:**
+
+A companion Python script `tools/gdswatcher/ltp_visualize.py` parses the
+log file and generates per-session timeline plots and statistics:
+
+```bash
+python3 tools/gdswatcher/ltp_visualize.py watch.log
+```
+
+This produces a timeline PNG, a retransmission histogram, and a CSV with
+per-session statistics. Requires Python 3.6+ and matplotlib.
+
 ## Bundle Protocol Watch Character
 
 `a` - new bundle is queued for forwarding; `(nnn,sss,tttt,cccc)a`
