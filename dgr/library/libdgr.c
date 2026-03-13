@@ -475,9 +475,10 @@ static DgrDest	*addNewDest(DgrSAP *sap, unsigned short portNbr,
 
 	bin = hashDestId(portNbr, ipAddress);
 	dest->ownElt = lyst_insert_last(sap->destLysts[bin], (void *) newDest);
+	dest->ownElt = lyst_insert_last(sap->destLysts[bin], (void *) newDest);
 	if (dest->ownElt == NULL)
 	{
-		crashThread(sap, "Can't add new active destination");
+		putErrmsg("Can't add new active destination due to memory exhaustion.", NULL);
 		return NULL;
 	}
 
@@ -1608,8 +1609,8 @@ static void	*sender(void *parm)
 			llcv_unlock(sap->outboundCV);
 			if (arq(sap, engineId, sessionNbr, DgrSendMessage))
 			{
-				writeMemo("[i] DGR sender thread ended.");
-				return NULL;
+				putErrmsg("DGR sender encountered ARQ error (memory exhaustion), dropping message.", NULL);
+				continue;
 			}
 		}
 	}
@@ -1674,11 +1675,10 @@ static void	*resender(void *parm)
 				engineId = req->id.engineId;
 				sessionNbr = req->id.sessionNbr;
 				pthread_mutex_unlock(&sap->pendingResendsMutex);
-				if (arq(sap, engineId, sessionNbr,
-						DgrHandleTimeout))
+				if (arq(sap, engineId, sessionNbr, DgrHandleTimeout))
 				{
-					writeMemo("[i] DGR resender ended.");
-					return NULL;
+					putErrmsg("DGR resender encountered ARQ error (memory exhaustion), dropping resend.", NULL);
+					continue;
 				}
 
 				continue;
@@ -2695,10 +2695,17 @@ int	dgr_receive(DgrSAP *sap, unsigned short *fromPortNbr,
 
 	llcv_lock(sap->inboundCV);
 	elt = lyst_first(sap->inboundEvents);
+	if (elt == NULL)
+	{
+		llcv_unlock(sap->inboundCV);
+		*rc = DgrInterrupted;
+		return 0;
+	}
 	rec = (DgrRecord) lyst_data(elt);
 	lyst_delete(elt);
 	llcv_unlock(sap->inboundCV);
-	if (rec == NULL)		/*	Interrupted.		*/
+
+	if (rec == NULL)
 	{
 		*rc =  DgrInterrupted;
 		return 0;
@@ -2732,6 +2739,9 @@ int	dgr_receive(DgrSAP *sap, unsigned short *fromPortNbr,
 
 void	dgr_interrupt(DgrSAP *sap)
 {
-	CHKVOID(sap);
-	CHKVOID(insertEvent(sap, NULL) == 0);
+	if (sap == NULL) return;
+	if (insertEvent(sap, NULL) != 0)
+	{
+		putErrmsg("dgr_interrupt: failed to insert interrupt event due to memory exhaustion.", NULL);
+	}
 }
