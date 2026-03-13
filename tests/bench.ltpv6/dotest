@@ -22,7 +22,7 @@ MAXSECONDS=120
 MAX_TOTAL_SECONDS=600
 # what THROUGHPUT to list in the contact plans (in ___BYTES___ per second)
 # (list multiple values to cycle through them each)
-THROUGHPUTS="10${GB}"
+THROUGHPUTS="100${MB}"
 # how many iterations of the test to run?
 ITERATIONS="1"
 # Test definitions: each entry is one test run.
@@ -154,7 +154,7 @@ for THROUGHPUT in ${THROUGHPUTS}; do
     # Adjust the contact plan
     cat > ./global.ionrc << EOF
 m horizon  +0
-a range    +0 +600		2 3   4
+a range    +0 +600		2 3   1
 a contact  +0 +420		2 3   ${THROUGHPUT}
 a contact  +0 +600		3 2   ${THROUGHPUT}
 EOF
@@ -274,10 +274,25 @@ SpanConfig: max_exp=$MAX_EXP max_imp=$MAX_IMP max_seg=$MAX_SEG agg_size=$AGG_SIZ
             # Wait for bpdriver to finish sending
             wait $BPDRIVER_PID 2>/dev/null
 
-            # Let remaining bundles be discarded (endpoints are set to x)
-            COOLDOWN=60
-            echo "Pausing ${COOLDOWN}s for remaining bundles to clear the system..."
-            sleep ${COOLDOWN}
+            # Wait for all LTP sessions to close before starting next test.
+            # Poll ltpwatch every 2 seconds; give up after 60 seconds.
+            echo "Waiting for LTP sessions to drain..."
+            DRAIN_TIMER=0
+            DRAIN_MAX=60
+            while [ "$DRAIN_TIMER" -lt "$DRAIN_MAX" ]; do
+                sleep 2
+                DRAIN_TIMER=$((DRAIN_TIMER + 2))
+                # Check active sessions on sender node
+                ACTIVE=$(cd ${SENDER_DIR}; ltpwatch -a -c 2>/dev/null | grep '^ ' | grep -v 'green-only' | grep -v 'no sessions' | grep -c '[1-9]')
+                if [ "$ACTIVE" -eq 0 ]; then
+                    echo "...LTP sessions drained after ${DRAIN_TIMER}s."
+                    break
+                fi
+                echo "...active sessions remaining (${DRAIN_TIMER}s)..."
+            done
+            if [ "$DRAIN_TIMER" -ge "$DRAIN_MAX" ]; then
+                echo "...drain timeout after ${DRAIN_MAX}s, proceeding."
+            fi
         fi
 
     # loop to next test
