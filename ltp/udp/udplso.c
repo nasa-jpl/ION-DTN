@@ -475,7 +475,13 @@ int	main(int argc, char *argv[])
 
 	tb.lastRefillTime = getUsecTimestamp();
 	tb.tokens = 0;
-	tb.bucketSize = UDPLSA_BUFSZ * 2;
+
+	/*
+	 * UDPLSA_BUFSZ can be increased for improved LTP performance
+	 * on hosts with increased kernel buffer sizes. On Linux, x2
+	 * can be considered safe with the default kernel buffer size.
+	 */
+	tb.bucketSize = UDPLSA_BUFSZ;
 	tb.remoteEngineId = remoteEngineId;
 	tb.neighbor = NULL;
 
