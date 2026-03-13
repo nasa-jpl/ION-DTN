@@ -74,10 +74,13 @@ static void	*sendUdp(void *parm)
 	LystElt		nextElt;
 	DG		*dg;
 	char		timebuf[256];
+	unsigned int	sleepUsec;
+	long		delta;
 
+	sleepUsec = 100000;
 	while (1)
 	{
-		microsnooze(100000);	/*	Sleep 1/10 second.	*/
+		microsnooze(sleepUsec);
 		getCurrentTime(&currentTime);
 		if (sm_SemTake(stp->mutex) < 0
 		|| sm_SemEnded(stp->mutex))
@@ -134,6 +137,39 @@ length %d from %s destined for %s.\n", timebuf, dg->length, stp->fromNode,
 			}
 
 			lyst_delete(elt);
+		}
+
+		/*	Compute adaptive sleep: wait until the next
+		 *	datagram's xmitTime rather than a fixed 100ms.
+		 *	This preserves the original inter-packet timing
+		 *	instead of bursting all queued datagrams at
+		 *	wire speed after each poll interval.		*/
+
+		getCurrentTime(&currentTime);
+		elt = lyst_first(stp->transmission);
+		if (elt)
+		{
+			dg = (DG *) lyst_data(elt);
+			delta = (dg->xmitTime.tv_sec - currentTime.tv_sec)
+					* 1000000
+				+ (dg->xmitTime.tv_usec
+					- currentTime.tv_usec);
+			if (delta < 1000)
+			{
+				sleepUsec = 1000;	/*	Min 1ms.  */
+			}
+			else if (delta > 100000)
+			{
+				sleepUsec = 100000;	/*	Max 100ms.*/
+			}
+			else
+			{
+				sleepUsec = (unsigned int) delta;
+			}
+		}
+		else
+		{
+			sleepUsec = 100000;	/*	Queue empty.	*/
 		}
 
 		sm_SemGive(stp->mutex);
