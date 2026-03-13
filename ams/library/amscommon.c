@@ -2330,7 +2330,11 @@ int	sendMamsMsg(MamsEndpoint *endpoint, MamsInterface *tsif,
 
 	msgLength = 12 + 5 + authenticatorLength + supplementLength + 2;
 	msg = MTAKE(msgLength);
-	CHKERR(msg);
+	if (msg == NULL)
+	{
+		putErrmsg("Can't allocate buffer for outbound MAMS msg.", NULL);
+		return -1;
+	}
 
 	/*	Construct the message.	First octet is two bits of
 	 *	version number (which is always 00 for now) followed
@@ -2636,7 +2640,11 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 	if (msg.supplementLength > 0)
 	{
 		msg.supplement = MTAKE(msg.supplementLength);
-		CHKERR(msg.supplement);
+		if (msg.supplement == NULL)
+		{
+			putErrmsg("Can't allocate MAMS supplement, dropping msg.", NULL);
+			return -1;
+		}
 		memcpy(msg.supplement, supplement, msg.supplementLength);
 	}
 	else
@@ -2645,7 +2653,16 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 	}
 
 	evt = MTAKE(1 + sizeof(MamsMsg));
-	CHKERR(evt);
+	if (evt == NULL)
+	{
+		if (msg.supplement)
+		{
+			MRELEASE(msg.supplement);
+		}
+		putErrmsg("Can't allocate MAMS event, dropping msg.", NULL);
+		return -1;
+	}
+
 	evt->type = MAMS_MSG_EVT;
 	memcpy(evt->value, (char *) &msg, sizeof(MamsMsg));
 	if (enqueueMamsEvent(eventsQueue, evt, msg.supplement, msg.memo))
@@ -2680,7 +2697,11 @@ int	enqueueMamsCrash(Llcv eventsQueue, char *text)
 	}
 
 	evt = (AmsEvt *) MTAKE(1 + textLength + 1);
-	CHKERR(evt);
+	if (evt == NULL)
+	{
+		putErrmsg("Can't allocate memory for MAMS crash event.", NULL);
+		return -1;
+	}
 	evt->type = CRASH_EVT;
 	memcpy(evt->value, text, textLength);
 	evt->value[textLength] = '\0';
@@ -2699,7 +2720,11 @@ int	enqueueMamsStubEvent(Llcv eventsQueue, int eventType)
 	AmsEvt	*evt;
 
 	evt = (AmsEvt *) MTAKE(sizeof(AmsEvt));
-	CHKERR(evt);
+	if (evt == NULL)
+	{
+		putErrmsg("Can't allocate memory for MAMS stub event.", NULL);
+		return -1;
+	}
 	evt->type = eventType;
 	if (enqueueMamsEvent(eventsQueue, evt, NULL, 0))
 	{
