@@ -1311,9 +1311,16 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 
 	case registrar_noted:
 		rsState->heartbeatsMissed = 0;
-		rsState->csEndpoint =
-			(MamsEndpoint *) lyst_data(rsState->csEndpointElt);
-		rsState->csEndpointElt = NULL;
+		if (rsState->csEndpointElt != NULL)
+		{
+			rsState->csEndpoint =
+				(MamsEndpoint *) lyst_data(rsState->csEndpointElt);
+			rsState->csEndpointElt = NULL;
+		}
+		else
+		{
+			writeMemo("[?] rsState->csEndpointElt is NULL in registrar_noted");
+		}
 		return;
 
 	case cell_spec:

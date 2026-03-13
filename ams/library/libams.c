@@ -202,7 +202,11 @@ static int	enqueueAmsEvent(AmsSAP *sap, AmsEvt *evt, char *ancillaryBlock,
 	}
 
 	llcv_unlock(eventsQueue);
-	CHKERR(elt);
+	if (elt == NULL)
+	{
+		putErrmsg("Can't enqueue AMS event, dropping message.", NULL);
+		return -1;
+	}
 	return 0;
 }
 
@@ -1717,19 +1721,28 @@ static int	noteAssertion(AmsSAP *sap, Module *module, Subject *subject,
 		}
 
 		fan = (FanModule *) MTAKE(sizeof(FanModule));
-		CHKERR(fan);
+		if (fan == NULL)
+		{
+			putErrmsg("Can't allocate FanModule.", NULL);
+			return -1;
+		}
 		fan->module = module;
 		fan->subj = subj;
-		if (nextFan)	/*	Insert before this point.	*/
+		if (nextFan)
 		{
 			subj->fanElt = lyst_insert_before(nextFan, fan);
 		}
-		else		/*	Insert at end of list.		*/
+		else
 		{
 			subj->fanElt = lyst_insert_last(subject->modules, fan);
 		}
 
-		CHKERR(subj->fanElt);
+		if (subj->fanElt == NULL)
+		{
+			MRELEASE(fan);
+			putErrmsg("Can't insert FanModule into list.", NULL);
+			return -1;
+		}
 	}
 	else	/*	Module already has interest in this subject.	*/
 	{

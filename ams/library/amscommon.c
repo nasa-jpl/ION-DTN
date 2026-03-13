@@ -1617,7 +1617,15 @@ static void	destroySubjOfInterest(LystElt elt, void *userdata)
 
 	lyst_destroy(subj->subscriptions);
 	lyst_destroy(subj->invitations);
-	lyst_delete(subj->fanElt);
+
+	lockMib();
+	if (subj->fanElt != NULL)
+	{
+		lyst_delete(subj->fanElt);
+		subj->fanElt = NULL;
+	}
+	unlockMib();
+
 	MRELEASE(subj);
 }
 
