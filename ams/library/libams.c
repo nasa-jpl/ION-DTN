@@ -159,7 +159,11 @@ static int	enqueueAmsEvent(AmsSAP *sap, AmsEvt *evt, char *ancillaryBlock,
 		}
 
 		llcv_unlock(eventsQueue);
-		CHKERR(elt);
+		if (elt == NULL)
+		{
+			putErrmsg("Can't enqueue AMS event, dropping message.", NULL);
+			return -1;
+		}
 		llcv_signal(eventsQueue, time_to_stop);
 		return 0;
 	}
@@ -999,6 +1003,16 @@ unsolicited message.", subject->name);
 	memcpy(evt->value, (char *) &msg, sizeof(AmsMsg));
 	result = enqueueAmsEvent(sap, evt, msg.content, msg.contextNbr,
 			msg.priority, msg.type);
+
+	/* FIX: Prevent memory leak if event queueing fails */
+	if (result < 0)
+	{
+		if (msg.content)
+		{
+			RELEASE_CONTENT_SPACE(msg.content);
+		}
+		MRELEASE(evt);
+	}
 
 	unlockMib();
 	return result;
@@ -6340,6 +6354,7 @@ static int	ams_post_user_event2(AmsSAP *sap, int code, int dataLength,
 {
 	AmsEvt	*evt;
 	char	*cursor;
+	int	result;
 
 	CHKERR(dataLength == 0 || (dataLength > 0 && data != NULL));
 	CHKERR(priority >= 0);
@@ -6357,7 +6372,15 @@ static int	ams_post_user_event2(AmsSAP *sap, int code, int dataLength,
 		memcpy(cursor, data, dataLength);
 	}
 
-	return enqueueAmsEvent(sap, evt, NULL, 0, priority, AmsMsgNone);
+	result = enqueueAmsEvent(sap, evt, NULL, 0, priority, AmsMsgNone);
+
+	/* FIX: Prevent memory leak if event queueing fails */
+	if (result < 0)
+	{
+		MRELEASE(evt);
+	}
+
+	return result;
 }
 
 int	ams_post_user_event(AmsSAP *sap, int code, int dataLength, char *data,
