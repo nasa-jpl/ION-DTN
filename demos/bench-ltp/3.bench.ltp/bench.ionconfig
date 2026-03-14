@@ -2,4 +2,4 @@ wmKey 66336
 sdrName ion3
 wmSize 150000000
 configFlags 1
-heapWords 10000000
+heapWords 50000000

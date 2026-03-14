@@ -14,8 +14,7 @@
 KB="000"
 MB="${KB}000"
 GB="${MB}000"
-# how many total bytes to transfer for each test
-#TOTALBYTES=1${MB}
+# Default total bytes to transfer (can be overridden per-test via 7th field)
 TOTALBYTES=200${MB}
 # MAX number of bundles for any test (too many causes non-ION losses)
 # This really only affects really small size bundles
@@ -24,32 +23,35 @@ MAXBUNDLES=500000
 # 5 minutes is probably plenty
 MAXSECONDS=120
 # how many total seconds to allow the entire test script to run before aborting
-MAX_TOTAL_SECONDS=600
+MAX_TOTAL_SECONDS=1800
 # what THROUGHPUT to list in the contact plans (in ___BYTES___ per second)
 # (list multiple values to cycle through them each)
 #THROUGHPUTS="100${MB} 1${GB} 10${GB} 100${GB}"
-THROUGHPUTS="100${MB}"
+THROUGHPUTS="2${GB}"
 # how many iterations of the test to run?
 ITERATIONS="1"
+# LTP estimated max export sessions (init parameter)
+LTP_INIT=50
 # Test definitions: each entry is one test run.
-# Format: "bundle_size max_export max_import max_seg_size agg_size_thresh agg_time_limit"
-# Number of bundles is computed from TOTALBYTES/bundle_size (capped at MAXBUNDLES).
-# The LSO command is fixed: 'udplso localhost:2113'
-# NOTE the first entry's LTP parameters should be in the ltprc file
-# already for node 2. Node 3's ltprc file should not change and should
-# have the highest max_exp and max_imp values to avoid being the bottleneck.
-# Large bundle sizes will be dropped by the kernel if they exceed the UDP buffer size
-# so they are commented out for typical use.
+# Format: "bundle_size max_export max_import max_seg_size agg_size_thresh agg_time_limit [total_bytes]"
+# Number of bundles is computed from total_bytes/bundle_size (capped at MAXBUNDLES).
+# The optional 7th field overrides TOTALBYTES for that test.
+# ION is restarted fresh for each test to ensure clean SDR state.
+# LTP segments are always <= max_seg_size (64KB for UDP), so large bundles
+# are safe — LTP segments them into 64KB datagrams.
 TESTS=(
-#    "500000 4 4 64000 100000 1"
-#    "200000 4 4 64000 100000 1"
-    "63000 4 4 64000 100000 1"
-    "20000 10 10 64000 100000 1"
-    "10000 20 20 64000 100000 1"
-    "5000  40 40 64000 100000 1"
-    "1000  40 40 64000 100000 1"
+    "5000000 8 8 64000 128000 1 1000000000"
+    "1000000 8 8 64000 128000 1 1000000000"
+    "500000  4 4 64000 128000 1 500000000"
+    "200000  4 4 64000 100000 1"
+    "63000   4 4 64000 100000 1"
+    "20000   4 4 64000 100000 1"
+    "10000   4 4 64000 100000 1"
+    "5000    4 4 64000 100000 1"
+    "1000    4 4 64000 100000 1"
 )
 LSO_CMD="udplso localhost:2113"
+LSI_CMD="udplsi localhost:2112"
 # Node directory names
 SENDER_DIR=2.bench.ltp
 RECEIVER_DIR=3.bench.ltp
@@ -108,19 +110,6 @@ echo "NOTE: adjusting kernel UDP size will have significant impact on
     can increase the effective segment loss rate far above typical design."
 echo
 
-if [ -n "$DEBUG" ]; then
-    echo
-    echo "CONFIG: 2 node custom:"
-    echo
-    for N in $CONFIGFILES
-    do
-        echo "$N:"
-        cat "$N"
-        echo "# EOF"
-        echo
-    done
-fi
-
 echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
@@ -158,15 +147,13 @@ while [ "${ITERNUM}" -lt ${ITERATIONS} ]; do
 
 for THROUGHPUT in ${THROUGHPUTS}; do
     echo "#########################################################################"
-    echo "##   Creating Contact Plan for max throughput: ${THROUGHPUT}"
+    echo "##   Contact Plan throughput: $(fmt_num ${THROUGHPUT}) bytes/sec"
     echo "#########################################################################"
     echo
 
-    export ION_NODE_LIST_DIR=$PWD
-    rm -f ./ion_nodes
     RETVAL=0
 
-    # Adjust the contact plan
+    # Write the contact plan (used by all tests at this throughput level)
     cat > ./global.ionrc << EOF
 m horizon  +0
 a range    +0 +600		2 3   1
@@ -174,27 +161,15 @@ a contact  +0 +420		2 3   ${THROUGHPUT}
 a contact  +0 +600		3 2   ${THROUGHPUT}
 EOF
 
-    echo "#########################################################################"
-    echo "##  Starting ION Nodes"
-    echo "#########################################################################"
-    echo
-
-    # Start nodes.
-    (cd ${SENDER_DIR}; ./ionstart)
-    (cd ${RECEIVER_DIR}; ./ionstart)
-
     TESTNUM=0
     for TEST_CFG in "${TESTS[@]}"; do
         let "++TESTNUM"
-        read BUNDLESIZE MAX_EXP MAX_IMP MAX_SEG AGG_SIZE AGG_TIME <<< "$TEST_CFG"
-
-        # Reconfigure sending node's span at runtime (skip first test; bench.ltprc already loaded it)
-        if [ $TESTNUM -gt 1 ]; then
-            (cd ${SENDER_DIR}; echo "c span 3 $MAX_EXP $MAX_IMP $MAX_SEG $AGG_SIZE $AGG_TIME '$LSO_CMD'" | ltpadmin)
-            sleep 3
+        read BUNDLESIZE MAX_EXP MAX_IMP MAX_SEG AGG_SIZE AGG_TIME TEST_TOTAL <<< "$TEST_CFG"
+        if [ -z "$TEST_TOTAL" ]; then
+            TEST_TOTAL=$TOTALBYTES
         fi
 
-        let "NUMBUNDLES = TOTALBYTES/BUNDLESIZE"
+        let "NUMBUNDLES = TEST_TOTAL/BUNDLESIZE"
         if [ $NUMBUNDLES -lt 1 ]; then
             NUMBUNDLES=1
             echo "Adjusting to $NUMBUNDLES of size $(fmt_num $BUNDLESIZE)"
@@ -208,7 +183,30 @@ EOF
             TARGETBUNDLES=1
         fi
 
+        # Fresh ION start for each test — eliminates residual SDR state
+        killm 2>/dev/null
         sleep 1
+        export ION_NODE_LIST_DIR=$PWD
+        rm -f ./ion_nodes
+
+        # Write sender's LTP config for this test's parameters
+        cat > ${SENDER_DIR}/bench.ltprc << EOF
+1 ${LTP_INIT}
+a span 3 ${MAX_EXP} ${MAX_IMP} ${MAX_SEG} ${AGG_SIZE} ${AGG_TIME} '${LSO_CMD}'
+s '${LSI_CMD}'
+EOF
+
+        if [ -n "$DEBUG" ]; then
+            echo
+            echo "CONFIG: sender ltprc for this test:"
+            cat ${SENDER_DIR}/bench.ltprc
+            echo
+        fi
+
+        # Start nodes
+        (cd ${SENDER_DIR}; ./ionstart)
+        (cd ${RECEIVER_DIR}; ./ionstart)
+        sleep 2
 
         cat << ==EOF==
 ===============================================================================================================================
@@ -275,42 +273,11 @@ SpanConfig: max_exp=$MAX_EXP max_imp=$MAX_IMP max_seg=$MAX_SEG agg_size=$AGG_SIZ
         if [ "$RETVAL" -eq 1 ]
         then
             echo "Test did not complete."
-            echo "Killing bpcounter..."
-            kill -9 $BPCOUNTER_PID $BPDRIVER_PID
-            sleep 10
-            echo "Stopping ION..."
-            #(cd ${SENDER_DIR}; ./ionstop) &
-            #(cd ${RECEIVER_DIR}; ./ionstop) &
-            #ssleep 10
-            killm
-            sleep 10
-            echo "Re-starting ION..."
-            (cd ${SENDER_DIR}; ./ionstart)
-            (cd ${RECEIVER_DIR}; ./ionstart)
+            kill -9 $BPCOUNTER_PID $BPDRIVER_PID 2>/dev/null
             RETVAL=0;   # allow next test to proceed
         else
             # Wait for bpdriver to finish sending
             wait $BPDRIVER_PID 2>/dev/null
-
-            # Wait for all LTP sessions to close before starting next test.
-            # Poll ltpwatch every 2 seconds; give up after 60 seconds.
-            echo "Waiting for LTP sessions to drain..."
-            DRAIN_TIMER=0
-            DRAIN_MAX=60
-            while [ "$DRAIN_TIMER" -lt "$DRAIN_MAX" ]; do
-                sleep 2
-                DRAIN_TIMER=$((DRAIN_TIMER + 2))
-                # Check active sessions on sender node
-                ACTIVE=$(cd ${SENDER_DIR}; ltpwatch -a -c 2>/dev/null | grep '^ ' | grep -v 'green-only' | grep -v 'no sessions' | grep -c '[1-9]')
-                if [ "$ACTIVE" -eq 0 ]; then
-                    echo "...LTP sessions drained after ${DRAIN_TIMER}s."
-                    break
-                fi
-                echo "...active sessions remaining (${DRAIN_TIMER}s)..."
-            done
-            if [ "$DRAIN_TIMER" -ge "$DRAIN_MAX" ]; then
-                echo "...drain timeout after ${DRAIN_MAX}s, proceeding."
-            fi
         fi
 
     # loop to next test
@@ -325,16 +292,7 @@ SpanConfig: max_exp=$MAX_EXP max_imp=$MAX_IMP max_seg=$MAX_SEG agg_size=$AGG_SIZ
     echo "#########################################################################"
     echo "  Test has completed"
     echo "#########################################################################"
-    if [ "$RETVAL" -eq 1 ]
-    then
-        echo "Test did not complete correctly."
-    fi
 
-    #echo "Stopping ION..."
-    #(cd ${SENDER_DIR}; ./ionstop) &
-    #(cd ${RECEIVER_DIR}; ./ionstop) &
-    #wait
-    #wait
 # Cancel the overall timeout watchdog
 [ -n "$WATCHDOG_PID" ] && kill $WATCHDOG_PID 2>/dev/null
 

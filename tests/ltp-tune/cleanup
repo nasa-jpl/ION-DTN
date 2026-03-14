@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+echo "Cleaning up ltp-tune..."
+killm 2>/dev/null
+rm -f ion_nodes
+rm -f 2.ltp-tune/ion.log 2.ltp-tune/bpdriverAduFile
+rm -f 3.ltp-tune/ion.log 3.ltp-tune/ltpblock.*

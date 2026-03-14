@@ -1,4 +1,0 @@
-1 2000
-a span 3 4 4 64000 100000 1 'udplso [::1]:2113'
-m span 3 inactivity 60
-s 'udplsi [::1]:2112'

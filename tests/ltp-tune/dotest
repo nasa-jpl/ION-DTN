@@ -1,0 +1,290 @@
+#!/usr/bin/env bash
+#
+# ltp-tune - LTP throughput tuning test
+#
+# All tunable parameters are at the top. Override via environment variables:
+#   BUNDLE_SIZE=1000000 CONTACT_RATE=100000000 ./dotest
+#
+# Results are printed as a single summary line for easy comparison.
+
+#=====================================================================
+# TUNABLE PARAMETERS (override any via environment variable)
+#=====================================================================
+
+# Bundle size in bytes
+BUNDLE_SIZE=${BUNDLE_SIZE:-1000000}
+# Total bytes to transfer
+TOTAL_BYTES=${TOTAL_BYTES:-200000000}
+# Contact plan rate in bytes/sec
+CONTACT_RATE=${CONTACT_RATE:-100000000}
+# LTP estimated max export sessions (init parameter)
+LTP_INIT=${LTP_INIT:-50}
+# Max export sessions for sender span
+MAX_EXPORT=${MAX_EXPORT:-10}
+# Max import sessions for sender span
+MAX_IMPORT=${MAX_IMPORT:-10}
+# LTP max segment size
+MAX_SEG=${MAX_SEG:-64000}
+# LTP aggregation size threshold
+AGG_SIZE=${AGG_SIZE:-100000}
+# LTP aggregation time limit (seconds)
+AGG_TIME=${AGG_TIME:-1}
+# Sender SDR heap words
+SENDER_HEAP=${SENDER_HEAP:-50000000}
+# Receiver SDR heap words
+RECEIVER_HEAP=${RECEIVER_HEAP:-50000000}
+# Sender SDR working memory size
+SENDER_WM=${SENDER_WM:-150000000}
+# Receiver SDR working memory size
+RECEIVER_WM=${RECEIVER_WM:-150000000}
+# Receiver max import sessions (should be >= sender's max export)
+RX_MAX_IMPORT=${RX_MAX_IMPORT:-200}
+# Receiver max export sessions (for reports/acks back)
+RX_MAX_EXPORT=${RX_MAX_EXPORT:-200}
+# BP protocol LTP frame estimates (affects rate limiter calculation)
+PROTO_PAYLOAD=${PROTO_PAYLOAD:-1400}
+PROTO_OVERHEAD=${PROTO_OVERHEAD:-100}
+# Timeout per test (seconds)
+MAXSECONDS=${MAXSECONDS:-120}
+# Measure at what percentage of bundles (for steady-state throughput)
+MEASURE_PCT=${MEASURE_PCT:-90}
+
+#=====================================================================
+# Derived values
+#=====================================================================
+
+NUM_BUNDLES=$((TOTAL_BYTES / BUNDLE_SIZE))
+if [ $NUM_BUNDLES -lt 1 ]; then
+    NUM_BUNDLES=1
+fi
+ACTUAL_BYTES=$((NUM_BUNDLES * BUNDLE_SIZE))
+TARGET_BUNDLES=$((NUM_BUNDLES * MEASURE_PCT / 100))
+if [ $TARGET_BUNDLES -lt 1 ]; then
+    TARGET_BUNDLES=1
+fi
+
+SENDER_DIR=2.ltp-tune
+RECEIVER_DIR=3.ltp-tune
+TOPDIR=$(pwd)
+
+# Format number with commas
+fmt_num() {
+    printf "%'d" "$1" 2>/dev/null || printf "%d" "$1"
+}
+
+#=====================================================================
+# Generate configuration files
+#=====================================================================
+
+generate_configs() {
+    # Global contact plan
+    cat > ./global.ionrc << EOF
+m horizon +0
+a range   +0 +600   2 3  1
+a contact +0 +420   2 3  ${CONTACT_RATE}
+a contact +0 +600   3 2  ${CONTACT_RATE}
+EOF
+
+    # --- Sender (node 2) ---
+    cat > ${SENDER_DIR}/tune.ionconfig << EOF
+wmKey 55236
+sdrName ion2
+wmSize ${SENDER_WM}
+configFlags 1
+heapWords ${SENDER_HEAP}
+EOF
+
+    cat > ${SENDER_DIR}/tune.ionrc << EOF
+1 2 tune.ionconfig
+s
+m horizon +0
+EOF
+
+    cat > ${SENDER_DIR}/tune.ionsecrc << EOF
+1
+EOF
+
+    cat > ${SENDER_DIR}/tune.ltprc << EOF
+1 ${LTP_INIT}
+a span 3 ${MAX_EXPORT} ${MAX_IMPORT} ${MAX_SEG} ${AGG_SIZE} ${AGG_TIME} 'udplso localhost:2113'
+s 'udplsi localhost:2112'
+EOF
+
+    cat > ${SENDER_DIR}/tune.bprc << EOF
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:2.0 x
+a endpoint ipn:2.1 x
+a protocol ltp ${PROTO_PAYLOAD} ${PROTO_OVERHEAD}
+a induct ltp 2 ltpcli
+a outduct ltp 3 ltpclo
+r 'ipnadmin tune.ipnrc'
+s
+EOF
+
+    cat > ${SENDER_DIR}/tune.ipnrc << EOF
+a plan 3 ltp/3
+EOF
+
+    # --- Receiver (node 3) ---
+    cat > ${RECEIVER_DIR}/tune.ionconfig << EOF
+wmKey 55336
+sdrName ion3
+wmSize ${RECEIVER_WM}
+configFlags 1
+heapWords ${RECEIVER_HEAP}
+EOF
+
+    cat > ${RECEIVER_DIR}/tune.ionrc << EOF
+1 3 tune.ionconfig
+s
+m horizon +0
+EOF
+
+    cat > ${RECEIVER_DIR}/tune.ionsecrc << EOF
+1
+EOF
+
+    cat > ${RECEIVER_DIR}/tune.ltprc << EOF
+1 ${LTP_INIT}
+a span 2 ${RX_MAX_EXPORT} ${RX_MAX_IMPORT} ${MAX_SEG} 1000000 1 'udplso localhost:2112'
+s 'udplsi localhost:2113'
+EOF
+
+    cat > ${RECEIVER_DIR}/tune.bprc << EOF
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:3.0 x
+a endpoint ipn:3.1 x
+a protocol ltp ${PROTO_PAYLOAD} ${PROTO_OVERHEAD}
+a induct ltp 3 ltpcli
+a outduct ltp 2 ltpclo
+r 'ipnadmin tune.ipnrc'
+s
+EOF
+
+    cat > ${RECEIVER_DIR}/tune.ipnrc << EOF
+a plan 2 ltp/2
+EOF
+
+    # ionstart scripts
+    cat > ${SENDER_DIR}/ionstart << 'SCRIPT'
+#!/usr/bin/env bash
+ionadmin    tune.ionrc
+sleep 1
+ionadmin    ../global.ionrc
+sleep 1
+ionsecadmin tune.ionsecrc
+sleep 1
+ltpadmin    tune.ltprc
+sleep 1
+bpadmin     tune.bprc
+SCRIPT
+    chmod +x ${SENDER_DIR}/ionstart
+
+    cat > ${RECEIVER_DIR}/ionstart << 'SCRIPT'
+#!/usr/bin/env bash
+ionadmin    tune.ionrc
+sleep 1
+ionadmin    ../global.ionrc
+sleep 1
+ionsecadmin tune.ionsecrc
+sleep 1
+ltpadmin    tune.ltprc
+sleep 1
+bpadmin     tune.bprc
+SCRIPT
+    chmod +x ${RECEIVER_DIR}/ionstart
+}
+
+#=====================================================================
+# Main test execution
+#=====================================================================
+
+echo "============================================================"
+echo "LTP-TUNE: LTP Throughput Tuning Test"
+echo "============================================================"
+echo "Parameters:"
+echo "  bundle_size    = $(fmt_num $BUNDLE_SIZE) bytes"
+echo "  num_bundles    = $(fmt_num $NUM_BUNDLES) ($(fmt_num $ACTUAL_BYTES) total bytes)"
+echo "  target_bundles = $(fmt_num $TARGET_BUNDLES) (${MEASURE_PCT}%)"
+echo "  contact_rate   = $(fmt_num $CONTACT_RATE) bytes/s"
+echo "  ltp_init       = $LTP_INIT"
+echo "  max_export     = $MAX_EXPORT"
+echo "  max_import     = $MAX_IMPORT"
+echo "  max_seg_size   = $(fmt_num $MAX_SEG)"
+echo "  agg_size       = $(fmt_num $AGG_SIZE)"
+echo "  agg_time       = $AGG_TIME"
+echo "  sender_heap    = $(fmt_num $SENDER_HEAP)"
+echo "  receiver_heap  = $(fmt_num $RECEIVER_HEAP)"
+echo "============================================================"
+
+# Clean up any previous run
+killm 2>/dev/null
+sleep 1
+
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Generate all config files
+generate_configs
+
+# Start nodes
+echo "Starting ION nodes..."
+(cd ${SENDER_DIR}; ./ionstart)
+(cd ${RECEIVER_DIR}; ./ionstart)
+sleep 2
+
+# Start receiver counter
+echo "Starting bpcounter (waiting for $(fmt_num $TARGET_BUNDLES) bundles)..."
+cd ${RECEIVER_DIR}
+bpcounter ipn:3.1 ${TARGET_BUNDLES} &
+BPCOUNTER_PID=$!
+cd ..
+sleep 1
+
+# Verify bpcounter started
+if ! ps $BPCOUNTER_PID > /dev/null 2>&1; then
+    echo "ERROR: bpcounter failed to start"
+    killm
+    exit 1
+fi
+
+# Start sending
+echo "Sending $(fmt_num $NUM_BUNDLES) bundles of $(fmt_num $BUNDLE_SIZE) bytes..."
+(cd ${SENDER_DIR}; bpdriver ${NUM_BUNDLES} ipn:2.1 ipn:3.1 -${BUNDLE_SIZE} > /dev/null) &
+BPDRIVER_PID=$!
+
+# Wait for bpcounter to finish
+TIMER=0
+RUNNING=1
+RETVAL=0
+while [ "$RUNNING" -eq 1 ]; do
+    TIMER=$((TIMER + 1))
+    sleep 1
+    if ! ps $BPCOUNTER_PID > /dev/null 2>&1; then
+        RUNNING=0
+    fi
+    if [ "$TIMER" -gt "$MAXSECONDS" ]; then
+        echo "TIMEOUT after ${MAXSECONDS}s"
+        RUNNING=0
+        RETVAL=1
+    fi
+done
+
+if [ "$RETVAL" -eq 1 ]; then
+    echo "TEST DID NOT COMPLETE"
+    kill -9 $BPCOUNTER_PID $BPDRIVER_PID 2>/dev/null
+else
+    wait $BPDRIVER_PID 2>/dev/null
+    echo "Transfer complete in ${TIMER}s"
+fi
+
+echo "============================================================"
+
+# Clean up
+sleep 2
+killm 2>/dev/null
+sleep 1
+
+exit $RETVAL
