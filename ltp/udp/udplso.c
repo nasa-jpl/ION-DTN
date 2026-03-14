@@ -86,6 +86,15 @@ typedef struct
 	long		bucketSize;	/*	Max burst (bytes).	*/
 } TokenBucketState;
 
+/*	Conservative floor for nanosleep granularity (microseconds).
+ *	Below this threshold the kernel oversleeps significantly;
+ *	the deficit carries forward and is compensated on the next
+ *	refill via the elapsed-time measurement.			*/
+
+#ifndef NANOSLEEP_FLOOR_USEC
+#define NANOSLEEP_FLOOR_USEC	250
+#endif
+
 static void	applyTokenBucket(TokenBucketState *tb, int bytesSent)
 {
 	unsigned long	now;
@@ -128,7 +137,7 @@ static void	applyTokenBucket(TokenBucketState *tb, int bytesSent)
 
 	tb->tokens -= bytesSent;
 
-	/*	If bucket is empty, sleep until replenished.		*/
+	/*	If bucket is empty, pace transmission.			*/
 
 	if (tb->tokens < 0)
 	{
@@ -137,7 +146,15 @@ static void	applyTokenBucket(TokenBucketState *tb, int bytesSent)
 
 		deficit = (unsigned long)(-(tb->tokens));
 		waitUsec = (deficit * 1000000) / rate;
-		if (waitUsec > 0)
+
+		/*	Only sleep if the wait exceeds the
+		 *	nanosleep granularity floor.  Below
+		 *	this threshold the kernel oversleeps
+		 *	significantly; the deficit carries
+		 *	forward and is compensated on the
+		 *	next refill via elapsed time.		*/
+
+		if (waitUsec > NANOSLEEP_FLOOR_USEC)
 		{
 			microsnooze(waitUsec);
 		}
