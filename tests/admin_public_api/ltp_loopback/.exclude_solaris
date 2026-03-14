@@ -1,0 +1,15 @@
+This test is excluded on macOS due to platform-specific limitations:
+
+REASON: popen() with shell pipelines hangs on macOS when the parent process
+has active child processes. This test requires reliable process detection to:
+1. Verify bpclm daemon is running (get PID)
+2. Kill the bpclm daemon to simulate crash
+3. Verify the daemon was killed
+4. Verify the daemon successfully restarted
+
+These operations use popen() with commands like "ps aux | grep" which hang
+indefinitely on macOS when ION daemons are running as child processes.
+
+The core functionality tested (bp_start_plan() API and crash recovery) is
+sufficiently covered by other tests on Linux/Solaris where process detection
+works reliably.

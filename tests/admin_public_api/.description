@@ -115,3 +115,5 @@ Affected code:
 - bpv7/library/libbpP.c (bpStartPlan, resetPlan, startPlan)
 - bpv7/daemon/bpclm.c (semaphore wait loop)
 - ltp/library/libltpP.c (ltpStartSpan, resetSpan, startSpan)
+
+NOTE: The crash recovery tests are excluded on macOS due to platform-specific limitations with process detection using popen() and shell pipelines, which are essential for simulating daemon crashes and verifying recovery. The core functionality is still covered on Linux. Tests are excluded on Solaris as this is a flight system feature and not relevant to ground system which is what Solaris is used for.
