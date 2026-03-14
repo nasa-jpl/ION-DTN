@@ -124,6 +124,30 @@ if [ $? != 0 ]; then
     exit 1
 fi
 
+# Check kernel UDP buffer size (Linux only).  At high contact rates
+# (2 GB/s), the default rmem_max (212 KB) causes silent UDP drops
+# that collapse LTP throughput.
+MIN_RMEM_MAX=4194304	# 4 MB minimum
+if [ "$(uname -s)" = "Linux" ]; then
+    RMEM_MAX=$(sysctl -n net.core.rmem_max 2>/dev/null || echo 0)
+    if [ "$RMEM_MAX" -lt "$MIN_RMEM_MAX" ]; then
+        echo ""
+        echo "ERROR: Kernel UDP receive buffer too small for this benchmark."
+        echo "  net.core.rmem_max = $RMEM_MAX (need >= $MIN_RMEM_MAX)"
+        echo ""
+        echo "Required settings (applied by ltp_sysctl_tune.sh on):"
+        echo "  net.core.rmem_max = 16777216"
+        echo "  net.core.wmem_max = 16777216"
+        echo "  net.core.rmem_default = 8388608"
+        echo "  net.core.wmem_default = 8388608"
+        echo ""
+        echo "Run:  sudo ltp_sysctl_tune.sh on"
+        echo ""
+        echo "Skipping test."
+        exit 2
+    fi
+fi
+
 # Start overall timeout watchdog
 if [ "$MAX_TOTAL_SECONDS" -gt 0 ] 2>/dev/null; then
     (
