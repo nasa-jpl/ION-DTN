@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 # Author: Robert Martin, Ohio University
-# Checks sysctl variable vaues on OSX to see if they are large enough
+# Checks system variables to see if they are large enough
 # to handle the shared memory requirements for ION
+
+# ION bench-ltp needs at least two 150 MB shared-memory segments
+# (one per node) plus SDR heap segments.  The per-segment maximum
+# (shmmax) must be at least 150000000 bytes.
+MIN_SHMMAX=150000000
 
 case $OSTYPE in
     *darwin*)
@@ -14,7 +19,52 @@ case $OSTYPE in
                   'kern.ipc.shmseg' 'kern.ipc.shmall' 'net.inet.udp.maxdgram'
                   'kern.ipc.semmns' 'kern.ipc.semmni' 'net.inet.udp.recvspace')
     ;;
+    solaris*)
+        # Solaris/illumos: check project-level shared memory limits via prctl
+        CHANGE=0
+        SHM_LIMIT=$(prctl -n project.max-shm-memory -i process $$ 2>/dev/null \
+            | awk '/privileged/{print $2}')
+        if [ -n "$SHM_LIMIT" ]; then
+            # prctl may report "deny" for unlimited; treat non-numeric as OK
+            if [[ "$SHM_LIMIT" =~ ^[0-9]+$ ]] && [ "$SHM_LIMIT" -lt $MIN_SHMMAX ]; then
+                echo "project.max-shm-memory=${MIN_SHMMAX}"
+                CHANGE=1
+            fi
+        else
+            # Fallback: try sysdef for kernel SHMMAX
+            KERN_SHMMAX=$(sysdef -i 2>/dev/null | awk '/SHMMAX/{print $1}')
+            if [ -n "$KERN_SHMMAX" ] && [ "$KERN_SHMMAX" -lt $MIN_SHMMAX ]; then
+                echo "shmsys:shminfo_shmmax=${MIN_SHMMAX}"
+                CHANGE=1
+            fi
+        fi
+        if [ $CHANGE -eq 0 ]; then
+            echo "This system is ready to run ION."
+            exit 0
+        else
+            echo
+            echo "Your system's shared memory limits are too low for this demo."
+            echo "ION needs at least ${MIN_SHMMAX} bytes per shared-memory segment."
+            echo
+            echo "To increase the limit, either:"
+            echo "  1) Set the project resource control:"
+            echo "       prctl -n project.max-shm-memory -r -v ${MIN_SHMMAX} -i project \$(id -p | awk '{print \$NF}')"
+            echo "  2) Or add to /etc/system and reboot:"
+            echo "       set shmsys:shminfo_shmmax=${MIN_SHMMAX}"
+            exit 1
+        fi
+    ;;
     *)
+        # Linux and other platforms: check kernel.shmmax if available
+        if [ -f /proc/sys/kernel/shmmax ]; then
+            KERN_SHMMAX=$(cat /proc/sys/kernel/shmmax 2>/dev/null)
+            if [ -n "$KERN_SHMMAX" ] && [ "$KERN_SHMMAX" -lt $MIN_SHMMAX ]; then
+                echo
+                echo "kernel.shmmax is ${KERN_SHMMAX}, need at least ${MIN_SHMMAX}."
+                echo "Run:  sudo sysctl -w kernel.shmmax=${MIN_SHMMAX}"
+                exit 1
+            fi
+        fi
         echo "No need to update sysctl variables."
         exit 0
     ;;

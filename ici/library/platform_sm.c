@@ -450,6 +450,10 @@ sm_ShmAttach(int key, size_t size, char **shmPtr, uaddr *id)
 				break;
 			case EINVAL:
 				fprintf(stderr, "Error: Invalid size or key. key = %d ; size = %zu\n", key, size);
+				fprintf(stderr, "Hint: The requested size may exceed the system's shmmax limit.\n");
+				fprintf(stderr, "  Linux:   sysctl kern.sysv.shmmax or kernel.shmmax\n");
+				fprintf(stderr, "  macOS:   sysctl kern.sysv.shmmax\n");
+				fprintf(stderr, "  Solaris: prctl -n project.max-shm-memory $$\n");
 				break;
 			case ENOMEM:
 				fprintf(stderr, "Error: Insufficient memory.\n");
