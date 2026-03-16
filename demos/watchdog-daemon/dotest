@@ -150,7 +150,7 @@ echo "Sending ${NUMBUNDLES} bundles of ${BUNDLESIZE} bytes from node 2 to node 3
 cd 3.watchdog.ltp
 bpcounter ipn:3.1 ${NUMBUNDLES} &
 BPCOUNTER_PID=$!
-cd ..
+cd "$TOPDIR"
 sleep 1
 
 # Check if bpcounter started
@@ -190,11 +190,13 @@ echo "# Step 3: Run ionrestart on node 2 and verify daemons restart"
 echo "###############################################################################"
 echo ""
 
+# Capture all daemon PIDs before ionrestart (sorted, space-separated).
+# Using "psmwatch -d" to match only daemon-mode processes.
 echo "Current daemon PIDs before ionrestart:"
-PSMWATCH_PID_BEFORE=$(pgrep -f "psmwatch" | head -1)
-SDRWATCH_PID_BEFORE=$(pgrep -f "sdrwatch" | head -1)
-echo "  psmwatch PID: ${PSMWATCH_PID_BEFORE:-none}"
-echo "  sdrwatch PID: ${SDRWATCH_PID_BEFORE:-none}"
+PSMWATCH_PIDS_BEFORE=$(pgrep -f "psmwatch -d" | sort | tr '\n' ' ')
+SDRWATCH_PIDS_BEFORE=$(pgrep -f "sdrwatch -d" | sort | tr '\n' ' ')
+echo "  psmwatch PIDs: ${PSMWATCH_PIDS_BEFORE:-none}"
+echo "  sdrwatch PIDs: ${SDRWATCH_PIDS_BEFORE:-none}"
 
 echo ""
 echo "Running ionrestart on node 2 (from 2.watchdog.ltp directory)..."
@@ -202,7 +204,7 @@ echo "(ionrestart requires running from the node's config directory in multi-nod
 cd 2.watchdog.ltp
 ionrestart &
 IONRESTART_PID=$!
-cd ..
+cd "$TOPDIR"
 
 # Wait for ionrestart to complete (up to 30 seconds)
 TIMER=0
@@ -219,10 +221,10 @@ sleep 3
 
 echo ""
 echo "Daemon PIDs after ionrestart:"
-PSMWATCH_PID_AFTER=$(pgrep -f "psmwatch" | head -1)
-SDRWATCH_PID_AFTER=$(pgrep -f "sdrwatch" | head -1)
-echo "  psmwatch PID: ${PSMWATCH_PID_AFTER:-none}"
-echo "  sdrwatch PID: ${SDRWATCH_PID_AFTER:-none}"
+PSMWATCH_PIDS_AFTER=$(pgrep -f "psmwatch -d" | sort | tr '\n' ' ')
+SDRWATCH_PIDS_AFTER=$(pgrep -f "sdrwatch -d" | sort | tr '\n' ' ')
+echo "  psmwatch PIDs: ${PSMWATCH_PIDS_AFTER:-none}"
+echo "  sdrwatch PIDs: ${SDRWATCH_PIDS_AFTER:-none}"
 
 echo ""
 show_daemon_info
@@ -232,13 +234,16 @@ if ! check_daemons "after-restart" "running"; then
     echo "[FAIL] Daemons not running after ionrestart!"
     RETVAL=1
 else
-    # Check if PIDs changed (indicating restart occurred)
-    if [ -n "$PSMWATCH_PID_BEFORE" ] && [ -n "$PSMWATCH_PID_AFTER" ]; then
-        if [ "$PSMWATCH_PID_BEFORE" != "$PSMWATCH_PID_AFTER" ]; then
-            echo "[INFO] psmwatch was restarted (PID changed: $PSMWATCH_PID_BEFORE -> $PSMWATCH_PID_AFTER)"
-        else
-            echo "[INFO] psmwatch PID unchanged (may have survived restart)"
-        fi
+    # Check if the set of PIDs changed (indicating node 2 daemons were restarted)
+    if [ "$PSMWATCH_PIDS_BEFORE" != "$PSMWATCH_PIDS_AFTER" ]; then
+        echo "[INFO] psmwatch PID set changed after ionrestart (restart detected)"
+    else
+        echo "[WARN] psmwatch PIDs unchanged after ionrestart"
+    fi
+    if [ "$SDRWATCH_PIDS_BEFORE" != "$SDRWATCH_PIDS_AFTER" ]; then
+        echo "[INFO] sdrwatch PID set changed after ionrestart (restart detected)"
+    else
+        echo "[WARN] sdrwatch PIDs unchanged after ionrestart"
     fi
 fi
 
@@ -248,18 +253,46 @@ echo "# Step 4: Shutdown both nodes and verify daemons stop"
 echo "###############################################################################"
 echo ""
 
-echo "Stopping node 2 using ionstop (ionadmin .) which calls rfx_stop()..."
-echo "(Using ionstop instead of ionexit to avoid sm_ipc_stop() breaking other nodes)"
-cd 2.watchdog.ltp
-run_with_timeout 30 ./ionstop || echo "[WARN] ionstop for node 2 timed out"
-cd ..
-sleep 2
+# stop_node: Stop a node with ionstop; if it times out, run ionadmin .
+# directly as fallback to ensure rfx_stop() runs and daemons get SIGTERM.
+stop_node() {
+    local node_dir=$1
+    local node_name=$2
+    cd "$TOPDIR/$node_dir"
+    echo "Stopping $node_name using ionstop..."
+    if ! run_with_timeout 45 ./ionstop; then
+        echo "[WARN] ionstop for $node_name timed out, running ionadmin . as fallback"
+        run_with_timeout 15 ionadmin .
+    fi
+}
 
-echo "Stopping node 3 using ionstop..."
-cd 3.watchdog.ltp
-run_with_timeout 30 ./ionstop || echo "[WARN] ionstop for node 3 timed out"
-cd ..
-sleep 3
+# Stop both nodes in parallel to avoid LTP inter-node hangs caused by
+# stopping one node while the other's LTP stack is still communicating.
+echo "Stopping both nodes in parallel..."
+stop_node "2.watchdog.ltp" "node 2" &
+STOP2_PID=$!
+stop_node "3.watchdog.ltp" "node 3" &
+STOP3_PID=$!
+
+wait $STOP2_PID 2>/dev/null
+wait $STOP3_PID 2>/dev/null
+cd "$TOPDIR"
+
+# Poll for daemons to stop (up to 15 seconds).
+# Daemons use a 10-second snooze() poll interval (DAEMON_POLL_INTERVAL_SEC),
+# so they may need time to wake up and process the SIGTERM from rfx_stop().
+echo ""
+echo "Waiting for daemons to stop..."
+WAIT=0
+while [ $WAIT -lt 15 ]; do
+    if ! pgrep -f "psmwatch" > /dev/null 2>&1 && \
+       ! pgrep -f "sdrwatch" > /dev/null 2>&1; then
+        echo "All daemons stopped after ${WAIT}s"
+        break
+    fi
+    sleep 1
+    WAIT=$((WAIT + 1))
+done
 
 echo ""
 show_daemon_info

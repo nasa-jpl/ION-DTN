@@ -1,8 +1,28 @@
 #!/usr/bin/env bash
 # shell script to stop ION node
+# Per-command timeouts prevent hangs from blocking the critical ionadmin
+# command, which calls rfx_stop() to stop watchdog daemons via SIGTERM.
 
-bpadmin		.
+# Portable timeout: try 'timeout' command, fall back to background+kill
+_run_with_timeout() {
+    local secs=$1; shift
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$secs" "$@"
+        return $?
+    fi
+    "$@" &
+    local pid=$!
+    ( sleep "$secs" && kill "$pid" 2>/dev/null ) &
+    local tpid=$!
+    wait "$pid" 2>/dev/null
+    local rc=$?
+    kill "$tpid" 2>/dev/null
+    wait "$tpid" 2>/dev/null
+    return $rc
+}
+
+_run_with_timeout 15 bpadmin .
 sleep 1
-ltpadmin	.
+_run_with_timeout 15 ltpadmin .
 sleep 1
-ionadmin	.
+ionadmin .
