@@ -666,7 +666,6 @@ static void *_bpManagerThread(void *args)
 				putErrmsg("Failed to send queued RPDU.", NULL);
 			}
 
-			MRELEASE(outRpdu->destEid);
 			MRELEASE(outRpdu->envelope);
 			MRELEASE(outRpdu);
 
@@ -1292,7 +1291,6 @@ ownPseudoSubject, node->continuumNbr);
 		while ((q_elt = lyst_first(gWay->bpSendQueue)) != NULL)
 		{
 			rpdu = (BpOutboundRpdu *) lyst_data(q_elt);
-			MRELEASE(rpdu->destEid);
 			MRELEASE(rpdu->envelope);
 			MRELEASE(rpdu);
 			lyst_delete(q_elt);

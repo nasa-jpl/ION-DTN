@@ -1034,7 +1034,6 @@ static int	SendRPDUviaBp(RamsGateway *gWay, RamsNode *ramsNode,
 			int envelopeLength)
 {
 	BpOutboundRpdu *outRpdu;
-	int destEidLen;
 
 	CHKERR(gWay);
 	CHKERR(ramsNode);
@@ -1052,20 +1051,11 @@ static int	SendRPDUviaBp(RamsGateway *gWay, RamsNode *ramsNode,
 		return -1;
 	}
 
-	destEidLen = strlen(ramsNode->gwEid) + 1;
-	outRpdu->destEid = MTAKE(destEidLen);
-	if (outRpdu->destEid == NULL)
-	{
-		MRELEASE(outRpdu);
-		putErrmsg("Can't allocate space for dest EID.", NULL);
-		return -1;
-	}
-	istrcpy(outRpdu->destEid, ramsNode->gwEid, destEidLen);
+	istrcpy(outRpdu->destEid, ramsNode->gwEid, sizeof(outRpdu->destEid));
 
 	outRpdu->envelope = MTAKE(envelopeLength);
 	if (outRpdu->envelope == NULL)
 	{
-		MRELEASE(outRpdu->destEid);
 		MRELEASE(outRpdu);
 		putErrmsg("Can't allocate space for envelope copy.", NULL);
 		return -1;
@@ -1082,7 +1072,6 @@ static int	SendRPDUviaBp(RamsGateway *gWay, RamsNode *ramsNode,
 	{
 		pthread_mutex_unlock(&gWay->bpQueueMutex);
 		putErrmsg("Can't enqueue outbound RPDU.", NULL);
-		MRELEASE(outRpdu->destEid);
 		MRELEASE(outRpdu->envelope);
 		MRELEASE(outRpdu);
 		return -1;
