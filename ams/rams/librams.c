@@ -592,9 +592,16 @@ static int _sendQueuedRpdu(RamsGateway *gWay, BpOutboundRpdu *rpdu)
 	bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, rpdu->envelopeLength,
 		classOfService, ancillaryData.ordinal, ZcoOutbound, NULL);
 
-	if (sdr_end_xn(sdr) < 0 || bundleZco == (Object) ERROR || bundleZco == 0)
+	if (bundleZco == 0 || bundleZco == (Object) ERROR)
 	{
+		sdr_cancel_xn(sdr); /* Abort the extent allocation */
 		putErrmsg("Failed creating message ZCO.", NULL);
+		return -1;
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Failed ending SDR transaction for ZCO.", NULL);
 		return -1;
 	}
 
@@ -605,7 +612,15 @@ static int _sendQueuedRpdu(RamsGateway *gWay, BpOutboundRpdu *rpdu)
 		isprintf(errorMsg, sizeof errorMsg,
 				"Cannot send message to %s.", rpdu->destEid);
 		putErrmsg(errorMsg, NULL);
-		/*	bp_send consumes the ZCO even on failure.	*/
+
+		/* bp_send failed to take ownership of the ZCO. We must destroy it
+		 * in a new transaction to prevent a persistent SDR memory leak. */
+		if (sdr_begin_xn(sdr) >= 0)
+		{
+			zco_destroy(sdr, bundleZco);
+			sdr_end_xn(sdr);
+		}
+
 		return -1;
 	}
 
