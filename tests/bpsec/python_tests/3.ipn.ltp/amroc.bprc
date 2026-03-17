@@ -11,5 +11,5 @@ a outduct ltp 2 ltpclo
 #a induct ltp 5 ltpcli
 a outduct ltp 4 ltpclo
 r 'ipnadmin amroc.ipnrc'
-w 1
+w 0
 s
