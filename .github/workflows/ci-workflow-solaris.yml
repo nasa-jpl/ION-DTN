@@ -207,11 +207,14 @@ jobs:
             echo "Cleaning up ION build and tests at $(date)" &&
             export PATH=/usr/local/bin:$PATH &&
             echo "PATH=$PATH" &&
-            cd ~/ion-gh-test-dir/ion-ios-dev &&
-            killm &&
-            sudo gmake uninstall &&
-            gmake clean &&
-            cd ../.. &&
+            if [ -d ~/ion-gh-test-dir/ion-ios-dev ]; then
+              cd ~/ion-gh-test-dir/ion-ios-dev &&
+              killm &&
+              sudo gmake uninstall &&
+              gmake clean
+            else
+              echo "Build directory not found, skipping build cleanup"
+            fi &&
             rm -rf ~/ion-gh-test-dir'
           rm -rf $GITHUB_WORKSPACE/*
 
