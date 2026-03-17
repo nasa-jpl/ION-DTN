@@ -149,7 +149,10 @@ fi
 # Remove any leftover test3.invalid entry from a previous interrupted run
 if grep -q "test3.invalid" "$HOSTS_FILE" 2>/dev/null; then
     echo "Removing leftover test3.invalid entry from $HOSTS_FILE..."
-    snpwd sed -i '/test3\.invalid/d' "$HOSTS_FILE"
+    TMP_HOSTS=$(mktemp)
+    grep -v 'test3\.invalid' "$HOSTS_FILE" > "$TMP_HOSTS" \
+        && snpwd cp -- "$TMP_HOSTS" "$HOSTS_FILE"
+    rm -f "$TMP_HOSTS"
 fi
 
 # Backup /etc/hosts

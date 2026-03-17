@@ -100,15 +100,16 @@ enable_ipv6() {
     if [ "$GAI_MODIFIED_BY_US" = "true" ]; then
         echo "Restoring default resolution preference (re-enabling IPv6 preference)..."
 
-        # Use the portable syntax for 'sed -i' by providing the backup extension
-        # as a separate argument. This works on both Linux and macOS/FreeBSD.
-        if sudo sed -i '.bak' "#^${IPV4_PREF_LINE}$#d" "$GAI_CONF"; then
+        TMP_GAI=$(mktemp)
+        if grep -v "^${IPV4_PREF_LINE}$" "$GAI_CONF" > "$TMP_GAI" \
+                && snpwd cp -- "$TMP_GAI" "$GAI_CONF"; then
             echo "  Successfully removed IPv4 preference from $GAI_CONF."
             GAI_MODIFIED_BY_US=false
         else
             echo "  Warning: Failed to remove IPv4 preference rule."
             echo "  You may need to manually edit $GAI_CONF to remove the line."
         fi
+        rm -f "$TMP_GAI"
     fi
 }
 
@@ -339,7 +340,10 @@ run_test() {
     # Remove any leftover test3.invalid entry from a previous interrupted run
     if grep -q "test3.invalid" "$HOSTS_FILE" 2>/dev/null; then
         echo "Removing leftover test3.invalid entry from $HOSTS_FILE..."
-        snpwd sed -i '/test3\.invalid/d' "$HOSTS_FILE"
+        TMP_HOSTS=$(mktemp)
+        grep -v 'test3\.invalid' "$HOSTS_FILE" > "$TMP_HOSTS" \
+            && snpwd cp -- "$TMP_HOSTS" "$HOSTS_FILE"
+        rm -f "$TMP_HOSTS"
     fi
 
     # Backup /etc/hosts
