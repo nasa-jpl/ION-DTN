@@ -2,6 +2,8 @@ name: Regression Tests for ION using GitHub ARC
 
 permissions:
   contents: read
+  statuses: write
+  pull-requests: read
 
 on:
   workflow_call:
@@ -64,12 +66,14 @@ jobs:
     runs-on: arc-runner-set-u22
     outputs:
       testmatrix: ${{ steps.dataStep.outputs.testoutput }}
+      pr_number: ${{ steps.get-pr.outputs.pr_number }}
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - id: dataStep
+      - name: Get test batches
+        id: dataStep
         run: |
           if [ -n "${{ inputs.tests_to_run }}" ]; then
             TESTSET=$(./tests/git_matrix.py  -r ${{ inputs.num_runners }} -t ${{ inputs.tests_to_run }})
@@ -81,6 +85,23 @@ jobs:
           TESTSET_WITH_BATCH=$(echo "$TESTSET" | jq -c '[to_entries | .[] | {batch: (.key + 1), tests: .value}]')
 
           echo "testoutput=$TESTSET_WITH_BATCH" >> $GITHUB_OUTPUT
+
+      - name: Get PR number
+        id: get-pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Auto-detect PR number from branch name
+          BRANCH="${{ github.ref_name }}"
+          echo "Auto-detecting PR number for branch: $BRANCH"
+          PR_NUM=$(gh pr list --repo "${{ github.repository }}" --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$PR_NUM" ]; then
+            echo "Found open PR #$PR_NUM for branch $BRANCH"
+          else
+            echo "No open PR found for branch $BRANCH"
+            PR_NUM=""
+          fi
+          echo "pr_number=$PR_NUM" >> $GITHUB_OUTPUT
 
   build:
     needs: setup
@@ -289,7 +310,7 @@ jobs:
 
   aggregate-results:
     name: "Finalize Logs and Reports"
-    needs: [install-and-test]
+    needs: [setup, install-and-test]
     runs-on: arc-runner-set-ol8
     if: ${{ always() }}
     steps:
@@ -306,6 +327,69 @@ jobs:
           echo "| Runner OS | Batch | Result | Failed Tests | Skipped Tests |" >> $GITHUB_STEP_SUMMARY
           echo "|-----------|-------|--------|--------------|---------------|" >> $GITHUB_STEP_SUMMARY
           cat all-artifacts/status-*/*.txt | sort >> $GITHUB_STEP_SUMMARY
+
+      - name: Calculate PR Statuses per Runner
+        if: ${{ needs.setup.outputs.pr_number != '' }}
+        id: pr-status
+        run: |
+          # Extract unique runner names from the status files
+          RUNNERS=$(cat all-artifacts/status-*/*.txt | awk -F'|' '{print $2}' | tr -d ' ' | sort | uniq)
+
+          JSON_PAYLOAD="{"
+          FIRST=true
+          for RUNNER in $RUNNERS; do
+            # If any batch for this runner has the failure/cancelled icon ❌, mark the whole runner as failure
+            if cat all-artifacts/status-${RUNNER}-*/*.txt | grep -q "❌"; then
+              STATUS="failure"
+            else
+              STATUS="success"
+            fi
+
+            if [ "$FIRST" = true ]; then
+              FIRST=false
+            else
+              JSON_PAYLOAD="$JSON_PAYLOAD,"
+            fi
+            JSON_PAYLOAD="$JSON_PAYLOAD \"$RUNNER\": \"$STATUS\""
+          done
+          JSON_PAYLOAD="$JSON_PAYLOAD }"
+
+          echo "payload=$JSON_PAYLOAD" >> $GITHUB_OUTPUT
+
+      - name: Set PR status per runner
+        if: ${{ needs.setup.outputs.pr_number != '' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const statuses = ${{ steps.pr-status.outputs.payload }};
+            const prNumber = parseInt("${{ needs.setup.outputs.pr_number }}", 10);
+
+            let pr;
+            try {
+              const { data } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+              });
+              pr = data;
+            } catch (error) {
+              console.log(`PR #${prNumber} not found: ${error.message}`);
+              return;
+            }
+
+            // Loop through the aggregated statuses and create one status check per runner
+            for (const [runner, state] of Object.entries(statuses)) {
+              console.log(`Setting PR status for ${runner} to ${state}`);
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: pr.head.sha,
+                state: state,
+                context: `ci/${runner}`,
+                description: `Tests ${state === "success" ? "passed" : "failed"}`,
+                target_url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              });
+            }
 
       - name: Remove status fragments from the bundle folder
         run: |
