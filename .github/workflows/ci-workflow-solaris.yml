@@ -202,7 +202,8 @@ jobs:
               cd ~/ion-gh-test-dir/ion-ios-dev &&
               killm &&
               sudo gmake uninstall &&
-              gmake clean
+              gmake clean &&
+              cd ~
             else
               echo "Build directory not found, skipping build cleanup"
             fi &&
