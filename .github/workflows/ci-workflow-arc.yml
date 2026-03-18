@@ -300,7 +300,7 @@ jobs:
           pattern: "status-*"
           merge-multiple: true
 
-      - name: Generate Master Summary Table
+      - name: Generate Final Summary Table
         run: |
           echo "## 📊 Regression Test Overview" >> $GITHUB_STEP_SUMMARY
           echo "| Runner OS | Batch | Result | Failed Tests | Skipped Tests |" >> $GITHUB_STEP_SUMMARY
@@ -312,8 +312,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: all-workflow-logs
-          # Matches all individual test logs and progress files
-          pattern: "*-log-*"
+          # By listing these patterns explicitly, we guarantee all 4 log types
+          # are collected into the bundle while ignoring the status fragments
+          pattern: |
+            compile-and-buildcheck-log-*
+            build-and-test-log-*
+            test-progress-*
+            ion-logs-*
           merge-multiple: false
 
       - name: Upload Unified Bundle
@@ -322,8 +327,14 @@ jobs:
           name: final-regression-bundle
           path: all-workflow-logs/
 
-      - name: Clean up temporary status fragments
-        uses: geekyeggo/delete-artifact@v5
+      - name: Clean up ALL intermediate artifacts
+        uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118
         with:
-          # The wildcard matches all the fragments we created
-          name: status-* ```
+          # Passes a multiline list of all artifacts created in this run
+          # to ensure everything EXCEPT the final bundle is purged.
+          name: |
+            status-*
+            compile-and-buildcheck-log-*
+            build-and-test-log-*
+            test-progress-*
+            ion-logs-*
