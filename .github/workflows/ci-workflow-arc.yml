@@ -93,9 +93,18 @@ jobs:
         run: |
           # Auto-detect PR number from branch name
           BRANCH="${{ github.ref_name }}"
+          OWNER="${{ github.repository_owner }}"
           echo "Auto-detecting PR number for branch: $BRANCH"
-          PR_NUM=$(gh pr list --repo "${{ github.repository }}" --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
-          if [ -n "$PR_NUM" ]; then
+
+          # Query the GitHub REST API directly using curl and jq
+          PR_NUM=$(curl -sL \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "${{ github.api_url }}/repos/${{ github.repository }}/pulls?head=${OWNER}:${BRANCH}&state=open" \
+            | jq -r '.[0].number // empty')
+
+          if [ -n "$PR_NUM" ] && [ "$PR_NUM" != "null" ]; then
             echo "Found open PR #$PR_NUM for branch $BRANCH"
           else
             echo "No open PR found for branch $BRANCH"
