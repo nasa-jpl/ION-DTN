@@ -154,6 +154,8 @@ static unsigned char	selectBlkNumber(Bundle *bundle)
 	Object		elt;
 	Object		blkObj;
 			OBJ_POINTER(ExtensionBlock, blk);
+	unsigned char	usedNumbers[256];
+	int		candidate;
 
 	if (bundle->lastBlkNumber == 0)
 	{
@@ -171,8 +173,37 @@ static unsigned char	selectBlkNumber(Bundle *bundle)
 		bundle->lastBlkNumber = maxBlkNumber;
 	}
 
-	bundle->lastBlkNumber += 1;
-	return bundle->lastBlkNumber;
+	/*	Fast path: if incrementing stays within range, use it.	*/
+
+	if (bundle->lastBlkNumber < 255)
+	{
+		bundle->lastBlkNumber += 1;
+		return bundle->lastBlkNumber;
+	}
+
+	/*	lastBlkNumber >= 255; simple increment would overflow.
+	 *	Find the lowest unused block number in [2, 255].	*/
+
+	memset(usedNumbers, 0, sizeof(usedNumbers));
+	for (elt = sdr_list_first(sdr, bundle->extensions); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		blkObj = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, ExtensionBlock, blk, blkObj);
+		usedNumbers[blk->number] = 1;
+	}
+
+	for (candidate = 2; candidate <= 255; candidate++)
+	{
+		if (usedNumbers[candidate] == 0)
+		{
+			return candidate;
+		}
+	}
+
+	/*	All block numbers 2-255 are in use.			*/
+
+	return 0;
 }
 
 Object	attachExtensionBlock(BpBlockType type, ExtensionBlock *blk,
@@ -185,6 +216,13 @@ Object	attachExtensionBlock(BpBlockType type, ExtensionBlock *blk,
 	CHKERR(bundle);
 	blk->type = type;
 	blk->number = selectBlkNumber(bundle);
+	if (blk->number == 0)
+	{
+		putErrmsg("Can't attach extension block, all block \
+numbers 2-255 are in use.", NULL);
+		return 0;
+	}
+
 	blkAddr = sdr_malloc(getIonsdr(), sizeof(ExtensionBlock));
 	CHKERR(blkAddr);
 	if (insertExtensionBlock(blk, blkAddr, bundle) < 0)

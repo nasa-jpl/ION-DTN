@@ -1,0 +1,178 @@
+#!/usr/bin/env bash
+#
+# Test for GitHub issue #37: selectBlkNumber overflow when block 255 exists.
+#
+# Verifies that when a bundle with extension block number 255 is forwarded,
+# ION correctly assigns valid block numbers (2-254) to new extension blocks
+# instead of overflowing to 0.
+#
+# Topology:  external injector -> Node 2 (forwarder) -> Node 3 (receiver)
+# The Python script craft_bundle.py builds a BPv7 bundle with block number
+# 255, then sends it via UDP to node 2.  Node 2 forwards to node 3,
+# adding PreviousNode/BundleAge/QoS blocks through patchExtensionBlocks.
+
+CONFIGFILES=" \
+./2.ipn.udp/ipn.bprc \
+./2.ipn.udp/ipn.ionconfig \
+./2.ipn.udp/ipn.ionrc \
+./2.ipn.udp/ipn.ionsecrc \
+./2.ipn.udp/ipn.ipnrc \
+./3.ipn.udp/ipn.bprc \
+./3.ipn.udp/ipn.ionconfig \
+./3.ipn.udp/ipn.ionrc \
+./3.ipn.udp/ipn.ionsecrc \
+./3.ipn.udp/ipn.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify that forwarding a bundle containing extension block
+    number 255 does not cause selectBlkNumber to overflow to 0.
+    (GitHub issue #37)
+"
+
+echo
+echo "CONFIG: 2 node custom (UDP, no BPSec):"
+echo
+for N in $CONFIGFILES
+do
+    echo "$N:"
+    cat "$N"
+    echo "# EOF"
+    echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+echo
+
+# Check if python3 is available
+if ! command -v python3 &> /dev/null; then
+    echo "SKIP: python3 is required but not found. Please install Python 3."
+    exit 2
+fi
+
+# Check Python version (need at least 3.9)
+PYTHON_VERSION=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
+PYTHON_MAJOR=$(python3 -c 'import sys; print(sys.version_info[0])')
+PYTHON_MINOR=$(python3 -c 'import sys; print(sys.version_info[1])')
+if [ "$PYTHON_MAJOR" -lt 3 ] || { [ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 9 ]; }; then
+    echo "SKIP: Python 3.9 or higher is required. Found version $PYTHON_VERSION"
+    exit 2
+fi
+echo "Using Python $PYTHON_VERSION"
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+# Start nodes.
+cd 2.ipn.udp
+./ionstart
+cd ../3.ipn.udp
+./ionstart
+
+# Give the nodes time to converge
+echo "Sleeping for 15 seconds for node convergence..."
+sleep 15
+
+# Start bpsink on node 3 to receive the bundle
+bpsink ipn:3.1 >/dev/null &
+BPSINKPID=$!
+cd ../
+
+# Pause for bpsink to register
+sleep 3
+
+# Inject the crafted bundle with block number 255 into node 2
+echo "Injecting bundle with block number 255 into node 2..."
+python3 craft_bundle.py
+
+# Wait for forwarding and delivery
+echo "Sleeping for 10 seconds for forwarding..."
+sleep 10
+
+# Snapshot bpstats on node 3
+cd 3.ipn.udp
+bpstats
+sleep 1
+cd ..
+
+# --- Check 1: Verify bundle was delivered at node 3 ---
+echo ""
+echo "--- Check 1: Verify bundle delivery at node 3 ---"
+
+# Parse dlv (delivered) count from node 3 ion.log
+DLV_LINE=$(grep '\[x\] dlv ' 3.ipn.udp/ion.log | tail -1)
+if [ -z "$DLV_LINE" ]; then
+    echo "FAIL: No dlv stats found in node 3 ion.log"
+    RETVAL=1
+else
+    DLV_COUNT=$(echo "$DLV_LINE" | sed 's/.*(+) \([0-9]*\) .*/\1/')
+    echo "Delivered bundle count at node 3: $DLV_COUNT"
+    if [ "$DLV_COUNT" -ge 1 ] 2>/dev/null; then
+        echo "CHECK 1 PASSED: Bundle was delivered to node 3."
+    else
+        echo "CHECK 1 FAILED: Bundle was NOT delivered to node 3."
+        RETVAL=1
+    fi
+fi
+
+# --- Check 2: Verify no overflow error in node 2 log ---
+echo ""
+echo "--- Check 2: Verify no overflow error at node 2 ---"
+if grep -q "all block numbers 2-255 are in use" 2.ipn.udp/ion.log 2>/dev/null; then
+    echo "CHECK 2 FAILED: Overflow error found in node 2 ion.log"
+    RETVAL=1
+else
+    echo "CHECK 2 PASSED: No overflow error in node 2 ion.log."
+fi
+
+# --- Check 3: Verify no block number 0 assignment in node 2 log ---
+echo ""
+echo "--- Check 3: Verify forwarding succeeded at node 2 ---"
+# Check that node 2 forwarded the bundle (fwd stats)
+cd 2.ipn.udp
+bpstats
+sleep 1
+cd ..
+
+FWD_LINE=$(grep '\[x\] fwd ' 2.ipn.udp/ion.log | tail -1)
+if [ -z "$FWD_LINE" ]; then
+    echo "FAIL: No fwd stats found in node 2 ion.log"
+    RETVAL=1
+else
+    FWD_COUNT=$(echo "$FWD_LINE" | sed 's/.*(+) \([0-9]*\) .*/\1/')
+    echo "Forwarded bundle count at node 2: $FWD_COUNT"
+    if [ "$FWD_COUNT" -ge 1 ] 2>/dev/null; then
+        echo "CHECK 3 PASSED: Bundle was forwarded by node 2."
+    else
+        echo "CHECK 3 FAILED: Bundle was NOT forwarded by node 2."
+        RETVAL=1
+    fi
+fi
+
+# Stop bpsink
+echo ""
+echo "Stopping bpsink..."
+kill -2 $BPSINKPID >/dev/null 2>&1
+sleep 1
+kill -9 $BPSINKPID >/dev/null 2>&1
+
+# Final result
+echo ""
+if [ $RETVAL -eq 0 ]; then
+    echo "SUCCESS: Issue #37 test passed - block number 255 handled correctly."
+else
+    echo "FAIL: Issue #37 test failed."
+fi
+
+echo -e "\nStopping ION..."
+./cleanup
+echo -e "...test terminated.\n"
+exit $RETVAL

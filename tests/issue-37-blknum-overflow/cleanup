@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#
+# Cleanup script for issue-37-blknum-overflow test
+
+echo "Cleaning up old ION..."
+killm
+rm -f ion_nodes 2.ipn.udp/ion.log 3.ipn.udp/ion.log
+rm -rf __pycache__
