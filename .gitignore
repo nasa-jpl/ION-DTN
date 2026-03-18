@@ -607,6 +607,10 @@ ltpstats
 ltpcancel
 ltpwatch
 
+# bpchat/bping DURATION
+!tests/bpchat/.DURATION
+!tests/bping/.DURATION
+
 # CBR/CT Orange Book test artifacts
 tests/cbr-ct-orange-book/*/ion_nodes
 tests/cbr-ct-orange-book/*/*.node/ion.log
