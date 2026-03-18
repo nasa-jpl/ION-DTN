@@ -11,11 +11,11 @@ ARG DUMB_INIT_VERSION=1.2.5
 ARG RUNNER_USER_UID=1001
 ARG DOCKER_GROUP_GID=121
 
-# Install EPEL release directly from Fedora and install build dependencies
-# Note: valgrind was removed from this list
+# Install EPEL and build dependencies
+# Use --enablerepo to access CodeReady Builder packages without permanently modifying config
 RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm \
     && dnf update -y \
-    && dnf install -y \
+    && dnf install -y --enablerepo=codeready-builder-for-rhel-9-x86_64-rpms \
     git \
     jq \
     sudo \
@@ -38,7 +38,12 @@ RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.n
     ninja-build \
     file \
     rsync \
-    && dnf install -y --enablerepo=codeready-builder-for-rhel-9-x86_64-rpms jansson-devel \
+    jansson-devel \
+    buildah \
+    fuse-overlayfs \
+    slirp4netns \
+    # May not be necessary but was used in testing to reliable build & leaving in
+    && dnf reinstall -y shadow-utils \
     && dnf clean all
 
 RUN export PATH=$HOME/.local/bin:$PATH
@@ -71,11 +76,17 @@ RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.r
 # Setup runner user and docker group
 RUN groupadd docker --gid $DOCKER_GROUP_GID \
     && useradd --uid $RUNNER_USER_UID -m runner -G docker \
-    && echo "runner   ALL=(ALL:ALL) NOPASSWD:ALL" >> /etc/sudoers
-
-# Make and set the working directory
-RUN mkdir -p /home/runner \
+    && echo "runner   ALL=(ALL:ALL) NOPASSWD:ALL" >> /etc/sudoers \
+    && echo "runner:100000:100000" > /etc/subuid \
+    && echo "runner:100000:100000" > /etc/subgid \
+    && chmod 644 /etc/subuid /etc/subgid \
+    && mkdir -p /home/runner \
     && chown -R runner:runner /home/runner
+
+# Make the rootless runner directory executable
+RUN mkdir -p /run/user/$RUNNER_USER_UID \
+    && chown runner:runner /run/user/$RUNNER_USER_UID \
+    && chmod a+x /run/user/$RUNNER_USER_UID
 
 WORKDIR /home/runner
 
@@ -139,6 +150,20 @@ COPY actions-runner-controller/runner/docker-shim.sh /usr/local/bin/docker
 # Configure hooks folder structure.
 COPY actions-runner-controller/runner/hooks /etc/arc/hooks/
 
+# Configure buildah for rootless operation
+RUN mkdir -p /home/runner/.config/containers \
+    && mkdir -p /etc/containers \
+    && mkdir -p /home/runner/.local/share/containers/storage \
+    && mkdir -p /run/user/1001/containers \
+    && chown -R runner:runner /home/runner/.config \
+    && chown -R runner:runner /home/runner/.local \
+    && chown -R runner:runner /run/user/1001
+
+# Copy buildah configuration files
+COPY --chmod=644 buildah-storage.conf /etc/containers/storage.conf
+COPY --chmod=644 buildah-registries.conf /etc/containers/registries.conf
+COPY --chmod=644 buildah-policy.json /etc/containers/policy.json
+
 RUN chmod -R 777 /opt /usr/share
 
 FROM scratch AS final
@@ -157,6 +182,17 @@ LABEL org.opencontainers.image.revision="${REV}"
 ENV PATH="${PATH}:${HOME}/.local/bin/"
 ENV ImageOS=rhel-9
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+# Buildah configuration
+# Buildah configuration for root user
+ENV BUILDAH_ISOLATION=chroot
+ENV STORAGE_DRIVER=vfs
+ENV STORAGE_ROOT=/var/lib/containers/storage
+ENV RUNROOT=/run/containers
+# Buildah configuration for root user
+ENV BUILDAH_ISOLATION=chroot
+ENV STORAGE_DRIVER=vfs
+ENV STORAGE_ROOT=/var/lib/containers/storage
+ENV RUNROOT=/run/containers
 
 USER runner
 

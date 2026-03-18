@@ -45,6 +45,9 @@ RUN microdnf install -y oracle-epel-release-el8 \
     cmake \
     rsync \
     jansson-devel \
+    buildah \
+    fuse-overlayfs \
+    slirp4netns \
     && microdnf install -y --enablerepo=ol8_codeready_builder ninja-build \
     && microdnf clean all
 
@@ -65,10 +68,11 @@ RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.r
 # Setup runner user and docker group
 RUN groupadd docker --gid $DOCKER_GROUP_GID \
     && useradd --uid $RUNNER_USER_UID -m runner -G docker \
-    && echo "runner   ALL=(ALL:ALL) NOPASSWD:ALL" >> /etc/sudoers
-
-# Make and set the working directory
-RUN mkdir -p /home/runner \
+    && echo "runner   ALL=(ALL:ALL) NOPASSWD:ALL" >> /etc/sudoers \
+    && echo "runner:10000:65536" > /etc/subuid \
+    && echo "runner:10000:65536" > /etc/subgid \
+    && chmod 644 /etc/subuid /etc/subgid \
+    && mkdir -p /home/runner \
     && chown -R runner:runner /home/runner
 
 WORKDIR /home/runner
@@ -123,6 +127,11 @@ RUN export ARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2) \
     && which docker-compose \
     && docker compose version
 
+# Make the rootless runner directory executable
+RUN mkdir /run/user/$RUNNER_USER_UID \
+    && chown runner:runner /run/user/$RUNNER_USER_UID \
+    && chmod a+x /run/user/$RUNNER_USER_UID
+
 # We place the scripts in `/usr/bin` so that users who extend this image can
 # override them with scripts of the same name placed in `/usr/local/bin`.
 COPY --chmod=755 actions-runner-controller/runner/entrypoint.sh actions-runner-controller/runner/startup.sh actions-runner-controller/runner/logger.sh actions-runner-controller/runner/graceful-stop.sh actions-runner-controller/runner/update-status /usr/bin/
@@ -133,6 +142,20 @@ COPY actions-runner-controller/runner/docker-shim.sh /usr/local/bin/docker
 
 # Configure hooks folder structure.
 COPY actions-runner-controller/runner/hooks /etc/arc/hooks/
+
+# Configure buildah for rootless operation
+RUN mkdir -p /home/runner/.config/containers \
+    && mkdir -p /etc/containers \
+    && mkdir -p /home/runner/.local/share/containers/storage \
+    && mkdir -p /run/user/1001/containers \
+    && chown -R runner:runner /home/runner/.config \
+    && chown -R runner:runner /home/runner/.local \
+    && chown -R runner:runner /run/user/1001
+
+# Copy buildah configuration files
+COPY --chmod=644 buildah-storage.conf /etc/containers/storage.conf
+COPY --chmod=644 buildah-registries.conf /etc/containers/registries.conf
+COPY --chmod=644 buildah-policy.json /etc/containers/policy.json
 
 RUN chmod -R 777 /opt /usr/share
 
@@ -152,6 +175,17 @@ LABEL org.opencontainers.image.revision=$REV
 ENV PATH="${PATH}:${HOME}/.local/bin/"
 ENV ImageOS=oraclelinux-8
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+# Buildah configuration
+# Buildah configuration for root user
+ENV BUILDAH_ISOLATION=chroot
+ENV STORAGE_DRIVER=vfs
+ENV STORAGE_ROOT=/var/lib/containers/storage
+ENV RUNROOT=/run/containers
+# Buildah configuration for root user
+ENV BUILDAH_ISOLATION=chroot
+ENV STORAGE_DRIVER=vfs
+ENV STORAGE_ROOT=/var/lib/containers/storage
+ENV RUNROOT=/run/containers
 
 USER runner
 
