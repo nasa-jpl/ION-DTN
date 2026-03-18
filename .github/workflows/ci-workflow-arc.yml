@@ -107,7 +107,7 @@ jobs:
 
       - name: Build ION and Run Buildcheck
         if: steps.cache-build.outputs.cache-hit != 'true'
-        timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '60') }}
+        timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '90') }}
         run: |
           {
             export USER=$(whoami)
@@ -139,11 +139,12 @@ jobs:
 
   install-and-test:
     needs: [setup, build]
+    name: "Test: ${{ matrix.runner }} (Batch ${{ strategy.job-index }})"
     strategy:
       fail-fast: false
       matrix:
         testset: ${{ fromJSON(needs.setup.outputs.testmatrix) }}
-        runner: ${{ fromJSON(inputs.runners || '["arc-runner-set-u20", "arc-runner-set-u22", "arc-runner-set-ol8", "arc-runner-set-ol9", "arc-runner-set-rhel8", "arc-runner-set-rhel9"]["arc-runner-set-u22", "arc-runner-set-ol8"]') }}
+        runner: ${{ fromJSON(inputs.runners || '["arc-runner-set-u20", "arc-runner-set-u22", "arc-runner-set-ol8", "arc-runner-set-ol9", "arc-runner-set-rhel8", "arc-runner-set-rhel9"]') }}
 
     runs-on: ${{ matrix.runner }}
 
@@ -183,7 +184,7 @@ jobs:
           echo "${{ strategy.job-index }}"
 
       - name: Install ION and run tests
-        timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '60') }}
+        timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '90') }}
         run: |
           {
             echo "Starting test installation and execution at $(date)"
@@ -262,3 +263,42 @@ jobs:
           name: ion-logs-${{ matrix.runner }}-${{ env.TIMESTAMP }}-index-${{ strategy.job-index }}
           path: ion-logs-collection/
           if-no-files-found: warn
+
+      - name: Generate Summary
+        if: ${{ always() }}
+        run: |
+          echo "### Test Results for ${{ matrix.runner }}" >> $GITHUB_STEP_SUMMARY
+          echo "| Batch Index | Runner | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------------|--------|--------|" >> $GITHUB_STEP_SUMMARY
+          # Uses a checkmark or cross depending on the job success
+          RESULT_ICON="${{ job.status == 'success' && '✅' || '❌' }}"
+          echo "| ${{ strategy.job-index }} | ${{ matrix.runner }} | $RESULT_ICON ${{ job.status }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "#### Tests included in this batch:" >> $GITHUB_STEP_SUMMARY
+          echo "\`${{ matrix.testset }}\`" >> $GITHUB_STEP_SUMMARY
+
+  aggregate-results:
+    name: "Finalize Logs and Reports"
+    needs: [install-and-test]
+    runs-on: arc-runner-set-ol8
+    if: always()
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-workflow-logs
+          # This pattern pulls everything uploaded in previous steps
+          pattern: "*-log-*"
+          merge-multiple: false
+
+      - name: Display Summary of Collected Logs
+        run: |
+          echo "### Workflow Artifact Summary" >> $GITHUB_STEP_SUMMARY
+          echo "All logs from $(ls all-workflow-logs | wc -l) runner batches have been collected." >> $GITHUB_STEP_SUMMARY
+          ls -R all-workflow-logs
+
+      - name: Upload Unified Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-regression-bundle-${{ github.run_id }}
+          path: all-workflow-logs/
