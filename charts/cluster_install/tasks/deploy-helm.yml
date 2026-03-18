@@ -1,0 +1,56 @@
+---
+- name: Validate secrets file exists
+  ansible.builtin.stat:
+    path: "{{ charts_path }}/arc/secrets.local.yaml"
+  register: secrets_file
+
+- name: Fail if secrets file is missing
+  ansible.builtin.fail:
+    msg: "Required secrets file arc/secrets.local.yaml not found"
+  when: not secrets_file.stat.exists
+
+- name: Check Kubernetes cluster accessibility
+  kubernetes.core.k8s_info:
+    kind: Node
+  register: k8s_nodes
+  ignore_errors: true
+
+- name: Fail if Kubernetes cluster is not accessible
+  ansible.builtin.fail:
+    msg: "Kubernetes cluster is not accessible. Ensure cluster is running and configured properly."
+  when: k8s_nodes is failed
+
+- name: Generate values.yaml from template
+  ansible.builtin.template:
+    src: "templates/values.yaml.j2"
+    dest: "{{ charts_path }}/arc/values.yaml"
+    mode: "0644"
+
+- name: Display values.yaml generation result
+  ansible.builtin.debug:
+    msg: "✓ values.yaml generated successfully for {{ config }} configuration"
+
+- name: Deploy ARC Helm chart
+  kubernetes.core.helm:
+    name: arc
+    chart_ref: "{{ charts_path }}/arc"
+    release_namespace: arc-systems
+    create_namespace: true
+    wait: true
+    values_files:
+      - "{{ charts_path }}/arc/secrets.local.yaml"
+  register: helm_result
+
+- name: Check if Helm deployment failed
+  ansible.builtin.fail:
+    msg: "❌ Helm deployment failed: {{ helm_result.stderr | default('Unknown error') }}"
+  when: helm_result.failed | default(false)
+
+- name: Display Helm deployment result
+  ansible.builtin.debug:
+    msg: >-
+      ✓ Helm chart deployed successfully to arc-systems namespace.
+      Status: {{ 'Created' if helm_result.status is defined and helm_result.status == 201 else 'Updated' }}
+      {{ 'Release name: ' + helm_result.release_name if helm_result.release_name is defined else '' }}
+      {{ 'Revision: ' + helm_result.release_revision | string if helm_result.release_revision is defined else '' }}
+      {{ helm_result.warnings | join('\n') if helm_result.warnings is defined and helm_result.warnings | length > 0 else 'No warnings.' }}

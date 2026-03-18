@@ -1,0 +1,24 @@
+---
+- name: Validate configuration is one of the allowed values
+  ansible.builtin.assert:
+    that:
+      - config is defined
+      - config in allowed_configs
+    fail_msg: "Invalid configuration '{{ config | default('undefined') }}'. Must be one of: {{ allowed_configs | join(', ') }}"
+    success_msg: "Configuration validated: {{ config }}"
+
+- name: Check if secrets.local.yaml exists
+  ansible.builtin.stat:
+    path: "{{ charts_path }}/arc/secrets.local.yaml"
+  register: secrets_file
+
+- name: Fail if secrets.local.yaml is missing
+  ansible.builtin.fail:
+    msg: |
+      Error: secrets.local.yaml not found at {{ charts_path }}/arc/secrets.local.yaml
+      This file is required for image registry credentials
+  when: not secrets_file.stat.exists
+
+- name: Display validation success message
+  ansible.builtin.debug:
+    msg: "All prerequisites validated successfully for {{ config }} configuration"

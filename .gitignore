@@ -648,3 +648,4 @@ secrets.local.yaml
 # helm charts
 Chart.lock
 charts/arc/charts/*
+charts/arc/values.yaml

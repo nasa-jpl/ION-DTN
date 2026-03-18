@@ -1,0 +1,268 @@
+# Component enablement
+controller:
+  enabled: true
+
+runnerScaleSet:
+{% if config == "ol8" %}
+  enabled: true
+{% else %}
+  enabled: false
+{% endif %}
+
+runnerScaleSet2:
+{% if config == "ol8" %}
+  enabled: true
+{% else %}
+  enabled: false
+{% endif %}
+
+runnerScaleSet3:
+{% if config == "ol8" %}
+  enabled: true
+{% else %}
+  enabled: false
+{% endif %}
+
+runnerScaleSet4:
+{% if config == "rhel8" %}
+  enabled: true
+{% else %}
+  enabled: false
+{% endif %}
+
+runnerScaleSet5:
+{% if config == "rhel9" %}
+  enabled: true
+{% else %}
+  enabled: false
+{% endif %}
+
+runnerScaleSet6:
+{% if config == "ol8" %}
+  enabled: true
+{% else %}
+  enabled: false
+{% endif %}
+
+gha-runner-scale-set-controller:
+  namespaceOverride: arc-systems
+  serviceAccount:
+    name: arc-gha-rs-controller
+
+gha-runner-scale-set:
+  namespaceOverride: arc-runners
+  controllerServiceAccount:
+    namespace: arc-systems
+    name: arc-gha-rs-controller
+  githubConfigUrl: "https://github.com/nasa-jpl/ion-ios-dev"
+  githubConfigSecret: gha-runner-token-secret
+  runnerScaleSetName: arc-runner-set-u22
+  template:
+    spec:
+      containers:
+        - name: runner
+          image: ghcr.io/actions/actions-runner:latest
+          imagePullPolicy: "Always"
+          command: ["/home/runner/run.sh"]
+          volumeMounts:
+            # Mount for storing container images/layers
+            - name: containers-storage
+              mountPath: /var/lib/containers/storage
+            # Mount for buildah runtime data
+            - name: containers-run
+              mountPath: /run/containers
+      imagePullSecrets:
+        - name: kind-cluster-pull-secret
+
+gha-runner-scale-set-2:
+  namespaceOverride: arc-runners
+  controllerServiceAccount:
+    namespace: arc-systems
+    name: arc-gha-rs-controller
+  githubConfigUrl: "https://github.com/nasa-jpl/ion-ios-dev"
+  githubConfigSecret: gha-runner-token-secret
+  runnerScaleSetName: arc-runner-set-ol8
+  template:
+    spec:
+      # Pod-level security context - runner must run as non-root
+      securityContext:
+        # GitHub Actions runner requires non-root user
+        runAsUser: 1001
+        runAsGroup: 1001
+      containers:
+        - name: runner
+          image: ghcr.io/actions/actions-runner:latest
+          imagePullPolicy: "Always"
+          command: ["/home/runner/run.sh"]
+          volumeMounts:
+            # Mount for storing container images/layers
+            - name: containers-storage
+              mountPath: /var/lib/containers/storage
+            # Mount for buildah runtime data
+            - name: containers-run
+              mountPath: /run/containers
+      imagePullSecrets:
+        - name: kind-cluster-pull-secret
+      volumes:
+        # EmptyDir for container storage (ephemeral, cleaned up after pod deletion)
+        - name: containers-storage
+          emptyDir: {}
+        # EmptyDir for buildah runtime data
+        - name: containers-run
+          emptyDir: {}
+
+gha-runner-scale-set-3:
+  namespaceOverride: arc-runners
+  controllerServiceAccount:
+    namespace: arc-systems
+    name: arc-gha-rs-controller
+  githubConfigUrl: "https://github.com/nasa-jpl/ion-ios-dev"
+  githubConfigSecret: gha-runner-token-secret
+  runnerScaleSetName: arc-runner-set-ol9
+  template:
+    spec:
+      containers:
+        - name: runner
+          image: ghcr.io/actions/actions-runner:latest
+          imagePullPolicy: "Always"
+          command: ["/home/runner/run.sh"]
+      imagePullSecrets:
+        - name: kind-cluster-pull-secret
+
+gha-runner-scale-set-4:
+  namespaceOverride: arc-runners
+  controllerServiceAccount:
+    namespace: arc-systems
+    name: arc-gha-rs-controller
+  githubConfigUrl: "https://github.com/nasa-jpl/ion-ios-dev"
+  githubConfigSecret: gha-runner-token-secret
+  runnerScaleSetName: arc-runner-set-rhel8
+  template:
+    spec:
+      # Pod-level security context - runner must run as non-root
+      securityContext:
+        # GitHub Actions runner requires non-root user
+        runAsUser: 1001
+        runAsGroup: 1001
+      containers:
+        - name: runner
+          image: ghcr.io/actions/actions-runner:latest
+          imagePullPolicy: "Always"
+          command: ["/home/runner/run.sh"]
+          volumeMounts:
+            # Mount for storing container images/layers
+            - name: containers-storage
+              mountPath: /var/lib/containers/storage
+            # Mount for buildah runtime data
+            - name: containers-run
+              mountPath: /run/containers
+            # Mount RHEL entitlements for building RHEL images
+            - name: rhel-entitlement
+              mountPath: /etc/pki/entitlement
+              readOnly: true
+            - name: rhel-rhsm
+              mountPath: /etc/rhsm
+              readOnly: true
+            - name: rhel-repos
+              mountPath: /etc/yum.repos.d
+              readOnly: true
+      imagePullSecrets:
+        - name: kind-cluster-pull-secret
+      volumes:
+        # EmptyDir for container storage (ephemeral, cleaned up after pod deletion)
+        - name: containers-storage
+          emptyDir: {}
+        # EmptyDir for buildah runtime data
+        - name: containers-run
+          emptyDir: {}
+        # RHEL subscription info from host for building RHEL images
+        - name: rhel-entitlement
+          hostPath:
+            path: /etc/pki/entitlement
+            type: Directory
+        - name: rhel-rhsm
+          hostPath:
+            path: /etc/rhsm
+            type: Directory
+        - name: rhel-repos
+          hostPath:
+            path: /etc/yum.repos.d
+            type: Directory
+
+gha-runner-scale-set-5:
+  namespaceOverride: arc-runners
+  controllerServiceAccount:
+    namespace: arc-systems
+    name: arc-gha-rs-controller
+  githubConfigUrl: "https://github.com/nasa-jpl/ion-ios-dev"
+  githubConfigSecret: gha-runner-token-secret
+  runnerScaleSetName: arc-runner-set-rhel9
+  template:
+    spec:
+      # Pod-level security context - runner must run as non-root
+      securityContext:
+        # GitHub Actions runner requires non-root user
+        runAsUser: 1001
+        runAsGroup: 1001
+      containers:
+        - name: runner
+          image: ghcr.io/actions/actions-runner:latest
+          imagePullPolicy: "Always"
+          command: ["/home/runner/run.sh"]
+          volumeMounts:
+            # Mount for storing container images/layers
+            - name: containers-storage
+              mountPath: /var/lib/containers/storage
+            # Mount for buildah runtime data
+            - name: containers-run
+              mountPath: /run/containers
+            # Mount RHEL entitlements for building RHEL images
+            - name: rhel-entitlement
+              mountPath: /etc/pki/entitlement
+              readOnly: true
+            - name: rhel-rhsm
+              mountPath: /etc/rhsm
+              readOnly: true
+            - name: rhel-repos
+              mountPath: /etc/yum.repos.d
+              readOnly: true
+      imagePullSecrets:
+        - name: kind-cluster-pull-secret
+      volumes:
+        # EmptyDir for container storage (ephemeral, cleaned up after pod deletion)
+        - name: containers-storage
+          emptyDir: {}
+        # EmptyDir for buildah runtime data
+        - name: containers-run
+          emptyDir: {}
+        # RHEL subscription info from host for building RHEL images
+        - name: rhel-entitlement
+          hostPath:
+            path: /etc/pki/entitlement
+            type: Directory
+        - name: rhel-rhsm
+          hostPath:
+            path: /etc/rhsm
+            type: Directory
+        - name: rhel-repos
+          hostPath:
+            path: /etc/yum.repos.d
+            type: Directory
+
+gha-runner-scale-set-6:
+  namespaceOverride: arc-runners
+  controllerServiceAccount:
+    namespace: arc-systems
+    name: arc-gha-rs-controller
+  githubConfigUrl: "https://github.com/nasa-jpl/ion-ios-dev"
+  githubConfigSecret: gha-runner-token-secret
+  runnerScaleSetName: arc-runner-set-u20
+  template:
+    spec:
+      containers:
+        - name: runner
+          image: ghcr.io/actions/actions-runner:latest
+          imagePullPolicy: "Always"
+          command: ["/home/runner/run.sh"]
+      imagePullSecrets:
+        - name: kind-cluster-pull-secret
