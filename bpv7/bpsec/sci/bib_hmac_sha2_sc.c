@@ -195,9 +195,16 @@ int bpsec_bhssci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
 
 	if(ipptZco != 0)
 	{
-		/* Step 4: Compute the signature over the entire IPPT value. */
+
 		csi_ctx = bpsec_bhsscutl_computeSignature(ippt_preamble, ipptZco, ipptZcoLen, sha_variant, key_value, CSI_SVC_VERIFY);
 		zco_destroy(state->sdr, ipptZco);
+
+		/* Catch allocation failure from computeSignature gracefully */
+		if (csi_ctx == NULL)
+		{
+			MRELEASE(ippt_preamble.scSerializedText);
+			return ERROR;
+		}
 
 		result = csi_sign_finish(sha_variant, csi_ctx, &csi_digest, CSI_SVC_VERIFY);
 		csi_ctx_free(sha_variant, csi_ctx);
@@ -371,6 +378,13 @@ int bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle,
 		csi_ctx = bpsec_bhsscutl_computeSignature(ippt_preamble, ipptZco, ipptZcoLen, sha_variant, key, CSI_SVC_SIGN);
 		zco_destroy(state->sdr, ipptZco);
 
+		/* Catch allocation failure from computeSignature gracefully */
+		if (csi_ctx == NULL)
+		{
+			MRELEASE(ippt_preamble.scSerializedText);
+			return ERROR;
+		}
+
 		/*
 		 * Step 4.1.2: Finish the context. When this is called for signing, the
 		 *         computed signature is copied out.
@@ -491,6 +505,15 @@ uint8_t *bpsec_bhsscutl_computeSignature(BpsecSerializeData preamble, Object zco
 
 	/* Step 2 - Create the CSI context for the signing. */
 	csi_ctx = csi_ctx_init(csi_suite, csi_key, CSI_SVC_SIGN);
+
+	/* Catch context allocation failure BEFORE passing to csi_sign_start */
+	if (csi_ctx == NULL)
+	{
+		BPSEC_DEBUG_ERR("Can't init context.", NULL);
+		MRELEASE(chunkData.contents);
+		return NULL;
+	}
+
 	if(csi_sign_start(csi_suite, csi_ctx) == ERROR)
 	{
 		BPSEC_DEBUG_ERR("Can't start context.", NULL);
