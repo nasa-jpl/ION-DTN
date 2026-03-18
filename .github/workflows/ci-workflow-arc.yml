@@ -263,7 +263,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Save Job Status for Final Summary
-        if: always()
+        if: ${{ always() }}
         run: |
           mkdir -p job-reports
           RESULT_ICON="${{ job.status == 'success' && '✅' || '❌' }}"
@@ -280,7 +280,7 @@ jobs:
           echo "| ${{ matrix.runner }} | ${{ matrix.testchunk.batch }} | $RESULT_ICON ${{ job.status }} | $FAILED_TESTS | $SKIPPED_TESTS |" > job-reports/${{ matrix.runner }}-${{ matrix.testchunk.batch }}.txt
 
       - name: Upload Status Fragment
-        if: always()
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: status-${{ matrix.runner }}-${{ matrix.testchunk.batch }}
@@ -291,47 +291,36 @@ jobs:
     name: "Finalize Logs and Reports"
     needs: [install-and-test]
     runs-on: arc-runner-set-ol8
-    if: always()
+    if: ${{ always() }}
     steps:
-      - name: Download all status fragments
+      - name: Download ALL artifacts
         uses: actions/download-artifact@v4
         with:
-          path: all-statuses
-          pattern: "status-*"
-          merge-multiple: true
+          # Downloads absolutely everything into one master folder
+          path: all-artifacts
+          merge-multiple: false
 
       - name: Generate Final Summary Table
         run: |
           echo "## 📊 Regression Test Overview" >> $GITHUB_STEP_SUMMARY
           echo "| Runner OS | Batch | Result | Failed Tests | Skipped Tests |" >> $GITHUB_STEP_SUMMARY
           echo "|-----------|-------|--------|--------------|---------------|" >> $GITHUB_STEP_SUMMARY
-          # Sorting ensures the table is grouped nicely by runner and batch number
-          cat all-statuses/*.txt | sort >> $GITHUB_STEP_SUMMARY
+          cat all-artifacts/status-*/*.txt | sort >> $GITHUB_STEP_SUMMARY
 
-      - name: Download all logs for bundling
-        uses: actions/download-artifact@v4
-        with:
-          path: all-workflow-logs
-          # By listing these patterns explicitly, we guarantee all 4 log types
-          # are collected into the bundle while ignoring the status fragments
-          pattern: |
-            compile-and-buildcheck-log-*
-            build-and-test-log-*
-            test-progress-*
-            ion-logs-*
-          merge-multiple: false
+      - name: Remove status fragments from the bundle folder
+        run: |
+          echo "Removing status data before zipping..."
+          rm -rf all-artifacts/status-*
 
       - name: Upload Unified Bundle
         uses: actions/upload-artifact@v4
         with:
           name: final-regression-bundle
-          path: all-workflow-logs/
+          path: all-artifacts/
 
       - name: Clean up ALL intermediate artifacts
         uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118
         with:
-          # Passes a multiline list of all artifacts created in this run
-          # to ensure everything EXCEPT the final bundle is purged.
           name: |
             status-*
             compile-and-buildcheck-log-*
