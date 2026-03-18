@@ -26,22 +26,22 @@ dependencies:
     alias: gha-runner-scale-set-3
     version: "0.13.1"
     repository: oci://ghcr.io/actions/actions-runner-controller-charts
-    condition: runnerScaleSet2.enabled
+    condition: runnerScaleSet3.enabled
 
   - name: gha-runner-scale-set
     alias: gha-runner-scale-set-4
     version: "0.13.1"
     repository: oci://ghcr.io/actions/actions-runner-controller-charts
-    condition: runnerScaleSet2.enabled
+    condition: runnerScaleSet4.enabled
 
   - name: gha-runner-scale-set
     alias: gha-runner-scale-set-5
     version: "0.13.1"
     repository: oci://ghcr.io/actions/actions-runner-controller-charts
-    condition: runnerScaleSet2.enabled
+    condition: runnerScaleSet5.enabled
 
   - name: gha-runner-scale-set
     alias: gha-runner-scale-set-6
     version: "0.13.1"
     repository: oci://ghcr.io/actions/actions-runner-controller-charts
-    condition: runnerScaleSet2.enabled
+    condition: runnerScaleSet6.enabled

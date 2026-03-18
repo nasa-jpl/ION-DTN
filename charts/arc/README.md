@@ -30,7 +30,7 @@ This downloads the ARC controller and runner scale set charts.
 ### 2. Install the Chart
 
 ```bash
-helm install arc ./arc -f secrets.local.yaml --create-namespace
+helm upgrade -i --reset-values --create-namespace --values=arc/secrets.local.yaml --namespace arc-systems arc 'arc'
 ```
 
 ## Configuration
@@ -38,7 +38,7 @@ helm install arc ./arc -f secrets.local.yaml --create-namespace
 ### Key Values
 
 | Parameter | Description | Default |
-|-----------|-------------|---------|
+| ----------- | ------------- | --------- |
 | `githubConfigUrl` | GitHub repository URL | `https://github.com/nasa-jpl/ion-ios-dev` |
 | `githubConfigSecret` | Name of the GitHub token secret | `githubToken` |
 | `imagePullSecrets` | Name of the image pull secret | `pullSecretData` |
@@ -55,11 +55,14 @@ githubToken: your-secret-name
 pullSecretData: your-image-secret
 ```
 
-You can also pass configuration to the sub-charts by adding settings under the `gha-runner-scale-set-controller` or `gha-runner-scale-set` keys.
+You can also pass configuration to the sub-charts by adding settings under the
+`gha-runner-scale-set-controller` or `gha-runner-scale-set` keys.
 
 #### Setting custom images
 
-The default images for the runners points to the latest one from GitHub, which is Ubuntu 22.04. There is then no point to have multiple scale sets, so the custom image must be set in `secrets.local.yaml` like below:
+The default images for the runners points to the latest one from GitHub, which
+is Ubuntu 22.04. There is then no point to have multiple scale sets, so the
+custom image must be set in `secrets.local.yaml` like below:
 
 ```yaml
 gha-runner-scale-set:
@@ -72,7 +75,8 @@ gha-runner-scale-set:
           command: ["/home/runner/run.sh"]
 ```
 
-Repeat for each scale set, using a different image for each. For ION they are as follows:
+Repeat for each scale set, using a different image for each. For ION they are
+as follows:
 
 - Ubuntu 22.04
 - Ubuntu 20.04
@@ -80,6 +84,57 @@ Repeat for each scale set, using a different image for each. For ION they are as
 - Oracle Linux 9
 - RHEL 8
 - RHEL 9
+
+The setup used for ION, builds the images on Oracle Linux 8, RHEL 8, and RHEL 9.
+Some modifications of the runner sets are required to mount the podman socket
+to help with the image build. Below is example of the modifictions of
+`secrets.local.yaml` so the Oracle Linux 8, RHEL 8, and RHEL 9 runner sets can
+build container images. The RHEL instances are separate because there are
+packages only available when built on their corresponding host OS.
+
+```yaml
+gha-runner-scale-set:
+  template:
+    spec:
+      containers:
+        - name: runner
+          image: fictional.registry.example/imagename
+          imagePullPolicy: "Always"
+          command: ["/home/runner/run.sh"]
+          volumeMounts:
+            # Mount for storing container images/layers
+            - name: containers-storage
+              mountPath: /var/lib/containers/storage
+            # Mount for buildah runtime data
+            - name: containers-run
+              mountPath: /run/containers
+
+gha-runner-scale-set-4:
+  template:
+    spec:
+      containers:
+        - name: runner
+          image: fictional.registry.example/imagename
+          imagePullPolicy: "Always"
+          command: ["/home/runner/run.sh"]
+          volumeMounts:
+            # Mount for storing container images/layers
+            - name: containers-storage
+              mountPath: /var/lib/containers/storage
+            # Mount for buildah runtime data
+            - name: containers-run
+              mountPath: /run/containers
+            # Mount RHEL entitlements for building RHEL images
+            - name: rhel-entitlement
+              mountPath: /etc/pki/entitlement
+              readOnly: true
+            - name: rhel-rhsm
+              mountPath: /etc/rhsm
+              readOnly: true
+            - name: rhel-repos
+              mountPath: /etc/yum.repos.d
+              readOnly: true
+```
 
 ## Upgrading
 

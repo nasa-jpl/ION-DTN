@@ -1,0 +1,18 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraMounts:
+      # Mount RHEL entitlements from host for building RHEL images
+      - hostPath: /etc/pki/entitlement
+        containerPath: /etc/pki/entitlement
+        readOnly: true
+        propagation: HostToContainer
+      - hostPath: /etc/rhsm
+        containerPath: /etc/rhsm
+        readOnly: true
+        propagation: HostToContainer
+      - hostPath: /etc/yum.repos.d
+        containerPath: /etc/yum.repos.d
+        readOnly: true
+        propagation: HostToContainer
