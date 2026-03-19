@@ -124,6 +124,11 @@ function excludeObsolete_test () {
     TESTS_EXCLUDED_OBSOLETE="$TESTS_EXCLUDED_OBSOLETE $1"
 }
 
+function excludeBPSec_test () {
+    NUM_EXCLUDED_BPSEC=$((NUM_EXCLUDED_BPSEC + 1))
+    TESTS_EXCLUDED_BPSEC="$TESTS_EXCLUDED_BPSEC $1"
+}
+
 function pass_test_after_retest () {
     NUM_PASSED_AFTER_RETEST=$((NUM_PASSED_AFTER_RETEST + 1))
     TESTS_PASSED_AFTER_RETEST="$TESTS_PASSED_AFTER_RETEST $1"
@@ -247,6 +252,23 @@ function run_a_test () {
         cat "$TEST/.exclude_$BP_VERSION"
         excludeBPv_test "$TEST"
         echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (BP version excluded)" >&2
+        return
+    fi
+
+    # check if test is excluded by BPSec implementation
+    if [ "$BPSEC_MODE" = "bsl" ] && [ -f "$TEST/.exclude_bsl" ]; then
+        echo "Test excluded for BSL build, skipping $TEST" | tee -a $PROGRESSFILE
+        cat "$TEST/.exclude_bsl"
+        excludeBPSec_test "$TEST"
+        echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (BSL excluded)" >&2
+        return
+    fi
+
+    if [ "$BPSEC_MODE" = "native_bpsec" ] && [ -f "$TEST/.exclude_native_bpsec" ]; then
+        echo "Test excluded for native BPSec build, skipping $TEST" | tee -a $PROGRESSFILE
+        cat "$TEST/.exclude_native_bpsec"
+        excludeBPSec_test "$TEST"
+        echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (native BPSec excluded)" >&2
         return
     fi
 
@@ -447,6 +469,7 @@ function reset_test_counters () {
     NUM_EXCLUDED_OS=0
     NUM_EXCLUDED_BPv=0
     NUM_EXCLUDED_OBSOLETE=0
+    NUM_EXCLUDED_BPSEC=0
     NUM_PASSED_AFTER_RETEST=0
     NUM_OPTIONAL_PASSED=0
     NUM_OPTIONAL_FAILED=0
@@ -456,6 +479,7 @@ function reset_test_counters () {
     TESTS_EXCLUDED_OS=""
     TESTS_EXCLUDED_BPv=""
     TESTS_EXCLUDED_OBSOLETE=""
+    TESTS_EXCLUDED_BPSEC=""
     TESTS_PASSED_AFTER_RETEST=""
     TESTS_OPTIONAL_PASSED=""
     TESTS_OPTIONAL_FAILED=""
@@ -499,6 +523,12 @@ function generate_initial_summary () {
     echo
     echo "obsolete tests: $NUM_EXCLUDED_OBSOLETE"
     for TEST in $TESTS_EXCLUDED_OBSOLETE; do
+        echo "    $TEST"
+    done
+
+    echo
+    echo "excluded by BPSec mode: $NUM_EXCLUDED_BPSEC"
+    for TEST in $TESTS_EXCLUDED_BPSEC; do
         echo "    $TEST"
     done
 
@@ -567,6 +597,12 @@ function generate_final_summary () {
         echo "    $TEST"
     done
 
+    echo
+    echo "excluded by BPSec mode: $NUM_EXCLUDED_BPSEC"
+    for TEST in $TESTS_EXCLUDED_BPSEC; do
+        echo "    $TEST"
+    done
+
     # Show optional test results in a separate section
     echo
     echo "=== Optional Tests ==="
@@ -589,6 +625,7 @@ NUM_SKIPPED=0
 NUM_EXCLUDED_OS=0
 NUM_EXCLUDED_BPv=0
 NUM_EXCLUDED_OBSOLETE=0
+NUM_EXCLUDED_BPSEC=0
 NUM_UNKNOWN=0
 NUM_PASSED_AFTER_RETEST=0
 NUM_OPTIONAL_PASSED=0
@@ -602,6 +639,7 @@ TESTS_SKIPPED=''
 TESTS_EXCLUDED_OS=''
 TESTS_EXCLUDED_BPv=''
 TESTS_EXCLUDED_OBSOLETE=''
+TESTS_EXCLUDED_BPSEC=''
 TESTS_PASSED_AFTER_RETEST=''
 TESTS_OPTIONAL_PASSED=''
 TESTS_OPTIONAL_FAILED=''
@@ -700,6 +738,15 @@ fi
 
 #Determine BP version for exclustion of tests
 BP_VERSION="bpv7"
+
+# Determine BPSec implementation (BSL vs native BPSec)
+if pkg-config --cflags ion 2>/dev/null | grep -q 'USING_BSL'; then
+    BPSEC_MODE="bsl"
+elif ! command -v bpsecadmin >/dev/null 2>&1; then
+    BPSEC_MODE="bsl"
+else
+    BPSEC_MODE="native_bpsec"
+fi
 
 # Parse options
 STRESS_MODE=""
