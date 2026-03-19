@@ -28,11 +28,38 @@ on:
         required: false
         type: number
         default: 7
-      runners:
-        description: 'JSON array of runner sets (e.g., ["arc-runner-set-u22", "arc-runner-set-ol8"])'
+      # Replaced the single string input with boolean toggles
+      runner_u20:
+        description: "Enable Ubuntu 20.04 (arc-runner-set-u20)"
         required: false
-        type: string
-        default: '["arc-runner-set-u20", "arc-runner-set-u22", "arc-runner-set-ol8", "arc-runner-set-ol9", "arc-runner-set-rhel8", "arc-runner-set-rhel9"]'
+        type: boolean
+        default: true
+      runner_u22:
+        description: "Enable Ubuntu 22.04 (arc-runner-set-u22)"
+        required: false
+        type: boolean
+        default: true
+      runner_ol8:
+        description: "Enable Oracle Linux 8 (arc-runner-set-ol8)"
+        required: false
+        type: boolean
+        default: true
+      runner_ol9:
+        description: "Enable Oracle Linux 9 (arc-runner-set-ol9)"
+        required: false
+        type: boolean
+        default: true
+      runner_rhel8:
+        description: "Enable RHEL 8 (arc-runner-set-rhel8)"
+        required: false
+        type: boolean
+        default: true
+      runner_rhel9:
+        description: "Enable RHEL 9 (arc-runner-set-rhel9)"
+        required: false
+        type: boolean
+        default: true
+
   workflow_dispatch:
     inputs:
       tests_to_run:
@@ -55,11 +82,36 @@ on:
         required: false
         type: number
         default: 7
-      runners:
-        description: 'JSON array of runner sets (e.g., ["arc-runner-set-u22", "arc-runner-set-ol8"])'
+      runner_u20:
+        description: "Enable Ubuntu 20.04 (arc-runner-set-u20)"
         required: false
-        type: string
-        default: '["arc-runner-set-u20", "arc-runner-set-u22", "arc-runner-set-ol8", "arc-runner-set-ol9", "arc-runner-set-rhel8", "arc-runner-set-rhel9"]'
+        type: boolean
+        default: true
+      runner_u22:
+        description: "Enable Ubuntu 22.04 (arc-runner-set-u22)"
+        required: false
+        type: boolean
+        default: true
+      runner_ol8:
+        description: "Enable Oracle Linux 8 (arc-runner-set-ol8)"
+        required: false
+        type: boolean
+        default: true
+      runner_ol9:
+        description: "Enable Oracle Linux 9 (arc-runner-set-ol9)"
+        required: false
+        type: boolean
+        default: true
+      runner_rhel8:
+        description: "Enable RHEL 8 (arc-runner-set-rhel8)"
+        required: false
+        type: boolean
+        default: true
+      runner_rhel9:
+        description: "Enable RHEL 9 (arc-runner-set-rhel9)"
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   setup:
@@ -67,10 +119,29 @@ jobs:
     outputs:
       testmatrix: ${{ steps.dataStep.outputs.testoutput }}
       pr_number: ${{ steps.get-pr.outputs.pr_number }}
+      active_runners: ${{ steps.build-runners.outputs.runners }}
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Build Runner Matrix
+        id: build-runners
+        run: |
+          RUNNERS="[]"
+          if [ "${{ inputs.runner_u20 }}" == "true" ]; then RUNNERS=$(echo "$RUNNERS" | jq '. += ["arc-runner-set-u20"]'); fi
+          if [ "${{ inputs.runner_u22 }}" == "true" ]; then RUNNERS=$(echo "$RUNNERS" | jq '. += ["arc-runner-set-u22"]'); fi
+          if [ "${{ inputs.runner_ol8 }}" == "true" ]; then RUNNERS=$(echo "$RUNNERS" | jq '. += ["arc-runner-set-ol8"]'); fi
+          if [ "${{ inputs.runner_ol9 }}" == "true" ]; then RUNNERS=$(echo "$RUNNERS" | jq '. += ["arc-runner-set-ol9"]'); fi
+          if [ "${{ inputs.runner_rhel8 }}" == "true" ]; then RUNNERS=$(echo "$RUNNERS" | jq '. += ["arc-runner-set-rhel8"]'); fi
+          if [ "${{ inputs.runner_rhel9 }}" == "true" ]; then RUNNERS=$(echo "$RUNNERS" | jq '. += ["arc-runner-set-rhel9"]'); fi
+
+          if [ "$RUNNERS" == "[]" ]; then
+            echo "Error: No runners selected. Please enable at least one runner."
+            exit 1
+          fi
+
+          echo "runners=$(echo "$RUNNERS" | jq -c .)" >> $GITHUB_OUTPUT
 
       - name: Get test batches
         id: dataStep
@@ -117,8 +188,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Build only once per runner type
-        runner: ${{ fromJSON(inputs.runners || '["arc-runner-set-u20", "arc-runner-set-u22", "arc-runner-set-ol8", "arc-runner-set-ol9", "arc-runner-set-rhel8", "arc-runner-set-rhel9"]') }}
+        runner: ${{ fromJSON(needs.setup.outputs.active_runners) }}
     runs-on: ${{ matrix.runner }}
 
     steps:
@@ -175,7 +245,7 @@ jobs:
       fail-fast: false
       matrix:
         testchunk: ${{ fromJSON(needs.setup.outputs.testmatrix) }}
-        runner: ${{ fromJSON(inputs.runners || '["arc-runner-set-u20", "arc-runner-set-u22", "arc-runner-set-ol8", "arc-runner-set-ol9", "arc-runner-set-rhel8", "arc-runner-set-rhel9"]') }}
+        runner: ${{ fromJSON(needs.setup.outputs.active_runners) }}
 
     runs-on: ${{ matrix.runner }}
 
