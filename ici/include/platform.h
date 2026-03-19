@@ -15,6 +15,19 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
+/*	Ensure unprefixed platform macros are available even under
+ *	strict C/C++ standard modes (-std=c17, -std=c++17, etc.).
+ *	GCC and Clang drop the non-standard 'linux' and 'unix'
+ *	predefined macros in strict mode but keep __linux__ and
+ *	__unix__.  ION code checks the unprefixed forms throughout,
+ *	so we bridge them here.  (See GitHub issue #823.)		*/
+#if defined(__linux__) && !defined(linux)
+#define linux	1
+#endif
+#if defined(__unix__) && !defined(unix)
+#define unix	1
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
