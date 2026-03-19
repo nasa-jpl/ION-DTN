@@ -68,7 +68,7 @@ jobs:
       - name: Build the container image
         run: |
           cd images && \
-          make buildah-build \
+          make buildah-build-rhel \
             OS_IMAGE=rhel-8 \
             DEFAULT_RUNNER_NAME=${{ env.REGISTRY_ADDRESS }}/${{ env.REGISTRY_NAMESPACE }}/ion-runner-images
 
@@ -100,7 +100,7 @@ jobs:
       - name: Build the container image
         run: |
           cd images && \
-          make buildah-build \
+          make buildah-build-rhel \
             OS_IMAGE=rhel-9 \
             DEFAULT_RUNNER_NAME=${{ env.REGISTRY_ADDRESS }}/${{ env.REGISTRY_NAMESPACE }}/ion-runner-images
 
