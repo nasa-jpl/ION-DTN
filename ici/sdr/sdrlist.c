@@ -190,7 +190,7 @@ Object	Sdr_list_insert_first(const char *file, int line, Sdr sdrv, Object list,
 	elt = _sdrzalloc(sdrv, sizeof(SdrListElt));
 	if (elt == 0)
 	{
-		_putErrmsg(file, line, "Can't allocate SdrListElt due to SDR memory exhaustion.", NULL);
+		_putErrmsg(file, line, "SDR memory exhausted. Can't allocate SdrListElt.", NULL);
 		return 0;
 	}
 
@@ -244,7 +244,7 @@ Object	Sdr_list_insert_last(const char *file, int line, Sdr sdrv, Object list,
 	elt = _sdrzalloc(sdrv, sizeof(SdrListElt));
 	if (elt == 0)
 	{
-		_putErrmsg(file, line, "Can't allocate SdrListElt", NULL);
+		_putErrmsg(file, line, "SDR memory exhausted. Can't allocate SdrListElt.", NULL);
 		return 0;
 	}
 
@@ -307,7 +307,12 @@ Object	Sdr_list_insert_before(const char *file, int line, Sdr sdrv,
 	elt = _sdrzalloc(sdrv, sizeof(SdrListElt));
 	if (elt == 0)
 	{
-		oK(_iEnd(file, line, "elt"));
+		/*
+		* Graceful error handling on SDR exhaustion.
+		* Replaced _iEnd to prevent sm_Abort() and fatal daemon crash.
+		* Returning 0 allows higher-level functions to safely cancel the transaction.
+		*/
+		_putErrmsg(file, line, "SDR memory exhausted. Can't allocate SdrListElt.", NULL);
 		return 0;
 	}
 
@@ -371,7 +376,12 @@ Object	Sdr_list_insert_after(const char *file, int line, Sdr sdrv,
 	elt = _sdrzalloc(sdrv, sizeof(SdrListElt));
 	if (elt == 0)
 	{
-		oK(_iEnd(file, line, "elt"));
+		/*
+		* Graceful error handling on SDR exhaustion.
+		* Replaced _iEnd to prevent sm_Abort() and fatal daemon crash.
+		* Returning 0 allows higher-level functions to safely cancel the transaction.
+		*/
+		_putErrmsg(file, line, "SDR memory exhausted. Can't allocate SdrListElt.", NULL);
 		return 0;
 	}
 
