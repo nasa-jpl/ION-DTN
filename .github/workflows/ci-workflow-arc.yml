@@ -323,6 +323,9 @@ jobs:
     runs-on: arc-runner-set-ol8
     if: ${{ always() }}
     steps:
+      - name: Generate timestamp for final bundle
+        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+
       - name: Download ALL artifacts
         uses: actions/download-artifact@v4
         with:
@@ -408,7 +411,7 @@ jobs:
       - name: Upload Unified Bundle
         uses: actions/upload-artifact@v4
         with:
-          name: final-regression-bundle
+          name: final-regression-bundle-${{ env.TIMESTAMP }}
           path: all-artifacts/
 
       - name: Clean up ALL intermediate artifacts
