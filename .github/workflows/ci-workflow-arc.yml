@@ -253,18 +253,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Restore Cached Build
-        uses: actions/cache@v4
-        with:
-          path: |
-            .
-            !.git
-            !autom4te.cache/
-            !.github/
-            !compile-and-buildcheck.log
-            !**/*.md
-          key: ion-build-${{ matrix.runner }}-${{ github.sha }}
-
       - name: Display OS and Arch
         run: |
           cat /etc/os-release
@@ -284,7 +272,21 @@ jobs:
           echo "Batch Number:"
           echo "${{ matrix.testchunk.batch }}"
 
+      - name: Restore Cached Build
+        uses: actions/cache@v4
+        id: cache-restore
+        with:
+          path: |
+            .
+            !.git
+            !autom4te.cache/
+            !.github/
+            !compile-and-buildcheck.log
+            !**/*.md
+          key: ion-build-${{ matrix.runner }}-${{ github.sha }}
+
       - name: Install ION and run tests
+        if: ${{ steps.cache-restore.outputs.cache-hit == 'true' }}
         timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '90') }}
         run: |
           {
