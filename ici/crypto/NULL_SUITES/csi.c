@@ -34,7 +34,7 @@
 
 
 
-#define NCS_BLOCKSIZE   65000
+#define NCS_BLOCKSIZE   4096
 #define NCS_ICV_LEN     18
 #define NCS_LEN_VAL	    20
 
