@@ -885,6 +885,9 @@ int8_t csi_sign_finish(csi_csid_t suite, void *context, csi_val_t *result, csi_s
 	return 0;
 #endif
 
+	/* Free the dummy context allocated during csi_sign_start */
+	MRELEASE(context);
+
 	result->len = NCS_LEN_VAL;
 
 	return csi_memAlloc(&result->contents, &result->len);
@@ -976,6 +979,8 @@ int8_t csi_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc, csi_ci
 #ifdef NULL_FAIL
 	return 0;
 #endif
+	/* Free the dummy context allocated during csi_sign_start */
+	MRELEASE(context);
 
 	parms->icv.len = NCS_ICV_LEN;
 	return csi_memAlloc(&parms->icv.contents, &parms->icv.len);
