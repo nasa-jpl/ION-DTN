@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os_image: [ubuntu-20, ubuntu-22, oraclelinux-8, oranclelinux-9]
+        os_image: [ubuntu-20, ubuntu-22, oraclelinux-8, oraclelinux-9]
 
     steps:
       - name: Checkout repository
