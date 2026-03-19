@@ -46,6 +46,7 @@ RUN microdnf install -y oracle-epel-release-el9 \
     cmake \
     rsync \
     tcpdump \
+    iproute \
     && microdnf install -y --enablerepo=ol9_codeready_builder jansson-devel ninja-build \
     && microdnf clean all
 

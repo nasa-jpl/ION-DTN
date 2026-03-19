@@ -43,6 +43,7 @@ RUN apt-get update -y --no-install-recommends \
     ruby \
     tcpdump \
     python3.9 \
+    iproute2 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN export PATH=$HOME/.local/bin:$PATH

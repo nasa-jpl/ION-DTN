@@ -45,6 +45,7 @@ RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.n
     slirp4netns \
     hostname \
     tcpdump \
+    iproute \
     # May not be necessary but was used in testing to reliable build & leaving in
     && dnf reinstall -y shadow-utils \
     && dnf clean all
