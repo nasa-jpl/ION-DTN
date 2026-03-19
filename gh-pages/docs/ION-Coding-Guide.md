@@ -61,6 +61,18 @@ Some subdirectories pin to a specific standard in their own Makefiles:
 * When adding new code that needs atomics, use the standard C11 names (`atomic_fetch_add`, `atomic_load`, etc.) — the `ion_atomic.h` header maps them to compiler built-ins automatically on C99. Do not include `<stdatomic.h>` directly; include `ion_atomic.h` (via `platform.h`) instead.
 * Prefer C99-compatible constructs for all other code; this maximizes portability to the C99 fallback path.
 
+### Operating System Support Matrix for Space Processors
+
+The following table summarizes C standard support across operating systems commonly used on space-qualified hardware. ION's C99 fallback path ensures compatibility with all of these environments.
+
+| Operating System | Supported Standard | Hardware Targets | Key Space Features |
+|---|---|---|---|
+| VxWorks 6.x/7 | C99, C11, C17, C++17 | RAD750, RAD5545, ARM | Determinism, safety-certifiable, container support. |
+| RTEMS 4/5/6 | C99, C11, C18, Ada | LEON, SPARC, PowerPC | Open-source, POSIX API, SMP support. |
+| Linux (Yocto) | C11, C17, C23 | ARM, NVIDIA Orin, Xilinx | High-throughput, extensive libraries, Space 2.0. |
+| Zephyr RTOS | C11 | LEON, ARM, RISC-V | Lightweight, growing aerospace community. |
+| Bare-Metal (BCC) | C99 | LEON, SPARC | Minimal overhead for simple controllers. |
+
 ## Application Behavior
 
 Every process should return an exit code on termination.
