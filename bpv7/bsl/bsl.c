@@ -2629,21 +2629,16 @@ int	bslInitialize(BslAgent *agent)
 
 	sdr_read(sdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
 	oK(sdr_begin_xn(sdr));
-	if (bpdb.bslKeyFile == 0)
+	if (bpdb.bslKeyFile == 0 || bpdb.bslPolicyFile == 0)
 	{
 		sdr_exit_xn(sdr);
-		writeMemo("[?] BSL init fails: no BSL key file name.");
-		return 1;
+		writeMemo("[i] BSL not configured; security processing \
+disabled.  Use 'm bsl' in bprc to enable.");
+		bslInitialized = 1;
+		return 0;
 	}
 
 	sdr_string_read(sdr, keyRegistryFilePath, bpdb.bslKeyFile);
-	if (bpdb.bslPolicyFile == 0)
-	{
-		sdr_exit_xn(sdr);
-		writeMemo("[?] BSL init fails: no BSL policy file name.");
-		return 1;
-        }
-
 	sdr_string_read(sdr, policyConfigFilePath, bpdb.bslPolicyFile);
 	sdr_exit_xn(sdr);
 

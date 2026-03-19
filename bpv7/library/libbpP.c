@@ -36,6 +36,7 @@
 #if USING_BSL
 /*	State of BPSec library instance.				*/
 static BslAgent			agent;
+static int			bslConfigured = 0;
 #else
 #include "bpsec_instr.h"
 #include "bpsec_util.h"
@@ -1912,7 +1913,11 @@ int	bpStart(void)
 		return -1;
 	}
 
-	writeMemo("[i] BSL agent initialization succeeded.");
+	bslConfigured = agent.transmit.bsl != NULL;
+	if (bslConfigured)
+	{
+		writeMemo("[i] BSL agent initialization succeeded.");
+	}
 #else
 	bsl_all_init(getIonwm());
 	bpsec_instr_init();
@@ -2293,7 +2298,11 @@ int	bpAttach(void)
 		return -1;
 	}
 
-	writeMemo("[i] BSL initialization succeeded.");
+	bslConfigured = agent.transmit.bsl != NULL;
+	if (bslConfigured)
+	{
+		writeMemo("[i] BSL initialization succeeded.");
+	}
 #else
 	oK(secAttach());
 #endif
@@ -6782,17 +6791,22 @@ when asking for status reports.");
 	}
 
 #if USING_BSL
-	AcqWorkArea	nullWorkArea;
-
-	memset((char *) &nullWorkArea, 0, sizeof(AcqWorkArea));
-	memcpy((char *) &nullWorkArea.bundle, (char *) &bundle, sizeof(Bundle));
-	if (bslProcess(&agent, &agent.transmit, BSL_POLICYLOCATION_APPIN,
-				&nullWorkArea))
+	if (bslConfigured)
 	{
-		/* system error */
-		putErrmsg("BSL check of bundle from app failed.", NULL);
-		sdr_cancel_xn(sdr);
-		return 0;
+		AcqWorkArea	nullWorkArea;
+
+		memset((char *) &nullWorkArea, 0, sizeof(AcqWorkArea));
+		memcpy((char *) &nullWorkArea.bundle, (char *) &bundle,
+				sizeof(Bundle));
+		if (bslProcess(&agent, &agent.transmit,
+				BSL_POLICYLOCATION_APPIN, &nullWorkArea))
+		{
+			/* system error */
+			putErrmsg("BSL check of bundle from app failed.",
+					NULL);
+			sdr_cancel_xn(sdr);
+			return 0;
+		}
 	}
 #endif
 
@@ -7238,26 +7252,31 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 	if (bundle->deliverable)
 	{
 #if USING_BSL
-		AcqWorkArea	nullWorkArea;
-
-		memset((char *) &nullWorkArea, 0, sizeof(AcqWorkArea));
-		memcpy((char *) &nullWorkArea.bundle, (char *) bundle,
-				sizeof(Bundle));
-		if (bslProcess(&agent, &agent.deliver,
-				BSL_POLICYLOCATION_APPOUT, &nullWorkArea))
+		if (bslConfigured)
 		{
-			/* system error */
-			putErrmsg("[?] BSL check of bundle to app failed.",
-					NULL);
-			sdr_cancel_xn(sdr);
-			return -1;
-		}
+			AcqWorkArea	nullWorkArea;
 
-		bundle->insecure = nullWorkArea.bundle.insecure;
-		if (bundle->insecure)
-		{
-			return bpAbandon(bundleObj, bundle,
-					BP_REASON_SECOP_FAILED);
+			memset((char *) &nullWorkArea, 0,
+					sizeof(AcqWorkArea));
+			memcpy((char *) &nullWorkArea.bundle, (char *) bundle,
+					sizeof(Bundle));
+			if (bslProcess(&agent, &agent.deliver,
+					BSL_POLICYLOCATION_APPOUT,
+					&nullWorkArea))
+			{
+				/* system error */
+				putErrmsg("[?] BSL check of bundle to app \
+failed.", NULL);
+				sdr_cancel_xn(sdr);
+				return -1;
+			}
+
+			bundle->insecure = nullWorkArea.bundle.insecure;
+			if (bundle->insecure)
+			{
+				return bpAbandon(bundleObj, bundle,
+						BP_REASON_SECOP_FAILED);
+			}
 		}
 #endif
 
@@ -9542,13 +9561,17 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	initAuthenticity(work);	/*	Set default.			*/
 #if USING_BSL
-	if (bslProcess(&agent, &agent.receive, BSL_POLICYLOCATION_CLIN, work)
-			!= 0)
+	if (bslConfigured)
 	{
-		/* system error */
-		putErrmsg("Failed checking security of inbound bundle.", NULL);
-		sdr_cancel_xn(sdr);
-		return -1;
+		if (bslProcess(&agent, &agent.receive,
+				BSL_POLICYLOCATION_CLIN, work) != 0)
+		{
+			/* system error */
+			putErrmsg("Failed checking security of inbound \
+bundle.", NULL);
+			sdr_cancel_xn(sdr);
+			return -1;
+		}
 	}
 
 	bundle->clDossier.authentic = work->authentic;
@@ -12164,17 +12187,22 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 #endif
 
 #if USING_BSL
-	AcqWorkArea	nullWorkArea;
-
-	memset((char *) &nullWorkArea, 0, sizeof(AcqWorkArea));
-	memcpy((char *) &nullWorkArea.bundle, (char *) &bundle, sizeof(Bundle));
-	if (bslProcess(&agent, &agent.forward, BSL_POLICYLOCATION_CLOUT,
-			&nullWorkArea))
+	if (bslConfigured)
 	{
-		/* system error */
-		putErrmsg("Failed checking security of outbound bundle.", NULL);
-		sdr_cancel_xn(sdr);
-		return -1;
+		AcqWorkArea	nullWorkArea;
+
+		memset((char *) &nullWorkArea, 0, sizeof(AcqWorkArea));
+		memcpy((char *) &nullWorkArea.bundle, (char *) &bundle,
+				sizeof(Bundle));
+		if (bslProcess(&agent, &agent.forward,
+				BSL_POLICYLOCATION_CLOUT, &nullWorkArea))
+		{
+			/* system error */
+			putErrmsg("Failed checking security of outbound \
+bundle.", NULL);
+			sdr_cancel_xn(sdr);
+			return -1;
+		}
 	}
 #else
 	if (bpsec_encrypt(&bundle) < 0)
