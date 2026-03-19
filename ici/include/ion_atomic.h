@@ -1,10 +1,20 @@
 /*
 	ion_atomic.h:	Portable atomic operations for ION.
 
-	If the compiler provides C11 <stdatomic.h>, use it
-	directly.  Otherwise fall back to GCC/Clang __atomic
-	built-ins, which are available in C99 mode on GCC 4.7+
-	and all versions of Clang.
+	Three compilation paths:
+
+	1. C++ — uses <atomic> with std::atomic<T> type aliases.
+	   C11 <stdatomic.h> is not available to C++ compilers
+	   (optional since C++23).  std::atomic<T> and C11
+	   _Atomic T are layout-compatible on GCC, Clang, and
+	   MSVC, so struct layouts in ion.h / bpP.h / ltpP.h
+	   match across C and C++ translation units.
+
+	2. C11/C18 — includes <stdatomic.h> directly.
+
+	3. C99 — falls back to GCC/Clang __atomic built-ins,
+	   which are available in C99 mode on GCC 4.7+ and all
+	   versions of Clang.
 
 	Author: ION team, JPL
 
@@ -15,7 +25,27 @@
 #ifndef _ION_ATOMIC_H_
 #define _ION_ATOMIC_H_
 
-#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L \
+#ifdef __cplusplus
+
+/*	C++ path: <atomic> provides std::atomic<T>.  The
+ *	type aliases (atomic_int, atomic_uint, atomic_ullong)
+ *	are kept identical to the C names so that shared
+ *	struct definitions compile in both languages.
+ *
+ *	platform.h wraps its contents in extern "C", which
+ *	must be temporarily closed for the C++ <atomic>
+ *	header, then reopened.					*/
+
+}  /* Close extern "C" from platform.h. */
+
+#include <atomic>
+using std::atomic_int;
+using std::atomic_uint;
+using std::atomic_ullong;
+
+extern "C" {  /* Reopen extern "C" for the rest of platform.h. */
+
+#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L \
     && !defined(__STDC_NO_ATOMICS__)
 
 /*	Native C11 atomics.					*/
