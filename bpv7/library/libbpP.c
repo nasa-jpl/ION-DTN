@@ -2003,7 +2003,10 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 	writeMemo("[i] bpStop: Starting BP shutdown sequence.");
 
 #if USING_BSL
-	bslCleanup(&agent);
+	if (bslConfigured)
+	{
+		bslCleanup(&agent);
+	}
 #else
 	bpsec_instr_cleanup();
 #endif
