@@ -41,6 +41,8 @@ RUN apt-get update -y --no-install-recommends \
     build-essential \
     rsync \
     ruby \
+    tcpdump \
+    python3.9 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN export PATH=$HOME/.local/bin:$PATH

@@ -48,6 +48,7 @@ RUN microdnf install -y oracle-epel-release-el8 \
     buildah \
     fuse-overlayfs \
     slirp4netns \
+    tcpdump \
     && microdnf install -y --enablerepo=ol8_codeready_builder ninja-build \
     && microdnf clean all
 
