@@ -1,0 +1,191 @@
+#!/usr/bin/env bash
+#
+# MQTT CLA Loopback Test
+#
+# Tests that bundles can be sent and received via the MQTT CLA using
+# a local mosquitto broker.  A single ION node publishes and subscribes
+# to the same broker topic, verifying the full CLO→broker→CLI path.
+#
+# Prerequisites:
+#   - ION built with --with-paho-mqtt
+#   - mosquitto (broker) installed and available in PATH
+#
+# Copyright (c) 2026, California Institute of Technology.
+# ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
+#
+
+# documentation boilerplate
+CONFIGFILES=" \
+./config/loopback.ionrc \
+./config/loopback.bprc \
+./config/loopback.ipnrc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the MQTT CLA with a local mosquitto broker (loopback)."
+echo
+echo "CONFIG: Custom loopback configuration: "
+echo
+for N in $CONFIGFILES
+do
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
+done
+echo "OUTPUT: Uses bpsource and bpsink to send and receive a bundle via MQTT."
+echo
+echo "########################################"
+
+FAIL=0
+
+# --- Check prerequisites ---
+
+# Check that mqttcli and mqttclo are available
+if ! command -v mqttcli >/dev/null 2>&1; then
+    echo "SKIP: mqttcli not found. Build ION with --with-paho-mqtt."
+    exit 2
+fi
+
+if ! command -v mqttclo >/dev/null 2>&1; then
+    echo "SKIP: mqttclo not found. Build ION with --with-paho-mqtt."
+    exit 2
+fi
+
+# Check that mosquitto is available
+if ! command -v mosquitto >/dev/null 2>&1; then
+    echo "SKIP: mosquitto broker not found. Install mosquitto."
+    exit 2
+fi
+
+# Use a non-standard port to avoid conflicts with any running broker
+MQTT_PORT=19833
+BROKER="127.0.0.1:${MQTT_PORT}"
+
+echo "Killing old ION..."
+killm
+pkill -9 -f "mqttcli" 2>/dev/null
+pkill -9 -f "mqttclo" 2>/dev/null
+pkill -f "mosquitto.*${MQTT_PORT}" 2>/dev/null
+./cleanup 2>/dev/null
+sleep 1
+
+rm -f ion.log testfile2
+
+# --- Start mosquitto broker ---
+
+echo "Starting mosquitto broker on port ${MQTT_PORT}..."
+mosquitto -p ${MQTT_PORT} -d 2>/dev/null
+MOSQUITTO_PID=$!
+sleep 1
+
+# Verify broker is running
+if ! mosquitto_pub -h 127.0.0.1 -p ${MQTT_PORT} -t "ion/test" -m "ping" 2>/dev/null; then
+    echo "SKIP: Could not connect to mosquitto broker on port ${MQTT_PORT}."
+    pkill -f "mosquitto.*${MQTT_PORT}" 2>/dev/null
+    exit 2
+fi
+echo "Mosquitto broker is running on port ${MQTT_PORT}."
+
+# --- Generate runtime configs ---
+
+CONFIGDIR="./config"
+sed -e "s|BROKER|${BROKER}|g" \
+    "${CONFIGDIR}/loopback.bprc" > "${CONFIGDIR}/loopback_runtime.bprc"
+sed -e "s|BROKER|${BROKER}|g" \
+    "${CONFIGDIR}/loopback.ipnrc" > "${CONFIGDIR}/loopback_runtime.ipnrc"
+
+# Patch the runtime bprc to reference the runtime ipnrc
+sed -i "s|config/loopback.ipnrc|config/loopback_runtime.ipnrc|g" \
+    "${CONFIGDIR}/loopback_runtime.bprc"
+
+# --- Start ION ---
+
+echo "Starting ION..."
+ionadmin "${CONFIGDIR}/loopback.ionrc"
+sleep 1
+bpadmin "${CONFIGDIR}/loopback_runtime.bprc"
+
+# Wait for MQTT CLAs to be running
+echo "Waiting for MQTT CLAs to start..."
+for i in 1 2 3 4 5 6 7 8 9 10; do
+    if pgrep -f "mqttcli" > /dev/null && pgrep -f "mqttclo" > /dev/null; then
+        echo "MQTT CLAs are running."
+        break
+    fi
+    echo "  Waiting... ($i)"
+    sleep 1
+done
+sleep 2
+
+# Verify CLAs actually started
+if ! pgrep -f "mqttcli" > /dev/null; then
+    echo "ERROR: mqttcli did not start."
+    echo "ion.log contents:"
+    cat ion.log 2>/dev/null
+    FAIL=1
+fi
+
+if ! pgrep -f "mqttclo" > /dev/null; then
+    echo "ERROR: mqttclo did not start."
+    echo "ion.log contents:"
+    cat ion.log 2>/dev/null
+    FAIL=1
+fi
+
+if [ $FAIL -ne 0 ]; then
+    echo "Aborting test due to startup failure."
+    pkill -f "mosquitto.*${MQTT_PORT}" 2>/dev/null
+    ionstop
+    killm
+    exit $FAIL
+fi
+
+# --- Send and receive a bundle ---
+
+echo "Starting bpsink..."
+bpsink ipn:1.1 > testfile2 &
+BPSINK_PID=$!
+sleep 1
+
+echo "Sending bundle via bpsource..."
+bpsource ipn:1.1 "MQTT CLA loopback test message"
+sleep 5
+
+echo "Checking received data..."
+if grep -q "MQTT CLA loopback test message" testfile2; then
+    echo "SUCCESS: Bundle received correctly via MQTT CLA loopback!"
+else
+    echo "ERROR: Bundle not received or content mismatch."
+    echo "Expected: MQTT CLA loopback test message"
+    echo "Received:"
+    cat testfile2
+    echo ""
+    echo "ion.log tail:"
+    tail -30 ion.log 2>/dev/null
+    FAIL=1
+fi
+
+# --- Cleanup ---
+
+echo "Cleaning up..."
+kill $BPSINK_PID 2>/dev/null
+wait $BPSINK_PID 2>/dev/null
+
+pkill -9 -f "mqttcli" 2>/dev/null
+pkill -9 -f "mqttclo" 2>/dev/null
+sleep 1
+
+ionstop
+sleep 1
+killm
+
+pkill -f "mosquitto.*${MQTT_PORT}" 2>/dev/null
+
+rm -f testfile2
+rm -f "${CONFIGDIR}/loopback_runtime.bprc"
+rm -f "${CONFIGDIR}/loopback_runtime.ipnrc"
+
+exit $FAIL

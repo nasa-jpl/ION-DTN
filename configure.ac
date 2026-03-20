@@ -611,6 +611,30 @@ else
 fi
 AM_CONDITIONAL([ENABLE_EXPAT], [test "x$expat" = "xyes"])
 
+#
+# MQTT convergence layer (requires Eclipse Paho MQTT C client library)
+#
+AC_ARG_WITH([paho-mqtt],
+  [AS_HELP_STRING([--with-paho-mqtt], [Enable MQTT convergence layer])],
+  [paho_mqtt=yes],
+  [paho_mqtt=no])
+if test "x$paho_mqtt" = "xyes" ; then
+  echo "Build with MQTT CLA... yes"
+  save_LIBS="$LIBS"
+  AC_CHECK_LIB([paho-mqtt3cs], [MQTTClient_create],
+    [MQTT_LIBS="-lpaho-mqtt3cs"],
+    [AC_CHECK_LIB([paho-mqtt3c], [MQTTClient_create],
+      [MQTT_LIBS="-lpaho-mqtt3c"
+       AC_MSG_WARN([Only libpaho-mqtt3c found (no TLS). MQTT TLS options will not work.])],
+      [AC_MSG_ERROR([Neither libpaho-mqtt3cs nor libpaho-mqtt3c found. Install the Eclipse Paho MQTT C client library.])])])
+  LIBS="$save_LIBS"
+  AC_CHECK_HEADER([MQTTClient.h], [],
+    [AC_MSG_ERROR([MQTTClient.h not found. Install the Eclipse Paho MQTT C client development headers.])])
+  AC_SUBST([MQTT_LIBS])
+else
+  echo "Build with MQTT CLA... no"
+fi
+AM_CONDITIONAL([ENABLE_MQTT], [test "x$paho_mqtt" = "xyes"])
 
 #
 # If valgrind is present, allow special MTAKE/MRELEASE valgrind tutors.

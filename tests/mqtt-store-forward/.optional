@@ -1,0 +1,1 @@
+Requires mosquitto broker and libpaho-mqtt3c; not part of standard regression suite.
