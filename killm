@@ -69,15 +69,26 @@ if [ "$MINGW" != "true" ]; then
     # DEBUG: show killall command error
     #echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD
 
-    sleep 2
+    for i in {1..20}; do
+        still_alive=$(echo "${IONPROCESSLIST}" | xargs -I{} sh -c "kill -0 {} 2>/dev/null && echo {}")
+        [ -z "$still_alive" ] && break
+        sleep 0.1
+    done
 
-    echo "Sending KILL to the processes..."
-    echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL 2> /dev/null
+    # if any is still alive: send KILL to remainders and wait for all to die
+    if [ -n "$still_alive" ]; then
 
-    # DEBUG: show killall command error
-    #echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL
+        echo "Processes still alive after TERM."
+        echo "Sending KILL to the processes..."
+        echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL 2> /dev/null
 
-    sleep 2
+        # Wait again for term survivors to die
+        for i in {1..20}; do
+            still_alive=$(echo "${IONPROCESSLIST}" | xargs -I{} sh -c "kill -0 {} 2>/dev/null && echo {}")
+            [ -z "$still_alive" ] && break
+            sleep 0.1
+        done
+    fi
 else
     # note that the TERM signal isn't supported in Windows, so processes are only killed. This also must be done via powershell
     echo "Killing processes using PowerShell..."
@@ -98,8 +109,9 @@ ${PS} ${PS_ARGS} > ${PSFILE}
 
 # see if any of those still-running processes belong to ION
 for PROC in ${IONPROCESSLIST}; do
-    grep "[^-a-zA-Z]${PROC}$" "${PSFILE}" | grep -v "defunct" | \
-        awk '{printf("  *** Unknown error: process %s not killed...try rebooting\n", $NF);}'
+    if kill -0 "$PROC" 2>/dev/null; then
+        echo "  *** Unknown error: process $PROC not killed...try rebooting"
+    fi
 done
 if [ -z "$USERNAME_CUT" ]; then
     echo "Error: USERNAME_CUT is not set or empty."
