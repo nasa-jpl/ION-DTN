@@ -544,22 +544,22 @@ ari_t* adm_build_ari(amp_type_e type, uint8_t has_parms, vec_idx_t nn, uvast id)
 	 * it MUST have a NNand MUST NOT have an ISS or TAG.
 	 * It will have parms iff parms are provided.
 	 */
-	result->as_reg.flags = 0;
-	ARI_SET_FLAG_TYPE(result->as_reg.flags, type);
-	ARI_SET_FLAG_NN(result->as_reg.flags);
+	result->u.as_reg.flags = 0;
+	ARI_SET_FLAG_TYPE(result->u.as_reg.flags, type);
+	ARI_SET_FLAG_NN(result->u.as_reg.flags);
 	if(has_parms)
 	{
-		ARI_SET_FLAG_PARM(result->as_reg.flags);
+		ARI_SET_FLAG_PARM(result->u.as_reg.flags);
 	}
 
-	result->as_reg.nn_idx = nn;
+	result->u.as_reg.nn_idx = nn;
 
 	/*
 	 * The name will be provided as an integer, which we will store
 	 * in its CBOR encoded format for simplicity andto avoid issues
 	 * with endian encodings.
 	 */
-	if(cut_enc_uvast(id, &(result->as_reg.name)) != AMP_OK)
+	if(cut_enc_uvast(id, &(result->u.as_reg.name)) != AMP_OK)
 	{
 		AMP_DEBUG_ERR("adm_build_reg_ari","Cannot encode id.", NULL);
 		ari_release(result, 1);

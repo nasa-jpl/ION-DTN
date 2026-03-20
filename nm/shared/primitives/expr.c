@@ -427,7 +427,7 @@ tnv_t *expr_get_atomic(ari_t *ari)
 	/* Step 1: Handle special case of literal. */
 	if(ari->type == AMP_TYPE_LIT)
 	{
-		result = tnv_copy_ptr(&(ari->as_lit));
+		result = tnv_copy_ptr(&(ari->u.as_lit));
 	}
 	else
 	{
@@ -454,7 +454,7 @@ tnv_t *expr_get_atomic(ari_t *ari)
 		}
 
 		/* Step 2: Collect the value. */
-		result = edd->def.collect(&(ari->as_reg.parms));
+		result = edd->def.collect(&(ari->u.as_reg.parms));
 	}
 
 	AMP_DEBUG_EXIT("expr_get_edd", "("ADDR_FIELDSPEC")", (uaddr) result);

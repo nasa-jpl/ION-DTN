@@ -64,8 +64,6 @@
 
 #define BPSEC_ITSC_MIN_FILE_BUFFER (BPSEC_ITSC_XMIT_RATE / BPSEC_ITSC_MAX_TEMP_FILES_PER_SECOND)
 
-typedef sc_value_map* (*bpsec_sc_valMapGet)(void);
-
 /*****************************************************************************
  *                               BCB Functions                               *
  *****************************************************************************/

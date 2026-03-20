@@ -321,9 +321,9 @@ void ui_fprint_report(ui_print_cfg_t *fd, rpt_t *rpt)
 	}
 	else
 	{
-		if(vec_num_entries(rpt->id->as_reg.parms.values) > 0)
+		if(vec_num_entries(rpt->id->u.as_reg.parms.values) > 0)
 		{
-			char *parm_str = ui_str_from_tnvc(&(rpt->id->as_reg.parms));
+			char *parm_str = ui_str_from_tnvc(&(rpt->id->u.as_reg.parms));
 			ui_fprintf(fd,"\nRpt Name  : %s(%s)", rpt_info->name, (parm_str == NULL) ? "" : parm_str);
 			SRELEASE(parm_str);
 		}
@@ -365,7 +365,7 @@ void ui_fprint_report(ui_print_cfg_t *fd, rpt_t *rpt)
 			}
 			else
 			{
-				tnvc_t *parms = ari_resolve_parms(&(entry_id->as_reg.parms), &(rpt->id->as_reg.parms));
+				tnvc_t *parms = ari_resolve_parms(&(entry_id->u.as_reg.parms), &(rpt->id->u.as_reg.parms));
 				char *parm_str = NULL;
 
 				if(parms != NULL)
@@ -569,7 +569,7 @@ char *ui_str_from_ari(ari_t *id, tnvc_t *ap, int desc)
 	if(id->type == AMP_TYPE_LIT)
 	{
 		SRELEASE(str);
-		return ui_str_from_tnv(&(id->as_lit));
+		return ui_str_from_tnv(&(id->u.as_lit));
 	}
 
 	meta = rhht_retrieve_key(&(gMgrDB.metadata), id);

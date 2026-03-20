@@ -57,9 +57,9 @@ static ari_t p_ari_deserialize_lit(QCBORDecodeContext *it, uint8_t byte, int *su
 	ari_init(&result);
 
 	result.type = byte & 0xF;
-	result.as_lit.type = ((byte >> 4) & 0xF) + AMP_TYPE_BOOL;
+	result.u.as_lit.type = ((byte >> 4) & 0xF) + AMP_TYPE_BOOL;
 
-	*success = tnv_deserialize_val_by_type(it, &(result.as_lit));
+	*success = tnv_deserialize_val_by_type(it, &(result.u.as_lit));
 
 	if(*success != AMP_OK)
 	{
@@ -92,20 +92,20 @@ static ari_t p_ari_deserialize_reg(QCBORDecodeContext *it, uint8_t flags, int *s
 	ari_init(&result);
 
 	result.type = ARI_GET_FLAG_TYPE(flags);
-	result.as_reg.flags = flags;
+	result.u.as_reg.flags = flags;
 
 	/* Get the nickname, if one exists. */
 	if( ARI_GET_FLAG_NN(flags) )
 	{
 		/* Get the UVAST nickname. */
 		*success = cut_get_cbor_numeric(it, AMP_TYPE_UVAST, &temp);
-		VDB_ADD_NN(temp, &(result.as_reg.nn_idx));
+		VDB_ADD_NN(temp, &(result.u.as_reg.nn_idx));
 	}
 
 	/* Get the name. */
 	if(*success == AMP_OK)
 	{
-		result.as_reg.name = blob_deserialize(it, success);
+		result.u.as_reg.name = blob_deserialize(it, success);
 	}
 
 	/* Get the Parameters, if given */
@@ -128,7 +128,7 @@ static ari_t p_ari_deserialize_reg(QCBORDecodeContext *it, uint8_t flags, int *s
 		}
 		else
 		{
-			result.as_reg.parms = tmp;
+			result.u.as_reg.parms = tmp;
 		}
 	}
 
@@ -138,12 +138,12 @@ static ari_t p_ari_deserialize_reg(QCBORDecodeContext *it, uint8_t flags, int *s
 #if AMP_VERSION < 8 // V8 defines issuer as a blob for added flexibility
 		cut_get_cbor_numeric(it, AMP_TYPE_UVAST, &temp);
 
-		VDB_ADD_ISS(temp, &(result.as_reg.iss_idx));
+		VDB_ADD_ISS(temp, &(result.u.as_reg.iss_idx));
 #else
 		blob_t issuer = blob_deserialize(it, success);
 		if (*success == AMP_OK)
 		{
-			*success = VDB_ADD_ISS(issuer, &(result.as_reg.iss_idx));
+			*success = VDB_ADD_ISS(issuer, &(result.u.as_reg.iss_idx));
 			blob_release(&issuer, 0);
 		}
 #endif
@@ -156,7 +156,7 @@ static ari_t p_ari_deserialize_reg(QCBORDecodeContext *it, uint8_t flags, int *s
 
 		if(*success == AMP_OK)
 		{
-			*success = VDB_ADD_TAG(tag, &(result.as_reg.tag_idx));
+			*success = VDB_ADD_TAG(tag, &(result.u.as_reg.tag_idx));
 			blob_release(&tag, 0); // TODO avoid this needeless re-alloc.
 		}
 	}
@@ -195,14 +195,14 @@ static int p_ari_serialize_lit(QCBOREncodeContext *encoder, ari_t *ari)
 	}
 
 	/* Serialize the AMM Object type in accordance with spec. */
-	byte = ((ari->as_lit.type & 0xF) << 4) | (AMP_TYPE_LIT % 0xF);
+	byte = ((ari->u.as_lit.type & 0xF) << 4) | (AMP_TYPE_LIT % 0xF);
 
 	if ( cut_enc_byte(encoder, byte) != AMP_OK)
 	{
 		return AMP_FAIL;
 	}
 
-	return tnv_serialize_value(encoder, &(ari->as_lit));
+	return tnv_serialize_value(encoder, &(ari->u.as_lit));
 }
 
 
@@ -230,16 +230,16 @@ static int p_ari_serialize_reg(QCBOREncodeContext *encoder, ari_t *ari)
 	}
 
 	// Encode Flags as BYTE
-	if ( cut_enc_byte(encoder, ari->as_reg.flags) != AMP_OK)
+	if ( cut_enc_byte(encoder, ari->u.as_reg.flags) != AMP_OK)
 	{
 		AMP_DEBUG_ERR("p_ari_serialize_reg","CBOR Error", NULL);
 		return AMP_FAIL;
 	}
 
 	// Encode Nickname (if defined)
-	if(ARI_GET_FLAG_NN(ari->as_reg.flags))
+	if(ARI_GET_FLAG_NN(ari->u.as_reg.flags))
 	{
-		uvast *nn = (uvast *) VDB_FINDIDX_NN(ari->as_reg.nn_idx);
+		uvast *nn = (uvast *) VDB_FINDIDX_NN(ari->u.as_reg.nn_idx);
 
 		if (nn != NULL)
 		{
@@ -248,47 +248,47 @@ static int p_ari_serialize_reg(QCBOREncodeContext *encoder, ari_t *ari)
 	}
 
 	// Encode Name as BYTESTR
-	if ( blob_serialize(encoder, &(ari->as_reg.name)) != AMP_OK )
+	if ( blob_serialize(encoder, &(ari->u.as_reg.name)) != AMP_OK )
 	{
 		AMP_DEBUG_ERR("p_ari_serialize_reg","CBOR Error", NULL);
 		return AMP_FAIL;
 	}
 
 	// Encode Parameters
-	if(ARI_GET_FLAG_PARM(ari->as_reg.flags))
+	if(ARI_GET_FLAG_PARM(ari->u.as_reg.flags))
 	{
 #if AMP_VERSION < 7
-		blob_t *result = tnvc_serialize_wrapper(&(ari->as_reg.parms));
+		blob_t *result = tnvc_serialize_wrapper(&(ari->u.as_reg.parms));
 		blob_serialize(encoder, result);
 		blob_release(result, 1);
 #else
 		QCBOREncode_OpenArray(encoder);
-		tnvc_serialize(encoder, &(ari->as_reg.parms) );
+		tnvc_serialize(encoder, &(ari->u.as_reg.parms) );
 		QCBOREncode_CloseArrayOctet(encoder);
 #endif
 	}
 
 	// Encode the issuer, if defined
-	if(ARI_GET_FLAG_ISS(ari->as_reg.flags))
+	if(ARI_GET_FLAG_ISS(ari->u.as_reg.flags))
 	{
 #if AMP_VERSION < 8
-		uvast *iss = (uvast *)VDB_FINDIDX_ISS(ari->as_reg.iss_idx);
+		uvast *iss = (uvast *)VDB_FINDIDX_ISS(ari->u.as_reg.iss_idx);
 
 		if (iss != NULL)
 		{
 			QCBOREncode_AddUInt64(encoder, *iss);
 		}
 #else
-		result = (blob_t *)VDB_FINDIDX_ISS(ari->as_reg.iss_idx);
+		result = (blob_t *)VDB_FINDIDX_ISS(ari->u.as_reg.iss_idx);
 		blob_serialize(encoder, result);
 
 #endif
 	}
 
 	// Encode the Tag, if defined
-	if(ARI_GET_FLAG_TAG(ari->as_reg.flags))
+	if(ARI_GET_FLAG_TAG(ari->u.as_reg.flags))
 	{
-		result = (blob_t *)VDB_FINDIDX_TAG(ari->as_reg.tag_idx);
+		result = (blob_t *)VDB_FINDIDX_TAG(ari->u.as_reg.tag_idx);
 		blob_serialize(encoder, result);
 	}
 
@@ -318,12 +318,12 @@ int ari_add_parm_set(ari_t *ari, tnvc_t *parms)
 {
 	if((ari == NULL) ||
 		(ari->type == AMP_TYPE_LIT) ||
-		(ARI_GET_FLAG_PARM(ari->as_reg.flags) == 0))
+		(ARI_GET_FLAG_PARM(ari->u.as_reg.flags) == 0))
 	{
 		return AMP_FAIL;
 	}
 
-	return tnvc_append(&(ari->as_reg.parms), parms);
+	return tnvc_append(&(ari->u.as_reg.parms), parms);
 }
 
 
@@ -346,12 +346,12 @@ int ari_add_parm_val(ari_t *ari, tnv_t *parm)
 {
 	if((ari == NULL) ||
 		(ari->type == AMP_TYPE_LIT) ||
-		(ARI_GET_FLAG_PARM(ari->as_reg.flags) == 0))
+		(ARI_GET_FLAG_PARM(ari->u.as_reg.flags) == 0))
 	{
 		return AMP_FAIL;
 	}
 
-	return tnvc_insert(&(ari->as_reg.parms), parm);
+	return tnvc_insert(&(ari->u.as_reg.parms), parm);
 }
 
 
@@ -412,18 +412,18 @@ rh_idx_t  ari_cb_hash(void *table, void *key)
 	/* Based on type hash ther body. */
 	if(id->type == AMP_TYPE_LIT)
 	{
-		hash = (hash * seed) + id->as_lit.flags;
-		hash = (hash * seed) + id->as_lit.value.as_uvast;
+		hash = (hash * seed) + id->u.as_lit.flags;
+		hash = (hash * seed) + id->u.as_lit.value.as_uvast;
 	}
 	else
 	{
-		hash = (hash * seed) + id->as_reg.flags;
-			hash = (hash * seed) + id->as_reg.iss_idx;
-			hash = (hash * seed) + id->as_reg.nn_idx;
-			hash = (hash * seed) + id->as_reg.tag_idx;
-		for(i = 0; i < id->as_reg.name.length; i++)
+		hash = (hash * seed) + id->u.as_reg.flags;
+			hash = (hash * seed) + id->u.as_reg.iss_idx;
+			hash = (hash * seed) + id->u.as_reg.nn_idx;
+			hash = (hash * seed) + id->u.as_reg.tag_idx;
+		for(i = 0; i < id->u.as_reg.name.length; i++)
 		{
-			hash = (hash * seed) + id->as_reg.name.value[i];
+			hash = (hash * seed) + id->u.as_reg.name.value[i];
 		}
 	}
 
@@ -511,18 +511,18 @@ int ari_compare(ari_t *ari1, ari_t *ari2, int parms)
 	}
 	else if(ari1->type == AMP_TYPE_LIT)
 	{
-		return tnv_compare(&(ari1->as_lit), &(ari2->as_lit));
+		return tnv_compare(&(ari1->u.as_lit), &(ari2->u.as_lit));
 	}
 	else
 	{
-		if( (ari1->as_reg.flags    != ari2->as_reg.flags) ||
-			(ari1->as_reg.iss_idx  != ari2->as_reg.iss_idx) ||
-			(ari1->as_reg.nn_idx   != ari2->as_reg.nn_idx) ||
-			(ari1->as_reg.tag_idx  != ari2->as_reg.tag_idx))
+		if( (ari1->u.as_reg.flags    != ari2->u.as_reg.flags) ||
+			(ari1->u.as_reg.iss_idx  != ari2->u.as_reg.iss_idx) ||
+			(ari1->u.as_reg.nn_idx   != ari2->u.as_reg.nn_idx) ||
+			(ari1->u.as_reg.tag_idx  != ari2->u.as_reg.tag_idx))
 		{
 			return 1;
 		}
-		else if(blob_compare(&(ari1->as_reg.name), &(ari2->as_reg.name)))
+		else if(blob_compare(&(ari1->u.as_reg.name), &(ari2->u.as_reg.name)))
 		{
 			return 1;
 		}
@@ -538,10 +538,10 @@ int ari_compare(ari_t *ari1, ari_t *ari2, int parms)
 		 */
 		if(parms)
 		{
-			if((tnvc_get_count(&(ari1->as_reg.parms)) > 0) &&
-				(tnvc_get_count(&(ari2->as_reg.parms)) > 0))
+			if((tnvc_get_count(&(ari1->u.as_reg.parms)) > 0) &&
+				(tnvc_get_count(&(ari2->u.as_reg.parms)) > 0))
 			{
-				return tnvc_compare(&(ari1->as_reg.parms), &(ari2->as_reg.parms));
+				return tnvc_compare(&(ari1->u.as_reg.parms), &(ari2->u.as_reg.parms));
 			}
 		}
 		else
@@ -586,29 +586,29 @@ ari_t ari_copy(ari_t val, int *success)
 	/* Deep copy as needed. */
 	if(result.type == AMP_TYPE_LIT)
 	{
-		result.as_lit = tnv_copy(val.as_lit, success);
+		result.u.as_lit = tnv_copy(val.u.as_lit, success);
 		if(*success != AMP_OK)
 		{
-			tnv_release(&(result.as_lit), 0);
+			tnv_release(&(result.u.as_lit), 0);
 		}
 	}
 	else
 	{
-		if((*success = blob_copy(val.as_reg.name, &(result.as_reg.name))) != AMP_OK)
+		if((*success = blob_copy(val.u.as_reg.name, &(result.u.as_reg.name))) != AMP_OK)
 		{
 			return result;
 		}
 
-		if((*success = tnvc_init(&(result.as_reg.parms), tnvc_get_count(&(val.as_reg.parms)))) != AMP_OK)
+		if((*success = tnvc_init(&(result.u.as_reg.parms), tnvc_get_count(&(val.u.as_reg.parms)))) != AMP_OK)
 		{
-			blob_release(&(result.as_reg.name), 0);
+			blob_release(&(result.u.as_reg.name), 0);
 			return result;
 		}
 
-		if((*success = tnvc_append(&(result.as_reg.parms), &(val.as_reg.parms))) != AMP_OK)
+		if((*success = tnvc_append(&(result.u.as_reg.parms), &(val.u.as_reg.parms))) != AMP_OK)
 		{
-			blob_release(&(result.as_reg.name), 0);
-			tnvc_release(&(result.as_reg.parms), 0);
+			blob_release(&(result.u.as_reg.name), 0);
+			tnvc_release(&(result.u.as_reg.parms), 0);
 			return result;
 		}
 	}
@@ -649,7 +649,7 @@ ari_t* ari_create(amp_type_e type)
 	result->type = type;
 	if(type != AMP_TYPE_LIT)
 	{
-		if(tnvc_init(&(result->as_reg.parms), 0) != AMP_OK)
+		if(tnvc_init(&(result->u.as_reg.parms), 0) != AMP_OK)
 		{
 			SRELEASE(result);
 			result = NULL;
@@ -789,12 +789,12 @@ tnv_t* ari_get_param(ari_t *ari, int i)
 	CHKNULL(ari);
 
 	if((ari->type == AMP_TYPE_LIT) ||
-		(ARI_GET_FLAG_PARM(ari->as_reg.flags) == 0))
+		(ARI_GET_FLAG_PARM(ari->u.as_reg.flags) == 0))
 	{
 		return NULL;
 	}
 
-	return tnvc_get(&(ari->as_reg.parms), i);
+	return tnvc_get(&(ari->u.as_reg.parms), i);
 }
 
 
@@ -805,12 +805,12 @@ uint8_t  ari_get_num_parms(ari_t *ari)
 	CHKZERO(ari);
 
 	if((ari->type == AMP_TYPE_LIT) ||
-		(ARI_GET_FLAG_PARM(ari->as_reg.flags) == 0))
+		(ARI_GET_FLAG_PARM(ari->u.as_reg.flags) == 0))
 	{
 		return 0;
 	}
 
-	return tnvc_get_count(&(ari->as_reg.parms));
+	return tnvc_get_count(&(ari->u.as_reg.parms));
 }
 
 
@@ -862,12 +862,12 @@ void ari_release(ari_t *ari, int destroy)
 
 	if(ari->type == AMP_TYPE_LIT)
 	{
-		tnv_release(&(ari->as_lit), 0);
+		tnv_release(&(ari->u.as_lit), 0);
 	}
 	else
 	{
-		blob_release(&(ari->as_reg.name), 0);
-		tnvc_release(&(ari->as_reg.parms), 0);
+		blob_release(&(ari->u.as_reg.name), 0);
+		tnvc_release(&(ari->u.as_reg.parms), 0);
 	}
 
 	if(destroy)
@@ -881,7 +881,7 @@ int ari_replace_parms(ari_t *ari, tnvc_t *new_parms)
 	CHKUSR(ari, AMP_FAIL);
 	CHKUSR((ari->type != AMP_TYPE_LIT), AMP_FAIL);
 
-	tnvc_clear(&(ari->as_reg.parms));
+	tnvc_clear(&(ari->u.as_reg.parms));
 	return ari_add_parm_set(ari, new_parms);
 }
 

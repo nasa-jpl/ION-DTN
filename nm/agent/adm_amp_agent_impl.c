@@ -1596,7 +1596,7 @@ tnv_t *amp_agent_ctrl_gen_rpts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 			}
 			else
 			{
-				tnv_t *cur_val = ldc_collect(cur_id, &(cur_id->as_reg.parms));
+				tnv_t *cur_val = ldc_collect(cur_id, &(cur_id->u.as_reg.parms));
 				rpt_add_entry(rpt, cur_val);
 			}
 
