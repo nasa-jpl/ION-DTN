@@ -91,7 +91,7 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 			unsigned char flowLabel)
 {
 	char	*subjectName;
-#ifdef unix
+#ifdef __unix__
 	int	subjectNameLength;
 #endif
 	char	replyText[256];
@@ -111,7 +111,7 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 		fprintf(stderr, "Unknown subject number: %d.\n", subjectNbr);
 		return;
 	}
-#ifndef unix
+#ifndef __unix__
 	if (fprintf(stdout, "subject %d (%s), %d bytes of content: '%s'\n",
 			subjectNbr, subjectName, contentLength, content) < 0)
 	{

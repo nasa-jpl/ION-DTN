@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 	poll_cfdp_messages();
 
 #ifdef CLEAN_ON_EXIT
-#if defined (unix)
+#if defined(__unix__)
 	/*	Cleanup all directory listing files.
 	 *	Note: system() can fail during shutdown due to signal
 	 *	handling or resource limits. Since this is just cleanup

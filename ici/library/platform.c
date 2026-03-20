@@ -593,7 +593,7 @@ void	unlockResource(ResourceLock *rl)
 
 #endif	/*	end #ifdef _MULTITHREADED				*/
 
-#if (!defined (linux) && !defined (freebsd) && !defined (darwin) && !defined (RTEMS) && !defined (mingw))
+#if (!defined(__linux__) && !defined (freebsd) && !defined (darwin) && !defined (RTEMS) && !defined (mingw))
 /*	These things are defined elsewhere for Linux-like op systems.	*/
 
 #ifdef solaris
@@ -626,7 +626,7 @@ char	*getNameOfUser(char *buffer)
 #endif
 }
 
-#endif	/*	end #if (!defined(linux, freebsd, darwin, RTEMS, mingw))*/
+#endif	/*	end #if (!defined(__linux__, freebsd, darwin, RTEMS, mingw))*/
 
 void	closeOnExec(int fd)
 {
@@ -1129,7 +1129,7 @@ int	watchSocket(int fd)
 
 #endif	/*	end of #if defined (mingw)				*/
 
-#if (defined (linux) || defined (freebsd) || defined (darwin) || defined (RTEMS))
+#if (defined(__linux__) || defined (freebsd) || defined (darwin) || defined (RTEMS))
 
 char	*system_error_msg(void)
 {
@@ -1298,7 +1298,7 @@ int	watchSocket(int fd)
 	return result;
 }
 
-#endif	/*	end #if (defined(linux, freebsd, darwin, RTEMS))	*/
+#endif	/*	end #if (defined(__linux__, freebsd, darwin, RTEMS))	*/
 
 /**********************	WinSock adaptations *****************************/
 

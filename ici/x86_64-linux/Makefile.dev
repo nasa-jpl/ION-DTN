@@ -8,8 +8,8 @@ CRYPTO = ../crypto/NULL_SUITES
 BULK = ../bulk/STUB_BULK
 CRYPTO_PARENT = ../crypto
 
-# OPT = -O -Dlinux
-OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
+# OPT = -O -D__linux__
+OPT = -g -Wall -Werror -D__linux__ -fPIC -DSPACE_ORDER=3
 CC = gcc $(OPT) $(ADD_FLAGS) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I$(CRYPTO) -I$(CRYPTO_PARENT)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)

@@ -15,18 +15,6 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
-/*	Ensure unprefixed platform macros are available even under
- *	strict C/C++ standard modes (-std=c17, -std=c++17, etc.).
- *	GCC and Clang drop the non-standard 'linux' and 'unix'
- *	predefined macros in strict mode but keep __linux__ and
- *	__unix__.  ION code checks the unprefixed forms throughout,
- *	so we bridge them here.  (See GitHub issue #823.)		*/
-#if defined(__linux__) && !defined(linux)
-#define linux	1
-#endif
-#if defined(__unix__) && !defined(unix)
-#define unix	1
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,7 +38,7 @@ extern "C" {
 #endif
 
 /* Feature test macros for Unix - must come before any system header */
-#ifdef unix			/****	Feature test macros for UNIX	****/
+#ifdef __unix__			/****	Feature test macros for UNIX	****/
 
 /* Check FreeBSD and Solaris first to exempt them from strict POSIX */
 #if !defined(freebsd) && !defined(solaris)
@@ -63,7 +51,7 @@ extern "C" {
 #define _DEFAULT_SOURCE		/****	glibc default functions ****/
 #endif
 
-#ifdef linux
+#ifdef __linux__
 #ifndef _BSD_SOURCE
 #define _BSD_SOURCE
 #endif
@@ -104,7 +92,7 @@ extern "C" {
 #include <sys/types.h>
 #endif
 
-#endif				/****	End of feature test macros	for unix ****/
+#endif				/****	End of feature test macros	for __unix__ ****/
 
 /* Feture test macro for Solaris */
 #ifdef solaris
@@ -150,7 +138,7 @@ extern "C" {
 #endif
 
 #ifdef uClibc
-#ifndef linux
+#ifndef __linux__
 #define linux
 #endif
 #ifndef __UCLIBC__
@@ -364,7 +352,7 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #include "ion_atomic.h"
 
 /* Add headers for getaddrinfo on Linux, FreeBSD, macOS, RTEMS */
-#if defined(linux) || defined(freebsd) || defined(darwin) || defined(RTEMS)
+#if defined(__linux__) || defined(freebsd) || defined(darwin) || defined(RTEMS)
 #include <netdb.h>
 #include <sys/socket.h>
 #endif
@@ -699,7 +687,7 @@ extern int	irecvfrom(int sockfd, char *buf, int len, int flags,
 
 #endif				/****	End of #ifdef mingw          ****/
 
-#ifdef unix			/****	All UNIX platforms	     ****/
+#ifdef __unix__			/****	All UNIX platforms	     ****/
 
 /*
 ** *NIX Headers: Common to All Supported *NIX Platforms
@@ -796,7 +784,7 @@ extern int getpriority(int, id_t);
 #define FIFO_WRITE_MODE         (O_RDWR)
 #define	FDTABLE_SIZE		(getdtablesize())
 
-#ifdef linux			/****	Linux			     ****/
+#ifdef __linux__			/****	Linux			     ****/
 
 #include <malloc.h>
 
@@ -867,7 +855,7 @@ typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
 
 #define	_MULTITHREADED
 
-#endif				/****	End of #ifdef linux	     ****/
+#endif				/****	End of #ifdef __linux__	     ****/
 
 #ifdef freebsd			/****	FreeBSD			     ****/
 
@@ -945,7 +933,7 @@ int pthread_setname_np(const char *name);
 
 #endif				/****	End of #ifdef (__SVR4)       ****/
 
-#endif				/****	End of #ifdef (unix)         ****/
+#endif				/****	End of #ifdef (__unix__)         ****/
 
 #if defined (SVR4_SHM)
 #include <sys/shm.h>

@@ -117,41 +117,41 @@ case $host_os in
     PLATFORM="darwin"
     S_LIB_END="dylib"
     if test $host_cpu = "x86_64" ; then
-      AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 -m64"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3"
+      AM_CFLAGS="$AM_CFLAGS -D__unix__ -Ddarwin -DSPACE_ORDER=3 -m64"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__unix__ -Ddarwin -DSPACE_ORDER=3"
       echo "Build 64-bit Darwin specific platform code."
     elif test $host_cpu = "aarch64" ; then
-      AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 -m64"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3"
+      AM_CFLAGS="$AM_CFLAGS -D__unix__ -Ddarwin -DSPACE_ORDER=3 -m64"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__unix__ -Ddarwin -DSPACE_ORDER=3"
       echo "Build 64-bit ARM Darwin specific platform code."
     elif test $host_cpu = "arm" ; then
-      AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 -m64"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3"
+      AM_CFLAGS="$AM_CFLAGS -D__unix__ -Ddarwin -DSPACE_ORDER=3 -m64"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__unix__ -Ddarwin -DSPACE_ORDER=3"
       echo "Build 64-bit ARM Darwin specific platform code."
     else
-      AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=2 -m32"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=2"
+      AM_CFLAGS="$AM_CFLAGS -D__unix__ -Ddarwin -DSPACE_ORDER=2 -m32"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__unix__ -Ddarwin -DSPACE_ORDER=2"
       echo "Build 32-bit Darwin specific platform code."
     fi
     ;;
   linux*)
     PLATFORM="linux"
     # Add to PKG_CONFIG_CFLAGS
-    PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Dlinux"
+    PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__unix__ -D__linux__"
     if test $host_cpu = "x86_64" ; then
       AC_DEFINE([linux],[1])
-      AM_CFLAGS="$AM_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=3 -fno-strict-aliasing"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=3"
+      AM_CFLAGS="$AM_CFLAGS -D__unix__ -D__linux__ -DSPACE_ORDER=3 -fno-strict-aliasing"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__unix__ -D__linux__ -DSPACE_ORDER=3"
       echo "Build 64-bit Linux specific platform code."
     elif test $host_cpu = "aarch64" ; then
       AC_DEFINE([linux],[1])
-      AM_CFLAGS="$AM_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=3 -fno-strict-aliasing"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=3"
+      AM_CFLAGS="$AM_CFLAGS -D__unix__ -D__linux__ -DSPACE_ORDER=3 -fno-strict-aliasing"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__unix__ -D__linux__ -DSPACE_ORDER=3"
       echo "Build 64-bit Linux specific platform code."
     else
       AC_DEFINE([linux],[1])
-      AM_CFLAGS="$AM_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=2 -fno-strict-aliasing"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=2"
+      AM_CFLAGS="$AM_CFLAGS -D__unix__ -D__linux__ -DSPACE_ORDER=2 -fno-strict-aliasing"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__unix__ -D__linux__ -DSPACE_ORDER=2"
       echo "Build 32-bit Linux specific platform code."
     fi
     ;;
@@ -173,13 +173,13 @@ case $host_os in
     AM_LDFLAGS="$AM_LDFLAGS -lexecinfo"
     case $host_cpu in
       x86_64|amd64)
-        AM_CFLAGS="$AM_CFLAGS -D__BSD_VISIBLE -Dunix -Dfreebsd -DSPACE_ORDER=3 -m64"
-        PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__BSD_VISIBLE -Dunix -Dfreebsd -DSPACE_ORDER=3"
+        AM_CFLAGS="$AM_CFLAGS -D__BSD_VISIBLE -D__unix__ -Dfreebsd -DSPACE_ORDER=3 -m64"
+        PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__BSD_VISIBLE -D__unix__ -Dfreebsd -DSPACE_ORDER=3"
         echo "Build 64-bit Freebsd specific platform code."
         ;;
       *)
-        AM_CFLAGS="$AM_CFLAGS -D__BSD_VISIBLE -Dunix -Dfreebsd -DSPACE_ORDER=2 -m32"
-        PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__BSD_VISIBLE -Dunix -Dfreebsd -DSPACE_ORDER=2"
+        AM_CFLAGS="$AM_CFLAGS -D__BSD_VISIBLE -D__unix__ -Dfreebsd -DSPACE_ORDER=2 -m32"
+        PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__BSD_VISIBLE -D__unix__ -Dfreebsd -DSPACE_ORDER=2"
         echo "Build 32-bit Freebsd specific platform code."
         ;;
     esac
@@ -205,20 +205,20 @@ case $host_os in
       AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
       AM_LDFLAGS="$AM_LDFLAGS -lrt -lsocket -lnsl"
 
-      AM_CFLAGS="$AM_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -DLONG_LONG_OKAY=0 -DSPACE_ORDER=2 -xmemalign=4i -features=extensions -xalias_level=any -xbuiltin=%none"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -DLONG_LONG_OKAY=0 -DSPACE_ORDER=2"
+      AM_CFLAGS="$AM_CFLAGS -Dsolaris -D__unix__ -D__SVR4 -D_REENTRANT -DLONG_LONG_OKAY=0 -DSPACE_ORDER=2 -xmemalign=4i -features=extensions -xalias_level=any -xbuiltin=%none"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dsolaris -D__unix__ -D__SVR4 -D_REENTRANT -DLONG_LONG_OKAY=0 -DSPACE_ORDER=2"
       echo "Build 32-bit ION on 64-bit solaris"
     elif test $host_cpu = "sparc" ; then
       AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
       AM_LDFLAGS="$AM_LDFLAGS -lrt -lsocket -lnsl"
-      AM_CFLAGS="$AM_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing -fno-builtin -DSPACE_ORDER=3"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -DSPACE_ORDER=3"
+      AM_CFLAGS="$AM_CFLAGS -Dsolaris -D__unix__ -D__SVR4 -D_REENTRANT -fno-strict-aliasing -fno-builtin -DSPACE_ORDER=3"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dsolaris -D__unix__ -D__SVR4 -D_REENTRANT -DSPACE_ORDER=3"
       echo "Build Solaris/SPARC specific platform code."
     else
       AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
       AM_LDFLAGS="$AM_LDFLAGS -lrt -lsocket -lnsl"
-      AM_CFLAGS="$AM_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing -DSPACE_ORDER=3"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -DSPACE_ORDER=3"
+      AM_CFLAGS="$AM_CFLAGS -Dsolaris -D__unix__ -D__SVR4 -D_REENTRANT -fno-strict-aliasing -DSPACE_ORDER=3"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dsolaris -D__unix__ -D__SVR4 -D_REENTRANT -DSPACE_ORDER=3"
       echo "Build Solaris specific platform code."
     fi
     # Do bitness check

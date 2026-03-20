@@ -22,8 +22,8 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
 								*/
-#ifndef _ION_ATOMIC_H_
-#define _ION_ATOMIC_H_
+#ifndef ION_ATOMIC_H
+#define ION_ATOMIC_H
 
 #ifdef __cplusplus
 
@@ -67,4 +67,4 @@ extern "C" {  /* Reopen extern "C" for the rest of platform.h. */
 #define atomic_exchange(p, v)	__atomic_exchange_n((p), (v), __ATOMIC_SEQ_CST)
 
 #endif
-#endif /* _ION_ATOMIC_H_ */
+#endif /* ION_ATOMIC_H */

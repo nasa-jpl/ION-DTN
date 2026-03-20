@@ -22,8 +22,8 @@ TEST = ../test
 UTILS = ../utils
 RAMS = ../rams
 
-# OPT = -O -Dlinux
-OPT = -g -Wall -Werror -Dlinux -DUDPTS -DTCPTS -DDGRTS -DNOEXPAT -fPIC -DSPACE_ORDER=3
+# OPT = -O -D__linux__
+OPT = -g -Wall -Werror -D__linux__ -DUDPTS -DTCPTS -DDGRTS -DNOEXPAT -fPIC -DSPACE_ORDER=3
 CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(INCL) -I$(RAMS) -I$(ROOT)/include -I$(ICI_INCL) -I../../ici/crypto/NULL_SUITES -I../../ici/crypto -I../../dgr/include -I../../ici/library -I../../bpv7/include -I../../dgr/library -L$(ICI_LIB) -L$(BP_LIB) -L$(DGR_LIB) $(BSL_LIBDIR)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)

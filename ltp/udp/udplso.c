@@ -16,7 +16,7 @@
 
 #include "udplsa.h"
 
-#if defined(linux)
+#if defined(__linux__)
 
 #define IPHDR_SIZE	(sizeof(struct iphdr) + sizeof(struct udphdr))
 
@@ -31,7 +31,7 @@
 
 #define IPHDR_SIZE	(sizeof(struct udpiphdr))
 
-#endif 		/* end of if defined(linux) */
+#endif 		/* end of if defined(__linux__) */
 
 
 /* Macro definitions for DNS retry and re-resolution */

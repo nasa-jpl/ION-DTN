@@ -19,7 +19,7 @@
 
 int main(void) {
 
-#if defined(linux)
+#if defined(__linux__)
 	// The only OS that this test currently supports is Linux.
 	//      e.g. SEM_NSEMS_MAX does not get defined on FreeBSD, so compilation
 	//      of this test-support program needs to be skipped on that platform,

@@ -50,7 +50,7 @@
  *	and _default.							*/
 
 #ifdef	UDP_MULTISEND
-#if (defined(linux) && !(defined(bionic)))
+#if (defined(__linux__) && !(defined(bionic)))
 #ifndef MULTISEND_SEGMENT_SIZE
 #define	MULTISEND_SEGMENT_SIZE	(1450)
 #endif
@@ -58,9 +58,9 @@
 #define	MULTIRECV_BUFFER_COUNT	(127)
 #endif
 #define	_GNU_SOURCE
-#else 	/*	!(defined(linux) && !(defined(bionic)))			*/
+#else 	/*	!(defined(__linux__) && !(defined(bionic)))			*/
 #undef	UDP_MULTISEND
-#endif	/*	End of #if (defined(linux) && !(defined(bionic)))	*/
+#endif	/*	End of #if (defined(__linux__) && !(defined(bionic)))	*/
 #endif	/*	End if #ifdef UDP_MULTISEND				*/
 
 #include "rfx.h"

@@ -21,8 +21,8 @@ BSL_INCL =
 BSL_LIBDIR =
 endif
 
-# OPT = -O -Dlinux
-OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
+# OPT = -O -D__linux__
+OPT = -g -Wall -Werror -D__linux__ -fPIC -DSPACE_ORDER=3
 CC = gcc $(OPT) $(ADD_FLAGS) -I../.. -I../../ici/include -I../../ici/sdr -I../../ltp/include -I../../bpv7/include -I../../bssp/include -I../../cfdp/include $(BSL_INCL) -I../../ltp/library -I../../bpv7/library -I../../cfdp/library -L../../ici/x86_64-linux/lib -L../../bpv7/x86_64-linux/lib -L../../bssp/x86_64-linux/lib -L../../ltp/x86_64-linux/lib -L../../cfdp/x86_64-linux/lib $(BSL_LIBDIR)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)

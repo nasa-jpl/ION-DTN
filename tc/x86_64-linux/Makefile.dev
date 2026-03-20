@@ -24,8 +24,8 @@ BSL_INCL =
 BSL_LIBDIR =
 endif
 
-# OPT = -O -Dlinux
-OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3 -DNDEBUG
+# OPT = -O -D__linux__
+OPT = -g -Wall -Werror -D__linux__ -fPIC -DSPACE_ORDER=3 -DNDEBUG
 CC = gcc $(OPT) -I$(AUTHORITY) -I$(CLIENT) -I$(INCL) -I$(JERASURE)/include -I$(GF_COMPLETE)/include -I$(BP_V)/include -I$(BP_V)/library -I$(BP_V)/bsl $(BSL_INCL) -I../../ici/include -I$(ROOT)/include -L../../ici/x86_64-linux/lib -L../../bpv7/x86_64-linux/lib $(BSL_LIBDIR)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
