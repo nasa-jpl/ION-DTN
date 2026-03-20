@@ -10,6 +10,7 @@
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*									*/
 #include "ams.h"
+#include <stdlib.h>
 
 static void	reportError(void *userData, AmsEvent *event)
 {
@@ -36,21 +37,32 @@ int	amsbenchs(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 {
 	int		count = a1;
 	int		size = a2;
+	int		minSize = a3 ? a3 : 0;
 #else
 int	main(int argc, char **argv)
 {
 	int		count = (argc > 1 ? atoi(argv[1]) : 0);
 	int		size = (argc > 2 ? atoi(argv[2]) : 0);
+	int		minSize = (argc > 3 ? atoi(argv[3]) : 0);
 #endif
 	char		*buffer;
 	AmsModule	me;
 	AmsEventMgt	rules;
 	short		subjectNbr;
 	int		content;
+	int		msgSize;
+	unsigned int	rngState;
 
 	if (count < 1 || (size < 0 || (size_t)size < sizeof(int)) || size > 65535)
 	{
-		PUTS("Usage: amsbenchs <# of msgs to send> <msg length>");
+		PUTS("Usage: amsbenchs <# of msgs> <max length> [<min length>]");
+		fflush(stdout);
+		return 0;
+	}
+
+	if (minSize > 0 && ((size_t)minSize < sizeof(int) || minSize > size))
+	{
+		PUTS("Min length must be >= 4 and <= max length.");
 		fflush(stdout);
 		return 0;
 	}
@@ -94,12 +106,23 @@ int	main(int argc, char **argv)
 		return -1;
 	}
 
+	rngState = (unsigned int) time(NULL);
 	snooze(1);	/*	Wait for subscriptions to arrive.	*/
 	while (count > 0)
 	{
 		content = htonl(count);
 		memcpy(buffer, (char *) &content, sizeof(int));
-		if (ams_publish(me, subjectNbr, 0, 0, size, buffer, 0) < 0)
+		if (minSize > 0 && minSize < size)
+		{
+			msgSize = minSize + (int)(rand_r(&rngState)
+					% (size - minSize + 1));
+		}
+		else
+		{
+			msgSize = size;
+		}
+
+		if (ams_publish(me, subjectNbr, 0, 0, msgSize, buffer, 0) < 0)
 		{
 			putErrmsg("amsbenchs can't publish message.", NULL);
 			break;

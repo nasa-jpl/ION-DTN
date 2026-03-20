@@ -2903,11 +2903,13 @@ typedef struct {
 } SmProcessSemtable;
 
 
-static SmProcessSemtable *_semTbl(int action);
+static inline SmProcessSemtable *_semTbl(int action);
 static SmGlobalSemtable	*_sembase(int action);
 static sem_t *_ipcSemaphore(int action);
 static void _semEraseNamedSems(void);
-static SmLocalSem *_semGetSem(SmProcessSemtable *psemtable, sm_SemId semnum, int semlocked);
+static inline SmLocalSem *_semGetSem(SmProcessSemtable *psemtable, sm_SemId semnum, int semlocked);
+static int __attribute__((noinline)) _semSyncOutOfDate(SmProcessSemtable *plocal, sm_SemId semnum, int semlocked);
+static inline int _semSync(SmProcessSemtable *plocal, sm_SemId semnum, int semlocked);
 static char *_semGenPosixSemname(char *namebuf, unsigned bufsize, int semnum);
 static int _semKeyExists(int key);
 static void _sm_SemCompleteDeletePosix(SmProcessSemtable *semTbl, sm_SemId i);
@@ -2989,9 +2991,9 @@ static int _semKeyExists(int key) {
 }
 
 
-/* ensure that the process local and shared global semaphores are in sync */
-/* N.B.: assumes global semaphore table semaphore is NOT held (unless semlocked is true) */
-static int _semSync(SmProcessSemtable *plocal, sm_SemId semnum, int semlocked)
+/* slow path for _semSync: handles sem_open, close, IPC locking */
+static int __attribute__((noinline))
+_semSyncOutOfDate(SmProcessSemtable *plocal, sm_SemId semnum, int semlocked)
 {
 	char sem_name[MAX_NAMED_SEM_KEYLENGTH];
 	sem_t *psem;
@@ -2999,13 +3001,6 @@ static int _semSync(SmProcessSemtable *plocal, sm_SemId semnum, int semlocked)
 
 	SmLocalSem  *plocalSem = &plocal->lsemtable[semnum];
 	SmGlobalSem *pglobalSem = plocalSem->semgl;
-
-	if (plocalSem->lseq == (smSequence)ion_ipc_atomic_get(&pglobalSem->gseq)) {
-		/* local copy is up to date */
-		return(1);
-	}
-
-	/* above is the expected case, and it needs to be fast... */
 
 	if (!semlocked)
 		takeIpcLock();  /* lock global table across ALL Ion instances */
@@ -3055,8 +3050,23 @@ static int _semSync(SmProcessSemtable *plocal, sm_SemId semnum, int semlocked)
 	return(1);
 }
 
+/* ensure that the process local and shared global semaphores are in sync */
+/* N.B.: assumes global semaphore table semaphore is NOT held (unless semlocked is true) */
+static inline int _semSync(SmProcessSemtable *plocal, sm_SemId semnum, int semlocked)
+{
+	SmLocalSem  *plocalSem = &plocal->lsemtable[semnum];
 
-static SmProcessSemtable *_semTbl(int action)
+	if (__builtin_expect(plocalSem->lseq
+			== (smSequence)ion_ipc_atomic_get(&plocalSem->semgl->gseq), 1)) {
+		/* local copy is up to date (fast path) */
+		return(1);
+	}
+
+	return _semSyncOutOfDate(plocal, semnum, semlocked);
+}
+
+
+static inline SmProcessSemtable *_semTbl(int action)
 {
 	static SmProcessSemtable semStruct;  /* local to each (new) process running Ion */
 	static int	semTableInitialized = 0;
@@ -3118,7 +3128,7 @@ static SmProcessSemtable *_semTbl(int action)
 
 /* return the Local semaphore structure that goes with ION semaphore number "semnum" */
 /* N.B. Assumes that global semaphore is NOT held (unless semlocked is true) */
-static SmLocalSem *_semGetSem(SmProcessSemtable *psemtable, sm_SemId semnum, int semlocked)
+static inline SmLocalSem *_semGetSem(SmProcessSemtable *psemtable, sm_SemId semnum, int semlocked)
 {
 	SmLocalSem *psemLocal;
 

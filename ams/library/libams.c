@@ -646,9 +646,6 @@ static int	recoverMsgContent(AmsSAP *sap, AmsMsg *msg, Subject *subject)
 	char		*newContent = NULL;
 	int			newContentLength = 0;
 	UnmarshalFn	unmarshal = NULL;
-	char		keyBuffer[512] = {0};
-	int			keyBufferLength = sizeof keyBuffer;
-	int			keyLength = 0;
 
 	/*	Decrypt content as necessary.				*/
 
@@ -670,6 +667,11 @@ static int	recoverMsgContent(AmsSAP *sap, AmsMsg *msg, Subject *subject)
 	}
 	else
 	{
+		char	keyBuffer[512];
+		int	keyBufferLength = sizeof keyBuffer;
+		int	keyLength;
+
+		memset(keyBuffer, 0, sizeof keyBuffer);
 		keyLength = sec_get_key(subject->symmetricKeyName,
 				&keyBufferLength, keyBuffer);
 		if (keyLength <= 0)

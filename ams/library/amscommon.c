@@ -781,20 +781,17 @@ unsigned short	computeAmsChecksum(unsigned char *cursor, int pduLength)
 	unsigned int	sum = 0;
 	unsigned short	addend;
 
-	while (pduLength > 0)
+	while (pduLength >= 2)
 	{
-		addend = *cursor;
-		addend <<= 8;	/*	Low-order byte is now zero pad.	*/
-		cursor++;
-		pduLength--;
-		if (pduLength > 0)	/*	Replace pad with byte.	*/
-		{
-			addend += *cursor;
-			cursor++;
-			pduLength--;
-		}
+		addend = (cursor[0] << 8) + cursor[1];
+		cursor += 2;
+		pduLength -= 2;
+		sum += addend;
+	}
 
-		sum += addend;		/*	Okay if it overflows.	*/
+	if (pduLength > 0)
+	{
+		sum += cursor[0] << 8;
 	}
 
 	return sum & 0x0000ffff;
