@@ -3507,11 +3507,11 @@ typedef unsigned long int smSequence;
 typedef struct
 {
 	char		inUse;
-	char		ended;
+	atomic_int	ended;		/* Atomic: accessed from multiple processes */
 	int		key;
-	smSequence	gseq;
+	atomic_ulong	gseq;		/* Atomic: sequence number for cache invalidation */
 	atomic_int	refCount;	/* Number of active users across all processes (atomic for lock-free access) */
-	int		pendingDelete;	/* Marked for deletion when refCount reaches 0 */
+	atomic_int	pendingDelete;	/* Atomic: marked for deletion when refCount reaches 0 */
 } SmGlobalSem;
 
 /* this structure makes up the process-local semaphore table */
@@ -3586,7 +3586,7 @@ void _semPrintTable(void)  // Only for debugging purposes
 	for (i = 0; i < SEM_NSEMS_MAX; i++) {
 		SmLocalSem *psem  = &semTbl->lsemtable[i];
 
-		if (psem->semgl->inUse || (psem->semgl->gseq > 0)) {
+		if (psem->semgl->inUse || (atomic_load(&psem->semgl->gseq) > 0)) {
 			fprintf(stderr,"  %-6d ", i);
 			fprintf(stderr,"%-5d ", psem->semgl->inUse);
 			if (!psem->semgl->inUse) {
@@ -3597,7 +3597,7 @@ void _semPrintTable(void)  // Only for debugging purposes
 				} else {
 					fprintf(stderr,"0x%08x ", psem->semgl->key);
 				}
-				if (psem->lseq == psem->semgl->gseq) {
+				if (psem->lseq == atomic_load(&psem->semgl->gseq)) {
 					fprintf(stderr,"%5p ", psem->id);
 				} else {
 					/* out of sync locally, so not valid */
@@ -3605,7 +3605,7 @@ void _semPrintTable(void)  // Only for debugging purposes
 				}
 			}
 			fprintf(stderr,"%10lu ", psem->lseq);
-			fprintf(stderr,"%10lu ", psem->semgl->gseq);
+			fprintf(stderr,"%10lu ", atomic_load(&psem->semgl->gseq));
 			if (psem->semgl->inUse) {
 				fprintf(stderr,"%s ", _semGenPosixSemname(sem_name,sizeof(sem_name),i));
 			}
@@ -3650,7 +3650,7 @@ static int _semSync(SmProcessSemtable *plocal, sm_SemId semnum, int semlocked)
 	SmLocalSem  *plocalSem = &plocal->lsemtable[semnum];
 	SmGlobalSem *pglobalSem = plocalSem->semgl;
 
-	if (plocalSem->lseq == pglobalSem->gseq) {
+	if (plocalSem->lseq == atomic_load(&pglobalSem->gseq)) {
 		/* local copy is up to date */
 		return(1);
 	}
@@ -3696,10 +3696,10 @@ static int _semSync(SmProcessSemtable *plocal, sm_SemId semnum, int semlocked)
 		}
 
 		plocalSem->id = NULL;
-		plocalSem->lseq = pglobalSem->gseq;
+		plocalSem->lseq = atomic_load(&pglobalSem->gseq);
 	}
 
-	plocalSem->lseq = pglobalSem->gseq;  /* now up to date */
+	plocalSem->lseq = atomic_load(&pglobalSem->gseq);  /* now up to date */
 	if (!semlocked)
 		giveIpcLock();
 	return(1);
@@ -4088,9 +4088,9 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	sem->id = psem;
 	sem->semgl->key = key;
 	sem->semgl->inUse = 1;
-	sem->semgl->ended = 0;
+	atomic_store(&sem->semgl->ended, 0);
 	atomic_store(&sem->semgl->refCount, 0);  /* Initialize to 0 - no active users yet */
-	sem->semgl->pendingDelete = 0;
+	atomic_store(&sem->semgl->pendingDelete, 0);
 	sem->localRefCount = 0;
 	sem->handleOpened = 1;  /* Mark handle as opened since we just opened it */
 
@@ -4100,7 +4100,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 		semTbl->semtablegl->opensems_max = semTbl->semtablegl->opensems_current;
 
 	/* tell other ION processes that their local copy is out of date */
-	sem->lseq = ++sem->semgl->gseq;
+	sem->lseq = atomic_fetch_add(&sem->semgl->gseq, 1) + 1;
 
 	/* Initialize semaphore value (first taker succeeds)
 	 * Call sem_post directly instead of sm_SemGive to avoid deadlock
@@ -4145,11 +4145,11 @@ static void _sm_SemCompleteDeletePosix(SmProcessSemtable *semTbl, sm_SemId i)
 
 	/* Update global state */
 	gsem->inUse = 0;
-	gsem->ended = 0;
+	atomic_store(&gsem->ended, 0);
 	gsem->key = SM_NO_KEY;
 	atomic_store(&gsem->refCount, 0);
-	gsem->pendingDelete = 0;
-	gsem->gseq++;  /* Invalidate all cached local copies */
+	atomic_store(&gsem->pendingDelete, 0);
+	atomic_fetch_add(&gsem->gseq, 1);  /* Invalidate all cached local copies */
 
 	/* Update local state */
 	sem->lseq = 0;
@@ -4193,10 +4193,10 @@ void	sm_SemDelete(sm_SemId i)
 	gsem = sem->semgl;
 
 	/* Check if anyone is using the semaphore */
-	if (gsem->refCount > 0)
+	if (atomic_load(&gsem->refCount) > 0)
 	{
 		/* Defer deletion until all users release it */
-		gsem->pendingDelete = 1;
+		atomic_store(&gsem->pendingDelete, 1);
 		giveIpcLock();
 #ifdef DEBUG_POSIX_NAMED_SEMAPHORES
 		writeMemoNote("Semaphore deletion deferred, refCount",
@@ -4232,7 +4232,7 @@ int	sm_SemTake(sm_SemId i)
 	gsem = sem->semgl;
 
 	/* Check if semaphore is deleted or pending deletion */
-	if (!gsem->inUse || gsem->pendingDelete)
+	if (!gsem->inUse || atomic_load(&gsem->pendingDelete))
 	{
 		putErrmsg("Can't take deleted or pending-delete semaphore", itoa(i));
 		return -1;
@@ -4273,7 +4273,7 @@ int	sm_SemTake(sm_SemId i)
 			 * If so, return success so caller can check sm_SemEnded()
 			 * and handle graceful shutdown. This matches the behavior
 			 * of other semaphore implementations (VxWorks, SVR4, etc.) */
-			if (gsem->ended)
+			if (atomic_load(&gsem->ended))
 			{
 				return 0;
 			}
@@ -4293,7 +4293,7 @@ int	sm_SemTake(sm_SemId i)
 	 * handle graceful shutdown. This matches the behavior of other
 	 * semaphore implementations (VxWorks, SVR4, etc.) where sm_SemTake
 	 * returns 0 and the caller is expected to check sm_SemEnded(). */
-	if (gsem->ended)
+	if (atomic_load(&gsem->ended))
 	{
 		return 0;
 	}
@@ -4369,12 +4369,12 @@ void	sm_SemEnd(sm_SemId i)
 	if (sem == NULL)
 	{
 		/* Semaphore not in use - just mark ended in global table */
-		semTbl->lsemtable[i].semgl->ended = 1;
+		atomic_store(&semTbl->lsemtable[i].semgl->ended, 1);
 		giveIpcLock();
 		return;
 	}
 
-	sem->semgl->ended = 1;
+	atomic_store(&sem->semgl->ended, 1);
 
 	/* Wake up any waiting threads/processes without changing refCount.
 	 * Note: We use sem_post() directly here instead of sm_SemGive()
@@ -4434,7 +4434,7 @@ int	sm_SemEnded(sm_SemId i)
 	}
 
 	sem = &semTbl->lsemtable[i];
-	ended = sem->semgl->ended;
+	ended = atomic_load(&sem->semgl->ended);
 	if (ended)
 	{
 		sm_SemGive(i);	/*	Enable multiple tests.		*/
@@ -4463,7 +4463,7 @@ void	sm_SemUnend(sm_SemId i)
 	}
 
 	sem = &semTbl->lsemtable[i];
-	sem->semgl->ended = 0;
+	atomic_store(&sem->semgl->ended, 0);
 }
 
 /* many posix semaphore systems that implement "named semaphores" do NOT implement sem_timedwait() */

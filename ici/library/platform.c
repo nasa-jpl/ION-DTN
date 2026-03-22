@@ -424,7 +424,7 @@ int	createFile(const char *filename, int flags)
 typedef struct rlock_str
 {
 	pthread_mutex_t mutex;
-	int		initialized;
+	atomic_int	initialized;	/* Atomic to prevent TOCTOU races */
 } Rlock;
 
 /* the next line won't compile if the mutex structure isn't large enough -  increase size of ResourceLock in platform.h */
@@ -468,7 +468,7 @@ int initResourceLock(ResourceLock *rl)
 	/*
 	* Now that we hold the meta-lock, it is safe to check the flag.
 	*/
-	if (lock->initialized)
+	if (atomic_load(&lock->initialized))
 	{
 		/* This lock is already initialized. Nothing more to do. */
 		pthread_mutex_unlock(&g_ResourceLockInitMutex);
@@ -504,7 +504,7 @@ int initResourceLock(ResourceLock *rl)
 	pthread_mutexattr_destroy(&attr);
 
 	/* Mark this lock as initialized BEFORE releasing the meta-lock. */
-	lock->initialized = 1;
+	atomic_store(&lock->initialized, 1);
 
 	/* Release the global initialization lock. */
 	pthread_mutex_unlock(&g_ResourceLockInitMutex);
@@ -516,15 +516,35 @@ void killResourceLock(ResourceLock *rl)
 {
 	Rlock   *lock = (Rlock *) rl;
 
-	if (lock == NULL || lock->initialized == 0)
+	if (lock == NULL)
 	{
 		return;
 	}
 
 	/*
-	* pthread_mutex_destroy has undefined behavior if the mutex
-	* is locked. A trylock can safely check this.
-	*/
+	 * Acquire the global meta-lock to serialize with initResourceLock
+	 * and prevent TOCTOU races during destruction.
+	 */
+	pthread_mutex_lock(&g_ResourceLockInitMutex);
+
+	if (atomic_load(&lock->initialized) == 0)
+	{
+		pthread_mutex_unlock(&g_ResourceLockInitMutex);
+		return;
+	}
+
+	/*
+	 * Mark as uninitialized FIRST. This prevents any new lockResource
+	 * calls from proceeding while we destroy the mutex.
+	 */
+	atomic_store(&lock->initialized, 0);
+
+	pthread_mutex_unlock(&g_ResourceLockInitMutex);
+
+	/*
+	 * pthread_mutex_destroy has undefined behavior if the mutex
+	 * is locked. A trylock can safely check this.
+	 */
 	if (pthread_mutex_trylock(&lock->mutex) == 0)
 	{
 		/*
@@ -533,14 +553,15 @@ void killResourceLock(ResourceLock *rl)
 		 */
 		pthread_mutex_unlock(&lock->mutex);
 		pthread_mutex_destroy(&lock->mutex);
-
-		/* Reset the state. */
-		lock->initialized = 0;
 	}
 	else
 	{
-		/* The mutex is currently locked by another thread. It is unsafe
-		 * to destroy it. We will just leave it. */
+		/*
+		 * The mutex is currently locked by another thread. It is unsafe
+		 * to destroy it. Restore the initialized flag since we couldn't
+		 * complete destruction.
+		 */
+		atomic_store(&lock->initialized, 1);
 		writeMemo("[!] killResourceLock: Attempted to destroy a locked mutex.");
 	}
 }
@@ -549,7 +570,7 @@ void lockResource(ResourceLock *rl)
 {
 	Rlock   *lock = (Rlock *) rl;
 
-	if (lock == NULL || lock->initialized == 0)
+	if (lock == NULL || atomic_load(&lock->initialized) == 0)
 	{
 		return;
 	}
@@ -561,7 +582,7 @@ void unlockResource(ResourceLock *rl)
 {
 	Rlock   *lock = (Rlock *) rl;
 
-	if (lock == NULL || lock->initialized == 0)
+	if (lock == NULL || atomic_load(&lock->initialized) == 0)
 	{
 		return;
 	}
@@ -1634,7 +1655,7 @@ static int	_errmsgs(int lineNbr, const char *qualifiedFileName,
 	static char		errmsgs[ERRMSGS_BUFSIZE];
 	static int		errmsgsLength = 0;
 	static ResourceLock	errmsgsLock;
-	static int		errmsgsLockInit = 0;
+	static atomic_int	errmsgsLockInit = 0;	/* Atomic to prevent race */
 	int			msgLength;
 	int			spaceFreed;
 	int			fileNameLength;
@@ -1644,7 +1665,7 @@ static int	_errmsgs(int lineNbr, const char *qualifiedFileName,
 	int			spaceForText;
 	int			spaceNeeded;
 
-	if (!errmsgsLockInit)
+	if (!atomic_load(&errmsgsLockInit))
 	{
 		memset((char *) &errmsgsLock, 0, sizeof(ResourceLock));
 		if (initResourceLock(&errmsgsLock) < 0)
@@ -1653,7 +1674,7 @@ static int	_errmsgs(int lineNbr, const char *qualifiedFileName,
 			return 0;
 		}
 
-		errmsgsLockInit = 1;
+		atomic_store(&errmsgsLockInit, 1);
 	}
 
 	if (buffer)		/*	Retrieving an errmsg.		*/
@@ -1794,7 +1815,7 @@ int	getErrmsg(char *buffer)
 void	writeErrmsgMemos(void)
 {
 	static ResourceLock	memosLock;
-	static int		memosLockInit = 0;
+	static atomic_int	memosLockInit = 0;	/* Atomic to prevent race */
 	static char		msgwritebuf[ERRMSGS_BUFSIZE];
 	static char		*omissionMsg = "[?] message omitted due to \
 excessive length";
@@ -1802,7 +1823,7 @@ excessive length";
 	/*	Because buffer is static, it is shared.  So access
 	 *	to it must be mutexed.					*/
 
-	if (!memosLockInit)
+	if (!atomic_load(&memosLockInit))
 	{
 		memset((char *) &memosLock, 0, sizeof(ResourceLock));
 		if (initResourceLock(&memosLock) < 0)
@@ -1811,7 +1832,7 @@ excessive length";
 			return;
 		}
 
-		memosLockInit = 1;
+		atomic_store(&memosLockInit, 1);
 	}
 
 	lockResource(&memosLock);
@@ -1854,14 +1875,14 @@ void	discardErrmsgs(void)
 
 int	_coreFileNeeded(int *ctrl)
 {
-	static int	coreFileNeeded = CORE_FILE_NEEDED;
+	static atomic_int	coreFileNeeded = CORE_FILE_NEEDED;
 
 	if (ctrl)
 	{
-		coreFileNeeded = *ctrl;
+		atomic_store(&coreFileNeeded, *ctrl);
 	}
 
-	return coreFileNeeded;
+	return atomic_load(&coreFileNeeded);
 }
 
 int	_iEnd(const char *fileName, int lineNbr, const char *arg)
