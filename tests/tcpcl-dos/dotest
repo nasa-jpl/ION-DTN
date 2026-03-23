@@ -7,10 +7,7 @@
 # and send a bundle. If we can receive the bundle successfully,
 # then the dos bug has been fixed.
 
-function pause(){
- read -s -n 1 -p "Press any key to continue . . ."
- echo ""
-}
+source ../test_utils
 
 echo "########################################"
 echo
@@ -52,7 +49,6 @@ RECEIVER_PORT=4556
 echo "Cleaning up old ION ..."
 killm
 ./cleanup
-sleep 1
 
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
@@ -88,27 +84,13 @@ echo "This can take up to 2 minutes."
 echo ""
 echo "Check Node 1 first..."
 cd ../1.ipn.tcp/
-bpclm_running=""
-while [ "$bpclm_running" == "" ]
-do
-    echo "...wait for bpclm to run for 5 seconds..."
-    sleep 5
-    bpclm_running=$(grep "bpclm is running" ion.log)
-done
+waitForLog "bpclm is running" ion.log 60 || { echo "Timeout waiting for bpclm node 1"; killm; exit 1; }
 echo "bpclm started for node 1"
-echo ""
 
-echo "Check Node 2 next..."
 cd ../2.ipn.tcp/
-bpclm_running=""
-while [ "$bpclm_running" == "" ]
-do
-    echo "...wait for bpclm to run for 5 seconds..."
-    sleep 5
-    bpclm_running=$(grep "bpclm is running" ion.log)
-done
+waitForLog "bpclm is running" ion.log 60 || { echo "Timeout waiting for bpclm node 2"; killm; exit 1; }
 echo "bpclm started for node 2"
-echo ""
+
 echo "Ready to proceed to rest of the test..."
 
 # starting a bogus connection
@@ -117,7 +99,8 @@ echo "starting netcat from node 1..."
 $NC_CMD 127.0.0.1 $RECEIVER_PORT >/dev/null &
 NETCATPID=$!
 
-sleep 5
+# Wait for tcpcli to notice the bogus connection
+waitForLog "tcpcli sender thread has started" ../2.ipn.tcp/ion.log 10 || true
 
 # create the test message in a sent file
 # the exclamation point signals the bundle sender to quit
@@ -130,8 +113,7 @@ cd ../2.ipn.tcp/
 bpsink ipn:2.2 > $IONRECEIVEFILE &
 BPSINKPID=$!
 
-# give bpsink some time to start up
-sleep 5
+waitForPidReady $BPSINKPID 10 || { echo "bpsink failed to start"; killm; exit 1; }
 
 # send the message in the file via test bundle source
 echo "Sending message from node 1..."
@@ -139,35 +121,20 @@ cd ../1.ipn.tcp/
 bpsource ipn:2.2 < $IONSENDFILE &
 BPSOURCEPID=$!
 
-sleep 5
+# Wait for message to arrive
+waitForFileContent "$IONMESSAGE" "../2.ipn.tcp/$IONRECEIVEFILE" 30 && \
+    echo "Message received."
 
-# sleep and kill process in case it didn't end properly
-echo "Killing bpsource if it is still running..."
+# cleanup processes
 kill -9 $BPSOURCEPID >/dev/null 2>&1
 
-# bpsink does not self-terminate, so send it SIGINT
 echo "stopping bpsink"
-kill -2 $BPSINKPID >/dev/null 2>&1
-sleep 1
-kill -9 $BPSINKPID >/dev/null 2>&1
+killAndWaitForPidToDie $BPSINKPID 2 5
 
-# stop netcat
 echo "Stopping netcat..."
-kill -2 $NETCATPID >/dev/null 2>&1
-sleep 1
 kill -9 $NETCATPID >/dev/null 2>&1
 
-# shut down ion processes
-#echo "Stopping ion node 1..."
-#cd ../1.ipn.tcp/
-#./ionstop
-
-#echo "Stopping ion node 2..."
 cd ../2.ipn.tcp/
-#./ionstop
-
-#sleep 2
-echo "Clean everything..."
 
 # compare the sent message to the received one
 if ! grep -q $IONMESSAGE $IONRECEIVEFILE; then
@@ -188,10 +155,6 @@ else
     RETVAL=0
 fi
 
-
-# clean up
-#../
-#./cleanup
 killm
 
 exit $RETVAL

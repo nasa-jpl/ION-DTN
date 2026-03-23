@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+#
+# test_utils - Shared utility functions for ION test scripts.
+#
+# Source this file from dotest scripts:
+#   source ../../test_utils   (or adjust path as needed)
+
+# waitForLog PATTERN LOGFILE [TIMEOUT_S] [POLL_INTERVAL_S]
+#
+# Block until PATTERN appears in LOGFILE (grep -q).
+# Returns 0 on match, 1 on timeout.
+waitForLog() {
+    waitForFileContent "$@"
+}
+
+# waitForPidReady PID [TIMEOUT_S] [POLL_INTERVAL_S]
+#
+# Block until process PID is running (kill -0).
+# Returns 0 if process is alive, 1 on timeout.
+waitForPidReady() {
+    local pid="$1"
+    local timeout="${2:-10}"
+    local interval="${3:-0.1}"
+    local elapsed=0
+
+    while [ 1 ]; do
+        if kill -0 "$pid" 2>/dev/null; then
+            return 0
+        fi
+        if [ "$(echo "$elapsed >= $timeout" | bc)" -eq 1 ]; then
+            echo "waitForPidReady: timeout after ${timeout}s waiting for pid $pid"
+            return 1
+        fi
+        sleep "$interval"
+        elapsed=$(echo "$elapsed + $interval" | bc)
+    done
+}
+
+# waitForFileContent PATTERN FILE [TIMEOUT_S] [POLL_INTERVAL_S]
+#
+# Block until PATTERN appears in FILE.
+# Returns 0 on match, 1 on timeout.
+waitForFileContent() {
+    local pattern="$1"
+    local file="$2"
+    local timeout="${3:-30}"
+    local interval="${4:-0.1}"
+    local elapsed=0
+
+    while [ 1 ]; do
+        if grep -q "$pattern" "$file" 2>/dev/null; then
+            return 0
+        fi
+        if [ "$(echo "$elapsed >= $timeout" | bc)" -eq 1 ]; then
+            echo "waitForFileContent: timeout after ${timeout}s waiting for '$pattern' in $file"
+            return 1
+        fi
+        sleep "$interval"
+        elapsed=$(echo "$elapsed + $interval" | bc)
+    done
+}
+
+# killAndWaitForPidToDie PID [SIGNAL] [TIMEOUT_S] [POLL_INTERVAL_S]
+#
+# Send SIGNAL (default SIGINT) to PID, then wait for it to exit.
+# If it doesn't exit within TIMEOUT_S, send SIGKILL.
+# Returns 0 if process exited, 1 if SIGKILL was needed.
+killAndWaitForPidToDie() {
+    local pid="$1"
+    local sig="${2:-2}"
+    local timeout="${3:-5}"
+    local interval="${4:-0.1}"
+    local elapsed=0
+
+    kill -0 "$pid" 2>/dev/null || return 0  # already dead
+
+    kill -"$sig" "$pid" 2>/dev/null
+
+    while [ 1 ]; do
+        if ! kill -0 "$pid" 2>/dev/null; then
+            return 0
+        fi
+        if [ "$(echo "$elapsed >= $timeout" | bc)" -eq 1 ]; then
+            kill -9 "$pid" 2>/dev/null
+            return 1
+        fi
+        sleep "$interval"
+        elapsed=$(echo "$elapsed + $interval" | bc)
+    done
+}
