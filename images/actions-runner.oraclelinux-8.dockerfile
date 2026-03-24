@@ -149,10 +149,10 @@ COPY actions-runner-controller/runner/hooks /etc/arc/hooks/
 RUN mkdir -p /home/runner/.config/containers \
     && mkdir -p /etc/containers \
     && mkdir -p /home/runner/.local/share/containers/storage \
-    && mkdir -p /run/user/1001/containers \
+    && mkdir -p /run/user/$RUNNER_USER_UID/containers \
     && chown -R runner:runner /home/runner/.config \
     && chown -R runner:runner /home/runner/.local \
-    && chown -R runner:runner /run/user/1001
+    && chown -R runner:runner /run/user/$RUNNER_USER_UID
 
 # Copy buildah configuration files
 COPY --chmod=644 buildah-storage.conf /etc/containers/storage.conf
@@ -169,7 +169,6 @@ ARG REV
 LABEL org.opencontainers.image.title="oraclelinux-8"
 LABEL org.opencontainers.image.description="A Oracle Linux 8-slim base image for ION testing, includes all necessary ARC and ION build dependencies."
 LABEL org.opencontainers.image.authors="Nate Richard (nrichard@jpl.nasa.gov)"
-LABEL org.opencontainers.image.version="1.0.0"
 LABEL org.opencontainers.image.created=$BUILD_DATE
 LABEL org.opencontainers.image.revision=$REV
 
@@ -178,12 +177,6 @@ ENV PATH="${PATH}:${HOME}/.local/bin/"
 ENV ImageOS=oraclelinux-8
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 # Buildah configuration
-# Buildah configuration for root user
-ENV BUILDAH_ISOLATION=chroot
-ENV STORAGE_DRIVER=vfs
-ENV STORAGE_ROOT=/var/lib/containers/storage
-ENV RUNROOT=/run/containers
-# Buildah configuration for root user
 ENV BUILDAH_ISOLATION=chroot
 ENV STORAGE_DRIVER=vfs
 ENV STORAGE_ROOT=/var/lib/containers/storage

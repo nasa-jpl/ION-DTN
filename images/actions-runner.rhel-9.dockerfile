@@ -44,6 +44,7 @@ RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.n
     slirp4netns \
     hostname \
     iproute \
+    tcpdump \
     # May not be necessary but was used in testing to reliable build & leaving in
     && dnf reinstall -y shadow-utils \
     && dnf clean all
@@ -57,16 +58,6 @@ WORKDIR /mbedtls-2.28.10
 RUN sed -i 's|//#define MBEDTLS_NIST_KW_C|#define MBEDTLS_NIST_KW_C|' include/mbedtls/config.h && make no_test SHARED=1 && make install
 
 WORKDIR /
-
-# Build valgrind from source
-RUN curl -fLo valgrind-3.24.0.tar.bz2 https://sourceware.org/pub/valgrind/valgrind-3.24.0.tar.bz2 \
-    && tar xjf valgrind-3.24.0.tar.bz2 \
-    && cd valgrind-3.24.0 \
-    && ./configure \
-    && make -j$(nproc) \
-    && make install \
-    && cd .. \
-    && rm -rf valgrind-3.24.0 valgrind-3.24.0.tar.bz2
 
 # Clean up bzip2 now that we are done extracting tar.bz2 archives
 RUN rm -rf mbedtls-2.28.10/ mbedtls-2.28.10.tar.bz2 && dnf remove -y bzip2 && dnf clean all
@@ -156,10 +147,10 @@ COPY actions-runner-controller/runner/hooks /etc/arc/hooks/
 RUN mkdir -p /home/runner/.config/containers \
     && mkdir -p /etc/containers \
     && mkdir -p /home/runner/.local/share/containers/storage \
-    && mkdir -p /run/user/1001/containers \
+    && mkdir -p /run/user/$RUNNER_USER_UID/containers \
     && chown -R runner:runner /home/runner/.config \
     && chown -R runner:runner /home/runner/.local \
-    && chown -R runner:runner /run/user/1001
+    && chown -R runner:runner /run/user/$RUNNER_USER_UID
 
 # Copy buildah configuration files
 COPY --chmod=644 buildah-storage.conf /etc/containers/storage.conf
@@ -176,7 +167,6 @@ ARG REV
 LABEL org.opencontainers.image.title="rhel-9"
 LABEL org.opencontainers.image.description="A RHEL 9 ubi-init base image for ION testing, includes all necessary ARC and ION build dependencies."
 LABEL org.opencontainers.image.authors="Nate Richard (nrichard@jpl.nasa.gov)"
-LABEL org.opencontainers.image.version="1.0.0"
 LABEL org.opencontainers.image.created="${BUILD_DATE}"
 LABEL org.opencontainers.image.revision="${REV}"
 
@@ -185,11 +175,6 @@ ENV PATH="${PATH}:${HOME}/.local/bin/"
 ENV ImageOS=rhel-9
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 # Buildah configuration
-# Buildah configuration for root user
-ENV BUILDAH_ISOLATION=chroot
-ENV STORAGE_DRIVER=vfs
-ENV STORAGE_ROOT=/var/lib/containers/storage
-ENV RUNROOT=/run/containers
 # Buildah configuration for root user
 ENV BUILDAH_ISOLATION=chroot
 ENV STORAGE_DRIVER=vfs

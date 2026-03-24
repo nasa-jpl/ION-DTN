@@ -143,7 +143,6 @@ ARG REV
 LABEL org.opencontainers.image.title="ubuntu-20"
 LABEL org.opencontainers.image.description="A Ubuntu 20.04 base image for ION testing, includes all necessary ARC and ION build dependencies."
 LABEL org.opencontainers.image.authors="Nate Richard (nrichard@jpl.nasa.gov)"
-LABEL org.opencontainers.image.version="1.0.0"
 LABEL org.opencontainers.image.created="${BUILD_DATE}"
 LABEL org.opencontainers.image.revision="${REV}"
 

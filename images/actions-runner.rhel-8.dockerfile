@@ -60,16 +60,6 @@ RUN sed -i 's|//#define MBEDTLS_NIST_KW_C|#define MBEDTLS_NIST_KW_C|' include/mb
 
 WORKDIR /
 
-# Build valgrind from source
-RUN curl -fLo valgrind-3.24.0.tar.bz2 https://sourceware.org/pub/valgrind/valgrind-3.24.0.tar.bz2 \
-    && tar xjf valgrind-3.24.0.tar.bz2 \
-    && cd valgrind-3.24.0 \
-    && ./configure \
-    && make -j$(nproc) \
-    && make install \
-    && cd .. \
-    && rm -rf valgrind-3.24.0 valgrind-3.24.0.tar.bz2
-
 # Clean up bzip2 now that we are done extracting tar.bz2 archives
 RUN rm -rf mbedtls-2.28.10/ mbedtls-2.28.10.tar.bz2 && dnf remove -y bzip2 && dnf clean all
 
@@ -154,16 +144,8 @@ COPY actions-runner-controller/runner/docker-shim.sh /usr/local/bin/docker
 # Configure hooks folder structure.
 COPY actions-runner-controller/runner/hooks /etc/arc/hooks/
 
-# Configure buildah for rootless operation
-RUN mkdir -p /home/runner/.config/containers \
-    && mkdir -p /etc/containers \
-    && mkdir -p /home/runner/.local/share/containers/storage \
-    && mkdir -p /run/user/1001/containers \
-    && chown -R runner:runner /home/runner/.config \
-    && chown -R runner:runner /home/runner/.local \
-    && chown -R runner:runner /run/user/1001
-
 # Copy buildah configuration files
+RUN mkdir -p /etc/containers
 COPY --chmod=644 buildah-storage.conf /etc/containers/storage.conf
 COPY --chmod=644 buildah-registries.conf /etc/containers/registries.conf
 COPY --chmod=644 buildah-policy.json /etc/containers/policy.json
@@ -178,7 +160,6 @@ ARG REV
 LABEL org.opencontainers.image.title="rhel-8"
 LABEL org.opencontainers.image.description="A RHEL 8 ubi-init base image for ION testing, includes all necessary ARC and ION build dependencies."
 LABEL org.opencontainers.image.authors="Nate Richard (nrichard@jpl.nasa.gov)"
-LABEL org.opencontainers.image.version="1.0.0"
 LABEL org.opencontainers.image.created="${BUILD_DATE}"
 LABEL org.opencontainers.image.revision="${REV}"
 
