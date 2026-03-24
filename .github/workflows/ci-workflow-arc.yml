@@ -315,6 +315,11 @@ jobs:
             exit $TEST_STATUS
           fi
 
+      - name: Error Message for Cache Failure
+        if: ${{ steps.cache-restore.outputs.cache-hit != 'true' }}
+        run: |
+          echo "❌ Error fetching cache on runner ${{ matrix.runner }} batch ${{ matrix.testchunk.batch }}" >> $GITHUB_STEP_SUMMARY
+
       - name: Display Progress
         if: ${{ always() }}
         run: |
