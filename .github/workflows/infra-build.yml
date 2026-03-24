@@ -6,6 +6,69 @@ on:
     paths:
       - "images/**"
   workflow_dispatch:
+    inputs:
+      runner_u20:
+        description: "Build Ubuntu 20.04 (arc-runner-set-u20)"
+        required: false
+        type: boolean
+        default: true
+      runner_u22:
+        description: "Build Ubuntu 22.04 (arc-runner-set-u22)"
+        required: false
+        type: boolean
+        default: true
+      runner_ol8:
+        description: "Build Oracle Linux 8 (arc-runner-set-ol8)"
+        required: false
+        type: boolean
+        default: true
+      runner_ol9:
+        description: "Build Oracle Linux 9 (arc-runner-set-ol9)"
+        required: false
+        type: boolean
+        default: true
+      runner_rhel8:
+        description: "Build RHEL 8 (arc-runner-set-rhel8)"
+        required: false
+        type: boolean
+        default: true
+      runner_rhel9:
+        description: "Build RHEL 9 (arc-runner-set-rhel9)"
+        required: false
+        type: boolean
+        default: true
+  workflow_call:
+    inputs:
+      runner_u20:
+        description: "Build Ubuntu 20.04 (arc-runner-set-u20)"
+        required: false
+        type: boolean
+        default: true
+      runner_u22:
+        description: "Build Ubuntu 22.04 (arc-runner-set-u22)"
+        required: false
+        type: boolean
+        default: true
+      runner_ol8:
+        description: "Build Oracle Linux 8 (arc-runner-set-ol8)"
+        required: false
+        type: boolean
+        default: true
+      runner_ol9:
+        description: "Build Oracle Linux 9 (arc-runner-set-ol9)"
+        required: false
+        type: boolean
+        default: true
+      runner_rhel8:
+        description: "Build RHEL 8 (arc-runner-set-rhel8)"
+        required: false
+        type: boolean
+        default: true
+      runner_rhel9:
+        description: "Build RHEL 9 (arc-runner-set-rhel9)"
+        required: false
+        type: boolean
+        default: true
 
 env:
   REGISTRY_ADDRESS: ${{ secrets.REGISTRY_ADDRESS }}
@@ -14,14 +77,39 @@ env:
   XDG_RUNTIME_DIR: /run/user/1001
 
 jobs:
+  setup:
+    runs-on: arc-runner-set-u22
+    outputs:
+      matrix: ${{ steps.build-matrix.outputs.matrix }}
+    steps:
+      - name: Build OS Matrix
+        id: build-matrix
+        run: |
+          # Use bash string manipulation to build the array (avoids needing jq)
+          MATRIX="["
+          if [ "${{ inputs.runner_u20 != false }}" == "true" ]; then MATRIX="$MATRIX\"ubuntu-20\","; fi
+          if [ "${{ inputs.runner_u22 != false }}" == "true" ]; then MATRIX="$MATRIX\"ubuntu-22\","; fi
+          if [ "${{ inputs.runner_ol8 != false }}" == "true" ]; then MATRIX="$MATRIX\"oraclelinux-8\","; fi
+          if [ "${{ inputs.runner_ol9 != false }}" == "true" ]; then MATRIX="$MATRIX\"oraclelinux-9\","; fi
+
+          # Strip the trailing comma and close the array bracket
+          MATRIX="${MATRIX%,}]"
+
+          # If nothing was selected, output an empty valid JSON array
+          if [ "$MATRIX" == "]" ]; then MATRIX="[]"; fi
+
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+
   build-and-push-ol8:
     name: Build and Push ${{ matrix.os_image }}
+    needs: setup
+    if: ${{ needs.setup.outputs.matrix != '[]' }}
     runs-on: arc-runner-set-ol8
 
     strategy:
       fail-fast: false
       matrix:
-        os_image: [ubuntu-20, ubuntu-22, oraclelinux-8, oraclelinux-9]
+        os_image: ${{ fromJSON(needs.setup.outputs.matrix) }}
 
     steps:
       - name: Checkout repository
@@ -54,6 +142,7 @@ jobs:
   build-and-push-rhel8:
     name: Build and Push RHEL 8
     runs-on: arc-runner-set-rhel8
+    if: ${{ inputs.runner_rhel8 != false }}
 
     steps:
       - name: Checkout repository
@@ -86,6 +175,7 @@ jobs:
   build-and-push-rhel9:
     name: Build and Push RHEL 9
     runs-on: arc-runner-set-rhel9
+    if: ${{ inputs.runner_rhel9 != false }}
 
     steps:
       - name: Checkout repository
