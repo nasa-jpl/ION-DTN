@@ -1243,10 +1243,6 @@ void ui_send_file(agent_t* agent, uint8_t enter_ts)
 	int success;
 
 	CHKVOID(agent);
-#ifdef mingw
-	AMP_DEBUG_ERR("ui_send_file", "Is not currently available for this platform", NULL);
-	return;
-#else
 	ts = (enter_ts) ? ui_input_uint("Control Timestamp") : 0;
 
 
@@ -1350,7 +1346,6 @@ void ui_send_file(agent_t* agent, uint8_t enter_ts)
 	blob_release(contents, 1);
 
 	AMP_DEBUG_EXIT("ui_send_file","->.", NULL);
-#endif
 }
 
 

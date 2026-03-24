@@ -142,12 +142,10 @@ static void	*udpMamsReceiver(void *parm)
 	fd = (saddr) (tsif->sap);
 	buffer = MTAKE(UDPTS_MAX_MSG_LEN);
 	CHKNULL(buffer);
-#ifndef mingw
 	sigset_t		signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
-#endif
 	while (1)
 	{
 		fromSize = sizeof fromAddr;
@@ -282,12 +280,10 @@ static void	*udpAmsReceiver(void *parm)
 	amsSap = tsif->amsSap;
 	buffer = MTAKE(UDPTS_MAX_MSG_LEN);
 	CHKNULL(buffer);
-#ifndef mingw
 	sigset_t		signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
-#endif
 	while (1)
 	{
 		fromSize = sizeof fromAddr;

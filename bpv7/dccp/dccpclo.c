@@ -178,9 +178,7 @@ void* send_keepalives(void* param)
 	int 		time;
 
 	iblock(SIGTERM);
-#ifndef mingw
 	isignal(SIGPIPE, itcp_handleConnectionLoss);
-#endif
 
 	memset(keepalive,0,4);
 	while (!itp->done)
@@ -406,10 +404,7 @@ int	main(int argc, char *argv[])
 	/*	Set up signal handling. SIGTERM is shutdown signal.	*/
 	oK(dccpcloSemaphore(&(vduct->semaphore)));
 	isignal(SIGTERM, shutDownClo);
-#ifndef mingw
 	isignal(SIGPIPE, itcp_handleConnectionLoss);
-#endif
-
 
 	/*	Set up idle thread 					*/
 	itp.active = 0;

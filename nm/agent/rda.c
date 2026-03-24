@@ -637,9 +637,7 @@ void* rda_thread(void* arg)
 	/* Cast the generic void* argument back to the real type we need. */
 	int *running = (int *) arg;
 
-#ifndef mingw
 	AMP_DEBUG_ENTRY("rda_thread", "(0x%X)", (unsigned long) pthread_self()); //threadId);
-#endif
 
 	AMP_DEBUG_INFO("rda_thread", "Running Remote Data Aggregator Thread.", NULL);
 

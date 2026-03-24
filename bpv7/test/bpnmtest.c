@@ -21,9 +21,7 @@ int	main(void)
 	NmbpNode	nodeBuf;
 	NmbpDisposition	dispBuf;
 
-#ifndef mingw
 	setlinebuf(stdout);
-#endif
 	if (bp_attach() < 0)
 	{
 		putErrmsg("Can't attach to BP.", NULL);

@@ -14,8 +14,6 @@
 #include <limits.h>
 #include <getopt.h>     /* getopt */
 
-/*	Note: bping originally used strtok_r to parse responses,
-	but neither strtok_r nor strtok_s are provided by MinGW.	*/
 
 const char usage[] =
   "Usage: bping [options] <source EID> <destination EID> [report-to EID]\n\n"

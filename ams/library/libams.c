@@ -3641,12 +3641,10 @@ static void	*mamsMain(void *parm)
 	AmsEvt		*evt;
 	int		result;
 	int		lostRegistrar;
-#ifndef mingw
 	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
-#endif
 
 	/* Flag used to enable a safe, allocation-free shutdown sequence. */
 	sap->terminating = 0;
@@ -3884,12 +3882,10 @@ static void	*heartbeatMain(void *parm)
 		return NULL;
 	}
 
-#ifndef mingw
 	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
-#endif
 	while (1)
 	{
 		getCurrentTime(&workTime);
@@ -5882,12 +5878,10 @@ static void	*eventMgrMain(void *parm)
 	int				code;
 	int				dataLength;
 	char			*data;
-#ifndef mingw
 	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
-#endif
 	sap->eventMgr = sap->authorizedEventMgr = pthread_self();
 	while (pthread_equal(sap->eventMgr, sap->authorizedEventMgr))
 	{

@@ -155,18 +155,6 @@ case $host_os in
       echo "Build 32-bit Linux specific platform code."
     fi
     ;;
-  mingw*|cygwin*)
-    AC_DEFINE([mingw],[1],[Build Mingw specific platform code.])
-    AC_DEFINE([new_mingw],[1],[Build Mingw/Msys2 specific platform code.])
-    PLATFORM="mingw"
-    AM_CFLAGS="$AM_CFLAGS -Dmingw"
-    PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dmingw"
-    build_windows=yes
-    ;;
-  interix*)
-    AC_DEFINE([interix],[1],[Build Interix specific platform code.])
-    PLATFORM="iterix"
-    ;;
   *bsd*)
     AC_DEFINE([freebsd],[1],[Build Freebsd specific platform code.])
     PLATFORM="bsd"
@@ -909,7 +897,6 @@ AC_SUBST([PKG_CONFIG_CFLAGS])
 AC_SUBST([CRYPTO_LIBS],"$CRYPTO_LIBS")
 AM_CONDITIONAL([LINUX_BUILD], [test "x$PLATFORM" = "xlinux"])
 AM_CONDITIONAL([SOLARIS_STUDIO_CC], [test "$BUILD_32_ON_64_SOLARIS" = "1"])
-AM_CONDITIONAL([WINDOWS], [test "$build_windows" = "yes"])
 AM_CONDITIONAL([SOLARIS], [test "$build_solaris" = "yes"])
 
 #Output!

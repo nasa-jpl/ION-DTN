@@ -73,30 +73,22 @@ typedef struct
 static int	_amsdRunning(int *state)
 {
 	static int		running = 0;
-#ifndef mingw
 	static pthread_t	amsdThread;
-#endif
 
 	if (state)
 	{
 		if (*state == 0)	/*	Stopping.		*/
 		{
 			running = 0;
-#ifdef mingw
-			sm_Wakeup(GetCurrentProcessId());
-#else
 			if (pthread_equal(amsdThread, pthread_self()) == 0)
 			{
 				pthread_kill(amsdThread, SIGINT);
 			}
-#endif
 		}
 		else			/*	Starting.		*/
 		{
 			running = 1;
-#ifndef mingw
 			amsdThread = pthread_self();
-#endif
 		}
 	}
 
@@ -161,12 +153,10 @@ static void	*csHeartbeat(void *parm)
 		putSysErrmsg("Can't start heartbeat, cond init failed", NULL);
 		return NULL;
 	}
-#ifndef mingw
 	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
-#endif
 	while (1)
 	{
 		lockMib();
@@ -547,12 +537,10 @@ static void	*csMain(void *parm)
 	AmsEvt	*evt;
 
 	CHKNULL(csState);
-#ifndef mingw
 	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
-#endif
 	csState->csRunning = 1;
 	writeMemo("[i] Configuration server is running.");
 	while (1)
@@ -1034,12 +1022,10 @@ static void	*rsHeartbeat(void *parm)
 		putSysErrmsg("Can't start heartbeat, cond init failed", NULL);
 		return NULL;
 	}
-#ifndef mingw
 	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
-#endif
 	while (1)		/*	Every 10 seconds.		*/
 	{
 		lockMib();
@@ -1751,12 +1737,10 @@ static void	*rsMain(void *parm)
 	int	result;
 
 	CHKNULL(rsState);
-#ifndef mingw
 	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
-#endif
 	rsState->rsRunning = 1;
 	writeMemo("[i] Registrar is running.");
 	while (1)
@@ -1968,12 +1952,10 @@ static void	*dmMain(void *parm)
 	int		stop = 0;
 
 	CHKNULL(dmState);
-#ifndef mingw
 	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
-#endif
 	dmState->dmRunning = 1;
 	if (ams_register(dmState->mibSource, NULL, dmState->dmAppName,
 			dmState->dmAuthName, dmState->dmUnitName, "amsd",
@@ -2211,11 +2193,7 @@ PUTS("...amsd starting main loop...");
 		}
 
 		unlockMib();
-#ifdef mingw
-		sm_WaitForWakeup(N5_INTERVAL);
-#else
 		snooze(N5_INTERVAL);
-#endif
 	}
 }
 

@@ -24,7 +24,6 @@ static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 	return attendant;
 }
 
-#ifndef mingw
 static void	handleStopThread(int signum)
 {
 	/* Tell the compiler that we are not using 'signum' */
@@ -32,7 +31,7 @@ static void	handleStopThread(int signum)
 
 	isignal(SIGINT, handleStopThread);
 }
-#endif
+
 static void	handleStopStcpcli(int signum)
 {
 	/* Tell the compiler that we are not using 'signum' */
@@ -280,11 +279,7 @@ static void	*spawnReceivers(void *parm)
 
 		parms = (ReceiverThreadParms *) lyst_data(elt);
 		thread = parms->thread;
-//#ifdef mingw
 		shutdown(parms->bundleSocket, SD_BOTH);
-//#else
-//		pthread_kill(thread, SIGINT);
-//#endif
 		pthread_mutex_unlock(&mutex);
 		pthread_join(thread, NULL);
 	}
@@ -408,9 +403,7 @@ int	main(int argc, char *argv[])
 	/*	Set up signal handling: SIGTERM is shutdown signal.	*/
 
 	ionNoteMainThread("stcpcli");
-#ifndef mingw
 	isignal(SIGINT, handleStopThread);
-#endif
 	isignal(SIGTERM, handleStopStcpcli);
 
 	/*	Start the access thread.				*/

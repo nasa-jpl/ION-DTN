@@ -41,7 +41,6 @@ For LTS or BETR levels of support, the following operating system/architectures 
   3. Darwin - MacOS 14 (Intel, ARM64)
   4. FreeBSD - FreeBSD 14 (AMD64)
   5. Raspberry Pi OS (ARM64)
-  6. Windows - Windows 7, Windows 10 (AMD64)
 
 ### Support Level Map for Modules and OS
 

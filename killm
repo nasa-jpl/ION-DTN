@@ -44,12 +44,6 @@ if [ "$OSNAME" = "SunOS" ]; then
     PS="/usr/bin/ps"
     PS_ARGS="-fe"
     PROCESS_LIMIT=1
-elif [[ "$OSNAME" == "MINGW"* ]]; then
-    KILLCMD="taskkill /f /im"
-    PS="tasklist"
-    PS_ARGS=""
-    PROCESS_LIMIT=64
-    MINGW="true"
 else
     KILLCMD="killall"
     PS="ps"
@@ -61,28 +55,22 @@ else
     fi
 fi
 
-if [ "$MINGW" != "true" ]; then
-    #echo "Sending TERM to ${IONPROCESSLIST}..."   # (too noisy)
-    echo "Sending TERM to the processes..."
-    echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
+#echo "Sending TERM to ${IONPROCESSLIST}..."   # (too noisy)
+echo "Sending TERM to the processes..."
+echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
 
-    # DEBUG: show killall command error
-    #echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD
+# DEBUG: show killall command error
+#echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD
 
-    sleep 2
+sleep 2
 
-    echo "Sending KILL to the processes..."
-    echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL 2> /dev/null
+echo "Sending KILL to the processes..."
+echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL 2> /dev/null
 
-    # DEBUG: show killall command error
-    #echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL
+# DEBUG: show killall command error
+#echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL
 
-    sleep 2
-else
-    # note that the TERM signal isn't supported in Windows, so processes are only killed. This also must be done via powershell
-    echo "Killing processes using PowerShell..."
-    powershell -Command "foreach (\$proc in '${IONPROCESSLIST}'.Split(' ')) { \$proc = \$proc.Trim(); taskkill /F /IM \"\$proc.exe\" }" 2> /dev/null
-fi
+sleep 2
 
 
 echo "Checking if all ION processes ended..."
@@ -109,10 +97,7 @@ rm -f ${PSFILE}
 
 echo "Deleting shared memory to remove SDR..."
 
-if [ "$MINGW" == "true" ]; then
-    # for 2024 redesign of Windows MSYS
-    powershell remove_win_shmem.ps1
-elif [[ -z "$OS_VERS" ]]; then
+if [[ -z "$OS_VERS" ]]; then
     # For mac >=10.5 and Linux
 
     # DEBUG: show ipcs before ipcrm

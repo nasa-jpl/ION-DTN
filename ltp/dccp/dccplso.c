@@ -36,12 +36,10 @@ static void	shutDownLso(int signum)
 	sm_SemEnd(dccplsoSemaphore(NULL));
 }
 
-#ifndef mingw
 void	handleConnectionLoss(int signum)
 {
 	isignal(SIGPIPE, handleConnectionLoss);
 }
-#endif
 
 
 /*	*	*	General Functions	*	*	*	*/
@@ -180,9 +178,7 @@ void* send_keepalives(void* param)
 	int 	time;
 
 	iblock(SIGTERM);
-#ifndef mingw
 	isignal(SIGPIPE, handleConnectionLoss);
-#endif
 
 	memset(keepalive,0,4);
 	while (!itp->done)
@@ -362,9 +358,7 @@ int	main(int argc, char *argv[])
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 	oK(dccplsoSemaphore(&(vspan->segSemaphore)));
 	isignal(SIGTERM, shutDownLso);
-#ifndef mingw
 	isignal(SIGPIPE, handleConnectionLoss);
-#endif
 
 	/*	Set up idle thread 					*/
 	itp.active = 0;

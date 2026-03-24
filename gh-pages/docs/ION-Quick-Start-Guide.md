@@ -14,7 +14,6 @@
       - [Method 1: Using Development Makefiles](#method-1-using-development-makefiles)
         - [Build Individual Packages](#build-individual-packages)
       - [Method 2: Using the ion-core Package](#method-2-using-the-ion-core-package)
-  - [Windows 7 \& Windows 10](#windows-7--windows-10)
   - [Running ION](#running-ion)
     - [Check Installed BP and ION versions](#check-installed-bp-and-ion-versions)
     - [Try the 'bping' test](#try-the-bping-test)
@@ -282,14 +281,6 @@ All Makefiles are for gmake; on a FreeBSD platform, be sure to install gmake bef
 #### Method 2: Using the ion-core Package
 
 The `ion-core` package contains only a subset of essential BP functionalities - particularly those features that are more stable and have been deployed for operations previously. The `ion-core` package can be [downloaded here](https://github.com/nasa-jpl/ion-core). Please follow the `README.md` file there for installation instructions.
-
-## Windows 7 & Windows 10
-
-To install ION 4.1.2 or earlier on Windows, please download the Windows installer from the Source Forge [archive](https://sourceforge.net/projects/ion-dtn/).
-
-For ION 4.1.3, no Windows installer will be provided. For more information about installation instructions on Windows 7, see [Windows7-Build.pdf](../../Windows7-Build.pdf)
-
-For ION 4.1.3s, a [Windows 10 prototype](./Windows10-Installation.md) automake build system is made available for experimentation.
 
 ## Running ION
 

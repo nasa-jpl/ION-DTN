@@ -511,11 +511,7 @@ terminating.");
 		}
 		else	/*	Currently connected.			*/
 		{
-#ifdef mingw
-			shutdown(parms.recvSocket, SD_BOTH);
-#else
 			pthread_kill(rxThread, SIGTERM);
-#endif
 		}
 
 		pthread_join(rxThread, NULL);

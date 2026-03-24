@@ -68,13 +68,8 @@
 #include <ctype.h>
 #include <time.h>
 
-#ifdef _WIN32
-#include <winsock2.h>
-#include <Windows.h>
-#else
 #include <arpa/inet.h>
 #include <netinet/in.h>  //htonl, ntohl
-#endif
 
 
 /******************************************************************************/

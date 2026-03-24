@@ -27,18 +27,6 @@ static int	_amslog_running(int *value)
 	return running;
 }
 
-#ifdef mingw
-static void	killMainThread()
-{
-	int	stop = 0;
-
-	oK(_amslog_running(&stop));
-
-	/*	Must make sure fgets is interrupted.			*/
-
-	fclose(stdin);
-}
-#else
 static pthread_t	_mainThread(void)
 {
 	static pthread_t	mainThread;
@@ -67,7 +55,6 @@ static void	killMainThread(void)
 		pthread_kill(mainThread, SIGINT);
 	}
 }
-#endif
 
 static void	handleQuit(int signum)
 {
@@ -251,9 +238,7 @@ messages to stdout.\n", stderr);
 		return 0;
 	}
 
-#ifndef mingw
 	oK(_mainThread());
-#endif
 	oK(_amslog_running(&start));
 	isignal(SIGINT, handleQuit);
 	setLogger(logToStderr);

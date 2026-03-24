@@ -524,7 +524,7 @@ that are not concealed within the POSIX abstractions are mostly
 encapsulated in two small modules of platform-sensitive ION code. The
 bulk of the ION software runs, without any source code modification
 whatsoever, equally well in Linux™ (Red Hat®, Fedora™, and Ubuntu™, so
-far), FreeBSD®, Solaris® 9, Microsoft Windows (the MinGW environment),
+far), FreeBSD®, Solaris® 9,
 OS/X®, VxWorks® 5.4, and RTEMS™, on both 32-bit and 64-bit processors.
 Developers may compile and test ION modules in whatever environment they
 find most convenient.
@@ -767,7 +767,7 @@ enables ICI to present a single, consistent programming interface to
 those common operating system services that multiple ION modules
 utilize. For example, the platform system implements a standard
 semaphore abstraction that may invisibly be mapped to underlying POSIX
-semaphores, SVR4 IPC semaphores, Windows Events, or VxWorks semaphores,
+semaphores, SVR4 IPC semaphores, or VxWorks semaphores,
 depending on which operating system the package is compiled for. The
 platform system also implements a standard shared-memory abstraction,
 enabling software running on operating systems both with and without
@@ -2744,16 +2744,15 @@ mutex.
 
 This option causes ION to be built using svr4 shared memory as the
 pervasive shared-memory management mechanism. svr4 shared memory is
-selected by default when ION is built for any platform other than MinGW,
-VxWorks 5.4, or RTEMS. (For these latter operating systems all memory is
+selected by default when ION is built for any platform other than
+VxWorks 5.4 or RTEMS. (For these latter operating systems all memory is
 shared anyway, due to the absence of a protected-memory mode.)
 
 `POSIX_NAMED_SEMAPHORES`
 
 Starting with version 4.1.3, POSIX named semaphores is selected by default
-when ION is built for any platform other than MinGW (for which Windows
-event objects are used), VxWorks 5.4 (for which VxWorks native
-semaphores are the default choice), or RTEMS (for which POSIX semaphores
+when ION is built for any platform other than VxWorks 5.4 (for which VxWorks native
+semaphores are the default choice) or RTEMS (for which POSIX semaphores
 are the default choice).
 
 `POSIX_SEMAPHORES`

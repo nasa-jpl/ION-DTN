@@ -20,10 +20,6 @@
 
 #define IPHDR_SIZE	(sizeof(struct iphdr) + sizeof(struct udphdr))
 
-#elif defined(mingw)
-
-#define IPHDR_SIZE	(20 + 8)
-
 #else
 
 #include "netinet/ip_var.h"

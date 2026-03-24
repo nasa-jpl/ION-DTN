@@ -31,5 +31,4 @@
 * [BPSec Security Policy User Manual (ION 4.0.2, archive)](./bpsec/Security_Policy_User_Manual-ION-4.0.2.pdf)
 * [BPSec Security Policy User Manual (ION 4.1.2)](./bpsec/Security_Policy_User_Manual-ION-4.1.2.pdf)
 * [BpSec release notes for ION 4.1.2](./bpsec/IOS_4.1.2_BPSec_release_notes.pdf)
-* [Building ION from source on Windows.pdf](./windows/Building%20ION%20from%20source%20on%20Windows.pdf)
 * [Solar System Internet Architecture and Governance](https://spi.elliott.gwu.edu/2023/09/27/spi-director-dr-scott-pace-co-authors-report-on-solar-system-internet-architecture-and-governance/#:~:text=IPNSIG's%20mission%20is%20to%20realize,along%20with%20the%20key%20technologies)

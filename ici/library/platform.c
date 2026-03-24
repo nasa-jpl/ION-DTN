@@ -32,8 +32,6 @@ void	icopy(char *fromPath, char *toPath)
 	argv[0] = fromPath;
 	argv[1] = toPath;
 	oK(rtems_shell_main_cp(argc, argv));
-#elif defined (mingw)
-	oK(CopyFile(fromPath, toPath, 0));
 #else
 	int	pid = fork();
 	int	status;
@@ -384,7 +382,7 @@ int	strncasecmp(const char *s1, const char *s2, size_t n)
 
 #endif	/*	End of #if defined VXWORKS				*/
 
-#if defined (darwin) || defined (freebsd) || defined (mingw)
+#if defined (darwin) || defined (freebsd)
 
 void	*memalign(size_t boundary, size_t size)
 {
@@ -614,7 +612,7 @@ void	unlockResource(ResourceLock *rl)
 
 #endif	/*	end #ifdef _MULTITHREADED				*/
 
-#if (!defined(__linux__) && !defined (freebsd) && !defined (darwin) && !defined (RTEMS) && !defined (mingw))
+#if (!defined(__linux__) && !defined (freebsd) && !defined (darwin) && !defined (RTEMS))
 /*	These things are defined elsewhere for Linux-like op systems.	*/
 
 #ifdef solaris
@@ -647,30 +645,12 @@ char	*getNameOfUser(char *buffer)
 #endif
 }
 
-#endif	/*	end #if (!defined(__linux__, freebsd, darwin, RTEMS, mingw))*/
+#endif	/*	end #if (!defined(__linux__, freebsd, darwin, RTEMS))	*/
 
 void	closeOnExec(int fd)
 {
-#ifndef mingw
 	oK(fcntl(fd, F_SETFD, FD_CLOEXEC));
-#endif
 }
-
-#if defined (mingw)
-
-void	snooze(unsigned int seconds)
-{
-	Sleep(seconds * 1000);
-}
-
-void	microsnooze(unsigned int usec)
-{
-	Sleep(usec / 1000);
-}
-
-#endif	/*	end #ifdef mingw					*/
-
-#if (!defined (mingw))			/*	nanosleep is defined.	*/
 
 void	snooze(unsigned int seconds)
 {
@@ -689,8 +669,6 @@ void	microsnooze(unsigned int usec)
 	ts.tv_nsec = (usec % 1000000) * 1000;
 	oK(nanosleep(&ts, NULL));
 }
-
-#endif	/*	end #if (!defined(mingw))				*/
 
 void	getCurrentTime(struct timeval *tvp)
 {
@@ -950,206 +928,6 @@ int	watchSocket(int fd)
 
 #endif	/*	end of #if defined _SVR4				*/
 
-#if (defined mingw)
-
-int	_winsock(int stopping)
-{
-	static int	winsockStarted = 0;
-	static WSADATA	wsaData;
-	WORD		wVersionRequested;
-	int		errcode;
-
-	if (stopping)
-	{
-		if (winsockStarted)
-		{
-			WSACleanup();
-			winsockStarted = 0;
-		}
-
-		return 0;
-	}
-
-	/*	Starting WinSock.					*/
-
-	if (winsockStarted)
-	{
-		return 0;	/*	Already started.		*/
-	}
-
-	wVersionRequested = MAKEWORD(2, 2);
-	errcode = WSAStartup(wVersionRequested, &wsaData);
-	if (errcode != 0)
-	{
-		putErrmsg("Can't start WinSock.", utoa(GetLastError()));
-		return -1;
-	}
-
-	winsockStarted = 1;
-	return 0;
-}
-
-char	*system_error_msg()
-{
-	return strerror(errno);
-}
-
-char	*getNameOfUser(char *buffer)
-{
-	unsigned long	bufsize = 8;
-
-	CHKNULL(buffer);
-	if (GetUserName(buffer, &bufsize))
-	{
-		istrcpy(buffer, "unknown", 8);
-	}
-
-	return buffer;
-}
-
-unsigned int	getInternetAddress(char *hostName)
-{
-	struct hostent	*hostInfo;
-	unsigned int	hostInetAddress;
-
-	CHKZERO(hostName);
-	if (_winsock(0) < 0)
-	{
-		putErrmsg("Can't start WinSock.", NULL);
-		return 0;
-	}
-
-	hostInfo = gethostbyname(hostName);
-	if (hostInfo == NULL)
-	{
-		putSysErrmsg("Can't get host info", hostName);
-		return BAD_HOST_NAME;
-	}
-
-	if (hostInfo->h_length != sizeof hostInetAddress)
-	{
-		putErrmsg("Address length invalid in host info.", hostName);
-		return BAD_HOST_NAME;
-	}
-
-	memcpy((char *) &hostInetAddress, hostInfo->h_addr, 4);
-	return ntohl(hostInetAddress);
-}
-
-char	*getInternetHostName(unsigned int hostNbr, char *buffer)
-{
-	struct hostent	*hostInfo;
-
-	CHKNULL(buffer);
-	if (_winsock(0) < 0)
-	{
-		putErrmsg("Can't start WinSock.", NULL);
-		return 0;
-	}
-
-	hostNbr = htonl(hostNbr);
-	hostInfo = gethostbyaddr((char *) &hostNbr, sizeof hostNbr, AF_INET);
-	if (hostInfo == NULL)
-	{
-		putSysErrmsg("Can't get host info", utoa(hostNbr));
-		return NULL;
-	}
-
-	strncpy(buffer, hostInfo->h_name, MAXHOSTNAMELEN);
-	return buffer;
-}
-
-int	getNameOfHost(char *buffer, int bufferLength)
-{
-	CHKERR(buffer);
-	*buffer = '\0';			/*	Default.		*/
-	CHKERR(bufferLength > 0);
-	if (_winsock(0) < 0)
-	{
-		putErrmsg("Can't start WinSock.", NULL);
-		return 0;
-	}
-
-	return gethostname(buffer, bufferLength);
-}
-
-int	reUseAddress(int fd)
-{
-#ifdef REUSEADDR_UNAVBL
-	return 0;
-#else
-	int	result;
-	int	i = 1;
-
-	if (_winsock(0) < 0)
-	{
-		putErrmsg("Can't start WinSock.", NULL);
-		return 0;
-	}
-
-	result = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *) &i,
-			sizeof i);
-	if (result < 0)
-	{
-		putSysErrmsg("Can't make socket address reusable", NULL);
-	}
-
-	return result;
-#endif
-}
-
-int	makeIoNonBlocking(int fd)
-{
-	int		result = 0;
-	unsigned long	setting = 1;
-
-	if (_winsock(0) < 0)
-	{
-		putErrmsg("Can't start WinSock.", NULL);
-		return 0;
-	}
-
-	if (ioctlsocket(fd, FIONBIO, &setting) == SOCKET_ERROR)
-	{
-		putSysErrmsg("Can't make IO non-blocking", NULL);
-		result = -1;
-	}
-
-	return result;
-}
-
-int	watchSocket(int fd)
-{
-	int		result;
-	struct linger	lctrl = {0, 0};
-	int		kctrl = 1;
-
-	if (_winsock(0) < 0)
-	{
-		putErrmsg("Can't start WinSock.", NULL);
-		return 0;
-	}
-
-	result = setsockopt(fd, SOL_SOCKET, SO_LINGER, (void *) &lctrl,
-			sizeof lctrl);
-	if (result < 0)
-	{
-		putSysErrmsg("Can't set linger on socket", NULL);
-		return result;
-	}
-
-	result = setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, (void *) &kctrl,
-			sizeof kctrl);
-	if (result < 0)
-	{
-		putSysErrmsg("Can't set keepalive on socket", NULL);
-	}
-
-	return result;
-}
-
-#endif	/*	end of #if defined (mingw)				*/
-
 #if (defined(__linux__) || defined (freebsd) || defined (darwin) || defined (RTEMS))
 
 char	*system_error_msg(void)
@@ -1320,145 +1098,6 @@ int	watchSocket(int fd)
 }
 
 #endif	/*	end #if (defined(__linux__, freebsd, darwin, RTEMS))	*/
-
-/**********************	WinSock adaptations *****************************/
-
-#ifdef mingw
-int	iopen(const char *fileName, int flags, int pmode)
-{
-	CHKERR(fileName);
-	flags |= _O_BINARY;
-	return _open(fileName, flags, pmode);
-}
-
-int	isend(int sockfd, char *buf, int len, int flags)
-{
-	int	length;
-	int	errcode;
-
-	CHKERR(len >= 0);
-	CHKERR(buf);
-	length = send(sockfd, buf, len, flags);
-	if (length == SOCKET_ERROR)
-	{
-		length = -1;
-		errcode = WSAGetLastError();
-		switch (errcode)
-		{
-		case WSAECONNRESET:
-		case WSAENETRESET:
-		case WSAECONNABORTED:
-		case WSAETIMEDOUT:
-		case WSAEINTR:
-			errno = EPIPE;	/*	Connection closed.	*/
-			break;
-
-		default:
-			writeMemoNote("[?] WinSock send error",
-					itoa(errcode));
-		}
-	}
-	else
-	{
-		if (length == 0)
-		{
-			length = -1;
-			errno = EPIPE;	/*	Connection closed.	*/
-		}
-	}
-
-	return length;
-}
-
-int	irecv(int sockfd, char *buf, int len, int flags)
-{
-	int	length;
-	int	errcode;
-
-	CHKERR(len >= 0);
-	CHKERR(buf);
-	length = recv(sockfd, buf, len, flags);
-	if (length < 0)
-	{
-		errcode = WSAGetLastError();
-		switch (errcode)
-		{
-		case WSAECONNRESET:
-		case WSAENETRESET:
-		case WSAECONNABORTED:
-		case WSAETIMEDOUT:
-			errno = ECONNRESET;
-			length = 0;	/*	Connection closed.	*/
-			break;
-
-		case WSAEINTR:
-		case WSAESHUTDOWN:
-			errno = EINTR;	/*	Shut down socket.	*/
-			length = 0;
-			break;
-
-		default:
-			writeMemoNote("[?] WinSock recv error",
-					itoa(errcode));
-		}
-	}
-
-	return length;
-}
-
-int	isendto(int sockfd, char *buf, int len, int flags,
-		const struct sockaddr *to, int tolen)
-{
-	CHKERR(len >= 0);
-	CHKERR(buf);
-	CHKERR(to);
-	return sendto(sockfd, buf, len, flags, to, tolen);
-}
-
-int	irecvfrom(int sockfd, char *buf, int len, int flags,
-		struct sockaddr *from, int *fromlen)
-{
-	int	length;
-	int	errcode;
-
-	CHKERR(len >= 0);
-	CHKERR(buf);
-	CHKERR(from);
-	CHKERR(fromlen);
-	while (1)	/*	Continue until valid result.		*/
-	{
-		length = recvfrom(sockfd, buf, len, flags, from, fromlen);
-		if (length < 0)
-		{
-			errcode = WSAGetLastError();
-			switch (errcode)
-			{
-			case WSAECONNRESET:
-			case WSAENETRESET:
-			case WSAECONNABORTED:
-			case WSAETIMEDOUT:
-				errno = ECONNRESET;
-				length = 0;	/*	Closed.		*/
-				break;
-
-			case WSAEINTR:
-			case WSAESHUTDOWN:
-				errno = EINTR;	/*	Shut down.	*/
-				length = 0;
-				break;
-
-			default:
-				writeMemoNote("[?] WinSock recvfrom error",
-						itoa(errcode));
-			}
-		}
-
-		break;
-	}
-
-	return length;
-}
-#endif
 
 /******************* platform-independent functions *********************/
 
@@ -2423,7 +2062,7 @@ int	fullyQualified(char *fileName)
 
 	return 0;
 
-#elif (defined(mingw) || defined(DOS_PATH_DELIMITER))
+#elif defined(DOS_PATH_DELIMITER)
 	if (isalpha(*fileName) && *(fileName + 1) == ':')
 	{
 		return 1;
@@ -3050,15 +2689,6 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 				fmt[fmtLen] = *cursor;
 				fmtLen++;
 				cursor++;
-#ifdef new_mingw
-				if ((*cursor) == 'l')	/*	Vast.	*/
-				{
-					isLongLong = 1;
-					fmt[fmtLen] = *cursor;
-					fmtLen++;
-					cursor++;
-				}
-#else
 				if (LONG_LONG_OKAY)
 				{
 					if (SPACE_ORDER == 3)
@@ -3080,7 +2710,6 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 						}
 					}
 				}
-#endif
 			}
 			else
 			{
@@ -3088,18 +2717,6 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 				&& (*(cursor + 1)) == '6'
 				&& (*(cursor + 2)) == '4')
 				{
-#ifdef mingw
-					isLongLong = 1; /*	Vast.	*/
-					fmt[fmtLen] = *cursor;
-					fmtLen++;
-					cursor++;
-					fmt[fmtLen] = *cursor;
-					fmtLen++;
-					cursor++;
-					fmt[fmtLen] = *cursor;
-					fmtLen++;
-					cursor++;
-#endif
 				}
 			}
 		}
@@ -3446,19 +3063,6 @@ static void	threadSignalHandler(int signbr)
 }
 #endif	/*	end of #ifdef POSIX_TASKS				*/
 
-#ifdef mingw
-void	isignal(int signbr, void (*handler)(int))
-{
-	oK(signal(signbr, handler));
-}
-
-void	iblock(int signbr)
-{
-	oK(signal(signbr, SIG_IGN));	/*	No thread granularity!	*/
-}
-
-#else					/*	Any POSIX O/S.		*/
-
 void	isignal(int signbr, void (*handler)(int))
 {
 	struct sigaction	action;
@@ -3487,7 +3091,6 @@ void	iblock(int signbr)
 	oK(sigaddset(&signals, signbr));
 	oK(pthread_sigmask(SIG_BLOCK, &signals, NULL));
 }
-#endif	/*	end of #ifdef mingw					*/
 
 int	ifopen(const char *fileName, int flags, int pmode)
 {
@@ -3641,14 +3244,12 @@ int	iputs(int fd, char *string)
 
 /*	*	*	Standard TCP functions	*	*	*	*/
 
-#ifndef mingw
 void	itcp_handleConnectionLoss(int signum)
 {
 	/* Parameter intentionally unused. */
 	(void)signum;
 	isignal(SIGPIPE, itcp_handleConnectionLoss);
 }
-#endif
 
 int	itcp_connect(char *socketSpec, unsigned short defaultPort, int *sock)
 {

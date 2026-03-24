@@ -315,10 +315,9 @@ mutex.
 
 This option causes ION to be built using svr4 shared memory as the
 pervasive shared-memory management mechanism. svr4 shared memory is
-selected by default when ION is built for any platform other than MinGW
-(for which File Mapping objects are used), VxWorks 5.4, or RTEMS. (For
-the latter two operating systems all memory is shared anyway, due to the
-absence of a protected-memory mode.)
+selected by default when ION is built for any platform other than
+VxWorks 5.4 or RTEMS. (For the latter two operating systems all memory
+is shared anyway, due to the absence of a protected-memory mode.)
 
 `POSIX1B_SEMAPHORES`
 
@@ -331,10 +330,9 @@ this option enables the default to be overridden.
 
 This option causes ION to be built using svr4 semaphores as the
 pervasive semaphore mechanism. svr4 semaphores are selected by default
-when ION is built for any platform other than MinGW (for which Windows
-event objects are used), VxWorks 5.4 (for which VxWorks native
-semaphores are the default choice), or RTEMS (for which POSIX semaphores
-are the default choice).
+when ION is built for any platform other than VxWorks 5.4 (for which
+VxWorks native semaphores are the default choice) or RTEMS (for which
+POSIX semaphores are the default choice).
 
 `SM_SEMBASEKEY=0x*XXXX*`
 
@@ -363,9 +361,6 @@ operating system can support; the maximum possible value is SEMMNI x
 SEMMSL. It overrides the default value, which is 32000. (Changing this
 value typically entails rebuilding the O/S kernel.)
 
-Note that this option is also supported in the MinGW (Windows) port of
-ION, with the same default value; changing this value does _not_
-involve an operating system modification.
 
 `ION_NO_DNS`
 

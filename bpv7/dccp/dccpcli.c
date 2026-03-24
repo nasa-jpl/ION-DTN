@@ -142,9 +142,7 @@ static void *Recieve_DCCP(void *param)
 
 	iblock(SIGTERM);
 	isignal(SIGUSR1, siguser_thread);
-#ifndef mingw
 	isignal(SIGPIPE, itcp_handleConnectionLoss);
-#endif
 
 	/* Get buffers							*/
 	writeErrmsgMemos();
@@ -255,9 +253,7 @@ static void	*Listen_for_connections(void *parm)
 	pthread_mutex_init(&elk, NULL);
 
 	iblock(SIGTERM);
-#ifndef mingw
 	iblock(SIGPIPE);
-#endif
 	isignal(SIGUSR1, siguser_thread);
 
 	/*	Can now begin accepting connections from remote
@@ -423,9 +419,7 @@ int	main(int argc, char *argv[])
 
 	/*	Set up signal handling; SIGTERM is shutdown signal.	*/
 	isignal(SIGTERM, interruptThread);
-#ifndef mingw
 	iblock(SIGPIPE);
-#endif
 
 	/*	Start the receiver thread.				*/
 	rtp.running = 1;

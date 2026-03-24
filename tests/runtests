@@ -408,8 +408,8 @@ function run_a_test () {
         echo "end time: `date`" >> "${RESULTSFILE}"
     fi
 
-    # Allow some extra time for ION to fully shutdown on Windows and Solaris
-    if [[ "$OS_VERSION" == "solaris" ]] || [[ "$OS_VERSION" == "windows" ]] ; then
+    # Allow some extra time for ION to fully shutdown on Solaris
+    if [[ "$OS_VERSION" == "solaris" ]] ; then
         sleep 15
     fi
 
@@ -713,10 +713,7 @@ fi
 # Determine OS version for exclusion of tests
 OS_VERSION=''
 version=`uname -a`
-if [[ "$version" == *"MINGW"* ]] || [[ "$version" == *"Msys"* ]]
-then
-    OS_VERSION=windows;
-elif [[ "$version" == *"raspberrypi"* ]]
+if [[ "$version" == *"raspberrypi"* ]]
 then
     OS_VERSION=raspberrypi;
 elif [[ "$version" == *"Linux"* ]] || [[ "$version" == *"LINUX"* ]]

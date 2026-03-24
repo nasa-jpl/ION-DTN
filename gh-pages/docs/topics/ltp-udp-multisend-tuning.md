@@ -172,7 +172,7 @@ cap at compile time:
 
 ### Non-Linux Platforms
 
-On non-Linux platforms (macOS, FreeBSD, Solaris, Windows/MinGW),
+On non-Linux platforms (macOS, FreeBSD, Solaris),
 `UDP_MULTISEND` is automatically disabled regardless of flags, because
 `sendmmsg()` is a Linux-specific API. The single-send path with token bucket
 rate control is used.

@@ -15,7 +15,7 @@ ION DTN is suitable for both planetary and interplanetary environments succeptib
 
 ION Open Source supports Linux and Solaris. Please consult the [Quick Start](./gh-pages/docs/ION-Quick-Start-Guide.md) for detailed instruction.
 
-Support for `FreeBSD`, `macOS`, `Windows`, `Raspberry Pi OS` are provided on a best-effort, test and report (BETR) level. We will try, with reasonable effort, to test, document and fix issues related to these platforms but they are not officially supported.
+Support for `FreeBSD`, `macOS`, `Raspberry Pi OS` are provided on a best-effort, test and report (BETR) level. We will try, with reasonable effort, to test, document and fix issues related to these platforms but they are not officially supported.
 
 Prototype demonstrations on how to build ION on `Android`, `RTEMS`, and `ARM-based AT91SAM9G20 board` are provided as is. Available from ION 4.1.3s or earlier; deprecated as of ION 4.1.4-a.2.
 

@@ -312,12 +312,10 @@ static void	*tcpAmsReceiver(void *parm)
 	sap = me->sap;
 	buffer = MTAKE(TCPTS_MAX_MSG_LEN);
 	CHKNULL(buffer);
-#ifndef mingw
 	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
-#endif
 	while (1)
 	{
 		length = receiveMsgByTCP(&(me->fd), buffer);
@@ -386,12 +384,10 @@ static void	*tcpAmsAccess(void *parm)
 	CHKNULL(tsif);
 	sap = (TcptsSap *) (tsif->sap);
 	CHKNULL(sap);
-#ifndef mingw
 	sigset_t		signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
-#endif
 	while (1)
 	{
 		len = sizeof clientSockname;
@@ -737,7 +733,5 @@ void	tcptsLoadTs(TransSvc *ts)
 	ts->clearAmsEndpointFn = tcpClearAmsEndpoint;
 	ts->sendAmsFn = tcpSendAms;
 	ts->shutdownFn = tcpShutdown;
-#ifndef mingw
 	isignal(SIGPIPE, SIG_IGN);
-#endif
 }

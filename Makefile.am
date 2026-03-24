@@ -40,9 +40,6 @@ AM_CFLAGS += -Wall \
 NO_UNUSED_VARIABLE = -Wno-unused-variable
 endif # end SOLARIS_STUDIO_CC
 
-if WINDOWS
-AM_CFLAGS += -lws2_32 -lwsock32 -Dmingw
-endif
 
 # This will add CFLAGS to make the valgrind macros compile without
 # warnings/errors on some systems with specific versions of valgrind
@@ -484,15 +481,9 @@ icibin = \
 	smlistsh \
 	smrbtsh
 
-if WINDOWS
-icibin += winion
-endif
-
-if !WINDOWS
 icibin += \
 	ionxnowner \
 	owlttb
-endif
 
 icilib = \
 	libici.la
@@ -758,12 +749,6 @@ rfxclock_SOURCES = ici/daemon/rfxclock.c
 rfxclock_LDADD = libici.la -lm
 rfxclock_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
-if WINDOWS
-winion_SOURCES = ici/daemon/winion.c
-winion_LDADD = libici.la -lm
-winion_CFLAGS = $(icicflags) $(AM_CFLAGS)
-endif
-
 ##########################
 #
 # LTP SECTION
@@ -969,12 +954,8 @@ dgrbin = \
 	file2dgr \
 	file2tcp \
 	tcp2file \
-	udp2file
-
-if !WINDOWS
-dgrbin += \
+	udp2file \
 	file2udp
-endif
 
 dgrlib = \
 	libdgr.la
@@ -1121,20 +1102,11 @@ bpbin = \
 	tcpcli \
 	tcpclo \
 	udpcli \
-	udpclo
-
-#Uncomment if you want to build killm.exe
-#if WINDOWS
-#bpbin += killm
-#endif
-
-if !WINDOWS
-bpbin += \
+	udpclo \
 	bpchat \
 	bpstats2 \
 	dccpcli \
 	dccpclo
-endif
 
 if ENABLE_IMC
 bpbin += \
@@ -1550,13 +1522,6 @@ dtn2admin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 hmackeys_SOURCES = bpv7/utils/hmackeys.c
 hmackeys_LDADD = libici.la -lm $(bplib)
 hmackeys_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-
-#Uncomment if you want to build killm.exe
-#if WINDOWS
-#killm_SOURCES = ici/utils/killm.c
-#killm_LDADD = libici.la
-#killm_CFLAGS = $(AM_CFLAGS)
-#endif
 
 if ENABLE_IMC
 imcadminep_SOURCES = bpv7/imc/imcadminep.c
@@ -2175,12 +2140,8 @@ amsbin = \
 	amsmib \
 	amsshell \
 	amsstop \
-	ramsgate
-
-if !WINDOWS
-amsbin += \
+	ramsgate \
 	amshello
-endif
 
 amslib = \
 	libams.la
@@ -2331,13 +2292,9 @@ cfdpbin = \
 	cfdpadmin \
 	cfdpclock \
 	cfdptest \
-	tcputa
-
-if !WINDOWS
-cfdpbin +=\
+	tcputa \
 	bpcp \
 	bpcpd
-endif
 
 cfdplib = \
 	libcfdp.la

@@ -73,9 +73,7 @@ int	main(int argc, char **argv)
 	char		content[80];
 	char		line[84];
 
-#ifndef mingw
 	setlinebuf(stdout);
-#endif
 	if (ownEid == NULL)
 	{
 		PUTS("Usage: bpsink <own endpoint ID>");

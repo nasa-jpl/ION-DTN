@@ -162,7 +162,6 @@ static char	*procName(void)
 	return "tcpcli";
 }
 
-#ifndef mingw
 static void	handleStopThread(int signum)
 {
 	/* Tell the compiler that we are not using 'signum' */
@@ -170,7 +169,7 @@ static void	handleStopThread(int signum)
 
 	isignal(SIGINT, handleStopThread);
 }
-#endif
+
 static void	handleStopTcpcli(int signum)
 {
 	/* Tell the compiler that we are not using 'signum' */
@@ -3009,10 +3008,8 @@ int	main(int argc, char *argv[])
 	/*	Set up signal handling: SIGTERM is shutdown signal.	*/
 
 	ionNoteMainThread("tcpcli");
-#ifndef mingw
 	isignal(SIGPIPE, itcp_handleConnectionLoss);
 	isignal(SIGINT, handleStopThread);
-#endif
 	isignal(SIGTERM, handleStopTcpcli);
 
 	/*	Start the clock thread, which immediately does

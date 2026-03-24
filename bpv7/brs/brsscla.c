@@ -24,7 +24,6 @@ static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 	return attendant;
 }
 
-#ifndef mingw
 static void	handleStopThread(int signum)
 {
 	/* Tell the compiler that we are not using 'signum' */
@@ -32,7 +31,7 @@ static void	handleStopThread(int signum)
 
 	isignal(SIGINT, handleStopThread);
 }
-#endif
+
 static void	handleStopBrsscla(int signum)
 {
 	/* Tell the compiler that we are not using 'signum' */
@@ -637,11 +636,7 @@ static void	*spawnReceivers(void *parm)
 
 		receiverParms = (ReceiverThreadParms *) lyst_data(elt);
 		thread = receiverParms->receiverThread;
-//#ifdef mingw
 		shutdown(receiverParms->bundleSocket, SD_BOTH);
-//#else
-//		pthread_kill(thread, SIGINT);
-//#endif
 		pthread_mutex_unlock(&mutex);
 		pthread_join(thread, NULL);
 	}
@@ -748,10 +743,8 @@ port 80)", NULL);
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
 	ionNoteMainThread("brsscla");
-#ifndef mingw
 	isignal(SIGPIPE, itcp_handleConnectionLoss);	/*	Sender.	*/
 	isignal(SIGINT, handleStopThread);
-#endif
 	isignal(SIGTERM, handleStopBrsscla);
 
 	/*	Start the access thread.				*/

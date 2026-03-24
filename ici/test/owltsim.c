@@ -45,9 +45,6 @@ typedef struct
 
 static void	owltsimExit(int returnCode)
 {
-#ifdef mingw
-	oK(_winsock(1));
-#endif
 	exit(returnCode);
 }
 
@@ -402,13 +399,6 @@ int	main(int argc, char *argv[])
 	 *	the indicated link.  Then snooze forever.		*/
 
 	srand(time(NULL));
-#ifdef mingw
-	if (_winsock(0) < 0)
-	{
-		putErrmsg("Can't start WinSock.", NULL);
-		exit(1);
-	}
-#endif
 	switch (argc)
 	{
 	case 3:
@@ -504,8 +494,5 @@ int	main(int argc, char *argv[])
 
 	snooze(2000000000);
 	puts("owltsim is ending.");
-#ifdef mingw
-	oK(_winsock(1));
-#endif
 	return 0;
 }

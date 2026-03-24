@@ -10,7 +10,7 @@ Exclude files are hidden files that allow for tests to be disabled based on cert
 
 Exclude files can exist in any of the following formats:
 
-- `.exclude_OS-TYPE`: Disables a test for an operating system that it does not run successfully on. Acceptable values to fill in for OS-TYPE are "windows", "linux", "mac", and "solaris".
+- `.exclude_OS-TYPE`: Disables a test for an operating system that it does not run successfully on. Acceptable values to fill in for OS-TYPE are "linux", "mac", and "solaris".
 
 - `.exclude_BP-VERSION`: Disables a test for a version of the bundle protocol that it does not run correctly or does not make sense with. As of ION 4.0.0, the acceptable values to fill in for `BP-VERSION` are "bpv6" and "bpv7".
 

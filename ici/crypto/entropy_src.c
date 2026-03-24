@@ -24,10 +24,8 @@
 #include <errno.h>
 #endif
 
-#if !defined(_WIN32)
 #include <fcntl.h>
 #include <unistd.h>
-#endif
 
 #if defined(__APPLE__)
 #include <Security/Security.h>
@@ -46,7 +44,7 @@ const char* get_error_message(ErrorCode code)
 	case ERROR_GETRANDOM_FAILED:
 		return "getrandom() failed (Linux)";
 	case ERROR_BCRYPT_FAILED:
-		return "BCryptGenRandom failed (Windows)";
+		return "BCryptGenRandom failed";
 	case ERROR_SECRANDOM_FAILED:
 		return "SecRandomCopyBytes failed (macOS)";
 	case ERROR_OPENING_ENTROPY_SOURCE:
@@ -59,7 +57,7 @@ const char* get_error_message(ErrorCode code)
 }
 
 
-#if !defined(_WIN32) && !defined(__FreeBSD__) && !defined(__OpenBSD__)
+#if !defined(__FreeBSD__) && !defined(__OpenBSD__)
 /*============================================================================
  * poll_from_device_file (static helper)
  *==========================================================================*/
@@ -216,16 +214,6 @@ int poll_entropy_src(void *data, unsigned char *output, size_t ilen, size_t *ole
 	*olen = ilen;
 	return 0; /* Success */
 
-
-#elif defined(_WIN32)
-	/* Windows uses only its high-level cryptographic API. */
-	if (!BCryptGenRandom(NULL, output, (ULONG)ilen, BCRYPT_USE_SYSTEM_PREFERRED_RNG))
-	{
-		putErrmsg("[!] poll_entropy_src:", "BCryptGenRandom failed.");
-		return ERROR_BCRYPT_FAILED;
-	}
-	*olen = ilen;
-	return 0; /* Success */
 
 #elif defined(FREERTOS)
 	/**************************************************************************
