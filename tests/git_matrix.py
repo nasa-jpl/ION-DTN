@@ -5,7 +5,10 @@ Then balances the tests across a number of runners between 1 & 7 to ensure each
 runner has approximately the same execution time. The result is returned as a
 JSON array.
 
-Nate Richard 2026/03/03 JPL
+NOTE: Any message print statements need to be to stderr as stdout is used to
+return the batches of tests.
+
+Nate Richard 2026/03/24 JPL
 """
 
 import argparse
@@ -87,6 +90,8 @@ def list_tests() -> list[Path]:
         if (test_dir / ".exclude_expert").exists():
             continue
         if (test_dir / ".exclude_linux").exists():
+            continue
+        if (test_dir / ".exclude_arc").exists():
             continue
         if (test_dir / ".exclude_all").exists():
             continue
@@ -212,7 +217,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--runners",
         "-r",
-        help="Number of runners to use, default: 6.",
+        help="Number of runners to use, default: 7.",
         type=int,
         default=7,
     )
