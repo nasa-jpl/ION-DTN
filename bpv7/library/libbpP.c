@@ -4671,7 +4671,11 @@ int	addProtocol(char *protocolName, int protocolClass)
 	{
 		clpbuf.protocolClass = BP_PROTOCOL_ANY;
 	}
-	else if (protocolClass == 2 || strcmp(protocolName, "udp") == 0)
+	else if (protocolClass == 2
+	|| strcmp(protocolName, "udp") == 0
+	|| strcmp(protocolName, "spp") == 0
+	|| strcmp(protocolName, "epp") == 0
+	|| strcmp(protocolName, "file") == 0)
 	{
 		clpbuf.protocolClass = BP_BEST_EFFORT;
 	}

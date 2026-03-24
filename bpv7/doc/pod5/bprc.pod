@@ -311,8 +311,8 @@ indicates that the protocol performs no retransmission; an example is UDP.
 The value 8 (which is the default) indicates that the protocol detects data
 loss and automatically retransmits data accordingly; an example is TCP.
 Protocol class need not be specified when I<protocol_name> is bssp, udp,
-tcp, stcp, brss, brsc, or ltp, as the protocol classes for these well-known
-protocols are hard-coded in ION.
+spp, epp, file, tcp, stcp, brss, brsc, or ltp, as the protocol classes for
+these well-known protocols are hard-coded in ION.
 
 In earlier versions of ION this command took two additional arguments,
 I<payload_bytes_per_frame> and I<overhead_bytes_per_frame>.  These arguments
