@@ -145,16 +145,8 @@ COPY actions-runner-controller/runner/docker-shim.sh /usr/local/bin/docker
 # Configure hooks folder structure.
 COPY actions-runner-controller/runner/hooks /etc/arc/hooks/
 
-# Configure buildah for rootless operation
-RUN mkdir -p /home/runner/.config/containers \
-    && mkdir -p /etc/containers \
-    && mkdir -p /home/runner/.local/share/containers/storage \
-    && mkdir -p /run/user/$RUNNER_USER_UID/containers \
-    && chown -R runner:runner /home/runner/.config \
-    && chown -R runner:runner /home/runner/.local \
-    && chown -R runner:runner /run/user/$RUNNER_USER_UID
-
 # Copy buildah configuration files
+RUN mkdir -p /etc/containers
 COPY --chmod=644 buildah-storage.conf /etc/containers/storage.conf
 COPY --chmod=644 buildah-registries.conf /etc/containers/registries.conf
 COPY --chmod=644 buildah-policy.json /etc/containers/policy.json
