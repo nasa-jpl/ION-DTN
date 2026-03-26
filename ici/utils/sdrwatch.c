@@ -35,6 +35,8 @@ static void	logToStdoutLocal(char *text)
 #define DAEMON_POLL_INTERVAL_SEC	10
 #define DEFAULT_REPORT_INTERVAL_MIN	10
 #define DEFAULT_PERCENT_THRESHOLD	5
+#define DEFAULT_WARN_PERCENT		90.0
+#define DEFAULT_WARN_CADENCE_SEC	60
 
 static unsigned int	sdrwatch_count(int *newValue)
 {
@@ -73,6 +75,15 @@ static double		lastReportedHeapPct = -1.0;
 static double		lastReportedInboundPct = -1.0;
 static double		lastReportedOutboundPct = -1.0;
 static time_t		lastReportTime = 0;
+
+/*	High-water warning state variables.				*/
+
+static int		heapWarnActive = 0;
+static int		inboundWarnActive = 0;
+static int		outboundWarnActive = 0;
+static time_t		lastHeapWarnTime = 0;
+static time_t		lastInboundWarnTime = 0;
+static time_t		lastOutboundWarnTime = 0;
 
 static void	handleDaemonQuit(int signum)
 {
@@ -225,18 +236,71 @@ static void	reportZcoUsage(Sdr sdr, char *sdrName, double inboundPct,
 	writeMemo(buf);
 }
 
-static int	run_sdrwatch_daemon(char *sdrName, int intervalMinutes,
-			double percentThreshold)
+static void	checkWarnThreshold(double currentPct, double warnPercent,
+			int *warnActive, time_t *lastWarnTime,
+			int warnCadenceSec, time_t now,
+			const char *poolLabel, const char *daemonLabel,
+			unsigned long usedBytes, unsigned long totalBytes)
 {
-	Sdr	sdr;
-	double	currentHeapPct;
-	double	currentInboundPct;
-	double	currentOutboundPct;
-	time_t	now;
-	int	heapThresholdCrossed;
-	int	inboundThresholdCrossed;
-	int	outboundThresholdCrossed;
-	int	intervalElapsed;
+	char	buf[384];
+
+	if (warnPercent <= 0)
+	{
+		return;		/*	Warnings disabled.		*/
+	}
+
+	if (currentPct >= warnPercent)
+	{
+		/*	Above threshold: warn on first crossing or
+		 *	when cadence interval has elapsed.		*/
+
+		if (!(*warnActive)
+				|| (now - *lastWarnTime) >= warnCadenceSec)
+		{
+			isprintf(buf, sizeof buf,
+				"[!] %s: WARNING - %s usage %.1f%% "
+				"exceeds %.0f%% threshold "
+				"(%lu/%lu bytes)",
+				daemonLabel, poolLabel,
+				currentPct, warnPercent,
+				usedBytes, totalBytes);
+			writeMemo(buf);
+			*warnActive = 1;
+			*lastWarnTime = now;
+		}
+	}
+	else if (*warnActive)
+	{
+		/*	Recovered: was above, now below.		*/
+
+		isprintf(buf, sizeof buf,
+			"[i] %s: %s usage recovered to %.1f%% "
+			"(below %.0f%% threshold)",
+			daemonLabel, poolLabel,
+			currentPct, warnPercent);
+		writeMemo(buf);
+		*warnActive = 0;
+	}
+}
+
+static int	run_sdrwatch_daemon(char *sdrName, int intervalMinutes,
+			double percentThreshold,
+			double warnPercent, int warnCadenceSec)
+{
+	Sdr		sdr;
+	double		currentHeapPct;
+	double		currentInboundPct;
+	double		currentOutboundPct;
+	time_t		now;
+	int		heapThresholdCrossed;
+	int		inboundThresholdCrossed;
+	int		outboundThresholdCrossed;
+	int		intervalElapsed;
+	SdrUsageSummary	warnSummary;
+	unsigned long	usedBytes;
+	vast		zcoOccupancy;
+	vast		zcoMax;
+	char		startBuf[256];
 
 	/*	Daemonize first, before attaching to SDR.		*/
 
@@ -275,7 +339,17 @@ static int	run_sdrwatch_daemon(char *sdrName, int intervalMinutes,
 
 	/*	Log startup message.					*/
 
-	writeMemo("[i] sdrwatch daemon started.");
+	if (warnPercent > 0)
+	{
+		isprintf(startBuf, sizeof startBuf,
+			"[i] sdrwatch daemon started (warn at %.0f%% "
+			"used, cadence %ds).", warnPercent, warnCadenceSec);
+		writeMemo(startBuf);
+	}
+	else
+	{
+		writeMemo("[i] sdrwatch daemon started.");
+	}
 
 	/*	Initial report.						*/
 
@@ -323,6 +397,53 @@ static int	run_sdrwatch_daemon(char *sdrName, int intervalMinutes,
 			lastReportedInboundPct = currentInboundPct;
 			lastReportedOutboundPct = currentOutboundPct;
 			lastReportTime = now;
+		}
+
+		/*	Check high-water warning thresholds.		*/
+
+		if (warnPercent > 0)
+		{
+			CHKERR(sdr_begin_xn(sdr));
+			sdr_usage(sdr, &warnSummary);
+			sdr_exit_xn(sdr);
+
+			usedBytes = (unsigned long)
+				(warnSummary.smallPoolAllocated
+				+ warnSummary.largePoolAllocated);
+			checkWarnThreshold(currentHeapPct,
+				warnPercent, &heapWarnActive,
+				&lastHeapWarnTime, warnCadenceSec,
+				now, "SDR heap", "sdrwatch",
+				usedBytes,
+				(unsigned long) warnSummary.heapSize);
+
+			CHKERR(sdr_begin_xn(sdr));
+			zcoOccupancy = zco_get_heap_occupancy(sdr,
+					ZcoInbound);
+			zcoMax = zco_get_max_heap_occupancy(sdr,
+					ZcoInbound);
+			sdr_exit_xn(sdr);
+			checkWarnThreshold(currentInboundPct,
+				warnPercent, &inboundWarnActive,
+				&lastInboundWarnTime,
+				warnCadenceSec, now,
+				"ZCO inbound", "sdrwatch",
+				(unsigned long) zcoOccupancy,
+				(unsigned long) zcoMax);
+
+			CHKERR(sdr_begin_xn(sdr));
+			zcoOccupancy = zco_get_heap_occupancy(sdr,
+					ZcoOutbound);
+			zcoMax = zco_get_max_heap_occupancy(sdr,
+					ZcoOutbound);
+			sdr_exit_xn(sdr);
+			checkWarnThreshold(currentOutboundPct,
+				warnPercent, &outboundWarnActive,
+				&lastOutboundWarnTime,
+				warnCadenceSec, now,
+				"ZCO outbound", "sdrwatch",
+				(unsigned long) zcoOccupancy,
+				(unsigned long) zcoMax);
 		}
 	}
 
@@ -472,11 +593,16 @@ from ION configuration");
 		does not remove log entries for freed blocks.");
 	PUTS("");
 	PUTS("Daemon mode:");
-	PUTS("   sdrwatch [<sdr_name>] -d [<interval_minutes> [<percent_threshold>]]");
+	PUTS("   sdrwatch [<sdr_name>] -d [<interval_minutes> \
+[<percent_threshold> [<warn_pct> [<warn_cadence_sec>]]]]");
 	PUTS("   -d: run as daemon, reporting usage to ion.log");
 	PUTS("   interval_minutes: reporting interval (default: 10)");
 	PUTS("   percent_threshold: report when usage crosses this threshold \
 (default: 5)");
+	PUTS("   warn_pct: log WARNING when usage exceeds this %% \
+(default: 90, 0=disable)");
+	PUTS("   warn_cadence_sec: seconds between repeated warnings while \
+above threshold (default: 60)");
 	PUTS("   sdr_name: if omitted, auto-detected from ION configuration");
 }
 #endif
@@ -600,6 +726,9 @@ int	main(int argc, char **argv)
 
 	if (argIdx < argc && strcmp(argv[argIdx], "-d") == 0)
 	{
+		double	warnPercent = DEFAULT_WARN_PERCENT;
+		int	warnCadenceSec = DEFAULT_WARN_CADENCE_SEC;
+
 		intervalMinutes = DEFAULT_REPORT_INTERVAL_MIN;
 		percentThreshold = DEFAULT_PERCENT_THRESHOLD;
 		argIdx++;
@@ -622,10 +751,33 @@ int	main(int argc, char **argv)
 			{
 				percentThreshold = DEFAULT_PERCENT_THRESHOLD;
 			}
+
+			argIdx++;
+		}
+
+		if (argIdx < argc)
+		{
+			warnPercent = strtod(argv[argIdx], NULL);
+			if (warnPercent < 0 || warnPercent > 100)
+			{
+				warnPercent = DEFAULT_WARN_PERCENT;
+			}
+
+			argIdx++;
+		}
+
+		if (argIdx < argc)
+		{
+			warnCadenceSec = strtol(argv[argIdx], NULL, 0);
+			if (warnCadenceSec < 1)
+			{
+				warnCadenceSec = DEFAULT_WARN_CADENCE_SEC;
+			}
 		}
 
 		return run_sdrwatch_daemon(sdrName, intervalMinutes,
-				percentThreshold);
+				percentThreshold, warnPercent,
+				warnCadenceSec);
 	}
 
 	/*	Standard mode: sdrwatch [sdr_name] [-t|-s|-r|-z] [interval]

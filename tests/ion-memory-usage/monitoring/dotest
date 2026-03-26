@@ -1,0 +1,171 @@
+#!/usr/bin/env bash
+#
+# ion-memory-usage/monitoring - Test sdrwatch daemon high-water warning feature.
+#
+# This test verifies that the sdrwatch daemon correctly logs WARNING messages
+# when SDR heap usage exceeds a configurable threshold, and logs RECOVERED
+# messages when usage drops back below the threshold.
+#
+# Strategy:
+#   1. Start ION with a small SDR heap and a DELAYED contact (starts at +45s).
+#   2. Launch sdrwatch in daemon mode with a low warn threshold and 5s cadence.
+#   3. Send bundles -- they queue in SDR because no contact is active yet,
+#      pushing heap usage above the warning threshold.
+#   4. Verify WARNING messages appear in ion.log.
+#   5. Wait for the contact to start -- bundles drain, heap usage drops.
+#   6. Verify RECOVERED message appears in ion.log.
+#
+# Timeline (approximate):
+#   t=0   ionstart (contact scheduled at +45s)
+#   t=3   sdrwatch daemon starts
+#   t=6   bundles sent, queued in SDR (no active contact)
+#   t=16  sdrwatch poll detects high usage, logs WARNING
+#   t=45  contact opens, bundles begin draining
+#   t=55  bundles drained, sdrwatch poll detects recovery
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Test sdrwatch daemon high-water memory usage warning feature."
+echo "  Verify that [!] WARNING and [i] recovered messages appear in ion.log"
+echo "  when SDR heap usage crosses the configured threshold."
+echo
+echo "########################################"
+
+FAIL=0
+
+echo "Killing old ION..."
+killm
+sleep 1
+
+rm -f ion.log
+
+# Write config files with a deliberately small SDR heap so we can
+# push usage above the warning threshold with just a few bundles.
+# The contact starts at +45 seconds so bundles queue initially.
+
+cat > small.ionconfig <<EOF
+wmSize 5000000
+configFlags 1
+heapWords 250000
+EOF
+
+cat > small.ionrc <<EOF
+1 1 small.ionconfig
+s
+a contact +45 +3600 1 1 100000
+a range +1 +3600 1 1 1
+m production 1000000
+m consumption 1000000
+EOF
+
+cat > small.ltprc <<EOF
+1 128
+a span 1 128 128 1024 1024 1 'udplso 127.0.0.1:1113'
+s 'udplsi 0.0.0.0:1113'
+EOF
+
+cat > small.bprc <<EOF
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+a protocol ltp 1400 100
+a induct ltp 1 ltpcli
+a outduct ltp 1 ltpclo
+s
+EOF
+
+cat > small.ipnrc <<EOF
+a plan 1 ltp/1
+EOF
+
+cat > small.ionsecrc <<EOF
+1
+e 1
+EOF
+
+echo "Starting ION with small heap (contact delayed +45s)..."
+ionstart -i small.ionrc -l small.ltprc -b small.bprc -p small.ipnrc \
+         -s small.ionsecrc
+sleep 3
+
+# Start sdrwatch daemon with a low warn threshold (20%) and short cadence
+# (5 seconds) so we can quickly trigger and observe warnings.
+# Args: -d <interval_min> <step_threshold> <warn_pct> <warn_cadence_sec>
+echo "Starting sdrwatch daemon (warn at 20%, cadence 5s)..."
+sdrwatch -d 10 5 20 5
+sleep 2
+
+# Verify daemon started with warning config
+if grep -q "sdrwatch daemon started (warn at 20%" ion.log; then
+    echo "OK: sdrwatch daemon started with warning configuration."
+else
+    echo "ERROR: sdrwatch daemon startup message not found."
+    FAIL=1
+fi
+
+# Start a sink so bundles get delivered once the contact opens.
+bpsink ipn:1.1 > /dev/null &
+SINKPID=$!
+sleep 1
+
+# Send bundles to fill SDR heap.  With heapWords=250000 (~2MB heap),
+# we need bundles large enough to push usage above 20%.  Each 50KB
+# bundle consumes ~100KB of SDR (payload + overhead), so 8 bundles
+# should reach ~40%.  Bundles queue because no contact is active yet.
+echo "Sending bundles to fill SDR heap (no contact active yet)..."
+PAYLOAD=$(head -c 50000 < /dev/zero | tr '\0' 'X')
+
+for i in 1 2 3 4 5 6 7 8; do
+    bpsource ipn:1.1 "${PAYLOAD}"
+done
+
+# Wait for sdrwatch polling cycle (polls every 10 seconds).
+echo "Waiting for sdrwatch to detect high usage..."
+sleep 15
+
+# Check for WARNING message in ion.log
+if grep -q "\[!\] sdrwatch: WARNING - SDR heap usage" ion.log; then
+    echo "OK: SDR heap WARNING message found in ion.log."
+else
+    echo "ERROR: No SDR heap WARNING message found in ion.log."
+    echo "--- ion.log sdrwatch entries ---"
+    grep -i "sdrwatch" ion.log
+    echo "--- end ---"
+    FAIL=1
+fi
+
+# Wait for the contact to open (+45s from ionstart) and bundles to drain.
+# Elapsed so far: ~3 + 2 + 1 + ~4 + 15 = ~25s since ionstart.
+# Contact opens at ~45s, so wait ~35s more for it to open plus margin
+# for bundles to drain and sdrwatch to poll (10s cycle).
+echo "Waiting for contact to start and bundles to drain..."
+sleep 45
+
+# Check for recovery message
+if grep -q "\[i\] sdrwatch: SDR heap usage recovered" ion.log; then
+    echo "OK: SDR heap RECOVERED message found in ion.log."
+else
+    echo "ERROR: No SDR heap RECOVERED message found in ion.log."
+    echo "--- ion.log sdrwatch entries ---"
+    grep -i "sdrwatch" ion.log
+    echo "--- end ---"
+    FAIL=1
+fi
+
+# Print relevant log lines for debugging
+echo ""
+echo "=== sdrwatch log entries ==="
+grep "sdrwatch" ion.log
+echo "=== end ==="
+
+echo ""
+echo "Stopping ION..."
+kill $SINKPID 2>/dev/null
+ionstop
+sleep 2
+killm
+
+exit $FAIL
