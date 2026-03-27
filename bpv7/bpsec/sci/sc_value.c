@@ -543,7 +543,7 @@ sc_value *bpsec_scv_memDeserialize(int sc_id, int val_type, unsigned char **curs
 	{
 		sc_value_map* scvm = def.scValMapGet();
 		int scvm_idx = bpsec_scvm_byIdIdxFind(scvm, result->scValId, result->scValType);
-		if(scvm[scvm_idx].scValFromCBOR)
+		if(scvm_idx >= 0 && scvm[scvm_idx].scValFromCBOR)
 		{
 			// if(scvm[scvm_idx].scValFromCBOR(0, result, bufLen, buffer) < 1)
 			int len = scvm[scvm_idx].scValFromCBOR(0, result, *unparsedBytes, *cursor);
@@ -687,7 +687,7 @@ int bpsec_scv_memSerialize(sc_Def *def, sc_value *val, uint8_t **resultData, uns
 		sc_value_map* scvm = def->scValMapGet();
 		int scvm_idx = bpsec_scvm_byIdIdxFind(scvm, val->scValId, val->scValType);
 
-		if(scvm[scvm_idx].scValToCBOR)
+		if(scvm_idx >= 0 && scvm[scvm_idx].scValToCBOR)
 		{
 			if((valBuf = scvm[scvm_idx].scValToCBOR(0, val, &valBufLen)) == NULL)
 			{
