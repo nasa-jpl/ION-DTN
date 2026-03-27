@@ -304,6 +304,7 @@ int bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle,
 		if(bpsec_rfc9173utl_sesKeyGet(state, BPSEC_BHSSC_PARM_LTK_NAME, BPSEC_BHSSC_PARM_WRAPPED_KEY, sha_variant, &key, wrappedKey) == ERROR)
 		{
 			BPSEC_DEBUG_ERR("Cannot get signing key for variant %d", sha_variant);
+			MRELEASE(wrappedKey);
 			return ERROR;
 		}
 
@@ -423,6 +424,7 @@ int bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle,
 	if((digest = MTAKE(sizeof(sc_value))) == NULL)
 	{
 		BPSEC_DEBUG_ERR("Unable to allocate digest.", NULL);
+		MRELEASE(csi_result.contents);
 		return ERROR;
 	}
 	*digest = bpsec_scv_memCsiConvert(csi_result, SC_VAL_TYPE_RESULT, BPSEC_BHSSC_RESULT_EHMAC);

@@ -719,6 +719,7 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 		if(bpsec_rfc9173utl_sesKeyGet(state, BPSEC_BAGSC_PARM_LTK_NAME, BPSEC_BAGSC_PARM_WRAPPED_KEY, aes_variant, &key_value, wrappedKey) == ERROR)
 		{
 			BPSEC_DEBUG_ERR("Cannot get signing key for variant %d", aes_variant);
+			MRELEASE(wrappedKey);
 			return ERROR;
 		}
 
@@ -768,12 +769,14 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 		unsigned char *data = NULL;
 		csi_val_t input;
 		csi_val_t output;
+		memset(&output, 0, sizeof(csi_val_t));
 
 		GET_OBJ_POINTER(state->sdr, ExtensionBlock, blk, sdr_list_data(state->sdr, blkObj));
 
 		if((data = MTAKE(blk->length)) == NULL)
 		{
 			BPSEC_DEBUG_ERR("Cannot allocate %d bytes.", blk->length);
+			csi_cipherparms_free(csi_parms);
 			return ERROR;
 		}
 		sdr_read(state->sdr, (char*)data, blk->bytes, blk->length);
