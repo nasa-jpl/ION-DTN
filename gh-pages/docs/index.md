@@ -42,6 +42,7 @@ DTN Development/Deployment Kit is an ISO image of an Ubuntu virtual machine, pre
 - **[ION Utilities](./ION-Utilities.md)**: Overview of utility programs for launching, stopping, and monitoring ION.
 - **[ION Shutdown Guide](./ION-Shutdown-Guide.md)**: Comprehensive guide to the various methods for stopping ION nodes and cleaning up system resources.
 - **[ION Monitoring Guide](./ION-Monitoring-Guide.md)**: Guide to monitoring ION node status and performance.
+- **[ION Memory Protection](./ION-Memory-Protection.md)**: Configurable SDR heap and working memory protection thresholds to prevent memory exhaustion under load.
 - **[SOP for ION](./SOP-for-ION.md)**: Standard Operating Procedures for ION deployment and operations.
 
 ## API Documentation
