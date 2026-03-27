@@ -3,6 +3,7 @@ FROM oraclelinux:8-slim as build
 ARG TARGETPLATFORM
 ARG RUNNER_VERSION
 ARG RUNNER_CONTAINER_HOOKS_VERSION
+ARG PIP_INDEX
 # Docker and Docker Compose arguments
 ARG CHANNEL=stable
 ARG DOCKER_VERSION=28.0.4
@@ -50,10 +51,18 @@ RUN microdnf install -y oracle-epel-release-el8 \
     slirp4netns \
     tcpdump \
     iproute \
+    bzip2-devel \
+    readline-devel \
+    sqlite \
+    sqlite-devel \
+    openssl-devel \
+    tk-devel \
+    libffi-devel \
+    xz-devel \
     && microdnf install -y --enablerepo=ol8_codeready_builder ninja-build \
     && microdnf clean all
 
-RUN export PATH=$HOME/.local/bin:$PATH
+RUN export PATH="${HOME}/.local/bin:${PATH}"
 
 RUN curl -fLo mbedtls-2.28.10.tar.bz2 https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-2.28.10/mbedtls-2.28.10.tar.bz2 && tar xjf ./mbedtls-2.28.10.tar.bz2
 
@@ -61,7 +70,7 @@ WORKDIR /mbedtls-2.28.10
 RUN sed -i 's|//#define MBEDTLS_NIST_KW_C|#define MBEDTLS_NIST_KW_C|' include/mbedtls/config.h && make no_test SHARED=1 && make install
 
 WORKDIR /
-RUN rm -rf mbedtls-2.28.10/ mbedtls-2.28.10.tar.bz2 && microdnf remove -y bzip2 && microdnf clean all
+RUN rm -rf mbedtls-2.28.10/ mbedtls-2.28.10.tar.bz2
 
 # Download latest git-lfs version using the RPM script
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.rpm.sh | bash && \
@@ -153,6 +162,19 @@ COPY --chmod=644 buildah-policy.json /etc/containers/policy.json
 
 RUN chmod -R 777 /opt /usr/share
 
+USER runner
+ENV PYENV_GIT_TAG=v2.6.26
+RUN curl https://pyenv.run | bash
+ENV PYENV_ROOT="/home/runner/.pyenv"
+ENV PATH="${PYENV_ROOT}/bin:/home/runner/.local/bin/:${PATH}"
+RUN echo "eval '$(pyenv init - bash)'" >> ~/.bashrc
+RUN pyenv install 3.11.15 && pyenv global 3.11.15
+RUN if [ ! -z "${PIP_INDEX}" ]; then \
+    pip install --no-cache-dir bespokebpv7==0.4.0 -i ${PIP_INDEX}; \
+    else \
+    pip install --no-cache-dir bespokebpv7==0.4.0; \
+    fi
+
 FROM scratch AS final
 
 ARG BUILD_DATE
@@ -164,10 +186,10 @@ LABEL org.opencontainers.image.authors="Nate Richard (nrichard@jpl.nasa.gov)"
 LABEL org.opencontainers.image.created=$BUILD_DATE
 LABEL org.opencontainers.image.revision=$REV
 
-# Add the Python "User Script Directory" to the PATH
-ENV PATH="${PATH}:${HOME}/.local/bin/"
+ENV PYENV_ROOT="/home/runner/.pyenv"
+ENV PATH="${PYENV_ROOT}/bin:/home/runner/.local/bin/:${PATH}"
 ENV ImageOS=oraclelinux-8
-ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
 # Buildah configuration
 ENV BUILDAH_ISOLATION=chroot
 ENV STORAGE_DRIVER=vfs
