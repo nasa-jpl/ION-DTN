@@ -9,7 +9,7 @@ build:
     - cpanminus
   jobs:
     pre_create_environment:
-      - cpanm Pod::Markdown  # Install the required Perl module
+      - cpanm --from https://www.cpan.org Pod::Markdown  # Install the required Perl module
       - chmod +x ./gh-pages/docs/convert-pod-to-md.sh
       - cd ./gh-pages/docs && ./convert-pod-to-md.sh  # Script to convert POD to Markdown
     install:
