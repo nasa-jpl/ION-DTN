@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+ionadmin    memprotect.ionrc
+sleep 1
+ionadmin    ../global.ionrc
+sleep 1
+ionsecadmin memprotect.ionsecrc
+sleep 1
+ltpadmin    memprotect.ltprc
+sleep 1
+bpadmin     memprotect.bprc

@@ -305,6 +305,10 @@ static IonVdb	*_ionvdb(char **name)
 		sdr_read(sdr, (char *) &iondb, _iondbObject(NULL),
 				sizeof(IonDB));
 		vdb->deltaFromUTC = iondb.deltaFromUTC;
+		vdb->heapMemProtectPercent = iondb.heapMemProtectPercent;
+		vdb->wmMemProtectPercent = iondb.wmMemProtectPercent;
+		vdb->heapThresholdBreached = 0;
+		vdb->wmThresholdBreached = 0;
 		sdr_exit_xn(sdr);	/*	Unlock memory.		*/
 	}
 
@@ -789,6 +793,8 @@ int	ionInitialize(IonParms *parms, uvast ownFqnn)
 		iondbBuf.occupancyCeiling += (limit/4);
 		iondbBuf.maxClockError = 1;
 		iondbBuf.clockIsSynchronized = 1;
+		iondbBuf.heapMemProtectPercent = 10;
+		iondbBuf.wmMemProtectPercent = 10;
 		memcpy(&iondbBuf.parmcopy, parms, sizeof(IonParms));
 		iondbObject = sdr_malloc(ionsdr, sizeof(IonDB));
 		if (iondbObject == 0)
@@ -2631,4 +2637,182 @@ void	ionRegisterSdrwatchPid(int pid)
 	{
 		putErrmsg("Can't register sdrwatch PID.", NULL);
 	}
+}
+
+int	ionSetMemProtect(int heapPct, int wmPct)
+{
+	Sdr	sdr = getIonsdr();
+	Object	iondbObj = getIonDbObject();
+	IonVdb	*vdb = getIonVdb();
+	IonDB	iondb;
+	char	buffer[128];
+
+	/*	Clamp to valid range 0-50.			*/
+
+	if (heapPct < 0)
+	{
+		heapPct = 0;
+	}
+
+	if (heapPct > 50)
+	{
+		heapPct = 50;
+	}
+
+	if (wmPct < 0)
+	{
+		wmPct = 0;
+	}
+
+	if (wmPct > 50)
+	{
+		wmPct = 50;
+	}
+
+	/*	Write to IonDB via SDR transaction.		*/
+
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	iondb.heapMemProtectPercent = heapPct;
+	iondb.wmMemProtectPercent = wmPct;
+	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't set memory protection thresholds.", NULL);
+		return -1;
+	}
+
+	/*	Update IonVdb cached copies.			*/
+
+	vdb->heapMemProtectPercent = heapPct;
+	vdb->wmMemProtectPercent = wmPct;
+	isprintf(buffer, sizeof buffer,
+		"[i] Memory protection thresholds set: heap %d%%, "
+		"working memory %d%%.", heapPct, wmPct);
+	writeMemo(buffer);
+	return 0;
+}
+
+void	ionGetMemProtect(int *heapPct, int *wmPct)
+{
+	IonVdb	*vdb = getIonVdb();
+
+	CHKVOID(heapPct);
+	CHKVOID(wmPct);
+	CHKVOID(vdb);
+	*heapPct = vdb->heapMemProtectPercent;
+	*wmPct = vdb->wmMemProtectPercent;
+}
+
+int	ionHeapMemProtected(Sdr sdr)
+{
+	IonVdb		*vdb = getIonVdb();
+	SdrUsageSummary	summary;
+	size_t		freeSpace;
+	size_t		threshold;
+	int		pctFree;
+	char		buffer[256];
+
+	if (vdb == NULL || vdb->heapMemProtectPercent == 0)
+	{
+		return 0;	/*	Disabled.			*/
+	}
+
+	sdr_usage(sdr, &summary);
+	freeSpace = summary.smallPoolFree + summary.largePoolFree
+			+ summary.unusedSize;
+	threshold = (summary.heapSize * vdb->heapMemProtectPercent) / 100;
+	if (freeSpace < threshold)
+	{
+		if (!(vdb->heapThresholdBreached))
+		{
+			vdb->heapThresholdBreached = 1;
+			pctFree = (summary.heapSize > 0)
+				? (int) ((freeSpace * 100) / summary.heapSize)
+				: 0;
+			isprintf(buffer, sizeof buffer,
+				"[!] ION heap memory protection threshold "
+				"breached (%d%% free < %d%% threshold). "
+				"Rejecting new bundles.",
+				pctFree, vdb->heapMemProtectPercent);
+			writeMemo(buffer);
+		}
+
+		return 1;
+	}
+
+	/*	Free space is at or above threshold.		*/
+
+	if (vdb->heapThresholdBreached)
+	{
+		vdb->heapThresholdBreached = 0;
+		pctFree = (summary.heapSize > 0)
+			? (int) ((freeSpace * 100) / summary.heapSize)
+			: 0;
+		isprintf(buffer, sizeof buffer,
+			"[i] ION heap memory protection recovered "
+			"(%d%% free >= %d%% threshold). "
+			"Accepting bundles.",
+			pctFree, vdb->heapMemProtectPercent);
+		writeMemo(buffer);
+	}
+
+	return 0;
+}
+
+int	ionWmMemProtected(void)
+{
+	IonVdb		*vdb = getIonVdb();
+	PsmUsageSummary	summary;
+	size_t		freeSpace;
+	size_t		threshold;
+	int		pctFree;
+	char		buffer[256];
+
+	if (vdb == NULL || vdb->wmMemProtectPercent == 0)
+	{
+		return 0;	/*	Disabled.			*/
+	}
+
+	psm_usage(getIonwm(), &summary);
+	freeSpace = summary.smallPoolFree + summary.largePoolFree
+			+ summary.unusedSize;
+	threshold = (summary.partitionSize * vdb->wmMemProtectPercent) / 100;
+	if (freeSpace < threshold)
+	{
+		if (!(vdb->wmThresholdBreached))
+		{
+			vdb->wmThresholdBreached = 1;
+			pctFree = (summary.partitionSize > 0)
+				? (int) ((freeSpace * 100)
+					/ summary.partitionSize)
+				: 0;
+			isprintf(buffer, sizeof buffer,
+				"[!] ION working memory protection threshold "
+				"breached (%d%% free < %d%% threshold). "
+				"Rejecting new bundles.",
+				pctFree, vdb->wmMemProtectPercent);
+			writeMemo(buffer);
+		}
+
+		return 1;
+	}
+
+	/*	Free space is at or above threshold.		*/
+
+	if (vdb->wmThresholdBreached)
+	{
+		vdb->wmThresholdBreached = 0;
+		pctFree = (summary.partitionSize > 0)
+			? (int) ((freeSpace * 100) / summary.partitionSize)
+			: 0;
+		isprintf(buffer, sizeof buffer,
+			"[i] ION working memory protection recovered "
+			"(%d%% free >= %d%% threshold). "
+			"Accepting bundles.",
+			pctFree, vdb->wmMemProtectPercent);
+		writeMemo(buffer);
+	}
+
+	return 0;
 }

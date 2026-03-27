@@ -1,0 +1,291 @@
+#!/usr/bin/env bash
+#
+# ion-memory-usage/memprotect-settings
+#
+# Regression test for the ionadmin memory protection threshold feature.
+# Uses a 2-node ION topology so that future phases can test:
+#   - Phase 2a: Local-source protection (bp_send rejection on node 1)
+#   - Phase 2b: Bundle acquisition protection (incoming bundle rejection on node 2)
+#
+# What this test verifies (Phase 1 - settings infrastructure):
+#   1. Default thresholds are 10% / 10% on fresh start
+#   2. "m memprotect" sets thresholds, "i memprotect" reports them
+#   3. Values exceeding 0-50 range are clamped
+#   4. "m memprotect 0 0" disables protection
+#   5. Threshold change is logged via writeMemo
+#   6. "i memprotect" reports current free-space percentages
+#   7. Thresholds persist across settings changes (reads back correctly)
+#   8. Both nodes operate independently with different thresholds
+#
+# This test uses a deliberately small SDR heap (heapWords 250000 ~ 2MB)
+# so that Phase 2 can push usage above the threshold easily.
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify ionadmin memory protection threshold commands"
+echo "  (m memprotect / i memprotect) on a 2-node ION topology."
+echo "  Phase 1: settings, clamping, logging, independent node thresholds."
+echo "  Designed for Phase 2 expansion: bp_send and acquisition guards."
+echo
+echo "########################################"
+
+FAIL=0
+TESTDIR="$(cd "$(dirname "$0")" && pwd)"
+
+# -------------------------------------------------------------------
+# Helper: send ionadmin command to a specific node and capture output.
+# Usage: ion_cmd <node_dir> <command_string>
+# Returns the stdout/stderr from ionadmin.
+# -------------------------------------------------------------------
+ion_cmd() {
+    local nodedir="$1"
+    local cmd="$2"
+    (cd "$nodedir" && echo "$cmd" | ionadmin 2>&1)
+}
+
+# -------------------------------------------------------------------
+# Helper: check that a string appears in the given file.
+# Usage: expect_in_file <file> <pattern> <description>
+# -------------------------------------------------------------------
+expect_in_file() {
+    local file="$1"
+    local pattern="$2"
+    local desc="$3"
+    if grep -q "$pattern" "$file"; then
+        echo "OK:    $desc"
+    else
+        echo "ERROR: $desc"
+        echo "       Pattern not found: $pattern"
+        echo "       File: $file"
+        FAIL=1
+    fi
+}
+
+# -------------------------------------------------------------------
+# Helper: check that ionadmin output contains expected text.
+# Usage: expect_output <output> <pattern> <description>
+# -------------------------------------------------------------------
+expect_output() {
+    local output="$1"
+    local pattern="$2"
+    local desc="$3"
+    if echo "$output" | grep -q "$pattern"; then
+        echo "OK:    $desc"
+    else
+        echo "ERROR: $desc"
+        echo "       Pattern not found: $pattern"
+        echo "       Got: $output"
+        FAIL=1
+    fi
+}
+
+# ===================================================================
+# Setup: Start 2-node ION topology
+# ===================================================================
+echo ""
+echo "=== Setup: Starting 2-node ION topology ==="
+
+killm
+sleep 1
+
+export ION_NODE_LIST_DIR="$TESTDIR"
+rm -f "$TESTDIR/ion_nodes"
+
+# Start node 1
+echo "Starting node 1..."
+cd "$TESTDIR/node1"
+rm -f ion.log
+./ionstart
+sleep 3
+
+# Start node 2
+echo "Starting node 2..."
+cd "$TESTDIR/node2"
+rm -f ion.log
+./ionstart
+sleep 3
+
+# Quick sanity: verify both nodes are running
+if ! pgrep -x "rfxclock" > /dev/null; then
+    echo "ERROR: ION nodes did not start."
+    killm
+    exit 1
+fi
+echo "Both nodes started."
+echo ""
+
+# ===================================================================
+# Test 1: Default thresholds on fresh start
+# ===================================================================
+echo "=== Test 1: Default thresholds ==="
+
+OUTPUT=$(ion_cmd "$TESTDIR/node1" "i memprotect")
+expect_output "$OUTPUT" "Memory protection: heap 10%, working memory 10%" \
+    "Node 1 defaults to heap 10%, wm 10%"
+
+OUTPUT=$(ion_cmd "$TESTDIR/node2" "i memprotect")
+expect_output "$OUTPUT" "Memory protection: heap 10%, working memory 10%" \
+    "Node 2 defaults to heap 10%, wm 10%"
+echo ""
+
+# ===================================================================
+# Test 2: Set and verify custom thresholds
+# ===================================================================
+echo "=== Test 2: Set and verify thresholds ==="
+
+ion_cmd "$TESTDIR/node1" "m memprotect 15 20" > /dev/null
+sleep 1
+OUTPUT=$(ion_cmd "$TESTDIR/node1" "i memprotect")
+expect_output "$OUTPUT" "Memory protection: heap 15%, working memory 20%" \
+    "Node 1 set to heap 15%, wm 20%"
+
+# Verify the change was logged
+expect_in_file "$TESTDIR/node1/ion.log" \
+    "Memory protection thresholds set: heap 15%, working memory 20%" \
+    "Node 1 threshold change logged"
+
+# Verify node 2 is still at defaults (independent)
+OUTPUT=$(ion_cmd "$TESTDIR/node2" "i memprotect")
+expect_output "$OUTPUT" "Memory protection: heap 10%, working memory 10%" \
+    "Node 2 still at defaults (independent)"
+echo ""
+
+# ===================================================================
+# Test 3: Clamping values to 0-50 range
+# ===================================================================
+echo "=== Test 3: Clamping out-of-range values ==="
+
+# Set values above 50 -- should clamp to 50
+ion_cmd "$TESTDIR/node1" "m memprotect 60 75" > /dev/null
+sleep 1
+OUTPUT=$(ion_cmd "$TESTDIR/node1" "i memprotect")
+expect_output "$OUTPUT" "Memory protection: heap 50%, working memory 50%" \
+    "Values >50 clamped to 50"
+
+expect_in_file "$TESTDIR/node1/ion.log" \
+    "Memory protection thresholds set: heap 50%, working memory 50%" \
+    "Clamped values logged correctly"
+echo ""
+
+# ===================================================================
+# Test 4: Disable protection with 0 0
+# ===================================================================
+echo "=== Test 4: Disable protection ==="
+
+ion_cmd "$TESTDIR/node1" "m memprotect 0 0" > /dev/null
+sleep 1
+OUTPUT=$(ion_cmd "$TESTDIR/node1" "i memprotect")
+expect_output "$OUTPUT" "Memory protection: heap 0%, working memory 0%" \
+    "Protection disabled (0/0)"
+
+expect_in_file "$TESTDIR/node1/ion.log" \
+    "Memory protection thresholds set: heap 0%, working memory 0%" \
+    "Disable logged"
+echo ""
+
+# ===================================================================
+# Test 5: Set different thresholds per node
+# ===================================================================
+echo "=== Test 5: Independent per-node thresholds ==="
+
+ion_cmd "$TESTDIR/node1" "m memprotect 25 30" > /dev/null
+ion_cmd "$TESTDIR/node2" "m memprotect 5 10" > /dev/null
+sleep 1
+
+OUTPUT=$(ion_cmd "$TESTDIR/node1" "i memprotect")
+expect_output "$OUTPUT" "Memory protection: heap 25%, working memory 30%" \
+    "Node 1 at 25/30"
+
+OUTPUT=$(ion_cmd "$TESTDIR/node2" "i memprotect")
+expect_output "$OUTPUT" "Memory protection: heap 5%, working memory 10%" \
+    "Node 2 at 5/10"
+echo ""
+
+# ===================================================================
+# Test 6: "i memprotect" reports current free-space percentages
+# ===================================================================
+echo "=== Test 6: Free-space percentage reporting ==="
+
+OUTPUT=$(ion_cmd "$TESTDIR/node1" "i memprotect")
+
+# The output should contain "Current SDR heap: XX.X% free (OK)"
+expect_output "$OUTPUT" "Current SDR heap:.*free" \
+    "Node 1 reports SDR heap free percentage"
+expect_output "$OUTPUT" "Current working memory:.*free" \
+    "Node 1 reports working memory free percentage"
+
+# With a nearly empty node, free space should be high and show (OK)
+expect_output "$OUTPUT" "(OK)" \
+    "Node 1 shows OK status (heap not breached)"
+echo ""
+
+# ===================================================================
+# Test 7: Verify threshold updates are reflected without restart
+# ===================================================================
+echo "=== Test 7: Live threshold updates ==="
+
+# Set, read, change, read again -- all without restart
+ion_cmd "$TESTDIR/node2" "m memprotect 35 40" > /dev/null
+sleep 1
+OUTPUT=$(ion_cmd "$TESTDIR/node2" "i memprotect")
+expect_output "$OUTPUT" "Memory protection: heap 35%, working memory 40%" \
+    "Node 2 first update (35/40)"
+
+ion_cmd "$TESTDIR/node2" "m memprotect 12 18" > /dev/null
+sleep 1
+OUTPUT=$(ion_cmd "$TESTDIR/node2" "i memprotect")
+expect_output "$OUTPUT" "Memory protection: heap 12%, working memory 18%" \
+    "Node 2 second update (12/18)"
+echo ""
+
+# ===================================================================
+# Phase 2 placeholder: Local-source protection (bp_send guard)
+# ===================================================================
+echo "=== Phase 2a placeholder: Local-source bp_send protection ==="
+echo "SKIP:  bp_send guard not yet integrated (Phase 2)"
+echo "       Future: set high threshold on node 1, fill SDR with"
+echo "       bpsource to ipn:2.1, verify breach log on node 1"
+echo "       and that bundles are rejected at the source."
+echo ""
+
+# ===================================================================
+# Phase 2 placeholder: Bundle acquisition protection (incoming)
+# ===================================================================
+echo "=== Phase 2b placeholder: Bundle acquisition protection ==="
+echo "SKIP:  Acquisition guard not yet integrated (Phase 2)"
+echo "       Future: set high threshold on node 2, send bundles"
+echo "       from node 1 to ipn:2.1, verify breach log on node 2"
+echo "       and that incoming bundles are rejected at acquisition."
+echo ""
+
+# ===================================================================
+# Teardown
+# ===================================================================
+echo "=== Teardown ==="
+
+# Print relevant log lines for debugging on failure
+if [ $FAIL -ne 0 ]; then
+    echo ""
+    echo "--- Node 1 ion.log (memprotect entries) ---"
+    grep -i "memprotect\|Memory protection\|threshold" "$TESTDIR/node1/ion.log" 2>/dev/null || echo "  (none)"
+    echo "--- Node 2 ion.log (memprotect entries) ---"
+    grep -i "memprotect\|Memory protection\|threshold" "$TESTDIR/node2/ion.log" 2>/dev/null || echo "  (none)"
+    echo "---"
+fi
+
+echo "Stopping ION..."
+cd "$TESTDIR/node1" && ./ionstop 2>/dev/null &
+cd "$TESTDIR/node2" && ./ionstop 2>/dev/null &
+sleep 3
+killm
+
+echo ""
+if [ $FAIL -eq 0 ]; then
+    echo "TEST PASSED: All memory protection settings tests passed."
+else
+    echo "TEST FAILED: See errors above."
+fi
+
+exit $FAIL

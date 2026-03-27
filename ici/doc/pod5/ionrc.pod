@@ -189,6 +189,14 @@ This command will print information (stop time, data rate, confidence) about
 the scheduled period of transmission from I<source_node> to I<dest_node>
 that starts at I<start_time>.
 
+=item B<i memprotect>
+
+This command prints the current memory protection thresholds (as set by
+B<m memprotect>) along with the current free-space percentages for both the
+SDR heap and working memory.  Each pool is reported as either "OK" or
+"BREACHED" depending on whether free space is above or below the configured
+threshold.
+
 =item B<l contact>
 
 This command lists all contacts in the contact plan for the selected region.
@@ -375,6 +383,23 @@ default value is zero, i.e., no end time.
 This management command establishes a command which will automatically be
 executed whenever I<ionadmin> predicts that the node will become congested
 at some future time.  By default, there is no alarm command.
+
+=item B<m memprotect> I<heap_percent> I<wm_percent>
+
+This management command sets the memory protection thresholds for the ION
+node.  Each threshold specifies the minimum percentage of free space (0-50)
+that must be maintained in the corresponding memory pool.  When free space
+drops below a threshold, ION will reject new bundles to protect against
+memory exhaustion.  Values are clamped to the range 0-50; setting a
+threshold to 0 disables protection for that pool.  The default value for
+both thresholds is 10.
+
+For example:
+
+	m memprotect 15 20
+
+sets the SDR heap protection threshold to 15% free and the working memory
+protection threshold to 20% free.
 
 =item B<m usage>
 

@@ -1,0 +1,5 @@
+wmKey 19001
+sdrName mpr1
+wmSize 5000000
+configFlags 1
+heapWords 250000

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+cd "$(dirname "$0")"
+
+killm
+sleep 1
+
+rm -f ion_nodes
+rm -f node1/ion.log node2/ion.log

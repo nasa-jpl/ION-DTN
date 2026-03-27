@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+bpadmin .
+sleep 1
+ltpadmin .
+sleep 1
+ionadmin .
+sleep 1
+killm
