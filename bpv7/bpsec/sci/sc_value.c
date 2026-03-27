@@ -1170,6 +1170,11 @@ uint8_t *bpsec_scv_sdrListSerialize(Sdr sdr, sc_Def *def, Object sdr_list, unsig
 			BPSEC_DEBUG_ERR("Cannot serialize value.", NULL);
 			if (tmpData)
 			{
+				int j;
+				for (j = 0; j < i; j++)
+				{
+					MRELEASE(tmpData[j].scSerializedText);
+				}
 				MRELEASE(tmpData);
 			}
 
