@@ -6434,6 +6434,13 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 		return 1;
 	}
 
+	if (ionHeapMemProtected(sdr) || ionWmMemProtected())
+	{
+		writeMemoNote("[?] Memory protection active, rejecting \
+bp_send", destEidString);
+		return 0;
+	}
+
 	/*	Prevent unnecessary NDP beaconing.			*/
 
 	if (discoveryElt)
@@ -7536,6 +7543,12 @@ int	bpBeginAcq(AcqWorkArea *work, int authentic, char *senderEid)
 	/*	Re-initialize the per-bundle parameters.		*/
 
 	clearAcqArea(work);
+
+	if (ionHeapMemProtected(getIonsdr()) || ionWmMemProtected())
+	{
+		work->congestive = 1;
+		return 0;
+	}
 
 	/*	Load the per-acquisition parameters.			*/
 
@@ -9490,6 +9503,12 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	Object		bundleObj;
+
+	if (ionHeapMemProtected(sdr) || ionWmMemProtected())
+	{
+		work->congestive = 1;
+		return 0;
+	}
 
 	if (acqFromWork(work) < 0)
 	{

@@ -435,6 +435,14 @@ static int run_sendfile(char *ownEid, char *destEid, char *fileName,
 			char sizeStr[32];
 			snprintf(sizeStr, sizeof(sizeStr), "%zu", aduLength);
 			putErrmsg("[!] sendfile error: can't send file in bundle.", sizeStr);
+			fprintf(stderr, "sendfile: failed to send '%s'.\n",
+					fileName);
+			CHKZERO(sdr_begin_xn(sdr));
+			zco_destroy(sdr, bundleZco);
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't destroy ZCO.", NULL);
+			}
 		}
 		else
 		{

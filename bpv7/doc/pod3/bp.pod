@@ -147,8 +147,13 @@ of the requested ZCO or to fail immediately if insufficient ZCO storage space
 is available.
 
 The function returns 1 on success, 0 on user error, -1 on any system
-error.  If 0 is returned, then an invalid argument value was passed to
-bp_send(); a message to this effect will have been written to the log file.
+error.  If 0 is returned, then the bundle was not accepted -- either due to
+an invalid argument or because ION's memory protection thresholds have been
+breached (see ionrc(5), B<m memprotect>).  In either case, a diagnostic
+message will have been written to the log file.  B<IMPORTANT:> when 0 is
+returned, the ADU ZCO is not consumed by bp_send() and remains the caller's
+responsibility; the caller should destroy it (via zco_destroy()) or retain
+it for a later retry.
 If 1 is returned, then either the destination of the bundle was
 "dtn:none" (the bit bucket) or the ADU has been accepted and queued for
 transmission in a bundle.  In the latter case, if and only if I<sap> was

@@ -2711,6 +2711,7 @@ int	ionHeapMemProtected(Sdr sdr)
 	size_t		freeSpace;
 	size_t		threshold;
 	int		pctFree;
+	int		needXn;
 	char		buffer[256];
 
 	if (vdb == NULL || vdb->heapMemProtectPercent == 0)
@@ -2718,7 +2719,26 @@ int	ionHeapMemProtected(Sdr sdr)
 		return 0;	/*	Disabled.			*/
 	}
 
+	/*	sdr_usage requires sdrFetchSafe, i.e. we must be
+	 *	inside an SDR transaction.  If the caller is not
+	 *	already in one, open a brief read-only transaction.	*/
+
+	needXn = (sdr_in_xn(sdr) == 0);
+	if (needXn)
+	{
+		if (sdr_begin_xn(sdr) < 0)
+		{
+			return 0;	/*	Can't check; allow.	*/
+		}
+	}
+
 	sdr_usage(sdr, &summary);
+
+	if (needXn)
+	{
+		sdr_exit_xn(sdr);
+	}
+
 	freeSpace = summary.smallPoolFree + summary.largePoolFree
 			+ summary.unusedSize;
 	threshold = (summary.heapSize * vdb->heapMemProtectPercent) / 100;

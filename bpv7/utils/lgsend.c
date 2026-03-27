@@ -164,6 +164,19 @@ int	main(int argc, char **argv)
 				&newBundle) < 1)
 		{
 			putErrmsg("lgsend: can't send bundle.", NULL);
+			fprintf(stderr, "lgsend: bundle send failed.\n");
+			CHKZERO(sdr_begin_xn(sdr));
+			zco_destroy(sdr, bundleZco);
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't destroy ZCO.", NULL);
+			}
+
+			bp_close(sap);
+			writeErrmsgMemos();
+			PUTS("lgsend: failed.");
+			bp_detach();
+			return 1;
 		}
 	}
 

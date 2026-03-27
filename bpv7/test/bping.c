@@ -422,6 +422,15 @@ static void *sendRequests(void *x)
 		{
 			putErrmsg("bping can't send ping bundle.", NULL);
 			fprintf(stderr, "bping can't send ping bundle.\n");
+			if (sdr_begin_xn(sdr) >= 0)
+			{
+				zco_destroy(sdr, bundleZco);
+				if (sdr_end_xn(sdr) < 0)
+				{
+					putErrmsg("Can't destroy ZCO.", NULL);
+				}
+			}
+
 			shutdownnow = 1;
 			bp_interrupt(recvsap);
 			pthread_exit(NULL);

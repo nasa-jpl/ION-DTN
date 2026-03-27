@@ -235,6 +235,13 @@ int sendStats(char *destEid, char *buffer, size_t len)
 			0, 0, NULL, bundleZco, &newBundle) <= 0)
 	{
 		putSysErrmsg("bpstats2 can't send stats bundle.", NULL);
+		CHKERR(sdr_begin_xn(sdr));
+		zco_destroy(sdr, bundleZco);
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't destroy ZCO.", NULL);
+		}
+
 		return -1;
 	}
 	return 0;

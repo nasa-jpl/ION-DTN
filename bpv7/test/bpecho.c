@@ -200,6 +200,14 @@ int	main(int argc, char **argv)
 				&newBundle) < 1)
 		{
 			putErrmsg("bpecho can't send echo bundle.", NULL);
+			fprintf(stderr, "bpecho: echo reply send failed.\n");
+			CHKZERO(sdr_begin_xn(sdr));
+			zco_destroy(sdr, bundleZco);
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't destroy ZCO.", NULL);
+			}
+
 			break;		/*	Out of main loop.	*/
 		}
 	}
