@@ -496,7 +496,6 @@ int bpsec_bagscu_inParmsGet(sc_state *state, AcqWorkArea *wk, BpsecInboundTarget
 	if((tmp_val = bpsec_scv_lystFind(tgtResult->scIndTargetResults, BPSEC_BAGSC_RESULT_TAG, SC_VAL_TYPE_RESULT)) == NULL)
 	{
 		BPSEC_DEBUG_ERR("No authentication tag found for target %d", tgtResult->scTargetId);
-		csi_cipherparms_free(*parms);
 		return ERROR;
 	}
 	parms->icv.len = tmp_val->scValLength;
@@ -516,7 +515,6 @@ int bpsec_bagscu_inParmsGet(sc_state *state, AcqWorkArea *wk, BpsecInboundTarget
 	if((aad.scSerializedLength <= 0) || (aad.scSerializedText == NULL))
 	{
 		BPSEC_DEBUG_ERR("Cannot build AAD.",NULL);
-		csi_cipherparms_free(*parms);
 		return ERROR;
 	}
 	parms->aad.contents = aad.scSerializedText;
@@ -632,10 +630,8 @@ int bpsec_bagscu_outParmsGet(sc_state *state, int suite, Lyst extraParms, Bundle
 	if((aad.scSerializedLength <= 0) || (aad.scSerializedText == NULL))
 	{
 		BPSEC_DEBUG_ERR("Cannot build AAD.",NULL);
-		csi_cipherparms_free(*parms);
 		return ERROR;
 	}
-
 	parms->aad.contents = aad.scSerializedText;
 	parms->aad.len = aad.scSerializedLength;
 
@@ -749,6 +745,7 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 	if(bpsec_bagscu_outParmsGet(state, aes_variant, extraParms, bundle, tgtResult, &csi_parms) <= 0)
 	{
 		BPSEC_DEBUG_ERR("Cannot construct parms for decryption.", NULL);
+		csi_cipherparms_free(csi_parms);
 		return ERROR;
 	}
 

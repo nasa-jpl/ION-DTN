@@ -1846,7 +1846,6 @@ int32_t bpsec_util_sdrBlkConvert(uint32_t suite, uint8_t *csi_ctx,
 	{
 		BPSEC_DEBUG_ERR("Can't allocate buffer of size %d.", chunkSize);
 
-		sdr_free(sdr, outputBuffer);
 		zco_destroy(sdr, *outputZco);
 		*outputZco = 0;
 		BPSEC_DEBUG_PROC("--> -1", NULL);
@@ -1898,7 +1897,6 @@ int32_t bpsec_util_sdrBlkConvert(uint32_t suite, uint8_t *csi_ctx,
 	if(bytesRemaining > 0)
 	{
 		result = ERROR;
-		sdr_free(sdr, outputBuffer);
 		zco_destroy(sdr, *outputZco);
 		*outputZco = 0;
 	}
