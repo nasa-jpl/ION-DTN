@@ -602,17 +602,16 @@ Object bpsec_scv_memListRecord(Sdr sdr, Object sdr_list, Lyst values)
 {
 	sc_value *val = NULL;
 	LystElt elt = NULL;
+	int list_created_here = 0;
 
 	BPSEC_DEBUG_PROC("(sdr,%d,"ADDR_FIELDSPEC")", sdr_list, (uaddr) values);
 
-	/* Step 0 - Sanity checks. */
 	if(values == NULL)
 	{
 		BPSEC_DEBUG_INFO("NO values to record.", NULL);
 		return sdr_list;
 	}
 
-	/* Step 1 - If there is no list, then allocate one in the SDR. */
 	if(sdr_list == 0)
 	{
 		if((sdr_list = sdr_list_create(sdr)) == 0)
@@ -620,9 +619,9 @@ Object bpsec_scv_memListRecord(Sdr sdr, Object sdr_list, Lyst values)
 			BPSEC_DEBUG_ERR("Unable to create sdr list.", NULL);
 			return 0;
 		}
+		list_created_here = 1;
 	}
 
-	/* Step 2 - For each in-memory value, persist it and add it to the list. */
 	for (elt = lyst_first(values); elt; elt = lyst_next(elt))
 	{
 		val = (sc_value*) lyst_data(elt);
@@ -630,7 +629,10 @@ Object bpsec_scv_memListRecord(Sdr sdr, Object sdr_list, Lyst values)
 		if(bpsec_scv_memSdrListAppend(sdr, sdr_list, val) == -1)
 		{
 			BPSEC_DEBUG_ERR("Unable to record value.", NULL);
-			sdr_list_destroy(sdr, sdr_list, bpsec_scv_sdrListCbDel, NULL);
+			if (list_created_here)
+			{
+				sdr_list_destroy(sdr, sdr_list, bpsec_scv_sdrListCbDel, NULL);
+			}
 			return 0;
 		}
 	}
@@ -1497,30 +1499,32 @@ Object bpsec_scv_smListRecord(Sdr sdr, Object sdr_list, PsmPartition wm, PsmAddr
 {
 	Object curObj = 0;
 	PsmAddress elt = 0;
+	int list_created_here = 0;
 
-	/* Step 0 - Sanity checks. */
 	if(values == 0)
 	{
 		return sdr_list;
 	}
 
-	/* Step 1 - If there is no list, then allocate one in the SDR. */
 	if(sdr_list == 0)
 	{
 		if((sdr_list = sdr_list_create(sdr)) == 0)
 		{
 			return 0;
 		}
+		list_created_here = 1;
 	}
 
-	/* Step 2 - For each in-memory value, persist it and add it to the list. */
 	for (elt = sm_list_first(wm, values); elt; elt = sm_list_next(wm, elt))
 	{
 		curObj = bpsec_scv_smSdrConvert(sdr, wm, sm_list_data(wm, elt));
 		if(sdr_list_insert_last(sdr, sdr_list, curObj) == 0)
 		{
 			bpsec_scv_sdrRelease(sdr, curObj);
-			sdr_list_destroy(sdr, sdr_list, bpsec_scv_sdrListCbDel, NULL);
+			if (list_created_here)
+			{
+				sdr_list_destroy(sdr, sdr_list, bpsec_scv_sdrListCbDel, NULL);
+			}
 			return 0;
 		}
 	}
