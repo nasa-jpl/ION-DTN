@@ -43,17 +43,34 @@ RUN apt-get update -y --no-install-recommends \
     ruby \
     tcpdump \
     iproute2 \
+    zlib1g-dev \
+    libbz2-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    libncursesw5-dev \
+    xz-utils \
+    tk-dev \
+    libxml2-dev \
+    libxmlsec1-dev \
+    libffi-dev \
+    liblzma-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN export PATH=$HOME/.local/bin:$PATH
+RUN export PATH="${HOME}/.local/bin:${PATH}"
 
-RUN curl -fLo mbedtls-2.28.10.tar.bz2 https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-2.28.10/mbedtls-2.28.10.tar.bz2 && tar xjf ./mbedtls-2.28.10.tar.bz2
+# Consolidated mbedtls download, build, strip debug symbols, and cleanup into a single layer
+RUN curl -fLo mbedtls-2.28.10.tar.bz2 "https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-2.28.10/mbedtls-2.28.10.tar.bz2" \
+    && tar xjf ./mbedtls-2.28.10.tar.bz2 \
+    && cd mbedtls-2.28.10 \
+    && sed -i 's|//#define MBEDTLS_NIST_KW_C|#define MBEDTLS_NIST_KW_C|' include/mbedtls/config.h \
+    && make no_test SHARED=1 \
+    && make install \
+    && strip /usr/local/lib/libmbedcrypto.so* \
+    && strip /usr/local/lib/libmbedtls.so* \
+    && strip /usr/local/lib/libmbedx509.so* \
+    && cd .. \
+    && rm -rf mbedtls-2.28.10/ mbedtls-2.28.10.tar.bz2
 
-WORKDIR /mbedtls-2.28.10
-RUN sed -i 's|//#define MBEDTLS_NIST_KW_C|#define MBEDTLS_NIST_KW_C|' include/mbedtls/config.h && make no_test SHARED=1 && make install
-
-WORKDIR /
-RUN rm -rf mbedtls-2.28.10/ mbedtls-2.28.10.tar.bz2 && apt-get remove -y bzip2 && rm -rf /var/lib/apt/lists/*
 # Download latest git-lfs version
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash && \
     apt-get install -y --no-install-recommends git-lfs
@@ -74,9 +91,9 @@ WORKDIR /home/runner
 RUN test -n "$TARGETPLATFORM" || (echo "TARGETPLATFORM must be set" && false)
 
 # Runner download supports amd64 and x64
-RUN export ARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2) \
+RUN export ARCH=$(echo "${TARGETPLATFORM}" | cut -d / -f2) \
     && if [ "$ARCH" = "amd64" ]; then export ARCH=x64 ; fi \
-    && curl -L -o runner.tar.gz https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-${ARCH}-${RUNNER_VERSION}.tar.gz \
+    && curl -L -o runner.tar.gz "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-${ARCH}-${RUNNER_VERSION}.tar.gz" \
     && tar xzf ./runner.tar.gz \
     && rm runner.tar.gz \
     && ./bin/installdependencies.sh \
@@ -87,14 +104,14 @@ RUN export ARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2) \
     && rm -rf /var/lib/apt/lists/*
 
 # Install container hooks
-RUN curl -f -L -o runner-container-hooks.zip https://github.com/actions/runner-container-hooks/releases/download/v${RUNNER_CONTAINER_HOOKS_VERSION}/actions-runner-hooks-k8s-${RUNNER_CONTAINER_HOOKS_VERSION}.zip \
+RUN curl -f -L -o runner-container-hooks.zip "https://github.com/actions/runner-container-hooks/releases/download/v${RUNNER_CONTAINER_HOOKS_VERSION}/actions-runner-hooks-k8s-${RUNNER_CONTAINER_HOOKS_VERSION}.zip" \
     && unzip ./runner-container-hooks.zip -d ./k8s \
     && rm runner-container-hooks.zip
 
-RUN export ARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2) \
+RUN export ARCH=$(echo "${TARGETPLATFORM}" | cut -d / -f2) \
     && if [ "$ARCH" = "arm64" ]; then export ARCH=aarch64 ; fi \
     && if [ "$ARCH" = "amd64" ] || [ "$ARCH" = "i386" ]; then export ARCH=x86_64 ; fi \
-    && curl -fLo /usr/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v${DUMB_INIT_VERSION}/dumb-init_${DUMB_INIT_VERSION}_${ARCH} \
+    && curl -fLo /usr/bin/dumb-init "https://github.com/Yelp/dumb-init/releases/download/v${DUMB_INIT_VERSION}/dumb-init_${DUMB_INIT_VERSION}_${ARCH}" \
     && chmod +x /usr/bin/dumb-init
 
 ENV RUNNER_TOOL_CACHE=/opt/hostedtoolcache
@@ -103,19 +120,19 @@ RUN mkdir /opt/hostedtoolcache \
     && chmod g+rwx /opt/hostedtoolcache
 
 RUN set -vx; \
-    export ARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2) \
+    export ARCH=$(echo "${TARGETPLATFORM}" | cut -d / -f2) \
     && if [ "$ARCH" = "arm64" ]; then export ARCH=aarch64 ; fi \
     && if [ "$ARCH" = "amd64" ] || [ "$ARCH" = "i386" ]; then export ARCH=x86_64 ; fi \
-    && curl -fLo docker.tgz https://download.docker.com/linux/static/${CHANNEL}/${ARCH}/docker-${DOCKER_VERSION}.tgz \
+    && curl -fLo docker.tgz "https://download.docker.com/linux/static/${CHANNEL}/${ARCH}/docker-${DOCKER_VERSION}.tgz" \
     && tar zxvf docker.tgz \
     && install -o root -g root -m 755 docker/docker /usr/bin/docker \
     && rm -rf docker docker.tgz
 
-RUN export ARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2) \
+RUN export ARCH=$(echo "${TARGETPLATFORM}" | cut -d / -f2) \
     && if [ "$ARCH" = "arm64" ]; then export ARCH=aarch64 ; fi \
     && if [ "$ARCH" = "amd64" ] || [ "$ARCH" = "i386" ]; then export ARCH=x86_64 ; fi \
     && mkdir -p /usr/libexec/docker/cli-plugins \
-    && curl -fLo /usr/libexec/docker/cli-plugins/docker-compose https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-linux-${ARCH} \
+    && curl -fLo /usr/libexec/docker/cli-plugins/docker-compose "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-linux-${ARCH}" \
     && chmod +x /usr/libexec/docker/cli-plugins/docker-compose \
     && ln -s /usr/libexec/docker/cli-plugins/docker-compose /usr/bin/docker-compose \
     && which docker-compose \
@@ -134,6 +151,19 @@ COPY actions-runner-controller/runner/hooks /etc/arc/hooks/
 
 RUN chmod -R 777 /opt /usr/share
 
+USER runner
+ENV PYENV_GIT_TAG=v2.6.26
+RUN curl https://pyenv.run | bash
+ENV PYENV_ROOT="/home/runner/.pyenv"
+ENV PATH="${PYENV_ROOT}/bin:/home/runner/.local/bin/:${PATH}"
+RUN echo 'eval "$(pyenv init - bash)"' >> ~/.bashrc
+
+# Install python and clear out sources/cache to save space
+RUN pyenv install 3.11.15 && pyenv global 3.11.15 \
+    && rm -rf /home/runner/.pyenv/cache/* \
+    && rm -rf /home/runner/.pyenv/sources/* \
+    && find /home/runner/.pyenv -type d -name "__pycache__" -exec rm -rf {} +
+
 FROM scratch AS final
 
 ARG BUILD_DATE
@@ -145,10 +175,10 @@ LABEL org.opencontainers.image.authors="Nate Richard (nrichard@jpl.nasa.gov)"
 LABEL org.opencontainers.image.created="${BUILD_DATE}"
 LABEL org.opencontainers.image.revision="${REV}"
 
-# Add the Python "User Script Directory" to the PATH
-ENV PATH="${PATH}:${HOME}/.local/bin/"
+ENV PYENV_ROOT="/home/runner/.pyenv"
+ENV PATH="${PYENV_ROOT}/bin:/home/runner/.local/bin/:${PATH}"
 ENV ImageOS=ubuntu-22
-ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
 
 USER runner
 
