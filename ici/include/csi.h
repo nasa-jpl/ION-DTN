@@ -70,6 +70,8 @@
 #define NULL_CRYPTO_SUITES
 #endif
 
+
+
 /** Ciphersuite types */
 typedef enum {
 	CSTYPE_HMAC_SHA1     = 0x001,   /* From RFC 6257 */
@@ -111,6 +113,8 @@ typedef struct
 	uint32_t chunkSize;
 	uint32_t keySize;
 } csi_blocksize_t;
+
+#define CSI_MAX_BLOCKSIZE 4096
 
 /************************************************************************
  *              Structures supporting BPv6 crypto                       *

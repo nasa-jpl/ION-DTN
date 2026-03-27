@@ -230,7 +230,7 @@ uint32_t hsha_blocksize(csi_csid_t suite)
 	/* Parameters intentionally unused. */
 	(void)suite;
 
-	return 65000;
+	return CSI_MAX_BLOCKSIZE;
 }
 
 

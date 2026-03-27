@@ -91,7 +91,7 @@ uint32_t gcm_blocksize(csi_csid_t suite)
 	/* Parameter intentionally unused. */
 	(void)suite;
 
-	return 65000;
+	return CSI_MAX_BLOCKSIZE;
 }
 
 
