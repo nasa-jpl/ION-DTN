@@ -3,6 +3,7 @@ FROM ubuntu:24.04 as build
 ARG TARGETPLATFORM
 ARG RUNNER_VERSION
 ARG RUNNER_CONTAINER_HOOKS_VERSION
+ARG PIP_INDEX
 # Docker and Docker Compose arguments
 ARG CHANNEL=stable
 ARG DOCKER_VERSION=28.0.4
@@ -164,6 +165,13 @@ RUN pyenv install 3.11.15 && pyenv global 3.11.15 \
     && rm -rf /home/runner/.pyenv/sources/* \
     && find /home/runner/.pyenv -type d -name "__pycache__" -exec rm -rf {} +
 
+RUN if [ ! -z "${PIP_INDEX}" ]; then \
+    . ~/.bashrc && python3 -m pip install --no-cache-dir --upgrade pip && python3 -m pip install --no-cache-dir bespokebpv7==0.4.0 -i "${PIP_INDEX}"; \
+    else \
+    # . ~/.bashrc && python3 -m pip install --no-cache-dir --upgrade pip && python3 -m pip install --no-cache-dir bespokebpv7==0.4.0; \
+    echo "bespokebpv7 not open-source yet 🙁" \
+    fi
+
 FROM scratch AS final
 
 ARG BUILD_DATE
@@ -175,10 +183,10 @@ LABEL org.opencontainers.image.authors="Nate Richard (nrichard@jpl.nasa.gov)"
 LABEL org.opencontainers.image.created="${BUILD_DATE}"
 LABEL org.opencontainers.image.revision="${REV}"
 
-# Add the Python "User Script Directory" to the PATH
-ENV PATH="${PATH}:${HOME}/.local/bin/"
+ENV PYENV_ROOT="/home/runner/.pyenv"
+ENV PATH="${PYENV_ROOT}/bin:/home/runner/.local/bin/:${PATH}"
 ENV ImageOS=ubuntu-24
-ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
 
 USER runner
 
