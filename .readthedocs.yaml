@@ -12,10 +12,8 @@ build:
       - cpanm Pod::Markdown  # Install the required Perl module
       - chmod +x ./gh-pages/docs/convert-pod-to-md.sh
       - cd ./gh-pages/docs && ./convert-pod-to-md.sh  # Script to convert POD to Markdown
-
-python:
-  install:
-    - requirements: ./readthedocs-requirements.txt
+    install:
+      - pip install --require-hashes -r readthedocs-requirements.txt
 
 mkdocs:
   configuration: gh-pages/mkdocs.yml  # Path to the mkdocs.yml in the gh-pages directory
