@@ -230,7 +230,20 @@ if __name__ == "__main__":
     test_subset = []
     if args.tests:
         for test in args.tests:
-            test_subset.append(Path(test))
+            test_path = Path(test)
+            # If the path is a directory with dotest, use it directly.
+            # Otherwise expand it: find all dotest scripts underneath.
+            tests_dir = Path("tests") / test_path
+            if (tests_dir / "dotest").exists():
+                test_subset.append(test_path)
+            elif tests_dir.is_dir():
+                for dotest_file in sorted(tests_dir.rglob("dotest")):
+                    if ".libs" not in dotest_file.parts:
+                        test_subset.append(
+                            dotest_file.parent.relative_to(Path("tests"))
+                        )
+            else:
+                test_subset.append(test_path)
 
     # Don't allow 0 runners and we cannot exceed 7 runners
     if args.runners < 1:
