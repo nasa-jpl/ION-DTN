@@ -116,7 +116,7 @@ sleep 1
 # bundle consumes ~100KB of SDR (payload + overhead), so 8 bundles
 # should reach ~40%.  Bundles queue because no contact is active yet.
 echo "Sending bundles to fill SDR heap (no contact active yet)..."
-PAYLOAD=$(head -c 50000 < /dev/zero | tr '\0' 'X')
+PAYLOAD=$(dd if=/dev/zero bs=50000 count=1 2>/dev/null | tr '\0' 'X')
 
 for i in 1 2 3 4 5 6 7 8; do
     bpsource ipn:1.1 "${PAYLOAD}"

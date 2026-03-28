@@ -283,7 +283,7 @@ sleep 1
 # Each 50KB bundle uses ~2% of the 2MB heap.  After ~19 bundles the
 # heap drops below 50% free and the guard kicks in.
 echo "Sending bundles to fill node 1 SDR heap..."
-PAYLOAD=$(head -c 50000 < /dev/zero | tr '\0' 'X')
+PAYLOAD=$(dd if=/dev/zero bs=50000 count=1 2>/dev/null | tr '\0' 'X')
 cd "$TESTDIR/node1"
 for i in $(seq 1 25); do
     bpsource ipn:2.1 "${PAYLOAD}" 2>/dev/null
@@ -390,7 +390,7 @@ sleep 1
 # No bpsink is running, so bundles queue at ipn:2.1 (endpoint 'q').
 # After ~8 bundles land on node 2 the guard should fire.
 echo "Sending inbound bundles from node 1 to trigger guard..."
-PAYLOAD=$(head -c 10000 < /dev/zero | tr '\0' 'Y')
+PAYLOAD=$(dd if=/dev/zero bs=10000 count=1 2>/dev/null | tr '\0' 'Y')
 cd "$TESTDIR/node1"
 for i in $(seq 1 20); do
     bpsource ipn:2.1 "${PAYLOAD}" 2>/dev/null
