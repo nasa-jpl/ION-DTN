@@ -63,6 +63,25 @@ def find_tests() -> list[Path]:
     return test_dirs
 
 
+def is_excluded(test_dir: Path) -> bool:
+    """Check whether a test directory has any exclusion markers.
+
+    Returns:
+        True if the test should be skipped.
+
+    """
+    for marker in (
+        ".exclude_bpv7",
+        ".exclude_expert",
+        ".exclude_linux",
+        ".exclude_arc",
+        ".exclude_all",
+    ):
+        if (test_dir / marker).exists():
+            return True
+    return False
+
+
 def list_tests() -> list[Path]:
     """Generate list of tests.
 
@@ -84,16 +103,7 @@ def list_tests() -> list[Path]:
         if not os.access(dotest_path, os.X_OK):
             continue
 
-        # Check for exclusion files
-        if (test_dir / ".exclude_bpv7").exists():
-            continue
-        if (test_dir / ".exclude_expert").exists():
-            continue
-        if (test_dir / ".exclude_linux").exists():
-            continue
-        if (test_dir / ".exclude_arc").exists():
-            continue
-        if (test_dir / ".exclude_all").exists():
+        if is_excluded(test_dir):
             continue
 
         # runtests wrapper is run from within the tests directory so need paths relative to that
