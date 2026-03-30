@@ -560,13 +560,11 @@ transmitting bundles to the node[s] to which it is currently assigned.
 
 Declares the "ipn" scheme on the local node.
 
-=item a protocol udp 1400 100 16384
+=item a protocol udp
 
 Establishes access to the "udp" convergence layer protocol on the local
-node, estimating the number of payload bytes per ultimate (lowest-layer)
-frame to be 1400 with 100 bytes of total overhead (BP, UDP, IP, AOS) per
-lowest-layer frame, and setting the default nominal data rate to be 16384
-bytes per second.
+node.  Since "udp" is a well-known protocol, its class (best-effort) is
+set automatically.
 
 =item r 'ipnadmin flyby.ipnrc'
 
