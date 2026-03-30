@@ -171,8 +171,8 @@ USER runner
 ENV PYENV_GIT_TAG=v2.6.26
 RUN curl https://pyenv.run | bash
 ENV PYENV_ROOT="/home/runner/.pyenv"
-ENV PATH="${PYENV_ROOT}/bin:/home/runner/.local/bin/:${PATH}"
-RUN echo 'eval "$(pyenv init -)"' >> ~/.bashrc
+ENV PATH="/home/runner/.local/bin/:${PYENV_ROOT}/bin:${PATH}"
+RUN echo 'eval "$(pyenv init - bash)"' >> ~/.bashrc
 
 # Install python and clear out sources/cache to save space
 RUN pyenv install 3.11.15 && pyenv global 3.11.15 \
