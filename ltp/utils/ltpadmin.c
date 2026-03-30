@@ -1834,7 +1834,7 @@ static int	processLine(char *line, int lineLength, int *checkNeeded,
 
 	/*	Skip over any trailing whitespace.			*/
 
-	while (isspace((int) *cursor))
+	while (isspace((unsigned char) *cursor))
 	{
 		cursor++;
 	}

@@ -513,7 +513,7 @@ int	ionsecadmin_processLine(char *line, int lineLength)
 
 	/*	Skip over any trailing whitespace.			*/
 
-	while (isspace((int) *cursor))
+	while (isspace((unsigned char) *cursor))
 	{
 		cursor++;
 	}

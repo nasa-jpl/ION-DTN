@@ -2496,7 +2496,7 @@ int bpsec_admin_json_getCmd(char *line, char *jsonStr)
 	jsonObject  job;
 
 	/* Step 1: Strip any leading whitespace from the line */
-	while (isspace((int) *line))
+	while (isspace((unsigned char) *line))
 	{
 		line++;
 	}
@@ -2808,7 +2808,7 @@ int bpsec_admin_executeCmd(char *line)
 	memset(cmdCode, '\0', sizeof(cmdCode));
 
 	/* Step 1.1: Strip any leading whitespace */
-	while (isspace((int) *line))
+	while (isspace((unsigned char) *line))
 	{
 		line++;
 	}
@@ -2836,7 +2836,7 @@ int bpsec_admin_executeCmd(char *line)
 	line++;
 
 	/* Step 1.5: Strip any remaining whitespace */
-	while (isspace((int) *line))
+	while (isspace((unsigned char) *line))
 	{
 		line++;
 	}

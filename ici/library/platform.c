@@ -2145,7 +2145,7 @@ void	findToken(char **cursorPtr, char **token)
 
 	/*	Skip over any leading whitespace.			*/
 
-	while (isspace((int) *cursor))
+	while (isspace((unsigned char) *cursor))
 	{
 		cursor++;
 	}
@@ -2227,7 +2227,7 @@ void	findToken(char **cursorPtr, char **token)
 	cursor++;
 	while (*cursor != '\0')
 	{
-		if (isspace((int) *cursor))	/*	End of token.	*/
+		if (isspace((unsigned char) *cursor))	/*	End of token.	*/
 		{
 			*cursor = '\0';
 			cursor++;
