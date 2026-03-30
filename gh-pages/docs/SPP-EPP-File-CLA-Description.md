@@ -379,5 +379,3 @@ gcc -shared -fPIC -o libmyprovider.dylib myprovider.c
 | File Loopback Test | `tests/loopback-file/` |
 | File Transfer Test | `tests/file-transfer/` |
 | SPP Two-Node Demo | `configs/two-node-spp/` |
-| SPP Loopback Config | `configs/loopback-spp/` |
-| EPP Loopback Config | `configs/loopback-epp/` |
