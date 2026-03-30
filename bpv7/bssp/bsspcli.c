@@ -258,7 +258,7 @@ int	main(int argc, char *argv[])
 
 	if (ductName == NULL)
 	{
-		PUTS("Usage: bsspcli <local engine number>]");
+		PUTS("usage: bsspcli local_engine_number");
 		return 0;
 	}
 
