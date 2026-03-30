@@ -35,7 +35,7 @@ int	bulk_create(unsigned long item)
 	}
 
 	close(fd);
-	return fd;
+	return 0;
 }
 
 int	bulk_write(unsigned long item, vast offset, char *buffer, vast length)
