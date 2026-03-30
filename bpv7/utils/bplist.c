@@ -53,7 +53,7 @@ static void	printBytes(char *text, int length)
 			line[high] = digits[digit];
 			digit = ((unsigned char) *cursor) & 0x0f;
 			line[low] = digits[digit];
-			line[57 + i] = isprint((int) *cursor) ? *cursor : '.';
+			line[57 + i] = isprint((unsigned char) *cursor) ? *cursor : '.';
 			i++;
 			bytesPrinted++;
 			cursor++;
