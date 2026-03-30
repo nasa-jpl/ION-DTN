@@ -1139,8 +1139,6 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 		/*	If message needs encryption, it's already done.	*/
 	|| subject->symmetricKeyName == NULL)	/*	no encryption	*/
 	{
-
-		MRELEASE(content);
 		*content = newContent;
 		*contentLength = newContentLength;
 
@@ -1156,33 +1154,25 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 		putErrmsg("Can't fetch symmetric key.",
 				subject->symmetricKeyName);
 
-		MRELEASE(*content);
-		*content = NULL;
-
 		MRELEASE(newContent);
-		newContent = NULL;
-
 		return -1;
 	}
 
-	newContentLength = encryptUsingSymmetricKey(&newContent, keyBuffer,
-			keyLength, *content, *contentLength);
-	if (newContentLength == 0)
+	char *encryptedContent = NULL;
+	int encryptedLength = encryptUsingSymmetricKey(&encryptedContent, keyBuffer,
+			keyLength, newContent, newContentLength);
+	if (encryptedLength == 0)
 	{
 		putErrmsg("Can't encrypt AAMS msg content.", subject->name);
 
-		MRELEASE(*content);
-		*content = NULL;
-
 		MRELEASE(newContent);
-		newContent = NULL;
-
 		return -1;
 	}
-	MRELEASE(*content);
-	*content = newContent;
 
-	*contentLength = newContentLength;
+	MRELEASE(newContent);
+	*content = encryptedContent;
+
+	*contentLength = encryptedLength;
 	*(header + 14) = ((*contentLength) >> 8) & 0x000000ff;
 	*(header + 15) = (*contentLength) & 0x000000ff;
 	return 0;
