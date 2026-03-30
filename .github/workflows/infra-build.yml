@@ -125,7 +125,7 @@ jobs:
         run: |
           cd images && \
           make buildah-build \
-            PIP_INDEX=${{ env.PIP_INDEX }}
+            PIP_INDEX=${{ env.PIP_INDEX }} \
             OS_IMAGE=${{ matrix.os_image }} \
             DEFAULT_RUNNER_NAME=${{ env.REGISTRY_ADDRESS }}/${{ env.REGISTRY_NAMESPACE }}/ion-runner-images
 
@@ -159,7 +159,7 @@ jobs:
         run: |
           cd images && \
           make buildah-build-rhel \
-            PIP_INDEX=${{ env.PIP_INDEX }}
+            PIP_INDEX=${{ env.PIP_INDEX }} \
             OS_IMAGE=rhel-8 \
             DEFAULT_RUNNER_NAME=${{ env.REGISTRY_ADDRESS }}/${{ env.REGISTRY_NAMESPACE }}/ion-runner-images
 
@@ -193,7 +193,7 @@ jobs:
         run: |
           cd images && \
           make buildah-build-rhel \
-            PIP_INDEX=${{ env.PIP_INDEX }}
+            PIP_INDEX=${{ env.PIP_INDEX }} \
             OS_IMAGE=rhel-9 \
             DEFAULT_RUNNER_NAME=${{ env.REGISTRY_ADDRESS }}/${{ env.REGISTRY_NAMESPACE }}/ion-runner-images
 
