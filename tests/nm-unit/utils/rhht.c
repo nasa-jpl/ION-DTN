@@ -110,7 +110,7 @@ void test_rhht_ari(void)
 	TEST_ASSERT_NOT_NULL(ari2);
 
 	// Validate hash calculations
-	//printf("ISS values are %x, %x\n", ari->as_reg.iss_idx, ari2->as_reg.iss_idx);
+	//printf("ISS values are %x, %x\n", ari->u.as_reg.iss_idx, ari2->u.as_reg.iss_idx);
 	TEST_ASSERT_EQUAL(ht.hash(&ht, ari), ht.hash(&ht, ari2));
 
 	// Retrieve key with copy

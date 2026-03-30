@@ -278,10 +278,7 @@ tcp4cli
 tcp4clo
 
 # Test artifacts and directories
-tests/bpsec/bpsec-all-multinode-test.bsl/
 tests/issue-325-329-fragmentation/**/testfile*
-tests/tcp4-twonodes/
-tests/tcp4-twonodes-tls/
 
 # Produced test support
 tests/retest
@@ -610,6 +607,10 @@ ltpstats
 ltpcancel
 ltpwatch
 
+# bpchat/bping DURATION
+!tests/bpchat/.DURATION
+!tests/bping/.DURATION
+
 # CBR/CT Orange Book test artifacts
 tests/cbr-ct-orange-book/*/ion_nodes
 tests/cbr-ct-orange-book/*/*.node/ion.log
@@ -628,9 +629,6 @@ tests/cbr-ct-orange-book/*/*.node/ccs_test_output.txt
 
 # CBR custody test binary
 cbrcustodytest
-
-# Reference documents (design docs, PDFs, etc.)
-ref-doc/
 
 # misc test check files
 ams/x86_64-linux/check
@@ -654,3 +652,4 @@ secrets.local.yaml
 # helm charts
 Chart.lock
 charts/arc/charts/*
+charts/arc/values.yaml

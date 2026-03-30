@@ -63,7 +63,9 @@
 
 #include "bpsec_util.h"
 #include "bpsec_asb.h"
+#if !USING_BSL
 #include "sci.h"
+#endif
 
 
 // TODO: Consider removing BIB debug statements.
@@ -197,9 +199,11 @@ writeMemo(gMsg);}
  *				FUNCTION DEFINITIONS			*
  ************************************************************************/
 
+#if !USING_BSL
 extern int	bpsec_sign(Bundle *bundle);
 
 extern int	bpsec_verify(AcqWorkArea *work);
+#endif /* !USING_BSL */
 
 
 #endif /* BIB_H_ */

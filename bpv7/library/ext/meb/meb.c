@@ -134,6 +134,7 @@ int	meb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	if (unparsedBytes < 3)
 	{
 		/*	Block doesn't conform to MEB format.	*/
+		writeMemo("[?] Can't decode MEB block.");
 		return 1;
 	}
 
@@ -171,9 +172,11 @@ int	meb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	if (unparsedBytes != 0)
 	{
 		/*	Block doesn't conform to MEB format.	*/
+		writeMemo("[?] Excess bytes at end of MEB block.");
 		return 1;
 	}
 
+	blk->parsed = 1;
 	return 1;
 }
 

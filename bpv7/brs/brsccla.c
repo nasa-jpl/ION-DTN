@@ -398,9 +398,7 @@ number>");
 
 	oK(brscclaSemaphore(&(voutduct->semaphore)));
 	isignal(SIGTERM, interruptThread);
-#ifndef mingw
 	isignal(SIGPIPE, itcp_handleConnectionLoss);
-#endif
 
 	/*	Start the receiver thread.				*/
 
@@ -487,11 +485,7 @@ number>");
 	running = 0;
 	if (haveReceiverThread)
 	{
-#ifdef mingw
-		shutdown(ductSocket, SD_BOTH);
-#else
 		pthread_kill(receiverThread, SIGTERM);
-#endif
 		pthread_join(receiverThread, NULL);
 	}
 

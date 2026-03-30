@@ -6,7 +6,7 @@
 
 /*****************************************************************************
  **
- ** File Name: rfc9173_utils.h
+ ** File Name: rfc9173_utils.c
  **
  ** Namespace:
  **    bpsec_rfc9173utl_  Utility functions
@@ -702,8 +702,8 @@ uint16_t bpsec_rfc9173utl_intParmGet(sc_state *state, int id, uint16_t defVal)
 	/* Step 1: If the parameter is found, return it. */
 	if((tmp = bpsec_scv_lystFind(state->scStParms, id, SC_VAL_TYPE_PARM)) != NULL)
 	{
-		uint16_t *ptr = (uint16_t*) tmp->scRawValue.asPtr;
-		return *ptr;
+		uvast *ptr = (uvast*) tmp->scRawValue.asPtr;
+		return (uint16_t)(*ptr);
 	}
 
 	/* Step 2: If the parameter is not found, return the default. */

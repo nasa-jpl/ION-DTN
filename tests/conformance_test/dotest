@@ -43,21 +43,40 @@ echo
 echo "########################################"
 echo
 
-# Check if python3 is available
-if ! command -v python3 &> /dev/null; then
-    echo "SKIP: python3 is required but not found. Please install Python 3."
+# Find the latest available Python 3 version >= 3.9
+PYTHON_CMD=""
+MAX_MINOR=-1
+
+check_python_version() {
+    local py_exec=$1
+    if command -v "$py_exec" &> /dev/null; then
+        local py_maj=$("$py_exec" -c 'import sys; print(sys.version_info[0])' 2>/dev/null)
+        local py_min=$("$py_exec" -c 'import sys; print(sys.version_info[1])' 2>/dev/null)
+        if [ "$py_maj" = "3" ] && [ "$py_min" -ge 9 ]; then
+            if [ "$py_min" -gt "$MAX_MINOR" ]; then
+                MAX_MINOR=$py_min
+                PYTHON_CMD="$py_exec"
+            fi
+        fi
+    fi
+}
+
+# Check standard python3 first
+check_python_version python3
+
+i=20
+while [ $i -ge 9 ]; do
+    check_python_version "python3.$i"
+    i=$((i - 1))
+done
+
+if [ -z "$PYTHON_CMD" ]; then
+    echo "SKIP: Python 3.9 or higher is required but not found."
     exit 2
 fi
 
-# Check Python version (need at least 3.9)
-PYTHON_VERSION=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
-PYTHON_MAJOR=$(python3 -c 'import sys; print(sys.version_info[0])')
-PYTHON_MINOR=$(python3 -c 'import sys; print(sys.version_info[1])')
-if [ "$PYTHON_MAJOR" -lt 3 ] || { [ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 9 ]; }; then
-    echo "SKIP: Python 3.9 or higher is required. Found version $PYTHON_VERSION"
-    exit 2
-fi
-echo "Using Python $PYTHON_VERSION"
+PYTHON_VERSION="3.$MAX_MINOR"
+echo "Using Python $PYTHON_VERSION (via $PYTHON_CMD)"
 
 ./cleanup
 sleep 1
@@ -84,7 +103,7 @@ cd ../
 sleep 5
 
 echo "Sending bundles..."
-python3 runtest.py bundles.txt
+$PYTHON_CMD runtest.py bundles.txt
 STATCHECK=$?
 
 # bpsink does not self-terminate, so send it SIGINT

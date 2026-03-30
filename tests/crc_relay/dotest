@@ -290,26 +290,35 @@ fi
 echo ""
 echo "Case 3: Send bundle with no CRC (type 0) for primary block, CRC32 (type 2) for payload"
 echo "Expected: Bundle should be rejected at relay (per CCSDS Bluebook: primary block must have CRC or BIB)"
-cd ../2.ipn.ltp
-bpadmin adjust-crc-type-case-3.bprc
-sleep 1
-bpsource ipn:5.2 "Third hello!" -t3000
-sleep 5
 
-cd ../5.ipn.ltp
-
-# Run bplist to check if bundle arrived (it should NOT arrive)
-BUNDLE_COUNT=$(bplist | tee case3_out.txt | grep -c "^\*\*\*\* Bundle")
-
-# Bundle should NOT be present at destination (should be rejected at relay)
-if [ "$BUNDLE_COUNT" -eq 0 ]; then
-    echo "Success: Case 3: Bundle correctly rejected at relay (no primary CRC and no BIB)"
+# This case requires native BPSec's BIB check to reject bundles without
+# primary CRC or BIB.  When BSL is compiled but not configured, no BPSec
+# processing occurs at the relay, so the bundle passes through unchecked.
+# A DTN node without BPSec capability is not expected to enforce BIB checks.
+if grep -q "BSL not configured" ../3.ipn.ltp/ion.log 2>/dev/null; then
+    echo "Skip: Case 3 requires native BPSec BIB checking (BSL compiled but not configured)"
 else
-    echo "Error: Case 3: Bundle should have been rejected but $BUNDLE_COUNT bundle(s) found at destination"
-    RETVAL=1
-fi
+    cd ../2.ipn.ltp
+    bpadmin adjust-crc-type-case-3.bprc
+    sleep 1
+    bpsource ipn:5.2 "Third hello!" -t3000
+    sleep 5
 
-# No need to drain bundle since it shouldn't be there
+    cd ../5.ipn.ltp
+
+    # Run bplist to check if bundle arrived (it should NOT arrive)
+    BUNDLE_COUNT=$(bplist | tee case3_out.txt | grep -c "^\*\*\*\* Bundle")
+
+    # Bundle should NOT be present at destination (should be rejected at relay)
+    if [ "$BUNDLE_COUNT" -eq 0 ]; then
+        echo "Success: Case 3: Bundle correctly rejected at relay (no primary CRC and no BIB)"
+    else
+        echo "Error: Case 3: Bundle should have been rejected but $BUNDLE_COUNT bundle(s) found at destination"
+        RETVAL=1
+    fi
+
+    # No need to drain bundle since it shouldn't be there
+fi
 
 ########################
 

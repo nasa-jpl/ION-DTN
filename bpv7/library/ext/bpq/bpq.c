@@ -63,6 +63,11 @@ int	qos_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	uvast		arrayLength;
 	uvast		uvtemp;
 
+	if (blk->parsed)	/*	E.g., by BSL.			*/
+	{
+		return 1;
+	}
+
 	if (unparsedBytes < 5)
 	{
 		return 0;		/*	Malformed.		*/
@@ -116,6 +121,7 @@ int	qos_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 		return 0;		/*	Malformed.		*/
 	}
 
+	blk->parsed = 1;
 	return 1;
 }
 

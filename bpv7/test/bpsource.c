@@ -184,6 +184,17 @@ int	main(int argc, char **argv)
 				&newBundle) < 1)
 		{
 			putErrmsg("bpsource can't send ADU.", NULL);
+			fprintf(stderr, "bpsource: bundle send failed.\n");
+			CHKZERO(sdr_begin_xn(sdr));
+			zco_destroy(sdr, bundleZco);
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't destroy ZCO.", NULL);
+			}
+
+			ionStopAttendant(_attendant(NULL));
+			bp_detach();
+			return 1;
 		}
 
 		ionStopAttendant(_attendant(NULL));
@@ -245,6 +256,16 @@ int	main(int argc, char **argv)
 					bundleZco, &newBundle) < 1)
 			{
 				putErrmsg("bpsource can't send ADU.", NULL);
+				fprintf(stderr,
+					"bpsource: bundle send failed.\n");
+				CHKZERO(sdr_begin_xn(sdr));
+				zco_destroy(sdr, bundleZco);
+				if (sdr_end_xn(sdr) < 0)
+				{
+					putErrmsg("Can't destroy ZCO.",
+							NULL);
+				}
+
 				break;
 			}
 

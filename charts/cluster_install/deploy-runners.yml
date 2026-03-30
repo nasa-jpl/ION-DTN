@@ -1,0 +1,56 @@
+---
+# Usage:
+#   ansible-playbook charts/deploy-runners.yml  # Interactive mode
+#   ansible-playbook charts/deploy-runners.yml --extra-vars "config=rhel8"  # Non-interactive mode
+#
+# NOTE: When running in non-interactive mode (e.g., with piped input like 'echo "rhel8" | ansible-playbook ...'),
+# vars_prompt has a limitation and may not correctly read input, falling back to default values.
+# For automation, ALWAYS use --extra-vars instead of piped input.
+
+- name: Deploy ARC with configuration-specific settings
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    allowed_configs:
+      - ol8
+      - rhel8
+      - rhel9
+    charts_path: "{{ playbook_dir }}/.."
+
+  vars_prompt:
+    - name: config
+      prompt: "Select configuration (ol8, rhel8, rhel9)"
+      private: false
+      default: ol8
+
+  tasks:
+    - name: Validate configuration input
+      ansible.builtin.fail:
+        msg: "Invalid configuration. Must be one of: {{ allowed_configs | join(', ') }}"
+      when: config not in allowed_configs
+
+    - name: Display selected configuration
+      ansible.builtin.debug:
+        msg: "Selected configuration: {{ config }}"
+
+    - name: Include prerequisites validation tasks
+      ansible.builtin.include_tasks:
+        file: tasks/validate-prerequisites.yml
+
+    - name: Include systemd service management tasks
+      ansible.builtin.include_tasks:
+        file: tasks/manage-systemd.yml
+
+    - name: Include cluster management tasks
+      ansible.builtin.include_tasks:
+        file: tasks/manage-cluster.yml
+
+    - name: Include Helm deployment tasks
+      ansible.builtin.include_tasks:
+        file: tasks/deploy-helm.yml
+
+    - name: Include deployment validation tasks
+      ansible.builtin.include_tasks:
+        file: tasks/validate-deployment.yml

@@ -56,8 +56,8 @@ int  ctrl_cb_comp_fn(void *i1, void *i2)
 
 	if((result = ari_compare(a1, a2, 0)) == 0)
 	{
-		if(ARI_GET_FLAG_PARM(a1->as_reg.flags) ||
-				ARI_GET_FLAG_PARM(a2->as_reg.flags))
+		if(ARI_GET_FLAG_PARM(a1->u.as_reg.flags) ||
+				ARI_GET_FLAG_PARM(a2->u.as_reg.flags))
 		{
 			result = tnvc_compare(c1->parms, c2->parms);
 		}
@@ -179,9 +179,9 @@ ctrl_t *ctrl_create(ari_t *ari)
 	}
 
 	/* Store any parameters needed for this control. */
-	if(ARI_GET_FLAG_PARM(ari->as_reg.flags))
+	if(ARI_GET_FLAG_PARM(ari->u.as_reg.flags))
 	{
-		result->parms = tnvc_copy(&(ari->as_reg.parms));
+		result->parms = tnvc_copy(&(ari->u.as_reg.parms));
 	}
 	else
 	{
@@ -356,8 +356,8 @@ int ctrl_serialize(QCBOREncodeContext *encoder, void *item)
 	/* If the control has parms, swap them in */
 	if(ctrl->parms != NULL)
 	{
-		parms = ctrl_id->as_reg.parms;
-		ctrl_id->as_reg.parms = *(ctrl->parms);
+		parms = ctrl_id->u.as_reg.parms;
+		ctrl_id->u.as_reg.parms = *(ctrl->parms);
 	}
 
 #if AMP_VERSION < 7
@@ -382,7 +382,7 @@ int ctrl_serialize(QCBOREncodeContext *encoder, void *item)
 #endif
 	if(ctrl->parms != NULL)
 	{
-		ctrl_id->as_reg.parms = parms;
+		ctrl_id->u.as_reg.parms = parms;
 	}
 
 	return err;

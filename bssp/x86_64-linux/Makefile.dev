@@ -7,8 +7,8 @@ UDP = ../udp
 TCP = ../tcp
 ICI_LIB = ../../ici/x86_64-linux/lib
 
-# OPT = -O -Dlinux
-OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
+# OPT = -O -D__linux__
+OPT = -g -Wall -Werror -D__linux__ -fPIC -DSPACE_ORDER=3
 CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(INCL) -I$(UDP) -I$(TCP) -I$(ROOT)/include -I$(ICI_INCL) -I../../ici/library -L$(ICI_LIB)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)

@@ -2167,7 +2167,7 @@ static void	frCreateDirectory(char *firstFileName, char *secondFileName,
 		return;
 	}
 
-#if (defined(VXWORKS) || defined(mingw))
+#if defined(VXWORKS)
 	if (mkdir(firstFileName) < 0)
 #else
 	if (mkdir(firstFileName, 0777) < 0)
@@ -2431,7 +2431,7 @@ static int	getQualifiedFileName(char *pathNameBuf, int bufLen,
 		istrcpy(pathNameBuf + wdnameLen, fileName, bufLen - wdnameLen);
 	}
 
-#if (!(defined(VXWORKS) || defined(mingw)))
+#if (!defined(VXWORKS))
 	/*	Create (as necessary) the directory in which the file
 	 *	is to be created.
 	 *

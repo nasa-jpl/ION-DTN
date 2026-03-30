@@ -508,8 +508,7 @@ int bpsec_sci_parmFilter(sc_state *state, sc_Def *def, PsmPartition wm, PsmAddre
 			for(elt = lyst_first(state->scStParms); elt; elt = lyst_next(elt))
 			{
 				val = (sc_value*) lyst_data(elt);
-
-				if((val != NULL) && (val->scValLength == polval->scValId))
+				if((val != NULL) && (val->scValId == polval->scValId))
 				{
 					found = 1;
 					break;

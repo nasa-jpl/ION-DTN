@@ -11,11 +11,11 @@ ARG DUMB_INIT_VERSION=1.2.5
 ARG RUNNER_USER_UID=1001
 ARG DOCKER_GROUP_GID=121
 
-# Install EPEL release directly from Fedora and install build dependencies
-# Note: valgrind was removed from this list
+# Install EPEL and build dependencies
+# Use --enablerepo to access CodeReady Builder packages without permanently modifying config
 RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm \
     && dnf update -y \
-    && dnf install -y \
+    && dnf install -y --enablerepo=codeready-builder-for-rhel-8-x86_64-rpms \
     git \
     jq \
     sudo \
@@ -40,6 +40,14 @@ RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.n
     diffutils \
     rsync \
     jansson-devel \
+    buildah \
+    fuse-overlayfs \
+    slirp4netns \
+    hostname \
+    tcpdump \
+    iproute \
+    # May not be necessary but was used in testing to reliable build & leaving in
+    && dnf reinstall -y shadow-utils \
     && dnf clean all
 
 RUN export PATH=$HOME/.local/bin:$PATH
@@ -52,16 +60,6 @@ RUN sed -i 's|//#define MBEDTLS_NIST_KW_C|#define MBEDTLS_NIST_KW_C|' include/mb
 
 WORKDIR /
 
-# Build valgrind from source
-RUN curl -fLo valgrind-3.24.0.tar.bz2 https://sourceware.org/pub/valgrind/valgrind-3.24.0.tar.bz2 \
-    && tar xjf valgrind-3.24.0.tar.bz2 \
-    && cd valgrind-3.24.0 \
-    && ./configure \
-    && make -j$(nproc) \
-    && make install \
-    && cd .. \
-    && rm -rf valgrind-3.24.0 valgrind-3.24.0.tar.bz2
-
 # Clean up bzip2 now that we are done extracting tar.bz2 archives
 RUN rm -rf mbedtls-2.28.10/ mbedtls-2.28.10.tar.bz2 && dnf remove -y bzip2 && dnf clean all
 
@@ -72,11 +70,17 @@ RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.r
 # Setup runner user and docker group
 RUN groupadd docker --gid $DOCKER_GROUP_GID \
     && useradd --uid $RUNNER_USER_UID -m runner -G docker \
-    && echo "runner   ALL=(ALL:ALL) NOPASSWD:ALL" >> /etc/sudoers
-
-# Make and set the working directory
-RUN mkdir -p /home/runner \
+    && echo "runner   ALL=(ALL:ALL) NOPASSWD:ALL" >> /etc/sudoers \
+    && echo "runner:100000:100000" > /etc/subuid \
+    && echo "runner:100000:100000" > /etc/subgid \
+    && chmod 644 /etc/subuid /etc/subgid \
+    && mkdir -p /home/runner \
     && chown -R runner:runner /home/runner
+
+# Make the rootless runner directory executable
+RUN mkdir -p /run/user/$RUNNER_USER_UID \
+    && chown runner:runner /run/user/$RUNNER_USER_UID \
+    && chmod a+x /run/user/$RUNNER_USER_UID
 
 WORKDIR /home/runner
 
@@ -140,6 +144,12 @@ COPY actions-runner-controller/runner/docker-shim.sh /usr/local/bin/docker
 # Configure hooks folder structure.
 COPY actions-runner-controller/runner/hooks /etc/arc/hooks/
 
+# Copy buildah configuration files
+RUN mkdir -p /etc/containers
+COPY --chmod=644 buildah-storage.conf /etc/containers/storage.conf
+COPY --chmod=644 buildah-registries.conf /etc/containers/registries.conf
+COPY --chmod=644 buildah-policy.json /etc/containers/policy.json
+
 RUN chmod -R 777 /opt /usr/share
 
 FROM scratch AS final
@@ -150,7 +160,6 @@ ARG REV
 LABEL org.opencontainers.image.title="rhel-8"
 LABEL org.opencontainers.image.description="A RHEL 8 ubi-init base image for ION testing, includes all necessary ARC and ION build dependencies."
 LABEL org.opencontainers.image.authors="Nate Richard (nrichard@jpl.nasa.gov)"
-LABEL org.opencontainers.image.version="1.0.0"
 LABEL org.opencontainers.image.created="${BUILD_DATE}"
 LABEL org.opencontainers.image.revision="${REV}"
 
@@ -158,6 +167,11 @@ LABEL org.opencontainers.image.revision="${REV}"
 ENV PATH="${PATH}:${HOME}/.local/bin/"
 ENV ImageOS=rhel-8
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+# Buildah configuration for root user
+ENV BUILDAH_ISOLATION=chroot
+ENV STORAGE_DRIVER=vfs
+ENV STORAGE_ROOT=/var/lib/containers/storage
+ENV RUNROOT=/run/containers
 
 USER runner
 

@@ -123,12 +123,10 @@ static void	*dgrMamsReceiver(void *parm)
 	CHKNULL(dgrSap);
 	buffer = MTAKE(DGRTS_MAX_MSG_LEN);
 	CHKNULL(buffer);
-#ifndef mingw
 	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
-#endif
 	while (1)
 	{
 		oK(dgr_receive(dgrSap, &portNbr, &ipAddress,
@@ -235,12 +233,10 @@ static void	*dgrAmsReceiver(void *parm)
 	CHKNULL(amsSap);
 	buffer = MTAKE(DGRTS_MAX_MSG_LEN);
 	CHKNULL(buffer);
-#ifndef mingw
 	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
-#endif
 	while (1)
 	{
 		oK(dgr_receive(dgrSap, &portNbr, &ipAddress, buffer,

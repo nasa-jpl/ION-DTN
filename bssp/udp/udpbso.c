@@ -16,13 +16,9 @@
 
 #include "udpbsa.h"
 
-#if defined(linux) || defined(RTEMS)
+#if defined(__linux__) || defined(RTEMS)
 
 #define IPHDR_SIZE	(sizeof(struct iphdr) + sizeof(struct udphdr))
-
-#elif defined(mingw)
-
-#define IPHDR_SIZE	(20 + 8)
 
 #else
 

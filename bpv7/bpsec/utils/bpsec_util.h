@@ -52,9 +52,11 @@
 #include "bei.h"
 #include "csi.h"
 #include "sci.h"
+#include "sci_valmap.h"
+#if !USING_BSL
 #include "bpsec_policy.h"
 #include "bpsec_policy_rule.h"
-#include "sci_valmap.h"
+#endif
 
 /*****************************************************************************
  *                              DEBUG DEFINITIONS                            *
@@ -217,23 +219,6 @@ Object        bspsec_util_findOutboundBpsecTargetBlock(Bundle *bundle, int tgtBl
 
 unsigned char *bpsec_util_primaryBlkSerialize(Bundle *bundle, int *length);
 
-int bpsec_util_swapOutboundSop(Bundle *bundle, ExtensionBlock *src, ExtensionBlock *dest, int tgtBlkNum);
-
-int bpsec_util_attachSecurityBlocks(Bundle *bundle, BpBlockType secBlkType, sc_action action);
-
-LystElt bpsec_util_findInboundTarget(AcqWorkArea *work, int blockNumber, LystElt *bibElt);
-
-int bpsec_util_checkSop(BpBlockType target, BpBlockType sec);
-int bpsec_util_checkOutboundSopTarget(Bundle *bundle, sc_Def *def, PsmPartition wm, PsmAddress parms,
-                                      BpBlockType sopType, int tgtBlkNum, Object *bibBlk, Object *secBlk);
-
-
-Object bpsec_util_OutboundBlockCreate(Bundle *bundle, BpBlockType type, sc_Def *def, PsmAddress parms);
-
-
-int bpsec_util_generateSecurityResults(Bundle *bundle, char *fromEid, ExtensionBlock *secBlk, BpsecOutboundASB *secAsb, sc_action action);
-
-
 void bpsec_util_inboundBlkClear(AcqExtBlock *blk);
 void bpsec_util_outboundBlkRelease(ExtensionBlock *blk);
 
@@ -249,12 +234,29 @@ int32_t bpsec_util_fileBlkConvert(uint32_t suite, uint8_t *csi_ctx, csi_blocksiz
 		ZcoReader *dataReader, uvast outputBufLen, Object *outputZco, char *filename,
 		uint8_t function);
 
-
-/** Deprecated functions kept to compile */
+/** Instrumentation support functions (needed by NM agent's BPSec ADM) */
 int                     bpsec_util_numKeysGet(int *size);
 void                    bpsec_util_keysGet(char *buffer, int length);
 int                     bpsec_util_numCSNamesGet(int *size);
 void                    bpsec_util_cSNamesGet(char *buffer, int length);
+
+#if !USING_BSL
+int bpsec_util_swapOutboundSop(Bundle *bundle, ExtensionBlock *src, ExtensionBlock *dest, int tgtBlkNum);
+
+int bpsec_util_attachSecurityBlocks(Bundle *bundle, BpBlockType secBlkType, sc_action action);
+
+LystElt bpsec_util_findInboundTarget(AcqWorkArea *work, int blockNumber, LystElt *bibElt);
+
+int bpsec_util_checkSop(BpBlockType target, BpBlockType sec);
+int bpsec_util_checkOutboundSopTarget(Bundle *bundle, sc_Def *def, PsmPartition wm, PsmAddress parms,
+                                      BpBlockType sopType, int tgtBlkNum, Object *bibBlk, Object *secBlk);
+
+
+Object bpsec_util_OutboundBlockCreate(Bundle *bundle, BpBlockType type, sc_Def *def, PsmAddress parms);
+
+
+int bpsec_util_generateSecurityResults(Bundle *bundle, char *fromEid, ExtensionBlock *secBlk, BpsecOutboundASB *secAsb, sc_action action);
+#endif /* !USING_BSL */
 
 
 #endif /* BPSEC_UTIL_H */

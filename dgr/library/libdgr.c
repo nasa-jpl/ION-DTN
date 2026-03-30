@@ -1573,12 +1573,10 @@ static void	*sender(void *parm)
 	SendReq		*req;
 	uvast		engineId;
 	unsigned int	sessionNbr;
-#ifndef mingw
 	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
-#endif
 	while (sap->state == DgrSapOpen)
 	{
 		if (llcv_wait(sap->outboundCV, llcv_lyst_not_empty,
@@ -1627,12 +1625,10 @@ static void	*resender(void *parm)
 	ResendReq	*req;
 	uvast		engineId;
 	unsigned int	sessionNbr;
-#ifndef mingw
 	sigset_t	signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
-#endif
 	while (1)
 	{
 		microsnooze(EPISODE_PERIOD);
@@ -1832,12 +1828,10 @@ static void	*receiver(void *parm)
 	char			reportBuffer[64];
 	int			reclength;
 	DgrRecord		rec;
-#ifndef mingw
 	sigset_t		signals;
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
-#endif
 	while (1)
 	{
 		sockaddrlen = sizeof(struct sockaddr_in);

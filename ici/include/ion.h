@@ -282,6 +282,10 @@ typedef struct
 	char		enableSdrwatch;	/*	Auto-launch flag.	*/
 	int		psmwatchPid;	/*	Daemon process ID.	*/
 	int		sdrwatchPid;	/*	Daemon process ID.	*/
+	int		heapMemProtectPercent;	/* 0-50, default 10.
+						   0 = disabled.	*/
+	int		wmMemProtectPercent;	/* 0-50, default 10.
+						   0 = disabled.	*/
 } IonDB;
 
 /*	The IonVdb red-black tree of IonNodes, in volatile memory,
@@ -457,6 +461,10 @@ typedef struct
 	PsmAddress	timeline;	/*	SM RB tree: IonEvent	*/
 	PsmAddress	probes;		/*	SM list: IonProbe	*/
 	PsmAddress	requisitions[2];/*	SM list: Requisition	*/
+	int		heapMemProtectPercent;	/* Cached from IonDB.	*/
+	int		wmMemProtectPercent;	/* Cached from IonDB.	*/
+	char		heapThresholdBreached;	/* Boolean flag.	*/
+	char		wmThresholdBreached;	/* Boolean flag.	*/
 } IonVdb;
 
 typedef struct
@@ -605,6 +613,11 @@ extern void		ionKillMainThread(char *procName);
 
 extern void		ionRegisterPsmwatchPid(int pid);
 extern void		ionRegisterSdrwatchPid(int pid);
+
+extern int		ionSetMemProtect(int heapPct, int wmPct);
+extern void		ionGetMemProtect(int *heapPct, int *wmPct);
+extern int		ionHeapMemProtected(Sdr sdr);
+extern int		ionWmMemProtected(void);
 
 #ifdef __cplusplus
 }

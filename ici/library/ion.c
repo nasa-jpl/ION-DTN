@@ -305,6 +305,10 @@ static IonVdb	*_ionvdb(char **name)
 		sdr_read(sdr, (char *) &iondb, _iondbObject(NULL),
 				sizeof(IonDB));
 		vdb->deltaFromUTC = iondb.deltaFromUTC;
+		vdb->heapMemProtectPercent = iondb.heapMemProtectPercent;
+		vdb->wmMemProtectPercent = iondb.wmMemProtectPercent;
+		vdb->heapThresholdBreached = 0;
+		vdb->wmThresholdBreached = 0;
 		sdr_exit_xn(sdr);	/*	Unlock memory.		*/
 	}
 
@@ -683,29 +687,6 @@ static int	checkNodeListParms(IonParms *parms, char *wdName, uvast fqnn)
 	return 0;
 }
 
-#ifdef mingw
-static DWORD WINAPI	waitForSigterm(LPVOID parm)
-{
-	DWORD	processId;
-	char	eventName[32];
-	HANDLE	event;
-
-	processId = GetCurrentProcessId();
-	sprintf(eventName, "%u.sigterm", (unsigned int) processId);
-	event = CreateEvent(NULL, FALSE, FALSE, eventName);
-	if (event == NULL)
-	{
-		putErrmsg("Can't create sigterm event.", utoa(GetLastError()));
-		return 0;
-	}
-
-	oK(WaitForSingleObject(event, INFINITE));
-	raise(SIGTERM);
-	CloseHandle(event);
-	return 0;
-}
-#endif
-
 int	ionInitialize(IonParms *parms, uvast ownFqnn)
 {
 	char		wdname[256];
@@ -728,12 +709,6 @@ int	ionInitialize(IonParms *parms, uvast ownFqnn)
 		return -1;
 	}
 
-#ifdef mingw
-	if (_winsock(0) < 0)
-	{
-		return -1;
-	}
-#endif
 	if (igetcwd(wdname, 256) == NULL)
 	{
 		putErrmsg("Can't get cwd name.", NULL);
@@ -818,6 +793,8 @@ int	ionInitialize(IonParms *parms, uvast ownFqnn)
 		iondbBuf.occupancyCeiling += (limit/4);
 		iondbBuf.maxClockError = 1;
 		iondbBuf.clockIsSynchronized = 1;
+		iondbBuf.heapMemProtectPercent = 10;
+		iondbBuf.wmMemProtectPercent = 10;
 		memcpy(&iondbBuf.parmcopy, parms, sizeof(IonParms));
 		iondbObject = sdr_malloc(ionsdr, sizeof(IonDB));
 		if (iondbObject == 0)
@@ -876,19 +853,6 @@ int	ionInitialize(IonParms *parms, uvast ownFqnn)
 	zco_register_callback(notify);
 	ionRedirectMemos();
 	ionRedirectWatchCharacters();
-#ifdef mingw
-	DWORD	threadId;
-	HANDLE	thread = CreateThread(NULL, 0, waitForSigterm, NULL, 0,
-			&threadId);
-	if (thread == NULL)
-	{
-		putErrmsg("Can't create sigterm thread.", utoa(GetLastError()));
-	}
-	else
-	{
-		CloseHandle(thread);
-	}
-#endif
 	istrcpy(versionNbr, IONVERSIONNUMBER, sizeof(versionNbr));
 	return 0;
 }
@@ -1020,15 +984,6 @@ int	ionAttach(void)
 		return 0;	/*	Already attached.		*/
 	}
 
-#ifdef mingw
-	if (_winsock(0) < 0)
-	{
-		return -1;
-	}
-
-	signal(SIGINT, SIG_IGN);
-#endif
-
 	if (sdr_initialize(0, NULL, SM_NO_KEY, NULL) < 0)
 	{
 		putErrmsg("Can't initialize the SDR system.", NULL);
@@ -1118,19 +1073,6 @@ int	ionAttach(void)
 	zco_register_callback(notify);
 	ionRedirectMemos();
 	ionRedirectWatchCharacters();
-#ifdef mingw
-	DWORD	threadId;
-	HANDLE	thread = CreateThread(NULL, 0, waitForSigterm, NULL, 0,
-			&threadId);
-	if (thread == NULL)
-	{
-		putErrmsg("Can't create sigterm thread.", utoa(GetLastError()));
-	}
-	else
-	{
-		CloseHandle(thread);
-	}
-#endif
 	istrcpy(versionNbr, IONVERSIONNUMBER, sizeof(versionNbr));
 	return 0;
 }
@@ -1184,9 +1126,6 @@ void	ionDetach(void)
 		sm_ipc_detach();
 #endif
 	}
-#ifdef mingw
-	oK(_winsock(1));
-#endif
 #endif	/*	end of #ifdef ION_LWT					*/
 }
 
@@ -1593,11 +1532,7 @@ static time_t	readTimestamp(char *timestampBuffer, time_t referenceTime,
 	ts.tm_mon -= 1;
 	ts.tm_isdst = 0;	/*	Default is UTC.			*/
 #ifndef VXWORKS
-#ifdef mingw
-	_tzset();	/*	Need to orient mktime properly.		*/
-#else
 	tzset();	/*	Need to orient mktime properly.		*/
-#endif
 	if (timestampIsUTC)
 	{
 		/*	Must convert UTC to local time for mktime.	*/
@@ -1606,8 +1541,6 @@ static time_t	readTimestamp(char *timestampBuffer, time_t referenceTime,
 		ts.tm_sec -= ts.tm_gmtoff;
 #elif defined (RTEMS)
 		/*	RTEMS has no concept of time zones.		*/
-#elif defined (mingw)
-		ts.tm_sec -= _timezone;
 #else
 		ts.tm_sec -= timezone;
 #endif
@@ -1640,19 +1573,11 @@ time_t	readTimestampUTC(char *timestampBuffer, time_t referenceTime)
 
 void	writeTimestampLocal(time_t timestamp, char *timestampBuffer)
 {
-#if defined (mingw)
-	struct tm	*ts;
-#else
 	struct tm	tsbuf;
 	struct tm	*ts = &tsbuf;
-#endif
 
 	CHKVOID(timestampBuffer);
-#if defined (mingw)
-	ts = localtime(&timestamp);
-#else
 	oK(localtime_r(&timestamp, &tsbuf));
-#endif
 	isprintf(timestampBuffer, 20, timestampOutFormat,
 			ts->tm_year + 1900, ts->tm_mon + 1, ts->tm_mday,
 			ts->tm_hour, ts->tm_min, ts->tm_sec);
@@ -1664,12 +1589,7 @@ void	writeTimestampUTC(time_t timestamp, char *timestampBuffer)
 	struct tm	*ts = &tsbuf;
 
 	CHKVOID(timestampBuffer);
-#if defined (mingw)
-	ts = gmtime(&timestamp);
-	oK(ts);
-#else
 	oK(gmtime_r(&timestamp, &tsbuf));
-#endif
 	isprintf(timestampBuffer, 20, timestampOutFormat,
 			ts->tm_year + 1900, ts->tm_mon + 1, ts->tm_mday,
 			ts->tm_hour, ts->tm_min, ts->tm_sec);
@@ -2017,13 +1937,8 @@ void	printIonParms(IonParms *parms)
 	isprintf(buffer, sizeof buffer, "wmSize:          %ld",
 			parms->wmSize);
 	writeMemo(buffer);
-#if (SPACE_ORDER > 2 && defined(mingw))
-	isprintf(buffer, sizeof buffer, "wmAddress:       %#I64x",
-			(uaddr) (parms->wmAddress));
-#else
 	isprintf(buffer, sizeof buffer, "wmAddress:       %#lx",
 			(uaddr) (parms->wmAddress));
-#endif
 	writeMemo(buffer);
 	isprintf(buffer, sizeof buffer, "sdrName:        '%s'",
 			parms->sdrName);
@@ -2053,22 +1968,6 @@ void	printIonParms(IonParms *parms)
 
 /*	Functions for signaling the main threads of processes.	*	*/
 
-#ifdef mingw
-void	ionNoteMainThread(char *procName)
-{
-	return;		/*	Just for compatibility.			*/
-}
-
-void	ionPauseMainThread(int seconds)
-{
-	sm_WaitForWakeup(seconds);
-}
-
-void	ionKillMainThread(char *procName)
-{
-	sm_Wakeup(GetCurrentProcessId());
-}
-#else
 #define	PROC_NAME_LEN	16
 #define	MAX_PROCS	16
 
@@ -2140,7 +2039,6 @@ void	ionKillMainThread(char *procName)
 		pthread_kill(mainThread, SIGTERM);
 	}
 }
-#endif
 
 /*	Functions for flow-controlled ZCO space management.		*/
 
@@ -2739,4 +2637,202 @@ void	ionRegisterSdrwatchPid(int pid)
 	{
 		putErrmsg("Can't register sdrwatch PID.", NULL);
 	}
+}
+
+int	ionSetMemProtect(int heapPct, int wmPct)
+{
+	Sdr	sdr = getIonsdr();
+	Object	iondbObj = getIonDbObject();
+	IonVdb	*vdb = getIonVdb();
+	IonDB	iondb;
+	char	buffer[128];
+
+	/*	Clamp to valid range 0-50.			*/
+
+	if (heapPct < 0)
+	{
+		heapPct = 0;
+	}
+
+	if (heapPct > 50)
+	{
+		heapPct = 50;
+	}
+
+	if (wmPct < 0)
+	{
+		wmPct = 0;
+	}
+
+	if (wmPct > 50)
+	{
+		wmPct = 50;
+	}
+
+	/*	Write to IonDB via SDR transaction.		*/
+
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	iondb.heapMemProtectPercent = heapPct;
+	iondb.wmMemProtectPercent = wmPct;
+	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't set memory protection thresholds.", NULL);
+		return -1;
+	}
+
+	/*	Update IonVdb cached copies.			*/
+
+	vdb->heapMemProtectPercent = heapPct;
+	vdb->wmMemProtectPercent = wmPct;
+	isprintf(buffer, sizeof buffer,
+		"[i] Memory protection thresholds set: heap %d%%, "
+		"working memory %d%%.", heapPct, wmPct);
+	writeMemo(buffer);
+	return 0;
+}
+
+void	ionGetMemProtect(int *heapPct, int *wmPct)
+{
+	IonVdb	*vdb = getIonVdb();
+
+	CHKVOID(heapPct);
+	CHKVOID(wmPct);
+	CHKVOID(vdb);
+	*heapPct = vdb->heapMemProtectPercent;
+	*wmPct = vdb->wmMemProtectPercent;
+}
+
+int	ionHeapMemProtected(Sdr sdr)
+{
+	IonVdb		*vdb = getIonVdb();
+	SdrUsageSummary	summary;
+	size_t		freeSpace;
+	size_t		threshold;
+	int		pctFree;
+	int		needXn;
+	char		buffer[256];
+
+	if (vdb == NULL || vdb->heapMemProtectPercent == 0)
+	{
+		return 0;	/*	Disabled.			*/
+	}
+
+	/*	sdr_usage requires sdrFetchSafe, i.e. we must be
+	 *	inside an SDR transaction.  If the caller is not
+	 *	already in one, open a brief read-only transaction.	*/
+
+	needXn = (sdr_in_xn(sdr) == 0);
+	if (needXn)
+	{
+		if (sdr_begin_xn(sdr) < 0)
+		{
+			return 0;	/*	Can't check; allow.	*/
+		}
+	}
+
+	sdr_usage(sdr, &summary);
+
+	if (needXn)
+	{
+		sdr_exit_xn(sdr);
+	}
+
+	freeSpace = summary.smallPoolFree + summary.largePoolFree
+			+ summary.unusedSize;
+	threshold = (summary.heapSize * vdb->heapMemProtectPercent) / 100;
+	if (freeSpace < threshold)
+	{
+		if (!(vdb->heapThresholdBreached))
+		{
+			vdb->heapThresholdBreached = 1;
+			pctFree = (summary.heapSize > 0)
+				? (int) ((freeSpace * 100) / summary.heapSize)
+				: 0;
+			isprintf(buffer, sizeof buffer,
+				"[!] ION heap memory protection threshold "
+				"breached (%d%% free < %d%% threshold). "
+				"Rejecting new bundles.",
+				pctFree, vdb->heapMemProtectPercent);
+			writeMemo(buffer);
+		}
+
+		return 1;
+	}
+
+	/*	Free space is at or above threshold.		*/
+
+	if (vdb->heapThresholdBreached)
+	{
+		vdb->heapThresholdBreached = 0;
+		pctFree = (summary.heapSize > 0)
+			? (int) ((freeSpace * 100) / summary.heapSize)
+			: 0;
+		isprintf(buffer, sizeof buffer,
+			"[i] ION heap memory protection recovered "
+			"(%d%% free >= %d%% threshold). "
+			"Accepting bundles.",
+			pctFree, vdb->heapMemProtectPercent);
+		writeMemo(buffer);
+	}
+
+	return 0;
+}
+
+int	ionWmMemProtected(void)
+{
+	IonVdb		*vdb = getIonVdb();
+	PsmUsageSummary	summary;
+	size_t		freeSpace;
+	size_t		threshold;
+	int		pctFree;
+	char		buffer[256];
+
+	if (vdb == NULL || vdb->wmMemProtectPercent == 0)
+	{
+		return 0;	/*	Disabled.			*/
+	}
+
+	psm_usage(getIonwm(), &summary);
+	freeSpace = summary.smallPoolFree + summary.largePoolFree
+			+ summary.unusedSize;
+	threshold = (summary.partitionSize * vdb->wmMemProtectPercent) / 100;
+	if (freeSpace < threshold)
+	{
+		if (!(vdb->wmThresholdBreached))
+		{
+			vdb->wmThresholdBreached = 1;
+			pctFree = (summary.partitionSize > 0)
+				? (int) ((freeSpace * 100)
+					/ summary.partitionSize)
+				: 0;
+			isprintf(buffer, sizeof buffer,
+				"[!] ION working memory protection threshold "
+				"breached (%d%% free < %d%% threshold). "
+				"Rejecting new bundles.",
+				pctFree, vdb->wmMemProtectPercent);
+			writeMemo(buffer);
+		}
+
+		return 1;
+	}
+
+	/*	Free space is at or above threshold.		*/
+
+	if (vdb->wmThresholdBreached)
+	{
+		vdb->wmThresholdBreached = 0;
+		pctFree = (summary.partitionSize > 0)
+			? (int) ((freeSpace * 100) / summary.partitionSize)
+			: 0;
+		isprintf(buffer, sizeof buffer,
+			"[i] ION working memory protection recovered "
+			"(%d%% free >= %d%% threshold). "
+			"Accepting bundles.",
+			pctFree, vdb->wmMemProtectPercent);
+		writeMemo(buffer);
+	}
+
+	return 0;
 }

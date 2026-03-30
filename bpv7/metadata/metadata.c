@@ -397,24 +397,10 @@ uint64_t ntohll(uint64_t val)
 /******************************************************************************/
 uint64_t getCurrentTimeMs(void)
 {
-	/* Windows-specific time in ms since the Epoch */
-#ifdef _WIN32
-	FILETIME ft;
-	ULARGE_INTEGER ui;
-	GetSystemTimeAsFileTime(&ft);
-	ui.LowPart = ft.dwLowDateTime;
-	ui.HighPart = ft.dwHighDateTime;
-	/* Convert FILETIME (100-nanoseconds since Jan 1, 1601) to Unix Epoch (1970)
-	and to milliseconds */
-	return (int64_t)(ui.QuadPart / 10000 - 11644473600000);
-
-#else
-	/* POSIX-specific implementation (Linux, UNIX, macOS) for current time in ms
-	since the Epoch */
+	/* Current time in ms since the Epoch */
 	struct timespec spec;
 	clock_gettime(CLOCK_REALTIME, &spec);
 	return (uint64_t)spec.tv_sec * 1000 + (uint64_t)spec.tv_nsec / 1e6;
-#endif
 
 } //end getCurrentTimeMs--->///
 

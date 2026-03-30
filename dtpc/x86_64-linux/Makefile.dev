@@ -22,7 +22,7 @@ TEST = ../test
 DAEMON = ../daemon
 UTILS = ../utils
 
-OPT = -g -Wall -Werror -Dlinux -fPIC
+OPT = -g -Wall -Werror -D__linux__ -fPIC
 CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(INCL) -I$(ROOT)/include -I$(BP_INCL) -I$(ICI_INCL) -I../../ici/library -I../../bpv7/library -L$(ICI_LIB) -L$(BP_LIB) $(BSL_LIBDIR)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)

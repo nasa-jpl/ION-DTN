@@ -302,6 +302,14 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
 			{
 			putErrmsg("bptrace can't send file in bundle.",
 					fileName);
+			fprintf(stderr,
+				"bptrace: failed to send '%s'.\n", fileName);
+			CHKZERO(sdr_begin_xn(sdr));
+			zco_destroy(sdr, traceZco);
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't destroy ZCO.", NULL);
+			}
 			}
 		}
 
@@ -346,6 +354,14 @@ static int	run_bptrace(char *ownEid, char *destEid, char *reportToEid,
 			traceZco, &newBundle) <= 0)
 			{
 				putErrmsg("bptrace can't send message.", NULL);
+				fprintf(stderr,
+					"bptrace: failed to send bundle.\n");
+				CHKZERO(sdr_begin_xn(sdr));
+				zco_destroy(sdr, traceZco);
+				if (sdr_end_xn(sdr) < 0)
+				{
+					putErrmsg("Can't destroy ZCO.", NULL);
+				}
 			}
 		}
 	}

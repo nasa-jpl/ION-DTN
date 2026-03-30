@@ -124,6 +124,11 @@ function excludeObsolete_test () {
     TESTS_EXCLUDED_OBSOLETE="$TESTS_EXCLUDED_OBSOLETE $1"
 }
 
+function excludeBPSec_test () {
+    NUM_EXCLUDED_BPSEC=$((NUM_EXCLUDED_BPSEC + 1))
+    TESTS_EXCLUDED_BPSEC="$TESTS_EXCLUDED_BPSEC $1"
+}
+
 function pass_test_after_retest () {
     NUM_PASSED_AFTER_RETEST=$((NUM_PASSED_AFTER_RETEST + 1))
     TESTS_PASSED_AFTER_RETEST="$TESTS_PASSED_AFTER_RETEST $1"
@@ -247,6 +252,23 @@ function run_a_test () {
         cat "$TEST/.exclude_$BP_VERSION"
         excludeBPv_test "$TEST"
         echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (BP version excluded)" >&2
+        return
+    fi
+
+    # check if test is excluded by BPSec implementation
+    if [ "$BPSEC_MODE" = "bsl" ] && [ -f "$TEST/.exclude_bsl" ]; then
+        echo "Test excluded for BSL build, skipping $TEST" | tee -a $PROGRESSFILE
+        cat "$TEST/.exclude_bsl"
+        excludeBPSec_test "$TEST"
+        echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (BSL excluded)" >&2
+        return
+    fi
+
+    if [ "$BPSEC_MODE" = "native_bpsec" ] && [ -f "$TEST/.exclude_native_bpsec" ]; then
+        echo "Test excluded for native BPSec build, skipping $TEST" | tee -a $PROGRESSFILE
+        cat "$TEST/.exclude_native_bpsec"
+        excludeBPSec_test "$TEST"
+        echo "[$(get_timestamp)] ${PROGRESS_PREFIX}SKIP: $TEST (native BPSec excluded)" >&2
         return
     fi
 
@@ -386,8 +408,8 @@ function run_a_test () {
         echo "end time: `date`" >> "${RESULTSFILE}"
     fi
 
-    # Allow some extra time for ION to fully shutdown on Windows and Solaris
-    if [[ "$OS_VERSION" == "solaris" ]] || [[ "$OS_VERSION" == "windows" ]] ; then
+    # Allow some extra time for ION to fully shutdown on Solaris
+    if [[ "$OS_VERSION" == "solaris" ]] ; then
         sleep 15
     fi
 
@@ -447,6 +469,7 @@ function reset_test_counters () {
     NUM_EXCLUDED_OS=0
     NUM_EXCLUDED_BPv=0
     NUM_EXCLUDED_OBSOLETE=0
+    NUM_EXCLUDED_BPSEC=0
     NUM_PASSED_AFTER_RETEST=0
     NUM_OPTIONAL_PASSED=0
     NUM_OPTIONAL_FAILED=0
@@ -456,6 +479,7 @@ function reset_test_counters () {
     TESTS_EXCLUDED_OS=""
     TESTS_EXCLUDED_BPv=""
     TESTS_EXCLUDED_OBSOLETE=""
+    TESTS_EXCLUDED_BPSEC=""
     TESTS_PASSED_AFTER_RETEST=""
     TESTS_OPTIONAL_PASSED=""
     TESTS_OPTIONAL_FAILED=""
@@ -499,6 +523,12 @@ function generate_initial_summary () {
     echo
     echo "obsolete tests: $NUM_EXCLUDED_OBSOLETE"
     for TEST in $TESTS_EXCLUDED_OBSOLETE; do
+        echo "    $TEST"
+    done
+
+    echo
+    echo "excluded by BPSec mode: $NUM_EXCLUDED_BPSEC"
+    for TEST in $TESTS_EXCLUDED_BPSEC; do
         echo "    $TEST"
     done
 
@@ -567,6 +597,12 @@ function generate_final_summary () {
         echo "    $TEST"
     done
 
+    echo
+    echo "excluded by BPSec mode: $NUM_EXCLUDED_BPSEC"
+    for TEST in $TESTS_EXCLUDED_BPSEC; do
+        echo "    $TEST"
+    done
+
     # Show optional test results in a separate section
     echo
     echo "=== Optional Tests ==="
@@ -589,6 +625,7 @@ NUM_SKIPPED=0
 NUM_EXCLUDED_OS=0
 NUM_EXCLUDED_BPv=0
 NUM_EXCLUDED_OBSOLETE=0
+NUM_EXCLUDED_BPSEC=0
 NUM_UNKNOWN=0
 NUM_PASSED_AFTER_RETEST=0
 NUM_OPTIONAL_PASSED=0
@@ -602,6 +639,7 @@ TESTS_SKIPPED=''
 TESTS_EXCLUDED_OS=''
 TESTS_EXCLUDED_BPv=''
 TESTS_EXCLUDED_OBSOLETE=''
+TESTS_EXCLUDED_BPSEC=''
 TESTS_PASSED_AFTER_RETEST=''
 TESTS_OPTIONAL_PASSED=''
 TESTS_OPTIONAL_FAILED=''
@@ -623,6 +661,8 @@ Run ION test suite.
 
 OPTIONS:
     -h, --help          Show this help message and exit
+    --exclude PATTERN   Exclude tests matching PATTERN (substring match).
+                        Can be specified multiple times.
     --stress            Run tests repeatedly until failure or max iterations
     --max-iterations N  Set maximum iterations for stress mode (default: 100)
     --from NAME         Start from test NAME (inclusive, alphabetical)
@@ -646,6 +686,8 @@ EXAMPLES:
                                             Stress test until failure
     ./runtests --stress --max-iterations 50 req-0022-reversibility
                                             Stress test with 50 max iterations
+    ./runtests --exclude bpsec               Exclude all tests matching "bpsec"
+    ./runtests --exclude bpsec --exclude nm  Exclude bpsec and nm tests
     ./runtests --from issue-324              Run all tests from issue-324 onward
     ./runtests --from issue-324 --to issue-400
                                             Run tests between issue-324 and issue-400
@@ -671,10 +713,7 @@ fi
 # Determine OS version for exclusion of tests
 OS_VERSION=''
 version=`uname -a`
-if [[ "$version" == *"MINGW"* ]] || [[ "$version" == *"Msys"* ]]
-then
-    OS_VERSION=windows;
-elif [[ "$version" == *"raspberrypi"* ]]
+if [[ "$version" == *"raspberrypi"* ]]
 then
     OS_VERSION=raspberrypi;
 elif [[ "$version" == *"Linux"* ]] || [[ "$version" == *"LINUX"* ]]
@@ -697,41 +736,66 @@ fi
 #Determine BP version for exclustion of tests
 BP_VERSION="bpv7"
 
-# Parse --stress flag
+# Determine BPSec implementation (BSL vs native BPSec)
+if pkg-config --cflags ion 2>/dev/null | grep -q 'USING_BSL'; then
+    BPSEC_MODE="bsl"
+elif ! command -v bpsecadmin >/dev/null 2>&1; then
+    BPSEC_MODE="bsl"
+else
+    BPSEC_MODE="native_bpsec"
+fi
+
+# Parse options
 STRESS_MODE=""
-if [ "$1" = "--stress" ]; then
-    shift
-    STRESS_MODE="1"
-    # Force preserve logs in stress mode
-    PRESERVE_TEST_LOGS=1
-fi
-
-# Parse --max-iterations flag
-if [ "$1" = "--max-iterations" ]; then
-    shift
-    MAX_ITERATIONS="$1"
-    shift
-fi
-
 FROM_TEST=""
-if [ "$1" = "--from" ]; then
-    shift
-    FROM_TEST="$1"
-    shift
-fi
-
 TO_TEST=""
-if [ "$1" = "--to" ]; then
-    shift
-    TO_TEST="$1"
-    shift
-fi
-
 CLEANUP=""
-if [ "$1" = "cleanup" ]; then
-    shift
-    CLEANUP="cleanup"
-fi
+EXCLUDE_PATTERNS=()
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --stress)
+            STRESS_MODE="1"
+            PRESERVE_TEST_LOGS=1
+            shift
+            ;;
+        --max-iterations)
+            shift
+            MAX_ITERATIONS="$1"
+            shift
+            ;;
+        --from)
+            shift
+            FROM_TEST="$1"
+            shift
+            ;;
+        --to)
+            shift
+            TO_TEST="$1"
+            shift
+            ;;
+        --exclude)
+            shift
+            EXCLUDE_PATTERNS+=("$1")
+            shift
+            ;;
+        cleanup)
+            CLEANUP="cleanup"
+            shift
+            ;;
+        --)
+            shift
+            break
+            ;;
+        --*)
+            echo "Unknown option: $1" >&2
+            show_help
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
 
 
 if [ $# -eq 0 ]; then
@@ -754,6 +818,31 @@ if [ -n "$FROM_TEST" ] || [ -n "$TO_TEST" ]; then
         FILTERED="$FILTERED $T"
     done
     TESTS="$FILTERED"
+fi
+
+# Filter by --exclude patterns (substring match on test path)
+if [ ${#EXCLUDE_PATTERNS[@]} -gt 0 ]; then
+    FILTERED=""
+    NUM_EXCLUDED_BY_FLAG=0
+    for T in $TESTS; do
+        NAME="${T#./}"
+        EXCLUDED=""
+        for PAT in "${EXCLUDE_PATTERNS[@]}"; do
+            if [[ "$NAME" == *"$PAT"* ]]; then
+                EXCLUDED=1
+                break
+            fi
+        done
+        if [ -n "$EXCLUDED" ]; then
+            NUM_EXCLUDED_BY_FLAG=$((NUM_EXCLUDED_BY_FLAG + 1))
+        else
+            FILTERED="$FILTERED $T"
+        fi
+    done
+    TESTS="$FILTERED"
+    if [ $NUM_EXCLUDED_BY_FLAG -gt 0 ]; then
+        echo "Excluded $NUM_EXCLUDED_BY_FLAG test(s) by --exclude flag" >&2
+    fi
 fi
 
 if [ -z "$TESTS" ]; then

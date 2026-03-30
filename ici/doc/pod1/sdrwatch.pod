@@ -6,7 +6,7 @@ sdrwatch - SDR non-volatile data store activity monitor
 
 B<sdrwatch> [ I<sdr_name> ] [ -t | -s | -r | -z ] [I<interval> [I<count> [ verbose ]]]
 
-B<sdrwatch> [ I<sdr_name> ] B<-d> [ I<interval_minutes> [ I<percent_threshold> ] ]
+B<sdrwatch> [ I<sdr_name> ] B<-d> [ I<interval_minutes> [ I<percent_threshold> [ I<warn_pct> [ I<warn_cadence_sec> ] ] ] ]
 
 =head1 DESCRIPTION
 
@@ -83,6 +83,18 @@ Reporting interval in minutes.  Default is 10.
 
 Percentage threshold for change reporting.  Default is 5, meaning a report
 is generated whenever any metric crosses any multiple of 5%.
+
+=item I<warn_pct>
+
+High-water warning threshold as a percentage of memory used.  Default is 90.
+When any metric exceeds this threshold, B<sdrwatch> logs a C<[!] WARNING>
+message to B<ion.log>.  When usage drops back below the threshold, a
+C<[i] ... recovered> message is logged.  Set to 0 to disable warnings.
+
+=item I<warn_cadence_sec>
+
+While usage remains above the warning threshold, repeated warnings are
+logged at this interval (in seconds).  Default is 60.
 
 =back
 

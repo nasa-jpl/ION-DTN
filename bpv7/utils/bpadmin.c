@@ -129,6 +129,7 @@ payload length");
 	PUTS("\t   m primarycrc <set CRC type for locally sourced primary block, 0, 1, or 2>");
 	PUTS("\t   m payloadcrc <set CRC type for locally sourced payload block, 0, 1, or 2>");
 	PUTS("\t   m maxcount <max value of bundle ID sequence number>");
+	PUTS("\t   m bsl <local ipn eid> <key reg. file path name> <policy config. file pathname>");
 	PUTS("\t   m custodymode <custody transfer mode: none | bibe | orangebook>");
 	PUTS("\t   m srmode <status report mode: traditional | compressed | both>");
 	PUTS("\t   m cbraggr <CRS limit> <CCS limit> <timeout seconds>");
@@ -1530,6 +1531,55 @@ static void	manageMaxcount(int tokenCount, char **tokens)
 	}
 }
 
+#if USING_BSL
+static void	manageBSL(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+	Object	bpdbObj = getBpDbObject();
+	char	*localEid;
+	char	*keyFile;
+	char	*policyFile;
+	BpDB	bpdb;
+
+	if (tokenCount != 5)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	CHKVOID(sdr);
+	CHKVOID(bpdbObj);
+	localEid = tokens[2];
+	keyFile = tokens[3];
+	policyFile = tokens[4];
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &bpdb, bpdbObj, sizeof(BpDB));
+	if (bpdb.bslLocalEid)
+	{
+		sdr_free(sdr, bpdb.bslLocalEid);
+	}
+
+	if (bpdb.bslKeyFile)
+	{
+		sdr_free(sdr, bpdb.bslKeyFile);
+	}
+
+	if (bpdb.bslPolicyFile)
+	{
+		sdr_free(sdr, bpdb.bslPolicyFile);
+	}
+
+	bpdb.bslLocalEid = sdr_string_create(sdr, localEid);
+	bpdb.bslKeyFile = sdr_string_create(sdr, keyFile);
+	bpdb.bslPolicyFile = sdr_string_create(sdr, policyFile);
+	sdr_write(sdr, bpdbObj, (char *) &bpdb, sizeof(BpDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't update BSL config parameters.", NULL);
+	}
+}
+#endif
+
 static void	manageCustodyMode(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
@@ -1666,6 +1716,14 @@ static void	executeManage(int tokenCount, char **tokens)
 		manageMaxcount(tokenCount, tokens);
 		return;
 	}
+
+#if USING_BSL
+	if (strcmp(tokens[1], "bsl") == 0)
+	{
+		manageBSL(tokenCount, tokens);
+		return;
+	}
+#endif
 
 	if (strcmp(tokens[1], "custodymode") == 0)
 	{

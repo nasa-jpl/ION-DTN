@@ -87,18 +87,9 @@
 	#include <ctype.h>  // For isprint
 #endif
 
-/* Platform-specific includes and adjustments */
-#if defined(_WIN32)
-	// Windows-specific headers
-	#include <windows.h>
-	#if !defined(_WIN32_WCE)
-		#include <io.h>
-	#endif
-#else
-	/*  POSIX-specific headers for Unix, Linux, and others */
-	#include <sys/types.h>
-	#include <unistd.h>
-#endif
+/* Platform-specific includes */
+#include <sys/types.h>
+#include <unistd.h>
 
 #include <fcntl.h>
 

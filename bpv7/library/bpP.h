@@ -24,6 +24,14 @@
 #include "cbor.h"
 #include "crc.h"
 
+#ifndef USING_BSL
+#define USING_BSL	0
+#endif
+
+#if USING_BSL
+#include "bsl.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -695,6 +703,13 @@ typedef struct
 	unsigned int	bundleCounter;	/*	For value of count.	*/
 	unsigned int	maxBundleCount;	/*	Limits value of count.	*/
 
+#if USING_BSL
+	/*	BPSec library configuration parameters			*/
+
+	Object		bslLocalEid;	/*	SDR string: EID.	*/
+	Object		bslKeyFile;	/*	SDR string: pathname.	*/
+	Object		bslPolicyFile;	/*	SDR string: pathname.	*/
+#endif
 	/*	Network management instrumentation			*/
 
 	time_t		resetTime;	/*	Stats reset time.	*/
@@ -1353,6 +1368,7 @@ extern int		addEndpoint(char *endpointName,
 					BpRecvRule recvAction, char *recvScript);
 extern int		updateEndpoint(char *endpointName,
 					BpRecvRule recvAction, char *recvScript);
+/*	Removing an endpoint is also called "unregistering".		*/
 extern int		removeEndpoint(char *endpointName);
 extern void		lookUpEidScheme(EndpointId *eid, VScheme **vscheme);
 extern void		lookUpEndpoint(EndpointId *eid, VScheme *vscheme,

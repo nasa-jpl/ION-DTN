@@ -170,7 +170,7 @@ killm
 - Before a fresh ION installation test
 
 **Cross-Platform Support:**
-`killm` works on Linux, macOS, Solaris, and Windows (with appropriate tools).
+`killm` works on Linux, macOS, and Solaris.
 
 ### Method 4: Programmatic Shutdown via Public APIs
 

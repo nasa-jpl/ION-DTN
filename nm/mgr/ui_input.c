@@ -463,7 +463,7 @@ ari_t *ui_input_ari(char *prompt, uint8_t adm_id, uvast mask)
 
 	if((result->type != AMP_TYPE_LIT) &&
 		(result->type != AMP_TYPE_OPER) &&
-		(ARI_GET_FLAG_PARM(result->as_reg.flags)))
+		(ARI_GET_FLAG_PARM(result->u.as_reg.flags)))
 	{
 		if(ui_input_parms(result) != AMP_OK)
 		{
@@ -500,7 +500,7 @@ ari_t* ui_input_ari_build(uvast mask)
 		ari_release(result, 1);
 		result = ui_input_ari_lit("");
 
-		if((result == NULL) || (result->as_lit.type == AMP_TYPE_UNK))
+		if((result == NULL) || (result->u.as_lit.type == AMP_TYPE_UNK))
 		{
 			AMP_DEBUG_ERR("ui_input_ari_build", "Problem building ARI.", NULL);
 			ari_release(result, 1);
@@ -521,12 +521,12 @@ ari_t* ui_input_ari_build(uvast mask)
 		return result;
 	}
 
-	result->as_reg.flags = flags;
+	result->u.as_reg.flags = flags;
 
 	if(ARI_GET_FLAG_NN(flags))
 	{
 		uvast nn = ui_input_uvast("ARI Nickname:");
-		if(VDB_ADD_NN(nn, &(result->as_reg.nn_idx)) != VEC_OK)
+		if(VDB_ADD_NN(nn, &(result->u.as_reg.nn_idx)) != VEC_OK)
 		{
 			AMP_DEBUG_ERR("ui_input_ari","Unable to add nickname.", NULL);
 			ari_release(result, 1);
@@ -538,7 +538,7 @@ ari_t* ui_input_ari_build(uvast mask)
 	{
 #if AMP_VERSION < 7
 		uvast iss = ui_input_uvast("ARI Issuer:");
-		if(VDB_ADD_ISS(iss, &(result->as_reg.iss_idx)) != VEC_OK)
+		if(VDB_ADD_ISS(iss, &(result->u.as_reg.iss_idx)) != VEC_OK)
 		{
 			AMP_DEBUG_ERR("ui_input_ari","Unable to add issuer.", NULL);
 			ari_release(result, 1);
@@ -552,7 +552,7 @@ ari_t* ui_input_ari_build(uvast mask)
 			ari_release(result, 1);
 			return NULL;
 		}
-		else if(VDB_ADD_ISS(*issuer, &(result->as_reg.iss_idx)) != VEC_OK)
+		else if(VDB_ADD_ISS(*issuer, &(result->u.as_reg.iss_idx)) != VEC_OK)
 		{
 			AMP_DEBUG_ERR("ui_input_ari","Unable to add issuer.", NULL);
 			blob_release(issuer, 1);
@@ -573,7 +573,7 @@ ari_t* ui_input_ari_build(uvast mask)
 			ari_release(result, 1);
 			return NULL;
 		}
-		else if(VDB_ADD_TAG(*tag, &(result->as_reg.tag_idx)) != VEC_OK)
+		else if(VDB_ADD_TAG(*tag, &(result->u.as_reg.tag_idx)) != VEC_OK)
 		{
 			AMP_DEBUG_ERR("ui_input_ari","Unable to add issuer.", NULL);
 			blob_release(tag, 1);
@@ -596,7 +596,7 @@ ari_t* ui_input_ari_build(uvast mask)
 	blob_t *blob = ui_input_blob("ARI Name", 1);
 	if(blob != NULL)
 	{
-		blob_copy(*blob, &(result->as_reg.name));
+		blob_copy(*blob, &(result->u.as_reg.name));
 		blob_release(blob, 1);
 	}
 	else
@@ -778,36 +778,36 @@ ari_t*  ui_input_ari_lit(char *prompt)
 	result = ari_create(AMP_TYPE_LIT);
 	CHKNULL(result);
 
-	result->as_lit.flags = 0;
-	result->as_lit.type = type;
+	result->u.as_lit.flags = 0;
+	result->u.as_lit.type = type;
 
 	switch(type)
 	{
 		case AMP_TYPE_BOOL:
 		case AMP_TYPE_BYTE:
-			result->as_lit.value.as_byte = ui_input_byte("Enter Literal Value as BYTE");
+			result->u.as_lit.value.as_byte = ui_input_byte("Enter Literal Value as BYTE");
 			break;
 		case AMP_TYPE_STR:
-			result->as_lit.value.as_ptr = ui_input_string("Enter Literal Value as STR");
-			TNV_SET_ALLOC(result->as_lit.flags);
+			result->u.as_lit.value.as_ptr = ui_input_string("Enter Literal Value as STR");
+			TNV_SET_ALLOC(result->u.as_lit.flags);
 			break;
 		case AMP_TYPE_INT:
-			result->as_lit.value.as_int = ui_input_int("Enter Literal Value as INT");
+			result->u.as_lit.value.as_int = ui_input_int("Enter Literal Value as INT");
 			break;
 		case AMP_TYPE_UINT:
-			result->as_lit.value.as_uint = ui_input_uint("Enter Literal Value as UINT");
+			result->u.as_lit.value.as_uint = ui_input_uint("Enter Literal Value as UINT");
 			break;
 		case AMP_TYPE_VAST:
-			result->as_lit.value.as_vast = ui_input_vast("Enter Literal Value as VAST");
+			result->u.as_lit.value.as_vast = ui_input_vast("Enter Literal Value as VAST");
 			break;
 		case AMP_TYPE_UVAST:
-			result->as_lit.value.as_uvast = ui_input_uvast("Enter Literal Value as UVAST");
+			result->u.as_lit.value.as_uvast = ui_input_uvast("Enter Literal Value as UVAST");
 			break;
 		case AMP_TYPE_REAL32:
-			result->as_lit.value.as_real32 = ui_input_real32("Enter Literal Value as REAL32");
+			result->u.as_lit.value.as_real32 = ui_input_real32("Enter Literal Value as REAL32");
 			break;
 		case AMP_TYPE_REAL64:
-			result->as_lit.value.as_real64 = ui_input_real64("Enter Literal Value as REAL64");
+			result->u.as_lit.value.as_real64 = ui_input_real64("Enter Literal Value as REAL64");
 			break;
 		default:
 			ari_release(result, 1);
@@ -924,7 +924,7 @@ int ui_input_parms(ari_t *id)
 			return AMP_FAIL;
 		}
 
-		if(vec_push(&(id->as_reg.parms.values), val) != VEC_OK)
+		if(vec_push(&(id->u.as_reg.parms.values), val) != VEC_OK)
 		{
 			AMP_DEBUG_ERR("ui_input_parms", "Can't add parameter.", NULL);
 			tnv_release(val, 1);

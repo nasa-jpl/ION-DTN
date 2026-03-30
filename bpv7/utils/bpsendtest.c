@@ -125,10 +125,18 @@ static int	run_bpsendtest(char *ownEid, char *destEid, char *fileName,
 	if (bp_send(sap, destEid, NULL, ttl, BP_STD_PRIORITY, custodySwitch, 0,
 			0, NULL, bundleZco, &newBundle) < 1)
 	{
-		putErrmsg("bpdriver can't send pilot bundle.",
+		putErrmsg("bpsendtest can't send pilot bundle.",
 				itoa(aduLength));
+		fprintf(stderr, "bpsendtest: can't send pilot bundle.\n");
+		CHKZERO(sdr_begin_xn(sdr));
+		zco_destroy(sdr, bundleZco);
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't destroy ZCO.", NULL);
+		}
+
 		bp_close(sap);
-		return 0;
+		return 1;
 	}
 
 	printf("Sent pilot bundle.\n");
@@ -153,6 +161,16 @@ static int	run_bpsendtest(char *ownEid, char *destEid, char *fileName,
 				0, 0, &ancillaryData, bundleZco, &newBundle) <= 0) {
 				putErrmsg("bpsendtest can't send file in bundle.",
 						itoa(aduLength));
+				fprintf(stderr,
+					"bpsendtest: send failed at "
+					"repetition %d.\n",
+					repetitions - i + 1);
+				CHKZERO(sdr_begin_xn(sdr));
+				zco_destroy(sdr, bundleZco);
+				if (sdr_end_xn(sdr) < 0)
+				{
+					putErrmsg("Can't destroy ZCO.", NULL);
+				}
 			}
 		}
 

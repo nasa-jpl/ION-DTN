@@ -1,5 +1,6 @@
 DOCKER_USER ?= nrichard
 DOCKER ?= podman
+BUILDAH ?= buildah
 DEFAULT_RUNNER_NAME ?= ${DOCKER_USER}/ion-actions-runner
 OS_IMAGE ?= ubuntu-22
 TARGETPLATFORM ?= $(shell arch)
@@ -35,5 +36,36 @@ docker-build:
 	  -f actions-runner.${OS_IMAGE}.dockerfile \
 	  -t ${DEFAULT_RUNNER_NAME}:${OS_IMAGE} .
 
+buildah-build:
+	sudo ${BUILDAH} bud \
+	  --isolation=chroot \
+	  --storage-driver=vfs \
+	  --build-arg TARGETPLATFORM=${TARGETPLATFORM} \
+	  --build-arg RUNNER_VERSION=${RUNNER_VERSION} \
+	  --build-arg RUNNER_CONTAINER_HOOKS_VERSION=${RUNNER_CONTAINER_HOOKS_VERSION} \
+	  --build-arg DOCKER_VERSION=${DOCKER_VERSION} \
+	  --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
+	  --build-arg REV=$(shell git rev-parse --short HEAD) \
+	  -f actions-runner.${OS_IMAGE}.dockerfile \
+	  -t ${DEFAULT_RUNNER_NAME}:${OS_IMAGE} .
+
+buildah-build-rhel:
+	sudo ${BUILDAH} bud \
+	  --isolation=chroot \
+	  --storage-driver=vfs \
+	  --volume /etc/pki/entitlement:/etc/pki/entitlement:ro \
+	  --volume /etc/rhsm:/etc/rhsm:ro \
+	  --build-arg TARGETPLATFORM=${TARGETPLATFORM} \
+	  --build-arg RUNNER_VERSION=${RUNNER_VERSION} \
+	  --build-arg RUNNER_CONTAINER_HOOKS_VERSION=${RUNNER_CONTAINER_HOOKS_VERSION} \
+	  --build-arg DOCKER_VERSION=${DOCKER_VERSION} \
+	  --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
+	  --build-arg REV=$(shell git rev-parse --short HEAD) \
+	  -f actions-runner.${OS_IMAGE}.dockerfile \
+	  -t ${DEFAULT_RUNNER_NAME}:${OS_IMAGE} .
+
 docker-push:
 	${DOCKER} push "${DEFAULT_RUNNER_NAME}:${OS_IMAGE}"
+
+buildah-push:
+	sudo ${BUILDAH} push "${DEFAULT_RUNNER_NAME}:${OS_IMAGE}"

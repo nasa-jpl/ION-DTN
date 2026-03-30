@@ -4352,11 +4352,13 @@ def test49(inputScId=testUtils.BIB_HMAC_SHA2_SCID, inputScParams=testUtils.bibSc
 
         time.sleep(2)
 
-        # Set up bprecvfile at destination ipn:3.1
-        testUtils.recv_file(3)
-
         # Send the file from ipn:2.1 -> ipn:3.1
-        testUtils.send_file(2, 3, "test49.txt", 120)
+        # bpsink (already running on ipn:3.1) receives the bundle and
+        # records its payload length in 3_results.txt for verification.
+        # Poll for the expected payload length instead of sleeping the
+        # full transmit_time.
+        testUtils.send_file(2, 3, "test49.txt", 120,
+                            poll_result=(3, "payload length is 1000000"))
 
         print("\n\nClear Node ipn:2.1 Policy \n")
         testUtils.del_policy_rule(2, "1")
@@ -4452,11 +4454,13 @@ def test50(inputScId=testUtils.BCB_AES_GCM_SCID, inputScParams=testUtils.bcbScPa
 
         time.sleep(2)
 
-        # Set up bprecvfile at destination ipn:3.1
-        testUtils.recv_file(3)
-
         # Send the file from ipn:2.1 -> ipn:3.1
-        testUtils.send_file(2, 3, "test50.txt", 120)
+        # bpsink (already running on ipn:3.1) receives the bundle and
+        # records its payload length in 3_results.txt for verification.
+        # Poll for the expected payload length instead of sleeping the
+        # full transmit_time.
+        testUtils.send_file(2, 3, "test50.txt", 120,
+                            poll_result=(3, "payload length is 1000000"))
 
         print("\n\nClear Node ipn:2.1 Policy \n")
         testUtils.del_policy_rule(2, "1")

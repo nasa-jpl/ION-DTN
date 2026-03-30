@@ -161,252 +161,6 @@ sm_ShmDestroy(uaddr i)
 
 #endif			/*	end of #ifdef RTOS_SHM			*/
 
-#ifdef MINGW_SHM
-
-static int	trackIpc(int type, int key)
-{
-	char	*pipeName = "\\\\.\\pipe\\ion.pipe";
-	DWORD	keyDword = (DWORD) key;
-	char	msg[1 + sizeof(DWORD)];
-	int	startedWinion = 0;
-	HANDLE	hPipe;
-	DWORD	dwMode;
-	BOOL	fSuccess = FALSE;
-	DWORD	bytesWritten;
-	char	reply[1];
-	DWORD	bytesRead;
-
-	msg[0] = type;
-	memcpy(msg + 1, (char *) &keyDword, sizeof(DWORD));
-
-	/*	Keep trying to open pipe to winion until succeed.	*/
-
-	while (1)
-	{
-		if (WaitNamedPipe(pipeName, 100) == 0) 	/*	Failed.	*/
-		{
-			if (GetLastError() != ERROR_FILE_NOT_FOUND)
-			{
-				putErrmsg("Timed out opening pipe to winion.",
-						NULL);
-				return -1;
-			}
-
-			/*	Pipe doesn't exist, so start winion.	*/
-
-			if (startedWinion)	/*	Already did.	*/
-			{
-				putErrmsg("Can't keep winion runnning.", NULL);
-				return -1;
-			}
-
-			startedWinion = 1;
-			pseudoshell("winion");
-			Sleep(100);	/*	Let winion start.	*/
-			continue;
-		}
-
-		/*	Pipe exists, winion is waiting for connection.	*/
-
-		hPipe = CreateFile(pipeName, GENERIC_READ | GENERIC_WRITE,
-				0, NULL, OPEN_EXISTING, 0, NULL);
-		if (hPipe != INVALID_HANDLE_VALUE)
-		{
-			break; 		/*	Got it.			*/
-		}
-
-		if (GetLastError() != ERROR_PIPE_BUSY)
-		{
-			putErrmsg("Can't open pipe to winion.",
-					itoa(GetLastError()));
-			return -1;
-		}
-	}
-
-	/*	Connected to pipe.  Change read-mode to message(?!).	*/
-
-	dwMode = PIPE_READMODE_MESSAGE;
-	fSuccess = SetNamedPipeHandleState(hPipe, &dwMode, NULL, NULL);
-	if (!fSuccess)
-	{
-		putErrmsg("Can't change pipe's read mode.",
-				itoa(GetLastError()));
-		return -1;
-	}
-
-	fSuccess = WriteFile(hPipe, msg, sizeof msg, &bytesWritten, NULL);
-	if (!fSuccess)
-	{
-		putErrmsg("Can't write to pipe.", itoa(GetLastError()));
-		return -1;
-	}
-
-	fSuccess = ReadFile(hPipe, reply, 1, &bytesRead, NULL);
-	if (!fSuccess)
-	{
-		putErrmsg("Can't read from pipe.", itoa(GetLastError()));
-		return -1;
-	}
-
-	CloseHandle(hPipe);
-	if (reply[0] == 0 && type != '?')
-	{
-		return -1;
-	}
-
-	return 0;
-}
-
-	/* ---- Shared Memory services (mingw -- Windows) ------------- */
-
-typedef struct
-{
-	char	*shmPtr;
-	int	key;
-} SmSegment;
-
-#define	MAX_SM_SEGMENTS	20
-
-static void	_smSegment(char *shmPtr, int *key)
-{
-	static SmSegment	segments[MAX_SM_SEGMENTS];
-	static int		segmentsNoted = 0;
-	int			i;
-
-	CHKVOID(key);
-	for (i = 0; i < segmentsNoted; i++)
-	{
-		if (segments[i].shmPtr == shmPtr)
-		{
-			/*	Segment previously noted.		*/
-
-			if (*key == SM_NO_KEY)	/*	Lookup.		*/
-			{
-				*key = segments[i].key;
-			}
-
-			return;
-		}
-	}
-
-	/*	This is not a previously noted shared memory segment.	*/
-
-	if (*key == SM_NO_KEY)		/*	No key provided.	*/
-	{
-		return;			/*	Can't record segment.	*/
-	}
-
-	/*	Newly noting a shared memory segment.			*/
-
-	if (segmentsNoted == MAX_SM_SEGMENTS)
-	{
-		puts("No more room for shared memory segments.");
-		return;
-	}
-
-	segments[segmentsNoted].shmPtr = shmPtr;
-	segments[segmentsNoted].key = *key;
-	segmentsNoted += 1;
-}
-
-int
-sm_ShmAttach(int key, size_t size, char **shmPtr, uaddr *id)
-{
-	char	memName[32];
-	size_t	minSegSize = 16;
-	HANDLE	mappingObj;
-	void	*mem;
-	int	newSegment = 0;
-
-	CHKERR(shmPtr);
-	CHKERR(id);
-
-	/*	If key is not specified, make one up.			*/
-
-	if (key == SM_NO_KEY)
-	{
-		key = sm_GetUniqueKey();
-	}
-
-	sprintf(memName, "%d.mmap", key);
-	if (size != 0)	/*	Want to create segment if not present.	*/
-	{
-		if (size < minSegSize)
-		{
-			size = minSegSize;
-		}
-	}
-
-	/*	Locate the shared memory segment.  If doesn't exist
-	 *	yet, create it.						*/
-
-	mappingObj = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, memName);
-	if (mappingObj == NULL)		/*	Not found.		*/
-	{
-		if (size == 0)		/*	Just attaching.		*/
-		{
-			putErrmsg("Can't open shared memory segment.",
-					utoa(GetLastError()));
-			return -1;
-		}
-
-		/*	Need to create this shared memory segment.	*/
-
-		mappingObj = CreateFileMapping(INVALID_HANDLE_VALUE, NULL,
-				PAGE_READWRITE, 0, size, memName);
-		if (mappingObj == NULL)
-		{
-			putErrmsg("Can't create shared memory segment.",
-					utoa(GetLastError()));
-			return -1;
-		}
-
-		if (trackIpc(WIN_NOTE_SM, key) < 0)
-		{
-			putErrmsg("Can't preserve shared memory.", NULL);
-			return -1;
-		}
-
-		newSegment = 1;
-	}
-
-	mem = MapViewOfFile(mappingObj, FILE_MAP_ALL_ACCESS, 0, 0, 0);
-	if (mem == NULL)
-	{
-		putErrmsg("Can't map shared memory segment.",
-				utoa(GetLastError()));
-		return -1;
-	}
-
-	/*	Record the ID of this segment in case the segment
-	 *	must be detached later.					*/
-
-	_smSegment(mem, &key);
-	*shmPtr = (char *) mem;
-	*id = (uaddr) mappingObj;
-	if (newSegment)
-	{
-		memset(mem, 0, size);	/*	Initialize to zeroes.	*/
-		return 1;
-	}
-
-	return 0;
-}
-
-void
-sm_ShmDetach(char *shmPtr)
-{
-	return;		/*	Closing last handle detaches segment.	*/
-}
-
-void
-sm_ShmDestroy(uaddr id)
-{
-	return;		/*	Closing last handle destroys mapping.	*/
-}
-
-#endif			/*	end of #ifdef MINGW_SHM			*/
-
 #ifdef SVR4_SHM
 
 	/* ---- Shared Memory services (Unix) ------------------------- */
@@ -1032,353 +786,6 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 }
 
 #endif			/*	End of #ifdef VXWORKS_SEMAPHORES	*/
-
-#ifdef MINGW_SEMAPHORES
-
-	/* ---- Semaphore services (mingw) --------------------------- */
-
-#ifndef SM_SEMKEY
-#define SM_SEMKEY	(0xee01)
-#endif
-#ifndef SM_SEMTBLKEY
-#define SM_SEMTBLKEY	(0xee02)
-#endif
-
-typedef struct
-{
-	int	key;
-	int	inUse;
-	int	ended;
-} IciSemaphore;
-
-typedef struct
-{
-	IciSemaphore	semaphores[SEMMNS];
-	int		semaphoresCreated;
-} SemaphoreTable;
-
-static SemaphoreTable	*_semTbl(int action)
-{
-	static SemaphoreTable	*semaphoreTable = NULL;
-	static uaddr		semtblId = 0;
-
-	if (action == IPC_ACTION_STOP)
-	{
-		if (semaphoreTable != NULL)
-		{
-			sm_ShmDetach((char *) semaphoreTable);
-			semaphoreTable = NULL;
-		}
-
-		return NULL;
-	}
-
-	if (semaphoreTable == NULL)
-	{
-		switch(sm_ShmAttach(SM_SEMTBLKEY, sizeof(SemaphoreTable),
-				(char **) &semaphoreTable, &semtblId))
-		{
-		case -1:
-			putErrmsg("Can't create semaphore table.", NULL);
-			break;
-
-		case 0:
-			break;		/*	Semaphore table exists.	*/
-
-		default:		/*	New SemaphoreTable.	*/
-			memset((char *) semaphoreTable, 0,
-					sizeof(SemaphoreTable));
-		}
-	}
-
-	return semaphoreTable;
-}
-
-int	sm_ipc_init()
-{
-	char	semName[32];
-	HANDLE	ipcSemaphore;
-
-	oK(_semTbl(IPC_ACTION_LOOKUP));
-
-	/*	Create the IPC semaphore and preserve it.		*/
-
-	sprintf(semName, "%d.event", SM_SEMKEY);
-	ipcSemaphore = CreateEvent(NULL, FALSE, FALSE, semName);
-	if (ipcSemaphore == NULL)
-	{
-		putErrmsg("Can't create IPC semaphore.", NULL);
-		return -1;
-	}
-
-	if (GetLastError() != ERROR_ALREADY_EXISTS)
-	{
-		oK(SetEvent(ipcSemaphore));
-
-		/*	Preserve the IPC semaphore.			*/
-
-		if (trackIpc(WIN_NOTE_SEMAPHORE, SM_SEMKEY) < 0)
-		{
-			putErrmsg("Can't preserve IPC semaphore.", NULL);
-			sm_ipc_stop();
-			return -1;
-		}
-	}
-
-	return 0;
-}
-
-void	sm_ipc_stop()
-{
-	oK(trackIpc(WIN_STOP_ION, 0));
-}
-
-static HANDLE	getSemaphoreHandle(int key)
-{
-	char	semName[32];
-
-	sprintf(semName, "%d.event", key);
-	return OpenEvent(EVENT_ALL_ACCESS, FALSE, semName);
-}
-
-static void	takeIpcLock()
-{
-	HANDLE	ipcSemaphore = getSemaphoreHandle(SM_SEMKEY);
-
-	oK(WaitForSingleObject(ipcSemaphore, INFINITE));
-	CloseHandle(ipcSemaphore);
-}
-
-static void	giveIpcLock()
-{
-	HANDLE	ipcSemaphore = getSemaphoreHandle(SM_SEMKEY);
-
-	oK(SetEvent(ipcSemaphore));
-	CloseHandle(ipcSemaphore);
-}
-
-sm_SemId	sm_SemCreate(int key, int semType)
-{
-	SemaphoreTable	*semTbl;
-	int		i;
-	IciSemaphore	*sem;
-	char		semName[32];
-	HANDLE		semId;
-
-	/*	If key is not specified, invent one.			*/
-
-	if (key == SM_NO_KEY)
-	{
-		key = sm_GetUniqueKey();
-	}
-
-	/*	Look through list of all existing ICI semaphores.	*/
-
-	takeIpcLock();
-	semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	if (semTbl == NULL)
-	{
-		giveIpcLock();
-		putErrmsg("No semaphore table.", NULL);
-		return SM_SEM_NONE;
-	}
-
-	for (i = 0, sem = semTbl->semaphores; i < semTbl->semaphoresCreated;
-			i++, sem++)
-	{
-		if (sem->key == key)
-		{
-			giveIpcLock();
-			return i;	/*	already created		*/
-		}
-	}
-
-	/*	No existing semaphore for this key; allocate new one.	*/
-
-	for (i = 0, sem = semTbl->semaphores; i < SEMMNS; i++, sem++)
-	{
-		if (sem->inUse)
-		{
-			continue;
-		}
-
-		sprintf(semName, "%d.event", key);
-		semId = CreateEvent(NULL, FALSE, FALSE, semName);
-		if (semId == NULL)
-		{
-			giveIpcLock();
-			putErrmsg("Can't create semaphore.",
-					utoa(GetLastError()));
-			return SM_SEM_NONE;
-		}
-
-		if (GetLastError() != ERROR_ALREADY_EXISTS)
-		{
-			if (trackIpc(WIN_NOTE_SEMAPHORE, key) < 0)
-			{
-				CloseHandle(semId);
-				giveIpcLock();
-				putErrmsg("Can't preserve semaphore.", NULL);
-				return SM_SEM_NONE;
-			}
-		}
-
-		CloseHandle(semId);
-		sem->inUse = 1;
-		sem->key = key;
-		sem->ended = 0;
-		if (!(i < semTbl->semaphoresCreated))
-		{
-			semTbl->semaphoresCreated++;
-		}
-
-		sm_SemGive(i);		/*	(First taker succeeds.)	*/
-		giveIpcLock();
-		return i;
-	}
-
-	giveIpcLock();
-	putErrmsg("Can't add any more semaphores.", NULL);
-	return SM_SEM_NONE;
-}
-
-void	sm_SemDelete(sm_SemId i)
-{
-	SemaphoreTable	*semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	IciSemaphore	*sem;
-
-	CHKVOID(i >= 0);
-	CHKVOID(i < SEMMNS);
-	sem = semTbl->semaphores + i;
-	takeIpcLock();
-	if (sem->inUse)
-	{
-		if (trackIpc(WIN_FORGET_SEMAPHORE, sem->key) < 0)
-		{
-			putErrmsg("Can't detach from semaphore.", NULL);
-		}
-
-		sem->inUse = 0;
-		sem->key = SM_NO_KEY;
-	}
-
-	giveIpcLock();
-}
-
-int	sm_SemTake(sm_SemId i)
-{
-	SemaphoreTable	*semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	IciSemaphore	*sem;
-	HANDLE		semId;
-
-	CHKERR(i >= 0);
-	CHKERR(i < SEMMNS);
-	sem = semTbl->semaphores + i;
-	CHKERR(sem->inUse);
-	semId = getSemaphoreHandle(sem->key);
-	if (semId == NULL)
-	{
-		putSysErrmsg("Can't take semaphore", itoa(i));
-		return -1;
-	}
-
-	oK(WaitForSingleObject(semId, INFINITE));
-	CloseHandle(semId);
-	return 0;
-}
-
-void	sm_SemGive(sm_SemId i)
-{
-	SemaphoreTable	*semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	IciSemaphore	*sem;
-	HANDLE		semId;
-
-	CHKVOID(i >= 0);
-	CHKVOID(i < SEMMNS);
-	sem = semTbl->semaphores + i;
-	CHKVOID(sem->inUse);
-	semId = getSemaphoreHandle(sem->key);
-	if (semId == NULL)
-	{
-		putSysErrmsg("Can't give semaphore", itoa(i));
-		return;
-	}
-
-	oK(SetEvent(semId));
-	CloseHandle(semId);
-}
-
-void	sm_SemEnd(sm_SemId i)
-{
-	SemaphoreTable	*semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	IciSemaphore	*sem;
-
-	CHKVOID(i >= 0);
-	CHKVOID(i < SEMMNS);
-	sem = semTbl->semaphores + i;
-	CHKVOID(sem->inUse);
-	sem->ended = 1;
-	sm_SemGive(i);
-}
-
-int	sm_SemEnded(sm_SemId i)
-{
-	SemaphoreTable	*semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	IciSemaphore	*sem;
-	int		ended;
-
-	CHKZERO(i >= 0);
-	CHKZERO(i < SEMMNS);
-	sem = semTbl->semaphores + i;
-	CHKZERO(sem->inUse);
-	ended = sem->ended;
-	if (ended)
-	{
-		sm_SemGive(i);	/*	Enable multiple tests.		*/
-	}
-
-	return ended;
-}
-
-void	sm_SemUnend(sm_SemId i)
-{
-	SemaphoreTable	*semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	IciSemaphore	*sem;
-
-	CHKVOID(i >= 0);
-	CHKVOID(i < SEMMNS);
-	sem = semTbl->semaphores + i;
-	CHKVOID(sem->inUse);
-	sem->ended = 0;
-}
-
-int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
-{
-	SemaphoreTable	*semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	IciSemaphore	*sem;
-	HANDLE		semId;
-	DWORD		millisec;
-
-	CHKERR(i >= 0);
-	CHKERR(i < SEMMNS);
-	sem = semTbl->semaphores + i;
-	CHKERR(sem->inUse);
-	semId = getSemaphoreHandle(sem->key);
-	if (semId == NULL)
-	{
-		putSysErrmsg("Can't unwedge semaphore", itoa(i));
-		return -1;
-	}
-
-	if (timeoutSeconds < 1) timeoutSeconds = 1;
-	millisec = timeoutSeconds * 1000;
-	oK(WaitForSingleObject(semId, millisec));
-	oK(SetEvent(semId));
-	CloseHandle(semId);
-	return 0;
-}
-
-#endif			/*	End of #ifdef MINGW_SEMAPHORES		*/
 
 #ifdef POSIX_SEMAPHORES
 
@@ -2531,11 +1938,11 @@ int pthread_begin_named(pthread_t *thread, const pthread_attr_t *attr,
 	result = pthread_begin(thread, attr, start_routine, arg);
 #endif
 
-#if defined(linux) || defined(mingw)
+#if defined(__linux__)
 	pthread_setname_np(*thread, name);
 #elif defined(freebsd)
 	pthread_set_name_np(*thread,name);
-#endif	/*	End of #if linux || mingw.				*/
+#endif	/*	End of #if __linux__.					*/
 #endif	/*	End of #ifdef vxworks.					*/
 
 	return result;
@@ -3047,231 +2454,6 @@ void	sm_Abort()
 
 #endif	/*	End of #ifdef POSIX_TASKS				*/
 
-#ifdef MINGW_TASKS
-
-	/* ---- Task Control services (mingw) ----------------------- */
-
-int	sm_TaskIdSelf()
-{
-	return _getpid();
-}
-
-int	sm_TaskExists(int task)
-{
-	DWORD	processId = task;
-	HANDLE	process;
-	DWORD	status;
-	BOOL	result;
-
-	process = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
-	if (process == NULL)
-	{
-		return 0;
-	}
-
-	result = GetExitCodeProcess(process, &status);
-	CloseHandle(process);
-	if (result == 0 || status != STILL_ACTIVE)
-	{
-		return 0;		/*	No such process.	*/
-	}
-
-	return 1;
-}
-
-void	*sm_TaskVar(void **arg)
-{
-	static void	*value;
-
-	/*	Each Windows process has its own distinct instance
-	 *	of each global variable, so all global variables
-	 *	are automatically "task variables".			*/
-
-	if (arg != NULL)
-	{
-		/*	Set value by dereferencing argument.		*/
-
-		value = *arg;
-	}
-
-	return value;
-}
-
-void	sm_TaskSuspend()
-{
-	writeMemo("[?] ION for Windows doesn't support sm_TaskSuspend().");
-}
-
-void	sm_TaskDelay(int seconds)
-{
-	Sleep(seconds * 1000);
-}
-
-void	sm_TaskYield()
-{
-	Sleep(0);
-}
-
-int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
-		char *arg4, char *arg5, char *arg6, char *arg7, char *arg8,
-		char *arg9, char *arg10, int priority, int stackSize)
-{
-	STARTUPINFO		si;
-	PROCESS_INFORMATION	pi;
-	char			cmdLine[256];
-
-	CHKERR(name);
-	ZeroMemory(&si, sizeof si);
-	si.cb = sizeof si;
-	ZeroMemory(&pi, sizeof pi);
-	if (arg1 == NULL) arg1 = "";
-	if (arg2 == NULL) arg2 = "";
-	if (arg3 == NULL) arg3 = "";
-	if (arg4 == NULL) arg4 = "";
-	if (arg5 == NULL) arg5 = "";
-	if (arg6 == NULL) arg6 = "";
-	if (arg7 == NULL) arg7 = "";
-	if (arg8 == NULL) arg8 = "";
-	if (arg9 == NULL) arg9 = "";
-	if (arg10 == NULL) arg10 = "";
-	isprintf(cmdLine, sizeof cmdLine,
-			"\"%s\" %s %s %s %s %s %s %s %s %s %s",
-			name, arg1, arg2, arg3, arg4, arg5,
-			arg6, arg7, arg8, arg9, arg10);
-	if (CreateProcess(NULL, cmdLine, NULL, NULL, FALSE, 0, NULL, NULL,
-			&si, &pi) == 0)
-	{
-		putSysErrmsg("Can't create process", cmdLine);
-		return -1;
-	}
-
-	CloseHandle(pi.hProcess);
-	CloseHandle(pi.hThread);
-	return pi.dwProcessId;
-}
-
-void	sm_TaskKill(int task, int sigNbr)
-{
-	char	eventName[32];
-	HANDLE	event;
-	BOOL	result;
-
-	if (task <= 1)
-	{
-		writeMemoNote("[?] Can't delete invalid process ID",
-				itoa(task));
-		return;
-	}
-
-	if (sigNbr != SIGTERM)
-	{
-		writeMemoNote("[?] ION for Windows only delivers SIGTERM",
-				itoa(sigNbr));
-		return;
-	}
-
-	sprintf(eventName, "%d.sigterm", task);
-	event = OpenEvent(EVENT_ALL_ACCESS, FALSE, eventName);
-	if (event)
-	{
-		result = SetEvent(event);
-		CloseHandle(event);
-		if (result == 0)
-		{
-			putErrmsg("Can't set SIGTERM event.",
-					utoa(GetLastError()));
-		}
-	}
-	else
-	{
-		putErrmsg("Can't open SIGTERM event.", utoa(GetLastError()));
-	}
-}
-
-void	sm_TaskDelete(int task)
-{
-	DWORD	processId = task;
-	HANDLE	process;
-	BOOL	result;
-
-	sm_TaskKill(task, SIGTERM);
-	Sleep(1000);
-	process = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
-	if (process)
-	{
-		result = TerminateProcess(process, 0);
-		CloseHandle(process);
-		if (result == 0)
-		{
-			putErrmsg("Can't terminate process.",
-					utoa(GetLastError()));
-		}
-	}
-	else
-	{
-		putErrmsg("Can't open process.", utoa(GetLastError()));
-	}
-}
-
-void	sm_Abort()
-{
-	abort();
-}
-
-void	sm_WaitForWakeup(int seconds)
-{
-	DWORD	millisec;
-	char	eventName[32];
-	HANDLE	event;
-
-	if (seconds < 0)
-	{
-		millisec = INFINITE;
-	}
-	else
-	{
-		millisec = seconds * 1000;
-	}
-
-	sprintf(eventName, "%u.wakeup", (unsigned int) GetCurrentProcessId());
-	event = CreateEvent(NULL, FALSE, FALSE, eventName);
-	if (event)
-	{
-		oK(WaitForSingleObject(event, millisec));
-		CloseHandle(event);
-	}
-	else
-	{
-		putErrmsg("Can't open wakeup event.", utoa(GetLastError()));
-	}
-}
-
-void	sm_Wakeup(DWORD processId)
-{
-	char	eventName[32];
-	HANDLE	event;
-	int	result;
-
-	sprintf(eventName, "%u.wakeup", (unsigned int) processId);
-	event = OpenEvent(EVENT_ALL_ACCESS, FALSE, eventName);
-	if (event)
-	{
-		result = SetEvent(event);
-		CloseHandle(event);
-		if (result == 0)
-		{
-			putErrmsg("Can't set wakeup event.",
-					utoa(GetLastError()));
-		}
-	}
-	else
-	{
-		putErrmsg("Can't open wakeup event.", utoa(GetLastError()));
-	}
-}
-
-#endif			/*	End of #ifdef MINGW_TASKS		*/
-
 #ifdef UNIX_TASKS
 
 	/* ---- IPC services access control (Unix) -------------------- */
@@ -3507,11 +2689,11 @@ typedef unsigned long int smSequence;
 typedef struct
 {
 	char		inUse;
-	char		ended;
+	atomic_int	ended;		/* Atomic: accessed from multiple processes */
 	int		key;
-	smSequence	gseq;
+	atomic_ulong	gseq;		/* Atomic: sequence number for cache invalidation */
 	atomic_int	refCount;	/* Number of active users across all processes (atomic for lock-free access) */
-	int		pendingDelete;	/* Marked for deletion when refCount reaches 0 */
+	atomic_int	pendingDelete;	/* Atomic: marked for deletion when refCount reaches 0 */
 } SmGlobalSem;
 
 /* this structure makes up the process-local semaphore table */
@@ -3586,7 +2768,7 @@ void _semPrintTable(void)  // Only for debugging purposes
 	for (i = 0; i < SEM_NSEMS_MAX; i++) {
 		SmLocalSem *psem  = &semTbl->lsemtable[i];
 
-		if (psem->semgl->inUse || (psem->semgl->gseq > 0)) {
+		if (psem->semgl->inUse || (atomic_load(&psem->semgl->gseq) > 0)) {
 			fprintf(stderr,"  %-6d ", i);
 			fprintf(stderr,"%-5d ", psem->semgl->inUse);
 			if (!psem->semgl->inUse) {
@@ -3597,7 +2779,7 @@ void _semPrintTable(void)  // Only for debugging purposes
 				} else {
 					fprintf(stderr,"0x%08x ", psem->semgl->key);
 				}
-				if (psem->lseq == psem->semgl->gseq) {
+				if (psem->lseq == atomic_load(&psem->semgl->gseq)) {
 					fprintf(stderr,"%5p ", psem->id);
 				} else {
 					/* out of sync locally, so not valid */
@@ -3605,7 +2787,7 @@ void _semPrintTable(void)  // Only for debugging purposes
 				}
 			}
 			fprintf(stderr,"%10lu ", psem->lseq);
-			fprintf(stderr,"%10lu ", psem->semgl->gseq);
+			fprintf(stderr,"%10lu ", atomic_load(&psem->semgl->gseq));
 			if (psem->semgl->inUse) {
 				fprintf(stderr,"%s ", _semGenPosixSemname(sem_name,sizeof(sem_name),i));
 			}
@@ -3650,7 +2832,7 @@ static int _semSync(SmProcessSemtable *plocal, sm_SemId semnum, int semlocked)
 	SmLocalSem  *plocalSem = &plocal->lsemtable[semnum];
 	SmGlobalSem *pglobalSem = plocalSem->semgl;
 
-	if (plocalSem->lseq == pglobalSem->gseq) {
+	if (plocalSem->lseq == atomic_load(&pglobalSem->gseq)) {
 		/* local copy is up to date */
 		return(1);
 	}
@@ -3696,10 +2878,10 @@ static int _semSync(SmProcessSemtable *plocal, sm_SemId semnum, int semlocked)
 		}
 
 		plocalSem->id = NULL;
-		plocalSem->lseq = pglobalSem->gseq;
+		plocalSem->lseq = atomic_load(&pglobalSem->gseq);
 	}
 
-	plocalSem->lseq = pglobalSem->gseq;  /* now up to date */
+	plocalSem->lseq = atomic_load(&pglobalSem->gseq);  /* now up to date */
 	if (!semlocked)
 		giveIpcLock();
 	return(1);
@@ -4088,9 +3270,9 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	sem->id = psem;
 	sem->semgl->key = key;
 	sem->semgl->inUse = 1;
-	sem->semgl->ended = 0;
+	atomic_store(&sem->semgl->ended, 0);
 	atomic_store(&sem->semgl->refCount, 0);  /* Initialize to 0 - no active users yet */
-	sem->semgl->pendingDelete = 0;
+	atomic_store(&sem->semgl->pendingDelete, 0);
 	sem->localRefCount = 0;
 	sem->handleOpened = 1;  /* Mark handle as opened since we just opened it */
 
@@ -4100,7 +3282,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 		semTbl->semtablegl->opensems_max = semTbl->semtablegl->opensems_current;
 
 	/* tell other ION processes that their local copy is out of date */
-	sem->lseq = ++sem->semgl->gseq;
+	sem->lseq = atomic_fetch_add(&sem->semgl->gseq, 1) + 1;
 
 	/* Initialize semaphore value (first taker succeeds)
 	 * Call sem_post directly instead of sm_SemGive to avoid deadlock
@@ -4145,11 +3327,11 @@ static void _sm_SemCompleteDeletePosix(SmProcessSemtable *semTbl, sm_SemId i)
 
 	/* Update global state */
 	gsem->inUse = 0;
-	gsem->ended = 0;
+	atomic_store(&gsem->ended, 0);
 	gsem->key = SM_NO_KEY;
 	atomic_store(&gsem->refCount, 0);
-	gsem->pendingDelete = 0;
-	gsem->gseq++;  /* Invalidate all cached local copies */
+	atomic_store(&gsem->pendingDelete, 0);
+	atomic_fetch_add(&gsem->gseq, 1);  /* Invalidate all cached local copies */
 
 	/* Update local state */
 	sem->lseq = 0;
@@ -4193,10 +3375,10 @@ void	sm_SemDelete(sm_SemId i)
 	gsem = sem->semgl;
 
 	/* Check if anyone is using the semaphore */
-	if (gsem->refCount > 0)
+	if (atomic_load(&gsem->refCount) > 0)
 	{
 		/* Defer deletion until all users release it */
-		gsem->pendingDelete = 1;
+		atomic_store(&gsem->pendingDelete, 1);
 		giveIpcLock();
 #ifdef DEBUG_POSIX_NAMED_SEMAPHORES
 		writeMemoNote("Semaphore deletion deferred, refCount",
@@ -4232,7 +3414,7 @@ int	sm_SemTake(sm_SemId i)
 	gsem = sem->semgl;
 
 	/* Check if semaphore is deleted or pending deletion */
-	if (!gsem->inUse || gsem->pendingDelete)
+	if (!gsem->inUse || atomic_load(&gsem->pendingDelete))
 	{
 		putErrmsg("Can't take deleted or pending-delete semaphore", itoa(i));
 		return -1;
@@ -4273,7 +3455,7 @@ int	sm_SemTake(sm_SemId i)
 			 * If so, return success so caller can check sm_SemEnded()
 			 * and handle graceful shutdown. This matches the behavior
 			 * of other semaphore implementations (VxWorks, SVR4, etc.) */
-			if (gsem->ended)
+			if (atomic_load(&gsem->ended))
 			{
 				return 0;
 			}
@@ -4293,7 +3475,7 @@ int	sm_SemTake(sm_SemId i)
 	 * handle graceful shutdown. This matches the behavior of other
 	 * semaphore implementations (VxWorks, SVR4, etc.) where sm_SemTake
 	 * returns 0 and the caller is expected to check sm_SemEnded(). */
-	if (gsem->ended)
+	if (atomic_load(&gsem->ended))
 	{
 		return 0;
 	}
@@ -4369,12 +3551,12 @@ void	sm_SemEnd(sm_SemId i)
 	if (sem == NULL)
 	{
 		/* Semaphore not in use - just mark ended in global table */
-		semTbl->lsemtable[i].semgl->ended = 1;
+		atomic_store(&semTbl->lsemtable[i].semgl->ended, 1);
 		giveIpcLock();
 		return;
 	}
 
-	sem->semgl->ended = 1;
+	atomic_store(&sem->semgl->ended, 1);
 
 	/* Wake up any waiting threads/processes without changing refCount.
 	 * Note: We use sem_post() directly here instead of sm_SemGive()
@@ -4434,7 +3616,7 @@ int	sm_SemEnded(sm_SemId i)
 	}
 
 	sem = &semTbl->lsemtable[i];
-	ended = sem->semgl->ended;
+	ended = atomic_load(&sem->semgl->ended);
 	if (ended)
 	{
 		sm_SemGive(i);	/*	Enable multiple tests.		*/
@@ -4463,7 +3645,7 @@ void	sm_SemUnend(sm_SemId i)
 	}
 
 	sem = &semTbl->lsemtable[i];
-	sem->semgl->ended = 0;
+	atomic_store(&sem->semgl->ended, 0);
 }
 
 /* many posix semaphore systems that implement "named semaphores" do NOT implement sem_timedwait() */
@@ -4640,35 +3822,7 @@ int	sm_GetUniqueKey(void)
 	return(ret);
 }
 
-#else
-
-/* ---- Unique IPC key system for other "process" architectures ------ */
-/* as of Mar 2024, this code is only known to be used on Windows systems using the
-  mingw shim layer */
-
-int	sm_GetUniqueKey()
-{
-	static int	ipcUniqueKey = 0;
-	int		result;
-
-	/*	Compose unique key: low-order 15 bits of process ID
-		followed by low-order 16 bits of process-specific
-		sequence count randomized by starting time in seconds	*/
-
-	if (ipcUniqueKey == 0)
-	{
-		ipcUniqueKey = clock()/CLOCKS_PER_SEC;
-	}
-
-	ipcUniqueKey = (ipcUniqueKey + 1) & 0x0000ffff;
-#ifdef mingw
-	result = ((_getpid() & 0x00007fff) << 16) + ipcUniqueKey;
-#else
-	result = (( getpid() & 0x00007fff) << 16) + ipcUniqueKey;
-#endif
-	return result;
-}
-#endif /* end of LINUX/MACOS/SOLARIS test */
+#endif /* end of POSIX_NAMED_SEMAPHORES || SVR4_SEMAPHORES */
 
 /* ----- back to NOT STOS_SHM --------- */
 

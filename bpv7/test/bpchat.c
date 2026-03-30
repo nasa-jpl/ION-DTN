@@ -81,6 +81,14 @@ static void *       sendLines(void *args)
 				&newBundle) <= 0)
 		{
 			putErrmsg("bpchat can't send bundle.", NULL);
+			fprintf(stderr, "bpchat: bundle send failed.\n");
+			CHKNULL(sdr_begin_xn(sdr));
+			zco_destroy(sdr, bundleZco);
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't destroy ZCO.", NULL);
+			}
+
 			break;
 		}
 	}

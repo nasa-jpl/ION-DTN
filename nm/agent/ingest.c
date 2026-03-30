@@ -54,9 +54,7 @@
  *****************************************************************************/
 
 void *rx_thread(void *arg) {
-#ifndef mingw
 	AMP_DEBUG_ENTRY("rx_thread","(0x%X)",(unsigned long) pthread_self());
-#endif
 	AMP_DEBUG_INFO("rx_thread","Receiver thread running...", NULL);
 
 	/* Cast the generic void* argument back to the real type we need. */

@@ -94,7 +94,7 @@ tnv_t *ldc_collect_edd(ari_t *id, tnvc_t *parms)
 tnv_t *ldc_collect_lit(ari_t *id)
 {
 	CHKNULL(id);
-	return tnv_copy_ptr(&(id->as_lit));
+	return tnv_copy_ptr(&(id->u.as_lit));
 }
 
 tnv_t *ldc_collect_rpt(ari_t *id, tnvc_t *parms)
@@ -111,8 +111,8 @@ tnv_t *ldc_collect_rpt(ari_t *id, tnvc_t *parms)
 	new_tpl = rpttpl_copy_ptr(VDB_FINDKEY_RPTT(id));
 	CHKNULL(new_tpl);
 
-	tnvc_clear(&(new_tpl->id->as_reg.parms));
-	tnvc_append(&(new_tpl->id->as_reg.parms), parms);
+	tnvc_clear(&(new_tpl->id->u.as_reg.parms));
+	tnvc_append(&(new_tpl->id->u.as_reg.parms), parms);
 
 	/* Build a report for this template. */
 	new_id = ari_copy_ptr(new_tpl->id);
@@ -231,10 +231,10 @@ int ldc_fill_rpt(rpttpl_t *rpttpl, rpt_t *rpt)
 			/* Step 1: If a rpttpl is parameterized, then the acutal report
 			 * structure will contain the parameters.
 			 */
-			parms = ari_resolve_parms(&(cur_id->as_reg.parms), &(rpt->id->as_reg.parms));
+			parms = ari_resolve_parms(&(cur_id->u.as_reg.parms), &(rpt->id->u.as_reg.parms));
 			if(parms == NULL)
 			{
-				parms = &(cur_id->as_reg.parms);
+				parms = &(cur_id->u.as_reg.parms);
 				clear_parms = 0;
 			}
 		}

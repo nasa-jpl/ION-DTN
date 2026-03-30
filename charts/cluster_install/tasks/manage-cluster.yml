@@ -1,0 +1,85 @@
+---
+- name: Check if kind CLI is installed
+  ansible.builtin.command:
+    cmd: which kind
+  register: kind_binary
+  failed_when: false
+  changed_when: false
+
+- name: Fail if kind CLI is not installed
+  ansible.builtin.fail:
+    msg: "kind CLI is not installed. Please install it before running this playbook."
+  when: kind_binary.rc != 0
+
+- name: Delete existing kind cluster
+  ansible.builtin.command:
+    cmd: kind delete cluster
+  register: cluster_delete
+  changed_when: cluster_delete.rc == 0
+  failed_when: false
+
+- name: Display cluster deletion result
+  ansible.builtin.debug:
+    msg: "{{ 'Existing cluster deleted' if cluster_delete.rc == 0 else 'No existing cluster found' }}"
+
+- name: Create kind cluster without config (ol8)
+  ansible.builtin.command:
+    cmd: kind create cluster
+  when: config == "ol8"
+  register: cluster_create_ol8
+  failed_when: cluster_create_ol8.rc != 0
+  changed_when: false
+
+- name: Create kind cluster with config (rhel8/rhel9)
+  ansible.builtin.command:
+    cmd: kind create cluster --config kind-config.yaml
+    chdir: "{{ charts_path }}"
+  when: config in ['rhel8', 'rhel9']
+  register: cluster_create_rhel
+  failed_when: cluster_create_rhel.rc != 0
+  changed_when: false
+
+- name: Display cluster creation result
+  ansible.builtin.debug:
+    msg: |
+      ✓ Kind cluster created successfully for {{ config }} configuration.
+      {%- set output_lines =
+            cluster_create_ol8.stderr_lines | default(['No output available'])
+            if config == 'ol8' else
+            cluster_create_rhel.stderr_lines | default(['No output available'])
+      -%}
+      {% for line in output_lines %}
+      {{ line }}
+      {% endfor %}
+
+- name: Wait for cluster nodes to become Ready
+  kubernetes.core.k8s_info:
+    kind: Node
+    wait: true
+    name: kindnet
+    namespace: kube-system
+  register: node_ready_result
+
+- name: Fail if nodes did not become Ready within timeout
+  ansible.builtin.fail:
+    msg: >
+      Node readiness timeout after 60 seconds.
+      Only {{
+        node_ready_result.resources | default([])
+        | map(attribute='status.conditions')
+        | flatten
+        | selectattr('type', 'equalto', 'Ready')
+        | selectattr('status', 'equalto', 'True')
+        | list | length
+      }}
+      of {{ (node_ready_result.resources | default([]) | length) }} nodes are Ready.
+      Check logs with 'kubectl describe nodes' for more information.
+  when: node_ready_result is failed
+
+- name: Display node readiness result
+  ansible.builtin.debug:
+    msg: >
+      ✓ All {{ node_ready_result.resources | length }} cluster nodes are Ready:
+      {% for node in node_ready_result.resources %}
+      - {{ node.metadata.name }}: {{ node.status.conditions | selectattr('type', 'equalto', 'Ready') | first | attr('status') }}
+      {% endfor %}

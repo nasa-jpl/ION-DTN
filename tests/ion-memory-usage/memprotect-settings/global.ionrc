@@ -1,0 +1,14 @@
+## Global contact plan for memprotect-settings test
+## Contact starts at +1 so bundles can flow immediately.
+
+m horizon +0
+
+a range +0 +3600 1 2 1
+a range +0 +3600 2 1 1
+
+a contact +1 +3600 1 2 100000
+a contact +1 +3600 2 1 100000
+
+## Node 3 (phantom) -- contact far in future so bundles queue on node 2
+a range +0 +7200 2 3 1
+a contact +3500 +7200 2 3 100000

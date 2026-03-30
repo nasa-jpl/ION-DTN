@@ -128,8 +128,8 @@ int test_msg_grp_deserialize(void) { // TODO: Remove or finish this function
 
 	// Verify ARI Properties
 	check(ari->type == AMP_TYPE_CTRL);
-	check(ari->as_reg.flags == 0xC1);
-	check(ari->as_reg.nn_idx == 0);
+	check(ari->u.as_reg.flags == 0xC1);
+	check(ari->u.as_reg.nn_idx == 0);
 	// TODO: Verify remaining fields
 
 	// And cleanup

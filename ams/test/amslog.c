@@ -27,18 +27,6 @@ static int	_amslog_running(int *value)
 	return running;
 }
 
-#ifdef mingw
-static void	killMainThread()
-{
-	int	stop = 0;
-
-	oK(_amslog_running(&stop));
-
-	/*	Must make sure fgets is interrupted.			*/
-
-	fclose(stdin);
-}
-#else
 static pthread_t	_mainThread(void)
 {
 	static pthread_t	mainThread;
@@ -67,7 +55,6 @@ static void	killMainThread(void)
 		pthread_kill(mainThread, SIGINT);
 	}
 }
-#endif
 
 static void	handleQuit(int signum)
 {
@@ -91,7 +78,7 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 			unsigned char flowLabel)
 {
 	char	*subjectName;
-#ifdef unix
+#ifdef __unix__
 	int	subjectNameLength;
 #endif
 	char	replyText[256];
@@ -111,7 +98,7 @@ static void	logMsg(AmsModule me, void *userData, AmsEvent *event,
 		fprintf(stderr, "Unknown subject number: %d.\n", subjectNbr);
 		return;
 	}
-#ifndef unix
+#ifndef __unix__
 	if (fprintf(stdout, "subject %d (%s), %d bytes of content: '%s'\n",
 			subjectNbr, subjectName, contentLength, content) < 0)
 	{
@@ -251,9 +238,7 @@ messages to stdout.\n", stderr);
 		return 0;
 	}
 
-#ifndef mingw
 	oK(_mainThread());
-#endif
 	oK(_amslog_running(&start));
 	isignal(SIGINT, handleQuit);
 	setLogger(logToStderr);

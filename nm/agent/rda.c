@@ -397,7 +397,7 @@ int rda_process_rules(void)
 
 		gAgentInstr.num_tbrs_run++;
 
-		lcc_run_ac(&(rule->action), &(rule->id.as_reg.parms));
+		lcc_run_ac(&(rule->action), &(rule->id.u.as_reg.parms));
 
 		rule->num_eval++;
 		rule->num_fire++;
@@ -430,7 +430,7 @@ int rda_process_rules(void)
 		{
 			gAgentInstr.num_sbrs_run++;
 
-			lcc_run_ac(&(rule->action), &(rule->id.as_reg.parms));
+			lcc_run_ac(&(rule->action), &(rule->id.u.as_reg.parms));
 
 			rule->num_fire++;
 		}
@@ -637,9 +637,7 @@ void* rda_thread(void* arg)
 	/* Cast the generic void* argument back to the real type we need. */
 	int *running = (int *) arg;
 
-#ifndef mingw
 	AMP_DEBUG_ENTRY("rda_thread", "(0x%X)", (unsigned long) pthread_self()); //threadId);
-#endif
 
 	AMP_DEBUG_INFO("rda_thread", "Running Remote Data Aggregator Thread.", NULL);
 

@@ -17,7 +17,7 @@ import time
 from pathlib import Path
 from statistics import mean
 
-from git_matrix import list_tests
+from git_matrix import is_excluded, list_tests
 
 
 def _check_cached_duration(duration_file: Path, script_dir: Path) -> int | None:
@@ -254,6 +254,16 @@ def main() -> None:
         else:
             print(f"Error: Could not find a valid './dotest' script at {target}")
             sys.exit(1)
+
+        # Respect exclusion markers even for explicitly specified tests
+        filtered: list[Path] = []
+        for script in target_scripts:
+            test_dir = script.parent if script.name == "dotest" else script
+            if is_excluded(test_dir):
+                print(f"Skipping {test_dir}: excluded by marker", file=sys.stderr)
+            else:
+                filtered.append(script)
+        target_scripts = filtered
 
     else:
         target_scripts = list_tests()

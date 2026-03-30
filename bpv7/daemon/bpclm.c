@@ -445,11 +445,22 @@ static void	getOutduct(VPlan *vplan, Bundle *bundle, VOutduct **vduct)
 	}
 
 	/*	Fallback: if best effort only was requested but no
-	 *	unreliable CLA is available, try reliable CLAs.		*/
+	 *	unreliable CLA is available, try reliable CLAs.
+	 *	Conversely, if reliable only was requested but no
+	 *	reliable CLA is available, try unreliable CLAs.	*/
 
 	if (protClassReqd == BP_BEST_EFFORT)
 	{
 		if (outductSelected(&plan, planObj, bundle, BP_RELIABLE,
+				&protocol, &outduct))
+		{
+			findOutduct(protocol.name, outduct.name, vduct,
+					&vductElt);
+		}
+	}
+	else if (protClassReqd == BP_RELIABLE)
+	{
+		if (outductSelected(&plan, planObj, bundle, BP_BEST_EFFORT,
 				&protocol, &outduct))
 		{
 			findOutduct(protocol.name, outduct.name, vduct,

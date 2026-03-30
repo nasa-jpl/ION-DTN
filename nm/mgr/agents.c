@@ -127,7 +127,7 @@ void agent_rotate_log(agent_t *agent, int force)
 						agent_log_cfg.dir,
 						agent->eid.name
 					);
-#if (defined(VXWORKS) || defined(mingw))
+#if defined(VXWORKS)
 				mkdir(fn);
 #else
 				mkdir(fn,0777); // This will fail if directory already exists, which is acceptable

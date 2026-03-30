@@ -14,8 +14,6 @@
 #include <limits.h>
 #include <getopt.h>     /* getopt */
 
-/*	Note: bping originally used strtok_r to parse responses,
-	but neither strtok_r nor strtok_s are provided by MinGW.	*/
 
 const char usage[] =
   "Usage: bping [options] <source EID> <destination EID> [report-to EID]\n\n"
@@ -150,7 +148,7 @@ static void *receiveResponses(void *x)
 	unsigned long respcount, resppid;
 	long        diff_in_us;
 
-		/* Parameter intentionally unused. */
+	/* Parameter intentionally unused. */
 	(void)x;
 
 	while((shutdownnow == 0) && (count == -1 || totalreceived < count) &&
@@ -424,6 +422,15 @@ static void *sendRequests(void *x)
 		{
 			putErrmsg("bping can't send ping bundle.", NULL);
 			fprintf(stderr, "bping can't send ping bundle.\n");
+			if (sdr_begin_xn(sdr) >= 0)
+			{
+				zco_destroy(sdr, bundleZco);
+				if (sdr_end_xn(sdr) < 0)
+				{
+					putErrmsg("Can't destroy ZCO.", NULL);
+				}
+			}
+
 			shutdownnow = 1;
 			bp_interrupt(recvsap);
 			pthread_exit(NULL);

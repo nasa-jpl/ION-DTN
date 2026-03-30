@@ -657,10 +657,15 @@ def recv_file(node_num):
     os.chdir("..")
 
 
-def send_file(src, dest, file_name, transmit_time):
+def send_file(src, dest, file_name, transmit_time, poll_result=None):
     """
-    [send_file] sends a file with [filename] from [src] to [dest] node taking
-    [transmit_time] specified in seconds.
+    [send_file] sends a file with [filename] from [src] to [dest] node,
+    waiting up to [transmit_time] seconds for delivery.
+
+    If [poll_result] is provided as a (node_num, expected_msg) tuple,
+    the function polls the destination's bpsink results file for the
+    expected message, returning as soon as it appears.  Otherwise it
+    sleeps for the full [transmit_time].
 
     Precondition: [file_name] is an existing file at [src].
 
@@ -677,7 +682,30 @@ def send_file(src, dest, file_name, transmit_time):
 
     subprocess.run(cmd, shell=True, stdout=verbose, timeout=TIME_TESTTIMEOUT)
 
-    time.sleep(transmit_time)
+    if poll_result is not None:
+        poll_node, poll_msg = poll_result
+        result_path = os.path.join("..", str(poll_node) + ".ipn.ltp",
+                                   str(poll_node) + "_results.txt")
+        # Record current file size so we only check NEW content
+        # (previous tests may have already written the same message).
+        try:
+            start_pos = os.path.getsize(result_path)
+        except FileNotFoundError:
+            start_pos = 0
+        deadline = time.time() + transmit_time
+        while time.time() < deadline:
+            try:
+                with open(result_path, 'r', errors='replace') as f:
+                    f.seek(start_pos)
+                    if poll_msg in f.read():
+                        break
+            except FileNotFoundError:
+                pass
+            time.sleep(2)
+        # Allow ION to settle after large bundle delivery.
+        time.sleep(TIME_TESTFINISH)
+    else:
+        time.sleep(transmit_time)
 
     print("bpsendfile complete")
 
@@ -733,6 +761,34 @@ def start_bpsink(node_num):
     subprocess.run("bpsink ipn:" + node_num +".1 >> " + file + " &", shell=True)
 
     os.chdir("..")
+
+def stop_bpsink(node_num):
+    """
+    [stop_bpsink] Kills the bpsink process running on the node specified
+    by [node_num].  This must be called before recv_file() so that
+    bprecvfile can open the same endpoint without conflict.
+    """
+    os.chdir(str(node_num) + ".ipn.ltp")
+    subprocess.run("pkill -f 'bpsink ipn:" + node_num + ".1'",
+                   shell=True, timeout=TIME_TESTTIMEOUT)
+    time.sleep(TIME_CLEANUP)
+    os.chdir("..")
+
+
+def restart_bpsink(node_num):
+    """
+    [restart_bpsink] Restarts bpsink on the node specified by [node_num]
+    without clearing the existing results file.  Use this after
+    stop_bpsink() / recv_file() to resume bpsink for subsequent tests.
+    """
+    node = node_num + ".ipn.ltp"
+    file = node_num + "_results.txt"
+
+    os.chdir(node)
+    subprocess.run("bpsink ipn:" + node_num + ".1 >> " + file + " &",
+                   shell=True)
+    os.chdir("..")
+
 
 def clean_ion():
     """
@@ -813,12 +869,16 @@ def stop_and_clean():
     for i in d:
         if os.DirEntry.is_dir(i) and "ipn.ltp" in i.name:
             os.chdir(i.name)
-            subprocess.run("./ionstop", shell=True, stdout=verbose)
+            try:
+                subprocess.run("./ionstop", shell=True, stdout=verbose,
+                               timeout=15)
+            except subprocess.TimeoutExpired:
+                print("ionstop timed out for " + i.name + ", continuing.")
             os.chdir("..")
 
     time.sleep(TIME_TESTFINISH)
 
-    subprocess.run("killm")
+    subprocess.run("killm", shell=True)
 
 
 def start_test(test_num, desc):

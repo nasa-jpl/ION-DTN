@@ -29,12 +29,10 @@ static void siguser_thread(int signum)
 	isignal(SIGUSR1, siguser_thread);
 }
 
-#ifndef mingw
 void	handleConnectionLoss(int signum)
 {
 	isignal(SIGPIPE, handleConnectionLoss);
 }
-#endif
 
 /*	*	*	Receiver thread functions	*	*	*/
 
@@ -105,9 +103,7 @@ static void *Recieve_DCCP(void *param)
 
 	iblock(SIGTERM);
 	isignal(SIGUSR1, siguser_thread);
-#ifndef mingw
 	isignal(SIGPIPE, handleConnectionLoss);
-#endif
 
 	if (buffer == NULL)
 	{
@@ -205,9 +201,7 @@ static void	*Listen_for_connections(void *parm)
 
 	iblock(SIGTERM);
 	isignal(SIGUSR1, siguser_thread);
-#ifndef mingw
 	iblock(SIGPIPE);
-#endif
 
 	/*	Can now begin accepting connections from remote
 	 *	contacts.  On failure, take down the whole LSI.		*/
@@ -401,9 +395,7 @@ int	main(int argc, char *argv[])
 
 	/*	Set up signal handling; SIGTERM is shutdown signal.	*/
 	isignal(SIGTERM, interruptThread);
-#ifndef mingw
 	iblock(SIGPIPE);
-#endif
 
 	/*	Start the receiver thread.				*/
 	rtp.running = 1;

@@ -2,6 +2,7 @@
 
 - [ION Coding Guide](#ion-coding-guide)
   - [Preface](#preface)
+  - [C Language Standard](#c-language-standard)
   - [Application Behavior](#application-behavior)
   - [Function Design Guidelines](#function-design-guidelines)
   - [Error Checking](#error-checking)
@@ -21,6 +22,56 @@ The following coding guidelines apply to all software delivered as part of the I
 * Where conformance to some other standard is clearly appropriate. For example, when using a framework library like Motif it may be appropriate to modify these guidelines so as to be consistent with the practices of the framework.
 * Where, in the judgment of the programmer, deviating from the guidelines in a particular case results in manifestly clearer code. This is not a license to ignore the guidelines; it is intended to cover special circumstances.
 Adherence to these guidelines is the responsibility of the individual programmer but will be considered during peer reviews of new ION code.
+
+## C Language Standard
+
+ION targets **C18 (ISO 9899:2018)** as its primary standard, with an automatic fallback to **C99 (ISO 9899:1999)** for older toolchains. C17/C18 is a bugfix revision of C11 with no new language features, so in practice ION is a **C11/C18 codebase**.
+
+The build system in `configure.ac` establishes a preference hierarchy:
+
+1. **C18** (`-std=iso9899:2018`) — validated by checking if `<stdatomic.h>` compiles.
+2. **C99** (`-std=c99`) — validated by checking if `<stdint.h>` compiles.
+3. The build fails if neither is supported.
+
+The `-pedantic` flag is enabled to enforce strict standards compliance.
+
+### C11/C18 Features in Use
+
+* **Atomic operations** — used for lock-free reference counting (semaphore management) and lock-free statistics counters (BP and LTP tally deltas). The portable header `ici/include/ion_atomic.h` provides the abstraction: on C11/C18 compilers it includes `<stdatomic.h>` directly; on C99 compilers (GCC 4.7+ or Clang) it falls back to the `__atomic` built-in functions, which provide the same lock-free guarantees without requiring C11 language support.
+
+### C99 Features Used Throughout
+
+* `<stdint.h>`, `<stdbool.h>`
+* Designated initializers
+* `inline` functions
+* Mixed declarations and code
+* `//` single-line comments
+
+### Per-Component Overrides
+
+Some subdirectories pin to a specific standard in their own Makefiles:
+
+* **QCBOR, Unity, libbloom** — pinned to `-std=c99`
+* **contrib/bptap** — uses `-std=gnu99` (GCC extension of C99)
+
+### Guidelines for Contributors
+
+* Avoid GNU extensions and non-standard constructs in core ION code.
+* Use standards-compliant macro helper names.
+* When adding new code that needs atomics, use the standard C11 names (`atomic_fetch_add`, `atomic_load`, etc.) — the `ion_atomic.h` header maps them to compiler built-ins automatically on C99. Do not include `<stdatomic.h>` directly; include `ion_atomic.h` (via `platform.h`) instead.
+* Prefer C99-compatible constructs for all other code; this maximizes portability to the C99 fallback path.
+
+### Operating System Support Matrix for Space Processors
+
+The following table summarizes C standard support across operating systems commonly used on space-qualified hardware. ION's C99 fallback path ensures compatibility with all of these environments.
+
+| Operating System | Supported Standard | Hardware Targets | Key Space Features |
+|---|---|---|---|
+| VxWorks 6.x/7 | C99, C11, C17, C++17 | RAD750, RAD5545, ARM | Determinism, safety-certifiable, container support. |
+| RTEMS 4/5/6 | C99, C11, C18, Ada | LEON, SPARC, PowerPC | Open-source, POSIX API, SMP support. |
+| Linux (Yocto) | C11, C17, C23 | ARM, NVIDIA Orin, Xilinx | High-throughput, extensive libraries, Space 2.0. |
+| Zephyr RTOS | C11 | LEON, ARM, RISC-V | Lightweight, growing aerospace community. |
+| Bare-Metal (BCC) | C99 | LEON, SPARC | Minimal overhead for simple controllers. |
 
 ## Application Behavior
 

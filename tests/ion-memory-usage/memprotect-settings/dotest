@@ -1,0 +1,526 @@
+#!/usr/bin/env bash
+#
+# ion-memory-usage/memprotect-settings
+#
+# Regression test for the ionadmin memory protection threshold feature.
+# Uses a 2-node ION topology to test:
+#   - Phase 1:  Settings infrastructure (m/i memprotect, clamping, logging)
+#   - Phase 2a: Local-source protection (bp_send rejection on node 1, heap trigger)
+#   - Phase 2b: Bundle acquisition protection (incoming bundle rejection on node 2)
+#   - Phase 2c: Working-memory guard (bp_send rejection on node 2, WM trigger)
+#
+# What this test verifies:
+#   Phase 1 - Settings infrastructure:
+#     1. Default thresholds are 10% / 10% on fresh start
+#     2. "m memprotect" sets thresholds, "i memprotect" reports them
+#     3. Values exceeding 0-50 range are clamped
+#     4. "m memprotect 0 0" disables protection
+#     5. Threshold change is logged via writeMemo
+#     6. "i memprotect" reports current free-space percentages
+#     7. Thresholds persist across settings changes (reads back correctly)
+#     8. Both nodes operate independently with different thresholds
+#   Phase 2a - BP send guard (heap):
+#     9. bp_send rejects bundles when heap threshold is breached
+#    10. Bundles flow normally after protection is disabled
+#   Phase 2b - Bundle acquisition guard:
+#    11. Inbound bundles are silently dropped when receiving node's threshold is breached
+#    12. Bundles are delivered after protection is disabled on receiving node
+#   Phase 2c - BP send guard (working memory):
+#    13. bp_send rejects bundles when WM threshold is breached
+#    14. Bundles flow normally after WM protection is disabled
+#
+# Node 1 uses heapWords 250000 (~2MB) for Phase 2a outbound fill.
+# Node 2 uses heapWords 75000 (~600KB) for Phase 2b; the smaller heap
+# makes idle overhead (~10%) significant enough that combined outbound
+# fill + inbound traffic exceeds the 50% threshold.
+# Node 2 uses wmSize 500000 (~500KB) for Phase 2c; idle ION uses ~56%
+# of WM, so a 50% threshold triggers immediately on bp_send.
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify ionadmin memory protection threshold commands"
+echo "  (m memprotect / i memprotect) on a 2-node ION topology."
+echo "  Phase 1: settings, clamping, logging, independent node thresholds."
+echo "  Phase 2a: bp_send rejection when heap protection is active."
+echo "  Phase 2b: bundle acquisition rejection when heap protection is active."
+echo "  Phase 2c: bp_send rejection when working-memory protection is active."
+echo
+echo "########################################"
+
+FAIL=0
+TESTDIR="$(cd "$(dirname "$0")" && pwd)"
+
+# -------------------------------------------------------------------
+# Helper: send ionadmin command to a specific node and capture output.
+# Usage: ion_cmd <node_dir> <command_string>
+# Returns the stdout/stderr from ionadmin.
+# -------------------------------------------------------------------
+ion_cmd() {
+    local nodedir="$1"
+    local cmd="$2"
+    (cd "$nodedir" && echo "$cmd" | ionadmin 2>&1)
+}
+
+# -------------------------------------------------------------------
+# Helper: check that a string appears in the given file.
+# Usage: expect_in_file <file> <pattern> <description>
+# -------------------------------------------------------------------
+expect_in_file() {
+    local file="$1"
+    local pattern="$2"
+    local desc="$3"
+    if grep -q "$pattern" "$file"; then
+        echo "OK:    $desc"
+    else
+        echo "ERROR: $desc"
+        echo "       Pattern not found: $pattern"
+        echo "       File: $file"
+        FAIL=1
+    fi
+}
+
+# -------------------------------------------------------------------
+# Helper: check that ionadmin output contains expected text.
+# Usage: expect_output <output> <pattern> <description>
+# -------------------------------------------------------------------
+expect_output() {
+    local output="$1"
+    local pattern="$2"
+    local desc="$3"
+    if echo "$output" | grep -q "$pattern"; then
+        echo "OK:    $desc"
+    else
+        echo "ERROR: $desc"
+        echo "       Pattern not found: $pattern"
+        echo "       Got: $output"
+        FAIL=1
+    fi
+}
+
+# ===================================================================
+# Setup: Start 2-node ION topology
+# ===================================================================
+echo ""
+echo "=== Setup: Starting 2-node ION topology ==="
+
+killm
+sleep 1
+
+export ION_NODE_LIST_DIR="$TESTDIR"
+rm -f "$TESTDIR/ion_nodes"
+
+# Start node 1
+echo "Starting node 1..."
+cd "$TESTDIR/node1"
+rm -f ion.log
+./ionstart
+sleep 3
+
+# Start node 2
+echo "Starting node 2..."
+cd "$TESTDIR/node2"
+rm -f ion.log
+./ionstart
+sleep 3
+
+# Quick sanity: verify both nodes are running
+if ! pgrep -x "rfxclock" > /dev/null; then
+    echo "ERROR: ION nodes did not start."
+    killm
+    exit 1
+fi
+echo "Both nodes started."
+echo ""
+
+# ===================================================================
+# Test 1: Default thresholds on fresh start
+# ===================================================================
+echo "=== Test 1: Default thresholds ==="
+
+OUTPUT=$(ion_cmd "$TESTDIR/node1" "i memprotect")
+expect_output "$OUTPUT" "Memory protection: heap 10%, working memory 10%" \
+    "Node 1 defaults to heap 10%, wm 10%"
+
+OUTPUT=$(ion_cmd "$TESTDIR/node2" "i memprotect")
+expect_output "$OUTPUT" "Memory protection: heap 10%, working memory 10%" \
+    "Node 2 defaults to heap 10%, wm 10%"
+echo ""
+
+# ===================================================================
+# Test 2: Set and verify custom thresholds
+# ===================================================================
+echo "=== Test 2: Set and verify thresholds ==="
+
+ion_cmd "$TESTDIR/node1" "m memprotect 15 20" > /dev/null
+sleep 1
+OUTPUT=$(ion_cmd "$TESTDIR/node1" "i memprotect")
+expect_output "$OUTPUT" "Memory protection: heap 15%, working memory 20%" \
+    "Node 1 set to heap 15%, wm 20%"
+
+# Verify the change was logged
+expect_in_file "$TESTDIR/node1/ion.log" \
+    "Memory protection thresholds set: heap 15%, working memory 20%" \
+    "Node 1 threshold change logged"
+
+# Verify node 2 is still at defaults (independent)
+OUTPUT=$(ion_cmd "$TESTDIR/node2" "i memprotect")
+expect_output "$OUTPUT" "Memory protection: heap 10%, working memory 10%" \
+    "Node 2 still at defaults (independent)"
+echo ""
+
+# ===================================================================
+# Test 3: Clamping values to 0-50 range
+# ===================================================================
+echo "=== Test 3: Clamping out-of-range values ==="
+
+# Set values above 50 -- should clamp to 50
+ion_cmd "$TESTDIR/node1" "m memprotect 60 75" > /dev/null
+sleep 1
+OUTPUT=$(ion_cmd "$TESTDIR/node1" "i memprotect")
+expect_output "$OUTPUT" "Memory protection: heap 50%, working memory 50%" \
+    "Values >50 clamped to 50"
+
+expect_in_file "$TESTDIR/node1/ion.log" \
+    "Memory protection thresholds set: heap 50%, working memory 50%" \
+    "Clamped values logged correctly"
+echo ""
+
+# ===================================================================
+# Test 4: Disable protection with 0 0
+# ===================================================================
+echo "=== Test 4: Disable protection ==="
+
+ion_cmd "$TESTDIR/node1" "m memprotect 0 0" > /dev/null
+sleep 1
+OUTPUT=$(ion_cmd "$TESTDIR/node1" "i memprotect")
+expect_output "$OUTPUT" "Memory protection: heap 0%, working memory 0%" \
+    "Protection disabled (0/0)"
+
+expect_in_file "$TESTDIR/node1/ion.log" \
+    "Memory protection thresholds set: heap 0%, working memory 0%" \
+    "Disable logged"
+echo ""
+
+# ===================================================================
+# Test 5: Set different thresholds per node
+# ===================================================================
+echo "=== Test 5: Independent per-node thresholds ==="
+
+ion_cmd "$TESTDIR/node1" "m memprotect 25 30" > /dev/null
+ion_cmd "$TESTDIR/node2" "m memprotect 5 10" > /dev/null
+sleep 1
+
+OUTPUT=$(ion_cmd "$TESTDIR/node1" "i memprotect")
+expect_output "$OUTPUT" "Memory protection: heap 25%, working memory 30%" \
+    "Node 1 at 25/30"
+
+OUTPUT=$(ion_cmd "$TESTDIR/node2" "i memprotect")
+expect_output "$OUTPUT" "Memory protection: heap 5%, working memory 10%" \
+    "Node 2 at 5/10"
+echo ""
+
+# ===================================================================
+# Test 6: "i memprotect" reports current free-space percentages
+# ===================================================================
+echo "=== Test 6: Free-space percentage reporting ==="
+
+OUTPUT=$(ion_cmd "$TESTDIR/node1" "i memprotect")
+
+# The output should contain "Current SDR heap: XX.X% free (OK)"
+expect_output "$OUTPUT" "Current SDR heap:.*free" \
+    "Node 1 reports SDR heap free percentage"
+expect_output "$OUTPUT" "Current working memory:.*free" \
+    "Node 1 reports working memory free percentage"
+
+# With a nearly empty node, free space should be high and show (OK)
+expect_output "$OUTPUT" "(OK)" \
+    "Node 1 shows OK status (heap not breached)"
+echo ""
+
+# ===================================================================
+# Test 7: Verify threshold updates are reflected without restart
+# ===================================================================
+echo "=== Test 7: Live threshold updates ==="
+
+# Set, read, change, read again -- all without restart
+ion_cmd "$TESTDIR/node2" "m memprotect 35 40" > /dev/null
+sleep 1
+OUTPUT=$(ion_cmd "$TESTDIR/node2" "i memprotect")
+expect_output "$OUTPUT" "Memory protection: heap 35%, working memory 40%" \
+    "Node 2 first update (35/40)"
+
+ion_cmd "$TESTDIR/node2" "m memprotect 12 18" > /dev/null
+sleep 1
+OUTPUT=$(ion_cmd "$TESTDIR/node2" "i memprotect")
+expect_output "$OUTPUT" "Memory protection: heap 12%, working memory 18%" \
+    "Node 2 second update (12/18)"
+echo ""
+
+# ===================================================================
+# Phase 2a: Local-source protection (bp_send guard)
+# ===================================================================
+echo "=== Phase 2a: Local-source bp_send protection ==="
+
+# Strategy: Block the plan to node 2 so bundles queue in node 1's SDR.
+# Send large bundles to fill the heap past the protection threshold.
+# With heapWords 250000 (~2MB) and 50KB payloads (~2% each), ~20
+# bundles push usage past 50%.  The guard then rejects further sends.
+
+# Set threshold on node 1 (50% heap, disabled wm)
+ion_cmd "$TESTDIR/node1" "m memprotect 50 0" > /dev/null
+sleep 1
+
+# Block the plan to node 2 so bundles accumulate in node 1's SDR
+(cd "$TESTDIR/node1" && echo "b plan ipn:2.0" | bpadmin 2>/dev/null)
+sleep 1
+
+# Clear node 1 log to isolate Phase 2a messages
+> "$TESTDIR/node1/ion.log"
+
+# Send 25 large bundles to fill the SDR heap past the 50% threshold.
+# Each 50KB bundle uses ~2% of the 2MB heap.  After ~19 bundles the
+# heap drops below 50% free and the guard kicks in.
+echo "Sending bundles to fill node 1 SDR heap..."
+PAYLOAD=$(dd if=/dev/zero bs=50000 count=1 2>/dev/null | tr '\0' 'X')
+cd "$TESTDIR/node1"
+for i in $(seq 1 25); do
+    bpsource ipn:2.1 "${PAYLOAD}" 2>/dev/null
+done
+sleep 2
+
+# Verify the rejection was logged on node 1
+expect_in_file "$TESTDIR/node1/ion.log" \
+    "Memory protection active, rejecting bp_send" \
+    "Phase 2a: bp_send rejection logged on node 1"
+
+# Also check that the threshold breach was logged
+expect_in_file "$TESTDIR/node1/ion.log" \
+    "ION heap memory protection threshold breached" \
+    "Phase 2a: heap threshold breach logged on node 1"
+
+# Now unblock the plan and disable protection so bundles can drain
+(cd "$TESTDIR/node1" && echo "u plan ipn:2.0" | bpadmin 2>/dev/null)
+ion_cmd "$TESTDIR/node1" "m memprotect 0 0" > /dev/null
+
+# Start bpsink on node 2 to receive the recovery bundle
+cd "$TESTDIR/node2"
+bpsink ipn:2.1 > "$TESTDIR/node2/phase2a_recv.txt" &
+SINK_PID=$!
+
+# Wait for queued bundles to drain, then send a new one
+sleep 10
+
+# Send a bundle from node 1 -- should succeed now
+cd "$TESTDIR/node1"
+bpsource ipn:2.1 "phase2a_verify" 2>/dev/null
+sleep 5
+
+# Verify the bundle was received on node 2
+if grep -q "Payload delivered" "$TESTDIR/node2/phase2a_recv.txt"; then
+    echo "OK:    Phase 2a: Bundle delivered after protection disabled"
+else
+    echo "ERROR: Phase 2a: Bundle NOT delivered after protection disabled"
+    FAIL=1
+fi
+
+# Cleanup sink and drain
+kill $SINK_PID 2>/dev/null
+wait $SINK_PID 2>/dev/null
+rm -f "$TESTDIR/node2/phase2a_recv.txt"
+sleep 2
+echo ""
+
+# ===================================================================
+# Phase 2b: Bundle acquisition protection (incoming)
+# ===================================================================
+echo "=== Phase 2b: Bundle acquisition protection ==="
+
+# Strategy (two-stage heap fill):
+#
+# ION's ZCO partitioning limits inbound ZCO occupancy to 20% of total
+# heap and outbound to 20% (ION_SEQUESTERED=60%, available=40%, split
+# equally).  Inbound alone cannot trigger a 50% threshold.
+#
+# To reach 50% used we first fill outbound on node 2 by sending bundles
+# to a phantom node 3 whose contact is far in the future (+3500 s).
+# CGR queues the bundles but the CLO cannot transmit (rate=0 until the
+# contact opens), so they accumulate.  bpdriver in streaming mode with
+# small payloads (1KB file-backed ZCOs) consumes ~1.6KB of SDR heap
+# metadata per bundle.  100 outbound bundles ≈ 160KB ≈ 27% of the
+# 600KB heap.  Combined with idle overhead (~10%), total usage reaches
+# ~37%.  We then enable a 50% threshold and send inbound bundles from
+# node 1.  After ~8 inbound bundles of 10KB each (≈13% more), total
+# usage exceeds 50%, and the guard fires.
+#
+# Node 2 uses heapWords 75000 (600KB) so idle overhead is a significant
+# fraction of the heap, giving us enough margin.
+
+# Ensure both nodes have protection disabled for the fill phase
+ion_cmd "$TESTDIR/node1" "m memprotect 0 0" > /dev/null
+ion_cmd "$TESTDIR/node2" "m memprotect 0 0" > /dev/null
+sleep 1
+
+# Clear node 2 log to isolate Phase 2b messages
+> "$TESTDIR/node2/ion.log"
+
+# --- Stage 1: Fill node 2 outbound with bundles to phantom node 3 ---
+# bpdriver streaming mode (-1024 = streaming, 1KB payload, file-backed ZCOs).
+# The contact to node 3 doesn't start until +3500s, so bundles queue
+# indefinitely.  100 bundles ≈ 160KB metadata in SDR heap ≈ 27% of 600KB.
+echo "Filling node 2 outbound queue (bundles to phantom node 3)..."
+cd "$TESTDIR/node2"
+bpdriver 100 ipn:2.2 ipn:3.1 -1024 &
+DRIVER_PID=$!
+sleep 10
+
+# bpdriver may still be running (blocked on ZCO space or rate limit).
+# Kill it now -- the queued bundles are already in the SDR.
+kill $DRIVER_PID 2>/dev/null
+wait $DRIVER_PID 2>/dev/null
+
+# --- Stage 2: Enable protection, send inbound from node 1 ---
+# Set 50% heap threshold on node 2.  At this point ~37% of heap is
+# used (idle + outbound metadata), so 63% free -- above threshold.
+ion_cmd "$TESTDIR/node2" "m memprotect 50 0" > /dev/null
+sleep 1
+
+# Send 20 x 10KB bundles from node 1 to node 2.
+# No bpsink is running, so bundles queue at ipn:2.1 (endpoint 'q').
+# After ~8 bundles land on node 2 the guard should fire.
+echo "Sending inbound bundles from node 1 to trigger guard..."
+PAYLOAD=$(dd if=/dev/zero bs=10000 count=1 2>/dev/null | tr '\0' 'Y')
+cd "$TESTDIR/node1"
+for i in $(seq 1 20); do
+    bpsource ipn:2.1 "${PAYLOAD}" 2>/dev/null
+done
+
+# Wait for bundles to transfer via LTP and trigger the guard
+echo "Waiting for LTP transfer and guard trigger..."
+sleep 15
+
+# Check node 2 log for threshold breach
+expect_in_file "$TESTDIR/node2/ion.log" \
+    "ION heap memory protection threshold breached" \
+    "Phase 2b: heap threshold breach logged on node 2"
+
+# --- Stage 3: Recovery -- disable protection, verify delivery ---
+# Start bpsink on node 2 to drain queued bundles
+cd "$TESTDIR/node2"
+bpsink ipn:2.1 > "$TESTDIR/node2/phase2b_recv.txt" &
+SINK_PID=$!
+sleep 5
+
+# Disable protection so new bundles are accepted
+ion_cmd "$TESTDIR/node2" "m memprotect 0 0" > /dev/null
+sleep 3
+
+# Send one more bundle from node 1 -- should be delivered
+cd "$TESTDIR/node1"
+bpsource ipn:2.1 "phase2b_verify" 2>/dev/null
+sleep 5
+
+# Verify the bundle was received on node 2
+if grep -q "Payload delivered" "$TESTDIR/node2/phase2b_recv.txt"; then
+    echo "OK:    Phase 2b: Bundle delivered after protection disabled"
+else
+    echo "ERROR: Phase 2b: Bundle NOT delivered after protection disabled"
+    FAIL=1
+fi
+
+# Cleanup sink
+kill $SINK_PID 2>/dev/null
+wait $SINK_PID 2>/dev/null
+rm -f "$TESTDIR/node2/phase2b_recv.txt"
+echo ""
+
+# ===================================================================
+# Phase 2c: Working-memory guard (bp_send on node 2)
+# ===================================================================
+echo "=== Phase 2c: Working-memory bp_send protection ==="
+
+# Node 2 uses wmSize 500000 (~500KB).  Idle ION consumes ~56% of WM,
+# leaving ~44% free.  A 50% WM threshold triggers immediately because
+# 44% free < 50%.  No heap filling required -- this is a pure WM test.
+
+# Ensure heap protection is disabled; enable WM protection at 50%
+ion_cmd "$TESTDIR/node2" "m memprotect 0 50" > /dev/null
+sleep 1
+
+# Clear node 2 log
+> "$TESTDIR/node2/ion.log"
+
+# Try to send a bundle from node 2 -- should be rejected by WM guard
+cd "$TESTDIR/node2"
+bpsource ipn:1.1 "wm_test_rejected" 2>/dev/null
+sleep 2
+
+# Check for the WM threshold breach message
+expect_in_file "$TESTDIR/node2/ion.log" \
+    "ION working memory protection threshold breached" \
+    "Phase 2c: WM threshold breach logged on node 2"
+
+# Check that bp_send was rejected
+expect_in_file "$TESTDIR/node2/ion.log" \
+    "Memory protection active, rejecting bp_send" \
+    "Phase 2c: bp_send rejection logged on node 2"
+
+# Now disable WM protection and send again -- should succeed
+ion_cmd "$TESTDIR/node2" "m memprotect 0 0" > /dev/null
+sleep 1
+
+# Start bpsink on node 1 to receive the verification bundle
+cd "$TESTDIR/node1"
+bpsink ipn:1.1 > "$TESTDIR/node1/phase2c_recv.txt" &
+SINK_PID=$!
+sleep 2
+
+# Send a bundle from node 2 -- should succeed now
+cd "$TESTDIR/node2"
+bpsource ipn:1.1 "phase2c_verify" 2>/dev/null
+sleep 5
+
+# Verify the bundle was received on node 1
+if grep -q "Payload delivered" "$TESTDIR/node1/phase2c_recv.txt"; then
+    echo "OK:    Phase 2c: Bundle delivered after WM protection disabled"
+else
+    echo "ERROR: Phase 2c: Bundle NOT delivered after WM protection disabled"
+    FAIL=1
+fi
+
+# Cleanup sink
+kill $SINK_PID 2>/dev/null
+wait $SINK_PID 2>/dev/null
+rm -f "$TESTDIR/node1/phase2c_recv.txt"
+echo ""
+
+# ===================================================================
+# Teardown
+# ===================================================================
+echo "=== Teardown ==="
+
+# Print relevant log lines for debugging on failure
+if [ $FAIL -ne 0 ]; then
+    echo ""
+    echo "--- Node 1 ion.log (memprotect entries) ---"
+    grep -i "memprotect\|memory protection\|threshold\|rejecting bp_send\|congestive\|working memory" "$TESTDIR/node1/ion.log" 2>/dev/null || echo "  (none)"
+    echo "--- Node 2 ion.log (memprotect entries) ---"
+    grep -i "memprotect\|memory protection\|threshold\|rejecting bp_send\|congestive\|working memory" "$TESTDIR/node2/ion.log" 2>/dev/null || echo "  (none)"
+    echo "---"
+fi
+
+echo "Stopping ION..."
+cd "$TESTDIR/node1" && ./ionstop 2>/dev/null &
+cd "$TESTDIR/node2" && ./ionstop 2>/dev/null &
+sleep 3
+killm
+
+echo ""
+if [ $FAIL -eq 0 ]; then
+    echo "TEST PASSED: All memory protection settings tests passed."
+else
+    echo "TEST FAILED: See errors above."
+fi
+
+exit $FAIL

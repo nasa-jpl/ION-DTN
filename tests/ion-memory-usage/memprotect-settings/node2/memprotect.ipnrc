@@ -1,0 +1,4 @@
+## IPN routing for node 2
+a plan 1 ltp/1
+a plan 2 ltp/2
+a plan 3 udp/127.0.0.1:19999

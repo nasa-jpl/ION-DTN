@@ -58,7 +58,7 @@ case $OSTYPE in
         # Linux and other platforms: check kernel.shmmax if available
         if [ -f /proc/sys/kernel/shmmax ]; then
             KERN_SHMMAX=$(cat /proc/sys/kernel/shmmax 2>/dev/null)
-            if [ -n "$KERN_SHMMAX" ] && [ "$KERN_SHMMAX" -lt $MIN_SHMMAX ]; then
+            if [ -n "$KERN_SHMMAX" ] && [ "$(awk -v k="$KERN_SHMMAX" -v min="$MIN_SHMMAX" 'BEGIN { print (k < min ? 1 : 0) }')" -eq 1 ]; then
                 echo
                 echo "kernel.shmmax is ${KERN_SHMMAX}, need at least ${MIN_SHMMAX}."
                 echo "Run:  sudo sysctl -w kernel.shmmax=${MIN_SHMMAX}"

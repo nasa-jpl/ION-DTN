@@ -23,8 +23,8 @@ BP = ../bp
 TCP = ../tcp
 TEST = ../test
 
-# OPT = -O -Dlinux
-OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
+# OPT = -O -D__linux__
+OPT = -g -Wall -Werror -D__linux__ -fPIC -DSPACE_ORDER=3
 CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(INCL) -I$(ROOT)/include -I$(ICI_INCL) -I../../ici/library -I../../bpv7/include -I../../bpv7/library -L$(ICI_LIB) -L$(BP_LIB) $(BSL_LIBDIR)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)

@@ -17,7 +17,7 @@ all:
 			do \
 				cd $$PF; \
 				mkdir -p bin; \
-				gmake all ROOT=$(OPT) BP=$(BP) PTRS=$(HEAP_PTRS); \
+				gmake all ROOT=$(OPT) BP=$(BP) PTRS=$(HEAP_PTRS) ADD_FLAGS="$(ADD_FLAGS)"; \
 				cd ..; \
 			done
 

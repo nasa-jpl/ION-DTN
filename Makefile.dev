@@ -14,6 +14,9 @@ else
 BSL_HOME =
 endif
 
+# Installation root directory (can be overridden on command line)
+ROOT ?= /usr/local
+
 SCRIPTS= ionstart ionstop killm ionscript ionstart.awk
 
 $(info Development Makefiles actively maintained for only for "bpv7" on platform "x86_64-linux" options)
@@ -38,18 +41,18 @@ withbpv6:
 	gmake -C restart all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
 
 withbpv7:
-	gmake -C ici all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C ltp all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C dgr all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C bssp all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C $(BP) all ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
-	gmake -C tc all ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
-	gmake -C ams all ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
-	gmake -C cfdp all ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
-	gmake -C bss all ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
-	gmake -C dtpc all ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
-	gmake -C nm all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
-	gmake -C restart all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
+	gmake -C ici all ROOT=$(ROOT) ADD_FLAGS="$(ADD_FLAGS)"
+	gmake -C ltp all ROOT=$(ROOT) ADD_FLAGS="$(ADD_FLAGS)"
+	gmake -C dgr all ROOT=$(ROOT) ADD_FLAGS="$(ADD_FLAGS)"
+	gmake -C bssp all ROOT=$(ROOT) ADD_FLAGS="$(ADD_FLAGS)"
+	gmake -C $(BP) all ROOT=$(ROOT) ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
+	gmake -C tc all ROOT=$(ROOT) ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
+	gmake -C ams all ROOT=$(ROOT) ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
+	gmake -C cfdp all ROOT=$(ROOT) ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
+	gmake -C bss all ROOT=$(ROOT) ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
+	gmake -C dtpc all ROOT=$(ROOT) ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
+	gmake -C nm all ROOT=$(ROOT) BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
+	gmake -C restart all ROOT=$(ROOT) BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)" BSL_HOME="$(BSL_HOME)"
 
 clean:
 	gmake -C ici clean
@@ -80,6 +83,7 @@ install:
 	gmake -C restart install
 	for file in $(SCRIPTS); \
 		do cp ./$(notdir $$file) /usr/local/bin; done
+	cp ionprocesses.txt /usr/local/bin/
 
 uninstall:
 	gmake -C ici uninstall
@@ -96,6 +100,7 @@ uninstall:
 	gmake -C restart uninstall
 	for file in $(SCRIPTS); \
 		do rm /usr/local/bin/$(notdir $$file); done
+	rm -f /usr/local/bin/ionprocesses.txt
 
 test:
 	cd tests && ./runtestset normaltests

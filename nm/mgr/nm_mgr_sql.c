@@ -1389,7 +1389,7 @@ ari_t* db_query_ari(size_t dbidx, int ari_id)
 
 	// ARI Type
 	ari->type = ari_type;
-	ARI_SET_FLAG_TYPE(ari->as_reg.flags, ari_type);
+	ARI_SET_FLAG_TYPE(ari->u.as_reg.flags, ari_type);
 
 	// Nickname
 	// namespace/20 + adm_type
@@ -1398,23 +1398,23 @@ ari_t* db_query_ari(size_t dbidx, int ari_id)
 	{
 		temp = (adm_enum*20) + adm_type;
 
-		VDB_ADD_NN(temp, &(ari->as_reg.nn_idx));
-		ARI_SET_FLAG_NN(ari->as_reg.flags);
+		VDB_ADD_NN(temp, &(ari->u.as_reg.nn_idx));
+		ARI_SET_FLAG_NN(ari->u.as_reg.flags);
 	} else if (!is_null[C_ISSUING_ORG] ) {
 		// Issuer is only set if Nickname is excluded
 		blob_t *issuer = utils_string_to_hex(issuing_org);
-		ARI_SET_FLAG_ISS(ari->as_reg.flags);
-		VDB_ADD_ISS(*issuer, &(ari->as_reg.iss_idx));
+		ARI_SET_FLAG_ISS(ari->u.as_reg.flags);
+		VDB_ADD_ISS(*issuer, &(ari->u.as_reg.iss_idx));
 		blob_release(issuer,0);
 	}
 
 	// Name
 	if (!is_null[C_OBJ_ENUM]) {
 
-		cut_enc_uvast(obj_enum, &(ari->as_reg.name));
+		cut_enc_uvast(obj_enum, &(ari->u.as_reg.name));
 	} else {
 		blob_t *name = utils_string_to_hex(obj_name);
-		ari->as_reg.name = *name;
+		ari->u.as_reg.name = *name;
 		blob_release(name,0);
 	}
 
@@ -1425,8 +1425,8 @@ ari_t* db_query_ari(size_t dbidx, int ari_id)
 	// Parameters
 	if (!is_null[C_TNVC_ID])
 	{
-		ARI_SET_FLAG_PARM(ari->as_reg.flags);
-		if (db_query_tnvc(dbidx, tnvc_id, &(ari->as_reg.parms)) != AMP_OK) {
+		ARI_SET_FLAG_PARM(ari->u.as_reg.flags);
+		if (db_query_tnvc(dbidx, tnvc_id, &(ari->u.as_reg.parms)) != AMP_OK) {
 			ari_release(ari,1);
 			return NULL;
 		}
@@ -4004,10 +4004,10 @@ int db_query_ari_metadata(db_con_t dbidx, ari_t *ari, uint32_t *metadata_id, uin
 	uvast name_idx;
 
 	// VERIFY: Is this correct? optimal? Do we need to handle cases where name is not numeric?
-	cut_get_cbor_numeric_raw(&(ari->as_reg.name), AMP_TYPE_UVAST, &name_idx);
+	cut_get_cbor_numeric_raw(&(ari->u.as_reg.name), AMP_TYPE_UVAST, &name_idx);
 
-	//vec_idx_t nn = ari->as_reg.nn_idx;
-	uvast *nn = (uvast *) VDB_FINDIDX_NN(ari->as_reg.nn_idx);
+	//vec_idx_t nn = ari->u.as_reg.nn_idx;
+	uvast *nn = (uvast *) VDB_FINDIDX_NN(ari->u.as_reg.nn_idx);
 	CHKZERO(nn);
 	int namespace = *nn/20;
 	int adm_type = *nn % 20;
@@ -4048,16 +4048,16 @@ uint32_t db_insert_ari_reg(db_con_t dbidx, ari_t *ari, int *status)
 	uint32_t rtv = 0;
 
 	// If Nickname (including Namespace) is defined
-	if(ARI_GET_FLAG_NN(ari->as_reg.flags))
+	if(ARI_GET_FLAG_NN(ari->u.as_reg.flags))
 	{
-		int adm_enum; // ari->as_reg.nn_idx
+		int adm_enum; // ari->u.as_reg.nn_idx
 		int adm_obj_type;
 
 		// Query metadata
 		if (db_query_ari_metadata(dbidx, ari, &metadata_id, &fp_spec_id) == AMP_FAIL)
 		{
 			*status = AMP_FAIL;
-			DB_LOGF_ERR(dbidx,"db_insert ARI CTRL Unrecognized Nickname", "nn_idx=%d", ari->as_reg.nn_idx);
+			DB_LOGF_ERR(dbidx,"db_insert ARI CTRL Unrecognized Nickname", "nn_idx=%d", ari->u.as_reg.nn_idx);
 			return 0;
 		}
 
@@ -4071,7 +4071,7 @@ uint32_t db_insert_ari_reg(db_con_t dbidx, ari_t *ari, int *status)
 	}
 
 	// Insert Parameters (if any)
-	params_id = db_insert_tnvc_params(dbidx, fp_spec_id, &(ari->as_reg.parms), status);
+	params_id = db_insert_tnvc_params(dbidx, fp_spec_id, &(ari->u.as_reg.parms), status);
 
 
 	// Insert Ctrl( metadata_id, parms_id )

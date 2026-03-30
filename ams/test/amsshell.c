@@ -27,18 +27,6 @@ static int	_amsshell_running(int *value)
 	return running;
 }
 
-#ifdef mingw
-static void	killMainThread()
-{
-	int	stop = 0;
-
-	oK(_amsshell_running(&stop));
-
-	/*	Must make sure fgets is interrupted.			*/
-
-	fclose(stdin);
-}
-#else
 static pthread_t	_mainThread(void)
 {
 	static pthread_t	mainThread;
@@ -67,7 +55,6 @@ static void	killMainThread(void)
 		pthread_kill(mainThread, SIGINT);
 	}
 }
-#endif
 
 static void	handleQuit(int signum)
 {
@@ -318,9 +305,7 @@ messages.\n", stderr);
 		return 0;
 	}
 
-#ifndef mingw
 	oK(_mainThread());
-#endif
 	oK(_amsshell_running(&start));
 	isignal(SIGINT, handleQuit);
 	if (ams_register("", NULL, applicationName, authorityName, unitName,

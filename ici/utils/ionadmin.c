@@ -162,6 +162,7 @@ in bytes per second> [confidence in occurrence]");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} contact <from time> <from node> <to node>");
 	PUTS("\t   {d|i} range <from time> <from node> <to node>");
+	PUTS("\t   i memprotect");
 	PUTS("\t\tTo delete all contacts or ranges for some pair of nodes,");
 	PUTS("\t\tuse '*' as <from time>.");
 	PUTS("\tl\tList");
@@ -185,6 +186,7 @@ in bytes per second> [confidence in occurrence]");
 	PUTS("\t   m search <max free blocks to search through>");
 	PUTS("\t   m horizon { 0 | <end time for congestion forecasts> }");
 	PUTS("\t   m alarm '<congestion alarm script>'");
+	PUTS("\t   m memprotect <heapPercent> <wmPercent>");
 	PUTS("\t   m usage");
 	PUTS("\tr\tRun a script or another program, such as an admin progrm");
 	PUTS("\t   r '<command>'");
@@ -520,6 +522,55 @@ static void	executeInfo(int tokenCount, char **tokens)
 	if (tokenCount < 2)
 	{
 		printText("Information on what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "memprotect") == 0)
+	{
+		int		heapPct;
+		int		wmPct;
+		SdrUsageSummary	sdrSummary;
+		PsmUsageSummary	psmSummary;
+		size_t		sdrFree;
+		double		sdrPctFree;
+		size_t		wmFree;
+		double		wmPctFree;
+
+		ionGetMemProtect(&heapPct, &wmPct);
+		isprintf(buffer, sizeof buffer,
+			"Memory protection: heap %d%%, working memory %d%%",
+			heapPct, wmPct);
+		printText(buffer);
+
+		CHKVOID(sdr_begin_xn(sdr));
+		sdr_usage(sdr, &sdrSummary);
+		sdr_exit_xn(sdr);
+		sdrFree = sdrSummary.smallPoolFree
+			+ sdrSummary.largePoolFree
+			+ sdrSummary.unusedSize;
+		sdrPctFree = (sdrSummary.heapSize > 0)
+			? (sdrFree * 100.0) / sdrSummary.heapSize
+			: 0.0;
+		isprintf(buffer, sizeof buffer,
+			"Current SDR heap: %.1f%% free (%s)",
+			sdrPctFree,
+			(heapPct > 0 && sdrPctFree < heapPct)
+				? "BREACHED" : "OK");
+		printText(buffer);
+
+		psm_usage(ionwm, &psmSummary);
+		wmFree = psmSummary.smallPoolFree
+			+ psmSummary.largePoolFree
+			+ psmSummary.unusedSize;
+		wmPctFree = (psmSummary.partitionSize > 0)
+			? (wmFree * 100.0) / psmSummary.partitionSize
+			: 0.0;
+		isprintf(buffer, sizeof buffer,
+			"Current working memory: %.1f%% free (%s)",
+			wmPctFree,
+			(wmPct > 0 && wmPctFree < wmPct)
+				? "BREACHED" : "OK");
+		printText(buffer);
 		return;
 	}
 
@@ -1044,6 +1095,22 @@ current outbound file space %.2f MB, limit %.2f MB, max forecast %.2f MB",
 	printText(buffer);
 }
 
+static void	manageMemProtect(int tokenCount, char **tokens)
+{
+	int	heapPct;
+	int	wmPct;
+
+	if (tokenCount != 4)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	heapPct = atoi(tokens[2]);
+	wmPct = atoi(tokens[3]);
+	oK(ionSetMemProtect(heapPct, wmPct));
+}
+
 static void	executeManage(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -1119,6 +1186,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "usage") == 0)
 	{
 		manageUsage(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "memprotect") == 0)
+	{
+		manageMemProtect(tokenCount, tokens);
 		return;
 	}
 

@@ -214,14 +214,7 @@ int crypt_and_hash_buffer(
 	unsigned char *IV = NULL;
 
 
-#if defined(_WIN32_WCE)
-	long offset;
-#elif defined(_WIN32)
-	LARGE_INTEGER li_size;
-	__int64 offset;
-#else
 	size_t  offset = 0;
-#endif
 
 
 	mbedtls_cipher_init(&cipher_ctx);

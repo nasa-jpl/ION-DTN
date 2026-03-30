@@ -368,15 +368,11 @@ static void	KillGateway(void)
 	}
 	else	/*	Must make sure recvfrom is interrupted for UDP.	*/
 	{
-#ifdef mingw
-		shutdown(gWay->ownUdpFd, SD_BOTH);
-#else
 		pthread_t	mainThread = gWay->primeThread;
 		if (!pthread_equal(mainThread, pthread_self()))
 		{
 			pthread_kill(mainThread, SIGTERM);
 		}
-#endif
 	}
 }
 

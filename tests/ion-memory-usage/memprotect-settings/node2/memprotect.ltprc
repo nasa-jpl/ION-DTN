@@ -1,0 +1,4 @@
+## LTP configuration for node 2 -- span to node 1
+1 32
+a span 1 32 32 1024 1024 1 'udplso 127.0.0.1:19113'
+s 'udplsi 0.0.0.0:19114'

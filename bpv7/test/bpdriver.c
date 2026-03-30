@@ -265,8 +265,16 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	{
 		putErrmsg("bpdriver can't send pilot bundle.",
 				itoa(aduLength));
+		fprintf(stderr, "bpdriver: can't send pilot bundle.\n");
+		CHKZERO(sdr_begin_xn(sdr));
+		zco_destroy(sdr, bundleZco);
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't destroy ZCO.", NULL);
+		}
+
 		bp_close(sap);
-		return 0;
+		return 1;
 	}
 
 	if (!streaming)
@@ -339,6 +347,16 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 		{
 			putErrmsg("bpdriver can't send message.",
 					itoa(aduLength));
+			fprintf(stderr,
+				"bpdriver: send failed at bundle %d.\n",
+				cycles - cyclesRemaining + 1);
+			CHKZERO(sdr_begin_xn(sdr));
+			zco_destroy(sdr, bundleZco);
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't destroy ZCO.", NULL);
+			}
+
 			running = 0;
 			continue;
 		}

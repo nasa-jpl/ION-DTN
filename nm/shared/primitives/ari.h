@@ -156,7 +156,7 @@ typedef struct {
 	union {
 		tnv_t     as_lit;
 		ari_reg_t as_reg;
-	};
+	} u;
 } ari_t;
 
 

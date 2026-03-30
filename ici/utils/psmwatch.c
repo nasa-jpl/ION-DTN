@@ -33,6 +33,8 @@ static void	logToStdoutLocal(char *text)
 #define DAEMON_POLL_INTERVAL_SEC	10
 #define DEFAULT_REPORT_INTERVAL_MIN	10
 #define DEFAULT_PERCENT_THRESHOLD	5
+#define DEFAULT_WARN_PERCENT		90.0
+#define DEFAULT_WARN_CADENCE_SEC	60
 
 static unsigned int psmwatch_count(int *newValue)
 {
@@ -69,6 +71,11 @@ static void handleQuit(int signum)
 static volatile int	daemonRunning = 1;
 static double		lastReportedPct = -1.0;
 static time_t		lastReportTime = 0;
+
+/*	High-water warning state variables.				*/
+
+static int		psmWarnActive = 0;
+static time_t		lastPsmWarnTime = 0;
 
 static void	handleDaemonQuit(int signum)
 {
@@ -155,9 +162,57 @@ static void	reportPsmUsage(PsmPartition psm, char *partitionName, double pct)
 	writeMemo(buf);
 }
 
+static void	checkWarnThreshold(double currentPct, double warnPercent,
+			int *warnActive, time_t *lastWarnTime,
+			int warnCadenceSec, time_t now,
+			const char *poolLabel, const char *daemonLabel,
+			unsigned long usedBytes, unsigned long totalBytes)
+{
+	char	buf[384];
+
+	if (warnPercent <= 0)
+	{
+		return;		/*	Warnings disabled.		*/
+	}
+
+	if (currentPct >= warnPercent)
+	{
+		/*	Above threshold: warn on first crossing or
+		 *	when cadence interval has elapsed.		*/
+
+		if (!(*warnActive)
+				|| (now - *lastWarnTime) >= warnCadenceSec)
+		{
+			isprintf(buf, sizeof buf,
+				"[!] %s: WARNING - %s usage %.1f%% "
+				"exceeds %.0f%% threshold "
+				"(%lu/%lu bytes)",
+				daemonLabel, poolLabel,
+				currentPct, warnPercent,
+				usedBytes, totalBytes);
+			writeMemo(buf);
+			*warnActive = 1;
+			*lastWarnTime = now;
+		}
+	}
+	else if (*warnActive)
+	{
+		/*	Recovered: was above, now below.		*/
+
+		isprintf(buf, sizeof buf,
+			"[i] %s: %s usage recovered to %.1f%% "
+			"(below %.0f%% threshold)",
+			daemonLabel, poolLabel,
+			currentPct, warnPercent);
+		writeMemo(buf);
+		*warnActive = 0;
+	}
+}
+
 static int	run_psmwatch_daemon(int memKey, long memSize,
 			char *partitionName, int intervalMinutes,
-			double percentThreshold)
+			double percentThreshold,
+			double warnPercent, int warnCadenceSec)
 {
 	char		*memory = NULL;
 	uaddr		smId = 0;
@@ -168,6 +223,9 @@ static int	run_psmwatch_daemon(int memKey, long memSize,
 	time_t		now;
 	int		thresholdCrossed;
 	int		intervalElapsed;
+	PsmUsageSummary	warnSummary;
+	unsigned long	usedBytes;
+	char		startBuf[256];
 
 	/*	Daemonize first, before attaching to PSM.		*/
 
@@ -206,7 +264,17 @@ static int	run_psmwatch_daemon(int memKey, long memSize,
 
 	/*	Log startup message.					*/
 
-	writeMemo("[i] psmwatch daemon started.");
+	if (warnPercent > 0)
+	{
+		isprintf(startBuf, sizeof startBuf,
+			"[i] psmwatch daemon started (warn at %.0f%% "
+			"used, cadence %ds).", warnPercent, warnCadenceSec);
+		writeMemo(startBuf);
+	}
+	else
+	{
+		writeMemo("[i] psmwatch daemon started.");
+	}
 
 	/*	Initial report.						*/
 
@@ -239,6 +307,22 @@ static int	run_psmwatch_daemon(int memKey, long memSize,
 			reportPsmUsage(psm, partitionName, currentPct);
 			lastReportedPct = currentPct;
 			lastReportTime = now;
+		}
+
+		/*	Check high-water warning threshold.		*/
+
+		if (warnPercent > 0)
+		{
+			psm_usage(psm, &warnSummary);
+			usedBytes = (unsigned long)
+				(warnSummary.smallPoolAllocated
+				+ warnSummary.largePoolAllocated);
+			checkWarnThreshold(currentPct, warnPercent,
+				&psmWarnActive, &lastPsmWarnTime,
+				warnCadenceSec, now,
+				"PSM", "psmwatch", usedBytes,
+				(unsigned long)
+				warnSummary.partitionSize);
 		}
 	}
 
@@ -355,11 +439,17 @@ auto-detected from ION configuration.");
 		does not remove log entries for freed blocks.");
 	PUTS("");
 	PUTS("Daemon mode:");
-	PUTS("   psmwatch -d [<interval_minutes> [<percent_threshold>]] \
+	PUTS("   psmwatch -d [<interval_minutes> [<percent_threshold> \
+[<warn_pct> [<warn_cadence_sec>]]]] \
 [<shared_memory_key> <memory_size> <partition_name>]");
 	PUTS("   -d: run as daemon, reporting usage to ion.log");
 	PUTS("   interval_minutes: reporting interval (default: 10)");
-	PUTS("   percent_threshold: report when usage crosses this threshold (default: 5)");
+	PUTS("   percent_threshold: report when usage crosses this threshold \
+(default: 5)");
+	PUTS("   warn_pct: log WARNING when usage exceeds this %% \
+(default: 90, 0=disable)");
+	PUTS("   warn_cadence_sec: seconds between repeated warnings while \
+above threshold (default: 60)");
 	PUTS("   If key/size/name omitted, uses ION defaults.");
 }
 #endif
@@ -417,7 +507,10 @@ int main(int argc, char **argv)
 	if (argc > 1 && strcmp(argv[1], "-d") == 0)
 	{
 		/*	Daemon mode: psmwatch -d [interval] [threshold]
-		 *	[key size name]					*/
+		 *	[warn_pct] [warn_cadence] [key size name]	*/
+
+		double	warnPercent = DEFAULT_WARN_PERCENT;
+		int	warnCadenceSec = DEFAULT_WARN_CADENCE_SEC;
 
 		intervalMinutes = DEFAULT_REPORT_INTERVAL_MIN;
 		percentThreshold = DEFAULT_PERCENT_THRESHOLD;
@@ -443,6 +536,28 @@ int main(int argc, char **argv)
 			if (percentThreshold < 0.001 || percentThreshold > 100)
 			{
 				percentThreshold = DEFAULT_PERCENT_THRESHOLD;
+			}
+
+			argIdx++;
+		}
+
+		if (argIdx < argc && argv[argIdx][0] != '-')
+		{
+			warnPercent = strtod(argv[argIdx], NULL);
+			if (warnPercent < 0 || warnPercent > 100)
+			{
+				warnPercent = DEFAULT_WARN_PERCENT;
+			}
+
+			argIdx++;
+		}
+
+		if (argIdx < argc && argv[argIdx][0] != '-')
+		{
+			warnCadenceSec = strtol(argv[argIdx], NULL, 0);
+			if (warnCadenceSec < 1)
+			{
+				warnCadenceSec = DEFAULT_WARN_CADENCE_SEC;
 			}
 
 			argIdx++;
@@ -483,7 +598,8 @@ to ION.", NULL);
 		}
 
 		return run_psmwatch_daemon(memKey, memSize, partitionName,
-				intervalMinutes, percentThreshold);
+				intervalMinutes, percentThreshold,
+				warnPercent, warnCadenceSec);
 	}
 
 	/*	Standard mode.  Determine if we need to auto-detect

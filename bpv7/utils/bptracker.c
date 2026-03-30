@@ -531,6 +531,15 @@ int sendTrackedBundle(BundleTracker *tracker, Object adu, int lifespan, int bund
 	if (bp_send(tracker->sap, tracker->destEid, NULL, lifespan, 0,
 			NoCustodyRequested, 0, 0, NULL, adu, &bundleObj) != 1) {
 		printf("ERROR: Failed to send bundle to %s\n", tracker->destEid);
+		if (sdr_begin_xn(sdr) >= 0)
+		{
+			zco_destroy(sdr, adu);
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't destroy ZCO.", NULL);
+			}
+		}
+
 		return -1;
 	}
 
@@ -1229,6 +1238,15 @@ static int cmdSend(BundleTracker *tracker, char *args)
 	{
 		printf("ERROR: Failed to send bundle to %s\n", destEid);
 		fflush(stdout);
+		if (sdr_begin_xn(sdr) >= 0)
+		{
+			zco_destroy(sdr, adu);
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't destroy ZCO.", NULL);
+			}
+		}
+
 		return -1;
 	}
 

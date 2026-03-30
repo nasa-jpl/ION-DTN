@@ -226,7 +226,9 @@ static SecVdb	*_secvdb(char **name)
 		}
 
 		vdb = (SecVdb *) psp(wm, vdbAddress);
+#if !USING_BSL
 		vdb->bpsecPolicyRules = 0;
+#endif
 		vdb->publicKeys = sm_rbt_create(wm);
 		if (vdb->publicKeys == 0)
 		{
@@ -288,8 +290,10 @@ int	secInitialize(void)
 		secdbBuf.rules[2] = sdr_list_create(ionsdr);
 		secdbBuf.rules[3] = sdr_list_create(ionsdr);
 		secdbBuf.rules[4] = sdr_list_create(ionsdr);
+#if !USING_BSL
 		secdbBuf.bpSecPolicyRules = sdr_list_create(ionsdr);
 		secdbBuf.bpSecEventSets   = sdr_list_create(ionsdr);
+#endif
 
 		secdbObject = sdr_malloc(ionsdr, sizeof(SecDB));
 		if (secdbObject == 0)

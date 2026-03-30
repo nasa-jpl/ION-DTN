@@ -34,8 +34,6 @@ typedef int		sm_SemId;
 
 #define	ICI_PRIORITY	250
 
-#ifndef ION4WIN		/*	No pthreads in Visual Studio.		*/
-
 #ifdef SOLARIS_COMPILER
 #define pthread_begin	pthread_begin_named
 #else
@@ -65,8 +63,6 @@ extern int		pthread_begin_named(pthread_t *thread,
 #define pthread_begin5(w,x,y,z,u) pthread_begin_named(w,x,y,z,u)
 #define pthread_end(x)		pthread_cancel(x)
 #endif			/*	end of #ifdef bionic || uClibc		*/
-
-#endif			/*	end of #ifndef ION4WIN			*/
 
 /*		IPC services access control */
 extern int		sm_ipc_init(void);
@@ -113,15 +109,8 @@ extern void		sm_TaskKill(int taskId, int sigNbr);
 extern void		sm_TaskDelete(int taskId);
 extern void		sm_TasksClear(void);
 extern void		sm_Abort(void);
-#if (defined(mingw) || defined(ION4WIN))
-extern void		sm_WaitForWakeup(int seconds);
-extern void		sm_Wakeup(DWORD);
-#endif
-
-#ifndef ION4WIN		/*	No pthreads in Visual Studio.		*/
 extern void		sm_ConfigurePthread(pthread_attr_t *attr,
 				size_t stackSize);
-#endif			/*	end of #ifdef ION4WIN			*/
 
 extern int		pseudoshell(char *commandLine);
 

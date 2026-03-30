@@ -70,6 +70,11 @@ int	snw_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	unsigned int	unparsedBytes = blk->dataLength;
 	uvast		uvtemp;
 
+	if (blk->parsed)	/*	E.g., by BSL.			*/
+	{
+		return 1;
+	}
+
 	if (unparsedBytes < 1)
 	{
 		writeMemo("[?] Can't decode Spray & Wait block.");
@@ -93,6 +98,7 @@ int	snw_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 		return 0;		/*	Malformed.		*/
 	}
 
+	blk->parsed = 1;
 	return 1;
 }
 

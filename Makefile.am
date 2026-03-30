@@ -40,9 +40,6 @@ AM_CFLAGS += -Wall \
 NO_UNUSED_VARIABLE = -Wno-unused-variable
 endif # end SOLARIS_STUDIO_CC
 
-if WINDOWS
-AM_CFLAGS += -lws2_32 -lwsock32 -Dmingw
-endif
 
 # This will add CFLAGS to make the valgrind macros compile without
 # warnings/errors on some systems with specific versions of valgrind
@@ -90,7 +87,35 @@ EXTRA_DIST =	\
 
 # This hook now explicitly depends on the completion of all programs and
 # libraries. It checks for a flag file to ensure it only runs ONCE per build.
+
+if ENABLE_BSL
+# For BSL builds, we need a two-stage process:
+# 1. Build libici.la (BSL depends on it)
+# 2. Build BSL (everything else depends on BSL headers)
+# 3. Build everything else
+
+# Override the default all target to do two-stage build
+all: all-bsl-two-stage
+
+all-bsl-two-stage:
+	@echo "========================================"
+	@echo "Stage 1: Building libici.la..."
+	@echo "========================================"
+	$(MAKE) $(AM_MAKEFLAGS) libici.la
+	@echo "========================================"
+	@echo "Stage 2: Building BSL with ION integration..."
+	@echo "========================================"
+	@cd $(srcdir)/external/BSL && \
+	ION_ROOT=$(abs_top_builddir) ./build-for-ion.sh
+	@echo "========================================"
+	@echo "Stage 3: Building remaining ION components..."
+	@echo "========================================"
+	$(MAKE) $(AM_MAKEFLAGS) all-am
+
 all-local: $(bin_PROGRAMS) $(lib_LTLIBRARIES) $(man_MANS)
+else
+all-local: $(bin_PROGRAMS) $(lib_LTLIBRARIES) $(man_MANS)
+endif # end ENABLE_BSL
 if ENABLE_INSTALL_MESSAGES
 	@if test -f configure && [ ! -f .build_finished ]; then \
 		echo ""; \
@@ -106,6 +131,13 @@ if ENABLE_INSTALL_MESSAGES
 		echo ""; \
 		touch .build_finished; \
 	fi
+endif
+
+if ENABLE_BSL
+install-exec-hook:
+	@echo "Installing BSL shared libraries to $(DESTDIR)$(libdir)..."
+	@cp -a $(srcdir)/external/BSL/testroot/usr/lib/libbsl_*.so* $(DESTDIR)$(libdir)/
+	@cp -a $(srcdir)/external/BSL/testroot/usr/lib/libqcbor.so* $(DESTDIR)$(libdir)/
 endif
 
 # This hook contains the final message after a successful installation.
@@ -189,10 +221,21 @@ distclean-local:
 
 
 # clean-local refers to existing documents.
+if ENABLE_BSL
+clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local \
+	     amsclean-local cfdpclean-local restartclean-local tcclean-local bsl-clean-local
+	@rm -f .build_finished
+	@rm -f ion.pc
+
+bsl-clean-local:
+	@echo "Cleaning BSL build artifacts..."
+	@cd $(srcdir)/external/BSL && ./build.sh clean || true
+else
 clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local \
 	     amsclean-local cfdpclean-local restartclean-local tcclean-local
 	@rm -f .build_finished
 	@rm -f ion.pc
+endif # end ENABLE_BSL
 
 build-man-directories:
 	mkdir -p $(top_builddir)/ici/doc
@@ -438,15 +481,9 @@ icibin = \
 	smlistsh \
 	smrbtsh
 
-if WINDOWS
-icibin += winion
-endif
-
-if !WINDOWS
 icibin += \
 	ionxnowner \
 	owlttb
-endif
 
 icilib = \
 	libici.la
@@ -712,12 +749,6 @@ rfxclock_SOURCES = ici/daemon/rfxclock.c
 rfxclock_LDADD = libici.la -lm
 rfxclock_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
-if WINDOWS
-winion_SOURCES = ici/daemon/winion.c
-winion_LDADD = libici.la -lm
-winion_CFLAGS = $(icicflags) $(AM_CFLAGS)
-endif
-
 ##########################
 #
 # LTP SECTION
@@ -923,12 +954,8 @@ dgrbin = \
 	file2dgr \
 	file2tcp \
 	tcp2file \
-	udp2file
-
-if !WINDOWS
-dgrbin += \
+	udp2file \
 	file2udp
-endif
 
 dgrlib = \
 	libdgr.la
@@ -1037,7 +1064,6 @@ bpbin = \
 	bpnmtest \
 	bprecvfile \
 	bprecvtest \
-	bpsecadmin \
 	bpsendfile \
 	bpsendtest \
 	bpsink \
@@ -1076,20 +1102,11 @@ bpbin = \
 	tcpcli \
 	tcpclo \
 	udpcli \
-	udpclo
-
-#Uncomment if you want to build killm.exe
-#if WINDOWS
-#bpbin += killm
-#endif
-
-if !WINDOWS
-bpbin += \
+	udpclo \
 	bpchat \
 	bpstats2 \
 	dccpcli \
 	dccpclo
-endif
 
 if ENABLE_IMC
 bpbin += \
@@ -1345,11 +1362,6 @@ bpclean-local:
 # -- Libraries --- #
 
 libbp_la_SOURCES = \
-	bpv7/bpsec/instr/bpsec_instr.c \
-	bpv7/bpsec/policy/bpsec_policy.c \
-	bpv7/bpsec/policy/bpsec_policy_eventset.c \
-	bpv7/bpsec/policy/bpsec_policy_event.c \
-	bpv7/bpsec/policy/bpsec_policy_rule.c \
 	bpv7/bpsec/sci/ion_test_sc.c \
 	bpv7/bpsec/sci/bib_hmac_sha2_sc.c \
 	bpv7/bpsec/sci/bcb_aes_gcm_sc.c \
@@ -1360,6 +1372,7 @@ libbp_la_SOURCES = \
 	bpv7/bpsec/sci/sc_value.c \
 	bpv7/bpsec/utils/bpsec_util.c \
 	bpv7/bpsec/utils/bpsec_asb.c \
+	bpv7/bpsec/instr/bpsec_instr.c \
 	bpv7/bibe/bibe.c \
 	bpv7/dtn2/libdtn2fw.c \
 	bpv7/library/libbp.c \
@@ -1370,8 +1383,6 @@ libbp_la_SOURCES = \
 	bpv7/library/cbr.c \
 	bpv7/library/ext/bae/bae.c \
 	bpv7/library/ext/bpq/bpq.c \
-	bpv7/library/ext/bpsec/bcb.c \
-	bpv7/library/ext/bpsec/bib.c \
 	bpv7/library/ext/hcb/hcb.c \
 	bpv7/library/ext/meb/meb.c \
 	bpv7/library/ext/creb/creb.c \
@@ -1381,11 +1392,22 @@ libbp_la_SOURCES = \
 	bpv7/library/ext/snw/snw.c \
 	bpv7/ipn/libipnfw.c \
 	bpv7/saga/saga.c \
-	bpv7/utils/bpsecadmin_config.c \
 	bpv7/utils/jsmn.c \
 	ici/libbloom-master/bloom.h \
 	ici/libbloom-master/bloom.c \
 	ici/libbloom-master/murmur2/MurmurHash2.c
+
+# Native BPSec sources - only when BSL is NOT enabled
+if !ENABLE_BSL
+libbp_la_SOURCES += \
+	bpv7/bpsec/policy/bpsec_policy.c \
+	bpv7/bpsec/policy/bpsec_policy_eventset.c \
+	bpv7/bpsec/policy/bpsec_policy_event.c \
+	bpv7/bpsec/policy/bpsec_policy_rule.c \
+	bpv7/library/ext/bpsec/bcb.c \
+	bpv7/library/ext/bpsec/bib.c \
+	bpv7/utils/bpsecadmin_config.c
+endif
 
 
 if CRYPTO_MBEDTLS
@@ -1418,6 +1440,16 @@ libbp_la_SOURCES += \
 	bpv7/library/ext/imc/imc.h \
 	bpv7/library/ext/imc/imc.c
 endif # end ENABLE_IMC
+
+# BSL Integration - add BSL wrapper when enabled
+if ENABLE_BSL
+libbp_la_SOURCES += \
+	bpv7/bsl/bsl.c \
+	bpv7/bsl/ionpatch.c
+
+libbp_la_LIBADD += $(BSL_LIBS)
+libbp_la_LDFLAGS = $(AM_LDFLAGS) -Wl,-rpath,$(BSL_HOME)/lib
+endif # end ENABLE_BSL
 
 
 libcgr_la_SOURCES = bpv7/cgr/libcgr.c
@@ -1479,9 +1511,12 @@ bpinspect_SOURCES = bpv7/utils/bpinspect.c bpv7/utils/bpinspect_data.c bpv7/util
 bpinspect_LDADD = libici.la $(bplib)
 bpinspect_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
+if !ENABLE_BSL
+bin_PROGRAMS += bpsecadmin
 bpsecadmin_SOURCES = bpv7/utils/bpsecadmin.c
 bpsecadmin_LDADD = libici.la $(bplib) $(LINENOISE_LDADD)
 bpsecadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(LINENOISE_CFLAGS)
+endif
 
 bpstats_SOURCES = bpv7/utils/bpstats.c
 bpstats_LDADD = libici.la $(bplib)
@@ -1498,13 +1533,6 @@ dtn2admin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 hmackeys_SOURCES = bpv7/utils/hmackeys.c
 hmackeys_LDADD = libici.la -lm $(bplib)
 hmackeys_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-
-#Uncomment if you want to build killm.exe
-#if WINDOWS
-#killm_SOURCES = ici/utils/killm.c
-#killm_LDADD = libici.la
-#killm_CFLAGS = $(AM_CFLAGS)
-#endif
 
 if ENABLE_IMC
 imcadminep_SOURCES = bpv7/imc/imcadminep.c
@@ -2074,7 +2102,7 @@ libampAgentADM_la_LIBADD = libamp.la libici.la $(bplib) libltp.la
 
 
 nm_agent_LDADD = libici.la $(bplib) libltp.la libamp.la libampAgentADM.la $(PTHREAD_LIBS)
-nm_agent_LDFLAGS = -L/usr/local/lib -lm -lpthread
+nm_agent_LDFLAGS = $(AM_LDFLAGS) -L/usr/local/lib -lm -lpthread
 
 nm_agent_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bpv7/library -I$(srcdir)/nm \
                   -I$(srcdir)/nm/agent -I$(srcdir)/nm/shared/adm $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
@@ -2097,7 +2125,7 @@ nm_mgr_SOURCES = \
 nm_mgr_LDADD = libamp.la libici.la $(bplib) libltp.la $(PTHREAD_LIBS)
 
 # Note: NCURSES and MySql support are optional and controlled at configure time with --with-mysql or --with-ncurses
-nm_mgr_LDFLAGS = -lpthread
+nm_mgr_LDFLAGS = $(AM_LDFLAGS) -lpthread
 nm_mgr_CFLAGS = -I$(srcdir)/ici/library -I$(srcdir)/bpv7/library -I$(srcdir)/ltp/library -I$(srcdir)/nm -I$(srcdir)/nm/mgr $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) $(NM_CBOR_CFLAGS) $(NM_ADM_INCLUDES)
 
 ##########################
@@ -2135,12 +2163,8 @@ amsbin = \
 	amsmib \
 	amsshell \
 	amsstop \
-	ramsgate
-
-if !WINDOWS
-amsbin += \
+	ramsgate \
 	amshello
-endif
 
 amslib = \
 	libams.la
@@ -2291,13 +2315,9 @@ cfdpbin = \
 	cfdpadmin \
 	cfdpclock \
 	cfdptest \
-	tcputa
-
-if !WINDOWS
-cfdpbin +=\
+	tcputa \
 	bpcp \
 	bpcpd
-endif
 
 cfdplib = \
 	libcfdp.la
@@ -2685,7 +2705,7 @@ restartclean-local:
 # TESTS SECTION
 #
 ##########################
-.PHONY:	test check buildcheck test-all test-% retest
+.PHONY:	test check buildcheck test-all test-% retest bsl-clean-local all-bsl-two-stage
 
 # "make buildcheck" will compile any of the compiled tests, but won't run
 # any of them. Also builds check_LTLIBRARIES (e.g., stub provider libraries).

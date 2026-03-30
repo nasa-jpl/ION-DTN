@@ -79,7 +79,6 @@ Core package.
 During versions of this document, we intend to address specific
 considerations for adopting the SOP to other platforms/OS such as:
 
-* Windows Operating System
 * Cloud Computing
 * Embedded System
 

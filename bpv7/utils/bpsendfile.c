@@ -23,6 +23,7 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 	Object		bundleZco;
 	char		progressText[300];
 	Object		newBundle;
+	int		sendFailed = 0;
 
 	if (svcClass == NULL)
 	{
@@ -116,6 +117,17 @@ is sending '%s', size %d, to %s.", fileName, aduLength, destEid);
 		{
 			putErrmsg("bpsendfile can't send file in bundle.",
 					itoa(aduLength));
+			fprintf(stderr,
+				"bpsendfile: failed to send '%s'.\n",
+				fileName);
+			CHKZERO(sdr_begin_xn(sdr));
+			zco_destroy(sdr, bundleZco);
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't destroy ZCO.", NULL);
+			}
+
+			sendFailed = 1;
 		}
 		else
 		{
@@ -142,7 +154,7 @@ is sending '%s', size %d, to %s.", fileName, aduLength, destEid);
 	writeMemo("[i] bpsendfile has stopped.");
 	writeErrmsgMemos();
 	bp_detach();
-	return 0;
+	return sendFailed;
 }
 
 #if defined (ION_LWT)

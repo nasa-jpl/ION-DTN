@@ -951,7 +951,7 @@ void ui_postprocess_ctrl(ari_t *id)
 
 	if(strcmp(meta->name, AGENT_ADD_VAR_STR) == 0)
 	{
-		var_t *var = ui_create_var_from_parms(id->as_reg.parms);
+		var_t *var = ui_create_var_from_parms(id->u.as_reg.parms);
 		if(var != NULL)
 		{
 			VDB_ADD_VAR(var->id, var);
@@ -964,7 +964,7 @@ void ui_postprocess_ctrl(ari_t *id)
 	}
 	else if(strcmp(meta->name, AGENT_DEL_VAR_STR) == 0)
 	{
-		ac_t *ac = (ac_t *) adm_get_parm_obj(&(id->as_reg.parms), 0, AMP_TYPE_AC);
+		ac_t *ac = (ac_t *) adm_get_parm_obj(&(id->u.as_reg.parms), 0, AMP_TYPE_AC);
 		vecit_t it;
 
 		for(it = vecit_first(&(ac->values)); vecit_valid(it); it = vecit_next(it))
@@ -987,7 +987,7 @@ void ui_postprocess_ctrl(ari_t *id)
 	}
 	else if(strcmp(meta->name, AGENT_ADD_RPTT_STR) == 0)
 	{
-		rpttpl_t *def = ui_create_rpttpl_from_parms(id->as_reg.parms);
+		rpttpl_t *def = ui_create_rpttpl_from_parms(id->u.as_reg.parms);
 		if(def != NULL)
 		{
 			VDB_ADD_RPTT(def->id, def);
@@ -1000,7 +1000,7 @@ void ui_postprocess_ctrl(ari_t *id)
 	}
 	else if(strcmp(meta->name, AGENT_DEL_RPTT_STR) == 0)
 	{
-		ac_t *ac = (ac_t *) adm_get_parm_obj(&(id->as_reg.parms), 0, AMP_TYPE_AC);
+		ac_t *ac = (ac_t *) adm_get_parm_obj(&(id->u.as_reg.parms), 0, AMP_TYPE_AC);
 		vecit_t it;
 
 		for(it = vecit_first(&(ac->values)); vecit_valid(it); it = vecit_next(it))
@@ -1023,7 +1023,7 @@ void ui_postprocess_ctrl(ari_t *id)
 	}
 	else if(strcmp(meta->name, AGENT_ADD_MAC_STR) == 0)
 	{
-		macdef_t *macro = ui_create_macdef_from_parms(id->as_reg.parms);
+		macdef_t *macro = ui_create_macdef_from_parms(id->u.as_reg.parms);
 		if(adm_add_macdef(macro) != AMP_OK)
 		{
 			AMP_DEBUG_ERR("ADD_MACRO", "Error adding new macro.", NULL);
@@ -1035,7 +1035,7 @@ void ui_postprocess_ctrl(ari_t *id)
 	}
 	else if(strcmp(meta->name, AGENT_DEL_MAC_STR) == 0)
 	{
-		ac_t *ac = (ac_t *) adm_get_parm_obj(&(id->as_reg.parms), 0, AMP_TYPE_AC);
+		ac_t *ac = (ac_t *) adm_get_parm_obj(&(id->u.as_reg.parms), 0, AMP_TYPE_AC);
 		vecit_t it;
 
 		for(it = vecit_first(&(ac->values)); vecit_valid(it); it = vecit_next(it))
@@ -1058,7 +1058,7 @@ void ui_postprocess_ctrl(ari_t *id)
 	}
 	else if(strcmp(meta->name, AGENT_ADD_SBR_STR) == 0)
 	{
-		rule_t *sbr = ui_create_sbr_from_parms(id->as_reg.parms);
+		rule_t *sbr = ui_create_sbr_from_parms(id->u.as_reg.parms);
 
 		int rh_code = VDB_ADD_RULE(&(sbr->id), sbr);
 		if((rh_code != RH_OK) && (rh_code != RH_DUPLICATE))
@@ -1073,7 +1073,7 @@ void ui_postprocess_ctrl(ari_t *id)
 	}
 	else if(strcmp(meta->name, AGENT_ADD_TBR_STR) == 0)
 	{
-		rule_t *tbr = ui_create_tbr_from_parms(id->as_reg.parms);
+		rule_t *tbr = ui_create_tbr_from_parms(id->u.as_reg.parms);
 
 		int rh_code = VDB_ADD_RULE(&(tbr->id), tbr);
 		if((rh_code != RH_OK) && (rh_code != RH_DUPLICATE))
@@ -1089,7 +1089,7 @@ void ui_postprocess_ctrl(ari_t *id)
 	else if( (strcmp(meta->name, AGENT_DEL_TBR_STR) == 0) ||
 			 (strcmp(meta->name, AGENT_DEL_SBR_STR) == 0))
 	{
-		ac_t *ac = (ac_t *) adm_get_parm_obj(&(id->as_reg.parms), 0, AMP_TYPE_AC);
+		ac_t *ac = (ac_t *) adm_get_parm_obj(&(id->u.as_reg.parms), 0, AMP_TYPE_AC);
 		vecit_t it;
 
 		for(it = vecit_first(&(ac->values)); vecit_valid(it); it = vecit_next(it))
@@ -1243,10 +1243,6 @@ void ui_send_file(agent_t* agent, uint8_t enter_ts)
 	int success;
 
 	CHKVOID(agent);
-#ifdef mingw
-	AMP_DEBUG_ERR("ui_send_file", "Is not currently available for this platform", NULL);
-	return;
-#else
 	ts = (enter_ts) ? ui_input_uint("Control Timestamp") : 0;
 
 
@@ -1350,7 +1346,6 @@ void ui_send_file(agent_t* agent, uint8_t enter_ts)
 	blob_release(contents, 1);
 
 	AMP_DEBUG_EXIT("ui_send_file","->.", NULL);
-#endif
 }
 
 

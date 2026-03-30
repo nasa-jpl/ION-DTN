@@ -117,55 +117,43 @@ case $host_os in
     PLATFORM="darwin"
     S_LIB_END="dylib"
     if test $host_cpu = "x86_64" ; then
-      AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 -m64"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3"
+      AM_CFLAGS="$AM_CFLAGS -D__unix__ -Ddarwin -DSPACE_ORDER=3 -m64"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__unix__ -Ddarwin -DSPACE_ORDER=3"
       echo "Build 64-bit Darwin specific platform code."
     elif test $host_cpu = "aarch64" ; then
-      AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 -m64"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3"
+      AM_CFLAGS="$AM_CFLAGS -D__unix__ -Ddarwin -DSPACE_ORDER=3 -m64"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__unix__ -Ddarwin -DSPACE_ORDER=3"
       echo "Build 64-bit ARM Darwin specific platform code."
     elif test $host_cpu = "arm" ; then
-      AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 -m64"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3"
+      AM_CFLAGS="$AM_CFLAGS -D__unix__ -Ddarwin -DSPACE_ORDER=3 -m64"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__unix__ -Ddarwin -DSPACE_ORDER=3"
       echo "Build 64-bit ARM Darwin specific platform code."
     else
-      AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=2 -m32"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=2"
+      AM_CFLAGS="$AM_CFLAGS -D__unix__ -Ddarwin -DSPACE_ORDER=2 -m32"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__unix__ -Ddarwin -DSPACE_ORDER=2"
       echo "Build 32-bit Darwin specific platform code."
     fi
     ;;
   linux*)
     PLATFORM="linux"
     # Add to PKG_CONFIG_CFLAGS
-    PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Dlinux"
+    PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__unix__ -D__linux__"
     if test $host_cpu = "x86_64" ; then
       AC_DEFINE([linux],[1])
-      AM_CFLAGS="$AM_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=3 -fno-strict-aliasing"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=3"
+      AM_CFLAGS="$AM_CFLAGS -D__unix__ -D__linux__ -DSPACE_ORDER=3 -fno-strict-aliasing"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__unix__ -D__linux__ -DSPACE_ORDER=3"
       echo "Build 64-bit Linux specific platform code."
     elif test $host_cpu = "aarch64" ; then
       AC_DEFINE([linux],[1])
-      AM_CFLAGS="$AM_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=3 -fno-strict-aliasing"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=3"
+      AM_CFLAGS="$AM_CFLAGS -D__unix__ -D__linux__ -DSPACE_ORDER=3 -fno-strict-aliasing"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__unix__ -D__linux__ -DSPACE_ORDER=3"
       echo "Build 64-bit Linux specific platform code."
     else
       AC_DEFINE([linux],[1])
-      AM_CFLAGS="$AM_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=2 -fno-strict-aliasing"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=2"
+      AM_CFLAGS="$AM_CFLAGS -D__unix__ -D__linux__ -DSPACE_ORDER=2 -fno-strict-aliasing"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__unix__ -D__linux__ -DSPACE_ORDER=2"
       echo "Build 32-bit Linux specific platform code."
     fi
-    ;;
-  mingw*|cygwin*)
-    AC_DEFINE([mingw],[1],[Build Mingw specific platform code.])
-    AC_DEFINE([new_mingw],[1],[Build Mingw/Msys2 specific platform code.])
-    PLATFORM="mingw"
-    AM_CFLAGS="$AM_CFLAGS -Dmingw"
-    PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dmingw"
-    build_windows=yes
-    ;;
-  interix*)
-    AC_DEFINE([interix],[1],[Build Interix specific platform code.])
-    PLATFORM="iterix"
     ;;
   *bsd*)
     AC_DEFINE([freebsd],[1],[Build Freebsd specific platform code.])
@@ -173,13 +161,13 @@ case $host_os in
     AM_LDFLAGS="$AM_LDFLAGS -lexecinfo"
     case $host_cpu in
       x86_64|amd64)
-        AM_CFLAGS="$AM_CFLAGS -D__BSD_VISIBLE -Dunix -Dfreebsd -DSPACE_ORDER=3 -m64"
-        PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__BSD_VISIBLE -Dunix -Dfreebsd -DSPACE_ORDER=3"
+        AM_CFLAGS="$AM_CFLAGS -D__BSD_VISIBLE -D__unix__ -Dfreebsd -DSPACE_ORDER=3 -m64"
+        PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__BSD_VISIBLE -D__unix__ -Dfreebsd -DSPACE_ORDER=3"
         echo "Build 64-bit Freebsd specific platform code."
         ;;
       *)
-        AM_CFLAGS="$AM_CFLAGS -D__BSD_VISIBLE -Dunix -Dfreebsd -DSPACE_ORDER=2 -m32"
-        PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__BSD_VISIBLE -Dunix -Dfreebsd -DSPACE_ORDER=2"
+        AM_CFLAGS="$AM_CFLAGS -D__BSD_VISIBLE -D__unix__ -Dfreebsd -DSPACE_ORDER=2 -m32"
+        PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -D__BSD_VISIBLE -D__unix__ -Dfreebsd -DSPACE_ORDER=2"
         echo "Build 32-bit Freebsd specific platform code."
         ;;
     esac
@@ -205,20 +193,20 @@ case $host_os in
       AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
       AM_LDFLAGS="$AM_LDFLAGS -lrt -lsocket -lnsl"
 
-      AM_CFLAGS="$AM_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -DLONG_LONG_OKAY=0 -DSPACE_ORDER=2 -xmemalign=4i -features=extensions -xalias_level=any -xbuiltin=%none"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -DLONG_LONG_OKAY=0 -DSPACE_ORDER=2"
+      AM_CFLAGS="$AM_CFLAGS -Dsolaris -D__unix__ -D__SVR4 -D_REENTRANT -DLONG_LONG_OKAY=0 -DSPACE_ORDER=2 -xmemalign=4i -features=extensions -xalias_level=any -xbuiltin=%none"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dsolaris -D__unix__ -D__SVR4 -D_REENTRANT -DLONG_LONG_OKAY=0 -DSPACE_ORDER=2"
       echo "Build 32-bit ION on 64-bit solaris"
     elif test $host_cpu = "sparc" ; then
       AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
       AM_LDFLAGS="$AM_LDFLAGS -lrt -lsocket -lnsl"
-      AM_CFLAGS="$AM_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing -fno-builtin -DSPACE_ORDER=3"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -DSPACE_ORDER=3"
+      AM_CFLAGS="$AM_CFLAGS -Dsolaris -D__unix__ -D__SVR4 -D_REENTRANT -fno-strict-aliasing -fno-builtin -DSPACE_ORDER=3"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dsolaris -D__unix__ -D__SVR4 -D_REENTRANT -DSPACE_ORDER=3"
       echo "Build Solaris/SPARC specific platform code."
     else
       AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
       AM_LDFLAGS="$AM_LDFLAGS -lrt -lsocket -lnsl"
-      AM_CFLAGS="$AM_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -fno-strict-aliasing -DSPACE_ORDER=3"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -DSPACE_ORDER=3"
+      AM_CFLAGS="$AM_CFLAGS -Dsolaris -D__unix__ -D__SVR4 -D_REENTRANT -fno-strict-aliasing -DSPACE_ORDER=3"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -Dsolaris -D__unix__ -D__SVR4 -D_REENTRANT -DSPACE_ORDER=3"
       echo "Build Solaris specific platform code."
     fi
     # Do bitness check
@@ -556,6 +544,69 @@ else
 fi
 
 #
+# Allow user to enable BSL (Bundle Protocol Security Library)
+#
+# To Enable BSL, use "./configure --enable-bsl"
+AC_ARG_ENABLE(
+  bsl,
+  [AS_HELP_STRING([--enable-bsl],[Turn on BPSec using external BSL library])],
+  [
+    # Check if external/BSL directory exists
+    AC_MSG_CHECKING([for BSL submodule at external/BSL])
+    if test -d "$srcdir/external/BSL" && ls "$srcdir/external/BSL"/* >/dev/null 2>&1; then
+      AC_MSG_RESULT([yes])
+      ENABLE_BSL=yes
+
+      # Set BSL_HOME to default location
+      if test -z "${BSL_HOME}"; then
+        BSL_HOME="${srcdir}/external/BSL/testroot/usr"
+      fi
+
+      # Add preprocessor flag for conditional compilation
+      AM_CFLAGS="$AM_CFLAGS -DUSING_BSL=1"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DUSING_BSL=1"
+
+      # Add BSL include paths (including bpv7/bsl for ION's BSL wrapper headers)
+      AM_CFLAGS="$AM_CFLAGS -I${srcdir}/bpv7/bsl -I${srcdir}/external/BSL/src -I${srcdir}/external/BSL/build/default/src -I${BSL_HOME}/include/bsl -I${BSL_HOME}/include/bsl/policy_provider -I${BSL_HOME}/include/bsl/security_context -I${BSL_HOME}/include/bsl/ION_integration -I${BSL_HOME}/include/m-lib"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -I${BSL_HOME}/include/bsl"
+
+      # Set BSL library flags
+      BSL_LIBS="-lbsl_crypto -lbsl_default_sc -lbsl_dynamic -lbsl_front -lbsl_mock_bpa -lbsl_sample_pp -lqcbor -ljansson -L${BSL_HOME}/lib"
+
+      # Executables linking against libbp need rpath-link to resolve
+      # BSL's transitive dependencies (e.g. libqcbor) at link time
+      AM_LDFLAGS="$AM_LDFLAGS -Wl,-rpath-link,${BSL_HOME}/lib"
+
+      AC_MSG_NOTICE([BSL will be built with ION integration])
+      AC_MSG_NOTICE([BSL_HOME: ${BSL_HOME}])
+    else
+      AC_MSG_RESULT([no])
+      AC_MSG_ERROR([BSL submodule not found. Initialize with: git submodule update --init external/BSL])
+    fi
+  ],
+  [echo "BSL disabled (using ION native BPSec)"
+   ENABLE_BSL=no])
+
+AM_CONDITIONAL([ENABLE_BSL], [test "x$ENABLE_BSL" = "xyes"])
+
+if test "x$ENABLE_BSL" = "xyes"; then
+  # Check for required BSL dependencies
+  AC_CHECK_HEADER([jansson.h],
+    [],
+    [AC_MSG_ERROR([jansson development headers not found. Install libjansson-dev (Debian/Ubuntu) or jansson-devel (RHEL/Fedora)])])
+
+  AC_CHECK_LIB([jansson], [json_object],
+    [],
+    [AC_MSG_ERROR([jansson library not found. Install libjansson-dev (Debian/Ubuntu) or jansson-devel (RHEL/Fedora)])])
+
+  AC_SUBST([BSL_LIBS], ["$BSL_LIBS"])
+  AC_SUBST([BSL_HOME], ["$BSL_HOME"])
+else
+  AC_SUBST([BSL_LIBS], [""])
+  AC_SUBST([BSL_HOME], [""])
+fi
+
+#
 # Control whether AMS debugging info is printed.
 #
 AC_ARG_ENABLE([ams-debug],
@@ -870,7 +921,6 @@ AC_SUBST([PKG_CONFIG_CFLAGS])
 AC_SUBST([CRYPTO_LIBS],"$CRYPTO_LIBS")
 AM_CONDITIONAL([LINUX_BUILD], [test "x$PLATFORM" = "xlinux"])
 AM_CONDITIONAL([SOLARIS_STUDIO_CC], [test "$BUILD_32_ON_64_SOLARIS" = "1"])
-AM_CONDITIONAL([WINDOWS], [test "$build_windows" = "yes"])
 AM_CONDITIONAL([SOLARIS], [test "$build_solaris" = "yes"])
 
 #Output!
@@ -961,10 +1011,24 @@ AC_CONFIG_COMMANDS([podman-stubs], [
 dnl ===============================================================
 dnl  Configuration Summary
 dnl ===============================================================
+
+# Set native BPSec status based on ENABLE_BSL
+if test "x$ENABLE_BSL" = "xyes"; then
+  NATIVE_BPSEC_STATUS="no"
+else
+  NATIVE_BPSEC_STATUS="yes (default)"
+fi
+
 AC_MSG_NOTICE([
 ========================================================================
 ION Configuration Summary
 ========================================================================
+
+  Bundle Protocol Version: BPv7
+
+  BPSec Implementation:
+    BSL (Bundle Protocol Security Library):  ${ENABLE_BSL:-no}
+    Native ION BPSec:                        ${NATIVE_BPSEC_STATUS}
 
   Optional Convergence Layers:
     DGR (Datagram Retransmission):           ${ENABLE_DGR:-no}
@@ -975,6 +1039,10 @@ ION Configuration Summary
     DTPC (Delay Tolerant Payload Conditioning): ${ENABLE_DTPC:-no}
     TC (Trusted Collective TCA/TCC):            ${ENABLE_TC:-no}
 
+  Security:
+    Crypto Library:                          ${CRYPTO_MBEDTLS:-no (NULL suites)}
+
+  To enable BSL:    ./configure --enable-bsl
   To disable DGR:   ./configure --disable-dgr
   To disable BSSP:  ./configure --disable-bssp
   To disable DTPC:  ./configure --disable-dtpc

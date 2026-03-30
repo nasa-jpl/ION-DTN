@@ -1,0 +1,96 @@
+---
+- name: Set expected pod count based on configuration
+  ansible.builtin.set_fact:
+    expected_pod_count: "{{ 5 if config == 'ol8' else 2 }}"
+    expected_listener_count: "{{ 4 if config == 'ol8' else 1 }}"
+
+- name: Display expected deployment
+  ansible.builtin.debug:
+    msg: "Expecting {{ expected_pod_count }} pods (1 controller + {{ expected_listener_count }} listener(s)) for {{ config }} configuration"
+
+- name: Wait for ARC pods to be created
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: arc-systems
+  register: arc_pods
+  until:
+    - arc_pods.resources | length >= expected_pod_count | int
+    - >-
+      arc_pods.resources
+      | selectattr('metadata.name', 'search', '-listener')
+      | list | length >= expected_listener_count | int
+  retries: 30 # 30 retries * 2 seconds = 60 seconds
+  delay: 2
+  failed_when: false
+
+- name: Check if expected pod count was reached
+  ansible.builtin.fail:
+    msg: >
+      Pod count mismatch: expected {{ expected_pod_count }} pods with {{ expected_listener_count }} listener(s),
+      found {{ arc_pods.resources | length }} pods with {{
+        arc_pods.resources
+        | selectattr('metadata.name', 'search', '-listener')
+        | list | length
+      }} listener(s)
+  when:
+    - arc_pods.resources | length < expected_pod_count | int or
+      arc_pods.resources | selectattr('metadata.name', 'search', '-listener') | list | length < expected_listener_count | int
+
+- name: Display pod creation success
+  ansible.builtin.debug:
+    msg: >
+      ✓ Found {{ arc_pods.resources | length }} pods including {{
+        arc_pods.resources
+        | selectattr('metadata.name', 'search', '-listener')
+        | list | length
+      }} listener(s)
+
+- name: Wait for all ARC pods to be Ready
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: arc-systems
+  register: arc_pods_ready
+  until:
+    - arc_pods_ready.resources | length > 0
+    - arc_pods_ready.resources | selectattr('status.phase', 'equalto', 'Running') | list | length == arc_pods_ready.resources | length
+    - >-
+      arc_pods_ready.resources
+      | map(attribute='status.conditions')
+      | flatten
+      | selectattr('type', 'equalto', 'Ready')
+      | selectattr('status', 'equalto', 'True')
+      | list | length == arc_pods_ready.resources | length
+  retries: 60 # 60 retries * 2 seconds = 120 seconds
+  delay: 2
+
+- name: Display pod readiness success
+  ansible.builtin.debug:
+    msg: "✓ All {{ arc_pods_ready.resources | length }} pods are Running and Ready"
+
+- name: Display controller pod
+  ansible.builtin.debug:
+    msg: "Controller: {{ arc_pods_ready.resources | rejectattr('metadata.name', 'search', '-listener') | map(attribute='metadata.name') | list | join(', ') }}"
+
+- name: Display listener pods
+  ansible.builtin.debug:
+    msg: "Listener(s): {{ arc_pods_ready.resources | selectattr('metadata.name', 'search', '-listener') | map(attribute='metadata.name') | list | join(', ') }}"
+
+- name: Shut down kind cluster before systemd restart (if service was running)
+  containers.podman.podman_container:
+    name: kind-control-plane
+    state: stopped
+    stop_time: 120
+  register: podman_stop
+
+- name: Restart systemd service (if setup)
+  when: systemd_was_running
+  ansible.builtin.systemd_service:
+    name: arc.service
+    state: started
+    scope: user
+
+- name: Display completion message
+  ansible.builtin.debug:
+    msg: "✓ ARC deployment completed successfully for {{ config }} configuration"

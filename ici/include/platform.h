@@ -15,6 +15,7 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -37,7 +38,7 @@ extern "C" {
 #endif
 
 /* Feature test macros for Unix - must come before any system header */
-#ifdef unix			/****	Feature test macros for UNIX	****/
+#ifdef __unix__			/****	Feature test macros for UNIX	****/
 
 /* Check FreeBSD and Solaris first to exempt them from strict POSIX */
 #if !defined(freebsd) && !defined(solaris)
@@ -50,7 +51,7 @@ extern "C" {
 #define _DEFAULT_SOURCE		/****	glibc default functions ****/
 #endif
 
-#ifdef linux
+#ifdef __linux__
 #ifndef _BSD_SOURCE
 #define _BSD_SOURCE
 #endif
@@ -91,7 +92,7 @@ extern "C" {
 #include <sys/types.h>
 #endif
 
-#endif				/****	End of feature test macros	for unix ****/
+#endif				/****	End of feature test macros	for __unix__ ****/
 
 /* Feture test macro for Solaris */
 #ifdef solaris
@@ -112,32 +113,9 @@ extern "C" {
 #endif /* solaris */
 
 
-/*	NOTE: the -DION4WIN compiler switch is used to indicate that
- *	header code must be rendered suitable for compilation of ION-
- *	based Windows executables in a Visual Studio build environment.
- *	It usually overrides the "-Dmingw" compiler switch, which is
- *	otherwise required when building ION and ION-based software
- *	for Windows.  In some cases the effect of -Dmingw and -DION4WIN
- *	is the same: the affected code is suitable for Windows develop-
- *	ment (and only Windows development), whether within Visual
- *	Studio or not.							*/
-
-#ifndef mingw
-#if (defined(__MINGW32__))
-#define mingw
-#endif
-#endif
-
-#if (defined(__MINGW64__))
-#undef	SPACE_ORDER
-#define	SPACE_ORDER	3
-#elif (defined(__MINGW32__))
-#undef	SPACE_ORDER
-#define	SPACE_ORDER	2
-#endif
 
 #ifdef uClibc
-#ifndef linux
+#ifndef __linux__
 #define linux
 #endif
 #ifndef __UCLIBC__
@@ -221,64 +199,17 @@ typedef long long		vast;
 typedef unsigned long long	uvast;
 typedef long			saddr;	/*	Pointer-sized integer.	*/
 typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
-#if ((defined(mingw) || defined(ION4WIN)) && !defined(new_mingw))
-#define	VAST_FIELDSPEC		"%I64d"
-#define	UVAST_FIELDSPEC		"%I64u"
-#define UVAST_HEX_FIELDSPEC	"%I64x"
-#define	ADDR_FIELDSPEC		"%#lx"
-#define	ADDR_FIELDSPEC_INT	"%lu"
-#define ilseek(a, b, c)		lseek64(a, b, c)
-#elif (defined(new_mingw))
-#define	VAST_FIELDSPEC		"%lld"
-#define	UVAST_FIELDSPEC		"%llu"
-#define UVAST_HEX_FIELDSPEC	"%llx"
-#define	ADDR_FIELDSPEC		"%#lx"
-#define	ADDR_FIELDSPEC_INT	"%lu"
-#define ilseek(a, b, c)		lseek64(a, b, c)
-#else				/*	Not Windows.			*/
 #define	VAST_FIELDSPEC		"%lld"
 #define	UVAST_FIELDSPEC		"%llu"
 #define UVAST_HEX_FIELDSPEC	"%llx"
 #define	ADDR_FIELDSPEC		"%#lx"
 #define	ADDR_FIELDSPEC_INT	"%lu"
 #define ilseek(a, b, c)		lseek(a, b, c)
-#endif				/*	end #ifdef mingw || ION4WIN	*/
 #define	strtovast(x)		strtoll(x, NULL, 0)
 #define	strtouvast(x)		strtoull(x, NULL, 0)
 #define	strtoaddr(x)		strtoul(x, NULL, 0)
 #define LARGE1			1UL
 #else			/*	64-bit machines.			*/
-#if ((defined(mingw) || defined(ION4WIN)) && !defined(new_mingw))
-typedef long long		vast;
-typedef unsigned long long	uvast;
-typedef long long		saddr;	/*	Pointer-sized integer.	*/
-typedef unsigned long long	uaddr;	/*	Pointer-sized integer.	*/
-#define	VAST_FIELDSPEC		"%I64d"
-#define	UVAST_FIELDSPEC		"%I64u"
-#define UVAST_HEX_FIELDSPEC	"%I64x"
-#define	ADDR_FIELDSPEC		"%#I64x"
-#define	ADDR_FIELDSPEC_INT	"%I64u"
-#define ilseek(a, b, c)		lseek64(a, b, c)
-#define	strtovast(x)		strtoll(x, NULL, 0)
-#define	strtouvast(x)		strtoull(x, NULL, 0)
-#define	strtoaddr(x)		strtoull(x, NULL, 0)
-#define LARGE1			1ULL
-#elif (defined(new_mingw))
-typedef long long		vast;
-typedef unsigned long long	uvast;
-typedef long long		saddr;	/*	Pointer-sized integer.	*/
-typedef unsigned long long	uaddr;	/*	Pointer-sized integer.	*/
-#define	VAST_FIELDSPEC		"%lld"
-#define	UVAST_FIELDSPEC		"%llu"
-#define UVAST_HEX_FIELDSPEC	"%llx"
-#define	ADDR_FIELDSPEC		"%#llx"
-#define	ADDR_FIELDSPEC_INT	"%llu"
-#define ilseek(a, b, c)		lseek64(a, b, c)
-#define	strtovast(x)		strtoll(x, NULL, 0)
-#define	strtouvast(x)		strtoull(x, NULL, 0)
-#define	strtoaddr(x)		strtoull(x, NULL, 0)
-#define LARGE1			1ULL
-#else				/*	Not Windows.			*/
 typedef long			vast;
 typedef unsigned long		uvast;
 typedef long			saddr;	/*	Pointer-sized integer.	*/
@@ -293,7 +224,6 @@ typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
 #define	strtouvast(x)		strtoul(x, NULL, 0)
 #define	strtoaddr(x)		strtoul(x, NULL, 0)
 #define LARGE1			1UL
-#endif				/*	end #ifdef mingw || ION4WIN	*/
 #endif	/*	!LONG_LONG_OKAY						*/
 
 #define WORD_SIZE	(1 << SPACE_ORDER)
@@ -347,67 +277,20 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #include <math.h>
 #include <stdarg.h>
 
-/* C11 atomics for lock-free reference counting */
-#include <stdatomic.h>
+/* Portable atomics: C11 <stdatomic.h> or GCC/Clang __atomic builtins */
+#include "ion_atomic.h"
 
 /* Add headers for getaddrinfo on Linux, FreeBSD, macOS, RTEMS */
-#if defined(linux) || defined(freebsd) || defined(darwin) || defined(RTEMS)
+#if defined(__linux__) || defined(freebsd) || defined(darwin) || defined(RTEMS)
 #include <netdb.h>
 #include <sys/socket.h>
 #endif
 
 /* POSIX.1 */
-#ifndef ION4WIN			/* No POSIX in Visual Studio. */
 #include <unistd.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <sys/stat.h>
-#endif				/* end of #ifndef ION4WIN */
-
-#ifdef ION4WIN			/* Visual Studio provides most.	*/
-
-#include <sys/types.h>
-
-#elif defined(mingw)		/****   Windows vs all others	*********/
-#include <winsock2.h>
-#include <process.h>
-#include <Winbase.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <ws2tcpip.h>
-#include <winerror.h>
-
-#ifndef EMSGSIZE
-#define EMSGSIZE WSAEMSGSIZE
-#endif
-
-#define MAXHOSTNAMELEN		256
-#ifndef SOCK_CLOEXEC
-#define SOCK_CLOEXEC		0
-#endif
-#ifndef ECONNREFUSED
-#define	ECONNREFUSED		WSAECONNREFUSED
-#endif
-#ifndef ECONNRESET
-#define ECONNRESET		WSAECONNRESET
-#endif
-#ifndef EWOULDBLOCK
-#define EWOULDBLOCK		WSAEWOULDBLOCK
-#endif
-#ifndef SIGCONT
-#define SIGCONT             0
-#endif
-#ifndef ENETUNREACH
-#define ENETUNREACH		WSAENETUNREACH
-#endif
-#ifndef EHOSTUNREACH
-#define EHOSTUNREACH		WSAEHOSTUNREACH
-#endif
-#define	O_LARGEFILE		0
-#define	inet_pton(a,b,c)	InetPton(a,b,c)
-#define	inet_ntop(a,b,c,d)	InetNtop(a,b,c,d)
-
-#else				/****	not Windows		*********/
 
 #ifdef freebsd
 #include <sys/types.h>
@@ -435,8 +318,6 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #define isendto(a,b,c,d,e,f)	sendto(a,b,c,d,e,f)
 #define irecvfrom(a,b,c,d,e,f)	recvfrom(a,b,c,d,e,f)
 #define	SD_BOTH			SHUT_RDWR
-
-#endif				/*	end of #ifdef ION4WIN		*/
 
 /*
 ** End of Standard Headers
@@ -542,19 +423,7 @@ oK(_isprintf(buffer, bufsize, format, __VA_ARGS__))
  *	is independent of FSWLOGGER; define it explicitly when stdin is
  *	not available (e.g., embedded systems without a console).	*/
 
-/*	Need MAXPATHLEN defined for Visual Studio compile.		*/
-
-#ifdef ION4WIN
-#ifdef PATH_MAX
-#define MAXPATHLEN PATH_MAX
-#else
-#define MAXPATHLEN 260
-#endif
-#endif				/*	end of #ifdef ION4WIN		*/
-
 /*	Configure for platform-specific headers and IPC services.	*/
-
-#ifndef ION4WIN			/*	None of these apply in VS.	*/
 
 #define POSIX_NAMED_SEMAPHORES	/****	default			*********/
 #define SVR4_SHM		/****	default			*********/
@@ -633,60 +502,8 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #endif				/****	End of #ifdef (RTEMS)	     ****/
 
-#ifdef mingw			/****	Windows			     ****/
 
-#undef	SVR4_SHM
-#define MINGW_SHM
-
-#undef	SVR4_SEMAPHORES
-#define MINGW_SEMAPHORES
-#ifndef SEMMNS
-#define	SEMMNS			32000	/*	Max. nbr of semaphores	*/
-#endif
-
-#undef	UNIX_TASKS
-#define MINGW_TASKS
-
-#include <pthread.h>
-int pthread_setname_np(pthread_t thread, const char *name);
-#include <stdint.h>
-
-#ifndef gmtime_r
-#define gmtime_r(_clock, _result) \
-	(*(_result) = *gmtime(_clock), (_result))
-#endif
-
-#ifndef localtime_r
-#define localtime_r(_clock, _result) \
-	(*(_result) = *localtime(_clock), (_result))
-#endif
-
-#ifndef rand_r
-#define rand_r(_seed) (rand())
-#endif
-
-#define	_MULTITHREADED
-#define	MAXPATHLEN		(MAX_PATH)
-
-/*	IPC tracking operations		*/
-#define WIN_STOP_ION		0
-#define WIN_NOTE_SM		1
-#define WIN_NOTE_SEMAPHORE	2
-#define WIN_FORGET_SM		3
-#define WIN_FORGET_SEMAPHORE	4
-
-extern int	_winsock(int stopping);
-extern int	iopen(const char *fileName, int flags, int pmode);
-extern int	isend(int sockfd, char *buf, int len, int flags);
-extern int	irecv(int sockfd, char *buf, int len, int flags);
-extern int	isendto(int sockfd, char *buf, int len, int flags,
-			const struct sockaddr *to, int tolen);
-extern int	irecvfrom(int sockfd, char *buf, int len, int flags,
-			struct sockaddr *from, int *fromlen);
-
-#endif				/****	End of #ifdef mingw          ****/
-
-#ifdef unix			/****	All UNIX platforms	     ****/
+#ifdef __unix__			/****	All UNIX platforms	     ****/
 
 /*
 ** *NIX Headers: Common to All Supported *NIX Platforms
@@ -783,7 +600,7 @@ extern int getpriority(int, id_t);
 #define FIFO_WRITE_MODE         (O_RDWR)
 #define	FDTABLE_SIZE		(getdtablesize())
 
-#ifdef linux			/****	Linux			     ****/
+#ifdef __linux__			/****	Linux			     ****/
 
 #include <malloc.h>
 
@@ -854,7 +671,7 @@ typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
 
 #define	_MULTITHREADED
 
-#endif				/****	End of #ifdef linux	     ****/
+#endif				/****	End of #ifdef __linux__	     ****/
 
 #ifdef freebsd			/****	FreeBSD			     ****/
 
@@ -932,7 +749,7 @@ int pthread_setname_np(const char *name);
 
 #endif				/****	End of #ifdef (__SVR4)       ****/
 
-#endif				/****	End of #ifdef (unix)         ****/
+#endif				/****	End of #ifdef (__unix__)         ****/
 
 #if defined (SVR4_SHM)
 #include <sys/shm.h>
@@ -975,7 +792,6 @@ int pthread_setname_np(const char *name);
 
 #endif				/****	End #if defined SVR4_SEMAPHORES */
 
-#endif				/****	End of #ifdef ION4WIN        ****/
 
 #ifdef HAVE_VALGRIND_VALGRIND_H
 #include "valgrind/valgrind.h"
@@ -1172,7 +988,7 @@ extern void			findToken(char **cursorPtr, char **token);
 #endif
 
 #ifndef MAXPATHLEN
-#error "No value defined for MAXPATHLEN. Compiler invocation must supply preprocessor flags indicating the target platform, e.g. -Dlinux, -Dmingw, -Dsolaris, etc... See configuration of AM_CFLAGS per 'host_os' in ./configure.ac in the ION source directory."
+#error "No value defined for MAXPATHLEN. Compiler invocation must supply preprocessor flags indicating the target platform, e.g. -Dlinux, -Dsolaris, etc... See configuration of AM_CFLAGS per 'host_os' in ./configure.ac in the ION source directory."
 #endif
 
 #endif /* PLATFORM_H */

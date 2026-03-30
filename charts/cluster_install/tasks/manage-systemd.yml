@@ -1,0 +1,31 @@
+---
+- name: Check if arc.service exists
+  ansible.builtin.systemd_service:
+    name: arc.service
+    scope: user
+  register: arc_service_status
+  failed_when: false
+
+- name: Set fact for initial service running state
+  ansible.builtin.set_fact:
+    systemd_was_running: >-
+      {{
+        arc_service_status.status is defined and
+        arc_service_status.status.LoadState | default('not-found') != 'not-found'
+      }}
+
+- name: Display service detection result
+  ansible.builtin.debug:
+    msg: "arc.service {{ 'is running and will be stopped' if systemd_was_running else 'is not running or does not exist' }}"
+
+- name: Stop arc.service and wait for inactive state
+  when: systemd_was_running
+  ansible.builtin.systemd_service:
+    name: arc.service
+    scope: user
+    state: stopped
+
+- name: Display service stop success
+  ansible.builtin.debug:
+    msg: "✓ arc.service stopped successfully and reached inactive state"
+  when: systemd_was_running

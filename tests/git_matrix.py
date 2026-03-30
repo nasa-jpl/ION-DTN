@@ -5,7 +5,10 @@ Then balances the tests across a number of runners between 1 & 7 to ensure each
 runner has approximately the same execution time. The result is returned as a
 JSON array.
 
-Nate Richard 2026/03/03 JPL
+NOTE: Any message print statements need to be to stderr as stdout is used to
+return the batches of tests.
+
+Nate Richard 2026/03/24 JPL
 """
 
 import argparse
@@ -60,6 +63,25 @@ def find_tests() -> list[Path]:
     return test_dirs
 
 
+def is_excluded(test_dir: Path) -> bool:
+    """Check whether a test directory has any exclusion markers.
+
+    Returns:
+        True if the test should be skipped.
+
+    """
+    for marker in (
+        ".exclude_bpv7",
+        ".exclude_expert",
+        ".exclude_linux",
+        ".exclude_arc",
+        ".exclude_all",
+    ):
+        if (test_dir / marker).exists():
+            return True
+    return False
+
+
 def list_tests() -> list[Path]:
     """Generate list of tests.
 
@@ -81,14 +103,7 @@ def list_tests() -> list[Path]:
         if not os.access(dotest_path, os.X_OK):
             continue
 
-        # Check for exclusion files
-        if (test_dir / ".exclude_bpv7").exists():
-            continue
-        if (test_dir / ".exclude_expert").exists():
-            continue
-        if (test_dir / ".exclude_linux").exists():
-            continue
-        if (test_dir / ".exclude_all").exists():
+        if is_excluded(test_dir):
             continue
 
         # runtests wrapper is run from within the tests directory so need paths relative to that
@@ -212,7 +227,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--runners",
         "-r",
-        help="Number of runners to use, default: 6.",
+        help="Number of runners to use, default: 7.",
         type=int,
         default=7,
     )
@@ -225,7 +240,20 @@ if __name__ == "__main__":
     test_subset = []
     if args.tests:
         for test in args.tests:
-            test_subset.append(Path(test))
+            test_path = Path(test)
+            # If the path is a directory with dotest, use it directly.
+            # Otherwise expand it: find all dotest scripts underneath.
+            tests_dir = Path("tests") / test_path
+            if (tests_dir / "dotest").exists():
+                test_subset.append(test_path)
+            elif tests_dir.is_dir():
+                for dotest_file in sorted(tests_dir.rglob("dotest")):
+                    if ".libs" not in dotest_file.parts:
+                        test_subset.append(
+                            dotest_file.parent.relative_to(Path("tests"))
+                        )
+            else:
+                test_subset.append(test_path)
 
     # Don't allow 0 runners and we cannot exceed 7 runners
     if args.runners < 1:

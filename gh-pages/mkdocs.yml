@@ -70,6 +70,7 @@ nav:
     - Basic Configuration Tutorial: Basic-Configuration-File-Tutorial.md
     - Configuration Templates: ION-Config-File-Templates.md
     - BPSec Configuration Example: BpSec-Configuration-Examples.md
+    - BSL Build & Install Guide: BSL-Build-Install-Guide.md
     - Multi-network Configuration: Configure-Multiple-Network-Interfaces.md
     - LTP Configuration Tool: Using-LTP-Config-Tool.md
     - ION Launcher Script: ION-Launcher.md

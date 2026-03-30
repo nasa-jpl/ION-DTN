@@ -137,7 +137,7 @@ unsigned long get_hwcap(unsigned long type) {
     return hwcap;
 }
 
-#endif // linux
+#endif // __linux__
 
 void gf_cpu_identify(void)
 {

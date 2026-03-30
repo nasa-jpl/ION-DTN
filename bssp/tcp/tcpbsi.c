@@ -282,11 +282,7 @@ static void	*spawnReceivers(void *parm)
 
 		parms = (ReceiverThreadParms *) lyst_data(elt);
 		thread = parms->thread;
-#ifdef mingw
-		shutdown(parms->blockSocket, SD_BOTH);
-#else
 		pthread_kill(thread, SIGTERM);
-#endif
 		pthread_mutex_unlock(&mutex);
 		pthread_join(thread, NULL);
 	}

@@ -428,6 +428,9 @@ static void	processSpan(Sdr sdr, Object spanObj, LtpSpan *span,
 			}
 
 			printStatusSummary(counters);
+			isprintf(buffer, sizeof buffer,
+				"  Total: %d", totalCount);
+			PUTS(buffer);
 		}
 		else
 		{
@@ -568,6 +571,9 @@ TotalLen   RedLen     Rexmit");
 			}
 
 			printStatusSummary(counters);
+			isprintf(buffer, sizeof buffer,
+				"  Total: %d", totalCount);
+			PUTS(buffer);
 		}
 		else
 		{
