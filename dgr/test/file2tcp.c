@@ -294,6 +294,7 @@ int	main(int argc, char **argv)
 	}
 
 	report(&startTime, bytesSent);
+	fclose(inputFile);
 	if (contactSocket >= 0)
 	{
 		close(contactSocket);
