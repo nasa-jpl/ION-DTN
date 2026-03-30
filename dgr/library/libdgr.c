@@ -414,6 +414,7 @@ static int	insertEvent(DgrSAP *sap, DgrRecord rec)
 	if (elt == NULL)
 	{
 		putErrmsg("Can't insert event, dropping.", NULL);
+		MRELEASE(rec);
 		return -1;
 	}
 
@@ -765,6 +766,7 @@ computedRtt = rtt;
 	if (elt == NULL)
 	{
 		putErrmsg("Can't append resend request, dropping.", NULL);
+		MRELEASE(req);
 		return -1;
 	}
 
@@ -1063,6 +1065,7 @@ static int	insertSendReq(DgrSAP *sap, DgrRecord rec)
 	if (elt == NULL)
 	{
 		putErrmsg("Can't create resend request, dropping.", NULL);
+		MRELEASE(req);
 		return -1;
 	}
 
@@ -2145,8 +2148,8 @@ recvfrom");
 		memcpy(rec->segment.content, cursor, svcDataLength);
 		if (insertEvent(sap, rec))
 		{
-			writeMemo("[i] DGR receiver thread ended.");
-			break;		/*	Out of main loop.	*/
+			writeMemo("[?] DGR receiver thread dropped packet due to OOM.");
+			continue;	/*	Recover from transient OOM.	*/
 		}
 
 		if (_watching())
