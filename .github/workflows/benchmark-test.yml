@@ -87,10 +87,34 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: benchmark-logs
+          name: benchmark-logs-${{ env.TIMESTAMP }}
           path: |
             tests/**/*.stdout
             demos/**/*.stdout
+
+      - name: Benchmark summary
+        if: ${{ always() }}
+        run: |
+          echo "## 📊 Benchmark Failures" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|----------|" >> $GITHUB_STEP_SUMMARY
+          if [ -f benchmark_results.txt ]; then
+            # Check if there are any failures in the file
+            if grep -q "FAILED" benchmark_results.txt; then
+              # Read only the lines that failed
+              grep "FAILED" benchmark_results.txt | while IFS="|" read -r test_name result || [ -n "$test_name" ]; do
+                test_name=$(echo "$test_name" | xargs)
+                [ -z "$test_name" ] && continue
+
+                echo "| $test_name | ❌ |" >> $GITHUB_STEP_SUMMARY
+              done
+            else
+              # If grep doesn't find "FAILED", all tests passed
+              echo "| 🎉 All tests passed! | ✅ |" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "| *N/A* | *benchmark_results.txt not found* |" >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: Commit newly generated .DURATION files
         if: ${{ always() }}

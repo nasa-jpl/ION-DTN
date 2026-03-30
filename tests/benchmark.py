@@ -6,7 +6,7 @@ execution time is written to a .DURATION in the test folder. The .DURATION file
 is used to help determine how the tests should be distributed across a number
 of runners based on execution time.
 
-Nate Richard 2026/03/03 JPL
+Nate Richard 2026/03/30 JPL
 """
 
 import argparse
@@ -205,7 +205,7 @@ def duration_sort(item: tuple[int, int | str]) -> tuple[int, int | str]:
     return (1, second_element)
 
 
-def proc_results(results: list, display: bool = True) -> None:
+def proc_results(results: list, display: bool = False) -> None:
     """Either print results to STDOUT or save to a file for later reference."""
     results.sort(key=duration_sort, reverse=True)
     if display:
@@ -215,7 +215,7 @@ def proc_results(results: list, display: bool = True) -> None:
         for path, res in results:
             print(f"{path:<50} | {res:<12}")
     else:
-        with open("result.txt", "w", encoding="utf-8") as file:
+        with open("benchmark_results.txt", "w", encoding="utf-8") as file:
             file.write("\n" + "=" * 65)
             file.write(f"\n{'Script Location':<50} | {'Avg Time (s)':<12}\n")
             file.write("-" * 65 + "\n")
@@ -238,7 +238,7 @@ def main() -> None:
         "--save-results",
         "-s",
         help="Save results to result.txt, otherwise print to screen.",
-        action="store_false",
+        action="store_true",
     )
 
     args = parser.parse_args()

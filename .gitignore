@@ -606,6 +606,7 @@ tests/admin_public_api/ltp_span_management/dotest
 ltpstats
 ltpcancel
 ltpwatch
+benchmark_results.txt
 
 # bpchat/bping DURATION
 !tests/bpchat/.DURATION
