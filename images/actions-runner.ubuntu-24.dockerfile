@@ -157,7 +157,7 @@ ENV PYENV_GIT_TAG=v2.6.26
 RUN curl https://pyenv.run | bash
 ENV PYENV_ROOT="/home/runner/.pyenv"
 ENV PATH="${PYENV_ROOT}/bin:/home/runner/.local/bin/:${PATH}"
-RUN echo 'eval "$(pyenv init - bash)"' >> ~/.bashrc
+RUN echo 'eval "$(pyenv init - bash)"' >> ~/.bashrc && echo 'eval "$(pyenv init - bash)"' >> ~/.profile
 
 # Install python and clear out sources/cache to save space
 RUN pyenv install 3.11.15 && pyenv global 3.11.15 \
@@ -166,7 +166,8 @@ RUN pyenv install 3.11.15 && pyenv global 3.11.15 \
     && find /home/runner/.pyenv -type d -name "__pycache__" -exec rm -rf {} +
 
 RUN if [ ! -z "${PIP_INDEX}" ]; then \
-    . ~/.bashrc && python3 -m pip install --no-cache-dir --upgrade pip && python3 -m pip install --no-cache-dir bespokebpv7==0.4.0 -i "${PIP_INDEX}"; \
+    /home/runner/.pyenv/versions/3.11.15/bin/python3 -m pip install --no-cache-dir --upgrade pip && \
+    /home/runner/.pyenv/versions/3.11.15/bin/python3 -m pip install --no-cache-dir bespokebpv7==0.4.0 -i "${PIP_INDEX}"; \
     else \
     echo "bespokebpv7 not open-source yet 🙁"; \
     fi

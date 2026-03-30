@@ -166,7 +166,8 @@ RUN pyenv install 3.11.15 && pyenv global 3.11.15 \
     && find /home/runner/.pyenv -type d -name "__pycache__" -exec rm -rf {} +
 
 RUN if [ ! -z "${PIP_INDEX}" ]; then \
-    . ~/.bashrc && python3 -m pip install --no-cache-dir --upgrade pip && python3 -m pip install --no-cache-dir bespokebpv7==0.4.0 -i "${PIP_INDEX}"; \
+    /home/runner/.pyenv/versions/3.11.15/bin/python3 -m pip install --no-cache-dir --upgrade pip && \
+    /home/runner/.pyenv/versions/3.11.15/bin/python3 -m pip install --no-cache-dir bespokebpv7==0.4.0 -i "${PIP_INDEX}"; \
     else \
     echo "bespokebpv7 not open-source yet 🙁"; \
     fi
