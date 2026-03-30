@@ -1162,7 +1162,7 @@ void ui_register_agent(char* msg)
 
 
 	/* Check if the agent is already known. */
-	sscanf(line, "%s", agent_eid.name);
+	sscanf(line, "%15s", agent_eid.name);
 	agent_add(agent_eid);
 
 	AMP_DEBUG_EXIT("register_agent", "->.", NULL);

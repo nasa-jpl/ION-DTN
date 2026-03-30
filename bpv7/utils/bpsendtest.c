@@ -329,14 +329,17 @@ int	main(int argc, char **argv)
 		if(numbytes < 1) usage(argv[0], "<file> must be positive integer when using -nofile option.");
 		makegarbagefile(numbytes);
 		if(getcwd(fileName, sizeof(fileName))) {
-			if(*(fileName + strlen(fileName)-1) != '/') strcat(fileName, "/");
-			strcat(fileName, FILENAME);
+			size_t len = strlen(fileName);
+			isprintf(fileName + len, sizeof(fileName) - len,
+					"%s%s",
+					(len > 0 && fileName[len-1] != '/') ? "/" : "",
+					FILENAME);
 		} else {
 			perror("getcwd");
 			exit(-1);
 		}
 	} else {
-		strcpy(fileName, argv[++i]);
+		istrcpy(fileName, argv[++i], sizeof(fileName));
 	}
 
 	if (!(ownEid && destEid && strlen(fileName)))

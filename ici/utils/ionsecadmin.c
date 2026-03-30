@@ -178,6 +178,12 @@ static void	executeAdd(int tokenCount, char **tokens)
 		effectiveTime = strtoul(tokens[3], NULL, 0);
 		assertionTime = strtoul(tokens[4], NULL, 0);
 		datLen = atoi(tokens[5]);
+		if (datLen > sizeof(datValue))
+		{
+			printText("datLen out of range.");
+			return;
+		}
+
 		cursor = tokens[6];
 		if (strlen(cursor) != (datLen * 2))
 		{
