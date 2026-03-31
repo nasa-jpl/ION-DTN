@@ -487,7 +487,6 @@ static DgrDest	*addNewDest(DgrSAP *sap, unsigned short portNbr,
 
 	bin = hashDestId(portNbr, ipAddress);
 	dest->ownElt = lyst_insert_last(sap->destLysts[bin], (void *) newDest);
-	dest->ownElt = lyst_insert_last(sap->destLysts[bin], (void *) newDest);
 	if (dest->ownElt == NULL)
 	{
 		putErrmsg("Can't add new active destination due to memory exhaustion.", NULL);
