@@ -2610,7 +2610,7 @@ ramsNode->continuumNbr);
 PUTS("<handle published message> sending to continuum failed");
 #endif
 			ErrMsg("Error in sending published message to node.");
-			return -1;
+			/* Continue attempting delivery to remaining nodes. */
 		}
 	}
 
@@ -2634,7 +2634,7 @@ module->unitNbr, module->nbr);
 PUTS("<handle published message> sending to module failed");
 #endif
 			ErrMsg("Error in sending published message to module.");
-			return -1;
+			/* Continue attempting delivery to remaining modules. */
 		}
 	}
 
@@ -2895,7 +2895,7 @@ amsModule->unitNbr, amsModule->nbr);
 PUTS("<handle announced message> sending to module failed");
 #endif
 			ErrMsg("Error in sending announced message to module.");
-			return -1;
+			/* Continue attempting delivery to remaining modules. */
 		}
 	}
 
