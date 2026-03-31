@@ -27,6 +27,7 @@ CL1=""            # ltp, tcp, udp
 CL2=""            # ltp, tcp, udp (3-node only)
 PORT1=""          # port for CL1
 PORT2=""          # port for CL2 (3-node only)
+NODE_PORTS=()     # per-node listening ports (same-host only)
 
 # --- Usage ---
 usage() {
@@ -113,8 +114,36 @@ stop_ion() {
         echo "Error: Directory '$WORKDIR' does not exist." >&2
         exit 1
     fi
-    echo "Stopping ION in $WORKDIR ..."
-    (cd "$WORKDIR" && ionstop)
+
+    local meta="$WORKDIR/ionrun.meta"
+    local topology=""
+    if [[ -f "$meta" ]]; then
+        topology=$(grep '^topology=' "$meta" | cut -d= -f2)
+    fi
+
+    if [[ "$topology" == *-local ]]; then
+        # Same-host multi-node: stop each node from its subdirectory
+        local abs_workdir
+        abs_workdir="$(cd "$WORKDIR" && pwd)"
+        export ION_NODE_LIST_DIR="$abs_workdir"
+        local node_count
+        node_count=$(grep '^node_count=' "$meta" | cut -d= -f2)
+        echo "Stopping ION ($topology) in $WORKDIR ..."
+        for i in $(seq 1 "$node_count"); do
+            local name
+            name=$(grep "^node${i}_name=" "$meta" | cut -d= -f2)
+            local node_dir="$abs_workdir/$name"
+            if [[ -d "$node_dir" ]]; then
+                echo "  Stopping node '$name' ..."
+                (cd "$node_dir" && ionstop) || true
+            fi
+        done
+        sleep 1
+        killm
+    else
+        echo "Stopping ION in $WORKDIR ..."
+        (cd "$WORKDIR" && ionstop)
+    fi
 }
 
 # --- Run ION with existing config ---
@@ -138,7 +167,13 @@ run_ion() {
             return
         fi
         echo "Starting ION (loopback) in $WORKDIR ..."
+        local abs_workdir
+        abs_workdir="$(cd "$WORKDIR" && pwd)"
+        export ION_NODE_WDNAME="$abs_workdir"
         (cd "$WORKDIR" && ionstart -I ionrun.rc)
+        echo ""
+        echo "To operate on this ION instance from any directory, run:"
+        echo "  export ION_NODE_WDNAME=$abs_workdir"
     else
         # Multi-node: determine which node to start
         local node_name="$OPT_NODE"
@@ -170,11 +205,41 @@ run_ion() {
         fi
 
         if [[ "$OPT_GENERATE_ONLY" == true ]]; then
-            echo "Config exists at $rc. Skipping start (--generate-only)."
+            local cfg_loc="$rc"
+            if [[ "$topology" == *-local ]]; then
+                cfg_loc="$WORKDIR/$node_name/ionrun.rc"
+            fi
+            echo "Config exists at $cfg_loc. Skipping start (--generate-only)."
             return
         fi
-        echo "Starting ION node '$node_name' in $WORKDIR ..."
-        (cd "$WORKDIR" && ionstart -I ionrun.rc -t "$node_name")
+
+        local abs_workdir
+        abs_workdir="$(cd "$WORKDIR" && pwd)"
+
+        if [[ "$topology" == *-local ]]; then
+            # Same-host multi-node: each node runs from its own subdirectory
+            local node_dir="$abs_workdir/$node_name"
+            if [[ ! -d "$node_dir" ]]; then
+                echo "Error: Node directory '$node_dir' does not exist." >&2
+                exit 1
+            fi
+            echo "Starting ION node '$node_name' (same-host) in $node_dir ..."
+            export ION_NODE_LIST_DIR="$abs_workdir"
+            export ION_NODE_WDNAME="$node_dir"
+            (cd "$node_dir" && ionstart -I ionrun.rc)
+            echo ""
+            echo "To operate on this node from any directory, run:"
+            echo "  export ION_NODE_LIST_DIR=$abs_workdir"
+            echo "  export ION_NODE_WDNAME=$node_dir"
+        else
+            # Remote multi-node: single config with tags
+            echo "Starting ION node '$node_name' in $WORKDIR ..."
+            export ION_NODE_WDNAME="$abs_workdir"
+            (cd "$WORKDIR" && ionstart -I ionrun.rc -t "$node_name")
+            echo ""
+            echo "To operate on this ION instance from any directory, run:"
+            echo "  export ION_NODE_WDNAME=$abs_workdir"
+        fi
     fi
 }
 
@@ -186,16 +251,25 @@ prompt_topology() {
     echo "  1) Loopback (single node)"
     echo "  2) 2-node (two hosts)"
     echo "  3) 3-node (three hosts, linear chain)"
+    echo "  4) 2-node (same host)"
+    echo "  5) 3-node (same host, linear chain)"
     echo ""
     while true; do
-        read -rp "Topology [1-3]: " choice
+        read -rp "Topology [1-5]: " choice
         case "$choice" in
-            1) TOPOLOGY="loopback"; NODE_COUNT=1; return ;;
-            2) TOPOLOGY="2node";    NODE_COUNT=2; return ;;
-            3) TOPOLOGY="3node";    NODE_COUNT=3; return ;;
-            *) echo "Please enter 1, 2, or 3." ;;
+            1) TOPOLOGY="loopback";     NODE_COUNT=1; return ;;
+            2) TOPOLOGY="2node";        NODE_COUNT=2; return ;;
+            3) TOPOLOGY="3node";        NODE_COUNT=3; return ;;
+            4) TOPOLOGY="2node-local";  NODE_COUNT=2; return ;;
+            5) TOPOLOGY="3node-local";  NODE_COUNT=3; return ;;
+            *) echo "Please enter 1, 2, 3, 4, or 5." ;;
         esac
     done
+}
+
+# Returns 0 (true) if topology is a same-host multi-node mode
+is_local_topology() {
+    [[ "$TOPOLOGY" == *-local ]]
 }
 
 prompt_nodes() {
@@ -253,7 +327,7 @@ prompt_nodes() {
         done
 
         # IP address
-        if [[ "$TOPOLOGY" == "loopback" ]]; then
+        if [[ "$TOPOLOGY" == "loopback" ]] || is_local_topology; then
             NODE_IPS[$i]="127.0.0.1"
             echo "  IP address: 127.0.0.1 (loopback)"
         else
@@ -307,7 +381,23 @@ prompt_port() {
 
 prompt_convergence_layers() {
     echo ""
-    if [[ "$TOPOLOGY" == "3node" ]]; then
+    if is_local_topology; then
+        # Same-host: single CL type, base port auto-assigned per node
+        echo "Select convergence layer (all links):"
+        CL1=$(prompt_cl_menu "Convergence layer:")
+        echo "  Each node gets a unique port starting from a base port."
+        PORT1=$(prompt_port "$CL1")
+        CL2=""
+        PORT2=""
+        # Compute per-node ports: base + index
+        for i in $(seq 0 $((NODE_COUNT - 1))); do
+            NODE_PORTS[$i]=$((PORT1 + i))
+        done
+        echo "  Port assignments:"
+        for i in $(seq 0 $((NODE_COUNT - 1))); do
+            echo "    ${NODE_NAMES[$i]}: ${NODE_PORTS[$i]}"
+        done
+    elif [[ "$TOPOLOGY" == "3node" ]]; then
         echo "Select convergence layer between ${NODE_NAMES[0]} and ${NODE_NAMES[1]}:"
         CL1=$(prompt_cl_menu "Convergence layer:")
         PORT1=$(prompt_port "$CL1")
@@ -338,7 +428,14 @@ get_link_cl() {
     fi
 }
 
+# Get the listening port for a specific node (same-host only)
+get_node_port() {
+    local idx=$1
+    echo "${NODE_PORTS[$idx]}"
+}
+
 # Get the port for a link between two node indices
+# For same-host topologies, this is not used; use get_node_port() instead.
 get_link_port() {
     local a=$1 b=$2
     if [[ $a -gt $b ]]; then local tmp=$a; a=$b; b=$tmp; fi
@@ -356,10 +453,10 @@ get_peers() {
     local idx=$1
     case "$TOPOLOGY" in
         loopback) ;;
-        2node)
+        2node|2node-local)
             if [[ $idx -eq 0 ]]; then echo 1; else echo 0; fi
             ;;
-        3node)
+        3node|3node-local)
             case $idx in
                 0) echo 1 ;;
                 1) echo "0 2" ;;
@@ -383,17 +480,18 @@ node_uses_ltp() {
 # Emit the full contact plan (same for every node's ionadmin)
 emit_contact_plan() {
     local out="$1"
+    local i
     # Self-contacts for all nodes
     for i in $(seq 0 $((NODE_COUNT - 1))); do
         echo "a contact +1 +86400 ${NODE_IDS[$i]} ${NODE_IDS[$i]} 100000" >> "$out"
     done
     # Link contacts (unidirectional, so both directions)
     case "$TOPOLOGY" in
-        2node)
+        2node|2node-local)
             echo "a contact +1 +86400 ${NODE_IDS[0]} ${NODE_IDS[1]} 100000" >> "$out"
             echo "a contact +1 +86400 ${NODE_IDS[1]} ${NODE_IDS[0]} 100000" >> "$out"
             ;;
-        3node)
+        3node|3node-local)
             echo "a contact +1 +86400 ${NODE_IDS[0]} ${NODE_IDS[1]} 100000" >> "$out"
             echo "a contact +1 +86400 ${NODE_IDS[1]} ${NODE_IDS[0]} 100000" >> "$out"
             echo "a contact +1 +86400 ${NODE_IDS[1]} ${NODE_IDS[2]} 100000" >> "$out"
@@ -406,10 +504,10 @@ emit_contact_plan() {
     done
     # Link ranges (bidirectional, only need one direction)
     case "$TOPOLOGY" in
-        2node)
+        2node|2node-local)
             echo "a range +1 +86400 ${NODE_IDS[0]} ${NODE_IDS[1]} 1" >> "$out"
             ;;
-        3node)
+        3node|3node-local)
             echo "a range +1 +86400 ${NODE_IDS[0]} ${NODE_IDS[1]} 1" >> "$out"
             echo "a range +1 +86400 ${NODE_IDS[1]} ${NODE_IDS[2]} 1" >> "$out"
             ;;
@@ -420,7 +518,11 @@ emit_contact_plan() {
 write_ionadmin() {
     local out="$1" idx="$2" tag="$3"
     echo "## begin ionadmin${tag:+ $tag}" >> "$out"
-    echo "1 ${NODE_IDS[$idx]} ''" >> "$out"
+    if is_local_topology; then
+        echo "1 ${NODE_IDS[$idx]} ionrun.ionconfig" >> "$out"
+    else
+        echo "1 ${NODE_IDS[$idx]} ''" >> "$out"
+    fi
     echo "s" >> "$out"
     emit_contact_plan "$out"
     echo "m production 1000000" >> "$out"
@@ -445,26 +547,29 @@ write_ltpadmin() {
     local my_ip="${NODE_IPS[$idx]}"
     local listen_ip ltp_port
 
-    # Determine the LTP port for this node's link
-    ltp_port="$PORT1"
-    for peer in $(get_peers "$idx"); do
-        if [[ "$(get_link_cl "$idx" "$peer")" == "ltp" ]]; then
-            ltp_port=$(get_link_port "$idx" "$peer")
-            break
-        fi
-    done
-
-    if [[ "$TOPOLOGY" == "loopback" ]]; then
+    if is_local_topology; then
+        # Same-host: each node has its own port
+        listen_ip="0.0.0.0"
+        ltp_port=$(get_node_port "$idx")
+    elif [[ "$TOPOLOGY" == "loopback" ]]; then
         listen_ip="0.0.0.0"
         ltp_port="$PORT1"
     else
         listen_ip="$my_ip"
+        # Determine the LTP port for this node's link
+        ltp_port="$PORT1"
+        for peer in $(get_peers "$idx"); do
+            if [[ "$(get_link_cl "$idx" "$peer")" == "ltp" ]]; then
+                ltp_port=$(get_link_port "$idx" "$peer")
+                break
+            fi
+        done
     fi
 
     echo "## begin ltpadmin${tag:+ $tag}" >> "$out"
     echo "1 32" >> "$out"
     # Self-span
-    if [[ "$TOPOLOGY" == "loopback" ]]; then
+    if [[ "$TOPOLOGY" == "loopback" ]] || is_local_topology; then
         echo "a span $my_id 1400 10000 'udplso 127.0.0.1:${ltp_port}'" >> "$out"
     else
         echo "a span $my_id 1400 10000 'udplso ${my_ip}:${ltp_port}'" >> "$out"
@@ -473,7 +578,11 @@ write_ltpadmin() {
     for peer in $(get_peers "$idx"); do
         if [[ "$(get_link_cl "$idx" "$peer")" == "ltp" ]]; then
             local peer_port
-            peer_port=$(get_link_port "$idx" "$peer")
+            if is_local_topology; then
+                peer_port=$(get_node_port "$peer")
+            else
+                peer_port=$(get_link_port "$idx" "$peer")
+            fi
             echo "a span ${NODE_IDS[$peer]} 1400 10000 'udplso ${NODE_IPS[$peer]}:${peer_port}'" >> "$out"
         fi
     done
@@ -489,7 +598,7 @@ write_bpadmin() {
     local my_ip="${NODE_IPS[$idx]}"
     local induct_ip
 
-    if [[ "$TOPOLOGY" == "loopback" ]]; then
+    if [[ "$TOPOLOGY" == "loopback" ]] || is_local_topology; then
         induct_ip="0.0.0.0"
     else
         induct_ip="$my_ip"
@@ -498,12 +607,14 @@ write_bpadmin() {
     echo "## begin bpadmin${tag:+ $tag}" >> "$out"
     echo "1" >> "$out"
     echo "a scheme ipn 'ipnfw' 'ipnadminep'" >> "$out"
+    echo "a endpoint ipn:${my_id}.0 x" >> "$out"
     echo "a endpoint ipn:${my_id}.1 q" >> "$out"
     echo "a endpoint ipn:${my_id}.2 q" >> "$out"
+    echo "a endpoint ipn:${my_id}.3 q" >> "$out"
 
     # Collect unique CLs this node uses
     local cls=()
-    if [[ "$TOPOLOGY" == "loopback" ]]; then
+    if [[ "$TOPOLOGY" == "loopback" ]] || is_local_topology; then
         cls=("$CL1")
     else
         for peer in $(get_peers "$idx"); do
@@ -528,9 +639,10 @@ write_bpadmin() {
     # Inducts
     for cl in "${cls[@]}"; do
         local cl_port
-        # Find the port for this CL by checking which link uses it
         if [[ "$TOPOLOGY" == "loopback" ]]; then
             cl_port="$PORT1"
+        elif is_local_topology; then
+            cl_port=$(get_node_port "$idx")
         else
             for peer in $(get_peers "$idx"); do
                 if [[ "$(get_link_cl "$idx" "$peer")" == "$cl" ]]; then
@@ -554,8 +666,27 @@ write_bpadmin() {
             tcp)  echo "a outduct tcp 127.0.0.1:${PORT1} tcpclo" >> "$out" ;;
             udp)  echo "a outduct udp 127.0.0.1:${PORT1} udpclo" >> "$out" ;;
         esac
+    elif is_local_topology; then
+        # Same-host: self outduct uses own port, peer outducts use peer ports
+        local my_port
+        my_port=$(get_node_port "$idx")
+        case "$CL1" in
+            ltp)  echo "a outduct ltp $my_id ltpclo" >> "$out" ;;
+            tcp)  echo "a outduct tcp 127.0.0.1:${my_port} tcpclo" >> "$out" ;;
+            udp)  echo "a outduct udp 127.0.0.1:${my_port} udpclo" >> "$out" ;;
+        esac
+        for peer in $(get_peers "$idx"); do
+            local peer_id peer_port
+            peer_id="${NODE_IDS[$peer]}"
+            peer_port=$(get_node_port "$peer")
+            case "$CL1" in
+                ltp)  echo "a outduct ltp $peer_id ltpclo" >> "$out" ;;
+                tcp)  echo "a outduct tcp 127.0.0.1:${peer_port} tcpclo" >> "$out" ;;
+                udp)  echo "a outduct udp 127.0.0.1:${peer_port} udpclo" >> "$out" ;;
+            esac
+        done
     else
-        # Self outduct (needed for local bundle delivery)
+        # Remote multi-node
         local self_cl self_port first_peer
         first_peer=$(get_peers "$idx" | awk '{print $1}')
         self_cl=$(get_link_cl "$idx" "$first_peer")
@@ -565,7 +696,6 @@ write_bpadmin() {
             tcp)  echo "a outduct tcp ${my_ip}:${self_port} tcpclo" >> "$out" ;;
             udp)  echo "a outduct udp ${my_ip}:${self_port} udpclo" >> "$out" ;;
         esac
-        # Peer outducts
         for peer in $(get_peers "$idx"); do
             local cl peer_id peer_ip peer_port
             cl=$(get_link_cl "$idx" "$peer")
@@ -600,8 +730,39 @@ write_ipnadmin() {
             tcp)  echo "a plan $my_id tcp/127.0.0.1:${PORT1}" >> "$out" ;;
             udp)  echo "a plan $my_id udp/127.0.0.1:${PORT1}" >> "$out" ;;
         esac
+    elif is_local_topology; then
+        # Same-host: all 127.0.0.1, per-node ports
+        local my_port
+        my_port=$(get_node_port "$idx")
+        case "$CL1" in
+            ltp)  echo "a plan $my_id ltp/$my_id" >> "$out" ;;
+            tcp)  echo "a plan $my_id tcp/127.0.0.1:${my_port}" >> "$out" ;;
+            udp)  echo "a plan $my_id udp/127.0.0.1:${my_port}" >> "$out" ;;
+        esac
+
+        # Peer plans (direct neighbors)
+        for peer in $(get_peers "$idx"); do
+            local peer_id peer_port
+            peer_id="${NODE_IDS[$peer]}"
+            peer_port=$(get_node_port "$peer")
+            case "$CL1" in
+                ltp)  echo "a plan $peer_id ltp/$peer_id" >> "$out" ;;
+                tcp)  echo "a plan $peer_id tcp/127.0.0.1:${peer_port}" >> "$out" ;;
+                udp)  echo "a plan $peer_id udp/127.0.0.1:${peer_port}" >> "$out" ;;
+            esac
+        done
+
+        # Indirect routes for 3-node-local edge nodes
+        if [[ "$TOPOLOGY" == "3node-local" ]]; then
+            local mid_id="${NODE_IDS[1]}"
+            if [[ $idx -eq 0 ]]; then
+                echo "a group ${NODE_IDS[2]} ${NODE_IDS[2]} $mid_id" >> "$out"
+            elif [[ $idx -eq 2 ]]; then
+                echo "a group ${NODE_IDS[0]} ${NODE_IDS[0]} $mid_id" >> "$out"
+            fi
+        fi
     else
-        # Self-plan uses own CL (pick the first peer's CL for self-routing)
+        # Remote multi-node
         local self_cl self_port first_peer
         first_peer=$(get_peers "$idx" | awk '{print $1}')
         self_cl=$(get_link_cl "$idx" "$first_peer")
@@ -630,10 +791,8 @@ write_ipnadmin() {
         if [[ "$TOPOLOGY" == "3node" ]]; then
             local mid_id="${NODE_IDS[1]}"
             if [[ $idx -eq 0 ]]; then
-                # node0 reaches node2 via node1
                 echo "a group ${NODE_IDS[2]} ${NODE_IDS[2]} $mid_id" >> "$out"
             elif [[ $idx -eq 2 ]]; then
-                # node2 reaches node0 via node1
                 echo "a group ${NODE_IDS[0]} ${NODE_IDS[0]} $mid_id" >> "$out"
             fi
         fi
@@ -663,6 +822,7 @@ generate_loopback_config() {
 
 # --- Config generation: multi-node (with tags) ---
 generate_multinode_config() {
+    local i
     local out="$WORKDIR/ionrun.rc"
     > "$out"
 
@@ -703,8 +863,52 @@ generate_multinode_config() {
     done
 }
 
+# --- Config generation: same-host multi-node (per-node subdirs) ---
+generate_local_ionconfig() {
+    local dir="$1" idx="$2"
+    local n=$((idx + 1))
+    local wmkey=$((10000 + n))
+    local sdr_name="ion${NODE_IDS[$idx]}"
+    cat > "$dir/ionrun.ionconfig" <<EOF
+wmKey $wmkey
+sdrName $sdr_name
+wmSize 50000000
+configFlags 1
+heapWords 10000000
+pathName /tmp
+EOF
+}
+
+generate_local_config() {
+    local i
+    for i in $(seq 0 $((NODE_COUNT - 1))); do
+        local node_dir="$WORKDIR/${NODE_NAMES[$i]}"
+        mkdir -p "$node_dir"
+
+        # Write .ionconfig with unique wmKey/sdrName
+        generate_local_ionconfig "$node_dir" "$i"
+
+        # Write ionrun.rc (no tags — single-node config per subdir)
+        local out="$node_dir/ionrun.rc"
+        > "$out"
+
+        echo "# ION configuration generated by ionrun" >> "$out"
+        echo "# Topology: $TOPOLOGY | Node: ${NODE_NAMES[$i]} | CL: $CL1" >> "$out"
+        echo "" >> "$out"
+
+        write_ionadmin "$out" "$i" ""
+        write_ionsecadmin "$out" ""
+        if node_uses_ltp "$i"; then
+            write_ltpadmin "$out" "$i" ""
+        fi
+        write_bpadmin "$out" "$i" ""
+        write_ipnadmin "$out" "$i" ""
+    done
+}
+
 # --- Write metadata file ---
 write_meta() {
+    local i n
     local meta="$WORKDIR/ionrun.meta"
     cat > "$meta" <<EOF
 topology=$TOPOLOGY
@@ -722,6 +926,12 @@ EOF
         echo "cl2=$CL2" >> "$meta"
         echo "port2=$PORT2" >> "$meta"
     fi
+    if is_local_topology; then
+        for i in $(seq 0 $((NODE_COUNT - 1))); do
+            local n=$((i + 1))
+            echo "node${n}_port=${NODE_PORTS[$i]}" >> "$meta"
+        done
+    fi
 }
 
 # --- Wizard orchestrator ---
@@ -734,6 +944,8 @@ run_wizard() {
     # Generate config
     if [[ "$TOPOLOGY" == "loopback" ]]; then
         generate_loopback_config
+    elif is_local_topology; then
+        generate_local_config
     else
         generate_multinode_config
     fi
@@ -741,7 +953,14 @@ run_wizard() {
 
     echo ""
     echo "Configuration written to:"
-    echo "  $WORKDIR/ionrun.rc"
+    if is_local_topology; then
+        for i in $(seq 0 $((NODE_COUNT - 1))); do
+            echo "  $WORKDIR/${NODE_NAMES[$i]}/ionrun.rc"
+            echo "  $WORKDIR/${NODE_NAMES[$i]}/ionrun.ionconfig"
+        done
+    else
+        echo "  $WORKDIR/ionrun.rc"
+    fi
     echo "  $WORKDIR/ionrun.meta"
 }
 
@@ -758,9 +977,9 @@ main() {
     # Ensure working directory exists
     mkdir -p "$WORKDIR"
 
-    local rc="$WORKDIR/ionrun.rc"
+    local meta="$WORKDIR/ionrun.meta"
 
-    if [[ -f "$rc" && "$OPT_FORCE" != true ]]; then
+    if [[ -f "$meta" && "$OPT_FORCE" != true ]]; then
         # Existing config: run or report
         run_ion
     else
