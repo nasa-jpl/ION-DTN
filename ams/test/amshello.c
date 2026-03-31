@@ -37,7 +37,11 @@ static int	runPitcher(void)
 	textlen = strlen(buffer) + 1;
 
 	//register pitch module using default in-memory MIB (i.e. @)
-	oK(ams_register("@", NULL, "amsdemo", "test", "", "pitch", &me));
+	if (ams_register("@", NULL, "amsdemo", "test", "", "pitch", &me) < 0)
+	{
+		putErrmsg("pitch can't register.", NULL);
+		return -1;
+	}
 
 	while (1)
 	{
@@ -68,7 +72,12 @@ static int	runCatcher(void)
 	char		*txt;
 
 	//register catch module using default in-memory MIB (i.e. @)
-	oK(ams_register("@", NULL, "amsdemo", "test", "", "catch", &me));
+	if (ams_register("@", NULL, "amsdemo", "test", "", "catch", &me) < 0)
+	{
+		putErrmsg("catch can't register.", NULL);
+		return -1;
+	}
+
 	ams_invite(me, 0, 0, 0, 1, 8, 0, AmsArrivalOrder, AmsAssured);
 
 	while (1)

@@ -1133,6 +1133,8 @@ void ui_register_agent(char* msg)
 	char line[AMP_MAX_EID_LEN] = "ipn:x.y";
 	eid_t agent_eid;
 
+	memset(&agent_eid, 0, sizeof(agent_eid));
+
 	AMP_DEBUG_ENTRY("register_agent", "()", NULL);
 
 #ifdef USE_NCURSES

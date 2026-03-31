@@ -4859,7 +4859,7 @@ static void	signalLso(uvast engineId)
 	PsmAddress	vspanElt;
 
 	findSpan(engineId, &vspan, &vspanElt);
-	if (vspan != NULL && vspan->localXmitRate > 0)
+	if (vspanElt != 0 && vspan->localXmitRate > 0)
 	{
 		/*	Tell LSO that output is waiting.	*/
 

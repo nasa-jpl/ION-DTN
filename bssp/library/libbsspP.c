@@ -2316,7 +2316,7 @@ static void	signalBeBso(unsigned int engineId)
 	PsmAddress	vspanElt;
 
 	findBsspSpan(engineId, &vspan, &vspanElt);
-	if (vspan != NULL && vspan->localXmitRate > 0)
+	if (vspanElt != 0 && vspan->localXmitRate > 0)
 	{
 		/*	Tell Best-Effort BSO that output is waiting.	*/
 
@@ -2330,7 +2330,7 @@ static void	signalRlBso(unsigned int engineId)
 	PsmAddress	vspanElt;
 
 	findBsspSpan(engineId, &vspan, &vspanElt);
-	if (vspan != NULL && vspan->localXmitRate > 0)
+	if (vspanElt != 0 && vspan->localXmitRate > 0)
 	{
 		/*	Tell Reliable BSO that output is waiting.	*/
 
