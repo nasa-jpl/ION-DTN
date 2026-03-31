@@ -55,6 +55,44 @@ typedef struct
  *                             FUNCTION DEFINITIONS                          *
  *****************************************************************************/
 
+
+ /******************************************************************************
+ * @brief Strips invisible formatting characters from a string in-place.
+ * Removes carriage returns (\r) and converts UTF-8 Non-Breaking
+ * Spaces (0xC2 0xA0) to standard ASCII spaces.
+ *****************************************************************************/
+static void bpsec_admin_sanitize_line(char *line)
+{
+	char *src = line;
+	char *dst = line;
+
+	while (*src != '\0')
+	{
+		/* Strip carriage returns */
+		if (*src == '\r')
+		{
+			src++;
+			continue;
+		}
+		/* Convert UTF-8 NBSP (0xC2, 0xA0) to standard space */
+		if ((unsigned char)*src == 0xC2 && (unsigned char)*(src + 1) == 0xA0)
+		{
+			*dst++ = ' ';
+			src += 2;
+			continue;
+		}
+		/* Convert Latin-1 NBSP (0xA0) to standard space as a fallback */
+		if ((unsigned char)*src == 0xA0)
+		{
+			*dst++ = ' ';
+			src++;
+			continue;
+		}
+		*dst++ = *src++;
+	}
+	*dst = '\0';
+}
+
 static int	_echo(int *newValue)
 {
 	static int	state = 0;
@@ -3030,7 +3068,7 @@ the program.");
 			 * input sized already checked */
 
 			strcpy(line, input);
-
+			bpsec_admin_sanitize_line(line);
 			result = bpsec_admin_executeCmd(line);
 
 			if (result == -1)
@@ -3066,6 +3104,7 @@ the program.");
 				continue;
 			}
 
+			bpsec_admin_sanitize_line(line);
 			result = bpsec_admin_executeCmd(line);
 
 			if (result == -1)
@@ -3115,6 +3154,8 @@ the program.");
 					putErrmsg("igets failed.", NULL);
 					break;		/*	Loop.	*/
 				}
+
+				bpsec_admin_sanitize_line(line);
 
 				/* If the line is empty or a comment, ignore */
 				if (len == 0 || line[0] == '#')
