@@ -123,7 +123,7 @@ void agent_rotate_log(agent_t *agent, int force)
 			agent_autologging_sep = '/';
 
 			if (agent->log_fd_cnt == 0) {
-				sprintf(fn, "%s/%s",
+				snprintf(fn, sizeof(fn), "%s/%s",
 						agent_log_cfg.dir,
 						agent->eid.name
 					);
@@ -134,7 +134,7 @@ void agent_rotate_log(agent_t *agent, int force)
 #endif
 			}
 		}
-		sprintf(fn, "%s/%s%c%d.log",
+		snprintf(fn, sizeof(fn), "%s/%s%c%d.log",
 				agent_log_cfg.dir,
 				agent->eid.name,
 				agent_autologging_sep, // Set to "/" to use seperate directories per agent

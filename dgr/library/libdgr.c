@@ -2506,7 +2506,13 @@ int	dgr_send(DgrSAP *sap, unsigned short toPortNbr,
 	 *	the destination, and update statistics for future
 	 *	rate control adjustment.				*/
 
-	pthread_mutex_lock(&sap->destsMutex);
+	if (pthread_mutex_lock(&sap->destsMutex) != 0)
+	{
+		putErrmsg("dgr_send: can't lock destsMutex.", NULL);
+		MRELEASE(rec);
+		return -1;
+	}
+
 	dest = findDest(sap, toPortNbr, toIpAddress, &destIdx);
 	dest->serviceLoad += length;
 	delay = length * dest->retard;
@@ -2518,7 +2524,7 @@ aggregateDelay += delay;
 
 	dest->pendingDelay += delay;
 	usecToSnooze = dest->pendingDelay;
-	pthread_mutex_unlock(&sap->destsMutex);
+	oK(pthread_mutex_unlock(&sap->destsMutex));
 	usecSnoozed = 0;
 	if (usecToSnooze > clockResolution)
 	{
@@ -2534,9 +2540,15 @@ rcSnoozes++;
 
 	if (usecSnoozed > 0)
 	{
-		pthread_mutex_lock(&sap->destsMutex);
+		if (pthread_mutex_lock(&sap->destsMutex) != 0)
+		{
+			putErrmsg("dgr_send: can't re-lock destsMutex.", NULL);
+			MRELEASE(rec);
+			return -1;
+		}
+
 		dest->pendingDelay -= usecSnoozed;
-		pthread_mutex_unlock(&sap->destsMutex);
+		oK(pthread_mutex_unlock(&sap->destsMutex));
 	}
 
 	/*	Safety net: prevent volume of in-process messages

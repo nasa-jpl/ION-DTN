@@ -671,9 +671,9 @@ int isOnlyWhitespace(const char* str)
 /******************************************************************************/
 char **parseCommandString(const char *inputString, int *count)
 {
-	char  *str = myStrdup(inputString);
-	int    capacity = 5;
-	char **result = MTAKE(capacity * sizeof(char *));
+	char   *str = myStrdup(inputString);
+	size_t  capacity = 5;
+	char  **result = MTAKE(capacity * sizeof(char *));
 	*count = 0;
 	char *token = strtok(str, ",");
 
