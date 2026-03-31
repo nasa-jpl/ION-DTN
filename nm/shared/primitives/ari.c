@@ -99,7 +99,10 @@ static ari_t p_ari_deserialize_reg(QCBORDecodeContext *it, uint8_t flags, int *s
 	{
 		/* Get the UVAST nickname. */
 		*success = cut_get_cbor_numeric(it, AMP_TYPE_UVAST, &temp);
-		VDB_ADD_NN(temp, &(result.u.as_reg.nn_idx));
+		if (*success == AMP_OK)
+		{
+			VDB_ADD_NN(temp, &(result.u.as_reg.nn_idx));
+		}
 	}
 
 	/* Get the name. */
