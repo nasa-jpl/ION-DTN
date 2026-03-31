@@ -345,6 +345,7 @@ endif # end ENABLE_MANPAGES
 # whatever directory with the rest of the programs.
 stuffdir = $(bindir)
 stuff_SCRIPTS = $(srcdir)/ionstart \
+		$(srcdir)/ionrun \
 		$(srcdir)/ionstop \
 		$(srcdir)/ionscript \
 		$(srcdir)/demos/ionlauncher/ionlauncher \
