@@ -1040,6 +1040,13 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
 
+	if (metaEid.nullEndpoint)
+	{
+		clearMetaEid(&metaEid);
+		putErrmsg("Can't forward to null endpoint.", eid);
+		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
+	}
+
 	if (strcmp(vscheme->name, "ipn") != 0)
 	{
 		putErrmsg("Forwarding error; EID scheme is not 'ipn'.",

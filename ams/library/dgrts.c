@@ -114,9 +114,9 @@ static void	*dgrMamsReceiver(void *parm)
 	char		*buffer;
 	unsigned int	ipAddress;
 	unsigned short	portNbr;
-	int		length;
-	int		errnbr;
-	DgrRC		rc;
+	int		length = 0;
+	int		errnbr = 0;
+	DgrRC		rc = DgrFailed;
 
 	CHKNULL(tsif);
 	dgrSap = (Dgr) (tsif->sap);
@@ -129,6 +129,7 @@ static void	*dgrMamsReceiver(void *parm)
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
 	while (1)
 	{
+		rc = DgrFailed;
 		oK(dgr_receive(dgrSap, &portNbr, &ipAddress,
 				buffer, &length, &errnbr, DGR_BLOCKING, &rc));
 		switch (rc)
@@ -222,9 +223,9 @@ static void	*dgrAmsReceiver(void *parm)
 	char		*buffer;
 	unsigned short	portNbr;
 	unsigned int	ipAddress;
-	int		length;
-	int		errnbr;
-	DgrRC		rc;
+	int		length = 0;
+	int		errnbr = 0;
+	DgrRC		rc = DgrFailed;
 
 	CHKNULL(tsif);
 	dgrSap = (Dgr) (tsif->sap);
@@ -239,6 +240,7 @@ static void	*dgrAmsReceiver(void *parm)
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
 	while (1)
 	{
+		rc = DgrFailed;
 		oK(dgr_receive(dgrSap, &portNbr, &ipAddress, buffer,
 				&length, &errnbr, DGR_BLOCKING, &rc));
 		switch (rc)
