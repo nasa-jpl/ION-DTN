@@ -681,7 +681,7 @@ char **parseCommandString(const char *inputString, int *count)
 	{
 		stripLeadingWhiteSpace(token);
 
-		if (*count >= capacity)
+		if ((size_t)*count >= capacity)
 		{
 			capacity *= 2;
 			result = realloc(result, capacity * sizeof(char *));
