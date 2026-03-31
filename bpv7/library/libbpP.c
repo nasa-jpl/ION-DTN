@@ -11543,6 +11543,12 @@ static int	isLoopback(char *eid)
 		return 0;
 	}
 
+	if (metaEid.nullEndpoint)
+	{
+		clearMetaEid(&metaEid);
+		return 0;	/*	Null EID is not loopback.	*/
+	}
+
 	clearMetaEid(&metaEid);
 
 	if (strncmp(eid, vscheme->adminEid, MAX_EID_LEN) == 0)

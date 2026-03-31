@@ -3814,6 +3814,11 @@ static void	noteClosedImport(Sdr sdr, LtpSpan *span,
 	event.parm = elt2;
 	currentTime = getCtime();
 	findSpan(span->engineId, &vspan, &vspanElt);
+	if (vspanElt == 0)
+	{
+		return;
+	}
+
 	event.scheduledTime = currentTime + 10 +
 			(2 * (vspan->maxTimeouts / SIGNAL_REDUNDANCY)
 			* (vspan->owltOutbound + vspan->owltInbound));
