@@ -1756,6 +1756,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 	int		result;
 
 	CHKERR(sap && dlvBuffer);
+	memset((char *) dlvBuffer, 0, sizeof(BpDelivery));
 	if (timeoutSeconds < BP_BLOCKING)
 	{
 		putErrmsg("Illegal timeout interval.", itoa(timeoutSeconds));

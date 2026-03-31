@@ -197,6 +197,11 @@ void	sdr_stage(Sdr sdrv, char *into, Object from, size_t length)
 	LystElt		elt;
 	ObjectExtent	*extent;
 
+	if (into != NULL && length > 0)
+	{
+		memset(into, 0, length);	/*	Default value.	*/
+	}
+
 	CHKVOID(sdr_in_xn(sdrv));
 	XNCHKVOID(length == 0 || (length > 0 && into != NULL));
 	XNCHKVOID(from);
