@@ -257,7 +257,8 @@ char *utils_hex_to_string(uint8_t *buffer, uint32_t size)
 
 	for(i = 0; i < size; i++)
 	{
-		sprintf(temp, "%.2x", (unsigned int) buffer[i]);
+		snprintf(temp, sizeof(temp), "%.2x",
+				(unsigned int) buffer[i]);
 		result[r++] = temp[0];
 		result[r++] = temp[1];
 	}

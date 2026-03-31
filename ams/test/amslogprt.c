@@ -35,6 +35,14 @@ int	main(void)
 			break;
 		}
 
+		if (subjectNameLength < 0
+		|| subjectNameLength > (int)(sizeof(subjectName) - 1))
+		{
+			printf("Invalid subject name length: %d\n",
+					subjectNameLength);
+			break;
+		}
+
 		if (fread(subjectName, subjectNameLength, 1, stdin) == 0)
 		{
 			break;
@@ -51,6 +59,13 @@ int	main(void)
 		{
 			printf("%32s %10d\n", subjectName, contentLength);
 			continue;
+		}
+
+		if (contentLength > 10000000)
+		{
+			printf("Unreasonable content length: %u\n",
+					contentLength);
+			break;
 		}
 
 		if (bufferLength < 0 || contentLength > (unsigned int)bufferLength)
