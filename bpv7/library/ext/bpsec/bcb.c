@@ -239,7 +239,7 @@ int    bpsec_decrypt(AcqWorkArea *work)
 	BpsecInboundTargetResult    *tgtResult;
 	LystElt			tgtResultElt;
 	LystElt			nextTgtResultElt;
-	LystElt			tgtBlkElt;
+	LystElt			tgtBlkElt = NULL;
 	size_t			tgtBlkOrigLen = 0;
 	sc_Def			def;
 	int			result = 0;

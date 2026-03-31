@@ -181,6 +181,7 @@ expr_t expr_deserialize(QCBORDecodeContext *it, int *success)
 
 	AMP_DEBUG_ENTRY("expr_deserialize","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")", (uaddr)it, (uaddr)success);
 
+	memset(&result, 0, sizeof(result));
 	result.type = AMP_TYPE_UNK;
 	CHKUSR(success, result);
 	*success = AMP_FAIL;

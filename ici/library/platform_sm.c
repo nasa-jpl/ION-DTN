@@ -2526,7 +2526,11 @@ static void	closeAllFileDescriptors(void)
 	struct rlimit	limit;
 	rlim_t		i;
 
-	oK(getrlimit(RLIMIT_NOFILE, &limit));
+	if (getrlimit(RLIMIT_NOFILE, &limit) < 0)
+	{
+		limit.rlim_cur = 0;
+	}
+
 	for (i = 3; i < limit.rlim_cur; i++)
 	{
 		oK(close(i));

@@ -2896,7 +2896,7 @@ int ui_prompt(char* title, char* choiceA, char* choiceB, char* choiceC)
 
 int ui_menu(char* title, char** choices, char** descriptions, int n_choices, char* msg)
 {
-	int i;
+	int i = -1;
 	ui_display_init(title);
 
 	while(*global_nm_running) {

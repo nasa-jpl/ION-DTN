@@ -195,7 +195,12 @@ static void	executeAdd(int tokenCount, char **tokens)
 		{
 			memcpy(buf, cursor, 2);
 			buf[2] = '\0';
-			sscanf(buf, "%x", &val);
+			if (sscanf(buf, "%x", &val) < 1)
+			{
+				printText("Invalid hex digit in pubkey data.");
+				return;
+			}
+
 			datValue[i] = val;
 			cursor += 2;
 		}
