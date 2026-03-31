@@ -49,6 +49,8 @@
 #include <bp.h>
 #include "metadata.h"
 
+#define	MAX_METADATA_LEN	(4096)
+
 /******************************************************************************/
 /*    CORE FUNCTIONS    CORE FUNCTIONS    CORE FUNCTIONS    CORE FUNCTIONS    */
 /******************************************************************************/
@@ -311,6 +313,11 @@ int extractMetadataFromFile(const char *filename, Metadata *meta)
 	fseek(file, offset, SEEK_SET);
 	bytes_read = fread(&meta->filetypeLength, 1, fileTypeSize, file);
 	offset += bytes_read;
+	if (meta->filetypeLength > MAX_METADATA_LEN)
+	{
+		fclose(file);
+		return -1;
+	}
 
 	fseek(file, offset, SEEK_SET);
 	meta->filetype = MTAKE(meta->filetypeLength); //free me
@@ -326,6 +333,11 @@ int extractMetadataFromFile(const char *filename, Metadata *meta)
 	fseek(file, offset, SEEK_SET);
 	bytes_read = fread(&meta->fileNameLength, 1, fileNameTypeSize, file);
 	offset += bytes_read;
+	if (meta->fileNameLength > MAX_METADATA_LEN)
+	{
+		fclose(file);
+		return -1;
+	}
 
 	fseek(file, offset, SEEK_SET);
 	meta->filename = MTAKE(meta->fileNameLength); //free me
@@ -341,6 +353,20 @@ int extractMetadataFromFile(const char *filename, Metadata *meta)
 	fseek(file, offset, SEEK_SET);
 	bytes_read = fread(&meta->fileContentLength, 1, contentTypeSize, file);
 	offset += bytes_read;
+	{
+		Sdr		sdr = getIonsdr();
+		Object		iondbObj = getIonDbObject();
+		IonDB		iondb;
+		size_t		maxContentLen;
+
+		sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+		maxContentLen = iondb.parmcopy.wmSize / 10;	/*	10%	*/
+		if (meta->fileContentLength > maxContentLen)
+		{
+			fclose(file);
+			return -1;
+		}
+	}
 
 	meta->fileContent = MTAKE(meta->fileContentLength); //free me
 	if(meta->fileContent == NULL)

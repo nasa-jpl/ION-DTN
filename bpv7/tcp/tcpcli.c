@@ -2354,6 +2354,13 @@ static int	beginSessionForDuct(ClockThreadParms *ctp, LystElt neighborElt,
 	if (*outductName == '#')	/*	Accepted socket duct.	*/
 	{
 		sock = atoi(outductName + 2);
+		if (sock < 0)
+		{
+			putErrmsg("tcpcli: invalid socket in duct name.",
+					outductName);
+			return -1;
+		}
+
 		session = &(neighbor->sessions[TCPCL_CHANCE]);
 		if (session->outductName)
 		{

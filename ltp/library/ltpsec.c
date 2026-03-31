@@ -55,6 +55,7 @@ int	sec_findLtpXmitAuthRule(uvast ltpEngineId, Object *ruleAddr,
 		Object * eltp)
 {
 	CHKERR(ruleAddr);
+	*ruleAddr = 0;
 	CHKERR(eltp);
 	*eltp = 0;
 
@@ -300,6 +301,7 @@ int	sec_findLtpRecvAuthRule(uvast ltpEngineId, Object *ruleAddr,
 		Object * eltp)
 {
 	CHKERR(ruleAddr);
+	*ruleAddr = 0;
 	CHKERR(eltp);
 	*eltp = 0;
 

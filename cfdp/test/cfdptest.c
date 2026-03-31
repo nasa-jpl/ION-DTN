@@ -2287,7 +2287,7 @@ static int	runCfdptestInteractive(void)
 	char		line[256];
 	int		len;
 	pthread_t	receiverThread;
-	int		running = 1;
+	static int	running = 1;
 	CfdpReqParms	parms;
 
 	/*	Start the receiver thread.				*/

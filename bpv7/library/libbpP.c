@@ -3954,6 +3954,13 @@ int	removeEndpoint(char *eid)
 		return 0;
 	}
 
+	if (metaEid.nullEndpoint)
+	{
+		clearMetaEid(&metaEid);
+		writeMemoNote("[?] Can't remove the null endpoint", eid);
+		return 0;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	findEndpoint(NULL, &metaEid, vscheme, &vpoint, &elt);
 	clearMetaEid(&metaEid);
