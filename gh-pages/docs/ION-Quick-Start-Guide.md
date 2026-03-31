@@ -324,7 +324,20 @@ ionrun -n host1 ~/ion-2node    # on first host
 ionrun -n host2 ~/ion-2node    # on second host
 ```
 
-`ionrun` supports loopback, 2-node, and 3-node topologies with LTP, TCP, and UDP convergence layers, and allows custom port numbers. See the [ionrun documentation](./ionrun.md) for full details and examples.
+`ionrun` supports loopback, 2-node, and 3-node topologies (both across hosts and on the same host) with LTP, TCP, and UDP convergence layers, and allows custom port numbers.
+
+**Two nodes on the same host (no second machine needed):**
+
+```bash
+ionrun -g ~/ion-2local
+# Select: 4) 2-node (same host), accept defaults
+
+# Start each node in a separate terminal:
+ionrun -n node1 ~/ion-2local    # terminal 1
+ionrun -n node2 ~/ion-2local    # terminal 2
+```
+
+See the [ionrun documentation](./ionrun.md) for full details and examples.
 
 ### Check Installed ION version
 

@@ -13,12 +13,18 @@
   - [Generated Files](#generated-files)
     - [ionrun.rc](#ionrunrc)
     - [ionrun.meta](#ionrunmeta)
+    - [ionrun.ionconfig (same-host only)](#ionrunionconfig-same-host-only)
   - [Examples](#examples)
     - [Loopback Test](#loopback-test)
     - [Two-Node Network](#two-node-network)
     - [Three-Node Relay with Mixed Convergence Layers](#three-node-relay-with-mixed-convergence-layers)
+    - [Two Nodes on the Same Host](#two-nodes-on-the-same-host)
+    - [Three Nodes on the Same Host](#three-nodes-on-the-same-host)
     - [Custom Port Numbers](#custom-port-numbers)
   - [Multi-Node Workflow](#multi-node-workflow)
+    - [Remote (Multi-Host)](#remote-multi-host)
+    - [Same-Host](#same-host)
+  - [Environment Variables](#environment-variables)
   - [How It Works](#how-it-works)
 
 ## Overview
@@ -51,21 +57,23 @@ When `ionrun` is pointed at an empty or new directory (or when `--force` is used
 
 ### Topology Types
 
-The wizard supports three topologies:
+The wizard supports five topologies:
 
 | Topology | Nodes | Description |
 |----------|-------|-------------|
 | **Loopback** | 1 | Single node sending to itself. Good for initial testing. |
 | **2-node** | 2 | Two nodes on distinct hosts. Basic point-to-point link. |
-| **3-node** | 3 | Three nodes in a linear chain (1--2--3). Node 2 acts as a relay. |
+| **3-node** | 3 | Three nodes in a linear chain (1--2--3) on distinct hosts. Node 2 acts as a relay. |
+| **2-node (same host)** | 2 | Two ION instances on the same machine, using per-node subdirectories with unique shared memory keys and ports. |
+| **3-node (same host)** | 3 | Three ION instances on the same machine in a linear chain. Node 2 acts as a relay. |
 
 ### Node Configuration
 
 For each node, the wizard asks:
 
-- **Name**: A label for the node (e.g., `host1`). Used as the ionstart tag for multi-node configs. Must contain only letters, digits, hyphens, and underscores.
+- **Name**: A label for the node (e.g., `host1`). Used as the ionstart tag for remote multi-node configs, and as the subdirectory name for same-host configs. Must contain only letters, digits, hyphens, and underscores.
 - **IPN Node ID**: The node's IPN identifier. Can be a simple integer (e.g., `1`) or an allocator.node pair (e.g., `5.1`) for 3-part IPN addressing.
-- **IP Address**: The node's network address. Defaults to `127.0.0.1`. For multi-node topologies, use the actual IP of each host.
+- **IP Address**: The node's network address. Defaults to `127.0.0.1`. For remote multi-node topologies, use the actual IP of each host. For loopback and same-host topologies, the IP is automatically set to `127.0.0.1`.
 
 ### Convergence Layers
 
@@ -77,8 +85,10 @@ Three convergence layers are supported:
 | **TCP** | `tcp` | TCP | 4556 | `tcpcli` / `tcpclo` |
 | **UDP** | `udp` | UDP | 4556 | `udpcli` / `udpclo` |
 
-- For **loopback** and **2-node** topologies, one convergence layer is selected for the entire network.
-- For **3-node** topologies, two convergence layers are selected independently: one for the link between nodes 1-2, and another for the link between nodes 2-3. This allows mixed-CL networks (e.g., LTP on one hop and TCP on the other).
+- For **loopback**, **2-node**, and **same-host** topologies, one convergence layer is selected for the entire network.
+- For **3-node** (remote) topologies, two convergence layers are selected independently: one for the link between nodes 1-2, and another for the link between nodes 2-3. This allows mixed-CL networks (e.g., LTP on one hop and TCP on the other).
+
+For **same-host** topologies, each node is automatically assigned a unique listening port starting from the base port. For example, with a base port of 1113: node1 gets 1113, node2 gets 1114, node3 gets 1115.
 
 ### Port Numbers
 
@@ -96,13 +106,14 @@ Custom ports are useful when running alongside other services or when firewall r
 The main configuration file, compatible with `ionstart -I`. It uses the combined config format with `## begin`/`## end` section markers.
 
 - **Loopback**: Sections have no tags. Run with `ionstart -I ionrun.rc`.
-- **Multi-node**: Sections are tagged with node names. Run with `ionstart -I ionrun.rc -t <nodename>`.
+- **Remote multi-node**: Sections are tagged with node names. Run with `ionstart -I ionrun.rc -t <nodename>`.
+- **Same-host multi-node**: Each node gets its own `ionrun.rc` in a subdirectory. Sections have no tags (each file is standalone). Run with `ionstart -I ionrun.rc` from the node subdirectory.
 
 The tag mechanism is a built-in feature of `ionstart.awk` that allows multiple nodes' configurations to coexist in a single file.
 
 ### ionrun.meta
 
-A key-value metadata file that stores the topology parameters so `ionrun` knows how to re-launch ION on subsequent runs. Example:
+A key-value metadata file that stores the topology parameters so `ionrun` knows how to re-launch ION on subsequent runs. Example for remote multi-node:
 
 ```
 topology=2node
@@ -115,6 +126,49 @@ node2_id=2
 node2_ip=10.0.0.2
 cl1=tcp
 port1=4556
+```
+
+Example for same-host multi-node:
+
+```
+topology=2node-local
+node_count=2
+node1_name=node1
+node1_id=1
+node1_ip=127.0.0.1
+node2_name=node2
+node2_id=2
+node2_ip=127.0.0.1
+cl1=ltp
+port1=1113
+node1_port=1113
+node2_port=1114
+```
+
+### ionrun.ionconfig (same-host only)
+
+For same-host topologies, each node subdirectory contains an `ionrun.ionconfig` file with unique shared memory keys and SDR names to prevent conflicts between ION instances:
+
+```
+wmKey 10001
+sdrName ion1
+wmSize 50000000
+configFlags 1
+heapWords 10000000
+pathName /tmp
+```
+
+The directory layout for a 2-node same-host topology:
+
+```
+workdir/
+  ionrun.meta
+  node1/
+    ionrun.rc
+    ionrun.ionconfig    # wmKey 10001, sdrName ion1
+  node2/
+    ionrun.rc
+    ionrun.ionconfig    # wmKey 10002, sdrName ion2
 ```
 
 ## Examples
@@ -131,8 +185,10 @@ Select network topology:
   1) Loopback (single node)
   2) 2-node (two hosts)
   3) 3-node (three hosts, linear chain)
+  4) 2-node (same host)
+  5) 3-node (same host, linear chain)
 
-Topology [1-3]: 1
+Topology [1-5]: 1
 
 --- Node 1 ---
   Name [node1]:
@@ -152,6 +208,9 @@ Configuration written to:
   /home/user/ion-loopback/ionrun.meta
 
 Starting ION (loopback) in /home/user/ion-loopback ...
+
+To operate on this ION instance from any directory, run:
+  export ION_NODE_WDNAME=/home/user/ion-loopback
 ```
 
 Once ION is running, test with:
@@ -173,7 +232,7 @@ Set up a TCP link between two hosts (10.0.0.1 and 10.0.0.2):
 ```bash
 # Generate configs (run on either host)
 $ ionrun -g ~/ion-2node
-Topology [1-3]: 2
+Topology [1-5]: 2
 --- Node 1 ---
   Name [node1]: alpha
   IPN node ID [1]: 1
@@ -202,7 +261,7 @@ Create a 3-node network where LTP connects nodes 1-2 and TCP connects nodes 2-3:
 
 ```bash
 $ ionrun -g ~/ion-3node
-Topology [1-3]: 3
+Topology [1-5]: 3
 --- Node 1 ---
   Name [node1]: earth
   IPN node ID [1]: 1
@@ -225,13 +284,113 @@ Select convergence layer between relay and mars:
 
 The relay node (node 2) automatically gets both LTP and TCP convergence layers configured. Routing between non-adjacent nodes (earth-to-mars) is handled via static group routes through the relay.
 
+### Two Nodes on the Same Host
+
+Run two ION instances on one machine for local testing:
+
+```bash
+$ ionrun -g ~/ion-2local
+Topology [1-5]: 4
+--- Node 1 ---
+  Name [node1]:
+  IPN node ID [1]:
+  IP address: 127.0.0.1 (loopback)
+--- Node 2 ---
+  Name [node2]:
+  IPN node ID [2]:
+  IP address: 127.0.0.1 (loopback)
+Select convergence layer (all links):
+  Choice [1-3]: 1
+  Port [1113]:
+  Port assignments:
+    node1: 1113
+    node2: 1114
+```
+
+This creates per-node subdirectories with unique configurations:
+
+```
+~/ion-2local/
+  ionrun.meta
+  node1/ionrun.rc  node1/ionrun.ionconfig
+  node2/ionrun.rc  node2/ionrun.ionconfig
+```
+
+Start each node in a separate terminal:
+
+```bash
+# Terminal 1:
+ionrun -n node1 ~/ion-2local
+
+# Terminal 2:
+ionrun -n node2 ~/ion-2local
+```
+
+Test connectivity:
+
+```bash
+# In the node2 terminal:
+export ION_NODE_LIST_DIR=$HOME/ion-2local
+export ION_NODE_WDNAME=$HOME/ion-2local/node2
+bpsink ipn:2.1 &
+
+# In the node1 terminal:
+export ION_NODE_LIST_DIR=$HOME/ion-2local
+export ION_NODE_WDNAME=$HOME/ion-2local/node1
+echo "Hello from node1" | bpsource ipn:2.1
+```
+
+Stop all nodes: `ionrun -s ~/ion-2local`
+
+### Three Nodes on the Same Host
+
+Run a 3-node relay topology on one machine:
+
+```bash
+$ ionrun -g ~/ion-3local
+Topology [1-5]: 5
+--- Node 1 ---
+  Name [node1]:
+  IPN node ID [1]:
+  IP address: 127.0.0.1 (loopback)
+--- Node 2 ---
+  Name [node2]:
+  IPN node ID [2]:
+  IP address: 127.0.0.1 (loopback)
+--- Node 3 ---
+  Name [node3]:
+  IPN node ID [3]:
+  IP address: 127.0.0.1 (loopback)
+Select convergence layer (all links):
+  Choice [1-3]: 1
+  Port [1113]:
+  Port assignments:
+    node1: 1113
+    node2: 1114
+    node3: 1115
+```
+
+Start each node in a separate terminal, then test end-to-end delivery from node 1 to node 3 (relayed through node 2):
+
+```bash
+# Terminal 3 (receiver):
+export ION_NODE_LIST_DIR=$HOME/ion-3local
+export ION_NODE_WDNAME=$HOME/ion-3local/node3
+bpsink ipn:3.1 &
+
+# Terminal 1 (sender):
+export ION_NODE_LIST_DIR=$HOME/ion-3local
+export ION_NODE_WDNAME=$HOME/ion-3local/node1
+echo "Hello via relay" | bpsource ipn:3.1
+```
+
 ### Custom Port Numbers
 
 Use non-default ports when needed:
 
 ```bash
 $ ionrun -g ~/ion-custom-port
-Topology [1-3]: 1
+Topology [1-5]: 1
   Name [node1]:
   IPN node ID [1]:
 Select convergence layer:
@@ -243,7 +402,9 @@ This generates TCP configuration using port 9000 instead of the default 4556.
 
 ## Multi-Node Workflow
 
-For multi-node topologies, `ionrun` generates a single `ionrun.rc` containing all nodes' configurations, differentiated by tags. The workflow is:
+### Remote (Multi-Host)
+
+For remote multi-node topologies (`2-node` and `3-node`), `ionrun` generates a single `ionrun.rc` containing all nodes' configurations, differentiated by tags. The workflow is:
 
 1. **Generate once**: Run `ionrun -g <workdir>` on any machine to create the config.
 2. **Distribute**: Copy the working directory to all participating hosts.
@@ -251,6 +412,27 @@ For multi-node topologies, `ionrun` generates a single `ionrun.rc` containing al
 4. **Stop per-host**: Run `ionrun -s <workdir>` to stop ION on that host.
 
 This approach ensures all nodes share an identical contact plan and consistent routing configuration.
+
+### Same-Host
+
+For same-host topologies (`2-node (same host)` and `3-node (same host)`), `ionrun` creates per-node subdirectories, each containing a standalone `ionrun.rc` and `ionrun.ionconfig` with unique shared memory keys and ports. The workflow is:
+
+1. **Generate once**: Run `ionrun -g <workdir>` to create subdirectories and configs for all nodes.
+2. **Start each node**: In separate terminals, run `ionrun -n <nodename> <workdir>` for each node.
+3. **Stop all nodes**: Run `ionrun -s <workdir>` to stop all ION instances and clean up shared memory.
+
+Each node runs from its own subdirectory. The `ION_NODE_LIST_DIR` environment variable is set to the parent working directory so ION can track all instances via the `ion_nodes` file. The `ION_NODE_WDNAME` variable is set to the node's subdirectory so ION commands can be run from any directory.
+
+## Environment Variables
+
+`ionrun` sets the following environment variables when starting ION:
+
+| Variable | Set When | Purpose |
+|----------|----------|---------|
+| `ION_NODE_WDNAME` | All topologies | Points to the ION working directory, allowing ION commands (`bpadmin`, `bpsource`, etc.) to be run from any directory. |
+| `ION_NODE_LIST_DIR` | Same-host topologies only | Points to the parent directory containing the `ion_nodes` file, which tracks all ION instances on the host. |
+
+After starting a node, `ionrun` prints the `export` commands you need to run in other terminals to operate on that node.
 
 ## How It Works
 
@@ -268,6 +450,8 @@ This approach ensures all nodes share an identical contact plan and consistent r
 
 Programs are always executed in a fixed order: `ionadmin`, `ionsecadmin`, `ltpadmin`, `bpadmin`, `ipnadmin`. When a tag is specified with `-t`, only sections matching that tag are processed.
 
+For same-host topologies, each node's `ionrun.rc` is a standalone file (no tags) and the `ionadmin` init line references the local `ionrun.ionconfig` file (e.g., `1 1 ionrun.ionconfig`). Each node registers four endpoints: `.0` (admin, disposition `x`), `.1`, `.2`, and `.3` (user, disposition `q`).
+
 The generated configuration uses these fixed parameters:
 
 | Parameter | Value |
@@ -281,3 +465,12 @@ The generated configuration uses these fixed parameters:
 | LTP block size | 10,000 bytes |
 | Protocol payload | 1,400 bytes |
 | Protocol overhead | 100 bytes |
+
+Same-host ionconfig defaults:
+
+| Parameter | Value |
+|-----------|-------|
+| Working memory (wmSize) | 50,000,000 bytes (50 MB) |
+| Heap words (heapWords) | 10,000,000 |
+| Shared memory key (wmKey) | 10001, 10002, ... (unique per node) |
+| SDR name (sdrName) | ion1, ion2, ... (unique per node) |
