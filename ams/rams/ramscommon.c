@@ -1140,16 +1140,25 @@ static int	SendRPDUviaUdp(RamsGateway *gWay, RamsNode *ramsNode,
 		 *	this RPDU again in another 10 seconds.		*/
 
 		rpdu = (UdpRpdu *) MTAKE(sizeof(UdpRpdu));
-		CHKERR(rpdu);
+		if (rpdu == NULL) return -1;
 		rpdu->checkTime = time(NULL) + 10;
 		rpdu->neighbor = ramsNode;
 		rpdu->flowLabel = flowLabel;
 		rpdu->envelope = MTAKE(envelopeLength);
-		CHKERR(rpdu->envelope);
+		if (rpdu->envelope == NULL)
+		{
+			MRELEASE(rpdu);
+			return -1;
+		}
 		memcpy(rpdu->envelope, envelope, envelopeLength);
 		rpdu->envelopeLength = envelopeLength;
 		elt = lyst_insert(gWay->udpRpdus, rpdu);
-		CHKERR(elt);
+		if (elt == NULL)
+		{
+			MRELEASE(rpdu->envelope);
+			MRELEASE(rpdu);
+			return -1;
+		}
 		return 0;
 	}
 }

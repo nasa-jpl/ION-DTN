@@ -1950,6 +1950,7 @@ EnvelopeHeader(env, Env_SubjectNbr));
 				pet->specification->envelope, ENVELOPELENGTH))
 		{
 			ErrMsg("Petition assertion error.");
+			lyst_destroy(assertionSet);
 			return -1;
 		}
 	}
