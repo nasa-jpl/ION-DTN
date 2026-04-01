@@ -570,9 +570,9 @@ write_ltpadmin() {
     echo "1 32" >> "$out"
     # Self-span
     if [[ "$TOPOLOGY" == "loopback" ]] || is_local_topology; then
-        echo "a span $my_id 1400 10000 'udplso 127.0.0.1:${ltp_port}'" >> "$out"
+        echo "a span $my_id 10 10 1400 10000 2 'udplso 127.0.0.1:${ltp_port}'" >> "$out"
     else
-        echo "a span $my_id 1400 10000 'udplso ${my_ip}:${ltp_port}'" >> "$out"
+        echo "a span $my_id 10 10 1400 10000 2 'udplso ${my_ip}:${ltp_port}'" >> "$out"
     fi
     # Peer spans
     for peer in $(get_peers "$idx"); do
@@ -583,10 +583,11 @@ write_ltpadmin() {
             else
                 peer_port=$(get_link_port "$idx" "$peer")
             fi
-            echo "a span ${NODE_IDS[$peer]} 1400 10000 'udplso ${NODE_IPS[$peer]}:${peer_port}'" >> "$out"
+            echo "a span ${NODE_IDS[$peer]} 10 10 1400 10000 2 'udplso ${NODE_IPS[$peer]}:${peer_port}'" >> "$out"
         fi
     done
-    echo "s 'udplsi ${listen_ip}:${ltp_port}'" >> "$out"
+    echo "a seat 'udplsi ${listen_ip}:${ltp_port}'" >> "$out"
+    echo "s" >> "$out"
     echo "## end ltpadmin${tag:+ $tag}" >> "$out"
     echo "" >> "$out"
 }
@@ -633,7 +634,7 @@ write_bpadmin() {
 
     # Protocol declarations
     for cl in "${cls[@]}"; do
-        echo "a protocol $cl 1400 100" >> "$out"
+        echo "a protocol $cl" >> "$out"
     done
 
     # Inducts
@@ -710,6 +711,61 @@ write_bpadmin() {
         done
     fi
 
+    # Egress plans (a plan + a planduct)
+    if [[ "$TOPOLOGY" == "loopback" ]]; then
+        echo "a plan ipn:${my_id}.0" >> "$out"
+        case "$CL1" in
+            ltp)  echo "a planduct ipn:${my_id}.0 ltp $my_id" >> "$out" ;;
+            tcp)  echo "a planduct ipn:${my_id}.0 tcp 127.0.0.1:${PORT1}" >> "$out" ;;
+            udp)  echo "a planduct ipn:${my_id}.0 udp 127.0.0.1:${PORT1}" >> "$out" ;;
+        esac
+    elif is_local_topology; then
+        local my_port
+        my_port=$(get_node_port "$idx")
+        echo "a plan ipn:${my_id}.0" >> "$out"
+        case "$CL1" in
+            ltp)  echo "a planduct ipn:${my_id}.0 ltp $my_id" >> "$out" ;;
+            tcp)  echo "a planduct ipn:${my_id}.0 tcp 127.0.0.1:${my_port}" >> "$out" ;;
+            udp)  echo "a planduct ipn:${my_id}.0 udp 127.0.0.1:${my_port}" >> "$out" ;;
+        esac
+        for peer in $(get_peers "$idx"); do
+            local peer_id peer_port
+            peer_id="${NODE_IDS[$peer]}"
+            peer_port=$(get_node_port "$peer")
+            echo "a plan ipn:${peer_id}.0" >> "$out"
+            case "$CL1" in
+                ltp)  echo "a planduct ipn:${peer_id}.0 ltp $peer_id" >> "$out" ;;
+                tcp)  echo "a planduct ipn:${peer_id}.0 tcp 127.0.0.1:${peer_port}" >> "$out" ;;
+                udp)  echo "a planduct ipn:${peer_id}.0 udp 127.0.0.1:${peer_port}" >> "$out" ;;
+            esac
+        done
+    else
+        # Remote multi-node
+        local self_cl self_port first_peer
+        first_peer=$(get_peers "$idx" | awk '{print $1}')
+        self_cl=$(get_link_cl "$idx" "$first_peer")
+        self_port=$(get_link_port "$idx" "$first_peer")
+        echo "a plan ipn:${my_id}.0" >> "$out"
+        case "$self_cl" in
+            ltp)  echo "a planduct ipn:${my_id}.0 ltp $my_id" >> "$out" ;;
+            tcp)  echo "a planduct ipn:${my_id}.0 tcp ${my_ip}:${self_port}" >> "$out" ;;
+            udp)  echo "a planduct ipn:${my_id}.0 udp ${my_ip}:${self_port}" >> "$out" ;;
+        esac
+        for peer in $(get_peers "$idx"); do
+            local cl peer_id peer_ip peer_port
+            cl=$(get_link_cl "$idx" "$peer")
+            peer_port=$(get_link_port "$idx" "$peer")
+            peer_id="${NODE_IDS[$peer]}"
+            peer_ip="${NODE_IPS[$peer]}"
+            echo "a plan ipn:${peer_id}.0" >> "$out"
+            case "$cl" in
+                ltp)  echo "a planduct ipn:${peer_id}.0 ltp $peer_id" >> "$out" ;;
+                tcp)  echo "a planduct ipn:${peer_id}.0 tcp ${peer_ip}:${peer_port}" >> "$out" ;;
+                udp)  echo "a planduct ipn:${peer_id}.0 udp ${peer_ip}:${peer_port}" >> "$out" ;;
+            esac
+        done
+    fi
+
     echo "s" >> "$out"
     echo "## end bpadmin${tag:+ $tag}" >> "$out"
     echo "" >> "$out"
@@ -718,83 +774,16 @@ write_bpadmin() {
 # Write ipnadmin section for a node
 write_ipnadmin() {
     local out="$1" idx="$2" tag="$3"
-    local my_id="${NODE_IDS[$idx]}"
-    local my_ip="${NODE_IPS[$idx]}"
 
     echo "## begin ipnadmin${tag:+ $tag}" >> "$out"
 
-    # Self-plan
-    if [[ "$TOPOLOGY" == "loopback" ]]; then
-        case "$CL1" in
-            ltp)  echo "a plan $my_id ltp/$my_id" >> "$out" ;;
-            tcp)  echo "a plan $my_id tcp/127.0.0.1:${PORT1}" >> "$out" ;;
-            udp)  echo "a plan $my_id udp/127.0.0.1:${PORT1}" >> "$out" ;;
-        esac
-    elif is_local_topology; then
-        # Same-host: all 127.0.0.1, per-node ports
-        local my_port
-        my_port=$(get_node_port "$idx")
-        case "$CL1" in
-            ltp)  echo "a plan $my_id ltp/$my_id" >> "$out" ;;
-            tcp)  echo "a plan $my_id tcp/127.0.0.1:${my_port}" >> "$out" ;;
-            udp)  echo "a plan $my_id udp/127.0.0.1:${my_port}" >> "$out" ;;
-        esac
-
-        # Peer plans (direct neighbors)
-        for peer in $(get_peers "$idx"); do
-            local peer_id peer_port
-            peer_id="${NODE_IDS[$peer]}"
-            peer_port=$(get_node_port "$peer")
-            case "$CL1" in
-                ltp)  echo "a plan $peer_id ltp/$peer_id" >> "$out" ;;
-                tcp)  echo "a plan $peer_id tcp/127.0.0.1:${peer_port}" >> "$out" ;;
-                udp)  echo "a plan $peer_id udp/127.0.0.1:${peer_port}" >> "$out" ;;
-            esac
-        done
-
-        # Indirect routes for 3-node-local edge nodes
-        if [[ "$TOPOLOGY" == "3node-local" ]]; then
-            local mid_id="${NODE_IDS[1]}"
-            if [[ $idx -eq 0 ]]; then
-                echo "a group ${NODE_IDS[2]} ${NODE_IDS[2]} $mid_id" >> "$out"
-            elif [[ $idx -eq 2 ]]; then
-                echo "a group ${NODE_IDS[0]} ${NODE_IDS[0]} $mid_id" >> "$out"
-            fi
-        fi
-    else
-        # Remote multi-node
-        local self_cl self_port first_peer
-        first_peer=$(get_peers "$idx" | awk '{print $1}')
-        self_cl=$(get_link_cl "$idx" "$first_peer")
-        self_port=$(get_link_port "$idx" "$first_peer")
-        case "$self_cl" in
-            ltp)  echo "a plan $my_id ltp/$my_id" >> "$out" ;;
-            tcp)  echo "a plan $my_id tcp/${my_ip}:${self_port}" >> "$out" ;;
-            udp)  echo "a plan $my_id udp/${my_ip}:${self_port}" >> "$out" ;;
-        esac
-
-        # Peer plans (direct neighbors)
-        for peer in $(get_peers "$idx"); do
-            local cl peer_id peer_ip peer_port
-            cl=$(get_link_cl "$idx" "$peer")
-            peer_port=$(get_link_port "$idx" "$peer")
-            peer_id="${NODE_IDS[$peer]}"
-            peer_ip="${NODE_IPS[$peer]}"
-            case "$cl" in
-                ltp)  echo "a plan $peer_id ltp/$peer_id" >> "$out" ;;
-                tcp)  echo "a plan $peer_id tcp/${peer_ip}:${peer_port}" >> "$out" ;;
-                udp)  echo "a plan $peer_id udp/${peer_ip}:${peer_port}" >> "$out" ;;
-            esac
-        done
-
-        # Indirect routes for 3-node edge nodes
-        if [[ "$TOPOLOGY" == "3node" ]]; then
-            local mid_id="${NODE_IDS[1]}"
-            if [[ $idx -eq 0 ]]; then
-                echo "a group ${NODE_IDS[2]} ${NODE_IDS[2]} $mid_id" >> "$out"
-            elif [[ $idx -eq 2 ]]; then
-                echo "a group ${NODE_IDS[0]} ${NODE_IDS[0]} $mid_id" >> "$out"
-            fi
+    # Group routes for 3-node edge nodes (indirect via relay)
+    if [[ "$TOPOLOGY" == "3node" || "$TOPOLOGY" == "3node-local" ]]; then
+        local mid_id="${NODE_IDS[1]}"
+        if [[ $idx -eq 0 ]]; then
+            echo "a group ${NODE_IDS[2]} ${NODE_IDS[2]} $mid_id" >> "$out"
+        elif [[ $idx -eq 2 ]]; then
+            echo "a group ${NODE_IDS[0]} ${NODE_IDS[0]} $mid_id" >> "$out"
         fi
     fi
 
