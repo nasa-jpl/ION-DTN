@@ -143,7 +143,9 @@ def _save_duration(duration_file: Path, avg_seconds: int) -> None:
         print(f"  Could not write to {duration_file}: {e}")
 
 
-def benchmark_and_log(script_dir: Path, iterations: int = 5) -> int | str:
+def benchmark_and_log(
+    script_dir: Path, iterations: int = 5, force_update: bool = False
+) -> int | str:
     """Runs a script up to the number of iterations (default: 5) with an environment context.
     - Captures stdout/stderr to {directory_name}.stdout.
     - Ensures standard paths (like /usr/local/bin) are visible to the subprocess.
@@ -155,16 +157,16 @@ def benchmark_and_log(script_dir: Path, iterations: int = 5) -> int | str:
     duration_file = script_dir / ".DURATION"
     output_file = script_dir / f"{script_dir.name}.stdout"
 
-    # Check for cached duration
-    cached_duration = _check_cached_duration(duration_file, script_dir)
-    if cached_duration is not None:
-        return cached_duration
+    if not force_update:
+        cached_duration = _check_cached_duration(duration_file, script_dir)
+        if cached_duration is not None:
+            return cached_duration
+    else:
+        print(f"Force updating cache for {script_dir.name}...")
 
-    # Set up environment
     env = _setup_environment()
     print(f"Benchmarking {script_dir.name}...")
 
-    # Run iterations and collect timings
     run_times: list[float] = []
 
     try:
@@ -185,7 +187,6 @@ def benchmark_and_log(script_dir: Path, iterations: int = 5) -> int | str:
     if not run_times:
         return 0
 
-    # Calculate and save result
     avg_seconds = round(mean(run_times))
     _save_duration(duration_file, avg_seconds)
 
@@ -240,30 +241,44 @@ def main() -> None:
         help="Save results to result.txt, otherwise print to screen.",
         action="store_true",
     )
+    parser.add_argument(
+        "--force-update",
+        "-f",
+        action="store_true",
+        help="Force update the .DURATION file (ignores cache). Requires --target-path.",
+    )
 
     args = parser.parse_args()
+
+    if args.force_update and not args.target_path:
+        parser.error(
+            "--force-update (-f) can only be used when a --target-path (-p) is provided."
+        )
+
     target_scripts: list[Path] = []
 
     if args.target_path:
         target: Path = args.target_path
 
         if target.is_file() and target.name == "dotest":
-            target_scripts = [target]
+            test_dir = target.parent
         elif target.is_dir() and (target / "dotest").exists():
-            target_scripts = [target / "dotest"]
+            test_dir = target
         else:
             print(f"Error: Could not find a valid './dotest' script at {target}")
             sys.exit(1)
 
-        # Respect exclusion markers even for explicitly specified tests
-        filtered: list[Path] = []
-        for script in target_scripts:
-            test_dir = script.parent if script.name == "dotest" else script
-            if is_excluded(test_dir):
-                print(f"Skipping {test_dir}: excluded by marker", file=sys.stderr)
-            else:
-                filtered.append(script)
-        target_scripts = filtered
+        try:
+            tests_root = Path("tests").resolve()
+            rel_script = test_dir.resolve().relative_to(tests_root)
+        except ValueError:
+            rel_script = Path(test_dir.name)
+
+        if is_excluded(test_dir):
+            print(f"Skipping {test_dir}: excluded by marker", file=sys.stderr)
+            target_scripts = []
+        else:
+            target_scripts = [rel_script]
 
     else:
         target_scripts = list_tests()
@@ -276,7 +291,7 @@ def main() -> None:
     has_failures = False  # Track if any benchmark failed
 
     for script in target_scripts:
-        result = benchmark_and_log("tests" / script)
+        result = benchmark_and_log("tests" / script, force_update=args.force_update)
         if result == "FAILED":
             has_failures = True
         results.append((str(script), result))
