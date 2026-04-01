@@ -930,6 +930,27 @@ run_wizard() {
     prompt_nodes
     prompt_convergence_layers
 
+    # Clean up artifacts from previous topology (e.g. switching from
+    # remote multi-node to same-host or vice versa).
+    local old_meta="$WORKDIR/ionrun.meta"
+    if [[ -f "$old_meta" ]]; then
+        local old_topo
+        old_topo=$(grep '^topology=' "$old_meta" | cut -d= -f2)
+        # Remove top-level ionrun.rc (used by loopback / remote topologies)
+        rm -f "$WORKDIR/ionrun.rc"
+        # Remove per-node subdirectories (used by same-host topologies)
+        if [[ "$old_topo" == *-local ]]; then
+            local old_count old_name
+            old_count=$(grep '^node_count=' "$old_meta" | cut -d= -f2)
+            for i in $(seq 1 "$old_count"); do
+                old_name=$(grep "^node${i}_name=" "$old_meta" | cut -d= -f2)
+                if [[ -n "$old_name" && -d "$WORKDIR/$old_name" ]]; then
+                    rm -rf "$WORKDIR/$old_name"
+                fi
+            done
+        fi
+    fi
+
     # Generate config
     if [[ "$TOPOLOGY" == "loopback" ]]; then
         generate_loopback_config
