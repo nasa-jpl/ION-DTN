@@ -315,6 +315,22 @@ The B<user message> command.  This command adds a user message to the
 metadata that will be issued when the next file transmission operation
 is commanded.
 
+=item B<x> [<directory_path_or_pattern>]
+
+The B<list local directory> command.  This command lists the contents of the
+specified local directory.  If no argument is given, lists the current
+working directory.  Supports shell glob wildcards (C<*>, C<?>, C<[...]>);
+when a wildcard is detected the argument is expanded as a glob pattern and
+all matching paths are displayed.  This is a convenience command for browsing
+the local filesystem without leaving the cfdptest shell.
+
+B<Example Usage:>
+
+  x                  # List current working directory
+  x /tmp             # List /tmp directory
+  x /tmp/*.log       # List all .log files in /tmp
+  x *.txt            # List .txt files in current directory
+
 =item B<L> <remote directory path> <local temp filename>
 
 The B<list remote directory> command (ION extension).  This command requests

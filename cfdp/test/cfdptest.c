@@ -9,6 +9,7 @@
 #include "cfdp.h"
 #include "bputa.h"
 #include "cfdpP.h"
+#include <glob.h>
 
 /* check directory listing extension */
 #ifndef NO_DIRLIST
@@ -1163,6 +1164,8 @@ custody transfer>");
 	PUTS("\t   R");
 	PUTS("\tu\tAdd message to user");
 	PUTS("\t   u '<message text>'");
+	PUTS("\tx\tList local directory (supports wildcards)");
+	PUTS("\t   x [directory_path_or_pattern]");
 	PUTS("\tL <remote_dir> <local_file>\tList remote directory (ION extension).");
 	PUTS("\tD <local_file>\t\tDisplay directory listing file (ION extension).");
 	PUTS("\t&\tSend file per specified parameters");
@@ -1258,6 +1261,87 @@ static void	setDestFileName(int tokenCount, char **tokens,
 
 	isprintf(destFileNameBuf, 256, "%.255s", tokens[1]);
 	*destFileName = destFileNameBuf;
+}
+
+static int	hasGlobChars(const char *s)
+{
+	while (*s)
+	{
+		if (*s == '*' || *s == '?' || *s == '[')
+		{
+			return 1;
+		}
+
+		s++;
+	}
+
+	return 0;
+}
+
+static void	listLocalDirectory(int tokenCount, char **tokens)
+{
+	const char	*path;
+	DIR		*dir;
+	struct dirent	*entry;
+	glob_t		results;
+	int		rc;
+	size_t		i;
+
+	if (tokenCount > 2)
+	{
+		PUTS("Usage: x [directory_path_or_pattern]");
+		fflush(stdout);
+		return;
+	}
+
+	path = (tokenCount == 2) ? tokens[1] : ".";
+
+	if (hasGlobChars(path))
+	{
+		rc = glob(path, GLOB_NOSORT, NULL, &results);
+		if (rc == GLOB_NOMATCH)
+		{
+			PUTS_FMT("No matches for '%s'", path);
+			return;
+		}
+
+		if (rc != 0)
+		{
+			PUTS_FMT("Glob error on '%s'", path);
+			return;
+		}
+
+		PUTS_FMT("Matches for: %s", path);
+		for (i = 0; i < results.gl_pathc; i++)
+		{
+			PUTS_FMT("  %s", results.gl_pathv[i]);
+		}
+
+		globfree(&results);
+		return;
+	}
+
+	dir = opendir(path);
+	if (dir == NULL)
+	{
+		PUTS_FMT("Can't open directory '%s': %s", path,
+				strerror(errno));
+		return;
+	}
+
+	PUTS_FMT("Directory: %s", path);
+	while ((entry = readdir(dir)) != NULL)
+	{
+		if (strcmp(entry->d_name, ".") == 0
+		|| strcmp(entry->d_name, "..") == 0)
+		{
+			continue;
+		}
+
+		PUTS_FMT("  %s", entry->d_name);
+	}
+
+	closedir(dir);
 }
 
 static void	resetFileNames(int tokenCount, char **tokens,
@@ -1796,6 +1880,10 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 			displayDirListing(tokens[1]);
 			return 0;
 #endif
+
+		case 'x':
+			listLocalDirectory(tokenCount, tokens);
+			return 0;
 
 		case '&':
 			if (cfdp_put(&(parms->destinationEntityNbr),
