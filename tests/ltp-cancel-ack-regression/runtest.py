@@ -11,11 +11,21 @@ import socket
 import sys
 import time
 
-from bespokebpv7.block_enum import CRCType  # type: ignore
-from bespokebpv7.bpv7 import BPv7  # type: ignore
-from bespokebpv7.ltp import LTP  # type: ignore
-from bespokebpv7.segment_enum import CancelReasonCode, LTPSegmentType  # type: ignore
-from bespokebpv7.segments import CancelSegment, DataSegment  # type: ignore
+try:
+    from bespokebpv7.block_enum import CRCType  # type: ignore[import-untyped]
+    from bespokebpv7.bpv7 import BPv7  # type: ignore[import-untyped]
+    from bespokebpv7.ltp import LTP  # type: ignore[import-untyped]
+    from bespokebpv7.segment_enum import (  # type: ignore[import-untyped]
+        CancelReasonCode,
+        LTPSegmentType,
+    )
+    from bespokebpv7.segments import (  # type: ignore[import-untyped]
+        CancelSegment,
+        DataSegment,
+    )
+except ImportError:
+    print("SKIP: bespokebpv7 module not found. Please install bespokebpv7.")
+    sys.exit(2)
 
 
 def generate_data(dest_port, engine_id, session_id) -> None:

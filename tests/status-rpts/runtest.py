@@ -47,9 +47,18 @@ import time
 from pathlib import Path
 from queue import Empty, Queue
 
-from bespokebpv7.admin_records import BundleStatusReport  # type: ignore[import-untyped]
-from bespokebpv7.block_enum import BlockType, CRCType  # type: ignore[import-untyped]
-from bespokebpv7.bpv7 import BPv7  # type: ignore[import-untyped]
+try:
+    from bespokebpv7.admin_records import (
+        BundleStatusReport,  # type: ignore[import-untyped]
+    )
+    from bespokebpv7.block_enum import (  # type: ignore[import-untyped]
+        BlockType,
+        CRCType,
+    )
+    from bespokebpv7.bpv7 import BPv7  # type: ignore[import-untyped]
+except ImportError:
+    print("SKIP: bespokebpv7 module not found. Please install bespokebpv7.")
+    sys.exit(2)
 
 report_queue: Queue[bytes] = Queue()
 
