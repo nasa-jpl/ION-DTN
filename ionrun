@@ -28,6 +28,7 @@ CL2=""            # ltp, tcp, udp (3-node only)
 PORT1=""          # port for CL1
 PORT2=""          # port for CL2 (3-node only)
 NODE_PORTS=()     # per-node listening ports (same-host only)
+ENABLE_CFDP=false # whether to generate cfdpadmin config
 
 # --- Usage ---
 usage() {
@@ -414,6 +415,15 @@ prompt_convergence_layers() {
     fi
 }
 
+prompt_cfdp() {
+    echo ""
+    read -rp "Enable CFDP (file transfer)? [y/N]: " choice
+    case "$choice" in
+        [yY]*) ENABLE_CFDP=true ;;
+        *)     ENABLE_CFDP=false ;;
+    esac
+}
+
 # --- Helper: get the CL for a link between two node indices ---
 # For loopback/2-node: always CL1
 # For 3-node: CL1 between indices 0-1, CL2 between indices 1-2
@@ -612,6 +622,8 @@ write_bpadmin() {
     echo "a endpoint ipn:${my_id}.1 q" >> "$out"
     echo "a endpoint ipn:${my_id}.2 q" >> "$out"
     echo "a endpoint ipn:${my_id}.3 q" >> "$out"
+    echo "a endpoint ipn:${my_id}.64 q" >> "$out"
+    echo "a endpoint ipn:${my_id}.65 q" >> "$out"
 
     # Collect unique CLs this node uses
     local cls=()
@@ -791,6 +803,27 @@ write_ipnadmin() {
     echo "" >> "$out"
 }
 
+# Write cfdpadmin section for a node
+write_cfdpadmin() {
+    local out="$1" idx="$2" tag="$3"
+    local my_id="${NODE_IDS[$idx]}"
+
+    echo "## begin cfdpadmin${tag:+ $tag}" >> "$out"
+    echo "1" >> "$out"
+    # Add entity entries for all peer nodes
+    for peer in $(seq 0 $((NODE_COUNT - 1))); do
+        if [[ "$peer" -ne "$idx" ]]; then
+            local peer_id="${NODE_IDS[$peer]}"
+            echo "a entity $peer_id bp ipn:${peer_id}.0 7 0 0" >> "$out"
+        fi
+    done
+    echo "m discard 1" >> "$out"
+    echo "m segsize 65000" >> "$out"
+    echo "s 'bputa'" >> "$out"
+    echo "## end cfdpadmin${tag:+ $tag}" >> "$out"
+    echo "" >> "$out"
+}
+
 # --- Config generation: loopback (no tags) ---
 generate_loopback_config() {
     local out="$WORKDIR/ionrun.rc"
@@ -850,6 +883,13 @@ generate_multinode_config() {
     for i in $(seq 0 $((NODE_COUNT - 1))); do
         write_ipnadmin "$out" "$i" "${NODE_NAMES[$i]}"
     done
+
+    # cfdpadmin sections (optional)
+    if [[ "$ENABLE_CFDP" == true ]]; then
+        for i in $(seq 0 $((NODE_COUNT - 1))); do
+            write_cfdpadmin "$out" "$i" "${NODE_NAMES[$i]}"
+        done
+    fi
 }
 
 # --- Config generation: same-host multi-node (per-node subdirs) ---
@@ -892,6 +932,9 @@ generate_local_config() {
         fi
         write_bpadmin "$out" "$i" ""
         write_ipnadmin "$out" "$i" ""
+        if [[ "$ENABLE_CFDP" == true ]]; then
+            write_cfdpadmin "$out" "$i" ""
+        fi
     done
 }
 
@@ -921,6 +964,9 @@ EOF
             echo "node${n}_port=${NODE_PORTS[$i]}" >> "$meta"
         done
     fi
+    if [[ "$ENABLE_CFDP" == true ]]; then
+        echo "cfdp=true" >> "$meta"
+    fi
 }
 
 # --- Wizard orchestrator ---
@@ -929,6 +975,9 @@ run_wizard() {
     prompt_topology
     prompt_nodes
     prompt_convergence_layers
+    if [[ "$TOPOLOGY" != "loopback" ]]; then
+        prompt_cfdp
+    fi
 
     # Clean up artifacts from previous topology (e.g. switching from
     # remote multi-node to same-host or vice versa).
