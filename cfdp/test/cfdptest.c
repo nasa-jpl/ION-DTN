@@ -895,7 +895,8 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
 		CfdpCondition condition, CfdpDeliveryCode deliveryCode,
 		CfdpFileStatus fileStatus, uvast progress,
 		CfdpTransactionId *transactionId,
-		unsigned int closureRequested, char *destFileNameBuf)
+		unsigned int closureRequested, char *sourceFileNameBuf,
+		char *destFileNameBuf, uvast fileSize)
 {
 	uvast srcEntityNbr, txnNbr;
 	char entityBuf[FQN_MAX_LENGTH];
@@ -972,9 +973,44 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
 
 	/* Display event-specific critical parameters based on field applicability analysis */
 	switch (type) {
+		case CfdpMetadataRecvInd:         // Event 4
+			if (sourceFileNameBuf && sourceFileNameBuf[0]) {
+				PUTS_FMT("Source File: %s", sourceFileNameBuf);
+			}
+			if (destFileNameBuf && destFileNameBuf[0]) {
+				PUTS_FMT("Dest File: %s", destFileNameBuf);
+			}
+			if (fileSize > 0) {
+				PUTS_FMT("File Size: " UVAST_FIELDSPEC " bytes", fileSize);
+			}
+			/* Update tracker with file info from metadata */
+			{
+				int tidx = findTransactionIndex(transactionId);
+				if (tidx >= 0) {
+					if (sourceFileNameBuf && sourceFileNameBuf[0]
+					&& !transactionTrackers[tidx].sourceFileName[0]) {
+						istrcpy(transactionTrackers[tidx].sourceFileName,
+							sourceFileNameBuf,
+							sizeof(transactionTrackers[tidx].sourceFileName));
+					}
+					if (destFileNameBuf && destFileNameBuf[0]
+					&& !transactionTrackers[tidx].destFileName[0]) {
+						istrcpy(transactionTrackers[tidx].destFileName,
+							destFileNameBuf,
+							sizeof(transactionTrackers[tidx].destFileName));
+					}
+					if (fileSize > 0) {
+						transactionTrackers[tidx].fileSize = fileSize;
+					}
+				}
+			}
+			if (condition != CfdpNoError) {
+				PUTS_FMT("Condition: %s (%d)", getConditionName(condition), condition);
+			}
+			break;
+
 		case CfdpTransactionInd:          // Event 1
 		case CfdpEofSentInd:              // Event 2
-		case CfdpMetadataRecvInd:         // Event 4
 		case CfdpFileSegmentRecvInd:      // Event 5
 		case CfdpEofRecvInd:              // Event 6
 		case CfdpSuspendedInd:            // Event 7
@@ -2074,7 +2110,7 @@ static void	*handleEvents(void *parm)
 
 		reportCfdpEvent(type, statusReportBuf, condition, deliveryCode,
 			fileStatus, progress, &transactionId, closureRequested,
-			destFileNameBuf);
+			sourceFileNameBuf, destFileNameBuf, fileSize);
 
 		if (type == CfdpAccessEnded)
 		{
