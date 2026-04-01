@@ -9,6 +9,7 @@
     - [Topology Types](#topology-types)
     - [Node Configuration](#node-configuration)
     - [Convergence Layers](#convergence-layers)
+    - [CFDP (File Transfer)](#cfdp-file-transfer)
     - [Port Numbers](#port-numbers)
   - [Generated Files](#generated-files)
     - [ionrun.rc](#ionrunrc)
@@ -21,6 +22,7 @@
     - [Two Nodes on the Same Host](#two-nodes-on-the-same-host)
     - [Three Nodes on the Same Host](#three-nodes-on-the-same-host)
     - [Custom Port Numbers](#custom-port-numbers)
+    - [Regenerate Configuration](#regenerate-configuration)
   - [Multi-Node Workflow](#multi-node-workflow)
     - [Remote (Multi-Host)](#remote-multi-host)
     - [Same-Host](#same-host)
@@ -36,7 +38,7 @@
 3. Generates a combined configuration file (`ionrun.rc`) compatible with `ionstart -I`
 4. Optionally starts ION immediately
 
-On subsequent runs in the same directory, it detects the existing configuration and starts ION directly.
+On subsequent runs in the same directory, it detects the existing configuration and starts ION directly. The `--regenerate` option can rewrite config files from saved metadata without re-running the wizard, which is useful after updating `ionrun` itself.
 
 ## Usage
 
@@ -49,6 +51,7 @@ Options:
   -n, --node <name>     Start a specific node (skip interactive selection)
   -g, --generate-only   Generate config files without starting ION
   -f, --force           Regenerate config even if one already exists
+  -r, --regenerate      Regenerate config from existing ionrun.meta (no wizard)
 ```
 
 ## Interactive Wizard
@@ -89,6 +92,21 @@ Three convergence layers are supported:
 - For **3-node** (remote) topologies, two convergence layers are selected independently: one for the link between nodes 1-2, and another for the link between nodes 2-3. This allows mixed-CL networks (e.g., LTP on one hop and TCP on the other).
 
 For **same-host** topologies, each node is automatically assigned a unique listening port starting from the base port. For example, with a base port of 1113: node1 gets 1113, node2 gets 1114, node3 gets 1115.
+
+### CFDP (File Transfer)
+
+For non-loopback topologies, the wizard asks whether to enable CFDP (CCSDS File Delivery Protocol). When enabled, `ionrun` generates a `cfdpadmin` configuration section for each node that includes:
+
+- CFDP initialization
+- Entity entries for all peer nodes (using BP transport, RTT of 7 seconds)
+- Default settings: discard incomplete files on cancellation, 65,000-byte segment size
+- `bputa` (BP UT Adapter) startup
+
+The BP endpoints required by CFDP (service numbers 64 and 65) are always registered in the `bpadmin` section for all topologies.
+
+CFDP is not offered for loopback topologies due to complications with single-node CFDP operation.
+
+Once ION is running with CFDP enabled, you can use `cfdptest` interactively to send and receive files. Note that CFDP resolves relative file paths against the ION node's working directory, so use absolute paths when running `cfdptest` from a different directory.
 
 ### Port Numbers
 
@@ -400,6 +418,22 @@ Select convergence layer:
 
 This generates TCP configuration using port 9000 instead of the default 4556.
 
+### Regenerate Configuration
+
+If `ionrun` has been updated (e.g., to pick up bug fixes in config generation), you can regenerate the configuration files from the saved metadata without re-running the wizard:
+
+```bash
+$ ionrun -r ~/ion-2local
+Configuration regenerated from /home/user/ion-2local/ionrun.meta
+```
+
+This reads the topology parameters from `ionrun.meta` and regenerates `ionrun.rc` (and `ionrun.ionconfig` for same-host topologies). The original parameters are preserved — only the generated config files are rewritten. Combine with `-g` to regenerate without starting ION:
+
+```bash
+$ ionrun -r -g ~/ion-2local
+Configuration regenerated from /home/user/ion-2local/ionrun.meta
+```
+
 ## Multi-Node Workflow
 
 ### Remote (Multi-Host)
@@ -448,9 +482,9 @@ After starting a node, `ionrun` prints the `export` commands you need to run in 
 ## end bpadmin [tag]
 ```
 
-Programs are always executed in a fixed order: `ionadmin`, `ionsecadmin`, `ltpadmin`, `bpadmin`, `ipnadmin`. When a tag is specified with `-t`, only sections matching that tag are processed.
+Programs are always executed in a fixed order: `ionadmin`, `ionsecadmin`, `ltpadmin`, `bpadmin`, `cfdpadmin` (if enabled), `ipnadmin`. When a tag is specified with `-t`, only sections matching that tag are processed.
 
-For same-host topologies, each node's `ionrun.rc` is a standalone file (no tags) and the `ionadmin` init line references the local `ionrun.ionconfig` file (e.g., `1 1 ionrun.ionconfig`). Each node registers four endpoints: `.0` (admin, disposition `x`), `.1`, `.2`, and `.3` (user, disposition `q`).
+For same-host topologies, each node's `ionrun.rc` is a standalone file (no tags) and the `ionadmin` init line references the local `ionrun.ionconfig` file (e.g., `1 1 ionrun.ionconfig`). Each node registers endpoints: `.0` (admin, disposition `x`), `.1`, `.2`, `.3` (user, disposition `q`), and `.64`, `.65` (CFDP, disposition `q`).
 
 The generated configuration uses these fixed parameters:
 

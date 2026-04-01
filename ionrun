@@ -16,6 +16,7 @@ OPT_STOP=false
 OPT_NODE=""
 OPT_GENERATE_ONLY=false
 OPT_FORCE=false
+OPT_REGEN=false
 
 # Wizard state (arrays indexed from 0)
 TOPOLOGY=""       # loopback, 2node, 3node
@@ -43,6 +44,7 @@ Options:
   -n, --node <name>     Start a specific node (skip interactive selection)
   -g, --generate-only   Generate config files without starting ION
   -f, --force           Regenerate config even if one already exists
+  -r, --regenerate      Regenerate config from existing ionrun.meta (no wizard)
 
 Arguments:
   working_directory     Directory where ION config and runtime files are stored.
@@ -54,6 +56,7 @@ Examples:
   ionrun -n node1 ~/3node-test        # Start node1 without prompting
   ionrun -g ~/my-ion-test             # Generate config only, don't start
   ionrun -f ~/my-ion-test             # Re-run wizard, overwrite config
+  ionrun -r ~/my-ion-test             # Regenerate config from saved metadata
   ionrun -s ~/my-ion-test             # Stop ION in that directory
 EOF
     exit 0
@@ -84,6 +87,10 @@ parse_args() {
                 ;;
             -f|--force)
                 OPT_FORCE=true
+                shift
+                ;;
+            -r|--regenerate)
+                OPT_REGEN=true
                 shift
                 ;;
             -*)
@@ -969,6 +976,50 @@ EOF
     fi
 }
 
+# --- Load metadata (for --regenerate) ---
+load_meta() {
+    local meta="$1"
+    if [[ ! -f "$meta" ]]; then
+        echo "Error: $meta not found. Cannot regenerate." >&2
+        exit 1
+    fi
+
+    # Helper to read a key from the meta file
+    meta_val() { grep "^${1}=" "$meta" | cut -d= -f2; }
+
+    TOPOLOGY=$(meta_val topology)
+    NODE_COUNT=$(meta_val node_count)
+
+    NODE_NAMES=()
+    NODE_IDS=()
+    NODE_IPS=()
+    NODE_PORTS=()
+
+    for i in $(seq 1 "$NODE_COUNT"); do
+        NODE_NAMES+=("$(meta_val "node${i}_name")")
+        NODE_IDS+=("$(meta_val "node${i}_id")")
+        NODE_IPS+=("$(meta_val "node${i}_ip")")
+        local nport
+        nport=$(meta_val "node${i}_port")
+        if [[ -n "$nport" ]]; then
+            NODE_PORTS+=("$nport")
+        fi
+    done
+
+    CL1=$(meta_val cl1)
+    PORT1=$(meta_val port1)
+    CL2=$(meta_val cl2)
+    PORT2=$(meta_val port2)
+
+    local cfdp_val
+    cfdp_val=$(meta_val cfdp)
+    if [[ "$cfdp_val" == "true" ]]; then
+        ENABLE_CFDP=true
+    else
+        ENABLE_CFDP=false
+    fi
+}
+
 # --- Wizard orchestrator ---
 run_wizard() {
     echo "=== ION Configuration Wizard ==="
@@ -1038,7 +1089,23 @@ main() {
 
     local meta="$WORKDIR/ionrun.meta"
 
-    if [[ -f "$meta" && "$OPT_FORCE" != true ]]; then
+    if [[ "$OPT_REGEN" == true ]]; then
+        # Regenerate config from existing metadata (no wizard)
+        load_meta "$meta"
+        if [[ "$TOPOLOGY" == "loopback" ]]; then
+            generate_loopback_config
+        elif is_local_topology; then
+            generate_local_config
+        else
+            generate_multinode_config
+        fi
+        write_meta
+        echo "Configuration regenerated from $meta"
+        if [[ "$OPT_GENERATE_ONLY" != true ]]; then
+            echo ""
+            run_ion
+        fi
+    elif [[ -f "$meta" && "$OPT_FORCE" != true ]]; then
         # Existing config: run or report
         run_ion
     else
