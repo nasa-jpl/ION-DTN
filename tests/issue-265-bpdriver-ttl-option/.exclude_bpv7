@@ -1,1 +1,0 @@
-This test currently depends on the BPv6 header length to find the TTL value. Marking this test as BPv6 only until it can be updated.
