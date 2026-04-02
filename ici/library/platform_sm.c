@@ -3017,10 +3017,10 @@ static SmGlobalSemtable	*_sembase(int action)
 	if (action == IPC_ACTION_DETACH)
 	{
 		sembaseId = 0;
-		psemGlobal->sembaseId = 0;
 
 		/* if sembase exists, detach from shared memory */
 		if (psemGlobal != NULL) {
+			psemGlobal->sembaseId = 0;
 			oK(shmdt(psemGlobal));
 		}
 		psemGlobal = NULL;

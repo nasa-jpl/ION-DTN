@@ -1751,7 +1751,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 	Object		dlvElt;
 	Object		bundleAddr;
 	Bundle		bundle;
-	TimerParms	timerParms;
+	static TimerParms	timerParms;
 	pthread_t	timerThread;
 	int		result;
 
