@@ -285,14 +285,6 @@ jobs:
             !**/*.md
           key: ion-build-${{ matrix.runner }}-${{ github.sha }}
 
-      - name: Diagnose Python Environment
-        if: ${{ steps.cache-restore.outputs.cache-hit == 'true' }}
-        run: |
-          echo "=== Python Environment Diagnostics ==="
-          cd tests
-          bash ./diagnose-python-env.sh
-          echo "=== End Diagnostics ==="
-
       - name: Install ION and run tests
         if: ${{ steps.cache-restore.outputs.cache-hit == 'true' }}
         timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '90') }}
