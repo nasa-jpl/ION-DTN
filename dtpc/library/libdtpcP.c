@@ -1659,6 +1659,7 @@ int	addProfile(unsigned int profileID, unsigned int maxRtx,
 		return 0;
 	}
 
+	memset((char *) &profile, 0, sizeof(Profile));
 	profile.profileID = profileID;
 	profile.maxRtx = maxRtx;
 	profile.aggrSizeLimit = aggrSizeLimit;
