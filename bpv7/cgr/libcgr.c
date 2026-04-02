@@ -967,7 +967,7 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 	PsmAddress	routeElt;
 	PsmAddress	nextRouteElt;
 	PsmAddress	routeAddr;
-	CgrRoute	*route;
+	CgrRoute	*route = NULL;
 	PsmAddress	rootPathContactElt;
 	PsmAddress	nextRootPathContactElt;
 	PsmAddress	rootPathContactAddr;

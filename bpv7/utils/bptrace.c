@@ -87,6 +87,16 @@ char* dtnTimeToDate(uvast time){
 
 char* statusToString(int statusFlags, char* buf, unsigned buflen){
 	char* buffer = malloc(32);
+	if (buffer == NULL)
+	{
+		if (buflen > 0)
+		{
+			buf[0] = '\0';
+		}
+
+		return buf;
+	}
+
 	strcpy(buffer, "");
 	// note that BP_CUSTODY_RPT is ignored here, as that is not appliccable in bpv7
 	if(statusFlags & BP_RECEIVED_RPT)

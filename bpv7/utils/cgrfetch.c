@@ -189,6 +189,11 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 	switch (traceType) {
 	case CgrBeginRoute:
 		traceState->route = MTAKE(sizeof(Route));
+		if (traceState->route == NULL)
+		{
+			return;
+		}
+
 		traceState->route->flag = DEFAULT;
 		traceState->route->ignoreReason = CgrReasonMax;
 		traceState->route->hops = lyst_create();
@@ -198,6 +203,11 @@ static void handleTraceState(void *data, unsigned int lineNbr,
 	case CgrHop:
 		// Create a new hop and add to the current route.
 		hop = MTAKE(sizeof(Hop));
+		if (hop == NULL)
+		{
+			return;
+		}
+
 		hop->fromFqnn = va_arg(args, uvast);
 		hop->toFqnn = va_arg(args, uvast);
 

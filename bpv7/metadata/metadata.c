@@ -294,6 +294,11 @@ int extractMetadataFromFile(const char *filename, Metadata *meta)
 	fseek(file, offset, SEEK_SET);
 	bytes_read = fread(&meta->aux_command_length, 1, auxTypeSize, file);
 	offset += bytes_read;
+	if (meta->aux_command_length > MAX_METADATA_LEN)
+	{
+		fclose(file);
+		return -1;
+	}
 
 	fseek(file, offset, SEEK_SET);
 	if (meta->aux_command_length > 0)
