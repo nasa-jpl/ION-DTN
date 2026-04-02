@@ -778,6 +778,7 @@ static int	addService(int tokenCount, char** tokens)
 	int		len = 0;
 	IpndTagChild	dummyChild;
 
+	memset(&dummyChild, 0, sizeof(IpndTagChild));
 	dummyChild.tag = ctx->tags + id;
 	if (constructServiceDefinition(ctx->tags, &dummyChild, data, &len,
 			MAX_BEACON_SIZE) < 0)
