@@ -2536,6 +2536,12 @@ static int	noLongerReferenced(char *outductName)
 
 	CHKERR(sdr_begin_xn(sdr));
 	findOutduct("tcp", outductName, &vduct, &vductElt);
+	if (vductElt == 0)
+	{
+		sdr_exit_xn(sdr);
+		return 1;	/*	Outduct not found; not in use.	*/
+	}
+
 	for (planElt = sdr_list_first(sdr, getBpConstants()->plans); planElt;
 			planElt = sdr_list_next(sdr, planElt))
 	{

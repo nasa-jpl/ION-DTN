@@ -3750,9 +3750,11 @@ void	removeImportSession(Object sessionObj)
 	CHKVOID(ionLocked());
 	GET_OBJ_POINTER(sdr, LtpImportSession, session, sessionObj);
 	GET_OBJ_POINTER(sdr, LtpSpan, span, session->span);
-	sdr_hash_remove(sdr, span->importSessionsHash,
-			(char *) &(session->sessionNbr), (Address *) &elt);
-	sdr_list_delete(sdr, elt, NULL, NULL);
+	if (sdr_hash_remove(sdr, span->importSessionsHash,
+			(char *) &(session->sessionNbr), (Address *) &elt) > 0)
+	{
+		sdr_list_delete(sdr, elt, NULL, NULL);
+	}
 }
 
 static void	noteClosedImport(Sdr sdr, LtpSpan *span,

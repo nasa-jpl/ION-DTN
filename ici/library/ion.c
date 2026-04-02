@@ -1577,7 +1577,12 @@ void	writeTimestampLocal(time_t timestamp, char *timestampBuffer)
 	struct tm	*ts = &tsbuf;
 
 	CHKVOID(timestampBuffer);
-	oK(localtime_r(&timestamp, &tsbuf));
+	if (localtime_r(&timestamp, &tsbuf) == NULL)
+	{
+		istrcpy(timestampBuffer, "0000/0/0-00:00:00", 20);
+		return;
+	}
+
 	isprintf(timestampBuffer, 20, timestampOutFormat,
 			ts->tm_year + 1900, ts->tm_mon + 1, ts->tm_mday,
 			ts->tm_hour, ts->tm_min, ts->tm_sec);
@@ -1589,7 +1594,12 @@ void	writeTimestampUTC(time_t timestamp, char *timestampBuffer)
 	struct tm	*ts = &tsbuf;
 
 	CHKVOID(timestampBuffer);
-	oK(gmtime_r(&timestamp, &tsbuf));
+	if (gmtime_r(&timestamp, &tsbuf) == NULL)
+	{
+		istrcpy(timestampBuffer, "0000/0/0-00:00:00", 20);
+		return;
+	}
+
 	isprintf(timestampBuffer, 20, timestampOutFormat,
 			ts->tm_year + 1900, ts->tm_mon + 1, ts->tm_mday,
 			ts->tm_hour, ts->tm_min, ts->tm_sec);

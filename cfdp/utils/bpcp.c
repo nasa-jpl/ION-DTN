@@ -1118,7 +1118,7 @@ return 0;
  * Exits program on error.*/
 static int do_local_cmd(char *cmdln)
 {
-	int status;
+	int status = -1;
 	int pid;
 
 	/*Sanity checks*/

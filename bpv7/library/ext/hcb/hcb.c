@@ -97,12 +97,14 @@ int	hcb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
 		writeMemo("[?] Can't decode hop limit.");
+		return 0;
 	}
 
 	bundle->hopLimit = uvtemp;
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
 		writeMemo("[?] Can't decode hop count.");
+		return 0;
 	}
 
 	bundle->hopCount = uvtemp;

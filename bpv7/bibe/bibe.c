@@ -38,7 +38,7 @@ void	bibeAdd(char *peerEid, unsigned int fwdLatency,
 	Object		bclaAddr;
 	Object		bclaElt;
 	char		schemeName[MAX_SCHEME_NAME_LEN + 1];
-	VScheme		*vscheme;
+	VScheme		*vscheme = NULL;
 	PsmAddress	vschemeElt;
 	Scheme		scheme;
 	Bcla		bcla;
@@ -207,7 +207,7 @@ void	bibeFind(char *peerEid, Object *bclaAddr, Object *bclaElt)
 {
 	Sdr		sdr = getIonsdr();
 	char		schemeName[MAX_SCHEME_NAME_LEN + 1];
-	VScheme		*vscheme;
+	VScheme		*vscheme = NULL;
 	PsmAddress	vschemeElt;
 	Scheme		scheme;
 	Object		elt;
