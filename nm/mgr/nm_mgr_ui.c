@@ -409,6 +409,11 @@ rule_t *ui_create_sbr_from_parms(tnvc_t parms)
 	ari_t *id = adm_get_parm_obj(&parms, 0, AMP_TYPE_ARI);
 	uvast start = adm_get_parm_uvast(&parms, 1, &success);
 	expr_t *state = adm_get_parm_obj(&parms, 2, AMP_TYPE_EXPR);
+	if (state == NULL)
+	{
+		return NULL;
+	}
+
 	def.expr = *state;
 	SRELEASE(state);
 	def.max_eval = adm_get_parm_uvast(&parms, 3, &success);

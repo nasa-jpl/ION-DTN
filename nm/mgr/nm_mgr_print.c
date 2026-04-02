@@ -224,6 +224,10 @@ int ui_print_agents(void)
 	}
 
 	list = calloc(num_agents, sizeof(ui_menu_list_t) );
+	if (list == NULL)
+	{
+		return -1;
+	}
 
 	for(it = vecit_first(&(gMgrDB.agents)); vecit_valid(it); it = vecit_next(it))
 	{
@@ -235,7 +239,10 @@ int ui_print_agents(void)
 		if (tmp > 0)
 		{
 			list[i].description = malloc(32);
-			snprintf(list[i].description, 32, "%d reports & %d tables", tmp, tmp2);
+			if (list[i].description != NULL)
+			{
+				snprintf(list[i].description, 32, "%d reports & %d tables", tmp, tmp2);
+			}
 		}
 		else
 		{

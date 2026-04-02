@@ -66,9 +66,20 @@ void	copyBeacon(Beacon* dest, Beacon* src)
 			def = (ServiceDefinition*) lyst_data(cur);
 			newDef = (ServiceDefinition*)
 					MTAKE(sizeof(ServiceDefinition));
+			if (newDef == NULL)
+			{
+				return;
+			}
+
 			newDef->dataLength = def->dataLength;
 			newDef->number = def->number;
 			newDef->data = MTAKE(def->dataLength);
+			if (newDef->data == NULL)
+			{
+				MRELEASE(newDef);
+				return;
+			}
+
 			memcpy(newDef->data, def->data, def->dataLength);
 			lyst_insert(dest->services, newDef);
 		}
@@ -77,7 +88,10 @@ void	copyBeacon(Beacon* dest, Beacon* src)
 	if (src->bloom.ready)
 	{
 		dest->bloom.bf = MTAKE(src->bloom.bytes);
-		memcpy(dest->bloom.bf, src->bloom.bf, src->bloom.bytes);
+		if (dest->bloom.bf != NULL)
+		{
+			memcpy(dest->bloom.bf, src->bloom.bf, src->bloom.bytes);
+		}
 	}
 }
 
@@ -474,7 +488,18 @@ int	populateBeacon(Beacon *beacon, const int period)
 
 			defNew = (ServiceDefinition*)
 					MTAKE(sizeof(ServiceDefinition));
+			if (defNew == NULL)
+			{
+				return -1;
+			}
+
 			defNew->data = MTAKE(def->dataLength);
+			if (defNew->data == NULL)
+			{
+				MRELEASE(defNew);
+				return -1;
+			}
+
 			defNew->number = def->number;
 			defNew->dataLength = def->dataLength;
 			memcpy(defNew->data, def->data, def->dataLength);
