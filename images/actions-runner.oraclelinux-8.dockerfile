@@ -172,7 +172,7 @@ USER runner
 ENV PYENV_GIT_TAG=v2.6.26
 RUN curl https://pyenv.run | bash
 ENV PYENV_ROOT="/home/runner/.pyenv"
-ENV PATH="${PYENV_ROOT}/bin:/home/runner/.local/bin/:${PATH}"
+ENV PATH="${PYENV_ROOT}/shims:${PYENV_ROOT}/bin:/home/runner/.local/bin/:${PATH}"
 RUN echo 'eval "$(pyenv init - bash)"' >> ~/.bashrc
 
 # Install python and clear out sources/cache to save space
@@ -200,7 +200,7 @@ LABEL org.opencontainers.image.created="${BUILD_DATE}"
 LABEL org.opencontainers.image.revision="${REV}"
 
 ENV PYENV_ROOT="/home/runner/.pyenv"
-ENV PATH="${PYENV_ROOT}/bin:/home/runner/.local/bin/:${PATH}"
+ENV PATH="${PYENV_ROOT}/shims:${PYENV_ROOT}/bin:/home/runner/.local/bin/:${PATH}"
 ENV ImageOS=oraclelinux-8
 ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
 # Buildah configuration
