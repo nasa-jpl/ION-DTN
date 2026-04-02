@@ -1657,6 +1657,15 @@ void ui_ctrl_list_menu(int *running)
 	for(i = 1; i < 10; i++)
 	{
 		ctrl_menu_list_descriptions[i] = malloc(32);
+		if (ctrl_menu_list_descriptions[i] == NULL)
+		{
+			int j;
+			for (j = 1; j < i; j++)
+			{
+				free(ctrl_menu_list_descriptions[j]);
+			}
+			return;
+		}
 	}
 	sprintf(ctrl_menu_list_descriptions[1], "(%d known)", gVDB.adm_edds.num_elts);
 	sprintf(ctrl_menu_list_descriptions[2], "(%d known)",  gVDB.adm_atomics.num_elts);

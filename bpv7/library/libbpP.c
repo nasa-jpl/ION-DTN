@@ -12471,7 +12471,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 	unsigned char	*cursor;
 	unsigned int	unparsedBytes;
 	uvast		arrayLength;
-	int		length;
+	int		length = 0;
 	uvast		uvtemp;
 	unsigned int	blockLength;
 	BpCrcType	crcType;

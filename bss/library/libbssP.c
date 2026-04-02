@@ -389,6 +389,11 @@ int	readRecord(int fileD, dataRecord *rec, off_t datOffset)
 
 int	readPayload(int fileD, char* buffer, long length)
 {
+	if (length <= 0)
+	{
+		return -1;
+	}
+
 	if (read(fileD, buffer, length*sizeof(char)) < 0)
 	{
 		putSysErrmsg("BSS library: can't read payload from .dat file",
