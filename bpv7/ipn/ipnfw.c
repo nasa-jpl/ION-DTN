@@ -781,6 +781,12 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 	 *	forwarding station.		 			*/
 
 	CHKERR(bundle && bundleObj && terminusNode);
+	if (ionvdb == NULL || cgrvdb == NULL)
+	{
+		putErrmsg("Can't get VDB for CGR.", NULL);
+		return -1;
+	}
+
 	TRACE(CgrBuildRoutes, terminusNode->fqnn, bundle->payload.length,
 			(unsigned int) atTime);
 

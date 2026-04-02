@@ -229,6 +229,11 @@ static uvast 	getBestEntryNode(Bundle *bundle, IonNode *terminusNode,
 	CgrTrace	*trace = NULL;
 #endif
 
+	if (ionvdb == NULL || cgrvdb == NULL)
+	{
+		return 0;
+	}
+
 	/*	Determine whether or not the contact graph for the
 	 *	terminus node identifies one or more routes over
 	 *	which the bundle may be sent in order to get it

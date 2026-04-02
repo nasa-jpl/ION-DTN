@@ -560,6 +560,10 @@ int ui_automator_parse_input(char *str)
 	// Get Command (first space-delimited token)
 	//  Note: We currently look at only the first character of the first token
 	token = strtok(str, s);
+	if (token == NULL)
+	{
+		return -1;
+	}
 
 	switch(token[0])
 	{

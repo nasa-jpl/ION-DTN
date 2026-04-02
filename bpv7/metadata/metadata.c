@@ -677,8 +677,20 @@ char **parseCommandString(const char *inputString, int *count)
 {
 	char   *str = myStrdup(inputString);
 	size_t  capacity = 5;
-	char  **result = MTAKE(capacity * sizeof(char *));
+	char  **result;
 	*count = 0;
+	if (str == NULL)
+	{
+		return NULL;
+	}
+
+	result = MTAKE(capacity * sizeof(char *));
+	if (result == NULL)
+	{
+		MRELEASE(str);
+		return NULL;
+	}
+
 	char *token = strtok(str, ",");
 
 	while (token != NULL)
@@ -687,8 +699,24 @@ char **parseCommandString(const char *inputString, int *count)
 
 		if ((size_t)*count >= capacity)
 		{
+			char **newResult;
+
 			capacity *= 2;
-			result = realloc(result, capacity * sizeof(char *));
+			newResult = realloc(result, capacity * sizeof(char *));
+			if (newResult == NULL)
+			{
+				int j;
+				for (j = 0; j < *count; j++)
+				{
+					MRELEASE(result[j]);
+				}
+				MRELEASE(result);
+				MRELEASE(str);
+				*count = 0;
+				return NULL;
+			}
+
+			result = newResult;
 		}
 		if (!isOnlyWhitespace(token))
 		{
