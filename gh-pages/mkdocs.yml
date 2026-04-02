@@ -67,6 +67,7 @@ nav:
     - ION Test Set: ION-TestSet-Readme.md
     - ION Tutorials: ION-Tutorials.md
   - Configuration:
+    - Configuration Tools Overview: Configuration-Tools-Overview.md
     - ionrun Setup Utility: ionrun.md
     - Basic Configuration Tutorial: Basic-Configuration-File-Tutorial.md
     - Configuration Templates: ION-Config-File-Templates.md
