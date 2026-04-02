@@ -87,14 +87,12 @@ echo "Running bespokebpv7 status report test..."
 # Second Bundle: Sent to ipn:5.1 (should be forwarded)
 # Third Bundle: Sent to ipn:3.3 (should be deleted)
 $PYTHON_CMD runtest.py -p parms.json -r 5115 -s 3113
-TEST_RESULT=$?
+RETVAL=$?
 
-if [ $TEST_RESULT -eq 0 ]; then
+if [ $RETVAL -eq 0 ]; then
     echo "SUCCESS: All status report scenarios passed."
-    RETVAL=0
 else
     echo "ERROR: One or more status report scenarios failed."
-    RETVAL=1
 fi
 
 echo

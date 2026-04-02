@@ -123,16 +123,21 @@ echo "Running cancel segment acknowledgment tests..."
 # Scenario A: CS for unknown session
 echo "=== Test Scenario: CS for unknown session (should NOT be acknowledged) ==="
 python3 runtest.py --send-cancel-only --cancel-type CS --dest-port 3113 --engine-id 2 --session-id 99999
+OVERALL_RESULT=$?
 if [ $? -eq 0 ]; then
     echo "SUCCESS: CS segment sent successfully"
 else
     echo "FAILURE: Failed to send CS segment"
-    OVERALL_RESULT=1
 fi
 sleep 2
 
 # Scenario B: CR for unknown session
-if ! python3 runtest.py --scenario "CR for unknown session" --cancel-type CR --dest-port 2113 --ack-port 3113 --engine-id 3 --session-id 99998; then
+python3 runtest.py --scenario "CR for unknown session" --cancel-type CR --dest-port 2113 --ack-port 3113 --engine-id 3 --session-id 99998
+OVERALL_RESULT=$?
+if [ $? -eq 0 ]; then
+    echo "SUCCESS: CS segment sent successfully"
+else
+    echo "FAILURE: Failed to send CS segment"
     OVERALL_RESULT=1
 fi
 sleep 2
@@ -143,13 +148,23 @@ python3 runtest.py --generate-data --dest-port 3113 --engine-id 2 --session-id 1
 sleep 3
 
 # Test CS for potentially completed session
-if ! python3 runtest.py --scenario "CS after data transfer" --cancel-type CS --dest-port 3113 --ack-port 2113 --engine-id 2 --session-id 1; then
+python3 runtest.py --scenario "CS after data transfer" --cancel-type CS --dest-port 3113 --ack-port 2113 --engine-id 2 --session-id 1
+OVERALL_RESULT=$?
+if [ $? -eq 0 ]; then
+    echo "SUCCESS: CS segment sent successfully"
+else
+    echo "FAILURE: Failed to send CS segment"
     OVERALL_RESULT=1
 fi
 sleep 2
 
 # Scenario D: CR after data transfer
-if ! python3 runtest.py --scenario "CR after data transfer" --cancel-type CR --dest-port 2113 --ack-port 3113 --engine-id 3 --session-id 1; then
+python3 runtest.py --scenario "CR after data transfer" --cancel-type CR --dest-port 2113 --ack-port 3113 --engine-id 3 --session-id 1
+OVERALL_RESULT=$?
+if [ $? -eq 0 ]; then
+    echo "SUCCESS: CS segment sent successfully"
+else
+    echo "FAILURE: Failed to send CS segment"
     OVERALL_RESULT=1
 fi
 
