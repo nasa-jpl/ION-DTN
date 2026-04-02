@@ -123,12 +123,32 @@ def receive_bundle(bind_port: int, timeout: int, result_holder: dict) -> None:
     print(f"[Receiver] Received {len(data)} bytes from {addr}")
     print(f"{received_bundle}")
 
+    # Collect all block numbers for validation
+    block_numbers = []
+    for block in received_bundle.blocks.values():
+        block_numbers.append(block.block_number)
+        print(f"[Receiver] Found block type {block.block_type} with block_number {block.block_number}")
+
+    # Check for block number 0 (overflow indicator)
+    if 0 in block_numbers:
+        result_holder["success"] = False
+        result_holder["message"] = "✗ Block with number 0 found (overflow occurred)"
+        print(f"[Receiver] {result_holder['message']}")
+        return
+
+    # Check for duplicate block number 1 (should only be payload)
+    if block_numbers.count(1) > 1:
+        result_holder["success"] = False
+        result_holder["message"] = f"✗ Duplicate block number 1 found ({block_numbers.count(1)} occurrences)"
+        print(f"[Receiver] {result_holder['message']}")
+        return
+
     # Verify block 255 is present
     if BlockType(200) in received_bundle.blocks:
         ext_block = received_bundle.blocks[BlockType(200)]
         if ext_block.block_number == 255:
             result_holder["success"] = True
-            result_holder["message"] = "✓ Block 255 found in received bundle"
+            result_holder["message"] = "✓ Block 255 found, no block 0, no duplicate block 1"
             print(f"[Receiver] {result_holder['message']}")
         else:
             result_holder["success"] = False
