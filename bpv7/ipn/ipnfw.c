@@ -1009,7 +1009,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 	Object		elt;
 	char		eid[SDRSTRING_BUFSZ];
 	MetaEid		metaEid;
-	VScheme		*vscheme;
+	VScheme		*vscheme = NULL;
 	PsmAddress	vschemeElt;
 	uvast		fqnn;
 	IonNode		*node;

@@ -1854,9 +1854,12 @@ static void	closeExportSession(Object sessionObj)
 	 *	list length and thereby possibly enabling a blocked
 	 *	client to append an SDU to the current block.		*/
 
-	sdr_hash_remove(sdr, db.exportSessionsHash,
-			(char *) &(session->sessionNbr), (Address *) &elt);
-	sdr_list_delete(sdr, elt, NULL, NULL);
+	if (sdr_hash_remove(sdr, db.exportSessionsHash,
+			(char *) &(session->sessionNbr), (Address *) &elt) > 0)
+	{
+		sdr_list_delete(sdr, elt, NULL, NULL);
+	}
+
 	sdr_free(sdr, sessionObj);
 #if BSSPDEBUG
 putErrmsg("Closed export session.", itoa(session->sessionNbr));
@@ -2399,9 +2402,11 @@ static int	cancelSessionBySender(BsspExportSession *session,
 	/*	Remove session from active sessions pool, so that the
 	 *	cancellation won't affect flow control.			*/
 
-	sdr_hash_remove(sdr, db.exportSessionsHash,
-			(char *) &(session->sessionNbr), (Address *) &elt);
-	sdr_list_delete(sdr, elt, NULL, NULL);
+	if (sdr_hash_remove(sdr, db.exportSessionsHash,
+			(char *) &(session->sessionNbr), (Address *) &elt) > 0)
+	{
+		sdr_list_delete(sdr, elt, NULL, NULL);
+	}
 
 	/*	Span now has room for another session to start.		*/
 
