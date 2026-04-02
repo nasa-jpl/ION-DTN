@@ -2354,18 +2354,25 @@ int parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 		}
 		else if (strcmp(hostname, "@") == 0)
 		{
-			getNameOfHost(hostnameBuf, sizeof hostnameBuf);
-			hostname = hostnameBuf;
-			i4 = getInternetAddress(hostname);
-			if (i4 < 1)	/*	Invalid hostname.	*/
+			if (getNameOfHost(hostnameBuf, sizeof hostnameBuf) < 0)
 			{
-				writeMemoNote("[?] parseSocketSpec: Can't get IP address", hostname);
+				writeMemoNote("[?] parseSocketSpec: Can't get local hostname", NULL);
 				*ipAddress = BAD_HOST_NAME;
 			}
 			else
 			{
-				*ipAddress = i4;
-				ipValid = 1;
+				hostname = hostnameBuf;
+				i4 = getInternetAddress(hostname);
+				if (i4 < 1)	/*	Invalid hostname.	*/
+				{
+					writeMemoNote("[?] parseSocketSpec: Can't get IP address", hostname);
+					*ipAddress = BAD_HOST_NAME;
+				}
+				else
+				{
+					*ipAddress = i4;
+					ipValid = 1;
+				}
 			}
 		}
 		else

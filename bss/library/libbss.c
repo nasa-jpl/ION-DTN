@@ -182,7 +182,7 @@ session in order to initiate a new one.");
 	oK(_running(&enableLoop));
 
 	if (pthread_begin(&bssRecvThread, NULL, recvBundles,
-		(void *) &DB, "libbss_receiver") < 0)
+		(void *) &DB, "libbss_receiver") != 0)
 	{
 		putSysErrmsg("Can't create recvBundles thread", NULL);
 		bssStop();
