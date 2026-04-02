@@ -301,6 +301,7 @@ int extractMetadataFromFile(const char *filename, Metadata *meta)
 		meta->aux_command = MTAKE(meta->aux_command_length); //free me
 		if(meta->aux_command == NULL)
 		{
+			fclose(file);
 			return -1;
 		}
 		bytes_read = fread(meta->aux_command, 1, meta->aux_command_length, file);
@@ -323,6 +324,7 @@ int extractMetadataFromFile(const char *filename, Metadata *meta)
 	meta->filetype = MTAKE(meta->filetypeLength); //free me
 	if(meta->filetype == NULL)
 	{
+		fclose(file);
 		return -1;
 	}
 	bytes_read = fread(meta->filetype, 1, meta->filetypeLength, file);
@@ -343,6 +345,7 @@ int extractMetadataFromFile(const char *filename, Metadata *meta)
 	meta->filename = MTAKE(meta->fileNameLength); //free me
 	if(meta->filename == NULL)
 	{
+		fclose(file);
 		return -1;
 	}
 	bytes_read = fread(meta->filename, 1, meta->fileNameLength, file);
@@ -371,6 +374,7 @@ int extractMetadataFromFile(const char *filename, Metadata *meta)
 	meta->fileContent = MTAKE(meta->fileContentLength); //free me
 	if(meta->fileContent == NULL)
 	{
+		fclose(file);
 		return -1;
 	}
 	bytes_read = fread(meta->fileContent, 1, meta->fileContentLength, file);
