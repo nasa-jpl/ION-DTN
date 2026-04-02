@@ -8459,7 +8459,7 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	DtnTime		currentDtnTime;
 	int		crcLength;
 	uvast		crcReceived;
-	uvast		crcComputed;
+	uvast		crcComputed = 0;
 	int		bytesParsed;
 
 	bundle = &(work->bundle);
@@ -8827,7 +8827,7 @@ static int	acquireBlock(AcqWorkArea *work)
 	unsigned int	lengthOfBlock;
 	int		crcLength;
 	uvast		crcReceived;
-	uvast		crcComputed;
+	uvast		crcComputed = 0;
 	unsigned int	bytesParsed;
 
 	if (work->malformed)
@@ -9191,7 +9191,7 @@ static int	acqFromWork(AcqWorkArea *work)
 	int		bytesToSkip;
 	int		crcSize;
 	uvast		crcReceived;
-	uvast		crcComputed;
+	uvast		crcComputed = 0;
 	int		unreceivedPayload;
 	int		bytesRecd;
 

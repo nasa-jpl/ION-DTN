@@ -208,7 +208,7 @@ static int	proactivelyFragment(Bundle *bundle, Object *bundleObj,
 	Object		stationEid;
 	char		eid[SDRSTRING_BUFSZ];
 	MetaEid		stationMetaEid;
-	VScheme		*vscheme;
+	VScheme		*vscheme = NULL;
 	PsmAddress	vschemeElt;
 	size_t		fragmentLength;
 	Bundle		firstBundle;

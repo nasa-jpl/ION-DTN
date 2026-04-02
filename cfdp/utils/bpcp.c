@@ -1459,6 +1459,9 @@ void* rcv_msg_thread(void* param)
 	CfdpFileStatus		fileStatus;
 	CfdpDeliveryCode	deliveryCode;
 	CfdpTransactionId	originatingTransactionId;
+
+	memset(&transactionId, 0, sizeof(CfdpTransactionId));
+	memset(&originatingTransactionId, 0, sizeof(CfdpTransactionId));
 	char			statusReportBuf[256];
 	MetadataList		filestoreResponses;
 	unsigned int	closureRequested;
