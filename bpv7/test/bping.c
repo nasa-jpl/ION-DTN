@@ -22,7 +22,7 @@ const char usage[] =
   "Options:\n"
   "  -c <count>     Sends <count> bundles before stopping.\n"
   "  -i <interval>  Wait <interval> seconds between bundles.  Default: 1.\n"
-  "  -p <priority>  Bundles have priority <priority> (default 0 = bulk).\n"
+  "  -p <priority>  Bundles have priority <priority> (default 1 = std).\n"
   "  -q <wait>      Wait <wait> seconds after sending the last bundle to\n"
   "                   accumulate responses.  Defaults to 10s, pass -1 to\n"
   "                   wait until all bundles are acked before quitting.\n"
@@ -41,7 +41,7 @@ static int verbosity = 0;
 static int waitdelay = 10;    /* Number of seconds to wait after last
                                  bundle for its response. */
 static int ttl = 3600;        /* Lifetime to set in bundles. */
-static int priority = 0;      /* Priority level of bundles. */
+static int priority = 1;      /* Priority level of bundles. */
 static int rrFlags = 0;       /* Report request flags */
 static int totalsent = 0;     /* Only written by sendRequests thread */
 static int totalreceived = 0; /* Only written by receiveResponses thread */
@@ -491,7 +491,7 @@ int	bping(	saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 {
 	count = a1 ? strtol((char *) a1, NULL, 0) : -1;
 	interval = a2 ? strtod((char *) a2, NULL) : 1;
-	priority = a3 ? strtol((char *) a3, NULL, 0) : 0;
+	priority = a3 ? strtol((char *) a3, NULL, 0) : 1;
 	waitdelay = a4 ? strtol((char *) a4, NULL, 0) : 10;
 	if (a5)
 	{

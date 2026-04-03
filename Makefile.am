@@ -1070,6 +1070,7 @@ bpbin = \
 	bpsource \
 	cbrcustodytest \
 	bpstats \
+	bpwatch \
 	bptrace \
 	bptracker \
 	bptransit \
@@ -1510,6 +1511,10 @@ endif
 bpstats_SOURCES = bpv7/utils/bpstats.c
 bpstats_LDADD = libici.la $(bplib)
 bpstats_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bpwatch_SOURCES = bpv7/utils/bpwatch.c
+bpwatch_LDADD = libici.la $(bplib)
+bpwatch_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bptrace_SOURCES = bpv7/utils/bptrace.c
 bptrace_LDADD = libici.la $(bplib)
