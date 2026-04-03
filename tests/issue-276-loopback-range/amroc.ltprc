@@ -1,6 +1,6 @@
 1 66
-a span 9 33 1000 33 1000 508 1000 1 'udplso 127.0.0.1:9118'
-a span 5 33 1000 33 1000 508 1000 1 'udplso 127.0.0.1:5113'
+a span 9 33 33 508 1000 1 'udplso 127.0.0.1:9118'
+a span 5 33 33 508 1000 1 'udplso 127.0.0.1:5113'
 # Note: we intentionally misdirect LTP loopback output to trigger timeout
 # and retransmission, so we use aggressive retransmission parameters.
 m maxretries 10

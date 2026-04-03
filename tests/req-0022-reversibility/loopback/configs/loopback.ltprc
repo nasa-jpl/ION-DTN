@@ -38,7 +38,7 @@
 #	loopback) using port 1113 (defined by IANA as the default UDP port
 #	for Licklider Transmission Protocol).  The single quote is
 #	important, don't use double quotes.
-a span 1 128 1024 128 1024 1024 1024 1 'udplso 127.0.0.1:1113'
+a span 1 128 128 1024 1024 1 'udplso 127.0.0.1:1113'
 
 # Start command.
 #	This command actually runs the link service output commands

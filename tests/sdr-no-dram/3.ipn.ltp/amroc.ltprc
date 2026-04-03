@@ -1,5 +1,5 @@
 1 300
-a span 2 200 100100 20 1000000 1200 100100 1 'udplso localhost:2113, 800000'
+a span 2 200 20 1200 100100 1 'udplso localhost:2113, 800000'
 m maxretries 10
 m maxseglossrate 0.10
 w 1

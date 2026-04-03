@@ -43,7 +43,7 @@
 #       plan so the 1 megabyte data file will take ~13 secs, which is
 #       how we verify rate limiting works (threshold is 10 secs)
 #
-a span 1 2 1250000 2 1250000 1024 1024 1 'udplso localhost:1113'
+a span 1 2 2 1024 1024 1 'udplso localhost:1113'
 
 # Start command.
 #	This command actually runs the link service output commands
