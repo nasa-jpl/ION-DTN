@@ -113,6 +113,24 @@ B<orangebook>  CCSDS Orange Book mode.  Enables Compressed Bundle Reporting
 
 The default mode is B<none>.
 
+=item B<m srmode> { traditional | compressed | both }
+
+The B<manage status report mode> command.  This command sets the status
+report generation mode for the local node.  The available modes are:
+
+B<traditional>   Generate standard BPv7 status reports only.
+
+B<compressed>    Generate Compressed Reporting Signals (CRS) only, as
+                 specified in the CCSDS Orange Book.
+
+B<both>          Generate both traditional status reports and compressed
+                 reporting signals.
+
+The default mode is B<traditional>.
+
+This command requires B<m custodymode orangebook> to be effective for
+compressed reporting.
+
 =item B<m cbraggr> I<crs_limit> I<ccs_limit> I<timeout_seconds>
 
 The B<manage CBR aggregation> command.  This command configures the
