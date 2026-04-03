@@ -466,7 +466,7 @@ int	cteb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	 *	This implements the "replace custodian" semantics
 	 *	per Orange Book: delete old, insert new.		*/
 
-	sdr_read(sdr, (char *) &scratch, blk->object, sizeof(CtebScratchpad));
+	sdr_stage(sdr, (char *) &scratch, blk->object, sizeof(CtebScratchpad));
 
 	/*	Set new custodian EID to our node.			*/
 

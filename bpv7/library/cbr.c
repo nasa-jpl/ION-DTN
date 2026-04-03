@@ -184,7 +184,7 @@ int	cbr_configure(Sdr sdr, unsigned int crsAggregateLimit,
 	CHKERR(cbrDbObj);
 
 	CHKERR(sdr_begin_xn(sdr));
-	sdr_read(sdr, (char *) &cbrBuf, cbrDbObj, sizeof(CbrDb));
+	sdr_stage(sdr, (char *) &cbrBuf, cbrDbObj, sizeof(CbrDb));
 
 	cbrBuf.crsAggregateLimit = crsAggregateLimit;
 	cbrBuf.ccsAggregateLimit = ccsAggregateLimit;
@@ -217,7 +217,7 @@ int	cbr_configureRetransmission(Sdr sdr, int strategy,
 	}
 
 	CHKERR(sdr_begin_xn(sdr));
-	sdr_read(sdr, (char *) &cbrBuf, cbrDbObj, sizeof(CbrDb));
+	sdr_stage(sdr, (char *) &cbrBuf, cbrDbObj, sizeof(CbrDb));
 
 	cbrBuf.retransmitStrategy = strategy;
 	cbrBuf.retransmitIntervalSec = intervalSec;
@@ -337,6 +337,7 @@ int	cbr_resetStatistics(Sdr sdr)
 	CHKERR(cbrDbObj);
 
 	CHKERR(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) cbrConstants, cbrDbObj, sizeof(CbrDb));
 
 	cbrConstants->ccsAcceptSent = 0;
 	cbrConstants->ccsRefuseSent = 0;
@@ -394,7 +395,7 @@ int	cbr_setStatusReportMode(Sdr sdr, int mode)
 	}
 
 	CHKERR(sdr_begin_xn(sdr));
-	sdr_read(sdr, (char *) &bpDb, bpDbObj, sizeof(BpDB));
+	sdr_stage(sdr, (char *) &bpDb, bpDbObj, sizeof(BpDB));
 	bpDb.statusRptMode = (BpStatusReportMode) mode;
 	sdr_write(sdr, bpDbObj, (char *) &bpDb, sizeof(BpDB));
 
@@ -411,20 +412,31 @@ int	cbr_setStatusReportMode(Sdr sdr, int mode)
 
 int	cbr_getCustodyMode(Sdr sdr)
 {
-	BpDB	*bpConstants;
+	Object	bpDbObj;
+	BpDB	bpDb;
 
-	(void) sdr;	/*	Needed for interface consistency.	*/
-
-	/*	Use getBpConstants() which caches the BpDB values
-	 *	and avoids needing a transaction for each read.		*/
-
-	bpConstants = getBpConstants();
-	if (bpConstants == NULL)
+	bpDbObj = getBpDbObject();
+	if (bpDbObj == 0)
 	{
 		return BP_CUSTODY_NONE;	/*	Safe default.		*/
 	}
 
-	return (int) bpConstants->custodyMode;
+	/*	Read custodyMode directly from SDR so that runtime
+	 *	changes via "m custodymode" are visible immediately,
+	 *	even to processes that cached BpDB at startup.		*/
+
+	if (sdr_in_xn(sdr))
+	{
+		sdr_read(sdr, (char *) &bpDb, bpDbObj, sizeof(BpDB));
+	}
+	else
+	{
+		CHKERR(sdr_begin_xn(sdr));
+		sdr_read(sdr, (char *) &bpDb, bpDbObj, sizeof(BpDB));
+		sdr_exit_xn(sdr);
+	}
+
+	return (int) bpDb.custodyMode;
 }
 
 int	cbr_setCustodyMode(Sdr sdr, int mode)
@@ -442,7 +454,7 @@ int	cbr_setCustodyMode(Sdr sdr, int mode)
 	}
 
 	CHKERR(sdr_begin_xn(sdr));
-	sdr_read(sdr, (char *) &bpDb, bpDbObj, sizeof(BpDB));
+	sdr_stage(sdr, (char *) &bpDb, bpDbObj, sizeof(BpDB));
 	bpDb.custodyMode = (BpCustodyMode) mode;
 	sdr_write(sdr, bpDbObj, (char *) &bpDb, sizeof(BpDB));
 
@@ -640,7 +652,7 @@ int	cbr_allocateSeqNum(Sdr sdr, char *sourceEid, char *destEid,
 		return -1;
 	}
 
-	sdr_read(sdr, (char *) &counter, counterObj, sizeof(BundleSeqCounter));
+	sdr_stage(sdr, (char *) &counter, counterObj, sizeof(BundleSeqCounter));
 
 	/*	Allocate the next sequence number			*/
 	allocatedSeqNum = counter.nextSeqNum;
@@ -802,9 +814,9 @@ int	cbr_extendRangeArray(Sdr sdr, Object rangeArray,
 	 *	bundle would extend the last included region or start
 	 *	a new gap.)						*/
 
-	/*	Re-read last element					*/
+	/*	Re-read last element (stage for SDR_BOUNDED write)	*/
 	lenObj = sdr_list_data(sdr, lastElt);
-	sdr_read(sdr, (char *) &lenBuf, lenObj, sizeof(uvast));
+	sdr_stage(sdr, (char *) &lenBuf, lenObj, sizeof(uvast));
 
 	expectedNext = position;
 
@@ -1155,14 +1167,14 @@ int	cbr_addToSignalSequences(Sdr sdr, Object signalElt,
 	int			extended;
 
 	signalObj = sdr_list_data(sdr, signalElt);
-	sdr_read(sdr, (char *) &signal, signalObj, sizeof(PendingSignal));
+	sdr_stage(sdr, (char *) &signal, signalObj, sizeof(PendingSignal));
 
 	/*	Search for existing entry with matching sourceEid and seqId */
 	for (seqElt = sdr_list_first(sdr, signal.sequences);
 			seqElt; seqElt = sdr_list_next(sdr, seqElt))
 	{
 		entryObj = sdr_list_data(sdr, seqElt);
-		sdr_read(sdr, (char *) &entry, entryObj,
+		sdr_stage(sdr, (char *) &entry, entryObj,
 				sizeof(BundleSequenceEntry));
 
 		if (entry.seqId != seqId)
@@ -2713,7 +2725,7 @@ int	cbr_retransmitBundle(Sdr sdr, char *sourceEid, uvast seqId,
 	}
 
 	cbObj = sdr_list_data(sdr, custodyElt);
-	sdr_read(sdr, (char *) &cb, cbObj, sizeof(CustodyBundle));
+	sdr_stage(sdr, (char *) &cb, cbObj, sizeof(CustodyBundle));
 
 	/*	Verify bundle object still exists (not expired/deleted).*/
 	if (cb.bundleObj == 0)
@@ -2776,7 +2788,7 @@ int	cbr_retransmitAllCustody(Sdr sdr, char *destEid)
 	{
 		nextElt = sdr_list_next(sdr, elt);
 		cbObj = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) &cb, cbObj, sizeof(CustodyBundle));
+		sdr_stage(sdr, (char *) &cb, cbObj, sizeof(CustodyBundle));
 
 		/*	Check if destEid filter matches.		*/
 		if (destEid != NULL && destEid[0] != '\0')

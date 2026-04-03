@@ -1089,7 +1089,7 @@ int	sdrBoundaryViolated(Sdr sdrv, Address from, size_t length)
 	for (elt = lyst_first(sdrv->knownObjects); elt; elt = lyst_next(elt))
 	{
 		extent = (ObjectExtent *) lyst_data(elt);
-		if (extent->from <= from || extent->to >= to)
+		if (extent->from <= from && extent->to >= to)
 		{
 			/*	First byte written is within this
 				object and the last byte written is
