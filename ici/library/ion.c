@@ -1664,7 +1664,14 @@ int	_extractSmallSdnv(unsigned int *into, unsigned char **from,
 		return 0;
 	}
 
-	*into = val;				/*	Truncate.	*/
+	if (val > UINT_MAX)
+	{
+		writeMemoNote("[?] SDNV value exceeds uint32 at line...",
+				itoa(lineNbr));
+		return 0;
+	}
+
+	*into = (unsigned int) val;
 	(*from) += sdnvLength;
 	(*remnant) -= sdnvLength;
 	return sdnvLength;

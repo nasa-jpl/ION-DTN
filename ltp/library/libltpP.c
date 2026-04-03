@@ -5790,7 +5790,7 @@ static int	startImportSession(Object spanObj, unsigned int sessionNbr,
 		 *	end of red part.  Its offset + length is the
 		 *	total size of the block.			*/
 
-		blockSize = pdu->offset + pdu->length;
+		blockSize = (uvast) pdu->offset + (uvast) pdu->length;
 		if (blockSize < heapBufferSize)
 		{
 			heapBufferSize = blockSize;
@@ -6382,7 +6382,7 @@ putErrmsg("Discarded data segment: can't start new session.", itoa(sessionNbr));
 		bytesForHeap = pdu->length;
 	}
 
-	endOfSegment = pdu->offset + pdu->length;
+	endOfSegment = (uvast) pdu->offset + (uvast) pdu->length;
 	bytesForFile = endOfSegment > sessionBuf->heapBufferSize ? \
 			endOfSegment - sessionBuf->heapBufferSize : 0;
 	if (bytesForFile > pdu->length)
@@ -6535,7 +6535,7 @@ static int	handleDataSegment(uvast sourceEngineId, LtpDB *ltpdb,
 	OBJ_POINTER(LtpSpan, span);
 	LtpVclient		*client;
 	int			result;
-	unsigned int		endOfRed;
+	uvast			endOfRed;
 	Object			clientSvcData = 0;
 	int			segUpperBound;
 	OBJ_POINTER(LtpRecvSeg, firstSegment);
@@ -6739,7 +6739,7 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 
 	/*	This is a red-part data segment.			*/
 
-	endOfRed = pdu->offset + pdu->length;
+	endOfRed = (uvast) pdu->offset + (uvast) pdu->length;
 	if (sessionNbr == vspan->greenSessionNbr
 	&& endOfRed > vspan->startOfGreen)
 	{
