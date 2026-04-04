@@ -5532,6 +5532,7 @@ printf("...spurious Finish PDU, not processed...\n");
 			return 0;
 		}
 
+		sdr_stage(sdr, NULL, fduObj, 0);
 #if CFDPDEBUG
 printf("...processing Finish PDU...\n");
 #endif
@@ -5571,6 +5572,8 @@ printf("...Inbound PDU is for an FDU, processing and creating if needed...\n");
 		putErrmsg("Can't create new inbound FDU.", NULL);
 		return -1;
 	}
+
+	sdr_stage(sdr, NULL, fduObj, 0);
 
 	if (fduBuf.state == FduCanceled)
 	{
