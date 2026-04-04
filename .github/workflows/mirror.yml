@@ -16,6 +16,7 @@ jobs:
         with:
           ref: integration
           fetch-depth: 1
+          persist-credentials: false
       - name: git fetch --unshallow
         run: |
           if [ -f .git/shallow ]; then
