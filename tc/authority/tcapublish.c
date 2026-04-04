@@ -278,7 +278,7 @@ writeMemo("tcapublish: Found matching record.");
 			/*	Remote authority has got the same
 			 *	record in its pendingRecords list.	*/
 
-			sdr_read(sdr, acknowledged, record.acknowledged, auths);
+			sdr_stage(sdr, acknowledged, record.acknowledged, auths);
 			if (record.assertionTime != assertionTime
 			|| record.datLength != datLength
 			|| memcmp(record.datValue, datValue, datLength) != 0)

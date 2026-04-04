@@ -88,36 +88,26 @@ int bpinspect_ops_cancel_bundle(const BundleCacheEntry *entry)
 		return -1;
 	}
 
-	/* Verify bundle was actually destroyed by trying to read it */
-	/* Note: If bundle was destroyed, this address should be freed/zeroed */
-	sdr_stage(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
+	/*	Verify destruction by searching for the bundle again.
+	 *	Do NOT read bundleObj directly -- it may have been freed
+	 *	by bpDestroyBundle, and sdr_stage/sdr_read on a freed
+	 *	object will crash the transaction under SDR_BOUNDED.	*/
 
-	/* Check if bundle still has valid data (not destroyed) */
-	if (bundle.timelineElt != 0 || bundle.hashEntry != 0)
+	bundleObj = 0;
+	if (findBundle((char *)(uintptr_t)entry->source, &creationTime,
+			entry->fragmentOffset, entry->fragmentLength,
+			&bundleObj) < 0)
 	{
-		/* Bundle still exists - it wasn't fully destroyed */
-		sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
-		snprintf(diagBuf, sizeof(diagBuf),
-			"WARNING: Bundle %s [%llu.%u] still exists after cancel! "
-			"Queue state: fwd=%lu dlv=%lu xmit=%lu plan=%lu duct=%lu detained=%d",
-			entry->source,
-			(unsigned long long) entry->creationMsec,
-			entry->creationCount,
-			(unsigned long) bundle.fwdQueueElt,
-			(unsigned long) bundle.dlvQueueElt,
-			(unsigned long) bundle.transitElt,
-			(unsigned long) bundle.planXmitElt,
-			(unsigned long) bundle.ductXmitElt,
-			bundle.detained);
-		writeMemo(diagBuf);
-
-		/* This is not an error - bpDestroyBundle returns 0 when it
-		 * can't destroy yet, but we want to report it */
+		sdr_cancel_xn(sdr);
+		putErrmsg("Can't verify bundle destruction.", entry->source);
+		return -1;
 	}
-	else
+
+	if (bundleObj != 0)
 	{
 		snprintf(diagBuf, sizeof(diagBuf),
-			"Successfully destroyed bundle %s [%llu.%u]",
+			"Bundle %s [%llu.%u] not yet destroyed "
+			"(deferred by remaining references)",
 			entry->source,
 			(unsigned long long) entry->creationMsec,
 			entry->creationCount);
