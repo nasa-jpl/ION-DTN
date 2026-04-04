@@ -28,10 +28,11 @@ jobs:
           echo "::add-mask::$PAT"
           PAT_B64=$(echo -n "x-access-token:$PAT" | base64 -w0)
           echo "::add-mask::$PAT_B64"
-          # Remove GITHUB_TOKEN credentials persisted by actions/checkout
-          # so they don't override the PAT when pushing to the public repo.
-          git config --local --unset-all http.https://github.com/.extraHeader || true
           export AUTH_HEADER="Authorization: Basic $PAT_B64"
+          # -c "...extraHeader=" resets the header list for github.com,
+          # clearing the GITHUB_TOKEN that actions/checkout persisted.
+          # --config-env then sets only the PAT for the target repo URL.
           GIT_TRACE=1 GIT_CURL_VERBOSE=1 git \
+            -c "http.https://github.com/.extraHeader=" \
             --config-env=http.https://github.com/nasa-jpl/ION-DTN.git.extraHeader=AUTH_HEADER \
             push https://github.com/nasa-jpl/ION-DTN.git +integration:integration
