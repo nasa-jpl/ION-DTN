@@ -1,5 +1,5 @@
 wmKey 2
 sdrName ion1
 wmSize 2000000
-configFlags 1
+configFlags 13
 heapWords 80000

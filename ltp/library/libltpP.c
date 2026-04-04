@@ -6400,6 +6400,7 @@ putErrmsg("Discarded data segment: can't start new session.", itoa(sessionNbr));
 	ltpSpanTally(vspan, IN_SEG_RECV_RED, pdu->length);
 	if (bytesForHeap > 0)
 	{
+		sdr_stage(sdr, NULL, sessionBuf->heapBufferObj, 0);
 		sdr_write(sdr, sessionBuf->heapBufferObj + pdu->offset,
 				*cursor, bytesForHeap);
 		*cursor += bytesForHeap;

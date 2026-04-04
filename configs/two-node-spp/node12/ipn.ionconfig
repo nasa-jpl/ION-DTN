@@ -1,4 +1,4 @@
-configFlags 1
+configFlags 13
 heapWords 90000000
 #pathname ./
 wmSize 374726912
