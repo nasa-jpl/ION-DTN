@@ -57,7 +57,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: [self-hosted, linux, x64, ol9-gh-runner]
+    runs-on: [self-hosted, linux, x64, ol9]
     steps:
       - name: Clean up workspace
         run: |
