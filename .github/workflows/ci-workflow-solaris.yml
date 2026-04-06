@@ -1,4 +1,4 @@
-name: Regression Tests for ION on Solaris 11 LDOM via Ubuntu host
+name: Regression Tests for ION on Solaris 11 LDOM via OL9 host
 
 permissions:
   contents: read
@@ -57,7 +57,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: [self-hosted, linux, x64, karuna]
+    runs-on: [self-hosted, linux, x64, ol9-gh-runner]
     steps:
       - name: Clean up workspace
         run: |
@@ -97,7 +97,7 @@ jobs:
 
       - name: Set environment variable to VM's hostname
         run: |
-          echo "VM_IP=sol-runner" >> $GITHUB_ENV
+          echo "VM_IP=dsoc0" >> $GITHUB_ENV
 
       - name: Display VM OS and Arch
         run: |
@@ -110,6 +110,10 @@ jobs:
             echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
             echo "PATH=$PATH" '
 
+
+      - name: Ensure rsync is installed
+        run: |
+          which rsync || sudo dnf install -y rsync
 
       - name: Copy code to Solaris VM
         run: |
