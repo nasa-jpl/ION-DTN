@@ -217,6 +217,5 @@ else
     RETVAL=0
 fi
 
-killm
 echo -e "\nStatus reports test completed."
 exit $RETVAL

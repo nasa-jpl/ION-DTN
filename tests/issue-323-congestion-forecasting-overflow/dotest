@@ -119,7 +119,6 @@ echo "Stopping ION..."
 #./ionstop &
 #cd ../
 #sleep 5
-killm
 
 echo "Congestion Forecasting Overflow test complete."
 exit $RETVAL

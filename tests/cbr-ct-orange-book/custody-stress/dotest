@@ -95,7 +95,6 @@ trap on_interrupt INT TERM
 export ION_NODE_LIST_DIR="$TESTDIR"
 
 # Clean up any previous ION and test artifacts
-killm
 ./cleanup
 
 echo ""

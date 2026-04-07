@@ -185,7 +185,7 @@ RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: ${NUMBUNDLES} bundles of ${BUNDL
         #(cd 2.bench.tcp; ./ionstop) &
         #(cd 3.bench.tcp; ./ionstop) &
         sleep 3
-        killm
+        killm f
         sleep 3
         echo "Re-starting ION..."
         (cd 2.bench.tcp; ./ionstart)
@@ -208,6 +208,5 @@ echo "Stopping ION..."
 #(cd 2.bench.tcp; ./ionstop) &
 #(cd 3.bench.tcp; ./ionstop) &
 sleep 3
-killm
 echo -e "...benchmarking terminated.\n"
 exit "$RETVAL"

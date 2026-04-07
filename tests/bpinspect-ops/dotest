@@ -10,11 +10,11 @@ echo "========================================="
 
 RETVAL=0
 
+# cleanup any previous test runs before starting
+./cleanup
+
 # Setup
 export ION_NODE_LIST_DIR=$PWD
-rm -f ./ion_nodes
-killm 2>/dev/null
-sleep 1
 
 # Start nodes
 echo ""

@@ -146,6 +146,5 @@ echo "Stopping ION..."
 
 # Give both nodes time to shut down, then clean up.
 #sleep 5
-killm
 echo "LTP retransmission test completed."
 exit $RETVAL

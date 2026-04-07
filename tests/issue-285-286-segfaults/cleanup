@@ -6,4 +6,4 @@
 echo "Cleaning up old ION..."
 rm -f ion.log
 rm -f ion_nodes
-killm
+killm f

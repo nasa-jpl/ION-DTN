@@ -3,7 +3,7 @@
 # Cleanup script
 
 # Kill any lingering ION processes from previous runs
-killm 2>/dev/null
+killm f 2>/dev/null
 sleep 1
 
 IONSENDFILE=./ionsendfile.txt

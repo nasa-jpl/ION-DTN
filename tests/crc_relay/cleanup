@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 echo "Cleaning up old ION..."
-killm
+killm f
 rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 5.ipn.ltp/ion.log
 rm -f 5.ipn.ltp/case1_out.txt 5.ipn.ltp/case2_out.txt 5.ipn.ltp/case3_out.txt
 rm -f 5.ipn.ltp/testfile1

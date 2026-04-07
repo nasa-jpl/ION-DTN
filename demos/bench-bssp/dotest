@@ -110,7 +110,6 @@ then
     #cd ../3.bench.bssp
     #./ionstop &
     sleep 3
-    killm
     echo "...benchmarking terminated."
     exit $RETVAL
 fi
@@ -167,7 +166,6 @@ then
     #cd ../3.bench.bssp
     #./ionstop &
     sleep 5
-    killm
     echo "...benchmarking terminated."
     exit $RETVAL
 fi
@@ -184,6 +182,5 @@ echo "Stopping ION..."
 #./ionstop &
 
 sleep 3
-killm
 echo -e "...benchmarking terminated.\n"
 exit $RETVAL

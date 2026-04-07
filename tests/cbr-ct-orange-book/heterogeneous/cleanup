@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
 
+killm f
 rm -f ion_nodes
 rm -f */ion.log */*.txt

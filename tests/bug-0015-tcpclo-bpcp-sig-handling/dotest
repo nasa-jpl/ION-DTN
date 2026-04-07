@@ -38,7 +38,6 @@ if ! [ -e ./test ]; then
 fi
 
 # Starting ION
-killm
 ./cleanup
 sleep 1
 echo "Starting ION..."
@@ -133,5 +132,4 @@ sleep 10
 echo "Killing ION..."
 kill -SIGTERM $TST 2>/dev/null
 wait $TST 2>/dev/null
-killm
 exit $RETVAL

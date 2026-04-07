@@ -144,7 +144,6 @@ then
         #cd ../3.bench.udp
         #./ionstop &
         #sleep 5
-        killm
         echo "...benchmarking terminated."
         exit $RETVAL
 fi
@@ -216,7 +215,6 @@ then
         #cd ../3.bench.udp
         #./ionstop &
         #sleep 5
-        killm
         echo "...benchmarking terminated."
         exit $RETVAL
 fi
@@ -292,6 +290,5 @@ echo -e "\nStopping ION..."
 #./ionstop &
 #cd ../3.bench.udp
 #./ionstop &
-killm
 echo -e "...benchmarking terminated.\n"
 exit $RETVAL

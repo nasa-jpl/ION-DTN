@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+killm f
 echo "Cleaning up old ION files..."
 rm -f ion_nodes
 rm -f 1.ipn.ltp/ion.log 1.ipn.ltp/node1*stdout 1.ipn.ltp/ltpblock.* 1.ipn.ltp/receivedFile

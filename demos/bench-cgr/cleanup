@@ -4,5 +4,5 @@
 # January 18, 2021
 
 echo "Cleaning up old ION..."
-killm
+killm f
 rm -f ion_nodes 1.bench.stcp/ion.log 1.bench.stcp/bpdriverAduFile 2.bench.stcp/ion.log 3.bench.stcp/ion.log 4.bench.stcp/ion.log

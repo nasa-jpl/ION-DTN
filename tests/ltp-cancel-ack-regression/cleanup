@@ -4,7 +4,7 @@
 #
 
 # Kill all ION processes
-killm
+killm f
 
 # Clean up test files
 rm -f testfile received_testfile

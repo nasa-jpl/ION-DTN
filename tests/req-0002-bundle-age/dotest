@@ -148,6 +148,5 @@ echo "Stopping ION..."
 #cd ../3.bench.tcp
 #./ionstop &
 #sleep 5
-killm
 echo "Bundle age test completed."
 exit $RETVAL

@@ -229,7 +229,6 @@ sleep 15
 
 # Bypass graceful shutdown (ionstop is flaky on Solaris)
 cd "$BASE_DIR"
-killm
 
 echo "BSS multicast demo completed."
 echo "Output logs available:"

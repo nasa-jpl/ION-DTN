@@ -100,7 +100,6 @@ cleanup_test() {
 trap cleanup_test EXIT
 
 # Main test execution
-killm
 ./cleanup
 
 echo "Starting ION nodes..."

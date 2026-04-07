@@ -21,7 +21,6 @@ echo "Testing non-zero seqId (global sequence counter)"
 echo ""
 
 # Clean up any previous ION and test artifacts
-killm
 ./cleanup
 
 # Track test results

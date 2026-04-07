@@ -142,6 +142,5 @@ echo "Stopping ION..."
 #cd ../4.bench.stcp
 #./ionstop &
 sleep 3
-killm
 echo "...benchmarking terminated."
 exit $RETVAL

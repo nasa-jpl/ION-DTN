@@ -35,7 +35,6 @@ echo "########################################"
 FAIL=0
 
 echo "Killing old ION..."
-killm
 ./cleanup
 sleep 1
 

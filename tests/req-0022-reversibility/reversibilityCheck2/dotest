@@ -85,7 +85,6 @@ export ION_NODE_LIST_DIR=$PWD
 RETVAL=0
 
 # Clean up any previous test
-killm 2>/dev/null
 ./cleanup 2>/dev/null
 
 #==============================================================================

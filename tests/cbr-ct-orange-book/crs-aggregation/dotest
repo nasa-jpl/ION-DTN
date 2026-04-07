@@ -25,7 +25,6 @@ echo "Test: Send $BUNDLE_COUNT bundles, verify aggregation"
 echo ""
 
 # Clean up any previous ION and test artifacts
-killm
 ./cleanup
 
 # Track test results

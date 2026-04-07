@@ -6,7 +6,7 @@
 echo "Cleaning up bpinspect-ops test..."
 
 # Force kill any remaining ION processes
-killm 2>/dev/null
+killm f 2>/dev/null
 
 # Clean up tracking files
 rm -f ./ion_nodes

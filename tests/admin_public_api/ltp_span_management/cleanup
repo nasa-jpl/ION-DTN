@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 echo "Cleaning up old ION..."
-killm
+killm f
 rm -f ion.log
 rm -f bpsink_test1.txt
 rm -f bpsink_test2.txt

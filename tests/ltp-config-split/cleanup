@@ -4,6 +4,7 @@
 #
 
 # Kill any remaining owltsim processes
+killm f
 pkill -9 owltsim 2>/dev/null
 
 # Remove output files

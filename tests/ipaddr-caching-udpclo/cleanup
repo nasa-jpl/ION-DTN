@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 echo "Cleaning up old ION..."
-killm
+killm f
 
 HOSTS_FILE="/etc/hosts"
 BACKUP_FILE="$PWD/hosts.bak"

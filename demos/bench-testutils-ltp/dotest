@@ -240,7 +240,7 @@ RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: ${NUMBUNDLES} bundles of ${BUNDL
             #(cd 2.bench.ltp; ./ionstop) &
             #(cd 3.bench.ltp; ./ionstop) &
             #sleep 10
-            killm
+            killm f
             sleep 1
             echo "Re-starting ION..."
             (cd 2.bench.ltp; ./ionstart)
@@ -273,7 +273,6 @@ RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: ${NUMBUNDLES} bundles of ${BUNDL
 # Cancel the overall timeout watchdog
 [ -n "$WATCHDOG_PID" ] && kill $WATCHDOG_PID 2>/dev/null
 
-killm
 sleep 3
 
 echo -e "...benchmarking terminated.\n"

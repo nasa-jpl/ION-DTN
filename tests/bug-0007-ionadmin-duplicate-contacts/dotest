@@ -32,7 +32,6 @@ echo
 echo "########################################"
 
 export ION_NODE_LIST_DIR=$PWD
-killm
 ./cleanup
 
 #Start ION
@@ -55,7 +54,6 @@ fi
 
 # Shut down ION processes.
 echo "Shutting down ION processes..."
-killm
 
 echo "ionadmin duplicate contacts test complete."
 exit $RETVAL

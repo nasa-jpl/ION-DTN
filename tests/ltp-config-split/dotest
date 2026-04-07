@@ -47,7 +47,6 @@ echo "OUTPUT: Test results and asymmetric configuration verification."
 echo
 echo "########################################"
 
-killm
 ./cleanup
 sleep 1
 
@@ -179,7 +178,6 @@ fi
 echo "Stopping..."
 kill $OWLTSIM_PID 2>/dev/null
 sleep 1
-killm
 
 if [ $RETVAL -eq 0 ]
 then

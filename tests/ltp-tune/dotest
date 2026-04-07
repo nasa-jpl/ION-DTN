@@ -246,7 +246,6 @@ sleep 1
 # Verify bpcounter started
 if ! ps $BPCOUNTER_PID > /dev/null 2>&1; then
     echo "ERROR: bpcounter failed to start"
-    killm
     exit 1
 fi
 
@@ -284,7 +283,6 @@ echo "============================================================"
 
 # Clean up
 sleep 2
-killm 2>/dev/null
 sleep 1
 
 exit $RETVAL

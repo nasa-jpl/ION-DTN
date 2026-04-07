@@ -17,7 +17,6 @@ echo "Sending $BUNDLE_COUNT bundles with custody"
 echo ""
 
 # Clean up any previous ION and test artifacts
-killm
 ./cleanup
 
 # Track test results

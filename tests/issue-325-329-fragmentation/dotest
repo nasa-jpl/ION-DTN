@@ -117,6 +117,5 @@ echo "Stopping ION..."
 
 # Give both nodes time to shut down, then clean up.
 #sleep 5
-killm
 echo "Bundle replication test completed."
 exit $RETVAL

@@ -334,6 +334,5 @@ echo "Stopping ION..."
 
 # Give all three nodes time to shut down, then clean up.
 #sleep 3
-killm
 echo "CRC type test completed."
 exit $RETVAL

@@ -136,7 +136,6 @@ sleep 10
 check_last_forecast 7 "No congestion collapse predicted"
 
 echo -e "\nStopping ION...\n"
-killm
 echo ""
 
 if [ "$RETVAL" -eq 0 ]; then

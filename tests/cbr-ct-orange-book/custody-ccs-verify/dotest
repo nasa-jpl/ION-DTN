@@ -16,7 +16,6 @@ echo "Using cbrcustodytest to verify CCS signal flow"
 echo ""
 
 # Clean up any previous ION and test artifacts
-killm
 ./cleanup
 
 # Track test results

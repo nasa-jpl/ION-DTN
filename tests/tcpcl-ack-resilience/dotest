@@ -90,7 +90,6 @@ RECEIVER_PORT=4556
 detect_os_and_firewall
 
 echo "Cleaning up old ION ..."
-killm
 ./cleanup
 
 printf "\nRunning sudo commands now..."
@@ -172,7 +171,6 @@ fi
 
 # Shut down ION processes.
 echo "Stopping ION..."
-killm
 
 if [ "$RETVAL" -eq 0 ]; then
     echo "TCPCL ACK test succeeded"

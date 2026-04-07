@@ -200,7 +200,6 @@ fi
 
 
 echo -e "\nStopping ION, including all test programs...\n"
-killm
 
 echo "DTPC test completed."
 exit $RETVAL

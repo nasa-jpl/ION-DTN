@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 cd "$(dirname "$0")"
 
-killm
+killm f
 sleep 1
 
 rm -f ion_nodes

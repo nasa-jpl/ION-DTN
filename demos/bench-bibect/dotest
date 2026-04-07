@@ -175,7 +175,6 @@ bpstats
 sleep 3
 #./ionstop &
 
-killm
 sleep 3
 
 echo -e "...benchmarking terminated.\n"

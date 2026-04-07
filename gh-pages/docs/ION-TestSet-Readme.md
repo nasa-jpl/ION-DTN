@@ -149,15 +149,110 @@ If a platform lacks certain capabilities (e.g., no MbedTLS), the corresponding e
 
 ## Writing new tests
 
-A test directory must contain an executable file named `dotest`.  If a directory does not contain this, the test will be ignored. The `dotest` program should execute the test, possibly reporting runtime information on stdout and stderr, and indicate by its return value the result of the test as follows:
+### Test directory structure
+
+Each test lives in its own subdirectory under `tests/`. A minimal test directory contains:
+
+```
+tests/my-test/
+├── dotest          # Required. The test driver script (must be executable).
+├── cleanup         # Required. Cleans up ION processes and test artifacts.
+├── .description    # Optional. One-line description shown by runtests.
+├── .optional       # Optional. Marks the test as optional (see above).
+└── (config files)  # ION configuration files used by the test.
+```
+
+Multi-node tests typically use a subdirectory per node:
+
+```
+tests/my-multi-node-test/
+├── dotest
+├── cleanup
+├── 2.ipn.ltp/          # Node 2 working directory and configs
+│   ├── amroc.ionrc
+│   ├── amroc.bprc
+│   └── ...
+├── 3.ipn.ltp/          # Node 3
+│   └── ...
+└── 5.ipn.ltp/          # Node 5
+    └── ...
+```
+
+### The `cleanup` script
+
+The `cleanup` script is responsible for two things:
+
+1. **Stop all ION processes and release IPC resources** by calling `killm f`. The `f` (force) flag ensures a full cleanup of all ION instances, shared memory, and semaphores regardless of whether `ION_NODE_LIST_DIR` is set.
+
+2. **Remove test-specific artifacts** such as log files, output files, and temporary data generated during the test.
+
+The `runtests` framework calls `./cleanup` at two points:
+
+- **Before** running `./dotest` — to ensure a clean starting state.
+- **After** `./dotest` exits — to clean up. On test failure, cleanup is skipped if `PRESERVE_TEST_LOGS` is set, allowing logs to be inspected for debugging.
+
+Because `runtests` calls cleanup both before and after the test, `dotest` scripts should **not** call `killm` at the end of the test. The cleanup script handles all final resource teardown.
+
+**Example cleanup script (single-node):**
+```bash
+#!/usr/bin/env bash
+killm f
+rm -f ion.log
+```
+
+**Example cleanup script (multi-node):**
+```bash
+#!/usr/bin/env bash
+killm f
+rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 5.ipn.ltp/ion.log
+rm -f 5.ipn.ltp/testfile1 5.ipn.ltp/testfile2
+```
+
+### The `dotest` script
+
+A test directory must contain an executable file named `dotest`. If a directory does not contain this, the test will be ignored. The `dotest` program should execute the test, possibly reporting runtime information on stdout and stderr, and indicate by its return value the result of the test as follows:
 
     0: Success
     1: Failure
     2: Skip this test
 
-The test program starts without the ION stack running. The test program is responsible for starting ION in the way that is appropriate for the test.
+The test program starts without the ION stack running (cleanup has already been called). The test program is responsible for starting ION in the way that is appropriate for the test.
 
-The test program *must* stop the ION protocol stack before returning.
+**Important conventions:**
+
+- **Do not call `killm` at the end of `dotest`.** The `runtests` framework calls `./cleanup` after `dotest` exits, and cleanup handles `killm f`. Calling `killm` in `dotest` is redundant and can interfere with multi-node IPC detection.
+
+- **Mid-test resets**: If your test runs multiple sub-scenarios that each require a fresh ION instance, call `killm f` between them to ensure full cleanup before restarting ION. The `f` flag is necessary because multi-node tests set `ION_NODE_LIST_DIR`, which causes bare `killm` to operate in node-only mode.
+
+- **Error paths**: On error, simply `exit 1`. Do not call `killm` before exiting — the cleanup script handles it.
+
+**Example dotest structure:**
+```bash
+#!/usr/bin/env bash
+
+echo "########################################"
+echo "NAME: my-test"
+echo "PURPOSE: Verify that feature X works correctly."
+echo "########################################"
+
+RETVAL=0
+
+# cleanup is called by runtests before dotest, so ION is not running.
+
+echo "Starting ION..."
+ionstart -I "config.rc"
+sleep 1
+
+# ... run test logic ...
+
+if ! grep -q "expected output" results.txt; then
+    echo "FAIL: Did not find expected output"
+    RETVAL=1
+fi
+
+# Do NOT call killm here — cleanup handles it.
+exit $RETVAL
+```
 
 ## The test environment
 

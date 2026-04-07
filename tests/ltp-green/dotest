@@ -13,7 +13,6 @@
 # path from node 3 to node 2 there is no such artificial data loss
 # and therefore the bundle we send on this path should arrive.
 
-killm
 ./cleanup
 sleep 1
 
@@ -105,6 +104,5 @@ sleep 1
 #./ionstop &
 
 # Give both nodes time to shut down, then clean up.
-killm
 echo "LTP retransmission test completed."
 exit $RETVAL

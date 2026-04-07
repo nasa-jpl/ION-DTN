@@ -109,6 +109,5 @@ echo "Stopping ION..."
 
 # Give nodes time to shut down, then clean up.
 #sleep 3
-killm
 echo "TCPCL restart test complete."
 exit $RETVAL

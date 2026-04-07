@@ -10,7 +10,7 @@ cd 1.ipn.ltp
 cd ..
 
 # Kill any remaining ION processes
-killm > /dev/null 2>&1
+killm f > /dev/null 2>&1
 sleep 1
 
 # Remove generated files

@@ -53,7 +53,6 @@ echo "########################################"
 # Establish absolute base directory for reliable pathing
 BASE_DIR="$PWD"
 
-killm
 ./cleanup
 sleep 1
 echo "Starting ION..."
@@ -222,7 +221,7 @@ do
     wait $OWLTSIM_PID 2>/dev/null
 
     # Terminate ION daemons and IPC resources
-    killm
+    killm f
 
     # Return to safe harbor before next iteration
     cd "$BASE_DIR"

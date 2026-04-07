@@ -325,7 +325,6 @@ fi
 
 echo ""
 echo "Cleaning up..."
-run_with_timeout 30 killm 2>/dev/null || echo "[WARN] killm timed out"
 pkill -f psmwatch 2>/dev/null
 pkill -f sdrwatch 2>/dev/null
 

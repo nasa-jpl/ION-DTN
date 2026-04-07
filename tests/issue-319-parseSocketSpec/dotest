@@ -33,7 +33,6 @@ echo "OUTPUT: Searching for message reception stats in the amsbenchr output."
 echo
 echo "########################################"
 
-killm
 ./cleanup
 
 echo "Starting ION..."
@@ -70,6 +69,5 @@ fi
 # Shut down ION processes.
 echo "Stopping ION..."
 ./shutdown_proc
-killm
 
 exit $RETVAL

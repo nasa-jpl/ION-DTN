@@ -233,6 +233,5 @@ echo ""
 
 # Shut down ION processes.
 echo "Stopping ION..."
-killm
 echo "LTP inactivity timeout test completed."
 exit $RETVAL

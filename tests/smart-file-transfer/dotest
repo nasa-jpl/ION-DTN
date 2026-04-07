@@ -261,7 +261,7 @@ fi
 cd $ION_NODE_LIST_DIR
 
 # Shut down and cleanup
-killm
+killm f
 cd node01
 rm -f $TEST_FILE_NAME
 

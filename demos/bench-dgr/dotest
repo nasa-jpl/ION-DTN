@@ -133,7 +133,6 @@ then
     #cd ../3.bench.dgr
     #./ionstop &
     sleep 5
-    killm
     echo "...benchmarking terminated."
     exit $RETVAL
 fi
@@ -190,7 +189,6 @@ then
     #cd ../3.bench.dgr
     #./ionstop &
     sleep 5
-    killm
     echo "...benchmarking terminated."
     exit $RETVAL
 fi
@@ -247,7 +245,6 @@ then
     #cd ../3.bench.dgr
     #./ionstop &
     sleep 5
-    killm
     echo "...benchmarking terminated."
     exit $RETVAL
 fi
@@ -302,7 +299,6 @@ then
     #cd ../3.bench.dgr
     #./ionstop &
     sleep 5
-    killm
     echo "...benchmarking terminated."
     exit $RETVAL
 fi
@@ -359,7 +355,6 @@ then
     #cd ../3.bench.dgr
     #./ionstop &
     sleep 5
-    killm
     echo "...benchmarking terminated."
     exit $RETVAL
 fi
@@ -416,7 +411,6 @@ then
     #cd ../3.bench.dgr
     #./ionstop &
     sleep 5
-    killm
     echo "...benchmarking terminated."
     exit $RETVAL
 fi
@@ -475,6 +469,5 @@ echo "Stopping ION..."
 #cd ../3.bench.dgr
 #./ionstop &
 #sleep 5
-killm
 echo "...benchmarking terminated."
 exit $RETVAL

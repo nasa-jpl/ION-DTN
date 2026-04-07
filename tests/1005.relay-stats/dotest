@@ -228,7 +228,6 @@ then
     echo "FAIL: delivery timed out (got $GOT of $BUNDLE_COUNT after ${TIMEOUT}s)"
     kill -2 $BPSINKPID >/dev/null 2>&1; sleep 1; kill -9 $BPSINKPID >/dev/null 2>&1
     cd ..
-    killm
     exit 1
 fi
 
@@ -326,7 +325,6 @@ sleep 1
 kill -9 $BPSINKPID >/dev/null 2>&1
 
 echo "Stopping ION..."
-killm
 
 if [ $PASS -eq 1 ]
 then

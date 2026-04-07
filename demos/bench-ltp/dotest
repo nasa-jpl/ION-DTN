@@ -321,7 +321,6 @@ SpanConfig: max_exp=$MAX_EXP max_imp=$MAX_IMP max_seg=$MAX_SEG agg_size=$AGG_SIZ
 [ -n "$WATCHDOG_PID" ] && kill $WATCHDOG_PID 2>/dev/null
 
 sleep 3
-killm
 
 echo -e "...benchmarking terminated.\n"
 exit "$RETVAL"

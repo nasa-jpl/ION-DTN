@@ -1,6 +1,6 @@
 #!/bin/bash
 # Cleanup script for File CLA file transfer test
-killm
+killm f
 rm -f /tmp/file_cla_outbound.dat
 rm -f /tmp/file_cla_inbound.dat
 rm -f ./config/transfer_runtime.bprc

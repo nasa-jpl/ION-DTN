@@ -7,7 +7,7 @@
 echo "Cleaning up old ION files..."
 
 # Kill any lingering ION processes from previous runs
-killm 2>/dev/null
+killm f 2>/dev/null
 sleep 1
 
 rm -f ion_nodes ion.log bpdriverAduFile

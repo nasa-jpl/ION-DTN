@@ -50,7 +50,6 @@ SENDER_PORT=4555
 RECEIVER_PORT=4556
 
 echo "Cleaning up old ION ..."
-killm
 ./cleanup
 sleep 1
 
@@ -192,6 +191,5 @@ fi
 # clean up
 #../
 #./cleanup
-killm
 
 exit $RETVAL

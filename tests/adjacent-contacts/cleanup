@@ -21,7 +21,7 @@ echo "Cleaning up adjacent-contacts test..."
 cd "$(dirname "$0")"
 
 # Kill all ION processes for both nodes
-killm
+killm f
 
 # Remove test artifacts from the root test directory
 echo "  Removing test artifacts..."

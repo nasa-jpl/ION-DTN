@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 echo "Cleaning up old ION..."
-killm
+killm f
 rm -f ion_nodes
 rm -rf node1
 rm -rf node2

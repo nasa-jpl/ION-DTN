@@ -43,7 +43,6 @@ do
 done
 
 # Cleanup
-killm
 ./cleanup
 sleep 1
 

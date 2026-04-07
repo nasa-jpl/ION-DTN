@@ -42,7 +42,6 @@ echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
 export ION_NODE_LIST_DIR=$PWD
-killm
 ./cleanup
 
 #Start node 1
@@ -120,6 +119,5 @@ echo "Stopping ION nodes..."
 #cd ../2.ipn.tcp
 #./ionstop &
 #sleep 5
-killm
 
 exit $RET

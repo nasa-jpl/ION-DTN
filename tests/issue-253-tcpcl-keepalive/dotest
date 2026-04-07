@@ -16,7 +16,6 @@
 # will re-establish connection and resend the second file. A third
 # file is sent from node 2 to node 3 to test restored connectivity.
 
-killm
 ./cleanup
 
 sleep 1
@@ -163,6 +162,5 @@ echo "Stopping ION..."
 
 # Give both nodes time to shut down, then clean up.
 #sleep 3
-killm
 echo "TCPCL Keepalive test completed."
 exit $RETVAL

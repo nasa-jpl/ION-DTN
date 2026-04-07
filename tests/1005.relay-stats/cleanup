@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-killm
+killm f
 rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 5.ipn.ltp/ion.log
 rm -f 5.ipn.ltp/ionreceivefile.txt
 rm -f ion_nodes

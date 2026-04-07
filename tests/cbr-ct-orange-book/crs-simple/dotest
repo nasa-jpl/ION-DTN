@@ -16,7 +16,6 @@ echo "Topology: Node 1 (source) <-> Node 2 (destination)"
 echo ""
 
 # Clean up any previous ION and test artifacts
-killm
 ./cleanup
 
 # Track test results

@@ -77,7 +77,6 @@ echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
 
-killm
 ./cleanup
 sleep 1
 echo "Starting ION..."
@@ -149,6 +148,5 @@ echo "Stopping ION..."
 
 # Give both nodes time to shut down, then clean up.
 #sleep 5
-killm
 echo "BSS test completed."
 exit $RETVAL

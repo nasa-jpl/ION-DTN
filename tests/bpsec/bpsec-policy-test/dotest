@@ -13,7 +13,6 @@ TIMETODISPLAYTEXT=2
 TIMETOWAITFORTESTFINISH=5
 
 echo "Cleaning up old ION..."
-killm
 ./cleanup
 sleep 1
 

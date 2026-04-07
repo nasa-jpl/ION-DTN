@@ -36,7 +36,6 @@ echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
 
-killm
 ./cleanup
 
 echo "Starting ION..."

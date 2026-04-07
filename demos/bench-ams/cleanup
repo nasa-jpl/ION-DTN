@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+killm f
 echo -e "Cleaning up old ION...\n"
 rm -f ion_nodes node2/ion.log node3/ion.log node3/bench.log
 rm -f node3/bpacq* node2/bpacq*

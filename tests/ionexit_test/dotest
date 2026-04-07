@@ -134,7 +134,6 @@ function printArray() {
 
 
 # Start with a known clean slate
-killm
 ./cleanup
 echo
 
@@ -415,7 +414,6 @@ ipcrm --semaphore-id $extra_before_semid --semaphore-id $extra_during_semid
 echo
 
 # Use big-hammer method to make sure ION is stopped (in case unit under test didn't work)
-killm
 echo ""
 echo "ionexit test completed."
 

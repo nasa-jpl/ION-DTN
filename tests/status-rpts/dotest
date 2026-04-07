@@ -224,6 +224,5 @@ echo "Stopping ION..."
 
 # Give all three nodes time to shut down, then clean up.
 #sleep 5
-killm
 echo "Status reports test completed."
 exit $RETVAL
