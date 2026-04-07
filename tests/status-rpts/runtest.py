@@ -64,7 +64,7 @@ report_queue: Queue[bytes] = Queue()
 
 
 def packet_receiver(
-    listen_addr: tuple[str, int], stop_event: threading.Event, active: threading.Lock
+    listen_addr: tuple[str, int], stop_event: threading.Event, active: threading.Event
 ) -> None:
     """
     Background thread to catch all incoming UDP bundles and put
@@ -73,7 +73,7 @@ def packet_receiver(
     Args:
         listen_addr: UDP address to tuple listen for reports
         stop_event: threading Event to stop thread once finished
-        active: Release to let main thread know it's ok to send
+        active: Event to signal main thread that receiver is ready
 
     """
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -83,7 +83,7 @@ def packet_receiver(
     sock.settimeout(1)
 
     print(f"[*] Receiver thread started on {listen_addr}")
-    active.release()
+    active.set()
     while not stop_event.is_set():
         try:
             data = sock.recv(4096)
@@ -239,8 +239,7 @@ def run_status_report_test(
     node3_addr = ("127.0.0.1", sport)
     listen_addr = ("127.0.0.1", rport)
     stop_event = threading.Event()
-    active = threading.Lock()
-    active.acquire()
+    active = threading.Event()
 
     receiver_thread = threading.Thread(
         target=packet_receiver, args=(listen_addr, stop_event, active)
@@ -248,8 +247,7 @@ def run_status_report_test(
     receiver_thread.start()
 
     # Wait until receiver thread is ready
-    while not active.locked():
-        continue
+    active.wait()
 
     if not verify_network_aliveness(node3_addr, "ipn:5.1"):
         print("FAILURE: Network check failed. Is network up?")
