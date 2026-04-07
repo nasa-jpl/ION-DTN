@@ -95,9 +95,10 @@ Flags can be combined in any order.
 | Multi-node: stop last node | `ionexit` | Safe to release IPC when no other instances remain |
 
 **Important Notes:**
+- `ionexit` operates on a single ION instance — the one associated with the current working directory. It does **not** stop other ION instances on the same host, even with `killm f`. In a multi-node environment, each node must be shut down individually by running `ionexit` from that node's working directory. To stop **all** ION instances at once, use `killm f` instead, which sends SIGTERM/SIGKILL to all ION processes and destroys all shared IPC resources.
 - User applications attached to ION must detach separately
 - Custom services started by the user must be stopped manually
-- All modes stop all ION daemon processes; only SDR data and IPC resources are optionally preserved
+- All modes stop all ION daemon processes for the current node; only SDR data and IPC resources are optionally preserved
 - When in doubt about multi-node, use `n` — IPC can always be cleaned up later with `killm f`
 
 ### Method 3: ionstop and killm (Complete Cleanup)

@@ -38,6 +38,8 @@ Flags can be combined in any order.
 8. SDR cleanup (unless `k` flag used)
 9. IPC resources cleanup (unless `n` flag used)
 
+**Scope:** `ionexit` operates on a single ION instance — the one associated with the current working directory. It does not affect other ION instances on the same host. In multi-node environments, each node must be shut down individually by running `ionexit` from that node's working directory, or use `killm f` to stop all instances at once.
+
 **Multi-node environments:** Use the `n` flag when multiple ION instances share the same host. Without `n`, `ionexit` calls `sm_ipc_stop()` which destroys the global semaphore table shared by all instances. See the [ION Shutdown Guide](ION-Shutdown-Guide.md) for details.
 
 **Note:** User applications attached to ION must detach separately, and custom services started by the user must be stopped manually.

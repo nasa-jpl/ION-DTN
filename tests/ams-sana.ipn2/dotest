@@ -24,7 +24,6 @@ stop_and_exit()
     fi
 
     ./shutdown_proc
-    killm
     exit $1
 }
 

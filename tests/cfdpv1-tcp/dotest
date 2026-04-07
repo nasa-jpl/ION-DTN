@@ -93,7 +93,7 @@ cleanup_test() {
     sleep 5
 
     # Force cleanup if needed
-    killm >/dev/null 2>&1
+    killm f >/dev/null 2>&1
 }
 
 # Trap for cleanup on exit

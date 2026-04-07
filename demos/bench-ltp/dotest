@@ -208,7 +208,7 @@ EOF
         fi
 
         # Fresh ION start for each test — eliminates residual SDR state
-        killm 2>/dev/null
+        killm f 2>/dev/null
         sleep 1
         export ION_NODE_LIST_DIR=$PWD
         rm -f ./ion_nodes
