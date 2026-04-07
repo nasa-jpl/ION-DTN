@@ -1,0 +1,30 @@
+## begin ionadmin
+1 1 ''
+s
+a contact +1 +3600 1 1 100000
+a contact +86400 +172800 1 2 100000
+a range +1 +3600 1 1 1
+a range +1 +172800 1 2 1
+m production 1000000
+m consumption 1000000
+m horizon +0
+## end ionadmin
+
+## begin ionsecadmin
+1
+## end ionsecadmin
+
+## begin bpadmin
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+a protocol udp 1400 100
+a induct udp 0.0.0.0:4556 udpcli
+a outduct udp 127.0.0.1:4556 udpclo
+s
+## end bpadmin
+
+## begin ipnadmin
+a plan 1 udp/127.0.0.1:4556
+## end ipnadmin

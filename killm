@@ -71,8 +71,10 @@ else
     fi
 fi
 
-# Helper: list any ION processes still running
-list_surviving_processes() {
+# Helper: check for ION processes still running.
+# Sets global HAS_SURVIVORS=1 if any found, 0 otherwise.
+HAS_SURVIVORS=0
+check_surviving_processes() {
     local PSFILE_CHK="/tmp/ps_killm_chk.$$"
     ${PS} ${PS_ARGS} > ${PSFILE_CHK}
     local SURVIVING=""
@@ -98,29 +100,36 @@ list_surviving_processes() {
     if [ -n "$SURVIVING" ]; then
         echo "ION processes still running:"
         echo "$SURVIVING"
+        HAS_SURVIVORS=1
     else
         echo "All ION processes stopped."
+        HAS_SURVIVORS=0
     fi
 }
 
 # Try graceful shutdown via ionexit first (attaches to the ION
 # instance in the current working directory, if any).
 # In multi-node mode, use "n" flag to preserve shared IPC.
+# All ionexit output is suppressed — when no ION instance is running,
+# ionexit prints noisy "Can't get shared memory" errors that confuse
+# users even though the situation is harmless.
+IONEXIT_RAN=0
 if command -v ionexit > /dev/null 2>&1; then
     if [ $MULTINODE -eq 1 ]; then
         echo "Multi-node environment detected (ION_NODE_LIST_DIR is set)."
         echo "Attempting graceful shutdown of this node via ionexit n..."
-        timeout 15 ionexit n 2> /dev/null
+        timeout 15 ionexit n > /dev/null 2>&1
     else
         echo "Attempting graceful shutdown via ionexit..."
-        timeout 15 ionexit 2> /dev/null
+        timeout 15 ionexit > /dev/null 2>&1
     fi
     if [ $? -eq 0 ]; then
+        IONEXIT_RAN=1
         echo "ionexit completed successfully."
     else
-        echo "ionexit did not complete successfully (exit code $?)."
+        echo "ionexit did not complete (ION may not be running)."
     fi
-    list_surviving_processes
+    check_surviving_processes
 fi
 
 # In multi-node mode, stop here — do not kill other nodes' processes
@@ -137,58 +146,64 @@ fi
 
 # --- Full cleanup (single-node or forced) ---
 
-#echo "Sending TERM to ${IONPROCESSLIST}..."   # (too noisy)
-echo "Sending TERM to the processes..."
-echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
+# Skip the SIGTERM/SIGKILL cycle if ionexit already stopped everything.
+if [ $IONEXIT_RAN -eq 1 ] && [ $HAS_SURVIVORS -eq 0 ]; then
+    echo "ionexit stopped all processes; skipping SIGTERM/SIGKILL cycle."
+else
+    #echo "Sending TERM to ${IONPROCESSLIST}..."   # (too noisy)
+    echo "Sending TERM to the processes..."
+    echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
 
-# DEBUG: show killall command error
-#echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD
+    # DEBUG: show killall command error
+    #echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD
 
-sleep 2
+    sleep 2
 
-echo "Sending KILL to the processes..."
-echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL 2> /dev/null
+    echo "Sending KILL to the processes..."
+    echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL 2> /dev/null
 
-# DEBUG: show killall command error
-#echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL
+    # DEBUG: show killall command error
+    #echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL
 
-sleep 2
+    sleep 2
 
 
-echo "Checking if all ION processes ended..."
+    echo "Checking if all ION processes ended..."
 
-PSFILE="/tmp/ps.$$"
-# grab all running processes
-${PS} ${PS_ARGS} > ${PSFILE}
+    PSFILE="/tmp/ps.$$"
+    # grab all running processes
+    ${PS} ${PS_ARGS} > ${PSFILE}
 
-# DEBUG: show the PSFILE
-#echo "Current running processes:"
-#cat ${PSFILE}
-#ps -eo pid,ppid,state,cmd
+    # DEBUG: show the PSFILE
+    #echo "Current running processes:"
+    #cat ${PSFILE}
+    #ps -eo pid,ppid,state,cmd
 
-# see if any of those still-running processes belong to ION
-# Portable: extract the command name from after the TIME column (H:MM:SS)
-# rather than relying on a fixed column number, since STIME formatting
-# varies across platforms (Solaris can split it into two fields).
-for PROC in ${IONPROCESSLIST}; do
-    awk -v proc="$PROC" '
-    /defunct/ { next }
-    {
-        if (match($0, /[0-9]+:[0-9][0-9]:[0-9][0-9]/)) {
-            cmd = substr($0, RSTART + RLENGTH)
-            sub(/^[ \t]+/, "", cmd)
-            sub(/ .*/, "", cmd)
-            sub(/.*\//, "", cmd)
-            if (cmd == proc)
-                printf("  *** Unknown error: process %s (PID %s) not killed...try rebooting\n", cmd, $2)
-        }
-    }' "${PSFILE}"
-done
+    # see if any of those still-running processes belong to ION
+    # Portable: extract the command name from after the TIME column (H:MM:SS)
+    # rather than relying on a fixed column number, since STIME formatting
+    # varies across platforms (Solaris can split it into two fields).
+    for PROC in ${IONPROCESSLIST}; do
+        awk -v proc="$PROC" '
+        /defunct/ { next }
+        {
+            if (match($0, /[0-9]+:[0-9][0-9]:[0-9][0-9]/)) {
+                cmd = substr($0, RSTART + RLENGTH)
+                sub(/^[ \t]+/, "", cmd)
+                sub(/ .*/, "", cmd)
+                sub(/.*\//, "", cmd)
+                if (cmd == proc)
+                    printf("  *** Unknown error: process %s (PID %s) not killed...try rebooting\n", cmd, $2)
+            }
+        }' "${PSFILE}"
+    done
+    rm -f ${PSFILE}
+fi
+
 if [ -z "$USERNAME_CUT" ]; then
     echo "Error: USERNAME_CUT is not set or empty."
     exit 1
 fi
-rm -f ${PSFILE}
 
 echo "Deleting shared memory to remove SDR..."
 

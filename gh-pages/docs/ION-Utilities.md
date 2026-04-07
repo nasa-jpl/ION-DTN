@@ -10,13 +10,22 @@ There are three main ways to stop ION, each suited for different scenarios:
 
 ### ionexit (Recommended for Normal Shutdown)
 
-The `ionexit` program is the recommended method for normal ION shutdown. It gracefully stops all ION daemon services in the correct dependency order.
+The `ionexit` program is the recommended method for normal ION shutdown. It gracefully stops all ION daemon services in the correct dependency order. It is the primary way to shut down ION for most purposes.
 
-**Usage:**
-```bash
-ionexit      # Stop ION and destroy SDR
-ionexit k    # Stop ION but keep/preserve SDR
-```
+**Modes:**
+
+| Command | SDR | IPC | Use Case |
+|---------|-----|-----|----------|
+| `ionexit` | Destroyed | Destroyed | Normal shutdown. Clean slate for next run. |
+| `ionexit k` | Preserved | Destroyed | Forensics only. SDR file remains on disk for inspection, but ION cannot be restarted (IPC is gone). |
+| `ionexit n` | Destroyed | Preserved | Multi-node per host. Shut down one ION instance without destroying the shared IPC (sdrwm catalog, semaphores) that other instances on the same host depend on. |
+| `ionexit k n` | Preserved | Preserved | Planned maintenance / restart. Only mode that allows a subsequent `ionstart` to reattach and resume where it left off. Works for all SDR storage modes. |
+
+Flags can be combined in any order.
+
+**Why `ionexit k n` is required for restart:**
+
+`ionexit k` preserves the SDR data (the `.sdr` file on disk or the DRAM shared-memory segment) but still calls `sm_ipc_stop()`, which destroys the global semaphore table and sdrwm catalog. Without those IPC structures, a subsequent `ionstart` cannot cleanly reattach to the preserved SDR. The `n` flag skips `sm_ipc_stop()`, keeping both SDR data and the IPC infrastructure intact so that `ionstart` can resume normally.
 
 **Daemons stopped (in order):**
 1. DTPC - Delay Tolerant Payload Conditioning (if enabled)
@@ -26,14 +35,10 @@ ionexit k    # Stop ION but keep/preserve SDR
 5. BSSP - Bundle Streaming Service Protocol (if enabled)
 6. CFDP - CCSDS File Delivery Protocol
 7. RFX - Contact plan system
-8. IPC resources cleanup
+8. SDR cleanup (unless `k` flag used)
+9. IPC resources cleanup (unless `n` flag used)
 
-The `k` option preserves the SDR state, which is useful for:
-- Saving state before planned maintenance
-- Enabling restart with `ionrestart` after a controlled shutdown
-- Preserving bundle queue state for later transmission
-
-**Important:** SDR preservation only works when the SDR is configured with file-based storage (`SDR_IN_FILE`). If the SDR uses DRAM-only storage (`SDR_IN_DRAM`), the data resides in shared memory and will be lost when processes exit, regardless of the `k` option.
+**Multi-node environments:** Use the `n` flag when multiple ION instances share the same host. Without `n`, `ionexit` calls `sm_ipc_stop()` which destroys the global semaphore table shared by all instances. See the [ION Shutdown Guide](ION-Shutdown-Guide.md) for details.
 
 **Note:** User applications attached to ION must detach separately, and custom services started by the user must be stopped manually.
 
@@ -58,11 +63,23 @@ Use this method when you need fine-grained control over individual subsystems.
 
 * `ionstop` - Script to gracefully stop all ION daemons and services. Calls each admin program with `.` to stop subsystems, then calls `killm` for single-ION instances. For multi-ION instances, it does NOT call `killm` to avoid affecting other instances.
 
-* `killm` - Utility to forcefully terminate ION processes and clean up shared memory.
-    **WARNING:** Force-kills all ION processes and clears System V IPC resources. Use only when normal shutdown fails. This is a destructive last-resort operation that:
-    - Sends SIGTERM then SIGKILL to all ION processes
-    - Destroys all System V shared memory and semaphores
-    - Removes all ION POSIX named semaphores
+* `killm` - Script to ensure a clean start by wiping out all prior ION instances and their resources. `killm` first attempts graceful shutdown via `ionexit`, then cleans up any remaining processes and IPC resources. It is multi-node aware: in multi-node environments, it defaults to shutting down only the current node.
+
+    **Usage:**
+    ```bash
+    killm      # Graceful shutdown; multi-node safe (node-only if detected)
+    killm f    # Force full cleanup of all ION instances on host
+    ```
+
+    **Behavior:**
+    1. Attempts graceful shutdown via `ionexit` (uses `ionexit n` in multi-node environments to preserve shared IPC)
+    2. Checks for surviving ION processes
+    3. In multi-node mode (without `f`): stops here, preserving shared IPC for other instances
+    4. In single-node or forced mode: sends SIGTERM then SIGKILL to remaining processes, then destroys all System V IPC and POSIX named semaphores
+
+    **Multi-node detection:** `killm` detects a multi-node environment when `ION_NODE_LIST_DIR` is set and `$ION_NODE_LIST_DIR/ion_nodes` contains entries.
+
+    The long-term plan is to transition `killm` into a backup script for clearing ION in abnormal situations, with `ionexit` serving as the primary graceful shutdown command for most purposes.
 
 ## Other Utilities
 * `ionrestart` - Utility to restart ION node after a crash while preserving SDR state
