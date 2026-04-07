@@ -55,6 +55,14 @@ else
     fi
 fi
 
+# Try graceful shutdown via ionexit first (attaches to the ION
+# instance in the current working directory, if any).
+# If ionexit succeeds, skip the brute-force SIGTERM/SIGKILL cycle.
+if command -v ionexit > /dev/null 2>&1; then
+    echo "Attempting graceful shutdown via ionexit..."
+    timeout 15 ionexit 2> /dev/null
+fi
+
 #echo "Sending TERM to ${IONPROCESSLIST}..."   # (too noisy)
 echo "Sending TERM to the processes..."
 echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
