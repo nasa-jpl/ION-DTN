@@ -8,6 +8,22 @@
 
 OS_VERS=""
 
+# Parse arguments: "f" forces full cleanup in multi-node environments
+FORCE=0
+if [ "$1" = "f" ]; then
+    FORCE=1
+fi
+
+# Detect multi-node environment: ION_NODE_LIST_DIR set and ion_nodes
+# file exists with content.  In multi-node mode (without "f"), killm
+# only stops the current node via ionexit and preserves shared IPC
+# resources used by other instances.
+MULTINODE=0
+if [ $FORCE -eq 0 ] && [ -n "$ION_NODE_LIST_DIR" ] && \
+   [ -s "$ION_NODE_LIST_DIR/ion_nodes" ]; then
+    MULTINODE=1
+fi
+
 # Fix for SourceForge Bug #60, killm IPC cleanup fails for long account names
 # Since ipcs truncates usernames to 10 characters, we need to match against a
 # truncated username so we trim the username to 10 characters.
@@ -55,37 +71,71 @@ else
     fi
 fi
 
+# Helper: list any ION processes still running
+list_surviving_processes() {
+    local PSFILE_CHK="/tmp/ps_killm_chk.$$"
+    ${PS} ${PS_ARGS} > ${PSFILE_CHK}
+    local SURVIVING=""
+    for PROC in ${IONPROCESSLIST}; do
+        local MATCH=$(awk -v proc="$PROC" '
+        /defunct/ { next }
+        {
+            # Portable: find CMD after the TIME column (H:MM:SS).
+            if (match($0, /[0-9]+:[0-9][0-9]:[0-9][0-9]/)) {
+                cmd = substr($0, RSTART + RLENGTH)
+                sub(/^[ \t]+/, "", cmd)   # trim leading whitespace
+                sub(/ .*/, "", cmd)        # isolate first word (the command)
+                sub(/.*\//, "", cmd)       # strip path prefix
+                if (cmd == proc) print
+            }
+        }' "${PSFILE_CHK}")
+        if [ -n "$MATCH" ]; then
+            SURVIVING="${SURVIVING}${MATCH}
+"
+        fi
+    done
+    rm -f ${PSFILE_CHK}
+    if [ -n "$SURVIVING" ]; then
+        echo "ION processes still running:"
+        echo "$SURVIVING"
+    else
+        echo "All ION processes stopped."
+    fi
+}
+
 # Try graceful shutdown via ionexit first (attaches to the ION
 # instance in the current working directory, if any).
+# In multi-node mode, use "n" flag to preserve shared IPC.
 if command -v ionexit > /dev/null 2>&1; then
-    echo "Attempting graceful shutdown via ionexit..."
-    timeout 15 ionexit 2> /dev/null
+    if [ $MULTINODE -eq 1 ]; then
+        echo "Multi-node environment detected (ION_NODE_LIST_DIR is set)."
+        echo "Attempting graceful shutdown of this node via ionexit n..."
+        timeout 15 ionexit n 2> /dev/null
+    else
+        echo "Attempting graceful shutdown via ionexit..."
+        timeout 15 ionexit 2> /dev/null
+    fi
     if [ $? -eq 0 ]; then
         echo "ionexit completed successfully."
-        # Show any ION processes still running after graceful shutdown.
-        # This helps diagnose applications that don't respond to ionexit
-        # (e.g., user apps attached to ION that hold shared memory).
-        PSFILE_EXIT="/tmp/ps_ionexit.$$"
-        ${PS} ${PS_ARGS} > ${PSFILE_EXIT}
-        SURVIVING=""
-        for PROC in ${IONPROCESSLIST}; do
-            MATCH=$(grep "[^-a-zA-Z]${PROC}$" "${PSFILE_EXIT}" | grep -v "defunct")
-            if [ -n "$MATCH" ]; then
-                SURVIVING="${SURVIVING}${MATCH}
-"
-            fi
-        done
-        rm -f ${PSFILE_EXIT}
-        if [ -n "$SURVIVING" ]; then
-            echo "Processes still running after ionexit:"
-            echo "$SURVIVING"
-        else
-            echo "All ION processes stopped by ionexit."
-        fi
     else
         echo "ionexit did not complete successfully (exit code $?)."
     fi
+    list_surviving_processes
 fi
+
+# In multi-node mode, stop here — do not kill other nodes' processes
+# or destroy shared IPC resources.
+if [ $MULTINODE -eq 1 ]; then
+    echo ""
+    echo "NOTE: Multi-node environment — shared IPC resources were NOT cleared."
+    echo "Other ION instances on this host may still be running."
+    echo "To force full cleanup of all instances, run: killm f"
+    echo ""
+    echo "Killm completed (node-only)."
+    exit 0
+fi
+
+# --- Full cleanup (single-node or forced) ---
 
 #echo "Sending TERM to ${IONPROCESSLIST}..."   # (too noisy)
 echo "Sending TERM to the processes..."
@@ -117,9 +167,22 @@ ${PS} ${PS_ARGS} > ${PSFILE}
 #ps -eo pid,ppid,state,cmd
 
 # see if any of those still-running processes belong to ION
+# Portable: extract the command name from after the TIME column (H:MM:SS)
+# rather than relying on a fixed column number, since STIME formatting
+# varies across platforms (Solaris can split it into two fields).
 for PROC in ${IONPROCESSLIST}; do
-    grep "[^-a-zA-Z]${PROC}$" "${PSFILE}" | grep -v "defunct" | \
-        awk '{printf("  *** Unknown error: process %s not killed...try rebooting\n", $NF);}'
+    awk -v proc="$PROC" '
+    /defunct/ { next }
+    {
+        if (match($0, /[0-9]+:[0-9][0-9]:[0-9][0-9]/)) {
+            cmd = substr($0, RSTART + RLENGTH)
+            sub(/^[ \t]+/, "", cmd)
+            sub(/ .*/, "", cmd)
+            sub(/.*\//, "", cmd)
+            if (cmd == proc)
+                printf("  *** Unknown error: process %s (PID %s) not killed...try rebooting\n", cmd, $2)
+        }
+    }' "${PSFILE}"
 done
 if [ -z "$USERNAME_CUT" ]; then
     echo "Error: USERNAME_CUT is not set or empty."
