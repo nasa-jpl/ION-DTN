@@ -12,6 +12,11 @@ on:
         required: false
         type: string
         default: ""
+      force_update:
+        description: "Force update .DURATION files (only works when specific tests are provided)"
+        required: false
+        type: boolean
+        default: false
       timeout_minutes:
         description: "Timeout for test benchmark in minutes (default: 60 minutes / 1 hour)"
         required: false
@@ -24,6 +29,11 @@ on:
         required: false
         type: string
         default: ""
+      force_update:
+        description: "Force update .DURATION files (only works when specific tests are provided)"
+        required: false
+        type: boolean
+        default: false
       timeout_minutes:
         description: "Timeout for test benchmark in minutes (default: 60 minutes / 1 hour)"
         required: false
@@ -62,8 +72,16 @@ jobs:
             sudo make install
             sudo ldconfig
             if [ -n "${{ inputs.tests_to_run }}" ]; then
-              ./tests/benchmark.py -p ${{ inputs.tests_to_run }}
+              if [ "${{ inputs.force_update }}" == "true" ]; then
+                echo "Force updating benchmarks for: ${{ inputs.tests_to_run }}"
+                ./tests/benchmark.py -p ${{ inputs.tests_to_run }} -f
+              else
+                ./tests/benchmark.py -p ${{ inputs.tests_to_run }}
+              fi
             else
+              if [ "${{ inputs.force_update }}" == "true" ]; then
+                echo "⚠️ Warning: Force update ignored - only works when specific tests are provided via tests_to_run"
+              fi
               ./tests/benchmark.py
             fi
           } > benchmark.log 2> >(tee -a benchmark.log >&2)
