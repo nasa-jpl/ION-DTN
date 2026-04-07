@@ -57,10 +57,34 @@ fi
 
 # Try graceful shutdown via ionexit first (attaches to the ION
 # instance in the current working directory, if any).
-# If ionexit succeeds, skip the brute-force SIGTERM/SIGKILL cycle.
 if command -v ionexit > /dev/null 2>&1; then
     echo "Attempting graceful shutdown via ionexit..."
     timeout 15 ionexit 2> /dev/null
+    if [ $? -eq 0 ]; then
+        echo "ionexit completed successfully."
+        # Show any ION processes still running after graceful shutdown.
+        # This helps diagnose applications that don't respond to ionexit
+        # (e.g., user apps attached to ION that hold shared memory).
+        PSFILE_EXIT="/tmp/ps_ionexit.$$"
+        ${PS} ${PS_ARGS} > ${PSFILE_EXIT}
+        SURVIVING=""
+        for PROC in ${IONPROCESSLIST}; do
+            MATCH=$(grep "[^-a-zA-Z]${PROC}$" "${PSFILE_EXIT}" | grep -v "defunct")
+            if [ -n "$MATCH" ]; then
+                SURVIVING="${SURVIVING}${MATCH}
+"
+            fi
+        done
+        rm -f ${PSFILE_EXIT}
+        if [ -n "$SURVIVING" ]; then
+            echo "Processes still running after ionexit:"
+            echo "$SURVIVING"
+        else
+            echo "All ION processes stopped by ionexit."
+        fi
+    else
+        echo "ionexit did not complete successfully (exit code $?)."
+    fi
 fi
 
 #echo "Sending TERM to ${IONPROCESSLIST}..."   # (too noisy)
