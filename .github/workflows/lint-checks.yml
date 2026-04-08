@@ -69,3 +69,60 @@ jobs:
         uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13
         with:
           sarif_file: kics-results/results.sarif
+        continue-on-error: true
+
+      - name: Check KICS results
+        if: always()
+        run: |
+          if [ -f kics-results/results.json ]; then
+            HIGH=$(jq '.severity_counters.HIGH // 0' kics-results/results.json)
+            CRITICAL=$(jq '.severity_counters.CRITICAL // 0' kics-results/results.json)
+            MEDIUM=$(jq '.severity_counters.MEDIUM // 0' kics-results/results.json)
+            LOW=$(jq '.severity_counters.LOW // 0' kics-results/results.json)
+            INFO=$(jq '.severity_counters.INFO // 0' kics-results/results.json)
+            TOTAL=$(jq '.total_counter // 0' kics-results/results.json)
+
+            # Write to GitHub Step Summary
+            {
+              echo "## KICS Security Scan Results"
+              echo ""
+              echo "| Severity | Count |"
+              echo "|----------|-------|"
+              echo "| 🔴 Critical | $CRITICAL |"
+              echo "| 🟠 High | $HIGH |"
+              echo "| 🟡 Medium | $MEDIUM |"
+              echo "| 🔵 Low | $LOW |"
+              echo "| ℹ️ Info | $INFO |"
+              echo "| **Total** | **$TOTAL** |"
+              echo ""
+            } >> $GITHUB_STEP_SUMMARY
+
+            # Console output
+            echo "KICS Scan Results Summary:"
+            echo "  Critical: $CRITICAL"
+            echo "  High: $HIGH"
+            echo "  Medium: $MEDIUM"
+            echo "  Low: $LOW"
+            echo "  Info: $INFO"
+            echo "  Total: $TOTAL"
+
+            # Check for failures
+            if [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "❌ **KICS scan found HIGH or CRITICAL severity issues**" >> $GITHUB_STEP_SUMMARY
+              echo ""
+              echo "❌ KICS scan found HIGH or CRITICAL severity issues"
+              exit 1
+            else
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "✅ **No HIGH or CRITICAL issues found**" >> $GITHUB_STEP_SUMMARY
+              echo ""
+              echo "✅ No HIGH or CRITICAL issues found"
+            fi
+          else
+            echo "## KICS Security Scan Results" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **KICS results file not found**" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️  KICS results file not found"
+            exit 1
+          fi
