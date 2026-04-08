@@ -10,7 +10,7 @@ on:
 jobs:
   ansible-lint:
     name: Ansible Lint
-    runs-on: arc-runner-rhel8
+    runs-on: arc-runner-set-rhel8
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,7 +22,7 @@ jobs:
 
   kics-scan:
     name: KICS Security Scan
-    runs-on: arc-runner-rhel8
+    runs-on: arc-runner-set-rhel8
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
