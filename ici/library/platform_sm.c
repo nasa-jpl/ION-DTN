@@ -2616,6 +2616,18 @@ int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 
 void	sm_TaskKill(int task, int sigNbr)
 {
+	if (task <= 0)
+	{
+		/*	task == 0 sends to the entire process group;
+		 *	task == -1 sends to every process the caller
+		 *	owns (kill(-1, sig)).  Both are catastrophic
+		 *	in this context.  ERROR is -1 on POSIX.	*/
+
+		writeMemoNote("[?] sm_TaskKill: refusing invalid PID",
+				itoa(task));
+		return;
+	}
+
 	oK(kill(task, sigNbr));
 }
 

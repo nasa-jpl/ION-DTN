@@ -447,8 +447,15 @@ static void	stopSpan(BsspVspan *vspan)
 
 static void	stopSeat(BsspVseat *vseat)
 {
-	sm_TaskKill(vseat->beBsiPid, SIGTERM);
-	sm_TaskKill(vseat->rlBsiPid, SIGTERM);
+	if (vseat->beBsiPid != ERROR)
+	{
+		sm_TaskKill(vseat->beBsiPid, SIGTERM);
+	}
+
+	if (vseat->rlBsiPid != ERROR)
+	{
+		sm_TaskKill(vseat->rlBsiPid, SIGTERM);
+	}
 }
 
 static void	waitForSpan(BsspVspan *vspan)
