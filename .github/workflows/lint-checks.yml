@@ -42,8 +42,6 @@ jobs:
           make build
           ./bin/kics version
           sudo cp ./bin/kics /usr/local/bin/
-          cd ..
-          rm -rf kics-src
 
       - name: Create output directory
         run: mkdir -p kics-results
@@ -51,6 +49,7 @@ jobs:
       - name: Run KICS scan
         run: |
           kics scan \
+            --queries-path kics-src/assets/queries \
             --config kics.config \
             -o kics-results \
             --output-name results
