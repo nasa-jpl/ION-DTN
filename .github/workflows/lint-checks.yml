@@ -21,7 +21,7 @@ jobs:
 
   kics-scan:
     name: KICS Security Scan
-    runs-on: arc-runner-set-oraclelinux9
+    runs-on: arc-runner-set-ol9
     env:
       KICS_VERSION: v2.1.20
     steps:
