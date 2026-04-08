@@ -148,20 +148,29 @@ if command -v ionexit > /dev/null 2>&1; then
         echo "Multi-node environment detected. Shutting down all nodes..."
         SAVED_DIR="$(pwd)"
         NODE_DIRS=( $(awk '{print $4}' "$ION_NODE_LIST_DIR/ion_nodes") )
-        # Use "ionexit n" (preserve IPC) for ALL nodes.  Full ionexit
-        # destroys global semaphores via sm_ipc_stop(), which prevents
-        # non-clock processes from detecting the stop flag and causes
-        # them to hang.  killm's own IPC cleanup (ipcrm + semaphore
-        # removal) runs after all processes are dead, so we don't need
-        # ionexit to tear down IPC.
-        for dir in "${NODE_DIRS[@]}"; do
+        # Use "ionexit k n" for all-but-last, "ionexit" for last node.
+        # "k" keeps the SDR: ionTerminate(1) on an earlier node would
+        #   destroy the global SDR working memory (key 0xFF00) shared
+        #   by all instances, preventing subsequent nodes from attaching.
+        # "n" preserves IPC: sm_ipc_stop() would destroy global
+        #   semaphores, preventing non-clock processes from detecting
+        #   the stop flag.
+        # The last node runs full "ionexit" to clean up SDR and IPC.
+        NODE_COUNT=${#NODE_DIRS[@]}
+        for idx in "${!NODE_DIRS[@]}"; do
+            dir="${NODE_DIRS[$idx]}"
             if [ ! -d "$dir" ]; then
                 echo "  Skipping $dir (directory not found)"
                 continue
             fi
             cd "$dir"
-            echo "  Node in $dir: ionexit n..."
-            timeout 15 ionexit n > /dev/null 2>&1
+            if [ $((idx + 1)) -eq $NODE_COUNT ]; then
+                echo "  Node in $dir: ionexit (last node)..."
+                timeout 15 ionexit
+            else
+                echo "  Node in $dir: ionexit k n..."
+                timeout 15 ionexit k n
+            fi
             sleep 1
         done
         cd "$SAVED_DIR"

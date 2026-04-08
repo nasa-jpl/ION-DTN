@@ -268,6 +268,20 @@ int	main(int argc, char **argv)
 		}
 
 
+		/*	Give non-clock processes time to detect the stop
+		 *	flag and exit.  The *Stop() calls above send
+		 *	SIGTERM only to specific daemon PIDs (clocks,
+		 *	cpsd, transit); other processes (CLAs, forwarders,
+		 *	admin endpoints) rely on polling the stop flag
+		 *	via semaphore-gated checks, typically on a
+		 *	1-second timeout cycle.  Without this grace
+		 *	period, ionTerminate/sm_ipc_stop would destroy
+		 *	shared resources while those processes still
+		 *	need them to detect the shutdown.		*/
+
+		printText("Waiting for processes to finish shutting down...");
+		snooze(3);
+
 		{
 			if( deletesdr )
 			{
