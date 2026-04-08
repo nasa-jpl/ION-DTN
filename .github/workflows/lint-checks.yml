@@ -54,11 +54,15 @@ jobs:
             -o kics-results \
             --output-name results
 
+      - name: Set timestamp
+        id: timestamp
+        run: echo "timestamp=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+
       - name: Upload KICS results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kics-results
+          name: kics-results-${{ steps.timestamp.outputs.timestamp }}
           path: kics-results/
           if-no-files-found: warn
 
