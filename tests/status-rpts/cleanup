@@ -4,5 +4,6 @@
 # April 12, 2010
 
 echo "Cleaning up old ION..."
-killm
+export ION_NODE_LIST_DIR=$PWD
+killm f
 rm -f 3.ipn.ltp/ion.log
