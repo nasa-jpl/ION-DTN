@@ -766,12 +766,12 @@ while [ $# -gt 0 ]; do
             ;;
         --from)
             shift
-            FROM_TEST="$1"
+            FROM_TEST="${1%/}"
             shift
             ;;
         --to)
             shift
-            TO_TEST="$1"
+            TO_TEST="${1%/}"
             shift
             ;;
         --exclude)

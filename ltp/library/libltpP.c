@@ -1352,7 +1352,10 @@ static void	stopSpan(LtpVspan *vspan)
 
 static void	stopSeat(LtpVseat *vseat)
 {
-	sm_TaskKill(vseat->lsiPid, SIGTERM);
+	if (vseat->lsiPid != ERROR)
+	{
+		sm_TaskKill(vseat->lsiPid, SIGTERM);
+	}
 }
 
 static void	waitForSpan(LtpVspan *vspan)

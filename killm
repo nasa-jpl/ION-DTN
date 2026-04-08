@@ -107,6 +107,22 @@ check_surviving_processes() {
     fi
 }
 
+# Early check: if no ION processes are running, skip ionexit and
+# signal-based cleanup entirely and go straight to IPC resource cleanup.
+check_surviving_processes
+if [ $HAS_SURVIVORS -eq 0 ]; then
+    echo "No ION processes running; skipping ionexit and signal cleanup."
+    if [ $MULTINODE -eq 1 ]; then
+        echo ""
+        echo "NOTE: Multi-node environment — shared IPC resources were NOT cleared."
+        echo "Other ION instances on this host may still be running."
+        echo "To force full cleanup of all instances, run: killm f"
+        echo ""
+        echo "Killm completed (node-only)."
+        exit 0
+    fi
+else
+
 # Try graceful shutdown via ionexit first.
 # ionexit operates on the ION instance in the current working directory,
 # so for multi-node environments we must cd into each node's directory.
@@ -132,23 +148,20 @@ if command -v ionexit > /dev/null 2>&1; then
         echo "Multi-node environment detected. Shutting down all nodes..."
         SAVED_DIR="$(pwd)"
         NODE_DIRS=( $(awk '{print $4}' "$ION_NODE_LIST_DIR/ion_nodes") )
-        NODE_COUNT=${#NODE_DIRS[@]}
-        for idx in "${!NODE_DIRS[@]}"; do
-            dir="${NODE_DIRS[$idx]}"
+        # Use "ionexit n" (preserve IPC) for ALL nodes.  Full ionexit
+        # destroys global semaphores via sm_ipc_stop(), which prevents
+        # non-clock processes from detecting the stop flag and causes
+        # them to hang.  killm's own IPC cleanup (ipcrm + semaphore
+        # removal) runs after all processes are dead, so we don't need
+        # ionexit to tear down IPC.
+        for dir in "${NODE_DIRS[@]}"; do
             if [ ! -d "$dir" ]; then
                 echo "  Skipping $dir (directory not found)"
                 continue
             fi
             cd "$dir"
-            if [ $((idx + 1)) -eq $NODE_COUNT ]; then
-                # Last node: full ionexit (destroy SDR + IPC)
-                echo "  Node in $dir: ionexit (last node)..."
-                timeout 15 ionexit > /dev/null 2>&1
-            else
-                # Not last: preserve IPC for remaining nodes
-                echo "  Node in $dir: ionexit n..."
-                timeout 15 ionexit n > /dev/null 2>&1
-            fi
+            echo "  Node in $dir: ionexit n..."
+            timeout 15 ionexit n > /dev/null 2>&1
             sleep 1
         done
         cd "$SAVED_DIR"
@@ -165,7 +178,24 @@ if command -v ionexit > /dev/null 2>&1; then
             echo "ionexit did not complete (ION may not be running)."
         fi
     fi
-    check_surviving_processes
+
+    # Wait up to 5 seconds for processes to wind down after ionexit.
+    # Many ION processes stop by polling a flag in shared memory rather
+    # than receiving a direct signal, so they need a moment to notice.
+    if [ $IONEXIT_RAN -eq 1 ]; then
+        for i in 1 2 3 4 5; do
+            check_surviving_processes
+            if [ $HAS_SURVIVORS -eq 0 ]; then
+                break
+            fi
+            if [ $i -lt 5 ]; then
+                echo "Waiting for processes to exit... (${i}s)"
+                sleep 1
+            fi
+        done
+    else
+        check_surviving_processes
+    fi
 fi
 
 # In multi-node mode, stop here — do not kill other nodes' processes
@@ -235,6 +265,8 @@ else
     done
     rm -f ${PSFILE}
 fi
+
+fi  # end of early "has survivors" check
 
 if [ -z "$USERNAME_CUT" ]; then
     echo "Error: USERNAME_CUT is not set or empty."
