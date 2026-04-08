@@ -56,6 +56,7 @@ RUN microdnf install -y oracle-epel-release-el9 \
     tk-devel \
     libffi-devel \
     xz-devel \
+    wget \
     && microdnf install -y --enablerepo=ol9_codeready_builder jansson-devel ninja-build \
     && microdnf clean all
 

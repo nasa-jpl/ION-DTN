@@ -27,6 +27,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check and start Docker daemon
+        run: |
+          # Check if Docker daemon is running
+          if ! docker info &>/dev/null; then
+            echo "Docker daemon not responding, attempting to start..."
+            sudo systemctl start docker || true
+            sleep 3
+
+            # If still not working, try starting manually
+            if ! docker info &>/dev/null; then
+              echo "Starting Docker daemon manually..."
+              sudo dockerd &
+              sleep 5
+            fi
+          fi
+
+          # Verify Docker is working
+          docker info
+
       - name: Run KICS scan
         uses: checkmarx/kics-github-action@05aa5eb70eede1355220f4ca5238d96b397e30a6
         with:

@@ -55,6 +55,7 @@ RUN apt-get update -y --no-install-recommends \
     libxmlsec1-dev \
     libffi-dev \
     liblzma-dev \
+    wget \
     && rm -rf /var/lib/apt/lists/*
 
 RUN export PATH="${HOME}/.local/bin:${PATH}"
