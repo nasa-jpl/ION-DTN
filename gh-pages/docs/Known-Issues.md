@@ -1,6 +1,6 @@
 # Knowledge Base, Issues & Patches
 
-Laste Updated: 11/21/2025
+Last Updated: 04/08/2026
 
 This is a short list of information regarding ION operation, known issues, and patches.
 
@@ -33,7 +33,7 @@ Most of these information are likely to be found in other longer documents but i
 ### UDP CLA
 
 - When using UDP CLA for data delivery, one should be aware that:
-  - UDP is inherently unreliable. Therefore the delivery of BP bundles may not be guaranteed, even withing a controlled, isolated network environment.
+  - UDP is inherently unreliable. Therefore the delivery of BP bundles may not be guaranteed, even within a controlled, isolated network environment.
   - It is best to use iperf and other performance testing tools to properly character UDP performance before using UDP CLA. UDP loss may have high loss rate due to presence of other traffic or insufficient internal buffer.
   - When UDP CLA is used to deliver bundles larger than 64K, those bundle will be fragmented and reassembled at the destination. It has been observed on some platforms that UDP buffer overflow can cause a large number of 'cyclic' packet drops so that an unexpected large number of bundles are unable to be reassembled at the destination. These bundle fragments (which are themselves bundles) will take up storage and remain until either (a) the remaining fragments arrived or (b) the TTL expired.
 
@@ -83,6 +83,8 @@ where 3 is the margin we recommend, 8 is the number of octets per word, 0.4 acco
 
 - It is further recommended that all ION instances running simultaneously on a single host should set their `sdrWmSize` to the same size; there are no storage saving advantages to use `sdrWmSize` any less than the first ION instance that launched.
 
+- **DTPC must not be used in multi-node-per-host configurations.** DTPC stores its volatile database (daemon PIDs, SAP application PIDs, and semaphores) in a single shared structure in PSM. All ION instances on the same host share this structure. When any individual node shuts down DTPC, it kills daemons and resets PID fields for all nodes — corrupting the running state of other instances and potentially sending signals to invalid PIDs. A platform-level guard in `sm_TaskKill()` prevents the worst outcome (`kill(-1, sig)`), but the underlying shared-state corruption is not yet resolved. A fix is planned (see [issue #885](https://github.com/nasa-jpl/ion-ios-dev/issues/885)) but has no firm date. Until then, avoid enabling DTPC when running multiple ION instances on a single host.
+
 ## SDR Issues
 
 ### Transaction Reversal
@@ -91,7 +93,7 @@ When SDR transaction is canceled due to anomaly, ION will attempt automatically 
 
 1. Reverse transaction - if it is configured - to revert modifications to the SDR's heap space which contains both user and protocol data units. This action rolls back a series of operations on the SDR's data of the cancelled the transaction.
 2. Once the SDR's heap space has been restored, the "volatile" state of the protocols must be restored because they might be modified by the transaction as well. This is performed by the `ionrestart` utility.
-3. After the volatiles are reloaded, the 3rd step of restoring ION operation will need to be triggered by the users. During the anomously event that caused the transaction cancellation, some of ION's various daemons may have stopped. They can be restored by simply issuing the start ('s') command through `ionadmin` and `bpadmin`.
+3. After the volatiles are reloaded, the 3rd step of restoring ION operation will need to be triggered by the users. During the anomalous event that caused the transaction cancellation, some of ION's various daemons may have stopped. They can be restored by simply issuing the start ('s') command through `ionadmin` and `bpadmin`.
 
 ### 'Init' Process PID 1
 
@@ -104,18 +106,18 @@ During the reloading of the volatile state, the bundle protocol schemes, inducts
 If you encounter an error reported in ion.log file such as this:
 
 ```text
-at line 3850 of ici/library/platform_sm.c, Can't initialize IPC semaphore: Permission denied (/ion:GLOBAL:ipcSem)
-at line 3868 of ici/library/platform_sm.c, Can't initialize IPC.
-at line 481 of ici/sdr/sdrxn.c, Can't initialize IPC system.
-at line 695 of ici/library/ion.c, Can't initialize the SDR system.
-at line 216 of ici/utils/ionadmin.c, ionadmin can't initialize ION.
+at line 3151 of ici/library/platform_sm.c, Can't initialize IPC semaphore: Permission denied (/ion:GLOBAL:ipcSem)
+at line 3172 of ici/library/platform_sm.c, Can't initialize IPC.
+at line 494 of ici/sdr/sdrxn.c, Can't initialize IPC system.
+at line 731 of ici/library/ion.c, Can't initialize the SDR system.
+at line 227 of ici/utils/ionadmin.c, ionadmin can't initialize ION.
 ```
 
 It indicates that ION is unable to clean out previously left behind semaphore files. This typically occurs when the previous ION run was launched by a different user, and ION was not properly shutdown via a shutdown script - instead, the global `ionstop` or `killm` script was used. The semaphore files used by POSIX named semaphore typically only allows the owner to delete it. The work around is to clear these files out. ION-related semaphore files have the name pattern of `sem.ion:GLOBAL:<integer>`. For Ubuntu, it is usually found in the `/dev/shm` directory; for other Linux distribution, the location can be different.
 
 ### POSIX Named Semaphore not working properly on FreeBSD
 
-As of ION 4.1.3s, FreeBSD defaults to SVR4 semaphore while almost all other platforms defaults to POSIX named semaphore. It is possible to use configure flag `--forced-posix-named-semaphores` to build but test indicates issues with semaphore operations.
+As of ION 4.1.3s, FreeBSD defaults to SVR4 semaphore while almost all other platforms defaults to POSIX named semaphore. It is possible to use configure flag `--enable-force-posix-named-semaphores` to build but test indicates issues with semaphore operations.
 
 ## Compilation
 
