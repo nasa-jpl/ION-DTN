@@ -191,11 +191,13 @@ The `cleanup` script is responsible for two things:
 The `runtests` framework calls `./cleanup` at these points:
 
 - **Before** running `./dotest` — unconditionally, to ensure a clean starting state.
-- **After** `./dotest` exits with **0** (pass) — unconditionally.
-- **After** `./dotest` exits with **1** (fail) — unless the `PRESERVE_TEST_LOGS` environment variable is set, in which case cleanup is skipped so logs can be inspected for debugging.
+- **After** `./dotest` exits with **0** (pass) — only if `PRESERVE_TEST_LOGS` is set.
+- **After** `./dotest` exits with **1** (fail) — **never**. Logs are always preserved on failure for debugging.
 - **After** `./dotest` exits with **2** (skip) or any other value — cleanup is **not** called.
 
-Because `runtests` calls cleanup both before and after the test, `dotest` scripts should **not** call `killm` at the end of the test. The cleanup script handles all final resource teardown.
+By default, `runtests` does **not** run post-test cleanup. The `dotest` script is responsible for its own shutdown (e.g., calling `ionexit` or `./cleanup` as appropriate). Pre-test cleanup always runs to guarantee a clean starting state.
+
+When `PRESERVE_TEST_LOGS` is set (`export PRESERVE_TEST_LOGS=1`), `runtests` will run `./cleanup` after passing tests to reclaim resources, but still skips cleanup after failures so logs remain available for inspection.
 
 #### Environment isolation
 

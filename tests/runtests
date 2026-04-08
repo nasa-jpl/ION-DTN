@@ -17,9 +17,11 @@ echo "# Testing started by $0 `date`" > $PROGRESSFILE
 echo "# testing host: `hostname`" >> $PROGRESSFILE
 echo "# testing environment: `uname -a`" >> $PROGRESSFILE
 
-# Preserve test logs by default (can be overridden by setting to empty string)
-# To disable: export PRESERVE_TEST_LOGS=""
-: ${PRESERVE_TEST_LOGS:=1}
+# When set, run cleanup after passing tests (but not after failures, to preserve logs).
+# By default, post-test cleanup is not run — the dotest script is responsible for its
+# own shutdown.  Pre-test cleanup still runs unconditionally.
+# To enable: export PRESERVE_TEST_LOGS=1
+: ${PRESERVE_TEST_LOGS:=}
 
 # If this environment variable is set, and is an existing directory,
 # then output from each individual tests will go THERE instead
@@ -351,7 +353,7 @@ function run_a_test () {
             # Concise output to stderr
             echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}PASS: $TEST (${TEST_DURATION}s)" >&2
         fi
-        if [ -x "cleanup" ]; then
+        if [ -n "$PRESERVE_TEST_LOGS" ] && [ -x "cleanup" ]; then
             ./cleanup
         fi
     elif [ $TEST_RETVAL -eq 1 ]; then
@@ -372,12 +374,8 @@ function run_a_test () {
             # Concise output to stderr
             echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${TEST_DURATION}s)" >&2
         fi
-        # Optionally skip cleanup on failure to preserve logs
-        if [ -n "$PRESERVE_TEST_LOGS" ]; then
-            echo "Preserving test logs (PRESERVE_TEST_LOGS is set)" | tee -a $PROGRESSFILE
-        elif [ -x "cleanup" ]; then
-            ./cleanup
-        fi
+        # Never run cleanup after failure — logs are preserved for debugging
+        echo "Preserving test logs (cleanup skipped after failure)" | tee -a $PROGRESSFILE
     elif [ $TEST_RETVAL -eq 2 ]; then
         echo "TEST SKIPPED!"
         skip_test "$TEST"
@@ -676,8 +674,9 @@ TEST_PATHS:
 ENVIRONMENT VARIABLES:
     RUNTESTS_OUTPUTDIR  Directory to save individual test output files
                         (e.g., export RUNTESTS_OUTPUTDIR="/tmp")
-    PRESERVE_TEST_LOGS  Set to preserve test logs (default: 1, enabled)
-                        To disable: export PRESERVE_TEST_LOGS=""
+    PRESERVE_TEST_LOGS  When set, run cleanup after passing tests but not
+                        after failures (default: unset, no post-test cleanup).
+                        To enable: export PRESERVE_TEST_LOGS=1
 
 EXAMPLES:
     ./runtests                              Run all tests
