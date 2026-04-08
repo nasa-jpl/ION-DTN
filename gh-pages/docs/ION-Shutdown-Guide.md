@@ -80,8 +80,103 @@ Flags can be combined in any order.
 6. **BSSP** - Bundle Streaming Service Protocol (if enabled)
 7. **CFDP** - CCSDS File Delivery Protocol
 8. **RFX** - Contact plan/range system
-9. **SDR** - Shared Data Region cleanup (unless `k` flag used)
-10. **IPC** - Inter-process communication resources (unless `n` flag used)
+9. **Grace period** - 3-second wait for flag-polled processes to detect shutdown
+10. **SDR** - Shared Data Region cleanup (unless `k` flag used)
+11. **IPC** - Inter-process communication resources (unless `n` flag used)
+
+#### How ionexit signals processes to stop
+
+ION uses two distinct signaling mechanisms to stop processes during shutdown. Understanding these mechanisms is important for developers working on ION internals, writing new CLAs, or debugging shutdown issues.
+
+**Mechanism 1: Direct SIGTERM to daemon PIDs**
+
+Clock daemons, the transit daemon, the CPSD daemon, and certain other processes are stopped by sending SIGTERM directly to their recorded PID via `sm_TaskKill()`. These PIDs are stored in the protocol's volatile database struct in PSM (shared memory). For example:
+
+| Process | PID field | Stop function |
+|---------|-----------|---------------|
+| `bpclock` | `bpvdb->clockPid` | `bpStop()` |
+| `bptransit` | `bpvdb->transitPid` | `bpStop()` |
+| `cpsd` | `bpvdb->cpsdPid` | `bpStop()` |
+| `ltpclock` | `ltpvdb->clockPid` | `ltpStop()` |
+| `ltpdeliv` | `ltpvdb->delivPid` | `ltpStop()` |
+| `dtpcclock` | `dtpcvdb->clockPid` | `dtpcStop()` |
+| `dtpcd` | `dtpcvdb->dtpcdPid` | `dtpcStop()` |
+| CLI (induct) daemons | `vduct->cliPid` | `stopInduct()` |
+| LSI (LTP induct) daemons | `vseat->lsiPid` | `stopSeat()` |
+| Admin endpoint daemon | `vscheme->admAppPid` | `stopScheme()` |
+
+These processes receive SIGTERM immediately and are expected to exit promptly. If a process does not exit within 5 seconds, it is sent SIGKILL as a fallback.
+
+**Mechanism 2: Semaphore "end" flag (stop flag polling)**
+
+Most ION processes — forwarders, CLO (outduct) daemons, CLM daemons, and LSO (LTP outduct) daemons — do **not** receive SIGTERM directly. Instead, they are stopped by "ending" a semaphore they are blocked on or polling.
+
+Each of these processes runs a main loop that calls `sm_SemTake()` with a timeout (typically 1 second) on a semaphore associated with its volatile struct. For example, the `ipnfw` forwarder's main loop:
+
+```c
+while (running && !(sm_SemEnded(vscheme->semaphore)))
+{
+    /* forward bundles from the queue ... */
+}
+```
+
+When `bpStop()` calls `sm_SemEnd(vscheme->semaphore)`, the semaphore's `ended` flag is set atomically in shared memory, and any threads/processes blocked on `sm_SemTake()` are woken via `sem_post()`. The process then sees `sm_SemEnded()` return true and exits its main loop cleanly.
+
+The stop functions that use this mechanism include:
+
+| Process type | Semaphore ended | Stop function |
+|--------------|-----------------|---------------|
+| Scheme forwarder (`ipnfw`, etc.) | `vscheme->semaphore` | `stopScheme()` |
+| Endpoint application | `vpoint->semaphore` | `stopScheme()` |
+| Plan CLM daemon (`bpclm`) | `vplan->semaphore` | `stopPlan()` |
+| Outduct CLO daemon | `vduct->semaphore` | `stopOutduct()` |
+| LTP span LSO daemon | `vspan->segSemaphore` and buffer semaphores | `stopSpan()` |
+| LTP delivery | `ltpvdb->deliverySemaphore` | `ltpStop()` |
+| LTP clients | `client->semaphore` | `ltpStop()` |
+| DTPC SAP applications | `vsap->semaphore` | `dtpcStop()` |
+| DTPC daemon (`dtpcd`) | `dtpcvdb->aduSemaphore` | `dtpcStop()` |
+
+**Why there are two mechanisms:**
+
+The choice of mechanism depends on the process's run-loop design:
+
+- **Clock daemons** (`bpclock`, `ltpclock`, etc.) typically `snooze()` between iterations rather than blocking on a semaphore. They cannot detect a semaphore-end flag, so they must receive a direct signal. The SIGTERM handler in these processes sets a local `running` flag to 0, causing the main loop to exit on the next iteration.
+
+- **Queue-draining processes** (forwarders, CLO/CLM daemons, LSO daemons) block on a semaphore waiting for work to arrive. Ending the semaphore both wakes them from the block and provides the "should I stop?" indication via the `ended` flag. This is more efficient than polling — the process sleeps until either work arrives or shutdown is signaled.
+
+**The grace period:**
+
+After all `*Stop()` calls have been issued and RFX has been stopped, `ionexit` waits 3 seconds (`snooze(3)`) before proceeding to `ionTerminate()` and `sm_ipc_stop()`. This grace period exists because:
+
+1. The `*Stop()` functions **signal** processes to stop but do not wait for all of them to actually exit.
+2. Flag-polled processes that are mid-iteration (not blocked on a semaphore at the moment the flag is set) need up to one timeout cycle (typically 1 second) to notice the flag.
+3. Without this delay, `ionTerminate()` would destroy the SDR working memory and `sm_ipc_stop()` would destroy the global semaphores while processes still need them to detect the shutdown and exit cleanly.
+
+**Overall ionexit shutdown timeline:**
+
+```
+Time   Action
+─────  ────────────────────────────────────────────────────
+ 0s    ionAttach() — connect to this node's ION instance
+       dtpcStop()  — SIGTERM to clock/daemon, sm_SemEnd to SAPs
+       [wait up to 5s for DTPC processes]
+       tcaStop(), tccStop() for each group
+       [wait up to 5s for each TC group]
+       bpStop() — sm_SemEnd to forwarders/CLMs/endpoints/outducts,
+                  SIGTERM to bpclock/cpsd/bptransit,
+                  SIGTERM to induct CLIs, SIGTERM to admAppPid
+       [wait up to 5s for each process; SIGKILL fallback]
+       ltpStop() — sm_SemEnd to spans/clients/delivery,
+                   SIGTERM to ltpclock/ltpdeliv/LSIs
+       [wait until each process exits]
+       bsspStop(), cfdpStop() — similar pattern
+       [wait up to 5s each]
+       rfx_stop() — SIGTERM to rfxclock
+       [wait up to 5s]
++~20s  Grace period: snooze(3) — let stragglers detect stop flag
++~23s  ionTerminate(1) — destroy SDR (unless "k" flag)
+       sm_ipc_stop() — destroy semaphores + shared memory (unless "n" flag)
+```
 
 **When to use each mode:**
 
@@ -95,11 +190,11 @@ Flags can be combined in any order.
 | Multi-node: stop last node | `ionexit` | Safe to release IPC when no other instances remain |
 
 **Important Notes:**
-- `ionexit` operates on a single ION instance — the one associated with the current working directory. It does **not** stop other ION instances on the same host, even with `killm f`. In a multi-node environment, each node must be shut down individually by running `ionexit` from that node's working directory. To stop **all** ION instances at once, use `killm f` instead, which sends SIGTERM/SIGKILL to all ION processes and destroys all shared IPC resources.
+- `ionexit` operates on a single ION instance — the one associated with the current working directory. It does **not** stop other ION instances on the same host. In a multi-node environment, each node must be shut down individually by running `ionexit` from that node's working directory. To stop **all** ION instances at once, use `killm f` instead, which iterates over all nodes and handles the shutdown sequence automatically.
+- **Multi-node shutdown order is critical.** When shutting down individual nodes on a shared host, use `ionexit k n` for every node until only the last node remains, then use `ionexit` (without flags) for the final node. The `k` flag preserves the global SDR working memory (shared by all instances) and the `n` flag preserves the global IPC semaphores. Destroying either resource prematurely prevents remaining nodes from attaching or detecting the shutdown signal. See the [Multi-node shutdown order and shared resources](ION-TestSet-Readme.md#multi-node-shutdown-order-and-shared-resources) section for details.
 - User applications attached to ION must detach separately
 - Custom services started by the user must be stopped manually
 - All modes stop all ION daemon processes for the current node; only SDR data and IPC resources are optionally preserved
-- When in doubt about multi-node, use `n` — IPC can always be cleaned up later with `killm f`
 
 ### Method 3: ionstop and killm (Complete Cleanup)
 
@@ -307,34 +402,30 @@ For complete API documentation, see the [Public Administration API Guide](Public
 ```
 Need to stop ION?
 │
-├─► Embedded system or programmatic control needed?
-│   └─► YES: Use public APIs (bp_stop, ltp_stop, etc.)
+├─► Multiple ION instances on same host?
+│   ├─► Stop all nodes at once: `killm f`
+│   ├─► Stop one node (others still running):
+│   │   └─► `ionexit k n` (preserves shared SDR + IPC)
+│   └─► Stop the last remaining node:
+│       └─► `ionexit` (safe to release all resources)
 │
-├─► Want to preserve state and restart later?
-│   └─► YES: Use `ionexit k n` (only mode that supports restart)
-│
-├─► Want to preserve SDR file for inspection (not restart)?
-│   └─► YES: Use `ionexit k`
-│
-├─► Normal operational shutdown?
-│   └─► YES: Use `ionexit` (primary recommended method)
+├─► Single ION instance:
+│   ├─► Normal shutdown: `ionexit`
+│   ├─► Preserve state for restart: `ionexit k n`
+│   └─► Preserve SDR for inspection only: `ionexit k`
 │
 ├─► Need to stop specific subsystem only?
-│   └─► YES: Use appropriate admin program with `.` or API
+│   └─► Use appropriate admin program with `.` or public API
 │
-├─► Multiple ION instances on same host?
-│   ├─► Stop one node, discard data: `ionexit n`
-│   ├─► Stop one node, keep data: `ionexit k n`
-│   └─► Stop all nodes: `killm f`
+├─► Need fine-grained programmatic control (no shell)?
+│   └─► Use public APIs (bp_stop, ltp_stop, etc.)
+│       Note: `ionexit` also works on embedded/LWT platforms
 │
 ├─► Need a clean start (pre-test reset)?
-│   └─► YES: Use `killm` (graceful via ionexit, then cleanup)
+│   └─► `killm` (graceful via ionexit, then cleanup)
 │
-├─► Normal shutdown failed or processes hung?
-│   └─► YES: Use `killm f` to force full cleanup
-│
-└─► Complete system cleanup needed?
-    └─► YES: Use `killm f`
+└─► Normal shutdown failed or processes hung?
+    └─► `killm f` to force full cleanup
 ```
 
 ### Comparison Matrix
@@ -345,13 +436,13 @@ Need to stop ION?
 | Preserve state for restart | `ionexit k n` | Only mode that keeps both SDR and IPC, enabling `ionstart` to resume |
 | Inspect SDR after shutdown | `ionexit k` | Preserves `.sdr` file for forensics; cannot restart |
 | Debug specific subsystem | `bpadmin .`, `ltpadmin .`, etc. | Targeted control |
-| Multi-node: stop one node, discard data | `ionexit n` | Destroys node SDR, preserves shared IPC for other instances |
-| Multi-node: stop one node, keep data | `ionexit k n` | Preserves node SDR and shared IPC |
-| Multi-node: stop all nodes | `killm f` | Full cleanup of all instances and IPC |
+| Multi-node: stop one node (not last) | `ionexit k n` | Preserves shared SDR working memory and IPC for remaining nodes |
+| Multi-node: stop last node | `ionexit` | Safe to release all shared resources |
+| Multi-node: stop all nodes at once | `killm f` | Handles shutdown order automatically |
 | Pre-test clean start | `killm` | Graceful shutdown via ionexit, then cleanup |
 | System crash recovery | `killm f` | Force cleanup of all resources |
 | Production shutdown | `ionexit` then verify with `ps` | Graceful with verification |
-| Embedded/flight software | Public APIs (`bp_stop()`, etc.) | No shell required |
+| Embedded/flight software | `ionexit` or public APIs | `ionexit` supports LWT; APIs give fine-grained control |
 | Automated test framework | Public APIs | Programmatic control |
 
 ## Verifying Shutdown
@@ -395,7 +486,8 @@ ls /dev/shm/ | grep "sem.ion"
 ### Automated Check with ionwatch
 
 ```bash
-ionwatch -e  # Shows daemon status, exits if ION not running
+ionwatch      # Shows daemon status once and exits
+ionwatch -r   # Shows only running daemons
 ```
 
 ## Troubleshooting Shutdown Issues
@@ -456,21 +548,19 @@ If running ION in Docker with PID 1:
 
 1. **Use `ionexit` for normal shutdown** - Clean slate; primary graceful shutdown method
 
-2. **Use `ionexit k n` to preserve state for restart** - This is the only mode that supports restart via `ionstart`. Both SDR data and IPC must be preserved.
+2. **Use `ionexit k n` in multi-node environments and for restart** - In multi-node-per-host configurations, use `ionexit k n` for every node except the last, then `ionexit` for the final node. Both the `k` flag (preserve SDR working memory) and `n` flag (preserve IPC semaphores) are required because these are global shared resources. This is also the only mode that supports restart via `ionstart`.
 
 3. **Use `ionexit k` only for forensics** - The `.sdr` file is preserved on disk for inspection, but ION cannot be restarted because IPC is destroyed
 
-4. **Use `ionexit n` in multi-node environments** - Prevents destroying shared IPC used by other instances on the same host
+4. **Verify shutdown completed** - Always check for remaining processes and resources
 
-5. **Verify shutdown completed** - Always check for remaining processes and resources
+5. **Use killm for clean starts** - `killm` deploys ionexit first, then cleans up remaining resources
 
-6. **Use killm for clean starts** - `killm` deploys ionexit first, then cleans up remaining resources
+6. **Use killm f sparingly** - Force full cleanup only when graceful methods fail or all instances need clearing
 
-7. **Use killm f sparingly** - Force full cleanup only when graceful methods fail or all instances need clearing
+7. **Handle multi-ION carefully** - Set `ION_NODE_WDNAME` and `ION_NODE_LIST_DIR` appropriately
 
-8. **Handle multi-ION carefully** - Set `ION_NODE_WDNAME` and `ION_NODE_LIST_DIR` appropriately
-
-9. **Check logs** - Review `ion.log` if shutdown behaves unexpectedly
+8. **Check logs** - Review `ion.log` if shutdown behaves unexpectedly
 
 ## Related Documentation
 

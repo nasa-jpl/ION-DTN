@@ -106,6 +106,7 @@ nav:
     - CFDP SW Architecture: CFDP-SW-Architecture.md
     - Contact Graph Events and LTP: Contact-Graph-Events-and-LTP.md
     - Knowledge Base, Issues & Patches: Known-Issues.md
+    - ION Shutdown Guide: ION-Shutdown-Guide.md
     - Standard Operations Procedure: SOP-for-ION.md
     - Platform Macros & Error Reporting: Platform-Macros-Error-Reporting.md
     - ION Utility Programs: ION-Utilities.md
