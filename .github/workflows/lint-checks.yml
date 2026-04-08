@@ -1,0 +1,52 @@
+name: CI/CD Checks
+
+on:
+  pull_request:
+    branches:
+      - integration
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  ansible-lint:
+    name: Ansible Lint
+    runs-on: arc-runner-rhel8
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run ansible-lint
+        uses: ansible/ansible-lint@5fac056c45595896c973fbde871f01f6cb14d74c
+        with:
+          args: "charts/cluster_install/"
+
+  kics-scan:
+    name: KICS Security Scan
+    runs-on: arc-runner-rhel8
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run KICS scan
+        uses: checkmarx/kics-github-action@05aa5eb70eede1355220f4ca5238d96b397e30a6
+        with:
+          path: ".github/workflows,images,charts"
+          config_path: kics.config
+          output_path: kics-results/
+          output_formats: "json,sarif,html"
+          fail_on: high,critical
+          enable_comments: true
+
+      - name: Upload KICS results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kics-results
+          path: kics-results/
+          if-no-files-found: warn
+
+      - name: Upload SARIF file for GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13
+        with:
+          sarif_file: kics-results/results.sarif

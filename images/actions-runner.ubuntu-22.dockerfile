@@ -14,7 +14,7 @@ ARG DOCKER_GROUP_GID=121
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y --no-install-recommends \
-    && apt-get install -y software-properties-common \
+    && apt-get install --no-install-recommends -y software-properties-common \
     && add-apt-repository -y ppa:git-core/ppa \
     && apt-get update -y --no-install-recommends \
     && apt-get install -y --no-install-recommends \
@@ -74,7 +74,8 @@ RUN curl -fLo mbedtls-2.28.10.tar.bz2 "https://github.com/Mbed-TLS/mbedtls/relea
 
 # Download latest git-lfs version
 RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash && \
-    apt-get install -y --no-install-recommends git-lfs
+    apt-get install -y --no-install-recommends git-lfs && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN adduser --disabled-password --gecos "" --uid $RUNNER_USER_UID runner \
     && groupadd docker --gid $DOCKER_GROUP_GID \

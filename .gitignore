@@ -654,3 +654,4 @@ secrets.local.yaml
 Chart.lock
 charts/arc/charts/*
 charts/arc/values.yaml
+kics-results.*
