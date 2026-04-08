@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 
 # adapted from status_rpts test

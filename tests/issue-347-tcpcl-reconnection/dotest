@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # James Swaro
 # April 25, 2012

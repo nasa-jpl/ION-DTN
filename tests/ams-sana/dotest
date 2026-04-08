@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # AMS SANA (i.e. node number upgrade) integration test script
 # This test uses amsbenchr and amsbenchs over LTP protocol

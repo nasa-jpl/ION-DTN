@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Tests that the ionexit utility cleans up ION processes and shared resources.
 #

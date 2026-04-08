@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # crs-individual-flags: Test each CRS status report flag individually
 #

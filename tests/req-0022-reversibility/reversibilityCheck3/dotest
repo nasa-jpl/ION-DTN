@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # reversibilityCheck3 - Transaction Cancellation Without Modification Test
 #

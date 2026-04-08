@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 
 # Description: Automates testing of file transfer utilities for both
 # non-encrypted and encrypted transmissions between two nodes (node01

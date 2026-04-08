@@ -329,6 +329,9 @@ function run_a_test () {
 
     TEST_RETVAL=$?
 
+    # Safety net: ensure ION processes and IPC are cleaned up after dotest
+    killm f >/dev/null 2>&1 || true
+
     # Calculate test duration for concise output
     TEST_END_TIME=$(date +%s)
     TEST_END_TIMESTAMP=$(get_timestamp)

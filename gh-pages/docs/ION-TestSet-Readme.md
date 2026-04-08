@@ -260,15 +260,21 @@ The test program starts without the ION stack running (cleanup has already been 
 
 **Important conventions:**
 
-- **Do not call `killm` at the end of `dotest`.** The `runtests` framework calls `./cleanup` after `dotest` exits, and cleanup handles `killm f`. Calling `killm` in `dotest` is redundant and can interfere with multi-node IPC detection.
+- **EXIT trap required**: Every `dotest` script must include `trap 'killm f' EXIT` near the top of the file (after the shebang). This ensures ION processes and IPC resources are cleaned up on every exit path — normal exit, error exit, skip, and unexpected termination. The `runtests` harness also calls `killm f` as a safety net after `dotest` returns, but scripts must not rely on this.
 
 - **Mid-test resets**: If your test runs multiple sub-scenarios that each require a fresh ION instance, call `killm f` between them to ensure full cleanup before restarting ION. The `f` flag is necessary because multi-node tests set `ION_NODE_LIST_DIR`, which causes bare `killm` to operate in node-only mode.
 
-- **Error paths**: On error, simply `exit 1`. Do not call `killm` before exiting — the cleanup script handles it.
+- **Error paths**: On error, simply `exit 1`. The EXIT trap handles cleanup automatically.
+
+- **Merging with other traps**: If your script needs an EXIT trap for other purposes (e.g., removing temporary files, restoring terminal state), combine them into a single trap:
+  ```bash
+  trap 'rm -f "$TMPFILE"; killm f' EXIT
+  ```
 
 **Example dotest structure:**
 ```bash
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 
 echo "########################################"
 echo "NAME: my-test"
@@ -290,7 +296,6 @@ if ! grep -q "expected output" results.txt; then
     RETVAL=1
 fi
 
-# Do NOT call killm here — cleanup handles it.
 exit $RETVAL
 ```
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Extended TCPCL Keepalive Test for IPv6
 # The test checks if the tcpcl keepalive backoff timer

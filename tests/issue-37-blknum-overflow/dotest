@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Test for GitHub issue #37: selectBlkNumber overflow when block 255 exists.
 #

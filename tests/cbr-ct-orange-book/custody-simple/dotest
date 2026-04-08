@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # custody-simple: Simple end-to-end custody transfer test
 #

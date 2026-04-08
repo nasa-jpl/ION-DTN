@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # LTP Cancel Segment Acknowledgment Regression Test
 # Tests fix for issue where Cancel Segments for completed sessions were ignored

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 # AMS Benchtest script (for simple AMS two-node demo)
 
 

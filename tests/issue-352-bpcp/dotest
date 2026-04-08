@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 # Issue 352 - BPCP
 # Samuel Jero
 # April 15, 2012

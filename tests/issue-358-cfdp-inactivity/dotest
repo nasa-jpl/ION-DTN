@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 # Issue 358 - CFDP inactivity
 # Samuel Jero
 # June 26, 2012

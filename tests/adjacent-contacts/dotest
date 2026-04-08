@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Test script for adjacent contacts with 2-node bundle transfer
 # This script starts two ION nodes, sends bundles across adjacent contacts,

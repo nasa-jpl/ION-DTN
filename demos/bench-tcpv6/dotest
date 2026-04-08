@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 # Adapted TCPCL Throughput Benchmark Test for IPv6
 # iondev33, JPL
 

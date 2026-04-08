@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # seqid-nonzero: Test non-zero CBR sequence ID functionality
 #

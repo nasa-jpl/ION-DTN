@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Watchdog Daemon Test Script
 # Tests psmwatch and sdrwatch daemon auto-launch, ionrestart, and ionexit

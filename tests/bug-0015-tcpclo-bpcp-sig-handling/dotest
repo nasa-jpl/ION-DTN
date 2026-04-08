@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 # Bug 0015 tcpclo and bpcp signal handling and semaphore signal interruptions
 # Samuel Jero
 # March 5, 2013

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-trap 'cleanup_all; stty sane 2>/dev/null' EXIT INT TERM
+trap 'cleanup_all; killm f; stty sane 2>/dev/null' EXIT INT TERM
 
 # Global variables for cleanup tracking
 IPV6_ADDRESS_ADDED=false
@@ -229,12 +229,10 @@ cleanup_all() {
     # Re-enable IPv6 if we disabled it
     enable_ipv6
 
-    # Stop ION
-    echo "Stopping ION..."
-    cd "$(dirname "$0")"  # Ensure we're in the right directory
-    ./cleanup 2>/dev/null || true
+    # Stop ION nodes
+    killm f
 
-    echo "Cleanup complete."
+    echo "ION Stopped."
 }
 
 # Function to run the actual test

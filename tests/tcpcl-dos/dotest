@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # script runs netcat on local port 4556, this will make tcpcl
 # on the local machine to send a contact header and wait for

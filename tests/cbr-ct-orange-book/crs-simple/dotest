@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # crs-simple: Basic CRS (Compressed Reporting Signal) test
 #
