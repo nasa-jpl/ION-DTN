@@ -3,6 +3,7 @@
 # Cleanup script for watchdog-daemon test
 
 echo "Cleaning up old ION..."
+export ION_NODE_LIST_DIR=$PWD
 killm f
 # Explicitly kill watchdog daemons in case they survived killm
 pkill -f psmwatch 2>/dev/null

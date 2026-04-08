@@ -4,6 +4,7 @@
 #
 
 # Kill all ION processes
+export ION_NODE_LIST_DIR=$PWD
 killm f
 
 # Clean up test files

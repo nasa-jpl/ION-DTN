@@ -4,5 +4,6 @@
 # 2025-10-09
 
 echo "Cleaning up old ION..."
+export ION_NODE_LIST_DIR=$PWD
 killm f
 rm -f ion_nodes 2.ipn.udp/ion.log 3.ipn.udp/ion.log

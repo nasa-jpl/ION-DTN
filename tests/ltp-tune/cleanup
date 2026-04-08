@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 echo "Cleaning up ltp-tune..."
+export ION_NODE_LIST_DIR=$PWD
 killm f 2>/dev/null
 rm -f ion_nodes
 rm -f 2.ltp-tune/ion.log 2.ltp-tune/bpdriverAduFile

@@ -3,6 +3,7 @@
 # udpclo test cleanup script
 
 # Kill any lingering ION processes from previous runs
+export ION_NODE_LIST_DIR=$PWD
 killm f 2>/dev/null
 sleep 1
 

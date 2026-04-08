@@ -182,16 +182,30 @@ tests/my-multi-node-test/
 
 The `cleanup` script is responsible for two things:
 
-1. **Stop all ION processes and release IPC resources** by calling `killm f`. The `f` (force) flag ensures a full cleanup of all ION instances, shared memory, and semaphores regardless of whether `ION_NODE_LIST_DIR` is set.
+1. **Stop all ION processes and release IPC resources** by calling `killm f`. The `f` (force) flag ensures a full cleanup of all ION instances, shared memory, and semaphores.
 
 2. **Remove test-specific artifacts** such as log files, output files, and temporary data generated during the test.
 
-The `runtests` framework calls `./cleanup` at two points:
+#### When `runtests` calls cleanup
 
-- **Before** running `./dotest` — to ensure a clean starting state.
-- **After** `./dotest` exits — to clean up. On test failure, cleanup is skipped if `PRESERVE_TEST_LOGS` is set, allowing logs to be inspected for debugging.
+The `runtests` framework calls `./cleanup` at these points:
+
+- **Before** running `./dotest` — unconditionally, to ensure a clean starting state.
+- **After** `./dotest` exits with **0** (pass) — unconditionally.
+- **After** `./dotest` exits with **1** (fail) — unless the `PRESERVE_TEST_LOGS` environment variable is set, in which case cleanup is skipped so logs can be inspected for debugging.
+- **After** `./dotest` exits with **2** (skip) or any other value — cleanup is **not** called.
 
 Because `runtests` calls cleanup both before and after the test, `dotest` scripts should **not** call `killm` at the end of the test. The cleanup script handles all final resource teardown.
+
+#### Environment isolation
+
+`runtests` executes `./dotest` and `./cleanup` as separate subprocesses. Environment variables exported inside `dotest` (such as `ION_NODE_LIST_DIR`) do **not** propagate to the cleanup subprocess. Each script is responsible for setting the environment variables it needs.
+
+#### Multi-node cleanup and `ION_NODE_LIST_DIR`
+
+For multi-node tests, `killm f` uses the `ION_NODE_LIST_DIR` environment variable to locate the `ion_nodes` file. When set, `killm f` iterates over each node's working directory and runs `ionexit` per node for a graceful shutdown before falling back to process termination and IPC cleanup.
+
+Because of the subprocess isolation described above, the cleanup script must export `ION_NODE_LIST_DIR` itself — it cannot rely on the value set by `dotest`. Without it, `killm f` cannot find the `ion_nodes` file and will skip the per-node graceful shutdown, falling back to brute-force process termination.
 
 **Example cleanup script (single-node):**
 ```bash
@@ -203,7 +217,9 @@ rm -f ion.log
 **Example cleanup script (multi-node):**
 ```bash
 #!/usr/bin/env bash
+export ION_NODE_LIST_DIR=$PWD
 killm f
+rm -f ion_nodes
 rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 5.ipn.ltp/ion.log
 rm -f 5.ipn.ltp/testfile1 5.ipn.ltp/testfile2
 ```

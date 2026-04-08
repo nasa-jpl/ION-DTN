@@ -3,6 +3,7 @@
 # James Swaro
 # April 25, 2012
 
+export ION_NODE_LIST_DIR=$PWD
 killm f
 echo "Cleaning up old ION ..."
 rm -f ion_nodes

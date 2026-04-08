@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+export ION_NODE_LIST_DIR=$PWD
 killm f
 rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 5.ipn.ltp/ion.log
 rm -f 5.ipn.ltp/ionreceivefile.txt

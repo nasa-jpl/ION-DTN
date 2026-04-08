@@ -4,6 +4,7 @@
 # April 15, 2012
 
 echo "Cleaning up old ION..."
+export ION_NODE_LIST_DIR=$PWD
 killm f
 rm -f 1.ipn.cfdp.bp.ltp/ion.log 2.ipn.cfdp.bp.ltp/ion.log 3.ipn.cfdp.bp.ltp/ion.log
 rm -f 3.ipn.cfdp.bp.ltp/test1 1.ipn.cfdp.bp.ltp/test2 2.ipn.cfdp.bp.ltp/test3

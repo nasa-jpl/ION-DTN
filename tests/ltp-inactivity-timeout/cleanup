@@ -3,6 +3,7 @@
 # Cleanup script for LTP inactivity timeout test
 
 echo "Cleaning up old ION..."
+export ION_NODE_LIST_DIR=$PWD
 killm f
 rm -f ion_nodes
 rm -f 2.ipn.ltp/ion.log 2.ipn.ltp/node2.stdout 2.ipn.ltp/bpdriverAduFile

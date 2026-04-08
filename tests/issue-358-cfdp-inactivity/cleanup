@@ -3,6 +3,7 @@
 # Samuel Jero
 # June 26, 2012
 
+export ION_NODE_LIST_DIR=$PWD
 killm f
 echo "Cleaning up old ION..."
 rm -f ipn.cfdp.bp.tcp/ion.log

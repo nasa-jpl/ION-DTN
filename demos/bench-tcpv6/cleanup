@@ -2,5 +2,6 @@
 #
 
 echo "Cleaning up old ION..."
+export ION_NODE_LIST_DIR=$PWD
 killm f
 rm -f ion_nodes 2.bench.tcpv6/ion.log 2.bench.tcpv6/bpdriverAduFile 3.bench.tcpv6/ion.log

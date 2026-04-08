@@ -7,5 +7,5 @@ ionstop
 sleep 1
 
 # Cleanup shared memory (if needed)
-killm
+killm f
 sleep 1

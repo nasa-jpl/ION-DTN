@@ -107,27 +107,63 @@ check_surviving_processes() {
     fi
 }
 
-# Try graceful shutdown via ionexit first (attaches to the ION
-# instance in the current working directory, if any).
-# In multi-node mode, use "n" flag to preserve shared IPC.
+# Try graceful shutdown via ionexit first.
+# ionexit operates on the ION instance in the current working directory,
+# so for multi-node environments we must cd into each node's directory.
 # All ionexit output is suppressed — when no ION instance is running,
 # ionexit prints noisy "Can't get shared memory" errors that confuse
 # users even though the situation is harmless.
 IONEXIT_RAN=0
 if command -v ionexit > /dev/null 2>&1; then
     if [ $MULTINODE -eq 1 ]; then
+        # Bare killm in multi-node: node-only shutdown from cwd
         echo "Multi-node environment detected (ION_NODE_LIST_DIR is set)."
         echo "Attempting graceful shutdown of this node via ionexit n..."
         timeout 15 ionexit n > /dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            IONEXIT_RAN=1
+            echo "ionexit completed successfully."
+        else
+            echo "ionexit did not complete (ION may not be running)."
+        fi
+    elif [ $FORCE -eq 1 ] && [ -n "$ION_NODE_LIST_DIR" ] && \
+         [ -s "$ION_NODE_LIST_DIR/ion_nodes" ]; then
+        # killm f with multi-node: gracefully shut down each node
+        echo "Multi-node environment detected. Shutting down all nodes..."
+        SAVED_DIR="$(pwd)"
+        NODE_DIRS=( $(awk '{print $4}' "$ION_NODE_LIST_DIR/ion_nodes") )
+        NODE_COUNT=${#NODE_DIRS[@]}
+        for idx in "${!NODE_DIRS[@]}"; do
+            dir="${NODE_DIRS[$idx]}"
+            if [ ! -d "$dir" ]; then
+                echo "  Skipping $dir (directory not found)"
+                continue
+            fi
+            cd "$dir"
+            if [ $((idx + 1)) -eq $NODE_COUNT ]; then
+                # Last node: full ionexit (destroy SDR + IPC)
+                echo "  Node in $dir: ionexit (last node)..."
+                timeout 15 ionexit > /dev/null 2>&1
+            else
+                # Not last: preserve IPC for remaining nodes
+                echo "  Node in $dir: ionexit n..."
+                timeout 15 ionexit n > /dev/null 2>&1
+            fi
+            sleep 1
+        done
+        cd "$SAVED_DIR"
+        IONEXIT_RAN=1
+        echo "ionexit completed for all nodes."
     else
+        # Single-node or no ion_nodes file
         echo "Attempting graceful shutdown via ionexit..."
         timeout 15 ionexit > /dev/null 2>&1
-    fi
-    if [ $? -eq 0 ]; then
-        IONEXIT_RAN=1
-        echo "ionexit completed successfully."
-    else
-        echo "ionexit did not complete (ION may not be running)."
+        if [ $? -eq 0 ]; then
+            IONEXIT_RAN=1
+            echo "ionexit completed successfully."
+        else
+            echo "ionexit did not complete (ION may not be running)."
+        fi
     fi
     check_surviving_processes
 fi

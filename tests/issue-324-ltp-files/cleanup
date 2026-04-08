@@ -3,6 +3,7 @@
 # Scott Burleigh
 # June 24, 2011
 
+export ION_NODE_LIST_DIR=$PWD
 killm f
 echo "Cleaning up old ION..."
 rm -f ion_nodes 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 3.ipn.ltp/testfile* 3.ipn.ltp/ltpblock.*
