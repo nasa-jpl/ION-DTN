@@ -8,10 +8,15 @@
 
 OS_VERS=""
 
-# Parse arguments: "f" forces full cleanup in multi-node environments
+# Parse arguments:
+#   "f" forces full cleanup in multi-node environments
+#   "d" dry-run: report ION processes and IPC resources without changing anything
 FORCE=0
+DRYRUN=0
 if [ "$1" = "f" ]; then
     FORCE=1
+elif [ "$1" = "d" ]; then
+    DRYRUN=1
 fi
 
 # Detect multi-node environment: ION_NODE_LIST_DIR set and ion_nodes
@@ -121,26 +126,39 @@ check_ipc_resources() {
     fi
     if [ -n "$shm_ids" ]; then
         echo "SVR4 shared memory segments found: $(echo $shm_ids | wc -w | tr -d ' ')"
+        for id in $shm_ids; do echo "  shm id: $id"; done
         HAS_IPC=1
     fi
     if [ -n "$q_ids" ]; then
         echo "SVR4 message queues found: $(echo $q_ids | wc -w | tr -d ' ')"
+        for id in $q_ids; do echo "  msq id: $id"; done
         HAS_IPC=1
     fi
     if [ -n "$sem_ids" ]; then
         echo "SVR4 semaphore sets found: $(echo $sem_ids | wc -w | tr -d ' ')"
+        for id in $sem_ids; do echo "  sem id: $id"; done
         HAS_IPC=1
     fi
     # Check for POSIX named semaphore files
+    local sem_files=""
     local sem_file_count=0
     for path in "/dev/shm" "/tmp" "/tmp/.LIBRT/SEMD" "/tmp/.LIBRT/SEML"; do
         if [ -d "$path" ]; then
-            local count=$(find "$path" -maxdepth 1 \( -name "*ion:GLOBAL*" -o -name "sem.ion:GLOBAL*" -o -name ".SEM*ion:GLOBAL*" -o -name "SEM*ion:GLOBAL*" \) 2>/dev/null | wc -l | tr -d ' ')
-            sem_file_count=$((sem_file_count + count))
+            local found=$(find "$path" -maxdepth 1 \( -name "*ion:GLOBAL*" -o -name "sem.ion:GLOBAL*" -o -name ".SEM*ion:GLOBAL*" -o -name "SEM*ion:GLOBAL*" \) 2>/dev/null)
+            if [ -n "$found" ]; then
+                local count=$(echo "$found" | wc -l | tr -d ' ')
+                sem_file_count=$((sem_file_count + count))
+                sem_files="${sem_files}${found}
+"
+            fi
         fi
     done
     if [ "$sem_file_count" -gt 0 ]; then
         echo "POSIX named semaphore files found: $sem_file_count"
+        echo "$sem_files" | head -10 | sed 's/^/  /'
+        if [ "$sem_file_count" -gt 10 ]; then
+            echo "  ... and $((sem_file_count - 10)) more"
+        fi
         HAS_IPC=1
     fi
     if [ $HAS_IPC -eq 0 ]; then
@@ -165,6 +183,13 @@ fi
 echo "Checking for IPC resources..."
 check_ipc_resources
 echo ""
+
+# Dry-run mode: report state and exit without making any changes.
+if [ $DRYRUN -eq 1 ]; then
+    echo "Dry-run mode: no action taken."
+    exit 0
+fi
+
 if [ $HAS_SURVIVORS -eq 0 ] && [ $HAS_IPC -eq 0 ]; then
     echo "No ION processes or IPC resources found; skipping ionexit and signal cleanup."
     if [ $MULTINODE -eq 1 ]; then

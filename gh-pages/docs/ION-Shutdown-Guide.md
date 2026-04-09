@@ -235,6 +235,7 @@ When running multiple ION instances on the same host:
 ```bash
 killm      # Graceful shutdown; multi-node safe (node-only if detected)
 killm f    # Force full cleanup of all ION instances on host
+killm d    # Dry-run: report ION processes and IPC resources without changing anything
 ```
 
 #### killm shutdown paths
