@@ -107,11 +107,65 @@ check_surviving_processes() {
     fi
 }
 
-# Early check: if no ION processes are running, skip ionexit and
-# signal-based cleanup entirely and go straight to IPC resource cleanup.
+# Helper: check for IPC resources owned by this user.
+# Checks SVR4 IPC (shared memory, message queues, semaphore sets) and
+# POSIX named semaphore files.  Sets global HAS_IPC=1 if any found.
+HAS_IPC=0
+check_ipc_resources() {
+    HAS_IPC=0
+    local shm_ids="" q_ids="" sem_ids=""
+    if [[ -z "$OS_VERS" ]]; then
+        shm_ids=$(ipcs -m 2>/dev/null | grep "$USERNAME_CUT" | awk '{ print $2 }')
+        q_ids=$(ipcs -q 2>/dev/null | grep "$USERNAME_CUT" | awk '{ print $2 }')
+        sem_ids=$(ipcs -s 2>/dev/null | grep "$USERNAME_CUT" | awk '{ print $2 }')
+    fi
+    if [ -n "$shm_ids" ]; then
+        echo "SVR4 shared memory segments found: $(echo $shm_ids | wc -w | tr -d ' ')"
+        HAS_IPC=1
+    fi
+    if [ -n "$q_ids" ]; then
+        echo "SVR4 message queues found: $(echo $q_ids | wc -w | tr -d ' ')"
+        HAS_IPC=1
+    fi
+    if [ -n "$sem_ids" ]; then
+        echo "SVR4 semaphore sets found: $(echo $sem_ids | wc -w | tr -d ' ')"
+        HAS_IPC=1
+    fi
+    # Check for POSIX named semaphore files
+    local sem_file_count=0
+    for path in "/dev/shm" "/tmp" "/tmp/.LIBRT/SEMD" "/tmp/.LIBRT/SEML"; do
+        if [ -d "$path" ]; then
+            local count=$(find "$path" -maxdepth 1 \( -name "*ion:GLOBAL*" -o -name "sem.ion:GLOBAL*" -o -name ".SEM*ion:GLOBAL*" -o -name "SEM*ion:GLOBAL*" \) 2>/dev/null | wc -l | tr -d ' ')
+            sem_file_count=$((sem_file_count + count))
+        fi
+    done
+    if [ "$sem_file_count" -gt 0 ]; then
+        echo "POSIX named semaphore files found: $sem_file_count"
+        HAS_IPC=1
+    fi
+    if [ $HAS_IPC -eq 0 ]; then
+        echo "No IPC resources found."
+    fi
+}
+
+# Early check: only skip ionexit and signal cleanup if BOTH conditions hold:
+#   1. No ION processes detected (checked twice with a 1-second gap)
+#   2. No IPC resources (shared memory, semaphores, semaphore files) remain
+# This avoids races where a dying process is missed by ps but still holds
+# IPC resources that would cause errors if cleaned up prematurely.
+echo "Checking for ION processes..."
 check_surviving_processes
 if [ $HAS_SURVIVORS -eq 0 ]; then
-    echo "No ION processes running; skipping ionexit and signal cleanup."
+    echo "Re-checking after 1 second..."
+    sleep 1
+    check_surviving_processes
+fi
+if [ $HAS_SURVIVORS -eq 0 ]; then
+    echo "Checking for IPC resources..."
+    check_ipc_resources
+fi
+if [ $HAS_SURVIVORS -eq 0 ] && [ $HAS_IPC -eq 0 ]; then
+    echo "No ION processes or IPC resources found; skipping ionexit and signal cleanup."
     if [ $MULTINODE -eq 1 ]; then
         echo ""
         echo "NOTE: Multi-node environment — shared IPC resources were NOT cleared."
@@ -339,7 +393,7 @@ find_remaining() {
     # Check all possible paths
     for path in "/dev/shm" "/tmp" "/tmp/.LIBRT/SEMD" "/tmp/.LIBRT/SEML"; do
         if [ -d "$path" ]; then
-            local found=$(find "$path" -maxdepth 1 -name "*ion:GLOBAL*" -o -name "sem.ion:GLOBAL*" -o -name ".SEM*ion:GLOBAL*" -o -name "SEM*ion:GLOBAL*" 2>/dev/null)
+            local found=$(find "$path" -maxdepth 1 \( -name "*ion:GLOBAL*" -o -name "sem.ion:GLOBAL*" -o -name ".SEM*ion:GLOBAL*" -o -name "SEM*ion:GLOBAL*" \) 2>/dev/null)
             if [ -n "$found" ]; then
                 remaining="$remaining$found\n"
             fi
