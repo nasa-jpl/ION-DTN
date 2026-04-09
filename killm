@@ -153,6 +153,8 @@ check_ipc_resources() {
 #   2. No IPC resources (shared memory, semaphores, semaphore files) remain
 # This avoids races where a dying process is missed by ps but still holds
 # IPC resources that would cause errors if cleaned up prematurely.
+echo ""
+echo "=== Initial state ==="
 echo "Checking for ION processes..."
 check_surviving_processes
 if [ $HAS_SURVIVORS -eq 0 ]; then
@@ -160,10 +162,9 @@ if [ $HAS_SURVIVORS -eq 0 ]; then
     sleep 1
     check_surviving_processes
 fi
-if [ $HAS_SURVIVORS -eq 0 ]; then
-    echo "Checking for IPC resources..."
-    check_ipc_resources
-fi
+echo "Checking for IPC resources..."
+check_ipc_resources
+echo ""
 if [ $HAS_SURVIVORS -eq 0 ] && [ $HAS_IPC -eq 0 ]; then
     echo "No ION processes or IPC resources found; skipping ionexit and signal cleanup."
     if [ $MULTINODE -eq 1 ]; then
@@ -259,6 +260,13 @@ if command -v ionexit > /dev/null 2>&1; then
     else
         check_surviving_processes
     fi
+
+    # Report state after ionexit for diagnostics
+    echo ""
+    echo "=== Post-ionexit state ==="
+    check_surviving_processes
+    check_ipc_resources
+    echo ""
 fi
 
 # In multi-node mode, stop here — do not kill other nodes' processes
@@ -275,59 +283,24 @@ fi
 
 # --- Full cleanup (single-node or forced) ---
 
-# Skip the SIGTERM/SIGKILL cycle if ionexit already stopped everything.
-if [ $IONEXIT_RAN -eq 1 ] && [ $HAS_SURVIVORS -eq 0 ]; then
-    echo "ionexit stopped all processes; skipping SIGTERM/SIGKILL cycle."
-else
-    #echo "Sending TERM to ${IONPROCESSLIST}..."   # (too noisy)
-    echo "Sending TERM to the processes..."
-    echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
+# Always run SIGTERM/SIGKILL cycle — even if ionexit stopped all visible
+# processes, stragglers (e.g. ionwarn) may still be exiting.
+echo "Sending TERM to the processes..."
+echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
+sleep 2
 
-    # DEBUG: show killall command error
-    #echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD
+echo "Sending KILL to the processes..."
+echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL 2> /dev/null
+sleep 2
 
-    sleep 2
-
-    echo "Sending KILL to the processes..."
-    echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL 2> /dev/null
-
-    # DEBUG: show killall command error
-    #echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL
-
-    sleep 2
-
-
-    echo "Checking if all ION processes ended..."
-
-    PSFILE="/tmp/ps.$$"
-    # grab all running processes
-    ${PS} ${PS_ARGS} > ${PSFILE}
-
-    # DEBUG: show the PSFILE
-    #echo "Current running processes:"
-    #cat ${PSFILE}
-    #ps -eo pid,ppid,state,cmd
-
-    # see if any of those still-running processes belong to ION
-    # Portable: extract the command name from after the TIME column (H:MM:SS)
-    # rather than relying on a fixed column number, since STIME formatting
-    # varies across platforms (Solaris can split it into two fields).
-    for PROC in ${IONPROCESSLIST}; do
-        awk -v proc="$PROC" '
-        /defunct/ { next }
-        {
-            if (match($0, /[0-9]+:[0-9][0-9]:[0-9][0-9]/)) {
-                cmd = substr($0, RSTART + RLENGTH)
-                sub(/^[ \t]+/, "", cmd)
-                sub(/ .*/, "", cmd)
-                sub(/.*\//, "", cmd)
-                if (cmd == proc)
-                    printf("  *** Unknown error: process %s (PID %s) not killed...try rebooting\n", cmd, $2)
-            }
-        }' "${PSFILE}"
-    done
-    rm -f ${PSFILE}
+echo ""
+echo "=== Post-signal state ==="
+check_surviving_processes
+if [ $HAS_SURVIVORS -ne 0 ]; then
+    echo "  *** WARNING: some ION processes could not be killed — try rebooting"
 fi
+check_ipc_resources
+echo ""
 
 fi  # end of early "has survivors" check
 
