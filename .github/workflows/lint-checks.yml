@@ -4,6 +4,10 @@ on:
   pull_request:
     branches:
       - integration
+    paths:
+      - "charts/**"
+      - "images/**"
+      - ".github/**"
   workflow_dispatch:
 
 jobs:
