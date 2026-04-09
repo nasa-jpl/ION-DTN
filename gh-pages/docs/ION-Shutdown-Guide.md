@@ -229,7 +229,7 @@ When running multiple ION instances on the same host:
 
 #### killm Script
 
-`killm` is the overall script used to ensure a clean start by wiping out all prior ION instances. It deploys `ionexit` first for graceful shutdown, then cleans up any remaining processes and IPC resources. The long-term plan is to transition `killm` into a backup script for clearing ION in abnormal situations, with `ionexit` serving as the primary graceful shutdown command for most purposes.
+`killm` is the overall script used to ensure a clean start by wiping out all prior ION instances. It deploys `ionexit` first for graceful shutdown, then unconditionally runs SIGTERM/SIGKILL to catch any stragglers, and finally cleans up all IPC resources. The long-term plan is to transition `killm` into a backup script for clearing ION in abnormal situations, with `ionexit` serving as the primary graceful shutdown command for most purposes.
 
 **Usage:**
 ```bash
@@ -237,18 +237,69 @@ killm      # Graceful shutdown; multi-node safe (node-only if detected)
 killm f    # Force full cleanup of all ION instances on host
 ```
 
-**What killm does:**
-1. Detects multi-node environment (`ION_NODE_LIST_DIR` set with `ion_nodes` file)
-2. Attempts graceful shutdown via `ionexit` (uses `ionexit n` in multi-node mode)
-3. Checks for surviving ION processes after `ionexit`
-4. **Multi-node mode (without `f`):** Stops here, preserving shared IPC for other instances
-5. **Single-node or forced mode (`f`):**
-   - If `ionexit` stopped all processes, skips the SIGTERM/SIGKILL cycle
-   - Otherwise sends SIGTERM, waits, then SIGKILL to remaining ION processes
-   - Destroys all System V shared memory segments and semaphores owned by current user
-   - Removes all POSIX named semaphores matching ION patterns
+#### killm shutdown paths
 
-**When to use:**
+`killm` follows different paths depending on whether the `f` flag is given and whether a multi-node environment is detected (`ION_NODE_LIST_DIR` set and `ion_nodes` file exists with content).
+
+**Path 1: `killm` — single-node** (no `ION_NODE_LIST_DIR` or no `ion_nodes`)
+
+| Step | Action |
+|------|--------|
+| Initial check | Check for ION processes (twice, 1s apart) and IPC resources |
+| Skip? | If no processes AND no IPC → skip to IPC cleanup |
+| ionexit | `ionexit` (bare — destroys SDR and IPC) |
+| Wait | Up to 5s for processes to exit |
+| SIGTERM/SIGKILL | Always runs unconditionally |
+| IPC cleanup | `ipcrm` + remove POSIX named semaphore files |
+
+**Path 2: `killm` — multi-node** (no `f`, `ION_NODE_LIST_DIR` set + `ion_nodes` exists)
+
+| Step | Action |
+|------|--------|
+| Initial check | Check for ION processes (twice, 1s apart) and IPC resources |
+| Skip? | If no processes AND no IPC → exit immediately |
+| ionexit | `ionexit k n` (preserve SDR and IPC for other nodes) |
+| Wait | Up to 5s for processes to exit |
+| **Stop** | Exits without SIGTERM/SIGKILL or IPC cleanup — other nodes are still running |
+
+**Path 3: `killm f` — single-node** (no `ION_NODE_LIST_DIR` or no `ion_nodes`)
+
+Same as Path 1. The `f` flag has no effect in single-node mode.
+
+**Path 4: `killm f` — multi-node** (`ION_NODE_LIST_DIR` set + `ion_nodes` exists)
+
+| Step | Action |
+|------|--------|
+| Initial check | Check for ION processes (twice, 1s apart) and IPC resources |
+| Skip? | If no processes AND no IPC → skip to IPC cleanup |
+| ionexit (all-but-last node) | `ionexit k n` (preserve SDR and IPC for remaining nodes) |
+| ionexit (last node) | `ionexit` (bare — destroys SDR and IPC) |
+| Wait | Up to 5s for processes to exit |
+| SIGTERM/SIGKILL | Always runs unconditionally |
+| IPC cleanup | `ipcrm` + remove POSIX named semaphore files |
+
+#### Summary of ionexit commands used by killm
+
+| Path | ionexit flags | Destroys SDR? | Destroys IPC? |
+|------|--------------|---------------|---------------|
+| `killm` single-node | `ionexit` | Yes | Yes |
+| `killm` multi-node | `ionexit k n` | No | No |
+| `killm f` single-node | `ionexit` | Yes | Yes |
+| `killm f` multi-node (all-but-last) | `ionexit k n` | No | No |
+| `killm f` multi-node (last node) | `ionexit` | Yes | Yes |
+
+#### Diagnostics
+
+`killm` reports the state of ION processes and IPC resources at three points during shutdown:
+
+1. **Initial state** — before any shutdown action. Shows surviving ION processes and IPC resources (SVR4 shared memory, message queues, semaphore sets, and POSIX named semaphore files).
+2. **Post-ionexit state** — after `ionexit` and the process wind-down wait. Shows what remains after graceful shutdown.
+3. **Post-signal state** — after the SIGTERM/SIGKILL cycle. Shows what (if anything) survived forced termination.
+
+This output is useful for diagnosing shutdown issues. Note that `ionexit` may not reduce IPC resource counts — processes performing graceful shutdown can temporarily create additional IPC resources during their cleanup sequence. The SIGTERM/SIGKILL cycle and subsequent `ipcrm`/semaphore file deletion are what fully clean up these resources.
+
+#### When to use
+
 - Before a fresh ION start to ensure a clean state
 - After a failed normal shutdown
 - When ION processes are hung or unresponsive
@@ -258,7 +309,7 @@ killm f    # Force full cleanup of all ION instances on host
 - Use `killm f` to force full cleanup of all instances on the host
 
 **Cross-Platform Support:**
-`killm` works on Linux, macOS, and Solaris.
+`killm` works on Linux, macOS, FreeBSD, and Solaris.
 
 ### Method 4: Programmatic Shutdown via Public APIs
 

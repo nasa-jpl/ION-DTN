@@ -189,8 +189,8 @@ if command -v ionexit > /dev/null 2>&1; then
     if [ $MULTINODE -eq 1 ]; then
         # Bare killm in multi-node: node-only shutdown from cwd
         echo "Multi-node environment detected (ION_NODE_LIST_DIR is set)."
-        echo "Attempting graceful shutdown of this node via ionexit n..."
-        timeout 15 ionexit n > /dev/null 2>&1
+        echo "Attempting graceful shutdown of this node via ionexit k n..."
+        timeout 15 ionexit k n > /dev/null 2>&1
         if [ $? -eq 0 ]; then
             IONEXIT_RAN=1
             echo "ionexit completed successfully."
