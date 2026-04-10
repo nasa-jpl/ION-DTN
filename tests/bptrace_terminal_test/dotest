@@ -42,7 +42,9 @@ echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
-echo "PURPOSE: To determine if bptrace correctly initiates a bundle with status reports enabled, and correctly listens for said reports."
+echo "PURPOSE: To determine if bptrace correctly initiates a bundle with status"
+echo "reports enabled, and correctly listens for said reports. Also tests"
+echo "bpsendfile with report-to EID and status report flags (Test 4)."
 echo
 echo "CONFIG: 3 node custom configuration:"
 echo
@@ -209,6 +211,56 @@ else
     echo "ERROR: unexpected number of reports recieved, expected zero (0)."
     RETVAL=1
 fi
+
+# Test 4: bpsendfile with report-to EID and delivery status report flag
+# Send a file from node 2 to node 5 with report-to ipn:2.420 and dlv flag.
+# Use bptrace in listen mode to capture the delivery status report.
+echo
+echo "=== Test 4: bpsendfile with report-to EID and status report flags ==="
+cd ../2.ipn.ltp
+
+# Create a test file to send
+echo "bpsendfile report-to test payload" > sendfile_test.txt
+
+# Start bptrace in listen mode on the report-to endpoint
+bptrace -listen -rtt 20 ipn:2.420 > bptrace_listen.txt 2>&1 &
+LISTEN_PID=$!
+sleep 1
+
+# Start receiver on node 5 to accept the file
+cd ../5.ipn.ltp
+bprecvfile ipn:5.1 &
+RECV_PID=$!
+sleep 1
+
+# Send file with delivery report requested, report-to ipn:2.420
+cd ../2.ipn.ltp
+bpsendfile ipn:2.1 ipn:5.1 sendfile_test.txt 0.1 300 ipn:2.420 dlv
+sleep 10
+
+# Stop listener and receiver
+kill $LISTEN_PID 2>/dev/null
+wait $LISTEN_PID 2>/dev/null
+kill $RECV_PID 2>/dev/null
+wait $RECV_PID 2>/dev/null
+
+echo "bptrace listen output:"
+cat bptrace_listen.txt
+
+# Check that we received a delivery report with 'okay' status
+REPORT_DLV=$(grep 'dlv' bptrace_listen.txt | grep -c 'okay')
+if [ "$REPORT_DLV" -ge 1 ];
+then
+    echo "OK: bpsendfile delivery report received with 'okay' status."
+else
+    echo "ERROR: No delivery report received for bpsendfile."
+    RETVAL=1
+fi
+
+# Clean up test files
+rm -f sendfile_test.txt bptrace_listen.txt
+cd ../5.ipn.ltp
+rm -f testfile1
 
 # Shut down ION processes.
 echo

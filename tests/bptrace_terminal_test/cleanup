@@ -12,3 +12,5 @@ rm -f 5.ipn.ltp/testfile2
 rm -f 5.ipn.ltp/testfile3
 rm -f 5.ipn.ltp/testfile4
 rm -f 5.ipn.ltp/testfile5
+rm -f 2.ipn.ltp/sendfile_test.txt
+rm -f 2.ipn.ltp/bptrace_listen.txt

@@ -4,7 +4,7 @@ bpsendfile - Bundle Protocol (BP) file transmission utility
 
 =head1 SYNOPSIS
 
-B<bpsendfile> I<own_endpoint_ID> I<destination_endpoint_ID> I<file_name> [I<class_of_service> [I<time_to_live (seconds)> [I<report-to_endpoint_ID>]]]
+B<bpsendfile> I<own_endpoint_ID> I<destination_endpoint_ID> I<file_name> [I<class_of_service> [I<time_to_live (seconds)> [I<report-to_endpoint_ID> [I<status_report_flags>]]]]
 
 =head1 DESCRIPTION
 
@@ -16,6 +16,16 @@ standard priority; for details of the I<class_of_service> parameter,
 see bptrace(1).  I<time_to_live>, if not specified, defaults to 300
 seconds (5 minutes).  B<NOTE> that I<time_to_live> is specified B<AFTER>
 I<class_of_service>, rather than before it as in bptrace(1).
+
+I<report-to_endpoint_ID> specifies the endpoint to which status reports
+for this bundle should be sent.  If omitted, no report-to endpoint is set
+and any requested status reports are sent to the source endpoint.
+
+I<status_report_flags> is a comma-separated list (with no embedded
+whitespace) of status report flags indicating which status reports should
+be requested.  Valid flags are: B<rcv> (received), B<fwd> (forwarded),
+B<dlv> (delivered), B<del> (deleted).  If omitted, no status reports are
+requested.  Example: C<dlv> or C<rcv,fwd,dlv,del>.
 
 =head1 EXIT STATUS
 
