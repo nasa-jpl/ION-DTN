@@ -252,7 +252,7 @@ static void	printBundle(Object bundleObj)
 	{
 		stationEidObj = sdr_list_data(sdr, stationEidElt);
 		sdr_string_read(sdr, proxEidBuf, stationEidObj);
-		isprintf(buf, sizeof buf, "  Station EID   '%s'", proxEidBuf);
+		isprintf(buf, sizeof buf, "Station EID     '%s'", proxEidBuf);
 		PUTS(buf);
 	}
 
