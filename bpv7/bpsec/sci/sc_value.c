@@ -1042,6 +1042,7 @@ Lyst bpsec_scv_sdrListRead(Sdr sdr, Object sdr_list)
 	BPSEC_DEBUG_PROC("(sdr, %d)", sdr_list);
 
 	CHKNULL(result);
+	lyst_delete_set(result, bpsec_scv_lystCbDel, NULL);
 
 	if(sdr_list == 0)
 	{

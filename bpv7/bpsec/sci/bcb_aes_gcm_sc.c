@@ -560,7 +560,7 @@ int bpsec_bagscu_outParmsGet(sc_state *state, int suite, Lyst extraParms, Bundle
 	sc_value *tmp_val = NULL;
 
 	BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC",%d,"ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
-			 (uaddr) state, suite, (uaddr) extraParms, (uaddr) bundle, (uaddr) tgtResult, (uaddr) parms);
+			(uaddr) state, suite, (uaddr) extraParms, (uaddr) bundle, (uaddr) tgtResult, (uaddr) parms);
 
 	/* Step 0: Sanity checks and initialization. */
 	CHKERR(state);
@@ -571,16 +571,15 @@ int bpsec_bagscu_outParmsGet(sc_state *state, int suite, Lyst extraParms, Bundle
 
 	memset(parms, 0, sizeof(csi_cipherparms_t));
 
-
 	/*
-	 * Step 1 - Generate the Initialization Vector (IV).  If there is already an IV associated with
-	 *          this security block, it means that we have already used the security block IV for
-	 *          an encryption and we cannot use it again.
-	 *
-	 *          NOTE: This is a limitation of RFC9173 - since the IV is a parameter associated with the
-	 *                security block itself, a security block using this security context can only
-	 *                hold a single security operation, representing a single use of the IV parameter.
-	 */
+	* Step 1 - Generate the Initialization Vector (IV).  If there is already an IV associated with
+	* this security block, it means that we have already used the security block IV for
+	* an encryption and we cannot use it again.
+	*
+	* NOTE: This is a limitation of RFC9173 - since the IV is a parameter associated with the
+	* security block itself, a security block using this security context can only
+	* hold a single security operation, representing a single use of the IV parameter.
+	*/
 	if((tmp_val = bpsec_scv_lystFind(state->scStParms, BPSEC_BAGSC_PARM_IV, SC_VAL_TYPE_PARM)) == NULL)
 	{
 		csi_val_t csi_tmp;
@@ -600,11 +599,31 @@ int bpsec_bagscu_outParmsGet(sc_state *state, int suite, Lyst extraParms, Bundle
 
 		*tmp_val = bpsec_scv_memCsiConvert(csi_tmp, SC_VAL_TYPE_PARM, BPSEC_BAGSC_PARM_IV);
 
-		/* Make available to other SOPs in this block. */
-		lyst_insert_last(state->scStParms, tmp_val);
+		/* Make available to other SOPs in this block. Guard against OOM. */
+		if (lyst_insert_last(state->scStParms, tmp_val) == NULL)
+		{
+			BPSEC_DEBUG_ERR("Cannot insert IV into scStParms.", NULL);
+			bpsec_scv_clear(0, tmp_val);
+			MRELEASE(tmp_val);
+			return -1;
+		}
 
-		/* Make available in outgoing security block. */
-		lyst_insert_last(extraParms, tmp_val);
+		/* Create deep copy to prevent double-free during list teardown */
+		sc_value *copied_val = bpsec_scv_memCopy(tmp_val);
+		if (copied_val == NULL)
+		{
+			BPSEC_DEBUG_ERR("Cannot copy sc_value for extraParms.", NULL);
+			return -1;
+		}
+
+		/* Make available in outgoing security block. Guard against OOM. */
+		if (lyst_insert_last(extraParms, copied_val) == NULL)
+		{
+			BPSEC_DEBUG_ERR("Cannot insert copied IV into extraParms.", NULL);
+			bpsec_scv_clear(0, copied_val);
+			MRELEASE(copied_val);
+			return -1;
+		}
 	}
 	else
 	{
@@ -623,8 +642,8 @@ int bpsec_bagscu_outParmsGet(sc_state *state, int suite, Lyst extraParms, Bundle
 	memcpy(parms->iv.contents, tmp_val->scRawValue.asPtr, parms->iv.len);
 
 	/*
-	 * Step 2: Generate the AAD.
-	 */
+	* Step 2: Generate the AAD.
+	*/
 	aad = bpsec_rfc9173utl_authDataBuild(state, BPSEC_BAGSC_PARM_AAD_SCOPE, tgtResult->scTargetId, 0, bundle, NULL);
 
 	if((aad.scSerializedLength <= 0) || (aad.scSerializedText == NULL))
@@ -636,7 +655,6 @@ int bpsec_bagscu_outParmsGet(sc_state *state, int suite, Lyst extraParms, Bundle
 	parms->aad.len = aad.scSerializedLength;
 
 	return 1;
-
 }
 
 
