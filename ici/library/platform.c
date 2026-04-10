@@ -2703,6 +2703,14 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 						/*	Vast.		*/
 
 						isLongLong = 1;
+
+						/* Might be "ll." */
+						if ((*cursor) == 'l')
+						{
+							fmt[fmtLen] = *cursor;
+							fmtLen++;
+							cursor++;
+						}
 					}
 					else	/*	Check for "ll".	*/
 					{
