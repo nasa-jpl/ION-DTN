@@ -582,9 +582,13 @@ AC_ARG_ENABLE(
       ENABLE_BSL=yes
 
       # Set BSL_HOME to default location
-      if test -z "${BSL_HOME}"; then
+      if test -z "${BSL_HOME}";
+      then
         BSL_HOME="${srcdir}/external/BSL/testroot/usr"
       fi
+
+      # Force BSL_HOME to be an absolute path to satisfy libtool
+      BSL_HOME=`cd "$BSL_HOME" && pwd`
 
       # Add preprocessor flag for conditional compilation
       AM_CFLAGS="$AM_CFLAGS -DUSING_BSL=1"
@@ -594,12 +598,33 @@ AC_ARG_ENABLE(
       AM_CFLAGS="$AM_CFLAGS -I${srcdir}/bpv7/bsl -I${srcdir}/external/BSL/src -I${srcdir}/external/BSL/build/default/src -I${BSL_HOME}/include/bsl -I${BSL_HOME}/include/bsl/policy_provider -I${BSL_HOME}/include/bsl/security_context -I${BSL_HOME}/include/bsl/ION_integration -I${BSL_HOME}/include/m-lib"
       PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -I${BSL_HOME}/include/bsl"
 
+      # Add jansson include path for platforms where it's in a subdirectory (e.g., Solaris)
+      # Try common locations
+      for jansson_inc_dir in /usr/include/jansson /usr/local/include/jansson; do
+        if test -f "${jansson_inc_dir}/jansson.h"; then
+          AM_CFLAGS="$AM_CFLAGS -I${jansson_inc_dir}"
+          PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -I${jansson_inc_dir}"
+          AC_MSG_NOTICE([Found jansson headers in ${jansson_inc_dir}])
+          break
+        fi
+      done
+
       # Set BSL library flags
       BSL_LIBS="-lbsl_crypto -lbsl_default_sc -lbsl_dynamic -lbsl_front -lbsl_mock_bpa -lbsl_sample_pp -lqcbor -ljansson -L${BSL_HOME}/lib"
 
       # Executables linking against libbp need rpath-link to resolve
       # BSL's transitive dependencies (e.g. libqcbor) at link time
-      AM_LDFLAGS="$AM_LDFLAGS -Wl,-rpath-link,${BSL_HOME}/lib"
+      # Use platform-specific linker flags
+      case $host_os in
+        solaris*)
+          # Solaris linker uses -R for runtime library path
+          AM_LDFLAGS="$AM_LDFLAGS -R${BSL_HOME}/lib"
+          ;;
+        *)
+          # GNU ld (Linux, BSD, etc.) uses -rpath-link
+          AM_LDFLAGS="$AM_LDFLAGS -Wl,-rpath-link,${BSL_HOME}/lib"
+          ;;
+      esac
 
       AC_MSG_NOTICE([BSL will be built with ION integration])
       AC_MSG_NOTICE([BSL_HOME: ${BSL_HOME}])
@@ -614,6 +639,10 @@ AC_ARG_ENABLE(
 AM_CONDITIONAL([ENABLE_BSL], [test "x$ENABLE_BSL" = "xyes"])
 
 if test "x$ENABLE_BSL" = "xyes"; then
+  # Apply AM_CFLAGS to CFLAGS for header checks
+  ORIGCFLAGS_BSL="$CFLAGS"
+  CFLAGS="$AM_CFLAGS $CFLAGS"
+
   # Check for required BSL dependencies
   AC_CHECK_HEADER([jansson.h],
     [],
@@ -622,6 +651,9 @@ if test "x$ENABLE_BSL" = "xyes"; then
   AC_CHECK_LIB([jansson], [json_object],
     [],
     [AC_MSG_ERROR([jansson library not found. Install libjansson-dev (Debian/Ubuntu) or jansson-devel (RHEL/Fedora)])])
+
+  # Restore original CFLAGS
+  CFLAGS="$ORIGCFLAGS_BSL"
 
   AC_SUBST([BSL_LIBS], ["$BSL_LIBS"])
   AC_SUBST([BSL_HOME], ["$BSL_HOME"])
