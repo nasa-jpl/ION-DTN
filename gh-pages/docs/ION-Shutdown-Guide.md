@@ -299,14 +299,70 @@ Same as Path 1. The `f` flag has no effect in single-node mode.
 
 This output is useful for diagnosing shutdown issues. Note that `ionexit` may not reduce IPC resource counts — processes performing graceful shutdown can temporarily create additional IPC resources during their cleanup sequence. The SIGTERM/SIGKILL cycle and subsequent `ipcrm`/semaphore file deletion are what fully clean up these resources.
 
-#### When to use
+#### Multi-instance shutdown and residual shared memory
+
+ION's multi-instance-per-host configuration (multiple ION nodes running on the same machine) is designed for **testing convenience only** — it allows multi-node DTN topologies to be exercised on a single host. ION is not designed to run in this mode for operational deployments, where each host should run a single ION instance.
+
+In multi-instance configurations, `ionexit` alone **cannot fully clean up all shared memory**. This is an inherent limitation of the ordered shutdown sequence, not a bug. Here is an example from a 2-node `bench-udp` test on Solaris:
+
+**Initial state** — test has completed, all ION processes have exited, but 6 shared memory segments remain (3 per node: working memory, SDR heap, plus 2 global segments for the SDR catalog and semaphore table):
+
+```
+=== Initial state ===
+All ION processes stopped.
+SVR4 shared memory segments found: 6
+  shm id: 67108921   (global SDR working memory)
+  shm id: 67108920   (global semaphore table)
+  shm id: 67108919   (node 2 working memory)
+  shm id: 67108918   (node 2 SDR heap)
+  shm id: 67108917   (node 3 working memory)
+  shm id: 67108916   (node 3 SDR heap)
+```
+
+**After ordered ionexit** — `killm f` runs `ionexit k n` for node 2 (intermediate), then bare `ionexit` for node 3 (last). Node 3's ionexit destroys its own segments plus the 2 global segments. But node 2's segments were deliberately preserved by `k n` — destroying them earlier would have prevented node 3 from attaching to the global shared memory it needs to shut itself down:
+
+```
+=== Post-ionexit state ===
+All ION processes stopped.
+SVR4 shared memory segments found: 2
+  shm id: 67108919   (node 2 working memory — preserved by k flag)
+  shm id: 67108918   (node 2 SDR heap — preserved by k flag)
+```
+
+**After ipcrm** — the `ipcrm` sweep at the end of `killm f` removes the 2 orphaned segments:
+
+```
+=== Post-ipcrm state ===
+No IPC resources found.
+Killm completed.
+```
+
+The `ipcrm` step is not a fallback for a failure — it is the **intentional final sweep** for segments that were deliberately preserved during the ordered shutdown. This is why `killm f` is required for full cleanup in multi-instance environments; bare `ionexit` cannot do it alone.
+
+#### Single-instance operational deployments
+
+For production/operational environments, ION is designed to run as a **single instance per host**. In this configuration, `ionexit` is the official and recommended method for graceful shutdown. A bare `ionexit` (no flags) cleanly stops all daemons, destroys the SDR, and releases all IPC resources — no residual shared memory or semaphores are left behind.
+
+For operational environments that require additional assurance, `killm f` can be used as a safety net after `ionexit`, or in place of it. The `killm f` script runs `ionexit` internally, then follows up with SIGTERM/SIGKILL and `ipcrm` to guarantee a clean slate regardless of whether any process failed to respond to the graceful shutdown.
+
+**Recommended operational shutdown:**
+```bash
+ionexit           # Graceful shutdown — sufficient for single-instance
+```
+
+**With safety net (optional):**
+```bash
+killm f           # Runs ionexit + SIGTERM/SIGKILL + ipcrm
+```
+
+#### When to use killm
 
 - Before a fresh ION start to ensure a clean state
 - After a failed normal shutdown
 - When ION processes are hung or unresponsive
 - When shared resources are corrupted
 - During system recovery after crashes
-- In multi-node environments: `killm` (without `f`) safely stops only the current node
+- In multi-node test environments: `killm` (without `f`) safely stops only the current node
 - Use `killm f` to force full cleanup of all instances on the host
 
 **Cross-Platform Support:**
