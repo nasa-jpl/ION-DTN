@@ -13,6 +13,7 @@
 
 #include "platform.h"
 #include "memmgr.h"
+#include "portable_atomic.h"
 #include "sdr.h"
 #include "smlist.h"
 #include "smrbt.h"
@@ -480,8 +481,8 @@ typedef struct
 
 typedef struct
 {
-	atomic_uint	deltaCount;
-	atomic_ullong	deltaBytes;
+	ion_atomic_t	deltaCount;
+	ion_atomic_t	deltaBytes;
 } TallyDelta;
 
 #ifndef MTAKE

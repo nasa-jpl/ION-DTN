@@ -71,9 +71,10 @@ AC_CACHE_CHECK([whether $CC supports C18 (iso9899:2018)], [ac_cv_c11],
     [ac_cv_c11=no])
   CFLAGS="$save_CFLAGS"])
 
-if test "$ac_cv_c11" = yes;
-then
+if test "$ac_cv_c11" = yes; then
   AM_CFLAGS="$AM_CFLAGS -std=iso9899:2018"
+  AC_DEFINE([ION_HAVE_C11_ATOMICS],[1],
+              [Define to 1 if the compiler supports <stdatomic.h>.])
 else
   AC_CACHE_CHECK([whether $CC supports C99], [ac_cv_c99],
     [save_CFLAGS="$CFLAGS"
@@ -90,6 +91,20 @@ else
   fi
 fi
 
+dnl =============================================================
+dnl  Expose to Automake   (needed for 'if !HAVE_C11_ATOMICS')
+dnl =============================================================
+AM_CONDITIONAL([HAVE_C11_ATOMICS], [test "x$ac_cv_c11" = xyes])
+
+dnl =============================================================
+dnl  Ensure POSIX/XSI APIs are visible even under -std=c99 (strict C99 builds)
+dnl =============================================================
+AC_DEFINE([_POSIX_C_SOURCE],[200809L],
+          [Expose POSIX.1-2008 APIs such as tzset/localtime_r/pthread_kill])
+AC_DEFINE([_XOPEN_SOURCE],[700],
+          [Expose XSI extensions])
+AC_DEFINE([_DEFAULT_SOURCE],[1],
+          [Fallback for glibc to export BSD/GNU names like timezone])
 
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET

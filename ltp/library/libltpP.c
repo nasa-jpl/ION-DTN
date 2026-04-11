@@ -140,8 +140,8 @@ void	ltpSpanTally(LtpVspan *vspan, unsigned int idx, unsigned int size)
 {
 	CHKVOID(vspan);
 	CHKVOID(idx < LTP_SPAN_STATS);
-	atomic_fetch_add(&vspan->statsDeltas[idx].deltaCount, 1);
-	atomic_fetch_add(&vspan->statsDeltas[idx].deltaBytes, (uvast) size);
+	ion_atomic_get_and_increment(&vspan->statsDeltas[idx].deltaCount, 1);
+	ion_atomic_get_and_increment(&vspan->statsDeltas[idx].deltaBytes, (uvast) size);
 }
 
 int	ltpFlushSpanStats(Sdr sdr, LtpVspan *vspan)
@@ -159,8 +159,8 @@ int	ltpFlushSpanStats(Sdr sdr, LtpVspan *vspan)
 
 		for (i = 0; i < LTP_SPAN_STATS; i++)
 		{
-			atomic_exchange(&vspan->statsDeltas[i].deltaCount, 0);
-			atomic_exchange(&vspan->statsDeltas[i].deltaBytes, 0);
+			ion_atomic_exchange(&vspan->statsDeltas[i].deltaCount, 0);
+			ion_atomic_exchange(&vspan->statsDeltas[i].deltaBytes, 0);
 		}
 
 		return 0;
@@ -169,8 +169,8 @@ int	ltpFlushSpanStats(Sdr sdr, LtpVspan *vspan)
 	sdr_stage(sdr, (char *) &stats, vspan->stats, sizeof(LtpSpanStats));
 	for (i = 0; i < LTP_SPAN_STATS; i++)
 	{
-		dCount = atomic_exchange(&vspan->statsDeltas[i].deltaCount, 0);
-		dBytes = atomic_exchange(&vspan->statsDeltas[i].deltaBytes, 0);
+		dCount = (unsigned int)ion_atomic_exchange(&vspan->statsDeltas[i].deltaCount, 0);
+		dBytes = ion_atomic_exchange(&vspan->statsDeltas[i].deltaBytes, 0);
 		if (dCount > 0 || dBytes > 0)
 		{
 			stats.tallies[i].totalCount += dCount;
@@ -714,8 +714,8 @@ static int	raiseSpan(Object spanElt, LtpVdb *ltpvdb)
 
 		for (i = 0; i < LTP_SPAN_STATS; i++)
 		{
-			atomic_init(&vspan->statsDeltas[i].deltaCount, 0);
-			atomic_init(&vspan->statsDeltas[i].deltaBytes, 0);
+			ion_atomic_init(&vspan->statsDeltas[i].deltaCount, 0);
+			ion_atomic_init(&vspan->statsDeltas[i].deltaBytes, 0);
 		}
 	}
 

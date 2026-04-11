@@ -656,6 +656,10 @@ libici_la_SOURCES =	\
 	ici/sdr/sdr_perf.c \
 	ici/crypto/entropy_src.c
 
+if !HAVE_C11_ATOMICS
+libici_la_SOURCES += ici/library/portable_atomic.c
+endif
+
 libici_la_CFLAGS = $(icicflags) $(AM_CFLAGS)
 libici_la_LIBADD = $(CRYPTO_LIBS) -lm
 

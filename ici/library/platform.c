@@ -12,6 +12,7 @@
 /*	Ioannis Alexiadis, Democritus University of Thrace, 2011.	*/
 /*									*/
 #include "platform.h"
+#include "portable_atomic.h"
 #include "ion_network.h"
 
 /* Only for Ubuntu as of ION 4.1.2 */
@@ -422,7 +423,7 @@ int	createFile(const char *filename, int flags)
 typedef struct rlock_str
 {
 	pthread_mutex_t mutex;
-	atomic_int	initialized;	/* Atomic to prevent TOCTOU races */
+	ion_atomic_t	initialized;	/* Atomic to prevent TOCTOU races */
 } Rlock;
 
 /* the next line won't compile if the mutex structure isn't large enough -  increase size of ResourceLock in platform.h */
@@ -466,7 +467,7 @@ int initResourceLock(ResourceLock *rl)
 	/*
 	* Now that we hold the meta-lock, it is safe to check the flag.
 	*/
-	if (atomic_load(&lock->initialized))
+	if (ion_atomic_get(&lock->initialized))
 	{
 		/* This lock is already initialized. Nothing more to do. */
 		pthread_mutex_unlock(&g_ResourceLockInitMutex);
@@ -502,7 +503,7 @@ int initResourceLock(ResourceLock *rl)
 	pthread_mutexattr_destroy(&attr);
 
 	/* Mark this lock as initialized BEFORE releasing the meta-lock. */
-	atomic_store(&lock->initialized, 1);
+	ion_atomic_set(&lock->initialized, 1);
 
 	/* Release the global initialization lock. */
 	pthread_mutex_unlock(&g_ResourceLockInitMutex);
@@ -525,7 +526,7 @@ void killResourceLock(ResourceLock *rl)
 	 */
 	pthread_mutex_lock(&g_ResourceLockInitMutex);
 
-	if (atomic_load(&lock->initialized) == 0)
+	if (ion_atomic_get(&lock->initialized) == 0)
 	{
 		pthread_mutex_unlock(&g_ResourceLockInitMutex);
 		return;
@@ -535,7 +536,7 @@ void killResourceLock(ResourceLock *rl)
 	 * Mark as uninitialized FIRST. This prevents any new lockResource
 	 * calls from proceeding while we destroy the mutex.
 	 */
-	atomic_store(&lock->initialized, 0);
+	ion_atomic_set(&lock->initialized, 0);
 
 	pthread_mutex_unlock(&g_ResourceLockInitMutex);
 
@@ -559,7 +560,7 @@ void killResourceLock(ResourceLock *rl)
 		 * to destroy it. Restore the initialized flag since we couldn't
 		 * complete destruction.
 		 */
-		atomic_store(&lock->initialized, 1);
+		ion_atomic_set(&lock->initialized, 1);
 		writeMemo("[!] killResourceLock: Attempted to destroy a locked mutex.");
 	}
 }
@@ -568,7 +569,7 @@ void lockResource(ResourceLock *rl)
 {
 	Rlock   *lock = (Rlock *) rl;
 
-	if (lock == NULL || atomic_load(&lock->initialized) == 0)
+	if (lock == NULL || ion_atomic_get(&lock->initialized) == 0)
 	{
 		return;
 	}
@@ -580,7 +581,7 @@ void unlockResource(ResourceLock *rl)
 {
 	Rlock   *lock = (Rlock *) rl;
 
-	if (lock == NULL || atomic_load(&lock->initialized) == 0)
+	if (lock == NULL || ion_atomic_get(&lock->initialized) == 0)
 	{
 		return;
 	}
@@ -1514,14 +1515,14 @@ void	discardErrmsgs(void)
 
 int	_coreFileNeeded(int *ctrl)
 {
-	static atomic_int	coreFileNeeded = CORE_FILE_NEEDED;
+	static ion_atomic_t	coreFileNeeded = ION_ATOMIC_INIT(CORE_FILE_NEEDED);
 
 	if (ctrl)
 	{
-		atomic_store(&coreFileNeeded, *ctrl);
+		ion_atomic_set(&coreFileNeeded, *ctrl);
 	}
 
-	return atomic_load(&coreFileNeeded);
+	return (int) ion_atomic_get(&coreFileNeeded);
 }
 
 int	_iEnd(const char *fileName, int lineNbr, const char *arg)
