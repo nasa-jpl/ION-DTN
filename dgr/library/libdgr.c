@@ -209,7 +209,7 @@ typedef struct
 	int		meanBytesResent;
 	int		bytesTransmitted;
 	int		bytesAcknowledged;
-	vast		serviceLoad;	/*	bytes sendable		*/
+	ion_atomic_t	serviceLoad;	/*	bytes sendable		*/
 	EpisodeHistory	episodes[8];
 	int		currentEpisode;
 	int		totalCapacity;
@@ -238,7 +238,7 @@ typedef struct dgrsapst
 	pthread_mutex_t	sapMutex;
 	pthread_cond_t	sapCV;
 	unsigned int	sessionNbr;
-	int		backlog;	/*	Total, for all dests.	*/
+	ion_atomic_t	backlog;	/*	Total, for all dests.	*/
 
 	Lyst		outboundMsgs;	/*	(SendReq *)		*/
 	struct llcv_str	outboundCV_str;
@@ -487,7 +487,7 @@ static DgrDest	*addNewDest(DgrSAP *sap, unsigned short portNbr,
 
 	dest->lessActiveDest = -1;	/*	New one's least active.	*/
 	dest->moreActiveDest = nextDest;
-	initializeDest(dest, portNbr, ipAddress);
+	ion_atomic_init(&dest->serviceLoad, 0);
 	*destIdx = newDest;
 	return dest;
 }
@@ -536,14 +536,14 @@ static void	removeRecord(DgrSAP *sap, DgrRecord rec, LystElt arqElt)
 
 	/*	Enable more messages to be sent.			*/
 
-	pthread_mutex_lock(&sap->sapMutex);
-	sap->backlog -= (rec->contentLength + sizeof(SegmentId));
-	if (sap->backlog <= MAX_BACKLOG)
+	uvast deduction = rec->contentLength + sizeof(SegmentId);
+	uvast old_backlog = ion_atomic_get_and_decrement(&sap->backlog, deduction);
+	if ((old_backlog - deduction) <= MAX_BACKLOG)
 	{
+		pthread_mutex_lock(&sap->sapMutex);
 		pthread_cond_signal(&sap->sapCV);
+		pthread_mutex_unlock(&sap->sapMutex);
 	}
-
-	pthread_mutex_unlock(&sap->sapMutex);
 }
 
 static void	adjustActiveDestChain(DgrSAP *sap, int destIdx)
@@ -1179,7 +1179,7 @@ tracePredictedResends = dest->predictedResends;
 		iwatch('=');
 	}
 
-	dest->serviceLoad += rec->contentLength;
+	ion_atomic_get_and_increment(&dest->serviceLoad, rec->contentLength);
 	return insertSendReq(sap, rec);
 }
 
@@ -1455,7 +1455,7 @@ traceUnusedCapacity = unusedCapacity;
 	dest->totalBytesTransmitted -= dest->episodes[i].bytesTransmitted;
 	dest->totalBytesAcknowledged -= dest->episodes[i].bytesAcknowledged;
 	dest->totalUnusedCapacity -= dest->episodes[i].unusedCapacity;
-	dest->episodes[i].serviceLoad = dest->serviceLoad;
+	dest->episodes[i].serviceLoad = ion_atomic_get(&dest->serviceLoad);
 	dest->episodes[i].bytesTransmitted = dest->bytesTransmitted;
 	dest->episodes[i].bytesAcknowledged = dest->bytesAcknowledged;
 	dest->episodes[i].unusedCapacity = unusedCapacity;
@@ -1533,7 +1533,7 @@ traceRetard = dest->retard;
 #if DGRDEBUG
 dgrtrace();
 traceBytesAcknowledged = 0;
-dest->serviceLoad = 0;
+ion_atomic_set(&dest->serviceLoad, 0);
 traceBytesTransmitted = 0;
 traceBytesOriginated = 0;
 aggregateDelay = 0;
@@ -2249,6 +2249,7 @@ int	dgr_open(uvast ownEngineId, unsigned int clientSvcId,
 	}
 
 	memset((char *) sap, 0, sizeof(DgrSAP));
+	ion_atomic_init(&sap->backlog, 0);
 	sap->engineId = ownEngineId;
 	sap->clientSvcId = clientSvcId;
 	sap->state = DgrSapOpen;
@@ -2517,7 +2518,7 @@ int	dgr_send(DgrSAP *sap, unsigned short toPortNbr,
 	}
 
 	dest = findDest(sap, toPortNbr, toIpAddress, &destIdx);
-	dest->serviceLoad += length;
+	ion_atomic_get_and_increment(&dest->serviceLoad, length);
 	delay = length * dest->retard;
 #if DGRDEBUG
 aggregateDelay += delay;
@@ -2558,14 +2559,14 @@ rcSnoozes++;
 	 *	from getting out of hand.				*/
 
 	pthread_mutex_lock(&sap->sapMutex);
-	while (sap->backlog > MAX_BACKLOG)
+	while (ion_atomic_get(&sap->backlog) > MAX_BACKLOG)
 	{
 		pthread_cond_wait(&sap->sapCV, &sap->sapMutex);
 	}
 
 	/*	Now proceed with transmission.				*/
 
-	sap->backlog += (rec->contentLength + sizeof(SegmentId));
+	ion_atomic_get_and_increment(&sap->backlog, (rec->contentLength + sizeof(SegmentId)));
 	sap->sessionNbr++;
 	rec->segment.id.engineId = sap->engineId;
 	rec->segment.id.sessionNbr = sap->sessionNbr;
@@ -2587,13 +2588,17 @@ rcSnoozes++;
 	{
 		putErrmsg("Can't append outbound record.", NULL);
 		MRELEASE(rec);
-		pthread_mutex_lock(&sap->sapMutex);
-		sap->backlog -= (length + sizeof(SegmentId));
-		pthread_cond_signal(&sap->sapCV);
-		pthread_mutex_unlock(&sap->sapMutex);
+		uvast deduction = length + sizeof(SegmentId);
+		uvast old_backlog = ion_atomic_get_and_decrement(&sap->backlog, deduction);
+		if ((old_backlog - deduction) <= MAX_BACKLOG)
+		{
+			pthread_mutex_lock(&sap->sapMutex);
+			pthread_cond_signal(&sap->sapCV);
+			pthread_mutex_unlock(&sap->sapMutex);
+		}
 		pthread_mutex_lock(&sap->destsMutex);
 		dest = findDest(sap, toPortNbr, toIpAddress, &destIdx);
-		dest->serviceLoad -= length;
+		ion_atomic_get_and_decrement(&dest->serviceLoad, length);
 		pthread_mutex_unlock(&sap->destsMutex);
 		return -1;
 	}
@@ -2608,13 +2613,17 @@ rcSnoozes++;
 		lyst_delete(elt);
 		pthread_mutex_unlock(&rec->bucket->mutex);
 		MRELEASE(rec);
-		pthread_mutex_lock(&sap->sapMutex);
-		sap->backlog -= (length + sizeof(SegmentId));
-		pthread_cond_signal(&sap->sapCV);
-		pthread_mutex_unlock(&sap->sapMutex);
+		uvast deduction = length + sizeof(SegmentId);
+		uvast old_backlog = ion_atomic_get_and_decrement(&sap->backlog, deduction);
+		if ((old_backlog - deduction) <= MAX_BACKLOG)
+		{
+			pthread_mutex_lock(&sap->sapMutex);
+			pthread_cond_signal(&sap->sapCV);
+			pthread_mutex_unlock(&sap->sapMutex);
+		}
 		pthread_mutex_lock(&sap->destsMutex);
 		dest = findDest(sap, toPortNbr, toIpAddress, &destIdx);
-		dest->serviceLoad -= length;
+		ion_atomic_get_and_decrement(&dest->serviceLoad, length);
 		pthread_mutex_unlock(&sap->destsMutex);
 		return -1;
 	}
