@@ -13,6 +13,7 @@
 #include "ltpcla.h"
 #include "ipnfw.h"
 #include "dtn2fw.h"
+#include "ion_atomic.h"
 
 static void	interruptThread(int signum)
 {
@@ -29,7 +30,7 @@ typedef struct
 {
 	pthread_mutex_t lock;
 	VInduct		*vduct;
-	int		running;
+	ion_atomic_t	running;
 } ltpcli_ReceiverThreadParms;
 
 static int	acquireRedBundles(AcqWorkArea *work, Object zco,
@@ -280,10 +281,7 @@ static void	*handleNotices(void *parm)
 	while (1)
 	{
 		int keepRunning;
-
-		pthread_mutex_lock(&rtp->lock);
-		keepRunning = rtp->running;
-		pthread_mutex_unlock(&rtp->lock);
+		keepRunning = (int) ion_atomic_get(&rtp->running);
 
 		if (!keepRunning)
 		{
@@ -297,9 +295,7 @@ static void	*handleNotices(void *parm)
 			putErrmsg("Can't get LTP notice.", NULL);
 			ionKillMainThread(procName);
 
-			pthread_mutex_lock(&rtp->lock);
-			rtp->running = 0;
-			pthread_mutex_unlock(&rtp->lock);
+			ion_atomic_set(&rtp->running, 0);
 
 			continue;
 		}
@@ -317,9 +313,7 @@ static void	*handleNotices(void *parm)
 				putErrmsg("Crashed handling xmit success.", NULL);
 				ionKillMainThread(procName);
 
-				pthread_mutex_lock(&rtp->lock);
-				rtp->running = 0;
-				pthread_mutex_unlock(&rtp->lock);
+				ion_atomic_set(&rtp->running, 0);
 			}
 
 			break;			/*	Out of switch.	*/
@@ -335,9 +329,7 @@ static void	*handleNotices(void *parm)
 				putErrmsg("Crashed handling xmit failure.", NULL);
 				ionKillMainThread(procName);
 
-				pthread_mutex_lock(&rtp->lock);
-				rtp->running = 0;
-				pthread_mutex_unlock(&rtp->lock);
+				ion_atomic_set(&rtp->running, 0);
 			}
 
 			break;			/*	Out of switch.	*/
@@ -358,9 +350,7 @@ static void	*handleNotices(void *parm)
 				putErrmsg("Can't cancel green session.", NULL);
 				ionKillMainThread(procName);
 
-				pthread_mutex_lock(&rtp->lock);
-				rtp->running = 0;
-				pthread_mutex_unlock(&rtp->lock);
+				ion_atomic_set(&rtp->running, 0);
 			}
 
 			break;		/*	Out of switch.		*/
@@ -382,9 +372,7 @@ static void	*handleNotices(void *parm)
 							NULL);
 					ionKillMainThread(procName);
 
-					pthread_mutex_lock(&rtp->lock);
-					rtp->running = 0;
-					pthread_mutex_unlock(&rtp->lock);
+					ion_atomic_set(&rtp->running, 0);
 				}
 
 				break;		/*	Out of switch.	*/
@@ -396,9 +384,7 @@ static void	*handleNotices(void *parm)
 				putErrmsg("Can't acquire bundle(s).", NULL);
 				ionKillMainThread(procName);
 
-				pthread_mutex_lock(&rtp->lock);
-				rtp->running = 0;
-				pthread_mutex_unlock(&rtp->lock);
+				ion_atomic_set(&rtp->running, 0);
 			}
 
 			break;		/*	Out of switch.		*/
@@ -411,9 +397,7 @@ static void	*handleNotices(void *parm)
 				putErrmsg("Can't handle green segment.", NULL);
 				ionKillMainThread(procName);
 
-				pthread_mutex_lock(&rtp->lock);
-				rtp->running = 0;
-				pthread_mutex_unlock(&rtp->lock);
+				ion_atomic_set(&rtp->running, 0);
 			}
 
 			/*	Discard the ZCO in any case.		*/
@@ -425,9 +409,7 @@ static void	*handleNotices(void *parm)
 				putErrmsg("Crashed: green segment.", NULL);
 				ionKillMainThread(procName);
 
-				pthread_mutex_lock(&rtp->lock);
-				rtp->running = 0;
-				pthread_mutex_unlock(&rtp->lock);
+				ion_atomic_set(&rtp->running, 0);
 			}
 
 			break;		/*	Out of switch.		*/
@@ -520,7 +502,7 @@ int	main(int argc, char *argv[])
 	/*	Start the receiver thread.				*/
 
 	rtp.vduct = vduct;
-	rtp.running = 1;
+	ion_atomic_init(&rtp.running, 1);
 
 	if (pthread_begin(&receiverThread, NULL, handleNotices, &rtp, ductName))
 	{
@@ -536,9 +518,7 @@ int	main(int argc, char *argv[])
 
 	/*	Time to shut down.					*/
 
-	pthread_mutex_lock(&rtp.lock);
-	rtp.running = 0;
-	pthread_mutex_unlock(&rtp.lock);
+	ion_atomic_set(&rtp.running, 0);
 
 	/*	Stop the receiver thread by interrupting client access.	*/
 

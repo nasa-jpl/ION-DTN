@@ -14,6 +14,7 @@
 
 #include "ltpP.h"
 #include "ion_network.h"
+#include "ion_atomic.h"
 #include <pthread.h>
 
 #ifdef __cplusplus
@@ -25,11 +26,11 @@ extern "C" {
 
 typedef struct
 {
-	pthread_mutex_t lock;
+	IonNetworkAddress	local_addr;
+	IonNetworkAddress	peer_addr;
 	int			linkSocket;
-	int			running;
-	IonNetworkAddress   local_addr;
-	IonNetworkAddress   peer_addr;
+	pthread_mutex_t		lock;      /* Keep this! */
+	ion_atomic_t		running;   /* <-- The ONLY line that changes */
 } udp_ReceiverThreadParms;
 
 extern void			*udplsa_handle_datagrams(void *parm);

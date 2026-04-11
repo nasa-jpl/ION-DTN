@@ -412,7 +412,7 @@ int	main(int argc, char *argv[])
 	/*	  Start the receiver thread.		*/
 
 	/* lock not needed here (thread not running yet) */
-	rtp.running = 1;
+	ion_atomic_init(&rtp.running, 1);
 
 	if (pthread_begin(&receiverThread, NULL, udplsa_handle_datagrams,
 			&rtp, "udplso_receiver"))
@@ -508,10 +508,7 @@ int	main(int argc, char *argv[])
 	while (1)
 	{
 		int keepRunning;
-
-		pthread_mutex_lock(&rtp.lock);
-		keepRunning = rtp.running;
-		pthread_mutex_unlock(&rtp.lock);
+		keepRunning = (int) ion_atomic_get(&rtp.running);
 
 		if (!keepRunning || sm_SemEnded(vspan->segSemaphore))
 		{
@@ -599,9 +596,7 @@ int	main(int argc, char *argv[])
 					{
 						putErrmsg("Failed sending \
 segment batch.", NULL);
-						pthread_mutex_lock(&rtp.lock);
-						rtp.running = 0;
-						pthread_mutex_unlock(&rtp.lock);
+						ion_atomic_set(&rtp.running, 0);
 						continue;
 					}
 
@@ -629,9 +624,7 @@ segment batch.", NULL);
 		segmentLength = ltpDequeueOutboundSegment(vspan, &segment);
 		if (segmentLength < 0)
 		{
-			pthread_mutex_lock(&rtp.lock);
-			rtp.running = 0;	/*	Terminate LSO.	*/
-			pthread_mutex_unlock(&rtp.lock);
+			ion_atomic_set(&rtp.running, 0);
 			continue;
 		}
 
@@ -693,10 +686,7 @@ segment batch.", NULL);
 	while (1)
 	{
 		int keepRunning;
-
-		pthread_mutex_lock(&rtp.lock);
-		keepRunning = rtp.running;
-		pthread_mutex_unlock(&rtp.lock);
+		keepRunning = (int) ion_atomic_get(&rtp.running);
 
 		if (!keepRunning || sm_SemEnded(vspan->segSemaphore))
 		{
@@ -766,9 +756,7 @@ segment batch.", NULL);
 		segmentLength = ltpDequeueOutboundSegment(vspan, &segment);
 		if (segmentLength < 0)
 		{
-			pthread_mutex_lock(&rtp.lock);
-			rtp.running = 0;	/*	Terminate LSO.	*/
-			pthread_mutex_unlock(&rtp.lock);
+			ion_atomic_set(&rtp.running, 0);
 			continue;
 		}
 
@@ -781,9 +769,7 @@ segment batch.", NULL);
 		{
 			putErrmsg("Segment is too big for UDP LSO.",
 					itoa(segmentLength));
-			pthread_mutex_lock(&rtp.lock);
-			rtp.running = 0;	/*	Terminate LSO.	*/
-			pthread_mutex_unlock(&rtp.lock);
+			ion_atomic_set(&rtp.running, 0);
 			continue;
 		}
 
@@ -792,9 +778,7 @@ segment batch.", NULL);
 				rtp.peer_addr.addr_len);
 		if (bytesSent < segmentLength)
 		{
-			pthread_mutex_lock(&rtp.lock);
-			rtp.running = 0;	/*	Terminate LSO.	*/
-			pthread_mutex_unlock(&rtp.lock);
+			ion_atomic_set(&rtp.running, 0);
 			continue;
 		}
 
@@ -808,9 +792,7 @@ segment batch.", NULL);
 #endif
 	/*	Time to shut down.					*/
 
-	pthread_mutex_lock(&rtp.lock);
-	rtp.running = 0;
-	pthread_mutex_unlock(&rtp.lock);
+	ion_atomic_set(&rtp.running, 0);
 
 	/*	Wake up the receiver thread by opening a single-use
 	 *	transmission socket and sending a 1-byte datagram

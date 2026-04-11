@@ -136,7 +136,7 @@ int	main(int argc, char *argv[])
 	isignal(SIGTERM, interruptThread);
 
 	/*	Start the receiver thread.				*/
-	rtp.running = 1;
+	ion_atomic_init(&rtp.running, 1);
 
 	if (pthread_begin(&receiverThread, NULL, udplsa_handle_datagrams,
 			&rtp, "udplsi_receiver"))
@@ -166,10 +166,7 @@ int	main(int argc, char *argv[])
 	/*	Time to shut down.					*/
 
 	writeMemo("[i] udplsi shutting down...");
-
-	pthread_mutex_lock(&rtp.lock);
-	rtp.running = 0;
-	pthread_mutex_unlock(&rtp.lock);
+	ion_atomic_set(&rtp.running, 0);
 
 	/* Shutdown signaling */
 	fd = socket(rtp.local_addr.family, SOCK_DGRAM, IPPROTO_UDP);
