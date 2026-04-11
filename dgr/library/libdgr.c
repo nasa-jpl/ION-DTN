@@ -1201,6 +1201,7 @@ static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
 		for (elt = lyst_last(bucket->msgs); elt; elt = lyst_prev(elt))
 		{
 			rec = (DgrRecord) lyst_data(elt);
+
 			if (rec->segment.id.engineId > engineId)
 			{
 				continue;
@@ -1208,12 +1209,8 @@ static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
 
 			if (rec->segment.id.engineId < engineId)
 			{
-				pthread_mutex_unlock(&sap->destsMutex);
-				pthread_mutex_unlock(&bucket->mutex);
-				return 0;	/*	What happened?	*/
+				continue;	/* Force full traversal */
 			}
-
-			/*	Found a match on engine ID.		*/
 
 			if (rec->segment.id.sessionNbr > sessionNbr)
 			{
@@ -1222,12 +1219,8 @@ static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
 
 			if (rec->segment.id.sessionNbr < sessionNbr)
 			{
-				pthread_mutex_unlock(&sap->destsMutex);
-				pthread_mutex_unlock(&bucket->mutex);
-				return 0;	/*	What happened?	*/
+				continue;	/* Force full traversal */
 			}
-
-			/*	Found the matching record.		*/
 
 			break;
 		}
@@ -1236,18 +1229,16 @@ static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
 		{
 			pthread_mutex_unlock(&sap->destsMutex);
 			pthread_mutex_unlock(&bucket->mutex);
-			return 0;		/*	What happened?	*/
+			return 0;
 		}
 
 		dest = findDest(sap, rec->portNbr, rec->ipAddress, &destIdx);
+
 		result = sendMessage(sap, rec, elt, dest, destIdx);
 		pthread_mutex_unlock(&sap->destsMutex);
 		pthread_mutex_unlock(&bucket->mutex);
 		return result;
 	}
-
-	/*	Timeout or ACK for previously sent message, so search
-	 *	from the front of the list rather than the back.	*/
 
 	for (elt = lyst_first(bucket->msgs); elt; elt = lyst_next(elt))
 	{
@@ -1259,12 +1250,8 @@ static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
 
 		if (rec->segment.id.engineId > engineId)
 		{
-			pthread_mutex_unlock(&sap->destsMutex);
-			pthread_mutex_unlock(&bucket->mutex);
-			return 0;	/*	Record is already gone.	*/
+			continue;	/* Force full traversal */
 		}
-
-		/*	Found a match on engine ID.			*/
 
 		if (rec->segment.id.sessionNbr < sessionNbr)
 		{
@@ -1273,12 +1260,8 @@ static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
 
 		if (rec->segment.id.sessionNbr > sessionNbr)
 		{
-			pthread_mutex_unlock(&sap->destsMutex);
-			pthread_mutex_unlock(&bucket->mutex);
-			return 0;	/*	Record is already gone.	*/
+			continue;	/* Force full traversal */
 		}
-
-		/*	Found the matching record.			*/
 
 		break;
 	}
@@ -1287,7 +1270,7 @@ static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
 	{
 		pthread_mutex_unlock(&sap->destsMutex);
 		pthread_mutex_unlock(&bucket->mutex);
-		return 0;		/*	Record is already gone.	*/
+		return 0;
 	}
 
 	dest = findDest(sap, rec->portNbr, rec->ipAddress, &destIdx);
