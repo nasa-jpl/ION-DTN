@@ -352,9 +352,7 @@ static void	KillGateway(void)
 	 * It does not set g_ramsgate_interrupted. Use a mutex to protect
 	 * the shutdown flag from concurrent access.
 	 */
-	pthread_mutex_lock(&gWay->bpQueueMutex);
-	gWay->final_shutdown = 1;
-	pthread_mutex_unlock(&gWay->bpQueueMutex);
+	ion_atomic_set(&gWay->final_shutdown, 1);
 
 
 	if (gWay->netProtocol == RamsBp)
@@ -638,9 +636,7 @@ static void *_bpManagerThread(void *args)
 	 *	bp_interrupt(), which signals that there are queued outgoing
 	 *	bundles to process or that shutdown is beginning.	*/
 
-	pthread_mutex_lock(&gWay->bpQueueMutex);
-	shutdown_flag = gWay->final_shutdown;
-	pthread_mutex_unlock(&gWay->bpQueueMutex);
+	shutdown_flag = (int) ion_atomic_get(&gWay->final_shutdown);
 
 	while (!shutdown_flag)
 	{
@@ -709,9 +705,7 @@ static void *_bpManagerThread(void *args)
 			bp_release_delivery(&dlv, 1);
 		}
 
-		pthread_mutex_lock(&gWay->bpQueueMutex);
-		shutdown_flag = gWay->final_shutdown;
-		pthread_mutex_unlock(&gWay->bpQueueMutex);
+		shutdown_flag = (int) ion_atomic_get(&gWay->final_shutdown);
 	}
 
 	/* The manager thread owns the SAP, so it must be the one to close it. */
@@ -781,6 +775,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 		return -1;
 	}
 	memset(gWay, 0, sizeof(RamsGateway));
+	ion_atomic_init(&gWay->final_shutdown, 0);
 
 	gWay->amsModule = amsModule;
 	gWay->primeThread = pthread_self();

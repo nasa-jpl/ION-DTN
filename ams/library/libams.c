@@ -296,7 +296,7 @@ static void	eraseSAP(AmsSAP *sap)
 
 	/* Stop heartbeat, MAMS handler, and transport receiver threads. */
 
-	sap->terminating = 1;
+	ion_atomic_set(&sap->terminating, 1);
 
 	if (sap->haveMamsThread)
 	{
@@ -2546,9 +2546,7 @@ printf("Module '%d' got msg of type %d.\n", sap->role->nbr, msg->type);
 		 * FIX: Protect the write to heartbeatsMissed with the SAP state
 		 * mutex to prevent a data race with the heartbeatMain thread.
 		 */
-		pthread_mutex_lock(&sap->sapStateMutex);
-		sap->heartbeatsMissed = 0;
-		pthread_mutex_unlock(&sap->sapStateMutex);
+		ion_atomic_set(&sap->heartbeatsMissed, 0);
 		return;
 
 	case you_are_dead:
@@ -2558,7 +2556,7 @@ printf("Module '%d' got msg of type %d.\n", sap->role->nbr, msg->type);
 		 * (e.g., for a CRASH event) would race against the main
 		 * thread destroying the shared memory pool, causing a crash.
 		 */
-		sap->terminating = 1;
+		ion_atomic_set(&sap->terminating, 1);
 		return;
 
 	case I_am_starting:
@@ -3052,7 +3050,7 @@ static int	process_cell_spec(AmsSAP *sap, MamsMsg *msg)
 		return -1;
 	}
 
-	sap->heartbeatsMissed = 0;
+	ion_atomic_set(&sap->heartbeatsMissed, 0);
 	return 0;
 }
 
@@ -3350,7 +3348,7 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 				return 0;
 
 			case reconnected:
-				sap->heartbeatsMissed = 0;
+				ion_atomic_set(&sap->heartbeatsMissed, 0);
 				recycleEvent(evt);
 				unlockMib();
 				lyst_compare_set(sap->mamsEvents, NULL);
@@ -3647,7 +3645,7 @@ static void	*mamsMain(void *parm)
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
 
 	/* Flag used to enable a safe, allocation-free shutdown sequence. */
-	sap->terminating = 0;
+	ion_atomic_set(&sap->terminating, 0);
 
 	/*	MAMS thread starts off in Unregistered state and
 	 *	stays there until registration is complete.  Then
@@ -3751,14 +3749,11 @@ static void	*mamsMain(void *parm)
 				 * receiving 'you_are_dead', we must now exit
 				 * the loop to terminate the thread cleanly.
 				 */
-				pthread_mutex_lock(&sap->sapStateMutex);
-				if (sap->terminating)
+				if (ion_atomic_get(&sap->terminating))
 				{
-					pthread_mutex_unlock(&sap->sapStateMutex);
 					recycleEvent(evt);
 					break;
 				}
-				pthread_mutex_unlock(&sap->sapStateMutex);
 			}
 			else
 			{
@@ -3899,13 +3894,12 @@ static void	*heartbeatMain(void *parm)
 		 * FIX: All checks of shared SAP state variables must be
 		 * protected by the sapStateMutex.
 		 */
-		pthread_mutex_lock(&sap->sapStateMutex);
-		if (sap->terminating)
+		if (ion_atomic_get(&sap->terminating))
 		{
-			pthread_mutex_unlock(&sap->sapStateMutex);
 			break;
 		}
 
+		pthread_mutex_lock(&sap->sapStateMutex);
 		if (result)
 		{
 			errno = result;
@@ -3923,14 +3917,14 @@ static void	*heartbeatMain(void *parm)
 			continue;
 		}
 
-		if (sap->heartbeatsMissed == N6_COUNT)
+		if (ion_atomic_get(&sap->heartbeatsMissed) == N6_COUNT)
 		{
 			/* This function is safe to call while holding sapStateMutex,
 			 * as it only affects sap->rsEndpoint state. */
 			clearMamsEndpoint(sap->rsEndpoint);
 		}
 
-		sap->heartbeatsMissed++;
+		ion_atomic_get_and_increment(&sap->heartbeatsMissed, 1);
 		pthread_mutex_unlock(&sap->sapStateMutex);
 
 		if (enqueueMsgToRegistrar(sap, heartbeat, sap->moduleNbr,
@@ -3998,6 +3992,9 @@ static int	ams_register2(char *applicationName, char *authorityName,
 	CHKERR(sap);
 	*module = sap;
 	memset((char *) sap, 0, sizeof(AmsSAP));
+
+	ion_atomic_init(&sap->terminating, 0);
+	ion_atomic_init(&sap->heartbeatsMissed, 0);
 
 	/*
 	 * FIX: Initialize the new mutex for protecting SAP state.
