@@ -26,7 +26,10 @@
 #define ION_ATOMIC_H
 
 #include "platform.h"
+
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 
 /*==================================================================*/
 /* Feature Flag Initialization & Test Override                      */
