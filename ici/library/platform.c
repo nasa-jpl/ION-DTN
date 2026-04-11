@@ -12,7 +12,7 @@
 /*	Ioannis Alexiadis, Democritus University of Thrace, 2011.	*/
 /*									*/
 #include "platform.h"
-#include "portable_atomic.h"
+#include "ion_atomic.h"
 #include "ion_network.h"
 
 /* Only for Ubuntu as of ION 4.1.2 */

@@ -657,7 +657,7 @@ libici_la_SOURCES =	\
 	ici/crypto/entropy_src.c
 
 if !HAVE_C11_ATOMICS
-libici_la_SOURCES += ici/library/portable_atomic.c
+libici_la_SOURCES += ici/library/ion_atomic.c
 endif
 
 libici_la_CFLAGS = $(icicflags) $(AM_CFLAGS)

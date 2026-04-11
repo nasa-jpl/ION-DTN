@@ -13,7 +13,7 @@
 
 #include "platform.h"
 #include "memmgr.h"
-#include "portable_atomic.h"
+#include "ion_atomic.h"
 #include "sdr.h"
 #include "smlist.h"
 #include "smrbt.h"

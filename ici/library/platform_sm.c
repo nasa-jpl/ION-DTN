@@ -13,7 +13,7 @@
 
 
 #include <platform.h>
-#include "portable_atomic.h"
+#include "ion_atomic.h"
 
 static void	takeIpcLock(void);
 static void	giveIpcLock(void);
