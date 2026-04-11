@@ -19,6 +19,8 @@
 #include <pthread.h>
 #include "bpP.h"
 #include "ion_network.h"
+#include "ion_atomic.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,7 +37,7 @@ typedef struct
 	IonNetworkAddress shutdown_target; /* Where to send shutdown signal */
 	int               shutdown_socket; /* Socket for shutdown signal */
 	pthread_mutex_t   shutdown_mutex;  /* Thread safety */
-	int               shutdown_requested; /* Shutdown flag */
+	ion_atomic_t               shutdown_requested; /* Shutdown flag */
 } UdpClaSocket;
 
 /* Enhanced functions for dual-stack with automatic shutdown handling */
