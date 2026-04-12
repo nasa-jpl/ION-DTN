@@ -24,7 +24,7 @@ fi
 # only stops the current node via ionexit and preserves shared IPC
 # resources used by other instances.
 MULTINODE=0
-if [ $FORCE -eq 0 ] && [ -n "$ION_NODE_LIST_DIR" ] && \
+if [ -n "$ION_NODE_LIST_DIR" ] && \
    [ -s "$ION_NODE_LIST_DIR/ion_nodes" ]; then
     MULTINODE=1
 fi
@@ -192,7 +192,7 @@ fi
 
 if [ $HAS_SURVIVORS -eq 0 ] && [ $HAS_IPC -eq 0 ]; then
     echo "No ION processes or IPC resources found; skipping ionexit and signal cleanup."
-    if [ $MULTINODE -eq 1 ]; then
+    if [ $MULTINODE -eq 1 ] && [ $FORCE -eq 0 ]; then
         echo ""
         echo "NOTE: Multi-node environment — shared IPC resources were NOT cleared."
         echo "Other ION instances on this host may still be running."
@@ -211,8 +211,23 @@ else
 # users even though the situation is harmless.
 IONEXIT_RAN=0
 if command -v ionexit > /dev/null 2>&1; then
-    if [ $MULTINODE -eq 1 ]; then
-        # Bare killm in multi-node: node-only shutdown from cwd
+    if [ $MULTINODE -eq 1 ] && [ $FORCE -eq 1 ]; then
+        # killm f in multi-node: skip graceful shutdown entirely,
+        # fall through to SIGTERM/SIGKILL cycle and IPC cleanup.
+        echo "Multi-node environment detected with force flag."
+        echo "Skipping graceful ionexit — proceeding to SIGTERM/SIGKILL cycle."
+    elif [ $MULTINODE -eq 1 ]; then
+        # Bare killm in multi-node: node-only shutdown from cwd.
+        # Validate that cwd is associated with an ION instance.
+        CWD="$(pwd)"
+        if ! awk '{print $4}' "$ION_NODE_LIST_DIR/ion_nodes" | grep -qx "$CWD"; then
+            echo "Current directory ($CWD) is not associated with any ION instance."
+            echo "Registered ION instance directories:"
+            awk '{print "  " $4}' "$ION_NODE_LIST_DIR/ion_nodes"
+            echo ""
+            echo "Change to a registered directory, or use 'killm f' for full cleanup."
+            exit 1
+        fi
         echo "Multi-node environment detected (ION_NODE_LIST_DIR is set)."
         echo "Attempting graceful shutdown of this node via ionexit k n..."
         timeout 15 ionexit k n > /dev/null 2>&1
@@ -222,40 +237,6 @@ if command -v ionexit > /dev/null 2>&1; then
         else
             echo "ionexit did not complete (ION may not be running)."
         fi
-    elif [ $FORCE -eq 1 ] && [ -n "$ION_NODE_LIST_DIR" ] && \
-         [ -s "$ION_NODE_LIST_DIR/ion_nodes" ]; then
-        # killm f with multi-node: gracefully shut down each node
-        echo "Multi-node environment detected. Shutting down all nodes..."
-        SAVED_DIR="$(pwd)"
-        NODE_DIRS=( $(awk '{print $4}' "$ION_NODE_LIST_DIR/ion_nodes") )
-        # Use "ionexit k n" for all-but-last, "ionexit" for last node.
-        # "k" keeps the SDR: ionTerminate(1) on an earlier node would
-        #   destroy the global SDR working memory (key 0xFF00) shared
-        #   by all instances, preventing subsequent nodes from attaching.
-        # "n" preserves IPC: sm_ipc_stop() would destroy global
-        #   semaphores, preventing non-clock processes from detecting
-        #   the stop flag.
-        # The last node runs full "ionexit" to clean up SDR and IPC.
-        NODE_COUNT=${#NODE_DIRS[@]}
-        for idx in "${!NODE_DIRS[@]}"; do
-            dir="${NODE_DIRS[$idx]}"
-            if [ ! -d "$dir" ]; then
-                echo "  Skipping $dir (directory not found)"
-                continue
-            fi
-            cd "$dir"
-            if [ $((idx + 1)) -eq $NODE_COUNT ]; then
-                echo "  Node in $dir: ionexit (last node)..."
-                timeout 15 ionexit
-            else
-                echo "  Node in $dir: ionexit k n..."
-                timeout 15 ionexit k n
-            fi
-            sleep 1
-        done
-        cd "$SAVED_DIR"
-        IONEXIT_RAN=1
-        echo "ionexit completed for all nodes."
     else
         # Single-node or no ion_nodes file
         echo "Attempting graceful shutdown via ionexit..."
@@ -294,9 +275,9 @@ if command -v ionexit > /dev/null 2>&1; then
     echo ""
 fi
 
-# In multi-node mode, stop here — do not kill other nodes' processes
-# or destroy shared IPC resources.
-if [ $MULTINODE -eq 1 ]; then
+# In multi-node mode without force, stop here — do not kill other
+# nodes' processes or destroy shared IPC resources.
+if [ $MULTINODE -eq 1 ] && [ $FORCE -eq 0 ]; then
     echo ""
     echo "NOTE: Multi-node environment — shared IPC resources were NOT cleared."
     echo "Other ION instances on this host may still be running."

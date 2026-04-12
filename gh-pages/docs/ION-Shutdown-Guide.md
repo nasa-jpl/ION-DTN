@@ -190,7 +190,7 @@ Time   Action
 | Multi-node: stop last node | `ionexit` | Safe to release IPC when no other instances remain |
 
 **Important Notes:**
-- `ionexit` operates on a single ION instance — the one associated with the current working directory. It does **not** stop other ION instances on the same host. In a multi-node environment, each node must be shut down individually by running `ionexit` from that node's working directory. To stop **all** ION instances at once, use `killm f` instead, which iterates over all nodes and handles the shutdown sequence automatically.
+- `ionexit` operates on a single ION instance — the one associated with the current working directory. It does **not** stop other ION instances on the same host. In a multi-node environment, each node must be shut down individually by running `ionexit` from that node's working directory. To stop **all** ION instances at once, use `killm f` instead, which sends SIGTERM/SIGKILL to all ION processes and cleans up all IPC resources unconditionally.
 - **Multi-node shutdown order is critical.** When shutting down individual nodes on a shared host, use `ionexit k n` for every node until only the last node remains, then use `ionexit` (without flags) for the final node. The `k` flag preserves the global SDR working memory (shared by all instances) and the `n` flag preserves the global IPC semaphores. Destroying either resource prematurely prevents remaining nodes from attaching or detecting the shutdown signal. See the [Multi-node shutdown order and shared resources](ION-TestSet-Readme.md#multi-node-shutdown-order-and-shared-resources) section for details.
 - User applications attached to ION must detach separately
 - Custom services started by the user must be stopped manually
@@ -257,9 +257,10 @@ killm d    # Dry-run: report ION processes and IPC resources without changing an
 
 | Step | Action |
 |------|--------|
+| Validate cwd | Check that the current working directory is listed in `ion_nodes`. If not, print registered directories and exit with error. |
 | Initial check | Check for ION processes (twice, 1s apart) and IPC resources |
 | Skip? | If no processes AND no IPC → exit immediately |
-| ionexit | `ionexit k n` (preserve SDR and IPC for other nodes) |
+| ionexit | `ionexit k n` from cwd (preserve SDR and IPC for other nodes) |
 | Wait | Up to 5s for processes to exit |
 | **Stop** | Exits without SIGTERM/SIGKILL or IPC cleanup — other nodes are still running |
 
@@ -273,21 +274,19 @@ Same as Path 1. The `f` flag has no effect in single-node mode.
 |------|--------|
 | Initial check | Check for ION processes (twice, 1s apart) and IPC resources |
 | Skip? | If no processes AND no IPC → skip to IPC cleanup |
-| ionexit (all-but-last node) | `ionexit k n` (preserve SDR and IPC for remaining nodes) |
-| ionexit (last node) | `ionexit` (bare — destroys SDR and IPC) |
-| Wait | Up to 5s for processes to exit |
-| SIGTERM/SIGKILL | Always runs unconditionally |
+| ionexit | **Skipped** — no graceful ionexit is attempted |
+| SIGTERM/SIGKILL | Sends SIGTERM then SIGKILL to all ION processes |
 | IPC cleanup | `ipcrm` + remove POSIX named semaphore files |
 
-#### Summary of ionexit commands used by killm
+#### Summary of killm behavior
 
-| Path | ionexit flags | Destroys SDR? | Destroys IPC? |
-|------|--------------|---------------|---------------|
-| `killm` single-node | `ionexit` | Yes | Yes |
-| `killm` multi-node | `ionexit k n` | No | No |
-| `killm f` single-node | `ionexit` | Yes | Yes |
-| `killm f` multi-node (all-but-last) | `ionexit k n` | No | No |
-| `killm f` multi-node (last node) | `ionexit` | Yes | Yes |
+| Command | ionexit | SIGTERM/SIGKILL | IPC cleanup |
+|---------|---------|-----------------|-------------|
+| `killm` single-node | `ionexit` (full) | Yes | Yes |
+| `killm` multi-node, cwd valid | `ionexit k n` (current node only) | No | No |
+| `killm` multi-node, cwd invalid | None (error + exit) | No | No |
+| `killm f` single-node | `ionexit` (full) | Yes | Yes |
+| `killm f` multi-node | None (skipped) | Yes | Yes |
 
 #### Diagnostics
 
@@ -319,17 +318,21 @@ SVR4 shared memory segments found: 6
   shm id: 67108916   (node 3 SDR heap)
 ```
 
-**After ordered ionexit** — `killm f` runs `ionexit k n` for node 2 (intermediate), then bare `ionexit` for node 3 (last). Node 3's ionexit destroys its own segments plus the 2 global segments. But node 2's segments were deliberately preserved by `k n` — destroying them earlier would have prevented node 3 from attaching to the global shared memory it needs to shut itself down:
+**After SIGTERM/SIGKILL** — `killm f` skips graceful ionexit and sends SIGTERM then SIGKILL to all ION processes. The processes are terminated but their shared memory segments remain:
 
 ```
-=== Post-ionexit state ===
+=== Post-signal state ===
 All ION processes stopped.
-SVR4 shared memory segments found: 2
-  shm id: 67108919   (node 2 working memory — preserved by k flag)
-  shm id: 67108918   (node 2 SDR heap — preserved by k flag)
+SVR4 shared memory segments found: 6
+  shm id: 67108921   (global SDR working memory)
+  shm id: 67108920   (global semaphore table)
+  shm id: 67108919   (node 2 working memory)
+  shm id: 67108918   (node 2 SDR heap)
+  shm id: 67108917   (node 3 working memory)
+  shm id: 67108916   (node 3 SDR heap)
 ```
 
-**After ipcrm** — the `ipcrm` sweep at the end of `killm f` removes the 2 orphaned segments:
+**After ipcrm** — the `ipcrm` sweep at the end of `killm f` removes all shared memory segments:
 
 ```
 === Post-ipcrm state ===
@@ -337,13 +340,13 @@ No IPC resources found.
 Killm completed.
 ```
 
-The `ipcrm` step is not a fallback for a failure — it is the **intentional final sweep** for segments that were deliberately preserved during the ordered shutdown. This is why `killm f` is required for full cleanup in multi-instance environments; bare `ionexit` cannot do it alone.
+Since `killm f` in multi-node mode skips graceful `ionexit` and terminates processes directly, the `ipcrm` sweep is essential — it removes all shared memory segments, message queues, and semaphore sets that the killed processes were using. This is why `killm f` is required for full cleanup in multi-instance environments; bare `ionexit` cannot do it alone.
 
 #### Single-instance operational deployments
 
 For production/operational environments, ION is designed to run as a **single instance per host**. In this configuration, `ionexit` is the official and recommended method for graceful shutdown. A bare `ionexit` (no flags) cleanly stops all daemons, destroys the SDR, and releases all IPC resources — no residual shared memory or semaphores are left behind.
 
-For operational environments that require additional assurance, `killm f` can be used as a safety net after `ionexit`, or in place of it. The `killm f` script runs `ionexit` internally, then follows up with SIGTERM/SIGKILL and `ipcrm` to guarantee a clean slate regardless of whether any process failed to respond to the graceful shutdown.
+For operational environments that require additional assurance, `killm f` can be used as a safety net after `ionexit`, or in place of it. In single-node mode, `killm f` runs `ionexit` internally, then follows up with SIGTERM/SIGKILL and `ipcrm` to guarantee a clean slate. In multi-node mode, `killm f` skips `ionexit` entirely and goes directly to SIGTERM/SIGKILL and `ipcrm` for a fast, unconditional cleanup of all instances.
 
 **Recommended operational shutdown:**
 ```bash
@@ -352,7 +355,7 @@ ionexit           # Graceful shutdown — sufficient for single-instance
 
 **With safety net (optional):**
 ```bash
-killm f           # Runs ionexit + SIGTERM/SIGKILL + ipcrm
+killm f           # SIGTERM/SIGKILL + ipcrm (skips ionexit in multi-node)
 ```
 
 #### When to use killm
