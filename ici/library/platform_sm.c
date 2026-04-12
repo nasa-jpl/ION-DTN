@@ -3298,7 +3298,6 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	ion_ipc_atomic_set(&sem->semgl->ended, 0);
 	ion_ipc_atomic_set(&sem->semgl->refCount, 0);  /* Initialize to 0 - no active users yet */
 	ion_ipc_atomic_set(&sem->semgl->pendingDelete, 0);
-	sem->localRefCount = 0;
 	sem->handleOpened = 1;  /* Mark handle as opened since we just opened it */
 
 	/* gather usage statistics for memory tuning */
@@ -3360,7 +3359,6 @@ static void _sm_SemCompleteDeletePosix(SmProcessSemtable *semTbl, sm_SemId i)
 
 	/* Update local state */
 	sem->lseq = 0;
-	sem->localRefCount = 0;
 	sem->handleOpened = 0;  /* Reset handle opened flag */
 
 	/* Update statistics */
@@ -3447,7 +3445,6 @@ int	sm_SemTake(sm_SemId i)
 
 	/* Atomically increment reference count (lock-free) */
 	ion_ipc_atomic_get_and_increment(&gsem->refCount, 1);
-	sem->localRefCount++;
 
 	/* Take the semaphore */
 	if (sem == NULL || sem->id == NULL)
@@ -3455,7 +3452,6 @@ int	sm_SemTake(sm_SemId i)
 		putErrmsg("Semaphore or semaphore handle is NULL", itoa(i));
 		/* Atomically decrement reference count before returning */
 		ion_ipc_atomic_get_and_decrement(&gsem->refCount, 1);
-		sem->localRefCount--;
 		return -1;
 	}
 
@@ -3465,7 +3461,6 @@ int	sm_SemTake(sm_SemId i)
 		putErrmsg("Semaphore handle not opened", itoa(i));
 		/* Atomically decrement reference count before returning */
 		ion_ipc_atomic_get_and_decrement(&gsem->refCount, 1);
-		sem->localRefCount--;
 		return -1;
 	}
 
@@ -3489,7 +3484,6 @@ int	sm_SemTake(sm_SemId i)
 
 		/* Error - decrement refCount atomically before returning */
 		ion_ipc_atomic_get_and_decrement(&gsem->refCount, 1);
-		sem->localRefCount--;
 
 		putSysErrmsg("Can't take semaphore", itoa(i));
 		return -1;
@@ -3543,7 +3537,6 @@ void	sm_SemGive(sm_SemId i)
 
 	/* Atomically decrement reference count (lock-free) */
 	ion_ipc_atomic_get_and_decrement(&gsem->refCount, 1);
-	sem->localRefCount--;
 
 #ifdef DEBUG_SEMAPHORE_HANG
 	writeMemoNote("[DEBUG] sm_SemGive: gave sem", itoa(i));
