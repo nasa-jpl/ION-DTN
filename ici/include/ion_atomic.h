@@ -85,7 +85,7 @@ static inline void ion_atomic_init(ion_atomic_t *p, vast v) {
 static inline void ion_atomic_set(ion_atomic_t *p, vast v) {
     atomic_store_explicit(&p->native_val, v, memory_order_relaxed);
 }
-static inline uvast ion_atomic_get(const ion_atomic_t *p) {
+static inline uvast ion_atomic_get(ion_atomic_t *p) {
     return atomic_load_explicit(&p->native_val, memory_order_relaxed);
 }
 static inline uvast ion_atomic_get_and_increment(ion_atomic_t *p, vast d) {
@@ -125,7 +125,7 @@ typedef union {
 void  ion_atomic_init              (ion_atomic_t *, vast);
 void  ion_atomic_mutex_destroy     (ion_atomic_t *);
 void  ion_atomic_set               (ion_atomic_t *, vast);
-uvast ion_atomic_get               (const ion_atomic_t *);
+uvast ion_atomic_get               (ion_atomic_t *);
 uvast ion_atomic_get_and_increment (ion_atomic_t *, vast);
 uvast ion_atomic_get_and_decrement (ion_atomic_t *, vast);
 uvast ion_atomic_exchange          (ion_atomic_t *, vast);

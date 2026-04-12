@@ -427,6 +427,9 @@ static void	initializeDest(DgrDest *dest, unsigned short portNbr,
 	dest->rttPredicted = INIT_RTT;
 	dest->retard = INITIAL_RETARD;
 	dest->bytesToTransmit = EPISODE_PERIOD / dest->retard;
+
+	ion_atomic_init(&dest->serviceLoad, 0); /* Initialize the POSIX fallback */
+
 #if DGRDEBUG
 computedRtt = 0;
 traceMeasuredRtt = 0;

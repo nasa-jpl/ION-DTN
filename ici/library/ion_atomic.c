@@ -68,7 +68,7 @@ void ion_atomic_set(ion_atomic_t *a, vast v)
  * @param a Pointer to the constant atomic variable.
  * @return The current value of the atomic variable.
  */
-uvast ion_atomic_get(const ion_atomic_t *a)
+uvast ion_atomic_get(ion_atomic_t *a)
 {
     uvast v;
 

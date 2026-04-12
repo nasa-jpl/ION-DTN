@@ -423,7 +423,15 @@ int	createFile(const char *filename, int flags)
 typedef struct rlock_str
 {
 	pthread_mutex_t mutex;
-	ion_atomic_t	initialized;	/* Atomic to prevent TOCTOU races */
+	/* * WARNING: Do NOT use ion_atomic_t for this flag.
+	 * Legacy ION code frequently initializes ResourceLocks via
+	 * memset(&lock, 0, sizeof(ResourceLock)). Under the C99 fallback,
+	 * zero-filling an ion_atomic_t corrupts its hidden POSIX mutex,
+	 * causing immediate deadlocks/segfaults on access.
+	 * This plain int is safely protected from TOCTOU races by the
+	 * global g_ResourceLockInitMutex in initResourceLock().
+	 */
+	int		initialized;
 } Rlock;
 
 /* the next line won't compile if the mutex structure isn't large enough -  increase size of ResourceLock in platform.h */
@@ -467,7 +475,7 @@ int initResourceLock(ResourceLock *rl)
 	/*
 	* Now that we hold the meta-lock, it is safe to check the flag.
 	*/
-	if (ion_atomic_get(&lock->initialized))
+	if (lock->initialized)
 	{
 		/* This lock is already initialized. Nothing more to do. */
 		pthread_mutex_unlock(&g_ResourceLockInitMutex);
@@ -502,8 +510,13 @@ int initResourceLock(ResourceLock *rl)
 	/* The attributes object is no longer needed after initialization. */
 	pthread_mutexattr_destroy(&attr);
 
-	/* Mark this lock as initialized BEFORE releasing the meta-lock. */
-	ion_atomic_set(&lock->initialized, 1);
+	/* * WARNING: Intentionally avoiding ion_atomic_set() here.
+	 * Legacy ION code zero-fills ResourceLocks using memset(), which
+	 * destroys the internal POSIX mutex used by the C99 atomic fallback.
+	 * This plain int assignment is safely protected from TOCTOU races
+	 * by the global g_ResourceLockInitMutex meta-lock.
+	 */
+	lock->initialized = 1;
 
 	/* Release the global initialization lock. */
 	pthread_mutex_unlock(&g_ResourceLockInitMutex);
@@ -526,7 +539,7 @@ void killResourceLock(ResourceLock *rl)
 	 */
 	pthread_mutex_lock(&g_ResourceLockInitMutex);
 
-	if (ion_atomic_get(&lock->initialized) == 0)
+	if (lock->initialized == 0)
 	{
 		pthread_mutex_unlock(&g_ResourceLockInitMutex);
 		return;
@@ -535,8 +548,12 @@ void killResourceLock(ResourceLock *rl)
 	/*
 	 * Mark as uninitialized FIRST. This prevents any new lockResource
 	 * calls from proceeding while we destroy the mutex.
+	 *
+	 * WARNING: Intentionally avoiding ion_atomic_set() for the same
+	 * memset() corruption reasons as above. The meta-lock ensures
+	 * this assignment is race-free.
 	 */
-	ion_atomic_set(&lock->initialized, 0);
+	lock->initialized = 0;
 
 	pthread_mutex_unlock(&g_ResourceLockInitMutex);
 
@@ -559,8 +576,10 @@ void killResourceLock(ResourceLock *rl)
 		 * The mutex is currently locked by another thread. It is unsafe
 		 * to destroy it. Restore the initialized flag since we couldn't
 		 * complete destruction.
+		 *
+		 * WARNING: Kept as a plain int to prevent C99 fallback corruption.
 		 */
-		ion_atomic_set(&lock->initialized, 1);
+		lock->initialized = 1;
 		writeMemo("[!] killResourceLock: Attempted to destroy a locked mutex.");
 	}
 }
@@ -569,7 +588,7 @@ void lockResource(ResourceLock *rl)
 {
 	Rlock   *lock = (Rlock *) rl;
 
-	if (lock == NULL || ion_atomic_get(&lock->initialized) == 0)
+	if (lock == NULL || lock->initialized == 0)
 	{
 		return;
 	}
@@ -581,7 +600,7 @@ void unlockResource(ResourceLock *rl)
 {
 	Rlock   *lock = (Rlock *) rl;
 
-	if (lock == NULL || ion_atomic_get(&lock->initialized) == 0)
+	if (lock == NULL || lock->initialized == 0)
 	{
 		return;
 	}
@@ -1295,7 +1314,7 @@ static int	_errmsgs(int lineNbr, const char *qualifiedFileName,
 	static char		errmsgs[ERRMSGS_BUFSIZE];
 	static int		errmsgsLength = 0;
 	static ResourceLock	errmsgsLock;
-	static atomic_int	errmsgsLockInit = 0;	/* Atomic to prevent race */
+	static ion_atomic_t	errmsgsLockInit = ION_ATOMIC_INIT(0);	/* Atomic to prevent race */
 	int			msgLength;
 	int			spaceFreed;
 	int			fileNameLength;
@@ -1305,7 +1324,7 @@ static int	_errmsgs(int lineNbr, const char *qualifiedFileName,
 	int			spaceForText;
 	int			spaceNeeded;
 
-	if (!atomic_load(&errmsgsLockInit))
+	if (!ion_atomic_get(&errmsgsLockInit))
 	{
 		memset((char *) &errmsgsLock, 0, sizeof(ResourceLock));
 		if (initResourceLock(&errmsgsLock) < 0)
@@ -1314,7 +1333,7 @@ static int	_errmsgs(int lineNbr, const char *qualifiedFileName,
 			return 0;
 		}
 
-		atomic_store(&errmsgsLockInit, 1);
+		ion_atomic_set(&errmsgsLockInit, 1);
 	}
 
 	if (buffer)		/*	Retrieving an errmsg.		*/
@@ -1455,7 +1474,7 @@ int	getErrmsg(char *buffer)
 void	writeErrmsgMemos(void)
 {
 	static ResourceLock	memosLock;
-	static atomic_int	memosLockInit = 0;	/* Atomic to prevent race */
+	static ion_atomic_t	memosLockInit = ION_ATOMIC_INIT(0);	/* Atomic to prevent race */
 	static char		msgwritebuf[ERRMSGS_BUFSIZE];
 	static char		*omissionMsg = "[?] message omitted due to \
 excessive length";
@@ -1463,7 +1482,7 @@ excessive length";
 	/*	Because buffer is static, it is shared.  So access
 	 *	to it must be mutexed.					*/
 
-	if (!atomic_load(&memosLockInit))
+	if (!ion_atomic_get(&memosLockInit))
 	{
 		memset((char *) &memosLock, 0, sizeof(ResourceLock));
 		if (initResourceLock(&memosLock) < 0)
@@ -1472,7 +1491,7 @@ excessive length";
 			return;
 		}
 
-		atomic_store(&memosLockInit, 1);
+		ion_atomic_set(&memosLockInit, 1);
 	}
 
 	lockResource(&memosLock);
