@@ -303,7 +303,7 @@ static void	dgrtrace(void)
 {
 	char	tracebuf[128];
 
-	iprintf(tracebuf, sizeof tracebuf,
+	isprintf(tracebuf, sizeof tracebuf,
 		"%7d %7d %7d %7d %7d %7d %7d %7d %7d %3d\n", originalMsgs,
 		resends[0], traceBytesOriginated, traceBytesResent,
 		traceBytesTransmitted, traceUnusedCapacity,
@@ -487,7 +487,7 @@ static DgrDest	*addNewDest(DgrSAP *sap, unsigned short portNbr,
 
 	dest->lessActiveDest = -1;	/*	New one's least active.	*/
 	dest->moreActiveDest = nextDest;
-	ion_atomic_init(&dest->serviceLoad, 0);
+	initializeDest(dest, portNbr, ipAddress); //restores missing rate control feature
 	*destIdx = newDest;
 	return dest;
 }
@@ -2177,6 +2177,7 @@ static void	cleanUpSAP(DgrSAP *sap)
 
 	pthread_mutex_lock(&sap->sapMutex);
 	pthread_cond_destroy(&sap->sapCV);
+	pthread_mutex_unlock(&sap->sapMutex); //destroying a locked mutex is undefined behavior
 	pthread_mutex_destroy(&sap->sapMutex);
 	pthread_mutex_destroy(&sap->pendingResendsMutex);
 	pthread_mutex_destroy(&sap->destsMutex);
@@ -2392,7 +2393,8 @@ void	dgr_close(DgrSAP *sap)
 		return;
 	}
 
-	sap->state = DgrSapClosed;
+	/* Atomically set state to closed to appease TSan */
+	__sync_lock_test_and_set(&sap->state, DgrSapClosed);
 
 	/*	Terminate any dgr_receive that is currently in
 	 *	progress.						*/
