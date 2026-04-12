@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+export ION_NODE_LIST_DIR=$PWD
+killm f >/dev/null 2>&1
+rm -f ./ion_nodes
+rm -f 1.ipn.ltp/ion.log 1.ipn.ltp/*.stdout
+rm -f 2.ipn.relay/ion.log 2.ipn.relay/*.stdout
+rm -f 3.ipn.tcp/ion.log 3.ipn.tcp/*.stdout
+rm -f 3.ipn.tcp/results.txt
+rm -f bpcounter.txt results.txt

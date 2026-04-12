@@ -1727,9 +1727,26 @@ int	ltpStart(void)
 	Object		ltpdbobj = getLtpDbObject();
 	LtpDB		ltpdb;
 	PsmAddress	elt;
+	int		i;
+	LtpVclient	*client;
 
 	sdr_read(sdr, (char *) &ltpdb, ltpdbobj, sizeof(LtpDB));
 	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+
+	/*	Re-enable semaphores that ltpStop may have ended.
+	 *	This is necessary when restarting after ionexit k n,
+	 *	which preserves the volatile database in shared
+	 *	memory while stopping all LTP daemon processes.		*/
+
+	sm_SemUnend(ltpvdb->deliverySemaphore);
+	for (i = 0, client = ltpvdb->clients; i < LTP_MAX_NBR_OF_CLIENTS;
+			i++, client++)
+	{
+		if (client->semaphore != SM_SEM_NONE)
+		{
+			sm_SemUnend(client->semaphore);
+		}
+	}
 
 	/*	Start the LTP events clock if necessary.		*/
 

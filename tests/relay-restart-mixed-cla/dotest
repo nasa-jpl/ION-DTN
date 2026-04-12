@@ -1,0 +1,280 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# relay-restart-mixed-cla
+#
+# Regression test: intermediate relay node restart with mixed CLAs.
+#
+# Topology:
+#   Node 1 (LTP) --> Node 2 (LTP in, TCP out) --> Node 3 (TCP)
+#
+# Sends 200 bundles at ~1 bundle/sec from Node 1 to Node 3.
+# Mid-transfer, Node 2 is shut down with "ionexit k n" (preserving
+# SDR and IPC) and restarted.  Traffic must flow before and after
+# the restart, with >80% overall delivery.
+#
+
+echo "########################################"
+echo
+echo "NAME: relay-restart-mixed-cla"
+echo
+echo "PURPOSE: Verify that an intermediate relay node can be restarted"
+echo "         mid-transfer (ionexit k n) without losing the majority"
+echo "         of bundles across a mixed LTP/TCP topology."
+echo
+echo "CONFIG: 3 nodes. Node 1--LTP-->Node 2--TCP-->Node 3"
+echo
+echo "########################################"
+
+RETVAL=0
+TOTAL_BUNDLES=200
+PASS_THRESHOLD=80   # percent
+MIN_BEFORE=10
+MIN_AFTER=10
+PAYLOAD_SIZE=1000
+# inject rate in bps: payload_size * 8 = ~1 bundle/sec
+INJECT_RATE=$((PAYLOAD_SIZE * 8))
+# Restart after this many seconds of sending (~50 bundles at 1/sec)
+RESTART_DELAY=50
+
+# ===============================================================
+#  Setup
+# ===============================================================
+
+echo "Cleaning up old ION..."
+./cleanup
+sleep 1
+
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+echo "Starting ION (3 nodes)..."
+
+# --- Initialize all nodes (ionadmin) ---
+cd 1.ipn.ltp
+ionadmin amroc.ionrc
+cd ../2.ipn.relay
+ionadmin amroc.ionrc
+cd ../3.ipn.tcp
+ionadmin amroc.ionrc
+
+# --- Global contact plan ---
+cd ../1.ipn.ltp
+ionadmin ../global.ionrc &
+cd ../2.ipn.relay
+ionadmin ../global.ionrc &
+cd ../3.ipn.tcp
+ionadmin ../global.ionrc &
+sleep 1
+
+# --- Security ---
+cd ../1.ipn.ltp
+ionsecadmin amroc.ionsecrc &
+cd ../2.ipn.relay
+ionsecadmin amroc.ionsecrc &
+cd ../3.ipn.tcp
+ionsecadmin amroc.ionsecrc &
+sleep 1
+
+# --- LTP (nodes 1 and 2 only) ---
+cd ../1.ipn.ltp
+ltpadmin amroc.ltprc &
+cd ../2.ipn.relay
+ltpadmin amroc.ltprc &
+sleep 1
+
+# --- BP ---
+cd ../1.ipn.ltp
+bpadmin amroc.bprc &
+cd ../2.ipn.relay
+bpadmin amroc.bprc &
+cd ../3.ipn.tcp
+bpadmin amroc.bprc &
+sleep 1
+
+# --- Wait for nodes to come up ---
+cd ../1.ipn.ltp
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+if [ $? -ne 3 ]; then
+    echo "Node 1 not started: Aborting Test"
+    exit 1
+fi
+
+cd ../2.ipn.relay
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+if [ $? -ne 3 ]; then
+    echo "Node 2 not started: Aborting Test"
+    exit 1
+fi
+
+cd ../3.ipn.tcp
+../../../system_up -i "p 30" -b "p 30"
+if [ $? -ne 2 ]; then
+    echo "Node 3 not started: Aborting Test"
+    exit 1
+fi
+
+cd ..
+
+echo "All nodes started."
+sleep 3
+
+# ===============================================================
+#  Start receiver on Node 3
+# ===============================================================
+
+echo "Starting bpcounter on ipn:3.1 (expecting up to $TOTAL_BUNDLES bundles)..."
+cd 3.ipn.tcp
+bpcounter ipn:3.1 $TOTAL_BUNDLES > ../bpcounter.txt 2>&1 &
+BPCOUNTER_PID=$!
+cd ..
+sleep 1
+
+# ===============================================================
+#  Start sender on Node 1 (background, rate-limited to ~1 bundle/sec)
+# ===============================================================
+
+echo "Starting bpdriver: $TOTAL_BUNDLES bundles, ~1/sec (inject rate ${INJECT_RATE} bps)..."
+cd 1.ipn.ltp
+bpdriver $TOTAL_BUNDLES ipn:1.1 ipn:3.1 -${PAYLOAD_SIZE} t3600 i${INJECT_RATE} &
+BPDRIVER_PID=$!
+cd ..
+
+# ===============================================================
+#  Wait for traffic to flow, then restart Node 2
+# ===============================================================
+
+echo "Waiting ${RESTART_DELAY}s for traffic to flow before restarting Node 2..."
+sleep $RESTART_DELAY
+
+# Count bundles received so far (before restart).
+# bpcounter periodically prints "Bundles received: N"; grab the latest.
+BEFORE_RESTART=0
+if [ -f bpcounter.txt ]; then
+    BEFORE_RESTART=$(grep "Bundles received:" bpcounter.txt | tail -1 | sed 's/[^0-9]//g')
+    BEFORE_RESTART=${BEFORE_RESTART:-0}
+fi
+echo ""
+echo "=== Pre-restart check ==="
+echo "Bundles received before restart: $BEFORE_RESTART"
+
+if [ "$BEFORE_RESTART" -lt "$MIN_BEFORE" ]; then
+    echo "FAIL: Only $BEFORE_RESTART bundles received before restart (need >= $MIN_BEFORE)"
+    RETVAL=1
+else
+    echo "OK: $BEFORE_RESTART bundles received before restart (>= $MIN_BEFORE)"
+fi
+
+# ===============================================================
+#  Restart Node 2
+# ===============================================================
+
+echo ""
+echo "=== Restarting Node 2 (ionexit k n) ==="
+
+cd 2.ipn.relay
+echo "Shutting down Node 2 with ionexit k n..."
+ionexit k n
+sleep 5
+
+# Restart Node 2 using the same configuration files.
+# After ionexit k n, SDR and IPC are preserved.  Re-running
+# ionstart restarts the daemons against the existing SDR.
+echo "Restarting Node 2..."
+ionstart -i amroc.ionrc -s amroc.ionsecrc -l amroc.ltprc -b amroc.bprc -p amroc.ipnrc
+sleep 1
+
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+if [ $? -ne 3 ]; then
+    echo "FAIL: Node 2 did not restart"
+    RETVAL=1
+else
+    echo "Node 2 restarted successfully."
+fi
+cd ..
+
+# Allow LTP sessions to recover and TCP to reconnect.
+echo "Waiting for links to re-establish..."
+sleep 5
+
+echo "Resuming -- bpdriver is still sending in background."
+
+# ===============================================================
+#  Wait for bpdriver to finish
+# ===============================================================
+
+echo "Waiting for bpdriver to complete..."
+wait $BPDRIVER_PID 2>/dev/null
+
+echo "bpdriver finished.  Waiting for remaining bundles to be delivered..."
+sleep 15
+
+# Stop bpcounter
+kill -2 $BPCOUNTER_PID >/dev/null 2>&1
+sleep 2
+kill -9 $BPCOUNTER_PID >/dev/null 2>&1
+wait $BPCOUNTER_PID 2>/dev/null
+
+# ===============================================================
+#  Count results
+# ===============================================================
+
+TOTAL_RECEIVED=0
+if [ -f bpcounter.txt ]; then
+    # bpcounter prints "Bundles received: N" periodically and
+    # "Stopping bpcounter; bundles received: N" at the end.
+    # Grab the last occurrence of "bundles received:" (case-insensitive).
+    TOTAL_RECEIVED=$(grep -i "bundles received:" bpcounter.txt | tail -1 | sed 's/[^0-9]//g')
+    TOTAL_RECEIVED=${TOTAL_RECEIVED:-0}
+fi
+
+# Count bundles received after restart
+AFTER_RESTART=$((TOTAL_RECEIVED - BEFORE_RESTART))
+
+echo ""
+echo "=== Results ==="
+echo "Bundles sent:                 $TOTAL_BUNDLES"
+echo "Bundles received (total):     $TOTAL_RECEIVED"
+echo "Bundles received pre-restart:  $BEFORE_RESTART"
+echo "Bundles received post-restart: $AFTER_RESTART"
+
+# Check post-restart delivery
+if [ "$AFTER_RESTART" -lt "$MIN_AFTER" ]; then
+    echo "FAIL: Only $AFTER_RESTART bundles received after restart (need >= $MIN_AFTER)"
+    RETVAL=1
+else
+    echo "OK: $AFTER_RESTART bundles received after restart (>= $MIN_AFTER)"
+fi
+
+# Check overall delivery rate
+if [ "$TOTAL_BUNDLES" -gt 0 ]; then
+    DELIVERY_PCT=$((TOTAL_RECEIVED * 100 / TOTAL_BUNDLES))
+else
+    DELIVERY_PCT=0
+fi
+
+echo "Delivery rate: ${DELIVERY_PCT}% ($TOTAL_RECEIVED / $TOTAL_BUNDLES)"
+
+if [ "$DELIVERY_PCT" -lt "$PASS_THRESHOLD" ]; then
+    echo "FAIL: Delivery rate ${DELIVERY_PCT}% is below ${PASS_THRESHOLD}% threshold"
+    RETVAL=1
+else
+    echo "OK: Delivery rate ${DELIVERY_PCT}% meets ${PASS_THRESHOLD}% threshold"
+fi
+
+echo ""
+echo "=== Diagnostic Information ==="
+echo "Node 2 forwarding log entries:"
+grep -c -i "Forwarded" 2.ipn.relay/ion.log 2>/dev/null || echo "0"
+echo "Node 2 limbo entries:"
+grep -c -i "limbo" 2.ipn.relay/ion.log 2>/dev/null || echo "0"
+
+echo ""
+if [ $RETVAL -eq 0 ]; then
+    echo "TEST PASSED: Relay restart with mixed CLAs succeeded."
+    echo "  $TOTAL_RECEIVED of $TOTAL_BUNDLES bundles delivered (${DELIVERY_PCT}%)"
+else
+    echo "TEST FAILED"
+fi
+
+exit $RETVAL
