@@ -833,7 +833,7 @@ int pthread_setname_np(const char *name);
  */
 typedef struct
 {
-	uvast			opaque[13];
+	uvast			opaque[24]; /* Increased to 192 bytes for RTEMS 6 */
 } ResourceLock;
 
 /*	Prototypes for standard ION platform functions.			*/
