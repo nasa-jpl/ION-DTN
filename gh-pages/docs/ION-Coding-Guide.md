@@ -37,7 +37,7 @@ The `-pedantic` flag is enabled to enforce strict standards compliance.
 
 ### C11/C18 Features in Use
 
-* **Atomic operations** — used for lock-free reference counting (semaphore management) and lock-free statistics counters (BP and LTP tally deltas). The portable header `ici/include/ion_atomic.h` provides the abstraction: on C11/C18 compilers it includes `<stdatomic.h>` directly; on C99 compilers (GCC 4.7+ or Clang) it falls back to the `__atomic` built-in functions, which provide the same lock-free guarantees without requiring C11 language support.
+* **Atomic operations** — used for lock-free reference counting (semaphore management), lock-free statistics counters (BP and LTP tally deltas), daemon shutdown flags, and inter-process semaphore table state in shared memory. See the **Atomic Operations** section below for the portable abstraction, the dual-zone architecture, and the three-tier fallback chain.
 
 ### C99 Features Used Throughout
 
@@ -58,7 +58,7 @@ Some subdirectories pin to a specific standard in their own Makefiles:
 
 * Avoid GNU extensions and non-standard constructs in core ION code.
 * Use standards-compliant macro helper names.
-* When adding new code that needs atomics, use the standard C11 names (`atomic_fetch_add`, `atomic_load`, etc.) — the `ion_atomic.h` header maps them to compiler built-ins automatically on C99. Do not include `<stdatomic.h>` directly; include `ion_atomic.h` (via `platform.h`) instead.
+* When adding new code that needs atomics, use the ION-specific opaque types `ion_atomic_t` (process-local) or `ion_ipc_atomic_t` (shared memory) together with the `ion_atomic_*` / `ion_ipc_atomic_*` accessor macros. Do not include `<stdatomic.h>` directly; include `ion_atomic.h` (via `platform.h`) instead. See the **Atomic Operations** section below for selection rules.
 * Prefer C99-compatible constructs for all other code; this maximizes portability to the C99 fallback path.
 
 ### Operating System Support Matrix for Space Processors
@@ -72,6 +72,114 @@ The following table summarizes C standard support across operating systems commo
 | Linux (Yocto) | C11, C17, C23 | ARM, NVIDIA Orin, Xilinx | High-throughput, extensive libraries, Space 2.0. |
 | Zephyr RTOS | C11 | LEON, ARM, RISC-V | Lightweight, growing aerospace community. |
 | Bare-Metal (BCC) | C99 | LEON, SPARC | Minimal overhead for simple controllers. |
+
+## Atomic Operations
+
+ION performs atomic read-modify-write operations in several hot paths: BP and LTP tally counters, inter-process reference counting on POSIX named semaphores, daemon shutdown flags (`rtp.running`, `terminating`, `done`), and sequence numbers used for cache invalidation in the global semaphore table. All of this goes through a single portable abstraction in **`ici/include/ion_atomic.h`**, which is transitively included via `platform.h`. Application code, library code, and new daemons must not include `<stdatomic.h>` or call `__atomic_*` / `__sync_*` built-ins directly — use the ION wrappers described below.
+
+### Dual-Zone Architecture
+
+`ion_atomic.h` defines **two opaque atomic types**, distinguished by where the variable lives in memory:
+
+| Type | Use for | Backing on C11 | Backing on C99 fallback |
+|------|---------|----------------|-------------------------|
+| `ion_atomic_t` | Process-local memory: heap, stack, static, `.bss` | Padded union over `_Atomic(vast)` | Padded union over `{ pthread_mutex_t; uvast }` |
+| `ion_ipc_atomic_t` | Shared memory (SDR, SM global semaphore table, any `mmap`ed region crossing process boundaries) | `_Atomic(vast)` | `volatile vast` with compiler built-ins (see below) |
+
+**The zone distinction is mandatory.** `ion_atomic_t` embeds a POSIX mutex on the C99 fallback path. A process-local mutex dropped into shared memory causes deadlocks or segfaults when a second process touches it, because `PTHREAD_PROCESS_PRIVATE` mutexes cannot be shared across address spaces. `ion_ipc_atomic_t` is therefore strictly lock-free and async-signal-safe — it never holds a mutex under any compilation path.
+
+A common mistake is to declare a stats counter in `BpVdb` (which is already in shared memory via the working-memory partition) using `ion_atomic_t`. **BpVdb lives in SM, so its atomic fields must be `ion_ipc_atomic_t`.** When in doubt, ask: "could a different process than the one that wrote this field ever read it?" If yes, it's Zone 2.
+
+### Three-Tier Fallback Chain
+
+Both zones select their backing implementation at compile time through feature macros:
+
+```
++-------------------------------------------------------------+
+| Tier 1: C11 stdatomic                                       |
+|   when: __STDC_VERSION__ >= 201112L && !__STDC_NO_ATOMICS__ |
+|   native: _Atomic(T), atomic_*_explicit, memory_order_*     |
++-------------------------------------------------------------+
+               |  (fallback when C11 atomics unavailable)
+               v
++-------------------------------------------------------------+
+| Tier 2: GCC/Clang __atomic built-ins                        |
+|   when: __clang__ || GCC >= 4.7                             |
+|   uses: __atomic_load_n, __atomic_store_n, __atomic_*,      |
+|         __ATOMIC_RELAXED ordering                           |
++-------------------------------------------------------------+
+               |  (fallback when __atomic not available)
+               v
++-------------------------------------------------------------+
+| Tier 3: Legacy __sync built-ins                             |
+|   when: pre-GCC-4.7 / non-GCC without __atomic              |
+|   uses: __sync_lock_test_and_set, __sync_fetch_and_add,     |
+|         always full memory barrier (e.g., DMB ISH on ARM)   |
++-------------------------------------------------------------+
+```
+
+Zone 1's fallback tiers are slightly different: Zone 1 goes C11 → `pthread_mutex_t`-based (no intermediate `__atomic` tier), because the padded-union layout differs between C11 and the mutex fallback and must match ABI across the process. Zone 2 uses all three tiers; its typedef is `volatile vast` for both Tier 2 and Tier 3, so layouts are binary-compatible between the two fallback tiers.
+
+**Why Tier 2 matters:** `__sync_*` built-ins are always sequentially-consistent and emit full memory barriers. On ARM/AArch64, `__sync_fetch_and_add(p, 0)` (which `ion_ipc_atomic_get` falls back to in Tier 3) compiles to a full LDAXR/STLXR + DMB ISH sequence — a read-modify-write with a full barrier, just to read a value. `__atomic_load_n` with `__ATOMIC_RELAXED` compiles to a plain LDR with no barrier. For flight software deploying to ARM-based computers (e.g., NVIDIA Orin, Xilinx Zynq, Ampere, Cortex-A), Tier 2 avoids a significant per-op cost on every stats counter increment, semaphore reference count operation, and daemon polling flag read. Tier 3 is retained only for pre-GCC-4.7 toolchains on legacy flight processors such as RAD750 and LEON3/4.
+
+### Memory Ordering
+
+All ION atomic operations currently use **relaxed** ordering (`memory_order_relaxed` on C11; `__ATOMIC_RELAXED` on `__atomic`). Relaxed ordering is correct for the current uses:
+
+* **Stats counters** (BP/LTP tally deltas) — only the final sum matters; the readers aggregate over time and don't care about inter-counter ordering.
+* **Reference counts** — the surrounding semaphore operations themselves provide the acquire/release synchronization needed to make the refcount update visible to other users of the protected resource.
+* **Sequence numbers** (`gseq`) — monotonically increasing; readers only care that they see a later value than before.
+
+**Shutdown flags are a borderline case.** Flags like `rtp.running`, `gsem->ended`, and `gsem->pendingDelete` are one-shot signals where a reader needs to observe all prior writes by the setter. Relaxed ordering is technically insufficient for these; acquire/release would be more correct. ION currently gets away with relaxed because (a) readers poll in tight loops and will eventually observe the flag on a later iteration, and (b) the writes being ordered before the flag (e.g., SDR updates) are themselves guarded by other synchronization (SDR transaction locks, semaphore operations). If you add a new polling flag that depends on observing prior non-atomic writes, consult with the maintainers before defaulting to relaxed.
+
+### API Summary
+
+All six operations are defined for both zones. The signatures are identical except for the type name:
+
+```c
+/* Zone 1 — process-local */
+void  ion_atomic_init              (ion_atomic_t *p, vast v);
+void  ion_atomic_set               (ion_atomic_t *p, vast v);
+uvast ion_atomic_get               (ion_atomic_t *p);
+uvast ion_atomic_get_and_increment (ion_atomic_t *p, vast d);
+uvast ion_atomic_get_and_decrement (ion_atomic_t *p, vast d);
+uvast ion_atomic_exchange          (ion_atomic_t *p, vast v);
+void  ion_atomic_mutex_destroy     (ion_atomic_t *p);  /* no-op on C11 */
+
+/* Zone 2 — shared memory */
+#define ion_ipc_atomic_init(p,v)                /* ... */
+#define ion_ipc_atomic_set(p,v)                 /* ... */
+#define ion_ipc_atomic_get(p)                   /* ... */
+#define ion_ipc_atomic_get_and_increment(p,d)   /* ... */
+#define ion_ipc_atomic_get_and_decrement(p,d)   /* ... */
+#define ion_ipc_atomic_exchange(p,v)            /* ... */
+```
+
+Notes on usage:
+
+* **Always call `ion_atomic_init` before first use** of a Zone 1 atomic. On C11 this just stores the value; on the C99 mutex fallback it also calls `pthread_mutex_init`. Forgetting to initialize will cause an uninitialized-mutex fault on the fallback path that won't show up on C11 builds.
+* **Never `memset` or `Zalloc` a struct containing an `ion_atomic_t`** and then use it without re-initializing. Zero-filling destroys the hidden mutex state on the C99 fallback. This is why `ResourceLock->initialized` in `platform_sm.c` is a plain `int` guarded by a meta-lock instead of an `ion_atomic_t`.
+* **`ion_ipc_atomic_t` fields in shared memory must be initialized in the setup path that creates the shared region**, not in whatever code happens to see them first. See `_sembase` in `platform_sm.c` for the pattern: every `SmGlobalSem` in `gsemtable[]` has its atomics initialized in a single loop during `_sembase(IPC_ACTION_LOOKUP)` when the region is first created.
+* **The return value of increment/decrement is the `vast` value *before* the operation** (`fetch_add` / `fetch_sub` semantics, not `add_fetch`).
+
+### Testing the Fallback Tiers
+
+Two test-harness macros let you exercise tiers that wouldn't otherwise be selected on a modern Linux build:
+
+```
+-DION_TEST_FORCE_FALLBACK          # forces Tier 2 (__atomic) or Tier 3 (__sync)
+-DION_TEST_FORCE_SYNC_FALLBACK     # forces Tier 3 (__sync); use WITH the above
+```
+
+ThreadSanitizer validation harness: `tests/atomics/test_ipc_atomics.c` exercises `ion_ipc_atomic_t` under 8 concurrent threads × 300 000 operations per thread. Build with `-fsanitize=thread` and run against each tier to confirm lock-free correctness. Zero data races expected.
+
+### Files
+
+| File | Purpose |
+|------|---------|
+| `ici/include/ion_atomic.h` | Zone definitions, tier dispatch, macros and inline wrappers |
+| `ici/library/ion_atomic.c` | Zone 1 C99 mutex-fallback implementations (compiled only when `!ION_HAVE_C11_ATOMICS`) |
+| `tests/atomics/test_ipc_atomics.c` | TSan validation harness for Zone 2 |
 
 ## Application Behavior
 
