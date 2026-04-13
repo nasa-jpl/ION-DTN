@@ -52,6 +52,37 @@
 # endif
 #endif
 
+/*
+ * Detect GCC/Clang __atomic built-ins (available in GCC 4.7+ and all
+ * versions of Clang).  These are used as an intermediate fallback tier
+ * on C99 builds, so that modern compilers can emit weak memory-ordered
+ * instructions (e.g., plain LDR/STR, LDADD on ARMv8.1) instead of the
+ * heavyweight full-barrier sequences that __sync built-ins always emit.
+ *
+ * This tier exists primarily for ARM/AArch64 targets where the cost of
+ * __sync's mandatory DMB ISH barriers is significant on hot paths.
+ */
+#if !defined(ION_HAVE_GNU_ATOMIC)
+# if defined(__clang__)
+#  define ION_HAVE_GNU_ATOMIC 1
+# elif defined(__GNUC__) && \
+       (__GNUC__ * 10000 + __GNUC_MINOR__ * 100) >= 40700
+#  define ION_HAVE_GNU_ATOMIC 1
+# else
+#  define ION_HAVE_GNU_ATOMIC 0
+# endif
+#endif
+
+/*
+ * Test Harness Override:
+ * Force the legacy __sync fallback path even on modern compilers, so
+ * the __sync tier can be validated under ION_TEST_FORCE_FALLBACK.
+ */
+#if defined(ION_TEST_FORCE_SYNC_FALLBACK)
+# undef  ION_HAVE_GNU_ATOMIC
+# define ION_HAVE_GNU_ATOMIC 0
+#endif
+
 /*==================================================================*/
 /* ZONE 1: PROCESS-LOCAL ATOMICS (HEAP / STACK ONLY)                */
 /*------------------------------------------------------------------*/
@@ -144,7 +175,9 @@ uvast ion_atomic_exchange          (ion_atomic_t *, vast);
 
 #if ION_HAVE_C11_ATOMICS
 
-/**
+/*
+ * Tier 1: Native C11 <stdatomic.h>.
+ *
  * @brief Inter-Process Atomic Type (C11)
  * Used strictly for variables residing in shared memory mapping (e.g., SDR).
  */
@@ -157,13 +190,43 @@ typedef _Atomic(vast) ion_ipc_atomic_t;
 #define ion_ipc_atomic_get_and_decrement(p,d)   atomic_fetch_sub_explicit((p), (d), memory_order_relaxed)
 #define ion_ipc_atomic_exchange(p,v)            atomic_exchange_explicit((p), (v), memory_order_relaxed)
 
-#else /* C99 Fallback using GCC/Clang built-ins */
+#elif ION_HAVE_GNU_ATOMIC
 
-/**
- * @brief Inter-Process Atomic Type (C99 Fallback)
- * The volatile keyword forces memory access (bypassing registers) to
- * support the __sync hardware built-ins. Provides lock-free,
- * async-signal-safe atomicity across process boundaries.
+/*
+ * Tier 2: GCC/Clang __atomic built-ins.
+ *
+ * @brief Inter-Process Atomic Type (GCC/Clang __atomic fallback)
+ *
+ * Uses __ATOMIC_RELAXED to match the ordering of the C11 path above.
+ * On ARM/AArch64 this permits the compiler to emit plain loads/stores
+ * and LDADD (ARMv8.1) instead of the full DMB ISH barriers that the
+ * legacy __sync built-ins always emit.
+ *
+ * The typedef matches Tier 3 (volatile vast) so struct layouts are
+ * binary-compatible between the two __sync / __atomic fallback tiers.
+ */
+typedef volatile vast ion_ipc_atomic_t;
+
+#define ion_ipc_atomic_init(p,v)                (*(p) = (v))
+#define ion_ipc_atomic_set(p,v)                 __atomic_store_n((p), (v), __ATOMIC_RELAXED)
+#define ion_ipc_atomic_get(p)                   __atomic_load_n((p), __ATOMIC_RELAXED)
+#define ion_ipc_atomic_get_and_increment(p,d)   __atomic_fetch_add((p), (d), __ATOMIC_RELAXED)
+#define ion_ipc_atomic_get_and_decrement(p,d)   __atomic_fetch_sub((p), (d), __ATOMIC_RELAXED)
+#define ion_ipc_atomic_exchange(p,v)            __atomic_exchange_n((p), (v), __ATOMIC_RELAXED)
+
+#else /* Tier 3: Legacy __sync built-ins */
+
+/*
+ * Tier 3: Legacy __sync built-ins.
+ *
+ * @brief Inter-Process Atomic Type (legacy __sync fallback)
+ *
+ * Retained for pre-GCC-4.7 toolchains on certified flight hardware
+ * (RAD750, LEON cores, older RTEMS/VxWorks).  The volatile keyword
+ * forces memory access (bypassing registers) to support the __sync
+ * hardware built-ins.  Provides lock-free, async-signal-safe
+ * atomicity across process boundaries, but always emits full memory
+ * barriers (e.g., DMB ISH on ARM).
  */
 typedef volatile vast ion_ipc_atomic_t;
 
