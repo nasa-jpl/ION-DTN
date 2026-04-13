@@ -95,6 +95,7 @@ Use this method when you need fine-grained control over individual subsystems.
 * `bpcancel` - Cancel transmission of specified bundles by ID or endpoint. Bundles are permanently deleted and cannot be recovered. **Note:** Consider using `bpinspect` instead, which provides bundle inspection before deletion.
 * `bptrace` - Trace bundle transmission path and report hop-by-hop delivery status
 * `cfdptest` - Interactive test utility for CFDP file transfer operations
+* `cbrcustodytest` - Test and monitor Compressed Bundle Reporting / Custody Transfer (CBR/CT, CCSDS Orange Book). Normal mode sends a custody-enabled bundle and verifies the accept → CCS → release lifecycle; `-l` lists bundles currently held in custody tracking along with CBR/CT statistics. Requires `m custodymode orangebook` in the `bprc` file.
 * `bpcrash` - Testing utility to simulate controlled bundle protocol failures. **WARNING:** This intentionally crashes the BP system for testing purposes. Use only in test environments.
 * `runtests` - Execute ION regression test suite
 * `owltsim` - One-Way Light Time simulator for testing DTN protocols with realistic delays
