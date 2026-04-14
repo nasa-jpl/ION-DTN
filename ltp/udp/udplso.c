@@ -654,9 +654,7 @@ segment batch.", NULL);
 			{
 				putErrmsg("Failed sending segment batch.",
 						NULL);
-				pthread_mutex_lock(&rtp.lock);
-				rtp.running = 0;
-				pthread_mutex_unlock(&rtp.lock);
+				ion_atomic_set(&rtp.running, 0);
 				continue;
 			}
 

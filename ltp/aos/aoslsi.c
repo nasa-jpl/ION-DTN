@@ -8,6 +8,7 @@
 
 
 #include "aoslsa.h"
+#include "ion_atomic.h"
 
 static void	interruptThread(int signum)
 {
@@ -20,7 +21,7 @@ static void	interruptThread(int signum)
 typedef struct
 {
 	int		linkSocket;
-	int		running;
+	ion_atomic_t	running;
 } ReceiverThreadParms;
 
 static void	*handleDatagrams(void *parm)
@@ -46,7 +47,7 @@ static void	*handleDatagrams(void *parm)
 	/*	Can now start receiving bundles.  On failure, take
 	 *	down the LSI.						*/
 
-	while (rtp->running)
+	while (ion_atomic_get(&rtp->running))
 	{
 		fromSize = sizeof fromAddr;
 		segmentLength = irecvfrom(rtp->linkSocket, buffer, AOSLSA_BUFSZ,
@@ -60,7 +61,7 @@ static void	*handleDatagrams(void *parm)
 			/*	Intentional fall-through to next case.	*/
 
 		case 1:				/*	Normal stop.	*/
-			rtp->running = 0;
+			ion_atomic_set(&rtp->running, 0);
 			continue;
 		}
 
@@ -68,7 +69,7 @@ static void	*handleDatagrams(void *parm)
 		{
 			putErrmsg("Can't handle inbound segment.", NULL);
 			ionKillMainThread(procName);
-			rtp->running = 0;
+			ion_atomic_set(&rtp->running, 0);
 			continue;
 		}
 
@@ -188,7 +189,7 @@ int	main(int argc, char *argv[])
 
 	/*	Start the receiver thread.				*/
 
-	rtp.running = 1;
+	ion_atomic_init(&rtp.running, 1);
 	if (pthread_begin(&receiverThread, NULL, handleDatagrams,
 		&rtp, "aoslsi_receiver"))
 	{
@@ -213,7 +214,7 @@ int	main(int argc, char *argv[])
 
 	/*	Time to shut down.					*/
 
-	rtp.running = 0;
+	ion_atomic_set(&rtp.running, 0);
 
 	/*	Wake up the receiver thread by sending it a 1-byte
 	 *	datagram.						*/
@@ -227,6 +228,7 @@ int	main(int argc, char *argv[])
 
 	pthread_join(receiverThread, NULL);
 	closesocket(rtp.linkSocket);
+	ion_atomic_mutex_destroy(&rtp.running);
 	writeErrmsgMemos();
 	writeMemo("[i] aoslsi duct has ended.");
 	ionDetach();
