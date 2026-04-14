@@ -164,24 +164,24 @@ void	bpEndpointTally(VEndpoint *vpoint, unsigned int idx, unsigned int size)
 {
 	CHKVOID(vpoint);
 	CHKVOID(idx < BP_ENDPOINT_STATS);
-	ion_atomic_get_and_increment(&vpoint->statsDeltas[idx].deltaCount, 1);
-	ion_atomic_get_and_increment(&vpoint->statsDeltas[idx].deltaBytes, (uvast) size);
+	ion_ipc_atomic_get_and_increment(&vpoint->statsDeltas[idx].deltaCount, 1);
+	ion_ipc_atomic_get_and_increment(&vpoint->statsDeltas[idx].deltaBytes, (uvast) size);
 }
 
 void	bpInductTally(VInduct *vduct, unsigned int idx, unsigned int size)
 {
 	CHKVOID(vduct);
 	CHKVOID(idx < BP_INDUCT_STATS);
-	ion_atomic_get_and_increment(&vduct->statsDeltas[idx].deltaCount, 1);
-	ion_atomic_get_and_increment(&vduct->statsDeltas[idx].deltaBytes, (uvast) size);
+	ion_ipc_atomic_get_and_increment(&vduct->statsDeltas[idx].deltaCount, 1);
+	ion_ipc_atomic_get_and_increment(&vduct->statsDeltas[idx].deltaBytes, (uvast) size);
 }
 
 void	bpPlanTally(VPlan *vplan, unsigned int idx, unsigned int size)
 {
 	CHKVOID(vplan);
 	CHKVOID(idx < BP_PLAN_STATS);
-	ion_atomic_get_and_increment(&vplan->statsDeltas[idx].deltaCount, 1);
-	ion_atomic_get_and_increment(&vplan->statsDeltas[idx].deltaBytes, (uvast) size);
+	ion_ipc_atomic_get_and_increment(&vplan->statsDeltas[idx].deltaCount, 1);
+	ion_ipc_atomic_get_and_increment(&vplan->statsDeltas[idx].deltaBytes, (uvast) size);
 }
 
 void	bpSourceTally(unsigned int priority, unsigned int size)
@@ -190,8 +190,8 @@ void	bpSourceTally(unsigned int priority, unsigned int size)
 
 	CHKVOID(vdb);
 	CHKVOID(priority < 3);
-	ion_atomic_get_and_increment(&vdb->sourceDeltas[priority].deltaCount, 1);
-	ion_atomic_get_and_increment(&vdb->sourceDeltas[priority].deltaBytes, (uvast) size);
+	ion_ipc_atomic_get_and_increment(&vdb->sourceDeltas[priority].deltaCount, 1);
+	ion_ipc_atomic_get_and_increment(&vdb->sourceDeltas[priority].deltaBytes, (uvast) size);
 }
 
 void	bpRecvTally(unsigned int priority, unsigned int size)
@@ -200,8 +200,8 @@ void	bpRecvTally(unsigned int priority, unsigned int size)
 
 	CHKVOID(vdb);
 	CHKVOID(priority < 3);
-	ion_atomic_get_and_increment(&vdb->recvDeltas[priority].deltaCount, 1);
-	ion_atomic_get_and_increment(&vdb->recvDeltas[priority].deltaBytes, (uvast) size);
+	ion_ipc_atomic_get_and_increment(&vdb->recvDeltas[priority].deltaCount, 1);
+	ion_ipc_atomic_get_and_increment(&vdb->recvDeltas[priority].deltaBytes, (uvast) size);
 }
 
 void	bpDiscardTally(unsigned int priority, unsigned int size)
@@ -210,8 +210,8 @@ void	bpDiscardTally(unsigned int priority, unsigned int size)
 
 	CHKVOID(vdb);
 	CHKVOID(priority < 3);
-	ion_atomic_get_and_increment(&vdb->discardDeltas[priority].deltaCount, 1);
-	ion_atomic_get_and_increment(&vdb->discardDeltas[priority].deltaBytes,
+	ion_ipc_atomic_get_and_increment(&vdb->discardDeltas[priority].deltaCount, 1);
+	ion_ipc_atomic_get_and_increment(&vdb->discardDeltas[priority].deltaBytes,
 			(uvast) size);
 }
 
@@ -221,8 +221,8 @@ void	bpXmitTally(unsigned int priority, unsigned int size)
 
 	CHKVOID(vdb);
 	CHKVOID(priority < 3);
-	ion_atomic_get_and_increment(&vdb->xmitDeltas[priority].deltaCount, 1);
-	ion_atomic_get_and_increment(&vdb->xmitDeltas[priority].deltaBytes, (uvast) size);
+	ion_ipc_atomic_get_and_increment(&vdb->xmitDeltas[priority].deltaCount, 1);
+	ion_ipc_atomic_get_and_increment(&vdb->xmitDeltas[priority].deltaBytes, (uvast) size);
 }
 
 void	bpDelTally(unsigned int reason)
@@ -231,7 +231,7 @@ void	bpDelTally(unsigned int reason)
 
 	CHKVOID(vdb);
 	CHKVOID(reason < BP_REASON_STATS);
-	ion_atomic_get_and_increment(&vdb->delDeltas[reason], 1);
+	ion_ipc_atomic_get_and_increment(&vdb->delDeltas[reason], 1);
 }
 
 void	bpDbTally(unsigned int idx, unsigned int size)
@@ -240,8 +240,8 @@ void	bpDbTally(unsigned int idx, unsigned int size)
 
 	CHKVOID(vdb);
 	CHKVOID(idx < BP_DB_STATS);
-	ion_atomic_get_and_increment(&vdb->dbDeltas[idx].deltaCount, 1);
-	ion_atomic_get_and_increment(&vdb->dbDeltas[idx].deltaBytes, (uvast) size);
+	ion_ipc_atomic_get_and_increment(&vdb->dbDeltas[idx].deltaCount, 1);
+	ion_ipc_atomic_get_and_increment(&vdb->dbDeltas[idx].deltaBytes, (uvast) size);
 }
 
 /*	*	*	BP statistics flush functions	*	*	*/
@@ -258,8 +258,8 @@ static int	flushTallyDeltas(TallyDelta *deltas, Tally *tallies, int count)
 
 	for (i = 0; i < count; i++)
 	{
-		dCount = (unsigned int)ion_atomic_exchange(&deltas[i].deltaCount, 0);
-		dBytes = ion_atomic_exchange(&deltas[i].deltaBytes, 0);
+		dCount = (unsigned int)ion_ipc_atomic_exchange(&deltas[i].deltaCount, 0);
+		dBytes = ion_ipc_atomic_exchange(&deltas[i].deltaBytes, 0);
 		if (dCount > 0 || dBytes > 0)
 		{
 			tallies[i].totalCount += dCount;
@@ -305,25 +305,25 @@ int	bpFlushVdbStats(Sdr sdr, BpVdb *vdb)
 
 		for (i = 0; i < 3; i++)
 		{
-			ion_atomic_exchange(&vdb->sourceDeltas[i].deltaCount, 0);
-			ion_atomic_exchange(&vdb->sourceDeltas[i].deltaBytes, 0);
-			ion_atomic_exchange(&vdb->recvDeltas[i].deltaCount, 0);
-			ion_atomic_exchange(&vdb->recvDeltas[i].deltaBytes, 0);
-			ion_atomic_exchange(&vdb->discardDeltas[i].deltaCount, 0);
-			ion_atomic_exchange(&vdb->discardDeltas[i].deltaBytes, 0);
-			ion_atomic_exchange(&vdb->xmitDeltas[i].deltaCount, 0);
-			ion_atomic_exchange(&vdb->xmitDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_exchange(&vdb->sourceDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_exchange(&vdb->sourceDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_exchange(&vdb->recvDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_exchange(&vdb->recvDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_exchange(&vdb->discardDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_exchange(&vdb->discardDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_exchange(&vdb->xmitDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_exchange(&vdb->xmitDeltas[i].deltaBytes, 0);
 		}
 
 		for (i = 0; i < BP_REASON_STATS; i++)
 		{
-			ion_atomic_exchange(&vdb->delDeltas[i], 0);
+			ion_ipc_atomic_exchange(&vdb->delDeltas[i], 0);
 		}
 
 		for (i = 0; i < BP_DB_STATS; i++)
 		{
-			ion_atomic_exchange(&vdb->dbDeltas[i].deltaCount, 0);
-			ion_atomic_exchange(&vdb->dbDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_exchange(&vdb->dbDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_exchange(&vdb->dbDeltas[i].deltaBytes, 0);
 		}
 
 		return 0;
@@ -360,7 +360,7 @@ int	bpFlushVdbStats(Sdr sdr, BpVdb *vdb)
 		modified = 0;
 		for (i = 0; i < BP_REASON_STATS; i++)
 		{
-			dCount = (unsigned int)ion_atomic_exchange(&vdb->delDeltas[i], 0);
+			dCount = (unsigned int)ion_ipc_atomic_exchange(&vdb->delDeltas[i], 0);
 			if (dCount > 0)
 			{
 				delStats.totalDelByReason[i] += dCount;
@@ -406,8 +406,8 @@ int	bpFlushPlanStats(Sdr sdr, VPlan *vplan)
 
 		for (i = 0; i < BP_PLAN_STATS; i++)
 		{
-			ion_atomic_exchange(&vplan->statsDeltas[i].deltaCount, 0);
-			ion_atomic_exchange(&vplan->statsDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_exchange(&vplan->statsDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_exchange(&vplan->statsDeltas[i].deltaBytes, 0);
 		}
 
 		return 0;
@@ -434,8 +434,8 @@ int	bpFlushInductStats(Sdr sdr, VInduct *vduct)
 
 		for (i = 0; i < BP_INDUCT_STATS; i++)
 		{
-			ion_atomic_exchange(&vduct->statsDeltas[i].deltaCount, 0);
-			ion_atomic_exchange(&vduct->statsDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_exchange(&vduct->statsDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_exchange(&vduct->statsDeltas[i].deltaBytes, 0);
 		}
 
 		return 0;
@@ -463,8 +463,8 @@ int	bpFlushEndpointStats(Sdr sdr, VEndpoint *vpoint)
 
 		for (i = 0; i < BP_ENDPOINT_STATS; i++)
 		{
-			ion_atomic_exchange(&vpoint->statsDeltas[i].deltaCount, 0);
-			ion_atomic_exchange(&vpoint->statsDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_exchange(&vpoint->statsDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_exchange(&vpoint->statsDeltas[i].deltaBytes, 0);
 		}
 
 		return 0;
@@ -551,8 +551,8 @@ static int	raiseEndpoint(VScheme *vscheme, Object endpointElt)
 
 		for (i = 0; i < BP_ENDPOINT_STATS; i++)
 		{
-			ion_atomic_init(&vpoint->statsDeltas[i].deltaCount, 0);
-			ion_atomic_init(&vpoint->statsDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_init(&vpoint->statsDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_init(&vpoint->statsDeltas[i].deltaBytes, 0);
 		}
 	}
 
@@ -979,8 +979,8 @@ static int	raisePlan(Object planElt, BpVdb *bpvdb)
 
 		for (i = 0; i < BP_PLAN_STATS; i++)
 		{
-			ion_atomic_init(&vplan->statsDeltas[i].deltaCount, 0);
-			ion_atomic_init(&vplan->statsDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_init(&vplan->statsDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_init(&vplan->statsDeltas[i].deltaBytes, 0);
 		}
 	}
 	vplan->xmitThrottle.nominalRate = plan.nominalRate;
@@ -1121,8 +1121,8 @@ static int	raiseInduct(Object inductElt, BpVdb *bpvdb)
 
 		for (i = 0; i < BP_INDUCT_STATS; i++)
 		{
-			ion_atomic_init(&vduct->statsDeltas[i].deltaCount, 0);
-			ion_atomic_init(&vduct->statsDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_init(&vduct->statsDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_init(&vduct->statsDeltas[i].deltaBytes, 0);
 		}
 	}
 
@@ -1528,25 +1528,25 @@ static BpVdb	*_bpvdb(char **name)
 
 			for (i = 0; i < 3; i++)
 			{
-				ion_atomic_init(&vdb->sourceDeltas[i].deltaCount, 0);
-				ion_atomic_init(&vdb->sourceDeltas[i].deltaBytes, 0);
-				ion_atomic_init(&vdb->recvDeltas[i].deltaCount, 0);
-				ion_atomic_init(&vdb->recvDeltas[i].deltaBytes, 0);
-				ion_atomic_init(&vdb->discardDeltas[i].deltaCount, 0);
-				ion_atomic_init(&vdb->discardDeltas[i].deltaBytes, 0);
-				ion_atomic_init(&vdb->xmitDeltas[i].deltaCount, 0);
-				ion_atomic_init(&vdb->xmitDeltas[i].deltaBytes, 0);
+				ion_ipc_atomic_init(&vdb->sourceDeltas[i].deltaCount, 0);
+				ion_ipc_atomic_init(&vdb->sourceDeltas[i].deltaBytes, 0);
+				ion_ipc_atomic_init(&vdb->recvDeltas[i].deltaCount, 0);
+				ion_ipc_atomic_init(&vdb->recvDeltas[i].deltaBytes, 0);
+				ion_ipc_atomic_init(&vdb->discardDeltas[i].deltaCount, 0);
+				ion_ipc_atomic_init(&vdb->discardDeltas[i].deltaBytes, 0);
+				ion_ipc_atomic_init(&vdb->xmitDeltas[i].deltaCount, 0);
+				ion_ipc_atomic_init(&vdb->xmitDeltas[i].deltaBytes, 0);
 			}
 
 			for (i = 0; i < BP_REASON_STATS; i++)
 			{
-				ion_atomic_init(&vdb->delDeltas[i], 0);
+				ion_ipc_atomic_init(&vdb->delDeltas[i], 0);
 			}
 
 			for (i = 0; i < BP_DB_STATS; i++)
 			{
-				ion_atomic_init(&vdb->dbDeltas[i].deltaCount, 0);
-				ion_atomic_init(&vdb->dbDeltas[i].deltaBytes, 0);
+				ion_ipc_atomic_init(&vdb->dbDeltas[i].deltaCount, 0);
+				ion_ipc_atomic_init(&vdb->dbDeltas[i].deltaBytes, 0);
 			}
 		}
 

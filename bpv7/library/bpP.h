@@ -814,7 +814,7 @@ typedef struct
 	TallyDelta	recvDeltas[3];
 	TallyDelta	discardDeltas[3];
 	TallyDelta	xmitDeltas[3];
-	ion_atomic_t	delDeltas[BP_REASON_STATS];	/*	Count only.	*/
+	ion_ipc_atomic_t	delDeltas[BP_REASON_STATS];	/*	Count only.	*/
 	TallyDelta	dbDeltas[BP_DB_STATS];
 
 	int		bundleCounter;

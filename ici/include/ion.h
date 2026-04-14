@@ -479,10 +479,19 @@ typedef struct
 /*	Atomic delta counter for batched statistics collection.
  *	Accumulates increments in volatile memory between flushes.	*/
 
+/*	TallyDelta fields use Zone 2 (ion_ipc_atomic_t) because every
+ *	struct that embeds TallyDelta (BpVdb, VPlan, VInduct, VEndpoint,
+ *	LtpVspan) lives in the ION shared working-memory (SM) partition
+ *	and is updated concurrently by multiple processes.  A Zone 1
+ *	ion_atomic_t would embed a pthread_mutex_t on the C99 fallback
+ *	path, and sharing a PTHREAD_PROCESS_PRIVATE mutex across process
+ *	boundaries is undefined behavior (typically deadlock or SIGSEGV).
+ *	Zone 2 is always lock-free across all three fallback tiers.	*/
+
 typedef struct
 {
-	ion_atomic_t	deltaCount;
-	ion_atomic_t	deltaBytes;
+	ion_ipc_atomic_t	deltaCount;
+	ion_ipc_atomic_t	deltaBytes;
 } TallyDelta;
 
 #ifndef MTAKE
