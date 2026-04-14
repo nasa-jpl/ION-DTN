@@ -230,7 +230,14 @@ typedef struct dgrsapst
 
 	uvast		engineId;
 	unsigned int	clientSvcId;
-	DgrSapState	state;
+	/*	SAP state is atomic: writer threads (crashThread,
+	 *	dgr_close) update it without holding sapMutex, and
+	 *	reader threads (sender, resender, receiver) poll it
+	 *	in tight loops.  Using ion_atomic_t makes the
+	 *	cross-thread visibility explicit and replaces the
+	 *	prior ad hoc __sync_lock_test_and_set call.		*/
+
+	ion_atomic_t	state;		/*	holds DgrSapState	*/
 	MemAllocator	mtake;
 	MemDeallocator	mrelease;
 	int		udpSocket;
@@ -316,9 +323,9 @@ static void	dgrtrace(void)
 
 static void	crashThread(DgrSAP *sap, char *msg)
 {
-	if (sap->state == DgrSapOpen)
+	if (ion_atomic_get(&sap->state) == DgrSapOpen)
 	{
-		sap->state = DgrSapDamaged;
+		ion_atomic_set(&sap->state, DgrSapDamaged);
 	}
 
 	putErrmsg(msg, NULL);
@@ -1579,7 +1586,7 @@ static void	*sender(void *parm)
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
-	while (sap->state == DgrSapOpen)
+	while (ion_atomic_get(&sap->state) == DgrSapOpen)
 	{
 		if (llcv_wait(sap->outboundCV, llcv_lyst_not_empty,
 					LLCV_BLOCKING))
@@ -1588,7 +1595,7 @@ static void	*sender(void *parm)
 			return NULL;
 		}
 
-		if (sap->state != DgrSapOpen)
+		if (ion_atomic_get(&sap->state) != DgrSapOpen)
 		{
 			return NULL;
 		}
@@ -1634,7 +1641,7 @@ static void	*resender(void *parm)
 	while (1)
 	{
 		microsnooze(EPISODE_PERIOD);
-		if (sap->state != DgrSapOpen)
+		if (ion_atomic_get(&sap->state) != DgrSapOpen)
 		{
 			return NULL;
 		}
@@ -1859,7 +1866,7 @@ recvfrom");
 			break;		/*	Out of main loop.	*/
 		}
 
-		if (sap->state != DgrSapOpen)
+		if (ion_atomic_get(&sap->state) != DgrSapOpen)
 		{
 			break;		/*	Out of main loop.	*/
 		}
@@ -2197,6 +2204,16 @@ static void	cleanUpSAP(DgrSAP *sap)
 	pthread_mutex_destroy(&sap->sapMutex);
 	pthread_mutex_destroy(&sap->pendingResendsMutex);
 	pthread_mutex_destroy(&sap->destsMutex);
+
+	/*	Destroy ion_atomic_t backing mutexes (no-op on C11
+	 *	path; releases pthread_mutex_t on C99 mutex fallback).
+	 *	Safe to call because both atomics were initialized
+	 *	unconditionally in dgr_open() before the first
+	 *	cleanUpSAP() call path becomes reachable.		*/
+
+	ion_atomic_mutex_destroy(&sap->backlog);
+	ion_atomic_mutex_destroy(&sap->state);
+
 	MRELEASE(sap);
 }
 
@@ -2250,9 +2267,9 @@ int	dgr_open(uvast ownEngineId, unsigned int clientSvcId,
 
 	memset((char *) sap, 0, sizeof(DgrSAP));
 	ion_atomic_init(&sap->backlog, 0);
+	ion_atomic_init(&sap->state, DgrSapOpen);
 	sap->engineId = ownEngineId;
 	sap->clientSvcId = clientSvcId;
-	sap->state = DgrSapOpen;
 	sap->mtake = memmgr_take(mmid);
 	sap->mrelease = memmgr_release(mmid);
 	sap->leastActiveDest = -1;
@@ -2404,13 +2421,12 @@ void	dgr_close(DgrSAP *sap)
 	char		shutdown = 1;
 
 	CHKVOID(sap);
-	if (sap->state == DgrSapClosed)
+	if (ion_atomic_get(&sap->state) == DgrSapClosed)
 	{
 		return;
 	}
 
-	/* Atomically set state to closed to appease TSan */
-	__sync_lock_test_and_set(&sap->state, DgrSapClosed);
+	ion_atomic_set(&sap->state, DgrSapClosed);
 
 	/*	Terminate any dgr_receive that is currently in
 	 *	progress.						*/
@@ -2472,14 +2488,14 @@ int	dgr_send(DgrSAP *sap, unsigned short toPortNbr,
 	CHKERR(length > 0);
 	CHKERR(length <= MAX_DATA_SIZE);
 	CHKERR(rc);
-	if (sap->state == DgrSapDamaged)
+	if (ion_atomic_get(&sap->state) == DgrSapDamaged)
 	{
 		writeMemo("[?] DGR access point damaged; close and reopen.");
 		*rc = DgrFailed;
 		return 0;
 	}
 
-	if (sap->state == DgrSapClosed)
+	if (ion_atomic_get(&sap->state) == DgrSapClosed)
 	{
 		writeMemo("[?] DGR access point is not open.");
 		*rc = DgrFailed;
@@ -2672,14 +2688,14 @@ int	dgr_receive(DgrSAP *sap, unsigned short *fromPortNbr,
 	CHKERR(length);
 	CHKERR(errnbr);
 	CHKERR(rc);
-	if (sap->state == DgrSapDamaged)
+	if (ion_atomic_get(&sap->state) == DgrSapDamaged)
 	{
 		writeMemo("[?] DGR access point damaged; close and reopen.");
 		*rc = DgrFailed;
 		return 0;
 	}
 
-	if (sap->state == DgrSapClosed)
+	if (ion_atomic_get(&sap->state) == DgrSapClosed)
 	{
 		writeMemo("[?] DGR access point is not open.");
 		*rc = DgrFailed;
@@ -2716,14 +2732,14 @@ int	dgr_receive(DgrSAP *sap, unsigned short *fromPortNbr,
 
 	/*	SAP might have been closed while we were sleeping.	*/
 
-	if (sap->state == DgrSapDamaged)
+	if (ion_atomic_get(&sap->state) == DgrSapDamaged)
 	{
 		writeMemo("[?] DGR access point no longer usable.");
 		*rc = DgrFailed;
 		return 0;
 	}
 
-	if (sap->state == DgrSapClosed)
+	if (ion_atomic_get(&sap->state) == DgrSapClosed)
 	{
 		writeMemo("[i] DGR access point has been closed.");
 		*rc = DgrFailed;
