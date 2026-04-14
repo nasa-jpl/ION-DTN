@@ -97,14 +97,21 @@ dnl =============================================================
 AM_CONDITIONAL([HAVE_C11_ATOMICS], [test "x$ac_cv_c11" = xyes])
 
 dnl =============================================================
-dnl  Ensure POSIX/XSI APIs are visible even under -std=c99 (strict C99 builds)
+dnl  Feature-test macros (_POSIX_C_SOURCE / _XOPEN_SOURCE / _DEFAULT_SOURCE)
+dnl  are intentionally NOT set globally via AC_DEFINE here.
+dnl
+dnl  ici/include/platform.h is the single source of truth for ION's
+dnl  feature-test macro strategy: it sets the right combination per
+dnl  platform (Linux, FreeBSD, Solaris, RTEMS, VxWorks) under
+dnl  `#ifndef` guards so that any translation unit can override with
+dnl  a more conservative value by defining the macro before including
+dnl  platform.h.  Setting these macros in config.h (which is forced
+dnl  onto every TU via `-include config.h`) would silently override
+dnl  per-file conservative values such as the POSIX.1-2001 (200112L)
+dnl  definitions used by bpv7/epp/stub/epp_loopback_provider.c and
+dnl  bpv7/spp/stub/spp_loopback_provider.c, exposing a wider API
+dnl  surface than those files requested.
 dnl =============================================================
-AC_DEFINE([_POSIX_C_SOURCE],[200809L],
-          [Expose POSIX.1-2008 APIs such as tzset/localtime_r/pthread_kill])
-AC_DEFINE([_XOPEN_SOURCE],[700],
-          [Expose XSI extensions])
-AC_DEFINE([_DEFAULT_SOURCE],[1],
-          [Fallback for glibc to export BSD/GNU names like timezone])
 
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
