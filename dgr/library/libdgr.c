@@ -536,13 +536,29 @@ static void	removeRecord(DgrSAP *sap, DgrRecord rec, LystElt arqElt)
 
 	/*	Enable more messages to be sent.			*/
 
-	uvast deduction = rec->contentLength + sizeof(SegmentId);
-	uvast old_backlog = ion_atomic_get_and_decrement(&sap->backlog, deduction);
-	if ((old_backlog - deduction) <= MAX_BACKLOG)
 	{
-		pthread_mutex_lock(&sap->sapMutex);
-		pthread_cond_signal(&sap->sapCV);
-		pthread_mutex_unlock(&sap->sapMutex);
+		uvast	deduction = rec->contentLength + sizeof(SegmentId);
+		uvast	old_backlog;
+		uvast	new_backlog;
+
+		old_backlog = ion_atomic_get_and_decrement(&sap->backlog,
+				deduction);
+
+		/*	Saturating subtraction: if the invariant
+		 *	"every decrement matches a prior increment"
+		 *	is ever violated, the unsigned subtraction
+		 *	would wrap to near-UINT_MAX, the signal would
+		 *	be skipped, and any thread waiting in
+		 *	dgr_send() would livelock.  Clamp to 0.		*/
+
+		new_backlog = (old_backlog >= deduction)
+				? (old_backlog - deduction) : 0;
+		if (new_backlog <= MAX_BACKLOG)
+		{
+			pthread_mutex_lock(&sap->sapMutex);
+			pthread_cond_signal(&sap->sapCV);
+			pthread_mutex_unlock(&sap->sapMutex);
+		}
 	}
 }
 
@@ -2571,11 +2587,20 @@ rcSnoozes++;
 	pthread_mutex_unlock(&rec->bucket->mutex);
 	if (elt == NULL)				/*	Bail.	*/
 	{
+		uvast	deduction = length + sizeof(SegmentId);
+		uvast	old_backlog;
+		uvast	new_backlog;
+
 		putErrmsg("Can't append outbound record.", NULL);
 		MRELEASE(rec);
-		uvast deduction = length + sizeof(SegmentId);
-		uvast old_backlog = ion_atomic_get_and_decrement(&sap->backlog, deduction);
-		if ((old_backlog - deduction) <= MAX_BACKLOG)
+		old_backlog = ion_atomic_get_and_decrement(&sap->backlog,
+				deduction);
+
+		/*	Saturating subtraction; see ackReceivedRec().	*/
+
+		new_backlog = (old_backlog >= deduction)
+				? (old_backlog - deduction) : 0;
+		if (new_backlog <= MAX_BACKLOG)
 		{
 			pthread_mutex_lock(&sap->sapMutex);
 			pthread_cond_signal(&sap->sapCV);
@@ -2593,14 +2618,23 @@ rcSnoozes++;
 
 	if (insertSendReq(sap, rec) < 0)
 	{
+		uvast	deduction = length + sizeof(SegmentId);
+		uvast	old_backlog;
+		uvast	new_backlog;
+
 		putErrmsg("Can't append transmission request.", NULL);
 		pthread_mutex_lock(&rec->bucket->mutex);
 		lyst_delete(elt);
 		pthread_mutex_unlock(&rec->bucket->mutex);
 		MRELEASE(rec);
-		uvast deduction = length + sizeof(SegmentId);
-		uvast old_backlog = ion_atomic_get_and_decrement(&sap->backlog, deduction);
-		if ((old_backlog - deduction) <= MAX_BACKLOG)
+		old_backlog = ion_atomic_get_and_decrement(&sap->backlog,
+				deduction);
+
+		/*	Saturating subtraction; see ackReceivedRec().	*/
+
+		new_backlog = (old_backlog >= deduction)
+				? (old_backlog - deduction) : 0;
+		if (new_backlog <= MAX_BACKLOG)
 		{
 			pthread_mutex_lock(&sap->sapMutex);
 			pthread_cond_signal(&sap->sapCV);
