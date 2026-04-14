@@ -101,10 +101,14 @@ int main(void)
     /* --- Phase 1: ABI Parity Check --- */
     printf("[i] Validating ABI layout...\n");
 
-    /* Ensure the padding union works for process-local: 64 bytes is the standard
-     * size we aimed for. A standard pthread_mutex_t + uvast is ~48 bytes on 64-bit systems.
-     */
+    /* On the C99 mutex-backed fallback, ion_atomic_t must be large
+     * enough to hold a pthread_mutex_t + value (~48 bytes on 64-bit
+     * glibc, up to ~160 bytes on RTEMS 6 AArch64).  On the C11 path,
+     * ion_atomic_t is a plain _Atomic(vast) with no mutex, so the
+     * lower bound does not apply.					*/
+#if !defined(ION_HAVE_C11_ATOMICS) || !ION_HAVE_C11_ATOMICS
     assert(sizeof(ion_atomic_t) >= 40 && "FATAL: ion_atomic_t is too small to hold a POSIX mutex!");
+#endif
 
     /* --- Phase 2: Mock Memory Allocation --- */
     /* Simulates sm_ShmAttach creating the mapped memory segment */

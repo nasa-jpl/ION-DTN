@@ -52,9 +52,19 @@
 /* matching the C compilation, and omits the accessor macros and    */
 /* inline functions (which are C-only).                             */
 /*                                                                  */
-/* The 64-byte size for `ion_atomic_t` matches every C compilation  */
-/* path (Zone 1 C11 padded union, Zone 1 C99 mutex-backed union).   */
-/* The `sizeof(long long)` size for `ion_ipc_atomic_t` matches      */
+/* The size of `ion_atomic_t` in C++ is selected to match whichever */
+/* representation the linked ION C library was built with, using    */
+/* the `ION_HAVE_C11_ATOMICS` flag from config.h:                   */
+/*                                                                  */
+/*   - If the library was built with C11 <stdatomic.h>, Zone 1 in   */
+/*     C is a plain `_Atomic(vast)` (8 bytes), so the C++ type is   */
+/*     `opaque[sizeof(long long)]` (also 8 bytes).                  */
+/*                                                                  */
+/*   - Otherwise the C fallback is a mutex-backed union (64 bytes   */
+/*     to fit a pthread_mutex_t plus a value), and the C++ type    */
+/*     is `opaque[64]` to match.                                    */
+/*                                                                  */
+/* `ion_ipc_atomic_t` is always 8 bytes (`sizeof(long long)`) on    */
 /* every Zone 2 tier (`_Atomic(vast)` on C11, `volatile vast` on    */
 /* the __atomic / __sync fallbacks), because `vast` is an 8-byte    */
 /* integer on all supported ION targets.                            */
@@ -62,10 +72,37 @@
 
 #ifdef __cplusplus
 
+/*
+ * Zone 1 (ion_atomic_t) size depends on how the linked ION C
+ * library was compiled.  The build system (configure.ac) defines
+ * ION_HAVE_C11_ATOMICS=1 in config.h when it detects a working
+ * <stdatomic.h>.  The C path above then picks the native
+ * _Atomic(vast) representation (8 bytes), otherwise it falls
+ * back to a 64-byte mutex-backed union.
+ *
+ * The C++ path must match whichever representation the library
+ * was built with, so consumers see the same struct layout on
+ * both sides of the C/C++ boundary.  Since config.h is available
+ * here (via HAVE_CONFIG_H above), we read the same flag.
+ */
+
+#if defined(ION_HAVE_C11_ATOMICS) && ION_HAVE_C11_ATOMICS
+
+typedef struct {
+	alignas(alignof(long long))	unsigned char	opaque[sizeof(long long)];
+} ion_atomic_t;
+
+#else /* C99 mutex-backed fallback — 64-byte padded union in C */
+
 typedef struct {
 	alignas(alignof(long long))	unsigned char	opaque[64];
 } ion_atomic_t;
 
+#endif
+
+/* Zone 2 (ion_ipc_atomic_t) is always the same size on every
+ * fallback tier: an 8-byte integer (_Atomic(vast) on C11, or
+ * volatile vast on the __atomic / __sync fallbacks).		*/
 typedef struct {
 	alignas(alignof(long long))	unsigned char	opaque[sizeof(long long)];
 } ion_ipc_atomic_t;
@@ -146,35 +183,56 @@ typedef struct {
 
 /**
  * @brief Process-Local Atomic Type (C11)
- * Padded union forces C11 atomics to match the C99 fallback ABI layout.
- * This guarantees memory footprint parity across all compilation paths.
+ *
+ * On the C11 path, ion_atomic_t is a plain _Atomic(vast) — 8 bytes
+ * on 64-bit targets — matching the natural size of a C11 atomic
+ * integer.  No padding is applied.
+ *
+ * Earlier iterations of this header wrapped the type in a 64-byte
+ * padded union to force ABI parity with the C99 mutex-backed
+ * fallback.  That rationale no longer applies:
+ *
+ *   1. All hot-path arrays of atomics (BP/LTP TallyDelta, BpVdb
+ *      delDeltas) were moved to Zone 2 (ion_ipc_atomic_t) in the
+ *      shared-memory-safety fix, so the large memory-inflation
+ *      concern that motivated the padding is already resolved.
+ *
+ *   2. Remaining Zone 1 uses are scattered single-field atomics
+ *      (daemon shutdown flags, per-SAP state, init flags).  These
+ *      are embedded inside much larger enclosing structs that are
+ *      written concurrently as a whole, so cache-line padding on
+ *      just the atomic field provides no real false-sharing
+ *      protection.
+ *
+ *   3. A single ION binary is compiled under exactly one C
+ *      language standard — all .c files share the same -std flag
+ *      from configure.ac — so a mixed C11/C99 build within the
+ *      same process cannot legitimately arise.  ABI parity
+ *      between compilation standards has no operational meaning.
  */
-typedef union {
-    _Atomic(vast) native_val;
-    char          padding[64];
-} ion_atomic_t;
+typedef _Atomic(vast) ion_atomic_t;
 
 /* C11 Static Initializer */
-#define ION_ATOMIC_INIT(v) { .native_val = (v) }
+#define ION_ATOMIC_INIT(v) (v)
 
 /* C11 Static Inline Wrappers to prevent macro shadowing */
 static inline void ion_atomic_init(ion_atomic_t *p, vast v) {
-    atomic_init(&p->native_val, v);
+    atomic_init(p, v);
 }
 static inline void ion_atomic_set(ion_atomic_t *p, vast v) {
-    atomic_store_explicit(&p->native_val, v, memory_order_relaxed);
+    atomic_store_explicit(p, v, memory_order_relaxed);
 }
 static inline uvast ion_atomic_get(ion_atomic_t *p) {
-    return atomic_load_explicit(&p->native_val, memory_order_relaxed);
+    return atomic_load_explicit(p, memory_order_relaxed);
 }
 static inline uvast ion_atomic_get_and_increment(ion_atomic_t *p, vast d) {
-    return atomic_fetch_add_explicit(&p->native_val, d, memory_order_relaxed);
+    return atomic_fetch_add_explicit(p, d, memory_order_relaxed);
 }
 static inline uvast ion_atomic_get_and_decrement(ion_atomic_t *p, vast d) {
-    return atomic_fetch_sub_explicit(&p->native_val, d, memory_order_relaxed);
+    return atomic_fetch_sub_explicit(p, d, memory_order_relaxed);
 }
 static inline uvast ion_atomic_exchange(ion_atomic_t *p, vast v) {
-    return atomic_exchange_explicit(&p->native_val, v, memory_order_relaxed);
+    return atomic_exchange_explicit(p, v, memory_order_relaxed);
 }
 
 /* Mutex destruction is a no-op under native C11 atomics */
