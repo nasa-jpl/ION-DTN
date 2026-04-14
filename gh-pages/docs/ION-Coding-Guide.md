@@ -162,6 +162,101 @@ Notes on usage:
 * **`ion_ipc_atomic_t` fields in shared memory must be initialized in the setup path that creates the shared region**, not in whatever code happens to see them first. See `_sembase` in `platform_sm.c` for the pattern: every `SmGlobalSem` in `gsemtable[]` has its atomics initialized in a single loop during `_sembase(IPC_ACTION_LOOKUP)` when the region is first created.
 * **The return value of increment/decrement is the `vast` value *before* the operation** (`fetch_add` / `fetch_sub` semantics, not `add_fetch`).
 
+### C++ Consumers
+
+External C++ programs that link against the ION C library are a supported use case. Typical consumers include mission applications, test harnesses, and higher-level frameworks that treat ION as a bundle-delivery service. ION's public headers (`platform.h`, `ion.h`, `bp.h`, `ltp.h`, `cfdp.h`, `ams.h`, …) all carry `extern "C"` guards so that function names, structs, and typedefs are directly usable from a C++ translation unit. Private implementation headers whose names end in `P.h` (e.g., `bpP.h`, `ltpP.h`, `libbpP.c`'s private declarations) are internal to their respective libraries and are not part of the public API — C++ consumers should never include them.
+
+#### The C++ compilation path in `ion_atomic.h`
+
+Because C11 `_Atomic(T)` and the GCC/Clang `__atomic_*` / `__sync_*` built-ins are not valid C++, `ion_atomic.h` selects a dedicated branch when `__cplusplus` is defined. Both atomic types are exposed as opaque, size- and alignment-matched byte blobs:
+
+```c
+typedef struct {
+    alignas(alignof(long long)) unsigned char opaque[64];
+} ion_atomic_t;
+
+typedef struct {
+    alignas(alignof(long long)) unsigned char opaque[sizeof(long long)];
+} ion_ipc_atomic_t;
+```
+
+The sizes (64 bytes / 8 bytes) and 8-byte alignment match every C compilation tier (C11 native, C99 + `__atomic`, C99 + `__sync`, and the C99 mutex-backed Zone 1 fallback). This ensures binary compatibility: any ION struct that internally embeds `ion_atomic_t` or `ion_ipc_atomic_t` has a byte-identical layout between C and C++ compilations, so opaque pointers returned by the ION API remain valid across the C/C++ boundary even though the C++ consumer never sees the struct definitions.
+
+C++ code does not receive the `ion_atomic_*` / `ion_ipc_atomic_*` accessor macros or inline functions; those are C-only. The `ION_ATOMIC_INIT` macro is still defined (expanding to `{{0}}`) so static initializers in headers parse cleanly under C++, but C++ code should not be creating `ion_atomic_t` instances itself — initialization happens inside the C library via `ion_atomic_init()`.
+
+#### Rules for C++ consumers
+
+1. **Never read or write `ion_atomic_t` / `ion_ipc_atomic_t` fields directly from C++.** The byte blob is deliberately opaque. There is no supported way to reinterpret it as `std::atomic<T>`: on the C99 mutex-backed Zone 1 path the blob actually contains a `pthread_mutex_t` plus a value, and on some targets `alignof(_Atomic long long)` in C may be stricter than `alignof(long long)` in C++, which would cause silent memory corruption under a `reinterpret_cast`. Always route atomic reads/writes through the ION C API — either by calling library functions that return pre-computed counter snapshots, or by calling C helper wrappers you provide in a small `.c` shim.
+
+2. **Your own C++ atomics are completely independent of ION's atomics.** You can freely declare `std::atomic<T>` fields in your own C++ data structures and use them alongside ION. They occupy separate memory, use the C++ `<atomic>` implementation, and have no interaction with `ion_atomic_t` or `ion_ipc_atomic_t`:
+
+    ```cpp
+    #include <atomic>
+    #include "bp.h"
+
+    std::atomic<std::uint64_t> appBundleCount{0};  // your atomic
+    Object                     newBundle;           // ION type
+
+    void on_bundle_sent() {
+        appBundleCount.fetch_add(1, std::memory_order_relaxed);
+        // call ION C API...
+    }
+    ```
+
+3. **Minimum C++ standard: C++11.** The opaque types use `alignas(alignof(long long))`, which requires C++11. C++11 is also the minimum for `std::atomic<T>`, `std::thread`, and other standard-library atomics/concurrency features you are likely to want on the C++ side anyway.
+
+4. **Struct layout compatibility assumes both C and C++ compilations target the same architecture and ABI.** On 64-bit Linux, AArch64, and Windows, `long long` is 8 bytes aligned to 8 bytes in both C and C++, so `ion_atomic_t` is 64 bytes with 8-byte alignment and `ion_ipc_atomic_t` is 8 bytes with 8-byte alignment in both worlds. On exotic 32-bit ABIs where `alignof(_Atomic long long)` is stricter than `alignof(long long)`, a more defensive alignment may be needed — audit before porting.
+
+#### ION library compilation tier is independent of your C++ standard
+
+The ION C library is compiled separately from your C++ program. It may be built under C11/C18 or fall back to C99 depending on toolchain, platform, and `configure` options. This compilation tier is independent of the C++ standard you use for your own code — a C++14 program can link against a C11 ION build or a C99-fallback ION build with no source changes, because the opaque types exposed to C++ are identical under every C tier.
+
+That said, **prefer a C11/C18 ION build whenever the target toolchain supports it**, for reasons unrelated to C++:
+
+* **Zone 1 performance.** The C11 path uses lock-free `_Atomic(vast)` and compiles BP/LTP tally updates to a single atomic instruction. The C99 mutex fallback acquires and releases a `pthread_mutex_t` on every update, which is measurably slower under heavy bundle load.
+* **Zone 2 performance on ARM / AArch64.** The C11 and C99-`__atomic` paths both use `memory_order_relaxed` / `__ATOMIC_RELAXED`, which compile to plain `LDR`/`STR` and `LDADD` instructions. The legacy `__sync` fallback wraps every operation in `DMB ISH` full barriers, an order of magnitude more expensive per op.
+
+The C99 fallback path exists for legacy flight toolchains (RAD750, LEON pre-GCC-4.7, older RTEMS/VxWorks) where C11 atomics are unavailable. It is not a recommended default for ground or Linux-class targets.
+
+#### Minimal C++ example
+
+```cpp
+// main.cpp — external C++ consumer of ION
+#include <cstdio>
+#include <atomic>
+#include "bp.h"
+
+static std::atomic<std::uint64_t> sentCount{0};
+
+int main() {
+    if (bp_attach() < 0) {
+        std::fprintf(stderr, "bp_attach failed\n");
+        return 1;
+    }
+
+    BpSAP sap = nullptr;
+    if (bp_open((char*)"ipn:1.1", &sap) < 0) {
+        std::fprintf(stderr, "bp_open failed\n");
+        return 1;
+    }
+
+    // ... bundle send loop ...
+    sentCount.fetch_add(1, std::memory_order_relaxed);
+
+    bp_close(sap);
+    bp_detach();
+    return 0;
+}
+```
+
+Build with:
+
+```sh
+g++ -std=c++11 -I/usr/local/include main.cpp -o app -lbp -lici -lm -lpthread
+```
+
+The `-lbp -lici` libraries may have been compiled with either C11 or C99 fallback — either works. Your C++ program's own `std::atomic<>` usage is unaffected by ION's internal atomic implementation.
+
 ### Testing the Fallback Tiers
 
 Two test-harness macros let you exercise tiers that wouldn't otherwise be selected on a modern Linux build:
