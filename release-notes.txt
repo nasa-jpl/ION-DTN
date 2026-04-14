@@ -76,6 +76,32 @@ vulnerabilities, implementing CCSDS Orange Book custody transfer specifications,
 new convergence layer adapters, and improving system stability across all supported
 platforms.
 
+!!! IMPORTANT BUILD NOTE — Clean rebuild required !!!
+
+The size of the `ResourceLock` opaque buffer in `ici/include/platform.h`
+was increased from `uvast opaque[13]` (104 bytes on 64-bit) to
+`uvast opaque[24]` (192 bytes) to accommodate RTEMS 6 on AArch64,
+where the underlying `pthread_mutex_t` is significantly larger than
+on glibc Linux.  A compile-time assertion in `ici/library/platform.c`
+(`verify_sufficient_semaphore_space[]`) guards this size and will
+fail the build if it is ever too small for the target platform.
+
+This is an ABI-breaking change for any translation unit that embeds
+a `ResourceLock` in a struct.  After updating to 4.1.4, every ION
+component (`.a`, `.so`, daemons, tools, and any downstream application
+linking against ION) MUST be rebuilt from source.  Linking a newly
+compiled header against a pre-built library with the old layout will
+produce silent memory corruption.
+
+No migration of persistent state is required: `ResourceLock` is only
+used in process-local memory (function/file-scope static variables in
+ici and ams, and heap-allocated fields inside single-daemon state in
+bpv7/ipnd and nm).  No `ResourceLock` is embedded in SDR storage, in
+the SM working-memory partition, or in any data structure exchanged
+between processes, so in-flight nodes do not need to flush or rewrite
+any shared-memory state across the upgrade — they only need a clean
+ION rebuild followed by a normal restart.
+
 Critical Security Fixes
 
 - **File Transfer Security**: Fixed multiple critical vulnerabilities in sendfile/recvfile:

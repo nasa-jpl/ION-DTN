@@ -829,11 +829,44 @@ int pthread_setname_np(const char *name);
 #endif
 
 /**
- * ResourceLock: A platform-independent recursive mutex.
+ * ResourceLock: a platform-independent recursive mutex.
+ *
+ * The opaque[] buffer is sized to accommodate the largest `Rlock`
+ * representation across all supported platforms:
+ *
+ *   - VxWorks / pre-C11 ION: `{ SEM_ID; int owner; short count; short init; }`
+ *     (a few pointer/int words)
+ *   - POSIX / glibc / musl:  `{ pthread_mutex_t mutex; int initialized; }`
+ *     (pthread_mutex_t is 40 bytes on glibc x86_64, 48 bytes on RTEMS 5,
+ *     up to ~160 bytes on RTEMS 6 AArch64)
+ *
+ * The size (192 bytes at opaque[24] on a 64-bit target) was chosen to
+ * fit RTEMS 6's larger pthread_mutex_t.  A compile-time assertion in
+ * `ici/library/platform.c` (`verify_sufficient_semaphore_space[]`)
+ * fails the build if the chosen size is ever too small for the
+ * target's Rlock layout, so the header will loudly refuse to compile
+ * on a new platform rather than silently corrupting memory.
+ *
+ * ABI note: growing opaque[] changes the `sizeof(ResourceLock)` and
+ * therefore the layout of any struct that embeds one.  ResourceLock
+ * is only ever used in process-local memory — every instance in the
+ * tree is either a function/file-scope static variable (see
+ * errmsgsLock, memosLock, tasksLock, logFileLock, mibLock, gMemMutex)
+ * or a field inside a struct allocated from a single daemon's heap
+ * (IPND configuration/neighbours, NM vector/rhht/sql lock).  No
+ * ResourceLock is embedded in SDR storage, in the SM working-memory
+ * partition, or in any struct exchanged between processes, so a size
+ * change only requires a clean rebuild of all ION libraries and
+ * binaries, not a migration of any persistent state.
+ *
+ * Callers must therefore rebuild every `.a`, `.so`, and ION executable
+ * whenever this size changes.  Linking a freshly compiled header
+ * against a pre-built library with the old opaque[] size will produce
+ * silent memory corruption.
  */
 typedef struct
 {
-	uvast			opaque[24]; /* Increased to 192 bytes for RTEMS 6 */
+	uvast			opaque[24];
 } ResourceLock;
 
 /*	Prototypes for standard ION platform functions.			*/
