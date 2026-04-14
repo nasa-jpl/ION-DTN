@@ -132,6 +132,50 @@ All ION atomic operations currently use **relaxed** ordering (`memory_order_rela
 
 **Shutdown flags are a borderline case.** Flags like `rtp.running`, `gsem->ended`, and `gsem->pendingDelete` are one-shot signals where a reader needs to observe all prior writes by the setter. Relaxed ordering is technically insufficient for these; acquire/release would be more correct. ION currently gets away with relaxed because (a) readers poll in tight loops and will eventually observe the flag on a later iteration, and (b) the writes being ordered before the flag (e.g., SDR updates) are themselves guarded by other synchronization (SDR transaction locks, semaphore operations). If you add a new polling flag that depends on observing prior non-atomic writes, consult with the maintainers before defaulting to relaxed.
 
+### False Sharing and Cache-Line Alignment
+
+**False sharing** occurs when two logically independent atomic variables live on the same 64-byte cache line and are written by different CPUs concurrently: even though the operations are non-overlapping, each write forces the other CPU to invalidate and reload the line, producing ping-pong cache traffic that can dominate the runtime of an otherwise cheap atomic update.
+
+False sharing is **only** a concern for *hot arrays of atomics* — arrays where multiple threads simultaneously write to adjacent elements. It is **not** a concern for:
+
+* **Scattered single-field atomics inside larger structs** (daemon shutdown flags, per-SAP state, reference counters). The enclosing struct's other fields share the cache line anyway and are written holistically; padding just the atomic field is illusory protection.
+* **File-scope static atomics** (initialization guards, shutdown signals). Their neighbors in `.bss` are typically unrelated read-mostly globals, not hot atomics.
+* **Stack-local atomics**. Each thread has its own stack; no sharing possible.
+
+The one ION pattern that *does* match "hot array of atomics" is the BP/LTP tally delta arrays (`BpVdb.{source,recv,discard,xmit,db}Deltas`, `VPlan.statsDeltas`, `VInduct.statsDeltas`, `VEndpoint.statsDeltas`, `LtpVspan.statsDeltas`). These hold adjacent counters that can be written concurrently by different priority levels or different CLAs. They are currently 16 bytes per pair (`ion_ipc_atomic_t` × 2), so four pairs fit in a single cache line — adjacent priorities share a line and can false-share under contention. This is a deliberate memory-vs-contention trade-off: ION prioritizes the SM-partition footprint on flight targets over the marginal cache-line bouncing that occurs under heavy concurrent tally updates, which in practice is bounded by the bundle send/receive rate.
+
+**Do not preemptively pad all atomics to 64 bytes.** Every `ion_atomic_t` already pays one of two costs (native `_Atomic(vast)` on C11 = 8 bytes, mutex-backed union on C99 fallback = 64 bytes). Padding scattered single fields provides no measurable benefit, wastes memory universally, and obscures the cases where padding actually matters.
+
+**Do add `alignas(64)` surgically if a new hot array of atomics is introduced** and profiling shows cache-line bouncing. The idiom for per-element padding is:
+
+```c
+typedef struct {
+    alignas(64) TallyDelta entry;
+} PaddedTallyDelta;
+
+/* Hot array — each element on its own cache line. */
+PaddedTallyDelta sourceDeltas[3];
+```
+
+Use this surgically, at the specific declaration where false sharing has been *measured*, not preemptively across the codebase. C11 and C++11 both support `alignas`, and C++17 adds `std::hardware_destructive_interference_size` for the hardware-specific cache-line size (typically 64 bytes on x86_64 and most ARM64 cores).
+
+#### FIXME — Known candidates for future false-sharing optimization
+
+These declarations are *plausible* false-sharing candidates but have **not** been profiled under representative load. Do not apply `alignas(64)` to them until a benchmark on the target platform shows a measurable win. Record the before/after numbers in the commit message so the trade-off is auditable.
+
+* **`TallyDelta` array elements in general** (`ici/include/ion.h`). Every struct that embeds `TallyDelta[]` is a candidate: `BpVdb.{source,recv,discard,xmit,db}Deltas`, `VPlan.statsDeltas`, `VInduct.statsDeltas`, `VEndpoint.statsDeltas`, `LtpVspan.statsDeltas`. A single `alignas(64)` on the `TallyDelta` type would address all of them simultaneously at the cost of ~5.8 KB extra SM-partition footprint for a typical node (120 TallyDeltas × 48 bytes of padding). This is the simplest and most comprehensive fix if the benchmark justifies it.
+
+* **`LtpVspan.statsDeltas[LTP_SPAN_STATS]`** specifically is the strongest candidate among the list above. LTP spans are touched by up to five distinct threads per span (`ltpcli` receiver, `ltpclo` sender, `ltpmeter`, `ltpdeliv`, `ltpclock`), each writing a different `idx` value (receive vs transmit vs session-complete vs delivery). Adjacent elements are genuinely hit by different CPUs under realistic load. If budget constraints prevent padding *all* TallyDeltas, pad this one first.
+
+* **`BpVdb.{source,recv,xmit}Deltas[3]`** (per-priority tally deltas) are a secondary candidate. In practice each priority tends to have one dominant writer (a specific application, a specific CLI, a specific CLO), so concurrent writes to adjacent priorities are less common than the LTP span case.
+
+How to profile:
+
+1. Pin two threads to different physical cores (`taskset -c 0,1` on Linux, or platform equivalent).
+2. Have each thread call the target tally function in a tight loop (e.g., `bpSourceTally(i, 100)` with different `i` values) for a fixed wall-clock interval.
+3. Measure total operations per second, compared against a padded variant built with `alignas(64)` applied to the struct under test.
+4. Report the delta. A ≥2× difference on the hot path is a clear signal to pad; anything less is within noise and not worth the memory cost.
+
 ### API Summary
 
 All six operations are defined for both zones. The signatures are identical except for the type name:
