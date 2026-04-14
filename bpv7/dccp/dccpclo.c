@@ -478,6 +478,7 @@ int	main(int argc, char *argv[])
 	ion_atomic_set(&itp.done, 1);
 	pthread_join(keepalive_thread, NULL);
 	pthread_mutex_destroy(&itp.mutex);
+	ion_atomic_mutex_destroy(&itp.done);
 	close(itp.linksocket);
 	writeErrmsgMemos();
 	writeMemo("[i] dccpclo duct has ended.");

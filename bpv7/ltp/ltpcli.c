@@ -524,6 +524,7 @@ int	main(int argc, char *argv[])
 
 	ltp_interrupt(BpLtpClientId);
 	pthread_join(receiverThread, NULL);
+	ion_atomic_mutex_destroy(&rtp.running);
 	writeErrmsgMemos();
 	writeMemo("[i] ltpcli duct has ended.");
 	ionDetach();

@@ -844,6 +844,7 @@ segment batch.", NULL);
 	}
 
 	closesocket(rtp.linkSocket);
+	ion_atomic_mutex_destroy(&rtp.running);
 
 	writeErrmsgMemos();
 	writeMemo("[i] udplso has ended.");

@@ -1151,6 +1151,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	}
 
 	pthread_mutex_destroy(&gWay->gwayStateMutex);
+	ion_atomic_mutex_destroy(&gWay->final_shutdown);
 	oK(_petitionLog(NULL, 0));	/*	Close petition log.	*/
 	oK(_gWay(gWay));		/*	Release gateway singleton. */
 	writeMemo("[i] RAMS gateway stopped.");

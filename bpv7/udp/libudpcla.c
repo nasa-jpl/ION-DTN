@@ -416,6 +416,7 @@ void cleanupUdpClaSocket(UdpClaSocket *claSock)
 	}
 
 	pthread_mutex_destroy(&claSock->shutdown_mutex);
+	ion_atomic_mutex_destroy(&claSock->shutdown_requested);
 	memset(claSock, 0, sizeof(UdpClaSocket));
 }
 

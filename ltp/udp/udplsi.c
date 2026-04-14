@@ -217,6 +217,7 @@ int	main(int argc, char *argv[])
 	}
 
 	closesocket(rtp.linkSocket);
+	ion_atomic_mutex_destroy(&rtp.running);
 	writeErrmsgMemos();
 	writeMemo("[i] udplsi has ended.");
 	ionDetach();

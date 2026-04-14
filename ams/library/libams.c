@@ -394,6 +394,8 @@ static void	eraseSAP(AmsSAP *sap)
 
 	sm_SemDelete(sap->isRegistered);
 	pthread_mutex_destroy(&sap->sapStateMutex);
+	ion_atomic_mutex_destroy(&sap->terminating);
+	ion_atomic_mutex_destroy(&sap->heartbeatsMissed);
 	MRELEASE(sap);
 }
 
@@ -4002,6 +4004,8 @@ static int	ams_register2(char *applicationName, char *authorityName,
 	if (pthread_mutex_init(&sap->sapStateMutex, NULL) != 0)
 	{
 		putSysErrmsg("Can't initialize SAP state mutex", NULL);
+		ion_atomic_mutex_destroy(&sap->terminating);
+		ion_atomic_mutex_destroy(&sap->heartbeatsMissed);
 		MRELEASE(sap);
 		*module = NULL;
 		return -1;
@@ -4019,6 +4023,8 @@ static int	ams_register2(char *applicationName, char *authorityName,
 	{
 		putSysErrmsg("Can't create SAP semaphore", NULL);
 		pthread_mutex_destroy(&sap->sapStateMutex);
+		ion_atomic_mutex_destroy(&sap->terminating);
+		ion_atomic_mutex_destroy(&sap->heartbeatsMissed);
 		MRELEASE(sap);
 		*module = NULL;
 		return -1;
@@ -4030,6 +4036,8 @@ static int	ams_register2(char *applicationName, char *authorityName,
 		putSysErrmsg("Can't take initial SAP semaphore", NULL);
 		sm_SemDelete(sap->isRegistered); // Clean up the created semaphore
 		pthread_mutex_destroy(&sap->sapStateMutex);
+		ion_atomic_mutex_destroy(&sap->terminating);
+		ion_atomic_mutex_destroy(&sap->heartbeatsMissed);
 		MRELEASE(sap);
 		*module = NULL;
 		return -1;
