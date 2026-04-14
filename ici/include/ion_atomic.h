@@ -32,6 +32,54 @@
 #endif
 
 /*==================================================================*/
+/* C++ COMPATIBILITY PATH                                           */
+/*------------------------------------------------------------------*/
+/* External C++ programs that link against the ION C library need   */
+/* the headers (platform.h, ion.h, bpP.h, ltpP.h, etc.) to parse    */
+/* cleanly under a C++ compiler, and they need struct layouts to    */
+/* match the C compilation so pointers can cross the C/C++ boundary */
+/* without corruption.                                              */
+/*                                                                  */
+/* The C11 `_Atomic(T)` type qualifier and GCC/Clang `__atomic_*`   */
+/* built-ins used by the C paths below are not valid in C++.        */
+/* (C++23 added `std::atomic_ref<T>` but we cannot depend on it.)   */
+/*                                                                  */
+/* C++ consumers typically call the ION C API (bp_attach, bp_send,  */
+/* ipnadminep, etc.) and do not touch `ion_atomic_t` /              */
+/* `ion_ipc_atomic_t` fields directly — the atomic manipulation     */
+/* happens inside the C library.  This path therefore exposes the   */
+/* two atomic types as opaque byte blobs with sizes and alignments  */
+/* matching the C compilation, and omits the accessor macros and    */
+/* inline functions (which are C-only).                             */
+/*                                                                  */
+/* The 64-byte size for `ion_atomic_t` matches every C compilation  */
+/* path (Zone 1 C11 padded union, Zone 1 C99 mutex-backed union).   */
+/* The `sizeof(long long)` size for `ion_ipc_atomic_t` matches      */
+/* every Zone 2 tier (`_Atomic(vast)` on C11, `volatile vast` on    */
+/* the __atomic / __sync fallbacks), because `vast` is an 8-byte    */
+/* integer on all supported ION targets.                            */
+/*==================================================================*/
+
+#ifdef __cplusplus
+
+typedef struct {
+	alignas(alignof(long long))	unsigned char	opaque[64];
+} ion_atomic_t;
+
+typedef struct {
+	alignas(alignof(long long))	unsigned char	opaque[sizeof(long long)];
+} ion_ipc_atomic_t;
+
+/* C++ code must not construct these directly; any initialization
+ * happens inside the C library (e.g., via ion_atomic_init()).  The
+ * zero-initializer is provided only so that static struct
+ * initializers in ION C code remain syntactically valid if the
+ * header is accidentally parsed as C++.				*/
+#define ION_ATOMIC_INIT(v)		{ { 0 } }
+
+#else /* !__cplusplus — C compilation paths begin */
+
+/*==================================================================*/
 /* Feature Flag Initialization & Test Override                      */
 /*==================================================================*/
 
@@ -238,5 +286,7 @@ typedef volatile vast ion_ipc_atomic_t;
 #define ion_ipc_atomic_exchange(p,v)            __sync_lock_test_and_set((p), (v))
 
 #endif /* ION_HAVE_C11_ATOMICS IPC */
+
+#endif /* !__cplusplus */
 
 #endif /* ION_ATOMIC_H */
