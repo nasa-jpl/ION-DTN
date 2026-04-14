@@ -1219,8 +1219,19 @@ static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
 	bucket = sap->buckets + (sessionNbr & DGR_SESNBR_MASK);
 	pthread_mutex_lock(&bucket->mutex);
 	pthread_mutex_lock(&sap->destsMutex);
+
+	/*	Bucket lists are kept in strict sessionNbr order by
+	 *	dgr_send(), which acquires bucket->mutex while still
+	 *	holding sapMutex.  The early exits below rely on
+	 *	that invariant: once we pass the target, the record
+	 *	cannot be further along in the list.			*/
+
 	if (op == DgrSendMessage)
 	{
+		/*	DgrSendMessage searches back-to-front because
+		 *	a newly queued record is most likely to be at
+		 *	the tail of the list.				*/
+
 		for (elt = lyst_last(bucket->msgs); elt; elt = lyst_prev(elt))
 		{
 			rec = (DgrRecord) lyst_data(elt);
@@ -1232,7 +1243,9 @@ static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
 
 			if (rec->segment.id.engineId < engineId)
 			{
-				continue;	/* Force full traversal */
+				pthread_mutex_unlock(&sap->destsMutex);
+				pthread_mutex_unlock(&bucket->mutex);
+				return 0;	/*	Past target.	*/
 			}
 
 			if (rec->segment.id.sessionNbr > sessionNbr)
@@ -1242,7 +1255,9 @@ static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
 
 			if (rec->segment.id.sessionNbr < sessionNbr)
 			{
-				continue;	/* Force full traversal */
+				pthread_mutex_unlock(&sap->destsMutex);
+				pthread_mutex_unlock(&bucket->mutex);
+				return 0;	/*	Past target.	*/
 			}
 
 			break;
@@ -1263,6 +1278,11 @@ static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
 		return result;
 	}
 
+	/*	DgrHandleRpt / DgrHandleTimeout searches front-to-back
+	 *	because older records — targets of ACKs or timeouts —
+	 *	accumulate toward the head of the list.  Same ordering
+	 *	invariant applies.					*/
+
 	for (elt = lyst_first(bucket->msgs); elt; elt = lyst_next(elt))
 	{
 		rec = (DgrRecord) lyst_data(elt);
@@ -1273,7 +1293,9 @@ static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
 
 		if (rec->segment.id.engineId > engineId)
 		{
-			continue;	/* Force full traversal */
+			pthread_mutex_unlock(&sap->destsMutex);
+			pthread_mutex_unlock(&bucket->mutex);
+			return 0;	/*	Past target.		*/
 		}
 
 		if (rec->segment.id.sessionNbr < sessionNbr)
@@ -1283,7 +1305,9 @@ static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
 
 		if (rec->segment.id.sessionNbr > sessionNbr)
 		{
-			continue;	/* Force full traversal */
+			pthread_mutex_unlock(&sap->destsMutex);
+			pthread_mutex_unlock(&bucket->mutex);
+			return 0;	/*	Past target.		*/
 		}
 
 		break;
@@ -2587,7 +2611,6 @@ rcSnoozes++;
 	sap->sessionNbr++;
 	rec->segment.id.engineId = sap->engineId;
 	rec->segment.id.sessionNbr = sap->sessionNbr;
-	pthread_mutex_unlock(&sap->sapMutex);
 
 	/*	Store in a bucket of the DGR ARQ (record) database.
 	 *	Select bucket by computing sessionNbr modulo the
@@ -2596,9 +2619,27 @@ rcSnoozes++;
 	rec->bucket = sap->buckets +
 			(rec->segment.id.sessionNbr & DGR_SESNBR_MASK);
 
-	/*	Insert the new record in the selected database bucket.	*/
+	/*	Insert the new record in the selected database bucket.
+	 *
+	 *	Lock ordering note: we acquire bucket->mutex BEFORE
+	 *	releasing sapMutex.  This preserves the invariant
+	 *	that records land in the bucket in strict
+	 *	sessionNbr order: as long as sessionNbr assignment
+	 *	(above) and lyst_insert_last (below) happen inside
+	 *	a single critical section that blocks any other
+	 *	dgr_send thread targeting the same bucket, two
+	 *	threads that get consecutive sessionNbr values in
+	 *	the same mod-DGR_BUCKETS hash class cannot reorder
+	 *	their inserts.  arq() relies on this invariant to
+	 *	bail out early when walking a bucket list and
+	 *	finding a record past its target.
+	 *
+	 *	Global lock hierarchy: sap->sapMutex ->
+	 *	bucket->mutex -> sap->destsMutex.  No other code
+	 *	path acquires bucket before sapMutex.		*/
 
 	pthread_mutex_lock(&rec->bucket->mutex);
+	pthread_mutex_unlock(&sap->sapMutex);
 	elt = lyst_insert_last(rec->bucket->msgs, rec);
 	pthread_mutex_unlock(&rec->bucket->mutex);
 	if (elt == NULL)				/*	Bail.	*/
