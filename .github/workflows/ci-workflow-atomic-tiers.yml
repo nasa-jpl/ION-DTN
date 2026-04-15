@@ -18,6 +18,21 @@ permissions:
   pull-requests: read
 
 on:
+  # BOOTSTRAP TRIGGER — remove before opening the PR to `integration`.
+  #
+  # `workflow_dispatch` workflows must exist on the default branch before the
+  # GitHub REST API will register them; until then, `gh workflow run` returns
+  # 404 on the feature branch.  Adding a path-scoped `push:` trigger on this
+  # feature branch lets GitHub register the workflow the first time it lands,
+  # so subsequent manual dispatches against the branch work.  The push run
+  # itself uses conservative defaults (x86_64 only, single __atomic tier) via
+  # the `inputs.X || 'default'` fallbacks below — safe to cancel if you don't
+  # want the auto-run.
+  push:
+    branches:
+      - update-4.2.0-add-atomic-tier-ci-workflow
+    paths:
+      - .github/workflows/ci-workflow-atomic-tiers.yml
   workflow_dispatch:
     inputs:
       test_scope:
@@ -81,7 +96,7 @@ jobs:
       - name: Resolve test_branch
         id: resolve
         run: |
-          REF="${{ inputs.test_branch }}"
+          REF="${{ inputs.test_branch || '' }}"
           if [ -z "$REF" ]; then
             REF="${{ github.ref_name }}"
           fi
@@ -96,8 +111,9 @@ jobs:
       - name: Compute tier lists
         id: tiers
         run: |
-          FILTER="${{ inputs.tier_filter }}"
-          PLATFORMS="${{ inputs.platforms }}"
+          # Fall back to conservative defaults on push-event auto-run
+          FILTER="${{ inputs.tier_filter || '__atomic' }}"
+          PLATFORMS="${{ inputs.platforms || 'x86_64' }}"
           # x86_64: exclude 'native' because Tier 1 is already covered by ci-workflow-arc.yml
           case "$FILTER" in
             all)       X86='["__atomic","__sync"]'           ; ARM='["native","__atomic","__sync"]' ;;
@@ -133,7 +149,7 @@ jobs:
       - name: Get test batches
         id: dataStep
         run: |
-          TESTSET=$(./tests/git_matrix.py -r ${{ inputs.num_runners }})
+          TESTSET=$(./tests/git_matrix.py -r ${{ inputs.num_runners || 7 }})
           # Transform the array into objects with a 1-based batch index
           TESTSET_WITH_BATCH=$(echo "$TESTSET" | jq -c '[to_entries | .[] | {batch: (.key + 1), tests: .value}]')
           echo "testoutput=$TESTSET_WITH_BATCH" >> "$GITHUB_OUTPUT"
@@ -189,7 +205,7 @@ jobs:
 
       - name: Build ION and Run Buildcheck
         if: steps.cache-build.outputs.cache-hit != 'true'
-        timeout-minutes: ${{ fromJSON(inputs.timeout_minutes) }}
+        timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '240') }}
         run: |
           {
             export USER=$(whoami)
@@ -267,7 +283,7 @@ jobs:
 
       - name: Install ION and run tests
         if: ${{ steps.cache-restore.outputs.cache-hit == 'true' }}
-        timeout-minutes: ${{ fromJSON(inputs.timeout_minutes) }}
+        timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '240') }}
         run: |
           {
             echo "Starting test run at $(date)"
@@ -370,7 +386,7 @@ jobs:
     needs: setup
     if: ${{ needs.setup.outputs.arm_tiers != '[]' }}
     runs-on: [self-hosted, macOS, ARM64]
-    timeout-minutes: ${{ fromJSON(inputs.timeout_minutes) }}
+    timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '240') }}
     env:
       SMOKE_SUBSET: >-
         ../demos/bench-dgr
@@ -382,7 +398,7 @@ jobs:
         issue-324-ltp-files
         asymmetric-range
       SELECTED_TIERS_JSON: ${{ needs.setup.outputs.arm_tiers }}
-      TEST_SCOPE: ${{ inputs.test_scope }}
+      TEST_SCOPE: ${{ inputs.test_scope || 'smoke' }}
 
     steps:
       - name: Clean up workspace
@@ -559,8 +575,9 @@ jobs:
             echo "## 📊 Atomic Tier Regression Overview"
             echo ""
             echo "- **Source ref:** \`${{ needs.setup.outputs.resolved_ref }}\`"
-            echo "- **Tier filter:** \`${{ inputs.tier_filter }}\`"
-            echo "- **arm64 test scope:** \`${{ inputs.test_scope }}\`"
+            echo "- **Tier filter:** \`${{ inputs.tier_filter || '__atomic (push default)' }}\`"
+            echo "- **Platforms:** \`${{ inputs.platforms || 'x86_64 (push default)' }}\`"
+            echo "- **arm64 test scope:** \`${{ inputs.test_scope || 'smoke' }}\`"
             echo ""
             echo "| Runner | Tier | Batch | Result | Failed Tests | Skipped Tests |"
             echo "|--------|------|-------|--------|--------------|---------------|"
