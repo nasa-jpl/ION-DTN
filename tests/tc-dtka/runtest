@@ -203,7 +203,7 @@ echo "Hijacking 2 key authority nodes and taking 1 out of service..."
 cd ../1.ipn.ltp
 tcaadmin 203 hijack.tcarc
 cd ../4.ipn.ltp
-./ionstop &
+./ionstop &>/dev/null &
 cd ../6.ipn.ltp
 tcaadmin 203 hijack.tcarc
 cd ../2.ipn.ltp
@@ -306,21 +306,21 @@ fi
 sleep 10
 echo "Stopping ION..."
 cd ../1.ipn.ltp
-./ionstop &
+./ionstop &>/dev/null &
 cd ../2.ipn.ltp
-./ionstop &
+./ionstop &>/dev/null &
 cd ../3.ipn.ltp
-./ionstop &
+./ionstop &>/dev/null &
 cd ../5.ipn.ltp
-./ionstop &
+./ionstop &>/dev/null &
 cd ../6.ipn.ltp
-./ionstop &
+./ionstop &>/dev/null &
 cd ../7.ipn.ltp
-./ionstop &
+./ionstop &>/dev/null &
 cd ../8.ipn.ltp
-./ionstop &
+./ionstop &>/dev/null &
 cd ../9.ipn.ltp
-./ionstop &
+./ionstop &>/dev/null &
 
 # Give all nodes time to shut down, then clean up.
 sleep 20
