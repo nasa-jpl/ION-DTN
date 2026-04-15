@@ -1,0 +1,596 @@
+name: Regression Tests for ION Atomic Fallback Tiers
+
+# This workflow exercises the Tier 2 (__atomic) and Tier 3 (__sync) fallback
+# code paths in ici/include/ion_atomic.h by forcing them via CFLAGS.  Tier 1
+# (C11 <stdatomic.h>) is already covered on x86_64 Linux by ci-workflow-arc.yml,
+# so x86_64 jobs here only run Tier 2 and Tier 3.  arm64 Linux coverage is run
+# in a Docker container on a single self-hosted Mac ARM64 runner and includes
+# all three tiers.
+#
+# The `test_branch` input decouples the workflow YAML (which can live on any
+# scratch/feature branch) from the ION source under test.  Every checkout step
+# honors `test_branch`, so you can iterate on this workflow independently from
+# the branch that contains the code you want to exercise.
+
+permissions:
+  contents: read
+  statuses: write
+  pull-requests: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_scope:
+        description: 'arm64 Linux test scope: smoke (~45 min/tier) or full (~3.5 hr/tier). x86_64 always runs the full suite.'
+        required: true
+        default: 'smoke'
+        type: choice
+        options:
+          - smoke
+          - full
+      tier_filter:
+        description: 'Which atomic tiers to exercise'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - native
+          - __atomic
+          - __sync
+      platforms:
+        description: 'Which platforms to exercise'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - both
+          - x86_64
+          - arm64
+      test_branch:
+        description: 'ION source branch or SHA to build and test (independent of the branch this workflow YAML lives on)'
+        required: true
+        default: ''
+        type: string
+      timeout_minutes:
+        description: 'Per-job timeout in minutes (default: 240)'
+        required: false
+        type: number
+        default: 240
+      num_runners:
+        description: 'Number of x86_64 test batches per tier/distro (default: 7)'
+        required: false
+        type: number
+        default: 7
+
+jobs:
+  # --------------------------------------------------------------------------
+  # setup: resolve test_branch, build test batch matrix from git_matrix.py,
+  # and compute the x86_64 tier list (Tier 1 excluded because ci-workflow-arc.yml
+  # already covers it).
+  # --------------------------------------------------------------------------
+  setup:
+    runs-on: arc-runner-set-u22
+    outputs:
+      testmatrix: ${{ steps.dataStep.outputs.testoutput }}
+      x86_tiers: ${{ steps.tiers.outputs.x86_tiers }}
+      arm_tiers: ${{ steps.tiers.outputs.arm_tiers }}
+      resolved_ref: ${{ steps.resolve.outputs.ref }}
+
+    steps:
+      - name: Resolve test_branch
+        id: resolve
+        run: |
+          REF="${{ inputs.test_branch }}"
+          if [ -z "$REF" ]; then
+            REF="${{ github.ref_name }}"
+          fi
+          echo "Resolved ION source ref: $REF"
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout ION source under test
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.resolve.outputs.ref }}
+
+      - name: Compute tier lists
+        id: tiers
+        run: |
+          FILTER="${{ inputs.tier_filter }}"
+          PLATFORMS="${{ inputs.platforms }}"
+          # x86_64: exclude 'native' because Tier 1 is already covered by ci-workflow-arc.yml
+          case "$FILTER" in
+            all)       X86='["__atomic","__sync"]'           ; ARM='["native","__atomic","__sync"]' ;;
+            native)    X86='[]'                               ; ARM='["native"]' ;;
+            __atomic)  X86='["__atomic"]'                     ; ARM='["__atomic"]' ;;
+            __sync)    X86='["__sync"]'                       ; ARM='["__sync"]' ;;
+            *)
+              echo "Unknown tier_filter: $FILTER" >&2
+              exit 1
+              ;;
+          esac
+          # Apply platform filter: zero out the tier list for any excluded platform.
+          # Downstream jobs already gate on `tier_list != '[]'`, so this cleanly
+          # skips the excluded platform's build/test/arm64 jobs.
+          case "$PLATFORMS" in
+            both)   ;;
+            x86_64) ARM='[]' ;;
+            arm64)  X86='[]' ;;
+            *)
+              echo "Unknown platforms: $PLATFORMS" >&2
+              exit 1
+              ;;
+          esac
+          if [ "$X86" = '[]' ] && [ "$ARM" = '[]' ]; then
+            echo "Error: tier_filter='$FILTER' combined with platforms='$PLATFORMS' leaves no jobs to run." >&2
+            exit 1
+          fi
+          echo "x86_tiers=$X86" >> "$GITHUB_OUTPUT"
+          echo "arm_tiers=$ARM" >> "$GITHUB_OUTPUT"
+          echo "x86 tiers: $X86"
+          echo "arm tiers: $ARM"
+
+      - name: Get test batches
+        id: dataStep
+        run: |
+          TESTSET=$(./tests/git_matrix.py -r ${{ inputs.num_runners }})
+          # Transform the array into objects with a 1-based batch index
+          TESTSET_WITH_BATCH=$(echo "$TESTSET" | jq -c '[to_entries | .[] | {batch: (.key + 1), tests: .value}]')
+          echo "testoutput=$TESTSET_WITH_BATCH" >> "$GITHUB_OUTPUT"
+
+  # --------------------------------------------------------------------------
+  # build-linux-x86_64: build ION on each selected distro × tier combination.
+  # Cache keyed by (runner, tier, source SHA) so install-and-test can reuse it.
+  # --------------------------------------------------------------------------
+  build-linux-x86_64:
+    needs: setup
+    if: ${{ needs.setup.outputs.x86_tiers != '[]' }}
+    name: "Build: ${{ matrix.runner }} (${{ matrix.tier }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [arc-runner-set-rhel9, arc-runner-set-ol9, arc-runner-set-u22]
+        tier: ${{ fromJSON(needs.setup.outputs.x86_tiers) }}
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: Checkout ION source under test
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.setup.outputs.resolved_ref }}
+
+      - name: Compute tier CFLAGS
+        id: cflags
+        run: |
+          case "${{ matrix.tier }}" in
+            native)   CF="-DHAVE_VALGRIND_VALGRIND_H" ;;
+            __atomic) CF="-DHAVE_VALGRIND_VALGRIND_H -DION_TEST_FORCE_FALLBACK" ;;
+            __sync)   CF="-DHAVE_VALGRIND_VALGRIND_H -DION_TEST_FORCE_FALLBACK -DION_TEST_FORCE_SYNC_FALLBACK" ;;
+            *)
+              echo "Unknown tier: ${{ matrix.tier }}" >&2
+              exit 1
+              ;;
+          esac
+          echo "cflags=$CF" >> "$GITHUB_OUTPUT"
+          echo "Tier ${{ matrix.tier }} CFLAGS: $CF"
+
+      - name: Cache Build Workspace
+        id: cache-build
+        uses: actions/cache@v4
+        with:
+          path: |
+            .
+            !.git
+            !autom4te.cache/
+            !.github/
+            !compile-and-buildcheck.log
+            !**/*.md
+          key: ion-build-tiers-${{ matrix.runner }}-${{ matrix.tier }}-${{ needs.setup.outputs.resolved_ref }}-${{ github.run_id }}
+
+      - name: Build ION and Run Buildcheck
+        if: steps.cache-build.outputs.cache-hit != 'true'
+        timeout-minutes: ${{ fromJSON(inputs.timeout_minutes) }}
+        run: |
+          {
+            export USER=$(whoami)
+            echo "USER is set to: $USER"
+            export ION_RUN_EXPERT="yes"
+            export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+            echo "Tier:   ${{ matrix.tier }}"
+            echo "CFLAGS: ${{ steps.cflags.outputs.cflags }}"
+            autoreconf -fi
+            ./configure --enable-crypto-mbedtls --enable-bpsec-debugging \
+                CFLAGS="${{ steps.cflags.outputs.cflags }}"
+            make all buildcheck
+          } > compile-and-buildcheck.log 2> >(tee -a compile-and-buildcheck.log >&2)
+
+          BUILD_STATUS=$?
+          wait
+
+          if [ $BUILD_STATUS -ne 0 ]; then
+            echo "Build or buildcheck failed with status $BUILD_STATUS" >&2
+            exit $BUILD_STATUS
+          fi
+
+      - name: Upload build log
+        if: ${{ always() && steps.cache-build.outputs.cache-hit != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: compile-log-${{ matrix.runner }}-${{ matrix.tier }}-${{ github.run_id }}
+          path: compile-and-buildcheck.log
+          if-no-files-found: warn
+
+  # --------------------------------------------------------------------------
+  # install-and-test-linux-x86_64: restore the cached build, install, and run
+  # the batched regression suite.  Always runs the full suite on x86_64 (ARC
+  # runners are plentiful).
+  # --------------------------------------------------------------------------
+  install-and-test-linux-x86_64:
+    needs: [setup, build-linux-x86_64]
+    if: ${{ needs.setup.outputs.x86_tiers != '[]' }}
+    name: "Test: ${{ matrix.runner }} ${{ matrix.tier }} (Batch ${{ matrix.testchunk.batch }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [arc-runner-set-rhel9, arc-runner-set-ol9, arc-runner-set-u22]
+        tier: ${{ fromJSON(needs.setup.outputs.x86_tiers) }}
+        testchunk: ${{ fromJSON(needs.setup.outputs.testmatrix) }}
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: Checkout ION source under test
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.setup.outputs.resolved_ref }}
+
+      - name: Display OS and Arch
+        run: |
+          cat /etc/os-release
+          uname -m
+          id
+
+      - name: Generate timestamp
+        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+
+      - name: Restore Cached Build
+        uses: actions/cache@v4
+        id: cache-restore
+        with:
+          path: |
+            .
+            !.git
+            !autom4te.cache/
+            !.github/
+            !compile-and-buildcheck.log
+            !**/*.md
+          key: ion-build-tiers-${{ matrix.runner }}-${{ matrix.tier }}-${{ needs.setup.outputs.resolved_ref }}-${{ github.run_id }}
+
+      - name: Install ION and run tests
+        if: ${{ steps.cache-restore.outputs.cache-hit == 'true' }}
+        timeout-minutes: ${{ fromJSON(inputs.timeout_minutes) }}
+        run: |
+          {
+            echo "Starting test run at $(date)"
+            echo "Tier:  ${{ matrix.tier }}"
+            echo "Batch: ${{ matrix.testchunk.batch }}"
+            export USER=$(whoami)
+            export ION_RUN_EXPERT="yes"
+            export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+            sudo make install
+            sudo ldconfig
+            cd tests
+            ./runtests ${{ matrix.testchunk.tests }}
+          } > build-and-test.log 2> >(tee -a build-and-test.log >&2)
+
+          TEST_STATUS=$?
+          wait
+
+          if [ $TEST_STATUS -ne 0 ]; then
+            echo "Tests failed with status $TEST_STATUS" >&2
+            exit $TEST_STATUS
+          fi
+
+      - name: Error Message for Cache Failure
+        if: ${{ steps.cache-restore.outputs.cache-hit != 'true' }}
+        run: |
+          echo "❌ Cache miss on ${{ matrix.runner }} tier ${{ matrix.tier }} batch ${{ matrix.testchunk.batch }}" >> $GITHUB_STEP_SUMMARY
+          exit 1
+
+      - name: Display Progress
+        if: ${{ always() }}
+        run: |
+          cat ./tests/progress | grep "FAILED" || { printf "No failed tests.\n"; exit 0; }
+
+      - name: Upload test log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-log-${{ matrix.runner }}-${{ matrix.tier }}-${{ env.TIMESTAMP }}-batch-${{ matrix.testchunk.batch }}
+          path: build-and-test.log
+
+      - name: Show progress file
+        if: ${{ always() }}
+        run: |
+          echo "Contents of ./tests/progress:"
+          cat ./tests/progress || echo "No progress file found."
+
+      - name: Upload progress file
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-progress-${{ matrix.runner }}-${{ matrix.tier }}-${{ env.TIMESTAMP }}-batch-${{ matrix.testchunk.batch }}
+          path: ./tests/progress
+
+      - name: Collect ion.log files
+        if: ${{ always() }}
+        run: |
+          mkdir -p ion-logs-collection
+          find ./tests -name "ion.log" -type f | while IFS= read -r logfile; do
+            relpath=$(echo "$logfile" | sed 's|^\./tests/||' | sed 's|/ion\.log$||')
+            unique_name=$(echo "$relpath" | tr '/' '-')
+            cp "$logfile" "ion-logs-collection/${unique_name}-ion.log"
+          done
+
+      - name: Upload ion.log files
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ion-logs-${{ matrix.runner }}-${{ matrix.tier }}-${{ env.TIMESTAMP }}-batch-${{ matrix.testchunk.batch }}
+          path: ion-logs-collection/
+          if-no-files-found: warn
+
+      - name: Save Job Status for Final Summary
+        if: ${{ always() }}
+        run: |
+          mkdir -p job-reports
+          RESULT_ICON="${{ job.status == 'success' && '✅' || '❌' }}"
+          FAILED_TESTS=$(awk '/^failed: /{flag=1; next} /^$/{flag=0} flag {print $1}' ./tests/progress 2>/dev/null | tr -d '\r' | xargs | sed 's/ /, /g')
+          [ -z "$FAILED_TESTS" ] && FAILED_TESTS="-"
+          SKIPPED_TESTS=$(awk '/^skipped: /{flag=1; next} /^$/{flag=0} flag {print $1}' ./tests/progress 2>/dev/null | tr -d '\r' | xargs | sed 's/ /, /g')
+          [ -z "$SKIPPED_TESTS" ] && SKIPPED_TESTS="-"
+          echo "| ${{ matrix.runner }} | ${{ matrix.tier }} | ${{ matrix.testchunk.batch }} | $RESULT_ICON ${{ job.status }} | $FAILED_TESTS | $SKIPPED_TESTS |" > job-reports/${{ matrix.runner }}-${{ matrix.tier }}-${{ matrix.testchunk.batch }}.txt
+
+      - name: Upload Status Fragment
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: status-x86-${{ matrix.runner }}-${{ matrix.tier }}-${{ matrix.testchunk.batch }}
+          path: job-reports/
+          if-no-files-found: warn
+
+  # --------------------------------------------------------------------------
+  # arm64-linux-tiers: single job that runs on the shared Mac ARM64 runner.
+  # Iterates the selected tiers serially in an arm64 Linux Docker container
+  # that bind-mounts the checked-out ION source from the Mac host.  We use a
+  # shell loop rather than a matrix because only one physical Mac host is
+  # available, so matrix-level parallelism buys nothing and adds scheduling
+  # overhead.
+  # --------------------------------------------------------------------------
+  arm64-linux-tiers:
+    needs: setup
+    if: ${{ needs.setup.outputs.arm_tiers != '[]' }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: ${{ fromJSON(inputs.timeout_minutes) }}
+    env:
+      SMOKE_SUBSET: >-
+        ../demos/bench-dgr
+        ../demos/bench-tcp
+        ../demos/bench-bssp
+        1000.loopback
+        1002.loopback-valgrind
+        bping
+        issue-324-ltp-files
+        asymmetric-range
+      SELECTED_TIERS_JSON: ${{ needs.setup.outputs.arm_tiers }}
+      TEST_SCOPE: ${{ inputs.test_scope }}
+
+    steps:
+      - name: Clean up workspace
+        run: |
+          rm -rf "$GITHUB_WORKSPACE"/* "$GITHUB_WORKSPACE"/.[!.]* 2>/dev/null || true
+
+      - name: Checkout ION source under test
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.setup.outputs.resolved_ref }}
+          clean: true
+
+      - name: Host info and disk check
+        run: |
+          uname -a
+          sw_vers || true
+          df -h . || true
+          docker version || { echo "Docker not running on host"; exit 1; }
+          docker info --format '{{.ServerVersion}}' || true
+
+      - name: Docker state hygiene
+        run: |
+          # Reap orphaned containers, dangling volumes, networks.
+          # Do NOT prune images - re-pulling ubuntu:22.04 every run is wasteful.
+          docker system prune -f --volumes || true
+
+      - name: Pre-pull ubuntu:22.04 arm64 image
+        run: |
+          docker pull --platform=linux/arm64 ubuntu:22.04
+
+      - name: Generate timestamp
+        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+
+      - name: Run build+test for each tier inside arm64 Linux container
+        run: |
+          set -o pipefail
+          mkdir -p arm64-logs arm64-status
+
+          TIERS=$(echo "$SELECTED_TIERS_JSON" | python3 -c 'import json,sys; print(" ".join(json.load(sys.stdin)))')
+          echo "Tiers to run: $TIERS"
+          echo "Test scope:   $TEST_SCOPE"
+
+          OVERALL_STATUS=0
+          for TIER in $TIERS; do
+            echo ""
+            echo "=============================================================="
+            echo "=== Tier $TIER ==="
+            echo "=============================================================="
+            case "$TIER" in
+              native)   CF="-DHAVE_VALGRIND_VALGRIND_H" ;;
+              __atomic) CF="-DHAVE_VALGRIND_VALGRIND_H -DION_TEST_FORCE_FALLBACK" ;;
+              __sync)   CF="-DHAVE_VALGRIND_VALGRIND_H -DION_TEST_FORCE_FALLBACK -DION_TEST_FORCE_SYNC_FALLBACK" ;;
+              *)
+                echo "Unknown tier: $TIER" >&2
+                exit 1
+                ;;
+            esac
+            echo "CFLAGS: $CF"
+
+            LOGFILE="arm64-logs/tier-${TIER}-build-and-test.log"
+
+            set +e
+            docker run --rm \
+              --platform=linux/arm64 \
+              -e TIER_CFLAGS="$CF" \
+              -e TEST_SCOPE="$TEST_SCOPE" \
+              -e SMOKE_SUBSET="$SMOKE_SUBSET" \
+              -v "$GITHUB_WORKSPACE:/src" \
+              -w /src \
+              ubuntu:22.04 \
+              bash -c '
+                set -e
+                export DEBIAN_FRONTEND=noninteractive
+                apt-get update -qq
+                apt-get install -y -qq --no-install-recommends \
+                    build-essential autoconf automake libtool pkg-config \
+                    libexpat1-dev valgrind sudo ca-certificates
+                echo "Compiler:"
+                gcc --version | head -1
+
+                autoreconf -fi
+                ./configure --enable-bpsec-debugging CFLAGS="$TIER_CFLAGS"
+                make -j"$(nproc)" all buildcheck
+                make install
+                ldconfig
+                cd tests
+                export USER=root
+                export ION_RUN_EXPERT=yes
+                if [ "$TEST_SCOPE" = "smoke" ]; then
+                  echo "Running smoke subset: $SMOKE_SUBSET"
+                  ./runtests $SMOKE_SUBSET
+                else
+                  echo "Running full regression suite"
+                  ./runtests
+                fi
+              ' 2>&1 | tee "$LOGFILE"
+            TIER_STATUS=${PIPESTATUS[0]}
+            set -e
+
+            if [ $TIER_STATUS -eq 0 ]; then
+              ICON="✅"
+              RESULT="success"
+            else
+              ICON="❌"
+              RESULT="failure"
+              OVERALL_STATUS=1
+            fi
+
+            # Parse tests/progress (left behind by the container on the bind mount)
+            FAILED_TESTS=$(awk '/^failed: /{flag=1; next} /^$/{flag=0} flag {print $1}' ./tests/progress 2>/dev/null | tr -d '\r' | xargs | sed 's/ /, /g')
+            [ -z "$FAILED_TESTS" ] && FAILED_TESTS="-"
+            SKIPPED_TESTS=$(awk '/^skipped: /{flag=1; next} /^$/{flag=0} flag {print $1}' ./tests/progress 2>/dev/null | tr -d '\r' | xargs | sed 's/ /, /g')
+            [ -z "$SKIPPED_TESTS" ] && SKIPPED_TESTS="-"
+
+            echo "| arm64-linux-docker | $TIER | - | $ICON $RESULT | $FAILED_TESTS | $SKIPPED_TESTS |" \
+                > "arm64-status/arm64-${TIER}.txt"
+
+            # Preserve tests/progress for this tier before the next tier overwrites it
+            if [ -f ./tests/progress ]; then
+              cp ./tests/progress "arm64-logs/tier-${TIER}-progress.txt"
+            fi
+
+            # Between-tier cleanup: remove any ion_nodes tracking, wipe staging
+            rm -f ./tests/ion_nodes || true
+          done
+
+          echo ""
+          echo "Overall arm64 Linux tier sweep status: $OVERALL_STATUS"
+          exit $OVERALL_STATUS
+
+      - name: Upload arm64 tier logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: arm64-linux-tier-logs-${{ env.TIMESTAMP }}
+          path: arm64-logs/
+          if-no-files-found: warn
+
+      - name: Upload arm64 status fragments
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: status-arm64-${{ env.TIMESTAMP }}
+          path: arm64-status/
+          if-no-files-found: warn
+
+      - name: Workspace cleanup
+        if: ${{ always() }}
+        run: |
+          rm -rf "$GITHUB_WORKSPACE"/* "$GITHUB_WORKSPACE"/.[!.]* 2>/dev/null || true
+
+  # --------------------------------------------------------------------------
+  # aggregate-results: merge status fragments from both x86_64 and arm64 paths
+  # into a single summary table.
+  # --------------------------------------------------------------------------
+  aggregate-results:
+    name: "Finalize Logs and Reports"
+    needs: [setup, install-and-test-linux-x86_64, arm64-linux-tiers]
+    runs-on: arc-runner-set-ol9
+    if: ${{ always() }}
+    steps:
+      - name: Generate timestamp
+        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
+          merge-multiple: false
+
+      - name: Generate Final Summary Table
+        run: |
+          {
+            echo "## 📊 Atomic Tier Regression Overview"
+            echo ""
+            echo "- **Source ref:** \`${{ needs.setup.outputs.resolved_ref }}\`"
+            echo "- **Tier filter:** \`${{ inputs.tier_filter }}\`"
+            echo "- **arm64 test scope:** \`${{ inputs.test_scope }}\`"
+            echo ""
+            echo "| Runner | Tier | Batch | Result | Failed Tests | Skipped Tests |"
+            echo "|--------|------|-------|--------|--------------|---------------|"
+            if ls all-artifacts/status-x86-*/*.txt >/dev/null 2>&1; then
+              cat all-artifacts/status-x86-*/*.txt | sort
+            fi
+            if ls all-artifacts/status-arm64-*/*.txt >/dev/null 2>&1; then
+              cat all-artifacts/status-arm64-*/*.txt | sort
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove status fragments before zipping
+        run: |
+          rm -rf all-artifacts/status-x86-* all-artifacts/status-arm64-* || true
+
+      - name: Upload unified bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: atomic-tiers-bundle-${{ env.TIMESTAMP }}
+          path: all-artifacts/
+          if-no-files-found: warn
+
+      - name: Clean up intermediate artifacts
+        uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118
+        with:
+          name: |
+            status-x86-*
+            status-arm64-*
+            compile-log-*
+            test-log-*
+            test-progress-*
+            ion-logs-*
+            arm64-linux-tier-logs-*
