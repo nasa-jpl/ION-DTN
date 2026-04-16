@@ -656,9 +656,12 @@ libici_la_SOURCES =	\
 	ici/sdr/sdr_perf.c \
 	ici/crypto/entropy_src.c
 
-if !HAVE_C11_ATOMICS
+# Always compile ion_atomic.c.  Its internal #if !ION_HAVE_C11_ATOMICS guard
+# compiles the function bodies to nothing on C11 builds, so this is safe.
+# The file must be unconditionally present so that CFLAGS-based tier overrides
+# (ION_TEST_FORCE_FALLBACK) can switch to the mutex-backed fallback at compile
+# time without a link failure.
 libici_la_SOURCES += ici/library/ion_atomic.c
-endif
 
 libici_la_CFLAGS = $(icicflags) $(AM_CFLAGS)
 libici_la_LIBADD = $(CRYPTO_LIBS) -lm
