@@ -425,9 +425,30 @@ jobs:
           # Do NOT prune images - re-pulling ubuntu:22.04 every run is wasteful.
           docker system prune -f --volumes || true
 
-      - name: Pre-pull ubuntu:22.04 arm64 image
+      - name: Bypass macOS keychain for Docker
         run: |
-          docker pull --platform=linux/arm64 ubuntu:22.04
+          # The macOS keychain is locked in non-interactive CI sessions,
+          # causing Docker commands to fail with "keychain cannot be accessed".
+          # Docker Desktop on macOS has a compiled-in default that tries
+          # osxkeychain even when config.json has no credsStore key.
+          # Setting credsStore to "" explicitly disables all credential helpers.
+          DOCKER_CFG="${RUNNER_TEMP}/docker-ci-cfg"
+          mkdir -p "$DOCKER_CFG"
+          echo '{"credsStore":""}' > "${DOCKER_CFG}/config.json"
+          echo "DOCKER_CONFIG=${DOCKER_CFG}" >> "$GITHUB_ENV"
+
+      - name: Verify ubuntu:22.04 arm64 image exists locally
+        run: |
+          # Skip docker pull to avoid macOS keychain issues in non-interactive
+          # CI sessions.  The image must be pre-pulled on the host manually:
+          #   docker pull --platform=linux/arm64 ubuntu:22.04
+          if docker image inspect ubuntu:22.04 >/dev/null 2>&1; then
+            echo "ubuntu:22.04 image found locally."
+            docker image inspect ubuntu:22.04 --format '{{.Architecture}} {{.Os}} {{.Size}}' || true
+          else
+            echo "::error::ubuntu:22.04 arm64 image not found locally. Pre-pull it on the Mac host: docker pull --platform=linux/arm64 ubuntu:22.04"
+            exit 1
+          fi
 
       - name: Generate timestamp
         run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
@@ -461,7 +482,7 @@ jobs:
             LOGFILE="arm64-logs/tier-${TIER}-build-and-test.log"
 
             set +e
-            docker run --rm \
+            docker run --rm --pull=never \
               --platform=linux/arm64 \
               -e TIER_CFLAGS="$CF" \
               -e TEST_SCOPE="$TEST_SCOPE" \
