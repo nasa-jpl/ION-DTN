@@ -18,21 +18,6 @@ permissions:
   pull-requests: read
 
 on:
-  # BOOTSTRAP TRIGGER — remove before opening the PR to `integration`.
-  #
-  # `workflow_dispatch` workflows must exist on the default branch before the
-  # GitHub REST API will register them; until then, `gh workflow run` returns
-  # 404 on the feature branch.  Adding a path-scoped `push:` trigger on this
-  # feature branch lets GitHub register the workflow the first time it lands,
-  # so subsequent manual dispatches against the branch work.  The push run
-  # itself uses conservative defaults (x86_64 only, single __atomic tier) via
-  # the `inputs.X || 'default'` fallbacks below — safe to cancel if you don't
-  # want the auto-run.
-  push:
-    branches:
-      - update-4.2.0-add-atomic-tier-ci-workflow
-    paths:
-      - .github/workflows/ci-workflow-atomic-tiers.yml
   workflow_dispatch:
     inputs:
       test_scope:
@@ -482,7 +467,7 @@ jobs:
             LOGFILE="arm64-logs/tier-${TIER}-build-and-test.log"
 
             set +e
-            docker run --rm --pull=never \
+            docker run --rm --pull=never --init \
               --platform=linux/arm64 \
               -e TIER_CFLAGS="$CF" \
               -e TEST_SCOPE="$TEST_SCOPE" \
