@@ -520,7 +520,7 @@ jobs:
                   ./runtests
                 fi
                 progress "Tests complete"
-              ' 2>&1 | stdbuf -oL tee "$LOGFILE"
+              ' 2>&1 | tee "$LOGFILE"
             TIER_STATUS=${PIPESTATUS[0]}
             set -e
 
