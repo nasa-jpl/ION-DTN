@@ -467,22 +467,26 @@ jobs:
             LOGFILE="arm64-logs/tier-${TIER}-build-and-test.log"
 
             set +e
+            # Do NOT pipe docker's stdout (e.g. `| tee`).  Piping makes
+            # Docker's client-side stdout a pipe, which triggers 64 KB
+            # block buffering and hides all progress in the Actions UI
+            # until the buffer fills.  Instead, let Docker write directly
+            # to the console (line-buffered), and have the container tee
+            # its own output to a log file on the bind mount.
             docker run --rm --pull=never --init \
               --platform=linux/arm64 \
               -e TIER_CFLAGS="$CF" \
               -e TEST_SCOPE="$TEST_SCOPE" \
               -e SMOKE_SUBSET="$SMOKE_SUBSET" \
+              -e LOGFILE="/src/arm64-logs/tier-${TIER}-build-and-test.log" \
               -v "$GITHUB_WORKSPACE:/src" \
               -w /src \
               ubuntu:22.04 \
               bash -c '
                 set -e
-                # Force line-buffered stdout so progress appears in the
-                # Actions UI in real time instead of being held in a pipe
-                # buffer until the container exits.
-                if command -v stdbuf >/dev/null 2>&1; then
-                  exec > >(stdbuf -oL cat) 2>&1
-                fi
+                # Tee all output to both the console (→ Actions UI) and
+                # a log file on the bind mount for artifact upload.
+                exec > >(tee -a "$LOGFILE") 2>&1
 
                 progress() { echo ""; echo ">>> [$(date +%H:%M:%S)] $*"; echo ""; }
 
@@ -520,8 +524,8 @@ jobs:
                   ./runtests
                 fi
                 progress "Tests complete"
-              ' 2>&1 | tee "$LOGFILE"
-            TIER_STATUS=${PIPESTATUS[0]}
+              '
+            TIER_STATUS=$?
             set -e
 
             if [ $TIER_STATUS -eq 0 ]; then
