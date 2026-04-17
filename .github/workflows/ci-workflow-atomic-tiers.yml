@@ -506,16 +506,21 @@ jobs:
                 ./configure --enable-bpsec-debugging CFLAGS="$TIER_CFLAGS"
 
                 progress "Building ION (make -j$(nproc) all buildcheck)"
-                make -j"$(nproc)" all buildcheck
+                make -j"$(nproc)" all buildcheck > /dev/null
 
                 progress "Installing ION"
-                make install
+                make install > /dev/null
                 ldconfig
 
                 progress "Starting regression tests (scope: $TEST_SCOPE)"
                 cd tests
                 export USER=root
                 export ION_RUN_EXPERT=yes
+                # Redirect verbose per-test output to files so only the
+                # concise START/PASS/FAIL/SKIP lines (written to stderr
+                # by runtests) appear in the Actions console.
+                export RUNTESTS_OUTPUTDIR=/src/arm64-logs
+                mkdir -p "$RUNTESTS_OUTPUTDIR"
                 if [ "$TEST_SCOPE" = "smoke" ]; then
                   echo "Smoke subset: $SMOKE_SUBSET"
                   ./runtests $SMOKE_SUBSET
