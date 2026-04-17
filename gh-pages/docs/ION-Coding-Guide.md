@@ -313,24 +313,33 @@ The `-lbp -lici` libraries may have been compiled with either C11 or C99 fallbac
 
 ### Testing the Fallback Tiers
 
-Two test-harness macros let you exercise tiers that wouldn't otherwise be selected on a modern Linux build:
+Two independent levers control the atomics path, and the recipes below keep them distinct:
+
+1. **Language standard** (in `configure.ac:64-92`) — a C18 probe runs first, falling back to C99. Pass `ac_cv_c11=no` on the `./configure` line to short-circuit the C18 probe and compile under `-std=c99`; this also flips the `HAVE_C11_ATOMICS` Automake conditional at `configure.ac:97`, causing `ici/library/ion_atomic.c` (the Zone 1 mutex-backed fallback TU) to be compiled.
+2. **Atomics tier dispatch** (in `ion_atomic.h:126-169`) — preprocessor macros that sit on top of whatever language mode configure picked:
 
 ```
--DION_TEST_FORCE_FALLBACK          # forces Tier 2 (__atomic) or Tier 3 (__sync)
--DION_TEST_FORCE_SYNC_FALLBACK     # forces Tier 3 (__sync); use WITH the above
+-DION_TEST_FORCE_FALLBACK          # undefines ION_HAVE_C11_ATOMICS → Tier 2 (__atomic) or Tier 3 (__sync)
+-DION_TEST_FORCE_SYNC_FALLBACK     # undefines ION_HAVE_GNU_ATOMIC → forces Tier 3 (__sync); pair WITH the above
 ```
 
-Full command-line examples for `./configure`:
+Recipes for `./configure`:
 
 ```sh
-# Force C99 __atomic fallback (Tier 2) — Zone 1 uses mutex, Zone 2 uses __atomic built-ins
+# Exercise Tier 2 (__atomic) on a modern compiler — language standard remains C18
 CFLAGS="-DION_TEST_FORCE_FALLBACK" ./configure
 
-# Force C99 __sync fallback (Tier 3) — Zone 1 uses mutex, Zone 2 uses __sync built-ins
+# Exercise Tier 3 (__sync) on a modern compiler — language standard remains C18
 CFLAGS="-DION_TEST_FORCE_FALLBACK -DION_TEST_FORCE_SYNC_FALLBACK" ./configure
+
+# Genuine C99-mode build; Tier 2 auto-selected on GCC ≥ 4.7 / any Clang
+./configure ac_cv_c11=no CFLAGS="-std=c99"
+
+# Genuine C99-mode build forced to Tier 3 (what a pre-GCC-4.7 flight toolchain would see)
+./configure ac_cv_c11=no CFLAGS="-std=c99 -DION_TEST_FORCE_SYNC_FALLBACK"
 ```
 
-Both commands work on modern Clang and GCC (≥ 4.7). Without either flag, `./configure` auto-detects C18/`<stdatomic.h>` and selects the native C11 path (Tier 1).
+The first two recipes only override tier dispatch — the compiler stays in C18 mode, so `ici/library/ion_atomic.c` is *not* compiled (the `HAVE_C11_ATOMICS` Automake conditional is still true). The last two recipes flip both levers and exercise the full C99 path end-to-end. Without any flag, `./configure` auto-detects C18/`<stdatomic.h>` and selects the native C11 path (Tier 1) on modern Clang and GCC (≥ 4.7).
 
 ThreadSanitizer validation harness: `tests/atomics/test_ipc_atomics.c` exercises `ion_ipc_atomic_t` under 8 concurrent threads × 300 000 operations per thread. Build with `-fsanitize=thread` and run against each tier to confirm lock-free correctness. Zero data races expected.
 
