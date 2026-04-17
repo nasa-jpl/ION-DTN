@@ -77,6 +77,9 @@ The following table summarizes C standard support across operating systems commo
 
 ION performs atomic read-modify-write operations in several hot paths: BP and LTP tally counters, inter-process reference counting on POSIX named semaphores, daemon shutdown flags (`rtp.running`, `terminating`, `done`), and sequence numbers used for cache invalidation in the global semaphore table. All of this goes through a single portable abstraction in **`ici/include/ion_atomic.h`**, which is transitively included via `platform.h`. Application code, library code, and new daemons must not include `<stdatomic.h>` or call `__atomic_*` / `__sync_*` built-ins directly — use the ION wrappers described below.
 
+> ⚠️ **Testing fallback tiers on a modern toolchain requires two levers, not one.**
+> Defining `-DION_TEST_FORCE_FALLBACK` and/or `-DION_TEST_FORCE_SYNC_FALLBACK` alone only flips tier dispatch inside the header — the compiler stays in C18 mode (because `configure.ac`'s `-std=iso9899:2018` probe still succeeds and is baked into `AM_CFLAGS`). To exercise a genuine **C99 + `__atomic`** or **C99 + `__sync`** build — the compile environment a pre-GCC-4.7 flight toolchain would actually see — you must ALSO short-circuit the C18 probe with `ac_cv_c11=no` AND pass `-std=c99` in `CFLAGS`. Without both levers, the `_Atomic` keyword, `<stdatomic.h>` visibility, feature-test macro defaults, and library-header switches all differ from the C99 environment you think you are testing. Recipes are in **[Testing the Fallback Tiers](#testing-the-fallback-tiers)** below; a CI workflow that passes only the force macros is validating tier dispatch, not C99 language compatibility.
+
 ### Dual-Zone Architecture
 
 `ion_atomic.h` defines **two opaque atomic types**, distinguished by where the variable lives in memory:

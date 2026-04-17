@@ -1,20 +1,76 @@
 /*
  * ion_atomic.h: Portable atomic operations for ION-DTN.
  *
- * Three compilation paths:
+ * Two atomic zones and a tier ladder
+ * ----------------------------------
+ * This header exposes two opaque atomic types distinguished by where
+ * the variable lives in memory:
  *
- * 1. C++ — uses <atomic> with std::atomic<T> type aliases.
- * C11 <stdatomic.h> is not available to C++ compilers
- * (optional since C++23). std::atomic<T> and C11
- * _Atomic T are layout-compatible on GCC, Clang, and
- * MSVC, so struct layouts in ion.h / bpP.h / ltpP.h
- * match across C and C++ translation units.
+ *   ion_atomic_t       — process-local memory (heap, stack, .bss).
+ *                        Backed by _Atomic(vast) on C11, or by a
+ *                        POSIX mutex + value on the C99 fallback.
  *
- * 2. C11/C18 — includes <stdatomic.h> directly.
+ *   ion_ipc_atomic_t   — shared memory crossing process boundaries
+ *                        (SDR, SM, mmap'd regions).  Always lock-
+ *                        free and async-signal-safe, so it never
+ *                        holds a mutex on any tier.
  *
- * 3. C99 — falls back to GCC/Clang __atomic built-ins,
- * which are available in C99 mode on GCC 4.7+ and all
- * versions of Clang.
+ * Zone 2 descends a three-tier ladder:
+ *
+ *   Tier 1 (C11)    — <stdatomic.h>, _Atomic(vast).
+ *   Tier 2 (GNU)    — GCC/Clang __atomic_* built-ins with
+ *                     __ATOMIC_RELAXED.  Used when C11 atomics are
+ *                     unavailable but __atomic is (GCC >= 4.7, any
+ *                     Clang).
+ *   Tier 3 (legacy) — GCC __sync_* built-ins, always full barrier.
+ *                     Retained for pre-GCC-4.7 flight toolchains
+ *                     (RAD750, LEON).
+ *
+ * Zone 1 has only two tiers (C11 and mutex fallback) because its
+ * fallback ABI must accommodate a pthread_mutex_t.
+ *
+ * C++ consumers see opaque byte blobs sized to match whichever C
+ * tier the library was built with (see ION_HAVE_C11_ATOMICS in
+ * config.h).  They call the C API for any atomic manipulation.
+ *
+ * Tier selection on a modern toolchain
+ * ------------------------------------
+ * Two INDEPENDENT levers decide which tier is compiled:
+ *
+ *   (A) Compiler language mode — set by configure.ac's C18 / C99
+ *       probe.  Bakes -std=iso9899:2018 or -std=c99 into AM_CFLAGS
+ *       and (for C18) #defines ION_HAVE_C11_ATOMICS in config.h.
+ *
+ *   (B) Tier dispatch — the preprocessor macros below:
+ *
+ *         ION_TEST_FORCE_FALLBACK
+ *             Undefines ION_HAVE_C11_ATOMICS regardless of
+ *             config.h, forcing Zone 1 to its mutex fallback and
+ *             Zone 2 to Tier 2 or 3.
+ *
+ *         ION_TEST_FORCE_SYNC_FALLBACK
+ *             Additionally undefines ION_HAVE_GNU_ATOMIC, forcing
+ *             Zone 2 down to Tier 3 (__sync).  Must be paired with
+ *             ION_TEST_FORCE_FALLBACK to have any effect, since
+ *             the C11 tier is checked first.
+ *
+ * On a modern GCC/Clang, configure.ac will default lever (A) to
+ * C18.  Defining the test macros alone only flips lever (B) — the
+ * compiler stays in C18 mode, so the language environment ION sees
+ * is NOT a genuine C99 toolchain (feature-test macros, _Atomic
+ * keyword visibility, library-header switches all differ).  To
+ * exercise a true "C99 + fallback" build, both levers must be set:
+ *
+ *     ./configure ac_cv_c11=no CFLAGS="-std=c99"
+ *         → genuine C99 + Tier 2 (__atomic) on modern gcc/clang
+ *
+ *     ./configure ac_cv_c11=no CFLAGS="-std=c99 \
+ *                             -DION_TEST_FORCE_SYNC_FALLBACK"
+ *         → genuine C99 + Tier 3 (__sync), what a pre-GCC-4.7
+ *           flight toolchain would see
+ *
+ * See gh-pages/docs/ION-Coding-Guide.md "Testing the Fallback
+ * Tiers" for the complete recipe matrix and rationale.
  *
  * Author: ION team, JPL
  *
