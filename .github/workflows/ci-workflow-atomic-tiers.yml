@@ -406,6 +406,23 @@ jobs:
 
       - name: Docker state hygiene
         run: |
+          # Force-remove any still-running containers left behind by a
+          # previous run of this workflow (e.g. a cancelled job on this
+          # self-hosted runner).  `docker run --rm` only removes the
+          # container when the docker CLI client exits cleanly; on
+          # cancellation the client is SIGKILLed and the container
+          # keeps running, holding the bind-mount and consuming VM
+          # resources, which can cause later runs to hang.
+          LEFTOVER=$(docker ps -aq --filter label=ion-ci=atomic-tier)
+          if [ -n "$LEFTOVER" ]; then
+            echo "Removing leftover containers from prior runs:"
+            docker ps -a --filter label=ion-ci=atomic-tier \
+              --format 'table {{.ID}}\t{{.Status}}\t{{.Labels}}' || true
+            docker rm -f $LEFTOVER || true
+          else
+            echo "No leftover ion-ci=atomic-tier containers."
+          fi
+
           # Reap orphaned containers, dangling volumes, networks.
           # Do NOT prune images - re-pulling ubuntu:22.04 every run is wasteful.
           docker system prune -f --volumes || true
@@ -473,7 +490,15 @@ jobs:
             # until the buffer fills.  Instead, let Docker write directly
             # to the console (line-buffered), and have the container tee
             # its own output to a log file on the bind mount.
+            # Labels allow the hygiene step (start) and force-cleanup
+            # step (end, if: always) to find and reap this container
+            # across workflow runs — `--rm` alone is unreliable on
+            # cancellation because it is client-side.
             docker run --rm --pull=never --init \
+              --name "ion-atomic-tier-${GITHUB_RUN_ID}-${TIER}" \
+              --label ion-ci=atomic-tier \
+              --label ion-ci-run="${GITHUB_RUN_ID}" \
+              --label ion-ci-tier="${TIER}" \
               --platform=linux/arm64 \
               -e TIER_CFLAGS="$CF" \
               -e TEST_SCOPE="$TEST_SCOPE" \
@@ -579,6 +604,21 @@ jobs:
           name: status-arm64-${{ env.TIMESTAMP }}
           path: arm64-status/
           if-no-files-found: warn
+
+      - name: Force-remove this run's containers
+        if: ${{ always() }}
+        run: |
+          # Must run before Workspace cleanup: a still-running container
+          # holds the bind-mount open, which blocks the rm -rf below.
+          OURS=$(docker ps -aq --filter label=ion-ci-run="${GITHUB_RUN_ID}")
+          if [ -n "$OURS" ]; then
+            echo "Force-removing this run's containers:"
+            docker ps -a --filter label=ion-ci-run="${GITHUB_RUN_ID}" \
+              --format 'table {{.ID}}\t{{.Status}}\t{{.Names}}' || true
+            docker rm -f $OURS || true
+          else
+            echo "No ion-ci-run=${GITHUB_RUN_ID} containers to remove."
+          fi
 
       - name: Workspace cleanup
         if: ${{ always() }}
