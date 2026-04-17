@@ -120,6 +120,16 @@ Both zones select their backing implementation at compile time through feature m
 
 Zone 1's fallback tiers are slightly different: Zone 1 goes C11 → `pthread_mutex_t`-based (no intermediate `__atomic` tier), because the padded-union layout differs between C11 and the mutex fallback and must match ABI across the process. Zone 2 uses all three tiers; its typedef is `volatile vast` for both Tier 2 and Tier 3, so layouts are binary-compatible between the two fallback tiers.
 
+#### Consolidated Tier Summary
+
+| Tier | Zone 1 (process-local) | Zone 2 (shared memory / IPC) | When selected |
+|------|------------------------|------------------------------|---------------|
+| C11 | `_Atomic(vast)` via `<stdatomic.h>` | `_Atomic(vast)` via `<stdatomic.h>` | C18/C11 compiler with `<stdatomic.h>` support |
+| `__atomic` | `pthread_mutex_t`-backed union | `__atomic_*` built-ins (`__ATOMIC_RELAXED`) | C99 mode + GCC ≥ 4.7 or any Clang |
+| `__sync` | `pthread_mutex_t`-backed union | `__sync_*` built-ins (full memory barrier) | C99 mode + pre-GCC-4.7 (e.g., RAD750, LEON) |
+
+Modern Clang (all versions) and GCC ≥ 4.7 support all three tiers. On these compilers `./configure` will auto-detect C18/`<stdatomic.h>` and select Tier 1 (C11) — you will not hit the `__sync` path unless you explicitly force it. See **Testing the Fallback Tiers** below for how to override the auto-detection.
+
 **Why Tier 2 matters:** `__sync_*` built-ins are always sequentially-consistent and emit full memory barriers. On ARM/AArch64, `__sync_fetch_and_add(p, 0)` (which `ion_ipc_atomic_get` falls back to in Tier 3) compiles to a full LDAXR/STLXR + DMB ISH sequence — a read-modify-write with a full barrier, just to read a value. `__atomic_load_n` with `__ATOMIC_RELAXED` compiles to a plain LDR with no barrier. For flight software deploying to ARM-based computers (e.g., NVIDIA Orin, Xilinx Zynq, Ampere, Cortex-A), Tier 2 avoids a significant per-op cost on every stats counter increment, semaphore reference count operation, and daemon polling flag read. Tier 3 is retained only for pre-GCC-4.7 toolchains on legacy flight processors such as RAD750 and LEON3/4.
 
 ### Memory Ordering
@@ -309,6 +319,18 @@ Two test-harness macros let you exercise tiers that wouldn't otherwise be select
 -DION_TEST_FORCE_FALLBACK          # forces Tier 2 (__atomic) or Tier 3 (__sync)
 -DION_TEST_FORCE_SYNC_FALLBACK     # forces Tier 3 (__sync); use WITH the above
 ```
+
+Full command-line examples for `./configure`:
+
+```sh
+# Force C99 __atomic fallback (Tier 2) — Zone 1 uses mutex, Zone 2 uses __atomic built-ins
+CFLAGS="-DION_TEST_FORCE_FALLBACK" ./configure
+
+# Force C99 __sync fallback (Tier 3) — Zone 1 uses mutex, Zone 2 uses __sync built-ins
+CFLAGS="-DION_TEST_FORCE_FALLBACK -DION_TEST_FORCE_SYNC_FALLBACK" ./configure
+```
+
+Both commands work on modern Clang and GCC (≥ 4.7). Without either flag, `./configure` auto-detects C18/`<stdatomic.h>` and selects the native C11 path (Tier 1).
 
 ThreadSanitizer validation harness: `tests/atomics/test_ipc_atomics.c` exercises `ion_ipc_atomic_t` under 8 concurrent threads × 300 000 operations per thread. Build with `-fsanitize=thread` and run against each tier to confirm lock-free correctness. Zero data races expected.
 
