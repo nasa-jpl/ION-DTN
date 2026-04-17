@@ -477,6 +477,16 @@ jobs:
               ubuntu:22.04 \
               bash -c '
                 set -e
+                # Force line-buffered stdout so progress appears in the
+                # Actions UI in real time instead of being held in a pipe
+                # buffer until the container exits.
+                if command -v stdbuf >/dev/null 2>&1; then
+                  exec > >(stdbuf -oL cat) 2>&1
+                fi
+
+                progress() { echo ""; echo ">>> [$(date +%H:%M:%S)] $*"; echo ""; }
+
+                progress "Installing build dependencies"
                 export DEBIAN_FRONTEND=noninteractive
                 apt-get update -qq
                 apt-get install -y -qq --no-install-recommends \
@@ -485,22 +495,32 @@ jobs:
                 echo "Compiler:"
                 gcc --version | head -1
 
+                progress "Running autoreconf"
                 autoreconf -fi
+
+                progress "Running configure with CFLAGS=$TIER_CFLAGS"
                 ./configure --enable-bpsec-debugging CFLAGS="$TIER_CFLAGS"
+
+                progress "Building ION (make -j$(nproc) all buildcheck)"
                 make -j"$(nproc)" all buildcheck
+
+                progress "Installing ION"
                 make install
                 ldconfig
+
+                progress "Starting regression tests (scope: $TEST_SCOPE)"
                 cd tests
                 export USER=root
                 export ION_RUN_EXPERT=yes
                 if [ "$TEST_SCOPE" = "smoke" ]; then
-                  echo "Running smoke subset: $SMOKE_SUBSET"
+                  echo "Smoke subset: $SMOKE_SUBSET"
                   ./runtests $SMOKE_SUBSET
                 else
                   echo "Running full regression suite"
                   ./runtests
                 fi
-              ' 2>&1 | tee "$LOGFILE"
+                progress "Tests complete"
+              ' 2>&1 | stdbuf -oL tee "$LOGFILE"
             TIER_STATUS=${PIPESTATUS[0]}
             set -e
 
