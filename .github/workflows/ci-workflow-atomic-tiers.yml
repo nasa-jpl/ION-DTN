@@ -163,17 +163,42 @@ jobs:
       - name: Compute tier CFLAGS
         id: cflags
         run: |
+          # Each fallback tier needs BOTH levers set (see
+          # gh-pages/docs/ION-Coding-Guide.md "Testing the Fallback
+          # Tiers"):
+          #   (A) language mode — short-circuit configure.ac's C18
+          #       probe with ac_cv_c11=no and pass -std=c99 in
+          #       CFLAGS so AM_CFLAGS + user CFLAGS resolve to C99.
+          #   (B) tier dispatch — ION_TEST_FORCE_FALLBACK moves
+          #       Zone 1 to its mutex fallback and Zone 2 down the
+          #       tier ladder; ION_TEST_FORCE_SYNC_FALLBACK forces
+          #       Zone 2 all the way to Tier 3 (__sync).
+          # Passing only the force macros leaves the compiler in
+          # C18 mode, which does NOT exercise the genuine C99
+          # language environment ION would see on a pre-GCC-4.7
+          # flight toolchain.
           case "${{ matrix.tier }}" in
-            native)   CF="-DHAVE_VALGRIND_VALGRIND_H" ;;
-            __atomic) CF="-DHAVE_VALGRIND_VALGRIND_H -DION_TEST_FORCE_FALLBACK" ;;
-            __sync)   CF="-DHAVE_VALGRIND_VALGRIND_H -DION_TEST_FORCE_FALLBACK -DION_TEST_FORCE_SYNC_FALLBACK" ;;
+            native)
+              CF="-DHAVE_VALGRIND_VALGRIND_H"
+              ACC11="yes"
+              ;;
+            __atomic)
+              CF="-DHAVE_VALGRIND_VALGRIND_H -std=c99 -DION_TEST_FORCE_FALLBACK"
+              ACC11="no"
+              ;;
+            __sync)
+              CF="-DHAVE_VALGRIND_VALGRIND_H -std=c99 -DION_TEST_FORCE_FALLBACK -DION_TEST_FORCE_SYNC_FALLBACK"
+              ACC11="no"
+              ;;
             *)
               echo "Unknown tier: ${{ matrix.tier }}" >&2
               exit 1
               ;;
           esac
           echo "cflags=$CF" >> "$GITHUB_OUTPUT"
-          echo "Tier ${{ matrix.tier }} CFLAGS: $CF"
+          echo "ac_cv_c11=$ACC11" >> "$GITHUB_OUTPUT"
+          echo "Tier ${{ matrix.tier }} CFLAGS:     $CF"
+          echo "Tier ${{ matrix.tier }} ac_cv_c11: $ACC11"
 
       - name: Cache Build Workspace
         id: cache-build
@@ -197,10 +222,12 @@ jobs:
             echo "USER is set to: $USER"
             export ION_RUN_EXPERT="yes"
             export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-            echo "Tier:   ${{ matrix.tier }}"
-            echo "CFLAGS: ${{ steps.cflags.outputs.cflags }}"
+            echo "Tier:      ${{ matrix.tier }}"
+            echo "CFLAGS:    ${{ steps.cflags.outputs.cflags }}"
+            echo "ac_cv_c11: ${{ steps.cflags.outputs.ac_cv_c11 }}"
             autoreconf -fi
-            ./configure --enable-crypto-mbedtls --enable-bpsec-debugging \
+            ./configure ac_cv_c11=${{ steps.cflags.outputs.ac_cv_c11 }} \
+                --enable-crypto-mbedtls --enable-bpsec-debugging \
                 CFLAGS="${{ steps.cflags.outputs.cflags }}"
             make all buildcheck
           } > compile-and-buildcheck.log 2> >(tee -a compile-and-buildcheck.log >&2)
@@ -470,16 +497,33 @@ jobs:
             echo "=============================================================="
             echo "=== Tier $TIER ==="
             echo "=============================================================="
+            # Each fallback tier needs BOTH levers set (see
+            # gh-pages/docs/ION-Coding-Guide.md "Testing the
+            # Fallback Tiers"): ac_cv_c11=no short-circuits
+            # configure.ac's C18 probe and -std=c99 in CFLAGS
+            # overrides AM_CFLAGS, together placing the compiler
+            # in genuine C99 mode; the ION_TEST_FORCE_* macros then
+            # flip tier dispatch inside ion_atomic.h.
             case "$TIER" in
-              native)   CF="-DHAVE_VALGRIND_VALGRIND_H" ;;
-              __atomic) CF="-DHAVE_VALGRIND_VALGRIND_H -DION_TEST_FORCE_FALLBACK" ;;
-              __sync)   CF="-DHAVE_VALGRIND_VALGRIND_H -DION_TEST_FORCE_FALLBACK -DION_TEST_FORCE_SYNC_FALLBACK" ;;
+              native)
+                CF="-DHAVE_VALGRIND_VALGRIND_H"
+                ACC11="yes"
+                ;;
+              __atomic)
+                CF="-DHAVE_VALGRIND_VALGRIND_H -std=c99 -DION_TEST_FORCE_FALLBACK"
+                ACC11="no"
+                ;;
+              __sync)
+                CF="-DHAVE_VALGRIND_VALGRIND_H -std=c99 -DION_TEST_FORCE_FALLBACK -DION_TEST_FORCE_SYNC_FALLBACK"
+                ACC11="no"
+                ;;
               *)
                 echo "Unknown tier: $TIER" >&2
                 exit 1
                 ;;
             esac
-            echo "CFLAGS: $CF"
+            echo "CFLAGS:    $CF"
+            echo "ac_cv_c11: $ACC11"
 
             LOGFILE="arm64-logs/tier-${TIER}-build-and-test.log"
 
@@ -501,6 +545,7 @@ jobs:
               --label ion-ci-tier="${TIER}" \
               --platform=linux/arm64 \
               -e TIER_CFLAGS="$CF" \
+              -e TIER_AC_CV_C11="$ACC11" \
               -e TEST_SCOPE="$TEST_SCOPE" \
               -e SMOKE_SUBSET="$SMOKE_SUBSET" \
               -e LOGFILE="/src/arm64-logs/tier-${TIER}-build-and-test.log" \
@@ -527,8 +572,9 @@ jobs:
                 progress "Running autoreconf"
                 autoreconf -fi
 
-                progress "Running configure with CFLAGS=$TIER_CFLAGS"
-                ./configure --enable-bpsec-debugging CFLAGS="$TIER_CFLAGS"
+                progress "Running configure with ac_cv_c11=$TIER_AC_CV_C11 CFLAGS=$TIER_CFLAGS"
+                ./configure ac_cv_c11="$TIER_AC_CV_C11" \
+                    --enable-bpsec-debugging CFLAGS="$TIER_CFLAGS"
 
                 progress "Building ION (make -j$(nproc) all buildcheck)"
                 make -j"$(nproc)" all buildcheck > /dev/null
