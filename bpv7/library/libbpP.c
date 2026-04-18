@@ -9568,6 +9568,28 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	bundle->payload.content = zco_clone(sdr, work->rawBundle,
 			work->preambleLength, bundle->payload.length);
 	zco_destroy(sdr, work->rawBundle);
+	if (bundle->payload.content <= 0)
+	{
+		putErrmsg("Can't clone payload out of bundle.", NULL);
+		return -1;
+	}
+
+	/*	Verify actual ZCO source length matches the payload
+	 *	length declared in the primary block.  A mismatch
+	 *	means the bundle is truncated or malformed; reject it
+	 *	here so bptransit never sees a negative ZCO length.	*/
+
+	if (zco_source_data_length(sdr, bundle->payload.content)
+			!= bundle->payload.length)
+	{
+		putErrmsg("Discarding bundle: payload ZCO length mismatch.",
+				utoa(bundle->payload.length));
+		zco_destroy(sdr, bundle->payload.content);
+		bundle->payload.content = 0;
+		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+				bundle->payload.length);
+		return 0;
+	}
 
 	/*	Must determine whether or not this node is a bpsec
 	 *	acceptor for this bundle.				*/
