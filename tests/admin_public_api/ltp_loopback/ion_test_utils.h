@@ -18,6 +18,7 @@
 #include "ionsec.h"
 #include "bp.h"
 #include "bp_admin.h"
+#include "ltp_admin.h"
 
 #include <errno.h>
 #include <stdint.h>

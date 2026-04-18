@@ -648,6 +648,14 @@ int test_cleanup(void)
 	}
 	LOG_INFO("BP agent stopped");
 
+	/* Stop LTP daemons (ltpclock, ltpdeliv, ltpmeter, LSO/LSI) before
+	 * tearing down IPC/SDR — otherwise they keep running and crash on
+	 * the next tick when sdr_begin_xn() hits a destroyed semaphore. */
+	LOG_INFO("Calling ltp_stop()...");
+	ltp_stop();
+	snooze(2);
+	LOG_INFO("LTP stopped");
+
 	/* Stop ION daemon RFX */
 	rfx_stop();
 	LOG_INFO("Calling rfx_stop()...");
