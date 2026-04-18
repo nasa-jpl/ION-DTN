@@ -2897,15 +2897,17 @@ tests_admin_public_api_ltp_span_management_dotest_LDADD = libici.la -lm $(bplib)
 tests_admin_public_api_ltp_span_management_dotest_CFLAGS = $(icicflags) $(bpcflags) $(ltpcflags) $(AM_CFLAGS)
 
 tests_admin_public_api_bp_plan_crash_recovery_dotest_SOURCES = tests/admin_public_api/bp_plan_crash_recovery/bp_plan_crash_recovery_test.c tests/admin_public_api/ltp_loopback/ion_test_utils.c
-tests_admin_public_api_bp_plan_crash_recovery_dotest_LDADD = libici.la -lm $(bplib)
-tests_admin_public_api_bp_plan_crash_recovery_dotest_CFLAGS = $(icicflags) $(bpcflags) $(AM_CFLAGS)
+tests_admin_public_api_bp_plan_crash_recovery_dotest_LDADD = libici.la -lm $(bplib) $(ltplib)
+tests_admin_public_api_bp_plan_crash_recovery_dotest_CFLAGS = $(icicflags) $(bpcflags) $(ltpcflags) $(AM_CFLAGS)
 
 tests_admin_public_api_ltp_span_crash_recovery_dotest_SOURCES = tests/admin_public_api/ltp_span_crash_recovery/ltp_span_crash_recovery_test.c tests/admin_public_api/ltp_loopback/ion_test_utils.c
 tests_admin_public_api_ltp_span_crash_recovery_dotest_LDADD = libici.la -lm $(bplib) $(ltplib)
 tests_admin_public_api_ltp_span_crash_recovery_dotest_CFLAGS = $(icicflags) $(bpcflags) $(ltpcflags) $(AM_CFLAGS)
 
-# Helper program tcp_single_node for tcp_2nodes test
-check_PROGRAMS += tests/admin_public_api/tcp_2nodes/tcp_single_node
+# Helper program tcp_single_node for tcp_2nodes test.
+# Must be noinst_PROGRAMS (not check_PROGRAMS) so it's built by default
+# `make`; otherwise the launcher dotest cannot find it at runtime.
+noinst_PROGRAMS = tests/admin_public_api/tcp_2nodes/tcp_single_node
 tests_admin_public_api_tcp_2nodes_tcp_single_node_SOURCES = tests/admin_public_api/tcp_2nodes/tcp_single_node.c
 tests_admin_public_api_tcp_2nodes_tcp_single_node_LDADD = libici.la -lm $(bplib)
 tests_admin_public_api_tcp_2nodes_tcp_single_node_CFLAGS = $(icicflags) $(bpcflags) $(AM_CFLAGS)
