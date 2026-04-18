@@ -186,7 +186,7 @@ do
     sleep 2
     echo "2nd attempt to kill file receiver... Maybe redundant but to be sure..."
     kill -9 $RCVPID 2>/dev/null
-    wait $RCVPID 2>/dev/null
+    sleep 1
     rm testfile*
 
     #adjust loop condition
@@ -219,7 +219,7 @@ do
     fi
 
     $killcmd -KILL "owltsim" &> /dev/null
-    wait $OWLTSIM_PID 2>/dev/null
+    sleep 1
 
     # Terminate ION daemons and IPC resources
     killm f
