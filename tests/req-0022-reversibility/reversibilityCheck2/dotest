@@ -180,8 +180,8 @@ else
     if kill -0 $IONADMIN_PID 2>/dev/null; then
         echo "ionadmin restart appears hung, killing..."
         kill -9 $IONADMIN_PID 2>/dev/null
+        sleep 1
     fi
-    wait $IONADMIN_PID 2>/dev/null || true
     sleep 3
 
     bpadmin restart.bprc &
@@ -190,8 +190,8 @@ else
     if kill -0 $BPADMIN_PID 2>/dev/null; then
         echo "bpadmin restart appears hung, killing..."
         kill -9 $BPADMIN_PID 2>/dev/null
+        sleep 1
     fi
-    wait $BPADMIN_PID 2>/dev/null || true
 fi
 
 sleep 5

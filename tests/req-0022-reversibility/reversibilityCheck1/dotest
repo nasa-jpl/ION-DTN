@@ -116,7 +116,7 @@ wait_for_message "Transaction aborted" "ion.log" 120
 # with the recovery process
 echo "Stopping bpdriver..."
 kill -9 $BPDRIVER_PID 2>/dev/null
-wait $BPDRIVER_PID 2>/dev/null || true
+sleep 1
 
 # Give system time to settle after killing bpdriver
 sleep 5
@@ -209,8 +209,8 @@ else
         if kill -0 $BPADMIN_PID 2>/dev/null; then
             echo "bpadmin restart appears hung, killing..."
             kill -9 $BPADMIN_PID 2>/dev/null
+            sleep 1
         fi
-        wait $BPADMIN_PID 2>/dev/null || true
     fi
     sleep 5
 fi

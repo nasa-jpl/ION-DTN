@@ -76,7 +76,7 @@ sleep 6
 echo
 echo "Killing bpcp..."
 kill -2 $BPCP_PID >/dev/null 2>&1
-wait $BPCP_PID 2>/dev/null
+sleep 2
 echo "Killing stcpcli..."
 pkill -15 stcpcli >/dev/null 2>&1
 

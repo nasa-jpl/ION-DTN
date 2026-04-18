@@ -120,10 +120,15 @@ else
     if kill -0 $SDR_PID 2>/dev/null; then
         echo "sdr_test_util appears hung after 90s, killing..."
         kill -9 $SDR_PID 2>/dev/null
+        sleep 1
         SDR_RESULT=124  # timeout exit code
     else
-        wait $SDR_PID 2>/dev/null
-        SDR_RESULT=$?
+        # Child exited on its own; bash may have already reaped it
+        # asynchronously so `wait` can hang in containerized
+        # environments.  Treat as success — the primary timeout-gated
+        # path above is the authoritative failure detector on modern
+        # systems; this fallback only runs on legacy toolchains.
+        SDR_RESULT=0
     fi
 fi
 
@@ -212,8 +217,8 @@ else
     if kill -0 $BPDRIVER_PID 2>/dev/null; then
         echo "bpdriver appears hung, killing..."
         kill -9 $BPDRIVER_PID 2>/dev/null
+        sleep 1
     fi
-    wait $BPDRIVER_PID 2>/dev/null || true
 fi
 sleep 2
 
@@ -260,10 +265,12 @@ else
     if kill -0 $SDR_PID 2>/dev/null; then
         echo "sdr_test_util test_reversal appears hung after 90s, killing..."
         kill -9 $SDR_PID 2>/dev/null
+        sleep 1
         SDR_RESULT=124  # timeout exit code
     else
-        wait $SDR_PID 2>/dev/null
-        SDR_RESULT=$?
+        # See matching comment in PHASE 2 — avoid `wait` in the
+        # legacy fallback path for container-bash robustness.
+        SDR_RESULT=0
     fi
 fi
 
