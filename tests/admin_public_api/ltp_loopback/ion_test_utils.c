@@ -650,11 +650,21 @@ int test_cleanup(void)
 
 	/* Stop LTP daemons (ltpclock, ltpdeliv, ltpmeter, LSO/LSI) before
 	 * tearing down IPC/SDR — otherwise they keep running and crash on
-	 * the next tick when sdr_begin_xn() hits a destroyed semaphore. */
-	LOG_INFO("Calling ltp_stop()...");
-	ltp_stop();
-	snooze(2);
-	LOG_INFO("LTP stopped");
+	 * the next tick when sdr_begin_xn() hits a destroyed semaphore.
+	 * Only call ltp_stop() if LTP was actually initialized — tests that
+	 * use only BP/TCP (e.g. bp_plan_crash_recovery) never start LTP, and
+	 * ltpStop() would dereference a NULL ltpvdb and segfault. */
+	if (ltp_engine_is_started())
+	{
+		LOG_INFO("Calling ltp_stop()...");
+		ltp_stop();
+		snooze(2);
+		LOG_INFO("LTP stopped");
+	}
+	else
+	{
+		LOG_INFO("LTP not started; skipping ltp_stop()");
+	}
 
 	/* Stop ION daemon RFX */
 	rfx_stop();
