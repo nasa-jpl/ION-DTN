@@ -2534,37 +2534,43 @@ int	removeSpan(uvast engineId)
 	spanElt = vspan->spanElt;
 	spanObj = (Object) sdr_list_data(sdr, spanElt);
 	GET_OBJ_POINTER(sdr, LtpSpan, span, spanObj);
+	/*	cleanupEmptyExportSessions() above modified SDR state, so the
+	 *	guard-fail paths below must use sdr_cancel_xn() to discard
+	 *	those modifications. Calling sdr_exit_xn() here would trip
+	 *	handleUnrecoverableError() (sdr_exit_xn is read-only-only)
+	 *	and abort the process. */
+
 	if (sdr_list_length(sdr, span->segments) != 0)
 	{
-		sdr_exit_xn(sdr);
 		writeMemoNote("[?] Span has backlog, can't be removed",
 				itoa(engineId));
+		sdr_cancel_xn(sdr);
 		return 0;
 	}
 
 	if (sdr_list_length(sdr, span->importSessions) != 0
 	|| sdr_list_length(sdr, span->exportSessions) != 0)
 	{
-		sdr_exit_xn(sdr);
 		writeMemoNote("[?] Span has open sessions, can't be removed",
 				itoa(engineId));
+		sdr_cancel_xn(sdr);
 		return 0;
 	}
 
 	if (sdr_list_length(sdr, span->deadImports) != 0)
 	{
-		sdr_exit_xn(sdr);
 		writeMemoNote("[?] Span has canceled sessions, can't be \
 removed yet.", itoa(engineId));
+		sdr_cancel_xn(sdr);
 		return 0;
 	}
 
 	if (sdr_list_length(sdr, span->closedImports) != 0)
 	{
-		sdr_exit_xn(sdr);
 		writeMemoNote("[?] Span has closed import sessions that \
 haven't been forgotten yet, can't be removed. Wait for timeline events to \
 process them.", itoa(engineId));
+		sdr_cancel_xn(sdr);
 		return 0;
 	}
 
