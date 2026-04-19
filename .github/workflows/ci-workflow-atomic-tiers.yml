@@ -17,6 +17,14 @@ permissions:
   statuses: write
   pull-requests: read
 
+# Serialize runs per ref so a scheduled nightly cannot pile up on a still-
+# running manual dispatch (or vice versa).  cancel-in-progress=false because
+# these runs are long (several hours on arm64) and the single self-hosted
+# Mac ARM64 runner cannot service overlapping jobs anyway.
+concurrency:
+  group: atomic-tiers-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 on:
   workflow_dispatch:
     inputs:
@@ -29,12 +37,13 @@ on:
           - smoke
           - full
       tier_filter:
-        description: 'Which atomic tiers to exercise'
+        description: 'Which atomic tiers to exercise. `fallbacks` = __atomic + __sync (nightly default). `all` additionally runs Tier 1 (native) on arm64; Tier 1 x86_64 is already covered by ci-workflow-arc.yml.'
         required: true
-        default: 'all'
+        default: 'fallbacks'
         type: choice
         options:
           - all
+          - fallbacks
           - native
           - __atomic
           - __sync
@@ -62,6 +71,12 @@ on:
         required: false
         type: number
         default: 7
+  # Nightly sweep at 06:00 UTC (~23:00 Pacific previous evening / ~02:00
+  # Eastern).  Runs unconditionally against the default branch — results
+  # should be ready before the US workday starts.  Uses the fallback
+  # defaults below (fallbacks / both / smoke on arm64).
+  schedule:
+    - cron: '0 6 * * *'
 
 jobs:
   # --------------------------------------------------------------------------
@@ -96,15 +111,16 @@ jobs:
       - name: Compute tier lists
         id: tiers
         run: |
-          # Fall back to conservative defaults on push-event auto-run
-          FILTER="${{ inputs.tier_filter || '__atomic' }}"
-          PLATFORMS="${{ inputs.platforms || 'x86_64' }}"
+          # Fall back to nightly defaults when no inputs (schedule event).
+          FILTER="${{ inputs.tier_filter || 'fallbacks' }}"
+          PLATFORMS="${{ inputs.platforms || 'both' }}"
           # x86_64: exclude 'native' because Tier 1 is already covered by ci-workflow-arc.yml
           case "$FILTER" in
-            all)       X86='["__atomic","__sync"]'           ; ARM='["native","__atomic","__sync"]' ;;
-            native)    X86='[]'                               ; ARM='["native"]' ;;
-            __atomic)  X86='["__atomic"]'                     ; ARM='["__atomic"]' ;;
-            __sync)    X86='["__sync"]'                       ; ARM='["__sync"]' ;;
+            all)        X86='["__atomic","__sync"]'           ; ARM='["native","__atomic","__sync"]' ;;
+            fallbacks)  X86='["__atomic","__sync"]'           ; ARM='["__atomic","__sync"]' ;;
+            native)     X86='[]'                               ; ARM='["native"]' ;;
+            __atomic)   X86='["__atomic"]'                     ; ARM='["__atomic"]' ;;
+            __sync)     X86='["__sync"]'                       ; ARM='["__sync"]' ;;
             *)
               echo "Unknown tier_filter: $FILTER" >&2
               exit 1
@@ -409,6 +425,7 @@ jobs:
         bping
         issue-324-ltp-files
         asymmetric-range
+        admin_public_api
       SELECTED_TIERS_JSON: ${{ needs.setup.outputs.arm_tiers }}
       TEST_SCOPE: ${{ inputs.test_scope || 'smoke' }}
 
@@ -713,9 +730,10 @@ jobs:
             echo "## 📊 Atomic Tier Regression Overview"
             echo ""
             echo "- **Source ref:** \`${{ needs.setup.outputs.resolved_ref }}\`"
-            echo "- **Tier filter:** \`${{ inputs.tier_filter || '__atomic (push default)' }}\`"
-            echo "- **Platforms:** \`${{ inputs.platforms || 'x86_64 (push default)' }}\`"
-            echo "- **arm64 test scope:** \`${{ inputs.test_scope || 'smoke' }}\`"
+            echo "- **Event:** \`${{ github.event_name }}\`"
+            echo "- **Tier filter:** \`${{ inputs.tier_filter || 'fallbacks (nightly default)' }}\`"
+            echo "- **Platforms:** \`${{ inputs.platforms || 'both (nightly default)' }}\`"
+            echo "- **arm64 test scope:** \`${{ inputs.test_scope || 'smoke (nightly default)' }}\`"
             echo ""
             echo "| Runner | Tier | Batch | Result | Failed Tests | Skipped Tests |"
             echo "|--------|------|-------|--------|--------------|---------------|"
