@@ -549,6 +549,7 @@ jobs:
               -e TEST_SCOPE="$TEST_SCOPE" \
               -e SMOKE_SUBSET="$SMOKE_SUBSET" \
               -e LOGFILE="/src/arm64-logs/tier-${TIER}-build-and-test.log" \
+              -e HOST_USER="$USER" \
               -v "$GITHUB_WORKSPACE:/src" \
               -w /src \
               ubuntu:22.04 \
@@ -569,37 +570,51 @@ jobs:
                 echo "Compiler:"
                 gcc --version | head -1
 
-                progress "Running autoreconf"
-                autoreconf -fi
+                progress "Creating non-root user $HOST_USER with passwordless sudo"
+                useradd -m -s /bin/bash "$HOST_USER"
+                echo "$HOST_USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/"$HOST_USER"
+                chmod 0440 /etc/sudoers.d/"$HOST_USER"
+                chown -R "$HOST_USER":"$HOST_USER" /src
 
-                progress "Running configure with ac_cv_c11=$TIER_AC_CV_C11 CFLAGS=$TIER_CFLAGS"
-                ./configure ac_cv_c11="$TIER_AC_CV_C11" \
-                    --enable-bpsec-debugging CFLAGS="$TIER_CFLAGS"
+                # Switch to non-root user for remaining steps
+                su - "$HOST_USER" -c "
+                  set -e
+                  cd /src
+                  export TIER_CFLAGS=\"$TIER_CFLAGS\"
+                  export TIER_AC_CV_C11=\"$TIER_AC_CV_C11\"
+                  export TEST_SCOPE=\"$TEST_SCOPE\"
+                  export SMOKE_SUBSET=\"$SMOKE_SUBSET\"
+                  export ION_RUN_EXPERT=yes
 
-                progress "Building ION (make -j$(nproc) all buildcheck)"
-                make -j"$(nproc)" all buildcheck > /dev/null
+                  progress() { echo \"\"; echo \">>> [\$(date +%H:%M:%S)] \$*\"; echo \"\"; }
 
-                progress "Installing ION"
-                make install > /dev/null
-                ldconfig
+                  progress \"Running autoreconf\"
+                  autoreconf -fi
 
-                progress "Starting regression tests (scope: $TEST_SCOPE)"
-                cd tests
-                export USER=root
-                export ION_RUN_EXPERT=yes
-                # Redirect verbose per-test output to files so only the
-                # concise START/PASS/FAIL/SKIP lines (written to stderr
-                # by runtests) appear in the Actions console.
-                export RUNTESTS_OUTPUTDIR=/src/arm64-logs
-                mkdir -p "$RUNTESTS_OUTPUTDIR"
-                if [ "$TEST_SCOPE" = "smoke" ]; then
-                  echo "Smoke subset: $SMOKE_SUBSET"
-                  ./runtests $SMOKE_SUBSET
-                else
-                  echo "Running full regression suite"
-                  ./runtests
-                fi
-                progress "Tests complete"
+                  progress \"Running configure with ac_cv_c11=\$TIER_AC_CV_C11 CFLAGS=\$TIER_CFLAGS\"
+                  ./configure ac_cv_c11=\"\$TIER_AC_CV_C11\" \
+                      --enable-bpsec-debugging CFLAGS=\"\$TIER_CFLAGS\"
+
+                  progress \"Building ION (make -j\$(nproc) all buildcheck)\"
+                  make -j\"\$(nproc)\" all buildcheck > /dev/null
+
+                  progress \"Installing ION\"
+                  sudo make install > /dev/null
+                  sudo ldconfig
+
+                  progress \"Starting regression tests (scope: \$TEST_SCOPE)\"
+                  cd tests
+                  export RUNTESTS_OUTPUTDIR=/src/arm64-logs
+                  mkdir -p \"\$RUNTESTS_OUTPUTDIR\"
+                  if [ \"\$TEST_SCOPE\" = \"smoke\" ]; then
+                    echo \"Smoke subset: \$SMOKE_SUBSET\"
+                    ./runtests \$SMOKE_SUBSET
+                  else
+                    echo \"Running full regression suite\"
+                    ./runtests
+                  fi
+                  progress \"Tests complete\"
+                "
               '
             TIER_STATUS=$?
             set -e
