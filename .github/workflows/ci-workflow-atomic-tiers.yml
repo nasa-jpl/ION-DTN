@@ -574,7 +574,9 @@ jobs:
                 useradd -m -s /bin/bash "$HOST_USER"
                 echo "$HOST_USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/"$HOST_USER"
                 chmod 0440 /etc/sudoers.d/"$HOST_USER"
-                chown -R "$HOST_USER":"$HOST_USER" /src
+                # Skip .git — VirtioFS denies chown on host-owned pack files,
+                # and the build never needs .git anyway.
+                find /src -path /src/.git -prune -o -print0 | xargs -0 chown "$HOST_USER":"$HOST_USER"
 
                 # Switch to non-root user for remaining steps
                 su - "$HOST_USER" -c "
