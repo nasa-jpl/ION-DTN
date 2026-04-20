@@ -140,7 +140,7 @@ done
 # File transfer and content integrity test complete: exit non-crypt receiver
 echo -e "\nShutting down receiver now..."
 $KILL_CMD $RECVFILE_PID
-wait $RECVFILE_PID
+sleep 1
 
 
 
@@ -194,7 +194,7 @@ if [ $FAILCHECK -eq 0 ] && [ $ENCRYPTION_ENABLED -eq 1 ]; then
 
     echo -e "\nShutting down receiver now..."
     $KILL_CMD $RECVFILE_PID
-    wait $RECVFILE_PID
+    sleep 1
 
     # Clean up: remove test files and stop ion in node02
     for i in $(seq 0 $((ITERATIONS - 1))); do
@@ -255,7 +255,7 @@ if [ $FAILCHECK -eq 0 ] && [ $ENCRYPTION_ENABLED -eq 1 ]; then
 
     echo -e "\nShutting down receiver now..."
     $KILL_CMD $RECVFILE_PID
-    wait $RECVFILE_PID
+    sleep 1
 fi
 
 # Return to test directory

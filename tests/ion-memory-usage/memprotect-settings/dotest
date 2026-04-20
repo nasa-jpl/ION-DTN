@@ -331,7 +331,7 @@ fi
 
 # Cleanup sink and drain
 kill $SINK_PID 2>/dev/null
-wait $SINK_PID 2>/dev/null
+sleep 1
 rm -f "$TESTDIR/node2/phase2a_recv.txt"
 sleep 2
 echo ""
@@ -382,7 +382,7 @@ sleep 10
 # bpdriver may still be running (blocked on ZCO space or rate limit).
 # Kill it now -- the queued bundles are already in the SDR.
 kill $DRIVER_PID 2>/dev/null
-wait $DRIVER_PID 2>/dev/null
+sleep 1
 
 # --- Stage 2: Enable protection, send inbound from node 1 ---
 # Set 50% heap threshold on node 2.  At this point ~37% of heap is
@@ -435,7 +435,7 @@ fi
 
 # Cleanup sink
 kill $SINK_PID 2>/dev/null
-wait $SINK_PID 2>/dev/null
+sleep 1
 rm -f "$TESTDIR/node2/phase2b_recv.txt"
 echo ""
 
@@ -495,7 +495,7 @@ fi
 
 # Cleanup sink
 kill $SINK_PID 2>/dev/null
-wait $SINK_PID 2>/dev/null
+sleep 1
 rm -f "$TESTDIR/node1/phase2c_recv.txt"
 echo ""
 

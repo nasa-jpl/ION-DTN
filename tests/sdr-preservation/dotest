@@ -90,7 +90,7 @@ run_test() {
     # Phase 4: Graceful shutdown preserving SDR and IPC
     echo ""
     echo "Phase 4: Shutting down with ionexit k n..."
-    ionexit k n
+    timeout 30 ionexit k n
     sleep 5
 
     # Phase 5: Restart ION with same config

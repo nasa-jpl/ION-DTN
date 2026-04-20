@@ -13,7 +13,7 @@ function end(){
     echo
     echo "Stopping ION..."
     cd 1.ipn.bp.udp
-    ionexit
+    timeout 30 ionexit
     echo "bpdriver TTL test completed."
     exit $RETVAL
 }

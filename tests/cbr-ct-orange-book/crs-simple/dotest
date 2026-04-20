@@ -81,7 +81,7 @@ sleep 10
 
 # Kill receiver
 kill $SINK_PID 2>/dev/null || true
-wait $SINK_PID 2>/dev/null || true
+sleep 1
 
 # Check CRS reception statistics
 cd "$TESTDIR/1.node"

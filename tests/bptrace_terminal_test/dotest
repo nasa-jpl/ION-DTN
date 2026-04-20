@@ -240,9 +240,8 @@ sleep 10
 
 # Stop listener and receiver
 kill $LISTEN_PID 2>/dev/null
-wait $LISTEN_PID 2>/dev/null
 kill $RECV_PID 2>/dev/null
-wait $RECV_PID 2>/dev/null
+sleep 1
 
 echo "bptrace listen output:"
 cat bptrace_listen.txt

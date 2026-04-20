@@ -124,10 +124,7 @@ sleep 1
 kill -9 $CFDPLISTEN_PID >/dev/null 2>&1
 kill -9 $CFDPTEST1_PID >/dev/null 2>&1
 kill -9 $CFDPTEST2_PID >/dev/null 2>&1
-# Wait for processes to avoid "Killed" messages
-wait $CFDPLISTEN_PID 2>/dev/null
-wait $CFDPTEST1_PID 2>/dev/null
-wait $CFDPTEST2_PID 2>/dev/null
+sleep 1
 
 # Combine all output files
 cat cfdplisten_output cfdptest1_output cfdptest2_output > output 2>/dev/null

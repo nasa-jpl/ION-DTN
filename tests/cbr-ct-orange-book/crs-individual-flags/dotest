@@ -94,7 +94,7 @@ sleep 8
 
 # Kill receiver
 kill $SINK_PID 2>/dev/null || true
-wait $SINK_PID 2>/dev/null || true
+sleep 1
 
 # Check results
 FINAL_CRS=$(get_crs_recv "$TESTDIR/1.node")
@@ -133,7 +133,7 @@ sleep 8
 
 # Kill receiver
 kill $SINK_PID 2>/dev/null || true
-wait $SINK_PID 2>/dev/null || true
+sleep 1
 
 # Check results - fwd report comes from intermediate node (Node 2)
 FINAL_CRS=$(get_crs_recv "$TESTDIR/1.node")
@@ -176,7 +176,7 @@ sleep 8
 
 # Kill receiver
 kill $SINK_PID 2>/dev/null || true
-wait $SINK_PID 2>/dev/null || true
+sleep 1
 
 # Check results
 FINAL_CRS=$(get_crs_recv "$TESTDIR/1.node")
@@ -215,7 +215,7 @@ sleep 10
 
 # Kill receiver
 kill $SINK_PID 2>/dev/null || true
-wait $SINK_PID 2>/dev/null || true
+sleep 1
 
 # Check results - should have multiple CRS signals
 FINAL_CRS=$(get_crs_recv "$TESTDIR/1.node")

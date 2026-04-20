@@ -173,7 +173,7 @@ fi
 echo ""
 echo "=== Cleanup ==="
 kill $BPSINK_PID 2>/dev/null
-wait $BPSINK_PID 2>/dev/null
+sleep 1
 
 # Kill the File CLAs explicitly (use SIGKILL - they may be blocked on file reads)
 pkill -9 -f "filecli" 2>/dev/null

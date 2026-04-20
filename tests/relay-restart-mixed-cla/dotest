@@ -174,7 +174,7 @@ echo "=== Restarting Node 2 (ionexit k n) ==="
 
 cd 2.ipn.relay
 echo "Shutting down Node 2 with ionexit k n..."
-ionexit k n
+timeout 30 ionexit k n
 sleep 5
 
 # Restart Node 2 using the same configuration files.
@@ -203,8 +203,18 @@ echo "Resuming -- bpdriver is still sending in background."
 #  Wait for bpdriver to finish
 # ===============================================================
 
-echo "Waiting for bpdriver to complete..."
-wait $BPDRIVER_PID 2>/dev/null
+echo "Waiting for bpdriver to complete (max 300s)..."
+WAITED=0
+while kill -0 $BPDRIVER_PID 2>/dev/null; do
+    if [ $WAITED -ge 300 ]; then
+        echo "bpdriver still running after ${WAITED}s — killing"
+        kill -9 $BPDRIVER_PID 2>/dev/null
+        sleep 1
+        break
+    fi
+    sleep 5
+    WAITED=$((WAITED + 5))
+done
 
 echo "bpdriver finished.  Waiting for remaining bundles to be delivered..."
 sleep 15
@@ -213,7 +223,7 @@ sleep 15
 kill -2 $BPCOUNTER_PID >/dev/null 2>&1
 sleep 2
 kill -9 $BPCOUNTER_PID >/dev/null 2>&1
-wait $BPCOUNTER_PID 2>/dev/null
+sleep 1
 
 # ===============================================================
 #  Count results

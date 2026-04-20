@@ -101,6 +101,6 @@ echo "Stopping ION..."
 kill $SINKPID
 sleep 1
 cd 3.ipn.udp
-ionexit  # use ionexit preserve log files for capture
+timeout 30 ionexit  # use ionexit preserve log files for capture
 echo "Status reports test completed."
 exit $RETVAL

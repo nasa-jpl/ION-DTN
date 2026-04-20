@@ -132,5 +132,5 @@ sleep 10
 #End ION
 echo "Killing ION..."
 kill -SIGTERM $TST 2>/dev/null
-wait $TST 2>/dev/null
+sleep 1
 exit $RETVAL
