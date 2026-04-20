@@ -20,6 +20,10 @@
 #include <netinet/tcp.h>
 #endif
 
+#ifdef HAVE_EXECINFO_H
+#include <execinfo.h>
+#endif
+
 #define	ABORT_AS_REQD		if (_coreFileNeeded(NULL)) sm_Abort()
 
 void	icopy(char *fromPath, char *toPath)
@@ -1559,9 +1563,9 @@ int	_iEnd(const char *fileName, int lineNbr, const char *arg)
 
 void	printStackTrace(void)
 {
-#if (defined(__linux__) && defined(HAVE_EXECINFO_H)) \
-	|| defined(freebsd) || defined(darwin)
-#define	MAX_TRACE_DEPTH	100
+#if defined(HAVE_BACKTRACE) && defined(HAVE_BACKTRACE_SYMBOLS) \
+		&& !defined(solaris)
+#define MAX_TRACE_DEPTH 100
 	void	*returnAddresses[MAX_TRACE_DEPTH];
 	size_t	stackFrameCount;
 	char	**functionNames;

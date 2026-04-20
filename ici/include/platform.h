@@ -661,9 +661,6 @@ typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
 
 #include <asm/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <sys/param.h>		/****	...to get MAXPATHLEN	     ****/
-#ifdef HAVE_EXECINFO_H
-#include <execinfo.h>		/****	...to get backtrace	     ****/
-#endif				/*	End of #ifndef HAVE_EXECINFO_H  */
 #endif				/****	End of #ifdef bionic	     ****/
 
 #define	_MULTITHREADED
@@ -674,7 +671,6 @@ typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
 
 #include <sys/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <pthread.h>
-#include <execinfo.h>		/****	...to get backtrace	     ****/
 int pthread_set_name_np(pthread_t thread, const char *name);
 
 #define	_MULTITHREADED
@@ -702,8 +698,6 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 #include <stdlib.h>
 #include <sys/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <pthread.h>
-
-#include <execinfo.h>		/****	...to get backtrace	     ****/
 
 /* semaphore options */
 /* POSIX_NAMED_SEMAPHORES is the default on MacOS */
