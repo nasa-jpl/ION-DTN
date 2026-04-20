@@ -303,27 +303,10 @@ else
 fi
 
 # Shut down ION processes.
-sleep 10
+# dotest EXIT trap runs "killm f" which handles full multi-node cleanup.
+# Avoid backgrounding ionstop processes here — their admin commands can
+# outlive killm's SIGKILL cycle, leaving orphan ionadmin processes that
+# hold CI pipes open and cause step timeouts.
 echo "Stopping ION..."
-cd ../1.ipn.ltp
-./ionstop &>/dev/null &
-cd ../2.ipn.ltp
-./ionstop &>/dev/null &
-cd ../3.ipn.ltp
-./ionstop &>/dev/null &
-cd ../5.ipn.ltp
-./ionstop &>/dev/null &
-cd ../6.ipn.ltp
-./ionstop &>/dev/null &
-cd ../7.ipn.ltp
-./ionstop &>/dev/null &
-cd ../8.ipn.ltp
-./ionstop &>/dev/null &
-cd ../9.ipn.ltp
-./ionstop &>/dev/null &
-
-# Give all nodes time to shut down, then clean up.
-sleep 20
-killm
 echo "Key distribution test completed."
 exit $RETVAL
