@@ -702,6 +702,31 @@ int	sm_SemTake(sm_SemId i)
 	return 0;
 }
 
+int	sm_SemTakeTimed(sm_SemId i, int timeoutSeconds)
+{
+	SmSem	*semTbl = _semTbl();
+	SmSem	*sem;
+	int	ticks;
+
+	CHKERR(i >= 0);
+	CHKERR(i < nSemIds);
+	sem = semTbl + i;
+	if (timeoutSeconds < 1) timeoutSeconds = 1;
+	ticks = timeoutSeconds * sysClkRateGet();
+	if (semTake(sem->id, ticks) == ERROR)
+	{
+		if (errno == S_objLib_OBJ_TIMEOUT)
+		{
+			return 1;	/*	Timed out.		*/
+		}
+
+		putSysErrmsg("Can't take semaphore", itoa(i));
+		return -1;
+	}
+
+	return 0;
+}
+
 void	sm_SemGive(sm_SemId i)
 {
 	SmSem	*semTbl = _semTbl();
@@ -955,6 +980,36 @@ int	sm_SemTake(sm_SemId i)
 		if (errno == EINTR)
 		{
 			continue;
+		}
+
+		putSysErrmsg("Can't take semaphore", itoa(i));
+		return -1;
+	}
+
+	return 0;
+}
+
+int	sm_SemTakeTimed(sm_SemId i, int timeoutSeconds)
+{
+	SmSem		*semTbl = _semTbl();
+	SmSem		*sem = semTbl + i;
+	struct timespec	timeout;
+
+	CHKERR(i >= 0);
+	CHKERR(i < SEM_NSEMS_MAX);
+	if (timeoutSeconds < 1) timeoutSeconds = 1;
+	oK(clock_gettime(CLOCK_REALTIME, &timeout));
+	timeout.tv_sec += timeoutSeconds;
+	while (sem_timedwait(sem->id, &timeout) < 0)
+	{
+		if (errno == EINTR)
+		{
+			continue;
+		}
+
+		if (errno == ETIMEDOUT)
+		{
+			return 1;	/*	Timed out.		*/
 		}
 
 		putSysErrmsg("Can't take semaphore", itoa(i));
@@ -1461,6 +1516,48 @@ int	sm_SemTake(sm_SemId i)
 			putSysErrmsg("Can't take semaphore", itoa(i));
 			return -1;
 		}
+	}
+
+	return 0;
+}
+
+int	sm_SemTakeTimed(sm_SemId i, int timeoutSeconds)
+{
+	SemaphoreBase	*sembase = _sembase(IPC_ACTION_LOOKUP);
+	IciSemaphore	*sem;
+	IciSemaphoreSet	*semset;
+	struct sembuf	sem_op[2] = { {0,0,0}, {0,1,0} };
+	struct timespec	timeout;
+
+	CHKERR(sembase);
+	CHKERR(i >= 0);
+	CHKERR(i < sembase->idsAllocated);
+	sem = sembase->semaphores + i;
+	if (sem->key == -1)	/*	semaphore deleted		*/
+	{
+		putErrmsg("Can't take deleted semaphore.", itoa(i));
+		return -1;
+	}
+
+	semset = sembase->semSets + sem->semSetIdx;
+	sem_op[0].sem_num = sem_op[1].sem_num = sem->semNbr;
+	if (timeoutSeconds < 1) timeoutSeconds = 1;
+	timeout.tv_sec = timeoutSeconds;
+	timeout.tv_nsec = 0;
+	while (semtimedop(semset->semid, sem_op, 2, &timeout) < 0)
+	{
+		if (errno == EINTR)
+		{
+			continue;
+		}
+
+		if (errno == EAGAIN)
+		{
+			return 1;	/*	Timed out.		*/
+		}
+
+		putSysErrmsg("Can't take semaphore", itoa(i));
+		return -1;
 	}
 
 	return 0;
@@ -3667,11 +3764,89 @@ void	sm_SemUnend(sm_SemId i)
 
 /* many posix semaphore systems that implement "named semaphores" do NOT implement sem_timedwait() */
 /* ... so we'll have to do it old school with an alarm clock signal */
+static volatile sig_atomic_t	semTakeTimedOut = 0;
+
 static void	handleTimeout(int signum)
 {
 	/* Acknowledge unused parameter. */
 	(void)signum;
+	semTakeTimedOut = 1;
 	return;
+}
+
+int	sm_SemTakeTimed(sm_SemId i, int timeoutSeconds)
+{
+	SmProcessSemtable	*semTbl = _semTbl(IPC_ACTION_LOOKUP);
+	SmLocalSem		*sem;
+	SmGlobalSem		*gsem;
+
+	CHKERR(semTbl);
+	CHKERR(i >= 0);
+	CHKERR(i < SEM_NSEMS_MAX);
+
+	sem = _semGetSem(semTbl, i, 0);
+	if (sem == NULL)
+	{
+		putErrmsg("Can't access semaphore", itoa(i));
+		return -1;
+	}
+
+	gsem = sem->semgl;
+
+	if (!gsem->inUse || ion_ipc_atomic_get(&gsem->pendingDelete))
+	{
+		putErrmsg("Can't take deleted or pending-delete semaphore",
+				itoa(i));
+		return -1;
+	}
+
+	if (sem->id == NULL || !sem->handleOpened)
+	{
+		putErrmsg("Semaphore handle not valid", itoa(i));
+		return -1;
+	}
+
+	/* Atomically increment reference count before attempting take. */
+	ion_ipc_atomic_get_and_increment(&gsem->refCount, 1);
+
+	if (timeoutSeconds < 1) timeoutSeconds = 1;
+	semTakeTimedOut = 0;
+	isignal(SIGALRM, handleTimeout);
+	oK(alarm(timeoutSeconds));
+
+	while (sem_wait(sem->id) < 0)
+	{
+		if (errno == EINTR)
+		{
+			if (semTakeTimedOut)
+			{
+				oK(alarm(0));
+				isignal(SIGALRM, SIG_DFL);
+				ion_ipc_atomic_get_and_decrement(&gsem->refCount,
+						1);
+				return 1;	/*	Timed out.	*/
+			}
+
+			if (ion_ipc_atomic_get(&gsem->ended))
+			{
+				oK(alarm(0));
+				isignal(SIGALRM, SIG_DFL);
+				return 0;	/*	Ended.		*/
+			}
+
+			continue;
+		}
+
+		oK(alarm(0));
+		isignal(SIGALRM, SIG_DFL);
+		ion_ipc_atomic_get_and_decrement(&gsem->refCount, 1);
+		putSysErrmsg("Can't take semaphore", itoa(i));
+		return -1;
+	}
+
+	oK(alarm(0));
+	isignal(SIGALRM, SIG_DFL);
+	return 0;
 }
 
 int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)

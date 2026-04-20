@@ -77,6 +77,7 @@ extern int		sm_GetUniqueKey(void);
 
 extern sm_SemId		sm_SemCreate(int key, int semType);
 extern int		sm_SemTake(sm_SemId semId);
+extern int		sm_SemTakeTimed(sm_SemId semId, int timeoutSeconds);
 extern void		sm_SemGive(sm_SemId semId);
 extern int		sm_SemUnwedge(sm_SemId semId, int timeoutSeconds);
 extern void		sm_SemDelete(sm_SemId semId);

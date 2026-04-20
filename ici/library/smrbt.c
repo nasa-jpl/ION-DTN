@@ -72,17 +72,26 @@ static int	nodeIsRed(PsmPartition partition, PsmAddress node)
 	return nodePtr->isRed;
 }
 
+#define	RBT_LOCK_TIMEOUT_SEC	5
+
 static int	lockSmrbt(SmRbt *rbt)
 {
 	int	result;
 
-	result = sm_SemTake(rbt->lock);
+	result = sm_SemTakeTimed(rbt->lock, RBT_LOCK_TIMEOUT_SEC);
 	if (result < 0)
 	{
 		putErrmsg("Can't lock red-black table.", NULL);
+		return ERROR;
 	}
 
-	return result;
+	if (result > 0)
+	{
+		putErrmsg("Timeout locking red-black table.", NULL);
+		return ERROR;
+	}
+
+	return 0;
 }
 
 static void	unlockSmrbt(SmRbt *rbt)
