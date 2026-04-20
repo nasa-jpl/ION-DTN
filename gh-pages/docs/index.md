@@ -23,8 +23,12 @@ DTN Development/Deployment Kit is an ISO image of an Ubuntu virtual machine, pre
 
 ## Installation & Configuration
 
-1. Clone the repository:
+1. Get the source code:
 
+   **Option A — Download a release archive (no git required):**
+   Visit the [ION-DTN releases page](https://github.com/nasa-jpl/ION-DTN/releases), pick a release (e.g., `ion-open-source-4.2.0-a.2`), expand "Assets", and download the ZIP or tar.gz file.
+
+   **Option B — Clone the repository:**
    ```bash
    git clone https://github.com/nasa-jpl/ION-DTN.git
    ```
