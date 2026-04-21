@@ -2668,9 +2668,28 @@ This option causes the standard ION logging function, which simply
 writes all ION status messages to a file named ion.log in the current
 working directory, to be replaced (by #include) with code in the source
 file gdslogger.c. A file of this name must be in the inclusion path for
-the compiler, as defined by --Ixxxx compiler option parameters.
+the compiler, as defined by -Ixxxx compiler option parameters.
 
-GDSSOURCE
+ION includes two versions of `gdslogger.c`:
+
+- **`arch-rtems/gdslogger.c`** — A stripped-down version for the RTEMS
+  embedded port. It redirects log messages to stdout with human-readable
+  timestamps. This version is compiled automatically by the RTEMS build
+  system and is not intended for general use.
+- **`tools/gdslogger/gdslogger.c`** — A full-featured version for ground
+  system deployments. It writes to `ion.log` with millisecond-epoch
+  timestamps suitable for machine parsing and log aggregation pipelines
+  (e.g., Filebeat/ELK), alongside the existing
+  `tools/gdswatcher/gdswatcher.c`.
+
+For Linux builds, supply the path to the desired `gdslogger.c` via the
+`-I` flag:
+
+```
+./configure CFLAGS="-DGDSLOGGER -I<path to folder containing gdslogger.c>"
+```
+
+`GDSSOURCE`
 
 This option simply causes GDSLOGGER to be set.
 

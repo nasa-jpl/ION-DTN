@@ -172,9 +172,11 @@ To introduce customized build flags, you can add them via the `./configure` in t
 
 `./configure CFLAGS="<string of compiler options>"`
 
-For example, say you want to add additional source code and header files from the `/wkdir/customfile` and activate certain features controlled by the `GDSLOGGER` and `GDSWATCHER` - software hooks to add time stamps to ion.log and writing time-stamped watch characters to a file for analysis. This can be accomplished through the `./configure` command as follows:
+For example, the `GDSLOGGER` and `GDSWATCHER` options are software hooks that add timestamps to ion.log and write timestamped watch characters to a file for analysis. Each requires a corresponding `.c` file to be in the compiler's include path. ION ships `gdswatcher.c` in `tools/gdswatcher/`; a full-featured `gdslogger.c` for ground systems is in `tools/gdslogger/` (a stripped-down RTEMS version also exists in `arch-rtems/`). See the [ION Deployment Guide](ION-Deployment-Guide.md) for details on both versions.
 
-`./configure CFLAGS="-I/wkdir/customfile -DGDSLOGGER -DGDSWATCHER"`
+To enable these features, point `-I` at the directories containing the respective `.c` files:
+
+`./configure CFLAGS="-DGDSWATCHER -Itools/gdswatcher -DGDSLOGGER -I<path to folder containing gdslogger.c>"`
 
 ### BPSec Logging
 
