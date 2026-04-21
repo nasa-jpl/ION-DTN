@@ -583,7 +583,7 @@ jobs:
                 apt-get update -qq
                 apt-get install -y -qq --no-install-recommends \
                     build-essential autoconf automake libtool pkg-config \
-                    libexpat1-dev valgrind sudo ca-certificates
+                    libexpat1-dev valgrind sudo ca-certificates psmisc
                 echo "Compiler:"
                 gcc --version | head -1
 
