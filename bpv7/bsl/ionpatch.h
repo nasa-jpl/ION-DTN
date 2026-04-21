@@ -27,3 +27,8 @@ extern void		*ion_malloc(const char *, int, size_t);
 extern void		*ion_calloc(const char *, int, size_t, size_t);
 extern void		*ion_realloc(const char *, int, void *, size_t);
 extern void		ion_free(const char *, int,  void *);
+
+extern void		*ion_bsl_malloc_cb(size_t);
+extern void		*ion_bsl_realloc_cb(void *, size_t);
+extern void		*ion_bsl_calloc_cb(size_t, size_t);
+extern void		ion_bsl_free_cb(void *);
