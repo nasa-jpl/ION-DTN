@@ -17,12 +17,13 @@ permissions:
   statuses: write
   pull-requests: read
 
-# Serialize runs per ref so a scheduled nightly cannot pile up on a still-
-# running manual dispatch (or vice versa).  cancel-in-progress=false because
-# these runs are long (several hours on arm64) and the single self-hosted
-# Mac ARM64 runner cannot service overlapping jobs anyway.
+# Serialize against ALL ARC-based ION test workflows.  Both this workflow
+# and ci-workflow-arc.yml share ARC runners with hardcoded ports and IPC
+# keys, so concurrent runs cause test failures (e.g. bpchat port 4556
+# collisions).  cancel-in-progress=false because these runs are long
+# (several hours on arm64) and results from both should be preserved.
 concurrency:
-  group: atomic-tiers-${{ github.workflow }}-${{ github.ref }}
+  group: arc-ion-tests
   cancel-in-progress: false
 
 on:
