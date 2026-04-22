@@ -1043,7 +1043,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 	if (parseEidString(eid, &metaEid, &vscheme, &vschemeElt) == 0)
 	{
 		putErrmsg("Can't parse node EID string.", eid);
-		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
+		return bpAbandon(bundleObj, bundle, BP_REASON_EID_MALFORMED);
 	}
 
 	if (metaEid.nullEndpoint)

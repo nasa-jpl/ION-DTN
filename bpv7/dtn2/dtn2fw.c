@@ -64,7 +64,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	if (parseEidString(eid, &metaEid, &vscheme, &vschemeElt) == 0)
 	{
 		writeMemoNote("[?] Can't parse node EID string", eid);
-		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
+		return bpAbandon(bundleObj, bundle, BP_REASON_EID_MALFORMED);
 	}
 
 	if (strcmp(vscheme->name, "dtn") != 0)

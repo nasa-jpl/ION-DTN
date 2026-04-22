@@ -675,7 +675,7 @@ printf("Bundle has %d destinations.\n", destinationsCount);
 #if IMCDEBUG
 puts("no destinations");
 #endif
-		oK(bpAbandon(bundleAddr, bundle, BP_REASON_NO_ROUTE));
+		oK(bpAbandon(bundleAddr, bundle, BP_REASON_BLK_MALFORMED));
 		return 0;
 	}
 
@@ -983,7 +983,7 @@ int	main(void)
 #if IMCDEBUG
 puts("IMC extension block missing");
 #endif
-			oK(bpAbandon(bundleAddr, &bundle, BP_REASON_NO_ROUTE));
+			oK(bpAbandon(bundleAddr, &bundle, BP_REASON_BLK_MALFORMED));
 			continue;
 		}
 

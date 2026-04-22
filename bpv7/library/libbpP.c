@@ -6167,7 +6167,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		 *	to destroy it successfully.			*/
 
 		sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
-		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
+		return bpAbandon(bundleObj, bundle, BP_REASON_EID_MALFORMED);
 	}
 
 	/*	Prevent routing loop: eid must not already be in the
@@ -6199,7 +6199,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 
 		writeMemoNote("[?] Can't parse station EID", eid);
 		sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
-		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
+		return bpAbandon(bundleObj, bundle, BP_REASON_EID_MALFORMED);
 	}
 
 	/*	Check for null-endpoint destination dtn:none or ipn:0.0	*/
@@ -12033,9 +12033,9 @@ int	bpAbandon(Object bundleObj, Bundle *bundle, int reason)
 	BpSrReason	srReason;
 
 	CHKERR(bundleObj && bundle);
-	if (reason == BP_REASON_DEPLETION)
+	if (reason >= BP_REASON_EXPIRED && reason < BP_REASON_STATS)
 	{
-		srReason = SrDepletedStorage;
+		srReason = (BpSrReason) reason;
 	}
 	else
 	{
