@@ -69,6 +69,7 @@ typedef struct
 	size_t	logSize;
 	int	logKey;
 	char	pathName[MAXPATHLEN + 1];
+	size_t	traceShmSize;	/*	Trace shm size; 0 = default.	*/
 } IonParms;
 
 typedef struct

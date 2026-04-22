@@ -100,6 +100,7 @@ typedef struct sdr_str
 
 	int		traceKey;		/*	trace shmKey	*/
 	size_t		traceSize;		/*	0 = disabled	*/
+	int		traceCount;		/*	episode counter	*/
 
 		/*	Path to directory for files (log, ds).	*/
 

@@ -473,6 +473,80 @@ total unused:        49364408      ← Never allocated to any pool yet
 - Rising "unavbl" over time without dropping = memory leak
 - Stable or fluctuating "unavbl" = normal operation
 
+### Auto-Detect Mode
+
+When only interval and count are specified (no key/size/name), psmwatch auto-detects
+memory parameters from the ION configuration:
+
+```bash
+# Auto-detect and poll once
+psmwatch 0 1
+
+# Auto-detect, trace every 10 seconds for 5 iterations
+psmwatch 10 5
+
+# Auto-detect, verbose trace
+psmwatch 10 5 verbose
+```
+
+### Daemon Mode
+
+When invoked with `-d`, psmwatch runs as a background daemon that periodically
+reports PSM usage to `ion.log`:
+
+```bash
+# Default daemon: report every 10 min, 5% threshold, warn at 90%
+psmwatch -d
+
+# Report every 5 min with 10% threshold
+psmwatch -d 5 10
+
+# Report every 5 min, 10% threshold, warn at 80%, warn every 30s
+psmwatch -d 5 10 80 30
+
+# Daemon with explicit memory parameters
+psmwatch -d 10 5 90 60 0xff01 5000000 ionwm
+```
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `interval_minutes` | 10 | How often to report usage |
+| `percent_threshold` | 5 | Report when usage crosses any multiple of this value |
+| `warn_pct` | 90 | Log WARNING when usage exceeds this percentage (0 = disable) |
+| `warn_cadence_sec` | 60 | Seconds between repeated warnings while above threshold |
+
+The daemon can be auto-launched by ION via `ionadmin`: use `m psmwatch` to enable
+auto-launch, which is stored in IonDB and starts psmwatch at each `rfx_start()`.
+
+### Configurable Trace Memory Size
+
+The trace shared memory size defaults to 20 MB. This can be configured via the
+`traceShmSize` parameter in the `.ionconfig` file:
+
+```
+traceShmSize 40000000
+```
+
+Larger values allow longer trace sessions before trace memory is exhausted.
+If `traceShmSize` is 0 or not specified, psmwatch uses the default 20 MB.
+
+### Trace Lifecycle and Episode Management
+
+When psmwatch starts a trace episode, it allocates a shared memory region and sets
+a global flag (`traceSize`) in the PSM partition map. ION processes automatically
+detect this flag and join the trace, logging their allocations and deallocations.
+
+A `traceCount` mechanism tracks trace episodes. Each time a new trace episode starts,
+the global counter increments. Participant processes compare their local counter
+against the global one and cleanly stop the old trace before joining the new one.
+This prevents shared memory leaks when trace episodes restart.
+
+When psmwatch stops:
+1. The global `traceSize` is set to 0
+2. Participant processes detect this on their next PSM operation
+3. Each participant calls `sptrace_stop()` to release its trace attachment
+4. The trace shared memory is destroyed
+
 ### Trace Mode vs Polling Mode
 
 **Trace Mode (positive interval):**

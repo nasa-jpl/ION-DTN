@@ -289,6 +289,7 @@ actual.", NULL);
 	else			/*	Trace is not currently enabled.	*/
 	{
 		sdr->traceSize = shmSize;	/*	Enable trace.	*/
+		sdr->traceCount++;		/*	New episode.	*/
 	}
 
 	sdrv->trace = &(sdrv->traceArea);
@@ -305,6 +306,8 @@ actual.", NULL);
 		return -1;
 	}
 
+	sdrv->traceArea.traceCount = sdr->traceCount;
+	sptrace_set_episode_id(sdrv->trace, sdr->traceCount);
 	releaseSdr(sdr);
 	sdrv->currentSourceFileName = NULL;
 	sdrv->currentSourceFileLine = 0;
@@ -391,8 +394,21 @@ void	joinTrace(Sdr sdrv, const char *sourceFileName, int lineNbr)
 	{
 		if (sdr->traceSize < 1)	/*	Trace is now disabled.	*/
 		{
+			sptrace_stop(sdrv->trace);
 			sdrv->trace = NULL;
 			return;
+		}
+
+		if (sdrv->traceArea.traceCount != sdr->traceCount)
+		{
+			/*	New trace episode; reattach.		*/
+
+			sptrace_stop(sdrv->trace);
+			sdrv->trace = NULL;
+			if (sdr_start_trace(sdrv, sdr->traceSize, NULL) < 0)
+			{
+				return;
+			}
 		}
 	}
 

@@ -128,6 +128,14 @@ ION node's working memory.  If I<wmAddress> is zero, a block of system memory
 of this size will be allocated (e.g., by malloc()) at the time the node is
 created.  The default value is 5000000 (5 million bytes).
 
+=item traceShmSize
+
+This is the size (in bytes) of the shared memory segment to allocate for
+PSM partition activity tracing (sptrace).  When B<psmwatch> starts a trace
+episode, it uses this value instead of its built-in default of 20000000
+(20 million bytes).  Larger values allow longer trace sessions before trace
+memory is exhausted.  If zero (the default), B<psmwatch> uses 20000000.
+
 =back
 
 =head1 EXAMPLE
@@ -143,6 +151,8 @@ pathName /tmp
 wmSize 5000000
 
 wmAddress 0
+
+traceShmSize 20000000
 
 =head1 SEE ALSO
 

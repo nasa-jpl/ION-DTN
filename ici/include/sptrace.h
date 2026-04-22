@@ -129,6 +129,15 @@ extern void		sptrace_stop(PsmPartition trace);
 				the shared memory allocated to the
 				trace operations.			*/
 
+extern void		sptrace_set_episode_id(PsmPartition trace,
+					int episodeId);
+			/*	Sets the episode ID in the trace
+				header for cross-process validation.	*/
+
+extern int		sptrace_get_episode_id(PsmPartition trace);
+			/*	Returns the episode ID from the trace
+				header, or -1 on error.			*/
+
 #ifdef __cplusplus
 }
 #endif

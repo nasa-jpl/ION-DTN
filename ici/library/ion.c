@@ -1932,6 +1932,13 @@ UVAST_FIELDSPEC ".", size);
 			continue;
 		}
 
+		if (strcmp(tokens[0], "traceShmSize") == 0)
+		{
+			size = strtouvast(tokens[1]);
+			parms->traceShmSize = size;
+			continue;
+		}
+
 		isprintf(buffer, sizeof buffer, "[?] unknown SDR config \
 keyword '%.32s' at line %d.", tokens[0], lineNbr);
 		writeMemo(buffer);
@@ -1980,6 +1987,9 @@ void	printIonParms(IonParms *parms)
 	writeMemo(buffer);
 	isprintf(buffer, sizeof buffer, "pathName:       '%.256s'",
 			parms->pathName);
+	writeMemo(buffer);
+	isprintf(buffer, sizeof buffer, "traceShmSize:    %ld",
+			parms->traceShmSize);
 	writeMemo(buffer);
 }
 

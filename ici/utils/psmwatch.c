@@ -334,7 +334,7 @@ static int	run_psmwatch_daemon(int memKey, long memSize,
 }
 
 static int run_psmwatch(int memKey, long memSize, char *partitionName,
-		int interval, int verbose, int noTrace)
+		int interval, int verbose, int noTrace, size_t traceShmSize)
 {
 	char           *memory = NULL;
 	uaddr           smId = 0;
@@ -374,7 +374,12 @@ static int run_psmwatch(int memKey, long memSize, char *partitionName,
 
 	if (!noTrace)
 	{
-		if (psm_start_trace(psm, 20000000, NULL) < 0)
+		if (traceShmSize == 0)
+		{
+			traceShmSize = 20000000;
+		}
+
+		if (psm_start_trace(psm, traceShmSize, NULL) < 0)
 		{
 			putErrmsg("Can't start trace.", NULL);
 			writeErrmsgMemos();
@@ -474,7 +479,7 @@ int psmwatch(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5, saddr a6,
 
 	oK(psmwatch_count(&count));
 	return run_psmwatch(memKey, memSize, partitionName, interval, verbose,
-			noTrace);
+			noTrace, 0);
 }
 #else
 int main(int argc, char **argv)
@@ -492,6 +497,7 @@ int main(int argc, char **argv)
 	Sdr	sdr;
 	Object	iondbObj;
 	IonDB	iondb;
+	size_t	traceShmSize = 0;
 
 	/*	Check for help request.					*/
 
@@ -645,7 +651,7 @@ to ION.", NULL);
 
 			oK(psmwatch_count(&count));
 			return run_psmwatch(memKey, memSize, partitionName,
-					interval, verbose, noTrace);
+					interval, verbose, noTrace, 0);
 		}
 	}
 
@@ -666,6 +672,7 @@ to ION.", NULL);
 
 	memKey = iondb.parmcopy.wmKey;
 	memSize = iondb.parmcopy.wmSize;
+	traceShmSize = iondb.parmcopy.traceShmSize;
 	partitionName = "ionwm";
 
 	ionDetach();
@@ -706,6 +713,6 @@ to ION.", NULL);
 
 	oK(psmwatch_count(&count));
 	return run_psmwatch(memKey, memSize, partitionName, interval, verbose,
-			noTrace);
+			noTrace, traceShmSize);
 }
 #endif

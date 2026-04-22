@@ -87,6 +87,25 @@ logged at this interval (in seconds).  Default is 60.
 
 The daemon can be stopped by sending SIGTERM or SIGINT to the process.
 
+=head2 Trace Lifecycle
+
+When B<psmwatch> starts a trace episode (in standard mode with a positive
+I<interval>), it allocates a shared memory region for trace operations.
+The size of this region defaults to 20 MB but can be configured via the
+I<traceShmSize> parameter in the B<.ionconfig> file (see ionconfig(5)).
+
+ION processes that perform PSM operations automatically join an active
+trace episode and log their allocation and deallocation events.  When
+B<psmwatch> stops the trace (or is terminated), it sets a global flag
+that signals all participant processes to detach from the trace shared
+memory.
+
+A I<traceCount> mechanism tracks trace episodes.  When a new episode starts,
+the global episode counter is incremented.  Participant processes detect the
+new episode and cleanly stop the old trace before joining the new one.
+This prevents shared memory leaks that would otherwise occur when processes
+hold stale references to ended trace episodes.
+
 =head2 Standard Mode
 
 For debugging the ION protocol stack:

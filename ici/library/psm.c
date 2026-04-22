@@ -126,6 +126,7 @@ typedef struct			/*	Global view in shared memory.	*/
 	char		name[32];
 	int		traceKey;	/*	For sptrace.		*/
 	size_t		traceSize;	/*	0 = trace disabled.	*/
+	int		traceCount;	/*	Trace episode counter.	*/
 	PsmAddress	startOfSmallPool;
 	PsmAddress	endOfSmallPool;
 	SmallFreeBucket	smallPoolFree[SMALL_SIZES];
@@ -903,8 +904,22 @@ static int	traceInProgress(PsmPartition partition)
 	{
 		if (map->traceSize < 1)	/*	Trace is now disabled.	*/
 		{
+			sptrace_stop(partition->trace);
 			partition->trace = NULL;
 			return 0;	/*	Don't trace.		*/
+		}
+
+		if (partition->traceCount != map->traceCount)
+		{
+			/*	New trace episode; reattach.		*/
+
+			sptrace_stop(partition->trace);
+			partition->trace = NULL;
+			if (psm_start_trace(partition, map->traceSize,
+					NULL) < 0)
+			{
+				return 0;
+			}
 		}
 	}
 
@@ -1485,6 +1500,7 @@ actual.", itoa(map->traceSize));
 	else			/*	Trace is not currently enabled.	*/
 	{
 		map->traceSize = shmSize;	/*	Enable trace.	*/
+		map->traceCount++;		/*	New episode.	*/
 	}
 
 	partition->trace = (PsmView *) (partition->traceArea);
@@ -1501,6 +1517,8 @@ actual.", itoa(map->traceSize));
 		return -1;
 	}
 
+	partition->traceCount = map->traceCount;
+	sptrace_set_episode_id(partition->trace, map->traceCount);
 	unlockPartition(map);
 	return 0;
 #endif
