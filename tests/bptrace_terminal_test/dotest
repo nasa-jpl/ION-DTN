@@ -143,6 +143,7 @@ fi
 
 sleep 1
 bpsink ipn:5.1 &
+BPSINK_PID=$!
 cd ../2.ipn.ltp
 
 # # let user work with nodes
@@ -217,6 +218,9 @@ fi
 # Use bptrace in listen mode to capture the delivery status report.
 echo
 echo "=== Test 4: bpsendfile with report-to EID and status report flags ==="
+kill $BPSINK_PID 2>/dev/null
+wait $BPSINK_PID 2>/dev/null
+sleep 1
 cd ../2.ipn.ltp
 
 # Create a test file to send
@@ -232,6 +236,11 @@ cd ../5.ipn.ltp
 bprecvfile ipn:5.1 &
 RECV_PID=$!
 sleep 1
+if ! kill -0 $RECV_PID 2>/dev/null; then
+    echo "ERROR: bprecvfile failed to start on ipn:5.1 (endpoint may already be open)."
+    kill $LISTEN_PID 2>/dev/null
+    RETVAL=1
+fi
 
 # Send file with delivery report requested, report-to ipn:2.420
 cd ../2.ipn.ltp
