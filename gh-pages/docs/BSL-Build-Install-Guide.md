@@ -2,9 +2,11 @@
 
 ## What is BSL?
 
-BSL (Bundle Protocol Security Library) is an external BPSec implementation that ION can use as an alternative to ION's built-in BPSec. BSL implements RFC 9172/9173 security contexts, uses OpenSSL for cryptography, and is configured through JSON files rather than `bpsecadmin` commands.
+BSL (Bundle Protocol Security Library) is an external BPSec implementation that ION can use as an alternative to ION's built-in BPSec. BSL v1.1 implements RFC 9172/9173 security contexts, uses OpenSSL for cryptography, and is configured through JSON files rather than `bpsecadmin` commands.
 
 BSL is integrated as a git submodule at `external/BSL/`. When enabled, it replaces ION's native BPSec policy engine and security processing.
+
+BSL v1.1 uses runtime dynamic memory callbacks instead of compile-time integration, so BSL builds as a standalone library with no ION dependencies. ION's `ionpatch.c` registers ION memory allocation callbacks at runtime.
 
 ## Prerequisites
 
@@ -26,7 +28,7 @@ See [Appendix A](#appendix-a-detailed-prerequisites) for complete dependency inf
 
 ## Build Instructions
 
-Building ION with BSL is a two-stage process because BSL and ION have a mutual dependency: BSL links against ION's `libici`, and ION links against BSL's security libraries. The automake build system handles both stages automatically.
+BSL v1.1 builds as a standalone library (no ION dependency), then ION links against BSL. The automake build system handles this automatically.
 
 ### Step 1: Initialize the BSL Submodule
 
@@ -51,9 +53,7 @@ autoreconf -fi
 # Configure with BSL enabled
 ./configure --enable-bsl
 
-# Build (automake handles the two-stage process automatically:
-#   Stage 1: builds libici
-#   Stage 2: builds BSL against libici, then builds the rest of ION against BSL)
+# Build (automake builds BSL first, then builds ION linking against BSL)
 make -j$(nproc)
 
 # Install
@@ -335,23 +335,17 @@ cd external/BSL && ./build-for-ion.sh
 
 ### Appendix B: Manual BSL Build
 
-If you need more control than the automake two-stage process provides, you can build BSL manually. ION must be built and installed first (BSL links against `libici`).
+BSL v1.1 builds as a standalone library with no ION dependencies. You can build BSL first, then build ION linking against it.
 
 ```bash
-# 1. Build and install ION without BSL
-autoreconf -fi
-./configure
-make -j$(nproc)
-sudo make install && sudo ldconfig
-
-# 2. Build BSL
+# 1. Build BSL
 cd external/BSL
 git submodule update --init --recursive
 ./build-for-ion.sh
-
-# 3. Rebuild ION with BSL
 cd ../..
-make clean
+
+# 2. Build ION with BSL
+autoreconf -fi
 ./configure --enable-bsl
 make -j$(nproc)
 sudo make install && sudo ldconfig
@@ -364,8 +358,6 @@ cd external/BSL
 ./build.sh clean
 ./build.sh deps
 ./build.sh prep \
-    -DION_INTEGRATION=ON \
-    -DION_ROOT=/path/to/ion-ios-dev \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=$PWD/testroot/usr \
     -DBUILD_TESTING=OFF
@@ -379,8 +371,6 @@ cmake --install . --prefix $PWD/../../testroot/usr
 ```bash
 cd external/BSL
 ./build.sh prep \
-    -DION_INTEGRATION=ON \
-    -DION_ROOT=/path/to/ion-ios-dev \
     -DCMAKE_INSTALL_PREFIX=/usr/local \
     -DBUILD_TESTING=OFF
 ./build.sh
@@ -397,7 +387,7 @@ BSL unit tests require GCC 13+ to compile.
 
 ```bash
 cd external/BSL
-./build.sh prep -DION_INTEGRATION=ON -DBUILD_TESTING=ON
+./build.sh prep -DBUILD_TESTING=ON
 ./build.sh
 ./build.sh check
 ```
@@ -464,7 +454,7 @@ sudo ldconfig
 
 ## Additional Resources
 
-- **BSL Repository**: https://github.com/iondev33/BSL (branch: `bsl-ion-integration`)
+- **BSL Repository**: https://github.com/NASA-AMMOS/BSL
 - **RFC 9172**: Bundle Protocol Security (BPSec)
 - **RFC 9173**: Default Security Contexts for BPSec
 - **ION Documentation**: https://ion-dtn.readthedocs.io

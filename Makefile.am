@@ -89,26 +89,17 @@ EXTRA_DIST =	\
 # libraries. It checks for a flag file to ensure it only runs ONCE per build.
 
 if ENABLE_BSL
-# For BSL builds, we need a two-stage process:
-# 1. Build libici.la (BSL depends on it)
-# 2. Build BSL (everything else depends on BSL headers)
-# 3. Build everything else
+# BSL v1.1 builds as a standalone library (no ION dependencies).
+# Build BSL first, then build ION linking against BSL.
+all: all-bsl
 
-# Override the default all target to do two-stage build
-all: all-bsl-two-stage
-
-all-bsl-two-stage:
+all-bsl:
 	@echo "========================================"
-	@echo "Stage 1: Building libici.la..."
+	@echo "Stage 1: Building BSL..."
 	@echo "========================================"
-	$(MAKE) $(AM_MAKEFLAGS) libici.la
+	@cd $(srcdir)/external/BSL && ./build-for-ion.sh
 	@echo "========================================"
-	@echo "Stage 2: Building BSL with ION integration..."
-	@echo "========================================"
-	@cd $(srcdir)/external/BSL && \
-	ION_ROOT=$(abs_top_builddir) ./build-for-ion.sh
-	@echo "========================================"
-	@echo "Stage 3: Building remaining ION components..."
+	@echo "Stage 2: Building ION..."
 	@echo "========================================"
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -2692,7 +2683,7 @@ restartclean-local:
 # TESTS SECTION
 #
 ##########################
-.PHONY:	test check buildcheck test-all test-% retest bsl-clean-local all-bsl-two-stage
+.PHONY:	test check buildcheck test-all test-% retest bsl-clean-local all-bsl
 
 # "make buildcheck" will compile any of the compiled tests, but won't run
 # any of them. Also builds check_LTLIBRARIES (e.g., stub provider libraries).

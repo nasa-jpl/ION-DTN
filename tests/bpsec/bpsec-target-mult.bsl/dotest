@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# bpsec-target-mult.bsl
+#
+# BSL target multiplicity test: exercises bundles with multiple security
+# blocks targeting different extension blocks.
+#
+# Topology:
+#   Node 2 (ipn:2.*) --LTP--> Node 3 (ipn:3.*)
+#
+# Security design:
+#   Node 2: BIB source on payload (tgt 1), BIB source on primary (tgt 0),
+#           BCB source on payload (tgt 1)
+#   Node 3: BIB acceptor for payload, BIB acceptor for primary,
+#           BCB acceptor for payload
+#
+# All three security blocks are applied to every bundle. This exercises
+# BSL's ability to handle multiple security operations on a single bundle:
+#   - Two BIBs targeting different blocks (payload + primary)
+#   - A BCB on payload that coexists with BIB on primary
+#
+# Per RFC 9172, BIB and BCB on the SAME target from the same source is
+# prohibited. Having BIB on primary + BCB on payload (different targets)
+# is the correct pattern.
+#
+# Tests:
+#   Test 1 - Small bundle with BIB(payload) + BIB(primary) + BCB(payload)
+#   Test 2 - Second bundle (same config, exercises stability)
+
+TIMETODISPLAYTEXT=2
+TIMETOWAITFORTESTFINISH=5
+
+echo "Cleaning up old ION..."
+rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log
+killm
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+BSL_KEY_FILE="${PWD}/key_set.json"
+if [ ! -f "$BSL_KEY_FILE" ]; then
+    echo "ERROR: BSL key file not found: $BSL_KEY_FILE"
+    exit 2
+fi
+
+for pf in "${PWD}/policy_node2.json" "${PWD}/policy_node3.json"; do
+    if [ ! -f "$pf" ]; then
+        echo "ERROR: BSL policy file not found: $pf"
+        exit 2
+    fi
+done
+
+PASS=1
+
+cd 2.ipn.ltp
+ionadmin amroc.ionrc
+cd ../3.ipn.ltp
+ionadmin amroc.ionrc
+
+cd ../2.ipn.ltp
+ionadmin ../global.ionrc
+cd ../3.ipn.ltp
+ionadmin ../global.ionrc
+
+cd ../2.ipn.ltp
+ionsecadmin amroc.ionsecrc
+cd ../3.ipn.ltp
+ionsecadmin amroc.ionsecrc
+
+cd ../2.ipn.ltp
+ltpadmin amroc.ltprc
+cd ../3.ipn.ltp
+ltpadmin amroc.ltprc
+
+cd ../2.ipn.ltp
+bpadmin amroc.bprc
+cd ../3.ipn.ltp
+bpadmin amroc.bprc
+
+cd ..
+
+rm -f 3.ipn.ltp/3_receive_file.txt
+rm -f 3.ipn.ltp/3_results.txt
+touch 3.ipn.ltp/3_receive_file.txt
+touch 3.ipn.ltp/3_results.txt
+
+echo "Starting bpsink on node 3..."
+cd 3.ipn.ltp
+bpsink ipn:3.1 >> 3_results.txt &
+cd ..
+
+sleep 1
+
+#############
+# Test 1: Bundle with BIB(payload) + BIB(primary) + BCB(payload)
+
+cd 2.ipn.ltp
+echo -e "\n\n*****TEST 1*****"
+echo "Bundle with BIB(payload) + BIB(primary) + BCB(payload), node 2->3. Should deliver."
+sleep ${TIMETODISPLAYTEXT}
+bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "mult_test1" rcv,ct,fwd,dlv,del
+cd ..
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+grep "mult_test1" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
+
+rm -f expected.txt
+echo "'mult_test1'" > expected.txt
+
+if ! diff -w expected.txt 3.ipn.ltp/3_receive_file.txt; then
+    echo "FAIL (test 1)"
+    PASS=0
+else
+    echo "SUCCESS (test 1)"
+fi
+
+#############
+# Test 2: Second bundle (exercises stability of multiple security blocks)
+
+echo -e "\n\n*****TEST 2*****"
+echo "Second bundle with same security blocks. Exercises stability."
+sleep ${TIMETODISPLAYTEXT}
+
+cd 2.ipn.ltp
+bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "mult_test2" rcv,ct,fwd,dlv,del
+cd ..
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+grep "mult_test2" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
+
+rm -f expected.txt
+echo "'mult_test2'" > expected.txt
+
+if ! diff -w expected.txt 3.ipn.ltp/3_receive_file.txt; then
+    echo "FAIL (test 2)"
+    PASS=0
+else
+    echo "SUCCESS (test 2)"
+fi
+
+############################################################
+# END OF TESTS
+
+echo "Stopping ION..."
+cd 2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+
+cd ..
+
+sleep 7
+killm
+echo "Target multiplicity test completed."
+
+if [ $PASS -eq 1 ]; then
+    exit 0
+else
+    exit 1
+fi
