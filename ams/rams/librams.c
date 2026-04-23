@@ -26,6 +26,8 @@
 
 #include "ramscommon.h"
 
+#include "ion_atomic.h"
+
 /*	Global flag for graceful shutdown on receipt of SIGTERM.	*/
 volatile sig_atomic_t g_ramsgate_interrupted = 0;
 

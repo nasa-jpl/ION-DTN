@@ -16,6 +16,8 @@
 
 #include "udplsa.h"
 
+#include "ion_atomic.h"
+
 #if defined(__linux__)
 
 #define IPHDR_SIZE	(sizeof(struct iphdr) + sizeof(struct udphdr))

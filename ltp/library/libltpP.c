@@ -25,6 +25,7 @@
  *			 from generalized extensions.
  */
 
+#include "ion_atomic.h"
 #include "ltpP.h"
 #include "ltpei.h"
 

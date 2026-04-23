@@ -10,6 +10,8 @@
 									*/
 #include "udplsa.h"
 
+#include "ion_atomic.h"
+
 static void	interruptThread(int signum)
 {
 	/* Tell the compiler that we are not using 'signum' */

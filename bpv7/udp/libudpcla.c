@@ -15,6 +15,8 @@
                                                                         */
 #include "udpcla.h"
 
+#include "ion_atomic.h"
+
 /*	*	*	Sender functions	*	*	*	*/
 
 static int openUdpSocket(int *sock)

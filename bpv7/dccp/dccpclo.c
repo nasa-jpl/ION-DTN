@@ -16,8 +16,9 @@
 
 #ifdef build_dccp
 
-
 #include "dccpcla.h"
+
+#include "ion_atomic.h"
 
 /* Return Semaphore to control transmission 				*/
 static sm_SemId	dccpcloSemaphore(sm_SemId *semid)

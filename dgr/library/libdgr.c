@@ -10,6 +10,7 @@
 
 									*/
 #include "dgr.h"
+#include "ion_atomic.h"
 #include "memmgr.h"
 #include "llcv.h"
 
