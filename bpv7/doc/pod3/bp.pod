@@ -49,7 +49,7 @@ suspending/resuming, or cancelling transmission of these bundles.  On
 success, places a value in I<*ionsapPtr> that can be supplied to future
 bp function invocations and returns 0.  Returns -1 on any error.
 
-=item int bp_open_source(char *eid, BpSAP *ionsapPtr, detain)
+=item int bp_open_source(char *eid, BpSAP *ionsapPtr, int detain)
 
 Opens the application's access to the BP endpoint identified by I<eid>,
 so that the application can send bundles whose source is the indicated
