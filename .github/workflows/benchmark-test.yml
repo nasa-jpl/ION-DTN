@@ -87,7 +87,6 @@ jobs:
           } > benchmark.log 2> >(tee -a benchmark.log >&2)
 
           TEST_STATUS=$?
-          wait  # Wait for background processes to complete
 
           if [ $TEST_STATUS -ne 0 ]; then
             echo "Tests failed with status $TEST_STATUS" >&2
