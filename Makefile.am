@@ -1253,16 +1253,13 @@ bpextra = \
 	bpv7/doc/pod5/lgfile.pod \
 	bpv7/library/ext/bpextensions.c \
 	bpv7/library/ext/noextensions.c \
+	bpv7/library/ext/bae/bae.h \
 	bpv7/library/ext/bpsec/bcb.h \
 	bpv7/library/ext/bpsec/bib.h \
-	bpv7/library/ext/hcb/hcb.h \
-	bpv7/library/ext/meb/meb.h \
-	bpv7/library/ext/meb/meb.c \
 	bpv7/library/ext/creb/creb.h \
-	bpv7/library/ext/bae/bae.h \
-	bpv7/library/ext/bae/bae.c \
-	ici/include/crypto.h \
-	ici/include/csi.h
+	bpv7/library/ext/cteb/cteb.h \
+	bpv7/library/ext/hcb/hcb.h \
+	bpv7/library/ext/meb/meb.h
 
 if ENABLE_IMC
 bpextra += \
