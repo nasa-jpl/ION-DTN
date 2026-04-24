@@ -88,6 +88,8 @@ and sequence numbers used for cache invalidation
 in the global semaphore table.
 All of this goes through a single portable abstraction
 in **`ici/include/ion_atomic.h`**.
+Each source file that uses atomic types or macros must `#include "ion_atomic.h"` directly — it is not pulled in by `platform.h` or any other header.
+The header is installed as a public header by `make install`, and its tier-selection macro (`ION_HAVE_C11_ATOMICS`) is exported via `pkg-config --cflags ion` so external consumers automatically get the correct atomics configuration.
 Application code, library code, and new daemons must not include `<stdatomic.h>`
 or call `__atomic_*` / `__sync_*` built-ins directly —
 use the ION wrappers described below.
