@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 import time
 import json
 import random
@@ -830,13 +831,12 @@ def node_setup():
     except FileNotFoundError:
         pass
 
-    dirs = os.scandir()
+    dirs = sorted(os.scandir(), key=lambda e: e.name)
 
     for i in dirs:
         if os.DirEntry.is_dir(i) and "ipn.ltp" in i.name:
 
             os.chdir(i.name)
-            env = "export ION_NODE_LIST_DIR=$PWD\n"
 
             subprocess.run("ionadmin amroc.ionrc", shell=True)
             subprocess.run("ionadmin ../global.ionrc", shell=True)
@@ -844,6 +844,15 @@ def node_setup():
             subprocess.run("ltpadmin amroc.ltprc", shell=True)
             subprocess.run("bpadmin amroc.bprc", shell=True)
             subprocess.run("bpsecadmin amroc.bpsecrc", shell=True)
+
+            result = subprocess.run(
+                '../../../../system_up -i "p 30" -l "p 30" -b "p 30"',
+                shell=True)
+            if result.returncode != 3:
+                print("ERROR: ION failed to start in " + i.name)
+                os.chdir("..")
+                stop_and_clean()
+                sys.exit(1)
 
             os.chdir("..")
 

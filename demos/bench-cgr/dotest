@@ -64,12 +64,43 @@ RETVAL=0
 # Start nodes.
 cd 1.bench.stcp
 ./ionstart
+../../../system_up -i "p 30" -b "p 30"
+if [ $? -eq 2 ]; then
+    echo ""
+else
+    echo "Node 1 not started: Aborting Test"
+    exit 1
+fi
+
 cd ../2.bench.stcp
 ./ionstart
+../../../system_up -i "p 30" -b "p 30"
+if [ $? -eq 2 ]; then
+    echo ""
+else
+    echo "Node 2 not started: Aborting Test"
+    exit 1
+fi
+
 cd ../3.bench.stcp
 ./ionstart
+../../../system_up -i "p 30" -b "p 30"
+if [ $? -eq 2 ]; then
+    echo ""
+else
+    echo "Node 3 not started: Aborting Test"
+    exit 1
+fi
+
 cd ../4.bench.stcp
 ./ionstart
+../../../system_up -i "p 30" -b "p 30"
+if [ $? -eq 2 ]; then
+    echo ""
+else
+    echo "Node 4 not started: Aborting Test"
+    exit 1
+fi
 
 sleep 3
 echo ""

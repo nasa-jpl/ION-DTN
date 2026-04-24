@@ -31,7 +31,13 @@ ionsecadmin amroc.ionsecrc
 ltpadmin amroc.ltprc
 bpadmin amroc.bprc
 bpsecadmin amroc.bpsecrc
-
+../../../../system_up -i "p 30" -l "p 30" -b "p 30"
+if [ $? -eq 3 ]; then
+    echo ""
+else
+    echo "Node 2 not started: Aborting Test"
+    exit 1
+fi
 
 cd ../3.ipn.ltp
 ionadmin amroc.ionrc
@@ -40,6 +46,13 @@ ionsecadmin amroc.ionsecrc
 ltpadmin amroc.ltprc
 bpadmin amroc.bprc
 bpsecadmin amroc.bpsecrc
+../../../../system_up -i "p 30" -l "p 30" -b "p 30"
+if [ $? -eq 3 ]; then
+    echo ""
+else
+    echo "Node 3 not started: Aborting Test"
+    exit 1
+fi
 
 cd ../4.ipn.ltp
 ionadmin amroc.ionrc
@@ -48,6 +61,13 @@ ionsecadmin amroc.ionsecrc
 ltpadmin amroc.ltprc
 bpadmin amroc.bprc
 bpsecadmin amroc.bpsecrc
+../../../../system_up -i "p 30" -l "p 30" -b "p 30"
+if [ $? -eq 3 ]; then
+    echo ""
+else
+    echo "Node 4 not started: Aborting Test"
+    exit 1
+fi
 
 cd ..
 
@@ -260,3 +280,4 @@ echo "Stopping ION..."
 
 killm
 echo -e "Status reports test completed.\n"
+exit 0

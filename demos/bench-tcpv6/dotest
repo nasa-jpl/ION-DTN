@@ -106,7 +106,18 @@ while [ "${ITERNUM}" -lt ${ITERATIONS} ]; do
 
     # Start nodes.
     (cd 2.bench.tcpv6; ./ionstart)
+    (cd 2.bench.tcpv6; ../../../system_up -i "p 30" -b "p 30")
+    if [ $? -ne 2 ]; then
+        echo "Node 2 not started: Aborting Test"
+        exit 1
+    fi
+
     (cd 3.bench.tcpv6; ./ionstart)
+    (cd 3.bench.tcpv6; ../../../system_up -i "p 30" -b "p 30")
+    if [ $? -ne 2 ]; then
+        echo "Node 3 not started: Aborting Test"
+        exit 1
+    fi
 
     TESTNUM=0
     for BUNDLESIZE in ${BUNDLESIZES}; do
@@ -183,7 +194,17 @@ RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: ${NUMBUNDLES} bundles of ${BUNDL
         sleep 3
         echo "Re-starting ION..."
         (cd 2.bench.tcpv6; ./ionstart)
+        (cd 2.bench.tcpv6; ../../../system_up -i "p 30" -b "p 30")
+        if [ $? -ne 2 ]; then
+            echo "Node 2 not started after restart: Aborting Test"
+            exit 1
+        fi
         (cd 3.bench.tcpv6; ./ionstart)
+        (cd 3.bench.tcpv6; ../../../system_up -i "p 30" -b "p 30")
+        if [ $? -ne 2 ]; then
+            echo "Node 3 not started after restart: Aborting Test"
+            exit 1
+        fi
         RETVAL=0;   # allow next test to proceed
     fi
 
