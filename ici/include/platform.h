@@ -277,9 +277,6 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #include <math.h>
 #include <stdarg.h>
 
-/* Portable atomics: C11 <stdatomic.h> or GCC/Clang __atomic builtins */
-#include "ion_atomic.h"
-
 /* Add headers for getaddrinfo on Linux, FreeBSD, macOS, RTEMS */
 #if defined(__linux__) || defined(freebsd) || defined(darwin) || defined(RTEMS)
 #include <netdb.h>
