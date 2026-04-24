@@ -9568,10 +9568,18 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	bundle->payload.content = zco_clone(sdr, work->rawBundle,
 			work->preambleLength, bundle->payload.length);
 	zco_destroy(sdr, work->rawBundle);
-	if (bundle->payload.content <= 0)
+	switch (bundle->payload.content)
 	{
+	case (Object) ERROR:
 		putErrmsg("Can't clone payload out of bundle.", NULL);
 		return -1;
+	case 0:
+		putErrmsg("Malformed bundle: payload clone failed.", NULL);
+		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+				bundle->payload.length);
+		return 0;
+	default:
+		break;
 	}
 
 	/*	Verify actual ZCO source length matches the payload
