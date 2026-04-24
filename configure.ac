@@ -75,6 +75,7 @@ if test "$ac_cv_c11" = yes; then
   AM_CFLAGS="$AM_CFLAGS -std=iso9899:2018"
   AC_DEFINE([ION_HAVE_C11_ATOMICS],[1],
               [Define to 1 if the compiler supports <stdatomic.h>.])
+  PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DION_HAVE_C11_ATOMICS=1"
 else
   AC_CACHE_CHECK([whether $CC supports C99], [ac_cv_c99],
     [save_CFLAGS="$CFLAGS"
@@ -84,6 +85,7 @@ else
        [ac_cv_c99=yes],
        [ac_cv_c99=no])
       CFLAGS="$save_CFLAGS"])
+  PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DION_HAVE_C11_ATOMICS=0"
   if test "$ac_cv_c99" = yes; then
     AM_CFLAGS="$AM_CFLAGS -std=c99"
   else

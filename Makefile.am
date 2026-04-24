@@ -493,6 +493,7 @@ iciinclude = \
 	ici/include/icinm.h \
 	ici/include/ion.h \
 	ici/include/ion_admin.h \
+	ici/include/ion_atomic.h \
 	ici/include/ionsec.h \
 	ici/include/llcv.h \
 	ici/include/lyst.h \
