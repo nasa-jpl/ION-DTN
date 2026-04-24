@@ -85,9 +85,20 @@ check_surviving_processes() {
         local MATCH=$(awk -v proc="$PROC" '
         /defunct/ { next }
         {
-            # Portable: find CMD after the TIME column (H:MM:SS).
-            if (match($0, /[0-9]+:[0-9][0-9]:[0-9][0-9]/)) {
-                cmd = substr($0, RSTART + RLENGTH)
+            # Find CMD after the last time-like column (TIME).
+            # ps -fe TIME formats: "H:MM:SS" (Linux), "M:SS" (Solaris).
+            # On Solaris, STIME can also be "HH:MM:SS" so we must find
+            # the LAST time pattern to skip STIME and land on TIME.
+            pos = 0; tlen = 0
+            tmp = $0; off = 0
+            while (match(tmp, /[0-9]+:[0-9][0-9](:[0-9][0-9])?/)) {
+                pos = off + RSTART
+                tlen = RLENGTH
+                off += RSTART + RLENGTH - 1
+                tmp = substr(tmp, RSTART + RLENGTH)
+            }
+            if (pos > 0) {
+                cmd = substr($0, pos + tlen)
                 sub(/^[ \t]+/, "", cmd)   # trim leading whitespace
                 sub(/ .*/, "", cmd)        # isolate first word (the command)
                 sub(/.*\//, "", cmd)       # strip path prefix
@@ -301,7 +312,7 @@ echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
 sleep 2
 
 echo "Sending KILL to the processes..."
-echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -9 2> /dev/null
+echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT pkill -9 -x 2> /dev/null
 sleep 2
 
 echo ""
