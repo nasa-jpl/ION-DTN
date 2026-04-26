@@ -683,11 +683,11 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 	csi_val_t key_value;
 	uint16_t aes_variant = 0;
 	csi_cipherparms_t csi_parms;
+	BpsecTxContext ctx;
 
 	BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
 			 (uaddr) state, (uaddr) extraParms, (uaddr) bundle, (uaddr) asb, (uaddr) tgtResult);
 
-	/* Step 0 - Sanity checks. */
 	CHKERR(state);
 	CHKERR(bundle);
 
@@ -699,8 +699,10 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 
 	CHKERR(state->scStAction == SC_ACT_ENCRYPT);
 
+	/* Initialize the local arena for this outbound block operation */
+	bpsec_ctx_init(&ctx, state->sdr, state->scStWm);
+	memset(&csi_parms, 0, sizeof(csi_cipherparms_t));
 
-	/* Step 1: Get and validate the AES Variant to use to verify. */
 	aes_variant = bpsec_rfc9173utl_intParmGet(state, BPSEC_BAGSC_PARM_AES_VAR_ID, BPSEC_BAGSC_AV_DEFAULT);
 
 	switch(aes_variant)
@@ -717,27 +719,20 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 			break;
 	}
 
-
-	/*
-	 * Step 2: Get the encrypting key. If we are NOT the first security operation in
-	 *         this security block, then the state will have the key used
-	 *         for this operation.
-	 *
-	 *         If we are the first security operation in this block, then we need to
-	 *         unwrap the key for us (and subsequent security operations).
-	 */
-
-	/*
-	 * Step 2.1 - If there is no session key associated with this state, we are
-	 *            the first operation for this block, so unwrap the key.
-	 */
 	if(state->scRawKey.scValLength == 0)
 	{
-		sc_value *wrappedKey = MTAKE(sizeof(sc_value));
+		/* Track the wrappedKey allocation immediately */
+		sc_value *wrappedKey = (sc_value *) bpsec_ctx_mbuftake(&ctx, sizeof(sc_value));
+		if (wrappedKey == NULL)
+		{
+			bpsec_ctx_abort(&ctx);
+			return ERROR;
+		}
+
 		if(bpsec_rfc9173utl_sesKeyGet(state, BPSEC_BAGSC_PARM_LTK_NAME, BPSEC_BAGSC_PARM_WRAPPED_KEY, aes_variant, &key_value, wrappedKey) == ERROR)
 		{
 			BPSEC_DEBUG_ERR("Cannot get signing key for variant %d", aes_variant);
-			MRELEASE(wrappedKey);
+			bpsec_ctx_abort(&ctx);
 			return ERROR;
 		}
 
@@ -747,33 +742,26 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 		{
 			BPSEC_DEBUG_ERR("Unable to store wrapped key.", NULL);
 			bpsec_scv_clear(0, &(state->scRawKey));
-			bpsec_scv_clear(0, wrappedKey);
-			MRELEASE(wrappedKey);
+			bpsec_ctx_abort(&ctx);
 			return ERROR;
 		}
 	}
-
-	/* Step 2.2 - If the state already has a session key, we can use that instead. */
 	else
 	{
 		key_value.contents = state->scRawKey.scRawValue.asPtr;
 		key_value.len = state->scRawKey.scValLength;
 	}
 
-	/* Step 3 - Grab parameters needed for decryption. */
 	if(bpsec_bagscu_outParmsGet(state, aes_variant, extraParms, bundle, tgtResult, &csi_parms) <= 0)
 	{
-		BPSEC_DEBUG_ERR("Cannot construct parms for decryption.", NULL);
+		BPSEC_DEBUG_ERR("Cannot construct parms for encryption.", NULL);
 		csi_cipherparms_free(csi_parms);
+		bpsec_ctx_abort(&ctx);
 		return ERROR;
 	}
 
-	/*
-	 * Step 5: Grab the ZCO to the target block's block-type-specific data.
-	 */
 	if(tgtResult->scTargetId == PayloadBlk)
 	{
-
 		if(bpsec_bagscu_zcoCompute(aes_variant, &(bundle->payload.content), key_value, &csi_parms, CSI_SVC_ENCRYPT) == ERROR)
 		{
 			BPSEC_DEBUG_ERR("Cannot get data for payload block.", NULL);
@@ -791,17 +779,19 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 
 		GET_OBJ_POINTER(state->sdr, ExtensionBlock, blk, sdr_list_data(state->sdr, blkObj));
 
-		if((data = MTAKE(blk->length)) == NULL)
+		/* Track the data block immediately */
+		if((data = (unsigned char *) bpsec_ctx_mbuftake(&ctx, blk->length)) == NULL)
 		{
 			BPSEC_DEBUG_ERR("Cannot allocate %d bytes.", blk->length);
 			csi_cipherparms_free(csi_parms);
+			bpsec_ctx_abort(&ctx);
 			return ERROR;
 		}
+
 		sdr_read(state->sdr, (char*)data, blk->bytes, blk->length);
 
 		input.len = blk->dataLength;
 		input.contents = data + (blk->length - blk->dataLength);
-
 
 		if(csi_crypt_full(aes_variant, CSI_SVC_ENCRYPT, &csi_parms, key_value, input, &output) == ERROR)
 		{
@@ -810,11 +800,7 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 		}
 		else if(output.len != input.len)
 		{
-			// TODO - This is complex, as we need to resize the entire AcqBLock...
-			// Put a function in BEI maybe?
-
-			BPSEC_DEBUG_ERR("Cannot handle resizing extension blocks at \
-	this time.", NULL);
+			BPSEC_DEBUG_ERR("Cannot handle resizing extension blocks at this time.", NULL);
 			result = ERROR;
 		}
 		else
@@ -824,14 +810,13 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 			sdr_write(state->sdr, blk->bytes, (char*)data, blk->length);
 		}
 
-		MRELEASE(output.contents);
-		MRELEASE(data);
+		if (output.contents) MRELEASE(output.contents); /* csi_crypt_full internal allocation */
 	}
-
 
 	if((result != ERROR) && (csi_parms.icv.len != 0))
 	{
-		sc_value *tag = MTAKE(sizeof(sc_value));
+		/* Track the tag immediately */
+		sc_value *tag = (sc_value *) bpsec_ctx_mbuftake(&ctx, sizeof(sc_value));
 
 		if(tag == NULL)
 		{
@@ -842,12 +827,10 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 		{
 			*tag = bpsec_scv_memCsiConvert(csi_parms.icv, SC_VAL_TYPE_RESULT, BPSEC_BAGSC_RESULT_TAG);
 
-			/* Step 8:  Insert the security result.            */
 			if((lyst_insert_last(state->scStResults, tag)) == NULL)
 			{
 				BPSEC_DEBUG_ERR("Unable to append new result.", NULL);
 				bpsec_scv_clear(0, tag);
-				MRELEASE(tag);
 				result = ERROR;
 			}
 		}
@@ -857,9 +840,18 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
 		BPSEC_DEBUG_WARN("No integrity check value (authentication tag) produced.", NULL);
 	}
 
-
 	csi_cipherparms_free(csi_parms);
 
+	if (result == ERROR)
+	{
+		/* Instant, perfect cleanup of wrappedKey, data buffer, and tag if any failed */
+		bpsec_ctx_abort(&ctx);
+	}
+	else
+	{
+		/* Yield ownership of these pointers to their respective lists/structs */
+		bpsec_ctx_commit(&ctx);
+	}
 
 	return result;
 }
