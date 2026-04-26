@@ -1212,7 +1212,11 @@ int bpsec_util_generateSecurityResults(Bundle *bundle, char *fromEid, ExtensionB
 		}
 	}
 
-	bpsec_scv_memListRecord(sdr, secAsb->scParms, extraParms);
+	Object updatedParms = bpsec_scv_memListRecord(sdr, secAsb->scParms, extraParms);
+	if (updatedParms != 0)
+	{
+		secAsb->scParms = updatedParms;
+	}
 
 	/* Step 5: Clean up any remaining state. */
 	def.scStateClear(&state);
@@ -1455,11 +1459,10 @@ int bpsec_util_attachSecurityBlocks(Bundle *bundle, BpBlockType secBlkType, sc_a
 		{
 			BPSEC_DEBUG_ERR("Unable to populate security block (type %d, id %d) with source %s.", block.type, block.number, fromEid);
 			MRELEASE(fromEid);
+			sdr_write(sdr, block.object, (char* ) &asb, sizeof(BpsecOutboundASB));
 			return -1;
 		}
 
-		/* Step 6 - serialize the BIB ASB into the BIB blk.  */
-		/* Step 6.1 - Create a serialized version of the BIB ASB. */
 		if ((serializedAsb = bpsec_asb_outboundAsbSerialize((uint32_t*) &(block.dataLength), &asb)) == NULL)
 		{
 			BPSEC_DEBUG_ERR("Unable to serialize ASB. bibBlk->dataLength = %d", block.dataLength);
@@ -1472,7 +1475,6 @@ int bpsec_util_attachSecurityBlocks(Bundle *bundle, BpBlockType secBlkType, sc_a
 			return result;
 		}
 
-		/* Step 6.2 - Copy serializedBIB ASB into the BIB extension block. */
 		if ((result = serializeExtBlk(&block, (char*) serializedAsb)) < 0)
 		{
 			BPSEC_DEBUG_ERR("Unable to serialize the extension block.", NULL);

@@ -766,44 +766,31 @@ Object bpsec_scv_memSdrConvert(Sdr sdr, sc_value *oldVal)
 {
 	sc_value newVal;
 	Object result = 0;
-
 	BPSEC_DEBUG_PROC("(sdr, "ADDR_FIELDSPEC")", (uaddr)oldVal);
 
-	/* Step 0 - Sanity Checks. */
 	CHKZERO(sdr);
 	CHKZERO(oldVal);
 	CHKZERO(oldVal->scValLoc == SC_VAL_STORE_MEM);
-	CHKZERO(sdr_begin_xn(sdr));
 
-	/* Step 1 - Initialize easy SDR sc value information. */
 	newVal.scValId = oldVal->scValId;
 	newVal.scValLength = oldVal->scValLength;
 	newVal.scValType = oldVal->scValType;
 	newVal.scValLoc = SC_VAL_STORE_SDR;
 
-	/* Step 2 - Allocate and write sc_value raw value to the SDR. */
 	if((newVal.scRawValue.asSdr = sdr_malloc(sdr, newVal.scValLength)) == 0)
 	{
 		BPSEC_DEBUG_ERR("Unable to allocate %d bytes in SDR.", newVal.scValLength);
-		sdr_cancel_xn(sdr);
 		return 0;
 	}
 	sdr_write(sdr, newVal.scRawValue.asSdr, (char *) oldVal->scRawValue.asPtr, newVal.scValLength);
 
-	/* Step 3 - Allocate and write the sc_value itself in the SDR. */
 	if((result = sdr_malloc(sdr, sizeof(sc_value))) == 0)
 	{
 		BPSEC_DEBUG_ERR("Unable to allocate %d bytes in SDR.", sizeof(sc_value));
 		sdr_free(sdr, newVal.scRawValue.asSdr);
-		sdr_cancel_xn(sdr);
 		return 0;
 	}
 	sdr_write(sdr, result, (char*) &newVal, sizeof(newVal));
-	if (sdr_end_xn(sdr) < 0)
-	{
-		BPSEC_DEBUG_ERR("Unable to end SDR transaction.", NULL);
-		result = 0;
-	}
 
 	BPSEC_DEBUG_PROC("Returning %d.", result);
 	return result;
