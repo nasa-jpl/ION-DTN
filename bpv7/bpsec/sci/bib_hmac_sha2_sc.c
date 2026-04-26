@@ -260,17 +260,17 @@ int bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle,
 	int result = 0;
 	int addData = 0;
 	uint16_t sha_variant = 0;
+	BpsecTxContext ctx;
 
-	/* Parameter intentionally unused. */
 	(void)asb;
 
-	/* Step 0 - Sanity Checks. */
 	CHKERR(state);
 	CHKERR(state->scStAction == SC_ACT_SIGN);
 
-	/* Step 1: Get and validate the SHA Variant to use to sign. */
-	sha_variant = bpsec_rfc9173utl_intParmGet(state, BPSEC_BHSSC_PARM_SHA_VAR_ID, BPSEC_BHSSC_SV_DEFAULT);
+	/* Initialize local arena for this transaction */
+	bpsec_ctx_init(&ctx, state->sdr, state->scStWm);
 
+	sha_variant = bpsec_rfc9173utl_intParmGet(state, BPSEC_BHSSC_PARM_SHA_VAR_ID, BPSEC_BHSSC_SV_DEFAULT);
 	switch(sha_variant)
 	{
 		case CSTYPE_HMAC_SHA256:
@@ -284,27 +284,20 @@ int bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle,
 			break;
 	}
 
-
-	/*
-	 * Step 2: Get the signing key. If we are NOT the first security operation being
-	 *         added to this security block, then the state will have the key used
-	 *         for this operation.
-	 *
-	 *         If we are the first security operation in this block, then we need to
-	 *         define keys and store them in the state.
-	 *
-	 *         NOTE: Once we add the wrapped key as a parameter for this state, we
-	 *               don't need it for any processing, it just needs to be send in
-	 *               the security block to a downstream verifier/acceptor.
-	 */
-
 	if(state->scRawKey.scValLength == 0)
 	{
-		sc_value *wrappedKey = MTAKE(sizeof(sc_value));
+		/* Track the wrappedKey allocation immediately */
+		sc_value *wrappedKey = (sc_value *) bpsec_ctx_mbuftake(&ctx, sizeof(sc_value));
+		if (wrappedKey == NULL)
+		{
+			bpsec_ctx_abort(&ctx);
+			return ERROR;
+		}
+
 		if(bpsec_rfc9173utl_sesKeyGet(state, BPSEC_BHSSC_PARM_LTK_NAME, BPSEC_BHSSC_PARM_WRAPPED_KEY, sha_variant, &key, wrappedKey) == ERROR)
 		{
 			BPSEC_DEBUG_ERR("Cannot get signing key for variant %d", sha_variant);
-			MRELEASE(wrappedKey);
+			bpsec_ctx_abort(&ctx);
 			return ERROR;
 		}
 
@@ -315,7 +308,7 @@ int bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle,
 			BPSEC_DEBUG_ERR("Unable to store wrapped key.", NULL);
 			bpsec_scv_clear(0, &(state->scRawKey));
 			bpsec_scv_clear(0, wrappedKey);
-			MRELEASE(wrappedKey);
+			bpsec_ctx_abort(&ctx);
 			return ERROR;
 		}
 	}
@@ -325,21 +318,12 @@ int bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle,
 		key.len = state->scRawKey.scValLength;
 	}
 
-
-	/*
-	 * Step 3: Generate a canonical version of the IPPT to be signed. This is built in
-	 *         in two steps:
-	 *         1. Generate the in-memory IPPT preamble which consists of the scope
-	 *            flag and other (small-so-as-to-fit-in-memory) data.
-	 *         2. The block-type-specific data of the target block, which might be
-	 *            very large and this accessed only through a ZCO.
-	 */
 	if((tgtResult->scTargetId == PayloadBlk) || (tgtResult->scTargetId == PrimaryBlk))
 	{
-		/* Step 3.1 - Grab the IPPT ZCO. */
 		if((ipptZcoLen = bpsec_util_canonicalizeOut(bundle, tgtResult->scTargetId, &ipptZco)) <= 0)
 		{
 			BPSEC_DEBUG_ERR("Cannot canonicalize block-type specific data of %d.", tgtResult->scTargetId);
+			bpsec_ctx_abort(&ctx);
 			return ERROR;
 		}
 	}
@@ -350,81 +334,55 @@ int bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle,
 		addData = 1;
 	}
 
-	/* Step 3.2 - Grab the IPPT preamble. */
 	ippt_preamble = bpsec_rfc9173utl_authDataBuild(state, BPSEC_BHSSC_PARM_SCOPE_FLAGS, tgtResult->scTargetId, addData, bundle, NULL);
 
 	if((ippt_preamble.scSerializedLength <= 0) || (ippt_preamble.scSerializedText == NULL))
 	{
 		BPSEC_DEBUG_ERR("Cannot build IPPT Data.",NULL);
-		zco_destroy(state->sdr, ipptZco);
+		if (ipptZco != 0) zco_destroy(state->sdr, ipptZco);
+		bpsec_ctx_abort(&ctx);
 		return ERROR;
-
 	}
 
-	/*
-	 * Step 4 - If we have a ZCO, this means that the block-type-specific data of the
-	 *          security target block is accessed through the ZCO. In this case, we use
-	 *          a helper function to do fixed-sized reads of data as we build the
-	 *          digest.
-	 *
-	 *          If there is no ZCO, then the entire IPPT exists in memory and we can
-	 *          try and do the signing in one single call.
-	 *
-	 *          Either way, once we have the digest, we can release the in-memory part
-	 *          of the IPPT.
-	 */
 	if(ipptZco != 0)
 	{
-		/* Step 4.1.1: Compute the signature over the entire IPPT value. */
 		csi_ctx = bpsec_bhsscutl_computeSignature(ippt_preamble, ipptZco, ipptZcoLen, sha_variant, key, CSI_SVC_SIGN);
 		zco_destroy(state->sdr, ipptZco);
 
-		/* Catch allocation failure from computeSignature gracefully */
 		if (csi_ctx == NULL)
 		{
 			MRELEASE(ippt_preamble.scSerializedText);
+			bpsec_ctx_abort(&ctx);
 			return ERROR;
 		}
 
-		/*
-		 * Step 4.1.2: Finish the context. When this is called for signing, the
-		 *         computed signature is copied out.
-		 */
 		result = csi_sign_finish(sha_variant, csi_ctx, &csi_result, CSI_SVC_SIGN);
 		csi_ctx_free(sha_variant, csi_ctx);
 	}
 	else
 	{
 		csi_val_t input;
-
-		/* Step 4.2.1: Convert the ippt to a csi value. */
 		input.len = ippt_preamble.scSerializedLength;
 		input.contents = ippt_preamble.scSerializedText;
 
-		/* Step 4.2.2: Calculate the digest. */
 		result = csi_sign_full(sha_variant, input, key, &csi_result, CSI_SVC_SIGN);
 	}
-		MRELEASE(ippt_preamble.scSerializedText);
+	MRELEASE(ippt_preamble.scSerializedText);
 
-
-	/* Step 5: Handle any errors. */
 	if(result == ERROR)
 	{
 		BPSEC_DEBUG_ERR("Processing error. Returning %d.", ERROR);
+		bpsec_ctx_abort(&ctx);
 		return ERROR;
 	}
 
-	/*
-	 * Step 6: The resultant signature is stored as a security context result
-	 *         which must be converted from a CSI value to a SC value.
-	 *
-	 *         So, convert the value and add it to the target result list
-	 *         for this security operation.
-	 */
-	if((digest = MTAKE(sizeof(sc_value))) == NULL)
+	/* Track the digest allocation */
+	digest = (sc_value *) bpsec_ctx_mbuftake(&ctx, sizeof(sc_value));
+	if(digest == NULL)
 	{
 		BPSEC_DEBUG_ERR("Unable to allocate digest.", NULL);
 		MRELEASE(csi_result.contents);
+		bpsec_ctx_abort(&ctx);
 		return ERROR;
 	}
 	*digest = bpsec_scv_memCsiConvert(csi_result, SC_VAL_TYPE_RESULT, BPSEC_BHSSC_RESULT_EHMAC);
@@ -432,11 +390,12 @@ int bpsec_bhssci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle,
 	if((lyst_insert_last(state->scStResults, digest)) == NULL)
 	{
 		BPSEC_DEBUG_ERR("Unable to append new result.", NULL);
-		bpsec_scv_clear(0, digest);
-		MRELEASE(digest);
+		bpsec_scv_clear(0, digest); /* Also handles freeing csi_result.contents */
+		bpsec_ctx_abort(&ctx);
 		return ERROR;
 	}
 
+	bpsec_ctx_commit(&ctx);
 	return 1;
 }
 
