@@ -73,12 +73,11 @@ int bpsec_bagsci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
 	csi_val_t key_value;
 	uint16_t aes_variant = 0;
 	csi_cipherparms_t csi_parms;
+	BpsecTxContext ctx;
 
 	BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC","ADDR_FIELDSPEC")",
 			(uaddr)state, (uaddr)wk, (uaddr)asb,(uaddr)tgtBlkElt,(uaddr)tgtResult);
 
-
-	/* Step 0: Sanity Checks. */
 	CHKERR(state);
 
 	if(state->scRole != SC_ROLE_ACCEPTOR)
@@ -89,8 +88,10 @@ int bpsec_bagsci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
 
 	CHKERR(state->scStAction == SC_ACT_DECRYPT);
 
+	/* Initialize local arena for inbound processing */
+	bpsec_ctx_init(&ctx, state->sdr, state->scStWm);
+	memset(&csi_parms, 0, sizeof(csi_cipherparms_t));
 
-	/* Step 1: Get and validate the AES Variant to use to verify. */
 	aes_variant = bpsec_rfc9173utl_intParmGet(state, BPSEC_BAGSC_PARM_AES_VAR_ID, BPSEC_BAGSC_AV_DEFAULT);
 
 	switch(aes_variant)
@@ -107,28 +108,11 @@ int bpsec_bagsci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
 			break;
 	}
 
-	/*
-	 * Step 2: Get the decrypting key. If we are NOT the first security operation in
-	 *         this security block, then the state will have the key used
-	 *         for this operation.
-	 *
-	 *         If we are the first security operation in this block, then we need to
-	 *         unwrap the key for us (and subsequent security operations).
-	 */
-
-	/*
-	 * Step 2.1 - If there is no session key associated with this state, we are
-	 *            the first operation for this block, so unwrap the key.
-	 */
 	if(state->scRawKey.scValLength == 0)
 	{
 		csi_cipherparms_t parms;
 		int unwrap_result = 0;
 
-		/*
-		 * Step 2.1.1: Get they key to use for signing. AES keywrap does not need any
-		 *         parameters, so we can pass in empty parms here.
-		 */
 		memset(&parms, 0, sizeof(csi_cipherparms_t));
 
 		unwrap_result = bpsec_scutl_keyUnwrap(state, BPSEC_BAGSC_PARM_LTK_NAME, &key_value, BPSEC_BAGSC_PARM_WRAPPED_KEY, CSTYPE_AES_KW, &parms);
@@ -136,45 +120,35 @@ int bpsec_bagsci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
 		if(unwrap_result == ERROR)
 		{
 			BPSEC_DEBUG_ERR("Cannot find a key for verification.", NULL);
+			bpsec_ctx_abort(&ctx);
 			return ERROR;
 		}
 
-		/* Step 2.1.2: Store this key for use by other operations in the block. */
 		state->scRawKey = bpsec_scv_memCsiConvert(key_value, SC_VAL_STORE_MEM, CSI_PARM_BEK);
 	}
-
-	/* Step 2.2 - If the state already has a session key, we can use that instead. */
 	else
 	{
 		key_value.contents = state->scRawKey.scRawValue.asPtr;
 		key_value.len = state->scRawKey.scValLength;
 	}
 
-	/* Step 3 - Grab parameters needed for decryption. */
 	if(bpsec_bagscu_inParmsGet(state, wk, tgtResult, &csi_parms) <= 0)
 	{
 		BPSEC_DEBUG_ERR("Cannot construct parms for decryption.", NULL);
 		csi_cipherparms_free(csi_parms);
+		bpsec_ctx_abort(&ctx);
 		return ERROR;
 	}
 
-	/*
-	 * Step 4: If the security target block is the payload, then we need
-	 *         to work with a ZCO to access the payload data.
-	 *
-	 *         Otherwise, we assume that the extension block is small enough
-	 *         to fit in memory and we can process it all at once.
-	 */
 	if(tgtResult->scTargetId == PayloadBlk)
 	{
-		/* Step 4.1.1: Decrypt the payload via its ZCO. */
 		if(bpsec_bagscu_zcoCompute(aes_variant, &(wk->bundle.payload.content), key_value, &csi_parms, CSI_SVC_DECRYPT) == ERROR)
 		{
 			BPSEC_DEBUG_ERR("Cannot get data for payload block.", NULL);
 			csi_cipherparms_free(csi_parms);
+			bpsec_ctx_abort(&ctx);
 			return ERROR;
 		}
-
 		result = 1;
 	}
 	else
@@ -184,68 +158,44 @@ int bpsec_bagsci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
 		csi_val_t output;
 		int offset = 0;
 
-		/* Step 4.2.1: Make sure we have the security target extension block. */
 		if(tgtBlk == NULL)
 		{
 			BPSEC_DEBUG_ERR("Cannot find target block.", NULL);
 			csi_cipherparms_free(csi_parms);
+			bpsec_ctx_abort(&ctx);
 			return ERROR;
 		}
 
-		/*
-		 * Step 4.2.2: Wrap the target block's block-type-specific data field in a
-		 *             CSI value.
-		 *
-		 *             The block-type-specific data is just part of the
-		 *             overall bytes array, so we need to skip the block header
-		 *             information (offset) to get to it.
-		 *
-		 *             The length is the dataLength, as any trailing CRC information
-		 *             is not considered part of the block-type-specific data field.
-		 *
-		 *             NOTE: It appears that tgtBlk->length does not include the length
-		 *                   of any trailing CRC value, so the offset calculation should
-		 *                   be safe regardless of whether the extension block has a CRC
-		 *                   or not.
-		 */
 		offset = tgtBlk->length - tgtBlk->dataLength;
 		input.len = tgtBlk->dataLength;
-			input.contents = tgtBlk->bytes + offset;
+		input.contents = tgtBlk->bytes + offset;
 
-			/* Step 4.2.3: Perform the decryption. and check results.*/
 		if(csi_crypt_full(aes_variant, CSI_SVC_DECRYPT, &csi_parms, key_value, input, &output) == ERROR)
 		{
 			BPSEC_DEBUG_ERR("Cannot compute data for block %d.", tgtBlk->number);
 			csi_cipherparms_free(csi_parms);
+			bpsec_ctx_abort(&ctx);
 			return ERROR;
 		}
 
 		if(output.len != input.len)
 		{
 			BPSEC_DEBUG_ERR("Cannot handle resizing extension blocks at this time.", NULL);
-			/*
-			 * TODO: We currently expect that ION uses cipher suites that generate a tag
-			 *       value distinguished from the cipher text and, thus, carried in a
-			 *       security context result. Therefore, the decrypted extension block
-			 *       (with AES in GCM) should have the same size.
-			 *
-			 *       This code may need to be updated when using cipher suites that
-			 *       include the tag with ciphertext, resulting in size changes with
-			 *       encryption and decrption.
-			 */
+			if (output.contents) MRELEASE(output.contents);
 			csi_cipherparms_free(csi_parms);
+			bpsec_ctx_abort(&ctx);
 			return ERROR;
 		}
 		else
 		{
-			memcpy(tgtBlk->bytes + offset, output.contents,
-					tgtBlk->dataLength);
+			memcpy(tgtBlk->bytes + offset, output.contents, tgtBlk->dataLength);
 			result = 1;
 			MRELEASE(output.contents);
 		}
 	}
 
 	csi_cipherparms_free(csi_parms);
+	bpsec_ctx_commit(&ctx);
 	return result;
 }
 
