@@ -74,18 +74,17 @@ int bpsec_bhssci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
 	int ipptZcoLen = 0;
 	int addData = 0;
 	uint16_t sha_variant = 0;
+	BpsecTxContext ctx;
 
-	/* Parameters intentionally unused. */
 	(void)asb;
 	(void)tgtBlkElt;
 
-
-	/* Step 0 - Sanity Checks. */
 	CHKERR(state);
 	CHKERR(state->scStAction == SC_ACT_VERIFY);
 
+	/* Initialize local arena for inbound verification */
+	bpsec_ctx_init(&ctx, state->sdr, state->scStWm);
 
-	/* Step 1: Get and validate the SHA Variant to use to verify. */
 	sha_variant = bpsec_rfc9173utl_intParmGet(state, BPSEC_BHSSC_PARM_SHA_VAR_ID, BPSEC_BHSSC_SV_DEFAULT);
 
 	switch(sha_variant)
@@ -101,76 +100,44 @@ int bpsec_bhssci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
 			break;
 	}
 
-
-	/*
-	 * Step 2: Get the verifying key. If we are NOT the first security operation in
-	 *         this security block, then the state will have the key used
-	 *         for this operation.
-	 *
-	 *         If we are the first security operation in this block, then we need to
-	 *         unwrap the key for us (and subsequent security operations).
-	 */
-
-	/*
-	 * Step 2.1 - If there is no session key associated with this state, we are
-	 *            the first operation for this block, so unwrap the key.
-	 */
 	if(state->scRawKey.scValLength == 0)
 	{
 		csi_cipherparms_t parms;
 		result = 0;
 
-		/*
-		 * Step 2.1.1: Get they key to use for signing. AES keywrap does not need any
-		 *         parameters, so we can pass in empty parms here.
-		 */
 		memset(&parms, 0, sizeof(csi_cipherparms_t));
 		result = bpsec_scutl_keyUnwrap(state, BPSEC_BHSSC_PARM_LTK_NAME, &key_value, BPSEC_BHSSC_PARM_WRAPPED_KEY, CSTYPE_AES_KW, &parms);
 
 		if(result == ERROR)
 		{
 			BPSEC_DEBUG_ERR("Cannot find a key for verification.", NULL);
+			bpsec_ctx_abort(&ctx);
 			return ERROR;
 		}
 
-		/* Step 2.1.2: Store this key for use by other operations in the block. */
 		state->scRawKey = bpsec_scv_memCsiConvert(key_value, SC_VAL_STORE_MEM, CSI_PARM_BEK);
 	}
-
-	/* Step 2.2 - If the state already has a session key, we can use that instead. */
 	else
 	{
 		key_value.contents = state->scRawKey.scRawValue.asPtr;
 		key_value.len = state->scRawKey.scValLength;
 	}
 
-
-	/* Step 3 - Retrieve the asserted digest from the security block. */
 	if((assertedDigest = bpsec_scv_lystFind(tgtResult->scIndTargetResults, BPSEC_BHSSC_RESULT_EHMAC, SC_VAL_TYPE_RESULT)) == NULL)
 	{
 		BPSEC_DEBUG_ERR("No digest found for target %d", tgtResult->scTargetId);
+		bpsec_ctx_abort(&ctx);
 		return ERROR;
 	}
 	csi_digest.len = assertedDigest->scValLength;
 	csi_digest.contents = assertedDigest->scRawValue.asPtr;
 
-
-	/*
-	 * Step 3: Generate a canonical version of the IPPT to be signed. This is built in
-	 *         in two steps:
-	 *         1. Generate the in-memory IPPT preamble which consists of the scope
-	 *            flag and other (small-so-as-to-fit-in-memory) data.
-	 *         2. The block-type-specific data of the target block, which might be
-	 *            very large and this accessed only through a ZCO.
-	 */
-
-
 	if((tgtResult->scTargetId == PayloadBlk) || (tgtResult->scTargetId == PrimaryBlk))
 	{
-		/* Step 3.2 - Grab the IPPT ZCO. */
 		if((ipptZcoLen = bpsec_util_canonicalizeIn(wk, tgtResult->scTargetId, &ipptZco)) <= 0)
 		{
 			BPSEC_DEBUG_ERR("Cannot canonicalize block-type specific data of %d.", tgtResult->scTargetId);
+			bpsec_ctx_abort(&ctx);
 			return ERROR;
 		}
 		addData = 0;
@@ -182,27 +149,29 @@ int bpsec_bhssci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
 		addData = 1;
 	}
 
-
-	/* Step 3.1 - Grab the IPPT preamble. */
 	ippt_preamble = bpsec_rfc9173utl_authDataBuild(state, BPSEC_BHSSC_PARM_SCOPE_FLAGS, tgtResult->scTargetId, addData, NULL, wk);
 
 	if((ippt_preamble.scSerializedLength <= 0) || (ippt_preamble.scSerializedText == NULL))
 	{
 		BPSEC_DEBUG_ERR("Cannot build IPPT Data.",NULL);
-		zco_destroy(state->sdr, ipptZco);
+		if (ipptZco != 0) zco_destroy(state->sdr, ipptZco);
+		bpsec_ctx_abort(&ctx);
 		return ERROR;
 	}
 
+	/* Immediately track the preamble text in the arena */
+	ctx.resources[ctx.count].type = RES_HEAP;
+	ctx.resources[ctx.count].ref.heap_ptr = ippt_preamble.scSerializedText;
+	ctx.count++;
+
 	if(ipptZco != 0)
 	{
-
 		csi_ctx = bpsec_bhsscutl_computeSignature(ippt_preamble, ipptZco, ipptZcoLen, sha_variant, key_value, CSI_SVC_VERIFY);
 		zco_destroy(state->sdr, ipptZco);
 
-		/* Catch allocation failure from computeSignature gracefully */
 		if (csi_ctx == NULL)
 		{
-			MRELEASE(ippt_preamble.scSerializedText);
+			bpsec_ctx_abort(&ctx); /* Safely releases the tracked preamble text */
 			return ERROR;
 		}
 
@@ -216,13 +185,9 @@ int bpsec_bhssci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
 		input.contents = ippt_preamble.scSerializedText;
 		result = csi_sign_full(sha_variant, input, key_value, &csi_digest, CSI_SVC_VERIFY);
 	}
-		MRELEASE(ippt_preamble.scSerializedText);
 
-
-	/*
-	 * Step 5: Finish the context. When this is called for signing, the
-	 *         computed signature is copied out.
-	 */
+	/* Cleanup tracked resources including preamble */
+	bpsec_ctx_abort(&ctx);
 
 	return (result == 1);
 }
