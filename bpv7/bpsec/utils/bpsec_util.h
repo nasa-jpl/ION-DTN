@@ -191,9 +191,44 @@ typedef struct
 } BpsecSerializeData;
 
 
+ /* --- BPSec Transaction Memory Arena --- */
+#define MAX_BPSEC_TX_RESOURCES 64
+
+typedef enum {
+	RES_HEAP,
+	RES_PSM,
+	RES_SDR
+} BpsecResourceType;
+
+typedef struct {
+	BpsecResourceType type;
+	union {
+		void *heap_ptr;
+		PsmAddress psm_addr;
+		Object sdr_obj;
+	} ref;
+} BpsecResource;
+
+typedef struct {
+	Sdr sdr;
+	PsmPartition wm;
+	BpsecResource resources[MAX_BPSEC_TX_RESOURCES];
+	int count;
+} BpsecTxContext;
+
+
 /*****************************************************************************
  *                             FUNCTION DEFINITIONS                          *
  *****************************************************************************/
+
+
+ /* --- BPSec Transaction Memory Arena --- */
+void       bpsec_ctx_init(BpsecTxContext *ctx, Sdr sdr, PsmPartition wm);
+Object     bpsec_ctx_sdr_malloc(BpsecTxContext *ctx, size_t size);
+PsmAddress bpsec_ctx_psm_zalloc(BpsecTxContext *ctx, size_t size);
+void* bpsec_ctx_mbuftake(BpsecTxContext *ctx, size_t size);
+void       bpsec_ctx_abort(BpsecTxContext *ctx);
+void       bpsec_ctx_commit(BpsecTxContext *ctx);
 
 
 /* Information Retrieval Functions */

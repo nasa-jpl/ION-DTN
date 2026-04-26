@@ -2106,3 +2106,90 @@ void bpsec_util_cSNamesGet(char *buffer, int length)
 	BPSEC_DEBUG_ERR("DEPRECATED FUNCTION CALL", NULL)
 	CHKVOID(0);
 }
+
+
+/* --- BPSec Transaction Memory Arena Implementation --- */
+void bpsec_ctx_init(BpsecTxContext *ctx, Sdr sdr, PsmPartition wm)
+{
+	ctx->sdr = sdr;
+	ctx->wm = wm;
+	ctx->count = 0;
+}
+
+Object bpsec_ctx_sdr_malloc(BpsecTxContext *ctx, size_t size)
+{
+	if (ctx->count >= MAX_BPSEC_TX_RESOURCES) return 0;
+
+	Object obj = sdr_malloc(ctx->sdr, size);
+	if (obj != 0)
+	{
+		ctx->resources[ctx->count].type = RES_SDR;
+		ctx->resources[ctx->count].ref.sdr_obj = obj;
+		ctx->count++;
+	}
+	return obj;
+}
+
+PsmAddress bpsec_ctx_psm_zalloc(BpsecTxContext *ctx, size_t size)
+{
+	if (ctx->count >= MAX_BPSEC_TX_RESOURCES) return 0;
+
+	PsmAddress addr = psm_zalloc(ctx->wm, size);
+	if (addr != 0)
+	{
+		ctx->resources[ctx->count].type = RES_PSM;
+		ctx->resources[ctx->count].ref.psm_addr = addr;
+		ctx->count++;
+	}
+	return addr;
+}
+
+void* bpsec_ctx_mbuftake(BpsecTxContext *ctx, size_t size)
+{
+	if (ctx->count >= MAX_BPSEC_TX_RESOURCES) return NULL;
+
+	void *ptr = MTAKE(size);
+	if (ptr != NULL)
+	{
+		ctx->resources[ctx->count].type = RES_HEAP;
+		ctx->resources[ctx->count].ref.heap_ptr = ptr;
+		ctx->count++;
+	}
+	return ptr;
+}
+
+void bpsec_ctx_abort(BpsecTxContext *ctx)
+{
+	int i;
+	for (i = 0; i < ctx->count; i++)
+	{
+		switch (ctx->resources[i].type)
+		{
+		case RES_HEAP:
+			if (ctx->resources[i].ref.heap_ptr)
+			{
+				MRELEASE(ctx->resources[i].ref.heap_ptr);
+			}
+			break;
+		case RES_PSM:
+			if (ctx->resources[i].ref.psm_addr != 0)
+			{
+				psm_free(ctx->wm, ctx->resources[i].ref.psm_addr);
+			}
+			break;
+		case RES_SDR:
+			if (ctx->resources[i].ref.sdr_obj != 0)
+			{
+				sdr_free(ctx->sdr, ctx->resources[i].ref.sdr_obj);
+			}
+			break;
+		}
+	}
+	ctx->count = 0;
+}
+
+void bpsec_ctx_commit(BpsecTxContext *ctx)
+{
+	/* Ownership transfers to the persistent system structures. */
+	ctx->count = 0;
+}
