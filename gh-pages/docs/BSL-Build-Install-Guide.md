@@ -314,7 +314,7 @@ BSL not built or `BSL_HOME` incorrect:
 ```bash
 ls external/BSL/testroot/usr/lib/libbsl_*.so
 # If missing, rebuild BSL submodule
-cd external/BSL && ./build-for-ion.sh
+./build-bsl-for-ion.sh
 ```
 
 ---
@@ -339,10 +339,8 @@ BSL v1.1 builds as a standalone library with no ION dependencies. You can build 
 
 ```bash
 # 1. Build BSL
-cd external/BSL
-git submodule update --init --recursive
-./build-for-ion.sh
-cd ../..
+git submodule update --init --recursive external/BSL
+./build-bsl-for-ion.sh
 
 # 2. Build ION with BSL
 autoreconf -fi

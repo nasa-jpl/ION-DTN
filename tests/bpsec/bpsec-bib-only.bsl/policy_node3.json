@@ -23,7 +23,7 @@
         ]
       },
       "es_ref": "d_integrity",
-      "_temp_not_ion_spec_policy_action_on_fail": "delete_bundle"
+      "policy_action_on_fail": "delete_bundle"
     },
     "event_set": {
       "es_ref": "d_integrity",
@@ -55,7 +55,7 @@
         ]
       },
       "es_ref": "d_integrity_primary",
-      "_temp_not_ion_spec_policy_action_on_fail": "delete_bundle"
+      "policy_action_on_fail": "delete_bundle"
     },
     "event_set": {
       "es_ref": "d_integrity_primary",
@@ -86,7 +86,7 @@
           { "id": "key_wrap", "value": "0" }
         ]
       },
-      "_temp_not_ion_spec_policy_action_on_fail": "delete_bundle"
+      "policy_action_on_fail": "delete_bundle"
     }
   }]
 }

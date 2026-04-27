@@ -97,7 +97,7 @@ all-bsl:
 	@echo "========================================"
 	@echo "Stage 1: Building BSL..."
 	@echo "========================================"
-	@cd $(srcdir)/external/BSL && ./build-for-ion.sh
+	@$(srcdir)/build-bsl-for-ion.sh
 	@echo "========================================"
 	@echo "Stage 2: Building ION..."
 	@echo "========================================"
