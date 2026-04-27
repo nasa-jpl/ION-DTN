@@ -16,6 +16,8 @@ import glob
 import heapq
 import json
 import os
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import TypedDict
@@ -64,6 +66,39 @@ def find_tests() -> list[Path]:
     return test_dirs
 
 
+def _detect_bpsec_mode() -> str:
+    """Detect BPSec implementation (mirrors runtests logic).
+
+    Returns:
+        "bsl" or "native_bpsec"
+
+    """
+    try:
+        result = subprocess.run(
+            ["pkg-config", "--cflags", "ion"],
+            capture_output=True, text=True, timeout=5,
+        )
+        if "USING_BSL" in result.stdout:
+            return "bsl"
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    if not shutil.which("bpsecadmin"):
+        return "bsl"
+
+    return "native_bpsec"
+
+
+_BPSEC_MODE: str | None = None
+
+
+def _get_bpsec_mode() -> str:
+    global _BPSEC_MODE
+    if _BPSEC_MODE is None:
+        _BPSEC_MODE = _detect_bpsec_mode()
+    return _BPSEC_MODE
+
+
 def is_excluded(test_dir: Path) -> bool:
     """Check whether a test directory has any exclusion markers.
 
@@ -80,6 +115,13 @@ def is_excluded(test_dir: Path) -> bool:
     ):
         if (test_dir / marker).exists():
             return True
+
+    mode = _get_bpsec_mode()
+    if mode == "bsl" and (test_dir / ".exclude_bsl").exists():
+        return True
+    if mode == "native_bpsec" and (test_dir / ".exclude_native_bpsec").exists():
+        return True
+
     return False
 
 
