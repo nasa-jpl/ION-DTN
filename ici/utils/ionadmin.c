@@ -235,7 +235,7 @@ static int	initializeNode(int tokenCount, char **tokens)
 			0, 1.0, &xaddr, _announce(NULL));
 }
 
-void	executeAdd(int tokenCount, char **tokens)
+static void executeAdd(int tokenCount, char **tokens)
 {
 	uvast		ownFqnn = getOwnFqnn();
 	time_t		refTime;
@@ -247,6 +247,8 @@ void	executeAdd(int tokenCount, char **tokens)
 	unsigned int	xmitRate;
 	float		confidence;
 	unsigned int	owlt;
+	uvast parsed_xmitRate;
+	uvast parsed_owlt;
 
 	if (tokenCount < 2)
 	{
@@ -356,7 +358,12 @@ than start time and earlier than 19 January 2038.");
 				return;
 			}
 
-			xmitRate = strtol(tokens[6], NULL, 0);
+			if (platform_parse_uvast(tokens[6], &parsed_xmitRate) < 0 || parsed_xmitRate > UINT_MAX)
+			{
+				printText("[?] Invalid transmit rate: must be a positive integer within bounds.");
+				return;
+			}
+			xmitRate = (unsigned int)parsed_xmitRate;
 		}
 
 		if (rfx_insert_contact(_regionNbr(NULL), fromTime, toTime,
@@ -380,7 +387,13 @@ time and earlier than 19 January 2038.");
 			return;
 		}
 
-		owlt = strtol(tokens[6], NULL, 0);
+		if (platform_parse_uvast(tokens[6], &parsed_owlt) < 0 || parsed_owlt > UINT_MAX)
+		{
+			printText("[?] Invalid OWLT: must be a positive integer within bounds.");
+			return;
+		}
+		owlt = (unsigned int)parsed_owlt;
+
 		oK(rfx_insert_range(fromTime, toTime, fromFqnnNbr,
 				toFqnnNbr, owlt, &xaddr, _announce(NULL)));
 		return;
@@ -389,7 +402,7 @@ time and earlier than 19 January 2038.");
 	SYNTAX_ERROR;
 }
 
-void	executeChange(int tokenCount, char **tokens)
+static void executeChange(int tokenCount, char **tokens)
 {
 	time_t		refTime;
 	time_t		fromTime;
@@ -397,6 +410,7 @@ void	executeChange(int tokenCount, char **tokens)
 	uvast		toFqnnNbr;
 	unsigned int	xmitRate;
 	float		confidence;
+	uvast		parsed_xmitRate;
 
 	if (tokenCount < 2)
 	{
@@ -435,12 +449,19 @@ void	executeChange(int tokenCount, char **tokens)
 
 	fromFqnnNbr = getFqn(tokens[3]);
 	toFqnnNbr = getFqn(tokens[4]);
-	xmitRate = strtol(tokens[5], NULL, 0);
+
+	if (platform_parse_uvast(tokens[5], &parsed_xmitRate) < 0 || parsed_xmitRate > UINT_MAX)
+	{
+		printText("[?] Invalid transmit rate: must be a positive integer within bounds.");
+		return;
+	}
+	xmitRate = (unsigned int)parsed_xmitRate;
+
 	oK(rfx_revise_contact(_regionNbr(NULL), fromTime, fromFqnnNbr,
 			toFqnnNbr, xmitRate, confidence, _announce(NULL)));
 }
 
-void	executeDelete(int tokenCount, char **tokens)
+static void executeDelete(int tokenCount, char **tokens)
 {
 	time_t	refTime;
 	time_t	fromTime;
