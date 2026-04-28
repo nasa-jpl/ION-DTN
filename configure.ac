@@ -609,6 +609,11 @@ AC_ARG_ENABLE(
         fi
       done
 
+      # Expose Solaris extensions
+      if test "x$PLATFORM" = "Solaris"; then
+        CFLAGS="-D__EXTENSIONS__"
+      fi
+
       # Set BSL library flags
       BSL_LIBS="-lbsl_crypto -lbsl_default_sc -lbsl_dynamic -lbsl_front -lbsl_mock_bpa -lbsl_sample_pp -lqcbor -ljansson -L${BSL_HOME}/lib"
 
