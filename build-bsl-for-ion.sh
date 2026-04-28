@@ -26,7 +26,12 @@ case "${1:-build}" in
         cd "$BSL_DIR"
         ./build.sh clean
         ./build.sh deps
-        ./build.sh prep -DBUILD_TESTING=OFF
+        if [ $(uname) == "SunOS" ]; then
+            export CFLAGS="$CFLAGS -D__EXTENSIONS__"
+            ./build.sh prep -DBUILD_TESTING=OFF -DTEST_MEMCHECK=OFF
+        else
+            ./build.sh prep -DBUILD_TESTING=OFF
+        fi
         ./build.sh
         ./build.sh install
         echo "BSL built and installed to ${BSL_DIR}/testroot"
