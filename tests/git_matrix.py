@@ -327,7 +327,7 @@ if __name__ == "__main__":
         "--runners",
         "-r",
         help="Number of runners to use, default: 7.",
-        type=int,
+        type=lambda v: int(float(v)),
         default=7,
     )
     parser.add_argument(
