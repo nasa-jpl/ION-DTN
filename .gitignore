@@ -595,7 +595,8 @@ tests/asymmetric-range/route.svg.base64.svg
 tests/cgr-test/route.svg.base64.svg
 bpinspect
 bpcrash_hard
-sdr_test_util
+reversibility_correctness_test
+sdrcancel
 tests/admin_public_api/bp_plan_crash_recovery/dotest
 tests/admin_public_api/ltp_span_crash_recovery/dotest
 tests/testlist.txt
@@ -642,6 +643,9 @@ cfdp/x86_64-linux/check
 dgr/x86_64-linux/check
 dtpc/x86_64-linux/check
 ici/x86_64-linux/check
+ici/x86_64-linux/bin/
+ici/x86_64-linux/entropy_test
+tc/x86_64-linux/check
 ltp/x86_64-linux/check
 
 eppcli

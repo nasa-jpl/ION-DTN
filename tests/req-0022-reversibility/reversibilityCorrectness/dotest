@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+#
+# reversibilityCorrectness - SDR transaction reversibility correctness test.
+#
+# Runs the standalone reversibility_correctness_test binary, which loads
+# a private SDR (no ION attach), pre-populates it, snapshots the
+# dataspace, runs a destructive transaction, cancels it, and asserts the
+# dataspace is restored byte-for-byte.  Also covers the read-only skip
+# path and a follow-up destructive transaction to confirm the skip path
+# leaves reversibility itself functional.
+#
+# Replaces reversibilityCheck1 (heap-exhaustion-driven, now unreliable
+# under BP memory protection) and reversibilityCheck3 (skip-path-only).
+#
+trap 'killm f >/dev/null 2>&1' EXIT
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify reverseTransaction() restores SDR dataspace byte-for-byte"
+echo "         after a cancelled modified transaction, and that the read-only"
+echo "         skip path is taken when no modifications occurred."
+echo
+echo "OUTPUT:  Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+
+if ! command -v reversibility_correctness_test >/dev/null 2>&1; then
+    echo "FAIL: reversibility_correctness_test not on PATH"
+    exit 1
+fi
+
+reversibility_correctness_test
+RC=$?
+
+if [ "$RC" -eq 0 ]; then
+    echo "reversibilityCorrectness: PASSED"
+    exit 0
+fi
+
+echo "reversibilityCorrectness: FAILED (exit=$RC)"
+exit 1

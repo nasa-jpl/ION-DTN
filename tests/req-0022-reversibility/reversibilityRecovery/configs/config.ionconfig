@@ -1,0 +1,11 @@
+# SDR config for reversibilityRecovery test.
+# configFlags 13 = SDR_IN_DRAM (1) | SDR_REVERSIBLE (4) | SDR_BOUNDED (8).
+# Reversibility MUST be enabled for this test; the existing loopback
+# test config uses configFlags 1 which silently disables reversibility.
+configFlags 13
+heapWords 250000
+heapKey -1
+logSize 1000000
+wmSize 50000000
+wmAddress 0
+pathName /tmp

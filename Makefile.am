@@ -465,7 +465,8 @@ icibin = \
 	psmwatch \
 	rfxclock \
 	sdr2file \
-	sdr_test_util \
+	reversibility_correctness_test \
+	sdrcancel \
 	sdrmend \
 	sdrwatch \
 	sm2file \
@@ -726,9 +727,13 @@ sdr2file_SOURCES = ici/test/sdr2file.c
 sdr2file_LDADD = libici.la -lm
 sdr2file_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
-sdr_test_util_SOURCES = ici/test/sdr_test_util.c
-sdr_test_util_LDADD = libici.la -lm
-sdr_test_util_CFLAGS = $(icicflags) $(AM_CFLAGS)
+reversibility_correctness_test_SOURCES = ici/test/reversibility_correctness_test.c
+reversibility_correctness_test_LDADD = libici.la -lm
+reversibility_correctness_test_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
+sdrcancel_SOURCES = ici/test/sdrcancel.c
+sdrcancel_LDADD = libici.la -lm
+sdrcancel_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 sm2file_SOURCES = ici/test/sm2file.c
 sm2file_LDADD = libici.la -lm

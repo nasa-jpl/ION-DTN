@@ -3379,7 +3379,23 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	oldmask = umask(0);
 
 	/* at this point, it's a new key and the name "sem_name" shouldn't be in use */
-	if ((psem = sem_open(sem_name, O_CREAT | O_EXCL, POSIX_NAMED_SEMAPHORES_FILEMODE, 0 )) == SEM_FAILED) {
+	psem = sem_open(sem_name, O_CREAT | O_EXCL, POSIX_NAMED_SEMAPHORES_FILEMODE, 0);
+	if (psem == SEM_FAILED && errno == EEXIST) {
+		/* The slot is free in the global semtable (verified above
+		 * under the IPC lock), but a stale named-sem file remains
+		 * on disk -- typically leaked by a prior process that died
+		 * before unlinking, or by a multi-node "ionexit n" path.
+		 * Unlink and retry. */
+		writeMemoNote("[i] sm_SemCreate: unlinking stale named sem", sem_name);
+		if (sem_unlink(sem_name) == -1 && errno != ENOENT) {
+			putSysErrmsg("Can't unlink stale sem file", sem_name);
+			umask(oldmask);
+			giveIpcLock();
+			return SM_SEM_NONE;
+		}
+		psem = sem_open(sem_name, O_CREAT | O_EXCL, POSIX_NAMED_SEMAPHORES_FILEMODE, 0);
+	}
+	if (psem == SEM_FAILED) {
 		putSysErrmsg("Semaphore open failed for sem file ", sem_name);
 		umask(oldmask);  /* restore umask() */
 		giveIpcLock();
@@ -3634,6 +3650,25 @@ void	sm_SemGive(sm_SemId i)
 
 	/* Atomically decrement reference count (lock-free) */
 	ion_ipc_atomic_get_and_decrement(&gsem->refCount, 1);
+
+	/* If a deferred delete is pending and we just released the last
+	 * reference, complete it now -- otherwise the slot stays inUse=1
+	 * forever and the named-sem file is never unlinked, leading to
+	 * stale-file drift across runs. */
+	if (ion_ipc_atomic_get(&gsem->refCount) == 0
+			&& ion_ipc_atomic_get(&gsem->pendingDelete))
+	{
+		takeIpcLock();
+		/* Re-check under the IPC lock: another thread may have
+		 * raised refCount or already completed the delete. */
+		if (gsem->inUse
+				&& ion_ipc_atomic_get(&gsem->refCount) == 0
+				&& ion_ipc_atomic_get(&gsem->pendingDelete))
+		{
+			_sm_SemCompleteDeletePosix(semTbl, i);
+		}
+		giveIpcLock();
+	}
 
 #ifdef DEBUG_SEMAPHORE_HANG
 	writeMemoNote("[DEBUG] sm_SemGive: gave sem", itoa(i));
