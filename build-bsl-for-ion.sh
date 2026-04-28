@@ -26,7 +26,7 @@ case "${1:-build}" in
         cd "$BSL_DIR"
         ./build.sh clean
         ./build.sh deps
-        if [ $(uname) == "SunOS" ]; then
+        if [ $(uname) = "SunOS" ]; then
             export CFLAGS="$CFLAGS -D__EXTENSIONS__"
             ./build.sh prep -DBUILD_TESTING=OFF -DTEST_MEMCHECK=OFF
         else
