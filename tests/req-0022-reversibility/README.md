@@ -8,9 +8,7 @@ cancelled, implemented in `reverseTransaction()` at
 `ici/sdr/sdrxn.c:808`.
 
 The previous suite (`reversibilityCheck1` through `4`) was retired in
-favour of the two tests below.  See `DESIGN.md` for the rationale and
-`KNOWN_ISSUES.md` for environmental issues observed during
-development.
+favour of the two tests below.
 
 ## Tests
 
@@ -33,51 +31,34 @@ one second, deterministic, no daemons in the loop.
 Starts ION on a single LTP-loopback node with reversibility enabled
 and triggers a deterministic cancel-with-modifications via the
 `sdrcancel` utility.  Asserts that the cancel reaches the reversal
-code path (`"Attempting transaction reversal..."`) and does not
-escalate to an unrecoverable error.
-
-**Scope note:** the original draft of this test also asserted that
-`ionrestart` finishes successfully and that a post-recovery
-`bpdriver` round-trip delivers bundles.  In this environment,
-`ionrestart`'s volatile-database raise step intermittently stalls on
-Posix named-semaphore "File exists" errors -- a separate ION issue,
-not specific to reversibility.  The wider assertions can be
-re-introduced once that issue is investigated.  See
-[`KNOWN_ISSUES.md`](./KNOWN_ISSUES.md) for the full reproduction
-trace.
+code path (`"Attempting transaction reversal..."`), does not escalate
+to an unrecoverable error, that `ionrestart` finishes
+(`"ionrestart: finished restarting ION"`), and that a post-recovery
+`bpsource` -> `bpsink` round-trip delivers bundles.
 
 Driver binaries: `sdrcancel` (`ici/test/sdrcancel.c`).  Shared log
 helper: `check_recovery.sh`.
-
-### `loopback` (kept)
-
-Pre-existing LTP loopback smoke test that exercises ION running
-*with* reversibility enabled (no cancellation).  Complementary to the
-two tests above; not modified by this redesign.
 
 ## Layout
 
 ```
 tests/req-0022-reversibility/
-├── DESIGN.md                       redesign rationale
-├── KNOWN_ISSUES.md                 environmental issues found during impl
 ├── README.md                       this file
 ├── check_recovery.sh               shared log-checking helpers for Test B
 ├── reversibilityCorrectness/       Test A (correctness, in-process)
 │   ├── cleanup
 │   └── dotest
-├── reversibilityRecovery/          Test B (live-ION integration)
-│   ├── cleanup
-│   ├── configs/
-│   │   ├── config.ionconfig        configFlags 13 (REVERSIBLE)
-│   │   ├── ionstart
-│   │   ├── loopback.bprc
-│   │   ├── loopback.ionrc
-│   │   ├── loopback.ionsecrc
-│   │   ├── loopback.ipnrc
-│   │   └── loopback.ltprc
-│   └── dotest
-└── loopback/                       unchanged smoke test
+└── reversibilityRecovery/          Test B (live-ION integration)
+    ├── cleanup
+    ├── configs/
+    │   ├── config.ionconfig        configFlags 13 (REVERSIBLE)
+    │   ├── ionstart
+    │   ├── loopback.bprc
+    │   ├── loopback.ionrc
+    │   ├── loopback.ionsecrc
+    │   ├── loopback.ipnrc
+    │   └── loopback.ltprc
+    └── dotest
 ```
 
 ## Source code touched outside this directory
@@ -102,6 +83,7 @@ cd tests/req-0022-reversibility/reversibilityRecovery
 ./dotest
 ```
 
-Test A is deterministic.  Test B currently asserts the reversal
-log markers only -- see `KNOWN_ISSUES.md` if you intend to expand its
-scope.
+Test A is deterministic.  Test B's Phase 4 (waiting for ionrestart)
+uses a 300-second ceiling to accommodate the Solaris LDOM CI runner,
+where LTP teardown alone can take 80+ seconds; on Linux it typically
+converges in well under 30 s.

@@ -254,6 +254,7 @@ out\.valgrind\.*
 tests/**/*.log
 # ignore test specific output files
 tests/**/*output
+tests/**/*.recv
 ionreceivefile.txt
 ionsendfile.txt
 ionexpectedfile.txt
