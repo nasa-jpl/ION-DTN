@@ -5,9 +5,9 @@ DEFAULT_RUNNER_NAME ?= ${DOCKER_USER}/ion-actions-runner
 OS_IMAGE ?= ubuntu-22
 TARGETPLATFORM ?= $(shell arch)
 
-RUNNER_VERSION ?= 2.331.0
-RUNNER_CONTAINER_HOOKS_VERSION ?= 0.8.0
-DOCKER_VERSION ?= 28.0.4
+RUNNER_VERSION ?= 2.334.0
+RUNNER_CONTAINER_HOOKS_VERSION ?= 0.8.1
+DOCKER_VERSION ?= 29.4.0
 PIP_INDEX ?= ""
 
 # default list of platforms for which multiarch image is built
