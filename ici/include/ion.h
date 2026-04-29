@@ -515,6 +515,18 @@ typedef struct
 	ion_ipc_atomic_t	deltaBytes;
 } TallyDelta;
 
+/*	Compile-time guard on the TallyDelta public ABI.  Every struct
+ *	that embeds TallyDelta lives in shared SDR/SM memory mapped by
+ *	multiple ION processes, possibly built by different teams with
+ *	different toolchains.  Drift in this layout would silently
+ *	corrupt every cross-process tally read on the affected host.
+ *	The negative-array typedef trick is used (rather than C11
+ *	_Static_assert) so the guard is active under C89, C99, C11,
+ *	and C++ alike — i.e. on every consumer compile, not just the
+ *	library build.							*/
+typedef char ion_tallydelta_abi_size_check[
+	(sizeof(TallyDelta) == 16) ? 1 : -1];
+
 #ifndef MTAKE
 #define MTAKE(size)	allocFromIonMemory(__FILE__, __LINE__, size)
 #define MRELEASE(addr)	releaseToIonMemory(__FILE__, __LINE__, addr)
