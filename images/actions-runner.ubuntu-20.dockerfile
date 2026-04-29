@@ -14,7 +14,7 @@ ARG DOCKER_GROUP_GID=121
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y --no-install-recommends \
-    && apt-get install --no-install-recommends -y software-properties-common \
+    && apt-get install --no-install-recommends -y software-properties-common gpg-agent \
     && add-apt-repository -y ppa:git-core/ppa \
     && apt-get update -y --no-install-recommends \
     && apt-get install -y --no-install-recommends \
