@@ -94,17 +94,23 @@ echo "PASS: reversal attempted, no unrecoverable error"
 #------------------------------------------------------------------------------
 echo
 echo "=== Phase 4: waiting for ionrestart to finish ==="
-RESTART_DEADLINE=$(( $(date +%s) + 60 ))
+# 300 s ceiling: Linux typically converges in well under 30 s, but the
+# Solaris LDOM CI runner takes ~90 s just to stop LTP between
+# "ionrestart: BP stopped" and "LTP stopped", and overall ionrestart
+# can run >120 s end-to-end there.  Polling every 5 s keeps the loop
+# cheap.
+RESTART_TIMEOUT=300
+RESTART_DEADLINE=$(( $(date +%s) + RESTART_TIMEOUT ))
 while [ "$(date +%s)" -lt "$RESTART_DEADLINE" ]; do
     if grep -q "ionrestart: finished restarting ION" "$LOG"; then
         break
     fi
-    sleep 2
+    sleep 5
 done
 
 if ! check_ionrestart_finished "$LOG"; then
     echo
-    echo "FAIL: ionrestart did not converge within 60s"
+    echo "FAIL: ionrestart did not converge within ${RESTART_TIMEOUT}s"
     echo "--- last 30 lines of ion.log ---"
     tail -30 "$LOG"
     exit 1
@@ -118,8 +124,9 @@ echo "PASS: ionrestart finished"
 # can lose the race and exit, leaving the LTP duct down even though
 # the BP/LTP "engine started" flags are set.  Re-running the duct
 # admin commands here is idempotent and brings any missing daemons
-# back up before we try to push traffic.
-sleep 5
+# back up before we try to push traffic.  Solaris needs a longer
+# settle window than Linux.
+sleep 10
 cd configs
 bpadmin <<'EOF' >/dev/null 2>&1
 s
