@@ -1,19 +1,35 @@
 /*
  * ion_atomic.h: Portable atomic operations for ION-DTN.
  *
+ * NOTE ON VISIBILITY
+ * ------------------
+ * This header is INTERNAL to the ION library.  It is no longer
+ * installed as part of the public include set; integrators link
+ * against the ION C library and see only the opaque public type
+ * `ion_ipc_atomic_t` defined in ion.h.  The Zone-1 type
+ * `ion_atomic_t`, the tier dispatch ladder, and all accessor
+ * macros below are visible only to ION's own translation units.
+ *
  * Two atomic zones and a tier ladder
  * ----------------------------------
- * This header exposes two opaque atomic types distinguished by where
- * the variable lives in memory:
+ * This header exposes two atomic types distinguished by where the
+ * variable lives in memory:
  *
  *   ion_atomic_t       — process-local memory (heap, stack, .bss).
  *                        Backed by _Atomic(vast) on C11, or by a
  *                        POSIX mutex + value on the C99 fallback.
+ *                        Internal-only; never appears in any
+ *                        installed struct.
  *
- *   ion_ipc_atomic_t   — shared memory crossing process boundaries
- *                        (SDR, SM, mmap'd regions).  Always lock-
- *                        free and async-signal-safe, so it never
- *                        holds a mutex on any tier.
+ *   ion_ipc_atomic_t   — public opaque type (defined in ion.h)
+ *                        for shared memory crossing process
+ *                        boundaries (SDR, SM, mmap'd regions).
+ *                        Always lock-free and async-signal-safe.
+ *                        Hard-pinned at 8 bytes / 8-byte alignment
+ *                        on every supported ION target.  The
+ *                        internal representation is
+ *                        `ion_ipc_atomic_impl_t` (below); the
+ *                        ION_IPC_ATOMIC_IMPL() cast bridges them.
  *
  * Zone 2 descends a three-tier ladder:
  *
@@ -28,10 +44,6 @@
  *
  * Zone 1 has only two tiers (C11 and mutex fallback) because its
  * fallback ABI must accommodate a pthread_mutex_t.
- *
- * C++ consumers see opaque byte blobs sized to match whichever C
- * tier the library was built with (see ION_HAVE_C11_ATOMICS in
- * config.h).  They call the C API for any atomic manipulation.
  *
  * Tier selection on a modern toolchain
  * ------------------------------------
@@ -88,89 +100,28 @@
 #endif
 
 /*==================================================================*/
-/* C++ COMPATIBILITY PATH                                           */
+/* PUBLIC OPAQUE TYPE                                               */
 /*------------------------------------------------------------------*/
-/* External C++ programs that link against the ION C library need   */
-/* the headers (platform.h, ion.h, bpP.h, ltpP.h, etc.) to parse    */
-/* cleanly under a C++ compiler, and they need struct layouts to    */
-/* match the C compilation so pointers can cross the C/C++ boundary */
-/* without corruption.                                              */
+/* Mirror the public opaque definition from ion.h.  The shared      */
+/* include guard ION_IPC_ATOMIC_OPAQUE_DEFINED ensures only the     */
+/* first header to be included emits the typedef, so include order  */
+/* between ion.h and ion_atomic.h does not matter.                  */
 /*                                                                  */
-/* The C11 `_Atomic(T)` type qualifier and GCC/Clang `__atomic_*`   */
-/* built-ins used by the C paths below are not valid in C++.        */
-/* (C++23 added `std::atomic_ref<T>` but we cannot depend on it.)   */
-/*                                                                  */
-/* C++ consumers typically call the ION C API (bp_attach, bp_send,  */
-/* ipnadminep, etc.) and do not touch `ion_atomic_t` /              */
-/* `ion_ipc_atomic_t` fields directly — the atomic manipulation     */
-/* happens inside the C library.  This path therefore exposes the   */
-/* two atomic types as opaque byte blobs with sizes and alignments  */
-/* matching the C compilation, and omits the accessor macros and    */
-/* inline functions (which are C-only).                             */
-/*                                                                  */
-/* The size of `ion_atomic_t` in C++ is selected to match whichever */
-/* representation the linked ION C library was built with, using    */
-/* the `ION_HAVE_C11_ATOMICS` flag from config.h:                   */
-/*                                                                  */
-/*   - If the library was built with C11 <stdatomic.h>, Zone 1 in   */
-/*     C is a plain `_Atomic(vast)` (8 bytes), so the C++ type is   */
-/*     `opaque[sizeof(long long)]` (also 8 bytes).                  */
-/*                                                                  */
-/*   - Otherwise the C fallback is a mutex-backed union (64 bytes   */
-/*     to fit a pthread_mutex_t plus a value), and the C++ type    */
-/*     is `opaque[64]` to match.                                    */
-/*                                                                  */
-/* `ion_ipc_atomic_t` is always 8 bytes (`sizeof(long long)`) on    */
-/* every Zone 2 tier (`_Atomic(vast)` on C11, `volatile vast` on    */
-/* the __atomic / __sync fallbacks), because `vast` is an 8-byte    */
-/* integer on all supported ION targets.                            */
+/* This type is the public, ABI-frozen face of `ion_ipc_atomic_t`.  */
+/* Inside this header, the internal `ion_ipc_atomic_impl_t` is the  */
+/* one that the compiler actually performs atomic operations on;    */
+/* the ION_IPC_ATOMIC_IMPL() cast bridges them.  Static asserts at  */
+/* the bottom of this header verify that the two types have the    */
+/* same size and compatible alignment on every tier.                */
 /*==================================================================*/
 
-#ifdef __cplusplus
-
-/*
- * Zone 1 (ion_atomic_t) size depends on how the linked ION C
- * library was compiled.  The build system (configure.ac) defines
- * ION_HAVE_C11_ATOMICS=1 in config.h when it detects a working
- * <stdatomic.h>.  The C path above then picks the native
- * _Atomic(vast) representation (8 bytes), otherwise it falls
- * back to a 64-byte mutex-backed union.
- *
- * The C++ path must match whichever representation the library
- * was built with, so consumers see the same struct layout on
- * both sides of the C/C++ boundary.  Since config.h is available
- * here (via HAVE_CONFIG_H above), we read the same flag.
- */
-
-#if defined(ION_HAVE_C11_ATOMICS) && ION_HAVE_C11_ATOMICS
-
-typedef struct {
-	alignas(alignof(long long))	unsigned char	opaque[sizeof(long long)];
-} ion_atomic_t;
-
-#else /* C99 mutex-backed fallback — 64-byte padded union in C */
-
-typedef struct {
-	alignas(alignof(long long))	unsigned char	opaque[64];
-} ion_atomic_t;
-
-#endif
-
-/* Zone 2 (ion_ipc_atomic_t) is always the same size on every
- * fallback tier: an 8-byte integer (_Atomic(vast) on C11, or
- * volatile vast on the __atomic / __sync fallbacks).		*/
-typedef struct {
-	alignas(alignof(long long))	unsigned char	opaque[sizeof(long long)];
+#ifndef ION_IPC_ATOMIC_OPAQUE_DEFINED
+#define ION_IPC_ATOMIC_OPAQUE_DEFINED
+typedef union {
+	long long	_ion_ipc_atomic_align;
+	unsigned char	opaque[8];
 } ion_ipc_atomic_t;
-
-/* C++ code must not construct these directly; any initialization
- * happens inside the C library (e.g., via ion_atomic_init()).  The
- * zero-initializer is provided only so that static struct
- * initializers in ION C code remain syntactically valid if the
- * header is accidentally parsed as C++.				*/
-#define ION_ATOMIC_INIT(v)		{ { 0 } }
-
-#else /* !__cplusplus — C compilation paths begin */
+#endif
 
 /*==================================================================*/
 /* Feature Flag Initialization & Test Override                      */
@@ -329,59 +280,59 @@ uvast ion_atomic_exchange          (ion_atomic_t *, vast);
 /*==================================================================*/
 /* ZONE 2: SHARED MEMORY / IPC ATOMICS (SDR / SM ONLY)              */
 /*------------------------------------------------------------------*/
-/* Use ion_ipc_atomic_t strictly for variables residing in memory   */
-/* mapped across multiple processes. This type strips out mutexes   */
-/* entirely to guarantee lock-free, async-signal-safe execution     */
-/* across strict process boundaries.                                */
+/* The PUBLIC type `ion_ipc_atomic_t` is a fixed-size opaque union  */
+/* defined above (and in ion.h).  Inside the ION library, the       */
+/* compiler operates on `ion_ipc_atomic_impl_t` — the real atomic   */
+/* representation chosen by the tier ladder.  ION_IPC_ATOMIC_IMPL() */
+/* casts a public opaque pointer to the impl pointer.  Static       */
+/* asserts at the bottom of this header verify size and alignment   */
+/* match.                                                           */
 /*==================================================================*/
 
 #if ION_HAVE_C11_ATOMICS
 
 /*
  * Tier 1: Native C11 <stdatomic.h>.
- *
- * @brief Inter-Process Atomic Type (C11)
- * Used strictly for variables residing in shared memory mapping (e.g., SDR).
  */
-typedef _Atomic(vast) ion_ipc_atomic_t;
+typedef _Atomic(vast) ion_ipc_atomic_impl_t;
 
-#define ion_ipc_atomic_init(p,v)                atomic_init((p), (v))
-#define ion_ipc_atomic_set(p,v)                 atomic_store_explicit((p), (v), memory_order_relaxed)
-#define ion_ipc_atomic_get(p)                   atomic_load_explicit((p), memory_order_relaxed)
-#define ion_ipc_atomic_get_and_increment(p,d)   atomic_fetch_add_explicit((p), (d), memory_order_relaxed)
-#define ion_ipc_atomic_get_and_decrement(p,d)   atomic_fetch_sub_explicit((p), (d), memory_order_relaxed)
-#define ion_ipc_atomic_exchange(p,v)            atomic_exchange_explicit((p), (v), memory_order_relaxed)
+#define ION_IPC_ATOMIC_IMPL(p) ((ion_ipc_atomic_impl_t *)(void *)(p))
+
+#define ion_ipc_atomic_init(p,v)                atomic_init(ION_IPC_ATOMIC_IMPL(p), (v))
+#define ion_ipc_atomic_set(p,v)                 atomic_store_explicit(ION_IPC_ATOMIC_IMPL(p), (v), memory_order_relaxed)
+#define ion_ipc_atomic_get(p)                   atomic_load_explicit(ION_IPC_ATOMIC_IMPL(p), memory_order_relaxed)
+#define ion_ipc_atomic_get_and_increment(p,d)   atomic_fetch_add_explicit(ION_IPC_ATOMIC_IMPL(p), (d), memory_order_relaxed)
+#define ion_ipc_atomic_get_and_decrement(p,d)   atomic_fetch_sub_explicit(ION_IPC_ATOMIC_IMPL(p), (d), memory_order_relaxed)
+#define ion_ipc_atomic_exchange(p,v)            atomic_exchange_explicit(ION_IPC_ATOMIC_IMPL(p), (v), memory_order_relaxed)
 
 #elif ION_HAVE_GNU_ATOMIC
 
 /*
  * Tier 2: GCC/Clang __atomic built-ins.
  *
- * @brief Inter-Process Atomic Type (GCC/Clang __atomic fallback)
- *
  * Uses __ATOMIC_RELAXED to match the ordering of the C11 path above.
  * On ARM/AArch64 this permits the compiler to emit plain loads/stores
  * and LDADD (ARMv8.1) instead of the full DMB ISH barriers that the
  * legacy __sync built-ins always emit.
  *
- * The typedef matches Tier 3 (volatile vast) so struct layouts are
+ * The typedef matches Tier 3 (volatile vast) so internal layouts are
  * binary-compatible between the two __sync / __atomic fallback tiers.
  */
-typedef volatile vast ion_ipc_atomic_t;
+typedef volatile vast ion_ipc_atomic_impl_t;
 
-#define ion_ipc_atomic_init(p,v)                (*(p) = (v))
-#define ion_ipc_atomic_set(p,v)                 __atomic_store_n((p), (v), __ATOMIC_RELAXED)
-#define ion_ipc_atomic_get(p)                   __atomic_load_n((p), __ATOMIC_RELAXED)
-#define ion_ipc_atomic_get_and_increment(p,d)   __atomic_fetch_add((p), (d), __ATOMIC_RELAXED)
-#define ion_ipc_atomic_get_and_decrement(p,d)   __atomic_fetch_sub((p), (d), __ATOMIC_RELAXED)
-#define ion_ipc_atomic_exchange(p,v)            __atomic_exchange_n((p), (v), __ATOMIC_RELAXED)
+#define ION_IPC_ATOMIC_IMPL(p) ((ion_ipc_atomic_impl_t *)(void *)(p))
+
+#define ion_ipc_atomic_init(p,v)                (*ION_IPC_ATOMIC_IMPL(p) = (v))
+#define ion_ipc_atomic_set(p,v)                 __atomic_store_n(ION_IPC_ATOMIC_IMPL(p), (v), __ATOMIC_RELAXED)
+#define ion_ipc_atomic_get(p)                   __atomic_load_n(ION_IPC_ATOMIC_IMPL(p), __ATOMIC_RELAXED)
+#define ion_ipc_atomic_get_and_increment(p,d)   __atomic_fetch_add(ION_IPC_ATOMIC_IMPL(p), (d), __ATOMIC_RELAXED)
+#define ion_ipc_atomic_get_and_decrement(p,d)   __atomic_fetch_sub(ION_IPC_ATOMIC_IMPL(p), (d), __ATOMIC_RELAXED)
+#define ion_ipc_atomic_exchange(p,v)            __atomic_exchange_n(ION_IPC_ATOMIC_IMPL(p), (v), __ATOMIC_RELAXED)
 
 #else /* Tier 3: Legacy __sync built-ins */
 
 /*
  * Tier 3: Legacy __sync built-ins.
- *
- * @brief Inter-Process Atomic Type (legacy __sync fallback)
  *
  * Retained for pre-GCC-4.7 toolchains on certified flight hardware
  * (RAD750, LEON cores, older RTEMS/VxWorks).  The volatile keyword
@@ -390,17 +341,44 @@ typedef volatile vast ion_ipc_atomic_t;
  * atomicity across process boundaries, but always emits full memory
  * barriers (e.g., DMB ISH on ARM).
  */
-typedef volatile vast ion_ipc_atomic_t;
+typedef volatile vast ion_ipc_atomic_impl_t;
 
-#define ion_ipc_atomic_init(p,v)                (*(p) = (v))
-#define ion_ipc_atomic_set(p,v)                 __sync_lock_test_and_set((p), (v))
-#define ion_ipc_atomic_get(p)                   __sync_fetch_and_add((p), 0)
-#define ion_ipc_atomic_get_and_increment(p,d)   __sync_fetch_and_add((p), (d))
-#define ion_ipc_atomic_get_and_decrement(p,d)   __sync_fetch_and_sub((p), (d))
-#define ion_ipc_atomic_exchange(p,v)            __sync_lock_test_and_set((p), (v))
+#define ION_IPC_ATOMIC_IMPL(p) ((ion_ipc_atomic_impl_t *)(void *)(p))
+
+#define ion_ipc_atomic_init(p,v)                (*ION_IPC_ATOMIC_IMPL(p) = (v))
+#define ion_ipc_atomic_set(p,v)                 __sync_lock_test_and_set(ION_IPC_ATOMIC_IMPL(p), (v))
+#define ion_ipc_atomic_get(p)                   __sync_fetch_and_add(ION_IPC_ATOMIC_IMPL(p), 0)
+#define ion_ipc_atomic_get_and_increment(p,d)   __sync_fetch_and_add(ION_IPC_ATOMIC_IMPL(p), (d))
+#define ion_ipc_atomic_get_and_decrement(p,d)   __sync_fetch_and_sub(ION_IPC_ATOMIC_IMPL(p), (d))
+#define ion_ipc_atomic_exchange(p,v)            __sync_lock_test_and_set(ION_IPC_ATOMIC_IMPL(p), (v))
 
 #endif /* ION_HAVE_C11_ATOMICS IPC */
 
-#endif /* !__cplusplus */
+
+/*==================================================================*/
+/* ABI INVARIANT GUARDS                                             */
+/*------------------------------------------------------------------*/
+/* If these fire, the public opaque in ion.h has drifted from the   */
+/* internal impl type — fix one or the other before shipping.  The  */
+/* size assert is the load-bearing one; the alignment assert is     */
+/* belt-and-braces and only checked on C11+.                        */
+/*==================================================================*/
+
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+#  define ION_STATIC_ASSERT(expr, msg) _Static_assert(expr, msg)
+#else
+#  define ION_SA_CONCAT_(a, b) a##b
+#  define ION_SA_CONCAT(a, b)  ION_SA_CONCAT_(a, b)
+#  define ION_STATIC_ASSERT(expr, msg) \
+       typedef char ION_SA_CONCAT(ion_static_assert_, __LINE__)[(expr) ? 1 : -1]
+#endif
+
+ION_STATIC_ASSERT(sizeof(ion_ipc_atomic_impl_t) == sizeof(ion_ipc_atomic_t),
+    "ion_ipc_atomic_t public ABI size has drifted from impl type");
+
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+ION_STATIC_ASSERT(_Alignof(ion_ipc_atomic_impl_t) <= _Alignof(ion_ipc_atomic_t),
+    "ion_ipc_atomic_t public ABI alignment is weaker than impl type");
+#endif
 
 #endif /* ION_ATOMIC_H */

@@ -13,7 +13,6 @@
 
 #include "platform.h"
 #include "memmgr.h"
-#include "ion_atomic.h"
 #include "sdr.h"
 #include "smlist.h"
 #include "smrbt.h"
@@ -21,6 +20,26 @@
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+/*	Public, ABI-frozen opaque type for inter-process atomics.
+ *	Size and alignment are fixed at 8 bytes / 8-byte alignment on
+ *	every supported ION target, independent of the consumer's
+ *	compiler, language standard, or configure-time state.  The
+ *	internal implementation (C11 _Atomic, GNU __atomic, legacy
+ *	__sync) is selected inside the ION library and is never
+ *	visible across the public ABI boundary.
+ *
+ *	The union containing `long long` forces 8-byte alignment on
+ *	C89, C99, C11, C++03, and C++11 alike, without depending on
+ *	C11/C++11 alignas/alignof syntax.				*/
+
+#ifndef ION_IPC_ATOMIC_OPAQUE_DEFINED
+#define ION_IPC_ATOMIC_OPAQUE_DEFINED
+typedef union {
+	long long	_ion_ipc_atomic_align;
+	unsigned char	opaque[8];
+} ion_ipc_atomic_t;
 #endif
 
 

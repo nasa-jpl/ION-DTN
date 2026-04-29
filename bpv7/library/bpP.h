@@ -20,6 +20,7 @@
 
 #include "bp.h"
 #include "bp_admin.h"
+#include "ion_atomic.h"
 #include "rfx.h"
 #include "cbor.h"
 #include "crc.h"
