@@ -104,9 +104,7 @@ static void evictHeadDownTo(PsmPartition wm, PsmAddress rbt, PsmAddress queue,
 		size_t target)
 {
 	PsmAddress elt;
-	time_t	   now;
-	CbdEntry  *entry;
-
+	
 	while (sm_list_length(wm, queue) > target)
 	{
 		elt = sm_list_first(wm, queue);

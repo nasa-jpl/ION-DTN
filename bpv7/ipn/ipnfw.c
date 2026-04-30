@@ -606,6 +606,16 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 	Object		newBundleObj;
 	int		enqueued = 0;
 
+	/*	Critical-bundle de-duplication: if this node has already
+	 *	forwarded a copy of this bundle, drop the duplicate
+	 *	rather than re-flooding it.				*/
+
+	if (!preview && cbdedup_seen(bundle))
+	{
+		lyst_destroy(bestRoutes);
+		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
+	}
+
 	/*	Enqueue the bundle on the plan for the entry node of
 	 *	EACH identified best route.				*/
 
@@ -1045,15 +1055,6 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 	{
 		putErrmsg("Forwarding error; stations stack is empty.", NULL);
 		return -1;
-	}
-
-	/*	Critical-bundle de-duplication: if this node has already
-	 *	forwarded a copy of this bundle, drop the duplicate
-	 *	rather than re-flooding it.				*/
-
-	if (cbdedup_seen(bundle))
-	{
-		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
 
 	sdr_string_read(sdr, eid, sdr_list_data(sdr, elt));
