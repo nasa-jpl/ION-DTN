@@ -13,6 +13,7 @@
 #include "ipnfw.h"
 #include "bei.h"	/* For findExtensionBlock */
 #include "cbr.h"	/* For CBR_BLOCK_TYPE_CTEB */
+#include "cbdedup.h"	/* Critical-bundle forward duplication guard. */
 
 #ifdef	ION_BANDWIDTH_RESERVED
 #define	MANAGE_OVERBOOKING	0
@@ -603,6 +604,7 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 	CgrRoute	*route;
 	Bundle		newBundle;
 	Object		newBundleObj;
+	int		enqueued = 0;
 
 	/*	Enqueue the bundle on the plan for the entry node of
 	 *	EACH identified best route.				*/
@@ -645,9 +647,16 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 			lyst_destroy(bestRoutes);
 			return -1;
 		}
+
+		enqueued = 1;
 	}
 
 	lyst_destroy(bestRoutes);
+	if (enqueued)
+	{
+		oK(cbdedup_record(bundle));
+	}
+
 	if (bundle->dlvConfidence >= MIN_NET_DELIVERY_CONFIDENCE
 	|| bundle->id.source.ssp.ipn.fqnn
 			== bundle->destination.ssp.ipn.fqnn)
@@ -1038,6 +1047,15 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 		return -1;
 	}
 
+	/*	Critical-bundle de-duplication: if this node has already
+	 *	forwarded a copy of this bundle, drop the duplicate
+	 *	rather than re-flooding it.				*/
+
+	if (cbdedup_seen(bundle))
+	{
+		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
+	}
+
 	sdr_string_read(sdr, eid, sdr_list_data(sdr, elt));
 
 	if (parseEidString(eid, &metaEid, &vscheme, &vschemeElt) == 0)
@@ -1233,6 +1251,13 @@ int	main(void)
 	}
 
 	cgr_start();
+	if (cbdedup_init() < 0)
+	{
+		putErrmsg("ipnfw can't init critical-bundle dedup table.",
+				NULL);
+		return 1;
+	}
+
 	findScheme("ipn", &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
 	{
@@ -1339,6 +1364,7 @@ int	main(void)
 	}
 
 	closeCgr();
+	cbdedup_shutdown();
 	writeErrmsgMemos();
 	writeMemo("[i] ipnfw forwarder has ended.");
 	ionDetach();
