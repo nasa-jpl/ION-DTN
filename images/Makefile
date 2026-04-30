@@ -8,6 +8,7 @@ TARGETPLATFORM ?= $(shell arch)
 RUNNER_VERSION ?= 2.334.0
 RUNNER_CONTAINER_HOOKS_VERSION ?= 0.8.1
 DOCKER_VERSION ?= 29.4.0
+DOCKER_COMPOSE_VERSION ?= v2.38.2
 PIP_INDEX ?= ""
 
 # default list of platforms for which multiarch image is built
@@ -32,6 +33,7 @@ docker-build:
 	  --build-arg RUNNER_VERSION=${RUNNER_VERSION} \
 	  --build-arg RUNNER_CONTAINER_HOOKS_VERSION=${RUNNER_CONTAINER_HOOKS_VERSION} \
 	  --build-arg DOCKER_VERSION=${DOCKER_VERSION} \
+	  --build-arg DOCKER_COMPOSE_VERSION=${DOCKER_COMPOSE_VERSION} \
 	  --build-arg PIP_INDEX=${PIP_INDEX} \
 	  --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
 	  --build-arg REV=$(shell git rev-parse --short HEAD) \
@@ -46,6 +48,7 @@ buildah-build:
 	  --build-arg RUNNER_VERSION=${RUNNER_VERSION} \
 	  --build-arg RUNNER_CONTAINER_HOOKS_VERSION=${RUNNER_CONTAINER_HOOKS_VERSION} \
 	  --build-arg DOCKER_VERSION=${DOCKER_VERSION} \
+	  --build-arg DOCKER_COMPOSE_VERSION=${DOCKER_COMPOSE_VERSION} \
 	  --build-arg PIP_INDEX=${PIP_INDEX} \
 	  --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
 	  --build-arg REV=$(shell git rev-parse --short HEAD) \
@@ -62,6 +65,7 @@ buildah-build-rhel:
 	  --build-arg RUNNER_VERSION=${RUNNER_VERSION} \
 	  --build-arg RUNNER_CONTAINER_HOOKS_VERSION=${RUNNER_CONTAINER_HOOKS_VERSION} \
 	  --build-arg DOCKER_VERSION=${DOCKER_VERSION} \
+	  --build-arg DOCKER_COMPOSE_VERSION=${DOCKER_COMPOSE_VERSION} \
 	  --build-arg PIP_INDEX=${PIP_INDEX} \
 	  --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
 	  --build-arg REV=$(shell git rev-parse --short HEAD) \
