@@ -13,17 +13,20 @@ on:
   workflow_call:
     inputs:
       tests_to_run:
-        description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
+        description: "Space-separated list of tests to run (e.g., \"test1 test2\").
+          Leave blank to run all."
         required: false
         type: string
         default: ""
       env_vars:
-        description: 'Space-separated list of environment variables (e.g., "KEY1=VALUE1 KEY2=VALUE2").'
+        description: "Space-separated list of environment variables (e.g., \"KEY1=VALUE1
+          KEY2=VALUE2\")."
         required: false
         type: string
         default: ""
       timeout_minutes:
-        description: "Timeout for build and tests in minutes (default: 90 minutes / 1.5 hours)"
+        description: "Timeout for build and tests in minutes (default: 90 minutes / 1.5
+          hours)"
         required: false
         type: number
         default: 90
@@ -67,17 +70,20 @@ on:
   workflow_dispatch:
     inputs:
       tests_to_run:
-        description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
+        description: "Space-separated list of tests to run (e.g., \"test1 test2\").
+          Leave blank to run all."
         required: false
         type: string
         default: ""
       env_vars:
-        description: 'Space-separated list of environment variables (e.g., "KEY1=VALUE1 KEY2=VALUE2").'
+        description: "Space-separated list of environment variables (e.g., \"KEY1=VALUE1
+          KEY2=VALUE2\")."
         required: false
         type: string
         default: ""
       timeout_minutes:
-        description: "Timeout for build and tests in minutes (default: 90 minutes / 1.5 hours)"
+        description: "Timeout for build and tests in minutes (default: 90 minutes / 1.5
+          hours)"
         required: false
         type: number
         default: 90
@@ -243,7 +249,7 @@ jobs:
           if-no-files-found: warn
 
   install-and-test:
-    needs: [setup, build]
+    needs: [ setup, build ]
     name: "Test: ${{ matrix.runner }} (Batch ${{ matrix.testchunk.batch }})"
     strategy:
       fail-fast: false
@@ -333,7 +339,8 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: build-and-test-log-${{ matrix.runner }}-${{ env.TIMESTAMP }}-batch-${{ matrix.testchunk.batch }}
+          name: build-and-test-log-${{ matrix.runner }}-${{ env.TIMESTAMP }}-batch-${{
+            matrix.testchunk.batch }}
           path: build-and-test.log
 
       - name: Show progress file
@@ -346,7 +353,8 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: test-progress-${{ matrix.runner }}-${{ env.TIMESTAMP }}-batch-${{ matrix.testchunk.batch }}
+          name: test-progress-${{ matrix.runner }}-${{ env.TIMESTAMP }}-batch-${{
+            matrix.testchunk.batch }}
           path: ./tests/progress
 
       - name: Collect and upload ion.log files from all test directories
@@ -369,7 +377,8 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: ion-logs-${{ matrix.runner }}-${{ env.TIMESTAMP }}-batch-${{ matrix.testchunk.batch }}
+          name: ion-logs-${{ matrix.runner }}-${{ env.TIMESTAMP }}-batch-${{
+            matrix.testchunk.batch }}
           path: ion-logs-collection/
           if-no-files-found: warn
 
@@ -400,7 +409,7 @@ jobs:
 
   aggregate-results:
     name: "Finalize Logs and Reports"
-    needs: [setup, install-and-test]
+    needs: [ setup, install-and-test ]
     runs-on: arc-runner-set-ol8
     if: ${{ always() }}
     steps:
@@ -408,7 +417,7 @@ jobs:
         run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
 
       - name: Download ALL artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           # Downloads absolutely everything into one master folder
           path: all-artifacts
