@@ -360,7 +360,9 @@ than start time and earlier than 19 January 2038.");
 
 			if (platform_parse_uvast(tokens[6], &parsed_xmitRate) < 0 || parsed_xmitRate > UINT_MAX)
 			{
-				printText("[?] Invalid transmit rate: must be a positive integer within bounds.");
+				char errMsg[256];
+				isprintf(errMsg, sizeof(errMsg), "[?] Invalid transmit rate: must be a positive integer within bounds. (Got: %s)", tokens[6]);
+				printText(errMsg);
 				return;
 			}
 			xmitRate = (unsigned int)parsed_xmitRate;
@@ -389,7 +391,9 @@ time and earlier than 19 January 2038.");
 
 		if (platform_parse_uvast(tokens[6], &parsed_owlt) < 0 || parsed_owlt > UINT_MAX)
 		{
-			printText("[?] Invalid OWLT: must be a positive integer within bounds.");
+			char errMsg[256];
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid OWLT: must be a positive integer within bounds. (Got: %s)", tokens[6]);
+			printText(errMsg);
 			return;
 		}
 		owlt = (unsigned int)parsed_owlt;
@@ -452,7 +456,9 @@ static void executeChange(int tokenCount, char **tokens)
 
 	if (platform_parse_uvast(tokens[5], &parsed_xmitRate) < 0 || parsed_xmitRate > UINT_MAX)
 	{
-		printText("[?] Invalid transmit rate: must be a positive integer within bounds.");
+		char errMsg[256];
+		isprintf(errMsg, sizeof(errMsg), "[?] Invalid transmit rate: must be a positive integer within bounds. (Got: %s)", tokens[5]);
+		printText(errMsg);
 		return;
 	}
 	xmitRate = (unsigned int)parsed_xmitRate;
