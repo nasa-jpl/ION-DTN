@@ -26,6 +26,7 @@
 
 // System headers.
 #include "unistd.h"
+#include <signal.h>
 
 // ION headers.
 #include "platform.h"
@@ -46,7 +47,7 @@ static void agent_signal_handler(int signum);
 
 // Definitions of global data.
 iif_t        ion_ptr;
-uint8_t      gRunning;
+static volatile sig_atomic_t g_agent_running = 0;
 eid_t        manager_eid;
 eid_t        agent_eid;
 
@@ -216,12 +217,10 @@ int main(int argc, char *argv[])
 
 
 	/* Step 5: Start agent threads. */
-	gRunning = 1;
+	g_agent_running = 1;
 	/*! use pthread_begin() so thread can be named and have its stacksize adjusted on some OS's */
-	/*! and provide threads with a pointer to gRunning, so threads will shutdown */
-	//rc = pthread_create(&ingest_thr, NULL, (void *)rx_thread, (void *)ingest_thr_name);
-	rc = pthread_begin(&ingest_thr, NULL, rx_thread, (void *)&gRunning, "nmagent_ingest");
-
+	/*! and provide threads with a pointer to g_agent_running, so threads will shutdown */
+	rc = pthread_begin(&ingest_thr, NULL, rx_thread, (void *)(uintptr_t)&g_agent_running, "nmagent_ingest");
 	if (rc)
 	{
 		AMP_DEBUG_ERR("agent_main", "Unable to create pthread %s, errno = %s",
@@ -234,7 +233,7 @@ int main(int argc, char *argv[])
 	}
 
 	//rc = pthread_create(&rda_thr, NULL, (void *)rda_thread, (void *)rda_thr_name);
-	rc = pthread_begin(&rda_thr, NULL, rda_thread, (void *)&gRunning, "nmagent_rda");
+	rc = pthread_begin(&rda_thr, NULL, rda_thread, (void *)(uintptr_t)&g_agent_running, "nmagent_rda");
 
 	if (rc)
 	{
@@ -313,5 +312,5 @@ static void agent_signal_handler(int signum)
 	isignal(SIGINT, agent_signal_handler);
 	isignal(SIGTERM, agent_signal_handler);
 
-	gRunning = 0;
+	g_agent_running = 0;
 }

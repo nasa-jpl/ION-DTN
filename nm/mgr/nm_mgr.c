@@ -29,6 +29,7 @@
 
 // Application headers.
 #include <getopt.h>
+#include <signal.h>
 #include "nm_mgr.h"
 #include "nm_mgr_ui.h"
 #include "metadata.h"
@@ -41,7 +42,8 @@
 
 mgr_db_t gMgrDB;
 iif_t ion_ptr;
-int  gRunning;
+static volatile int g_mgr_running = 0;
+
 
 char* mgr_parse_args(int argc, char* argv[]);
 void mgr_print_usage(void);
@@ -110,7 +112,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* Indicate that the threads should run once started. */
-	gRunning = 1;
+	g_mgr_running = 1;
 
 	/* Initialize the AMP Manager. */
 	if (mgr_init(mgr_eid) != AMP_OK)
@@ -123,7 +125,7 @@ int main(int argc, char *argv[])
 
 
 	/* Spawn threads for receiving msgs, user interface, and db connection. */
-	if(pthread_begin(&rx_thr, NULL, mgr_rx_thread, (void *)&gRunning, "nm_mgr_rx"))
+	if(pthread_begin(&rx_thr, NULL, mgr_rx_thread, (void *)(uintptr_t)&g_mgr_running, "nm_mgr_rx"))
 	{
 		AMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
 				rx_thr_name, strerror(errno));
@@ -131,7 +133,7 @@ int main(int argc, char *argv[])
 	}
 
 
-	if(pthread_begin(&ui_thr, NULL, ui_thread, (void *)&gRunning, "nm_mgr_ui"))
+	if(pthread_begin(&ui_thr, NULL, ui_thread, (void *)(uintptr_t)&g_mgr_running, "nm_mgr_ui"))
 	{
 		AMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
 				ui_thr_name, strerror(errno));
@@ -140,7 +142,7 @@ int main(int argc, char *argv[])
 
 #ifdef HAVE_MYSQL
 
-	if(pthread_begin(&db_thr, NULL, (void *)db_mgt_daemon, (void *)&gRunning ,"nm_mgr_db"))
+	if(pthread_begin(&db_thr, NULL, (void *)db_mgt_daemon, (void *)(uintptr_t)&g_mgr_running ,"nm_mgr_db"))
 	{
 		AMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
 				db_thr_name, strerror(errno));

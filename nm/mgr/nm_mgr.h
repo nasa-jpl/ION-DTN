@@ -82,12 +82,6 @@ extern mgr_db_t gMgrDB;
 extern iif_t ion_ptr;
 
 // ============================= Global Data ===============================
-/**
- * Indicates if the thread loops should continue to run. This
- * value is updated by the main() and read by the subordinate
- * threads.
- **/
- extern int g_running;
 
 /* Function Prototypes */
 int      main(int argc, char *argv[]);

@@ -57,8 +57,11 @@ void *rx_thread(void *arg) {
 	AMP_DEBUG_ENTRY("rx_thread","(0x%X)",(unsigned long) pthread_self());
 	AMP_DEBUG_INFO("rx_thread","Receiver thread running...", NULL);
 
-	/* Cast the generic void* argument back to the real type we need. */
-	int *running = (int *)arg;
+	/* Cast the generic void* argument back to the true volatile type.
+	 * DO NOT remove 'volatile' or the -O2 compiler will cache the value 
+	 * in a register and the thread will never shut down cleanly.
+	 */
+	volatile sig_atomic_t *running = (volatile sig_atomic_t *) arg;
 
 	vecit_t it;
 	blob_t *result = NULL;

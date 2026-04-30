@@ -634,8 +634,11 @@ void* rda_thread(void* arg)
 	struct timeval start_time;
 	vast	       delta = 0;
 
-	/* Cast the generic void* argument back to the real type we need. */
-	int *running = (int *) arg;
+	/* Cast the generic void* argument back to the true volatile type.
+	 * DO NOT remove 'volatile' or the -O2 compiler will cache the value 
+	 * in a register and the thread will never shut down cleanly.
+	 */
+	volatile sig_atomic_t *running = (volatile sig_atomic_t *) arg;
 
 	AMP_DEBUG_ENTRY("rda_thread", "(0x%X)", (unsigned long) pthread_self()); //threadId);
 

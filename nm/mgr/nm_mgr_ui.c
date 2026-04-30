@@ -145,12 +145,12 @@ form_fields_t db_conn_form_fields[] = {
 #endif
 
 int gContext;
-int *global_nm_running = NULL;
+volatile sig_atomic_t *global_nm_running;
 mgr_ui_mode_enum mgr_ui_mode = MGR_UI_DEFAULT;
 
 /* Prototypes */
-void ui_eventLoop(int *running);
-void ui_ctrl_list_menu(int *running);
+void ui_eventLoop(volatile sig_atomic_t *running);
+void ui_ctrl_list_menu(volatile sig_atomic_t *running);
 
 #ifdef HAVE_MYSQL
 void ui_db_menu(int *running);
@@ -705,7 +705,7 @@ int ui_automator_parse_input(char *str)
 
 	return 1;
 }
-void ui_automator_run(int *running)
+void ui_automator_run(volatile sig_atomic_t *running)
 {
 	char line[MAX_INPUT_BYTES];
 	int len;
@@ -747,7 +747,7 @@ void ui_automator_run(int *running)
  *  --------  ------------   ---------------------------------------------
  *  10/15/18  D.Edell        Initial NCURSES implementation based on original UI
  *****************************************************************************/
-void ui_eventLoop(int *running)
+void ui_eventLoop(volatile sig_atomic_t *running)
 {
 	int choice; // Last user menu selection
 	char msg[128] = ""; // User (error) message to append to menu
@@ -1396,8 +1396,11 @@ void ui_send_raw(agent_t* agent, uint8_t enter_ts)
 
 void *ui_thread(void *arg)
 {
-	/* Cast the generic argument back to int */
-	int *running = (int *)arg;
+	/* * Cast the generic void* argument back to the true volatile type.
+	 * DO NOT remove 'volatile' or the -O2 compiler will cache the value 
+	 * in a register and the thread will never shut down cleanly.
+	 */
+	volatile sig_atomic_t *running = (volatile sig_atomic_t *) arg;
 
 	AMP_DEBUG_ENTRY("ui_thread","(0x%x)", (size_t) running);
 
@@ -1644,7 +1647,7 @@ int ui_db_clear_rpt()
 
 #endif
 
-void ui_ctrl_list_menu(int *running)
+void ui_ctrl_list_menu(volatile sig_atomic_t *running)
 {
 	int choice;
 	int n_choices = ARRAY_SIZE(ctrl_menu_list_choices);

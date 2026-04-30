@@ -367,10 +367,16 @@ int32_t db_incoming_finalize(uint32_t id, uint32_t grp_status, char* src_eid, ch
  *  01/26/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
 
-void *db_mgt_daemon(int *running)
+void *db_mgt_daemon(void *arg)
 {
 	struct timeval start_time;
 	vast delta = 0;
+
+	/* Cast the generic void* argument back to the true volatile type.
+	 * DO NOT remove 'volatile' or the -O2 compiler will cache the value 
+	 * in a register and the thread will never shut down cleanly.
+	 */
+	volatile sig_atomic_t *running = (volatile sig_atomic_t *) arg;
 
 
 	AMP_DEBUG_ALWAYS("db_mgt_daemon","Starting Manager Database Daemon",NULL);

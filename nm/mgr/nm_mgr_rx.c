@@ -251,8 +251,11 @@ void rx_agent_reg(msg_metadata_t *meta, msg_agent_t *msg)
 
 void *mgr_rx_thread(void *arg)
 {
-	/* Cast the generic argument back to int */
-	int *running = (int *)arg;
+	/* * Cast the generic void* argument back to the true volatile type.
+	 * DO NOT remove 'volatile' or the -O2 compiler will cache the value 
+	 * in a register and the thread will never shut down cleanly.
+	 */
+	volatile sig_atomic_t *running = (volatile sig_atomic_t *) arg;
 
 	AMP_DEBUG_ENTRY("mgr_rx_thread","(0x%x)", (size_t) running);
 
