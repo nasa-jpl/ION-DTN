@@ -30,6 +30,7 @@
 // Application headers.
 #include <getopt.h>
 #include <signal.h>
+#include <stdint.h>
 #include "nm_mgr.h"
 #include "nm_mgr_ui.h"
 #include "metadata.h"

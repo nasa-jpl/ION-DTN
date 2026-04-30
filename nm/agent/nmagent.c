@@ -27,6 +27,7 @@
 // System headers.
 #include "unistd.h"
 #include <signal.h>
+#include <stdint.h>
 
 // ION headers.
 #include "platform.h"

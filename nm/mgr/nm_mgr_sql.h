@@ -151,7 +151,7 @@ typedef struct
 int32_t db_add_agent(eid_t agent_eid);
 
 /* Database Management Functions. */
-void    *db_mgt_daemon(int *running);
+void *db_mgt_daemon(void *arg);
 uint32_t db_mgt_init(sql_db_t parms, uint32_t clear, uint32_t log);
 uint32_t db_mgt_init_con(size_t idx, sql_db_t parms);
 
