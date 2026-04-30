@@ -15,6 +15,7 @@ ARG DOCKER_GROUP_GID=121
 # Enable EPEL release for extra packages and install build dependencies
 RUN microdnf install -y oracle-epel-release-el9 \
     && microdnf update -y \
+    && dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo \
     && microdnf install -y \
     curl \
     ca-certificates \
@@ -57,6 +58,7 @@ RUN microdnf install -y oracle-epel-release-el9 \
     libffi-devel \
     xz-devel \
     wget \
+    gh \
     && microdnf install -y --enablerepo=ol9_codeready_builder jansson-devel ninja-build \
     && microdnf clean all
 

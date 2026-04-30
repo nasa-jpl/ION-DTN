@@ -16,6 +16,7 @@ ARG DOCKER_GROUP_GID=121
 # Use --enablerepo to access CodeReady Builder packages without permanently modifying config
 RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm \
     && dnf update -y \
+    && dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo \
     && dnf install -y --enablerepo=codeready-builder-for-rhel-8-x86_64-rpms \
     git \
     jq \
@@ -56,6 +57,7 @@ RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.n
     libffi-devel \
     xz-devel \
     wget \
+    gh \
     && dnf clean all
 
 RUN export PATH="${HOME}/.local/bin:${PATH}"

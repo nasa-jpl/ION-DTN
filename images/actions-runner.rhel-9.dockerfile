@@ -55,6 +55,7 @@ RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.n
     libffi-devel \
     xz-devel \
     wget \
+    gh \
     && dnf clean all
 
 RUN export PATH="${HOME}/.local/bin:${PATH}"

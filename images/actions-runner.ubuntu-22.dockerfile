@@ -56,6 +56,7 @@ RUN apt-get update -y --no-install-recommends \
     libffi-dev \
     liblzma-dev \
     wget \
+    gh \
     && rm -rf /var/lib/apt/lists/*
 
 RUN export PATH="${HOME}/.local/bin:${PATH}"

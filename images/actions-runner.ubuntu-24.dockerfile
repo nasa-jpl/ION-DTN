@@ -33,7 +33,7 @@ RUN apt-get update -y --no-install-recommends \
     libtool \
     psmisc \
     libssl-dev \
-    netcat \
+    netcat-traditional \
     valgrind \
     libtool-bin \
     cmake \
@@ -56,6 +56,7 @@ RUN apt-get update -y --no-install-recommends \
     libffi-dev \
     liblzma-dev \
     wget \
+    gh \
     && rm -rf /var/lib/apt/lists/*
 
 RUN export PATH="${HOME}/.local/bin:${PATH}"
