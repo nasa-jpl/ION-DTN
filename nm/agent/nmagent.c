@@ -26,11 +26,13 @@
 
 // System headers.
 #include "unistd.h"
-#include <signal.h>
-#include <stdint.h>
 
 // ION headers.
 #include "platform.h"
+
+// Deferred System Headers (POSIX Strictness)
+#include <signal.h>
+#include <stdint.h>
 
 // Application headers.
 #include "../shared/nm.h"
