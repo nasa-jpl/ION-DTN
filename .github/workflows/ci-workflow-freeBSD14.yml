@@ -41,7 +41,7 @@ jobs:
           rm -rf $GITHUB_WORKSPACE/*
 
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           clean: true
           # clear workspace after
@@ -131,14 +131,14 @@ jobs:
 
       - name: Upload full build and test log
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-and-test-log-freebsd-${{ env.TIMESTAMP }}
           path: build-and-test.log
 
       - name: Upload progress file as artifact
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-progress-freebsd-${{ env.TIMESTAMP }}
           path: ./progress
@@ -164,7 +164,7 @@ jobs:
 
       - name: Upload ion.log files as artifact
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ion-logs-freebsd-${{ env.TIMESTAMP }}
           path: ion-logs-collection/

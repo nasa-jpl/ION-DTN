@@ -49,7 +49,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.head_ref }}
 
@@ -95,14 +95,14 @@ jobs:
 
       - name: Upload full test log
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-install-log-${{ env.TIMESTAMP }}
           path: benchmark.log
 
       - name: Upload benchmark stdout logs
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: benchmark-logs-${{ env.TIMESTAMP }}
           path: |

@@ -16,7 +16,7 @@ jobs:
     runs-on: arc-runner-set-rhel8
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Run ansible-lint
         uses: ansible/ansible-lint@5fac056c45595896c973fbde871f01f6cb14d74c
@@ -30,7 +30,7 @@ jobs:
       KICS_VERSION: v2.1.20
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -64,7 +64,7 @@ jobs:
 
       - name: Upload KICS results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kics-results-${{ steps.timestamp.outputs.timestamp }}
           path: kics-results/
