@@ -28,10 +28,13 @@
  *****************************************************************************/
 
 // Application headers.
+#include "nm_mgr.h"          // MUST be first to arm platform macros
+
+// Deferred System Headers (POSIX Strictness)
 #include <getopt.h>
 #include <signal.h>
 #include <stdint.h>
-#include "nm_mgr.h"
+
 #include "nm_mgr_ui.h"
 #include "metadata.h"
 
