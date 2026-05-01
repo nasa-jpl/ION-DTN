@@ -579,6 +579,13 @@ char* read_remote_dir(int dir, int index, char* buf, int size){
 		close(fd);
 		return NULL;
 	}
+
+	/*	The read loop above can exit with i == size and no
+	 *	NUL written into buf (when an entry is at least as
+	 *	long as the caller's buffer).  Guarantee a terminator
+	 *	before any strlen() walks past the buffer.		*/
+	buf[size - 1] = '\0';
+
 	if(strlen(buf)==0)
 	{
 		return NULL;
