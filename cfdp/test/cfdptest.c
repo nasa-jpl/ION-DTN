@@ -1011,6 +1011,41 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
 			break;
 
 		case CfdpTransactionInd:          // Event 1
+			if (sourceFileNameBuf && sourceFileNameBuf[0]) {
+				PUTS_FMT("Source File: %s", sourceFileNameBuf);
+			}
+			if (destFileNameBuf && destFileNameBuf[0]) {
+				PUTS_FMT("Dest File: %s", destFileNameBuf);
+			}
+			if (fileSize > 0) {
+				PUTS_FMT("File Size: " UVAST_FIELDSPEC " bytes", fileSize);
+			}
+			/* Update tracker with file info from event */
+			{
+				int tidx = findTransactionIndex(transactionId);
+				if (tidx >= 0) {
+					if (sourceFileNameBuf && sourceFileNameBuf[0]
+					&& !transactionTrackers[tidx].sourceFileName[0]) {
+						istrcpy(transactionTrackers[tidx].sourceFileName,
+							sourceFileNameBuf,
+							sizeof(transactionTrackers[tidx].sourceFileName));
+					}
+					if (destFileNameBuf && destFileNameBuf[0]
+					&& !transactionTrackers[tidx].destFileName[0]) {
+						istrcpy(transactionTrackers[tidx].destFileName,
+							destFileNameBuf,
+							sizeof(transactionTrackers[tidx].destFileName));
+					}
+					if (fileSize > 0) {
+						transactionTrackers[tidx].fileSize = fileSize;
+					}
+				}
+			}
+			if (condition != CfdpNoError) {
+				PUTS_FMT("Condition: %s (%d)", getConditionName(condition), condition);
+			}
+			break;
+
 		case CfdpEofSentInd:              // Event 2
 		case CfdpFileSegmentRecvInd:      // Event 5
 		case CfdpEofRecvInd:              // Event 6

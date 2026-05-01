@@ -1623,6 +1623,16 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 				sizeof(CfdpTransactionId));
 	event.reqNbr = fdu.reqNbr;
 	event.progress = fdu.progress;
+	event.fileSize = fdu.fileSize;
+	if (sourceFileName)
+	{
+		event.sourceFileName = sdr_string_create(sdr, sourceFileName);
+	}
+
+	if (destFileName)
+	{
+		event.destFileName = sdr_string_create(sdr, destFileName);
+	}
 	if (enqueueCfdpEvent(&event) < 0)
 	{
 		putErrmsg("CFDP can't report on new transaction.", NULL);
