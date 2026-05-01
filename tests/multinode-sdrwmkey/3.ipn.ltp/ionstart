@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Start node 3 (UDP CLA, no LTP).
+ionadmin    amroc.ionrc
+ionadmin    global.ionrc
+ionsecadmin amroc.ionsecrc
+bpadmin     amroc.bprc

@@ -480,6 +480,8 @@ static int	checkNodeListParms(IonParms *parms, char *wdName, uvast fqnn)
 	int		lineWmKey;
 	char		lineSdrName[MAX_SDR_NAME + 1];
 	char		lineWdName[256];
+	int		lineSdrWmKey;
+	int		fieldsRead;
 	int		result;
 
 	nodeListDir = getenv("ION_NODE_LIST_DIR");
@@ -560,8 +562,12 @@ static int	checkNodeListParms(IonParms *parms, char *wdName, uvast fqnn)
 		}
 
 		lineNbr++;
-		if (sscanf(lineBuf, UVAST_FIELDSPEC " %d %31s %255s",
-			&lineFqnn, &lineWmKey, lineSdrName, lineWdName) < 4)
+		lineSdrWmKey = SM_NO_KEY;	/*	Optional 5th field.	*/
+		fieldsRead = sscanf(lineBuf,
+				UVAST_FIELDSPEC " %d %31s %255s %d",
+				&lineFqnn, &lineWmKey, lineSdrName,
+				lineWdName, &lineSdrWmKey);
+		if (fieldsRead < 4)
 		{
 			close(nodeListFile);
 			sm_SemGive(nodeListMutex);
@@ -620,6 +626,12 @@ static int	checkNodeListParms(IonParms *parms, char *wdName, uvast fqnn)
 				return -1;
 			}
 
+			if (parms->sdrWmKey == 0
+					|| parms->sdrWmKey == SM_NO_KEY)
+			{
+				parms->sdrWmKey = lineSdrWmKey;
+			}
+
 			return 0;
 		}
 
@@ -635,6 +647,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName, uvast fqnn)
 				parms->wmKey = lineWmKey;
 				istrcpy(parms->sdrName, lineSdrName,
 						MAX_SDR_NAME + 1);
+				parms->sdrWmKey = lineSdrWmKey;
 				return 0;
 			}
 
@@ -673,8 +686,10 @@ static int	checkNodeListParms(IonParms *parms, char *wdName, uvast fqnn)
 				sizeof parms->sdrName);
 	}
 
-	isprintf(lineBuf, sizeof lineBuf, UVAST_FIELDSPEC " %d %.31s %.255s\n",
-			fqnn, parms->wmKey, parms->sdrName, wdName);
+	isprintf(lineBuf, sizeof lineBuf,
+			UVAST_FIELDSPEC " %d %.31s %.255s %d\n",
+			fqnn, parms->wmKey, parms->sdrName, wdName,
+			parms->sdrWmKey);
 	result = iputs(nodeListFile, lineBuf);
 	close(nodeListFile);
 	sm_SemGive(nodeListMutex);
@@ -720,13 +735,23 @@ int	ionInitialize(IonParms *parms, uvast ownFqnn)
 		parms->sdrWmSize = 1000000;	/*	Default.	*/
 	}
 
+	/*	A zero sdrWmKey is treated as SM_NO_KEY so that callers
+	 *	that zero-initialize IonParms (e.g. via memset) without
+	 *	going through readIonParms preserve the legacy default
+	 *	of SDR_SM_KEY rather than landing on IPC_PRIVATE.	*/
+
+	if (parms->sdrWmKey == 0)
+	{
+		parms->sdrWmKey = SM_NO_KEY;
+	}
+
 	if (checkNodeListParms(parms, wdname, ownFqnn) < 0)
 	{
 		putErrmsg("Failed checking node list parms.", NULL);
 		return -1;
 	}
 
-	if (sdr_initialize(parms->sdrWmSize, NULL, SM_NO_KEY, NULL) < 0)
+	if (sdr_initialize(parms->sdrWmSize, NULL, parms->sdrWmKey, NULL) < 0)
 	{
 		putErrmsg("Can't initialize the SDR system.", NULL);
 		return -1;
@@ -984,12 +1009,6 @@ int	ionAttach(void)
 		return 0;	/*	Already attached.		*/
 	}
 
-	if (sdr_initialize(0, NULL, SM_NO_KEY, NULL) < 0)
-	{
-		putErrmsg("Can't initialize the SDR system.", NULL);
-		return -1;
-	}
-
 	wdname = getenv("ION_NODE_WDNAME");
 	if (wdname == NULL)
 	{
@@ -1006,6 +1025,23 @@ int	ionAttach(void)
 	if (checkNodeListParms(&parms, wdname, 0) < 0)
 	{
 		putErrmsg("Failed checking node list parms.", NULL);
+		return -1;
+	}
+
+	/*	Use this node's recorded sdrWmKey (from ion_nodes) to
+	 *	attach to the right SDR working memory segment.  A zero
+	 *	value (single-host mode, or pre-existing ion_nodes lines
+	 *	without an sdrWmKey field) falls back to SM_NO_KEY which
+	 *	sdrxn.c then resolves to the legacy SDR_SM_KEY.		*/
+
+	if (parms.sdrWmKey == 0)
+	{
+		parms.sdrWmKey = SM_NO_KEY;
+	}
+
+	if (sdr_initialize(0, NULL, parms.sdrWmKey, NULL) < 0)
+	{
+		putErrmsg("Can't initialize the SDR system.", NULL);
 		return -1;
 	}
 
@@ -1709,6 +1745,7 @@ int	readIonParms(char *configFileName, IonParms *parms)
 	memset((char *) parms, 0, sizeof(IonParms));
 	parms->wmSize = 5000000;
 	parms->wmAddress = 0;		/*	Dyamically allocated.	*/
+	parms->sdrWmKey = SM_NO_KEY;	/*	Default -> SDR_SM_KEY.	*/
 	parms->configFlags = SDR_IN_DRAM | SDR_REVERSIBLE | SDR_BOUNDED;
 	parms->heapWords = 250000;
 	parms->heapKey = SM_NO_KEY;
@@ -1871,6 +1908,12 @@ UVAST_FIELDSPEC ".", size);
 			continue;
 		}
 
+		if (strcmp(tokens[0], "sdrWmKey") == 0)
+		{
+			parms->sdrWmKey = atoi(tokens[1]);
+			continue;
+		}
+
 		if (strcmp(tokens[0], "configFlags") == 0)
 		{
 			parms->configFlags = atoi(tokens[1]);
@@ -1969,6 +2012,9 @@ void	printIonParms(IonParms *parms)
 	writeMemo(buffer);
 	isprintf(buffer, sizeof buffer, "sdrWmSize:       %ld",
 			parms->sdrWmSize);
+	writeMemo(buffer);
+	isprintf(buffer, sizeof buffer, "sdrWmKey:        %d",
+			parms->sdrWmKey);
 	writeMemo(buffer);
 	isprintf(buffer, sizeof buffer, "configFlags:     %d",
 			parms->configFlags);

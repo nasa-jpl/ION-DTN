@@ -63,6 +63,7 @@ typedef struct
 	char	*wmAddress;
 	char	sdrName[MAX_SDR_NAME + 1];
 	size_t	sdrWmSize;
+	int	sdrWmKey;	/*	SM_NO_KEY -> use SDR_SM_KEY.	*/
 	int	configFlags;
 	size_t	heapWords;
 	int	heapKey;

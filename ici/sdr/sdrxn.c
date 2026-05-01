@@ -350,9 +350,19 @@ static PsmPartition	_sdrwm(sm_WmParms *parms)
 
 		if (parms->wmKey == SM_NO_KEY)
 		{
-			sdrwmIsPrivate = 1;
 			parms->wmKey = SDR_SM_KEY;
 		}
+
+		/*	The SDR working memory is owned by ION whenever
+		 *	we open it through this path, regardless of
+		 *	whether the key was the legacy default or a
+		 *	per-node value supplied via ionconfig.  Marking
+		 *	the partition private ensures sdr_shutdown()
+		 *	destroys the underlying shared-memory segment
+		 *	so that one node's ionexit cleans up its own
+		 *	SDR working memory without leaking it.		*/
+
+		sdrwmIsPrivate = 1;
 
 		if (parms->wmName == NULL)
 		{

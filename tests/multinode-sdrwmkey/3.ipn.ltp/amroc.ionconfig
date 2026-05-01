@@ -1,0 +1,7 @@
+wmKey 66336
+sdrName ion3
+sdrWmKey 65283
+wmSize 5000000
+configFlags 1
+heapWords 250000
+pathName /tmp

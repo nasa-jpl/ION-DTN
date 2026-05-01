@@ -58,12 +58,14 @@ The `ionexit` program is the recommended method for normal ION shutdown. It grac
 
 | Command | SDR | IPC | Restartable? | Use Case |
 |---------|-----|-----|--------------|----------|
-| `ionexit` | Destroyed | Destroyed | No (clean slate) | **Normal shutdown.** Removes all ION state. Use when you want a fresh start next time. |
+| `ionexit` | Destroyed | Destroyed | No (clean slate) | **Normal shutdown (single-node host).** Removes all ION state. Use when you want a fresh start next time, or for the *last* node in a multi-node host. |
 | `ionexit k` | Preserved | Destroyed | **No** | **Forensics/inspection only.** The `.sdr` file remains on disk for examination, but IPC destruction prevents `ionstart` from reattaching. |
-| `ionexit n` | Destroyed | Preserved | No (SDR gone) | **Multi-node per host.** Shut down one ION instance and discard its SDR, without destroying the shared IPC (sdrwm catalog, global semaphores) that other instances on the same host depend on. |
-| `ionexit k n` | Preserved | Preserved | **Yes** | **Planned maintenance / restart.** The only mode that allows a subsequent `ionstart` to reattach and resume where it left off. Works for all SDR storage modes. |
+| `ionexit n` | Destroyed | Preserved | No (SDR gone) | **Single-node only.** Tears down SDR but keeps the host's IPC infrastructure. **Unsafe in multi-node** — see warning below. |
+| `ionexit k n` | Preserved | Preserved | **Yes** | **Planned maintenance / restart, and per-node shutdown in multi-node hosts.** The only mode that allows a subsequent `ionstart` to reattach. Also the only `ionexit` form safe to run on a non-last node in a multi-node host (preserves both the shared SDR working memory and the shared IPC). |
 
 Flags can be combined in any order.
+
+> ⚠ **Multi-node warning:** `ionexit n` on one of several ION nodes sharing a host **will break the others.** Although `n` preserves the global semaphore table (`SM_SEMTBLKEY`, `0xee08`), the underlying `ionTerminate(1)` call still destroys the SDR working memory segment at `SDR_SM_KEY` (`0xff00`), which all ION nodes on the host share by default. Once that segment is marked for destruction, no other node can attach to it, and any node that restarts a component will create a fresh, disjoint segment at the same key — a recipe for corruption. Use `ionexit k n` for every node except the last; only the last node may run a destructive `ionexit`. See [Multi-node shutdown order and shared SDR working memory](#multi-node-shutdown-order-and-shared-sdr-working-memory) below.
 
 **Why `ionexit k n` is required for restart:**
 
@@ -185,16 +187,178 @@ Time   Action
 | Normal operational shutdown | `ionexit` | Clean slate; no residual state |
 | Preserve state for restart | `ionexit k n` | Only mode that supports restart via `ionstart` |
 | Inspect SDR after shutdown | `ionexit k` | Preserves `.sdr` file for post-mortem analysis |
-| Multi-node: stop one node, discard its data | `ionexit n` | Preserves shared IPC for other instances |
-| Multi-node: stop one node, keep its data | `ionexit k n` | Preserves both node SDR and shared IPC |
-| Multi-node: stop last node | `ionexit` | Safe to release IPC when no other instances remain |
+| Multi-node: stop one node (others still running) | `ionexit k n` | Preserves both the shared SDR working memory (`0xff00`) and the shared IPC. **`ionexit n` is unsafe** because it destroys the shared SDR working memory. |
+| Multi-node: stop the last running node | `ionexit` | Safe to release SDR working memory and IPC when no other instances remain |
 
 **Important Notes:**
 - `ionexit` operates on a single ION instance — the one associated with the current working directory. It does **not** stop other ION instances on the same host. In a multi-node environment, each node must be shut down individually by running `ionexit` from that node's working directory. To stop **all** ION instances at once, use `killm f` instead, which sends SIGTERM/SIGKILL to all ION processes and cleans up all IPC resources unconditionally.
-- **Multi-node shutdown order is critical.** When shutting down individual nodes on a shared host, use `ionexit k n` for every node until only the last node remains, then use `ionexit` (without flags) for the final node. The `k` flag preserves the global SDR working memory (shared by all instances) and the `n` flag preserves the global IPC semaphores. Destroying either resource prematurely prevents remaining nodes from attaching or detecting the shutdown signal. See the [Multi-node shutdown order and shared resources](ION-TestSet-Readme.md#multi-node-shutdown-order-and-shared-resources) section for details.
+- **Multi-node shutdown order is critical.** When shutting down individual nodes on a shared host, use `ionexit k n` for every node until only the last node remains, then use `ionexit` (without flags) for the final node. The `k` flag preserves the global SDR working memory (shared by all instances) and the `n` flag preserves the global IPC semaphores. Destroying either resource prematurely prevents remaining nodes from attaching or detecting the shutdown signal. **Do not substitute `ionexit n` for `ionexit k n`** in multi-node shutdown: `n` only protects the IPC semaphore table (`0xee08`), but the destructive `ionTerminate(1)` invoked by `ionexit n` still tears down the shared SDR working memory (`0xff00`), corrupting the remaining nodes. See [Multi-node shutdown order and shared SDR working memory](#multi-node-shutdown-order-and-shared-sdr-working-memory) below.
 - User applications attached to ION must detach separately
 - Custom services started by the user must be stopped manually
 - All modes stop all ION daemon processes for the current node; only SDR data and IPC resources are optionally preserved
+
+#### Multi-node shutdown order and shared SDR working memory
+
+##### How multiple ION nodes share IPC on one host
+
+When two or more ION nodes run on the same host, exactly one resource is unconditionally host-global, several are per-node, and one — the SDR library's own working memory — is **configurable**: shared across nodes by default, but optionally per-node when each node sets `sdrWmKey` in its ionconfig.
+
+```mermaid
+flowchart TB
+    subgraph HOST["Host (one OS image, one user)"]
+        SEMTBL["<b>0x0000ee08 — SM_SEMTBLKEY</b><br/>Global semaphore table<br/>(host-wide; every ION node uses it)"]
+
+        subgraph N2["ION Node 2 (working dir 2.ipn.ltp/)"]
+            N2_WM["wmKey 0x1002<br/>main working memory"]
+            N2_HEAP["sdrName ion2<br/>SDR heap (0x102bc)"]
+            N2_TRACE["sptrace<br/>(dynamic key per node)"]
+        end
+
+        subgraph N3["ION Node 3 (working dir 3.ipn.ltp/)"]
+            N3_WM["wmKey 0x1006<br/>main working memory"]
+            N3_HEAP["sdrName ion3<br/>SDR heap (0x10320)"]
+            N3_TRACE["sptrace<br/>(dynamic key per node)"]
+        end
+
+        subgraph SDRWM["SDR library working memory (sdrwm)"]
+            direction LR
+            SHARED["<b>Default: shared</b><br/>0x0000ff00 (SDR_SM_KEY)<br/>both nodes attach here"]
+            PERNODE["<b>With per-node sdrWmKey:</b><br/>0xff02 for node 2<br/>0xff03 for node 3"]
+        end
+
+        N2 -.uses.-> SEMTBL
+        N3 -.uses.-> SEMTBL
+        N2 -.attaches.-> SDRWM
+        N3 -.attaches.-> SDRWM
+    end
+
+    style SEMTBL fill:#fff3b0,stroke:#a07700,stroke-width:2px,color:#000
+    style SHARED fill:#ffd1d1,stroke:#a00000,stroke-width:2px,color:#000
+    style PERNODE fill:#d1f0d1,stroke:#0a7000,stroke-width:2px,color:#000
+```
+
+| Resource | Scope | Source | When destroyed |
+|----------|-------|--------|----------------|
+| `0x0000ee08` `SM_SEMTBLKEY` | **host-global** (always) | `ici/library/platform_sm.c` | `sm_ipc_stop()` — suppressed by `ionexit n` |
+| `0x0000ff00` `SDR_SM_KEY` | host-global **by default**; per-node when each ionconfig sets `sdrWmKey` | `ici/sdr/sdrP.h` | `sdr_shutdown()` (called from `ionTerminate(1)`) — suppressed by `ionexit k` |
+| `wmKey` (main working memory) | per-node (each ionconfig sets a unique value) | ionconfig `wmKey` line | `sm_ipc_stop()` — suppressed by `ionexit n` |
+| SDR heap (e.g. `0x102bc`, `0x10320`) | per-node (derived from `sdrName`) | ionconfig `sdrName` | `ionTerminate(1)` — suppressed by `ionexit k` |
+| sptrace partition | per-node (key allocated dynamically by `sm_GetUniqueKey()` at startup) | `ici/sdr/sdrxn.c:1382` | with the rest of the SDR partition |
+
+##### Two layout modes — and what `ionexit` does in each
+
+###### Layout A — legacy default: shared SDR working memory
+
+Every node's SDR library attaches to the same `0x0000ff00` segment. This is what stock `ionstart` produces when ionconfig has no `sdrWmKey` line.
+
+```mermaid
+flowchart LR
+    N2["Node 2 SDR<br/>(client of sdrwm)"]
+    N3["Node 3 SDR<br/>(client of sdrwm)"]
+    SHARED["0xff00<br/>shared SDR working memory"]
+    SEMTBL["0xee08<br/>semaphore table"]
+    N2 --> SHARED
+    N3 --> SHARED
+    N2 --> SEMTBL
+    N3 --> SEMTBL
+    style SHARED fill:#ffd1d1,stroke:#a00000,color:#000
+    style SEMTBL fill:#fff3b0,stroke:#a07700,color:#000
+```
+
+`ionexit` flags determine which of the two destructive calls fire:
+
+| Command | Calls `ionTerminate(1)`<br/>(destroys SDR heap **and** `0xff00`) | Calls `sm_ipc_stop()`<br/>(destroys `0xee08`) | Safe to run on a non-last node? |
+|---------|:-:|:-:|:-:|
+| `ionexit`     | ✓ | ✓ | ✗ — destroys both shared segments |
+| `ionexit n`   | ✓ | ✗ | ✗ — still destroys shared `0xff00` |
+| `ionexit k`   | ✗ | ✓ | ✗ — still destroys shared `0xee08` |
+| `ionexit k n` | ✗ | ✗ | ✔ — preserves both shared segments |
+
+In Layout A, **only `ionexit k n` is safe per node**. After every node has run `ionexit k n`, the last operator runs a bare `ionexit` (or `killm f`) to release `0xee08` and `0xff00`. This is what `killm` does in multi-node mode and what `ionstop` defers to.
+
+When `ionexit n` is run on a node in Layout A, the kernel marks `0xff00` for destruction: in `ipcs -m` it shows up with key `0x00000000` and status `dest`. Any other still-running node keeps its existing attachment but cannot re-attach (its key has vanished), and any newly forked component creates a fresh empty `0xff00` — silent SDR corruption.
+
+###### Layout B — per-node `sdrWmKey`: independent SDR working memory
+
+Each node's ionconfig declares its own `sdrWmKey`, so each node gets its own SDR working-memory segment. Only `0xee08` remains host-global.
+
+```mermaid
+flowchart LR
+    N2["Node 2 SDR"]
+    N3["Node 3 SDR"]
+    WM2["0xff02<br/>node 2 sdrwm"]
+    WM3["0xff03<br/>node 3 sdrwm"]
+    SEMTBL["0xee08<br/>semaphore table"]
+    N2 --> WM2
+    N3 --> WM3
+    N2 --> SEMTBL
+    N3 --> SEMTBL
+    style WM2 fill:#d1f0d1,stroke:#0a7000,color:#000
+    style WM3 fill:#d1f0d1,stroke:#0a7000,color:#000
+    style SEMTBL fill:#fff3b0,stroke:#a07700,color:#000
+```
+
+Example ionconfig snippets:
+
+```
+# Node 2
+sdrWmKey:        65282      # 0xff02
+wmKey:           4098       # 0x1002
+
+# Node 3
+sdrWmKey:        65283      # 0xff03
+wmKey:           4102       # 0x1006
+```
+
+Now `ionTerminate(1)` only ever touches the per-node segment, so:
+
+| Command | Destroys this node's SDR heap + sdrwm | Destroys host-global `0xee08` | Safe to run on a non-last node? |
+|---------|:-:|:-:|:-:|
+| `ionexit`     | ✓ | ✓ | ✗ — `0xee08` still kills the rest |
+| `ionexit n`   | ✓ | ✗ | ✔ — node-local destruction only |
+| `ionexit k`   | ✗ | ✓ | ✗ — `0xee08` still kills the rest |
+| `ionexit k n` | ✗ | ✗ | ✔ — preserves everything (resumable) |
+
+Layout B is what unlocks the `ionexit n` per node + `ionexit` for the last node sequence: each node's SDR can be cleanly destroyed while the others continue running, because nothing host-global is touched until the very last `ionexit`.
+
+##### Picking a layout
+
+| Layout | When to use |
+|--------|-------------|
+| **A — shared `0xff00`** | Single-node hosts; multi-node test setups that you tear down all at once with `killm f`; deployments that don't rely on per-node `ionexit`. This is the default; no ionconfig change needed. |
+| **B — per-node `sdrWmKey`** | Multi-node hosts where you want to bring nodes up and down independently, where one node's crash recovery shouldn't disturb the others, or where `ionexit n` for individual nodes must work cleanly. Each node's ionconfig must set a unique `sdrWmKey`; mixing Layout A and Layout B nodes on the same host is unsafe. |
+
+##### Recommended sequential teardown
+
+**Layout A (shared `0xff00`):**
+
+```bash
+# For every node EXCEPT the last running one, from that node's working dir:
+ionexit k n
+
+# For the LAST running node, from that node's working dir:
+ionexit
+```
+
+**Layout B (per-node `sdrWmKey`):**
+
+```bash
+# For each node (in any order), from that node's working dir:
+ionexit n
+
+# After the last node has been stopped, from any registered working dir:
+ionexit          # only releases 0xee08
+```
+
+##### Why not stop everything via `killm f`?
+
+`killm f` is the right tool when you want to wipe every node and every IPC resource at once — it skips graceful `ionexit`, SIGTERMs/SIGKILLs every ION process listed in `ionprocesses.txt`, then `ipcrm`s all SVR4 segments owned by the user. Use it for clean-slate restarts. It is **not** a substitute for orderly per-node shutdown when other nodes must keep running, because it kills processes belonging to every node on the host.
+
+##### A note for developers
+
+The original ION code path always treated the SDR working memory as a process-private partition (i.e., destroyed by `sdr_shutdown()`) only when the caller passed `SM_NO_KEY` to `sdr_initialize()`. With the introduction of the `sdrWmKey` ionconfig parameter, the partition is now considered ION-owned regardless of whether the key was the legacy default or a per-node value (`ici/sdr/sdrxn.c`, `_sdrwm()`). That is what makes a per-node `ionexit n` actually destroy the per-node `sdrwm` segment instead of leaking it.
+
+The `ion_nodes` registry (created under `ION_NODE_LIST_DIR`) was extended with an optional 5th column carrying each node's `sdrWmKey`, so that subsequent `ionAttach()` calls in the node's daemons attach to the correct segment. Old 4-column files remain readable; the 5th column defaults to `SM_NO_KEY` (Layout A) when absent.
 
 ### Method 3: ionstop and killm (Complete Cleanup)
 
@@ -529,7 +693,9 @@ Need to stop ION?
 ├─► Multiple ION instances on same host?
 │   ├─► Stop all nodes at once: `killm f`
 │   ├─► Stop one node (others still running):
-│   │   └─► `ionexit k n` (preserves shared SDR + IPC)
+│   │   └─► `ionexit k n` (preserves shared SDR working memory + IPC)
+│   │       Do NOT use `ionexit n` — it destroys the shared SDR
+│   │       working memory at 0xff00 and breaks the other nodes.
 │   └─► Stop the last remaining node:
 │       └─► `ionexit` (safe to release all resources)
 │
@@ -560,9 +726,9 @@ Need to stop ION?
 | Preserve state for restart | `ionexit k n` | Only mode that keeps both SDR and IPC, enabling `ionstart` to resume |
 | Inspect SDR after shutdown | `ionexit k` | Preserves `.sdr` file for forensics; cannot restart |
 | Debug specific subsystem | `bpadmin .`, `ltpadmin .`, etc. | Targeted control |
-| Multi-node: stop one node (not last) | `ionexit k n` | Preserves shared SDR working memory and IPC for remaining nodes |
+| Multi-node: stop one node (not last) | `ionexit k n` | Preserves the shared SDR working memory at `0xff00` and the global IPC. **Never use `ionexit n` here** — it destroys `0xff00` and breaks the remaining nodes. |
 | Multi-node: stop last node | `ionexit` | Safe to release all shared resources |
-| Multi-node: stop all nodes at once | `killm f` | Handles shutdown order automatically |
+| Multi-node: stop all nodes at once | `killm f` | Skips graceful `ionexit`, sends SIGTERM/SIGKILL, then `ipcrm` everything |
 | Pre-test clean start | `killm` | Graceful shutdown via ionexit, then cleanup |
 | System crash recovery | `killm f` | Force cleanup of all resources |
 | Production shutdown | `ionexit` then verify with `ps` | Graceful with verification |
