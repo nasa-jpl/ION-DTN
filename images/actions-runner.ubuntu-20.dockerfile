@@ -67,8 +67,8 @@ RUN mkdir -p -m 755 /etc/apt/keyrings \
     && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
     && mkdir -p -m 755 /etc/apt/sources.list.d \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-    && apt-get update \
-    && apt-get install gh -y \
+    && apt-get update -y --no-install-recommends \
+    && apt-get install gh -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Consolidated mbedtls download, build, strip debug symbols, and cleanup into a single layer
