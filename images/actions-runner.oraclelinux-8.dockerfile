@@ -61,7 +61,7 @@ RUN microdnf install -y oracle-epel-release-el8 \
     libffi-devel \
     xz-devel \
     wget \
-    && gh \
+    gh \
     && microdnf install -y --enablerepo=ol8_codeready_builder ninja-build \
     && microdnf clean all
 
