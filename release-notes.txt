@@ -66,6 +66,49 @@ Features included:
 February 2026
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 4.2 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+CFDP directory listing hardening (bpcp -r):
+
+- Fixed undefined behavior in bpcp's read_remote_dir(): when a manifest
+  entry exactly filled the caller's buffer with no NUL inside it, the
+  subsequent strlen() call would read past the buffer.  The buffer is
+  now unconditionally NUL-terminated.
+
+- Added a v2 directory listing format alongside the existing one,
+  selected by passing CFDP_DIRLIST_OPTION_STATUS_BYTES to the new
+  cfdp_rls_extended() API.  The v2 manifest carries a per-entry
+  status byte (currently signaling NAME_TRUNCATED) and a type byte
+  (REGULAR / DIRECTORY / SYMLINK / OTHER / UNKNOWN), and the response
+  carries a listing-level "incomplete" flag.
+
+- The CFDP responder now drops directory entries whose names exceed
+  the manifest's per-entry length cap (255 bytes legacy, 511 bytes v2)
+  rather than silently truncating them, and sets the incomplete flag
+  in v2 responses.  Truncated names looked fetchable but did not
+  exist on the remote -- this was a silent corruption.  Behavior
+  change for any caller that was receiving over-length-clipped names:
+  those entries are now omitted from the manifest entirely.
+
+- bpcp -r opts into v2 by default and surfaces incomplete listings,
+  unreliable names, and skipped symlinks in a final stderr summary.
+  bpcp -r now exits non-zero when any of these silent-failure
+  conditions occur.
+
+- bpcp -r now skips symbolic links by default (was: silently followed
+  via S_ISDIR).  Pass the new -F flag to follow symlinks for users who
+  explicitly want that behavior.  This aligns with scp -r's default.
+
+- cfdp_rls() is preserved as an ABI-compatible wrapper around
+  cfdp_rls_extended(); existing callers (including cfdptest) require
+  no source changes.
+
+- Backward compatibility: the v2 request is wire-compatible with old
+  responders.  Old + new in any combination keep working; v2
+  semantics are only active when both ends support them.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 4.1.4 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 

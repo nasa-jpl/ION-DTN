@@ -359,7 +359,19 @@ Same as cfdp_rput except that beneficiaryEntityNbr is omitted; the local entity 
 int cfdp_rls(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength, unsigned char *utParms, char *sourceFileName, char *destFileName, CfdpReaderFn readerFn, CfdpHandler *faultHandlers, unsigned int flowLabelLength, unsigned char *flowLabel, unsigned int closureLatency, MetadataList messagesToUser, MetadataList filestoreRequests, CfdpDirListTask *dirListTask, CfdpTransactionId *transactionId)
 ```
 
-Sends to the indicated respondent entity a request to prepare a directory listing, save that listing in a file, and send it to the local entity. The request is subject to the configuration values in `dirListTask`.
+Sends to the indicated respondent entity a request to prepare a directory listing, save that listing in a file, and send it to the local entity. The request is subject to the configuration values in `dirListTask`. As of ION 4.2 this is a wrapper around `cfdp_rls_extended` with `listingOptions` set to zero, producing the legacy manifest format (a stream of NUL-terminated entry names).
+
+### cfdp_rls_extended
+
+```c
+int cfdp_rls_extended(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength, unsigned char *utParms, char *sourceFileName, char *destFileName, CfdpReaderFn readerFn, CfdpHandler *faultHandlers, unsigned int flowLabelLength, unsigned char *flowLabel, unsigned int closureLatency, MetadataList messagesToUser, MetadataList filestoreRequests, CfdpDirListTask *dirListTask, unsigned int listingOptions, CfdpTransactionId *transactionId)
+```
+
+Same as `cfdp_rls` except that `listingOptions` may be used to request the v2 directory listing format. The only currently defined option bit is `CFDP_DIRLIST_OPTION_STATUS_BYTES`; when set, the responder produces a manifest in which each entry is prefixed by a one-byte status flag and a one-byte type indicator (`CFDP_DIRENT_REGULAR`, `CFDP_DIRENT_DIRECTORY`, `CFDP_DIRENT_SYMLINK`, `CFDP_DIRENT_OTHER`, or `CFDP_DIRENT_UNKNOWN`), and the response carries an "incomplete" flag (in `CfdpDirListingResponse.directoryListingIncomplete`) indicating whether the responder dropped any entries.
+
+V2 is wire-compatible with old responders: the option bit is encoded as an optional trailing byte after `destFileName` in the existing type-16 request body, which old parsers stop reading before. Old responders therefore reply with a legacy (type 17) response and the new requestor sees a legacy manifest.
+
+The status byte currently carries the `CFDP_DIRENT_NAME_TRUNCATED` bit (reserved -- the responder drops over-length entries rather than truncating them, so this bit is not produced in current implementations, but parsers should honor it for forward compatibility). Other bits are reserved.
 
 ### cfdp_preview
 
