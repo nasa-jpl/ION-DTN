@@ -12,6 +12,7 @@ char * remote_path(char *cp);
 int is_dir(char *cp);
 int open_remote_dir(char *host, char *dir);
 char* read_remote_dir(int dir, int index, char* buf, int size);
+int read_remote_dir_v2(int dir, int index, BpcpDirEntry *out);
 int close_remote_dir(int dir);
 void toremote(char *targ, int argc, char **argv);
 void tolocal(int argc, char **argv);
@@ -45,9 +46,23 @@ static void handle_sigterm(int signum);
 int showprogress = 1;		/* Set to zero to disable progress meter */
 int debug = 0;			/*Set to non-zero to enable debug output. */
 int iamrecursive;		/*Copy Recursively*/
+int follow_symlinks = 0;	/*-F: follow symlinks during -r*/
 
 /*Set to 1 if Target is a Directory*/
 int targetshouldbedirectory = 0;
+
+/*Counters used to surface silent-failure modes at exit.*/
+int incomplete_listings_seen = 0;
+int truncated_entries_skipped = 0;
+int symlinks_skipped = 0;
+int non_regular_skipped = 0;
+int file_fetch_failures = 0;
+
+/*State of the most recent directory listing response.  Set by the
+ *receiver thread; consumed by open_remote_dir() and the caller
+ *deciding which manifest reader to use.*/
+int dirlist_was_v2 = 0;
+int dirlist_incomplete = 0;
 
 /*CFDP general request information structure*/
 CfdpReqParms	parms;
@@ -161,13 +176,17 @@ int main(int argc, char **argv)
 	ion_cfdp_init();
 
 	/*Parse commandline options*/
-	while ((ch = getopt(argc, argv, "dqrL:C:S:v")) != -1)
+	while ((ch = getopt(argc, argv, "dqrFL:C:S:v")) != -1)
 	{
 		switch (ch)
 		{
 			case 'r':
 				/*Recursive*/
 				iamrecursive = 1;
+				break;
+			case 'F':
+				/*Follow symlinks during recursive copy*/
+				follow_symlinks = 1;
 				break;
 			case 'd':
 				/*Debug*/
@@ -457,9 +476,15 @@ int open_remote_dir(char *host, char *dir)
 	dbgprintf(3, "Dir: %s\n", dir);
 	dbgprintf(3, "Tmp: %s\n", tmp);
 
-	/*Make request*/
+	/*Make request.  Opt in to the v2 format so we can detect
+	 *incomplete listings and per-entry types.  Old responders
+	 *ignore the trailing options byte and reply with the legacy
+	 *format; the receiver thread distinguishes them by the
+	 *response message type (17 vs 19).*/
 	current_wait_status=dir_req;
-	res = cfdp_rls(&(parms.destinationEntityNbr),
+	dirlist_was_v2 = 0;
+	dirlist_incomplete = 0;
+	res = cfdp_rls_extended(&(parms.destinationEntityNbr),
 			sizeof(BpUtParms),
 			(unsigned char *) &(parms.utParms),
 			NULL,
@@ -468,6 +493,7 @@ int open_remote_dir(char *host, char *dir)
 			parms.msgsToUser,
 			parms.fsRequests,
 			&dirlst,
+			CFDP_DIRLIST_OPTION_STATUS_BYTES,
 			&(parms.transactionId));
 
 	/*Handle Error*/
@@ -500,7 +526,18 @@ int open_remote_dir(char *host, char *dir)
 
 	if (current_wait_status==dir_exists)
 	{
-		/*Directory listing received*/
+		/*Directory listing received.  If the responder
+		 *signaled an incomplete listing, count it now;
+		 *the final summary will surface this even if all
+		 *individually-returned entries fetch successfully.*/
+		if (dirlist_incomplete)
+		{
+			incomplete_listings_seen++;
+			dbgprintf(0, "bpcp: warning: listing of %s is "
+					"incomplete (responder dropped "
+					"entries; see ion.log on remote)\n",
+					dir);
+		}
 		current_wait_status=no_req;
 		return hndl;
 	}
@@ -594,6 +631,113 @@ char* read_remote_dir(int dir, int index, char* buf, int size){
 	/*Return entry*/
 	close(fd);
 	return buf;
+}
+
+/*Reads the index'th entry from a v2 manifest into *out.  Returns:
+ *  0 on success (entry filled),
+ *  1 at end of listing,
+ * -1 on read error.
+ * The buffer in BpcpDirEntry is sized so an over-buffer truncation
+ * is impossible given the responder's CFDP_DIRLIST_MAX_NAME cap.*/
+int read_remote_dir_v2(int dir, int index, BpcpDirEntry *out)
+{
+	int		fd;
+	int		i;
+	unsigned char	header[2];
+	char		c;
+	int		eof = 0;
+	ssize_t		n;
+
+	if (out == NULL || dir < 0 || dir >= NUM_TMP_FILES)
+	{
+		return -1;
+	}
+
+	memset(out, 0, sizeof *out);
+
+	fd = iopen(tmp_files[dir], O_RDONLY, 0);
+	if (fd < 0)
+	{
+		dbgprintf(0, "Error: Couldn't get directory listing\n");
+		return -1;
+	}
+
+	/*Skip past the first 'index' records.*/
+	for (i = 0; i < index; i++)
+	{
+		/*Read past 2-byte header.*/
+		n = read(fd, header, 2);
+		if (n <= 0)
+		{
+			eof = 1;
+			break;
+		}
+		if (n != 2)
+		{
+			close(fd);
+			return -1;
+		}
+		/*Skip past name + NUL.*/
+		while (1)
+		{
+			n = read(fd, &c, 1);
+			if (n <= 0)
+			{
+				eof = 1;
+				break;
+			}
+			if (c == '\0')
+			{
+				break;
+			}
+		}
+		if (eof)
+		{
+			break;
+		}
+	}
+
+	if (eof)
+	{
+		close(fd);
+		return 1;
+	}
+
+	/*Read this record.*/
+	n = read(fd, header, 2);
+	if (n <= 0)
+	{
+		close(fd);
+		return 1;	/*	Clean EOF.			*/
+	}
+	if (n != 2)
+	{
+		close(fd);
+		return -1;
+	}
+
+	out->status = header[0];
+	out->type = header[1];
+
+	for (i = 0; i < (int) (sizeof out->name) - 1; i++)
+	{
+		n = read(fd, &c, 1);
+		if (n <= 0)
+		{
+			break;
+		}
+		if (c == '\0')
+		{
+			break;
+		}
+		out->name[i] = c;
+	}
+	/*Always NUL-terminate, even if the read loop above filled
+	 *the buffer without finding a NUL.*/
+	out->name[sizeof out->name - 1] = '\0';
+
+	close(fd);
+	return 0;
 }
 
 /*Closes a remote file given a directory handle. Returns -1 on
@@ -1290,27 +1434,95 @@ void manage_src(struct transfer *t)
 			/*Source is directory*/
 			if (iamrecursive)
 			{
+				int		v2 = dirlist_was_v2;
+				BpcpDirEntry	v2entry;
+				const char	*entryName;
+				unsigned char	entryType;
+				unsigned char	entryStatus;
+				int		rc;
 
-				/*Loop over directory  copying all files in it*/
-				for (i=0; read_remote_dir(dir, i, buff, 256)!=NULL; i++)
+				/*Loop over directory copying all files in it.
+				 *Use the v2 reader if the responder gave us a
+				 *v2 manifest; otherwise fall back to the
+				 *legacy name-only reader (today's behavior).*/
+				for (i=0; ; i++)
 				{
-					if (!strcmp(buff, ".") || !strcmp(buff, ".."))
+					if (v2)
+					{
+						rc = read_remote_dir_v2(dir, i, &v2entry);
+						if (rc != 0)
+						{
+							break;
+						}
+						entryName = v2entry.name;
+						entryType = v2entry.type;
+						entryStatus = v2entry.status;
+					}
+					else
+					{
+						if (read_remote_dir(dir, i, buff, 256) == NULL)
+						{
+							break;
+						}
+						entryName = buff;
+						entryType = CFDP_DIRENT_UNKNOWN;
+						entryStatus = 0;
+					}
+
+					if (!strcmp(entryName, ".") || !strcmp(entryName, ".."))
 					{
 						continue;
 					}
-					if (strlen(t->sfile) + 1 + strlen(buff) >= 255)
+					if (strlen(t->sfile) + 1 + strlen(entryName) >= 255)
 					{
-						dbgprintf(0,"bpcp: %s/%s: name too long\n",t->sfile, buff);
+						dbgprintf(0,"bpcp: %s/%s: name too long\n",t->sfile, entryName);
 						continue;
+					}
+
+					/*Per-entry classification (v2 only;
+					 *for legacy responses, type is UNKNOWN
+					 *and we fall through to the existing
+					 *manage_src round-trip).*/
+					if (v2)
+					{
+						if (entryStatus & CFDP_DIRENT_NAME_TRUNCATED)
+						{
+							dbgprintf(0, "bpcp: skipping unreliable "
+								"entry in %s: name truncated by "
+								"remote\n", t->sfile);
+							truncated_entries_skipped++;
+							continue;
+						}
+
+						if (entryType == CFDP_DIRENT_SYMLINK
+								&& !follow_symlinks)
+						{
+							dbgprintf(0, "bpcp: skipping symlink %s/%s "
+								"(use -F to follow)\n",
+								t->sfile, entryName);
+							symlinks_skipped++;
+							continue;
+						}
+
+						if (entryType == CFDP_DIRENT_OTHER
+								|| entryType == CFDP_DIRENT_UNKNOWN)
+						{
+							dbgprintf(0, "bpcp: skipping non-regular "
+								"entry %s/%s (type=%u)\n",
+								t->sfile, entryName,
+								(unsigned) entryType);
+							non_regular_skipped++;
+							continue;
+						}
 					}
 
 					/*Update both source and destination so that recursive copy works*/
 					memset(work, 0, sizeof work);
-					snprintf(work, sizeof work, "%s/%s", t->sfile, buff);
+					snprintf(work, sizeof work, "%s/%s", t->sfile, entryName);
 					istrcpy(tt.sfile, work, 255);
 					snprintf(tt.shost, 255, "%.254s", t->shost);
 					memset(work, 0, sizeof work);
-					snprintf(work, sizeof work, "%s/%s", t->dfile, buff);
+					snprintf(work, sizeof work, "%s/%s", t->dfile, entryName);
 					istrcpy(tt.dfile, work, 255);
 					snprintf(tt.dhost, 255, "%.254s", t->dhost);
 					tt.type=t->type;
@@ -1551,10 +1763,14 @@ void* rcv_msg_thread(void* param)
 					continue;
 				}
 
-				/*Check if this is a directory listing response*/
-				if (usrmsgBuf[4]==17)
+				/*Check if this is a directory listing response.
+				 *Type 17 is the legacy format; type 19 is v2
+				 *with per-entry status/type bytes and a
+				 *listing-level incomplete flag.*/
+				if (usrmsgBuf[4]==17 || usrmsgBuf[4]==19)
 				{
 					memset(&dir_list_rsp, 0, sizeof(CfdpDirListingResponse));
+					dir_list_rsp.isV2 = (usrmsgBuf[4] == 19);
 					parseDirectoryListingResponse((usrmsgBuf + 5), length -5 , &dir_list_rsp);
 
 					/*Check if this is the directory I'm waiting for*/
@@ -1569,11 +1785,19 @@ void* rcv_msg_thread(void* param)
 						break;
 					}
 
+					/*Publish v2 / incomplete state to the
+					 *waiter via the globals.*/
+					dirlist_was_v2 = dir_list_rsp.isV2;
+					dirlist_incomplete =
+						dir_list_rsp.directoryListingIncomplete;
+
 					/*Check response code*/
 					if (dir_list_rsp.directoryListingResponseCode<128)
 					{
 						/*Success!*/
-						dbgprintf(1, "Directory Exists: %s\n", dir_list_rsp.directoryName);
+						dbgprintf(1, "Directory Exists: %s%s\n",
+							dir_list_rsp.directoryName,
+							dirlist_incomplete ? " (incomplete)" : "");
 						dbgprintf(3, "Transaction ID: " UVAST_FIELDSPEC "\n", TID22);
 						current_wait_status=dir_exists;
 						break;
@@ -1677,6 +1901,22 @@ static void parseDirectoryListingResponse(unsigned char *text, int bytesRemainin
 	text++;
 	bytesRemaining--;
 
+	/*	v2 only: one-byte incomplete flag follows the
+	 *	response code.  isV2 must already be set by the
+	 *	caller based on the user-message type seen on the
+	 *	wire (17 vs 19).				*/
+
+	if (opsData->isV2)
+	{
+		if (bytesRemaining < 1)
+		{
+			return;
+		}
+		opsData->directoryListingIncomplete = (unsigned char) *text;
+		text++;
+		bytesRemaining--;
+	}
+
 	/*	Get directory name.					*/
 	if (bytesRemaining < 1)
 	{
@@ -1724,8 +1964,9 @@ void dbgprintf(int level, const char *fmt, ...)
 /*Print Command usage to stderr and exit*/
 void usage(void)
 {
-	(void) fprintf(stderr, "usage: bpcp [-dqr | -v] [-L Bundle Lifetime] [-C custody on/off]\n"
-			"	[-S Class of Service] [host1:]file1 ... [host2:]file2\n");
+	(void) fprintf(stderr, "usage: bpcp [-dqrF | -v] [-L Bundle Lifetime] [-C custody on/off]\n"
+			"	[-S Class of Service] [host1:]file1 ... [host2:]file2\n"
+			"	-F  follow symlinks during recursive copy\n");
 	exit(1);
 }
 
@@ -1767,10 +2008,45 @@ void print_parsed(struct transfer* t)
 }
 
 /*Exit program nicely ending receiver thread and deleting semaphore.
- * Return code is val.*/
+ * Return code is val, but is forced non-zero if any directory walk
+ * surfaced an issue (incomplete listing, unreliable name, fetch
+ * failure).  Skipped symlinks and non-regular entries are reported
+ * in the summary but do not by themselves change the exit code.*/
 void exit_nicely(int val)
 {
 	int i=0;
+	int has_issues = (val != 0)
+			|| incomplete_listings_seen
+			|| truncated_entries_skipped
+			|| file_fetch_failures;
+	int has_skips  = symlinks_skipped || non_regular_skipped;
+
+	if (has_issues || has_skips)
+	{
+		fprintf(stderr, "bpcp: tree copy completed with issues:\n");
+		if (incomplete_listings_seen)
+			fprintf(stderr, "  %d listings were incomplete "
+				"(responder dropped entries; see ion.log "
+				"on remote)\n", incomplete_listings_seen);
+		if (truncated_entries_skipped)
+			fprintf(stderr, "  %d entries skipped: unreliable "
+				"name (truncated by responder)\n",
+				truncated_entries_skipped);
+		if (symlinks_skipped)
+			fprintf(stderr, "  %d symlinks skipped "
+				"(use -F to follow)\n", symlinks_skipped);
+		if (non_regular_skipped)
+			fprintf(stderr, "  %d non-regular entries skipped\n",
+				non_regular_skipped);
+		if (file_fetch_failures)
+			fprintf(stderr, "  %d file fetch failures\n",
+				file_fetch_failures);
+	}
+
+	if (has_issues && val == 0)
+	{
+		val = 1;
+	}
 
 	/*Delete any and all temporary files*/
 	for (i=0; i < NUM_TMP_FILES; i++)
