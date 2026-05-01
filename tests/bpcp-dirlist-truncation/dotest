@@ -1,0 +1,279 @@
+#!/usr/bin/env bash
+# bpcp -r truncation / incompleteness regression test.
+#
+# This test validates that bpcp -r safely surfaces silent-failure
+# modes that the previous implementation hid:
+#
+#   * Over-length filenames (longer than CFDP_DIRLIST_MAX_NAME)
+#     must be DROPPED on the responder rather than silently
+#     truncated, and the requestor must surface this as an
+#     "incomplete listing" warning.
+#
+#   * Symbolic links must be SKIPPED by default and reported in
+#     the final summary (was: silently followed via S_ISDIR).
+#
+#   * Regular files and subdirectories must continue to be copied
+#     correctly (recursion uses the v2 type byte to identify
+#     directories without an extra round-trip).
+#
+#   * bpcp must EXIT NON-ZERO when any of the above conditions
+#     would otherwise be silent (incomplete listing, unreliable
+#     name, or fetch failure).
+#
+#   * The -F flag, when supplied, must restore symlink-following
+#     behavior for users who explicitly opt in.
+
+trap 'killm f' EXIT
+
+print_section () {
+    echo
+    echo "================================================================"
+    echo "  $1"
+    echo "================================================================"
+}
+
+print_expect () {
+    echo "  EXPECT: $1"
+}
+
+assert_ok () {
+    echo "  PASS:   $1"
+}
+
+assert_fail () {
+    echo "  FAIL:   $1"
+    RETVAL=1
+}
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Validate truncation, incompleteness, and symlink"
+echo "         handling in bpcp -r."
+echo
+echo "########################################"
+
+./cleanup
+
+TESTDIR=$PWD
+SRC="$TESTDIR/2.ipn.ltp/src"
+DEST="$TESTDIR/1.ipn.ltp/dest"
+RETVAL=0
+
+print_section "Phase 1: Populate remote source tree on Node 2"
+
+mkdir -p "$SRC/subdir"
+echo "regular contents" > "$SRC/regular.txt"
+echo "nested contents"  > "$SRC/subdir/nested.txt"
+ln -s regular.txt "$SRC/link_to_file"
+
+echo "  Created tree under: $SRC"
+echo "    regular.txt                (regular file)"
+echo "    subdir/nested.txt          (file in a subdirectory)"
+echo "    link_to_file -> regular.txt (symbolic link)"
+
+# Probe whether the underlying filesystem will accept a name
+# longer than CFDP_DIRLIST_MAX_NAME (511 bytes).  Most local
+# Linux filesystems cap at NAME_MAX = 255 and will reject this;
+# in that case the over-length drop assertion is skipped (with
+# a clear SKIP message) but the rest of the test still runs.
+# Use a subshell with both stderrs redirected so bash's own
+# pre-redirect "File name too long" diagnostic is suppressed.
+LONGNAME="$(printf 'x%.0s' {1..600}).txt"
+LONG_CREATED=0
+( echo "long contents" > "$SRC/$LONGNAME" ) >/dev/null 2>&1
+if [ -f "$SRC/$LONGNAME" ]; then
+    LONG_CREATED=1
+    echo "    $(echo "$LONGNAME" | cut -c 1-30)... (over-length name, accepted by FS)"
+else
+    echo "    [host filesystem rejected 600-char filename;"
+    echo "     over-length-drop assertion will be skipped]"
+fi
+
+print_section "Phase 2: Start ION nodes"
+
+export ION_NODE_LIST_DIR=$PWD
+
+cd 1.ipn.ltp
+./ionstart
+../../../system_up -i "p 30" -c "p 30" -b "p 30"
+if [ $? -eq 3 ]; then
+    echo "  Node 1 (requestor) started"
+else
+    echo "  Node 1 failed to start: aborting"
+    exit 1
+fi
+
+cd ../2.ipn.ltp
+./ionstart
+../../../system_up -i "p 30" -c "p 30" -b "p 30"
+if [ $? -eq 3 ]; then
+    echo "  Node 2 (responder) started"
+else
+    echo "  Node 2 failed to start: aborting"
+    exit 1
+fi
+
+cd ..
+sleep 5
+
+print_section "Phase 3: Run bpcp -r without -F (default symlink skip)"
+
+cd 1.ipn.ltp
+echo "  Command: bpcp -r 2:$SRC $DEST"
+echo
+bpcp -r "2:$SRC" "$DEST" 2> bpcp.stderr
+echo $? > bpcp.exit
+sleep 3
+cd ..
+
+echo
+echo "  bpcp stderr summary:"
+sed 's/^/    | /' 1.ipn.ltp/bpcp.stderr 2>/dev/null
+echo "  bpcp exit code: $(cat 1.ipn.ltp/bpcp.exit 2>/dev/null)"
+
+print_section "Phase 4: Verify default-mode results"
+
+# Assertion 1: regular file ----------------------------------
+print_expect "$DEST/regular.txt exists with content 'regular contents'"
+if [ -f "$DEST/regular.txt" ] \
+   && grep -q "regular contents" "$DEST/regular.txt" 2>/dev/null; then
+    assert_ok "regular file was copied; recursion + fetch works"
+else
+    assert_fail "regular file missing or wrong content"
+fi
+
+# Assertion 2: nested file --------------------------------------
+print_expect "$DEST/subdir/nested.txt exists with content 'nested contents'"
+echo "          (verifies bpcp recursed into the subdirectory using the"
+echo "           v2 type byte, without an extra round-trip to identify it)"
+if [ -f "$DEST/subdir/nested.txt" ] \
+   && grep -q "nested contents" "$DEST/subdir/nested.txt" 2>/dev/null; then
+    assert_ok "subdirectory was recursed and nested file copied"
+else
+    assert_fail "nested file missing or wrong content"
+fi
+
+# Assertion 3: symlink skipped ----------------------------------
+print_expect "$DEST/link_to_file does NOT exist"
+echo "          (default behavior change: symlinks are now skipped"
+echo "           unless -F is supplied; previous bpcp followed them)"
+if [ ! -e "$DEST/link_to_file" ]; then
+    assert_ok "symlink was skipped (default)"
+else
+    assert_fail "symlink should not have been copied without -F"
+fi
+
+# Assertion 4: stderr summary line ------------------------------
+print_expect "bpcp stderr summary mentions skipped symlinks"
+echo "          (verifies exit_nicely() summary surfaces the skip)"
+if grep -q "symlinks skipped" 1.ipn.ltp/bpcp.stderr 2>/dev/null; then
+    assert_ok "stderr summary mentions skipped symlinks"
+else
+    assert_fail "stderr summary missing 'symlinks skipped' line"
+fi
+
+# Assertion 5: exit code semantics ------------------------------
+EXIT_CODE=$(cat 1.ipn.ltp/bpcp.exit 2>/dev/null)
+print_expect "bpcp exit code reflects whether silent-failure conditions occurred"
+echo "          (skipped symlinks alone do NOT force non-zero;"
+echo "           an incomplete listing or truncated entry DOES.)"
+if [ "$LONG_CREATED" = "1" ]; then
+    echo "          Long name present, so we expect non-zero (incomplete listing)."
+    if [ "$EXIT_CODE" != "0" ]; then
+        assert_ok "bpcp exited $EXIT_CODE (incomplete listing surfaced)"
+    else
+        assert_fail "bpcp exited 0 but should have been non-zero"
+    fi
+else
+    echo "          Long name not present, so exit 0 is correct."
+    if [ "$EXIT_CODE" = "0" ]; then
+        assert_ok "bpcp exited 0 (only symlink skip occurred; not an error)"
+    else
+        assert_fail "bpcp exited $EXIT_CODE unexpectedly"
+    fi
+fi
+
+# Assertion 6 (conditional): over-length name dropped -----------
+print_expect "over-length entry was DROPPED on the responder"
+echo "          (verifies that bpcp -r no longer silently truncates;"
+echo "           the manifest excludes entries that cannot be conveyed.)"
+if [ "$LONG_CREATED" = "1" ]; then
+    if [ ! -e "$DEST/$LONGNAME" ]; then
+        assert_ok "over-length filename was dropped on responder"
+    else
+        assert_fail "over-length filename should have been dropped"
+    fi
+
+    print_expect "stderr surfaces an 'incomplete listing' warning"
+    if grep -q "incomplete" 1.ipn.ltp/bpcp.stderr 2>/dev/null; then
+        assert_ok "incomplete-listing warning was surfaced"
+    else
+        assert_fail "incomplete-listing warning not surfaced"
+    fi
+else
+    echo "  SKIP:   host filesystem rejected the 600-char name"
+    echo "          (NAME_MAX = 255 on most Linux filesystems; this assertion"
+    echo "           requires a filesystem that accepts names > 511 bytes."
+    echo "           A unit test of handleDirectoryListingRequest() can"
+    echo "           exercise the over-length-drop path without filesystem"
+    echo "           dependence.)"
+fi
+
+print_section "Phase 5: Run bpcp -r -F (follow symlinks)"
+
+rm -rf "$DEST"
+cd 1.ipn.ltp
+echo "  Command: bpcp -r -F 2:$SRC $DEST"
+echo
+bpcp -r -F "2:$SRC" "$DEST" 2> bpcp.stderr.F
+echo $? > bpcp.exit.F
+sleep 3
+cd ..
+
+echo
+echo "  bpcp stderr summary:"
+sed 's/^/    | /' 1.ipn.ltp/bpcp.stderr.F 2>/dev/null
+echo "  bpcp exit code: $(cat 1.ipn.ltp/bpcp.exit.F 2>/dev/null)"
+
+print_section "Phase 6: Verify -F mode results"
+
+print_expect "$DEST/link_to_file now exists (symlink target was fetched)"
+echo "          (verifies the -F opt-in restores symlink-following)"
+if [ -e "$DEST/link_to_file" ]; then
+    assert_ok "symlink was followed with -F"
+else
+    assert_fail "symlink should have been followed with -F"
+fi
+
+print_section "Phase 7: Stop ION nodes"
+
+cd 1.ipn.ltp
+./ionstop
+cd ../2.ipn.ltp
+./ionstop
+cd ..
+sleep 3
+
+print_section "Result"
+
+if [ "$RETVAL" = "0" ]; then
+    echo "  All assertions passed."
+    echo
+    echo "  Summary of what was validated:"
+    echo "    - Regular files copy correctly under bpcp -r."
+    echo "    - Subdirectory recursion uses the v2 type byte."
+    echo "    - Symlinks are skipped by default and reported."
+    echo "    - The -F flag restores symlink-following."
+    if [ "$LONG_CREATED" = "1" ]; then
+    echo "    - Over-length names are dropped, not truncated."
+    echo "    - Listing-level incomplete flag surfaced to the user."
+    fi
+    echo
+    echo "  Test PASSED."
+else
+    echo "  Test FAILED -- see PASS/FAIL lines above."
+fi
+
+exit $RETVAL

@@ -1,0 +1,2 @@
+Validates that bpcp -r safely surfaces incomplete listings, unreliable
+filenames, and symlinks rather than silently producing a partial copy.

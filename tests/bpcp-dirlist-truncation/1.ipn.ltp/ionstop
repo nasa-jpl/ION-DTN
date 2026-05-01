@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+bpadmin    .
+sleep 1
+ionadmin   .
+sleep 1
+cfdpadmin  .
+sleep 1
