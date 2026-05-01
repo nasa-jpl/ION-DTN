@@ -699,14 +699,28 @@ uint16_t bpsec_rfc9173utl_intParmGet(sc_state *state, int id, uint16_t defVal)
 		return defVal;
 	}
 
-	/* Step 1: If the parameter is found, return it. */
+	/* If the parameter is found, return it. */
 	if((tmp = bpsec_scv_lystFind(state->scStParms, id, SC_VAL_TYPE_PARM)) != NULL)
 	{
+		/* =========================================================================
+		 * ARCHITECTURE WARNING (Big-Endian / SPARC Compatibility)
+		 * - The underlying memory for 'scRawValue.asPtr' is always allocated as a 
+		 * full 8-byte 'uvast', even for smaller 16-bit policy parameters. 
+		 * - On strictly Big-Endian architectures (like Solaris SPARC), the actual 
+		 * 16-bit integer payload resides at the END of this 8-byte block. 
+		 * If we cast the pointer directly to (uint16_t*) and dereference it, 
+		 * the CPU will read the first two bytes of the 8-byte block, which are 
+		 * just leading zeroes. This causes the parameter to incorrectly evaluate to 0.
+		 * - To safely extract the value, we MUST first cast the pointer to (uvast*) 
+		 * to load the entire 8-byte word into a 64-bit CPU register. Then, we cast 
+		 * the result down to (uint16_t) to safely truncate the 6 bytes of leading 
+		 * zeroes and capture the true payload. DO NOT simplify this cast.
+		 * ========================================================================= */
 		uvast *ptr = (uvast*) tmp->scRawValue.asPtr;
 		return (uint16_t)(*ptr);
 	}
 
-	/* Step 2: If the parameter is not found, return the default. */
+	/* Else if the parameter is not found, return the default. */
 	BPSEC_DEBUG_WARN("Cannot find parm %d. Using Default.", id);
 	return defVal;
 }
