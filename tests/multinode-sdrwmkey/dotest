@@ -9,6 +9,15 @@ trap 'killm f >/dev/null 2>&1' EXIT
 
 FAIL=0
 
+# `ipcs -m` column layout differs by OS.  On Linux the data rows are
+# "KEY SHMID OWNER PERMS ..." (KEY=$1, OWNER=$3) and the header is 2
+# lines.  On Solaris/SunOS they are "T ID KEY MODE OWNER GROUP ..."
+# (KEY=$3, OWNER=$5) and the header is 3 lines.
+case "$(uname -s)" in
+    SunOS)  KEY_COL=3; OWNER_COL=5; HEADER_LINES=3 ;;
+    *)      KEY_COL=1; OWNER_COL=3; HEADER_LINES=2 ;;
+esac
+
 banner() {
     echo
     echo "========================================================================"
@@ -21,15 +30,18 @@ banner() {
 # (keys 0x00000000 with status "dest").  We diff this set across the
 # lifecycle to attribute keys to a node.
 shm_keys() {
-    ipcs -m | awk -v me="$(whoami | cut -c1-10)" '
-        $3 == me && $1 ~ /^0x[0-9a-fA-F]+$/ && $1 != "0x00000000" { print $1 }
+    ipcs -m | awk -v me="$(whoami | cut -c1-10)" \
+                  -v kc="$KEY_COL" -v oc="$OWNER_COL" '
+        $oc == me && $kc ~ /^0x[0-9a-fA-F]+$/ && $kc != "0x00000000" { print $kc }
     ' | sort -u
 }
 
 # Show ipcs -m, including any segments marked for destruction.
 show_ipcs() {
     echo "----- ipcs -m (this user only) -----"
-    ipcs -m | awk -v me="$(whoami | cut -c1-10)" 'NR<=3 || $3 == me'
+    ipcs -m | awk -v me="$(whoami | cut -c1-10)" \
+                  -v oc="$OWNER_COL" -v nh="$HEADER_LINES" \
+        'NR<=nh || $oc == me'
     echo "------------------------------------"
 }
 
@@ -37,7 +49,8 @@ require_keys_present() {
     local label="$1"; shift
     local missing=""
     for k in "$@"; do
-        if ! ipcs -m | awk '{print $1}' | grep -qx "$k"; then
+        if ! ipcs -m | awk -v kc="$KEY_COL" '{print $kc}' \
+                    | grep -qx "$k"; then
             missing="${missing} $k"
         fi
     done
@@ -54,7 +67,9 @@ require_keys_absent() {
     local label="$1"; shift
     local present=""
     for k in "$@"; do
-        if ipcs -m | awk '$1 != "0x00000000" {print $1}' | grep -qx "$k"; then
+        if ipcs -m | awk -v kc="$KEY_COL" \
+                         '$kc != "0x00000000" {print $kc}' \
+                  | grep -qx "$k"; then
             present="${present} $k"
         fi
     done
