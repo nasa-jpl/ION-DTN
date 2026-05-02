@@ -97,6 +97,27 @@ dnl =============================================================
 AM_CONDITIONAL([HAVE_C11_ATOMICS], [test "x$ac_cv_c11" = xyes])
 
 dnl =============================================================
+dnl  Explicit atomic-backend selection (optional)
+dnl =============================================================
+dnl  Integrators may override the automatic tier selection in
+dnl  ion_atomic.h by passing --with-atomics={c11,builtin,sync}.
+dnl  When unset or "auto", the header's own auto-detection runs.
+dnl =============================================================
+AC_ARG_WITH([atomics],
+  [AS_HELP_STRING([--with-atomics=@<:@auto|c11|builtin|sync@:>@],
+     [Atomic backend: auto (default), c11 (<stdatomic.h>), builtin (__atomic_*), sync (__sync_*)])],
+  [ion_atomics="$withval"],
+  [ion_atomics="auto"])
+
+case "$ion_atomics" in
+  auto)    ;;
+  c11)     AM_CFLAGS="$AM_CFLAGS -DION_ATOMIC_C11" ;;
+  builtin) AM_CFLAGS="$AM_CFLAGS -DION_ATOMIC_BUILTIN" ;;
+  sync)    AM_CFLAGS="$AM_CFLAGS -DION_ATOMIC_SYNC" ;;
+  *)       AC_MSG_ERROR([Invalid --with-atomics value "$ion_atomics"; use auto, c11, builtin, or sync]) ;;
+esac
+
+dnl =============================================================
 dnl  Feature-test macros (_POSIX_C_SOURCE / _XOPEN_SOURCE / _DEFAULT_SOURCE)
 dnl  are intentionally NOT set globally via AC_DEFINE here.
 dnl

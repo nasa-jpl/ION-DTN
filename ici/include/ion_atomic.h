@@ -45,15 +45,38 @@
  * Zone 1 has only two tiers (C11 and mutex fallback) because its
  * fallback ABI must accommodate a pthread_mutex_t.
  *
- * Tier selection on a modern toolchain
- * ------------------------------------
- * Two INDEPENDENT levers decide which tier is compiled:
+ * Tier selection
+ * --------------
+ * Three INDEPENDENT levers decide which tier is compiled:
  *
- *   (A) Compiler language mode — set by configure.ac's C18 / C99
+ *   (A) Explicit integrator directive (highest priority) — define
+ *       exactly ONE of:
+ *
+ *         ION_ATOMIC_C11
+ *             Forces Tier 1 (<stdatomic.h>) for both zones.
+ *             Will fail at compile time if the compiler lacks
+ *             <stdatomic.h>.
+ *
+ *         ION_ATOMIC_BUILTIN
+ *             Forces Tier 2 (__atomic_* builtins) for Zone 2 and
+ *             mutex fallback for Zone 1.  Preferred by integrators
+ *             whose C++ code must share ION struct ABIs without
+ *             depending on C11/C++ atomic type compatibility.
+ *
+ *         ION_ATOMIC_SYNC
+ *             Forces Tier 3 (__sync_* builtins) for Zone 2 and
+ *             mutex fallback for Zone 1.  For pre-GCC-4.7 flight
+ *             toolchains (RAD750, LEON, older VxWorks).
+ *
+ *       These may be passed via CFLAGS or via the configure option
+ *       --with-atomics={c11,builtin,sync}.
+ *
+ *   (B) Compiler language mode — set by configure.ac's C18 / C99
  *       probe.  Bakes -std=iso9899:2018 or -std=c99 into AM_CFLAGS
  *       and (for C18) #defines ION_HAVE_C11_ATOMICS in config.h.
+ *       Only consulted when no lever (A) directive is set.
  *
- *   (B) Tier dispatch — the preprocessor macros below:
+ *   (C) Test-harness overrides — the preprocessor macros:
  *
  *         ION_TEST_FORCE_FALLBACK
  *             Undefines ION_HAVE_C11_ATOMICS regardless of
@@ -66,12 +89,17 @@
  *             ION_TEST_FORCE_FALLBACK to have any effect, since
  *             the C11 tier is checked first.
  *
- * On a modern GCC/Clang, configure.ac will default lever (A) to
- * C18.  Defining the test macros alone only flips lever (B) — the
- * compiler stays in C18 mode, so the language environment ION sees
- * is NOT a genuine C99 toolchain (feature-test macros, _Atomic
- * keyword visibility, library-header switches all differ).  To
- * exercise a true "C99 + fallback" build, both levers must be set:
+ *       Only consulted when no lever (A) directive is set.
+ *
+ * Priority: (A) overrides (B) and (C).  When (A) is absent, (C)
+ * overrides (B).
+ *
+ * On a modern GCC/Clang with no explicit directive, configure.ac
+ * defaults lever (B) to C18.  Defining the test macros alone only
+ * flips lever (C) — the compiler stays in C18 mode, so the
+ * language environment ION sees is NOT a genuine C99 toolchain.
+ * To exercise a true "C99 + fallback" build, both levers must be
+ * set:
  *
  *     ./configure ac_cv_c11=no CFLAGS="-std=c99"
  *         → genuine C99 + Tier 2 (__atomic) on modern gcc/clang
@@ -124,10 +152,55 @@ typedef union {
 #endif
 
 /*==================================================================*/
-/* Feature Flag Initialization & Test Override                      */
+/* EXPLICIT TIER SELECTION (integrator-facing API)                  */
+/*------------------------------------------------------------------*/
+/* Integrators may define exactly ONE of these macros to command    */
+/* which atomic backend ION uses.  When none is defined, the        */
+/* existing auto-detection logic below selects the best available   */
+/* tier.  These directives override both auto-detection AND the     */
+/* ION_TEST_FORCE_* test knobs.                                    */
+/*                                                                  */
+/*   ION_ATOMIC_C11     — C11 <stdatomic.h> for both zones.        */
+/*   ION_ATOMIC_BUILTIN — GCC/Clang __atomic_* builtins (Zone 2),  */
+/*                        mutex fallback (Zone 1).                  */
+/*   ION_ATOMIC_SYNC    — Legacy __sync_* builtins (Zone 2),       */
+/*                        mutex fallback (Zone 1).                  */
 /*==================================================================*/
 
-/* * Test Harness Override:
+#if (defined(ION_ATOMIC_C11) + defined(ION_ATOMIC_BUILTIN) \
+   + defined(ION_ATOMIC_SYNC)) > 1
+# error "Define at most one of ION_ATOMIC_C11, ION_ATOMIC_BUILTIN, ION_ATOMIC_SYNC"
+#endif
+
+#if defined(ION_ATOMIC_C11)
+# undef  ION_HAVE_C11_ATOMICS
+# define ION_HAVE_C11_ATOMICS 1
+# undef  ION_HAVE_GNU_ATOMIC
+# define ION_HAVE_GNU_ATOMIC  1
+
+#elif defined(ION_ATOMIC_BUILTIN)
+# undef  ION_HAVE_C11_ATOMICS
+# define ION_HAVE_C11_ATOMICS 0
+# undef  ION_HAVE_GNU_ATOMIC
+# define ION_HAVE_GNU_ATOMIC  1
+
+#elif defined(ION_ATOMIC_SYNC)
+# undef  ION_HAVE_C11_ATOMICS
+# define ION_HAVE_C11_ATOMICS 0
+# undef  ION_HAVE_GNU_ATOMIC
+# define ION_HAVE_GNU_ATOMIC  0
+
+#endif
+/* When none of the three is defined, fall through to auto-detect. */
+
+
+/*==================================================================*/
+/* AUTO-DETECTION & TEST OVERRIDES                                  */
+/*------------------------------------------------------------------*/
+/* Only consulted when no explicit ION_ATOMIC_* directive is set.   */
+/*==================================================================*/
+
+/* Test Harness Override:
  * Force the C99 fallback on modern compilers to validate thread safety.
  */
 #if defined(ION_TEST_FORCE_FALLBACK)
