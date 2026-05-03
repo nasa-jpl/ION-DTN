@@ -19,6 +19,8 @@ OPT_FORCE=false
 OPT_REGEN=false
 OPT_BATCH=""
 OPT_BATCH_INLINE=false
+OPT_CHECK=false
+OPT_CHECK_TIMEOUT=30
 
 # Batch inline overrides (populated by --topology, --cl, etc.)
 BATCH_TOPOLOGY=""
@@ -58,6 +60,8 @@ Options:
   -g, --generate-only   Generate config files without starting ION
   -f, --force           Regenerate config even if one already exists
   -r, --regenerate      Regenerate config from existing ionrun.meta (no wizard)
+  -c, --check           Check if ION subsystems are running (per-node status)
+  --timeout <sec>       Timeout for --check polling (default 30)
   -b, --batch <file>    Non-interactive mode: read wizard answers from file
   --topology <type>     Batch inline: loopback, 2node, 3node, 2node-local, 3node-local
   --cl <proto>          Batch inline: ltp, tcp, or udp (all links)
@@ -81,6 +85,7 @@ Examples:
   ionrun -f ~/my-ion-test             # Re-run wizard, overwrite config
   ionrun -r ~/my-ion-test             # Regenerate config from saved metadata
   ionrun -s ~/my-ion-test             # Stop ION in that directory
+  ionrun -c ~/my-ion-test              # Check if ION subsystems are up
   ionrun -b answers.txt ~/my-test     # Non-interactive from answer file
   ionrun --topology=loopback --cl=ltp ~/test  # Non-interactive inline
 EOF
@@ -117,6 +122,15 @@ parse_args() {
                 OPT_NODE="$2"
                 shift 2
                 ;;
+            -c|--check)
+                OPT_CHECK=true
+                shift
+                continue
+                ;;
+            --timeout=*) OPT_CHECK_TIMEOUT=$(parse_optval "$1"); shift; continue ;;
+            --timeout)
+                if [[ $# -lt 2 ]]; then echo "Error: --timeout requires a value." >&2; exit 1; fi
+                OPT_CHECK_TIMEOUT="$2"; shift 2; continue ;;
             -g|--generate-only)
                 OPT_GENERATE_ONLY=true
                 shift
@@ -245,6 +259,94 @@ stop_ion() {
         echo "Stopping ION (killm) ..."
         killm
     fi
+}
+
+# --- Check ION subsystem health ---
+check_ion() {
+    local meta="$WORKDIR/ionrun.meta"
+    if [[ ! -f "$meta" ]]; then
+        echo "Error: ionrun.meta not found in $WORKDIR. Cannot determine topology." >&2
+        exit 1
+    fi
+
+    local abs_workdir
+    abs_workdir="$(cd "$WORKDIR" && pwd)"
+
+    local topology node_count
+    topology=$(grep '^topology=' "$meta" | cut -d= -f2)
+    node_count=$(grep '^node_count=' "$meta" | cut -d= -f2)
+    local cl1 cl2 cfdp_enabled
+    cl1=$(grep '^cl1=' "$meta" | cut -d= -f2 || true)
+    cl2=$(grep '^cl2=' "$meta" | cut -d= -f2 || true)
+    cfdp_enabled=$(grep '^cfdp=' "$meta" | cut -d= -f2 || true)
+
+    local timeout="$OPT_CHECK_TIMEOUT"
+    local overall=0
+
+    for i in $(seq 1 "$node_count"); do
+        local name node_id
+        name=$(grep "^node${i}_name=" "$meta" | cut -d= -f2)
+        node_id=$(grep "^node${i}_id=" "$meta" | cut -d= -f2)
+
+        # Determine working directory for this node
+        local node_wdname="$abs_workdir"
+        if [[ "$topology" == *-local ]]; then
+            node_wdname="$abs_workdir/$name"
+            export ION_NODE_LIST_DIR="$abs_workdir"
+        fi
+        export ION_NODE_WDNAME="$node_wdname"
+
+        local status_line="$name:"
+        local node_fail=0
+
+        # ION (always)
+        if (cd "$node_wdname" && echo "t p $timeout" | ionadmin) >/dev/null 2>&1; then
+            status_line+=" ion=up"
+        else
+            status_line+=" ion=DOWN"
+            node_fail=1
+        fi
+
+        # BP (always)
+        if (cd "$node_wdname" && echo "t p $timeout" | bpadmin) >/dev/null 2>&1; then
+            status_line+=" bp=up"
+        else
+            status_line+=" bp=DOWN"
+            node_fail=1
+        fi
+
+        # LTP (if any link uses it)
+        local needs_ltp=false
+        if [[ "$cl1" == "ltp" ]]; then needs_ltp=true; fi
+        if [[ "$cl2" == "ltp" ]]; then needs_ltp=true; fi
+        if [[ "$needs_ltp" == true ]]; then
+            if (cd "$node_wdname" && echo "t p $timeout" | ltpadmin) >/dev/null 2>&1; then
+                status_line+=" ltp=up"
+            else
+                status_line+=" ltp=DOWN"
+                node_fail=1
+            fi
+        fi
+
+        # CFDP (if enabled)
+        if [[ "$cfdp_enabled" == "true" ]]; then
+            if (cd "$node_wdname" && echo "t p $timeout" | cfdpadmin) >/dev/null 2>&1; then
+                status_line+=" cfdp=up"
+            else
+                status_line+=" cfdp=DOWN"
+                node_fail=1
+            fi
+        fi
+
+        if [[ $node_fail -eq 0 ]]; then
+            echo "$status_line    [OK]"
+        else
+            echo "$status_line    [FAIL]"
+            overall=1
+        fi
+    done
+
+    return $overall
 }
 
 # --- Run ION with existing config ---
@@ -1504,6 +1606,12 @@ main() {
     if [[ "$OPT_STOP" == true ]]; then
         stop_ion
         exit 0
+    fi
+
+    # Handle --check
+    if [[ "$OPT_CHECK" == true ]]; then
+        check_ion
+        exit $?
     fi
 
     # Ensure working directory exists
