@@ -9,6 +9,14 @@
 # Parse arguments:
 #   "f" forces full cleanup in multi-node environments
 #   "d" dry-run: report ION processes and IPC resources without changing anything
+#
+# Exit codes:
+#   0 -- clean (no surviving ION processes, no IPC resources remaining,
+#        and all survivor checks completed successfully)
+#   1 -- ION processes remained after the SIGTERM/SIGKILL cycle
+#   2 -- could not verify survivor state (one or more `ps` snapshots
+#        failed); state is unknown, callers should treat as unclean
+#   3 -- POSIX named semaphore files could not be removed (try sudo)
 FORCE=0
 DRYRUN=0
 if [ "$1" = "f" ]; then
@@ -75,22 +83,45 @@ _run_with_timeout() {
 }
 
 # Helper: check for ION processes still running.
-# Sets global HAS_SURVIVORS=1 if any found, 0 otherwise.
+# Sets HAS_SURVIVORS=1 if any found, 0 otherwise.
+# Sets HAS_CHECK_ERROR=1 if the check itself could not be performed
+# (e.g. ps failed) — distinct from "checked, nothing found".  Callers
+# must treat HAS_CHECK_ERROR=1 as "unknown survivors", not as clean.
+# Increments CHECK_ERR_COUNT for end-of-run summary; only the first
+# occurrence is logged to avoid log explosions when called repeatedly.
 HAS_SURVIVORS=0
+HAS_CHECK_ERROR=0
+CHECK_ERR_COUNT=0
 check_surviving_processes() {
-    local PSFILE_CHK="/tmp/ps_killm_chk.$$"
-    ${PS} ${PS_ARGS} > ${PSFILE_CHK}
-    local SURVIVING=""
-    for PROC in ${IONPROCESSLIST}; do
-        local MATCH=$(awk -v proc="$PROC" '
+    HAS_SURVIVORS=0
+    HAS_CHECK_ERROR=0
+
+    local ps_out
+    if ! ps_out=$(${PS} ${PS_ARGS} 2>/dev/null) || [ -z "$ps_out" ]; then
+        CHECK_ERR_COUNT=$((CHECK_ERR_COUNT + 1))
+        if [ "$CHECK_ERR_COUNT" -le 1 ]; then
+            echo "killm: WARN -- could not capture process list (ps failed or empty); cannot determine survivors" >&2
+        fi
+        HAS_CHECK_ERROR=1
+        return
+    fi
+
+    # Single awk pass: build a lookup table from IONPROCESSLIST and scan
+    # ps output once.  ~300x fewer forks than per-process awk invocations
+    # and removes the temp-file failure mode entirely.
+    local surviving
+    surviving=$(printf '%s\n' "$ps_out" | awk -v procs="$IONPROCESSLIST" '
+        BEGIN {
+            n = split(procs, arr, /[[:space:]]+/)
+            for (i = 1; i <= n; i++) if (arr[i] != "") want[arr[i]] = 1
+        }
         /defunct/ { next }
         {
             # Find CMD after the last time-like column (TIME).
             # ps -fe TIME formats: "H:MM:SS" (Linux), "M:SS" (Solaris).
             # On Solaris, STIME can also be "HH:MM:SS" so we must find
             # the LAST time pattern to skip STIME and land on TIME.
-            pos = 0; tlen = 0
-            tmp = $0; off = 0
+            pos = 0; tlen = 0; tmp = $0; off = 0
             while (match(tmp, /[0-9]+:[0-9][0-9](:[0-9][0-9])?/)) {
                 pos = off + RSTART
                 tlen = RLENGTH
@@ -102,22 +133,16 @@ check_surviving_processes() {
                 sub(/^[ \t]+/, "", cmd)   # trim leading whitespace
                 sub(/ .*/, "", cmd)        # isolate first word (the command)
                 sub(/.*\//, "", cmd)       # strip path prefix
-                if (cmd == proc) print
+                if (cmd in want) print
             }
-        }' "${PSFILE_CHK}")
-        if [ -n "$MATCH" ]; then
-            SURVIVING="${SURVIVING}${MATCH}
-"
-        fi
-    done
-    rm -f ${PSFILE_CHK}
-    if [ -n "$SURVIVING" ]; then
+        }')
+
+    if [ -n "$surviving" ]; then
         echo "ION processes still running:"
-        echo "$SURVIVING"
+        echo "$surviving"
         HAS_SURVIVORS=1
     else
         echo "All ION processes stopped."
-        HAS_SURVIVORS=0
     fi
 }
 
@@ -206,7 +231,7 @@ if [ $DRYRUN -eq 1 ]; then
     exit 0
 fi
 
-if [ $HAS_SURVIVORS -eq 0 ] && [ $HAS_IPC -eq 0 ]; then
+if [ $HAS_SURVIVORS -eq 0 ] && [ $HAS_CHECK_ERROR -eq 0 ] && [ $HAS_IPC -eq 0 ]; then
     echo "No ION processes or IPC resources found; skipping ionexit and signal cleanup."
     if [ $MULTINODE -eq 1 ] && [ $FORCE -eq 0 ]; then
         echo ""
@@ -271,7 +296,7 @@ if command -v ionexit > /dev/null 2>&1; then
     if [ $IONEXIT_RAN -eq 1 ]; then
         for i in 1 2 3 4 5; do
             check_surviving_processes
-            if [ $HAS_SURVIVORS -eq 0 ]; then
+            if [ $HAS_SURVIVORS -eq 0 ] && [ $HAS_CHECK_ERROR -eq 0 ]; then
                 break
             fi
             if [ $i -lt 5 ]; then
@@ -279,6 +304,9 @@ if command -v ionexit > /dev/null 2>&1; then
                 sleep 1
             fi
         done
+        if [ $HAS_SURVIVORS -ne 0 ]; then
+            echo "killm: NOTE -- graceful shutdown timed out; falling back to SIGTERM/SIGKILL"
+        fi
     else
         check_surviving_processes
     fi
@@ -394,11 +422,12 @@ remove_semaphores "/tmp/.LIBRT/SEML" "*ion:GLOBAL*"
 echo -e "\n=== Checking for remaining semaphores ==="
 remaining=$(find_remaining)
 
+SEM_REMAINING=0
 if [ -n "$remaining" ] && [ "$remaining" != "" ]; then
     echo "*** WARNING: Some semaphores could not be removed ***"
     echo "*** Re-run script with sudo to remove remaining semaphores: ***"
     echo -e "$remaining"
-    exit 1
+    SEM_REMAINING=1
 else
     echo "All ion:GLOBAL semaphores removed successfully"
 fi
@@ -410,6 +439,28 @@ find_remaining
 #ls /dev/shm/sem.ion:GLOBAL*
 #ls /tmp/.SEM*ion:GLOBAL*
 #ls /tmp/SEM*ion:GLOBAL*
+
+# End-of-run summary and meaningful exit code.
+#   0 -- clean (no survivors, no check errors, IPC cleared)
+#   1 -- ION processes remained after SIGKILL
+#   2 -- could not verify survivor state (one or more checks failed)
+#   3 -- IPC resources (semaphore files) could not be removed
+# Precedence: survivors > check-error > IPC, so the most actionable
+# condition wins when several apply.
+if [ "$CHECK_ERR_COUNT" -gt 0 ]; then
+    echo "killm: $CHECK_ERR_COUNT survivor check(s) failed during this run"
+fi
+
+if [ "$HAS_SURVIVORS" -ne 0 ]; then
+    echo "Killm completed with surviving ION processes."
+    exit 1
+elif [ "$CHECK_ERR_COUNT" -gt 0 ]; then
+    echo "Killm completed but survivor state could not be verified."
+    exit 2
+elif [ "$SEM_REMAINING" -ne 0 ]; then
+    echo "Killm completed with remaining semaphore files."
+    exit 3
+fi
 
 echo "Killm completed."
 exit 0

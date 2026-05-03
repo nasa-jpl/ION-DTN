@@ -81,6 +81,17 @@ Use this method when you need fine-grained control over individual subsystems.
 
     **Multi-node detection:** `killm` detects a multi-node environment when `ION_NODE_LIST_DIR` is set and `$ION_NODE_LIST_DIR/ion_nodes` contains entries.
 
+    **Exit codes:**
+
+    | Code | Meaning |
+    |------|---------|
+    | `0` | Clean: no surviving ION processes, no IPC resources remaining, all survivor checks succeeded |
+    | `1` | ION processes remained after the SIGTERM/SIGKILL cycle |
+    | `2` | Could not verify survivor state (one or more `ps` snapshots failed); treat as unclean |
+    | `3` | POSIX named semaphore files could not be removed (rerun with `sudo`) |
+
+    See the [ION Shutdown Guide](ION-Shutdown-Guide.md#exit-codes) for caller guidance.
+
     The long-term plan is to transition `killm` into a backup script for clearing ION in abnormal situations, with `ionexit` serving as the primary graceful shutdown command for most purposes.
 
 ## Other Utilities

@@ -368,6 +368,19 @@ killm f           # SIGTERM/SIGKILL + ipcrm (skips ionexit in multi-node)
 - In multi-node test environments: `killm` (without `f`) safely stops only the current node
 - Use `killm f` to force full cleanup of all instances on the host
 
+#### Exit codes
+
+`killm` reports the outcome of the cleanup via its exit status. Callers (e.g. `runtests`, `ionstop`, systemd) should check it and react accordingly — in particular, **exit 2 means "could not verify state" and must not be treated as success**.
+
+| Code | Meaning | Suggested caller action |
+|------|---------|-------------------------|
+| `0` | Clean — no surviving ION processes, no IPC resources remaining, all survivor checks completed successfully | Proceed |
+| `1` | ION processes remained after the SIGTERM/SIGKILL cycle | Investigate stuck processes; may require reboot |
+| `2` | Could not verify survivor state — one or more `ps` snapshots failed during the run; survivor state is unknown | Treat as unclean; rerun `killm` or investigate runner/host state |
+| `3` | POSIX named semaphore files could not be removed | Rerun with `sudo killm` |
+
+When a survivor check fails, `killm` logs `killm: WARN -- could not capture process list ...` once (rate-limited to avoid log explosions) and continues with the cleanup cycle. At end of run it prints a summary line `killm: N survivor check(s) failed during this run` if any failures occurred.
+
 **Cross-Platform Support:**
 `killm` works on Linux, macOS, FreeBSD, and Solaris.
 
