@@ -17,6 +17,19 @@ OPT_NODE=""
 OPT_GENERATE_ONLY=false
 OPT_FORCE=false
 OPT_REGEN=false
+OPT_BATCH=""
+OPT_BATCH_INLINE=false
+
+# Batch inline overrides (populated by --topology, --cl, etc.)
+BATCH_TOPOLOGY=""
+BATCH_CL=""
+BATCH_CL2=""
+BATCH_PORT=""
+BATCH_PORT2=""
+BATCH_CFDP=""
+declare -A BATCH_NODE_NAMES=()
+declare -A BATCH_NODE_IDS=()
+declare -A BATCH_NODE_IPS=()
 
 # Wizard state (arrays indexed from 0)
 TOPOLOGY=""       # loopback, 2node, 3node
@@ -45,6 +58,16 @@ Options:
   -g, --generate-only   Generate config files without starting ION
   -f, --force           Regenerate config even if one already exists
   -r, --regenerate      Regenerate config from existing ionrun.meta (no wizard)
+  -b, --batch <file>    Non-interactive mode: read wizard answers from file
+  --topology <type>     Batch inline: loopback, 2node, 3node, 2node-local, 3node-local
+  --cl <proto>          Batch inline: ltp, tcp, or udp (all links)
+  --cl2 <proto>         Batch inline: CL for 3-node link 2 (default: same as --cl)
+  --port <num>          Batch inline: base port number
+  --port2 <num>         Batch inline: port for 3-node link 2
+  --cfdp                Batch inline: enable CFDP
+  --node-name <n:name>  Batch inline: set node name (e.g., 1:earth)
+  --node-id <n:id>      Batch inline: set node IPN ID (e.g., 1:5.1)
+  --node-ip <n:ip>      Batch inline: set node IP (e.g., 1:10.0.0.1)
 
 Arguments:
   working_directory     Directory where ION config and runtime files are stored.
@@ -58,8 +81,21 @@ Examples:
   ionrun -f ~/my-ion-test             # Re-run wizard, overwrite config
   ionrun -r ~/my-ion-test             # Regenerate config from saved metadata
   ionrun -s ~/my-ion-test             # Stop ION in that directory
+  ionrun -b answers.txt ~/my-test     # Non-interactive from answer file
+  ionrun --topology=loopback --cl=ltp ~/test  # Non-interactive inline
 EOF
     exit 0
+}
+
+# --- Argument parsing helpers ---
+# Extract value from --flag=value or consume next arg for --flag value
+parse_optval() {
+    local arg="$1"
+    if [[ "$arg" == *=* ]]; then
+        echo "${arg#*=}"
+        return 0
+    fi
+    return 1
 }
 
 # --- Argument parsing ---
@@ -93,6 +129,59 @@ parse_args() {
                 OPT_REGEN=true
                 shift
                 ;;
+            -b|--batch)
+                if [[ $# -lt 2 ]]; then
+                    echo "Error: --batch requires a file argument." >&2
+                    exit 1
+                fi
+                OPT_BATCH="$2"
+                shift 2
+                ;;
+            --topology=*) BATCH_TOPOLOGY=$(parse_optval "$1"); OPT_BATCH_INLINE=true; shift ;;
+            --topology)
+                if [[ $# -lt 2 ]]; then echo "Error: --topology requires a value." >&2; exit 1; fi
+                BATCH_TOPOLOGY="$2"; OPT_BATCH_INLINE=true; shift 2 ;;
+            --cl=*) BATCH_CL=$(parse_optval "$1"); OPT_BATCH_INLINE=true; shift ;;
+            --cl)
+                if [[ $# -lt 2 ]]; then echo "Error: --cl requires a value." >&2; exit 1; fi
+                BATCH_CL="$2"; OPT_BATCH_INLINE=true; shift 2 ;;
+            --cl2=*) BATCH_CL2=$(parse_optval "$1"); OPT_BATCH_INLINE=true; shift ;;
+            --cl2)
+                if [[ $# -lt 2 ]]; then echo "Error: --cl2 requires a value." >&2; exit 1; fi
+                BATCH_CL2="$2"; OPT_BATCH_INLINE=true; shift 2 ;;
+            --port=*) BATCH_PORT=$(parse_optval "$1"); OPT_BATCH_INLINE=true; shift ;;
+            --port)
+                if [[ $# -lt 2 ]]; then echo "Error: --port requires a value." >&2; exit 1; fi
+                BATCH_PORT="$2"; OPT_BATCH_INLINE=true; shift 2 ;;
+            --port2=*) BATCH_PORT2=$(parse_optval "$1"); OPT_BATCH_INLINE=true; shift ;;
+            --port2)
+                if [[ $# -lt 2 ]]; then echo "Error: --port2 requires a value." >&2; exit 1; fi
+                BATCH_PORT2="$2"; OPT_BATCH_INLINE=true; shift 2 ;;
+            --cfdp) BATCH_CFDP="yes"; OPT_BATCH_INLINE=true; shift ;;
+            --node-name=*|--node-name)
+                local val
+                if [[ "$1" == *=* ]]; then val="${1#*=}"; shift; else
+                    if [[ $# -lt 2 ]]; then echo "Error: --node-name requires n:name." >&2; exit 1; fi
+                    val="$2"; shift 2
+                fi
+                local idx="${val%%:*}" nval="${val#*:}"
+                BATCH_NODE_NAMES[$idx]="$nval"; OPT_BATCH_INLINE=true ;;
+            --node-id=*|--node-id)
+                local val
+                if [[ "$1" == *=* ]]; then val="${1#*=}"; shift; else
+                    if [[ $# -lt 2 ]]; then echo "Error: --node-id requires n:id." >&2; exit 1; fi
+                    val="$2"; shift 2
+                fi
+                local idx="${val%%:*}" nval="${val#*:}"
+                BATCH_NODE_IDS[$idx]="$nval"; OPT_BATCH_INLINE=true ;;
+            --node-ip=*|--node-ip)
+                local val
+                if [[ "$1" == *=* ]]; then val="${1#*=}"; shift; else
+                    if [[ $# -lt 2 ]]; then echo "Error: --node-ip requires n:ip." >&2; exit 1; fi
+                    val="$2"; shift 2
+                fi
+                local idx="${val%%:*}" nval="${val#*:}"
+                BATCH_NODE_IPS[$idx]="$nval"; OPT_BATCH_INLINE=true ;;
             -*)
                 echo "Error: Unknown option: $1" >&2
                 echo "Run 'ionrun -h' for usage." >&2
@@ -1224,6 +1313,133 @@ load_meta() {
     fi
 }
 
+# --- Load batch answer file ---
+load_batch_file() {
+    local file="$1"
+    if [[ ! -f "$file" ]]; then
+        echo "Error: Batch file '$file' not found." >&2
+        exit 1
+    fi
+
+    local key val
+    while IFS='=' read -r key val || [[ -n "$key" ]]; do
+        # Skip blank lines and comments
+        [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]] && continue
+        key=$(echo "$key" | xargs)
+        val=$(echo "$val" | xargs)
+        case "$key" in
+            topology)   BATCH_TOPOLOGY="$val" ;;
+            cl|cl1)     BATCH_CL="$val" ;;
+            cl2)        BATCH_CL2="$val" ;;
+            port|port1) BATCH_PORT="$val" ;;
+            port2)      BATCH_PORT2="$val" ;;
+            cfdp)       BATCH_CFDP="$val" ;;
+            node[0-9]*_name)
+                local idx="${key#node}"; idx="${idx%_name}"
+                BATCH_NODE_NAMES[$idx]="$val" ;;
+            node[0-9]*_id)
+                local idx="${key#node}"; idx="${idx%_id}"
+                BATCH_NODE_IDS[$idx]="$val" ;;
+            node[0-9]*_ip)
+                local idx="${key#node}"; idx="${idx%_ip}"
+                BATCH_NODE_IPS[$idx]="$val" ;;
+            *)
+                echo "Warning: Unknown batch key '$key' (ignored)." >&2 ;;
+        esac
+    done < "$file"
+}
+
+# --- Apply batch parameters to wizard state ---
+apply_batch() {
+    # Topology (required)
+    if [[ -z "$BATCH_TOPOLOGY" ]]; then
+        echo "Error: Batch mode requires 'topology' (loopback, 2node, 3node, 2node-local, 3node-local)." >&2
+        exit 1
+    fi
+    case "$BATCH_TOPOLOGY" in
+        loopback)    TOPOLOGY="loopback";    NODE_COUNT=1 ;;
+        2node)       TOPOLOGY="2node";       NODE_COUNT=2 ;;
+        3node)       TOPOLOGY="3node";       NODE_COUNT=3 ;;
+        2node-local) TOPOLOGY="2node-local"; NODE_COUNT=2 ;;
+        3node-local) TOPOLOGY="3node-local"; NODE_COUNT=3 ;;
+        *)
+            echo "Error: Invalid topology '$BATCH_TOPOLOGY'." >&2
+            exit 1 ;;
+    esac
+
+    # Node names, IDs, IPs (defaults if not specified)
+    NODE_NAMES=()
+    NODE_IDS=()
+    NODE_IPS=()
+    for i in $(seq 0 $((NODE_COUNT - 1))); do
+        local n=$((i + 1))
+        NODE_NAMES[$i]="${BATCH_NODE_NAMES[$n]:-node${n}}"
+        NODE_IDS[$i]="${BATCH_NODE_IDS[$n]:-$n}"
+        if [[ "$TOPOLOGY" == "loopback" ]] || is_local_topology; then
+            NODE_IPS[$i]="127.0.0.1"
+        else
+            NODE_IPS[$i]="${BATCH_NODE_IPS[$n]:-127.0.0.1}"
+        fi
+    done
+
+    # Convergence layer (required)
+    if [[ -z "$BATCH_CL" ]]; then
+        echo "Error: Batch mode requires 'cl' (ltp, tcp, or udp)." >&2
+        exit 1
+    fi
+    case "$BATCH_CL" in
+        ltp|tcp|udp) CL1="$BATCH_CL" ;;
+        *) echo "Error: Invalid CL '$BATCH_CL'. Must be ltp, tcp, or udp." >&2; exit 1 ;;
+    esac
+
+    # CL2 for 3-node remote
+    if [[ "$TOPOLOGY" == "3node" ]]; then
+        CL2="${BATCH_CL2:-$CL1}"
+        case "$CL2" in
+            ltp|tcp|udp) ;;
+            *) echo "Error: Invalid cl2 '$CL2'. Must be ltp, tcp, or udp." >&2; exit 1 ;;
+        esac
+    else
+        CL2=""
+    fi
+
+    # Ports (defaults based on CL)
+    local default_port1
+    case "$CL1" in
+        ltp) default_port1=1113 ;; *) default_port1=4556 ;;
+    esac
+    PORT1="${BATCH_PORT:-$default_port1}"
+
+    if [[ "$TOPOLOGY" == "3node" && -n "$CL2" ]]; then
+        local default_port2
+        case "$CL2" in
+            ltp) default_port2=1113 ;; *) default_port2=4556 ;;
+        esac
+        PORT2="${BATCH_PORT2:-$default_port2}"
+    else
+        PORT2=""
+    fi
+
+    # Per-node ports for same-host topologies
+    NODE_PORTS=()
+    if is_local_topology; then
+        for i in $(seq 0 $((NODE_COUNT - 1))); do
+            NODE_PORTS[$i]=$((PORT1 + i))
+        done
+    fi
+
+    # CFDP
+    case "${BATCH_CFDP:-no}" in
+        yes|true|1) ENABLE_CFDP=true ;;
+        *)          ENABLE_CFDP=false ;;
+    esac
+    if [[ "$TOPOLOGY" == "loopback" ]]; then
+        ENABLE_CFDP=false
+    fi
+
+    echo "Batch mode: topology=$TOPOLOGY cl=$CL1 nodes=$NODE_COUNT"
+}
+
 # --- Wizard orchestrator ---
 run_wizard() {
     echo "=== ION Configuration Wizard ==="
@@ -1307,6 +1523,26 @@ main() {
         fi
         write_meta
         echo "Configuration regenerated from $meta"
+        if [[ "$OPT_GENERATE_ONLY" != true ]]; then
+            echo ""
+            run_ion
+        fi
+    elif [[ -n "$OPT_BATCH" ]] || [[ "$OPT_BATCH_INLINE" == true ]]; then
+        # Batch mode: load answer file and/or inline overrides, skip wizard
+        if [[ -n "$OPT_BATCH" ]]; then
+            load_batch_file "$OPT_BATCH"
+        fi
+        apply_batch
+        # Generate config (same as wizard, without prompts)
+        if [[ "$TOPOLOGY" == "loopback" ]]; then
+            generate_loopback_config
+        elif is_local_topology; then
+            generate_local_config
+        else
+            generate_multinode_config
+        fi
+        write_meta
+        echo "Configuration written to $WORKDIR/"
         if [[ "$OPT_GENERATE_ONLY" != true ]]; then
             echo ""
             run_ion
