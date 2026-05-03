@@ -169,6 +169,23 @@ int	main(void)
 		bundleAddr = (Object) sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 		priority = bundle.priority;
+
+		/*	Validate payload before calling zco_get_aggregate_length
+		 *	to prevent assertion failure inside the function if
+		 *	the ZCO reference is invalid or corrupted.		*/
+
+		if (bundle.payload.content <= 0 || bundle.payload.length < 0)
+		{
+			putErrmsg("Bundle has invalid payload; discarding.",
+					utoa(bundle.payload.length));
+			sdr_list_delete(sdr, elt, NULL, NULL);
+			bundle.transitElt = 0;
+			sdr_write(sdr, bundleAddr, (char *) &bundle,
+					sizeof(Bundle));
+			sdr_exit_xn(sdr);
+			continue;
+		}
+
 		zco_get_aggregate_length(sdr, bundle.payload.content, 0,
 				bundle.payload.length, &fileSpaceNeeded,
 				&bulkSpaceNeeded, &heapSpaceNeeded);
@@ -260,6 +277,23 @@ int	main(void)
 		{
 			putErrmsg("Transit bundle already delivered locally; skipping.",
 					NULL);
+			sdr_exit_xn(sdr);
+			ionShred(ticket);		/*	Cancel.	*/
+			continue;
+		}
+
+		/*	Re-validate payload after waiting for ZCO space;
+		 *	the bundle may have been corrupted or its ZCO
+		 *	destroyed by another process in the meantime.	*/
+
+		if (bundle.payload.content <= 0 || bundle.payload.length < 0)
+		{
+			putErrmsg("Bundle payload became invalid; discarding.",
+					utoa(bundle.payload.length));
+			sdr_list_delete(sdr, elt, NULL, NULL);
+			bundle.transitElt = 0;
+			sdr_write(sdr, bundleAddr, (char *) &bundle,
+					sizeof(Bundle));
 			sdr_exit_xn(sdr);
 			ionShred(ticket);		/*	Cancel.	*/
 			continue;
