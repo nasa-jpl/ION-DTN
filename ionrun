@@ -21,6 +21,9 @@ OPT_BATCH=""
 OPT_BATCH_INLINE=false
 OPT_CHECK=false
 OPT_TEST=false
+OPT_LOG=false
+OPT_LOG_ERRORS=false
+OPT_LOG_TAIL=0
 OPT_TIMEOUT=30
 
 # Batch inline overrides (populated by --topology, --cl, etc.)
@@ -30,6 +33,11 @@ BATCH_CL2=""
 BATCH_PORT=""
 BATCH_PORT2=""
 BATCH_CFDP=""
+BATCH_RATE=""
+BATCH_WMSIZE=""
+BATCH_HEAP=""
+BATCH_SEGMENT_SIZE=""
+BATCH_CONTACT_DURATION=""
 declare -A BATCH_NODE_NAMES=()
 declare -A BATCH_NODE_IDS=()
 declare -A BATCH_NODE_IPS=()
@@ -47,6 +55,13 @@ PORT2=""          # port for CL2 (3-node only)
 NODE_PORTS=()     # per-node listening ports (same-host only)
 ENABLE_CFDP=false # whether to generate cfdpadmin config
 
+# Tunable parameters (overridable via --rate, --wmsize, etc.)
+CFG_RATE=100000
+CFG_WMSIZE=50000000
+CFG_HEAP=10000000
+CFG_SEGMENT_SIZE=1400
+CFG_CONTACT_DURATION=86400
+
 # --- Usage ---
 usage() {
     cat <<'EOF'
@@ -63,6 +78,9 @@ Options:
   -r, --regenerate      Regenerate config from existing ionrun.meta (no wizard)
   -c, --check           Check if ION subsystems are running (per-node status)
   -t, --test            Send a test bundle and verify delivery (smoke test)
+  -l, --log             Show ion.log for all nodes (use -n for a single node)
+  --errors              With --log: show only ERROR/WARNING lines
+  --tail <lines>        With --log: show last N lines (default: all)
   --timeout <sec>       Timeout for --check/--test (default 30)
   -b, --batch <file>    Non-interactive mode: read wizard answers from file
   --topology <type>     Batch inline: loopback, 2node, 3node, 2node-local, 3node-local
@@ -71,6 +89,11 @@ Options:
   --port <num>          Batch inline: base port number
   --port2 <num>         Batch inline: port for 3-node link 2
   --cfdp                Batch inline: enable CFDP
+  --rate <bytes/s>      Contact data rate (default 100000)
+  --wmsize <bytes>      Working memory size (default 50000000)
+  --heap <words>        SDR heap words (default 10000000)
+  --segment-size <bytes> LTP segment size (default 1400)
+  --contact-duration <s> Contact window in seconds (default 86400)
   --node-name <n:name>  Batch inline: set node name (e.g., 1:earth)
   --node-id <n:id>      Batch inline: set node IPN ID (e.g., 1:5.1)
   --node-ip <n:ip>      Batch inline: set node IP (e.g., 1:10.0.0.1)
@@ -89,6 +112,8 @@ Examples:
   ionrun -s ~/my-ion-test             # Stop ION in that directory
   ionrun -c ~/my-ion-test              # Check if ION subsystems are up
   ionrun -t ~/my-ion-test              # Smoke test: send bundle, verify delivery
+  ionrun -l ~/my-ion-test              # Show ion.log for all nodes
+  ionrun -l --errors ~/my-ion-test     # Show only error/warning lines
   ionrun -b answers.txt ~/my-test     # Non-interactive from answer file
   ionrun --topology=loopback --cl=ltp ~/test  # Non-interactive inline
 EOF
@@ -135,6 +160,20 @@ parse_args() {
                 shift
                 continue
                 ;;
+            -l|--log)
+                OPT_LOG=true
+                shift
+                continue
+                ;;
+            --errors)
+                OPT_LOG_ERRORS=true
+                shift
+                continue
+                ;;
+            --tail=*) OPT_LOG_TAIL=$(parse_optval "$1"); shift; continue ;;
+            --tail)
+                if [[ $# -lt 2 ]]; then echo "Error: --tail requires a value." >&2; exit 1; fi
+                OPT_LOG_TAIL="$2"; shift 2; continue ;;
             --timeout=*) OPT_TIMEOUT=$(parse_optval "$1"); shift; continue ;;
             --timeout)
                 if [[ $# -lt 2 ]]; then echo "Error: --timeout requires a value." >&2; exit 1; fi
@@ -180,6 +219,26 @@ parse_args() {
                 if [[ $# -lt 2 ]]; then echo "Error: --port2 requires a value." >&2; exit 1; fi
                 BATCH_PORT2="$2"; OPT_BATCH_INLINE=true; shift 2 ;;
             --cfdp) BATCH_CFDP="yes"; OPT_BATCH_INLINE=true; shift ;;
+            --rate=*) BATCH_RATE=$(parse_optval "$1"); shift ;;
+            --rate)
+                if [[ $# -lt 2 ]]; then echo "Error: --rate requires a value." >&2; exit 1; fi
+                BATCH_RATE="$2"; shift 2 ;;
+            --wmsize=*) BATCH_WMSIZE=$(parse_optval "$1"); shift ;;
+            --wmsize)
+                if [[ $# -lt 2 ]]; then echo "Error: --wmsize requires a value." >&2; exit 1; fi
+                BATCH_WMSIZE="$2"; shift 2 ;;
+            --heap=*) BATCH_HEAP=$(parse_optval "$1"); shift ;;
+            --heap)
+                if [[ $# -lt 2 ]]; then echo "Error: --heap requires a value." >&2; exit 1; fi
+                BATCH_HEAP="$2"; shift 2 ;;
+            --segment-size=*) BATCH_SEGMENT_SIZE=$(parse_optval "$1"); shift ;;
+            --segment-size)
+                if [[ $# -lt 2 ]]; then echo "Error: --segment-size requires a value." >&2; exit 1; fi
+                BATCH_SEGMENT_SIZE="$2"; shift 2 ;;
+            --contact-duration=*) BATCH_CONTACT_DURATION=$(parse_optval "$1"); shift ;;
+            --contact-duration)
+                if [[ $# -lt 2 ]]; then echo "Error: --contact-duration requires a value." >&2; exit 1; fi
+                BATCH_CONTACT_DURATION="$2"; shift 2 ;;
             --node-name=*|--node-name)
                 local val
                 if [[ "$1" == *=* ]]; then val="${1#*=}"; shift; else
@@ -432,6 +491,91 @@ smoke_test() {
         cat "$sink_out" 2>/dev/null
         rm -f "$sink_out"
         return 1
+    fi
+}
+
+# --- Show ion.log files ---
+show_logs() {
+    local meta="$WORKDIR/ionrun.meta"
+    if [[ ! -f "$meta" ]]; then
+        # No meta — check for a single ion.log in workdir
+        if [[ -f "$WORKDIR/ion.log" ]]; then
+            show_one_log "$WORKDIR/ion.log" ""
+            return
+        fi
+        echo "Error: No ionrun.meta or ion.log found in $WORKDIR." >&2
+        exit 1
+    fi
+
+    local topology node_count
+    topology=$(grep '^topology=' "$meta" | cut -d= -f2)
+    node_count=$(grep '^node_count=' "$meta" | cut -d= -f2)
+
+    # If --node is specified, show only that node's log
+    if [[ -n "$OPT_NODE" ]]; then
+        local node_dir
+        if [[ "$topology" == "loopback" ]]; then
+            node_dir="$WORKDIR/$OPT_NODE"
+        elif [[ "$topology" == *-local ]]; then
+            node_dir="$WORKDIR/$OPT_NODE"
+        else
+            node_dir="$WORKDIR/$OPT_NODE"
+        fi
+        if [[ -f "$node_dir/ion.log" ]]; then
+            show_one_log "$node_dir/ion.log" "$OPT_NODE"
+        else
+            echo "[$OPT_NODE] (no ion.log)"
+        fi
+        return
+    fi
+
+    # Show all nodes
+    local found_any=false
+    for i in $(seq 1 "$node_count"); do
+        local name
+        name=$(grep "^node${i}_name=" "$meta" | cut -d= -f2)
+        local node_dir="$WORKDIR/$name"
+        local logfile="$node_dir/ion.log"
+        if [[ -f "$logfile" ]]; then
+            show_one_log "$logfile" "$name"
+            found_any=true
+        else
+            echo "[$name] (no ion.log)"
+        fi
+    done
+
+    # Also check top-level ion.log (loopback without subdirs)
+    if [[ "$found_any" == false && -f "$WORKDIR/ion.log" ]]; then
+        show_one_log "$WORKDIR/ion.log" ""
+    fi
+}
+
+show_one_log() {
+    local logfile="$1" prefix="$2"
+    local content
+
+    if [[ "$OPT_LOG_TAIL" -gt 0 ]]; then
+        content=$(tail -n "$OPT_LOG_TAIL" "$logfile")
+    else
+        content=$(cat "$logfile")
+    fi
+
+    if [[ "$OPT_LOG_ERRORS" == true ]]; then
+        content=$(echo "$content" | grep -iE '(error|warning|fatal|can'\''t|cannot)' || true)
+        if [[ -z "$content" ]]; then
+            if [[ -n "$prefix" ]]; then
+                echo "[$prefix] (no errors)"
+            else
+                echo "(no errors)"
+            fi
+            return
+        fi
+    fi
+
+    if [[ -n "$prefix" ]]; then
+        echo "$content" | sed "s/^/[$prefix] /"
+    else
+        echo "$content"
     fi
 }
 
@@ -781,33 +925,33 @@ emit_contact_plan() {
     local i
     # Self-contacts for all nodes
     for i in $(seq 0 $((NODE_COUNT - 1))); do
-        echo "a contact +1 +86400 ${NODE_IDS[$i]} ${NODE_IDS[$i]} 100000" >> "$out"
+        echo "a contact +1 +${CFG_CONTACT_DURATION} ${NODE_IDS[$i]} ${NODE_IDS[$i]} ${CFG_RATE}" >> "$out"
     done
     # Link contacts (unidirectional, so both directions)
     case "$TOPOLOGY" in
         2node|2node-local)
-            echo "a contact +1 +86400 ${NODE_IDS[0]} ${NODE_IDS[1]} 100000" >> "$out"
-            echo "a contact +1 +86400 ${NODE_IDS[1]} ${NODE_IDS[0]} 100000" >> "$out"
+            echo "a contact +1 +${CFG_CONTACT_DURATION} ${NODE_IDS[0]} ${NODE_IDS[1]} ${CFG_RATE}" >> "$out"
+            echo "a contact +1 +${CFG_CONTACT_DURATION} ${NODE_IDS[1]} ${NODE_IDS[0]} ${CFG_RATE}" >> "$out"
             ;;
         3node|3node-local)
-            echo "a contact +1 +86400 ${NODE_IDS[0]} ${NODE_IDS[1]} 100000" >> "$out"
-            echo "a contact +1 +86400 ${NODE_IDS[1]} ${NODE_IDS[0]} 100000" >> "$out"
-            echo "a contact +1 +86400 ${NODE_IDS[1]} ${NODE_IDS[2]} 100000" >> "$out"
-            echo "a contact +1 +86400 ${NODE_IDS[2]} ${NODE_IDS[1]} 100000" >> "$out"
+            echo "a contact +1 +${CFG_CONTACT_DURATION} ${NODE_IDS[0]} ${NODE_IDS[1]} ${CFG_RATE}" >> "$out"
+            echo "a contact +1 +${CFG_CONTACT_DURATION} ${NODE_IDS[1]} ${NODE_IDS[0]} ${CFG_RATE}" >> "$out"
+            echo "a contact +1 +${CFG_CONTACT_DURATION} ${NODE_IDS[1]} ${NODE_IDS[2]} ${CFG_RATE}" >> "$out"
+            echo "a contact +1 +${CFG_CONTACT_DURATION} ${NODE_IDS[2]} ${NODE_IDS[1]} ${CFG_RATE}" >> "$out"
             ;;
     esac
     # Self-ranges for all nodes
     for i in $(seq 0 $((NODE_COUNT - 1))); do
-        echo "a range +1 +86400 ${NODE_IDS[$i]} ${NODE_IDS[$i]} 1" >> "$out"
+        echo "a range +1 +${CFG_CONTACT_DURATION} ${NODE_IDS[$i]} ${NODE_IDS[$i]} 1" >> "$out"
     done
     # Link ranges (bidirectional, only need one direction)
     case "$TOPOLOGY" in
         2node|2node-local)
-            echo "a range +1 +86400 ${NODE_IDS[0]} ${NODE_IDS[1]} 1" >> "$out"
+            echo "a range +1 +${CFG_CONTACT_DURATION} ${NODE_IDS[0]} ${NODE_IDS[1]} 1" >> "$out"
             ;;
         3node|3node-local)
-            echo "a range +1 +86400 ${NODE_IDS[0]} ${NODE_IDS[1]} 1" >> "$out"
-            echo "a range +1 +86400 ${NODE_IDS[1]} ${NODE_IDS[2]} 1" >> "$out"
+            echo "a range +1 +${CFG_CONTACT_DURATION} ${NODE_IDS[0]} ${NODE_IDS[1]} 1" >> "$out"
+            echo "a range +1 +${CFG_CONTACT_DURATION} ${NODE_IDS[1]} ${NODE_IDS[2]} 1" >> "$out"
             ;;
     esac
 }
@@ -868,9 +1012,9 @@ write_ltpadmin() {
     echo "1 32" >> "$out"
     # Self-span
     if [[ "$TOPOLOGY" == "loopback" ]] || is_local_topology; then
-        echo "a span $my_id 10 10 1400 10000 2 'udplso 127.0.0.1:${ltp_port}'" >> "$out"
+        echo "a span $my_id 10 10 ${CFG_SEGMENT_SIZE} 10000 2 'udplso 127.0.0.1:${ltp_port}'" >> "$out"
     else
-        echo "a span $my_id 10 10 1400 10000 2 'udplso ${my_ip}:${ltp_port}'" >> "$out"
+        echo "a span $my_id 10 10 ${CFG_SEGMENT_SIZE} 10000 2 'udplso ${my_ip}:${ltp_port}'" >> "$out"
     fi
     # Peer spans
     for peer in $(get_peers "$idx"); do
@@ -881,7 +1025,7 @@ write_ltpadmin() {
             else
                 peer_port=$(get_link_port "$idx" "$peer")
             fi
-            echo "a span ${NODE_IDS[$peer]} 10 10 1400 10000 2 'udplso ${NODE_IPS[$peer]}:${peer_port}'" >> "$out"
+            echo "a span ${NODE_IDS[$peer]} 10 10 ${CFG_SEGMENT_SIZE} 10000 2 'udplso ${NODE_IPS[$peer]}:${peer_port}'" >> "$out"
         fi
     done
     echo "a seat 'udplsi ${listen_ip}:${ltp_port}'" >> "$out"
@@ -1191,9 +1335,9 @@ generate_local_ionconfig() {
     cat > "$dir/ionrun.ionconfig" <<EOF
 wmKey $wmkey
 sdrName $sdr_name
-wmSize 50000000
+wmSize $CFG_WMSIZE
 configFlags 1
-heapWords 10000000
+heapWords $CFG_HEAP
 pathName /tmp
 EOF
 }
@@ -1258,6 +1402,12 @@ EOF
     if [[ "$ENABLE_CFDP" == true ]]; then
         echo "cfdp=true" >> "$meta"
     fi
+    # Tunable parameters (only write non-defaults)
+    [[ "$CFG_RATE" != 100000 ]] && echo "rate=$CFG_RATE" >> "$meta"
+    [[ "$CFG_WMSIZE" != 50000000 ]] && echo "wmsize=$CFG_WMSIZE" >> "$meta"
+    [[ "$CFG_HEAP" != 10000000 ]] && echo "heap=$CFG_HEAP" >> "$meta"
+    [[ "$CFG_SEGMENT_SIZE" != 1400 ]] && echo "segment_size=$CFG_SEGMENT_SIZE" >> "$meta"
+    [[ "$CFG_CONTACT_DURATION" != 86400 ]] && echo "contact_duration=$CFG_CONTACT_DURATION" >> "$meta"
 }
 
 # --- Split combined rc into per-node individual files + start script ---
@@ -1499,6 +1649,14 @@ load_meta() {
     else
         ENABLE_CFDP=false
     fi
+
+    # Tunable parameters (fall back to defaults if not in meta)
+    local v
+    v=$(meta_val rate);             [[ -n "$v" ]] && CFG_RATE="$v"
+    v=$(meta_val wmsize);           [[ -n "$v" ]] && CFG_WMSIZE="$v"
+    v=$(meta_val heap);             [[ -n "$v" ]] && CFG_HEAP="$v"
+    v=$(meta_val segment_size);     [[ -n "$v" ]] && CFG_SEGMENT_SIZE="$v"
+    v=$(meta_val contact_duration); [[ -n "$v" ]] && CFG_CONTACT_DURATION="$v"
 }
 
 # --- Load batch answer file ---
@@ -1522,6 +1680,11 @@ load_batch_file() {
             port|port1) BATCH_PORT="$val" ;;
             port2)      BATCH_PORT2="$val" ;;
             cfdp)       BATCH_CFDP="$val" ;;
+            rate)       BATCH_RATE="$val" ;;
+            wmsize)     BATCH_WMSIZE="$val" ;;
+            heap)       BATCH_HEAP="$val" ;;
+            segment_size|segment-size) BATCH_SEGMENT_SIZE="$val" ;;
+            contact_duration|contact-duration) BATCH_CONTACT_DURATION="$val" ;;
             node[0-9]*_name)
                 local idx="${key#node}"; idx="${idx%_name}"
                 BATCH_NODE_NAMES[$idx]="$val" ;;
@@ -1625,7 +1788,18 @@ apply_batch() {
         ENABLE_CFDP=false
     fi
 
+    apply_param_overrides
+
     echo "Batch mode: topology=$TOPOLOGY cl=$CL1 nodes=$NODE_COUNT"
+}
+
+# --- Apply CLI parameter overrides (works with wizard, batch, and regenerate) ---
+apply_param_overrides() {
+    [[ -n "$BATCH_RATE" ]] && CFG_RATE="$BATCH_RATE"
+    [[ -n "$BATCH_WMSIZE" ]] && CFG_WMSIZE="$BATCH_WMSIZE"
+    [[ -n "$BATCH_HEAP" ]] && CFG_HEAP="$BATCH_HEAP"
+    [[ -n "$BATCH_SEGMENT_SIZE" ]] && CFG_SEGMENT_SIZE="$BATCH_SEGMENT_SIZE"
+    [[ -n "$BATCH_CONTACT_DURATION" ]] && CFG_CONTACT_DURATION="$BATCH_CONTACT_DURATION"
 }
 
 # --- Wizard orchestrator ---
@@ -1706,6 +1880,12 @@ main() {
         exit $?
     fi
 
+    # Handle --log
+    if [[ "$OPT_LOG" == true ]]; then
+        show_logs
+        exit 0
+    fi
+
     # Ensure working directory exists
     mkdir -p "$WORKDIR"
 
@@ -1714,6 +1894,7 @@ main() {
     if [[ "$OPT_REGEN" == true ]]; then
         # Regenerate config from existing metadata (no wizard)
         load_meta "$meta"
+        apply_param_overrides
         if [[ "$TOPOLOGY" == "loopback" ]]; then
             generate_loopback_config
         elif is_local_topology; then
@@ -1770,6 +1951,7 @@ main() {
         run_external_config
     else
         # New or forced: run wizard
+        apply_param_overrides
         run_wizard
         if [[ "$OPT_GENERATE_ONLY" != true ]]; then
             echo ""
