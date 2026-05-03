@@ -24,6 +24,9 @@ OPT_TEST=false
 OPT_LOG=false
 OPT_LOG_ERRORS=false
 OPT_LOG_TAIL=0
+OPT_START_ALL=false
+OPT_CLEAN=false
+OPT_CLEAN_CONFIGS=false
 OPT_TIMEOUT=30
 
 # Batch inline overrides (populated by --topology, --cl, etc.)
@@ -79,6 +82,9 @@ Options:
   -c, --check           Check if ION subsystems are running (per-node status)
   -t, --test            Send a test bundle and verify delivery (smoke test)
   -l, --log             Show ion.log for all nodes (use -n for a single node)
+  -a, --start-all       Start all nodes (same-host topologies)
+  --clean               Stop ION and remove runtime artifacts (ion.log, etc.)
+  --configs             With --clean: also remove generated config files
   --errors              With --log: show only ERROR/WARNING lines
   --tail <lines>        With --log: show last N lines (default: all)
   --timeout <sec>       Timeout for --check/--test (default 30)
@@ -112,6 +118,9 @@ Examples:
   ionrun -s ~/my-ion-test             # Stop ION in that directory
   ionrun -c ~/my-ion-test              # Check if ION subsystems are up
   ionrun -t ~/my-ion-test              # Smoke test: send bundle, verify delivery
+  ionrun -a ~/my-ion-test              # Start all nodes (same-host)
+  ionrun --clean ~/my-ion-test         # Stop ION and remove runtime files
+  ionrun --clean --configs ~/my-test   # Full reset: remove configs too
   ionrun -l ~/my-ion-test              # Show ion.log for all nodes
   ionrun -l --errors ~/my-ion-test     # Show only error/warning lines
   ionrun -b answers.txt ~/my-test     # Non-interactive from answer file
@@ -157,6 +166,21 @@ parse_args() {
                 ;;
             -t|--test)
                 OPT_TEST=true
+                shift
+                continue
+                ;;
+            -a|--start-all)
+                OPT_START_ALL=true
+                shift
+                continue
+                ;;
+            --clean)
+                OPT_CLEAN=true
+                shift
+                continue
+                ;;
+            --configs)
+                OPT_CLEAN_CONFIGS=true
                 shift
                 continue
                 ;;
@@ -326,6 +350,160 @@ stop_ion() {
         echo "Stopping ION (killm) ..."
         killm
     fi
+}
+
+# --- Clean ION runtime artifacts ---
+clean_ion() {
+    if [[ ! -d "$WORKDIR" ]]; then
+        echo "Error: Directory '$WORKDIR' does not exist." >&2
+        exit 1
+    fi
+
+    # Stop ION first
+    echo "Stopping ION ..."
+    stop_ion 2>/dev/null || true
+    sleep 1
+    killm 2>/dev/null || true
+
+    local abs_workdir
+    abs_workdir="$(cd "$WORKDIR" && pwd)"
+
+    local meta="$abs_workdir/ionrun.meta"
+    local removed=0
+
+    # Remove runtime artifacts from all node directories
+    remove_runtime_files() {
+        local dir="$1"
+        local files=("ion.log" "ion_nodes" "ionconfig" ".induct" ".outduct")
+        for f in "${files[@]}"; do
+            if [[ -f "$dir/$f" ]]; then
+                rm -f "$dir/$f"
+                ((removed++)) || true
+            fi
+        done
+        # Remove acquisition files (bpacq*, ltpacq*)
+        local acq
+        for acq in "$dir"/*acq* "$dir"/*.tmp; do
+            if [[ -f "$acq" ]]; then
+                rm -f "$acq"
+                ((removed++)) || true
+            fi
+        done
+    }
+
+    # Clean top-level workdir
+    remove_runtime_files "$abs_workdir"
+
+    # Clean node subdirectories
+    if [[ -f "$meta" ]]; then
+        local node_count
+        node_count=$(grep '^node_count=' "$meta" | cut -d= -f2)
+        for i in $(seq 1 "$node_count"); do
+            local name
+            name=$(grep "^node${i}_name=" "$meta" | cut -d= -f2)
+            if [[ -n "$name" && -d "$abs_workdir/$name" ]]; then
+                remove_runtime_files "$abs_workdir/$name"
+            fi
+        done
+    else
+        # No meta — clean any subdirectories that have ion.log
+        local dir
+        for dir in "$abs_workdir"/*/; do
+            [[ -d "$dir" ]] || continue
+            remove_runtime_files "$dir"
+        done
+    fi
+
+    echo "Removed $removed runtime file(s)."
+
+    # Optionally remove config files too
+    if [[ "$OPT_CLEAN_CONFIGS" == true ]]; then
+        echo "Removing generated configuration ..."
+        # Collect node directories before deleting meta
+        local cfg_dirs=()
+        if [[ -f "$meta" ]]; then
+            local nc
+            nc=$(grep '^node_count=' "$meta" | cut -d= -f2 || echo 0)
+            for i in $(seq 1 "$nc"); do
+                local name
+                name=$(grep "^node${i}_name=" "$meta" | cut -d= -f2 || true)
+                if [[ -n "$name" && -d "$abs_workdir/$name" ]]; then
+                    cfg_dirs+=("$abs_workdir/$name")
+                fi
+            done
+        fi
+        rm -f "$abs_workdir/ionrun.rc" "$abs_workdir/ionrun.meta"
+        for d in "${cfg_dirs[@]+"${cfg_dirs[@]}"}"; do
+            rm -rf "$d"
+        done
+        echo "Configuration files removed."
+    fi
+}
+
+# --- Start all nodes (same-host) ---
+start_all() {
+    local meta="$WORKDIR/ionrun.meta"
+    if [[ ! -f "$meta" ]]; then
+        echo "Error: ionrun.meta not found in $WORKDIR." >&2
+        exit 1
+    fi
+
+    local abs_workdir
+    abs_workdir="$(cd "$WORKDIR" && pwd)"
+
+    local topology node_count
+    topology=$(grep '^topology=' "$meta" | cut -d= -f2)
+    node_count=$(grep '^node_count=' "$meta" | cut -d= -f2)
+
+    if [[ "$topology" == "loopback" ]]; then
+        # Loopback: just start the single node
+        echo "Starting ION (loopback) in $WORKDIR ..."
+        export ION_NODE_WDNAME="$abs_workdir"
+        (cd "$WORKDIR" && ionstart -I ionrun.rc)
+        echo "  node1 ... started"
+        return 0
+    fi
+
+    if [[ "$topology" != *-local ]]; then
+        echo "Error: --start-all is for same-host topologies only." >&2
+        echo "For remote multi-node, use 'ionrun -n <nodename>' on each host." >&2
+        exit 1
+    fi
+
+    export ION_NODE_LIST_DIR="$abs_workdir"
+
+    local overall=0
+    for i in $(seq 1 "$node_count"); do
+        local name
+        name=$(grep "^node${i}_name=" "$meta" | cut -d= -f2)
+        local node_dir="$abs_workdir/$name"
+        if [[ ! -d "$node_dir" ]]; then
+            echo "  $name ... MISSING (no directory)"
+            overall=1
+            continue
+        fi
+        echo -n "  Starting $name ..."
+        export ION_NODE_WDNAME="$node_dir"
+        (cd "$node_dir" && ionstart -I ionrun.rc) >/dev/null 2>&1
+        if [[ $? -eq 0 ]]; then
+            echo " started"
+        else
+            echo " FAILED"
+            overall=1
+        fi
+    done
+
+    if [[ $overall -eq 0 ]]; then
+        echo "All $node_count nodes started."
+    else
+        echo "Some nodes failed to start. Check ion.log for details."
+    fi
+    echo ""
+    echo "To operate on nodes from any directory, run:"
+    echo "  export ION_NODE_LIST_DIR=$abs_workdir"
+    echo "  export ION_NODE_WDNAME=$abs_workdir/<nodename>"
+
+    return $overall
 }
 
 # --- Check ION subsystem health ---
@@ -1403,11 +1581,11 @@ EOF
         echo "cfdp=true" >> "$meta"
     fi
     # Tunable parameters (only write non-defaults)
-    [[ "$CFG_RATE" != 100000 ]] && echo "rate=$CFG_RATE" >> "$meta"
-    [[ "$CFG_WMSIZE" != 50000000 ]] && echo "wmsize=$CFG_WMSIZE" >> "$meta"
-    [[ "$CFG_HEAP" != 10000000 ]] && echo "heap=$CFG_HEAP" >> "$meta"
-    [[ "$CFG_SEGMENT_SIZE" != 1400 ]] && echo "segment_size=$CFG_SEGMENT_SIZE" >> "$meta"
-    [[ "$CFG_CONTACT_DURATION" != 86400 ]] && echo "contact_duration=$CFG_CONTACT_DURATION" >> "$meta"
+    [[ "$CFG_RATE" != 100000 ]] && echo "rate=$CFG_RATE" >> "$meta" || true
+    [[ "$CFG_WMSIZE" != 50000000 ]] && echo "wmsize=$CFG_WMSIZE" >> "$meta" || true
+    [[ "$CFG_HEAP" != 10000000 ]] && echo "heap=$CFG_HEAP" >> "$meta" || true
+    [[ "$CFG_SEGMENT_SIZE" != 1400 ]] && echo "segment_size=$CFG_SEGMENT_SIZE" >> "$meta" || true
+    [[ "$CFG_CONTACT_DURATION" != 86400 ]] && echo "contact_duration=$CFG_CONTACT_DURATION" >> "$meta" || true
 }
 
 # --- Split combined rc into per-node individual files + start script ---
@@ -1795,11 +1973,11 @@ apply_batch() {
 
 # --- Apply CLI parameter overrides (works with wizard, batch, and regenerate) ---
 apply_param_overrides() {
-    [[ -n "$BATCH_RATE" ]] && CFG_RATE="$BATCH_RATE"
-    [[ -n "$BATCH_WMSIZE" ]] && CFG_WMSIZE="$BATCH_WMSIZE"
-    [[ -n "$BATCH_HEAP" ]] && CFG_HEAP="$BATCH_HEAP"
-    [[ -n "$BATCH_SEGMENT_SIZE" ]] && CFG_SEGMENT_SIZE="$BATCH_SEGMENT_SIZE"
-    [[ -n "$BATCH_CONTACT_DURATION" ]] && CFG_CONTACT_DURATION="$BATCH_CONTACT_DURATION"
+    [[ -n "$BATCH_RATE" ]] && CFG_RATE="$BATCH_RATE" || true
+    [[ -n "$BATCH_WMSIZE" ]] && CFG_WMSIZE="$BATCH_WMSIZE" || true
+    [[ -n "$BATCH_HEAP" ]] && CFG_HEAP="$BATCH_HEAP" || true
+    [[ -n "$BATCH_SEGMENT_SIZE" ]] && CFG_SEGMENT_SIZE="$BATCH_SEGMENT_SIZE" || true
+    [[ -n "$BATCH_CONTACT_DURATION" ]] && CFG_CONTACT_DURATION="$BATCH_CONTACT_DURATION" || true
 }
 
 # --- Wizard orchestrator ---
@@ -1866,6 +2044,18 @@ main() {
     if [[ "$OPT_STOP" == true ]]; then
         stop_ion
         exit 0
+    fi
+
+    # Handle --clean
+    if [[ "$OPT_CLEAN" == true ]]; then
+        clean_ion
+        exit 0
+    fi
+
+    # Handle --start-all
+    if [[ "$OPT_START_ALL" == true ]]; then
+        start_all
+        exit $?
     fi
 
     # Handle --check
