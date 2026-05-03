@@ -20,7 +20,8 @@ OPT_REGEN=false
 OPT_BATCH=""
 OPT_BATCH_INLINE=false
 OPT_CHECK=false
-OPT_CHECK_TIMEOUT=30
+OPT_TEST=false
+OPT_TIMEOUT=30
 
 # Batch inline overrides (populated by --topology, --cl, etc.)
 BATCH_TOPOLOGY=""
@@ -61,7 +62,8 @@ Options:
   -f, --force           Regenerate config even if one already exists
   -r, --regenerate      Regenerate config from existing ionrun.meta (no wizard)
   -c, --check           Check if ION subsystems are running (per-node status)
-  --timeout <sec>       Timeout for --check polling (default 30)
+  -t, --test            Send a test bundle and verify delivery (smoke test)
+  --timeout <sec>       Timeout for --check/--test (default 30)
   -b, --batch <file>    Non-interactive mode: read wizard answers from file
   --topology <type>     Batch inline: loopback, 2node, 3node, 2node-local, 3node-local
   --cl <proto>          Batch inline: ltp, tcp, or udp (all links)
@@ -86,6 +88,7 @@ Examples:
   ionrun -r ~/my-ion-test             # Regenerate config from saved metadata
   ionrun -s ~/my-ion-test             # Stop ION in that directory
   ionrun -c ~/my-ion-test              # Check if ION subsystems are up
+  ionrun -t ~/my-ion-test              # Smoke test: send bundle, verify delivery
   ionrun -b answers.txt ~/my-test     # Non-interactive from answer file
   ionrun --topology=loopback --cl=ltp ~/test  # Non-interactive inline
 EOF
@@ -127,10 +130,15 @@ parse_args() {
                 shift
                 continue
                 ;;
-            --timeout=*) OPT_CHECK_TIMEOUT=$(parse_optval "$1"); shift; continue ;;
+            -t|--test)
+                OPT_TEST=true
+                shift
+                continue
+                ;;
+            --timeout=*) OPT_TIMEOUT=$(parse_optval "$1"); shift; continue ;;
             --timeout)
                 if [[ $# -lt 2 ]]; then echo "Error: --timeout requires a value." >&2; exit 1; fi
-                OPT_CHECK_TIMEOUT="$2"; shift 2; continue ;;
+                OPT_TIMEOUT="$2"; shift 2; continue ;;
             -g|--generate-only)
                 OPT_GENERATE_ONLY=true
                 shift
@@ -280,7 +288,7 @@ check_ion() {
     cl2=$(grep '^cl2=' "$meta" | cut -d= -f2 || true)
     cfdp_enabled=$(grep '^cfdp=' "$meta" | cut -d= -f2 || true)
 
-    local timeout="$OPT_CHECK_TIMEOUT"
+    local timeout="$OPT_TIMEOUT"
     local overall=0
 
     for i in $(seq 1 "$node_count"); do
@@ -347,6 +355,84 @@ check_ion() {
     done
 
     return $overall
+}
+
+# --- Smoke test: send a bundle and verify delivery ---
+smoke_test() {
+    local meta="$WORKDIR/ionrun.meta"
+    if [[ ! -f "$meta" ]]; then
+        echo "Error: ionrun.meta not found in $WORKDIR. Cannot determine topology." >&2
+        exit 1
+    fi
+
+    local abs_workdir
+    abs_workdir="$(cd "$WORKDIR" && pwd)"
+
+    local topology node_count
+    topology=$(grep '^topology=' "$meta" | cut -d= -f2)
+    node_count=$(grep '^node_count=' "$meta" | cut -d= -f2)
+    local timeout="$OPT_TIMEOUT"
+
+    # Determine source and destination nodes
+    local src_idx=1 dst_idx="$node_count"
+    local src_name dst_name src_id dst_id
+    src_name=$(grep "^node${src_idx}_name=" "$meta" | cut -d= -f2)
+    dst_name=$(grep "^node${dst_idx}_name=" "$meta" | cut -d= -f2)
+    src_id=$(grep "^node${src_idx}_id=" "$meta" | cut -d= -f2)
+    dst_id=$(grep "^node${dst_idx}_id=" "$meta" | cut -d= -f2)
+
+    local src_wdname="$abs_workdir"
+    local dst_wdname="$abs_workdir"
+    if [[ "$topology" == *-local ]]; then
+        src_wdname="$abs_workdir/$src_name"
+        dst_wdname="$abs_workdir/$dst_name"
+        export ION_NODE_LIST_DIR="$abs_workdir"
+    fi
+
+    local dst_eid="ipn:${dst_id}.1"
+    local payload="ionrun-smoke-test-$$"
+    local sink_out
+    sink_out=$(mktemp "${abs_workdir}/ionrun-sink.XXXXXX")
+
+    echo "Sending test bundle: $src_name (ipn:${src_id}.1) -> $dst_name ($dst_eid)"
+
+    # Start bpsink on destination node
+    (cd "$dst_wdname" && ION_NODE_WDNAME="$dst_wdname" bpsink "$dst_eid" > "$sink_out" 2>&1) &
+    local sink_pid=$!
+    sleep 1
+
+    # Send test bundle from source node
+    local start_time
+    start_time=$(date +%s)
+    (cd "$src_wdname" && printf '%s\n!\n' "$payload" | ION_NODE_WDNAME="$src_wdname" bpsource "$dst_eid") >/dev/null 2>&1
+
+    # Wait for delivery
+    local elapsed=0
+    local delivered=false
+    while [[ $elapsed -lt $timeout ]]; do
+        if grep -q "ION event: Payload delivered." "$sink_out" 2>/dev/null; then
+            delivered=true
+            break
+        fi
+        sleep 1
+        elapsed=$(( $(date +%s) - start_time ))
+    done
+
+    # Clean up sink
+    kill "$sink_pid" 2>/dev/null || true
+    wait "$sink_pid" 2>/dev/null || true
+
+    if [[ "$delivered" == true ]]; then
+        echo "Delivered in ${elapsed}s    [PASS]"
+        rm -f "$sink_out"
+        return 0
+    else
+        echo "No delivery after ${timeout}s    [FAIL]"
+        echo "Sink output:"
+        cat "$sink_out" 2>/dev/null
+        rm -f "$sink_out"
+        return 1
+    fi
 }
 
 # --- Run ION with existing config ---
@@ -1611,6 +1697,12 @@ main() {
     # Handle --check
     if [[ "$OPT_CHECK" == true ]]; then
         check_ion
+        exit $?
+    fi
+
+    # Handle --test
+    if [[ "$OPT_TEST" == true ]]; then
+        smoke_test
         exit $?
     fi
 
