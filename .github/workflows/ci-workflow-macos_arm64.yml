@@ -78,7 +78,7 @@ jobs:
             export PATH="/opt/homebrew/bin:$PATH"
             export ION_RUN_EXPERT="yes"
             export DYLD_LIBRARY_PATH=/usr/local/lib:$DYLD_LIBRARY_PATH
-            export PRESERVE_TEST_LOGS="yes"
+            export PRESERVE_TEST_LOGS="0"
             autoreconf -fi
             ./configure --enable-bpsec-debugging  # mbedtls deactivated
             make -j4

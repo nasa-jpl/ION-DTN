@@ -97,7 +97,7 @@ jobs:
             echo "USER is set to: $USER" &&
             export ION_RUN_EXPERT="yes" &&
             export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH &&
-            export PRESERVE_TEST_LOGS="yes" &&
+            export PRESERVE_TEST_LOGS="0" &&
             export MAKE=gmake &&
             cd ~/ion-gh-test-dir/ion-ios-dev &&
             autoreconf -fi &&

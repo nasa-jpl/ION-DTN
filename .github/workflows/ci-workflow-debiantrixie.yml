@@ -86,7 +86,7 @@ jobs:
             # some password-less 'sudo' tests will still run
             export LD_LIBRARY_PATH=/home/debian/ion/install/lib:$LD_LIBRARY_PATH
             export PATH=/home/debian/ion/install/bin:$PATH
-            export PRESERVE_TEST_LOGS="yes"
+            export PRESERVE_TEST_LOGS="0"
             autoreconf -fi
             ./configure --prefix=/home/debian/ion/install
             make -j4

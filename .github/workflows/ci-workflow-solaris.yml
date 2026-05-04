@@ -130,7 +130,7 @@ jobs:
             export ION_RUN_EXPERT="yes" &&
             export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH &&
             export PATH=/usr/local/bin:$PATH &&
-            export PRESERVE_TEST_LOGS="yes" &&
+            export PRESERVE_TEST_LOGS="0" &&
             echo "PATH=$PATH" &&
             cd ~/ion-gh-test-dir/ion-ios-dev &&
             autoreconf -fi &&
