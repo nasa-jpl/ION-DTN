@@ -22,20 +22,20 @@ jobs:
         id: versions
         run: |
           # 1. Docker
-          DOCKER_CURRENT=$(grep -oP '(?<=DOCKER_VERSION=).*' images/Makefile || echo "0.0.0")
+          DOCKER_CURRENT=$(grep -oP '(?<=DOCKER_VERSION=)[0-9.]+' images/Makefile | head -1 || echo "0.0.0")
           DOCKER_LATEST=$(curl -s https://download.docker.com/linux/static/stable/x86_64/ | grep -oP 'docker-\K[0-9]+\.[0-9]+\.[0-9]+(?=\.tgz)' | sort -V | tail -n 1)
 
-          # 2. Docker Compose (Pinned to v2.x.x)
-          COMPOSE_CURRENT=$(grep -oP '(?<=DOCKER_COMPOSE_VERSION=).*' images/Makefile || echo "0.0.0")
-          COMPOSE_LATEST=$(gh release list -R docker/compose --exclude-drafts --exclude-pre-releases --limit 30 | grep -oP '(?<=v)2\.[0-9]+\.[0-9]+' | head -1)
+          # 2. Docker Compose (Pinned to v2.x.x, Makefile stores with 'v' prefix)
+          COMPOSE_CURRENT=$(grep -oP '(?<=DOCKER_COMPOSE_VERSION=)v?[0-9.]+' images/Makefile | head -1 || echo "0.0.0")
+          COMPOSE_LATEST=$(gh api repos/docker/compose/releases --jq '.[] | select(.draft == false and .prerelease == false) | .tag_name' | grep -oP 'v2\.[0-9]+\.[0-9]+' | head -1)
 
           # 3. Actions Runner
-          RUNNER_CURRENT=$(grep -oP '(?<=RUNNER_VERSION=).*' images/Makefile || echo "0.0.0")
-          RUNNER_LATEST=$(gh release list -R actions/runner --exclude-drafts --exclude-pre-releases --limit 10 | grep -oP '(?<=v)[0-9.]+' | head -1)
+          RUNNER_CURRENT=$(grep -oP '(?<=RUNNER_VERSION=)[0-9.]+' images/Makefile | head -1 || echo "0.0.0")
+          RUNNER_LATEST=$(gh api repos/actions/runner/releases --jq '.[] | select(.draft == false and .prerelease == false) | .tag_name' | grep -oP '(?<=v)[0-9.]+' | head -1)
 
           # 4. Container Hooks
-          HOOKS_CURRENT=$(grep -oP '(?<=RUNNER_CONTAINER_HOOKS_VERSION=).*' images/Makefile || echo "0.0.0")
-          HOOKS_LATEST=$(gh release list -R actions/runner-container-hooks --exclude-drafts --exclude-pre-releases --limit 10 | grep -oP '(?<=v)[0-9.]+' | head -1)
+          HOOKS_CURRENT=$(grep -oP '(?<=RUNNER_CONTAINER_HOOKS_VERSION=)[0-9.]+' images/Makefile | head -1 || echo "0.0.0")
+          HOOKS_LATEST=$(gh api repos/actions/runner-container-hooks/releases --jq '.[] | select(.draft == false and .prerelease == false) | .tag_name' | grep -oP '(?<=v)[0-9.]+' | head -1)
 
           # Determine if any updates are needed and build commit message
           SHOULD_UPDATE=0
