@@ -21,48 +21,54 @@ jobs:
       - name: Check and apply version updates
         id: versions
         run: |
+          # Extract current versions from Makefile (handles "VAR ?= value" format)
           # 1. Docker
-          DOCKER_CURRENT=$(grep -oP '(?<=DOCKER_VERSION=)[0-9.]+' images/Makefile | head -1 || echo "0.0.0")
+          DOCKER_CURRENT=$(grep -oP '(?<=DOCKER_VERSION \?= )[0-9.]+' images/Makefile | head -1)
+          DOCKER_CURRENT=${DOCKER_CURRENT:-0.0.0}
           DOCKER_LATEST=$(curl -s https://download.docker.com/linux/static/stable/x86_64/ | grep -oP 'docker-\K[0-9]+\.[0-9]+\.[0-9]+(?=\.tgz)' | sort -V | tail -n 1)
 
           # 2. Docker Compose (Pinned to v2.x.x, Makefile stores with 'v' prefix)
-          COMPOSE_CURRENT=$(grep -oP '(?<=DOCKER_COMPOSE_VERSION=)v?[0-9.]+' images/Makefile | head -1 || echo "0.0.0")
+          COMPOSE_CURRENT=$(grep -oP '(?<=DOCKER_COMPOSE_VERSION \?= )v?[0-9.]+' images/Makefile | head -1)
+          COMPOSE_CURRENT=${COMPOSE_CURRENT:-0.0.0}
           COMPOSE_LATEST=$(gh api repos/docker/compose/releases --jq '.[] | select(.draft == false and .prerelease == false) | .tag_name' | grep -oP 'v2\.[0-9]+\.[0-9]+' | head -1)
 
           # 3. Actions Runner
-          RUNNER_CURRENT=$(grep -oP '(?<=RUNNER_VERSION=)[0-9.]+' images/Makefile | head -1 || echo "0.0.0")
+          RUNNER_CURRENT=$(grep -oP '(?<=RUNNER_VERSION \?= )[0-9.]+' images/Makefile | head -1)
+          RUNNER_CURRENT=${RUNNER_CURRENT:-0.0.0}
           RUNNER_LATEST=$(gh api repos/actions/runner/releases --jq '.[] | select(.draft == false and .prerelease == false) | .tag_name' | grep -oP '(?<=v)[0-9.]+' | head -1)
 
           # 4. Container Hooks
-          HOOKS_CURRENT=$(grep -oP '(?<=RUNNER_CONTAINER_HOOKS_VERSION=)[0-9.]+' images/Makefile | head -1 || echo "0.0.0")
+          HOOKS_CURRENT=$(grep -oP '(?<=RUNNER_CONTAINER_HOOKS_VERSION \?= )[0-9.]+' images/Makefile | head -1)
+          HOOKS_CURRENT=${HOOKS_CURRENT:-0.0.0}
           HOOKS_LATEST=$(gh api repos/actions/runner-container-hooks/releases --jq '.[] | select(.draft == false and .prerelease == false) | .tag_name' | grep -oP '(?<=v)[0-9.]+' | head -1)
 
           # Determine if any updates are needed and build commit message
           SHOULD_UPDATE=0
           COMMIT_MSG="Update"
 
+          # Use sed with line-anchored patterns to only update variable definitions (not usages)
           if [ "$DOCKER_CURRENT" != "$DOCKER_LATEST" ] && [ -n "$DOCKER_LATEST" ] && [ "$DOCKER_CURRENT" != "0.0.0" ]; then
             SHOULD_UPDATE=1
             COMMIT_MSG="$COMMIT_MSG Docker to v$DOCKER_LATEST,"
-            sed -i "s/DOCKER_VERSION=$DOCKER_CURRENT/DOCKER_VERSION=$DOCKER_LATEST/g" images/Makefile
+            sed -i "s/^DOCKER_VERSION ?= $DOCKER_CURRENT$/DOCKER_VERSION ?= $DOCKER_LATEST/" images/Makefile
           fi
 
           if [ "$COMPOSE_CURRENT" != "$COMPOSE_LATEST" ] && [ -n "$COMPOSE_LATEST" ] && [ "$COMPOSE_CURRENT" != "0.0.0" ]; then
             SHOULD_UPDATE=1
-            COMMIT_MSG="$COMMIT_MSG Docker Compose to v$COMPOSE_LATEST,"
-            sed -i "s/DOCKER_COMPOSE_VERSION=$COMPOSE_CURRENT/DOCKER_COMPOSE_VERSION=$COMPOSE_LATEST/g" images/Makefile
+            COMMIT_MSG="$COMMIT_MSG Docker Compose to $COMPOSE_LATEST,"
+            sed -i "s/^DOCKER_COMPOSE_VERSION ?= $COMPOSE_CURRENT$/DOCKER_COMPOSE_VERSION ?= $COMPOSE_LATEST/" images/Makefile
           fi
 
           if [ "$RUNNER_CURRENT" != "$RUNNER_LATEST" ] && [ -n "$RUNNER_LATEST" ] && [ "$RUNNER_CURRENT" != "0.0.0" ]; then
             SHOULD_UPDATE=1
             COMMIT_MSG="$COMMIT_MSG Runner to v$RUNNER_LATEST,"
-            sed -i "s/RUNNER_VERSION=$RUNNER_CURRENT/RUNNER_VERSION=$RUNNER_LATEST/g" images/Makefile
+            sed -i "s/^RUNNER_VERSION ?= $RUNNER_CURRENT$/RUNNER_VERSION ?= $RUNNER_LATEST/" images/Makefile
           fi
 
           if [ "$HOOKS_CURRENT" != "$HOOKS_LATEST" ] && [ -n "$HOOKS_LATEST" ] && [ "$HOOKS_CURRENT" != "0.0.0" ]; then
             SHOULD_UPDATE=1
             COMMIT_MSG="$COMMIT_MSG Container Hooks to v$HOOKS_LATEST,"
-            sed -i "s/RUNNER_CONTAINER_HOOKS_VERSION=$HOOKS_CURRENT/RUNNER_CONTAINER_HOOKS_VERSION=$HOOKS_LATEST/g" images/Makefile
+            sed -i "s/^RUNNER_CONTAINER_HOOKS_VERSION ?= $HOOKS_CURRENT$/RUNNER_CONTAINER_HOOKS_VERSION ?= $HOOKS_LATEST/" images/Makefile
           fi
 
           # Clean up trailing comma from the commit message
