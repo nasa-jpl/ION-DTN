@@ -7,8 +7,8 @@ TARGETPLATFORM ?= $(shell arch)
 
 RUNNER_VERSION ?= 2.334.0
 RUNNER_CONTAINER_HOOKS_VERSION ?= 0.8.1
-DOCKER_VERSION ?= 29.4.0
-DOCKER_COMPOSE_VERSION ?= v2.38.2
+DOCKER_VERSION ?= 29.4.2
+DOCKER_COMPOSE_VERSION ?= v2.40.3
 PIP_INDEX ?= ""
 
 # default list of platforms for which multiarch image is built
