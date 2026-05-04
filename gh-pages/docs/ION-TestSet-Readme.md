@@ -191,13 +191,13 @@ The `cleanup` script is responsible for two things:
 The `runtests` framework calls `./cleanup` at these points:
 
 - **Before** running `./dotest` — unconditionally, to ensure a clean starting state.
-- **After** `./dotest` exits with **0** (pass) — only if `PRESERVE_TEST_LOGS` is set.
+- **After** `./dotest` exits with **0** (pass) — by default, cleanup runs to reclaim disk space. Set `PRESERVE_TEST_LOGS=1` to skip cleanup and keep logs from passing tests.
 - **After** `./dotest` exits with **1** (fail) — **never**. Logs are always preserved on failure for debugging.
 - **After** `./dotest` exits with **2** (skip) or any other value — cleanup is **not** called.
 
-By default, `runtests` does **not** run post-test cleanup. The `dotest` script is responsible for its own shutdown (e.g., calling `ionexit` or `./cleanup` as appropriate). Pre-test cleanup always runs to guarantee a clean starting state.
+By default, `runtests` runs post-test cleanup after passing tests to prevent disk exhaustion during long CI batches. Pre-test cleanup always runs to guarantee a clean starting state. Failed test logs are always preserved regardless of settings.
 
-When `PRESERVE_TEST_LOGS` is set (`export PRESERVE_TEST_LOGS=1`), `runtests` will run `./cleanup` after passing tests to reclaim resources, but still skips cleanup after failures so logs remain available for inspection.
+When `PRESERVE_TEST_LOGS` is set to `1` (`export PRESERVE_TEST_LOGS=1`), `runtests` skips post-test cleanup after passing tests, preserving all logs for inspection. This is useful for local debugging but should not be used in CI environments with limited disk space.
 
 #### Environment isolation
 
