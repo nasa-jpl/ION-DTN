@@ -552,6 +552,7 @@ int	cfdpInit(void)
 
 		cfdpdbBuf.faultHandlers[CfdpFilestoreRejection] = CfdpCancel;
 		cfdpdbBuf.faultHandlers[CfdpCheckLimitReached] = CfdpCancel;
+		cfdpdbBuf.faultHandlers[CfdpInactivityDetected] = CfdpCancel;
 		cfdpdbBuf.usrmsgLists = sdr_list_create(sdr);
 		cfdpdbBuf.fsreqLists = sdr_list_create(sdr);
 		cfdpdbBuf.fsrespLists = sdr_list_create(sdr);
