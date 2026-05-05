@@ -2,7 +2,7 @@ name: Build and Push Runner Images to Registry
 
 on:
   push:
-    branches: ["integration"]
+    branches: [ "integration" ]
     paths:
       - "images/**"
   workflow_dispatch:
@@ -87,10 +87,12 @@ jobs:
         run: |
           # Use bash string manipulation to build the array (avoids needing jq)
           MATRIX="["
-          if [ "${{ inputs.runner_u20 != false }}" == "true" ]; then MATRIX="$MATRIX\"ubuntu-20\","; fi
-          if [ "${{ inputs.runner_u22 != false }}" == "true" ]; then MATRIX="$MATRIX\"ubuntu-22\","; fi
-          if [ "${{ inputs.runner_ol8 != false }}" == "true" ]; then MATRIX="$MATRIX\"oraclelinux-8\","; fi
-          if [ "${{ inputs.runner_ol9 != false }}" == "true" ]; then MATRIX="$MATRIX\"oraclelinux-9\","; fi
+
+          # Default to true on push events (when inputs are null/empty)
+          if [ "${{ github.event_name == 'push' || inputs.runner_u20 == true }}" == "true" ]; then MATRIX="$MATRIX\"ubuntu-20\","; fi
+          if [ "${{ github.event_name == 'push' || inputs.runner_u22 == true }}" == "true" ]; then MATRIX="$MATRIX\"ubuntu-22\","; fi
+          if [ "${{ github.event_name == 'push' || inputs.runner_ol8 == true }}" == "true" ]; then MATRIX="$MATRIX\"oraclelinux-8\","; fi
+          if [ "${{ github.event_name == 'push' || inputs.runner_ol9 == true }}" == "true" ]; then MATRIX="$MATRIX\"oraclelinux-9\","; fi
 
           # Strip the trailing comma and close the array bracket
           MATRIX="${MATRIX%,}]"
@@ -143,7 +145,7 @@ jobs:
   build-and-push-rhel8:
     name: Build and Push RHEL 8
     runs-on: arc-runner-set-rhel8
-    if: ${{ inputs.runner_rhel8 != false }}
+    if: ${{ github.event_name == 'push' || inputs.runner_rhel8 == true }}
 
     steps:
       - name: Checkout repository
@@ -177,7 +179,7 @@ jobs:
   build-and-push-rhel9:
     name: Build and Push RHEL 9
     runs-on: arc-runner-set-rhel9
-    if: ${{ inputs.runner_rhel9 != false }}
+    if: ${{ github.event_name == 'push' || inputs.runner_rhel9 == true }}
 
     steps:
       - name: Checkout repository
