@@ -995,40 +995,69 @@ While the bp_send and bp_receive APIs themselves handle internal synchronization
 
 **Application-Level Mutex Required for SDR Access**
 
-When your application uses multiple threads that need to access SDR operations or payload data, you must protect these operations with your own application-level mutex. The ION APIs handle their internal synchronization, but your application code that reads or manipulates payload data needs additional protection.
+When your application uses multiple threads that issue their own SDR transactions — for example, a sender thread that builds a payload ZCO and a receiver thread that reads the delivered payload ZCO — you must serialize those application-issued SDR transactions with your own mutex. The ION APIs handle their internal synchronization, but the SDR transactions your application opens around payload data need additional protection so that a sender thread and a receiver thread don't try to hold the SDR transaction lock at the same time.
 
-Here's an example pattern from the bpchat application that demonstrates proper mutex usage:
+**Do not hold this mutex across `bp_receive`.** `bp_receive` with `BP_BLOCKING` can block indefinitely waiting for a bundle, and it manages its own SDR transactions and endpoint semaphore internally. Locking around it would prevent any other thread from issuing SDR operations (including `bp_send`) until a bundle arrives, defeating the concurrency you wanted in the first place. Lock only around the application-issued SDR transaction that reads or manipulates the delivered payload, and release the lock before calling `bp_release_delivery`.
+
+Here's the pattern used by `bpchat` (see `bpv7/test/bpchat.c`) and `bping` (see `bpv7/test/bping.c`):
 
 ```c
-pthread_mutex_t mutex;
+pthread_mutex_t sdrmutex;   // shared with the sender thread
 
-// Thread performing bp_receive
-pthread_mutex_lock(&mutex);
-if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
+// Receiver thread
+while (running)
 {
-    pthread_mutex_unlock(&mutex);
-    // handle error
-}
+    BpDelivery dlv;
 
-// Access payload data under mutex protection
-if (dlv.result == BpPayloadPresent)
-{
-    // Work with dlv.adu and other delivery data
-    zco_source_data_length(sdr, dlv.adu, &len);
-    // ... process the data ...
-}
+    if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
+    {
+        // handle error
+        break;
+    }
 
-bp_release_delivery(&dlv, 1);
-pthread_mutex_unlock(&mutex);
+    if (dlv.result == BpReceptionInterrupted || dlv.adu == 0)
+    {
+        bp_release_delivery(&dlv, 1);
+        continue;
+    }
+    if (dlv.result == BpEndpointStopped)
+    {
+        bp_release_delivery(&dlv, 1);
+        break;
+    }
+
+    // Application-issued SDR transaction: serialize with sender thread.
+    if (pthread_mutex_lock(&sdrmutex) != 0)
+    {
+        // handle error
+        break;
+    }
+    oK(sdr_begin_xn(sdr));
+
+    // Read the payload ZCO (dlv.adu) here.
+    int len = zco_source_data_length(sdr, dlv.adu);
+    // ... zco_start_receiving / zco_receive_source ...
+
+    if (sdr_end_xn(sdr) < 0)
+    {
+        // handle error
+    }
+    pthread_mutex_unlock(&sdrmutex);
+
+    bp_release_delivery(&dlv, 1);
+}
 ```
+
+Note that `bp_receive` itself is called with no application mutex held, and `bp_release_delivery` is called after the mutex is dropped — `bp_release_delivery` performs its own SDR transaction internally and does not need (and must not be wrapped in) the application's transaction.
 
 **Key Points to Remember**
 
-* The bp_send and bp_receive APIs are thread-safe for concurrent calls from multiple threads
-* Internal synchronization is handled automatically through SDR transactions and semaphores
-* Your application must provide its own mutex protection when multiple threads access SDR data or manipulate payload contents
-* Always call bp_release_delivery after successfully receiving a bundle, even in multi-threaded scenarios
-* Ensure proper mutex ordering to avoid deadlocks if your application uses multiple locks
+* The bp_send and bp_receive APIs are thread-safe for concurrent calls from multiple threads; they manage their own SDR transactions internally.
+* Do not hold an application mutex across `bp_receive` — a blocking receive would stall every other thread that also needs the SDR.
+* Use your application mutex to serialize application-issued SDR transactions (e.g. reading the delivered payload ZCO in the receiver thread vs. building a payload ZCO in the sender thread).
+* Always pair the lock with `sdr_begin_xn` / `sdr_end_xn` (or `sdr_cancel_xn` on error), and release the mutex before calling `bp_release_delivery`.
+* Always call `bp_release_delivery` after a successful `bp_receive`, even in multi-threaded scenarios.
+* Ensure proper mutex ordering to avoid deadlocks if your application uses multiple locks.
 
 By following these guidelines, you can safely build multi-threaded applications that leverage ION's Bundle Protocol services while maintaining data integrity and avoiding race conditions.
 
