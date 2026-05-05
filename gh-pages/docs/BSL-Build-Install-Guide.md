@@ -369,6 +369,16 @@ sudo gmake install
 sudo ldconfig
 ```
 
+### `pkg-config` Path on Solaris
+
+Solaris does not include `/usr/local/lib/pkgconfig` in the default `pkg-config` search path. After installing ION, the test runner (`runtests`) will fail to detect BSL mode and skip all `.bsl` tests unless this is set:
+
+```bash
+export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
+```
+
+Add this to `~/.profile` or `~/.bashrc` for persistence. Without it, `pkg-config --cflags ion` will fail to find `ion.pc` and the test runner will treat the build as native BPSec, excluding all BSL-specific tests.
+
 ### Note on `localhost` Resolution on Solaris
 
 ION supports both IPv4 and IPv6. The `.bsl` test configs use `127.0.0.1` instead of `localhost` for clarity, but `localhost` works correctly as long as `/etc/hosts` is properly ordered.
