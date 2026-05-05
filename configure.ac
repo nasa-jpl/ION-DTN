@@ -610,8 +610,8 @@ AC_ARG_ENABLE(
       done
 
       # Expose Solaris extensions
-      if test "x$PLATFORM" = "Solaris"; then
-        CFLAGS="-D__EXTENSIONS__"
+      if test "x$PLATFORM" = "xsolaris"; then
+        CFLAGS="$CFLAGS -D__EXTENSIONS__"
       fi
 
       # Set BSL library flags
