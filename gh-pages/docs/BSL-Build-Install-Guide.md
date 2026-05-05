@@ -287,6 +287,111 @@ make clean
 make -j$(nproc)
 ```
 
+## Building on Solaris
+
+BSL can be built on Solaris 11 with some additional setup. The `build-bsl-for-ion.sh` script handles most Solaris-specific adjustments automatically, but the environment must be prepared first.
+
+### Prerequisites (Solaris 11)
+
+```bash
+sudo pkg install developer/versioning/git developer/gcc \
+    developer/build/automake developer/build/gnu-make \
+    developer/build/cmake developer/build/libtool \
+    library/python/pip developer/build/autoconf \
+    developer/build/ninja runtime/ruby developer/build/pkg-config
+```
+
+### Environment Setup
+
+Solaris requires several environment adjustments before building BSL:
+
+```bash
+# GNU Make must be the default 'make' — Solaris native make doesn't support GNU extensions
+export PATH="/usr/gnu/bin:$PATH"
+
+# Solaris doesn't have 'cc' by default; set compiler explicitly
+export CC=gcc
+export CXX=g++
+```
+
+Optionally, create a persistent `~/bin` directory for symlinks:
+
+```bash
+mkdir -p ~/bin
+ln -sf /usr/bin/gcc ~/bin/cc
+ln -sf /usr/bin/gmake ~/bin/make
+export PATH="$HOME/bin:$PATH"
+```
+
+### Solaris-Specific Issues Handled by `build-bsl-for-ion.sh`
+
+The following issues are automatically handled when `uname` reports `SunOS`:
+
+| Issue | Cause | Fix Applied |
+|-------|-------|-------------|
+| `__EXTENSIONS__` needed | Solaris requires this define to expose POSIX/XPG interfaces | `CFLAGS="$CFLAGS -D__EXTENSIONS__"` |
+| Ninja not found | BSL defaults to `-G Ninja` but Solaris CMake may not find it | Overridden to `-G "Unix Makefiles"` |
+| `jansson.h` not found | Solaris installs jansson headers under `/usr/include/jansson/` instead of `/usr/include/` | Auto-detected and passed via `-DCMAKE_INCLUDE_PATH` |
+| Valgrind unavailable | Solaris does not ship valgrind | `-DTEST_MEMCHECK=OFF` |
+
+### Solaris-Specific Issues Handled by `configure.ac`
+
+When running `./configure --enable-bsl` on Solaris, the following adjustments are made automatically:
+
+| Issue | Cause | Fix Applied |
+|-------|-------|-------------|
+| `cp -a` unsupported | Solaris `cp` doesn't support `-a` | Uses `cp -pPR` instead |
+| `-Wl,-rpath-link` unsupported | Solaris linker uses different syntax | Uses `-R${BSL_HOME}/lib` instead |
+| Jansson header detection | `AC_CHECK_HEADER` needs the include path | Temporarily adds `AM_CFLAGS` to `CFLAGS` for header checks |
+| `BSL_HOME` must be absolute | Libtool requires absolute paths | Resolved via `cd "$BSL_HOME" && pwd` |
+
+### Build Steps on Solaris
+
+```bash
+cd /path/to/ion-ios-dev
+
+# 1. Set up environment
+export PATH="/usr/gnu/bin:$PATH"
+export CC=gcc
+export CXX=g++
+
+# 2. Initialize submodules
+git submodule update --init --recursive external/BSL
+
+# 3. Build BSL (Solaris adjustments are automatic)
+./build-bsl-for-ion.sh
+
+# 4. Build ION with BSL
+autoreconf -fi
+./configure --enable-bsl
+gmake -j$(nproc)
+sudo gmake install
+sudo ldconfig
+```
+
+### Note on `localhost` Resolution on Solaris
+
+ION supports both IPv4 and IPv6. The `.bsl` test configs use `127.0.0.1` instead of `localhost` for clarity, but `localhost` works correctly as long as `/etc/hosts` is properly ordered.
+
+**Important:** On Solaris, `getent hosts` and `getaddrinfo()` may return inconsistent results because they use different NSS databases:
+- `getent hosts` → queries the `hosts` database (IPv4 only)
+- `getaddrinfo()` (used by ION) → queries the `ipnodes` database (IPv4 and IPv6)
+
+Users should verify what `getaddrinfo()` actually resolves by checking:
+```bash
+getent ipnodes localhost
+```
+
+If this returns `::1` first (because `/etc/hosts` lists `::1 localhost` before `127.0.0.1 localhost`), ION will use IPv6. This is not a problem as long as all ION processes resolve consistently and IPv6 loopback is plumbed (`ipadm show-addr lo0/v6`).
+
+If you see connection failures between nodes using `localhost`, check the order in `/etc/hosts` and ensure IPv4 comes first:
+```
+127.0.0.1 myhost localhost loghost
+::1 myhost localhost
+```
+
+Do not rely on `getent hosts` to diagnose address resolution issues — always use `getent ipnodes` to see what ION will actually resolve.
+
 ## Troubleshooting
 
 ### `undefined symbol: BSLX_BCB_Execute`

@@ -28,7 +28,14 @@ case "${1:-build}" in
         ./build.sh deps
         if [ "$(uname)" = "SunOS" ]; then
             export CFLAGS="$CFLAGS -D__EXTENSIONS__"
-            ./build.sh prep -DBUILD_TESTING=OFF -DTEST_MEMCHECK=OFF
+            JANSSON_OPTS=""
+            for dir in /usr/include/jansson /usr/local/include/jansson; do
+                if [ -f "$dir/jansson.h" ]; then
+                    JANSSON_OPTS="-DCMAKE_INCLUDE_PATH=$dir"
+                    break
+                fi
+            done
+            ./build.sh prep -DBUILD_TESTING=OFF -DTEST_MEMCHECK=OFF -G "Unix Makefiles" $JANSSON_OPTS
         else
             ./build.sh prep -DBUILD_TESTING=OFF
         fi
