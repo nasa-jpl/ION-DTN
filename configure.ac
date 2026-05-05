@@ -595,7 +595,7 @@ AC_ARG_ENABLE(
       PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DUSING_BSL=1"
 
       # Add BSL include paths (including bpv7/bsl for ION's BSL wrapper headers)
-      AM_CFLAGS="$AM_CFLAGS -I${srcdir}/bpv7/bsl -I${srcdir}/external/BSL/src -I${srcdir}/external/BSL/build/default/src -I${BSL_HOME}/include/bsl -I${BSL_HOME}/include/bsl/policy_provider -I${BSL_HOME}/include/bsl/security_context -I${BSL_HOME}/include/bsl/ION_integration -I${BSL_HOME}/include/m-lib"
+      AM_CFLAGS="$AM_CFLAGS -I${srcdir}/bpv7/bsl -I${BSL_HOME}/include/m-lib -I${srcdir}/external/BSL/src -I${srcdir}/external/BSL/build/default/src -I${BSL_HOME}/include/bsl -I${BSL_HOME}/include/bsl/policy_provider -I${BSL_HOME}/include/bsl/security_context -I${BSL_HOME}/include/bsl/ION_integration"
       PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -I${BSL_HOME}/include/bsl"
 
       # Add jansson include path for platforms where it's in a subdirectory (e.g., Solaris)
