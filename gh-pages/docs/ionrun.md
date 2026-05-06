@@ -167,16 +167,19 @@ node2_port=1114
 
 ### ionrun.ionconfig (same-host only)
 
-For same-host topologies, each node subdirectory contains an `ionrun.ionconfig` file with unique shared memory keys and SDR names to prevent conflicts between ION instances:
+For same-host topologies, each node subdirectory contains an `ionrun.ionconfig` file with unique shared memory keys, SDR working memory keys, and SDR names to prevent conflicts between ION instances:
 
 ```
 wmKey 10001
+sdrWmKey 65281
 sdrName ion1
 wmSize 50000000
 configFlags 1
 heapWords 10000000
 pathName /tmp
 ```
+
+Each node gets a unique `sdrWmKey` (derived from `SDR_SM_KEY + node_number`) so that multiple ION instances on the same host use separate SDR working memory segments.
 
 The directory layout for a 2-node same-host topology:
 
@@ -185,10 +188,10 @@ workdir/
   ionrun.meta
   node1/
     ionrun.rc
-    ionrun.ionconfig    # wmKey 10001, sdrName ion1
+    ionrun.ionconfig    # wmKey 10001, sdrWmKey 65281, sdrName ion1
   node2/
     ionrun.rc
-    ionrun.ionconfig    # wmKey 10002, sdrName ion2
+    ionrun.ionconfig    # wmKey 10002, sdrWmKey 65282, sdrName ion2
 ```
 
 ### Per-Node Subdirectories
@@ -605,4 +608,5 @@ Same-host ionconfig defaults:
 | Working memory (wmSize) | 50,000,000 bytes (50 MB) |
 | Heap words (heapWords) | 10,000,000 |
 | Shared memory key (wmKey) | 10001, 10002, ... (unique per node) |
+| SDR working memory key (sdrWmKey) | 65281, 65282, ... (SDR_SM_KEY + node, unique per node) |
 | SDR name (sdrName) | ion1, ion2, ... (unique per node) |

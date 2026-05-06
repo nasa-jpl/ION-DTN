@@ -1509,9 +1509,11 @@ generate_local_ionconfig() {
     local dir="$1" idx="$2"
     local n=$((idx + 1))
     local wmkey=$((10000 + n))
+    local sdr_wmkey=$((65280 + n))
     local sdr_name="ion${NODE_IDS[$idx]}"
     cat > "$dir/ionrun.ionconfig" <<EOF
 wmKey $wmkey
+sdrWmKey $sdr_wmkey
 sdrName $sdr_name
 wmSize $CFG_WMSIZE
 configFlags 1
