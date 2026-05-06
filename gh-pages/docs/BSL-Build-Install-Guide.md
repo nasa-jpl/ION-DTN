@@ -44,16 +44,49 @@ git submodule update --init --recursive
 cd ../..
 ```
 
-### Step 2: Build and Install ION with BSL
+### Step 2: Build BSL
+
+BSL must be built **before** running `./configure --enable-bsl`, because configure resolves `BSL_HOME` to an absolute path and verifies headers exist.
+
+```bash
+./build-bsl-for-ion.sh
+```
+
+Verify it completed:
+```bash
+ls external/BSL/testroot/usr/include/m-lib/m-bstring.h
+ls external/BSL/testroot/usr/lib/libbsl_front.so
+```
+
+**When to rebuild BSL:**
+
+```bash
+./build-bsl-for-ion.sh clean
+./build-bsl-for-ion.sh
+```
+
+Rebuild BSL when:
+- The BSL submodule is updated (`git submodule update external/BSL`)
+- BSL's dependencies change (QCBOR, mlib, Unity versions bumped)
+- Switching platforms or compilers (e.g., different GCC version)
+- The `testroot/` directory is missing or corrupted (headers or libraries absent)
+- You see build errors referencing missing BSL headers (`m-bstring.h`, `bsl_front.h`, `qcbor.h`)
+
+You do **not** need to rebuild BSL when:
+- Only ION source files change (rerun `make` only)
+- Reconfiguring ION with different options unrelated to BSL
+- Running tests
+
+### Step 3: Build and Install ION with BSL
 
 ```bash
 # Generate configure script (if not already present)
 autoreconf -fi
 
-# Configure with BSL enabled
+# Configure with BSL enabled (BSL_HOME must already exist)
 ./configure --enable-bsl
 
-# Build (automake builds BSL first, then builds ION linking against BSL)
+# Build
 make -j$(nproc)
 
 # Install
