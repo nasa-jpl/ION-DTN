@@ -1,14 +1,14 @@
 /*
  * ion_atomic.h: Portable atomic operations for ION-DTN.
  *
- * NOTE ON VISIBILITY
- * ------------------
- * This header is INTERNAL to the ION library.  It is no longer
- * installed as part of the public include set; integrators link
- * against the ION C library and see only the opaque public type
- * `ion_ipc_atomic_t` defined in ion.h.  The Zone-1 type
- * `ion_atomic_t`, the tier dispatch ladder, and all accessor
- * macros below are visible only to ION's own translation units.
+ * PUBLIC HEADER — INCLUDED VIA ion.h
+ * -----------------------------------
+ * This header is installed as part of the public ICI include set
+ * and is included transitively by ion.h.  External consumers
+ * (e.g., independently-built CLAs such as ltpcli) may include it
+ * directly.  The public-facing type `ion_ipc_atomic_t` is defined
+ * redundantly in both ion.h and here, guarded by
+ * ION_IPC_ATOMIC_OPAQUE_DEFINED to tolerate any include order.
  *
  * Two atomic zones and a tier ladder
  * ----------------------------------
@@ -383,15 +383,27 @@ typedef _Atomic(vast) ion_ipc_atomic_impl_t;
 /*
  * Tier 2: GCC/Clang __atomic built-ins.
  *
- * Uses __ATOMIC_RELAXED to match the ordering of the C11 path above.
- * On ARM/AArch64 this permits the compiler to emit plain loads/stores
- * and LDADD (ARMv8.1) instead of the full DMB ISH barriers that the
- * legacy __sync built-ins always emit.
+ * Uses __ATOMIC_RELAXED because the sole current consumer of Zone 2
+ * is TallyDelta — a pair of statistical accumulators (count + bytes)
+ * incremented on hot paths and drained once per second by a clock
+ * daemon via atomic_exchange.  No inter-thread ordering is required
+ * for these counters; a stale read is harmless and will be corrected
+ * on the next drain cycle.  If Zone 2 atomics are ever used for
+ * inter-thread synchronization (flags, publish/subscribe, etc.),
+ * the ordering must be strengthened to __ATOMIC_ACQUIRE /
+ * __ATOMIC_RELEASE / __ATOMIC_ACQ_REL as appropriate.
  *
- * The typedef matches Tier 3 (volatile vast) so internal layouts are
- * binary-compatible between the two __sync / __atomic fallback tiers.
+ * On ARM/AArch64, RELAXED permits the compiler to emit plain
+ * loads/stores and LDADD (ARMv8.1) instead of the full DMB ISH
+ * barriers that the legacy __sync built-ins always emit.
+ *
+ * The volatile qualifier is intentionally absent: __atomic builtins
+ * enforce their own memory visibility guarantees via the ordering
+ * parameter.  Adding volatile would needlessly inhibit optimizations
+ * (e.g., preventing the compiler from eliding redundant loads in a
+ * tight loop) with no correctness benefit.
  */
-typedef volatile vast ion_ipc_atomic_impl_t;
+typedef vast ion_ipc_atomic_impl_t;
 
 #define ION_IPC_ATOMIC_IMPL(p) ((ion_ipc_atomic_impl_t *)(void *)(p))
 
