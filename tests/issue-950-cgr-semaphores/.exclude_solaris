@@ -1,0 +1,2 @@
+This test verifies POSIX named semaphore counts via /dev/shm/sem.*,
+which is Linux-glibc-specific.

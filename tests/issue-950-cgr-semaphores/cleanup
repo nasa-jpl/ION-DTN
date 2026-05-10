@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+echo "Cleaning up old ION..."
+rm -f ion_nodes ion.log
+export ION_NODE_LIST_DIR=$PWD
+killm f

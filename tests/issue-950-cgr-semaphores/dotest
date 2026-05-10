@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# CGR semaphore-footprint regression for issue #950.
+#
+# CGR previously allocated one POSIX semaphore per per-contact
+# citations sm_list and per-route hops sm_list, which on a dense
+# contact plan could exhaust SEM_NSEMS_MAX.  The fix replaced
+# those with the unlocked sm_list variant (which sets the lock
+# field to SM_SEM_NONE).  This test brings up CGR with a 1680-
+# contact plan, drives route discovery to many destinations, and
+# asserts that the live count of /dev/shm/sem.* stays well below
+# what a regressed CGR would consume.
+
+CONFIGFILES=" \
+./amroc.ltprc \
+./amroc.bprc \
+./amroc.ionconfig \
+./global.ionrc \
+./amroc.ionrc \
+./amroc.ionsecrc \
+./amroc.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify that CGR's semaphore footprint remains
+    near the BP/LTP scaffolding floor when running against a
+    dense contact plan.  Catches regressions of the unlocked
+    sm_list variant introduced for issue #950."
+echo
+echo "CONFIG: 1 node, contact graph spanning 16 nodes with"
+echo "        7 sequential 500s contact windows per ordered pair"
+echo "        (1680 contacts total)."
+echo
+for N in $CONFIGFILES
+do
+    echo "$N:"
+    if [ "$N" = "./global.ionrc" ]
+    then
+        head -5 "$N"
+        echo "    (... $(grep -c '^a contact' $N) contact lines"
+        echo "         and $(grep -c '^a range' $N) range lines"
+        echo "         omitted from preamble ...)"
+    else
+        cat "$N"
+    fi
+    echo "# EOF"
+    echo
+done
+
+echo "OUTPUT: live count of /dev/shm/sem.* before and after"
+echo "        driving CGR.  PASS iff post-traffic count is"
+echo "        below threshold."
+echo
+echo "########################################"
+
+echo "Cleaning up old ION..."
+rm -f ion.log
+killm
+sleep 1
+
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+echo "Starting ION (node 1)..."
+./ionstart
+../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+    echo ""
+else
+    echo "Node not started: aborting test"
+    exit 1
+fi
+
+# Let the daemons settle so the baseline count reflects the
+# steady-state scaffolding (BP/LTP/SDR semaphores), not partial
+# startup state.
+sleep 3
+
+BASELINE=$(ls /dev/shm/sem.* 2>/dev/null | wc -l | tr -d ' ')
+echo "Baseline /dev/shm/sem.* count after startup: $BASELINE"
+
+# Drive CGR route discovery to a wide range of destinations.
+# The local node has direct outducts only to ipn:2/3/4, so
+# bundles destined elsewhere force CGR to walk the contact
+# graph and would (pre-fix) lazily allocate a citations sm_list
+# per cited contact.
+echo "Driving CGR route discovery..."
+for dest in 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+do
+    bptrace ipn:1.1 ipn:${dest}.1 ipn:1.0 60 1.1 "issue-950-probe" \
+        > /dev/null 2>&1
+done
+
+# Allow CGR to finish exploring K-shortest-path spurs.
+sleep 5
+
+SEM_COUNT=$(ls /dev/shm/sem.* 2>/dev/null | wc -l | tr -d ' ')
+DELTA=$((SEM_COUNT - BASELINE))
+echo "Post-traffic /dev/shm/sem.* count: $SEM_COUNT (delta $DELTA)"
+
+# Tear down explicitly so the trap doesn't race with the assertion.
+echo "Stopping ION..."
+killm
+sleep 1
+
+# A regressed (locked-sm_list) CGR on this contact plan would
+# add roughly N_cited_contacts + N_cached_routes semaphores on
+# top of the scaffolding floor (~200-400 per the issue).  At
+# 1680 contacts the post-traffic count would land well above
+# 1500.  THRESHOLD=800 sits clearly between the two regimes.
+THRESHOLD=800
+if [ "$SEM_COUNT" -ge "$THRESHOLD" ]
+then
+    echo "FAIL: semaphore count $SEM_COUNT >= threshold $THRESHOLD"
+    echo "      CGR per-list semaphores may have regressed."
+    exit 1
+fi
+
+echo "PASS: semaphore count $SEM_COUNT < threshold $THRESHOLD"
+exit 0
