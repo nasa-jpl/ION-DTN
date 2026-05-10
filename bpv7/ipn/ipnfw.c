@@ -1323,7 +1323,6 @@ int	main(void)
 		{
 			sdr_cancel_xn(sdr);
 			putErrmsg("Can't enqueue bundle.", NULL);
-			running = 0;	/*	Terminate loop.		*/
 			continue;
 		}
 

@@ -738,8 +738,9 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 		route->hops = sm_list_create(ionwm);
 		if (route->hops == 0)
 		{
-			putErrmsg("Can't create CGR route hops list.", NULL);
-			return -1;
+			writeMemo("[i] CGR: skipping route - can't"
+					" create hops list.");
+			return 0;
 		}
 
 		earliestEndTime = MAX_TIME;
@@ -779,9 +780,10 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 				contact->citations = sm_list_create(ionwm);
 				if (contact->citations == 0)
 				{
-					putErrmsg("Can't create citation list.",
-							NULL);
-					return -1;
+					writeMemo("[i] CGR: skipping route -"
+						" can't create citation"
+						" list.");
+					return 0;
 				}
 			}
 
@@ -992,7 +994,12 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 	}
 
 	excludedEdges = sm_list_create(ionwm);
-	CHKERR(excludedEdges);
+	if (excludedEdges == 0)
+	{
+		writeMemo("[i] CGR: skipping spur - can't create"
+				" excludedEdges list.");
+		return 0;
+	}
 
 	/*	Suppress contacts that would introduce loops, i.e.,
 	 *	all contacts on the root path for this spur path.
