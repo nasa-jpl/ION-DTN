@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# shell script to get node running
-ionadmin	amroc.ionrc
-
-ionadmin	global.ionrc
+# Start the node WITHOUT loading the contact graph.
+# global.ionrc is loaded later from dotest, after baseline,
+# so that the test can attribute any subsequent semaphore
+# growth to CGR's per-contact bookkeeping.
+ionadmin		amroc.ionrc
 
 ionsecadmin	amroc.ionsecrc
 
