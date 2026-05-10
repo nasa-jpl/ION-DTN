@@ -585,7 +585,7 @@ extern int getpriority(int, id_t);
 
 #ifndef SEM_NSEMS_MAX
 // larger because these are global on the node across ALL Ion instances - 256 is fine for a single instance
-#define	SEM_NSEMS_MAX		2048
+#define	SEM_NSEMS_MAX		8192
 #endif
 
 #endif				/****	End of #ifdef solaris	     ****/
@@ -656,7 +656,7 @@ typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
 /* allow the default to be overwritten */
 #ifndef SEM_NSEMS_MAX
 // larger because these are global on the node across ALL Ion instances - 256 is fine for a single instance
-#define	SEM_NSEMS_MAX		2048
+#define	SEM_NSEMS_MAX		8192
 #endif
 
 #include <asm/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
@@ -685,7 +685,7 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 
 /* ADD THIS SECTION: */
 #ifndef SEM_NSEMS_MAX
-#define	SEM_NSEMS_MAX		2048
+#define	SEM_NSEMS_MAX		8192
 #endif
 
 
@@ -724,7 +724,7 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 /* allow the default to be overwritten */
 #ifndef SEM_NSEMS_MAX
 // larger because these are global on the node across ALL Ion instances - 256 is fine for a single instance
-#define	SEM_NSEMS_MAX		2048
+#define	SEM_NSEMS_MAX		8192
 #endif
 
 int pthread_setname_np(const char *name);
