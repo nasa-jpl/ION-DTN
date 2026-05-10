@@ -73,11 +73,21 @@ static void	eraseListElt(SmListElt *elt)
 
 static int	lockSmlist(SmList *list)
 {
+	if (list->lock == SM_SEM_NONE)
+	{
+		return 0;
+	}
+
 	return sm_SemTake(list->lock);
 }
 
 static void	unlockSmlist(SmList *list)
 {
+	if (list->lock == SM_SEM_NONE)
+	{
+		return;
+	}
+
 	sm_SemGive(list->lock);
 }
 
@@ -106,6 +116,30 @@ PsmAddress	Sm_list_create(const char *fileName, int lineNbr,
 	listBuffer = (SmList *) psp(partition, list);
 	eraseList(listBuffer);
 	listBuffer->lock = lock;
+	return list;
+}
+
+/*	An unlocked sm_list has list->lock == SM_SEM_NONE; lockSmlist
+ *	and unlockSmlist treat that as a no-op.  Safe only when the
+ *	caller guarantees serialization by some other means (e.g. a
+ *	surrounding SDR transaction).					*/
+
+PsmAddress	Sm_list_create_unlocked(const char *fileName, int lineNbr,
+			PsmPartition partition)
+{
+	PsmAddress	list;
+	SmList		*listBuffer;
+
+	list = Psm_zalloc(fileName, lineNbr, partition, sizeof(SmList));
+	if (list == 0)
+	{
+		putErrmsg("Can't allocate space for list header.", NULL);
+		return 0;
+	}
+
+	listBuffer = (SmList *) psp(partition, list);
+	eraseList(listBuffer);
+	listBuffer->lock = SM_SEM_NONE;
 	return list;
 }
 
@@ -153,10 +187,14 @@ static int	wipeList(const char *fileName, int lineNbr,
 	eraseList(listBuffer);
 	if (destroy)
 	{
-		sm_SemEnd(listBuffer->lock);
-		microsnooze(50000);
-		sm_SemDelete(listBuffer->lock);
-		listBuffer->lock = SM_SEM_NONE;
+		if (listBuffer->lock != SM_SEM_NONE)
+		{
+			sm_SemEnd(listBuffer->lock);
+			microsnooze(50000);
+			sm_SemDelete(listBuffer->lock);
+			listBuffer->lock = SM_SEM_NONE;
+		}
+
 		Psm_free(fileName, lineNbr, partition, list);
 	}
 	else

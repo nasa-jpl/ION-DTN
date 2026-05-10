@@ -280,7 +280,7 @@ CgrVdb	*cgr_get_vdb(void)
 
 	vdb = (CgrVdb *) psp(ionwm, vdbAddress);
 	memset((char *) vdb, 0, sizeof(CgrVdb));
-	if ((vdb->routingObjects = sm_list_create(ionwm)) == 0
+	if ((vdb->routingObjects = sm_list_create_unlocked(ionwm)) == 0
 	|| psm_catlg(ionwm, name, vdbAddress) < 0)
 	{
 		sdr_exit_xn(sdr);
@@ -735,7 +735,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 		 *	backtracking to root, and compute the time
 		 *	at which the route will become unusable.	*/
 
-		route->hops = sm_list_create(ionwm);
+		route->hops = sm_list_create_unlocked(ionwm);
 		if (route->hops == 0)
 		{
 			writeMemo("[i] CGR: skipping route - can't"
@@ -777,7 +777,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 
 			if (contact->citations == 0)
 			{
-				contact->citations = sm_list_create(ionwm);
+				contact->citations = sm_list_create_unlocked(ionwm);
 				if (contact->citations == 0)
 				{
 					writeMemo("[i] CGR: skipping route -"
@@ -993,7 +993,7 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 		clearWorkAreas((IonCXref *) psp(ionwm, rootOfSpurAddr));
 	}
 
-	excludedEdges = sm_list_create(ionwm);
+	excludedEdges = sm_list_create_unlocked(ionwm);
 	if (excludedEdges == 0)
 	{
 		writeMemo("[i] CGR: skipping spur - can't create"
@@ -2204,7 +2204,7 @@ static int	loadCriticalBestRoutesList(IonNode *terminusNode,
 
 	if (routingObj->proximateNodes == 0)
 	{
-		routingObj->proximateNodes = sm_list_create(ionwm);
+		routingObj->proximateNodes = sm_list_create_unlocked(ionwm);
 		if (routingObj->proximateNodes == 0)
 		{
 			putErrmsg("Can't build list of proximate nodes.",
@@ -2388,14 +2388,14 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 	{
 		/*	Must initialize routing object for CGR.		*/
 
-		routingObj->selectedRoutes = sm_list_create(ionwm);
+		routingObj->selectedRoutes = sm_list_create_unlocked(ionwm);
 		if (routingObj->selectedRoutes == 0)
 		{
 			putErrmsg("Can't initialize CGR routing.", NULL);
 			return -1;
 		}
 
-		routingObj->knownRoutes = sm_list_create(ionwm);
+		routingObj->knownRoutes = sm_list_create_unlocked(ionwm);
 		if (routingObj->knownRoutes == 0)
 		{
 			putErrmsg("Can't initialize CGR routing.", NULL);
