@@ -15,6 +15,20 @@
     - [Miscellaneous Rules](#miscellaneous-rules)
   - [SDR Transaction](#sdr-transaction)
   - [Static Analysis Notes](#static-analysis-notes)
+    - [Null Pointer Dereference — Shared Memory Lookups](#null-pointer-dereference--shared-memory-lookups)
+    - [Null Pointer Dereference — Callback Parameters](#null-pointer-dereference--callback-parameters)
+    - [File System Race Condition (TOCTOU)](#file-system-race-condition-toctou)
+    - [Double Lock / Double Unlock — Session Teardown](#double-lock--double-unlock--session-teardown)
+    - [Unreasonable Size Argument](#unreasonable-size-argument)
+    - [Coercion Alters Value](#coercion-alters-value)
+    - [Cast Alters Value](#cast-alters-value)
+    - [Ignored Return Value](#ignored-return-value)
+    - [Useless Assignment — sm_TaskVar() Pattern](#useless-assignment--sm_taskvar-pattern)
+    - [Unreachable Data Flow / Computation / Call](#unreachable-data-flow--unreachable-computation--unreachable-call)
+    - [Redundant Condition](#redundant-condition)
+    - [Empty if Statement](#empty-if-statement)
+    - [Dangerous Function Cast](#dangerous-function-cast)
+    - [Tainted Buffer Access](#tainted-buffer-access)
 
 ## Preface
 
@@ -797,3 +811,79 @@ Functions like `memcpy`, `strncmp`, and `malloc` are flagged when the size param
 CodeSonar flags narrowing conversions from `uvast` (64-bit) to smaller types (e.g., `int`, `unsigned int`) in admin command parsing and EID handling.
 
 **Guidance:** These are generally acceptable when the value range is constrained by the protocol (e.g., node numbers fit in 32 bits for 2-part IPN, service numbers are small integers). Add an explicit cast with a range check only when the value originates from external/untrusted input and could realistically exceed the target type's range.
+
+### Cast Alters Value
+
+Similar to Coercion Alters Value, but flagged for explicit casts rather than implicit conversions. Common in `ipnadmin.c`, `libipnfw.c`, and `tcpcli.c` where pointer-to-integer or wider-to-narrower casts are used for IPC data (e.g., storing a length in a `saddr` passed through `lyst_data()`).
+
+**Guidance:** Same as Coercion Alters Value. These casts are intentional and the values are range-constrained by protocol definitions.
+
+### Ignored Return Value
+
+CodeSonar flags calls to functions like `fseek()`, `sdr_list_data()`, `psp()`, and `lyst_first()` where the return value is either assigned but not compared to an error sentinel, or entirely discarded.
+
+**Common patterns in ION:**
+- **SDR/PSM accessors** (`sdr_list_data`, `psp`, `sm_list_data`): These do not have a traditional error return. NULL indicates fatal PSM corruption handled at a higher level, not a per-call recoverable condition.
+- **File I/O in utilities** (`fseek`, `fread` in `metadata.c`): These operate on files just created by the same process. I/O errors indicate hardware failure, not a programmatic condition.
+- **Best-effort operations** (CGR routing, multicast forwarding): Individual sub-operations may fail without invalidating the overall operation. The function proceeds with partial results.
+
+**Guidance:** Return values should be checked when failure indicates a recoverable condition that changes control flow. Do not add checks purely to satisfy the analyzer when the only possible response would be to abort (which ION already handles via transaction rollback or process termination).
+
+### Useless Assignment — `sm_TaskVar()` Pattern
+
+ION's semaphore-accessor functions (e.g., `_ipnfwSemaphore`, `ltpcloSemaphore`, `bsspcloSemaphore`) use the `sm_TaskVar()` pattern:
+
+```c
+static int *_fooSemaphore(int *newValue)
+{
+    void *value;
+    if (newValue)           /* Set branch */
+    {
+        value = (void *) (*newValue);
+        /* CodeSonar flags this assignment as "useless" */
+    }
+    return (int *) sm_TaskVar(&value);
+}
+```
+
+CodeSonar sees only one branch per call and flags the assignment as useless. In reality, the value is consumed by `sm_TaskVar` through the pointer.
+
+**Also flagged:** CBOR serialization macros that update cursor/length variables consumed by subsequent macro expansions, and loop variables initialized before a `for` that the analyzer considers redundant.
+
+### Unreachable Data Flow / Unreachable Computation / Unreachable Call
+
+CodeSonar determines that certain code paths are unreachable based on prior condition checks or compile-time constants.
+
+**Common patterns:**
+- **AMP (Application Management Protocol) generated accessors** (`adm_bpsec_impl.c`): Template-generated functions with uniform error handling where specific error branches are unreachable for specific accessor instances but exist for template uniformity.
+- **Exhaustive switch/if-else with default case**: Functions that handle all current enum values but include a default/else clause for future values or configuration portability.
+- **Build-configuration-dependent paths**: Code guarded by constants (protocol versions, feature flags) that eliminate paths in a specific build but are valid in others.
+
+**Guidance:** Do not remove these "unreachable" paths. They serve as defensive coding for future enum extensions, cross-configuration portability, and template uniformity. Removing them would create maintenance burden when new values are added.
+
+### Redundant Condition
+
+CodeSonar flags conditions that are always true or always false given the preceding control flow. Common in `bpsecadmin.c` JSON parsing where multiple validation layers check overlapping conditions.
+
+**Why these are intentional:** The BPSec admin parser functions are called from multiple contexts with different precondition guarantees. The "redundant" conditions provide safety without relying on caller discipline — a function validates its own inputs regardless of what the caller already checked. This is deliberate defensive programming for security-critical code (key management, policy rules).
+
+### Empty if Statement
+
+ION uses the `oK()` macro pattern:
+
+```c
+if (condition)
+{
+    /* intentionally empty — side effect is in the condition */
+}
+```
+
+Or more commonly, `oK(someFunction())` where the function is called for its side effects and the return value is explicitly discarded via the `oK` macro. CodeSonar sometimes flags the expanded form as an "empty if" when the macro expands to a conditional.
+
+### Dangerous Function Cast
+
+Signal handler registration (`isignal()`, `signal()`) requires casting between `void(*)(int)` and platform-specific handler signatures. This is standard POSIX practice and unavoidable without platform-specific wrappers (which ION provides via `isignal` in `platform.h`).
+
+### Tainted Buffer Access
+
+Flagged in test utilities (`bpsendtest`, `bpdriver`) that read command-line arguments into fixed buffers. These are test/development tools run in controlled environments, not production daemons exposed to untrusted input. Buffer sizes are adequate for their intended use (EID strings, file paths within OS limits).
