@@ -13,6 +13,8 @@
     - [Indentation, Bracketing, Whitespace](#indentation-bracketing-whitespace)
     - [Comment Formatting](#comment-formatting)
     - [Miscellaneous Rules](#miscellaneous-rules)
+  - [SDR Transaction](#sdr-transaction)
+  - [Static Analysis Notes](#static-analysis-notes)
 
 ## Preface
 
@@ -751,3 +753,47 @@ The choice between `sdr_end_xn()` and `sdr_exit_xn()` depends on the intent of t
 * Situation C: All transactions and modifications are nominal. In this case, call `sdr_end_xn.`
 
 The implementation must be able to discern between situations A and B. When one cannot make certain that the SDR will be in operation state due to a complex transaction failure case, or due to system errors, one one should default to A and issue transaction cancellation and rely on reversibility in order to avoid leaving the SDR in an inconsistent state.
+
+## Static Analysis Notes
+
+Static analysis tools (CodeSonar, Coverity, cppcheck) flag certain patterns in ION that are **not bugs** given ION's architecture and fault model. The following documents known false-positive categories to help developers triage warnings efficiently.
+
+### Null Pointer Dereference — Shared Memory Lookups
+
+ION's `psp()`, `sm_list_data()`, and `sdr_list_data()` functions return pointers into shared memory (PSM) or the SDR heap. Static analyzers flag every dereference of these return values because the functions *could* theoretically return NULL.
+
+**Why these are false positives in ION:** The addresses passed to `psp()` are stored by ION's own data structure management layer. They are written during validated insertion operations (e.g., `sm_list_insert`, `sdr_list_insert`) and are only read within the same transaction context or after the insertion transaction committed successfully. A NULL return from `psp()` would indicate PSM corruption — a fatal system condition handled at a higher level (ION restarts), not a recoverable error within individual functions.
+
+**Guidance:** Do not add NULL checks after `psp()` / `sm_list_data()` / `sdr_list_data()` unless the address itself could be zero (e.g., an optional field). Adding unnecessary checks clutters the code and creates dead branches.
+
+### Null Pointer Dereference — Callback Parameters
+
+Container callbacks (comparison functions for `sm_rbt`, `sm_list`, radix trees) receive data pointers from the container infrastructure. These are guaranteed non-NULL by the container's insertion invariants. CodeSonar cannot see through the callback indirection and flags every parameter dereference.
+
+### File System Race Condition (TOCTOU)
+
+ION utilities (`sendfile`, `recvfile`, `metadata.c`) use standard POSIX file operations. CodeSonar flags the inherent race between filename resolution and file operations (e.g., `fopen`, `stat`, `remove`, `rename`).
+
+**Why these are not exploitable in ION:** ION file utilities operate on locally-managed temporary files with randomized names, or on user-specified files in a single-user context. No untrusted actors share the file namespace in ION's operational environment (embedded spacecraft systems, dedicated ground stations). There is no privilege boundary crossed between the check and the use.
+
+**Exception:** If ION is ever deployed in a multi-tenant environment with shared directories, these patterns should be revisited.
+
+### Double Lock / Double Unlock — Session Teardown
+
+The TCPCL adapter (`tcpcli.c`) uses a deliberate "unlock before destroy" pattern in `endSession()`: mutexes are unconditionally unlocked before `pthread_mutex_destroy()` to ensure they are not held during destruction, regardless of which error path led to teardown.
+
+**Why this is intentional:** Session teardown can be initiated from multiple threads (clock, receiver, sender). The unconditional unlock ensures `pthread_mutex_destroy()` does not encounter a locked mutex, which is undefined behavior on some platforms. The redundant unlock of an already-unlocked `PTHREAD_MUTEX_DEFAULT` is technically UB per POSIX, but is a deliberate safety pattern that is benign on Linux/glibc (returns EPERM silently).
+
+### Unreasonable Size Argument
+
+Functions like `memcpy`, `strncmp`, and `malloc` are flagged when the size parameter could theoretically be negative (when stored as a signed type that gets implicitly converted to `size_t`).
+
+**Common patterns:**
+- **Serialization lengths from internal helpers** (e.g., `bpsec_rfc9173utl_outBlkHdrSerialize`): These return -1 on error, but callers only invoke them after verifying preconditions (block exists, bundle is valid). The error path is unreachable in practice.
+- **Pointer subtraction for EID parsing** (e.g., `traceEid_dot - traceEid_num`): IPN EIDs are validated by the BP layer (`parseEidString`) before reaching these functions. The format `ipn:X.Y` guarantees the colon precedes the dot.
+
+### Coercion Alters Value
+
+CodeSonar flags narrowing conversions from `uvast` (64-bit) to smaller types (e.g., `int`, `unsigned int`) in admin command parsing and EID handling.
+
+**Guidance:** These are generally acceptable when the value range is constrained by the protocol (e.g., node numbers fit in 32 bits for 2-part IPN, service numbers are small integers). Add an explicit cast with a range check only when the value originates from external/untrusted input and could realistically exceed the target type's range.
