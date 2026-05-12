@@ -44,13 +44,14 @@
 #include "rda.h"
 
 #include "instr.h"
+#include "ion_atomic.h"
 
 static void agent_signal_handler(int signum);
 
 
 // Definitions of global data.
 iif_t        ion_ptr;
-static volatile sig_atomic_t g_agent_running = 0;
+static ion_atomic_t g_agent_running = ION_ATOMIC_INIT(0);
 eid_t        manager_eid;
 eid_t        agent_eid;
 
@@ -220,7 +221,8 @@ int main(int argc, char *argv[])
 
 
 	/* Step 5: Start agent threads. */
-	g_agent_running = 1;
+	ion_atomic_set(&g_agent_running, 1);
+
 	/*! use pthread_begin() so thread can be named and have its stacksize adjusted on some OS's */
 	/*! and provide threads with a pointer to g_agent_running, so threads will shutdown */
 	rc = pthread_begin(&ingest_thr, NULL, rx_thread, (void *)(uintptr_t)&g_agent_running, "nmagent_ingest");
@@ -315,5 +317,5 @@ static void agent_signal_handler(int signum)
 	isignal(SIGINT, agent_signal_handler);
 	isignal(SIGTERM, agent_signal_handler);
 
-	g_agent_running = 0;
+	ion_atomic_set(&g_agent_running, 0);
 }

@@ -39,6 +39,7 @@
 #include "ui_input.h"
 #include "nm_mgr_print.h"
 #include "metadata.h"
+#include "ion_atomic.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -145,12 +146,12 @@ form_fields_t db_conn_form_fields[] = {
 #endif
 
 int gContext;
-volatile sig_atomic_t *global_nm_running;
+ion_atomic_t *global_nm_running;
 mgr_ui_mode_enum mgr_ui_mode = MGR_UI_DEFAULT;
 
 /* Prototypes */
-void ui_eventLoop(volatile sig_atomic_t *running);
-void ui_ctrl_list_menu(volatile sig_atomic_t *running);
+void ui_eventLoop(ion_atomic_t *running);
+void ui_ctrl_list_menu(ion_atomic_t *running);
 
 #ifdef HAVE_MYSQL
 void ui_db_menu(int *running);
@@ -619,7 +620,7 @@ int ui_automator_parse_input(char *str)
 		else if (strncmp(token, "EXIT_SHUTDOWN", 16) == 0)
 		{
 			printf("Signaling Manager Shutdown . . . \n");
-			*global_nm_running = 0;
+			ion_atomic_set(global_nm_running, 0);
 			return 1;
 		}
 		break;
@@ -705,7 +706,7 @@ int ui_automator_parse_input(char *str)
 
 	return 1;
 }
-void ui_automator_run(volatile sig_atomic_t *running)
+void ui_automator_run(ion_atomic_t *running)
 {
 	char line[MAX_INPUT_BYTES];
 	int len;
@@ -747,7 +748,7 @@ void ui_automator_run(volatile sig_atomic_t *running)
  *  --------  ------------   ---------------------------------------------
  *  10/15/18  D.Edell        Initial NCURSES implementation based on original UI
  *****************************************************************************/
-void ui_eventLoop(volatile sig_atomic_t *running)
+void ui_eventLoop(ion_atomic_t *running)
 {
 	int choice; // Last user menu selection
 	char msg[128] = ""; // User (error) message to append to menu
@@ -756,7 +757,7 @@ void ui_eventLoop(volatile sig_atomic_t *running)
 
 	ui_init();
 
-	while(*running)
+	while(ion_atomic_get(running))
 	{
 		if (mgr_ui_mode == MGR_UI_AUTOMATOR)
 		{
@@ -769,7 +770,7 @@ void ui_eventLoop(volatile sig_atomic_t *running)
 
 			if (choice == MAIN_MENU_EXIT)
 			{
-				*running = 0;
+				ion_atomic_set(running, 0);
 				break;
 			} else {
 				switch(choice)
@@ -1396,11 +1397,7 @@ void ui_send_raw(agent_t* agent, uint8_t enter_ts)
 
 void *ui_thread(void *arg)
 {
-	/* * Cast the generic void* argument back to the true volatile type.
-	 * DO NOT remove 'volatile' or the -O2 compiler will cache the value 
-	 * in a register and the thread will never shut down cleanly.
-	 */
-	volatile sig_atomic_t *running = (volatile sig_atomic_t *) arg;
+	ion_atomic_t *running = (ion_atomic_t *) arg;
 
 	AMP_DEBUG_ENTRY("ui_thread","(0x%x)", (size_t) running);
 
@@ -1647,7 +1644,7 @@ int ui_db_clear_rpt()
 
 #endif
 
-void ui_ctrl_list_menu(volatile sig_atomic_t *running)
+void ui_ctrl_list_menu(ion_atomic_t *running)
 {
 	int choice;
 	int n_choices = ARRAY_SIZE(ctrl_menu_list_choices);
@@ -1681,7 +1678,7 @@ void ui_ctrl_list_menu(volatile sig_atomic_t *running)
 	sprintf(ctrl_menu_list_descriptions[9], "(%d known)",  gVDB.vars.num_elts);
 
 
-	while(*running)
+	while(ion_atomic_get(running))
 	{
 		choice = ui_menu("ADM Object Information Lists", ctrl_menu_list_choices, ctrl_menu_list_descriptions, n_choices,
 				((new_msg==0) ? NULL : msg)
@@ -2506,7 +2503,7 @@ int ui_menu(char* title, char** choices, char** descriptions, int n_choices, cha
 	post_menu(my_menu);
 	wrefresh(my_menu_win);
 
-	while(*global_nm_running && running && (c = wgetch(my_menu_win)) != KEY_F(1))
+	while(ion_atomic_get(global_nm_running) && running && (c = wgetch(my_menu_win)) != KEY_F(1))
 	{
 		show_panel(my_pan);
 		update_panels();
@@ -2655,7 +2652,7 @@ int ui_menu_listing(
 		set_current_item(my_menu, my_items[i]);
 	}
 
-	while(running && *global_nm_running)
+	while(running && ion_atomic_get(global_nm_running))
 	{
 		i = item_index(current_item(my_menu));
 
@@ -2922,7 +2919,7 @@ int ui_menu(char* title, char** choices, char** descriptions, int n_choices, cha
 	int i = -1;
 	ui_display_init(title);
 
-	while(*global_nm_running) {
+	while(ion_atomic_get(global_nm_running)) {
 
 		for(i = 0; i < n_choices; i++)
 		{
@@ -2968,7 +2965,7 @@ int ui_menu_listing(
 	(void)default_idx;
 	(void)flags;
 
-	while(running && *global_nm_running)
+	while(running && ion_atomic_get(global_nm_running))
 	{
 		ui_display_init(title);
 

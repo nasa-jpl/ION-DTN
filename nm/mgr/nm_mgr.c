@@ -41,12 +41,13 @@
 #include "agents.h"
 
 #include "../shared/primitives/rules.h"
+#include "ion_atomic.h"
 
 
 
 mgr_db_t gMgrDB;
 iif_t ion_ptr;
-static volatile int g_mgr_running = 0;
+static ion_atomic_t g_mgr_running = ION_ATOMIC_INIT(0);
 
 
 char* mgr_parse_args(int argc, char* argv[]);
@@ -116,7 +117,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* Indicate that the threads should run once started. */
-	g_mgr_running = 1;
+	ion_atomic_set(&g_mgr_running, 1);
 
 	/* Initialize the AMP Manager. */
 	if (mgr_init(mgr_eid) != AMP_OK)

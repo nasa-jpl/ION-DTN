@@ -41,6 +41,7 @@
 
 #include "nm_mgr.h"
 #include "nm_mgr_sql.h"
+#include "ion_atomic.h"
 
 /* Number of threads interacting with the database.
  - DB Polling Thread - Check for reports pending transmission
@@ -371,17 +372,12 @@ void *db_mgt_daemon(void *arg)
 {
 	struct timeval start_time;
 	vast delta = 0;
-
-	/* Cast the generic void* argument back to the true volatile type.
-	 * DO NOT remove 'volatile' or the -O2 compiler will cache the value 
-	 * in a register and the thread will never shut down cleanly.
-	 */
-	volatile sig_atomic_t *running = (volatile sig_atomic_t *) arg;
+	ion_atomic_t *running = (ion_atomic_t *) arg;
 
 
 	AMP_DEBUG_ALWAYS("db_mgt_daemon","Starting Manager Database Daemon",NULL);
 
-	while (*running)
+	while (ion_atomic_get(running))
 	{
 		getCurrentTime(&start_time);
 
