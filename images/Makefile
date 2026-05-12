@@ -13,7 +13,7 @@ PIP_INDEX ?= ""
 
 # default list of platforms for which multiarch image is built
 ifeq (${PLATFORMS}, )
-	export PLATFORMS="linux/amd64,linux/arm64"
+	PLATFORMS ?= linux/amd64,linux/arm64
 endif
 
 # Handle target platform variants.
