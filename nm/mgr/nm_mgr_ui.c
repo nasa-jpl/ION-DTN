@@ -154,7 +154,7 @@ void ui_eventLoop(ion_atomic_t *running);
 void ui_ctrl_list_menu(ion_atomic_t *running);
 
 #ifdef HAVE_MYSQL
-void ui_db_menu(int *running);
+void ui_db_menu(ion_atomic_t *running);
 void ui_db_parms(int do_edit);
 #endif
 
@@ -1425,14 +1425,14 @@ void *ui_thread(void *arg)
 
 #ifdef HAVE_MYSQL
 
-void ui_db_menu(int *running)
+void ui_db_menu(ion_atomic_t *running)
 {
 	int n_choices = ARRAY_SIZE(db_menu_choices);
 	int choice;
 	int new_msg = 0;
 	char msg[128] = "";
 
-	while(*running)
+	while(ion_atomic_get(running))
 	{
 		choice = ui_menu("Database Menu", db_menu_choices, NULL, n_choices,
 				((new_msg==0) ? NULL : msg)

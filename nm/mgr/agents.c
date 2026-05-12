@@ -117,6 +117,7 @@ void agent_rotate_log(agent_t *agent, int force)
 			}
 			else
 			{
+				unlockResource(&(agent->log_lock));
 				return; // Keep using the open file
 			}
 		}
