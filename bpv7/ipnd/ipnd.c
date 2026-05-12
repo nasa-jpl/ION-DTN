@@ -417,7 +417,7 @@ static int	configService(int tokenCount, char** tokens)
 
 	if (strcmp(tokens[2], "fixed") == 0 && tokenCount == 4)
 	{
-		ctx->tags[id].lengthType = atoi(tokens[3]);
+		ctx->tags[id].lengthType = (signed char) atoi(tokens[3]);
 	}
 	else if (strcmp(tokens[2], "variable") == 0 && tokenCount == 3)
 	{

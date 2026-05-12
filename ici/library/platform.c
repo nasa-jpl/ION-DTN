@@ -2357,7 +2357,7 @@ int parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 		}
 		else
 		{
-			*portNbr = i4;
+			*portNbr = (unsigned short) i4;
 			portValid = 1;
 		}
 	}
