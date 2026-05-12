@@ -423,19 +423,39 @@ typedef vast ion_ipc_atomic_impl_t;
  * (RAD750, LEON cores, older RTEMS/VxWorks).  The volatile keyword
  * forces memory access (bypassing registers) to support the __sync
  * hardware built-ins.  Provides lock-free, async-signal-safe
- * atomicity across process boundaries, but always emits full memory
- * barriers (e.g., DMB ISH on ARM).
+ * atomicity across process boundaries.
+ *
+ * Barrier strength:
+ *   __sync_fetch_and_{add,sub} and __sync_val_compare_and_swap emit
+ *   full memory barriers (e.g., DMB ISH on ARM).  We deliberately do
+ *   NOT use __sync_lock_test_and_set for set/exchange: GCC documents
+ *   it as (a) an acquire-only barrier rather than a full barrier and
+ *   (b) restricted on some targets to only storing the immediate
+ *   constant 1 — exactly the failure mode that would silently corrupt
+ *   TallyDelta drains (`exchange(p, 0)`) and semaphore-flag resets
+ *   (`set(p, 0)`) on the flight toolchains this tier exists to serve.
+ *   Instead, set/exchange are implemented as a CAS loop over
+ *   __sync_val_compare_and_swap, which accepts arbitrary values and
+ *   carries full-barrier semantics.
  */
 typedef volatile vast ion_ipc_atomic_impl_t;
 
 #define ION_IPC_ATOMIC_IMPL(p) ((ion_ipc_atomic_impl_t *)(void *)(p))
 
+static inline vast _ion_ipc_atomic_sync_exchange(ion_ipc_atomic_impl_t *p,
+                                                 vast v)
+{
+    vast old;
+    do { old = *p; } while (__sync_val_compare_and_swap(p, old, v) != old);
+    return old;
+}
+
 #define ion_ipc_atomic_init(p,v)                (*ION_IPC_ATOMIC_IMPL(p) = (v))
-#define ion_ipc_atomic_set(p,v)                 __sync_lock_test_and_set(ION_IPC_ATOMIC_IMPL(p), (v))
+#define ion_ipc_atomic_set(p,v)                 ((void)_ion_ipc_atomic_sync_exchange(ION_IPC_ATOMIC_IMPL(p), (vast)(v)))
 #define ion_ipc_atomic_get(p)                   __sync_fetch_and_add(ION_IPC_ATOMIC_IMPL(p), 0)
 #define ion_ipc_atomic_get_and_increment(p,d)   __sync_fetch_and_add(ION_IPC_ATOMIC_IMPL(p), (d))
 #define ion_ipc_atomic_get_and_decrement(p,d)   __sync_fetch_and_sub(ION_IPC_ATOMIC_IMPL(p), (d))
-#define ion_ipc_atomic_exchange(p,v)            __sync_lock_test_and_set(ION_IPC_ATOMIC_IMPL(p), (v))
+#define ion_ipc_atomic_exchange(p,v)            _ion_ipc_atomic_sync_exchange(ION_IPC_ATOMIC_IMPL(p), (vast)(v))
 
 #endif /* ION_HAVE_C11_ATOMICS IPC */
 

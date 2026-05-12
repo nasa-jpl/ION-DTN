@@ -133,10 +133,14 @@ Both zones select their backing implementation at compile time through feature m
 +-------------------------------------------------------------+
 | Tier 3: Legacy __sync built-ins                             |
 |   when: pre-GCC-4.7 / non-GCC without __atomic              |
-|   uses: __sync_lock_test_and_set, __sync_fetch_and_add,     |
+|   uses: __sync_fetch_and_add / _sub  (get, inc, dec),       |
+|         __sync_val_compare_and_swap  (set, exchange via     |
+|                                       CAS loop)             |
 |         always full memory barrier (e.g., DMB ISH on ARM)   |
 +-------------------------------------------------------------+
 ```
+
+Tier 3 deliberately does **not** use `__sync_lock_test_and_set` for `set` / `exchange`. GCC documents that builtin as (a) restricted on some targets to storing only the immediate constant 1, and (b) an acquire-only barrier rather than a full barrier — both of which would silently corrupt real callers that pass arbitrary values (TallyDelta drains call `exchange(p, 0)`, semaphore-flag resets call `set(p, 0)`). The CAS loop over `__sync_val_compare_and_swap` accepts arbitrary values, carries full-barrier semantics, and is supported by every toolchain generation that ships the rest of the `__sync_*` family.
 
 Zone 1's fallback tiers are slightly different: Zone 1 goes C11 → `pthread_mutex_t`-based (no intermediate `__atomic` tier), because the padded-union layout differs between C11 and the mutex fallback and must match ABI across the process. Zone 2 uses all three tiers; its typedef is `volatile vast` for both Tier 2 and Tier 3, so layouts are binary-compatible between the two fallback tiers.
 
@@ -333,10 +337,11 @@ The `-lbp -lici` libraries may have been compiled with either C11 or C99 fallbac
 
 ### Testing the Fallback Tiers
 
-Two independent levers control the atomics path, and the recipes below keep them distinct:
+Three independent levers control the atomics path, and the recipes below keep them distinct:
 
-1. **Language standard** (in `configure.ac:64-92`) — a C18 probe runs first, falling back to C99. Pass `ac_cv_c11=no` on the `./configure` line to short-circuit the C18 probe and compile under `-std=c99`; this also flips the `HAVE_C11_ATOMICS` Automake conditional at `configure.ac:97`, causing `ici/library/ion_atomic.c` (the Zone 1 mutex-backed fallback TU) to be compiled.
-2. **Atomics tier dispatch** (in `ion_atomic.h:126-169`) — preprocessor macros that sit on top of whatever language mode configure picked:
+1. **Integrator directive** (highest priority) — define exactly one of `ION_ATOMIC_C11`, `ION_ATOMIC_BUILTIN`, or `ION_ATOMIC_SYNC` to command which tier the header compiles. Also reachable via `./configure --with-atomics={c11,builtin,sync}`. Overrides both auto-detection and the `ION_TEST_FORCE_*` test knobs, so this is the cleanest lever for pinning a build (or a single test binary) to a specific tier.
+2. **Language standard** (in `configure.ac:64-92`) — a C18 probe runs first, falling back to C99. Pass `ac_cv_c11=no` on the `./configure` line to short-circuit the C18 probe and compile under `-std=c99`; this also flips the `HAVE_C11_ATOMICS` Automake conditional at `configure.ac:97`, causing `ici/library/ion_atomic.c` (the Zone 1 mutex-backed fallback TU) to be compiled.
+3. **Atomics tier dispatch test knobs** — preprocessor macros that sit on top of whatever language mode configure picked (only consulted when no integrator directive from lever 1 is set):
 
 ```
 -DION_TEST_FORCE_FALLBACK          # undefines ION_HAVE_C11_ATOMICS → Tier 2 (__atomic) or Tier 3 (__sync)
@@ -361,7 +366,7 @@ CFLAGS="-DION_TEST_FORCE_FALLBACK -DION_TEST_FORCE_SYNC_FALLBACK" ./configure
 
 The first two recipes only override tier dispatch — the compiler stays in C18 mode, so `ici/library/ion_atomic.c` is *not* compiled (the `HAVE_C11_ATOMICS` Automake conditional is still true). The last two recipes flip both levers and exercise the full C99 path end-to-end. Without any flag, `./configure` auto-detects C18/`<stdatomic.h>` and selects the native C11 path (Tier 1) on modern Clang and GCC (≥ 4.7).
 
-ThreadSanitizer validation harness: `tests/atomics/test_ipc_atomics.c` exercises `ion_ipc_atomic_t` under 8 concurrent threads × 300 000 operations per thread. Build with `-fsanitize=thread` and run against each tier to confirm lock-free correctness. Zero data races expected.
+Validation harness: `tests/atomics/dotest` builds `tests/atomics/test_ipc_atomics.c` three times — once each with `-DION_ATOMIC_C11`, `-DION_ATOMIC_BUILTIN`, and `-DION_ATOMIC_SYNC` — and runs every binary. Each variant exercises `ion_ipc_atomic_t` under 8 concurrent threads × 300 000 operations per thread (gseq / refCount lock-free correctness) and additionally asserts that `set` and `exchange` preserve arbitrary non-1 values, guarding against any future regression to a builtin with the `__sync_lock_test_and_set` operand restriction. The test source contains `#error` self-checks so a misconfigured build cannot silently dispatch to the wrong tier. Add `-fsanitize=thread` to the C11 and `__atomic` variants for TSan coverage when the host toolchain supports it.
 
 ### Files
 
@@ -369,7 +374,8 @@ ThreadSanitizer validation harness: `tests/atomics/test_ipc_atomics.c` exercises
 |------|---------|
 | `ici/include/ion_atomic.h` | Zone definitions, tier dispatch, macros and inline wrappers |
 | `ici/library/ion_atomic.c` | Zone 1 C99 mutex-fallback implementations (compiled only when `!ION_HAVE_C11_ATOMICS`) |
-| `tests/atomics/test_ipc_atomics.c` | TSan validation harness for Zone 2 |
+| `tests/atomics/test_ipc_atomics.c` | Validation harness for Zone 2 (concurrency + set/exchange value preservation) |
+| `tests/atomics/dotest` | Per-tier build matrix driver (C11 / `__atomic` / `__sync`); entry point for `runtests` |
 
 ## Application Behavior
 

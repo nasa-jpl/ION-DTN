@@ -28,6 +28,34 @@
 #include <assert.h>
 #include "ion_atomic.h"
 
+/*
+ * Tier-dispatch self-check.  When the integrator forces a tier via
+ * ION_ATOMIC_{C11,BUILTIN,SYNC}, refuse to compile if the header
+ * dispatched somewhere else.  Without this guard, a misconfigured
+ * build could silently land on the wrong tier and the test would
+ * report success for a path it never exercised.
+ */
+#if defined(ION_ATOMIC_C11) && !ION_HAVE_C11_ATOMICS
+# error "ION_ATOMIC_C11 set but header did not select C11 tier"
+#endif
+#if defined(ION_ATOMIC_BUILTIN) && (ION_HAVE_C11_ATOMICS || !ION_HAVE_GNU_ATOMIC)
+# error "ION_ATOMIC_BUILTIN set but header did not select __atomic tier"
+#endif
+#if defined(ION_ATOMIC_SYNC) && (ION_HAVE_C11_ATOMICS || ION_HAVE_GNU_ATOMIC)
+# error "ION_ATOMIC_SYNC set but header did not select __sync tier"
+#endif
+
+static const char *active_tier(void)
+{
+#if ION_HAVE_C11_ATOMICS
+    return "Tier 1 (C11 <stdatomic.h>)";
+#elif ION_HAVE_GNU_ATOMIC
+    return "Tier 2 (__atomic builtins)";
+#else
+    return "Tier 3 (__sync builtins)";
+#endif
+}
+
 #define SEM_NSEMS_MAX 256
 #define THREAD_COUNT  8
 #define LOOP_COUNT    100000
@@ -98,6 +126,8 @@ int main(void)
 {
     pthread_t threads[THREAD_COUNT];
 
+    printf("[i] Active atomic tier: %s\n", active_tier());
+
     /* --- Phase 1: ABI Parity Check --- */
     printf("[i] Validating ABI layout...\n");
 
@@ -158,6 +188,43 @@ int main(void)
 
     assert(final_refCount == 0 && "RACE CONDITION DETECTED: refCount is corrupted!");
     assert(final_gseq == (uvast)(THREAD_COUNT * LOOP_COUNT) && "RACE CONDITION DETECTED: gseq is corrupted!");
+
+    /* --- Phase 6: set/exchange value-preservation regression ---
+     *
+     * Tier 3 (__sync) previously implemented set/exchange via
+     * __sync_lock_test_and_set, which GCC documents as restricted on
+     * some targets to only storing the immediate constant 1.  Real
+     * callers pass arbitrary values: TallyDelta drains call
+     * exchange(p, 0) once per second, and semaphore-flag resets call
+     * set(p, 0).  These asserts trip if a future change reintroduces
+     * a builtin that drops the value being stored.			*/
+    printf("[i] Verifying set/exchange preserve arbitrary values...\n");
+    {
+        ion_ipc_atomic_t a;
+        uvast prev;
+
+        ion_ipc_atomic_init(&a, 0);
+        ion_ipc_atomic_set(&a, (vast)0xDEADBEEFULL);
+        assert(ion_ipc_atomic_get(&a) == (uvast)0xDEADBEEFULL
+               && "set() did not store the requested value");
+
+        ion_ipc_atomic_set(&a, 0);
+        assert(ion_ipc_atomic_get(&a) == 0
+               && "set(p,0) did not store zero (Tier-3 operand restriction?)");
+
+        ion_ipc_atomic_init(&a, (vast)0x12345678ULL);
+        prev = ion_ipc_atomic_exchange(&a, 0);
+        assert(prev == (uvast)0x12345678ULL
+               && "exchange() returned wrong prior value");
+        assert(ion_ipc_atomic_get(&a) == 0
+               && "exchange(p,0) did not store zero (Tier-3 operand restriction?)");
+
+        prev = ion_ipc_atomic_exchange(&a, (vast)0xCAFEBABEULL);
+        assert(prev == 0
+               && "exchange() returned wrong prior value after zero store");
+        assert(ion_ipc_atomic_get(&a) == (uvast)0xCAFEBABEULL
+               && "exchange() did not store the requested value");
+    }
 
     free(mock_shm_table);
 

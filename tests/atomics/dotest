@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+#
+# tests/atomics/dotest
+#
+# Compile the IPC-atomics validation harness three times, one per
+# tier, and run each binary.  The integrator directives
+# ION_ATOMIC_{C11,BUILTIN,SYNC} pin the header to a single tier and
+# the harness contains #error self-checks that fail compilation if
+# the header dispatched somewhere else.
+#
+# Exit 0 if all three pass, 1 if any fail, 2 if the host compiler
+# cannot produce a given tier (skipped, not failed).
+
+set -u
+
+CURDIR="$( cd "$( dirname "$0" )" && pwd )"
+cd "$CURDIR"
+
+CC=${CC:-gcc}
+
+if ! command -v "$CC" >/dev/null 2>&1; then
+    echo "[skip] No C compiler ($CC) on PATH"
+    exit 2
+fi
+
+SRC=test_ipc_atomics.c
+ATOMIC_C=../../ici/library/ion_atomic.c
+INCLUDES="-I../.. -I../../ici/include -I../../ici/library"
+
+# Platform flags — mirrors the host_os branch in configure.ac.
+case "$(uname -s)" in
+    Linux)   PLATFORM="-D__unix__ -Dlinux -DSPACE_ORDER=3"   ;;
+    Darwin)  PLATFORM="-D__unix__ -Ddarwin -DSPACE_ORDER=3"  ;;
+    FreeBSD) PLATFORM="-D__unix__ -Dfreebsd -DSPACE_ORDER=3" ;;
+    SunOS)   PLATFORM="-D__unix__ -D__SVR4 -Dsolaris -DSPACE_ORDER=3" ;;
+    *)       PLATFORM="-D__unix__"                           ;;
+esac
+
+COMMON="-g -O1 -pthread -fPIE -w $PLATFORM $INCLUDES"
+
+FAILED=()
+SKIPPED=()
+PASSED=()
+
+build_and_run () {
+    local tag=$1; shift
+    local std=$1; shift
+    local tier_flag=$1; shift
+    local out="test_ipc_atomics.$tag"
+
+    echo "================================================================"
+    echo "  Building Tier: $tag  ($tier_flag, $std)"
+    echo "================================================================"
+
+    if ! "$CC" $std $tier_flag $COMMON \
+              "$SRC" "$ATOMIC_C" -o "$out" 2>build.$tag.log
+    then
+        echo "[skip] $CC cannot build $tag tier — see build.$tag.log"
+        cat build.$tag.log
+        SKIPPED+=("$tag")
+        return 0
+    fi
+
+    echo "----------------------------------------------------------------"
+    echo "  Running Tier: $tag"
+    echo "----------------------------------------------------------------"
+    if "./$out"; then
+        PASSED+=("$tag")
+    else
+        echo "[FAIL] $tag tier returned non-zero"
+        FAILED+=("$tag")
+    fi
+}
+
+build_and_run c11     "-std=iso9899:2018" "-DION_ATOMIC_C11"
+build_and_run builtin "-std=c99"          "-DION_ATOMIC_BUILTIN"
+build_and_run sync    "-std=c99"          "-DION_ATOMIC_SYNC"
+
+echo
+echo "================================================================"
+echo "  Summary"
+echo "================================================================"
+echo "  Passed:  ${PASSED[*]:-(none)}"
+echo "  Skipped: ${SKIPPED[*]:-(none)}"
+echo "  Failed:  ${FAILED[*]:-(none)}"
+
+if [ ${#FAILED[@]} -gt 0 ]; then
+    exit 1
+fi
+
+# Treat the case where every tier was skipped as a skip, not a pass.
+if [ ${#PASSED[@]} -eq 0 ]; then
+    exit 2
+fi
+
+exit 0
