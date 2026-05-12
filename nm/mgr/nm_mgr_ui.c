@@ -275,7 +275,7 @@ void ui_clear_reports(agent_t* agent)
 {
 	CHKVOID(agent);
 
-	gMgrDB.tot_rpts -= vec_num_entries(agent->rpts);
+	ion_atomic_get_and_decrement(&gMgrDB.tot_rpts, vec_num_entries(agent->rpts));
 
 	vec_clear(&(agent->rpts));
 }
@@ -295,7 +295,7 @@ void ui_clear_tables(agent_t* agent)
 {
 	CHKVOID(agent);
 
-	gMgrDB.tot_tbls -= vec_num_entries(agent->tbls);
+	ion_atomic_get_and_decrement(&gMgrDB.tot_tbls, vec_num_entries(agent->tbls));
 
 	vec_clear(&(agent->tbls));
 }

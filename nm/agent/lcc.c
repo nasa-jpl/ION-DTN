@@ -118,7 +118,7 @@ int lcc_run_ctrl(ctrl_t *ctrl, tnvc_t *parent_parms)
 
 		/* Run the control. */
 		retval = ctrl->def.as_ctrl->run(&rx_eid, new_parms, &status);
-		gAgentInstr.num_ctrls_run++;
+		ion_atomic_get_and_increment(&gAgentInstr.num_ctrls_run, 1);
 	}
 	else
 	{
@@ -153,7 +153,7 @@ int lcc_run_macro(macdef_t *mac, tnvc_t *parent_parms)
 		return AMP_FAIL;
 	}
 
-	gAgentInstr.num_macros_run++;
+	ion_atomic_get_and_increment(&gAgentInstr.num_macros_run, 1);
 
 	for(it = vecit_first(&(mac->ctrls)); vecit_valid(it); it = vecit_next(it))
 	{

@@ -267,8 +267,8 @@ int mgr_init(char *arg_eid)
 	}
 
 
-	gMgrDB.tot_rpts = 0;
-	gMgrDB.tot_tbls = 0;
+	ion_atomic_init(&gMgrDB.tot_rpts, 0);
+	ion_atomic_init(&gMgrDB.tot_tbls, 0);
 	istrcpy((char *) gMgrDB.mgr_eid.name, arg_eid, AMP_MAX_EID_LEN);
 
 

@@ -113,7 +113,7 @@ void rx_data_rpt(msg_metadata_t *meta, msg_rpt_t *msg)
 
 			if (status == VEC_OK)
 			{
-				gMgrDB.tot_rpts++;
+				ion_atomic_get_and_increment(&gMgrDB.tot_rpts, 1);
 			}
 			else // Vector may be full.  Discard (and release) report
 			{
@@ -198,7 +198,7 @@ void rx_data_tbl(msg_metadata_t *meta, msg_tbl_t *msg)
 
 			if (status == VEC_OK)
 			{
-				gMgrDB.tot_tbls++;
+				ion_atomic_get_and_increment(&gMgrDB.tot_tbls, 1);
 			}
 			else // Vector may be full.  Discard (and release) report
 			{

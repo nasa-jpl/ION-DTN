@@ -35,6 +35,8 @@
 extern "C" {
 #endif
 
+#include "ion_atomic.h"
+
 /*
  * +--------------------------------------------------------------------------+
  * |                              CONSTANTS                                   +
@@ -58,14 +60,14 @@ extern "C" {
 
 
 typedef struct {
-	unsigned long num_sent_rpts;
-	unsigned long num_sent_tbls;
-	unsigned long num_tbrs;
-	unsigned long num_tbrs_run;
-	unsigned long num_sbrs;
-	unsigned long num_sbrs_run;
-	unsigned long num_macros_run;
-	unsigned long num_ctrls_run;
+	ion_atomic_t num_sent_rpts;
+	ion_atomic_t num_sent_tbls;
+	ion_atomic_t num_tbrs;
+	ion_atomic_t num_tbrs_run;
+	ion_atomic_t num_sbrs;
+	ion_atomic_t num_sbrs_run;
+	ion_atomic_t num_macros_run;
+	ion_atomic_t num_ctrls_run;
 } agent_instr_t;
 
 
