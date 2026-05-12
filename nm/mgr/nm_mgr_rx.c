@@ -101,6 +101,7 @@ void rx_data_rpt(msg_metadata_t *meta, msg_rpt_t *msg)
 			rpt_t *rpt = vecit_data(it);
 			int status = vec_push(&(agent->rpts), rpt);
 
+			lockResource(&(agent->log_lock));
 			if (agent->log_fd != NULL)
 			{
 				if (agent_log_cfg.rx_rpt)
@@ -110,6 +111,7 @@ void rx_data_rpt(msg_metadata_t *meta, msg_rpt_t *msg)
 					agent->log_fd_cnt++;
 				}
 			}
+			unlockResource(&(agent->log_lock));
 
 			if (status == VEC_OK)
 			{
@@ -186,6 +188,7 @@ void rx_data_tbl(msg_metadata_t *meta, msg_tbl_t *msg)
 			tbl_t *tbl = vecit_data(it);
 			int status = vec_push(&(agent->tbls), tbl);
 
+			lockResource(&(agent->log_lock));
 			if (agent->log_fd != NULL)
 			{
 				if(agent_log_cfg.rx_tbl)
@@ -195,6 +198,7 @@ void rx_data_tbl(msg_metadata_t *meta, msg_tbl_t *msg)
 					agent->log_fd_cnt++;
 				}
 			}
+			unlockResource(&(agent->log_lock));
 
 			if (status == VEC_OK)
 			{
@@ -282,11 +286,17 @@ void *mgr_rx_thread(void *arg)
 		{
 			if (agent_log_cfg.rx_cbor == 1) {
 				agent_t *agent = agent_get(&(meta.senderEid));
-				if (agent && agent->log_fd) {
-					char *tmp = utils_hex_to_string(buf->value, buf->length);
-					fprintf(agent->log_fd, "RX: msgs:%s\n", tmp);
-					fflush(agent->log_fd);
-					SRELEASE(tmp);
+				if (agent)
+				{
+					lockResource(&(agent->log_lock));
+					if (agent->log_fd)
+					{
+						char *tmp = utils_hex_to_string(buf->value, buf->length);
+						fprintf(agent->log_fd, "RX: msgs:%s\n", tmp);
+						fflush(agent->log_fd);
+						SRELEASE(tmp);
+					}
+					unlockResource(&(agent->log_lock));
 				}
 			}
 

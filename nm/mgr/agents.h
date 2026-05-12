@@ -53,6 +53,7 @@ typedef struct {
 	vector_t rpts;
 	vector_t tbls;
 
+	ResourceLock log_lock;
 	FILE *log_fd;
 	int log_fd_cnt;
 	int log_file_num;

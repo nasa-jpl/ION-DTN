@@ -172,6 +172,7 @@ void ui_log_transmit_msg(agent_t* agent, msg_ctrl_t *msg) {
 	blob_t *data;
 	char *msg_str;
 
+	lockResource(&(agent->log_lock));
 	if (agent_log_cfg.tx_cbor && agent->log_fd) {
 		data = msg_ctrl_serialize_wrapper(msg);
 		if (data) {
@@ -184,6 +185,7 @@ void ui_log_transmit_msg(agent_t* agent, msg_ctrl_t *msg) {
 			blob_release(data, 1);
 		}
 	}
+	unlockResource(&(agent->log_lock));
 }
 
 int ui_build_control(agent_t* agent)
