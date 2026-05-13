@@ -2501,7 +2501,7 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 		if (sm_SemEnded(attendant->semaphore))
 		{
 			writeMemo("[i] ZCO creation interrupted.");
-			ionShred(ticket);	/*	Cancel request.	*/
+			/* rfxclock already shredded this ticket. */
 			return 0;
 		}
 
@@ -2597,7 +2597,7 @@ vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
 		if (sm_SemEnded(attendant->semaphore))
 		{
 			writeMemo("[i] ZCO extent creation interrupted.");
-			ionShred(ticket);	/*	Cancel request.	*/
+			/* rfxclock already shredded this ticket. */
 			return 0;
 		}
 
