@@ -2147,6 +2147,7 @@ void	ionShred(ReqTicket ticket)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
+	PsmAddress	reqAddr;
 
 	/*	Ticket is address of an sm_list element in a shared
 	 *	memory list of requisitions in the IonVdb.		*/
@@ -2157,7 +2158,14 @@ void	ionShred(ReqTicket ticket)
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Must be atomic.		*/
-	psm_free(ionwm, sm_list_data(ionwm, ticket));
+	reqAddr = sm_list_data(ionwm, ticket);
+	if (reqAddr == 0)
+	{
+		sdr_exit_xn(sdr);
+		return;	/*	Already shredded (e.g. by rfxclock).	*/
+	}
+
+	psm_free(ionwm, reqAddr);
 	sm_list_delete(ionwm, ticket, NULL, NULL);
 	sdr_exit_xn(sdr);	/*	End of critical section.	*/
 }
