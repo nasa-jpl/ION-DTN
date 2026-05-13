@@ -11,11 +11,6 @@ DOCKER_VERSION ?= 29.4.3
 DOCKER_COMPOSE_VERSION ?= v2.40.3
 PIP_INDEX ?= ""
 
-# default list of platforms for which multiarch image is built
-ifeq (${PLATFORMS}, )
-	PLATFORMS ?= linux/amd64,linux/arm64
-endif
-
 # Handle target platform variants.
 # arch command on OS X reports "i386" for Intel CPUs regardless of bitness
 ifeq ($(TARGETPLATFORM), $(filter $(TARGETPLATFORM), x86_64 x64 amd64 i386 linux/amd64))
