@@ -639,7 +639,7 @@ void* rda_thread(void* arg)
 	rda_init();
 
 	/* While the DTNMP Agent is running...*/
-	while (*running)
+	while (ion_atomic_get(running))
 	{
 		getCurrentTime(&start_time);
 

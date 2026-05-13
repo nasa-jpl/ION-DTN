@@ -77,7 +77,7 @@ void *rx_thread(void *arg) {
 		result = iif_receive(&ion_ptr, &meta, NM_RECEIVE_TIMEOUT_SEC, &success);
 		if(success != AMP_OK)
 		{
-			*running = 0;
+			ion_atomic_set(running, 0);
 		}
 		else if(result != NULL)
 		{

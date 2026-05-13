@@ -713,7 +713,7 @@ void ui_automator_run(ion_atomic_t *running)
 	char line[MAX_INPUT_BYTES];
 	int len;
 
-	while(mgr_ui_mode == MGR_UI_AUTOMATOR && *running)
+	while(mgr_ui_mode == MGR_UI_AUTOMATOR && ion_atomic_get(running))
 	{
 		// Print prompt
 		printf("\n#-NM->");
