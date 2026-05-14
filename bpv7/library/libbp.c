@@ -238,12 +238,12 @@ int	bp_parse_quality_of_service(const char *token,
 		BpAncillaryData *ancillaryData, BpCustodySwitch *custodySwitch,
 		int *priority)
 {
-	int	count;
-	unsigned int myCustodyRequested;
-	unsigned int myPriority;
-	unsigned int myOrdinal;
-	unsigned int myUnreliable;
-	unsigned int myCritical;
+	int	     count;
+	unsigned int myCustodyRequested = 0;
+	unsigned int myPriority = 1;
+	unsigned int myOrdinal = 0;
+	unsigned int myUnreliable = 0;
+	unsigned int myCritical = 0;
 	unsigned int myDataLabel = 0;
 
 	count = sscanf(token, "%11u.%11u.%11u.%11u.%11u.%11u",
@@ -256,10 +256,17 @@ int	bp_parse_quality_of_service(const char *token,
 		/* FALLTHROUGH */
 
 	case 5:
-		if ((myCritical != 0 && myCritical != 1)
-		|| (myUnreliable != 0 && myUnreliable != 1))
+		if (myCritical != 0 && myCritical != 1)
 		{
-			return 0;	/*	Invalid format.		*/
+			return 0; /* Invalid value. */
+		}
+
+		/* FALLTHROUGH */
+
+	case 4:
+		if (myUnreliable != 0 && myUnreliable != 1)
+		{
+			return 0; /* Invalid value. */
 		}
 
 		/* FALLTHROUGH */
@@ -267,15 +274,23 @@ int	bp_parse_quality_of_service(const char *token,
 	case 3:
 		if (myOrdinal > 254)
 		{
-			return 0;	/*	Invalid format.		*/
+			return 0; /* Invalid value. */
 		}
 
 		/* FALLTHROUGH */
 
 	case 2:
-		if (myPriority > 2 || myCustodyRequested > 1)
+		if (myPriority > 2)
 		{
-			return 0;	/*	Invalid format.		*/
+			return 0; /* Invalid value. */
+		}
+
+		/* FALLTHROUGH */
+
+	case 1:
+		if (myCustodyRequested > 1)
+		{
+			return 0; /* Invalid value. */
 		}
 
 		break;
@@ -290,12 +305,12 @@ int	bp_parse_quality_of_service(const char *token,
 	ancillaryData->dataLabel = myDataLabel;
 	if (count >= 5)
 	{
-		ancillaryData->flags |= ((myUnreliable ? BP_BEST_EFFORT : 0)
-				| (myCritical ? BP_MINIMUM_LATENCY : 0));
+		ancillaryData->flags |= (myCritical ? BP_MINIMUM_LATENCY : 0);
 	}
-	else
+
+	if (count >= 4)
 	{
-		ancillaryData->flags = 0;
+		ancillaryData->flags |= (myUnreliable ? BP_BEST_EFFORT : 0);
 	}
 
 	if (count >= 3)

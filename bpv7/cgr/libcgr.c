@@ -334,7 +334,7 @@ static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
 		if (range->fromTime > contact->fromTime)
 		{
 			/*	Range unknown at contact start time.	*/
-
+			break;
 		}
 
 		/*	Found applicable range.				*/

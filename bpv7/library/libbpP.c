@@ -4827,13 +4827,14 @@ void	findInduct(char *protocolName, char *ductName, VInduct **vduct,
 	PsmPartition	bpwm = getIonwm();
 	PsmAddress	elt;
 
-	CHKVOID(protocolName && ductName && vduct && vductElt);
+	CHKVOID(protocolName && vduct && vductElt);
 	for (elt = sm_list_first(bpwm, (_bpvdb(NULL))->inducts); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
 		*vduct = (VInduct *) psp(bpwm, sm_list_data(bpwm, elt));
 		if (strcmp((*vduct)->protocolName, protocolName) == 0
-		&& strcmp((*vduct)->ductName, ductName) == 0)
+		&& (ductName == NULL
+			|| (strcmp((*vduct)->ductName, ductName) == 0)))
 		{
 			break;
 		}

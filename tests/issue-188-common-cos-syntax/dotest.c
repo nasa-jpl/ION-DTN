@@ -48,9 +48,14 @@ int main(int argc, char **argv)
 	//BpExtendedCOS desiredExtendedCOS = { 0, 0, 0 };
 	BpAncillaryData	desiredAncillaryData = {0};
 
-	/* Only one arg: invalid args. */
-	run_invalid_cos_case("0");
-	run_invalid_cos_case("1");
+	/* One arg: custody only.  Priority defaults to 1 (standard). */
+	desiredAncillaryData.ordinal = 0;
+	desiredAncillaryData.flags = 0;
+	desiredAncillaryData.dataLabel = 0;
+	run_cos_case("0", desiredAncillaryData, NoCustodyRequested, 1);
+	run_cos_case("1", desiredAncillaryData, SourceCustodyRequired, 1);
+
+	/* Custody must still be 0 or 1 in the one-arg form. */
 	run_invalid_cos_case("2");
 	run_invalid_cos_case("X");      /* Not even an int. */
 	run_invalid_cos_case("-");      /* Not even an int. */
@@ -97,12 +102,20 @@ int main(int argc, char **argv)
 	run_invalid_cos_case("1.1.255");
 	run_invalid_cos_case("1.2.255");
 
-	/* Can't have exactly 4 args. */
-	run_invalid_cos_case("0.0.0.0");
-	run_invalid_cos_case("1.0.0.0");
-	run_invalid_cos_case("1.1.0.0");
-	run_invalid_cos_case("1.1.1.0");
-	run_invalid_cos_case("1.1.1.1");
+	/* Four args: custody.priority.ordinal.unreliable . */
+	desiredAncillaryData.ordinal = 0;
+	desiredAncillaryData.flags = 0;
+	run_cos_case("0.0.0.0", desiredAncillaryData, NoCustodyRequested, 0);
+	run_cos_case("1.0.0.0", desiredAncillaryData, SourceCustodyRequired, 0);
+	run_cos_case("1.1.0.0", desiredAncillaryData, SourceCustodyRequired, 1);
+	desiredAncillaryData.ordinal = 1;
+	run_cos_case("1.1.1.0", desiredAncillaryData, SourceCustodyRequired, 1);
+	desiredAncillaryData.flags = BP_BEST_EFFORT;
+	run_cos_case("1.1.1.1", desiredAncillaryData, SourceCustodyRequired, 1);
+
+	/* Unreliable must be 0 or 1 in the four-arg form. */
+	run_invalid_cos_case("0.0.0.2");
+	run_invalid_cos_case("0.0.0.17");
 
 	/* Five args: custody.priority.ordinal.unreliable.critical */
 	desiredAncillaryData.ordinal = 0;

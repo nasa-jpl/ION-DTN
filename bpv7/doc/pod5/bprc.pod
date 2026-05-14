@@ -390,10 +390,12 @@ The B<delete induct> command.  This command deletes the induct identified
 by I<protocol_name> and I<duct_name>.  The command will fail if any bundles
 are currently pending acquisition via this induct.
 
-=item B<i induct> I<protocol_name> I<duct_name>
+=item B<i induct> I<protocol_name> [I<duct_name>]
 
 This command will print information (the CLI command) about
 the induct identified by I<protocol_name> and I<duct_name>.
+If I<duct_name> is omitted, information is printed for the
+first induct of the indicated protocol.
 
 =item B<l induct> [I<protocol_name>]
 
