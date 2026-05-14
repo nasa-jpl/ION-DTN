@@ -1,14 +1,14 @@
 name: Cache Maintenance
 
 on:
-  # Run automatically every Sunday at midnight
+  # Trigger automatically every day at midnight UTC
   schedule:
-    - cron: '0 0 * * 0'
+    - cron: "0 0 * * *"
 
   workflow_dispatch:
     inputs:
       branch:
-        description: 'Target branch to clear caches for (leave empty to delete ALL caches)'
+        description: "Target branch to clear caches for (leave empty to delete ALL caches)"
         required: false
         type: string
 
@@ -26,12 +26,24 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.ION_DTN_PUSH_TOKEN }}
         run: |
+          # --- EVERY OTHER DAY LOGIC ---
+          # If triggered by the daily schedule, check if we should run today
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            DAY_OF_YEAR=$(date +%-j) # Use %-j to drop leading zeros
+            if [ $((DAY_OF_YEAR % 2)) -ne 0 ]; then
+              echo "Today is an odd Julian day ($DAY_OF_YEAR). Skipping to maintain 'every other day' cadence."
+              exit 0 # Exits the script successfully without running the cleanup below
+            fi
+            echo "Today is an even Julian day ($DAY_OF_YEAR). Proceeding with cache cleanup..."
+          fi
+          # -----------------------------
+
           # If a specific branch was provided in the manual dispatch
           if [ -n "${{ inputs.branch }}" ]; then
             echo "Deleting caches specifically for branch: ${{ inputs.branch }}..."
             gh cache delete --all --ref refs/heads/${{ inputs.branch }} || echo "No caches found for this branch."
 
-          # Otherwise, nuke everything (useful for the Sunday night scheduled run)
+          # Otherwise, nuke everything (useful for the scheduled run or an empty manual run)
           else
             echo "Deleting ALL caches in the repository to free up space..."
             gh cache delete --all || echo "No caches found."
