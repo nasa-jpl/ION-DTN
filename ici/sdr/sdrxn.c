@@ -2324,13 +2324,13 @@ void	_sdrfetch(Sdr sdrv, char *into, Address from, size_t length)
 	memset(into, 0, length);		/*	Default value.	*/
 	sdr = sdrv->sdr;
 	CHKVOID(sdr);
-	to = from + length;
-	if (to > sdr->dsSize)
+	if (length > sdr->dsSize || from > sdr->dsSize - length)
 	{
 		putErrmsg(_violationMsg(), "read");
 		crashXn(sdrv);			/*	Releases SDR.	*/
 		return;
 	}
+	to = from + length;
 
 #ifdef SDR_PERF_INSTRUMENTATION
 	SDR_PERF_READ_BEGIN(&sdrv->perfStats, &perfStart);
