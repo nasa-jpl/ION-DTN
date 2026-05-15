@@ -30,10 +30,11 @@ def build(bld):
     # Excluding CFDP by seting open source = 0
     ION_OPEN_SOURCE=0
 
-    # Excluding DGR and BSSP for minimal RTEMS configuration
+    # Excluding non-core parts for minimal RTEMS configuration
     # Set to 1 to enable these convergence layers
     ENABLE_DGR = 0
     ENABLE_BSSP = 0
+    ENABLE_TCPCL = 1
 
     iondefines=[
         'RTEMS',
@@ -72,6 +73,9 @@ def build(bld):
 
     if ENABLE_BSSP == 1:
         iondefines+=['ENABLE_BSSP']
+
+    if ENABLE_TCPCL == 1:
+        iondefines+=['ENABLE_TCPCL']
 
     # Not including the following
     # -DION_NO_DNS
@@ -200,6 +204,10 @@ def build(bld):
     # Conditionally add BSSP convergence layer sources
     if ENABLE_BSSP == 1:
         bpsources += ['bsspcli.c', 'bsspclo.c']
+
+    # Conditionally add TCPCL convergence layer sources
+    if ENABLE_TCPCL == 1:
+        bpsources += ['tcpcli.c', 'tcpclo.c']
 
     bplibsources=[
         'bpsec_instr.c',

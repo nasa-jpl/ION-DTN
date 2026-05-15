@@ -184,6 +184,8 @@ ln -s ../bpv7/library/libbpP.c
 ln -s ../bpv7/library/libbpnm.c
 ln -s ../bpv7/library/bpP.h
 ln -s ../bpv7/library/bpnm.h
+ln -s ../bpv7/library/cbr.c
+ln -s ../bpv7/library/cbr.h
 ln -s ../bpv7/library/cgr.h
 ln -s ../bpv7/library/eureka.c
 ln -s ../bpv7/library/bei.c
@@ -210,6 +212,10 @@ ln -s ../bpv7/library/ext/hcb/hcb.c
 ln -s ../bpv7/library/ext/hcb/hcb.h
 ln -s ../bpv7/library/ext/pnb/pnb.c
 ln -s ../bpv7/library/ext/pnb/pnb.h
+ln -s ../bpv7/library/ext/cteb/cteb.c
+ln -s ../bpv7/library/ext/cteb/cteb.h
+ln -s ../bpv7/library/ext/creb/creb.c
+ln -s ../bpv7/library/ext/creb/creb.h
 
 
 # bpv7/ltp
@@ -222,7 +228,10 @@ ln -s ../bpv7/saga/saga.c
 ln -s ../bpv7/saga/saga.h
 
 # bpv7/stcp - not included
-# bpv7/tcp - not included
+
+# bpv7/tcp
+ln -s ../bpv7/tcp/tcpcli.c
+ln -s ../bpv7/tcp/tcpclo.c
 
 # bpv7/test - only included a few for testing
 ln -s ../bpv7/test/bpsource.c

@@ -94,12 +94,12 @@ static int	startDTN()
 	/*	Set up ION parameters for RTEMS 6.1 64-bit ARM		*/
 	memset(&parms, 0, sizeof(IonParms));
 	parms.wmKey = 0;			/* Auto-allocate private memory */
-	parms.wmSize = 500000;			/* Increased for UDP buffers */
+	parms.wmSize = 2000000;			/* 2 MB for UDP/TCP buffers */
 	parms.wmAddress = NULL;
 	istrcpy(parms.sdrName, "ion", sizeof(parms.sdrName));
-	parms.sdrWmSize = 500000;		/* Increased for UDP buffers */
+	parms.sdrWmSize = 2000000;		/* 2 MB for UDP/TCP buffers */
 	parms.configFlags = SDR_IN_DRAM | SDR_BOUNDED;
-	parms.heapWords = 500000;		/* Increased for UDP buffers */
+	parms.heapWords = 2000000;		/* 2 MB for UDP/TCP buffers */
 	parms.heapKey = SM_NO_KEY;		/* Auto-allocate */
 	parms.logSize = 0;
 	parms.logKey = SM_NO_KEY;
@@ -296,6 +296,27 @@ static int	startDTN()
 		return -1;
 	}
 
+#ifdef ENABLE_TCPCL
+	/*	Add TCPCL protocol and convergence layer adapters		*/
+	if (add_protocol("tcp", 10) < 0)
+	{
+		writeMemo("[?] Failed to add TCP protocol.");
+		return -1;
+	}
+
+	if (add_induct("tcp", "127.0.0.1:4556", "tcpcli") < 0)
+	{
+		writeMemo("[?] Failed to add TCP induct.");
+		return -1;
+	}
+
+	if (add_outduct("tcp", "127.0.0.1:4556", "tcpclo", 0) < 0)
+	{
+		writeMemo("[?] Failed to add TCP outduct.");
+		return -1;
+	}
+#endif
+
 	/*	Add routing plan						*/
 	if (add_plan("ipn:19.0", 0) < 0)
 	{
@@ -378,32 +399,32 @@ static void	printLtpSpanStats()
 	puts(buffer);
 }
 
-static void	testLoopback()
+static void	testLoopback(const char *label, const char *payload,
+			unsigned int sinkEp)
 {
-	char	cmd[80];
+	char	cmd[120];
 
-	puts("Starting loopback test.");
-	isprintf(cmd, sizeof cmd, "bpsink ipn:" UVAST_FIELDSPEC ".1",
-			ION_NODE_NBR);
+	isprintf(cmd, sizeof cmd, "Starting %s loopback test.", label);
+	puts(cmd);
+	isprintf(cmd, sizeof cmd, "bpsink ipn:" UVAST_FIELDSPEC ".%u",
+			ION_NODE_NBR, sinkEp);
 	pseudoshell(cmd);
 	snooze(2);
 	isprintf(cmd, sizeof cmd, "bpsource ipn:" UVAST_FIELDSPEC
-			".1 'Hello, world.'", ION_NODE_NBR);
+			".%u '%s'", ION_NODE_NBR, sinkEp, payload);
 	pseudoshell(cmd);
 	snooze(5);
 
-	/*	Verify LTP transmission success with bundle statistics	*/
-	puts("Verifying bundle transmission with statistics:");
+	/*	Verify transmission success with bundle statistics	*/
+	isprintf(cmd, sizeof cmd, "Verifying %s bundle transmission:", label);
+	puts(cmd);
 	pseudoshell("bpstats");
 	puts("\nBundle Protocol outduct status:");
 	pseudoshell("bplist");
 	snooze(1);
 
-	/*	Print LTP span statistics to verify actual transmission	*/
-	puts("\nLTP Protocol Layer Statistics:");
-	printLtpSpanStats();
-
-	puts("Loopback test ended.");
+	isprintf(cmd, sizeof cmd, "%s loopback test ended.", label);
+	puts(cmd);
 }
 
 static int	stopDTN(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
@@ -470,8 +491,29 @@ rtems_task	Init(rtems_task_argument ignored)
 		exit(1);
 	}
 
-	testLoopback();
+	testLoopback("UDP/LTP", "Hello, world via LTP.", 1);
 	snooze(3);
+
+	puts("\nLTP Protocol Layer Statistics:");
+	printLtpSpanStats();
+	snooze(1);
+
+#ifdef ENABLE_TCPCL
+	/*	Swap egress planduct from LTP to TCP for the second test.	*/
+	puts("\nSwitching egress planduct from ltp/19 to tcp/127.0.0.1:4556...");
+	if (remove_planduct("ltp", "19") < 0)
+	{
+		writeMemo("[?] Failed to remove LTP planduct.");
+	}
+	if (add_planduct("ipn:19.0", "tcp", "127.0.0.1:4556") < 0)
+	{
+		writeMemo("[?] Failed to add TCP planduct.");
+	}
+	snooze(2);
+
+	testLoopback("TCP", "Hello, world via TCPCL.", 2);
+	snooze(3);
+#endif
 
 	/*	Check statistics one more time after longer delay		*/
 	puts("Final statistics check:");
