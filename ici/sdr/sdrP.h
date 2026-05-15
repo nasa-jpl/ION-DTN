@@ -24,6 +24,7 @@
 #include "lyst.h"
 #include "smlist.h"
 #include "sdrxn.h"
+#include "ion_atomic.h"
 
 #ifdef SDR_TRACE
 #include "sptrace.h"
@@ -87,6 +88,20 @@ typedef struct sdr_str
 		/*	Parameters of current transaction.	*/
 
 	sm_SemId	sdrSemaphore;
+#ifdef ION_HAVE_ROBUST_MUTEX
+		/*	On platforms with robust-mutex support the
+		 *	transaction lock is a process-shared robust
+		 *	pthread mutex instead of sdrSemaphore, so that
+		 *	a process dying mid-transaction is recovered
+		 *	via EOWNERDEAD rather than orphaning the lock.
+		 *	sdrXnEnded carries the shutdown signal that
+		 *	sm_SemEnded() provided on the semaphore path;
+		 *	it is in shared memory, so it must be a
+		 *	lock-free IPC atomic, not a process-local one.	*/
+
+	pthread_mutex_t	 sdrMutex;		/*	Robust xn lock.	*/
+	ion_ipc_atomic_t sdrXnEnded;		/*	Boolean.	*/
+#endif
 	int		sdrOwnerTask;		/*	Task ID.	*/
 	pthread_t	sdrOwnerThread;		/*	Thread ID.	*/
 	int		xnDepth;
