@@ -1330,6 +1330,16 @@ static void	destroySdrMutex(SdrState *sdr)
 {
 	if (sdr->sdrMutexCreated)
 	{
+		/*	sdrXnEnded is the robust-mutex analogue of
+		 *	sm_SemEnd: setting it makes takeSdr refuse new
+		 *	transactions and makes any task that acquires
+		 *	the mutex during shutdown release it and bail
+		 *	out (see lockSdr).  The snooze gives in-flight
+		 *	lockers a moment to drain before the mutex is
+		 *	destroyed.					*/
+
+		ion_ipc_atomic_set(&sdr->sdrXnEnded, 1);
+		microsnooze(50000);
 		oK(pthread_mutex_destroy(&sdr->sdrMutex));
 		sdr->sdrMutexCreated = 0;
 	}
