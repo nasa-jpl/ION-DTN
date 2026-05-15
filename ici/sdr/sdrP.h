@@ -101,6 +101,7 @@ typedef struct sdr_str
 
 	pthread_mutex_t	 sdrMutex;		/*	Robust xn lock.	*/
 	ion_ipc_atomic_t sdrXnEnded;		/*	Boolean.	*/
+	int		 sdrMutexCreated;	/*	Boolean.	*/
 #endif
 	int		sdrOwnerTask;		/*	Task ID.	*/
 	pthread_t	sdrOwnerThread;		/*	Thread ID.	*/

@@ -28,6 +28,11 @@
 
 static PsmPartition	_sdrwm(sm_WmParms *parms);
 
+#ifdef ION_HAVE_ROBUST_MUTEX
+static int		createSdrMutex(SdrState *sdr);
+static void		destroySdrMutex(SdrState *sdr);
+#endif
+
 #ifndef SDR_TRACE
 char	*_noTraceMsg(void)
 {
@@ -191,6 +196,9 @@ static SdrControlHeader	*_sch(SdrControlHeader **schp)
 					sm_SemDelete(sdr->sdrSemaphore);
 					sdr->sdrSemaphore = SM_SEM_NONE;
 				}
+#ifdef ION_HAVE_ROBUST_MUTEX
+				destroySdrMutex(sdr);
+#endif
 			}
 
 			sm_SemGive(lock);
@@ -1167,6 +1175,51 @@ static int	restageDsFromFile(SdrState *sdr, int dsfile, char *dssm)
 	return 0;
 }
 
+#ifdef ION_HAVE_ROBUST_MUTEX
+
+/*	On platforms with robust-mutex support the SDR transaction
+ *	lock is a process-shared robust pthread mutex.  createSdrMutex
+ *	is called once, by the process that creates the SDR; every
+ *	other process inherits the mutex through the shared sdrwm
+ *	partition.  PTHREAD_MUTEX_ROBUST is what makes a subsequent
+ *	pthread_mutex_lock return EOWNERDEAD when the owning process
+ *	dies mid-transaction, so the lock can be recovered instead of
+ *	being orphaned.							*/
+
+static int	createSdrMutex(SdrState *sdr)
+{
+	pthread_mutexattr_t	attr;
+
+	if (pthread_mutexattr_init(&attr) != 0)
+	{
+		return -1;
+	}
+
+	if (pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED) != 0
+	|| pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST) != 0
+	|| pthread_mutex_init(&sdr->sdrMutex, &attr) != 0)
+	{
+		oK(pthread_mutexattr_destroy(&attr));
+		return -1;
+	}
+
+	oK(pthread_mutexattr_destroy(&attr));
+	ion_ipc_atomic_init(&sdr->sdrXnEnded, 0);
+	sdr->sdrMutexCreated = 1;
+	return 0;
+}
+
+static void	destroySdrMutex(SdrState *sdr)
+{
+	if (sdr->sdrMutexCreated)
+	{
+		oK(pthread_mutex_destroy(&sdr->sdrMutex));
+		sdr->sdrMutexCreated = 0;
+	}
+}
+
+#endif	/*	ION_HAVE_ROBUST_MUTEX					*/
+
 static void	destroySdr(SdrState *sdr)
 {
 	sm_SemId	lock = _sdrlock(0);
@@ -1186,6 +1239,10 @@ static void	destroySdr(SdrState *sdr)
 		microsnooze(50000);
 		sm_SemDelete(sdr->sdrSemaphore);
 	}
+
+#ifdef ION_HAVE_ROBUST_MUTEX
+	destroySdrMutex(sdr);
+#endif
 
 	/*	Destroy file copy of dataspace if any.			*/
 
@@ -1362,6 +1419,15 @@ SDR heap data, the heap MUST be resident in memory.", itoa(configFlags));
 	}
 
 	sdr->logKey = logKey;
+#ifdef ION_HAVE_ROBUST_MUTEX
+	sdr->sdrSemaphore = SM_SEM_NONE;	/*	Mutex is the lock.	*/
+	if (createSdrMutex(sdr) < 0)
+	{
+		putErrmsg("Can't create transaction mutex for SDR.", NULL);
+		destroySdr(sdr);		/*	Releases lock.	*/
+		return -1;
+	}
+#else
 	sdr->sdrSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 	if (sdr->sdrSemaphore == SM_SEM_NONE)
 	{
@@ -1369,6 +1435,7 @@ SDR heap data, the heap MUST be resident in memory.", itoa(configFlags));
 		destroySdr(sdr);		/*	Releases lock.	*/
 		return -1;
 	}
+#endif
 
 	sdr->sdrOwnerTask = -1;
 	sdr->logEntries = sm_list_create(sdrwm);
@@ -1604,9 +1671,13 @@ int	sdr_reload_profile(char *name, int configFlags, size_t heapWords,
 		 *	force reversal of any incomplete transaction
 		 *	that is currently in progress.			*/
 
+#ifdef ION_HAVE_ROBUST_MUTEX
+		destroySdrMutex(sdr);
+#else
 		sm_SemEnd(sdr->sdrSemaphore);
 		microsnooze(50000);
 		sm_SemDelete(sdr->sdrSemaphore);
+#endif
 		psm_free(sdrwm, sdrAddress);
 		oK(sm_list_delete(sdrwm, elt, NULL, NULL));
 	}
@@ -1845,10 +1916,14 @@ void	sdr_stop_using(Sdr sdrv, int shutdown)
 void	sdr_abort(Sdr sdrv)
 {
 	CHKVOID(sdrv);
+#ifdef ION_HAVE_ROBUST_MUTEX
+	destroySdrMutex(sdrv->sdr);
+#else
 	sm_SemEnd(sdrv->sdr->sdrSemaphore);
 	microsnooze(50000);
 	sm_SemDelete(sdrv->sdr->sdrSemaphore);
 	sdrv->sdr->sdrSemaphore = -1;
+#endif
 	sdr_shutdown();
 }
 
@@ -1870,10 +1945,14 @@ void	sdr_destroy(Sdr sdrv, int shutdown)
 #endif
 
 	sdr = sdrv->sdr;
+#ifdef ION_HAVE_ROBUST_MUTEX
+	destroySdrMutex(sdr);
+#else
 	sm_SemEnd(sdr->sdrSemaphore);		/*	Interrupt.	*/
 	microsnooze(50000);
 	sm_SemDelete(sdr->sdrSemaphore);
 	sdr->sdrSemaphore = SM_SEM_NONE;
+#endif
 
 	/*	Now destroy the SDR itself.				*/
 
