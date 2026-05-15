@@ -230,7 +230,10 @@ ln -s ../bpv7/saga/saga.c .
 ln -s ../bpv7/saga/saga.h .
 
 # bpv7/stcp - not included
-# bpv7/tcp - not included
+
+# bpv7/tcp
+ln -s ../bpv7/tcp/tcpcli.c .
+ln -s ../bpv7/tcp/tcpclo.c .
 
 # bpv7/test - only included a few for testing
 ln -s ../bpv7/test/bpsource.c .
