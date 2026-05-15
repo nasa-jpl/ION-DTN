@@ -1506,7 +1506,15 @@ SDR heap data, the heap MUST be resident in memory.", itoa(configFlags));
 			&& (sdr->logKey == logKey || logKey == SM_NO_KEY)
 			&& strcmp(sdr->pathName, pathName) == 0)
 			{
+#ifndef ION_HAVE_ROBUST_MUTEX
+				/*	Recover the transaction semaphore in
+				 *	case a previous user died holding it.
+				 *	The robust mutex needs no such nudge:
+				 *	it recovers itself via EOWNERDEAD on
+				 *	the next lock attempt.			*/
+
 				sm_SemUnwedge(sdr->sdrSemaphore, 3);
+#endif
 				return 0;	/*	Profile loaded.	*/
 			}
 
