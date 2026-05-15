@@ -48,6 +48,10 @@ extern int	udpbso(int, int, int, int, int, int, int, int, int, int);
 extern int	tcpbsi(int, int, int, int, int, int, int, int, int, int);
 extern int	tcpbso(int, int, int, int, int, int, int, int, int, int);
 #endif
+#ifdef ENABLE_TCPCL
+extern int	tcpcli(int, int, int, int, int, int, int, int, int, int);
+extern int	tcpclo(int, int, int, int, int, int, int, int, int, int);
+#endif
 /* AMS excluded for minimal BP/LTP port */
 /*extern int	ramsgate(int, int, int, int, int, int, int, int, int, int);
 extern int	amsshell(int, int, int, int, int, int, int, int, int, int);
@@ -114,6 +118,10 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "udpbso",	(FUNCPTR) udpbso,	ICI_PRIORITY,	25576 },
 		{ "tcpbsi",	(FUNCPTR) tcpbsi,	ICI_PRIORITY,	25576 },
 		{ "tcpbso",	(FUNCPTR) tcpbso,	ICI_PRIORITY,	25576 },
+#endif
+#ifdef ENABLE_TCPCL
+		{ "tcpcli",	(FUNCPTR) tcpcli,	ICI_PRIORITY,	32768 },
+		{ "tcpclo",	(FUNCPTR) tcpclo,	ICI_PRIORITY,	32768 },
 #endif
 		/* AMS excluded for minimal BP/LTP port */
 		/*{ "ramsgate",	(FUNCPTR) ramsgate,	ICI_PRIORITY,	25576 },

@@ -27,7 +27,10 @@
 
 #define ION_NODE_NBR	  ((uvast) 19)
 #define LTP_ENGINE_STR	  "19"		   /* must match ION_NODE_NBR */
+#define TEST_ENDPOINT_LTP 1
+#define TEST_ENDPOINT_TCP 2
 #define TEST_LTP_DUCT	  "127.0.0.1:1113" /* udplsi / udplso */
+#define TEST_TCP_DUCT	  "127.0.0.1:4556" /* tcpcli / tcpclo */
 
 /*
  * Note: EnqueueBundle is an enum value in BpRecvRule, not a function.
@@ -95,12 +98,12 @@ static int	startDTN()
 	/*	Set up ION parameters for RTEMS 6.1 64-bit ARM		*/
 	memset(&parms, 0, sizeof(IonParms));
 	parms.wmKey = 0;			/* Auto-allocate private memory */
-	parms.wmSize = 500000;			/* Increased for UDP buffers */
+	parms.wmSize = 2000000;			/* 2 MB for UDP/TCP buffers */
 	parms.wmAddress = NULL;
 	istrcpy(parms.sdrName, "ion", sizeof(parms.sdrName));
-	parms.sdrWmSize = 500000;		/* Increased for UDP buffers */
+	parms.sdrWmSize = 2000000;		/* 2 MB for UDP/TCP buffers */
 	parms.configFlags = SDR_IN_DRAM | SDR_BOUNDED;
-	parms.heapWords = 500000;		/* Increased for UDP buffers */
+	parms.heapWords = 2000000;		/* 2 MB for UDP/TCP buffers */
 	parms.heapKey = SM_NO_KEY;		/* Auto-allocate */
 	parms.logSize = 0;
 	parms.logKey = SM_NO_KEY;
@@ -298,6 +301,31 @@ static int	startDTN()
 		return -1;
 	}
 
+#ifdef ENABLE_TCPCL
+	/* Add TCPCL protocol and convergence layer adapters */
+	if (add_protocol("tcp", 8) < 0)
+	{
+		writeMemo("[?] Failed to add TCP protocol.");
+		return -1;
+	}
+
+	if (add_induct("tcp", TEST_TCP_DUCT, "tcpcli") < 0)
+	{
+		writeMemo("[?] Failed to add TCP induct.");
+		return -1;
+	}
+
+	/*
+	 * tcpclo is deprecated; tcpcl outducts are drained by the
+	 * tcpcli threads, so no CLO command is needed (NULL).
+	 */
+	if (add_outduct("tcp", TEST_TCP_DUCT, NULL, 0) < 0)
+	{
+		writeMemo("[?] Failed to add TCP outduct.");
+		return -1;
+	}
+#endif
+
 	/*	Add routing plan						*/
 	if (add_plan("ipn:19.0", 0) < 0)
 	{
@@ -380,30 +408,34 @@ static void	printLtpSpanStats()
 	puts(buffer);
 }
 
-static void	testLoopback()
+static void testLoopback(const char *label, const char *payload,
+		unsigned int sinkEp)
 {
-	char	cmd[80];
+	char buf[120];
 
-	puts("Starting loopback test.");
-	isprintf(cmd, sizeof cmd, "bpsink ipn:" UVAST_FIELDSPEC ".1",
-			ION_NODE_NBR);
-	pseudoshell(cmd);
+	isprintf(buf, sizeof buf, "Starting %s loopback test.", label);
+	puts(buf);
+	isprintf(buf, sizeof buf, "bpsink ipn:" UVAST_FIELDSPEC ".%u",
+			ION_NODE_NBR, sinkEp);
+	pseudoshell(buf);
 	snooze(2);
-	isprintf(cmd, sizeof cmd, "bpsource ipn:" UVAST_FIELDSPEC
-			".1 'Hello, world.'", ION_NODE_NBR);
-	pseudoshell(cmd);
+	isprintf(buf, sizeof buf, "bpsource ipn:" UVAST_FIELDSPEC ".%u '%s'",
+			ION_NODE_NBR, sinkEp, payload);
+	pseudoshell(buf);
 	snooze(5);
 
-	/*	Verify LTP transmission success with bundle statistics	*/
-	puts("Verifying bundle transmission with statistics:");
+	/* Verify transmission success with bundle statistics */
+	isprintf(buf, sizeof buf, "Verifying %s bundle transmission:", label);
+	puts(buf);
 	pseudoshell("bpstats");
 	puts("\nBundle Protocol outduct status:");
 	pseudoshell("bplist");
 	snooze(1);
 
-	/*	Print LTP span statistics to verify actual transmission	*/
-	puts("\nLTP Protocol Layer Statistics:");
-	printLtpSpanStats();
+	isprintf(buf, sizeof buf, "%s loopback test ended.", label);
+	puts(buf);
+}
+
 
 	puts("Loopback test ended.");
 }
@@ -472,8 +504,30 @@ rtems_task	Init(rtems_task_argument ignored)
 		exit(1);
 	}
 
-	testLoopback();
+	testLoopback("UDP/LTP", "Hello, world via LTP.", TEST_ENDPOINT_LTP);
 	snooze(3);
+
+	puts("\nLTP Protocol Layer Statistics:");
+	printLtpSpanStats();
+	snooze(1);
+
+#ifdef ENABLE_TCPCL
+	/* Swap egress planduct from LTP to TCP for the second test. */
+	puts("\nSwitching egress planduct from ltp/" LTP_ENGINE_STR
+	     " to tcp/" TEST_TCP_DUCT "...");
+	if (remove_planduct("ltp", LTP_ENGINE_STR) < 0)
+	{
+		writeMemo("[?] Failed to remove LTP planduct.");
+	}
+	if (add_planduct("ipn:19.0", "tcp", TEST_TCP_DUCT) < 0)
+	{
+		writeMemo("[?] Failed to add TCP planduct.");
+	}
+	snooze(2);
+
+	testLoopback("TCP", "Hello, world via TCPCL.", TEST_ENDPOINT_TCP);
+	snooze(3);
+#endif
 
 	/*	Check statistics one more time after longer delay		*/
 	puts("Final statistics check:");
