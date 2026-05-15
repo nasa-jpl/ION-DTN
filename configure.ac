@@ -882,6 +882,87 @@ AC_CHECK_LIB(
   [AC_MSG_ERROR([You need pthread library.]) ]
 )
 
+dnl =============================================================
+dnl  Robust-mutex support for the SDR transaction lock
+dnl =============================================================
+dnl  A process-shared PTHREAD_MUTEX_ROBUST mutex lets the SDR
+dnl  transaction lock recover deterministically (the next locker
+dnl  gets EOWNERDEAD) when a process dies mid-transaction, instead
+dnl  of orphaning the lock and wedging the node forever.
+dnl
+dnl  Gated to Linux, FreeBSD and Solaris by an explicit platform
+dnl  allowlist: even on platforms whose libc happens to implement
+dnl  robust mutexes (e.g. recent RTEMS) the SDR lock deliberately
+dnl  keeps the legacy semaphore path there.  Integrators may force
+dnl  the legacy path anywhere with --disable-robust-sdr-lock.
+dnl
+dnl  This probe is independent of the C11-atomics tier selection
+dnl  above; robust mutexes are a POSIX libc feature and do not
+dnl  require C11.
+dnl =============================================================
+AC_ARG_ENABLE([robust-sdr-lock],
+  [AS_HELP_STRING([--disable-robust-sdr-lock],
+     [Do not use a robust pthread mutex for the SDR transaction lock,
+      even where supported; fall back to the legacy semaphore.])],
+  [enable_robust_sdr_lock="$enableval"],
+  [enable_robust_sdr_lock="yes"])
+
+AC_CACHE_CHECK([whether $CC supports robust process-shared mutexes],
+  [ac_cv_robust_mutex],
+  [save_LIBS="$LIBS"
+   LIBS="$LIBS -pthread"
+   AC_LINK_IFELSE(
+     [AC_LANG_SOURCE([[
+#define _GNU_SOURCE
+#include <pthread.h>
+int main(void)
+{
+	pthread_mutexattr_t	attr;
+	pthread_mutex_t		mutex;
+
+	if (pthread_mutexattr_init(&attr) != 0) return 1;
+	if (pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED) != 0)
+		return 1;
+	if (pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST) != 0)
+		return 1;
+	if (pthread_mutex_init(&mutex, &attr) != 0) return 1;
+	(void) pthread_mutex_consistent(&mutex);
+	return 0;
+}
+]])],
+     [ac_cv_robust_mutex=yes],
+     [ac_cv_robust_mutex=no])
+   LIBS="$save_LIBS"])
+
+case $PLATFORM in
+  linux|bsd|solaris)
+    ion_robust_mutex_platform=yes ;;
+  *)
+    ion_robust_mutex_platform=no ;;
+esac
+
+if test "x$enable_robust_sdr_lock" = xyes \
+     && test "x$ac_cv_robust_mutex" = xyes \
+     && test "x$ion_robust_mutex_platform" = xyes; then
+  ion_robust_mutex=yes
+  AC_DEFINE([ION_HAVE_ROBUST_MUTEX],[1],
+    [Define to 1 to use a robust process-shared pthread mutex for the
+     SDR transaction lock, enabling EOWNERDEAD recovery when a process
+     dies mid-transaction.  Gated to Linux, FreeBSD and Solaris.])
+  AC_MSG_NOTICE([SDR transaction lock: robust-mutex recovery enabled])
+else
+  ion_robust_mutex=no
+  if test "x$enable_robust_sdr_lock" != xyes; then
+    AC_MSG_NOTICE([SDR transaction lock: robust mutex disabled by request])
+  elif test "x$ion_robust_mutex_platform" != xyes; then
+    AC_MSG_NOTICE([SDR transaction lock: robust mutex not enabled on this platform])
+  else
+    AC_MSG_NOTICE([SDR transaction lock: robust mutex unsupported by toolchain])
+  fi
+fi
+
+AM_CONDITIONAL([HAVE_ROBUST_MUTEX], [test "x$ion_robust_mutex" = xyes])
+
 # Check for dynamic linking library and header
 AC_CHECK_HEADER([dlfcn.h], [], [
   AC_MSG_ERROR([required header dlfcn.h not found. Please install the appropriate C library development package (e.g., glibc-devel or libc6-dev).])
