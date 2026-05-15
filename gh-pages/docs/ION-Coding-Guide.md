@@ -14,6 +14,7 @@
     - [Comment Formatting](#comment-formatting)
     - [Miscellaneous Rules](#miscellaneous-rules)
   - [SDR Transaction](#sdr-transaction)
+    - [Transaction Lock and Robust-Mutex Recovery](#transaction-lock-and-robust-mutex-recovery)
   - [Static Analysis Notes](#static-analysis-notes)
     - [Null Pointer Dereference — Shared Memory Lookups](#null-pointer-dereference--shared-memory-lookups)
     - [Null Pointer Dereference — Callback Parameters](#null-pointer-dereference--callback-parameters)
@@ -767,6 +768,20 @@ The choice between `sdr_end_xn()` and `sdr_exit_xn()` depends on the intent of t
 * Situation C: All transactions and modifications are nominal. In this case, call `sdr_end_xn.`
 
 The implementation must be able to discern between situations A and B. When one cannot make certain that the SDR will be in operation state due to a complex transaction failure case, or due to system errors, one one should default to A and issue transaction cancellation and rely on reversibility in order to avoid leaving the SDR in an inconsistent state.
+
+### Transaction Lock and Robust-Mutex Recovery
+
+The lock that serializes access to an SDR is, by default, a POSIX named semaphore. This carries a failure mode: POSIX named semaphores have no dead-owner recovery, so if a process is killed (`SIGKILL`, an OOM kill, a crash, a debugger) between `sdr_begin_xn()` and `sdr_end_xn()` / `sdr_exit_xn()`, the lock is orphaned. Every subsequent `sdr_begin_xn()` on that node then blocks forever and the node wedges silently — no assertion, no core dump.
+
+On platforms that support it, ION instead implements the transaction lock as a process-shared **robust** `pthread_mutex_t` (`PTHREAD_MUTEX_ROBUST`). When the owning process dies, the next `pthread_mutex_lock()` returns `EOWNERDEAD` deterministically; ION then rolls back the dead owner's partial transaction using the reversibility log and marks the mutex consistent again, so the node recovers instead of wedging. If the dead transaction modified a *non-reversible* SDR it cannot be rolled back: the mutex is left `ENOTRECOVERABLE`, so `sdr_begin_xn()` fails loudly rather than wedging or building on a corrupt SDR.
+
+**Configure option.** Robust-mutex support is detected automatically by `configure` and enabled wherever it is available; `config.h` then defines `ION_HAVE_ROBUST_MUTEX`. Pass `--disable-robust-sdr-lock` to force the legacy semaphore path even where the robust mutex is supported.
+
+**Platform gating.** The robust mutex is used only on **Linux, FreeBSD and Solaris**: `configure` applies an explicit platform allowlist in addition to the toolchain probe. VxWorks and RTEMS keep the legacy semaphore path even though a recent RTEMS C library may implement `PTHREAD_MUTEX_ROBUST`; macOS has no robust-mutex support at all. See the **Operating System Support Matrix** above. A single ION build uses one path or the other for every process, since all processes on a node share the SDR.
+
+**Relationship to the atomics zones and tiers.** Robust-mutex selection is an **independent axis** from the C11-atomics tier selection described under **Atomic Operations**. Robust mutexes are a POSIX C-library and kernel feature, not a C language feature: they need neither C11 nor `<stdatomic.h>` and work unchanged in a C99 build. `configure` detects them with a separate probe and a separate macro (`ION_HAVE_ROBUST_MUTEX`), unrelated to `ION_HAVE_C11_ATOMICS` or `--with-atomics`. The two features also guard disjoint data: anything serialized *inside* an SDR transaction needs no atomics, because acquiring and releasing the mutex is itself a full memory barrier, while lock-free data continues to use the atomic types. The one point of contact is the robust-mutex shutdown flag (`sdrXnEnded`, which carries the signal that `sm_SemEnded()` provided on the semaphore path): it lives in the shared `SdrState`, so it must be a **Zone 2** `ion_ipc_atomic_t`, never a process-local `ion_atomic_t` — see **Dual-Zone Architecture**.
+
+**Limitations.** The robust mutex detects owner *death*; it does not help if a live process hangs or deadlocks while holding the lock. Full recovery of a dead *writer* requires the SDR to be configured `SDR_REVERSIBLE` (i.e. to keep a transaction log); without the log, an orphaned writer is still detected deterministically but is reported unrecoverable rather than silently wedging.
 
 ## Static Analysis Notes
 
