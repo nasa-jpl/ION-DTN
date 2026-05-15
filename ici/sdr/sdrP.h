@@ -213,7 +213,7 @@ typedef struct sdrv_str
 
 typedef enum { UserPut = 0, SystemPut } PutSrc;
 
-extern int		takeSdr(SdrState *sdr);
+extern int		takeSdr(Sdr sdrv);
 extern void		releaseSdr(SdrState *sdr);
 
 extern void		joinTrace(Sdr, const char *, int);

@@ -31,6 +31,7 @@ static PsmPartition	_sdrwm(sm_WmParms *parms);
 #ifdef ION_HAVE_ROBUST_MUTEX
 static int		createSdrMutex(SdrState *sdr);
 static void		destroySdrMutex(SdrState *sdr);
+static int		recoverOrphanedXn(Sdr sdrv);
 #endif
 
 #ifndef SDR_TRACE
@@ -430,8 +431,54 @@ SdrMap	*_mapImage(Sdr sdrv)
 
 /*	*	Mutual exclusion functions	*	*	*	*/
 
-static int	lockSdr(SdrState *sdr)
+static int	lockSdr(Sdr sdrv)
 {
+	SdrState	*sdr = sdrv->sdr;
+#ifdef ION_HAVE_ROBUST_MUTEX
+	int		result;
+
+	result = pthread_mutex_lock(&sdr->sdrMutex);
+	if (result == EOWNERDEAD)
+	{
+		/*	The previous owner of the transaction lock
+		 *	died while holding it.  We now own the lock;
+		 *	roll back the dead owner's partial transaction
+		 *	before marking the mutex consistent again.	*/
+
+		if (recoverOrphanedXn(sdrv) < 0)
+		{
+			/*	Unlocking without pthread_mutex_consistent
+			 *	transitions the mutex to ENOTRECOVERABLE,
+			 *	so every future locker fails the same way
+			 *	rather than building on a corrupt SDR.	*/
+
+			oK(pthread_mutex_unlock(&sdr->sdrMutex));
+			return -1;
+		}
+
+		oK(pthread_mutex_consistent(&sdr->sdrMutex));
+	}
+	else if (result == ENOTRECOVERABLE)
+	{
+		putErrmsg("SDR transaction lock is unrecoverable; the SDR \
+profile must be reloaded.", NULL);
+		return -1;
+	}
+	else if (result != 0)
+	{
+		putErrmsg("Can't lock SDR transaction mutex.", itoa(result));
+		return -1;
+	}
+
+	/*	sdrXnEnded carries the graceful-shutdown signal that
+	 *	sm_SemEnded() provided on the semaphore path.		*/
+
+	if (ion_ipc_atomic_get(&sdr->sdrXnEnded))
+	{
+		oK(pthread_mutex_unlock(&sdr->sdrMutex));
+		return -1;
+	}
+#else
 	if (sm_SemTake(sdr->sdrSemaphore) < 0)
 	{
 		return -1;
@@ -446,6 +493,7 @@ static int	lockSdr(SdrState *sdr)
 	{
 		return -1;
 	}
+#endif
 
 	sdr->sdrOwnerThread = pthread_self();
 	sdr->sdrOwnerTask = sm_TaskIdSelf();
@@ -455,13 +503,24 @@ static int	lockSdr(SdrState *sdr)
 	return 0;
 }
 
-int	takeSdr(SdrState *sdr)
+int	takeSdr(Sdr sdrv)
 {
+	SdrState	*sdr;
+
+	CHKERR(sdrv);
+	sdr = sdrv->sdr;
 	CHKERR(sdr);
+#ifdef ION_HAVE_ROBUST_MUTEX
+	if (!(sdr->sdrMutexCreated) || ion_ipc_atomic_get(&sdr->sdrXnEnded))
+	{
+		return -1;		/*	Can't be taken.		*/
+	}
+#else
 	if (sdr->sdrSemaphore == -1 || sm_SemEnded(sdr->sdrSemaphore))
 	{
 		return -1;		/*	Can't be taken.		*/
 	}
+#endif
 
 	if (sdr->sdrOwnerTask == sm_TaskIdSelf()
 	&& pthread_equal(sdr->sdrOwnerThread, pthread_self()))
@@ -470,17 +529,21 @@ int	takeSdr(SdrState *sdr)
 		return 0;		/*	Already taken.		*/
 	}
 
-	return lockSdr(sdr);
+	return lockSdr(sdrv);
 }
 
 static void	unlockSdr(SdrState *sdr)
 {
 	sdr->sdrOwnerTask = -1;
 	sdr->sdrOwnerThread = 0;
+#ifdef ION_HAVE_ROBUST_MUTEX
+	oK(pthread_mutex_unlock(&sdr->sdrMutex));
+#else
 	if (sdr->sdrSemaphore != -1)
 	{
 		sm_SemGive(sdr->sdrSemaphore);
 	}
+#endif
 }
 
 void	releaseSdr(SdrState *sdr)
@@ -802,6 +865,60 @@ static void	clearTransaction(Sdr sdrv)
 	sdrv->sdr->logLength = 0;
 	sm_list_clear(_sdrwm(NULL), sdrv->sdr->logEntries, NULL, NULL);
 }
+
+#ifdef ION_HAVE_ROBUST_MUTEX
+
+/*	recoverOrphanedXn is invoked when pthread_mutex_lock returns
+ *	EOWNERDEAD, i.e. the process that held the transaction lock
+ *	died mid-transaction.  The recovering caller already owns the
+ *	lock; this rolls back whatever the dead owner left behind so
+ *	the caller can begin a fresh transaction on a consistent SDR.
+ *	On success the caller marks the mutex consistent; on failure
+ *	it deliberately does not, so the mutex becomes ENOTRECOVERABLE
+ *	rather than handing out a corrupt SDR.				*/
+
+static int	recoverOrphanedXn(Sdr sdrv)
+{
+	SdrState	*sdr = sdrv->sdr;
+
+	writeMemo("[?] SDR transaction lock owner died mid-transaction; \
+recovering.");
+
+	/*	A read-only transaction leaves nothing to undo.  If the
+	 *	dead owner modified the heap, roll the changes back from
+	 *	the transaction log.					*/
+
+	if (sdr->modified)
+	{
+		if (!(sdr->configFlags & SDR_REVERSIBLE))
+		{
+			putErrmsg("Orphaned transaction modified a \
+non-reversible SDR; cannot recover.", NULL);
+			return -1;
+		}
+
+		putErrmsg("Reversing orphaned transaction...", NULL);
+		if (reverseTransaction(sdr, sdrv->logfile, sdrv->logsm,
+				sdrv->dsfile, sdrv->dssm) < 0)
+		{
+			putErrmsg("Can't reverse orphaned transaction.", NULL);
+			return -1;
+		}
+	}
+
+	/*	Discard the dead owner's transaction bookkeeping so the
+	 *	recovering caller starts from a clean slate.		*/
+
+	clearTransaction(sdrv);
+	sdr->xnDepth = 0;
+	sdr->xnCanceled = 0;
+	sdr->modified = 0;
+	sdr->sdrOwnerTask = -1;
+	sdr->sdrOwnerThread = 0;
+	return 0;
+}
+
+#endif	/*	ION_HAVE_ROBUST_MUTEX					*/
 
 static void	handleUnrecoverableError(Sdr sdrv)
 {
@@ -1978,7 +2095,7 @@ int	sdr_begin_xn(Sdr sdrv)
 #endif
 {
 	CHKZERO(sdrv);
-	if (takeSdr(sdrv->sdr) < 0)
+	if (takeSdr(sdrv) < 0)
 	{
 		return 0;	/*	Failed to begin transaction.	*/
 	}

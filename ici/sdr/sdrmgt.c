@@ -268,7 +268,7 @@ int	sdr_start_trace(Sdr sdrv, size_t shmSize, char *shm)
 
 	CHKERR(sdrv);
 	sdr = sdrv->sdr;
-	CHKERR(takeSdr(sdr) == 0);
+	CHKERR(takeSdr(sdrv) == 0);
 	if (shmSize < 1)	/*	Must allocate some space.	*/
 	{
 		releaseSdr(sdr);
@@ -325,7 +325,7 @@ void	sdr_print_trace(Sdr sdrv, int verbose)
 
 	CHKVOID(sdrv);
 	sdr = sdrv->sdr;
-	CHKVOID(takeSdr(sdr) == 0);
+	CHKVOID(takeSdr(sdrv) == 0);
 	sptrace_report(sdrv->trace, verbose);
 	sdr_usage(sdrv, &summary);
 	sdr_report(&summary);
@@ -342,7 +342,7 @@ void	sdr_clear_trace(Sdr sdrv)
 
 	CHKVOID(sdrv);
 	sdr = sdrv->sdr;
-	CHKVOID(takeSdr(sdr) == 0);
+	CHKVOID(takeSdr(sdrv) == 0);
 	sptrace_clear(sdrv->trace);
 	releaseSdr(sdr);
 #endif
@@ -357,7 +357,7 @@ void	sdr_stop_trace(Sdr sdrv)
 
 	CHKVOID(sdrv);
 	sdr = sdrv->sdr;
-	CHKVOID(takeSdr(sdr) == 0);
+	CHKVOID(takeSdr(sdrv) == 0);
 	if (sdrv->trace)
 	{
 		sptrace_stop(sdrv->trace);
