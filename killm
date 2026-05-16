@@ -60,6 +60,40 @@ fi
 
 PGREP_PATTERN=$(echo "$IONPROCESSLIST" | tr -s '[:space:]' '|' | sed 's/^|//;s/|$//')
 
+# The platforms we care about support sleep(1) with milliseconds.
+# Older platforms that don't, probably have Perl.
+# Stuff that doesn't have either falls back to seconds.
+#
+# $1: string, decimal value, seconds to sleep for (e.g., "0.1")
+# $2: integer, value of $1 as milliseconds (e.g., 100)
+# _km_slept_ms is updated to the amount of milliseconds slept.
+# This can be different than $2 if we have to fall back to seconds.
+if sleep 0.001 2>/dev/null; then
+    _km_sleep() {
+        sleep "$1"
+        _km_slept_ms="$2"
+    }
+elif command -v perl >/dev/null 2>&1; then
+    _km_sleep() {
+        perl -e "select(undef, undef, undef, $1)"
+        _km_slept_ms="$2"
+    }
+else
+    _km_sleep() {
+        _km_sleep_val="$1"
+        _km_sleep_whole="${_km_sleep_val%.*}"
+        _km_sleep_whole="${_km_sleep_whole:-0}"
+
+        if [ "$_km_sleep_whole" -gt 0 ]; then
+            sleep "$_km_sleep_whole"
+            _km_slept_ms=$((_km_sleep_whole * 1000))
+        else
+            sleep 1
+            _km_slept_ms=1000
+        fi
+    }
+fi
+
 # Portable timeout: prefer GNU timeout if available, otherwise
 # fall back to background + kill after delay.
 _run_with_timeout() {
@@ -309,15 +343,45 @@ fi
 
 # --- Full cleanup (single-node or forced) ---
 
-# Always run SIGTERM/SIGKILL cycle — even if ionexit stopped all visible
-# processes, stragglers (e.g. ionwarn) may still be exiting.
-echo "Sending TERM to the processes..."
-pkill -x "$PGREP_PATTERN" 2>/dev/null
-sleep 2
+# Run SIGTERM/SIGKILL cycle if pgrep still detects surviving processes
+if [ "$HAS_SURVIVORS" -eq 1 ]; then
+    echo "Sending TERM to the processes..."
+    pkill -x "$PGREP_PATTERN" 2>/dev/null
 
-echo "Sending KILL to the processes..."
-pkill -9 -x "$PGREP_PATTERN" 2>/dev/null
-sleep 2
+    _km_timeout=2000
+    _km_sleep_arg="0.1"
+    _km_interval=100
+    _km_elapsed=0
+
+    while [ "$_km_elapsed" -lt "$_km_timeout" ]; do
+        check_surviving_processes >/dev/null 2>&1
+        if [ "$HAS_SURVIVORS" -eq 0 ] && [ "$HAS_CHECK_ERROR" -eq 0 ]; then
+            break
+        fi
+        _km_sleep "$_km_sleep_arg" "$_km_interval"
+        _km_elapsed=$((_km_elapsed + _km_slept_ms))
+    done
+fi
+
+check_surviving_processes >/dev/null 2>&1
+if [ "$HAS_SURVIVORS" -eq 1 ]; then
+    echo "Sending KILL to the processes..."
+    pkill -9 -x "$PGREP_PATTERN" 2>/dev/null
+
+    _km_timeout=2000
+    _km_sleep_arg="0.1"
+    _km_interval=100
+    _km_elapsed=0
+
+    while [ "$_km_elapsed" -lt "$_km_timeout" ]; do
+        check_surviving_processes >/dev/null 2>&1
+        if [ "$HAS_SURVIVORS" -eq 0 ] && [ "$HAS_CHECK_ERROR" -eq 0 ]; then
+            break
+        fi
+        _km_sleep "$_km_sleep_arg" "$_km_interval"
+        _km_elapsed=$((_km_elapsed + _km_slept_ms))
+    done
+fi
 
 echo ""
 echo "=== Post-signal state ==="
