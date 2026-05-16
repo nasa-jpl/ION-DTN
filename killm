@@ -58,8 +58,6 @@ else
     exit 1
 fi
 
-KILLCMD="pkill -x"
-PROCESS_LIMIT=1
 PGREP_PATTERN=$(echo "$IONPROCESSLIST" | tr -s '[:space:]' '|' | sed 's/^|//;s/|$//')
 
 # Portable timeout: prefer GNU timeout if available, otherwise
@@ -316,11 +314,11 @@ fi
 # Always run SIGTERM/SIGKILL cycle — even if ionexit stopped all visible
 # processes, stragglers (e.g. ionwarn) may still be exiting.
 echo "Sending TERM to the processes..."
-echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
+pkill -x "$PGREP_PATTERN" 2>/dev/null
 sleep 2
 
 echo "Sending KILL to the processes..."
-echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT pkill -9 -x 2> /dev/null
+pkill -9 -x "$PGREP_PATTERN" 2>/dev/null
 sleep 2
 
 echo ""
