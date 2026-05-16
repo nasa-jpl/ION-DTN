@@ -273,7 +273,7 @@ if command -v ionexit > /dev/null 2>&1; then
     # than receiving a direct signal, so they need a moment to notice.
     if [ $IONEXIT_RAN -eq 1 ]; then
         for i in 1 2 3 4 5; do
-            check_surviving_processes
+            check_surviving_processes > /dev/null 2>&1
             if [ $HAS_SURVIVORS -eq 0 ] && [ $HAS_CHECK_ERROR -eq 0 ]; then
                 break
             fi
@@ -285,8 +285,6 @@ if command -v ionexit > /dev/null 2>&1; then
         if [ $HAS_SURVIVORS -ne 0 ]; then
             echo "killm: NOTE -- graceful shutdown timed out; falling back to SIGTERM/SIGKILL"
         fi
-    else
-        check_surviving_processes
     fi
 
     # Report state after ionexit for diagnostics
