@@ -306,15 +306,22 @@ if command -v ionexit > /dev/null 2>&1; then
     # Many ION processes stop by polling a flag in shared memory rather
     # than receiving a direct signal, so they need a moment to notice.
     if [ $IONEXIT_RAN -eq 1 ]; then
-        for i in 1 2 3 4 5; do
-            check_surviving_processes > /dev/null 2>&1
-            if [ $HAS_SURVIVORS -eq 0 ] && [ $HAS_CHECK_ERROR -eq 0 ]; then
+        _km_timeout=5000
+        _km_sleep_arg="0.1"
+        _km_interval=100
+        _km_elapsed=0
+
+        while [ "$_km_elapsed" -lt "$_km_timeout" ]; do
+            check_surviving_processes >/dev/null 2>&1
+            if [ "$HAS_SURVIVORS" -eq 0 ] && [ "$HAS_CHECK_ERROR" -eq 0 ]; then
                 break
             fi
-            if [ $i -lt 5 ]; then
-                echo "Waiting for processes to exit... (${i}s)"
-                sleep 1
+            if [ $((_km_elapsed % 1000)) -eq 0 ]; then
+                echo "Waiting for processes to exit..." \
+                    "($((_km_elapsed / 1000))s)"
             fi
+            _km_sleep "$_km_sleep_arg" "$_km_interval"
+            _km_elapsed=$((_km_elapsed + _km_slept_ms))
         done
         if [ $HAS_SURVIVORS -ne 0 ]; then
             echo "killm: NOTE -- graceful shutdown timed out; falling back to SIGTERM/SIGKILL"
