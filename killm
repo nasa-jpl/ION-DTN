@@ -158,7 +158,7 @@ check_surviving_processes() {
     esac
 }
 
-# Portable depth-1 listing of ION semaphore files — avoids -maxdepth
+# Portable depth-1 listing of ION semaphore files - avoids -maxdepth
 # (missing on Solaris 10's /usr/bin/find).
 _list_sem_files() {
     local dir="$1"
@@ -247,7 +247,7 @@ if [ $HAS_SURVIVORS -eq 0 ] && [ $HAS_CHECK_ERROR -eq 0 ] && [ $HAS_IPC -eq 0 ];
     echo "No ION processes or IPC resources found; skipping ionexit and signal cleanup."
     if [ $MULTINODE -eq 1 ] && [ $FORCE -eq 0 ]; then
         echo ""
-        echo "NOTE: Multi-node environment — shared IPC resources were NOT cleared."
+        echo "NOTE: Multi-node environment - shared IPC resources were NOT cleared."
         echo "Other ION instances on this host may still be running."
         echo "To force full cleanup of all instances, run: killm f"
         echo ""
@@ -259,7 +259,7 @@ else
 # Try graceful shutdown via ionexit first.
 # ionexit operates on the ION instance in the current working directory,
 # so for multi-node environments we must cd into each node's directory.
-# All ionexit output is suppressed — when no ION instance is running,
+# All ionexit output is suppressed - when no ION instance is running,
 # ionexit prints noisy "Can't get shared memory" errors that confuse
 # users even though the situation is harmless.
 IONEXIT_RAN=0
@@ -268,7 +268,7 @@ if command -v ionexit > /dev/null 2>&1; then
         # killm f in multi-node: skip graceful shutdown entirely,
         # fall through to SIGTERM/SIGKILL cycle and IPC cleanup.
         echo "Multi-node environment detected with force flag."
-        echo "Skipping graceful ionexit — proceeding to SIGTERM/SIGKILL cycle."
+        echo "Skipping graceful ionexit - proceeding to SIGTERM/SIGKILL cycle."
     elif [ $MULTINODE -eq 1 ]; then
         # Bare killm in multi-node: node-only shutdown from cwd.
         # Validate that cwd is associated with an ION instance.
@@ -336,11 +336,11 @@ if command -v ionexit > /dev/null 2>&1; then
     echo ""
 fi
 
-# In multi-node mode without force, stop here — do not kill other
+# In multi-node mode without force, stop here - do not kill other
 # nodes' processes or destroy shared IPC resources.
 if [ $MULTINODE -eq 1 ] && [ $FORCE -eq 0 ]; then
     echo ""
-    echo "NOTE: Multi-node environment — shared IPC resources were NOT cleared."
+    echo "NOTE: Multi-node environment - shared IPC resources were NOT cleared."
     echo "Other ION instances on this host may still be running."
     echo "To force full cleanup of all instances, run: killm f"
     echo ""
@@ -394,7 +394,7 @@ echo ""
 echo "=== Post-signal state ==="
 check_surviving_processes
 if [ $HAS_SURVIVORS -ne 0 ]; then
-    echo "  *** WARNING: some ION processes could not be killed — try rebooting"
+    echo "  *** WARNING: some ION processes could not be killed - try rebooting"
 fi
 check_ipc_resources
 echo ""
