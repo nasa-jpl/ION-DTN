@@ -14,7 +14,7 @@
 #   0 -- clean (no surviving ION processes, no IPC resources remaining,
 #        and all survivor checks completed successfully)
 #   1 -- ION processes remained after the SIGTERM/SIGKILL cycle
-#   2 -- could not verify survivor state (one or more `ps` snapshots
+#   2 -- could not verify survivor state (one or more `pgrep` calls
 #        failed); state is unknown, callers should treat as unclean
 #   3 -- POSIX named semaphore files could not be removed (try sudo)
 FORCE=0
@@ -59,9 +59,8 @@ else
 fi
 
 KILLCMD="pkill -x"
-PS="ps"
-PS_ARGS="-fe"
 PROCESS_LIMIT=1
+PGREP_PATTERN=$(echo "$IONPROCESSLIST" | tr -s '[:space:]' '|' | sed 's/^|//;s/|$//')
 
 # Portable timeout: prefer GNU timeout if available, otherwise
 # fall back to background + kill after delay.
@@ -85,8 +84,8 @@ _run_with_timeout() {
 # Helper: check for ION processes still running.
 # Sets HAS_SURVIVORS=1 if any found, 0 otherwise.
 # Sets HAS_CHECK_ERROR=1 if the check itself could not be performed
-# (e.g. ps failed) — distinct from "checked, nothing found".  Callers
-# must treat HAS_CHECK_ERROR=1 as "unknown survivors", not as clean.
+# (i.e., pgrep failed) - distinct from "checked, nothing found".
+# Callers must treat HAS_CHECK_ERROR=1 as "unknown survivors", not as clean.
 # Increments CHECK_ERR_COUNT for end-of-run summary; only the first
 # occurrence is logged to avoid log explosions when called repeatedly.
 HAS_SURVIVORS=0
@@ -96,54 +95,35 @@ check_surviving_processes() {
     HAS_SURVIVORS=0
     HAS_CHECK_ERROR=0
 
-    local ps_out
-    if ! ps_out=$(${PS} ${PS_ARGS} 2>/dev/null) || [ -z "$ps_out" ]; then
+    if [ -z "$PGREP_PATTERN" ]; then
+        echo "WARNING: process list is empty"
+        return 0
+    fi
+
+    _csp_surviving=$(pgrep -xl "$PGREP_PATTERN" 2>/dev/null)
+    _csp_rc=$?
+
+    case "$_csp_rc" in
+    0)
+        echo "ION processes still running:"
+        printf '%s\n' "$_csp_surviving"
+        HAS_SURVIVORS=1
+        return 0
+        ;;
+    1)
+        echo "All ION processes stopped."
+        return 0
+        ;;
+    *)
         CHECK_ERR_COUNT=$((CHECK_ERR_COUNT + 1))
         if [ "$CHECK_ERR_COUNT" -le 1 ]; then
-            echo "killm: WARN -- could not capture process list (ps failed or empty); cannot determine survivors" >&2
+            echo "killm: WARN -- pgrep failed with error code $_csp_rc;" \
+                "cannot determine survivors" >&2
         fi
         HAS_CHECK_ERROR=1
-        return
-    fi
-
-    # Single awk pass: build a lookup table from IONPROCESSLIST and scan
-    # ps output once.  ~300x fewer forks than per-process awk invocations
-    # and removes the temp-file failure mode entirely.
-    local surviving
-    surviving=$(printf '%s\n' "$ps_out" | awk -v procs="$IONPROCESSLIST" '
-        BEGIN {
-            n = split(procs, arr, /[[:space:]]+/)
-            for (i = 1; i <= n; i++) if (arr[i] != "") want[arr[i]] = 1
-        }
-        /defunct/ { next }
-        {
-            # Find CMD after the last time-like column (TIME).
-            # ps -fe TIME formats: "H:MM:SS" (Linux), "M:SS" (Solaris).
-            # On Solaris, STIME can also be "HH:MM:SS" so we must find
-            # the LAST time pattern to skip STIME and land on TIME.
-            pos = 0; tlen = 0; tmp = $0; off = 0
-            while (match(tmp, /[0-9]+:[0-9][0-9](:[0-9][0-9])?/)) {
-                pos = off + RSTART
-                tlen = RLENGTH
-                off += RSTART + RLENGTH - 1
-                tmp = substr(tmp, RSTART + RLENGTH)
-            }
-            if (pos > 0) {
-                cmd = substr($0, pos + tlen)
-                sub(/^[ \t]+/, "", cmd)   # trim leading whitespace
-                sub(/ .*/, "", cmd)        # isolate first word (the command)
-                sub(/.*\//, "", cmd)       # strip path prefix
-                if (cmd in want) print
-            }
-        }')
-
-    if [ -n "$surviving" ]; then
-        echo "ION processes still running:"
-        echo "$surviving"
-        HAS_SURVIVORS=1
-    else
-        echo "All ION processes stopped."
-    fi
+        return "$_csp_rc"
+        ;;
+    esac
 }
 
 # Portable depth-1 listing of ION semaphore files — avoids -maxdepth
@@ -210,7 +190,7 @@ check_ipc_resources() {
 # Early check: only skip ionexit and signal cleanup if BOTH conditions hold:
 #   1. No ION processes detected (checked twice with a 1-second gap)
 #   2. No IPC resources (shared memory, semaphores, semaphore files) remain
-# This avoids races where a dying process is missed by ps but still holds
+# This avoids races where a dying process is missed by pgrep but still holds
 # IPC resources that would cause errors if cleaned up prematurely.
 echo ""
 echo "=== Initial state ==="
