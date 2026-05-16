@@ -297,7 +297,11 @@ static int	runCase(char *argv0, char *tag, char *header, int expectRecover)
 	printf("%s\n", header);
 	fflush(stdout);
 
-	oK(caseParams(tag, &p));	/*	tag is coordinator-supplied.	*/
+	if (caseParams(tag, &p) < 0)
+	{
+		fprintf(stderr, "FAIL: %s: unknown case\n", tag);
+		return 0;
+	}
 
 	if (sdr_initialize(TEST_WM_SIZE, NULL, SM_NO_KEY, NULL) < 0)
 	{
