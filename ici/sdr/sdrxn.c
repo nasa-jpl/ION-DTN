@@ -1037,6 +1037,21 @@ static void	terminateXn(Sdr sdrv)
 	 *	restart utility will clear the hijacked transaction.	*/
 
 	sdr->halted = 0;
+#ifdef ION_HAVE_ROBUST_MUTEX
+	/*	The legacy semaphore path can leave the transaction lock
+	 *	held here for the restart utility to recover later (via
+	 *	sm_SemUnwedge when the profile is reloaded).  A robust
+	 *	mutex cannot be recovered that way: the kernel only marks
+	 *	it owner-died if the owner's robust list and the mutex are
+	 *	still mapped at the moment the owner exits, and the task
+	 *	that cancelled this transaction is about to unmap the SDR
+	 *	working memory in ionDetach.  So close the transaction and
+	 *	release the mutex cleanly now; the restarted ION simply
+	 *	re-acquires it.						*/
+
+	clearTransaction(sdrv);
+	unlockSdr(sdr);
+#endif
 	return;
 }
 

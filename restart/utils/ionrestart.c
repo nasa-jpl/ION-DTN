@@ -269,9 +269,13 @@ terminated.");
 	}
 
 	/*	Terminate all remaining tasks by ending the
-	 *	transaction semaphore.					*/
+	 *	transaction lock.					*/
 
+#ifdef ION_HAVE_ROBUST_MUTEX
+	ion_ipc_atomic_set(&sdrv->sdr->sdrXnEnded, 1);
+#else
 	sm_SemEnd(sdrv->sdr->sdrSemaphore);
+#endif
 
 	/*	Drop all volatile databases.				*/
 
@@ -297,10 +301,14 @@ terminated.");
 	ionDropVdb();
 	writeMemo("[i] ionrestart: ION volatile database dropped.");
 
-	/*	Un-end the transaction semaphore.			*/
+	/*	Re-enable transactions.					*/
 
+#ifdef ION_HAVE_ROBUST_MUTEX
+	ion_ipc_atomic_set(&sdrv->sdr->sdrXnEnded, 0);
+#else
 	sm_SemUnend(sdrv->sdr->sdrSemaphore);
 	sm_SemGive(sdrv->sdr->sdrSemaphore);
+#endif
 
 	/*	Now re-create all of the volatile databases.		*/
 
@@ -474,7 +482,9 @@ int	main(void)
 {
 #endif
 	Sdr		sdrv;
+#ifndef ION_HAVE_ROBUST_MUTEX
 	sm_SemId	sdrSemaphore;
+#endif
 
 	if (ionAttach() < 0)
 	{
@@ -482,19 +492,28 @@ int	main(void)
 		return 1;
 	}
 
-	/*	Hijack the current transaction, i.e., impersonate
-	 *	the current owner of the ION mutex.
-	 *
-	 *	ionAttach() entails calling sdr_start_using, which
-	 *	gives the SDR semaphore and thereby would enable the
-	 *	failing task to begin new transactions before exiting.
-	 *	These new transactions would interfere with recovery
-	 *	from the current failed transaction, so they must be
-	 *	prevented.  For this purpose, we must temporarily set
-	 *	the SDR semaphore to -1, restoring it when we are
-	 *	confident that the failing task has terminated.		*/
+	/*	Prevent other tasks from beginning new transactions while
+	 *	the failing task terminates: such transactions would
+	 *	interfere with recovery from the failed transaction.	*/
 
 	sdrv = getIonsdr();
+#ifdef ION_HAVE_ROBUST_MUTEX
+	/*	On a robust-mutex build the lock needs no owner
+	 *	impersonation: terminateXn has already released it, so
+	 *	there is no open transaction to take over.  Raising
+	 *	sdrXnEnded makes takeSdr refuse new transactions for the
+	 *	duration of the grace period.				*/
+
+	ion_ipc_atomic_set(&sdrv->sdr->sdrXnEnded, 1);
+	snooze(RESTART_GRACE_PERIOD);
+	ion_ipc_atomic_set(&sdrv->sdr->sdrXnEnded, 0);
+#else
+	/*	Hijack the current transaction, i.e., impersonate the
+	 *	current owner of the ION mutex.  ionAttach() entails
+	 *	calling sdr_start_using, which gives the SDR semaphore;
+	 *	temporarily setting the semaphore to -1 keeps the failing
+	 *	task from beginning new transactions before it exits.	*/
+
 	sdrv->sdr->sdrOwnerTask = sm_TaskIdSelf();
 	sdrv->sdr->sdrOwnerThread = pthread_self();
 	sdrSemaphore = sdrv->sdr->sdrSemaphore;
@@ -505,6 +524,7 @@ int	main(void)
 
 	snooze(RESTART_GRACE_PERIOD);
 	sdrv->sdr->sdrSemaphore = sdrSemaphore;
+#endif
 
 	/* Given transaction reversal was successful, set the
 	 * modified flag to 0 from this point on ward */
