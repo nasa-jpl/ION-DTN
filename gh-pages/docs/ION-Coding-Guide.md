@@ -799,6 +799,37 @@ The collapse of these three cases into one error path is deliberate: ION has no 
 
 **Source-only SAPs are exempt.** `bp_open_source()` (used for send-only SAPs) does not set `appPid` and imposes no exclusivity. Multiple threads or processes may open source SAPs on the same endpoint concurrently without conflict.
 
+**Lifetime invariant — close from the owning thread, on every exit path.** A reception SAP must be closed by its owning thread before that thread exits, *including* abnormal exit paths (cancellation, longjmp out of the receive loop, an error return out of the worker function). If the owning thread terminates without calling `bp_close()`, the endpoint remains locked for the lifetime of the **process**: ION's self-heal logic in `createBpSAP()` only fires when `sm_TaskExists(appPid)` reports the whole process is gone, not the individual thread. Subsequent `bp_open()` calls on that endpoint — from any thread in the same process — will keep returning `-1` with `"Endpoint is already open."` until the process exits.
+
+The recommended idiom is to bracket the receive loop with a thread-cancellation cleanup handler so `bp_close()` runs regardless of how the thread leaves the loop:
+
+```c
+static void closeSap(void *arg)
+{
+    bp_close((BpSAP) arg);
+}
+
+void *worker(void *arg)
+{
+    BpSAP sap;
+
+    if (bp_open(eid, &sap) != 0)
+    {
+        return NULL;       /* bp_open already logged via putErrmsg */
+    }
+    pthread_cleanup_push(closeSap, sap);
+    while (running)
+    {
+        if (bp_receive(sap, &dlv, BP_BLOCKING) < 0) break;
+        /* ... process delivery ... */
+    }
+    pthread_cleanup_pop(1);     /* runs closeSap on every exit path */
+    return NULL;
+}
+```
+
+`pthread_cleanup_pop(1)` invokes the handler on normal return, on `pthread_exit()`, and on `pthread_cancel()`. It does **not** run if the thread is killed by an asynchronous signal or if the whole process crashes — for those, only process-exit cleanup applies, and `createBpSAP()`'s self-heal will release the endpoint on the next ION-aware start.
+
 ## Static Analysis Notes
 
 Static analysis tools (CodeSonar, Coverity, cppcheck) flag certain patterns in ION that are **not bugs** given ION's architecture and fault model. The following documents known false-positive categories to help developers triage warnings efficiently.
