@@ -783,6 +783,22 @@ On platforms that support it, ION instead implements the transaction lock as a p
 
 **Limitations.** The robust mutex detects owner *death*; it does not help if a live process hangs or deadlocks while holding the lock. Full recovery of a dead *writer* requires the SDR to be configured `SDR_REVERSIBLE` (i.e. to keep a transaction log); without the log, an orphaned writer is still detected deterministically but is reported unrecoverable rather than silently wedging.
 
+## BP Service Access Point (SAP) Ownership
+
+A Bundle Protocol Service Access Point (`BpSAP`) opened for reception via `bp_open()` is **owned exclusively by the single thread that opened it**. This is a hard invariant of the ION BP API, not a recommendation, and it has two consequences that callers must respect.
+
+**Only the owning thread may receive on the SAP.** The volatile endpoint object (`VEndpoint`) tracks ownership with a single integer field, `appPid`, set to `sm_TaskIdSelf()` on `bp_open()` and to `ERROR` on `bp_close()`. On Linux `sm_TaskIdSelf()` returns the thread-group ID via `getpid()`, so every thread in a process reports the same value. Ownership checks in `bp_receive()` and `bp_close()` are therefore at *process* granularity, not at thread granularity: ION cannot detect a second thread in the owning process calling `bp_receive()` on a SAP it did not open. Such cross-thread reception is undefined behaviour at the API level and will race against the owner inside the delivery semaphore and SDR transactions. Applications that need delivery from multiple threads must funnel reception through the single owning thread.
+
+**A second `bp_open()` on the same endpoint always fails.** ION does not permit a process or thread to "reopen" an endpoint it already holds. If `vpoint->appPid` is set to a live task, every subsequent `bp_open()` returns `-1` with `putErrmsg("Endpoint is already open.", "<pid>")`, regardless of whether the second caller is:
+
+* the same thread that already opened it,
+* a different thread in the same process, or
+* a thread in a different process.
+
+The collapse of these three cases into one error path is deliberate: ION has no per-thread ownership token, so it cannot meaningfully distinguish them, and any attempt to be "lenient" for the same-PID case produced an `rc == 0` return with `*bpsapPtr == NULL` that propagated as a delayed null-pointer dereference in `bp_receive()`. Callers should test `bp_open()`'s return with `if (rc != 0)` (or `if (rc < 0 || sap == NULL)` to also handle the `dtn:none` null-EID case) and bail out rather than dereferencing the SAP. If a previous owner died without calling `bp_close()`, `createBpSAP()` self-heals by clearing `appPid` and allowing the new open to proceed; the caller does not need to retry.
+
+**Source-only SAPs are exempt.** `bp_open_source()` (used for send-only SAPs) does not set `appPid` and imposes no exclusivity. Multiple threads or processes may open source SAPs on the same endpoint concurrently without conflict.
+
 ## Static Analysis Notes
 
 Static analysis tools (CodeSonar, Coverity, cppcheck) flag certain patterns in ION that are **not bugs** given ION's architecture and fault model. The following documents known false-positive categories to help developers triage warnings efficiently.

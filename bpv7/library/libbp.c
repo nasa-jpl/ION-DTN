@@ -106,12 +106,13 @@ static int	createBpSAP(Sdr sdr, char *eidString, BpSAP *bpsapPtr,
 		{
 			if (sm_TaskExists(vpoint->appPid))
 			{
-				clearMetaEid(&metaEid);
-				if (vpoint->appPid == sm_TaskIdSelf())
-				{
-					return 0;
-				}
+				/*	A reception endpoint is owned
+				 *	exclusively by the single thread
+				 *	that opened it; any second open --
+				 *	by another thread in this process or
+				 *	by another process -- is an error.  */
 
+				clearMetaEid(&metaEid);
 				putErrmsg("Endpoint is already open.",
 						itoa(vpoint->appPid));
 				return -1;
