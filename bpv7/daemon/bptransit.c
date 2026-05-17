@@ -241,7 +241,7 @@ int	main(void)
 			if (sm_SemEnded(attendant.semaphore))
 			{
 				writeMemo("[i] ZCO request interrupted.");
-				/* rfxclock already shredded this ticket. */
+				ionShred(ticket);	/*	Cancel.	*/
 				mtp.running = 0;
 				continue;
 			}

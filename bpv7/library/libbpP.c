@@ -7693,7 +7693,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		if (sm_SemEnded(attendant->semaphore))
 		{
 			writeMemo("[i] ZCO space reservation interrupted.");
-			/* rfxclock already shredded this ticket. */
+			ionShred(ticket);	/*	Cancel reservation.	*/
 			return 0;
 		}
 
