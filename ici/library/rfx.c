@@ -3836,13 +3836,17 @@ void	rfx_stop(void)
 		{
 			nextElt = sm_list_next(ionwm, elt);
 			addr = sm_list_data(ionwm, elt);
-			req = (Requisition *) psp(ionwm, addr);
-			if (req->semaphore != SM_SEM_NONE)
+			if (addr != 0)
 			{
-				sm_SemEnd(req->semaphore);
+				req = (Requisition *) psp(ionwm, addr);
+				if (req->semaphore != SM_SEM_NONE)
+				{
+					sm_SemEnd(req->semaphore);
+				}
+
+				psm_free(ionwm, addr);
 			}
 
-			psm_free(ionwm, addr);
 			sm_list_delete(ionwm, elt, NULL, NULL);
 		}
 	}

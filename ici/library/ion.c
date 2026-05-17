@@ -940,13 +940,17 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 		{
 			nextElt = sm_list_next(wm, elt);
 			addr = sm_list_data(wm, elt);
-			req = (Requisition *) psp(wm, addr);
-			if (req->semaphore != SM_SEM_NONE)
+			if (addr != 0)
 			{
-				sm_SemEnd(req->semaphore);
+				req = (Requisition *) psp(wm, addr);
+				if (req->semaphore != SM_SEM_NONE)
+				{
+					sm_SemEnd(req->semaphore);
+				}
+
+				psm_free(wm, addr);
 			}
 
-			psm_free(wm, addr);
 			sm_list_delete(wm, elt, NULL, NULL);
 		}
 	}
@@ -2159,13 +2163,11 @@ void	ionShred(ReqTicket ticket)
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Must be atomic.		*/
 	reqAddr = sm_list_data(ionwm, ticket);
-	if (reqAddr == 0)
+	if (reqAddr != 0)
 	{
-		sdr_exit_xn(sdr);
-		return;	/*	Already shredded (e.g. by rfxclock).	*/
+		psm_free(ionwm, reqAddr);
 	}
 
-	psm_free(ionwm, reqAddr);
 	sm_list_delete(ionwm, ticket, NULL, NULL);
 	sdr_exit_xn(sdr);	/*	End of critical section.	*/
 }
@@ -2221,6 +2223,11 @@ int	ionRequestZcoSpace(ZcoAcct acct, vast fileSpaceNeeded,
 			elt = sm_list_prev(ionwm, elt))
 	{
 		oldReqAddr = sm_list_data(ionwm, elt);
+		if (oldReqAddr == 0)
+		{
+			continue;
+		}
+
 		oldReq = (Requisition *) psp(ionwm, oldReqAddr);
 		if (oldReq->coarsePriority > req->coarsePriority)
 		{
@@ -2358,6 +2365,11 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 			elt = sm_list_next(ionwm, elt))
 	{
 		reqAddr = sm_list_data(ionwm, elt);
+		if (reqAddr == 0)
+		{
+			continue;
+		}
+
 		req = (Requisition *) psp(ionwm, reqAddr);
 		if (req->secondsUnclaimed >= 0)
 		{
@@ -2509,7 +2521,7 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 		if (sm_SemEnded(attendant->semaphore))
 		{
 			writeMemo("[i] ZCO creation interrupted.");
-			/* rfxclock already shredded this ticket. */
+			ionShred(ticket);
 			return 0;
 		}
 
@@ -2605,7 +2617,7 @@ vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
 		if (sm_SemEnded(attendant->semaphore))
 		{
 			writeMemo("[i] ZCO extent creation interrupted.");
-			/* rfxclock already shredded this ticket. */
+			ionShred(ticket);
 			return 0;
 		}
 

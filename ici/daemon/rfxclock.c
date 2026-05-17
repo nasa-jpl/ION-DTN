@@ -14,8 +14,6 @@
 #define	MAX_SECONDS_UNCLAIMED	(3)
 #endif
 
-extern void	ionShred(ReqTicket ticket);
-
 static uaddr	_running(uaddr *newValue)
 {
 	void	*value;
@@ -807,6 +805,11 @@ int	main(void)
 			{
 				nextElt = sm_list_next(ionwm, elt);
 				reqAddr = sm_list_data(ionwm, elt);
+				if (reqAddr == 0)
+				{
+					continue;
+				}
+
 				req = (Requisition *) psp(ionwm, reqAddr);
 				switch (req->secondsUnclaimed)
 				{
@@ -815,12 +818,17 @@ int	main(void)
 
 				case MAX_SECONDS_UNCLAIMED:
 
-					/*	Requisition expired.	*/
+					/*	Requisition expired.  Free
+					 *	the requisition but leave
+					 *	the list element (ticket)
+					 *	intact so the consumer can
+					 *	safely call ionShred().	*/
 
 					writeMemo("[?] ZCO space not claimed \
 in time, released to other applications.");
 					sm_SemEnd(req->semaphore);
-					ionShred(elt);
+					sm_list_data_set(ionwm, elt, 0);
+					psm_free(ionwm, reqAddr);
 					continue;
 
 				default:	/*	Still waiting.	*/
