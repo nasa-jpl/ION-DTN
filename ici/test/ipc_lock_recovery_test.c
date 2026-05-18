@@ -11,18 +11,23 @@
 
 	On a build with ION_HAVE_ROBUST_MUTEX the lock is a process-shared
 	robust pthread_mutex_t.  When the holder dies, the next caller
-	sees EOWNERDEAD inside takeIpcLock(), logs a diagnostic with a
-	stack trace, and aborts deterministically -- the same policy as
-	the PSM partition lock.  Subsequent callers see ENOTRECOVERABLE
-	and abort the same way.
+	sees EOWNERDEAD inside takeIpcLock(), logs a warning, marks the
+	mutex consistent via pthread_mutex_consistent(), and proceeds.
+	This matches the SDR-lock recovery policy and is what makes the
+	deliberate `ionexit k n` restart flow (used by tests like
+	relay-restart-mixed-cla) keep working: a daemon that dies while
+	holding the IPC lock must not deadlock the post-restart node.
 
-	Two cases:
+	The recovery is safe because the global sem-table's failure
+	surface is bounded -- refCounts, in-use flags, pendingDelete
+	bits, and slot-allocation cursor.  The worst-case outcome is an
+	orphaned sem-table slot that gets reclaimed at next sm_ipc_stop.
+	(Contrast: PSM partition-lock's allocator metadata is unbounded
+	in its corruption potential, so PSM aborts rather than recovers.)
 
-	  Case 1  EOWNERDEAD path        -> a victim takes the IPC lock
-	                                    and dies by SIGKILL; the next
-	                                    caller aborts on EOWNERDEAD.
-	  Case 2  ENOTRECOVERABLE path   -> the next caller aborts via
-	                                    ENOTRECOVERABLE.
+	Case 1  EOWNERDEAD recovery    -> a victim takes the IPC lock
+	                                  and dies by SIGKILL; the next
+	                                  sm_SemCreate must succeed.
 
 	Prints "PASS" and exits 0 on success; prints "FAIL: <reason>" and
 	exits 1 on first failure.  On a build without ION_HAVE_ROBUST_MUTEX
@@ -61,7 +66,8 @@ int	main(int argc, char **argv)
 extern void	_sm_test_take_ipc_lock_unreleased(void);
 
 #define	CHILD_INIT_FAILED	11
-#define	CHILD_UNEXPECTED_OK	13
+#define	CHILD_SEMCREATE_FAILED	12
+#define	CHILD_OK		0
 #define	CHILD_UNREACHABLE	14
 
 /*	*	*	Victim	*	*	*	*	*	*/
@@ -84,11 +90,11 @@ static int	runVictim(void)
 /*	*	*	Lock user	*	*	*	*	*	*/
 
 /*	Lock user attaches to the existing IPC subsystem and calls a
- *	function that needs the global IPC lock.  sm_SemCreate is a
+ *	function that needs the global IPC lock.  sm_SemCreate is the
  *	natural choice: every daemon startup and every ionAttach calls
- *	it.  The robust-mutex path should detect the orphaned holder
- *	(EOWNERDEAD on Case 1, ENOTRECOVERABLE on Case 2), print a
- *	diagnostic with a stack trace, and call sm_Abort().		*/
+ *	it.  Under the recover-and-continue policy, takeIpcLock() must
+ *	transparently mark the orphaned lock consistent and proceed;
+ *	sm_SemCreate must succeed.					*/
 
 static int	runLockUser(void)
 {
@@ -99,12 +105,14 @@ static int	runLockUser(void)
 		_exit(CHILD_INIT_FAILED);
 	}
 
-	/*	Should abort inside takeIpcLock().			*/
-
 	sem = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
-	(void) sem;
+	if (sem < 0)
+	{
+		_exit(CHILD_SEMCREATE_FAILED);
+	}
 
-	_exit(CHILD_UNEXPECTED_OK);
+	sm_SemDelete(sem);
+	_exit(CHILD_OK);
 }
 
 /*	*	*	Coordinator	*	*	*	*	*/
@@ -145,7 +153,7 @@ static int	orphanLock(char *argv0)
 	return 0;
 }
 
-static int	expectAbort(char *argv0, const char *header)
+static int	expectRecover(char *argv0, const char *header)
 {
 	pid_t	pid;
 	int	status;
@@ -173,31 +181,32 @@ static int	expectAbort(char *argv0, const char *header)
 		return 0;
 	}
 
-	if (WIFEXITED(status))
+	if (WIFSIGNALED(status))
 	{
-		fprintf(stderr, "FAIL: lockuser exited normally with code "
-				"%d; expected SIGABRT\n",
-				WEXITSTATUS(status));
+		fprintf(stderr, "FAIL: lockuser died by signal %d; "
+				"expected clean recovery\n",
+				WTERMSIG(status));
 		return 0;
 	}
 
-	if (!WIFSIGNALED(status))
+	if (!WIFEXITED(status))
 	{
 		fprintf(stderr, "FAIL: lockuser terminated abnormally "
-				"(status 0x%x); expected SIGABRT\n",
+				"(status 0x%x); expected exit 0\n",
 				(unsigned) status);
 		return 0;
 	}
 
-	if (WTERMSIG(status) != SIGABRT)
+	if (WEXITSTATUS(status) != CHILD_OK)
 	{
-		fprintf(stderr, "FAIL: lockuser died by signal %d; "
-				"expected SIGABRT (%d)\n",
-				WTERMSIG(status), SIGABRT);
+		fprintf(stderr, "FAIL: lockuser exited with code %d; "
+				"expected %d (CHILD_OK)\n",
+				WEXITSTATUS(status), CHILD_OK);
 		return 0;
 	}
 
-	printf("  PASS (child aborted by SIGABRT as expected)\n");
+	printf("  PASS (orphan recovered transparently; "
+			"sm_SemCreate succeeded)\n");
 	fflush(stdout);
 	return 1;
 }
@@ -217,16 +226,23 @@ static int	runCoordinator(char *argv0)
 		goto cleanup;
 	}
 
-	if (!expectAbort(argv0,
+	/*	First caller after the orphan triggers EOWNERDEAD and
+	 *	recovers the lock.					*/
+
+	if (!expectRecover(argv0,
 			"Case 1: EOWNERDEAD -- first caller after IPC-lock "
-			"orphan must abort"))
+			"orphan must recover and succeed"))
 	{
 		goto cleanup;
 	}
 
-	if (!expectAbort(argv0,
-			"Case 2: ENOTRECOVERABLE -- subsequent callers also "
-			"abort"))
+	/*	Second caller hits a now-consistent lock and proceeds
+	 *	normally.  Confirming this catches any leftover state
+	 *	that the recovery path failed to clean up.		*/
+
+	if (!expectRecover(argv0,
+			"Case 2: post-recovery -- subsequent callers see a "
+			"healthy lock and continue normally"))
 	{
 		goto cleanup;
 	}
@@ -234,9 +250,6 @@ static int	runCoordinator(char *argv0)
 	ok = 1;
 
 cleanup:
-	/*	The IPC subsystem is in an unrecoverable state; force a
-	 *	clean teardown so the next test run can start fresh.	*/
-
 	sm_ipc_stop();
 	return ok;
 }

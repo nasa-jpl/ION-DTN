@@ -245,9 +245,13 @@ heap corruption.", map->name);
 			/*	Unlock WITHOUT pthread_mutex_consistent
 			 *	to transition the mutex to ENOTRECOVERABLE
 			 *	so every subsequent locker fails the same
-			 *	deterministic way (loud, not silent).	*/
+			 *	deterministic way (loud, not silent).
+			 *	Flush stdio before sm_Abort() because
+			 *	abort() does not flush libc buffers and the
+			 *	diagnostic would otherwise be lost.	*/
 
 			oK(pthread_mutex_unlock(&map->partLock));
+			fflush(NULL);
 			sm_Abort();
 		}
 		else if (rc == ENOTRECOVERABLE)
@@ -259,6 +263,7 @@ heap corruption.", map->name);
 			putErrmsg("PSM partition lock is unrecoverable (a \
 previous holder died mid-operation). Aborting.", map->name);
 			printStackTrace();
+			fflush(NULL);
 			sm_Abort();
 		}
 		else if (rc != 0)
@@ -266,6 +271,7 @@ previous holder died mid-operation). Aborting.", map->name);
 			putErrmsg("Can't lock PSM partition mutex.",
 					itoa(rc));
 			printStackTrace();
+			fflush(NULL);
 			sm_Abort();
 		}
 	}

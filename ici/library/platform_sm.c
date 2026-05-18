@@ -3372,39 +3372,47 @@ static void	takeIpcLock(void)
 	{
 		/*	Previous holder died with the global IPC lock
 		 *	held -- typically a SIGKILL'd daemon that was
-		 *	mid-sm_SemCreate or mid-sm_SemDelete.  The global
-		 *	semaphore table (refCounts, free-slot bookkeeping,
-		 *	per-slot atomics) may now be in any intermediate
-		 *	state the dead writer left behind.  PSM-style
-		 *	policy: abort loudly with a stack trace rather
-		 *	than mark consistent and risk silent corruption
-		 *	of the semaphore registry that backs every ION
-		 *	semaphore on the node.				*/
+		 *	mid-sm_SemCreate or mid-sm_SemDelete.  Recover
+		 *	(mark consistent + continue) rather than abort.
+		 *
+		 *	Unlike PSM allocator metadata (free lists, in-use
+		 *	bits -- a misthread can corrupt unboundedly), the
+		 *	global sem-table failure surface is small and
+		 *	bounded: refCounts, in-use flags, pendingDelete
+		 *	bits, and slot-allocation cursor.  The worst-case
+		 *	outcome of recovering from an inconsistent state
+		 *	here is an orphaned sem-table slot that will be
+		 *	reclaimed at next sm_ipc_stop -- far better than
+		 *	aborting and breaking the deliberate `ionexit k n`
+		 *	restart flow that ION relies on for relay
+		 *	intermediates and similar use cases.		*/
 
-		putErrmsg("Global IPC lock holder died mid-operation; \
-global semaphore table state may be inconsistent. Aborting to avoid silent \
-IPC corruption.", NULL);
-		printStackTrace();
-
-		/*	Unlock WITHOUT pthread_mutex_consistent so the
-		 *	mutex transitions to ENOTRECOVERABLE; every
-		 *	subsequent caller hits the same loud failure
-		 *	rather than this discovery race.		*/
-
-		oK(pthread_mutex_unlock(&psemGlobal->ipcMutex));
-		sm_Abort();
+		writeMemo("[?] Global IPC lock owner died mid-operation; \
+marking lock consistent and continuing (sem-table may have an orphaned slot \
+until next sm_ipc_stop).");
+		oK(pthread_mutex_consistent(&psemGlobal->ipcMutex));
+		/*	fall through holding the now-consistent lock.	*/
 	}
 	else if (rc == ENOTRECOVERABLE)
 	{
+		/*	A previous EOWNERDEAD acquirer exited (or aborted)
+		 *	without marking the mutex consistent.  This is
+		 *	unrecoverable for everyone -- abort with
+		 *	diagnostics, flushing stdio first so the message
+		 *	actually reaches ion.log before abort() kills
+		 *	the process.					*/
+
 		putErrmsg("Global IPC lock is unrecoverable (a previous \
-holder died mid-operation). Aborting.", NULL);
+holder died mid-operation and recovery did not complete). Aborting.", NULL);
 		printStackTrace();
+		fflush(NULL);
 		sm_Abort();
 	}
 	else if (rc != 0)
 	{
 		putSysErrmsg("Can't lock global IPC mutex", itoa(rc));
 		printStackTrace();
+		fflush(NULL);
 		sm_Abort();
 	}
 #else
