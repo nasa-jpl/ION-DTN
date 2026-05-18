@@ -393,7 +393,8 @@ void ui_fprint_report(ui_print_cfg_t *fd, rpt_t *rpt)
 				}
 				else
 				{
-					strncpy(name, entry_info->name, sizeof(name));
+					snprintf(name, sizeof(name), "%s",
+							entry_info->name);
 				}
 			}
 
