@@ -2838,6 +2838,20 @@ typedef struct {
 	/* to be protected by the same global semaphore as this table */
 	unsigned int ipcUniqueKey;
 
+#ifdef ION_HAVE_ROBUST_MUTEX
+	/*	On platforms with robust-mutex support, the global IPC
+	 *	lock (formerly a POSIX named semaphore) is a process-
+	 *	shared robust pthread_mutex_t living here in shared
+	 *	memory.  This is the same orphan-recovery treatment that
+	 *	was applied to the SDR transaction lock and the PSM
+	 *	partition lock; without it, a process killed while
+	 *	holding the IPC lock (e.g. by SIGKILL during shutdown)
+	 *	orphans the POSIX named sem and every subsequent
+	 *	sm_SemCreate/sm_SemDelete wedges the node forever.	*/
+	pthread_mutex_t	ipcMutex;
+	int		ipcMutexCreated;	/*	Boolean.	*/
+#endif
+
 	/* is initialization complete for this structure? */
 	int initialized;
 } SmGlobalSemtable;
@@ -3140,6 +3154,31 @@ static SmGlobalSemtable	*_sembase(int action)
 	if (action == IPC_ACTION_STOP) {
 		if (psemGlobal != NULL) {
 			_semEraseNamedSems();
+#ifdef ION_HAVE_ROBUST_MUTEX
+			/*	Best-effort drain of the global IPC mutex
+			 *	before SHM destruction.  EOWNERDEAD is
+			 *	expected if the last holder died; marking
+			 *	consistent lets pthread_mutex_destroy
+			 *	accept the mutex cleanly.		*/
+
+			if (psemGlobal->ipcMutexCreated)
+			{
+				int rc = pthread_mutex_lock(&psemGlobal->ipcMutex);
+
+				if (rc == EOWNERDEAD)
+				{
+					oK(pthread_mutex_consistent(&psemGlobal->ipcMutex));
+				}
+
+				if (rc == 0 || rc == EOWNERDEAD)
+				{
+					oK(pthread_mutex_unlock(&psemGlobal->ipcMutex));
+				}
+
+				oK(pthread_mutex_destroy(&psemGlobal->ipcMutex));
+				psemGlobal->ipcMutexCreated = 0;
+			}
+#endif
 			sm_ShmDestroy(sembaseId);
 			psemGlobal = NULL;
 		}
@@ -3189,6 +3228,31 @@ static SmGlobalSemtable	*_sembase(int action)
 					ion_ipc_atomic_init(&psemGlobal->gsemtable[j].refCount, 0);
 					ion_ipc_atomic_init(&psemGlobal->gsemtable[j].pendingDelete, 0);
 				}
+
+#ifdef ION_HAVE_ROBUST_MUTEX
+				/* Initialize the robust process-shared IPC
+				 * mutex.  Replaces the legacy POSIX named
+				 * sem used by takeIpcLock/giveIpcLock. */
+				{
+					pthread_mutexattr_t	attr;
+
+					if (pthread_mutexattr_init(&attr) != 0
+					|| pthread_mutexattr_setpshared(&attr,
+							PTHREAD_PROCESS_SHARED) != 0
+					|| pthread_mutexattr_setrobust(&attr,
+							PTHREAD_MUTEX_ROBUST) != 0
+					|| pthread_mutex_init(&psemGlobal->ipcMutex,
+							&attr) != 0)
+					{
+						oK(pthread_mutexattr_destroy(&attr));
+						putErrmsg("Can't create robust mutex \
+for global IPC lock.", NULL);
+						return NULL;
+					}
+					oK(pthread_mutexattr_destroy(&attr));
+					psemGlobal->ipcMutexCreated = 1;
+				}
+#endif
 
 				psemGlobal->initialized = 1;  /* must be the last step */
 		}
@@ -3296,6 +3360,54 @@ void	sm_ipc_stop(void)
 
 static void	takeIpcLock(void)
 {
+#ifdef ION_HAVE_ROBUST_MUTEX
+	SmGlobalSemtable	*psemGlobal = _sembase(IPC_ACTION_LOOKUP);
+	int			rc;
+
+	CHKVOID(psemGlobal != NULL);
+	CHKVOID(psemGlobal->ipcMutexCreated);
+
+	rc = pthread_mutex_lock(&psemGlobal->ipcMutex);
+	if (rc == EOWNERDEAD)
+	{
+		/*	Previous holder died with the global IPC lock
+		 *	held -- typically a SIGKILL'd daemon that was
+		 *	mid-sm_SemCreate or mid-sm_SemDelete.  The global
+		 *	semaphore table (refCounts, free-slot bookkeeping,
+		 *	per-slot atomics) may now be in any intermediate
+		 *	state the dead writer left behind.  PSM-style
+		 *	policy: abort loudly with a stack trace rather
+		 *	than mark consistent and risk silent corruption
+		 *	of the semaphore registry that backs every ION
+		 *	semaphore on the node.				*/
+
+		putErrmsg("Global IPC lock holder died mid-operation; \
+global semaphore table state may be inconsistent. Aborting to avoid silent \
+IPC corruption.", NULL);
+		printStackTrace();
+
+		/*	Unlock WITHOUT pthread_mutex_consistent so the
+		 *	mutex transitions to ENOTRECOVERABLE; every
+		 *	subsequent caller hits the same loud failure
+		 *	rather than this discovery race.		*/
+
+		oK(pthread_mutex_unlock(&psemGlobal->ipcMutex));
+		sm_Abort();
+	}
+	else if (rc == ENOTRECOVERABLE)
+	{
+		putErrmsg("Global IPC lock is unrecoverable (a previous \
+holder died mid-operation). Aborting.", NULL);
+		printStackTrace();
+		sm_Abort();
+	}
+	else if (rc != 0)
+	{
+		putSysErrmsg("Can't lock global IPC mutex", itoa(rc));
+		printStackTrace();
+		sm_Abort();
+	}
+#else
 	sem_t *ipcsem = _ipcSemaphore(IPC_ACTION_LOOKUP);
 
 	while (sem_wait(ipcsem) == -1) {
@@ -3306,15 +3418,38 @@ static void	takeIpcLock(void)
 			CHKVOID(0);   /* at least this will show up in the log */
 		}
 	}
+#endif
 }
 
 
 static void	giveIpcLock(void)
 {
+#ifdef ION_HAVE_ROBUST_MUTEX
+	SmGlobalSemtable	*psemGlobal = _sembase(IPC_ACTION_LOOKUP);
+
+	CHKVOID(psemGlobal != NULL);
+	if (psemGlobal->ipcMutexCreated)
+	{
+		oK(pthread_mutex_unlock(&psemGlobal->ipcMutex));
+	}
+#else
 	if (sem_post(_ipcSemaphore(IPC_ACTION_LOOKUP)) == -1) {
 		putSysErrmsg("giveIpcLock failed", NULL);
 	}
+#endif
 }
+
+#ifdef ION_HAVE_ROBUST_MUTEX
+/*	Test-only helper: take the global IPC lock and leave it held.
+ *	Used by ici/test/ipc_lock_recovery_test to set up an orphan.
+ *	Not declared in any header; the test declares it manually.   */
+
+void	_sm_test_take_ipc_lock_unreleased(void)
+{
+	takeIpcLock();
+	/*	Intentionally not released; caller dies with lock held. */
+}
+#endif
 
 
 sm_SemId	sm_SemCreate(int key, int semType)
