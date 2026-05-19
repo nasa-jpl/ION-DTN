@@ -188,9 +188,9 @@ jobs:
           mkdir -p ion-logs-collection
           ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
             cd ~/ion-gh-test-dir/ion-ios-dev &&
-            find ./tests -name "ion.log" -type f' | while IFS= read -r logfile; do
+            find ./tests ./demos -name "ion.log" -type f 2>/dev/null' | while IFS= read -r logfile; do
             # Extract test path and create unique filename
-            relpath=$(echo "$logfile" | sed 's|^\./tests/||' | sed 's|/ion\.log$||')
+            relpath=$(echo "$logfile" | sed 's|^\./||' | sed 's|/ion\.log$||')
             unique_name=$(echo "$relpath" | tr '/' '-')
             scp -o StrictHostKeyChecking=no jgao@$VM_IP:~/ion-gh-test-dir/ion-ios-dev/"$logfile" "ion-logs-collection/${unique_name}-ion.log"
             echo "Collected: $logfile -> ion-logs-collection/${unique_name}-ion.log"
@@ -214,8 +214,8 @@ jobs:
           mkdir -p diagnostics-collection
           ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
             cd ~/ion-gh-test-dir/ion-ios-dev &&
-            find ./tests -name "ion-system.log" -type f' | while IFS= read -r logfile; do
-            relpath=$(echo "$logfile" | sed 's|^\./tests/||' | sed 's|/ion-system\.log$||')
+            find ./tests ./demos -name "ion-system.log" -type f 2>/dev/null' | while IFS= read -r logfile; do
+            relpath=$(echo "$logfile" | sed 's|^\./||' | sed 's|/ion-system\.log$||')
             unique_name=$(echo "$relpath" | tr '/' '-')
             scp -o StrictHostKeyChecking=no jgao@$VM_IP:~/ion-gh-test-dir/ion-ios-dev/"$logfile" "diagnostics-collection/${unique_name}-ion-system.log"
           done
