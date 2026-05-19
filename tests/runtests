@@ -215,6 +215,39 @@ function collect_dotest_stack () {
     } >> "$outfile" 2>&1
 }
 
+# Remove ION staging/bulk files from the test directory to reclaim disk space.
+# Preserves ion.log and ion-system.log for debugging, removes everything else
+# that ION creates at runtime (SDR heap files, ZCO staging, temp acquisitions).
+function cleanup_staging_files () {
+    local test_dir="${1:-.}"
+    find "$test_dir" -maxdepth 3 \( \
+        -name "*.sdr" -o \
+        -name "bpacq*" -o \
+        -name "ltpacq*" -o \
+        -name "bsspSegment*" -o \
+        -name "xnref*" -o \
+        -name "ion.sdrlog" \
+    \) -type f -exec rm -f {} \; 2>/dev/null
+}
+
+# Check available disk space. Returns 0 if OK, 1 if below threshold.
+# Threshold: ION_MIN_DISK_MB env var, default 500 MB.
+function check_disk_space () {
+    local threshold_mb="${ION_MIN_DISK_MB:-500}"
+    local avail_kb
+    # df -P forces POSIX format (single header line, avail in column 4)
+    avail_kb=$(df -Pk . 2>/dev/null | awk 'NR==2 {print $4}')
+    if [ -z "$avail_kb" ] || ! [ "$avail_kb" -gt 0 ] 2>/dev/null; then
+        return 0
+    fi
+    local avail_mb=$((avail_kb / 1024))
+    if [ "$avail_mb" -lt "$threshold_mb" ]; then
+        echo "*** DISK SPACE CRITICAL: ${avail_mb}MB available (threshold: ${threshold_mb}MB) ***" >&2
+        return 1
+    fi
+    return 0
+}
+
 # runs one test, updates the test status counters
 function run_a_test () {
     TEST=$1
@@ -260,6 +293,14 @@ function run_a_test () {
         PROGRESS_PREFIX="[$CURRENT_TEST_NUM/$TOTAL_TEST_COUNT] "
     else
         PROGRESS_PREFIX=""
+    fi
+
+    # Abort if disk space is critically low
+    if ! check_disk_space; then
+        echo "ABORTING: insufficient disk space before starting $TEST" | tee -a $PROGRESSFILE
+        echo "[$TEST_START_TIMESTAMP] ${PROGRESS_PREFIX}ABORT: $TEST (disk full)" >&2
+        ABORT_RUN=1
+        return
     fi
 
     # check if test is excluded because it is obsolete
@@ -493,6 +534,8 @@ function run_a_test () {
         else
             echo "(ion-diagnostics not found at $ION_DIAGNOSTICS)" >> "$DIAG_FILE"
         fi
+        # Reclaim bulk staging files (preserves ion.log and ion-system.log)
+        cleanup_staging_files "."
     elif [ $TEST_RETVAL -eq 2 ]; then
         echo "TEST SKIPPED!"
         skip_test "$TEST"
@@ -505,8 +548,9 @@ function run_a_test () {
         echo "TIMEOUT: ${TEST} (${TEST_DURATION}s, limit=${TEST_TIMEOUT}s)" >> "$PROGRESSFILE"
         # Concise output to stderr
         echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}TIMEOUT: $TEST (${TEST_DURATION}s)" >&2
-        # Diagnostics already collected; preserve logs
+        # Diagnostics already collected; preserve logs but reclaim bulk staging files
         echo "Preserving test logs and ion-system.log (timeout)" | tee -a $PROGRESSFILE
+        cleanup_staging_files "."
     else
         echo "test returned unknown value $TEST_RETVAL"
         if [ -n "$IS_OPTIONAL_TEST" ]; then
@@ -569,8 +613,10 @@ function run_tests () {
     # Count total number of tests
     local TOTAL_TESTS=$#
     local CURRENT_NUM=0
+    ABORT_RUN=0
 
     for TEST in "$@"; do
+        [ "$ABORT_RUN" -eq 1 ] && break
         CURRENT_NUM=$((CURRENT_NUM + 1))
         run_a_test "$TEST" "$CURRENT_NUM" "$TOTAL_TESTS"
     done
