@@ -930,9 +930,9 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 		if (bp_open(ownMsgspace->gwEid, &gWay->sap) < 0)
 		{
 			putErrmsg("Can't open own BP endpoint.", NULL);
-			bp_detach();
 			TerminateGateway(gWay);
 			oK(_gWay(gWay));
+			bp_detach();
 			return -1;
 		}
 
@@ -943,9 +943,9 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 		{
 			putSysErrmsg("Can't initialize BP queue mutex.", NULL);
 			bp_close(gWay->sap);
-			bp_detach();
 			TerminateGateway(gWay);
 			oK(_gWay(gWay));
+			bp_detach();
 			return -1;
 		}
 		if (pthread_cond_init(&gWay->bpQueueCond, NULL) != 0)
@@ -953,9 +953,9 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 			putSysErrmsg("Can't initialize BP queue cond var.", NULL);
 			pthread_mutex_destroy(&gWay->bpQueueMutex);
 			bp_close(gWay->sap);
-			bp_detach();
 			TerminateGateway(gWay);
 			oK(_gWay(gWay));
+			bp_detach();
 			return -1;
 		}
 		break;
