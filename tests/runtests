@@ -215,19 +215,20 @@ function collect_dotest_stack () {
     } >> "$outfile" 2>&1
 }
 
-# Remove ION staging/bulk files from the test directory to reclaim disk space.
+# Remove ION staging/bulk files to reclaim disk space after timeout/failure.
 # Preserves ion.log and ion-system.log for debugging, removes everything else
 # that ION creates at runtime (SDR heap files, ZCO staging, temp acquisitions).
+# Searches both the test directory (for tests without pathName) and /tmp
+# (for tests with pathName /tmp).
 function cleanup_staging_files () {
     local test_dir="${1:-.}"
-    find "$test_dir" -maxdepth 3 \( \
-        -name "*.sdr" -o \
-        -name "bpacq*" -o \
-        -name "ltpacq*" -o \
-        -name "bsspSegment*" -o \
-        -name "xnref*" -o \
-        -name "ion.sdrlog" \
-    \) -type f -exec rm -f {} \; 2>/dev/null
+    local patterns=(-name "*.sdr" -o -name "bpacq*" -o -name "ltpacq*" \
+        -o -name "bsspSegment*" -o -name "xnref*" -o -name "*.sdrlog")
+    find "$test_dir" -maxdepth 3 \( "${patterns[@]}" \) -type f \
+        -exec rm -f {} \; 2>/dev/null
+    # Also clean /tmp where many tests place SDR files via pathName
+    find /tmp -maxdepth 1 \( "${patterns[@]}" \) -type f \
+        -user "$(whoami)" -exec rm -f {} \; 2>/dev/null
 }
 
 # Check available disk space. Returns 0 if OK, 1 if below threshold.
