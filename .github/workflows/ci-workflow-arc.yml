@@ -382,6 +382,25 @@ jobs:
           path: ion-logs-collection/
           if-no-files-found: warn
 
+      - name: Collect ion-system.log diagnostic files
+        if: ${{ always() }}
+        run: |
+          mkdir -p diagnostics-collection
+          find ./tests -name "ion-system.log" -type f | while IFS= read -r logfile; do
+            relpath=$(echo "$logfile" | sed 's|^\./tests/||' | sed 's|/ion-system\.log$||')
+            unique_name=$(echo "$relpath" | tr '/' '-')
+            cp "$logfile" "diagnostics-collection/${unique_name}-ion-system.log"
+          done
+
+      - name: Upload ion-system.log diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: diagnostics-${{ matrix.runner }}-${{ env.TIMESTAMP }}-batch-${{
+            matrix.testchunk.batch }}
+          path: diagnostics-collection/
+          if-no-files-found: ignore
+
       - name: Save Job Status for Final Summary
         if: ${{ always() }}
         run: |
@@ -513,3 +532,4 @@ jobs:
             build-and-test-log-*
             test-progress-*
             ion-logs-*
+            diagnostics-*

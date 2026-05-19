@@ -384,6 +384,24 @@ jobs:
           path: ion-logs-collection/
           if-no-files-found: warn
 
+      - name: Collect ion-system.log diagnostic files
+        if: ${{ always() }}
+        run: |
+          mkdir -p diagnostics-collection
+          find ./tests -name "ion-system.log" -type f | while IFS= read -r logfile; do
+            relpath=$(echo "$logfile" | sed 's|^\./tests/||' | sed 's|/ion-system\.log$||')
+            unique_name=$(echo "$relpath" | tr '/' '-')
+            cp "$logfile" "diagnostics-collection/${unique_name}-ion-system.log"
+          done
+
+      - name: Upload ion-system.log diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: diagnostics-${{ matrix.runner }}-${{ matrix.tier }}-${{ env.TIMESTAMP }}-batch-${{ matrix.testchunk.batch }}
+          path: diagnostics-collection/
+          if-no-files-found: ignore
+
       - name: Save Job Status for Final Summary
         if: ${{ always() }}
         run: |
@@ -662,6 +680,13 @@ jobs:
               cp ./tests/progress "arm64-logs/tier-${TIER}-progress.txt"
             fi
 
+            # Collect any ion-system.log files from timed-out or failed tests
+            find ./tests -name "ion-system.log" -type f | while IFS= read -r diag; do
+              relpath=$(echo "$diag" | sed 's|^\./tests/||' | sed 's|/ion-system\.log$||')
+              unique_name=$(echo "$relpath" | tr '/' '-')
+              cp "$diag" "arm64-logs/tier-${TIER}-${unique_name}-ion-system.log"
+            done
+
             # Between-tier cleanup: remove any ion_nodes tracking, wipe staging
             rm -f ./tests/ion_nodes || true
           done
@@ -767,4 +792,5 @@ jobs:
             test-log-*
             test-progress-*
             ion-logs-*
+            diagnostics-*
             arm64-linux-tier-logs-*

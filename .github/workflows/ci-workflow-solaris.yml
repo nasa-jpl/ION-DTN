@@ -208,6 +208,26 @@ jobs:
           path: ion-logs-collection/
           if-no-files-found: warn
 
+      - name: Collect ion-system.log diagnostic files from VM
+        if: ${{ always() }}
+        run: |
+          mkdir -p diagnostics-collection
+          ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
+            cd ~/ion-gh-test-dir/ion-ios-dev &&
+            find ./tests -name "ion-system.log" -type f' | while IFS= read -r logfile; do
+            relpath=$(echo "$logfile" | sed 's|^\./tests/||' | sed 's|/ion-system\.log$||')
+            unique_name=$(echo "$relpath" | tr '/' '-')
+            scp -o StrictHostKeyChecking=no jgao@$VM_IP:~/ion-gh-test-dir/ion-ios-dev/"$logfile" "diagnostics-collection/${unique_name}-ion-system.log"
+          done
+
+      - name: Upload ion-system.log diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: diagnostics-solaris-${{ env.TIMESTAMP }}
+          path: diagnostics-collection/
+          if-no-files-found: ignore
+
       - name: Clean up ION build
         if: ${{ always() }}
         run: |

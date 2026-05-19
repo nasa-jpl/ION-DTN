@@ -485,6 +485,14 @@ function run_a_test () {
         fi
         # Never run cleanup after failure — logs are preserved for debugging
         echo "Preserving test logs (cleanup skipped after failure)" | tee -a $PROGRESSFILE
+        # Collect partial diagnostics (ION processes may still be alive)
+        DIAG_FILE="./ion-system.log"
+        : > "$DIAG_FILE"
+        if [ -x "$ION_DIAGNOSTICS" ]; then
+            "$ION_DIAGNOSTICS" --file "$DIAG_FILE" "$(pwd)" 2>/dev/null
+        else
+            echo "(ion-diagnostics not found at $ION_DIAGNOSTICS)" >> "$DIAG_FILE"
+        fi
     elif [ $TEST_RETVAL -eq 2 ]; then
         echo "TEST SKIPPED!"
         skip_test "$TEST"
