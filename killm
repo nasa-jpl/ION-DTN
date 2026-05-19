@@ -455,7 +455,10 @@ find_remaining() {
 echo -e "\n=== Starting cleanup ==="
 
 # Linux paths (/dev/shm)
+# glibc prefixes with "sem."
 remove_semaphores "/dev/shm" "sem.ion:GLOBAL*"
+# musl does not have prefix
+remove_semaphores "/dev/shm" "ion:GLOBAL*"
 
 # Generic /tmp paths FreeBSD
 remove_semaphores "/tmp" ".SEM*ion:GLOBAL*"
