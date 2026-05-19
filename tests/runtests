@@ -167,7 +167,7 @@ function compute_test_timeout () {
         local dur
         dur=$(head -1 .DURATION | tr -dc '0-9')
         if [ -n "$dur" ] && [ "$dur" -gt 0 ] 2>/dev/null; then
-            local timeout_val=$((dur * 2))
+            local timeout_val=$((dur * 3))
             # Floor at 60s
             [ "$timeout_val" -lt 60 ] && timeout_val=60
             echo "$timeout_val"
