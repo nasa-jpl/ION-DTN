@@ -153,6 +153,68 @@ function get_timestamp () {
     date '+%Y-%m-%d %H:%M:%S'
 }
 
+# Locate the ion-diagnostics script (one directory up from tests/)
+ION_DIAGNOSTICS="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/ion-diagnostics"
+
+# Compute per-test timeout: 2x .DURATION if available, else default 1200s (20 min).
+# Override with ION_TEST_TIMEOUT env var for manual testing.
+function compute_test_timeout () {
+    if [ -n "${ION_TEST_TIMEOUT:-}" ]; then
+        echo "$ION_TEST_TIMEOUT"
+        return
+    fi
+    if [ -f ".DURATION" ]; then
+        local dur
+        dur=$(head -1 .DURATION | tr -dc '0-9')
+        if [ -n "$dur" ] && [ "$dur" -gt 0 ] 2>/dev/null; then
+            local timeout_val=$((dur * 2))
+            # Floor at 60s
+            [ "$timeout_val" -lt 60 ] && timeout_val=60
+            echo "$timeout_val"
+            return
+        fi
+    fi
+    echo 1200
+}
+
+# Collect stack trace for the dotest process if it's a compiled C binary.
+# Also traces child processes (ION daemons launched by the test script).
+function collect_dotest_stack () {
+    local pid="$1"
+    local outfile="$2"
+
+    {
+        # Check dotest itself
+        local exe
+        exe=$(readlink "/proc/$pid/exe" 2>/dev/null || ps -p "$pid" -o comm= 2>/dev/null)
+        if file "$exe" 2>/dev/null | grep -q "ELF"; then
+            echo "=== Stack trace of dotest binary (PID $pid, $exe) ==="
+            if command -v gdb >/dev/null 2>&1; then
+                timeout 15 gdb -batch -ex "set pagination off" \
+                    -ex "thread apply all bt" -p "$pid" 2>&1
+            elif command -v eu-stack >/dev/null 2>&1; then
+                timeout 15 eu-stack -p "$pid" 2>&1
+            fi
+        fi
+
+        # Trace child processes (may include forked test helpers)
+        local child
+        for child in $(pgrep -P "$pid" 2>/dev/null); do
+            local child_exe
+            child_exe=$(readlink "/proc/$child/exe" 2>/dev/null || ps -p "$child" -o comm= 2>/dev/null)
+            if file "$child_exe" 2>/dev/null | grep -q "ELF"; then
+                echo "=== Stack trace of child PID $child ($child_exe) ==="
+                if command -v gdb >/dev/null 2>&1; then
+                    timeout 15 gdb -batch -ex "set pagination off" \
+                        -ex "thread apply all bt" -p "$child" 2>&1
+                elif command -v eu-stack >/dev/null 2>&1; then
+                    timeout 15 eu-stack -p "$child" 2>&1
+                fi
+            fi
+        done
+    } >> "$outfile" 2>&1
+}
+
 # runs one test, updates the test status counters
 function run_a_test () {
     TEST=$1
@@ -320,15 +382,61 @@ function run_a_test () {
         PATH="/usr/xpg4/bin:$PATH"
     fi
 
+    # Compute per-test timeout
+    TEST_TIMEOUT=$(compute_test_timeout)
 
-    # run the driver script for the test
+    # Run the driver script for the test with timeout monitoring.
+    # We run dotest in the background so we can collect diagnostics
+    # BEFORE killing it on timeout (stack traces need a live process).
     if [[ -n "${RESULTSFILE}" ]] ; then
-      ./dotest "$OS_VERSION" >> "${RESULTSFILE}" 2>&1
+        ./dotest "$OS_VERSION" >> "${RESULTSFILE}" 2>&1 &
     else
-      ./dotest "$OS_VERSION"
+        ./dotest "$OS_VERSION" &
     fi
+    DOTEST_PID=$!
 
-    TEST_RETVAL=$?
+    # Poll for completion or timeout.  We check every second whether
+    # dotest is still alive, and count up to TEST_TIMEOUT.
+    ELAPSED_WAIT=0
+    while [ $ELAPSED_WAIT -lt $TEST_TIMEOUT ]; do
+        if ! kill -0 "$DOTEST_PID" 2>/dev/null; then
+            break  # dotest exited
+        fi
+        sleep 1
+        ELAPSED_WAIT=$((ELAPSED_WAIT + 1))
+    done
+
+    if kill -0 "$DOTEST_PID" 2>/dev/null; then
+        # TIMEOUT — dotest is still alive. Collect diagnostics while alive.
+        echo ""
+        echo "*** TEST TIMED OUT after ${TEST_TIMEOUT}s — collecting diagnostics ***"
+        echo ""
+
+        # Stack trace of dotest itself (if compiled C binary)
+        DIAG_FILE="./ion-system.log"
+        : > "$DIAG_FILE"
+        collect_dotest_stack "$DOTEST_PID" "$DIAG_FILE"
+
+        # Full ION system diagnostics
+        if [ -x "$ION_DIAGNOSTICS" ]; then
+            "$ION_DIAGNOSTICS" --file "$DIAG_FILE" "$(pwd)" 2>/dev/null
+        else
+            echo "(ion-diagnostics not found at $ION_DIAGNOSTICS)" >> "$DIAG_FILE"
+        fi
+
+        # Now kill the test and clean up
+        kill -TERM "$DOTEST_PID" 2>/dev/null
+        sleep 2
+        kill -9 "$DOTEST_PID" 2>/dev/null
+        wait "$DOTEST_PID" 2>/dev/null
+        killm f 2>/dev/null
+
+        TEST_RETVAL=124
+    else
+        # dotest finished within the timeout — get its exit status
+        wait "$DOTEST_PID" 2>/dev/null
+        TEST_RETVAL=$?
+    fi
 
     # Calculate test duration for concise output
     TEST_END_TIME=$(date +%s)
@@ -383,6 +491,14 @@ function run_a_test () {
         echo "SKIPPED: ${TEST} (${TEST_DURATION}s)" >> "$PROGRESSFILE"
         # Concise output to stderr
         echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}SKIP: $TEST (${TEST_DURATION}s)" >&2
+    elif [ $TEST_RETVAL -eq 124 ]; then
+        echo "TEST TIMED OUT! (limit: ${TEST_TIMEOUT}s)"
+        fail_test "$TEST"
+        echo "TIMEOUT: ${TEST} (${TEST_DURATION}s, limit=${TEST_TIMEOUT}s)" >> "$PROGRESSFILE"
+        # Concise output to stderr
+        echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}TIMEOUT: $TEST (${TEST_DURATION}s)" >&2
+        # Diagnostics already collected; preserve logs
+        echo "Preserving test logs and ion-system.log (timeout)" | tee -a $PROGRESSFILE
     else
         echo "test returned unknown value $TEST_RETVAL"
         if [ -n "$IS_OPTIONAL_TEST" ]; then

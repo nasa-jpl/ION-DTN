@@ -342,6 +342,7 @@ stuff_SCRIPTS = $(srcdir)/ionstart \
 		$(srcdir)/demos/ionlauncher/ionlauncher \
 		$(srcdir)/demos/ionlauncher/net_model_gen \
 		$(srcdir)/killm \
+		$(srcdir)/ion-diagnostics \
 		$(srcdir)/ionprocesses.txt
 #comment stuff_SCRIPTS += $(srcdir)/killm if you want to build killm.exe
 
