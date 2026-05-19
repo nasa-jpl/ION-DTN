@@ -506,6 +506,7 @@ function run_a_test () {
         fi
         if [ "$PRESERVE_TEST_LOGS" != "1" ] && [ -x "cleanup" ]; then
             ./cleanup
+            cleanup_staging_files "."
         fi
     elif [ $TEST_RETVAL -eq 1 ]; then
         if [ -n "$IS_OPTIONAL_TEST" ]; then
