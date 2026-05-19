@@ -597,6 +597,9 @@ tests/cgr-test/route.svg.base64.svg
 bpinspect
 bpcrash_hard
 reversibility_correctness_test
+robust_lock_recovery_test
+psm_robust_recovery_test
+ipc_lock_recovery_test
 sdrcancel
 tests/admin_public_api/bp_plan_crash_recovery/dotest
 tests/admin_public_api/ltp_span_crash_recovery/dotest
