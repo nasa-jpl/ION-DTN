@@ -8309,10 +8309,12 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 	CHKZERO(parseEidString(eidString, &metaEid, &vscheme,&elt));
 	if (jotEid(eid, &metaEid) < 0)
 	{
+		clearMetaEid(&metaEid);
 		putErrmsg("Can't jot eid.", NULL);
 		return -1;
 	}
 
+	clearMetaEid(&metaEid);
 	return totalLength;
 }
 
@@ -9497,6 +9499,7 @@ static int	recordBundleEid(Bundle *bundle, EndpointId *eid)
 
 	if (parseEidString(eidString, &meid, &vscheme, &vschemeElt) == 0)
 	{
+		clearMetaEid(&meid);
 		putErrmsg("Can't parse bundle EID.", NULL);
 		return -1;
 	}
@@ -9514,6 +9517,7 @@ static int	recordBundleEid(Bundle *bundle, EndpointId *eid)
 		bundle->dbOverhead += eid->ssp.dtn.nssLength;
 	}
 
+	clearMetaEid(&meid);
 	return 0;
 }
 
@@ -9904,6 +9908,7 @@ bundle.", NULL);
 		}
 
 		MRELEASE(eidString);
+		clearMetaEid(&senderMetaEid);
 		if (bundle->clDossier.senderEid.schemeCodeNbr == dtn)
 		{
 			bundle->dbOverhead +=
