@@ -245,14 +245,19 @@ def main() -> None:
         "--force-update",
         "-f",
         action="store_true",
-        help="Force update the .DURATION file (ignores cache). Requires --target-path.",
+        help="Force update the .DURATION file (ignores cache). Requires either --target-path or --bulk.",
+    )
+    parser.add_argument(
+        "--bulk",
+        action="store_true",
+        help="Run all tests (use with --force-update to update all .DURATION files).",
     )
 
     args = parser.parse_args()
 
-    if args.force_update and not args.target_path:
+    if args.force_update and not args.target_path and not args.bulk:
         parser.error(
-            "--force-update (-f) can only be used when a --target-path (-p) is provided."
+            "--force-update (-f) requires either --target-path (-p) or --bulk."
         )
 
     target_scripts: list[Path] = []
