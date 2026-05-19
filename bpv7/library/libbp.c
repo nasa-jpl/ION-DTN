@@ -400,12 +400,14 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 	 *	original, which may be in shared memory or may be
 	 *	read by other threads/processes concurrently.		*/
 
-	metaEid->eidCopy = strdup(eidString);
+	int eidLen = strlen(eidString) + 1;
+	metaEid->eidCopy = MTAKE(eidLen);
 	if (metaEid->eidCopy == NULL)
 	{
 		putErrmsg("No memory for EID copy.", eidString);
 		return 0;
 	}
+	istrcpy(metaEid->eidCopy, eidString, eidLen);
 
 	/*	EID string does not identify the special null endpoint.	*/
 
@@ -413,7 +415,7 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 	if (metaEid->colon == NULL)
 	{
 		writeMemoNote("[?] Malformed EID", eidString);
-		free(metaEid->eidCopy);
+		clearMetaEid(metaEid);
 		metaEid->eidCopy = NULL;
 		return 0;
 	}
@@ -430,7 +432,7 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 	if (*vschemeElt == 0)
 	{
 		writeMemoNote("[?] Unknown scheme for endpoint URI", eidString);
-		free(metaEid->eidCopy);
+		clearMetaEid(metaEid);
 		metaEid->eidCopy = NULL;
 		return 0;
 	}
@@ -444,7 +446,7 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 		|| *(metaEid->nss + 1) != '/')
 		{
 			writeMemoNote("[?] Malformed URI", eidString);
-			free(metaEid->eidCopy);
+			clearMetaEid(metaEid);
 			metaEid->eidCopy = NULL;
 			return 0;
 		}
@@ -470,7 +472,7 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 			&(metaEid->elementNbr), &(metaEid->serviceNbr)) != 2)
 		{
 			writeMemoNote("[?] Malformed URI", eidString);
-			free(metaEid->eidCopy);
+			clearMetaEid(metaEid);
 			metaEid->eidCopy = NULL;
 			return 0;
 		}
@@ -494,7 +496,7 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 			&(metaEid->elementNbr), &(metaEid->serviceNbr)) < 2)
 		{
 			writeMemoNote("[?] Malformed URI", eidString);
-			free(metaEid->eidCopy);
+			clearMetaEid(metaEid);
 			metaEid->eidCopy = NULL;
 			return 0;
 		}
@@ -504,7 +506,7 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 	default:
 		writeMemoNote("[?] URI for this scheme not parseable",
 				metaEid->schemeName);
-		free(metaEid->eidCopy);
+		clearMetaEid(metaEid);
 		metaEid->eidCopy = NULL;
 	}
 
@@ -517,7 +519,7 @@ void	clearMetaEid(MetaEid *metaEid)
 	{
 		if (metaEid->eidCopy)
 		{
-			free(metaEid->eidCopy);
+			MRELEASE(metaEid->eidCopy);
 		}
 
 		memset((char *) metaEid, 0, sizeof(MetaEid));

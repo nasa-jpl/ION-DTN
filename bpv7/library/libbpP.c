@@ -3810,6 +3810,7 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	if (elt != 0)	/*	This is a known endpoint.	*/
 	{
 		sdr_exit_xn(sdr);
+		clearMetaEid(&metaEid);
 		writeMemoNote("[?] Duplicate endpoint", eid);
 		return 0;
 	}
@@ -3867,9 +3868,11 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
 	if (addEndpoint_IMC(vscheme, eid) < 0)
 	{
+		clearMetaEid(&metaEid);
 		return -1;
 	}
 
+	clearMetaEid(&metaEid);
 	return 1;
 }
 
@@ -5939,11 +5942,13 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 					&vschemeElt));
 		if (writeEid(&(newBundle->id.source), &metaEid) < 0)
 		{
+			clearMetaEid(&metaEid);
 			putErrmsg("Can't copy source EID.", NULL);
 			return -1;
 		}
 
 		MRELEASE(eidString);
+		clearMetaEid(&metaEid);
 	}
 
 	if (oldBundle->destination.schemeCodeNbr == dtn)
@@ -5959,11 +5964,13 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 					&vschemeElt));
 		if (writeEid(&(newBundle->destination), &metaEid) < 0)
 		{
+			clearMetaEid(&metaEid);
 			putErrmsg("Can't copy dest EID.", NULL);
 			return -1;
 		}
 
 		MRELEASE(eidString);
+		clearMetaEid(&metaEid);
 	}
 
 	if (oldBundle->reportTo.schemeCodeNbr == dtn)
@@ -5979,11 +5986,13 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 					&vschemeElt));
 		if (writeEid(&(newBundle->reportTo), &metaEid) < 0)
 		{
+			clearMetaEid(&metaEid);
 			putErrmsg("Can't copy reportTo EID.", NULL);
 			return -1;
 		}
 
 		MRELEASE(eidString);
+		clearMetaEid(&metaEid);
 	}
 
 	/*	Clone part or all of payload.				*/
@@ -6065,11 +6074,13 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 					&vschemeElt));
 		if (writeEid(&(newBundle->clDossier.senderEid), &metaEid) < 0)
 		{
+			clearMetaEid(&metaEid);
 			putErrmsg("Can't copy sender EID.", NULL);
 			return -1;
 		}
 
 		MRELEASE(eidString);
+		clearMetaEid(&metaEid);
 	}
 
 	/*	Initialize stations stack.				*/
@@ -6231,6 +6242,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		 *	we must do so.					*/
 
 		sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
+		clearMetaEid(&stationMetaEid);
 		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
 
@@ -6647,12 +6659,20 @@ when asking for status reports.");
 		sdr_exit_xn(sdr);
 		clearMetaEid(&destMetaEid);
 		clearMetaEid(reportToMetaEid);
+		if (adminRecordType != 0 && sourceMetaEid == &tempMetaEid)
+		{
+			clearMetaEid(&tempMetaEid);
+		}
 		putErrmsg("Can't load endpoint IDs.", NULL);
 		return -1;
 	}
 
 	clearMetaEid(&destMetaEid);
 	clearMetaEid(reportToMetaEid);
+	if (adminRecordType != 0 && sourceMetaEid == &tempMetaEid)
+	{
+		clearMetaEid(&tempMetaEid);
+	}
 	bundle.id.fragmentOffset = 0;
 
 	/*	Note: bundle is not a fragment when initially created,
