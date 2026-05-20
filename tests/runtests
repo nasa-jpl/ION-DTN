@@ -461,6 +461,15 @@ function run_a_test () {
     # by CI log-collection as if they belonged to the current run.
     find . -maxdepth 3 -name "ion-system.log" -type f -delete 2>/dev/null
 
+    # Symmetric pre-test sweep of runtime staging files (bpacq/ltpacq/
+    # *.sdr/bsspSegment/xnref/*.sdrlog/core). The per-test ./cleanup
+    # only handles artifacts it knows about; a hard-killed prior run or
+    # a test without a cleanup script can leave these behind, and a
+    # stale .sdr or matching wmKey collision in /tmp can corrupt a
+    # fresh ION instance. Patterns are runtime-only so this never
+    # touches config files.
+    cleanup_staging_files "."
+
     # Prefer X/Open Portable tools if Solaris
     if [ -x "/usr/xpg4/bin" ]; then
         PATH="/usr/xpg4/bin:$PATH"
