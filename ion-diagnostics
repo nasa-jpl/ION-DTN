@@ -650,14 +650,19 @@ section "Open Files (ION Processes)"
             local_exe=$(readlink "/proc/$pid/exe" 2>/dev/null || ps -p "$pid" -o comm= 2>/dev/null)
             echo ""
             echo "--- PID $pid ($local_exe) ---"
-            if [ -d "/proc/$pid/fd" ]; then
+            if is_solaris && command -v pfiles >/dev/null 2>&1; then
+                # Solaris /proc/PID/fd entries aren't symlinks — `ls -la`
+                # doesn't show the underlying paths. Use pfiles instead.
+                timeout "$CMD_TIMEOUT" pfiles "$pid" 2>/dev/null | head -100 | sed 's/^/  /' || \
+                    echo "  (pfiles failed for PID $pid)"
+            elif is_linux && [ -d "/proc/$pid/fd" ]; then
                 ls -la "/proc/$pid/fd" 2>/dev/null | head -50 | sed 's/^/  /'
                 fd_count=$(ls "/proc/$pid/fd" 2>/dev/null | wc -l)
                 [ "$fd_count" -gt 50 ] && echo "  ... ($fd_count total fds, showing first 50)"
             elif command -v lsof >/dev/null 2>&1; then
                 timeout "$CMD_TIMEOUT" lsof -p "$pid" 2>/dev/null | head -50 | sed 's/^/  /'
             else
-                echo "  (cannot inspect open files — no /proc or lsof)"
+                echo "  (cannot inspect open files — no /proc, lsof, or pfiles)"
             fi
         done
     fi
@@ -707,13 +712,37 @@ section "Network Sockets (ION processes)"
         run_cmd ss -tunap "( $pid_filter )" 2>/dev/null || \
             run_cmd ss -tunap 2>/dev/null | grep -F "$(echo $ION_PIDS | tr ' ' '\n')" || \
             warn "ss filtering failed"
+    elif is_solaris; then
+        # Solaris netstat has no pid column and doesn't accept -tunap.
+        # Use pfiles to enumerate each ION process's sockets, then dump
+        # the full TCP/UDP tables for cross-reference.
+        if command -v pfiles >/dev/null 2>&1; then
+            echo "  --- Sockets per ION PID (via pfiles) ---"
+            for pid in $ION_PIDS; do
+                echo ""
+                echo "--- PID $pid ---"
+                timeout "$CMD_TIMEOUT" pfiles "$pid" 2>/dev/null | \
+                    awk '/SOCK_(STREAM|DGRAM)/ {p=1; print; next}
+                         p && /^[[:space:]]/ {print; next}
+                         {p=0}' | sed 's/^/  /' || \
+                    echo "  (pfiles failed for PID $pid)"
+            done
+        else
+            echo "  (pfiles unavailable — cannot map sockets to ION PIDs)"
+        fi
+        echo ""
+        echo "  --- TCP table (netstat -an -P tcp) ---"
+        run_cmd netstat -an -P tcp 2>/dev/null | head -50
+        echo ""
+        echo "  --- UDP table (netstat -an -P udp) ---"
+        run_cmd netstat -an -P udp 2>/dev/null | head -50
     elif command -v netstat >/dev/null 2>&1; then
         run_cmd netstat -tunap 2>/dev/null | head -5
         for pid in $ION_PIDS; do
             run_cmd netstat -tunap 2>/dev/null | grep "$pid/"
         done
     else
-        warn "No network socket tool available (ss, netstat)"
+        warn "No network socket tool available (ss, netstat, pfiles)"
     fi
 } >> "$OUTPUT"
 
