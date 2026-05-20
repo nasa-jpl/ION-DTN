@@ -58,6 +58,28 @@ if [[ -n "${RUNTESTS_OUTPUTDIR}" ]] ; then
     fi
 fi
 
+# Interrupt handler: without this, Ctrl-C only interrupts the current
+# `sleep 1` in the watchdog loop, leaving dotest running in the background
+# and ION daemons reparented to init. Forward SIGTERM to the active dotest,
+# give it a brief grace period, then force-kill stragglers and let killm f
+# reap any ION processes that may have detached from the test process tree.
+on_interrupt () {
+    echo "" >&2
+    echo "*** Interrupted — stopping current test and exiting ***" >&2
+    if [ -n "${DOTEST_PID:-}" ] && kill -0 "$DOTEST_PID" 2>/dev/null; then
+        kill -TERM "$DOTEST_PID" 2>/dev/null
+        for _ in 1 2 3 4 5 6; do
+            kill -0 "$DOTEST_PID" 2>/dev/null || break
+            sleep 0.5 2>/dev/null || sleep 1
+        done
+        kill -KILL "$DOTEST_PID" 2>/dev/null
+        wait "$DOTEST_PID" 2>/dev/null
+    fi
+    killm f 2>/dev/null
+    exit 130
+}
+trap on_interrupt INT TERM
+
 
 [ -f pretest-script ] && source pretest-script
 
