@@ -370,6 +370,135 @@ section "Stack Traces (ION Processes)"
             done
         fi
     fi
+
+    # ----------------------------------------------------------------
+    # Core file stack traces
+    # ----------------------------------------------------------------
+    # Crashes that occur before diagnostics runs leave the processes
+    # dead but may leave a core file behind. Locate them by querying
+    # the kernel's configured core destination, then run gdb on each.
+    # Cores produced before ION_DIAG_SINCE (set by runtests to the
+    # test start time) are skipped; if unset, fall back to "modified
+    # in the last hour".
+
+    echo ""
+    echo "--- Core File Stack Traces ---"
+
+    CORE_SEARCH_DIRS=""
+    CORE_PATTERN=""
+    if is_linux && [ -r /proc/sys/kernel/core_pattern ]; then
+        CORE_PATTERN=$(cat /proc/sys/kernel/core_pattern 2>/dev/null)
+        echo "  kernel core_pattern: $CORE_PATTERN"
+        case "$CORE_PATTERN" in
+            "|"*systemd-coredump*)
+                if command -v coredumpctl >/dev/null 2>&1; then
+                    if [ -n "${ION_DIAG_SINCE:-}" ]; then
+                        SINCE_ARG="--since=@${ION_DIAG_SINCE}"
+                    else
+                        SINCE_ARG="--since=-1h"
+                    fi
+                    echo ""
+                    echo "  coredumpctl recent dumps ($SINCE_ARG):"
+                    timeout "$CMD_TIMEOUT" coredumpctl list "$SINCE_ARG" --no-pager 2>&1 | head -50
+                    # For each fresh ION-related dump, dump its info + bt
+                    timeout "$CMD_TIMEOUT" coredumpctl list "$SINCE_ARG" --no-pager --no-legend 2>/dev/null |
+                        awk '{print $5, $0}' |
+                        while read -r exe rest; do
+                            base=$(basename "$exe" 2>/dev/null)
+                            for proc in $IONPROCESSLIST; do
+                                if [ "$base" = "$proc" ]; then
+                                    pid=$(echo "$rest" | awk '{print $4}')
+                                    echo ""
+                                    echo "--- coredumpctl dump: $base (PID $pid) ---"
+                                    timeout "$STACK_TIMEOUT" coredumpctl info "$pid" 2>&1 | head -40
+                                    if command -v gdb >/dev/null 2>&1; then
+                                        timeout "$STACK_TIMEOUT" coredumpctl debug "$pid" \
+                                            --debugger=gdb \
+                                            --debugger-arguments="-batch -ex 'set pagination off' -ex 'thread apply all bt full'" \
+                                            2>&1 || echo "  (coredumpctl debug failed for $base/$pid)"
+                                    fi
+                                    break
+                                fi
+                            done
+                        done
+                    CORE_SEARCH_DIRS=""    # systemd-coredump owns them; don't double-scan
+                else
+                    echo "  systemd-coredump in use but coredumpctl not available"
+                fi
+                ;;
+            /*)
+                # Literal absolute path pattern (e.g. /var/cores/core.%e.%p)
+                CORE_SEARCH_DIRS=$(dirname "$CORE_PATTERN")
+                ;;
+            *)
+                # Relative pattern: cores land in CWD of the crashing process.
+                CORE_SEARCH_DIRS="$TESTDIR"
+                ;;
+        esac
+    elif is_solaris; then
+        if command -v coreadm >/dev/null 2>&1; then
+            echo "  coreadm settings:"
+            timeout "$CMD_TIMEOUT" coreadm 2>&1 | head -20
+            GLOBAL_DIR=$(coreadm 2>/dev/null | awk -F: '/global core file pattern/ {print $2}' | sed 's/[ \t]*//; s|/[^/]*$||')
+            INIT_DIR=$(coreadm 2>/dev/null | awk -F: '/init core file pattern/ {print $2}' | sed 's/[ \t]*//; s|/[^/]*$||')
+            CORE_SEARCH_DIRS=$(printf '%s\n%s\n%s' "$GLOBAL_DIR" "$INIT_DIR" "$TESTDIR" | sort -u | tr '\n' ' ')
+        else
+            CORE_SEARCH_DIRS="$TESTDIR"
+        fi
+    else
+        CORE_SEARCH_DIRS="$TESTDIR"
+    fi
+
+    if [ -n "$CORE_SEARCH_DIRS" ]; then
+        # Build find args. Honor ION_DIAG_SINCE if set; else "last hour".
+        if [ -n "${ION_DIAG_SINCE:-}" ]; then
+            # GNU find supports -newermt; BSD/Solaris find does not. Use a
+            # reference file with the desired mtime for portability.
+            REF_FILE=$(mktemp -t ion-diag-ref.XXXXXX 2>/dev/null || echo "/tmp/ion-diag-ref.$$")
+            touch -d "@${ION_DIAG_SINCE}" "$REF_FILE" 2>/dev/null || \
+                touch -t "$(date -d "@${ION_DIAG_SINCE}" +%Y%m%d%H%M.%S 2>/dev/null)" "$REF_FILE" 2>/dev/null || \
+                : > "$REF_FILE"
+            FRESH_ARG="-newer $REF_FILE"
+        else
+            FRESH_ARG="-mmin -60"
+            REF_FILE=""
+        fi
+
+        for dir in $CORE_SEARCH_DIRS; do
+            [ -d "$dir" ] || continue
+            # shellcheck disable=SC2086
+            find "$dir" -maxdepth 4 \( -name "core" -o -name "core.*" \) \
+                -type f $FRESH_ARG 2>/dev/null
+        done | sort -u | while read -r core; do
+            [ -f "$core" ] || continue
+            # Identify the executable that produced this core
+            exe=""
+            if command -v file >/dev/null 2>&1; then
+                exe=$(file "$core" 2>/dev/null | sed -n "s/.*execfn: '\([^']*\)'.*/\1/p")
+                [ -z "$exe" ] && exe=$(file "$core" 2>/dev/null | sed -n "s/.*from '\([^ ']*\).*/\1/p")
+            fi
+            echo ""
+            echo "--- core: $core (exe: ${exe:-unknown}) ---"
+            if command -v gdb >/dev/null 2>&1 && [ -n "$exe" ] && [ -x "$exe" ]; then
+                timeout "$STACK_TIMEOUT" gdb -batch \
+                    -ex "set pagination off" \
+                    -ex "thread apply all bt full" \
+                    "$exe" "$core" 2>&1 || echo "  (gdb on core failed)"
+            elif command -v gdb >/dev/null 2>&1; then
+                # No exe resolved — gdb can still extract a basic backtrace
+                timeout "$STACK_TIMEOUT" gdb -batch \
+                    -ex "set pagination off" \
+                    -ex "thread apply all bt" \
+                    --core "$core" 2>&1 || echo "  (gdb on core failed; exe unresolved)"
+            elif is_solaris && command -v mdb >/dev/null 2>&1; then
+                echo '::stack' | timeout "$STACK_TIMEOUT" mdb "$core" 2>&1 || \
+                    echo "  (mdb on core failed)"
+            else
+                echo "  (no debugger available to inspect core)"
+            fi
+        done
+        [ -n "$REF_FILE" ] && rm -f "$REF_FILE"
+    fi
 } >> "$OUTPUT"
 
 # ========================================================================

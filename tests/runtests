@@ -24,6 +24,12 @@ echo "# testing environment: `uname -a`" >> $PROGRESSFILE
 # Pre-test cleanup still runs unconditionally.
 : ${PRESERVE_TEST_LOGS:=0}
 
+# Allow core dumps so ion-diagnostics can extract stack traces from
+# crashed ION processes. Best-effort: a setrlimit-restricted environment
+# (e.g. container with hard limit 0) will simply leave the limit at 0
+# and ion-diagnostics will report "no cores found".
+ulimit -c unlimited 2>/dev/null || true
+
 # If this environment variable is set, and is an existing directory,
 # then output from each individual tests will go THERE instead
 # of to the screen.  File names are of the form:
@@ -156,8 +162,9 @@ function get_timestamp () {
 # Locate the ion-diagnostics script (one directory up from tests/)
 ION_DIAGNOSTICS="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/ion-diagnostics"
 
-# Compute per-test timeout: 2x .DURATION if available, else default 1200s (20 min).
-# Override with ION_TEST_TIMEOUT env var for manual testing.
+# Compute per-test timeout: 4x .DURATION if available, capped at 2400s
+# (40 min) and floored at 60s. Falls back to 1200s when .DURATION is
+# missing or unparseable. Override with ION_TEST_TIMEOUT for manual runs.
 function compute_test_timeout () {
     if [ -n "${ION_TEST_TIMEOUT:-}" ]; then
         echo "$ION_TEST_TIMEOUT"
@@ -167,9 +174,9 @@ function compute_test_timeout () {
         local dur
         dur=$(head -1 .DURATION | tr -dc '0-9')
         if [ -n "$dur" ] && [ "$dur" -gt 0 ] 2>/dev/null; then
-            local timeout_val=$((dur * 3))
-            # Floor at 60s
+            local timeout_val=$((dur * 4))
             [ "$timeout_val" -lt 60 ] && timeout_val=60
+            [ "$timeout_val" -gt 2400 ] && timeout_val=2400
             echo "$timeout_val"
             return
         fi
@@ -223,7 +230,8 @@ function collect_dotest_stack () {
 function cleanup_staging_files () {
     local test_dir="${1:-.}"
     local patterns=(-name "*.sdr" -o -name "bpacq*" -o -name "ltpacq*" \
-        -o -name "bsspSegment*" -o -name "xnref*" -o -name "*.sdrlog")
+        -o -name "bsspSegment*" -o -name "xnref*" -o -name "*.sdrlog" \
+        -o -name "core" -o -name "core.*")
     find "$test_dir" -maxdepth 3 \( "${patterns[@]}" \) -type f \
         -exec rm -f {} \; 2>/dev/null
     # Also clean /tmp where many tests place SDR files via pathName
@@ -459,9 +467,12 @@ function run_a_test () {
         : > "$DIAG_FILE"
         collect_dotest_stack "$DOTEST_PID" "$DIAG_FILE"
 
-        # Full ION system diagnostics
+        # Full ION system diagnostics (ION_DIAG_SINCE bounds the core-file
+        # scan to cores produced after this test started, avoiding stale
+        # cores from earlier tests on shared core_pattern directories).
         if [ -x "$ION_DIAGNOSTICS" ]; then
-            "$ION_DIAGNOSTICS" --file "$DIAG_FILE" "$(pwd)" 2>/dev/null
+            ION_DIAG_SINCE="$TEST_START_TIME" \
+                "$ION_DIAGNOSTICS" --file "$DIAG_FILE" "$(pwd)" 2>/dev/null
         else
             echo "(ion-diagnostics not found at $ION_DIAGNOSTICS)" >> "$DIAG_FILE"
         fi
@@ -528,15 +539,18 @@ function run_a_test () {
         fi
         # Never run cleanup after failure — logs are preserved for debugging
         echo "Preserving test logs (cleanup skipped after failure)" | tee -a $PROGRESSFILE
-        # Collect partial diagnostics (ION processes may still be alive)
+        # Collect partial diagnostics (ION processes may still be alive,
+        # or may have crashed and left a core).
         DIAG_FILE="./ion-system.log"
         : > "$DIAG_FILE"
         if [ -x "$ION_DIAGNOSTICS" ]; then
-            "$ION_DIAGNOSTICS" --file "$DIAG_FILE" "$(pwd)" 2>/dev/null
+            ION_DIAG_SINCE="$TEST_START_TIME" \
+                "$ION_DIAGNOSTICS" --file "$DIAG_FILE" "$(pwd)" 2>/dev/null
         else
             echo "(ion-diagnostics not found at $ION_DIAGNOSTICS)" >> "$DIAG_FILE"
         fi
-        # Reclaim bulk staging files (preserves ion.log and ion-system.log)
+        # Reclaim bulk staging files (preserves ion.log and ion-system.log,
+        # removes cores after diagnostics has extracted their stack traces)
         cleanup_staging_files "."
     elif [ $TEST_RETVAL -eq 2 ]; then
         echo "TEST SKIPPED!"
