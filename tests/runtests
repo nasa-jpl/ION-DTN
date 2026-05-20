@@ -427,6 +427,12 @@ function run_a_test () {
         fi
     fi
 
+    # Remove stale ion-system.log files from prior runs of this test.
+    # cleanup_staging_files preserves them by design, so without an
+    # explicit sweep here they accumulate across runs and get picked up
+    # by CI log-collection as if they belonged to the current run.
+    find . -maxdepth 3 -name "ion-system.log" -type f -delete 2>/dev/null
+
     # Prefer X/Open Portable tools if Solaris
     if [ -x "/usr/xpg4/bin" ]; then
         PATH="/usr/xpg4/bin:$PATH"
@@ -467,20 +473,25 @@ function run_a_test () {
         echo "*** TEST TIMED OUT after ${TEST_TIMEOUT}s — collecting diagnostics ***"
         echo ""
 
-        # Stack trace of dotest itself (if compiled C binary)
         DIAG_FILE="./ion-system.log"
-        : > "$DIAG_FILE"
-        collect_dotest_stack "$DOTEST_PID" "$DIAG_FILE"
 
-        # Full ION system diagnostics (ION_DIAG_SINCE bounds the core-file
-        # scan to cores produced after this test started, avoiding stale
-        # cores from earlier tests on shared core_pattern directories).
+        # ion-diagnostics first: it truncates the output file before
+        # writing, so anything we put there beforehand would be lost.
+        # ION_DIAG_SINCE bounds the core-file scan to cores produced
+        # after this test started, avoiding stale cores from earlier
+        # tests on shared core_pattern directories.
         if [ -x "$ION_DIAGNOSTICS" ]; then
             ION_DIAG_SINCE="$TEST_START_TIME" \
                 "$ION_DIAGNOSTICS" --file "$DIAG_FILE" "$(pwd)" 2>/dev/null
         else
+            : > "$DIAG_FILE"
             echo "(ion-diagnostics not found at $ION_DIAGNOSTICS)" >> "$DIAG_FILE"
         fi
+
+        # Now append the dotest-script stack trace; collect_dotest_stack
+        # opens its outfile in append mode (>>), so it won't clobber what
+        # ion-diagnostics just wrote.
+        collect_dotest_stack "$DOTEST_PID" "$DIAG_FILE"
 
         # Now kill the test and clean up
         kill -TERM "$DOTEST_PID" 2>/dev/null
@@ -552,13 +563,14 @@ function run_a_test () {
         # Never run cleanup after failure — logs are preserved for debugging
         echo "Preserving test logs (cleanup skipped after failure)" | tee -a $PROGRESSFILE
         # Collect partial diagnostics (ION processes may still be alive,
-        # or may have crashed and left a core).
+        # or may have crashed and left a core). ion-diagnostics
+        # truncates the output file itself, so we don't pre-truncate.
         DIAG_FILE="./ion-system.log"
-        : > "$DIAG_FILE"
         if [ -x "$ION_DIAGNOSTICS" ]; then
             ION_DIAG_SINCE="$TEST_START_TIME" \
                 "$ION_DIAGNOSTICS" --file "$DIAG_FILE" "$(pwd)" 2>/dev/null
         else
+            : > "$DIAG_FILE"
             echo "(ion-diagnostics not found at $ION_DIAGNOSTICS)" >> "$DIAG_FILE"
         fi
         # Reclaim bulk staging files (preserves ion.log and ion-system.log,
