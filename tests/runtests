@@ -432,8 +432,13 @@ function run_a_test () {
         PATH="/usr/xpg4/bin:$PATH"
     fi
 
-    # Compute per-test timeout
+    # Compute per-test timeout, and read .DURATION separately for
+    # the actual-vs-declared report shown at test conclusion.
     TEST_TIMEOUT=$(compute_test_timeout)
+    TEST_DECLARED_DURATION=""
+    if [ -f ".DURATION" ]; then
+        TEST_DECLARED_DURATION=$(head -1 .DURATION | tr -dc '0-9')
+    fi
 
     # Run the driver script for the test with timeout monitoring.
     # We run dotest in the background so we can collect diagnostics
@@ -495,25 +500,32 @@ function run_a_test () {
     TEST_END_TIME=$(date +%s)
     TEST_END_TIMESTAMP=$(get_timestamp)
     TEST_DURATION=$((TEST_END_TIME - TEST_START_TIME))
+    # Combined "actual / declared" suffix; if .DURATION wasn't present
+    # we just show the actual elapsed time.
+    if [ -n "$TEST_DECLARED_DURATION" ]; then
+        DURATION_INFO="${TEST_DURATION}s, declared ${TEST_DECLARED_DURATION}s"
+    else
+        DURATION_INFO="${TEST_DURATION}s"
+    fi
 
     if [ $TEST_RETVAL -eq 0 ]; then
         if [ -n "$IS_OPTIONAL_TEST" ]; then
             echo "OPTIONAL TEST PASSED!"
             optional_pass_test "$TEST"
-            echo "OPTIONAL TEST PASSED: ${TEST} (${TEST_DURATION}s)" >> "$PROGRESSFILE"
+            echo "OPTIONAL TEST PASSED: ${TEST} (${DURATION_INFO})" >> "$PROGRESSFILE"
             # Concise output to stderr
-            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}PASS: $TEST (${TEST_DURATION}s)" >&2
+            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}PASS: $TEST (${DURATION_INFO})" >&2
         else
             echo "TEST PASSED!"
             if [[ "$RETESTING" == "true" ]]; then
                 pass_test_after_retest "$TEST"
-                echo "PASSED AFTER RETEST: ${TEST} (${TEST_DURATION}s)" >> "$PROGRESSFILE"
+                echo "PASSED AFTER RETEST: ${TEST} (${DURATION_INFO})" >> "$PROGRESSFILE"
             else
                 pass_test "$TEST"
-                echo "PASSED: ${TEST} (${TEST_DURATION}s)" >> "$PROGRESSFILE"
+                echo "PASSED: ${TEST} (${DURATION_INFO})" >> "$PROGRESSFILE"
             fi
             # Concise output to stderr
-            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}PASS: $TEST (${TEST_DURATION}s)" >&2
+            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}PASS: $TEST (${DURATION_INFO})" >&2
         fi
         if [ "$PRESERVE_TEST_LOGS" != "1" ] && [ -x "cleanup" ]; then
             ./cleanup
@@ -523,19 +535,19 @@ function run_a_test () {
         if [ -n "$IS_OPTIONAL_TEST" ]; then
             echo "OPTIONAL TEST FAILED!"
             optional_fail_test "$TEST"
-            echo "OPTIONAL TEST FAILED: ${TEST} (${TEST_DURATION}s)" >> "$PROGRESSFILE"
+            echo "OPTIONAL TEST FAILED: ${TEST} (${DURATION_INFO})" >> "$PROGRESSFILE"
             # Concise output to stderr
-            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${TEST_DURATION}s)" >&2
+            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${DURATION_INFO})" >&2
         else
             echo "TEST FAILED!"
             fail_test "$TEST"
             if [[ "$RETESTING" == "true" ]]; then
-                echo "FAILED AFTER RETEST: ${TEST} (${TEST_DURATION}s)" >> "$PROGRESSFILE"
+                echo "FAILED AFTER RETEST: ${TEST} (${DURATION_INFO})" >> "$PROGRESSFILE"
             else
-                echo "FAILED: ${TEST} (${TEST_DURATION}s)" >> "$PROGRESSFILE"
+                echo "FAILED: ${TEST} (${DURATION_INFO})" >> "$PROGRESSFILE"
             fi
             # Concise output to stderr
-            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${TEST_DURATION}s)" >&2
+            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${DURATION_INFO})" >&2
         fi
         # Never run cleanup after failure — logs are preserved for debugging
         echo "Preserving test logs (cleanup skipped after failure)" | tee -a $PROGRESSFILE
@@ -555,15 +567,15 @@ function run_a_test () {
     elif [ $TEST_RETVAL -eq 2 ]; then
         echo "TEST SKIPPED!"
         skip_test "$TEST"
-        echo "SKIPPED: ${TEST} (${TEST_DURATION}s)" >> "$PROGRESSFILE"
+        echo "SKIPPED: ${TEST} (${DURATION_INFO})" >> "$PROGRESSFILE"
         # Concise output to stderr
-        echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}SKIP: $TEST (${TEST_DURATION}s)" >&2
+        echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}SKIP: $TEST (${DURATION_INFO})" >&2
     elif [ $TEST_RETVAL -eq 124 ]; then
         echo "TEST TIMED OUT! (limit: ${TEST_TIMEOUT}s)"
         fail_test "$TEST"
-        echo "TIMEOUT: ${TEST} (${TEST_DURATION}s, limit=${TEST_TIMEOUT}s)" >> "$PROGRESSFILE"
+        echo "TIMEOUT: ${TEST} (${DURATION_INFO}, limit=${TEST_TIMEOUT}s)" >> "$PROGRESSFILE"
         # Concise output to stderr
-        echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}TIMEOUT: $TEST (${TEST_DURATION}s)" >&2
+        echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}TIMEOUT: $TEST (${DURATION_INFO})" >&2
         # Diagnostics already collected; preserve logs but reclaim bulk staging files
         echo "Preserving test logs and ion-system.log (timeout)" | tee -a $PROGRESSFILE
         cleanup_staging_files "."
@@ -571,18 +583,18 @@ function run_a_test () {
         echo "test returned unknown value $TEST_RETVAL"
         if [ -n "$IS_OPTIONAL_TEST" ]; then
             optional_fail_test "$TEST"
-            echo "OPTIONAL TEST CONFUSED: ${TEST}: bad return value $TEST_RETVAL (${TEST_DURATION}s)" >> "$PROGRESSFILE"
+            echo "OPTIONAL TEST CONFUSED: ${TEST}: bad return value $TEST_RETVAL (${DURATION_INFO})" >> "$PROGRESSFILE"
             # Concise output to stderr
-            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${TEST_DURATION}s) [unknown return value $TEST_RETVAL]" >&2
+            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${DURATION_INFO}) [unknown return value $TEST_RETVAL]" >&2
         else
             fail_test "$TEST"
             if [[ "$RETESTING" == "true" ]]; then
-                echo "CONFUSED AFTER RETEST: ${TEST}: bad return value $TEST_RETVAL (${TEST_DURATION}s)" >> "$PROGRESSFILE"
+                echo "CONFUSED AFTER RETEST: ${TEST}: bad return value $TEST_RETVAL (${DURATION_INFO})" >> "$PROGRESSFILE"
             else
-                echo "CONFUSED: ${TEST}: bad return value $TEST_RETVAL (${TEST_DURATION}s)" >> "$PROGRESSFILE"
+                echo "CONFUSED: ${TEST}: bad return value $TEST_RETVAL (${DURATION_INFO})" >> "$PROGRESSFILE"
             fi
             # Concise output to stderr
-            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${TEST_DURATION}s) [unknown return value $TEST_RETVAL]" >&2
+            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${DURATION_INFO}) [unknown return value $TEST_RETVAL]" >&2
         fi
     fi
 
