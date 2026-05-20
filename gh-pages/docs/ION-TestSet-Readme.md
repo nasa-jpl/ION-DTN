@@ -313,8 +313,87 @@ Starting with ION version 4.1.3, the `runtests` script maintains a file called `
 
 If the environment variable `RUNTESTS_OUTPUTDIR` is set, as in `export RUNTESTS_OUTPUTDIR="/tmp"`, then the output from each test will be stored in individual files like `/tmp/results.testname` (e.g., `/tmp/results.1000.loopback`), which makes it much easier to find particular text or results when debugging.
 
+Each test conclusion line in the `progress` file and on stderr reports both the actual elapsed time and (when a `.DURATION` file is present) the declared expected duration:
+
+```
+PASSED: bping (12s, declared 10s)
+FAILED: foo (45s, declared 30s)
+TIMEOUT: tc-dtka (2400s, declared 1033s, limit=2400s)
+```
+
+This makes it easy to spot tests drifting past their declared budget without cross-referencing `.DURATION` by hand.
+
+## Per-test timeout
+
+Each test is run under a watchdog so that a hung test cannot block the rest of the campaign. The per-test timeout is computed as:
+
+- `4 × .DURATION` if a `.DURATION` file is present and contains a positive integer
+- Capped at **2400 s** (40 minutes) and floored at **60 s**
+- Defaulted to **1200 s** (20 minutes) when `.DURATION` is missing or unparseable
+- Overridden entirely by `ION_TEST_TIMEOUT` (in seconds, uncapped — useful for interactive debugging of long-running tests)
+
+When the watchdog fires, `runtests` collects diagnostics from the still-live test (see below), then kills the process group via SIGTERM/SIGKILL and `killm f`. The test is reported as `TIMEOUT` in the `progress` file with `limit=<seconds>` included.
+
+## Diagnostics on failure or timeout
+
+On any test failure or timeout, `runtests` invokes the `ion-diagnostics` script (located at the repository root) to capture forensic state into `ion-system.log` in the test directory. The same file is preserved alongside `ion.log` after the run, and is collected as a CI artifact by the Solaris workflow.
+
+`ion-diagnostics` writes a sectioned report. Sections include:
+
+1. Host information (uname, OS release, user)
+2. ION process inventory (`ps`-style snapshot of every ION daemon)
+3. **Stack traces**: live `gdb`/`eu-stack`/`mdb` backtraces of each ION process, plus per-core-file backtraces (see below)
+4. Kernel messages (`dmesg`)
+5. Memory usage (`free` on Linux, `prtconf`+`vmstat` on Solaris)
+6. Disk usage (`df -h`)
+7. SysV IPC resources (`ipcs`)
+8. POSIX named semaphore files (`/dev/shm`, `/tmp/.LIBRT/SEM*`)
+9. SDR and PSM snapshots (`sdrwatch`, `psmwatch`) per node
+10. Open file descriptors (`/proc/PID/fd` on Linux, `pfiles` on Solaris, `lsof` fallback)
+11. Per-node `ion.log` tails
+12. Network sockets (`ss` on Linux, `pfiles` + `netstat -an -P tcp/udp` on Solaris)
+
+Sections can be read back individually from a saved file with `ion-diagnostics read <number|name>`. Use `ion-diagnostics read` with no argument to list available sections.
+
+### Core file capture
+
+A crash that occurs before diagnostics runs (e.g., SIGSEGV in a test daemon) leaves no live process for the live-PID `gdb` path to attach to. The Stack Traces section also discovers core files:
+
+- Linux: reads `/proc/sys/kernel/core_pattern`. If it begins with `|systemd-coredump`, uses `coredumpctl list/info/debug` to extract backtraces. Otherwise, scans the configured core directory plus the test directory.
+- Solaris: queries `coreadm` for the configured core paths.
+- Each fresh core (matched against `ION_DIAG_SINCE`, which `runtests` sets to the test start time, with a `-mmin -60` fallback) is fed to `gdb -batch -ex 'thread apply all bt full' BINARY CORE`. On Solaris, `mdb` is used if `gdb` is absent.
+
+`runtests` runs `ulimit -c unlimited` at entry so that crashes actually produce a core in environments where the default core-file limit is 0. This is best-effort; restricted environments (containers with `RLIMIT_CORE` hard limit 0) silently leave the limit at 0 and `ion-diagnostics` simply reports no cores found.
+
+Core files and acquisition staging files (`bpacq*`, `ltpacq*`, `*.sdr`, `bsspSegment*`, `xnref*`, `*.sdrlog`) are removed by `cleanup_staging_files` after diagnostics finishes, so disk usage doesn't grow across a long campaign while still preserving `ion.log` and `ion-system.log` for inspection.
+
+Stale `ion-system.log` files from prior runs are swept out of each test directory before the test starts, so they cannot be mistakenly uploaded by CI as if they belonged to the current run.
+
 ## Test retries and the retest file
 
-When tests fail during a test campaign, `runtests` automatically generates a file called `retest` in the `tests` directory. This file contains the names of all failed non-optional tests. After the initial test run completes, `runtests` will automatically attempt to re-run all tests listed in the `retest` file once more. This automatic retry mechanism helps identify intermittent failures and reduces false positives from timing-sensitive tests.
+When tests fail during a test campaign, `runtests` writes the names of all failed non-optional tests to a file called `retest` in the `tests` directory. Optional tests (marked with `.optional`) are never included.
 
-Note that optional tests (marked with `.optional`) are never included in the `retest` file and are not retested automatically, since their failure does not affect the overall test campaign status.
+Automatic retesting is **off by default**. To re-enable the prior behavior of automatically re-running every failed test once at the end of the campaign, set `ENABLE_RETEST=1`:
+
+```bash
+ENABLE_RETEST=1 ./runtests
+```
+
+The `retest` file is generated regardless of `ENABLE_RETEST`, so failed tests can be replayed manually at any time:
+
+```bash
+./runtests retest
+```
+
+## Environment variables
+
+| Variable | Default | Effect |
+|----------|---------|--------|
+| `RUNTESTS_OUTPUTDIR` | unset | If set to a directory, per-test output is written to `<dir>/results.<testname>` instead of the terminal |
+| `PRESERVE_TEST_LOGS` | `0` | When `1`, logs from passing tests are kept (failed-test logs are always preserved) |
+| `ENABLE_RETEST` | `0` | When `1`, automatically re-runs failed tests once after the initial pass |
+| `ION_TEST_TIMEOUT` | unset | Overrides the computed per-test timeout (seconds, uncapped) |
+| `ION_MIN_DISK_MB` | `500` | Minimum free disk space (MB) required before each test; lower values abort the test as `ABORT (disk full)` |
+| `ION_RUN_EXPERT` | unset | When non-empty, enables tests marked with `.exclude_expert` (e.g., BPSec) |
+| `ION_NODE_LIST_DIR` | unset | Multi-node test isolation: directory where the `ion_nodes` file lives so `killm` can scope to a single node |
+| `ION_DIAG_SINCE` | (set by `runtests`) | Epoch seconds; bounds `ion-diagnostics`' core-file scan to cores produced after this time |
