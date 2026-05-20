@@ -58,6 +58,12 @@ on:
 jobs:
   build-and-test:
     runs-on: [self-hosted, linux, x64, karuna]
+    env:
+      # SSH options applied to every ssh/scp/rsync invocation against
+      # the Solaris VM. GSSAPIAuthentication=no avoids a multi-second
+      # Kerberos/NIS auth stall observed on the VM; restricting to
+      # publickey skips other slow fallback methods entirely.
+      SSH_OPTS: "-o StrictHostKeyChecking=no -o GSSAPIAuthentication=no -o PreferredAuthentications=publickey"
     steps:
       - name: Clean up workspace
         run: |
@@ -101,7 +107,7 @@ jobs:
 
       - name: Display VM OS and Arch
         run: |
-          ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
+          ssh $SSH_OPTS jgao@$VM_IP '
             cat /etc/os-release &&
             echo "Arch:" &&
             uname -m &&
@@ -113,11 +119,11 @@ jobs:
 
       - name: Copy code to Solaris VM
         run: |
-          ssh -o StrictHostKeyChecking=no jgao@$VM_IP 'rm -rf ~/ion-gh-test-dir && mkdir -p ~/ion-gh-test-dir'
+          ssh $SSH_OPTS jgao@$VM_IP 'rm -rf ~/ion-gh-test-dir && mkdir -p ~/ion-gh-test-dir'
           attempt=0
           max_attempts=3
           until rsync -avz --partial \
-                    -e "ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=4" \
+                    -e "ssh $SSH_OPTS -o ServerAliveInterval=30 -o ServerAliveCountMax=4" \
                     --exclude='arch-rtems' \
                     "$GITHUB_WORKSPACE/" jgao@$VM_IP:~/ion-gh-test-dir/ion-ios-dev/; do
             attempt=$((attempt + 1))
@@ -136,7 +142,7 @@ jobs:
       - name: Run build and tests, capture stdout
         timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '270') }}
         run: |
-          ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
+          ssh $SSH_OPTS jgao@$VM_IP '
             echo "Starting build and tests at $(date)" &&
             export USER=$(whoami) &&
             echo "USER is set to: $USER" &&
@@ -170,7 +176,7 @@ jobs:
       - name: Display Progress
         if: ${{ always() }}
         run: |
-          ssh -o StrictHostKeyChecking=no jgao@$VM_IP \
+          ssh $SSH_OPTS jgao@$VM_IP \
             'cat ~/ion-gh-test-dir/ion-ios-dev/tests/progress 2>/dev/null' > progress || true
           if [ ! -s progress ]; then
             echo "No progress file produced (tests may not have run)."
@@ -203,13 +209,13 @@ jobs:
         run: |
           echo "Collecting ion.log files with unique names..."
           mkdir -p ion-logs-collection
-          ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
+          ssh $SSH_OPTS jgao@$VM_IP '
             cd ~/ion-gh-test-dir/ion-ios-dev &&
             find ./tests ./demos -name "ion.log" -type f 2>/dev/null' | while IFS= read -r logfile; do
             # Extract test path and create unique filename
             relpath=$(echo "$logfile" | sed 's|^\./||' | sed 's|/ion\.log$||')
             unique_name=$(echo "$relpath" | tr '/' '-')
-            scp -o StrictHostKeyChecking=no jgao@$VM_IP:~/ion-gh-test-dir/ion-ios-dev/"$logfile" "ion-logs-collection/${unique_name}-ion.log"
+            scp $SSH_OPTS jgao@$VM_IP:~/ion-gh-test-dir/ion-ios-dev/"$logfile" "ion-logs-collection/${unique_name}-ion.log"
             echo "Collected: $logfile -> ion-logs-collection/${unique_name}-ion.log"
           done
 
@@ -229,12 +235,12 @@ jobs:
         if: ${{ always() }}
         run: |
           mkdir -p diagnostics-collection
-          ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
+          ssh $SSH_OPTS jgao@$VM_IP '
             cd ~/ion-gh-test-dir/ion-ios-dev &&
             find ./tests ./demos -name "ion-system.log" -type f 2>/dev/null' | while IFS= read -r logfile; do
             relpath=$(echo "$logfile" | sed 's|^\./||' | sed 's|/ion-system\.log$||')
             unique_name=$(echo "$relpath" | tr '/' '-')
-            scp -o StrictHostKeyChecking=no jgao@$VM_IP:~/ion-gh-test-dir/ion-ios-dev/"$logfile" "diagnostics-collection/${unique_name}-ion-system.log"
+            scp $SSH_OPTS jgao@$VM_IP:~/ion-gh-test-dir/ion-ios-dev/"$logfile" "diagnostics-collection/${unique_name}-ion-system.log"
           done
 
       - name: Upload ion-system.log diagnostics
@@ -248,7 +254,7 @@ jobs:
       - name: Clean up ION build
         if: ${{ always() }}
         run: |
-          ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
+          ssh $SSH_OPTS jgao@$VM_IP '
             echo "Cleaning up ION build and tests at $(date)"
             export PATH=/usr/local/sbin:/usr/local/bin:$PATH
             echo "PATH=$PATH"
