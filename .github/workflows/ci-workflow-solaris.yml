@@ -114,7 +114,20 @@ jobs:
       - name: Copy code to Solaris VM
         run: |
           ssh -o StrictHostKeyChecking=no jgao@$VM_IP 'rm -rf ~/ion-gh-test-dir && mkdir -p ~/ion-gh-test-dir'
-          rsync -avz -e "ssh -o StrictHostKeyChecking=no" --exclude='arch-rtems' "$GITHUB_WORKSPACE/" jgao@$VM_IP:~/ion-gh-test-dir/ion-ios-dev/
+          attempt=0
+          max_attempts=3
+          until rsync -avz --partial \
+                    -e "ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=4" \
+                    --exclude='arch-rtems' \
+                    "$GITHUB_WORKSPACE/" jgao@$VM_IP:~/ion-gh-test-dir/ion-ios-dev/; do
+            attempt=$((attempt + 1))
+            if [ $attempt -ge $max_attempts ]; then
+              echo "rsync failed after $attempt attempts" >&2
+              exit 1
+            fi
+            echo "rsync attempt $attempt failed, retrying in $((attempt * 10))s..." >&2
+            sleep $((attempt * 10))
+          done
 
       - name: Generate timestamp for file names
         id: timestamp
@@ -157,9 +170,13 @@ jobs:
       - name: Display Progress
         if: ${{ always() }}
         run: |
-          ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
-            cat ~/ion-gh-test-dir/ion-ios-dev/tests/progress' > progress
-          cat progress | grep "FAILED" || { printf "No failed tests.\n"; exit 0; }
+          ssh -o StrictHostKeyChecking=no jgao@$VM_IP \
+            'cat ~/ion-gh-test-dir/ion-ios-dev/tests/progress 2>/dev/null' > progress || true
+          if [ ! -s progress ]; then
+            echo "No progress file produced (tests may not have run)."
+            exit 0
+          fi
+          grep "FAILED" progress || printf "No failed tests.\n"
 
       - name: Upload full build and test log
         if: ${{ always() }}
@@ -232,19 +249,20 @@ jobs:
         if: ${{ always() }}
         run: |
           ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
-            echo "Cleaning up ION build and tests at $(date)" &&
-            export PATH=/usr/local/bin:$PATH &&
-            echo "PATH=$PATH" &&
+            echo "Cleaning up ION build and tests at $(date)"
+            export PATH=/usr/local/sbin:/usr/local/bin:$PATH
+            echo "PATH=$PATH"
             if [ -d ~/ion-gh-test-dir/ion-ios-dev ]; then
-              cd ~/ion-gh-test-dir/ion-ios-dev &&
-              killm &&
-              sudo gmake uninstall &&
-              gmake clean &&
+              cd ~/ion-gh-test-dir/ion-ios-dev || exit 0
+              command -v killm >/dev/null 2>&1 && killm || echo "killm not available, skipping"
+              sudo gmake uninstall || echo "gmake uninstall failed, continuing"
+              gmake clean || echo "gmake clean failed, continuing"
               cd ~
             else
               echo "Build directory not found, skipping build cleanup"
-            fi &&
-            rm -rf ~/ion-gh-test-dir'
+            fi
+            rm -rf ~/ion-gh-test-dir
+            exit 0'
           rm -rf $GITHUB_WORKSPACE/*
 
       - name: Set PR status
