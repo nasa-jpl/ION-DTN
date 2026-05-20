@@ -665,3 +665,8 @@ Chart.lock
 charts/arc/charts/*
 charts/arc/values.yaml
 kics-results.*
+
+# AGENTS & CLAUDE
+AGENTS.md
+CLAUDE.md
+!gh-pages/docs/AGENTS.md

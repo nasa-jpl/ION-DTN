@@ -3,6 +3,26 @@
 - [ION Coding Guide](#ion-coding-guide)
   - [Preface](#preface)
   - [C Language Standard](#c-language-standard)
+    - [C11/C18 Features in Use](#c11c18-features-in-use)
+    - [C99 Features Used Throughout](#c99-features-used-throughout)
+    - [Per-Component Overrides](#per-component-overrides)
+    - [Guidelines for Contributors](#guidelines-for-contributors)
+    - [Operating System Support Matrix for Space Processors](#operating-system-support-matrix-for-space-processors)
+  - [Atomic Operations](#atomic-operations)
+    - [Dual-Zone Architecture](#dual-zone-architecture)
+    - [Three-Tier Fallback Chain](#three-tier-fallback-chain)
+      - [Consolidated Tier Summary](#consolidated-tier-summary)
+    - [Memory Ordering](#memory-ordering)
+    - [False Sharing and Cache-Line Alignment](#false-sharing-and-cache-line-alignment)
+      - [FIXME — Known candidates for future false-sharing optimization](#fixme--known-candidates-for-future-false-sharing-optimization)
+    - [API Summary](#api-summary)
+    - [C++ Consumers](#c-consumers)
+      - [The C++ compilation path in `ion_atomic.h`](#the-c-compilation-path-in-ion_atomich)
+      - [Rules for C++ consumers](#rules-for-c-consumers)
+      - [ION library compilation tier is independent of your C++ standard](#ion-library-compilation-tier-is-independent-of-your-c-standard)
+      - [Minimal C++ example](#minimal-c-example)
+    - [Testing the Fallback Tiers](#testing-the-fallback-tiers)
+    - [Files](#files)
   - [Application Behavior](#application-behavior)
   - [Function Design Guidelines](#function-design-guidelines)
   - [Error Checking](#error-checking)
@@ -24,8 +44,8 @@
     - [Coercion Alters Value](#coercion-alters-value)
     - [Cast Alters Value](#cast-alters-value)
     - [Ignored Return Value](#ignored-return-value)
-    - [Useless Assignment — sm_TaskVar() Pattern](#useless-assignment--sm_taskvar-pattern)
-    - [Unreachable Data Flow / Computation / Call](#unreachable-data-flow--unreachable-computation--unreachable-call)
+    - [Useless Assignment — `sm_TaskVar()` Pattern](#useless-assignment--sm_taskvar-pattern)
+    - [Unreachable Data Flow / Unreachable Computation / Unreachable Call](#unreachable-data-flow--unreachable-computation--unreachable-call)
     - [Redundant Condition](#redundant-condition)
     - [Empty if Statement](#empty-if-statement)
     - [Dangerous Function Cast](#dangerous-function-cast)
@@ -35,9 +55,9 @@
 
 The following coding guidelines apply to all software delivered as part of the Interplanetary Overlay Network (ION) distribution, except:
 
-* Where the delivered software is legacy code rather than code developed specifically for ION.
-* Where conformance to some other standard is clearly appropriate. For example, when using a framework library like Motif it may be appropriate to modify these guidelines so as to be consistent with the practices of the framework.
-* Where, in the judgment of the programmer, deviating from the guidelines in a particular case results in manifestly clearer code. This is not a license to ignore the guidelines; it is intended to cover special circumstances.
+- Where the delivered software is legacy code rather than code developed specifically for ION.
+- Where conformance to some other standard is clearly appropriate. For example, when using a framework library like Motif it may be appropriate to modify these guidelines so as to be consistent with the practices of the framework.
+- Where, in the judgment of the programmer, deviating from the guidelines in a particular case results in manifestly clearer code. This is not a license to ignore the guidelines; it is intended to cover special circumstances.
 Adherence to these guidelines is the responsibility of the individual programmer but will be considered during peer reviews of new ION code.
 
 ## C Language Standard
@@ -54,34 +74,38 @@ The `-pedantic` flag is enabled to enforce strict standards compliance.
 
 ### C11/C18 Features in Use
 
-* **Atomic operations** — used for lock-free reference counting (semaphore management), lock-free statistics counters (BP and LTP tally deltas), daemon shutdown flags, and inter-process semaphore table state in shared memory. See the **Atomic Operations** section below for the portable abstraction, the dual-zone architecture, and the three-tier fallback chain.
+- **Atomic operations** — used for lock-free reference counting (semaphore management), lock-free statistics counters (BP and LTP tally deltas), daemon shutdown flags, and inter-process semaphore table state in shared memory. See the **Atomic Operations** section below for the portable abstraction, the dual-zone architecture, and the three-tier fallback chain.
 
 ### C99 Features Used Throughout
 
-* `<stdint.h>`, `<stdbool.h>`
-* Designated initializers
-* `inline` functions
-* Mixed declarations and code
-* `//` single-line comments
+- `<stdint.h>`, `<stdbool.h>`
+- Designated initializers
+- `inline` functions
+- Mixed declarations and code
+- `//` single-line comments
 
 ### Per-Component Overrides
 
 Some subdirectories pin to a specific standard in their own Makefiles:
 
-* **QCBOR, Unity, libbloom** — pinned to `-std=c99`
-* **contrib/bptap** — uses `-std=gnu99` (GCC extension of C99)
+- **QCBOR, Unity, libbloom** — pinned to `-std=c99`
+- **contrib/bptap** — uses `-std=gnu99` (GCC extension of C99)
 
 ### Guidelines for Contributors
 
-* Avoid GNU extensions and non-standard constructs in core ION code.
-* Use standards-compliant macro helper names.
-* When adding new code that needs atomics,
+- Avoid GNU extensions and non-standard constructs in core ION code.
+- Use standards-compliant macro helper names.
+- When adding new code that needs atomics,
   use the ION-specific opaque types `ion_atomic_t` (process-local)
   or `ion_ipc_atomic_t` (shared memory)
   together with the `ion_atomic_*` / `ion_ipc_atomic_*` accessor macros.
   Do not include `<stdatomic.h>` directly; include `ion_atomic.h` instead.
   See the **Atomic Operations** section below for selection rules.
-* Prefer C99-compatible constructs for all other code; this maximizes portability to the C99 fallback path.
+- Prefer C99-compatible constructs for all other code; this maximizes portability to the C99 fallback path.
+- A basic [`AGENTS.md`](AGENTS.md) is provided for use with LLMs.
+  Copy it into the main folder to use.
+  PRs and issues will not be accepted for this.
+  To use a for claude create a symlink to it called CLAUDE.md
 
 ### Operating System Support Matrix for Space Processors
 
@@ -177,9 +201,9 @@ Modern Clang (all versions) and GCC ≥ 4.7 support all three tiers. On these co
 
 All ION atomic operations currently use **relaxed** ordering (`memory_order_relaxed` on C11; `__ATOMIC_RELAXED` on `__atomic`). Relaxed ordering is correct for the current uses:
 
-* **Stats counters** (BP/LTP tally deltas) — only the final sum matters; the readers aggregate over time and don't care about inter-counter ordering.
-* **Reference counts** — the surrounding semaphore operations themselves provide the acquire/release synchronization needed to make the refcount update visible to other users of the protected resource.
-* **Sequence numbers** (`gseq`) — monotonically increasing; readers only care that they see a later value than before.
+- **Stats counters** (BP/LTP tally deltas) — only the final sum matters; the readers aggregate over time and don't care about inter-counter ordering.
+- **Reference counts** — the surrounding semaphore operations themselves provide the acquire/release synchronization needed to make the refcount update visible to other users of the protected resource.
+- **Sequence numbers** (`gseq`) — monotonically increasing; readers only care that they see a later value than before.
 
 **Shutdown flags are a borderline case.** Flags like `rtp.running`, `gsem->ended`, and `gsem->pendingDelete` are one-shot signals where a reader needs to observe all prior writes by the setter. Relaxed ordering is technically insufficient for these; acquire/release would be more correct. ION currently gets away with relaxed because (a) readers poll in tight loops and will eventually observe the flag on a later iteration, and (b) the writes being ordered before the flag (e.g., SDR updates) are themselves guarded by other synchronization (SDR transaction locks, semaphore operations). If you add a new polling flag that depends on observing prior non-atomic writes, consult with the maintainers before defaulting to relaxed.
 
@@ -189,9 +213,9 @@ All ION atomic operations currently use **relaxed** ordering (`memory_order_rela
 
 False sharing is **only** a concern for *hot arrays of atomics* — arrays where multiple threads simultaneously write to adjacent elements. It is **not** a concern for:
 
-* **Scattered single-field atomics inside larger structs** (daemon shutdown flags, per-SAP state, reference counters). The enclosing struct's other fields share the cache line anyway and are written holistically; padding just the atomic field is illusory protection.
-* **File-scope static atomics** (initialization guards, shutdown signals). Their neighbors in `.bss` are typically unrelated read-mostly globals, not hot atomics.
-* **Stack-local atomics**. Each thread has its own stack; no sharing possible.
+- **Scattered single-field atomics inside larger structs** (daemon shutdown flags, per-SAP state, reference counters). The enclosing struct's other fields share the cache line anyway and are written holistically; padding just the atomic field is illusory protection.
+- **File-scope static atomics** (initialization guards, shutdown signals). Their neighbors in `.bss` are typically unrelated read-mostly globals, not hot atomics.
+- **Stack-local atomics**. Each thread has its own stack; no sharing possible.
 
 The one ION pattern that *does* match "hot array of atomics" is the BP/LTP tally delta arrays (`BpVdb.{source,recv,discard,xmit,db}Deltas`, `VPlan.statsDeltas`, `VInduct.statsDeltas`, `VEndpoint.statsDeltas`, `LtpVspan.statsDeltas`). These hold adjacent counters that can be written concurrently by different priority levels or different CLAs. They are currently 16 bytes per pair (`ion_ipc_atomic_t` × 2), so four pairs fit in a single cache line — adjacent priorities share a line and can false-share under contention. This is a deliberate memory-vs-contention trade-off: ION prioritizes the SM-partition footprint on flight targets over the marginal cache-line bouncing that occurs under heavy concurrent tally updates, which in practice is bounded by the bundle send/receive rate.
 
@@ -214,11 +238,11 @@ Use this surgically, at the specific declaration where false sharing has been *m
 
 These declarations are *plausible* false-sharing candidates but have **not** been profiled under representative load. Do not apply `alignas(64)` to them until a benchmark on the target platform shows a measurable win. Record the before/after numbers in the commit message so the trade-off is auditable.
 
-* **`TallyDelta` array elements in general** (`ici/include/ion.h`). Every struct that embeds `TallyDelta[]` is a candidate: `BpVdb.{source,recv,discard,xmit,db}Deltas`, `VPlan.statsDeltas`, `VInduct.statsDeltas`, `VEndpoint.statsDeltas`, `LtpVspan.statsDeltas`. A single `alignas(64)` on the `TallyDelta` type would address all of them simultaneously at the cost of ~5.8 KB extra SM-partition footprint for a typical node (120 TallyDeltas × 48 bytes of padding). This is the simplest and most comprehensive fix if the benchmark justifies it.
+- **`TallyDelta` array elements in general** (`ici/include/ion.h`). Every struct that embeds `TallyDelta[]` is a candidate: `BpVdb.{source,recv,discard,xmit,db}Deltas`, `VPlan.statsDeltas`, `VInduct.statsDeltas`, `VEndpoint.statsDeltas`, `LtpVspan.statsDeltas`. A single `alignas(64)` on the `TallyDelta` type would address all of them simultaneously at the cost of ~5.8 KB extra SM-partition footprint for a typical node (120 TallyDeltas × 48 bytes of padding). This is the simplest and most comprehensive fix if the benchmark justifies it.
 
-* **`LtpVspan.statsDeltas[LTP_SPAN_STATS]`** specifically is the strongest candidate among the list above. LTP spans are touched by up to five distinct threads per span (`ltpcli` receiver, `ltpclo` sender, `ltpmeter`, `ltpdeliv`, `ltpclock`), each writing a different `idx` value (receive vs transmit vs session-complete vs delivery). Adjacent elements are genuinely hit by different CPUs under realistic load. If budget constraints prevent padding *all* TallyDeltas, pad this one first.
+- **`LtpVspan.statsDeltas[LTP_SPAN_STATS]`** specifically is the strongest candidate among the list above. LTP spans are touched by up to five distinct threads per span (`ltpcli` receiver, `ltpclo` sender, `ltpmeter`, `ltpdeliv`, `ltpclock`), each writing a different `idx` value (receive vs transmit vs session-complete vs delivery). Adjacent elements are genuinely hit by different CPUs under realistic load. If budget constraints prevent padding *all* TallyDeltas, pad this one first.
 
-* **`BpVdb.{source,recv,xmit}Deltas[3]`** (per-priority tally deltas) are a secondary candidate. In practice each priority tends to have one dominant writer (a specific application, a specific CLI, a specific CLO), so concurrent writes to adjacent priorities are less common than the LTP span case.
+- **`BpVdb.{source,recv,xmit}Deltas[3]`** (per-priority tally deltas) are a secondary candidate. In practice each priority tends to have one dominant writer (a specific application, a specific CLI, a specific CLO), so concurrent writes to adjacent priorities are less common than the LTP span case.
 
 How to profile:
 
@@ -252,10 +276,10 @@ void  ion_atomic_mutex_destroy     (ion_atomic_t *p);  /* no-op on C11 */
 
 Notes on usage:
 
-* **Always call `ion_atomic_init` before first use** of a Zone 1 atomic. On C11 this just stores the value; on the C99 mutex fallback it also calls `pthread_mutex_init`. Forgetting to initialize will cause an uninitialized-mutex fault on the fallback path that won't show up on C11 builds.
-* **Never `memset` or `Zalloc` a struct containing an `ion_atomic_t`** and then use it without re-initializing. Zero-filling destroys the hidden mutex state on the C99 fallback. This is why `ResourceLock->initialized` in `platform_sm.c` is a plain `int` guarded by a meta-lock instead of an `ion_atomic_t`.
-* **`ion_ipc_atomic_t` fields in shared memory must be initialized in the setup path that creates the shared region**, not in whatever code happens to see them first. See `_sembase` in `platform_sm.c` for the pattern: every `SmGlobalSem` in `gsemtable[]` has its atomics initialized in a single loop during `_sembase(IPC_ACTION_LOOKUP)` when the region is first created.
-* **The return value of increment/decrement is the `vast` value *before* the operation** (`fetch_add` / `fetch_sub` semantics, not `add_fetch`).
+- **Always call `ion_atomic_init` before first use** of a Zone 1 atomic. On C11 this just stores the value; on the C99 mutex fallback it also calls `pthread_mutex_init`. Forgetting to initialize will cause an uninitialized-mutex fault on the fallback path that won't show up on C11 builds.
+- **Never `memset` or `Zalloc` a struct containing an `ion_atomic_t`** and then use it without re-initializing. Zero-filling destroys the hidden mutex state on the C99 fallback. This is why `ResourceLock->initialized` in `platform_sm.c` is a plain `int` guarded by a meta-lock instead of an `ion_atomic_t`.
+- **`ion_ipc_atomic_t` fields in shared memory must be initialized in the setup path that creates the shared region**, not in whatever code happens to see them first. See `_sembase` in `platform_sm.c` for the pattern: every `SmGlobalSem` in `gsemtable[]` has its atomics initialized in a single loop during `_sembase(IPC_ACTION_LOOKUP)` when the region is first created.
+- **The return value of increment/decrement is the `vast` value *before* the operation** (`fetch_add` / `fetch_sub` semantics, not `add_fetch`).
 
 ### C++ Consumers
 
@@ -308,8 +332,8 @@ The ION C library is compiled separately from your C++ program. It may be built 
 
 That said, **prefer a C11/C18 ION build whenever the target toolchain supports it**, for reasons unrelated to C++:
 
-* **Zone 1 performance.** The C11 path uses lock-free `_Atomic(vast)` and compiles BP/LTP tally updates to a single atomic instruction. The C99 mutex fallback acquires and releases a `pthread_mutex_t` on every update, which is measurably slower under heavy bundle load.
-* **Zone 2 performance on ARM / AArch64.** The C11 and C99-`__atomic` paths both use `memory_order_relaxed` / `__ATOMIC_RELAXED`, which compile to plain `LDR`/`STR` and `LDADD` instructions. The legacy `__sync` fallback wraps every operation in `DMB ISH` full barriers, an order of magnitude more expensive per op.
+- **Zone 1 performance.** The C11 path uses lock-free `_Atomic(vast)` and compiles BP/LTP tally updates to a single atomic instruction. The C99 mutex fallback acquires and releases a `pthread_mutex_t` on every update, which is measurably slower under heavy bundle load.
+- **Zone 2 performance on ARM / AArch64.** The C11 and C99-`__atomic` paths both use `memory_order_relaxed` / `__ATOMIC_RELAXED`, which compile to plain `LDR`/`STR` and `LDADD` instructions. The legacy `__sync` fallback wraps every operation in `DMB ISH` full barriers, an order of magnitude more expensive per op.
 
 The C99 fallback path exists for legacy flight toolchains (RAD750, LEON pre-GCC-4.7, older RTEMS/VxWorks) where C11 atomics are unavailable. It is not a recommended default for ground or Linux-class targets.
 
@@ -397,9 +421,10 @@ Validation harness: `tests/atomics/dotest` builds `tests/atomics/test_ipc_atomic
 ## Application Behavior
 
 Every process should return an exit code on termination.
-* On normal termination, the exit code should be 0.
-* On abnormal or error termination, the exit code should be a non-zero number in the range 1-255.
-    * In this case the code should be 1 unless specific codes are used to distinguish between different kinds of errors.
+
+- On normal termination, the exit code should be 0.
+- On abnormal or error termination, the exit code should be a non-zero number in the range 1-255.
+  - In this case the code should be 1 unless specific codes are used to distinguish between different kinds of errors.
 
 ## Function Design Guidelines
 
@@ -416,10 +441,11 @@ The `isignal` function should be used instead of `signal`; it ensures that recep
 The `iblock` function provides a simple, portable means of preventing reception of the indicated signal by the calling thread.
 
 Data objects larger than 1024 bytes should not be declared in stack space.  This is to
-  * Minimize complaints by Coverity, and
-  * Minimize the chance of overrunning allocated stack space when running on a VxWorks platform.
 
-__Static variables that must be made globally accessible should be declared within external functions, rather than declared as external variables.__  This is per the JPL C Coding Standard, but it also has the useful property of providing an easy way to track all access to a global static variable in `gdb`: you just set a breakpoint at the start of the function in which the variable is declared.
+- Minimize complaints by Coverity, and
+- Minimize the chance of overrunning allocated stack space when running on a VxWorks platform.
+
+**Static variables that must be made globally accessible should be declared within external functions, rather than declared as external variables.**  This is per the JPL C Coding Standard, but it also has the useful property of providing an easy way to track all access to a global static variable in `gdb`: you just set a breakpoint at the start of the function in which the variable is declared.
 
 ## Error Checking
 
@@ -445,9 +471,9 @@ When a CHK macro's condition evaluates to false, the following actions occur:
 
 The `CORE_FILE_NEEDED` parameter controls whether assertion failures cause immediate process termination:
 
-* **Default value is 1 (enabled)**: Assertion failures will cause immediate termination with a core dump, providing maximum debugging information
-* **To disable at compile time**: Use `-DCORE_FILE_NEEDED=0` when compiling
-* **To control at runtime**: Call `_coreFileNeeded(int *ctrl)` with a pointer to 0 (disable) or 1 (enable)
+- **Default value is 1 (enabled)**: Assertion failures will cause immediate termination with a core dump, providing maximum debugging information
+- **To disable at compile time**: Use `-DCORE_FILE_NEEDED=0` when compiling
+- **To control at runtime**: Call `_coreFileNeeded(int *ctrl)` with a pointer to 0 (disable) or 1 (enable)
 
 ```c
 /* Disable fail-fast mode at runtime */
@@ -462,10 +488,11 @@ oK(_coreFileNeeded(&on));
 **Stack Trace Support**
 
 The `printStackTrace()` function prints a symbolic stack trace when assertions fail. This is supported on:
-* **Linux**: Requires `HAVE_EXECINFO_H` to be defined and linking with `-rdynamic`
-* **Solaris**: Uses `printstack()` from `<ucontext.h>`
-* **FreeBSD**: Uses `backtrace()` from `<execinfo.h>`
-* **macOS**: Uses `backtrace()` from `<execinfo.h>`
+
+- **Linux**: Requires `HAVE_EXECINFO_H` to be defined and linking with `-rdynamic`
+- **Solaris**: Uses `printstack()` from `<ucontext.h>`
+- **FreeBSD**: Uses `backtrace()` from `<execinfo.h>`
+- **macOS**: Uses `backtrace()` from `<execinfo.h>`
 
 On other platforms, a message indicating stack trace unavailability will be logged instead.
 
@@ -490,8 +517,9 @@ In the absence of any error, the function returns a value that indicates nominal
 However, database management functions and the SDR hash table management functions deviate from this rule: most return 0 to indicate nominal completion but functional failure (e.g., duplicate key or object not found) and return 1 to indicate functional success.
 
 Whenever returning a value that indicates an error:
-* If the failure is due to the failure of a system call or some other non-ION function, assu=me that errno has already been set by the function at the lowest layer of the call stack; use `putSysErrmsg` (or `postSysErrmsg` if in a hurry) as described below.
-* Otherwise – i.e., the failure is due to a condition that was detected within ION –use `putErrmsg` (or `postErrmg` if pressed for time) as described below; this will aid in tracing the failure through the function stack in which the failure was detected.
+
+- If the failure is due to the failure of a system call or some other non-ION function, assu=me that errno has already been set by the function at the lowest layer of the call stack; use `putSysErrmsg` (or `postSysErrmsg` if in a hurry) as described below.
+- Otherwise – i.e., the failure is due to a condition that was detected within ION –use `putErrmsg` (or `postErrmg` if pressed for time) as described below; this will aid in tracing the failure through the function stack in which the failure was detected.
 
 When a failure in a called function is reported to “driver” code in an application program, before continuing or exiting use `writeErrmsgMemos()` to empty the message pool and print a simple stack trace identifying the failure.
 
@@ -501,10 +529,10 @@ Calling code may choose to ignore the error indication returned by a function (e
 
 To write a simple status message, use `writeMemo`.  To write a status message and annotate that message with some other context-dependent string, use `writeMemoNote`.  (The `itoa` and `utoa` functions may be used to express signed and unsigned integer values, respectively, as strings for this purpose.)  Note that adhering to ION’s conventions for tagging status messages will simplify any automated status message processing that the messages might be delivered to, i.e., the first four characters of the status message should be as follows:
 
-* [i] – informational
-* [?] – warning
-* [s] – reserved for bundle status reports
-* [x] – reserved for communication statistics
+- [i] – informational
+- [?] – warning
+- [s] – reserved for bundle status reports
+- [x] – reserved for communication statistics
 
 To write a simple diagnostic message, use `putErrmsg`; the source file name and line number will automatically be inserted into the message text, and a context-dependent string may be provided.  (Again the `itoa` and `utoa` functions may be helpful here.)  The diagnostic message should normally begin with a capital letter and end with a period.
 
@@ -517,19 +545,25 @@ This page contains guidelines for programming in the C language.
 ### Naming Conventions
 
 Names of global variables, local variables, structure fields, and function arguments are in mixed upper and lower case, without embedded underscores, and beginning with a lowercase letter.
+
 ```c
-int	numItems;
+int numItems;
 ```
+
 Private function names are in mixed upper and lower case, without embedded underscores, and beginning with a lowercase letter.
 
 ```c
-void	computeSomething(int firstArg, int secondArg);
+void computeSomething(int firstArg, int secondArg);
 ```
+
 Public function names are in lower case with tokens separated by underscores.  The first token of each public function name is the name of the package whose “include” directory contains the .h file in which the function prototype is defined.
+
 ```c
-	extern int	ltp_open(unsigned long clientId);
+ extern int ltp_open(unsigned long clientId);
 ```
+
 Macro names are written in upper case with tokens separated by underscores.
+
 ```c
 #define SYMBOLIC_CONSTANT 5
 ```
@@ -537,11 +571,12 @@ Macro names are written in upper case with tokens separated by underscores.
 Unions are not used.
 
 Typedef names are in mixed upper and lower case, with the first token capitalized.  Type names are never the same as the structure or enum tags for the structures and enums that they name.
+
 ```c
 typedef struct gloplist_str
 {
-int	thing1;
-int	thing2;
+int thing1;
+int thing2;
 } GlopList;
 ```
 
@@ -564,29 +599,29 @@ Every closing brace always appears in the same column as the corresponding openi
 Every closing brace is always followed by a single blank line, except when it is immediately followed either by another closing brace (which will be indented one less tab stop) or by an else (which will be indented by the same number of tab stops as the closing brace and, therefore, the corresponding if).
 
 ```c
-static void 	computeSomething(int numItems, Item *items)
+static void  computeSomething(int numItems, Item *items)
 {
-	unsigned int	x;
-	int		i;
+ unsigned int x;
+ int  i;
 
-	while (x > 0)
-	{
-		x--;
-	}
+ while (x > 0)
+ {
+  x--;
+ }
 
-	for (i = 0; i < numItems; i++)
-	{
-		x += items[i].field1;
-	}
+ for (i = 0; i < numItems; i++)
+ {
+  x += items[i].field1;
+ }
 
-	if (numItems == 0)
-	{
-		doThis();
-	}
-	else
-	{
-		doThat();
-	}
+ if (numItems == 0)
+ {
+  doThis();
+ }
+ else
+ {
+  doThat();
+ }
 }
 ```
 
@@ -635,9 +670,10 @@ break;
 Comments are so rare and valuable that we hesitate to risk discouraging them by overly constraining their format.  In general, comments should be inserted in such a way as to be as easy as possible to read in relevant context.  The multi-line comment formatting performed automatically by vim is particularly acceptable.
 
 ```c
-/*	Here is the beginning of an extremely long comment, so long
- * 	that it has to wrap over two lines of source code text.	*/
+/* Here is the beginning of an extremely long comment, so long
+ *  that it has to wrap over two lines of source code text. */
 ```
+
 ### Miscellaneous Rules
 
 Use – and write – thread-safe library functions where possible.  E.g., normally prefer `strtok_r()` to `strtok()`.
@@ -645,19 +681,20 @@ Use – and write – thread-safe library functions where possible.  E.g., norma
 Avoid writing non-portable code, e.g., prefer POSIX library calls to OS-specific library calls.
 
 Template for ".c" files
+
 ```c
  1 2 3 4 5 6 7
 123456789012345678901234567890123456789012345678901234567890123456789012
 /*
-	platform_sm.c:	platform-dependent implementation of common
-			functions, to simplify porting.
+ platform_sm.c: platform-dependent implementation of common
+   functions, to simplify porting.
 
-	Author:  Alan Schlutsmeyer, JPL
+ Author:  Alan Schlutsmeyer, JPL
 
-	Copyright 1997, California Institute of Technology.
-	ALL RIGHTS RESERVED.  U.S. Government sponsorship
-	acknowledged.
-									                                */
+ Copyright 1997, California Institute of Technology.
+ ALL RIGHTS RESERVED.  U.S. Government sponsorship
+ acknowledged.
+                                         */
 ```
 
 Each file should have a header comment like the one shown above.
@@ -672,6 +709,7 @@ Each file should have a header comment like the one shown above.
 ```
 
 .h files are included just after the header.  System-provided headers should be specified with angle brackets; ION-provided headers should be specified with double-quotes.
+
 ```c
 #define SYMBOLIC_CONSTANT 5
 ```
@@ -681,12 +719,13 @@ Next, symbolic constants and macros (if any) are defined. They normally go first
 ```c
 typedef struct fb_str
 {
-	int	field1;
-	in	field2;
+ int field1;
+ in field2;
 } Foobar;
 ```
 
 Data types are defined next because they might be used by static variables.
+
 ```c
 static int numFoobars = 0;  /* Number of foobars in the program. */
   .
@@ -698,42 +737,49 @@ Global functions used only within the program should be declared static.
 Public function prototypes should be in a header file; the definitions of those functions, with their headers, are included in the corresponding .c file.  Low-level functions, such as commonly-used utility functions, appear first in the .c file.  They are followed by the functions that call those functions directly, followed by higher-level-functions that call those functions, and so on.
 
 Template for ".h" Files
+
 ```c
  1 2 3 4 5 6 7
 123456789012345678901234567890123456789012345678901234567890123456789012
 /*
-	platform_sm.h:	portable definitions of types and functions.
+ platform_sm.h: portable definitions of types and functions.
 
-	Author:  Alan Schlutsmeyer, JPL
+ Author:  Alan Schlutsmeyer, JPL
 
-	Copyright 1997, California Institute of Technology.
-	ALL RIGHTS RESERVED.  U.S. Government sponsorship
-	acknowledged.
-								                                	*/
+ Copyright 1997, California Institute of Technology.
+ ALL RIGHTS RESERVED.  U.S. Government sponsorship
+ acknowledged.
+                                         */
 ```
 
 Each header file begins with a standard header comment like the one shown above.
+
 ```c
 #ifndef _PLATFORM_SM_H_
 #define _PLATFORM_SM_H_
 ```
 
 Each header file must have an "include" guard.
+
 ```c
 #include "platform.h"
   .
   .
   .
 ```
+
 Next come any includes required by the declarations in the header.
+
 ```c
 #ifdef __cplusplus
 extern "C" {
 #endif
 ```
+
 Next comes the beginning of the C++ guard. This allows the header to be included in a C++ program without error.
 
 Next come declarations of various sorts, followed by the ends of the C++ and “include” guards.
+
 ```c
 #ifdef __cplusplus
 }
@@ -757,15 +803,15 @@ Given that `sdr_end_xn()` is designed to handle transaction with SDR modificatio
 
 The choice between `sdr_end_xn()` and `sdr_exit_xn()` depends on the intent of the transaction and the outcome of a transaction:
 
-* Situation A: If a fault occurred that requires reverting SDR modifications (including those made by all nested layers) leading up to the fault event, then one should call sdr_cancel_xn to trigger SDR reversibility, if configured, and allow ion to reload the volatile protocol state to restore the SDR heap and working memory state.
+- Situation A: If a fault occurred that requires reverting SDR modifications (including those made by all nested layers) leading up to the fault event, then one should call sdr_cancel_xn to trigger SDR reversibility, if configured, and allow ion to reload the volatile protocol state to restore the SDR heap and working memory state.
 
-* Situation B: If a fault occurred but the implementation has the proper procedure and logic to handle handling it such as:
+- Situation B: If a fault occurred but the implementation has the proper procedure and logic to handle handling it such as:
 
-  * The fault did not result in any SDR heap changes, or
-  * The modifications that occurred before the fault and as part of fault handling afterward do not require reversal. For example, if the SDR modifications made before the fault may still be valid despite the occurrence of the fault, and the SDR modifications made after the fault, intentionally as part of fault handling procedure such as updating bundle error counters are successful, __AND__
-  * In either case, the integrity of the protocol state is not affected or can be resotred. For example, an invalid bundle was detected and can be safety removed from ION by making appropriate updates to the heap and the working memory. Then one can still call `sdr_end_xn` since the failure was handled nominally.
+  - The fault did not result in any SDR heap changes, or
+  - The modifications that occurred before the fault and as part of fault handling afterward do not require reversal. For example, if the SDR modifications made before the fault may still be valid despite the occurrence of the fault, and the SDR modifications made after the fault, intentionally as part of fault handling procedure such as updating bundle error counters are successful, **AND**
+  - In either case, the integrity of the protocol state is not affected or can be resotred. For example, an invalid bundle was detected and can be safety removed from ION by making appropriate updates to the heap and the working memory. Then one can still call `sdr_end_xn` since the failure was handled nominally.
 
-* Situation C: All transactions and modifications are nominal. In this case, call `sdr_end_xn.`
+- Situation C: All transactions and modifications are nominal. In this case, call `sdr_end_xn.`
 
 The implementation must be able to discern between situations A and B. When one cannot make certain that the SDR will be in operation state due to a complex transaction failure case, or due to system errors, one one should default to A and issue transaction cancellation and rely on reversibility in order to avoid leaving the SDR in an inconsistent state.
 
@@ -865,6 +911,7 @@ The TCPCL adapter (`tcpcli.c`) uses a deliberate "unlock before destroy" pattern
 Functions like `memcpy`, `strncmp`, and `malloc` are flagged when the size parameter could theoretically be negative (when stored as a signed type that gets implicitly converted to `size_t`).
 
 **Common patterns:**
+
 - **Serialization lengths from internal helpers** (e.g., `bpsec_rfc9173utl_outBlkHdrSerialize`): These return -1 on error, but callers only invoke them after verifying preconditions (block exists, bundle is valid). The error path is unreachable in practice.
 - **Pointer subtraction for EID parsing** (e.g., `traceEid_dot - traceEid_num`): IPN EIDs are validated by the BP layer (`parseEidString`) before reaching these functions. The format `ipn:X.Y` guarantees the colon precedes the dot.
 
@@ -885,6 +932,7 @@ Similar to Coercion Alters Value, but flagged for explicit casts rather than imp
 CodeSonar flags calls to functions like `fseek()`, `sdr_list_data()`, `psp()`, and `lyst_first()` where the return value is either assigned but not compared to an error sentinel, or entirely discarded.
 
 **Common patterns in ION:**
+
 - **SDR/PSM accessors** (`sdr_list_data`, `psp`, `sm_list_data`): These do not have a traditional error return. NULL indicates fatal PSM corruption handled at a higher level, not a per-call recoverable condition.
 - **File I/O in utilities** (`fseek`, `fread` in `metadata.c`): These operate on files just created by the same process. I/O errors indicate hardware failure, not a programmatic condition.
 - **Best-effort operations** (CGR routing, multicast forwarding): Individual sub-operations may fail without invalidating the overall operation. The function proceeds with partial results.
@@ -917,6 +965,7 @@ CodeSonar sees only one branch per call and flags the assignment as useless. In 
 CodeSonar determines that certain code paths are unreachable based on prior condition checks or compile-time constants.
 
 **Common patterns:**
+
 - **AMP (Application Management Protocol) generated accessors** (`adm_bpsec_impl.c`): Template-generated functions with uniform error handling where specific error branches are unreachable for specific accessor instances but exist for template uniformity.
 - **Exhaustive switch/if-else with default case**: Functions that handle all current enum values but include a default/else clause for future values or configuration portability.
 - **Build-configuration-dependent paths**: Code guarded by constants (protocol versions, feature flags) that eliminate paths in a specific build but are valid in others.
