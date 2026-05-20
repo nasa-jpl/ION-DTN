@@ -675,12 +675,24 @@ function cleanup_a_test () {
         return
     fi
 
-    if [ ! -x "$TEST/cleanup" ]; then
-        return
+    pushd "$TEST" > /dev/null
+
+    # Test's own cleanup (if present) — handles named config artifacts
+    # that only the test knows about.
+    if [ -x "./cleanup" ]; then
+        ./cleanup
     fi
 
-    pushd "$TEST" > /dev/null
-    ./cleanup
+    # Generic runtime artifacts (bpacq/ltpacq/*.sdr/bsspSegment/xnref/
+    # *.sdrlog/core), plus the /tmp sweep for tests that use pathName /tmp.
+    cleanup_staging_files "."
+
+    # Diagnostic logs — `runtests cleanup` is an explicit reset request,
+    # so wipe ion.log and ion-system.log too (the in-run sweeps deliberately
+    # preserve them).
+    find . -maxdepth 3 \( -name "ion.log" -o -name "ion-system.log" \) \
+        -type f -delete 2>/dev/null
+
     popd > /dev/null
 }
 
@@ -702,9 +714,18 @@ function run_tests () {
 
 # cleanup all tests listed in $@
 function cleanup_tests () {
+    # Kill any leftover ION daemons ONCE up-front. Running it per-test
+    # would be wasteful (most tests share IPC namespace via wmKey), but
+    # we need at least one pass so the per-test artifact sweeps aren't
+    # racing a live process that still holds those files open.
+    killm f 2>/dev/null
+
     for TEST in "$@"; do
         cleanup_a_test "$TEST"
     done
+
+    # Wipe runtests' own bookkeeping files — this is a full reset.
+    rm -f "$FAILEDFILE" "$PROGRESSFILE" 2>/dev/null
 }
 
 # Reset all test counters for stress test iterations

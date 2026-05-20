@@ -199,6 +199,21 @@ By default, `runtests` runs post-test cleanup after passing tests to prevent dis
 
 When `PRESERVE_TEST_LOGS` is set to `1` (`export PRESERVE_TEST_LOGS=1`), `runtests` skips post-test cleanup after passing tests, preserving all logs for inspection. This is useful for local debugging but should not be used in CI environments with limited disk space.
 
+#### Standalone cleanup mode (`./runtests cleanup`)
+
+`./runtests cleanup [tests...]` runs cleanup without executing any test. It performs a full reset, intended to put the test tree back to a pristine state after an interrupted or hung campaign:
+
+1. **`killm f` once upfront** — reaps any orphan ION daemons before per-test sweeps, so the artifact removal isn't racing live processes that hold the files open.
+2. For each test in turn:
+   - The test's own `./cleanup` script (if present) — handles named config artifacts that only the test knows about.
+   - `cleanup_staging_files` — generic runtime cruft (`bpacq*`, `ltpacq*`, `*.sdr`, `bsspSegment*`, `xnref*`, `*.sdrlog`, `core`, `core.*`) under the test directory and `/tmp`.
+   - `ion.log` and `ion-system.log` removal (depth 3, so multi-node `nodeN/ion.log` files are caught).
+3. Finally, removes `tests/retest` and `tests/progress` so the campaign bookkeeping is also reset.
+
+Unlike the per-test cleanup that happens during a normal run, standalone cleanup mode does **not** preserve `ion.log` or `ion-system.log` — the assumption is that if you asked for cleanup, you want a real reset. Investigate failures before invoking it.
+
+If no test names are passed, cleanup runs against every test that `runtests` would otherwise discover.
+
 #### Environment isolation
 
 `runtests` executes `./dotest` and `./cleanup` as separate subprocesses. Environment variables exported inside `dotest` (such as `ION_NODE_LIST_DIR`) do **not** propagate to the cleanup subprocess. Each script is responsible for setting the environment variables it needs.
