@@ -11,6 +11,9 @@ import socket
 import sys
 import time
 
+# Get SO_REUSEPORT constant if available
+SO_REUSEPORT = getattr(socket, "SO_REUSEPORT", None)
+
 try:
     from bespokebpv7.block_enum import CRCType  # type: ignore[import-untyped]
     from bespokebpv7.bpv7 import BPv7  # type: ignore[import-untyped]
@@ -103,7 +106,17 @@ def run_test(scenario, cancel_type, dest_port, ack_port, engine_id, session_id) 
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+    # Set SO_REUSEPORT if available (required for Solaris/BSD to allow
+    # multiple sockets to receive on the same port)
+    if SO_REUSEPORT is not None:
+        try:
+            sock.setsockopt(socket.SOL_SOCKET, SO_REUSEPORT, 1)
+        except OSError:
+            pass  # Not critical if it fails
+
     sock.bind(("127.0.0.1", ack_port))
+
     sock.settimeout(1.0)
 
     send_cancel(cancel_type, dest_port, engine_id, session_id)
@@ -123,6 +136,9 @@ def run_test(scenario, cancel_type, dest_port, ack_port, engine_id, session_id) 
                 sock.close()
                 return 0
         except TimeoutError:
+            continue
+        except OSError as e:
+            print(f"Received this error: {e}")
             continue
 
     print(f"FAILURE: No {cancel_type} acknowledgment found on port {ack_port}")

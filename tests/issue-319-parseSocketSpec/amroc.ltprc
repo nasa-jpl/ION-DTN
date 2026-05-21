@@ -1,7 +1,7 @@
 1 66
 # Note: we intentionally misdirect LTP loopback output to trigger timeout
 # and retransmission.
-a span 9 33 33 508 1000 1 'udplso localhost:9118'
-a span 5 33 33 508 1000 1 'udplso localhost:5113'
+a span 9 33 33 508 1000 1 'udplso 127.0.0.1:9118'
+a span 5 33 33 508 1000 1 'udplso 127.0.0.1:5113'
 w 1
-s udplsi localhost:9113
+s udplsi 127.0.0.1:9113

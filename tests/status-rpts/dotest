@@ -35,37 +35,25 @@ echo "########################################"
 
 # Find the latest available Python 3 version >= 3.10
 PYTHON_CMD="python3"
-MAX_MINOR=-1
 
-check_python_version() {
-    local py_exec=$1
-    if command -v "$py_exec" &> /dev/null; then
-        local py_maj=$("$py_exec" -c 'import sys; print(sys.version_info[0])' 2>/dev/null)
-        local py_min=$("$py_exec" -c 'import sys; print(sys.version_info[1])' 2>/dev/null)
-        if [ "$py_maj" = "3" ] && [ "$py_min" -ge 10 ]; then
-            if [ "$py_min" -gt "$MAX_MINOR" ]; then
-                MAX_MINOR=$py_min
-                PYTHON_CMD="$py_exec"
-            fi
-        fi
+if command -v "$PYTHON_CMD" &> /dev/null; then
+    py_maj=$("$PYTHON_CMD" -c 'import sys; print(sys.version_info[0])' 2>/dev/null)
+    py_min=$("$PYTHON_CMD" -c 'import sys; print(sys.version_info[1])' 2>/dev/null)
+
+    if [ "$py_maj" = "3" ] && [ "$py_min" -ge 10 ]; then
+        PYTHON_VERSION="3.$py_min"
+    else
+        PYTHON_CMD=""
     fi
-}
-
-# Check standard $PYTHON_CMD first
-check_python_version $PYTHON_CMD
-
-i=20
-while [ $i -ge 10 ]; do
-    check_python_version "$PYTHON_CMD.$i"
-    i=$((i - 1))
-done
+else
+    PYTHON_CMD=""
+fi
 
 if [ -z "$PYTHON_CMD" ]; then
     echo "SKIP: Python 3.10 or higher is required but not found."
     exit 2
 fi
 
-PYTHON_VERSION="3.$MAX_MINOR"
 echo "Using Python $PYTHON_VERSION (via $PYTHON_CMD)"
 echo
 
