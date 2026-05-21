@@ -370,9 +370,13 @@ jobs:
         if: ${{ always() }}
         run: |
           mkdir -p ion-logs-collection
-          find ./tests -name "ion.log" -type f | while IFS= read -r logfile; do
-            relpath=$(echo "$logfile" | sed 's|^\./tests/||' | sed 's|/ion\.log$||')
-            unique_name=$(echo "$relpath" | tr '/' '-')
+          # Search from repo root so demos/ and tutorials/ tests (run via
+          # ../demos/foo from tests/) are included, not just tests/foo.
+          find . -path ./.git -prune -o -path ./external -prune \
+                 -o -path ./ion-logs-collection -prune \
+                 -o -name "ion.log" -type f -print | while IFS= read -r logfile; do
+            relpath="${logfile#./}"
+            unique_name=$(echo "${relpath%/ion.log}" | tr '/' '-')
             cp "$logfile" "ion-logs-collection/${unique_name}-ion.log"
           done
 
@@ -388,9 +392,13 @@ jobs:
         if: ${{ always() }}
         run: |
           mkdir -p diagnostics-collection
-          find ./tests -name "ion-system.log" -type f | while IFS= read -r logfile; do
-            relpath=$(echo "$logfile" | sed 's|^\./tests/||' | sed 's|/ion-system\.log$||')
-            unique_name=$(echo "$relpath" | tr '/' '-')
+          # Search from repo root so demos/ and tutorials/ tests (run via
+          # ../demos/foo from tests/) are included, not just tests/foo.
+          find . -path ./.git -prune -o -path ./external -prune \
+                 -o -path ./diagnostics-collection -prune \
+                 -o -name "ion-system.log" -type f -print | while IFS= read -r logfile; do
+            relpath="${logfile#./}"
+            unique_name=$(echo "${relpath%/ion-system.log}" | tr '/' '-')
             cp "$logfile" "diagnostics-collection/${unique_name}-ion-system.log"
           done
 
@@ -680,10 +688,14 @@ jobs:
               cp ./tests/progress "arm64-logs/tier-${TIER}-progress.txt"
             fi
 
-            # Collect any ion-system.log files from timed-out or failed tests
-            find ./tests -name "ion-system.log" -type f | while IFS= read -r diag; do
-              relpath=$(echo "$diag" | sed 's|^\./tests/||' | sed 's|/ion-system\.log$||')
-              unique_name=$(echo "$relpath" | tr '/' '-')
+            # Collect any ion-system.log files from timed-out or failed tests.
+            # Search from repo root so demos/ and tutorials/ tests (run via
+            # ../demos/foo from tests/) are included, not just tests/foo.
+            find . -path ./.git -prune -o -path ./external -prune \
+                   -o -path ./arm64-logs -prune -o -path ./arm64-status -prune \
+                   -o -name "ion-system.log" -type f -print | while IFS= read -r diag; do
+              relpath="${diag#./}"
+              unique_name=$(echo "${relpath%/ion-system.log}" | tr '/' '-')
               cp "$diag" "arm64-logs/tier-${TIER}-${unique_name}-ion-system.log"
             done
 

@@ -362,9 +362,13 @@ jobs:
         run: |
           echo "Collecting ion.log files with unique names..."
           mkdir -p ion-logs-collection
-          find ./tests -name "ion.log" -type f | while IFS= read -r logfile; do
-            relpath=$(echo "$logfile" | sed 's|^\./tests/||' | sed 's|/ion\.log$||')
-            unique_name=$(echo "$relpath" | tr '/' '-')
+          # Search from repo root so demos/ and tutorials/ tests (run via
+          # ../demos/foo from tests/) are included, not just tests/foo.
+          find . -path ./.git -prune -o -path ./external -prune \
+                 -o -path ./ion-logs-collection -prune \
+                 -o -name "ion.log" -type f -print | while IFS= read -r logfile; do
+            relpath="${logfile#./}"
+            unique_name=$(echo "${relpath%/ion.log}" | tr '/' '-')
             cp "$logfile" "ion-logs-collection/${unique_name}-ion.log"
             echo "Collected: $logfile -> ion-logs-collection/${unique_name}-ion.log"
           done
@@ -386,9 +390,13 @@ jobs:
         if: ${{ always() }}
         run: |
           mkdir -p diagnostics-collection
-          find ./tests -name "ion-system.log" -type f | while IFS= read -r logfile; do
-            relpath=$(echo "$logfile" | sed 's|^\./tests/||' | sed 's|/ion-system\.log$||')
-            unique_name=$(echo "$relpath" | tr '/' '-')
+          # Search from repo root so demos/ and tutorials/ tests (run via
+          # ../demos/foo from tests/) are included, not just tests/foo.
+          find . -path ./.git -prune -o -path ./external -prune \
+                 -o -path ./diagnostics-collection -prune \
+                 -o -name "ion-system.log" -type f -print | while IFS= read -r logfile; do
+            relpath="${logfile#./}"
+            unique_name=$(echo "${relpath%/ion-system.log}" | tr '/' '-')
             cp "$logfile" "diagnostics-collection/${unique_name}-ion-system.log"
           done
 
