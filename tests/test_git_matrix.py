@@ -10,7 +10,6 @@ Tests validate the following functionality:
 """
 
 import io
-import json
 import sys
 import unittest
 from pathlib import Path
