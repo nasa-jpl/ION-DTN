@@ -22,18 +22,20 @@ echo ""
 echo "Starting 2-node test network..."
 (cd node1; ./ionstart) >/dev/null 2>&1 &
 (cd node2; ./ionstart) >/dev/null 2>&1 &
-sleep 5
 
-# Verify nodes started
+# Poll each subsystem (ION+LTP+BP) for up to 30s instead of a fixed sleep;
+# the previous 5s sleep raced node startup on slower ARC runners.
 echo "Verifying nodes..."
-if ! (cd node1; bpadmin <<< "i") >/dev/null 2>&1; then
+(cd node1; ../../../system_up -i "p 30" -l "p 30" -b "p 30") >/dev/null 2>&1
+if [ $? -ne 3 ]; then
     echo "FAIL: Node 1 failed to start"
     RETVAL=1
     ./cleanup
     exit $RETVAL
 fi
 
-if ! (cd node2; bpadmin <<< "i") >/dev/null 2>&1; then
+(cd node2; ../../../system_up -i "p 30" -l "p 30" -b "p 30") >/dev/null 2>&1
+if [ $? -ne 3 ]; then
     echo "FAIL: Node 2 failed to start"
     RETVAL=1
     ./cleanup
