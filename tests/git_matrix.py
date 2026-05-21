@@ -16,8 +16,6 @@ import glob
 import heapq
 import json
 import os
-import shutil
-import subprocess
 import sys
 from pathlib import Path
 from typing import TypedDict
@@ -66,66 +64,36 @@ def find_tests() -> list[Path]:
     return test_dirs
 
 
-def _detect_bpsec_mode() -> str:
-    """Detect BPSec implementation (mirrors runtests logic).
-
-    Returns:
-        "bsl" or "native_bpsec"
-
-    """
-    try:
-        result = subprocess.run(
-            ["pkg-config", "--cflags", "ion"],
-            capture_output=True, text=True, timeout=5,
-        )
-        if "USING_BSL" in result.stdout:
-            return "bsl"
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
-
-    if not shutil.which("bpsecadmin"):
-        return "bsl"
-
-    return "native_bpsec"
-
-
-_BPSEC_MODE: str | None = None
-
-
-def _get_bpsec_mode() -> str:
-    global _BPSEC_MODE
-    if _BPSEC_MODE is None:
-        _BPSEC_MODE = _detect_bpsec_mode()
-    return _BPSEC_MODE
-
-
-def is_excluded(test_dir: Path) -> bool:
+def is_excluded(
+    test_dir: Path, solaris_run: bool = False, mode: str = "native_bpsec"
+) -> bool:
     """Check whether a test directory has any exclusion markers.
 
     Returns:
         True if the test should be skipped.
-
     """
-    for marker in (
+    exclude_set = [
         ".exclude_bpv7",
         ".exclude_expert",
         ".exclude_linux",
         ".exclude_arc",
         ".exclude_all",
-    ):
-        if (test_dir / marker).exists():
-            return True
+    ]
 
-    mode = _get_bpsec_mode()
-    if mode == "bsl" and (test_dir / ".exclude_bsl").exists():
-        return True
-    if mode == "native_bpsec" and (test_dir / ".exclude_native_bpsec").exists():
-        return True
+    if solaris_run:
+        exclude_set.append(".exclude_solaris")
 
-    return False
+    # Add the specific bpsec marker to the list based on the mode
+    if mode == "bsl":
+        exclude_set.append(".exclude_bsl")
+    elif mode == "native_bpsec":
+        exclude_set.append(".exclude_native_bpsec")
+
+    # Check if ANY of the markers in our list exist in the directory
+    return any((test_dir / marker).exists() for marker in exclude_set)
 
 
-def list_tests() -> list[Path]:
+def list_tests(solaris_run: bool = False, bpsec: str = "native_bpsec") -> list[Path]:
     """Generate list of tests.
 
     Returns:
@@ -146,24 +114,33 @@ def list_tests() -> list[Path]:
         if not os.access(dotest_path, os.X_OK):
             continue
 
-        if is_excluded(test_dir):
+        if is_excluded(test_dir, solaris_run, bpsec):
             continue
 
-        # runtests wrapper is run from within the tests directory so need paths relative to that
-        # can handle up to 2 levels of sub-folders
+        # Convert absolute test paths to relative paths for runtests wrapper.
+        # The runtests script executes from within the tests/ directory, so all paths
+        # must be relative to that location. Handle different nesting levels:
+        #
+        # Path structure analysis uses parent count to determine depth:
+        # - Parent count 2: tests/foo (top-level test)
+        # - Parent count 3: tests/subdir/foo (one level deep)
+        # - Parent count 4: tests/subdir/subdir2/foo (two levels deep)
+
         if "demos" in str(test_dir):
+            # Demo tests are siblings of tests/, so need ../ to go up from tests/
             test_path = ".." / test_dir
-        # means there is one sub-test folder
         elif len(test_dir.parents) == 3:
+            # One subfolder deep: tests/subdir/testname -> subdir/testname
             test_path = Path(test_dir.parent.name) / Path(test_dir.name)
-        # means there is sub-folder within the sub-folder
         elif len(test_dir.parents) == 4:
+            # Two subfolders deep: tests/sub1/sub2/testname -> sub1/sub2/testname
             test_path = (
                 Path(test_dir.parent.parent.name)
                 / Path(test_dir.parent.name)
                 / Path(test_dir.name)
             )
         else:
+            # Top-level test: tests/testname -> testname
             test_path = Path(test_dir.name)
 
         valid_tests.append(test_path)
@@ -171,13 +148,23 @@ def list_tests() -> list[Path]:
     return valid_tests
 
 
-def main(runners: int = 7, subset: list[Path] | None = None) -> None:
+def main(
+    runners: int = 7,
+    subset: list[Path] | None = None,
+    solaris_run: bool = False,
+    bpsec: str = "native_bpsec",
+) -> None:
     """Check list of existing tests and return JSON array for batching to GitHub
-    Actions Runner Set."""
+    Actions Runner Set.
+
+    Args:
+        runners: Number of test runners to distribute tests across
+        subset: Optional list of specific tests to run, if None run all tests
+    """
     if subset:
         valid_tests = subset
     else:
-        valid_tests = list_tests()
+        valid_tests = list_tests(solaris_run, bpsec)
     if not valid_tests:
         sys.exit(1)
 
@@ -187,11 +174,13 @@ def main(runners: int = 7, subset: list[Path] | None = None) -> None:
 
 
 def get_folder_durations(folder_list: list[Path]) -> list[Task]:
-    """Reads the .DURATION file in each folder.
+    """Reads the .DURATION file in each folder to get test execution times.
+
+    Args:
+        folder_list: List of test folder paths to read duration files from
 
     Returns:
-        list of Task dictionaries.
-
+        List of Task dictionaries containing path and duration for each test
     """
     tasks: list[Task] = []
 
@@ -252,6 +241,9 @@ def balance_load(tasks: list[Task], num_runners: int) -> list[Runner]:
 def print_schedule(runners: list[Runner]) -> None:
     """Prints a JSON array where each element is a space-separated string
     of folder paths for a specific runner.
+
+    Args:
+        runners: List of runner dictionaries containing test assignments
     """
     output_groups: list[str] = []
 
@@ -337,12 +329,30 @@ if __name__ == "__main__":
         nargs="+",
         help="List of tests to distribute. If wildcarding, pass argument in dobule quotes.",
     )
+    parser.add_argument(
+        "--solaris",
+        "-s",
+        action="store_true",
+        help="If passed, exclude any .exclude_solaris tests",
+    )
+
+    parser.add_argument(
+        "--bsl",
+        "-b",
+        action="store_true",
+        help="If passed, exclude native BPSec test, using BSL.",
+    )
 
     args = parser.parse_args()
 
     test_subset = []
     if args.tests:
         test_subset = resolve_test_list(args.tests)
+
+    if args.bsl:
+        current_bpsec_mode = "bsl"
+    else:
+        current_bpsec_mode = "native_bpsec"
 
     # Don't allow 0 runners and we cannot exceed 7 runners
     if args.runners < 1:
@@ -352,4 +362,4 @@ if __name__ == "__main__":
     else:
         RUNNER_COUNT = args.runners
 
-    main(RUNNER_COUNT, test_subset)
+    main(RUNNER_COUNT, test_subset, args.solaris, current_bpsec_mode)
