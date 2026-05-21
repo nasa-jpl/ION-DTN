@@ -1,0 +1,50 @@
+---
+- name: Distribute artifacts and collect results
+  hosts: all
+  gather_facts: false
+  become: false
+  # Variables RUN_ID, JOB_INDEX, and OPERATION are passed as extra vars via -e
+  tasks:
+    - name: Push artifacts - Create artifact directory
+      ansible.builtin.file:
+        path: "/home/github-runner/ci-artifacts/{{ RUN_ID }}"
+        state: directory
+        mode: '0755'
+      when: OPERATION == 'push'
+
+    - name: Push artifacts - Copy artifacts to VM
+      ansible.posix.synchronize:
+        src: "../../artifacts/"
+        dest: "/home/github-runner/ci-artifacts/{{ RUN_ID }}/"
+        archive: yes
+      when: OPERATION == 'push'
+      register: push_result
+
+    - name: Push artifacts - Report status
+      ansible.builtin.debug:
+        msg: "Artifacts copied successfully to {{ inventory_hostname }}:/home/github-runner/ci-artifacts/{{ RUN_ID }}/"
+      when: OPERATION == 'push'
+
+    - name: Pull results - Create local results directory
+      ansible.builtin.file:
+        path: "./test-results"
+        state: directory
+        mode: '0755'
+      delegate_to: localhost
+      run_once: true
+      when: OPERATION == 'pull'
+
+    - name: Pull results - Collect test results from VM
+      ansible.posix.synchronize:
+        src: "/home/github-runner/ci-results/{{ RUN_ID }}-{{ JOB_INDEX }}/"
+        dest: "./test-results/"
+        mode: pull
+        archive: yes
+      when: OPERATION == 'pull'
+      register: pull_result
+      failed_when: false  # Don't fail if results don't exist
+
+    - name: Pull results - Report status
+      ansible.builtin.debug:
+        msg: "Results collected from {{ inventory_hostname }}:/home/github-runner/ci-results/{{ RUN_ID }}-{{ JOB_INDEX }}/"
+      when: OPERATION == 'pull'

@@ -1,0 +1,42 @@
+---
+- name: Destroy Solaris Zones and cleanup
+  hosts: all
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Halt and remove zones
+      community.general.solaris_zone:
+        name: "{{ zone_name_prefix }}-{{ run_id }}-{{ item }}"
+        state: absent
+      loop: "{{ job_indexes }}"
+      register: zone_removal_result
+      failed_when:
+        - zone_removal_result.failed == true
+        - >
+          'dataset is busy' in zone_removal_result.msg | default('') or
+          'device busy' in zone_removal_result.msg | default('') or
+          'cannot unmount' in zone_removal_result.msg | default('')
+
+    - name: Force ZFS cleanup if zone removal failed
+      community.general.zfs:
+        name: "{{ zfs_root_pool }}/{{ zone_name_prefix }}-{{ run_id }}-{{ item }}"
+        state: absent
+      loop: "{{ job_indexes }}"
+      failed_when: false
+
+    - name: Ensure job-specific results staging directories are cleaned
+      ansible.builtin.file:
+        path: "{{ zone_staging_dir }}/results-{{ item }}"
+        state: absent
+      loop: "{{ job_indexes }}"
+      failed_when: false
+
+    - name: Report cleanup status
+      ansible.builtin.debug:
+        msg: |
+          Zone cleanup requested and processed for index {{ item }}:
+          - Zone name: {{ zone_name_prefix }}-{{ run_id }}-{{ item }}
+          - ZFS dataset: {{ zfs_root_pool }}/{{ zone_name_prefix }}-{{ run_id }}-{{ item }}
+          - Results directory: {{ zone_staging_dir }}/results-{{ item }}
+      loop: "{{ job_indexes }}"

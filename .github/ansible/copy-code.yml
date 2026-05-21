@@ -1,0 +1,34 @@
+---
+- name: Copy source code to Solaris VM
+  hosts: all
+  gather_facts: false
+  become: false
+  vars:
+    github_workspace: "{{ lookup('env', 'GITHUB_WORKSPACE') }}"
+    vm_work_dir: "{{ lookup('env', 'VM_WORK_DIR') }}"
+  tasks:
+    - name: Ensure target directory exists and is clean
+      ansible.builtin.file:
+        path: "{{ vm_work_dir }}"
+        state: absent
+      failed_when: false
+
+    - name: Create target directory
+      ansible.builtin.file:
+        path: "{{ vm_work_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Synchronize source code to Solaris VM
+      ansible.posix.synchronize:
+        src: "{{ github_workspace }}/"
+        dest: "{{ vm_work_dir }}/ion-ios-dev/"
+        archive: true
+        compress: true
+        rsync_opts:
+          - "--exclude=arch-rtems"
+      register: sync_result
+
+    - name: Report synchronization status
+      ansible.builtin.debug:
+        msg: "Code synchronized successfully to {{ inventory_hostname }}:{{ vm_work_dir }}/ion-ios-dev/"

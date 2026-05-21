@@ -1,0 +1,120 @@
+---
+- name: Create multiple Solaris Zones in parallel across all infrastructure
+  hosts: all
+  gather_facts: false
+  become: true
+  serial: 0 # Process all hosts in parallel
+
+  vars:
+    # These must be provided by GitHub Actions workflow
+    # run_id: GitHub Actions run ID
+    # all_zones: Unified list of zone definitions
+    #   [{"job_index": 0, "vm_hostname": "dsoc3", "tests": "..."}, ...]
+    zone_name: "{{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}"
+    zone_path: "{{ zone_mountpoint_base }}/{{ zone_name }}"
+
+  tasks:
+    - name: Validate required variables
+      ansible.builtin.assert:
+        that:
+          - zone_clone_timeout is defined
+          - zone_clone_timeout | int > 0
+          - zone_boot_timeout is defined
+          - zone_boot_timeout | int > 0
+        fail_msg: "zone_clone_timeout and zone_boot_timeout must be defined and > 0"
+
+    - name: Parse and filter zones strictly for the current host
+      ansible.builtin.set_fact:
+        # Converts JSON string if needed, then filters where vm_hostname == inventory_hostname
+        zones_list: >-
+          {{
+            (all_zones if all_zones is not string else all_zones | from_json)
+            | selectattr('vm_hostname', 'equalto', inventory_hostname)
+            | list
+          }}
+
+    - name: Configure zones
+      community.general.solaris_zone:
+        name: "{{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}"
+        state: configured
+        path: >-
+          {{ zone_mountpoint_base }}/{{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}
+        config: "set autoboot=false; set ip-type=shared"
+      loop: "{{ zones_list }}"
+      loop_control:
+        label: "Zone {{ item.job_index }}"
+
+    - name: Generate Sysconfig Profiles for Zones from template
+      ansible.builtin.template:
+        src: sc_profile.xml.j2
+        dest: "{{ zone_mountpoint_base }}/profile-{{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}.xml"
+        mode: "0644"
+      loop: "{{ zones_list }}"
+      loop_control:
+        label: "Generating profile for zone {{ item.job_index }}"
+
+    - name: Clone zones from template with sysconfig profile (async)
+      ansible.builtin.command: >
+        zoneadm -z {{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}
+        clone -c {{ zone_mountpoint_base }}/profile-{{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}.xml {{ template_zone_name }}
+      loop: "{{ zones_list }}"
+      loop_control:
+        label: "Cloning zone {{ item.job_index }}"
+      register: zone_clone_jobs
+      changed_when: true
+      async: "{{ zone_clone_timeout }}"
+      poll: 0
+
+    - name: Wait for all clones to complete
+      ansible.builtin.async_status:
+        jid: "{{ item.ansible_job_id }}"
+      loop: "{{ zone_clone_jobs.results }}"
+      loop_control:
+        label: "Zone {{ item.item.job_index }}"
+      register: clone_results
+      until: clone_results.finished
+      retries: "{{ (zone_clone_timeout / zone_create_retry_delay) | int }}"
+      delay: "{{ zone_create_retry_delay }}"
+      when: item.ansible_job_id is defined
+
+    - name: Boot all zones (async)
+      community.general.solaris_zone:
+        name: "{{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}"
+        state: running
+        timeout: "{{ zone_boot_timeout }}"
+      loop: "{{ zones_list }}"
+      loop_control:
+        label: "Booting zone {{ item.job_index }}"
+      async: "{{ zone_boot_timeout }}"
+      poll: 0
+      register: zone_boot_jobs
+
+    - name: Wait for all zones to boot
+      ansible.builtin.async_status:
+        jid: "{{ item.ansible_job_id }}"
+      loop: "{{ zone_boot_jobs.results }}"
+      loop_control:
+        label: "Zone {{ item.item.job_index }}"
+      register: boot_results
+      until: boot_results.finished
+      retries: "{{ (zone_boot_timeout / zone_create_retry_delay) | int }}"
+      delay: "{{ zone_create_retry_delay }}"
+      when: item.ansible_job_id is defined
+
+    - name: Verify all zones are accessible
+      ansible.builtin.command: >
+        zlogin {{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}
+        echo "Zone {{ item.job_index }} is accessible"
+      loop: "{{ zones_list }}"
+      loop_control:
+        label: "Verifying zone {{ item.job_index }}"
+      register: zone_healthcheck
+      retries: "{{ zone_create_retries * 4 }}"
+      delay: "{{ zone_create_retry_delay }}"
+      until: zone_healthcheck.rc == 0
+      changed_when: false
+
+    - name: Report zone creation success
+      ansible.builtin.debug:
+        msg: >-
+          Successfully created {{ zones_list | length }} zones on {{ inventory_hostname }}

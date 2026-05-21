@@ -1,0 +1,93 @@
+---
+- name: Process ION build artifact and clean up
+  hosts: all
+  gather_facts: false
+  become: true
+
+  vars:
+    run_id: "{{ run_id | mandatory }}"
+    base_dir: "/home/github-runner/ion-gh-test-dir"
+    build_dir: "{{ base_dir }}/ion-ios-dev"
+    tarball_name: "ion-build-{{ run_id }}.tar.gz"
+
+  tasks:
+    - name: Artifact handling
+      block:
+        - name: Create build artifact tarball
+          community.general.archive:
+            # include visible and hidden files at root (not nested dir)
+            path:
+              - "{{ build_dir }}/*"
+              - "{{ build_dir }}/.[!.]*" # Safely catches hidden files without matching '.' or '..'
+            dest: "{{ base_dir }}/{{ tarball_name }}"
+            format: gz
+            owner: github-runner
+            group: staff
+            mode: "0644"
+            exclude_path:
+              - "{{ build_dir }}/.git"
+              - "{{ build_dir }}/autom4te.cache"
+              - "{{ build_dir }}/.github"
+              - "{{ build_dir }}/compile-and-buildcheck.log"
+              - "{{ build_dir }}/*.md"
+
+        - name: Get tarball file info
+          ansible.builtin.stat:
+            path: "{{ base_dir }}/{{ tarball_name }}"
+          register: tarball_stat
+
+        - name: Verify tarball size is reasonable (> 1000 bytes)
+          ansible.builtin.assert:
+            that:
+              - tarball_stat.stat.exists
+              - tarball_stat.stat.size > 1000
+            fail_msg: "Tarball is missing or too small ({{ tarball_stat.stat.size | default(0) }} bytes)"
+
+        - name: Fetch tarball to runner (repo root)
+          ansible.builtin.fetch:
+            src: "{{ base_dir }}/{{ tarball_name }}"
+            dest: "{{ lookup('env', 'GITHUB_WORKSPACE') }}/{{ tarball_name }}"
+            flat: true
+
+        - name: Verify artifact contents locally (on runner)
+          delegate_to: localhost
+          block:
+            - name: Create temporary verification directory
+              ansible.builtin.file:
+                path: "{{ lookup('env', 'GITHUB_WORKSPACE') }}/artifact-verify"
+                state: directory
+                mode: "0770"
+
+            - name: Extract tarball locally
+              ansible.builtin.unarchive:
+                src: "{{ lookup('env', 'GITHUB_WORKSPACE') }}/{{ tarball_name }}"
+                dest: "{{ lookup('env', 'GITHUB_WORKSPACE') }}/artifact-verify"
+                remote_src: false
+
+            - name: Verify required files exist in artifact
+              ansible.builtin.stat:
+                path: "{{ lookup('env', 'GITHUB_WORKSPACE') }}/artifact-verify/{{ item }}"
+              loop:
+                - tests
+                - configure
+                - Makefile
+              register: verify_files
+
+            - name: Assert all required files are present
+              ansible.builtin.assert:
+                that: item.stat.exists
+                fail_msg: "Required file or directory missing from artifact: {{ item.item }}"
+              loop: "{{ verify_files.results }}"
+
+          always:
+            - name: Clean up local temporary verification directory
+              ansible.builtin.file:
+                path: "{{ lookup('env', 'GITHUB_WORKSPACE') }}/artifact-verify"
+                state: absent
+
+      # Always clean the VM workspace
+      always:
+        - name: Clean up ION build workspace on VM
+          ansible.builtin.file:
+            path: "{{ base_dir }}"
+            state: absent
