@@ -338,6 +338,15 @@ jobs:
           name: ion-build-${{ github.run_id }}
           path: ./artifacts
 
+      - name: Overlay fresh test scripts over cached binaries
+        run: |
+          /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook \
+            .github/ansible/overlay-fresh-tests.yml \
+            -e "GITHUB_WORKSPACE=$GITHUB_WORKSPACE" \
+            -e "ARTIFACT_PATH=$GITHUB_WORKSPACE/artifacts/ion-build-${{ github.run_id }}.tar.gz" \
+            -e "RUN_ID=${{ github.run_id }}" \
+            -v
+
       - name: Copy artifact to VM
         uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60
         with:

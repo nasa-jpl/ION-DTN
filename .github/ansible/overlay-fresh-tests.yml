@@ -1,0 +1,65 @@
+---
+- name: Overlay fresh test scripts/configs over extracted artifact
+  hosts: localhost
+  gather_facts: false
+  # Variables: GITHUB_WORKSPACE, ARTIFACT_PATH, RUN_ID are passed via -e
+  tasks:
+    - name: Create temporary extraction directory
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: -artifact-extract
+      register: extract_dir
+
+    - name: Extract artifact tarball
+      ansible.builtin.unarchive:
+        src: "{{ ARTIFACT_PATH }}"
+        dest: "{{ extract_dir.path }}"
+        remote_src: false
+
+    - name: Overlay fresh test files from checkout (preserves binaries)
+      ansible.posix.synchronize:
+        src: "{{ GITHUB_WORKSPACE }}/tests/"
+        dest: "{{ extract_dir.path }}/tests/"
+        delete: false
+        recursive: true
+        rsync_opts:
+          - "--exclude=*.o"
+          - "--exclude=*.so"
+          - "--exclude=*.a"
+          - "--exclude=.libs/"
+          - "--exclude=.deps/"
+          - "--exclude=__pycache__/"
+          - "--exclude=*.pyc"
+      delegate_to: localhost
+
+    - name: Overlay fresh demo files from checkout (required for install)
+      ansible.posix.synchronize:
+        src: "{{ GITHUB_WORKSPACE }}/demos/"
+        dest: "{{ extract_dir.path }}/demos/"
+        delete: false
+        recursive: true
+        rsync_opts:
+          - "--exclude=*.o"
+          - "--exclude=*.so"
+          - "--exclude=*.a"
+          - "--exclude=.libs/"
+          - "--exclude=.deps/"
+          - "--exclude=__pycache__/"
+          - "--exclude=*.pyc"
+      delegate_to: localhost
+
+    - name: Re-create artifact tarball with updated tests and demos
+      community.general.archive:
+        # include visible and hidden files at root (not nested dir)
+        path:
+          - "{{ extract_dir.path }}/*"
+          - "{{ extract_dir.path }}/.[!.]*" # Safely catches hidden files without matching '.' or '..'
+        dest: "{{ ARTIFACT_PATH }}"
+        format: gz
+        force_archive: true
+        mode: "0644"
+
+    - name: Clean up temporary extraction directory
+      ansible.builtin.file:
+        path: "{{ extract_dir.path }}"
+        state: absent
