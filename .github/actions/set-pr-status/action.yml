@@ -2,9 +2,18 @@ name: "Set PR Status"
 description: "Sets commit statuses on a PR for one or multiple contexts"
 
 inputs:
+  context:
+    description: 'Status context name (e.g., "ci/solaris-parallel"). Use this OR status_payload, not both.'
+    required: false
+    default: ""
+  state:
+    description: 'Status state (success, failure, error, pending). Required when context is provided.'
+    required: false
+    default: ""
   status_payload:
-    description: 'JSON mapping of status contexts to their state. Example: {"ci/solaris-parallel": "success"}'
-    required: true
+    description: 'JSON mapping of status contexts to their state. Example: {"ci/solaris-parallel": "success"}. Use this OR context/state, not both.'
+    required: false
+    default: ""
   pr_number:
     description: "The Pull Request number (Optional, will auto-detect if omitted)"
     required: false
@@ -49,6 +58,8 @@ runs:
       env:
         # Prioritize the provided input; if empty, fall back to the detected output
         PR_NUMBER: ${{ inputs.pr_number || steps.detect-pr.outputs.pr_number }}
+        STATUS_CONTEXT: ${{ inputs.context }}
+        STATUS_STATE: ${{ inputs.state }}
         STATUS_PAYLOAD: ${{ inputs.status_payload }}
       with:
         script: |
@@ -58,7 +69,21 @@ runs:
           }
 
           const prNumber = parseInt(process.env.PR_NUMBER, 10);
-          const statuses = JSON.parse(process.env.STATUS_PAYLOAD);
+
+          // Determine which input method is being used
+          let statuses = {};
+          if (process.env.STATUS_CONTEXT && process.env.STATUS_STATE) {
+            // Direct context/state inputs
+            statuses[process.env.STATUS_CONTEXT] = process.env.STATUS_STATE;
+            console.log(`Using direct context/state inputs: ${process.env.STATUS_CONTEXT} = ${process.env.STATUS_STATE}`);
+          } else if (process.env.STATUS_PAYLOAD) {
+            // JSON payload input (backward compatibility)
+            statuses = JSON.parse(process.env.STATUS_PAYLOAD);
+            console.log(`Using status_payload input with ${Object.keys(statuses).length} context(s)`);
+          } else {
+            console.log('No status information provided (neither context/state nor status_payload). Skipping status update.');
+            return;
+          }
 
           let pr;
           try {
@@ -73,7 +98,7 @@ runs:
             return;
           }
 
-          // Loop through the payload and create commit statuses
+          // Loop through the statuses and create commit statuses
           for (const [statusContext, state] of Object.entries(statuses)) {
             console.log(`Setting PR status for ${statusContext} to ${state}`);
             await github.rest.repos.createCommitStatus({

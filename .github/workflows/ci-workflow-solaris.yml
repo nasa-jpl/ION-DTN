@@ -438,7 +438,8 @@ jobs:
         uses: ./.github/actions/set-pr-status
         with:
           pr_number: ${{ inputs.pr_number }}
-          status_payload: '{"ci/solaris-parallel": "${{ steps.test-status.outputs.status }}"}'
+          context: "ci/solaris"
+          state: ${{ steps.test-status.outputs.status }}
         continue-on-error: true
 
       - name: Remove artifacts from the bundle folder
