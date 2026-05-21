@@ -65,8 +65,16 @@ def generate_data(dest_port, engine_id, session_id) -> None:
     print("Bundle sent.")
 
 
-def send_cancel(cancel_type, dest_port, engine_id, session_id) -> None:
-    """Generates and sends an LTP Cancel Segment."""
+def send_cancel(cancel_type, dest_port, engine_id, session_id, sock=None) -> None:
+    """Generates and sends an LTP Cancel Segment.
+
+    Args:
+        cancel_type: "CS" or "CR"
+        dest_port: Destination port to send to
+        engine_id: LTP engine ID
+        session_id: LTP session ID
+        sock: Optional socket to use for sending. If None, creates a new socket.
+    """
     print(
         f"Injecting {cancel_type} segment for engine {engine_id}, session {session_id} to port {dest_port}..."
     )
@@ -84,8 +92,13 @@ def send_cancel(cancel_type, dest_port, engine_id, session_id) -> None:
     ltp_packet = LTP()
     ltp_packet.segment = cancel_seg
 
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+    if sock:
+        # Use provided socket (already bound)
         sock.sendto(bytes(ltp_packet), ("127.0.0.1", dest_port))
+    else:
+        # Create new socket for one-off send
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as new_sock:
+            new_sock.sendto(bytes(ltp_packet), ("127.0.0.1", dest_port))
     print("Cancel segment sent.")
 
 
@@ -119,7 +132,11 @@ def run_test(scenario, cancel_type, dest_port, ack_port, engine_id, session_id) 
 
     sock.settimeout(1.0)
 
-    send_cancel(cancel_type, dest_port, engine_id, session_id)
+    # Use the same socket for sending to ensure ACKs come back to the right place
+    send_cancel(cancel_type, dest_port, engine_id, session_id, sock=sock)
+
+    # Brief delay to ensure packet is sent and ION processes it
+    time.sleep(0.1)
 
     timeout_time = time.time() + 10.0
     while time.time() < timeout_time:

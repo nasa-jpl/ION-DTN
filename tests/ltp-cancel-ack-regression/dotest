@@ -106,27 +106,29 @@ echo "Nodes started successfully"
 
 OVERALL_RESULT=0
 
+# Use unique test ports that don't conflict with ION's ports
+TEST_PORT_NODE2=2114
+TEST_PORT_NODE3=3114
+
 echo ""
 echo "Running cancel segment acknowledgment tests..."
+echo "Using test ports: Node2=$TEST_PORT_NODE2, Node3=$TEST_PORT_NODE3"
 
 # Scenario A: CS for unknown session
 echo "=== Test Scenario: CS for unknown session (should NOT be acknowledged) ==="
 python3 runtest.py --send-cancel-only --cancel-type CS --dest-port 3113 --engine-id 2 --session-id 99999
-OVERALL_RESULT=$?
-if [ $? -eq 0 ]; then
-    echo "SUCCESS: CS segment sent successfully"
-else
+SCENARIO_RESULT=$?
+if [ $SCENARIO_RESULT -ne 0 ]; then
     echo "FAILURE: Failed to send CS segment"
+    OVERALL_RESULT=1
 fi
 sleep 2
 
 # Scenario B: CR for unknown session
-python3 runtest.py --scenario "CR for unknown session" --cancel-type CR --dest-port 2113 --ack-port 3113 --engine-id 3 --session-id 99998
-OVERALL_RESULT=$?
-if [ $? -eq 0 ]; then
-    echo "SUCCESS: CS segment sent successfully"
-else
-    echo "FAILURE: Failed to send CS segment"
+python3 runtest.py --scenario "CR for unknown session" --cancel-type CR --dest-port 2113 --ack-port $TEST_PORT_NODE3 --engine-id 3 --session-id 99998
+SCENARIO_RESULT=$?
+if [ $SCENARIO_RESULT -ne 0 ]; then
+    echo "FAILURE: CR test failed"
     OVERALL_RESULT=1
 fi
 sleep 2
@@ -137,23 +139,19 @@ python3 runtest.py --generate-data --dest-port 3113 --engine-id 2 --session-id 1
 sleep 3
 
 # Test CS for potentially completed session
-python3 runtest.py --scenario "CS after data transfer" --cancel-type CS --dest-port 3113 --ack-port 2113 --engine-id 2 --session-id 1
-OVERALL_RESULT=$?
-if [ $? -eq 0 ]; then
-    echo "SUCCESS: CS segment sent successfully"
-else
-    echo "FAILURE: Failed to send CS segment"
+python3 runtest.py --scenario "CS after data transfer" --cancel-type CS --dest-port 3113 --ack-port $TEST_PORT_NODE2 --engine-id 2 --session-id 1
+SCENARIO_RESULT=$?
+if [ $SCENARIO_RESULT -ne 0 ]; then
+    echo "FAILURE: CS after data transfer test failed"
     OVERALL_RESULT=1
 fi
 sleep 2
 
 # Scenario D: CR after data transfer
-python3 runtest.py --scenario "CR after data transfer" --cancel-type CR --dest-port 2113 --ack-port 3113 --engine-id 3 --session-id 1
-OVERALL_RESULT=$?
-if [ $? -eq 0 ]; then
-    echo "SUCCESS: CS segment sent successfully"
-else
-    echo "FAILURE: Failed to send CS segment"
+python3 runtest.py --scenario "CR after data transfer" --cancel-type CR --dest-port 2113 --ack-port $TEST_PORT_NODE3 --engine-id 3 --session-id 1
+SCENARIO_RESULT=$?
+if [ $SCENARIO_RESULT -ne 0 ]; then
+    echo "FAILURE: CR after data transfer test failed"
     OVERALL_RESULT=1
 fi
 
