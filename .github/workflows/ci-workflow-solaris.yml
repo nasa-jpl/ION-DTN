@@ -1,4 +1,8 @@
-name: Regression Tests for ION on Solaris 11 LDOM via Ubuntu host
+name: Regression Tests for ION on Solaris 11
+
+concurrency:
+  group: solaris-ci
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -6,94 +10,124 @@ permissions:
   pull-requests: read
 
 on:
-  push:
-    branches:
-      - update-4.1.4-solaris-ci-workflow
   workflow_call:
     inputs:
       tests_to_run:
-        description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
+        description:
+          'Space-separated list of tests to run (e.g., "test1 test2").
+          Leave blank to run all.'
         required: false
         type: string
-        default: ''
-      pr_number:
-        description: 'The PR number this test is associated with.'
-        required: false
-        type: string
-        default: ''
-      env_vars:
-        description: 'Space-separated list of environment variables (e.g., "KEY1=VALUE1 KEY2=VALUE2").'
-        required: false
-        type: string
-        default: ''
-      timeout_minutes:
-        description: 'Timeout for build and tests in minutes (default: 240 minutes / 4 hours)'
+        default: ""
+      runner_count:
+        description: "Number of runners to use within a runner set (default: 7)"
         required: false
         type: number
-        default: 240
+        default: 7
+      env_vars:
+        description:
+          'Space-separated list of environment variables (e.g., "KEY1=VALUE1
+          KEY2=VALUE2").'
+        required: false
+        type: string
+        default: ""
+      timeout_minutes:
+        description:
+          "Timeout for build and tests in minutes (default: 90 minutes / 1.5
+          hours)"
+        required: false
+        type: number
+        default: 90
+      pr_number:
+        description:
+          "Optional PR number to use for status reporting. If left blank, the
+          workflow will attempt to auto-detect it."
+        required: false
+        type: string
+        default: ""
 
   workflow_dispatch:
     inputs:
       tests_to_run:
-        description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
+        description:
+          'Space-separated list of tests to run (e.g., "test1 test2").
+          Leave blank to run all.'
         required: false
         type: string
-        default: ''
-      pr_number:
-        description: 'The PR number this test is associated with.'
-        required: false
-        type: string
-        default: ''
-      env_vars:
-        description: 'Space-separated list of environment variables (e.g., "KEY1=VALUE1 KEY2=VALUE2").'
-        required: false
-        type: string
-        default: ''
-      timeout_minutes:
-        description: 'Timeout for build and tests in minutes (default: 240 minutes / 4 hours)'
+        default: ""
+      runner_count:
+        description: "Number of runners to use within a runner set (default: 7)"
         required: false
         type: number
-        default: 240
+        default: 7
+      env_vars:
+        description:
+          'Space-separated list of environment variables (e.g., "KEY1=VALUE1
+          KEY2=VALUE2").'
+        required: false
+        type: string
+        default: ""
+      timeout_minutes:
+        description:
+          "Timeout for build and tests in minutes (default: 90 minutes / 1.5
+          hours)"
+        required: false
+        type: number
+        default: 90
+      pr_number:
+        description:
+          "Optional PR number to use for status reporting. If left blank, the
+          workflow will attempt to auto-detect it."
+        required: false
+        type: string
+        default: ""
+
+env:
+  VM_WORK_DIR: ~/ion-gh-test-dir
+  PYTHON_VERSION: "3.11.15"
 
 jobs:
-  build-and-test:
-    runs-on: [self-hosted, linux, x64, karuna]
-    env:
-      # SSH options applied to every ssh/scp/rsync invocation against
-      # the Solaris VM. GSSAPIAuthentication=no avoids a multi-second
-      # Kerberos/NIS auth stall observed on the VM; restricting to
-      # publickey skips other slow fallback methods entirely.
-      SSH_OPTS: "-o StrictHostKeyChecking=no -o GSSAPIAuthentication=no -o PreferredAuthentications=publickey"
+  generate-matrix:
+    runs-on: arc-runner-set-ol9
+    outputs:
+      matrix: ${{ steps.generate.outputs.matrix }}
+      count: ${{ steps.generate.outputs.count }}
     steps:
-      - name: Clean up workspace
-        run: |
-          rm -rf $GITHUB_WORKSPACE/*
+      - name: Checkout code
+        uses: actions/checkout@v6
 
+      - name: Generate test distribution matrix
+        id: generate
+        uses: ./.github/actions/generate-test-matrix
+        with:
+          tests_to_run: ${{ inputs.tests_to_run }}
+          runner_count: ${{ inputs.runner_count }}
+          is_solaris: "true"
+
+  build-ion:
+    needs: validate-vms
+    runs-on: arc-runner-set-ol9
+    steps:
       - name: Checkout Code
         uses: actions/checkout@v6
-        with:
-          clean: true
-          # clear workspace after
 
-      - name: Auto-detect PR number
-        id: detect-pr
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if [ -n "${{ inputs.pr_number }}" ]; then
-            echo "pr_number=${{ inputs.pr_number }}" >> $GITHUB_OUTPUT
-          else
-            PR_NUM=$(gh pr list --head "${{ github.ref_name }}" --json number --jq '.[0].number // empty' 2>/dev/null || true)
-            if [ -n "$PR_NUM" ]; then
-              echo "Auto-detected PR #${PR_NUM} for branch ${{ github.ref_name }}"
-              echo "pr_number=${PR_NUM}" >> $GITHUB_OUTPUT
-            else
-              echo "No PR found for branch ${{ github.ref_name }}"
-              echo "pr_number=" >> $GITHUB_OUTPUT
-            fi
-          fi
+      - name: Cache Solaris Build Artifact
+        id: cache-build
+        uses: actions/cache@v5
+        with:
+          path: ion-build-solaris.tar.gz
+          key: solaris-build-${{ hashFiles('**/*.c', '**/*.h', 'configure.ac', 'Makefile.am', 'build-bsl-for-ion.sh') }}
+
+      - name: Setup Solaris SSH Configuration
+        if: ${{ steps.cache-build.outputs.cache-hit != 'true' }}
+        uses: ./.github/actions/setup-solaris-ssh
+        with:
+          ssh_key: ${{ secrets.SOLARIS_SSH_KEY }}
+          host_1_ip: ${{ secrets.SOLARIS_HOST_1_IP }}
+          host_2_ip: ${{ secrets.SOLARIS_HOST_2_IP }}
 
       - name: Display Runner Host OS and Arch
+        if: ${{ steps.cache-build.outputs.cache-hit != 'true' }}
         run: |
           cat /etc/os-release
           echo "Arch:"
@@ -101,137 +135,260 @@ jobs:
           echo "User ID:"
           id
 
-      - name: Set environment variable to VM's hostname
+      - name: Set environment variable to an available VM
+        if: ${{ steps.cache-build.outputs.cache-hit != 'true' }}
         run: |
-          echo "VM_IP=sol-runner" >> $GITHUB_ENV
-
-      - name: Display VM OS and Arch
-        run: |
-          ssh $SSH_OPTS jgao@$VM_IP '
-            cat /etc/os-release &&
-            echo "Arch:" &&
-            uname -m &&
-            echo "User ID:" &&
-            id &&
-            echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
-            echo "PATH=$PATH" '
-
+          if [ "${{ needs.validate-vms.outputs.dsoc3_available }}" == "true" ]; then
+            echo "Selected dsoc3 for the build process."
+            echo "VM_IP=dsoc3" >> $GITHUB_ENV
+          elif [ "${{ needs.validate-vms.outputs.dsoc4_available }}" == "true" ]; then
+            echo "dsoc3 is unavailable. Falling back to dsoc4 for the build process."
+            echo "VM_IP=dsoc4" >> $GITHUB_ENV
+          else
+            echo "::error::No VMs are available for building!"
+            exit 1
+          fi
 
       - name: Copy code to Solaris VM
+        if: ${{ steps.cache-build.outputs.cache-hit != 'true' }}
         run: |
-          ssh $SSH_OPTS jgao@$VM_IP 'rm -rf ~/ion-gh-test-dir && mkdir -p ~/ion-gh-test-dir'
-          attempt=0
-          max_attempts=3
-          until rsync -avz --partial \
-                    -e "ssh $SSH_OPTS -o ServerAliveInterval=30 -o ServerAliveCountMax=4" \
-                    --exclude='arch-rtems' \
-                    "$GITHUB_WORKSPACE/" jgao@$VM_IP:~/ion-gh-test-dir/ion-ios-dev/; do
-            attempt=$((attempt + 1))
-            if [ $attempt -ge $max_attempts ]; then
-              echo "rsync failed after $attempt attempts" >&2
-              exit 1
-            fi
-            echo "rsync attempt $attempt failed, retrying in $((attempt * 10))s..." >&2
-            sleep $((attempt * 10))
-          done
+          cd .github/ansible
+          /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook copy-code.yml \
+            -i "$VM_IP," \
+            -e "GITHUB_WORKSPACE=$GITHUB_WORKSPACE" \
+            -e "VM_WORK_DIR=${{ env.VM_WORK_DIR }}" \
+            -v
 
       - name: Generate timestamp for file names
         id: timestamp
-        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
 
-      - name: Run build and tests, capture stdout
-        timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '270') }}
+      - name: Run build and buildcheck, capture stdout
+        if: ${{ steps.cache-build.outputs.cache-hit != 'true' }}
+        timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || 90 ) }}
         run: |
-          ssh $SSH_OPTS jgao@$VM_IP '
-            echo "Starting build and tests at $(date)" &&
-            export USER=$(whoami) &&
-            echo "USER is set to: $USER" &&
-            export ION_RUN_EXPERT="yes" &&
-            export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH &&
-            export PATH=/usr/local/bin:$PATH &&
-            export PRESERVE_TEST_LOGS="0" &&
-            echo "PATH=$PATH" &&
-            cd ~/ion-gh-test-dir/ion-ios-dev &&
-            autoreconf -fi &&
-            MAKE="gmake" ./configure --enable-crypto-mbedtls --enable-bpsec-debugging &&
-            gmake -j4 &&
-            sudo gmake install &&
-            gmake buildcheck &&
-            echo "Sweeping any ION daemons left over from prior runs..." &&
-            (killm f 2>/dev/null || true) &&
-            cd tests &&
-            if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tests_to_run }}" ]; then
-              echo "Running specific tests: ${{ github.event.inputs.tests_to_run }}" &&
-              ./runtests ${{ github.event.inputs.tests_to_run }}
-            else
-              echo "Running all tests" &&
-              ./runtests
-            fi' > build-and-test.log 2> >(tee -a build-and-test.log >&2)
+          ssh github-runner@$VM_IP '
+            export MAKE_CMD=gmake
+            cd ~/ion-gh-test-dir/ion-ios-dev
+            bash .github/scripts/compile-and-buildcheck.sh
+          ' > compile-and-buildcheck.log 2> >(tee -a compile-and-buildcheck.log >&2)
 
-          TEST_STATUS=$?
+          BUILD_STATUS=$?
 
-          if [ $TEST_STATUS -ne 0 ]; then
-            echo "Build and tests failed with status $TEST_STATUS" >&2
-            exit $TEST_STATUS
+          if [ $BUILD_STATUS -ne 0 ]; then
+            echo "Build and buildcheck failed with status $BUILD_STATUS" >&2
+            exit $BUILD_STATUS
           fi
 
-      - name: Display Progress
-        if: ${{ always() }}
+      - name: Process artifact and clean up VM
+        if: ${{ always() && steps.cache-build.outputs.cache-hit != 'true' }}
+        env:
+          # Explicitly point to the config file so Ansible knows to use github-runner
+          ANSIBLE_CONFIG: .github/ansible/ansible.cfg
         run: |
-          ssh $SSH_OPTS jgao@$VM_IP \
-            'cat ~/ion-gh-test-dir/ion-ios-dev/tests/progress 2>/dev/null' > progress || true
-          if [ ! -s progress ]; then
-            echo "No progress file produced (tests may not have run)."
-            exit 0
+          if [ "${{ job.status }}" == "success" ]; then
+            TAGS="all"
+          else
+            echo "Build failed. Skipping artifact generation and proceeding to VM cleanup."
+            TAGS="cleanup_only"
           fi
-          grep "FAILED" progress || printf "No failed tests.\n"
 
-      - name: Upload full build and test log
-        if: ${{ always() }}
+          /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook -i "$VM_IP," .github/ansible/process-artifact.yml \
+            -e "run_id=${{ github.run_id }}" \
+            --tags "$TAGS"
+
+      - name: Format artifact for caching
+        if: ${{ steps.cache-build.outputs.cache-hit != 'true' }}
+        run: cp ion-build-${{ github.run_id }}.tar.gz ion-build-solaris.tar.gz
+
+      - name: Restore run-specific artifact from cache
+        if: ${{ steps.cache-build.outputs.cache-hit == 'true' }}
+        run: cp ion-build-solaris.tar.gz ion-build-${{ github.run_id }}.tar.gz
+
+      - name: Upload build artifact
+        if: ${{ success() }}
         uses: actions/upload-artifact@v7
         with:
-          name: build-and-test-log-solaris-${{ env.TIMESTAMP }}
-          path: build-and-test.log
+          name: ion-build-${{ github.run_id }}
+          path: ion-build-${{ github.run_id }}.tar.gz
+          if-no-files-found: error
 
-      - name: Show progress file
-        if: ${{ always() }}
+      - name: Upload compile and buildcheck log
+        if: ${{ always() && steps.cache-build.outputs.cache-hit != 'true' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: compile-and-buildcheck-log-solaris-${{ steps.timestamp.outputs.timestamp }}
+          path: compile-and-buildcheck.log
+
+  validate-vms:
+    name: Validate VM Connectivity
+    runs-on: arc-runner-set-ol9
+    outputs:
+      dsoc3_available: ${{ steps.check-dsoc3.outputs.available }}
+      dsoc4_available: ${{ steps.check-dsoc4.outputs.available }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Solaris SSH Configuration
+        uses: ./.github/actions/setup-solaris-ssh
+        with:
+          ssh_key: ${{ secrets.SOLARIS_SSH_KEY }}
+          host_1_ip: ${{ secrets.SOLARIS_HOST_1_IP }}
+          host_2_ip: ${{ secrets.SOLARIS_HOST_2_IP }}
+
+      - name: Check dsoc3 connectivity
+        id: check-dsoc3
         run: |
-          echo "Contents of ./progress:"
-          cat ./progress || echo "No progress file found."
+          echo "Checking connectivity to dsoc3..."
 
-      - name: Upload progress file as artifact
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-progress-solaris-${{ env.TIMESTAMP }}
-          path: ./progress
+          if ssh -o ConnectTimeout=10 github-runner@dsoc3 'echo "Connected"' 2>&1; then
+            echo "✓ dsoc3 is reachable"
+            echo "available=true" >> $GITHUB_OUTPUT
+          else
+            echo "✗ dsoc3 is not reachable"
+            echo "available=false" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Collect and upload ion.log files from VM
-        if: ${{ always() }}
+      - name: Check dsoc4 connectivity
+        id: check-dsoc4
         run: |
-          echo "Collecting ion.log files with unique names..."
-          mkdir -p ion-logs-collection
-          ssh $SSH_OPTS jgao@$VM_IP '
-            cd ~/ion-gh-test-dir/ion-ios-dev &&
-            find ./tests ./demos -name "ion.log" -type f 2>/dev/null' | while IFS= read -r logfile; do
-            # Extract test path and create unique filename
-            relpath=$(echo "$logfile" | sed 's|^\./||' | sed 's|/ion\.log$||')
-            unique_name=$(echo "$relpath" | tr '/' '-')
-            scp $SSH_OPTS jgao@$VM_IP:~/ion-gh-test-dir/ion-ios-dev/"$logfile" "ion-logs-collection/${unique_name}-ion.log"
-            echo "Collected: $logfile -> ion-logs-collection/${unique_name}-ion.log"
-          done
+          echo "Checking connectivity to dsoc4..."
 
-          # List all collected logs for verification
-          echo "Collected ion.log files:"
-          find ion-logs-collection -name "*.log" -type f | sort
+          if ssh -o ConnectTimeout=10 github-runner@dsoc4 'echo "Connected"' 2>&1; then
+            echo "✓ dsoc4 is reachable"
+            echo "available=true" >> $GITHUB_OUTPUT
+          else
+            echo "✗ dsoc4 is not reachable"
+            echo "available=false" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Upload ion.log files as artifact
-        if: ${{ always() }}
+      - name: Verify at least one VM is available
+        run: |
+          if [ "${{ steps.check-dsoc3.outputs.available }}" != "true" ] && [ "${{ steps.check-dsoc4.outputs.available }}" != "true" ]; then
+            echo "::error::No Solaris VMs are reachable. Both dsoc3 and dsoc4 failed connectivity checks."
+            exit 1
+          fi
+
+          echo "VM connectivity validated successfully"
+
+  create-zones:
+    name: Create Zones (${{ matrix.vm }})
+    needs: [build-ion, generate-matrix]
+    runs-on: arc-runner-set-ol9
+    strategy:
+      fail-fast: false
+      matrix:
+        vm: [dsoc3, dsoc4]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Solaris SSH Configuration
+        uses: ./.github/actions/setup-solaris-ssh
+        with:
+          ssh_key: ${{ secrets.SOLARIS_SSH_KEY }}
+          host_1_ip: ${{ secrets.SOLARIS_HOST_1_IP }}
+          host_2_ip: ${{ secrets.SOLARIS_HOST_2_IP }}
+
+      - name: Prepare Ansible variables
+        run: |
+          # We pass the full matrix of zones; the playbook automatically
+          # filters for zones where vm == inventory_hostname
+          cat << 'EOF' > .github/ansible/zones_matrix.json
+          {
+            "run_id": "${{ github.run_id }}",
+            "all_zones": ${{ needs.generate-matrix.outputs.matrix }}
+          }
+          EOF
+
+      - name: Execute Parallel Zone Creation
+        id: create-zones
+        run: |
+          cd .github/ansible
+
+          # Execute Ansible targeting ONLY the specific VM for this runner
+          /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook create-zones-parallel.yml \
+            -i "${{ matrix.vm }}," \
+            -e "@zones_matrix.json" \
+            -v
+
+  test-parallel:
+    needs: [build-ion, generate-matrix, create-zones]
+    strategy:
+      fail-fast: false
+      matrix:
+        test_group: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
+    runs-on: arc-runner-set-ol9
+    timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || 90 ) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Solaris SSH Configuration
+        uses: ./.github/actions/setup-solaris-ssh
+        with:
+          ssh_key: ${{ secrets.SOLARIS_SSH_KEY }}
+          host_1_ip: ${{ secrets.SOLARIS_HOST_1_IP }}
+          host_2_ip: ${{ secrets.SOLARIS_HOST_2_IP }}
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: ion-build-${{ github.run_id }}
+          path: ./artifacts
+
+      - name: Copy artifact to VM
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60
+        with:
+          timeout_seconds: 600
+          max_attempts: 3
+          retry_wait_seconds: 10
+          command: |
+            cd .github/ansible
+            /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook distribute-artifacts.yml \
+              -i "${{ matrix.test_group.vm_hostname }}," \
+              -e "RUN_ID=${{ github.run_id }}" \
+              -e "JOB_INDEX=${{ matrix.test_group.job_index }}" \
+              -e "OPERATION=push" \
+              -v
+
+      - name: Run tests
+        id: tests
+        run: |
+          scp .github/ansible/run-tests-in-zone.sh \
+            github-runner@${{ matrix.test_group.vm_hostname }}:~/run-tests-${{ github.run_id }}-${{ matrix.test_group.job_index }}.sh
+
+          ssh -o ConnectTimeout=30 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 github-runner@${{ matrix.test_group.vm_hostname }} \
+            "chmod +x ~/run-tests-${{ github.run_id }}-${{ matrix.test_group.job_index }}.sh && \
+             sudo ~/run-tests-${{ github.run_id }}-${{ matrix.test_group.job_index }}.sh \
+             '${{ github.run_id }}' \
+             '${{ matrix.test_group.job_index }}' \
+             '${{ matrix.test_group.tests }}' \
+             '${{ inputs.env_vars || '' }}'"
+
+      - name: Use Ansible playbook to collect results
+        if: always()
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60
+        with:
+          timeout_seconds: 300
+          max_attempts: 3
+          retry_wait_seconds: 10
+          command: |
+            cd .github/ansible
+            /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook distribute-artifacts.yml \
+              -i "${{ matrix.test_group.vm_hostname }}," \
+              -e "RUN_ID=${{ github.run_id }}" \
+              -e "JOB_INDEX=${{ matrix.test_group.job_index }}" \
+              -e "OPERATION=pull" \
+              -v
+
+      - name: Upload test results
+        if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: ion-logs-solaris-${{ env.TIMESTAMP }}
-          path: ion-logs-collection/
-          if-no-files-found: warn
+          name: test-results-${{ github.run_id }}-job-${{ matrix.test_group.job_index }}
+          path: .github/ansible/test-results/
 
       - name: Collect ion-system.log diagnostic files from VM
         if: ${{ always() }}
@@ -253,64 +410,125 @@ jobs:
           path: diagnostics-collection/
           if-no-files-found: ignore
 
-      - name: Clean up ION build
-        if: ${{ always() }}
+  aggregate-results:
+    name: "Finalize Logs and Reports"
+    needs: test-parallel
+    # Note: if: always() runs when dependencies fail/succeed but NOT when workflow is cancelled
+    # The cleanup step uses if: success() to preserve artifacts when this job is skipped
+    if: always()
+    runs-on: arc-runner-set-ol9
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Generate timestamp for final bundle
+        id: timestamp
+        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Download ALL artifacts
+        id: download-artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: test-results-${{ github.run_id }}-job-*
+          path: all-artifacts
+          merge-multiple: false
+        continue-on-error: true
+
+      - name: Check if artifacts were downloaded
+        id: check-artifacts
         run: |
-          ssh $SSH_OPTS jgao@$VM_IP '
-            echo "Cleaning up ION build and tests at $(date)"
-            export PATH=/usr/local/sbin:/usr/local/bin:$PATH
-            echo "PATH=$PATH"
-            # Reap any ION daemons FIRST and UNCONDITIONALLY. Always use
-            # the f flag: bare killm tries ionexit first which can hang
-            # when ION state is inconsistent (common after a cancelled
-            # run). Run before the dir-existence check so orphans get
-            # cleaned up even if the build dir was already removed.
-            # GitHub gives always() steps only a brief grace period
-            # after cancellation, so killm f (fast) matters here.
-            if command -v killm >/dev/null 2>&1; then
-              killm f || echo "killm f returned non-zero, continuing"
-            else
-              echo "killm not available, skipping"
-            fi
-            if [ -d ~/ion-gh-test-dir/ion-ios-dev ]; then
-              cd ~/ion-gh-test-dir/ion-ios-dev || exit 0
-              sudo gmake uninstall || echo "gmake uninstall failed, continuing"
-              gmake clean || echo "gmake clean failed, continuing"
-              cd ~
-            else
-              echo "Build directory not found, skipping build cleanup"
-            fi
-            rm -rf ~/ion-gh-test-dir
-            exit 0'
-          rm -rf $GITHUB_WORKSPACE/*
+          if [ -d "all-artifacts" ] && [ "$(ls -A all-artifacts)" ]; then
+            echo "found=true" >> $GITHUB_OUTPUT
+            echo "✓ Found test result artifacts to bundle"
+            ls -la all-artifacts/
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+            echo "⚠ No test result artifacts found to bundle"
+          fi
+
+      - name: Generate Final Summary Table and Status
+        id: test-status
+        if: steps.check-artifacts.outputs.found == 'true'
+        run: bash .github/scripts/generate-test-summary.sh
+        continue-on-error: true
 
       - name: Set PR status
-        if: ${{ steps.detect-pr.outputs.pr_number != '' }}
-        uses: actions/github-script@v9
+        if: steps.check-artifacts.outputs.found == 'true'
+        uses: ./.github/actions/set-pr-status
         with:
-          script: |
-            const conclusion = "${{ job.status }}" === "success" ? "success" : "failure";
-            const prNumber = parseInt("${{ steps.detect-pr.outputs.pr_number }}", 10);
+          pr_number: ${{ inputs.pr_number }}
+          status_payload: '{"ci/solaris-parallel": "${{ steps.test-status.outputs.status }}"}'
+        continue-on-error: true
 
-            let pr;
-            try {
-              const { data } = await github.rest.pulls.get({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: prNumber,
-              });
-              pr = data;
-            } catch (error) {
-              console.log(`PR #${prNumber} not found: ${error.message}`);
-              return;
-            }
+      - name: Remove artifacts from the bundle folder
+        if: steps.check-artifacts.outputs.found == 'true'
+        run: |
+          echo "Removing build artifacts before bundling..."
+          rm -rf all-artifacts/ion-build-*
 
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: pr.head.sha,
-              state: conclusion,
-              context: "ci/solaris",
-              description: `Tests ${conclusion === "success" ? "passed" : "failed"}`,
-              target_url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-            });
+      - name: Upload Unified Bundle
+        if: steps.check-artifacts.outputs.found == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: final-solaris-bundle-${{ steps.timestamp.outputs.timestamp }}
+          path: all-artifacts/
+
+      - name: Clean up ALL intermediate artifacts
+        # Only delete intermediate artifacts if workflow completed normally
+        # Skip cleanup if workflow was cancelled or failed to preserve debugging artifacts
+        if: success()
+        uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118
+        with:
+          name: |
+            test-results-*-job-*
+            compile-and-buildcheck-log-solaris-*
+            ion-build-*
+
+  destroy-zones:
+    name: Destroy Zones (${{ matrix.vm }})
+    needs: [generate-matrix, aggregate-results, validate-vms]
+    # Run even if tests fail, but only if we actually generated the matrix
+    if: always() && needs.generate-matrix.result == 'success'
+    runs-on: arc-runner-set-ol9
+    strategy:
+      fail-fast: false
+      matrix:
+        vm: [dsoc3, dsoc4]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Solaris SSH Configuration
+        uses: ./.github/actions/setup-solaris-ssh
+        with:
+          ssh_key: ${{ secrets.SOLARIS_SSH_KEY }}
+          host_1_ip: ${{ secrets.SOLARIS_HOST_1_IP }}
+          host_2_ip: ${{ secrets.SOLARIS_HOST_2_IP }}
+
+      - name: Prepare Ansible Variables
+        id: prep-vars
+        run: |
+          cat << 'EOF' > zones.json
+          ${{ needs.generate-matrix.outputs.matrix }}
+          EOF
+
+          JOB_INDEXES=$(jq -c '[.[] | select(.vm_hostname == "${{ matrix.vm }}") | .job_index]' zones.json)
+          echo "indexes=$JOB_INDEXES" >> $GITHUB_OUTPUT
+
+          cat << EOF > .github/ansible/destroy_vars.json
+          {
+            "run_id": "${{ github.run_id }}",
+            "job_indexes": $JOB_INDEXES
+          }
+          EOF
+
+      - name: Execute Parallel Zone Destruction
+        run: |
+          cd .github/ansible
+
+          # Pass the variables file using the @ syntax
+          /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook destroy-zone.yml \
+            -i "${{ matrix.vm }}," \
+            -e "@destroy_vars.json" \
+            -v
