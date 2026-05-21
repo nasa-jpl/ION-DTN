@@ -404,7 +404,7 @@ Description
 Function Prototype
 
 ```c
-int sdr_object_length(Sdr sdr, Object object)
+size_t sdr_object_length(Sdr sdr, Object object)
 ```
 
 Parameters

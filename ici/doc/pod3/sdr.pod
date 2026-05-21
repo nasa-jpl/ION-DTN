@@ -328,7 +328,7 @@ for all functions that operate on that SDR.  On any failure, returns NULL.
 
 Returns the name of the sdr.
 
-=item long sdr_heap_size(Sdr sdr)
+=item size_t sdr_heap_size(Sdr sdr)
 
 Returns the total size of the SDR heap, in bytes.
 
@@ -486,7 +486,7 @@ sdr_stow() is a macro that uses sdr_insert() to insert a copy of I<variable>
 into the dataspace.  The size of I<variable> is used as the number of bytes
 to copy.
 
-=item int sdr_object_length(Sdr sdr, Object object)
+=item size_t sdr_object_length(Sdr sdr, Object object)
 
 Returns the number of bytes of heap space allocated to the application
 data at I<object>.
@@ -536,7 +536,7 @@ only a portion of the object will be written via an offset
 
 =back
 
-=item long sdr_unused(Sdr sdr)
+=item size_t sdr_unused(Sdr sdr)
 
 Returns number of bytes of heap space not yet allocated to either the
 large or small objects pool.
