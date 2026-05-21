@@ -134,9 +134,9 @@ fi
 LOGS_DIR="${RESULTS_DIR}/ion-logs-job-${JOB_INDEX}"
 mkdir -p "$LOGS_DIR"
 
-# Find ion.log files natively via the global zone mount and copy them
-find "${ZONE_PATH}/root/root/ion-build/tests" -name "ion.log" -type f | while read -r log_file; do
-    rel_path=$(echo "$log_file" | sed "s|${ZONE_PATH}/root/root/ion-build/tests/||")
+# Find all ion.log files from the entire ion-build directory
+find "${ZONE_PATH}/root/root/ion-build" -name "ion.log" -type f 2>/dev/null | while read -r log_file; do
+    rel_path=$(echo "$log_file" | sed "s|${ZONE_PATH}/root/root/ion-build/||")
     target_dir="$LOGS_DIR/$(dirname "$rel_path")"
     mkdir -p "$target_dir"
     cp "$log_file" "$target_dir/"
