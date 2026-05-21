@@ -21,7 +21,7 @@ jobs:
       - name: Run ansible-lint
         uses: ansible/ansible-lint@5fac056c45595896c973fbde871f01f6cb14d74c
         with:
-          args: "charts/cluster_install/"
+          args: "charts/cluster_install/ .github/ansible"
 
   kics-scan:
     name: KICS Security Scan
