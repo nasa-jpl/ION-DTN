@@ -390,26 +390,6 @@ jobs:
           name: test-results-${{ github.run_id }}-job-${{ matrix.test_group.job_index }}
           path: .github/ansible/test-results/
 
-      - name: Collect ion-system.log diagnostic files from VM
-        if: ${{ always() }}
-        run: |
-          mkdir -p diagnostics-collection
-          ssh $SSH_OPTS jgao@$VM_IP '
-            cd ~/ion-gh-test-dir/ion-ios-dev &&
-            find ./tests ./demos -name "ion-system.log" -type f 2>/dev/null' | while IFS= read -r logfile; do
-            relpath=$(echo "$logfile" | sed 's|^\./||' | sed 's|/ion-system\.log$||')
-            unique_name=$(echo "$relpath" | tr '/' '-')
-            scp $SSH_OPTS jgao@$VM_IP:~/ion-gh-test-dir/ion-ios-dev/"$logfile" "diagnostics-collection/${unique_name}-ion-system.log"
-          done
-
-      - name: Upload ion-system.log diagnostics
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: diagnostics-solaris-${{ env.TIMESTAMP }}
-          path: diagnostics-collection/
-          if-no-files-found: ignore
-
   aggregate-results:
     name: "Finalize Logs and Reports"
     needs: test-parallel

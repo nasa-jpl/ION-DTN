@@ -134,12 +134,23 @@ fi
 LOGS_DIR="${RESULTS_DIR}/ion-logs-job-${JOB_INDEX}"
 mkdir -p "$LOGS_DIR"
 
-# Find logs natively via the global zone mount and copy them
+# Find ion.log files natively via the global zone mount and copy them
 find "${ZONE_PATH}/root/root/ion-build/tests" -name "ion.log" -type f | while read -r log_file; do
     rel_path=$(echo "$log_file" | sed "s|${ZONE_PATH}/root/root/ion-build/tests/||")
     target_dir="$LOGS_DIR/$(dirname "$rel_path")"
     mkdir -p "$target_dir"
     cp "$log_file" "$target_dir/"
+done
+
+# Collect ion-system.log diagnostic files (with flattened naming)
+DIAGNOSTICS_DIR="${RESULTS_DIR}/diagnostics-job-${JOB_INDEX}"
+mkdir -p "$DIAGNOSTICS_DIR"
+
+# Find ion-system.log files in tests and demos directories
+find "${ZONE_PATH}/root/root/ion-build/tests" "${ZONE_PATH}/root/root/ion-build/demos" -name "ion-system.log" -type f 2>/dev/null | while read -r log_file; do
+    rel_path=$(echo "$log_file" | sed "s|${ZONE_PATH}/root/root/ion-build/||" | sed 's|/ion-system\.log$||')
+    unique_name=$(echo "$rel_path" | tr '/' '-')
+    cp "$log_file" "$DIAGNOSTICS_DIR/${unique_name}-ion-system.log"
 done
 
 echo "Test phase complete. Exit code: $TEST_EXIT_CODE"
