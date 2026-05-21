@@ -1,0 +1,88 @@
+name: "Set PR Status"
+description: "Sets commit statuses on a PR for one or multiple contexts"
+
+inputs:
+  status_payload:
+    description: 'JSON mapping of status contexts to their state. Example: {"ci/solaris-parallel": "success"}'
+    required: true
+  pr_number:
+    description: "The Pull Request number (Optional, will auto-detect if omitted)"
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Auto-detect PR Number
+      id: detect-pr
+      if: ${{ inputs.pr_number == '' }}
+      uses: actions/github-script@v9
+      env:
+        REF_NAME: ${{ github.ref_name }}
+      with:
+        script: |
+          console.log(`No PR number provided. Auto-detecting open PR for branch ${process.env.REF_NAME}...`);
+          try {
+            const { data } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${process.env.REF_NAME}`,
+              state: 'open'
+            });
+
+            if (data && data.length > 0) {
+              const prNumber = data[0].number;
+              console.log(`Auto-detected PR #${prNumber}`);
+              // Export the detected PR number to the step outputs
+              core.setOutput('pr_number', prNumber.toString());
+            } else {
+              console.log(`No open PR found for branch ${process.env.REF_NAME}.`);
+              core.setOutput('pr_number', '');
+            }
+          } catch (error) {
+            console.log(`Error detecting PR: ${error.message}`);
+            core.setOutput('pr_number', '');
+          }
+
+    - name: Set PR status
+      uses: actions/github-script@v9
+      env:
+        # Prioritize the provided input; if empty, fall back to the detected output
+        PR_NUMBER: ${{ inputs.pr_number || steps.detect-pr.outputs.pr_number }}
+        STATUS_PAYLOAD: ${{ inputs.status_payload }}
+      with:
+        script: |
+          if (!process.env.PR_NUMBER) {
+            console.log('No PR number provided or detected. Skipping status update.');
+            return;
+          }
+
+          const prNumber = parseInt(process.env.PR_NUMBER, 10);
+          const statuses = JSON.parse(process.env.STATUS_PAYLOAD);
+
+          let pr;
+          try {
+            const { data } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+            pr = data;
+          } catch (error) {
+            console.log(`PR #${prNumber} not found: ${error.message}`);
+            return;
+          }
+
+          // Loop through the payload and create commit statuses
+          for (const [statusContext, state] of Object.entries(statuses)) {
+            console.log(`Setting PR status for ${statusContext} to ${state}`);
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: pr.head.sha,
+              state: state,
+              context: statusContext,
+              description: `Tests ${state === "success" ? "passed" : "failed"}`,
+              target_url: `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+            });
+          }

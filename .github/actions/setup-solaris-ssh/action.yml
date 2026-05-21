@@ -1,0 +1,44 @@
+name: "Setup Solaris SSH"
+description: "Configures SSH keys, SSH config, and /etc/hosts for Solaris VMs"
+
+inputs:
+  ssh_key:
+    description: "SSH private key"
+    required: true
+  host_1_ip:
+    description: "IP for dsoc3"
+    required: true
+  host_2_ip:
+    description: "IP for dsoc4"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup SSH key
+      shell: bash
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ inputs.ssh_key }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        chmod 700 ~/.ssh
+
+    - name: Configure /etc/hosts for Solaris VMs
+      shell: bash
+      run: |
+        echo "${{ inputs.host_1_ip }} dsoc3" | sudo tee -a /etc/hosts
+        echo "${{ inputs.host_2_ip }} dsoc4" | sudo tee -a /etc/hosts
+
+    - name: Configure robust SSH settings
+      shell: bash
+      run: |
+        # Creates a global SSH config for these specific hosts to handle CI concurrency gracefully
+        cat << 'EOF' > ~/.ssh/config
+        Host dsoc3 dsoc4
+          StrictHostKeyChecking no
+          UserKnownHostsFile /dev/null
+          ConnectionAttempts 5
+          ConnectTimeout 15
+          LogLevel ERROR
+        EOF
+        chmod 600 ~/.ssh/config

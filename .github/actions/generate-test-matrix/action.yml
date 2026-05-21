@@ -1,0 +1,73 @@
+name: "Generate Test Matrix"
+description: "Generates a JSON matrix for parallel test execution"
+
+inputs:
+  tests_to_run:
+    description: "Space-separated list of tests to run. Leave blank for all."
+    required: false
+    default: ""
+  runner_count:
+    description: "Number of runners/batches to split the tests into"
+    required: true
+  is_solaris:
+    description: "Set to 'true' to include Solaris VM hostnames (dsoc3/dsoc4) in the output"
+    required: false
+    default: "false"
+
+outputs:
+  matrix:
+    description: "JSON array of test batches"
+    value: ${{ steps.generate.outputs.matrix }}
+  count:
+    description: "Total number of batches generated"
+    value: ${{ steps.generate.outputs.count }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Generate base matrix
+      id: generate
+      shell: bash
+      run: |
+        # Set the Solaris flag if applicable
+        SOLARIS_FLAG=""
+        if [ "${{ inputs.is_solaris }}" == "true" ]; then
+          SOLARIS_FLAG="-s"
+        fi
+
+        # Run the python script to get the base distribution
+        if [ -n "${{ inputs.tests_to_run }}" ]; then
+          TESTSET=$(python3 ./tests/git_matrix.py -r ${{ inputs.runner_count }} $SOLARIS_FLAG -t ${{ inputs.tests_to_run }})
+        else
+          TESTSET=$(python3 ./tests/git_matrix.py -r ${{ inputs.runner_count }} $SOLARIS_FLAG)
+        fi
+
+        # Apply specific jq transformations based on the platform target
+        if [ "${{ inputs.is_solaris }}" == "true" ]; then
+          MATRIX_JSON=$(echo "$TESTSET" | jq -c '
+            [to_entries | .[] |
+              {
+                batch: (.key + 1),
+                tests: .value,
+                job_index: .key,
+                vm_hostname: (if (.key % 2) == 0 then "dsoc3" else "dsoc4" end),
+                vm_index: (if (.key % 2) == 0 then "1" else "2" end)
+              }
+            ]
+          ')
+        else
+          MATRIX_JSON=$(echo "$TESTSET" | jq -c '
+            [to_entries | .[] |
+              {
+                batch: (.key + 1),
+                tests: .value,
+                job_index: .key
+              }
+            ]
+          ')
+        fi
+
+        RUNNER_COUNT=$(echo "$TESTSET" | jq 'length')
+
+        echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
+        echo "count=$RUNNER_COUNT" >> $GITHUB_OUTPUT
