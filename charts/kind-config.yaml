@@ -16,3 +16,6 @@ nodes:
         containerPath: /etc/yum.repos.d
         readOnly: true
         propagation: HostToContainer
+networking:
+  disableDefaultCNI: false  # Use default kindnetd CNI for IP masquerade
+  kubeProxyMode: "nftables"  # Use nftables mode for kube-proxy

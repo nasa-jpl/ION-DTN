@@ -153,7 +153,9 @@ COPY actions-runner-controller/runner/docker-shim.sh /usr/local/bin/docker
 # Configure hooks folder structure.
 COPY actions-runner-controller/runner/hooks /etc/arc/hooks/
 
-RUN chmod -R 777 /opt /usr/share
+# openssh.txt gave an permission issue early in migrating Solaris testing to ARC and this was a fix
+# Not sure if still necessary still or needed beyond OL9, but leaving in
+RUN chmod -R 777 /opt /usr/share && chmod 0644 /usr/share/crypto-policies/DEFAULT/openssh.txt
 
 USER runner
 ENV PYENV_GIT_TAG=v2.6.26
@@ -170,7 +172,8 @@ RUN pyenv install 3.11.15 && pyenv global 3.11.15 \
 
 RUN if [ ! -z "${PIP_INDEX}" ]; then \
     /home/runner/.pyenv/versions/3.11.15/bin/python3 -m pip install --no-cache-dir --upgrade pip && \
-    /home/runner/.pyenv/versions/3.11.15/bin/python3 -m pip install --no-cache-dir bespokebpv7==0.4.1 -i "${PIP_INDEX}"; \
+    /home/runner/.pyenv/versions/3.11.15/bin/python3 -m pip install --no-cache-dir bespokebpv7==0.4.1 -i "${PIP_INDEX}" && \
+    /home/runner/.pyenv/versions/3.11.15/bin/python3 -m pip install ansible; \
     else \
     echo "bespokebpv7 not open-source yet 🙁"; \
     fi
