@@ -6,8 +6,10 @@ This guide explains how to create the template-ion zone on dsoc3 and dsoc4 for C
 
 - Root or sudo access on dsoc3 and dsoc4
 - ZFS filesystem at `/zones` or `rpool/zones`
-- **No network configuration needed** (uses shared IP mode)
-- Hostnames dsoc3 and dsoc4 must be configured in the runner's /etc/hosts file
+- Network access for template zone to download packages
+- Hostnames dsoc3 and dsoc4 configured in the runner's /etc/hosts file
+
+**Note about networking:** The template zone needs network configuration to download and install packages during initial setup. CI zones cloned from the template inherit all installed packages and don't need network access since tests run locally.
 
 ## Overview
 
@@ -32,12 +34,14 @@ set ip-type=shared
 remove anet
 add net
 set physical=net0
-set address=192.168.1.238/24
+set address=ip_address_here/24
 end
 set zonepath=/zones/template-ion
 set autoboot=false
 EOF
 ```
+
+**Why network configuration?** The template zone needs network access to download packages via `pkg install` in step 5. CI zones cloned from this template inherit all packages and don't need their own network configuration.
 
 ### 3. Install template zone
 
@@ -114,7 +118,7 @@ zfs list -t snapshot | grep template-ion
 
 Expected output:
 
-```
+``` text
 rpool/zones/template-ion@ci-base  [size]  -  [date]  -
 ```
 

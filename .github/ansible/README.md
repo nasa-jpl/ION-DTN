@@ -8,7 +8,7 @@ Ansible playbooks for managing ephemeral Solaris Zones for ION test parallelizat
 
 The CI workflow uses Solaris Zones to run ION tests in parallel with complete isolation. Each GitHub Actions matrix job gets its own Solaris Zone created from a ZFS snapshot of a template zone.
 
-```
+``` text
 GitHub Actions Workflow
   ↓
   1. Build ION (one job, uploads artifact)
@@ -39,10 +39,12 @@ GitHub Actions Workflow
 ### VM Mapping
 
 Two Solaris VMs available:
+
 - **dsoc3**: Build and zone host (hostnames configured in runner's /etc/hosts)
 - **dsoc4**: Zone host (hostnames configured in runner's /etc/hosts)
 
 Jobs distribute across VMs using modulo arithmetic:
+
 - `target_vm = dsoc3 if job_index % 2 == 0 else dsoc4`
 
 Multiple jobs can target the same VM safely because each gets an isolated zone.
@@ -61,7 +63,8 @@ Zones are ephemeral (created and destroyed per test job):
 ### Zone Naming
 
 Zones use unique names to prevent collision:
-```
+
+``` JSON
 ci-zone-{run_id}-{job_index}
 ```
 
@@ -76,64 +79,66 @@ Multiple concurrent CI runs can use the same VMs without conflict.
 Creates multiple Solaris Zones in parallel from template snapshot.
 
 **Required variables:**
+
 - `run_id`: GitHub Actions run ID
 - `zones_for_this_host`: JSON array of zone definitions `[{"job_index": 0, "vm": "dsoc3"}, ...]`
 
 **What it does:**
+
 1. Configures all zones sequentially (fast operation)
-2. Clones all zones from template using Ansible async (parallel)
-3. Waits for all clone operations to complete
-4. Boots all zones using async (parallel)
-5. Waits for all boot operations to complete
-6. Verifies all zones are accessible via connection plugin (wait_for_connection)
-7. Configures zone hostnames through connection plugin (lineinfile)
+2. Generates sysconfig profiles for hostname configuration
+3. Clones all zones from template using Ansible async (parallel)
+4. Waits for all clone operations to complete
+5. Boots all zones using async (parallel)
+6. Waits for all boot operations to complete
+7. Verifies all zones are accessible via `zlogin`
 
 **Key features:**
+
 - Uses Ansible's `async` with `poll: 0` for true parallelism
 - All zones on a VM are created simultaneously
 - Significantly faster than sequential creation (15-20s total vs 15-20s per zone)
-- Connection plugin pattern for all zone interactions
+- All zones created in <30 seconds total
+- Zones named `ci-zone-{run_id}-{job_index}`
+- Hostnames configured via sysconfig profile during clone
 
-**Acceptance Criteria covered:**
-- AC1.1-AC1.5: Zone operations use connection plugin instead of zlogin
-- AC2.1-AC2.5: Hostname configuration through zone connection
-- AC2.1: All zones created in <30 seconds total
-- AC2.2: All zones boot and pass healthcheck
-- AC2.4: Zones named `ci-zone-{run_id}-{job_index}`
+### run-tests-in-zone.sh
 
-### run-tests-in-zone.yml
+Bash script that executes ION tests inside a Solaris Zone using `zlogin`.
 
-Executes ION tests inside the zone.
+**Required arguments:**
 
-**Required variables:**
 - `run_id`: GitHub Actions run ID
 - `job_index`: Matrix job index
 - `test_list`: Space-separated list of tests to run
-- `artifact_tarball`: Path to ION build tarball on runner
+- `env_vars`: Environment variables as KEY=VALUE pairs (optional)
 
 **What it does:**
-1. Copies build artifact to VM
-2. Extracts artifacts into zone (`/usr/local`, `/root/tests`)
-3. Runs `./runtests {test_list}` inside zone
-4. Collects progress file as `progress-job-{index}.txt`
-5. Collects ion.log files into `ion-logs-job-{index}/`
-6. Returns test exit code (fails playbook if tests fail)
 
-**Acceptance Criteria covered:**
-- AC4.1: Tests run via `./runtests {space-separated-list}`
-- AC4.2: Progress and ion.log files generated
-- AC4.3: Results collected from zone to global zone
-- AC4.4: Unique naming for results
+1. Validates all input arguments and checks for command injection
+2. Copies build artifact from `/home/github-runner/ci-artifacts/{run_id}/` to zone
+3. Extracts tarball inside zone and fixes path references in build files
+4. Runs `gmake install` to install ION binaries into `/usr/local`
+5. Executes `./runtests {test_list}` inside zone via `zlogin`
+6. Collects progress file as `progress-job-{index}.txt`
+7. Collects ion.log files with directory structure preserved
+8. Collects ion-system.log diagnostic files with flattened naming
+9. Returns test exit code
+
+**Deployment:**
+The workflow copies this script to the VM via `scp` and executes it with `ssh` and `sudo`.
 
 ### destroy-zone.yml
 
 Destroys zone and cleans up resources.
 
 **Required variables:**
-- `run_id`: GitHub Actions run ID  
+
+- `run_id`: GitHub Actions run ID
 - `job_index`: Matrix job index
 
 **What it does:**
+
 1. Halts zone (with force option if needed)
 2. Uninstalls zone
 3. Destroys ZFS clone
@@ -142,18 +147,17 @@ Destroys zone and cleans up resources.
 
 Uses `block/rescue/always` to guarantee cleanup even if errors occur.
 
-**Acceptance Criteria covered:**
-- AC2.8: Zone destroyed even on test failure
-
 ### copy-code.yml
 
 Synchronizes source code from runner to Solaris VMs.
 
 **Required environment variables:**
+
 - `GITHUB_WORKSPACE`: Path to source code on runner
 - `VM_WORK_DIR`: Destination directory on VM
 
 **What it does:**
+
 1. Removes existing work directory
 2. Creates clean work directory
 3. Synchronizes code using `ansible.posix.synchronize` module
@@ -161,15 +165,12 @@ Synchronizes source code from runner to Solaris VMs.
 
 **Replaces:** Direct rsync commands in workflow
 
-**Acceptance Criteria covered:**
-- AC3.3: Code copy uses synchronize module
-- AC4.2: File operations use Ansible modules
-
 ### distribute-artifacts.yml
 
 Handles artifact deployment and test results collection.
 
 **Required environment variables:**
+
 - `RUN_ID`: GitHub Actions run ID
 - `JOB_INDEX`: Matrix job index
 - `OPERATION`: Either "push" or "pull"
@@ -177,11 +178,13 @@ Handles artifact deployment and test results collection.
 **What it does:**
 
 **Push operation (artifact deployment):**
+
 1. Creates artifact directory on VM
 2. Synchronizes artifacts using `ansible.posix.synchronize`
 3. Reports deployment status
 
 **Pull operation (results collection):**
+
 1. Creates local results directory
 2. Fetches test results using `ansible.posix.synchronize` in pull mode
 3. Handles missing results gracefully (`failed_when: false`)
@@ -189,47 +192,21 @@ Handles artifact deployment and test results collection.
 
 **Replaces:** Direct scp commands in workflow
 
-**Acceptance Criteria covered:**
-- AC3.4: Artifact distribution uses copy module
-- AC3.5: Results collection uses fetch module
-- AC4.2: File operations use Ansible modules
+## Zone Interaction
 
-## Connection Plugin Usage
+Zone operations use direct `zlogin` commands for simplicity and reliability:
 
-### Zone Connection Pattern
+- **create-zones-parallel.yml**: Uses `zlogin` to verify zone accessibility after boot
+- **run-tests-in-zone.sh**: Uses `zlogin` to execute commands inside the zone
 
-All zone operations use the `community.general.zone` connection plugin instead of direct `zlogin` commands.
-
-**Pattern:**
-```yaml
-- name: Task targeting a zone
-  some_module:
-    # module parameters
-  delegate_to: "{{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}"
-  vars:
-    ansible_connection: community.general.zone
-```
-
-**Supported modules:**
-- `wait_for_connection`: Zone verification
-- `lineinfile`: File modifications inside zone
-- `copy`, `fetch`, `template`: File transfers
-- `command`, `shell`: Command execution
-
-**Requirements:**
-- Zone must be in running state
-- Requires root privileges (enforced by plugin)
-- Uses `zlogin` internally
-
-**Error handling:**
-- Connection timeouts handled by `wait_for_connection` timeout parameter
-- Retry logic via Ansible's `retries` and `delay` parameters
+This direct approach avoids connection plugin overhead and ensures consistent behavior across different Ansible versions.
 
 ## Configuration
 
 ### group_vars/all.yml
 
 Shared variables:
+
 - `template_zone_name`: "template-ion"
 - `zone_name_prefix`: "ci-zone"
 - `zone_mountpoint_base`: "/zones"
@@ -240,6 +217,7 @@ Shared variables:
 ### ansible.cfg
 
 Ansible configuration:
+
 - Uses github-runner user with sudo
 - SSH timeout: 30 seconds
 - Parallelism: forks=10 (prevents SSH daemon overload)
@@ -262,25 +240,27 @@ Ansible configuration:
 ```bash
 ansible-playbook -i "dsoc3," create-zones-parallel.yml \
   -e "run_id=123456789" \
-  -e 'zones_for_this_host=[{"job_index":0},{"job_index":2}]'
+  -e 'all_zones=[{"job_index":0,"vm_hostname":"dsoc3"},{"job_index":2,"vm_hostname":"dsoc3"}]'
 ```
 
 ### Run tests
 
 ```bash
-ansible-playbook -i <inventory> run-tests-in-zone.yml \
-  -e "run_id=123456789" \
-  -e "job_index=0" \
-  -e "test_list='bping ltp-green loopback'" \
-  -e "artifact_tarball=/path/to/ion-build.tar.gz"
+# Copy script to VM
+scp .github/ansible/run-tests-in-zone.sh github-runner@dsoc3:~/run-tests-123456789-0.sh
+
+# Execute tests
+ssh github-runner@dsoc3 \
+  "chmod +x ~/run-tests-123456789-0.sh && \
+   sudo ~/run-tests-123456789-0.sh '123456789' '0' 'bping ltp-green loopback' 'DEBUG=1'"
 ```
 
-### Destroy zone
+### Destroy zones
 
 ```bash
-ansible-playbook -i <inventory> destroy-zone.yml \
+ansible-playbook -i "dsoc3," destroy-zone.yml \
   -e "run_id=123456789" \
-  -e "job_index=0"
+  -e "job_indexes=[0,2]"
 ```
 
 ## Troubleshooting
@@ -292,6 +272,7 @@ ansible-playbook -i <inventory> destroy-zone.yml \
 **Solution:** Follow `.github/ansible/docs/TEMPLATE_ZONE_SETUP.md` to create the template zone and snapshot on the target VM.
 
 **Verify:**
+
 ```bash
 ssh github-runner@dsoc3 'zfs list -t snapshot | grep template-ion'
 ```
@@ -301,11 +282,13 @@ ssh github-runner@dsoc3 'zfs list -t snapshot | grep template-ion'
 **Error:** Zone boot timeout after 5 minutes
 
 **Possible causes:**
+
 - Network configuration issues
 - Template zone corrupted
 - Insufficient resources on VM
 
 **Debug:**
+
 ```bash
 ssh github-runner@dsoc3 'zoneadm list -cv'
 ssh github-runner@dsoc3 'tail -50 /var/log/zones/zoneadm.log'
@@ -318,6 +301,7 @@ ssh github-runner@dsoc3 'tail -50 /var/log/zones/zoneadm.log'
 **Cause:** Previous run didn't clean up properly
 
 **Solution:**
+
 ```bash
 ssh github-runner@dsoc3 'sudo zfs destroy zones/ci-zone-123456789-0'
 ```
@@ -336,6 +320,7 @@ The destroy-zone.yml playbook includes this fallback.
 **Impact:** Zone left running, consuming resources
 
 **Solution:**
+
 - destroy-zone.yml uses `failed_when: false` for best-effort cleanup
 - Manually clean up: `ssh github-runner@dsoc3 'sudo zoneadm list -cv'`
 - Remove stuck zones: `zoneadm -z <zone> halt -F && zoneadm -z <zone> uninstall -F`
@@ -347,6 +332,7 @@ The destroy-zone.yml playbook includes this fallback.
 **Cause:** Artifact not readable or github-runner user lacks sudo
 
 **Solution:**
+
 - Verify tarball permissions: `ls -l /tmp/zone-artifacts/ion-build.tar.gz`
 - Verify github-runner sudo: `ssh github-runner@dsoc3 'sudo -l'`
 
@@ -363,6 +349,7 @@ The destroy-zone.yml playbook includes this fallback.
 ## Performance
 
 Expected timings:
+
 - **Zone creation (all zones)**: 15-25 seconds total (regardless of count!)
 - **Per-zone overhead in test job**: ~2 seconds (verification only)
 - Test execution: Varies by test subset (minutes to hours)
@@ -371,6 +358,7 @@ Expected timings:
 Total workflow overhead: ~25-35 seconds (vs. 150-350 seconds sequential for 7 zones)
 
 **Parallelization strategy:**
+
 - All zones created upfront in single job using Ansible async
 - Each VM processes multiple zones simultaneously (true parallelism)
 - Both VMs (dsoc3 and dsoc4) create zones at the same time
@@ -378,6 +366,7 @@ Total workflow overhead: ~25-35 seconds (vs. 150-350 seconds sequential for 7 zo
 - No ZFS contention due to proper async handling
 
 **Performance comparison (7 zones):**
+
 - **Sequential**: 7 zones × 20s = 140s
 - **Parallel (this implementation)**: ~20s total
 - **Speedup**: ~7x faster
@@ -385,6 +374,7 @@ Total workflow overhead: ~25-35 seconds (vs. 150-350 seconds sequential for 7 zo
 ## Scaling
 
 To add more VMs:
+
 1. Set up template zone on new VM (follow TEMPLATE_ZONE_SETUP.md)
 2. Update workflow's VM selection logic from `job_index % 2` to `job_index % N` where N is total VM count
 3. No changes needed to these playbooks
@@ -392,12 +382,14 @@ To add more VMs:
 ## Maintenance
 
 **Regular tasks:**
+
 - Update template zone packages monthly
 - Verify ZFS snapshot integrity
 - Monitor ZFS space usage on VMs
 - Review zone-related errors in workflow logs
 
 **After ION dependency changes:**
+
 - Update template zone with new dependencies
 - Create new snapshot (optionally with versioned name)
 - Update group_vars/all.yml if snapshot name changes
