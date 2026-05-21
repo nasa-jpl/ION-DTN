@@ -17,14 +17,17 @@ RETVAL=0
 # Setup
 export ION_NODE_LIST_DIR=$PWD
 
-# Start nodes
+# Start nodes sequentially.  Backgrounding ionstart and then immediately
+# polling with system_up doesn't work: system_up's ionadmin needs to
+# attach to ION, but if ionstart hasn't yet written the ion_nodes entry
+# the attach fails before the polling can begin.  Synchronous starts (per
+# bug-0001-cgr-loopback) guarantee ION is up before we verify.
 echo ""
 echo "Starting 2-node test network..."
-(cd node1; ./ionstart) >/dev/null 2>&1 &
-(cd node2; ./ionstart) >/dev/null 2>&1 &
+(cd node1; ./ionstart) >/dev/null 2>&1
+(cd node2; ./ionstart) >/dev/null 2>&1
 
-# Poll each subsystem (ION+LTP+BP) for up to 30s instead of a fixed sleep;
-# the previous 5s sleep raced node startup on slower ARC runners.
+# Poll each subsystem (ION+LTP+BP) for up to 30s as a sanity check.
 echo "Verifying nodes..."
 (cd node1; ../../../system_up -i "p 30" -l "p 30" -b "p 30") >/dev/null 2>&1
 if [ $? -ne 3 ]; then
