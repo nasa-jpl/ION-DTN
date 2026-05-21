@@ -14,7 +14,6 @@ import json
 import sys
 import unittest
 from pathlib import Path
-from unittest import mock
 
 # Import the script to test
 import git_matrix
@@ -37,10 +36,10 @@ class TestGitMatrix(unittest.TestCase):
         Path.is_file = self.orig_is_file
         Path.read_text = self.orig_path_read_text
 
-    @mock.patch('git_matrix.list_tests')
-    @mock.patch('git_matrix.balance_load')
-    @mock.patch('git_matrix.get_folder_durations')
-    @mock.patch('json.dumps')
+    @unittest.mock.patch('git_matrix.list_tests')
+    @unittest.mock.patch('git_matrix.balance_load')
+    @unittest.mock.patch('git_matrix.get_folder_durations')
+    @unittest.mock.patch('json.dumps')
     def test_main_with_default_runners(self, mock_json_dumps, mock_get_durations,
                                        mock_balance, mock_list_tests):
         """Test main function with default runner count (7)."""
@@ -74,10 +73,10 @@ class TestGitMatrix(unittest.TestCase):
         finally:
             sys.stdout = saved_stdout
 
-    @mock.patch('git_matrix.list_tests')
-    @mock.patch('git_matrix.balance_load')
-    @mock.patch('git_matrix.get_folder_durations')
-    @mock.patch('json.dumps')
+    @unittest.mock.patch('git_matrix.list_tests')
+    @unittest.mock.patch('git_matrix.balance_load')
+    @unittest.mock.patch('git_matrix.get_folder_durations')
+    @unittest.mock.patch('json.dumps')
     def test_main_with_custom_runners(self, mock_json_dumps, mock_get_durations,
                                       mock_balance, mock_list_tests):
         """Test main function with custom runner count (3)."""
@@ -115,8 +114,8 @@ class TestGitMatrix(unittest.TestCase):
         finally:
             sys.stdout = saved_stdout
 
-    @mock.patch('git_matrix.get_folder_durations')
-    @mock.patch('json.dumps')
+    @unittest.mock.patch('git_matrix.get_folder_durations')
+    @unittest.mock.patch('json.dumps')
     def test_main_with_subset(self, mock_json_dumps, mock_get_durations):
         """Test main function with subset of tests."""
         # Setup mocks
@@ -237,6 +236,7 @@ class TestGitMatrix(unittest.TestCase):
             git_matrix.get_folder_durations = original_func
 
     @mock.patch('json.dumps')
+    @unittest.mock.patch('json.dumps')
     def test_print_schedule(self, mock_json_dumps):
         """Test JSON output formatting."""
         runners = [
