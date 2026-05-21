@@ -503,6 +503,7 @@ static void	resetEndpoint(VEndpoint *vpoint)
 
 	sm_SemTake(vpoint->semaphore);			/*	Lock.	*/
 	vpoint->appPid = ERROR;				/*	None.	*/
+	vpoint->appCookie = 0;
 }
 
 static int	raiseEndpoint(VScheme *vscheme, Object endpointElt)

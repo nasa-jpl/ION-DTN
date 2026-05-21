@@ -434,6 +434,11 @@ typedef struct
 	int		updateStats;	/*	Boolean.		*/
 	char		nss[MAX_NSS_LEN + 1];
 	int		appPid;		/*	Consumes dlv notices.	*/
+	uvast		appCookie;	/*	Owner's per-process
+						instance cookie; used with
+						appPid to distinguish a
+						PID-recycled new process
+						from the original owner.*/
 	sm_SemId	semaphore;	/*	For dlv notices.	*/
 	TallyDelta	statsDeltas[BP_ENDPOINT_STATS];
 } VEndpoint;

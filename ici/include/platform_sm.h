@@ -97,6 +97,7 @@ extern void		sm_ShmDestroy(uaddr id);
 
 extern int		sm_TaskIdSelf(void);
 extern int		sm_TaskExists(int taskId);
+extern uvast		sm_ProcessCookie(void);
 extern void		*sm_TaskVar(void **arg);
 extern void		sm_TaskSuspend(void);
 extern void		sm_TaskDelay(int seconds);

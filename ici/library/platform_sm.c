@@ -2751,6 +2751,46 @@ void	sm_Abort(void)
 
 #endif	/*	End of #ifdef UNIX_TASKS				*/
 
+/*	Portable per-process-instance cookie.  sm_TaskIdSelf() returns
+ *	the OS PID, which is reused after a process exits.  Two distinct
+ *	processes can therefore observe the same task id at different
+ *	times.  This function returns a value that distinguishes "this
+ *	process instance" from any other process instance, even one with
+ *	the same recycled PID.  Used by code that needs to detect stale
+ *	shared-memory ownership records left behind by a now-dead process
+ *	whose PID has since been reassigned.
+ *
+ *	The cookie is process-local: every thread in the same process
+ *	gets the same value, so it does not distinguish threads (PID
+ *	already fails to distinguish them and code that needs thread
+ *	identity must use pthread_self() or equivalent directly).	*/
+
+uvast	sm_ProcessCookie(void)
+{
+	static uvast	cookie = 0;
+
+	if (cookie == 0)
+	{
+		struct timeval	tv;
+
+		/*	XOR the PID with the high-resolution wall clock at
+		 *	first call.  Two processes cannot both start at the
+		 *	same microsecond with the same PID, so the tuple is
+		 *	unique in practice even if the collapsed 64-bit
+		 *	value is not theoretically collision-free.	*/
+
+		getCurrentTime(&tv);
+		cookie = ((uvast) sm_TaskIdSelf() << 32)
+			^ ((uvast) tv.tv_sec * 1000000ULL + (uvast) tv.tv_usec);
+		if (cookie == 0)
+		{
+			cookie = 1;	/*	0 means "unset".	*/
+		}
+	}
+
+	return cookie;
+}
+
 
 #ifdef POSIX_NAMED_SEMAPHORES
 /* ---- Semaphore services (POSIX NAMED SEMAPHORES) ---------	*/
