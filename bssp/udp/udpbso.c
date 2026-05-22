@@ -16,9 +16,15 @@
 
 #include "udpbsa.h"
 
-#if defined(__linux__) || defined(RTEMS)
+#if defined(__linux__)
 
 #define IPHDR_SIZE	(sizeof(struct iphdr) + sizeof(struct udphdr))
+
+#elif defined(RTEMS)
+
+/*	RTEMS/libbsd has no Linux-style struct iphdr; use the constant
+ *	IPv4 (20) + UDP (8) header overhead, as ltp's udplso.c does.	*/
+#define IPHDR_SIZE	(20 + 8)
 
 #else
 
