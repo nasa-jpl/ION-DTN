@@ -22,14 +22,7 @@
  */
 
 #include "sdrP.h"
-#include "lyst.h"
 #include "sdrmgt.h"
-
-typedef struct
-{
-	Address		from;	/*	1st byte of object		*/
-	Address		to;	/*	1st byte beyond scope of object	*/
-} ObjectExtent;
 
 /*		--	SDR space management stuff.	--		*/
 
@@ -173,19 +166,162 @@ static ObjectScale	scaleOf(Sdr sdrv, Address addr, Ohd *ohd)
 	return NotAnObject;
 }
 
-static LystElt	noteKnownObject(Sdr sdrv, Address from, Address to)
-{
-	ObjectExtent	*extent;
+/*	Grows the array to hold at least 'needed' entries.  Returns 0
+ *	on success, -1 on allocation failure.				*/
 
-	extent = (ObjectExtent *) MTAKE(sizeof(ObjectExtent));
-	if (extent == NULL)
+static int	extentArrayReserve(ExtentArray *arr, size_t needed)
+{
+	size_t		newCap;
+	ObjectExtent	*newItems;
+
+	if (needed <= arr->capacity)
 	{
-		return NULL;
+		return 0;
 	}
 
-	extent->from = from;
-	extent->to = to;
-	return lyst_insert_last(sdrv->knownObjects, extent);
+	newCap = arr->capacity ? arr->capacity * 2 : 16;
+	while (newCap < needed)
+	{
+		newCap *= 2;
+	}
+
+	newItems = (ObjectExtent *) MTAKE(newCap * sizeof(ObjectExtent));
+	if (newItems == NULL)
+	{
+		return -1;
+	}
+
+	if (arr->count > 0)
+	{
+		memcpy(newItems, arr->items,
+				arr->count * sizeof(ObjectExtent));
+	}
+
+	if (arr->items)
+	{
+		MRELEASE(arr->items);
+	}
+
+	arr->items = newItems;
+	arr->capacity = newCap;
+	return 0;
+}
+
+/*	Binary search for an extent whose 'from' equals addr.  Returns
+ *	1 if found (with *idx set to the matching position), 0 if not
+ *	(with *idx set to the position at which a new extent with that
+ *	'from' would be inserted to keep the array sorted).		*/
+
+static int	extentArrayFind(const ExtentArray *arr, Address addr,
+			size_t *idx)
+{
+	size_t		lo = 0;
+	size_t		hi = arr->count;
+	size_t		mid;
+
+	while (lo < hi)
+	{
+		mid = lo + ((hi - lo) >> 1);
+		if (arr->items[mid].from == addr)
+		{
+			*idx = mid;
+			return 1;
+		}
+
+		if (arr->items[mid].from < addr)
+		{
+			lo = mid + 1;
+		}
+		else
+		{
+			hi = mid;
+		}
+	}
+
+	*idx = lo;
+	return 0;
+}
+
+/*	Inserts a new (from, to) extent into the array at the position
+ *	determined by 'from'.  Caller must have verified there is no
+ *	existing extent with this 'from' (e.g. via extentArrayFind).
+ *	Returns 0 on success, -1 on allocation failure.			*/
+
+static int	extentArrayInsertAt(ExtentArray *arr, size_t idx,
+			Address from, Address to)
+{
+	if (extentArrayReserve(arr, arr->count + 1) < 0)
+	{
+		return -1;
+	}
+
+	if (idx < arr->count)
+	{
+		memmove(&arr->items[idx + 1], &arr->items[idx],
+				(arr->count - idx) * sizeof(ObjectExtent));
+	}
+
+	arr->items[idx].from = from;
+	arr->items[idx].to = to;
+	arr->count++;
+	return 0;
+}
+
+static void	extentArrayRemoveAt(ExtentArray *arr, size_t idx)
+{
+	if (idx + 1 < arr->count)
+	{
+		memmove(&arr->items[idx], &arr->items[idx + 1],
+				(arr->count - idx - 1)
+					* sizeof(ObjectExtent));
+	}
+
+	arr->count--;
+}
+
+/*	Returns 1 if some extent in arr contains [from, from+length),
+ *	0 otherwise.  Extents are non-overlapping and sorted by 'from',
+ *	so the only candidate is the largest extent with from <= addr.	*/
+
+static int	extentArrayContains(const ExtentArray *arr, Address from,
+			size_t length)
+{
+	size_t		idx;
+	const ObjectExtent	*e;
+
+	if (arr->count == 0)
+	{
+		return 0;
+	}
+
+	if (extentArrayFind(arr, from, &idx))
+	{
+		e = &arr->items[idx];
+	}
+	else
+	{
+		if (idx == 0)
+		{
+			return 0;
+		}
+
+		e = &arr->items[idx - 1];
+	}
+
+	return (e->from <= from && e->to >= from + length);
+}
+
+static int	noteKnownObject(Sdr sdrv, Address from, Address to)
+{
+	ExtentArray	*arr = &sdrv->knownObjects;
+	size_t		idx;
+
+	if (extentArrayFind(arr, from, &idx))
+	{
+		return 0;	/*	Already present; treat as ok.	*/
+	}
+
+	return extentArrayInsertAt(arr, idx, from, to);
 }
 
 void	sdr_stage(Sdr sdrv, char *into, Object from, size_t length)
@@ -194,8 +330,6 @@ void	sdr_stage(Sdr sdrv, char *into, Object from, size_t length)
 	Address		addr = (Address) from;
 	Address		to;
 	Ohd		ohd;
-	LystElt		elt;
-	ObjectExtent	*extent;
 
 	if (into != NULL && length > 0)
 	{
@@ -227,24 +361,11 @@ void	sdr_stage(Sdr sdrv, char *into, Object from, size_t length)
 		return;
 	}
 
-	for (elt = lyst_first(sdrv->knownObjects); elt; elt = lyst_next(elt))
+	if (noteKnownObject(sdrv, addr, addr + ohd.leading.userDataSize) < 0)
 	{
-		extent = (ObjectExtent *) lyst_data(elt);
-		if (extent->from == addr)	/*	Already staged.	*/
-		{
-			break;
-		}
-	}
-
-	if (elt == 0)		/*	Not staged yet.			*/
-	{
-		if (noteKnownObject(sdrv, addr,
-			addr + ohd.leading.userDataSize) == NULL)
-		{
-			putErrmsg(_noMemoryMsg(), NULL);
-			crashXn(sdrv);
-			return;
-		}
+		putErrmsg(_noMemoryMsg(), NULL);
+		crashXn(sdrv);
+		return;
 	}
 
 	/*	Length may be zero, in which case the object is just
@@ -832,7 +953,7 @@ Object	_sdrmalloc(Sdr sdrv, size_t nbytes)
 			addr = (Address) object;
 			oK(scaleOf(sdrv, addr, &ohd));
 			if (noteKnownObject(sdrv, addr,
-				addr + ohd.leading.userDataSize) == NULL)
+				addr + ohd.leading.userDataSize) < 0)
 			{
 				putErrmsg(_noMemoryMsg(), NULL);
 				crashXn(sdrv);
@@ -982,8 +1103,7 @@ void	_sdrfree(Sdr sdrv, Object object, PutSrc src)
 	int		i;			/*	Bucket index #.	*/
 	uaddr		next;
 	size_t		newFreeBlocks;
-	LystElt		elt;
-	ObjectExtent	*extent;
+	size_t		idx;
 
 	CHKVOID(sdrv);
 	sdr = sdrv->sdr;
@@ -1046,18 +1166,12 @@ void	_sdrfree(Sdr sdrv, Object object, PutSrc src)
 			break;
 		}
 
-		/*	Ensure object isn't in transaction's list of
+		/*	Ensure object isn't in transaction's set of
 			knownObjects any more.				*/
 
-		for (elt = lyst_first(sdrv->knownObjects); elt;
-				elt = lyst_next(elt))
+		if (extentArrayFind(&sdrv->knownObjects, addr, &idx))
 		{
-			extent = (ObjectExtent *) lyst_data(elt);
-			if (addr == extent->from)
-			{
-				lyst_delete(elt);
-				break;
-			}
+			extentArrayRemoveAt(&sdrv->knownObjects, idx);
 		}
 
 		break;
@@ -1096,27 +1210,8 @@ void	Sdr_free(const char *file, int line, Sdr sdrv, Object object)
 
 int	sdrBoundaryViolated(Sdr sdrv, Address from, size_t length)
 {
-	Address		to;
-	LystElt		elt;
-	ObjectExtent	*extent;
-
-	to = from + length;
-	for (elt = lyst_first(sdrv->knownObjects); elt; elt = lyst_next(elt))
-	{
-		extent = (ObjectExtent *) lyst_data(elt);
-		if (extent->from <= from && extent->to >= to)
-		{
-			/*	First byte written is within this
-				object and the last byte written is
-				within the same object; write is okay.	*/
-
-			return 0;
-		}
-	}
-
-	/*	No known object was found that encompasses this write.	*/
-
-	return 1;
+	return extentArrayContains(&sdrv->knownObjects, from, length)
+			? 0 : 1;
 }
 
 size_t	sdr_object_length(Sdr sdrv, Object object)

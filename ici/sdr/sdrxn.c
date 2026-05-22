@@ -857,10 +857,7 @@ static void	clearTransaction(Sdr sdrv)
 		}
 	}
 
-	if (sdrv->knownObjects)
-	{
-		lyst_clear(sdrv->knownObjects);
-	}
+	sdrv->knownObjects.count = 0;
 
 	sdrv->sdr->logLength = 0;
 	sm_list_clear(_sdrwm(NULL), sdrv->sdr->logEntries, NULL, NULL);
@@ -1839,14 +1836,6 @@ int	sdr_reload_profile(char *name, int configFlags, size_t heapWords,
 			logKey, pathName, restartCmd);
 }
 
-static void	deleteObjectExtent(LystElt elt, void *userData)
-{
-	/* Parameter intentionally unused. */
-	(void)userData;
-
-	MRELEASE(lyst_data(elt));
-}
-
 Sdr	Sdr_start_using(char *name)
 {
 	sm_SemId		lock = _sdrlock(0);
@@ -1965,18 +1954,8 @@ Sdr	Sdr_start_using(char *name)
 		sdrv->logfile = -1;
 	}
 
-	if (sdr->configFlags & SDR_BOUNDED)
-	{
-		sdrv->knownObjects = lyst_create_using(_sdrMemory(NULL));
-		if (sdrv->knownObjects == 0)
-		{
-			sm_SemGive(lock);
-			putErrmsg(_noMemoryMsg(), NULL);
-			return NULL;
-		}
-
-		lyst_delete_set(sdrv->knownObjects, deleteObjectExtent, NULL);
-	}
+	/*	knownObjects is already zeroed by the memset above;
+	 *	the backing array is MTAKE'd lazily on first insert.	*/
 
 	sdrv->trace = NULL;
 	sdrv->currentSourceFileName = NULL;
@@ -2034,9 +2013,12 @@ void	sdr_stop_using(Sdr sdrv, int shutdown)
 		sm_ShmDetach(sdrv->logsm);
 	}
 
-	if (sdrv->knownObjects)
+	if (sdrv->knownObjects.items)
 	{
-		lyst_destroy(sdrv->knownObjects);
+		MRELEASE(sdrv->knownObjects.items);
+		sdrv->knownObjects.items = NULL;
+		sdrv->knownObjects.capacity = 0;
+		sdrv->knownObjects.count = 0;
 	}
 
 	/*	Erase content of SdrView, in case space is re-used

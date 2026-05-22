@@ -47,6 +47,24 @@
 	M		D			sdr heap (objects)	*/
 
 
+typedef struct
+{
+	Address		from;	/*	1st byte of object		*/
+	Address		to;	/*	1st byte beyond scope of object	*/
+} ObjectExtent;
+
+/*	Sorted (by 'from') dynamic array of ObjectExtents.  Backs the
+ *	SDR_BOUNDED write-validation set per transaction.  Extents are
+ *	non-overlapping, so a predecessor binary search suffices to
+ *	answer "is [from, from+length) contained in any known extent?".	*/
+
+typedef struct
+{
+	ObjectExtent	*items;
+	size_t		count;
+	size_t		capacity;
+} ExtentArray;
+
 #define	INITIALIZED	(0x99999999)
 
 /*	Memory management abstraction.					*/
@@ -197,7 +215,7 @@ typedef struct sdrv_str
 	char		*logsm;		/*	Log in shared memory.	*/
 	uaddr		logsmId;	/*	Log shmId if applicable.*/
 
-	Lyst		knownObjects;	/*	ObjectExtents.		*/
+	ExtentArray	knownObjects;	/*	SDR_BOUNDED bookkeeping	*/
 
 	PsmView		traceArea;	/*	local access to trace	*/
 	PsmView		*trace;		/*	local access to trace	*/
