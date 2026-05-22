@@ -416,6 +416,15 @@ static PsmPartition	_sdrwm(sm_WmParms *parms)
 	return sdrwm;
 }
 
+/*	In SDR_IN_DRAM mode this returns a live pointer into the
+ *	dataspace, so every patchMap() is visible on the next
+ *	map->X read.  In file-backed mode it returns a pointer to
+ *	a process-local static snapshot that is NOT refreshed when
+ *	patchMap() writes to the dataspace.  Callers must therefore
+ *	never re-read map->X after patching X in the same function:
+ *	either compute the new value into a local and pass it to
+ *	patchMap, or use sdrFetch(V, ADDRESS_OF(X)) for a live read.	*/
+
 SdrMap	*_mapImage(Sdr sdrv)
 {
 	static SdrMap	map;
