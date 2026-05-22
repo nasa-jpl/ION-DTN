@@ -6,22 +6,23 @@ Ansible playbooks for managing ephemeral Solaris Zones for ION test parallelizat
 
 ### Overview
 
-The CI workflow uses Solaris Zones to run ION tests in parallel with complete isolation. Each GitHub Actions matrix job gets its own Solaris Zone created from a ZFS snapshot of a template zone.
+The CI workflow uses Solaris Zones
+to run ION tests in parallel with complete isolation.
+Each GitHub Actions matrix job gets its own Solaris Zone
+created from a ZFS snapshot of a template zone.
 
-``` text
-GitHub Actions Workflow
-  ↓
-  1. Build ION (one job, uploads artifact)
-  2. Create ALL zones in parallel (create-zones-parallel.yml)
-  3. Run tests in parallel (N jobs, each uses pre-created zone)
-  4. Upload results (per-job)
-  5. Destroy zones (always runs per-job)
-  6. Aggregate results
-```
+**GitHub Actions Workflow:**
+
+1. Build ION (one job, uploads artifact)
+2. Create ALL zones in parallel ([create-zones-parallel.yml][create-zone])
+3. Run tests in parallel (N jobs, each uses pre-created zone)
+4. Upload results (per-job)
+5. Destroy zones (always runs per-job)
+6. Aggregate results
 
 ### Job Flow
 
-1. **Matrix Generation:** `git_matrix.py` distributes ~129 tests across N runners based on test duration
+1. **Matrix Generation:** [`git_matrix.py`][git-matrix] distributes ~129 tests across N runners based on test duration
 2. **Build:** One job builds ION, creates tarball, uploads as artifact
 3. **Zone Creation (Parallel):** Single job creates ALL zones simultaneously:
    - Uses Ansible's parallelism to create zones on both dsoc3 and dsoc4 at once
@@ -64,9 +65,7 @@ Zones are ephemeral (created and destroyed per test job):
 
 Zones use unique names to prevent collision:
 
-``` JSON
-ci-zone-{run_id}-{job_index}
-```
+ci-zone-*run_id*-*job_index*
 
 Example: `ci-zone-123456789-0` for run 123456789, job index 0
 
@@ -74,7 +73,7 @@ Multiple concurrent CI runs can use the same VMs without conflict.
 
 ## Playbooks
 
-### create-zones-parallel.yml
+### [create-zones-parallel.yml][create-zone]
 
 Creates multiple Solaris Zones in parallel from template snapshot.
 
@@ -99,10 +98,10 @@ Creates multiple Solaris Zones in parallel from template snapshot.
 - All zones on a VM are created simultaneously
 - Significantly faster than sequential creation (15-20s total vs 15-20s per zone)
 - All zones created in <30 seconds total
-- Zones named `ci-zone-{run_id}-{job_index}`
+- Zones named ci-zone-*run_id*-*job_index*
 - Hostnames configured via sysconfig profile during clone
 
-### run-tests-in-zone.sh
+### [run-tests-in-zone.sh][run-zones]
 
 Bash script that executes ION tests inside a Solaris Zone using `zlogin`.
 
@@ -126,9 +125,10 @@ Bash script that executes ION tests inside a Solaris Zone using `zlogin`.
 9. Returns test exit code
 
 **Deployment:**
-The workflow copies this script to the VM via `scp` and executes it with `ssh` and `sudo`.
+The workflow copies this script to the VM via `scp`
+and executes it with `ssh` and `sudo`.
 
-### destroy-zone.yml
+### [destroy-zone.yml][destroy-zone]
 
 Destroys zone and cleans up resources.
 
@@ -147,7 +147,7 @@ Destroys zone and cleans up resources.
 
 Uses `block/rescue/always` to guarantee cleanup even if errors occur.
 
-### copy-code.yml
+### [copy-code.yml][copy]
 
 Synchronizes source code from runner to Solaris VMs.
 
@@ -165,7 +165,58 @@ Synchronizes source code from runner to Solaris VMs.
 
 **Replaces:** Direct rsync commands in workflow
 
-### distribute-artifacts.yml
+### [process-artifact.yml][process]
+
+Creates build artifact tarball from compiled ION binaries and verifies contents.
+
+**Required variables:**
+
+- `run_id`: GitHub Actions run ID
+
+**What it does:**
+
+1. Creates tarball from build directory
+   excluding unnecessary files (.git, .github, demos, markdown files)
+2. Includes both visible and hidden files at root level
+3. Verifies tarball is valid (exists and > 1000 bytes)
+4. Fetches tarball to runner's workspace
+5. Extracts and verifies required files exist (tests, configure, Makefile)
+6. Cleans up VM workspace after artifact creation
+
+**Key features:**
+
+- Uses block/always to guarantee VM cleanup
+- Local verification prevents invalid artifacts from being uploaded
+- Excludes build logs and unnecessary directories to minimize artifact size
+
+### [overlay-fresh-tests.yml][overlay-test]
+
+Overlays fresh test scripts and demo files over extracted artifact
+while preserving compiled binaries.
+
+**Required variables:**
+
+- `GITHUB_WORKSPACE`: Path to checked-out code on runner
+- `ARTIFACT_PATH`: Path to artifact tarball
+- `RUN_ID`: GitHub Actions run ID
+
+**What it does:**
+
+1. Extracts artifact tarball to temporary directory
+2. Overlays fresh test files from git checkout (preserves compiled binaries)
+3. Overlays fresh demo files from git checkout (ionlauncher required for install)
+4. Re-creates artifact tarball with updated tests and demos
+5. Cleans up temporary extraction directory
+
+**Key features:**
+
+- Ensures artifact contains compiled binaries from build VM
+  but latest test scripts from checkout
+- Prevents test script staleness when build cache is reused
+- Excludes compiled test artifacts (\*.o, \*.so, .libs/) to preserve build outputs
+- Runs on localhost (runner) rather than remote VM
+
+### [distribute-artifacts.yml][distribute]
 
 Handles artifact deployment and test results collection.
 
@@ -196,14 +247,17 @@ Handles artifact deployment and test results collection.
 
 Zone operations use direct `zlogin` commands for simplicity and reliability:
 
-- **create-zones-parallel.yml**: Uses `zlogin` to verify zone accessibility after boot
-- **run-tests-in-zone.sh**: Uses `zlogin` to execute commands inside the zone
+- [**create-zones-parallel.yml**][create-zone]:
+   Uses `zlogin` to verify zone accessibility after boot
+- [**run-tests-in-zone.sh**][run-zones]:
+   Uses `zlogin` to execute commands inside the zone
 
-This direct approach avoids connection plugin overhead and ensures consistent behavior across different Ansible versions.
+This direct approach avoids connection plugin overhead
+and ensures consistent behavior across different Ansible versions.
 
 ## Configuration
 
-### group_vars/all.yml
+### [group_vars/all.yml][group-vars]
 
 Shared variables:
 
@@ -211,10 +265,10 @@ Shared variables:
 - `zone_name_prefix`: "ci-zone"
 - `zone_mountpoint_base`: "/zones"
 - `zone_clone_timeout`: 180 seconds (ZFS clone operations)
-- `zone_boot_timeout`: 300 seconds (zone boot with parallel load)
+- `zone_boot_timeout`: 600 seconds (zone boot with parallel load)
 - `zone_create_retries`: 2 attempts with 3-second delay
 
-### ansible.cfg
+### [ansible.cfg][ansible-cfg]
 
 Ansible configuration:
 
@@ -222,10 +276,13 @@ Ansible configuration:
 - SSH timeout: 30 seconds
 - Parallelism: forks=10 (prevents SSH daemon overload)
 - Host key checking disabled
+- No logging of secrets, like usernames or passwords
 
 ## Prerequisites
 
-1. **Template Zone Setup:** Follow `.github/ansible/docs/TEMPLATE_ZONE_SETUP.md` to create template-ion zone on both dsoc3 and dsoc4
+1. **Template Zone Setup:**
+   Follow [`.github/ansible/docs/TEMPLATE_ZONE_SETUP.md`][temp-zone]
+   to create template-ion zone on both dsoc3 and dsoc4
 
 2. **SSH Access:** github-runner user must have:
    - SSH key access to dsoc3 and dsoc4
@@ -269,7 +326,8 @@ ansible-playbook -i "dsoc3," destroy-zone.yml \
 
 **Error:** "Template zone snapshot zones/template-ion@ci-base not found"
 
-**Solution:** Follow `.github/ansible/docs/TEMPLATE_ZONE_SETUP.md` to create the template zone and snapshot on the target VM.
+**Solution:** Follow [`.github/ansible/docs/TEMPLATE_ZONE_SETUP.md`][temp-zone]
+to create the template zone and snapshot on the target VM.
 
 **Verify:**
 
@@ -313,7 +371,7 @@ ssh github-runner@dsoc3 'sudo zfs destroy zones/ci-zone-123456789-0'
 **Solution:**
 Force halt: `zoneadm -z <zone_name> halt -F`
 
-The destroy-zone.yml playbook includes this fallback.
+The [destroy-zone.yml][destroy-zone] playbook includes this fallback.
 
 ### Tests fail but zone cleanup fails
 
@@ -321,7 +379,7 @@ The destroy-zone.yml playbook includes this fallback.
 
 **Solution:**
 
-- destroy-zone.yml uses `failed_when: false` for best-effort cleanup
+- [destroy-zone.yml][destroy-zone] uses `failed_when: false` for best-effort cleanup
 - Manually clean up: `ssh github-runner@dsoc3 'sudo zoneadm list -cv'`
 - Remove stuck zones: `zoneadm -z <zone> halt -F && zoneadm -z <zone> uninstall -F`
 
@@ -355,7 +413,8 @@ Expected timings:
 - Test execution: Varies by test subset (minutes to hours)
 - Zone destruction: 5-10 seconds per zone
 
-Total workflow overhead: ~25-35 seconds (vs. 150-350 seconds sequential for 7 zones)
+Total workflow overhead: ~25-35 seconds
+(vs. 150-350 seconds sequential for 7 zones)
 
 **Parallelization strategy:**
 
@@ -375,8 +434,9 @@ Total workflow overhead: ~25-35 seconds (vs. 150-350 seconds sequential for 7 zo
 
 To add more VMs:
 
-1. Set up template zone on new VM (follow TEMPLATE_ZONE_SETUP.md)
-2. Update workflow's VM selection logic from `job_index % 2` to `job_index % N` where N is total VM count
+1. Set up template zone on new VM (follow [`.github/ansible/docs/TEMPLATE_ZONE_SETUP.md`][temp-zone])
+2. Update workflow's VM selection logic
+   from `job_index % 2` to `job_index % N` where N is total VM count
 3. No changes needed to these playbooks
 
 ## Maintenance
@@ -391,5 +451,17 @@ To add more VMs:
 **After ION dependency changes:**
 
 - Update template zone with new dependencies
-- Create new snapshot (optionally with versioned name)
-- Update group_vars/all.yml if snapshot name changes
+- Create new template (optionally with versioned name)
+- Update [group_vars/all.yml][group-vars] if template name changes
+
+[temp-zone]: docs/TEMPLATE_ZONE_SETUP.md
+[git-matrix]: ../../tests/git_matrix.py
+[create-zone]: create-zones-parallel.yml
+[run-zones]: run-tests-in-zone.sh
+[destroy-zone]: destroy-zone.yml
+[copy]: copy-code.yml
+[process]: process-artifact.yml
+[overlay-test]: overlay-fresh-tests.yml
+[distribute]: distribute-artifacts.yml
+[group-vars]: group_vars/all.yml
+[ansible-cfg]: ansible.cfg

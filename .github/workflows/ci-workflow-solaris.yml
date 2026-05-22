@@ -170,7 +170,7 @@ jobs:
           ssh github-runner@$VM_IP '
             export MAKE_CMD=gmake
             cd ~/ion-gh-test-dir/ion-ios-dev
-            bash .github/scripts/compile-and-buildcheck.sh
+            sh .github/scripts/compile-and-buildcheck.sh
           ' > compile-and-buildcheck.log 2> >(tee -a compile-and-buildcheck.log >&2)
 
           BUILD_STATUS=$?
@@ -186,16 +186,8 @@ jobs:
           # Explicitly point to the config file so Ansible knows to use github-runner
           ANSIBLE_CONFIG: .github/ansible/ansible.cfg
         run: |
-          if [ "${{ job.status }}" == "success" ]; then
-            TAGS="all"
-          else
-            echo "Build failed. Skipping artifact generation and proceeding to VM cleanup."
-            TAGS="cleanup_only"
-          fi
-
-          /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook -i "$VM_IP," .github/ansible/process-artifact.yml \
+          /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook -i "$VM_IP," .github/ansible/process-artifact.yml
             -e "run_id=${{ github.run_id }}" \
-            --tags "$TAGS"
 
       - name: Format artifact for caching
         if: ${{ steps.cache-build.outputs.cache-hit != 'true' }}
@@ -206,7 +198,6 @@ jobs:
         run: cp ion-build-solaris.tar.gz ion-build-${{ github.run_id }}.tar.gz
 
       - name: Upload build artifact
-        if: ${{ success() }}
         uses: actions/upload-artifact@v7
         with:
           name: ion-build-${{ github.run_id }}

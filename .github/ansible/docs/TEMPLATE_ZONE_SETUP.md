@@ -9,11 +9,17 @@ This guide explains how to create the template-ion zone on dsoc3 and dsoc4 for C
 - Network access for template zone to download packages
 - Hostnames dsoc3 and dsoc4 configured in the runner's /etc/hosts file
 
-**Note about networking:** The template zone needs network configuration to download and install packages during initial setup. CI zones cloned from the template inherit all installed packages and don't need network access since tests run locally.
+**Note about networking:** The template zone needs network configuration
+to download and install packages during initial setup.
+CI zones cloned from the template inherit all installed packages
+and don't need network access since tests run locally.
 
 ## Overview
 
-The template zone (`template-ion`) is a pre-configured Solaris Zone containing all ION build dependencies. Test zones are created by cloning ZFS snapshots of this template, which is much faster than installing from scratch.
+The template zone (`template-ion`) is a pre-configured Solaris Zone
+containing all ION build dependencies.
+Test zones are created by cloning ZFS snapshots of this template,
+which is much faster than installing from scratch.
 
 ## Step-by-Step Setup
 
@@ -41,7 +47,10 @@ set autoboot=false
 EOF
 ```
 
-**Why network configuration?** The template zone needs network access to download packages via `pkg install` in step 5. CI zones cloned from this template inherit all packages and don't need their own network configuration.
+**Why network configuration?** The template zone needs network access
+to download packages via `pkg install` in step 5.
+CI zones cloned from this template inherit all packages
+and don't need their own network configuration.
 
 ### 3. Install template zone
 
@@ -63,16 +72,22 @@ Wait 30-60 seconds for zone to fully boot.
 
 ```bash
 # Install required packages in template zone
-sudo zlogin template-ion pkg install gcc gmake autoconf automake libtool
+sudo zlogin template-ion pkg install developer/versioning/git developer/gcc developer/build/automake developer/build/gnu-make developer/build/cmake developer/build/libtool developer/build/autoconf
 
 # Install ION-specific dependencies
-sudo zlogin template-ion pkg install pkg:/system/library/math/header-math
-sudo zlogin template-ion pkg install pkg:/library/security/openssl
+sudo zlogin template-ion pkg install library/security/openssl developer/build/ninja runtime/ruby developer/build/pkg-config
+```
 
-# If mbedtls is needed
-sudo zlogin template-ion pkg install mbedtls
+#### If mbedtls is needed
 
-# Verify installations
+Download the latest v2 version of mbedtls
+Uncomment the line with `#define MBEDTLS_NIST_KW_C` in include/mbedtls/config.h
+`CC="gcc" gmake SHARED=1`
+`gmake install`
+
+#### Verify installations
+
+```bash
 sudo zlogin template-ion which gcc gmake autoconf automake libtool
 ```
 
@@ -89,7 +104,8 @@ sudo zlogin template-ion 'source /root/ion_dev/bin/activate && pip install --upg
 # Example: sudo zlogin template-ion 'source /root/ion_dev/bin/activate && pip install pytest pytest-timeout'
 ```
 
-**Note:** The test execution scripts automatically activate this venv at `/root/ion_dev` before running tests.
+**Note:** The test execution scripts automatically activate this venv
+at `/root/ion_dev` before running tests.
 
 ### 7. Configure zone environment
 
@@ -118,7 +134,7 @@ zfs list -t snapshot | grep template-ion
 
 Expected output:
 
-``` text
+```text
 rpool/zones/template-ion@ci-base  [size]  -  [date]  -
 ```
 
@@ -158,13 +174,14 @@ To update dependencies in the template zone:
 1. Boot the template zone
 2. Make your changes (install packages, update configs)
 3. Halt the zone
-4. Create a new snapshot with a different name (e.g., `@ci-base-v2`)
-5. Update `.github/ansible/group_vars/all.yml` to point to the new snapshot
+4. Create a new template with a different name (e.g., `@ci-base-v2`)
+5. Update [`.github/ansible/group_vars/all.yml`][group-var] to point to the new template
 
 ## Troubleshooting
 
 **"failed to add network device" error:**
-This means the zone was configured with `ip-type=exclusive` but the network interface doesn't exist.
+This means the zone was configured with `ip-type=exclusive`
+but the network interface doesn't exist.
 
 Solution - Switch to shared IP mode:
 
@@ -208,7 +225,8 @@ sudo zoneadm -z template-ion install
 
 ## Advanced: Using Exclusive IP Mode
 
-**Only use exclusive IP mode if you need network isolation.** Most CI environments work fine with shared IP mode.
+**Only use exclusive IP mode if you need network isolation.**
+Most CI environments work fine with shared IP mode.
 
 If you need exclusive mode:
 
@@ -243,14 +261,6 @@ If you need exclusive mode:
    EOF
    ```
 
-4. **Update Ansible configuration:**
-
-   ```yaml
-   # In .github/ansible/group_vars/all.yml
-   zone_ip_type: "exclusive"
-   zone_physical_interface: "vnic0"
-   ```
-
 ## Security Considerations
 
 - Template zone should contain NO sensitive data (credentials, keys, etc.)
@@ -265,3 +275,5 @@ Recommended maintenance schedule:
 - Monthly: Update packages in template zone
 - Quarterly: Review and update ION dependencies
 - After major ION releases: Rebuild template with new dependencies
+
+[group-var]: ../group_vars/all.yml

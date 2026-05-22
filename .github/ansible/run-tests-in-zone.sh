@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/env bash
 # Usage: ./run-tests-in-zone.sh <run_id> <job_index> <test_list> [env_vars]
 
 # Exit immediately if a command exits with a non-zero status
@@ -61,11 +61,11 @@ RESULTS_DIR="/home/github-runner/ci-results/${RUN_ID}-${JOB_INDEX}"
 
 echo "Gathering zone information for $ZONE_NAME..."
 # Dynamically get the zone's root path using zoneadm
-ZONE_PATH=$(zoneadm -z "$ZONE_NAME" list -p | cut -d: -f4)
+IFS=: read _ _ _ ZONE_PATH _ <<< "$(zoneadm -z "$ZONE_NAME" list -p)"
 
 if [ -z "$ZONE_PATH" ]; then
-  echo "Error: Could not determine zone path for $ZONE_NAME"
-  exit 1
+    echo "Error: Could not determine zone path for $ZONE_NAME"
+    exit 1
 fi
 
 echo "Deploying artifact to zone..."
@@ -136,7 +136,7 @@ mkdir -p "$LOGS_DIR"
 
 # Find all ion.log files from the entire ion-build directory
 find "${ZONE_PATH}/root/root/ion-build" -name "ion.log" -type f 2>/dev/null | while read -r log_file; do
-    rel_path=$(echo "$log_file" | sed "s|${ZONE_PATH}/root/root/ion-build/||")
+    rel_path=${log_file//"${ZONE_PATH}/root/root/ion-build/"/}
     target_dir="$LOGS_DIR/$(dirname "$rel_path")"
     mkdir -p "$target_dir"
     cp "$log_file" "$target_dir/"
@@ -146,9 +146,10 @@ done
 DIAGNOSTICS_DIR="${RESULTS_DIR}/diagnostics-job-${JOB_INDEX}"
 mkdir -p "$DIAGNOSTICS_DIR"
 
-# Find ion-system.log files in tests and demos directories
-find "${ZONE_PATH}/root/root/ion-build/tests" "${ZONE_PATH}/root/root/ion-build/demos" -name "ion-system.log" -type f 2>/dev/null | while read -r log_file; do
-    rel_path=$(echo "$log_file" | sed "s|${ZONE_PATH}/root/root/ion-build/||" | sed 's|/ion-system\.log$||')
+# Find ion-system.log files in entire directory
+find "${ZONE_PATH}/root/root/ion-build" -name "ion-system.log" -type f 2>/dev/null | while read -r log_file; do
+    rel_path=${log_file//"${ZONE_PATH}/root/root/ion-build/"/}
+    rel_path="${rel_path%/ion-system.log}"
     unique_name=$(echo "$rel_path" | tr '/' '-')
     cp "$log_file" "$DIAGNOSTICS_DIR/${unique_name}-ion-system.log"
 done
