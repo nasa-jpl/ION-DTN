@@ -75,13 +75,13 @@ def is_excluded(
     exclude_set = [
         ".exclude_bpv7",
         ".exclude_expert",
-        ".exclude_linux",
-        ".exclude_arc",
         ".exclude_all",
     ]
 
     if solaris_run:
         exclude_set.append(".exclude_solaris")
+    else:
+        exclude_set.extend([".exclude_linux", ".exclude_arc"])
 
     # Add the specific bpsec marker to the list based on the mode
     if mode == "bsl":
@@ -327,7 +327,7 @@ if __name__ == "__main__":
         "-t",
         type=str,
         nargs="+",
-        help="List of tests to distribute. If wildcarding, pass argument in dobule quotes.",
+        help="List of tests to distribute. If wildcarding, pass argument in double quotes.",
     )
     parser.add_argument(
         "--solaris",

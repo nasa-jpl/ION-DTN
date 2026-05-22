@@ -17,9 +17,11 @@ runs:
   steps:
     - name: Setup SSH key
       shell: bash
+      env:
+        SSH_KEY: ${{ inputs.ssh_key }}
       run: |
         mkdir -p ~/.ssh
-        echo "${{ inputs.ssh_key }}" > ~/.ssh/id_rsa
+        echo "$SSH_KEY" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         chmod 700 ~/.ssh
 
