@@ -969,9 +969,6 @@ static void	freeLarge(Sdr sdrv, Address addr)
 	/*	Insert the (possibly consolidated) free block.		*/
 
 	insertFreeBlock(sdrv, leader, trailer);
-#if 0
-	map->inUse = map->heapSize - (map->smallPoolFree + map->largePoolFree + map->unassignedSpace);
-#endif
 }
 
 void	_sdrfree(Sdr sdrv, Object object, PutSrc src)
@@ -1039,9 +1036,6 @@ void	_sdrfree(Sdr sdrv, Object object, PutSrc src)
 		newFreeBlocks = map->smallPoolFree[i].freeBlocks + 1;
 		patchMap(smallPoolFree[i].freeBlocks, newFreeBlocks);
 		patchMap(smallPoolFree[i].firstFreeBlock, block);
-#if 0
-		map->inUse = map->heapSize - (map->smallPoolFree + map->largePoolFree + map->unassignedSpace);
-#endif
 		break;
 
 	case LargeObject:
@@ -1278,56 +1272,8 @@ void	sdr_report(SdrUsageSummary *usage)
 	isprintf(buf, sizeof buf, "max xn log len:    %12ld",
 			usage->maxLogLength);
 	writeMemo(buf);
-#if 0
-	istrcpy(buf, "Running Totals", sizeof buf);
-	writeMemo(buf);
-
-	if ( usage->runningTotalSmallPoolFree != usage->smallPoolFree )
-	{
-		isprintf(buf, sizeof buf, "            small pool free: %12ld  !! does not match calc",
-				usage->runningTotalSmallPoolFree );
-	}
-	else
-	{
-		isprintf(buf, sizeof buf, "            small pool free: %12ld",
-				usage->runningTotalSmallPoolFree );
-	}
-	writeMemo(buf);
-
-	if ( usage->runningTotalLargePoolFree != usage->largePoolFree )
-	{
-		isprintf(buf, sizeof buf, "            large pool free: %12ld  !! does not match calc",
-				usage->runningTotalLargePoolFree);
-	}
-	else
-	{
-		isprintf(buf, sizeof buf, "            large pool free: %12ld",
-				usage->runningTotalLargePoolFree);
-	}
-	writeMemo(buf);
-	isprintf(buf, sizeof buf, "            sdr heap in use: %12ld",
-			usage->inUse);
-	writeMemo(buf);
-
-	isprintf(buf, sizeof buf, "        sdr heap in use max: %12ld",
-			usage->heapSize - usage->unusedSize);
-	writeMemo(buf);
-
-#endif
 }
-#if 0
-int	sdr_heap_depleted_calc(Sdr sdrv)
-{
-	SdrUsageSummary	summary;
 
-	CHKERR(sdrv);
-	CHKERR(sdrFetchSafe(sdrv));
-
-	sdr_usage(sdrv, &summary);
-	return ((summary.smallPoolFree + summary.largePoolFree
-		+ summary.unusedSize) < (summary.dsSize / 16));
-}
-#endif
 int	sdr_heap_depleted(Sdr sdrv)
 {
 	SdrMap	*map;
