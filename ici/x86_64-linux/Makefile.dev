@@ -85,7 +85,7 @@ ICIINCLS = \
 
 UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend ionwarn ionunlock ionxnowner ionlog
 
-TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh smrbtsh owltsim owlttb entropy_test reversibility_correctness_test sdrcancel
+TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh smrbtsh owltsim owlttb entropy_test reversibility_correctness_test sdrcancel sdr_frag_stress
 
 ALL = check libici.so rfxclock $(UTILITIES) $(TESTPGMS)
 
@@ -202,6 +202,10 @@ reversibility_correctness_test:	reversibility_correctness_test.o libici.so
 sdrcancel:	sdrcancel.o libici.so
 		$(CC) -o sdrcancel sdrcancel.o -L./lib -lici -lpthread -lm
 		cp sdrcancel ./bin
+
+sdr_frag_stress:	sdr_frag_stress.o libici.so
+		$(CC) -o sdr_frag_stress sdr_frag_stress.o -L./lib -lici -lpthread -lm
+		cp sdr_frag_stress ./bin
 
 #	-	-	Daemon executable	-	-	-	-
 

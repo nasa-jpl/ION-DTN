@@ -471,6 +471,7 @@ icibin = \
 	psm_robust_recovery_test \
 	ipc_lock_recovery_test \
 	sdrcancel \
+	sdr_frag_stress \
 	sdrmend \
 	sdrwatch \
 	sm2file \
@@ -750,6 +751,10 @@ ipc_lock_recovery_test_CFLAGS = $(icicflags) $(AM_CFLAGS)
 sdrcancel_SOURCES = ici/test/sdrcancel.c
 sdrcancel_LDADD = libici.la -lm
 sdrcancel_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
+sdr_frag_stress_SOURCES = ici/test/sdr_frag_stress.c
+sdr_frag_stress_LDADD = libici.la -lm
+sdr_frag_stress_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 sm2file_SOURCES = ici/test/sm2file.c
 sm2file_LDADD = libici.la -lm
