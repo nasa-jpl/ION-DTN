@@ -173,13 +173,42 @@ echo ""
 echo "=== Restarting Node 2 (ionexit k n) ==="
 
 cd 2.ipn.relay
+NODE2_CWD="$(pwd -P)"
+
 echo "Shutting down Node 2 with ionexit k n..."
-timeout 30 ionexit k n
+# ionexit's happy path runs ~13 s (BP/LTP/RFX each get a 5-iteration
+# 1 s poll, plus a 3 s post-stop grace).  Under CI load that can spike
+# well above 30 s; killing ionexit mid-shutdown leaves an orphaned SDR
+# transaction plus stale daemons (rfxclock, udplsi, bptransit, ...)
+# that wedge the next ionstart on this node's SDR.  Give it room.
+timeout 120 ionexit k n
 sleep 5
+
+# Defensive sweep: if any Node 2 daemon survived ionexit (e.g. because
+# rfx_stop was never reached), reap it before restarting.  Match on
+# CWD so we don't touch Node 1's or Node 3's daemons running on the
+# same host.
+sweep_node2_survivors() {
+    local sig="$1" pid cwd
+    for pid in /proc/[0-9]*; do
+        cwd=$(readlink "$pid/cwd" 2>/dev/null) || continue
+        [ "$cwd" = "$NODE2_CWD" ] || continue
+        pid=${pid##*/}
+        [ "$pid" = "$$" ] && continue
+        echo "Reaping Node 2 survivor PID $pid ($(cat /proc/$pid/comm 2>/dev/null)) with $sig"
+        kill -"$sig" "$pid" 2>/dev/null
+    done
+}
+sweep_node2_survivors TERM
+sleep 2
+sweep_node2_survivors KILL
+sleep 1
 
 # Restart Node 2 using the same configuration files.
 # After ionexit k n, SDR and IPC are preserved.  Re-running
-# ionstart restarts the daemons against the existing SDR.
+# ionstart restarts the daemons against the existing SDR (any
+# orphaned transaction left by an interrupted ionexit is recovered
+# by the SDR layer at attach time).
 echo "Restarting Node 2..."
 ionstart -i amroc.ionrc -s amroc.ionsecrc -l amroc.ltprc -b amroc.bprc -p amroc.ipnrc
 sleep 1
