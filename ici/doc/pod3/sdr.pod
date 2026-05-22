@@ -560,7 +560,15 @@ usage status.  SdrUsageSummary is defined by:
             size_t          largePoolAllocated;
             size_t          unusedSize;
             size_t          maxLogLength;
+            size_t          largestFreeBlock;
     } SdrUsageSummary;
+
+The C<largestFreeBlock> field is the size, in user-data bytes, of the
+largest contiguous free block found in either pool.  It does not
+include the unassigned gap between the pools, which is reported
+separately as C<unusedSize>.  Together they answer "what is the
+largest single allocation this SDR can currently satisfy?":
+C<max(largestFreeBlock, unusedSize - large_block_overhead)>.
 
 =item void sdr_report(SdrUsageSummary *summary)
 

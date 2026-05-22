@@ -38,6 +38,10 @@ typedef struct
 	size_t		largePoolAllocated;
 	size_t		unusedSize;
 	size_t		maxLogLength;
+	size_t		largestFreeBlock;	/*	user-data bytes;
+						 *	max across both pools,
+						 *	excluding the
+						 *	unassigned gap.		*/
 } SdrUsageSummary;
 
 /*		Low-level SDR space management functions.		*/

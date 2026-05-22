@@ -1242,11 +1242,56 @@ size_t	sdr_unused(Sdr sdrv)
 	return map->unassignedSpace;
 }
 
-static void	computeFreeSpace(SdrMap *map, SdrUsageSummary *usage)
+/*	Walks the highest non-empty large-pool bucket's free list to
+ *	find the actual maximum user-data size of any free block in
+ *	the large pool.  Returns 0 if the large pool has no free
+ *	blocks.  Buckets lower than the highest non-empty one cannot
+ *	contain a block larger than min_size(B+1) - 1, so the absolute
+ *	maximum free block always lives in the highest non-empty
+ *	bucket and a single list walk suffices.				*/
+
+static size_t	largestFreeLargeBlock(Sdr sdrv, SdrMap *map)
+{
+	int	bucket;
+	Address	leader;
+	BigOhd1	leading;
+	size_t	maxSize = 0;
+
+	for (bucket = LARGE_ORDERS - 1; bucket >= 0; bucket--)
+	{
+		if (map->largePoolFree[bucket].freeBlocks > 0)
+		{
+			break;
+		}
+	}
+
+	if (bucket < 0)
+	{
+		return 0;
+	}
+
+	leader = map->largePoolFree[bucket].firstFreeBlock;
+	while (leader != 0)
+	{
+		sdrFetch(leading, leader);
+		if (leading.userDataSize > maxSize)
+		{
+			maxSize = leading.userDataSize;
+		}
+
+		leader = leading.next;
+	}
+
+	return maxSize;
+}
+
+static void	computeFreeSpace(Sdr sdrv, SdrMap *map, SdrUsageSummary *usage)
 {
 	int	i;
 	size_t	size;
 	size_t	freeTotal;
+	size_t	largestSmall = 0;
+	size_t	largestLarge;
 
 	freeTotal = 0;
 	size = 0;
@@ -1256,6 +1301,10 @@ static void	computeFreeSpace(SdrMap *map, SdrUsageSummary *usage)
 		usage->smallPoolFreeBlockCount[i] =
 				map->smallPoolFree[i].freeBlocks;
 		freeTotal += (map->smallPoolFree[i].freeBlocks * size);
+		if (map->smallPoolFree[i].freeBlocks > 0)
+		{
+			largestSmall = size;
+		}
 	}
 
 	usage->smallPoolFree = freeTotal;
@@ -1270,6 +1319,10 @@ static void	computeFreeSpace(SdrMap *map, SdrUsageSummary *usage)
 
 	usage->largePoolFree = freeTotal;
 	usage->largePoolAllocated = usage->largePoolSize - freeTotal;
+
+	largestLarge = largestFreeLargeBlock(sdrv, map);
+	usage->largestFreeBlock = largestLarge > largestSmall
+			? largestLarge : largestSmall;
 }
 
 void	sdr_usage(Sdr sdrv, SdrUsageSummary *usage)
@@ -1286,7 +1339,7 @@ void	sdr_usage(Sdr sdrv, SdrUsageSummary *usage)
 	map = _mapImage(sdrv);
 	usage->smallPoolSize = map->endOfSmallPool - map->startOfSmallPool;
 	usage->largePoolSize = map->endOfLargePool - map->startOfLargePool;
-	computeFreeSpace(map, usage);
+	computeFreeSpace(sdrv, map, usage);
 	usage->unusedSize = map->unassignedSpace;
 	usage->maxLogLength = sdr->maxLogLength;
 }
@@ -1363,6 +1416,41 @@ void	sdr_report(SdrUsageSummary *usage)
 			usage->heapSize - (usage->smallPoolFree +
 			usage->largePoolFree + usage->unusedSize));
 	writeMemo(buf);
+
+	isprintf(buf, sizeof buf, "largest free blk:  %12ld",
+			usage->largestFreeBlock);
+	writeMemo(buf);
+
+	/*	Fragmentation index: percentage of free heap that cannot
+	 *	be served from a single block, i.e. (1 - largest/total)
+	 *	* 100.  100% means total free is the only honest number;
+	 *	0% means a single block holds it all.  Includes the
+	 *	unassigned gap, which is contiguous and could be carved
+	 *	to satisfy a single allocation.				*/
+	{
+		size_t	totalFree = usage->smallPoolFree
+				+ usage->largePoolFree
+				+ usage->unusedSize;
+		size_t	largestAvail = usage->largestFreeBlock
+				> usage->unusedSize
+				? usage->largestFreeBlock
+				: usage->unusedSize;
+		int	fragPct;
+
+		if (totalFree == 0)
+		{
+			fragPct = 0;
+		}
+		else
+		{
+			fragPct = (int) (100 -
+				((largestAvail * 100) / totalFree));
+		}
+
+		isprintf(buf, sizeof buf,
+				"frag index:        %11d%%", fragPct);
+		writeMemo(buf);
+	}
 
 	isprintf(buf, sizeof buf, "max xn log len:    %12ld",
 			usage->maxLogLength);
@@ -1444,7 +1532,7 @@ void	sdr_stats(Sdr sdrv)
 	writeMemo(buf);
 
 	sdr_usage(sdrv, &usage);
-	computeFreeSpace(&mapSnap, &usage);
+	computeFreeSpace(sdrv, &mapSnap, &usage);
 
 	isprintf(buf, sizeof buf, "            small pool size: %14ld",
 			mapSnap.endOfSmallPool - mapSnap.startOfSmallPool);
