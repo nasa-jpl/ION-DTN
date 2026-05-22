@@ -23,8 +23,22 @@
 #include "sptrace.h"
 #endif
 
-#define	SMALL_BLOCK_OHD	(WORD_SIZE)
-#define	SMALL_BLK_LIMIT	(SMALL_SIZES * WORD_SIZE)
+	/*	PSM_BLK_ALIGN is the alignment grain (and overhead size) of
+ *	small-pool blocks.  It must be >= any basic C type's alignment
+ *	requirement: on RTEMS 6 sparc/leon3 `time_t` (and `long long`)
+ *	require 8-byte alignment, which the historical WORD_SIZE=4
+ *	grain on 32-bit targets did not satisfy.  Set it to the larger
+ *	of WORD_SIZE and 8 so user data is always suitably aligned for
+ *	any type; on LP64 targets this is identical to WORD_SIZE.	*/
+#if WORD_SIZE >= 8
+#define	PSM_BLK_ALIGN_ORDER	SPACE_ORDER
+#else
+#define	PSM_BLK_ALIGN_ORDER	3
+#endif
+#define	PSM_BLK_ALIGN		(1UL << PSM_BLK_ALIGN_ORDER)
+
+#define	SMALL_BLOCK_OHD	(PSM_BLK_ALIGN)
+#define	SMALL_BLK_LIMIT	(SMALL_SIZES * PSM_BLK_ALIGN)
 
 #if SPACE_ORDER ==3	/* 64-bit machine	*/
 #define	SMALL_IN_USE	((PsmAddress) 0xffffffffffffff00)
@@ -41,13 +55,16 @@
 static pthread_mutex_t  _psmLocalMutex = PTHREAD_MUTEX_INITIALIZER;
 
 /*
- * The overhead on a small block is WORD_SIZE bytes.  When the block is
- * free, these bytes contain the PsmAddress (i.e., offset from start
- * of partition) of the next free block, which must be an integral
- * multiple of WORD_SIZE.  When the block is in use, the low-order
- * byte is set to the size of the block's user data (expressed as an
- * integer 1 through SMALL_SIZES: the total block size minus overhead,
- * divided by WORD_SIZE) and all higher-order bytes are set to 0xff.
+ * The overhead on a small block is PSM_BLK_ALIGN bytes (= WORD_SIZE
+ * on LP64; widened to 8 on 32-bit targets so the user data area
+ * carries 8-byte alignment for any basic C type).  When the block
+ * is free, the first WORD_SIZE bytes contain the PsmAddress (i.e.,
+ * offset from start of partition) of the next free block, which
+ * must be an integral multiple of PSM_BLK_ALIGN.  When the block is
+ * in use, the low-order byte is set to the size of the block's user
+ * data (expressed as an integer 1 through SMALL_SIZES: the total
+ * block size minus overhead, divided by PSM_BLK_ALIGN) and all
+ * higher-order bytes are set to 0xff.
  *
  * NOTE: since any PsmAddress in excess of SMALL_IN_USE will be
  * interpreted as indicating that the block is in use, the maximum
@@ -113,6 +130,12 @@ typedef struct
 	size_t		freeBytes;
 } LargeFreeBucket;
 
+/*	PartitionMap precedes the small pool inside the partition, so
+ *	its size determines where the first small block lands.  Force
+ *	8-byte alignment (and therefore size, since GCC rounds the
+ *	struct size up to its alignment) so the small pool starts on
+ *	a PSM_BLK_ALIGN boundary even on 32-bit targets where every
+ *	field is only WORD_SIZE (=4) aligned.				*/
 typedef struct			/*	Global view in shared memory.	*/
 {
 	PsmAddress	directory;
@@ -134,7 +157,7 @@ typedef struct			/*	Global view in shared memory.	*/
 	PsmAddress	endOfLargePool;
 	LargeFreeBucket	largePoolFree[LARGE_ORDERS];
 	size_t		unassignedSpace;
-} PartitionMap;
+} __attribute__((aligned(8))) PartitionMap;
 
 typedef struct
 {
@@ -1285,12 +1308,12 @@ block size %lu", nbytes);
 	else
 	{
 		/*	Increase nbytes to align it properly: must be
-			an integral multiple of SMALL_BLOCK_OHD.	*/
+			an integral multiple of PSM_BLK_ALIGN.		*/
 
-		nbytes += (SMALL_BLOCK_OHD - 1);
-		nbytes >>= SPACE_ORDER;	/*	Truncate.		*/
+		nbytes += (PSM_BLK_ALIGN - 1);
+		nbytes >>= PSM_BLK_ALIGN_ORDER;	/*	Truncate.	*/
 		i = nbytes - 1;		/*	(gives bucket #)	*/
-		nbytes <<= SPACE_ORDER;	/*	Restore size.		*/
+		nbytes <<= PSM_BLK_ALIGN_ORDER;	/*	Restore size.	*/
 		if (map->smallPoolFree[i].freeBlocks == 0)
 		{
 			increment = nbytes + SMALL_BLOCK_OHD;
@@ -1387,7 +1410,7 @@ void	psm_usage(PsmPartition partition, PsmUsageSummary *usage)
 	size = 0;
 	for (i = 0; i < SMALL_SIZES; i++)
 	{
-		size += WORD_SIZE;
+		size += PSM_BLK_ALIGN;
 		usage->smallPoolFreeBlockCount[i] =
 				map->smallPoolFree[i].freeBlocks;
 		freeTotal += (map->smallPoolFree[i].freeBlocks * size);
@@ -1425,7 +1448,7 @@ void	psm_report(PsmUsageSummary *usage)
 	writeMemo("small pool free blocks:");
 	for (i = 0; i < SMALL_SIZES; i++)
 	{
-		size += WORD_SIZE;
+		size += PSM_BLK_ALIGN;
 		count = usage->smallPoolFreeBlockCount[i];
 		if (count > 0)
 		{
