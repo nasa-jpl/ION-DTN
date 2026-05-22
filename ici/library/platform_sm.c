@@ -4165,3 +4165,44 @@ int	pseudoshell(char *commandLine)
 #endif
 	return pid;
 }
+
+void	sm_TaskKillWait(int taskId, char *text, char *note)
+{
+	int	i;
+
+	/*	Reap a daemon that has already been told to stop (via
+	 *	SIGTERM or sm_SemEnd) but might not honor it -- e.g. a
+	 *	snooze() loop on RTEMS whose SIGTERM handler never runs.
+	 *	Wait up to ~5 seconds for a graceful exit; if the task is
+	 *	still alive, log 'text' (with optional 'note' appended)
+	 *	and force termination with SIGKILL, then wait up to ~1
+	 *	more second for it to die.				*/
+
+	if (taskId == ERROR)
+	{
+		return;
+	}
+
+	for (i = 0; i < 50 && sm_TaskExists(taskId); i++)
+	{
+		microsnooze(100000);
+	}
+
+	if (sm_TaskExists(taskId))
+	{
+		if (note)
+		{
+			writeMemoNote(text, note);
+		}
+		else
+		{
+			writeMemo(text);
+		}
+
+		sm_TaskKill(taskId, SIGKILL);
+		for (i = 0; i < 10 && sm_TaskExists(taskId); i++)
+		{
+			microsnooze(100000);
+		}
+	}
+}

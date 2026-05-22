@@ -460,100 +460,18 @@ static void	stopSeat(BsspVseat *vseat)
 
 static void	waitForSpan(BsspVspan *vspan)
 {
-	int	i;
-
-	if (vspan->bsoBEPid != ERROR)
-	{
-		/*	Wait up to 5 seconds for bsoBE to terminate.	*/
-
-		for (i = 0; i < 50 && sm_TaskExists(vspan->bsoBEPid); i++)
-		{
-			microsnooze(100000);
-		}
-
-		if (sm_TaskExists(vspan->bsoBEPid))
-		{
-			writeMemo("[!] bsspStop: bsoBE not responding to \
-SIGTERM, sending SIGKILL");
-			sm_TaskKill(vspan->bsoBEPid, SIGKILL);
-			for (i = 0; i < 10 && sm_TaskExists(vspan->bsoBEPid);
-					i++)
-			{
-				microsnooze(100000);
-			}
-		}
-	}
-
-	if (vspan->bsoRLPid != ERROR)
-	{
-		/*	Wait up to 5 seconds for bsoRL to terminate.	*/
-
-		for (i = 0; i < 50 && sm_TaskExists(vspan->bsoRLPid); i++)
-		{
-			microsnooze(100000);
-		}
-
-		if (sm_TaskExists(vspan->bsoRLPid))
-		{
-			writeMemo("[!] bsspStop: bsoRL not responding to \
-SIGTERM, sending SIGKILL");
-			sm_TaskKill(vspan->bsoRLPid, SIGKILL);
-			for (i = 0; i < 10 && sm_TaskExists(vspan->bsoRLPid);
-					i++)
-			{
-				microsnooze(100000);
-			}
-		}
-	}
+	sm_TaskKillWait(vspan->bsoBEPid, "[!] bsspStop: bsoBE not responding \
+to SIGTERM, sending SIGKILL", NULL);
+	sm_TaskKillWait(vspan->bsoRLPid, "[!] bsspStop: bsoRL not responding \
+to SIGTERM, sending SIGKILL", NULL);
 }
 
 static void	waitForSeat(BsspVseat *vseat)
 {
-	int	i;
-
-	if (vseat->beBsiPid != ERROR)
-	{
-		/*	Wait up to 5 seconds for beBsi to terminate.	*/
-
-		for (i = 0; i < 50 && sm_TaskExists(vseat->beBsiPid); i++)
-		{
-			microsnooze(100000);
-		}
-
-		if (sm_TaskExists(vseat->beBsiPid))
-		{
-			writeMemo("[!] bsspStop: beBsi not responding to \
-SIGTERM, sending SIGKILL");
-			sm_TaskKill(vseat->beBsiPid, SIGKILL);
-			for (i = 0; i < 10 && sm_TaskExists(vseat->beBsiPid);
-					i++)
-			{
-				microsnooze(100000);
-			}
-		}
-	}
-
-	if (vseat->rlBsiPid != ERROR)
-	{
-		/*	Wait up to 5 seconds for rlBsi to terminate.	*/
-
-		for (i = 0; i < 50 && sm_TaskExists(vseat->rlBsiPid); i++)
-		{
-			microsnooze(100000);
-		}
-
-		if (sm_TaskExists(vseat->rlBsiPid))
-		{
-			writeMemo("[!] bsspStop: rlBsi not responding to \
-SIGTERM, sending SIGKILL");
-			sm_TaskKill(vseat->rlBsiPid, SIGKILL);
-			for (i = 0; i < 10 && sm_TaskExists(vseat->rlBsiPid);
-					i++)
-			{
-				microsnooze(100000);
-			}
-		}
-	}
+	sm_TaskKillWait(vseat->beBsiPid, "[!] bsspStop: beBsi not responding \
+to SIGTERM, sending SIGKILL", NULL);
+	sm_TaskKillWait(vseat->rlBsiPid, "[!] bsspStop: rlBsi not responding \
+to SIGTERM, sending SIGKILL", NULL);
 }
 
 static char 	*_bsspvdbName(void)
@@ -964,27 +882,8 @@ void	bsspStop(void)		/*	Reverses bsspStart.		*/
 		waitForSeat(vseat);
 	}
 
-	if (bsspvdb->clockPid != ERROR)
-	{
-		/*	Wait up to 5 seconds for clock to terminate.	*/
-
-		for (i = 0; i < 50 && sm_TaskExists(bsspvdb->clockPid); i++)
-		{
-			microsnooze(100000);
-		}
-
-		if (sm_TaskExists(bsspvdb->clockPid))
-		{
-			writeMemo("[!] bsspStop: clock not responding to \
-SIGTERM, sending SIGKILL");
-			sm_TaskKill(bsspvdb->clockPid, SIGKILL);
-			for (i = 0; i < 10 && sm_TaskExists(bsspvdb->clockPid);
-					i++)
-			{
-				microsnooze(100000);
-			}
-		}
-	}
+	sm_TaskKillWait(bsspvdb->clockPid, "[!] bsspStop: clock not responding \
+to SIGTERM, sending SIGKILL", NULL);
 
 	/*	Now erase all the tasks and reset the semaphores.	*/
 

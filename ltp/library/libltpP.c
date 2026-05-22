@@ -1361,32 +1361,16 @@ static void	stopSeat(LtpVseat *vseat)
 
 static void	waitForSpan(LtpVspan *vspan)
 {
-	if (vspan->lsoPid != ERROR)
-	{
-		while (sm_TaskExists(vspan->lsoPid))
-		{
-			microsnooze(100000);
-		}
-	}
-
-	if (vspan->meterPid != ERROR)
-	{
-		while (sm_TaskExists(vspan->meterPid))
-		{
-			microsnooze(100000);
-		}
-	}
+	sm_TaskKillWait(vspan->lsoPid, "[!] ltpStop: LSO not responding to \
+shutdown, sending SIGKILL.", NULL);
+	sm_TaskKillWait(vspan->meterPid, "[!] ltpStop: ltpmeter not responding \
+to shutdown, sending SIGKILL.", NULL);
 }
 
 static void	waitForSeat(LtpVseat *vseat)
 {
-	if (vseat->lsiPid != ERROR)
-	{
-		while (sm_TaskExists(vseat->lsiPid))
-		{
-			microsnooze(100000);
-		}
-	}
+	sm_TaskKillWait(vseat->lsiPid, "[!] ltpStop: LSI not responding to \
+SIGTERM, sending SIGKILL.", NULL);
 }
 
 static char 	*_ltpvdbName(void)
@@ -1833,23 +1817,16 @@ void	ltpStop(void)		/*	Reverses ltpStart.		*/
 
 	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
 
-	/*	Wait until all LTP processes have stopped.		*/
+	/*	Wait until all LTP processes have stopped.  On some
+	 *	platforms (notably RTEMS) SIGTERM is not reliably delivered
+	 *	to snooze-based daemon threads such as ltpclock, so escalate
+	 *	to SIGKILL after a grace period rather than waiting forever;
+	 *	this mirrors the shutdown logic in bpStop().		*/
 
-	if (ltpvdb->clockPid != ERROR)
-	{
-		while (sm_TaskExists(ltpvdb->clockPid))
-		{
-			microsnooze(100000);
-		}
-	}
-
-	if (ltpvdb->delivPid != ERROR)
-	{
-		while (sm_TaskExists(ltpvdb->delivPid))
-		{
-			microsnooze(100000);
-		}
-	}
+	sm_TaskKillWait(ltpvdb->clockPid, "[!] ltpStop: ltpclock not responding \
+to SIGTERM, sending SIGKILL.", NULL);
+	sm_TaskKillWait(ltpvdb->delivPid, "[!] ltpStop: ltpdeliv not responding \
+to SIGTERM, sending SIGKILL.", NULL);
 
 	for (elt = sm_list_first(ltpwm, ltpvdb->spans); elt;
 			elt = sm_list_next(ltpwm, elt))

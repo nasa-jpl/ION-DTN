@@ -107,6 +107,7 @@ extern int		sm_TaskSpawn(char *name, char *arg1, char *arg2,
 				int priority, int stackSize);
 extern void		sm_TaskForget(int taskId);
 extern void		sm_TaskKill(int taskId, int sigNbr);
+extern void		sm_TaskKillWait(int taskId, char *text, char *note);
 extern void		sm_TaskDelete(int taskId);
 extern void		sm_TasksClear(void);
 extern void		sm_Abort(void);

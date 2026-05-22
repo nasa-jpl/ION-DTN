@@ -3857,10 +3857,9 @@ void	rfx_stop(void)
 	{
 		sm_TaskKill(vdb->clockPid, SIGTERM);
 		writeMemo("[i] rfx_stop: Waiting for rfxclock to terminate...");
-		while (sm_TaskExists(vdb->clockPid))
-		{
-			microsnooze(100000);
-		}
+
+		sm_TaskKillWait(vdb->clockPid, "[!] rfx_stop: rfxclock not \
+responding to SIGTERM, sending SIGKILL.", NULL);
 
 		vdb->clockPid = ERROR;
 		writeMemo("[i] rfx_stop: rfxclock terminated.");
