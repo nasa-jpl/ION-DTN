@@ -27,6 +27,7 @@
 #include "cbrP.h"	/* Private CBR header for internal functions */
 #include "cteb.h"	/* For cteb_getCustodyInfo */
 #include "creb.h"	/* For creb_getReportInfo */
+#include "platform_smP.h"
 
 /*	Interfaces to other BP-related components of ION	*	*/
 
@@ -833,51 +834,12 @@ static void	stopScheme(VScheme *vscheme)
 
 static void	waitForScheme(VScheme *vscheme)
 {
-	int	i;
-
-	if (vscheme->fwdPid != ERROR)
-	{
-		/*	Wait up to 5 seconds for forwarder to terminate. */
-
-		for (i = 0; i < 50 && sm_TaskExists(vscheme->fwdPid); i++)
-		{
-			microsnooze(100000);
-		}
-
-		if (sm_TaskExists(vscheme->fwdPid))
-		{
-			writeMemoNote("[!] bpStop: forwarder not responding \
-to SIGTERM, sending SIGKILL", vscheme->name);
-			sm_TaskKill(vscheme->fwdPid, SIGKILL);
-			for (i = 0; i < 10 && sm_TaskExists(vscheme->fwdPid);
-					i++)
-			{
-				microsnooze(100000);
-			}
-		}
-	}
-
-	if (vscheme->admAppPid != ERROR)
-	{
-		/*	Wait up to 5 seconds for adminep to terminate.	*/
-
-		for (i = 0; i < 50 && sm_TaskExists(vscheme->admAppPid); i++)
-		{
-			microsnooze(100000);
-		}
-
-		if (sm_TaskExists(vscheme->admAppPid))
-		{
-			writeMemoNote("[!] bpStop: adminep not responding \
-to SIGTERM, sending SIGKILL", vscheme->name);
-			sm_TaskKill(vscheme->admAppPid, SIGKILL);
-			for (i = 0; i < 10 && sm_TaskExists(vscheme->admAppPid);
-					i++)
-			{
-				microsnooze(100000);
-			}
-		}
-	}
+	sm_TaskKillWait(vscheme->fwdPid, "[!] bpStop: forwarder not \
+responding to SIGTERM, sending SIGKILL",
+			vscheme->name);
+	sm_TaskKillWait(vscheme->admAppPid, "[!] bpStop: adminep not \
+responding to SIGTERM, sending SIGKILL",
+			vscheme->name);
 }
 
 static void	resetPlan(VPlan *vplan)
@@ -1048,28 +1010,9 @@ static void	stopPlan(VPlan *vplan)
 
 static void	waitForPlan(VPlan *vplan)
 {
-	int	i;
-
-	if (vplan->clmPid != ERROR)
-	{
-		/*	Wait up to 5 seconds for bpclm to terminate.	*/
-
-		for (i = 0; i < 50 && sm_TaskExists(vplan->clmPid); i++)
-		{
-			microsnooze(100000);
-		}
-
-		if (sm_TaskExists(vplan->clmPid))
-		{
-			writeMemoNote("[!] bpStop: bpclm not responding to \
-SIGTERM, sending SIGKILL", vplan->neighborEid);
-			sm_TaskKill(vplan->clmPid, SIGKILL);
-			for (i = 0; i < 10 && sm_TaskExists(vplan->clmPid); i++)
-			{
-				microsnooze(100000);
-			}
-		}
-	}
+	sm_TaskKillWait(vplan->clmPid, "[!] bpStop: bpclm not responding to \
+SIGTERM, sending SIGKILL",
+			vplan->neighborEid);
 }
 
 static void	resetInduct(VInduct *vduct)
@@ -1176,7 +1119,6 @@ static void	stopInduct(VInduct *vduct)
 static void	waitForInduct(VInduct *vduct)
 {
 	char	memo[256];
-	int	i;
 
 	if (vduct->cliPid != ERROR)
 	{
@@ -1185,24 +1127,10 @@ for induct '%s' (PID %d) to terminate...",
 			vduct->ductName, (int)vduct->cliPid);
 		writeMemo(memo);
 
-		/*	Wait up to 5 seconds for CLI to terminate.	*/
-
-		for (i = 0; i < 50 && sm_TaskExists(vduct->cliPid); i++)
-		{
-			microsnooze(100000);
-		}
-
-		if (sm_TaskExists(vduct->cliPid))
-		{
-			isprintf(memo, sizeof memo, "[!] bpStop: CLI '%s' \
-not responding to SIGTERM, sending SIGKILL", vduct->ductName);
-			writeMemo(memo);
-			sm_TaskKill(vduct->cliPid, SIGKILL);
-			for (i = 0; i < 10 && sm_TaskExists(vduct->cliPid); i++)
-			{
-				microsnooze(100000);
-			}
-		}
+		isprintf(memo, sizeof memo, "[!] bpStop: CLI '%s' \
+not responding to SIGTERM, sending SIGKILL",
+				vduct->ductName);
+		sm_TaskKillWait(vduct->cliPid, memo, NULL);
 
 		isprintf(memo, sizeof memo, "[i] waitForInduct: Induct \
 '%s' terminated.", vduct->ductName);
@@ -1320,8 +1248,6 @@ static void	stopOutduct(VOutduct *vduct)
 
 static void	waitForOutduct(VOutduct *vduct)
 {
-	int	i;
-
 	microsnooze(100000);	/*	Maybe thread stops.		*/
 	if (vduct->hasThread)
 	{
@@ -1341,24 +1267,13 @@ static void	waitForOutduct(VOutduct *vduct)
 		return;
 	}
 
-	/*	Duct is being drained by a process.  Wait up to
-	 *	5 seconds for CLO to terminate.			*/
-
-	for (i = 0; i < 50 && sm_TaskExists(vduct->cloPid); i++)
-	{
-		microsnooze(100000);
-	}
-
-	if (sm_TaskExists(vduct->cloPid))
-	{
-		writeMemoNote("[!] bpStop: CLO not responding to SIGTERM, \
-sending SIGKILL", vduct->ductName);
-		sm_TaskKill(vduct->cloPid, SIGKILL);
-		for (i = 0; i < 10 && sm_TaskExists(vduct->cloPid); i++)
-		{
-			microsnooze(100000);
-		}
-	}
+	/*
+	 * Duct is being drained by a process.  Wait up to 5 seconds for CLO to
+	 * terminate, then escalate to SIGKILL.
+	 */
+	sm_TaskKillWait(vduct->cloPid, "[!] bpStop: CLO not responding to \
+SIGTERM, sending SIGKILL",
+			vduct->ductName);
 
 	vduct->cloPid = ERROR;
 }
@@ -2121,71 +2036,15 @@ void	bpStop(void)		/*	Reverses bpStart.		*/
 		}
 	}
 
-	if (bpvdb->clockPid != ERROR)
-	{
-		int	i;
-
-		for (i = 0; i < 50 && sm_TaskExists(bpvdb->clockPid); i++)
-		{
-			microsnooze(100000);
-		}
-
-		if (sm_TaskExists(bpvdb->clockPid))
-		{
-			writeMemo("[!] bpStop: bpclock not responding to \
-SIGTERM, sending SIGKILL.");
-			sm_TaskKill(bpvdb->clockPid, SIGKILL);
-			for (i = 0; i < 10 && sm_TaskExists(bpvdb->clockPid);
-					i++)
-			{
-				microsnooze(100000);
-			}
-		}
-	}
-
-	if (bpvdb->cpsdPid != ERROR)
-	{
-		int	i;
-
-		for (i = 0; i < 50 && sm_TaskExists(bpvdb->cpsdPid); i++)
-		{
-			microsnooze(100000);
-		}
-
-		if (sm_TaskExists(bpvdb->cpsdPid))
-		{
-			writeMemo("[!] bpStop: cpsd not responding to \
-SIGTERM, sending SIGKILL.");
-			sm_TaskKill(bpvdb->cpsdPid, SIGKILL);
-			for (i = 0; i < 10 && sm_TaskExists(bpvdb->cpsdPid);
-					i++)
-			{
-				microsnooze(100000);
-			}
-		}
-	}
-
-	if (bpvdb->transitPid != ERROR)
-	{
-		int	i;
-
-		for (i = 0; i < 50 && sm_TaskExists(bpvdb->transitPid); i++)
-		{
-			microsnooze(100000);
-		}
-
-		if (sm_TaskExists(bpvdb->transitPid))
-		{
-			writeMemo("[!] bpStop: bptransit not responding to \
-SIGTERM, sending SIGKILL.");
-			sm_TaskKill(bpvdb->transitPid, SIGKILL);
-			for (i = 0; i < 10 && sm_TaskExists(bpvdb->transitPid);
-					i++)
-			{
-				microsnooze(100000);
-			}
-		}
-	}
+	sm_TaskKillWait(bpvdb->clockPid, "[!] bpStop: bpclock not responding \
+to SIGTERM, sending SIGKILL.",
+			NULL);
+	sm_TaskKillWait(bpvdb->cpsdPid, "[!] bpStop: cpsd not responding to \
+SIGTERM, sending SIGKILL.",
+			NULL);
+	sm_TaskKillWait(bpvdb->transitPid, "[!] bpStop: bptransit not \
+responding to SIGTERM, sending SIGKILL.",
+			NULL);
 
 	/*	Now erase all the tasks and reset the semaphores.	*/
 
