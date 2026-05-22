@@ -885,7 +885,7 @@ libltp_la_SOURCES = \
 	ltp/library/ltpei.c \
 	ltp/library/ltpsec.c \
 	ltp/sda/libsda.c
-
+libltp_la_CPPFLAGS = -I$(srcdir)/ici/library
 libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 libltp_la_LIBADD = libici.la -lm
 
@@ -1469,6 +1469,7 @@ libici_la_SOURCES+= \
 	ici/crypto/NULL_SUITES/csi.c
 endif # end CRYPTO_MBEDTLS
 
+libbp_la_CPPFLAGS = -I$(srcdir)/ici/library
 libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)
 libbp_la_LIBADD = libici.la -lm $(CRYPTO_LIBS)
 
@@ -2393,6 +2394,7 @@ libcfdp_la_SOURCES = \
 	cfdp/library/libcfdp.c \
 	cfdp/library/libcfdpops.c \
 	cfdp/library/libcfdpP.c
+libcfdp_la_CPPFLAGS = -I$(srcdir)/ici/library
 libcfdp_la_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 libcfdp_la_LIBADD = libici.la -lm
 
@@ -2557,6 +2559,7 @@ bsspclean-local:
 libbssp_la_SOURCES = \
 	bssp/library/libbssp.c \
 	bssp/library/libbsspP.c
+libbssp_la_CPPFLAGS = -I$(srcdir)/ici/library
 libbssp_la_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 libbssp_la_LDFLAGS = $(ION_LINK_FLAGS)
 libbssp_la_LIBADD = libici.la -lm $(PTHREAD_LIBS)
