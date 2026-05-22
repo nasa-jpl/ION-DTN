@@ -824,78 +824,12 @@ void	_cfdpStop(void)		/*	Reverses cfdpStart.		*/
 
 	/*	Wait until all CFDP processes have stopped.		*/
 
-	{
-		int	i;
-
-		if (cfdpvdb->utaPid != ERROR)
-		{
-			/*	Wait up to 5 seconds for UTA to stop.	*/
-
-			for (i = 0; i < 50 && sm_TaskExists(cfdpvdb->utaPid);
-					i++)
-			{
-				microsnooze(100000);
-			}
-
-			if (sm_TaskExists(cfdpvdb->utaPid))
-			{
-				writeMemo("[!] cfdpStop: UTA not responding \
-to SIGTERM, sending SIGKILL");
-				sm_TaskKill(cfdpvdb->utaPid, SIGKILL);
-				for (i = 0; i < 10
-					&& sm_TaskExists(cfdpvdb->utaPid); i++)
-				{
-					microsnooze(100000);
-				}
-			}
-		}
-
-		if (cfdpvdb->bpcpdPid != ERROR)
-		{
-			/*	Wait up to 5 seconds for bpcpd to stop.	*/
-
-			for (i = 0; i < 50 && sm_TaskExists(cfdpvdb->bpcpdPid);
-					i++)
-			{
-				microsnooze(100000);
-			}
-
-			if (sm_TaskExists(cfdpvdb->bpcpdPid))
-			{
-				writeMemo("[!] cfdpStop: bpcpd not responding \
-to SIGTERM, sending SIGKILL");
-				sm_TaskKill(cfdpvdb->bpcpdPid, SIGKILL);
-				for (i = 0; i < 10
-					&& sm_TaskExists(cfdpvdb->bpcpdPid); i++)
-				{
-					microsnooze(100000);
-				}
-			}
-		}
-
-		if (cfdpvdb->clockPid != ERROR)
-		{
-			/*	Wait up to 5 seconds for clock to stop.	*/
-
-			for (i = 0; i < 50 && sm_TaskExists(cfdpvdb->clockPid);
-					i++)
-			{
-				microsnooze(100000);
-			}
-
-			if (sm_TaskExists(cfdpvdb->clockPid))
-			{
-				writeMemo("[!] cfdpStop: clock not responding \
-to SIGTERM, sending SIGKILL");
-				sm_TaskKill(cfdpvdb->clockPid, SIGKILL);
-				for (i = 0; i < 10
-					&& sm_TaskExists(cfdpvdb->clockPid); i++)
-				{
-					microsnooze(100000);
-				}
-			}
-		}
-	}
+	sm_TaskKillWait(cfdpvdb->utaPid, "[!] cfdpStop: UTA not responding \
+to SIGTERM, sending SIGKILL", NULL);
+	sm_TaskKillWait(cfdpvdb->bpcpdPid, "[!] cfdpStop: bpcpd not responding \
+to SIGTERM, sending SIGKILL", NULL);
+	sm_TaskKillWait(cfdpvdb->clockPid, "[!] cfdpStop: clock not responding \
+to SIGTERM, sending SIGKILL", NULL);
 
 	/*	Now erase all the tasks and reset the semaphores.	*/
 
@@ -2477,6 +2411,19 @@ static int	getQualifiedFileName(char *pathNameBuf, int bufLen,
 		}
 
 		cursor--;
+	}
+
+	/*	If no separator was found, the destination file lives in
+	 *	the root directory (its only separator is the leading '/',
+	 *	which the scan above stops short of); the root always
+	 *	exists, so there is nothing to create.  Without this, a
+	 *	root-level path such as "/foo.dat" would fall through and
+	 *	be mkdir()'d as a directory -- opening it as a file then
+	 *	fails with EISDIR.					*/
+
+	if (lastPathSeparator == NULL)
+	{
+		return 1;
 	}
 
 	/*	Now create directories along the path as necessary.
