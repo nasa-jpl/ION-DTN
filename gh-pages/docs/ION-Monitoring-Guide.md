@@ -214,7 +214,8 @@ total heap size:       11480000
 total unused:           2156320
 max total used:         9323680
 total now in use:       8031360
-
+largest free blk:        180224
+frag index:                  17%
 max xn log len:           45632
 ```
 
@@ -271,6 +272,12 @@ The maximum amount of heap space that has ever been in use simultaneously since 
 **total now in use:**
 Current amount of heap space actively allocated and in use. Calculated as: heap size - small pool free - large pool free - unused. This should fluctuate as bundles are created, forwarded, and delivered.
 
+**largest free blk:**
+The size, in bytes, of the largest contiguous free block currently held in either pool's free lists. Does *not* include the unassigned gap (reported separately as `total unused`). The largest single allocation that can succeed right now is approximately `max(largest free blk, total unused - large block overhead)`. A small `largest free blk` paired with a large `total avbl` is the fingerprint of a fragmented heap.
+
+**frag index:**
+Fragmentation index, expressed as a percentage. Computed as `100 - (max(largest free blk, total unused) * 100) / (small free + large free + unused)`. A value of 0% means all free space is in a single contiguous span. A value approaching 100% means free space is shattered across many small free-list entries and no single block can satisfy a request near the total-free size. While this metric is degraded once the unassigned gap has been exhausted, it is the headline number for diagnosing allocation failures that occur *before* the heap is genuinely full.
+
 **max xn log len (transaction log length):**
 The maximum length of the transaction log that has been observed. The transaction log records all modifications during a transaction. If this value grows very large, it may indicate:
 - Very large transactions that should be split up
@@ -298,6 +305,31 @@ The maximum length of the transaction log that has been observed. The transactio
 3. If it grows continuously without dropping, investigate recent code changes
 4. Use trace mode with verbose output to see exactly what's being allocated
 5. Check ion.log for "unfreed" allocation reports when the trace ends
+
+### Detecting Fragmentation with sdrwatch
+
+Fragmentation is a different failure mode from a leak: total free space looks healthy, but no individual free block is big enough to satisfy the next request. Long-running ION nodes that allocate and free objects of widely varying sizes can drift into a state where allocation requests fail despite gigabytes of nominal headroom. The `largest free blk` and `frag index` fields surface this directly.
+
+**Healthy heap:**
+- `frag index` is low (typically under ~30% in steady state)
+- `largest free blk` is comparable in magnitude to `total avbl` for the large pool
+- Bundle creation and forwarding proceed without "Can't allocate heap space" errors
+
+**Fragmented heap (symptoms):**
+- `frag index` climbs over time and stays elevated (often 70-95% for severely fragmented allocators)
+- `largest free blk` shrinks while `large pool total avbl` stays roughly constant
+- ion.log shows allocation failures even though `total now in use` is well below `total heap size`
+- The failures correlate with larger-than-typical bundle payloads, not with overall load
+
+**How to investigate:**
+1. Run `sdrwatch ion -t 60 60` for an hour and capture the trend in `largest free blk` and `frag index` to ion.log.
+2. If `frag index` is trending up while `total now in use` is stable, the workload is fragmenting the heap without leaking. The next allocation failure will likely be for a block in the same size class that previously succeeded.
+3. Examine the BP and ZCO occupancy: a workload of mixed-size payloads with mismatched alloc/free order is the most common trigger.
+4. Mitigations to consider, in order of cost:
+   - Reduce churn by batching small allocations into larger compound objects where the application permits.
+   - Raise the large-pool search limit via `ionadmin`'s `m search <N>` command (e.g. `m search 8`) so the allocator looks deeper into each free-list bucket before escalating to a larger block. The default is 0, which means the allocator only checks the head block of the matching bucket and otherwise jumps straight to a higher bucket. Setting `N` to 4-16 typically reduces failed-allocation rates under fragmented workloads at the cost of a few extra pointer dereferences per allocation. The setting is per-session and must be reapplied after each ION restart.
+   - Increase total heap size so the unassigned gap can absorb fragmented requests indefinitely.
+   - Restart the node if a controlled outage window is available; the SDR rebuilds with all free space contiguous.
 
 ## psmwatch - PSM Memory Monitoring
 
