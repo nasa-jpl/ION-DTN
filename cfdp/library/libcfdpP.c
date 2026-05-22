@@ -2471,6 +2471,19 @@ static int	getQualifiedFileName(char *pathNameBuf, int bufLen,
 		cursor--;
 	}
 
+	/*
+	 * If no separator was found, the destination file lives in the root
+	 * directory (its only separator is the leading '/', which the scan
+	 * above stops short of); the root always exists, so there is nothing
+	 * to create.  Without this, a root-level path such as "/foo.dat" would
+	 * fall through and be mkdir()'d as a directory -- opening it as a file
+	 * then fails with EISDIR.
+	 */
+	if (lastPathSeparator == NULL)
+	{
+		return 1;
+	}
+
 	/*	Now create directories along the path as necessary.
 	 *	Wherever a path name separator is found, we change
 	 *	it to NULL, create a directory using all qualification
