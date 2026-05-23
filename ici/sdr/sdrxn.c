@@ -31,7 +31,11 @@ static PsmPartition	_sdrwm(sm_WmParms *parms);
 #ifdef ION_HAVE_ROBUST_MUTEX
 static int		createSdrMutex(SdrState *sdr);
 static void		destroySdrMutex(SdrState *sdr);
-static int		recoverOrphanedXn(Sdr sdrv);
+static int		recoverOrphanedXn(Sdr sdrv, char *deadInfo);
+static void		recordLockOwner(SdrState *sdr);
+static void		formatLockOwner(const SdrLockOwner *owner,
+				uint64_t nowUs, char *out, size_t outSize);
+static uint64_t		monotonicMicroseconds(void);
 #endif
 
 #ifndef SDR_TRACE
@@ -440,6 +444,100 @@ SdrMap	*_mapImage(Sdr sdrv)
 
 /*	*	Mutual exclusion functions	*	*	*	*/
 
+#ifdef ION_HAVE_ROBUST_MUTEX
+
+/*	Capture /proc/self/cmdline once per process and cache it in a
+ *	process-local static.  The capture is best-effort: if /proc
+ *	isn't available or the read fails, we fall back to "(unknown)"
+ *	and the diagnostic message still carries the pid.		*/
+
+static char		cmdlineBuf[SDR_LOCK_OWNER_CMDLINE_MAX];
+static pthread_once_t	cmdlineOnce = PTHREAD_ONCE_INIT;
+
+static void	captureCmdline(void)
+{
+	int	fd;
+	ssize_t	n;
+	ssize_t	i;
+
+	fd = open("/proc/self/cmdline", O_RDONLY);
+	if (fd < 0)
+	{
+		istrcpy(cmdlineBuf, "(unknown)", sizeof cmdlineBuf);
+		return;
+	}
+
+	n = read(fd, cmdlineBuf, sizeof cmdlineBuf - 1);
+	oK(close(fd));
+	if (n <= 0)
+	{
+		istrcpy(cmdlineBuf, "(unknown)", sizeof cmdlineBuf);
+		return;
+	}
+
+	/*	/proc/self/cmdline separates argv entries with NUL bytes.
+	 *	Rewrite to spaces so the cached string is a single readable
+	 *	token, then NUL-terminate and trim any trailing space.	*/
+
+	for (i = 0; i < n; i++)
+	{
+		if (cmdlineBuf[i] == '\0')
+		{
+			cmdlineBuf[i] = ' ';
+		}
+	}
+
+	cmdlineBuf[n] = '\0';
+	if (n > 0 && cmdlineBuf[n - 1] == ' ')
+	{
+		cmdlineBuf[n - 1] = '\0';
+	}
+}
+
+static const char *capturedCmdline(void)
+{
+	oK(pthread_once(&cmdlineOnce, captureCmdline));
+	return cmdlineBuf;
+}
+
+static uint64_t	monotonicMicroseconds(void)
+{
+	struct timespec	ts;
+
+	if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
+	{
+		return 0;
+	}
+
+	return ((uint64_t) ts.tv_sec) * 1000000ULL
+			+ ((uint64_t) ts.tv_nsec) / 1000ULL;
+}
+
+static void	recordLockOwner(SdrState *sdr)
+{
+	const char	*cmd = capturedCmdline();
+
+	sdr->lastOwner.pid = (int) getpid();
+	sdr->lastOwner.acquired_at_us = monotonicMicroseconds();
+	istrcpy(sdr->lastOwner.cmdline, cmd, sizeof sdr->lastOwner.cmdline);
+}
+
+static void	formatLockOwner(const SdrLockOwner *owner, uint64_t nowUs,
+			char *out, size_t outSize)
+{
+	uint64_t	heldUs;
+
+	heldUs = (owner->acquired_at_us && nowUs >= owner->acquired_at_us)
+			? nowUs - owner->acquired_at_us : 0;
+	isprintf(out, (int) outSize,
+			"pid=%d cmdline=\"%s\" held=%llu us",
+			owner->pid,
+			owner->cmdline[0] ? owner->cmdline : "(unknown)",
+			(unsigned long long) heldUs);
+}
+
+#endif	/*	ION_HAVE_ROBUST_MUTEX					*/
+
 static int	lockSdr(Sdr sdrv)
 {
 	SdrState	*sdr = sdrv->sdr;
@@ -454,7 +552,20 @@ static int	lockSdr(Sdr sdrv)
 		 *	roll back the dead owner's partial transaction
 		 *	before marking the mutex consistent again.	*/
 
-		if (recoverOrphanedXn(sdrv) < 0)
+		SdrLockOwner	dead;
+		char		deadInfo[160];
+
+		/*	Snapshot the dead-owner record before recovery
+		 *	starts.  We pass it into recoverOrphanedXn so
+		 *	the diagnostic survives even if recovery fails
+		 *	and the mutex transitions to ENOTRECOVERABLE.	*/
+
+		memcpy(&dead, &sdr->lastOwner, sizeof dead);
+		dead.cmdline[sizeof dead.cmdline - 1] = '\0';
+		formatLockOwner(&dead, monotonicMicroseconds(),
+				deadInfo, sizeof deadInfo);
+
+		if (recoverOrphanedXn(sdrv, deadInfo) < 0)
 		{
 			/*	Unlocking without pthread_mutex_consistent
 			 *	transitions the mutex to ENOTRECOVERABLE,
@@ -509,6 +620,9 @@ profile must be reloaded.", NULL);
 	sdr->xnDepth = 1;
 	sdr->xnCanceled = 0;
 	sdr->modified = 0;
+#ifdef ION_HAVE_ROBUST_MUTEX
+	recordLockOwner(sdr);
+#endif
 	return 0;
 }
 
@@ -883,12 +997,13 @@ static void	clearTransaction(Sdr sdrv)
  *	it deliberately does not, so the mutex becomes ENOTRECOVERABLE
  *	rather than handing out a corrupt SDR.				*/
 
-static int	recoverOrphanedXn(Sdr sdrv)
+static int	recoverOrphanedXn(Sdr sdrv, char *deadInfo)
 {
+	static char	noRecord[] = "(no owner record)";
 	SdrState	*sdr = sdrv->sdr;
 
-	writeMemo("[?] SDR transaction lock owner died mid-transaction; \
-recovering.");
+	writeMemoNote("[?] SDR transaction lock owner died mid-transaction; \
+recovering.", deadInfo ? deadInfo : noRecord);
 
 	/*	A read-only transaction leaves nothing to undo.  If the
 	 *	dead owner modified the heap, roll the changes back from
@@ -1343,6 +1458,7 @@ static int	createSdrMutex(SdrState *sdr)
 
 	oK(pthread_mutexattr_destroy(&attr));
 	ion_ipc_atomic_init(&sdr->sdrXnEnded, 0);
+	memset(&sdr->lastOwner, 0, sizeof sdr->lastOwner);
 	sdr->sdrMutexCreated = 1;
 	return 0;
 }

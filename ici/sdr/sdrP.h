@@ -65,6 +65,28 @@ typedef struct
 	size_t		capacity;
 } ExtentArray;
 
+#ifdef ION_HAVE_ROBUST_MUTEX
+
+/*	SdrLockOwner records who acquired the SDR transaction lock,
+ *	captured at acquire-time and read by the next acquirer if the
+ *	previous owner died mid-transaction (EOWNERDEAD).  It lives
+ *	in shared memory next to sdrMutex so the recovery log can
+ *	identify the orphan by pid + cmdline without external tooling.
+ *	Sized to fit close to one cache line — 64 bytes covers every
+ *	realistic ION daemon invocation (bpadmin '.', tcc 203,
+ *	udplsi [::1]:1113, etc.).					*/
+
+#define SDR_LOCK_OWNER_CMDLINE_MAX	64
+
+typedef struct
+{
+	uint64_t	acquired_at_us;	/*	CLOCK_MONOTONIC	*/
+	int		pid;
+	char		cmdline[SDR_LOCK_OWNER_CMDLINE_MAX];
+} SdrLockOwner;
+
+#endif	/*	ION_HAVE_ROBUST_MUTEX					*/
+
 #define	INITIALIZED	(0x99999999)
 
 /*	Memory management abstraction.					*/
@@ -120,6 +142,7 @@ typedef struct sdr_str
 	pthread_mutex_t	 sdrMutex;		/*	Robust xn lock.	*/
 	ion_ipc_atomic_t sdrXnEnded;		/*	Boolean.	*/
 	int		 sdrMutexCreated;	/*	Boolean.	*/
+	SdrLockOwner	 lastOwner;	/*	For EOWNERDEAD diag.	*/
 #endif
 	int		sdrOwnerTask;		/*	Task ID.	*/
 	pthread_t	sdrOwnerThread;		/*	Thread ID.	*/
