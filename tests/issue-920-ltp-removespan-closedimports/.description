@@ -1,0 +1,1 @@
+Verify that ltp removeSpan() succeeds promptly with non-empty closedImports (issue #920)

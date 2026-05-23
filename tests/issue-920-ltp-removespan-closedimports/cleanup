@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+#
+# Scott Burleigh
+# October 8, 2010
+
+echo "Cleaning up old ION..."
+export ION_NODE_LIST_DIR=$PWD
+killm f
+rm -f ion_nodes \
+      2.ipn.ltp/ion.log 2.ipn.ltp/node2.stdout 2.ipn.ltp/smallfile \
+      3.ipn.ltp/ion.log 3.ipn.ltp/node3.stdout 3.ipn.ltp/testfile* \
+      3.ipn.ltp/ltpadmin_r.out 3.ipn.ltp/core

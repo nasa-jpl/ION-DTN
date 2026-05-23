@@ -1,0 +1,173 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# Regression test for issue #920:
+# ltp: removeSpan() should not block on non-empty closedImports.
+#
+# Pre-fix: ltpadmin "r <engineId>" refused to remove an LTP span while
+#          closedImports held any tombstones, requiring the operator to
+#          wait minutes-to-an-hour for the LtpForgetImportSession timeline
+#          events to fire ("Span has closed import sessions ..." logged
+#          to ion.log and the SDR transaction canceled).
+#
+# Post-fix: removeSpan() cancels the pending LtpForgetImportSession
+#           events itself before destroying closedImports, completing the
+#           removal immediately and leaving no orphan events that could
+#           later trigger a stale-pointer sdr_list_delete in ltpclock.
+#
+# Strategy:
+#   1. Stand up two LTP-connected nodes (engines 2 and 3).
+#   2. Send several small bundles from engine 2 -> engine 3; each
+#      bundle completes an import session on engine 3 and adds a
+#      tombstone to closedImports plus a pending forget-event.
+#   3. While closedImports is still populated (well inside the
+#      10 + 2*(maxTimeouts/SIGNAL_REDUNDANCY)*RTT-second forget delay),
+#      have engine 3 remove its LTP span to engine 2.
+#   4. Assert: ltpadmin command succeeded, ion.log does not contain
+#      the pre-fix "Span has closed import sessions" guard message,
+#      and the span is genuinely gone (not just "command returned 0").
+#   5. Wait past the forget-event delay; assert ltpclock is still
+#      alive (i.e. no stale-pointer crash from any leftover event).
+
+echo "########################################"
+echo
+echo "NAME: issue-920-ltp-removespan-closedimports"
+echo
+echo "PURPOSE: removeSpan must succeed promptly when closedImports has"
+echo "         pending forget-tombstones, and must not leave orphan"
+echo "         timeline events that could crash ltpclock."
+echo
+echo "########################################"
+
+echo "Cleaning up old ION..."
+./cleanup
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+cd 2.ipn.ltp
+./ionstart >& node2.stdout
+cd ../3.ipn.ltp
+./ionstart >& node3.stdout
+
+cd ../2.ipn.ltp
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+if [ $? -ne 3 ]; then
+    echo "FAIL: Node 2 not started"
+    exit 1
+fi
+
+cd ../3.ipn.ltp
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+if [ $? -ne 3 ]; then
+    echo "FAIL: Node 3 not started"
+    exit 1
+fi
+
+# Start receiver on engine 3.
+echo "Starting bprecvfile on node 3..."
+bprecvfile ipn:3.1 > /dev/null &
+RECVPID=$!
+sleep 1
+
+# Populate closedImports on engine 3 by completing five small import
+# sessions in rapid succession.  Each bpsendfile is a separate LTP
+# session (default block size + one tiny payload), so each closes its
+# import session on engine 3 and lays down a tombstone.
+echo "Sending 5 small bundles from engine 2 -> engine 3..."
+cd ../2.ipn.ltp
+printf 'x' > smallfile
+for i in 1 2 3 4 5; do
+    bpsendfile ipn:2.2 ipn:3.1 smallfile
+done
+
+# Give the last session a moment to close on engine 3 (rfx tick + ltp
+# segment exchange).  Do NOT sleep so long that any forget-event fires;
+# default delay is 10 + 2*(maxTimeouts/SIGNAL_REDUNDANCY)*RTT seconds
+# (~13s with the test's small RTTs), so 3s is comfortably inside the
+# window for all five tombstones.
+sleep 3
+
+# ---- The action under test ----
+#
+# Remove engine 3's LTP span to engine 2.  Pre-fix: this should print
+# the "Span has closed import sessions..." memo and skip the removal.
+# Post-fix: completes immediately with no such memo.
+echo "Removing span 2 from engine 3 (with closedImports populated)..."
+cd ../3.ipn.ltp
+echo "d span 2" | ltpadmin > ltpadmin_r.out 2>&1
+LTPADMIN_RC=$?
+cat ltpadmin_r.out
+
+echo
+RETVAL=0
+
+# A. ltpadmin must return success.
+if [ $LTPADMIN_RC -ne 0 ]; then
+    echo "FAIL: ltpadmin returned $LTPADMIN_RC (expected 0)"
+    RETVAL=1
+fi
+
+# B. The pre-fix guard memo must NOT be in ion.log.
+if grep -q "Span has closed import sessions" ion.log 2>/dev/null; then
+    echo "FAIL: ion.log contains 'Span has closed import sessions' --"
+    echo "      removeSpan blocked on closedImports.  Pre-fix behavior."
+    grep "Span has closed import sessions" ion.log
+    RETVAL=1
+else
+    echo "OK: no pre-fix guard message in ion.log."
+fi
+
+# C. The span must actually be gone.  "l span" lists all configured
+#    LTP spans; an entry for engine 2 means the removal silently
+#    didn't happen.
+if echo "l span" | ltpadmin 2>&1 | grep -E '^ engine 2 ' > /dev/null; then
+    echo "FAIL: 'l span' still shows engine 2 -- span was not removed."
+    echo "l span" | ltpadmin
+    RETVAL=1
+else
+    echo "OK: span to engine 2 is no longer configured."
+fi
+
+# D. ltpclock must still be alive on engine 3 immediately after the
+#    removal -- it shouldn't have crashed on any orphaned forget-event.
+if ! pgrep -f 'ltpclock' > /dev/null; then
+    echo "FAIL: ltpclock not running immediately after span removal."
+    RETVAL=1
+else
+    echo "OK: ltpclock is alive immediately after removal."
+fi
+
+# E. Wait past the forget-event delay window.  With the fix the events
+#    were cancelled; without the fix (or a bad cancel match) they would
+#    fire here and crash ltpclock via _xniEnd -> crashXn -> sm_Abort.
+echo "Waiting 20s for any orphan forget-events to fire (or not)..."
+sleep 20
+
+if ! pgrep -f 'ltpclock' > /dev/null; then
+    echo "FAIL: ltpclock died during the forget-event window."
+    echo "      Last ion.log entries:"
+    tail -20 ion.log
+    RETVAL=1
+else
+    echo "OK: ltpclock survived the forget-event window."
+fi
+
+# Shut down ION processes.
+echo
+echo "Shutting down ION..."
+kill -9 $RECVPID > /dev/null 2>&1
+cd ../2.ipn.ltp
+./ionstop > /dev/null 2>&1
+cd ../3.ipn.ltp
+./ionstop > /dev/null 2>&1
+
+if [ $RETVAL -eq 0 ]; then
+    echo
+    echo "PASS"
+fi
+
+exit $RETVAL
