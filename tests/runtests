@@ -6,13 +6,15 @@
 # Updated: September 2025, JPL
 # Modified: Added retest functionality for failed tests using existing "retest" file
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 # This file will contain the tests that failed.
 # --dyoung oct 2010
 FAILEDFILE="retest"
 
 # This file will contain intermediate progress.
 # --sdo oct 2023
-PROGRESSFILE="`pwd`/progress"
+PROGRESSFILE="$SCRIPT_DIR/progress"
 echo "# Testing started by $0 `date`" > $PROGRESSFILE
 echo "# testing host: `hostname`" >> $PROGRESSFILE
 echo "# testing environment: `uname -a`" >> $PROGRESSFILE
@@ -81,7 +83,7 @@ on_interrupt () {
 trap on_interrupt INT TERM
 
 
-[ -f pretest-script.sh ] && source pretest-script.sh
+[ -f "$SCRIPT_DIR/pretest-script.sh" ] && . "$SCRIPT_DIR/pretest-script.sh"
 
 
 function find_tests_in () {
@@ -188,7 +190,7 @@ function get_timestamp () {
 }
 
 # Locate the ion-diagnostics script (one directory up from tests/)
-ION_DIAGNOSTICS="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/ion-diagnostics"
+ION_DIAGNOSTICS="$(cd "$SCRIPT_DIR/.." && pwd)/ion-diagnostics"
 
 # Compute per-test timeout: 4x .DURATION if available, capped at 2400s
 # (40 min) and floored at 60s. Falls back to 1200s when .DURATION is
