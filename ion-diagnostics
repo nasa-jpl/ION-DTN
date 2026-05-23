@@ -291,13 +291,33 @@ section "Host Information"
 section "ION Process Inventory"
 
 # Compute ION process list first (outside the redirect block so variable persists)
-PS_OUT=$(ps -eo pid,ppid,stat,user,rss,vsz,time,etime,args 2>/dev/null || \
+#
+# Include 'comm' (kernel process name, always a single token) alongside 'args'
+# so we can match on comm rather than parsing args.  Matching on the last word
+# of args silently misses every daemon launched with arguments — bpadmin (.),
+# tcc/tcacompile/tcarecv (blocksGroupNbr), udplsi/udplso (host:port), etc. —
+# leaving them out of the inventory and the stack-trace dump.
+PS_OUT=$(ps -eo pid,ppid,stat,user,rss,vsz,time,etime,comm,args 2>/dev/null || \
+         ps -eo pid,ppid,stat,user,rss,vsz,time,etime,args 2>/dev/null || \
          ps -fe 2>/dev/null)
 ION_PIDS=""
 
 if [ -z "$PS_OUT" ]; then
     warn "ps command failed" >> "$OUTPUT"
 else
+    # Detect PID and command columns from the ps header so we work across
+    # both `ps -eo pid,...` (PID at $1, COMMAND at $9) and `ps -fe`
+    # (PID at $2, CMD at $8).
+    read -r pid_field cmd_field < <(echo "$PS_OUT" | awk 'NR==1 {
+        p = 0; c = 0
+        for (i = 1; i <= NF; i++) {
+            if ($i == "PID" && p == 0) p = i
+            if (($i == "COMMAND" || $i == "CMD") && c == 0) c = i
+        }
+        print (p ? p : 1), (c ? c : 9)
+        exit
+    }')
+
     {
         echo "  PID     PPID   STAT  USER       RSS      VSZ     TIME     ELAPSED  COMMAND"
         echo "  ------  -----  ----  --------  ------  --------  -------  -------  -------"
@@ -305,15 +325,16 @@ else
 
     while IFS= read -r proc_name; do
         [ -z "$proc_name" ] && continue
-        local_matches=$(echo "$PS_OUT" | awk -v name="$proc_name" '
+        local_matches=$(echo "$PS_OUT" | awk -v name="$proc_name" -v f="$cmd_field" '
+            NR == 1 { next }
             {
-                cmd = $NF
+                cmd = $f
                 sub(/.*\//, "", cmd)
                 if (cmd == name) print
             }')
         if [ -n "$local_matches" ]; then
             echo "$local_matches" | sed 's/^/  /' >> "$OUTPUT"
-            local_pids=$(echo "$local_matches" | awk '{print $1}')
+            local_pids=$(echo "$local_matches" | awk -v p="$pid_field" '{print $p}')
             ION_PIDS="$ION_PIDS $local_pids"
         fi
     done <<< "$(echo "$IONPROCESSLIST" | tr ' ' '\n')"
