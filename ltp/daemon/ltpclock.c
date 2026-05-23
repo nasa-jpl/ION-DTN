@@ -89,14 +89,13 @@ static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
 			break;		/*	Out of switch.		*/
 
 		case LtpForgetImportSession:
-			/*	Note: Race condition - if removeSpan() destroys
-			 *	closedImports between checking it's empty and this
-			 *	timeline event firing, sdr_list_delete will fail on
-			 *	freed memory. The transaction will be canceled and
-			 *	sdr_end_xn will fail, but ltpclock will safely
-			 *	continue processing. This race is rare because
-			 *	removeSpan() requires closedImports to be empty
-			 *	before proceeding (see libltpP.c:2383-2390).	*/
+			/*	event.parm holds a closedImports list-element
+			 *	handle.  removeSpan() cancels any pending
+			 *	LtpForgetImportSession events that target its
+			 *	closedImports entries before destroying the
+			 *	list, so by the time this case fires the
+			 *	element is guaranteed to be live -- no stale-
+			 *	address delete on freed memory.			*/
 			sdr_list_delete(sdr, event.parm, NULL, NULL);
 			result = 0;
 			break;		/*	Out of switch.		*/

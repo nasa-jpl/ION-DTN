@@ -2425,6 +2425,8 @@ static void	releaseImportBuffer(Sdr sdr, Object elt, void *arg)
 	sdr_free(sdr, sdr_list_data(sdr, elt));
 }
 
+static void	cancelForgetImportEvent(Object listElt);
+
 int	removeSpan(uvast engineId)
 {
 	Sdr		sdr = getIonsdr();
@@ -2434,6 +2436,7 @@ int	removeSpan(uvast engineId)
 	PsmAddress	vspanElt;
 	Object		spanElt;
 	Object		spanObj;
+	Object		elt;
 	OBJ_POINTER(LtpSpan, span);
 
 	/*	Must stop the span before trying to remove it.		*/
@@ -2566,13 +2569,26 @@ removed yet.", itoa(engineId));
 		return 0;
 	}
 
-	if (sdr_list_length(sdr, span->closedImports) != 0)
+	/*	closedImports holds only integer session-number tombstones
+	 *	whose underlying import sessions and heap buffers have
+	 *	already been released; their only purpose is to swallow
+	 *	late-arriving segments for already-completed sessions on
+	 *	the *live* span.  Once the span is gone, the inbound
+	 *	machinery rejects segments earlier and the tombstones
+	 *	protect nothing -- so we destroy the list unconditionally
+	 *	here instead of waiting for ltpclock to forget every entry.
+	 *
+	 *	But each tombstone has a pending LtpForgetImportSession
+	 *	timeline event that holds the tombstone's list-element
+	 *	handle in event.parm; if those events outlive the list,
+	 *	their later sdr_list_delete fires on freed memory and
+	 *	aborts ltpclock via _xniEnd -> crashXn.  Cancel them
+	 *	before destroying closedImports.			*/
+
+	for (elt = sdr_list_first(sdr, span->closedImports); elt;
+			elt = sdr_list_next(sdr, elt))
 	{
-		writeMemoNote("[?] Span has closed import sessions that \
-haven't been forgotten yet, can't be removed. Wait for timeline events to \
-process them.", itoa(engineId));
-		sdr_cancel_xn(sdr);
-		return 0;
+		cancelForgetImportEvent(elt);
 	}
 
 	/*	Okay to remove this span from the database.		*/
@@ -2908,6 +2924,41 @@ static void	cancelEvent(LtpEventType type, uvast refNbr1,
 		GET_OBJ_POINTER(sdr, LtpEvent, event, eventObj);
 		if (event->type == type && event->refNbr1 == refNbr1
 		&& event->refNbr2 == refNbr2 && event->refNbr3 == refNbr3)
+		{
+			sdr_free(sdr, eventObj);
+			sdr_list_delete(sdr, elt, NULL, NULL);
+			return;
+		}
+	}
+}
+
+/*	cancelForgetImportEvent removes the LtpForgetImportSession
+ *	timeline event that references the given closedImports list
+ *	element.  Used by removeSpan() to drop pending forget events
+ *	before destroying the closedImports list -- without this, the
+ *	event's later attempt to sdr_list_delete a freed element would
+ *	hit _xniEnd and abort ltpclock (the "race already handled"
+ *	comment in ltpclock.c is too optimistic; _xniEnd calls crashXn
+ *	and, with the default _coreFileNeeded(), sm_Abort).  Unlike the
+ *	other LtpEvent kinds, LtpForgetImportSession does not encode its
+ *	target in refNbr1/2/3, so cancelEvent above cannot find it; we
+ *	match on event.parm instead.  At most one event references a
+ *	given listElt, so we return on first match.			*/
+
+static void	cancelForgetImportEvent(Object listElt)
+{
+	Sdr	sdr = getIonsdr();
+	Object	elt;
+	Object	eventObj;
+	OBJ_POINTER(LtpEvent, event);
+
+	for (elt = sdr_list_first(sdr, (_ltpConstants())->timeline); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		eventObj = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, LtpEvent, event, eventObj);
+		if (event->type == LtpForgetImportSession
+		&& event->parm == listElt)
 		{
 			sdr_free(sdr, eventObj);
 			sdr_list_delete(sdr, elt, NULL, NULL);
