@@ -64,24 +64,51 @@ ps aux | grep bpchat | grep -v grep
 
 echo "Wait for bpchatoutput to contain the expected data (polling with timeout)."
 
-MAX_WAIT_TIME=30
+# Total budget needs to cover slow CI runners; locally bpchat delivers all 40
+# lines in ~1s, but loaded ARC runners have been seen progressing at ~1
+# line/sec, so 30s was on the edge and produced intermittent u20/u22
+# failures with 27-32/40 delivered before timeout. Bump the overall budget
+# but also bail early when delivery has actually stalled (no new lines for
+# STALL_BUDGET seconds) so a real hang still fails fast.
+
+MAX_WAIT_TIME=90
+STALL_BUDGET=20
 POLL_INTERVAL=1
 
+EXPECTED_LINES=$(wc -l < bpchatinput)
 WAIT_START_TIME=$SECONDS
+LAST_PROGRESS_TIME=$SECONDS
+LAST_LINE_COUNT=0
 while true; do
     if diff bpchatinput bpchatoutput > /dev/null; then
         echo "Bpchat output matches bpchatinput. Bundles received."
         break
     fi
 
+    CURRENT_LINE_COUNT=$(wc -l < bpchatoutput 2>/dev/null || echo 0)
     CURRENT_WAIT_TIME=$((SECONDS - WAIT_START_TIME))
+
+    if [ "$CURRENT_LINE_COUNT" -gt "$LAST_LINE_COUNT" ]; then
+        LAST_LINE_COUNT=$CURRENT_LINE_COUNT
+        LAST_PROGRESS_TIME=$SECONDS
+    fi
+    STALL_TIME=$((SECONDS - LAST_PROGRESS_TIME))
+
     if [ $CURRENT_WAIT_TIME -ge $MAX_WAIT_TIME ]; then
-        echo "ERROR: Timeout waiting for bpchatoutput to match bpchatinput."
+        echo "ERROR: Overall timeout waiting for bpchatoutput to match bpchatinput."
+        echo "       Reached $CURRENT_LINE_COUNT/$EXPECTED_LINES lines in ${CURRENT_WAIT_TIME}s."
         FAIL=1
-        break # Timeout, exit the loop
+        break
     fi
 
-    echo "Waiting for bundles... ($CURRENT_WAIT_TIME/$MAX_WAIT_TIME seconds)"
+    if [ $STALL_TIME -ge $STALL_BUDGET ] && [ "$CURRENT_LINE_COUNT" -gt 0 ]; then
+        echo "ERROR: Delivery stalled at $CURRENT_LINE_COUNT/$EXPECTED_LINES lines"
+        echo "       (no progress for ${STALL_TIME}s, exceeding ${STALL_BUDGET}s stall budget)."
+        FAIL=1
+        break
+    fi
+
+    echo "Waiting for bundles... ${CURRENT_LINE_COUNT}/${EXPECTED_LINES} lines (${CURRENT_WAIT_TIME}/${MAX_WAIT_TIME}s elapsed, ${STALL_TIME}s since last progress)"
     sleep $POLL_INTERVAL
 done
 
