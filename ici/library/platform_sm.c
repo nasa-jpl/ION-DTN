@@ -3398,6 +3398,51 @@ void	sm_ipc_stop(void)
 }
 
 
+#ifdef ION_HAVE_ROBUST_MUTEX
+/*	Per-thread saved signal mask for takeIpcLock/giveIpcLock.  We
+ *	block SIGTERM/SIGINT around the IPC-lock-held region so that
+ *	a shutdown signal arriving mid-critical-section can never
+ *	interrupt this thread and re-enter takeIpcLock from its
+ *	handler — a self-deadlock seen in ltpdeliv/bptransit/bpclm
+ *	whose SIGTERM handlers call sm_SemEnd, which calls
+ *	takeIpcLock on the very mutex this thread already holds.
+ *	Deferred signals are delivered the moment giveIpcLock restores
+ *	the mask.							*/
+
+static ION_THREAD_LOCAL sigset_t	ipcLockSavedMask;
+static ION_THREAD_LOCAL int		ipcLockMaskDepth = 0;
+
+static void	blockShutdownSignals(void)
+{
+	sigset_t	toBlock;
+
+	if (ipcLockMaskDepth++ > 0)
+	{
+		return;	/*	Already blocked at outer scope.		*/
+	}
+
+	sigemptyset(&toBlock);
+	sigaddset(&toBlock, SIGTERM);
+	sigaddset(&toBlock, SIGINT);
+	oK(pthread_sigmask(SIG_BLOCK, &toBlock, &ipcLockSavedMask));
+}
+
+static void	restoreShutdownSignals(void)
+{
+	if (ipcLockMaskDepth == 0)
+	{
+		return;	/*	Unbalanced restore (should not happen).	*/
+	}
+
+	if (--ipcLockMaskDepth > 0)
+	{
+		return;	/*	Still nested; restore at outermost only.*/
+	}
+
+	oK(pthread_sigmask(SIG_SETMASK, &ipcLockSavedMask, NULL));
+}
+#endif	/*	ION_HAVE_ROBUST_MUTEX					*/
+
 static void	takeIpcLock(void)
 {
 #ifdef ION_HAVE_ROBUST_MUTEX
@@ -3407,6 +3452,7 @@ static void	takeIpcLock(void)
 	CHKVOID(psemGlobal != NULL);
 	CHKVOID(psemGlobal->ipcMutexCreated);
 
+	blockShutdownSignals();
 	rc = pthread_mutex_lock(&psemGlobal->ipcMutex);
 	if (rc == EOWNERDEAD)
 	{
@@ -3480,6 +3526,14 @@ static void	giveIpcLock(void)
 	{
 		oK(pthread_mutex_unlock(&psemGlobal->ipcMutex));
 	}
+
+	/*	Restore the signal mask saved by takeIpcLock.  Any
+	 *	SIGTERM/SIGINT delivered to this thread while the lock
+	 *	was held is now delivered, including the shutdown
+	 *	handlers' calls back into sm_SemEnd that the blocking
+	 *	specifically protected against.				*/
+
+	restoreShutdownSignals();
 #else
 	if (sem_post(_ipcSemaphore(IPC_ACTION_LOOKUP)) == -1) {
 		putSysErrmsg("giveIpcLock failed", NULL);
