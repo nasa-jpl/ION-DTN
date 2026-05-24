@@ -10138,7 +10138,26 @@ int	bpEndAcq(AcqWorkArea *work)
 	int		acqLength;
 
 	CHKERR(work);
-	CHKERR(work->zco);
+
+	/*	A bpBeginAcq with no successful bpContinueAcq leaves
+	 *	work->zco == 0 -- e.g. a TCPCL peer that connected and
+	 *	closed without sending payload bytes, or an upstream
+	 *	ZCO-space request that failed and left no allocation.
+	 *	The condition is benign at the bundle level: drop this
+	 *	acquisition and let the caller decide whether to close
+	 *	the session.  Asserting via CHKERR aborts the worker
+	 *	thread through _iEnd, which is the wrong response to a
+	 *	routine peer-disorder / out-of-space event (see #982,
+	 *	same anti-pattern as #965).				*/
+
+	if (work->zco == 0)
+	{
+		writeMemo("[?] bpEndAcq called with no ZCO; dropping \
+acquisition.");
+		oK(eraseWorkZco(work));	/*	Resets the work area.	*/
+		return -1;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	work->zcoLength = zco_length(sdr, work->zco);
 	zco_start_receiving(work->zco, &(work->reader));
