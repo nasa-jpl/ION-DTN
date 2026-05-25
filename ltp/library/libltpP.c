@@ -4595,9 +4595,62 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 				+ segment.pdu.ohdLength, segment.pdu.block,
 				segment.pdu.offset, segment.pdu.length) < 0)
 		{
-			putErrmsg("Can't read data from export block.", NULL);
-			sdr_cancel_xn(sdr);
-			return -1;
+			/*	The backing store for this segment's
+			 *	payload (typically a file behind a
+			 *	bpsendfile-style ZCO) is no longer
+			 *	readable.  This is a bundle-level
+			 *	failure -- drop the segment.  We cannot
+			 *	call sdr_cancel_xn() here: the destructive
+			 *	list/free operations earlier in this
+			 *	function are not reversible on non-
+			 *	reversible SDR profiles, so cancellation
+			 *	would trip handleUnrecoverableError()
+			 *	-> sm_Abort() and kill the entire node
+			 *	(see #965).  Free the segment object
+			 *	consistently with the non-retain default
+			 *	path below, also clearing any sessionListElt
+			 *	that wasn't already removed earlier in this
+			 *	function (checkpoint types skip the
+			 *	unconditional removal above), commit the
+			 *	transaction so the dead segref stays off
+			 *	the queue, and return 0 (interrupted) so
+			 *	LSO continues with the next segment rather
+			 *	than terminating the link.		*/
+
+			putErrmsg("Can't read data from export block; \
+segment dropped.", NULL);
+
+			if (segment.sessionListElt)
+			{
+				sdr_list_delete(sdr,
+					segment.sessionListElt, NULL, NULL);
+				segment.sessionListElt = 0;
+			}
+
+			if (segment.pdu.headerExtensions)
+			{
+				sdr_list_destroy(sdr,
+					segment.pdu.headerExtensions,
+					ltpei_destroy_extension, NULL);
+			}
+
+			if (segment.pdu.trailerExtensions)
+			{
+				sdr_list_destroy(sdr,
+					segment.pdu.trailerExtensions,
+					ltpei_destroy_extension, NULL);
+			}
+
+			sdr_free(sdr, segRef.segAddr);
+
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("LSO can't commit segment drop.",
+						NULL);
+				return -1;
+			}
+
+			return 0;
 		}
 	}
 
