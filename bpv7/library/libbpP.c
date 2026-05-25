@@ -12331,9 +12331,38 @@ bundle.", NULL);
 
 	if (catenateBundle(&bundle) < 0)
 	{
-		putErrmsg("Can't catenate bundle.", NULL);
-		sdr_cancel_xn(sdr);
-		return -1;
+		/*	catenateBundle reads the payload ZCO to compute
+		 *	the payload-block CRC.  For a file-backed ZCO
+		 *	whose source file has been unlinked or truncated
+		 *	between enqueue and forward, the read fails here.
+		 *	This is a bundle-level failure and must not abort
+		 *	the SDR: cancelling this transaction on a non-
+		 *	reversible SDR would trip handleUnrecoverableError
+		 *	-> sm_Abort and kill the entire node (see #965).
+		 *	Drop the bundle the way the bpsec/insecure path
+		 *	above does -- bpDestroyBundle + commit -- and
+		 *	tell the caller via bundleZco=1 to skip and
+		 *	continue.					*/
+
+		putErrmsg("Can't catenate bundle; dropping.", NULL);
+		*bundleZco = 1;	/*	Client continues.		*/
+		sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
+		if (bpDestroyBundle(bundleObj, 5) < 0)
+		{
+			putErrmsg("Failed destroying uncatenable bundle.",
+					NULL);
+			/*	Fall through and commit anyway -- a leaked
+			 *	bundle object is bounded waste, an aborted
+			 *	SDR is unbounded.			*/
+		}
+
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't commit bundle drop.", NULL);
+			return -1;
+		}
+
+		return 0;
 	}
 
 	/*	Some final extension-block processing may be necessary

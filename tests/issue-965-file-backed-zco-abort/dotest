@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# Regression test for #965: a file-backed ZCO whose source file disappears
+# between bpsendfile and the LTP transmission attempt must drop that one
+# bundle, not abort the SDR and kill the node.
+#
+# Setup:
+#   - Single node (engine 2, ipn:2) with BP+LTP.
+#   - Outduct ltp/3 to peer engine 3 (nonexistent; UDP goes into the void).
+#   - Contact 2 -> 3 starts at +30s, so transmission is deferred long enough
+#     for us to remove the file safely.
+#   - SDR configFlags=1 (SDR_IN_DRAM, not SDR_REVERSIBLE) -- the exact
+#     condition under which the original bug aborts the node.
+#
+# Test sequence:
+#   1. Create /tmp/ion965_payload (1 KiB).
+#   2. bpsendfile to ipn:3.1 immediately -- bundle queues, ZCO references
+#      /tmp/ion965_payload, no read yet because the contact hasn't opened.
+#   3. rm /tmp/ion965_payload.
+#   4. Wait past the contact start.  LTP/LSO wakes, ltpDequeueOutboundSegment
+#      runs readFromExportBlock, the file open fails.
+#
+# Pass criteria:
+#   - Node is alive after the wait (rfxclock + ltpclock + bpclock still
+#     running).  Without the fix, ion.log shows "Unrecoverable SDR error"
+#     and the daemons are gone.
+#   - ion.log contains the new fix's drop message and does NOT contain
+#     "Unrecoverable SDR error".
+
+echo "########################################"
+echo "NAME:  issue-965-file-backed-zco-abort"
+echo
+echo "PURPOSE: Verify that an unreadable file-backed ZCO drops one bundle"
+echo "instead of aborting the whole ION instance (issue #965)."
+echo "########################################"
+
+FAIL=0
+PAYLOAD=/tmp/ion965_payload
+
+./cleanup
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+./ionstart
+sleep 2
+
+echo "Confirming ION daemons started..."
+for d in rfxclock ltpclock bpclock; do
+    if ! pgrep -x "$d" >/dev/null; then
+        echo "ERROR: $d not running after ionstart."
+        FAIL=1
+    fi
+done
+
+if [ $FAIL -ne 0 ]; then
+    echo "Aborting test: ION did not start cleanly."
+    ./ionstop || true
+    exit 1
+fi
+
+echo "Creating payload file..."
+dd if=/dev/urandom of="$PAYLOAD" bs=1024 count=1 status=none
+
+echo "bpsendfile -> ipn:3.1 (peer engine doesn't exist; transmission deferred"
+echo "until contact 2->3 opens at +30s)..."
+bpsendfile ipn:2.1 ipn:3.1 "$PAYLOAD" 0.1 3600
+sleep 1
+
+echo "Removing payload file BEFORE the contact opens..."
+rm -f "$PAYLOAD"
+ls -l "$PAYLOAD" 2>&1 | head -1
+
+echo "Waiting 45s for the contact to open and LTP to attempt transmission..."
+sleep 45
+
+echo "Inspecting ion.log..."
+if grep -q "Unrecoverable SDR error" ion.log; then
+    echo "FAIL: ion.log contains 'Unrecoverable SDR error' -- the SDR was aborted."
+    FAIL=1
+else
+    echo "PASS: ion.log does not contain 'Unrecoverable SDR error'."
+fi
+
+# The drop can fire on either the BP-side (catenate reads the file to compute
+# CRC at forward time) or the LTP-side (LSO reads the export block at xmit
+# time), depending on when the contact opens vs. forwarding pipeline timing.
+# Accept either as evidence that the fix engaged.
+if grep -q "Can't catenate bundle; dropping" ion.log \
+        || grep -q "Can't read data from export block; segment dropped" ion.log; then
+    echo "PASS: ion.log shows a bundle-drop message from the fix"
+    echo "      (BP catenate-side and/or LTP transmit-side)."
+else
+    echo "FAIL: expected either 'Can't catenate bundle; dropping' or"
+    echo "      'Can't read data from export block; segment dropped' in ion.log."
+    echo "      Was the failing read actually triggered?"
+    FAIL=1
+fi
+
+echo "Checking ION daemons are still running..."
+for d in rfxclock ltpclock bpclock; do
+    if pgrep -x "$d" >/dev/null; then
+        echo "PASS: $d still running."
+    else
+        echo "FAIL: $d is no longer running -- node aborted."
+        FAIL=1
+    fi
+done
+
+echo "Stopping ION..."
+./ionstop || true
+
+if [ $FAIL -eq 0 ]; then
+    echo "TEST PASSED"
+else
+    echo "TEST FAILED"
+fi
+
+exit $FAIL

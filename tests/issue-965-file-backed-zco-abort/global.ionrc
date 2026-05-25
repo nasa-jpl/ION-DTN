@@ -1,0 +1,6 @@
+# Contact 2 -> 3 starts at +30s.  bpsendfile happens immediately and the
+# backing file is removed before the contact opens, so LTP/LSO won't read
+# the (deleted) file until well after t=30s.  Range is 0 (loopback-style).
+m horizon  +0
+a range    +0 +600		2 3   0
+a contact  +30 +600		2 3   10000
