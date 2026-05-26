@@ -132,6 +132,7 @@ psmwatch
 ramsgate
 rfxclock
 sdr2file
+sdr_frag_stress
 sdrmend
 sdrwatch
 sm2file
@@ -146,6 +147,8 @@ udpcli
 udpclo
 udplsi
 udplso
+xlsi
+xlso
 bprecvtest
 bpsendtest
 recvfile
@@ -596,6 +599,7 @@ tests/asymmetric-range/route.svg.base64.svg
 tests/cgr-test/route.svg.base64.svg
 bpinspect
 bpcrash_hard
+cbor_oob_test
 reversibility_correctness_test
 robust_lock_recovery_test
 psm_robust_recovery_test
