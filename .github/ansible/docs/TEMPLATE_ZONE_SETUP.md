@@ -40,7 +40,7 @@ set ip-type=shared
 remove anet
 add net
 set physical=net0
-set address=ip_address_here/24
+set address=198.51.100.5/24
 end
 set zonepath=/zones/template-ion
 set autoboot=false

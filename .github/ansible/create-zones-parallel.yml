@@ -115,9 +115,15 @@
       changed_when: false
 
     - name: Verify hostname is fully committed and resolvable
-      ansible.builtin.command: >
-        zlogin {{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}
-        /usr/bin/bash -c "hostname | grep '^{{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}$' && getent hosts $(hostname)"
+      vars:
+        current_zone: "{{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}"
+      ansible.builtin.command:
+        argv:
+          - zlogin
+          - "{{ current_zone }}"
+          - /usr/bin/bash
+          - "-c"
+          - "hostname | grep '^{{ current_zone }}$' && getent hosts {{ current_zone }}"
       loop: "{{ zones_list }}"
       loop_control:
         label: "Verifying hostname resolution for zone {{ item.job_index }}"

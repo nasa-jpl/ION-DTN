@@ -23,6 +23,7 @@
         <propval name="nodename" value="{{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}" type="astring"/>
         <propval name="loopback" value="{{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}" type="astring"/>
         <propval name="ignore_dhcp_hostname" value="true" type="boolean"/>
+        <propval name="enable_mapping" value="true" type="boolean"/>
       </property_group>
     </instance>
   </service>
