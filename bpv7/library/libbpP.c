@@ -12359,9 +12359,12 @@ bundle.", NULL);
 		 *	reversible SDR would trip handleUnrecoverableError
 		 *	-> sm_Abort and kill the entire node (see #965).
 		 *	Drop the bundle the way the bpsec/insecure path
-		 *	above does -- bpDestroyBundle + commit -- and
+		 *	above does -- bpDestroyBundle + sdr_drop_xn -- and
 		 *	tell the caller via bundleZco=1 to skip and
-		 *	continue.					*/
+		 *	continue.  All modifications already made by
+		 *	bpDequeue (and by bpDestroyBundle below) are in the
+		 *	"discard this bundle" direction, so committing the
+		 *	partial state via sdr_drop_xn is safe.		*/
 
 		putErrmsg("Can't catenate bundle; dropping.", NULL);
 		*bundleZco = 1;	/*	Client continues.		*/
@@ -12370,17 +12373,13 @@ bundle.", NULL);
 		{
 			putErrmsg("Failed destroying uncatenable bundle.",
 					NULL);
-			/*	Fall through and commit anyway -- a leaked
+			/*	Fall through and drop anyway -- a leaked
 			 *	bundle object is bounded waste, an aborted
 			 *	SDR is unbounded.			*/
 		}
 
-		if (sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("Can't commit bundle drop.", NULL);
-			return -1;
-		}
-
+		sdr_drop_xn(sdr, "bpDequeue: catenateBundle failed "
+				"(unreadable payload ZCO?)");
 		return 0;
 	}
 

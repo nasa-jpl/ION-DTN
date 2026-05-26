@@ -4611,14 +4611,13 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 			 *	path below, also clearing any sessionListElt
 			 *	that wasn't already removed earlier in this
 			 *	function (checkpoint types skip the
-			 *	unconditional removal above), commit the
-			 *	transaction so the dead segref stays off
-			 *	the queue, and return 0 (interrupted) so
-			 *	LSO continues with the next segment rather
-			 *	than terminating the link.		*/
-
-			putErrmsg("Can't read data from export block; \
-segment dropped.", NULL);
+			 *	unconditional removal above), drop the
+			 *	transaction via sdr_drop_xn so the dead
+			 *	segref stays off the queue and the drop
+			 *	is logged + counted, and return 0
+			 *	(interrupted) so LSO continues with the
+			 *	next segment rather than terminating the
+			 *	link.					*/
 
 			if (segment.sessionListElt)
 			{
@@ -4643,13 +4642,8 @@ segment dropped.", NULL);
 
 			sdr_free(sdr, segRef.segAddr);
 
-			if (sdr_end_xn(sdr) < 0)
-			{
-				putErrmsg("LSO can't commit segment drop.",
-						NULL);
-				return -1;
-			}
-
+			sdr_drop_xn(sdr, "ltpDequeueOutboundSegment: "
+				"unreadable export block (segment dropped)");
 			return 0;
 		}
 	}

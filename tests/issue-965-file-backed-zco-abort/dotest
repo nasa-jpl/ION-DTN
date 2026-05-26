@@ -87,15 +87,20 @@ fi
 # The drop can fire on either the BP-side (catenate reads the file to compute
 # CRC at forward time) or the LTP-side (LSO reads the export block at xmit
 # time), depending on when the contact opens vs. forwarding pipeline timing.
-# Accept either as evidence that the fix engaged.
-if grep -q "Can't catenate bundle; dropping" ion.log \
+# The sdr_drop_xn helper (PR #1002) logs a uniform "[?] sdr_drop_xn at ..."
+# line that fires from both paths and confirms the cascade-safe close ran;
+# also accept the legacy per-site putErrmsg lines as evidence the drop
+# fired in case sdr_drop_xn hasn't been adopted on this branch yet.
+# Accept any of: sdr_drop_xn (preferred, helper-based), or the legacy
+# per-site putErrmsg lines (for older branches not yet using the helper).
+if grep -q "sdr_drop_xn" ion.log \
+        || grep -q "Can't catenate bundle; dropping" ion.log \
         || grep -q "Can't read data from export block; segment dropped" ion.log; then
     echo "PASS: ion.log shows a bundle-drop message from the fix"
     echo "      (BP catenate-side and/or LTP transmit-side)."
 else
-    echo "FAIL: expected either 'Can't catenate bundle; dropping' or"
-    echo "      'Can't read data from export block; segment dropped' in ion.log."
-    echo "      Was the failing read actually triggered?"
+    echo "FAIL: expected sdr_drop_xn or one of the legacy drop messages"
+    echo "      in ion.log.  Was the failing read actually triggered?"
     FAIL=1
 fi
 
