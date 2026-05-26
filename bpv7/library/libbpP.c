@@ -3780,8 +3780,27 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 		return 0;
 	}
 
+	/*	Reject the null endpoint (dtn:none, ipn:0.0).  The
+	 *	null EID is reserved as the "anonymous source" sentinel
+	 *	and cannot be a delivery destination; addEndpoint
+	 *	otherwise crashes for dtn:none (parseEidString's
+	 *	literal-"dtn:none" fast path returns 1 without setting
+	 *	*vscheme, and findEndpoint then dereferences garbage in
+	 *	sm_list_first), and silently accepts ipn:0.0 only for
+	 *	removeEndpoint to later refuse to delete it -- see #918.
+	 *	This check mirrors the existing rejection in
+	 *	removeEndpoint.						*/
+
+	if (metaEid.nullEndpoint)
+	{
+		clearMetaEid(&metaEid);
+		writeMemoNote("[?] Can't add the null endpoint", eid);
+		return 0;
+	}
+
 	if (strlen(metaEid.nss) > MAX_NSS_LEN)
 	{
+		clearMetaEid(&metaEid);
 		writeMemoNote("[?] Endpoint nss is too long", metaEid.nss);
 		return 0;
 	}

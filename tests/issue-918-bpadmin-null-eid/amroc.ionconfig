@@ -1,0 +1,6 @@
+wmKey 65918
+sdrName ion918
+wmSize 5000000
+configFlags 1
+heapWords 500000
+pathName /tmp

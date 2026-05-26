@@ -1,0 +1,4 @@
+1
+a scheme dtn 'ipnfw' 'ipnadminep'
+a scheme ipn 'ipnfw' 'ipnadminep'
+s
