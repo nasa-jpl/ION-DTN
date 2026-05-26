@@ -153,6 +153,8 @@ typedef struct sdr_str
 	int		maxLogLength;		/*	Max Log Length  */
 	PsmAddress	logEntries;		/*	Offsets in log.	*/
 
+	SdrDropStats	dropStats;	/*	sdr_drop_xn accounting.	*/
+
 		/*	SDR trace data access.			*/
 
 	int		traceKey;		/*	trace shmKey	*/

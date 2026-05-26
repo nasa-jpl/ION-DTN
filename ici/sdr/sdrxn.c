@@ -444,6 +444,23 @@ SdrMap	*_mapImage(Sdr sdrv)
 
 /*	*	Mutual exclusion functions	*	*	*	*/
 
+/*	monotonicMicroseconds: CLOCK_MONOTONIC in microseconds.  Used
+ *	by SdrLockOwner and SdrDropStats diagnostics; available on
+ *	all platforms regardless of ION_HAVE_ROBUST_MUTEX.		*/
+
+static uint64_t	monotonicMicrosecondsCommon(void)
+{
+	struct timespec	ts;
+
+	if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
+	{
+		return 0;
+	}
+
+	return ((uint64_t) ts.tv_sec) * 1000000ULL
+			+ ((uint64_t) ts.tv_nsec) / 1000ULL;
+}
+
 #ifdef ION_HAVE_ROBUST_MUTEX
 
 /*	Capture /proc/self/cmdline once per process and cache it in a
@@ -502,15 +519,7 @@ static const char *capturedCmdline(void)
 
 static uint64_t	monotonicMicroseconds(void)
 {
-	struct timespec	ts;
-
-	if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
-	{
-		return 0;
-	}
-
-	return ((uint64_t) ts.tv_sec) * 1000000ULL
-			+ ((uint64_t) ts.tv_nsec) / 1000ULL;
+	return monotonicMicrosecondsCommon();
 }
 
 static void	recordLockOwner(SdrState *sdr)
@@ -2358,6 +2367,108 @@ void	sdr_eject_xn(Sdr sdrv)
 		sdr->xnDepth = 0;
 		terminateXn(sdrv);
 	}
+}
+
+/*	*	sdr_drop_xn -- cascade-safe transaction close		*/
+
+static const char	*baseName(const char *path)
+{
+	const char	*slash;
+
+	if (path == NULL)
+	{
+		return "?";
+	}
+
+	slash = strrchr(path, '/');
+	return slash ? slash + 1 : path;
+}
+
+void	_sdr_drop_xn(const char *file, int line, const char *func, Sdr sdrv,
+			const char *ctx)
+{
+	SdrState	*sdr;
+	uint64_t	now;
+	char		logBuf[SDR_DROP_LAST_SITE_MAX + 96];
+
+	CHKVOID(sdrv);
+	sdr = sdrv->sdr;
+	CHKVOID(sdr);
+
+	if (!sdr_in_xn(sdrv))
+	{
+		/*	sdr_drop_xn is a transaction-close primitive;
+		 *	calling it outside a transaction is a programming
+		 *	error.  Log loudly and return without doing
+		 *	anything else.					*/
+
+		putErrmsg("sdr_drop_xn called outside a transaction.",
+				ctx ? ctx : "(no context)");
+		return;
+	}
+
+	/*	Accounting.  We hold the SDR transaction mutex at this
+	 *	point (sdr_in_xn was true), so updates to dropStats
+	 *	are serialized across this SDR.  Readers from outside
+	 *	the lock (e.g. ionwarn snapshotting) may see a torn
+	 *	lastDropSite buffer briefly; the data is diagnostic
+	 *	only.							*/
+
+	now = monotonicMicrosecondsCommon();
+	if (sdr->dropStats.totalDrops == 0)
+	{
+		sdr->dropStats.firstDropAtUs = now;
+	}
+
+	sdr->dropStats.lastDropAtUs = now;
+	sdr->dropStats.totalDrops += 1;
+
+	isprintf(sdr->dropStats.lastDropSite,
+			sizeof sdr->dropStats.lastDropSite,
+			"%s:%d %s: \"%s\"",
+			baseName(file), line,
+			func ? func : "?",
+			ctx ? ctx : "(no context)");
+
+	isprintf(logBuf, sizeof logBuf,
+			"[?] sdr_drop_xn at %s (drops_total=%llu, pid=%d)",
+			sdr->dropStats.lastDropSite,
+			(unsigned long long) sdr->dropStats.totalDrops,
+			(int) getpid());
+	writeMemo(logBuf);
+
+	/*	Commit the partial modifications.  We deliberately do
+	 *	NOT route through sdr_cancel_xn / terminateXn: on a
+	 *	non-reversible SDR with sdr->modified set, that path
+	 *	calls handleUnrecoverableError -> sm_Abort, which is
+	 *	exactly the cascade trigger sdr_drop_xn exists to
+	 *	avoid (see #983).					*/
+
+	oK(sdr_end_xn(sdrv));
+}
+
+int	sdr_drop_stats(Sdr sdrv, SdrDropStats *out)
+{
+	SdrState	*sdr;
+
+	CHKERR(sdrv);
+	CHKERR(out);
+	sdr = sdrv->sdr;
+	CHKERR(sdr);
+
+	memcpy(out, &sdr->dropStats, sizeof *out);
+	out->lastDropSite[sizeof out->lastDropSite - 1] = '\0';
+	return 0;
+}
+
+unsigned long long	sdr_drop_count(Sdr sdrv)
+{
+	if (sdrv == NULL || sdrv->sdr == NULL)
+	{
+		return 0;
+	}
+
+	return sdrv->sdr->dropStats.totalDrops;
 }
 
 void	*sdr_pointer(Sdr sdrv, Address address)
