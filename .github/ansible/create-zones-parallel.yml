@@ -101,17 +101,30 @@
       delay: "{{ zone_create_retry_delay }}"
       when: item.ansible_job_id is defined
 
-    - name: Verify all zones are accessible
+    - name: Wait for sysconfig and SMF to finish first-boot configuration
       ansible.builtin.command: >
         zlogin {{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}
-        echo "Zone {{ item.job_index }} is accessible"
+        svcs -H -o state milestone/multi-user:default
       loop: "{{ zones_list }}"
       loop_control:
-        label: "Verifying zone {{ item.job_index }}"
-      register: zone_healthcheck
-      retries: "{{ zone_create_retries * 4 }}"
-      delay: "{{ zone_create_retry_delay }}"
-      until: zone_healthcheck.rc == 0
+        label: "Waiting for multi-user milestone on {{ item.job_index }}"
+      register: smf_readiness
+      retries: 30
+      delay: 5
+      until: smf_readiness.stdout == "online"
+      changed_when: false
+
+    - name: Verify hostname is fully committed and resolvable
+      ansible.builtin.command: >
+        zlogin {{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}
+        /usr/bin/bash -c "hostname | grep '^{{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}$' && getent hosts $(hostname)"
+      loop: "{{ zones_list }}"
+      loop_control:
+        label: "Verifying hostname resolution for zone {{ item.job_index }}"
+      register: hostname_verification
+      retries: 15
+      delay: 2
+      until: hostname_verification.rc == 0
       changed_when: false
 
     - name: Report zone creation success
