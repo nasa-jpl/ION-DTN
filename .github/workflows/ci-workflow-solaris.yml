@@ -186,8 +186,8 @@ jobs:
           # Explicitly point to the config file so Ansible knows to use github-runner
           ANSIBLE_CONFIG: .github/ansible/ansible.cfg
         run: |
-          /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook -i "$VM_IP," .github/ansible/process-artifact.yml
-            -e "run_id=${{ github.run_id }}" \
+          /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook -i "$VM_IP," .github/ansible/process-artifact.yml \
+            -e "run_id=${{ github.run_id }}"
 
       - name: Format artifact for caching
         if: ${{ steps.cache-build.outputs.cache-hit != 'true' }}
@@ -468,9 +468,9 @@ jobs:
 
   destroy-zones:
     name: Destroy Zones (${{ matrix.vm }})
-    needs: [generate-matrix, aggregate-results, validate-vms]
-    # Run even if tests fail, but only if we actually generated the matrix
-    if: always() && needs.generate-matrix.result == 'success'
+    needs: [generate-matrix, create-zones, aggregate-results, validate-vms]
+    # Run even if tests fail, but only if we actually created zones
+    if: ${{ always() && needs.create-zones.result != 'skipped' }}
     runs-on: arc-runner-set-ol9
     strategy:
       fail-fast: false

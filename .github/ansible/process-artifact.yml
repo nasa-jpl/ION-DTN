@@ -30,7 +30,6 @@
               - "{{ build_dir }}/.github"
               - "{{ build_dir }}/compile-and-buildcheck.log"
               - "{{ build_dir }}/*.md"
-              - "{{ build_dir }}/demos"
 
         - name: Get tarball file info
           ansible.builtin.stat:
