@@ -114,6 +114,21 @@
       until: smf_readiness.stdout == "online"
       changed_when: false
 
+    - name: Explicitly map hostname to IPv4 localhost in /etc/inet/hosts
+      ansible.builtin.command:
+        argv:
+          - zlogin
+          - "{{ current_zone }}"
+          - /usr/bin/bash
+          - "-c"
+          - '''gsed -i "s/^127[.]0[.]0[.]1.*/127.0.0.1 localhost loghost {{ current_zone }}/" /etc/inet/hosts'''
+      vars:
+        current_zone: "{{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}"
+      loop: "{{ zones_list }}"
+      loop_control:
+        label: "Mapping localhost for {{ item.job_index }}"
+      changed_when: true
+
     - name: Verify hostname is fully committed and resolvable
       vars:
         current_zone: "{{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}"
@@ -123,7 +138,7 @@
           - "{{ current_zone }}"
           - /usr/bin/bash
           - "-c"
-          - "hostname | grep '^{{ current_zone }}$' && getent hosts {{ current_zone }}"
+          - '''hostname | grep "^{{ current_zone }}$" && getent hosts {{ current_zone }}'''
       loop: "{{ zones_list }}"
       loop_control:
         label: "Verifying hostname resolution for zone {{ item.job_index }}"

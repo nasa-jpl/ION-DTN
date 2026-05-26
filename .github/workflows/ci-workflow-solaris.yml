@@ -306,6 +306,7 @@ jobs:
 
   test-parallel:
     needs: [build-ion, generate-matrix, create-zones]
+    name: "Test on ${{ matrix.test_group.vm_hostname }} (Batch ${{ matrix.test_group.job_index }})"
     strategy:
       fail-fast: false
       matrix:
