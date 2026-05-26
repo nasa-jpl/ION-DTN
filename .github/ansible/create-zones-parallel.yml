@@ -109,8 +109,8 @@
       loop_control:
         label: "Waiting for multi-user milestone on {{ item.job_index }}"
       register: smf_readiness
-      retries: 30
-      delay: 5
+      retries: "{{ (zone_clone_timeout / zone_create_retry_delay) | int }}"
+      delay: "{{ zone_create_retry_delay }}"
       until: smf_readiness.stdout == "online"
       changed_when: false
 
@@ -122,8 +122,8 @@
       loop_control:
         label: "Verifying hostname resolution for zone {{ item.job_index }}"
       register: hostname_verification
-      retries: 15
-      delay: 2
+      retries: "{{ (zone_clone_timeout / zone_create_retry_delay) | int }}"
+      delay: "{{ zone_create_retry_delay }}"
       until: hostname_verification.rc == 0
       changed_when: false
 
