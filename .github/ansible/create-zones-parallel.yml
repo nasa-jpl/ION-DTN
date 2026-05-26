@@ -78,14 +78,13 @@
       when: item.ansible_job_id is defined
 
     - name: Boot all zones (async)
-      community.general.solaris_zone:
-        name: "{{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }}"
-        state: running
-        timeout: "{{ zone_boot_timeout }}"
+      ansible.builtin.command: >
+        zoneadm -z {{ zone_name_prefix }}-{{ run_id }}-{{ item.job_index }} boot
       loop: "{{ zones_list }}"
       loop_control:
         label: "Booting zone {{ item.job_index }}"
       async: "{{ zone_boot_timeout }}"
+      changed_when: true
       poll: 0
       register: zone_boot_jobs
 

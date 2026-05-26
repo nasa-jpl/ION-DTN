@@ -353,6 +353,15 @@ jobs:
               -e "OPERATION=push" \
               -v
 
+      - name: Log zone information
+        run: |
+          echo "=== Zone Test Configuration ==="
+          echo "VM Hostname: ${{ matrix.test_group.vm_hostname }}"
+          echo "Job Index: ${{ matrix.test_group.job_index }}"
+          echo "Zone Name: ion-zone-${{ github.run_id }}-${{ matrix.test_group.job_index }}"
+          echo "Tests to run: ${{ matrix.test_group.tests }}"
+          echo "=============================="
+
       - name: Run tests
         id: tests
         run: |

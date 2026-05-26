@@ -81,6 +81,18 @@ zlogin "$ZONE_NAME" "export PATH=/usr/local/bin:/usr/bin:/usr/sbin:\$PATH && \
   find . -name '*.pc' -exec gsed -i 's|/home/github-runner/[^/]*/ion-ios-dev|/root/ion-build|g' {} + && \
   gmake install"
 
+echo "Verifying zone hostname..."
+ZONE_HOSTNAME=$(zlogin "$ZONE_NAME" hostname)
+echo "=== Zone Hostname Check ==="
+echo "Expected zone: $ZONE_NAME"
+echo "Actual hostname: $ZONE_HOSTNAME"
+if [ "$ZONE_HOSTNAME" = "unknown" ]; then
+    echo "WARNING: Zone hostname is 'unknown'!"
+else
+    echo "Zone hostname is correctly set."
+fi
+echo "============================"
+
 echo "Running tests in zone..."
 # Turn OFF exit-on-error temporarily so we can capture the test failure code
 set +e
