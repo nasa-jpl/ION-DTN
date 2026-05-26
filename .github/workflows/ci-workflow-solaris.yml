@@ -157,6 +157,8 @@ jobs:
             gmake -j4 &&
             sudo gmake install &&
             gmake buildcheck &&
+            echo "Sweeping any ION daemons left over from prior runs..." &&
+            (killm f 2>/dev/null || true) &&
             cd tests &&
             if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tests_to_run }}" ]; then
               echo "Running specific tests: ${{ github.event.inputs.tests_to_run }}" &&
@@ -258,9 +260,20 @@ jobs:
             echo "Cleaning up ION build and tests at $(date)"
             export PATH=/usr/local/sbin:/usr/local/bin:$PATH
             echo "PATH=$PATH"
+            # Reap any ION daemons FIRST and UNCONDITIONALLY. Always use
+            # the f flag: bare killm tries ionexit first which can hang
+            # when ION state is inconsistent (common after a cancelled
+            # run). Run before the dir-existence check so orphans get
+            # cleaned up even if the build dir was already removed.
+            # GitHub gives always() steps only a brief grace period
+            # after cancellation, so killm f (fast) matters here.
+            if command -v killm >/dev/null 2>&1; then
+              killm f || echo "killm f returned non-zero, continuing"
+            else
+              echo "killm not available, skipping"
+            fi
             if [ -d ~/ion-gh-test-dir/ion-ios-dev ]; then
               cd ~/ion-gh-test-dir/ion-ios-dev || exit 0
-              command -v killm >/dev/null 2>&1 && killm || echo "killm not available, skipping"
               sudo gmake uninstall || echo "gmake uninstall failed, continuing"
               gmake clean || echo "gmake clean failed, continuing"
               cd ~
