@@ -62,7 +62,7 @@ if [ $FAIL -ne 0 ]; then
 fi
 
 echo "Creating payload file..."
-dd if=/dev/urandom of="$PAYLOAD" bs=1024 count=1 status=none
+dd if=/dev/urandom of="$PAYLOAD" bs=1024 count=1 2>/dev/null
 
 echo "bpsendfile -> ipn:3.1 (peer engine doesn't exist; transmission deferred"
 echo "until contact 2->3 opens at +30s)..."
