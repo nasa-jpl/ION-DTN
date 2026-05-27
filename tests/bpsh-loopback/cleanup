@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+killm f >/dev/null 2>&1
+pkill -f "bpshd ipn:1.22" >/dev/null 2>&1
+rm -f ion.log bpshd.log bpshd.pid \
+	out.case1 err.case1 \
+	out.case2 err.case2 \
+	out.case3 err.case3 \
+	out.case4 err.case4 \
+	out.case5 err.case5

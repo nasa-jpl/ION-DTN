@@ -1091,6 +1091,8 @@ bpbin = \
 	bprecvtest \
 	bpsendfile \
 	bpsendtest \
+	bpsh \
+	bpshd \
 	bpsink \
 	bpsource \
 	cbrcustodytest \
@@ -1775,6 +1777,14 @@ bpsendfile_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpsendtest_SOURCES = bpv7/utils/bpsendtest.c
 bpsendtest_LDADD = libici.la $(bplib)
 bpsendtest_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bpsh_SOURCES = bpv7/utils/bpsh.c bpv7/utils/bpsh_proto.c
+bpsh_LDADD = libici.la $(bplib) $(PTHREAD_LIBS)
+bpsh_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bpshd_SOURCES = bpv7/utils/bpshd.c bpv7/utils/bpshd_session.c bpv7/utils/bpsh_proto.c
+bpshd_LDADD = libici.la $(bplib) $(PTHREAD_LIBS)
+bpshd_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpsink_SOURCES = bpv7/test/bpsink.c
 bpsink_LDADD = libici.la $(bplib)
