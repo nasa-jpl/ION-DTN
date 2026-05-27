@@ -268,6 +268,30 @@ int	main(void)
 		 *	half-modified and unrecoverable.  Guard on the
 		 *	actual byte count, not just the buffer's presence.	*/
 
+		if (sessionBuf.heapBufferObj && sessionBuf.heapBufferBytes == 0)
+		{
+			/*	Diagnostic for #1013: the previously buggy
+			 *	state.  Log session number plus the heap
+			 *	buffer's address so we can correlate against
+			 *	libltpP.c's session-create / segment-insert
+			 *	paths and figure out the actual precondition
+			 *	that leaves heapBufferBytes at 0.  Remove
+			 *	once the trigger is understood.			*/
+
+			char	diagBuf[160];
+
+			isprintf(diagBuf, sizeof diagBuf,
+				"session=%u heapBufferObj="
+				UVAST_FIELDSPEC " heapBufferBytes=0 "
+				"blockFileSize=" UVAST_FIELDSPEC,
+				sessionBuf.sessionNbr,
+				(uvast) sessionBuf.heapBufferObj,
+				sessionBuf.blockFileSize);
+			writeMemoNote("[?] ltpdeliv: heap buffer allocated "
+				"but empty; skipping heap extent "
+				"(#1013 diagnostic)", diagBuf);
+		}
+
 		if (sessionBuf.heapBufferObj && sessionBuf.heapBufferBytes > 0)
 		{
 			/*	Copy heap bytes from public SDR heap
