@@ -255,9 +255,20 @@ int	main(void)
 			continue;
 		}
 
-		/*	First deliver the heap buffer (if any).		*/
+		/*	First deliver the heap buffer (if any).
+		 *
+		 *	The session always has a heapBufferObj after
+		 *	openImportSession() allocates it, but heapBufferBytes
+		 *	is only updated when a red-part segment lands in the
+		 *	heap-buffer range (libltpP.c bytesForHeap > 0).  If
+		 *	no such segment was non-redundantly inserted before
+		 *	this block was queued for delivery, heapBufferBytes
+		 *	stays 0 and sdr_insert(_, _, 0) trips the
+		 *	XNCHKZERO in _sdrmalloc, leaving the SDR transaction
+		 *	half-modified and unrecoverable.  Guard on the
+		 *	actual byte count, not just the buffer's presence.	*/
 
-		if (sessionBuf.heapBufferObj)
+		if (sessionBuf.heapBufferObj && sessionBuf.heapBufferBytes > 0)
 		{
 			/*	Copy heap bytes from public SDR heap
 			 *	buffer to temporary local buffer and
