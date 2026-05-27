@@ -72,6 +72,11 @@ on:
         required: false
         type: number
         default: 7
+      tests_to_run:
+        description: 'Space-separated list of tests to run (e.g. "ltp-green adjacent-contacts" or "../demos/bench-udp"). Leave blank to run the full matrix that git_matrix.py produces. When set, the test set is still distributed across num_runners batches.'
+        required: false
+        type: string
+        default: ''
   # Nightly sweep at 06:00 UTC (~23:00 Pacific previous evening / ~02:00
   # Eastern).  Runs unconditionally against the default branch — results
   # should be ready before the US workday starts.  Uses the fallback
@@ -151,7 +156,15 @@ jobs:
       - name: Get test batches
         id: dataStep
         run: |
-          TESTSET=$(./tests/git_matrix.py -r ${{ inputs.num_runners || 7 }})
+          # If tests_to_run is non-empty, restrict the matrix to that set
+          # via git_matrix.py --tests; otherwise generate the full matrix.
+          if [ -n "${{ inputs.tests_to_run }}" ]; then
+            echo "Restricting test matrix to: ${{ inputs.tests_to_run }}"
+            TESTSET=$(./tests/git_matrix.py -r ${{ inputs.num_runners || 7 }} \
+                      -t ${{ inputs.tests_to_run }})
+          else
+            TESTSET=$(./tests/git_matrix.py -r ${{ inputs.num_runners || 7 }})
+          fi
           # Transform the array into objects with a 1-based batch index
           TESTSET_WITH_BATCH=$(echo "$TESTSET" | jq -c '[to_entries | .[] | {batch: (.key + 1), tests: .value}]')
           echo "testoutput=$TESTSET_WITH_BATCH" >> "$GITHUB_OUTPUT"
