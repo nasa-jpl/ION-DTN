@@ -1090,7 +1090,39 @@ bpPODM1 = pod2man -s 1 -c "BP executables"
 bpPODM3 = pod2man -s 3 -c "BP library functions"
 bpPODM5 = pod2man -s 5 -c "BP configuration files"
 
-bpcflags = -I$(BP_SRC_DIR)/bpsec/instr -I$(BP_SRC_DIR)/bpsec/policy -I$(BP_SRC_DIR)/bpsec/sci -I$(BP_SRC_DIR)/bpsec/utils -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)/library/ext/meb -I$(BP_SRC_DIR)/library/ext/bae -I$(BP_SRC_DIR)/include -I$(BP_SRC_DIR)/ipn -I$(BP_SRC_DIR)/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(BP_SRC_DIR)/dtn2 -I$(BP_SRC_DIR)/library/crypto -I$(BP_SRC_DIR)/tcp -I$(BP_SRC_DIR)/udp -I$(srcdir)/ici/include -I$(srcdir)/ici/library -I$(BP_SRC_DIR)/library/ext/snw -I$(BP_SRC_DIR)/bibe -I$(BP_SRC_DIR)/imc -DBP_EXTENDED -I$(BP_SRC_DIR)/saga -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library/ext/hcb -I$(BP_SRC_DIR)/library/ext/pnb -I$(BP_SRC_DIR)/library/ext/bpq -I$(BP_SRC_DIR)/library/ext/creb -I$(BP_SRC_DIR)/library/ext/cteb -I$(srcdir)/bpv7/metadata  -I$(srcdir)/ici/crypto/NULL_SUITES
+bpcflags = \
+	-I$(BP_SRC_DIR)/bpsec/instr \
+	-I$(BP_SRC_DIR)/bpsec/policy \
+	-I$(BP_SRC_DIR)/bpsec/sci \
+	-I$(BP_SRC_DIR)/bpsec/utils \
+	-I$(BP_SRC_DIR)/library \
+	-I$(BP_SRC_DIR)/library/ext \
+	-I$(BP_SRC_DIR)/library/ext/meb \
+	-I$(BP_SRC_DIR)/library/ext/bae \
+	-I$(BP_SRC_DIR)/include \
+	-I$(BP_SRC_DIR)/ipn \
+	-I$(BP_SRC_DIR)/ipnd \
+	-I$(srcdir)/ici/libbloom-master \
+	-I$(srcdir)/ici/libbloom-master/murmur2 \
+	-I$(BP_SRC_DIR)/dtn2 \
+	-I$(BP_SRC_DIR)/library/crypto \
+	-I$(BP_SRC_DIR)/tcp \
+	-I$(BP_SRC_DIR)/udp \
+	-I$(srcdir)/ici/include \
+	-I$(srcdir)/ici/library \
+	-I$(BP_SRC_DIR)/library/ext/snw \
+	-I$(BP_SRC_DIR)/bibe \
+	-I$(BP_SRC_DIR)/imc \
+	-DBP_EXTENDED \
+	-I$(BP_SRC_DIR)/saga \
+	-I$(BP_SRC_DIR)/library/ext/bpsec \
+	-I$(BP_SRC_DIR)/library/ext/hcb \
+	-I$(BP_SRC_DIR)/library/ext/pnb \
+	-I$(BP_SRC_DIR)/library/ext/bpq \
+	-I$(BP_SRC_DIR)/library/ext/creb \
+	-I$(BP_SRC_DIR)/library/ext/cteb \
+	-I$(srcdir)/bpv7/metadata \
+	-I$(srcdir)/ici/crypto/NULL_SUITES
 
 if ENABLE_IMC
 bpcflags += -I$(BP_SRC_DIR)/imc -I$(BP_SRC_DIR)/library/ext/imc
