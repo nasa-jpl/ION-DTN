@@ -58,7 +58,17 @@ else
     exit 1
 fi
 
-PGREP_PATTERN=$(echo "$IONPROCESSLIST" | tr -s '[:space:]' '|' | sed 's/^|//;s/|$//')
+# Match against full argv (pgrep/pkill -f) rather than the kernel's
+# truncated pr_fname.  Solaris truncates pr_fname to 15 chars (PRFNSZ-1),
+# so pgrep -x and pkill -x silently miss ION processes whose names exceed
+# 15 chars (e.g. lt-bssStreamingApp, lt-cbrcustodytest, lt-sdr_test_util).
+# Matching argv lets us see the full basename, but argv can include
+# arguments, so the regex anchors at ^, accepts an optional path prefix,
+# and requires the name to be followed by a space or end-of-string -- this
+# matches only argv[0]'s basename and avoids false positives from names
+# appearing later in the command line.
+PGREP_NAMES=$(echo "$IONPROCESSLIST" | tr -s '[:space:]' '|' | sed 's/^|//;s/|$//')
+PGREP_PATTERN="^([^ ]*/)?(${PGREP_NAMES})( |\$)"
 
 # The platforms we care about support sleep(1) with milliseconds.
 # Older platforms that don't, probably have Perl.
@@ -127,12 +137,12 @@ check_surviving_processes() {
     HAS_SURVIVORS=0
     HAS_CHECK_ERROR=0
 
-    if [ -z "$PGREP_PATTERN" ]; then
+    if [ -z "$PGREP_NAMES" ]; then
         echo "WARNING: process list is empty"
         return 0
     fi
 
-    _csp_surviving=$(pgrep -xl "$PGREP_PATTERN" 2>/dev/null)
+    _csp_surviving=$(pgrep -fl "$PGREP_PATTERN" 2>/dev/null)
     _csp_rc=$?
 
     case "$_csp_rc" in
@@ -353,7 +363,7 @@ fi
 # Run SIGTERM/SIGKILL cycle if pgrep still detects surviving processes
 if [ "$HAS_SURVIVORS" -eq 1 ]; then
     echo "Sending TERM to the processes..."
-    pkill -x "$PGREP_PATTERN" 2>/dev/null
+    pkill -f "$PGREP_PATTERN" 2>/dev/null
 
     _km_timeout=2000
     _km_sleep_arg="0.1"
@@ -373,7 +383,7 @@ fi
 check_surviving_processes >/dev/null 2>&1
 if [ "$HAS_SURVIVORS" -eq 1 ]; then
     echo "Sending KILL to the processes..."
-    pkill -9 -x "$PGREP_PATTERN" 2>/dev/null
+    pkill -9 -f "$PGREP_PATTERN" 2>/dev/null
 
     _km_timeout=2000
     _km_sleep_arg="0.1"
