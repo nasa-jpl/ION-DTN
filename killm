@@ -58,15 +58,19 @@ else
     exit 1
 fi
 
-# Match against full argv (pgrep/pkill -f) rather than the kernel's
-# truncated pr_fname.  Solaris truncates pr_fname to 15 chars (PRFNSZ-1),
-# so pgrep -x and pkill -x silently miss ION processes whose names exceed
-# 15 chars (e.g. lt-bssStreamingApp, lt-cbrcustodytest, lt-sdr_test_util).
-# Matching argv lets us see the full basename, but argv can include
-# arguments, so the regex anchors at ^, accepts an optional path prefix,
-# and requires the name to be followed by a space or end-of-string -- this
-# matches only argv[0]'s basename and avoids false positives from names
-# appearing later in the command line.
+# Platform dispatch for survivor detection and signal delivery.
+#
+# On Solaris, pgrep -f / pkill -f did not stop process accumulation in
+# practice (long-named ION processes kept surviving across test runs),
+# so on Solaris we fall back to the original ps -fe + awk detection and
+# xargs + pkill -x signal delivery -- the pattern that was working
+# before the May-16 refactor series.  Everywhere else, the post-refactor
+# pgrep/pkill -f path stays.
+case "$(uname -s)" in
+    SunOS) IS_SOLARIS=1 ;;
+    *)     IS_SOLARIS=0 ;;
+esac
+
 PGREP_NAMES=$(echo "$IONPROCESSLIST" | tr -s '[:space:]' '|' | sed 's/^|//;s/|$//')
 PGREP_PATTERN="^([^ ]*/)?(${PGREP_NAMES})( |\$)"
 
@@ -142,6 +146,14 @@ check_surviving_processes() {
         return 0
     fi
 
+    if [ "$IS_SOLARIS" -eq 1 ]; then
+        _check_surviving_processes_solaris
+    else
+        _check_surviving_processes_pgrep
+    fi
+}
+
+_check_surviving_processes_pgrep() {
     _csp_surviving=$(pgrep -fl "$PGREP_PATTERN" 2>/dev/null)
     _csp_rc=$?
 
@@ -166,6 +178,59 @@ check_surviving_processes() {
         return "$_csp_rc"
         ;;
     esac
+}
+
+# Solaris path: parse ps -fe directly.  Solaris pgrep without -f only
+# matches against psinfo.pr_fname (truncated to 15 chars), and pgrep -f
+# / pkill -f did not reliably stop process accumulation in CI, so we
+# use the proven ps + awk pattern from before the May-16 refactor.
+_check_surviving_processes_solaris() {
+    local ps_out
+    if ! ps_out=$(ps -fe 2>/dev/null) || [ -z "$ps_out" ]; then
+        CHECK_ERR_COUNT=$((CHECK_ERR_COUNT + 1))
+        if [ "$CHECK_ERR_COUNT" -le 1 ]; then
+            echo "killm: WARN -- could not capture process list" \
+                "(ps failed or empty); cannot determine survivors" >&2
+        fi
+        HAS_CHECK_ERROR=1
+        return
+    fi
+
+    # Single awk pass: build a lookup table from IONPROCESSLIST and scan
+    # ps output once.  Find CMD after the last time-like column (TIME);
+    # on Solaris STIME can also be HH:MM:SS, so the LAST time pattern
+    # is the one that lands on TIME and we read CMD from there.
+    local surviving
+    surviving=$(printf '%s\n' "$ps_out" | awk -v procs="$IONPROCESSLIST" '
+        BEGIN {
+            n = split(procs, arr, /[[:space:]]+/)
+            for (i = 1; i <= n; i++) if (arr[i] != "") want[arr[i]] = 1
+        }
+        /defunct/ { next }
+        {
+            pos = 0; tlen = 0; tmp = $0; off = 0
+            while (match(tmp, /[0-9]+:[0-9][0-9](:[0-9][0-9])?/)) {
+                pos = off + RSTART
+                tlen = RLENGTH
+                off += RSTART + RLENGTH - 1
+                tmp = substr(tmp, RSTART + RLENGTH)
+            }
+            if (pos > 0) {
+                cmd = substr($0, pos + tlen)
+                sub(/^[ \t]+/, "", cmd)
+                sub(/ .*/, "", cmd)
+                sub(/.*\//, "", cmd)
+                if (cmd in want) print
+            }
+        }')
+
+    if [ -n "$surviving" ]; then
+        echo "ION processes still running:"
+        echo "$surviving"
+        HAS_SURVIVORS=1
+    else
+        echo "All ION processes stopped."
+    fi
 }
 
 # Portable depth-1 listing of ION semaphore files - avoids -maxdepth
@@ -363,7 +428,11 @@ fi
 # Run SIGTERM/SIGKILL cycle if pgrep still detects surviving processes
 if [ "$HAS_SURVIVORS" -eq 1 ]; then
     echo "Sending TERM to the processes..."
-    pkill -f "$PGREP_PATTERN" 2>/dev/null
+    if [ "$IS_SOLARIS" -eq 1 ]; then
+        echo "${IONPROCESSLIST}" | xargs -n 1 pkill -x 2>/dev/null
+    else
+        pkill -f "$PGREP_PATTERN" 2>/dev/null
+    fi
 
     _km_timeout=2000
     _km_sleep_arg="0.1"
@@ -383,7 +452,11 @@ fi
 check_surviving_processes >/dev/null 2>&1
 if [ "$HAS_SURVIVORS" -eq 1 ]; then
     echo "Sending KILL to the processes..."
-    pkill -9 -f "$PGREP_PATTERN" 2>/dev/null
+    if [ "$IS_SOLARIS" -eq 1 ]; then
+        echo "${IONPROCESSLIST}" | xargs -n 1 pkill -9 -x 2>/dev/null
+    else
+        pkill -9 -f "$PGREP_PATTERN" 2>/dev/null
+    fi
 
     _km_timeout=2000
     _km_sleep_arg="0.1"
