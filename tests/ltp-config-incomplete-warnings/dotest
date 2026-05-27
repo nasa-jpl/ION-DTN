@@ -100,18 +100,32 @@ fi
 echo ""
 echo "=== Checking system functionality ==="
 
-# Check 8: Verify no LTP-related errors in startup
-# Exclude expected security database warnings (common in containers)
+# Check 8: Verify no LTP-related errors in startup.
+# The exclude set covers messages that are not LTP failures and appear in
+# clean LTP-only runs:
+#   - ION security warnings (common in container envs where the security
+#     keystore is not pre-populated; "Can't catalogue volatile database"
+#     and the two follow-ons can fire on some ARC pods even when others
+#     in the same batch don't)
+#   - Shutdown chatter from subsystems that this test never starts (DTPC,
+#     BSSP, CFDP all log "Can't find <name> database" on rfx_stop)
+LTP_ERR_EXCLUDE="Can't find ION security database\
+|Can't execute new process\
+|Can't catalogue volatile database\
+|Can't initialize ION security vdb\
+|Can't initialize the ION security system\
+|Can't find DTPC database\
+|Can't find BSSP database\
+|Can't find CFDP database"
+
 if grep -E "Can't|ERROR|FAILURE" ion.log | \
-   grep -v "Can't find ION security database" | \
-   grep -v "Can't execute new process" | \
+   grep -Ev "$LTP_ERR_EXCLUDE" | \
    grep -q .
 then
     echo "✗ FAIL: LTP errors detected in ion.log"
     echo "Error messages:"
     grep -E "Can't|ERROR|FAILURE" ion.log | \
-        grep -v "Can't find ION security database" | \
-        grep -v "Can't execute new process"
+        grep -Ev "$LTP_ERR_EXCLUDE"
     RETVAL=1
 else
     echo "✓ PASS: No LTP errors in ION startup"
