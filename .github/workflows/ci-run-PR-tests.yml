@@ -6,59 +6,67 @@ permissions:
   pull-requests: read
 
 on:
-  merge_group:
-    branches: [ "integration" ]
   workflow_dispatch:
     inputs:
       tests_to_run:
         description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
         required: false
         type: string
-        default: ''
+        default: ""
       pr_number:
-        description: 'Pull request number (leave blank to auto-detect from branch)'
+        description: "Pull request number (leave blank to auto-detect from branch)"
         required: false
         type: string
-        default: ''
+        default: ""
       env_vars:
         description: 'Space-separated list of environment variables (e.g., "KEY1=VALUE1 KEY2=VALUE2").'
         required: false
         type: string
-        default: ''
-
+        default: ""
 
 jobs:
-  # Extract PR number from merge group context, input, or auto-detect from branch
+  # Resolve PR number specifically for Ubuntu since it lacks internal auto-detect
   get-pr-number:
     runs-on: ubuntu-latest
     outputs:
       pr_number: ${{ steps.get-pr.outputs.pr_number }}
     steps:
-      - name: Get PR number
+      - name: Resolve PR Number
         id: get-pr
+        uses: actions/github-script@v9
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if [ "${{ github.event_name }}" = "merge_group" ]; then
-            # Extract PR number from merge group head_ref (format: gh-readonly-queue/integration/pr-123-...)
-            PR_NUM=$(echo "${{ github.event.merge_group.head_ref }}" | grep -oP 'pr-\K[0-9]+' || echo "")
-            echo "Extracted PR number from merge_group: $PR_NUM"
-          elif [ -n "${{ inputs.pr_number }}" ]; then
-            PR_NUM="${{ inputs.pr_number }}"
-            echo "Using input PR number: $PR_NUM"
-          else
-            # Auto-detect PR number from branch name
-            BRANCH="${{ github.ref_name }}"
-            echo "Auto-detecting PR number for branch: $BRANCH"
-            PR_NUM=$(gh pr list --repo "${{ github.repository }}" --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
-            if [ -n "$PR_NUM" ]; then
-              echo "Found open PR #$PR_NUM for branch $BRANCH"
-            else
-              echo "No open PR found for branch $BRANCH"
-              PR_NUM=""
-            fi
-          fi
-          echo "pr_number=$PR_NUM" >> $GITHUB_OUTPUT
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_PR: ${{ inputs.pr_number }}
+        with:
+          script: |
+            let prNumber = process.env.INPUT_PR;
+
+            if (!prNumber) {
+              console.log(`No PR number provided. Auto-detecting open PR for branch ${process.env.REF_NAME}...`);
+              try {
+                const { data } = await github.rest.pulls.list({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  head: `${context.repo.owner}:${process.env.REF_NAME}`,
+                  state: 'open'
+                });
+
+                if (data && data.length > 0) {
+                  prNumber = data[0].number.toString();
+                  console.log(`Auto-detected PR #${prNumber}`);
+                } else {
+                  console.log(`No open PR found for branch ${process.env.REF_NAME}.`);
+                  prNumber = '';
+                }
+              } catch (error) {
+                console.log(`Error detecting PR: ${error.message}`);
+                prNumber = '';
+              }
+            } else {
+              console.log(`Using provided input PR number: ${prNumber}`);
+            }
+
+            core.setOutput('pr_number', prNumber || '');
 
   ubuntu-latest:
     needs: get-pr-number
@@ -68,58 +76,15 @@ jobs:
       tests_to_run: ${{ inputs.tests_to_run || '' }}
       env_vars: ${{ inputs.env_vars || '' }}
 
-  ubuntu-22:
-    needs: get-pr-number
-    uses: ./.github/workflows/ci-workflow-ubuntu22.yml
+  arc-tests:
+    uses: ./.github/workflows/ci-workflow-arc.yml
     with:
-      pr_number: ${{ needs.get-pr-number.outputs.pr_number }}
       tests_to_run: ${{ inputs.tests_to_run || '' }}
       env_vars: ${{ inputs.env_vars || '' }}
 
-  ubuntu-20:
-    needs: get-pr-number
-    uses: ./.github/workflows/ci-workflow-ubuntu20.yml
+  solaris:
+    uses: ./.github/workflows/ci-workflow-solaris.yml
     with:
-      pr_number: ${{ needs.get-pr-number.outputs.pr_number }}
       tests_to_run: ${{ inputs.tests_to_run || '' }}
       env_vars: ${{ inputs.env_vars || '' }}
-
-  rhel9:
-    needs: get-pr-number
-    uses: ./.github/workflows/ci-workflow-rhel9.yml
-    with:
-      pr_number: ${{ needs.get-pr-number.outputs.pr_number }}
-      tests_to_run: ${{ inputs.tests_to_run || '' }}
-      env_vars: ${{ inputs.env_vars || '' }}
-
-  rhel8:
-    needs: get-pr-number
-    uses: ./.github/workflows/ci-workflow-rhel8.yml
-    with:
-      pr_number: ${{ needs.get-pr-number.outputs.pr_number }}
-      tests_to_run: ${{ inputs.tests_to_run || '' }}
-      env_vars: ${{ inputs.env_vars || '' }}
-
-  ol9:
-    needs: get-pr-number
-    uses: ./.github/workflows/ci-workflow-ol9.yml
-    with:
-      pr_number: ${{ needs.get-pr-number.outputs.pr_number }}
-      tests_to_run: ${{ inputs.tests_to_run || '' }}
-      env_vars: ${{ inputs.env_vars || '' }}
-
-  ol8:
-    needs: get-pr-number
-    uses: ./.github/workflows/ci-workflow-ol8.yml
-    with:
-      pr_number: ${{ needs.get-pr-number.outputs.pr_number }}
-      tests_to_run: ${{ inputs.tests_to_run || '' }}
-      env_vars: ${{ inputs.env_vars || '' }}
-
-#  solaris:
-#    needs: get-pr-number
-#    uses: ./.github/workflows/ci-workflow-solaris.yml
-#    with:
-#      pr_number: ${{ needs.get-pr-number.outputs.pr_number }}
-#      tests_to_run: ${{ inputs.tests_to_run || '' }}
-#      env_vars: ${{ inputs.env_vars || '' }}
+    secrets: inherit

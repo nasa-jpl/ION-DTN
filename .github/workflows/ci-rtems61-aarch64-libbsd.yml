@@ -9,12 +9,12 @@ on:
   workflow_call:
     inputs:
       pr_number:
-        description: 'The PR number this test is associated with.'
+        description: "The PR number this test is associated with."
         required: false
         type: string
-        default: ''
+        default: ""
       timeout_minutes:
-        description: 'Timeout for build and tests in minutes (default: 30 minutes)'
+        description: "Timeout for build and tests in minutes (default: 30 minutes)"
         required: false
         type: number
         default: 30
@@ -22,12 +22,12 @@ on:
   workflow_dispatch:
     inputs:
       pr_number:
-        description: 'The PR number this test is associated with.'
+        description: "The PR number this test is associated with."
         required: false
         type: string
-        default: ''
+        default: ""
       timeout_minutes:
-        description: 'Timeout for build and tests in minutes (default: 30 minutes)'
+        description: "Timeout for build and tests in minutes (default: 30 minutes)"
         required: false
         type: number
         default: 30
@@ -37,19 +37,19 @@ on:
       - update-4.1.5-rtems
       - integration
     paths:
-      - 'arch-rtems/**'
-      - 'ici/**'
-      - 'ltp/**'
-      - 'bpv7/**'
-      - '.github/workflows/ci-rtems61-aarch64-libbsd.yml'
+      - "arch-rtems/**"
+      - "ici/**"
+      - "ltp/**"
+      - "bpv7/**"
+      - ".github/workflows/ci-rtems61-aarch64-libbsd.yml"
 
   pull_request:
     paths:
-      - 'arch-rtems/**'
-      - 'ici/**'
-      - 'ltp/**'
-      - 'bpv7/**'
-      - '.github/workflows/ci-rtems61-aarch64-libbsd.yml'
+      - "arch-rtems/**"
+      - "ici/**"
+      - "ltp/**"
+      - "bpv7/**"
+      - ".github/workflows/ci-rtems61-aarch64-libbsd.yml"
 
   merge_group:
     branches:
@@ -96,7 +96,7 @@ jobs:
 
       - name: Generate timestamp for artifacts
         id: timestamp
-        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
 
       - name: Create output directory
         run: |
@@ -118,7 +118,7 @@ jobs:
             sleep infinity)
 
           echo "Container ID: $CONTAINER_ID"
-          echo "CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_ENV
+          echo "CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_OUTPUT
 
           # Wait for container to be ready
           sleep 2
@@ -140,22 +140,22 @@ jobs:
 
           if [ $BUILD_STATUS -ne 0 ]; then
             echo "Build failed with status $BUILD_STATUS"
-            echo "BUILD_FAILED=true" >> $GITHUB_ENV
+            echo "BUILD_FAILED=true" >> $GITHUB_OUTPUT
             exit 1
           fi
 
           echo "Build completed successfully"
-          echo "BUILD_FAILED=false" >> $GITHUB_ENV
+          echo "BUILD_FAILED=false" >> $GITHUB_OUTPUT
 
       - name: Run ION in QEMU
         id: test
-        if: env.BUILD_FAILED == 'false'
+        if: ${{ steps.build.outputs.build_failed == 'false' }}
         timeout-minutes: 2
         run: |
           echo "Starting QEMU test at $(date)"
 
           # Run ION in QEMU and capture output
-          docker exec ${{ env.CONTAINER_ID }} bash -c \
+          docker exec ${{ steps.build.outputs.container_id }} bash -c \
             "cd /workspace/arch-rtems && \
              timeout 30 qemu-system-aarch64 \
                -no-reboot \
@@ -174,14 +174,14 @@ jobs:
             echo "QEMU test completed (exit code: $QEMU_STATUS)"
           else
             echo "QEMU test failed with unexpected exit code: $QEMU_STATUS"
-            echo "TEST_FAILED=true" >> $GITHUB_ENV
+            echo "TEST_FAILED=true" >> $GITHUB_OUTPUT
             exit 1
           fi
 
-          echo "TEST_FAILED=false" >> $GITHUB_ENV
+          echo "TEST_FAILED=false" >> $GITHUB_OUTPUT
 
       - name: Verify test results
-        if: env.BUILD_FAILED == 'false' && env.TEST_FAILED == 'false'
+        if: ${{ steps.build.outputs.build_failed == 'false' && steps.test.outputs.test_failed == 'false' }}
         run: |
           echo "Verifying ION execution results..."
 
@@ -339,8 +339,8 @@ jobs:
           Commit: ${{ github.sha }}
           Branch: ${{ github.ref_name }}
 
-          Build Status: $([ "${BUILD_FAILED}" = "true" ] && echo "FAILED" || echo "SUCCESS")
-          Test Status: $([ "${TEST_FAILED}" = "true" ] && echo "FAILED" || echo "SUCCESS")
+          Build Status: $([ "${{ steps.build.outputs.build_failed }}" = "true" ] && echo "FAILED" || echo "SUCCESS")
+          Test Status: $([ "${{ steps.test.outputs.test_failed }}" = "true" ] && echo "FAILED" || echo "SUCCESS")
           Verification Status: $([ "${VERIFICATION_FAILED}" = "true" ] && echo "FAILED" || echo "SUCCESS")
 
           Runner: ${{ runner.name }}
@@ -358,7 +358,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: rtems-test-results-${{ env.TIMESTAMP }}
+          name: rtems-test-results-${{ steps.timestamp.outputs.timestamp }}
           path: rtems-test-output/
           retention-days: 30
           if-no-files-found: warn
@@ -366,10 +366,10 @@ jobs:
       - name: Stop and remove Docker container
         if: always()
         run: |
-          if [ ! -z "${{ env.CONTAINER_ID }}" ]; then
-            echo "Stopping container ${{ env.CONTAINER_ID }}"
-            docker stop ${{ env.CONTAINER_ID }} || true
-            docker rm ${{ env.CONTAINER_ID }} || true
+          if [ ! -z "${{ steps.build.outputs.container_id }}" ]; then
+            echo "Stopping container ${{ steps.build.outputs.container_id }}"
+            docker stop ${{ steps.build.outputs.container_id }} || true
+            docker rm ${{ steps.build.outputs.container_id }} || true
           else
             echo "No container to clean up"
           fi
@@ -388,10 +388,10 @@ jobs:
       - name: Report test results
         if: always()
         run: |
-          if [ "${BUILD_FAILED}" = "true" ]; then
+          if [ "${{ steps.build.outputs.build_failed }}" = "true" ]; then
             echo "::error::RTEMS build failed"
             exit 1
-          elif [ "${TEST_FAILED}" = "true" ]; then
+          elif [ "${{ steps.test.outputs.test_failed }}" = "true" ]; then
             echo "::error::RTEMS QEMU test failed"
             exit 1
           elif [ "${VERIFICATION_FAILED}" = "true" ]; then

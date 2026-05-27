@@ -55,7 +55,7 @@ jobs:
 
       - name: Generate timestamp for file names
         id: timestamp
-        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
 
       - name: Install and run benchmark
         timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '60') }}
@@ -97,14 +97,14 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: build-install-log-${{ env.TIMESTAMP }}
+          name: build-install-log-${{ steps.timestamp.outputs.timestamp }}
           path: benchmark.log
 
       - name: Upload benchmark stdout logs
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: benchmark-logs-${{ env.TIMESTAMP }}
+          name: benchmark-logs-${{ steps.timestamp.outputs.timestamp }}
           path: |
             tests/**/*.stdout
             demos/**/*.stdout

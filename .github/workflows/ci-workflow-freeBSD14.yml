@@ -4,18 +4,15 @@ permissions:
   contents: read
 
 on:
-#  pull_request:
-#    branches:
-#      - integration
   workflow_call:
     inputs:
       tests_to_run:
         description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
         required: false
         type: string
-        default: ''
+        default: ""
       timeout_minutes:
-        description: 'Timeout for build and tests in minutes (default: 240 minutes / 4 hours)'
+        description: "Timeout for build and tests in minutes (default: 240 minutes / 4 hours)"
         required: false
         type: number
         default: 240
@@ -25,9 +22,9 @@ on:
         description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
         required: false
         type: string
-        default: ''
+        default: ""
       timeout_minutes:
-        description: 'Timeout for build and tests in minutes (default: 240 minutes / 4 hours)'
+        description: "Timeout for build and tests in minutes (default: 240 minutes / 4 hours)"
         required: false
         type: number
         default: 240
@@ -86,7 +83,7 @@ jobs:
 
       - name: Generate timestamp for file names
         id: timestamp
-        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
 
       - name: Run build and tests, capture stdout
         timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '270') }}
@@ -133,14 +130,14 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: build-and-test-log-freebsd-${{ env.TIMESTAMP }}
+          name: build-and-test-log-freebsd-${{ steps.timestamp.outputs.timestamp }}
           path: build-and-test.log
 
       - name: Upload progress file as artifact
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: test-progress-freebsd-${{ env.TIMESTAMP }}
+          name: test-progress-freebsd-${{ steps.timestamp.outputs.timestamp }}
           path: ./progress
 
       - name: Collect and upload ion.log files from VM
@@ -166,7 +163,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: ion-logs-freebsd-${{ env.TIMESTAMP }}
+          name: ion-logs-freebsd-${{ steps.timestamp.outputs.timestamp }}
           path: ion-logs-collection/
           if-no-files-found: warn
 

@@ -13,19 +13,22 @@ on:
   workflow_call:
     inputs:
       tests_to_run:
-        description: "Space-separated list of tests to run (e.g., \"test1 test2\").
-          Leave blank to run all."
+        description:
+          'Space-separated list of tests to run (e.g., "test1 test2").
+          Leave blank to run all.'
         required: false
         type: string
         default: ""
       env_vars:
-        description: "Space-separated list of environment variables (e.g., \"KEY1=VALUE1
-          KEY2=VALUE2\")."
+        description:
+          'Space-separated list of environment variables (e.g., "KEY1=VALUE1
+          KEY2=VALUE2").'
         required: false
         type: string
         default: ""
       timeout_minutes:
-        description: "Timeout for build and tests in minutes (default: 90 minutes / 1.5
+        description:
+          "Timeout for build and tests in minutes (default: 90 minutes / 1.5
           hours)"
         required: false
         type: number
@@ -70,19 +73,22 @@ on:
   workflow_dispatch:
     inputs:
       tests_to_run:
-        description: "Space-separated list of tests to run (e.g., \"test1 test2\").
-          Leave blank to run all."
+        description:
+          'Space-separated list of tests to run (e.g., "test1 test2").
+          Leave blank to run all.'
         required: false
         type: string
         default: ""
       env_vars:
-        description: "Space-separated list of environment variables (e.g., \"KEY1=VALUE1
-          KEY2=VALUE2\")."
+        description:
+          'Space-separated list of environment variables (e.g., "KEY1=VALUE1
+          KEY2=VALUE2").'
         required: false
         type: string
         default: ""
       timeout_minutes:
-        description: "Timeout for build and tests in minutes (default: 90 minutes / 1.5
+        description:
+          "Timeout for build and tests in minutes (default: 90 minutes / 1.5
           hours)"
         required: false
         type: number
@@ -249,7 +255,7 @@ jobs:
           if-no-files-found: warn
 
   install-and-test:
-    needs: [ setup, build ]
+    needs: [setup, build]
     name: "Test: ${{ matrix.runner }} (Batch ${{ matrix.testchunk.batch }})"
     strategy:
       fail-fast: false
@@ -339,7 +345,8 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: build-and-test-log-${{ matrix.runner }}-${{ env.TIMESTAMP }}-batch-${{
+          name:
+            build-and-test-log-${{ matrix.runner }}-${{ steps.timestamp.outputs.timestamp }}-batch-${{
             matrix.testchunk.batch }}
           path: build-and-test.log
 
@@ -353,7 +360,8 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: test-progress-${{ matrix.runner }}-${{ env.TIMESTAMP }}-batch-${{
+          name:
+            test-progress-${{ matrix.runner }}-${{ steps.timestamp.outputs.timestamp }}-batch-${{
             matrix.testchunk.batch }}
           path: ./tests/progress
 
@@ -381,7 +389,8 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: ion-logs-${{ matrix.runner }}-${{ env.TIMESTAMP }}-batch-${{
+          name:
+            ion-logs-${{ matrix.runner }}-${{ steps.timestamp.outputs.timestamp }}-batch-${{
             matrix.testchunk.batch }}
           path: ion-logs-collection/
           if-no-files-found: warn
@@ -404,7 +413,8 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: diagnostics-${{ matrix.runner }}-${{ env.TIMESTAMP }}-batch-${{
+          name:
+            diagnostics-${{ matrix.runner }}-${{ steps.timestamp.outputs.timestamp }}-batch-${{
             matrix.testchunk.batch }}
           path: diagnostics-collection/
           if-no-files-found: ignore
@@ -436,12 +446,13 @@ jobs:
 
   aggregate-results:
     name: "Finalize Logs and Reports"
-    needs: [ setup, install-and-test ]
+    needs: [setup, install-and-test]
     runs-on: arc-runner-set-ol8
     if: ${{ always() }}
     steps:
-      - name: Generate timestamp for final bundle
-        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+      - name: Generate timestamp for final
+        id: timestamp
+        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
 
       - name: Download ALL artifacts
         uses: actions/download-artifact@v8
@@ -528,7 +539,7 @@ jobs:
       - name: Upload Unified Bundle
         uses: actions/upload-artifact@v7
         with:
-          name: final-regression-bundle-${{ env.TIMESTAMP }}
+          name: final-regression-bundle-${{ steps.timestamp.outputs.timestamp }}
           path: all-artifacts/
 
       - name: Clean up ALL intermediate artifacts

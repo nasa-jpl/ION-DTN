@@ -30,17 +30,17 @@ on:
   workflow_dispatch:
     inputs:
       test_scope:
-        description: 'arm64 Linux test scope: smoke (~45 min/tier) or full (~3.5 hr/tier). x86_64 always runs the full suite.'
+        description: "arm64 Linux test scope: smoke (~45 min/tier) or full (~3.5 hr/tier). x86_64 always runs the full suite."
         required: true
-        default: 'smoke'
+        default: "smoke"
         type: choice
         options:
           - smoke
           - full
       tier_filter:
-        description: 'Which atomic tiers to exercise. `fallbacks` = __atomic + __sync (nightly default). `all` additionally runs Tier 1 (native) on arm64; Tier 1 x86_64 is already covered by ci-workflow-arc.yml.'
+        description: "Which atomic tiers to exercise. `fallbacks` = __atomic + __sync (nightly default). `all` additionally runs Tier 1 (native) on arm64; Tier 1 x86_64 is already covered by ci-workflow-arc.yml."
         required: true
-        default: 'fallbacks'
+        default: "fallbacks"
         type: choice
         options:
           - all
@@ -49,26 +49,26 @@ on:
           - __atomic
           - __sync
       platforms:
-        description: 'Which platforms to exercise'
+        description: "Which platforms to exercise"
         required: true
-        default: 'both'
+        default: "both"
         type: choice
         options:
           - both
           - x86_64
           - arm64
       test_branch:
-        description: 'ION source branch or SHA to build and test (independent of the branch this workflow YAML lives on)'
+        description: "ION source branch or SHA to build and test (independent of the branch this workflow YAML lives on)"
         required: true
-        default: ''
+        default: ""
         type: string
       timeout_minutes:
-        description: 'Per-job timeout in minutes (default: 240)'
+        description: "Per-job timeout in minutes (default: 240)"
         required: false
         type: number
         default: 240
       num_runners:
-        description: 'Number of x86_64 test batches per tier/distro (default: 7)'
+        description: "Number of x86_64 test batches per tier/distro (default: 7)"
         required: false
         type: number
         default: 7
@@ -82,7 +82,7 @@ on:
   # should be ready before the US workday starts.  Uses the fallback
   # defaults below (fallbacks / both / smoke on arm64).
   schedule:
-    - cron: '0 6 * * *'
+    - cron: "0 6 * * *"
 
 jobs:
   # --------------------------------------------------------------------------
@@ -308,7 +308,8 @@ jobs:
           id
 
       - name: Generate timestamp
-        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+        id: timestamp
+        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
 
       - name: Restore Cached Build
         uses: actions/cache@v5
@@ -363,7 +364,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: test-log-${{ matrix.runner }}-${{ matrix.tier }}-${{ env.TIMESTAMP }}-batch-${{ matrix.testchunk.batch }}
+          name: test-log-${{ matrix.runner }}-${{ matrix.tier }}-${{ steps.timestamp.outputs.timestamp }}-batch-${{ matrix.testchunk.batch }}
           path: build-and-test.log
 
       - name: Show progress file
@@ -376,7 +377,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: test-progress-${{ matrix.runner }}-${{ matrix.tier }}-${{ env.TIMESTAMP }}-batch-${{ matrix.testchunk.batch }}
+          name: test-progress-${{ matrix.runner }}-${{ matrix.tier }}-$steps.timestamp.outputs.timestamp }}-batch-${{ matrix.testchunk.batch }}
           path: ./tests/progress
 
       - name: Collect ion.log files
@@ -397,7 +398,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: ion-logs-${{ matrix.runner }}-${{ matrix.tier }}-${{ env.TIMESTAMP }}-batch-${{ matrix.testchunk.batch }}
+          name: ion-logs-${{ matrix.runner }}-${{ matrix.tier }}-${{ steps.timestamp.outputs.timestamp }}-batch-${{ matrix.testchunk.batch }}
           path: ion-logs-collection/
           if-no-files-found: warn
 
@@ -419,7 +420,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: diagnostics-${{ matrix.runner }}-${{ matrix.tier }}-${{ env.TIMESTAMP }}-batch-${{ matrix.testchunk.batch }}
+          name: diagnostics-${{ matrix.runner }}-${{ matrix.tier }}-${{ steps.timestamp.outputs.timestamp }}-batch-${{ matrix.testchunk.batch }}
           path: diagnostics-collection/
           if-no-files-found: ignore
 
@@ -536,8 +537,9 @@ jobs:
             exit 1
           fi
 
-      - name: Generate timestamp
-        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+      - name: Generate
+        id: timestamp
+        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
 
       - name: Run build+test for each tier inside arm64 Linux container
         run: |
@@ -724,7 +726,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: arm64-linux-tier-logs-${{ env.TIMESTAMP }}
+          name: arm64-linux-tier-logs-${{ steps.timestamp.outputs.timestamp }}
           path: arm64-logs/
           if-no-files-found: warn
 
@@ -732,7 +734,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: status-arm64-${{ env.TIMESTAMP }}
+          name: status-arm64-${{ steps.timestamp.outputs.timestamp }}
           path: arm64-status/
           if-no-files-found: warn
 
@@ -767,7 +769,8 @@ jobs:
     if: ${{ always() }}
     steps:
       - name: Generate timestamp
-        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+        id: timestamp
+        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
 
       - name: Download all artifacts
         uses: actions/download-artifact@v8
@@ -803,7 +806,7 @@ jobs:
       - name: Upload unified bundle
         uses: actions/upload-artifact@v7
         with:
-          name: atomic-tiers-bundle-${{ env.TIMESTAMP }}
+          name: atomic-tiers-bundle-${{ steps.timestamp.outputs.timestamp }}
           path: all-artifacts/
           if-no-files-found: warn
 
