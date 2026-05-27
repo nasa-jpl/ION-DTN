@@ -88,7 +88,7 @@ cd ../3.bench.udp
 BPCOUNTER_OUTPUT="../bpcounter_test1.txt"
 EXPECTED_BUNDLES=1000
 THRESHOLD=$((EXPECTED_BUNDLES * 90 / 100))  # 90% threshold for UDP
-bpcounter ipn:3.1 $EXPECTED_BUNDLES > $BPCOUNTER_OUTPUT &
+bpcounter ipn:3.1 $THRESHOLD > $BPCOUNTER_OUTPUT &
 BPCOUNTER_PID=$!
 sleep 1
 
@@ -159,7 +159,7 @@ cd ../3.bench.udp
 BPCOUNTER_OUTPUT="../bpcounter_test2.txt"
 EXPECTED_BUNDLES=1000
 THRESHOLD=$((EXPECTED_BUNDLES * 90 / 100))  # 90% threshold for UDP
-bpcounter ipn:3.1 $EXPECTED_BUNDLES > $BPCOUNTER_OUTPUT &
+bpcounter ipn:3.1 $THRESHOLD > $BPCOUNTER_OUTPUT &
 BPCOUNTER_PID=$!
 sleep 1
 
@@ -231,7 +231,7 @@ cd ../3.bench.udp
 BPCOUNTER_OUTPUT="../bpcounter_test3.txt"
 EXPECTED_BUNDLES=500
 THRESHOLD=$((EXPECTED_BUNDLES * 90 / 100))  # 90% threshold for UDP
-bpcounter ipn:3.1 $EXPECTED_BUNDLES > $BPCOUNTER_OUTPUT &
+bpcounter ipn:3.1 $THRESHOLD > $BPCOUNTER_OUTPUT &
 BPCOUNTER_PID=$!
 
 
