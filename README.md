@@ -1,4 +1,4 @@
-#  NASA/JPL Interplanetary Overlay Network (ION)
+# NASA/JPL Interplanetary Overlay Network (ION)
 
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/lasuzuki/StrapDown.js/graphs/commit-activity)
 [![Open Source Love svg1](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)](https://github.com/ellerbrock/open-source-badges/)
@@ -59,16 +59,18 @@ ION uses a versioning scheme of the form `X.Y.Z[-suffix].N`, where:
 - `[-suffix]` is an optional suffix that may include additional information such as pre-release identifiers ('a' for alpha, 'b' for beta) or build metadata.
 - `N` is the build number, incremented for each build of a given `X.Y.Z[-suffix]` version.
 
-* Each stable release is tagged in the Git repository with a tag of the form `ion-open-source-X.Y.Z`.
-* Each alpha and beta release is tagged in the Git repository with a tag of the form `ion-open-source-X.Y.Z-suffix.1`. A release package is created for the first build of each alpha and beta release (i.e., build number `1`).
-* Online documentation is versioned according to the stable release and build 1 of alpha/beta releases.
-* Starting with ION 4.1.4-b.1, we will be providing tags, but not release packages, for subsequent builds of alpha/beta releases (i.e., build numbers greater than `1`) to facilitate testing and development and wider, quicker access to the latest code.
+- Each stable release is tagged in the Git repository with a tag of the form `ion-open-source-X.Y.Z`.
+- Each alpha and beta release is tagged in the Git repository with a tag of the form `ion-open-source-X.Y.Z-suffix.1`. A release package is created for the first build of each alpha and beta release (i.e., build number `1`).
+- Online documentation is versioned according to the stable release and build 1 of alpha/beta releases.
+- Starting with ION 4.1.4-b.1, we will be providing tags, but not release packages, for subsequent builds of alpha/beta releases (i.e., build numbers greater than `1`) to facilitate testing and development and wider, quicker access to the latest code.
 
 ## ION Documentation
 
 Beginning with version 4.1.3, ION documentation is hosted here [online](https://ion-dtn.readthedocs.io).
 
 Under the `doc` subfolder, there are older versions of ION documents kept for user's reference if needed, but they will not be updated going forward and may be removed without prior notice. Users are encouraged to use the online documentation in order to receive the most up-to-date information on ION features and issues.
+
+A template [`AGENT.md`](gh-pages/docs/AGENTS.md) file is provided with the documention.
 
 The `release-notes.txt` file will continue to be updated for each stable release.
 
