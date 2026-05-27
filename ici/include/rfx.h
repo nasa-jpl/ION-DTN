@@ -20,7 +20,7 @@ extern "C" {
 
 #include "ion.h"
 
-#define	RFX_NOTE_LEN	144
+#define	RFX_NOTE_LEN	256
 
 /*	*	Red-black tree ordering and deletion functions.	*	*/
 

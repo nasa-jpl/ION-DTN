@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Scott Burleigh
 # April 21, 2010
@@ -107,6 +108,5 @@ fi
 # Shut down ION processes.
 echo  -e "\nStopping ION..."
 #./ionstop &
-killm
 echo -e "Non-zero loopback range test completed.\n"
 exit $RETVAL

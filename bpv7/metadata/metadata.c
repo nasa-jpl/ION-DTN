@@ -49,6 +49,8 @@
 #include <bp.h>
 #include "metadata.h"
 
+#define	MAX_METADATA_LEN	(4096)
+
 /******************************************************************************/
 /*    CORE FUNCTIONS    CORE FUNCTIONS    CORE FUNCTIONS    CORE FUNCTIONS    */
 /******************************************************************************/
@@ -292,6 +294,11 @@ int extractMetadataFromFile(const char *filename, Metadata *meta)
 	fseek(file, offset, SEEK_SET);
 	bytes_read = fread(&meta->aux_command_length, 1, auxTypeSize, file);
 	offset += bytes_read;
+	if (meta->aux_command_length > MAX_METADATA_LEN)
+	{
+		fclose(file);
+		return -1;
+	}
 
 	fseek(file, offset, SEEK_SET);
 	if (meta->aux_command_length > 0)
@@ -299,6 +306,7 @@ int extractMetadataFromFile(const char *filename, Metadata *meta)
 		meta->aux_command = MTAKE(meta->aux_command_length); //free me
 		if(meta->aux_command == NULL)
 		{
+			fclose(file);
 			return -1;
 		}
 		bytes_read = fread(meta->aux_command, 1, meta->aux_command_length, file);
@@ -311,11 +319,17 @@ int extractMetadataFromFile(const char *filename, Metadata *meta)
 	fseek(file, offset, SEEK_SET);
 	bytes_read = fread(&meta->filetypeLength, 1, fileTypeSize, file);
 	offset += bytes_read;
+	if (meta->filetypeLength > MAX_METADATA_LEN)
+	{
+		fclose(file);
+		return -1;
+	}
 
 	fseek(file, offset, SEEK_SET);
 	meta->filetype = MTAKE(meta->filetypeLength); //free me
 	if(meta->filetype == NULL)
 	{
+		fclose(file);
 		return -1;
 	}
 	bytes_read = fread(meta->filetype, 1, meta->filetypeLength, file);
@@ -326,11 +340,17 @@ int extractMetadataFromFile(const char *filename, Metadata *meta)
 	fseek(file, offset, SEEK_SET);
 	bytes_read = fread(&meta->fileNameLength, 1, fileNameTypeSize, file);
 	offset += bytes_read;
+	if (meta->fileNameLength > MAX_METADATA_LEN)
+	{
+		fclose(file);
+		return -1;
+	}
 
 	fseek(file, offset, SEEK_SET);
 	meta->filename = MTAKE(meta->fileNameLength); //free me
 	if(meta->filename == NULL)
 	{
+		fclose(file);
 		return -1;
 	}
 	bytes_read = fread(meta->filename, 1, meta->fileNameLength, file);
@@ -341,10 +361,25 @@ int extractMetadataFromFile(const char *filename, Metadata *meta)
 	fseek(file, offset, SEEK_SET);
 	bytes_read = fread(&meta->fileContentLength, 1, contentTypeSize, file);
 	offset += bytes_read;
+	{
+		Sdr		sdr = getIonsdr();
+		Object		iondbObj = getIonDbObject();
+		IonDB		iondb;
+		size_t		maxContentLen;
+
+		sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+		maxContentLen = iondb.parmcopy.wmSize / 10;	/*	10%	*/
+		if (meta->fileContentLength > maxContentLen)
+		{
+			fclose(file);
+			return -1;
+		}
+	}
 
 	meta->fileContent = MTAKE(meta->fileContentLength); //free me
 	if(meta->fileContent == NULL)
 	{
+		fclose(file);
 		return -1;
 	}
 	bytes_read = fread(meta->fileContent, 1, meta->fileContentLength, file);
@@ -645,20 +680,48 @@ int isOnlyWhitespace(const char* str)
 /******************************************************************************/
 char **parseCommandString(const char *inputString, int *count)
 {
-	char  *str = myStrdup(inputString);
-	int    capacity = 5;
-	char **result = MTAKE(capacity * sizeof(char *));
+	char   *str = myStrdup(inputString);
+	size_t  capacity = 5;
+	char  **result;
 	*count = 0;
+	if (str == NULL)
+	{
+		return NULL;
+	}
+
+	result = MTAKE(capacity * sizeof(char *));
+	if (result == NULL)
+	{
+		MRELEASE(str);
+		return NULL;
+	}
+
 	char *token = strtok(str, ",");
 
 	while (token != NULL)
 	{
 		stripLeadingWhiteSpace(token);
 
-		if (*count >= capacity)
+		if ((size_t)*count >= capacity)
 		{
+			char **newResult;
+
 			capacity *= 2;
-			result = realloc(result, capacity * sizeof(char *));
+			newResult = realloc(result, capacity * sizeof(char *));
+			if (newResult == NULL)
+			{
+				int j;
+				for (j = 0; j < *count; j++)
+				{
+					MRELEASE(result[j]);
+				}
+				MRELEASE(result);
+				MRELEASE(str);
+				*count = 0;
+				return NULL;
+			}
+
+			result = newResult;
 		}
 		if (!isOnlyWhitespace(token))
 		{

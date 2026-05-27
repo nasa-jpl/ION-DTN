@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Scott Burleigh
 # September 4, 2015
@@ -389,6 +390,5 @@ echo "Stopping ION..."
 
 # Give the nodes time to shut down, then clean up.
 #sleep 5
-killm
 echo "IPND test completed."
 exit $RETVAL

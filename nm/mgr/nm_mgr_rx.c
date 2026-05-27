@@ -41,6 +41,7 @@
 #include "../shared/utils/debug.h"
 
 #include "../shared/msg/msg.h"
+#include "ion_atomic.h"
 
 #ifdef HAVE_MYSQL
 #include "nm_mgr_sql.h"
@@ -100,6 +101,7 @@ void rx_data_rpt(msg_metadata_t *meta, msg_rpt_t *msg)
 			rpt_t *rpt = vecit_data(it);
 			int status = vec_push(&(agent->rpts), rpt);
 
+			lockResource(&(agent->log_lock));
 			if (agent->log_fd != NULL)
 			{
 				if (agent_log_cfg.rx_rpt)
@@ -109,10 +111,11 @@ void rx_data_rpt(msg_metadata_t *meta, msg_rpt_t *msg)
 					agent->log_fd_cnt++;
 				}
 			}
+			unlockResource(&(agent->log_lock));
 
 			if (status == VEC_OK)
 			{
-				gMgrDB.tot_rpts++;
+				ion_atomic_get_and_increment(&gMgrDB.tot_rpts, 1);
 			}
 			else // Vector may be full.  Discard (and release) report
 			{
@@ -185,6 +188,7 @@ void rx_data_tbl(msg_metadata_t *meta, msg_tbl_t *msg)
 			tbl_t *tbl = vecit_data(it);
 			int status = vec_push(&(agent->tbls), tbl);
 
+			lockResource(&(agent->log_lock));
 			if (agent->log_fd != NULL)
 			{
 				if(agent_log_cfg.rx_tbl)
@@ -194,10 +198,11 @@ void rx_data_tbl(msg_metadata_t *meta, msg_tbl_t *msg)
 					agent->log_fd_cnt++;
 				}
 			}
+			unlockResource(&(agent->log_lock));
 
 			if (status == VEC_OK)
 			{
-				gMgrDB.tot_tbls++;
+				ion_atomic_get_and_increment(&gMgrDB.tot_tbls, 1);
 			}
 			else // Vector may be full.  Discard (and release) report
 			{
@@ -251,11 +256,9 @@ void rx_agent_reg(msg_metadata_t *meta, msg_agent_t *msg)
 
 void *mgr_rx_thread(void *arg)
 {
-	/* Cast the generic argument back to int */
-	int *running = (int *)arg;
+	ion_atomic_t *running = (ion_atomic_t *) arg;
 
 	AMP_DEBUG_ENTRY("mgr_rx_thread","(0x%x)", (size_t) running);
-
 	AMP_DEBUG_INFO("mgr_rx_thread","Receiver thread running...", NULL);
 
 	vecit_t it;
@@ -268,26 +271,32 @@ void *mgr_rx_thread(void *arg)
 
 
 	/*
-	 * g_running controls the overall execution of threads in the
+	 * running controls the overall execution of threads in the
 	 * NM Agent.
 	 */
-	while(*running) {
+	while(ion_atomic_get(running)) {
 
 		/* Step 1: Receive a message from the Bundle Protocol Agent. */
 		buf = iif_receive(&ion_ptr, &meta, NM_RECEIVE_TIMEOUT_SEC, &success);
 		if(success != AMP_OK)
 		{
-			*running = 0;
+			ion_atomic_set(running, 0);
 		}
 		else if(buf != NULL)
 		{
 			if (agent_log_cfg.rx_cbor == 1) {
 				agent_t *agent = agent_get(&(meta.senderEid));
-				if (agent && agent->log_fd) {
-					char *tmp = utils_hex_to_string(buf->value, buf->length);
-					fprintf(agent->log_fd, "RX: msgs:%s\n", tmp);
-					fflush(agent->log_fd);
-					SRELEASE(tmp);
+				if (agent)
+				{
+					lockResource(&(agent->log_lock));
+					if (agent->log_fd)
+					{
+						char *tmp = utils_hex_to_string(buf->value, buf->length);
+						fprintf(agent->log_fd, "RX: msgs:%s\n", tmp);
+						fflush(agent->log_fd);
+						SRELEASE(tmp);
+					}
+					unlockResource(&(agent->log_lock));
 				}
 			}
 

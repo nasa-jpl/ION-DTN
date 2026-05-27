@@ -208,7 +208,7 @@ static int	proactivelyFragment(Bundle *bundle, Object *bundleObj,
 	Object		stationEid;
 	char		eid[SDRSTRING_BUFSZ];
 	MetaEid		stationMetaEid;
-	VScheme		*vscheme;
+	VScheme		*vscheme = NULL;
 	PsmAddress	vschemeElt;
 	size_t		fragmentLength;
 	Bundle		firstBundle;
@@ -781,6 +781,12 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 	 *	forwarding station.		 			*/
 
 	CHKERR(bundle && bundleObj && terminusNode);
+	if (ionvdb == NULL || cgrvdb == NULL)
+	{
+		putErrmsg("Can't get VDB for CGR.", NULL);
+		return -1;
+	}
+
 	TRACE(CgrBuildRoutes, terminusNode->fqnn, bundle->payload.length,
 			(unsigned int) atTime);
 
@@ -1009,7 +1015,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 	Object		elt;
 	char		eid[SDRSTRING_BUFSZ];
 	MetaEid		metaEid;
-	VScheme		*vscheme;
+	VScheme		*vscheme = NULL;
 	PsmAddress	vschemeElt;
 	uvast		fqnn;
 	IonNode		*node;
@@ -1037,6 +1043,13 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 	if (parseEidString(eid, &metaEid, &vscheme, &vschemeElt) == 0)
 	{
 		putErrmsg("Can't parse node EID string.", eid);
+		return bpAbandon(bundleObj, bundle, BP_REASON_EID_MALFORMED);
+	}
+
+	if (metaEid.nullEndpoint)
+	{
+		clearMetaEid(&metaEid);
+		putErrmsg("Can't forward to null endpoint.", eid);
 		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
 
@@ -1310,7 +1323,6 @@ int	main(void)
 		{
 			sdr_cancel_xn(sdr);
 			putErrmsg("Can't enqueue bundle.", NULL);
-			running = 0;	/*	Terminate loop.		*/
 			continue;
 		}
 

@@ -3,6 +3,8 @@
 # Mithun Roy
 # Nov 10, 2010
 
+export ION_NODE_LIST_DIR=$PWD
+killm f
 echo "Cleaning up old ION..."
 rm -f 1.ipn.tcp/bpdriver.txt
 rm -f 1.ipn.tcp/bpdriverAduFile

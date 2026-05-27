@@ -6,20 +6,38 @@
 # Updated: September 2025, JPL
 # Modified: Added retest functionality for failed tests using existing "retest" file
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+. "$SCRIPT_DIR/test_utils.sh"
+
 # This file will contain the tests that failed.
 # --dyoung oct 2010
 FAILEDFILE="retest"
 
 # This file will contain intermediate progress.
 # --sdo oct 2023
-PROGRESSFILE="`pwd`/progress"
+PROGRESSFILE="$SCRIPT_DIR/progress"
 echo "# Testing started by $0 `date`" > $PROGRESSFILE
 echo "# testing host: `hostname`" >> $PROGRESSFILE
 echo "# testing environment: `uname -a`" >> $PROGRESSFILE
 
-# Preserve test logs by default (can be overridden by setting to empty string)
-# To disable: export PRESERVE_TEST_LOGS=""
-: ${PRESERVE_TEST_LOGS:=1}
+# Controls whether test artifacts (ion.log, staging files) are kept after passing tests.
+# When set to 1, logs from passing tests are preserved (useful for debugging).
+# By default (0/unset), cleanup runs after passing tests to reclaim disk space.
+# Failed test logs are ALWAYS preserved regardless of this setting.
+# Pre-test cleanup still runs unconditionally.
+: ${PRESERVE_TEST_LOGS:=0}
+
+# Controls whether failed tests are automatically retested at end of run.
+# When set to 1, runtests re-runs each failed test once before reporting.
+# Default (0/unset) skips the retest pass; the retest file is still
+# generated so it can be replayed manually via `./runtests retest`.
+: ${ENABLE_RETEST:=0}
+
+# Allow core dumps so ion-diagnostics can extract stack traces from
+# crashed ION processes. Best-effort: a setrlimit-restricted environment
+# (e.g. container with hard limit 0) will simply leave the limit at 0
+# and ion-diagnostics will report "no cores found".
+ulimit -c unlimited 2>/dev/null || true
 
 # If this environment variable is set, and is an existing directory,
 # then output from each individual tests will go THERE instead
@@ -43,8 +61,28 @@ if [[ -n "${RUNTESTS_OUTPUTDIR}" ]] ; then
     fi
 fi
 
+# Interrupt handler: without this, Ctrl-C only interrupts the current
+# `sleep 1` in the watchdog loop, leaving dotest running in the background
+# and ION daemons reparented to init.
+# Forward SIGTERM to the active dotest,
+# wait for it to exit cleanly,
+# escalate to SIGKILL if it times out,
+# and let killm f reap any ION processes
+# that may have detached from the test process tree.
+on_interrupt () {
+    echo "" >&2
+    echo "*** Interrupted — stopping current test and exiting ***" >&2
+    if [ -n "${DOTEST_PID:-}" ]; then
+        killAndWaitForPidToDie "$DOTEST_PID" TERM 3000 500
+        wait "$DOTEST_PID" 2>/dev/null
+    fi
+    killm f 2>/dev/null
+    exit 130
+}
+trap on_interrupt INT TERM
 
-[ -f pretest-script ] && source pretest-script
+
+[ -f "$SCRIPT_DIR/pretest-script.sh" ] && . "$SCRIPT_DIR/pretest-script.sh"
 
 
 function find_tests_in () {
@@ -150,6 +188,104 @@ function get_timestamp () {
     date '+%Y-%m-%d %H:%M:%S'
 }
 
+# Locate the ion-diagnostics script (one directory up from tests/)
+ION_DIAGNOSTICS="$(cd "$SCRIPT_DIR/.." && pwd)/ion-diagnostics"
+
+# Compute per-test timeout: 4x .DURATION if available, capped at 2400s
+# (40 min) and floored at 60s. Falls back to 1200s when .DURATION is
+# missing or unparseable. Override with ION_TEST_TIMEOUT for manual runs.
+function compute_test_timeout () {
+    if [ -n "${ION_TEST_TIMEOUT:-}" ]; then
+        echo "$ION_TEST_TIMEOUT"
+        return
+    fi
+    if [ -f ".DURATION" ]; then
+        local dur
+        dur=$(head -1 .DURATION | tr -dc '0-9')
+        if [ -n "$dur" ] && [ "$dur" -gt 0 ] 2>/dev/null; then
+            local timeout_val=$((dur * 4))
+            [ "$timeout_val" -lt 60 ] && timeout_val=60
+            [ "$timeout_val" -gt 2400 ] && timeout_val=2400
+            echo "$timeout_val"
+            return
+        fi
+    fi
+    echo 1200
+}
+
+# Collect stack trace for the dotest process if it's a compiled C binary.
+# Also traces child processes (ION daemons launched by the test script).
+function collect_dotest_stack () {
+    local pid="$1"
+    local outfile="$2"
+
+    {
+        # Check dotest itself
+        local exe
+        exe=$(readlink "/proc/$pid/exe" 2>/dev/null || ps -p "$pid" -o comm= 2>/dev/null)
+        if file "$exe" 2>/dev/null | grep -q "ELF"; then
+            echo "=== Stack trace of dotest binary (PID $pid, $exe) ==="
+            if command -v gdb >/dev/null 2>&1; then
+                timeout 15 gdb -batch -ex "set pagination off" \
+                    -ex "thread apply all bt" -p "$pid" 2>&1
+            elif command -v eu-stack >/dev/null 2>&1; then
+                timeout 15 eu-stack -p "$pid" 2>&1
+            fi
+        fi
+
+        # Trace child processes (may include forked test helpers)
+        local child
+        for child in $(pgrep -P "$pid" 2>/dev/null); do
+            local child_exe
+            child_exe=$(readlink "/proc/$child/exe" 2>/dev/null || ps -p "$child" -o comm= 2>/dev/null)
+            if file "$child_exe" 2>/dev/null | grep -q "ELF"; then
+                echo "=== Stack trace of child PID $child ($child_exe) ==="
+                if command -v gdb >/dev/null 2>&1; then
+                    timeout 15 gdb -batch -ex "set pagination off" \
+                        -ex "thread apply all bt" -p "$child" 2>&1
+                elif command -v eu-stack >/dev/null 2>&1; then
+                    timeout 15 eu-stack -p "$child" 2>&1
+                fi
+            fi
+        done
+    } >> "$outfile" 2>&1
+}
+
+# Remove ION staging/bulk files to reclaim disk space after timeout/failure.
+# Preserves ion.log and ion-system.log for debugging, removes everything else
+# that ION creates at runtime (SDR heap files, ZCO staging, temp acquisitions).
+# Searches both the test directory (for tests without pathName) and /tmp
+# (for tests with pathName /tmp).
+function cleanup_staging_files () {
+    local test_dir="${1:-.}"
+    local patterns=(-name "*.sdr" -o -name "bpacq*" -o -name "ltpacq*" \
+        -o -name "bsspSegment*" -o -name "xnref*" -o -name "*.sdrlog" \
+        -o -name "core" -o -name "core.*")
+    find "$test_dir" -maxdepth 3 \( "${patterns[@]}" \) -type f \
+        -exec rm -f {} \; 2>/dev/null
+    # Also clean /tmp where many tests place SDR files via pathName
+    find /tmp -maxdepth 1 \( "${patterns[@]}" \) -type f \
+        -user "$(whoami)" -exec rm -f {} \; 2>/dev/null
+}
+
+# Check available disk space. Returns 0 if OK, 1 if below threshold.
+# Threshold: ION_MIN_DISK_MB env var, default 500 MB.
+function check_disk_space () {
+    local threshold_mb="${ION_MIN_DISK_MB:-500}"
+    local avail_kb
+    # df -P forces POSIX format (single header line, avail in column 4)
+    avail_kb=$(df -Pk . 2>/dev/null | awk 'NR==2 {print $4}')
+    if [ -z "$avail_kb" ] || ! [ "$avail_kb" -gt 0 ] 2>/dev/null; then
+        return 0
+    fi
+    local avail_mb=$((avail_kb / 1024))
+    if [ "$avail_mb" -lt "$threshold_mb" ]; then
+        echo "*** DISK SPACE CRITICAL: ${avail_mb}MB available (threshold: ${threshold_mb}MB) ***" >&2
+        return 1
+    fi
+    return 0
+}
+
 # runs one test, updates the test status counters
 function run_a_test () {
     TEST=$1
@@ -195,6 +331,14 @@ function run_a_test () {
         PROGRESS_PREFIX="[$CURRENT_TEST_NUM/$TOTAL_TEST_COUNT] "
     else
         PROGRESS_PREFIX=""
+    fi
+
+    # Abort if disk space is critically low
+    if ! check_disk_space; then
+        echo "ABORTING: insufficient disk space before starting $TEST" | tee -a $PROGRESSFILE
+        echo "[$TEST_START_TIMESTAMP] ${PROGRESS_PREFIX}ABORT: $TEST (disk full)" >&2
+        ABORT_RUN=1
+        return
     fi
 
     # check if test is excluded because it is obsolete
@@ -312,94 +456,195 @@ function run_a_test () {
         fi
     fi
 
+    # Remove stale ion-system.log files from prior runs of this test.
+    # cleanup_staging_files preserves them by design, so without an
+    # explicit sweep here they accumulate across runs and get picked up
+    # by CI log-collection as if they belonged to the current run.
+    find . -maxdepth 3 -name "ion-system.log" -type f -delete 2>/dev/null
+
+    # Symmetric pre-test sweep of runtime staging files (bpacq/ltpacq/
+    # *.sdr/bsspSegment/xnref/*.sdrlog/core). The per-test ./cleanup
+    # only handles artifacts it knows about; a hard-killed prior run or
+    # a test without a cleanup script can leave these behind, and a
+    # stale .sdr or matching wmKey collision in /tmp can corrupt a
+    # fresh ION instance. Patterns are runtime-only so this never
+    # touches config files.
+    cleanup_staging_files "."
+
     # Prefer X/Open Portable tools if Solaris
     if [ -x "/usr/xpg4/bin" ]; then
         PATH="/usr/xpg4/bin:$PATH"
     fi
 
-
-    # run the driver script for the test
-    if [[ -n "${RESULTSFILE}" ]] ; then
-      ./dotest "$OS_VERSION" >> "${RESULTSFILE}" 2>&1
-    else
-      ./dotest "$OS_VERSION"
+    # Compute per-test timeout, and read .DURATION separately for
+    # the actual-vs-declared report shown at test conclusion.
+    TEST_TIMEOUT=$(compute_test_timeout)
+    TEST_DECLARED_DURATION=""
+    if [ -f ".DURATION" ]; then
+        TEST_DECLARED_DURATION=$(head -1 .DURATION | tr -dc '0-9')
     fi
 
-    TEST_RETVAL=$?
+    # Run the driver script for the test with timeout monitoring.
+    # We run dotest in the background so we can collect diagnostics
+    # BEFORE killing it on timeout (stack traces need a live process).
+    if [[ -n "${RESULTSFILE}" ]] ; then
+        ./dotest "$OS_VERSION" >> "${RESULTSFILE}" 2>&1 &
+    else
+        ./dotest "$OS_VERSION" &
+    fi
+    DOTEST_PID=$!
+
+    # Poll for completion or timeout.  We check every second whether
+    # dotest is still alive, and count up to TEST_TIMEOUT.
+    ELAPSED_WAIT=0
+    while [ $ELAPSED_WAIT -lt $TEST_TIMEOUT ]; do
+        if ! kill -0 "$DOTEST_PID" 2>/dev/null; then
+            break  # dotest exited
+        fi
+        sleep 1
+        ELAPSED_WAIT=$((ELAPSED_WAIT + 1))
+    done
+
+    if kill -0 "$DOTEST_PID" 2>/dev/null; then
+        # TIMEOUT — dotest is still alive. Collect diagnostics while alive.
+        echo ""
+        echo "*** TEST TIMED OUT after ${TEST_TIMEOUT}s — collecting diagnostics ***"
+        echo ""
+
+        DIAG_FILE="./ion-system.log"
+
+        # ion-diagnostics first: it truncates the output file before
+        # writing, so anything we put there beforehand would be lost.
+        # ION_DIAG_SINCE bounds the core-file scan to cores produced
+        # after this test started, avoiding stale cores from earlier
+        # tests on shared core_pattern directories.
+        if [ -x "$ION_DIAGNOSTICS" ]; then
+            ION_DIAG_SINCE="$TEST_START_TIME" \
+                "$ION_DIAGNOSTICS" --file "$DIAG_FILE" "$(pwd)" 2>/dev/null
+        else
+            : > "$DIAG_FILE"
+            echo "(ion-diagnostics not found at $ION_DIAGNOSTICS)" >> "$DIAG_FILE"
+        fi
+
+        # Now append the dotest-script stack trace; collect_dotest_stack
+        # opens its outfile in append mode (>>), so it won't clobber what
+        # ion-diagnostics just wrote.
+        collect_dotest_stack "$DOTEST_PID" "$DIAG_FILE"
+
+        # Now kill the test and clean up
+        kill -TERM "$DOTEST_PID" 2>/dev/null
+        sleep 2
+        kill -9 "$DOTEST_PID" 2>/dev/null
+        wait "$DOTEST_PID" 2>/dev/null
+        killm f 2>/dev/null
+
+        TEST_RETVAL=124
+    else
+        # dotest finished within the timeout — get its exit status
+        wait "$DOTEST_PID" 2>/dev/null
+        TEST_RETVAL=$?
+    fi
 
     # Calculate test duration for concise output
     TEST_END_TIME=$(date +%s)
     TEST_END_TIMESTAMP=$(get_timestamp)
     TEST_DURATION=$((TEST_END_TIME - TEST_START_TIME))
+    # Combined "actual / declared" suffix; if .DURATION wasn't present
+    # we just show the actual elapsed time.
+    if [ -n "$TEST_DECLARED_DURATION" ]; then
+        DURATION_INFO="${TEST_DURATION}s, declared ${TEST_DECLARED_DURATION}s"
+    else
+        DURATION_INFO="${TEST_DURATION}s"
+    fi
 
     if [ $TEST_RETVAL -eq 0 ]; then
         if [ -n "$IS_OPTIONAL_TEST" ]; then
             echo "OPTIONAL TEST PASSED!"
             optional_pass_test "$TEST"
-            echo "OPTIONAL TEST PASSED: ${TEST} (${TEST_DURATION}s)" >> "$PROGRESSFILE"
+            echo "OPTIONAL TEST PASSED: ${TEST} (${DURATION_INFO})" >> "$PROGRESSFILE"
             # Concise output to stderr
-            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}PASS: $TEST (${TEST_DURATION}s)" >&2
+            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}PASS: $TEST (${DURATION_INFO})" >&2
         else
             echo "TEST PASSED!"
             if [[ "$RETESTING" == "true" ]]; then
                 pass_test_after_retest "$TEST"
-                echo "PASSED AFTER RETEST: ${TEST} (${TEST_DURATION}s)" >> "$PROGRESSFILE"
+                echo "PASSED AFTER RETEST: ${TEST} (${DURATION_INFO})" >> "$PROGRESSFILE"
             else
                 pass_test "$TEST"
-                echo "PASSED: ${TEST} (${TEST_DURATION}s)" >> "$PROGRESSFILE"
+                echo "PASSED: ${TEST} (${DURATION_INFO})" >> "$PROGRESSFILE"
             fi
             # Concise output to stderr
-            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}PASS: $TEST (${TEST_DURATION}s)" >&2
+            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}PASS: $TEST (${DURATION_INFO})" >&2
         fi
-        if [ -x "cleanup" ]; then
+        if [ "$PRESERVE_TEST_LOGS" != "1" ] && [ -x "cleanup" ]; then
             ./cleanup
+            cleanup_staging_files "."
         fi
     elif [ $TEST_RETVAL -eq 1 ]; then
         if [ -n "$IS_OPTIONAL_TEST" ]; then
             echo "OPTIONAL TEST FAILED!"
             optional_fail_test "$TEST"
-            echo "OPTIONAL TEST FAILED: ${TEST} (${TEST_DURATION}s)" >> "$PROGRESSFILE"
+            echo "OPTIONAL TEST FAILED: ${TEST} (${DURATION_INFO})" >> "$PROGRESSFILE"
             # Concise output to stderr
-            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${TEST_DURATION}s)" >&2
+            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${DURATION_INFO})" >&2
         else
             echo "TEST FAILED!"
             fail_test "$TEST"
             if [[ "$RETESTING" == "true" ]]; then
-                echo "FAILED AFTER RETEST: ${TEST} (${TEST_DURATION}s)" >> "$PROGRESSFILE"
+                echo "FAILED AFTER RETEST: ${TEST} (${DURATION_INFO})" >> "$PROGRESSFILE"
             else
-                echo "FAILED: ${TEST} (${TEST_DURATION}s)" >> "$PROGRESSFILE"
+                echo "FAILED: ${TEST} (${DURATION_INFO})" >> "$PROGRESSFILE"
             fi
             # Concise output to stderr
-            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${TEST_DURATION}s)" >&2
+            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${DURATION_INFO})" >&2
         fi
-        # Optionally skip cleanup on failure to preserve logs
-        if [ -n "$PRESERVE_TEST_LOGS" ]; then
-            echo "Preserving test logs (PRESERVE_TEST_LOGS is set)" | tee -a $PROGRESSFILE
-        elif [ -x "cleanup" ]; then
-            ./cleanup
+        # Never run cleanup after failure — logs are preserved for debugging
+        echo "Preserving test logs (cleanup skipped after failure)" | tee -a $PROGRESSFILE
+        # Collect partial diagnostics (ION processes may still be alive,
+        # or may have crashed and left a core). ion-diagnostics
+        # truncates the output file itself, so we don't pre-truncate.
+        DIAG_FILE="./ion-system.log"
+        if [ -x "$ION_DIAGNOSTICS" ]; then
+            ION_DIAG_SINCE="$TEST_START_TIME" \
+                "$ION_DIAGNOSTICS" --file "$DIAG_FILE" "$(pwd)" 2>/dev/null
+        else
+            : > "$DIAG_FILE"
+            echo "(ion-diagnostics not found at $ION_DIAGNOSTICS)" >> "$DIAG_FILE"
         fi
+        # Reclaim bulk staging files (preserves ion.log and ion-system.log,
+        # removes cores after diagnostics has extracted their stack traces)
+        cleanup_staging_files "."
     elif [ $TEST_RETVAL -eq 2 ]; then
         echo "TEST SKIPPED!"
         skip_test "$TEST"
-        echo "SKIPPED: ${TEST} (${TEST_DURATION}s)" >> "$PROGRESSFILE"
+        echo "SKIPPED: ${TEST} (${DURATION_INFO})" >> "$PROGRESSFILE"
         # Concise output to stderr
-        echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}SKIP: $TEST (${TEST_DURATION}s)" >&2
+        echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}SKIP: $TEST (${DURATION_INFO})" >&2
+    elif [ $TEST_RETVAL -eq 124 ]; then
+        echo "TEST TIMED OUT! (limit: ${TEST_TIMEOUT}s)"
+        fail_test "$TEST"
+        echo "TIMEOUT: ${TEST} (${DURATION_INFO}, limit=${TEST_TIMEOUT}s)" >> "$PROGRESSFILE"
+        # Concise output to stderr
+        echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}TIMEOUT: $TEST (${DURATION_INFO})" >&2
+        # Diagnostics already collected; preserve logs but reclaim bulk staging files
+        echo "Preserving test logs and ion-system.log (timeout)" | tee -a $PROGRESSFILE
+        cleanup_staging_files "."
     else
         echo "test returned unknown value $TEST_RETVAL"
         if [ -n "$IS_OPTIONAL_TEST" ]; then
             optional_fail_test "$TEST"
-            echo "OPTIONAL TEST CONFUSED: ${TEST}: bad return value $TEST_RETVAL (${TEST_DURATION}s)" >> "$PROGRESSFILE"
+            echo "OPTIONAL TEST CONFUSED: ${TEST}: bad return value $TEST_RETVAL (${DURATION_INFO})" >> "$PROGRESSFILE"
             # Concise output to stderr
-            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${TEST_DURATION}s) [unknown return value $TEST_RETVAL]" >&2
+            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${DURATION_INFO}) [unknown return value $TEST_RETVAL]" >&2
         else
             fail_test "$TEST"
             if [[ "$RETESTING" == "true" ]]; then
-                echo "CONFUSED AFTER RETEST: ${TEST}: bad return value $TEST_RETVAL (${TEST_DURATION}s)" >> "$PROGRESSFILE"
+                echo "CONFUSED AFTER RETEST: ${TEST}: bad return value $TEST_RETVAL (${DURATION_INFO})" >> "$PROGRESSFILE"
             else
-                echo "CONFUSED: ${TEST}: bad return value $TEST_RETVAL (${TEST_DURATION}s)" >> "$PROGRESSFILE"
+                echo "CONFUSED: ${TEST}: bad return value $TEST_RETVAL (${DURATION_INFO})" >> "$PROGRESSFILE"
             fi
             # Concise output to stderr
-            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${TEST_DURATION}s) [unknown return value $TEST_RETVAL]" >&2
+            echo "[$TEST_END_TIMESTAMP] ${PROGRESS_PREFIX}FAIL: $TEST (${DURATION_INFO}) [unknown return value $TEST_RETVAL]" >&2
         fi
     fi
 
@@ -431,12 +676,24 @@ function cleanup_a_test () {
         return
     fi
 
-    if [ ! -x "$TEST/cleanup" ]; then
-        return
+    pushd "$TEST" > /dev/null
+
+    # Test's own cleanup (if present) — handles named config artifacts
+    # that only the test knows about.
+    if [ -x "./cleanup" ]; then
+        ./cleanup
     fi
 
-    pushd "$TEST" > /dev/null
-    ./cleanup
+    # Generic runtime artifacts (bpacq/ltpacq/*.sdr/bsspSegment/xnref/
+    # *.sdrlog/core), plus the /tmp sweep for tests that use pathName /tmp.
+    cleanup_staging_files "."
+
+    # Diagnostic logs — `runtests cleanup` is an explicit reset request,
+    # so wipe ion.log and ion-system.log too (the in-run sweeps deliberately
+    # preserve them).
+    find . -maxdepth 3 \( -name "ion.log" -o -name "ion-system.log" \) \
+        -type f -delete 2>/dev/null
+
     popd > /dev/null
 }
 
@@ -446,8 +703,10 @@ function run_tests () {
     # Count total number of tests
     local TOTAL_TESTS=$#
     local CURRENT_NUM=0
+    ABORT_RUN=0
 
     for TEST in "$@"; do
+        [ "$ABORT_RUN" -eq 1 ] && break
         CURRENT_NUM=$((CURRENT_NUM + 1))
         run_a_test "$TEST" "$CURRENT_NUM" "$TOTAL_TESTS"
     done
@@ -456,9 +715,18 @@ function run_tests () {
 
 # cleanup all tests listed in $@
 function cleanup_tests () {
+    # Kill any leftover ION daemons ONCE up-front. Running it per-test
+    # would be wasteful (most tests share IPC namespace via wmKey), but
+    # we need at least one pass so the per-test artifact sweeps aren't
+    # racing a live process that still holds those files open.
+    killm f 2>/dev/null
+
     for TEST in "$@"; do
         cleanup_a_test "$TEST"
     done
+
+    # Wipe runtests' own bookkeeping files — this is a full reset.
+    rm -f "$FAILEDFILE" "$PROGRESSFILE" 2>/dev/null
 }
 
 # Reset all test counters for stress test iterations
@@ -676,8 +944,10 @@ TEST_PATHS:
 ENVIRONMENT VARIABLES:
     RUNTESTS_OUTPUTDIR  Directory to save individual test output files
                         (e.g., export RUNTESTS_OUTPUTDIR="/tmp")
-    PRESERVE_TEST_LOGS  Set to preserve test logs (default: 1, enabled)
-                        To disable: export PRESERVE_TEST_LOGS=""
+    PRESERVE_TEST_LOGS  When set to 1, preserve logs from passing tests
+                        (default: 0, clean up after passing tests to save disk).
+                        Failed test logs are always preserved regardless.
+                        To keep all logs: export PRESERVE_TEST_LOGS=1
 
 EXAMPLES:
     ./runtests                              Run all tests
@@ -766,12 +1036,12 @@ while [ $# -gt 0 ]; do
             ;;
         --from)
             shift
-            FROM_TEST="$1"
+            FROM_TEST="${1%/}"
             shift
             ;;
         --to)
             shift
-            TO_TEST="$1"
+            TO_TEST="${1%/}"
             shift
             ;;
         --exclude)
@@ -909,7 +1179,7 @@ if [ -z "$CLEANUP" ]; then
             # Read the failed tests from the retest file (skip comment line)
             RETEST_TESTS=$(grep -v '^#' "$FAILEDFILE")
 
-            if [ -n "$RETEST_TESTS" ]; then
+            if [ -n "$RETEST_TESTS" ] && [ "$ENABLE_RETEST" = "1" ]; then
                 echo
                 echo "=== RETESTING FAILED TESTS ==="
                 echo "=== Retesting failed tests at time `date`" >> $PROGRESSFILE

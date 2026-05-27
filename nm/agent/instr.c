@@ -36,5 +36,12 @@ void agent_instr_init(void)
 
 void agent_instr_clear(void)
 {
-	memset(&gAgentInstr,0, sizeof(gAgentInstr));
+	ion_atomic_init(&gAgentInstr.num_sent_rpts, 0);
+	ion_atomic_init(&gAgentInstr.num_sent_tbls, 0);
+	ion_atomic_init(&gAgentInstr.num_tbrs, 0);
+	ion_atomic_init(&gAgentInstr.num_tbrs_run, 0);
+	ion_atomic_init(&gAgentInstr.num_sbrs, 0);
+	ion_atomic_init(&gAgentInstr.num_sbrs_run, 0);
+	ion_atomic_init(&gAgentInstr.num_macros_run, 0);
+	ion_atomic_init(&gAgentInstr.num_ctrls_run, 0);
 }

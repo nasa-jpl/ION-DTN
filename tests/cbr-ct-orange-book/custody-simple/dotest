@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # custody-simple: Simple end-to-end custody transfer test
 #
@@ -16,7 +17,6 @@ echo "Topology: Node 1 (source) -> Node 2 (custodian) -> Node 3 (destination)"
 echo ""
 
 # Clean up any previous ION and test artifacts
-killm
 ./cleanup
 
 # Track test results

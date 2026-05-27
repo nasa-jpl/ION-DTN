@@ -75,6 +75,11 @@ char* dtnTimeToDate(uvast time){
 	double ms = (((double)time)/1000 - time_sec) * 1000;
 	time_t t = time_sec + EPOCH_2000_SEC;
 	struct tm *epoch_time = localtime(&t);
+	if (epoch_time == NULL)
+	{
+		snprintf(buffer, datelen, "0000-00-00T00:00:00.000");
+		return buffer;
+	}
 	strftime(buffer, datelen, "%Y-%m-%dT%H:%M:%S", epoch_time);
 	sprintf(buffer + strlen(buffer), ".%03.f", ms);
 	return buffer;
@@ -82,6 +87,16 @@ char* dtnTimeToDate(uvast time){
 
 char* statusToString(int statusFlags, char* buf, unsigned buflen){
 	char* buffer = malloc(32);
+	if (buffer == NULL)
+	{
+		if (buflen > 0)
+		{
+			buf[0] = '\0';
+		}
+
+		return buf;
+	}
+
 	strcpy(buffer, "");
 	// note that BP_CUSTODY_RPT is ignored here, as that is not appliccable in bpv7
 	if(statusFlags & BP_RECEIVED_RPT)
@@ -124,13 +139,17 @@ void sortByStatusTime(statusReport *rpts[], unsigned reportCount){
 				statusReport *tmp = rpts[j];
 				rpts[j] = rpts[j+1];
 				rpts[j+1] = tmp;
-			} else if(rpts[j]->statusTime == rpts[j+1]->statusTime &&
-				strncmp(rpts[j+1]->sourceEid, rpts[j+1]->bundleSourceEid,
-					strrchr(rpts[j+1]->sourceEid, '.') - rpts[j+1]->sourceEid) == 0)
-			{
-				statusReport *tmp = rpts[j];
-				rpts[j] = rpts[j+1];
-				rpts[j+1] = tmp;
+			} else if(rpts[j]->statusTime == rpts[j+1]->statusTime) {
+				char *dot = strrchr(rpts[j+1]->sourceEid, '.');
+				if (dot != NULL &&
+					strncmp(rpts[j+1]->sourceEid,
+						rpts[j+1]->bundleSourceEid,
+						dot - rpts[j+1]->sourceEid) == 0)
+				{
+					statusReport *tmp = rpts[j];
+					rpts[j] = rpts[j+1];
+					rpts[j+1] = tmp;
+				}
 			}
 		}
 	}

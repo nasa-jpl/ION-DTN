@@ -28,6 +28,16 @@
 
 static PsmPartition	_sdrwm(sm_WmParms *parms);
 
+#ifdef ION_HAVE_ROBUST_MUTEX
+static int		createSdrMutex(SdrState *sdr);
+static void		destroySdrMutex(SdrState *sdr);
+static int		recoverOrphanedXn(Sdr sdrv, char *deadInfo);
+static void		recordLockOwner(SdrState *sdr);
+static void		formatLockOwner(const SdrLockOwner *owner,
+				uint64_t nowUs, char *out, size_t outSize);
+static uint64_t		monotonicMicroseconds(void);
+#endif
+
 #ifndef SDR_TRACE
 char	*_noTraceMsg(void)
 {
@@ -191,6 +201,9 @@ static SdrControlHeader	*_sch(SdrControlHeader **schp)
 					sm_SemDelete(sdr->sdrSemaphore);
 					sdr->sdrSemaphore = SM_SEM_NONE;
 				}
+#ifdef ION_HAVE_ROBUST_MUTEX
+				destroySdrMutex(sdr);
+#endif
 			}
 
 			sm_SemGive(lock);
@@ -350,9 +363,19 @@ static PsmPartition	_sdrwm(sm_WmParms *parms)
 
 		if (parms->wmKey == SM_NO_KEY)
 		{
-			sdrwmIsPrivate = 1;
 			parms->wmKey = SDR_SM_KEY;
 		}
+
+		/*	The SDR working memory is owned by ION whenever
+		 *	we open it through this path, regardless of
+		 *	whether the key was the legacy default or a
+		 *	per-node value supplied via ionconfig.  Marking
+		 *	the partition private ensures sdr_shutdown()
+		 *	destroys the underlying shared-memory segment
+		 *	so that one node's ionexit cleans up its own
+		 *	SDR working memory without leaking it.		*/
+
+		sdrwmIsPrivate = 1;
 
 		if (parms->wmName == NULL)
 		{
@@ -397,6 +420,15 @@ static PsmPartition	_sdrwm(sm_WmParms *parms)
 	return sdrwm;
 }
 
+/*	In SDR_IN_DRAM mode this returns a live pointer into the
+ *	dataspace, so every patchMap() is visible on the next
+ *	map->X read.  In file-backed mode it returns a pointer to
+ *	a process-local static snapshot that is NOT refreshed when
+ *	patchMap() writes to the dataspace.  Callers must therefore
+ *	never re-read map->X after patching X in the same function:
+ *	either compute the new value into a local and pass it to
+ *	patchMap, or use sdrFetch(V, ADDRESS_OF(X)) for a live read.	*/
+
 SdrMap	*_mapImage(Sdr sdrv)
 {
 	static SdrMap	map;
@@ -412,8 +444,170 @@ SdrMap	*_mapImage(Sdr sdrv)
 
 /*	*	Mutual exclusion functions	*	*	*	*/
 
-static int	lockSdr(SdrState *sdr)
+/*	monotonicMicroseconds: CLOCK_MONOTONIC in microseconds.  Used
+ *	by SdrLockOwner and SdrDropStats diagnostics; available on
+ *	all platforms regardless of ION_HAVE_ROBUST_MUTEX.		*/
+
+static uint64_t	monotonicMicrosecondsCommon(void)
 {
+	struct timespec	ts;
+
+	if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
+	{
+		return 0;
+	}
+
+	return ((uint64_t) ts.tv_sec) * 1000000ULL
+			+ ((uint64_t) ts.tv_nsec) / 1000ULL;
+}
+
+#ifdef ION_HAVE_ROBUST_MUTEX
+
+/*	Capture /proc/self/cmdline once per process and cache it in a
+ *	process-local static.  The capture is best-effort: if /proc
+ *	isn't available or the read fails, we fall back to "(unknown)"
+ *	and the diagnostic message still carries the pid.		*/
+
+static char		cmdlineBuf[SDR_LOCK_OWNER_CMDLINE_MAX];
+static pthread_once_t	cmdlineOnce = PTHREAD_ONCE_INIT;
+
+static void	captureCmdline(void)
+{
+	int	fd;
+	ssize_t	n;
+	ssize_t	i;
+
+	fd = open("/proc/self/cmdline", O_RDONLY);
+	if (fd < 0)
+	{
+		istrcpy(cmdlineBuf, "(unknown)", sizeof cmdlineBuf);
+		return;
+	}
+
+	n = read(fd, cmdlineBuf, sizeof cmdlineBuf - 1);
+	oK(close(fd));
+	if (n <= 0)
+	{
+		istrcpy(cmdlineBuf, "(unknown)", sizeof cmdlineBuf);
+		return;
+	}
+
+	/*	/proc/self/cmdline separates argv entries with NUL bytes.
+	 *	Rewrite to spaces so the cached string is a single readable
+	 *	token, then NUL-terminate and trim any trailing space.	*/
+
+	for (i = 0; i < n; i++)
+	{
+		if (cmdlineBuf[i] == '\0')
+		{
+			cmdlineBuf[i] = ' ';
+		}
+	}
+
+	cmdlineBuf[n] = '\0';
+	if (n > 0 && cmdlineBuf[n - 1] == ' ')
+	{
+		cmdlineBuf[n - 1] = '\0';
+	}
+}
+
+static const char *capturedCmdline(void)
+{
+	oK(pthread_once(&cmdlineOnce, captureCmdline));
+	return cmdlineBuf;
+}
+
+static uint64_t	monotonicMicroseconds(void)
+{
+	return monotonicMicrosecondsCommon();
+}
+
+static void	recordLockOwner(SdrState *sdr)
+{
+	const char	*cmd = capturedCmdline();
+
+	sdr->lastOwner.pid = (int) getpid();
+	sdr->lastOwner.acquired_at_us = monotonicMicroseconds();
+	istrcpy(sdr->lastOwner.cmdline, cmd, sizeof sdr->lastOwner.cmdline);
+}
+
+static void	formatLockOwner(const SdrLockOwner *owner, uint64_t nowUs,
+			char *out, size_t outSize)
+{
+	uint64_t	heldUs;
+
+	heldUs = (owner->acquired_at_us && nowUs >= owner->acquired_at_us)
+			? nowUs - owner->acquired_at_us : 0;
+	isprintf(out, (int) outSize,
+			"pid=%d cmdline=\"%s\" held=%llu us",
+			owner->pid,
+			owner->cmdline[0] ? owner->cmdline : "(unknown)",
+			(unsigned long long) heldUs);
+}
+
+#endif	/*	ION_HAVE_ROBUST_MUTEX					*/
+
+static int	lockSdr(Sdr sdrv)
+{
+	SdrState	*sdr = sdrv->sdr;
+#ifdef ION_HAVE_ROBUST_MUTEX
+	int		result;
+
+	result = pthread_mutex_lock(&sdr->sdrMutex);
+	if (result == EOWNERDEAD)
+	{
+		/*	The previous owner of the transaction lock
+		 *	died while holding it.  We now own the lock;
+		 *	roll back the dead owner's partial transaction
+		 *	before marking the mutex consistent again.	*/
+
+		SdrLockOwner	dead;
+		char		deadInfo[160];
+
+		/*	Snapshot the dead-owner record before recovery
+		 *	starts.  We pass it into recoverOrphanedXn so
+		 *	the diagnostic survives even if recovery fails
+		 *	and the mutex transitions to ENOTRECOVERABLE.	*/
+
+		memcpy(&dead, &sdr->lastOwner, sizeof dead);
+		dead.cmdline[sizeof dead.cmdline - 1] = '\0';
+		formatLockOwner(&dead, monotonicMicroseconds(),
+				deadInfo, sizeof deadInfo);
+
+		if (recoverOrphanedXn(sdrv, deadInfo) < 0)
+		{
+			/*	Unlocking without pthread_mutex_consistent
+			 *	transitions the mutex to ENOTRECOVERABLE,
+			 *	so every future locker fails the same way
+			 *	rather than building on a corrupt SDR.	*/
+
+			oK(pthread_mutex_unlock(&sdr->sdrMutex));
+			return -1;
+		}
+
+		oK(pthread_mutex_consistent(&sdr->sdrMutex));
+	}
+	else if (result == ENOTRECOVERABLE)
+	{
+		putErrmsg("SDR transaction lock is unrecoverable; the SDR \
+profile must be reloaded.", NULL);
+		return -1;
+	}
+	else if (result != 0)
+	{
+		putErrmsg("Can't lock SDR transaction mutex.", itoa(result));
+		return -1;
+	}
+
+	/*	sdrXnEnded carries the graceful-shutdown signal that
+	 *	sm_SemEnded() provided on the semaphore path.		*/
+
+	if (ion_ipc_atomic_get(&sdr->sdrXnEnded))
+	{
+		oK(pthread_mutex_unlock(&sdr->sdrMutex));
+		return -1;
+	}
+#else
 	if (sm_SemTake(sdr->sdrSemaphore) < 0)
 	{
 		return -1;
@@ -428,22 +622,37 @@ static int	lockSdr(SdrState *sdr)
 	{
 		return -1;
 	}
+#endif
 
 	sdr->sdrOwnerThread = pthread_self();
 	sdr->sdrOwnerTask = sm_TaskIdSelf();
 	sdr->xnDepth = 1;
 	sdr->xnCanceled = 0;
 	sdr->modified = 0;
+#ifdef ION_HAVE_ROBUST_MUTEX
+	recordLockOwner(sdr);
+#endif
 	return 0;
 }
 
-int	takeSdr(SdrState *sdr)
+int	takeSdr(Sdr sdrv)
 {
+	SdrState	*sdr;
+
+	CHKERR(sdrv);
+	sdr = sdrv->sdr;
 	CHKERR(sdr);
+#ifdef ION_HAVE_ROBUST_MUTEX
+	if (!(sdr->sdrMutexCreated) || ion_ipc_atomic_get(&sdr->sdrXnEnded))
+	{
+		return -1;		/*	Can't be taken.		*/
+	}
+#else
 	if (sdr->sdrSemaphore == -1 || sm_SemEnded(sdr->sdrSemaphore))
 	{
 		return -1;		/*	Can't be taken.		*/
 	}
+#endif
 
 	if (sdr->sdrOwnerTask == sm_TaskIdSelf()
 	&& pthread_equal(sdr->sdrOwnerThread, pthread_self()))
@@ -452,17 +661,21 @@ int	takeSdr(SdrState *sdr)
 		return 0;		/*	Already taken.		*/
 	}
 
-	return lockSdr(sdr);
+	return lockSdr(sdrv);
 }
 
 static void	unlockSdr(SdrState *sdr)
 {
 	sdr->sdrOwnerTask = -1;
 	sdr->sdrOwnerThread = 0;
+#ifdef ION_HAVE_ROBUST_MUTEX
+	oK(pthread_mutex_unlock(&sdr->sdrMutex));
+#else
 	if (sdr->sdrSemaphore != -1)
 	{
 		sm_SemGive(sdr->sdrSemaphore);
 	}
+#endif
 }
 
 void	releaseSdr(SdrState *sdr)
@@ -776,14 +989,66 @@ static void	clearTransaction(Sdr sdrv)
 		}
 	}
 
-	if (sdrv->knownObjects)
-	{
-		lyst_clear(sdrv->knownObjects);
-	}
+	sdrv->knownObjects.count = 0;
 
 	sdrv->sdr->logLength = 0;
 	sm_list_clear(_sdrwm(NULL), sdrv->sdr->logEntries, NULL, NULL);
 }
+
+#ifdef ION_HAVE_ROBUST_MUTEX
+
+/*	recoverOrphanedXn is invoked when pthread_mutex_lock returns
+ *	EOWNERDEAD, i.e. the process that held the transaction lock
+ *	died mid-transaction.  The recovering caller already owns the
+ *	lock; this rolls back whatever the dead owner left behind so
+ *	the caller can begin a fresh transaction on a consistent SDR.
+ *	On success the caller marks the mutex consistent; on failure
+ *	it deliberately does not, so the mutex becomes ENOTRECOVERABLE
+ *	rather than handing out a corrupt SDR.				*/
+
+static int	recoverOrphanedXn(Sdr sdrv, char *deadInfo)
+{
+	static char	noRecord[] = "(no owner record)";
+	SdrState	*sdr = sdrv->sdr;
+
+	writeMemoNote("[?] SDR transaction lock owner died mid-transaction; \
+recovering.", deadInfo ? deadInfo : noRecord);
+
+	/*	A read-only transaction leaves nothing to undo.  If the
+	 *	dead owner modified the heap, roll the changes back from
+	 *	the transaction log.					*/
+
+	if (sdr->modified)
+	{
+		if (!(sdr->configFlags & SDR_REVERSIBLE))
+		{
+			putErrmsg("Orphaned transaction modified a \
+non-reversible SDR; cannot recover.", NULL);
+			return -1;
+		}
+
+		putErrmsg("Reversing orphaned transaction...", NULL);
+		if (reverseTransaction(sdr, sdrv->logfile, sdrv->logsm,
+				sdrv->dsfile, sdrv->dssm) < 0)
+		{
+			putErrmsg("Can't reverse orphaned transaction.", NULL);
+			return -1;
+		}
+	}
+
+	/*	Discard the dead owner's transaction bookkeeping so the
+	 *	recovering caller starts from a clean slate.		*/
+
+	clearTransaction(sdrv);
+	sdr->xnDepth = 0;
+	sdr->xnCanceled = 0;
+	sdr->modified = 0;
+	sdr->sdrOwnerTask = -1;
+	sdr->sdrOwnerThread = 0;
+	return 0;
+}
+
+#endif	/*	ION_HAVE_ROBUST_MUTEX					*/
 
 static void	handleUnrecoverableError(Sdr sdrv)
 {
@@ -902,6 +1167,21 @@ static void	terminateXn(Sdr sdrv)
 	 *	restart utility will clear the hijacked transaction.	*/
 
 	sdr->halted = 0;
+#ifdef ION_HAVE_ROBUST_MUTEX
+	/*	The legacy semaphore path can leave the transaction lock
+	 *	held here for the restart utility to recover later (via
+	 *	sm_SemUnwedge when the profile is reloaded).  A robust
+	 *	mutex cannot be recovered that way: the kernel only marks
+	 *	it owner-died if the owner's robust list and the mutex are
+	 *	still mapped at the moment the owner exits, and the task
+	 *	that cancelled this transaction is about to unmap the SDR
+	 *	working memory in ionDetach.  So close the transaction and
+	 *	release the mutex cleanly now; the restarted ION simply
+	 *	re-acquires it.						*/
+
+	clearTransaction(sdrv);
+	unlockSdr(sdr);
+#endif
 	return;
 }
 
@@ -1157,6 +1437,62 @@ static int	restageDsFromFile(SdrState *sdr, int dsfile, char *dssm)
 	return 0;
 }
 
+#ifdef ION_HAVE_ROBUST_MUTEX
+
+/*	On platforms with robust-mutex support the SDR transaction
+ *	lock is a process-shared robust pthread mutex.  createSdrMutex
+ *	is called once, by the process that creates the SDR; every
+ *	other process inherits the mutex through the shared sdrwm
+ *	partition.  PTHREAD_MUTEX_ROBUST is what makes a subsequent
+ *	pthread_mutex_lock return EOWNERDEAD when the owning process
+ *	dies mid-transaction, so the lock can be recovered instead of
+ *	being orphaned.							*/
+
+static int	createSdrMutex(SdrState *sdr)
+{
+	pthread_mutexattr_t	attr;
+
+	if (pthread_mutexattr_init(&attr) != 0)
+	{
+		return -1;
+	}
+
+	if (pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED) != 0
+	|| pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST) != 0
+	|| pthread_mutex_init(&sdr->sdrMutex, &attr) != 0)
+	{
+		oK(pthread_mutexattr_destroy(&attr));
+		return -1;
+	}
+
+	oK(pthread_mutexattr_destroy(&attr));
+	ion_ipc_atomic_init(&sdr->sdrXnEnded, 0);
+	memset(&sdr->lastOwner, 0, sizeof sdr->lastOwner);
+	sdr->sdrMutexCreated = 1;
+	return 0;
+}
+
+static void	destroySdrMutex(SdrState *sdr)
+{
+	if (sdr->sdrMutexCreated)
+	{
+		/*	sdrXnEnded is the robust-mutex analogue of
+		 *	sm_SemEnd: setting it makes takeSdr refuse new
+		 *	transactions and makes any task that acquires
+		 *	the mutex during shutdown release it and bail
+		 *	out (see lockSdr).  The snooze gives in-flight
+		 *	lockers a moment to drain before the mutex is
+		 *	destroyed.					*/
+
+		ion_ipc_atomic_set(&sdr->sdrXnEnded, 1);
+		microsnooze(50000);
+		oK(pthread_mutex_destroy(&sdr->sdrMutex));
+		sdr->sdrMutexCreated = 0;
+	}
+}
+
+#endif	/*	ION_HAVE_ROBUST_MUTEX					*/
+
 static void	destroySdr(SdrState *sdr)
 {
 	sm_SemId	lock = _sdrlock(0);
@@ -1176,6 +1512,10 @@ static void	destroySdr(SdrState *sdr)
 		microsnooze(50000);
 		sm_SemDelete(sdr->sdrSemaphore);
 	}
+
+#ifdef ION_HAVE_ROBUST_MUTEX
+	destroySdrMutex(sdr);
+#endif
 
 	/*	Destroy file copy of dataspace if any.			*/
 
@@ -1312,7 +1652,15 @@ SDR heap data, the heap MUST be resident in memory.", itoa(configFlags));
 			&& (sdr->logKey == logKey || logKey == SM_NO_KEY)
 			&& strcmp(sdr->pathName, pathName) == 0)
 			{
+#ifndef ION_HAVE_ROBUST_MUTEX
+				/*	Recover the transaction semaphore in
+				 *	case a previous user died holding it.
+				 *	The robust mutex needs no such nudge:
+				 *	it recovers itself via EOWNERDEAD on
+				 *	the next lock attempt.			*/
+
 				sm_SemUnwedge(sdr->sdrSemaphore, 3);
+#endif
 				return 0;	/*	Profile loaded.	*/
 			}
 
@@ -1352,6 +1700,15 @@ SDR heap data, the heap MUST be resident in memory.", itoa(configFlags));
 	}
 
 	sdr->logKey = logKey;
+#ifdef ION_HAVE_ROBUST_MUTEX
+	sdr->sdrSemaphore = SM_SEM_NONE;	/*	Mutex is the lock.	*/
+	if (createSdrMutex(sdr) < 0)
+	{
+		putErrmsg("Can't create transaction mutex for SDR.", NULL);
+		destroySdr(sdr);		/*	Releases lock.	*/
+		return -1;
+	}
+#else
 	sdr->sdrSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 	if (sdr->sdrSemaphore == SM_SEM_NONE)
 	{
@@ -1359,6 +1716,7 @@ SDR heap data, the heap MUST be resident in memory.", itoa(configFlags));
 		destroySdr(sdr);		/*	Releases lock.	*/
 		return -1;
 	}
+#endif
 
 	sdr->sdrOwnerTask = -1;
 	sdr->logEntries = sm_list_create(sdrwm);
@@ -1594,9 +1952,13 @@ int	sdr_reload_profile(char *name, int configFlags, size_t heapWords,
 		 *	force reversal of any incomplete transaction
 		 *	that is currently in progress.			*/
 
+#ifdef ION_HAVE_ROBUST_MUTEX
+		destroySdrMutex(sdr);
+#else
 		sm_SemEnd(sdr->sdrSemaphore);
 		microsnooze(50000);
 		sm_SemDelete(sdr->sdrSemaphore);
+#endif
 		psm_free(sdrwm, sdrAddress);
 		oK(sm_list_delete(sdrwm, elt, NULL, NULL));
 	}
@@ -1606,14 +1968,6 @@ int	sdr_reload_profile(char *name, int configFlags, size_t heapWords,
 	sm_SemGive(lock);
 	return sdr_load_profile(name, configFlags, heapWords, heapKey, logSize,
 			logKey, pathName, restartCmd);
-}
-
-static void	deleteObjectExtent(LystElt elt, void *userData)
-{
-	/* Parameter intentionally unused. */
-	(void)userData;
-
-	MRELEASE(lyst_data(elt));
 }
 
 Sdr	Sdr_start_using(char *name)
@@ -1734,18 +2088,8 @@ Sdr	Sdr_start_using(char *name)
 		sdrv->logfile = -1;
 	}
 
-	if (sdr->configFlags & SDR_BOUNDED)
-	{
-		sdrv->knownObjects = lyst_create_using(_sdrMemory(NULL));
-		if (sdrv->knownObjects == 0)
-		{
-			sm_SemGive(lock);
-			putErrmsg(_noMemoryMsg(), NULL);
-			return NULL;
-		}
-
-		lyst_delete_set(sdrv->knownObjects, deleteObjectExtent, NULL);
-	}
+	/*	knownObjects is already zeroed by the memset above;
+	 *	the backing array is MTAKE'd lazily on first insert.	*/
 
 	sdrv->trace = NULL;
 	sdrv->currentSourceFileName = NULL;
@@ -1803,9 +2147,12 @@ void	sdr_stop_using(Sdr sdrv, int shutdown)
 		sm_ShmDetach(sdrv->logsm);
 	}
 
-	if (sdrv->knownObjects)
+	if (sdrv->knownObjects.items)
 	{
-		lyst_destroy(sdrv->knownObjects);
+		MRELEASE(sdrv->knownObjects.items);
+		sdrv->knownObjects.items = NULL;
+		sdrv->knownObjects.capacity = 0;
+		sdrv->knownObjects.count = 0;
 	}
 
 	/*	Erase content of SdrView, in case space is re-used
@@ -1835,10 +2182,14 @@ void	sdr_stop_using(Sdr sdrv, int shutdown)
 void	sdr_abort(Sdr sdrv)
 {
 	CHKVOID(sdrv);
+#ifdef ION_HAVE_ROBUST_MUTEX
+	destroySdrMutex(sdrv->sdr);
+#else
 	sm_SemEnd(sdrv->sdr->sdrSemaphore);
 	microsnooze(50000);
 	sm_SemDelete(sdrv->sdr->sdrSemaphore);
 	sdrv->sdr->sdrSemaphore = -1;
+#endif
 	sdr_shutdown();
 }
 
@@ -1860,10 +2211,14 @@ void	sdr_destroy(Sdr sdrv, int shutdown)
 #endif
 
 	sdr = sdrv->sdr;
+#ifdef ION_HAVE_ROBUST_MUTEX
+	destroySdrMutex(sdr);
+#else
 	sm_SemEnd(sdr->sdrSemaphore);		/*	Interrupt.	*/
 	microsnooze(50000);
 	sm_SemDelete(sdr->sdrSemaphore);
 	sdr->sdrSemaphore = SM_SEM_NONE;
+#endif
 
 	/*	Now destroy the SDR itself.				*/
 
@@ -1889,7 +2244,7 @@ int	sdr_begin_xn(Sdr sdrv)
 #endif
 {
 	CHKZERO(sdrv);
-	if (takeSdr(sdrv->sdr) < 0)
+	if (takeSdr(sdrv) < 0)
 	{
 		return 0;	/*	Failed to begin transaction.	*/
 	}
@@ -2012,6 +2367,108 @@ void	sdr_eject_xn(Sdr sdrv)
 		sdr->xnDepth = 0;
 		terminateXn(sdrv);
 	}
+}
+
+/*	*	sdr_drop_xn -- cascade-safe transaction close		*/
+
+static const char	*baseName(const char *path)
+{
+	const char	*slash;
+
+	if (path == NULL)
+	{
+		return "?";
+	}
+
+	slash = strrchr(path, '/');
+	return slash ? slash + 1 : path;
+}
+
+void	_sdr_drop_xn(const char *file, int line, const char *func, Sdr sdrv,
+			const char *ctx)
+{
+	SdrState	*sdr;
+	uint64_t	now;
+	char		logBuf[SDR_DROP_LAST_SITE_MAX + 96];
+
+	CHKVOID(sdrv);
+	sdr = sdrv->sdr;
+	CHKVOID(sdr);
+
+	if (!sdr_in_xn(sdrv))
+	{
+		/*	sdr_drop_xn is a transaction-close primitive;
+		 *	calling it outside a transaction is a programming
+		 *	error.  Log loudly and return without doing
+		 *	anything else.					*/
+
+		putErrmsg("sdr_drop_xn called outside a transaction.",
+				ctx ? ctx : "(no context)");
+		return;
+	}
+
+	/*	Accounting.  We hold the SDR transaction mutex at this
+	 *	point (sdr_in_xn was true), so updates to dropStats
+	 *	are serialized across this SDR.  Readers from outside
+	 *	the lock (e.g. ionwarn snapshotting) may see a torn
+	 *	lastDropSite buffer briefly; the data is diagnostic
+	 *	only.							*/
+
+	now = monotonicMicrosecondsCommon();
+	if (sdr->dropStats.totalDrops == 0)
+	{
+		sdr->dropStats.firstDropAtUs = now;
+	}
+
+	sdr->dropStats.lastDropAtUs = now;
+	sdr->dropStats.totalDrops += 1;
+
+	isprintf(sdr->dropStats.lastDropSite,
+			sizeof sdr->dropStats.lastDropSite,
+			"%s:%d %s: \"%s\"",
+			baseName(file), line,
+			func ? func : "?",
+			ctx ? ctx : "(no context)");
+
+	isprintf(logBuf, sizeof logBuf,
+			"[?] sdr_drop_xn at %s (drops_total=%llu, pid=%d)",
+			sdr->dropStats.lastDropSite,
+			(unsigned long long) sdr->dropStats.totalDrops,
+			(int) getpid());
+	writeMemo(logBuf);
+
+	/*	Commit the partial modifications.  We deliberately do
+	 *	NOT route through sdr_cancel_xn / terminateXn: on a
+	 *	non-reversible SDR with sdr->modified set, that path
+	 *	calls handleUnrecoverableError -> sm_Abort, which is
+	 *	exactly the cascade trigger sdr_drop_xn exists to
+	 *	avoid (see #983).					*/
+
+	oK(sdr_end_xn(sdrv));
+}
+
+int	sdr_drop_stats(Sdr sdrv, SdrDropStats *out)
+{
+	SdrState	*sdr;
+
+	CHKERR(sdrv);
+	CHKERR(out);
+	sdr = sdrv->sdr;
+	CHKERR(sdr);
+
+	memcpy(out, &sdr->dropStats, sizeof *out);
+	out->lastDropSite[sizeof out->lastDropSite - 1] = '\0';
+	return 0;
+}
+
+unsigned long long	sdr_drop_count(Sdr sdrv)
+{
+	if (sdrv == NULL || sdrv->sdr == NULL)
+	{
+		return 0;
+	}
+
+	return sdrv->sdr->dropStats.totalDrops;
 }
 
 void	*sdr_pointer(Sdr sdrv, Address address)

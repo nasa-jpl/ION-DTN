@@ -19,6 +19,12 @@
 
 int	hcb_offer(ExtensionBlock *blk, Bundle *bundle)
 {
+	if (ION_HOP_LIMIT < 1 || ION_HOP_LIMIT > 255)
+	{
+		writeMemoNote("[?] Local hop limit out of bounds, set limit", itoa(ION_HOP_LIMIT));
+		return -1;
+	}
+
 	bundle->hopCount = 0;
 	bundle->hopLimit = ION_HOP_LIMIT;
 	blk->blkProcFlags = BLK_MUST_BE_COPIED;
@@ -97,12 +103,23 @@ int	hcb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
 		writeMemo("[?] Can't decode hop limit.");
+		return 0;
 	}
 
-	bundle->hopLimit = uvtemp;
+	if ( uvtemp < 1 || uvtemp > 255)
+	{
+		writeMemoNote("[?] Hop limit out of bounds, received limit", itoa(uvtemp));
+		return 0;
+	}
+	else
+	{
+		bundle->hopLimit = uvtemp;
+	}
+
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
 		writeMemo("[?] Can't decode hop count.");
+		return 0;
 	}
 
 	bundle->hopCount = uvtemp;

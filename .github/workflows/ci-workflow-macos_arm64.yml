@@ -51,7 +51,7 @@ jobs:
           rm -rf $GITHUB_WORKSPACE/*
 
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           clean: true
           # clear workspace after
@@ -78,7 +78,7 @@ jobs:
             export PATH="/opt/homebrew/bin:$PATH"
             export ION_RUN_EXPERT="yes"
             export DYLD_LIBRARY_PATH=/usr/local/lib:$DYLD_LIBRARY_PATH
-            export PRESERVE_TEST_LOGS="yes"
+            export PRESERVE_TEST_LOGS="0"
             autoreconf -fi
             ./configure --enable-bpsec-debugging  # mbedtls deactivated
             make -j4
@@ -102,7 +102,6 @@ jobs:
           } > build-and-test.log 2> >(tee -a build-and-test.log >&2)
 
           TEST_STATUS=$?
-          wait  # Wait for background processes to complete
 
           if [ $TEST_STATUS -ne 0 ]; then
             echo "Build and tests failed with status $TEST_STATUS" >&2
@@ -116,7 +115,7 @@ jobs:
 
       - name: Upload full build and test log
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-and-test-log-macos-arm64-${{ env.TIMESTAMP }}
           path: build-and-test.log
@@ -129,7 +128,7 @@ jobs:
 
       - name: Upload progress file as artifact
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-progress-macos-arm64-${{ env.TIMESTAMP }}
           path: ./tests/progress
@@ -155,7 +154,7 @@ jobs:
 
       - name: Upload ion.log files as artifact
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ion-logs-macos-arm64-${{ env.TIMESTAMP }}
           path: ion-logs-collection/

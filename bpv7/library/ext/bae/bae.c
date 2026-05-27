@@ -85,6 +85,7 @@ int	bae_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
 		writeMemo("[?] Can't decode bundle age.");
+		return 0;		/*	Malformed.		*/
 	}
 
 	bundle->age = uvtemp;

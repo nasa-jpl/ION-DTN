@@ -12,4 +12,5 @@ rm -f 5.ipn.ltp/testfile2
 rm -f 5.ipn.ltp/testfile3
 rm -f 5.ipn.ltp/testfile4
 rm -f 5.ipn.ltp/testfile5
-killm
+export ION_NODE_LIST_DIR=$PWD
+killm f

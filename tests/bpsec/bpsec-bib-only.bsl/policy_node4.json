@@ -1,0 +1,67 @@
+{
+  "policyrule_set": [
+  {
+      "policyrule": {
+      "desc": "BIB acceptor for ipn:2.* -> ipn:4.* payload block",
+      "filter": {
+        "rule_id": "1",
+        "role": "a",
+        "src": "ipn:2.*",
+        "dest": "ipn:4.*",
+        "tgt": 1,
+        "loc": "appout",
+        "sc_id": 1
+      },
+      "spec": {
+        "svc": "bib-integrity",
+        "sc_id": 1,
+        "sc_parms": [
+          { "id": "key_name", "value": "9100" },
+          { "id": "sha_variant", "value": "7" },
+          { "id": "scope_flags", "value": "0" },
+          { "id": "key_wrap", "value": "0" }
+        ]
+      },
+      "es_ref": "d_integrity",
+      "policy_action_on_fail": "delete_bundle"
+    },
+    "event_set": {
+      "es_ref": "d_integrity",
+      "events": [
+        { "event_id": "sop_processed", "actions": ["remove_all_target_sops"] }
+      ]
+    }
+  },
+  {
+      "policyrule": {
+      "desc": "BIB acceptor for ipn:2.* -> ipn:4.* primary block",
+      "filter": {
+        "rule_id": "2",
+        "role": "a",
+        "src": "ipn:2.*",
+        "dest": "ipn:4.*",
+        "tgt": 0,
+        "loc": "appout",
+        "sc_id": 1
+      },
+      "spec": {
+        "svc": "bib-integrity",
+        "sc_id": 1,
+        "sc_parms": [
+          { "id": "key_name", "value": "9100" },
+          { "id": "sha_variant", "value": "7" },
+          { "id": "scope_flags", "value": "0" },
+          { "id": "key_wrap", "value": "0" }
+        ]
+      },
+      "es_ref": "d_integrity_primary",
+      "policy_action_on_fail": "delete_bundle"
+    },
+    "event_set": {
+      "es_ref": "d_integrity_primary",
+      "events": [
+        { "event_id": "sop_processed", "actions": ["remove_all_target_sops"] }
+      ]
+    }
+  }]
+}

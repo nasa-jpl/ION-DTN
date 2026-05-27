@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 echo "Cleaning up old ION..."
-killm
+export ION_NODE_LIST_DIR=$PWD
+killm f
 
 HOSTS_FILE="/etc/hosts"
 BACKUP_FILE="$PWD/hosts.bak"

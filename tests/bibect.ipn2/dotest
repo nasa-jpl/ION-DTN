@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Scott Burleigh
 # April 6, 2020
@@ -201,7 +202,6 @@ else
     echo "Bundles for node 4 were received."
 fi
 
-killm
 echo "BIBE custody transfer test completed."
 
 if [ $PASS -eq 1 ]

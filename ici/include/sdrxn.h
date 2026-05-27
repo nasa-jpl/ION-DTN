@@ -227,6 +227,52 @@ extern void		sdr_exit_xn(Sdr sdr);
 extern void		sdr_cancel_xn(Sdr sdr);
 extern int		sdr_end_xn(Sdr sdr);
 
+/*	SdrDropStats: counters and last-site record for sdr_drop_xn
+ *	calls on this SDR.  See _sdr_drop_xn and #983.			*/
+
+#define SDR_DROP_LAST_SITE_MAX	160
+
+typedef struct
+{
+	unsigned long long	totalDrops;
+	uint64_t		firstDropAtUs;
+	uint64_t		lastDropAtUs;
+	char			lastDropSite[SDR_DROP_LAST_SITE_MAX];
+} SdrDropStats;
+
+/*	sdr_drop_xn closes out a transaction whose destructive
+ *	modifications cannot be cleanly rolled back, committing the
+ *	partial state with a logged warning instead of calling
+ *	sdr_cancel_xn -- which on non-reversible SDRs would call
+ *	sm_Abort() and orphan the SDR mutex, cascading into every
+ *	other daemon on the node (see #983).
+ *
+ *	Safe only at sites where the caller has verified that all
+ *	modifications already made are in the "discard the object"
+ *	direction (free, delete, refcount-decrement) and any missed
+ *	cleanup is at worst a bounded leak.  Document the reasoning
+ *	in a code comment at every call site.  Not a drop-in
+ *	replacement for sdr_cancel_xn: code that genuinely needs to
+ *	roll back must keep using sdr_cancel_xn and the surrounding
+ *	configuration must enable SDR_REVERSIBLE.
+ *
+ *	ctx is a short, human-readable string describing what was
+ *	dropped (object kind, operation, identifiers).  It appears
+ *	verbatim in the log line and is recorded in SdrDropStats so
+ *	operators can see the most-recent drop site.			*/
+
+extern void		_sdr_drop_xn(const char *file, int line,
+				const char *func, Sdr sdr, const char *ctx);
+#define sdr_drop_xn(sdrv, ctx)	_sdr_drop_xn(__FILE__, __LINE__, \
+				__func__, (sdrv), (ctx))
+
+/*	sdr_drop_stats fills *out with a snapshot of the SDR's
+ *	drop counters.  Returns 0 on success, -1 on error.  Callers
+ *	that just want the total can use sdr_drop_count(sdr).		*/
+
+extern int		sdr_drop_stats(Sdr sdr, SdrDropStats *out);
+extern unsigned long long sdr_drop_count(Sdr sdr);
+
 /*		Low-level SDR I/O functions.				*/
 
 typedef uaddr		SdrAddress;

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Scott Burleigh
 # December 6, 2011
@@ -118,6 +119,5 @@ echo -e "Stopping ION...\n"
 
 # Give both nodes time to shut down, then clean up.
 #sleep 3
-killm
 echo -e "Fast data structures test completed.\n"
 exit $RETVAL

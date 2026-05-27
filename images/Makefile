@@ -5,14 +5,11 @@ DEFAULT_RUNNER_NAME ?= ${DOCKER_USER}/ion-actions-runner
 OS_IMAGE ?= ubuntu-22
 TARGETPLATFORM ?= $(shell arch)
 
-RUNNER_VERSION ?= 2.331.0
-RUNNER_CONTAINER_HOOKS_VERSION ?= 0.8.0
-DOCKER_VERSION ?= 28.0.4
-
-# default list of platforms for which multiarch image is built
-ifeq (${PLATFORMS}, )
-	export PLATFORMS="linux/amd64,linux/arm64"
-endif
+RUNNER_VERSION ?= 2.334.0
+RUNNER_CONTAINER_HOOKS_VERSION ?= 0.8.1
+DOCKER_VERSION ?= 29.4.3
+DOCKER_COMPOSE_VERSION ?= v2.40.3
+PIP_INDEX ?= ""
 
 # Handle target platform variants.
 # arch command on OS X reports "i386" for Intel CPUs regardless of bitness
@@ -31,6 +28,8 @@ docker-build:
 	  --build-arg RUNNER_VERSION=${RUNNER_VERSION} \
 	  --build-arg RUNNER_CONTAINER_HOOKS_VERSION=${RUNNER_CONTAINER_HOOKS_VERSION} \
 	  --build-arg DOCKER_VERSION=${DOCKER_VERSION} \
+	  --build-arg DOCKER_COMPOSE_VERSION=${DOCKER_COMPOSE_VERSION} \
+	  --build-arg PIP_INDEX=${PIP_INDEX} \
 	  --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
 	  --build-arg REV=$(shell git rev-parse --short HEAD) \
 	  -f actions-runner.${OS_IMAGE}.dockerfile \
@@ -44,6 +43,8 @@ buildah-build:
 	  --build-arg RUNNER_VERSION=${RUNNER_VERSION} \
 	  --build-arg RUNNER_CONTAINER_HOOKS_VERSION=${RUNNER_CONTAINER_HOOKS_VERSION} \
 	  --build-arg DOCKER_VERSION=${DOCKER_VERSION} \
+	  --build-arg DOCKER_COMPOSE_VERSION=${DOCKER_COMPOSE_VERSION} \
+	  --build-arg PIP_INDEX=${PIP_INDEX} \
 	  --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
 	  --build-arg REV=$(shell git rev-parse --short HEAD) \
 	  -f actions-runner.${OS_IMAGE}.dockerfile \
@@ -59,6 +60,8 @@ buildah-build-rhel:
 	  --build-arg RUNNER_VERSION=${RUNNER_VERSION} \
 	  --build-arg RUNNER_CONTAINER_HOOKS_VERSION=${RUNNER_CONTAINER_HOOKS_VERSION} \
 	  --build-arg DOCKER_VERSION=${DOCKER_VERSION} \
+	  --build-arg DOCKER_COMPOSE_VERSION=${DOCKER_COMPOSE_VERSION} \
+	  --build-arg PIP_INDEX=${PIP_INDEX} \
 	  --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
 	  --build-arg REV=$(shell git rev-parse --short HEAD) \
 	  -f actions-runner.${OS_IMAGE}.dockerfile \

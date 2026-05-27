@@ -15,6 +15,8 @@
                                                                         */
 #include "udpcla.h"
 
+#include "ion_atomic.h"
+
 /*	*	*	Sender functions	*	*	*	*/
 
 static int openUdpSocket(int *sock)
@@ -219,6 +221,7 @@ int initUdpClaSocket(const char *endpoint, UdpClaSocket *claSock)
 	}
 
 	memset(claSock, 0, sizeof(UdpClaSocket));
+	ion_atomic_init(&claSock->shutdown_requested, 0);
 	pthread_mutex_init(&claSock->shutdown_mutex, NULL);
 	claSock->main_socket = -1;
 	claSock->shutdown_socket = -1;
@@ -349,7 +352,7 @@ int sendUdpClaShutdown(UdpClaSocket *claSock)
 
 	pthread_mutex_lock(&claSock->shutdown_mutex);
 
-	if (claSock->shutdown_requested)
+	if (ion_atomic_get(&claSock->shutdown_requested))
 	{
 		pthread_mutex_unlock(&claSock->shutdown_mutex);
 		return 0; /* Already sent */
@@ -380,7 +383,7 @@ int sendUdpClaShutdown(UdpClaSocket *claSock)
 		return -1;
 	}
 
-	claSock->shutdown_requested = 1;
+	ion_atomic_set(&claSock->shutdown_requested, 1);
 
 	char target_str[INET6_ADDR_WITH_PORT_STRLEN];
 	formatNetworkAddress(&claSock->shutdown_target, target_str,
@@ -415,6 +418,7 @@ void cleanupUdpClaSocket(UdpClaSocket *claSock)
 	}
 
 	pthread_mutex_destroy(&claSock->shutdown_mutex);
+	ion_atomic_mutex_destroy(&claSock->shutdown_requested);
 	memset(claSock, 0, sizeof(UdpClaSocket));
 }
 

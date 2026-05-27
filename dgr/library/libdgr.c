@@ -10,6 +10,7 @@
 
 									*/
 #include "dgr.h"
+#include "ion_atomic.h"
 #include "memmgr.h"
 #include "llcv.h"
 
@@ -209,7 +210,7 @@ typedef struct
 	int		meanBytesResent;
 	int		bytesTransmitted;
 	int		bytesAcknowledged;
-	vast		serviceLoad;	/*	bytes sendable		*/
+	ion_atomic_t	serviceLoad;	/*	bytes sendable		*/
 	EpisodeHistory	episodes[8];
 	int		currentEpisode;
 	int		totalCapacity;
@@ -230,7 +231,14 @@ typedef struct dgrsapst
 
 	uvast		engineId;
 	unsigned int	clientSvcId;
-	DgrSapState	state;
+	/*	SAP state is atomic: writer threads (crashThread,
+	 *	dgr_close) update it without holding sapMutex, and
+	 *	reader threads (sender, resender, receiver) poll it
+	 *	in tight loops.  Using ion_atomic_t makes the
+	 *	cross-thread visibility explicit and replaces the
+	 *	prior ad hoc __sync_lock_test_and_set call.		*/
+
+	ion_atomic_t	state;		/*	holds DgrSapState	*/
 	MemAllocator	mtake;
 	MemDeallocator	mrelease;
 	int		udpSocket;
@@ -238,7 +246,7 @@ typedef struct dgrsapst
 	pthread_mutex_t	sapMutex;
 	pthread_cond_t	sapCV;
 	unsigned int	sessionNbr;
-	int		backlog;	/*	Total, for all dests.	*/
+	ion_atomic_t	backlog;	/*	Total, for all dests.	*/
 
 	Lyst		outboundMsgs;	/*	(SendReq *)		*/
 	struct llcv_str	outboundCV_str;
@@ -303,7 +311,7 @@ static void	dgrtrace(void)
 {
 	char	tracebuf[128];
 
-	iprintf(tracebuf, sizeof tracebuf,
+	isprintf(tracebuf, sizeof tracebuf,
 		"%7d %7d %7d %7d %7d %7d %7d %7d %7d %3d\n", originalMsgs,
 		resends[0], traceBytesOriginated, traceBytesResent,
 		traceBytesTransmitted, traceUnusedCapacity,
@@ -316,9 +324,9 @@ static void	dgrtrace(void)
 
 static void	crashThread(DgrSAP *sap, char *msg)
 {
-	if (sap->state == DgrSapOpen)
+	if (ion_atomic_get(&sap->state) == DgrSapOpen)
 	{
-		sap->state = DgrSapDamaged;
+		ion_atomic_set(&sap->state, DgrSapDamaged);
 	}
 
 	putErrmsg(msg, NULL);
@@ -427,6 +435,9 @@ static void	initializeDest(DgrDest *dest, unsigned short portNbr,
 	dest->rttPredicted = INIT_RTT;
 	dest->retard = INITIAL_RETARD;
 	dest->bytesToTransmit = EPISODE_PERIOD / dest->retard;
+
+	ion_atomic_init(&dest->serviceLoad, 0); /* Initialize the POSIX fallback */
+
 #if DGRDEBUG
 computedRtt = 0;
 traceMeasuredRtt = 0;
@@ -484,7 +495,7 @@ static DgrDest	*addNewDest(DgrSAP *sap, unsigned short portNbr,
 
 	dest->lessActiveDest = -1;	/*	New one's least active.	*/
 	dest->moreActiveDest = nextDest;
-	initializeDest(dest, portNbr, ipAddress);
+	initializeDest(dest, portNbr, ipAddress); //restores missing rate control feature
 	*destIdx = newDest;
 	return dest;
 }
@@ -533,14 +544,30 @@ static void	removeRecord(DgrSAP *sap, DgrRecord rec, LystElt arqElt)
 
 	/*	Enable more messages to be sent.			*/
 
-	pthread_mutex_lock(&sap->sapMutex);
-	sap->backlog -= (rec->contentLength + sizeof(SegmentId));
-	if (sap->backlog <= MAX_BACKLOG)
 	{
-		pthread_cond_signal(&sap->sapCV);
-	}
+		uvast	deduction = rec->contentLength + sizeof(SegmentId);
+		uvast	old_backlog;
+		uvast	new_backlog;
 
-	pthread_mutex_unlock(&sap->sapMutex);
+		old_backlog = ion_atomic_get_and_decrement(&sap->backlog,
+				deduction);
+
+		/*	Saturating subtraction: if the invariant
+		 *	"every decrement matches a prior increment"
+		 *	is ever violated, the unsigned subtraction
+		 *	would wrap to near-UINT_MAX, the signal would
+		 *	be skipped, and any thread waiting in
+		 *	dgr_send() would livelock.  Clamp to 0.		*/
+
+		new_backlog = (old_backlog >= deduction)
+				? (old_backlog - deduction) : 0;
+		if (new_backlog <= MAX_BACKLOG)
+		{
+			pthread_mutex_lock(&sap->sapMutex);
+			pthread_cond_signal(&sap->sapCV);
+			pthread_mutex_unlock(&sap->sapMutex);
+		}
+	}
 }
 
 static void	adjustActiveDestChain(DgrSAP *sap, int destIdx)
@@ -1176,7 +1203,7 @@ tracePredictedResends = dest->predictedResends;
 		iwatch('=');
 	}
 
-	dest->serviceLoad += rec->contentLength;
+	ion_atomic_get_and_increment(&dest->serviceLoad, rec->contentLength);
 	return insertSendReq(sap, rec);
 }
 
@@ -1193,11 +1220,23 @@ static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
 	bucket = sap->buckets + (sessionNbr & DGR_SESNBR_MASK);
 	pthread_mutex_lock(&bucket->mutex);
 	pthread_mutex_lock(&sap->destsMutex);
+
+	/*	Bucket lists are kept in strict sessionNbr order by
+	 *	dgr_send(), which acquires bucket->mutex while still
+	 *	holding sapMutex.  The early exits below rely on
+	 *	that invariant: once we pass the target, the record
+	 *	cannot be further along in the list.			*/
+
 	if (op == DgrSendMessage)
 	{
+		/*	DgrSendMessage searches back-to-front because
+		 *	a newly queued record is most likely to be at
+		 *	the tail of the list.				*/
+
 		for (elt = lyst_last(bucket->msgs); elt; elt = lyst_prev(elt))
 		{
 			rec = (DgrRecord) lyst_data(elt);
+
 			if (rec->segment.id.engineId > engineId)
 			{
 				continue;
@@ -1207,10 +1246,8 @@ static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
 			{
 				pthread_mutex_unlock(&sap->destsMutex);
 				pthread_mutex_unlock(&bucket->mutex);
-				return 0;	/*	What happened?	*/
+				return 0;	/*	Past target.	*/
 			}
-
-			/*	Found a match on engine ID.		*/
 
 			if (rec->segment.id.sessionNbr > sessionNbr)
 			{
@@ -1221,10 +1258,8 @@ static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
 			{
 				pthread_mutex_unlock(&sap->destsMutex);
 				pthread_mutex_unlock(&bucket->mutex);
-				return 0;	/*	What happened?	*/
+				return 0;	/*	Past target.	*/
 			}
-
-			/*	Found the matching record.		*/
 
 			break;
 		}
@@ -1233,18 +1268,21 @@ static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
 		{
 			pthread_mutex_unlock(&sap->destsMutex);
 			pthread_mutex_unlock(&bucket->mutex);
-			return 0;		/*	What happened?	*/
+			return 0;
 		}
 
 		dest = findDest(sap, rec->portNbr, rec->ipAddress, &destIdx);
+
 		result = sendMessage(sap, rec, elt, dest, destIdx);
 		pthread_mutex_unlock(&sap->destsMutex);
 		pthread_mutex_unlock(&bucket->mutex);
 		return result;
 	}
 
-	/*	Timeout or ACK for previously sent message, so search
-	 *	from the front of the list rather than the back.	*/
+	/*	DgrHandleRpt / DgrHandleTimeout searches front-to-back
+	 *	because older records — targets of ACKs or timeouts —
+	 *	accumulate toward the head of the list.  Same ordering
+	 *	invariant applies.					*/
 
 	for (elt = lyst_first(bucket->msgs); elt; elt = lyst_next(elt))
 	{
@@ -1258,10 +1296,8 @@ static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
 		{
 			pthread_mutex_unlock(&sap->destsMutex);
 			pthread_mutex_unlock(&bucket->mutex);
-			return 0;	/*	Record is already gone.	*/
+			return 0;	/*	Past target.		*/
 		}
-
-		/*	Found a match on engine ID.			*/
 
 		if (rec->segment.id.sessionNbr < sessionNbr)
 		{
@@ -1272,10 +1308,8 @@ static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
 		{
 			pthread_mutex_unlock(&sap->destsMutex);
 			pthread_mutex_unlock(&bucket->mutex);
-			return 0;	/*	Record is already gone.	*/
+			return 0;	/*	Past target.		*/
 		}
-
-		/*	Found the matching record.			*/
 
 		break;
 	}
@@ -1284,7 +1318,7 @@ static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
 	{
 		pthread_mutex_unlock(&sap->destsMutex);
 		pthread_mutex_unlock(&bucket->mutex);
-		return 0;		/*	Record is already gone.	*/
+		return 0;
 	}
 
 	dest = findDest(sap, rec->portNbr, rec->ipAddress, &destIdx);
@@ -1452,7 +1486,7 @@ traceUnusedCapacity = unusedCapacity;
 	dest->totalBytesTransmitted -= dest->episodes[i].bytesTransmitted;
 	dest->totalBytesAcknowledged -= dest->episodes[i].bytesAcknowledged;
 	dest->totalUnusedCapacity -= dest->episodes[i].unusedCapacity;
-	dest->episodes[i].serviceLoad = dest->serviceLoad;
+	dest->episodes[i].serviceLoad = ion_atomic_get(&dest->serviceLoad);
 	dest->episodes[i].bytesTransmitted = dest->bytesTransmitted;
 	dest->episodes[i].bytesAcknowledged = dest->bytesAcknowledged;
 	dest->episodes[i].unusedCapacity = unusedCapacity;
@@ -1530,7 +1564,7 @@ traceRetard = dest->retard;
 #if DGRDEBUG
 dgrtrace();
 traceBytesAcknowledged = 0;
-dest->serviceLoad = 0;
+ion_atomic_set(&dest->serviceLoad, 0);
 traceBytesTransmitted = 0;
 traceBytesOriginated = 0;
 aggregateDelay = 0;
@@ -1577,7 +1611,7 @@ static void	*sender(void *parm)
 
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
-	while (sap->state == DgrSapOpen)
+	while (ion_atomic_get(&sap->state) == DgrSapOpen)
 	{
 		if (llcv_wait(sap->outboundCV, llcv_lyst_not_empty,
 					LLCV_BLOCKING))
@@ -1586,7 +1620,7 @@ static void	*sender(void *parm)
 			return NULL;
 		}
 
-		if (sap->state != DgrSapOpen)
+		if (ion_atomic_get(&sap->state) != DgrSapOpen)
 		{
 			return NULL;
 		}
@@ -1632,7 +1666,7 @@ static void	*resender(void *parm)
 	while (1)
 	{
 		microsnooze(EPISODE_PERIOD);
-		if (sap->state != DgrSapOpen)
+		if (ion_atomic_get(&sap->state) != DgrSapOpen)
 		{
 			return NULL;
 		}
@@ -1857,7 +1891,7 @@ recvfrom");
 			break;		/*	Out of main loop.	*/
 		}
 
-		if (sap->state != DgrSapOpen)
+		if (ion_atomic_get(&sap->state) != DgrSapOpen)
 		{
 			break;		/*	Out of main loop.	*/
 		}
@@ -2191,9 +2225,20 @@ static void	cleanUpSAP(DgrSAP *sap)
 
 	pthread_mutex_lock(&sap->sapMutex);
 	pthread_cond_destroy(&sap->sapCV);
+	pthread_mutex_unlock(&sap->sapMutex); //destroying a locked mutex is undefined behavior
 	pthread_mutex_destroy(&sap->sapMutex);
 	pthread_mutex_destroy(&sap->pendingResendsMutex);
 	pthread_mutex_destroy(&sap->destsMutex);
+
+	/*	Destroy ion_atomic_t backing mutexes (no-op on C11
+	 *	path; releases pthread_mutex_t on C99 mutex fallback).
+	 *	Safe to call because both atomics were initialized
+	 *	unconditionally in dgr_open() before the first
+	 *	cleanUpSAP() call path becomes reachable.		*/
+
+	ion_atomic_mutex_destroy(&sap->backlog);
+	ion_atomic_mutex_destroy(&sap->state);
+
 	MRELEASE(sap);
 }
 
@@ -2246,9 +2291,10 @@ int	dgr_open(uvast ownEngineId, unsigned int clientSvcId,
 	}
 
 	memset((char *) sap, 0, sizeof(DgrSAP));
+	ion_atomic_init(&sap->backlog, 0);
+	ion_atomic_init(&sap->state, DgrSapOpen);
 	sap->engineId = ownEngineId;
 	sap->clientSvcId = clientSvcId;
-	sap->state = DgrSapOpen;
 	sap->mtake = memmgr_take(mmid);
 	sap->mrelease = memmgr_release(mmid);
 	sap->leastActiveDest = -1;
@@ -2400,12 +2446,12 @@ void	dgr_close(DgrSAP *sap)
 	char		shutdown = 1;
 
 	CHKVOID(sap);
-	if (sap->state == DgrSapClosed)
+	if (ion_atomic_get(&sap->state) == DgrSapClosed)
 	{
 		return;
 	}
 
-	sap->state = DgrSapClosed;
+	ion_atomic_set(&sap->state, DgrSapClosed);
 
 	/*	Terminate any dgr_receive that is currently in
 	 *	progress.						*/
@@ -2467,14 +2513,14 @@ int	dgr_send(DgrSAP *sap, unsigned short toPortNbr,
 	CHKERR(length > 0);
 	CHKERR(length <= MAX_DATA_SIZE);
 	CHKERR(rc);
-	if (sap->state == DgrSapDamaged)
+	if (ion_atomic_get(&sap->state) == DgrSapDamaged)
 	{
 		writeMemo("[?] DGR access point damaged; close and reopen.");
 		*rc = DgrFailed;
 		return 0;
 	}
 
-	if (sap->state == DgrSapClosed)
+	if (ion_atomic_get(&sap->state) == DgrSapClosed)
 	{
 		writeMemo("[?] DGR access point is not open.");
 		*rc = DgrFailed;
@@ -2506,9 +2552,15 @@ int	dgr_send(DgrSAP *sap, unsigned short toPortNbr,
 	 *	the destination, and update statistics for future
 	 *	rate control adjustment.				*/
 
-	pthread_mutex_lock(&sap->destsMutex);
+	if (pthread_mutex_lock(&sap->destsMutex) != 0)
+	{
+		putErrmsg("dgr_send: can't lock destsMutex.", NULL);
+		MRELEASE(rec);
+		return -1;
+	}
+
 	dest = findDest(sap, toPortNbr, toIpAddress, &destIdx);
-	dest->serviceLoad += length;
+	ion_atomic_get_and_increment(&dest->serviceLoad, length);
 	delay = length * dest->retard;
 #if DGRDEBUG
 aggregateDelay += delay;
@@ -2518,7 +2570,7 @@ aggregateDelay += delay;
 
 	dest->pendingDelay += delay;
 	usecToSnooze = dest->pendingDelay;
-	pthread_mutex_unlock(&sap->destsMutex);
+	oK(pthread_mutex_unlock(&sap->destsMutex));
 	usecSnoozed = 0;
 	if (usecToSnooze > clockResolution)
 	{
@@ -2534,27 +2586,32 @@ rcSnoozes++;
 
 	if (usecSnoozed > 0)
 	{
-		pthread_mutex_lock(&sap->destsMutex);
+		if (pthread_mutex_lock(&sap->destsMutex) != 0)
+		{
+			putErrmsg("dgr_send: can't re-lock destsMutex.", NULL);
+			MRELEASE(rec);
+			return -1;
+		}
+
 		dest->pendingDelay -= usecSnoozed;
-		pthread_mutex_unlock(&sap->destsMutex);
+		oK(pthread_mutex_unlock(&sap->destsMutex));
 	}
 
 	/*	Safety net: prevent volume of in-process messages
 	 *	from getting out of hand.				*/
 
 	pthread_mutex_lock(&sap->sapMutex);
-	while (sap->backlog > MAX_BACKLOG)
+	while (ion_atomic_get(&sap->backlog) > MAX_BACKLOG)
 	{
 		pthread_cond_wait(&sap->sapCV, &sap->sapMutex);
 	}
 
 	/*	Now proceed with transmission.				*/
 
-	sap->backlog += (rec->contentLength + sizeof(SegmentId));
+	ion_atomic_get_and_increment(&sap->backlog, (rec->contentLength + sizeof(SegmentId)));
 	sap->sessionNbr++;
 	rec->segment.id.engineId = sap->engineId;
 	rec->segment.id.sessionNbr = sap->sessionNbr;
-	pthread_mutex_unlock(&sap->sapMutex);
 
 	/*	Store in a bucket of the DGR ARQ (record) database.
 	 *	Select bucket by computing sessionNbr modulo the
@@ -2563,22 +2620,53 @@ rcSnoozes++;
 	rec->bucket = sap->buckets +
 			(rec->segment.id.sessionNbr & DGR_SESNBR_MASK);
 
-	/*	Insert the new record in the selected database bucket.	*/
+	/*	Insert the new record in the selected database bucket.
+	 *
+	 *	Lock ordering note: we acquire bucket->mutex BEFORE
+	 *	releasing sapMutex.  This preserves the invariant
+	 *	that records land in the bucket in strict
+	 *	sessionNbr order: as long as sessionNbr assignment
+	 *	(above) and lyst_insert_last (below) happen inside
+	 *	a single critical section that blocks any other
+	 *	dgr_send thread targeting the same bucket, two
+	 *	threads that get consecutive sessionNbr values in
+	 *	the same mod-DGR_BUCKETS hash class cannot reorder
+	 *	their inserts.  arq() relies on this invariant to
+	 *	bail out early when walking a bucket list and
+	 *	finding a record past its target.
+	 *
+	 *	Global lock hierarchy: sap->sapMutex ->
+	 *	bucket->mutex -> sap->destsMutex.  No other code
+	 *	path acquires bucket before sapMutex.		*/
 
 	pthread_mutex_lock(&rec->bucket->mutex);
+	pthread_mutex_unlock(&sap->sapMutex);
 	elt = lyst_insert_last(rec->bucket->msgs, rec);
 	pthread_mutex_unlock(&rec->bucket->mutex);
 	if (elt == NULL)				/*	Bail.	*/
 	{
+		uvast	deduction = length + sizeof(SegmentId);
+		uvast	old_backlog;
+		uvast	new_backlog;
+
 		putErrmsg("Can't append outbound record.", NULL);
 		MRELEASE(rec);
-		pthread_mutex_lock(&sap->sapMutex);
-		sap->backlog -= (length + sizeof(SegmentId));
-		pthread_cond_signal(&sap->sapCV);
-		pthread_mutex_unlock(&sap->sapMutex);
+		old_backlog = ion_atomic_get_and_decrement(&sap->backlog,
+				deduction);
+
+		/*	Saturating subtraction; see ackReceivedRec().	*/
+
+		new_backlog = (old_backlog >= deduction)
+				? (old_backlog - deduction) : 0;
+		if (new_backlog <= MAX_BACKLOG)
+		{
+			pthread_mutex_lock(&sap->sapMutex);
+			pthread_cond_signal(&sap->sapCV);
+			pthread_mutex_unlock(&sap->sapMutex);
+		}
 		pthread_mutex_lock(&sap->destsMutex);
 		dest = findDest(sap, toPortNbr, toIpAddress, &destIdx);
-		dest->serviceLoad -= length;
+		ion_atomic_get_and_decrement(&dest->serviceLoad, length);
 		pthread_mutex_unlock(&sap->destsMutex);
 		return -1;
 	}
@@ -2588,18 +2676,31 @@ rcSnoozes++;
 
 	if (insertSendReq(sap, rec) < 0)
 	{
+		uvast	deduction = length + sizeof(SegmentId);
+		uvast	old_backlog;
+		uvast	new_backlog;
+
 		putErrmsg("Can't append transmission request.", NULL);
 		pthread_mutex_lock(&rec->bucket->mutex);
 		lyst_delete(elt);
 		pthread_mutex_unlock(&rec->bucket->mutex);
 		MRELEASE(rec);
-		pthread_mutex_lock(&sap->sapMutex);
-		sap->backlog -= (length + sizeof(SegmentId));
-		pthread_cond_signal(&sap->sapCV);
-		pthread_mutex_unlock(&sap->sapMutex);
+		old_backlog = ion_atomic_get_and_decrement(&sap->backlog,
+				deduction);
+
+		/*	Saturating subtraction; see ackReceivedRec().	*/
+
+		new_backlog = (old_backlog >= deduction)
+				? (old_backlog - deduction) : 0;
+		if (new_backlog <= MAX_BACKLOG)
+		{
+			pthread_mutex_lock(&sap->sapMutex);
+			pthread_cond_signal(&sap->sapCV);
+			pthread_mutex_unlock(&sap->sapMutex);
+		}
 		pthread_mutex_lock(&sap->destsMutex);
 		dest = findDest(sap, toPortNbr, toIpAddress, &destIdx);
-		dest->serviceLoad -= length;
+		ion_atomic_get_and_decrement(&dest->serviceLoad, length);
 		pthread_mutex_unlock(&sap->destsMutex);
 		return -1;
 	}
@@ -2629,14 +2730,14 @@ int	dgr_receive(DgrSAP *sap, unsigned short *fromPortNbr,
 	CHKERR(length);
 	CHKERR(errnbr);
 	CHKERR(rc);
-	if (sap->state == DgrSapDamaged)
+	if (ion_atomic_get(&sap->state) == DgrSapDamaged)
 	{
 		writeMemo("[?] DGR access point damaged; close and reopen.");
 		*rc = DgrFailed;
 		return 0;
 	}
 
-	if (sap->state == DgrSapClosed)
+	if (ion_atomic_get(&sap->state) == DgrSapClosed)
 	{
 		writeMemo("[?] DGR access point is not open.");
 		*rc = DgrFailed;
@@ -2673,14 +2774,14 @@ int	dgr_receive(DgrSAP *sap, unsigned short *fromPortNbr,
 
 	/*	SAP might have been closed while we were sleeping.	*/
 
-	if (sap->state == DgrSapDamaged)
+	if (ion_atomic_get(&sap->state) == DgrSapDamaged)
 	{
 		writeMemo("[?] DGR access point no longer usable.");
 		*rc = DgrFailed;
 		return 0;
 	}
 
-	if (sap->state == DgrSapClosed)
+	if (ion_atomic_get(&sap->state) == DgrSapClosed)
 	{
 		writeMemo("[i] DGR access point has been closed.");
 		*rc = DgrFailed;

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 
 # adapted from status_rpts test
@@ -41,7 +42,9 @@ echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
-echo "PURPOSE: To determine if bptrace correctly initiates a bundle with status reports enabled, and correctly listens for said reports."
+echo "PURPOSE: To determine if bptrace correctly initiates a bundle with status"
+echo "reports enabled, and correctly listens for said reports. Also tests"
+echo "bpsendfile with report-to EID and status report flags (Test 4)."
 echo
 echo "CONFIG: 3 node custom configuration:"
 echo
@@ -140,30 +143,41 @@ fi
 
 sleep 1
 bpsink ipn:5.1 &
+BPSINK_PID=$!
 cd ../2.ipn.ltp
 
 # # let user work with nodes
 # bash
 
-# trace from node 2 to node 5 with all flags enabled, and a rtt of 4 seconds (so bptrace stops listening after 4 seconds)
-OUTPUT=`bptrace -qos 0.1 -flags "fwd,rcv,dlv,del" -msg "test message 1" -ttl 10 -rtt 12 ipn:2.1 ipn:5.1 ipn:2.420`
+# Snapshot src stats on node 2 before first trace
+echo "=== Node 2 bpstats before trace 1 ==="
+bpstats
+
+# trace from node 2 to node 5 with all flags enabled
+# Set rtt = ttl so bptrace waits long enough for the fwd report from node 2,
+# which routes through the LTP self-loop and may arrive late. A 'del' report
+# with 'TTL expired' may also arrive if the trace bundle expires at node 2.
+OUTPUT=`bptrace -qos 0.1 -flags "fwd,rcv,dlv,del" -msg "test message 1" -ttl 20 -rtt 20 ipn:2.1 ipn:5.1 ipn:2.420`
 echo "$OUTPUT"
-# count the number of reports that had 'okay' status message, should have 4
-# fwd from node 2
-# rcv from node 3
-# fwd from node 3
-# rcv,dlv from node 5
+
+# Snapshot src stats on node 2 after first trace
+echo "=== Node 2 bpstats after trace 1 ==="
+bpstats
+
+# count the number of reports that had 'okay' status message, should have at
+# least 4 (fwd@2, rcv@3, fwd@3, rcv+dlv@5). A 5th 'del' report with 'TTL
+# expired' status may also appear; that is expected and not an error.
 REPORT_OKAY=`echo "$OUTPUT" | grep 'okay' | wc -l `
-if [ $REPORT_OKAY -eq 4 ];
+if [ $REPORT_OKAY -ge 4 ];
 then
-    echo "OK: recieved all expected reports with 'okay' status."
+    echo "OK: recieved all expected reports with 'okay' status ($REPORT_OKAY found)."
 else
-    echo "ERROR: unexpected number of reports recieved, expected four (4)."
+    echo "ERROR: unexpected number of 'okay' reports received: $REPORT_OKAY, expected >= 4."
     RETVAL=1
 fi
 
-# trace from node 2 to node 5 with only the delivery flag enabled, and a rtt of 4 seconds (so bptrace stops listening after 4 seconds)
-OUTPUT=`bptrace -qos 0.1 -flags dlv -msg "test message 2" -ttl 10 -rtt 12 ipn:2.1 ipn:5.1 ipn:2.420`
+# trace from node 2 to node 5 with only the delivery flag enabled
+OUTPUT=`bptrace -qos 0.1 -flags dlv -msg "test message 2" -ttl 20 -rtt 20 ipn:2.1 ipn:5.1 ipn:2.420`
 echo "$OUTPUT"
 # count the number of reports that had 'okay' status message, should have 1
 # dlv from node 5
@@ -176,9 +190,9 @@ else
     RETVAL=1
 fi
 
-# trace from node 2 to node 5 with only the delivery flag enabled, and a rtt of 4 seconds (so bptrace stops listening after 4 seconds)
+# trace from node 2 to node 5 with only the delivery flag enabled
 # trace node is admin endpoint, so we should only see messages in the logfile.
-OUTPUT=`bptrace -qos 0.1 -flags dlv -msg "test message 3" -ttl 10 -rtt 12 ipn:2.1 ipn:5.1 ipn:2.0`
+OUTPUT=`bptrace -qos 0.1 -flags dlv -msg "test message 3" -ttl 20 -rtt 20 ipn:2.1 ipn:5.1 ipn:2.0`
 echo "$OUTPUT"
 # count the number of reports that had 'okay' status message, should have 0
 REPORT_OKAY=`echo "$OUTPUT" | grep 'okay' | wc -l `
@@ -199,6 +213,63 @@ else
     RETVAL=1
 fi
 
+# Test 4: bpsendfile with report-to EID and delivery status report flag
+# Send a file from node 2 to node 5 with report-to ipn:2.420 and dlv flag.
+# Use bptrace in listen mode to capture the delivery status report.
+echo
+echo "=== Test 4: bpsendfile with report-to EID and status report flags ==="
+kill $BPSINK_PID 2>/dev/null
+wait $BPSINK_PID 2>/dev/null
+sleep 1
+cd ../2.ipn.ltp
+
+# Create a test file to send
+echo "bpsendfile report-to test payload" > sendfile_test.txt
+
+# Start bptrace in listen mode on the report-to endpoint
+bptrace -listen -rtt 20 ipn:2.420 > bptrace_listen.txt 2>&1 &
+LISTEN_PID=$!
+sleep 1
+
+# Start receiver on node 5 to accept the file
+cd ../5.ipn.ltp
+bprecvfile ipn:5.1 &
+RECV_PID=$!
+sleep 1
+if ! kill -0 $RECV_PID 2>/dev/null; then
+    echo "ERROR: bprecvfile failed to start on ipn:5.1 (endpoint may already be open)."
+    kill $LISTEN_PID 2>/dev/null
+    RETVAL=1
+fi
+
+# Send file with delivery report requested, report-to ipn:2.420
+cd ../2.ipn.ltp
+bpsendfile ipn:2.1 ipn:5.1 sendfile_test.txt 0.1 300 ipn:2.420 dlv
+sleep 10
+
+# Stop listener and receiver
+kill $LISTEN_PID 2>/dev/null
+kill $RECV_PID 2>/dev/null
+sleep 1
+
+echo "bptrace listen output:"
+cat bptrace_listen.txt
+
+# Check that we received a delivery report with 'okay' status
+REPORT_DLV=$(grep 'dlv' bptrace_listen.txt | grep -c 'okay')
+if [ "$REPORT_DLV" -ge 1 ];
+then
+    echo "OK: bpsendfile delivery report received with 'okay' status."
+else
+    echo "ERROR: No delivery report received for bpsendfile."
+    RETVAL=1
+fi
+
+# Clean up test files
+rm -f sendfile_test.txt bptrace_listen.txt
+cd ../5.ipn.ltp
+rm -f testfile1
+
 # Shut down ION processes.
 echo
 echo "Stopping ION..."
@@ -211,6 +282,5 @@ echo "Stopping ION..."
 
 # Give all three nodes time to shut down, then clean up.
 #sleep 3
-killm
 echo "bptrace test completed."
 exit $RETVAL

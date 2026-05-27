@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # ion-memory-usage/memprotect-settings
 #
@@ -279,13 +280,16 @@ sleep 1
 # Clear node 1 log to isolate Phase 2a messages
 > "$TESTDIR/node1/ion.log"
 
-# Send 25 large bundles to fill the SDR heap past the 50% threshold.
-# Each 50KB bundle uses ~2% of the 2MB heap.  After ~19 bundles the
-# heap drops below 50% free and the guard kicks in.
+# Send bundles to fill the SDR heap past the 50% threshold.
+# With heapWords 250000 (~2MB), each 10KB payload uses ~0.5% of heap.
+# ~100 bundles should push usage past 50%.  bpsource creates heap-backed
+# ZCOs (unlike bpsendfile which creates file-backed ZCOs that don't
+# consume SDR heap).  Keep payload at 10KB to stay well within shell
+# argument size limits.
 echo "Sending bundles to fill node 1 SDR heap..."
-PAYLOAD=$(dd if=/dev/zero bs=50000 count=1 2>/dev/null | tr '\0' 'X')
+PAYLOAD=$(dd if=/dev/zero bs=10000 count=1 2>/dev/null | tr '\0' 'X')
 cd "$TESTDIR/node1"
-for i in $(seq 1 25); do
+for i in $(seq 1 100); do
     bpsource ipn:2.1 "${PAYLOAD}" 2>/dev/null
 done
 sleep 2
@@ -327,7 +331,7 @@ fi
 
 # Cleanup sink and drain
 kill $SINK_PID 2>/dev/null
-wait $SINK_PID 2>/dev/null
+sleep 1
 rm -f "$TESTDIR/node2/phase2a_recv.txt"
 sleep 2
 echo ""
@@ -378,7 +382,7 @@ sleep 10
 # bpdriver may still be running (blocked on ZCO space or rate limit).
 # Kill it now -- the queued bundles are already in the SDR.
 kill $DRIVER_PID 2>/dev/null
-wait $DRIVER_PID 2>/dev/null
+sleep 1
 
 # --- Stage 2: Enable protection, send inbound from node 1 ---
 # Set 50% heap threshold on node 2.  At this point ~37% of heap is
@@ -431,7 +435,7 @@ fi
 
 # Cleanup sink
 kill $SINK_PID 2>/dev/null
-wait $SINK_PID 2>/dev/null
+sleep 1
 rm -f "$TESTDIR/node2/phase2b_recv.txt"
 echo ""
 
@@ -491,7 +495,7 @@ fi
 
 # Cleanup sink
 kill $SINK_PID 2>/dev/null
-wait $SINK_PID 2>/dev/null
+sleep 1
 rm -f "$TESTDIR/node1/phase2c_recv.txt"
 echo ""
 
@@ -509,12 +513,6 @@ if [ $FAIL -ne 0 ]; then
     grep -i "memprotect\|memory protection\|threshold\|rejecting bp_send\|congestive\|working memory" "$TESTDIR/node2/ion.log" 2>/dev/null || echo "  (none)"
     echo "---"
 fi
-
-echo "Stopping ION..."
-cd "$TESTDIR/node1" && ./ionstop 2>/dev/null &
-cd "$TESTDIR/node2" && ./ionstop 2>/dev/null &
-sleep 3
-killm
 
 echo ""
 if [ $FAIL -eq 0 ]; then

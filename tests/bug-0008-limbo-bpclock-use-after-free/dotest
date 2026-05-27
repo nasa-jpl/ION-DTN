@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Samuel Jero
 # Ohio University
@@ -36,7 +37,6 @@ done
 echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
-killm
 ./cleanup
 export ION_NODE_LIST_DIR=$PWD
 RETVAL=1
@@ -76,5 +76,4 @@ else
 fi
 
 echo "Stopping ION..."
-killm
 exit $RETVAL

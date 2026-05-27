@@ -564,7 +564,7 @@ length %d.\n", timebuf, segLength);
 
 int	main(int argc, char *argv[])
 {
-	SimThreadParms	stpBuf;
+	static SimThreadParms	stpBuf;
 	char		*end;
 	pthread_t	uplinkThread;
 	pthread_t	downlinkThread;

@@ -6,7 +6,34 @@
 # Simplified by Shawn Ostermann in October, 2023 to remove Enhanced Regular Expressions, "grep -E", and "sed -E"
 # to make it more portable (to Solaris in particular).  Also quieted down the output a little.
 
-OS_VERS=""
+# Parse arguments:
+#   "f" forces full cleanup in multi-node environments
+#   "d" dry-run: report ION processes and IPC resources without changing anything
+#
+# Exit codes:
+#   0 -- clean (no surviving ION processes, no IPC resources remaining,
+#        and all survivor checks completed successfully)
+#   1 -- ION processes remained after the SIGTERM/SIGKILL cycle
+#   2 -- could not verify survivor state (one or more `pgrep` calls
+#        failed); state is unknown, callers should treat as unclean
+#   3 -- POSIX named semaphore files could not be removed (try sudo)
+FORCE=0
+DRYRUN=0
+if [ "$1" = "f" ]; then
+    FORCE=1
+elif [ "$1" = "d" ]; then
+    DRYRUN=1
+fi
+
+# Detect multi-node environment: ION_NODE_LIST_DIR set and ion_nodes
+# file exists with content.  In multi-node mode (without "f"), killm
+# only stops the current node via ionexit and preserves shared IPC
+# resources used by other instances.
+MULTINODE=0
+if [ -n "$ION_NODE_LIST_DIR" ] && \
+   [ -s "$ION_NODE_LIST_DIR/ion_nodes" ]; then
+    MULTINODE=1
+fi
 
 # Fix for SourceForge Bug #60, killm IPC cleanup fails for long account names
 # Since ipcs truncates usernames to 10 characters, we need to match against a
@@ -31,93 +58,359 @@ else
     exit 1
 fi
 
-sw_vers 2> /dev/null > /dev/null
+PGREP_PATTERN=$(echo "$IONPROCESSLIST" | tr -s '[:space:]' '|' | sed 's/^|//;s/|$//')
 
-#if sw_vers ran, then we're on a mac system
-if [ "$?" -eq 0 ]; then
-    OS_VERS=$(sw_vers | grep 10.4)
-fi
-
-OSNAME=`uname`
-if [ "$OSNAME" = "SunOS" ]; then
-    KILLCMD="pkill"
-    PS="/usr/bin/ps"
-    PS_ARGS="-fe"
-    PROCESS_LIMIT=1
+# The platforms we care about support sleep(1) with milliseconds.
+# Older platforms that don't, probably have Perl.
+# Stuff that doesn't have either falls back to seconds.
+#
+# $1: string, decimal value, seconds to sleep for (e.g., "0.1")
+# $2: integer, value of $1 as milliseconds (e.g., 100)
+# _km_slept_ms is updated to the amount of milliseconds slept.
+# This can be different than $2 if we have to fall back to seconds.
+if sleep 0.001 2>/dev/null; then
+    _km_sleep() {
+        sleep "$1"
+        _km_slept_ms="$2"
+    }
+elif command -v perl >/dev/null 2>&1; then
+    _km_sleep() {
+        perl -e "select(undef, undef, undef, $1)"
+        _km_slept_ms="$2"
+    }
 else
-    KILLCMD="killall"
-    PS="ps"
-    PS_ARGS="-fe"
-    if [ "$(uname -m)" = "x86_64" ]; then
-        PROCESS_LIMIT=64
-    else
-        PROCESS_LIMIT=32
-    fi
+    _km_sleep() {
+        _km_sleep_val="$1"
+        _km_sleep_whole="${_km_sleep_val%.*}"
+        _km_sleep_whole="${_km_sleep_whole:-0}"
+
+        if [ "$_km_sleep_whole" -gt 0 ]; then
+            sleep "$_km_sleep_whole"
+            _km_slept_ms=$((_km_sleep_whole * 1000))
+        else
+            sleep 1
+            _km_slept_ms=1000
+        fi
+    }
 fi
 
-#echo "Sending TERM to ${IONPROCESSLIST}..."   # (too noisy)
-echo "Sending TERM to the processes..."
-echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
+# Portable timeout: prefer GNU timeout if available, otherwise
+# fall back to background + kill after delay.
+_run_with_timeout() {
+    local secs="$1"; shift
+    if command -v timeout > /dev/null 2>&1; then
+        timeout "$secs" "$@"
+    else
+        "$@" &
+        local pid=$!
+        ( sleep "$secs" && kill "$pid" 2>/dev/null ) &
+        local watchdog=$!
+        wait "$pid" 2>/dev/null
+        local rc=$?
+        kill "$watchdog" 2>/dev/null
+        wait "$watchdog" 2>/dev/null
+        return $rc
+    fi
+}
 
-# DEBUG: show killall command error
-#echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD
+# Helper: check for ION processes still running.
+# Sets HAS_SURVIVORS=1 if any found, 0 otherwise.
+# Sets HAS_CHECK_ERROR=1 if the check itself could not be performed
+# (i.e., pgrep failed) - distinct from "checked, nothing found".
+# Callers must treat HAS_CHECK_ERROR=1 as "unknown survivors", not as clean.
+# Increments CHECK_ERR_COUNT for end-of-run summary; only the first
+# occurrence is logged to avoid log explosions when called repeatedly.
+HAS_SURVIVORS=0
+HAS_CHECK_ERROR=0
+CHECK_ERR_COUNT=0
+check_surviving_processes() {
+    HAS_SURVIVORS=0
+    HAS_CHECK_ERROR=0
 
-sleep 2
+    if [ -z "$PGREP_PATTERN" ]; then
+        echo "WARNING: process list is empty"
+        return 0
+    fi
 
-echo "Sending KILL to the processes..."
-echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL 2> /dev/null
+    _csp_surviving=$(pgrep -xl "$PGREP_PATTERN" 2>/dev/null)
+    _csp_rc=$?
 
-# DEBUG: show killall command error
-#echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL
+    case "$_csp_rc" in
+    0)
+        echo "ION processes still running:"
+        printf '%s\n' "$_csp_surviving"
+        HAS_SURVIVORS=1
+        return 0
+        ;;
+    1)
+        echo "All ION processes stopped."
+        return 0
+        ;;
+    *)
+        CHECK_ERR_COUNT=$((CHECK_ERR_COUNT + 1))
+        if [ "$CHECK_ERR_COUNT" -le 1 ]; then
+            echo "killm: WARN -- pgrep failed with error code $_csp_rc;" \
+                "cannot determine survivors" >&2
+        fi
+        HAS_CHECK_ERROR=1
+        return "$_csp_rc"
+        ;;
+    esac
+}
 
-sleep 2
+# Portable depth-1 listing of ION semaphore files - avoids -maxdepth
+# (missing on Solaris 10's /usr/bin/find).
+_list_sem_files() {
+    local dir="$1"
+    [ -d "$dir" ] || return
+    for f in "$dir"/*ion:GLOBAL* "$dir"/sem.ion:GLOBAL* \
+             "$dir"/.SEM*ion:GLOBAL* "$dir"/SEM*ion:GLOBAL*; do
+        [ -e "$f" ] && echo "$f"
+    done | sort -u
+}
 
+# Helper: check for IPC resources owned by this user.
+# Checks SVR4 IPC (shared memory, message queues, semaphore sets) and
+# POSIX named semaphore files.  Sets global HAS_IPC=1 if any found.
+HAS_IPC=0
+check_ipc_resources() {
+    HAS_IPC=0
+    local shm_ids="" q_ids="" sem_ids=""
+    shm_ids=$(ipcs -m 2>/dev/null | grep "$USERNAME_CUT" | awk '{ print $2 }')
+    q_ids=$(ipcs -q 2>/dev/null | grep "$USERNAME_CUT" | awk '{ print $2 }')
+    sem_ids=$(ipcs -s 2>/dev/null | grep "$USERNAME_CUT" | awk '{ print $2 }')
+    if [ -n "$shm_ids" ]; then
+        echo "SVR4 shared memory segments found: $(echo $shm_ids | wc -w | tr -d ' ')"
+        for id in $shm_ids; do echo "  shm id: $id"; done
+        HAS_IPC=1
+    fi
+    if [ -n "$q_ids" ]; then
+        echo "SVR4 message queues found: $(echo $q_ids | wc -w | tr -d ' ')"
+        for id in $q_ids; do echo "  msq id: $id"; done
+        HAS_IPC=1
+    fi
+    if [ -n "$sem_ids" ]; then
+        echo "SVR4 semaphore sets found: $(echo $sem_ids | wc -w | tr -d ' ')"
+        for id in $sem_ids; do echo "  sem id: $id"; done
+        HAS_IPC=1
+    fi
+    # Check for POSIX named semaphore files
+    local sem_files=""
+    local sem_file_count=0
+    for path in "/dev/shm" "/tmp" "/tmp/.LIBRT/SEMD" "/tmp/.LIBRT/SEML"; do
+        local found=$(_list_sem_files "$path")
+        if [ -n "$found" ]; then
+            local count=$(echo "$found" | wc -l | tr -d ' ')
+            sem_file_count=$((sem_file_count + count))
+            sem_files="${sem_files}${found}
+"
+        fi
+    done
+    if [ "$sem_file_count" -gt 0 ]; then
+        echo "POSIX named semaphore files found: $sem_file_count"
+        echo "$sem_files" | head -10 | sed 's/^/  /'
+        if [ "$sem_file_count" -gt 10 ]; then
+            echo "  ... and $((sem_file_count - 10)) more"
+        fi
+        HAS_IPC=1
+    fi
+    if [ $HAS_IPC -eq 0 ]; then
+        echo "No IPC resources found."
+    fi
+}
 
-echo "Checking if all ION processes ended..."
+# Early check: only skip ionexit and signal cleanup if BOTH conditions hold:
+#   1. No ION processes detected (checked twice with a 1-second gap)
+#   2. No IPC resources (shared memory, semaphores, semaphore files) remain
+# This avoids races where a dying process is missed by pgrep but still holds
+# IPC resources that would cause errors if cleaned up prematurely.
+echo ""
+echo "=== Initial state ==="
+echo "Checking for ION processes..."
+check_surviving_processes
+if [ $HAS_SURVIVORS -eq 0 ]; then
+    echo "Re-checking after 1 second..."
+    sleep 1
+    check_surviving_processes
+fi
+echo "Checking for IPC resources..."
+check_ipc_resources
+echo ""
 
-PSFILE="/tmp/ps.$$"
-# grab all running processes
-${PS} ${PS_ARGS} > ${PSFILE}
+# Dry-run mode: report state and exit without making any changes.
+if [ $DRYRUN -eq 1 ]; then
+    echo "Dry-run mode: no action taken."
+    exit 0
+fi
 
-# DEBUG: show the PSFILE
-#echo "Current running processes:"
-#cat ${PSFILE}
-#ps -eo pid,ppid,state,cmd
+if [ $HAS_SURVIVORS -eq 0 ] && [ $HAS_CHECK_ERROR -eq 0 ] && [ $HAS_IPC -eq 0 ]; then
+    echo "No ION processes or IPC resources found; skipping ionexit and signal cleanup."
+    if [ $MULTINODE -eq 1 ] && [ $FORCE -eq 0 ]; then
+        echo ""
+        echo "NOTE: Multi-node environment - shared IPC resources were NOT cleared."
+        echo "Other ION instances on this host may still be running."
+        echo "To force full cleanup of all instances, run: killm f"
+        echo ""
+        echo "Killm completed (node-only)."
+        exit 0
+    fi
+else
 
-# see if any of those still-running processes belong to ION
-for PROC in ${IONPROCESSLIST}; do
-    grep "[^-a-zA-Z]${PROC}$" "${PSFILE}" | grep -v "defunct" | \
-        awk '{printf("  *** Unknown error: process %s not killed...try rebooting\n", $NF);}'
-done
+# Try graceful shutdown via ionexit first.
+# ionexit operates on the ION instance in the current working directory,
+# so for multi-node environments we must cd into each node's directory.
+# All ionexit output is suppressed - when no ION instance is running,
+# ionexit prints noisy "Can't get shared memory" errors that confuse
+# users even though the situation is harmless.
+IONEXIT_RAN=0
+if command -v ionexit > /dev/null 2>&1; then
+    if [ $MULTINODE -eq 1 ] && [ $FORCE -eq 1 ]; then
+        # killm f in multi-node: skip graceful shutdown entirely,
+        # fall through to SIGTERM/SIGKILL cycle and IPC cleanup.
+        echo "Multi-node environment detected with force flag."
+        echo "Skipping graceful ionexit - proceeding to SIGTERM/SIGKILL cycle."
+    elif [ $MULTINODE -eq 1 ]; then
+        # Bare killm in multi-node: node-only shutdown from cwd.
+        # Validate that cwd is associated with an ION instance.
+        CWD="$(pwd)"
+        if ! awk '{print $4}' "$ION_NODE_LIST_DIR/ion_nodes" | grep -qx "$CWD"; then
+            echo "Current directory ($CWD) is not associated with any ION instance."
+            echo "Registered ION instance directories:"
+            awk '{print "  " $4}' "$ION_NODE_LIST_DIR/ion_nodes"
+            echo ""
+            echo "Change to a registered directory, or use 'killm f' for full cleanup."
+            exit 1
+        fi
+        echo "Multi-node environment detected (ION_NODE_LIST_DIR is set)."
+        echo "Attempting graceful shutdown of this node via ionexit k n..."
+        _run_with_timeout 15 ionexit k n > /dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            IONEXIT_RAN=1
+            echo "ionexit completed successfully."
+        else
+            echo "ionexit did not complete (ION may not be running)."
+        fi
+    else
+        # Single-node or no ion_nodes file
+        echo "Attempting graceful shutdown via ionexit..."
+        _run_with_timeout 15 ionexit > /dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            IONEXIT_RAN=1
+            echo "ionexit completed successfully."
+        else
+            echo "ionexit did not complete (ION may not be running)."
+        fi
+    fi
+
+    # Wait up to 5 seconds for processes to wind down after ionexit.
+    # Many ION processes stop by polling a flag in shared memory rather
+    # than receiving a direct signal, so they need a moment to notice.
+    if [ $IONEXIT_RAN -eq 1 ]; then
+        _km_timeout=5000
+        _km_sleep_arg="0.1"
+        _km_interval=100
+        _km_elapsed=0
+
+        while [ "$_km_elapsed" -lt "$_km_timeout" ]; do
+            check_surviving_processes >/dev/null 2>&1
+            if [ "$HAS_SURVIVORS" -eq 0 ] && [ "$HAS_CHECK_ERROR" -eq 0 ]; then
+                break
+            fi
+            if [ $((_km_elapsed % 1000)) -eq 0 ]; then
+                echo "Waiting for processes to exit..." \
+                    "($((_km_elapsed / 1000))s)"
+            fi
+            _km_sleep "$_km_sleep_arg" "$_km_interval"
+            _km_elapsed=$((_km_elapsed + _km_slept_ms))
+        done
+        if [ $HAS_SURVIVORS -ne 0 ]; then
+            echo "killm: NOTE -- graceful shutdown timed out; falling back to SIGTERM/SIGKILL"
+        fi
+    fi
+
+    # Report state after ionexit for diagnostics
+    echo ""
+    echo "=== Post-ionexit state ==="
+    check_surviving_processes
+    check_ipc_resources
+    echo ""
+fi
+
+# In multi-node mode without force, stop here - do not kill other
+# nodes' processes or destroy shared IPC resources.
+if [ $MULTINODE -eq 1 ] && [ $FORCE -eq 0 ]; then
+    echo ""
+    echo "NOTE: Multi-node environment - shared IPC resources were NOT cleared."
+    echo "Other ION instances on this host may still be running."
+    echo "To force full cleanup of all instances, run: killm f"
+    echo ""
+    echo "Killm completed (node-only)."
+    exit 0
+fi
+
+# --- Full cleanup (single-node or forced) ---
+
+# Run SIGTERM/SIGKILL cycle if pgrep still detects surviving processes
+if [ "$HAS_SURVIVORS" -eq 1 ]; then
+    echo "Sending TERM to the processes..."
+    pkill -x "$PGREP_PATTERN" 2>/dev/null
+
+    _km_timeout=2000
+    _km_sleep_arg="0.1"
+    _km_interval=100
+    _km_elapsed=0
+
+    while [ "$_km_elapsed" -lt "$_km_timeout" ]; do
+        check_surviving_processes >/dev/null 2>&1
+        if [ "$HAS_SURVIVORS" -eq 0 ] && [ "$HAS_CHECK_ERROR" -eq 0 ]; then
+            break
+        fi
+        _km_sleep "$_km_sleep_arg" "$_km_interval"
+        _km_elapsed=$((_km_elapsed + _km_slept_ms))
+    done
+fi
+
+check_surviving_processes >/dev/null 2>&1
+if [ "$HAS_SURVIVORS" -eq 1 ]; then
+    echo "Sending KILL to the processes..."
+    pkill -9 -x "$PGREP_PATTERN" 2>/dev/null
+
+    _km_timeout=2000
+    _km_sleep_arg="0.1"
+    _km_interval=100
+    _km_elapsed=0
+
+    while [ "$_km_elapsed" -lt "$_km_timeout" ]; do
+        check_surviving_processes >/dev/null 2>&1
+        if [ "$HAS_SURVIVORS" -eq 0 ] && [ "$HAS_CHECK_ERROR" -eq 0 ]; then
+            break
+        fi
+        _km_sleep "$_km_sleep_arg" "$_km_interval"
+        _km_elapsed=$((_km_elapsed + _km_slept_ms))
+    done
+fi
+
+echo ""
+echo "=== Post-signal state ==="
+check_surviving_processes
+if [ $HAS_SURVIVORS -ne 0 ]; then
+    echo "  *** WARNING: some ION processes could not be killed - try rebooting"
+fi
+check_ipc_resources
+echo ""
+
+fi  # end of early "has survivors" check
+
 if [ -z "$USERNAME_CUT" ]; then
     echo "Error: USERNAME_CUT is not set or empty."
     exit 1
 fi
-rm -f ${PSFILE}
 
 echo "Deleting shared memory to remove SDR..."
 
-if [[ -z "$OS_VERS" ]]; then
-    # For mac >=10.5 and Linux
-
-    # DEBUG: show ipcs before ipcrm
-    #echo "Before ipcrm, SRV4 IPC:"
-    #ipcs
-
-    for Q in `ipcs -q | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -q $Q; done
-    for M in `ipcs -m | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -m $M; done
-    for S in `ipcs -s | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -s $S; done
-
-    # DEBUG: show ipcs after ipcrm
-    #echo "After ipcrm, SRV4 IPC:"
-    #ipcs
-else
-    # For mac 10.4, since ipcs on it is weird.
-    echo "Since ipcs on Apple OSX 10.4 is weird, this script (killm) needs to use sudo, and will ask for your password"
-    for Q in `sudo ipcs -q | grep $USERNAME_CUT | awk '{ print $3 }'`; do ipcrm -Q $Q; done
-    for M in `sudo ipcs -m | grep $USERNAME_CUT | awk '{ print $3 }'`; do ipcrm -M $M; done
-    for S in `sudo ipcs -s | grep $USERNAME_CUT | awk '{ print $3 }'`; do ipcrm -S $S; done
-fi
+for Q in `ipcs -q | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -q $Q; done
+for M in `ipcs -m | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -m $M; done
+for S in `ipcs -s | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -s $S; done
 
 # remove posix named semaphores if this platform maps them into the file system
 # Solaris puts them in /tmp/.SEM*, Linux in /dev/shm/sem.*, MacOS doesn't put them in file system
@@ -138,9 +431,7 @@ remove_semaphores() {
     if [ -d "$path" ]; then
         local files=$(find "$path" -name "$pattern" 2>/dev/null)
         if [ -n "$files" ]; then
-            #echo "Removing from $path:"
-            #echo "$files"
-            rm -f $files 2>/dev/null
+            echo "$files" | xargs rm -f 2>/dev/null
         fi
     fi
 }
@@ -151,39 +442,42 @@ find_remaining() {
 
     # Check all possible paths
     for path in "/dev/shm" "/tmp" "/tmp/.LIBRT/SEMD" "/tmp/.LIBRT/SEML"; do
-        if [ -d "$path" ]; then
-            local found=$(find "$path" -maxdepth 1 -name "*ion:GLOBAL*" -o -name "sem.ion:GLOBAL*" -o -name ".SEM*ion:GLOBAL*" -o -name "SEM*ion:GLOBAL*" 2>/dev/null)
-            if [ -n "$found" ]; then
-                remaining="$remaining$found\n"
-            fi
+        local found=$(_list_sem_files "$path")
+        if [ -n "$found" ]; then
+            remaining="${remaining}${found}
+"
         fi
     done
 
-    echo -e "$remaining"
+    printf '%s' "$remaining"
 }
 
 echo -e "\n=== Starting cleanup ==="
 
 # Linux paths (/dev/shm)
+# glibc prefixes with "sem."
 remove_semaphores "/dev/shm" "sem.ion:GLOBAL*"
+# musl does not have prefix
+remove_semaphores "/dev/shm" "ion:GLOBAL*"
 
 # Generic /tmp paths FreeBSD
 remove_semaphores "/tmp" ".SEM*ion:GLOBAL*"
 remove_semaphores "/tmp" "SEM*ion:GLOBAL*"
 
 # Solaris LIBRT paths
-remove_semaphores "/tmp/.LIBRT/SEMD" "*ion:GLOBAL*"
-remove_semaphores "/tmp/.LIBRT/SEML" "*ion:GLOBAL*"
+remove_semaphores "/tmp/.LIBRT/SEMD" "ion:GLOBAL*"
+remove_semaphores "/tmp/.LIBRT/SEML" "ion:GLOBAL*"
 
 # Check for any remaining semaphores
 echo -e "\n=== Checking for remaining semaphores ==="
 remaining=$(find_remaining)
 
+SEM_REMAINING=0
 if [ -n "$remaining" ] && [ "$remaining" != "" ]; then
     echo "*** WARNING: Some semaphores could not be removed ***"
     echo "*** Re-run script with sudo to remove remaining semaphores: ***"
     echo -e "$remaining"
-    exit 1
+    SEM_REMAINING=1
 else
     echo "All ion:GLOBAL semaphores removed successfully"
 fi
@@ -195,6 +489,28 @@ find_remaining
 #ls /dev/shm/sem.ion:GLOBAL*
 #ls /tmp/.SEM*ion:GLOBAL*
 #ls /tmp/SEM*ion:GLOBAL*
+
+# End-of-run summary and meaningful exit code.
+#   0 -- clean (no survivors, no check errors, IPC cleared)
+#   1 -- ION processes remained after SIGKILL
+#   2 -- could not verify survivor state (one or more checks failed)
+#   3 -- IPC resources (semaphore files) could not be removed
+# Precedence: survivors > check-error > IPC, so the most actionable
+# condition wins when several apply.
+if [ "$CHECK_ERR_COUNT" -gt 0 ]; then
+    echo "killm: $CHECK_ERR_COUNT survivor check(s) failed during this run"
+fi
+
+if [ "$HAS_SURVIVORS" -ne 0 ]; then
+    echo "Killm completed with surviving ION processes."
+    exit 1
+elif [ "$CHECK_ERR_COUNT" -gt 0 ]; then
+    echo "Killm completed but survivor state could not be verified."
+    exit 2
+elif [ "$SEM_REMAINING" -ne 0 ]; then
+    echo "Killm completed with remaining semaphore files."
+    exit 3
+fi
 
 echo "Killm completed."
 exit 0

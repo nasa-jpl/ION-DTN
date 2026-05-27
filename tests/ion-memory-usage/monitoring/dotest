@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # ion-memory-usage/monitoring - Test sdrwatch daemon high-water warning feature.
 #

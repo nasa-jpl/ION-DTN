@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# Tests the PSM trace lifecycle: traceCount episode management,
+# sptrace_stop() leak fix, and trace episode restart.
+#
+CONFIGDIR="${CONFIGSROOT}/loopback-ltp"
+
+echo "########################################"
+echo
+echo "NAME: psm-trace-restart"
+echo
+echo "PURPOSE: Verify that PSM trace episodes start and stop cleanly,"
+echo "  that shared memory is released when a trace stops (no leaks),"
+echo "  and that a new trace episode can be started after stopping."
+echo
+echo "########################################"
+
+RETVAL=0
+
+echo "Killing old ION..."
+killm
+sleep 1
+
+rm -f ion.log
+
+echo "Starting ION..."
+ln -sf "${CONFIGDIR}/loopback.ionconfig" loopback.ionconfig
+ionstart -i "${CONFIGDIR}/loopback.ionrc" \
+	-l "${CONFIGDIR}/loopback.ltprc" \
+	-b "${CONFIGDIR}/loopback.bprc" \
+	-p "${CONFIGDIR}/loopback.ipnrc" \
+	-s "${CONFIGDIR}/loopback.ionsecrc"
+sleep 1
+bpadmin "${CONFIGDIR}/loopbackstart.bprc"
+
+# Wait for ION to fully initialize.
+sleep 3
+
+echo ""
+echo "=== Test 1: Basic trace start/stop lifecycle ==="
+echo ""
+
+# Record shared memory segments before trace.
+SEGS_BEFORE=$(ipcs -m 2>/dev/null | grep -c '^0x' || echo 0)
+echo "Shared memory segments before trace: $SEGS_BEFORE"
+
+# Start a trace episode via psmwatch (single poll with trace).
+echo "Starting psmwatch trace episode (5-second interval, 1 iteration)..."
+psmwatch 5 1
+sleep 2
+
+# Record shared memory segments after trace stopped.
+SEGS_AFTER=$(ipcs -m 2>/dev/null | grep -c '^0x' || echo 0)
+echo "Shared memory segments after trace stopped: $SEGS_AFTER"
+
+# The segment count should not have increased (trace memory was released).
+if [ "$SEGS_AFTER" -gt "$((SEGS_BEFORE + 1))" ]; then
+	echo "ERROR: Shared memory segments increased by more than 1 after trace stop."
+	echo "  Before: $SEGS_BEFORE, After: $SEGS_AFTER"
+	echo "  Possible shared memory leak."
+	RETVAL=1
+else
+	echo "PASS: No shared memory leak detected after trace stop."
+fi
+
+echo ""
+echo "=== Test 2: Trace episode restart ==="
+echo ""
+
+# Start first trace episode.
+echo "Starting first trace episode..."
+psmwatch 3 1
+sleep 1
+
+# Start second trace episode (should get a new traceCount).
+echo "Starting second trace episode..."
+psmwatch 3 1
+sleep 1
+
+SEGS_RESTART=$(ipcs -m 2>/dev/null | grep -c '^0x' || echo 0)
+echo "Shared memory segments after two trace episodes: $SEGS_RESTART"
+
+if [ "$SEGS_RESTART" -gt "$((SEGS_BEFORE + 1))" ]; then
+	echo "ERROR: Shared memory segments accumulated across trace restarts."
+	echo "  Before: $SEGS_BEFORE, After restart: $SEGS_RESTART"
+	RETVAL=1
+else
+	echo "PASS: Trace episodes restarted cleanly without leaking segments."
+fi
+
+echo ""
+echo "=== Test 3: Verify psmwatch produces output ==="
+echo ""
+
+# Run psmwatch in polling-only mode (no trace) to verify it works.
+OUTPUT=$(psmwatch 0 1 2>&1)
+if echo "$OUTPUT" | grep -q "partition"; then
+	echo "PASS: psmwatch produced partition usage output."
+else
+	echo "ERROR: psmwatch did not produce expected output."
+	echo "Output was: $OUTPUT"
+	RETVAL=1
+fi
+
+echo ""
+echo "=== Test 4: Verify ion.log has no trace errors ==="
+echo ""
+
+if grep -qi "can't start trace" ion.log 2>/dev/null; then
+	echo "ERROR: ion.log contains trace start errors."
+	grep -i "can't start trace" ion.log
+	RETVAL=1
+else
+	echo "PASS: No trace errors in ion.log."
+fi
+
+echo ""
+echo "Stopping ION..."
+ionstop
+sleep 2
+
+if [ $RETVAL -eq 0 ]; then
+	echo ""
+	echo "ALL TESTS PASSED."
+else
+	echo ""
+	echo "SOME TESTS FAILED."
+fi
+
+exit $RETVAL

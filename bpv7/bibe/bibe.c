@@ -38,7 +38,7 @@ void	bibeAdd(char *peerEid, unsigned int fwdLatency,
 	Object		bclaAddr;
 	Object		bclaElt;
 	char		schemeName[MAX_SCHEME_NAME_LEN + 1];
-	VScheme		*vscheme;
+	VScheme		*vscheme = NULL;
 	PsmAddress	vschemeElt;
 	Scheme		scheme;
 	Bcla		bcla;
@@ -58,7 +58,7 @@ void	bibeAdd(char *peerEid, unsigned int fwdLatency,
 	}
 
 	findScheme(schemeName, &vscheme, &vschemeElt);
-	if (vscheme == NULL)
+	if (vschemeElt == 0)
 	{
 		writeMemoNote("[?] bcla ID scheme name unknown", peerEid);
 		return;
@@ -207,7 +207,7 @@ void	bibeFind(char *peerEid, Object *bclaAddr, Object *bclaElt)
 {
 	Sdr		sdr = getIonsdr();
 	char		schemeName[MAX_SCHEME_NAME_LEN + 1];
-	VScheme		*vscheme;
+	VScheme		*vscheme = NULL;
 	PsmAddress	vschemeElt;
 	Scheme		scheme;
 	Object		elt;
@@ -220,7 +220,7 @@ void	bibeFind(char *peerEid, Object *bclaAddr, Object *bclaElt)
 	*bclaElt = 0;
 	getSchemeName(peerEid, schemeName);
 	findScheme(schemeName, &vscheme, &vschemeElt);
-	if (vscheme == NULL)
+	if (vschemeElt == 0)
 	{
 		return;
 	}

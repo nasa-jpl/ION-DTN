@@ -58,7 +58,7 @@ jobs:
           rm -rf $GITHUB_WORKSPACE/*
 
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           clean: true
           # clear workspace after
@@ -86,7 +86,7 @@ jobs:
             # some password-less 'sudo' tests will still run
             export LD_LIBRARY_PATH=/home/debian/ion/install/lib:$LD_LIBRARY_PATH
             export PATH=/home/debian/ion/install/bin:$PATH
-            export PRESERVE_TEST_LOGS="yes"
+            export PRESERVE_TEST_LOGS="0"
             autoreconf -fi
             ./configure --prefix=/home/debian/ion/install
             make -j4
@@ -111,7 +111,6 @@ jobs:
           } > build-and-test.log 2> >(tee -a build-and-test.log >&2)
 
           TEST_STATUS=$?
-          wait  # Wait for background processes to complete
 
           if [ $TEST_STATUS -ne 0 ]; then
             echo "Build and tests failed with status $TEST_STATUS" >&2
@@ -125,7 +124,7 @@ jobs:
 
       - name: Upload full build and test log
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-and-test-log-debian-${{ env.TIMESTAMP }}
           path: build-and-test.log
@@ -138,7 +137,7 @@ jobs:
 
       - name: Upload progress file
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-progress-debian-${{ env.TIMESTAMP }}
           path: ./tests/progress
@@ -162,7 +161,7 @@ jobs:
 
       - name: Upload ion.log files as artifact
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ion-logs-debiantrixie-${{ env.TIMESTAMP }}
           path: ion-logs-collection/

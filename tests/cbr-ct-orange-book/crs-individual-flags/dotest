@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # crs-individual-flags: Test each CRS status report flag individually
 #
@@ -17,7 +18,6 @@ echo "Topology: Node 1 (source) -> Node 2 (relay) -> Node 3 (destination)"
 echo ""
 
 # Clean up any previous ION and test artifacts
-killm
 ./cleanup
 
 # Track test results
@@ -94,7 +94,7 @@ sleep 8
 
 # Kill receiver
 kill $SINK_PID 2>/dev/null || true
-wait $SINK_PID 2>/dev/null || true
+sleep 1
 
 # Check results
 FINAL_CRS=$(get_crs_recv "$TESTDIR/1.node")
@@ -133,7 +133,7 @@ sleep 8
 
 # Kill receiver
 kill $SINK_PID 2>/dev/null || true
-wait $SINK_PID 2>/dev/null || true
+sleep 1
 
 # Check results - fwd report comes from intermediate node (Node 2)
 FINAL_CRS=$(get_crs_recv "$TESTDIR/1.node")
@@ -176,7 +176,7 @@ sleep 8
 
 # Kill receiver
 kill $SINK_PID 2>/dev/null || true
-wait $SINK_PID 2>/dev/null || true
+sleep 1
 
 # Check results
 FINAL_CRS=$(get_crs_recv "$TESTDIR/1.node")
@@ -215,7 +215,7 @@ sleep 10
 
 # Kill receiver
 kill $SINK_PID 2>/dev/null || true
-wait $SINK_PID 2>/dev/null || true
+sleep 1
 
 # Check results - should have multiple CRS signals
 FINAL_CRS=$(get_crs_recv "$TESTDIR/1.node")

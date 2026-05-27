@@ -31,6 +31,7 @@
 #include "lcc.h"
 #include "../shared/utils/db.h"
 #include "../shared/primitives/ctrl.h"
+#include "ion_atomic.h"
 
 
 
@@ -57,8 +58,7 @@ void *rx_thread(void *arg) {
 	AMP_DEBUG_ENTRY("rx_thread","(0x%X)",(unsigned long) pthread_self());
 	AMP_DEBUG_INFO("rx_thread","Receiver thread running...", NULL);
 
-	/* Cast the generic void* argument back to the real type we need. */
-	int *running = (int *)arg;
+	ion_atomic_t *running = (ion_atomic_t *) arg;
 
 	vecit_t it;
 	blob_t *result = NULL;
@@ -68,16 +68,16 @@ void *rx_thread(void *arg) {
 	int msg_type;
 
 	/*
-	 * g_running controls the overall execution of threads in the
+	 * running controls the overall execution of threads in the
 	 * NM Agent.
 	 */
-	while(*running)
+	while(ion_atomic_get(running))
 	{
 
 		result = iif_receive(&ion_ptr, &meta, NM_RECEIVE_TIMEOUT_SEC, &success);
 		if(success != AMP_OK)
 		{
-			*running = 0;
+			ion_atomic_set(running, 0);
 		}
 		else if(result != NULL)
 		{

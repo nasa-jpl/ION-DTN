@@ -332,7 +332,7 @@ int	main(void)
 
 {
 #endif
-	RxThreadParms		parms;
+	static RxThreadParms	parms;
 	unsigned char		*buffer;
 	pthread_t		rxThread;
 	int			haveRxThread = 0;

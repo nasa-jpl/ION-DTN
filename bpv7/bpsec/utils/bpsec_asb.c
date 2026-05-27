@@ -1253,6 +1253,7 @@ uint8_t *bpsec_asb_outboundAsbSerialize(uint32_t *length, BpsecOutboundASB *asb)
 	}
 	else
 	{
+		parms.scSerializedText = NULL;
 		parms.scSerializedLength = 0;
 	}
 

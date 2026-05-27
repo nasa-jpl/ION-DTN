@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+echo "Cleaning up old ION..."
+export ION_NODE_LIST_DIR=$PWD
+killm f >/dev/null 2>&1
+rm -f ion_nodes \
+      2.ipn.ltp/ion.log 2.ipn.ltp/node2.stdout \
+      3.ipn.ltp/ion.log 3.ipn.ltp/node3.stdout \
+      bpechoN3.log bpingN2.log

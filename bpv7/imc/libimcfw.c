@@ -389,7 +389,7 @@ int	imcSendDispatch(char *destEid, uint32_t toRegion, unsigned char *buffer,
 	PsmAddress	vschemeElt;
 	Object		sourceData;
 	Object		payloadZco;
-	unsigned int	ttl = 86400;	/*	Seconds; 1 day.		*/
+	unsigned int	ttl = 604800; /* Seconds; 1 week. */
 	BpAncillaryData ancillary = { .ordinal = 255 };
 
 	ancillary.imcRegionNbr = toRegion;

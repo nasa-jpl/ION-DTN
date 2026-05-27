@@ -480,6 +480,8 @@ static int	checkNodeListParms(IonParms *parms, char *wdName, uvast fqnn)
 	int		lineWmKey;
 	char		lineSdrName[MAX_SDR_NAME + 1];
 	char		lineWdName[256];
+	int		lineSdrWmKey;
+	int		fieldsRead;
 	int		result;
 
 	nodeListDir = getenv("ION_NODE_LIST_DIR");
@@ -560,8 +562,12 @@ static int	checkNodeListParms(IonParms *parms, char *wdName, uvast fqnn)
 		}
 
 		lineNbr++;
-		if (sscanf(lineBuf, UVAST_FIELDSPEC " %d %31s %255s",
-			&lineFqnn, &lineWmKey, lineSdrName, lineWdName) < 4)
+		lineSdrWmKey = SM_NO_KEY;	/*	Optional 5th field.	*/
+		fieldsRead = sscanf(lineBuf,
+				UVAST_FIELDSPEC " %d %31s %255s %d",
+				&lineFqnn, &lineWmKey, lineSdrName,
+				lineWdName, &lineSdrWmKey);
+		if (fieldsRead < 4)
 		{
 			close(nodeListFile);
 			sm_SemGive(nodeListMutex);
@@ -620,6 +626,12 @@ static int	checkNodeListParms(IonParms *parms, char *wdName, uvast fqnn)
 				return -1;
 			}
 
+			if (parms->sdrWmKey == 0
+					|| parms->sdrWmKey == SM_NO_KEY)
+			{
+				parms->sdrWmKey = lineSdrWmKey;
+			}
+
 			return 0;
 		}
 
@@ -635,6 +647,7 @@ static int	checkNodeListParms(IonParms *parms, char *wdName, uvast fqnn)
 				parms->wmKey = lineWmKey;
 				istrcpy(parms->sdrName, lineSdrName,
 						MAX_SDR_NAME + 1);
+				parms->sdrWmKey = lineSdrWmKey;
 				return 0;
 			}
 
@@ -673,8 +686,10 @@ static int	checkNodeListParms(IonParms *parms, char *wdName, uvast fqnn)
 				sizeof parms->sdrName);
 	}
 
-	isprintf(lineBuf, sizeof lineBuf, UVAST_FIELDSPEC " %d %.31s %.255s\n",
-			fqnn, parms->wmKey, parms->sdrName, wdName);
+	isprintf(lineBuf, sizeof lineBuf,
+			UVAST_FIELDSPEC " %d %.31s %.255s %d\n",
+			fqnn, parms->wmKey, parms->sdrName, wdName,
+			parms->sdrWmKey);
 	result = iputs(nodeListFile, lineBuf);
 	close(nodeListFile);
 	sm_SemGive(nodeListMutex);
@@ -720,13 +735,23 @@ int	ionInitialize(IonParms *parms, uvast ownFqnn)
 		parms->sdrWmSize = 1000000;	/*	Default.	*/
 	}
 
+	/*	A zero sdrWmKey is treated as SM_NO_KEY so that callers
+	 *	that zero-initialize IonParms (e.g. via memset) without
+	 *	going through readIonParms preserve the legacy default
+	 *	of SDR_SM_KEY rather than landing on IPC_PRIVATE.	*/
+
+	if (parms->sdrWmKey == 0)
+	{
+		parms->sdrWmKey = SM_NO_KEY;
+	}
+
 	if (checkNodeListParms(parms, wdname, ownFqnn) < 0)
 	{
 		putErrmsg("Failed checking node list parms.", NULL);
 		return -1;
 	}
 
-	if (sdr_initialize(parms->sdrWmSize, NULL, SM_NO_KEY, NULL) < 0)
+	if (sdr_initialize(parms->sdrWmSize, NULL, parms->sdrWmKey, NULL) < 0)
 	{
 		putErrmsg("Can't initialize the SDR system.", NULL);
 		return -1;
@@ -915,13 +940,17 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 		{
 			nextElt = sm_list_next(wm, elt);
 			addr = sm_list_data(wm, elt);
-			req = (Requisition *) psp(wm, addr);
-			if (req->semaphore != SM_SEM_NONE)
+			if (addr != 0)
 			{
-				sm_SemEnd(req->semaphore);
+				req = (Requisition *) psp(wm, addr);
+				if (req->semaphore != SM_SEM_NONE)
+				{
+					sm_SemEnd(req->semaphore);
+				}
+
+				psm_free(wm, addr);
 			}
 
-			psm_free(wm, addr);
 			sm_list_delete(wm, elt, NULL, NULL);
 		}
 	}
@@ -984,12 +1013,6 @@ int	ionAttach(void)
 		return 0;	/*	Already attached.		*/
 	}
 
-	if (sdr_initialize(0, NULL, SM_NO_KEY, NULL) < 0)
-	{
-		putErrmsg("Can't initialize the SDR system.", NULL);
-		return -1;
-	}
-
 	wdname = getenv("ION_NODE_WDNAME");
 	if (wdname == NULL)
 	{
@@ -1006,6 +1029,23 @@ int	ionAttach(void)
 	if (checkNodeListParms(&parms, wdname, 0) < 0)
 	{
 		putErrmsg("Failed checking node list parms.", NULL);
+		return -1;
+	}
+
+	/*	Use this node's recorded sdrWmKey (from ion_nodes) to
+	 *	attach to the right SDR working memory segment.  A zero
+	 *	value (single-host mode, or pre-existing ion_nodes lines
+	 *	without an sdrWmKey field) falls back to SM_NO_KEY which
+	 *	sdrxn.c then resolves to the legacy SDR_SM_KEY.		*/
+
+	if (parms.sdrWmKey == 0)
+	{
+		parms.sdrWmKey = SM_NO_KEY;
+	}
+
+	if (sdr_initialize(0, NULL, parms.sdrWmKey, NULL) < 0)
+	{
+		putErrmsg("Can't initialize the SDR system.", NULL);
 		return -1;
 	}
 
@@ -1551,7 +1591,7 @@ static time_t	readTimestamp(char *timestampBuffer, time_t referenceTime,
 	}
 #endif
 	result = mktime(&ts);
-	if (result < 0 || result > MAX_POSIX_TIME)
+	if (result == (time_t) -1 || result > MAX_POSIX_TIME)
 	{
 		putErrmsg("Time value not supported (must be before 19 January \
 2038).", timestampBuffer);
@@ -1577,7 +1617,12 @@ void	writeTimestampLocal(time_t timestamp, char *timestampBuffer)
 	struct tm	*ts = &tsbuf;
 
 	CHKVOID(timestampBuffer);
-	oK(localtime_r(&timestamp, &tsbuf));
+	if (localtime_r(&timestamp, &tsbuf) == NULL)
+	{
+		istrcpy(timestampBuffer, "0000/0/0-00:00:00", 20);
+		return;
+	}
+
 	isprintf(timestampBuffer, 20, timestampOutFormat,
 			ts->tm_year + 1900, ts->tm_mon + 1, ts->tm_mday,
 			ts->tm_hour, ts->tm_min, ts->tm_sec);
@@ -1589,7 +1634,12 @@ void	writeTimestampUTC(time_t timestamp, char *timestampBuffer)
 	struct tm	*ts = &tsbuf;
 
 	CHKVOID(timestampBuffer);
-	oK(gmtime_r(&timestamp, &tsbuf));
+	if (gmtime_r(&timestamp, &tsbuf) == NULL)
+	{
+		istrcpy(timestampBuffer, "0000/0/0-00:00:00", 20);
+		return;
+	}
+
 	isprintf(timestampBuffer, 20, timestampOutFormat,
 			ts->tm_year + 1900, ts->tm_mon + 1, ts->tm_mday,
 			ts->tm_hour, ts->tm_min, ts->tm_sec);
@@ -1654,7 +1704,14 @@ int	_extractSmallSdnv(unsigned int *into, unsigned char **from,
 		return 0;
 	}
 
-	*into = val;				/*	Truncate.	*/
+	if (val > UINT_MAX)
+	{
+		writeMemoNote("[?] SDNV value exceeds uint32 at line...",
+				itoa(lineNbr));
+		return 0;
+	}
+
+	*into = (unsigned int) val;
 	(*from) += sdnvLength;
 	(*remnant) -= sdnvLength;
 	return sdnvLength;
@@ -1692,6 +1749,7 @@ int	readIonParms(char *configFileName, IonParms *parms)
 	memset((char *) parms, 0, sizeof(IonParms));
 	parms->wmSize = 5000000;
 	parms->wmAddress = 0;		/*	Dyamically allocated.	*/
+	parms->sdrWmKey = SM_NO_KEY;	/*	Default -> SDR_SM_KEY.	*/
 	parms->configFlags = SDR_IN_DRAM | SDR_REVERSIBLE | SDR_BOUNDED;
 	parms->heapWords = 250000;
 	parms->heapKey = SM_NO_KEY;
@@ -1854,6 +1912,12 @@ UVAST_FIELDSPEC ".", size);
 			continue;
 		}
 
+		if (strcmp(tokens[0], "sdrWmKey") == 0)
+		{
+			parms->sdrWmKey = atoi(tokens[1]);
+			continue;
+		}
+
 		if (strcmp(tokens[0], "configFlags") == 0)
 		{
 			parms->configFlags = atoi(tokens[1]);
@@ -1915,6 +1979,13 @@ UVAST_FIELDSPEC ".", size);
 			continue;
 		}
 
+		if (strcmp(tokens[0], "traceShmSize") == 0)
+		{
+			size = strtouvast(tokens[1]);
+			parms->traceShmSize = size;
+			continue;
+		}
+
 		isprintf(buffer, sizeof buffer, "[?] unknown SDR config \
 keyword '%.32s' at line %d.", tokens[0], lineNbr);
 		writeMemo(buffer);
@@ -1946,6 +2017,9 @@ void	printIonParms(IonParms *parms)
 	isprintf(buffer, sizeof buffer, "sdrWmSize:       %ld",
 			parms->sdrWmSize);
 	writeMemo(buffer);
+	isprintf(buffer, sizeof buffer, "sdrWmKey:        %d",
+			parms->sdrWmKey);
+	writeMemo(buffer);
 	isprintf(buffer, sizeof buffer, "configFlags:     %d",
 			parms->configFlags);
 	writeMemo(buffer);
@@ -1963,6 +2037,9 @@ void	printIonParms(IonParms *parms)
 	writeMemo(buffer);
 	isprintf(buffer, sizeof buffer, "pathName:       '%.256s'",
 			parms->pathName);
+	writeMemo(buffer);
+	isprintf(buffer, sizeof buffer, "traceShmSize:    %ld",
+			parms->traceShmSize);
 	writeMemo(buffer);
 }
 
@@ -2074,6 +2151,7 @@ void	ionShred(ReqTicket ticket)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
+	PsmAddress	reqAddr;
 
 	/*	Ticket is address of an sm_list element in a shared
 	 *	memory list of requisitions in the IonVdb.		*/
@@ -2084,7 +2162,12 @@ void	ionShred(ReqTicket ticket)
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Must be atomic.		*/
-	psm_free(ionwm, sm_list_data(ionwm, ticket));
+	reqAddr = sm_list_data(ionwm, ticket);
+	if (reqAddr != 0)
+	{
+		psm_free(ionwm, reqAddr);
+	}
+
 	sm_list_delete(ionwm, ticket, NULL, NULL);
 	sdr_exit_xn(sdr);	/*	End of critical section.	*/
 }
@@ -2140,6 +2223,11 @@ int	ionRequestZcoSpace(ZcoAcct acct, vast fileSpaceNeeded,
 			elt = sm_list_prev(ionwm, elt))
 	{
 		oldReqAddr = sm_list_data(ionwm, elt);
+		if (oldReqAddr == 0)
+		{
+			continue;
+		}
+
 		oldReq = (Requisition *) psp(ionwm, oldReqAddr);
 		if (oldReq->coarsePriority > req->coarsePriority)
 		{
@@ -2277,6 +2365,11 @@ static void	ionProvideZcoSpace(ZcoAcct acct)
 			elt = sm_list_next(ionwm, elt))
 	{
 		reqAddr = sm_list_data(ionwm, elt);
+		if (reqAddr == 0)
+		{
+			continue;
+		}
+
 		req = (Requisition *) psp(ionwm, reqAddr);
 		if (req->secondsUnclaimed >= 0)
 		{
@@ -2428,7 +2521,7 @@ Object	ionCreateZco(ZcoMedium source, Object location, vast offset,
 		if (sm_SemEnded(attendant->semaphore))
 		{
 			writeMemo("[i] ZCO creation interrupted.");
-			ionShred(ticket);	/*	Cancel request.	*/
+			ionShred(ticket);
 			return 0;
 		}
 
@@ -2524,7 +2617,7 @@ vast	ionAppendZcoExtent(Object zco, ZcoMedium source, Object location,
 		if (sm_SemEnded(attendant->semaphore))
 		{
 			writeMemo("[i] ZCO extent creation interrupted.");
-			ionShred(ticket);	/*	Cancel request.	*/
+			ionShred(ticket);
 			return 0;
 		}
 

@@ -1,0 +1,85 @@
+{
+  "policyrule_set": [
+  {
+      "policyrule": {
+      "desc": "BCB verifier for ipn:2.* -> ipn:3.* payload (node 3 verifies at CLIN)",
+      "filter": {
+        "rule_id": "1",
+        "role": "v",
+        "src": "ipn:2.*",
+        "dest": "ipn:3.*",
+        "tgt": 1,
+        "loc": "clin",
+        "sc_id": 2
+      },
+      "spec": {
+        "svc": "bcb-confidentiality",
+        "sc_id": 2,
+        "sc_parms": [
+          { "id": "key_name", "value": "9103" },
+          { "id": "aes_variant", "value": "1" },
+          { "id": "aad_scope", "value": "0" },
+          { "id": "key_wrap", "value": "1" }
+        ]
+      },
+      "policy_action_on_fail": "delete_bundle"
+    }
+  },
+  {
+      "policyrule": {
+      "desc": "BCB acceptor for ipn:2.* -> ipn:3.* payload block (decrypts at delivery)",
+      "filter": {
+        "rule_id": "2",
+        "role": "a",
+        "src": "ipn:2.*",
+        "dest": "ipn:3.*",
+        "tgt": 1,
+        "loc": "appout",
+        "sc_id": 2
+      },
+      "spec": {
+        "svc": "bcb-confidentiality",
+        "sc_id": 2,
+        "sc_parms": [
+          { "id": "key_name", "value": "9103" },
+          { "id": "aes_variant", "value": "1" },
+          { "id": "aad_scope", "value": "0" },
+          { "id": "key_wrap", "value": "1" }
+        ]
+      },
+      "es_ref": "d_confidentiality",
+      "policy_action_on_fail": "delete_bundle"
+    },
+    "event_set": {
+      "es_ref": "d_confidentiality",
+      "events": [
+        { "event_id": "sop_processed", "actions": ["remove_all_target_sops"] }
+      ]
+    }
+  },
+  {
+      "policyrule": {
+      "desc": "BCB relay verifier for ipn:2.* -> ipn:4.* payload (no decrypt)",
+      "filter": {
+        "rule_id": "3",
+        "role": "v",
+        "src": "ipn:2.*",
+        "dest": "ipn:4.*",
+        "tgt": 1,
+        "loc": "clin",
+        "sc_id": 2
+      },
+      "spec": {
+        "svc": "bcb-confidentiality",
+        "sc_id": 2,
+        "sc_parms": [
+          { "id": "key_name", "value": "9103" },
+          { "id": "aes_variant", "value": "1" },
+          { "id": "aad_scope", "value": "0" },
+          { "id": "key_wrap", "value": "1" }
+        ]
+      },
+      "policy_action_on_fail": "delete_bundle"
+    }
+  }]
+}

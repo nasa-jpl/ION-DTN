@@ -1,0 +1,136 @@
+name: CI/CD Checks
+
+on:
+  pull_request:
+    branches:
+      - integration
+    paths:
+      - "charts/**"
+      - "images/**"
+      - ".github/**"
+  workflow_dispatch:
+
+jobs:
+  ansible-lint:
+    name: Ansible Lint
+    runs-on: arc-runner-set-rhel8
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Run ansible-lint
+        uses: ansible/ansible-lint@5fac056c45595896c973fbde871f01f6cb14d74c
+        with:
+          args: "charts/cluster_install/"
+
+  kics-scan:
+    name: KICS Security Scan
+    runs-on: arc-runner-set-ol9
+    env:
+      KICS_VERSION: v2.1.20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.25"
+
+      - name: Build KICS from source
+        run: |
+          echo "Building KICS $KICS_VERSION from source..."
+          git clone --branch $KICS_VERSION --depth 1 https://github.com/Checkmarx/kics.git kics-src
+          cd kics-src
+          go mod vendor
+          make build
+          ./bin/kics version
+          sudo cp ./bin/kics /usr/local/bin/
+
+      - name: Create output directory
+        run: mkdir -p kics-results
+
+      - name: Run KICS scan
+        run: |
+          kics scan \
+            --queries-path kics-src/assets/queries \
+            --config kics.config \
+            -o kics-results \
+            --output-name results
+
+      - name: Set timestamp
+        id: timestamp
+        run: echo "timestamp=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Upload KICS results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: kics-results-${{ steps.timestamp.outputs.timestamp }}
+          path: kics-results/
+          if-no-files-found: warn
+
+      - name: Upload SARIF file for GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13
+        with:
+          sarif_file: kics-results/results.sarif
+        continue-on-error: true
+
+      - name: Check KICS results
+        if: always()
+        run: |
+          if [ -f kics-results/results.json ]; then
+            HIGH=$(jq '.severity_counters.HIGH // 0' kics-results/results.json)
+            CRITICAL=$(jq '.severity_counters.CRITICAL // 0' kics-results/results.json)
+            MEDIUM=$(jq '.severity_counters.MEDIUM // 0' kics-results/results.json)
+            LOW=$(jq '.severity_counters.LOW // 0' kics-results/results.json)
+            INFO=$(jq '.severity_counters.INFO // 0' kics-results/results.json)
+            TOTAL=$(jq '.total_counter // 0' kics-results/results.json)
+
+            # Write to GitHub Step Summary
+            {
+              echo "## KICS Security Scan Results"
+              echo ""
+              echo "**Version:** $KICS_VERSION"
+              echo ""
+              echo "| Severity | Count |"
+              echo "|----------|-------|"
+              echo "| 🔴 Critical | $CRITICAL |"
+              echo "| 🟠 High | $HIGH |"
+              echo "| 🟡 Medium | $MEDIUM |"
+              echo "| 🔵 Low | $LOW |"
+              echo "| ℹ️ Info | $INFO |"
+              echo "| **Total** | **$TOTAL** |"
+              echo ""
+            } >> $GITHUB_STEP_SUMMARY
+
+            # Console output
+            echo "KICS Scan Results Summary:"
+            echo "  Critical: $CRITICAL"
+            echo "  High: $HIGH"
+            echo "  Medium: $MEDIUM"
+            echo "  Low: $LOW"
+            echo "  Info: $INFO"
+            echo "  Total: $TOTAL"
+
+            # Check for failures
+            if [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "❌ **KICS scan found HIGH or CRITICAL severity issues**" >> $GITHUB_STEP_SUMMARY
+              echo ""
+              echo "❌ KICS scan found HIGH or CRITICAL severity issues"
+              exit 1
+            else
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "✅ **No HIGH or CRITICAL issues found**" >> $GITHUB_STEP_SUMMARY
+              echo ""
+              echo "✅ No HIGH or CRITICAL issues found"
+            fi
+          else
+            echo "## KICS Security Scan Results" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **KICS results file not found**" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️  KICS results file not found"
+            exit 1
+          fi

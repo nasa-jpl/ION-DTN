@@ -45,9 +45,7 @@
 #include "../shared/msg/ion_if.h"
 
 #include "../shared/adm/adm.h"
-
 #include "../shared/primitives/report.h"
-
 #include "../shared/msg/msg.h"
 
 
@@ -59,6 +57,8 @@ extern "C" {
 #include "nm_mgr_sql.h"
 #endif
 
+#include "ion_atomic.h"
+
 
 /* Constants */
 #define NM_RECEIVE_TIMEOUT_SEC (2)
@@ -69,8 +69,8 @@ typedef struct
 {
 	vector_t agents;  /* (agent_t *) */
 	rhht_t metadata; /* (metadata_t*) */
-	uvast tot_rpts;
-	uvast tot_tbls;
+	ion_atomic_t tot_rpts;
+	ion_atomic_t tot_tbls;
 	eid_t mgr_eid;
 
 #ifdef HAVE_MYSQL
@@ -82,12 +82,6 @@ extern mgr_db_t gMgrDB;
 extern iif_t ion_ptr;
 
 // ============================= Global Data ===============================
-/**
- * Indicates if the thread loops should continue to run. This
- * value is updated by the main() and read by the subordinate
- * threads.
- **/
- extern int g_running;
 
 /* Function Prototypes */
 int      main(int argc, char *argv[]);

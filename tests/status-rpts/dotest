@@ -1,51 +1,26 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
-# Scott Burleigh
-# April 12, 2010
+# Nate Richard
+# JPL
+# Janurary 29, 2026
 
-# Updated for compatability with bpv7
-# Silas Springer
-# August 23, 2022
-
-# documentation boilerplate
 CONFIGFILES=" \
 ./global.ionrc \
-./2.ipn.ltp/amroc.ltprc \
-./2.ipn.ltp/amroc.bprc \
-./2.ipn.ltp/amroc.ionconfig \
-./2.ipn.ltp/global.ionrc \
-./2.ipn.ltp/amroc.ionrc \
-./2.ipn.ltp/amroc.ionsecrc \
-./2.ipn.ltp/amroc.ipnrc \
-"
-
-CONFIGFILES=$CONFIGFILES"
-./5.ipn.ltp/amroc.ltprc \
-./5.ipn.ltp/amroc.bprc \
-./5.ipn.ltp/amroc.ionconfig \
-./5.ipn.ltp/global.ionrc \
-./5.ipn.ltp/amroc.ionrc \
-./5.ipn.ltp/amroc.ionsecrc \
-./5.ipn.ltp/amroc.ipnrc \
-"
-
-CONFIGFILES=$CONFIGFILES"
-./3.ipn.ltp/amroc.ltprc \
-./3.ipn.ltp/amroc.bprc \
-./3.ipn.ltp/amroc.ionconfig \
-./3.ipn.ltp/global.ionrc \
-./3.ipn.ltp/amroc.ionrc \
-./3.ipn.ltp/amroc.ionsecrc \
-./3.ipn.ltp/amroc.ipnrc \
+./3.ipn.udp/amroc.bprc \
+./3.ipn.udp/amroc.ionconfig \
+./3.ipn.udp/amroc.ionrc \
+./3.ipn.udp/amroc.ionsecrc \
+./3.ipn.udp/amroc.ipnrc \
 "
 
 echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
-echo "PURPOSE: To determine if bundle status reports are generated and logged."
+echo "PURPOSE: To determine if bundle status reports are generated."
 echo
-echo "CONFIG: 3 node custom configuration:"
+echo "CONFIG: 3 node custom configuration (only node 3 is an ION node):"
 echo
 for N in $CONFIGFILES
 do
@@ -54,176 +29,78 @@ do
     echo "# EOF"
     echo
 done
-echo "OUTPUT: Various status messages are expected to be found in
-    ./2.ipn.ltp/ion.log"
+echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
 
-echo "Cleaning up old ION..."
-rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 5.ipn.ltp/ion.log
-rm -f 5.ipn.ltp/testfile1
-rm -f 5.ipn.ltp/testfile2
-rm -f 5.ipn.ltp/testfile3
-rm -f 5.ipn.ltp/testfile4
-rm -f 5.ipn.ltp/testfile5
-killm
-sleep 1
+# Find the latest available Python 3 version >= 3.10
+PYTHON_CMD="python3"
+MAX_MINOR=-1
+
+check_python_version() {
+    local py_exec=$1
+    if command -v "$py_exec" &> /dev/null; then
+        local py_maj=$("$py_exec" -c 'import sys; print(sys.version_info[0])' 2>/dev/null)
+        local py_min=$("$py_exec" -c 'import sys; print(sys.version_info[1])' 2>/dev/null)
+        if [ "$py_maj" = "3" ] && [ "$py_min" -ge 10 ]; then
+            if [ "$py_min" -gt "$MAX_MINOR" ]; then
+                MAX_MINOR=$py_min
+                PYTHON_CMD="$py_exec"
+            fi
+        fi
+    fi
+}
+
+# Check standard $PYTHON_CMD first
+check_python_version $PYTHON_CMD
+
+i=20
+while [ $i -ge 10 ]; do
+    check_python_version "$PYTHON_CMD.$i"
+    i=$((i - 1))
+done
+
+if [ -z "$PYTHON_CMD" ]; then
+    echo "SKIP: Python 3.10 or higher is required but not found."
+    exit 2
+fi
+
+PYTHON_VERSION="3.$MAX_MINOR"
+echo "Using Python $PYTHON_VERSION (via $PYTHON_CMD)"
+echo
+
+./cleanup
+RETVAL=1
 
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
-rm -f ./ion_nodes
+cd 3.ipn.udp
+./ionstart > node.stdout
 
-# Start nodes.
-cd 2.ipn.ltp
-ionadmin amroc.ionrc
-cd ../3.ipn.ltp
-ionadmin amroc.ionrc
-cd ../5.ipn.ltp
-ionadmin amroc.ionrc
-
-cd ../2.ipn.ltp
-ionadmin global.ionrc
-cd ../3.ipn.ltp
-ionadmin global.ionrc
-cd ../5.ipn.ltp
-ionadmin global.ionrc
-
-cd ../2.ipn.ltp
-ionsecadmin amroc.ionsecrc
-cd ../3.ipn.ltp
-ionsecadmin amroc.ionsecrc
-cd ../5.ipn.ltp
-ionsecadmin amroc.ionsecrc
-
-cd ../2.ipn.ltp
-ltpadmin amroc.ltprc
-cd ../3.ipn.ltp
-ltpadmin amroc.ltprc
-cd ../5.ipn.ltp
-ltpadmin amroc.ltprc
-
-cd ../2.ipn.ltp
-bpadmin amroc.bprc
-cd ../3.ipn.ltp
-bpadmin amroc.bprc
-cd ../5.ipn.ltp
-bpadmin amroc.bprc
-
-cd ../2.ipn.ltp
-../../../system_up -i "p 30" -l "p 30" -b "p 30"
-
-if [ $? -eq 3 ]
-then
-    echo ""
-else
-    echo "Node 2 not started: Aborting Test"
-    exit 1
-fi
-cd ../3.ipn.ltp
-../../../system_up -i "p 30" -l "p 30" -b "p 30"
-
-if [ $? -eq 3 ]
-then
-    echo ""
-else
-    echo "Node 3 not started: Aborting Test"
-    exit 1
-fi
-cd ../5.ipn.ltp
-../../../system_up -i "p 30" -l "p 30" -b "p 30"
-
-if [ $? -eq 3 ]
-then
-    echo ""
-else
-    echo "Node 5 not started: Aborting Test"
-    exit 1
-fi
-
-echo "Starting bpsink on ipn:5.1 ..."
+echo "Starting bpsink on ipn:3.1 ..."
 sleep 1
-bpsink ipn:5.1 &
+bpsink ipn:3.1 >/dev/null &
+SINKPID=$!
 
-cd ../2.ipn.ltp
-# bpv7 must test without checking custody transfer.
-echo "Sending bptrace from ipn:2.1 to ipn:5.1, should be delivered to bpsink ..."
-# Send first bundle from node 2 to node 5 requesting all status reports.
-bptrace ipn:2.1 ipn:5.1 ipn:2.0 5 0.1 "Hello." rcv,fwd,dlv,del
+cd ../
+echo "Running bespokebpv7 status report test..."
+# First Bundle: Sent to ipn:3.1 (should be delivered)
+# Second Bundle: Sent to ipn:5.1 (should be forwarded)
+# Third Bundle: Sent to ipn:3.3 (should be deleted)
+$PYTHON_CMD runtest.py -p parms.json -r 5115 -s 3113
+RETVAL=$?
 
-echo "Sending bptrace from ipn:2.1 to ipn:5.2, should expire and be deleted..."
-# Send first bundle from node 2 to node 5 requesting all status reports.
-bptrace ipn:2.1 ipn:5.2 ipn:2.0 5 0.1 "Hey." rcv,fwd,dlv,del
-
-# Wait for contacts to terminate.
-echo "Waiting for contacts to terminate..."
-sleep 15
-echo "Contacts have terminated.  Verifying results..."
-
-# Verify bundle arrival.
-cd ../2.ipn.ltp
-RETVAL=0
-
-echo
-# status 4 is the forwarded status
-echo "Checking for 'status 4' in ./2.ipn.ltp/ion.log..."
-COUNT=`grep " \[s\] " ion.log | grep "status 4" | wc -l`
-if [ $COUNT -eq 4 ]
-then
-    echo "OK: Both bundles forwarded twice."
+if [ $RETVAL -eq 0 ]; then
+    echo "SUCCESS: All status report scenarios passed."
 else
-    echo "ERROR: Bundles not forwarded."
-    RETVAL=1
+    echo "ERROR: One or more status report scenarios failed."
 fi
 
-echo
-# with no custody transfer, only reception (status 1) needs checked.
-# note the extra space following the '1' in this grep, this is to prevent
-# registering status 17 as status 1
-echo "Checking for 'status 1' in ./2.ipn.ltp/ion.log..."
-COUNT=`grep " \[s\] " ion.log | grep "status 1 " | wc -l`
-if [ $COUNT -eq 2 ]
-then
-    echo "OK: report of reciept found for both bundles."
-else
-    echo "ERROR: No report of receipt."
-    RETVAL=1
-fi
-echo
-# status 9 is the deleted (8) + recieved (1) status.
-echo "Checking for 'status 9' in ./2.ipn.ltp/ion.log..."
-COUNT=`grep " \[s\] " ion.log | grep "status 9" | wc -l`
-if [ $COUNT -eq 1 ]
-then
-    echo "OK: One bundle delivered."
-else
-    echo "ERROR: Bundle not delivered."
-    RETVAL=1
-fi
-
-echo
-# status 17 is the deleted (16) + recieved (1) status.
-echo "Checking for 'status 17' in ./2.ipn.ltp/ion.log..."
-COUNT=`grep " \[s\] " ion.log | grep "status 17" | wc -l`
-if [ $COUNT -eq 1 ]
-then
-    echo "OK: One bundle deleted upon expiration."
-else
-    echo "ERROR: No deletion upon expiration reported."
-    RETVAL=1
-fi
-
-# Shut down ION processes.
 echo
 echo "Stopping ION..."
-#cd ../2.ipn.ltp
-#./ionstop &
-#cd ../3.ipn.ltp
-#./ionstop &
-#cd ../5.ipn.ltp
-#./ionstop &
-
-# Give all three nodes time to shut down, then clean up.
-#sleep 5
-killm
+kill $SINKPID
+sleep 1
+cd 3.ipn.udp
+timeout 30 ionexit  # use ionexit preserve log files for capture
 echo "Status reports test completed."
 exit $RETVAL

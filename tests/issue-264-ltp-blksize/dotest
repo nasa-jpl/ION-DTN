@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Scott Burleigh
 # September 17, 2011
@@ -105,6 +106,5 @@ fi
 
 # Give both nodes time to shut down, then clean up.
 #sleep 3
-killm
 echo -e "LTP block size limit test completed.\n"
 exit $RETVAL

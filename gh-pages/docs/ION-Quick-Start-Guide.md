@@ -15,13 +15,12 @@
         - [Build Individual Packages](#build-individual-packages)
       - [Method 2: Using the ion-core Package](#method-2-using-the-ion-core-package)
   - [Running ION](#running-ion)
+    - [Quick Setup with ionrun (Recommended for Beginners)](#quick-setup-with-ionrun-recommended-for-beginners)
     - [Check Installed BP and ION versions](#check-installed-bp-and-ion-versions)
     - [Try the 'bping' test](#try-the-bping-test)
-    - [Try to Setup a UDP Session](#try-to-setup-a-udp-session)
-  - [Running multiple ION instances on a single host](#running-multiple-ion-instances-on-a-single-host)
-  - [Setup UDP Configuration on Two Hosts](#setup-udp-configuration-on-two-hosts)
-  - [Launch ION on two separate hosts](#launch-ion-on-two-separate-hosts)
+    - [Setup a UDP Session on Two Hosts](#setup-a-udp-session-on-two-hosts)
   - [Run a bpdriver-bpcounter test](#run-a-bpdriver-bpcounter-test)
+  - [Running multiple ION instances on a single host](#running-multiple-ion-instances-on-a-single-host)
   - [Check the ion.log](#check-the-ionlog)
   - [bpacq and ltpacq files](#bpacq-and-ltpacq-files)
   - [Forced Shutdown of ION](#forced-shutdown-of-ion)
@@ -173,9 +172,11 @@ To introduce customized build flags, you can add them via the `./configure` in t
 
 `./configure CFLAGS="<string of compiler options>"`
 
-For example, say you want to add additional source code and header files from the `/wkdir/customfile` and activate certain features controlled by the `GDSLOGGER` and `GDSWATCHER` - software hooks to add time stamps to ion.log and writing time-stamped watch characters to a file for analysis. This can be accomplished through the `./configure` command as follows:
+For example, the `GDSLOGGER` and `GDSWATCHER` options are software hooks that add timestamps to ion.log and write timestamped watch characters to a file for analysis. Each requires a corresponding `.c` file to be in the compiler's include path. ION ships `gdswatcher.c` in `tools/gdswatcher/`; a full-featured `gdslogger.c` for ground systems is in `tools/gdslogger/` (a stripped-down RTEMS version also exists in `arch-rtems/`). See the [ION Deployment Guide](ION-Deployment-Guide.md) for details on both versions.
 
-`./configure CFLAGS="-I/wkdir/customfile -DGDSLOGGER -DGDSWATCHER"`
+To enable these features, point `-I` at the directories containing the respective `.c` files:
+
+`./configure CFLAGS="-DGDSWATCHER -Itools/gdswatcher -DGDSLOGGER -I<path to folder containing gdslogger.c>"`
 
 ### BPSec Logging
 
@@ -284,6 +285,62 @@ The `ion-core` package contains only a subset of essential BP functionalities - 
 
 ## Running ION
 
+### Quick Setup with ionrun (Recommended for Beginners)
+
+The easiest way to get started with ION is using the `ionrun` utility. It interactively generates configuration files and launches ION in a working directory of your choosing.
+
+**Loopback test (single node):**
+
+```bash
+# Create a working directory and start the wizard
+ionrun ~/my-first-ion
+
+# Select: 1) Loopback, accept defaults for name/ID, pick a convergence layer
+# ION starts automatically after config generation
+```
+
+Once ION is running, test it:
+
+```bash
+cd ~/my-first-ion
+bpsink ipn:1.1 &
+echo "Hello DTN" | bpsource ipn:1.1
+# You should see: "ION event: Payload delivered."
+```
+
+Stop ION when done:
+
+```bash
+ionrun -s ~/my-first-ion
+```
+
+**Two-node network across hosts:**
+
+```bash
+# Generate config (on either host)
+ionrun -g ~/ion-2node
+# Select: 2) 2-node, enter names, IPN IDs, and IP addresses for each host
+
+# Copy ~/ion-2node to both hosts, then:
+ionrun -n host1 ~/ion-2node    # on first host
+ionrun -n host2 ~/ion-2node    # on second host
+```
+
+`ionrun` supports loopback, 2-node, and 3-node topologies (both across hosts and on the same host) with LTP, TCP, and UDP convergence layers, and allows custom port numbers.
+
+**Two nodes on the same host (no second machine needed):**
+
+```bash
+ionrun -g ~/ion-2local
+# Select: 4) 2-node (same host), accept defaults
+
+# Start each node in a separate terminal:
+ionrun -n node1 ~/ion-2local    # terminal 1
+ionrun -n node2 ~/ion-2local    # terminal 2
+```
+
+See the [ionrun documentation](./ionrun.md) for full details and examples.
+
 ### Check Installed ION version
 
 Check the ION version installed by running:
@@ -345,166 +402,108 @@ In this case, the test script confirms that ION is able to execute a bping funct
 
 See the [ION Testset Readme](./ION-TestSet-Readme.md) for more information on how to run the regression tests.
 
-### Try to Setup a UDP Session
+### Setup a UDP Session on Two Hosts
 
-Under the `demos` folder of the ION code directory, there are benchmark tests for various ION configurations. These tests also provide a template of how to configure ION.
+In this section we use `ionrun` to quickly set up a two-node UDP network across two hosts. We assume host A has IP address 192.168.0.2 and host B has IP address 192.168.0.3. Install ION on both hosts and verify the installation as described in earlier sections.
 
-Take the example of the `bench-udp` demo:
+#### Pre-flight checks
 
-Go into the `demos/bench-udp/` folder, you will see two subfolders: `2.bench.udp` and `3.bench.udp`, these folders configures two ION nodes, one with node numbers 2 and 3.
+Before launching ION, verify connectivity between the two hosts:
 
-Looking inside the `2.bench.udp` folder, you will see specific files used to configure ION. These include:
+1. Use `iperf` or `netcat` to confirm the link is working. You want a sufficiently high data rate and low loss rate (low single-digit percent or less).
+2. If the measured data rate is significantly below 800 Mbps, you may want to edit the generated `ionrun.rc` and reduce the contact rate in the `a contact` commands. Note that the unit in ION is **bytes per second**, not bits per second.
+3. If loss is high, check the physical connection, kernel buffer settings, firewall rules, and MTU settings.
+4. Wireshark can be helpful for diagnosing connectivity issues.
 
-```text
-bench.bprc
-bench.ionconfig
-bench.ionrc
-bench.ionsecrc
-bench.ipnrc
-ionstart
-ionstop
+#### Generate configuration
+
+On either host, run `ionrun` with the `--generate-only` flag:
+
+```bash
+ionrun -g ~/ion-udp-2node
 ```
 
-- `bench.bprc` is the configuration file for the bundle protocol. To study the command options contained in this file, run `man bprc`.
-- `bench.ionconfig` is the configuration file for the storage configuration of ION. See `man ionconfig` for details.
-- `bench.ionrc` is the configuration file for ION. See `man ionrc` for details.
-- `bench.ionsecrc` is the configuration file for ION security administration. See `man ionsecrc` for details.
-- `bench.ipnrc` is the configuration file for the IPN  scheme. See `man ipnrc` for details.
-- `ionstart` and `ionstop` are scripts to launch and shutdown ION.
-
-One must note that ION distribution comes with a separate, global `ionstart` and `ionstop` scripts installed in `/usr/local/bin` that can launch and stop ION. The advantage of using local script is that it allows you customize the way you launch and stop ION, for example add helpful text prompt, perform additional checks and clean up activities, etc.
-
-To run this demo test, first go into the test directory bench-udp, then run the dotest script:
-
-`./dotest`
-
-You can also study the test script to understand better what is happening.
-
-## Running multiple ION instances on a single host
-
-If you study the test script under the "tests" and the "demos" folders, you will realize that these tests often will launch 2 or 3 ION nodes on the same host to conduct the necessary tests. While this is necessary to simplify and better automate regression testing for ION developer and integration, it is not a typical, recommended configuration for new users.
-
-In order to run multiple ION instances in one host, specific, different IPCS keys must be used for each instance, and several  variables must be set properly in the shell environment. Please see the ION Deployment Guide (included with the ION distribution) for more information on how to do that.
-
-We recommend that most users, unless due to specific constraints that require running multiple ION instances on one host, run each ION instance on a separate host or VM.
-
-## Setup UDP Configuration on Two Hosts
-
-Once you have studied these scripts, you can try to run it on two different machines running ION.
-
-First, install ION in host A with an IP address of, for example, 192.168.0.2, and host B with an IP address of 192.168.0.3. Verify your installation based on earlier instructions.
-
-Copy the `2.bench.udp` folder into host A and the `3.bench.udp` folder into host B.
-
-Also copy the file `global.ionrc` from the `bench.udp` folder into the same folder where you placed `2.bench.udp` and `3.bench.udp`
-
-Then you need to modify the IP addresses in the UDP demo configuration files to match the IP addresses of hosts A and B.
-
-For example, the bprc files copied into host A is:
+The wizard will prompt you. Enter the following:
 
 ```text
-1
-a scheme ipn 'ipnfw' 'ipnadminep'
-a endpoint ipn:2.0 x
-a endpoint ipn:2.1 x
-a endpoint ipn:2.2 x
-a endpoint ipn:2.64 x
-a endpoint ipn:2.65 x
-a protocol udp 1400 100
-a induct udp 127.0.0.1:2113 udpcli
-a outduct udp 127.0.0.1:3113 udpclo
-r 'ipnadmin bench.ipnrc'
-s
+Topology [1-3]: 2
+
+--- Node 1 ---
+  Name [node1]: hostA
+  IPN node ID [1]: 1
+  IP address [127.0.0.1]: 192.168.0.2
+
+--- Node 2 ---
+  Name [node2]: hostB
+  IPN node ID [2]: 2
+  IP address [127.0.0.1]: 192.168.0.3
+
+Select convergence layer:
+  Choice [1-3]: 3
+  Port [4556]:
 ```
 
-To make it work for host A, you need to replace the induct ip address `127.0.0.1:2113` to `192.168.0.2:2113` - this is where host A's ION will receive incoming UDP traffic.
+This generates two files in `~/ion-udp-2node/`:
 
-Similarly for outduct, you want to change the ip address from `127.0.0.1:3113` to `192.168.0.3:3113` - this is where UDP traffic will go out to host B.
+- `ionrun.rc` - combined configuration for both nodes (tagged sections)
+- `ionrun.meta` - metadata for `ionrun` to re-launch
 
-You can make similar modifications to the ipnrc file as well.
+#### Launch ION on both hosts
 
-In the ionconfig file, you want to comment out or delete the `wmKey` and `sdrName` entries. Since we are running these two nodes on different hosts, we always let ION use the default values for these parameters.
+Copy the `~/ion-udp-2node/` directory to both host A and host B. Then start each node:
 
-If you don’t do this you get an error on startup.
+```bash
+# On host A (192.168.0.2):
+ionrun -n hostA ~/ion-udp-2node
 
-Repeat the same updates for host B by appropriately substituting old IP address to that of the new hosts.
-
-## Launch ION on two separate hosts
-
-After updating the configuration files on host A and B to reflect the new IP addresses and using the default wmKey (by not specifying any), we are now ready to try launching ION.
-
-Before you try to launch ION, it is recommended that you:
-
-1. Use netcat or iperf to test the connection between host A and B. Make sure it is working properly. That means have a sufficiently high data rate and low loss rate (low single digit percent or fraction of a percent should not be a concern).
-2. If iperf tests show that the data rate between the two hosts are at or above 800 megabits per second, in both directions, and the UDP loss rate is no more than a few percent, then you are good to go.
-3. If not, then you want to reduce the data rate in the `global.ionrc` file, change the data rates for the `a contact` command down to something similar to your connection speed. Remember, the unit in the `global.ionrc` file is Bytes per second, not bits per second, which is typically what iperf test report uses.
-4. If the error rate is high, you may want to check both the physical connection or kernel buffer setting.
-5. Check firewall setting and MTU setting may help you narrow down problems.
-6. Using wireshark can also be helpful both for initial connection check as well as during ION testing.
-
-Once you are ready to launch ION on both host A and B, open a terminal and go to the directory where the configuration files are stored, and run the local ionstart script:
-
-`./ionstart`
-
-Note: do not run `ionstart` since that will trigger the global script in the execution PATH
-
-You should see some standard output confirming that ION launch has completed. For example you might see something like this:
-
-```text
-Starting ION...
-wmSize:          5000000
-wmAddress:       0
-sdrName:        'ion2'
-sdrWmSize:       0
-configFlags:     1
-heapWords:       100000000
-heapKey:         -1
-logSize:         0
-logKey:          -1
-pathName:       '/tmp'
-Stopping ionadmin.
-Stopping ionadmin.
-Stopping ionsecadmin.
-Stopping ltpadmin.
-Stopping ipnadmin.
-Stopping bpadmin.
+# On host B (192.168.0.3):
+ionrun -n hostB ~/ion-udp-2node
 ```
 
-You can also see additional status information in the `ion.log` file in the same directory.
-
-Launch ION on both host A and B.
+You should see output confirming that ION has started. Additional status information is written to the `ion.log` file in the working directory.
 
 ## Run a bpdriver-bpcounter test
 
-Now that we have launched ION on both host A and B, it's time to send some data.
+Now that ION is running on both hosts, let’s send some data using the `bpdriver` and `bpcounter` test utilities. This pair of programs sends bundles from one node to another and measures throughput.
 
-We can repeat the bping test at this point. But since you have already seen that before, let's try something different.
+On host B, start the receiver:
 
-Let's use the bpdriver-bpcounter test utilities. This pair of utility programs simply sends a number of data in bundles from one node to another and provides a measurement on the throughput.
+```bash
+bpcounter ipn:2.2 3
+```
 
-On host B, run this command:
+This tells ION node 2 (host B) to wait for 3 bundles on endpoint `ipn:2.2`.
 
-`bpcounter ipn:3.2 3`
+On host A, send the bundles:
 
-This command tells ION node number 3 to be ready to receive three bundles on the end-point ID `ipn:3.2` which was specified in the `.bprc` file.
+```bash
+bpdriver 3 ipn:1.2 ipn:2.2 -10000
+```
 
-After host B has launched bpcounter, then on host A, run this command:
+This sends 3 bundles of 10,000 bytes each from endpoint `ipn:1.2` (host A) to `ipn:2.2` (host B). The "-" prefix on the size means bpdriver sends continuously without waiting for responses.
 
-`bpdriver 3 ipn:2.2 ipn:3.2 -10000`
+When the test completes, you will see throughput statistics on both sides.
 
-This command tells ION running in host A to send 3 bundles from EID 2.2 to EID 3.2, which is waiting for data (per bpcounter command.) And each bundle should be 10,000 bytes in size.
+**Note on throughput reporting:** The sending side may report very high throughput because `bpdriver` measures how fast the application pushes data into the bundle protocol agent, which can buffer data. The `bpcounter` throughput on the receiving side is a more accurate measure of end-to-end delivery speed. A "pilot" bundle is sent first to synchronize the timing.
 
-Why use the "-" sign in front of the size parameter? It's not a typo. The "-" indicates that bpdriver should keep sending bundles without waiting for any response from the receiver.
+If you want to throttle the sending rate, use the `i` option to specify a rate in bits per second.
 
-When the test completed, you should see output indicating that all the data were sent, how many bundles were transmitted/received, and at what rate.
+**Stop ION** when done:
 
-Please note that on the sending side the transmission may appear to be almost instantaneous. That is because bpdriver, as an application, is pushing data into bundle protocol which has the ability to rate buffer the data. So as soon as the bpdriver application pushes all data into the local bundle protocol agent, it considers the transmission completed and it will report a very high throughput value, one that is far above the contact graph's data rate limit. This is not an error; it simple report the throughput as experienced by the sending application, knowing that the data has not yet delivered fully to the destination.
+```bash
+# On each host:
+ionrun -s ~/ion-udp-2node
+```
 
-Throughput reported by bpcounter, on the other hand, is quite accurate if a large number of bundles are sent. To accurately measure the time it takes to send the bundles, the bpdriver program will send a "pilot" bundle just before sending the test data to signal to the bpcounter program to run its throughput calculation timer. This allows the user to run bpcounter and not have to worry about immediately sending all the bundles in order to produce an accurate throughput measurement.
+For more about these and other ION test utilities (`bpecho`, `bping`, `bpsource`, `bpsink`, `bpsendfile`, `bprecvfile`), consult their man pages.
 
-If you want to emulate the action of a constant rate source, instead of having bpdriver pushing all data as fast as possible, then you can use the 'i' option to specify a data rate throttle in bits per second.
+## Running multiple ION instances on a single host
 
-If you want to know more about how bpdriver and bpcounter work, look up their man pages for details on syntax and command line options. Other useful ION test utility commands include `bpecho`, `bping`, `bpsource`, `bpsink`, `bpsendfile`, `bprecvfile`, etc.
+The regression tests under the `tests/` and `demos/` directories often launch 2 or 3 ION nodes on the same host. While necessary for automated testing, this is not a typical configuration for new users.
+
+Running multiple ION instances on one host requires unique IPC keys (`wmKey`) and SDR names (`sdrName`) for each instance, along with proper shell environment setup. See the ION Deployment Guide for details.
+
+We recommend that most users run each ION instance on a separate host or VM.
 
 ## Check the ion.log
 
@@ -996,7 +995,7 @@ There are two ways to obtain ION source code:
 #### Option 1: Download ZIP file (Recommended for most users)
 
 1. Visit the ION-DTN GitHub releases page: https://github.com/nasa-jpl/ION-DTN/releases
-2. Find the desired release version (e.g., `ion-open-source-4.1.4`)
+2. Find the desired release version (e.g., `ion-open-source-4.2.0-a.2`)
 3. Click on "Assets" to expand the download options
 4. Download the source code archive:
    - `Source code (zip)` for ZIP format
@@ -1023,7 +1022,7 @@ git clone https://github.com/nasa-jpl/ION-DTN.git
 cd ION-DTN
 
 # Checkout a specific release tag (optional)
-git checkout ion-open-source-4.1.4
+git checkout ion-open-source-4.2.0-a.2
 
 # Or checkout a branch
 git checkout integration  # For alpha/beta releases

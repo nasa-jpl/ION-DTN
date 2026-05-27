@@ -38,6 +38,6 @@ indent_style = space
 indent_size = 4
 indent_style = space
 
-[{*.sh,check_memory,*cleanup,*dotest,{dtka,imc}start,ion{launcher,resume,script,start{,-ipv4,.awk},stop},kill{m,_udplsi},list_all_tests,results2csv,run{experiment,test{,s,set}},shutdown_proc,start{beacon,listen},system_up}]
+[{*.sh,check_memory,*cleanup,*dotest,{dtka,imc}start,ion{launcher,resume,run,script,start{,-ipv4,.awk},stop},kill{m,_udplsi},list_all_tests,results2csv,run{experiment,test{,s,set}},shutdown_proc,start{beacon,listen},system_up}]
 indent_size = 4
 indent_style = space

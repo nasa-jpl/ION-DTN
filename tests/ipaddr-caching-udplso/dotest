@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-trap 'stty sane 2>/dev/null' EXIT INT TERM  # restore echo (if sudo fail)
+trap 'killm f; stty sane 2>/dev/null' EXIT INT TERM  # restore echo (if sudo fail)
 
 # Function to search a log file for a string after a specified line number
 # Arguments:

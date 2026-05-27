@@ -26,8 +26,7 @@ The fix ensures that the LTP engine always acknowledges Cancel Segments. Since C
 ## Test Components
 
 - `dotest`: Main test script
-- `cancel_injector.c`: Utility to craft and send artificial Cancel Segments
-- `ack_monitor.c`: Monitor to detect Cancel Acknowledgment segments
+- `runtest.py`: Python script that provides Cancel Segment generation, ACK reception, and bundle data generation
 - `cleanup`: Test cleanup script
 - Node configurations: 2-node LTP network setup
 

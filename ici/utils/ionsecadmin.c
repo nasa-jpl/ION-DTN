@@ -178,6 +178,12 @@ static void	executeAdd(int tokenCount, char **tokens)
 		effectiveTime = strtoul(tokens[3], NULL, 0);
 		assertionTime = strtoul(tokens[4], NULL, 0);
 		datLen = atoi(tokens[5]);
+		if (datLen > sizeof(datValue))
+		{
+			printText("datLen out of range.");
+			return;
+		}
+
 		cursor = tokens[6];
 		if (strlen(cursor) != (datLen * 2))
 		{
@@ -189,7 +195,12 @@ static void	executeAdd(int tokenCount, char **tokens)
 		{
 			memcpy(buf, cursor, 2);
 			buf[2] = '\0';
-			sscanf(buf, "%x", &val);
+			if (sscanf(buf, "%x", &val) < 1)
+			{
+				printText("Invalid hex digit in pubkey data.");
+				return;
+			}
+
 			datValue[i] = val;
 			cursor += 2;
 		}
@@ -513,7 +524,7 @@ int	ionsecadmin_processLine(char *line, int lineLength)
 
 	/*	Skip over any trailing whitespace.			*/
 
-	while (isspace((int) *cursor))
+	while (isspace((unsigned char) *cursor))
 	{
 		cursor++;
 	}

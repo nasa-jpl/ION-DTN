@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # seqid-nonzero: Test non-zero CBR sequence ID functionality
 #
@@ -21,7 +22,6 @@ echo "Testing non-zero seqId (global sequence counter)"
 echo ""
 
 # Clean up any previous ION and test artifacts
-killm
 ./cleanup
 
 # Track test results

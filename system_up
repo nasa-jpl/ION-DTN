@@ -47,110 +47,53 @@ function CHECK_COMMAND {
     fi
 }
 
-# Initialize return value
-ret_val=0
+# Collect checks to run
+# Checks are separated by \n
+# Format of a check is "admin_cmd|t_args"
+checks=""
 
-# Track which subsystems are requested
-check_ion=false
-check_bp=false
-check_ltp=false
-check_dtpc=false
-check_cfdp=false
-
-# First pass: determine which subsystems are requested
 while getopts ":AW:i:b:l:D:c:h" opt; do
     case $opt in
-        A|W) check_ion=true; check_bp=true; check_ltp=true; check_dtpc=true; check_cfdp=true ;;
-        i) check_ion=true ;;
-        b) check_bp=true ;;
-        l) check_ltp=true ;;
-        D) check_dtpc=true ;;
-        c) check_cfdp=true ;;
-        h) USAGE ;;
-        \?) ;;
-    esac
-done
-
-# Reset getopts for second pass
-OPTIND=1
-
-# Verify only the commands that will be used
-if [[ "$check_ion" == true ]]; then CHECK_COMMAND "ionadmin"; fi
-if [[ "$check_bp" == true ]]; then CHECK_COMMAND "bpadmin"; fi
-if [[ "$check_ltp" == true ]]; then CHECK_COMMAND "ltpadmin"; fi
-if [[ "$check_dtpc" == true ]]; then CHECK_COMMAND "dtpcadmin"; fi
-if [[ "$check_cfdp" == true ]]; then CHECK_COMMAND "cfdpadmin"; fi
-
-# Second pass: execute the checks
-while getopts ":AW:i:b:l:D:c:h" options; do
-    case $options in
         A)
-            echo "Checking ion"
-            echo "t w" | ionadmin
-            ret_val=$((ret_val + $?))
-            echo "Checking bp"
-            echo "t w" | bpadmin
-            ret_val=$((ret_val + $?))
-            echo "Checking ltp"
-            echo "t w" | ltpadmin
-            ret_val=$((ret_val + $?))
-            echo "Checking dtpc"
-            echo "t w" | dtpcadmin
-            ret_val=$((ret_val + $?))
-            echo "Checking cfdp"
-            echo "t w" | cfdpadmin
-            ret_val=$((ret_val + $?))
+            for cmd in "ionadmin" "bpadmin" "ltpadmin" "dtpcadmin" "cfdpadmin"; do
+                CHECK_COMMAND "$cmd"
+                checks="${checks}${cmd}|t w\n"
+            done
             ;;
         W)
-            if [[ -n "$OPTARG" && ! "$OPTARG" =~ ^[0-9]+$ ]]; then
+            if [ -n "$OPTARG" ] && ! echo "$OPTARG" | grep -Eq '^[0-9]+$'; then
                 echo "Error: Invalid timeout '$OPTARG' for -W. Must be a number."
                 USAGE
             fi
-            echo "Checking ion"
-            echo "t p ${OPTARG}" | ionadmin
-            ret_val=$((ret_val + $?))
-            echo "Checking bp"
-            echo "t p ${OPTARG}" | bpadmin
-            ret_val=$((ret_val + $?))
-            echo "Checking ltp"
-            echo "t p ${OPTARG}" | ltpadmin
-            ret_val=$((ret_val + $?))
-            echo "Checking dtpc"
-            echo "t p ${OPTARG}" | dtpcadmin
-            ret_val=$((ret_val + $?))
-            echo "Checking cfdp"
-            echo "t p ${OPTARG}" | cfdpadmin
-            ret_val=$((ret_val + $?))
+            for cmd in "ionadmin" "bpadmin" "ltpadmin" "dtpcadmin" "cfdpadmin"; do
+                CHECK_COMMAND "$cmd"
+                checks="${checks}${cmd}|t p ${OPTARG}\n"
+            done
             ;;
         i)
             CHECK_ARGS "$OPTARG" "i"
-            echo "Checking ion"
-            echo "t ${OPTARG}" | ionadmin
-            ret_val=$((ret_val + $?))
+            CHECK_COMMAND "ionadmin"
+            checks="${checks}ionadmin|t ${OPTARG}\n"
             ;;
         b)
             CHECK_ARGS "$OPTARG" "b"
-            echo "Checking bp"
-            echo "t ${OPTARG}" | bpadmin
-            ret_val=$((ret_val + $?))
+            CHECK_COMMAND "bpadmin"
+            checks="${checks}bpadmin|t ${OPTARG}\n"
             ;;
         l)
             CHECK_ARGS "$OPTARG" "l"
-            echo "Checking ltp"
-            echo "t ${OPTARG}" | ltpadmin
-            ret_val=$((ret_val + $?))
+            CHECK_COMMAND "ltpadmin"
+            checks="${checks}ltpadmin|t ${OPTARG}\n"
             ;;
         D)
             CHECK_ARGS "$OPTARG" "D"
-            echo "Checking dtpc"
-            echo "t ${OPTARG}" | dtpcadmin
-            ret_val=$((ret_val + $?))
+            CHECK_COMMAND "dtpcadmin"
+            checks="${checks}dtpcadmin|t ${OPTARG}\n"
             ;;
         c)
             CHECK_ARGS "$OPTARG" "c"
-            echo "Checking cfdp"
-            echo "t ${OPTARG}" | cfdpadmin
-            ret_val=$((ret_val + $?))
+            CHECK_COMMAND "cfdpadmin"
+            checks="${checks}cfdpadmin|t ${OPTARG}\n"
             ;;
         h)
             USAGE
@@ -160,6 +103,30 @@ while getopts ":AW:i:b:l:D:c:h" options; do
             USAGE
             ;;
     esac
+done
+
+if [ -z "$checks" ]; then
+    USAGE
+fi
+
+# Run all checks in parallel, collect PIDs
+pids=""
+
+while IFS='|' read -r admin_cmd t_args; do
+    [ -z "$admin_cmd" ] && continue
+    label="${admin_cmd%admin}"  # ionadmin -> ion, bpadmin -> bp
+    echo "Checking $label"
+    echo "$t_args" | $admin_cmd &
+    pids="$pids $!"
+done <<EOF
+$(printf "$checks")
+EOF
+
+# Wait for all and sum exit codes (each admin returns 1=up, 0=down)
+ret_val=0
+for pid in $pids; do
+    wait "$pid"
+    ret_val=$((ret_val + $?))
 done
 
 echo

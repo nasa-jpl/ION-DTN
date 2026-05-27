@@ -928,7 +928,7 @@ tnv_t *amp_agent_get_sent_reports(tnvc_t *parms)
 	 * +-------------------------------------------------------------------------+
 	 */
 
-	result = tnv_from_uint(gAgentInstr.num_sent_rpts);
+	result = tnv_from_uint(ion_atomic_get(&gAgentInstr.num_sent_rpts));
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -955,7 +955,7 @@ tnv_t *amp_agent_get_num_tbr(tnvc_t *parms)
 	 * +-------------------------------------------------------------------------+
 	 */
 
-	result = tnv_from_uint(gAgentInstr.num_tbrs);
+	result = tnv_from_uint(ion_atomic_get(&gAgentInstr.num_tbrs));
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -982,7 +982,7 @@ tnv_t *amp_agent_get_run_tbr(tnvc_t *parms)
 	 * +-------------------------------------------------------------------------+
 	 */
 
-	result = tnv_from_uint(gAgentInstr.num_tbrs_run);
+	result = tnv_from_uint(ion_atomic_get(&gAgentInstr.num_tbrs_run));
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1009,7 +1009,7 @@ tnv_t *amp_agent_get_num_sbr(tnvc_t *parms)
 	 * +-------------------------------------------------------------------------+
 	 */
 
-	result = tnv_from_uint(gAgentInstr.num_sbrs);
+	result = tnv_from_uint(ion_atomic_get(&gAgentInstr.num_sbrs));
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1036,7 +1036,7 @@ tnv_t *amp_agent_get_run_sbr(tnvc_t *parms)
 	 * +-------------------------------------------------------------------------+
 	 */
 
-	result = tnv_from_uint(gAgentInstr.num_sbrs_run);
+	result = tnv_from_uint(ion_atomic_get(&gAgentInstr.num_sbrs_run));
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1142,7 +1142,7 @@ tnv_t *amp_agent_get_run_macros(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_run_macros BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	result = tnv_from_uint(gAgentInstr.num_macros_run);
+	result = tnv_from_uint(ion_atomic_get(&gAgentInstr.num_macros_run));
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_run_macros BODY
@@ -1193,7 +1193,7 @@ tnv_t *amp_agent_get_run_controls(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_run_controls BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	result = tnv_from_uint(gAgentInstr.num_ctrls_run);
+	result = tnv_from_uint(ion_atomic_get(&gAgentInstr.num_ctrls_run));
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1972,7 +1972,7 @@ tnv_t *amp_agent_ctrl_add_tbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 		}
 		else
 		{
-			gAgentInstr.num_tbrs++;
+			ion_atomic_get_and_increment(&gAgentInstr.num_tbrs, 1);
 			*status = CTRL_SUCCESS;
 			db_persist_rule(tbr);
 		}
@@ -2045,7 +2045,7 @@ tnv_t *amp_agent_ctrl_add_sbr(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 		}
 		else
 		{
-			gAgentInstr.num_sbrs++;
+			ion_atomic_get_and_increment(&gAgentInstr.num_sbrs, 1);
 			*status = CTRL_SUCCESS;
 			db_persist_rule(sbr);
 		}

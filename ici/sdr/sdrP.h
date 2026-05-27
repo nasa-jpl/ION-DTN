@@ -24,6 +24,7 @@
 #include "lyst.h"
 #include "smlist.h"
 #include "sdrxn.h"
+#include "ion_atomic.h"
 
 #ifdef SDR_TRACE
 #include "sptrace.h"
@@ -45,6 +46,46 @@
 	0		M			map of sdr heap
 	M		D			sdr heap (objects)	*/
 
+
+typedef struct
+{
+	Address		from;	/*	1st byte of object		*/
+	Address		to;	/*	1st byte beyond scope of object	*/
+} ObjectExtent;
+
+/*	Sorted (by 'from') dynamic array of ObjectExtents.  Backs the
+ *	SDR_BOUNDED write-validation set per transaction.  Extents are
+ *	non-overlapping, so a predecessor binary search suffices to
+ *	answer "is [from, from+length) contained in any known extent?".	*/
+
+typedef struct
+{
+	ObjectExtent	*items;
+	size_t		count;
+	size_t		capacity;
+} ExtentArray;
+
+#ifdef ION_HAVE_ROBUST_MUTEX
+
+/*	SdrLockOwner records who acquired the SDR transaction lock,
+ *	captured at acquire-time and read by the next acquirer if the
+ *	previous owner died mid-transaction (EOWNERDEAD).  It lives
+ *	in shared memory next to sdrMutex so the recovery log can
+ *	identify the orphan by pid + cmdline without external tooling.
+ *	Sized to fit close to one cache line — 64 bytes covers every
+ *	realistic ION daemon invocation (bpadmin '.', tcc 203,
+ *	udplsi [::1]:1113, etc.).					*/
+
+#define SDR_LOCK_OWNER_CMDLINE_MAX	64
+
+typedef struct
+{
+	uint64_t	acquired_at_us;	/*	CLOCK_MONOTONIC	*/
+	int		pid;
+	char		cmdline[SDR_LOCK_OWNER_CMDLINE_MAX];
+} SdrLockOwner;
+
+#endif	/*	ION_HAVE_ROBUST_MUTEX					*/
 
 #define	INITIALIZED	(0x99999999)
 
@@ -87,6 +128,22 @@ typedef struct sdr_str
 		/*	Parameters of current transaction.	*/
 
 	sm_SemId	sdrSemaphore;
+#ifdef ION_HAVE_ROBUST_MUTEX
+		/*	On platforms with robust-mutex support the
+		 *	transaction lock is a process-shared robust
+		 *	pthread mutex instead of sdrSemaphore, so that
+		 *	a process dying mid-transaction is recovered
+		 *	via EOWNERDEAD rather than orphaning the lock.
+		 *	sdrXnEnded carries the shutdown signal that
+		 *	sm_SemEnded() provided on the semaphore path;
+		 *	it is in shared memory, so it must be a
+		 *	lock-free IPC atomic, not a process-local one.	*/
+
+	pthread_mutex_t	 sdrMutex;		/*	Robust xn lock.	*/
+	ion_ipc_atomic_t sdrXnEnded;		/*	Boolean.	*/
+	int		 sdrMutexCreated;	/*	Boolean.	*/
+	SdrLockOwner	 lastOwner;	/*	For EOWNERDEAD diag.	*/
+#endif
 	int		sdrOwnerTask;		/*	Task ID.	*/
 	pthread_t	sdrOwnerThread;		/*	Thread ID.	*/
 	int		xnDepth;
@@ -96,10 +153,13 @@ typedef struct sdr_str
 	int		maxLogLength;		/*	Max Log Length  */
 	PsmAddress	logEntries;		/*	Offsets in log.	*/
 
+	SdrDropStats	dropStats;	/*	sdr_drop_xn accounting.	*/
+
 		/*	SDR trace data access.			*/
 
 	int		traceKey;		/*	trace shmKey	*/
 	size_t		traceSize;		/*	0 = disabled	*/
+	int		traceCount;		/*	episode counter	*/
 
 		/*	Path to directory for files (log, ds).	*/
 
@@ -180,7 +240,7 @@ typedef struct sdrv_str
 	char		*logsm;		/*	Log in shared memory.	*/
 	uaddr		logsmId;	/*	Log shmId if applicable.*/
 
-	Lyst		knownObjects;	/*	ObjectExtents.		*/
+	ExtentArray	knownObjects;	/*	SDR_BOUNDED bookkeeping	*/
 
 	PsmView		traceArea;	/*	local access to trace	*/
 	PsmView		*trace;		/*	local access to trace	*/
@@ -196,7 +256,7 @@ typedef struct sdrv_str
 
 typedef enum { UserPut = 0, SystemPut } PutSrc;
 
-extern int		takeSdr(SdrState *sdr);
+extern int		takeSdr(Sdr sdrv);
 extern void		releaseSdr(SdrState *sdr);
 
 extern void		joinTrace(Sdr, const char *, int);

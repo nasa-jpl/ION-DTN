@@ -268,7 +268,7 @@ int	dtpc_receive(DtpcSAP sap, DtpcDelivery *dlvBuffer, int timeoutSeconds)
 	Object		dlvElt;
 	Object		dlvObj;
 			OBJ_POINTER(DlvPayload, payload);
-	TimerParms      timerParms;
+	static TimerParms	timerParms;
 	pthread_t	timerThread;
 	char		srcEid[SDRSTRING_BUFSZ];
 

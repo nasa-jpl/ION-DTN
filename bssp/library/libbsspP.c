@@ -447,8 +447,15 @@ static void	stopSpan(BsspVspan *vspan)
 
 static void	stopSeat(BsspVseat *vseat)
 {
-	sm_TaskKill(vseat->beBsiPid, SIGTERM);
-	sm_TaskKill(vseat->rlBsiPid, SIGTERM);
+	if (vseat->beBsiPid != ERROR)
+	{
+		sm_TaskKill(vseat->beBsiPid, SIGTERM);
+	}
+
+	if (vseat->rlBsiPid != ERROR)
+	{
+		sm_TaskKill(vseat->rlBsiPid, SIGTERM);
+	}
 }
 
 static void	waitForSpan(BsspVspan *vspan)
@@ -865,7 +872,7 @@ int	bsspStart(void)
 	BsspVdb		*bsspvdb = _bsspvdb(NULL);
 	PsmAddress	elt;
 
-	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+	CHKERR(sdr_begin_xn(sdr));
 
 	/*	Start the BSSP events clock if necessary.		*/
 
@@ -890,7 +897,10 @@ int	bsspStart(void)
 		startSeat((BsspVseat *) psp(bsspwm, sm_list_data(bsspwm, elt)));
 	}
 
-	sdr_end_xn(sdr);		/* Unlock memory 		*/
+	if (sdr_end_xn(sdr) < 0)
+	{
+		return -1;
+	}
 	return 0;
 }
 
@@ -907,7 +917,7 @@ void	bsspStop(void)		/*	Reverses bsspStart.		*/
 
 	/*	Tell all BSSP processes to stop.	*/
 
-	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+	CHKVOID(sdr_begin_xn(sdr));
 	for (i = 0, client = bsspvdb->clients; i < BSSP_MAX_NBR_OF_CLIENTS;
 			i++, client++)
 	{
@@ -936,7 +946,7 @@ void	bsspStop(void)		/*	Reverses bsspStart.		*/
 		sm_TaskKill(bsspvdb->clockPid, SIGTERM);
 	}
 
-	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
+	oK(sdr_end_xn(sdr));
 
 	/*	Wait until all BSSP processes have stopped.		*/
 
@@ -978,7 +988,7 @@ SIGTERM, sending SIGKILL");
 
 	/*	Now erase all the tasks and reset the semaphores.	*/
 
-	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+	CHKVOID(sdr_begin_xn(sdr));
 	bsspvdb->clockPid = ERROR;
 	for (i = 0, client = bsspvdb->clients; i < BSSP_MAX_NBR_OF_CLIENTS;
 			i++, client++)
@@ -1001,7 +1011,7 @@ SIGTERM, sending SIGKILL");
 		vseat->rlBsiPid = ERROR;
 	}
 
-	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
+	oK(sdr_end_xn(sdr));
 }
 
 int	bsspAttach(void)
@@ -1854,9 +1864,12 @@ static void	closeExportSession(Object sessionObj)
 	 *	list length and thereby possibly enabling a blocked
 	 *	client to append an SDU to the current block.		*/
 
-	sdr_hash_remove(sdr, db.exportSessionsHash,
-			(char *) &(session->sessionNbr), (Address *) &elt);
-	sdr_list_delete(sdr, elt, NULL, NULL);
+	if (sdr_hash_remove(sdr, db.exportSessionsHash,
+			(char *) &(session->sessionNbr), (Address *) &elt) > 0)
+	{
+		sdr_list_delete(sdr, elt, NULL, NULL);
+	}
+
 	sdr_free(sdr, sessionObj);
 #if BSSPDEBUG
 putErrmsg("Closed export session.", itoa(session->sessionNbr));
@@ -2316,7 +2329,7 @@ static void	signalBeBso(unsigned int engineId)
 	PsmAddress	vspanElt;
 
 	findBsspSpan(engineId, &vspan, &vspanElt);
-	if (vspan != NULL && vspan->localXmitRate > 0)
+	if (vspanElt != 0 && vspan->localXmitRate > 0)
 	{
 		/*	Tell Best-Effort BSO that output is waiting.	*/
 
@@ -2330,7 +2343,7 @@ static void	signalRlBso(unsigned int engineId)
 	PsmAddress	vspanElt;
 
 	findBsspSpan(engineId, &vspan, &vspanElt);
-	if (vspan != NULL && vspan->localXmitRate > 0)
+	if (vspanElt != 0 && vspan->localXmitRate > 0)
 	{
 		/*	Tell Reliable BSO that output is waiting.	*/
 
@@ -2399,9 +2412,11 @@ static int	cancelSessionBySender(BsspExportSession *session,
 	/*	Remove session from active sessions pool, so that the
 	 *	cancellation won't affect flow control.			*/
 
-	sdr_hash_remove(sdr, db.exportSessionsHash,
-			(char *) &(session->sessionNbr), (Address *) &elt);
-	sdr_list_delete(sdr, elt, NULL, NULL);
+	if (sdr_hash_remove(sdr, db.exportSessionsHash,
+			(char *) &(session->sessionNbr), (Address *) &elt) > 0)
+	{
+		sdr_list_delete(sdr, elt, NULL, NULL);
+	}
 
 	/*	Span now has room for another session to start.		*/
 

@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+#
+# robust-sdr-lock-recovery - SDR transaction-lock robust-mutex recovery.
+#
+# Runs the standalone robust_lock_recovery_test binary.  It loads private
+# SDRs (no ION attach) and, for each case, forks a child that opens a
+# transaction and kills itself with SIGKILL while still holding the lock,
+# then verifies the parent recovers the lock:
+#
+#   Case 1  read-only orphan        - recovery succeeds, nothing reversed
+#   Case 2  modified orphan         - recovery reverses the dead transaction
+#   Case 3  non-reversible orphan   - recovery fails loudly, node not wedged
+#
+# On a build without ION_HAVE_ROBUST_MUTEX the binary exits 2 and this
+# test is reported as skipped.
+#
+trap 'killm f >/dev/null 2>&1' EXIT
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify that when a process dies holding the SDR transaction"
+echo "         lock, the next process recovers the lock via EOWNERDEAD"
+echo "         instead of wedging the node."
+echo
+echo "OUTPUT:  Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+
+if ! command -v robust_lock_recovery_test >/dev/null 2>&1; then
+    echo "FAIL: robust_lock_recovery_test not on PATH"
+    exit 1
+fi
+
+robust_lock_recovery_test
+RC=$?
+
+if [ "$RC" -eq 0 ]; then
+    echo "robust-sdr-lock-recovery: PASSED"
+    exit 0
+fi
+
+if [ "$RC" -eq 2 ]; then
+    echo "robust-sdr-lock-recovery: SKIPPED (built without ION_HAVE_ROBUST_MUTEX)"
+    exit 2
+fi
+
+echo "robust-sdr-lock-recovery: FAILED (exit=$RC)"
+exit 1

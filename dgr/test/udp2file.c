@@ -84,7 +84,7 @@ int	main(void)
 			break;
 		}
 
-		lineSize = sizeof line;
+		lineSize = sizeof(line) - 1;
 		remoteSocknmSize = sizeof remoteSocknm;
 		lineSize = recvfrom(sock, line, lineSize, 0, &remoteSocknm,
 				&remoteSocknmSize);

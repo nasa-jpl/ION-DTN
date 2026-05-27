@@ -130,6 +130,9 @@ void poll_cfdp_messages(void)
 	CfdpFileStatus		fileStatus;
 	CfdpDeliveryCode	deliveryCode;
 	CfdpTransactionId	originatingTransactionId;
+
+	memset(&transactionId, 0, sizeof(CfdpTransactionId));
+	memset(&originatingTransactionId, 0, sizeof(CfdpTransactionId));
 	char			statusReportBuf[256];
 	unsigned char		usrmsgBuf[256];
 	MetadataList		filestoreResponses;

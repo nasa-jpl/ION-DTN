@@ -41,7 +41,7 @@ jobs:
           rm -rf $GITHUB_WORKSPACE/*
 
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           clean: true
           # clear workspace after
@@ -97,7 +97,7 @@ jobs:
             echo "USER is set to: $USER" &&
             export ION_RUN_EXPERT="yes" &&
             export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH &&
-            export PRESERVE_TEST_LOGS="yes" &&
+            export PRESERVE_TEST_LOGS="0" &&
             export MAKE=gmake &&
             cd ~/ion-gh-test-dir/ion-ios-dev &&
             autoreconf -fi &&
@@ -116,7 +116,6 @@ jobs:
             fi' > build-and-test.log 2> >(tee -a build-and-test.log >&2)
 
           TEST_STATUS=$?
-          wait  # Wait for background processes to complete
 
           if [ $TEST_STATUS -ne 0 ]; then
             echo "Build and tests failed with status $TEST_STATUS" >&2
@@ -132,14 +131,14 @@ jobs:
 
       - name: Upload full build and test log
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-and-test-log-freebsd-${{ env.TIMESTAMP }}
           path: build-and-test.log
 
       - name: Upload progress file as artifact
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-progress-freebsd-${{ env.TIMESTAMP }}
           path: ./progress
@@ -165,7 +164,7 @@ jobs:
 
       - name: Upload ion.log files as artifact
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ion-logs-freebsd-${{ env.TIMESTAMP }}
           path: ion-logs-collection/

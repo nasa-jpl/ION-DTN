@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Scott Burleigh
 # October 4, 2014
@@ -75,15 +76,7 @@ fi
 
 echo ""
 echo "Stopping ION..."
-#cd ../1.ipn.ltp
-#./ionstop &
-#cd ../2.ipn.ltp
-#./ionstop &
-
-# Give both nodes time to shut down, then clean up.
-
-sleep 3
-killm
+killm f
 echo ""
 echo "CFDPv1 test completed."
 exit $RETVAL

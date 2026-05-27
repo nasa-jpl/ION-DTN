@@ -1,0 +1,272 @@
+#!/usr/bin/env bash
+trap 'killm f >/dev/null 2>&1' EXIT
+#
+# Verify that giving each ION node a unique sdrWmKey makes the SDR
+# working memory per-node, which means `ionexit n` on one node only
+# tears down that node's shared memory and leaves a peer node fully
+# operational.
+#
+
+FAIL=0
+
+# `ipcs -m` column layout differs by OS.  On Linux the data rows are
+# "KEY SHMID OWNER PERMS ..." (KEY=$1, OWNER=$3) and the header is 2
+# lines.  On Solaris/SunOS they are "T ID KEY MODE OWNER GROUP ..."
+# (KEY=$3, OWNER=$5) and the header is 3 lines.
+case "$(uname -s)" in
+    SunOS)  KEY_COL=3; OWNER_COL=5; HEADER_LINES=3 ;;
+    *)      KEY_COL=1; OWNER_COL=3; HEADER_LINES=2 ;;
+esac
+
+banner() {
+    echo
+    echo "========================================================================"
+    printf "  %s\n" "$*"
+    echo "========================================================================"
+}
+
+# List the SVR4 shared memory keys owned by this user as a sorted set,
+# excluding any segment that has already been marked for destruction
+# (keys 0x00000000 with status "dest").  We diff this set across the
+# lifecycle to attribute keys to a node.
+shm_keys() {
+    ipcs -m | awk -v me="$(whoami | cut -c1-10)" \
+                  -v kc="$KEY_COL" -v oc="$OWNER_COL" '
+        $oc == me && $kc ~ /^0x[0-9a-fA-F]+$/ && $kc != "0x00000000" { print $kc }
+    ' | sort -u
+}
+
+# Show ipcs -m, including any segments marked for destruction.
+show_ipcs() {
+    echo "----- ipcs -m (this user only) -----"
+    ipcs -m | awk -v me="$(whoami | cut -c1-10)" \
+                  -v oc="$OWNER_COL" -v nh="$HEADER_LINES" \
+        'NR<=nh || $oc == me'
+    echo "------------------------------------"
+}
+
+require_keys_present() {
+    local label="$1"; shift
+    local missing=""
+    for k in "$@"; do
+        if ! ipcs -m | awk -v kc="$KEY_COL" '{print $kc}' \
+                    | grep -qx "$k"; then
+            missing="${missing} $k"
+        fi
+    done
+    if [ -n "$missing" ]; then
+        echo "FAIL: $label -- expected keys not present:$missing"
+        FAIL=1
+        return 1
+    fi
+    echo "PASS: $label -- keys present:" "$@"
+    return 0
+}
+
+require_keys_absent() {
+    local label="$1"; shift
+    local present=""
+    for k in "$@"; do
+        if ipcs -m | awk -v kc="$KEY_COL" \
+                         '$kc != "0x00000000" {print $kc}' \
+                  | grep -qx "$k"; then
+            present="${present} $k"
+        fi
+    done
+    if [ -n "$present" ]; then
+        echo "FAIL: $label -- keys still present (should be gone):$present"
+        FAIL=1
+        return 1
+    fi
+    echo "PASS: $label -- keys absent (or marked dest):" "$@"
+    return 0
+}
+
+# Run a bping/bpecho exchange and assert that all bundles came back.
+# Wraps bping in `timeout` so a broken node can't hang the test.
+# Args: <label> <bpecho-cwd> <bpecho-eid> <bping-cwd> <bping-src-eid>
+#       <bping-dst-eid> <bping-out>
+verify_bping() {
+    local label="$1"
+    local echo_dir="$2"
+    local echo_eid="$3"
+    local ping_dir="$4"
+    local ping_src="$5"
+    local ping_dst="$6"
+    local ping_out="$7"
+    local count=3
+
+    (cd "$echo_dir" && bpecho "$echo_eid") > "$echo_dir/${ping_out}.echo.log" 2>&1 &
+    local echo_pid=$!
+    sleep 2
+    (cd "$ping_dir" && timeout 25 bping -c "$count" -i 1 -q 2 \
+        "$ping_src" "$ping_dst") > "$ping_dir/$ping_out" 2>&1
+    local ping_rc=$?
+
+    # Stop bpecho.  SIGTERM, then SIGKILL after a short grace period.
+    kill -TERM "$echo_pid" 2>/dev/null
+    for _ in 1 2 3; do
+        kill -0 "$echo_pid" 2>/dev/null || break
+        sleep 1
+    done
+    kill -KILL "$echo_pid" 2>/dev/null
+    wait "$echo_pid" 2>/dev/null
+
+    if [ "$ping_rc" -eq 124 ]; then
+        echo "FAIL: $label -- bping timed out (no response from $ping_dst)"
+        echo "----- bping output -----"
+        cat "$ping_dir/$ping_out"
+        echo "------------------------"
+        FAIL=1
+        return 1
+    fi
+    if grep -q "$count bundles transmitted, $count bundles received" \
+            "$ping_dir/$ping_out"; then
+        echo "PASS: $label -- $count/$count bundles round-tripped"
+        return 0
+    fi
+    echo "FAIL: $label -- expected $count/$count round-trip; bping output:"
+    cat "$ping_dir/$ping_out"
+    FAIL=1
+    return 1
+}
+
+#####################################################################
+banner "TEST 1 of 9: Initial cleanup, expect no ION running"
+#####################################################################
+./cleanup
+sleep 2
+show_ipcs
+
+#####################################################################
+banner "TEST 2 of 9: Start node 2; capture its IPC footprint"
+#####################################################################
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+BEFORE_N2="$(shm_keys)"
+echo "shm keys before node 2 start:"
+echo "${BEFORE_N2:-(none)}" | sed 's/^/  /'
+
+cd 2.ipn.ltp
+./ionstart >& node2.stdout
+../../../system_up -i "p 30" -b "p 30"
+RC=$?
+cd ..
+if [ "$RC" -ne 2 ]; then
+    echo "FAIL: TEST 2 -- node 2 did not come up (rc=$RC); aborting"
+    exit 1
+fi
+
+AFTER_N2="$(shm_keys)"
+N2_KEYS="$(comm -13 <(printf '%s\n' "$BEFORE_N2") <(printf '%s\n' "$AFTER_N2"))"
+echo "shm keys added by node 2:"
+echo "${N2_KEYS:-(none)}" | sed 's/^/  /'
+show_ipcs
+require_keys_present "TEST 2: node 2 sdrWmKey present" "0x0000ff02"
+
+#####################################################################
+banner "TEST 3 of 9: Verify node 2 self-loopback works (no node 3 yet)"
+#####################################################################
+# Node 2 has a contact 2->2 in its contact graph and a UDP outduct
+# pointed back at its own induct, so bping ipn:2.2 -> bpecho ipn:2.1
+# round-trips entirely within node 2.
+verify_bping "TEST 3" \
+    2.ipn.ltp ipn:2.1 \
+    2.ipn.ltp ipn:2.2 ipn:2.1 \
+    bpingN2self_initial.log
+
+#####################################################################
+banner "TEST 4 of 9: Start node 3; capture its IPC footprint"
+#####################################################################
+cd 3.ipn.ltp
+./ionstart >& node3.stdout
+../../../system_up -i "p 30" -b "p 30"
+RC=$?
+cd ..
+if [ "$RC" -ne 2 ]; then
+    echo "FAIL: TEST 4 -- node 3 did not come up (rc=$RC); aborting"
+    exit 1
+fi
+
+AFTER_N3="$(shm_keys)"
+N3_KEYS="$(comm -13 <(printf '%s\n' "$AFTER_N2") <(printf '%s\n' "$AFTER_N3"))"
+echo "shm keys added by node 3:"
+echo "${N3_KEYS:-(none)}" | sed 's/^/  /'
+show_ipcs
+require_keys_present "TEST 4: node 2 + node 3 sdrWmKey both present" \
+    "0x0000ff02" "0x0000ff03"
+
+#####################################################################
+banner "TEST 5 of 9: Verify node 2 <-> node 3 bundle round-trip"
+#####################################################################
+verify_bping "TEST 5" \
+    3.ipn.ltp ipn:3.1 \
+    2.ipn.ltp ipn:2.2 ipn:3.1 \
+    bpingN2_to_N3.log
+
+#####################################################################
+banner "TEST 6 of 9: 'ionexit n' on node 3 (delete SDR, keep IPC)"
+#####################################################################
+echo "Running ionexit n in 3.ipn.ltp..."
+(cd 3.ipn.ltp && ionexit n) > 3.ipn.ltp/ionexit_n.log 2>&1
+sleep 3
+show_ipcs
+
+AFTER_EXITN="$(shm_keys)"
+LEAKED="$(comm -12 <(printf '%s\n' "$N3_KEYS") <(printf '%s\n' "$AFTER_EXITN"))"
+if [ -n "$LEAKED" ]; then
+    echo "FAIL: TEST 6 -- node 3 keys still attached after ionexit n:"
+    echo "$LEAKED" | sed 's/^/  /'
+    FAIL=1
+else
+    echo "PASS: TEST 6 -- all node 3 shm keys gone"
+fi
+require_keys_absent "TEST 6: node 3 sdrWmKey gone" "0x0000ff03"
+require_keys_present "TEST 6: node 2 sdrWmKey untouched" "0x0000ff02"
+
+#####################################################################
+banner "TEST 7 of 9: Verify node 2 still self-loopbacks after node 3 down"
+#####################################################################
+verify_bping "TEST 7" \
+    2.ipn.ltp ipn:2.1 \
+    2.ipn.ltp ipn:2.2 ipn:2.1 \
+    bpingN2self_after_n3_down.log
+
+#####################################################################
+banner "TEST 8 of 9: Restart node 3; verify per-node keys come back"
+#####################################################################
+cd 3.ipn.ltp
+./ionstart >& node3.restart.stdout
+../../../system_up -i "p 30" -b "p 30"
+RC=$?
+cd ..
+if [ "$RC" -ne 2 ]; then
+    echo "FAIL: TEST 8 -- node 3 did not restart (rc=$RC)"
+    cat 3.ipn.ltp/node3.restart.stdout
+    FAIL=1
+else
+    echo "PASS: TEST 8 -- node 3 restarted"
+fi
+show_ipcs
+require_keys_present "TEST 8: node 3 sdrWmKey + node 2 sdrWmKey both present" \
+    "0x0000ff02" "0x0000ff03"
+
+#####################################################################
+banner "TEST 9 of 9: Re-verify node 2 <-> node 3 bundle round-trip"
+#####################################################################
+verify_bping "TEST 9" \
+    3.ipn.ltp ipn:3.1 \
+    2.ipn.ltp ipn:2.2 ipn:3.1 \
+    bpingN2_to_N3_after_restart.log
+
+#####################################################################
+banner "Summary"
+#####################################################################
+if [ "$FAIL" -eq 0 ]; then
+    echo "ALL TESTS PASSED"
+    exit 0
+else
+    echo "ONE OR MORE TESTS FAILED"
+    exit 1
+fi

@@ -193,9 +193,6 @@ typedef struct
 /*	Administrative record types	*/
 #define	BP_STATUS_REPORT	(1)
 #define	BP_MULTICAST_BRIEFING	(5)
-#define	BP_SAGA_MESSAGE		(6)
-#define	BP_BIBE_PDU		(7)
-#define	BP_BIBE_SIGNAL		(8)	/*	Aggregate, in BIBE.	*/
 
 typedef enum
 {
@@ -437,6 +434,11 @@ typedef struct
 	int		updateStats;	/*	Boolean.		*/
 	char		nss[MAX_NSS_LEN + 1];
 	int		appPid;		/*	Consumes dlv notices.	*/
+	uvast		appCookie;	/*	Owner's per-process
+						instance cookie; used with
+						appPid to distinguish a
+						PID-recycled new process
+						from the original owner.*/
 	sm_SemId	semaphore;	/*	For dlv notices.	*/
 	TallyDelta	statsDeltas[BP_ENDPOINT_STATS];
 } VEndpoint;
@@ -817,7 +819,7 @@ typedef struct
 	TallyDelta	recvDeltas[3];
 	TallyDelta	discardDeltas[3];
 	TallyDelta	xmitDeltas[3];
-	atomic_uint	delDeltas[BP_REASON_STATS];	/*	Count only.	*/
+	ion_ipc_atomic_t	delDeltas[BP_REASON_STATS];	/*	Count only.	*/
 	TallyDelta	dbDeltas[BP_DB_STATS];
 
 	int		bundleCounter;
@@ -1441,8 +1443,6 @@ extern int		findBundle(char *sourceEid, BpTimestamp *creationTime,
 				Object *bundleAddr);
 extern int		retrieveSerializedBundle(Object bundleZco, Object *obj);
 
-extern int		deliverBundle(Object bundleObj, Bundle *bundle,
-				VEndpoint *vpoint);
 extern int		forwardBundle(Object bundleObj, Bundle *bundle,
 				char *stationEid);
 

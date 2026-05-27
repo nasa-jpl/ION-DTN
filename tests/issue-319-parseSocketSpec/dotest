@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Scott Burleigh
 # April 21, 2010
@@ -33,7 +34,6 @@ echo "OUTPUT: Searching for message reception stats in the amsbenchr output."
 echo
 echo "########################################"
 
-killm
 ./cleanup
 
 echo "Starting ION..."
@@ -70,6 +70,5 @@ fi
 # Shut down ION processes.
 echo "Stopping ION..."
 ./shutdown_proc
-killm
 
 exit $RETVAL

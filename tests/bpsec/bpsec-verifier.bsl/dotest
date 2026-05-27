@@ -1,0 +1,169 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# bpsec-verifier.bsl
+#
+# BSL verifier role test: exercises the BIB and BCB verifier role at an
+# intermediate relay node. Node 3 has ONLY verifier policy (no acceptor
+# rules), so it verifies security blocks at CLIN and forwards them intact
+# to node 4, which is the acceptor.
+#
+# Topology:
+#   Node 2 (ipn:2.*) --LTP--> Node 3 (ipn:3.*) --LTP--> Node 4 (ipn:4.*)
+#
+# Security design:
+#   Node 2: BIB source on primary (tgt 0) + BCB source on payload (tgt 1)
+#   Node 3: BIB verifier at CLIN + BCB verifier at CLIN (verify only, forward intact)
+#   Node 4: BIB acceptor at APPOUT + BCB acceptor at APPOUT (strips security blocks)
+#
+# Tests:
+#   Test 1 - BIB+BCB bundle 2->4 via verifier relay, small payload
+#   Test 2 - Second BIB+BCB bundle 2->4 via verifier relay, stability check
+
+TIMETODISPLAYTEXT=2
+TIMETOWAITFORTESTFINISH=5
+
+echo "Cleaning up old ION..."
+rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 4.ipn.ltp/ion.log
+killm
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+BSL_KEY_FILE="${PWD}/key_set.json"
+if [ ! -f "$BSL_KEY_FILE" ]; then
+    echo "ERROR: BSL key file not found: $BSL_KEY_FILE"
+    exit 2
+fi
+
+for pf in "${PWD}/policy_node2.json" "${PWD}/policy_node3.json" "${PWD}/policy_node4.json"; do
+    if [ ! -f "$pf" ]; then
+        echo "ERROR: BSL policy file not found: $pf"
+        exit 2
+    fi
+done
+
+PASS=1
+
+cd 2.ipn.ltp
+ionadmin amroc.ionrc
+cd ../3.ipn.ltp
+ionadmin amroc.ionrc
+cd ../4.ipn.ltp
+ionadmin amroc.ionrc
+
+cd ../2.ipn.ltp
+ionadmin ../global.ionrc
+cd ../3.ipn.ltp
+ionadmin ../global.ionrc
+cd ../4.ipn.ltp
+ionadmin ../global.ionrc
+
+cd ../2.ipn.ltp
+ionsecadmin amroc.ionsecrc
+cd ../3.ipn.ltp
+ionsecadmin amroc.ionsecrc
+cd ../4.ipn.ltp
+ionsecadmin amroc.ionsecrc
+
+cd ../2.ipn.ltp
+ltpadmin amroc.ltprc
+cd ../3.ipn.ltp
+ltpadmin amroc.ltprc
+cd ../4.ipn.ltp
+ltpadmin amroc.ltprc
+
+cd ../2.ipn.ltp
+bpadmin amroc.bprc
+cd ../3.ipn.ltp
+bpadmin amroc.bprc
+cd ../4.ipn.ltp
+bpadmin amroc.bprc
+
+cd ..
+
+rm -f 4.ipn.ltp/4_receive_file.txt
+rm -f 4.ipn.ltp/4_results.txt
+touch 4.ipn.ltp/4_receive_file.txt
+touch 4.ipn.ltp/4_results.txt
+
+echo "Starting bpsink on node 4..."
+cd 4.ipn.ltp
+bpsink ipn:4.1 >> 4_results.txt &
+cd ..
+
+sleep 1
+
+#############
+# Test 1: BIB+BCB bundle, node 2->4 via verifier relay at node 3
+
+cd 2.ipn.ltp
+echo -e "\n\n*****TEST 1*****"
+echo "BIB(primary)+BCB(payload), 2->4 via verifier relay. Node 3 verifies at CLIN. Should be delivered."
+sleep ${TIMETODISPLAYTEXT}
+bptrace ipn:2.1 ipn:4.1 ipn:2.0 5 0.1 "verifier_relay_test1" rcv,ct,fwd,dlv,del
+cd ..
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+grep "verifier_relay_test1" 4.ipn.ltp/4_results.txt > 4.ipn.ltp/4_receive_file.txt
+
+rm -f expected.txt
+echo "'verifier_relay_test1'" > expected.txt
+
+if ! diff -w expected.txt 4.ipn.ltp/4_receive_file.txt; then
+    echo "FAIL (test 1)"
+    PASS=0
+else
+    echo "SUCCESS (test 1)"
+fi
+
+#############
+# Test 2: Second BIB+BCB bundle, stability check
+
+echo -e "\n\n*****TEST 2*****"
+echo "Second BIB(primary)+BCB(payload), 2->4 via verifier relay. Stability check."
+sleep ${TIMETODISPLAYTEXT}
+
+cd 2.ipn.ltp
+bptrace ipn:2.1 ipn:4.1 ipn:2.0 5 0.1 "verifier_relay_test2" rcv,ct,fwd,dlv,del
+cd ..
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+grep "verifier_relay_test2" 4.ipn.ltp/4_results.txt > 4.ipn.ltp/4_receive_file.txt
+
+rm -f expected.txt
+echo "'verifier_relay_test2'" > expected.txt
+
+if ! diff -w expected.txt 4.ipn.ltp/4_receive_file.txt; then
+    echo "FAIL (test 2)"
+    PASS=0
+else
+    echo "SUCCESS (test 2)"
+fi
+
+############################################################
+# END OF TESTS
+
+echo "Stopping ION..."
+cd 2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+cd ../4.ipn.ltp
+./ionstop &
+
+cd ..
+
+sleep 7
+killm
+echo "Verifier test completed."
+
+if [ $PASS -eq 1 ]; then
+    exit 0
+else
+    exit 1
+fi

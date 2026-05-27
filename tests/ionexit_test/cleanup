@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+export ION_NODE_LIST_DIR=$PWD
+killm f
 echo "Cleaning up old ION files..."
 rm -f ipcs.txt 1.ipn.ltp/ipcs.txt
 rm -f ion_nodes 1.ipn.ltp/ion.log 1.ipn.ltp/node1*stdout 1.ipn.ltp/ltpblock.*

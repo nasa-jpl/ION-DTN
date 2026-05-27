@@ -54,8 +54,6 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 	static char	buffer[BPRECVBUFSZ];
 	int		contentLength;
 	int		remainingLength;
-	char		fileName[64];
-	int		testFile = -1;
 	ZcoReader	reader;
 	int		recvLength;
 
@@ -75,8 +73,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 		if (zco_receive_source(sdr, &reader, recvLength, buffer) < 0)
 		{
 			putErrmsg("bprecvtest: can't receive bundle content.",
-					fileName);
-			close(testFile);
+					NULL);
 			oK(sdr_end_xn(sdr));
 			return -1;
 		}

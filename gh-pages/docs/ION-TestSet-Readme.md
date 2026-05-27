@@ -149,15 +149,170 @@ If a platform lacks certain capabilities (e.g., no MbedTLS), the corresponding e
 
 ## Writing new tests
 
-A test directory must contain an executable file named `dotest`.  If a directory does not contain this, the test will be ignored. The `dotest` program should execute the test, possibly reporting runtime information on stdout and stderr, and indicate by its return value the result of the test as follows:
+### Test directory structure
+
+Each test lives in its own subdirectory under `tests/`. A minimal test directory contains:
+
+```
+tests/my-test/
+├── dotest          # Required. The test driver script (must be executable).
+├── cleanup         # Required. Cleans up ION processes and test artifacts.
+├── .description    # Optional. One-line description shown by runtests.
+├── .optional       # Optional. Marks the test as optional (see above).
+└── (config files)  # ION configuration files used by the test.
+```
+
+Multi-node tests typically use a subdirectory per node:
+
+```
+tests/my-multi-node-test/
+├── dotest
+├── cleanup
+├── 2.ipn.ltp/          # Node 2 working directory and configs
+│   ├── amroc.ionrc
+│   ├── amroc.bprc
+│   └── ...
+├── 3.ipn.ltp/          # Node 3
+│   └── ...
+└── 5.ipn.ltp/          # Node 5
+    └── ...
+```
+
+### The `cleanup` script
+
+The `cleanup` script is responsible for two things:
+
+1. **Stop all ION processes and release IPC resources** by calling `killm f`. The `f` (force) flag ensures a full cleanup of all ION instances, shared memory, and semaphores.
+
+2. **Remove test-specific artifacts** such as log files, output files, and temporary data generated during the test.
+
+#### When `runtests` calls cleanup
+
+The `runtests` framework calls `./cleanup` at these points:
+
+- **Before** running `./dotest` — unconditionally, to ensure a clean starting state.
+- **After** `./dotest` exits with **0** (pass) — by default, cleanup runs to reclaim disk space. Set `PRESERVE_TEST_LOGS=1` to skip cleanup and keep logs from passing tests.
+- **After** `./dotest` exits with **1** (fail) — **never**. Logs are always preserved on failure for debugging.
+- **After** `./dotest` exits with **2** (skip) or any other value — cleanup is **not** called.
+
+By default, `runtests` runs post-test cleanup after passing tests to prevent disk exhaustion during long CI batches. Pre-test cleanup always runs to guarantee a clean starting state. Failed test logs are always preserved regardless of settings.
+
+When `PRESERVE_TEST_LOGS` is set to `1` (`export PRESERVE_TEST_LOGS=1`), `runtests` skips post-test cleanup after passing tests, preserving all logs for inspection. This is useful for local debugging but should not be used in CI environments with limited disk space.
+
+#### Standalone cleanup mode (`./runtests cleanup`)
+
+`./runtests cleanup [tests...]` runs cleanup without executing any test. It performs a full reset, intended to put the test tree back to a pristine state after an interrupted or hung campaign:
+
+1. **`killm f` once upfront** — reaps any orphan ION daemons before per-test sweeps, so the artifact removal isn't racing live processes that hold the files open.
+2. For each test in turn:
+   - The test's own `./cleanup` script (if present) — handles named config artifacts that only the test knows about.
+   - `cleanup_staging_files` — generic runtime cruft (`bpacq*`, `ltpacq*`, `*.sdr`, `bsspSegment*`, `xnref*`, `*.sdrlog`, `core`, `core.*`) under the test directory and `/tmp`.
+   - `ion.log` and `ion-system.log` removal (depth 3, so multi-node `nodeN/ion.log` files are caught).
+3. Finally, removes `tests/retest` and `tests/progress` so the campaign bookkeeping is also reset.
+
+Unlike the per-test cleanup that happens during a normal run, standalone cleanup mode does **not** preserve `ion.log` or `ion-system.log` — the assumption is that if you asked for cleanup, you want a real reset. Investigate failures before invoking it.
+
+If no test names are passed, cleanup runs against every test that `runtests` would otherwise discover.
+
+#### Environment isolation
+
+`runtests` executes `./dotest` and `./cleanup` as separate subprocesses. Environment variables exported inside `dotest` (such as `ION_NODE_LIST_DIR`) do **not** propagate to the cleanup subprocess. Each script is responsible for setting the environment variables it needs.
+
+#### Multi-node cleanup and `ION_NODE_LIST_DIR`
+
+For multi-node tests, `killm f` uses the `ION_NODE_LIST_DIR` environment variable to locate the `ion_nodes` file. When set, `killm f` iterates over each node's working directory and runs `ionexit` per node for a graceful shutdown before falling back to process termination and IPC cleanup.
+
+Because of the subprocess isolation described above, the cleanup script must export `ION_NODE_LIST_DIR` itself — it cannot rely on the value set by `dotest`. Without it, `killm f` cannot find the `ion_nodes` file and will skip the per-node graceful shutdown, falling back to brute-force process termination.
+
+#### Multi-node shutdown order and shared resources
+
+In a multi-node-per-host configuration, all ION instances share two global resources:
+
+1. **SDR working memory** (shared memory segment, typically key `0xFF00`): Used by `ionAttach()` to locate and connect to any ION instance.
+2. **Global named semaphores** (`ion:GLOBAL:*`): Used by all ION processes to gate access to shared memory and to poll the stop flag during shutdown.
+
+When shutting down multiple nodes, these shared resources must be preserved until the very last node is stopped. Destroying either one prematurely prevents `ionexit` from attaching to the remaining nodes:
+
+- `ionTerminate(1)` (triggered by `ionexit` without the `k` flag) destroys the global SDR working memory. Subsequent `ionexit` calls on other nodes fail with `"Can't get shared memory segment"` and `"Unable to attach to ION"`.
+- `sm_ipc_stop()` (triggered by `ionexit` without the `n` flag) destroys the global semaphores. Non-clock processes (CLAs, forwarders, admin endpoints) that rely on semaphore-gated polling of the stop flag can no longer detect the shutdown and hang indefinitely.
+
+For this reason, `killm f` uses the following shutdown sequence:
+
+1. **All-but-last node**: `ionexit k n` — issues `bpStop()`, `ltpStop()`, `rfx_stop()` to signal each node's daemons, but keeps SDR (`k`) and preserves IPC (`n`) so subsequent nodes can still attach.
+2. **Last node**: `ionexit` — full cleanup including SDR deletion and IPC teardown.
+3. **Polling loop**: Waits up to 5 seconds for flag-polled processes to detect the stop and exit.
+4. **SIGTERM/SIGKILL fallback**: Catches any processes that did not respond to the graceful shutdown.
+5. **IPC cleanup**: `ipcrm` removes any remaining shared memory segments, message queues, and semaphores. Named semaphore files are also deleted.
+
+This same principle applies to any script that shuts down a subset of ION instances on a shared host: always use `ionexit k n` for intermediate nodes to preserve the shared resources that the remaining instances depend on.
+
+**Example cleanup script (single-node):**
+```bash
+#!/usr/bin/env bash
+killm f
+rm -f ion.log
+```
+
+**Example cleanup script (multi-node):**
+```bash
+#!/usr/bin/env bash
+export ION_NODE_LIST_DIR=$PWD
+killm f
+rm -f ion_nodes
+rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 5.ipn.ltp/ion.log
+rm -f 5.ipn.ltp/testfile1 5.ipn.ltp/testfile2
+```
+
+### The `dotest` script
+
+A test directory must contain an executable file named `dotest`. If a directory does not contain this, the test will be ignored. The `dotest` program should execute the test, possibly reporting runtime information on stdout and stderr, and indicate by its return value the result of the test as follows:
 
     0: Success
     1: Failure
     2: Skip this test
 
-The test program starts without the ION stack running. The test program is responsible for starting ION in the way that is appropriate for the test.
+The test program starts without the ION stack running (cleanup has already been called). The test program is responsible for starting ION in the way that is appropriate for the test.
 
-The test program *must* stop the ION protocol stack before returning.
+**Important conventions:**
+
+- **EXIT trap required**: Every `dotest` script must include `trap 'killm f' EXIT` near the top of the file (after the shebang). This ensures ION processes and IPC resources are cleaned up on every exit path — normal exit, error exit, skip, and unexpected termination. The `runtests` harness also calls `killm f` as a safety net after `dotest` returns, but scripts must not rely on this.
+
+- **Mid-test resets**: If your test runs multiple sub-scenarios that each require a fresh ION instance, call `killm f` between them to ensure full cleanup before restarting ION. The `f` flag is necessary because multi-node tests set `ION_NODE_LIST_DIR`, which causes bare `killm` to operate in node-only mode.
+
+- **Error paths**: On error, simply `exit 1`. The EXIT trap handles cleanup automatically.
+
+- **Merging with other traps**: If your script needs an EXIT trap for other purposes (e.g., removing temporary files, restoring terminal state), combine them into a single trap:
+  ```bash
+  trap 'rm -f "$TMPFILE"; killm f' EXIT
+  ```
+
+**Example dotest structure:**
+```bash
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+
+echo "########################################"
+echo "NAME: my-test"
+echo "PURPOSE: Verify that feature X works correctly."
+echo "########################################"
+
+RETVAL=0
+
+# cleanup is called by runtests before dotest, so ION is not running.
+
+echo "Starting ION..."
+ionstart -I "config.rc"
+sleep 1
+
+# ... run test logic ...
+
+if ! grep -q "expected output" results.txt; then
+    echo "FAIL: Did not find expected output"
+    RETVAL=1
+fi
+
+exit $RETVAL
+```
 
 ## The test environment
 
@@ -173,8 +328,87 @@ Starting with ION version 4.1.3, the `runtests` script maintains a file called `
 
 If the environment variable `RUNTESTS_OUTPUTDIR` is set, as in `export RUNTESTS_OUTPUTDIR="/tmp"`, then the output from each test will be stored in individual files like `/tmp/results.testname` (e.g., `/tmp/results.1000.loopback`), which makes it much easier to find particular text or results when debugging.
 
+Each test conclusion line in the `progress` file and on stderr reports both the actual elapsed time and (when a `.DURATION` file is present) the declared expected duration:
+
+```
+PASSED: bping (12s, declared 10s)
+FAILED: foo (45s, declared 30s)
+TIMEOUT: tc-dtka (2400s, declared 1033s, limit=2400s)
+```
+
+This makes it easy to spot tests drifting past their declared budget without cross-referencing `.DURATION` by hand.
+
+## Per-test timeout
+
+Each test is run under a watchdog so that a hung test cannot block the rest of the campaign. The per-test timeout is computed as:
+
+- `4 × .DURATION` if a `.DURATION` file is present and contains a positive integer
+- Capped at **2400 s** (40 minutes) and floored at **60 s**
+- Defaulted to **1200 s** (20 minutes) when `.DURATION` is missing or unparseable
+- Overridden entirely by `ION_TEST_TIMEOUT` (in seconds, uncapped — useful for interactive debugging of long-running tests)
+
+When the watchdog fires, `runtests` collects diagnostics from the still-live test (see below), then kills the process group via SIGTERM/SIGKILL and `killm f`. The test is reported as `TIMEOUT` in the `progress` file with `limit=<seconds>` included.
+
+## Diagnostics on failure or timeout
+
+On any test failure or timeout, `runtests` invokes the `ion-diagnostics` script (located at the repository root) to capture forensic state into `ion-system.log` in the test directory. The same file is preserved alongside `ion.log` after the run, and is collected as a CI artifact by the Solaris workflow.
+
+`ion-diagnostics` writes a sectioned report. Sections include:
+
+1. Host information (uname, OS release, user)
+2. ION process inventory (`ps`-style snapshot of every ION daemon)
+3. **Stack traces**: live `gdb`/`eu-stack`/`mdb` backtraces of each ION process, plus per-core-file backtraces (see below)
+4. Kernel messages (`dmesg`)
+5. Memory usage (`free` on Linux, `prtconf`+`vmstat` on Solaris)
+6. Disk usage (`df -h`)
+7. SysV IPC resources (`ipcs`)
+8. POSIX named semaphore files (`/dev/shm`, `/tmp/.LIBRT/SEM*`)
+9. SDR and PSM snapshots (`sdrwatch`, `psmwatch`) per node
+10. Open file descriptors (`/proc/PID/fd` on Linux, `pfiles` on Solaris, `lsof` fallback)
+11. Per-node `ion.log` tails
+12. Network sockets (`ss` on Linux, `pfiles` + `netstat -an -P tcp/udp` on Solaris)
+
+Sections can be read back individually from a saved file with `ion-diagnostics read <number|name>`. Use `ion-diagnostics read` with no argument to list available sections.
+
+### Core file capture
+
+A crash that occurs before diagnostics runs (e.g., SIGSEGV in a test daemon) leaves no live process for the live-PID `gdb` path to attach to. The Stack Traces section also discovers core files:
+
+- Linux: reads `/proc/sys/kernel/core_pattern`. If it begins with `|systemd-coredump`, uses `coredumpctl list/info/debug` to extract backtraces. Otherwise, scans the configured core directory plus the test directory.
+- Solaris: queries `coreadm` for the configured core paths.
+- Each fresh core (matched against `ION_DIAG_SINCE`, which `runtests` sets to the test start time, with a `-mmin -60` fallback) is fed to `gdb -batch -ex 'thread apply all bt full' BINARY CORE`. On Solaris, `mdb` is used if `gdb` is absent.
+
+`runtests` runs `ulimit -c unlimited` at entry so that crashes actually produce a core in environments where the default core-file limit is 0. This is best-effort; restricted environments (containers with `RLIMIT_CORE` hard limit 0) silently leave the limit at 0 and `ion-diagnostics` simply reports no cores found.
+
+Core files and acquisition staging files (`bpacq*`, `ltpacq*`, `*.sdr`, `bsspSegment*`, `xnref*`, `*.sdrlog`) are removed by `cleanup_staging_files` after diagnostics finishes, so disk usage doesn't grow across a long campaign while still preserving `ion.log` and `ion-system.log` for inspection.
+
+Stale `ion-system.log` files from prior runs are swept out of each test directory before the test starts, so they cannot be mistakenly uploaded by CI as if they belonged to the current run.
+
 ## Test retries and the retest file
 
-When tests fail during a test campaign, `runtests` automatically generates a file called `retest` in the `tests` directory. This file contains the names of all failed non-optional tests. After the initial test run completes, `runtests` will automatically attempt to re-run all tests listed in the `retest` file once more. This automatic retry mechanism helps identify intermittent failures and reduces false positives from timing-sensitive tests.
+When tests fail during a test campaign, `runtests` writes the names of all failed non-optional tests to a file called `retest` in the `tests` directory. Optional tests (marked with `.optional`) are never included.
 
-Note that optional tests (marked with `.optional`) are never included in the `retest` file and are not retested automatically, since their failure does not affect the overall test campaign status.
+Automatic retesting is **off by default**. To re-enable the prior behavior of automatically re-running every failed test once at the end of the campaign, set `ENABLE_RETEST=1`:
+
+```bash
+ENABLE_RETEST=1 ./runtests
+```
+
+The `retest` file is generated regardless of `ENABLE_RETEST`, so failed tests can be replayed manually at any time:
+
+```bash
+./runtests retest
+```
+
+## Environment variables
+
+| Variable | Default | Effect |
+|----------|---------|--------|
+| `RUNTESTS_OUTPUTDIR` | unset | If set to a directory, per-test output is written to `<dir>/results.<testname>` instead of the terminal |
+| `PRESERVE_TEST_LOGS` | `0` | When `1`, logs from passing tests are kept (failed-test logs are always preserved) |
+| `ENABLE_RETEST` | `0` | When `1`, automatically re-runs failed tests once after the initial pass |
+| `ION_TEST_TIMEOUT` | unset | Overrides the computed per-test timeout (seconds, uncapped) |
+| `ION_MIN_DISK_MB` | `500` | Minimum free disk space (MB) required before each test; lower values abort the test as `ABORT (disk full)` |
+| `ION_RUN_EXPERT` | unset | When non-empty, enables tests marked with `.exclude_expert` (e.g., BPSec) |
+| `ION_NODE_LIST_DIR` | unset | Multi-node test isolation: directory where the `ion_nodes` file lives so `killm` can scope to a single node |
+| `ION_DIAG_SINCE` | (set by `runtests`) | Epoch seconds; bounds `ion-diagnostics`' core-file scan to cores produced after this time |

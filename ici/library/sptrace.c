@@ -26,6 +26,7 @@ typedef struct
 	int		traceSmId;	/*	For shared memory ops.	*/
 	char		name[32];	/*	for concurrent tracing	*/
 	int		opCount;	/*	count of operations	*/
+	int		episodeId;	/*	cross-process validation*/
 	PsmAddress	files;		/*	SmList source filenames	*/
 	PsmAddress	log;		/*	SmList of TraceItems	*/
 } TraceHeader;
@@ -546,4 +547,25 @@ void	sptrace_stop(PsmPartition trace)
 	{
 		sm_ShmDestroy(smId);
 	}
+}
+
+void	sptrace_set_episode_id(PsmPartition trace, int episodeId)
+{
+	TraceHeader	*trh;
+
+	if (!trace) return;
+	trh = (TraceHeader *) psp(trace, psm_get_root(trace));
+	if (trh)
+	{
+		trh->episodeId = episodeId;
+	}
+}
+
+int	sptrace_get_episode_id(PsmPartition trace)
+{
+	TraceHeader	*trh;
+
+	if (!trace) return -1;
+	trh = (TraceHeader *) psp(trace, psm_get_root(trace));
+	return trh ? trh->episodeId : -1;
 }

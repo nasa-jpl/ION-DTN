@@ -113,6 +113,24 @@ B<orangebook>  CCSDS Orange Book mode.  Enables Compressed Bundle Reporting
 
 The default mode is B<none>.
 
+=item B<m srmode> { traditional | compressed | both }
+
+The B<manage status report mode> command.  This command sets the status
+report generation mode for the local node.  The available modes are:
+
+B<traditional>   Generate standard BPv7 status reports only.
+
+B<compressed>    Generate Compressed Reporting Signals (CRS) only, as
+                 specified in the CCSDS Orange Book.
+
+B<both>          Generate both traditional status reports and compressed
+                 reporting signals.
+
+The default mode is B<traditional>.
+
+This command requires B<m custodymode orangebook> to be effective for
+compressed reporting.
+
 =item B<m cbraggr> I<crs_limit> I<ccs_limit> I<timeout_seconds>
 
 The B<manage CBR aggregation> command.  This command configures the
@@ -372,10 +390,12 @@ The B<delete induct> command.  This command deletes the induct identified
 by I<protocol_name> and I<duct_name>.  The command will fail if any bundles
 are currently pending acquisition via this induct.
 
-=item B<i induct> I<protocol_name> I<duct_name>
+=item B<i induct> I<protocol_name> [I<duct_name>]
 
 This command will print information (the CLI command) about
 the induct identified by I<protocol_name> and I<duct_name>.
+If I<duct_name> is omitted, information is printed for the
+first induct of the indicated protocol.
 
 =item B<l induct> [I<protocol_name>]
 
@@ -560,13 +580,11 @@ transmitting bundles to the node[s] to which it is currently assigned.
 
 Declares the "ipn" scheme on the local node.
 
-=item a protocol udp 1400 100 16384
+=item a protocol udp
 
 Establishes access to the "udp" convergence layer protocol on the local
-node, estimating the number of payload bytes per ultimate (lowest-layer)
-frame to be 1400 with 100 bytes of total overhead (BP, UDP, IP, AOS) per
-lowest-layer frame, and setting the default nominal data rate to be 16384
-bytes per second.
+node.  Since "udp" is a well-known protocol, its class (best-effort) is
+set automatically.
 
 =item r 'ipnadmin flyby.ipnrc'
 

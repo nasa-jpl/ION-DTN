@@ -95,10 +95,7 @@ void	*udplsa_handle_datagrams(void *parm)
 	while (1)
 	{
 		int keepRunning;
-
-		pthread_mutex_lock(&rtp->lock);
-		keepRunning = rtp->running;
-		pthread_mutex_unlock(&rtp->lock);
+		keepRunning = (int) ion_atomic_get(&rtp->running);
 
 		if (!keepRunning)
 		{
@@ -113,9 +110,7 @@ void	*udplsa_handle_datagrams(void *parm)
 			putSysErrmsg("Can't acquire segments", NULL);
 			ionKillMainThread(procName);
 
-			pthread_mutex_lock(&rtp->lock);
-			rtp->running = 0;
-			pthread_mutex_unlock(&rtp->lock);
+			ion_atomic_set(&rtp->running, 0);
 
 			/*	Intentional fall-through to next case.	*/
 
@@ -131,9 +126,7 @@ void	*udplsa_handle_datagrams(void *parm)
 			{
 				/*	Normal stop.			*/
 
-				pthread_mutex_lock(&rtp->lock);
-				rtp->running = 0;
-				pthread_mutex_unlock(&rtp->lock);
+				ion_atomic_set(&rtp->running, 0);
 				break;
 			}
 
@@ -143,9 +136,7 @@ void	*udplsa_handle_datagrams(void *parm)
 						NULL);
 				ionKillMainThread(procName);
 
-				pthread_mutex_lock(&rtp->lock);
-				rtp->running = 0;
-				pthread_mutex_unlock(&rtp->lock);
+				ion_atomic_set(&rtp->running, 0);
 				break;
 			}
 
@@ -189,10 +180,7 @@ void	*udplsa_handle_datagrams(void *parm)
 	while (1)
 	{
 		int keepRunning;
-
-		pthread_mutex_lock(&rtp->lock);
-		keepRunning = rtp->running;
-		pthread_mutex_unlock(&rtp->lock);
+		keepRunning = (int) ion_atomic_get(&rtp->running);
 
 		if (!keepRunning)
 		{
@@ -214,9 +202,7 @@ void	*udplsa_handle_datagrams(void *parm)
 			/* FALLTHROUGH */
 
 		case 1:				/*	Normal stop.	*/
-			pthread_mutex_lock(&rtp->lock);
-			rtp->running = 0;
-			pthread_mutex_unlock(&rtp->lock);
+			ion_atomic_set(&rtp->running, 0);
 			continue;
 		}
 
@@ -225,9 +211,7 @@ void	*udplsa_handle_datagrams(void *parm)
 			putErrmsg("Can't handle inbound segment.", NULL);
 			ionKillMainThread(procName);
 
-			pthread_mutex_lock(&rtp->lock);
-			rtp->running = 0;
-			pthread_mutex_unlock(&rtp->lock);
+			ion_atomic_set(&rtp->running, 0);
 			continue;
 		}
 

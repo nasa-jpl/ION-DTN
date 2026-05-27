@@ -229,6 +229,11 @@ static uvast 	getBestEntryNode(Bundle *bundle, IonNode *terminusNode,
 	CgrTrace	*trace = NULL;
 #endif
 
+	if (ionvdb == NULL || cgrvdb == NULL)
+	{
+		return 0;
+	}
+
 	/*	Determine whether or not the contact graph for the
 	 *	terminus node identifies one or more routes over
 	 *	which the bundle may be sent in order to get it
@@ -670,7 +675,7 @@ printf("Bundle has %d destinations.\n", destinationsCount);
 #if IMCDEBUG
 puts("no destinations");
 #endif
-		oK(bpAbandon(bundleAddr, bundle, BP_REASON_NO_ROUTE));
+		oK(bpAbandon(bundleAddr, bundle, BP_REASON_BLK_MALFORMED));
 		return 0;
 	}
 
@@ -978,7 +983,7 @@ int	main(void)
 #if IMCDEBUG
 puts("IMC extension block missing");
 #endif
-			oK(bpAbandon(bundleAddr, &bundle, BP_REASON_NO_ROUTE));
+			oK(bpAbandon(bundleAddr, &bundle, BP_REASON_BLK_MALFORMED));
 			continue;
 		}
 

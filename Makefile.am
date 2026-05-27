@@ -89,26 +89,17 @@ EXTRA_DIST =	\
 # libraries. It checks for a flag file to ensure it only runs ONCE per build.
 
 if ENABLE_BSL
-# For BSL builds, we need a two-stage process:
-# 1. Build libici.la (BSL depends on it)
-# 2. Build BSL (everything else depends on BSL headers)
-# 3. Build everything else
+# BSL v1.1 builds as a standalone library (no ION dependencies).
+# Build BSL first, then build ION linking against BSL.
+all: all-bsl
 
-# Override the default all target to do two-stage build
-all: all-bsl-two-stage
-
-all-bsl-two-stage:
+all-bsl:
 	@echo "========================================"
-	@echo "Stage 1: Building libici.la..."
+	@echo "Stage 1: Building BSL..."
 	@echo "========================================"
-	$(MAKE) $(AM_MAKEFLAGS) libici.la
+	@$(srcdir)/build-bsl-for-ion.sh
 	@echo "========================================"
-	@echo "Stage 2: Building BSL with ION integration..."
-	@echo "========================================"
-	@cd $(srcdir)/external/BSL && \
-	ION_ROOT=$(abs_top_builddir) ./build-for-ion.sh
-	@echo "========================================"
-	@echo "Stage 3: Building remaining ION components..."
+	@echo "Stage 2: Building ION..."
 	@echo "========================================"
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -136,8 +127,8 @@ endif
 if ENABLE_BSL
 install-exec-hook:
 	@echo "Installing BSL shared libraries to $(DESTDIR)$(libdir)..."
-	@cp -a $(srcdir)/external/BSL/testroot/usr/lib/libbsl_*.so* $(DESTDIR)$(libdir)/
-	@cp -a $(srcdir)/external/BSL/testroot/usr/lib/libqcbor.so* $(DESTDIR)$(libdir)/
+	@cp -pPR $(srcdir)/external/BSL/testroot/usr/lib/libbsl_*.so* $(DESTDIR)$(libdir)/
+	@cp -pPR $(srcdir)/external/BSL/testroot/usr/lib/libqcbor.so* $(DESTDIR)$(libdir)/
 endif
 
 # This hook contains the final message after a successful installation.
@@ -345,13 +336,14 @@ endif # end ENABLE_MANPAGES
 # whatever directory with the rest of the programs.
 stuffdir = $(bindir)
 stuff_SCRIPTS = $(srcdir)/ionstart \
+		$(srcdir)/ionrun \
 		$(srcdir)/ionstop \
 		$(srcdir)/ionscript \
 		$(srcdir)/demos/ionlauncher/ionlauncher \
 		$(srcdir)/demos/ionlauncher/net_model_gen \
 		$(srcdir)/killm \
-		$(srcdir)/ionprocesses.txt \
-		$(srcdir)/remove_win_shmem.ps1
+		$(srcdir)/ion-diagnostics \
+		$(srcdir)/ionprocesses.txt
 #comment stuff_SCRIPTS += $(srcdir)/killm if you want to build killm.exe
 
 
@@ -474,7 +466,12 @@ icibin = \
 	psmwatch \
 	rfxclock \
 	sdr2file \
-	sdr_test_util \
+	reversibility_correctness_test \
+	robust_lock_recovery_test \
+	psm_robust_recovery_test \
+	ipc_lock_recovery_test \
+	sdrcancel \
+	sdr_frag_stress \
 	sdrmend \
 	sdrwatch \
 	sm2file \
@@ -493,6 +490,7 @@ iciinclude = \
 	ici/include/icinm.h \
 	ici/include/ion.h \
 	ici/include/ion_admin.h \
+	ici/include/ion_atomic.h \
 	ici/include/ionsec.h \
 	ici/include/llcv.h \
 	ici/include/lyst.h \
@@ -656,6 +654,13 @@ libici_la_SOURCES =	\
 	ici/sdr/sdr_perf.c \
 	ici/crypto/entropy_src.c
 
+# Always compile ion_atomic.c.  Its internal #if !ION_HAVE_C11_ATOMICS guard
+# compiles the function bodies to nothing on C11 builds, so this is safe.
+# The file must be unconditionally present so that CFLAGS-based tier overrides
+# (ION_TEST_FORCE_FALLBACK) can switch to the mutex-backed fallback at compile
+# time without a link failure.
+libici_la_SOURCES += ici/library/ion_atomic.c
+
 libici_la_CFLAGS = $(icicflags) $(AM_CFLAGS)
 libici_la_LIBADD = $(CRYPTO_LIBS) -lm
 
@@ -727,9 +732,29 @@ sdr2file_SOURCES = ici/test/sdr2file.c
 sdr2file_LDADD = libici.la -lm
 sdr2file_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
-sdr_test_util_SOURCES = ici/test/sdr_test_util.c
-sdr_test_util_LDADD = libici.la -lm
-sdr_test_util_CFLAGS = $(icicflags) $(AM_CFLAGS)
+reversibility_correctness_test_SOURCES = ici/test/reversibility_correctness_test.c
+reversibility_correctness_test_LDADD = libici.la -lm
+reversibility_correctness_test_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
+robust_lock_recovery_test_SOURCES = ici/test/robust_lock_recovery_test.c
+robust_lock_recovery_test_LDADD = libici.la -lm
+robust_lock_recovery_test_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
+psm_robust_recovery_test_SOURCES = ici/test/psm_robust_recovery_test.c
+psm_robust_recovery_test_LDADD = libici.la -lm
+psm_robust_recovery_test_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
+ipc_lock_recovery_test_SOURCES = ici/test/ipc_lock_recovery_test.c
+ipc_lock_recovery_test_LDADD = libici.la -lm
+ipc_lock_recovery_test_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
+sdrcancel_SOURCES = ici/test/sdrcancel.c
+sdrcancel_LDADD = libici.la -lm
+sdrcancel_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
+sdr_frag_stress_SOURCES = ici/test/sdr_frag_stress.c
+sdr_frag_stress_LDADD = libici.la -lm
+sdr_frag_stress_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 sm2file_SOURCES = ici/test/sm2file.c
 sm2file_LDADD = libici.la -lm
@@ -1070,6 +1095,7 @@ bpbin = \
 	bpsource \
 	cbrcustodytest \
 	bpstats \
+	bpwatch \
 	bptrace \
 	bptracker \
 	bptransit \
@@ -1254,16 +1280,13 @@ bpextra = \
 	bpv7/doc/pod5/lgfile.pod \
 	bpv7/library/ext/bpextensions.c \
 	bpv7/library/ext/noextensions.c \
+	bpv7/library/ext/bae/bae.h \
 	bpv7/library/ext/bpsec/bcb.h \
 	bpv7/library/ext/bpsec/bib.h \
-	bpv7/library/ext/hcb/hcb.h \
-	bpv7/library/ext/meb/meb.h \
-	bpv7/library/ext/meb/meb.c \
 	bpv7/library/ext/creb/creb.h \
-	bpv7/library/ext/bae/bae.h \
-	bpv7/library/ext/bae/bae.c \
-	ici/include/crypto.h \
-	ici/include/csi.h
+	bpv7/library/ext/cteb/cteb.h \
+	bpv7/library/ext/hcb/hcb.h \
+	bpv7/library/ext/meb/meb.h
 
 if ENABLE_IMC
 bpextra += \
@@ -1521,6 +1544,10 @@ endif
 bpstats_SOURCES = bpv7/utils/bpstats.c
 bpstats_LDADD = libici.la $(bplib)
 bpstats_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bpwatch_SOURCES = bpv7/utils/bpwatch.c
+bpwatch_LDADD = libici.la $(bplib)
+bpwatch_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bptrace_SOURCES = bpv7/utils/bptrace.c
 bptrace_LDADD = libici.la $(bplib)
@@ -2705,7 +2732,7 @@ restartclean-local:
 # TESTS SECTION
 #
 ##########################
-.PHONY:	test check buildcheck test-all test-% retest bsl-clean-local all-bsl-two-stage
+.PHONY:	test check buildcheck test-all test-% retest bsl-clean-local all-bsl
 
 # "make buildcheck" will compile any of the compiled tests, but won't run
 # any of them. Also builds check_LTLIBRARIES (e.g., stub provider libraries).
@@ -2809,7 +2836,8 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/admin_public_api/bp_plan_crash_recovery/dotest \
 	tests/admin_public_api/ltp_span_crash_recovery/dotest \
 	tests/admin_public_api/tcp_2nodes/dotest \
-	tests/admin_public_api/bulk_removal/dotest
+	tests/admin_public_api/bulk_removal/dotest \
+	tests/bp_sap_thread_ownership/dotest
 #	tests/nm-unit/primitives/ari/dotest
 # Note: SPP/EPP loopback tests use shell scripts, not C programs
 
@@ -2852,6 +2880,10 @@ tests_nm_unit_utils_radix_ut_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUTILCFLAG
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
 tests_1000_loopback_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(TESTUTILOBJS)
 tests_1000_loopback_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+
+tests_bp_sap_thread_ownership_dotest_SOURCES = tests/bp_sap_thread_ownership/dotest.c
+tests_bp_sap_thread_ownership_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(TESTUTILOBJS) -lpthread
+tests_bp_sap_thread_ownership_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 #Disabled this test in ION 3.6.0 because tcpcl does not support loopback
 #tests_1300_loopback_tcp_dotest_SOURCES = tests/1300.loopback-tcp/dotest.c
@@ -2908,15 +2940,17 @@ tests_admin_public_api_ltp_span_management_dotest_LDADD = libici.la -lm $(bplib)
 tests_admin_public_api_ltp_span_management_dotest_CFLAGS = $(icicflags) $(bpcflags) $(ltpcflags) $(AM_CFLAGS)
 
 tests_admin_public_api_bp_plan_crash_recovery_dotest_SOURCES = tests/admin_public_api/bp_plan_crash_recovery/bp_plan_crash_recovery_test.c tests/admin_public_api/ltp_loopback/ion_test_utils.c
-tests_admin_public_api_bp_plan_crash_recovery_dotest_LDADD = libici.la -lm $(bplib)
-tests_admin_public_api_bp_plan_crash_recovery_dotest_CFLAGS = $(icicflags) $(bpcflags) $(AM_CFLAGS)
+tests_admin_public_api_bp_plan_crash_recovery_dotest_LDADD = libici.la -lm $(bplib) $(ltplib)
+tests_admin_public_api_bp_plan_crash_recovery_dotest_CFLAGS = $(icicflags) $(bpcflags) $(ltpcflags) $(AM_CFLAGS)
 
 tests_admin_public_api_ltp_span_crash_recovery_dotest_SOURCES = tests/admin_public_api/ltp_span_crash_recovery/ltp_span_crash_recovery_test.c tests/admin_public_api/ltp_loopback/ion_test_utils.c
 tests_admin_public_api_ltp_span_crash_recovery_dotest_LDADD = libici.la -lm $(bplib) $(ltplib)
 tests_admin_public_api_ltp_span_crash_recovery_dotest_CFLAGS = $(icicflags) $(bpcflags) $(ltpcflags) $(AM_CFLAGS)
 
-# Helper program tcp_single_node for tcp_2nodes test
-check_PROGRAMS += tests/admin_public_api/tcp_2nodes/tcp_single_node
+# Helper program tcp_single_node for tcp_2nodes test.
+# Must be noinst_PROGRAMS (not check_PROGRAMS) so it's built by default
+# `make`; otherwise the launcher dotest cannot find it at runtime.
+noinst_PROGRAMS = tests/admin_public_api/tcp_2nodes/tcp_single_node
 tests_admin_public_api_tcp_2nodes_tcp_single_node_SOURCES = tests/admin_public_api/tcp_2nodes/tcp_single_node.c
 tests_admin_public_api_tcp_2nodes_tcp_single_node_LDADD = libici.la -lm $(bplib)
 tests_admin_public_api_tcp_2nodes_tcp_single_node_CFLAGS = $(icicflags) $(bpcflags) $(AM_CFLAGS)

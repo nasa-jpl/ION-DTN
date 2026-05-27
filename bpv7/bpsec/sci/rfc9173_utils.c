@@ -91,8 +91,8 @@ BpsecSerializeData bpsec_rfc9173utl_authDataBuild(sc_state *state, int parm_id, 
 
 	uint8_t *priBlkData = NULL;
 	uint8_t *data = NULL;
-	uint8_t tgtHdrData[BPSEC_RFC9173_UTIL_BLK_HDR_MAX_SIZE];
-	uint8_t secHdrData[BPSEC_RFC9173_UTIL_BLK_HDR_MAX_SIZE];
+	uint8_t tgtHdrData[BPSEC_RFC9173_UTIL_BLK_HDR_MAX_SIZE] = {0};
+	uint8_t secHdrData[BPSEC_RFC9173_UTIL_BLK_HDR_MAX_SIZE] = {0};
 
 	BpsecSerializeData result;
 	unsigned char *cursor = NULL;

@@ -146,7 +146,9 @@ typedef enum
 	CfdpOriginatingTransactionId,
 	CfdpProxyClosureRequest,
 	CfdpDirectoryListingRequest = 16,
-	CfdpDirectoryListingResponse
+	CfdpDirectoryListingResponse,
+	/*	18 reserved for a future recursive listing request.	*/
+	CfdpDirectoryListingResponseV2 = 19
 } CfdpUserMsgType;
 
 typedef enum

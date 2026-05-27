@@ -1,0 +1,7 @@
+1 100
+# Peer engine 3 doesn't exist; UDP packets go into the void on 3113.
+# aggrTimeLimit = 1s, so a single small SDU triggers segmentation
+# even though it doesn't fill the aggregation buffer.
+a span 3 2 2 1200 1024 1 'udplso localhost:3113'
+w 1
+s 'udplsi localhost:2113'

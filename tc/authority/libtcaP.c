@@ -136,7 +136,7 @@ int	tcaInit(int blocksGroupNbr, int bulletinsGroupNbr, int recordsGroupNbr,
 
 	_tcaDBName(dbname, sizeof dbname, blocksGroupNbr);
 	if (blocksGroupNbr < 1 || bulletinsGroupNbr < 1 || recordsGroupNbr < 1
-	|| K < 1 || !(R > 0.0 && R < 1.0))
+	|| auths < 1 || K < 1 || !(R > 0.0 && R < 1.0))
 	{
 		writeMemoNote("[?] Invalid TCA initialization parameter(s)",
 				dbname);

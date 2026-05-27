@@ -57,10 +57,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           clean: true
           # clear workspace after
+
+      - name: Auto-detect PR number
+        id: detect-pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -n "${{ inputs.pr_number }}" ]; then
+            echo "pr_number=${{ inputs.pr_number }}" >> $GITHUB_OUTPUT
+          else
+            PR_NUM=$(gh pr list --head "${{ github.ref_name }}" --json number --jq '.[0].number // empty' 2>/dev/null || true)
+            if [ -n "$PR_NUM" ]; then
+              echo "Auto-detected PR #${PR_NUM} for branch ${{ github.ref_name }}"
+              echo "pr_number=${PR_NUM}" >> $GITHUB_OUTPUT
+            else
+              echo "No PR found for branch ${{ github.ref_name }}"
+              echo "pr_number=" >> $GITHUB_OUTPUT
+            fi
+          fi
 
       - name: Display OS and Arch
         run: |
@@ -98,7 +116,7 @@ jobs:
             echo "Starting build and tests at $(date)"
             export ION_RUN_EXPERT="yes"
             export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-            export PRESERVE_TEST_LOGS="yes"
+            export PRESERVE_TEST_LOGS="0"
             autoreconf -fi
             ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
             make -j4
@@ -123,7 +141,6 @@ jobs:
           } > build-and-test.log 2> >(tee -a build-and-test.log >&2)
 
           TEST_STATUS=$?
-          wait  # Wait for background processes to complete
 
           if [ $TEST_STATUS -ne 0 ]; then
             echo "Build and tests failed with status $TEST_STATUS" >&2
@@ -137,7 +154,7 @@ jobs:
 
       - name: Upload full build and test log
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-and-test-log-ubuntu-latest-${{ env.TIMESTAMP }}
           path: build-and-test.log
@@ -150,7 +167,7 @@ jobs:
 
       - name: Upload progress file as artifact
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-progress-ubuntu-latest-${{ env.TIMESTAMP }}
           path: ./tests/progress
@@ -176,19 +193,19 @@ jobs:
 
       - name: Upload ion.log files as artifact
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ion-logs-ubuntu-latest-${{ env.TIMESTAMP }}
           path: ion-logs-collection/
           if-no-files-found: warn
 
       - name: Set PR status
-        if: ${{ inputs.pr_number != '' }}
-        uses: actions/github-script@v7
+        if: ${{ steps.detect-pr.outputs.pr_number != '' }}
+        uses: actions/github-script@v9
         with:
           script: |
             const conclusion = "${{ job.status }}" === "success" ? "success" : "failure";
-            const prNumber = parseInt("${{ inputs.pr_number }}", 10);
+            const prNumber = parseInt("${{ steps.detect-pr.outputs.pr_number }}", 10);
 
             let pr;
             try {

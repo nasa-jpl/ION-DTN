@@ -4,6 +4,8 @@
 #
 
 # Kill any remaining owltsim processes
+export ION_NODE_LIST_DIR=$PWD
+killm f
 pkill -9 owltsim 2>/dev/null
 
 # Remove output files

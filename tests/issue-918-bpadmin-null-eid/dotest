@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# Regression test for #918: bpadmin "a endpoint dtn:none" segfaulted, and
+# "a endpoint ipn:0.0" was silently registered but then refused by
+# removeEndpoint as a null endpoint.  The fix in addEndpoint() rejects
+# both with a "[?] Can't add the null endpoint" log message, mirroring
+# the existing rejection in removeEndpoint().
+#
+# Pass criteria:
+#   - bpadmin does not segfault on either dtn:none or ipn:0.0.
+#   - The single valid endpoint registration succeeds and is listed.
+#   - The two null-endpoint attempts are NOT listed.
+#   - ion.log contains the new "Can't add the null endpoint" message.
+
+echo "########################################"
+echo "NAME:  issue-918-bpadmin-null-eid"
+echo
+echo "PURPOSE: bpadmin must reject null-EID endpoint registration cleanly"
+echo "         instead of segfaulting (dtn:none) or accepting then refusing"
+echo "         delete (ipn:0.0).  See issue #918."
+echo "########################################"
+
+FAIL=0
+
+./cleanup
+sleep 1
+
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+echo "Starting minimal ION..."
+ionadmin amroc.ionrc
+ionsecadmin amroc.ionsecrc
+bpadmin amroc.bprc
+sleep 2
+
+echo
+echo "=== Attempt 1: add dtn:none (previously segfaulted) ==="
+echo "a endpoint dtn:none q" | bpadmin /dev/stdin
+RC=$?
+if [ "$RC" -ne 0 ]; then
+    echo "FAIL: bpadmin exited with code $RC on dtn:none"
+    FAIL=1
+else
+    echo "PASS: bpadmin exited cleanly on dtn:none"
+fi
+
+echo
+echo "=== Attempt 2: add ipn:0.0 (previously silently accepted) ==="
+echo "a endpoint ipn:0.0 q" | bpadmin /dev/stdin
+RC=$?
+if [ "$RC" -ne 0 ]; then
+    echo "FAIL: bpadmin exited with code $RC on ipn:0.0"
+    FAIL=1
+else
+    echo "PASS: bpadmin exited cleanly on ipn:0.0"
+fi
+
+echo
+echo "=== Control: add a valid endpoint ==="
+echo "a endpoint ipn:1.5 q" | bpadmin /dev/stdin
+RC=$?
+if [ "$RC" -ne 0 ]; then
+    echo "FAIL: bpadmin failed to add valid endpoint ipn:1.5"
+    FAIL=1
+else
+    echo "PASS: valid endpoint accepted"
+fi
+
+echo
+echo "=== Verify endpoint list ==="
+EP_LIST=$(echo "l endpoint" | bpadmin /dev/stdin 2>&1)
+echo "$EP_LIST"
+
+if echo "$EP_LIST" | grep -q "dtn:none"; then
+    echo "FAIL: dtn:none appears in endpoint list -- it should have been rejected."
+    FAIL=1
+else
+    echo "PASS: dtn:none is not registered."
+fi
+
+if echo "$EP_LIST" | grep -q "ipn:0\.0\b"; then
+    echo "FAIL: ipn:0.0 appears in endpoint list -- it should have been rejected."
+    FAIL=1
+else
+    echo "PASS: ipn:0.0 is not registered."
+fi
+
+if echo "$EP_LIST" | grep -q "ipn:1\.5"; then
+    echo "PASS: ipn:1.5 is registered as expected."
+else
+    echo "FAIL: ipn:1.5 is missing from the endpoint list."
+    FAIL=1
+fi
+
+echo
+echo "=== Verify rejection message in ion.log ==="
+if grep -q "Can't add the null endpoint" ion.log; then
+    echo "PASS: ion.log shows the rejection message."
+else
+    echo "FAIL: expected 'Can't add the null endpoint' in ion.log."
+    FAIL=1
+fi
+
+echo
+echo "=== Verify no crash markers in ion.log ==="
+if grep -E "Assertion failed|core dumped|Segmentation fault" ion.log >/dev/null; then
+    echo "FAIL: ion.log contains crash markers."
+    grep -E "Assertion failed|core dumped|Segmentation fault" ion.log | head -3
+    FAIL=1
+else
+    echo "PASS: no crash markers in ion.log."
+fi
+
+echo
+echo "Stopping ION..."
+bpadmin .
+ionadmin .
+
+if [ $FAIL -eq 0 ]; then
+    echo "TEST PASSED"
+else
+    echo "TEST FAILED"
+fi
+
+exit $FAIL

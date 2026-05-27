@@ -13,6 +13,7 @@
 
 
 #include <platform.h>
+#include "ion_atomic.h"
 
 static void	takeIpcLock(void);
 static void	giveIpcLock(void);
@@ -701,6 +702,31 @@ int	sm_SemTake(sm_SemId i)
 	return 0;
 }
 
+int	sm_SemTakeTimed(sm_SemId i, int timeoutSeconds)
+{
+	SmSem	*semTbl = _semTbl();
+	SmSem	*sem;
+	int	ticks;
+
+	CHKERR(i >= 0);
+	CHKERR(i < nSemIds);
+	sem = semTbl + i;
+	if (timeoutSeconds < 1) timeoutSeconds = 1;
+	ticks = timeoutSeconds * sysClkRateGet();
+	if (semTake(sem->id, ticks) == ERROR)
+	{
+		if (errno == S_objLib_OBJ_TIMEOUT)
+		{
+			return 1;	/*	Timed out.		*/
+		}
+
+		putSysErrmsg("Can't take semaphore", itoa(i));
+		return -1;
+	}
+
+	return 0;
+}
+
 void	sm_SemGive(sm_SemId i)
 {
 	SmSem	*semTbl = _semTbl();
@@ -954,6 +980,36 @@ int	sm_SemTake(sm_SemId i)
 		if (errno == EINTR)
 		{
 			continue;
+		}
+
+		putSysErrmsg("Can't take semaphore", itoa(i));
+		return -1;
+	}
+
+	return 0;
+}
+
+int	sm_SemTakeTimed(sm_SemId i, int timeoutSeconds)
+{
+	SmSem		*semTbl = _semTbl();
+	SmSem		*sem = semTbl + i;
+	struct timespec	timeout;
+
+	CHKERR(i >= 0);
+	CHKERR(i < SEM_NSEMS_MAX);
+	if (timeoutSeconds < 1) timeoutSeconds = 1;
+	oK(clock_gettime(CLOCK_REALTIME, &timeout));
+	timeout.tv_sec += timeoutSeconds;
+	while (sem_timedwait(sem->id, &timeout) < 0)
+	{
+		if (errno == EINTR)
+		{
+			continue;
+		}
+
+		if (errno == ETIMEDOUT)
+		{
+			return 1;	/*	Timed out.		*/
 		}
 
 		putSysErrmsg("Can't take semaphore", itoa(i));
@@ -1460,6 +1516,48 @@ int	sm_SemTake(sm_SemId i)
 			putSysErrmsg("Can't take semaphore", itoa(i));
 			return -1;
 		}
+	}
+
+	return 0;
+}
+
+int	sm_SemTakeTimed(sm_SemId i, int timeoutSeconds)
+{
+	SemaphoreBase	*sembase = _sembase(IPC_ACTION_LOOKUP);
+	IciSemaphore	*sem;
+	IciSemaphoreSet	*semset;
+	struct sembuf	sem_op[2] = { {0,0,0}, {0,1,0} };
+	struct timespec	timeout;
+
+	CHKERR(sembase);
+	CHKERR(i >= 0);
+	CHKERR(i < sembase->idsAllocated);
+	sem = sembase->semaphores + i;
+	if (sem->key == -1)	/*	semaphore deleted		*/
+	{
+		putErrmsg("Can't take deleted semaphore.", itoa(i));
+		return -1;
+	}
+
+	semset = sembase->semSets + sem->semSetIdx;
+	sem_op[0].sem_num = sem_op[1].sem_num = sem->semNbr;
+	if (timeoutSeconds < 1) timeoutSeconds = 1;
+	timeout.tv_sec = timeoutSeconds;
+	timeout.tv_nsec = 0;
+	while (semtimedop(semset->semid, sem_op, 2, &timeout) < 0)
+	{
+		if (errno == EINTR)
+		{
+			continue;
+		}
+
+		if (errno == EAGAIN)
+		{
+			return 1;	/*	Timed out.		*/
+		}
+
+		putSysErrmsg("Can't take semaphore", itoa(i));
+		return -1;
 	}
 
 	return 0;
@@ -2526,7 +2624,11 @@ static void	closeAllFileDescriptors(void)
 	struct rlimit	limit;
 	rlim_t		i;
 
-	oK(getrlimit(RLIMIT_NOFILE, &limit));
+	if (getrlimit(RLIMIT_NOFILE, &limit) < 0)
+	{
+		limit.rlim_cur = 0;
+	}
+
 	for (i = 3; i < limit.rlim_cur; i++)
 	{
 		oK(close(i));
@@ -2612,6 +2714,18 @@ int	sm_TaskSpawn(char *name, char *arg1, char *arg2, char *arg3,
 
 void	sm_TaskKill(int task, int sigNbr)
 {
+	if (task <= 0)
+	{
+		/*	task == 0 sends to the entire process group;
+		 *	task == -1 sends to every process the caller
+		 *	owns (kill(-1, sig)).  Both are catastrophic
+		 *	in this context.  ERROR is -1 on POSIX.	*/
+
+		writeMemoNote("[?] sm_TaskKill: refusing invalid PID",
+				itoa(task));
+		return;
+	}
+
 	oK(kill(task, sigNbr));
 }
 
@@ -2636,6 +2750,46 @@ void	sm_Abort(void)
 }
 
 #endif	/*	End of #ifdef UNIX_TASKS				*/
+
+/*	Portable per-process-instance cookie.  sm_TaskIdSelf() returns
+ *	the OS PID, which is reused after a process exits.  Two distinct
+ *	processes can therefore observe the same task id at different
+ *	times.  This function returns a value that distinguishes "this
+ *	process instance" from any other process instance, even one with
+ *	the same recycled PID.  Used by code that needs to detect stale
+ *	shared-memory ownership records left behind by a now-dead process
+ *	whose PID has since been reassigned.
+ *
+ *	The cookie is process-local: every thread in the same process
+ *	gets the same value, so it does not distinguish threads (PID
+ *	already fails to distinguish them and code that needs thread
+ *	identity must use pthread_self() or equivalent directly).	*/
+
+uvast	sm_ProcessCookie(void)
+{
+	static uvast	cookie = 0;
+
+	if (cookie == 0)
+	{
+		struct timeval	tv;
+
+		/*	XOR the PID with the high-resolution wall clock at
+		 *	first call.  Two processes cannot both start at the
+		 *	same microsecond with the same PID, so the tuple is
+		 *	unique in practice even if the collapsed 64-bit
+		 *	value is not theoretically collision-free.	*/
+
+		getCurrentTime(&tv);
+		cookie = ((uvast) sm_TaskIdSelf() << 32)
+			^ ((uvast) tv.tv_sec * 1000000ULL + (uvast) tv.tv_usec);
+		if (cookie == 0)
+		{
+			cookie = 1;	/*	0 means "unset".	*/
+		}
+	}
+
+	return cookie;
+}
 
 
 #ifdef POSIX_NAMED_SEMAPHORES
@@ -2689,11 +2843,11 @@ typedef unsigned long int smSequence;
 typedef struct
 {
 	char		inUse;
-	atomic_int	ended;		/* Atomic: accessed from multiple processes */
+	ion_ipc_atomic_t	ended;		/* Atomic: accessed from multiple processes */
 	int		key;
-	atomic_ulong	gseq;		/* Atomic: sequence number for cache invalidation */
-	atomic_int	refCount;	/* Number of active users across all processes (atomic for lock-free access) */
-	atomic_int	pendingDelete;	/* Atomic: marked for deletion when refCount reaches 0 */
+	ion_ipc_atomic_t	gseq;		/* Atomic: sequence number for cache invalidation */
+	ion_ipc_atomic_t	refCount;	/* Number of active users across all processes (atomic for lock-free access) */
+	ion_ipc_atomic_t	pendingDelete;	/* Atomic: marked for deletion when refCount reaches 0 */
 } SmGlobalSem;
 
 /* this structure makes up the process-local semaphore table */
@@ -2723,6 +2877,20 @@ typedef struct {
 	/* global process-side, ION instance wide value for GetUniqueKey() */
 	/* to be protected by the same global semaphore as this table */
 	unsigned int ipcUniqueKey;
+
+#ifdef ION_HAVE_ROBUST_MUTEX
+	/*	On platforms with robust-mutex support, the global IPC
+	 *	lock (formerly a POSIX named semaphore) is a process-
+	 *	shared robust pthread_mutex_t living here in shared
+	 *	memory.  This is the same orphan-recovery treatment that
+	 *	was applied to the SDR transaction lock and the PSM
+	 *	partition lock; without it, a process killed while
+	 *	holding the IPC lock (e.g. by SIGKILL during shutdown)
+	 *	orphans the POSIX named sem and every subsequent
+	 *	sm_SemCreate/sm_SemDelete wedges the node forever.	*/
+	pthread_mutex_t	ipcMutex;
+	int		ipcMutexCreated;	/*	Boolean.	*/
+#endif
 
 	/* is initialization complete for this structure? */
 	int initialized;
@@ -2768,7 +2936,7 @@ void _semPrintTable(void)  // Only for debugging purposes
 	for (i = 0; i < SEM_NSEMS_MAX; i++) {
 		SmLocalSem *psem  = &semTbl->lsemtable[i];
 
-		if (psem->semgl->inUse || (atomic_load(&psem->semgl->gseq) > 0)) {
+		if (psem->semgl->inUse || (ion_ipc_atomic_get(&psem->semgl->gseq) > 0)) {
 			fprintf(stderr,"  %-6d ", i);
 			fprintf(stderr,"%-5d ", psem->semgl->inUse);
 			if (!psem->semgl->inUse) {
@@ -2779,7 +2947,7 @@ void _semPrintTable(void)  // Only for debugging purposes
 				} else {
 					fprintf(stderr,"0x%08x ", psem->semgl->key);
 				}
-				if (psem->lseq == atomic_load(&psem->semgl->gseq)) {
+				if (psem->lseq == (smSequence)ion_ipc_atomic_get(&psem->semgl->gseq)) {
 					fprintf(stderr,"%5p ", psem->id);
 				} else {
 					/* out of sync locally, so not valid */
@@ -2787,7 +2955,7 @@ void _semPrintTable(void)  // Only for debugging purposes
 				}
 			}
 			fprintf(stderr,"%10lu ", psem->lseq);
-			fprintf(stderr,"%10lu ", atomic_load(&psem->semgl->gseq));
+			fprintf(stderr,"%10llu ", (unsigned long long)ion_ipc_atomic_get(&psem->semgl->gseq));
 			if (psem->semgl->inUse) {
 				fprintf(stderr,"%s ", _semGenPosixSemname(sem_name,sizeof(sem_name),i));
 			}
@@ -2832,7 +3000,7 @@ static int _semSync(SmProcessSemtable *plocal, sm_SemId semnum, int semlocked)
 	SmLocalSem  *plocalSem = &plocal->lsemtable[semnum];
 	SmGlobalSem *pglobalSem = plocalSem->semgl;
 
-	if (plocalSem->lseq == atomic_load(&pglobalSem->gseq)) {
+	if (plocalSem->lseq == (smSequence)ion_ipc_atomic_get(&pglobalSem->gseq)) {
 		/* local copy is up to date */
 		return(1);
 	}
@@ -2878,10 +3046,10 @@ static int _semSync(SmProcessSemtable *plocal, sm_SemId semnum, int semlocked)
 		}
 
 		plocalSem->id = NULL;
-		plocalSem->lseq = atomic_load(&pglobalSem->gseq);
+		plocalSem->lseq = (smSequence)ion_ipc_atomic_get(&pglobalSem->gseq);
 	}
 
-	plocalSem->lseq = atomic_load(&pglobalSem->gseq);  /* now up to date */
+	plocalSem->lseq = (smSequence)ion_ipc_atomic_get(&pglobalSem->gseq);  /* now up to date */
 	if (!semlocked)
 		giveIpcLock();
 	return(1);
@@ -3009,14 +3177,14 @@ static SmGlobalSemtable	*_sembase(int action)
 	static SmGlobalSemtable *psemGlobal = NULL;
 	static uaddr sembaseId = 0;
 
-	/* 	detach & reset, but not stopping	*/
+	/* detach & reset, but not stopping	*/
 	if (action == IPC_ACTION_DETACH)
 	{
 		sembaseId = 0;
-		psemGlobal->sembaseId = 0;
 
 		/* if sembase exists, detach from shared memory */
 		if (psemGlobal != NULL) {
+			psemGlobal->sembaseId = 0;
 			oK(shmdt(psemGlobal));
 		}
 		psemGlobal = NULL;
@@ -3026,6 +3194,31 @@ static SmGlobalSemtable	*_sembase(int action)
 	if (action == IPC_ACTION_STOP) {
 		if (psemGlobal != NULL) {
 			_semEraseNamedSems();
+#ifdef ION_HAVE_ROBUST_MUTEX
+			/*	Best-effort drain of the global IPC mutex
+			 *	before SHM destruction.  EOWNERDEAD is
+			 *	expected if the last holder died; marking
+			 *	consistent lets pthread_mutex_destroy
+			 *	accept the mutex cleanly.		*/
+
+			if (psemGlobal->ipcMutexCreated)
+			{
+				int rc = pthread_mutex_lock(&psemGlobal->ipcMutex);
+
+				if (rc == EOWNERDEAD)
+				{
+					oK(pthread_mutex_consistent(&psemGlobal->ipcMutex));
+				}
+
+				if (rc == 0 || rc == EOWNERDEAD)
+				{
+					oK(pthread_mutex_unlock(&psemGlobal->ipcMutex));
+				}
+
+				oK(pthread_mutex_destroy(&psemGlobal->ipcMutex));
+				psemGlobal->ipcMutexCreated = 0;
+			}
+#endif
 			sm_ShmDestroy(sembaseId);
 			psemGlobal = NULL;
 		}
@@ -3067,6 +3260,39 @@ static SmGlobalSemtable	*_sembase(int action)
 
 				/* initialize global counter for GetUniqueKey as with RtEMS */
 				psemGlobal->ipcUniqueKey = UNIQUE_KEY_PROCESSES_INITIAL;
+
+				/* Explicitly initialize IPC atomics for all semaphores */
+				for (int j = 0; j < SEM_NSEMS_MAX; j++) {
+					ion_ipc_atomic_init(&psemGlobal->gsemtable[j].ended, 0);
+					ion_ipc_atomic_init(&psemGlobal->gsemtable[j].gseq, 0);
+					ion_ipc_atomic_init(&psemGlobal->gsemtable[j].refCount, 0);
+					ion_ipc_atomic_init(&psemGlobal->gsemtable[j].pendingDelete, 0);
+				}
+
+#ifdef ION_HAVE_ROBUST_MUTEX
+				/* Initialize the robust process-shared IPC
+				 * mutex.  Replaces the legacy POSIX named
+				 * sem used by takeIpcLock/giveIpcLock. */
+				{
+					pthread_mutexattr_t	attr;
+
+					if (pthread_mutexattr_init(&attr) != 0
+					|| pthread_mutexattr_setpshared(&attr,
+							PTHREAD_PROCESS_SHARED) != 0
+					|| pthread_mutexattr_setrobust(&attr,
+							PTHREAD_MUTEX_ROBUST) != 0
+					|| pthread_mutex_init(&psemGlobal->ipcMutex,
+							&attr) != 0)
+					{
+						oK(pthread_mutexattr_destroy(&attr));
+						putErrmsg("Can't create robust mutex \
+for global IPC lock.", NULL);
+						return NULL;
+					}
+					oK(pthread_mutexattr_destroy(&attr));
+					psemGlobal->ipcMutexCreated = 1;
+				}
+#endif
 
 				psemGlobal->initialized = 1;  /* must be the last step */
 		}
@@ -3172,8 +3398,110 @@ void	sm_ipc_stop(void)
 }
 
 
+#ifdef ION_HAVE_ROBUST_MUTEX
+/*	Per-thread saved signal mask for takeIpcLock/giveIpcLock.  We
+ *	block SIGTERM/SIGINT around the IPC-lock-held region so that
+ *	a shutdown signal arriving mid-critical-section can never
+ *	interrupt this thread and re-enter takeIpcLock from its
+ *	handler — a self-deadlock seen in ltpdeliv/bptransit/bpclm
+ *	whose SIGTERM handlers call sm_SemEnd, which calls
+ *	takeIpcLock on the very mutex this thread already holds.
+ *	Deferred signals are delivered the moment giveIpcLock restores
+ *	the mask.							*/
+
+static ION_THREAD_LOCAL sigset_t	ipcLockSavedMask;
+static ION_THREAD_LOCAL int		ipcLockMaskDepth = 0;
+
+static void	blockShutdownSignals(void)
+{
+	sigset_t	toBlock;
+
+	if (ipcLockMaskDepth++ > 0)
+	{
+		return;	/*	Already blocked at outer scope.		*/
+	}
+
+	sigemptyset(&toBlock);
+	sigaddset(&toBlock, SIGTERM);
+	sigaddset(&toBlock, SIGINT);
+	oK(pthread_sigmask(SIG_BLOCK, &toBlock, &ipcLockSavedMask));
+}
+
+static void	restoreShutdownSignals(void)
+{
+	if (ipcLockMaskDepth == 0)
+	{
+		return;	/*	Unbalanced restore (should not happen).	*/
+	}
+
+	if (--ipcLockMaskDepth > 0)
+	{
+		return;	/*	Still nested; restore at outermost only.*/
+	}
+
+	oK(pthread_sigmask(SIG_SETMASK, &ipcLockSavedMask, NULL));
+}
+#endif	/*	ION_HAVE_ROBUST_MUTEX					*/
+
 static void	takeIpcLock(void)
 {
+#ifdef ION_HAVE_ROBUST_MUTEX
+	SmGlobalSemtable	*psemGlobal = _sembase(IPC_ACTION_LOOKUP);
+	int			rc;
+
+	CHKVOID(psemGlobal != NULL);
+	CHKVOID(psemGlobal->ipcMutexCreated);
+
+	blockShutdownSignals();
+	rc = pthread_mutex_lock(&psemGlobal->ipcMutex);
+	if (rc == EOWNERDEAD)
+	{
+		/*	Previous holder died with the global IPC lock
+		 *	held -- typically a SIGKILL'd daemon that was
+		 *	mid-sm_SemCreate or mid-sm_SemDelete.  Recover
+		 *	(mark consistent + continue) rather than abort.
+		 *
+		 *	Unlike PSM allocator metadata (free lists, in-use
+		 *	bits -- a misthread can corrupt unboundedly), the
+		 *	global sem-table failure surface is small and
+		 *	bounded: refCounts, in-use flags, pendingDelete
+		 *	bits, and slot-allocation cursor.  The worst-case
+		 *	outcome of recovering from an inconsistent state
+		 *	here is an orphaned sem-table slot that will be
+		 *	reclaimed at next sm_ipc_stop -- far better than
+		 *	aborting and breaking the deliberate `ionexit k n`
+		 *	restart flow that ION relies on for relay
+		 *	intermediates and similar use cases.		*/
+
+		writeMemo("[?] Global IPC lock owner died mid-operation; \
+marking lock consistent and continuing (sem-table may have an orphaned slot \
+until next sm_ipc_stop).");
+		oK(pthread_mutex_consistent(&psemGlobal->ipcMutex));
+		/*	fall through holding the now-consistent lock.	*/
+	}
+	else if (rc == ENOTRECOVERABLE)
+	{
+		/*	A previous EOWNERDEAD acquirer exited (or aborted)
+		 *	without marking the mutex consistent.  This is
+		 *	unrecoverable for everyone -- abort with
+		 *	diagnostics, flushing stdio first so the message
+		 *	actually reaches ion.log before abort() kills
+		 *	the process.					*/
+
+		putErrmsg("Global IPC lock is unrecoverable (a previous \
+holder died mid-operation and recovery did not complete). Aborting.", NULL);
+		printStackTrace();
+		fflush(NULL);
+		sm_Abort();
+	}
+	else if (rc != 0)
+	{
+		putSysErrmsg("Can't lock global IPC mutex", itoa(rc));
+		printStackTrace();
+		fflush(NULL);
+		sm_Abort();
+	}
+#else
 	sem_t *ipcsem = _ipcSemaphore(IPC_ACTION_LOOKUP);
 
 	while (sem_wait(ipcsem) == -1) {
@@ -3184,15 +3512,46 @@ static void	takeIpcLock(void)
 			CHKVOID(0);   /* at least this will show up in the log */
 		}
 	}
+#endif
 }
 
 
 static void	giveIpcLock(void)
 {
+#ifdef ION_HAVE_ROBUST_MUTEX
+	SmGlobalSemtable	*psemGlobal = _sembase(IPC_ACTION_LOOKUP);
+
+	CHKVOID(psemGlobal != NULL);
+	if (psemGlobal->ipcMutexCreated)
+	{
+		oK(pthread_mutex_unlock(&psemGlobal->ipcMutex));
+	}
+
+	/*	Restore the signal mask saved by takeIpcLock.  Any
+	 *	SIGTERM/SIGINT delivered to this thread while the lock
+	 *	was held is now delivered, including the shutdown
+	 *	handlers' calls back into sm_SemEnd that the blocking
+	 *	specifically protected against.				*/
+
+	restoreShutdownSignals();
+#else
 	if (sem_post(_ipcSemaphore(IPC_ACTION_LOOKUP)) == -1) {
 		putSysErrmsg("giveIpcLock failed", NULL);
 	}
+#endif
 }
+
+#ifdef ION_HAVE_ROBUST_MUTEX
+/*	Test-only helper: take the global IPC lock and leave it held.
+ *	Used by ici/test/ipc_lock_recovery_test to set up an orphan.
+ *	Not declared in any header; the test declares it manually.   */
+
+void	_sm_test_take_ipc_lock_unreleased(void)
+{
+	takeIpcLock();
+	/*	Intentionally not released; caller dies with lock held. */
+}
+#endif
 
 
 sm_SemId	sm_SemCreate(int key, int semType)
@@ -3257,7 +3616,23 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	oldmask = umask(0);
 
 	/* at this point, it's a new key and the name "sem_name" shouldn't be in use */
-	if ((psem = sem_open(sem_name, O_CREAT | O_EXCL, POSIX_NAMED_SEMAPHORES_FILEMODE, 0 )) == SEM_FAILED) {
+	psem = sem_open(sem_name, O_CREAT | O_EXCL, POSIX_NAMED_SEMAPHORES_FILEMODE, 0);
+	if (psem == SEM_FAILED && errno == EEXIST) {
+		/* The slot is free in the global semtable (verified above
+		 * under the IPC lock), but a stale named-sem file remains
+		 * on disk -- typically leaked by a prior process that died
+		 * before unlinking, or by a multi-node "ionexit n" path.
+		 * Unlink and retry. */
+		writeMemoNote("[i] sm_SemCreate: unlinking stale named sem", sem_name);
+		if (sem_unlink(sem_name) == -1 && errno != ENOENT) {
+			putSysErrmsg("Can't unlink stale sem file", sem_name);
+			umask(oldmask);
+			giveIpcLock();
+			return SM_SEM_NONE;
+		}
+		psem = sem_open(sem_name, O_CREAT | O_EXCL, POSIX_NAMED_SEMAPHORES_FILEMODE, 0);
+	}
+	if (psem == SEM_FAILED) {
 		putSysErrmsg("Semaphore open failed for sem file ", sem_name);
 		umask(oldmask);  /* restore umask() */
 		giveIpcLock();
@@ -3270,10 +3645,9 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	sem->id = psem;
 	sem->semgl->key = key;
 	sem->semgl->inUse = 1;
-	atomic_store(&sem->semgl->ended, 0);
-	atomic_store(&sem->semgl->refCount, 0);  /* Initialize to 0 - no active users yet */
-	atomic_store(&sem->semgl->pendingDelete, 0);
-	sem->localRefCount = 0;
+	ion_ipc_atomic_set(&sem->semgl->ended, 0);
+	ion_ipc_atomic_set(&sem->semgl->refCount, 0);  /* Initialize to 0 - no active users yet */
+	ion_ipc_atomic_set(&sem->semgl->pendingDelete, 0);
 	sem->handleOpened = 1;  /* Mark handle as opened since we just opened it */
 
 	/* gather usage statistics for memory tuning */
@@ -3282,7 +3656,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 		semTbl->semtablegl->opensems_max = semTbl->semtablegl->opensems_current;
 
 	/* tell other ION processes that their local copy is out of date */
-	sem->lseq = atomic_fetch_add(&sem->semgl->gseq, 1) + 1;
+	sem->lseq = (smSequence)ion_ipc_atomic_get_and_increment(&sem->semgl->gseq, 1) + 1;
 
 	/* Initialize semaphore value (first taker succeeds)
 	 * Call sem_post directly instead of sm_SemGive to avoid deadlock
@@ -3327,15 +3701,14 @@ static void _sm_SemCompleteDeletePosix(SmProcessSemtable *semTbl, sm_SemId i)
 
 	/* Update global state */
 	gsem->inUse = 0;
-	atomic_store(&gsem->ended, 0);
+	ion_ipc_atomic_set(&gsem->ended, 0);
 	gsem->key = SM_NO_KEY;
-	atomic_store(&gsem->refCount, 0);
-	atomic_store(&gsem->pendingDelete, 0);
-	atomic_fetch_add(&gsem->gseq, 1);  /* Invalidate all cached local copies */
+	ion_ipc_atomic_set(&gsem->refCount, 0);
+	ion_ipc_atomic_set(&gsem->pendingDelete, 0);
+	ion_ipc_atomic_get_and_increment(&gsem->gseq, 1);  /* Invalidate all cached local copies */
 
 	/* Update local state */
 	sem->lseq = 0;
-	sem->localRefCount = 0;
 	sem->handleOpened = 0;  /* Reset handle opened flag */
 
 	/* Update statistics */
@@ -3375,14 +3748,14 @@ void	sm_SemDelete(sm_SemId i)
 	gsem = sem->semgl;
 
 	/* Check if anyone is using the semaphore */
-	if (atomic_load(&gsem->refCount) > 0)
+	if (ion_ipc_atomic_get(&gsem->refCount) > 0)
 	{
 		/* Defer deletion until all users release it */
-		atomic_store(&gsem->pendingDelete, 1);
+		ion_ipc_atomic_set(&gsem->pendingDelete, 1);
 		giveIpcLock();
 #ifdef DEBUG_POSIX_NAMED_SEMAPHORES
 		writeMemoNote("Semaphore deletion deferred, refCount",
-				itoa(gsem->refCount));
+				itoa(ion_ipc_atomic_get(&gsem->refCount)));
 #endif
 		return;
 	}
@@ -3414,23 +3787,21 @@ int	sm_SemTake(sm_SemId i)
 	gsem = sem->semgl;
 
 	/* Check if semaphore is deleted or pending deletion */
-	if (!gsem->inUse || atomic_load(&gsem->pendingDelete))
+	if (!gsem->inUse || ion_ipc_atomic_get(&gsem->pendingDelete))
 	{
 		putErrmsg("Can't take deleted or pending-delete semaphore", itoa(i));
 		return -1;
 	}
 
 	/* Atomically increment reference count (lock-free) */
-	atomic_fetch_add(&gsem->refCount, 1);
-	sem->localRefCount++;
+	ion_ipc_atomic_get_and_increment(&gsem->refCount, 1);
 
 	/* Take the semaphore */
 	if (sem == NULL || sem->id == NULL)
 	{
 		putErrmsg("Semaphore or semaphore handle is NULL", itoa(i));
 		/* Atomically decrement reference count before returning */
-		atomic_fetch_sub(&gsem->refCount, 1);
-		sem->localRefCount--;
+		ion_ipc_atomic_get_and_decrement(&gsem->refCount, 1);
 		return -1;
 	}
 
@@ -3439,8 +3810,7 @@ int	sm_SemTake(sm_SemId i)
 	{
 		putErrmsg("Semaphore handle not opened", itoa(i));
 		/* Atomically decrement reference count before returning */
-		atomic_fetch_sub(&gsem->refCount, 1);
-		sem->localRefCount--;
+		ion_ipc_atomic_get_and_decrement(&gsem->refCount, 1);
 		return -1;
 	}
 
@@ -3455,7 +3825,7 @@ int	sm_SemTake(sm_SemId i)
 			 * If so, return success so caller can check sm_SemEnded()
 			 * and handle graceful shutdown. This matches the behavior
 			 * of other semaphore implementations (VxWorks, SVR4, etc.) */
-			if (atomic_load(&gsem->ended))
+			if (ion_ipc_atomic_get(&gsem->ended))
 			{
 				return 0;
 			}
@@ -3463,8 +3833,7 @@ int	sm_SemTake(sm_SemId i)
 		}
 
 		/* Error - decrement refCount atomically before returning */
-		atomic_fetch_sub(&gsem->refCount, 1);
-		sem->localRefCount--;
+		ion_ipc_atomic_get_and_decrement(&gsem->refCount, 1);
 
 		putSysErrmsg("Can't take semaphore", itoa(i));
 		return -1;
@@ -3475,7 +3844,7 @@ int	sm_SemTake(sm_SemId i)
 	 * handle graceful shutdown. This matches the behavior of other
 	 * semaphore implementations (VxWorks, SVR4, etc.) where sm_SemTake
 	 * returns 0 and the caller is expected to check sm_SemEnded(). */
-	if (atomic_load(&gsem->ended))
+	if (ion_ipc_atomic_get(&gsem->ended))
 	{
 		return 0;
 	}
@@ -3517,8 +3886,26 @@ void	sm_SemGive(sm_SemId i)
 	gsem = sem->semgl;
 
 	/* Atomically decrement reference count (lock-free) */
-	atomic_fetch_sub(&gsem->refCount, 1);
-	sem->localRefCount--;
+	ion_ipc_atomic_get_and_decrement(&gsem->refCount, 1);
+
+	/* If a deferred delete is pending and we just released the last
+	 * reference, complete it now -- otherwise the slot stays inUse=1
+	 * forever and the named-sem file is never unlinked, leading to
+	 * stale-file drift across runs. */
+	if (ion_ipc_atomic_get(&gsem->refCount) == 0
+			&& ion_ipc_atomic_get(&gsem->pendingDelete))
+	{
+		takeIpcLock();
+		/* Re-check under the IPC lock: another thread may have
+		 * raised refCount or already completed the delete. */
+		if (gsem->inUse
+				&& ion_ipc_atomic_get(&gsem->refCount) == 0
+				&& ion_ipc_atomic_get(&gsem->pendingDelete))
+		{
+			_sm_SemCompleteDeletePosix(semTbl, i);
+		}
+		giveIpcLock();
+	}
 
 #ifdef DEBUG_SEMAPHORE_HANG
 	writeMemoNote("[DEBUG] sm_SemGive: gave sem", itoa(i));
@@ -3551,12 +3938,12 @@ void	sm_SemEnd(sm_SemId i)
 	if (sem == NULL)
 	{
 		/* Semaphore not in use - just mark ended in global table */
-		atomic_store(&semTbl->lsemtable[i].semgl->ended, 1);
+		ion_ipc_atomic_set(&semTbl->lsemtable[i].semgl->ended, 1);
 		giveIpcLock();
 		return;
 	}
 
-	atomic_store(&sem->semgl->ended, 1);
+	ion_ipc_atomic_set(&sem->semgl->ended, 1);
 
 	/* Wake up any waiting threads/processes without changing refCount.
 	 * Note: We use sem_post() directly here instead of sm_SemGive()
@@ -3572,7 +3959,7 @@ void	sm_SemEnd(sm_SemId i)
 	 * once to ensure any waiter is woken. */
 	if (sem->id != NULL)
 	{
-		int waiters = atomic_load(&sem->semgl->refCount);
+		int waiters = ion_ipc_atomic_get(&sem->semgl->refCount);
 		if (waiters < 1) waiters = 1;    /* Always post at least once */
 
 		for (int j = 0; j < waiters; j++)
@@ -3616,7 +4003,7 @@ int	sm_SemEnded(sm_SemId i)
 	}
 
 	sem = &semTbl->lsemtable[i];
-	ended = atomic_load(&sem->semgl->ended);
+	ended = ion_ipc_atomic_get(&sem->semgl->ended);
 	if (ended)
 	{
 		sm_SemGive(i);	/*	Enable multiple tests.		*/
@@ -3624,7 +4011,6 @@ int	sm_SemEnded(sm_SemId i)
 
 	return ended;
 }
-
 void	sm_SemUnend(sm_SemId i)
 {
 	SmProcessSemtable *semTbl = _semTbl(IPC_ACTION_LOOKUP);
@@ -3645,16 +4031,94 @@ void	sm_SemUnend(sm_SemId i)
 	}
 
 	sem = &semTbl->lsemtable[i];
-	atomic_store(&sem->semgl->ended, 0);
+	ion_ipc_atomic_set(&sem->semgl->ended, 0);
 }
 
 /* many posix semaphore systems that implement "named semaphores" do NOT implement sem_timedwait() */
 /* ... so we'll have to do it old school with an alarm clock signal */
+static volatile sig_atomic_t	semTakeTimedOut = 0;
+
 static void	handleTimeout(int signum)
 {
 	/* Acknowledge unused parameter. */
 	(void)signum;
+	semTakeTimedOut = 1;
 	return;
+}
+
+int	sm_SemTakeTimed(sm_SemId i, int timeoutSeconds)
+{
+	SmProcessSemtable	*semTbl = _semTbl(IPC_ACTION_LOOKUP);
+	SmLocalSem		*sem;
+	SmGlobalSem		*gsem;
+
+	CHKERR(semTbl);
+	CHKERR(i >= 0);
+	CHKERR(i < SEM_NSEMS_MAX);
+
+	sem = _semGetSem(semTbl, i, 0);
+	if (sem == NULL)
+	{
+		putErrmsg("Can't access semaphore", itoa(i));
+		return -1;
+	}
+
+	gsem = sem->semgl;
+
+	if (!gsem->inUse || ion_ipc_atomic_get(&gsem->pendingDelete))
+	{
+		putErrmsg("Can't take deleted or pending-delete semaphore",
+				itoa(i));
+		return -1;
+	}
+
+	if (sem->id == NULL || !sem->handleOpened)
+	{
+		putErrmsg("Semaphore handle not valid", itoa(i));
+		return -1;
+	}
+
+	/* Atomically increment reference count before attempting take. */
+	ion_ipc_atomic_get_and_increment(&gsem->refCount, 1);
+
+	if (timeoutSeconds < 1) timeoutSeconds = 1;
+	semTakeTimedOut = 0;
+	isignal(SIGALRM, handleTimeout);
+	oK(alarm(timeoutSeconds));
+
+	while (sem_wait(sem->id) < 0)
+	{
+		if (errno == EINTR)
+		{
+			if (semTakeTimedOut)
+			{
+				oK(alarm(0));
+				isignal(SIGALRM, SIG_DFL);
+				ion_ipc_atomic_get_and_decrement(&gsem->refCount,
+						1);
+				return 1;	/*	Timed out.	*/
+			}
+
+			if (ion_ipc_atomic_get(&gsem->ended))
+			{
+				oK(alarm(0));
+				isignal(SIGALRM, SIG_DFL);
+				return 0;	/*	Ended.		*/
+			}
+
+			continue;
+		}
+
+		oK(alarm(0));
+		isignal(SIGALRM, SIG_DFL);
+		ion_ipc_atomic_get_and_decrement(&gsem->refCount, 1);
+		putSysErrmsg("Can't take semaphore", itoa(i));
+		return -1;
+	}
+
+	oK(alarm(0));
+	isignal(SIGALRM, SIG_DFL);
+	return 0;
 }
 
 int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
@@ -3902,7 +4366,7 @@ int	pseudoshell(char *commandLine)
 
 	/*	Skip over any trailing whitespace.			*/
 
-	while (isspace((int) *cursor))
+	while (isspace((unsigned char) *cursor))
 	{
 		cursor++;
 	}

@@ -1,0 +1,2155 @@
+#!/usr/bin/env bash
+#
+# ionrun - Interactive ION setup and launch utility
+#
+# Creates ION configuration files through an interactive wizard and
+# launches ION in a user-specified working directory.
+#
+# Usage: ionrun [options] <working_directory>
+#
+
+set -euo pipefail
+
+# --- Globals ---
+WORKDIR=""
+OPT_STOP=false
+OPT_NODE=""
+OPT_GENERATE_ONLY=false
+OPT_FORCE=false
+OPT_REGEN=false
+OPT_BATCH=""
+OPT_BATCH_INLINE=false
+OPT_CHECK=false
+OPT_TEST=false
+OPT_LOG=false
+OPT_LOG_ERRORS=false
+OPT_LOG_TAIL=0
+OPT_START_ALL=false
+OPT_CLEAN=false
+OPT_CLEAN_CONFIGS=false
+OPT_TIMEOUT=30
+
+# Batch inline overrides (populated by --topology, --cl, etc.)
+BATCH_TOPOLOGY=""
+BATCH_CL=""
+BATCH_CL2=""
+BATCH_PORT=""
+BATCH_PORT2=""
+BATCH_CFDP=""
+BATCH_RATE=""
+BATCH_WMSIZE=""
+BATCH_HEAP=""
+BATCH_SEGMENT_SIZE=""
+BATCH_CONTACT_DURATION=""
+declare -A BATCH_NODE_NAMES=()
+declare -A BATCH_NODE_IDS=()
+declare -A BATCH_NODE_IPS=()
+
+# Wizard state (arrays indexed from 0)
+TOPOLOGY=""       # loopback, 2node, 3node
+NODE_COUNT=0
+NODE_NAMES=()
+NODE_IDS=()
+NODE_IPS=()
+CL1=""            # ltp, tcp, udp
+CL2=""            # ltp, tcp, udp (3-node only)
+PORT1=""          # port for CL1
+PORT2=""          # port for CL2 (3-node only)
+NODE_PORTS=()     # per-node listening ports (same-host only)
+ENABLE_CFDP=false # whether to generate cfdpadmin config
+
+# Tunable parameters (overridable via --rate, --wmsize, etc.)
+CFG_RATE=100000
+CFG_WMSIZE=50000000
+CFG_HEAP=10000000
+CFG_SEGMENT_SIZE=1400
+CFG_CONTACT_DURATION=86400
+
+# --- Usage ---
+usage() {
+    cat <<'EOF'
+Usage: ionrun [options] <working_directory>
+
+Start ION in a working directory with auto-generated configuration.
+
+Options:
+  -h, --help            Show this help message
+  -s, --stop            Stop ION in the working directory (runs ionstop)
+  -n, --node <name>     Start a specific node (skip interactive selection)
+  -g, --generate-only   Generate config files without starting ION
+  -f, --force           Regenerate config even if one already exists
+  -r, --regenerate      Regenerate config from existing ionrun.meta (no wizard)
+  -c, --check           Check if ION subsystems are running (per-node status)
+  -t, --test            Send a test bundle and verify delivery (smoke test)
+  -l, --log             Show ion.log for all nodes (use -n for a single node)
+  -a, --start-all       Start all nodes (same-host topologies)
+  --clean               Stop ION and remove runtime artifacts (ion.log, etc.)
+  --configs             With --clean: also remove generated config files
+  --errors              With --log: show only ERROR/WARNING lines
+  --tail <lines>        With --log: show last N lines (default: all)
+  --timeout <sec>       Timeout for --check/--test (default 30)
+  -b, --batch <file>    Non-interactive mode: read wizard answers from file
+  --topology <type>     Batch inline: loopback, 2node, 3node, 2node-local, 3node-local
+  --cl <proto>          Batch inline: ltp, tcp, or udp (all links)
+  --cl2 <proto>         Batch inline: CL for 3-node link 2 (default: same as --cl)
+  --port <num>          Batch inline: base port number
+  --port2 <num>         Batch inline: port for 3-node link 2
+  --cfdp                Batch inline: enable CFDP
+  --rate <bytes/s>      Contact data rate (default 100000)
+  --wmsize <bytes>      Working memory size (default 50000000)
+  --heap <words>        SDR heap words (default 10000000)
+  --segment-size <bytes> LTP segment size (default 1400)
+  --contact-duration <s> Contact window in seconds (default 86400)
+  --node-name <n:name>  Batch inline: set node name (e.g., 1:earth)
+  --node-id <n:id>      Batch inline: set node IPN ID (e.g., 1:5.1)
+  --node-ip <n:ip>      Batch inline: set node IP (e.g., 1:10.0.0.1)
+
+Arguments:
+  working_directory     Directory where ION config and runtime files are stored.
+                        Created if it does not exist.
+
+Examples:
+  ionrun ~/my-ion-test                # New dir: wizard + start
+  ionrun ~/my-ion-test                # Existing config: start directly
+  ionrun -n node1 ~/3node-test        # Start node1 without prompting
+  ionrun -g ~/my-ion-test             # Generate config only, don't start
+  ionrun -f ~/my-ion-test             # Re-run wizard, overwrite config
+  ionrun -r ~/my-ion-test             # Regenerate config from saved metadata
+  ionrun -s ~/my-ion-test             # Stop ION in that directory
+  ionrun -c ~/my-ion-test              # Check if ION subsystems are up
+  ionrun -t ~/my-ion-test              # Smoke test: send bundle, verify delivery
+  ionrun -a ~/my-ion-test              # Start all nodes (same-host)
+  ionrun --clean ~/my-ion-test         # Stop ION and remove runtime files
+  ionrun --clean --configs ~/my-test   # Full reset: remove configs too
+  ionrun -l ~/my-ion-test              # Show ion.log for all nodes
+  ionrun -l --errors ~/my-ion-test     # Show only error/warning lines
+  ionrun -b answers.txt ~/my-test     # Non-interactive from answer file
+  ionrun --topology=loopback --cl=ltp ~/test  # Non-interactive inline
+EOF
+    exit 0
+}
+
+# --- Argument parsing helpers ---
+# Extract value from --flag=value or consume next arg for --flag value
+parse_optval() {
+    local arg="$1"
+    if [[ "$arg" == *=* ]]; then
+        echo "${arg#*=}"
+        return 0
+    fi
+    return 1
+}
+
+# --- Argument parsing ---
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -h|--help)
+                usage
+                ;;
+            -s|--stop)
+                OPT_STOP=true
+                shift
+                ;;
+            -n|--node)
+                if [[ $# -lt 2 ]]; then
+                    echo "Error: --node requires a name argument." >&2
+                    exit 1
+                fi
+                OPT_NODE="$2"
+                shift 2
+                ;;
+            -c|--check)
+                OPT_CHECK=true
+                shift
+                continue
+                ;;
+            -t|--test)
+                OPT_TEST=true
+                shift
+                continue
+                ;;
+            -a|--start-all)
+                OPT_START_ALL=true
+                shift
+                continue
+                ;;
+            --clean)
+                OPT_CLEAN=true
+                shift
+                continue
+                ;;
+            --configs)
+                OPT_CLEAN_CONFIGS=true
+                shift
+                continue
+                ;;
+            -l|--log)
+                OPT_LOG=true
+                shift
+                continue
+                ;;
+            --errors)
+                OPT_LOG_ERRORS=true
+                shift
+                continue
+                ;;
+            --tail=*) OPT_LOG_TAIL=$(parse_optval "$1"); shift; continue ;;
+            --tail)
+                if [[ $# -lt 2 ]]; then echo "Error: --tail requires a value." >&2; exit 1; fi
+                OPT_LOG_TAIL="$2"; shift 2; continue ;;
+            --timeout=*) OPT_TIMEOUT=$(parse_optval "$1"); shift; continue ;;
+            --timeout)
+                if [[ $# -lt 2 ]]; then echo "Error: --timeout requires a value." >&2; exit 1; fi
+                OPT_TIMEOUT="$2"; shift 2; continue ;;
+            -g|--generate-only)
+                OPT_GENERATE_ONLY=true
+                shift
+                ;;
+            -f|--force)
+                OPT_FORCE=true
+                shift
+                ;;
+            -r|--regenerate)
+                OPT_REGEN=true
+                shift
+                ;;
+            -b|--batch)
+                if [[ $# -lt 2 ]]; then
+                    echo "Error: --batch requires a file argument." >&2
+                    exit 1
+                fi
+                OPT_BATCH="$2"
+                shift 2
+                ;;
+            --topology=*) BATCH_TOPOLOGY=$(parse_optval "$1"); OPT_BATCH_INLINE=true; shift ;;
+            --topology)
+                if [[ $# -lt 2 ]]; then echo "Error: --topology requires a value." >&2; exit 1; fi
+                BATCH_TOPOLOGY="$2"; OPT_BATCH_INLINE=true; shift 2 ;;
+            --cl=*) BATCH_CL=$(parse_optval "$1"); OPT_BATCH_INLINE=true; shift ;;
+            --cl)
+                if [[ $# -lt 2 ]]; then echo "Error: --cl requires a value." >&2; exit 1; fi
+                BATCH_CL="$2"; OPT_BATCH_INLINE=true; shift 2 ;;
+            --cl2=*) BATCH_CL2=$(parse_optval "$1"); OPT_BATCH_INLINE=true; shift ;;
+            --cl2)
+                if [[ $# -lt 2 ]]; then echo "Error: --cl2 requires a value." >&2; exit 1; fi
+                BATCH_CL2="$2"; OPT_BATCH_INLINE=true; shift 2 ;;
+            --port=*) BATCH_PORT=$(parse_optval "$1"); OPT_BATCH_INLINE=true; shift ;;
+            --port)
+                if [[ $# -lt 2 ]]; then echo "Error: --port requires a value." >&2; exit 1; fi
+                BATCH_PORT="$2"; OPT_BATCH_INLINE=true; shift 2 ;;
+            --port2=*) BATCH_PORT2=$(parse_optval "$1"); OPT_BATCH_INLINE=true; shift ;;
+            --port2)
+                if [[ $# -lt 2 ]]; then echo "Error: --port2 requires a value." >&2; exit 1; fi
+                BATCH_PORT2="$2"; OPT_BATCH_INLINE=true; shift 2 ;;
+            --cfdp) BATCH_CFDP="yes"; OPT_BATCH_INLINE=true; shift ;;
+            --rate=*) BATCH_RATE=$(parse_optval "$1"); shift ;;
+            --rate)
+                if [[ $# -lt 2 ]]; then echo "Error: --rate requires a value." >&2; exit 1; fi
+                BATCH_RATE="$2"; shift 2 ;;
+            --wmsize=*) BATCH_WMSIZE=$(parse_optval "$1"); shift ;;
+            --wmsize)
+                if [[ $# -lt 2 ]]; then echo "Error: --wmsize requires a value." >&2; exit 1; fi
+                BATCH_WMSIZE="$2"; shift 2 ;;
+            --heap=*) BATCH_HEAP=$(parse_optval "$1"); shift ;;
+            --heap)
+                if [[ $# -lt 2 ]]; then echo "Error: --heap requires a value." >&2; exit 1; fi
+                BATCH_HEAP="$2"; shift 2 ;;
+            --segment-size=*) BATCH_SEGMENT_SIZE=$(parse_optval "$1"); shift ;;
+            --segment-size)
+                if [[ $# -lt 2 ]]; then echo "Error: --segment-size requires a value." >&2; exit 1; fi
+                BATCH_SEGMENT_SIZE="$2"; shift 2 ;;
+            --contact-duration=*) BATCH_CONTACT_DURATION=$(parse_optval "$1"); shift ;;
+            --contact-duration)
+                if [[ $# -lt 2 ]]; then echo "Error: --contact-duration requires a value." >&2; exit 1; fi
+                BATCH_CONTACT_DURATION="$2"; shift 2 ;;
+            --node-name=*|--node-name)
+                local val
+                if [[ "$1" == *=* ]]; then val="${1#*=}"; shift; else
+                    if [[ $# -lt 2 ]]; then echo "Error: --node-name requires n:name." >&2; exit 1; fi
+                    val="$2"; shift 2
+                fi
+                local idx="${val%%:*}" nval="${val#*:}"
+                BATCH_NODE_NAMES[$idx]="$nval"; OPT_BATCH_INLINE=true ;;
+            --node-id=*|--node-id)
+                local val
+                if [[ "$1" == *=* ]]; then val="${1#*=}"; shift; else
+                    if [[ $# -lt 2 ]]; then echo "Error: --node-id requires n:id." >&2; exit 1; fi
+                    val="$2"; shift 2
+                fi
+                local idx="${val%%:*}" nval="${val#*:}"
+                BATCH_NODE_IDS[$idx]="$nval"; OPT_BATCH_INLINE=true ;;
+            --node-ip=*|--node-ip)
+                local val
+                if [[ "$1" == *=* ]]; then val="${1#*=}"; shift; else
+                    if [[ $# -lt 2 ]]; then echo "Error: --node-ip requires n:ip." >&2; exit 1; fi
+                    val="$2"; shift 2
+                fi
+                local idx="${val%%:*}" nval="${val#*:}"
+                BATCH_NODE_IPS[$idx]="$nval"; OPT_BATCH_INLINE=true ;;
+            -*)
+                echo "Error: Unknown option: $1" >&2
+                echo "Run 'ionrun -h' for usage." >&2
+                exit 1
+                ;;
+            *)
+                if [[ -n "$WORKDIR" ]]; then
+                    echo "Error: Multiple working directories specified." >&2
+                    exit 1
+                fi
+                WORKDIR="$1"
+                shift
+                ;;
+        esac
+    done
+
+    if [[ -z "$WORKDIR" ]]; then
+        echo "Error: No working directory specified." >&2
+        echo "Run 'ionrun -h' for usage." >&2
+        exit 1
+    fi
+}
+
+# --- Stop ION ---
+stop_ion() {
+    if [[ ! -d "$WORKDIR" ]]; then
+        echo "Error: Directory '$WORKDIR' does not exist." >&2
+        exit 1
+    fi
+
+    local meta="$WORKDIR/ionrun.meta"
+    local topology=""
+    if [[ -f "$meta" ]]; then
+        topology=$(grep '^topology=' "$meta" | cut -d= -f2)
+    fi
+
+    if [[ "$topology" == *-local ]]; then
+        # Same-host multi-node: stop each node from its subdirectory
+        local abs_workdir
+        abs_workdir="$(cd "$WORKDIR" && pwd)"
+        export ION_NODE_LIST_DIR="$abs_workdir"
+        local node_count
+        node_count=$(grep '^node_count=' "$meta" | cut -d= -f2)
+        echo "Stopping ION ($topology) in $WORKDIR ..."
+        for i in $(seq 1 "$node_count"); do
+            local name
+            name=$(grep "^node${i}_name=" "$meta" | cut -d= -f2)
+            local node_dir="$abs_workdir/$name"
+            if [[ -d "$node_dir" ]]; then
+                echo "  Stopping node '$name' ..."
+                (cd "$node_dir" && ionstop) || true
+            fi
+        done
+        sleep 1
+        killm
+    elif [[ -n "$topology" ]]; then
+        echo "Stopping ION in $WORKDIR ..."
+        (cd "$WORKDIR" && ionstop)
+    else
+        # No meta — external config or bare rc; use killm
+        echo "Stopping ION (killm) ..."
+        killm
+    fi
+}
+
+# --- Clean ION runtime artifacts ---
+clean_ion() {
+    if [[ ! -d "$WORKDIR" ]]; then
+        echo "Error: Directory '$WORKDIR' does not exist." >&2
+        exit 1
+    fi
+
+    # Stop ION first
+    echo "Stopping ION ..."
+    stop_ion 2>/dev/null || true
+    sleep 1
+    killm 2>/dev/null || true
+
+    local abs_workdir
+    abs_workdir="$(cd "$WORKDIR" && pwd)"
+
+    local meta="$abs_workdir/ionrun.meta"
+    local removed=0
+
+    # Remove runtime artifacts from all node directories
+    remove_runtime_files() {
+        local dir="$1"
+        local files=("ion.log" "ion_nodes" "ionconfig" ".induct" ".outduct")
+        for f in "${files[@]}"; do
+            if [[ -f "$dir/$f" ]]; then
+                rm -f "$dir/$f"
+                ((removed++)) || true
+            fi
+        done
+        # Remove acquisition files (bpacq*, ltpacq*)
+        local acq
+        for acq in "$dir"/*acq* "$dir"/*.tmp; do
+            if [[ -f "$acq" ]]; then
+                rm -f "$acq"
+                ((removed++)) || true
+            fi
+        done
+    }
+
+    # Clean top-level workdir
+    remove_runtime_files "$abs_workdir"
+
+    # Clean node subdirectories
+    if [[ -f "$meta" ]]; then
+        local node_count
+        node_count=$(grep '^node_count=' "$meta" | cut -d= -f2)
+        for i in $(seq 1 "$node_count"); do
+            local name
+            name=$(grep "^node${i}_name=" "$meta" | cut -d= -f2)
+            if [[ -n "$name" && -d "$abs_workdir/$name" ]]; then
+                remove_runtime_files "$abs_workdir/$name"
+            fi
+        done
+    else
+        # No meta — clean any subdirectories that have ion.log
+        local dir
+        for dir in "$abs_workdir"/*/; do
+            [[ -d "$dir" ]] || continue
+            remove_runtime_files "$dir"
+        done
+    fi
+
+    echo "Removed $removed runtime file(s)."
+
+    # Optionally remove config files too
+    if [[ "$OPT_CLEAN_CONFIGS" == true ]]; then
+        echo "Removing generated configuration ..."
+        # Collect node directories before deleting meta
+        local cfg_dirs=()
+        if [[ -f "$meta" ]]; then
+            local nc
+            nc=$(grep '^node_count=' "$meta" | cut -d= -f2 || echo 0)
+            for i in $(seq 1 "$nc"); do
+                local name
+                name=$(grep "^node${i}_name=" "$meta" | cut -d= -f2 || true)
+                if [[ -n "$name" && -d "$abs_workdir/$name" ]]; then
+                    cfg_dirs+=("$abs_workdir/$name")
+                fi
+            done
+        fi
+        rm -f "$abs_workdir/ionrun.rc" "$abs_workdir/ionrun.meta"
+        for d in "${cfg_dirs[@]+"${cfg_dirs[@]}"}"; do
+            rm -rf "$d"
+        done
+        echo "Configuration files removed."
+    fi
+}
+
+# --- Start all nodes (same-host) ---
+start_all() {
+    local meta="$WORKDIR/ionrun.meta"
+    if [[ ! -f "$meta" ]]; then
+        echo "Error: ionrun.meta not found in $WORKDIR." >&2
+        exit 1
+    fi
+
+    local abs_workdir
+    abs_workdir="$(cd "$WORKDIR" && pwd)"
+
+    local topology node_count
+    topology=$(grep '^topology=' "$meta" | cut -d= -f2)
+    node_count=$(grep '^node_count=' "$meta" | cut -d= -f2)
+
+    if [[ "$topology" == "loopback" ]]; then
+        # Loopback: just start the single node
+        echo "Starting ION (loopback) in $WORKDIR ..."
+        export ION_NODE_WDNAME="$abs_workdir"
+        (cd "$WORKDIR" && ionstart -I ionrun.rc)
+        echo "  node1 ... started"
+        return 0
+    fi
+
+    if [[ "$topology" != *-local ]]; then
+        echo "Error: --start-all is for same-host topologies only." >&2
+        echo "For remote multi-node, use 'ionrun -n <nodename>' on each host." >&2
+        exit 1
+    fi
+
+    export ION_NODE_LIST_DIR="$abs_workdir"
+
+    local overall=0
+    for i in $(seq 1 "$node_count"); do
+        local name
+        name=$(grep "^node${i}_name=" "$meta" | cut -d= -f2)
+        local node_dir="$abs_workdir/$name"
+        if [[ ! -d "$node_dir" ]]; then
+            echo "  $name ... MISSING (no directory)"
+            overall=1
+            continue
+        fi
+        echo -n "  Starting $name ..."
+        export ION_NODE_WDNAME="$node_dir"
+        (cd "$node_dir" && ionstart -I ionrun.rc) >/dev/null 2>&1
+        if [[ $? -eq 0 ]]; then
+            echo " started"
+        else
+            echo " FAILED"
+            overall=1
+        fi
+    done
+
+    if [[ $overall -eq 0 ]]; then
+        echo "All $node_count nodes started."
+    else
+        echo "Some nodes failed to start. Check ion.log for details."
+    fi
+    echo ""
+    echo "To operate on nodes from any directory, run:"
+    echo "  export ION_NODE_LIST_DIR=$abs_workdir"
+    echo "  export ION_NODE_WDNAME=$abs_workdir/<nodename>"
+
+    return $overall
+}
+
+# --- Check ION subsystem health ---
+check_ion() {
+    local meta="$WORKDIR/ionrun.meta"
+    if [[ ! -f "$meta" ]]; then
+        echo "Error: ionrun.meta not found in $WORKDIR. Cannot determine topology." >&2
+        exit 1
+    fi
+
+    local abs_workdir
+    abs_workdir="$(cd "$WORKDIR" && pwd)"
+
+    local topology node_count
+    topology=$(grep '^topology=' "$meta" | cut -d= -f2)
+    node_count=$(grep '^node_count=' "$meta" | cut -d= -f2)
+    local cl1 cl2 cfdp_enabled
+    cl1=$(grep '^cl1=' "$meta" | cut -d= -f2 || true)
+    cl2=$(grep '^cl2=' "$meta" | cut -d= -f2 || true)
+    cfdp_enabled=$(grep '^cfdp=' "$meta" | cut -d= -f2 || true)
+
+    local timeout="$OPT_TIMEOUT"
+    local overall=0
+
+    for i in $(seq 1 "$node_count"); do
+        local name node_id
+        name=$(grep "^node${i}_name=" "$meta" | cut -d= -f2)
+        node_id=$(grep "^node${i}_id=" "$meta" | cut -d= -f2)
+
+        # Determine working directory for this node
+        local node_wdname="$abs_workdir"
+        if [[ "$topology" == *-local ]]; then
+            node_wdname="$abs_workdir/$name"
+            export ION_NODE_LIST_DIR="$abs_workdir"
+        fi
+        export ION_NODE_WDNAME="$node_wdname"
+
+        local status_line="$name:"
+        local node_fail=0
+
+        # ION (always)
+        if (cd "$node_wdname" && echo "t p $timeout" | ionadmin) >/dev/null 2>&1; then
+            status_line+=" ion=up"
+        else
+            status_line+=" ion=DOWN"
+            node_fail=1
+        fi
+
+        # BP (always)
+        if (cd "$node_wdname" && echo "t p $timeout" | bpadmin) >/dev/null 2>&1; then
+            status_line+=" bp=up"
+        else
+            status_line+=" bp=DOWN"
+            node_fail=1
+        fi
+
+        # LTP (if any link uses it)
+        local needs_ltp=false
+        if [[ "$cl1" == "ltp" ]]; then needs_ltp=true; fi
+        if [[ "$cl2" == "ltp" ]]; then needs_ltp=true; fi
+        if [[ "$needs_ltp" == true ]]; then
+            if (cd "$node_wdname" && echo "t p $timeout" | ltpadmin) >/dev/null 2>&1; then
+                status_line+=" ltp=up"
+            else
+                status_line+=" ltp=DOWN"
+                node_fail=1
+            fi
+        fi
+
+        # CFDP (if enabled)
+        if [[ "$cfdp_enabled" == "true" ]]; then
+            if (cd "$node_wdname" && echo "t p $timeout" | cfdpadmin) >/dev/null 2>&1; then
+                status_line+=" cfdp=up"
+            else
+                status_line+=" cfdp=DOWN"
+                node_fail=1
+            fi
+        fi
+
+        if [[ $node_fail -eq 0 ]]; then
+            echo "$status_line    [OK]"
+        else
+            echo "$status_line    [FAIL]"
+            overall=1
+        fi
+    done
+
+    return $overall
+}
+
+# --- Smoke test: send a bundle and verify delivery ---
+smoke_test() {
+    local meta="$WORKDIR/ionrun.meta"
+    if [[ ! -f "$meta" ]]; then
+        echo "Error: ionrun.meta not found in $WORKDIR. Cannot determine topology." >&2
+        exit 1
+    fi
+
+    local abs_workdir
+    abs_workdir="$(cd "$WORKDIR" && pwd)"
+
+    local topology node_count
+    topology=$(grep '^topology=' "$meta" | cut -d= -f2)
+    node_count=$(grep '^node_count=' "$meta" | cut -d= -f2)
+    local timeout="$OPT_TIMEOUT"
+
+    # Determine source and destination nodes
+    local src_idx=1 dst_idx="$node_count"
+    local src_name dst_name src_id dst_id
+    src_name=$(grep "^node${src_idx}_name=" "$meta" | cut -d= -f2)
+    dst_name=$(grep "^node${dst_idx}_name=" "$meta" | cut -d= -f2)
+    src_id=$(grep "^node${src_idx}_id=" "$meta" | cut -d= -f2)
+    dst_id=$(grep "^node${dst_idx}_id=" "$meta" | cut -d= -f2)
+
+    local src_wdname="$abs_workdir"
+    local dst_wdname="$abs_workdir"
+    if [[ "$topology" == *-local ]]; then
+        src_wdname="$abs_workdir/$src_name"
+        dst_wdname="$abs_workdir/$dst_name"
+        export ION_NODE_LIST_DIR="$abs_workdir"
+    fi
+
+    local dst_eid="ipn:${dst_id}.1"
+    local payload="ionrun-smoke-test-$$"
+    local sink_out
+    sink_out=$(mktemp "${abs_workdir}/ionrun-sink.XXXXXX")
+
+    echo "Sending test bundle: $src_name (ipn:${src_id}.1) -> $dst_name ($dst_eid)"
+
+    # Start bpsink on destination node
+    (cd "$dst_wdname" && ION_NODE_WDNAME="$dst_wdname" bpsink "$dst_eid" > "$sink_out" 2>&1) &
+    local sink_pid=$!
+    sleep 1
+
+    # Send test bundle from source node
+    local start_time
+    start_time=$(date +%s)
+    (cd "$src_wdname" && printf '%s\n!\n' "$payload" | ION_NODE_WDNAME="$src_wdname" bpsource "$dst_eid") >/dev/null 2>&1
+
+    # Wait for delivery
+    local elapsed=0
+    local delivered=false
+    while [[ $elapsed -lt $timeout ]]; do
+        if grep -q "ION event: Payload delivered." "$sink_out" 2>/dev/null; then
+            delivered=true
+            break
+        fi
+        sleep 1
+        elapsed=$(( $(date +%s) - start_time ))
+    done
+
+    # Clean up sink
+    kill "$sink_pid" 2>/dev/null || true
+    wait "$sink_pid" 2>/dev/null || true
+
+    if [[ "$delivered" == true ]]; then
+        echo "Delivered in ${elapsed}s    [PASS]"
+        rm -f "$sink_out"
+        return 0
+    else
+        echo "No delivery after ${timeout}s    [FAIL]"
+        echo "Sink output:"
+        cat "$sink_out" 2>/dev/null
+        rm -f "$sink_out"
+        return 1
+    fi
+}
+
+# --- Show ion.log files ---
+show_logs() {
+    local meta="$WORKDIR/ionrun.meta"
+    if [[ ! -f "$meta" ]]; then
+        # No meta — check for a single ion.log in workdir
+        if [[ -f "$WORKDIR/ion.log" ]]; then
+            show_one_log "$WORKDIR/ion.log" ""
+            return
+        fi
+        echo "Error: No ionrun.meta or ion.log found in $WORKDIR." >&2
+        exit 1
+    fi
+
+    local topology node_count
+    topology=$(grep '^topology=' "$meta" | cut -d= -f2)
+    node_count=$(grep '^node_count=' "$meta" | cut -d= -f2)
+
+    # If --node is specified, show only that node's log
+    if [[ -n "$OPT_NODE" ]]; then
+        local node_dir
+        if [[ "$topology" == "loopback" ]]; then
+            node_dir="$WORKDIR/$OPT_NODE"
+        elif [[ "$topology" == *-local ]]; then
+            node_dir="$WORKDIR/$OPT_NODE"
+        else
+            node_dir="$WORKDIR/$OPT_NODE"
+        fi
+        if [[ -f "$node_dir/ion.log" ]]; then
+            show_one_log "$node_dir/ion.log" "$OPT_NODE"
+        else
+            echo "[$OPT_NODE] (no ion.log)"
+        fi
+        return
+    fi
+
+    # Show all nodes
+    local found_any=false
+    for i in $(seq 1 "$node_count"); do
+        local name
+        name=$(grep "^node${i}_name=" "$meta" | cut -d= -f2)
+        local node_dir="$WORKDIR/$name"
+        local logfile="$node_dir/ion.log"
+        if [[ -f "$logfile" ]]; then
+            show_one_log "$logfile" "$name"
+            found_any=true
+        else
+            echo "[$name] (no ion.log)"
+        fi
+    done
+
+    # Also check top-level ion.log (loopback without subdirs)
+    if [[ "$found_any" == false && -f "$WORKDIR/ion.log" ]]; then
+        show_one_log "$WORKDIR/ion.log" ""
+    fi
+}
+
+show_one_log() {
+    local logfile="$1" prefix="$2"
+    local content
+
+    if [[ "$OPT_LOG_TAIL" -gt 0 ]]; then
+        content=$(tail -n "$OPT_LOG_TAIL" "$logfile")
+    else
+        content=$(cat "$logfile")
+    fi
+
+    if [[ "$OPT_LOG_ERRORS" == true ]]; then
+        content=$(echo "$content" | grep -iE '(error|warning|fatal|can'\''t|cannot)' || true)
+        if [[ -z "$content" ]]; then
+            if [[ -n "$prefix" ]]; then
+                echo "[$prefix] (no errors)"
+            else
+                echo "(no errors)"
+            fi
+            return
+        fi
+    fi
+
+    if [[ -n "$prefix" ]]; then
+        echo "$content" | sed "s/^/[$prefix] /"
+    else
+        echo "$content"
+    fi
+}
+
+# --- Run ION with existing config ---
+run_ion() {
+    local meta="$WORKDIR/ionrun.meta"
+    local rc="$WORKDIR/ionrun.rc"
+
+    if [[ ! -f "$meta" ]]; then
+        echo "Error: ionrun.meta not found in $WORKDIR" >&2
+        exit 1
+    fi
+
+    # Parse metadata
+    local topology node_count
+    topology=$(grep '^topology=' "$meta" | cut -d= -f2)
+    node_count=$(grep '^node_count=' "$meta" | cut -d= -f2)
+
+    if [[ "$topology" == "loopback" ]]; then
+        if [[ "$OPT_GENERATE_ONLY" == true ]]; then
+            echo "Config exists at $rc (loopback). Skipping start (--generate-only)."
+            return
+        fi
+        echo "Starting ION (loopback) in $WORKDIR ..."
+        local abs_workdir
+        abs_workdir="$(cd "$WORKDIR" && pwd)"
+        export ION_NODE_WDNAME="$abs_workdir"
+        (cd "$WORKDIR" && ionstart -I ionrun.rc)
+        echo ""
+        echo "To operate on this ION instance from any directory, run:"
+        echo "  export ION_NODE_WDNAME=$abs_workdir"
+    else
+        # Multi-node: determine which node to start
+        local node_name="$OPT_NODE"
+        if [[ -z "$node_name" ]]; then
+            echo "Available nodes:"
+            for i in $(seq 1 "$node_count"); do
+                local name ip
+                name=$(grep "^node${i}_name=" "$meta" | cut -d= -f2)
+                ip=$(grep "^node${i}_ip=" "$meta" | cut -d= -f2)
+                echo "  $name ($ip)"
+            done
+            echo ""
+            read -rp "Which node to start? " node_name
+        fi
+
+        # Validate node name exists in meta
+        local found=false
+        for i in $(seq 1 "$node_count"); do
+            local name
+            name=$(grep "^node${i}_name=" "$meta" | cut -d= -f2)
+            if [[ "$name" == "$node_name" ]]; then
+                found=true
+                break
+            fi
+        done
+        if [[ "$found" != true ]]; then
+            echo "Error: Node '$node_name' not found in configuration." >&2
+            exit 1
+        fi
+
+        if [[ "$OPT_GENERATE_ONLY" == true ]]; then
+            local cfg_loc="$rc"
+            if [[ "$topology" == *-local ]]; then
+                cfg_loc="$WORKDIR/$node_name/ionrun.rc"
+            fi
+            echo "Config exists at $cfg_loc. Skipping start (--generate-only)."
+            return
+        fi
+
+        local abs_workdir
+        abs_workdir="$(cd "$WORKDIR" && pwd)"
+
+        if [[ "$topology" == *-local ]]; then
+            # Same-host multi-node: each node runs from its own subdirectory
+            local node_dir="$abs_workdir/$node_name"
+            if [[ ! -d "$node_dir" ]]; then
+                echo "Error: Node directory '$node_dir' does not exist." >&2
+                exit 1
+            fi
+            echo "Starting ION node '$node_name' (same-host) in $node_dir ..."
+            export ION_NODE_LIST_DIR="$abs_workdir"
+            export ION_NODE_WDNAME="$node_dir"
+            (cd "$node_dir" && ionstart -I ionrun.rc)
+            echo ""
+            echo "To operate on this node from any directory, run:"
+            echo "  export ION_NODE_LIST_DIR=$abs_workdir"
+            echo "  export ION_NODE_WDNAME=$node_dir"
+        else
+            # Remote multi-node: single config with tags
+            echo "Starting ION node '$node_name' in $WORKDIR ..."
+            export ION_NODE_WDNAME="$abs_workdir"
+            (cd "$WORKDIR" && ionstart -I ionrun.rc -t "$node_name")
+            echo ""
+            echo "To operate on this ION instance from any directory, run:"
+            echo "  export ION_NODE_WDNAME=$abs_workdir"
+        fi
+    fi
+}
+
+# --- Wizard: prompt functions ---
+
+prompt_topology() {
+    echo ""
+    echo "Select network topology:"
+    echo "  1) Loopback (single node)"
+    echo "  2) 2-node (two hosts)"
+    echo "  3) 3-node (three hosts, linear chain)"
+    echo "  4) 2-node (same host)"
+    echo "  5) 3-node (same host, linear chain)"
+    echo ""
+    while true; do
+        read -rp "Topology [1-5]: " choice
+        case "$choice" in
+            1) TOPOLOGY="loopback";     NODE_COUNT=1; return ;;
+            2) TOPOLOGY="2node";        NODE_COUNT=2; return ;;
+            3) TOPOLOGY="3node";        NODE_COUNT=3; return ;;
+            4) TOPOLOGY="2node-local";  NODE_COUNT=2; return ;;
+            5) TOPOLOGY="3node-local";  NODE_COUNT=3; return ;;
+            *) echo "Please enter 1, 2, 3, 4, or 5." ;;
+        esac
+    done
+}
+
+# Returns 0 (true) if topology is a same-host multi-node mode
+is_local_topology() {
+    [[ "$TOPOLOGY" == *-local ]]
+}
+
+prompt_nodes() {
+    echo ""
+    for i in $(seq 0 $((NODE_COUNT - 1))); do
+        local n=$((i + 1))
+        echo "--- Node $n ---"
+
+        # Name
+        local default_name="node${n}"
+        while true; do
+            read -rp "  Name [$default_name]: " name
+            name="${name:-$default_name}"
+            if [[ ! "$name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+                echo "  Name must contain only letters, digits, hyphens, underscores."
+                continue
+            fi
+            # Check uniqueness
+            local dup=false
+            for j in $(seq 0 $((i - 1))); do
+                if [[ "${NODE_NAMES[$j]}" == "$name" ]]; then
+                    dup=true; break
+                fi
+            done
+            if [[ "$dup" == true ]]; then
+                echo "  Name '$name' already used. Choose a different name."
+                continue
+            fi
+            NODE_NAMES[$i]="$name"
+            break
+        done
+
+        # IPN node ID
+        local default_id="$n"
+        while true; do
+            read -rp "  IPN node ID [$default_id]: " nid
+            nid="${nid:-$default_id}"
+            if [[ ! "$nid" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+                echo "  Node ID must be a number (e.g., 1) or allocator.node (e.g., 5.1)."
+                continue
+            fi
+            # Check uniqueness
+            local dup=false
+            for j in $(seq 0 $((i - 1))); do
+                if [[ "${NODE_IDS[$j]}" == "$nid" ]]; then
+                    dup=true; break
+                fi
+            done
+            if [[ "$dup" == true ]]; then
+                echo "  Node ID '$nid' already used. Choose a different ID."
+                continue
+            fi
+            NODE_IDS[$i]="$nid"
+            break
+        done
+
+        # IP address
+        if [[ "$TOPOLOGY" == "loopback" ]] || is_local_topology; then
+            NODE_IPS[$i]="127.0.0.1"
+            echo "  IP address: 127.0.0.1 (loopback)"
+        else
+            local default_ip="127.0.0.1"
+            read -rp "  IP address [$default_ip]: " ip
+            ip="${ip:-$default_ip}"
+            NODE_IPS[$i]="$ip"
+        fi
+        echo ""
+    done
+}
+
+prompt_cl_menu() {
+    local prompt_msg="$1"
+    local result
+    while true; do
+        echo "  $prompt_msg" >&2
+        echo "    1) ltp" >&2
+        echo "    2) tcp" >&2
+        echo "    3) udp" >&2
+        read -rp "  Choice [1-3]: " choice
+        case "$choice" in
+            1) result="ltp";  break ;;
+            2) result="tcp";  break ;;
+            3) result="udp";  break ;;
+            *) echo "  Please enter 1, 2, or 3." >&2 ;;
+        esac
+    done
+    echo "$result"
+}
+
+prompt_port() {
+    local cl="$1"
+    local default_port
+    case "$cl" in
+        ltp) default_port=1113 ;;
+        *)   default_port=4556 ;;
+    esac
+    local port
+    while true; do
+        read -rp "  Port [$default_port]: " port
+        port="${port:-$default_port}"
+        if [[ ! "$port" =~ ^[0-9]+$ ]] || [[ "$port" -lt 1 || "$port" -gt 65535 ]]; then
+            echo "  Port must be a number between 1 and 65535."
+            continue
+        fi
+        break
+    done
+    echo "$port"
+}
+
+prompt_convergence_layers() {
+    echo ""
+    if is_local_topology; then
+        # Same-host: single CL type, base port auto-assigned per node
+        echo "Select convergence layer (all links):"
+        CL1=$(prompt_cl_menu "Convergence layer:")
+        echo "  Each node gets a unique port starting from a base port."
+        PORT1=$(prompt_port "$CL1")
+        CL2=""
+        PORT2=""
+        # Compute per-node ports: base + index
+        for i in $(seq 0 $((NODE_COUNT - 1))); do
+            NODE_PORTS[$i]=$((PORT1 + i))
+        done
+        echo "  Port assignments:"
+        for i in $(seq 0 $((NODE_COUNT - 1))); do
+            echo "    ${NODE_NAMES[$i]}: ${NODE_PORTS[$i]}"
+        done
+    elif [[ "$TOPOLOGY" == "3node" ]]; then
+        echo "Select convergence layer between ${NODE_NAMES[0]} and ${NODE_NAMES[1]}:"
+        CL1=$(prompt_cl_menu "Convergence layer:")
+        PORT1=$(prompt_port "$CL1")
+        echo ""
+        echo "Select convergence layer between ${NODE_NAMES[1]} and ${NODE_NAMES[2]}:"
+        CL2=$(prompt_cl_menu "Convergence layer:")
+        PORT2=$(prompt_port "$CL2")
+    else
+        echo "Select convergence layer:"
+        CL1=$(prompt_cl_menu "Convergence layer:")
+        PORT1=$(prompt_port "$CL1")
+        CL2=""
+        PORT2=""
+    fi
+}
+
+prompt_cfdp() {
+    echo ""
+    read -rp "Enable CFDP (file transfer)? [y/N]: " choice
+    case "$choice" in
+        [yY]*) ENABLE_CFDP=true ;;
+        *)     ENABLE_CFDP=false ;;
+    esac
+}
+
+# --- Helper: get the CL for a link between two node indices ---
+# For loopback/2-node: always CL1
+# For 3-node: CL1 between indices 0-1, CL2 between indices 1-2
+get_link_cl() {
+    local a=$1 b=$2
+    # Normalize order
+    if [[ $a -gt $b ]]; then local tmp=$a; a=$b; b=$tmp; fi
+    if [[ "$TOPOLOGY" == "3node" && $a -eq 1 && $b -eq 2 ]]; then
+        echo "$CL2"
+    else
+        echo "$CL1"
+    fi
+}
+
+# Get the listening port for a specific node (same-host only)
+get_node_port() {
+    local idx=$1
+    echo "${NODE_PORTS[$idx]}"
+}
+
+# Get the port for a link between two node indices
+# For same-host topologies, this is not used; use get_node_port() instead.
+get_link_port() {
+    local a=$1 b=$2
+    if [[ $a -gt $b ]]; then local tmp=$a; a=$b; b=$tmp; fi
+    if [[ "$TOPOLOGY" == "3node" && $a -eq 1 && $b -eq 2 ]]; then
+        echo "$PORT2"
+    else
+        echo "$PORT1"
+    fi
+}
+
+# --- Config generation helpers ---
+
+# Get peer indices for a node index
+get_peers() {
+    local idx=$1
+    case "$TOPOLOGY" in
+        loopback) ;;
+        2node|2node-local)
+            if [[ $idx -eq 0 ]]; then echo 1; else echo 0; fi
+            ;;
+        3node|3node-local)
+            case $idx in
+                0) echo 1 ;;
+                1) echo "0 2" ;;
+                2) echo 1 ;;
+            esac
+            ;;
+    esac
+}
+
+# Check if a node uses LTP on any of its links
+node_uses_ltp() {
+    local idx=$1
+    for peer in $(get_peers "$idx"); do
+        if [[ "$(get_link_cl "$idx" "$peer")" == "ltp" ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Emit the full contact plan (same for every node's ionadmin)
+emit_contact_plan() {
+    local out="$1"
+    local i
+    # Self-contacts for all nodes
+    for i in $(seq 0 $((NODE_COUNT - 1))); do
+        echo "a contact +1 +${CFG_CONTACT_DURATION} ${NODE_IDS[$i]} ${NODE_IDS[$i]} ${CFG_RATE}" >> "$out"
+    done
+    # Link contacts (unidirectional, so both directions)
+    case "$TOPOLOGY" in
+        2node|2node-local)
+            echo "a contact +1 +${CFG_CONTACT_DURATION} ${NODE_IDS[0]} ${NODE_IDS[1]} ${CFG_RATE}" >> "$out"
+            echo "a contact +1 +${CFG_CONTACT_DURATION} ${NODE_IDS[1]} ${NODE_IDS[0]} ${CFG_RATE}" >> "$out"
+            ;;
+        3node|3node-local)
+            echo "a contact +1 +${CFG_CONTACT_DURATION} ${NODE_IDS[0]} ${NODE_IDS[1]} ${CFG_RATE}" >> "$out"
+            echo "a contact +1 +${CFG_CONTACT_DURATION} ${NODE_IDS[1]} ${NODE_IDS[0]} ${CFG_RATE}" >> "$out"
+            echo "a contact +1 +${CFG_CONTACT_DURATION} ${NODE_IDS[1]} ${NODE_IDS[2]} ${CFG_RATE}" >> "$out"
+            echo "a contact +1 +${CFG_CONTACT_DURATION} ${NODE_IDS[2]} ${NODE_IDS[1]} ${CFG_RATE}" >> "$out"
+            ;;
+    esac
+    # Self-ranges for all nodes
+    for i in $(seq 0 $((NODE_COUNT - 1))); do
+        echo "a range +1 +${CFG_CONTACT_DURATION} ${NODE_IDS[$i]} ${NODE_IDS[$i]} 1" >> "$out"
+    done
+    # Link ranges (bidirectional, only need one direction)
+    case "$TOPOLOGY" in
+        2node|2node-local)
+            echo "a range +1 +${CFG_CONTACT_DURATION} ${NODE_IDS[0]} ${NODE_IDS[1]} 1" >> "$out"
+            ;;
+        3node|3node-local)
+            echo "a range +1 +${CFG_CONTACT_DURATION} ${NODE_IDS[0]} ${NODE_IDS[1]} 1" >> "$out"
+            echo "a range +1 +${CFG_CONTACT_DURATION} ${NODE_IDS[1]} ${NODE_IDS[2]} 1" >> "$out"
+            ;;
+    esac
+}
+
+# Write ionadmin section for a node
+write_ionadmin() {
+    local out="$1" idx="$2" tag="$3"
+    echo "## begin ionadmin${tag:+ $tag}" >> "$out"
+    if is_local_topology; then
+        echo "1 ${NODE_IDS[$idx]} ionrun.ionconfig" >> "$out"
+    else
+        echo "1 ${NODE_IDS[$idx]} ''" >> "$out"
+    fi
+    echo "s" >> "$out"
+    emit_contact_plan "$out"
+    echo "m production 1000000" >> "$out"
+    echo "m consumption 1000000" >> "$out"
+    echo "## end ionadmin${tag:+ $tag}" >> "$out"
+    echo "" >> "$out"
+}
+
+# Write ionsecadmin section for a node
+write_ionsecadmin() {
+    local out="$1" tag="$2"
+    echo "## begin ionsecadmin${tag:+ $tag}" >> "$out"
+    echo "1" >> "$out"
+    echo "## end ionsecadmin${tag:+ $tag}" >> "$out"
+    echo "" >> "$out"
+}
+
+# Write ltpadmin section for a node
+write_ltpadmin() {
+    local out="$1" idx="$2" tag="$3"
+    local my_id="${NODE_IDS[$idx]}"
+    local my_ip="${NODE_IPS[$idx]}"
+    local listen_ip ltp_port
+
+    if is_local_topology; then
+        # Same-host: each node has its own port
+        listen_ip="0.0.0.0"
+        ltp_port=$(get_node_port "$idx")
+    elif [[ "$TOPOLOGY" == "loopback" ]]; then
+        listen_ip="0.0.0.0"
+        ltp_port="$PORT1"
+    else
+        listen_ip="$my_ip"
+        # Determine the LTP port for this node's link
+        ltp_port="$PORT1"
+        for peer in $(get_peers "$idx"); do
+            if [[ "$(get_link_cl "$idx" "$peer")" == "ltp" ]]; then
+                ltp_port=$(get_link_port "$idx" "$peer")
+                break
+            fi
+        done
+    fi
+
+    echo "## begin ltpadmin${tag:+ $tag}" >> "$out"
+    echo "1 32" >> "$out"
+    # Self-span
+    if [[ "$TOPOLOGY" == "loopback" ]] || is_local_topology; then
+        echo "a span $my_id 10 10 ${CFG_SEGMENT_SIZE} 10000 2 'udplso 127.0.0.1:${ltp_port}'" >> "$out"
+    else
+        echo "a span $my_id 10 10 ${CFG_SEGMENT_SIZE} 10000 2 'udplso ${my_ip}:${ltp_port}'" >> "$out"
+    fi
+    # Peer spans
+    for peer in $(get_peers "$idx"); do
+        if [[ "$(get_link_cl "$idx" "$peer")" == "ltp" ]]; then
+            local peer_port
+            if is_local_topology; then
+                peer_port=$(get_node_port "$peer")
+            else
+                peer_port=$(get_link_port "$idx" "$peer")
+            fi
+            echo "a span ${NODE_IDS[$peer]} 10 10 ${CFG_SEGMENT_SIZE} 10000 2 'udplso ${NODE_IPS[$peer]}:${peer_port}'" >> "$out"
+        fi
+    done
+    echo "a seat 'udplsi ${listen_ip}:${ltp_port}'" >> "$out"
+    echo "s" >> "$out"
+    echo "## end ltpadmin${tag:+ $tag}" >> "$out"
+    echo "" >> "$out"
+}
+
+# Write bpadmin section for a node
+write_bpadmin() {
+    local out="$1" idx="$2" tag="$3"
+    local my_id="${NODE_IDS[$idx]}"
+    local my_ip="${NODE_IPS[$idx]}"
+    local induct_ip
+
+    if [[ "$TOPOLOGY" == "loopback" ]] || is_local_topology; then
+        induct_ip="0.0.0.0"
+    else
+        induct_ip="$my_ip"
+    fi
+
+    echo "## begin bpadmin${tag:+ $tag}" >> "$out"
+    echo "1" >> "$out"
+    echo "a scheme ipn 'ipnfw' 'ipnadminep'" >> "$out"
+    echo "a endpoint ipn:${my_id}.0 x" >> "$out"
+    echo "a endpoint ipn:${my_id}.1 q" >> "$out"
+    echo "a endpoint ipn:${my_id}.2 q" >> "$out"
+    echo "a endpoint ipn:${my_id}.3 q" >> "$out"
+    echo "a endpoint ipn:${my_id}.64 q" >> "$out"
+    echo "a endpoint ipn:${my_id}.65 q" >> "$out"
+
+    # Collect unique CLs this node uses
+    local cls=()
+    if [[ "$TOPOLOGY" == "loopback" ]] || is_local_topology; then
+        cls=("$CL1")
+    else
+        for peer in $(get_peers "$idx"); do
+            local cl
+            cl=$(get_link_cl "$idx" "$peer")
+            # Add if not already in list
+            local found=false
+            for c in "${cls[@]+"${cls[@]}"}"; do
+                if [[ "$c" == "$cl" ]]; then found=true; break; fi
+            done
+            if [[ "$found" != true ]]; then
+                cls+=("$cl")
+            fi
+        done
+    fi
+
+    # Protocol declarations
+    for cl in "${cls[@]}"; do
+        echo "a protocol $cl" >> "$out"
+    done
+
+    # Inducts
+    for cl in "${cls[@]}"; do
+        local cl_port
+        if [[ "$TOPOLOGY" == "loopback" ]]; then
+            cl_port="$PORT1"
+        elif is_local_topology; then
+            cl_port=$(get_node_port "$idx")
+        else
+            for peer in $(get_peers "$idx"); do
+                if [[ "$(get_link_cl "$idx" "$peer")" == "$cl" ]]; then
+                    cl_port=$(get_link_port "$idx" "$peer")
+                    break
+                fi
+            done
+        fi
+        case "$cl" in
+            ltp)  echo "a induct ltp $my_id ltpcli" >> "$out" ;;
+            tcp)  echo "a induct tcp ${induct_ip}:${cl_port} tcpcli" >> "$out" ;;
+            udp)  echo "a induct udp ${induct_ip}:${cl_port} udpcli" >> "$out" ;;
+        esac
+    done
+
+    # Outducts
+    if [[ "$TOPOLOGY" == "loopback" ]]; then
+        # Self outduct only
+        case "$CL1" in
+            ltp)  echo "a outduct ltp $my_id ltpclo" >> "$out" ;;
+            tcp)  echo "a outduct tcp 127.0.0.1:${PORT1} tcpclo" >> "$out" ;;
+            udp)  echo "a outduct udp 127.0.0.1:${PORT1} udpclo" >> "$out" ;;
+        esac
+    elif is_local_topology; then
+        # Same-host: self outduct uses own port, peer outducts use peer ports
+        local my_port
+        my_port=$(get_node_port "$idx")
+        case "$CL1" in
+            ltp)  echo "a outduct ltp $my_id ltpclo" >> "$out" ;;
+            tcp)  echo "a outduct tcp 127.0.0.1:${my_port} tcpclo" >> "$out" ;;
+            udp)  echo "a outduct udp 127.0.0.1:${my_port} udpclo" >> "$out" ;;
+        esac
+        for peer in $(get_peers "$idx"); do
+            local peer_id peer_port
+            peer_id="${NODE_IDS[$peer]}"
+            peer_port=$(get_node_port "$peer")
+            case "$CL1" in
+                ltp)  echo "a outduct ltp $peer_id ltpclo" >> "$out" ;;
+                tcp)  echo "a outduct tcp 127.0.0.1:${peer_port} tcpclo" >> "$out" ;;
+                udp)  echo "a outduct udp 127.0.0.1:${peer_port} udpclo" >> "$out" ;;
+            esac
+        done
+    else
+        # Remote multi-node
+        local self_cl self_port first_peer
+        first_peer=$(get_peers "$idx" | awk '{print $1}')
+        self_cl=$(get_link_cl "$idx" "$first_peer")
+        self_port=$(get_link_port "$idx" "$first_peer")
+        case "$self_cl" in
+            ltp)  echo "a outduct ltp $my_id ltpclo" >> "$out" ;;
+            tcp)  echo "a outduct tcp ${my_ip}:${self_port} tcpclo" >> "$out" ;;
+            udp)  echo "a outduct udp ${my_ip}:${self_port} udpclo" >> "$out" ;;
+        esac
+        for peer in $(get_peers "$idx"); do
+            local cl peer_id peer_ip peer_port
+            cl=$(get_link_cl "$idx" "$peer")
+            peer_port=$(get_link_port "$idx" "$peer")
+            peer_id="${NODE_IDS[$peer]}"
+            peer_ip="${NODE_IPS[$peer]}"
+            case "$cl" in
+                ltp)  echo "a outduct ltp $peer_id ltpclo" >> "$out" ;;
+                tcp)  echo "a outduct tcp ${peer_ip}:${peer_port} tcpclo" >> "$out" ;;
+                udp)  echo "a outduct udp ${peer_ip}:${peer_port} udpclo" >> "$out" ;;
+            esac
+        done
+    fi
+
+    # Egress plans (a plan + a planduct)
+    if [[ "$TOPOLOGY" == "loopback" ]]; then
+        echo "a plan ipn:${my_id}.0" >> "$out"
+        case "$CL1" in
+            ltp)  echo "a planduct ipn:${my_id}.0 ltp $my_id" >> "$out" ;;
+            tcp)  echo "a planduct ipn:${my_id}.0 tcp 127.0.0.1:${PORT1}" >> "$out" ;;
+            udp)  echo "a planduct ipn:${my_id}.0 udp 127.0.0.1:${PORT1}" >> "$out" ;;
+        esac
+    elif is_local_topology; then
+        local my_port
+        my_port=$(get_node_port "$idx")
+        echo "a plan ipn:${my_id}.0" >> "$out"
+        case "$CL1" in
+            ltp)  echo "a planduct ipn:${my_id}.0 ltp $my_id" >> "$out" ;;
+            tcp)  echo "a planduct ipn:${my_id}.0 tcp 127.0.0.1:${my_port}" >> "$out" ;;
+            udp)  echo "a planduct ipn:${my_id}.0 udp 127.0.0.1:${my_port}" >> "$out" ;;
+        esac
+        for peer in $(get_peers "$idx"); do
+            local peer_id peer_port
+            peer_id="${NODE_IDS[$peer]}"
+            peer_port=$(get_node_port "$peer")
+            echo "a plan ipn:${peer_id}.0" >> "$out"
+            case "$CL1" in
+                ltp)  echo "a planduct ipn:${peer_id}.0 ltp $peer_id" >> "$out" ;;
+                tcp)  echo "a planduct ipn:${peer_id}.0 tcp 127.0.0.1:${peer_port}" >> "$out" ;;
+                udp)  echo "a planduct ipn:${peer_id}.0 udp 127.0.0.1:${peer_port}" >> "$out" ;;
+            esac
+        done
+    else
+        # Remote multi-node
+        local self_cl self_port first_peer
+        first_peer=$(get_peers "$idx" | awk '{print $1}')
+        self_cl=$(get_link_cl "$idx" "$first_peer")
+        self_port=$(get_link_port "$idx" "$first_peer")
+        echo "a plan ipn:${my_id}.0" >> "$out"
+        case "$self_cl" in
+            ltp)  echo "a planduct ipn:${my_id}.0 ltp $my_id" >> "$out" ;;
+            tcp)  echo "a planduct ipn:${my_id}.0 tcp ${my_ip}:${self_port}" >> "$out" ;;
+            udp)  echo "a planduct ipn:${my_id}.0 udp ${my_ip}:${self_port}" >> "$out" ;;
+        esac
+        for peer in $(get_peers "$idx"); do
+            local cl peer_id peer_ip peer_port
+            cl=$(get_link_cl "$idx" "$peer")
+            peer_port=$(get_link_port "$idx" "$peer")
+            peer_id="${NODE_IDS[$peer]}"
+            peer_ip="${NODE_IPS[$peer]}"
+            echo "a plan ipn:${peer_id}.0" >> "$out"
+            case "$cl" in
+                ltp)  echo "a planduct ipn:${peer_id}.0 ltp $peer_id" >> "$out" ;;
+                tcp)  echo "a planduct ipn:${peer_id}.0 tcp ${peer_ip}:${peer_port}" >> "$out" ;;
+                udp)  echo "a planduct ipn:${peer_id}.0 udp ${peer_ip}:${peer_port}" >> "$out" ;;
+            esac
+        done
+    fi
+
+    echo "s" >> "$out"
+    echo "## end bpadmin${tag:+ $tag}" >> "$out"
+    echo "" >> "$out"
+}
+
+# Write ipnadmin section for a node
+write_ipnadmin() {
+    local out="$1" idx="$2" tag="$3"
+
+    echo "## begin ipnadmin${tag:+ $tag}" >> "$out"
+
+    # Group routes for 3-node edge nodes (indirect via relay)
+    if [[ "$TOPOLOGY" == "3node" || "$TOPOLOGY" == "3node-local" ]]; then
+        local mid_id="${NODE_IDS[1]}"
+        if [[ $idx -eq 0 ]]; then
+            echo "a group ${NODE_IDS[2]} ${NODE_IDS[2]} $mid_id" >> "$out"
+        elif [[ $idx -eq 2 ]]; then
+            echo "a group ${NODE_IDS[0]} ${NODE_IDS[0]} $mid_id" >> "$out"
+        fi
+    fi
+
+    echo "## end ipnadmin${tag:+ $tag}" >> "$out"
+    echo "" >> "$out"
+}
+
+# Write cfdpadmin section for a node
+write_cfdpadmin() {
+    local out="$1" idx="$2" tag="$3"
+    local my_id="${NODE_IDS[$idx]}"
+
+    echo "## begin cfdpadmin${tag:+ $tag}" >> "$out"
+    echo "1" >> "$out"
+    # Add entity entries for all peer nodes
+    for peer in $(seq 0 $((NODE_COUNT - 1))); do
+        if [[ "$peer" -ne "$idx" ]]; then
+            local peer_id="${NODE_IDS[$peer]}"
+            echo "a entity $peer_id bp ipn:${peer_id}.0 7 0 0" >> "$out"
+        fi
+    done
+    echo "m discard 1" >> "$out"
+    echo "m segsize 65000" >> "$out"
+    echo "s 'bputa'" >> "$out"
+    echo "## end cfdpadmin${tag:+ $tag}" >> "$out"
+    echo "" >> "$out"
+}
+
+# --- Config generation: loopback (no tags) ---
+generate_loopback_config() {
+    local out="$WORKDIR/ionrun.rc"
+    > "$out"
+
+    echo "# ION configuration generated by ionrun" >> "$out"
+    echo "# Topology: loopback | CL: $CL1" >> "$out"
+    echo "" >> "$out"
+
+    write_ionadmin "$out" 0 ""
+    write_ionsecadmin "$out" ""
+    if [[ "$CL1" == "ltp" ]]; then
+        write_ltpadmin "$out" 0 ""
+    fi
+    write_bpadmin "$out" 0 ""
+    write_ipnadmin "$out" 0 ""
+    generate_node_subdirs
+}
+
+# --- Config generation: multi-node (with tags) ---
+generate_multinode_config() {
+    local i
+    local out="$WORKDIR/ionrun.rc"
+    > "$out"
+
+    local cl_desc="$CL1"
+    if [[ -n "$CL2" ]]; then
+        cl_desc="${CL1} + ${CL2}"
+    fi
+    echo "# ION configuration generated by ionrun" >> "$out"
+    echo "# Topology: $TOPOLOGY | CL: $cl_desc" >> "$out"
+    echo "# Use: ionstart -I ionrun.rc -t <nodename>" >> "$out"
+    echo "" >> "$out"
+
+    # ionadmin sections (all nodes)
+    for i in $(seq 0 $((NODE_COUNT - 1))); do
+        write_ionadmin "$out" "$i" "${NODE_NAMES[$i]}"
+    done
+
+    # ionsecadmin sections
+    for i in $(seq 0 $((NODE_COUNT - 1))); do
+        write_ionsecadmin "$out" "${NODE_NAMES[$i]}"
+    done
+
+    # ltpadmin sections (only for nodes that use LTP)
+    for i in $(seq 0 $((NODE_COUNT - 1))); do
+        if node_uses_ltp "$i"; then
+            write_ltpadmin "$out" "$i" "${NODE_NAMES[$i]}"
+        fi
+    done
+
+    # bpadmin sections
+    for i in $(seq 0 $((NODE_COUNT - 1))); do
+        write_bpadmin "$out" "$i" "${NODE_NAMES[$i]}"
+    done
+
+    # ipnadmin sections
+    for i in $(seq 0 $((NODE_COUNT - 1))); do
+        write_ipnadmin "$out" "$i" "${NODE_NAMES[$i]}"
+    done
+
+    # cfdpadmin sections (optional)
+    if [[ "$ENABLE_CFDP" == true ]]; then
+        for i in $(seq 0 $((NODE_COUNT - 1))); do
+            write_cfdpadmin "$out" "$i" "${NODE_NAMES[$i]}"
+        done
+    fi
+    generate_node_subdirs
+}
+
+# --- Config generation: same-host multi-node (per-node subdirs) ---
+generate_local_ionconfig() {
+    local dir="$1" idx="$2"
+    local n=$((idx + 1))
+    local wmkey=$((10000 + n))
+    local sdr_wmkey=$((65280 + n))
+    local sdr_name="ion${NODE_IDS[$idx]}"
+    cat > "$dir/ionrun.ionconfig" <<EOF
+wmKey $wmkey
+sdrWmKey $sdr_wmkey
+sdrName $sdr_name
+wmSize $CFG_WMSIZE
+configFlags 1
+heapWords $CFG_HEAP
+pathName /tmp
+EOF
+}
+
+generate_local_config() {
+    local i
+    for i in $(seq 0 $((NODE_COUNT - 1))); do
+        local node_dir="$WORKDIR/${NODE_NAMES[$i]}"
+        mkdir -p "$node_dir"
+
+        # Write .ionconfig with unique wmKey/sdrName
+        generate_local_ionconfig "$node_dir" "$i"
+
+        # Write ionrun.rc (no tags — single-node config per subdir)
+        local out="$node_dir/ionrun.rc"
+        > "$out"
+
+        echo "# ION configuration generated by ionrun" >> "$out"
+        echo "# Topology: $TOPOLOGY | Node: ${NODE_NAMES[$i]} | CL: $CL1" >> "$out"
+        echo "" >> "$out"
+
+        write_ionadmin "$out" "$i" ""
+        write_ionsecadmin "$out" ""
+        if node_uses_ltp "$i"; then
+            write_ltpadmin "$out" "$i" ""
+        fi
+        write_bpadmin "$out" "$i" ""
+        write_ipnadmin "$out" "$i" ""
+        if [[ "$ENABLE_CFDP" == true ]]; then
+            write_cfdpadmin "$out" "$i" ""
+        fi
+    done
+    generate_node_subdirs
+}
+
+# --- Write metadata file ---
+write_meta() {
+    local i n
+    local meta="$WORKDIR/ionrun.meta"
+    cat > "$meta" <<EOF
+topology=$TOPOLOGY
+node_count=$NODE_COUNT
+EOF
+    for i in $(seq 0 $((NODE_COUNT - 1))); do
+        local n=$((i + 1))
+        echo "node${n}_name=${NODE_NAMES[$i]}" >> "$meta"
+        echo "node${n}_id=${NODE_IDS[$i]}" >> "$meta"
+        echo "node${n}_ip=${NODE_IPS[$i]}" >> "$meta"
+    done
+    echo "cl1=$CL1" >> "$meta"
+    echo "port1=$PORT1" >> "$meta"
+    if [[ -n "$CL2" ]]; then
+        echo "cl2=$CL2" >> "$meta"
+        echo "port2=$PORT2" >> "$meta"
+    fi
+    if is_local_topology; then
+        for i in $(seq 0 $((NODE_COUNT - 1))); do
+            local n=$((i + 1))
+            echo "node${n}_port=${NODE_PORTS[$i]}" >> "$meta"
+        done
+    fi
+    if [[ "$ENABLE_CFDP" == true ]]; then
+        echo "cfdp=true" >> "$meta"
+    fi
+    # Tunable parameters (only write non-defaults)
+    [[ "$CFG_RATE" != 100000 ]] && echo "rate=$CFG_RATE" >> "$meta" || true
+    [[ "$CFG_WMSIZE" != 50000000 ]] && echo "wmsize=$CFG_WMSIZE" >> "$meta" || true
+    [[ "$CFG_HEAP" != 10000000 ]] && echo "heap=$CFG_HEAP" >> "$meta" || true
+    [[ "$CFG_SEGMENT_SIZE" != 1400 ]] && echo "segment_size=$CFG_SEGMENT_SIZE" >> "$meta" || true
+    [[ "$CFG_CONTACT_DURATION" != 86400 ]] && echo "contact_duration=$CFG_CONTACT_DURATION" >> "$meta" || true
+}
+
+# --- Split combined rc into per-node individual files + start script ---
+# Maps admin program names to individual file suffixes
+admin_suffix() {
+    case "$1" in
+        ionadmin)    echo "ionrc" ;;
+        ionsecadmin) echo "ionsecrc" ;;
+        ltpadmin)    echo "ltprc" ;;
+        bpadmin)     echo "bprc" ;;
+        ipnadmin)    echo "ipnrc" ;;
+        cfdpadmin)   echo "cfdprc" ;;
+        *)           echo "" ;;
+    esac
+}
+
+# Split a combined rc file into individual admin files for one node.
+# Usage: split_rc_to_node_dir <rc_file> <out_dir> <node_name> [tag]
+# If tag is provided, only sections with that tag are extracted.
+# If tag is empty, all sections (untagged) are extracted.
+split_rc_to_node_dir() {
+    local rc_file="$1" out_dir="$2" node_name="$3" tag="${4:-}"
+    mkdir -p "$out_dir"
+
+    local current_admin="" current_file="" found_admins=""
+    local in_section=false
+    local bprc_content=""
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        if [[ "$line" =~ ^##\ begin\ ([a-zA-Z]+)(\ (.+))?$ ]]; then
+            local admin="${BASH_REMATCH[1]}"
+            local section_tag="${BASH_REMATCH[3]}"
+            # Match: no tag filter and no section tag, or tags match
+            if [[ -z "$tag" && -z "$section_tag" ]] || [[ -n "$tag" && "$section_tag" == "$tag" ]]; then
+                local suffix
+                suffix=$(admin_suffix "$admin")
+                if [[ -n "$suffix" ]]; then
+                    current_admin="$admin"
+                    current_file="$out_dir/ionrun.${suffix}"
+                    > "$current_file"
+                    in_section=true
+                    if [[ "$admin" == "bpadmin" ]]; then
+                        bprc_content=""
+                    fi
+                fi
+            fi
+        elif [[ "$line" =~ ^##\ end\  ]]; then
+            if [[ "$in_section" == true ]]; then
+                if [[ "$current_admin" == "bpadmin" ]]; then
+                    # Insert r 'ipnadmin ionrun.ipnrc' before 's'
+                    local wrote_s=false
+                    while IFS= read -r bpline; do
+                        if [[ "$bpline" == "s" && "$wrote_s" == false ]]; then
+                            echo "r 'ipnadmin ionrun.ipnrc'" >> "$current_file"
+                            echo "s" >> "$current_file"
+                            wrote_s=true
+                        else
+                            echo "$bpline" >> "$current_file"
+                        fi
+                    done <<< "$bprc_content"
+                    if [[ "$wrote_s" == false ]]; then
+                        # No 's' found, append r + s at the end
+                        echo "r 'ipnadmin ionrun.ipnrc'" >> "$current_file"
+                        echo "s" >> "$current_file"
+                    fi
+                fi
+                # Track found admins (excluding ipnadmin, handled via r command)
+                if [[ "$current_admin" != "ipnadmin" ]]; then
+                    found_admins="${found_admins} ${current_admin}"
+                fi
+            fi
+            current_admin=""
+            current_file=""
+            in_section=false
+        elif [[ "$in_section" == true ]]; then
+            if [[ "$current_admin" == "bpadmin" ]]; then
+                # Buffer bpadmin content for s-line insertion
+                if [[ -z "$bprc_content" ]]; then
+                    bprc_content="$line"
+                else
+                    bprc_content="${bprc_content}
+${line}"
+                fi
+            else
+                echo "$line" >> "$current_file"
+            fi
+        fi
+    done < "$rc_file"
+
+    # Generate start script
+    local start_script="$out_dir/start_${node_name}.sh"
+    {
+        echo "#!/usr/bin/env bash"
+        echo "# Start ION node '${node_name}' - generated by ionrun"
+        echo "cd \"\$(dirname \"\$0\")\""
+        for admin in $found_admins; do
+            local suffix
+            suffix=$(admin_suffix "$admin")
+            echo "${admin}$(printf '\t')ionrun.${suffix}"
+            echo "sleep 1"
+        done
+    } > "$start_script"
+    chmod +x "$start_script"
+}
+
+# Generate per-node subdirectories from combined rc files.
+generate_node_subdirs() {
+    local i
+    if [[ "$TOPOLOGY" == "loopback" ]]; then
+        # Single node, untagged — split top-level ionrun.rc
+        local name="${NODE_NAMES[0]}"
+        split_rc_to_node_dir "$WORKDIR/ionrun.rc" "$WORKDIR/$name" "$name" ""
+    elif is_local_topology; then
+        # Same-host — each node already has its own ionrun.rc (untagged)
+        for i in $(seq 0 $((NODE_COUNT - 1))); do
+            local name="${NODE_NAMES[$i]}"
+            local node_dir="$WORKDIR/$name"
+            split_rc_to_node_dir "$node_dir/ionrun.rc" "$node_dir" "$name" ""
+        done
+    else
+        # Remote multi-node — single tagged ionrun.rc at top level
+        for i in $(seq 0 $((NODE_COUNT - 1))); do
+            local name="${NODE_NAMES[$i]}"
+            split_rc_to_node_dir "$WORKDIR/ionrun.rc" "$WORKDIR/$name" "$name" "$name"
+        done
+    fi
+}
+
+# --- Detect pre-existing external node configurations ---
+# Scans WORKDIR for subdirectories containing start_<dirname>.sh.
+# Populates EXT_NODES array. Returns 0 if found, 1 if not.
+EXT_NODES=()
+detect_external_nodes() {
+    EXT_NODES=()
+    local dir
+    for dir in "$WORKDIR"/*/; do
+        [[ -d "$dir" ]] || continue
+        local name
+        name=$(basename "$dir")
+        if [[ -x "$dir/start_${name}.sh" ]]; then
+            EXT_NODES+=("$name")
+        fi
+    done
+    [[ ${#EXT_NODES[@]} -gt 0 ]]
+}
+
+# --- Run a pre-existing external config ---
+run_external_config() {
+    local abs_workdir
+    abs_workdir="$(cd "$WORKDIR" && pwd)"
+
+    if [[ "$OPT_GENERATE_ONLY" == true ]]; then
+        echo "Detected pre-existing node configurations:"
+        for name in "${EXT_NODES[@]}"; do
+            echo "  $name/ (start_${name}.sh)"
+        done
+        echo "Skipping start (--generate-only)."
+        return
+    fi
+
+    local node_name="$OPT_NODE"
+    if [[ -z "$node_name" ]]; then
+        if [[ ${#EXT_NODES[@]} -eq 1 ]]; then
+            node_name="${EXT_NODES[0]}"
+        else
+            echo "Detected nodes:"
+            for name in "${EXT_NODES[@]}"; do
+                echo "  $name"
+            done
+            echo ""
+            read -rp "Which node to start? " node_name
+        fi
+    fi
+
+    # Validate node name
+    local found=false
+    for name in "${EXT_NODES[@]}"; do
+        if [[ "$name" == "$node_name" ]]; then
+            found=true
+            break
+        fi
+    done
+    if [[ "$found" != true ]]; then
+        echo "Error: Node '$node_name' not found." >&2
+        echo "Available nodes: ${EXT_NODES[*]}" >&2
+        exit 1
+    fi
+
+    local node_dir="$abs_workdir/$node_name"
+    echo "Starting ION node '$node_name' in $node_dir ..."
+    export ION_NODE_LIST_DIR="$abs_workdir"
+    export ION_NODE_WDNAME="$node_dir"
+    (cd "$node_dir" && bash "./start_${node_name}.sh")
+    echo ""
+    echo "To operate on this node from any directory, run:"
+    echo "  export ION_NODE_LIST_DIR=$abs_workdir"
+    echo "  export ION_NODE_WDNAME=$node_dir"
+}
+
+# --- Load metadata (for --regenerate) ---
+load_meta() {
+    local meta="$1"
+    if [[ ! -f "$meta" ]]; then
+        echo "Error: $meta not found. Cannot regenerate." >&2
+        exit 1
+    fi
+
+    # Helper to read a key from the meta file
+    meta_val() { grep "^${1}=" "$meta" | cut -d= -f2; }
+
+    TOPOLOGY=$(meta_val topology)
+    NODE_COUNT=$(meta_val node_count)
+
+    NODE_NAMES=()
+    NODE_IDS=()
+    NODE_IPS=()
+    NODE_PORTS=()
+
+    for i in $(seq 1 "$NODE_COUNT"); do
+        NODE_NAMES+=("$(meta_val "node${i}_name")")
+        NODE_IDS+=("$(meta_val "node${i}_id")")
+        NODE_IPS+=("$(meta_val "node${i}_ip")")
+        local nport
+        nport=$(meta_val "node${i}_port")
+        if [[ -n "$nport" ]]; then
+            NODE_PORTS+=("$nport")
+        fi
+    done
+
+    CL1=$(meta_val cl1)
+    PORT1=$(meta_val port1)
+    CL2=$(meta_val cl2)
+    PORT2=$(meta_val port2)
+
+    local cfdp_val
+    cfdp_val=$(meta_val cfdp)
+    if [[ "$cfdp_val" == "true" ]]; then
+        ENABLE_CFDP=true
+    else
+        ENABLE_CFDP=false
+    fi
+
+    # Tunable parameters (fall back to defaults if not in meta)
+    local v
+    v=$(meta_val rate);             [[ -n "$v" ]] && CFG_RATE="$v"
+    v=$(meta_val wmsize);           [[ -n "$v" ]] && CFG_WMSIZE="$v"
+    v=$(meta_val heap);             [[ -n "$v" ]] && CFG_HEAP="$v"
+    v=$(meta_val segment_size);     [[ -n "$v" ]] && CFG_SEGMENT_SIZE="$v"
+    v=$(meta_val contact_duration); [[ -n "$v" ]] && CFG_CONTACT_DURATION="$v"
+}
+
+# --- Load batch answer file ---
+load_batch_file() {
+    local file="$1"
+    if [[ ! -f "$file" ]]; then
+        echo "Error: Batch file '$file' not found." >&2
+        exit 1
+    fi
+
+    local key val
+    while IFS='=' read -r key val || [[ -n "$key" ]]; do
+        # Skip blank lines and comments
+        [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]] && continue
+        key=$(echo "$key" | xargs)
+        val=$(echo "$val" | xargs)
+        case "$key" in
+            topology)   BATCH_TOPOLOGY="$val" ;;
+            cl|cl1)     BATCH_CL="$val" ;;
+            cl2)        BATCH_CL2="$val" ;;
+            port|port1) BATCH_PORT="$val" ;;
+            port2)      BATCH_PORT2="$val" ;;
+            cfdp)       BATCH_CFDP="$val" ;;
+            rate)       BATCH_RATE="$val" ;;
+            wmsize)     BATCH_WMSIZE="$val" ;;
+            heap)       BATCH_HEAP="$val" ;;
+            segment_size|segment-size) BATCH_SEGMENT_SIZE="$val" ;;
+            contact_duration|contact-duration) BATCH_CONTACT_DURATION="$val" ;;
+            node[0-9]*_name)
+                local idx="${key#node}"; idx="${idx%_name}"
+                BATCH_NODE_NAMES[$idx]="$val" ;;
+            node[0-9]*_id)
+                local idx="${key#node}"; idx="${idx%_id}"
+                BATCH_NODE_IDS[$idx]="$val" ;;
+            node[0-9]*_ip)
+                local idx="${key#node}"; idx="${idx%_ip}"
+                BATCH_NODE_IPS[$idx]="$val" ;;
+            *)
+                echo "Warning: Unknown batch key '$key' (ignored)." >&2 ;;
+        esac
+    done < "$file"
+}
+
+# --- Apply batch parameters to wizard state ---
+apply_batch() {
+    # Topology (required)
+    if [[ -z "$BATCH_TOPOLOGY" ]]; then
+        echo "Error: Batch mode requires 'topology' (loopback, 2node, 3node, 2node-local, 3node-local)." >&2
+        exit 1
+    fi
+    case "$BATCH_TOPOLOGY" in
+        loopback)    TOPOLOGY="loopback";    NODE_COUNT=1 ;;
+        2node)       TOPOLOGY="2node";       NODE_COUNT=2 ;;
+        3node)       TOPOLOGY="3node";       NODE_COUNT=3 ;;
+        2node-local) TOPOLOGY="2node-local"; NODE_COUNT=2 ;;
+        3node-local) TOPOLOGY="3node-local"; NODE_COUNT=3 ;;
+        *)
+            echo "Error: Invalid topology '$BATCH_TOPOLOGY'." >&2
+            exit 1 ;;
+    esac
+
+    # Node names, IDs, IPs (defaults if not specified)
+    NODE_NAMES=()
+    NODE_IDS=()
+    NODE_IPS=()
+    for i in $(seq 0 $((NODE_COUNT - 1))); do
+        local n=$((i + 1))
+        NODE_NAMES[$i]="${BATCH_NODE_NAMES[$n]:-node${n}}"
+        NODE_IDS[$i]="${BATCH_NODE_IDS[$n]:-$n}"
+        if [[ "$TOPOLOGY" == "loopback" ]] || is_local_topology; then
+            NODE_IPS[$i]="127.0.0.1"
+        else
+            NODE_IPS[$i]="${BATCH_NODE_IPS[$n]:-127.0.0.1}"
+        fi
+    done
+
+    # Convergence layer (required)
+    if [[ -z "$BATCH_CL" ]]; then
+        echo "Error: Batch mode requires 'cl' (ltp, tcp, or udp)." >&2
+        exit 1
+    fi
+    case "$BATCH_CL" in
+        ltp|tcp|udp) CL1="$BATCH_CL" ;;
+        *) echo "Error: Invalid CL '$BATCH_CL'. Must be ltp, tcp, or udp." >&2; exit 1 ;;
+    esac
+
+    # CL2 for 3-node remote
+    if [[ "$TOPOLOGY" == "3node" ]]; then
+        CL2="${BATCH_CL2:-$CL1}"
+        case "$CL2" in
+            ltp|tcp|udp) ;;
+            *) echo "Error: Invalid cl2 '$CL2'. Must be ltp, tcp, or udp." >&2; exit 1 ;;
+        esac
+    else
+        CL2=""
+    fi
+
+    # Ports (defaults based on CL)
+    local default_port1
+    case "$CL1" in
+        ltp) default_port1=1113 ;; *) default_port1=4556 ;;
+    esac
+    PORT1="${BATCH_PORT:-$default_port1}"
+
+    if [[ "$TOPOLOGY" == "3node" && -n "$CL2" ]]; then
+        local default_port2
+        case "$CL2" in
+            ltp) default_port2=1113 ;; *) default_port2=4556 ;;
+        esac
+        PORT2="${BATCH_PORT2:-$default_port2}"
+    else
+        PORT2=""
+    fi
+
+    # Per-node ports for same-host topologies
+    NODE_PORTS=()
+    if is_local_topology; then
+        for i in $(seq 0 $((NODE_COUNT - 1))); do
+            NODE_PORTS[$i]=$((PORT1 + i))
+        done
+    fi
+
+    # CFDP
+    case "${BATCH_CFDP:-no}" in
+        yes|true|1) ENABLE_CFDP=true ;;
+        *)          ENABLE_CFDP=false ;;
+    esac
+    if [[ "$TOPOLOGY" == "loopback" ]]; then
+        ENABLE_CFDP=false
+    fi
+
+    apply_param_overrides
+
+    echo "Batch mode: topology=$TOPOLOGY cl=$CL1 nodes=$NODE_COUNT"
+}
+
+# --- Apply CLI parameter overrides (works with wizard, batch, and regenerate) ---
+apply_param_overrides() {
+    [[ -n "$BATCH_RATE" ]] && CFG_RATE="$BATCH_RATE" || true
+    [[ -n "$BATCH_WMSIZE" ]] && CFG_WMSIZE="$BATCH_WMSIZE" || true
+    [[ -n "$BATCH_HEAP" ]] && CFG_HEAP="$BATCH_HEAP" || true
+    [[ -n "$BATCH_SEGMENT_SIZE" ]] && CFG_SEGMENT_SIZE="$BATCH_SEGMENT_SIZE" || true
+    [[ -n "$BATCH_CONTACT_DURATION" ]] && CFG_CONTACT_DURATION="$BATCH_CONTACT_DURATION" || true
+}
+
+# --- Wizard orchestrator ---
+run_wizard() {
+    echo "=== ION Configuration Wizard ==="
+    prompt_topology
+    prompt_nodes
+    prompt_convergence_layers
+    if [[ "$TOPOLOGY" != "loopback" ]]; then
+        prompt_cfdp
+    fi
+
+    # Clean up artifacts from previous topology (e.g. switching from
+    # remote multi-node to same-host or vice versa).
+    local old_meta="$WORKDIR/ionrun.meta"
+    if [[ -f "$old_meta" ]]; then
+        local old_topo
+        old_topo=$(grep '^topology=' "$old_meta" | cut -d= -f2)
+        # Remove top-level ionrun.rc (used by loopback / remote topologies)
+        rm -f "$WORKDIR/ionrun.rc"
+        # Remove per-node subdirectories (all topologies generate them now)
+        local old_count old_name
+        old_count=$(grep '^node_count=' "$old_meta" | cut -d= -f2)
+        for i in $(seq 1 "$old_count"); do
+            old_name=$(grep "^node${i}_name=" "$old_meta" | cut -d= -f2)
+            if [[ -n "$old_name" && -d "$WORKDIR/$old_name" ]]; then
+                rm -rf "$WORKDIR/$old_name"
+            fi
+        done
+    fi
+
+    # Generate config
+    if [[ "$TOPOLOGY" == "loopback" ]]; then
+        generate_loopback_config
+    elif is_local_topology; then
+        generate_local_config
+    else
+        generate_multinode_config
+    fi
+    write_meta
+
+    echo ""
+    echo "Configuration written to:"
+    if is_local_topology; then
+        for i in $(seq 0 $((NODE_COUNT - 1))); do
+            echo "  $WORKDIR/${NODE_NAMES[$i]}/ionrun.rc"
+            echo "  $WORKDIR/${NODE_NAMES[$i]}/ionrun.ionconfig"
+            echo "  $WORKDIR/${NODE_NAMES[$i]}/start_${NODE_NAMES[$i]}.sh"
+        done
+    else
+        echo "  $WORKDIR/ionrun.rc"
+        for i in $(seq 0 $((NODE_COUNT - 1))); do
+            echo "  $WORKDIR/${NODE_NAMES[$i]}/start_${NODE_NAMES[$i]}.sh"
+        done
+    fi
+    echo "  $WORKDIR/ionrun.meta"
+}
+
+# --- Main ---
+main() {
+    parse_args "$@"
+
+    # Handle --stop
+    if [[ "$OPT_STOP" == true ]]; then
+        stop_ion
+        exit 0
+    fi
+
+    # Handle --clean
+    if [[ "$OPT_CLEAN" == true ]]; then
+        clean_ion
+        exit 0
+    fi
+
+    # Handle --start-all
+    if [[ "$OPT_START_ALL" == true ]]; then
+        start_all
+        exit $?
+    fi
+
+    # Handle --check
+    if [[ "$OPT_CHECK" == true ]]; then
+        check_ion
+        exit $?
+    fi
+
+    # Handle --test
+    if [[ "$OPT_TEST" == true ]]; then
+        smoke_test
+        exit $?
+    fi
+
+    # Handle --log
+    if [[ "$OPT_LOG" == true ]]; then
+        show_logs
+        exit 0
+    fi
+
+    # Ensure working directory exists
+    mkdir -p "$WORKDIR"
+
+    local meta="$WORKDIR/ionrun.meta"
+
+    if [[ "$OPT_REGEN" == true ]]; then
+        # Regenerate config from existing metadata (no wizard)
+        load_meta "$meta"
+        apply_param_overrides
+        if [[ "$TOPOLOGY" == "loopback" ]]; then
+            generate_loopback_config
+        elif is_local_topology; then
+            generate_local_config
+        else
+            generate_multinode_config
+        fi
+        write_meta
+        echo "Configuration regenerated from $meta"
+        if [[ "$OPT_GENERATE_ONLY" != true ]]; then
+            echo ""
+            run_ion
+        fi
+    elif [[ -n "$OPT_BATCH" ]] || [[ "$OPT_BATCH_INLINE" == true ]]; then
+        # Batch mode: load answer file and/or inline overrides, skip wizard
+        if [[ -n "$OPT_BATCH" ]]; then
+            load_batch_file "$OPT_BATCH"
+        fi
+        apply_batch
+        # Generate config (same as wizard, without prompts)
+        if [[ "$TOPOLOGY" == "loopback" ]]; then
+            generate_loopback_config
+        elif is_local_topology; then
+            generate_local_config
+        else
+            generate_multinode_config
+        fi
+        write_meta
+        echo "Configuration written to $WORKDIR/"
+        if [[ "$OPT_GENERATE_ONLY" != true ]]; then
+            echo ""
+            run_ion
+        fi
+    elif [[ -f "$meta" && "$OPT_FORCE" != true ]]; then
+        # Existing ionrun-generated config: run or report
+        run_ion
+    elif [[ "$OPT_FORCE" != true && -f "$WORKDIR/ionrun.rc" ]]; then
+        # Bare ionrun.rc without meta — run it directly
+        echo "Found ionrun.rc in $WORKDIR (no ionrun.meta)."
+        if [[ "$OPT_GENERATE_ONLY" == true ]]; then
+            echo "Config exists at $WORKDIR/ionrun.rc. Skipping start (--generate-only)."
+        else
+            local abs_workdir
+            abs_workdir="$(cd "$WORKDIR" && pwd)"
+            export ION_NODE_WDNAME="$abs_workdir"
+            echo "Starting ION with ionstart -I ionrun.rc ..."
+            (cd "$WORKDIR" && ionstart -I ionrun.rc)
+            echo ""
+            echo "To operate on this ION instance from any directory, run:"
+            echo "  export ION_NODE_WDNAME=$abs_workdir"
+        fi
+    elif [[ "$OPT_FORCE" != true ]] && detect_external_nodes; then
+        # Pre-existing node subdirectories with start scripts
+        run_external_config
+    else
+        # New or forced: run wizard
+        apply_param_overrides
+        run_wizard
+        if [[ "$OPT_GENERATE_ONLY" != true ]]; then
+            echo ""
+            run_ion
+        fi
+    fi
+}
+
+main "$@"

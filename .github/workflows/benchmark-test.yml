@@ -12,6 +12,11 @@ on:
         required: false
         type: string
         default: ""
+      force_update:
+        description: "Force update .DURATION files (only works when specific tests are provided)"
+        required: false
+        type: boolean
+        default: false
       timeout_minutes:
         description: "Timeout for test benchmark in minutes (default: 60 minutes / 1 hour)"
         required: false
@@ -24,6 +29,11 @@ on:
         required: false
         type: string
         default: ""
+      force_update:
+        description: "Force update .DURATION files (only works when specific tests are provided)"
+        required: false
+        type: boolean
+        default: false
       timeout_minutes:
         description: "Timeout for test benchmark in minutes (default: 60 minutes / 1 hour)"
         required: false
@@ -39,7 +49,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.head_ref }}
 
@@ -62,14 +72,21 @@ jobs:
             sudo make install
             sudo ldconfig
             if [ -n "${{ inputs.tests_to_run }}" ]; then
-              ./tests/benchmark.py -p ${{ inputs.tests_to_run }}
+              if [ "${{ inputs.force_update }}" == "true" ]; then
+                echo "Force updating benchmarks for: ${{ inputs.tests_to_run }}"
+                ./tests/benchmark.py -p ${{ inputs.tests_to_run }} -f
+              else
+                ./tests/benchmark.py -p ${{ inputs.tests_to_run }}
+              fi
             else
+              if [ "${{ inputs.force_update }}" == "true" ]; then
+                echo "⚠️ Warning: Force update ignored - only works when specific tests are provided via tests_to_run"
+              fi
               ./tests/benchmark.py
             fi
           } > benchmark.log 2> >(tee -a benchmark.log >&2)
 
           TEST_STATUS=$?
-          wait  # Wait for background processes to complete
 
           if [ $TEST_STATUS -ne 0 ]; then
             echo "Tests failed with status $TEST_STATUS" >&2
@@ -78,19 +95,43 @@ jobs:
 
       - name: Upload full test log
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-install-log-${{ env.TIMESTAMP }}
           path: benchmark.log
 
       - name: Upload benchmark stdout logs
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: benchmark-logs
+          name: benchmark-logs-${{ env.TIMESTAMP }}
           path: |
             tests/**/*.stdout
             demos/**/*.stdout
+
+      - name: Benchmark summary
+        if: ${{ always() }}
+        run: |
+          echo "## 📊 Benchmark Failures" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|----------|" >> $GITHUB_STEP_SUMMARY
+          if [ -f benchmark_results.txt ]; then
+            # Check if there are any failures in the file
+            if grep -q "FAILED" benchmark_results.txt; then
+              # Read only the lines that failed
+              grep "FAILED" benchmark_results.txt | while IFS="|" read -r test_name result || [ -n "$test_name" ]; do
+                test_name=$(echo "$test_name" | xargs)
+                [ -z "$test_name" ] && continue
+
+                echo "| $test_name | ❌ |" >> $GITHUB_STEP_SUMMARY
+              done
+            else
+              # If grep doesn't find "FAILED", all tests passed
+              echo "| 🎉 All tests passed! | ✅ |" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "| *N/A* | *benchmark_results.txt not found* |" >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: Commit newly generated .DURATION files
         if: ${{ always() }}

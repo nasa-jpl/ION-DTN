@@ -277,9 +277,6 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #include <math.h>
 #include <stdarg.h>
 
-/* Portable atomics: C11 <stdatomic.h> or GCC/Clang __atomic builtins */
-#include "ion_atomic.h"
-
 /* Add headers for getaddrinfo on Linux, FreeBSD, macOS, RTEMS */
 #if defined(__linux__) || defined(freebsd) || defined(darwin) || defined(RTEMS)
 #include <netdb.h>
@@ -561,7 +558,7 @@ extern int getpriority(int, id_t);
 #endif				/****	End of #ifdef (sparc)        ****/
 
 #ifdef solaris			/****	Solaris (SunOS 5+)	     ****/
-#include <ucontext.h>		/****	For backtrace() on Solaris   ****/
+#include <ucontext.h>		/****	For printstack() on Solaris  ****/
 
 /* semaphore options */
 /* POSIX_NAMED_SEMAPHORES are the default on Solaris */
@@ -588,7 +585,7 @@ extern int getpriority(int, id_t);
 
 #ifndef SEM_NSEMS_MAX
 // larger because these are global on the node across ALL Ion instances - 256 is fine for a single instance
-#define	SEM_NSEMS_MAX		2048
+#define	SEM_NSEMS_MAX		8192
 #endif
 
 #endif				/****	End of #ifdef solaris	     ****/
@@ -659,14 +656,11 @@ typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
 /* allow the default to be overwritten */
 #ifndef SEM_NSEMS_MAX
 // larger because these are global on the node across ALL Ion instances - 256 is fine for a single instance
-#define	SEM_NSEMS_MAX		2048
+#define	SEM_NSEMS_MAX		8192
 #endif
 
 #include <asm/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <sys/param.h>		/****	...to get MAXPATHLEN	     ****/
-#ifdef HAVE_EXECINFO_H
-#include <execinfo.h>		/****	...to get backtrace	     ****/
-#endif				/*	End of #ifndef HAVE_EXECINFO_H  */
 #endif				/****	End of #ifdef bionic	     ****/
 
 #define	_MULTITHREADED
@@ -677,7 +671,6 @@ typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
 
 #include <sys/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <pthread.h>
-#include <execinfo.h>		/****	...to get backtrace	     ****/
 int pthread_set_name_np(pthread_t thread, const char *name);
 
 #define	_MULTITHREADED
@@ -692,7 +685,7 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 
 /* ADD THIS SECTION: */
 #ifndef SEM_NSEMS_MAX
-#define	SEM_NSEMS_MAX		2048
+#define	SEM_NSEMS_MAX		8192
 #endif
 
 
@@ -705,8 +698,6 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 #include <stdlib.h>
 #include <sys/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <pthread.h>
-
-#include <execinfo.h>		/****	...to get backtrace	     ****/
 
 /* semaphore options */
 /* POSIX_NAMED_SEMAPHORES is the default on MacOS */
@@ -733,7 +724,7 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 /* allow the default to be overwritten */
 #ifndef SEM_NSEMS_MAX
 // larger because these are global on the node across ALL Ion instances - 256 is fine for a single instance
-#define	SEM_NSEMS_MAX		2048
+#define	SEM_NSEMS_MAX		8192
 #endif
 
 int pthread_setname_np(const char *name);
@@ -829,11 +820,44 @@ int pthread_setname_np(const char *name);
 #endif
 
 /**
- * ResourceLock: A platform-independent recursive mutex.
+ * ResourceLock: a platform-independent recursive mutex.
+ *
+ * The opaque[] buffer is sized to accommodate the largest `Rlock`
+ * representation across all supported platforms:
+ *
+ *   - VxWorks / pre-C11 ION: `{ SEM_ID; int owner; short count; short init; }`
+ *     (a few pointer/int words)
+ *   - POSIX / glibc / musl:  `{ pthread_mutex_t mutex; int initialized; }`
+ *     (pthread_mutex_t is 40 bytes on glibc x86_64, 48 bytes on RTEMS 5,
+ *     up to ~160 bytes on RTEMS 6 AArch64)
+ *
+ * The size (192 bytes at opaque[24] on a 64-bit target) was chosen to
+ * fit RTEMS 6's larger pthread_mutex_t.  A compile-time assertion in
+ * `ici/library/platform.c` (`verify_sufficient_semaphore_space[]`)
+ * fails the build if the chosen size is ever too small for the
+ * target's Rlock layout, so the header will loudly refuse to compile
+ * on a new platform rather than silently corrupting memory.
+ *
+ * ABI note: growing opaque[] changes the `sizeof(ResourceLock)` and
+ * therefore the layout of any struct that embeds one.  ResourceLock
+ * is only ever used in process-local memory — every instance in the
+ * tree is either a function/file-scope static variable (see
+ * errmsgsLock, memosLock, tasksLock, logFileLock, mibLock, gMemMutex)
+ * or a field inside a struct allocated from a single daemon's heap
+ * (IPND configuration/neighbours, NM vector/rhht/sql lock).  No
+ * ResourceLock is embedded in SDR storage, in the SM working-memory
+ * partition, or in any struct exchanged between processes, so a size
+ * change only requires a clean rebuild of all ION libraries and
+ * binaries, not a migration of any persistent state.
+ *
+ * Callers must therefore rebuild every `.a`, `.so`, and ION executable
+ * whenever this size changes.  Linking a freshly compiled header
+ * against a pre-built library with the old opaque[] size will produce
+ * silent memory corruption.
  */
 typedef struct
 {
-	uvast			opaque[13];
+	uvast			opaque[24];
 } ResourceLock;
 
 /*	Prototypes for standard ION platform functions.			*/

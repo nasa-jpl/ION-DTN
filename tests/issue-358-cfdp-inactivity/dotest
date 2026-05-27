@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 # Issue 358 - CFDP inactivity
 # Samuel Jero
 # June 26, 2012
@@ -75,7 +76,7 @@ sleep 6
 echo
 echo "Killing bpcp..."
 kill -2 $BPCP_PID >/dev/null 2>&1
-wait $BPCP_PID 2>/dev/null
+sleep 2
 echo "Killing stcpcli..."
 pkill -15 stcpcli >/dev/null 2>&1
 
@@ -90,7 +91,10 @@ sleep 3
 kill -9 $CT_PID >/dev/null 2>&1
 
 #Test
-test=`grep "type 10, 'fault'" output`
+# With CfdpCancel handler (default since ION 4.2.0), inactivity produces
+# a transaction finished event (type 3).  With CfdpIgnore handler, it
+# produces a fault indication event (type 10) instead.
+test=`grep -E "type 3, 'transaction finished'|type 10, 'fault'" output`
 echo $test
 if  [ -e ./output ] && [ -n "$test" ]; then
     echo "OK: Inactivity deadline trigger fired. SUCCESS!!"
@@ -106,5 +110,4 @@ fi
 sleep 10
 #End ION
 echo "Killing ION..."
-killm
 exit $RETVAL

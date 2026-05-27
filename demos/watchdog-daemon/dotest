@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Watchdog Daemon Test Script
 # Tests psmwatch and sdrwatch daemon auto-launch, ionrestart, and ionexit
@@ -206,13 +207,19 @@ ionrestart &
 IONRESTART_PID=$!
 cd "$TOPDIR"
 
-# Wait for ionrestart to complete (up to 30 seconds)
+# Wait for ionrestart to complete. Bound it at 120 s so a truly stuck
+# ionrestart still fails the test, but slower runners (e.g. ARC rhel9
+# under load) get time to finish. The previous 30 s poll-and-continue
+# let Step 4 start with ionrestart still mid-flight, which left the
+# system half-restarted and made ionstop hang.
 TIMER=0
 while ps -p $IONRESTART_PID > /dev/null 2>&1; do
     sleep 1
     TIMER=$((TIMER + 1))
-    if [ $TIMER -gt 30 ]; then
-        echo "[WARN] ionrestart taking longer than expected"
+    if [ $TIMER -gt 120 ]; then
+        echo "[FAIL] ionrestart did not complete within 120s; killing"
+        kill -9 $IONRESTART_PID 2>/dev/null
+        RETVAL=1
         break
     fi
 done
@@ -325,7 +332,6 @@ fi
 
 echo ""
 echo "Cleaning up..."
-run_with_timeout 30 killm 2>/dev/null || echo "[WARN] killm timed out"
 pkill -f psmwatch 2>/dev/null
 pkill -f sdrwatch 2>/dev/null
 

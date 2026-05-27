@@ -38,6 +38,18 @@ of this size will be allocated (e.g., by malloc()) at the time the SDR system
 is initialized on the host computer.  The default value is 1000000 (1 million
 bytes).
 
+=item sdrWmKey
+
+This is the SVR4 IPC shared-memory key used to attach this node's SDR
+working memory.  The default (SM_NO_KEY, equivalently 0) selects the
+legacy host-global key SDR_SM_KEY (255 * 256 = 65280 = 0xFF00), which is
+shared by every ION node on the host.  Set sdrWmKey to a unique value in
+each node's ionconfig when running multiple ION nodes on the same host
+and you want each node's SDR working memory to be independent (so that
+shutting down one node with C<ionexit n> does not destroy SDR working
+memory still in use by the others).  See the ION Shutdown Guide for
+the full multi-node shutdown ordering implications.
+
 =item configFlags
 
 This is the bitwise "OR" (i.e., the sum) of the flag values that characterize
@@ -128,6 +140,14 @@ ION node's working memory.  If I<wmAddress> is zero, a block of system memory
 of this size will be allocated (e.g., by malloc()) at the time the node is
 created.  The default value is 5000000 (5 million bytes).
 
+=item traceShmSize
+
+This is the size (in bytes) of the shared memory segment to allocate for
+PSM partition activity tracing (sptrace).  When B<psmwatch> starts a trace
+episode, it uses this value instead of its built-in default of 20000000
+(20 million bytes).  Larger values allow longer trace sessions before trace
+memory is exhausted.  If zero (the default), B<psmwatch> uses 20000000.
+
 =back
 
 =head1 EXAMPLE
@@ -143,6 +163,8 @@ pathName /tmp
 wmSize 5000000
 
 wmAddress 0
+
+traceShmSize 20000000
 
 =head1 SEE ALSO
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Tests that bpchat sends and receives bundles and behaves well.
 #
@@ -35,7 +36,6 @@ echo "########################################"
 FAIL=0
 
 echo "Killing old ION..."
-killm
 ./cleanup
 sleep 1
 

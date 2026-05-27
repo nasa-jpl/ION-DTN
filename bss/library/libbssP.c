@@ -247,6 +247,7 @@ tblIndex	*_tblIndex(int *control)
 		if (*control)		/*	Creating.		*/
 		{
 			index = MTAKE(sizeof(tblIndex));
+			memset((char *) index, 0, sizeof(tblIndex));
 		}
 	}
 
@@ -389,6 +390,11 @@ int	readRecord(int fileD, dataRecord *rec, off_t datOffset)
 
 int	readPayload(int fileD, char* buffer, long length)
 {
+	if (length <= 0)
+	{
+		return -1;
+	}
+
 	if (read(fileD, buffer, length*sizeof(char)) < 0)
 	{
 		putSysErrmsg("BSS library: can't read payload from .dat file",
@@ -1342,6 +1348,7 @@ void	findIndexRow(time_t time, long *position)
 	CHKVOID(position);
 	CHKVOID(index);
 	hdr = &(index->header);
+	CHKVOID(hdr);
 	if (hdr->oldestTime == 0	/*	Empty database.		*/
 	|| time > hdr->newestTime)	/*	Hasn't happened yet.	*/
 	{

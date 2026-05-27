@@ -9,8 +9,42 @@
 
 #include <bpP.h>
 
-static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
-			int ttl, char *svcClass)
+static void	parseSrrFlag(int *srrFlags, char *arg)
+{
+	if (strcmp(arg, "rcv") == 0)
+		(*srrFlags) |= BP_RECEIVED_RPT;
+	if (strcmp(arg, "fwd") == 0)
+		(*srrFlags) |= BP_FORWARDED_RPT;
+	if (strcmp(arg, "dlv") == 0)
+		(*srrFlags) |= BP_DELIVERED_RPT;
+	if (strcmp(arg, "del") == 0)
+		(*srrFlags) |= BP_DELETED_RPT;
+}
+
+static void	parseSrrFlags(int *srrFlags, char *flagString)
+{
+	char	*cursor = flagString;
+	char	*comma;
+
+	while (1)
+	{
+		comma = strchr(cursor, ',');
+		if (comma)
+		{
+			*comma = '\0';
+			parseSrrFlag(srrFlags, cursor);
+			*comma = ',';
+			cursor = comma + 1;
+			continue;
+		}
+
+		parseSrrFlag(srrFlags, cursor);
+		return;
+	}
+}
+
+static int run_bpsendfile(char *ownEid, char *destEid, char *rptToEid,
+		char *fileName, int ttl, char *svcClass, int srrFlags)
 {
 	int		priority = 0;
 	BpAncillaryData	ancillaryData = {0};
@@ -112,8 +146,8 @@ static int	run_bpsendfile(char *ownEid, char *destEid, char *fileName,
 		isprintf(progressText, sizeof progressText, "[i] bpsendfile \
 is sending '%s', size %d, to %s.", fileName, aduLength, destEid);
 		writeMemo(progressText);
-		if (bp_send(sap, destEid, NULL, ttl, priority, custodySwitch,
-			0, 0, &ancillaryData, bundleZco, &newBundle) <= 0)
+		if (bp_send(sap, destEid, rptToEid, ttl, priority, custodySwitch,
+			srrFlags, 0, &ancillaryData, bundleZco, &newBundle) <= 0)
 		{
 			putErrmsg("bpsendfile can't send file in bundle.",
 					itoa(aduLength));
@@ -166,6 +200,8 @@ int	bpsendfile(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 	char	*fileName = (char *) a3;
 	char	*classOfService = (char *) a4;
 	int	ttl = atoi((char *) a5);
+	char    *rptToEid = (char *) a6;
+	char    *flagString = (char *) a7;
 #else
 int	main(int argc, char **argv)
 {
@@ -174,10 +210,18 @@ int	main(int argc, char **argv)
 	char	*fileName = NULL;
 	char	*classOfService = NULL;
 	int	ttl = 300;
+	char    *rptToEid = NULL;
+	char    *flagString = NULL;
 
-	if (argc > 6) argc = 6;
+	if (argc > 8) argc = 8;
 	switch (argc)
 	{
+	case 8:
+		flagString = argv[7];
+		/* FALLTHROUGH */
+	case 7:
+		rptToEid = argv[6];
+		/* FALLTHROUGH */
 	case 6:
 		ttl = atoi(argv[5]);
 		/* FALLTHROUGH */
@@ -205,8 +249,10 @@ int	main(int argc, char **argv)
 	if (ownEid == NULL || destEid == NULL || fileName == NULL)
 	{
 		PUTS("Usage: bpsendfile <own endpoint ID> <destination \
-endpoint ID> <file name> [<class of service> [<time to live (seconds)>]]");
+endpoint ID> <file name> [<class of service> [<time to live (seconds)> \
+[<report-to endpoint ID> [<status report flags>]]]]");
 		PUTS("\tclass of service: " BP_PARSE_QUALITY_OF_SERVICE_USAGE);
+		PUTS("\tstatus report flags: comma-separated list of rcv,fwd,dlv,del");
 		return 0;
 	}
 
@@ -215,5 +261,15 @@ endpoint ID> <file name> [<class of service> [<time to live (seconds)>]]");
 		ownEid = NULL;
 	}
 
-	return run_bpsendfile(ownEid, destEid, fileName, ttl, classOfService);
+	{
+		int	srrFlags = 0;
+
+		if (flagString)
+		{
+			parseSrrFlags(&srrFlags, flagString);
+		}
+
+		return run_bpsendfile(ownEid, destEid, rptToEid, fileName,
+				ttl, classOfService, srrFlags);
+	}
 }

@@ -1,0 +1,78 @@
+{
+  "policyrule_set": [
+  {
+      "policyrule": {
+      "desc": "BIB source for ipn:2.* -> ipn:3.* targeting payload block",
+      "filter": {
+        "rule_id": "1",
+        "role": "s",
+        "src": "ipn:2.*",
+        "dest": "ipn:3.*",
+        "tgt": 1,
+        "loc": "appin",
+        "sc_id": 1
+      },
+      "spec": {
+        "svc": "bib-integrity",
+        "sc_id": 1,
+        "sc_parms": [
+          { "id": "key_name", "value": "9100" },
+          { "id": "sha_variant", "value": "7" },
+          { "id": "scope_flags", "value": "0" },
+          { "id": "key_wrap", "value": "0" }
+        ]
+      },
+      "policy_action_on_fail": "delete_bundle"
+    }
+  },
+  {
+      "policyrule": {
+      "desc": "BIB source for ipn:2.* -> ipn:3.* targeting primary block",
+      "filter": {
+        "rule_id": "2",
+        "role": "s",
+        "src": "ipn:2.*",
+        "dest": "ipn:3.*",
+        "tgt": 0,
+        "loc": "appin",
+        "sc_id": 1
+      },
+      "spec": {
+        "svc": "bib-integrity",
+        "sc_id": 1,
+        "sc_parms": [
+          { "id": "key_name", "value": "9100" },
+          { "id": "sha_variant", "value": "7" },
+          { "id": "scope_flags", "value": "0" },
+          { "id": "key_wrap", "value": "0" }
+        ]
+      },
+      "policy_action_on_fail": "delete_bundle"
+    }
+  },
+  {
+      "policyrule": {
+      "desc": "BCB source for ipn:2.* -> ipn:3.* targeting payload block",
+      "filter": {
+        "rule_id": "3",
+        "role": "s",
+        "src": "ipn:2.*",
+        "dest": "ipn:3.*",
+        "tgt": 1,
+        "loc": "appin",
+        "sc_id": 2
+      },
+      "spec": {
+        "svc": "bcb-confidentiality",
+        "sc_id": 2,
+        "sc_parms": [
+          { "id": "key_name", "value": "9103" },
+          { "id": "aes_variant", "value": "1" },
+          { "id": "aad_scope", "value": "0" },
+          { "id": "key_wrap", "value": "1" }
+        ]
+      },
+      "policy_action_on_fail": "delete_bundle"
+    }
+  }]
+}

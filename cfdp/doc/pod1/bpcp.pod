@@ -35,6 +35,21 @@ Recursive mode.  If a source path is a directory, B<bpcp> will recursively
 copy its contents to the destination.  If this option is not used and a source
 is a directory, it will be omitted with a warning message.
 
+When the remote responder supports the v2 directory listing format
+(introduced in ION 4.2), B<bpcp -r> uses a structured manifest that
+distinguishes regular files, directories, and symbolic links, and that
+signals when a directory listing is incomplete (e.g., entries dropped
+because of over-length names).  With older responders, B<bpcp -r> falls
+back to the legacy listing format and best-effort behavior.
+
+=item B<-F>
+
+Follow symbolic links during recursive copies.  Without B<-F>, symbolic
+links found during a recursive walk are skipped and reported in the
+final summary; with B<-F>, the symlink target is fetched as if it were
+a regular file.  This option only takes effect when used with B<-r> and
+when the remote responder supports the v2 directory listing format.
+
 =item B<-v>
 
 Display the B<bpcp> version information and then exit.
@@ -178,9 +193,13 @@ executable on the destination system.
 
 =item
 
-3. Symbolic links are handled differently: for local-to-remote transfers,
-symbolic links are ignored; for remote-to-local or remote-to-remote transfers,
-the target of the symbolic link is copied, not the link itself.
+3. Symbolic links are handled as follows: for local-to-remote transfers,
+symbolic links are ignored.  For remote-to-local or remote-to-remote
+transfers under B<-r>, symbolic links found in the remote tree are
+skipped by default and reported in the final summary; pass B<-F> to
+follow them.  (Earlier ION releases silently followed symlinks during
+B<-r>; the default changed in ION 4.2 to make the behavior explicit and
+match the convention used by B<scp -r>.)
 
 =item
 
@@ -205,12 +224,39 @@ the same system, as they may interfere with each other's CFDP operations.
 
 =item B<0>
 
-B<bpcp> terminated normally, indicating successful completion of the copy operations.
+B<bpcp> terminated normally with all requested copies completed.  Skipped
+symbolic links and skipped non-regular entries (device nodes, fifos,
+etc.) under B<-r> are reported in the final stderr summary but do not by
+themselves change the exit code.
 
 =item B<1>
 
-B<bpcp> terminated abnormally, indicating an error occurred.  Refer to the console
-output and the B<ion.log> file for specific error messages and details.
+B<bpcp> terminated with one or more issues that would otherwise have been
+silent.  This includes:
+
+=over 4
+
+=item *
+
+A directory listing was reported as B<incomplete> by the responder
+(some entries had to be dropped, e.g., because their names exceeded
+the manifest's per-entry length cap).
+
+=item *
+
+An entry was returned with an unreliable name (truncated by the
+responder) and was not fetched.
+
+=item *
+
+A file fetch failed.
+
+=back
+
+The final stderr summary lists each category and its count.  Refer to
+the console output and the B<ion.log> file (on the local node, and on
+the remote node when an incomplete listing is reported) for specific
+details.
 
 =back
 

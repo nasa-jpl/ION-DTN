@@ -144,8 +144,17 @@ function.  The default value is 65000.
 =item B<m inactivity> I<inactivity_period>
 
 The B<manage inactivity period> command.  This command establishes the number
-of seconds that a CFDP file transfer is allowed to go idle before being
-canceled for inactivity.  The default is one day.
+of seconds that a CFDP file transfer is allowed to go idle before the fault
+handler for inactivity is invoked.  The default is one day.
+
+When the default fault handler for inactivity is B<cancel> (the default since
+ION 4.2.0), the transaction is canceled immediately upon inactivity timeout.
+If the fault handler is set to B<ignore>, the transaction remains in the system
+and is not canceled until the check cycle mechanism expires: that is, after
+I<ckperiod> x I<maxtimeouts> additional seconds elapse without completion, at
+which point the B<checklimit> fault handler is invoked (default: cancel).
+The initial default fault handlers are compiled into the CFDP library and can
+only be changed by modifying the source code in B<libcfdpP.c> and recompiling.
 
 =item B<m throttle> I<bits_per_second>
 

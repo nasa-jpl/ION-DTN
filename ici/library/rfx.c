@@ -559,10 +559,10 @@ static void	postCpsNotice(uint32_t regionNbr, time_t fromTime,
 	 *
 	 * 	*** For a contact notice:
 	 *
-	 *	If fromTime is -1 (a registration contact)
+	 *	If fromTime is MAX_POSIX_TIME (a registration contact)
 	 *		If toTime is 0
 	 *			Unregister fromFqnn in region (regionNbr)
-	 *		Else (toTime is -1)
+	 *		Else (toTime is MAX_POSIX_TIME)
 	 *			Register fromFqnn in region (regionNbr)
 	 *	Else (scheduled contact)
 	 *		If toTime is 0
@@ -3836,13 +3836,17 @@ void	rfx_stop(void)
 		{
 			nextElt = sm_list_next(ionwm, elt);
 			addr = sm_list_data(ionwm, elt);
-			req = (Requisition *) psp(ionwm, addr);
-			if (req->semaphore != SM_SEM_NONE)
+			if (addr != 0)
 			{
-				sm_SemEnd(req->semaphore);
+				req = (Requisition *) psp(ionwm, addr);
+				if (req->semaphore != SM_SEM_NONE)
+				{
+					sm_SemEnd(req->semaphore);
+				}
+
+				psm_free(ionwm, addr);
 			}
 
-			psm_free(ionwm, addr);
 			sm_list_delete(ionwm, elt, NULL, NULL);
 		}
 	}

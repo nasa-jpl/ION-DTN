@@ -164,24 +164,24 @@ void	bpEndpointTally(VEndpoint *vpoint, unsigned int idx, unsigned int size)
 {
 	CHKVOID(vpoint);
 	CHKVOID(idx < BP_ENDPOINT_STATS);
-	atomic_fetch_add(&vpoint->statsDeltas[idx].deltaCount, 1);
-	atomic_fetch_add(&vpoint->statsDeltas[idx].deltaBytes, (uvast) size);
+	ion_ipc_atomic_get_and_increment(&vpoint->statsDeltas[idx].deltaCount, 1);
+	ion_ipc_atomic_get_and_increment(&vpoint->statsDeltas[idx].deltaBytes, (uvast) size);
 }
 
 void	bpInductTally(VInduct *vduct, unsigned int idx, unsigned int size)
 {
 	CHKVOID(vduct);
 	CHKVOID(idx < BP_INDUCT_STATS);
-	atomic_fetch_add(&vduct->statsDeltas[idx].deltaCount, 1);
-	atomic_fetch_add(&vduct->statsDeltas[idx].deltaBytes, (uvast) size);
+	ion_ipc_atomic_get_and_increment(&vduct->statsDeltas[idx].deltaCount, 1);
+	ion_ipc_atomic_get_and_increment(&vduct->statsDeltas[idx].deltaBytes, (uvast) size);
 }
 
 void	bpPlanTally(VPlan *vplan, unsigned int idx, unsigned int size)
 {
 	CHKVOID(vplan);
 	CHKVOID(idx < BP_PLAN_STATS);
-	atomic_fetch_add(&vplan->statsDeltas[idx].deltaCount, 1);
-	atomic_fetch_add(&vplan->statsDeltas[idx].deltaBytes, (uvast) size);
+	ion_ipc_atomic_get_and_increment(&vplan->statsDeltas[idx].deltaCount, 1);
+	ion_ipc_atomic_get_and_increment(&vplan->statsDeltas[idx].deltaBytes, (uvast) size);
 }
 
 void	bpSourceTally(unsigned int priority, unsigned int size)
@@ -190,8 +190,8 @@ void	bpSourceTally(unsigned int priority, unsigned int size)
 
 	CHKVOID(vdb);
 	CHKVOID(priority < 3);
-	atomic_fetch_add(&vdb->sourceDeltas[priority].deltaCount, 1);
-	atomic_fetch_add(&vdb->sourceDeltas[priority].deltaBytes, (uvast) size);
+	ion_ipc_atomic_get_and_increment(&vdb->sourceDeltas[priority].deltaCount, 1);
+	ion_ipc_atomic_get_and_increment(&vdb->sourceDeltas[priority].deltaBytes, (uvast) size);
 }
 
 void	bpRecvTally(unsigned int priority, unsigned int size)
@@ -200,8 +200,8 @@ void	bpRecvTally(unsigned int priority, unsigned int size)
 
 	CHKVOID(vdb);
 	CHKVOID(priority < 3);
-	atomic_fetch_add(&vdb->recvDeltas[priority].deltaCount, 1);
-	atomic_fetch_add(&vdb->recvDeltas[priority].deltaBytes, (uvast) size);
+	ion_ipc_atomic_get_and_increment(&vdb->recvDeltas[priority].deltaCount, 1);
+	ion_ipc_atomic_get_and_increment(&vdb->recvDeltas[priority].deltaBytes, (uvast) size);
 }
 
 void	bpDiscardTally(unsigned int priority, unsigned int size)
@@ -210,8 +210,8 @@ void	bpDiscardTally(unsigned int priority, unsigned int size)
 
 	CHKVOID(vdb);
 	CHKVOID(priority < 3);
-	atomic_fetch_add(&vdb->discardDeltas[priority].deltaCount, 1);
-	atomic_fetch_add(&vdb->discardDeltas[priority].deltaBytes,
+	ion_ipc_atomic_get_and_increment(&vdb->discardDeltas[priority].deltaCount, 1);
+	ion_ipc_atomic_get_and_increment(&vdb->discardDeltas[priority].deltaBytes,
 			(uvast) size);
 }
 
@@ -221,8 +221,8 @@ void	bpXmitTally(unsigned int priority, unsigned int size)
 
 	CHKVOID(vdb);
 	CHKVOID(priority < 3);
-	atomic_fetch_add(&vdb->xmitDeltas[priority].deltaCount, 1);
-	atomic_fetch_add(&vdb->xmitDeltas[priority].deltaBytes, (uvast) size);
+	ion_ipc_atomic_get_and_increment(&vdb->xmitDeltas[priority].deltaCount, 1);
+	ion_ipc_atomic_get_and_increment(&vdb->xmitDeltas[priority].deltaBytes, (uvast) size);
 }
 
 void	bpDelTally(unsigned int reason)
@@ -231,7 +231,7 @@ void	bpDelTally(unsigned int reason)
 
 	CHKVOID(vdb);
 	CHKVOID(reason < BP_REASON_STATS);
-	atomic_fetch_add(&vdb->delDeltas[reason], 1);
+	ion_ipc_atomic_get_and_increment(&vdb->delDeltas[reason], 1);
 }
 
 void	bpDbTally(unsigned int idx, unsigned int size)
@@ -240,8 +240,8 @@ void	bpDbTally(unsigned int idx, unsigned int size)
 
 	CHKVOID(vdb);
 	CHKVOID(idx < BP_DB_STATS);
-	atomic_fetch_add(&vdb->dbDeltas[idx].deltaCount, 1);
-	atomic_fetch_add(&vdb->dbDeltas[idx].deltaBytes, (uvast) size);
+	ion_ipc_atomic_get_and_increment(&vdb->dbDeltas[idx].deltaCount, 1);
+	ion_ipc_atomic_get_and_increment(&vdb->dbDeltas[idx].deltaBytes, (uvast) size);
 }
 
 /*	*	*	BP statistics flush functions	*	*	*/
@@ -258,8 +258,8 @@ static int	flushTallyDeltas(TallyDelta *deltas, Tally *tallies, int count)
 
 	for (i = 0; i < count; i++)
 	{
-		dCount = atomic_exchange(&deltas[i].deltaCount, 0);
-		dBytes = atomic_exchange(&deltas[i].deltaBytes, 0);
+		dCount = (unsigned int)ion_ipc_atomic_exchange(&deltas[i].deltaCount, 0);
+		dBytes = ion_ipc_atomic_exchange(&deltas[i].deltaBytes, 0);
 		if (dCount > 0 || dBytes > 0)
 		{
 			tallies[i].totalCount += dCount;
@@ -272,8 +272,6 @@ static int	flushTallyDeltas(TallyDelta *deltas, Tally *tallies, int count)
 
 	return modified;
 }
-
-/*	Helper: flush a BpCosStats (3-priority Tally array).		*/
 
 static int	flushCosDeltas(Sdr sdr, TallyDelta *deltas, Object statsAddr)
 {
@@ -307,25 +305,25 @@ int	bpFlushVdbStats(Sdr sdr, BpVdb *vdb)
 
 		for (i = 0; i < 3; i++)
 		{
-			atomic_exchange(&vdb->sourceDeltas[i].deltaCount, 0);
-			atomic_exchange(&vdb->sourceDeltas[i].deltaBytes, 0);
-			atomic_exchange(&vdb->recvDeltas[i].deltaCount, 0);
-			atomic_exchange(&vdb->recvDeltas[i].deltaBytes, 0);
-			atomic_exchange(&vdb->discardDeltas[i].deltaCount, 0);
-			atomic_exchange(&vdb->discardDeltas[i].deltaBytes, 0);
-			atomic_exchange(&vdb->xmitDeltas[i].deltaCount, 0);
-			atomic_exchange(&vdb->xmitDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_exchange(&vdb->sourceDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_exchange(&vdb->sourceDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_exchange(&vdb->recvDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_exchange(&vdb->recvDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_exchange(&vdb->discardDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_exchange(&vdb->discardDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_exchange(&vdb->xmitDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_exchange(&vdb->xmitDeltas[i].deltaBytes, 0);
 		}
 
 		for (i = 0; i < BP_REASON_STATS; i++)
 		{
-			atomic_exchange(&vdb->delDeltas[i], 0);
+			ion_ipc_atomic_exchange(&vdb->delDeltas[i], 0);
 		}
 
 		for (i = 0; i < BP_DB_STATS; i++)
 		{
-			atomic_exchange(&vdb->dbDeltas[i].deltaCount, 0);
-			atomic_exchange(&vdb->dbDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_exchange(&vdb->dbDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_exchange(&vdb->dbDeltas[i].deltaBytes, 0);
 		}
 
 		return 0;
@@ -362,7 +360,7 @@ int	bpFlushVdbStats(Sdr sdr, BpVdb *vdb)
 		modified = 0;
 		for (i = 0; i < BP_REASON_STATS; i++)
 		{
-			dCount = atomic_exchange(&vdb->delDeltas[i], 0);
+			dCount = (unsigned int)ion_ipc_atomic_exchange(&vdb->delDeltas[i], 0);
 			if (dCount > 0)
 			{
 				delStats.totalDelByReason[i] += dCount;
@@ -408,8 +406,8 @@ int	bpFlushPlanStats(Sdr sdr, VPlan *vplan)
 
 		for (i = 0; i < BP_PLAN_STATS; i++)
 		{
-			atomic_exchange(&vplan->statsDeltas[i].deltaCount, 0);
-			atomic_exchange(&vplan->statsDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_exchange(&vplan->statsDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_exchange(&vplan->statsDeltas[i].deltaBytes, 0);
 		}
 
 		return 0;
@@ -436,8 +434,8 @@ int	bpFlushInductStats(Sdr sdr, VInduct *vduct)
 
 		for (i = 0; i < BP_INDUCT_STATS; i++)
 		{
-			atomic_exchange(&vduct->statsDeltas[i].deltaCount, 0);
-			atomic_exchange(&vduct->statsDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_exchange(&vduct->statsDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_exchange(&vduct->statsDeltas[i].deltaBytes, 0);
 		}
 
 		return 0;
@@ -465,8 +463,8 @@ int	bpFlushEndpointStats(Sdr sdr, VEndpoint *vpoint)
 
 		for (i = 0; i < BP_ENDPOINT_STATS; i++)
 		{
-			atomic_exchange(&vpoint->statsDeltas[i].deltaCount, 0);
-			atomic_exchange(&vpoint->statsDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_exchange(&vpoint->statsDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_exchange(&vpoint->statsDeltas[i].deltaBytes, 0);
 		}
 
 		return 0;
@@ -505,6 +503,7 @@ static void	resetEndpoint(VEndpoint *vpoint)
 
 	sm_SemTake(vpoint->semaphore);			/*	Lock.	*/
 	vpoint->appPid = ERROR;				/*	None.	*/
+	vpoint->appCookie = 0;
 }
 
 static int	raiseEndpoint(VScheme *vscheme, Object endpointElt)
@@ -553,8 +552,8 @@ static int	raiseEndpoint(VScheme *vscheme, Object endpointElt)
 
 		for (i = 0; i < BP_ENDPOINT_STATS; i++)
 		{
-			atomic_init(&vpoint->statsDeltas[i].deltaCount, 0);
-			atomic_init(&vpoint->statsDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_init(&vpoint->statsDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_init(&vpoint->statsDeltas[i].deltaBytes, 0);
 		}
 	}
 
@@ -981,8 +980,8 @@ static int	raisePlan(Object planElt, BpVdb *bpvdb)
 
 		for (i = 0; i < BP_PLAN_STATS; i++)
 		{
-			atomic_init(&vplan->statsDeltas[i].deltaCount, 0);
-			atomic_init(&vplan->statsDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_init(&vplan->statsDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_init(&vplan->statsDeltas[i].deltaBytes, 0);
 		}
 	}
 	vplan->xmitThrottle.nominalRate = plan.nominalRate;
@@ -1123,8 +1122,8 @@ static int	raiseInduct(Object inductElt, BpVdb *bpvdb)
 
 		for (i = 0; i < BP_INDUCT_STATS; i++)
 		{
-			atomic_init(&vduct->statsDeltas[i].deltaCount, 0);
-			atomic_init(&vduct->statsDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_init(&vduct->statsDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_init(&vduct->statsDeltas[i].deltaBytes, 0);
 		}
 	}
 
@@ -1530,29 +1529,25 @@ static BpVdb	*_bpvdb(char **name)
 
 			for (i = 0; i < 3; i++)
 			{
-				atomic_init(&vdb->sourceDeltas[i].deltaCount,
-						0);
-				atomic_init(&vdb->sourceDeltas[i].deltaBytes,
-						0);
-				atomic_init(&vdb->recvDeltas[i].deltaCount, 0);
-				atomic_init(&vdb->recvDeltas[i].deltaBytes, 0);
-				atomic_init(&vdb->discardDeltas[i].deltaCount,
-						0);
-				atomic_init(&vdb->discardDeltas[i].deltaBytes,
-						0);
-				atomic_init(&vdb->xmitDeltas[i].deltaCount, 0);
-				atomic_init(&vdb->xmitDeltas[i].deltaBytes, 0);
+				ion_ipc_atomic_init(&vdb->sourceDeltas[i].deltaCount, 0);
+				ion_ipc_atomic_init(&vdb->sourceDeltas[i].deltaBytes, 0);
+				ion_ipc_atomic_init(&vdb->recvDeltas[i].deltaCount, 0);
+				ion_ipc_atomic_init(&vdb->recvDeltas[i].deltaBytes, 0);
+				ion_ipc_atomic_init(&vdb->discardDeltas[i].deltaCount, 0);
+				ion_ipc_atomic_init(&vdb->discardDeltas[i].deltaBytes, 0);
+				ion_ipc_atomic_init(&vdb->xmitDeltas[i].deltaCount, 0);
+				ion_ipc_atomic_init(&vdb->xmitDeltas[i].deltaBytes, 0);
 			}
 
 			for (i = 0; i < BP_REASON_STATS; i++)
 			{
-				atomic_init(&vdb->delDeltas[i], 0);
+				ion_ipc_atomic_init(&vdb->delDeltas[i], 0);
 			}
 
 			for (i = 0; i < BP_DB_STATS; i++)
 			{
-				atomic_init(&vdb->dbDeltas[i].deltaCount, 0);
-				atomic_init(&vdb->dbDeltas[i].deltaBytes, 0);
+				ion_ipc_atomic_init(&vdb->dbDeltas[i].deltaCount, 0);
+				ion_ipc_atomic_init(&vdb->dbDeltas[i].deltaBytes, 0);
 			}
 		}
 
@@ -3785,8 +3780,27 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 		return 0;
 	}
 
+	/*	Reject the null endpoint (dtn:none, ipn:0.0).  The
+	 *	null EID is reserved as the "anonymous source" sentinel
+	 *	and cannot be a delivery destination; addEndpoint
+	 *	otherwise crashes for dtn:none (parseEidString's
+	 *	literal-"dtn:none" fast path returns 1 without setting
+	 *	*vscheme, and findEndpoint then dereferences garbage in
+	 *	sm_list_first), and silently accepts ipn:0.0 only for
+	 *	removeEndpoint to later refuse to delete it -- see #918.
+	 *	This check mirrors the existing rejection in
+	 *	removeEndpoint.						*/
+
+	if (metaEid.nullEndpoint)
+	{
+		clearMetaEid(&metaEid);
+		writeMemoNote("[?] Can't add the null endpoint", eid);
+		return 0;
+	}
+
 	if (strlen(metaEid.nss) > MAX_NSS_LEN)
 	{
+		clearMetaEid(&metaEid);
 		writeMemoNote("[?] Endpoint nss is too long", metaEid.nss);
 		return 0;
 	}
@@ -3951,6 +3965,13 @@ int	removeEndpoint(char *eid)
 	if (parseEidString(eid, &metaEid, &vscheme, &elt) == 0)
 	{
 		writeMemoNote("[?] Can't parse the EID", eid);
+		return 0;
+	}
+
+	if (metaEid.nullEndpoint)
+	{
+		clearMetaEid(&metaEid);
+		writeMemoNote("[?] Can't remove the null endpoint", eid);
 		return 0;
 	}
 
@@ -4826,13 +4847,14 @@ void	findInduct(char *protocolName, char *ductName, VInduct **vduct,
 	PsmPartition	bpwm = getIonwm();
 	PsmAddress	elt;
 
-	CHKVOID(protocolName && ductName && vduct && vductElt);
+	CHKVOID(protocolName && vduct && vductElt);
 	for (elt = sm_list_first(bpwm, (_bpvdb(NULL))->inducts); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
 		*vduct = (VInduct *) psp(bpwm, sm_list_data(bpwm, elt));
 		if (strcmp((*vduct)->protocolName, protocolName) == 0
-		&& strcmp((*vduct)->ductName, ductName) == 0)
+		&& (ductName == NULL
+			|| (strcmp((*vduct)->ductName, ductName) == 0)))
 		{
 			break;
 		}
@@ -6166,7 +6188,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		 *	to destroy it successfully.			*/
 
 		sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
-		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
+		return bpAbandon(bundleObj, bundle, BP_REASON_EID_MALFORMED);
 	}
 
 	/*	Prevent routing loop: eid must not already be in the
@@ -6198,7 +6220,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 
 		writeMemoNote("[?] Can't parse station EID", eid);
 		sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
-		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
+		return bpAbandon(bundleObj, bundle, BP_REASON_EID_MALFORMED);
 	}
 
 	/*	Check for null-endpoint destination dtn:none or ipn:0.0	*/
@@ -7202,7 +7224,7 @@ static int	createIncompleteBundle(Object bundleObj, Bundle *bundle,
 	return 0;
 }
 
-int	deliverBundle(Object bundleObj, Bundle *bundle, VEndpoint *vpoint)
+static int deliverBundle(Object bundleObj, Bundle *bundle, VEndpoint *vpoint)
 {
 	Object	incompleteAddr = 0;
 		OBJ_POINTER(IncompleteBundle, incomplete);
@@ -7691,7 +7713,7 @@ int	bpContinueAcq(AcqWorkArea *work, char *bytes, int length,
 		if (sm_SemEnded(attendant->semaphore))
 		{
 			writeMemo("[i] ZCO space reservation interrupted.");
-			ionShred(ticket);	/*	Cancel request.	*/
+			ionShred(ticket);	/*	Cancel reservation.	*/
 			return 0;
 		}
 
@@ -8452,7 +8474,7 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	DtnTime		currentDtnTime;
 	int		crcLength;
 	uvast		crcReceived;
-	uvast		crcComputed;
+	uvast		crcComputed = 0;
 	int		bytesParsed;
 
 	bundle = &(work->bundle);
@@ -8820,7 +8842,7 @@ static int	acquireBlock(AcqWorkArea *work)
 	unsigned int	lengthOfBlock;
 	int		crcLength;
 	uvast		crcReceived;
-	uvast		crcComputed;
+	uvast		crcComputed = 0;
 	unsigned int	bytesParsed;
 
 	if (work->malformed)
@@ -9184,7 +9206,7 @@ static int	acqFromWork(AcqWorkArea *work)
 	int		bytesToSkip;
 	int		crcSize;
 	uvast		crcReceived;
-	uvast		crcComputed;
+	uvast		crcComputed = 0;
 	int		unreceivedPayload;
 	int		bytesRecd;
 
@@ -9567,6 +9589,36 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	bundle->payload.content = zco_clone(sdr, work->rawBundle,
 			work->preambleLength, bundle->payload.length);
 	zco_destroy(sdr, work->rawBundle);
+	switch (bundle->payload.content)
+	{
+	case (Object) ERROR:
+		putErrmsg("Can't clone payload out of bundle.", NULL);
+		return -1;
+	case 0:
+		putErrmsg("Malformed bundle: payload clone failed.", NULL);
+		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+				bundle->payload.length);
+		return 0;
+	default:
+		break;
+	}
+
+	/*	Verify actual ZCO source length matches the payload
+	 *	length declared in the primary block.  A mismatch
+	 *	means the bundle is truncated or malformed; reject it
+	 *	here so bptransit never sees a negative ZCO length.	*/
+
+	if (zco_source_data_length(sdr, bundle->payload.content)
+			!= bundle->payload.length)
+	{
+		putErrmsg("Discarding bundle: payload ZCO length mismatch.",
+				utoa(bundle->payload.length));
+		zco_destroy(sdr, bundle->payload.content);
+		bundle->payload.content = 0;
+		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+				bundle->payload.length);
+		return 0;
+	}
 
 	/*	Must determine whether or not this node is a bpsec
 	 *	acceptor for this bundle.				*/
@@ -10105,7 +10157,26 @@ int	bpEndAcq(AcqWorkArea *work)
 	int		acqLength;
 
 	CHKERR(work);
-	CHKERR(work->zco);
+
+	/*	A bpBeginAcq with no successful bpContinueAcq leaves
+	 *	work->zco == 0 -- e.g. a TCPCL peer that connected and
+	 *	closed without sending payload bytes, or an upstream
+	 *	ZCO-space request that failed and left no allocation.
+	 *	The condition is benign at the bundle level: drop this
+	 *	acquisition and let the caller decide whether to close
+	 *	the session.  Asserting via CHKERR aborts the worker
+	 *	thread through _iEnd, which is the wrong response to a
+	 *	routine peer-disorder / out-of-space event (see #982,
+	 *	same anti-pattern as #965).				*/
+
+	if (work->zco == 0)
+	{
+		writeMemo("[?] bpEndAcq called with no ZCO; dropping \
+acquisition.");
+		oK(eraseWorkZco(work));	/*	Resets the work area.	*/
+		return -1;
+	}
+
 	CHKERR(sdr_begin_xn(sdr));
 	work->zcoLength = zco_length(sdr, work->zco);
 	zco_start_receiving(work->zco, &(work->reader));
@@ -11543,6 +11614,12 @@ static int	isLoopback(char *eid)
 		return 0;
 	}
 
+	if (metaEid.nullEndpoint)
+	{
+		clearMetaEid(&metaEid);
+		return 0;	/*	Null EID is not loopback.	*/
+	}
+
 	clearMetaEid(&metaEid);
 
 	if (strncmp(eid, vscheme->adminEid, MAX_EID_LEN) == 0)
@@ -11996,9 +12073,9 @@ int	bpAbandon(Object bundleObj, Bundle *bundle, int reason)
 	BpSrReason	srReason;
 
 	CHKERR(bundleObj && bundle);
-	if (reason == BP_REASON_DEPLETION)
+	if (reason >= BP_REASON_EXPIRED && reason < BP_REASON_STATS)
 	{
-		srReason = SrDepletedStorage;
+		srReason = (BpSrReason) reason;
 	}
 	else
 	{
@@ -12273,9 +12350,37 @@ bundle.", NULL);
 
 	if (catenateBundle(&bundle) < 0)
 	{
-		putErrmsg("Can't catenate bundle.", NULL);
-		sdr_cancel_xn(sdr);
-		return -1;
+		/*	catenateBundle reads the payload ZCO to compute
+		 *	the payload-block CRC.  For a file-backed ZCO
+		 *	whose source file has been unlinked or truncated
+		 *	between enqueue and forward, the read fails here.
+		 *	This is a bundle-level failure and must not abort
+		 *	the SDR: cancelling this transaction on a non-
+		 *	reversible SDR would trip handleUnrecoverableError
+		 *	-> sm_Abort and kill the entire node (see #965).
+		 *	Drop the bundle the way the bpsec/insecure path
+		 *	above does -- bpDestroyBundle + sdr_drop_xn -- and
+		 *	tell the caller via bundleZco=1 to skip and
+		 *	continue.  All modifications already made by
+		 *	bpDequeue (and by bpDestroyBundle below) are in the
+		 *	"discard this bundle" direction, so committing the
+		 *	partial state via sdr_drop_xn is safe.		*/
+
+		putErrmsg("Can't catenate bundle; dropping.", NULL);
+		*bundleZco = 1;	/*	Client continues.		*/
+		sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
+		if (bpDestroyBundle(bundleObj, 5) < 0)
+		{
+			putErrmsg("Failed destroying uncatenable bundle.",
+					NULL);
+			/*	Fall through and drop anyway -- a leaked
+			 *	bundle object is bounded waste, an aborted
+			 *	SDR is unbounded.			*/
+		}
+
+		sdr_drop_xn(sdr, "bpDequeue: catenateBundle failed "
+				"(unreadable payload ZCO?)");
+		return 0;
 	}
 
 	/*	Some final extension-block processing may be necessary
@@ -12458,7 +12563,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 	unsigned char	*cursor;
 	unsigned int	unparsedBytes;
 	uvast		arrayLength;
-	int		length;
+	int		length = 0;
 	uvast		uvtemp;
 	unsigned int	blockLength;
 	BpCrcType	crcType;
@@ -12471,7 +12576,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 	/*	Skip over bundle array tag.				*/
 
 	arrayLength = 0;
-	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 0)
+	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 1)
 	{
 		return -1;
 	}
@@ -12479,21 +12584,21 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 	/*	Skip over primary block array tag.			*/
 
 	arrayLength = 0;
-	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 0)
+	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 1)
 	{
 		return -1;
 	}
 
 	/*	Skip over version number.				*/
 
-	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 0)
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
 		return -1;
 	}
 
 	/*	Parse out the bundle processing flags.			*/
 
-	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 0)
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
 		return -1;
 	}
@@ -12502,7 +12607,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 	/*	Parse out the CRC type.					*/
 
-	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 0)
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
 		return -1;
 	}
@@ -12533,14 +12638,14 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 	/*	Skip over creation timestamp array tag.			*/
 
 	arrayLength = 2;
-	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 0)
+	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 1)
 	{
 		return -1;
 	}
 
 	/*	Get creation timestamp milliseconds.			*/
 
-	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 0)
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
 		return -1;
 	}
@@ -12549,7 +12654,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 	/*	Get creation timestamp count.				*/
 
-	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 0)
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
 		return -1;
 	}
@@ -12558,7 +12663,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 	/*	Skip over lifetime.					*/
 
-	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 0)
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
 		return -1;
 	}
@@ -12582,7 +12687,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 	 *	payload length is known and the fragmentary bundle
 	 *	can be retrieved.					*/
 
-	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 0)
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
 		return -1;
 	}
@@ -12591,7 +12696,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 	/*	Get total ADU length, cues serialized bundle retrieval.	*/
 
-	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 0)
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
 		return -1;
 	}
@@ -12655,7 +12760,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 		arrayLength = 0;
 		if (cbor_decode_array_open(&arrayLength, &cursor,
-				&unparsedBytes) < 0)
+				&unparsedBytes) < 1)
 		{
 			return -1;
 		}
@@ -12663,7 +12768,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 		/*	Extract blockType.				*/
 
 		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
-				&unparsedBytes) < 0)
+				&unparsedBytes) < 1)
 		{
 			return -1;
 		}
@@ -12673,7 +12778,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 		/*	Skip over block number.				*/
 
 		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
-				&unparsedBytes) < 0)
+				&unparsedBytes) < 1)
 		{
 			return -1;
 		}
@@ -12681,7 +12786,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 		/*	Skip over block processing flags.		*/
 
 		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
-				&unparsedBytes) < 0)
+				&unparsedBytes) < 1)
 		{
 			return -1;
 		}
@@ -12689,7 +12794,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 		/*	Parse out the CRC type.				*/
 
 		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
-				&unparsedBytes) < 0)
+				&unparsedBytes) < 1)
 		{
 			return -1;
 		}
@@ -12700,7 +12805,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 		uvtemp = (uvast) -1;
 		if (cbor_decode_byte_string(NULL, &uvtemp, &cursor,
-				&unparsedBytes) < 0)
+				&unparsedBytes) < 1)
 		{
 			return -1;
 		}

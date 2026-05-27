@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Scott Burleigh
 # April 21, 2010
@@ -161,6 +162,5 @@ fi
 # Shut down ION processes.
 echo "Stopping ION..."
 #./ionstop &
-killm
 echo "Asymmetric range test completed."
 exit $RETVAL

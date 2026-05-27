@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # David Young, modified from Scott Burleigh
 # April 29, 2010
@@ -217,6 +218,5 @@ else
     RETVAL=0
 fi
 
-killm
 echo -e "\nStatus reports test completed."
 exit $RETVAL

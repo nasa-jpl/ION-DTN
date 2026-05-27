@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Scott Burleigh
 # October 11, 2010
@@ -53,7 +54,6 @@ echo "########################################"
 # Establish absolute base directory for reliable pathing
 BASE_DIR="$PWD"
 
-killm
 ./cleanup
 sleep 1
 echo "Starting ION..."
@@ -186,7 +186,7 @@ do
     sleep 2
     echo "2nd attempt to kill file receiver... Maybe redundant but to be sure..."
     kill -9 $RCVPID 2>/dev/null
-    wait $RCVPID 2>/dev/null
+    sleep 1
     rm testfile*
 
     #adjust loop condition
@@ -219,10 +219,10 @@ do
     fi
 
     $killcmd -KILL "owltsim" &> /dev/null
-    wait $OWLTSIM_PID 2>/dev/null
+    sleep 1
 
     # Terminate ION daemons and IPC resources
-    killm
+    killm f
 
     # Return to safe harbor before next iteration
     cd "$BASE_DIR"

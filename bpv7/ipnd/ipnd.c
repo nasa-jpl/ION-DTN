@@ -417,7 +417,7 @@ static int	configService(int tokenCount, char** tokens)
 
 	if (strcmp(tokens[2], "fixed") == 0 && tokenCount == 4)
 	{
-		ctx->tags[id].lengthType = atoi(tokens[3]);
+		ctx->tags[id].lengthType = (signed char) atoi(tokens[3]);
 	}
 	else if (strcmp(tokens[2], "variable") == 0 && tokenCount == 3)
 	{
@@ -778,6 +778,7 @@ static int	addService(int tokenCount, char** tokens)
 	int		len = 0;
 	IpndTagChild	dummyChild;
 
+	memset(&dummyChild, 0, sizeof(IpndTagChild));
 	dummyChild.tag = ctx->tags + id;
 	if (constructServiceDefinition(ctx->tags, &dummyChild, data, &len,
 			MAX_BEACON_SIZE) < 0)
@@ -1114,7 +1115,7 @@ static int	processLine(char *line, int lineLength)
 
 	/*	Skip over any trailing whitespace.			*/
 
-	while (isspace((int) *cursor))
+	while (isspace((unsigned char) *cursor))
 	{
 		cursor++;
 	}

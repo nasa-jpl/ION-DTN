@@ -1,7 +1,0 @@
-configFlags 13
-sdrName ion1
-heapKey -1
-logSize 5000000
-wmSize 5000000
-heapWords 500000
-wmAddress 0

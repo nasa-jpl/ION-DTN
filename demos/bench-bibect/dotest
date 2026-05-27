@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Scott Burleigh
 # February 6, 2019
@@ -175,7 +176,6 @@ bpstats
 sleep 3
 #./ionstop &
 
-killm
 sleep 3
 
 echo -e "...benchmarking terminated.\n"

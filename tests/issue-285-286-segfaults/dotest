@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Scott Burleigh
 # September 17, 2010
@@ -64,6 +65,5 @@ RETVAL=0
 # Shut down ION processes.
 echo "Stopping ION..."
 #./ionstop &
-killm
 echo "Issue-285-286 test completed."
 exit $RETVAL

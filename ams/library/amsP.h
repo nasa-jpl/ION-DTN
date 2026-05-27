@@ -17,6 +17,7 @@
 
 #include "ams.h"
 #include "amscommon.h"
+#include "ion_atomic.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -184,18 +185,18 @@ typedef struct amssapst
 	MamsEndpoint	*csEndpoint;	/*	Config. server.	*/
 	LystElt		csEndpointElt;
 	MamsEndpoint	*rsEndpoint;	/*	Registrar.	*/
-	int			moduleNbr;
-	int			heartbeatsMissed;	/*	From registrar.	*/
+	int		moduleNbr;
+	ion_atomic_t	heartbeatsMissed;	/*	From registrar.	*/
 	Lyst		delivVectors;		/*	(D...Vector *)	*/
 	Lyst		subscriptions;		/*	(MsgRule *)	*/
 	Lyst		invitations;		/*	(MsgRule *)	*/
 
 	pthread_t	heartbeatThread;
-	int			haveHeartbeatThread;
+	int		haveHeartbeatThread;
 	pthread_t	mamsThread;
-	int			haveMamsThread;
+	int		haveMamsThread;
 	sm_SemId    isRegistered;		/* Guarantees setup is complete */
-	volatile int	terminating;	/* Signal thread cleanup routine */
+	ion_atomic_t    terminating;		/* Signal thread cleanup routine */
 
 	pthread_mutex_t	sapStateMutex;
 

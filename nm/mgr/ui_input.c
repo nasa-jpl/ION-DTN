@@ -240,7 +240,7 @@ uint8_t  ui_input_byte(char *prompt)
 double   ui_input_real64(char *prompt)
 {
 	double result = 0;
-	char line[20];
+	char line[20] = {0};
 
 	ui_input_get_line(prompt, (char**)(void *)&line, 20);
 
@@ -252,7 +252,7 @@ double   ui_input_real64(char *prompt)
 float    ui_input_real32(char *prompt)
 {
 	float result = 0;
-	char line[20];
+	char line[20] = {0};
 
 	ui_input_get_line(prompt, (char**)(void *)&line, 20);
 
@@ -312,7 +312,7 @@ char *   ui_input_string(char *prompt)
 int32_t     ui_input_int(char *prompt)
 {
 	int32_t result = 0;
-	char line[20];
+	char line[20] = {0};
 
 	ui_input_get_line(prompt, (char**)(void *)&line, 20);
 
@@ -324,7 +324,7 @@ int32_t     ui_input_int(char *prompt)
 uint32_t     ui_input_uint(char *prompt)
 {
 	uint32_t result = 0;
-	char line[20];
+	char line[20] = {0};
 
 	ui_input_get_line(prompt, (char**)(void *)&line, 20);
 
@@ -336,7 +336,7 @@ uint32_t     ui_input_uint(char *prompt)
 uvast     ui_input_uvast(char *prompt)
 {
 	uvast result = 0;
-	char line[MAX_INPUT_BYTES];
+	char line[MAX_INPUT_BYTES] = {0};
 
 	ui_input_get_line(prompt, (char**)(void *)&line, MAX_INPUT_BYTES);
 
@@ -348,7 +348,7 @@ uvast     ui_input_uvast(char *prompt)
 vast     ui_input_vast(char *prompt)
 {
 	vast result = 0;
-	char line[MAX_INPUT_BYTES];
+	char line[MAX_INPUT_BYTES] = {0};
 
 	ui_input_get_line(prompt, (char**)(void *)&line, MAX_INPUT_BYTES);
 

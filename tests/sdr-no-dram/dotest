@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Scott Burleigh
 # May 4, 2019
@@ -55,8 +56,23 @@ export ION_NODE_LIST_DIR=$PWD
 # Start nodes.
 cd 2.ipn.ltp
 ./ionstart >& node2.stdout
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+if [ $? -eq 3 ]; then
+    echo ""
+else
+    echo "Node 2 not started: Aborting Test"
+    exit 1
+fi
+
 cd ../3.ipn.ltp
 ./ionstart >& node3.stdout
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+if [ $? -eq 3 ]; then
+    echo ""
+else
+    echo "Node 3 not started: Aborting Test"
+    exit 1
+fi
 
 echo "Starting bpcounter on node 3..."
 sleep 1
@@ -120,6 +136,5 @@ echo "Stopping ION..."
 
 # Give both nodes time to shut down, then clean up.
 #sleep 5
-killm
 echo "sdr-no-dram test completed."
 exit $RETVAL

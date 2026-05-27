@@ -117,15 +117,28 @@ typedef struct			/*	Global view in shared memory.	*/
 {
 	PsmAddress	directory;
 	unsigned int	status;
-	sm_SemId	semaphore;
-	int		ownerTask;	/*	Last took the semaphore.*/
-	pthread_t	ownerThread;	/*	Last took the semaphore.*/
-	int		depth;		/*	Count of ungiven takes.	*/
+	sm_SemId	semaphore;	/*	Legacy non-robust path.	*/
+#ifdef ION_HAVE_ROBUST_MUTEX
+	/*	On platforms with robust-mutex support the partition
+	 *	lock is a process-shared robust pthread mutex instead of
+	 *	the legacy POSIX semaphore.  PTHREAD_MUTEX_ROBUST makes
+	 *	pthread_mutex_lock return EOWNERDEAD when the holder
+	 *	died mid-operation, so the lock can be recovered (the
+	 *	allocator state cannot be rolled back -- no log -- but
+	 *	the partition becomes usable again instead of every
+	 *	subsequent caller wedging on an orphaned semaphore).	*/
+	pthread_mutex_t	partLock;
+	int		partLockCreated;	/*	Boolean.	*/
+#endif
+	int		ownerTask;	/*	Last took the lock.	*/
+	pthread_t	ownerThread;	/*	Last took the lock.	*/
+	int		depth;		/*	Count of nested takes.	*/
 	int		desperate;
 	size_t		partitionSize;
 	char		name[32];
 	int		traceKey;	/*	For sptrace.		*/
 	size_t		traceSize;	/*	0 = trace disabled.	*/
+	int		traceCount;	/*	Trace episode counter.	*/
 	PsmAddress	startOfSmallPool;
 	PsmAddress	endOfSmallPool;
 	SmallFreeBucket	smallPoolFree[SMALL_SIZES];
@@ -196,13 +209,76 @@ static void lockPartition(PartitionMap *map)
 	}
 
 	/*  If we get here, we do NOT own the partition, so we must release
-	 *  the local mutex before blocking on the named semaphore, which is
-	 *  shared across processes.  (Otherwise we can deadlock ourselves.)
+	 *  the local mutex before blocking on the cross-process lock.
+	 *  (Otherwise we can deadlock ourselves.)
 	 */
 	pthread_mutex_unlock(&_psmLocalMutex);
 
+#ifdef ION_HAVE_ROBUST_MUTEX
+	{
+		int	rc;
+
+		CHKVOID(map->partLockCreated);
+		rc = pthread_mutex_lock(&map->partLock);
+		if (rc == EOWNERDEAD)
+		{
+			/*	The previous holder died mid-operation
+			 *	while holding the lock.  PSM has no
+			 *	transaction log; the partition allocator
+			 *	(small/large pool free lists, in-use bits,
+			 *	the catalog) may be in any intermediate
+			 *	state the dead writer left behind.
+			 *	Continuing would risk silent corruption --
+			 *	a misthreaded free list or use-after-free
+			 *	is far worse than the wedge we set out to
+			 *	fix.  Abort deterministically with a
+			 *	diagnostic and a stack trace so the
+			 *	operator can restart the node from a clean
+			 *	state rather than building on a corrupt
+			 *	partition.				*/
+
+			putErrmsg("PSM partition lock holder died \
+mid-operation; allocator state may be inconsistent. Aborting to avoid silent \
+heap corruption.", map->name);
+			printStackTrace();
+
+			/*	Unlock WITHOUT pthread_mutex_consistent
+			 *	to transition the mutex to ENOTRECOVERABLE
+			 *	so every subsequent locker fails the same
+			 *	deterministic way (loud, not silent).
+			 *	Flush stdio before sm_Abort() because
+			 *	abort() does not flush libc buffers and the
+			 *	diagnostic would otherwise be lost.	*/
+
+			oK(pthread_mutex_unlock(&map->partLock));
+			fflush(NULL);
+			sm_Abort();
+		}
+		else if (rc == ENOTRECOVERABLE)
+		{
+			/*	A previous caller saw EOWNERDEAD and
+			 *	aborted; the partition is permanently
+			 *	unusable until re-managed.		*/
+
+			putErrmsg("PSM partition lock is unrecoverable (a \
+previous holder died mid-operation). Aborting.", map->name);
+			printStackTrace();
+			fflush(NULL);
+			sm_Abort();
+		}
+		else if (rc != 0)
+		{
+			putErrmsg("Can't lock PSM partition mutex.",
+					itoa(rc));
+			printStackTrace();
+			fflush(NULL);
+			sm_Abort();
+		}
+	}
+#else
 	CHKVOID(map->semaphore != -1);
 	oK(sm_SemTake(map->semaphore));
+#endif
 
 	/*
 	 * Now that we hold the partition across processes, lock the local mutex
@@ -239,6 +315,19 @@ static void unlockPartition(PartitionMap *map)
 			/* No more re-entrant locks held by this thread. */
 			map->ownerTask = -1;
 
+#ifdef ION_HAVE_ROBUST_MUTEX
+			if (map->partLockCreated)
+			{
+				/*
+				 * Release local mutex before releasing the
+				 * cross-process lock to avoid holding two
+				 * locks simultaneously.
+				 */
+				pthread_mutex_unlock(&_psmLocalMutex);
+				oK(pthread_mutex_unlock(&map->partLock));
+				return;
+			}
+#else
 			if (map->semaphore != -1)
 			{
 				/*
@@ -251,6 +340,7 @@ static void unlockPartition(PartitionMap *map)
 				sm_SemGive(semId);
 				return;
 			}
+#endif
 		}
 	}
 
@@ -308,7 +398,14 @@ int	psm_manage(char *start, size_t length, char *name, PsmPartition *psmp,
 	if (map->status == MANAGED)
 	{
 		*psmp = partition;
+#ifndef ION_HAVE_ROBUST_MUTEX
+		/*	On the legacy semaphore path, defensively try to
+		 *	clear a possibly-orphaned partition lock; on the
+		 *	robust-mutex path, EOWNERDEAD recovery in
+		 *	lockPartition() handles this automatically.	*/
+
 		sm_SemUnwedge(map->semaphore, 3);
+#endif
 		*outcome = Redundant;
 		return 0;
 	}
@@ -379,6 +476,35 @@ actual name.", map->name);
 		map->traceKey = sm_GetUniqueKey();
 	}
 
+#ifdef ION_HAVE_ROBUST_MUTEX
+	{
+		pthread_mutexattr_t	attr;
+
+		if (pthread_mutexattr_init(&attr) != 0)
+		{
+			discard(partition);
+			putErrmsg("Can't init partition mutex attr.", NULL);
+			return -1;
+		}
+
+		if (pthread_mutexattr_setpshared(&attr,
+				PTHREAD_PROCESS_SHARED) != 0
+		|| pthread_mutexattr_setrobust(&attr,
+				PTHREAD_MUTEX_ROBUST) != 0
+		|| pthread_mutex_init(&map->partLock, &attr) != 0)
+		{
+			oK(pthread_mutexattr_destroy(&attr));
+			discard(partition);
+			putErrmsg("Can't create robust mutex for partition.",
+					NULL);
+			return -1;
+		}
+
+		oK(pthread_mutexattr_destroy(&attr));
+		map->partLockCreated = 1;
+		map->semaphore = SM_SEM_NONE;	/*	Legacy unused.	*/
+	}
+#else
 	map->semaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 	if (map->semaphore < 0)
 	{
@@ -386,6 +512,7 @@ actual name.", map->name);
 		putErrmsg("Can't create semaphore for partition map.", NULL);
 		return -1;
 	}
+#endif
 
 	map->ownerTask = -1;
 	map->depth = 0;
@@ -420,10 +547,39 @@ void	psm_unmanage(PsmPartition partition)
 	{
 	/*	Wait for partition to be no longer in use; unmanage.	*/
 
+#ifdef ION_HAVE_ROBUST_MUTEX
+		if (map->partLockCreated)
+		{
+			/*	We are destroying the partition entirely,
+			 *	so allocator consistency no longer matters.
+			 *	Drain any straggling lock state -- including
+			 *	an EOWNERDEAD orphan -- by marking the lock
+			 *	consistent if needed so pthread_mutex_destroy
+			 *	will accept it.  An ENOTRECOVERABLE lock
+			 *	can be destroyed without first locking.	*/
+
+			int	rc = pthread_mutex_lock(&map->partLock);
+
+			if (rc == EOWNERDEAD)
+			{
+				oK(pthread_mutex_consistent(&map->partLock));
+			}
+
+			if (rc == 0 || rc == EOWNERDEAD)
+			{
+				oK(pthread_mutex_unlock(&map->partLock));
+			}
+
+			microsnooze(50000);
+			oK(pthread_mutex_destroy(&map->partLock));
+			map->partLockCreated = 0;
+		}
+#else
 		sm_SemTake(map->semaphore);
 		sm_SemEnd(map->semaphore);
 		microsnooze(50000);
 		sm_SemDelete(map->semaphore);
+#endif
 		map->status = INITIALIZED;
 	}
 
@@ -441,6 +597,24 @@ void	psm_erase(PsmPartition partition)
 	psm_unmanage(partition);	/*	Locks partition.	*/
 	map->status = 0;
 }
+
+#ifdef ION_HAVE_ROBUST_MUTEX
+/*	Test-only helper: take the partition's robust mutex and leave
+ *	it held by the caller.  Used by ici/test/psm_robust_recovery_test
+ *	to set up an orphaned-lock scenario.  Not declared in psm.h;
+ *	the test source declares it manually as extern.		*/
+
+void	_psm_test_take_lock_unreleased(PsmPartition partition)
+{
+	PartitionMap	*map;
+
+	CHKVOID(partition);
+	map = (PartitionMap *)(void *) (partition->space);
+	lockPartition(map);
+	/*	Intentionally NOT unlocked; caller is expected to die
+	 *	with the lock held to orphan it.			*/
+}
+#endif	/*	ION_HAVE_ROBUST_MUTEX					*/
 
 void    *psp(PsmPartition partition, PsmAddress address)
 {
@@ -903,8 +1077,22 @@ static int	traceInProgress(PsmPartition partition)
 	{
 		if (map->traceSize < 1)	/*	Trace is now disabled.	*/
 		{
+			sptrace_stop(partition->trace);
 			partition->trace = NULL;
 			return 0;	/*	Don't trace.		*/
+		}
+
+		if (partition->traceCount != map->traceCount)
+		{
+			/*	New trace episode; reattach.		*/
+
+			sptrace_stop(partition->trace);
+			partition->trace = NULL;
+			if (psm_start_trace(partition, map->traceSize,
+					NULL) < 0)
+			{
+				return 0;
+			}
 		}
 	}
 
@@ -1485,6 +1673,7 @@ actual.", itoa(map->traceSize));
 	else			/*	Trace is not currently enabled.	*/
 	{
 		map->traceSize = shmSize;	/*	Enable trace.	*/
+		map->traceCount++;		/*	New episode.	*/
 	}
 
 	partition->trace = (PsmView *) (partition->traceArea);
@@ -1501,6 +1690,8 @@ actual.", itoa(map->traceSize));
 		return -1;
 	}
 
+	partition->traceCount = map->traceCount;
+	sptrace_set_episode_id(partition->trace, map->traceCount);
 	unlockPartition(map);
 	return 0;
 #endif

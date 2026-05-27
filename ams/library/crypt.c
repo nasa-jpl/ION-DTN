@@ -49,7 +49,7 @@ void	decryptUsingPublicKey(char *plaintext, int *ptlen, char *key, int klen,
 		return;
 	}
 
-	memcpy(plaintext, cyphertext, ctlen);
+	memmove(plaintext, cyphertext, ctlen);
 	*ptlen = ctlen;
 }
 
@@ -62,7 +62,7 @@ void	encryptUsingPrivateKey(char *cyphertext, int *ctlen, char *key,
 		return;
 	}
 
-	memcpy(cyphertext, plaintext, ptlen);
+	memmove(cyphertext, plaintext, ptlen);
 	*ctlen = ptlen;
 }
 
@@ -75,7 +75,7 @@ void	decryptUsingPrivateKey(char *plaintext, int *ptlen, char *key, int klen,
 		return;
 	}
 
-	memcpy(plaintext, cyphertext, ctlen);
+	memmove(plaintext, cyphertext, ctlen);
 	*ptlen = ctlen;
 }
 

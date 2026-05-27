@@ -656,12 +656,50 @@ static void handleQuit(int signum)
 	oK(ionwatch_count(&newCount));
 }
 
+/*	Quick pre-check: verify that the SDR shared memory segment
+ *	exists before calling ionAttach().  ionAttach() triggers a
+ *	cascade of low-level error messages (putSysErrmsg, fprintf
+ *	to stderr) when the shared memory is absent, which is
+ *	confusing when the user simply wants to check if ION is
+ *	running.  By probing for the well-known SDR working memory
+ *	key first, we can print a clean, user-friendly message
+ *	instead.
+ *
+ *	SDR_SM_KEY is 255 * 256 = 65280 (0xFF00), defined in
+ *	sdrP.h.  We duplicate the value here to avoid pulling in
+ *	private SDR headers.						*/
+
+#ifndef SDR_SM_KEY
+#define SDR_SM_KEY	(255 * 256)
+#endif
+
+static int	ionShmExists(void)
+{
+#ifdef SVR4_SHM
+	/*	SVR4 / POSIX shared memory: probe with shmget.		*/
+
+	return (shmget(SDR_SM_KEY, 0, 0) != -1);
+#else
+	/*	On platforms without SVR4 shared memory (e.g.,
+	 *	VxWorks), skip the pre-check and let ionAttach()
+	 *	report errors normally.					*/
+
+	return 1;
+#endif
+}
+
 static int run_daemonwatch(int interval, int showOnlyRunning,
 		int logToFile, int quietMode)
 {
 	int secRemaining;
 	int decrement = 0;
 	int anyChanged = 0;
+
+	if (!ionShmExists())
+	{
+		PUTS("ION is not running (shared memory not found).");
+		return 1;
+	}
 
 	if (ionAttach() < 0)
 	{

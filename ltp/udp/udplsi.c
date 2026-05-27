@@ -10,6 +10,8 @@
 									*/
 #include "udplsa.h"
 
+#include "ion_atomic.h"
+
 static void	interruptThread(int signum)
 {
 	/* Tell the compiler that we are not using 'signum' */
@@ -70,13 +72,13 @@ int	main(int argc, char *argv[])
 	sdr_exit_xn(sdr);
 	if (vseatElt == 0)
 	{
-		putErrmsg("Undefined LSI", lsiCmd);
+		writeMemoNote("[?] Undefined LSI", lsiCmd);
 		return 1;
 	}
 
 	if (vseat->lsiPid != ERROR && vseat->lsiPid != sm_TaskIdSelf())
 	{
-		putErrmsg("LSI task is already started.", itoa(vseat->lsiPid));
+		writeMemoNote("[?] LSI task is already started", itoa(vseat->lsiPid));
 		return 1;
 	}
 
@@ -89,7 +91,8 @@ int	main(int argc, char *argv[])
 	int resolveResult = resolveNetworkAddressCached(endpointSpec, &rtp.local_addr);
 	if (resolveResult < 0)
 	{
-		putErrmsg("udplsi: Can't resolve dual-stack address", endpointSpec);
+		putErrmsg("udplsi: Can't resolve dual-stack address",
+				endpointSpec);
 		return -1;
 	}
 
@@ -135,7 +138,7 @@ int	main(int argc, char *argv[])
 	isignal(SIGTERM, interruptThread);
 
 	/*	Start the receiver thread.				*/
-	rtp.running = 1;
+	ion_atomic_init(&rtp.running, 1);
 
 	if (pthread_begin(&receiverThread, NULL, udplsa_handle_datagrams,
 			&rtp, "udplsi_receiver"))
@@ -165,10 +168,7 @@ int	main(int argc, char *argv[])
 	/*	Time to shut down.					*/
 
 	writeMemo("[i] udplsi shutting down...");
-
-	pthread_mutex_lock(&rtp.lock);
-	rtp.running = 0;
-	pthread_mutex_unlock(&rtp.lock);
+	ion_atomic_set(&rtp.running, 0);
 
 	/* Shutdown signaling */
 	fd = socket(rtp.local_addr.family, SOCK_DGRAM, IPPROTO_UDP);
@@ -219,6 +219,7 @@ int	main(int argc, char *argv[])
 	}
 
 	closesocket(rtp.linkSocket);
+	ion_atomic_mutex_destroy(&rtp.running);
 	writeErrmsgMemos();
 	writeMemo("[i] udplsi has ended.");
 	ionDetach();

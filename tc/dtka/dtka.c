@@ -297,7 +297,16 @@ static int	generateKeyPair(BpSAP sap, DtkaDB *db, char *keyType,
 
 	sdr_exit_xn(sdr);
 #else /*	For regression testing only.			*/
-	srand((unsigned int)currentTime / getOwnFqnn());
+	{
+		uvast	ownFqnn = getOwnFqnn();
+
+		if (ownFqnn == 0)
+		{
+			ownFqnn = 1;
+		}
+
+		srand((unsigned int)currentTime / ownFqnn);
+	}
 	key = rand();
 	memcpy(pubKeyBuf, (char *)&key, sizeof key);
 	publicKey = pubKeyBuf;

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Copyright (c) 2009, Regents of the University of Colorado.
 #

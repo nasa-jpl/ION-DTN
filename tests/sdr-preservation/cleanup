@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Clean up test artifacts
+rm -f ion.log ion.sdr ion.sdrlog ion_nodes
+killm f 2>/dev/null

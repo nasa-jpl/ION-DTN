@@ -22,6 +22,7 @@
 #include "sdr.h"
 #include "zco.h"
 #include <signal.h>
+#include "ion_atomic.h"
 
 #ifdef _cplusplus
 extern "C" {
@@ -100,7 +101,7 @@ typedef  struct ramsgateway
 	Lyst		bpSendQueue;
 	pthread_mutex_t	bpQueueMutex;
 	pthread_cond_t	bpQueueCond;
-	volatile int	final_shutdown; /* Flag to signal manager thread to exit. */
+	ion_atomic_t    final_shutdown; /* Flag to signal manager thread to exit. */
 	pthread_mutex_t	gwayStateMutex; /* Protects gateway shared state. */
 } RamsGateway, *RamsGate;
 

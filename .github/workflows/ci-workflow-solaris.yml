@@ -58,16 +58,40 @@ on:
 jobs:
   build-and-test:
     runs-on: [self-hosted, linux, x64, karuna]
+    env:
+      # SSH options applied to every ssh/scp/rsync invocation against
+      # the Solaris VM. GSSAPIAuthentication=no avoids a multi-second
+      # Kerberos/NIS auth stall observed on the VM; restricting to
+      # publickey skips other slow fallback methods entirely.
+      SSH_OPTS: "-o StrictHostKeyChecking=no -o GSSAPIAuthentication=no -o PreferredAuthentications=publickey"
     steps:
       - name: Clean up workspace
         run: |
           rm -rf $GITHUB_WORKSPACE/*
 
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           clean: true
           # clear workspace after
+
+      - name: Auto-detect PR number
+        id: detect-pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -n "${{ inputs.pr_number }}" ]; then
+            echo "pr_number=${{ inputs.pr_number }}" >> $GITHUB_OUTPUT
+          else
+            PR_NUM=$(gh pr list --head "${{ github.ref_name }}" --json number --jq '.[0].number // empty' 2>/dev/null || true)
+            if [ -n "$PR_NUM" ]; then
+              echo "Auto-detected PR #${PR_NUM} for branch ${{ github.ref_name }}"
+              echo "pr_number=${PR_NUM}" >> $GITHUB_OUTPUT
+            else
+              echo "No PR found for branch ${{ github.ref_name }}"
+              echo "pr_number=" >> $GITHUB_OUTPUT
+            fi
+          fi
 
       - name: Display Runner Host OS and Arch
         run: |
@@ -83,7 +107,7 @@ jobs:
 
       - name: Display VM OS and Arch
         run: |
-          ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
+          ssh $SSH_OPTS jgao@$VM_IP '
             cat /etc/os-release &&
             echo "Arch:" &&
             uname -m &&
@@ -95,8 +119,21 @@ jobs:
 
       - name: Copy code to Solaris VM
         run: |
-          ssh -o StrictHostKeyChecking=no jgao@$VM_IP 'rm -rf ~/ion-gh-test-dir && mkdir -p ~/ion-gh-test-dir'
-          rsync -avz -e "ssh -o StrictHostKeyChecking=no" --exclude='arch-rtems' "$GITHUB_WORKSPACE/" jgao@$VM_IP:~/ion-gh-test-dir/ion-ios-dev/
+          ssh $SSH_OPTS jgao@$VM_IP 'rm -rf ~/ion-gh-test-dir && mkdir -p ~/ion-gh-test-dir'
+          attempt=0
+          max_attempts=3
+          until rsync -avz --partial \
+                    -e "ssh $SSH_OPTS -o ServerAliveInterval=30 -o ServerAliveCountMax=4" \
+                    --exclude='arch-rtems' \
+                    "$GITHUB_WORKSPACE/" jgao@$VM_IP:~/ion-gh-test-dir/ion-ios-dev/; do
+            attempt=$((attempt + 1))
+            if [ $attempt -ge $max_attempts ]; then
+              echo "rsync failed after $attempt attempts" >&2
+              exit 1
+            fi
+            echo "rsync attempt $attempt failed, retrying in $((attempt * 10))s..." >&2
+            sleep $((attempt * 10))
+          done
 
       - name: Generate timestamp for file names
         id: timestamp
@@ -105,14 +142,14 @@ jobs:
       - name: Run build and tests, capture stdout
         timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '270') }}
         run: |
-          ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
+          ssh $SSH_OPTS jgao@$VM_IP '
             echo "Starting build and tests at $(date)" &&
             export USER=$(whoami) &&
             echo "USER is set to: $USER" &&
             export ION_RUN_EXPERT="yes" &&
             export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH &&
             export PATH=/usr/local/bin:$PATH &&
-            export PRESERVE_TEST_LOGS="yes" &&
+            export PRESERVE_TEST_LOGS="0" &&
             echo "PATH=$PATH" &&
             cd ~/ion-gh-test-dir/ion-ios-dev &&
             autoreconf -fi &&
@@ -120,6 +157,8 @@ jobs:
             gmake -j4 &&
             sudo gmake install &&
             gmake buildcheck &&
+            echo "Sweeping any ION daemons left over from prior runs..." &&
+            (killm f 2>/dev/null || true) &&
             cd tests &&
             if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tests_to_run }}" ]; then
               echo "Running specific tests: ${{ github.event.inputs.tests_to_run }}" &&
@@ -130,7 +169,6 @@ jobs:
             fi' > build-and-test.log 2> >(tee -a build-and-test.log >&2)
 
           TEST_STATUS=$?
-          wait  # Wait for background processes to complete
 
           if [ $TEST_STATUS -ne 0 ]; then
             echo "Build and tests failed with status $TEST_STATUS" >&2
@@ -140,13 +178,17 @@ jobs:
       - name: Display Progress
         if: ${{ always() }}
         run: |
-          ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
-            cat ~/ion-gh-test-dir/ion-ios-dev/tests/progress' > progress
-          cat progress | grep "FAILED" || { printf "No failed tests.\n"; exit 0; }
+          ssh $SSH_OPTS jgao@$VM_IP \
+            'cat ~/ion-gh-test-dir/ion-ios-dev/tests/progress 2>/dev/null' > progress || true
+          if [ ! -s progress ]; then
+            echo "No progress file produced (tests may not have run)."
+            exit 0
+          fi
+          grep "FAILED" progress || printf "No failed tests.\n"
 
       - name: Upload full build and test log
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-and-test-log-solaris-${{ env.TIMESTAMP }}
           path: build-and-test.log
@@ -159,7 +201,7 @@ jobs:
 
       - name: Upload progress file as artifact
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-progress-solaris-${{ env.TIMESTAMP }}
           path: ./progress
@@ -169,13 +211,13 @@ jobs:
         run: |
           echo "Collecting ion.log files with unique names..."
           mkdir -p ion-logs-collection
-          ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
+          ssh $SSH_OPTS jgao@$VM_IP '
             cd ~/ion-gh-test-dir/ion-ios-dev &&
-            find ./tests -name "ion.log" -type f' | while IFS= read -r logfile; do
+            find ./tests ./demos -name "ion.log" -type f 2>/dev/null' | while IFS= read -r logfile; do
             # Extract test path and create unique filename
-            relpath=$(echo "$logfile" | sed 's|^\./tests/||' | sed 's|/ion\.log$||')
+            relpath=$(echo "$logfile" | sed 's|^\./||' | sed 's|/ion\.log$||')
             unique_name=$(echo "$relpath" | tr '/' '-')
-            scp -o StrictHostKeyChecking=no jgao@$VM_IP:~/ion-gh-test-dir/ion-ios-dev/"$logfile" "ion-logs-collection/${unique_name}-ion.log"
+            scp $SSH_OPTS jgao@$VM_IP:~/ion-gh-test-dir/ion-ios-dev/"$logfile" "ion-logs-collection/${unique_name}-ion.log"
             echo "Collected: $logfile -> ion-logs-collection/${unique_name}-ion.log"
           done
 
@@ -185,38 +227,70 @@ jobs:
 
       - name: Upload ion.log files as artifact
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ion-logs-solaris-${{ env.TIMESTAMP }}
           path: ion-logs-collection/
           if-no-files-found: warn
 
+      - name: Collect ion-system.log diagnostic files from VM
+        if: ${{ always() }}
+        run: |
+          mkdir -p diagnostics-collection
+          ssh $SSH_OPTS jgao@$VM_IP '
+            cd ~/ion-gh-test-dir/ion-ios-dev &&
+            find ./tests ./demos -name "ion-system.log" -type f 2>/dev/null' | while IFS= read -r logfile; do
+            relpath=$(echo "$logfile" | sed 's|^\./||' | sed 's|/ion-system\.log$||')
+            unique_name=$(echo "$relpath" | tr '/' '-')
+            scp $SSH_OPTS jgao@$VM_IP:~/ion-gh-test-dir/ion-ios-dev/"$logfile" "diagnostics-collection/${unique_name}-ion-system.log"
+          done
+
+      - name: Upload ion-system.log diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: diagnostics-solaris-${{ env.TIMESTAMP }}
+          path: diagnostics-collection/
+          if-no-files-found: ignore
+
       - name: Clean up ION build
         if: ${{ always() }}
         run: |
-          ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
-            echo "Cleaning up ION build and tests at $(date)" &&
-            export PATH=/usr/local/bin:$PATH &&
-            echo "PATH=$PATH" &&
+          ssh $SSH_OPTS jgao@$VM_IP '
+            echo "Cleaning up ION build and tests at $(date)"
+            export PATH=/usr/local/sbin:/usr/local/bin:$PATH
+            echo "PATH=$PATH"
+            # Reap any ION daemons FIRST and UNCONDITIONALLY. Always use
+            # the f flag: bare killm tries ionexit first which can hang
+            # when ION state is inconsistent (common after a cancelled
+            # run). Run before the dir-existence check so orphans get
+            # cleaned up even if the build dir was already removed.
+            # GitHub gives always() steps only a brief grace period
+            # after cancellation, so killm f (fast) matters here.
+            if command -v killm >/dev/null 2>&1; then
+              killm f || echo "killm f returned non-zero, continuing"
+            else
+              echo "killm not available, skipping"
+            fi
             if [ -d ~/ion-gh-test-dir/ion-ios-dev ]; then
-              cd ~/ion-gh-test-dir/ion-ios-dev &&
-              killm &&
-              sudo gmake uninstall &&
-              gmake clean &&
+              cd ~/ion-gh-test-dir/ion-ios-dev || exit 0
+              sudo gmake uninstall || echo "gmake uninstall failed, continuing"
+              gmake clean || echo "gmake clean failed, continuing"
               cd ~
             else
               echo "Build directory not found, skipping build cleanup"
-            fi &&
-            rm -rf ~/ion-gh-test-dir'
+            fi
+            rm -rf ~/ion-gh-test-dir
+            exit 0'
           rm -rf $GITHUB_WORKSPACE/*
 
       - name: Set PR status
-        if: ${{ inputs.pr_number != '' }}
-        uses: actions/github-script@v7
+        if: ${{ steps.detect-pr.outputs.pr_number != '' }}
+        uses: actions/github-script@v9
         with:
           script: |
             const conclusion = "${{ job.status }}" === "success" ? "success" : "failure";
-            const prNumber = parseInt("${{ inputs.pr_number }}", 10);
+            const prNumber = parseInt("${{ steps.detect-pr.outputs.pr_number }}", 10);
 
             let pr;
             try {

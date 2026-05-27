@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Test for GitHub issue #37: selectBlkNumber overflow when block 255 exists.
 #
@@ -6,10 +7,11 @@
 # ION correctly assigns valid block numbers (2-254) to new extension blocks
 # instead of overflowing to 0.
 #
-# Topology:  external injector -> Node 2 (forwarder) -> Node 3 (receiver)
-# The Python script craft_bundle.py builds a BPv7 bundle with block number
-# 255, then sends it via UDP to node 2.  Node 2 forwards to node 3,
-# adding PreviousNode/BundleAge/QoS blocks through patchExtensionBlocks.
+# Topology:  external injector -> Node 2 (forwarder) -> runtest.py (acting as node 3)
+# The Python script runtest.py uses bespokebpv7 to build a BPv7 bundle with
+# block number 255, sends it via UDP to node 2, and receives/verifies it
+# (acting as node 3 endpoint). Node 2 forwards to ipn:3.1, adding
+# PreviousNode/BundleAge/QoS blocks through patchExtensionBlocks.
 
 CONFIGFILES=" \
 ./2.ipn.udp/ipn.bprc \
@@ -17,11 +19,6 @@ CONFIGFILES=" \
 ./2.ipn.udp/ipn.ionrc \
 ./2.ipn.udp/ipn.ionsecrc \
 ./2.ipn.udp/ipn.ipnrc \
-./3.ipn.udp/ipn.bprc \
-./3.ipn.udp/ipn.ionconfig \
-./3.ipn.udp/ipn.ionrc \
-./3.ipn.udp/ipn.ionsecrc \
-./3.ipn.udp/ipn.ipnrc \
 "
 
 echo "########################################"
@@ -34,7 +31,7 @@ echo "PURPOSE: Verify that forwarding a bundle containing extension block
 "
 
 echo
-echo "CONFIG: 2 node custom (UDP, no BPSec):"
+echo "CONFIG: 1 node custom (UDP, no BPSec) + Python receiver:"
 echo
 for N in $CONFIGFILES
 do
@@ -48,21 +45,41 @@ echo
 echo "########################################"
 echo
 
-# Check if python3 is available
-if ! command -v python3 &> /dev/null; then
-    echo "SKIP: python3 is required but not found. Please install Python 3."
+# Find the latest available Python 3 version >= 3.10
+PYTHON_CMD="python3"
+MAX_MINOR=-1
+
+check_python_version() {
+    local py_exec=$1
+    if command -v "$py_exec" &> /dev/null; then
+        local py_maj=$("$py_exec" -c 'import sys; print(sys.version_info[0])' 2>/dev/null)
+        local py_min=$("$py_exec" -c 'import sys; print(sys.version_info[1])' 2>/dev/null)
+        if [ "$py_maj" = "3" ] && [ "$py_min" -ge 10 ]; then
+            if [ "$py_min" -gt "$MAX_MINOR" ]; then
+                MAX_MINOR=$py_min
+                PYTHON_CMD="$py_exec"
+            fi
+        fi
+    fi
+}
+
+# Check standard $PYTHON_CMD first
+check_python_version $PYTHON_CMD
+
+i=20
+while [ $i -ge 10 ]; do
+    check_python_version "$PYTHON_CMD.$i"
+    i=$((i - 1))
+done
+
+if [ -z "$PYTHON_CMD" ]; then
+    echo "SKIP: Python 3.10 or higher is required but not found."
     exit 2
 fi
 
-# Check Python version (need at least 3.9)
-PYTHON_VERSION=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
-PYTHON_MAJOR=$(python3 -c 'import sys; print(sys.version_info[0])')
-PYTHON_MINOR=$(python3 -c 'import sys; print(sys.version_info[1])')
-if [ "$PYTHON_MAJOR" -lt 3 ] || { [ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 9 ]; }; then
-    echo "SKIP: Python 3.9 or higher is required. Found version $PYTHON_VERSION"
-    exit 2
-fi
-echo "Using Python $PYTHON_VERSION"
+PYTHON_VERSION="3.$MAX_MINOR"
+echo "Using Python $PYTHON_VERSION (via $PYTHON_CMD)"
+echo
 
 ./cleanup
 sleep 1
@@ -71,73 +88,53 @@ export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 RETVAL=0
 
-# Start nodes.
+# Start node 2.
 cd 2.ipn.udp
 ./ionstart
-cd ../3.ipn.udp
-./ionstart
-
-# Give the nodes time to converge
-echo "Sleeping for 15 seconds for node convergence..."
-sleep 15
-
-# Start bpsink on node 3 to receive the bundle
-bpsink ipn:3.1 >/dev/null &
-BPSINKPID=$!
 cd ../
 
-# Pause for bpsink to register
-sleep 3
+# Give node time to start
+echo "Sleeping for 5 seconds for node startup..."
+sleep 5
 
-# Inject the crafted bundle with block number 255 into node 2
-echo "Injecting bundle with block number 255 into node 2..."
-python3 craft_bundle.py
+# Run the test script with bundle injection and verification
+# The script acts as node 3 receiver while sending to node 2
+echo "Running bundle injection and verification test..."
+$PYTHON_CMD runtest.py --send-port 2113 --recv-port 3113
+RUNTEST_STATUS=$?
 
-# Wait for forwarding and delivery
-echo "Sleeping for 10 seconds for forwarding..."
-sleep 10
-
-# Snapshot bpstats on node 3
-cd 3.ipn.udp
-bpstats
-sleep 1
-cd ..
-
-# --- Check 1: Verify bundle was delivered at node 3 ---
-echo ""
-echo "--- Check 1: Verify bundle delivery at node 3 ---"
-
-# Parse dlv (delivered) count from node 3 ion.log
-DLV_LINE=$(grep '\[x\] dlv ' 3.ipn.udp/ion.log | tail -1)
-if [ -z "$DLV_LINE" ]; then
-    echo "FAIL: No dlv stats found in node 3 ion.log"
-    RETVAL=1
-else
-    DLV_COUNT=$(echo "$DLV_LINE" | sed 's/.*(+) \([0-9]*\) .*/\1/')
-    echo "Delivered bundle count at node 3: $DLV_COUNT"
-    if [ "$DLV_COUNT" -ge 1 ] 2>/dev/null; then
-        echo "CHECK 1 PASSED: Bundle was delivered to node 3."
-    else
-        echo "CHECK 1 FAILED: Bundle was NOT delivered to node 3."
-        RETVAL=1
-    fi
+# Check runtest.py result
+if [ $RUNTEST_STATUS -eq 2 ]; then
+    echo "SKIP: runtest.py skipped (exit code 2)"
+    cat runtest.log
+    ./cleanup
+    exit 2
 fi
 
-# --- Check 2: Verify no overflow error in node 2 log ---
 echo ""
-echo "--- Check 2: Verify no overflow error at node 2 ---"
+echo "--- Check 0: Verify runtest.py execution and bundle reception ---"
+if [ $RUNTEST_STATUS -eq 0 ]; then
+    echo "CHECK 0 PASSED: runtest.py executed successfully and verified block 255."
+else
+    echo "CHECK 0 FAILED: runtest.py failed with exit code $RUNTEST_STATUS"
+    RETVAL=1
+fi
+
+echo ""
+echo "--- Check 1: Verify no overflow error at node 2 ---"
 if grep -q "all block numbers 2-255 are in use" 2.ipn.udp/ion.log 2>/dev/null; then
-    echo "CHECK 2 FAILED: Overflow error found in node 2 ion.log"
+    echo "CHECK 1 FAILED: Overflow error found in node 2 ion.log"
     RETVAL=1
 else
-    echo "CHECK 2 PASSED: No overflow error in node 2 ion.log."
+    echo "CHECK 1 PASSED: No overflow error in node 2 ion.log."
 fi
 
-# --- Check 3: Verify no block number 0 assignment in node 2 log ---
 echo ""
-echo "--- Check 3: Verify forwarding succeeded at node 2 ---"
+echo "--- Check 2: Verify forwarding succeeded at node 2 ---"
 # Check that node 2 forwarded the bundle (fwd stats)
+# 2 sleeps to ensure everything propagates properly
 cd 2.ipn.udp
+sleep 1
 bpstats
 sleep 1
 cd ..
@@ -150,19 +147,12 @@ else
     FWD_COUNT=$(echo "$FWD_LINE" | sed 's/.*(+) \([0-9]*\) .*/\1/')
     echo "Forwarded bundle count at node 2: $FWD_COUNT"
     if [ "$FWD_COUNT" -ge 1 ] 2>/dev/null; then
-        echo "CHECK 3 PASSED: Bundle was forwarded by node 2."
+        echo "CHECK 2 PASSED: Bundle was forwarded by node 2."
     else
-        echo "CHECK 3 FAILED: Bundle was NOT forwarded by node 2."
+        echo "CHECK 2 FAILED: Bundle was NOT forwarded by node 2."
         RETVAL=1
     fi
 fi
-
-# Stop bpsink
-echo ""
-echo "Stopping bpsink..."
-kill -2 $BPSINKPID >/dev/null 2>&1
-sleep 1
-kill -9 $BPSINKPID >/dev/null 2>&1
 
 # Final result
 echo ""
@@ -173,6 +163,6 @@ else
 fi
 
 echo -e "\nStopping ION..."
-./cleanup
+killm
 echo -e "...test terminated.\n"
 exit $RETVAL

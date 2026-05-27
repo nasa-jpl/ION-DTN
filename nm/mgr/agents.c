@@ -102,6 +102,8 @@ void agent_rotate_log(agent_t *agent, int force)
 {
 	char fn[128];
 	char agent_autologging_sep = '_';
+	lockResource(&(agent->log_lock));
+
 	if (agent_log_cfg.enabled)
 	{
 		if (agent->log_fd != NULL)
@@ -115,6 +117,7 @@ void agent_rotate_log(agent_t *agent, int force)
 			}
 			else
 			{
+				unlockResource(&(agent->log_lock));
 				return; // Keep using the open file
 			}
 		}
@@ -123,7 +126,7 @@ void agent_rotate_log(agent_t *agent, int force)
 			agent_autologging_sep = '/';
 
 			if (agent->log_fd_cnt == 0) {
-				sprintf(fn, "%s/%s",
+				snprintf(fn, sizeof(fn), "%s/%s",
 						agent_log_cfg.dir,
 						agent->eid.name
 					);
@@ -134,7 +137,7 @@ void agent_rotate_log(agent_t *agent, int force)
 #endif
 			}
 		}
-		sprintf(fn, "%s/%s%c%d.log",
+		snprintf(fn, sizeof(fn), "%s/%s%c%d.log",
 				agent_log_cfg.dir,
 				agent->eid.name,
 				agent_autologging_sep, // Set to "/" to use seperate directories per agent
@@ -154,6 +157,8 @@ void agent_rotate_log(agent_t *agent, int force)
 		fclose(agent->log_fd);
 		agent->log_fd = NULL;
 	}
+
+	unlockResource(&(agent->log_lock));
 }
 
 
@@ -223,6 +228,13 @@ agent_t* agent_create(eid_t *eid)
 	if((agent = (agent_t*)STAKE(sizeof(agent_t))) == NULL)
 	{
 		AMP_DEBUG_ERR("agent_create", "Can't alloc new agent", NULL);
+		return NULL;
+	}
+
+	if(initResourceLock(&(agent->log_lock)))
+	{
+		AMP_DEBUG_ERR("agent_create", "Can't alloc log mutex", NULL);
+		SRELEASE(agent);
 		return NULL;
 	}
 
@@ -318,6 +330,7 @@ void agent_release(agent_t *agent, int destroy)
 
 	if(destroy)
 	{
+		killResourceLock(&(agent->log_lock));
 		SRELEASE(agent);
 	}
 }

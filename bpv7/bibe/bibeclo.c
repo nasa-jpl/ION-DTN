@@ -665,7 +665,7 @@ int	main(int argc, char *argv[])
 		 *	string.						*/
 
 		uvtemp = bundleZcoLength;
-		cbor_encode_byte_string(NULL, uvtemp, &cursor);
+		oK(cbor_encode_byte_string(NULL, uvtemp, &cursor));
 		hdrlen = cursor - buffer;
 		CHKZERO(sdr_begin_xn(sdr));
 		zco_prepend_header(sdr, bpduZco, (char *) buffer, hdrlen);

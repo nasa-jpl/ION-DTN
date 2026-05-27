@@ -1,0 +1,6 @@
+This test verifies the sdrWmKey feature by inspecting per-node SVR4
+shared memory keys via `ipcs -m`.  On the Solaris 11 regression host
+ION's working memory is not backed by SVR4 shm (segments do not
+appear in `ipcs -m`), so the key-presence assertions cannot be
+satisfied even though the underlying feature works (bping round-trips
+between nodes still pass).  Run this test on Linux.

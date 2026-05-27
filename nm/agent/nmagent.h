@@ -97,14 +97,6 @@ void agent_register(void);
  */
 
 /**
- * Indicates if the thread loops should continue to run. This
- * value is updated by the main() and read by the subordinate
- * threads.
- **/
- extern uint8_t g_running;
-
-
-/**
  * The endpoint identifier (EID) of the network manager node.
  * TODO: Make this a vector and handle multiple managers.
  **/

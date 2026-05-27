@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # custody-multi: Multiple bundle custody transfer test
 #
@@ -17,7 +18,6 @@ echo "Sending $BUNDLE_COUNT bundles with custody"
 echo ""
 
 # Clean up any previous ION and test artifacts
-killm
 ./cleanup
 
 # Track test results

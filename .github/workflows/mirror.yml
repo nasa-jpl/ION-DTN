@@ -29,7 +29,10 @@ jobs:
           PAT_B64=$(echo -n "x-access-token:$PAT" | base64 -w0)
           echo "::add-mask::$PAT_B64"
           export AUTH_HEADER="Authorization: Basic $PAT_B64"
+          # -c "...extraHeader=" resets the header list for github.com,
+          # clearing the GITHUB_TOKEN that actions/checkout persisted.
+          # --config-env then sets only the PAT for the target repo URL.
           GIT_TRACE=1 GIT_CURL_VERBOSE=1 git \
             -c "http.https://github.com/.extraHeader=" \
-            --config-env=http.https://github.com/nasa-jpl/ION-DTN.extraHeader=AUTH_HEADER \
+            --config-env=http.https://github.com/nasa-jpl/ION-DTN.git.extraHeader=AUTH_HEADER \
             push https://github.com/nasa-jpl/ION-DTN.git +integration:integration

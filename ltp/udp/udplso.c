@@ -16,6 +16,8 @@
 
 #include "udplsa.h"
 
+#include "ion_atomic.h"
+
 #if defined(__linux__)
 
 #define IPHDR_SIZE	(sizeof(struct iphdr) + sizeof(struct udphdr))
@@ -164,11 +166,71 @@ static int	sendBatch(int linkSocket, struct mmsghdr *msgs,
 	int		totalBytesSent = 0;
 	int		bytesSent;
 	unsigned int	i;
+	int		result;
+	int		savedErrno;
+	static int	networkErrorState = 0;
 
-	if (sendmmsg(linkSocket, msgs, batchLength, 0) < 0)
+	result = sendmmsg(linkSocket, msgs, batchLength, 0);
+	if (result < 0)
 	{
+		savedErrno = errno;
+
+		/*	Network-layer errors that indicate the
+		 *	packets cannot be delivered right now.
+		 *	For UDP (connectionless), these should
+		 *	be treated as packet loss, not fatal
+		 *	errors. The daemon should continue
+		 *	running to handle temporary conditions
+		 *	like iptables changes, link flaps, or
+		 *	simulated down spacelinks.		*/
+
+		if (savedErrno == ENETUNREACH
+		|| savedErrno == EHOSTUNREACH
+		|| savedErrno == ENETDOWN
+		|| savedErrno == ENOBUFS
+		|| savedErrno == EPERM
+		|| savedErrno == EACCES
+		|| savedErrno == EAGAIN
+		|| savedErrno == EWOULDBLOCK
+#ifdef ECONNREFUSED
+		|| savedErrno == ECONNREFUSED
+#endif
+#ifdef EHOSTDOWN
+		|| savedErrno == EHOSTDOWN
+#endif
+			)
+		{
+			/*	Log on state change only.	*/
+
+			if (!networkErrorState)
+			{
+				char memoBuf[256];
+
+				isprintf(memoBuf, sizeof(memoBuf),
+					"[i] udplso: network error (errno=%d), treating as packet loss until recovered",
+					savedErrno);
+				writeMemo(memoBuf);
+				networkErrorState = 1;
+			}
+
+			/*	Return 0 to indicate no bytes sent
+			 *	but not a fatal error.		*/
+
+			return 0;
+		}
+
+		/*	Fatal error - log and return -1.	*/
+
 		putSysErrmsg("Failed in sendmmsg", itoa(batchLength));
 		return -1;
+	}
+
+	/*	Success - log recovery if we were in error state.	*/
+
+	if (networkErrorState)
+	{
+		writeMemo("[i] udplso: network recovered, sends succeeding");
+		networkErrorState = 0;
 	}
 
 	for (i = 0; i < batchLength; i++)
@@ -183,10 +245,24 @@ static int	sendBatch(int linkSocket, struct mmsghdr *msgs,
 	return totalBytesSent;
 }
 #else
+
+/*	Maximum retries for EAGAIN/EWOULDBLOCK before treating as loss.	*/
+#ifndef UDPLSO_EAGAIN_RETRIES
+#define UDPLSO_EAGAIN_RETRIES	10
+#endif
+
+/*	Microseconds to wait between EAGAIN retries.			*/
+#ifndef UDPLSO_EAGAIN_WAIT_USEC
+#define UDPLSO_EAGAIN_WAIT_USEC	1000
+#endif
+
 int	sendSegmentByUDP(int linkSocket, char *from, int length,
 		struct sockaddr *destAddr, socklen_t addrLen)
 {
-	int	bytesWritten;
+	int		bytesWritten;
+	int		eagainRetries = 0;
+	int		savedErrno;
+	static int	networkErrorState = 0;
 
 	while (1)	/*	Continue until interrupted.		*/
 	{
@@ -194,17 +270,73 @@ int	sendSegmentByUDP(int linkSocket, char *from, int length,
 				destAddr, addrLen);
 		if (bytesWritten < 0)
 		{
-			if (errno == EINTR)	/*	Interrupted.	*/
+			savedErrno = errno;
+
+			if (savedErrno == EINTR)	/*	Interrupted.	*/
 			{
 				continue;	/*	Retry.		*/
 			}
 
-			if (errno == ENETUNREACH)
+			/*	Buffer full - retry with backoff.	*/
+
+			if (savedErrno == EAGAIN || savedErrno == EWOULDBLOCK)
 			{
+				if (eagainRetries < UDPLSO_EAGAIN_RETRIES)
+				{
+					eagainRetries++;
+					microsnooze(UDPLSO_EAGAIN_WAIT_USEC);
+					continue;
+				}
+
+				/*	Exhausted retries, treat as loss. */
+
+				return length;
+			}
+
+			/*	Network-layer errors that indicate the
+			 *	packet cannot be delivered right now.
+			 *	For UDP (connectionless), these should
+			 *	be treated as packet loss, not fatal
+			 *	errors. The daemon should continue
+			 *	running to handle temporary conditions
+			 *	like iptables changes, link flaps, or
+			 *	simulated down spacelinks.		*/
+
+			if (savedErrno == ENETUNREACH
+			|| savedErrno == EHOSTUNREACH
+			|| savedErrno == ENETDOWN
+			|| savedErrno == ENOBUFS
+			|| savedErrno == EPERM
+			|| savedErrno == EACCES
+#ifdef ECONNREFUSED
+			|| savedErrno == ECONNREFUSED
+#endif
+#ifdef EHOSTDOWN
+			|| savedErrno == EHOSTDOWN
+#endif
+				)
+			{
+				/*	Log on state change only.	*/
+
+				if (!networkErrorState)
+				{
+					char memoBuf[256];
+
+					isprintf(memoBuf, sizeof(memoBuf),
+						"[i] udplso: network error (errno=%d), treating as packet loss until recovered",
+						savedErrno);
+					writeMemo(memoBuf);
+					networkErrorState = 1;
+				}
+
 				return length;	/*	Just data loss.	*/
 			}
 
-			/* Enhanced error logging with dual-stack support */
+			/*	For other errors (e.g., EBADF, EFAULT,
+			 *	EINVAL), log with details and return
+			 *	error to trigger shutdown - these
+			 *	indicate a programming/config error.	*/
+
 			char memoBuf[1000];
 			char addrStr[INET6_ADDRSTRLEN + 10];
 
@@ -214,7 +346,7 @@ int	sendSegmentByUDP(int linkSocket, char *from, int length,
 				inet_ntop(AF_INET, &sin->sin_addr, addrStr, sizeof(addrStr));
 				isprintf(memoBuf, sizeof(memoBuf),
 					"udplso sendto() error, dest=%s:%d, nbytes=%d, rv=%d, errno=%d",
-					addrStr, ntohs(sin->sin_port), length, bytesWritten, errno);
+					addrStr, ntohs(sin->sin_port), length, bytesWritten, savedErrno);
 			}
 			else if (destAddr->sa_family == AF_INET6)
 			{
@@ -222,9 +354,16 @@ int	sendSegmentByUDP(int linkSocket, char *from, int length,
 				inet_ntop(AF_INET6, &sin6->sin6_addr, addrStr, sizeof(addrStr));
 				isprintf(memoBuf, sizeof(memoBuf),
 					"udplso sendto() error, dest=[%s]:%d, nbytes=%d, rv=%d, errno=%d",
-					addrStr, ntohs(sin6->sin6_port), length, bytesWritten, errno);
+					addrStr, ntohs(sin6->sin6_port), length, bytesWritten, savedErrno);
 			}
 			writeMemo(memoBuf);
+		}
+		else if (networkErrorState)
+		{
+			/*	Successful send after errors - log recovery. */
+
+			writeMemo("[i] udplso: network recovered, sends succeeding");
+			networkErrorState = 0;
 		}
 
 		return bytesWritten;
@@ -412,7 +551,7 @@ int	main(int argc, char *argv[])
 	/*	  Start the receiver thread.		*/
 
 	/* lock not needed here (thread not running yet) */
-	rtp.running = 1;
+	ion_atomic_init(&rtp.running, 1);
 
 	if (pthread_begin(&receiverThread, NULL, udplsa_handle_datagrams,
 			&rtp, "udplso_receiver"))
@@ -508,10 +647,7 @@ int	main(int argc, char *argv[])
 	while (1)
 	{
 		int keepRunning;
-
-		pthread_mutex_lock(&rtp.lock);
-		keepRunning = rtp.running;
-		pthread_mutex_unlock(&rtp.lock);
+		keepRunning = (int) ion_atomic_get(&rtp.running);
 
 		if (!keepRunning || sm_SemEnded(vspan->segSemaphore))
 		{
@@ -599,9 +735,7 @@ int	main(int argc, char *argv[])
 					{
 						putErrmsg("Failed sending \
 segment batch.", NULL);
-						pthread_mutex_lock(&rtp.lock);
-						rtp.running = 0;
-						pthread_mutex_unlock(&rtp.lock);
+						ion_atomic_set(&rtp.running, 0);
 						continue;
 					}
 
@@ -629,9 +763,7 @@ segment batch.", NULL);
 		segmentLength = ltpDequeueOutboundSegment(vspan, &segment);
 		if (segmentLength < 0)
 		{
-			pthread_mutex_lock(&rtp.lock);
-			rtp.running = 0;	/*	Terminate LSO.	*/
-			pthread_mutex_unlock(&rtp.lock);
+			ion_atomic_set(&rtp.running, 0);
 			continue;
 		}
 
@@ -661,9 +793,7 @@ segment batch.", NULL);
 			{
 				putErrmsg("Failed sending segment batch.",
 						NULL);
-				pthread_mutex_lock(&rtp.lock);
-				rtp.running = 0;
-				pthread_mutex_unlock(&rtp.lock);
+				ion_atomic_set(&rtp.running, 0);
 				continue;
 			}
 
@@ -693,10 +823,7 @@ segment batch.", NULL);
 	while (1)
 	{
 		int keepRunning;
-
-		pthread_mutex_lock(&rtp.lock);
-		keepRunning = rtp.running;
-		pthread_mutex_unlock(&rtp.lock);
+		keepRunning = (int) ion_atomic_get(&rtp.running);
 
 		if (!keepRunning || sm_SemEnded(vspan->segSemaphore))
 		{
@@ -766,9 +893,7 @@ segment batch.", NULL);
 		segmentLength = ltpDequeueOutboundSegment(vspan, &segment);
 		if (segmentLength < 0)
 		{
-			pthread_mutex_lock(&rtp.lock);
-			rtp.running = 0;	/*	Terminate LSO.	*/
-			pthread_mutex_unlock(&rtp.lock);
+			ion_atomic_set(&rtp.running, 0);
 			continue;
 		}
 
@@ -781,9 +906,7 @@ segment batch.", NULL);
 		{
 			putErrmsg("Segment is too big for UDP LSO.",
 					itoa(segmentLength));
-			pthread_mutex_lock(&rtp.lock);
-			rtp.running = 0;	/*	Terminate LSO.	*/
-			pthread_mutex_unlock(&rtp.lock);
+			ion_atomic_set(&rtp.running, 0);
 			continue;
 		}
 
@@ -792,9 +915,7 @@ segment batch.", NULL);
 				rtp.peer_addr.addr_len);
 		if (bytesSent < segmentLength)
 		{
-			pthread_mutex_lock(&rtp.lock);
-			rtp.running = 0;	/*	Terminate LSO.	*/
-			pthread_mutex_unlock(&rtp.lock);
+			ion_atomic_set(&rtp.running, 0);
 			continue;
 		}
 
@@ -808,9 +929,7 @@ segment batch.", NULL);
 #endif
 	/*	Time to shut down.					*/
 
-	pthread_mutex_lock(&rtp.lock);
-	rtp.running = 0;
-	pthread_mutex_unlock(&rtp.lock);
+	ion_atomic_set(&rtp.running, 0);
 
 	/*	Wake up the receiver thread by opening a single-use
 	 *	transmission socket and sending a 1-byte datagram
@@ -864,6 +983,7 @@ segment batch.", NULL);
 	}
 
 	closesocket(rtp.linkSocket);
+	ion_atomic_mutex_destroy(&rtp.running);
 
 	writeErrmsgMemos();
 	writeMemo("[i] udplso has ended.");

@@ -17,7 +17,9 @@
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
 								*/
 /* Enable POSIX.1-2001 for nanosleep() and sigaction() */
+#ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 200112L
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -39,6 +39,7 @@
 #include "ui_input.h"
 #include "nm_mgr_print.h"
 #include "metadata.h"
+#include "ion_atomic.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -145,15 +146,15 @@ form_fields_t db_conn_form_fields[] = {
 #endif
 
 int gContext;
-int *global_nm_running = NULL;
+ion_atomic_t *global_nm_running;
 mgr_ui_mode_enum mgr_ui_mode = MGR_UI_DEFAULT;
 
 /* Prototypes */
-void ui_eventLoop(int *running);
-void ui_ctrl_list_menu(int *running);
+void ui_eventLoop(ion_atomic_t *running);
+void ui_ctrl_list_menu(ion_atomic_t *running);
 
 #ifdef HAVE_MYSQL
-void ui_db_menu(int *running);
+void ui_db_menu(ion_atomic_t *running);
 void ui_db_parms(int do_edit);
 #endif
 
@@ -171,6 +172,7 @@ void ui_log_transmit_msg(agent_t* agent, msg_ctrl_t *msg) {
 	blob_t *data;
 	char *msg_str;
 
+	lockResource(&(agent->log_lock));
 	if (agent_log_cfg.tx_cbor && agent->log_fd) {
 		data = msg_ctrl_serialize_wrapper(msg);
 		if (data) {
@@ -183,6 +185,7 @@ void ui_log_transmit_msg(agent_t* agent, msg_ctrl_t *msg) {
 			blob_release(data, 1);
 		}
 	}
+	unlockResource(&(agent->log_lock));
 }
 
 int ui_build_control(agent_t* agent)
@@ -274,7 +277,7 @@ void ui_clear_reports(agent_t* agent)
 {
 	CHKVOID(agent);
 
-	gMgrDB.tot_rpts -= vec_num_entries(agent->rpts);
+	ion_atomic_get_and_decrement(&gMgrDB.tot_rpts, vec_num_entries(agent->rpts));
 
 	vec_clear(&(agent->rpts));
 }
@@ -294,7 +297,7 @@ void ui_clear_tables(agent_t* agent)
 {
 	CHKVOID(agent);
 
-	gMgrDB.tot_tbls -= vec_num_entries(agent->tbls);
+	ion_atomic_get_and_decrement(&gMgrDB.tot_tbls, vec_num_entries(agent->tbls));
 
 	vec_clear(&(agent->tbls));
 }
@@ -409,6 +412,11 @@ rule_t *ui_create_sbr_from_parms(tnvc_t parms)
 	ari_t *id = adm_get_parm_obj(&parms, 0, AMP_TYPE_ARI);
 	uvast start = adm_get_parm_uvast(&parms, 1, &success);
 	expr_t *state = adm_get_parm_obj(&parms, 2, AMP_TYPE_EXPR);
+	if (state == NULL)
+	{
+		return NULL;
+	}
+
 	def.expr = *state;
 	SRELEASE(state);
 	def.max_eval = adm_get_parm_uvast(&parms, 3, &success);
@@ -560,6 +568,10 @@ int ui_automator_parse_input(char *str)
 	// Get Command (first space-delimited token)
 	//  Note: We currently look at only the first character of the first token
 	token = strtok(str, s);
+	if (token == NULL)
+	{
+		return -1;
+	}
 
 	switch(token[0])
 	{
@@ -610,7 +622,7 @@ int ui_automator_parse_input(char *str)
 		else if (strncmp(token, "EXIT_SHUTDOWN", 16) == 0)
 		{
 			printf("Signaling Manager Shutdown . . . \n");
-			*global_nm_running = 0;
+			ion_atomic_set(global_nm_running, 0);
 			return 1;
 		}
 		break;
@@ -696,12 +708,12 @@ int ui_automator_parse_input(char *str)
 
 	return 1;
 }
-void ui_automator_run(int *running)
+void ui_automator_run(ion_atomic_t *running)
 {
 	char line[MAX_INPUT_BYTES];
 	int len;
 
-	while(mgr_ui_mode == MGR_UI_AUTOMATOR && *running)
+	while(mgr_ui_mode == MGR_UI_AUTOMATOR && ion_atomic_get(running))
 	{
 		// Print prompt
 		printf("\n#-NM->");
@@ -738,7 +750,7 @@ void ui_automator_run(int *running)
  *  --------  ------------   ---------------------------------------------
  *  10/15/18  D.Edell        Initial NCURSES implementation based on original UI
  *****************************************************************************/
-void ui_eventLoop(int *running)
+void ui_eventLoop(ion_atomic_t *running)
 {
 	int choice; // Last user menu selection
 	char msg[128] = ""; // User (error) message to append to menu
@@ -747,7 +759,7 @@ void ui_eventLoop(int *running)
 
 	ui_init();
 
-	while(*running)
+	while(ion_atomic_get(running))
 	{
 		if (mgr_ui_mode == MGR_UI_AUTOMATOR)
 		{
@@ -760,7 +772,7 @@ void ui_eventLoop(int *running)
 
 			if (choice == MAIN_MENU_EXIT)
 			{
-				*running = 0;
+				ion_atomic_set(running, 0);
 				break;
 			} else {
 				switch(choice)
@@ -1133,6 +1145,8 @@ void ui_register_agent(char* msg)
 	char line[AMP_MAX_EID_LEN] = "ipn:x.y";
 	eid_t agent_eid;
 
+	memset(&agent_eid, 0, sizeof(agent_eid));
+
 	AMP_DEBUG_ENTRY("register_agent", "()", NULL);
 
 #ifdef USE_NCURSES
@@ -1162,7 +1176,7 @@ void ui_register_agent(char* msg)
 
 
 	/* Check if the agent is already known. */
-	sscanf(line, "%s", agent_eid.name);
+	sscanf(line, "%15s", agent_eid.name);
 	agent_add(agent_eid);
 
 	AMP_DEBUG_EXIT("register_agent", "->.", NULL);
@@ -1385,8 +1399,7 @@ void ui_send_raw(agent_t* agent, uint8_t enter_ts)
 
 void *ui_thread(void *arg)
 {
-	/* Cast the generic argument back to int */
-	int *running = (int *)arg;
+	ion_atomic_t *running = (ion_atomic_t *) arg;
 
 	AMP_DEBUG_ENTRY("ui_thread","(0x%x)", (size_t) running);
 
@@ -1412,14 +1425,14 @@ void *ui_thread(void *arg)
 
 #ifdef HAVE_MYSQL
 
-void ui_db_menu(int *running)
+void ui_db_menu(ion_atomic_t *running)
 {
 	int n_choices = ARRAY_SIZE(db_menu_choices);
 	int choice;
 	int new_msg = 0;
 	char msg[128] = "";
 
-	while(*running)
+	while(ion_atomic_get(running))
 	{
 		choice = ui_menu("Database Menu", db_menu_choices, NULL, n_choices,
 				((new_msg==0) ? NULL : msg)
@@ -1633,7 +1646,7 @@ int ui_db_clear_rpt()
 
 #endif
 
-void ui_ctrl_list_menu(int *running)
+void ui_ctrl_list_menu(ion_atomic_t *running)
 {
 	int choice;
 	int n_choices = ARRAY_SIZE(ctrl_menu_list_choices);
@@ -1646,6 +1659,15 @@ void ui_ctrl_list_menu(int *running)
 	for(i = 1; i < 10; i++)
 	{
 		ctrl_menu_list_descriptions[i] = malloc(32);
+		if (ctrl_menu_list_descriptions[i] == NULL)
+		{
+			int j;
+			for (j = 1; j < i; j++)
+			{
+				free(ctrl_menu_list_descriptions[j]);
+			}
+			return;
+		}
 	}
 	sprintf(ctrl_menu_list_descriptions[1], "(%d known)", gVDB.adm_edds.num_elts);
 	sprintf(ctrl_menu_list_descriptions[2], "(%d known)",  gVDB.adm_atomics.num_elts);
@@ -1658,7 +1680,7 @@ void ui_ctrl_list_menu(int *running)
 	sprintf(ctrl_menu_list_descriptions[9], "(%d known)",  gVDB.vars.num_elts);
 
 
-	while(*running)
+	while(ion_atomic_get(running))
 	{
 		choice = ui_menu("ADM Object Information Lists", ctrl_menu_list_choices, ctrl_menu_list_descriptions, n_choices,
 				((new_msg==0) ? NULL : msg)
@@ -2483,7 +2505,7 @@ int ui_menu(char* title, char** choices, char** descriptions, int n_choices, cha
 	post_menu(my_menu);
 	wrefresh(my_menu_win);
 
-	while(*global_nm_running && running && (c = wgetch(my_menu_win)) != KEY_F(1))
+	while(ion_atomic_get(global_nm_running) && running && (c = wgetch(my_menu_win)) != KEY_F(1))
 	{
 		show_panel(my_pan);
 		update_panels();
@@ -2632,7 +2654,7 @@ int ui_menu_listing(
 		set_current_item(my_menu, my_items[i]);
 	}
 
-	while(running && *global_nm_running)
+	while(running && ion_atomic_get(global_nm_running))
 	{
 		i = item_index(current_item(my_menu));
 
@@ -2896,10 +2918,10 @@ int ui_prompt(char* title, char* choiceA, char* choiceB, char* choiceC)
 
 int ui_menu(char* title, char** choices, char** descriptions, int n_choices, char* msg)
 {
-	int i;
+	int i = -1;
 	ui_display_init(title);
 
-	while(*global_nm_running) {
+	while(ion_atomic_get(global_nm_running)) {
 
 		for(i = 0; i < n_choices; i++)
 		{
@@ -2945,7 +2967,7 @@ int ui_menu_listing(
 	(void)default_idx;
 	(void)flags;
 
-	while(running && *global_nm_running)
+	while(running && ion_atomic_get(global_nm_running))
 	{
 		ui_display_init(title);
 
@@ -3172,7 +3194,7 @@ static int ui_form_field_validate(form_fields_t *field, char *value)
 		// Iterate through chars in string and verify that each is numeric
 		//   loop and call isdigit(in[i]) where fn provided by string.h
 		for(j = 0, len = strlen(value); j < len; j++) {
-			if(isdigit(value[j]) == 0) {
+			if(isdigit((unsigned char) value[j]) == 0) {
 				printf("*ERROR: Not a Number - ");
 				return -1;
 			}

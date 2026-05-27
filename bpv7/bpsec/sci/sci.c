@@ -400,6 +400,10 @@ char* bpsec_sci_polParmPrint(PsmPartition wm, sc_Def *sc_def, PsmAddress pol_par
 	 */
 	map = sc_def->scValMapGet();
 	num_items = sm_list_length(wm, pol_parms);
+	if (num_items <= 0)
+	{
+		return NULL;
+	}
 
 	if((tmp_array = (char **) MTAKE(num_items * sizeof(char*))) == NULL)
 	{

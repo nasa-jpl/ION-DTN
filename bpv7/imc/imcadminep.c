@@ -151,7 +151,7 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 	uvast		uvtemp;
 	ImcPetition	petition;
 	MetaEid		metaEid;
-	VScheme		*vscheme;
+	VScheme		*vscheme = NULL;
 	PsmAddress	vschemeElt;
 	Object		groupAddr;
 	Object		groupElt;

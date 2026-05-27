@@ -90,12 +90,12 @@ on_failure() {
 
 # Trap SIGINT (Ctrl+C) and SIGTERM
 trap on_interrupt INT TERM
+trap 'killm f' EXIT
 
 # Set ION_NODE_LIST_DIR
 export ION_NODE_LIST_DIR="$TESTDIR"
 
 # Clean up any previous ION and test artifacts
-killm
 ./cleanup
 
 echo ""

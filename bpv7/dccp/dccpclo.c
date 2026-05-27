@@ -16,8 +16,9 @@
 
 #ifdef build_dccp
 
-
 #include "dccpcla.h"
+
+#include "ion_atomic.h"
 
 /* Return Semaphore to control transmission 				*/
 static sm_SemId	dccpcloSemaphore(sm_SemId *semid)
@@ -163,7 +164,7 @@ typedef struct {
 	int					linksocket;
 	struct sockaddr		socketName;
 	int					MPS;
-	int 				done;
+	ion_atomic_t 		done;
 	pthread_mutex_t		mutex;
 	char*				ductname;
 } clo_state;
@@ -193,9 +194,9 @@ void* send_keepalives(void* param)
 
 		pthread_mutex_lock(&itp->mutex);
 		time = KEEPALIVE_PERIOD;
-		while (!itp->done && sendBytesByDCCP(itp->linksocket, keepalive,4) < 0)
+		while (!ion_atomic_get(&itp->done) && sendBytesByDCCP(itp->linksocket, keepalive,4) < 0)
 		{
-			if (!itp->done && connectDCCPsock(&itp->linksocket, &itp->socketName, &itp->MPS) < 0)
+			if (!ion_atomic_get(&itp->done) && connectDCCPsock(&itp->linksocket, &itp->socketName, &itp->MPS) < 0)
 			{
 				pthread_mutex_unlock(&itp->mutex);
 				snooze(time);
@@ -408,7 +409,7 @@ int	main(int argc, char *argv[])
 
 	/*	Set up idle thread 					*/
 	itp.active = 0;
-	itp.done = 0;
+	ion_atomic_init(&itp.done, 0);
 	itp.ductname = ductName;
 	pthread_mutex_init(&itp.mutex, NULL);
 	if (pthread_begin(&keepalive_thread, NULL, send_keepalives, (void*)&itp))
@@ -475,11 +476,10 @@ int	main(int argc, char *argv[])
 
 	/* CLO is exiting						*/
 	writeMemo("[i] dccpclo done sending.");
-	pthread_mutex_lock(&itp.mutex);
-	itp.done = 1;
-	pthread_mutex_unlock(&itp.mutex);
+	ion_atomic_set(&itp.done, 1);
 	pthread_join(keepalive_thread, NULL);
 	pthread_mutex_destroy(&itp.mutex);
+	ion_atomic_mutex_destroy(&itp.done);
 	close(itp.linksocket);
 	writeErrmsgMemos();
 	writeMemo("[i] dccpclo duct has ended.");

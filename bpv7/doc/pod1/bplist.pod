@@ -24,6 +24,35 @@ report.
 By default, B<bplist> prints a detailed list of all bundles residing in
 the local node.
 
+In detailed mode, the following fields are reported for each bundle:
+
+=over 4
+
+=item Source EID
+
+The endpoint ID of the bundle's originator.
+
+=item Destination EID
+
+The endpoint ID of the bundle's intended recipient.
+
+=item Report-to EID
+
+The endpoint ID to which status reports for this bundle are sent.
+
+=item Station EID
+
+The next-hop forwarding station for this bundle, i.e., the node to which
+the bundle will be transmitted next.  This field is only shown when a
+forwarding route has been selected for the bundle.
+
+=back
+
+Additional fields include the creation timestamp, fragment offset, bundle
+processing flags (is-fragment, is-admin, do-not-fragment, app-ack-requested),
+CRC types, priority, ordinal, reliability/criticality flags, expiration time,
+total ADU length, extension block hex dumps, and payload hex/ASCII dump.
+
 =head1 EXIT STATUS
 
 =over 4

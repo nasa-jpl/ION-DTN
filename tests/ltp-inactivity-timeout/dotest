@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Test for LTP stale import session protection via inactivity timeout.
 #
@@ -134,9 +135,12 @@ echo "  This simulates a peer crash before checkpoint/EORP/EOB is sent."
 # First kill bpdriver to stop bundle creation
 kill -9 $BPDRIVER_PID >/dev/null 2>&1
 
-# Kill all ION processes on node 2 to simulate complete node failure
+# Force-kill all ION processes on node 2 to simulate complete node failure.
+# We must NOT use ./ionstop (bpadmin .) here — it tries to gracefully drain
+# bundles through LTP, which blocks indefinitely mid-transmission.
+# ionexit k n: keep SDR, node-only (won't disturb node 3's IPC).
 cd ../2.ipn.ltp
-./ionstop
+ionexit k n > /dev/null 2>&1
 sleep 2
 
 echo "Sender node 2 killed."
@@ -233,6 +237,5 @@ echo ""
 
 # Shut down ION processes.
 echo "Stopping ION..."
-killm
 echo "LTP inactivity timeout test completed."
 exit $RETVAL

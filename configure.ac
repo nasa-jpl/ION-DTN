@@ -71,9 +71,10 @@ AC_CACHE_CHECK([whether $CC supports C18 (iso9899:2018)], [ac_cv_c11],
     [ac_cv_c11=no])
   CFLAGS="$save_CFLAGS"])
 
-if test "$ac_cv_c11" = yes;
-then
+if test "$ac_cv_c11" = yes; then
   AM_CFLAGS="$AM_CFLAGS -std=iso9899:2018"
+  AC_DEFINE([ION_HAVE_C11_ATOMICS],[1],
+              [Define to 1 if the compiler supports <stdatomic.h>.])
 else
   AC_CACHE_CHECK([whether $CC supports C99], [ac_cv_c99],
     [save_CFLAGS="$CFLAGS"
@@ -90,6 +91,48 @@ else
   fi
 fi
 
+dnl =============================================================
+dnl  Expose to Automake   (needed for 'if !HAVE_C11_ATOMICS')
+dnl =============================================================
+AM_CONDITIONAL([HAVE_C11_ATOMICS], [test "x$ac_cv_c11" = xyes])
+
+dnl =============================================================
+dnl  Explicit atomic-backend selection (optional)
+dnl =============================================================
+dnl  Integrators may override the automatic tier selection in
+dnl  ion_atomic.h by passing --with-atomics={c11,builtin,sync}.
+dnl  When unset or "auto", the header's own auto-detection runs.
+dnl =============================================================
+AC_ARG_WITH([atomics],
+  [AS_HELP_STRING([--with-atomics=@<:@auto|c11|builtin|sync@:>@],
+     [Atomic backend: auto (default), c11 (<stdatomic.h>), builtin (__atomic_*), sync (__sync_*)])],
+  [ion_atomics="$withval"],
+  [ion_atomics="auto"])
+
+case "$ion_atomics" in
+  auto)    ;;
+  c11)     AM_CFLAGS="$AM_CFLAGS -DION_ATOMIC_C11" ;;
+  builtin) AM_CFLAGS="$AM_CFLAGS -DION_ATOMIC_BUILTIN" ;;
+  sync)    AM_CFLAGS="$AM_CFLAGS -DION_ATOMIC_SYNC" ;;
+  *)       AC_MSG_ERROR([Invalid --with-atomics value "$ion_atomics"; use auto, c11, builtin, or sync]) ;;
+esac
+
+dnl =============================================================
+dnl  Feature-test macros (_POSIX_C_SOURCE / _XOPEN_SOURCE / _DEFAULT_SOURCE)
+dnl  are intentionally NOT set globally via AC_DEFINE here.
+dnl
+dnl  ici/include/platform.h is the single source of truth for ION's
+dnl  feature-test macro strategy: it sets the right combination per
+dnl  platform (Linux, FreeBSD, Solaris, RTEMS, VxWorks) under
+dnl  `#ifndef` guards so that any translation unit can override with
+dnl  a more conservative value by defining the macro before including
+dnl  platform.h.  Setting these macros in config.h (which is forced
+dnl  onto every TU via `-include config.h`) would silently override
+dnl  per-file conservative values such as the POSIX.1-2001 (200112L)
+dnl  definitions used by bpv7/epp/stub/epp_loopback_provider.c and
+dnl  bpv7/spp/stub/spp_loopback_provider.c, exposing a wider API
+dnl  surface than those files requested.
+dnl =============================================================
 
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
@@ -558,24 +601,54 @@ AC_ARG_ENABLE(
       ENABLE_BSL=yes
 
       # Set BSL_HOME to default location
-      if test -z "${BSL_HOME}"; then
+      if test -z "${BSL_HOME}";
+      then
         BSL_HOME="${srcdir}/external/BSL/testroot/usr"
       fi
+
+      # Force BSL_HOME to be an absolute path to satisfy libtool
+      BSL_HOME=`cd "$BSL_HOME" && pwd`
 
       # Add preprocessor flag for conditional compilation
       AM_CFLAGS="$AM_CFLAGS -DUSING_BSL=1"
       PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DUSING_BSL=1"
 
       # Add BSL include paths (including bpv7/bsl for ION's BSL wrapper headers)
-      AM_CFLAGS="$AM_CFLAGS -I${srcdir}/bpv7/bsl -I${srcdir}/external/BSL/src -I${srcdir}/external/BSL/build/default/src -I${BSL_HOME}/include/bsl -I${BSL_HOME}/include/bsl/policy_provider -I${BSL_HOME}/include/bsl/security_context -I${BSL_HOME}/include/bsl/ION_integration -I${BSL_HOME}/include/m-lib"
+      AM_CFLAGS="$AM_CFLAGS -I${srcdir}/bpv7/bsl -I${BSL_HOME}/include/m-lib -I${srcdir}/external/BSL/src -I${srcdir}/external/BSL/build/default/src -I${BSL_HOME}/include/bsl -I${BSL_HOME}/include/bsl/policy_provider -I${BSL_HOME}/include/bsl/security_context -I${BSL_HOME}/include/bsl/ION_integration"
       PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -I${BSL_HOME}/include/bsl"
+
+      # Add jansson include path for platforms where it's in a subdirectory (e.g., Solaris)
+      # Try common locations
+      for jansson_inc_dir in /usr/include/jansson /usr/local/include/jansson; do
+        if test -f "${jansson_inc_dir}/jansson.h"; then
+          AM_CFLAGS="$AM_CFLAGS -I${jansson_inc_dir}"
+          PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -I${jansson_inc_dir}"
+          AC_MSG_NOTICE([Found jansson headers in ${jansson_inc_dir}])
+          break
+        fi
+      done
+
+      # Expose Solaris extensions
+      if test "x$PLATFORM" = "xsolaris"; then
+        CFLAGS="$CFLAGS -D__EXTENSIONS__"
+      fi
 
       # Set BSL library flags
       BSL_LIBS="-lbsl_crypto -lbsl_default_sc -lbsl_dynamic -lbsl_front -lbsl_mock_bpa -lbsl_sample_pp -lqcbor -ljansson -L${BSL_HOME}/lib"
 
       # Executables linking against libbp need rpath-link to resolve
       # BSL's transitive dependencies (e.g. libqcbor) at link time
-      AM_LDFLAGS="$AM_LDFLAGS -Wl,-rpath-link,${BSL_HOME}/lib"
+      # Use platform-specific linker flags
+      case $host_os in
+        solaris*)
+          # Solaris linker uses -R for runtime library path
+          AM_LDFLAGS="$AM_LDFLAGS -R${BSL_HOME}/lib"
+          ;;
+        *)
+          # GNU ld (Linux, BSD, etc.) uses -rpath-link
+          AM_LDFLAGS="$AM_LDFLAGS -Wl,-rpath-link,${BSL_HOME}/lib"
+          ;;
+      esac
 
       AC_MSG_NOTICE([BSL will be built with ION integration])
       AC_MSG_NOTICE([BSL_HOME: ${BSL_HOME}])
@@ -590,6 +663,10 @@ AC_ARG_ENABLE(
 AM_CONDITIONAL([ENABLE_BSL], [test "x$ENABLE_BSL" = "xyes"])
 
 if test "x$ENABLE_BSL" = "xyes"; then
+  # Apply AM_CFLAGS to CFLAGS for header checks
+  ORIGCFLAGS_BSL="$CFLAGS"
+  CFLAGS="$AM_CFLAGS $CFLAGS"
+
   # Check for required BSL dependencies
   AC_CHECK_HEADER([jansson.h],
     [],
@@ -598,6 +675,9 @@ if test "x$ENABLE_BSL" = "xyes"; then
   AC_CHECK_LIB([jansson], [json_object],
     [],
     [AC_MSG_ERROR([jansson library not found. Install libjansson-dev (Debian/Ubuntu) or jansson-devel (RHEL/Fedora)])])
+
+  # Restore original CFLAGS
+  CFLAGS="$ORIGCFLAGS_BSL"
 
   AC_SUBST([BSL_LIBS], ["$BSL_LIBS"])
   AC_SUBST([BSL_HOME], ["$BSL_HOME"])
@@ -826,6 +906,87 @@ AC_CHECK_LIB(
   [AC_MSG_ERROR([You need pthread library.]) ]
 )
 
+dnl =============================================================
+dnl  Robust-mutex support for the SDR transaction lock
+dnl =============================================================
+dnl  A process-shared PTHREAD_MUTEX_ROBUST mutex lets the SDR
+dnl  transaction lock recover deterministically (the next locker
+dnl  gets EOWNERDEAD) when a process dies mid-transaction, instead
+dnl  of orphaning the lock and wedging the node forever.
+dnl
+dnl  Gated to Linux, FreeBSD and Solaris by an explicit platform
+dnl  allowlist: even on platforms whose libc happens to implement
+dnl  robust mutexes (e.g. recent RTEMS) the SDR lock deliberately
+dnl  keeps the legacy semaphore path there.  Integrators may force
+dnl  the legacy path anywhere with --disable-robust-sdr-lock.
+dnl
+dnl  This probe is independent of the C11-atomics tier selection
+dnl  above; robust mutexes are a POSIX libc feature and do not
+dnl  require C11.
+dnl =============================================================
+AC_ARG_ENABLE([robust-sdr-lock],
+  [AS_HELP_STRING([--disable-robust-sdr-lock],
+     [Do not use a robust pthread mutex for the SDR transaction lock,
+      even where supported; fall back to the legacy semaphore.])],
+  [enable_robust_sdr_lock="$enableval"],
+  [enable_robust_sdr_lock="yes"])
+
+AC_CACHE_CHECK([whether $CC supports robust process-shared mutexes],
+  [ac_cv_robust_mutex],
+  [save_LIBS="$LIBS"
+   LIBS="$LIBS -pthread"
+   AC_LINK_IFELSE(
+     [AC_LANG_SOURCE([[
+#define _GNU_SOURCE
+#include <pthread.h>
+int main(void)
+{
+	pthread_mutexattr_t	attr;
+	pthread_mutex_t		mutex;
+
+	if (pthread_mutexattr_init(&attr) != 0) return 1;
+	if (pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED) != 0)
+		return 1;
+	if (pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST) != 0)
+		return 1;
+	if (pthread_mutex_init(&mutex, &attr) != 0) return 1;
+	(void) pthread_mutex_consistent(&mutex);
+	return 0;
+}
+]])],
+     [ac_cv_robust_mutex=yes],
+     [ac_cv_robust_mutex=no])
+   LIBS="$save_LIBS"])
+
+case $PLATFORM in
+  linux|bsd|solaris)
+    ion_robust_mutex_platform=yes ;;
+  *)
+    ion_robust_mutex_platform=no ;;
+esac
+
+if test "x$enable_robust_sdr_lock" = xyes \
+     && test "x$ac_cv_robust_mutex" = xyes \
+     && test "x$ion_robust_mutex_platform" = xyes; then
+  ion_robust_mutex=yes
+  AC_DEFINE([ION_HAVE_ROBUST_MUTEX],[1],
+    [Define to 1 to use a robust process-shared pthread mutex for the
+     SDR transaction lock, enabling EOWNERDEAD recovery when a process
+     dies mid-transaction.  Gated to Linux, FreeBSD and Solaris.])
+  AC_MSG_NOTICE([SDR transaction lock: robust-mutex recovery enabled])
+else
+  ion_robust_mutex=no
+  if test "x$enable_robust_sdr_lock" != xyes; then
+    AC_MSG_NOTICE([SDR transaction lock: robust mutex disabled by request])
+  elif test "x$ion_robust_mutex_platform" != xyes; then
+    AC_MSG_NOTICE([SDR transaction lock: robust mutex not enabled on this platform])
+  else
+    AC_MSG_NOTICE([SDR transaction lock: robust mutex unsupported by toolchain])
+  fi
+fi
+
+AM_CONDITIONAL([HAVE_ROBUST_MUTEX], [test "x$ion_robust_mutex" = xyes])
+
 # Check for dynamic linking library and header
 AC_CHECK_HEADER([dlfcn.h], [], [
   AC_MSG_ERROR([required header dlfcn.h not found. Please install the appropriate C library development package (e.g., glibc-devel or libc6-dev).])
@@ -869,6 +1030,9 @@ AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS([fcntl.h malloc.h netdb.h netinet/in.h stddef.h stdlib.h string.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h unistd.h])
 AC_CHECK_HEADERS([execinfo.h])
+AC_SEARCH_LIBS([backtrace], [execinfo], [
+  AC_CHECK_FUNCS([backtrace backtrace_symbols])
+])
 
 # Check for <time.h> and <sys/time.h>, and whether they can be included together
 # This supports older builds while removing obsolete macros

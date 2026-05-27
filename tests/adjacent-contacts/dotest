@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Test script for adjacent contacts with 2-node bundle transfer
 # This script starts two ION nodes, sends bundles across adjacent contacts,
@@ -31,24 +32,6 @@ echo "Test will send ${NUM_BUNDLES} bundles (${BUNDLE_SIZE} bytes each)"
 echo "Note: DEBUG_RFX messages may appear out of order due to interleaving but expected."
 echo "      Time stamp will provide ground truth on order of operation."
 echo ""
-
-# Function to cleanup on exit (simplified - detailed cleanup in ./cleanup script)
-cleanup() {
-    echo ""
-    echo "Stopping test processes..."
-
-    # Kill bpdriver and bpcounter if running
-    pkill -f "bpdriver" 2>/dev/null || true
-    pkill -f "bpcounter" 2>/dev/null || true
-
-    # Stop both nodes
-    cd "$TESTDIR/2.adjacent" 2>/dev/null && killm 2>/dev/null || true
-    sleep 2
-    cd "$TESTDIR/1.adjacent" 2>/dev/null && killm 2>/dev/null || true
-    sleep 2
-
-    echo "Cleanup complete."
-}
 
 # Check if ION is already running
 if pgrep -x "rfxclock" > /dev/null; then
@@ -215,7 +198,4 @@ fi
 
 echo ""
 
-# Cleanup is normally handled by runtests, but when benchmarking consecutive runs need to be cleanup
-# in between otherwise there are failures.
-cleanup
 exit $TEST_RESULT

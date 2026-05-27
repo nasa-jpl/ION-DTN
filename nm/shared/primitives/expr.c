@@ -176,11 +176,12 @@ expr_t expr_deserialize(QCBORDecodeContext *it, int *success)
 #if AMP_VERSION < 7
 	blob_t *data = NULL;
 #else
-	uint8_t expr_type;
+	uint8_t expr_type = 0;
 #endif
 
 	AMP_DEBUG_ENTRY("expr_deserialize","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")", (uaddr)it, (uaddr)success);
 
+	memset(&result, 0, sizeof(result));
 	result.type = AMP_TYPE_UNK;
 	CHKUSR(success, result);
 	*success = AMP_FAIL;

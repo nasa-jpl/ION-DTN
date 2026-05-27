@@ -4,8 +4,9 @@
 # April 12, 2010
 
 echo "Cleaning up old ION..."
-killm
-rm -f ion.log cgrfetch_error.log
+export ION_NODE_LIST_DIR=$PWD
+killm f
+rm -f ion.log cgrfetch_error.log ion_nodes
 
 # Note: cgr_*.json files are intentionally preserved for use with
 # contrib/cgr-viewer/cgr-viewer.html visualization tool.

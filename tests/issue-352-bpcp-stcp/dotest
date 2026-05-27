@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 # Issue 352 - BPCP
 # Samuel Jero
 # April 15, 2012
@@ -101,17 +102,16 @@ sleep 12
 echo "Test 1 --- Local to Remote Copy"
 
 # PRE-CHECK AND DELETE
-cd ./3.ipn.cfdp.bp.stcp || { echo "ERROR: Cannot change to 3.ipn.cfdp.bp.stcp for pre-check."; killm; exit 1; }
+cd ./3.ipn.cfdp.bp.stcp || { echo "ERROR: Cannot change to 3.ipn.cfdp.bp.stcp for pre-check."; exit 1; }
 if [ -e ./test1 ]; then
     echo "Found existing test1 on Node 3. Deleting for a clean test."
     rm ./test1
     if [ $? -ne 0 ]; then
         echo "ERROR: Failed to delete existing test1 on Node 3."
-        killm
         exit 1
     fi
 fi
-cd ../1.ipn.cfdp.bp.stcp || { echo "ERROR: Cannot change back to 1.ipn.cfdp.bp.stcp."; killm; exit 1; }
+cd ../1.ipn.cfdp.bp.stcp || { echo "ERROR: Cannot change back to 1.ipn.cfdp.bp.stcp."; exit 1; }
 
 
 echo "Starting bpcp..."
@@ -119,12 +119,11 @@ bpcp ../dotest 3:test1
 BPCP_EXIT_STATUS=$?
 
 # Ensure we're in the correct directory for file check
-cd ../3.ipn.cfdp.bp.stcp || { echo "ERROR: Cannot change to 3.ipn.cfdp.bp.stcp for post-check."; killm; exit 1; }
+cd ../3.ipn.cfdp.bp.stcp || { echo "ERROR: Cannot change to 3.ipn.cfdp.bp.stcp for post-check."; exit 1; }
 
 # Check bpcp's exit status first
 if [ $BPCP_EXIT_STATUS -ne 0 ]; then
     echo "ERROR: bpcp command for Local to Remote failed to execute successfully. Exit status: $BPCP_EXIT_STATUS"
-    killm
     exit 1
 fi
 
@@ -149,7 +148,6 @@ done
 if [ $FILE_COPIED -eq 0 ]; then
     echo "ERROR: Local to Remote Copy Failed. File not found or content mismatch after timeout. FAILED!!"
     echo "$TEST"
-    killm
     exit 1
 else
     echo "OK: Local to Remote Copy Successful"
@@ -160,13 +158,12 @@ echo "Test 2 --- Remote to Local Copy"
 sleep 1
 
 # PRE-CHECK AND DELETE
-cd ../1.ipn.cfdp.bp.stcp || { echo "ERROR: Cannot change to 1.ipn.cfdp.bp.stcp for pre-check."; killm; exit 1; }
+cd ../1.ipn.cfdp.bp.stcp || { echo "ERROR: Cannot change to 1.ipn.cfdp.bp.stcp for pre-check."; exit 1; }
 if [ -e ./test2 ]; then
     echo "Found existing test2 on Node 1. Deleting for a clean test."
     rm ./test2
     if [ $? -ne 0 ]; then
         echo "ERROR: Failed to delete existing test2 on Node 1."
-        killm
         exit 1
     fi
 fi
@@ -179,7 +176,6 @@ BPCP_EXIT_STATUS=$?
 # Check bpcp's exit status first
 if [ $BPCP_EXIT_STATUS -ne 0 ]; then
     echo "ERROR: bpcp command for Remote to Local failed to execute successfully. Exit status: $BPCP_EXIT_STATUS"
-    killm
     exit 1
 fi
 
@@ -205,7 +201,6 @@ done
 if [ $FILE_COPIED -eq 0 ]; then
     echo "ERROR: Remote to Local Copy Failed. File not found or content mismatch after timeout. FAILED!!"
     echo "$TEST"
-    killm
     exit 1
 else
     echo "OK: Remote to Local Copy Successful"
@@ -217,29 +212,27 @@ sleep 1
 
 # PRE-CHECK AND DELETE
 # Target file for R2R is on node 2
-cd ../2.ipn.cfdp.bp.stcp || { echo "ERROR: Cannot change to 2.ipn.cfdp.bp.stcp."; killm; exit 1; }
+cd ../2.ipn.cfdp.bp.stcp || { echo "ERROR: Cannot change to 2.ipn.cfdp.bp.stcp."; exit 1; }
 if [ -e ./test3 ]; then
     echo "Found existing test3 on Node 2. Deleting for a clean test."
     rm ./test3
     if [ $? -ne 0 ]; then
         echo "ERROR: Failed to delete existing test3 on Node 2."
-        killm
         exit 1
     fi
 fi
-cd ../1.ipn.cfdp.bp.stcp || { echo "ERROR: Cannot change back to 1.ipn.cfdp.bp.stcp."; killm; exit 1; } # bpcp runs from here
+cd ../1.ipn.cfdp.bp.stcp || { echo "ERROR: Cannot change back to 1.ipn.cfdp.bp.stcp."; exit 1; } # bpcp runs from here
 
 echo "Starting bpcp..."
 bpcp 3:../dotest 2:./test3
 BPCP_EXIT_STATUS=$? # Capture bpcp's exit status immediately
 
 # Ensure we're in the correct directory for file check
-cd ../2.ipn.cfdp.bp.stcp || { echo "ERROR: Cannot change to 2.ipn.cfdp.bp.stcp for post-check."; killm; exit 1; }
+cd ../2.ipn.cfdp.bp.stcp || { echo "ERROR: Cannot change to 2.ipn.cfdp.bp.stcp for post-check."; exit 1; }
 
 # Check bpcp's exit status first
 if [ $BPCP_EXIT_STATUS -ne 0 ]; then
     echo "ERROR: bpcp command for Remote to Remote failed to execute successfully. Exit status: $BPCP_EXIT_STATUS"
-    killm
     exit 1
 fi
 
@@ -265,7 +258,6 @@ done
 if [ $FILE_COPIED -eq 0 ]; then
     echo "ERROR: Remote to Remote Copy Failed. File not found or content mismatch after timeout. FAILED!!"
     echo "$TEST"
-    killm
     exit 1
 else
     echo "OK: Remote to Remote Copy Successful. SUCCESS!"
@@ -281,5 +273,4 @@ RETVAL=0
 #./ionstop &
 #cd ..
 sleep 3
-killm
 exit $RETVAL

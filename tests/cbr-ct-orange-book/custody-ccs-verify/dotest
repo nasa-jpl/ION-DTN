@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # custody-ccs-verify: Explicit CCS signal verification test
 #
@@ -16,7 +17,6 @@ echo "Using cbrcustodytest to verify CCS signal flow"
 echo ""
 
 # Clean up any previous ION and test artifacts
-killm
 ./cleanup
 
 # Track test results

@@ -12,11 +12,16 @@
 /*	Ioannis Alexiadis, Democritus University of Thrace, 2011.	*/
 /*									*/
 #include "platform.h"
+#include "ion_atomic.h"
 #include "ion_network.h"
 
 /* Only for Ubuntu as of ION 4.1.2 */
 #if defined (TCP_LOW_CYCLE)
 #include <netinet/tcp.h>
+#endif
+
+#ifdef HAVE_EXECINFO_H
+#include <execinfo.h>
 #endif
 
 #define	ABORT_AS_REQD		if (_coreFileNeeded(NULL)) sm_Abort()
@@ -422,7 +427,15 @@ int	createFile(const char *filename, int flags)
 typedef struct rlock_str
 {
 	pthread_mutex_t mutex;
-	atomic_int	initialized;	/* Atomic to prevent TOCTOU races */
+	/* * WARNING: Do NOT use ion_atomic_t for this flag.
+	 * Legacy ION code frequently initializes ResourceLocks via
+	 * memset(&lock, 0, sizeof(ResourceLock)). Under the C99 fallback,
+	 * zero-filling an ion_atomic_t corrupts its hidden POSIX mutex,
+	 * causing immediate deadlocks/segfaults on access.
+	 * This plain int is safely protected from TOCTOU races by the
+	 * global g_ResourceLockInitMutex in initResourceLock().
+	 */
+	int		initialized;
 } Rlock;
 
 /* the next line won't compile if the mutex structure isn't large enough -  increase size of ResourceLock in platform.h */
@@ -466,7 +479,7 @@ int initResourceLock(ResourceLock *rl)
 	/*
 	* Now that we hold the meta-lock, it is safe to check the flag.
 	*/
-	if (atomic_load(&lock->initialized))
+	if (lock->initialized)
 	{
 		/* This lock is already initialized. Nothing more to do. */
 		pthread_mutex_unlock(&g_ResourceLockInitMutex);
@@ -501,8 +514,13 @@ int initResourceLock(ResourceLock *rl)
 	/* The attributes object is no longer needed after initialization. */
 	pthread_mutexattr_destroy(&attr);
 
-	/* Mark this lock as initialized BEFORE releasing the meta-lock. */
-	atomic_store(&lock->initialized, 1);
+	/* * WARNING: Intentionally avoiding ion_atomic_set() here.
+	 * Legacy ION code zero-fills ResourceLocks using memset(), which
+	 * destroys the internal POSIX mutex used by the C99 atomic fallback.
+	 * This plain int assignment is safely protected from TOCTOU races
+	 * by the global g_ResourceLockInitMutex meta-lock.
+	 */
+	lock->initialized = 1;
 
 	/* Release the global initialization lock. */
 	pthread_mutex_unlock(&g_ResourceLockInitMutex);
@@ -525,7 +543,7 @@ void killResourceLock(ResourceLock *rl)
 	 */
 	pthread_mutex_lock(&g_ResourceLockInitMutex);
 
-	if (atomic_load(&lock->initialized) == 0)
+	if (lock->initialized == 0)
 	{
 		pthread_mutex_unlock(&g_ResourceLockInitMutex);
 		return;
@@ -534,8 +552,12 @@ void killResourceLock(ResourceLock *rl)
 	/*
 	 * Mark as uninitialized FIRST. This prevents any new lockResource
 	 * calls from proceeding while we destroy the mutex.
+	 *
+	 * WARNING: Intentionally avoiding ion_atomic_set() for the same
+	 * memset() corruption reasons as above. The meta-lock ensures
+	 * this assignment is race-free.
 	 */
-	atomic_store(&lock->initialized, 0);
+	lock->initialized = 0;
 
 	pthread_mutex_unlock(&g_ResourceLockInitMutex);
 
@@ -558,8 +580,10 @@ void killResourceLock(ResourceLock *rl)
 		 * The mutex is currently locked by another thread. It is unsafe
 		 * to destroy it. Restore the initialized flag since we couldn't
 		 * complete destruction.
+		 *
+		 * WARNING: Kept as a plain int to prevent C99 fallback corruption.
 		 */
-		atomic_store(&lock->initialized, 1);
+		lock->initialized = 1;
 		writeMemo("[!] killResourceLock: Attempted to destroy a locked mutex.");
 	}
 }
@@ -568,7 +592,7 @@ void lockResource(ResourceLock *rl)
 {
 	Rlock   *lock = (Rlock *) rl;
 
-	if (lock == NULL || atomic_load(&lock->initialized) == 0)
+	if (lock == NULL || lock->initialized == 0)
 	{
 		return;
 	}
@@ -580,7 +604,7 @@ void unlockResource(ResourceLock *rl)
 {
 	Rlock   *lock = (Rlock *) rl;
 
-	if (lock == NULL || atomic_load(&lock->initialized) == 0)
+	if (lock == NULL || lock->initialized == 0)
 	{
 		return;
 	}
@@ -1294,7 +1318,7 @@ static int	_errmsgs(int lineNbr, const char *qualifiedFileName,
 	static char		errmsgs[ERRMSGS_BUFSIZE];
 	static int		errmsgsLength = 0;
 	static ResourceLock	errmsgsLock;
-	static atomic_int	errmsgsLockInit = 0;	/* Atomic to prevent race */
+	static ion_atomic_t	errmsgsLockInit = ION_ATOMIC_INIT(0);	/* Atomic to prevent race */
 	int			msgLength;
 	int			spaceFreed;
 	int			fileNameLength;
@@ -1304,7 +1328,7 @@ static int	_errmsgs(int lineNbr, const char *qualifiedFileName,
 	int			spaceForText;
 	int			spaceNeeded;
 
-	if (!atomic_load(&errmsgsLockInit))
+	if (!ion_atomic_get(&errmsgsLockInit))
 	{
 		memset((char *) &errmsgsLock, 0, sizeof(ResourceLock));
 		if (initResourceLock(&errmsgsLock) < 0)
@@ -1313,7 +1337,7 @@ static int	_errmsgs(int lineNbr, const char *qualifiedFileName,
 			return 0;
 		}
 
-		atomic_store(&errmsgsLockInit, 1);
+		ion_atomic_set(&errmsgsLockInit, 1);
 	}
 
 	if (buffer)		/*	Retrieving an errmsg.		*/
@@ -1454,7 +1478,7 @@ int	getErrmsg(char *buffer)
 void	writeErrmsgMemos(void)
 {
 	static ResourceLock	memosLock;
-	static atomic_int	memosLockInit = 0;	/* Atomic to prevent race */
+	static ion_atomic_t	memosLockInit = ION_ATOMIC_INIT(0);	/* Atomic to prevent race */
 	static char		msgwritebuf[ERRMSGS_BUFSIZE];
 	static char		*omissionMsg = "[?] message omitted due to \
 excessive length";
@@ -1462,7 +1486,7 @@ excessive length";
 	/*	Because buffer is static, it is shared.  So access
 	 *	to it must be mutexed.					*/
 
-	if (!atomic_load(&memosLockInit))
+	if (!ion_atomic_get(&memosLockInit))
 	{
 		memset((char *) &memosLock, 0, sizeof(ResourceLock));
 		if (initResourceLock(&memosLock) < 0)
@@ -1471,7 +1495,7 @@ excessive length";
 			return;
 		}
 
-		atomic_store(&memosLockInit, 1);
+		ion_atomic_set(&memosLockInit, 1);
 	}
 
 	lockResource(&memosLock);
@@ -1514,14 +1538,14 @@ void	discardErrmsgs(void)
 
 int	_coreFileNeeded(int *ctrl)
 {
-	static atomic_int	coreFileNeeded = CORE_FILE_NEEDED;
+	static ion_atomic_t	coreFileNeeded = ION_ATOMIC_INIT(CORE_FILE_NEEDED);
 
 	if (ctrl)
 	{
-		atomic_store(&coreFileNeeded, *ctrl);
+		ion_atomic_set(&coreFileNeeded, *ctrl);
 	}
 
-	return atomic_load(&coreFileNeeded);
+	return (int) ion_atomic_get(&coreFileNeeded);
 }
 
 int	_iEnd(const char *fileName, int lineNbr, const char *arg)
@@ -1539,9 +1563,9 @@ int	_iEnd(const char *fileName, int lineNbr, const char *arg)
 
 void	printStackTrace(void)
 {
-#if (defined(__linux__) && defined(HAVE_EXECINFO_H)) \
-	|| defined(freebsd) || defined(darwin)
-#define	MAX_TRACE_DEPTH	100
+#if defined(HAVE_BACKTRACE) && defined(HAVE_BACKTRACE_SYMBOLS) \
+		&& !defined(solaris)
+#define MAX_TRACE_DEPTH 100
 	void	*returnAddresses[MAX_TRACE_DEPTH];
 	size_t	stackFrameCount;
 	char	**functionNames;
@@ -2145,7 +2169,7 @@ void	findToken(char **cursorPtr, char **token)
 
 	/*	Skip over any leading whitespace.			*/
 
-	while (isspace((int) *cursor))
+	while (isspace((unsigned char) *cursor))
 	{
 		cursor++;
 	}
@@ -2227,7 +2251,7 @@ void	findToken(char **cursorPtr, char **token)
 	cursor++;
 	while (*cursor != '\0')
 	{
-		if (isspace((int) *cursor))	/*	End of token.	*/
+		if (isspace((unsigned char) *cursor))	/*	End of token.	*/
 		{
 			*cursor = '\0';
 			cursor++;
@@ -2333,7 +2357,7 @@ int parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 		}
 		else
 		{
-			*portNbr = i4;
+			*portNbr = (unsigned short) i4;
 			portValid = 1;
 		}
 	}
@@ -2354,18 +2378,25 @@ int parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 		}
 		else if (strcmp(hostname, "@") == 0)
 		{
-			getNameOfHost(hostnameBuf, sizeof hostnameBuf);
-			hostname = hostnameBuf;
-			i4 = getInternetAddress(hostname);
-			if (i4 < 1)	/*	Invalid hostname.	*/
+			if (getNameOfHost(hostnameBuf, sizeof hostnameBuf) < 0)
 			{
-				writeMemoNote("[?] parseSocketSpec: Can't get IP address", hostname);
+				writeMemoNote("[?] parseSocketSpec: Can't get local hostname", NULL);
 				*ipAddress = BAD_HOST_NAME;
 			}
 			else
 			{
-				*ipAddress = i4;
-				ipValid = 1;
+				hostname = hostnameBuf;
+				i4 = getInternetAddress(hostname);
+				if (i4 < 1)	/*	Invalid hostname.	*/
+				{
+					writeMemoNote("[?] parseSocketSpec: Can't get IP address", hostname);
+					*ipAddress = BAD_HOST_NAME;
+				}
+				else
+				{
+					*ipAddress = i4;
+					ipValid = 1;
+				}
 			}
 		}
 		else
@@ -2696,6 +2727,14 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 						/*	Vast.		*/
 
 						isLongLong = 1;
+
+						/* Might be "ll." */
+						if ((*cursor) == 'l')
+						{
+							fmt[fmtLen] = *cursor;
+							fmtLen++;
+							cursor++;
+						}
 					}
 					else	/*	Check for "ll".	*/
 					{

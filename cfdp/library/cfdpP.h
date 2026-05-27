@@ -228,7 +228,9 @@ typedef struct
 	Object		  proxyFilestoreResponses; /* sdrlist */
 	char		  directoryName[256];
 	char		  directoryDestFileName[256];
+	unsigned int	  directoryListingOptions;	/* v2 request bits */
 	int		  directoryListingResponseCode;
+	int		  directoryListingIncomplete;	/* v2 response flag */
 } CfdpUserOpsData;
 
 /*	*	*	Database structure	*	*	*	*/

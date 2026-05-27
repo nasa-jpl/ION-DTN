@@ -66,6 +66,12 @@ int	pnb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 		return 0;
 	}
 
+	if (metaEid.nullEndpoint)
+	{
+		clearMetaEid(&metaEid);
+		return 0;	/*	No previous hop for null EID.	*/
+	}
+
 	clearMetaEid(&metaEid);
 
 	restoreExtensionBlock(blk);

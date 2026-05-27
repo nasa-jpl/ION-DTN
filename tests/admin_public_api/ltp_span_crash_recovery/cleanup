@@ -3,5 +3,5 @@
 # cleanup script for ltp_span_crash_recovery test
 #
 
-killm
+killm f
 rm -f ion.log

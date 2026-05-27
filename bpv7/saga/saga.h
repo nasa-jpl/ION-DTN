@@ -15,11 +15,14 @@
 #ifndef SAGA_H
 #define SAGA_H
 
+#include "ion.h"
+
+/* Administrative record types */
+#define BP_SAGA_MESSAGE (6)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "ion.h"
 
 /*		Functions for managing "sagas".
 

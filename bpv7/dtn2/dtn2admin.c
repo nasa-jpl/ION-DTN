@@ -125,7 +125,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 		if (tokenCount == 6)
 		{
-			if (isdigit(tokens[5][0]))
+			if (isdigit((unsigned char) tokens[5][0]))
 			{
 				nominalRate = atoi(tokens[5]);
 				if (parseDirective(tokens[3], tokens[4],
@@ -202,7 +202,7 @@ static void	executeChange(int tokenCount, char **tokens)
 
 		if (tokenCount == 6)
 		{
-			if (isdigit(tokens[5][0]))
+			if (isdigit((unsigned char) tokens[5][0]))
 			{
 				nominalRate = atoi(tokens[5]);
 				rateChanged = 1;
@@ -454,7 +454,7 @@ static int	processLine(char *line, int lineLength)
 
 	/*	Skip over any trailing whitespace.			*/
 
-	while (isspace((int) *cursor))
+	while (isspace((unsigned char) *cursor))
 	{
 		cursor++;
 	}

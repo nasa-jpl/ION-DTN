@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ionstop 2>/dev/null
 sleep 1
-killm
+killm f
 rm -f ion.log small.ionconfig small.ionrc small.ltprc small.bprc \
       small.ipnrc small.ionsecrc ion_nodes

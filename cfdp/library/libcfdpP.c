@@ -552,6 +552,7 @@ int	cfdpInit(void)
 
 		cfdpdbBuf.faultHandlers[CfdpFilestoreRejection] = CfdpCancel;
 		cfdpdbBuf.faultHandlers[CfdpCheckLimitReached] = CfdpCancel;
+		cfdpdbBuf.faultHandlers[CfdpInactivityDetected] = CfdpCancel;
 		cfdpdbBuf.usrmsgLists = sdr_list_create(sdr);
 		cfdpdbBuf.fsreqLists = sdr_list_create(sdr);
 		cfdpdbBuf.fsrespLists = sdr_list_create(sdr);
@@ -5532,6 +5533,7 @@ printf("...spurious Finish PDU, not processed...\n");
 			return 0;
 		}
 
+		sdr_stage(sdr, NULL, fduObj, 0);
 #if CFDPDEBUG
 printf("...processing Finish PDU...\n");
 #endif
@@ -5571,6 +5573,8 @@ printf("...Inbound PDU is for an FDU, processing and creating if needed...\n");
 		putErrmsg("Can't create new inbound FDU.", NULL);
 		return -1;
 	}
+
+	sdr_stage(sdr, NULL, fduObj, 0);
 
 	if (fduBuf.state == FduCanceled)
 	{

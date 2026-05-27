@@ -1,5 +1,5 @@
 #!/bin/bash
 # Cleanup script for SPP loopback test
-killm
+killm f
 rm -f /tmp/spp_loopback_fifo
 rm -f ./config/loopback_runtime.bprc

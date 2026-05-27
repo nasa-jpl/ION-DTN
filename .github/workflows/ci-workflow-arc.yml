@@ -5,21 +5,28 @@ permissions:
   statuses: write
   pull-requests: read
 
+concurrency:
+  group: arc-ion-tests
+  cancel-in-progress: false
+
 on:
   workflow_call:
     inputs:
       tests_to_run:
-        description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
+        description: "Space-separated list of tests to run (e.g., \"test1 test2\").
+          Leave blank to run all."
         required: false
         type: string
         default: ""
       env_vars:
-        description: 'Space-separated list of environment variables (e.g., "KEY1=VALUE1 KEY2=VALUE2").'
+        description: "Space-separated list of environment variables (e.g., \"KEY1=VALUE1
+          KEY2=VALUE2\")."
         required: false
         type: string
         default: ""
       timeout_minutes:
-        description: "Timeout for build and tests in minutes (default: 90 minutes / 1.5 hours)"
+        description: "Timeout for build and tests in minutes (default: 90 minutes / 1.5
+          hours)"
         required: false
         type: number
         default: 90
@@ -63,17 +70,20 @@ on:
   workflow_dispatch:
     inputs:
       tests_to_run:
-        description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
+        description: "Space-separated list of tests to run (e.g., \"test1 test2\").
+          Leave blank to run all."
         required: false
         type: string
         default: ""
       env_vars:
-        description: 'Space-separated list of environment variables (e.g., "KEY1=VALUE1 KEY2=VALUE2").'
+        description: "Space-separated list of environment variables (e.g., \"KEY1=VALUE1
+          KEY2=VALUE2\")."
         required: false
         type: string
         default: ""
       timeout_minutes:
-        description: "Timeout for build and tests in minutes (default: 90 minutes / 1.5 hours)"
+        description: "Timeout for build and tests in minutes (default: 90 minutes / 1.5
+          hours)"
         required: false
         type: number
         default: 90
@@ -123,7 +133,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Build Runner Matrix
         id: build-runners
@@ -193,11 +203,11 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Cache Build Workspace
         id: cache-build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             .
@@ -232,14 +242,14 @@ jobs:
 
       - name: Upload build and buildcheck logs
         if: ${{ always() && steps.cache-build.outputs.cache-hit != 'true' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: compile-and-buildcheck-log-${{ matrix.runner }}-${{ github.sha }}
           path: compile-and-buildcheck.log
           if-no-files-found: warn
 
   install-and-test:
-    needs: [setup, build]
+    needs: [ setup, build ]
     name: "Test: ${{ matrix.runner }} (Batch ${{ matrix.testchunk.batch }})"
     strategy:
       fail-fast: false
@@ -251,7 +261,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Display OS and Arch
         run: |
@@ -273,7 +283,7 @@ jobs:
           echo "${{ matrix.testchunk.batch }}"
 
       - name: Restore Cached Build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: cache-restore
         with:
           path: |
@@ -327,9 +337,10 @@ jobs:
 
       - name: Upload full test log
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: build-and-test-log-${{ matrix.runner }}-${{ env.TIMESTAMP }}-batch-${{ matrix.testchunk.batch }}
+          name: build-and-test-log-${{ matrix.runner }}-${{ env.TIMESTAMP }}-batch-${{
+            matrix.testchunk.batch }}
           path: build-and-test.log
 
       - name: Show progress file
@@ -340,9 +351,10 @@ jobs:
 
       - name: Upload progress file
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: test-progress-${{ matrix.runner }}-${{ env.TIMESTAMP }}-batch-${{ matrix.testchunk.batch }}
+          name: test-progress-${{ matrix.runner }}-${{ env.TIMESTAMP }}-batch-${{
+            matrix.testchunk.batch }}
           path: ./tests/progress
 
       - name: Collect and upload ion.log files from all test directories
@@ -350,9 +362,13 @@ jobs:
         run: |
           echo "Collecting ion.log files with unique names..."
           mkdir -p ion-logs-collection
-          find ./tests -name "ion.log" -type f | while IFS= read -r logfile; do
-            relpath=$(echo "$logfile" | sed 's|^\./tests/||' | sed 's|/ion\.log$||')
-            unique_name=$(echo "$relpath" | tr '/' '-')
+          # Search from repo root so demos/ and tutorials/ tests (run via
+          # ../demos/foo from tests/) are included, not just tests/foo.
+          find . -path ./.git -prune -o -path ./external -prune \
+                 -o -path ./ion-logs-collection -prune \
+                 -o -name "ion.log" -type f -print | while IFS= read -r logfile; do
+            relpath="${logfile#./}"
+            unique_name=$(echo "${relpath%/ion.log}" | tr '/' '-')
             cp "$logfile" "ion-logs-collection/${unique_name}-ion.log"
             echo "Collected: $logfile -> ion-logs-collection/${unique_name}-ion.log"
           done
@@ -363,11 +379,35 @@ jobs:
 
       - name: Upload ion.log files as artifact
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: ion-logs-${{ matrix.runner }}-${{ env.TIMESTAMP }}-batch-${{ matrix.testchunk.batch }}
+          name: ion-logs-${{ matrix.runner }}-${{ env.TIMESTAMP }}-batch-${{
+            matrix.testchunk.batch }}
           path: ion-logs-collection/
           if-no-files-found: warn
+
+      - name: Collect ion-system.log diagnostic files
+        if: ${{ always() }}
+        run: |
+          mkdir -p diagnostics-collection
+          # Search from repo root so demos/ and tutorials/ tests (run via
+          # ../demos/foo from tests/) are included, not just tests/foo.
+          find . -path ./.git -prune -o -path ./external -prune \
+                 -o -path ./diagnostics-collection -prune \
+                 -o -name "ion-system.log" -type f -print | while IFS= read -r logfile; do
+            relpath="${logfile#./}"
+            unique_name=$(echo "${relpath%/ion-system.log}" | tr '/' '-')
+            cp "$logfile" "diagnostics-collection/${unique_name}-ion-system.log"
+          done
+
+      - name: Upload ion-system.log diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: diagnostics-${{ matrix.runner }}-${{ env.TIMESTAMP }}-batch-${{
+            matrix.testchunk.batch }}
+          path: diagnostics-collection/
+          if-no-files-found: ignore
 
       - name: Save Job Status for Final Summary
         if: ${{ always() }}
@@ -388,7 +428,7 @@ jobs:
 
       - name: Upload Status Fragment
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: status-${{ matrix.runner }}-${{ matrix.testchunk.batch }}
           path: job-reports/
@@ -396,7 +436,7 @@ jobs:
 
   aggregate-results:
     name: "Finalize Logs and Reports"
-    needs: [setup, install-and-test]
+    needs: [ setup, install-and-test ]
     runs-on: arc-runner-set-ol8
     if: ${{ always() }}
     steps:
@@ -404,7 +444,7 @@ jobs:
         run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
 
       - name: Download ALL artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           # Downloads absolutely everything into one master folder
           path: all-artifacts
@@ -447,7 +487,7 @@ jobs:
 
       - name: Set PR status per runner
         if: ${{ needs.setup.outputs.pr_number != '' }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const statuses = ${{ steps.pr-status.outputs.payload }};
@@ -486,7 +526,7 @@ jobs:
           rm -rf all-artifacts/status-*
 
       - name: Upload Unified Bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: final-regression-bundle-${{ env.TIMESTAMP }}
           path: all-artifacts/
@@ -500,3 +540,4 @@ jobs:
             build-and-test-log-*
             test-progress-*
             ion-logs-*
+            diagnostics-*

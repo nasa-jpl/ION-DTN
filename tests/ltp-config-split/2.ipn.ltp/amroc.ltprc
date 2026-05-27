@@ -1,6 +1,6 @@
 1 100
-a span 2 2 100100 2 100100 1200 100100 1 'udplso 127.0.0.1:2112'
-a span 3 10 100100 10 100100 1200 100100 1 'udplso 127.0.0.1:2193'
+a span 2 2 2 1200 100100 1 'udplso 127.0.0.1:2112'
+a span 3 10 10 1200 100100 1 'udplso 127.0.0.1:2193'
 m maxretriesxmit 12
 m maxretriesrecv 6
 m maxseglossratexmit 0.20

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 # Issue 352 - BPCP
 # Samuel Jero
 # April 15, 2012
@@ -116,7 +117,6 @@ if  [ ! -e ./test1 ] || [ -n "$TEST" ]; then
     #./ionstop &
     #cd ..
     sleep 3
-    killm
     RETVAL=1
     exit $RETVAL
 else
@@ -142,7 +142,6 @@ if [ ! -e ./test2 ] || [ -n "$TEST" ]; then
     #./ionstop &
     #cd ..
     sleep 3
-    killm
     RETVAL=1
     exit $RETVAL
 else
@@ -169,7 +168,6 @@ if  [ ! -e ./test3 ] || [ -n "$TEST" ]; then
     #./ionstop &
     #cd ..
     sleep 3
-    killm
     RETVAL=1
     exit $RETVAL
 else
@@ -186,5 +184,4 @@ RETVAL=0
 #./ionstop &
 #cd ..
 sleep 3
-killm
 exit $RETVAL

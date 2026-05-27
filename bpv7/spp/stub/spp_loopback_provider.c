@@ -15,8 +15,9 @@
 
 									*/
 /* Enable POSIX.1-2001 for sigaction() */
+#ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 200112L
-
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

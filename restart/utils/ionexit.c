@@ -53,30 +53,56 @@ static void	printText(char *text)
 int	ionexit(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-   char	*p1 = (char *) a1;
+	char	*p1 = (char *) a1;
+	char	*p2 = (char *) a2;
 #else
 int	main(int argc, char **argv)
 {
-	char	*p1 = (argc > 1 ? argv[1] : NULL);
 #endif
-	int loopcount, errcount= 0, deletesdr = -1;
+	int loopcount, errcount= 0, deletesdr = -1, stopipc = -1;
 #ifdef ENABLE_TC
 	char msgbuf[80];
 	int groupNbr;
 #endif
 
+	/*	Options:
+	 *	  k  - keep SDR (do not delete)
+	 *	  n  - node-only: skip sm_ipc_stop(), safe for
+	 *	       multi-ION-per-host when other instances
+	 *	       are still running
+	 *	Flags can be combined: "ionexit k n"		*/
 
-	if( p1 != NULL )
+#if defined (ION_LWT)
+	if (p1 != NULL)
 	{
-		if( strcmp( p1, "k" ) == 0 )
+		if (strcmp(p1, "k") == 0) deletesdr = 0;
+		if (strcmp(p1, "n") == 0) stopipc = 0;
+	}
+	if (p2 != NULL)
+	{
+		if (strcmp(p2, "k") == 0) deletesdr = 0;
+		if (strcmp(p2, "n") == 0) stopipc = 0;
+	}
+#else
+	{
+		int argn;
+		for (argn = 1; argn < argc; argn++)
 		{
-			deletesdr = 0;
+			if (strcmp(argv[argn], "k") == 0)
+			{
+				deletesdr = 0;
+			}
+			else if (strcmp(argv[argn], "n") == 0)
+			{
+				stopipc = 0;
+			}
 		}
 	}
-
+#endif
 
 	printText("Running ionexit" );
 	printText( ((deletesdr) ? "will delete SDR" : "keeping SDR") );
+	printText( ((stopipc) ? "will stop IPC" : "keeping IPC (node-only mode)") );
 
 	if (ionAttach() == 0)
 	{
@@ -242,6 +268,20 @@ int	main(int argc, char **argv)
 		}
 
 
+		/*	Give non-clock processes time to detect the stop
+		 *	flag and exit.  The *Stop() calls above send
+		 *	SIGTERM only to specific daemon PIDs (clocks,
+		 *	cpsd, transit); other processes (CLAs, forwarders,
+		 *	admin endpoints) rely on polling the stop flag
+		 *	via semaphore-gated checks, typically on a
+		 *	1-second timeout cycle.  Without this grace
+		 *	period, ionTerminate/sm_ipc_stop would destroy
+		 *	shared resources while those processes still
+		 *	need them to detect the shutdown.		*/
+
+		printText("Waiting for processes to finish shutting down...");
+		snooze(3);
+
 		{
 			if( deletesdr )
 			{
@@ -249,9 +289,11 @@ int	main(int argc, char **argv)
 				ionTerminate(1);
 			}
 
-			printText("Shutting down the IPC system");
-
-			sm_ipc_stop();
+			if( stopipc )
+			{
+				printText("Shutting down the IPC system");
+				sm_ipc_stop();
+			}
 		}
 
 	}

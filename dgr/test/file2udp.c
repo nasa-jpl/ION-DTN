@@ -433,7 +433,7 @@ int	main(int argc, char **argv)
 
 	while (cyclesLeft > 0)
 	{
-		if (fgets(line, 256, inputFile) == NULL)
+		if (fgets(line, 252, inputFile) == NULL)
 		{
 			if (feof(inputFile))
 			{

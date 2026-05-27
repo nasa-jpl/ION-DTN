@@ -178,6 +178,12 @@ the local LTP engine.  'I<LSI_command>' is deprecated but is supported for
 backward compatibility; if provided, the effect is the same as entering
 the command "a seat 'I<LSI_command>'" prior to starting all daemon tasks.
 
+=item B<s span> I<peer_engine_nbr>
+
+The B<start span> command.  This command starts the meter and link service
+output tasks for the span to the indicated remote engine, without affecting
+any other spans or seats.
+
 =item B<m heapmax> I<max_database_heap_per_block>
 
 The B<manage heap for block acquisition> command.  This command declares
@@ -411,6 +417,12 @@ The default value is 10.
 
 The B<stop> command.  This command stops all link service input and output
 tasks for the local LTP engine.
+
+=item B<x span> I<peer_engine_nbr>
+
+The B<stop span> command.  This command stops the meter and link service
+output tasks for the span to the indicated remote engine, without affecting
+any other spans or seats.
 
 =item B<w> { 0 | 1 | <activity_spec> }
 

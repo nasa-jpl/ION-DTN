@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 # AMS Benchtest script (for simple AMS two-node demo)
 
 
@@ -17,7 +18,6 @@ function stop_and_exit() {
     "${ION_NODE_LIST_DIR}/shutdown_proc"
 
     # Use killm as a final, forceful cleanup for any remaining ION daemons.
-    killm
 
     if [ "$retval" -eq 0 ]; then
         echo -e "AMS benchtest successfully completed."
@@ -67,7 +67,6 @@ check_process_running() {
 # -------------------------------------------------------------------
 
 # Cleanup prior to execution
-killm
 ./cleanup
 
 export ION_NODE_LIST_DIR=$PWD

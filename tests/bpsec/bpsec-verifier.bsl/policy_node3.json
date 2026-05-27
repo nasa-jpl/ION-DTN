@@ -1,0 +1,53 @@
+{
+  "policyrule_set": [
+  {
+      "policyrule": {
+      "desc": "BIB verifier for ipn:2.* -> ipn:4.* primary block (verify at CLIN, forward intact)",
+      "filter": {
+        "rule_id": "1",
+        "role": "v",
+        "src": "ipn:2.*",
+        "dest": "ipn:4.*",
+        "tgt": 0,
+        "loc": "clin",
+        "sc_id": 1
+      },
+      "spec": {
+        "svc": "bib-integrity",
+        "sc_id": 1,
+        "sc_parms": [
+          { "id": "key_name", "value": "9100" },
+          { "id": "sha_variant", "value": "7" },
+          { "id": "scope_flags", "value": "0" },
+          { "id": "key_wrap", "value": "0" }
+        ]
+      },
+      "policy_action_on_fail": "delete_bundle"
+    }
+  },
+  {
+      "policyrule": {
+      "desc": "BCB verifier for ipn:2.* -> ipn:4.* payload (verify ASB at CLIN, no decrypt)",
+      "filter": {
+        "rule_id": "2",
+        "role": "v",
+        "src": "ipn:2.*",
+        "dest": "ipn:4.*",
+        "tgt": 1,
+        "loc": "clin",
+        "sc_id": 2
+      },
+      "spec": {
+        "svc": "bcb-confidentiality",
+        "sc_id": 2,
+        "sc_parms": [
+          { "id": "key_name", "value": "9103" },
+          { "id": "aes_variant", "value": "1" },
+          { "id": "aad_scope", "value": "0" },
+          { "id": "key_wrap", "value": "1" }
+        ]
+      },
+      "policy_action_on_fail": "delete_bundle"
+    }
+  }]
+}

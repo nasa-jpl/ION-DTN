@@ -641,6 +641,8 @@ int bsles_sdr_persist(PsmPartition wm, PsmAddress eventSetAddr)
 	Sdr ionsdr = getIonsdr();
 	BpSecPolicyDbEntry entry;
 	BpSecEventSet *eventSetPtr = NULL;
+
+	memset(&entry, 0, sizeof(BpSecPolicyDbEntry));
 	char *buffer = NULL;
 	int bytes_left = 0;
 	SecDB *secdb = getSecConstants();

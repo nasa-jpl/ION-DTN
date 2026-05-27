@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Scott Burleigh
 # January 4, 2013
@@ -200,7 +201,6 @@ fi
 
 
 echo -e "\nStopping ION, including all test programs...\n"
-killm
 
 echo "DTPC test completed."
 exit $RETVAL

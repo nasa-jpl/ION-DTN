@@ -38,6 +38,10 @@ typedef struct
 	size_t		largePoolAllocated;
 	size_t		unusedSize;
 	size_t		maxLogLength;
+	size_t		largestFreeBlock;	/*	user-data bytes;
+						 *	max across both pools,
+						 *	excluding the
+						 *	unassigned gap.		*/
 } SdrUsageSummary;
 
 /*		Low-level SDR space management functions.		*/
@@ -73,6 +77,21 @@ extern void		sdr_set_search_limit(Sdr sdr, unsigned int newLimit);
 
 extern void		sdr_stage(Sdr sdr, char *into, Object from,
 				size_t size);
+			/*	Like sdr_read, but also registers the
+			 *	object for SDR_BOUNDED write validation.
+			 *	Must be used instead of sdr_read when
+			 *	the object will be modified via
+			 *	sdr_write in the same transaction.
+			 *
+			 *	If size is 0, into may be NULL; the
+			 *	object is registered for writing but
+			 *	no data is copied.  Use this form to
+			 *	register a pre-allocated buffer (from
+			 *	sdr_malloc in a prior transaction) for
+			 *	partial writes at an offset, e.g.:
+			 *	  sdr_stage(sdr, NULL, bufObj, 0);
+			 *	  sdr_write(sdr, bufObj+off, d, len);
+			 */
 
 extern size_t		sdr_unused(Sdr sdr);
 			/*	Returns the number of bytes of heap

@@ -101,6 +101,11 @@ static int	receiveData(int *sock, char *buffer, int *bufferLength)
 	/*	Receive the data buffer itself.				*/
 
 	length = ntohl(preamble);
+	if (length < 0 || length > *bufferLength)
+	{
+		return -1;
+	}
+
 	*bufferLength = bytesToReceive = length;
 	into = buffer;
 	while (bytesToReceive > 0)

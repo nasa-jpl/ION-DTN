@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Scott Burleigh
 # March 8, 2017
@@ -120,7 +121,6 @@ then
     #cd ../3.bench.stcp
     #./ionstop &
     sleep 3
-    killm
     echo "...benchmarking terminated."
     exit $RETVAL
 fi
@@ -188,7 +188,6 @@ then
     #cd ../3.bench.stcp
     #./ionstop &
     sleep 3
-    killm
     echo "...benchmarking terminated."
     exit $RETVAL
 fi
@@ -256,7 +255,6 @@ then
     #cd ../3.bench.stcp
     #./ionstop &
     sleep 3
-    killm
     echo "...benchmarking terminated."
     exit $RETVAL
 fi
@@ -324,7 +322,6 @@ then
     #cd ../3.bench.stcp
     #./ionstop &
     sleep 3
-    killm
     echo "...benchmarking terminated."
     exit $RETVAL
 fi
@@ -392,7 +389,6 @@ then
     #cd ../3.bench.stcp
     #./ionstop &
     sleep 3
-    killm
     echo "...benchmarking terminated."
     exit $RETVAL
 fi
@@ -460,7 +456,6 @@ then
     #cd ../3.bench.stcp
     #./ionstop &
     sleep 3
-    killm
     echo "...benchmarking terminated."
     exit $RETVAL
 fi
@@ -530,6 +525,5 @@ echo "Stopping ION..."
 #cd ../3.bench.stcp
 #./ionstop &
 sleep 3
-killm
 echo "...benchmarking terminated."
 exit $RETVAL

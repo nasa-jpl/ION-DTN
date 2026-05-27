@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# sdr-preservation test
+#
+# Verifies that SDR state (queued bundles) survives an ionexit k n
+# shutdown and restart, for both FILE-based and DRAM-only SDR modes.
+#
+# ionexit k n preserves both SDR data and IPC resources, allowing
+# a normal ionstart to reattach and resume where it left off.
+#
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify SDR preservation across ionexit k n shutdown and restart."
+echo "         Tests FILE-based and DRAM-only SDR storage modes."
+echo
+echo "CONFIG: Single node UDP loopback, default SDR name."
+echo "  file-mode.ionconfig: configFlags 2 (SDR_IN_FILE), pathName ."
+echo "  dram-mode: default config (SDR_IN_DRAM)"
+echo
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+RETVAL=0
+
+# Get bundle count from bplist
+get_bundle_count() {
+    local count
+    count=$(bplist count 2>&1 | grep "Report count" | sed 's/[^0-9]//g')
+    echo "${count:-0}"
+}
+
+# Run a single SDR preservation test
+#   $1 = rc file for ionstart
+#   $2 = human-readable mode name
+run_test() {
+    local rc_file="$1"
+    local mode_name="$2"
+
+    echo ""
+    echo "============================================================"
+    echo "  Testing: $mode_name"
+    echo "============================================================"
+    echo ""
+
+    # Clean slate
+    killm > /dev/null 2>&1
+    sleep 1
+    rm -f ion.log ion.sdr ion.sdrlog
+
+    # Phase 1: Start ION
+    echo "Phase 1: Starting ION ($mode_name)..."
+    ionstart -I "$rc_file"
+    sleep 1
+    ../../system_up -i "p 30" -b "p 30"
+    if [ $? -ne 2 ]; then
+        echo "FAIL ($mode_name): ION did not start."
+        RETVAL=1
+        return 1
+    fi
+    echo "ION started successfully."
+
+    # Phase 2: Queue a bundle with long TTL to unreachable destination
+    echo ""
+    echo "Phase 2: Sending bundle to unreachable destination ipn:2.1..."
+    # Future contact to node 2 exists but is not active, so the bundle
+    # goes to limbo (queued, not abandoned).
+    bpsource ipn:2.1 "sdr-test-payload" -t86400
+    sleep 3
+
+    # Phase 3: Verify bundle exists
+    echo ""
+    echo "Phase 3: Checking bundle count before shutdown..."
+    local before
+    before=$(get_bundle_count)
+    echo "Bundle count before shutdown: $before"
+
+    if [ "$before" -lt 1 ]; then
+        echo "FAIL ($mode_name): No bundle found after sending. Expected >= 1."
+        killm > /dev/null 2>&1
+        RETVAL=1
+        return 1
+    fi
+    echo "PASS: Bundle queued successfully."
+
+    # Phase 4: Graceful shutdown preserving SDR and IPC
+    echo ""
+    echo "Phase 4: Shutting down with ionexit k n..."
+    timeout 30 ionexit k n
+    sleep 5
+
+    # Phase 5: Restart ION with same config
+    echo ""
+    echo "Phase 5: Restarting ION ($mode_name)..."
+    ionstart -I "$rc_file"
+    sleep 1
+    ../../system_up -i "p 30" -b "p 30"
+    if [ $? -ne 2 ]; then
+        echo "FAIL ($mode_name): ION did not restart."
+        killm > /dev/null 2>&1
+        RETVAL=1
+        return 1
+    fi
+    echo "ION restarted successfully."
+
+    # Phase 6: Verify bundle survived
+    echo ""
+    echo "Phase 6: Checking bundle count after restart..."
+    local after
+    after=$(get_bundle_count)
+    echo "Bundle count after restart: $after"
+
+    if [ "$after" -ge "$before" ]; then
+        echo "PASS ($mode_name): Bundle survived restart. (before=$before, after=$after)"
+    else
+        echo "FAIL ($mode_name): Bundle did NOT survive restart. (before=$before, after=$after)"
+        RETVAL=1
+    fi
+
+    return 0
+}
+
+# --- Main ---
+
+# Clean up from any previous run
+killm > /dev/null 2>&1
+sleep 1
+
+# Test 1: FILE mode (configFlags 2)
+run_test "file-mode.rc" "FILE mode (configFlags 2)"
+killm > /dev/null 2>&1
+sleep 2
+
+# Test 2: DRAM mode (default configFlags)
+run_test "dram-mode.rc" "DRAM mode (default config)"
+killm > /dev/null 2>&1
+
+# --- Summary ---
+echo ""
+echo "============================================================"
+if [ "$RETVAL" -eq 0 ]; then
+    echo "  SUCCESS: All SDR preservation tests passed."
+else
+    echo "  FAILURE: One or more SDR preservation tests failed."
+fi
+echo "============================================================"
+echo ""
+
+exit $RETVAL

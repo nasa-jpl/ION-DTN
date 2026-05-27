@@ -106,7 +106,8 @@ payload length");
 	PUTS("\t   {d|i} scheme <scheme name>");
 	PUTS("\t   {d|i} endpoint <endpoint name>");
 	PUTS("\t   {d|i} protocol <protocol name>");
-	PUTS("\t   {d|i} induct <protocol name> <duct name>");
+	PUTS("\t   d induct <protocol name> <duct name>");
+	PUTS("\t   i induct <protocol name> [<duct name>]");
 	PUTS("\t   {d|i} outduct <protocol name> <duct name>");
 	PUTS("\t   {d|i} plan <endpoint name>");
 	PUTS("\td\tDetach an outduct from the egress plan that cites it");
@@ -898,14 +899,14 @@ static void	infoInduct(int tokenCount, char **tokens)
 	VInduct		*vduct;
 	PsmAddress	elt;
 
-	if (tokenCount != 4)
+	if (tokenCount != 3 && tokenCount != 4)
 	{
 		SYNTAX_ERROR;
 		return;
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));
-	findInduct(tokens[2], tokens[3], &vduct, &elt);
+	findInduct(tokens[2], tokenCount == 4 ? tokens[3] : NULL, &vduct, &elt);
 	if (elt == 0)
 	{
 		printText("[?] Unknown induct.");
@@ -1947,7 +1948,7 @@ static int	processLine(char *line, int lineLength, int *rc)
 
 	/*	Skip over any trailing whitespace.			*/
 
-	while (isspace((int) *cursor))
+	while (isspace((unsigned char) *cursor))
 	{
 		cursor++;
 	}

@@ -11,6 +11,7 @@
 									*/
 #include "bpP.h"
 #include "dgr.h"
+#include "ion_atomic.h"
 
 #define	DGRCLA_PORT_NBR		1113
 #define	DGRCLA_BUFSZ		65535
@@ -29,7 +30,7 @@ static void	interruptThread(int signum)
 typedef struct
 {
 	VOutduct	*vduct;
-	int		*running;
+	ion_atomic_t	*running;
 	Dgr		dgrSap;
 	unsigned short	portNbr;
 	unsigned int	hostNbr;
@@ -58,7 +59,7 @@ static void	*sendBundles(void *parm)
 	if (buffer == NULL)
 	{
 		putErrmsg("dgrclo can't get DGR buffer.", NULL);
-		*(parms->running) = 0;
+		ion_atomic_set(parms->running, 0);
 		ionKillMainThread(procName);
 		return NULL;
 	}
@@ -168,7 +169,7 @@ failure.", NULL);
 		sm_TaskYield();
 	}
 
-	*(parms->running) = 0;
+	ion_atomic_set(parms->running, 0);
 	ionKillMainThread(procName);
 	writeErrmsgMemos();
 	isprintf(buffer, DGRCLA_BUFSZ, "[i] dgrclo outduct ended.  %d \
@@ -182,7 +183,7 @@ transmissions failed.", failedTransmissions);
 
 typedef struct
 {
-	int		*running;
+	ion_atomic_t	*running;
 	Dgr		dgrSap;
 } ReceiverThreadParms;
 
@@ -207,7 +208,7 @@ static void	*receiveSegments(void *parm)
 	if (buffer == NULL)
 	{
 		putErrmsg("dgrclo can't get DGR buffer.", NULL);
-		*(parms->running) = 0;
+		ion_atomic_set(parms->running, 0);
 		ionKillMainThread(procName);
 		return NULL;
 	}
@@ -340,7 +341,7 @@ failure.", NULL);
 
 		if (rc == DgrFailed)
 		{
-			if (*(parms->running) != 0)
+			if (ion_atomic_get(parms->running) != 0)
 			{
 				/*	Not terminated by main thread.	*/
 
@@ -351,7 +352,7 @@ failure.", NULL);
 		}
 	}
 
-	*(parms->running) = 0;
+	ion_atomic_set(parms->running, 0);
 	ionKillMainThread(procName);
 
 	/*	Finish releasing receiver thread's resources.		*/
@@ -378,11 +379,13 @@ int	main(int argc, char *argv[])
 	PsmAddress		vductElt;
 	Dgr			dgrSap;
 	DgrRC			rc;
-	int			running = 1;
+	ion_atomic_t		running;
 	SenderThreadParms	senderParms;
 	ReceiverThreadParms	rtp;
 	pthread_t		senderThread;
 	pthread_t		receiverThread;
+
+	ion_atomic_init(&running, 1);
 
 	if (ductName == NULL)
 	{
@@ -464,7 +467,7 @@ int	main(int argc, char *argv[])
 
 	/*	Time to shut down.					*/
 
-	running = 0;
+	ion_atomic_set(&running, 0);
 
 	/*	Shut down the sender thread.				*/
 
@@ -481,6 +484,7 @@ int	main(int argc, char *argv[])
 	pthread_join(receiverThread, NULL);
 	writeErrmsgMemos();
 	writeMemo("[i] dgrclo outduct ended.");
+	ion_atomic_mutex_destroy(&running);
 	bp_detach();
 	return 0;
 }

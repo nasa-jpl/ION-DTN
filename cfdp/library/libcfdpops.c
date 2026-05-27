@@ -1086,10 +1086,36 @@ int	cfdp_get(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 
 #ifndef NO_DIRLIST
 
+/*	Backward-compatible wire format for directory listing:
+ *
+ *	Request (CfdpDirectoryListingRequest = 16):
+ *	  [dirNameLen][dirName...][destFileNameLen][destFileName...]
+ *	  [options byte] -- optional, v2 only.  Old parsers stop
+ *	  after destFileName and never see it; new parsers detect
+ *	  it as a trailing byte and use it to enable v2 behavior.
+ *
+ *	Response (CfdpDirectoryListingResponse = 17, legacy):
+ *	  [responseCode][dirNameLen][dirName][destFileNameLen][destFileName]
+ *
+ *	Response (CfdpDirectoryListingResponseV2 = 19, v2):
+ *	  [responseCode][incomplete byte][dirNameLen][dirName]
+ *	  [destFileNameLen][destFileName]
+ *
+ *	Manifest file content (legacy):
+ *	  Stream of NUL-terminated entry names.
+ *
+ *	Manifest file content (v2):
+ *	  Stream of records [status byte][type byte][name][NUL].
+ *	  status: bitfield, currently only CFDP_DIRENT_NAME_TRUNCATED.
+ *	  type:   one of CFDP_DIRENT_REGULAR/DIRECTORY/SYMLINK/OTHER/UNKNOWN.
+ */
+
 void	parseDirectoryListingRequest(char *text, int bytesRemaining,
 		CfdpUserOpsData *opsData)
 {
 	int	length;
+
+	opsData->directoryListingOptions = 0;
 
 	/*	Get directory name.					*/
 
@@ -1128,12 +1154,25 @@ void	parseDirectoryListingRequest(char *text, int bytesRemaining,
 
 	memcpy(opsData->directoryDestFileName, text, length);
 	(opsData->directoryDestFileName)[length] = '\0';
+	text += length;
+	bytesRemaining -= length;
+
+	/*	v2 request: optional trailing options byte.  Old
+	 *	requestors do not send this; old responders never
+	 *	read it (they stop after destFileName).			*/
+
+	if (bytesRemaining >= 1)
+	{
+		opsData->directoryListingOptions = (unsigned char) *text;
+	}
 }
 
 void	parseDirectoryListingResponse(char *text, int bytesRemaining,
 		CfdpUserOpsData *opsData)
 {
 	int	length;
+
+	opsData->directoryListingIncomplete = 0;
 
 	if (bytesRemaining < 1)
 	{
@@ -1183,26 +1222,100 @@ void	parseDirectoryListingResponse(char *text, int bytesRemaining,
 	(opsData->directoryDestFileName)[length] = '\0';
 }
 
+void	parseDirectoryListingResponseV2(char *text, int bytesRemaining,
+		CfdpUserOpsData *opsData)
+{
+	int	length;
+
+	opsData->directoryListingIncomplete = 0;
+
+	if (bytesRemaining < 1)
+	{
+		return;
+	}
+
+	opsData->directoryListingResponseCode = *text;
+	text++;
+	bytesRemaining--;
+
+	/*	v2-specific: incomplete byte.				*/
+
+	if (bytesRemaining < 1)
+	{
+		return;
+	}
+
+	opsData->directoryListingIncomplete = (unsigned char) *text;
+	text++;
+	bytesRemaining--;
+
+	/*	Get directory name.					*/
+
+	if (bytesRemaining < 1)
+	{
+		return;
+	}
+
+	length = (unsigned char) *text;
+	text++;
+	bytesRemaining--;
+	if (length > bytesRemaining)
+	{
+		return;
+	}
+
+	memcpy(opsData->directoryName, text, length);
+	(opsData->directoryName)[length] = '\0';
+	text += length;
+	bytesRemaining -= length;
+
+	/*	Get destination file name.				*/
+
+	if (bytesRemaining < 1)
+	{
+		return;
+	}
+
+	length = (unsigned char) *text;
+	text++;
+	bytesRemaining--;
+	if (length > bytesRemaining)
+	{
+		return;
+	}
+
+	memcpy(opsData->directoryDestFileName, text, length);
+	(opsData->directoryDestFileName)[length] = '\0';
+}
+
 static int	sendDirectoryListingResponse(CfdpUserOpsData *opsData,
-			int responseCode, char *listingFileName)
+			int responseCode, char *listingFileName,
+			int incomplete)
 {
 	Sdr			sdr = getIonsdr();
 	Object			msgs = cfdp_create_usrmsg_list();
 	int			dirNameLen = strlen(opsData->directoryName);
 	int			destFileNameLen =
 					strlen(opsData->directoryDestFileName);
+	int			useV2 = ((opsData->directoryListingOptions
+					& CFDP_DIRLIST_OPTION_STATUS_BYTES) != 0);
+	int			headerOverhead = useV2 ? 8 : 7;
+				/*	"cfdp" (4) + msgType (1) + responseCode
+				 *	(1) + [incomplete (1) if v2] +
+				 *	dirNameLen byte (1).		*/
 	MsgToUser		msg;
 	unsigned char		textBuffer[600];
+	int			pos;
 	Object			msgObj;
 	CfdpTransactionId	transactionId;
 
-	if (6 + 1 + 1 + dirNameLen + destFileNameLen > 255)
+	if (headerOverhead + 1 + dirNameLen + destFileNameLen > 255)
 	{
 		putErrmsg("CFDP: User Message too long.",  NULL);
 		return -1;
 	}
 
-	msg.length = 6 + 1 + 1 + dirNameLen + destFileNameLen;
+	msg.length = headerOverhead + 1 + dirNameLen + destFileNameLen;
 	if (msgs == 0 || (msg.text = sdr_malloc(sdr, msg.length)) == 0
 	|| (msgObj = sdr_malloc(sdr, sizeof(MsgToUser))) == 0
 	|| sdr_list_insert_last(sdr, msgs, msgObj) == 0)
@@ -1212,13 +1325,29 @@ static int	sendDirectoryListingResponse(CfdpUserOpsData *opsData,
 	}
 
 	memcpy(textBuffer, "cfdp", 4);
-	textBuffer[4] = CfdpDirectoryListingResponse;
-	textBuffer[5] = responseCode;
-	textBuffer[6] = dirNameLen;
-	memcpy(textBuffer + 7, opsData->directoryName, dirNameLen);
-	textBuffer[7 + dirNameLen] = destFileNameLen;
-	memcpy(textBuffer + 7 + dirNameLen + 1, opsData->directoryDestFileName,
+	if (useV2)
+	{
+		textBuffer[4] = CfdpDirectoryListingResponseV2;
+		textBuffer[5] = (unsigned char) responseCode;
+		textBuffer[6] = (unsigned char) (incomplete ? 1 : 0);
+		pos = 7;
+	}
+	else
+	{
+		textBuffer[4] = CfdpDirectoryListingResponse;
+		textBuffer[5] = (unsigned char) responseCode;
+		pos = 6;
+	}
+
+	textBuffer[pos] = dirNameLen;
+	pos++;
+	memcpy(textBuffer + pos, opsData->directoryName, dirNameLen);
+	pos += dirNameLen;
+	textBuffer[pos] = destFileNameLen;
+	pos++;
+	memcpy(textBuffer + pos, opsData->directoryDestFileName,
 			destFileNameLen);
+	pos += destFileNameLen;
 	sdr_write(sdr, msg.text, (char *) textBuffer, msg.length);
 	sdr_write(sdr, msgObj, (char *) &msg, sizeof(MsgToUser));
 	return createFDU(&opsData->originatingTransactionId.sourceEntityNbr, 0,
@@ -1228,18 +1357,88 @@ static int	sendDirectoryListingResponse(CfdpUserOpsData *opsData,
 			&opsData->originatingTransactionId, &transactionId);
 }
 
+#if defined(mingw)
+#include <windows.h>
+#endif
+
+static unsigned char	classifyDirEntry(const char *fullPath)
+{
+#if defined(mingw)
+	DWORD	attributes;
+
+	attributes = GetFileAttributesA(fullPath);
+	if (attributes == INVALID_FILE_ATTRIBUTES)
+	{
+		return CFDP_DIRENT_UNKNOWN;
+	}
+
+	if (attributes & FILE_ATTRIBUTE_REPARSE_POINT)
+	{
+		/*	Treat reparse points (Windows symlink moral
+		 *	equivalent) like symlinks.			*/
+		return CFDP_DIRENT_SYMLINK;
+	}
+
+	if (attributes & FILE_ATTRIBUTE_DIRECTORY)
+	{
+		return CFDP_DIRENT_DIRECTORY;
+	}
+
+	return CFDP_DIRENT_REGULAR;
+#else
+	struct stat	st;
+
+	if (lstat(fullPath, &st) < 0)
+	{
+		return CFDP_DIRENT_UNKNOWN;
+	}
+
+	if (S_ISLNK(st.st_mode))	return CFDP_DIRENT_SYMLINK;
+	if (S_ISDIR(st.st_mode))	return CFDP_DIRENT_DIRECTORY;
+	if (S_ISREG(st.st_mode))	return CFDP_DIRENT_REGULAR;
+	return CFDP_DIRENT_OTHER;
+#endif
+}
+
+static int	writeListingRecordV2(int listing, unsigned char status,
+			unsigned char type, const char *name, int nameLen)
+{
+	unsigned char	header[2];
+
+	header[0] = status;
+	header[1] = type;
+	if (write(listing, header, 2) != 2)
+	{
+		return -1;
+	}
+
+	/*	Write name plus its terminating NUL.			*/
+
+	if (write(listing, name, nameLen + 1) != (nameLen + 1))
+	{
+		return -1;
+	}
+
+	return 0;
+}
+
 int	handleDirectoryListingRequest(CfdpUserOpsData *opsData)
 {
 	DIR		*dir;
 	char		listingFileName[256];
 	int		listing;
 	struct dirent	*entry;
-	char		listingLine[300];
+	int		nameLen;
+	char		fullPath[CFDP_DIRLIST_MAX_NAME + 256 + 2];
+	int		incomplete = 0;
+	int		useV2 = ((opsData->directoryListingOptions
+				& CFDP_DIRLIST_OPTION_STATUS_BYTES) != 0);
+	unsigned char	type;
 
 	if (strlen(opsData->directoryName) == 0
 	|| strlen(opsData->directoryDestFileName) == 0)
 	{
-		return sendDirectoryListingResponse(opsData, -1, NULL);
+		return sendDirectoryListingResponse(opsData, -1, NULL, 0);
 	}
 
 	dir = opendir(opsData->directoryName);
@@ -1247,7 +1446,7 @@ int	handleDirectoryListingRequest(CfdpUserOpsData *opsData)
 	{
 		putSysErrmsg("Can't list requested directory",
 				opsData->directoryName);
-		return sendDirectoryListingResponse(opsData, -1, NULL);
+		return sendDirectoryListingResponse(opsData, -1, NULL, 0);
 	}
 
 	isprintf(listingFileName, sizeof listingFileName, "dirlist_%lu",
@@ -1261,30 +1460,90 @@ int	handleDirectoryListingRequest(CfdpUserOpsData *opsData)
 		return -1;
 	}
 
-	while (1)
+	while ((entry = readdir(dir)) != NULL)
 	{
-		entry = readdir(dir);
-		if (entry == NULL)
+		/*	Skip "." and ".." in both formats.		*/
+
+		if (strcmp(entry->d_name, ".") == 0
+		|| strcmp(entry->d_name, "..") == 0)
 		{
-			break;
+			continue;
 		}
 
-		isprintf(listingLine, sizeof listingLine, "%.299s",
-				entry->d_name);
-		if (write(listing, listingLine, strlen(listingLine) + 1) < 0)
+		nameLen = strlen(entry->d_name);
+
+		if (useV2)
 		{
-			putSysErrmsg("Can't write directory listing file",
-					listingFileName);
-			close(listing);
-			closedir(dir);
-			unlink(listingFileName);
-			return -1;
+			/*	Drop entries we cannot fully convey.
+			 *	Truncating a name produces something
+			 *	that looks like a real fetchable
+			 *	filename but is not -- silent
+			 *	corruption.  Drop and signal via
+			 *	the listing-level incomplete flag
+			 *	instead.				*/
+
+			if (nameLen > CFDP_DIRLIST_MAX_NAME)
+			{
+				putErrmsg("Skipping over-length entry name",
+						entry->d_name);
+				incomplete = 1;
+				continue;
+			}
+
+			/*	Build full path for stat.  Length is
+			 *	already bounded: directoryName <= 255
+			 *	(per cfdp_rls_extended check) and
+			 *	nameLen <= CFDP_DIRLIST_MAX_NAME (511).
+			 *	fullPath is sized to hold both plus
+			 *	separator and NUL.			*/
+
+			isprintf(fullPath, sizeof fullPath, "%s/%s",
+					opsData->directoryName,
+					entry->d_name);
+
+			type = classifyDirEntry(fullPath);
+
+			if (writeListingRecordV2(listing, 0, type,
+					entry->d_name, nameLen) < 0)
+			{
+				putSysErrmsg("Listing write failed",
+						listingFileName);
+				incomplete = 1;
+				continue;
+			}
+		}
+		else
+		{
+			/*	Legacy format: stream of NUL-terminated
+			 *	names.  Drop over-length names rather
+			 *	than silently truncating them; truncation
+			 *	produces a name that looks fetchable but
+			 *	does not match any real file.		*/
+
+			if (nameLen > 255)
+			{
+				putErrmsg("Skipping over-length entry name "
+						"(legacy format cannot signal)",
+						entry->d_name);
+				incomplete = 1;
+				continue;
+			}
+
+			if (write(listing, entry->d_name, nameLen + 1)
+					!= (nameLen + 1))
+			{
+				putSysErrmsg("Can't write directory listing file",
+						listingFileName);
+				incomplete = 1;
+				continue;
+			}
 		}
 	}
 
 	close(listing);
 	closedir(dir);
-	return sendDirectoryListingResponse(opsData, 0, listingFileName);
+	return sendDirectoryListingResponse(opsData, 0, listingFileName,
+			incomplete);
 }
 
 int	cfdp_rls(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
@@ -1294,6 +1553,23 @@ int	cfdp_rls(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 		unsigned char *flowLabel, unsigned int closureLatency,
 		Object messagesToUser, Object filestoreRequests,
 		CfdpDirListTask *task, CfdpTransactionId *transactionId)
+{
+	return cfdp_rls_extended(respondentEntityNbr, utParmsLength, utParms,
+			sourceFileName, destFileName, readerFn, faultHandlers,
+			flowLabelLength, flowLabel, closureLatency,
+			messagesToUser, filestoreRequests, task, 0,
+			transactionId);
+}
+
+int	cfdp_rls_extended(CfdpNumber *respondentEntityNbr,
+		unsigned int utParmsLength, unsigned char *utParms,
+		char *sourceFileName, char *destFileName,
+		CfdpReaderFn readerFn, CfdpHandler *faultHandlers,
+		unsigned int flowLabelLength, unsigned char *flowLabel,
+		unsigned int closureLatency, Object messagesToUser,
+		Object filestoreRequests, CfdpDirListTask *task,
+		unsigned int listingOptions,
+		CfdpTransactionId *transactionId)
 {
 	Sdr		sdr = getIonsdr();
 	int		directoryNameLen;
@@ -1307,6 +1583,7 @@ int	cfdp_rls(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 	CHKERR(directoryNameLen > 0 && directoryNameLen < 256);
 	destFileNameLen = strlen(task->destFileName);
 	CHKERR(destFileNameLen > 0 && destFileNameLen < 256);
+	CHKERR((listingOptions & ~CFDP_DIRLIST_OPTION_STATUS_BYTES) == 0);
 	CHKERR(transactionId);
 	CHKERR(sdr_begin_xn(sdr));
 
@@ -1337,6 +1614,16 @@ int	cfdp_rls(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
 	length++;
 	memcpy(textBuffer + length, task->destFileName, destFileNameLen);
 	length += destFileNameLen;
+
+	/*	v2: append optional options byte.  Old responders
+	 *	stop parsing after destFileName and never read it.	*/
+
+	if (listingOptions != 0)
+	{
+		textBuffer[length] = (unsigned char) listingOptions;
+		length++;
+	}
+
 	if (length > 255)
 	{
 		sdr_list_destroy(sdr, messagesToUser, NULL, NULL);

@@ -4,6 +4,8 @@
 # Ohio University
 # December 15, 2011
 
+export ION_NODE_LIST_DIR=$PWD
+killm f
 echo "Cleaning up old ION..."
 rm -f 1.cfdp.ipn.bp.ltp.udp/ion.log
 rm -f 1.cfdp.ipn.bp.ltp.udp/output

@@ -1,0 +1,782 @@
+#!/usr/bin/env bash
+# ION System Diagnostics — collects forensic data from a running or hung ION instance.
+
+usage() {
+    cat <<'EOF'
+Usage: ion-diagnostics [--file FILE] [test-directory]
+       ion-diagnostics read [--file FILE] [section]
+
+Collect system-level forensic data from a running or hung ION instance,
+or read back sections from a previously collected diagnostics file.
+
+Subcommands:
+  (none)           Collect diagnostics (default mode)
+  read             Read/display sections from an existing diagnostics file
+
+Options:
+  --file FILE      Diagnostics file path (default: ./ion-system.log)
+  -h, --help       Show this help message and exit
+
+Collect mode:
+  [test-directory] Directory to search for node configs/logs (default: CWD)
+
+Read mode:
+  [section]        Section number (1-12) or name substring to display.
+                   Omit to list all sections with line counts.
+
+Sections:
+   1. Host information          7. IPC resources
+   2. ION process inventory     8. POSIX named semaphores
+   3. Stack traces              9. SDR & PSM snapshots
+   4. Kernel messages          10. Open file descriptors
+   5. Memory usage             11. ion.log (per-node)
+   6. Disk usage               12. Network sockets
+
+All commands are best-effort with short timeouts. Missing tools are
+skipped with a warning. No root required (ptrace_scope may limit
+stack traces without CAP_SYS_PTRACE).
+
+Examples:
+  # Collect diagnostics (writes ./ion-system.log)
+  ion-diagnostics
+
+  # Collect to a different file, from a specific test directory
+  ion-diagnostics --file /tmp/hung-test.log ./tests/bpcp-dirlist-truncation
+
+  # List all sections
+  ion-diagnostics read
+
+  # Display section 3 (Stack Traces)
+  ion-diagnostics read 3
+
+  # Display section by name substring
+  ion-diagnostics read stack
+
+  # Read from a specific file
+  ion-diagnostics read --file /tmp/hung-test.log 3
+EOF
+}
+
+# --- Read subcommand ---
+
+read_sections() {
+    local file="./ion-system.log"
+    local selector=""
+
+    # Parse --file flag from remaining args
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --file) shift; file="${1:-./ion-system.log}"; shift ;;
+            *)      selector="$1"; shift ;;
+        esac
+    done
+
+    if [ ! -f "$file" ]; then
+        echo "Error: file not found: $file" >&2
+        exit 1
+    fi
+
+    # Extract section headers with their line numbers.
+    # Sections are delimited by "========" bars. The title is the line
+    # immediately after an "========" bar that starts with "  " and a capital letter.
+    local sections=()
+    local line_nums=()
+    local prev_is_bar=0
+    local lnum=0
+
+    while IFS= read -r line; do
+        lnum=$((lnum + 1))
+        if echo "$line" | grep -q "^========"; then
+            prev_is_bar=1
+        elif [ $prev_is_bar -eq 1 ]; then
+            # This line follows a === bar — check if it's a section title
+            if echo "$line" | grep -q "^  [A-Za-z]"; then
+                local title="${line#"${line%%[![:space:]]*}"}"
+                # Skip the footer line
+                case "$title" in
+                    "Diagnostics collection complete"*) ;;
+                    *) sections+=("$title"); line_nums+=("$lnum") ;;
+                esac
+            fi
+            prev_is_bar=0
+        else
+            prev_is_bar=0
+        fi
+    done < "$file"
+
+    # Also find the "Diagnostics collection complete" footer as end marker
+    local total_lines
+    total_lines=$(wc -l < "$file")
+
+    if [ ${#sections[@]} -eq 0 ]; then
+        echo "Error: no sections found in $file (is this an ion-diagnostics output file?)" >&2
+        exit 1
+    fi
+
+    # No selector: list all sections with line counts
+    if [ -z "$selector" ]; then
+        echo "Sections in: $file"
+        echo ""
+        local i
+        for i in $(seq 0 $((${#sections[@]} - 1))); do
+            local start=${line_nums[$i]}
+            local end
+            if [ $i -lt $((${#sections[@]} - 1)) ]; then
+                end=${line_nums[$((i + 1))]}
+            else
+                end=$total_lines
+            fi
+            local count=$((end - start))
+            printf "  %2d. %-35s (%d lines)\n" $((i + 1)) "${sections[$i]}" "$count"
+        done
+        echo ""
+        if [ "$file" = "./ion-system.log" ]; then
+            echo "Use: ion-diagnostics read <number|name>"
+        else
+            echo "Use: ion-diagnostics read --file $file <number|name>"
+        fi
+        return
+    fi
+
+    # Selector: find matching section
+    local match_idx=-1
+
+    # Try numeric match first
+    if [[ "$selector" =~ ^[0-9]+$ ]]; then
+        if [ "$selector" -ge 1 ] && [ "$selector" -le ${#sections[@]} ]; then
+            match_idx=$((selector - 1))
+        else
+            echo "Error: section $selector out of range (1-${#sections[@]})" >&2
+            exit 1
+        fi
+    else
+        # Substring match (case-insensitive)
+        local lower_sel
+        lower_sel=$(echo "$selector" | tr '[:upper:]' '[:lower:]')
+        local i
+        for i in $(seq 0 $((${#sections[@]} - 1))); do
+            local lower_title
+            lower_title=$(echo "${sections[$i]}" | tr '[:upper:]' '[:lower:]')
+            if echo "$lower_title" | grep -q "$lower_sel"; then
+                match_idx=$i
+                break
+            fi
+        done
+        if [ $match_idx -eq -1 ]; then
+            echo "Error: no section matching '$selector'" >&2
+            echo "Available sections:" >&2
+            local i
+            for i in $(seq 0 $((${#sections[@]} - 1))); do
+                echo "  $((i + 1)). ${sections[$i]}" >&2
+            done
+            exit 1
+        fi
+    fi
+
+    # Extract and print the section
+    local start=${line_nums[$match_idx]}
+    local end
+    if [ $match_idx -lt $((${#sections[@]} - 1)) ]; then
+        end=${line_nums[$((match_idx + 1))]}
+    else
+        end=$total_lines
+    fi
+
+    # Print from 3 lines before the title (to include the === bar) through end
+    local display_start=$((start - 3))
+    [ $display_start -lt 1 ] && display_start=1
+    sed -n "${display_start},${end}p" "$file"
+}
+
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+    usage
+    exit 0
+fi
+
+if [ "${1:-}" = "read" ]; then
+    shift
+    read_sections "$@"
+    exit $?
+fi
+
+# --- Collect mode argument parsing ---
+
+OUTPUT="./ion-system.log"
+TESTDIR="."
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --file) shift; OUTPUT="${1:-./ion-system.log}"; shift ;;
+        *)      TESTDIR="$1"; shift ;;
+    esac
+done
+
+set -u
+TESTDIR="$(cd "$TESTDIR" 2>/dev/null && pwd)" || TESTDIR="$(pwd)"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROCESS_FILE="${SCRIPT_DIR}/ionprocesses.txt"
+
+CMD_TIMEOUT=5
+STACK_TIMEOUT=15
+PLATFORM="$(uname -s)"
+
+# Truncate output file
+: > "$OUTPUT"
+
+# --- Helpers ---
+
+section() {
+    local title="$1"
+    {
+        echo ""
+        echo "========================================================================"
+        echo "  $title"
+        echo "  $(date '+%Y-%m-%d %H:%M:%S %Z')"
+        echo "========================================================================"
+        echo ""
+    } >> "$OUTPUT"
+}
+
+run_cmd() {
+    timeout "$CMD_TIMEOUT" "$@" 2>&1 || echo "(command failed or timed out: $*)"
+}
+
+warn() {
+    echo "  [WARN] $*" >> "$OUTPUT"
+}
+
+# --- Platform detection ---
+
+is_linux()  { [ "$PLATFORM" = "Linux" ]; }
+is_solaris() { [ "$PLATFORM" = "SunOS" ]; }
+
+# --- Locate ION process list ---
+
+if [ ! -f "$PROCESS_FILE" ]; then
+    echo "ERROR: ionprocesses.txt not found at $PROCESS_FILE" | tee -a "$OUTPUT"
+    echo "Cannot identify ION processes without it." | tee -a "$OUTPUT"
+    exit 1
+fi
+
+IONPROCESSLIST=$(grep -v '^#' "$PROCESS_FILE" | grep -v '^[[:space:]]*$' | tr '\n' ' ')
+
+# ========================================================================
+# Section 1: Host Information
+# ========================================================================
+
+section "Host Information"
+{
+    echo "Hostname: $(hostname)"
+    echo "Date:     $(date)"
+    echo "Uname:    $(uname -a)"
+    echo "User:     $(whoami)"
+    echo "CWD:      $(pwd)"
+    echo "TestDir:  $TESTDIR"
+    echo ""
+    if [ -f /etc/os-release ]; then
+        echo "OS Release:"
+        cat /etc/os-release 2>/dev/null
+    elif [ -f /etc/redhat-release ]; then
+        cat /etc/redhat-release 2>/dev/null
+    elif is_solaris; then
+        cat /etc/release 2>/dev/null
+    fi
+} >> "$OUTPUT"
+
+# ========================================================================
+# Section 2: ION Process Inventory
+# ========================================================================
+
+section "ION Process Inventory"
+
+# Compute ION process list first (outside the redirect block so variable persists)
+#
+# Include 'comm' (kernel process name, always a single token) alongside 'args'
+# so we can match on comm rather than parsing args.  Matching on the last word
+# of args silently misses every daemon launched with arguments — bpadmin (.),
+# tcc/tcacompile/tcarecv (blocksGroupNbr), udplsi/udplso (host:port), etc. —
+# leaving them out of the inventory and the stack-trace dump.
+PS_OUT=$(ps -eo pid,ppid,stat,user,rss,vsz,time,etime,comm,args 2>/dev/null || \
+         ps -eo pid,ppid,stat,user,rss,vsz,time,etime,args 2>/dev/null || \
+         ps -fe 2>/dev/null)
+ION_PIDS=""
+
+if [ -z "$PS_OUT" ]; then
+    warn "ps command failed" >> "$OUTPUT"
+else
+    # Detect PID and command columns from the ps header so we work across
+    # both `ps -eo pid,...` (PID at $1, COMMAND at $9) and `ps -fe`
+    # (PID at $2, CMD at $8).
+    read -r pid_field cmd_field < <(echo "$PS_OUT" | awk 'NR==1 {
+        p = 0; c = 0
+        for (i = 1; i <= NF; i++) {
+            if ($i == "PID" && p == 0) p = i
+            if (($i == "COMMAND" || $i == "CMD") && c == 0) c = i
+        }
+        print (p ? p : 1), (c ? c : 9)
+        exit
+    }')
+
+    {
+        echo "  PID     PPID   STAT  USER       RSS      VSZ     TIME     ELAPSED  COMMAND"
+        echo "  ------  -----  ----  --------  ------  --------  -------  -------  -------"
+    } >> "$OUTPUT"
+
+    while IFS= read -r proc_name; do
+        [ -z "$proc_name" ] && continue
+        local_matches=$(echo "$PS_OUT" | awk -v name="$proc_name" -v f="$cmd_field" '
+            NR == 1 { next }
+            {
+                cmd = $f
+                sub(/.*\//, "", cmd)
+                if (cmd == name) print
+            }')
+        if [ -n "$local_matches" ]; then
+            echo "$local_matches" | sed 's/^/  /' >> "$OUTPUT"
+            local_pids=$(echo "$local_matches" | awk -v p="$pid_field" '{print $p}')
+            ION_PIDS="$ION_PIDS $local_pids"
+        fi
+    done <<< "$(echo "$IONPROCESSLIST" | tr ' ' '\n')"
+
+    ION_PIDS=$(echo "$ION_PIDS" | tr ' ' '\n' | sort -un | tr '\n' ' ')
+    echo "" >> "$OUTPUT"
+    echo "  ION PIDs found: ${ION_PIDS:-none}" >> "$OUTPUT"
+fi
+
+# ========================================================================
+# Section 3: Stack Traces
+# ========================================================================
+
+section "Stack Traces (ION Processes)"
+{
+    if [ -z "$ION_PIDS" ]; then
+        echo "  No ION processes found — skipping stack traces."
+    else
+        # Check ptrace scope
+        if is_linux && [ -f /proc/sys/kernel/yama/ptrace_scope ]; then
+            local_scope=$(cat /proc/sys/kernel/yama/ptrace_scope 2>/dev/null)
+            if [ "$local_scope" != "0" ]; then
+                warn "ptrace_scope=$local_scope — stack traces may fail without CAP_SYS_PTRACE or sudo"
+            fi
+        fi
+
+        HAS_GDB=0
+        HAS_EUSTACK=0
+        HAS_MDB=0
+        command -v gdb >/dev/null 2>&1 && HAS_GDB=1
+        command -v eu-stack >/dev/null 2>&1 && HAS_EUSTACK=1
+        is_solaris && command -v mdb >/dev/null 2>&1 && HAS_MDB=1
+
+        if [ $HAS_GDB -eq 0 ] && [ $HAS_EUSTACK -eq 0 ] && [ $HAS_MDB -eq 0 ]; then
+            warn "No debugger available (gdb, eu-stack, mdb) — cannot collect stack traces"
+        else
+            for pid in $ION_PIDS; do
+                local_exe=$(readlink "/proc/$pid/exe" 2>/dev/null || ps -p "$pid" -o comm= 2>/dev/null)
+                echo ""
+                echo "--- PID $pid ($local_exe) ---"
+                if [ $HAS_GDB -eq 1 ]; then
+                    timeout "$STACK_TIMEOUT" gdb -batch \
+                        -ex "set pagination off" \
+                        -ex "thread apply all bt full" \
+                        -p "$pid" 2>&1 || echo "  (gdb attach failed for PID $pid)"
+                elif [ $HAS_EUSTACK -eq 1 ]; then
+                    timeout "$STACK_TIMEOUT" eu-stack -p "$pid" 2>&1 || \
+                        echo "  (eu-stack failed for PID $pid)"
+                elif [ $HAS_MDB -eq 1 ]; then
+                    echo '::walk thread | ::findstack -v' | \
+                        timeout "$STACK_TIMEOUT" mdb -p "$pid" 2>&1 || \
+                        echo "  (mdb failed for PID $pid)"
+                fi
+            done
+        fi
+    fi
+
+    # ----------------------------------------------------------------
+    # Core file stack traces
+    # ----------------------------------------------------------------
+    # Crashes that occur before diagnostics runs leave the processes
+    # dead but may leave a core file behind. Locate them by querying
+    # the kernel's configured core destination, then run gdb on each.
+    # Cores produced before ION_DIAG_SINCE (set by runtests to the
+    # test start time) are skipped; if unset, fall back to "modified
+    # in the last hour".
+
+    echo ""
+    echo "--- Core File Stack Traces ---"
+
+    CORE_SEARCH_DIRS=""
+    CORE_PATTERN=""
+    if is_linux && [ -r /proc/sys/kernel/core_pattern ]; then
+        CORE_PATTERN=$(cat /proc/sys/kernel/core_pattern 2>/dev/null)
+        echo "  kernel core_pattern: $CORE_PATTERN"
+        case "$CORE_PATTERN" in
+            "|"*systemd-coredump*)
+                if command -v coredumpctl >/dev/null 2>&1; then
+                    if [ -n "${ION_DIAG_SINCE:-}" ]; then
+                        SINCE_ARG="--since=@${ION_DIAG_SINCE}"
+                    else
+                        SINCE_ARG="--since=-1h"
+                    fi
+                    echo ""
+                    echo "  coredumpctl recent dumps ($SINCE_ARG):"
+                    timeout "$CMD_TIMEOUT" coredumpctl list "$SINCE_ARG" --no-pager 2>&1 | head -50
+                    # For each fresh ION-related dump, dump its info + bt
+                    timeout "$CMD_TIMEOUT" coredumpctl list "$SINCE_ARG" --no-pager --no-legend 2>/dev/null |
+                        awk '{print $5, $0}' |
+                        while read -r exe rest; do
+                            base=$(basename "$exe" 2>/dev/null)
+                            for proc in $IONPROCESSLIST; do
+                                if [ "$base" = "$proc" ]; then
+                                    pid=$(echo "$rest" | awk '{print $4}')
+                                    echo ""
+                                    echo "--- coredumpctl dump: $base (PID $pid) ---"
+                                    timeout "$STACK_TIMEOUT" coredumpctl info "$pid" 2>&1 | head -40
+                                    if command -v gdb >/dev/null 2>&1; then
+                                        timeout "$STACK_TIMEOUT" coredumpctl debug "$pid" \
+                                            --debugger=gdb \
+                                            --debugger-arguments="-batch -ex 'set pagination off' -ex 'thread apply all bt full'" \
+                                            2>&1 || echo "  (coredumpctl debug failed for $base/$pid)"
+                                    fi
+                                    break
+                                fi
+                            done
+                        done
+                    CORE_SEARCH_DIRS=""    # systemd-coredump owns them; don't double-scan
+                else
+                    echo "  systemd-coredump in use but coredumpctl not available"
+                fi
+                ;;
+            /*)
+                # Literal absolute path pattern (e.g. /var/cores/core.%e.%p)
+                CORE_SEARCH_DIRS=$(dirname "$CORE_PATTERN")
+                ;;
+            *)
+                # Relative pattern: cores land in CWD of the crashing process.
+                CORE_SEARCH_DIRS="$TESTDIR"
+                ;;
+        esac
+    elif is_solaris; then
+        if command -v coreadm >/dev/null 2>&1; then
+            echo "  coreadm settings:"
+            timeout "$CMD_TIMEOUT" coreadm 2>&1 | head -20
+            GLOBAL_DIR=$(coreadm 2>/dev/null | awk -F: '/global core file pattern/ {print $2}' | sed 's/[ \t]*//; s|/[^/]*$||')
+            INIT_DIR=$(coreadm 2>/dev/null | awk -F: '/init core file pattern/ {print $2}' | sed 's/[ \t]*//; s|/[^/]*$||')
+            CORE_SEARCH_DIRS=$(printf '%s\n%s\n%s' "$GLOBAL_DIR" "$INIT_DIR" "$TESTDIR" | sort -u | tr '\n' ' ')
+        else
+            CORE_SEARCH_DIRS="$TESTDIR"
+        fi
+    else
+        CORE_SEARCH_DIRS="$TESTDIR"
+    fi
+
+    if [ -n "$CORE_SEARCH_DIRS" ]; then
+        # Build find args. Honor ION_DIAG_SINCE if set; else "last hour".
+        if [ -n "${ION_DIAG_SINCE:-}" ]; then
+            # GNU find supports -newermt; BSD/Solaris find does not. Use a
+            # reference file with the desired mtime for portability.
+            REF_FILE=$(mktemp -t ion-diag-ref.XXXXXX 2>/dev/null || echo "/tmp/ion-diag-ref.$$")
+            touch -d "@${ION_DIAG_SINCE}" "$REF_FILE" 2>/dev/null || \
+                touch -t "$(date -d "@${ION_DIAG_SINCE}" +%Y%m%d%H%M.%S 2>/dev/null)" "$REF_FILE" 2>/dev/null || \
+                : > "$REF_FILE"
+            FRESH_ARG="-newer $REF_FILE"
+        else
+            FRESH_ARG="-mmin -60"
+            REF_FILE=""
+        fi
+
+        for dir in $CORE_SEARCH_DIRS; do
+            [ -d "$dir" ] || continue
+            # shellcheck disable=SC2086
+            find "$dir" -maxdepth 4 \( -name "core" -o -name "core.*" \) \
+                -type f $FRESH_ARG 2>/dev/null
+        done | sort -u | while read -r core; do
+            [ -f "$core" ] || continue
+            # Identify the executable that produced this core
+            exe=""
+            if command -v file >/dev/null 2>&1; then
+                exe=$(file "$core" 2>/dev/null | sed -n "s/.*execfn: '\([^']*\)'.*/\1/p")
+                [ -z "$exe" ] && exe=$(file "$core" 2>/dev/null | sed -n "s/.*from '\([^ ']*\).*/\1/p")
+            fi
+            echo ""
+            echo "--- core: $core (exe: ${exe:-unknown}) ---"
+            if command -v gdb >/dev/null 2>&1 && [ -n "$exe" ] && [ -x "$exe" ]; then
+                timeout "$STACK_TIMEOUT" gdb -batch \
+                    -ex "set pagination off" \
+                    -ex "thread apply all bt full" \
+                    "$exe" "$core" 2>&1 || echo "  (gdb on core failed)"
+            elif command -v gdb >/dev/null 2>&1; then
+                # No exe resolved — gdb can still extract a basic backtrace
+                timeout "$STACK_TIMEOUT" gdb -batch \
+                    -ex "set pagination off" \
+                    -ex "thread apply all bt" \
+                    --core "$core" 2>&1 || echo "  (gdb on core failed; exe unresolved)"
+            elif is_solaris && command -v mdb >/dev/null 2>&1; then
+                echo '::stack' | timeout "$STACK_TIMEOUT" mdb "$core" 2>&1 || \
+                    echo "  (mdb on core failed)"
+            else
+                echo "  (no debugger available to inspect core)"
+            fi
+        done
+        [ -n "$REF_FILE" ] && rm -f "$REF_FILE"
+    fi
+} >> "$OUTPUT"
+
+# ========================================================================
+# Section 4: Kernel Messages (dmesg)
+# ========================================================================
+
+section "Kernel Messages (last 200 lines)"
+{
+    if is_linux; then
+        # Try timestamped format first, fall back to plain
+        if dmesg --time-format=iso 2>/dev/null | tail -200; then
+            :
+        elif dmesg 2>/dev/null | tail -200; then
+            :
+        else
+            warn "dmesg not available or permission denied"
+        fi
+    elif is_solaris; then
+        dmesg 2>/dev/null | tail -200 || warn "dmesg not available"
+    else
+        dmesg 2>/dev/null | tail -200 || warn "dmesg not available"
+    fi
+} >> "$OUTPUT"
+
+# ========================================================================
+# Section 5: Memory
+# ========================================================================
+
+section "Memory Usage"
+{
+    if is_linux; then
+        run_cmd free -m
+    elif is_solaris; then
+        run_cmd prtconf 2>/dev/null | grep "Memory"
+        run_cmd vmstat 1 1
+    else
+        run_cmd vm_stat 2>/dev/null || run_cmd free -m 2>/dev/null || warn "Cannot determine memory usage"
+    fi
+} >> "$OUTPUT"
+
+# ========================================================================
+# Section 6: Disk Usage
+# ========================================================================
+
+section "Disk Usage"
+{
+    echo "  Relevant mounts:"
+    run_cmd df -h / /tmp "$TESTDIR" 2>/dev/null | sort -u
+} >> "$OUTPUT"
+
+# ========================================================================
+# Section 7: IPC Resources
+# ========================================================================
+
+section "IPC Resources (current user)"
+{
+    USERNAME_CUT=$(whoami | cut -c 1-10)
+    echo "  User (truncated for ipcs matching): $USERNAME_CUT"
+    echo ""
+    echo "  --- Shared Memory ---"
+    ipcs -m 2>/dev/null | grep "$USERNAME_CUT" || echo "  (none)"
+    echo ""
+    echo "  --- Message Queues ---"
+    ipcs -q 2>/dev/null | grep "$USERNAME_CUT" || echo "  (none)"
+    echo ""
+    echo "  --- Semaphore Sets ---"
+    ipcs -s 2>/dev/null | grep "$USERNAME_CUT" || echo "  (none)"
+} >> "$OUTPUT"
+
+# ========================================================================
+# Section 8: POSIX Named Semaphore Files
+# ========================================================================
+
+section "POSIX Named Semaphore Files"
+{
+    found_any=0
+    for sem_dir in "/dev/shm" "/tmp" "/tmp/.LIBRT/SEMD" "/tmp/.LIBRT/SEML"; do
+        [ -d "$sem_dir" ] || continue
+        local_files=""
+        for pattern in "*ion:GLOBAL*" "sem.ion:GLOBAL*" ".SEM*ion:GLOBAL*" "SEM*ion:GLOBAL*"; do
+            for f in "$sem_dir"/$pattern; do
+                [ -e "$f" ] && local_files="$local_files $f"
+            done
+        done
+        if [ -n "$local_files" ]; then
+            echo "  Directory: $sem_dir"
+            for f in $local_files; do
+                ls -la "$f" 2>/dev/null | sed 's/^/    /'
+            done
+            found_any=1
+        fi
+    done
+    if [ $found_any -eq 0 ]; then
+        echo "  No ION POSIX named semaphore files found."
+    fi
+} >> "$OUTPUT"
+
+# ========================================================================
+# Section 9: SDR & PSM Snapshots (per-node)
+# ========================================================================
+
+section "SDR & PSM Snapshots (per-node)"
+{
+    # Find node directories: any dir with ion.log at depth <= 2 is a node working dir.
+    # Depth 1 = single-node test (ion.log in TESTDIR), depth 2 = multi-node (node1/ion.log).
+    node_dirs=()
+    while IFS= read -r logfile; do
+        node_dirs+=("$(dirname "$logfile")")
+    done < <(find "$TESTDIR" -maxdepth 2 -name "ion.log" -type f 2>/dev/null)
+
+    # Fallback: if no ion.log found, try TESTDIR itself
+    if [ ${#node_dirs[@]} -eq 0 ]; then
+        node_dirs=("$TESTDIR")
+    fi
+
+    for node_dir in "${node_dirs[@]}"; do
+        node_name=$(basename "$node_dir")
+        # Extract sdrName from any .ionconfig in this directory
+        sdr_name="ion"
+        cfg=$(find "$node_dir" -maxdepth 1 -name "*.ionconfig" 2>/dev/null | head -1)
+        if [ -n "$cfg" ]; then
+            extracted=$(awk '/^[[:space:]]*sdrName/{print $2}' "$cfg" 2>/dev/null)
+            [ -n "$extracted" ] && sdr_name="$extracted"
+        fi
+
+        echo ""
+        echo "--- Node: $node_name (sdrName=$sdr_name, dir=$node_dir) ---"
+        echo ""
+        echo "  [sdrwatch $sdr_name -s 1 1]"
+        sdr_out=$( (cd "$node_dir" && timeout "$CMD_TIMEOUT" sdrwatch "$sdr_name" -s 1 1) 2>/dev/null ) && \
+            echo "$sdr_out" || echo "  (sdrwatch failed — node may be dead or not attached)"
+        echo ""
+        echo "  [psmwatch 1 1]"
+        psm_out=$( (cd "$node_dir" && timeout "$CMD_TIMEOUT" psmwatch 1 1) 2>/dev/null ) && \
+            echo "$psm_out" || echo "  (psmwatch failed — node may be dead or not attached)"
+    done
+} >> "$OUTPUT"
+
+# ========================================================================
+# Section 10: Open Files (ION processes)
+# ========================================================================
+
+section "Open Files (ION Processes)"
+{
+    if [ -z "$ION_PIDS" ]; then
+        echo "  No ION processes found — skipping."
+    else
+        for pid in $ION_PIDS; do
+            local_exe=$(readlink "/proc/$pid/exe" 2>/dev/null || ps -p "$pid" -o comm= 2>/dev/null)
+            echo ""
+            echo "--- PID $pid ($local_exe) ---"
+            if is_solaris && command -v pfiles >/dev/null 2>&1; then
+                # Solaris /proc/PID/fd entries aren't symlinks — `ls -la`
+                # doesn't show the underlying paths. Use pfiles instead.
+                timeout "$CMD_TIMEOUT" pfiles "$pid" 2>/dev/null | head -100 | sed 's/^/  /' || \
+                    echo "  (pfiles failed for PID $pid)"
+            elif is_linux && [ -d "/proc/$pid/fd" ]; then
+                ls -la "/proc/$pid/fd" 2>/dev/null | head -50 | sed 's/^/  /'
+                fd_count=$(ls "/proc/$pid/fd" 2>/dev/null | wc -l)
+                [ "$fd_count" -gt 50 ] && echo "  ... ($fd_count total fds, showing first 50)"
+            elif command -v lsof >/dev/null 2>&1; then
+                timeout "$CMD_TIMEOUT" lsof -p "$pid" 2>/dev/null | head -50 | sed 's/^/  /'
+            else
+                echo "  (cannot inspect open files — no /proc, lsof, or pfiles)"
+            fi
+        done
+    fi
+} >> "$OUTPUT"
+
+# ========================================================================
+# Section 11: ion.log Tails (per-node)
+# ========================================================================
+
+section "ion.log (per-node, last 100 lines each)"
+{
+    found_logs=0
+    while IFS= read -r logfile; do
+        found_logs=1
+        node_dir=$(dirname "$logfile")
+        node_name=$(basename "$node_dir")
+        # Use relative path from TESTDIR for clarity
+        rel_path="${logfile#"$TESTDIR"/}"
+        echo ""
+        echo "=== ion.log [$node_name] ($rel_path) ==="
+        echo ""
+        tail -100 "$logfile" 2>/dev/null | sed 's/^/  /'
+    done < <(find "$TESTDIR" -maxdepth 2 -name "ion.log" -type f 2>/dev/null | sort)
+
+    if [ $found_logs -eq 0 ]; then
+        echo "  No ion.log files found under $TESTDIR"
+    fi
+} >> "$OUTPUT"
+
+# ========================================================================
+# Section 12: Network Sockets
+# ========================================================================
+
+section "Network Sockets (ION processes)"
+{
+    if [ -z "$ION_PIDS" ]; then
+        echo "  No ION processes found — skipping."
+    elif is_linux && command -v ss >/dev/null 2>&1; then
+        # Build pid filter for ss
+        pid_filter=""
+        for pid in $ION_PIDS; do
+            [ -n "$pid_filter" ] && pid_filter="$pid_filter or "
+            pid_filter="${pid_filter}pid = $pid"
+        done
+        echo "  Filter: $pid_filter"
+        echo ""
+        run_cmd ss -tunap "( $pid_filter )" 2>/dev/null || \
+            run_cmd ss -tunap 2>/dev/null | grep -F "$(echo $ION_PIDS | tr ' ' '\n')" || \
+            warn "ss filtering failed"
+    elif is_solaris; then
+        # Solaris netstat has no pid column and doesn't accept -tunap.
+        # Use pfiles to enumerate each ION process's sockets, then dump
+        # the full TCP/UDP tables for cross-reference.
+        if command -v pfiles >/dev/null 2>&1; then
+            echo "  --- Sockets per ION PID (via pfiles) ---"
+            for pid in $ION_PIDS; do
+                echo ""
+                echo "--- PID $pid ---"
+                timeout "$CMD_TIMEOUT" pfiles "$pid" 2>/dev/null | \
+                    awk '/SOCK_(STREAM|DGRAM)/ {p=1; print; next}
+                         p && /^[[:space:]]/ {print; next}
+                         {p=0}' | sed 's/^/  /' || \
+                    echo "  (pfiles failed for PID $pid)"
+            done
+        else
+            echo "  (pfiles unavailable — cannot map sockets to ION PIDs)"
+        fi
+        echo ""
+        echo "  --- TCP table (netstat -an -P tcp) ---"
+        run_cmd netstat -an -P tcp 2>/dev/null | head -50
+        echo ""
+        echo "  --- UDP table (netstat -an -P udp) ---"
+        run_cmd netstat -an -P udp 2>/dev/null | head -50
+    elif command -v netstat >/dev/null 2>&1; then
+        run_cmd netstat -tunap 2>/dev/null | head -5
+        for pid in $ION_PIDS; do
+            run_cmd netstat -tunap 2>/dev/null | grep "$pid/"
+        done
+    else
+        warn "No network socket tool available (ss, netstat, pfiles)"
+    fi
+} >> "$OUTPUT"
+
+# ========================================================================
+# Footer
+# ========================================================================
+
+{
+    echo ""
+    echo "========================================================================"
+    echo "  Diagnostics collection complete: $(date '+%Y-%m-%d %H:%M:%S %Z')"
+    echo "  Output written to: $OUTPUT"
+    echo "========================================================================"
+} >> "$OUTPUT"
+
+echo "ion-diagnostics: wrote $(wc -l < "$OUTPUT") lines to $OUTPUT"

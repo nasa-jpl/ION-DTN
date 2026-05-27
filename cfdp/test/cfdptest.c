@@ -9,6 +9,7 @@
 #include "cfdp.h"
 #include "bputa.h"
 #include "cfdpP.h"
+#include <glob.h>
 
 /* check directory listing extension */
 #ifndef NO_DIRLIST
@@ -895,7 +896,8 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
 		CfdpCondition condition, CfdpDeliveryCode deliveryCode,
 		CfdpFileStatus fileStatus, uvast progress,
 		CfdpTransactionId *transactionId,
-		unsigned int closureRequested, char *destFileNameBuf)
+		unsigned int closureRequested, char *sourceFileNameBuf,
+		char *destFileNameBuf, uvast fileSize)
 {
 	uvast srcEntityNbr, txnNbr;
 	char entityBuf[FQN_MAX_LENGTH];
@@ -972,9 +974,79 @@ static void reportCfdpEvent(CfdpEventType type, char *statusReportBuf,
 
 	/* Display event-specific critical parameters based on field applicability analysis */
 	switch (type) {
-		case CfdpTransactionInd:          // Event 1
-		case CfdpEofSentInd:              // Event 2
 		case CfdpMetadataRecvInd:         // Event 4
+			if (sourceFileNameBuf && sourceFileNameBuf[0]) {
+				PUTS_FMT("Source File: %s", sourceFileNameBuf);
+			}
+			if (destFileNameBuf && destFileNameBuf[0]) {
+				PUTS_FMT("Dest File: %s", destFileNameBuf);
+			}
+			if (fileSize > 0) {
+				PUTS_FMT("File Size: " UVAST_FIELDSPEC " bytes", fileSize);
+			}
+			/* Update tracker with file info from metadata */
+			{
+				int tidx = findTransactionIndex(transactionId);
+				if (tidx >= 0) {
+					if (sourceFileNameBuf && sourceFileNameBuf[0]
+					&& !transactionTrackers[tidx].sourceFileName[0]) {
+						istrcpy(transactionTrackers[tidx].sourceFileName,
+							sourceFileNameBuf,
+							sizeof(transactionTrackers[tidx].sourceFileName));
+					}
+					if (destFileNameBuf && destFileNameBuf[0]
+					&& !transactionTrackers[tidx].destFileName[0]) {
+						istrcpy(transactionTrackers[tidx].destFileName,
+							destFileNameBuf,
+							sizeof(transactionTrackers[tidx].destFileName));
+					}
+					if (fileSize > 0) {
+						transactionTrackers[tidx].fileSize = fileSize;
+					}
+				}
+			}
+			if (condition != CfdpNoError) {
+				PUTS_FMT("Condition: %s (%d)", getConditionName(condition), condition);
+			}
+			break;
+
+		case CfdpTransactionInd:          // Event 1
+			if (sourceFileNameBuf && sourceFileNameBuf[0]) {
+				PUTS_FMT("Source File: %s", sourceFileNameBuf);
+			}
+			if (destFileNameBuf && destFileNameBuf[0]) {
+				PUTS_FMT("Dest File: %s", destFileNameBuf);
+			}
+			if (fileSize > 0) {
+				PUTS_FMT("File Size: " UVAST_FIELDSPEC " bytes", fileSize);
+			}
+			/* Update tracker with file info from event */
+			{
+				int tidx = findTransactionIndex(transactionId);
+				if (tidx >= 0) {
+					if (sourceFileNameBuf && sourceFileNameBuf[0]
+					&& !transactionTrackers[tidx].sourceFileName[0]) {
+						istrcpy(transactionTrackers[tidx].sourceFileName,
+							sourceFileNameBuf,
+							sizeof(transactionTrackers[tidx].sourceFileName));
+					}
+					if (destFileNameBuf && destFileNameBuf[0]
+					&& !transactionTrackers[tidx].destFileName[0]) {
+						istrcpy(transactionTrackers[tidx].destFileName,
+							destFileNameBuf,
+							sizeof(transactionTrackers[tidx].destFileName));
+					}
+					if (fileSize > 0) {
+						transactionTrackers[tidx].fileSize = fileSize;
+					}
+				}
+			}
+			if (condition != CfdpNoError) {
+				PUTS_FMT("Condition: %s (%d)", getConditionName(condition), condition);
+			}
+			break;
+
+		case CfdpEofSentInd:              // Event 2
 		case CfdpFileSegmentRecvInd:      // Event 5
 		case CfdpEofRecvInd:              // Event 6
 		case CfdpSuspendedInd:            // Event 7
@@ -1127,6 +1199,8 @@ custody transfer>");
 	PUTS("\t   R");
 	PUTS("\tu\tAdd message to user");
 	PUTS("\t   u '<message text>'");
+	PUTS("\tx\tList local directory (supports wildcards)");
+	PUTS("\t   x [directory_path_or_pattern]");
 	PUTS("\tL <remote_dir> <local_file>\tList remote directory (ION extension).");
 	PUTS("\tD <local_file>\t\tDisplay directory listing file (ION extension).");
 	PUTS("\t&\tSend file per specified parameters");
@@ -1222,6 +1296,87 @@ static void	setDestFileName(int tokenCount, char **tokens,
 
 	isprintf(destFileNameBuf, 256, "%.255s", tokens[1]);
 	*destFileName = destFileNameBuf;
+}
+
+static int	hasGlobChars(const char *s)
+{
+	while (*s)
+	{
+		if (*s == '*' || *s == '?' || *s == '[')
+		{
+			return 1;
+		}
+
+		s++;
+	}
+
+	return 0;
+}
+
+static void	listLocalDirectory(int tokenCount, char **tokens)
+{
+	const char	*path;
+	DIR		*dir;
+	struct dirent	*entry;
+	glob_t		results;
+	int		rc;
+	size_t		i;
+
+	if (tokenCount > 2)
+	{
+		PUTS("Usage: x [directory_path_or_pattern]");
+		fflush(stdout);
+		return;
+	}
+
+	path = (tokenCount == 2) ? tokens[1] : ".";
+
+	if (hasGlobChars(path))
+	{
+		rc = glob(path, GLOB_NOSORT, NULL, &results);
+		if (rc == GLOB_NOMATCH)
+		{
+			PUTS_FMT("No matches for '%s'", path);
+			return;
+		}
+
+		if (rc != 0)
+		{
+			PUTS_FMT("Glob error on '%s'", path);
+			return;
+		}
+
+		PUTS_FMT("Matches for: %s", path);
+		for (i = 0; i < results.gl_pathc; i++)
+		{
+			PUTS_FMT("  %s", results.gl_pathv[i]);
+		}
+
+		globfree(&results);
+		return;
+	}
+
+	dir = opendir(path);
+	if (dir == NULL)
+	{
+		PUTS_FMT("Can't open directory '%s': %s", path,
+				strerror(errno));
+		return;
+	}
+
+	PUTS_FMT("Directory: %s", path);
+	while ((entry = readdir(dir)) != NULL)
+	{
+		if (strcmp(entry->d_name, ".") == 0
+		|| strcmp(entry->d_name, "..") == 0)
+		{
+			continue;
+		}
+
+		PUTS_FMT("  %s", entry->d_name);
+	}
+
+	closedir(dir);
 }
 
 static void	resetFileNames(int tokenCount, char **tokens,
@@ -1618,7 +1773,7 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 
 	/*	Skip over any trailing whitespace.			*/
 
-	while (isspace((int) *cursor))
+	while (isspace((unsigned char) *cursor))
 	{
 		cursor++;
 	}
@@ -1760,6 +1915,10 @@ static int	processLine(char *line, int lineLength, CfdpReqParms *parms)
 			displayDirListing(tokens[1]);
 			return 0;
 #endif
+
+		case 'x':
+			listLocalDirectory(tokenCount, tokens);
+			return 0;
 
 		case '&':
 			if (cfdp_put(&(parms->destinationEntityNbr),
@@ -2074,7 +2233,7 @@ static void	*handleEvents(void *parm)
 
 		reportCfdpEvent(type, statusReportBuf, condition, deliveryCode,
 			fileStatus, progress, &transactionId, closureRequested,
-			destFileNameBuf);
+			sourceFileNameBuf, destFileNameBuf, fileSize);
 
 		if (type == CfdpAccessEnded)
 		{
@@ -2163,7 +2322,7 @@ static int	runCfdptestInteractive(void)
 	char		line[256];
 	int		len;
 	pthread_t	receiverThread;
-	int		running = 1;
+	static int	running = 1;
 	CfdpReqParms	parms;
 
 	/*	Start the receiver thread.				*/

@@ -6,6 +6,7 @@
 #
 # Cleanup Script for LTP over DCCP test
 
+killm f
 DCCPTEST=./dccptest.txt
 LINUXTEST=./linuxtest.txt
 IONSENDFILE=./ionsendfile.txt

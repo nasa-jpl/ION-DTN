@@ -17,6 +17,7 @@
 #ifdef build_dccp
 
 #include "dccplsa.h"
+#include "ion_atomic.h"
 #include <lyst.h>
 
 static void	interruptThread(int signum)
@@ -41,7 +42,7 @@ typedef struct
 	int				sock;
 	pthread_t		mainThread;
 	pthread_t		me;
-	int				running;
+	ion_atomic_t	running;
 	pthread_mutex_t *elk;
 	Lyst			*list;
 } ReceiverThreadParms;
@@ -74,6 +75,7 @@ int remove_thread(Lyst *list, ReceiverThreadParms *rtp)
 		r = (ReceiverThreadParms *) lyst_data(elmt);
 		if (r->sock == rtp->sock && pthread_equal(r->me, rtp->me))
 		{
+			ion_atomic_mutex_destroy(&r->running);
 			MRELEASE(r);
 			lyst_delete(elmt);
 			return 1;
@@ -114,7 +116,7 @@ static void *Recieve_DCCP(void *param)
 
 	/*	Can now start receiving segments.  On failure, take
 	 *	down just this thread				*/
-	while (rtp->running)
+	while (ion_atomic_get(&rtp->running))
 	{
 		segmentLength = irecv(rtp->sock, buffer, DCCPLSA_BUFSZ, 0);
 		if (segmentLength < 0)
@@ -125,19 +127,19 @@ static void *Recieve_DCCP(void *param)
 			}
 
 			putErrmsg("DCCPLSI recv() call failed.", NULL);
-			rtp->running = 0;
+			ion_atomic_set(&rtp->running, 0);
 			continue;
 			/* Take down this thread		*/
 		}
 
 		if (segmentLength == 0) /* EOF 		*/
 		{
-			rtp->running = 0;
+			ion_atomic_set(&rtp->running, 0);
 			continue;
 			/* Take down this thread		*/
 		}
 
-		if (rtp->running == 0)
+		if (ion_atomic_get(&rtp->running) == 0)
 		{
 			continue;
 			 /* shutdown from accept thread */
@@ -155,7 +157,7 @@ static void *Recieve_DCCP(void *param)
 		{
 			putErrmsg("DCCPLSI can't handle inbound segment.", NULL);
 			pthread_mutex_unlock(rtp->elk);
-			rtp->running = 0;
+			ion_atomic_set(&rtp->running, 0);
 			continue;
 			/* Take down just this thread	*/
 		} else {
@@ -178,9 +180,9 @@ return NULL;
 /*	*	*	Listener thread functions	*	*	*/
 typedef struct
 {
-	int			linkSocket;
-	pthread_t	mainThread;
-	int			running;
+	int				linkSocket;
+	pthread_t		mainThread;
+	ion_atomic_t	running;
 } ListenerThreadParms;
 
 static void	*Listen_for_connections(void *parm)
@@ -205,7 +207,7 @@ static void	*Listen_for_connections(void *parm)
 
 	/*	Can now begin accepting connections from remote
 	 *	contacts.  On failure, take down the whole LSI.		*/
-	while (rtp->running)
+	while (ion_atomic_get(&rtp->running))
 	{
 		solen = sizeof(fromAddr);
 		consock = accept(rtp->linkSocket, &fromAddr, &solen);
@@ -217,12 +219,12 @@ static void	*Listen_for_connections(void *parm)
 			}
 			putSysErrmsg("DCCPLSI accept() failed.", NULL);
 			pthread_kill(rtp->mainThread, SIGTERM);
-			rtp->running = 0;
+			ion_atomic_set(&rtp->running, 0);
 			continue;
 			/*	Take Down CLI				*/
 		}
 
-		if (rtp->running == 0)
+		if (ion_atomic_get(&rtp->running) == 0)
 		{
 			continue;
 		}
@@ -235,12 +237,12 @@ static void	*Listen_for_connections(void *parm)
 		{
 			putSysErrmsg("DCCPLSI can't allocate thread data structures.", NULL);
 			pthread_kill(rtp->mainThread, SIGTERM);
-			rtp->running = 0;
+			ion_atomic_set(&rtp->running, 0);
 			continue;
 		}
 		rp->sock = consock;
 		rp->mainThread = rtp->mainThread;
-		rp->running = 1;
+		ion_atomic_init(&rp->running, 1);
 		rp->elk = &elk;
 		rp->list = &list;
 		if (pthread_begin(&rp->me, NULL, Recieve_DCCP, rp, "dccplsi_receiver"))
@@ -248,7 +250,7 @@ static void	*Listen_for_connections(void *parm)
 			putSysErrmsg("DCCPLSI can't create receiver thread.", NULL);
 			close(consock);
 			pthread_kill(rtp->mainThread, SIGTERM);
-			rtp->running = 0;
+			ion_atomic_set(&rtp->running, 0);
 			continue;
 		}
 
@@ -267,7 +269,7 @@ static void	*Listen_for_connections(void *parm)
 			putSysErrmsg("DCCPLSI can't terminate all threads nicely.", NULL);
 			return NULL;
 		}
-		rp->running = 0;
+		ion_atomic_set(&rp->running, 0);
 		pthread_kill(rp->me, SIGUSR1);
 		pthread_join(rp->me, NULL);
 	}
@@ -398,7 +400,7 @@ int	main(int argc, char *argv[])
 	iblock(SIGPIPE);
 
 	/*	Start the receiver thread.				*/
-	rtp.running = 1;
+	ion_atomic_init(&rtp.running, 1);
 	rtp.mainThread = pthread_self();
 	if (pthread_begin(&listenerThread, NULL, Listen_for_connections,
 		&rtp, "dccplsi_listener"))
@@ -414,13 +416,14 @@ int	main(int argc, char *argv[])
 	ionPauseMainThread(-1);
 
 	/*	Time to shut down.					*/
-	rtp.running = 0;
+	ion_atomic_set(&rtp.running, 0);
 
 	/*	Wake up the receiver thread and exit			*/
 	pthread_kill(listenerThread, SIGUSR1);
 	writeErrmsgMemos();
 	pthread_join(listenerThread, NULL);
 	close(rtp.linkSocket);
+	ion_atomic_mutex_destroy(&rtp.running);
 	writeErrmsgMemos();
 	writeMemo("[i] dccplsi duct has ended.");
 	return 0;

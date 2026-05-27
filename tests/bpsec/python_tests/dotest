@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 
 # This script is a wrapper to run all the active bpsec python tests
 

@@ -17,7 +17,7 @@ endif
 # Installation root directory (can be overridden on command line)
 ROOT ?= /usr/local
 
-SCRIPTS= ionstart ionstop killm ionscript ionstart.awk
+SCRIPTS= ionstart ionrun ionstop killm ion-diagnostics ionscript ionstart.awk
 
 $(info Development Makefiles actively maintained for only for "bpv7" on platform "x86_64-linux" options)
 $(info  - All other options (bpv6 and platforms) are informational only.)

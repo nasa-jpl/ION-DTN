@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Scott Burleigh
 # February 26, 2012
@@ -148,6 +149,5 @@ echo "Stopping ION..."
 #cd ../3.bench.tcp
 #./ionstop &
 #sleep 5
-killm
 echo "Bundle age test completed."
 exit $RETVAL

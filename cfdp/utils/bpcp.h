@@ -99,7 +99,20 @@ typedef struct
 	char directoryName[256];
 	char directoryDestFileName[256];
 	int  directoryListingResponseCode;
+	int  directoryListingIncomplete;	/* v2 only; 0 in legacy */
+	int  isV2;				/* 1 if response was v2 */
 } CfdpDirListingResponse;
+
+/*	One entry as read from a v2 manifest.  Buffer is sized so
+ *	the manifest reader cannot overflow it given the responder's
+ *	CFDP_DIRLIST_MAX_NAME cap.					*/
+typedef struct
+{
+	unsigned char	status;	/* CFDP_DIRENT_NAME_TRUNCATED, etc. */
+	unsigned char	type;	/* CFDP_DIRENT_REGULAR / DIRECTORY /
+				 * SYMLINK / OTHER / UNKNOWN.		*/
+	char		name[CFDP_DIRLIST_MAX_NAME + 1];
+} BpcpDirEntry;
 
 /*Portability for directory structures*/
 #ifndef _D_EXACT_NAMLEN

@@ -2,7 +2,7 @@ name: Build and Push Runner Images to Registry
 
 on:
   push:
-    branches: ["integration"]
+    branches: [ "integration" ]
     paths:
       - "images/**"
   workflow_dispatch:
@@ -74,7 +74,7 @@ env:
   REGISTRY_ADDRESS: ${{ secrets.REGISTRY_ADDRESS }}
   REGISTRY_NAMESPACE: ${{ secrets.REGISTRY_NAMESPACE }}
   REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
-  XDG_RUNTIME_DIR: /run/user/1001
+  PIP_INDEX: ${{ secrets.PIP_INDEX }}
 
 jobs:
   setup:
@@ -87,10 +87,12 @@ jobs:
         run: |
           # Use bash string manipulation to build the array (avoids needing jq)
           MATRIX="["
-          if [ "${{ inputs.runner_u20 != false }}" == "true" ]; then MATRIX="$MATRIX\"ubuntu-20\","; fi
-          if [ "${{ inputs.runner_u22 != false }}" == "true" ]; then MATRIX="$MATRIX\"ubuntu-22\","; fi
-          if [ "${{ inputs.runner_ol8 != false }}" == "true" ]; then MATRIX="$MATRIX\"oraclelinux-8\","; fi
-          if [ "${{ inputs.runner_ol9 != false }}" == "true" ]; then MATRIX="$MATRIX\"oraclelinux-9\","; fi
+
+          # Default to true on push events (when inputs are null/empty)
+          if [ "${{ github.event_name == 'push' || inputs.runner_u20 == true }}" == "true" ]; then MATRIX="$MATRIX\"ubuntu-20\","; fi
+          if [ "${{ github.event_name == 'push' || inputs.runner_u22 == true }}" == "true" ]; then MATRIX="$MATRIX\"ubuntu-22\","; fi
+          if [ "${{ github.event_name == 'push' || inputs.runner_ol8 == true }}" == "true" ]; then MATRIX="$MATRIX\"oraclelinux-8\","; fi
+          if [ "${{ github.event_name == 'push' || inputs.runner_ol9 == true }}" == "true" ]; then MATRIX="$MATRIX\"oraclelinux-9\","; fi
 
           # Strip the trailing comma and close the array bracket
           MATRIX="${MATRIX%,}]"
@@ -113,7 +115,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -125,6 +127,7 @@ jobs:
         run: |
           cd images && \
           make buildah-build \
+            PIP_INDEX=${{ env.PIP_INDEX }} \
             OS_IMAGE=${{ matrix.os_image }} \
             DEFAULT_RUNNER_NAME=${{ env.REGISTRY_ADDRESS }}/${{ env.REGISTRY_NAMESPACE }}/ion-runner-images
 
@@ -142,11 +145,11 @@ jobs:
   build-and-push-rhel8:
     name: Build and Push RHEL 8
     runs-on: arc-runner-set-rhel8
-    if: ${{ inputs.runner_rhel8 != false }}
+    if: ${{ github.event_name == 'push' || inputs.runner_rhel8 == true }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -158,6 +161,7 @@ jobs:
         run: |
           cd images && \
           make buildah-build-rhel \
+            PIP_INDEX=${{ env.PIP_INDEX }} \
             OS_IMAGE=rhel-8 \
             DEFAULT_RUNNER_NAME=${{ env.REGISTRY_ADDRESS }}/${{ env.REGISTRY_NAMESPACE }}/ion-runner-images
 
@@ -175,11 +179,11 @@ jobs:
   build-and-push-rhel9:
     name: Build and Push RHEL 9
     runs-on: arc-runner-set-rhel9
-    if: ${{ inputs.runner_rhel9 != false }}
+    if: ${{ github.event_name == 'push' || inputs.runner_rhel9 == true }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -191,6 +195,7 @@ jobs:
         run: |
           cd images && \
           make buildah-build-rhel \
+            PIP_INDEX=${{ env.PIP_INDEX }} \
             OS_IMAGE=rhel-9 \
             DEFAULT_RUNNER_NAME=${{ env.REGISTRY_ADDRESS }}/${{ env.REGISTRY_NAMESPACE }}/ion-runner-images
 

@@ -1,71 +1,82 @@
-/*
- *	gdswatcher.c:	GDS watch character file logger for ION.
- *
- *	This file is #include'd directly into ici/library/ion.c when
- *	compiled with -DGDSWATCHER.  It redirects watch characters to a
- *	timestamped log file for offline analysis.
- *
- *	Build:
- *	  ./configure --enable-ewchar CFLAGS="-DGDSWATCHER -Itools/gdswatcher"
- *	  make clean && make && sudo make install
- *
- *	The log file path is taken from the ION_WATCH_LOG environment
- *	variable; if unset it defaults to "ion_watch.log" in the current
- *	working directory.  The file is opened in append mode.
- *
- *	Output format (one line per watch event):
- *	  <seconds>.<microseconds> <watch_string>
- *
- *	Example:
- *	  1710000001.234567 (ds42)g
- *	  1710000003.890456 (d42)s
- *	  1710000004.123456 (42)h
- *
- *	Copyright (c) 2026, California Institute of Technology.
- *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
- */
+/* Updated to handle string-based ION watch character function
+ * Jay L. Gao August 28, 2023  */
 
-#include <sys/time.h>
-
-static FILE	*watchLogFile = NULL;
-
-static void	watchToFile(char *token)
+/* From the given token, build a watch character message in the given buffer.
+ * The message format is
+ * <ms-since-epoch> <token-string>\n */
+static void buildWatchMessage(char *buf, size_t buflen, char* token_str)
 {
-	struct timeval	tv;
+    struct timeval time; 
+    getCurrentTime(&time);
 
-	if (watchLogFile == NULL)
+    /* Build message buffer */
+    isprintf(buf, buflen, "%ld%03d %s\n", time.tv_sec, time.tv_usec / 1000,
+            token_str); 
+}
+
+/* Write the specified character as a watch char to the file ion.watch. 
+ * Copied from buildLogMessage() in ici/library/ion.c, with differences:
+ * - Takes a single char as a parameter, not a char*. Do not check if the token
+ *   is NULL or \0.
+ * - File name is "ion.watch".
+ * - Variables renamed, names referring to "log" things now refer to "watch"
+ *   things.
+ * - Uses buildWatchMessage() to build the watch message. As a consequence, some 
+ *   variables are unused and are removed. */
+static void	writeCharToIonWatch(char* token_str)
+{
+	static ResourceLock	watchFileLock;
+	static char		ionWatchFileName[264] = "";
+	static int		ionWatchFile = -1;
+	int			textLen;
+	static char		msgbuf[256];
+
+	/*	The watch file is shared, so access to it must be
+	 *	mutexed.						*/
+
+	if (initResourceLock(&watchFileLock) < 0)
 	{
-		/*	File was not opened or was closed; fall back
-		 *	to stdout.					*/
-		printf("%s", token);
-		fflush(stdout);
 		return;
 	}
 
-	gettimeofday(&tv, NULL);
-	fprintf(watchLogFile, "%ld.%06ld %s\n",
-			(long) tv.tv_sec, (long) tv.tv_usec, token);
-	fflush(watchLogFile);
-}
-
-static void	ionRedirectWatchCharacters(void)
-{
-	char	*logPath;
-
-	logPath = getenv("ION_WATCH_LOG");
-	if (logPath == NULL)
+	lockResource(&watchFileLock);
+	if (ionWatchFile == -1)
 	{
-		logPath = "ion_watch.log";
+		if (ionWatchFileName[0] == '\0')
+		{
+			isprintf(ionWatchFileName, sizeof ionWatchFileName,
+					"%.255s%cion.watch",
+					getIonWorkingDirectory(),
+					ION_PATH_DELIMITER);
+		}
+
+		ionWatchFile = iopen(ionWatchFileName,
+				O_WRONLY | O_APPEND | O_CREAT, 0666);
+		if (ionWatchFile == -1)
+		{
+			unlockResource(&watchFileLock);
+			perror("Can't redirect ION watch characters to ion.watch");
+			return;
+		}
 	}
 
-	watchLogFile = fopen(logPath, "a");
-	if (watchLogFile == NULL)
-	{
-		putSysErrmsg("Can't open watch log file, using stdout",
-				logPath);
-		setWatcher(NULL);	/*	Defaults to stdout.	*/
-		return;
-	}
+    /* Build watch message using buildWatchMessage() */
+    buildWatchMessage(msgbuf, sizeof(msgbuf), token_str); 
 
-	setWatcher(watchToFile);
+	textLen = strlen(msgbuf);
+	if (write(ionWatchFile, msgbuf, textLen) < 0)
+	{
+		perror("Can't write ION watch characters to ion.watch");
+	}
+#ifdef TargetFFS
+	close(ionWatchFile);
+	ionWatchFile = -1;
+#endif
+	unlockResource(&watchFileLock);
 }
+
+static void ionRedirectWatchCharacters(void)
+{ 
+    setWatcher(writeCharToIonWatch);
+}
+

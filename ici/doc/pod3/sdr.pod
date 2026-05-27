@@ -509,7 +509,32 @@ to retrieve the object's size for
 later reference in validating attempts to write into
 some location within the object.  If I<length> is zero, the
 object's size is privately retrieved by SDR but none of the
-object's content is copied into memory.
+object's content is copied into memory; I<into> may be NULL
+in this case.
+
+B<When SDR_BOUNDED is set>, every sdr_write() is validated against the
+set of objects registered by sdr_stage() (and sdr_malloc()) in the
+current transaction.  Any sdr_write() to an object that was only read
+with sdr_read() -- not staged -- will be rejected as a boundary
+violation, aborting the transaction.  Therefore:
+
+=over 4
+
+=item *
+
+Use B<sdr_stage()> instead of sdr_read() whenever the object will be
+modified and written back with sdr_write() in the same transaction.
+
+=item *
+
+Use B<sdr_stage(sdr, NULL, object, 0)> to register a pre-allocated
+buffer (e.g., one obtained from sdr_malloc() in a prior transaction)
+for writing in the current transaction, without copying its contents
+into local memory.  This is appropriate for large I/O buffers where
+only a portion of the object will be written via an offset
+(e.g., C<sdr_write(sdr, bufferObj + offset, data, len)>).
+
+=back
 
 =item long sdr_unused(Sdr sdr)
 
@@ -535,7 +560,15 @@ usage status.  SdrUsageSummary is defined by:
             size_t          largePoolAllocated;
             size_t          unusedSize;
             size_t          maxLogLength;
+            size_t          largestFreeBlock;
     } SdrUsageSummary;
+
+The C<largestFreeBlock> field is the size, in user-data bytes, of the
+largest contiguous free block found in either pool.  It does not
+include the unassigned gap between the pools, which is reported
+separately as C<unusedSize>.  Together they answer "what is the
+largest single allocation this SDR can currently satisfy?":
+C<max(largestFreeBlock, unusedSize - large_block_overhead)>.
 
 =item void sdr_report(SdrUsageSummary *summary)
 

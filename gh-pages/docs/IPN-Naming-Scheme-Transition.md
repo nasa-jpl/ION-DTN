@@ -12,7 +12,7 @@
 
 ## Introduction
 
-Starting with ION version 4.1.4-a.1, ION introduced support for a 3-part IPN naming scheme using **Fully Qualified Node Numbers (FQNN)** instead of simple node numbers. This change enables hierarchical node addressing with an optional allocator component, which is essential for large-scale DTN deployments where node number management needs to be delegated across multiple administrative domains.
+Starting with ION version 4.1.4-a.2, ION introduced support for a 3-part IPN naming scheme using **Fully Qualified Node Numbers (FQNN)** instead of simple node numbers. This change enables hierarchical node addressing with an optional allocator component, which is essential for large-scale DTN deployments where node number management needs to be delegated across multiple administrative domains.
 
 This document describes the changes developers need to make when updating code that references the older Node-based structures to the new FQNN-based structures.
 
@@ -283,4 +283,4 @@ For nodes without an allocator (allocator = 0), the FQNN equals the node number:
 
 **Document Version:** 1.0
 **Last Updated:** 2025-12-02
-**Applies to:** ION 4.1.4-a.1 and later
+**Applies to:** ION 4.1.4-a.2 and later

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Samuel Jero
 # Ohio University
@@ -119,7 +120,6 @@ echo "Stopping ION..."
 #./ionstop &
 #cd ../
 #sleep 5
-killm
 
 echo "Congestion Forecasting Overflow test complete."
 exit $RETVAL

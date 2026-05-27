@@ -48,6 +48,7 @@
 #include "ldc.h"
 #include "lcc.h"
 #include "rda.h"
+#include "ion_atomic.h"
 
 
 agent_db_t gAgentDb;
@@ -394,9 +395,7 @@ int rda_process_rules(void)
 	for (it = vecit_first(&(gAgentDb.tbrs)); vecit_valid(it); it = vecit_next(it))
 	{
 		rule_t *rule = vecit_data(it);
-
-		gAgentInstr.num_tbrs_run++;
-
+		ion_atomic_get_and_increment(&gAgentInstr.num_tbrs_run, 1);
 		lcc_run_ac(&(rule->action), &(rule->id.u.as_reg.parms));
 
 		rule->num_eval++;
@@ -408,7 +407,7 @@ int rda_process_rules(void)
 			db_forget(&(rule->desc), gDB.rules);
 			RULE_CLEAR_ACTIVE(rule->flags);
 			VDB_DELKEY_RULE(&(rule->id));
-			gAgentInstr.num_tbrs--;
+			ion_atomic_get_and_decrement(&gAgentInstr.num_tbrs, 1);
 		}
 		else
 		{
@@ -428,10 +427,8 @@ int rda_process_rules(void)
 		rule->num_eval++;
 		if(sbr_should_fire(rule))
 		{
-			gAgentInstr.num_sbrs_run++;
-
+			ion_atomic_get_and_increment(&gAgentInstr.num_sbrs_run, 1);
 			lcc_run_ac(&(rule->action), &(rule->id.u.as_reg.parms));
-
 			rule->num_fire++;
 		}
 
@@ -441,7 +438,7 @@ int rda_process_rules(void)
 			/* Remove the rule. */
 			db_forget(&(rule->desc), gDB.rules);
 			VDB_DELKEY_RULE(&(rule->id));
-			gAgentInstr.num_sbrs--;
+			ion_atomic_get_and_decrement(&gAgentInstr.num_sbrs, 1);
 		}
 	}
 
@@ -512,7 +509,7 @@ int rda_send_reports(void)
 			}
 			if(iif_send_msg(&ion_ptr, MSG_TYPE_RPT_SET, msg_rpt, rx) == AMP_OK)
 			{
-				gAgentInstr.num_sent_rpts += vec_num_entries(msg_rpt->rpts);
+				ion_atomic_get_and_increment(&gAgentInstr.num_sent_rpts, vec_num_entries(msg_rpt->rpts));
 			}
 			else
 			{
@@ -585,7 +582,7 @@ int rda_send_tables(void)
 			}
 			if(iif_send_msg(&ion_ptr, MSG_TYPE_TBL_SET, msg_tbl, rx) == AMP_OK)
 			{
-				gAgentInstr.num_sent_tbls += vec_num_entries(msg_tbl->tbls);
+				ion_atomic_get_and_increment(&gAgentInstr.num_sent_tbls, vec_num_entries(msg_tbl->tbls));
 			}
 			else
 			{
@@ -633,9 +630,7 @@ void* rda_thread(void* arg)
 {
 	struct timeval start_time;
 	vast	       delta = 0;
-
-	/* Cast the generic void* argument back to the real type we need. */
-	int *running = (int *) arg;
+	ion_atomic_t  *running = (ion_atomic_t *) arg;
 
 	AMP_DEBUG_ENTRY("rda_thread", "(0x%X)", (unsigned long) pthread_self()); //threadId);
 
@@ -644,7 +639,7 @@ void* rda_thread(void* arg)
 	rda_init();
 
 	/* While the DTNMP Agent is running...*/
-	while (*running)
+	while (ion_atomic_get(running))
 	{
 		getCurrentTime(&start_time);
 

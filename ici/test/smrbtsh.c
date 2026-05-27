@@ -129,7 +129,7 @@ static int	processLine(PsmPartition partition, PsmAddress rbt, char *line,
 
 	/*	Skip over any trailing whitespace.			*/
 
-	while (isspace((int) *cursor))
+	while (isspace((unsigned char) *cursor))
 	{
 		cursor++;
 	}

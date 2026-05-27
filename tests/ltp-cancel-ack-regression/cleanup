@@ -4,7 +4,8 @@
 #
 
 # Kill all ION processes
-killm
+export ION_NODE_LIST_DIR=$PWD
+killm f
 
 # Clean up test files
 rm -f testfile received_testfile

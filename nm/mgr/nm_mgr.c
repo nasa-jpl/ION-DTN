@@ -28,20 +28,27 @@
  *****************************************************************************/
 
 // Application headers.
+#include "nm_mgr.h"          // MUST be first to arm platform macros
+
+// Deferred System Headers (POSIX Strictness)
 #include <getopt.h>
-#include "nm_mgr.h"
+#include <signal.h>
+#include <stdint.h>
+
 #include "nm_mgr_ui.h"
 #include "metadata.h"
 
 #include "agents.h"
 
 #include "../shared/primitives/rules.h"
+#include "ion_atomic.h"
 
 
 
 mgr_db_t gMgrDB;
 iif_t ion_ptr;
-int  gRunning;
+static ion_atomic_t g_mgr_running = ION_ATOMIC_INIT(0);
+
 
 char* mgr_parse_args(int argc, char* argv[]);
 void mgr_print_usage(void);
@@ -110,7 +117,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* Indicate that the threads should run once started. */
-	gRunning = 1;
+	ion_atomic_set(&g_mgr_running, 1);
 
 	/* Initialize the AMP Manager. */
 	if (mgr_init(mgr_eid) != AMP_OK)
@@ -123,7 +130,7 @@ int main(int argc, char *argv[])
 
 
 	/* Spawn threads for receiving msgs, user interface, and db connection. */
-	if(pthread_begin(&rx_thr, NULL, mgr_rx_thread, (void *)&gRunning, "nm_mgr_rx"))
+	if(pthread_begin(&rx_thr, NULL, mgr_rx_thread, (void *)(uintptr_t)&g_mgr_running, "nm_mgr_rx"))
 	{
 		AMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
 				rx_thr_name, strerror(errno));
@@ -131,7 +138,7 @@ int main(int argc, char *argv[])
 	}
 
 
-	if(pthread_begin(&ui_thr, NULL, ui_thread, (void *)&gRunning, "nm_mgr_ui"))
+	if(pthread_begin(&ui_thr, NULL, ui_thread, (void *)(uintptr_t)&g_mgr_running, "nm_mgr_ui"))
 	{
 		AMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
 				ui_thr_name, strerror(errno));
@@ -140,7 +147,7 @@ int main(int argc, char *argv[])
 
 #ifdef HAVE_MYSQL
 
-	if(pthread_begin(&db_thr, NULL, (void *)db_mgt_daemon, (void *)&gRunning ,"nm_mgr_db"))
+	if(pthread_begin(&db_thr, NULL, (void *)db_mgt_daemon, (void *)(uintptr_t)&g_mgr_running ,"nm_mgr_db"))
 	{
 		AMP_DEBUG_ERR("main","Can't create pthread %s, errnor = %s",
 				db_thr_name, strerror(errno));
@@ -260,8 +267,8 @@ int mgr_init(char *arg_eid)
 	}
 
 
-	gMgrDB.tot_rpts = 0;
-	gMgrDB.tot_tbls = 0;
+	ion_atomic_init(&gMgrDB.tot_rpts, 0);
+	ion_atomic_init(&gMgrDB.tot_tbls, 0);
 	istrcpy((char *) gMgrDB.mgr_eid.name, arg_eid, AMP_MAX_EID_LEN);
 
 

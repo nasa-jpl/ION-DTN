@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # bpsec-all-multinode-test.bsl
 #
@@ -39,7 +40,7 @@
 # Tests:
 #   Test 1 - Small bundle node 2->3 with BIB(primary)+BCB(payload)
 #   Test 2 - Small bundle node 2->3, verify BSL initialization
-#   Test 3 - SKIPPED (wrong-key test not feasible with NULL_SUITES)
+#   Test 3 - Wrong-key rejection (node 3 restarts with wrong keys, bundle rejected)
 #   Test 4 - Small bundle node 2->3 (baseline without dynamic rule changes)
 #   Test 5 - Large ~4MB file node 2->3 with BIB(primary)+BCB(payload)
 #   Test 6 - Small bundle node 2->4 via node 3 relay, BCB relay verification
@@ -259,69 +260,57 @@ cd ..
 
 #############
 # Test 3 ....
+# Wrong-key test: restart node 3 BP with wrong keys, send a bundle,
+# verify it is NOT delivered (policy_action_on_fail = delete_bundle).
 
 echo -e "\n\n\n\n\n*****TEST 3*****"
-echo -e "Send bundle with all security blocks to ipn:3.1 but where"
-echo -e "node 3 has the wrong key for every security block.  s/b rejected,"
-echo -e "but because we are using NULL_SUITES the computed signatures for"
-echo -e "BIBs are the same regardless of the key that is used; testing"
-echo -e "the signature function is impossible.  So we skip this test."
+echo -e "Send bundle with BIB+BCB to ipn:3.1 but where node 3 has"
+echo -e "wrong keys.  Bundle should be rejected (not delivered)."
+sleep ${TIMETODISPLAYTEXT}
 
-#sleep ${TIMETODISPLAYTEXT}
+# Stop BP on node 3, restart with wrong-key policy
+cd 3.ipn.ltp
+bpadmin .
+sleep 2
+bpadmin amroc_wrongkey.bprc
+sleep 2
 
-#cd 2.ipn.ltp
-#ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-#a key key2 key2.hmk 
-#ENDOFIONSECADMINCOMMANDS
+# Restart bpsink on node 3 (previous one died with bpadmin stop)
+bpsink ipn:3.1 >> 3_results.txt &
+sleep 1
 
-#if [ $BPV == "bpv6" ] ; then
-#bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-#x
-#a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key2
-#a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key2
-#ENDOFBPSECADMINCOMMANDS
+# Send bundle from node 2
+cd ../2.ipn.ltp
+bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test3_trace" rcv,ct,fwd,dlv,del
+cd ..
 
-#cd ../3.ipn.ltp
-#bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-#x
-#a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
-#a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
-#ENDOFBPSECADMINCOMMANDS
-#else
-#bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-#x
-#a bibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key2
-#a bcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key2
-#ENDOFBPSECADMINCOMMANDS
+sleep ${TIMETOWAITFORTESTFINISH}
 
-#cd ../3.ipn.ltp
-#bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-#x
-#a bibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
-#a bcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
-#ENDOFBPSECADMINCOMMANDS
-#fi
+# The bundle should NOT have been delivered (wrong key -> delete_bundle)
+grep "test3_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
 
-#cd ../2.ipn.ltp
-#bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test3_trace" rcv,ct,fwd,dlv,del
-#cd ..
+echo ""
+rm -f expected.txt
+touch expected.txt
 
-#sleep ${TIMETOWAITFORTESTFINISH}
+if diff -w expected.txt 3.ipn.ltp/3_receive_file.txt > /dev/null 2>&1
+then
+	echo "SUCCESS (test 3) - bundle correctly rejected with wrong key"
+else
+	echo "FAIL (test 3) - bundle was delivered despite wrong key"
+	PASS=0
+fi
 
-#grep "test3_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
+# Restore node 3 with correct policy for remaining tests
+cd 3.ipn.ltp
+bpadmin .
+sleep 2
+bpadmin amroc.bprc
+sleep 2
 
-#echo ""
-#rm -f expected.txt
-#touch expected.txt
-#echo "'test3_trace'" >> expected.txt
-
-#if ! diff -w expected.txt ./3.ipn.ltp/3_receive_file.txt
-#then
-#	echo "SUCCESS (test3)"
-#else 
-#	echo "FAIL (test3)"
-#	PASS=0
-#fi
+bpsink ipn:3.1 >> 3_results.txt &
+sleep 1
+cd ..
 
 #############
 # Test 4 ....

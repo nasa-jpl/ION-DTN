@@ -106,21 +106,55 @@ static int	createBpSAP(Sdr sdr, char *eidString, BpSAP *bpsapPtr,
 		{
 			if (sm_TaskExists(vpoint->appPid))
 			{
-				clearMetaEid(&metaEid);
-				if (vpoint->appPid == sm_TaskIdSelf())
+				/*	The recorded owner PID exists.
+				 *	Two sub-cases.  Compare the per-
+				 *	process-instance cookie to tell
+				 *	them apart.			*/
+
+				if (vpoint->appPid == sm_TaskIdSelf()
+				&& vpoint->appCookie == sm_ProcessCookie())
 				{
-					return 0;
+					/*	Same process instance:
+					 *	another thread in THIS
+					 *	process already owns the
+					 *	endpoint.  A reception
+					 *	endpoint is single-owner,
+					 *	so refuse.		*/
+
+					clearMetaEid(&metaEid);
+					putErrmsg("Endpoint is already \
+open.", itoa(vpoint->appPid));
+					return -1;
 				}
 
-				putErrmsg("Endpoint is already open.",
-						itoa(vpoint->appPid));
-				return -1;
+				if (vpoint->appPid != sm_TaskIdSelf())
+				{
+					/*	A different live process
+					 *	owns the endpoint.  Refuse.
+					 *	(If PID matched but cookie
+					 *	did not, fall through to
+					 *	the recycle-reclaim path
+					 *	below: the recorded PID
+					 *	now belongs to an unrelated
+					 *	process, so the original
+					 *	owner is dead.)		*/
+
+					clearMetaEid(&metaEid);
+					putErrmsg("Endpoint is already \
+open.", itoa(vpoint->appPid));
+					return -1;
+				}
 			}
 
-			/*	Application terminated without closing
-			 *	the endpoint, so simply close it now.	*/
+			/*	Either the original owning process is
+			 *	gone (PID no longer exists), or this is
+			 *	our own PID after recycling but with a
+			 *	new process-instance cookie.  In both
+			 *	cases the endpoint is effectively closed;
+			 *	reclaim it.				*/
 
 			vpoint->appPid = ERROR;
+			vpoint->appCookie = 0;
 		}
 
 		*vpointRef = sap.vpoint = vpoint;
@@ -186,6 +220,7 @@ int	bp_open(char *eidString, BpSAP *bpsapPtr)
 		 *	access on the endpoint.				*/
 
 		vpoint->appPid = sm_TaskIdSelf();
+		vpoint->appCookie = sm_ProcessCookie();
 	}
 
 	sdr_exit_xn(sdr);		/*	Unlock memory.		*/
@@ -226,6 +261,7 @@ void	bp_close(BpSAP sap)
 			/*	Must detach the endpoint.		*/
 
 			sap->vpoint->appPid = ERROR;
+			sap->vpoint->appCookie = 0;
 		}
 	}
 
@@ -238,12 +274,12 @@ int	bp_parse_quality_of_service(const char *token,
 		BpAncillaryData *ancillaryData, BpCustodySwitch *custodySwitch,
 		int *priority)
 {
-	int	count;
-	unsigned int myCustodyRequested;
-	unsigned int myPriority;
-	unsigned int myOrdinal;
-	unsigned int myUnreliable;
-	unsigned int myCritical;
+	int	     count;
+	unsigned int myCustodyRequested = 0;
+	unsigned int myPriority = 1;
+	unsigned int myOrdinal = 0;
+	unsigned int myUnreliable = 0;
+	unsigned int myCritical = 0;
 	unsigned int myDataLabel = 0;
 
 	count = sscanf(token, "%11u.%11u.%11u.%11u.%11u.%11u",
@@ -256,10 +292,17 @@ int	bp_parse_quality_of_service(const char *token,
 		/* FALLTHROUGH */
 
 	case 5:
-		if ((myCritical != 0 && myCritical != 1)
-		|| (myUnreliable != 0 && myUnreliable != 1))
+		if (myCritical != 0 && myCritical != 1)
 		{
-			return 0;	/*	Invalid format.		*/
+			return 0; /* Invalid value. */
+		}
+
+		/* FALLTHROUGH */
+
+	case 4:
+		if (myUnreliable != 0 && myUnreliable != 1)
+		{
+			return 0; /* Invalid value. */
 		}
 
 		/* FALLTHROUGH */
@@ -267,15 +310,23 @@ int	bp_parse_quality_of_service(const char *token,
 	case 3:
 		if (myOrdinal > 254)
 		{
-			return 0;	/*	Invalid format.		*/
+			return 0; /* Invalid value. */
 		}
 
 		/* FALLTHROUGH */
 
 	case 2:
-		if (myPriority > 2 || myCustodyRequested > 1)
+		if (myPriority > 2)
 		{
-			return 0;	/*	Invalid format.		*/
+			return 0; /* Invalid value. */
+		}
+
+		/* FALLTHROUGH */
+
+	case 1:
+		if (myCustodyRequested > 1)
+		{
+			return 0; /* Invalid value. */
 		}
 
 		break;
@@ -290,12 +341,12 @@ int	bp_parse_quality_of_service(const char *token,
 	ancillaryData->dataLabel = myDataLabel;
 	if (count >= 5)
 	{
-		ancillaryData->flags |= ((myUnreliable ? BP_BEST_EFFORT : 0)
-				| (myCritical ? BP_MINIMUM_LATENCY : 0));
+		ancillaryData->flags |= (myCritical ? BP_MINIMUM_LATENCY : 0);
 	}
-	else
+
+	if (count >= 4)
 	{
-		ancillaryData->flags = 0;
+		ancillaryData->flags |= (myUnreliable ? BP_BEST_EFFORT : 0);
 	}
 
 	if (count >= 3)
@@ -1751,11 +1802,12 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 	Object		dlvElt;
 	Object		bundleAddr;
 	Bundle		bundle;
-	TimerParms	timerParms;
+	static TimerParms	timerParms;
 	pthread_t	timerThread;
 	int		result;
 
 	CHKERR(sap && dlvBuffer);
+	memset((char *) dlvBuffer, 0, sizeof(BpDelivery));
 	if (timeoutSeconds < BP_BLOCKING)
 	{
 		putErrmsg("Illegal timeout interval.", itoa(timeoutSeconds));

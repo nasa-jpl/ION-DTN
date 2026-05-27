@@ -4,6 +4,7 @@
 # August 9, 2012
 
 echo "Cleaning up old ION..."
-killm
+export ION_NODE_LIST_DIR=$PWD
+killm f
 rm -f ion_nodes 2.bench.bibe/bench.stdout 2.bench.bibe/ion.log 2.bench.bibe/sdrwatch.log 2.bench.bibe/psmwatch.log 3.bench.bibe/bench.stdout 3.bench.bibe/ion.log 3.bench.bibe/sdrwatch.log 3.bench.bibe/psmwatch.log 4.bench.bibe/bench.stdout 4.bench.bibe/ion.log 4.bench.bibe/sdrwatch.log 4.bench.bibe/psmwatch.log
 rm -f 3.bench.bibe/bpacq.*

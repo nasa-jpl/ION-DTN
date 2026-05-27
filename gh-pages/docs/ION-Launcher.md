@@ -1,6 +1,14 @@
 # ION Launcher
 
-Last Updated: 12/27/2023
+Last Updated: 04/01/2026
+
+**Note: For new users, [`ionrun`](ionrun.md) is now the recommended tool for initial ION setup and configuration. It provides an interactive wizard that generates complete ION configuration files without requiring external dependencies.**
+
+**This `ionlauncher` prototype will be moved into the [ION Config Tool](https://github.com/nasa-jpl/ion-config-tool) (a separate tool repository) for the ION 4.2 stable release. For advanced configuration needs, users can use the ION Config Tool and the [ION Network Model](https://github.com/nasa-jpl/ion-network-model) directly.**
+
+---
+
+*Original content date: 12/27/2023*
 
 Previous versions of ION required a good understanding of the different ION adminstrative programs, how to write RC files from them, and what the different configuration commands mean.
 

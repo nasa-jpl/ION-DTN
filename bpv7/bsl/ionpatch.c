@@ -86,3 +86,23 @@ extern void	ion_free(const char *file, int line,  void *mem)
 #endif
 	releaseToIonMemory(file, line, mem);
 }
+
+void	*ion_bsl_malloc_cb(size_t size)
+{
+	return allocFromIonMemory(__FILE__, __LINE__, size);
+}
+
+void	*ion_bsl_realloc_cb(void *ptr, size_t size)
+{
+	return ion_realloc(__FILE__, __LINE__, ptr, size);
+}
+
+void	*ion_bsl_calloc_cb(size_t nmemb, size_t size)
+{
+	return allocFromIonMemory(__FILE__, __LINE__, nmemb * size);
+}
+
+void	ion_bsl_free_cb(void *ptr)
+{
+	releaseToIonMemory(__FILE__, __LINE__, ptr);
+}

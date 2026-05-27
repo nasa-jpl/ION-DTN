@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # EPP CLA Loopback Test
 #
@@ -124,7 +125,7 @@ fi
 
 echo "Cleaning up..."
 kill $BPSINK_PID 2>/dev/null
-wait $BPSINK_PID 2>/dev/null
+sleep 1
 
 # Kill the EPP CLAs explicitly (use SIGKILL - they may be blocked on FIFO reads)
 pkill -9 -f "eppcli" 2>/dev/null

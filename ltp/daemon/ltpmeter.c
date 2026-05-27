@@ -3,6 +3,8 @@
 	ltpmeter.c:	LTP flow control and block segmentation daemon.
 
 	Author: Scott Burleigh, JPL
+	Modified: Jorge Amodio, IPNSIG, Aug 2022
+		  Added engine ID to some logging events
 
 	Copyright (c) 2007, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
@@ -87,7 +89,10 @@ int	main(int argc, char *argv[])
 		sdr_stage(sdr, (char *) &span, spanObj, sizeof(LtpSpan));
 	}
 
-	writeMemo("[i] ltpmeter is running.");
+	isprintf(memo, sizeof memo,
+			"[i] LTP meter is running, rengine = " UVAST_FIELDSPEC,
+			remoteEngineId);
+	writeMemo(memo);
 	while (returnCode == 0)
 	{
 		/*	First wait until block aggregation buffer for
@@ -250,7 +255,10 @@ engine %s is stopped.", nbrBuf);
 	}
 
 	writeErrmsgMemos();
-	writeMemo("[i] ltpmeter has ended.");
+	isprintf(memo, sizeof memo,
+			"[i] LTP meter has ended, rengine = " UVAST_FIELDSPEC,
+			remoteEngineId);
+	writeMemo(memo);
 	ionDetach();
 	return returnCode;
 }

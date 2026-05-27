@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # LTP Cancel Segment Acknowledgment Regression Test
 # Tests fix for issue where Cancel Segments for completed sessions were ignored
 #
 
-# Documentation boilerplate
 CONFIGFILES=" \
 ./2.ipn.ltp/amroc.ltprc \
 ./2.ipn.ltp/amroc.bprc \
@@ -42,8 +42,45 @@ do
     echo
 done
 
+echo "Checking test prerequisites..."
+
+# Find the latest available Python 3 version >= 3.10
+PYTHON_CMD="python3"
+MAX_MINOR=-1
+
+check_python_version() {
+    local py_exec=$1
+    if command -v "$py_exec" &> /dev/null; then
+        local py_maj=$("$py_exec" -c 'import sys; print(sys.version_info[0])' 2>/dev/null)
+        local py_min=$("$py_exec" -c 'import sys; print(sys.version_info[1])' 2>/dev/null)
+        if [ "$py_maj" = "3" ] && [ "$py_min" -ge 10 ]; then
+            if [ "$py_min" -gt "$MAX_MINOR" ]; then
+                MAX_MINOR=$py_min
+                PYTHON_CMD="$py_exec"
+            fi
+        fi
+    fi
+}
+
+# Check standard $PYTHON_CMD first
+check_python_version $PYTHON_CMD
+
+i=20
+while [ $i -ge 10 ]; do
+    check_python_version "$PYTHON_CMD.$i"
+    i=$((i - 1))
+done
+
+if [ -z "$PYTHON_CMD" ]; then
+    echo "SKIP: Python 3.10 or higher is required but not found."
+    exit 2
+fi
+
+PYTHON_VERSION="3.$MAX_MINOR"
+echo "Using Python $PYTHON_VERSION (via $PYTHON_CMD)"
+echo
+
 # Cleanup
-killm
 ./cleanup
 sleep 1
 
@@ -51,69 +88,11 @@ echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 
-# Check for required utilities and permissions
-echo "Checking test prerequisites..."
-
-# Check for ltpcancel utility
-if ! command -v ltpcancel >/dev/null 2>&1; then
-    echo "Error: ltpcancel utility not found. Please build with 'make buildcheck' first."
-    echo "Skipping test due to missing utilities."
-    exit 2  # Exit code 2 indicates test was skipped (runtests framework convention)
-fi
-
-# Check for tcpdump utility
-if ! command -v tcpdump >/dev/null 2>&1; then
-    echo "Error: tcpdump utility not found. Please install tcpdump."
-    echo "Skipping test due to missing utilities."
-    exit 2
-fi
-
-# Check if ifconfig or ip command is installed
-if command -v ip >/dev/null 2>&1; then
-    echo "Using 'ip' command."
-    NET_CMD="ip link show dev"
-elif command -v ifconfig >/dev/null 2>&1; then
-    echo "Using 'ifconfig' command."
-    NET_CMD="ifconfig"
-else
-    echo "Error: Neither 'ip' nor 'ifconfig' found." >&2
-    exit 2
-fi
-
-# Detect loopback interface (could be 'lo' on Linux or 'lo0' on FreeBSD/macOS)
-LOOPBACK_IF=""
-if $NET_CMD lo0 >/dev/null 2>&1; then
-    LOOPBACK_IF="lo0"
-elif $NET_CMD lo >/dev/null 2>&1; then
-    LOOPBACK_IF="lo"
-else
-    echo "Error: Could not find loopback interface (tried 'lo' and 'lo0')."
-    echo "Skipping test due to missing loopback interface."
-    exit 2
-fi
-
-# Check if tcpdump can capture on loopback without sudo (required for packet capture)
-# Run a brief capture attempt to verify permissions
-if ! timeout 3 tcpdump -i "$LOOPBACK_IF" -c 1 -w /dev/null 2>/dev/null; then
-    echo "Error: tcpdump requires elevated permissions to capture on $LOOPBACK_IF."
-    echo "Please run with sufficient privileges or configure tcpdump capabilities."
-    echo "Skipping test due to insufficient permissions."
-    exit 2
-fi
-
-echo "Prerequisites met:"
-echo "  - ltpcancel utility: found"
-echo "  - tcpdump utility: found with capture permissions"
-echo "  - loopback interface: $LOOPBACK_IF"
-
 # Start Node 2 (sender)
 echo "Starting node 2..."
 cd 2.ipn.ltp
 ./ionstart > node2.stdout 2>&1 &
-NODE2_PID=$!
 sleep 3
-
-# Check if nodes started successfully
 ../../../system_up -i "p 30" -l "p 30" -b "p 30" 2.ipn.ltp
 if [ $? -ne 3 ]; then
     echo "Error: Node 2 failed to start properly"
@@ -126,7 +105,6 @@ cd ..
 echo "Starting node 3..."
 cd 3.ipn.ltp
 ./ionstart > node3.stdout 2>&1 &
-NODE3_PID=$!
 sleep 3
 ../../../system_up -i "p 30" -l "p 30" -b "p 30" 3.ipn.ltp
 if [ $? -ne 3 ]; then
@@ -138,157 +116,68 @@ cd ..
 
 echo "Nodes started successfully"
 
-# Function to run a test scenario
-run_test_scenario() {
-    local scenario_name="$1"
-    local cancel_type="$2"
-    local dest_port="$3"
-    local ack_port="$4"
-    local engine_id="$5"
-    local session_id="$6"
-
-    echo "=== Test Scenario: $scenario_name ==="
-    echo "Sending $cancel_type segment for engine $engine_id, session $session_id"
-
-    # Start packet capture for acknowledgments
-    local capture_file="capture_${cancel_type}_${session_id}.pcap"
-    tcpdump -i "$LOOPBACK_IF" -U -w "$capture_file" -c 5 "udp and port $ack_port" &
-    local TCPDUMP_PID=$!
-    sleep 1
-
-    # Inject cancel segment
-    ltpcancel $cancel_type 127.0.0.1 $dest_port $engine_id $session_id
-    if [ $? -ne 0 ]; then
-        echo "Error: Failed to inject $cancel_type segment"
-        kill $TCPDUMP_PID 2>/dev/null
-        wait $TCPDUMP_PID 2>/dev/null
-        rm -f "$capture_file"
-        return 1
-    fi
-
-    # Wait for acknowledgment packets (up to 10 seconds)
-    local timeout=10
-    local count=0
-    while [ $count -lt $timeout ] && kill -0 $TCPDUMP_PID 2>/dev/null; do
-        sleep 1
-        count=$((count + 1))
-    done
-
-    # Stop tcpdump if still running
-    if kill -0 $TCPDUMP_PID 2>/dev/null; then
-        kill $TCPDUMP_PID 2>/dev/null
-        wait $TCPDUMP_PID 2>/dev/null
-    fi
-
-    # Check if we captured any acknowledgment packets
-    if [ -f "$capture_file" ] && [ -s "$capture_file" ]; then
-        # Use tcpdump to check for LTP acknowledgment segments (type 13 for CAS, 15 for CAR)
-        local expected_ack_type
-        if [ "$cancel_type" = "CS" ]; then
-            expected_ack_type="0d"  # CAS (13 in hex)
-        else
-            expected_ack_type="0f"  # CAR (15 in hex)
-        fi
-
-        # Debug: Show captured packet contents (uncomment for debugging)
-        # echo "DEBUG: Captured packet contents:"
-        # tcpdump -r "$capture_file" -xx 2>/dev/null
-
-        # Check for LTP acknowledgment packets by examining the packet data
-        if tcpdump -r "$capture_file" -xx 2>/dev/null | grep -q "${expected_ack_type}"; then
-            echo "SUCCESS: Received $cancel_type acknowledgment"
-            rm -f "$capture_file"
-            return 0
-        else
-            echo "FAILURE: No $cancel_type acknowledgment found in captured packets"
-            rm -f "$capture_file"
-            return 1
-        fi
-    else
-        echo "FAILURE: No packets captured on port $ack_port"
-        rm -f "$capture_file"
-        return 1
-    fi
-}
-
-# Test scenarios
 OVERALL_RESULT=0
 
 echo ""
 echo "Running cancel segment acknowledgment tests..."
 
-# Scenario A: CS (Cancel by Source) for unknown session
-# Node 2 (sender) sends CS to Node 3 (receiver)
-# Note: CS for unknown sessions should NOT be acknowledged (this is correct behavior)
+# Scenario A: CS for unknown session
 echo "=== Test Scenario: CS for unknown session (should NOT be acknowledged) ==="
-echo "Sending CS segment for engine 2, session 99999"
-ltpcancel CS 127.0.0.1 3113 2 99999
+python3 runtest.py --send-cancel-only --cancel-type CS --dest-port 3113 --engine-id 2 --session-id 99999
+OVERALL_RESULT=$?
 if [ $? -eq 0 ]; then
-    echo "SUCCESS: CS segment sent successfully (no acknowledgment expected for unknown session)"
+    echo "SUCCESS: CS segment sent successfully"
+else
+    echo "FAILURE: Failed to send CS segment"
+fi
+sleep 2
+
+# Scenario B: CR for unknown session
+python3 runtest.py --scenario "CR for unknown session" --cancel-type CR --dest-port 2113 --ack-port 3113 --engine-id 3 --session-id 99998
+OVERALL_RESULT=$?
+if [ $? -eq 0 ]; then
+    echo "SUCCESS: CS segment sent successfully"
+else
+    echo "FAILURE: Failed to send CS segment"
+    OVERALL_RESULT=1
+fi
+sleep 2
+
+# Scenario C: CS after sending some data (simulate completed session)
+echo "=== Sending test data to create session activity ==="
+python3 runtest.py --generate-data --dest-port 3113 --engine-id 2 --session-id 1
+sleep 3
+
+# Test CS for potentially completed session
+python3 runtest.py --scenario "CS after data transfer" --cancel-type CS --dest-port 3113 --ack-port 2113 --engine-id 2 --session-id 1
+OVERALL_RESULT=$?
+if [ $? -eq 0 ]; then
+    echo "SUCCESS: CS segment sent successfully"
+else
+    echo "FAILURE: Failed to send CS segment"
+    OVERALL_RESULT=1
+fi
+sleep 2
+
+# Scenario D: CR after data transfer
+python3 runtest.py --scenario "CR after data transfer" --cancel-type CR --dest-port 2113 --ack-port 3113 --engine-id 3 --session-id 1
+OVERALL_RESULT=$?
+if [ $? -eq 0 ]; then
+    echo "SUCCESS: CS segment sent successfully"
 else
     echo "FAILURE: Failed to send CS segment"
     OVERALL_RESULT=1
 fi
 
-sleep 2
-
-# Scenario B: CR (Cancel by Receiver) for unknown session
-# Node 3 (receiver) sends CR to Node 2 (sender), expects CAR back from Node 2
-if ! run_test_scenario "CR for unknown session" "CR" 2113 3113 3 99998; then
-    OVERALL_RESULT=1
-fi
-
-sleep 2
-
-# Scenario C: CS after sending some data (simulate completed session)
-echo "=== Sending test data to create session activity ==="
-echo "Test data for cancel segment test" > testfile
-echo "Starting file transfer..."
-cd 2.ipn.ltp
-bpsendfile ipn:2.1 ipn:3.1 ../testfile &
-SEND_PID=$!
-cd ..
-
-cd 3.ipn.ltp
-timeout 10 bprecvfile ipn:3.1 > received_testfile &
-RECV_PID=$!
-cd ..
-
-# Wait for transfer to complete
-sleep 5
-kill $SEND_PID 2>/dev/null
-kill $RECV_PID 2>/dev/null
-
-# Wait a bit for session cleanup
-sleep 3
-
-# Test CS for potentially completed session
-# Node 2 (sender) sends CS to Node 3 (receiver), expects CAS back from Node 3
-if ! run_test_scenario "CS after data transfer" "CS" 3113 2113 2 1; then
-    OVERALL_RESULT=1
-fi
-
-sleep 2
-
-# Scenario D: CR after data transfer
-# Node 3 (receiver) sends CR to Node 2 (sender), expects CAR back from Node 2
-if ! run_test_scenario "CR after data transfer" "CR" 2113 3113 3 1; then
-    OVERALL_RESULT=1
-fi
-
-# Cleanup
 echo ""
 echo "Cleaning up..."
 ./cleanup
 
-# Final result
 echo ""
 if [ $OVERALL_RESULT -eq 0 ]; then
     echo "ALL TESTS PASSED: LTP properly acknowledges Cancel Segments"
-    echo "The fix for cancel segment acknowledgment is working correctly."
 else
     echo "SOME TESTS FAILED: Cancel segment acknowledgment issue detected"
-    echo "The LTP engine may not be properly acknowledging cancel segments."
 fi
 
 exit $OVERALL_RESULT

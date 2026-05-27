@@ -38,6 +38,10 @@ typedef void		(*SmListDeleteFn)(PsmPartition partition,
 Sm_list_create(__FILE__, __LINE__, partition)
 extern PsmAddress	Sm_list_create(const char *file, int line,
 				PsmPartition partition);
+#define sm_list_create_unlocked(partition) \
+Sm_list_create_unlocked(__FILE__, __LINE__, partition)
+extern PsmAddress	Sm_list_create_unlocked(const char *file, int line,
+				PsmPartition partition);
 extern void		sm_list_unwedge(PsmPartition Partition, PsmAddress list,
 				int interval);
 #define sm_list_clear(partition, list, fn, arg) \

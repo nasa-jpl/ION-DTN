@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # ltp-tune - LTP throughput tuning test
 #
@@ -246,7 +247,6 @@ sleep 1
 # Verify bpcounter started
 if ! ps $BPCOUNTER_PID > /dev/null 2>&1; then
     echo "ERROR: bpcounter failed to start"
-    killm
     exit 1
 fi
 
@@ -275,8 +275,10 @@ done
 if [ "$RETVAL" -eq 1 ]; then
     echo "TEST DID NOT COMPLETE"
     kill -9 $BPCOUNTER_PID $BPDRIVER_PID 2>/dev/null
+    sleep 1
 else
-    wait $BPDRIVER_PID 2>/dev/null
+    kill -9 $BPDRIVER_PID 2>/dev/null
+    sleep 1
     echo "Transfer complete in ${TIMER}s"
 fi
 
@@ -284,7 +286,6 @@ echo "============================================================"
 
 # Clean up
 sleep 2
-killm 2>/dev/null
 sleep 1
 
 exit $RETVAL

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # AMS SANA (i.e. node number upgrade) integration test script
 # This test uses amsbenchr and amsbenchs over LTP protocol
@@ -24,7 +25,6 @@ stop_and_exit()
     fi
 
     ./shutdown_proc
-    killm
     exit $1
 }
 
@@ -55,7 +55,6 @@ done
 
 echo -e  "\n################################################################################"
 echo > ion.log
-killm
 ./cleanup
 sleep 1
 

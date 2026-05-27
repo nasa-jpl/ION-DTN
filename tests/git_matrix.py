@@ -8,13 +8,16 @@ JSON array.
 NOTE: Any message print statements need to be to stderr as stdout is used to
 return the batches of tests.
 
-Nate Richard 2026/03/24 JPL
+Nate Richard 2026/04/07 JPL
 """
 
 import argparse
+import glob
 import heapq
 import json
 import os
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import TypedDict
@@ -63,6 +66,39 @@ def find_tests() -> list[Path]:
     return test_dirs
 
 
+def _detect_bpsec_mode() -> str:
+    """Detect BPSec implementation (mirrors runtests logic).
+
+    Returns:
+        "bsl" or "native_bpsec"
+
+    """
+    try:
+        result = subprocess.run(
+            ["pkg-config", "--cflags", "ion"],
+            capture_output=True, text=True, timeout=5,
+        )
+        if "USING_BSL" in result.stdout:
+            return "bsl"
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    if not shutil.which("bpsecadmin"):
+        return "bsl"
+
+    return "native_bpsec"
+
+
+_BPSEC_MODE: str | None = None
+
+
+def _get_bpsec_mode() -> str:
+    global _BPSEC_MODE
+    if _BPSEC_MODE is None:
+        _BPSEC_MODE = _detect_bpsec_mode()
+    return _BPSEC_MODE
+
+
 def is_excluded(test_dir: Path) -> bool:
     """Check whether a test directory has any exclusion markers.
 
@@ -79,6 +115,13 @@ def is_excluded(test_dir: Path) -> bool:
     ):
         if (test_dir / marker).exists():
             return True
+
+    mode = _get_bpsec_mode()
+    if mode == "bsl" and (test_dir / ".exclude_bsl").exists():
+        return True
+    if mode == "native_bpsec" and (test_dir / ".exclude_native_bpsec").exists():
+        return True
+
     return False
 
 
@@ -222,38 +265,84 @@ def print_schedule(runners: list[Runner]) -> None:
     print(json.dumps(output_groups))
 
 
+def resolve_test_list(tests: list[str]) -> list[Path]:
+    """Resolve paths to subset of ION tests and/or demos.
+
+    Returns:
+
+    """
+    test_subset = []
+    for test_pattern in tests:
+        matches = []
+
+        # If the user explicitly provided the folder prefix, trust it
+        if test_pattern.startswith(("tests/", "demos/")):
+            matches.extend(glob.glob(test_pattern, recursive=True))
+        else:
+            # Prioritize searching inside tests/ and demos/ first
+            matches.extend(glob.glob(f"tests/{test_pattern}", recursive=True))
+            matches.extend(glob.glob(f"demos/{test_pattern}", recursive=True))
+
+        # Fallback to the raw pattern if nothing was found in the subdirectories
+        if not matches:
+            matches.extend(glob.glob(test_pattern, recursive=True))
+
+        if not matches:
+            matches = [test_pattern]
+
+        for match in matches:
+            match_path = Path(match)
+
+            # Extract valid test directories containing 'dotest'
+            target_dirs = []
+            if (match_path / "dotest").exists():
+                target_dirs.append(match_path)
+            elif match_path.is_dir():
+                for dotest_file in sorted(match_path.rglob("dotest")):
+                    if ".libs" not in dotest_file.parts:
+                        target_dirs.append(dotest_file.parent)
+            else:
+                target_dirs.append(match_path)
+
+            # Normalize directories so they work relative to `tests/`
+            for test_dir in target_dirs:
+                if "demos" in test_dir.parts:
+                    idx = test_dir.parts.index("demos")
+                    rel_path = Path("..") / Path(*test_dir.parts[idx:])
+                elif "tests" in test_dir.parts:
+                    idx = test_dir.parts.index("tests")
+                    rel_path = Path(*test_dir.parts[idx + 1 :])
+                else:
+                    rel_path = test_dir
+
+                if rel_path not in test_subset:
+                    test_subset.append(rel_path)
+
+    return test_subset
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Batching ION tests across runners.")
     parser.add_argument(
         "--runners",
         "-r",
         help="Number of runners to use, default: 7.",
-        type=int,
+        type=lambda v: int(float(v)),
         default=7,
     )
     parser.add_argument(
-        "--tests", "-t", type=str, nargs="+", help="List of tests to distribute."
+        "--tests",
+        "-t",
+        type=str,
+        nargs="+",
+        help="List of tests to distribute. If wildcarding, pass argument in dobule quotes.",
     )
 
     args = parser.parse_args()
 
     test_subset = []
     if args.tests:
-        for test in args.tests:
-            test_path = Path(test)
-            # If the path is a directory with dotest, use it directly.
-            # Otherwise expand it: find all dotest scripts underneath.
-            tests_dir = Path("tests") / test_path
-            if (tests_dir / "dotest").exists():
-                test_subset.append(test_path)
-            elif tests_dir.is_dir():
-                for dotest_file in sorted(tests_dir.rglob("dotest")):
-                    if ".libs" not in dotest_file.parts:
-                        test_subset.append(
-                            dotest_file.parent.relative_to(Path("tests"))
-                        )
-            else:
-                test_subset.append(test_path)
+        test_subset = resolve_test_list(args.tests)
 
     # Don't allow 0 runners and we cannot exceed 7 runners
     if args.runners < 1:

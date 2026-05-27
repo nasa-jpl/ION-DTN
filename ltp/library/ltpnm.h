@@ -15,6 +15,9 @@
 extern "C" {
 #endif
 
+#include <time.h>
+#include "platform.h"
+
 #define LTPNM_SPAN_FILLPATT       ((unsigned char)0xE0)
 
 typedef struct

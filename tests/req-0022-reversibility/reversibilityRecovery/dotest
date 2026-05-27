@@ -1,0 +1,195 @@
+#!/usr/bin/env bash
+#
+# reversibilityRecovery - end-to-end SDR transaction reversibility test.
+#
+# Starts ION on a single LTP-loopback node with reversibility enabled,
+# triggers a deterministic cancel-with-modifications via the sdrcancel
+# utility, and verifies the full recovery cycle:
+#
+#   1. terminateXn enters the reversal path
+#      ("Attempting transaction reversal..." at sdrxn.c:848).
+#   2. Reversal does not escalate to an unrecoverable error.
+#   3. ionrestart launched by terminateXn (sdrxn.c:884) completes
+#      ("ionrestart: finished restarting ION" at ionrestart.c:516).
+#   4. After recovery, ION is operational: a bpsource -> bpsink
+#      round-trip succeeds over the same loopback configuration that
+#      was active at cancel time.
+#
+trap 'cd "$START_DIR" 2>/dev/null; killm f >/dev/null 2>&1' EXIT
+
+START_DIR="$PWD"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../check_recovery.sh"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify the full SDR transaction reversibility recovery"
+echo "         cycle: cancel-with-modifications enters reversal,"
+echo "         ionrestart relaunches ION, and a post-recovery bundle"
+echo "         round-trip succeeds.  Uses sdrcancel as a deterministic"
+echo "         trigger."
+echo
+echo "OUTPUT:  Terminal messages will relay results."
+echo
+echo "########################################"
+
+# Make sure no stale ION instance from a previous run is around;
+# killm f also clears IPC and any lingering daemon processes that
+# would otherwise conflict with this run's startup.
+killm f >/dev/null 2>&1
+sleep 1
+
+./cleanup
+RETVAL=0
+
+#------------------------------------------------------------------------------
+# Phase 1: start ION.
+#------------------------------------------------------------------------------
+echo
+echo "=== Phase 1: starting ION ==="
+cd configs
+./ionstart
+cd "$START_DIR"
+sleep 8
+
+LOG="$START_DIR/configs/ion.log"
+if [ ! -f "$LOG" ]; then
+    echo "FAIL: ion.log not produced; ION did not start"
+    exit 1
+fi
+echo "ION started"
+
+#------------------------------------------------------------------------------
+# Phase 2: trigger cancel-with-modifications via sdrcancel.
+#------------------------------------------------------------------------------
+echo
+echo "=== Phase 2: triggering transaction cancel ==="
+sdrcancel
+# sdrcancel returns after terminateXn's snooze(2); give a small extra
+# margin for the reversal log entry to flush.
+sleep 3
+
+#------------------------------------------------------------------------------
+# Phase 3: verify the reversal path was taken.
+#------------------------------------------------------------------------------
+echo
+echo "=== Phase 3: verifying reversal log evidence ==="
+if ! check_reversal_attempted     "$LOG"; then RETVAL=1; fi
+if ! check_no_unrecoverable_error "$LOG"; then RETVAL=1; fi
+
+if [ "$RETVAL" -ne 0 ]; then
+    echo
+    echo "FAIL: reversal log evidence missing"
+    echo "--- last 20 lines of ion.log ---"
+    tail -20 "$LOG"
+    exit $RETVAL
+fi
+
+echo "PASS: reversal attempted, no unrecoverable error"
+
+#------------------------------------------------------------------------------
+# Phase 4: wait for ionrestart to finish.
+#------------------------------------------------------------------------------
+echo
+echo "=== Phase 4: waiting for ionrestart to finish ==="
+# 300 s ceiling: Linux typically converges in well under 30 s, but the
+# Solaris LDOM CI runner takes ~90 s just to stop LTP between
+# "ionrestart: BP stopped" and "LTP stopped", and overall ionrestart
+# can run >120 s end-to-end there.  Polling every 5 s keeps the loop
+# cheap.
+RESTART_TIMEOUT=300
+RESTART_DEADLINE=$(( $(date +%s) + RESTART_TIMEOUT ))
+while [ "$(date +%s)" -lt "$RESTART_DEADLINE" ]; do
+    if grep -q "ionrestart: finished restarting ION" "$LOG"; then
+        break
+    fi
+    sleep 5
+done
+
+if ! check_ionrestart_finished "$LOG"; then
+    echo
+    echo "FAIL: ionrestart did not converge within ${RESTART_TIMEOUT}s"
+    echo "--- last 30 lines of ion.log ---"
+    tail -30 "$LOG"
+    exit 1
+fi
+
+echo "PASS: ionrestart finished"
+
+# ionrestart spawns daemons asynchronously and clears its halted flag
+# before every child daemon has finished ionAttach (see
+# restart/utils/ionrestart.c:407-458).  Stragglers like udplso/udplsi
+# can lose the race and exit, leaving the LTP duct down even though
+# the BP/LTP "engine started" flags are set.  Re-running the duct
+# admin commands here is idempotent and brings any missing daemons
+# back up before we try to push traffic.  Solaris needs a longer
+# settle window than Linux.
+sleep 10
+cd configs
+bpadmin <<'EOF' >/dev/null 2>&1
+s
+EOF
+ltpadmin <<'EOF' >/dev/null 2>&1
+s
+EOF
+cd "$START_DIR"
+sleep 3
+
+#------------------------------------------------------------------------------
+# Phase 5: post-recovery bundle round-trip.
+#------------------------------------------------------------------------------
+echo
+echo "=== Phase 5: post-recovery bundle round-trip ==="
+cd configs
+
+RECV=post_recovery.recv
+rm -f "$RECV"
+
+bpsink ipn:1.2 > "$RECV" 2>/dev/null &
+sleep 2
+
+# Retry the send a few times; LTP loopback can take several seconds
+# to forward the first bundle after a restart cycle.  bpsink writes
+# one "ION event: Payload delivered." line per delivery as it happens,
+# so we can poll the receive file directly without coordinating with
+# bpsink's process state.
+DELIVERED=0
+for attempt in 1 2 3 4 5; do
+    printf 'reversibility recovery probe %s attempt %d\n!\n' \
+        "$(date +%s)" "$attempt" \
+        | bpsource ipn:1.2 >/dev/null 2>&1
+    sleep 4
+    if grep -q "ION event: Payload delivered." "$RECV"; then
+        DELIVERED=1
+        break
+    fi
+done
+
+# Stop bpsink without waiting on it.  The previous "kill $PID; wait
+# $PID" pattern was unreliable here because bpsink can be in a
+# blocking sm_SemTake when the SIGTERM arrives, leaving wait to
+# either block until the next bundle ticks the semaphore or report a
+# nonsense status.  pkill -9 + a short sleep is deterministic and the
+# trap on EXIT will sweep up anything still running.
+pkill -9 -f 'bpsink ipn:1.2' >/dev/null 2>&1
+sleep 1
+
+if [ "$DELIVERED" -eq 1 ]; then
+    echo "PASS: post-recovery bundle delivered (attempt $attempt)"
+else
+    echo "FAIL: post-recovery bundle was not delivered after 5 attempts"
+    echo "--- bpsink output ($RECV) ---"
+    cat "$RECV"
+    echo "--- last 30 lines of ion.log ---"
+    tail -30 "$LOG"
+    cd "$START_DIR"
+    exit 1
+fi
+
+cd "$START_DIR"
+
+echo
+echo "reversibilityRecovery: PASSED"
+exit 0

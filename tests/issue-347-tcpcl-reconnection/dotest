@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # James Swaro
 # April 25, 2012
@@ -109,6 +110,5 @@ echo "Stopping ION..."
 
 # Give nodes time to shut down, then clean up.
 #sleep 3
-killm
 echo "TCPCL restart test complete."
 exit $RETVAL

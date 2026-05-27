@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+#
+# Pre-test cleanup for robust-sdr-lock-recovery.  Defends against
+# residue from a prior aborted run: kills any lingering ION processes
+# and removes leaked SysV shared-memory segments owned by this user.
+#
+
+killm f >/dev/null 2>&1
+sleep 1
+
+# Remove any SysV shm segments left by an earlier aborted run.  ipcs and
+# ipcrm are best-effort: missing utilities or permission errors are
+# ignored.
+if command -v ipcs >/dev/null 2>&1 && command -v ipcrm >/dev/null 2>&1; then
+    for key in $(ipcs -m 2>/dev/null | awk '/^0x/ {print $1}'); do
+        ipcrm -M "$key" >/dev/null 2>&1 || true
+    done
+fi
+
+rm -f ion_nodes ion.log

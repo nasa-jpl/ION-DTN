@@ -771,6 +771,7 @@ tnv_t*  tnv_from_str(const char *str)
 	{
 		TNV_SET_ALLOC(result->flags);
 		memcpy(result->value.as_ptr, str, len);
+		((char *)result->value.as_ptr)[len] = '\0';
 	}
 
 	return result;

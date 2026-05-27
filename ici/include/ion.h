@@ -13,6 +13,7 @@
 
 #include "platform.h"
 #include "memmgr.h"
+#include "ion_atomic.h"
 #include "sdr.h"
 #include "smlist.h"
 #include "smrbt.h"
@@ -20,6 +21,26 @@
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+/*	Public, ABI-frozen opaque type for inter-process atomics.
+ *	Size and alignment are fixed at 8 bytes / 8-byte alignment on
+ *	every supported ION target, independent of the consumer's
+ *	compiler, language standard, or configure-time state.  The
+ *	internal implementation (C11 _Atomic, GNU __atomic, legacy
+ *	__sync) is selected inside the ION library and is never
+ *	visible across the public ABI boundary.
+ *
+ *	The union containing `long long` forces 8-byte alignment on
+ *	C89, C99, C11, C++03, and C++11 alike, without depending on
+ *	C11/C++11 alignas/alignof syntax.				*/
+
+#ifndef ION_IPC_ATOMIC_OPAQUE_DEFINED
+#define ION_IPC_ATOMIC_OPAQUE_DEFINED
+typedef union {
+	long long	_ion_ipc_atomic_align;
+	unsigned char	opaque[8];
+} ion_ipc_atomic_t;
 #endif
 
 
@@ -62,12 +83,14 @@ typedef struct
 	char	*wmAddress;
 	char	sdrName[MAX_SDR_NAME + 1];
 	size_t	sdrWmSize;
+	int	sdrWmKey;	/*	SM_NO_KEY -> use SDR_SM_KEY.	*/
 	int	configFlags;
 	size_t	heapWords;
 	int	heapKey;
 	size_t	logSize;
 	int	logKey;
 	char	pathName[MAXPATHLEN + 1];
+	size_t	traceShmSize;	/*	Trace shm size; 0 = default.	*/
 } IonParms;
 
 typedef struct
@@ -478,11 +501,32 @@ typedef struct
 /*	Atomic delta counter for batched statistics collection.
  *	Accumulates increments in volatile memory between flushes.	*/
 
+/*	TallyDelta fields use Zone 2 (ion_ipc_atomic_t) because every
+ *	struct that embeds TallyDelta (BpVdb, VPlan, VInduct, VEndpoint,
+ *	LtpVspan) lives in the ION shared working-memory (SM) partition
+ *	and is updated concurrently by multiple processes.  A Zone 1
+ *	ion_atomic_t would embed a pthread_mutex_t on the C99 fallback
+ *	path, and sharing a PTHREAD_PROCESS_PRIVATE mutex across process
+ *	boundaries is undefined behavior (typically deadlock or SIGSEGV).
+ *	Zone 2 is always lock-free across all three fallback tiers.	*/
+
 typedef struct
 {
-	atomic_uint	deltaCount;
-	atomic_ullong	deltaBytes;
+	ion_ipc_atomic_t	deltaCount;
+	ion_ipc_atomic_t	deltaBytes;
 } TallyDelta;
+
+/*	Compile-time guard on the TallyDelta public ABI.  Every struct
+ *	that embeds TallyDelta lives in shared SDR/SM memory mapped by
+ *	multiple ION processes, possibly built by different teams with
+ *	different toolchains.  Drift in this layout would silently
+ *	corrupt every cross-process tally read on the affected host.
+ *	The negative-array typedef trick is used (rather than C11
+ *	_Static_assert) so the guard is active under C89, C99, C11,
+ *	and C++ alike — i.e. on every consumer compile, not just the
+ *	library build.							*/
+typedef char ion_tallydelta_abi_size_check[
+	(sizeof(TallyDelta) == 16) ? 1 : -1];
 
 #ifndef MTAKE
 #define MTAKE(size)	allocFromIonMemory(__FILE__, __LINE__, size)

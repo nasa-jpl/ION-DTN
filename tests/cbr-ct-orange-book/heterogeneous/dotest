@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # CBR Phase 6 - Heterogeneous Network Test
 #
@@ -67,7 +68,6 @@ cleanup_on_error() {
 export ION_NODE_LIST_DIR="$TESTDIR"
 
 # Clean up any previous ION and test artifacts
-killm
 ./cleanup
 
 echo ""

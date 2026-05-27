@@ -5,4 +5,5 @@
 
 echo "Cleaning up old ION..."
 rm -f ion.log
-killm
+export ION_NODE_LIST_DIR=$PWD
+killm f

@@ -48,6 +48,8 @@ extern void	parseDirectoryListingRequest(char *text, int bytesRemaining,
 			CfdpUserOpsData *opsData);
 extern void	parseDirectoryListingResponse(char *text, int bytesRemaining,
 			CfdpUserOpsData *opsData);
+extern void	parseDirectoryListingResponseV2(char *text,
+			int bytesRemaining, CfdpUserOpsData *opsData);
 extern int	handleDirectoryListingRequest(CfdpUserOpsData *opsData);
 
 #endif
@@ -1621,6 +1623,16 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 				sizeof(CfdpTransactionId));
 	event.reqNbr = fdu.reqNbr;
 	event.progress = fdu.progress;
+	event.fileSize = fdu.fileSize;
+	if (sourceFileName)
+	{
+		event.sourceFileName = sdr_string_create(sdr, sourceFileName);
+	}
+
+	if (destFileName)
+	{
+		event.destFileName = sdr_string_create(sdr, destFileName);
+	}
 	if (enqueueCfdpEvent(&event) < 0)
 	{
 		putErrmsg("CFDP can't report on new transaction.", NULL);
@@ -2266,6 +2278,11 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 
 		case 17:
 			parseDirectoryListingResponse(content, len, &opsData);
+			break;
+
+		case 19:
+			parseDirectoryListingResponseV2(content, len,
+					&opsData);
 			break;
 #endif
 		default:

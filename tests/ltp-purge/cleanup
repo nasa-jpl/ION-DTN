@@ -7,4 +7,5 @@ echo "Cleaning up old ION..."
 rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 5.ipn.ltp/ion.log
 rm -f 3.ipn.ltp/testfile*
 rm -f 5.ipn.ltp/testfile*
-killm
+export ION_NODE_LIST_DIR=$PWD
+killm f

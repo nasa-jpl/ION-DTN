@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+#
+# Pre-test cleanup for reversibilityRecovery.
+#
+killm f >/dev/null 2>&1
+sleep 1
+
+if command -v ipcs >/dev/null 2>&1 && command -v ipcrm >/dev/null 2>&1; then
+    for key in $(ipcs -m 2>/dev/null | awk '/^0x/ {print $1}'); do
+        ipcrm -M "$key" >/dev/null 2>&1 || true
+    done
+fi
+
+# Posix named semaphores leak across aborted runs on Linux.  Without
+# this, a re-run of the test (or ionrestart's own raise-vdb step) hits
+# "Semaphore open failed: File exists" and stalls.
+find /dev/shm -maxdepth 1 -name 'sem.ion*' -delete 2>/dev/null || true
+find /dev/shm -maxdepth 1 -name 'ion*'     -delete 2>/dev/null || true
+
+rm -f ion_nodes ion.log
+rm -f configs/ion_nodes configs/ion.log
+rm -f configs/post_recovery.recv
+rm -f /tmp/ion.sdr /tmp/ion.sdrlog

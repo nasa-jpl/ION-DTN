@@ -12,7 +12,7 @@ cleanup_processes() {
 }
 
 trap 'echo "An error occurred. Exiting."; cleanup_processes; exit 1;' ERR
-trap 'cleanup_processes' EXIT
+trap 'cleanup_processes; killm f' EXIT
 
 # Portable timeout function (works on macOS, FreeBSD, and Linux)
 run_with_timeout() {
@@ -229,7 +229,6 @@ sleep 15
 
 # Bypass graceful shutdown (ionstop is flaky on Solaris)
 cd "$BASE_DIR"
-killm
 
 echo "BSS multicast demo completed."
 echo "Output logs available:"

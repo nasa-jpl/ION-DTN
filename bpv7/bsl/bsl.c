@@ -27,8 +27,6 @@
 #include "agent.h"
 #include "encode.h"
 #include "decode.h"
-#include "policy_config.h"
-#include "rules_registry.h"
 #include "text_util.h"
 #endif
 
@@ -1084,9 +1082,19 @@ static struct BSL_SeqWriter_s	*ion_bsl_BTSD_writer(BSL_BundleRef_t
 	BSL_SeqWriter_t	*writer;
 	BtsdIoRef	*ref;
 
-	(void)totalSize;	/*	Prealloc handled by ReallocBTSD	*/
 	CHKNULL(bundle_ref);
 	CHKNULL(block_num > 0);
+
+	/*	BSL v1.1 passes the total BTSD size upfront;
+	 *	pre-allocate the block to avoid overflow on write.	*/
+	if (totalSize > 0)
+	{
+		if (ion_bsl_ReallocBTSD(bundle_ref, block_num,
+				totalSize) < 0)
+		{
+			return NULL;
+		}
+	}
 
 	/*	Note: this function writes only canonical blocks
 	 *	(extension blocks and payload), not primary block.
@@ -1129,19 +1137,18 @@ static void	 ion_bsl_eid_deinit(EndpointId *eid)
 	eraseEid(eid);
 }
 
-static int	 ion_bsl_eid_load(void *user_data _U_,
+static void	ion_bsl_eid_load(void *user_data _U_,
 			BSL_HostEID_t *eidWrapper)
 {
-	CHKERR1(eidWrapper);
+	CHKVOID(eidWrapper);
 	memset(eidWrapper, 0, sizeof(BSL_HostEID_t));
 	eidWrapper->handle = BSL_MALLOC(sizeof(EndpointId));
 	if (!(eidWrapper->handle))
 	{
-		return 2;
+		return;
 	}
 
 	ion_bsl_eid_init(eidWrapper->handle);
-	return 0;
 }
 
 static void	ion_bsl_eid_unload(void *user_data _U_,
@@ -1164,7 +1171,7 @@ static int	ion_bsl_encode_eid(const BSL_HostEID_t *eidWrapper,
 	EndpointId	*eid;
 	int		length;
 
-	CHKERR1(eidWrapper);
+	BSL_CHKERR1(eidWrapper);
 	ASSERT_ARG_NONNULL(eidWrapper->handle);
 	eid = (EndpointId *) (eidWrapper->handle);
 	length = serializeEid(eid, buffer);
@@ -1201,9 +1208,9 @@ static int	ion_bsl_decode_eid(const BSL_Data_t *cborText,
 	unsigned char	*cursor;
 	EndpointId	*eid;
 
-	CHKERR1(cborText);
+	BSL_CHKERR1(cborText);
 	ASSERT_ARG_NONNULL(cborText->ptr);
-	CHKERR1(eidWrapper);
+	BSL_CHKERR1(eidWrapper);
 	ASSERT_ARG_NONNULL(eidWrapper->handle);
 	buffer = cborText->ptr;
 	bytesRemaining = cborText->len;
@@ -1227,8 +1234,8 @@ static int	ion_bsl_eid_from_text(BSL_HostEID_t *eidWrapper,
 	char		*mutableText;
 	int		result;
 
-	CHKERR1(text);
-	CHKERR1(eidWrapper);
+	BSL_CHKERR1(text);
+	BSL_CHKERR1(eidWrapper);
 	ASSERT_ARG_NONNULL(eidWrapper->handle);
 	eid = (EndpointId *) (eidWrapper->handle);
 
@@ -1256,8 +1263,8 @@ static int	ion_bsl_eid_to_text(char **text,
 {
 	EndpointId	*eid;
 
-	CHKERR1(text);
-	CHKERR1(eidWrapper);
+	BSL_CHKERR1(text);
+	BSL_CHKERR1(eidWrapper);
 	ASSERT_ARG_NONNULL(eidWrapper->handle);
 	eid = (EndpointId *) (eidWrapper->handle);
 	readEid(eid, text);
@@ -1318,7 +1325,7 @@ static int	ion_bsl_GetEid(void *user_data, BSL_HostEID_t *result_eid)
 static int	ion_bsl_eidpat_load(BSL_HostEIDPattern_t *patWrapper,
 			void *user_data _U_)
 {
-	CHKERR1(patWrapper); // GCOV_EXCL_LINE
+	BSL_CHKERR1(patWrapper); // GCOV_EXCL_LINE
 	memset(patWrapper, 0, sizeof(BSL_HostEIDPattern_t));
 	patWrapper->handle = createEidPattern();
 	return (patWrapper->handle == NULL ? 2 : 0);
@@ -1345,10 +1352,10 @@ static int	ion_bsl_eidpat_from_text(BSL_HostEIDPattern_t *patWrapper,
 	EidPattern	*eidp;
 
 	// GCOV_EXCL_START
-	CHKERR1(patWrapper);
-	CHKERR1(text);
+	BSL_CHKERR1(patWrapper);
+	BSL_CHKERR1(text);
 	eidp = (EidPattern *) patWrapper->handle;
-	CHKERR1(eidp);
+	BSL_CHKERR1(eidp);
 	// GCOV_EXCL_STOP
 
 	char msgbuf[256];
@@ -1369,10 +1376,10 @@ static bool	ion_bsl_eidpat_match(const BSL_HostEIDPattern_t *patWrapper,
 	EndpointId	*eid;
 
 	// GCOV_EXCL_START
-	CHKERR1(patWrapper);
-	CHKERR1(patWrapper->handle);
-	CHKERR1(eidWrapper);
-	CHKERR1(eidWrapper->handle);
+	BSL_CHKERR1(patWrapper);
+	BSL_CHKERR1(patWrapper->handle);
+	BSL_CHKERR1(eidWrapper);
+	BSL_CHKERR1(eidWrapper->handle);
 	// GCOV_EXCL_STOP
 	eidp = (EidPattern *) (patWrapper->handle);
 	eid = (EndpointId *) (eidWrapper->handle);
@@ -1397,14 +1404,6 @@ static bool	ion_bsl_eidpat_match(const BSL_HostEIDPattern_t *patWrapper,
 	return (result ? true : false);
 }
 
-static BSL_HostEIDPattern_t	get_eid_pattern_from_text(const char *text)
-{
-	BSL_HostEIDPattern_t	pat;
-
-	BSL_HostEIDPattern_Init(&pat);
-	ASSERT_PROPERTY(0 == BSL_HostEIDPattern_DecodeFromText(&pat, text));
-	return pat;
-}
 
 /******************* Functions that load BSL policies *******************/
 
@@ -1426,745 +1425,6 @@ static int	rfc9173_bcb_cek(unsigned char *buf, int len)
 	return 1;
 }
 
-static void	rule_params_init(rule_params *params, int policy_num)
-{
-	params->param_integ_scope_flag	= BSL_CALLOC(1, BSL_SecParam_Sizeof());
-	BSL_SecParam_Init(params->param_integ_scope_flag);
-	params->param_sha_variant	= BSL_CALLOC(1, BSL_SecParam_Sizeof());
-	BSL_SecParam_Init(params->param_sha_variant);
-	params->param_aad_scope_flag	= BSL_CALLOC(1, BSL_SecParam_Sizeof());
-	BSL_SecParam_Init(params->param_aad_scope_flag);
-	params->param_init_vector	= BSL_CALLOC(1, BSL_SecParam_Sizeof());
-	BSL_SecParam_Init(params->param_init_vector);
-	params->param_aes_variant	= BSL_CALLOC(1, BSL_SecParam_Sizeof());
-	BSL_SecParam_Init(params->param_aes_variant);
-	params->param_test_key		= BSL_CALLOC(1, BSL_SecParam_Sizeof());
-	BSL_SecParam_Init(params->param_test_key);
-	params->param_use_wrapped_key	= BSL_CALLOC(1, BSL_SecParam_Sizeof());
-	BSL_SecParam_Init(params->param_use_wrapped_key);
-	params->active = true;
-	BSL_LOG_DEBUG("Successfully Init policy rule number %d in registry",
-			policy_num);
-}
-
-static void	rule_params_deinit(rule_params *params, int policy_num)
-{
-	BSL_SecParam_Deinit(params->param_integ_scope_flag);
-	BSL_FREE(params->param_integ_scope_flag);
-	BSL_SecParam_Deinit(params->param_sha_variant);
-	BSL_FREE(params->param_sha_variant);
-	BSL_SecParam_Deinit(params->param_aad_scope_flag);
-	BSL_FREE(params->param_aad_scope_flag);
-	BSL_SecParam_Deinit(params->param_init_vector);
-	BSL_FREE(params->param_init_vector);
-	BSL_SecParam_Deinit(params->param_aes_variant);
-	BSL_FREE(params->param_aes_variant);
-	BSL_SecParam_Deinit(params->param_test_key);
-	BSL_FREE(params->param_test_key);
-	BSL_SecParam_Deinit(params->param_use_wrapped_key);
-	BSL_FREE(params->param_use_wrapped_key);
-	params->active = false;
-	BSL_LOG_DEBUG("Successfully De-init policy rule number %d in registry",
-			policy_num);
-}
-
-static void	rules_registry_init(rules_registry *registry)
-{
-	for (int i = 0; i < MAX_RULES; ++i)
-	{
-		registry->in_use[i] = false;
-	}
-
-	registry->registry_count = 0;
-}
-#if 0
-static int	rules_registry_size(const rules_registry *registry)
-{
-	return registry->registry_count;
-}
-#endif
-static rule_params	*rules_registry_slot(rules_registry *registry)
-{
-	int 	i;
-	int	index;
-
-	for (i = 0; i < MAX_RULES; ++i)
-	{
-		index = registry->registry_count + i;
-		if (!registry->in_use[index])
-		{
-			registry->in_use[index]  = true;
-			registry->registry_count = index + 1;
-			rule_params_init(&registry->param_sets[index],
-					index);
-			return &registry->param_sets[index];
-		}
-	}
-
-	BSL_LOG_CRIT("POLICY COUNT FULL!");
-	return NULL;
-}
-
-static void	rules_registry_deinit(rules_registry *registry)
-{
-	for (int i = 0; i < MAX_RULES; ++i)
-	{
-		if (registry->in_use[i])
-		{
-			rule_params_deinit(&registry->param_sets[i], i);
-			registry->in_use[i] = false;
-		}
-	}
-
-	registry->registry_count = 0;
-}
-
-/**
- * @TODO Handle BPA events as policy actions - dependent on other
- * BSL issues/ future changes.
- */
-
-static void	register_sc_parms(json_t *sc_parms, long sc_id_l,
-			rule_params *params, uint64_t *params_got)
-{
-	size_t				n;
-	size_t				i;
-	json_t				*entry;
-	json_t				*id;
-	const char			*id_str;
-	json_t				*value;
-	const char			*value_str;
-	uint64_t			sha_var;
-	uint64_t			flag;
-	uint64_t			keywrap;
-	rfc9173_bcb_aes_variant_e	aes_var;
-
-	/*	Register the security context parameters for a single
-	 *	policy.							*/
-
-	n = json_array_size(sc_parms);
-	BSL_LOG_DEBUG("	 sc_parms (%zu):", n);
-	for (i = 0; i < n; ++i)
-	{
-		entry = json_array_get(sc_parms, i);
-		if (!json_is_object(entry))
-		{
-			continue;
-		}
-
-		id = json_object_get(entry, "id");
-		if (!id || !json_is_string(id))
-		{
-			continue;
-		}
-
-		id_str = json_string_value(id);
-		value = json_object_get(entry, "value");
-		if (!value || !json_is_string(value))
-		{
-			continue;
-		}
-
-		value_str = json_string_value(value);
-		BSL_LOG_DEBUG("		 - id: %s, value: %s",
-				id_str, value_str);
-
-		// different valid param IDs for  different security contexts
-
-		switch (sc_id_l)
-		{
-		case 1:		/*	Security context #1.		*/
-			if (0 == strcmp(id_str, "key_name"))
-			{
-				BSL_SecParam_InitTextstr(params->param_test_key,
-						BSL_SECPARAM_TYPE_KEY_ID,
-						value_str);
-				*params_got |= 0x1;
-			}
-			else if (0 == strcmp(id_str, "sha_variant"))
-			{
-				if (0 == strcmp (value_str, "5"))
-				{
-					sha_var = RFC9173_BIB_SHA_HMAC256;
-				}
-				else if (0 == strcmp(value_str, "6"))
-				{
-					sha_var = RFC9173_BIB_SHA_HMAC384;
-				}
-				else
-				{
-					sha_var = RFC9173_BIB_SHA_HMAC512;
-				}
-
-				BSL_SecParam_InitInt64
-					(params->param_sha_variant,
-					 RFC9173_BIB_PARAMID_SHA_VARIANT,
-		 			sha_var);
-				*params_got |= 0x2;
-			}
-			else if (0 == strcmp(id_str, "scope_flags"))
-			{
-				flag = strtol(value_str, NULL, 10); // FIXME
-				BSL_SecParam_InitInt64
-					(params->param_integ_scope_flag,
-		 			RFC9173_BIB_PARAMID_INTEG_SCOPE_FLAG,
-		 			flag);
-				*params_got |= 0x4;
-			}
-			else if (0 == strcmp(id_str, "key_wrap"))
-			{
-				if (0 == strcmp (value_str, "0"))
-				{
-					keywrap = 0;
-				}
-				else
-				{
-					keywrap = 1;
-				}
-
-				BSL_SecParam_InitInt64
-					(params->param_use_wrapped_key,
-			 		BSL_SECPARAM_USE_KEY_WRAP,
-  					keywrap);
-				*params_got |= 0x8;
-			}
-			else
-			{
-				BSL_LOG_ERR("INVALID PARAM KEY %s FOR SC ID %d",
-						id_str, sc_id_l);
-				continue;
-			}
-
-			break;
-
-		case 2:		/*	Security context #2.		*/
-			if (0 == strcmp(id_str, "key_name"))
-			{
-				BSL_SecParam_InitTextstr(params->param_test_key,
-					BSL_SECPARAM_TYPE_KEY_ID, value_str);
-				*params_got |= 0x1;
-			}
-			else if (0 == strcmp(id_str, "iv"))
-			{
-
-			// TODO convert value_str to bstring
-			// BSL_SecParam_InitBytestr(params->param_init_vector,
-			// RFC9173_BCB_SECPARAM_IV);
-
-				*params_got |= 0x2;
-			}
-			else if (0 == strcmp(id_str, "aes_variant"))
-			{
-				if (0 == strcmp(value_str, "1"))
-				{
-					aes_var =
-						RFC9173_BCB_AES_VARIANT_A128GCM;
-				}
-				else
-				{
-					aes_var =
-					       	RFC9173_BCB_AES_VARIANT_A256GCM;
-				}
-
-				BSL_SecParam_InitInt64
-					(params->param_aes_variant,
-					 RFC9173_BCB_SECPARAM_AESVARIANT,
-					 aes_var);
-				*params_got |= 0x4;
-			}
-			else if (0 == strcmp(id_str, "aad_scope"))
-			{
-				flag = strtol(value_str, NULL, 10); // FIXME
-				BSL_SecParam_InitInt64
-					(params->param_aad_scope_flag,
-					 RFC9173_BCB_SECPARAM_AADSCOPE,
-					 flag);
-				*params_got |= 0x8;
-			}
-			else if (0 == strcmp(id_str, "key_wrap"))
-			{
-				if (0 == strcmp(value_str, "0"))
-				{
-					keywrap = 0;
-				}
-				else
-				{
-					keywrap = 1;
-				}
-
-				BSL_SecParam_InitInt64
-					(params->param_use_wrapped_key,
-					 BSL_SECPARAM_USE_KEY_WRAP,
-					 keywrap);
-				*params_got |= 0x10;
-			}
-			else
-			{
-				BSL_LOG_ERR("INVALID PARAM KEY %s FOR SC ID %d",
-						id_str, sc_id_l);
-				continue;
-			}
-
-			break;
-
-		default:
-			BSL_LOG_ERR("INVALID SC ID");
-			continue;
-		}
-	}
-}
-
-static int	register_policy_from_json(const char *pp_cfg_file_path,
-			BSLP_PolicyProvider_t *policy, rules_registry *reg)
-{
-	/*	Stolen from mock_bpa_register_policy_from_json.		*/
-
-	uint32_t		sec_block_type;
-	uint32_t		sec_ctx_id;
-	BSL_SecRole_e		sec_role;
-	uint32_t		target_block_type;
-	BSL_PolicyLocation_e	policy_loc_enum;
-	BSL_PolicyAction_e	policy_action_enum;
-	const char		*src_str;
-	const char		*dest_str;
-	const char		*sec_src_str;
-	BSL_HostEIDPattern_t	src_eid;
-	BSL_HostEIDPattern_t	dest_eid;
-	BSL_HostEIDPattern_t	sec_src_eid;
-	json_t			*rule_id;
-	const char		*rule_id_str;
-	json_t			*root;
-	json_error_t		err;
-	json_t			*policyrule_set;
-	size_t			policy_rule_idx;
-	size_t			policy_rule_ct;
-	json_t			*policy_rule_elm;
-	json_t			*policyrule;
-	rule_params		*params;
-	json_t			*filter;
-	json_t			*role;
-	const char		*role_str;
-	json_t			*src;
-	json_t			*dest;
-	json_t			*sec_src;
-	json_t			*tgt;
-	long			tgt_l;
-	json_t			*loc;
-	const char		*loc_str;
-	json_t			*sc_id;
-	long			sc_id_l;
-	json_t			*es_ref;
-	json_t			*policy_action_on_fail;
-	const char		*policy_act_str;
-	uint64_t		params_got;
-	json_t			*spec;
-	json_t			*sc_parms;
-	json_t			*event_set;
-	json_t			*es_ref_es;
-	json_t			*events;
-	size_t			n;
-	size_t			i;
-	json_t			*entry;
-	json_t			*event_id;
-	const char		*event_id_str;
-	json_t			*actions;
-	size_t			j;
-	size_t			m;
-	json_t			*act;
-	const char		*act_str;
-	BSLP_PolicyPredicate_t	*predicate;
-	BSLP_PolicyRule_t	*rule;
-
-	/*	Acquire policy rules from named file of JSON text.	*/
-
-	root = json_load_file(pp_cfg_file_path, 0, &err);
-	if (!root)
-	{
-		BSL_LOG_ERR("JSON error: line %d: %s", err.line, err.text);
-		return -2;
-	}
-
-	// policyrule_set attr
-	policyrule_set = json_object_get(root, "policyrule_set");
-	if (!policyrule_set || !json_is_array(policyrule_set))
-	{
-		BSL_LOG_ERR("Missing policyrule set ");
-		json_decref(root);
-		return -3;
-	}
-
-	policy_rule_ct = json_array_size(policyrule_set);
-	BSL_LOG_DEBUG(" got (%zu) policyrules:", policy_rule_ct);
-	for (policy_rule_idx = 0; policy_rule_idx < policy_rule_ct;
-			++policy_rule_idx)
-	{
-		/*	Register one security policy rule.		*/
-
-		policy_rule_elm = json_array_get(policyrule_set,
-				policy_rule_idx);
-		if (!json_is_object(policy_rule_elm))
-		{
-			BSL_LOG_ERR("Policy rule not JSON object");
-			continue;
-		}
-
-		// policyrule attr
-		policyrule = json_object_get(policy_rule_elm, "policyrule");
-		if (!policyrule || !json_is_object(policyrule))
-		{
-			BSL_LOG_ERR("Missing policyrule");
-			continue;
-		}
-
-		/*	Obtain security policy registry slot for this
-		 *	policy rule.					*/
-
-		params = rules_registry_slot(reg);
-		if (!params)
-		{
-			BSL_LOG_CRIT("POLICY COUNT EXCEEDED, NOT REGISTERING \
-FURTHER");
-			return -1;
-		}
-
-		// filter attr
-		filter = json_object_get(policyrule, "filter");
-		if (filter && json_is_object(filter))
-		{
-			BSL_LOG_DEBUG("filter:");
-
-			// Get rule_id
-			rule_id = json_object_get(filter, "rule_id");
-			if (!rule_id)
-			{
-				BSL_LOG_ERR("No rule ID ");
-				continue;
-			}
-
-			rule_id_str = json_string_value(rule_id);
-			BSL_LOG_DEBUG("	 rule_id: %s", rule_id_str);
-
-			// get sec role
-			role = json_object_get(filter, "role");
-			if (!role)
-			{
-				BSL_LOG_ERR("No sec role");
-				continue;
-			}
-
-			role_str = json_string_value(role);
-			BSL_LOG_DEBUG("	 role   : %s", role_str);
-
-			// check for valid sec role
-			if (0 == strcmp(role_str, "s"))
-			{
-				sec_role = BSL_SECROLE_SOURCE;
-			}
-			else if (0 == strcmp(role_str, "v"))
-			{
-				sec_role = BSL_SECROLE_VERIFIER;
-			}
-			else if (0 == strcmp(role_str, "a"))
-			{
-				sec_role = BSL_SECROLE_ACCEPTOR;
-			}
-			else
-			{
-				BSL_LOG_ERR("INVALID SEC ROLE %s", role_str);
-				continue;
-			}
-
-			src = json_object_get(filter, "src");
-			if (src)
-			{
-				src_str = json_string_value(src);
-				BSL_LOG_DEBUG("	 src	: %s", src_str);
-				src_eid = get_eid_pattern_from_text(src_str);
-			}
-			else
-			{
-				src_eid = get_eid_pattern_from_text("*:**");
-			}
-
-			dest = json_object_get(filter, "dest");
-			if (dest)
-			{
-				dest_str = json_string_value(dest);
-				BSL_LOG_DEBUG("	 dest	: %s", dest_str);
-				dest_eid = get_eid_pattern_from_text(dest_str);
-			}
-			else
-			{
-				dest_eid = get_eid_pattern_from_text("*:**");
-			}
-
-			sec_src = json_object_get(filter, "sec_src");
-			if (sec_src)
-			{
-				sec_src_str = json_string_value(sec_src);
-				BSL_LOG_DEBUG("	 sec_src	: %s",
-						sec_src_str);
-				sec_src_eid = get_eid_pattern_from_text
-						(sec_src_str);
-			}
-			else
-			{
-				sec_src_eid = get_eid_pattern_from_text("*:**");
-			}
-
-			// check tgt (target block type)
-			tgt = json_object_get(filter, "tgt");
-			if (!tgt)
-			{
-				BSL_LOG_ERR("No tgt");
-				continue;
-			}
-
-			tgt_l = json_integer_value(tgt);
-			BSL_LOG_DEBUG("	 tgt	: %" JSON_INTEGER_FORMAT,
-					tgt_l);
-			target_block_type = tgt_l;
-
-			// check loc (sec location )
-			loc = json_object_get(filter, "loc");
-			if (!loc)
-			{
-				BSL_LOG_ERR("No loc");
-				continue;
-			}
-
-			loc_str = json_string_value(loc);
-			BSL_LOG_DEBUG("	 loc	: %s", loc_str);
-
-			if (0 == strcmp(loc_str, "appin"))
-			{
-				policy_loc_enum = BSL_POLICYLOCATION_APPIN;
-			}
-			else if (0 == strcmp(loc_str, "appout"))
-			{
-				policy_loc_enum = BSL_POLICYLOCATION_APPOUT;
-			}
-			else if (0 == strcmp(loc_str, "clin"))
-			{
-				policy_loc_enum = BSL_POLICYLOCATION_CLIN;
-			}
-			else if (0 == strcmp(loc_str, "clout"))
-			{
-				policy_loc_enum = BSL_POLICYLOCATION_CLOUT;
-			}
-			else
-			{
-				BSL_LOG_ERR("INVALID POLICY LOCATION %s",
-						loc_str);
-				continue;
-			}
-
-			sc_id = json_object_get(filter, "sc_id");
-			if (!sc_id || !json_is_integer(sc_id))
-			{
-				BSL_LOG_DEBUG("NO SEC CTX ID");
-				continue;
-			}
-
-			sc_id_l = json_integer_value(sc_id);
-			BSL_LOG_DEBUG("	 scid	: %" JSON_INTEGER_FORMAT,
-					sc_id_l);
-			sec_ctx_id	 = sc_id_l;
-			sec_block_type = (sec_ctx_id == 1) ?
-					BSL_SECBLOCKTYPE_BIB :
-					BSL_SECBLOCKTYPE_BCB;
-		}
-		else
-		{
-			BSL_LOG_DEBUG("NO FILTER");
-			continue;
-		}
-
-		// event set_ref
-		es_ref = json_object_get(policyrule, "es_ref");
-		if (!es_ref || !json_is_string(es_ref))
-		{
-			BSL_LOG_DEBUG("NO ES REF");
-		}
-
-		// _temp_not_ion_spec_policy_action_on_fail
-		policy_action_on_fail = json_object_get(policyrule,
-				"_temp_not_ion_spec_policy_action_on_fail");
-		if (!policy_action_on_fail
-		|| !json_is_string(policy_action_on_fail))
-		{
-			BSL_LOG_ERR("NO POLICY ACTION");
-			continue;
-		}
-
-		policy_act_str = json_string_value(policy_action_on_fail);
-		if (0 == strcmp(policy_act_str, "delete_bundle"))
-		{
-			policy_action_enum = BSL_POLICYACTION_DROP_BUNDLE;
-		}
-		else if (0 == strcmp(policy_act_str, "drop_block"))
-		{
-			policy_action_enum = BSL_POLICYACTION_DROP_BLOCK;
-		}
-		else if (0 == strcmp(policy_act_str, "nothing"))
-		{
-			policy_action_enum = BSL_POLICYACTION_NOTHING;
-		}
-		else
-		{
-			BSL_LOG_ERR("INVALID POLICY ACTION ENUM %s",
-					policy_act_str);
-			continue;
-		}
-
-		params_got = 0x0;	/*	Documents params rec'd.	*/
-
-		// spec attr
-		spec = json_object_get(policyrule, "spec");
-		if (spec && json_is_object(spec))
-		{
-			// check sec ctx id
-			sc_id = json_object_get(spec, "sc_id");
-			sc_id_l = json_integer_value(sc_id);
-
-			BSL_LOG_DEBUG("spec:");
-			BSL_LOG_DEBUG("	 sc_id: %" JSON_INTEGER_FORMAT,
-					sc_id_l ? sc_id_l : -1);
-
-			sc_parms = json_object_get(spec, "sc_parms");
-			if (sc_parms && json_is_array(sc_parms))
-			{
-				register_sc_parms(sc_parms, sc_id_l, params,
-						&params_got);
-			}
-		}
-
-		// event set
-		// TODO currently not utilized
-		event_set = json_object_get(root, "event_set");
-		if (event_set && json_is_object(event_set))
-		{
-			es_ref_es = json_object_get(policyrule, "es_ref");
-			if (!es_ref_es || !json_is_string(es_ref_es))
-			{
-				BSL_LOG_DEBUG("NO ES REF");
-			}
-
-			events = json_object_get(event_set, "events");
-			if (events && json_is_array(events))
-			{
-				n = json_array_size(events);
-				BSL_LOG_DEBUG("num events (%zu):", n);
-				for (i = 0; i < n; ++i)
-				{
-					entry = json_array_get(events, i);
-					if (!json_is_object(entry))
-					{
-						continue;
-					}
-
-					event_id = json_object_get(entry,
-							"event_id");
-					if (!event_id)
-					{
-						continue;
-					}
-
-					event_id_str = json_string_value
-							(event_id);
-					BSL_LOG_DEBUG("EVENT ID FOUND: %s",
-							event_id_str);
-					actions = json_object_get(entry,
-							"actions");
-					if (actions && json_is_array(actions))
-					{
-						m = json_array_size(actions);
-						BSL_LOG_DEBUG("num actions \
-in %s (%zu):", event_id_str, m);
-						for (j = 0; j < m; ++j)
-						{
-							act = json_array_get
-								(actions, j);
-							if (json_is_string(act)
-								== 0)
-							{
-								continue;
-							}
-
-							act_str =
-							json_string_value(act);
-							BSL_LOG_DEBUG("Action \
-of %s: %s", event_id_str, act_str);
-						}
-					}
-				}
-			}
-		}
-
-		predicate = &policy->predicates[policy->predicate_count++];
-		BSLP_PolicyPredicate_Init(predicate, policy_loc_enum, src_eid,
-				sec_src_eid, dest_eid);
-		rule = &policy->rules[policy->rule_count++];
-		BSLP_PolicyRule_Init(rule, rule_id_str, predicate, sec_ctx_id,
-				sec_role, sec_block_type, target_block_type,
-				policy_action_enum);
-
-		if (sec_ctx_id == 2) // BCB
-		{
-			if (params_got & 0x4)
-			{
-				BSLP_PolicyRule_CopyParam(rule,
-						params->param_aes_variant);
-			}
-
-			if (sec_role == BSL_SECROLE_SOURCE)
-			{
-				if (params_got & 0x8)
-				{
-					BSLP_PolicyRule_CopyParam(rule,
-						params->param_aad_scope_flag);
-				}
-
-				BSL_Crypto_SetRngGenerator(rfc9173_bcb_cek);
-			}
-
-			if (params_got & 0x10)
-			{
-				BSLP_PolicyRule_CopyParam(rule,
-						params->param_use_wrapped_key);
-			}
-		}
-		else
-		{
-			if (params_got & 0x2)
-			{
-				BSLP_PolicyRule_CopyParam(rule,
-						params->param_sha_variant);
-			}
-
-			if (params_got & 0x4)
-			{
-				BSLP_PolicyRule_CopyParam(rule,
-						params->param_integ_scope_flag);
-			}
-
-			if (params_got & 0x8)
-			{
-				BSLP_PolicyRule_CopyParam(rule,
-						params->param_use_wrapped_key);
-			}
-		}
-
-		if (params_got & 0x1)
-		{
-			BSLP_PolicyRule_CopyParam(rule,
-					params->param_test_key);
-		}
-	}
-
-	json_decref(root);
-	return 0;
-}
 
 /*************** Functions called by the host process *******************/
 
@@ -2208,8 +1468,8 @@ static int	base64_decode(m_bstring_t out, const m_string_t in)
 	size_t		in_len = m_string_size(in);
 	const char 	*curs = m_string_get_cstr(in);
 
-	CHKERR1(out);
-	CHKERR1(in);
+	BSL_CHKERR1(out);
+	BSL_CHKERR1(in);
 
 	size_t		out_len = (in_len / 4) * 3 + 2;
 	m_bstring_resize(out, out_len);
@@ -2523,47 +1783,69 @@ static int	initializeAgent(BslAgent *agent)
 				2, bcb_sec_desc));
 	}
 
-	agent->transmit.policy = BSL_CALLOC(1, sizeof(BSLP_PolicyProvider_t));
-	agent->transmit.policy->pp_id = 1;
 	policy_callbacks.deinit_fn = BSLP_Deinit;
 	policy_callbacks.query_fn = BSLP_QueryPolicy;
 	policy_callbacks.finalize_fn = BSLP_FinalizePolicy;
+
+	agent->transmit.policy = BSLP_PolicyProvider_Init(1);
 	policy_callbacks.user_data = agent->transmit.policy;
 	ASSERT_PROPERTY(BSL_SUCCESS ==
 			BSL_API_RegisterPolicyProvider(agent->transmit.bsl,
 			1, policy_callbacks));
 
-	agent->deliver.policy = BSL_CALLOC(1, sizeof(BSLP_PolicyProvider_t));
-	agent->deliver.policy->pp_id = 1;
-	policy_callbacks.deinit_fn = BSLP_Deinit;
-	policy_callbacks.query_fn = BSLP_QueryPolicy;
-	policy_callbacks.finalize_fn = BSLP_FinalizePolicy;
+	agent->deliver.policy = BSLP_PolicyProvider_Init(1);
 	policy_callbacks.user_data = agent->deliver.policy;
 	ASSERT_PROPERTY(BSL_SUCCESS ==
 			BSL_API_RegisterPolicyProvider(agent->deliver.bsl,
 			1, policy_callbacks));
 
-	agent->receive.policy = BSL_CALLOC(1, sizeof(BSLP_PolicyProvider_t));
-	agent->receive.policy->pp_id = 1;
-	policy_callbacks.deinit_fn = BSLP_Deinit;
-	policy_callbacks.query_fn = BSLP_QueryPolicy;
-	policy_callbacks.finalize_fn = BSLP_FinalizePolicy;
+	agent->receive.policy = BSLP_PolicyProvider_Init(1);
 	policy_callbacks.user_data = agent->receive.policy;
 	ASSERT_PROPERTY(BSL_SUCCESS ==
 			BSL_API_RegisterPolicyProvider(agent->receive.bsl,
 			1, policy_callbacks));
 
-	agent->forward.policy = BSL_CALLOC(1, sizeof(BSLP_PolicyProvider_t));
-	agent->forward.policy->pp_id = 1;
-	policy_callbacks.deinit_fn = BSLP_Deinit;
-	policy_callbacks.query_fn = BSLP_QueryPolicy;
-	policy_callbacks.finalize_fn = BSLP_FinalizePolicy;
+	agent->forward.policy = BSLP_PolicyProvider_Init(1);
 	policy_callbacks.user_data = agent->forward.policy;
 	ASSERT_PROPERTY(BSL_SUCCESS ==
 			BSL_API_RegisterPolicyProvider(agent->forward.bsl,
 			1, policy_callbacks));
 
 	return 0;
+}
+
+static bool	ion_bsl_log_is_enabled(int severity)
+{
+	(void)severity;
+	return true;
+}
+
+static void	ion_bsl_log_event(const struct timeval *timestamp,
+			int severity, const char *filename, int lineno,
+			const char *funcname, const char *format,
+			va_list args)
+{
+	char	msgbuf[600];
+	int	offset;
+
+	(void)timestamp;
+	offset = snprintf(msgbuf, sizeof(msgbuf), "[BSL %s:%d %s] ",
+			filename, lineno, funcname);
+	if (offset < 0 || (size_t)offset >= sizeof(msgbuf))
+	{
+		offset = 0;
+	}
+
+	vsnprintf(msgbuf + offset, sizeof(msgbuf) - offset, format, args);
+
+	if (severity <= LOG_ERR)
+	{
+		writeMemo(msgbuf);
+	}
+	else
+	{
+		writeMemo(msgbuf);
+	}
 }
 
 static void	loadCallbacks(BSL_HostDescriptors_t *descriptors)
@@ -2594,6 +1876,16 @@ static void	loadCallbacks(BSL_HostDescriptors_t *descriptors)
 	descriptors->eidpat_deinit		= ion_bsl_eidpat_unload;
 	descriptors->eidpat_from_text		= ion_bsl_eidpat_from_text;
 	descriptors->eidpat_match		= ion_bsl_eidpat_match;
+
+	// Dynamic memory callbacks (BSL v1.1)
+	descriptors->dyn_mem_desc.malloc_cb	= ion_bsl_malloc_cb;
+	descriptors->dyn_mem_desc.realloc_cb	= ion_bsl_realloc_cb;
+	descriptors->dyn_mem_desc.calloc_cb	= ion_bsl_calloc_cb;
+	descriptors->dyn_mem_desc.free_cb	= ion_bsl_free_cb;
+
+	// Log callbacks (BSL v1.1)
+	descriptors->log_is_enabled_for		= ion_bsl_log_is_enabled;
+	descriptors->log_event			= ion_bsl_log_event;
 }
 
 int	bslInitialize(BslAgent *agent)
@@ -2644,9 +1936,8 @@ disabled.  Use 'm bsl' in bprc to enable.");
 
 	/*	BSL initialization parameters are now loaded.		*/
 
-	BSL_openlog();
-	BSL_LogSetLeastSeverity(LOG_INFO);	/*	Reduce debug spam	*/
 	BSL_CryptoInit();
+	BSL_Crypto_SetRngGenerator(rfc9173_bcb_cek);
 	if (initializeAgent(agent) < 0)
 	{
 		writeMemo("[?] Bsl agent initialization failed.");
@@ -2694,33 +1985,32 @@ disabled.  Use 'm bsl' in bprc to enable.");
 
 	/*	Load policy.						*/
 
-	rules_registry_init(&agent->rulesRegistry);
-	if (register_policy_from_json(policyConfigFilePath,
-			agent->transmit.policy, &agent->rulesRegistry) != 0)
+	if (BSLP_RegisterPolicyFromJSON(policyConfigFilePath,
+			agent->transmit.policy) != 0)
 	{
 		bslCleanup(agent);
 		writeMemo("[?] Bsl host failed loading APPIN policy.");
 		return 1;
 	}
 
-	if (register_policy_from_json(policyConfigFilePath,
-			agent->deliver.policy, &agent->rulesRegistry) != 0)
+	if (BSLP_RegisterPolicyFromJSON(policyConfigFilePath,
+			agent->deliver.policy) != 0)
 	{
 		bslCleanup(agent);
 		writeMemo("[?] Bsl host failed loading APPOUT policy.");
 		return 1;
 	}
 
-	if (register_policy_from_json(policyConfigFilePath,
-			agent->receive.policy, &agent->rulesRegistry) != 0)
+	if (BSLP_RegisterPolicyFromJSON(policyConfigFilePath,
+			agent->receive.policy) != 0)
 	{
 		bslCleanup(agent);
 		writeMemo("[?] Bsl host failed loading CLIN policy.");
 		return 1;
 	}
 
-	if (register_policy_from_json(policyConfigFilePath,
-			agent->forward.policy, &agent->rulesRegistry) != 0)
+	if (BSLP_RegisterPolicyFromJSON(policyConfigFilePath,
+			agent->forward.policy) != 0)
 	{
 		bslCleanup(agent);
 		writeMemo("[?] Bsl host failed loading CLOUT policy.");
@@ -2871,7 +2161,16 @@ void	bslCleanup(BslAgent *agent)
 
 	BslContext	*ctx;
 
-	rules_registry_deinit(&agent->rulesRegistry);
+	for (size_t ix = 0; ix < sizeof(ctxs) / sizeof(ctxs[0]); ++ix)
+	{
+		ctx = ctxs[ix];
+		if (ctx->policy)
+		{
+			BSLP_PolicyProvider_Deinit(ctx->policy);
+			ctx->policy = NULL;
+		}
+	}
+
 	for (size_t ix = 0; ix < sizeof(ctxs) / sizeof(ctxs[0]); ++ix)
 	{
 		ctx = ctxs[ix];
@@ -2880,13 +2179,16 @@ void	bslCleanup(BslAgent *agent)
 			BSL_LOG_ERR("Failed pthread_mutex_destroy()");
 		}
 
-		if (BSL_API_DeinitLib(ctx->bsl))
+		if (ctx->bsl)
 		{
-			BSL_LOG_ERR("Failed BSL_API_DeinitLib()");
-		}
+			if (BSL_API_DeinitLib(ctx->bsl))
+			{
+				BSL_LOG_ERR("Failed BSL_API_DeinitLib()");
+			}
 
-		BSL_FREE(ctx->bsl);
-		ctx->bsl = NULL;
+			BSL_FREE(ctx->bsl);
+			ctx->bsl = NULL;
+		}
 	}
 
 	if (agent->app_eid.handle)
@@ -2899,7 +2201,6 @@ void	bslCleanup(BslAgent *agent)
 		BSL_HostEID_Deinit(&agent->sec_eid);
 	}
 
-	BSL_HostDescriptors_Clear();
 	BSL_CryptoDeinit();
-	BSL_closelog();
+	BSL_HostDescriptors_Clear();
 }

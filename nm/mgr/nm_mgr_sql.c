@@ -41,6 +41,7 @@
 
 #include "nm_mgr.h"
 #include "nm_mgr_sql.h"
+#include "ion_atomic.h"
 
 /* Number of threads interacting with the database.
  - DB Polling Thread - Check for reports pending transmission
@@ -367,15 +368,16 @@ int32_t db_incoming_finalize(uint32_t id, uint32_t grp_status, char* src_eid, ch
  *  01/26/17  E. Birrane     Update to AMP 3.5.0 (JHU/APL)
  *****************************************************************************/
 
-void *db_mgt_daemon(int *running)
+void *db_mgt_daemon(void *arg)
 {
 	struct timeval start_time;
 	vast delta = 0;
+	ion_atomic_t *running = (ion_atomic_t *) arg;
 
 
 	AMP_DEBUG_ALWAYS("db_mgt_daemon","Starting Manager Database Daemon",NULL);
 
-	while (*running)
+	while (ion_atomic_get(running))
 	{
 		getCurrentTime(&start_time);
 

@@ -25,6 +25,7 @@
  *			 from generalized extensions.
  */
 
+#include "ion_atomic.h"
 #include "ltpP.h"
 #include "ltpei.h"
 
@@ -140,8 +141,8 @@ void	ltpSpanTally(LtpVspan *vspan, unsigned int idx, unsigned int size)
 {
 	CHKVOID(vspan);
 	CHKVOID(idx < LTP_SPAN_STATS);
-	atomic_fetch_add(&vspan->statsDeltas[idx].deltaCount, 1);
-	atomic_fetch_add(&vspan->statsDeltas[idx].deltaBytes, (uvast) size);
+	ion_ipc_atomic_get_and_increment(&vspan->statsDeltas[idx].deltaCount, 1);
+	ion_ipc_atomic_get_and_increment(&vspan->statsDeltas[idx].deltaBytes, (uvast) size);
 }
 
 int	ltpFlushSpanStats(Sdr sdr, LtpVspan *vspan)
@@ -159,8 +160,8 @@ int	ltpFlushSpanStats(Sdr sdr, LtpVspan *vspan)
 
 		for (i = 0; i < LTP_SPAN_STATS; i++)
 		{
-			atomic_exchange(&vspan->statsDeltas[i].deltaCount, 0);
-			atomic_exchange(&vspan->statsDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_exchange(&vspan->statsDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_exchange(&vspan->statsDeltas[i].deltaBytes, 0);
 		}
 
 		return 0;
@@ -169,8 +170,8 @@ int	ltpFlushSpanStats(Sdr sdr, LtpVspan *vspan)
 	sdr_stage(sdr, (char *) &stats, vspan->stats, sizeof(LtpSpanStats));
 	for (i = 0; i < LTP_SPAN_STATS; i++)
 	{
-		dCount = atomic_exchange(&vspan->statsDeltas[i].deltaCount, 0);
-		dBytes = atomic_exchange(&vspan->statsDeltas[i].deltaBytes, 0);
+		dCount = (unsigned int)ion_ipc_atomic_exchange(&vspan->statsDeltas[i].deltaCount, 0);
+		dBytes = ion_ipc_atomic_exchange(&vspan->statsDeltas[i].deltaBytes, 0);
 		if (dCount > 0 || dBytes > 0)
 		{
 			stats.tallies[i].totalCount += dCount;
@@ -714,8 +715,8 @@ static int	raiseSpan(Object spanElt, LtpVdb *ltpvdb)
 
 		for (i = 0; i < LTP_SPAN_STATS; i++)
 		{
-			atomic_init(&vspan->statsDeltas[i].deltaCount, 0);
-			atomic_init(&vspan->statsDeltas[i].deltaBytes, 0);
+			ion_ipc_atomic_init(&vspan->statsDeltas[i].deltaCount, 0);
+			ion_ipc_atomic_init(&vspan->statsDeltas[i].deltaBytes, 0);
 		}
 	}
 
@@ -1352,7 +1353,10 @@ static void	stopSpan(LtpVspan *vspan)
 
 static void	stopSeat(LtpVseat *vseat)
 {
-	sm_TaskKill(vseat->lsiPid, SIGTERM);
+	if (vseat->lsiPid != ERROR)
+	{
+		sm_TaskKill(vseat->lsiPid, SIGTERM);
+	}
 }
 
 static void	waitForSpan(LtpVspan *vspan)
@@ -1724,9 +1728,26 @@ int	ltpStart(void)
 	Object		ltpdbobj = getLtpDbObject();
 	LtpDB		ltpdb;
 	PsmAddress	elt;
+	int		i;
+	LtpVclient	*client;
 
 	sdr_read(sdr, (char *) &ltpdb, ltpdbobj, sizeof(LtpDB));
 	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+
+	/*	Re-enable semaphores that ltpStop may have ended.
+	 *	This is necessary when restarting after ionexit k n,
+	 *	which preserves the volatile database in shared
+	 *	memory while stopping all LTP daemon processes.		*/
+
+	sm_SemUnend(ltpvdb->deliverySemaphore);
+	for (i = 0, client = ltpvdb->clients; i < LTP_MAX_NBR_OF_CLIENTS;
+			i++, client++)
+	{
+		if (client->semaphore != SM_SEM_NONE)
+		{
+			sm_SemUnend(client->semaphore);
+		}
+	}
 
 	/*	Start the LTP events clock if necessary.		*/
 
@@ -2404,6 +2425,8 @@ static void	releaseImportBuffer(Sdr sdr, Object elt, void *arg)
 	sdr_free(sdr, sdr_list_data(sdr, elt));
 }
 
+static void	cancelForgetImportEvent(Object listElt);
+
 int	removeSpan(uvast engineId)
 {
 	Sdr		sdr = getIonsdr();
@@ -2413,6 +2436,7 @@ int	removeSpan(uvast engineId)
 	PsmAddress	vspanElt;
 	Object		spanElt;
 	Object		spanObj;
+	Object		elt;
 	OBJ_POINTER(LtpSpan, span);
 
 	/*	Must stop the span before trying to remove it.		*/
@@ -2514,38 +2538,57 @@ int	removeSpan(uvast engineId)
 	spanElt = vspan->spanElt;
 	spanObj = (Object) sdr_list_data(sdr, spanElt);
 	GET_OBJ_POINTER(sdr, LtpSpan, span, spanObj);
+	/*	cleanupEmptyExportSessions() above modified SDR state, so the
+	 *	guard-fail paths below must use sdr_cancel_xn() to discard
+	 *	those modifications. Calling sdr_exit_xn() here would trip
+	 *	handleUnrecoverableError() (sdr_exit_xn is read-only-only)
+	 *	and abort the process. */
+
 	if (sdr_list_length(sdr, span->segments) != 0)
 	{
-		sdr_exit_xn(sdr);
 		writeMemoNote("[?] Span has backlog, can't be removed",
 				itoa(engineId));
+		sdr_cancel_xn(sdr);
 		return 0;
 	}
 
 	if (sdr_list_length(sdr, span->importSessions) != 0
 	|| sdr_list_length(sdr, span->exportSessions) != 0)
 	{
-		sdr_exit_xn(sdr);
 		writeMemoNote("[?] Span has open sessions, can't be removed",
 				itoa(engineId));
+		sdr_cancel_xn(sdr);
 		return 0;
 	}
 
 	if (sdr_list_length(sdr, span->deadImports) != 0)
 	{
-		sdr_exit_xn(sdr);
 		writeMemoNote("[?] Span has canceled sessions, can't be \
 removed yet.", itoa(engineId));
+		sdr_cancel_xn(sdr);
 		return 0;
 	}
 
-	if (sdr_list_length(sdr, span->closedImports) != 0)
+	/*	closedImports holds only integer session-number tombstones
+	 *	whose underlying import sessions and heap buffers have
+	 *	already been released; their only purpose is to swallow
+	 *	late-arriving segments for already-completed sessions on
+	 *	the *live* span.  Once the span is gone, the inbound
+	 *	machinery rejects segments earlier and the tombstones
+	 *	protect nothing -- so we destroy the list unconditionally
+	 *	here instead of waiting for ltpclock to forget every entry.
+	 *
+	 *	But each tombstone has a pending LtpForgetImportSession
+	 *	timeline event that holds the tombstone's list-element
+	 *	handle in event.parm; if those events outlive the list,
+	 *	their later sdr_list_delete fires on freed memory and
+	 *	aborts ltpclock via _xniEnd -> crashXn.  Cancel them
+	 *	before destroying closedImports.			*/
+
+	for (elt = sdr_list_first(sdr, span->closedImports); elt;
+			elt = sdr_list_next(sdr, elt))
 	{
-		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Span has closed import sessions that \
-haven't been forgotten yet, can't be removed. Wait for timeline events to \
-process them.", itoa(engineId));
-		return 0;
+		cancelForgetImportEvent(elt);
 	}
 
 	/*	Okay to remove this span from the database.		*/
@@ -2881,6 +2924,41 @@ static void	cancelEvent(LtpEventType type, uvast refNbr1,
 		GET_OBJ_POINTER(sdr, LtpEvent, event, eventObj);
 		if (event->type == type && event->refNbr1 == refNbr1
 		&& event->refNbr2 == refNbr2 && event->refNbr3 == refNbr3)
+		{
+			sdr_free(sdr, eventObj);
+			sdr_list_delete(sdr, elt, NULL, NULL);
+			return;
+		}
+	}
+}
+
+/*	cancelForgetImportEvent removes the LtpForgetImportSession
+ *	timeline event that references the given closedImports list
+ *	element.  Used by removeSpan() to drop pending forget events
+ *	before destroying the closedImports list -- without this, the
+ *	event's later attempt to sdr_list_delete a freed element would
+ *	hit _xniEnd and abort ltpclock (the "race already handled"
+ *	comment in ltpclock.c is too optimistic; _xniEnd calls crashXn
+ *	and, with the default _coreFileNeeded(), sm_Abort).  Unlike the
+ *	other LtpEvent kinds, LtpForgetImportSession does not encode its
+ *	target in refNbr1/2/3, so cancelEvent above cannot find it; we
+ *	match on event.parm instead.  At most one event references a
+ *	given listElt, so we return on first match.			*/
+
+static void	cancelForgetImportEvent(Object listElt)
+{
+	Sdr	sdr = getIonsdr();
+	Object	elt;
+	Object	eventObj;
+	OBJ_POINTER(LtpEvent, event);
+
+	for (elt = sdr_list_first(sdr, (_ltpConstants())->timeline); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		eventObj = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, LtpEvent, event, eventObj);
+		if (event->type == LtpForgetImportSession
+		&& event->parm == listElt)
 		{
 			sdr_free(sdr, eventObj);
 			sdr_list_delete(sdr, elt, NULL, NULL);
@@ -3262,9 +3340,12 @@ notice.", NULL);
 	 *	list length and thereby possibly enabling a blocked
 	 *	client to append an SDU to the current block.		*/
 
-	sdr_hash_remove(sdr, db.exportSessionsHash,
-			(char *) &(session->sessionNbr), (Address *) &elt);
-	sdr_list_delete(sdr, elt, NULL, NULL);
+	if (sdr_hash_remove(sdr, db.exportSessionsHash,
+			(char *) &(session->sessionNbr), (Address *) &elt) > 0)
+	{
+		sdr_list_delete(sdr, elt, NULL, NULL);
+	}
+
 	sdr_free(sdr, sessionObj);
 #if LTPDEBUG
 putErrmsg("Closed export session.", itoa(session->sessionNbr));
@@ -3750,9 +3831,11 @@ void	removeImportSession(Object sessionObj)
 	CHKVOID(ionLocked());
 	GET_OBJ_POINTER(sdr, LtpImportSession, session, sessionObj);
 	GET_OBJ_POINTER(sdr, LtpSpan, span, session->span);
-	sdr_hash_remove(sdr, span->importSessionsHash,
-			(char *) &(session->sessionNbr), (Address *) &elt);
-	sdr_list_delete(sdr, elt, NULL, NULL);
+	if (sdr_hash_remove(sdr, span->importSessionsHash,
+			(char *) &(session->sessionNbr), (Address *) &elt) > 0)
+	{
+		sdr_list_delete(sdr, elt, NULL, NULL);
+	}
 }
 
 static void	noteClosedImport(Sdr sdr, LtpSpan *span,
@@ -3814,6 +3897,11 @@ static void	noteClosedImport(Sdr sdr, LtpSpan *span,
 	event.parm = elt2;
 	currentTime = getCtime();
 	findSpan(span->engineId, &vspan, &vspanElt);
+	if (vspanElt == 0)
+	{
+		return;
+	}
+
 	event.scheduledTime = currentTime + 10 +
 			(2 * (vspan->maxTimeouts / SIGNAL_REDUNDANCY)
 			* (vspan->owltOutbound + vspan->owltInbound));
@@ -4507,9 +4595,56 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 				+ segment.pdu.ohdLength, segment.pdu.block,
 				segment.pdu.offset, segment.pdu.length) < 0)
 		{
-			putErrmsg("Can't read data from export block.", NULL);
-			sdr_cancel_xn(sdr);
-			return -1;
+			/*	The backing store for this segment's
+			 *	payload (typically a file behind a
+			 *	bpsendfile-style ZCO) is no longer
+			 *	readable.  This is a bundle-level
+			 *	failure -- drop the segment.  We cannot
+			 *	call sdr_cancel_xn() here: the destructive
+			 *	list/free operations earlier in this
+			 *	function are not reversible on non-
+			 *	reversible SDR profiles, so cancellation
+			 *	would trip handleUnrecoverableError()
+			 *	-> sm_Abort() and kill the entire node
+			 *	(see #965).  Free the segment object
+			 *	consistently with the non-retain default
+			 *	path below, also clearing any sessionListElt
+			 *	that wasn't already removed earlier in this
+			 *	function (checkpoint types skip the
+			 *	unconditional removal above), drop the
+			 *	transaction via sdr_drop_xn so the dead
+			 *	segref stays off the queue and the drop
+			 *	is logged + counted, and return 0
+			 *	(interrupted) so LSO continues with the
+			 *	next segment rather than terminating the
+			 *	link.					*/
+
+			if (segment.sessionListElt)
+			{
+				sdr_list_delete(sdr,
+					segment.sessionListElt, NULL, NULL);
+				segment.sessionListElt = 0;
+			}
+
+			if (segment.pdu.headerExtensions)
+			{
+				sdr_list_destroy(sdr,
+					segment.pdu.headerExtensions,
+					ltpei_destroy_extension, NULL);
+			}
+
+			if (segment.pdu.trailerExtensions)
+			{
+				sdr_list_destroy(sdr,
+					segment.pdu.trailerExtensions,
+					ltpei_destroy_extension, NULL);
+			}
+
+			sdr_free(sdr, segRef.segAddr);
+
+			sdr_drop_xn(sdr, "ltpDequeueOutboundSegment: "
+				"unreadable export block (segment dropped)");
+			return 0;
 		}
 	}
 
@@ -4859,7 +4994,7 @@ static void	signalLso(uvast engineId)
 	PsmAddress	vspanElt;
 
 	findSpan(engineId, &vspan, &vspanElt);
-	if (vspan != NULL && vspan->localXmitRate > 0)
+	if (vspanElt != 0 && vspan->localXmitRate > 0)
 	{
 		/*	Tell LSO that output is waiting.	*/
 
@@ -5026,9 +5161,11 @@ static int	cancelSessionBySender(LtpExportSession *session,
 	/*	...and remove session from active sessions pool, so
 	 *	that the cancellation won't affect flow control.	*/
 
-	sdr_hash_remove(sdr, db.exportSessionsHash,
-			(char *) &(session->sessionNbr), (Address *) &elt);
-	sdr_list_delete(sdr, elt, NULL, NULL);
+	if (sdr_hash_remove(sdr, db.exportSessionsHash,
+			(char *) &(session->sessionNbr), (Address *) &elt) > 0)
+	{
+		sdr_list_delete(sdr, elt, NULL, NULL);
+	}
 
 	/*	Span now has room for another session to start.		*/
 
@@ -5778,7 +5915,7 @@ static int	startImportSession(Object spanObj, unsigned int sessionNbr,
 		 *	end of red part.  Its offset + length is the
 		 *	total size of the block.			*/
 
-		blockSize = pdu->offset + pdu->length;
+		blockSize = (uvast) pdu->offset + (uvast) pdu->length;
 		if (blockSize < heapBufferSize)
 		{
 			heapBufferSize = blockSize;
@@ -6370,7 +6507,7 @@ putErrmsg("Discarded data segment: can't start new session.", itoa(sessionNbr));
 		bytesForHeap = pdu->length;
 	}
 
-	endOfSegment = pdu->offset + pdu->length;
+	endOfSegment = (uvast) pdu->offset + (uvast) pdu->length;
 	bytesForFile = endOfSegment > sessionBuf->heapBufferSize ? \
 			endOfSegment - sessionBuf->heapBufferSize : 0;
 	if (bytesForFile > pdu->length)
@@ -6400,6 +6537,7 @@ putErrmsg("Discarded data segment: can't start new session.", itoa(sessionNbr));
 	ltpSpanTally(vspan, IN_SEG_RECV_RED, pdu->length);
 	if (bytesForHeap > 0)
 	{
+		sdr_stage(sdr, NULL, sessionBuf->heapBufferObj, 0);
 		sdr_write(sdr, sessionBuf->heapBufferObj + pdu->offset,
 				*cursor, bytesForHeap);
 		*cursor += bytesForHeap;
@@ -6522,7 +6660,7 @@ static int	handleDataSegment(uvast sourceEngineId, LtpDB *ltpdb,
 	OBJ_POINTER(LtpSpan, span);
 	LtpVclient		*client;
 	int			result;
-	unsigned int		endOfRed;
+	uvast			endOfRed;
 	Object			clientSvcData = 0;
 	int			segUpperBound;
 	OBJ_POINTER(LtpRecvSeg, firstSegment);
@@ -6726,7 +6864,7 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 
 	/*	This is a red-part data segment.			*/
 
-	endOfRed = pdu->offset + pdu->length;
+	endOfRed = (uvast) pdu->offset + (uvast) pdu->length;
 	if (sessionNbr == vspan->greenSessionNbr
 	&& endOfRed > vspan->startOfGreen)
 	{

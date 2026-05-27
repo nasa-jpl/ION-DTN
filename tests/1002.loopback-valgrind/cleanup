@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Pattern to match the Valgrind processes
+killm f
 pattern="valgrind.bin --suppressions=valgrind.suppressions.ionstart"
 
 # Use pgrep with full pattern matching to find PIDs of processes matching the pattern

@@ -185,6 +185,7 @@ static void	detachRoutingObject(PsmPartition ionwm,
 
 void	cgr_clear_vdb(CgrVdb *vdb)
 {
+	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	elt;
 	PsmAddress	nextElt;
@@ -193,6 +194,7 @@ void	cgr_clear_vdb(CgrVdb *vdb)
 
 	/*	Destroy all routing objects in the CGR vdb.		*/
 
+	CHKVOID(sdr_begin_xn(sdr)); /* To lock memory. */
 	for (elt = sm_list_first(ionwm, vdb->routingObjects); elt;
 			elt = nextElt)
 	{
@@ -209,6 +211,8 @@ void	cgr_clear_vdb(CgrVdb *vdb)
 
 		sm_list_delete(ionwm, elt, NULL, NULL);
 	}
+
+	oK(sdr_exit_xn(sdr));
 }
 
 #if !UNIBO_CGR
@@ -276,7 +280,7 @@ CgrVdb	*cgr_get_vdb(void)
 
 	vdb = (CgrVdb *) psp(ionwm, vdbAddress);
 	memset((char *) vdb, 0, sizeof(CgrVdb));
-	if ((vdb->routingObjects = sm_list_create(ionwm)) == 0
+	if ((vdb->routingObjects = sm_list_create_unlocked(ionwm)) == 0
 	|| psm_catlg(ionwm, name, vdbAddress) < 0)
 	{
 		sdr_exit_xn(sdr);
@@ -330,7 +334,7 @@ static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
 		if (range->fromTime > contact->fromTime)
 		{
 			/*	Range unknown at contact start time.	*/
-
+			break;
 		}
 
 		/*	Found applicable range.				*/
@@ -731,11 +735,12 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 		 *	backtracking to root, and compute the time
 		 *	at which the route will become unusable.	*/
 
-		route->hops = sm_list_create(ionwm);
+		route->hops = sm_list_create_unlocked(ionwm);
 		if (route->hops == 0)
 		{
-			putErrmsg("Can't create CGR route hops list.", NULL);
-			return -1;
+			writeMemo("[i] CGR: skipping route - can't"
+					" create hops list.");
+			return 0;
 		}
 
 		earliestEndTime = MAX_TIME;
@@ -772,12 +777,13 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 
 			if (contact->citations == 0)
 			{
-				contact->citations = sm_list_create(ionwm);
+				contact->citations = sm_list_create_unlocked(ionwm);
 				if (contact->citations == 0)
 				{
-					putErrmsg("Can't create citation list.",
-							NULL);
-					return -1;
+					writeMemo("[i] CGR: skipping route -"
+						" can't create citation"
+						" list.");
+					return 0;
 				}
 			}
 
@@ -967,7 +973,7 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 	PsmAddress	routeElt;
 	PsmAddress	nextRouteElt;
 	PsmAddress	routeAddr;
-	CgrRoute	*route;
+	CgrRoute	*route = NULL;
 	PsmAddress	rootPathContactElt;
 	PsmAddress	nextRootPathContactElt;
 	PsmAddress	rootPathContactAddr;
@@ -987,8 +993,13 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 		clearWorkAreas((IonCXref *) psp(ionwm, rootOfSpurAddr));
 	}
 
-	excludedEdges = sm_list_create(ionwm);
-	CHKERR(excludedEdges);
+	excludedEdges = sm_list_create_unlocked(ionwm);
+	if (excludedEdges == 0)
+	{
+		writeMemo("[i] CGR: skipping spur - can't create"
+				" excludedEdges list.");
+		return 0;
+	}
 
 	/*	Suppress contacts that would introduce loops, i.e.,
 	 *	all contacts on the root path for this spur path.
@@ -1202,8 +1213,8 @@ static int	computeAnotherRoute(IonNode *terminusNode,
 	PsmAddress	knownRouteAddr;
 	CgrRoute	*knownRoute;
 	PsmAddress	bestKnownRouteElt;
-	PsmAddress	bestKnownRouteAddr;
-	CgrRoute	*bestKnownRoute;
+	PsmAddress	bestKnownRouteAddr = 0;
+	CgrRoute	*bestKnownRoute = 0;
 
 //puts("*** Computing another route. ***");
 	*elt = 0;	/*	Default: no new route found.		*/
@@ -1516,7 +1527,11 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 	}
 
 	contact = (IonCXref *) psp(ionwm, contactAddr);
-	CHKERR(contact->xmitRate > 0);
+	if (contact->xmitRate == 0)
+	{
+		/* First contact is inactive, route not usable. */
+		return 0;
+	}
 
 	/*	Compute the expected initial transmit time
 	 *	(Earliest Transmission Opportunity): start of
@@ -2189,7 +2204,7 @@ static int	loadCriticalBestRoutesList(IonNode *terminusNode,
 
 	if (routingObj->proximateNodes == 0)
 	{
-		routingObj->proximateNodes = sm_list_create(ionwm);
+		routingObj->proximateNodes = sm_list_create_unlocked(ionwm);
 		if (routingObj->proximateNodes == 0)
 		{
 			putErrmsg("Can't build list of proximate nodes.",
@@ -2373,14 +2388,14 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 	{
 		/*	Must initialize routing object for CGR.		*/
 
-		routingObj->selectedRoutes = sm_list_create(ionwm);
+		routingObj->selectedRoutes = sm_list_create_unlocked(ionwm);
 		if (routingObj->selectedRoutes == 0)
 		{
 			putErrmsg("Can't initialize CGR routing.", NULL);
 			return -1;
 		}
 
-		routingObj->knownRoutes = sm_list_create(ionwm);
+		routingObj->knownRoutes = sm_list_create_unlocked(ionwm);
 		if (routingObj->knownRoutes == 0)
 		{
 			putErrmsg("Can't initialize CGR routing.", NULL);

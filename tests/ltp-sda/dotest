@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Scott Burleigh
 # August 21, 2013
@@ -141,7 +142,6 @@ else
     RETVAL=1
 fi
 
-killm
 
 echo "SDA test completed."
 exit $RETVAL

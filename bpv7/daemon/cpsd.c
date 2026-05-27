@@ -171,7 +171,7 @@ static int	handleCpsNotice(BpDelivery *dlv, unsigned char *cursor,
 
 	/*	This is a Contact notice.				*/
 
-	if (fromTime == (time_t) -1)	/*	Registration contact.	*/
+	if (fromTime == MAX_POSIX_TIME) /* Registration contact. */
 	{
 		if (toTime == 0)	/*	Unregister node.	*/
 		{
@@ -404,6 +404,8 @@ int	main(void)
 	unsigned char	*cursor;
 	uvast		uvtemp;
 	int		noticeLength;
+	uint32_t	toRegion;
+
 	if (bpAttach() < 0)
 	{
 		putErrmsg("cpsd can't attach to BP.", NULL);
@@ -537,7 +539,24 @@ int	main(void)
 			/*	Now multicast the notice.		*/
 
 			noticeLength = cursor - buffer;
-			if (imcSendDispatch(cpsEid, notice.regionNbr, buffer,
+			if (notice.regionNbr == 0) /* Range. */
+			{
+				toRegion = 0;
+			}
+			else /* Contact. */
+			{
+				if (notice.fromTime == MAX_POSIX_TIME)
+				{
+					/* Registration contact. */
+					toRegion = 0; /* Both. */
+				}
+				else /* Scheduled. */
+				{
+					toRegion = notice.regionNbr;
+				}
+			}
+
+			if (imcSendDispatch(cpsEid, toRegion, buffer,
 					noticeLength) < 0)
 			{
 				putErrmsg("Failed sending CPS notice.", NULL);

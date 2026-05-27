@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+trap 'killm f' EXIT
 #
 # Cheol Koo, adapted from Scott Burleigh
 # April 22, 2020
@@ -15,7 +16,6 @@ getStatsCounter() {
 }
 
 
-killm
 ./cleanup
 sleep 1
 echo "Starting ION..."
@@ -113,6 +113,5 @@ echo "Stopping ION..."
 
 # Give all nodes time to shut down, then clean up.
 sleep 3
-killm
 echo -e "cfdpv1-4node-ltp test completed.\n"
 exit $RETVAL

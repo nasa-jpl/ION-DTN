@@ -67,6 +67,8 @@ nav:
     - ION Test Set: ION-TestSet-Readme.md
     - ION Tutorials: ION-Tutorials.md
   - Configuration:
+    - Configuration Tools Overview: Configuration-Tools-Overview.md
+    - ionrun Setup Utility: ionrun.md
     - Basic Configuration Tutorial: Basic-Configuration-File-Tutorial.md
     - Configuration Templates: ION-Config-File-Templates.md
     - BPSec Configuration Example: BpSec-Configuration-Examples.md
@@ -104,6 +106,7 @@ nav:
     - CFDP SW Architecture: CFDP-SW-Architecture.md
     - Contact Graph Events and LTP: Contact-Graph-Events-and-LTP.md
     - Knowledge Base, Issues & Patches: Known-Issues.md
+    - ION Shutdown Guide: ION-Shutdown-Guide.md
     - Standard Operations Procedure: SOP-for-ION.md
     - Platform Macros & Error Reporting: Platform-Macros-Error-Reporting.md
     - ION Utility Programs: ION-Utilities.md

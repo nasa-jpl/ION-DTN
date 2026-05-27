@@ -21,6 +21,10 @@ the path to a valid HMAC key or a literal key value.
 Note: decryption requires a suitable cryptographic library and interface (which is
 avaiable with the ITAR controlled ION NASA Baseline).
 
+The maximum receivable file content size is limited to 10% of the ION
+working memory (wmSize).  Files exceeding this limit will be rejected.
+Additional runtime constraints may further reduce the effective limit.
+
 Use ^C to terminate the program at any time.
 
 =head1 EXIT STATUS

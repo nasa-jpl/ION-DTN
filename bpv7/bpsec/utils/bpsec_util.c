@@ -215,6 +215,12 @@ char	*bpsec_util_localAdminEIDGet(char *peerEid)
 		return NULL;
 	}
 
+	if (metaEid.nullEndpoint)
+	{
+		clearMetaEid(&metaEid);
+		return NULL;
+	}
+
 	clearMetaEid(&metaEid);
 	return vscheme->adminEid;
 }

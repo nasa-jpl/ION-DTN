@@ -2,9 +2,11 @@
 
 ## What is BSL?
 
-BSL (Bundle Protocol Security Library) is an external BPSec implementation that ION can use as an alternative to ION's built-in BPSec. BSL implements RFC 9172/9173 security contexts, uses OpenSSL for cryptography, and is configured through JSON files rather than `bpsecadmin` commands.
+BSL (Bundle Protocol Security Library) is an external BPSec implementation that ION can use as an alternative to ION's built-in BPSec. BSL v1.1 implements RFC 9172/9173 security contexts, uses OpenSSL for cryptography, and is configured through JSON files rather than `bpsecadmin` commands.
 
 BSL is integrated as a git submodule at `external/BSL/`. When enabled, it replaces ION's native BPSec policy engine and security processing.
+
+BSL v1.1 uses runtime dynamic memory callbacks instead of compile-time integration, so BSL builds as a standalone library with no ION dependencies. ION's `ionpatch.c` registers ION memory allocation callbacks at runtime.
 
 ## Prerequisites
 
@@ -26,7 +28,7 @@ See [Appendix A](#appendix-a-detailed-prerequisites) for complete dependency inf
 
 ## Build Instructions
 
-Building ION with BSL is a two-stage process because BSL and ION have a mutual dependency: BSL links against ION's `libici`, and ION links against BSL's security libraries. The automake build system handles both stages automatically.
+BSL v1.1 builds as a standalone library (no ION dependency), then ION links against BSL. The automake build system handles this automatically.
 
 ### Step 1: Initialize the BSL Submodule
 
@@ -42,18 +44,49 @@ git submodule update --init --recursive
 cd ../..
 ```
 
-### Step 2: Build and Install ION with BSL
+### Step 2: Build BSL
+
+BSL must be built **before** running `./configure --enable-bsl`, because configure resolves `BSL_HOME` to an absolute path and verifies headers exist.
+
+```bash
+./build-bsl-for-ion.sh
+```
+
+Verify it completed:
+```bash
+ls external/BSL/testroot/usr/include/m-lib/m-bstring.h
+ls external/BSL/testroot/usr/lib/libbsl_front.so
+```
+
+**When to rebuild BSL:**
+
+```bash
+./build-bsl-for-ion.sh clean
+./build-bsl-for-ion.sh
+```
+
+Rebuild BSL when:
+- The BSL submodule is updated (`git submodule update external/BSL`)
+- BSL's dependencies change (QCBOR, mlib, Unity versions bumped)
+- Switching platforms or compilers (e.g., different GCC version)
+- The `testroot/` directory is missing or corrupted (headers or libraries absent)
+- You see build errors referencing missing BSL headers (`m-bstring.h`, `bsl_front.h`, `qcbor.h`)
+
+You do **not** need to rebuild BSL when:
+- Only ION source files change (rerun `make` only)
+- Reconfiguring ION with different options unrelated to BSL
+- Running tests
+
+### Step 3: Build and Install ION with BSL
 
 ```bash
 # Generate configure script (if not already present)
 autoreconf -fi
 
-# Configure with BSL enabled
+# Configure with BSL enabled (BSL_HOME must already exist)
 ./configure --enable-bsl
 
-# Build (automake handles the two-stage process automatically:
-#   Stage 1: builds libici
-#   Stage 2: builds BSL against libici, then builds the rest of ION against BSL)
+# Build
 make -j$(nproc)
 
 # Install
@@ -287,6 +320,121 @@ make clean
 make -j$(nproc)
 ```
 
+## Building on Solaris
+
+BSL can be built on Solaris 11 with some additional setup. The `build-bsl-for-ion.sh` script handles most Solaris-specific adjustments automatically, but the environment must be prepared first.
+
+### Prerequisites (Solaris 11)
+
+```bash
+sudo pkg install developer/versioning/git developer/gcc \
+    developer/build/automake developer/build/gnu-make \
+    developer/build/cmake developer/build/libtool \
+    library/python/pip developer/build/autoconf \
+    developer/build/ninja runtime/ruby developer/build/pkg-config
+```
+
+### Environment Setup
+
+Solaris requires several environment adjustments before building BSL:
+
+```bash
+# GNU Make must be the default 'make' — Solaris native make doesn't support GNU extensions
+export PATH="/usr/gnu/bin:$PATH"
+
+# Solaris doesn't have 'cc' by default; set compiler explicitly
+export CC=gcc
+export CXX=g++
+```
+
+Optionally, create a persistent `~/bin` directory for symlinks:
+
+```bash
+mkdir -p ~/bin
+ln -sf /usr/bin/gcc ~/bin/cc
+ln -sf /usr/bin/gmake ~/bin/make
+export PATH="$HOME/bin:$PATH"
+```
+
+### Solaris-Specific Issues Handled by `build-bsl-for-ion.sh`
+
+The following issues are automatically handled when `uname` reports `SunOS`:
+
+| Issue | Cause | Fix Applied |
+|-------|-------|-------------|
+| `__EXTENSIONS__` needed | Solaris requires this define to expose POSIX/XPG interfaces | `CFLAGS="$CFLAGS -D__EXTENSIONS__"` |
+| Ninja not found | BSL defaults to `-G Ninja` but Solaris CMake may not find it | Overridden to `-G "Unix Makefiles"` |
+| `jansson.h` not found | Solaris installs jansson headers under `/usr/include/jansson/` instead of `/usr/include/` | Auto-detected and passed via `-DCMAKE_INCLUDE_PATH` |
+| Valgrind unavailable | Solaris does not ship valgrind | `-DTEST_MEMCHECK=OFF` |
+
+### Solaris-Specific Issues Handled by `configure.ac`
+
+When running `./configure --enable-bsl` on Solaris, the following adjustments are made automatically:
+
+| Issue | Cause | Fix Applied |
+|-------|-------|-------------|
+| `cp -a` unsupported | Solaris `cp` doesn't support `-a` | Uses `cp -pPR` instead |
+| `-Wl,-rpath-link` unsupported | Solaris linker uses different syntax | Uses `-R${BSL_HOME}/lib` instead |
+| Jansson header detection | `AC_CHECK_HEADER` needs the include path | Temporarily adds `AM_CFLAGS` to `CFLAGS` for header checks |
+| `BSL_HOME` must be absolute | Libtool requires absolute paths | Resolved via `cd "$BSL_HOME" && pwd` |
+
+### Build Steps on Solaris
+
+```bash
+cd /path/to/ion-ios-dev
+
+# 1. Set up environment
+export PATH="/usr/gnu/bin:$PATH"
+export CC=gcc
+export CXX=g++
+
+# 2. Initialize submodules
+git submodule update --init --recursive external/BSL
+
+# 3. Build BSL (Solaris adjustments are automatic)
+./build-bsl-for-ion.sh
+
+# 4. Build ION with BSL
+autoreconf -fi
+./configure --enable-bsl
+gmake -j$(nproc)
+sudo gmake install
+sudo ldconfig
+```
+
+### `pkg-config` Path on Solaris
+
+Solaris does not include `/usr/local/lib/pkgconfig` in the default `pkg-config` search path. After installing ION, the test runner (`runtests`) will fail to detect BSL mode and skip all `.bsl` tests unless this is set:
+
+```bash
+export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
+```
+
+Add this to `~/.profile` or `~/.bashrc` for persistence. Without it, `pkg-config --cflags ion` will fail to find `ion.pc` and the test runner will treat the build as native BPSec, excluding all BSL-specific tests.
+
+### Note on `localhost` Resolution on Solaris
+
+ION supports both IPv4 and IPv6. The `.bsl` test configs use `127.0.0.1` instead of `localhost` for clarity, but `localhost` works correctly as long as `/etc/hosts` is properly ordered.
+
+**Important:** On Solaris, `getent hosts` and `getaddrinfo()` may return inconsistent results because they use different NSS databases:
+- `getent hosts` → queries the `hosts` database (IPv4 only)
+- `getaddrinfo()` (used by ION) → queries the `ipnodes` database (IPv4 and IPv6)
+
+Users should verify what `getaddrinfo()` actually resolves by checking:
+```bash
+getent ipnodes localhost
+```
+
+If this returns `::1` first (because `/etc/hosts` lists `::1 localhost` before `127.0.0.1 localhost`), ION will use IPv6. This is not a problem as long as all ION processes resolve consistently and IPv6 loopback is plumbed (`ipadm show-addr lo0/v6`).
+
+If you see connection failures between nodes using `localhost`, check the order in `/etc/hosts` and ensure IPv4 comes first:
+```
+127.0.0.1 myhost localhost loghost
+::1 myhost localhost
+```
+
+Do not rely on `getent hosts` to diagnose address resolution issues — always use `getent ipnodes` to see what ION will actually resolve.
+
 ## Troubleshooting
 
 ### `undefined symbol: BSLX_BCB_Execute`
@@ -314,7 +462,7 @@ BSL not built or `BSL_HOME` incorrect:
 ```bash
 ls external/BSL/testroot/usr/lib/libbsl_*.so
 # If missing, rebuild BSL submodule
-cd external/BSL && ./build-for-ion.sh
+./build-bsl-for-ion.sh
 ```
 
 ---
@@ -335,23 +483,15 @@ cd external/BSL && ./build-for-ion.sh
 
 ### Appendix B: Manual BSL Build
 
-If you need more control than the automake two-stage process provides, you can build BSL manually. ION must be built and installed first (BSL links against `libici`).
+BSL v1.1 builds as a standalone library with no ION dependencies. You can build BSL first, then build ION linking against it.
 
 ```bash
-# 1. Build and install ION without BSL
+# 1. Build BSL
+git submodule update --init --recursive external/BSL
+./build-bsl-for-ion.sh
+
+# 2. Build ION with BSL
 autoreconf -fi
-./configure
-make -j$(nproc)
-sudo make install && sudo ldconfig
-
-# 2. Build BSL
-cd external/BSL
-git submodule update --init --recursive
-./build-for-ion.sh
-
-# 3. Rebuild ION with BSL
-cd ../..
-make clean
 ./configure --enable-bsl
 make -j$(nproc)
 sudo make install && sudo ldconfig
@@ -364,8 +504,6 @@ cd external/BSL
 ./build.sh clean
 ./build.sh deps
 ./build.sh prep \
-    -DION_INTEGRATION=ON \
-    -DION_ROOT=/path/to/ion-ios-dev \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=$PWD/testroot/usr \
     -DBUILD_TESTING=OFF
@@ -379,8 +517,6 @@ cmake --install . --prefix $PWD/../../testroot/usr
 ```bash
 cd external/BSL
 ./build.sh prep \
-    -DION_INTEGRATION=ON \
-    -DION_ROOT=/path/to/ion-ios-dev \
     -DCMAKE_INSTALL_PREFIX=/usr/local \
     -DBUILD_TESTING=OFF
 ./build.sh
@@ -397,7 +533,7 @@ BSL unit tests require GCC 13+ to compile.
 
 ```bash
 cd external/BSL
-./build.sh prep -DION_INTEGRATION=ON -DBUILD_TESTING=ON
+./build.sh prep -DBUILD_TESTING=ON
 ./build.sh
 ./build.sh check
 ```
@@ -464,7 +600,7 @@ sudo ldconfig
 
 ## Additional Resources
 
-- **BSL Repository**: https://github.com/iondev33/BSL (branch: `bsl-ion-integration`)
+- **BSL Repository**: https://github.com/NASA-AMMOS/BSL
 - **RFC 9172**: Bundle Protocol Security (BPSec)
 - **RFC 9173**: Default Security Contexts for BPSec
 - **ION Documentation**: https://ion-dtn.readthedocs.io
