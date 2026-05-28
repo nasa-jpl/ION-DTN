@@ -82,33 +82,42 @@ ionadmin amroc.ionrc
 cd ../5.ipn.ltp
 ionadmin amroc.ionrc
 
-cd ../2.ipn.ltp
-ionadmin global.ionrc &
-cd ../3.ipn.ltp
-ionadmin global.ionrc &
-cd ../5.ipn.ltp
-ionadmin global.ionrc &
+# NB: serialize the per-layer admin invocations across the 3 nodes.
+# These were originally backgrounded (each followed by `&`), but on
+# busy CI runners the resulting race let bpadmin start before its
+# node's ltpadmin had finished registering the LTP induct/outduct.
+# BP would then fail to come up ("BP agent is not started"), the
+# subsequent system_up poll would time out at 30 s, and the test
+# aborted before any of its actual assertions ran.  Total serial
+# startup is only a few seconds; the parallelism wasn't load-bearing.
 
 cd ../2.ipn.ltp
-ionsecadmin amroc.ionsecrc &
+ionadmin global.ionrc
 cd ../3.ipn.ltp
-ionsecadmin amroc.ionsecrc &
+ionadmin global.ionrc
 cd ../5.ipn.ltp
-ionsecadmin amroc.ionsecrc &
+ionadmin global.ionrc
 
 cd ../2.ipn.ltp
-ltpadmin amroc.ltprc &
+ionsecadmin amroc.ionsecrc
 cd ../3.ipn.ltp
-ltpadmin amroc.ltprc &
+ionsecadmin amroc.ionsecrc
 cd ../5.ipn.ltp
-ltpadmin amroc.ltprc &
+ionsecadmin amroc.ionsecrc
 
 cd ../2.ipn.ltp
-bpadmin amroc.bprc &
+ltpadmin amroc.ltprc
 cd ../3.ipn.ltp
-bpadmin amroc.bprc &
+ltpadmin amroc.ltprc
 cd ../5.ipn.ltp
-bpadmin amroc.bprc &
+ltpadmin amroc.ltprc
+
+cd ../2.ipn.ltp
+bpadmin amroc.bprc
+cd ../3.ipn.ltp
+bpadmin amroc.bprc
+cd ../5.ipn.ltp
+bpadmin amroc.bprc
 
 cd ../2.ipn.ltp
 ../../../system_up -i "p 30" -l "p 30" -b "p 30"
