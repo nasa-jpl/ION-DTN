@@ -39,13 +39,13 @@ on:
         type: number
         default: 7
       # Replaced the single string input with boolean toggles
-      runner_u20:
-        description: "Enable Ubuntu 20.04 (arc-runner-set-u20)"
-        required: false
-        type: boolean
-        default: false
       runner_u22:
         description: "Enable Ubuntu 22.04 (arc-runner-set-u22)"
+        required: false
+        type: boolean
+        default: true
+      runner_u24:
+        description: "Enable Ubuntu 24.04 (arc-runner-set-u24)"
         required: false
         type: boolean
         default: false
@@ -105,13 +105,13 @@ on:
         required: false
         type: number
         default: 7
-      runner_u20:
-        description: "Enable Ubuntu 20.04 (arc-runner-set-u20)"
-        required: false
-        type: boolean
-        default: false
       runner_u22:
         description: "Enable Ubuntu 22.04 (arc-runner-set-u22)"
+        required: false
+        type: boolean
+        default: true
+      runner_u24:
+        description: "Enable Ubuntu 24.04 (arc-runner-set-u24)"
         required: false
         type: boolean
         default: false
@@ -160,14 +160,14 @@ jobs:
         id: build-runners
         run: |
           RUNNERS=$(./.github/scripts/build-runner-matrix.sh \
-            --ubuntu_20=${{ inputs.runner_u20 }} \
-            --ubuntu_22=${{ inputs.runner_u22 }} \
+          --ubuntu_22=${{ inputs.runner_u22 }} \
+          --ubuntu_24=${{ inputs.runner_u24 }} \
             --oracle_linux_8=${{ inputs.runner_ol8 }} \
             --oracle_linux_9=${{ inputs.runner_ol9 }} \
             --rhel_8=${{ inputs.runner_rhel8 }} \
             --rhel_9=${{ inputs.runner_rhel9 }})
 
-          # Map short names (u20, u22, etc.) to full runner names (arc-runner-set-u20, etc.)
+          # Map short names (u22, u24, etc.) to full runner names (arc-runner-set-u22, etc.)
           FULL_RUNNERS=$(echo "$RUNNERS" | jq -c 'map("arc-runner-set-" + .)')
 
           echo "runners=$FULL_RUNNERS" >> $GITHUB_OUTPUT
