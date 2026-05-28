@@ -2572,7 +2572,7 @@ ION development purposes. The default installation target for the
 individual package build commands is **/opt.**
 
 One compile-time option is applicable to all ION packages: the platform
-selection parameters --DVXWORKS and --DRTEMS affect the manner in which
+selection parameters -DVXWORKS and -DRTEMS affect the manner in which
 most task instantiation functions are compiled. For VXWORKS and RTEMS,
 these functions are compiled as library functions that must be
 identified by name in the platform's symbol table, while for Unix-like
@@ -2583,8 +2583,8 @@ platforms they are compiled as main()functions.
 #### Compile-time options
 
 Declaring values for the following variables, by setting parameters that
-are provided to the C compiler (for example, --DFSWSOURCE or
---DSM_SEMBASEKEY=0xff13), will alter the functionality of ION as noted
+are provided to the C compiler (for example, -DFSWSOURCE or
+-DSM_SEMBASEKEY=0xff13), will alter the functionality of ION as noted
 below.
 
 `PRIVATE_SYMTAB`
@@ -3093,8 +3093,8 @@ bsspmeter(1), udpbsi(1), and udpbso(1) in Appendix A.
 #### Compile Options for BP
 
 Declaring values for the following variables, by setting parameters that
-are provided to the C compiler (for example, --DION_NOSTATS or
---DBRSTERM=60), will alter the functionality of BP as noted below.
+are provided to the C compiler (for example, -DION_NOSTATS or
+-DBRSTERM=60), will alter the functionality of BP as noted below.
 
 `TargetFFS`
 
@@ -3315,7 +3315,7 @@ safety-critical model for memory management. By default, the memory
 acquired for message transmission and reception buffers in AMS is
 allocated from limited ION working memory, which is fixed at ION
 start-up time; this limits the rate at which AMS messages may be
-originated and acquired. When --DAMS_INDUSTRIAL is set at compile time,
+originated and acquired. When -DAMS_INDUSTRIAL is set at compile time,
 the memory acquired for message transmission and reception buffers in
 AMS is allocated from system memory, using the familiar malloc() and
 free() functions; this enables much higher message traffic rates on
@@ -3402,7 +3402,7 @@ and 5 of the [AMS Programmer&#39;s Guide.](./AMS-Programmer-Guide.md)
 #### Compile options for CFDP
 
 Defining the following macro, by setting a parameter that is provided to
-the C compiler (i.e., --DTargetFFS), will alter the functionality of
+the C compiler (i.e., -DTargetFFS), will alter the functionality of
 CFDP as noted below.
 
 `TargetFFS`
@@ -3479,7 +3479,7 @@ cfdptest(1) in Appendix A.
 #### Compile options for BSS
 
 Defining the following macro, by setting a parameter that is provided to
-the C compiler (e.g., --DWINDOW=10000), will alter the functionality of
+the C compiler (e.g., -DWINDOW=10000), will alter the functionality of
 BSS as noted below.
 
 `WINDOW=xx`

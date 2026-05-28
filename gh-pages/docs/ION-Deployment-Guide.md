@@ -69,8 +69,8 @@ below.
 ### Configuring the "ici" module
 
 Declaring values for the following variables, by setting parameters that
-are provided to the C compiler (for example, --DFSWSOURCE or
---DSM_SEMBASEKEY=0xff13), will alter the functionality of ION as noted
+are provided to the C compiler (for example, -DFSWSOURCE or
+-DSM_SEMBASEKEY=0xff13), will alter the functionality of ION as noted
 below.
 
 `PRIVATE_SYMTAB`
@@ -420,7 +420,7 @@ operating systems).
 ### Configuring the "ltp" module
 
 Declaring values for the following variables, by setting parameters that
-are provided to the C compiler. For example, `--DUDP_MULTISEND`, will
+are provided to the C compiler. For example, `-DUDP_MULTISEND`, will
 alter the functionality of LTP as noted below.
 
 `UDP_MULTISEND`
@@ -472,8 +472,8 @@ purpose. This parameter may be overridden at compile time.
 ### Configuring the "bp" module
 
 Declaring values for the following variables, by setting parameters that
-are provided to the C compiler (for example, --DION_NOSTATS or
---DBRSTERM=60), will alter the functionality of BP as noted below.
+are provided to the C compiler (for example, -DION_NOSTATS or
+-DBRSTERM=60), will alter the functionality of BP as noted below.
 
 `TargetFFS`
 
@@ -559,7 +559,7 @@ priority-2 traffic.
 ### Configuring the "ams" module
 
 Defining the following macros, by setting parameters that are provided
-to the C compiler (for example, -DNOEXPAT or --DAMS_INDUSTRIAL), will
+to the C compiler (for example, -DNOEXPAT or -DAMS_INDUSTRIAL), will
 alter the functionality of AMS as noted below.
 
 `NOEXPAT`
@@ -578,7 +578,7 @@ safety-critical model for memory management. By default, the memory
 acquired for message transmission and reception buffers in AMS is
 allocated from limited ION working memory, which is fixed at ION
 start-up time; this limits the rate at which AMS messages may be
-originated and acquired. When --DAMS_INDUSTRIAL is set at compile time,
+originated and acquired. When -DAMS_INDUSTRIAL is set at compile time,
 the memory acquired for message transmission and reception buffers in
 AMS is allocated from system memory, using the familiar malloc() and
 free() functions; this enables much higher message traffic rates on
@@ -588,7 +588,7 @@ on dynamic system memory allocation are not applicable.
 ### Configuring the "cfdp" module
 
 Defining the following macro, by setting a parameter that is provided to
-the C compiler (i.e., --DTargetFFS), will alter the functionality of
+the C compiler (i.e., -DTargetFFS), will alter the functionality of
 CFDP as noted below.
 
 `TargetFFS`
