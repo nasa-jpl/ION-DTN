@@ -14,6 +14,8 @@
 #include "platform.h"
 #include "ion_atomic.h"
 #include "ion_network.h"
+#include "ion.h"		/*	getIonsdr (used by _iEnd defense)*/
+#include "sdrxn.h"		/*	sdr_in_xn, sdr_drop_xn		*/
 
 /* Only for Ubuntu as of ION 4.1.2 */
 #if defined (TCP_LOW_CYCLE)
@@ -1550,9 +1552,58 @@ int	_coreFileNeeded(int *ctrl)
 
 int	_iEnd(const char *fileName, int lineNbr, const char *arg)
 {
+	static int	inIend = 0;
+
 	_postErrmsg(fileName, lineNbr, "Assertion failed.", arg);
 	writeErrmsgMemos();
+
+	/*	Defense against cascading SDR unrecoverable errors
+	 *	(#983, #1010).  If a CHK macro fires inside an open
+	 *	transaction that has already modified non-reversible
+	 *	SDR state, returning from the macro's expansion leaves
+	 *	sdr->dirty=1 with neither sdr_end_xn nor sdr_cancel_xn
+	 *	called -- the next daemon's sdr_begin_xn then hits
+	 *	"Orphaned transaction modified a non-reversible SDR;
+	 *	cannot recover" and the whole node wedges.
+	 *
+	 *	Commit the partial state via sdr_drop_xn so the
+	 *	transaction closes cleanly.  The partial state may
+	 *	itself be inconsistent (half-constructed object,
+	 *	half-deleted reference, etc.), but a bounded SDR leak
+	 *	is dramatically preferable to a node-wide cascade --
+	 *	the daemon keeps running and the next bundle operation
+	 *	works normally.
+	 *
+	 *	inIend guards against re-entry: sdr_drop_xn's own CHK
+	 *	macros could fail on a corrupted handle and call back
+	 *	into _iEnd.  Single-process static is sufficient; in
+	 *	the worst-case race two threads both skip the drop,
+	 *	which is no worse than the pre-patch behavior.		*/
+
+	if (!inIend)
+	{
+		Sdr	sdr;
+
+		inIend = 1;
+		sdr = getIonsdr();
+		if (sdr != NULL && sdr_in_xn(sdr))
+		{
+			sdr_drop_xn(sdr, "iEnd: assertion drop");
+		}
+
+		inIend = 0;
+	}
+
 	printStackTrace();
+
+	/*	Flush stdio after the stack trace so the trace lands
+	 *	on disk before sm_Abort -> SIGABRT can race the
+	 *	logger.  Without this, fast aborts inside short SDR
+	 *	transactions (#1010: 32 us between sdr_begin_xn and
+	 *	process death) leave no diagnostic in ion.log.		*/
+
+	fflush(NULL);
+
 	if (_coreFileNeeded(NULL))
 	{
 		sm_Abort();
