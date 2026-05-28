@@ -37,7 +37,7 @@ echo
 for N in $CONFIGFILES
 do
     echo "$N:"
-    cat $N
+    cat "$N"
     echo "# EOF"
     echo
 done
@@ -104,7 +104,7 @@ cd ..
 
 echo "Nodes started successfully"
 
-OVERALL_RESULT=0
+RETVAL=0
 
 # Use unique test ports that don't conflict with ION's ports
 TEST_PORT_NODE2=2114
@@ -117,19 +117,17 @@ echo "Using test ports: Node2=$TEST_PORT_NODE2, Node3=$TEST_PORT_NODE3"
 # Scenario A: CS for unknown session
 echo "=== Test Scenario: CS for unknown session (should NOT be acknowledged) ==="
 python3 runtest.py --send-cancel-only --cancel-type CS --dest-port 3113 --engine-id 2 --session-id 99999
-SCENARIO_RESULT=$?
-if [ $SCENARIO_RESULT -ne 0 ]; then
+RETVAL=$?
+if [ $RETVAL -ne 0 ]; then
     echo "FAILURE: Failed to send CS segment"
-    OVERALL_RESULT=1
 fi
 sleep 2
 
 # Scenario B: CR for unknown session
 python3 runtest.py --scenario "CR for unknown session" --cancel-type CR --dest-port 2113 --ack-port $TEST_PORT_NODE3 --engine-id 3 --session-id 99998
-SCENARIO_RESULT=$?
-if [ $SCENARIO_RESULT -ne 0 ]; then
+RETVAL=$?
+if [ $RETVAL -ne 0 ]; then
     echo "FAILURE: CR test failed"
-    OVERALL_RESULT=1
 fi
 sleep 2
 
@@ -140,19 +138,17 @@ sleep 3
 
 # Test CS for potentially completed session
 python3 runtest.py --scenario "CS after data transfer" --cancel-type CS --dest-port 3113 --ack-port $TEST_PORT_NODE2 --engine-id 2 --session-id 1
-SCENARIO_RESULT=$?
-if [ $SCENARIO_RESULT -ne 0 ]; then
+RETVAL=$?
+if [ $RETVAL -ne 0 ]; then
     echo "FAILURE: CS after data transfer test failed"
-    OVERALL_RESULT=1
 fi
 sleep 2
 
 # Scenario D: CR after data transfer
 python3 runtest.py --scenario "CR after data transfer" --cancel-type CR --dest-port 2113 --ack-port $TEST_PORT_NODE3 --engine-id 3 --session-id 1
-SCENARIO_RESULT=$?
-if [ $SCENARIO_RESULT -ne 0 ]; then
+RETVAL=$?
+if [ $RETVAL -ne 0 ]; then
     echo "FAILURE: CR after data transfer test failed"
-    OVERALL_RESULT=1
 fi
 
 echo ""
@@ -160,10 +156,12 @@ echo "Cleaning up..."
 ./cleanup
 
 echo ""
-if [ $OVERALL_RESULT -eq 0 ]; then
+if [ $RETVAL -eq 0 ]; then
     echo "ALL TESTS PASSED: LTP properly acknowledges Cancel Segments"
+elif [ $RETVAL -eq 2 ]; then
+    echo "bespokebpv7 not installed, test skipped"
 else
     echo "SOME TESTS FAILED: Cancel segment acknowledgment issue detected"
 fi
 
-exit $OVERALL_RESULT
+exit $RETVAL

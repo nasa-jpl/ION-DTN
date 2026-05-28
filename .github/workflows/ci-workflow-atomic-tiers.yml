@@ -76,7 +76,7 @@ on:
         description: 'Space-separated list of tests to run (e.g. "ltp-green adjacent-contacts" or "../demos/bench-udp"). Leave blank to run the full matrix that git_matrix.py produces. When set, the test set is still distributed across num_runners batches.'
         required: false
         type: string
-        default: ''
+        default: ""
   # Nightly sweep at 06:00 UTC (~23:00 Pacific previous evening / ~02:00
   # Eastern).  Runs unconditionally against the default branch — results
   # should be ready before the US workday starts.  Uses the fallback
@@ -377,7 +377,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: test-progress-${{ matrix.runner }}-${{ matrix.tier }}-$steps.timestamp.outputs.timestamp }}-batch-${{ matrix.testchunk.batch }}
+          name: test-progress-${{ matrix.runner }}-${{ matrix.tier }}-${{ steps.timestamp.outputs.timestamp }}-batch-${{ matrix.testchunk.batch }}
           path: ./tests/progress
 
       - name: Collect ion.log files

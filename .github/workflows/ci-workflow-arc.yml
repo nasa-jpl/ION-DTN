@@ -345,9 +345,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name:
-            build-and-test-log-${{ matrix.runner }}-${{ steps.timestamp.outputs.timestamp }}-batch-${{
-            matrix.testchunk.batch }}
+          name: build-and-test-log-${{ matrix.runner }}-${{ steps.timestamp.outputs.timestamp }}-batch-${{ matrix.testchunk.batch }}
           path: build-and-test.log
 
       - name: Show progress file
@@ -360,9 +358,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name:
-            test-progress-${{ matrix.runner }}-${{ steps.timestamp.outputs.timestamp }}-batch-${{
-            matrix.testchunk.batch }}
+          name: test-progress-${{ matrix.runner }}-${{ steps.timestamp.outputs.timestamp }}-batch-${{ matrix.testchunk.batch }}
           path: ./tests/progress
 
       - name: Collect and upload ion.log files from all test directories
@@ -389,9 +385,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name:
-            ion-logs-${{ matrix.runner }}-${{ steps.timestamp.outputs.timestamp }}-batch-${{
-            matrix.testchunk.batch }}
+          name: ion-logs-${{ matrix.runner }}-${{ steps.timestamp.outputs.timestamp }}-batch-${{ matrix.testchunk.batch }}
           path: ion-logs-collection/
           if-no-files-found: warn
 
@@ -413,9 +407,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name:
-            diagnostics-${{ matrix.runner }}-${{ steps.timestamp.outputs.timestamp }}-batch-${{
-            matrix.testchunk.batch }}
+          name: diagnostics-${{ matrix.runner }}-${{ steps.timestamp.outputs.timestamp }}-batch-${{matrix.testchunk.batch }}
           path: diagnostics-collection/
           if-no-files-found: ignore
 
