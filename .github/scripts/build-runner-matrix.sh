@@ -5,8 +5,8 @@
 set -euo pipefail
 
 # Initialize flags (default all false)
-ubuntu_20=false
 ubuntu_22=false
+ubuntu_24=false
 oracle_linux_8=false
 oracle_linux_9=false
 rhel_8=false
@@ -15,11 +15,11 @@ rhel_9=false
 # Parse command line arguments
 for arg in "$@"; do
     case $arg in
-        --ubuntu_20=*)
-            ubuntu_20="${arg#*=}"
-            ;;
         --ubuntu_22=*)
             ubuntu_22="${arg#*=}"
+            ;;
+        --ubuntu_24=*)
+            ubuntu_24="${arg#*=}"
             ;;
         --oracle_linux_8=*)
             oracle_linux_8="${arg#*=}"
@@ -43,8 +43,8 @@ done
 # Build JSON array of enabled runners
 runners=()
 
-[[ "$ubuntu_20" == "true" ]] && runners+=("u20")
 [[ "$ubuntu_22" == "true" ]] && runners+=("u22")
+[[ "$ubuntu_24" == "true" ]] && runners+=("u24")
 [[ "$oracle_linux_8" == "true" ]] && runners+=("ol8")
 [[ "$oracle_linux_9" == "true" ]] && runners+=("ol9")
 [[ "$rhel_8" == "true" ]] && runners+=("rhel8")

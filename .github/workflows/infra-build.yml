@@ -10,13 +10,13 @@ on:
       - "images/**"
   workflow_dispatch:
     inputs:
-      runner_u20:
-        description: "Build Ubuntu 20.04 (arc-runner-set-u20)"
+      runner_u22:
+        description: "Build Ubuntu 22.04 (arc-runner-set-u22)"
         required: false
         type: boolean
         default: true
-      runner_u22:
-        description: "Build Ubuntu 22.04 (arc-runner-set-u22)"
+      runner_u24:
+        description: "Build Ubuntu 24.04 (arc-runner-set-u24)"
         required: false
         type: boolean
         default: true
@@ -42,16 +42,17 @@ on:
         default: true
   workflow_call:
     inputs:
-      runner_u20:
-        description: "Build Ubuntu 20.04 (arc-runner-set-u20)"
-        required: false
-        type: boolean
-        default: true
       runner_u22:
         description: "Build Ubuntu 22.04 (arc-runner-set-u22)"
         required: false
         type: boolean
         default: true
+      runner_u24:
+        description: "Build Ubuntu 24.04 (arc-runner-set-u24)"
+        required: false
+        type: boolean
+        default: true
+
       runner_ol8:
         description: "Build Oracle Linux 8 (arc-runner-set-ol8)"
         required: false
@@ -92,8 +93,8 @@ jobs:
           MATRIX="["
 
           # Default to true on push events (when inputs are null/empty)
-          if [ "${{ github.event_name == 'push' || inputs.runner_u20 == true }}" == "true" ]; then MATRIX="$MATRIX\"ubuntu-20\","; fi
           if [ "${{ github.event_name == 'push' || inputs.runner_u22 == true }}" == "true" ]; then MATRIX="$MATRIX\"ubuntu-22\","; fi
+          if [ "${{ github.event_name == 'push' || inputs.runner_u24 == true }}" == "true" ]; then MATRIX="$MATRIX\"ubuntu-24\","; fi
           if [ "${{ github.event_name == 'push' || inputs.runner_ol8 == true }}" == "true" ]; then MATRIX="$MATRIX\"oraclelinux-8\","; fi
           if [ "${{ github.event_name == 'push' || inputs.runner_ol9 == true }}" == "true" ]; then MATRIX="$MATRIX\"oraclelinux-9\","; fi
 

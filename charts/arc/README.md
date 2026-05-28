@@ -79,7 +79,7 @@ Repeat for each scale set, using a different image for each. For ION they are
 as follows:
 
 - Ubuntu 22.04
-- Ubuntu 20.04
+- Ubuntu 24.04
 - Oracle Linux 8
 - Oracle Linux 9
 - RHEL 8
