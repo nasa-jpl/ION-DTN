@@ -23,7 +23,7 @@
 # defining the environment variable AWKSCRIPT before running this script
 # will work (for things like make test) before installation
 if [[ ! -r "${AWKSCRIPT}" ]] ; then
-    SUBFOLDER=`dirname "${0}"`
+    SUBFOLDER=$(dirname "${0}")
     # assuming this bash script is installed with the usual binaries from autoconf
     AWKSCRIPT="${SUBFOLDER}/../share/ion/ionstart.awk"
     if [[ ! -r "${AWKSCRIPT}" ]] ; then
@@ -90,6 +90,10 @@ function USAGE {
     echo "			Default filename is input|output.tag.ipnrc."
     echo "	-s ionsecrc	Specifies file ionsecrc to be used with ionsecadmin."
     echo "			Default filename is input|output.tag.ionsecrc."
+    echo ""
+    echo "  <second>:   optional for -i and -b. Admin program will run these files after initial launch"
+    echo "              of non-delayed rc files. If delay is set as 0 explicitly, file will launch"
+    echo "              immediately after all non-delayed rc files were executed."
 }
 
 # Declare an array to hold multiple ionrc files
@@ -104,7 +108,6 @@ while getopts ":i:d:D:c:p:b:l:I:O:t:s:B:hA" options; do
             if [[ ! -r "${OPTARG}" ]] ; then
                 echo
                 echo "The inputfile ${OPTARG} can't be read."
-                failure="TRUE"
             fi
             if [[ -n "${OUTPUTFILE}" ]] ; then
                 echo
@@ -222,7 +225,7 @@ if [[ -n "${INPUTFILE}" ]] ; then
     awk -f "${AWKSCRIPT}" -v configfile="${INPUTFILE}" -v tag="${TAG}" -v echo="cat" -v append="${append}" -v ionrc="${IONRC}" -v ltprc="${LTPRC}" -v bprc="${BPRC}" -v cfdprc="${CFDPRC}" -v ipnrc="${IPNRC}" -v dtn2rc="${DTN2RC}" -v dtpcrc="${DTPCRC}" -v ionsecrc="${IONSECRC}" -v bssprc="${BSSPRC}" "${INPUTFILE}"
 else
 # there is an OUTPUTFILE, which will contain the contents of ionrc, dtn2rc, ipnrc etc.
-    datenow=`date`
+    datenow=$(date)
     if [[ "${append}" == "TRUE" ]] ; then
         echo
         echo "I will now append the individual configuration files into one large file."
@@ -243,7 +246,7 @@ else
     if [[ -r "${IONRC_FILES[0]}" ]]; then
         # add header
         echo
-        echo "Appending ${IONRC_FILES[@]} into ${OUTPUTFILE}."
+        echo "Appending ${IONRC_FILES[*]} into ${OUTPUTFILE}."
         echo >>"${OUTPUTFILE}"
         echo "## begin ionadmin ${TAG}" >>"${OUTPUTFILE}"
         #
@@ -280,7 +283,7 @@ else
     if [[ -r "${BPRC_FILES[0]}" ]]; then
         # add header
         echo
-        echo "Appending ${BPRC_FILES[@]} into ${OUTPUTFILE}."
+        echo "Appending ${BPRC_FILES[*]} into ${OUTPUTFILE}."
         echo >>"${OUTPUTFILE}"
         echo "## begin bpadmin ${TAG}" >>"${OUTPUTFILE}"
         #
