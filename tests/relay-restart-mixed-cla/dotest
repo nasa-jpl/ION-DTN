@@ -58,38 +58,48 @@ ionadmin amroc.ionrc
 cd ../3.ipn.tcp
 ionadmin amroc.ionrc
 
+# Serialize the cross-node admin invocations.  Each layer was
+# previously backgrounded across all nodes (`ionadmin & ... ltpadmin
+# & ... bpadmin &`) and protected only by a 1 s sleep + the system_up
+# polls below.  On busy CI runners the race let bpadmin start before
+# the corresponding ltpadmin's induct/outduct were registered; BP
+# could then fail to come up, system_up would give up at 30 s and
+# the test would abort in startup.  Total serial startup adds only
+# a few seconds; the per-layer `sleep 1` is now redundant but kept
+# because some downstream rfx state takes a tick to be observable.
+
 # --- Global contact plan ---
 cd ../1.ipn.ltp
-ionadmin ../global.ionrc &
+ionadmin ../global.ionrc
 cd ../2.ipn.relay
-ionadmin ../global.ionrc &
+ionadmin ../global.ionrc
 cd ../3.ipn.tcp
-ionadmin ../global.ionrc &
+ionadmin ../global.ionrc
 sleep 1
 
 # --- Security ---
 cd ../1.ipn.ltp
-ionsecadmin amroc.ionsecrc &
+ionsecadmin amroc.ionsecrc
 cd ../2.ipn.relay
-ionsecadmin amroc.ionsecrc &
+ionsecadmin amroc.ionsecrc
 cd ../3.ipn.tcp
-ionsecadmin amroc.ionsecrc &
+ionsecadmin amroc.ionsecrc
 sleep 1
 
 # --- LTP (nodes 1 and 2 only) ---
 cd ../1.ipn.ltp
-ltpadmin amroc.ltprc &
+ltpadmin amroc.ltprc
 cd ../2.ipn.relay
-ltpadmin amroc.ltprc &
+ltpadmin amroc.ltprc
 sleep 1
 
 # --- BP ---
 cd ../1.ipn.ltp
-bpadmin amroc.bprc &
+bpadmin amroc.bprc
 cd ../2.ipn.relay
-bpadmin amroc.bprc &
+bpadmin amroc.bprc
 cd ../3.ipn.tcp
-bpadmin amroc.bprc &
+bpadmin amroc.bprc
 sleep 1
 
 # --- Wait for nodes to come up ---

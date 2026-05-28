@@ -44,13 +44,17 @@ RETVAL=1
 
 #Start ION
 echo "Starting ION..."
+# Serialize admin layers so each is fully registered before the next
+# starts.  bpadmin and ipnadmin were previously backgrounded with `&`;
+# system_up below would usually rescue, but on busy CI it has been
+# observed to give up too early when bpadmin is still booting.
 ionadmin config.ionrc
 
 ionsecadmin config.ionsecrc
 
-bpadmin config.bprc &
+bpadmin config.bprc
 
-ipnadmin config.ipnrc &
+ipnadmin config.ipnrc
 
 ../../system_up -i "p 30" -b "p 30"
 

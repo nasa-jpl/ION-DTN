@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
 # shell script to get node running
+#
+# Admin invocations are serialized so each layer is fully registered
+# before the next starts.  Previously ionsecadmin and ipnadmin were
+# backgrounded with `&` and the parent dotest did not poll with
+# system_up to recover -- under CI load that race could let bpadmin
+# attach before ionsecadmin's keys/state were committed, or let the
+# test proceed before ipnadmin's plans were active.
 ionadmin	config.ionrc
 
-ionsecadmin	config.ionsecrc &
+ionsecadmin	config.ionsecrc
 
 bpadmin		config.bprc
 
-ipnadmin	config.ipnrc &
+ipnadmin	config.ipnrc
