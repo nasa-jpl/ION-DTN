@@ -6739,21 +6739,26 @@ putErrmsg("Discarded malformed data segment.", itoa(sessionNbr));
 		return sdr_end_xn(sdr);
 	}
 
+	/*	Discard segments that arrive after their import session
+	 *	has already been closed (tombstone present in
+	 *	span->closedImports).  This applies equally to Red and
+	 *	Green data segments: a late Green segment for a closed
+	 *	session previously fell through this check, reached
+	 *	getImportSession with sessionObj=0, and was handed to
+	 *	handleGreenDataSegment which would deliver stale data
+	 *	to the client.  See #1020.				*/
+
+	if (sessionIsClosed(vspan, sessionNbr))
+	{
+#if LTPDEBUG
+putErrmsg("Discarding late data segment.", itoa(sessionNbr));
+#endif
+		ltpSpanTally(vspan, IN_SEG_REDUNDANT, pdu->length);
+		return sdr_end_xn(sdr);
+	}
+
 	if ((pdu->segTypeCode & LTP_EXC_FLAG) == 0)	/*	Red.	*/
 	{
-		if (sessionIsClosed(vspan, sessionNbr))
-		{
-#if LTPDEBUG
-putErrmsg("Discarding late Red segment.", itoa(sessionNbr));
-#endif
-			/*	Segment is for red data of a session
-			 *	that is already closed, so we don't
-			 *	care about it.				*/
-
-			ltpSpanTally(vspan, IN_SEG_REDUNDANT, pdu->length);
-			return sdr_end_xn(sdr);
-		}
-
 		if (sdr_list_length(sdr, ltpdb->deliverables) >=
 				ltpdb->maxBacklog)
 		{
@@ -6927,8 +6932,26 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 			vsession, spanObj, span, vspan, segment,
 			&segUpperBound, pdu, cursor) < 0)
 	{
+		/*	acceptRedContent's failure paths are all I/O on
+		 *	the per-session block file (open / lseek / write):
+		 *	transient disk errors and the missing-block-file
+		 *	race documented in #1020.  Routing those through
+		 *	sdr_cancel_xn on a non-reversible SDR with
+		 *	already-modified state triggers handleUnrecoverable
+		 *	Error -> sm_Abort, which orphans the SDR mutex
+		 *	and cascades into every other daemon (the udplsi
+		 *	4.66 s death in #1020 ends a whole node this way).
+		 *
+		 *	Commit the partial state via sdr_drop_xn so the
+		 *	transaction closes cleanly.  The session record may
+		 *	now point at a missing or partial block file -- a
+		 *	bounded leak that the session-expiration path will
+		 *	clean up -- but the daemon stays alive and the next
+		 *	inbound segment processes normally.		*/
+
 		putErrmsg("Can't accept data segment content.", NULL);
-		sdr_cancel_xn(sdr);
+		sdr_drop_xn(sdr,
+				"acceptRedContent failed (block file I/O error)");
 		return -1;
 	}
 
