@@ -1,0 +1,20 @@
+# Global owner
+# Reviews will go to iondev33 unless otherwise noted below
+# syntax explanation can be found here:
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+*               @iondev33
+
+# Folders
+# starting with a / tells GitHub to start at the root directory
+# no slash means any directory called such in the repo
+/.github/       @nrichard42
+/ams/           @SkyDeBaun
+/bpv7/bpsec/    @SkyDeBaun
+/charts/        @nrichard42
+/images/        @nrichard42
+/tc/            @nrichard42
+
+# Specific files
+kics.config     @nrichard42
+Makefile.am     @250MHz @iondev33
+configure.ac    @250MHz @iondev33
