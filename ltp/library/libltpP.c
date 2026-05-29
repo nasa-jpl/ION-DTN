@@ -6068,13 +6068,11 @@ putErrmsg("Opened import session.", utoa(sessionNbr));
 static int	createBlockFile(LtpSpan *span, Object sessionObj,
 			LtpImportSession *session)
 {
-	Sdr		sdr = getIonsdr();
-	char		cwd[200];
-	char		nbrBuf[FQN_MAX_LENGTH];
-	char		name[320];
-	struct timeval	tv;
-	uvast		incarnation;
-	int		fd;
+	Sdr	sdr = getIonsdr();
+	char	cwd[200];
+	char	nbrBuf[FQN_MAX_LENGTH];
+	char	name[256];
+	int	fd;
 
 	if (igetcwd(cwd, sizeof cwd) == NULL)
 	{
@@ -6083,57 +6081,8 @@ static int	createBlockFile(LtpSpan *span, Object sessionObj,
 	}
 
 	putFqn(nbrBuf, span->engineId);
-
-	/*	Append a per-call incarnation suffix to the block-file
-	 *	path so two simultaneously-live ZCO file refs cannot
-	 *	end up pointing at the same on-disk inode (#1022).
-	 *
-	 *	The race: closeImportSession frees the SDR session
-	 *	record while the delivered ZCO (which embeds the file
-	 *	ref) is still held by the application; if a delayed
-	 *	retransmission arrives after the LtpForgetImportSession
-	 *	tombstone has aged out, startImportSession creates a
-	 *	fresh session with the same session number and the
-	 *	historical path format collided.  Two file refs end up
-	 *	pointing at the same on-disk inode; when the older
-	 *	one's refcount hits zero its cleanup script unlinks the
-	 *	path out from under the resurrected session, and a
-	 *	subsequent inbound segment hits "Can't open block file"
-	 *	in an in-progress SDR transaction.  Pre-#1021 that
-	 *	cascaded the whole node; post-#1021 it's a logged drop
-	 *	but the resurrected session still loses its data.
-	 *
-	 *	Microsecond-resolution wall-clock time is precise
-	 *	enough: a collision would require two createBlockFile
-	 *	calls in the same microsecond on the same engine+
-	 *	session, many orders of magnitude faster than LTP can
-	 *	resurrect a session.					*/
-
-	gettimeofday(&tv, NULL);
-	incarnation = ((uvast) tv.tv_sec * 1000000ULL)
-			+ (uvast) tv.tv_usec;
-
-	/*	Call _isprintf directly (rather than the isprintf macro)
-	 *	so we can inspect the return value.  isprintf is
-	 *	wrapped in oK() and discards the result.		*/
-
-	if (_isprintf(name, sizeof name,
-			"%s%cltpblock.%s.%u." UVAST_FIELDSPEC,
-			cwd, ION_PATH_DELIMITER, nbrBuf,
-			session->sessionNbr, incarnation)
-			>= (int) sizeof name)
-	{
-		putErrmsg("Block file path overflows local buffer", cwd);
-		return -1;
-	}
-
-	if (strlen(name) >= sizeof session->fileBufferPath)
-	{
-		putErrmsg("Block file path too long for session record",
-				name);
-		return -1;
-	}
-
+	isprintf(name, sizeof name, "%s%cltpblock.%s.%u", cwd,
+			ION_PATH_DELIMITER, nbrBuf, session->sessionNbr);
 	fd = iopen(name, O_WRONLY | O_CREAT, 0666);
 	if (fd < 0)
 	{
@@ -6503,6 +6452,25 @@ static int	acceptRedContent(LtpDB *ltpdb, Object *sessionObj,
 	{
 		sdr_stage(sdr, (char *) sessionBuf, *sessionObj,
 				sizeof(LtpImportSession));
+
+		/*	If block has been delivered to application,
+		 *	the ZCO may have been consumed and the block
+		 *	file deleted.  Late/retransmitted segments
+		 *	arriving after delivery are redundant and must
+		 *	not attempt to access the (possibly deleted)
+		 *	file.  Similarly, if the blockFileRef has been
+		 *	destroyed (set to 0 by clearImportSession), the
+		 *	file is gone and no further writes are possible.	*/
+
+		if (sessionBuf->delivered || sessionBuf->blockFileRef == 0)
+		{
+#if LTPDEBUG
+putErrmsg("Discarded late segment: block already delivered.", itoa(sessionNbr));
+#endif
+			ltpSpanTally(vspan, IN_SEG_REDUNDANT, pdu->length);
+			return 0;
+		}
+
 		if (sessionBuf->redSegments == 0)
 		{
 			/*	Reception already completed, just
