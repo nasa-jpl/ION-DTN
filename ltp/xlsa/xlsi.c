@@ -78,6 +78,13 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
+	/*	Register the main thread BEFORE arming SIGTERM, so the
+	 *	signal handler's ionKillMainThread() lookup succeeds.
+	 *	Without this, ionPauseMainThread() never returns: the
+	 *	handler can't find a registered thread to signal, and the
+	 *	process hangs until SIGKILL.  Mirrors udplsi.c.		*/
+
+	ionNoteMainThread("xlsi");
 	isignal(SIGTERM, interruptThread);
 	ion_atomic_init(&rtp.running, 1);
 
