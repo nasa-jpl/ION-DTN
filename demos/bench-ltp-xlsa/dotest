@@ -139,11 +139,13 @@ EOF
     echo "RESULT: ${bytes} bytes in ${elapsed}s = $(fmt_num ${goodput}) B/s goodput"
     RESULTS+=("${name};${rate};${contact_rate};${delay};${drop};${goodput}")
 
-    # Bound the teardown -- xlsi's cooperative shutdown path can hang
-    # (see follow-up: xlsi doesn't ionNoteMainThread, so ltpadmin's
-    # SIGTERM to the seat pid never reaches the right thread).
-    timeout 10 sh -c "cd $SENDER_DIR && ./ionstop" >/dev/null 2>&1
-    timeout 10 sh -c "cd $RECEIVER_DIR && ./ionstop" >/dev/null 2>&1
+    # Bound the teardown as defense-in-depth.  A clean cooperative
+    # shutdown takes ~10s per node (bpadmin/ltpadmin/ionadmin + script
+    # sleeps); 30s is the upper bound that lets a normal shutdown
+    # finish but caps any pathological hang.  killall is a final safety
+    # net in case a daemon survives both ionstop and the timeout.
+    timeout 30 sh -c "cd $SENDER_DIR && ./ionstop" >/dev/null 2>&1
+    timeout 30 sh -c "cd $RECEIVER_DIR && ./ionstop" >/dev/null 2>&1
     killall -9 xlso xlsi 2>/dev/null || true
 }
 
