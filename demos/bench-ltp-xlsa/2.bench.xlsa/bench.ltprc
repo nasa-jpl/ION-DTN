@@ -8,7 +8,7 @@
 ##   peer engine id           : 3
 ##   max export sessions      : 8
 ##   max import sessions      : 8
-##   max segment size         : 64000  (must be <= XLSA_BUFSZ = 65535)
+##   max segment size         : 64000  (must be <= XLSA_BUFSZ = 1048576)
 ##   aggregation size limit   : 128000
 ##   aggregation time limit   : 1 sec
 1 50
