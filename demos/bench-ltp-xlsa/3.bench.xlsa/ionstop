@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Tear down receiver node 3.
+
+bpadmin     .
+sleep 1
+ltpadmin    .
+sleep 1
+ionadmin    .

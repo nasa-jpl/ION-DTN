@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Tear down sender node 2.
+
+bpadmin     .
+sleep 1
+ltpadmin    .
+sleep 1
+ionadmin    .

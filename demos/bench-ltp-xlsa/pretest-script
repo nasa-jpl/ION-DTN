@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Pretest sanity checks for the xlsa benchmark.
+#
+# Verifies:
+#   1. xlso / xlsi binaries are on PATH (built with --with-xlsa-backend=shm).
+#   2. bpdriver / bpcounter are on PATH.
+#   3. XLSA_RATE_BPS and the contact-plan rate agree (warning only — the
+#      benchmark still runs if they don't, but the result is no longer a
+#      matched-rate baseline; see DESIGN.md §3.5).
+
+set -u
+
+fail() { echo "PRETEST FAIL: $1" >&2; exit 1; }
+warn() { echo "PRETEST WARN: $1" >&2; }
+
+for bin in xlso xlsi bpdriver bpcounter ionadmin bpadmin ltpadmin; do
+    if ! command -v "$bin" >/dev/null 2>&1; then
+        fail "$bin not found on PATH — build ION with the xlsa backend"
+    fi
+done
+
+if [ -z "${XLSA_RATE_BPS:-}" ]; then
+    warn "XLSA_RATE_BPS not set; xport_shm will run with unlimited rate"
+fi
+
+CONTACT_RATE=$(awk '/^a contact/ {print $7; exit}' global.ionrc 2>/dev/null)
+if [ -n "${XLSA_RATE_BPS:-}" ] && [ -n "$CONTACT_RATE" ] \
+   && [ "$XLSA_RATE_BPS" != "$CONTACT_RATE" ]; then
+    warn "XLSA_RATE_BPS=$XLSA_RATE_BPS != contact rate $CONTACT_RATE"
+    warn "  this is a deliberate mismatch experiment if you set it that way"
+fi
+
+echo "Pretest checks passed."

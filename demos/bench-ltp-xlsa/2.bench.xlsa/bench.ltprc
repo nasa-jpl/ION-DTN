@@ -1,0 +1,16 @@
+## Sender (engine 2) LTP config.
+##
+## Mirrored ring names: node 2's TX is 'ring_2to3' (same name node 3 will
+## open as its RX); node 2's RX is 'ring_3to2'.  Both endpoints reference
+## the same SHM object name for a given direction (no .tx/.rx suffix).
+##
+## Span parameters (matches bench-ltp baseline so results are comparable):
+##   peer engine id           : 3
+##   max export sessions      : 8
+##   max import sessions      : 8
+##   max segment size         : 64000  (must be <= XLSA_BUFSZ = 65535)
+##   aggregation size limit   : 128000
+##   aggregation time limit   : 1 sec
+1 50
+a span 3 8 8 64000 128000 1 'xlso shm:ring_2to3 3'
+s 'xlsi shm:ring_3to2'
