@@ -24,13 +24,23 @@ KB="000"; MB="${KB}000"; GB="${MB}000"
 #----------------------------------------------------------------------
 # Tunables
 #----------------------------------------------------------------------
-BASE_RATE=2${GB}             # matched-rate baseline, bytes/sec
-NUMBUNDLES=1000
-BUNDLESIZE=10000
+BASE_RATE=2${GB}                          # matched-rate baseline, bytes/sec
+NUMBUNDLES=${NUMBUNDLES:-1000}            # override via env
+BUNDLESIZE=${BUNDLESIZE:-10000}           # override via env
+SEG_SIZE=${SEG_SIZE:-64000}               # LTP maxSegmentSize, override via env
+                                          # (the bundlesize scenario applies it)
 TARGETBUNDLES=$((NUMBUNDLES * 9 / 10))
-MAXSECONDS=120
+MAXSECONDS=${MAXSECONDS:-120}
 SENDER_DIR=2.bench.xlsa
 RECEIVER_DIR=3.bench.xlsa
+
+# Scale ring depth so the ring is ~64 MB irrespective of SEG_SIZE.
+# XLSA_BUFSZ in xlsa.h is now 1 MB, so at SEG_SIZE=64K we want ~1024
+# slots; at SEG_SIZE=1 MB we want ~64.  Cap [16, 1024].
+XLSA_SLOTS_DEFAULT=$((67108864 / SEG_SIZE))
+[ $XLSA_SLOTS_DEFAULT -lt 16 ]   && XLSA_SLOTS_DEFAULT=16
+[ $XLSA_SLOTS_DEFAULT -gt 1024 ] && XLSA_SLOTS_DEFAULT=1024
+XLSA_SLOTS_VALUE=${XLSA_SLOTS:-$XLSA_SLOTS_DEFAULT}
 
 RESULTS=()                   # scenario;rate;contact;delay;drop;goodput
 RETVAL=0
@@ -73,7 +83,7 @@ run_scenario() {
     local name=$1 rate=$2 delay=$3 jitter=$4 drop=$5 contact_rate=$6
     local elapsed=0 bytes=0 goodput=0
 
-    export XLSA_RATE_BPS=$rate XLSA_SLOTS=1024
+    export XLSA_RATE_BPS=$rate XLSA_SLOTS=$XLSA_SLOTS_VALUE
     export XLSA_DELAY_US=$delay XLSA_JITTER_US=$jitter XLSA_DROP_PPM=$drop
 
     write_global_ionrc $contact_rate
@@ -190,6 +200,80 @@ do_matrix() {
     run_scenario "matrix-over"    $BASE_RATE 0 0 0 $over
 }
 
+do_bundlesize() {
+    # Mirror demos/bench-ltp's TESTS array row-for-row so the xlsa shm
+    # backend can be compared head-to-head against udplso/udplsi on the
+    # same workload axis.  Each row regenerates the SENDER's bench.ltprc
+    # with that row's (max_export, max_import, max_seg_size, agg_size,
+    # agg_time).  The receiver ltprc stays at the existing 200/200
+    # config (matches bench-ltp's receiver too).
+    #
+    # Format: bundle_size max_export max_import max_seg_size agg_size agg_time total_bytes
+    local BENCH_TESTS=(
+        "5000000 8 8 64000 128000 1 1000000000"
+        "1000000 8 8 64000 128000 1 1000000000"
+        "500000  4 4 64000 128000 1 500000000"
+        "200000  4 4 64000 100000 1 200000000"
+        "63000   4 4 64000 100000 1 200000000"
+        "20000   4 4 64000 100000 1 200000000"
+        "10000   4 4 64000 100000 1 200000000"
+        "5000    4 4 64000 100000 1 200000000"
+        "1000    4 4 64000 100000 1 200000000"
+    )
+
+    local saved_numbundles=$NUMBUNDLES
+    local saved_bundlesize=$BUNDLESIZE
+    local saved_targetbundles=$TARGETBUNDLES
+    local saved_sender_ltprc=$(mktemp)
+    local saved_receiver_ltprc=$(mktemp)
+    cp $SENDER_DIR/bench.ltprc   $saved_sender_ltprc
+    cp $RECEIVER_DIR/bench.ltprc $saved_receiver_ltprc
+
+    for t in "${BENCH_TESTS[@]}"; do
+        read -r bsize me mi mseg aggs aggt tbytes <<< "$t"
+        NUMBUNDLES=$((tbytes / bsize))
+        BUNDLESIZE=$bsize
+        TARGETBUNDLES=$((NUMBUNDLES * 9 / 10))
+        [ $TARGETBUNDLES -lt 1 ] && TARGETBUNDLES=1
+
+        # SEG_SIZE env var overrides the bench-ltp row's max_seg_size.
+        # When SEG_SIZE > 64000 we also bump the aggregation buffer so
+        # an aggregated block can be large enough to actually fill a
+        # bigger segment.
+        local effective_mseg=$mseg
+        local effective_aggs=$aggs
+        if [ "${SEG_SIZE}" != "64000" ]; then
+            effective_mseg=$SEG_SIZE
+            if [ $effective_aggs -lt $((SEG_SIZE + SEG_SIZE / 2)) ]; then
+                effective_aggs=$((SEG_SIZE + SEG_SIZE / 2))
+            fi
+        fi
+
+        cat > $SENDER_DIR/bench.ltprc <<EOF
+1 50
+a span 3 $me $mi $effective_mseg $effective_aggs $aggt 'xlso shm:ring_2to3 3'
+s 'xlsi shm:ring_3to2'
+EOF
+        # The receiver's ltprc also needs the new max_seg_size so it
+        # can receive segments that size.
+        cat > $RECEIVER_DIR/bench.ltprc <<EOF
+1 200
+a span 2 200 200 $effective_mseg 1000000 1 'xlso shm:ring_3to2 2'
+s 'xlsi shm:ring_2to3'
+EOF
+
+        run_scenario "bundle-${bsize}" $BASE_RATE 0 0 0 $BASE_RATE
+    done
+
+    # Restore globals + both ltprcs.
+    NUMBUNDLES=$saved_numbundles
+    BUNDLESIZE=$saved_bundlesize
+    TARGETBUNDLES=$saved_targetbundles
+    cp $saved_sender_ltprc   $SENDER_DIR/bench.ltprc
+    cp $saved_receiver_ltprc $RECEIVER_DIR/bench.ltprc
+    rm -f $saved_sender_ltprc $saved_receiver_ltprc
+}
+
 #----------------------------------------------------------------------
 # Main
 #----------------------------------------------------------------------
@@ -225,13 +309,14 @@ fi
 
 for s in "${SCENARIOS[@]}"; do
     case $s in
-        baseline) do_baseline ;;
-        delay)    do_delay ;;
-        drop)     do_drop ;;
-        rate)     do_rate ;;
-        matrix)   do_matrix ;;
-        all)      do_baseline; do_delay; do_drop; do_rate; do_matrix ;;
-        *) echo "unknown scenario: $s (expected baseline|delay|drop|rate|matrix|all)" >&2 ;;
+        baseline)   do_baseline ;;
+        delay)      do_delay ;;
+        drop)       do_drop ;;
+        rate)       do_rate ;;
+        matrix)     do_matrix ;;
+        bundlesize) do_bundlesize ;;
+        all)        do_baseline; do_delay; do_drop; do_rate; do_matrix; do_bundlesize ;;
+        *) echo "unknown scenario: $s (expected baseline|delay|drop|rate|matrix|bundlesize|all)" >&2 ;;
     esac
 done
 
