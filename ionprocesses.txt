@@ -325,3 +325,7 @@ udplsi
 lt-udplsi
 udplso
 lt-udplso
+xlsi
+lt-xlsi
+xlso
+lt-xlso

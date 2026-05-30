@@ -93,6 +93,7 @@ struct xport_link_st
 	int		fd;
 	int		isSender;
 	size_t		mapLen;
+	char		shmName[128];	/*	"/xlsa.<name>" for unlink.*/
 	/*	Impairment configuration (sender side).			*/
 	unsigned long	delayUsec;	/*	One-way propagation.	*/
 	unsigned long	jitterUsec;
@@ -184,6 +185,7 @@ XportLink	*xport_open(const char *endpointSpec, int isSender,
 	 *	endpoint name and therefore the same shm object.	*/
 
 	isprintf(shmName, sizeof shmName, "/xlsa.%s", name);
+	istrcpy(link->shmName, shmName, sizeof link->shmName);
 
 	/*	Resolve the create/open race.  Either side may be first.
 	 *	If we get EEXIST, the peer beat us to creation; if our
@@ -568,6 +570,20 @@ void	xport_close(XportLink *link)
 	if (link->fd >= 0)
 	{
 		close(link->fd);
+	}
+
+	/*	Unlink the shm name so the next run starts clean.  Either
+	 *	side may shm_unlink; the second call gets ENOENT (harmless).
+	 *	Without this a stale ring -- with mutex/condvars from a
+	 *	previously-killed process and slots holding garbage
+	 *	releaseUsec values -- would persist in the POSIX namespace
+	 *	and the next xport_open would attach to it, causing the
+	 *	receiver thread to spin (xport_recv returns 0 on every iter
+	 *	because the stale slot's releaseUsec is in the far future).	*/
+
+	if (link->shmName[0] != '\0')
+	{
+		(void) shm_unlink(link->shmName);
 	}
 
 	MRELEASE(link);
