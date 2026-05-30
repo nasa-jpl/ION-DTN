@@ -886,6 +886,23 @@ fi
 AM_CONDITIONAL([ENABLE_NCURSES], [test "x$ncurses" = "xyes"])
 
 #
+# Select the LTP xlsa (generic link service) transport backend.
+# Default 'shm' is the shared-memory benchmark substrate; 'serial' is the
+# length-framed byte-stream backend used for hardware adaptation and for
+# loop testing against a socat pty pair.  See ltp/xlsa/doc/DESIGN.md.
+#
+AC_ARG_WITH([xlsa-backend],
+  [AS_HELP_STRING([--with-xlsa-backend=BACKEND],
+    [LTP xlsa transport backend: shm (default) or serial])],
+  [XLSA_BACKEND=$withval],
+  [XLSA_BACKEND=shm])
+AS_CASE([$XLSA_BACKEND],
+  [shm|serial], [],
+  [AC_MSG_ERROR([invalid --with-xlsa-backend value: $XLSA_BACKEND (expected shm or serial)])])
+echo "LTP xlsa backend... $XLSA_BACKEND"
+AC_SUBST([XLSA_BACKEND])
+
+#
 # allow the user running configure to choose the TCPCL_LOW_CYCLE option
 #
 AC_ARG_ENABLE(
