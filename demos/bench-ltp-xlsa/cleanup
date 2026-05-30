@@ -6,15 +6,37 @@ echo "Cleaning up old ION..."
 export ION_NODE_LIST_DIR=$PWD
 killm f 2>/dev/null
 
+## Safety net for xlso/xlsi survivors.  killm consults ionprocesses.txt
+## (installed at /usr/local/bin/ionprocesses.txt); on systems where ION
+## predates the xlsa addition that file may not list xlsi/xlso yet.  An
+## explicit killall makes cleanup robust either way.  Once the installed
+## ionprocesses.txt knows about xlsi/xlso this becomes a no-op.
+killall -9 xlso xlsi 2>/dev/null || true
+
 rm -f ion_nodes
 rm -f 2.bench.xlsa/ion.log 2.bench.xlsa/bpdriverAduFile
 rm -f 3.bench.xlsa/ion.log
 rm -f 3.bench.xlsa/ltpblock.*
 
 ## Remove any xlsa POSIX shm segments from a previous (possibly crashed)
-## run.  On Linux these live under /dev/shm.  macOS hides them, so the
-## fallback is a quick xlsi/xlso start after this script which will EEXIST
-## onto whatever is left and reuse it harmlessly.
+## run.  Without this, stale rings with bogus releaseUsec values and
+## mutex/condvars left by a killed peer cause the next run's xlsi to
+## spin at 100% CPU.
+##
+## Linux: shm objects appear in /dev/shm and are removable with rm.
+## macOS: shm objects live in the kernel namespace and aren't
+##        filesystem-visible; call shm_unlink() via Python ctypes.
+
 if [ -d /dev/shm ]; then
     rm -f /dev/shm/xlsa.* 2>/dev/null
+fi
+
+if [ "$(uname)" = "Darwin" ] && command -v python3 >/dev/null 2>&1; then
+    python3 - <<'PYEOF' 2>/dev/null
+import ctypes
+libc = ctypes.CDLL('/usr/lib/libSystem.B.dylib', use_errno=True)
+libc.shm_unlink.argtypes = [ctypes.c_char_p]
+for name in ['/xlsa.ring_2to3', '/xlsa.ring_3to2']:
+    libc.shm_unlink(name.encode())
+PYEOF
 fi
