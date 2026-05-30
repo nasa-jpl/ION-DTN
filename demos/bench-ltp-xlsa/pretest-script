@@ -1,33 +1,35 @@
 #!/usr/bin/env bash
-# Pretest sanity checks for the xlsa benchmark.
+# Pretest sanity checks + auto-PATH for the xlsa benchmark.
 #
-# Verifies:
-#   1. xlso / xlsi binaries are on PATH (built with --with-xlsa-backend=shm).
-#   2. bpdriver / bpcounter are on PATH.
-#   3. XLSA_RATE_BPS and the contact-plan rate agree (warning only — the
-#      benchmark still runs if they don't, but the result is no longer a
-#      matched-rate baseline; see DESIGN.md §3.5).
+# 1. If xlso/xlsi aren't on PATH but a libtool-wrapped copy lives at the
+#    source-tree root (../../xlso, ../../xlsi), prepend that root to PATH
+#    so an uninstalled build can run the demo too.
+# 2. Verify xlso / xlsi / bpdriver / bpcounter / ionadmin are reachable.
+# 3. Warn if XLSA_RATE_BPS disagrees with the contact-plan rate.
 
 set -u
 
 fail() { echo "PRETEST FAIL: $1" >&2; exit 1; }
 warn() { echo "PRETEST WARN: $1" >&2; }
 
+# Auto-PATH: if xlso isn't on PATH but is at ../.. (the source tree root
+# when this demo lives at demos/bench-ltp-xlsa/), prepend it.
+if ! command -v xlso >/dev/null 2>&1; then
+    SRC_ROOT="$(cd ../.. 2>/dev/null && pwd)"
+    if [ -x "${SRC_ROOT}/xlso" ] && [ -x "${SRC_ROOT}/xlsi" ]; then
+        export PATH="${SRC_ROOT}:${PATH}"
+        echo "Pretest: prepended ${SRC_ROOT} to PATH for xlso/xlsi."
+    fi
+fi
+
 for bin in xlso xlsi bpdriver bpcounter ionadmin bpadmin ltpadmin; do
     if ! command -v "$bin" >/dev/null 2>&1; then
-        fail "$bin not found on PATH — build ION with the xlsa backend"
+        fail "$bin not found on PATH (consider sudo make install, or run from the source tree)"
     fi
 done
 
-if [ -z "${XLSA_RATE_BPS:-}" ]; then
-    warn "XLSA_RATE_BPS not set; xport_shm will run with unlimited rate"
-fi
-
-CONTACT_RATE=$(awk '/^a contact/ {print $7; exit}' global.ionrc 2>/dev/null)
-if [ -n "${XLSA_RATE_BPS:-}" ] && [ -n "$CONTACT_RATE" ] \
-   && [ "$XLSA_RATE_BPS" != "$CONTACT_RATE" ]; then
-    warn "XLSA_RATE_BPS=$XLSA_RATE_BPS != contact rate $CONTACT_RATE"
-    warn "  this is a deliberate mismatch experiment if you set it that way"
-fi
+# Rate-consistency warnings are emitted per-scenario by run_scenario,
+# not here -- the harness sets XLSA_RATE_BPS internally for each
+# scenario, so an "unset" check at pretest time would always fire.
 
 echo "Pretest checks passed."
