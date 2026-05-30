@@ -1,0 +1,37 @@
+# Makefile for the generic LTP link service template (xlso / xlsi).
+#
+# Adjust ION_ROOT to your ION source tree.  The include paths mirror
+# what ltp/udp builds against in nasa-jpl/ion-dtn (integration).
+
+ION_ROOT ?= /usr/local
+CC       ?= gcc
+CFLAGS   ?= -Wall -Wextra -g -O2 -fPIC
+
+# ION public + private LTP headers.  When building inside the ION tree,
+# point these at ltp/library, ltp/include, ici/include, etc.
+IONINC = \
+	-I$(ION_ROOT)/include \
+	-I$(ION_ROOT)/include/ion
+
+LIBS = -lltp -lici -lpthread -lm
+
+# Choose ONE backend per build:
+#   BACKEND=shm     -> shared-memory ring  (benchmark substrate)
+#   BACKEND=serial  -> framed byte stream  (hardware adaptation example)
+BACKEND ?= shm
+BACKEND_SRC = xport_$(BACKEND).c
+
+COMMON = libxlsa.c $(BACKEND_SRC)
+
+all: xlso xlsi
+
+xlso: xlso.c $(COMMON) xlsa.h
+	$(CC) $(CFLAGS) $(IONINC) -o $@ xlso.c $(COMMON) -L$(ION_ROOT)/lib $(LIBS)
+
+xlsi: xlsi.c $(COMMON) xlsa.h
+	$(CC) $(CFLAGS) $(IONINC) -o $@ xlsi.c $(COMMON) -L$(ION_ROOT)/lib $(LIBS)
+
+clean:
+	rm -f xlso xlsi
+
+.PHONY: all clean

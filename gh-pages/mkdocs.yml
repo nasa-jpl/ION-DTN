@@ -84,6 +84,7 @@ nav:
       - ION Application Service Interface: ION-Application-Service-Interface.md
       - BP Service API: BP-Service-API.md
       - LTP Underlying Communications API: LTP-UComm-API.md
+      - Generic LTP Link Service Template (xlso/xlsi): LTP-Generic-Link-Service-Template.md
       - CLA API: CLA-API.md
       - Extension Block Interface: Extension-Block-Interface.md
   - Man Pages:

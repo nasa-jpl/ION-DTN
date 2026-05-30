@@ -1,0 +1,105 @@
+=head1 NAME
+
+xlsi - generic transport-agnostic LTP link service input task
+
+=head1 SYNOPSIS
+
+B<xlsi> I<transport_endpoint_spec>
+
+=head1 DESCRIPTION
+
+B<xlsi> is a background "daemon" task that receives LTP segments through a
+swappable transport backend and passes them to the local LTP engine.  The
+transport seam (declared in B<xlsa.h>, with five C<xport_*> functions)
+lets a single input-daemon skeleton drive any byte-oriented or datagram
+lower layer without changes to the engine coupling itself.
+
+I<transport_endpoint_spec> is parsed by the backend.  The reference
+shared-memory backend (B<xport_shm>) accepts C<shm:I<name>> and uses
+C</xlsa.I<name>> as the underlying POSIX shared-memory object name; the
+length-framed byte-stream backend (B<xport_serial>) accepts
+C<serial:I</dev/path>>.  Backend selection is a build-time option
+(B<--with-xlsa-backend>).
+
+The link service input task is spawned automatically by B<ltpadmin> in
+response to the 's' command that starts operation of the LTP protocol;
+the text of the command that is used to spawn the task may be provided
+as a parameter to the 's' command if not using the 'seat' command.  The
+link service input task is terminated by B<ltpadmin> in response to an
+'x' (STOP) command.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<xlsi> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem
+identified in the log file and use B<ltpadmin> to restart B<xlsi>.
+
+=item "1"
+
+B<xlsi> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<ltpadmin> to restart B<xlsi>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+The selected transport backend may consume environment variables; see
+B<xlso>(1) for the reference shared-memory backend's knobs.  B<xlsi>
+itself does not consume any.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item xlsi can't initialize LTP.
+
+B<ltpadmin> has not yet initialized LTP protocol operations.
+
+=item Undefined LSI
+
+The B<ltpadmin> 's' command string for this seat does not match the
+B<xlsi> invocation; check the quoted LSI command in the .ltprc file.
+
+=item LSI task is already started.
+
+Redundant initiation of B<xlsi>.
+
+=item xlsi can't open transport.
+
+The selected backend failed to bring up the lower layer.  Check the
+endpoint spec and backend-specific errtext.
+
+=item xlsi can't create receiver thread.
+
+Operating system error.  Check errtext, correct problem, and restart
+B<xlsi>.
+
+=item xlsi can't acquire segment.
+
+The backend's xport_recv() returned a fatal error.  Inspect errtext.
+
+=item xlsi can't handle inbound segment.
+
+The LTP engine rejected an inbound segment.  See B<ion.log> for the
+underlying reason.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
+
+=head1 SEE ALSO
+
+ltpadmin(1), xlso(1), udplsi(1)

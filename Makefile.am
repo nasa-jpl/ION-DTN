@@ -804,11 +804,14 @@ ltpbin = \
 	ltpwatch \
 	sdatest \
 	udplsi \
-	udplso
+	udplso \
+	xlsi \
+	xlso
 
 ltplib = \
 	libltp.la \
-	libudplsa.la
+	libudplsa.la \
+	libxlsa.la
 
 ltpinclude = \
 	ltp/include/ltp.h \
@@ -819,7 +822,8 @@ ltpnoinst = \
 	ltp/dccp/dccplsa.h \
 	ltp/library/ltpP.h \
 	ltp/library/ltpsec.h \
-	ltp/udp/udplsa.h
+	ltp/udp/udplsa.h \
+	ltp/xlsa/xlsa.h
 
 ltpextra = \
 	ltp/README.txt \
@@ -836,6 +840,8 @@ ltpextra = \
 	ltp/doc/pod1/ltpwatch.pod \
 	ltp/doc/pod1/udplsi.pod \
 	ltp/doc/pod1/udplso.pod \
+	ltp/doc/pod1/xlsi.pod \
+	ltp/doc/pod1/xlso.pod \
 	ltp/doc/pod3/ltp.pod \
 	ltp/doc/pod3/ltp_admin.pod \
 	ltp/doc/pod5/ltprc.pod
@@ -854,6 +860,8 @@ ltpmans = \
 	ltp/doc/ltpwatch.1 \
 	ltp/doc/udplsi.1 \
 	ltp/doc/udplso.1 \
+	ltp/doc/xlsi.1 \
+	ltp/doc/xlso.1 \
 	ltp/doc/ltp.3 \
 	ltp/doc/ltp_admin.3 \
 	ltp/doc/ltprc.5
@@ -879,6 +887,10 @@ libltp_la_LIBADD = libici.la -lm
 libudplsa_la_SOURCES = ltp/udp/libudplsa.c
 libudplsa_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS) $(PTHREAD_LIBS)
 libudplsa_la_LIBADD = libici.la libltp.la -lm
+
+libxlsa_la_SOURCES = ltp/xlsa/libxlsa.c ltp/xlsa/xport_@XLSA_BACKEND@.c
+libxlsa_la_CFLAGS = $(ltpcflags) -I$(srcdir)/ltp/xlsa $(AM_CFLAGS) $(PTHREAD_LIBS)
+libxlsa_la_LIBADD = libici.la libltp.la -lm
 
 # --- Utility Programs --- #
 
@@ -939,6 +951,14 @@ udplsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 udplso_SOURCES = ltp/udp/udplso.c
 udplso_LDADD = libltp.la libudplsa.la libici.la $(PTHREAD_LIBS)
 udplso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
+
+xlsi_SOURCES = ltp/xlsa/xlsi.c
+xlsi_LDADD = libltp.la libxlsa.la libici.la $(PTHREAD_LIBS)
+xlsi_CFLAGS = $(ltpcflags) -I$(srcdir)/ltp/xlsa $(AM_CFLAGS)
+
+xlso_SOURCES = ltp/xlsa/xlso.c
+xlso_LDADD = libltp.la libxlsa.la libici.la $(PTHREAD_LIBS)
+xlso_CFLAGS = $(ltpcflags) -I$(srcdir)/ltp/xlsa $(AM_CFLAGS)
 
 # --- AOS Executables --- #
 
