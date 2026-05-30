@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Bring up sender node 2.
+
+ionadmin    bench.ionrc
+sleep 1
+ionadmin    ../global.ionrc
+sleep 1
+ionsecadmin bench.ionsecrc
+sleep 1
+ltpadmin    bench.ltprc
+sleep 1
+bpadmin     bench.bprc

@@ -1,0 +1,11 @@
+## Receiver (engine 3) LTP config.
+##
+## Mirrored ring names: node 3's TX is 'ring_3to2' (node 2 opens it as RX);
+## node 3's RX is 'ring_2to3' (the same ring node 2's xlso writes to).
+##
+## Receiver runs with larger session caps (200/200) than the sender's 8/8,
+## matching the asymmetric setup bench-ltp uses so the receiver never
+## under-provisions reassembly.
+1 200
+a span 2 200 200 64000 1000000 1 'xlso shm:ring_3to2 2'
+s 'xlsi shm:ring_2to3'

@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Clean up after a run: ION state, ipc keys, and the POSIX shm segments
+# left behind by xlsa.
+
+echo "Cleaning up old ION..."
+export ION_NODE_LIST_DIR=$PWD
+killm f 2>/dev/null
+
+rm -f ion_nodes
+rm -f 2.bench.xlsa/ion.log 2.bench.xlsa/bpdriverAduFile
+rm -f 3.bench.xlsa/ion.log
+rm -f 3.bench.xlsa/ltpblock.*
+
+## Remove any xlsa POSIX shm segments from a previous (possibly crashed)
+## run.  On Linux these live under /dev/shm.  macOS hides them, so the
+## fallback is a quick xlsi/xlso start after this script which will EEXIST
+## onto whatever is left and reuse it harmlessly.
+if [ -d /dev/shm ]; then
+    rm -f /dev/shm/xlsa.* 2>/dev/null
+fi

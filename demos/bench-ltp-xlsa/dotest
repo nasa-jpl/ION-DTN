@@ -1,0 +1,149 @@
+#!/usr/bin/env bash
+#
+# bench-ltp-xlsa: LTP throughput benchmark over the generic xlsa link
+# service with the shared-memory backend (xport_shm).
+#
+# This is a sketch.  The matched-rate baseline below is the minimum
+# runnable scenario; the impairment sweeps and rate-mismatch matrix from
+# ltp/xlsa/doc/DESIGN.md §3.5 / §5.7 are marked TODO at the bottom and
+# should be added as the demo matures.
+#
+# Compare results against demos/bench-ltp/ (which uses udplso/udplsi over
+# UDP loopback) to see what the host network stack costs.
+
+set -u
+
+KB="000"
+MB="${KB}000"
+GB="${MB}000"
+
+# Matched-rate baseline (must agree with global.ionrc contact rate)
+XLSA_RATE_BPS=${XLSA_RATE_BPS:-2${GB}}
+XLSA_SLOTS=${XLSA_SLOTS:-1024}
+# Impairment knobs default to zero -- the baseline is a clean link.
+XLSA_DELAY_US=${XLSA_DELAY_US:-0}
+XLSA_JITTER_US=${XLSA_JITTER_US:-0}
+XLSA_DROP_PPM=${XLSA_DROP_PPM:-0}
+export XLSA_RATE_BPS XLSA_SLOTS XLSA_DELAY_US XLSA_JITTER_US XLSA_DROP_PPM
+
+# Single test scenario: 1000 bundles of 10 000 bytes each = 10 MB.
+NUMBUNDLES=1000
+BUNDLESIZE=10000
+TARGETBUNDLES=$((NUMBUNDLES * 9 / 10))   # 90% steady-state mark
+MAXSECONDS=120
+SENDER_DIR=2.bench.xlsa
+RECEIVER_DIR=3.bench.xlsa
+RETVAL=0
+
+fmt_num() { printf "%'d" "$1" 2>/dev/null || printf "%d" "$1"; }
+
+echo "########################################################################"
+echo "bench-ltp-xlsa: LTP over xlsa (shm backend) throughput benchmark"
+echo "########################################################################"
+echo "Date         : $(date)"
+echo "Host         : $(hostname)"
+echo "Uname        : $(uname -a)"
+echo
+echo "XLSA_RATE_BPS=${XLSA_RATE_BPS}  XLSA_SLOTS=${XLSA_SLOTS}"
+echo "XLSA_DELAY_US=${XLSA_DELAY_US}  XLSA_JITTER_US=${XLSA_JITTER_US}  XLSA_DROP_PPM=${XLSA_DROP_PPM}"
+echo "Workload     : $(fmt_num ${NUMBUNDLES}) bundles x $(fmt_num ${BUNDLESIZE}) B = $(fmt_num $((NUMBUNDLES*BUNDLESIZE))) B"
+echo
+
+./pretest-script || exit 1
+./cleanup
+sleep 1
+
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start receiver first so the shm ring it reads from is in place before
+# the sender's xlso races on it (any order works -- the create-race is
+# resolved internally per DESIGN.md §5.5 -- but starting receiver first
+# avoids spurious "no peer yet" delays in the first segment).
+(cd ${RECEIVER_DIR}; ./ionstart)
+(cd ${SENDER_DIR};   ./ionstart)
+sleep 2
+
+cat <<EOF
+========================================================================
+RUNNING: matched-rate baseline
+  rate (XLSA_RATE_BPS)            : ${XLSA_RATE_BPS} B/s
+  contact-plan rate (global.ionrc): $(awk '/^a contact/ {print $7; exit}' global.ionrc)
+  delay/jitter/drop               : ${XLSA_DELAY_US}/${XLSA_JITTER_US}/${XLSA_DROP_PPM}
+========================================================================
+EOF
+
+cd ${RECEIVER_DIR}
+bpcounter ipn:3.1 ${TARGETBUNDLES} &
+BPCOUNTER_PID=$!
+cd ..
+sleep 1
+
+if ! ps -p ${BPCOUNTER_PID} >/dev/null 2>&1; then
+    echo "bpcounter failed to start; aborting." >&2
+    exit 1
+fi
+
+START=$(date +%s)
+(cd ${SENDER_DIR}; bpdriver ${NUMBUNDLES} ipn:2.1 ipn:3.1 -${BUNDLESIZE} >/dev/null) &
+BPDRIVER_PID=$!
+
+echo "Waiting for transmission to finish..."
+TIMER=0
+while ps -p ${BPCOUNTER_PID} >/dev/null 2>&1; do
+    sleep 1
+    TIMER=$((TIMER + 1))
+    if [ ${TIMER} -gt ${MAXSECONDS} ]; then
+        echo "...${MAXSECONDS}s elapsed; giving up."
+        kill -9 ${BPCOUNTER_PID} ${BPDRIVER_PID} 2>/dev/null
+        RETVAL=1
+        break
+    fi
+done
+END=$(date +%s)
+
+if [ ${RETVAL} -eq 0 ]; then
+    wait ${BPDRIVER_PID} 2>/dev/null
+    ELAPSED=$((END - START))
+    if [ ${ELAPSED} -lt 1 ]; then ELAPSED=1; fi
+    BYTES=$((NUMBUNDLES * BUNDLESIZE))
+    BPS=$((BYTES / ELAPSED))
+    echo
+    echo "RESULT: ${BYTES} bytes in ${ELAPSED}s = $(fmt_num ${BPS}) B/s goodput"
+fi
+
+# Tear down
+(cd ${SENDER_DIR};   ./ionstop) 2>/dev/null
+(cd ${RECEIVER_DIR}; ./ionstop) 2>/dev/null
+./cleanup
+
+echo
+echo "Done."
+
+# -------------------------------------------------------------------------
+# TODO -- sweep matrix (DESIGN.md §3.5, §5.7).  As the demo matures, wrap
+# the run loop above in:
+#
+#   1. Impairment sweeps -- one knob at a time:
+#        for XLSA_DELAY_US in 0 10000 100000 1000000; do ...
+#        for XLSA_DROP_PPM in 0 100 1000 10000; do ...
+#        for XLSA_RATE_BPS in 100000000 500000000 2000000000; do ...
+#      Record goodput, retransmission counts (ltpstats), report/checkpoint
+#      timer activity.
+#
+#   2. Rate-mismatch matrix -- vary the contact-plan rate against a fixed
+#      XLSA_RATE_BPS to characterize:
+#        - matched         (baseline)
+#        - over-provisioned (contact > radio  -> backpressure, spurious rtx)
+#        - under-provisioned(contact < radio  -> link under-utilized)
+#
+#   3. Cross-substrate baseline -- run the same workload through
+#      demos/bench-ltp/ (UDP loopback) and emit a side-by-side report so
+#      the host-network-stack overhead is visible.
+#
+#   4. Realism check -- a sibling demo using xport_serial against a
+#      socat pty pair (DESIGN.md §5.6) to capture framing/partial-read
+#      cost vs. the clean shm baseline.
+# -------------------------------------------------------------------------
+
+exit ${RETVAL}

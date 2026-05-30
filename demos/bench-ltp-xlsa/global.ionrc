@@ -1,0 +1,18 @@
+## Contact plan for the xlsa benchmark.
+##
+## Two nodes (engine ids 2 and 3) on the same host, exchanging bundles
+## over LTP carried by the generic xlsa link service (xlso/xlsi) with the
+## shared-memory backend.
+##
+## IMPORTANT: the contact rate set here MUST match XLSA_RATE_BPS exported
+## in dotest.  See ltp/xlsa/doc/DESIGN.md §3.5 for why all three rates
+## (BP Throttle nominalRate, LTP localXmitRate, XLSA_RATE_BPS) must agree
+## for a steady-state baseline.
+##
+## 2 000 000 000 bytes/sec = 2 GB/s (matches bench-ltp's contact rate so
+## results can be compared directly).
+
+m horizon  +0
+a range    +0 +600        2 3   1
+a contact  +0 +420        2 3   2000000000
+a contact  +0 +600        3 2   2000000000
