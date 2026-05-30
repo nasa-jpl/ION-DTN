@@ -51,7 +51,7 @@ extern "C" {
  *	maxSegmentSize, so a segment can never exceed it; we keep a small
  *	margin for an optional framing header in byte-stream backends.	*/
 
-#define XLSA_BUFSZ		((256 * 256) - 1)
+#define XLSA_BUFSZ		(1024 * 1024)
 
 /*	Opaque per-link transport state.  The reference shared-memory
  *	backend stores its ring handles here; a serial backend would
