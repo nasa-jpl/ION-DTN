@@ -902,6 +902,17 @@ AS_CASE([$XLSA_BACKEND],
 echo "LTP xlsa backend... $XLSA_BACKEND"
 AC_SUBST([XLSA_BACKEND])
 
+# xport_shm calls shm_open / shm_unlink, which on Linux/Solaris live in
+# librt; on macOS, BSD, and some other platforms they are in libc.  Probe
+# for which we need and substitute the result into libxlsa's LIBADD so we
+# do not force every other link line through -lrt.
+XLSA_LIBS=""
+AC_CHECK_FUNC([shm_open], [],
+  [AC_CHECK_LIB([rt], [shm_open],
+    [XLSA_LIBS="-lrt"],
+    [AC_MSG_ERROR([cannot find shm_open in libc or librt -- required by ltp/xlsa])])])
+AC_SUBST([XLSA_LIBS])
+
 #
 # allow the user running configure to choose the TCPCL_LOW_CYCLE option
 #
