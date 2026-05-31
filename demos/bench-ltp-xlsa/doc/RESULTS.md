@@ -212,15 +212,16 @@ separable.
 | Platform | Class | bpcounter Mbps |
 |---|---|---:|
 | **Mac M4 Max** | macOS arm64, bare metal | **2537** |
+| **Solaris 11.4 SPARC** | sun4v non-global zone (CI VM, dsoc3) | **1149** |
 | ARC RHEL 9 | x86-64 Linux CI container (GitHub Actions Runner Controller) | 991 |
 | ARC RHEL 8 | x86-64 Linux CI container | 973 |
-| **Linuxkit container** | aarch64 Linux container on M4 (hypervised, 512 MB shm) | 601 |
+| Linuxkit container | aarch64 Linux container on M4 (hypervised, 512 MB shm) | 601 |
 | ARC Oracle Linux 9 | x86-64 Linux CI container | 598 |
 | ARC Oracle Linux 8 | x86-64 Linux CI container | 588 |
 | ARC Ubuntu 22.04 | x86-64 Linux CI container | 570 |
 | ARC Ubuntu 20.04 | x86-64 Linux CI container | 568 |
 
-**The ARC pool clearly splits into two tiers.** RHEL-class hosts
+**The ARC x86-64 pool splits into two tiers.** RHEL-class hosts
 deliver ~980 Mbps; Oracle Linux and Ubuntu hosts deliver ~580 Mbps.
 The ~1.7× factor is consistent across every bundle row (not just
 this one) and reflects different x86-64 SKUs in the ARC pool rather
@@ -236,15 +237,26 @@ container running this workload — the CPU class of the slow ARC
 tier and the linuxkit-wrapped M4 are evidently comparable for this
 workload.
 
+**Solaris 11.4 SPARC outperforms every x86-64 ARC tier** at 1149
+Mbps, slotting in cleanly between Mac M4 bare metal and the fastest
+ARC Linux runners. Two factors plausibly contribute: (a) the sun4v
+node in the CI VM pool is a higher-performance SKU than the x86-64
+ARC nodes; (b) Solaris's POSIX `shm_open`/`shm_unlink` (already
+linked against `-lrt` via the existing Solaris block in
+`configure.ac`) sits on a well-tuned tmpfs and pthread implementation
+that the substrate's mutex/condvar coordination benefits from. The
+1 KB row that TIMEOUTs on every x86-64 ARC node completes on
+Solaris in 159 s at 9.2 Mbps — slow but within the 300 s cap.
+
 **Bare-metal arm64 macOS remains alone at the top** at 2537 Mbps —
-roughly 2.5× the fastest container measurement and 4.4× the slowest.
-That gap is the combined cost of (a) container virtualization, (b)
-slower CPU on most CI nodes, and (c) macOS's well-tuned scheduler
-and pthread/futex paths that the substrate's mutex/condvar
-coordination benefits from on bare metal. A bare-metal Linux box of
-M4-class CPU performance is the missing data point that would let
-us decompose those three contributions; for now they collapse into
-one number.
+roughly 2.2× the Solaris number and 2.5–4.4× the various container
+measurements. The gap to Solaris is the cleanest "CPU plus
+OS-scheduler" delta we have here; the gap to the ARC x86-64 tiers
+adds container virtualization on top. A bare-metal Linux box of
+M4-class CPU performance is still the missing data point that would
+let us decompose CPU class vs container virtualization vs OS-level
+contributions, but the Solaris result strongly suggests the OS/kernel
+side of that triad is a substantial fraction.
 
 ## Other (impairment) sweeps
 
