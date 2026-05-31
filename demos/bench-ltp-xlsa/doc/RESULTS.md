@@ -26,6 +26,28 @@ Each scenario starts ION fresh, runs one bpdriver/bpcounter pair, tears
 ION down, then advances. Both substrates use the same contact-plan rate
 (2 GB/s) and the same per-bundle workload.
 
+### Kernel UDP/socket tuning on this machine
+
+This host has the socket-buffer sysctls elevated above macOS stock
+defaults. That matters because the UDP-substrate numbers below are
+*more* favorable to UDP than they would be on an out-of-the-box system.
+
+| sysctl | This host | macOS stock | Ratio |
+|---|---:|---:|---:|
+| `net.inet.udp.maxdgram` | 65 536 | 65 536 | 1× |
+| `net.inet.udp.recvspace` | **786 896** | ~42 080 | **~19×** |
+| `kern.ipc.maxsockbuf` | **8 388 608** | 4 194 304 | **2×** |
+| `net.inet.udp.checksum` | 1 | 1 | (on; honest test) |
+
+A udplsi receive buffer of ~770 KB (vs. the stock ~41 KB) easily absorbs
+a sender burst of ~12 segments × 64 KB ≈ 768 KB without `ENOBUFS`. On a
+stock kernel that burst would trip udplso's `applyTokenBucket` retry
+loop and visibly drag the numbers down. **Read the UDP column as an
+upper bound for what UDP loopback can do on this kernel, not as a
+representative ION-on-stock-macOS result.** On a stock host the gap to
+xlsa would widen at the medium-bundle rows; the 5 MB / 1 GB TIMEOUT
+would only get worse.
+
 ## Bundle-size sweep (bench-ltp's TESTS array, row-for-row)
 
 Three substrate variants:
@@ -142,18 +164,36 @@ captured would make the drop sweep meaningful. Future work.
 ## How to reproduce
 
 ```sh
-# Build with xlsa enabled
-./configure --with-xlsa-backend=shm
+# Build & install ION with xlsa (xlsa is built by default)
+./configure --with-xlsa-backend=shm   # shm is also the default
 make
 sudo make install
+```
 
-# Run the xlsa side at 1 MB segments
+The xlsa demo's `./dotest` (with no arguments) runs the full
+comparison set — `baseline` + bundlesize sweep at 64 KB segments +
+bundlesize sweep at 1 MB segments — in one go:
+
+```sh
 cd demos/bench-ltp-xlsa
-SEG_SIZE=1000000 ./dotest bundlesize
+./dotest
+```
 
-# Run the UDP side for comparison
+Run the UDP side once for the comparison column:
+
+```sh
 cd ../bench-ltp
 ./dotest
+```
+
+If you want to run a subset by hand, the named scenarios still work:
+
+```sh
+./dotest baseline                       # the 10 MB sanity run only (~30 s)
+./dotest bundlesize                     # 9-row sweep at 64 KB segs   (~12 min)
+SEG_SIZE=1000000 ./dotest bundlesize    # same sweep at 1 MB segs     (~12 min)
+./dotest delay drop rate matrix         # impairment sweeps
+./dotest all                            # everything above
 ```
 
 The SUMMARY tables at the end of each run contain the per-row goodput

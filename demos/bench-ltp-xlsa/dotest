@@ -4,8 +4,10 @@
 # service with the shared-memory backend (xport_shm).
 #
 # Usage:
-#   ./dotest                  # baseline (matched-rate), default
-#   ./dotest baseline         # same
+#   ./dotest                  # default: compare (the published xlsa set)
+#   ./dotest compare          # baseline + bundlesize@64K + bundlesize@1M (~25 min)
+#   ./dotest baseline         # one matched-rate run, 10 MB total       (~30 s)
+#   ./dotest bundlesize       # bench-ltp's 9-row bundlesize sweep
 #   ./dotest delay            # XLSA_DELAY_US sweep
 #   ./dotest drop             # XLSA_DROP_PPM sweep
 #   ./dotest rate             # XLSA_RATE_BPS sweep (each scenario matched)
@@ -208,6 +210,12 @@ do_bundlesize() {
     # agg_time).  The receiver ltprc stays at the existing 200/200
     # config (matches bench-ltp's receiver too).
     #
+    # Per-call seg_size override: do_bundlesize $seg_bytes.  Falls back
+    # to the SEG_SIZE env var, then to 64000 (bench-ltp parity).  Used
+    # by do_compare to run the same sweep twice (64 KB then 1 MB segs)
+    # without two separate invocations.
+    local effective_SEG_SIZE=${1:-${SEG_SIZE:-64000}}
+
     # Format: bundle_size max_export max_import max_seg_size agg_size agg_time total_bytes
     local BENCH_TESTS=(
         "5000000 8 8 64000 128000 1 1000000000"
@@ -236,16 +244,16 @@ do_bundlesize() {
         TARGETBUNDLES=$((NUMBUNDLES * 9 / 10))
         [ $TARGETBUNDLES -lt 1 ] && TARGETBUNDLES=1
 
-        # SEG_SIZE env var overrides the bench-ltp row's max_seg_size.
-        # When SEG_SIZE > 64000 we also bump the aggregation buffer so
-        # an aggregated block can be large enough to actually fill a
-        # bigger segment.
+        # effective_SEG_SIZE (set above from arg or env) overrides the
+        # bench-ltp row's max_seg_size.  When > 64000 we also bump the
+        # aggregation buffer so an aggregated block can fill a bigger
+        # segment.
         local effective_mseg=$mseg
         local effective_aggs=$aggs
-        if [ "${SEG_SIZE}" != "64000" ]; then
-            effective_mseg=$SEG_SIZE
-            if [ $effective_aggs -lt $((SEG_SIZE + SEG_SIZE / 2)) ]; then
-                effective_aggs=$((SEG_SIZE + SEG_SIZE / 2))
+        if [ "${effective_SEG_SIZE}" != "64000" ]; then
+            effective_mseg=$effective_SEG_SIZE
+            if [ $effective_aggs -lt $((effective_SEG_SIZE + effective_SEG_SIZE / 2)) ]; then
+                effective_aggs=$((effective_SEG_SIZE + effective_SEG_SIZE / 2))
             fi
         fi
 
@@ -274,11 +282,21 @@ EOF
     rm -f $saved_sender_ltprc $saved_receiver_ltprc
 }
 
+do_compare() {
+    # The "publishable comparison" set: the three xlsa rows in
+    # doc/RESULTS.md (baseline + bundlesize at 64 KB segs + bundlesize
+    # at 1 MB segs).  Default for plain ./dotest -- one invocation
+    # produces every xlsa number in the writeup.  Takes ~25 min total.
+    do_baseline
+    do_bundlesize 64000
+    do_bundlesize 1000000
+}
+
 #----------------------------------------------------------------------
 # Main
 #----------------------------------------------------------------------
 SCENARIOS=("$@")
-[ ${#SCENARIOS[@]} -eq 0 ] && SCENARIOS=("baseline")
+[ ${#SCENARIOS[@]} -eq 0 ] && SCENARIOS=("compare")
 
 echo "########################################################################"
 echo "bench-ltp-xlsa: LTP over xlsa (shm backend) throughput benchmark"
@@ -315,8 +333,10 @@ for s in "${SCENARIOS[@]}"; do
         rate)       do_rate ;;
         matrix)     do_matrix ;;
         bundlesize) do_bundlesize ;;
-        all)        do_baseline; do_delay; do_drop; do_rate; do_matrix; do_bundlesize ;;
-        *) echo "unknown scenario: $s (expected baseline|delay|drop|rate|matrix|bundlesize|all)" >&2 ;;
+        compare)    do_compare ;;
+        all)        do_baseline; do_delay; do_drop; do_rate; do_matrix
+                    do_bundlesize 64000; do_bundlesize 1000000 ;;
+        *) echo "unknown scenario: $s (expected baseline|delay|drop|rate|matrix|bundlesize|compare|all)" >&2 ;;
     esac
 done
 
