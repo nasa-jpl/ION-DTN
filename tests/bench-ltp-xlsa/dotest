@@ -46,6 +46,13 @@ done
 
 cd "$DEMO" || { echo "FAIL: cannot cd to $DEMO"; exit 1; }
 
+# Smoke-test footprint: keep the shm ring small so the test runs in
+# containers with a default /dev/shm cap of 64 MB.  Each slot is
+# XLSA_BUFSZ (1 MB) per ltp/xlsa/xlsa.h; 16 slots * 1 MB * 2 rings =
+# 32 MB total.  The demo's dotest auto-shrinks too, but pinning here
+# means the regression test does not depend on /dev/shm sizing math.
+export XLSA_SLOTS=${XLSA_SLOTS:-16}
+
 # Run just the baseline scenario.  Capture stdout so the runtests
 # harness can pin the result line if needed.
 ./dotest baseline
