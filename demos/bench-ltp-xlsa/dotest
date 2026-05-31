@@ -317,6 +317,13 @@ do_compare() {
 #----------------------------------------------------------------------
 # Main
 #----------------------------------------------------------------------
+# ION's runtests harness passes the host OS name as $1 (e.g. "mac",
+# "linux", "windows", "solaris") so dotest scripts can branch on it.
+# Drop it -- our scenarios are OS-independent on POSIX-y systems.
+case "${1:-}" in
+    mac|darwin|linux|windows|solaris|freebsd) shift ;;
+esac
+
 SCENARIOS=("$@")
 [ ${#SCENARIOS[@]} -eq 0 ] && SCENARIOS=("compare")
 

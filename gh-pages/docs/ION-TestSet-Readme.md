@@ -322,6 +322,32 @@ The `dotest` scripts are run in their test directory. The following environment 
 
 - `PATH` has `IONDIR` prepended to it, ensuring ION executables in the local build directory are found first.
 
+### Positional argument: the platform string
+
+`runtests` invokes `./dotest "$OS_VERSION"` and `./cleanup "$OS_VERSION"`, so the host platform is passed to both scripts as `$1`. `OS_VERSION` is derived from `uname -a` inside `runtests` and is one of:
+
+| Value | Detected from `uname -a` containing |
+|---|---|
+| `raspberrypi` | `raspberrypi` |
+| `linux` | `Linux` / `LINUX` |
+| `mac` | `Mac` / `MAC` / `Darwin` |
+| `solaris` | `Solaris` / `SunOS` |
+| `freebsd` | `FreeBSD` / `OpenBSD` |
+
+Most `dotest` scripts are OS-independent and can safely ignore the argument. Scripts that do need to branch on host platform (for example, the `ps` argument syntax differs slightly across OSes — bench-ltp uses `if [ "$1" == "windows" ]` for this) should read `$1` directly.
+
+A script that uses positional arguments for its own scenarios (e.g. a benchmark harness with `./dotest baseline` / `./dotest compare`) **must shift the platform string off first**:
+
+```bash
+case "${1:-}" in
+    raspberrypi|linux|mac|solaris|freebsd) shift ;;
+esac
+
+# remaining $@ now holds the scenario name(s) you passed on the command line
+```
+
+Without that shift, invoking `./dotest` interactively works fine, but the same script called by `runtests` receives `mac` (or `linux`, etc.) as `$1` and a naive scenario dispatcher will mistake it for a scenario name. See `demos/bench-ltp-xlsa/dotest` for a worked example.
+
 ## Test Progress Tracking (ION 4.1.3 and later)
 
 Starting with ION version 4.1.3, the `runtests` script maintains a file called `tests/progress` that records the start time, finish time, and final result for each test.
