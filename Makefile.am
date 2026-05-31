@@ -890,7 +890,7 @@ libudplsa_la_LIBADD = libici.la libltp.la -lm
 
 libxlsa_la_SOURCES = ltp/xlsa/libxlsa.c ltp/xlsa/xport_@XLSA_BACKEND@.c
 libxlsa_la_CFLAGS = $(ltpcflags) -I$(srcdir)/ltp/xlsa $(AM_CFLAGS) $(PTHREAD_LIBS)
-libxlsa_la_LIBADD = libici.la libltp.la -lm
+libxlsa_la_LIBADD = libici.la libltp.la $(XLSA_LIBS) -lm
 
 # --- Utility Programs --- #
 
