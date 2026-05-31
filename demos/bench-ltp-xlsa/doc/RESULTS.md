@@ -200,6 +200,52 @@ workload completes in 39 seconds at 37 Mbps.
   smoke-test environment; for "what throughput does the substrate
   deliver?" use a bare-metal host of the target platform.
 
+## Cross-platform 1 MB bundle / 1 MB segment comparison
+
+The same bench-ltp-xlsa workload — bundle size 1 MB, `maxSegmentSize`
+1 MB, 1 GB total transferred — has now been measured on every test
+environment that touched this PR. This single row is the cleanest
+"what does the substrate's ceiling look like on platform X?" data
+point, and it makes the platform/container/CPU contributions
+separable.
+
+| Platform | Class | bpcounter Mbps |
+|---|---|---:|
+| **Mac M4 Max** | macOS arm64, bare metal | **2537** |
+| ARC RHEL 9 | x86-64 Linux CI container (GitHub Actions Runner Controller) | 991 |
+| ARC RHEL 8 | x86-64 Linux CI container | 973 |
+| **Linuxkit container** | aarch64 Linux container on M4 (hypervised, 512 MB shm) | 601 |
+| ARC Oracle Linux 9 | x86-64 Linux CI container | 598 |
+| ARC Oracle Linux 8 | x86-64 Linux CI container | 588 |
+| ARC Ubuntu 22.04 | x86-64 Linux CI container | 570 |
+| ARC Ubuntu 20.04 | x86-64 Linux CI container | 568 |
+
+**The ARC pool clearly splits into two tiers.** RHEL-class hosts
+deliver ~980 Mbps; Oracle Linux and Ubuntu hosts deliver ~580 Mbps.
+The ~1.7× factor is consistent across every bundle row (not just
+this one) and reflects different x86-64 SKUs in the ARC pool rather
+than anything xlsa is doing differently. RHEL appears to be on
+newer/faster nodes; the OL/Ubuntu pool is on older silicon.
+
+**The Apple Silicon linuxkit container lands in the slow tier of
+ARC hosts**, not below it. ~600 Mbps for the Linuxkit M4 container
+sits right next to ARC OL/Ubuntu's ~580–600 Mbps. What we earlier
+attributed primarily to "linuxkit syscall overhead on Apple Silicon"
+is actually the typical figure for a moderately-provisioned Linux
+container running this workload — the CPU class of the slow ARC
+tier and the linuxkit-wrapped M4 are evidently comparable for this
+workload.
+
+**Bare-metal arm64 macOS remains alone at the top** at 2537 Mbps —
+roughly 2.5× the fastest container measurement and 4.4× the slowest.
+That gap is the combined cost of (a) container virtualization, (b)
+slower CPU on most CI nodes, and (c) macOS's well-tuned scheduler
+and pthread/futex paths that the substrate's mutex/condvar
+coordination benefits from on bare metal. A bare-metal Linux box of
+M4-class CPU performance is the missing data point that would let
+us decompose those three contributions; for now they collapse into
+one number.
+
 ## Other (impairment) sweeps
 
 Earlier exploratory runs at 1000 bundles × 10 KB (10 MB total)
