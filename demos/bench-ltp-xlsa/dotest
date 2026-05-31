@@ -36,12 +36,34 @@ MAXSECONDS=${MAXSECONDS:-120}
 SENDER_DIR=2.bench.xlsa
 RECEIVER_DIR=3.bench.xlsa
 
-# Scale ring depth so the ring is ~64 MB irrespective of SEG_SIZE.
-# XLSA_BUFSZ in xlsa.h is now 1 MB, so at SEG_SIZE=64K we want ~1024
-# slots; at SEG_SIZE=1 MB we want ~64.  Cap [16, 1024].
-XLSA_SLOTS_DEFAULT=$((67108864 / SEG_SIZE))
-[ $XLSA_SLOTS_DEFAULT -lt 16 ]   && XLSA_SLOTS_DEFAULT=16
-[ $XLSA_SLOTS_DEFAULT -gt 1024 ] && XLSA_SLOTS_DEFAULT=1024
+# Scale ring depth so each per-direction shm segment stays around
+# 64 MB.  Each slot's payload is XLSA_BUFSZ from ltp/xlsa/xlsa.h
+# (currently 1 MB), NOT SEG_SIZE -- a smaller LTP segment doesn't
+# shrink the in-ring buffer.  Track XLSA_BUFSZ here when it changes.
+XLSA_SLOT_BYTES=1048576
+
+XLSA_SLOTS_DEFAULT=$((67108864 / XLSA_SLOT_BYTES))   # 64 by default
+
+# Constrained-shm fallback: many container defaults cap /dev/shm at
+# 64 MB.  Two xlsa rings AND ION's own sem files (one per engine
+# semaphore, ~40 of them) all live in the tmpfs, so target each ring
+# at a quarter of the available space.  In a 64 MB shm that gives
+# 16 slots * 1 MB * 2 rings = 32 MB used, 32 MB free for ION.
+# No-op on hosts with a normal-sized /dev/shm or where shm is opaque
+# (macOS).
+if [ -d /dev/shm ]; then
+    shm_kb=$(df -k /dev/shm 2>/dev/null | awk 'NR==2 {print $4}')
+    if [ -n "$shm_kb" ]; then
+        max_per_ring=$((shm_kb * 1024 / 4 / XLSA_SLOT_BYTES))
+        if [ "$max_per_ring" -gt 0 ] && \
+           [ "$max_per_ring" -lt "$XLSA_SLOTS_DEFAULT" ]; then
+            XLSA_SLOTS_DEFAULT=$max_per_ring
+        fi
+    fi
+fi
+
+[ "$XLSA_SLOTS_DEFAULT" -lt 8 ]    && XLSA_SLOTS_DEFAULT=8
+[ "$XLSA_SLOTS_DEFAULT" -gt 1024 ] && XLSA_SLOTS_DEFAULT=1024
 XLSA_SLOTS_VALUE=${XLSA_SLOTS:-$XLSA_SLOTS_DEFAULT}
 
 RESULTS=()                   # scenario;rate;contact;delay;drop;goodput
