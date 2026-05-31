@@ -128,6 +128,78 @@ acquire/release, `ltpmeter` aggregation logic. To measure this directly
 would require a microbenchmark that ping-pongs through `xport_send` /
 `xport_recv` without LTP in the loop.
 
+## Same workload in a Linux/aarch64 docker container
+
+To check portability and confirm the demo runs on the targeted
+deployment platform, the full compare set was re-run inside the
+`ion-test-suite-ARM64` dev container (Oracle Linux 9.7 aarch64,
+under docker on Apple Silicon via linuxkit) at two `/dev/shm` caps.
+
+Two operating regimes:
+
+| | Container A | Container B |
+|---|---:|---:|
+| `shm_size` | docker default 64 MB | 512 MB (recommended) |
+| `XLSA_SLOTS` (auto-shrunk) | 16 | 64 |
+| ring per direction | 16 MB | 64 MB |
+| tmpfs reserved for ION sem files | 32 MB | 384 MB |
+
+The 64 MB cap is what docker gives a container if `shm_size` is not
+set. With it, ION + the xlsa rings together exhaust the tmpfs and
+`bpadmin` fails to create its volatile-database sem files. The demo's
+`dotest` auto-shrinks `XLSA_SLOTS` to keep its own footprint to
+`shm / 4` per ring, which lets the run complete; the regression
+wrapper `tests/bench-ltp-xlsa/dotest` pins `XLSA_SLOTS=16` directly
+to avoid depending on the auto-shrink math at all. **For the demo
+to run with the default 1024-slot rings, the orchestration that
+spins the container up needs `shm_size: 512m` (compose) or
+`--shm-size=512m` (`docker run`).** See `ION-dev-issue` repo `89f5656`
+for the docker-compose template change.
+
+Results (`bpcounter`-reported Mbps, 1 MB-seg pass only; 64 KB-seg
+results follow the same shape):
+
+| Bundle / Total | Container 16-slot | Container 64-slot | Mac native 1024-slot |
+|---:|---:|---:|---:|
+| 5 MB / 1 GB | 573 | 575 | 2628 |
+| 1 MB / 1 GB | 608 | 601 | 2537 |
+| 500 KB / 500 MB | 587 | 582 | 2003 |
+| 200 KB / 200 MB | 506 | 498 | 1985 |
+| 63 KB / 200 MB | 319 | 319 | 1175 |
+| 20 KB / 200 MB | 160 | 158 | 627 |
+| 10 KB / 200 MB | 92 | 92 | 345 |
+| 5 KB / 200 MB | 53 | 52 | 183 |
+| 1 KB / 200 MB | TIMEOUT | TIMEOUT | 37 |
+
+**The 4× increase in ring depth bought zero throughput.** Both
+container regimes report essentially the same numbers row for row
+across both segment sizes. Container/Mac is a near-constant **~25 %**
+across every bundle row, which strongly suggests the bottleneck is
+**not** ring coordination cost (that would scale with ring depth)
+but a flat overhead factor shared by every code path — most likely
+**linuxkit's syscall and memory-translation cost on Apple Silicon**.
+Every `memcpy` into the shm ring, every `pthread_cond_signal`, every
+sem-related syscall crosses the hypervisor boundary at non-trivial
+cost. To confirm, run the same compare set on bare-metal Linux
+aarch64 (no hypervisor) — we expect throughput to climb back toward
+the Mac numbers, leaving ring-depth-doesn't-matter as the true
+finding.
+
+The 1 KB row times out in both container regimes because per-bundle
+BP/LTP overhead × 200 000 bundles × constant container slowdown
+exceeds `bench-ltp`'s `MAXSECONDS=120` watchdog. On the Mac the same
+workload completes in 39 seconds at 37 Mbps.
+
+**Container takeaway for the bench-ltp-xlsa user:**
+- Always set `shm_size: 512m` (or higher) on the container — without
+  it the demo runs at reduced ring depth and the regression test
+  pins itself defensively.
+- Do not benchmark on a hypervised container; throughput numbers
+  there are an overhead-bounded constant, not a substrate property.
+- For "does xlsa work on Linux aarch64?" the container is a valid
+  smoke-test environment; for "what throughput does the substrate
+  deliver?" use a bare-metal host of the target platform.
+
 ## Other (impairment) sweeps
 
 Earlier exploratory runs at 1000 bundles × 10 KB (10 MB total)
