@@ -19,7 +19,7 @@ on:
         required: false
         type: string
         default: ""
-      runner_count:
+      num_runners:
         description: "Number of runners to use within a runner set (default: 7)"
         required: false
         type: number
@@ -55,7 +55,7 @@ on:
         required: false
         type: string
         default: ""
-      runner_count:
+      num_runners:
         description: "Number of runners to use within a runner set (default: 7)"
         required: false
         type: number
@@ -101,7 +101,7 @@ jobs:
         uses: ./.github/actions/generate-test-matrix
         with:
           tests_to_run: ${{ inputs.tests_to_run }}
-          runner_count: ${{ inputs.runner_count }}
+          num_runners: ${{ inputs.num_runners }}
           is_solaris: "true"
 
   build-ion:
@@ -282,6 +282,8 @@ jobs:
           host_1_ip: ${{ secrets.SOLARIS_HOST_1_IP }}
           host_2_ip: ${{ secrets.SOLARIS_HOST_2_IP }}
 
+      # Zone names use run_id for infrastructure compatibility
+      # This differs from artifact naming which uses timestamps
       - name: Prepare Ansible variables
         run: |
           # We pass the full matrix of zones; the playbook automatically
@@ -306,11 +308,12 @@ jobs:
 
   test-parallel:
     needs: [build-ion, generate-matrix, create-zones]
-    name: "Test on ${{ matrix.test_group.vm_hostname }} (Batch ${{ matrix.test_group.job_index }})"
+    name: "Test on ${{ matrix.test_batch.vm_hostname }} (Batch ${{ matrix.test_batch.job_index }})"
+    # test_batch matrix variable contains: {batch: N, tests: "...", vm_hostname: "dsoc3/dsoc4", vm_index: 1/2, job_index: N}
     strategy:
       fail-fast: false
       matrix:
-        test_group: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
+        test_batch: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
     runs-on: arc-runner-set-ol9
     timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || 90 ) }}
     steps:
@@ -348,33 +351,33 @@ jobs:
           command: |
             cd .github/ansible
             /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook distribute-artifacts.yml \
-              -i "${{ matrix.test_group.vm_hostname }}," \
+              -i "${{ matrix.test_batch.vm_hostname }}," \
               -e "RUN_ID=${{ github.run_id }}" \
-              -e "JOB_INDEX=${{ matrix.test_group.job_index }}" \
+              -e "JOB_INDEX=${{ matrix.test_batch.job_index }}" \
               -e "OPERATION=push" \
               -v
 
       - name: Log zone information
         run: |
           echo "=== Zone Test Configuration ==="
-          echo "VM Hostname: ${{ matrix.test_group.vm_hostname }}"
-          echo "Job Index: ${{ matrix.test_group.job_index }}"
-          echo "Zone Name: ion-zone-${{ github.run_id }}-${{ matrix.test_group.job_index }}"
-          echo "Tests to run: ${{ matrix.test_group.tests }}"
+          echo "VM Hostname: ${{ matrix.test_batch.vm_hostname }}"
+          echo "Job Index: ${{ matrix.test_batch.job_index }}"
+          echo "Zone Name: ion-zone-${{ github.run_id }}-${{ matrix.test_batch.job_index }}"
+          echo "Tests to run: ${{ matrix.test_batch.tests }}"
           echo "=============================="
 
       - name: Run tests
         id: tests
         run: |
           scp .github/ansible/run-tests-in-zone.sh \
-            github-runner@${{ matrix.test_group.vm_hostname }}:~/run-tests-${{ github.run_id }}-${{ matrix.test_group.job_index }}.sh
+            github-runner@${{ matrix.test_batch.vm_hostname }}:~/run-tests-${{ github.run_id }}-${{ matrix.test_batch.job_index }}.sh
 
-          ssh -o ConnectTimeout=30 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 github-runner@${{ matrix.test_group.vm_hostname }} \
-            "chmod +x ~/run-tests-${{ github.run_id }}-${{ matrix.test_group.job_index }}.sh && \
-             sudo ~/run-tests-${{ github.run_id }}-${{ matrix.test_group.job_index }}.sh \
+          ssh -o ConnectTimeout=30 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 github-runner@${{ matrix.test_batch.vm_hostname }} \
+            "chmod +x ~/run-tests-${{ github.run_id }}-${{ matrix.test_batch.job_index }}.sh && \
+             sudo ~/run-tests-${{ github.run_id }}-${{ matrix.test_batch.job_index }}.sh \
              '${{ github.run_id }}' \
-             '${{ matrix.test_group.job_index }}' \
-             '${{ matrix.test_group.tests }}' \
+             '${{ matrix.test_batch.job_index }}' \
+             '${{ matrix.test_batch.tests }}' \
              '${{ inputs.env_vars || '' }}'"
 
       - name: Use Ansible playbook to collect results
@@ -387,9 +390,9 @@ jobs:
           command: |
             cd .github/ansible
             /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook distribute-artifacts.yml \
-              -i "${{ matrix.test_group.vm_hostname }}," \
+              -i "${{ matrix.test_batch.vm_hostname }}," \
               -e "RUN_ID=${{ github.run_id }}" \
-              -e "JOB_INDEX=${{ matrix.test_group.job_index }}" \
+              -e "JOB_INDEX=${{ matrix.test_batch.job_index }}" \
               -e "OPERATION=pull" \
               -v
 
@@ -397,7 +400,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: test-results-${{ github.run_id }}-job-${{ matrix.test_group.job_index }}
+          name: test-results-${{ github.run_id }}-job-${{ matrix.test_batch.job_index }}
           path: .github/ansible/test-results/
 
   aggregate-results:
