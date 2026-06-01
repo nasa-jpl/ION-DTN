@@ -43,32 +43,32 @@ on:
         description: "Enable Ubuntu 20.04 (arc-runner-set-u20)"
         required: false
         type: boolean
-        default: true
+        default: false
       runner_u22:
         description: "Enable Ubuntu 22.04 (arc-runner-set-u22)"
         required: false
         type: boolean
-        default: true
+        default: false
       runner_ol8:
         description: "Enable Oracle Linux 8 (arc-runner-set-ol8)"
         required: false
         type: boolean
-        default: true
+        default: false
       runner_ol9:
         description: "Enable Oracle Linux 9 (arc-runner-set-ol9)"
         required: false
         type: boolean
-        default: true
+        default: false
       runner_rhel8:
         description: "Enable RHEL 8 (arc-runner-set-rhel8)"
         required: false
         type: boolean
-        default: true
+        default: false
       runner_rhel9:
         description: "Enable RHEL 9 (arc-runner-set-rhel9)"
         required: false
         type: boolean
-        default: true
+        default: false
 
   workflow_dispatch:
     inputs:
@@ -102,40 +102,41 @@ on:
         description: "Enable Ubuntu 20.04 (arc-runner-set-u20)"
         required: false
         type: boolean
-        default: true
+        default: false
       runner_u22:
         description: "Enable Ubuntu 22.04 (arc-runner-set-u22)"
         required: false
         type: boolean
-        default: true
+        default: false
       runner_ol8:
         description: "Enable Oracle Linux 8 (arc-runner-set-ol8)"
         required: false
         type: boolean
-        default: true
+        default: false
       runner_ol9:
         description: "Enable Oracle Linux 9 (arc-runner-set-ol9)"
         required: false
         type: boolean
-        default: true
+        default: false
       runner_rhel8:
         description: "Enable RHEL 8 (arc-runner-set-rhel8)"
         required: false
         type: boolean
-        default: true
+        default: false
       runner_rhel9:
         description: "Enable RHEL 9 (arc-runner-set-rhel9)"
         required: false
         type: boolean
-        default: true
+        default: false
 
 jobs:
   setup:
     runs-on: arc-runner-set-u22
     outputs:
-      testmatrix: ${{ steps.dataStep.outputs.testoutput }}
+      testmatrix: ${{ steps.map-matrix.outputs.matrix }}
       pr_number: ${{ steps.get-pr.outputs.pr_number }}
       active_runners: ${{ steps.build-runners.outputs.runners }}
+      timestamp: ${{ steps.generate-timestamp.outputs.timestamp }}
 
     steps:
       - name: Checkout Code
@@ -144,34 +145,26 @@ jobs:
       - name: Build Runner Matrix
         id: build-runners
         run: |
-          RUNNERS="[]"
-          if [ "${{ inputs.runner_u20 }}" == "true" ]; then RUNNERS=$(echo "$RUNNERS" | jq '. += ["arc-runner-set-u20"]'); fi
-          if [ "${{ inputs.runner_u22 }}" == "true" ]; then RUNNERS=$(echo "$RUNNERS" | jq '. += ["arc-runner-set-u22"]'); fi
-          if [ "${{ inputs.runner_ol8 }}" == "true" ]; then RUNNERS=$(echo "$RUNNERS" | jq '. += ["arc-runner-set-ol8"]'); fi
-          if [ "${{ inputs.runner_ol9 }}" == "true" ]; then RUNNERS=$(echo "$RUNNERS" | jq '. += ["arc-runner-set-ol9"]'); fi
-          if [ "${{ inputs.runner_rhel8 }}" == "true" ]; then RUNNERS=$(echo "$RUNNERS" | jq '. += ["arc-runner-set-rhel8"]'); fi
-          if [ "${{ inputs.runner_rhel9 }}" == "true" ]; then RUNNERS=$(echo "$RUNNERS" | jq '. += ["arc-runner-set-rhel9"]'); fi
+          RUNNERS=$(./.github/scripts/build-runner-matrix.sh \
+            --ubuntu_20=${{ inputs.runner_u20 }} \
+            --ubuntu_22=${{ inputs.runner_u22 }} \
+            --oracle_linux_8=${{ inputs.runner_ol8 }} \
+            --oracle_linux_9=${{ inputs.runner_ol9 }} \
+            --rhel_8=${{ inputs.runner_rhel8 }} \
+            --rhel_9=${{ inputs.runner_rhel9 }})
 
-          if [ "$RUNNERS" == "[]" ]; then
-            echo "Error: No runners selected. Please enable at least one runner."
-            exit 1
-          fi
+          # Map short names (u20, u22, etc.) to full runner names (arc-runner-set-u20, etc.)
+          FULL_RUNNERS=$(echo "$RUNNERS" | jq -c 'map("arc-runner-set-" + .)')
 
-          echo "runners=$(echo "$RUNNERS" | jq -c .)" >> $GITHUB_OUTPUT
+          echo "runners=$FULL_RUNNERS" >> $GITHUB_OUTPUT
 
       - name: Get test batches
-        id: dataStep
-        run: |
-          if [ -n "${{ inputs.tests_to_run }}" ]; then
-            TESTSET=$(./tests/git_matrix.py  -r ${{ inputs.num_runners }} -t ${{ inputs.tests_to_run }})
-          else
-            TESTSET=$(./tests/git_matrix.py -r ${{ inputs.num_runners }})
-          fi
-
-          # Transform the array into objects with a 1-based batch index
-          TESTSET_WITH_BATCH=$(echo "$TESTSET" | jq -c '[to_entries | .[] | {batch: (.key + 1), tests: .value}]')
-
-          echo "testoutput=$TESTSET_WITH_BATCH" >> $GITHUB_OUTPUT
+        id: map-matrix
+        uses: ./.github/actions/generate-test-matrix
+        with:
+          tests_to_run: ${{ inputs.tests_to_run }}
+          num_runners: ${{ inputs.num_runners }}
+          is_solaris: "false"
 
       - name: Get PR number
         id: get-pr
@@ -198,6 +191,15 @@ jobs:
             PR_NUM=""
           fi
           echo "pr_number=$PR_NUM" >> $GITHUB_OUTPUT
+
+      # Generate timestamp once in setup, share with all downstream jobs
+      # Ensures consistent artifact naming across all runners and batches
+      - name: Generate timestamp for artifacts
+        id: generate-timestamp
+        run: |
+          TIMESTAMP=$(date +'%Y%m%d-%H%M%S')
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+          echo "Generated timestamp: $TIMESTAMP"
 
   build:
     needs: setup
@@ -230,30 +232,20 @@ jobs:
       - name: Build ION and Run Buildcheck
         if: steps.cache-build.outputs.cache-hit != 'true'
         timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '90') }}
+        env:
+          EXTRA_CONFIGURE_FLAGS: "CFLAGS=-DHAVE_VALGRIND_VALGRIND_H"
         run: |
-          {
-            export USER=$(whoami)
-            echo "USER is set to: $USER"
-            export ION_RUN_EXPERT="yes"
-            export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-            autoreconf -fi
-            ./configure --enable-crypto-mbedtls --enable-bpsec-debugging CFLAGS="-DHAVE_VALGRIND_VALGRIND_H"
-            make all buildcheck
-          } > compile-and-buildcheck.log 2> >(tee -a compile-and-buildcheck.log >&2)
-
-          BUILD_STATUS=$?
-          wait
-
-          if [ $BUILD_STATUS -ne 0 ]; then
+          ./.github/scripts/compile-and-buildcheck.sh > compile-and-buildcheck.log 2>&1 || {
+            BUILD_STATUS=$?
             echo "Build or buildcheck failed with status $BUILD_STATUS" >&2
             exit $BUILD_STATUS
-          fi
+          }
 
       - name: Upload build and buildcheck logs
         if: ${{ always() && steps.cache-build.outputs.cache-hit != 'true' }}
         uses: actions/upload-artifact@v7
         with:
-          name: compile-and-buildcheck-log-${{ matrix.runner }}-${{ github.sha }}
+          name: compile-and-buildcheck-log-${{ matrix.runner }}-${{ needs.setup.outputs.timestamp }}
           path: compile-and-buildcheck.log
           if-no-files-found: warn
 
@@ -279,10 +271,6 @@ jobs:
           uname -m
           echo "User ID:"
           id
-
-      - name: Generate timestamp for file names
-        id: timestamp
-        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
 
       - name: List tests and batch number
         run: |
@@ -344,27 +332,7 @@ jobs:
         run: |
           cat ./tests/progress | grep "FAILED" || { printf "No failed tests.\n"; exit 0; }
 
-      - name: Upload full test log
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: build-and-test-log-${{ matrix.runner }}-${{ steps.timestamp.outputs.timestamp }}-batch-${{ matrix.testchunk.batch }}
-          path: build-and-test.log
-
-      - name: Show progress file
-        if: ${{ always() }}
-        run: |
-          echo "Contents of ./tests/progress:"
-          cat ./tests/progress || echo "No progress file found."
-
-      - name: Upload progress file
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-progress-${{ matrix.runner }}-${{ steps.timestamp.outputs.timestamp }}-batch-${{ matrix.testchunk.batch }}
-          path: ./tests/progress
-
-      - name: Collect and upload ion.log files from all test directories
+      - name: Collect ion.log files from all test directories
         if: ${{ always() }}
         run: |
           echo "Collecting ion.log files with unique names..."
@@ -384,14 +352,6 @@ jobs:
           echo "Collected ion.log files:"
           find ion-logs-collection -name "*.log" -type f | sort
 
-      - name: Upload ion.log files as artifact
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: ion-logs-${{ matrix.runner }}-${{ steps.timestamp.outputs.timestamp }}-batch-${{ matrix.testchunk.batch }}
-          path: ion-logs-collection/
-          if-no-files-found: warn
-
       - name: Collect ion-system.log diagnostic files
         if: ${{ always() }}
         run: |
@@ -405,14 +365,6 @@ jobs:
             unique_name=$(echo "${relpath%/ion-system.log}" | tr '/' '-')
             cp "$logfile" "diagnostics-collection/${unique_name}-ion-system.log"
           done
-
-      - name: Upload ion-system.log diagnostics
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: diagnostics-${{ matrix.runner }}-${{ steps.timestamp.outputs.timestamp }}-batch-${{matrix.testchunk.batch }}
-          path: diagnostics-collection/
-          if-no-files-found: ignore
 
       - name: Save Job Status for Final Summary
         if: ${{ always() }}
@@ -431,12 +383,40 @@ jobs:
           # Write the row with the new columns included
           echo "| ${{ matrix.runner }} | ${{ matrix.testchunk.batch }} | $RESULT_ICON ${{ job.status }} | $FAILED_TESTS | $SKIPPED_TESTS |" > job-reports/${{ matrix.runner }}-${{ matrix.testchunk.batch }}.txt
 
-      - name: Upload Status Fragment
+      - name: Bundle test artifacts
+        if: ${{ always() }}
+        run: |
+          # Create bundle directory
+          mkdir -p test-bundle
+
+          # Copy all test outputs into bundle
+          cp build-and-test.log test-bundle/ 2>/dev/null || echo "No build-and-test.log"
+          cp ./tests/progress test-bundle/ 2>/dev/null || echo "No progress file"
+
+          # Copy ion.log collection if it exists
+          if [ -d "ion-logs-collection" ]; then
+            cp -r ion-logs-collection test-bundle/
+          fi
+
+          # Copy diagnostics if they exist
+          if [ -d "diagnostics-collection" ]; then
+            cp -r diagnostics-collection test-bundle/
+          fi
+
+          # Copy status fragment
+          if [ -d "job-reports" ]; then
+            cp -r job-reports test-bundle/
+          fi
+
+          echo "Test bundle contents:"
+          find test-bundle -type f
+
+      - name: Upload bundled test results
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: status-${{ matrix.runner }}-${{ matrix.testchunk.batch }}
-          path: job-reports/
+          name: test-results-${{ matrix.runner }}-${{ needs.setup.outputs.timestamp }}-batch-${{ matrix.testchunk.batch }}
+          path: test-bundle/
           if-no-files-found: warn
 
   aggregate-results:
@@ -445,9 +425,8 @@ jobs:
     runs-on: arc-runner-set-ol8
     if: ${{ always() }}
     steps:
-      - name: Generate timestamp for final
-        id: timestamp
-        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+      - name: Checkout Code
+        uses: actions/checkout@v6
 
       - name: Download ALL artifacts
         uses: actions/download-artifact@v8
@@ -456,94 +435,43 @@ jobs:
           path: all-artifacts
           merge-multiple: false
 
-      - name: Generate Final Summary Table
+      - name: Generate test summary and PR status payload
+        id: test-summary
         run: |
-          echo "## 📊 Regression Test Overview" >> $GITHUB_STEP_SUMMARY
-          echo "| Runner OS | Batch | Result | Failed Tests | Skipped Tests |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----------|-------|--------|--------------|---------------|" >> $GITHUB_STEP_SUMMARY
-          cat all-artifacts/status-*/*.txt | sort >> $GITHUB_STEP_SUMMARY
-
-      - name: Calculate PR Statuses per Runner
-        if: ${{ needs.setup.outputs.pr_number != '' }}
-        id: pr-status
-        run: |
-          # Extract unique runner names from the status files
-          RUNNERS=$(cat all-artifacts/status-*/*.txt | awk -F'|' '{print $2}' | tr -d ' ' | sort | uniq)
-
-          JSON_PAYLOAD="{"
-          FIRST=true
-          for RUNNER in $RUNNERS; do
-            # If any batch for this runner has the failure/cancelled icon ❌, mark the whole runner as failure
-            if cat all-artifacts/status-${RUNNER}-*/*.txt | grep -q "❌"; then
-              STATUS="failure"
-            else
-              STATUS="success"
-            fi
-
-            if [ "$FIRST" = true ]; then
-              FIRST=false
-            else
-              JSON_PAYLOAD="$JSON_PAYLOAD,"
-            fi
-            JSON_PAYLOAD="$JSON_PAYLOAD \"$RUNNER\": \"$STATUS\""
-          done
-          JSON_PAYLOAD="$JSON_PAYLOAD }"
-
-          echo "payload=$JSON_PAYLOAD" >> $GITHUB_OUTPUT
+          ./.github/scripts/generate-test-summary.sh \
+            --platform arc \
+            --artifact-pattern "all-artifacts/test-results-*-batch-*"
 
       - name: Set PR status per runner
         if: ${{ needs.setup.outputs.pr_number != '' }}
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const statuses = ${{ steps.pr-status.outputs.payload }};
-            const prNumber = parseInt("${{ needs.setup.outputs.pr_number }}", 10);
-
-            let pr;
-            try {
-              const { data } = await github.rest.pulls.get({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: prNumber,
-              });
-              pr = data;
-            } catch (error) {
-              console.log(`PR #${prNumber} not found: ${error.message}`);
-              return;
-            }
-
-            // Loop through the aggregated statuses and create one status check per runner
-            for (const [runner, state] of Object.entries(statuses)) {
-              console.log(`Setting PR status for ${runner} to ${state}`);
-              await github.rest.repos.createCommitStatus({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                sha: pr.head.sha,
-                state: state,
-                context: `ci/${runner}`,
-                description: `Tests ${state === "success" ? "passed" : "failed"}`,
-                target_url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-              });
-            }
-
-      - name: Remove status fragments from the bundle folder
         run: |
-          echo "Removing status data before zipping..."
-          rm -rf all-artifacts/status-*
+          # Transform status_payload array to simple context->state mapping for set-pr-status
+          STATUS_SIMPLE=$(echo '${{ steps.test-summary.outputs.status_payload }}' | \
+            jq -c '[.[] | {(.context): .state}] | add')
+          echo "status_payload=$STATUS_SIMPLE" >> $GITHUB_OUTPUT
+        id: transform-status
+
+      - name: Call set-pr-status action
+        if: ${{ needs.setup.outputs.pr_number != '' }}
+        uses: ./.github/actions/set-pr-status
+        with:
+          pr_number: ${{ needs.setup.outputs.pr_number }}
+          status_payload: ${{ steps.transform-status.outputs.status_payload }}
+
+      - name: Remove job-reports from bundle
+        run: |
+          echo "Removing job-reports from bundle..."
+          find all-artifacts -type d -name "job-reports" -exec rm -rf {} + 2>/dev/null || true
 
       - name: Upload Unified Bundle
         uses: actions/upload-artifact@v7
         with:
-          name: final-regression-bundle-${{ steps.timestamp.outputs.timestamp }}
+          name: final-arc-bundle-${{ needs.setup.outputs.timestamp }}
           path: all-artifacts/
 
       - name: Clean up ALL intermediate artifacts
         uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118
         with:
           name: |
-            status-*
+            test-results-*
             compile-and-buildcheck-log-*
-            build-and-test-log-*
-            test-progress-*
-            ion-logs-*
-            diagnostics-*
