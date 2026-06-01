@@ -1,5 +1,8 @@
 name: CI/CD Checks
 
+permissions:
+  contents: read
+
 on:
   pull_request:
     branches:
