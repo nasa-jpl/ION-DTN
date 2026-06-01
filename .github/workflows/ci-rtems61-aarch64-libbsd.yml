@@ -103,8 +103,16 @@ jobs:
           mkdir -p rtems-test-output
           chmod 777 rtems-test-output
 
+      - name: Cache RTEMS build artifacts
+        id: cache-rtems-build
+        uses: actions/cache@v5
+        with:
+          path: arch-rtems/build
+          key: rtems-build-${{ hashFiles('arch-rtems/**', 'ici/**', 'ltp/**', 'bpv7/**') }}
+
       - name: Build ION in RTEMS Docker container
         id: build
+        if: steps.cache-rtems-build.outputs.cache-hit != 'true'
         timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '30') }}
         run: |
           echo "Starting RTEMS 6.1 ARM64 build at $(date)"
@@ -149,13 +157,22 @@ jobs:
 
       - name: Run ION in QEMU
         id: test
-        if: ${{ steps.build.outputs.build_failed == 'false' }}
         timeout-minutes: 2
         run: |
           echo "Starting QEMU test at $(date)"
 
+          # Launch container for QEMU verification (works with both fresh build and cached build)
+          TEST_CONTAINER_ID=$(docker run -d \
+            --name rtems-ion-test-${{ github.run_id }} \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace/arch-rtems \
+            rtems-6.1-dev-aarch64-libbsd \
+            sleep infinity)
+
+          echo "Test container ID: $TEST_CONTAINER_ID"
+
           # Run ION in QEMU and capture output
-          docker exec ${{ steps.build.outputs.container_id }} bash -c \
+          docker exec $TEST_CONTAINER_ID bash -c \
             "cd /workspace/arch-rtems && \
              timeout 30 qemu-system-aarch64 \
                -no-reboot \
@@ -168,6 +185,10 @@ jobs:
             2>&1 | tee rtems-test-output/qemu-output.txt
 
           QEMU_STATUS=${PIPESTATUS[0]}
+
+          # Stop and remove test container
+          docker stop $TEST_CONTAINER_ID || true
+          docker rm $TEST_CONTAINER_ID || true
 
           # QEMU will be terminated by timeout, so exit code 124 is expected
           if [ $QEMU_STATUS -eq 124 ] || [ $QEMU_STATUS -eq 0 ]; then
@@ -218,30 +239,25 @@ jobs:
         with:
           name: rtems-test-results-${{ steps.timestamp.outputs.timestamp }}
           path: rtems-test-output/
-          retention-days: 30
           if-no-files-found: warn
 
-      - name: Stop and remove Docker container
+      - name: Stop and remove Docker containers
         if: always()
         run: |
-          if [ ! -z "${{ steps.build.outputs.container_id }}" ]; then
-            echo "Stopping container ${{ steps.build.outputs.container_id }}"
-            docker stop ${{ steps.build.outputs.container_id }} || true
-            docker rm ${{ steps.build.outputs.container_id }} || true
-          else
-            echo "No container to clean up"
-          fi
-
-          # Clean up any orphaned containers from this workflow
-          docker ps -a --filter "name=rtems-ion-build-${{ github.run_id }}" --format "{{.ID}}" | xargs -r docker rm -f
+          # Clean up both build and test containers (if they exist)
+          echo "Cleaning up containers for run ${{ github.run_id }}"
+          docker ps -a --filter "name=rtems-ion-build-${{ github.run_id }}" --format "{{.ID}}" | xargs -r docker stop || true
+          docker ps -a --filter "name=rtems-ion-build-${{ github.run_id }}" --format "{{.ID}}" | xargs -r docker rm || true
+          docker ps -a --filter "name=rtems-ion-test-${{ github.run_id }}" --format "{{.ID}}" | xargs -r docker stop || true
+          docker ps -a --filter "name=rtems-ion-test-${{ github.run_id }}" --format "{{.ID}}" | xargs -r docker rm || true
 
       - name: Clean up workspace
         if: always()
         run: |
-          # Clean build artifacts but preserve source
+          # Clean waf lock files but preserve build/ (cached by GitHub Actions)
           cd ${{ github.workspace }}/arch-rtems
           ./waf clean || true
-          rm -rf build/ .lock-waf* .waf-* .waf3-* || true
+          rm -rf .lock-waf* .waf-* .waf3-* || true
 
       - name: Report test results
         if: always()

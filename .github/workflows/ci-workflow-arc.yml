@@ -211,6 +211,9 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v6
 
+      # Hash-based cache key: rebuilds only when .c, .h, configure.ac, or Makefile.am change
+      # This saves 5-15 minutes on doc-only changes, workflow updates, or test-only changes
+      # Each runner maintains separate cache for environment-specific builds
       - name: Cache Build Workspace
         id: cache-build
         uses: actions/cache@v5
@@ -222,7 +225,7 @@ jobs:
             !.github/
             !compile-and-buildcheck.log
             !**/*.md
-          key: ion-build-${{ matrix.runner }}-${{ github.sha }}
+          key: ion-build-${{ matrix.runner }}-${{ hashFiles('**/*.c', '**/*.h', 'configure.ac', 'Makefile.am', 'build-bsl-for-ion.sh') }}
 
       - name: Build ION and Run Buildcheck
         if: steps.cache-build.outputs.cache-hit != 'true'
@@ -299,7 +302,7 @@ jobs:
             !.github/
             !compile-and-buildcheck.log
             !**/*.md
-          key: ion-build-${{ matrix.runner }}-${{ github.sha }}
+          key: ion-build-${{ matrix.runner }}-${{ hashFiles('**/*.c', '**/*.h', 'configure.ac', 'Makefile.am', 'build-bsl-for-ion.sh') }}
 
       - name: Install ION and run tests
         if: ${{ steps.cache-restore.outputs.cache-hit == 'true' }}
