@@ -119,6 +119,22 @@ the assumed rate of transmission to this node in the absence of contact
 plan information.  A I<nominal_data_rate> of zero (the default) in the
 absence of contact plan information completely disables rate control.
 
+I<duct_expression> identifies the convergence-layer outduct over which
+bundles for this plan are queued.  It is a string of the form
+"I<protocol_name>/I<duct_name>", where I<protocol_name> is the
+convergence-layer protocol (e.g., B<ltp>, B<tcp>, B<stcp>, B<udp>,
+B<bssp>, B<dgr>, B<bibe>) and I<duct_name> is the name of an outduct that
+has already been declared for that protocol via B<a outduct> in
+bprc(5).  The form of I<duct_name> is protocol-specific: for B<ltp> and
+B<bssp> it is the remote engine number (e.g., B<18>); for B<tcp>,
+B<stcp>, B<udp>, and B<dgr> it is the remote endpoint as
+"I<host>:I<port>" (e.g., B<127.0.0.1:4556>); for B<bibe> it is an
+ipn-scheme EID (e.g., B<ipn:2.0>).  For instance,
+"B<ltp/18>" directs bundles to the LTP outduct addressing engine 18,
+and "B<stcp/127.0.0.1:4556>" directs bundles to the STCP outduct that
+connects to 127.0.0.1 on port 4556.  The named outduct must already
+exist; B<a plan> does not create the outduct itself.
+
 B<Note that the plan commands consumed by ipnadmin are a simplified
 shortcut for submitting plan commands as consumed by bpadmin (see bprc(5)).
 The syntax of these commands is DIFFERENT from that of the more general
@@ -243,8 +259,18 @@ This command lists all overrides defined in the IPN database for the local node.
 =item a plan 18 ltp/18
 
 Declares the egress plan to use for transmission from the local node to
-neighboring node 18.  By default, any bundle for which the computed "next
-hop" node is node 18 will be queued for transmission on LTP outduct 18.
+neighboring node 18.  The duct expression "B<ltp/18>" names the LTP
+outduct whose I<duct_name> is the remote engine number 18 (declared
+separately via B<a outduct ltp 18 ltpclo> in bprc(5)).  By default,
+any bundle for which the computed "next hop" node is node 18 will be
+queued for transmission on this outduct.
+
+=item a plan 19 stcp/127.0.0.1:4556
+
+Declares the egress plan for neighboring node 19, using the STCP
+outduct that connects to host 127.0.0.1 on port 4556.  The duct
+expression here illustrates the "I<host>:I<port>" form of I<duct_name>
+that B<tcp>, B<stcp>, B<udp>, and B<dgr> use.
 
 =item a exit 1 999 dtn://stargate
 
