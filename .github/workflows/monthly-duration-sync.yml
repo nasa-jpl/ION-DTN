@@ -42,7 +42,7 @@ jobs:
         run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
 
       - name: Install ION and regenerate all .DURATION files
-        timeout-minutes: 300
+        timeout-minutes: 420
         run: |
           {
             echo "Starting ION installation and bulk duration regeneration at $(date)"
