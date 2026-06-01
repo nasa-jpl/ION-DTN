@@ -251,11 +251,12 @@ jobs:
 
   install-and-test:
     needs: [setup, build]
-    name: "Test: ${{ matrix.runner }} (Batch ${{ matrix.testchunk.batch }})"
+    name: "Test: ${{ matrix.runner }} (Batch ${{ matrix.test_batch.batch }})"
+    # test_batch matrix variable contains: {batch: N, tests: "test1 test2"}
     strategy:
       fail-fast: false
       matrix:
-        testchunk: ${{ fromJSON(needs.setup.outputs.testmatrix) }}
+        test_batch: ${{ fromJSON(needs.setup.outputs.testmatrix) }}
         runner: ${{ fromJSON(needs.setup.outputs.active_runners) }}
 
     runs-on: ${{ matrix.runner }}
@@ -275,9 +276,9 @@ jobs:
       - name: List tests and batch number
         run: |
           echo "Tests:"
-          echo "${{ matrix.testchunk.tests }}"
+          echo "${{ matrix.test_batch.tests }}"
           echo "Batch Number:"
-          echo "${{ matrix.testchunk.batch }}"
+          echo "${{ matrix.test_batch.batch }}"
 
       - name: Restore Cached Build
         uses: actions/cache@v5
@@ -311,7 +312,7 @@ jobs:
                 export "$env_var"
               done
             fi
-            ./runtests ${{ matrix.testchunk.tests }}
+            ./runtests ${{ matrix.test_batch.tests }}
           } > build-and-test.log 2> >(tee -a build-and-test.log >&2)
 
           TEST_STATUS=$?
@@ -325,7 +326,7 @@ jobs:
       - name: Error Message for Cache Failure
         if: ${{ steps.cache-restore.outputs.cache-hit != 'true' }}
         run: |
-          echo "❌ Error fetching cache on runner ${{ matrix.runner }} batch ${{ matrix.testchunk.batch }}" >> $GITHUB_STEP_SUMMARY
+          echo "❌ Error fetching cache on runner ${{ matrix.runner }} batch ${{ matrix.test_batch.batch }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Display Progress
         if: ${{ always() }}
@@ -381,7 +382,7 @@ jobs:
           [ -z "$SKIPPED_TESTS" ] && SKIPPED_TESTS="-"
 
           # Write the row with the new columns included
-          echo "| ${{ matrix.runner }} | ${{ matrix.testchunk.batch }} | $RESULT_ICON ${{ job.status }} | $FAILED_TESTS | $SKIPPED_TESTS |" > job-reports/${{ matrix.runner }}-${{ matrix.testchunk.batch }}.txt
+          echo "| ${{ matrix.runner }} | ${{ matrix.test_batch.batch }} | $RESULT_ICON ${{ job.status }} | $FAILED_TESTS | $SKIPPED_TESTS |" > job-reports/${{ matrix.runner }}-${{ matrix.test_batch.batch }}.txt
 
       - name: Bundle test artifacts
         if: ${{ always() }}
@@ -415,7 +416,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: test-results-${{ matrix.runner }}-${{ needs.setup.outputs.timestamp }}-batch-${{ matrix.testchunk.batch }}
+          name: test-results-${{ matrix.runner }}-${{ needs.setup.outputs.timestamp }}-batch-${{ matrix.test_batch.batch }}
           path: test-bundle/
           if-no-files-found: warn
 
