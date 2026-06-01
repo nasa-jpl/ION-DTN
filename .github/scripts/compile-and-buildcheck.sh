@@ -10,7 +10,6 @@ echo "USER is set to: $USER"
 export ION_RUN_EXPERT="yes"
 export PATH=/usr/local/bin:"$PATH"
 export LD_LIBRARY_PATH=/usr/local/lib:"$LD_LIBRARY_PATH"
-export PRESERVE_TEST_LOGS="0"
 
 # Allow overriding the make command (defaults to 'make' for Linux, can be 'gmake' for Solaris)
 MAKE_CMD=${MAKE_CMD:-make}
