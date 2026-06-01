@@ -170,7 +170,7 @@ jobs:
             !.github/
             !compile-and-buildcheck.log
             !**/*.md
-          key: ion-build-tiers-${{ matrix.runner }}-${{ matrix.tier }}-${{ needs.setup.outputs.resolved_ref }}-${{ github.run_id }}
+          key: ion-build-tiers-${{ matrix.runner }}-${{ matrix.tier }}-${{ hashFiles('**/*.c', '**/*.h', 'configure.ac', 'Makefile.am', 'build-bsl-for-ion.sh') }}
 
       - name: Build ION and Run Buildcheck
         if: steps.cache-build.outputs.cache-hit != 'true'
@@ -251,7 +251,7 @@ jobs:
             !.github/
             !compile-and-buildcheck.log
             !**/*.md
-          key: ion-build-tiers-${{ matrix.runner }}-${{ matrix.tier }}-${{ needs.setup.outputs.resolved_ref }}-${{ github.run_id }}
+          key: ion-build-tiers-${{ matrix.runner }}-${{ matrix.tier }}-${{ hashFiles('**/*.c', '**/*.h', 'configure.ac', 'Makefile.am', 'build-bsl-for-ion.sh') }}
 
       - name: Install ION and run tests
         if: ${{ steps.cache-restore.outputs.cache-hit == 'true' }}
