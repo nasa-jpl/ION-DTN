@@ -1,5 +1,8 @@
 name: Build and Push Runner Images to Registry
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [ "integration" ]
