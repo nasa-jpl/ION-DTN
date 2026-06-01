@@ -212,6 +212,7 @@ separable.
 | Platform | Class | bpcounter Mbps |
 |---|---|---:|
 | **Mac M4 Max** | macOS arm64, bare metal | **2537** |
+| **Raspberry Pi 5 (8 GB)** | Linux aarch64 bare metal (BCM2712, Cortex-A76 @ 2.4 GHz, Debian bookworm, kernel 6.12.62) | **1522** |
 | **Solaris 11.4 SPARC** | sun4v non-global zone (CI VM, dsoc3) | **1149** |
 | ARC RHEL 9 | x86-64 Linux CI container (GitHub Actions Runner Controller) | 991 |
 | ARC RHEL 8 | x86-64 Linux CI container | 973 |
@@ -238,25 +239,44 @@ tier and the linuxkit-wrapped M4 are evidently comparable for this
 workload.
 
 **Solaris 11.4 SPARC outperforms every x86-64 ARC tier** at 1149
-Mbps, slotting in cleanly between Mac M4 bare metal and the fastest
-ARC Linux runners. Two factors plausibly contribute: (a) the sun4v
-node in the CI VM pool is a higher-performance SKU than the x86-64
-ARC nodes; (b) Solaris's POSIX `shm_open`/`shm_unlink` (already
-linked against `-lrt` via the existing Solaris block in
+Mbps, slotting between bare-metal aarch64 hosts and the fastest
+x86-64 ARC Linux runners. Two factors plausibly contribute: (a) the
+sun4v node in the CI VM pool is a higher-performance SKU than the
+x86-64 ARC nodes; (b) Solaris's POSIX `shm_open`/`shm_unlink`
+(already linked against `-lrt` via the existing Solaris block in
 `configure.ac`) sits on a well-tuned tmpfs and pthread implementation
 that the substrate's mutex/condvar coordination benefits from. The
 1 KB row that TIMEOUTs on every x86-64 ARC node completes on
 Solaris in 159 s at 9.2 Mbps — slow but within the 300 s cap.
 
-**Bare-metal arm64 macOS remains alone at the top** at 2537 Mbps —
-roughly 2.2× the Solaris number and 2.5–4.4× the various container
-measurements. The gap to Solaris is the cleanest "CPU plus
-OS-scheduler" delta we have here; the gap to the ARC x86-64 tiers
-adds container virtualization on top. A bare-metal Linux box of
-M4-class CPU performance is still the missing data point that would
-let us decompose CPU class vs container virtualization vs OS-level
-contributions, but the Solaris result strongly suggests the OS/kernel
-side of that triad is a substantial fraction.
+**Bare-metal Linux aarch64 on a Raspberry Pi 5 lands at 1522 Mbps**,
+above Solaris and above every x86-64 ARC tier despite the Pi's
+modest Cortex-A76 cores. This is the bare-metal Linux aarch64 data
+point the earlier draft of this doc called out as missing. Two
+findings drop out immediately:
+
+- **The Pi 5 beats the hypervised M4 linuxkit container (601 Mbps) by
+  2.5×.** Same CPU family on both sides (Apple's VZ exposes M4 cores
+  to the guest), but the linuxkit/hypervisor/container path absorbs
+  enough overhead that an older, slower bare-metal Cortex-A76 wins
+  outright. That isolates virtualization as the dominant cost factor
+  on the Apple-Silicon-hosted Linux path.
+- **The Pi 5 also beats every x86-64 ARC container tier.** The
+  fastest x86-64 ARC tier (RHEL 9 at 991 Mbps) tops out 35 % below
+  bare-metal Pi 5. Same workload, ostensibly more capable CPU class
+  — container virtualization plus runner-pool SKU mix more than
+  erases the x86-64 lead.
+
+**Bare-metal arm64 macOS remains alone at the top** at 2537 Mbps,
+roughly 1.7× the Pi 5 number and 2.2× the Solaris number. The gap
+between Mac M4 Max and Pi 5 is the cleanest bare-metal-to-bare-metal
+data point we have: same arch family, no virtualization on either
+side, so it reflects CPU SKU (M4 Max performance cores vs Cortex-A76)
+plus OS/scheduler (Darwin vs Linux) plus toolchain. Decomposing the
+CPU vs OS split within that 1.7× would still require a bare-metal
+Linux box on M4-class silicon, but the triad of (Mac bare-metal,
+Pi 5 bare-metal, linuxkit-on-M4) now bounds the virtualization
+contribution cleanly at the high end.
 
 ## Other (impairment) sweeps
 
