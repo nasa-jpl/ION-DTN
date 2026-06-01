@@ -71,14 +71,14 @@ jobs:
 
       - name: Upload full sync log
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: duration-sync-log-${{ steps.timestamp.outputs.TIMESTAMP }}
           path: duration-sync.log
 
       - name: Upload benchmark stdout logs
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: benchmark-logs-${{ steps.timestamp.outputs.TIMESTAMP }}
           path: |
