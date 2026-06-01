@@ -116,42 +116,7 @@ jobs:
 
       - name: Compute tier lists
         id: tiers
-        run: |
-          # Fall back to nightly defaults when no inputs (schedule event).
-          FILTER="${{ inputs.tier_filter || 'fallbacks' }}"
-          PLATFORMS="${{ inputs.platforms || 'both' }}"
-          # x86_64: exclude 'native' because Tier 1 is already covered by ci-workflow-arc.yml
-          case "$FILTER" in
-            all)        X86='["__atomic","__sync"]'           ; ARM='["native","__atomic","__sync"]' ;;
-            fallbacks)  X86='["__atomic","__sync"]'           ; ARM='["__atomic","__sync"]' ;;
-            native)     X86='[]'                               ; ARM='["native"]' ;;
-            __atomic)   X86='["__atomic"]'                     ; ARM='["__atomic"]' ;;
-            __sync)     X86='["__sync"]'                       ; ARM='["__sync"]' ;;
-            *)
-              echo "Unknown tier_filter: $FILTER" >&2
-              exit 1
-              ;;
-          esac
-          # Apply platform filter: zero out the tier list for any excluded platform.
-          # Downstream jobs already gate on `tier_list != '[]'`, so this cleanly
-          # skips the excluded platform's build/test/arm64 jobs.
-          case "$PLATFORMS" in
-            both)   ;;
-            x86_64) ARM='[]' ;;
-            arm64)  X86='[]' ;;
-            *)
-              echo "Unknown platforms: $PLATFORMS" >&2
-              exit 1
-              ;;
-          esac
-          if [ "$X86" = '[]' ] && [ "$ARM" = '[]' ]; then
-            echo "Error: tier_filter='$FILTER' combined with platforms='$PLATFORMS' leaves no jobs to run." >&2
-            exit 1
-          fi
-          echo "x86_tiers=$X86" >> "$GITHUB_OUTPUT"
-          echo "arm_tiers=$ARM" >> "$GITHUB_OUTPUT"
-          echo "x86 tiers: $X86"
-          echo "arm tiers: $ARM"
+        run: .github/scripts/compute-atomic-tiers.sh --tier-filter="${{ inputs.tier_filter || 'fallbacks' }}" --platforms="${{ inputs.platforms || 'both' }}"
 
       - name: Get test batches
         id: dataStep
@@ -192,43 +157,7 @@ jobs:
 
       - name: Compute tier CFLAGS
         id: cflags
-        run: |
-          # Each fallback tier needs BOTH levers set (see
-          # gh-pages/docs/ION-Coding-Guide.md "Testing the Fallback
-          # Tiers"):
-          #   (A) language mode — short-circuit configure.ac's C18
-          #       probe with ac_cv_c11=no and pass -std=c99 in
-          #       CFLAGS so AM_CFLAGS + user CFLAGS resolve to C99.
-          #   (B) tier dispatch — ION_TEST_FORCE_FALLBACK moves
-          #       Zone 1 to its mutex fallback and Zone 2 down the
-          #       tier ladder; ION_TEST_FORCE_SYNC_FALLBACK forces
-          #       Zone 2 all the way to Tier 3 (__sync).
-          # Passing only the force macros leaves the compiler in
-          # C18 mode, which does NOT exercise the genuine C99
-          # language environment ION would see on a pre-GCC-4.7
-          # flight toolchain.
-          case "${{ matrix.tier }}" in
-            native)
-              CF="-DHAVE_VALGRIND_VALGRIND_H"
-              ACC11="yes"
-              ;;
-            __atomic)
-              CF="-DHAVE_VALGRIND_VALGRIND_H -std=c99 -DION_TEST_FORCE_FALLBACK"
-              ACC11="no"
-              ;;
-            __sync)
-              CF="-DHAVE_VALGRIND_VALGRIND_H -std=c99 -DION_TEST_FORCE_FALLBACK -DION_TEST_FORCE_SYNC_FALLBACK"
-              ACC11="no"
-              ;;
-            *)
-              echo "Unknown tier: ${{ matrix.tier }}" >&2
-              exit 1
-              ;;
-          esac
-          echo "cflags=$CF" >> "$GITHUB_OUTPUT"
-          echo "ac_cv_c11=$ACC11" >> "$GITHUB_OUTPUT"
-          echo "Tier ${{ matrix.tier }} CFLAGS:     $CF"
-          echo "Tier ${{ matrix.tier }} ac_cv_c11: $ACC11"
+        run: .github/scripts/compute-tier-cflags.sh --tier="${{ matrix.tier }}"
 
       - name: Cache Build Workspace
         id: cache-build
