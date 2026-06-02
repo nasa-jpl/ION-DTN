@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# seqid-gap: CRS range-array encoding for non-contiguous sequence numbers
+#
+# Verifies that when bundles sharing a global seqId are forwarded with a gap
+# in their sequence numbers, the CRS uses CBOR range-array encoding rather
+# than a simple contiguous length.
+#
+# Topology:
+#   Node 1 (source) -> Node 2 (relay) -> Node 3 (destination)
+#                                    -x-> Node 4 (no route — creates gap)
+#
+# Bundle sequence (all global seqId=1, flags fwd,del):
+#   Bundle 1: ipn:3.1  seqNum=N   — forwarded to Node 3
+#   Bundle 2: ipn:3.1  seqNum=N+1 — forwarded to Node 3
+#   Bundle 3: ipn:4.1  seqNum=N+2 — deleted at Node 2 (no route) → gap
+#   Bundle 4: ipn:3.1  seqNum=N+3 — forwarded to Node 3
+#
+# Node 2 sets cbraggr CRS-limit=3 so the forwarding CRS for bundles 1, 2, 4
+# flushes when the third forwarding event arrives.  At that point the CRS
+# bundle-sequence entry covers seqNums {N, N+1, N+3} — a non-contiguous
+# set that requires a range array [2, 1, 1] (include 2, skip 1, include 1).
+# The same gap appears in the delivery CRS from Node 3.
+#
+# Three checks:
+#   1. No "[?] CRS" parse errors at any node (decoding never fails)
+#   2. "[i] CRS received: status: 1" (forwarded) appears at Node 1
+#   3. "[i] CRS received: range-array count" appears at Node 1
+#      (confirms a range-array CRS was decoded, not a simple length)
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+echo "=== SeqId Gap / Range-Array CRS Test ==="
+echo "Topology: Node 1 -> Node 2 (relay) -> Node 3; bundle 3 -> Node 4 (no route)"
+echo ""
+
+./cleanup
+
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+test_result() {
+    if [ $1 -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+echo "Starting ION nodes..."
+for node in 1 2 3; do
+    cd "$TESTDIR/${node}.node"
+    ./ionstart > ion_startup.log 2>&1
+    sleep 2
+done
+
+NODE_COUNT=$(pgrep -x "rfxclock" | wc -l)
+if [ "$NODE_COUNT" -lt 3 ]; then
+    echo "ERROR: Not all ION nodes started. Found $NODE_COUNT rfxclock processes."
+    exit 1
+fi
+echo "All 3 nodes started successfully."
+echo ""
+
+echo "--- Sending 4 bundles with global seqId=1 ---"
+cd "$TESTDIR/1.node"
+
+# Bundles 1 and 2 — forwarded to Node 3 (seqNums N and N+1)
+bptrace -seqid 1 -msg "SEQ-GAP-1" -ttl 60 -flags fwd,del \
+    ipn:1.2 ipn:3.1 ipn:1.0 > /dev/null 2>&1
+bptrace -seqid 1 -msg "SEQ-GAP-2" -ttl 60 -flags fwd,del \
+    ipn:1.2 ipn:3.1 ipn:1.0 > /dev/null 2>&1
+
+# Bundle 3 — goes to Node 4 (no route at Node 2) — creates seqNum gap
+bptrace -seqid 1 -msg "SEQ-GAP-3" -ttl 60 -flags fwd,del \
+    ipn:1.2 ipn:4.1 ipn:1.0 > /dev/null 2>&1
+
+# Bundle 4 — forwarded to Node 3 (seqNum N+3); triggers cbraggr size flush
+# at Node 2 with the non-contiguous set {N, N+1, N+3} => range array
+bptrace -seqid 1 -msg "SEQ-GAP-4" -ttl 60 -flags fwd,del \
+    ipn:1.2 ipn:3.1 ipn:1.0 > /dev/null 2>&1
+
+echo "  Bundles sent. Waiting for CRS signals to arrive at Node 1..."
+sleep 20
+
+# --- Check 1: No CRS parse errors at any node ---
+echo ""
+echo "--- CRS Parse Error Check ---"
+CRS_ERRORS=0
+for node in 1.node 2.node 3.node; do
+    ERR=$(grep -Fc '[?] CRS' "$TESTDIR/$node/ion.log" 2>/dev/null)
+    ERR=${ERR:-0}
+    if [ "$ERR" -gt 0 ]; then
+        CRS_ERRORS=$((CRS_ERRORS + ERR))
+        echo "  $node: $ERR CRS error(s):"
+        grep -F '[?] CRS' "$TESTDIR/$node/ion.log" | sed 's/^/    /'
+    else
+        echo "  $node: no CRS errors"
+    fi
+done
+test_result $CRS_ERRORS "No CRS parse errors at any node"
+
+# --- Check 2: Forwarding CRS (status=1) received at Node 1 ---
+echo ""
+echo "--- Forwarding CRS Reception (status 1) ---"
+if grep -Fq 'CRS received: status: 1' "$TESTDIR/1.node/ion.log" 2>/dev/null; then
+    test_result 0 "Forwarding CRS (status 1) received at Node 1"
+else
+    test_result 1 "No forwarding CRS (status 1) at Node 1"
+fi
+
+# --- Check 3: Range-array CRS decoded at Node 1 ---
+echo ""
+echo "--- Range-Array CRS Verification ---"
+if grep -Fq 'CRS received: range-array count' "$TESTDIR/1.node/ion.log" 2>/dev/null; then
+    COUNT=$(grep -F 'CRS received: range-array count' \
+        "$TESTDIR/1.node/ion.log" 2>/dev/null | head -1 | awk '{print $NF}')
+    test_result 0 "Range-array CRS decoded at Node 1 (array count: $COUNT)"
+else
+    test_result 1 "No range-array CRS seen at Node 1 (expected forwarding CRS with gap at seqNum+2)"
+fi
+
+# Summary
+echo ""
+echo "========================================="
+echo "SUMMARY: $TESTS_PASSED passed, $TESTS_FAILED failed"
+echo "========================================="
+
+[ $TESTS_FAILED -eq 0 ]

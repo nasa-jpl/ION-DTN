@@ -1,0 +1,15 @@
+## Node 1: source — sends 4 bundles with global seqId=1; bundle 3 goes to
+## unreachable Node 4, creating a gap in the forwarding CRS at Node 2.
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.0 x
+a endpoint ipn:1.1 x
+a endpoint ipn:1.2 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4581 udpcli
+a outduct udp 127.0.0.1:4582 udpclo
+r 'ipnadmin node.ipnrc'
+m custodymode orangebook
+m srmode compressed
+m cbraggr 1 1 2
+s

@@ -6825,6 +6825,10 @@ when asking for status reports.");
 		/*	Also note imcRegionNbr (usually zero).		*/
 
 		bundle.ancillaryData.imcRegionNbr = ancillaryData->imcRegionNbr;
+
+		/*	CBR sequence identifier (0 = per-dest, >0 = global).*/
+
+		bundle.ancillaryData.cbrSeqId = ancillaryData->cbrSeqId;
 	}
 
 	if (custodySwitch != NoCustodyRequested)
@@ -10504,18 +10508,6 @@ static int	sendCompressedStatusRpt(Sdr sdr, Bundle *bundle)
 	uvast		seqNum;
 	CrebBlk		creb;
 	int		flags;
-	char		*dbgSrcEid = NULL;
-	char		dbgMsg[256];
-
-	/*	DEBUG_CRS: Log what triggers CRS sending		*/
-	readEid(&bundle->id.source, &dbgSrcEid);
-	isprintf(dbgMsg, sizeof(dbgMsg),
-		"[DEBUG_CRS] sendCompressedStatusRpt: srrFlags=0x%x src=%s admin=%d",
-		SRR_FLAGS(bundle->bundleProcFlags),
-		dbgSrcEid ? dbgSrcEid : "?",
-		(bundle->bundleProcFlags & BDL_IS_ADMIN) ? 1 : 0);
-	writeMemo(dbgMsg);
-	if (dbgSrcEid) MRELEASE(dbgSrcEid);
 
 	/*	Source node should not generate CRS for its own bundles.
 	 *	Only intermediate nodes and the destination generate
@@ -10524,7 +10516,6 @@ static int	sendCompressedStatusRpt(Sdr sdr, Bundle *bundle)
 	if (bundle->id.source.schemeCodeNbr == ipn
 	&& bundle->id.source.ssp.ipn.fqnn == getOwnFqnn())
 	{
-		writeMemo("[DEBUG_CRS] Skipping CRS for locally-sourced bundle");
 		return 0;
 	}
 
@@ -10535,7 +10526,6 @@ static int	sendCompressedStatusRpt(Sdr sdr, Bundle *bundle)
 	{
 		/*	No CREB block - can't send CRS.
 		 *	This is not an error; just skip CRS.		*/
-		writeMemo("[DEBUG_CRS] No CREB - skipping CRS");
 		return 0;
 	}
 

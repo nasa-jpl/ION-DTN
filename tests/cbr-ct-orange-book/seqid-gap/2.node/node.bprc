@@ -1,0 +1,17 @@
+## Node 2: relay — forwards bundles 1,2,4 to Node 3, abandons bundle 3
+## (no route to Node 4). cbraggr 3 3 10 aggregates up to 3 forwarding
+## events; when bundle 4 (seqNum+3) is forwarded, the CRS entry covers
+## seqNums [+0, +1, gap, +3] and must encode a range array.
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:2.0 x
+a endpoint ipn:2.1 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4582 udpcli
+a outduct udp 127.0.0.1:4581 udpclo
+a outduct udp 127.0.0.1:4583 udpclo
+r 'ipnadmin node.ipnrc'
+m custodymode orangebook
+m srmode compressed
+m cbraggr 3 3 10
+s
