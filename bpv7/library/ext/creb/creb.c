@@ -44,12 +44,12 @@
  * processing. Stored in blk->object for outbound blocks.
  */
 typedef struct {
-	uvast		seqNum;		/* Bundle sequence number */
-	uvast		seqId;		/* Sequence identifier */
-	unsigned char	requestFlags;	/* Status report request flags */
-	Object		sourceEid;	/* SDR string (0 if implicit) */
-	Object		reportToEid;	/* SDR string (0 if implicit) */
-	int		arrayLen;	/* CBOR array length (1-5) */
+	uvast		seqNum;			/* Bundle sequence number */
+	uvast		seqId;			/* Sequence identifier */
+	unsigned char	requestFlags;		/* Status report request flags */
+	char		sourceEid[MAX_EID_LEN];	/* "" if implicit (bundle source) */
+	char		reportToEid[MAX_EID_LEN]; /* "" if implicit (bundle reportTo) */
+	int		arrayLen;		/* CBOR array length (1-5) */
 } CrebScratchpad;
 
 /*	*	*	Helper Functions	*	*	*	*/
@@ -176,8 +176,6 @@ int	creb_offer(ExtensionBlock *blk, Bundle *bundle)
 	scratch.seqNum = seqNum;
 	scratch.seqId = bundle->ancillaryData.cbrSeqId;
 	scratch.requestFlags = mapSrrToCrebFlags(bundle->bundleProcFlags);
-	scratch.sourceEid = 0;		/*	Implicit (bundle source) */
-	scratch.reportToEid = 0;	/*	Implicit (bundle reportTo) */
 	scratch.arrayLen = 3;		/*	[seqNum, seqId, flags]	*/
 
 	/*	Store scratchpad in SDR for later serialization.	*/
@@ -221,7 +219,6 @@ int	creb_serialize(ExtensionBlock *blk, Bundle *bundle)
 	unsigned char	dataBuffer[CREB_MAX_SERIALIZED_LEN];
 	unsigned char	*cursor;
 	uvast		uvtemp;
-	char		eidBuf[MAX_EID_LEN];
 	int		eidLen;
 
 	(void) bundle;		/*	May use later for EID lookup.	*/
@@ -264,33 +261,31 @@ int	creb_serialize(ExtensionBlock *blk, Bundle *bundle)
 		oK(cbor_encode_integer(uvtemp, &cursor));
 	}
 
-	if (scratch.arrayLen >= 4 && scratch.sourceEid != 0)
+	if (scratch.arrayLen >= 4 && scratch.sourceEid[0] != '\0')
 	{
 		/*	Element 3: blk_source (source EID as structured
 		 *	eid per Orange Book Annex E).			*/
 
-		sdr_string_read(sdr, eidBuf, scratch.sourceEid);
-		eidLen = serializeEidString(eidBuf, cursor);
+		eidLen = serializeEidString(scratch.sourceEid, cursor);
 		if (eidLen < 1)
 		{
 			putErrmsg("CREB: can't serialize source EID.",
-					eidBuf);
+					scratch.sourceEid);
 			return -1;
 		}
 
 		cursor += eidLen;
 	}
 
-	if (scratch.arrayLen >= 5 && scratch.reportToEid != 0)
+	if (scratch.arrayLen >= 5 && scratch.reportToEid[0] != '\0')
 	{
 		/*	Element 4: report_to_eid (structured eid).	*/
 
-		sdr_string_read(sdr, eidBuf, scratch.reportToEid);
-		eidLen = serializeEidString(eidBuf, cursor);
+		eidLen = serializeEidString(scratch.reportToEid, cursor);
 		if (eidLen < 1)
 		{
 			putErrmsg("CREB: can't serialize report-to EID.",
-					eidBuf);
+					scratch.reportToEid);
 			return -1;
 		}
 
@@ -303,26 +298,11 @@ int	creb_serialize(ExtensionBlock *blk, Bundle *bundle)
 
 void	creb_release(ExtensionBlock *blk)
 {
-	Sdr		sdr = getIonsdr();
-	CrebScratchpad	scratch;
+	Sdr	sdr = getIonsdr();
 
 	if (blk->object == 0)
 	{
 		return;
-	}
-
-	/*	Read scratchpad to release any SDR strings.		*/
-
-	sdr_read(sdr, (char *) &scratch, blk->object, sizeof(CrebScratchpad));
-
-	if (scratch.sourceEid != 0)
-	{
-		sdr_free(sdr, scratch.sourceEid);
-	}
-
-	if (scratch.reportToEid != 0)
-	{
-		sdr_free(sdr, scratch.reportToEid);
 	}
 
 	sdr_free(sdr, blk->object);
@@ -386,24 +366,6 @@ int	creb_copy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 	{
 		putErrmsg("CREB: can't allocate scratchpad for copy.", NULL);
 		return -1;
-	}
-
-	/*	Copy EID strings if present.				*/
-
-	if (scratch.sourceEid != 0)
-	{
-		char	eidBuf[MAX_EID_LEN];
-
-		sdr_string_read(sdr, eidBuf, scratch.sourceEid);
-		scratch.sourceEid = sdr_string_create(sdr, eidBuf);
-	}
-
-	if (scratch.reportToEid != 0)
-	{
-		char	eidBuf[MAX_EID_LEN];
-
-		sdr_string_read(sdr, eidBuf, scratch.reportToEid);
-		scratch.reportToEid = sdr_string_create(sdr, eidBuf);
 	}
 
 	sdr_write(sdr, newScratchAddr, (char *) &scratch, sizeof(CrebScratchpad));
@@ -563,13 +525,7 @@ int	creb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 			return 0;
 		}
 
-		/*	TODO: carry parsed EID through to creb_record so
-		 *	scratch->sourceEid can be written as an SDR
-		 *	string.  Today the EID is dropped here -- a
-		 *	pre-existing defect, separate from the wire
-		 *	format.						*/
-
-		scratch->sourceEid = 0;
+		istrcpy(scratch->sourceEid, eidBuf, MAX_EID_LEN);
 	}
 
 	/*	Element 4: report_to_eid (structured eid)		*/
@@ -583,9 +539,7 @@ int	creb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 			return 0;
 		}
 
-		/*	TODO: same as sourceEid above.			*/
-
-		scratch->reportToEid = 0;
+		istrcpy(scratch->reportToEid, eidBuf, MAX_EID_LEN);
 	}
 
 	if (unparsedBytes != 0)

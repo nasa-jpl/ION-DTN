@@ -592,19 +592,21 @@ extern int		cbr_encodeBundleSequence(uvast seqId, uvast seqNumStart,
  *
  * @param cursor	Pointer to input buffer (updated on return)
  * @param bytesRemaining Bytes remaining (updated on return)
- * @param seqId		Output: sequence identifier
+ * @param seqId		Output: sequence identifier (0 for per-destination mode)
  * @param seqNumStart	Output: starting sequence number
  * @param length	Output: length (for contiguous) or 0 (non-contiguous)
  * @param rangeArray	Output: allocated range array (caller must free)
  * @param rangeCount	Output: number of elements in rangeArray
  * @param sourceEid	Output: source EID (allocated, caller must free)
+ * @param seqDestEid	Output: per-destination EID when seqId==0 (allocated,
+ *			caller must free); NULL when seqId != 0
  * @return		0 on success, -1 on error
  */
 extern int		cbr_decodeBundleSequence(unsigned char **cursor,
 				unsigned int *bytesRemaining, uvast *seqId,
 				uvast *seqNumStart, uvast *length,
 				uvast **rangeArray, int *rangeCount,
-				char **sourceEid);
+				char **sourceEid, char **seqDestEid);
 
 #ifdef __cplusplus
 }
