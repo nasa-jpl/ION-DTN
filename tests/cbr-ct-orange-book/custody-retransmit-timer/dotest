@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# custody-retransmit-timer: CBR_RETX_TIMER regression test
+#
+# Verifies that when a custody acceptance signal (CCS) is never received,
+# the sending node automatically retransmits the bundle after the
+# configured retransmit interval.
+#
+# Topology:
+#   Node 1 (sender, m cbrretx timer 5 3) -> Node 2 (receiver)
+#
+# Node 1 sends a custody bundle to Node 2.  cbr_trackCustodyBundle is
+# called at send time, adding the bundle to Node 1's custodyBundles list.
+# Node 2 receives the bundle, accepts custody via cteb_processOnAccept,
+# and queues a CCS to Node 1.  Because Node 2 loads no contact plan,
+# ipnfw finds no route to Node 1 and immediately abandons the CCS bundle.
+# Node 1 never receives the CCS, so the custody entry stays live.
+# After 5 seconds, bpclock fires cbr_processTimeouts, which detects that
+# lastTransmit is stale and calls bpReforwardBundle.
+#
+# Test checks:
+#   1. Timer-triggered retransmit log appears at Node 1 within 12 seconds
+#   2. No ION errors at either node
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+echo "=== Custody Retransmit Timer Test ==="
+echo "Topology: Node 1 (cbrretx timer 5s) -> Node 2 (no CCS path back)"
+echo ""
+
+./cleanup
+
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+test_result() {
+    if [ $1 -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+echo "Starting ION nodes..."
+for node in 1 2; do
+    cd "$TESTDIR/${node}.node"
+    ./ionstart > ion_startup.log 2>&1
+    sleep 2
+done
+
+NODE_COUNT=$(pgrep -x "rfxclock" | wc -l)
+if [ "$NODE_COUNT" -lt 2 ]; then
+    echo "ERROR: Not all ION nodes started. Found $NODE_COUNT rfxclock processes."
+    exit 1
+fi
+echo "Both nodes started successfully."
+echo ""
+
+echo "--- Sending 1 custody bundle from Node 1 to Node 2 ---"
+cd "$TESTDIR/1.node"
+bpdriver -1 ipn:1.2 ipn:2.1 -1000 t600 > /dev/null 2>&1
+echo "  Bundle sent. Waiting for retransmit timer to fire (5s interval + margin)..."
+sleep 12
+
+echo ""
+echo "--- Retransmit Timer Check ---"
+if grep -Fq 'CBR: Timer-triggered retransmit' "$TESTDIR/1.node/ion.log" 2>/dev/null; then
+    COUNT=$(grep -c 'CBR: Timer-triggered retransmit' "$TESTDIR/1.node/ion.log" 2>/dev/null)
+    test_result 0 "Timer-triggered retransmit fired at Node 1 ($COUNT occurrence(s))"
+else
+    test_result 1 "No timer-triggered retransmit seen at Node 1 within 12 seconds"
+fi
+
+echo ""
+echo "--- Error Check ---"
+ERRORS=0
+for node in 1.node 2.node; do
+    ERR=$(grep -c '\[!' "$TESTDIR/$node/ion.log" 2>/dev/null || true)
+    ERR=${ERR:-0}
+    if [ "$ERR" -gt 0 ]; then
+        ERRORS=$((ERRORS + ERR))
+        echo "  $node: $ERR error(s)"
+        grep '\[!' "$TESTDIR/$node/ion.log" | head -5 | sed 's/^/    /'
+    else
+        echo "  $node: no errors"
+    fi
+done
+test_result $ERRORS "No ION errors at either node"
+
+echo ""
+echo "========================================="
+echo "SUMMARY: $TESTS_PASSED passed, $TESTS_FAILED failed"
+echo "========================================="
+
+[ $TESTS_FAILED -eq 0 ]

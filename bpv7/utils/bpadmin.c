@@ -136,6 +136,10 @@ payload length");
 	PUTS("\t   m cbraggr <CRS limit> <CCS limit> <timeout seconds>");
 	PUTS("\t      Aggregate limits: max bundles before sending signal (0=immediate)");
 	PUTS("\t      Timeout: max seconds to wait before sending aggregated signal");
+	PUTS("\t   m cbrretx <strategy: none|timer> <interval seconds> <max retransmissions>");
+	PUTS("\t      Strategy none: no automatic retransmission (default)");
+	PUTS("\t      Strategy timer: retransmit after interval if no custody acceptance received");
+	PUTS("\t      Max retransmissions: 0 means unlimited");
 	PUTS("\tr\tRun another admin program");
 	PUTS("\t   r '<admin command>'");
 	PUTS("\ts\tStart");
@@ -1708,6 +1712,47 @@ static void	manageCbrAggr(int tokenCount, char **tokens)
 	}
 }
 
+static void	manageCbrRetx(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	int		strategy;
+	unsigned int	intervalSec;
+	unsigned int	maxRetransmissions;
+
+	if (tokenCount != 5)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	if (strcmp(tokens[2], "none") == 0)
+	{
+		strategy = CBR_RETX_NONE;
+	}
+	else if (strcmp(tokens[2], "timer") == 0)
+	{
+		strategy = CBR_RETX_TIMER;
+	}
+	else
+	{
+		printText("[?] Unknown retransmission strategy; use 'none' or 'timer'.");
+		return;
+	}
+
+	intervalSec = (unsigned int) atoi(tokens[3]);
+	maxRetransmissions = (unsigned int) atoi(tokens[4]);
+
+	if (cbr_configureRetransmission(sdr, strategy, intervalSec,
+			maxRetransmissions) < 0)
+	{
+		putErrmsg("Can't set CBR retransmission config.", NULL);
+	}
+	else
+	{
+		printText("CBR retransmission config set.");
+	}
+}
+
 static void	executeManage(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -1769,6 +1814,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "crebexpliciteid") == 0)
 	{
 		manageCrebExplicitEid(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "cbrretx") == 0)
+	{
+		manageCbrRetx(tokenCount, tokens);
 		return;
 	}
 
