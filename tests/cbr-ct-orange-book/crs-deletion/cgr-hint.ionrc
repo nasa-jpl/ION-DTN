@@ -1,0 +1,11 @@
+## CGR hint contacts for Node 1 only.
+## Tells Node 1's CGR that Node 2 can reach Node 3, so CGR computes
+## path 1->2->3 and forwards the bundle to Node 2.
+## Node 2 itself does NOT load this file, ensuring its ipnfw has no
+## route to Node 3 and immediately abandons with SrNoKnownRoute.
+
+a range +0 +600 2 3 1
+a range +0 +600 3 2 1
+
+a contact +0 +600 2 3 100000
+a contact +0 +600 3 2 100000

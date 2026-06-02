@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# crs-deletion: CRS deletion status report test
+#
+# Verifies:
+#   - When a bundle with the del-report flag is abandoned at a relay node
+#     that has no route to the destination, a deletion CRS (status=3) is
+#     generated via sendCompressedStatusRpt (SrNoKnownRoute path)
+#   - The deletion CRS is delivered back to the report-to EID (Node 1)
+#   - No CRS parse errors occur at any node
+#
+# Topology:
+#   Node 1 (source, ipn:1.x) -> Node 2 (relay) -x-> Node 3 (unreachable)
+#   CRS deletion flows back:    Node 2 -> Node 1 (report-to ipn:1.0)
+#
+# Contact plan design:
+#   global.ionrc:   contacts 1<->2 only (loaded by both nodes)
+#   cgr-hint.ionrc: contacts 2<->3 (loaded by Node 1 only)
+#
+#   Node 1 loads cgr-hint.ionrc so its CGR sees a path 1->2->3 and
+#   forwards the bundle to Node 2 as the next hop.  Node 2 does NOT
+#   load cgr-hint.ionrc, so its ipnfw finds no route to Node 3 and
+#   immediately abandons the bundle with SrNoKnownRoute, triggering
+#   the deletion CRS.  If Node 2 also saw the 2->3 contact, ipnfw
+#   would hold the bundle waiting for an outduct to materialise
+#   (roughly one bpclock cycle) before abandoning, making the test
+#   take ~60 s instead of ~8 s.
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+echo "=== CRS Deletion Status Test ==="
+echo "Topology: Node 1 (source) -> Node 2 (relay, no route to Node 3)"
+echo ""
+
+./cleanup
+
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+test_result() {
+    if [ $1 -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+echo "Starting ION nodes..."
+for node in 1 2; do
+    cd "$TESTDIR/${node}.node"
+    ./ionstart > ion_startup.log 2>&1
+    sleep 2
+done
+
+NODE_COUNT=$(pgrep -x "rfxclock" | wc -l)
+if [ "$NODE_COUNT" -lt 2 ]; then
+    echo "ERROR: Not all ION nodes started. Found $NODE_COUNT rfxclock processes."
+    exit 1
+fi
+echo "Both nodes started successfully."
+echo ""
+
+# Record baseline CRS stats at Node 1
+cd "$TESTDIR/1.node"
+INITIAL_CRS=$(cbrcustodytest -l 2>/dev/null | grep "CRS Signals Recv" | awk '{print $NF}')
+INITIAL_CRS=${INITIAL_CRS:-0}
+
+echo "--- Test: Deletion CRS via no-route abandonment ---"
+echo "  Sending bundle to ipn:3.1 (unreachable) with del flag..."
+
+# Node 2 has no route to Node 3; it will abandon the bundle and send
+# a deletion CRS (status code 3) back to ipn:1.0
+cd "$TESTDIR/1.node"
+bptrace -msg "DEL-STATUS-TEST" -ttl 60 -flags del ipn:1.2 ipn:3.1 ipn:1.0 \
+    > trace_output.txt 2>&1
+
+echo "Waiting for deletion CRS to arrive at Node 1..."
+sleep 8
+
+# --- Check 1: Deletion CRS received at Node 1 ---
+echo ""
+echo "--- CRS Reception at Node 1 ---"
+FINAL_CRS=$(cbrcustodytest -l 2>/dev/null | grep "CRS Signals Recv" | awk '{print $NF}')
+FINAL_CRS=${FINAL_CRS:-0}
+NEW_CRS=$((FINAL_CRS - INITIAL_CRS))
+echo "  CRS signals received: $NEW_CRS (baseline was $INITIAL_CRS)"
+
+if [ "$NEW_CRS" -gt 0 ]; then
+    test_result 0 "Deletion CRS received at Node 1 ($NEW_CRS new)"
+else
+    test_result 1 "No deletion CRS received at Node 1"
+fi
+
+# --- Check 2: Deletion status code (3) logged at Node 1 ---
+echo ""
+echo "--- Deletion Status Code Verification ---"
+if grep -Fq 'CRS received: status: 3' "$TESTDIR/1.node/ion.log" 2>/dev/null; then
+    test_result 0 "Deletion status code (3) confirmed in ion.log"
+else
+    test_result 1 "Deletion status code not found in ion.log (expected '[i] CRS received: status: 3')"
+fi
+
+# --- Check 3: No CRS parse errors at any node ---
+echo ""
+echo "--- CRS Parse Error Check ---"
+CRS_ERRORS=0
+for node in 1.node 2.node; do
+    ERR=$(grep -Fc '[?] CRS' "$TESTDIR/$node/ion.log" 2>/dev/null)
+    ERR=${ERR:-0}
+    if [ "$ERR" -gt 0 ]; then
+        CRS_ERRORS=$((CRS_ERRORS + ERR))
+        echo "  $node: $ERR CRS error(s):"
+        grep -F '[?] CRS' "$TESTDIR/$node/ion.log" | sed 's/^/    /'
+    else
+        echo "  $node: no CRS errors"
+    fi
+done
+test_result $CRS_ERRORS "No CRS parse errors at any node"
+
+# Summary
+echo ""
+echo "========================================="
+echo "SUMMARY: $TESTS_PASSED passed, $TESTS_FAILED failed"
+echo "========================================="
+
+[ $TESTS_FAILED -eq 0 ]

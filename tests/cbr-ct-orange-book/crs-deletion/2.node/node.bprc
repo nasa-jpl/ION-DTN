@@ -1,0 +1,14 @@
+## Node 2: relay — receives CREB bundle, has no route to Node 3
+## Abandons bundle with SrNoKnownRoute, sends deletion CRS back to Node 1
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:2.0 x
+a endpoint ipn:2.1 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4572 udpcli
+a outduct udp 127.0.0.1:4571 udpclo
+r 'ipnadmin node.ipnrc'
+m custodymode orangebook
+m srmode compressed
+m cbraggr 1 1 2
+s
