@@ -308,7 +308,7 @@ jobs:
 
   test-parallel:
     needs: [build-ion, generate-matrix, create-zones]
-    name: "Test on ${{ matrix.test_batch.vm_hostname }} (Batch ${{ matrix.test_batch.job_index }})"
+    name: "Test on ${{ matrix.test_batch.vm_hostname }} (Batch ${{ matrix.test_batch.batch }})"
     # test_batch matrix variable contains: {batch: N, tests: "...", vm_hostname: "dsoc3/dsoc4", vm_index: 1/2, job_index: N}
     strategy:
       fail-fast: false
@@ -361,7 +361,7 @@ jobs:
         run: |
           echo "=== Zone Test Configuration ==="
           echo "VM Hostname: ${{ matrix.test_batch.vm_hostname }}"
-          echo "Job Index: ${{ matrix.test_batch.job_index }}"
+          echo "Batch Number: ${{ matrix.test_batch.batch }}"
           echo "Zone Name: ion-zone-${{ github.run_id }}-${{ matrix.test_batch.job_index }}"
           echo "Tests to run: ${{ matrix.test_batch.tests }}"
           echo "=============================="
@@ -400,7 +400,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: test-results-${{ github.run_id }}-job-${{ matrix.test_batch.job_index }}
+          name: test-results-${{ github.run_id }}-batch-${{ matrix.test_batch.batch }}
           path: .github/ansible/test-results/
 
   aggregate-results:
@@ -423,7 +423,7 @@ jobs:
         id: download-artifacts
         uses: actions/download-artifact@v8
         with:
-          pattern: test-results-${{ github.run_id }}-job-*
+          pattern: test-results-${{ github.run_id }}-batch-*
           path: all-artifacts
           merge-multiple: false
         continue-on-error: true
@@ -475,7 +475,7 @@ jobs:
         uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118
         with:
           name: |
-            test-results-*-job-*
+            test-results-*-batch-*
             compile-and-buildcheck-log-solaris-*
             ion-build-*
 
