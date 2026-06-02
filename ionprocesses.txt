@@ -123,14 +123,6 @@ cgrfetch
 lt-cgrfetch
 cpsd
 lt-cpsd
-dccpcli
-lt-dccpcli
-dccpclo
-lt-dccpclo
-dccplsi
-lt-dccplsi
-dccplso
-lt-dccplso
 dgr2file
 lt-dgr2file
 dgrcli

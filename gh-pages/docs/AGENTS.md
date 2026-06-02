@@ -61,7 +61,7 @@ ION uses a **multi-process architecture** with layered services where components
   - `cgr/` - Contact Graph Routing (dynamic routing for time-varying topology)
   - `bpsec/` - Bundle Protocol Security extensions (ION's native BPSec implementation)
   - `daemon/` - Core daemons (bpclock, bptransit, etc.)
-  - Convergence layer adapters: `tcp/`, `udp/`, `stcp/`, `dccp/`, `ltp/`, `file/`, etc.
+  - Convergence layer adapters: `tcp/`, `udp/`, `stcp/`, `ltp/`, `file/`, etc.
 
 ### Higher-Level Services
 

@@ -27,7 +27,7 @@ There are seven parameters that are needed to define a simple network model. The
 - `NODE`: assigned node number, will be used for addressing with neighbor(s)
 - `SERVICES`: Applications running on the node, currently supports CFDP, AMS, & AMP
 - `DEST`: node's neighbor(s)
-- `PROTOCOL`: convergance layer to reach a neighbor. Currently supported options include LTP, TCP, UDP, and STCP.(untested options: BSSP & DCCP)
+- `PROTOCOL`: convergance layer to reach a neighbor. Currently supported options include LTP, TCP, UDP, and STCP.(untested option: BSSP)
 - `RATE`: Data rate used to communicate with neighbor(s), in bytes/s
 
 ### Example Model File

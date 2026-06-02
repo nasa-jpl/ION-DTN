@@ -4,7 +4,6 @@ ICI_INCL = ../../ici/include
 UTILS = ../utils
 DAEMON = ../daemon
 UDP = ../udp
-DCCP = ../dccp
 SDA = ../sda
 TEST = ../test
 ICI_LIB = ../../ici/x86_64-linux/lib
@@ -22,11 +21,9 @@ PUBINCLS = \
 LTPINCLS = \
 	$(API)/ltpP.h \
 	$(API)/ltpsec.h \
-	$(UDP)/udplsa.h \
-	$(DCCP)/dccplsa.h
+	$(UDP)/udplsa.h
 
 RUNTIMES = ltpadmin ltpsecadmin ltpstats ltpclock ltpdeliv ltpmeter udplsi udplso ltpdriver ltpcounter sdatest
-#dccplsi dccplso libudplsa
 
 ALL = check libltp.so $(RUNTIMES)
 
@@ -112,14 +109,6 @@ udplso:		udplso.o libltp.so libudplsa.o
 		$(CC) -o udplso udplso.o libudplsa.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
 		cp udplso ./bin
 
-#	-	-	DCCP executables-	-	-	-	-
-dccplsi:	dccplsi.o libltp.so
-		$(CC) -o dccplsi dccplsi.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
-		cp dccplsi ./bin
-
-dccpplso:	dccplso.o libltp.so
-		$(CC) -o dccplso dccplso.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
-		cp dccplso ./bin
 
 #	-	-	Libraries	-	-	-	-	-
 
@@ -150,5 +139,4 @@ libltp.so:	libltp.o libltpP.o ltpsec.o ltpei.o auth.o libltpnm.o libsda.o
 %.o:		$(SDA)/%.c
 		$(CC) -c $<
 
-#%.o:		$(DCCP)/%.c
 #		$(CC) -c $<

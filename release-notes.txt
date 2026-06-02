@@ -1,5 +1,41 @@
 = Release Notes for ION =
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+= ION 4.2.0 - DCCP Deprecation =
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+DCCP (Datagram Congestion Control Protocol) convergence layer and link
+service have been REMOVED from ION.
+
+RATIONALE:
+- Linux kernel DCCP implementation is in maintenance mode and being
+  considered for deprecation upstream
+- DCCP support in ION was Linux-only (required kernel >= 3.2.0)
+- Marked as "untested" in ION documentation since introduction
+- Excluded from CI/CD automated testing
+- Last updated in 2013 by Samuel Jero (Ohio University)
+- No known active deployments or users
+
+REMOVED COMPONENTS:
+- dccpcli, dccpclo - BP DCCP convergence layer input/output daemons
+- dccplsi, dccplso - LTP DCCP link service input/output daemons
+- All DCCP source code, headers, tests, and documentation
+
+MIGRATION:
+Users who may have been using DCCP should migrate to alternative
+convergence layers:
+- For LTP: Use UDP link service (udplsi/udplso) - standard choice
+- For BP: Use STCP (stcpcli/stcpclo) or TCP (tcpcli/tcpclo) convergence
+  layers for reliable transport
+- For BP: Use UDP (udpcli/udpclo) for unreliable but simpler transport
+
+Configuration file changes required:
+- Replace "a protocol dccp ..." with "a protocol udp ..." or "a protocol stcp ..."
+- Replace "dccpcli" with "udpcli", "stcpcli", or "tcpcli"
+- Replace "dccpclo" with "udpclo", "stcpclo", or "tcpclo"
+- Replace "dccplsi" with "udplsi"
+- Replace "dccplso" with "udplso"
+
 %%%%%%%%%%%
 = GENERAL =
 %%%%%%%%%%%

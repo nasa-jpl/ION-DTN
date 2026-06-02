@@ -16,7 +16,7 @@ There are seven parameters that are needed to define a simple model. They are as
     - DEST: node's neighbor(s)
     - PROTOCOL: convergance layer to reach neighbor(s)
       - supported: LTP, TCP, UDP, & STCP
-      - untested: BSSP & DCCP untested
+      - untested: BSSP
     - RATE: Data rate used to communicate with neighbor(s), in bytes/s
 
 ### Example Model

@@ -532,9 +532,6 @@ Here is a list of all possible ION daemons:
 * bssStreamingApp lt-bssStreamingApp \\
 * cgrfetch lt-cgrfetch \\
 * cpsd lt-cpsd \\
-* dccpcli lt-dccpcli \\
-* dccpclo lt-dccpclo
-* dccplso lt-dccplso \\
 * dgr2file lt-dgr2file \\
 * dgrcli lt-dgrcli \\
 * dgrclo lt-dgrclo \\

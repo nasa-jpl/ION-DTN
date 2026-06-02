@@ -848,8 +848,6 @@ ltpmandir = $(top_builddir)/ltp/doc
 ltpcflags = -I$(srcdir)/ltp/library -I$(srcdir)/ltp/library/ext
 
 ltpbin = \
-	dccplsi \
-	dccplso \
 	ltpadmin \
 	ltpcancel \
 	ltpclock \
@@ -877,7 +875,6 @@ ltpinclude = \
 	ltp/include/sda.h
 
 ltpnoinst = \
-	ltp/dccp/dccplsa.h \
 	ltp/library/ltpP.h \
 	ltp/library/ltpsec.h \
 	ltp/udp/udplsa.h \
@@ -885,8 +882,6 @@ ltpnoinst = \
 
 ltpextra = \
 	ltp/README.txt \
-	ltp/doc/pod1/dccplsi.pod \
-	ltp/doc/pod1/dccplso.pod \
 	ltp/doc/pod1/ltpadmin.pod \
 	ltp/doc/pod1/ltpcancel.pod \
 	ltp/doc/pod1/ltpclock.pod \
@@ -905,8 +900,6 @@ ltpextra = \
 	ltp/doc/pod5/ltprc.pod
 
 ltpmans = \
-	ltp/doc/dccplsi.1 \
-	ltp/doc/dccplso.1 \
 	ltp/doc/ltpadmin.1 \
 	ltp/doc/ltpcancel.1 \
 	ltp/doc/ltpclock.1 \
@@ -1027,16 +1020,6 @@ xlso_CFLAGS = $(ltpcflags) -I$(srcdir)/ltp/xlsa $(AM_CFLAGS)
 #aoslso_SOURCES = ltp/aos/aoslso.c
 #aoslso_LDADD = libltp.la libici.la
 #aoslso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
-
-# --- DCCP Executables --- #
-
-dccplsi_SOURCES = ltp/dccp/dccplsi.c
-dccplsi_LDADD = libltp.la libici.la
-dccplsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS) $(PTHREAD_LIBS)
-
-dccplso_SOURCES = ltp/dccp/dccplso.c
-dccplso_LDADD = libltp.la libici.la $(PTHREAD_LIBS)
-dccplso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 ##########################
 #
@@ -1235,9 +1218,7 @@ bpbin = \
 	udpcli \
 	udpclo \
 	bpchat \
-	bpstats2 \
-	dccpcli \
-	dccpclo
+	bpstats2
 
 if ENABLE_IMC
 bpbin += \
@@ -1282,7 +1263,6 @@ bpinclude = \
 
 bpnoinst = \
 	bpv7/brs/brscla.h \
-	bpv7/dccp/dccpcla.h \
 	bpv7/dtn2/dtn2fw.h \
 	bpv7/ipn/ipnfw.h \
 	bpv7/ipn/cbdedup.h \
@@ -1334,8 +1314,6 @@ bpextra = \
 	bpv7/doc/pod1/brsccla.pod \
 	bpv7/doc/pod1/brsscla.pod \
 	bpv7/doc/pod1/cgrfetch.pod \
-	bpv7/doc/pod1/dccpcli.pod \
-	bpv7/doc/pod1/dccpclo.pod \
 	bpv7/doc/pod1/dgrcli.pod \
 	bpv7/doc/pod1/dgrclo.pod \
 	bpv7/doc/pod1/dtn2admin.pod \
@@ -1424,8 +1402,6 @@ bpmans = \
 	bpv7/doc/brsccla.1 \
 	bpv7/doc/brsscla.1 \
 	bpv7/doc/cgrfetch.1 \
-	bpv7/doc/dccpcli.1 \
-	bpv7/doc/dccpclo.1 \
 	bpv7/doc/dgrcli.1 \
 	bpv7/doc/dgrclo.1 \
 	bpv7/doc/dtn2admin.1 \
@@ -1801,16 +1777,6 @@ bibeadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(LINENOISE_CFLAGS)
 bibeclo_SOURCES = bpv7/bibe/bibeclo.c
 bibeclo_LDADD = libici.la $(bplib)
 bibeclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-
-# --- DCCP Executables --- #
-
-dccpcli_SOURCES = bpv7/dccp/dccpcli.c
-dccpcli_LDADD = libici.la $(bplib) $(PTHREAD_LIBS)
-dccpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-
-dccpclo_SOURCES = bpv7/dccp/dccpclo.c
-dccpclo_LDADD = libici.la $(bplib) $(PTHREAD_LIBS)
-dccpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- DGR Executables --- #
 

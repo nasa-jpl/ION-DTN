@@ -46,7 +46,6 @@ DGR = ../dgr
 BRS = ../brs
 UDP = ../udp
 SPP = ../spp
-DCCP = ../dccp
 BIBE = ../bibe
 IPND = ../ipnd
 SAGA = ../saga
@@ -77,7 +76,6 @@ BPINCLS = \
 	$(UDP)/udpcla.h \
 	$(STCP)/stcpcla.h \
 	$(LTP)/ltpcla.h \
-	$(DCCP)/dccpcla.h \
 	$(INCL)/eureka.h \
 	$(BSL)/bsl.h \
 	$(BPSEC)/sci/sci.h \
@@ -128,9 +126,7 @@ RUNTIMES_BASE = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bpr
 ifeq ($(USING_BSL),1)
 RUNTIMES = $(RUNTIMES_BASE)
 else
-RUNTIMES = $(RUNTIMES_BASE) bpsecadmin
 endif
-# dccpcli dccpclo
 
 ALL = check $(BPLIBS) $(RUNTIMES)
 
@@ -353,17 +349,6 @@ bsspclo:	bsspclo.o $(BPLIBS)
 		$(CC) -o bsspclo bsspclo.o -L./lib -L$(ROOT)/lib $(LBP) -lbssp -lici -lpthread -lm
 		cp bsspclo ./bin
 
-#	-	-	DCCP executables	-	-	-	-
-
-dccpcli:	dccpcli.o $(BPLIBS)
-		$(CC) -o dccpcli dccpcli.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
-		cp dccpcli ./bin
-
-dccpclo:	dccpclo.o $(BPLIBS)
-		$(CC) -o dccpclo dccpclo.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
-		cp dccpclo ./bin
-
-#	-	-	DGR executables	-	-	-	-	-
 
 dgrcli:		dgrcli.o $(BPLIBS)
 		$(CC) -o dgrcli dgrcli.o -L./lib -L$(ROOT)/lib $(LBP) -ldgr -lici -lpthread -lm
@@ -601,7 +586,6 @@ endif
 %.o:		$(SPP)/%.c
 		$(CC) -c $<
 
-#%.o:		$(DCCP)/%.c
 #		$(CC) -c $<
 
 %.o:		$(BRS)/%.c

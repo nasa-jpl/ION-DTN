@@ -5162,8 +5162,7 @@ outduct expressions for any convergence-layer protocols", ductName);
 	if (maxPayloadLength == 0)
 	{
 		if (strcmp(protocolName, "udp") == 0
-		|| strcmp(protocolName, "dgr") == 0
-		|| strcmp(protocolName, "dccp") == 0)
+		|| strcmp(protocolName, "dgr") == 0)
 		{
 			maxPayloadLength = 65000;
 		}
@@ -5266,8 +5265,7 @@ int	updateOutduct(char *protocolName, char *ductName, char *cloCmd,
 	if (maxPayloadLength == 0)
 	{
 		if (strcmp(protocolName, "udp") == 0
-		|| strcmp(protocolName, "dgr") == 0
-		|| strcmp(protocolName, "dccp") == 0)
+		|| strcmp(protocolName, "dgr") == 0)
 		{
 			maxPayloadLength = 65000;
 		}
