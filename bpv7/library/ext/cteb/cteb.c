@@ -190,6 +190,7 @@ int	cteb_serialize(ExtensionBlock *blk, Bundle *bundle)
 	unsigned char	dataBuffer[CTEB_MAX_SERIALIZED_LEN];
 	unsigned char	*cursor;
 	uvast		uvtemp;
+	int		eidLen;
 
 	(void) bundle;
 
@@ -203,7 +204,10 @@ int	cteb_serialize(ExtensionBlock *blk, Bundle *bundle)
 
 	sdr_read(sdr, (char *) &scratch, blk->object, sizeof(CtebScratchpad));
 
-	/*	Serialize CTEB to CBOR: [seq_num, seq_id, custodian_eid] */
+	/*	Serialize CTEB to CBOR: [seq_num, seq_id, blk_source]
+	 *	where blk_source is an `eid` -- the same RFC 9171 /
+	 *	RFC 9758 [uri-code, SSP] structure used by primary-block
+	 *	EIDs (Orange Book Draft K, Annex E).			*/
 
 	cursor = dataBuffer;
 
@@ -222,20 +226,25 @@ int	cteb_serialize(ExtensionBlock *blk, Bundle *bundle)
 	uvtemp = scratch.seqId;
 	oK(cbor_encode_integer(uvtemp, &cursor));
 
-	/*	Element 2: custodian_eid				*/
+	/*	Element 2: blk_source (custodian EID as structured eid)	*/
 
-	if (scratch.custodianEid[0] != '\0')
+	if (scratch.custodianEid[0] == '\0')
 	{
-		oK(cbor_encode_text_string(scratch.custodianEid,
-				strlen(scratch.custodianEid), &cursor));
-	}
-	else
-	{
-		/*	No custodian EID - this shouldn't happen.	*/
+		/*	CDDL requires blk_source; treat as a bug.	*/
+
 		putErrmsg("CTEB: missing custodian EID.", NULL);
 		return -1;
 	}
 
+	eidLen = serializeEidString(scratch.custodianEid, cursor);
+	if (eidLen < 1)
+	{
+		putErrmsg("CTEB: can't serialize custodian EID.",
+				scratch.custodianEid);
+		return -1;
+	}
+
+	cursor += eidLen;
 	blk->dataLength = cursor - dataBuffer;
 	return serializeExtBlk(blk, (char *) dataBuffer);
 }
@@ -490,7 +499,6 @@ int	cteb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	uvast		arrayLength;
 	uvast		uvtemp;
 	CtebScratchpad	*scratch;
-	uvast		eidLen;
 
 	(void) wk;	/*	May use later for bundle access.	*/
 
@@ -554,17 +562,14 @@ int	cteb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	scratch->seqId = uvtemp;
 
-	/*	Element 2: custodian_eid				*/
+	/*	Element 2: blk_source (custodian EID as structured eid)	*/
 
-	eidLen = MAX_EID_LEN - 1;
-	if (cbor_decode_text_string(scratch->custodianEid, &eidLen, &cursor,
+	if (acquireEidString(scratch->custodianEid, MAX_EID_LEN, &cursor,
 			&unparsedBytes) < 1)
 	{
 		writeMemo("[?] CTEB: can't decode custodian_eid.");
 		return 0;
 	}
-
-	scratch->custodianEid[eidLen] = '\0';
 
 	if (unparsedBytes != 0)
 	{

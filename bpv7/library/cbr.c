@@ -942,15 +942,22 @@ int	cbr_encodeBundleSequence(uvast seqId, uvast seqNumStart,
 		}
 	}
 
-	/*	Item 4 (optional): sourceEid				*/
+	/*	Item 4 (optional): blk_source (source EID as structured
+	 *	eid per Orange Book Annex E).				*/
+
 	if (includeSourceEid && sourceEid)
 	{
-		/*	Encode EID as text string			*/
-		if (cbor_encode_text_string(sourceEid, strlen(sourceEid),
-				&cursor) < 1)
+		int	eidLen;
+
+		eidLen = serializeEidString(sourceEid, cursor);
+		if (eidLen < 1)
 		{
+			putErrmsg("Bundle-Sequence: can't serialize source EID.",
+					sourceEid);
 			return -1;
 		}
+
+		cursor += eidLen;
 	}
 
 	return cursor - buffer;
@@ -966,7 +973,6 @@ int	cbr_decodeBundleSequence(unsigned char **cursor,
 	uvast		rangeLen;
 	int		i;
 	char		eidBuf[MAX_EID_LEN];
-	uvast		eidLen;
 
 	*rangeArray = NULL;
 	*rangeCount = 0;
@@ -1049,25 +1055,25 @@ int	cbr_decodeBundleSequence(unsigned char **cursor,
 		return -1;
 	}
 
-	/*	Item 4 (optional): sourceEid				*/
+	/*	Item 4 (optional): blk_source (source EID as structured
+	 *	eid per Orange Book Annex E).				*/
+
 	if (arrayLen >= 4)
 	{
-		eidLen = MAX_EID_LEN - 1;
-		if (cbor_decode_text_string(eidBuf, &eidLen, cursor,
+		if (acquireEidString(eidBuf, sizeof eidBuf, cursor,
 				bytesRemaining) < 1)
 		{
 			return -1;
 		}
 
-		*sourceEid = MTAKE(eidLen + 1);
+		*sourceEid = MTAKE(strlen(eidBuf) + 1);
 		if (*sourceEid == NULL)
 		{
 			putErrmsg("No memory for source EID.", NULL);
 			return -1;
 		}
 
-		memcpy(*sourceEid, eidBuf, eidLen);
-		(*sourceEid)[eidLen] = '\0';
+		istrcpy(*sourceEid, eidBuf, strlen(eidBuf) + 1);
 	}
 
 	return 0;

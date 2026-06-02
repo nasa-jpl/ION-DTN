@@ -508,6 +508,21 @@ extern void		eraseEid(EndpointId *eid);
 extern void		readEid(EndpointId *eid, char **str);
 extern char		*_nullEid(void);
 
+/*	String <-> CBOR-structured EID wrappers; the structured form
+ *	is the RFC 9171 / RFC 9758 [uri-code, SSP] used by primary-block
+ *	EIDs and (per CCSDS Orange Book Draft K Annex E) by every EID
+ *	field in CTEB, CREB, and Compressed Custody / Reporting Signal
+ *	Bundle Sequences.  serializeEidString returns bytes written or
+ *	-1; acquireEidString returns bytes consumed, 0 on malformed
+ *	input, or -1 on internal error.					*/
+
+extern int		serializeEidString(char *eidString,
+				unsigned char *buffer);
+extern int		acquireEidString(char *eidString,
+				size_t eidStrLen,
+				unsigned char **cursor,
+				unsigned int *bytesRemaining);
+
 extern EidPattern	*createEidPattern(void);
 extern void		destroyEidPattern(EidPattern *eidp);
 extern int		loadEidPattern(EidPattern *eidp, const char *text);
