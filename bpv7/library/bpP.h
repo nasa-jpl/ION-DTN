@@ -1334,6 +1334,21 @@ extern void		readEid(EndpointId *eid, char **str);
 extern int		acquireEid(EndpointId *eid,
 				unsigned char **cursor,
 				unsigned int *bytesRemaining);
+
+/*	String <-> CBOR-structured EID wrappers for extension blocks
+ *	whose CDDL types the EID field as the same RFC 9171 / RFC 9758
+ *	structure used by primary-block EIDs (CTEB, CREB, CBR Bundle
+ *	Sequences).  serializeEidString returns bytes written or -1;
+ *	acquireEidString returns bytes consumed, 0 on malformed input,
+ *	or -1 on internal error.					*/
+
+extern int		serializeEidString(char *eidString,
+				unsigned char *buffer);
+extern int		acquireEidString(char *eidString,
+				size_t eidStrLen,
+				unsigned char **cursor,
+				unsigned int *bytesRemaining);
+
 extern uvast		computeBufferCrc(BpCrcType crcType,
 				unsigned char *buffer,
 				int bytesToProcess,

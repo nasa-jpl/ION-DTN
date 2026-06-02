@@ -222,7 +222,7 @@ int	creb_serialize(ExtensionBlock *blk, Bundle *bundle)
 	unsigned char	*cursor;
 	uvast		uvtemp;
 	char		eidBuf[MAX_EID_LEN];
-	char		*eidStr;
+	int		eidLen;
 
 	(void) bundle;		/*	May use later for EID lookup.	*/
 
@@ -266,18 +266,35 @@ int	creb_serialize(ExtensionBlock *blk, Bundle *bundle)
 
 	if (scratch.arrayLen >= 4 && scratch.sourceEid != 0)
 	{
-		/*	Element 3: source_eid				*/
+		/*	Element 3: blk_source (source EID as structured
+		 *	eid per Orange Book Annex E).			*/
+
 		sdr_string_read(sdr, eidBuf, scratch.sourceEid);
-		eidStr = eidBuf;
-		oK(cbor_encode_text_string(eidStr, strlen(eidStr), &cursor));
+		eidLen = serializeEidString(eidBuf, cursor);
+		if (eidLen < 1)
+		{
+			putErrmsg("CREB: can't serialize source EID.",
+					eidBuf);
+			return -1;
+		}
+
+		cursor += eidLen;
 	}
 
 	if (scratch.arrayLen >= 5 && scratch.reportToEid != 0)
 	{
-		/*	Element 4: report_to_eid			*/
+		/*	Element 4: report_to_eid (structured eid).	*/
+
 		sdr_string_read(sdr, eidBuf, scratch.reportToEid);
-		eidStr = eidBuf;
-		oK(cbor_encode_text_string(eidStr, strlen(eidStr), &cursor));
+		eidLen = serializeEidString(eidBuf, cursor);
+		if (eidLen < 1)
+		{
+			putErrmsg("CREB: can't serialize report-to EID.",
+					eidBuf);
+			return -1;
+		}
+
+		cursor += eidLen;
 	}
 
 	blk->dataLength = cursor - dataBuffer;
@@ -451,7 +468,6 @@ int	creb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	uvast		uvtemp;
 	CrebScratchpad	*scratch;
 	char		eidBuf[MAX_EID_LEN];
-	uvast		eidLen;
 
 	(void) wk;	/*	May use later for bundle access.	*/
 
@@ -536,38 +552,40 @@ int	creb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 		scratch->requestFlags = (unsigned char) uvtemp;
 	}
 
-	/*	Element 3: source_eid (if array len >= 4)		*/
+	/*	Element 3: blk_source (source EID as structured eid)	*/
 
 	if (arrayLength >= 4)
 	{
-		eidLen = MAX_EID_LEN - 1;
-		if (cbor_decode_text_string(eidBuf, &eidLen, &cursor,
+		if (acquireEidString(eidBuf, MAX_EID_LEN, &cursor,
 				&unparsedBytes) < 1)
 		{
 			writeMemo("[?] CREB: can't decode source_eid.");
 			return 0;
 		}
 
-		eidBuf[eidLen] = '\0';
-		/*	Note: sourceEid stored as SDR string during record */
-		scratch->sourceEid = 0;	/*	Set during record.	*/
+		/*	TODO: carry parsed EID through to creb_record so
+		 *	scratch->sourceEid can be written as an SDR
+		 *	string.  Today the EID is dropped here -- a
+		 *	pre-existing defect, separate from the wire
+		 *	format.						*/
+
+		scratch->sourceEid = 0;
 	}
 
-	/*	Element 4: report_to_eid (if array len == 5)		*/
+	/*	Element 4: report_to_eid (structured eid)		*/
 
 	if (arrayLength >= 5)
 	{
-		eidLen = MAX_EID_LEN - 1;
-		if (cbor_decode_text_string(eidBuf, &eidLen, &cursor,
+		if (acquireEidString(eidBuf, MAX_EID_LEN, &cursor,
 				&unparsedBytes) < 1)
 		{
 			writeMemo("[?] CREB: can't decode report_to_eid.");
 			return 0;
 		}
 
-		eidBuf[eidLen] = '\0';
-		/*	Note: reportToEid stored as SDR string during record */
-		scratch->reportToEid = 0;	/*	Set during record. */
+		/*	TODO: same as sourceEid above.			*/
+
+		scratch->reportToEid = 0;
 	}
 
 	if (unparsedBytes != 0)

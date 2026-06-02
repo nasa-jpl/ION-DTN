@@ -847,6 +847,86 @@ void	readEid(EndpointId *eid, char **buffer)
 	}
 }
 
+/*	String <-> CBOR-structured EID convenience wrappers, intended
+ *	for extension blocks (CTEB, CREB) and compressed signals (CBR
+ *	Bundle Sequences) whose CDDL types these fields as `eid` --
+ *	the same RFC 9171 / RFC 9758 structure used by primary-block
+ *	EIDs.  These wrap parseEidString + jotEid + serializeEid (and
+ *	the inverse: acquireEid + readEid) so each call site stays a
+ *	one-liner.  Storage at the call sites remains string-based;
+ *	only the wire bytes change.					*/
+
+int	serializeEidString(char *eidString, unsigned char *buffer)
+{
+	MetaEid		metaEid;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
+	EndpointId	eid;
+	int		length;
+
+	CHKERR(eidString);
+	CHKERR(buffer);
+
+	if (parseEidString(eidString, &metaEid, &vscheme, &vschemeElt) == 0)
+	{
+		putErrmsg("Can't parse EID for serialization.", eidString);
+		return -1;
+	}
+
+	memset((char *) &eid, 0, sizeof eid);
+	if (jotEid(&eid, &metaEid) < 0)
+	{
+		clearMetaEid(&metaEid);
+		putErrmsg("Can't build EndpointId for serialization.",
+				eidString);
+		return -1;
+	}
+
+	clearMetaEid(&metaEid);
+	length = serializeEid(&eid, buffer);
+	eraseEid(&eid);
+	if (length < 1)
+	{
+		putErrmsg("Can't serialize EID.", eidString);
+		return -1;
+	}
+
+	return length;
+}
+
+int	acquireEidString(char *eidString, size_t eidStrLen,
+			unsigned char **cursor, unsigned int *bytesRemaining)
+{
+	EndpointId	eid;
+	char		*str = NULL;
+	int		length;
+
+	CHKERR(eidString);
+	CHKERR(eidStrLen > 0);
+	CHKERR(cursor);
+	CHKERR(bytesRemaining);
+
+	memset((char *) &eid, 0, sizeof eid);
+	length = acquireEid(&eid, cursor, bytesRemaining);
+	if (length < 1)
+	{
+		eraseEid(&eid);
+		return 0;	/*	Malformed; matches acquireEid.	*/
+	}
+
+	readEid(&eid, &str);
+	eraseEid(&eid);
+	if (str == NULL)
+	{
+		putErrmsg("Can't render EID to string.", NULL);
+		return -1;
+	}
+
+	istrcpy(eidString, str, (int) eidStrLen);
+	MRELEASE(str);
+	return length;
+}
+
 /*	*	Operations on endpoint ID patterns	*	*	*/
 
 static void	destroyEidpInterval(LystElt elt, void *arg)
