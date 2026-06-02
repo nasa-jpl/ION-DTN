@@ -1,10 +1,10 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 # Manual backup cleanup script for Solaris zones created by CI
 # Usage: ./cleanup-zones.sh
 #   - Takes no inputs.
 #   - Cleans ALL ci-zone-* zones unconditionally.
 
-set -e
+set -euo pipefail
 
 ZONE_PATTERN="ci-zone-"
 echo "Starting full recovery cleanup for all zones matching '${ZONE_PATTERN}'..."
