@@ -29,6 +29,7 @@ jobs:
     outputs:
       needs-tests: ${{ steps.filter.outputs.relevant_changes }}
       tests-subset: ${{ steps.determine-tests.outputs.tests_to_run }}
+      pr-number: ${{ github.event.pull_request.number }}
     steps:
       - uses: actions/checkout@v6
 
@@ -118,6 +119,7 @@ jobs:
     with:
       tests_to_run: ${{ needs.detect-changes.outputs.tests-subset }}
       env_vars: ${{ inputs.env_vars }}
+      pr_number: ${{ needs.detect-changes.outputs.pr-number }}
     secrets: inherit
 
   run-arc-tests:
@@ -127,6 +129,13 @@ jobs:
     with:
       tests_to_run: ${{ needs.detect-changes.outputs.tests-subset }}
       env_vars: ${{ inputs.env_vars }}
+      pr_number: ${{ needs.detect-changes.outputs.pr-number }}
+      runner_u20: true
+      runner_u22: true
+      runner_ol8: true
+      runner_ol9: true
+      runner_rhel8: true
+      runner_rhel9: true
 
   # Skip tests and satisfy the Rulesets
   skip-tests:
