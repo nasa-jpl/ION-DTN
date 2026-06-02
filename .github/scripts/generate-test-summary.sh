@@ -82,9 +82,9 @@ for dir in ${ARTIFACT_PATTERN}; do
         FOUND_ANY_RESULTS=true
 
         if [[ "$PLATFORM" == "solaris" ]]; then
-            # Solaris: extract job index
-            JOB_INDEX=$(basename "$dir" | sed 's/.*-job-//')
-            PROGRESS_FILE="$dir/progress-job-${JOB_INDEX}.txt"
+            # Solaris: extract batch number (1-indexed)
+            BATCH=$(basename "$dir" | sed 's/.*-batch-//')
+            PROGRESS_FILE="$dir/progress-batch-${BATCH}.txt"
 
             if [ -f "$PROGRESS_FILE" ]; then
                 # Extract Failed Tests list
@@ -104,7 +104,7 @@ for dir in ${ARTIFACT_PATTERN}; do
 
                 [ -z "$SKIPPED" ] && SKIPPED="-"
             else
-                # Missing progress file indicates a job-level failure (e.g., timeout or crash)
+                # Missing progress file indicates a batch-level failure (e.g., timeout or crash)
                 FAILED="-"
                 SKIPPED="-"
                 RESULT="❌ no results"
@@ -112,7 +112,7 @@ for dir in ${ARTIFACT_PATTERN}; do
             fi
 
             # Append row to table
-            echo "| Job $JOB_INDEX | $RESULT | $FAILED | $SKIPPED |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Batch $BATCH | $RESULT | $FAILED | $SKIPPED |" >> "$GITHUB_STEP_SUMMARY"
 
         else
             # Arc: extract runner and batch from artifact name
@@ -127,7 +127,7 @@ for dir in ${ARTIFACT_PATTERN}; do
             BATCH=$(echo "$BASENAME" | sed -E 's/.*-batch-([0-9]+)/\1/')
 
             # Find progress file (may have different naming patterns)
-            # Arc uses "progress" (no extension), Solaris uses "progress-job-N.txt"
+            # Arc uses "progress" (no extension), Solaris uses "progress-batch-N.txt"
             PROGRESS_FILE=$(find "$dir" -name "progress*" -type f | head -n 1)
 
             if [ -n "$PROGRESS_FILE" ] && [ -f "$PROGRESS_FILE" ]; then

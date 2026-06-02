@@ -26,6 +26,9 @@ JOB_INDEX=$2
 TEST_LIST=$3
 ENV_VARS=$4
 
+# Calculate batch number (1-indexed) from job_index (0-indexed)
+BATCH_NUM=$((JOB_INDEX + 1))
+
 # Validate individual parameters
 if [ -z "$RUN_ID" ]; then
     echo "Error: run_id cannot be empty" >&2
@@ -139,7 +142,7 @@ mkdir -p "$RESULTS_DIR"
 
 # Collect progress file
 if [ -f "${ZONE_PATH}/root/root/ion-build/tests/progress" ]; then
-    cp "${ZONE_PATH}/root/root/ion-build/tests/progress" "${RESULTS_DIR}/progress-job-${JOB_INDEX}.txt"
+    cp "${ZONE_PATH}/root/root/ion-build/tests/progress" "${RESULTS_DIR}/progress-batch-${BATCH_NUM}.txt"
 fi
 
 # Collect ION log files (preserving directory structure)
