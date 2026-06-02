@@ -429,10 +429,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v6
 
-      - name: Download ALL artifacts
+      - name: Download ALL ARC artifacts
         uses: actions/download-artifact@v8
         with:
-          # Downloads absolutely everything into one master folder
+          # Download only arc-specific artifacts (test results and build logs)
+          # Pattern matches artifacts containing "arc-runner-set-" to exclude Solaris artifacts
+          pattern: "*arc-runner-set-*-${{ needs.setup.outputs.timestamp }}*"
           path: all-artifacts
           merge-multiple: false
 
