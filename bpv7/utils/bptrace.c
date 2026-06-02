@@ -590,6 +590,7 @@ static int	handleCrsReport(BpDelivery *dlv, unsigned char *cursor,
 	uvast		*rangeArray;
 	int		rangeCount;
 	char		*sourceEid;
+	char		*seqDestEid;
 	uvast		i;
 	int		statusFlags;
 	char		*reasonString;
@@ -654,7 +655,7 @@ static int	handleCrsReport(BpDelivery *dlv, unsigned char *cursor,
 			if (cbr_decodeBundleSequence(&cursor, &unparsedBytes,
 					&seqId, &seqNumStart, &bundleLen,
 					&rangeArray, &rangeCount,
-					&sourceEid) < 0)
+					&sourceEid, &seqDestEid) < 0)
 			{
 				printf("[?] CRS: Can't decode Bundle-Sequence.\n");
 				return -1;
@@ -672,6 +673,7 @@ static int	handleCrsReport(BpDelivery *dlv, unsigned char *cursor,
 				{
 					if (rangeArray) MRELEASE(rangeArray);
 					if (sourceEid) MRELEASE(sourceEid);
+					if (seqDestEid) MRELEASE(seqDestEid);
 					return -1;
 				}
 				reportArray[*reportsCreated] = report;
@@ -699,6 +701,11 @@ static int	handleCrsReport(BpDelivery *dlv, unsigned char *cursor,
 			if (sourceEid)
 			{
 				MRELEASE(sourceEid);
+			}
+
+			if (seqDestEid)
+			{
+				MRELEASE(seqDestEid);
 			}
 
 			arrayLen--;

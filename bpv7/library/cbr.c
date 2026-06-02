@@ -904,10 +904,36 @@ int	cbr_encodeBundleSequence(uvast seqId, uvast seqNumStart,
 		return -1;
 	}
 
-	/*	Item 1: seqId						*/
-	if (cbor_encode_integer(seqId, &cursor) < 1)
+	/*	Item 1: seq-id-ref = (uint .gt 0) / eid
+	 *	Per Orange Book CDDL: seqId 0 means per-destination mode;
+	 *	encode the destination EID instead of integer 0.		*/
+	if (seqId == 0)
 	{
-		return -1;
+		int	eidLen;
+
+		if (signalDestEid == NULL)
+		{
+			putErrmsg("Bundle-Sequence: seqId 0 requires destEid.",
+					NULL);
+			return -1;
+		}
+
+		eidLen = serializeEidString(signalDestEid, cursor);
+		if (eidLen < 1)
+		{
+			putErrmsg("Bundle-Sequence: can't serialize dest EID.",
+					signalDestEid);
+			return -1;
+		}
+
+		cursor += eidLen;
+	}
+	else
+	{
+		if (cbor_encode_integer(seqId, &cursor) < 1)
+		{
+			return -1;
+		}
 	}
 
 	/*	Item 2: seqNumStart					*/
@@ -966,7 +992,8 @@ int	cbr_encodeBundleSequence(uvast seqId, uvast seqNumStart,
 int	cbr_decodeBundleSequence(unsigned char **cursor,
 		unsigned int *bytesRemaining, uvast *seqId,
 		uvast *seqNumStart, uvast *length,
-		uvast **rangeArray, int *rangeCount, char **sourceEid)
+		uvast **rangeArray, int *rangeCount, char **sourceEid,
+		char **seqDestEid)
 {
 	uvast		arrayLen;
 	int		majorType;
@@ -977,6 +1004,7 @@ int	cbr_decodeBundleSequence(unsigned char **cursor,
 	*rangeArray = NULL;
 	*rangeCount = 0;
 	*sourceEid = NULL;
+	*seqDestEid = NULL;
 
 	/*	Decode outer array					*/
 	arrayLen = 0;
@@ -991,10 +1019,35 @@ int	cbr_decodeBundleSequence(unsigned char **cursor,
 		return -1;
 	}
 
-	/*	Item 1: seqId						*/
-	if (cbor_decode_integer(seqId, CborAny, cursor, bytesRemaining) < 1)
+	/*	Item 1: seq-id-ref = (uint .gt 0) / eid
+	 *	If the CBOR item is an array, it is a per-destination EID
+	 *	(seqId == 0 mode); otherwise it is the integer seqId.	*/
+	majorType = (**cursor >> 5) & 0x07;
+	if (majorType == 4)	/*	CborArray: per-destination EID	*/
 	{
-		return -1;
+		if (acquireEidString(eidBuf, sizeof eidBuf, cursor,
+				bytesRemaining) < 1)
+		{
+			return -1;
+		}
+
+		*seqId = 0;
+		*seqDestEid = MTAKE(strlen(eidBuf) + 1);
+		if (*seqDestEid == NULL)
+		{
+			putErrmsg("No memory for seq-dest EID.", NULL);
+			return -1;
+		}
+
+		istrcpy(*seqDestEid, eidBuf, strlen(eidBuf) + 1);
+	}
+	else
+	{
+		if (cbor_decode_integer(seqId, CborAny, cursor,
+				bytesRemaining) < 1)
+		{
+			return -1;
+		}
 	}
 
 	/*	Item 2: seqNumStart					*/
@@ -2423,6 +2476,7 @@ int	cbr_handleCrs(Sdr sdr, unsigned char *adminRecord, int length)
 	uvast		*rangeArray;
 	int		rangeCount;
 	char		*sourceEid;
+	char		*seqDestEid;
 	uvast		i;
 
 	/*	CRS content format (after stripping admin record header):
@@ -2469,7 +2523,7 @@ int	cbr_handleCrs(Sdr sdr, unsigned char *adminRecord, int length)
 			if (cbr_decodeBundleSequence(&cursor, &unparsedBytes,
 					&seqId, &seqNumStart, &bundleLen,
 					&rangeArray, &rangeCount,
-					&sourceEid) < 0)
+					&sourceEid, &seqDestEid) < 0)
 			{
 				writeMemo("[?] CRS: Can't decode Bundle-Sequence.");
 				sdr_cancel_xn(sdr);
@@ -2492,6 +2546,11 @@ int	cbr_handleCrs(Sdr sdr, unsigned char *adminRecord, int length)
 			if (sourceEid)
 			{
 				MRELEASE(sourceEid);
+			}
+
+			if (seqDestEid)
+			{
+				MRELEASE(seqDestEid);
 			}
 
 			arrayLen--;
@@ -2536,6 +2595,7 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 	uvast		*rangeArray;
 	int		rangeCount;
 	char		*sourceEid;
+	char		*seqDestEid;
 	uvast		i;
 	uvast		j;
 	uvast		rangeStart;
@@ -2596,7 +2656,7 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 			if (cbr_decodeBundleSequence(&cursor, &unparsedBytes,
 					&seqId, &seqNumStart, &bundleLen,
 					&rangeArray, &rangeCount,
-					&sourceEid) < 0)
+					&sourceEid, &seqDestEid) < 0)
 			{
 				writeMemo("[?] CCS: Can't decode Bundle-Sequence.");
 				sdr_cancel_xn(sdr);
@@ -2694,6 +2754,11 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 			if (sourceEid)
 			{
 				MRELEASE(sourceEid);
+			}
+
+			if (seqDestEid)
+			{
+				MRELEASE(seqDestEid);
 			}
 
 			arrayLen--;
