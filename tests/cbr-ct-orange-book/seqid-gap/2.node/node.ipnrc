@@ -1,0 +1,4 @@
+## Routes to Node 1 (CRS return path) and Node 3 (forward path)
+## No plan for Node 4 — bundles destined there are abandoned with SrNoKnownRoute
+a plan 1 udp/127.0.0.1:4581
+a plan 3 udp/127.0.0.1:4583

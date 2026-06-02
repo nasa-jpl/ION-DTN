@@ -1861,21 +1861,9 @@ int	cbr_reportStatus(Sdr sdr, Bundle *bundle, int statusReason,
 	Object		signalObj;
 	int		mustFreeReportTo = 0;
 	int		mustFreeSource = 0;
-	char		*dbgSrcEid = NULL;
-	char		dbgMsg[256];
 
 	CHKERR(sdr);
 	CHKERR(bundle);
-
-	/*	DEBUG_CRS: Log cbr_reportStatus call			*/
-	readEid(&bundle->id.source, &dbgSrcEid);
-	isprintf(dbgMsg, sizeof(dbgMsg),
-		"[DEBUG_CRS] cbr_reportStatus: reason=%d src=%s seqId=" UVAST_FIELDSPEC,
-		statusReason,
-		dbgSrcEid ? dbgSrcEid : "?",
-		creb ? creb->seqId : 0);
-	writeMemo(dbgMsg);
-	if (dbgSrcEid) MRELEASE(dbgSrcEid);
 
 	/*	Determine report destination				*/
 	if (creb && creb->reportToEid)
@@ -2562,6 +2550,11 @@ int	cbr_handleCrs(Sdr sdr, unsigned char *adminRecord, int length)
 			/*	Log received CRS info			*/
 			writeMemoNote("[i] CRS received: status",
 					itoa(statusCode));
+			if (rangeCount > 0)
+			{
+				writeMemoNote("[i] CRS received: range-array count",
+						itoa(rangeCount));
+			}
 
 			/*	For now, just log. Future: could track
 			 *	for end-to-end acknowledgment.		*/
