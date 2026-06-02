@@ -397,6 +397,20 @@ extern int		cbr_configure(Sdr sdr, unsigned int crsAggregateLimit,
 				unsigned int aggregateTimeoutSec);
 
 /**
+ * Enable or disable explicit sourceEid in outbound CREB blocks.
+ * When enabled, creb_offer includes the source EID in the block (arrayLen=4)
+ * rather than relying on the implicit bundle-source convention. Useful for
+ * interoperability testing and for nodes whose block-source differs from the
+ * bundle source.
+ *
+ * @param sdr		SDR handle
+ * @param enable	1 to include EID explicitly, 0 to use implicit form
+ * @return		0 on success, -1 on error
+ */
+extern int		cbr_getCrebExplicitEid(void);
+extern int		cbr_setCrebExplicitEid(Sdr sdr, int enable);
+
+/**
  * Configure custody retransmission strategy.
  * Per Orange Book, three strategies are supported:
  *   - CBR_RETX_NONE (default): Manual retransmission via command only

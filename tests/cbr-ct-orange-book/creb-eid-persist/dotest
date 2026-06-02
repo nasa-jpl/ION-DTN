@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# creb-eid-persist: CREB source EID persistence through relay test
+#
+# Verifies:
+#   - When crebexpliciteid is set, CREB blocks include the explicit source EID
+#     (arrayLen=4 per Orange Book Annex E)
+#   - The relay node (Node 2) parses the CREB, records it, and re-serializes
+#     it correctly for forwarding (sourceEid is preserved, not dropped)
+#   - Node 3 receives a well-formed CREB block and generates CRS signals
+#   - CRS signals reach Node 1 (proving end-to-end CREB parse integrity)
+#
+# Regression for: creb_parse dropping sourceEid when arrayLen >= 4
+#   Without fix: relay re-serializes CREB with arrayLen=4 header but only
+#   3 elements -> malformed CBOR -> Node 3 parse fails -> no CRS generated
+#   With fix: sourceEid persisted through relay -> CRS round-trip succeeds
+#
+# Topology: Node 1 (source) -> Node 2 (relay) -> Node 3 (destination)
+#           CRS signals flow back: Node 3 -> Node 2 -> Node 1
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+echo "=== CREB EID Persistence Test ==="
+echo "Topology: Node 1 (source) -> Node 2 (relay) -> Node 3 (destination)"
+echo ""
+
+./cleanup
+
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+test_result() {
+    if [ $1 -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+echo "Starting ION nodes..."
+for node in 1 2 3; do
+    cd "$TESTDIR/${node}.node"
+    ./ionstart > ion_startup.log 2>&1
+    sleep 2
+done
+
+NODE_COUNT=$(pgrep -x "rfxclock" | wc -l)
+if [ "$NODE_COUNT" -lt 3 ]; then
+    echo "ERROR: Not all ION nodes started. Found $NODE_COUNT rfxclock processes."
+    exit 1
+fi
+echo "All 3 nodes started successfully."
+echo ""
+
+# Record baseline CRS stats at Node 1
+cd "$TESTDIR/1.node"
+cbrcustodytest -l > initial_stats.txt 2>&1
+INITIAL_CRS_RECV=$(grep "CRS Signals Recv" initial_stats.txt | awk '{print $NF}')
+INITIAL_CRS_RECV=${INITIAL_CRS_RECV:-0}
+
+echo "--- Test: CREB EID persistence through relay ---"
+
+# Start receiver on Node 3
+cd "$TESTDIR/3.node"
+bpsink ipn:3.1 > sink_output.txt 2>&1 &
+SINK_PID=$!
+sleep 1
+
+# Send from Node 1 with explicit CREB EID and request CRS for rcv+dlv
+# bptrace sends a bundle with status report flags and waits for CRS
+cd "$TESTDIR/1.node"
+bptrace -msg "CREB-EID-PERSIST" -ttl 60 -flags rcv,dlv ipn:1.2 ipn:3.1 ipn:1.0 \
+    > trace_output.txt 2>&1
+
+echo "Waiting for CRS signals to transit relay and return to Node 1..."
+sleep 15
+
+# --- Check 1: No CREB parse errors at any node ---
+echo ""
+echo "--- CREB Parse Error Check ---"
+CREB_ERRORS=0
+for node in 1.node 2.node 3.node; do
+    if [ -f "$TESTDIR/$node/ion.log" ]; then
+        ERR=$(grep -Fc '[?] CREB' "$TESTDIR/$node/ion.log" 2>/dev/null)
+        ERR=${ERR:-0}
+        if [ "$ERR" -gt 0 ]; then
+            CREB_ERRORS=$((CREB_ERRORS + ERR))
+            echo "  $node: $ERR CREB error(s) in log:"
+            grep -F '[?] CREB' "$TESTDIR/$node/ion.log" | sed 's/^/    /'
+        else
+            echo "  $node: no CREB errors"
+        fi
+    fi
+done
+test_result $CREB_ERRORS "No CREB parse errors at any node"
+
+# --- Check 2: CRS signals received at Node 1 ---
+echo ""
+echo "--- CRS Reception at Node 1 ---"
+cd "$TESTDIR/1.node"
+cbrcustodytest -l > final_stats.txt 2>&1
+FINAL_CRS_RECV=$(grep "CRS Signals Recv" final_stats.txt | awk '{print $NF}')
+FINAL_CRS_RECV=${FINAL_CRS_RECV:-0}
+NEW_CRS=$((FINAL_CRS_RECV - INITIAL_CRS_RECV))
+echo "  CRS signals received: $NEW_CRS (baseline was $INITIAL_CRS_RECV)"
+
+if [ "$NEW_CRS" -gt 0 ]; then
+    test_result 0 "CRS signals received at Node 1 ($NEW_CRS new)"
+else
+    test_result 1 "No new CRS signals received at Node 1 (CREB likely malformed at relay)"
+fi
+
+# --- Check 3: Bundle delivered to Node 3 ---
+echo ""
+echo "--- Bundle Delivery ---"
+kill $SINK_PID 2>/dev/null
+if grep -q "CREB-EID-PERSIST" "$TESTDIR/3.node/sink_output.txt" 2>/dev/null; then
+    test_result 0 "Bundle delivered to Node 3"
+else
+    test_result 1 "Bundle NOT delivered to Node 3"
+fi
+
+# Summary
+echo ""
+echo "========================================="
+echo "SUMMARY: $TESTS_PASSED passed, $TESTS_FAILED failed"
+echo "========================================="
+
+[ $TESTS_FAILED -eq 0 ]

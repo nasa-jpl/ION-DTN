@@ -1659,6 +1659,28 @@ static void	manageSrMode(int tokenCount, char **tokens)
 	}
 }
 
+static void	manageCrebExplicitEid(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+	int	enable;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	enable = atoi(tokens[2]);
+	if (cbr_setCrebExplicitEid(sdr, enable) < 0)
+	{
+		putErrmsg("Can't set CREB explicit EID mode.", NULL);
+	}
+	else
+	{
+		printText("CREB explicit EID mode set.");
+	}
+}
+
 static void	manageCbrAggr(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
@@ -1741,6 +1763,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "cbraggr") == 0)
 	{
 		manageCbrAggr(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "crebexpliciteid") == 0)
+	{
+		manageCrebExplicitEid(tokenCount, tokens);
 		return;
 	}
 

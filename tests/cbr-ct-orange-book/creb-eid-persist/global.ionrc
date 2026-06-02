@@ -1,0 +1,12 @@
+## Static contact plan for creb-eid-persist test
+## 3-node relay topology: Node1 <-> Node2 <-> Node3
+
+m horizon +0
+
+a contact +0 +86400 1 2 100000
+a contact +0 +86400 2 1 100000
+a contact +0 +86400 2 3 100000
+a contact +0 +86400 3 2 100000
+
+a range +0 +86400 1 2 1
+a range +0 +86400 2 3 1

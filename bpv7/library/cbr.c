@@ -200,6 +200,35 @@ int	cbr_configure(Sdr sdr, unsigned int crsAggregateLimit,
 	return 0;
 }
 
+int	cbr_getCrebExplicitEid(void)
+{
+	CbrDb	*cbrConstants = getCbrConstants();
+
+	return cbrConstants ? (int) cbrConstants->crebExplicitEid : 0;
+}
+
+int	cbr_setCrebExplicitEid(Sdr sdr, int enable)
+{
+	Object	cbrDbObj;
+	CbrDb	cbrBuf;
+
+	CHKERR(sdr);
+	cbrDbObj = _cbrDbObject(NULL);
+	CHKERR(cbrDbObj);
+
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &cbrBuf, cbrDbObj, sizeof(CbrDb));
+	cbrBuf.crebExplicitEid = (enable ? 1 : 0);
+	sdr_write(sdr, cbrDbObj, (char *) &cbrBuf, sizeof(CbrDb));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't update CREB explicit EID setting.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
 int	cbr_configureRetransmission(Sdr sdr, int strategy,
 		unsigned int intervalSec, unsigned int maxRetransmissions)
 {
