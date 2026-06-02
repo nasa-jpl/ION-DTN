@@ -1389,6 +1389,8 @@ int	cbr_processTimeouts(Sdr sdr)
 	Object		nextElt;
 	Object		signalObj;
 	PendingSignal	signal;
+	Object		cbObj;
+	CustodyBundle	cb;
 	int		count = 0;
 
 	CHKERR(sdr);
@@ -1444,6 +1446,62 @@ int	cbr_processTimeouts(Sdr sdr)
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't process CBR timeouts.", NULL);
+		return -1;
+	}
+
+	/*	Custody retransmit timer walk (CBR_RETX_TIMER only).	*/
+
+	if (cbrConstants->retransmitStrategy != CBR_RETX_TIMER)
+	{
+		return count;
+	}
+
+	CHKERR(sdr_begin_xn(sdr));
+
+	for (elt = sdr_list_first(sdr, cbrConstants->custodyBundles);
+			elt; elt = nextElt)
+	{
+		nextElt = sdr_list_next(sdr, elt);
+		cbObj = sdr_list_data(sdr, elt);
+		sdr_stage(sdr, (char *) &cb, cbObj, sizeof(CustodyBundle));
+
+		if (cb.bundleObj == 0)
+		{
+			continue;
+		}
+
+		if (cbrConstants->maxRetransmissions > 0
+		&& (unsigned int) cb.retransmitCount >= cbrConstants->maxRetransmissions)
+		{
+			continue;
+		}
+
+		if (now - cb.lastTransmit
+				< (time_t) cbrConstants->retransmitIntervalSec)
+		{
+			continue;
+		}
+
+		cb.lastTransmit = now;
+		cb.retransmitCount++;
+		sdr_write(sdr, cbObj, (char *) &cb, sizeof(CustodyBundle));
+
+		if (bpReforwardBundle(cb.bundleObj) < 0)
+		{
+			putErrmsg("CBR: Failed to reforward timed-out bundle.",
+					NULL);
+			sdr_cancel_xn(sdr);
+			return -1;
+		}
+
+		writeMemoNote("[i] CBR: Timer-triggered retransmit, count",
+				itoa(cb.retransmitCount));
+		count++;
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't process CBR retransmit timeouts.", NULL);
 		return -1;
 	}
 

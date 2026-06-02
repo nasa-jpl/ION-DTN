@@ -1,0 +1,13 @@
+## Node 2: custody receiver with no path back to Node 1.
+## Accepts the incoming bundle and takes custody (CTEB handshake),
+## but the CCS it queues for Node 1 is unroutable and abandoned.
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:2.0 x
+a endpoint ipn:2.1 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4592 udpcli
+r 'ipnadmin node.ipnrc'
+m custodymode orangebook
+m srmode compressed
+s

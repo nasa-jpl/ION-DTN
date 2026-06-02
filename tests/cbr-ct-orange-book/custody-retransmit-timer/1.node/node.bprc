@@ -1,0 +1,18 @@
+## Node 1: custody sender.
+## cbrretx timer 5 3: retransmit every 5 seconds, up to 3 times,
+## if no CCS arrives.  Node 2 has no path back so CCS is abandoned,
+## leaving Node 1's custody entry live for the timer to fire.
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.0 x
+a endpoint ipn:1.1 x
+a endpoint ipn:1.2 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4591 udpcli
+a outduct udp 127.0.0.1:4592 udpclo
+r 'ipnadmin node.ipnrc'
+m custodymode orangebook
+m srmode compressed
+m cbraggr 1 1 2
+m cbrretx timer 5 3
+s
