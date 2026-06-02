@@ -45,6 +45,9 @@ typedef struct {
 	unsigned int	retransmitIntervalSec;	/* Timer interval */
 	unsigned int	maxRetransmissions;	/* Max attempts (0=unlimited) */
 
+	/* Explicit CREB source EID flag (for testing/interoperability) */
+	unsigned int	crebExplicitEid;	/* 1 = include sourceEid in CREB */
+
 	/* Statistics counters (for verification/debugging) */
 	unsigned int	ccsAcceptSent;		/* CCS acceptance signals sent */
 	unsigned int	ccsRefuseSent;		/* CCS refusal signals sent */

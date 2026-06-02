@@ -167,9 +167,6 @@ int	creb_offer(ExtensionBlock *blk, Bundle *bundle)
 		return -1;
 	}
 
-	MRELEASE(destEidStr);
-	MRELEASE(sourceEidStr);
-
 	/*	Populate scratchpad with CREB data.			*/
 
 	memset(&scratch, 0, sizeof(CrebScratchpad));
@@ -177,6 +174,26 @@ int	creb_offer(ExtensionBlock *blk, Bundle *bundle)
 	scratch.seqId = bundle->ancillaryData.cbrSeqId;
 	scratch.requestFlags = mapSrrToCrebFlags(bundle->bundleProcFlags);
 	scratch.arrayLen = 3;		/*	[seqNum, seqId, flags]	*/
+
+	/*	When crebExplicitEid is set, include the source EID in
+	 *	the block (arrayLen=4) rather than relying on implicit
+	 *	convention.  Useful for interoperability testing.	*/
+
+	if (cbr_getCrebExplicitEid())
+	{
+		char	*eidStr;
+
+		readEid(&bundle->id.source, &eidStr);
+		if (eidStr)
+		{
+			istrcpy(scratch.sourceEid, eidStr, MAX_EID_LEN);
+			MRELEASE(eidStr);
+			scratch.arrayLen = 4;
+		}
+	}
+
+	MRELEASE(destEidStr);
+	MRELEASE(sourceEidStr);
 
 	/*	Store scratchpad in SDR for later serialization.	*/
 
