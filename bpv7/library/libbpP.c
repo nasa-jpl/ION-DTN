@@ -3800,8 +3800,8 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 
 	if (strlen(metaEid.nss) > MAX_NSS_LEN)
 	{
-		clearMetaEid(&metaEid);
 		writeMemoNote("[?] Endpoint nss is too long", metaEid.nss);
+		clearMetaEid(&metaEid);
 		return 0;
 	}
 

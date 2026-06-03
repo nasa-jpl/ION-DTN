@@ -58,7 +58,7 @@ typedef struct decl_s
 /*	New structure for queued outbound BP messages.			*/
 typedef struct
 {
-	char		destEid[MAX_EP_NAME];
+	char		destEid[MAX_EP_NAME + 1];
 	int		ttl;
 	unsigned char	flowLabel;
 	char		*envelope;
