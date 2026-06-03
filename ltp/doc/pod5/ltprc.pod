@@ -6,7 +6,7 @@ ltprc - Licklider Transmission Protocol management commands file
 
 LTP management commands are passed to B<ltpadmin> either in a file of
 text lines or interactively at B<ltpadmin>'s command prompt (:).  Commands
-are interpreted line-by line, with exactly one command per line.  The formats
+are interpreted line-by-line, with exactly one command per line.  The formats
 and effects of the LTP management commands are described below.
 
 B<Automatic Default Initialization:> When spans are created (via the B<a span>
@@ -95,7 +95,7 @@ retransmission windows of the spans impose flow control on LTP transmission,
 reducing the chance of allocation of all available space in the ION node's data
 store to LTP transmission sessions.
 
-I<max_import_sessions> is simply the neighoring engine's own value for the
+I<max_import_sessions> is simply the neighboring engine's own value for the
 corresponding export session parameter; it is the neighboring engine's
 retransmission window size for this span.  It reduces the chance of allocation
 of all available space in the ION node's data store to LTP reception sessions.

@@ -6,7 +6,7 @@ enabling file naming at the recvfile utility.  Encryption is enabled when a HMAC
 key path (or literal value) is included in the command execution string.
 
 Note: encryption requires a suitable cryptographic library and interface (which
-is avaiable with the ITAR controlled ION NASA Baseline).
+is available with the ITAR controlled ION NASA Baseline).
 
 =head1 SYNOPSIS
 

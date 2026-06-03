@@ -6,7 +6,7 @@ biberc - BIBE configuration commands file
 
 BIBE configuration commands are passed to B<bibeadmin> either in a file of
 text lines or interactively at bibeadmin's command prompt (:).  Commands
-are interpreted line-by line, with exactly one command per line.
+are interpreted line-by-line, with exactly one command per line.
 
 BIBE configuration commands establish the parameters governing transmission
 of BIBE PDUs to specified B<peer> nodes: anticipated delivery latency in the

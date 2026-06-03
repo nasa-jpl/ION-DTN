@@ -38,7 +38,7 @@ same directory of the file system.
 
 Several replay navigation functions in the BSS library require that the
 application provide a navigation state structure of type bssNav as defined
-in the bss.h header file.  The application is not reponsible for populating
+in the bss.h header file.  The application is not responsible for populating
 this structure; it's strictly for the private use of the BSS library.
 
 =over 4

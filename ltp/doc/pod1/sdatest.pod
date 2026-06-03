@@ -1,6 +1,6 @@
 =head1 NAME
 
-sdatest - LTP service data aggreggation test program
+sdatest - LTP service data aggregation test program
 
 =head1 SYNOPSIS
 

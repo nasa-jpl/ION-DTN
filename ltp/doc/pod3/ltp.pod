@@ -42,7 +42,7 @@ transmission of Bundle Protocol data, identified by client ID = 1.
 
 =item int ltp_attach(void)
 
-Attaches the application to LTP functionality on the lcoal computer.  Returns
+Attaches the application to LTP functionality on the local computer.  Returns
 0 on success, -1 on any error.
 
 =item void ltp_detach(void)

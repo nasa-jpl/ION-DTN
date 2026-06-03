@@ -24,7 +24,7 @@ negative acknowledgment or timer expiration; suppression of duplicate
 application data items; aggregation of small application data items into
 large bundle payloads, to reduce bundle protocol overhead; and
 application-controlled elision of redundant data items in aggregated payloads,
-to improve link utiliization.
+to improve link utilization.
 
 =over 4
 

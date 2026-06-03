@@ -6,7 +6,7 @@ dtn2rc - "dtn" scheme configuration commands file
 
 "dtn" scheme configuration commands are passed to B<dtn2admin> either in a
 file of text lines or interactively at B<dtn2admin>'s command prompt (:).
-Commands are interpreted line-by line, with exactly one command per line.
+Commands are interpreted line-by-line, with exactly one command per line.
 
 "dtn" scheme configuration commands establish static routing rules
 for forwarding bundles to nodes identified by "dtn"-scheme destination

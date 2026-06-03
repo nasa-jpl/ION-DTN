@@ -1,6 +1,6 @@
 =head1 NAME
 
-sstcpcli - DTN simple TCP convergence layer input task
+stcpcli - DTN simple TCP convergence layer input task
 
 =head1 SYNOPSIS
 

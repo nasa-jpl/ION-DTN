@@ -8,7 +8,7 @@ B<tccadmin> I<blocks_group_number> [ I<commands_filename> ]
 
 =head1 DESCRIPTION
 
-B<tccadmin> configures and manages the Trusted Collecive client databases
+B<tccadmin> configures and manages the Trusted Collective client databases
 for TC applications on the local ION node, enabling the node to utilize the
 services of one or more collective authorities.
 

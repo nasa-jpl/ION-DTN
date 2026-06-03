@@ -6,7 +6,7 @@ tcarc - Trusted Collective authority configuration commands file
 
 TC authority configuration commands are passed to B<tcaadmin> either
 in a file of text lines or interactively at B<tcaadmin>'s command prompt
-(:).  Commands are interpreted line-by line, with exactly one command per
+(:).  Commands are interpreted line-by-line, with exactly one command per
 line.  The formats and effects of the TC authority configuration
 commands are described below.
 

@@ -6,7 +6,7 @@ ionsecrc - ION security database management commands file
 
 ION security database management commands are passed to B<ionsecadmin>
 either in a file of text lines or interactively at B<ionsecadmin>'s command
-prompt (:).  Commands are interpreted line-by line, with exactly one command per
+prompt (:).  Commands are interpreted line-by-line, with exactly one command per
 line.  The formats and effects of the ION security database management
 commands are described below.
 

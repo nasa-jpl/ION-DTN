@@ -176,7 +176,7 @@ Copies the I<object> member of I<oldblk> to ION database heap space and
 places the address of that new non-volatile object in the I<object> member of
 I<newblk>, also sets I<size> in I<newblk>.  This function is automatically
 called when two copies of a bundle are needed, e.g., in the event that it
-must both be delivered to a local client and also fowarded to another node.
+must both be delivered to a local client and also forwarded to another node.
 Return zero on success, -1 on any system failure.
 
 =item int (*BpAcqExtBlkAcquireFn)(AcqExtBlock *acqblk, AcqWorkArea *work)

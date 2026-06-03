@@ -266,7 +266,7 @@ identified by I<subjectNbr>.
 
 The invitation is extended only to modules registered in the role identified
 by I<roleNbr> (where 0 indicates "all roles"), operating in the continuum
-identifed by I<continuumNbr> (where 0 indicates "all continua"), and
+identified by I<continuumNbr> (where 0 indicates "all continua"), and
 registered within the unit identified by I<unitNbr> (where 0 indicates
 the venture's root unit) or any of that unit's subunits.  These parameters
 define the "domain" of the invitation.
@@ -368,7 +368,7 @@ int contentLength, char *content, int context)
 Sends a message exactly is described above for ams_send(), except that one
 copy of the message is sent to every module in the domain of this function
 (role, continuum, unit) whose invitation for messages on this subject is
-itself characterized by a domain that includes the the sending module, rather
+itself characterized by a domain that includes the sending module, rather
 than to any specific module.
 
 Returns 0 on success, -1 on any error.

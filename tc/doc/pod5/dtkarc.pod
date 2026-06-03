@@ -6,7 +6,7 @@ dtkarc - DTKA user configuration commands file
 
 DTKA user configuration commands are passed to B<dtkaadmin> either
 in a file of text lines or interactively at B<dtkaadmin>'s command prompt
-(:).  Commands are interpreted line-by line, with exactly one command per
+(:).  Commands are interpreted line-by-line, with exactly one command per
 line.  The formats and effects of the DTKA user function administration
 commands are described below.
 
@@ -57,7 +57,7 @@ value is 604800 (one week).
 
 =item B<m leadtime> I<key_pair_effectivenes_lead_time>
 
-The B<manage key pair effectivenes lead time> command.  This interval,
+The B<manage key pair effectiveness lead time> command.  This interval,
 expressed as a number of seconds, controls the length of time after the
 time of key pair generation at which the key pair will become effective.
 The default value is 345600 (four days).

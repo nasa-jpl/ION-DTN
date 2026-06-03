@@ -6,7 +6,7 @@ tccrc - Trusted Collective client configuration commands file
 
 TC client configuration commands are passed to B<tccadmin> either
 in a file of text lines or interactively at B<tccadmin>'s command prompt
-(:).  Commands are interpreted line-by line, with exactly one command per
+(:).  Commands are interpreted line-by-line, with exactly one command per
 line.  The formats and effects of the TC client configuration commands
 are described below.
 

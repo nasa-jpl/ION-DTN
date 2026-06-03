@@ -6,12 +6,12 @@ bpsecrc - BP security policy management commands file
 
 BP security policy management commands are passed to B<bpsecadmin> either
 in a file of text lines or interactively at B<bpsecadmin>'s command prompt
-(:).  Commands are interpreted line-by line, with exactly one command per
+(:).  Commands are interpreted line-by-line, with exactly one command per
 line.  JSON commands may span multiple lines when provided as part of a config
 file.  The formats and effects of the BP security policy management commands
 are described below.
 
-A parameter identifed as an I<eid_expr> is an "endpoint ID expression."  For
+A parameter identified as an I<eid_expr> is an "endpoint ID expression."  For
 all commands, whenever the last character of an endpoint ID expression is
 the wild-card character '*', an applicable endpoint ID "matches" this EID
 expression if all characters of the endpoint ID expression prior to the last
