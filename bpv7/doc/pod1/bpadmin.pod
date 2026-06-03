@@ -73,22 +73,6 @@ The following diagnostics may be issued to the logfile ion.log:
 
 =over 4
 
-=item ION can't set custodian EID information.
-
-The I<custodial_endpoint_id> specified in the BP initialization ('1')
-command is malformed.  Remember that the format for this argument is
-ipn:I<element_number>.0 and that the final 0 is required, as
-custodial/administration service is always service 0.  Additional detail
-for this error is provided if one of the following other errors is present:
-
-=over 4
-
-Malformed EID.
-
-Malformed custodian EID.
-
-=back
-
 =item bpadmin can't attach to ION.
 
 There is no SDR data store for I<bpadmin> to use.  You should run ionadmin(1)

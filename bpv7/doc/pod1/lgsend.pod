@@ -81,7 +81,7 @@ Load/Go command file is too large.  Split it into multiple files if possible.
 
 ION system problem: have exhausted available SDR data store reserves.
 
-=item lgsend: fgets failed: I<error description>
+=item lgsend: igets failed.
 
 Operating system problem.  Investigate and correct before rerunning.
 

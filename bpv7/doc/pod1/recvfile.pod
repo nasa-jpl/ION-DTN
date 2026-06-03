@@ -64,31 +64,18 @@ open; the easiest workaround is to select a different source endpoint.
 
 =item recvfile bundle reception failed.
 
-BP system error.  Check for earlier diagnostic messages describing the
-cause of the error; correct problem and rerun.
-
-=item recvfile: can't open test file
-
-File system error.  B<recvfile> terminates.
-
 =item recvfile: can't receive bundle content.
-
-BP system error.  Check for earlier diagnostic messages describing the
-cause of the error; correct problem and rerun.
-
-=item recvfile: can't write to test file
-
-File system error.  B<recvfile> terminates.
 
 =item recvfile cannot continue.
 
 BP system error.  Check for earlier diagnostic messages describing the
 cause of the error; correct problem and rerun.
 
-=item recvfile: can't handle bundle delivery.
+=item recvfile: can't open test file
 
-BP system error.  Check for earlier diagnostic messages describing the
-cause of the error; correct problem and rerun.
+=item recvfile: can't write to test file
+
+File system error.  B<recvfile> terminates.
 
 =back
 

@@ -65,11 +65,11 @@ The following diagnostics may be issued to the B<ion.log> log file:
 
 B<cfdpadmin> has not yet initialized CFDP protocol operations.
 
-=item Can't dispatch events.
+=item Can't scan inbound FDUs.
 
 An unrecoverable database error was encountered.  B<cfdpclock> terminates.
 
-=item Can't manage links.
+=item Can't scan pending closures.
 
 An unrecoverable database error was encountered.  B<cfdpclock> terminates.
 
