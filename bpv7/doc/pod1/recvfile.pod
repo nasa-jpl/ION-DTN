@@ -85,11 +85,6 @@ File system error.  B<recvfile> terminates.
 BP system error.  Check for earlier diagnostic messages describing the
 cause of the error; correct problem and rerun.
 
-=item recvfile: can't handle bundle delivery.
-
-BP system error.  Check for earlier diagnostic messages describing the
-cause of the error; correct problem and rerun.
-
 =back
 
 =head1 BUGS

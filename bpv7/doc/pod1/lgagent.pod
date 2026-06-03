@@ -85,10 +85,6 @@ ION system problem: have exhausted available SDR data store reserves.
 
 ION system problem: have exhausted available SDR data store reserves.
 
-=item lgagent: can't handle bundle delivery.
-
-ION system problem.  Investigate and correct before restarting.
-
 =item lgagent: pseudoshell failed.
 
 Error in directive line, usually an attempt to execute a non-existent

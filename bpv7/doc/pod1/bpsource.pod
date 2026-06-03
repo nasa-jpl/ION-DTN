@@ -62,7 +62,7 @@ file I<ion.log>.
 
 B<bpadmin> has not yet initialized Bundle Protocol operations.
 
-=item bpsource fgets failed
+=item bpsource igets failed
 
 Operating system error.  Check errtext, correct problem, and rerun.
 

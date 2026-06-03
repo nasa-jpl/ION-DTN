@@ -42,6 +42,18 @@ Checks performed
    presenting it to <X>admin") must therefore name `<X>rc`; any other name is a
    copy-paste slip (e.g. the security admins inheriting "ionrc" from ionadmin).
 
+7. diagnostics  (pod1 DIAGNOSTICS <-> source error strings)
+   Each `=item` under a pod1 page's `=head1 DIAGNOSTICS` should correspond to an
+   error string emitted by the program's source (`<name>.c`). For every
+   documented diagnostic we look for the source string literal that best covers
+   its words (program-name prefix and I<...> placeholders removed); if the best
+   coverage is below DIAG_MATCH_THRESHOLD the diagnostic is flagged as not found
+   in the source. Catches stale/renamed messages (e.g. lgsend's "fgets failed"
+   where the code emits "igets failed") and entirely fictional diagnostics (e.g.
+   lgagent's "can't handle bundle delivery", which no code path emits). Only the
+   pod->source direction is checked; the reverse (undocumented messages) is left
+   alone because ION pods intentionally summarize rather than list every errmsg.
+
 POD / source conventions encoded here
 -------------------------------------
 * Commands are documented as `=item B<X...>`; the command code is the first char.
@@ -421,6 +433,59 @@ def admin_config_file_refs(text):
     return set(CONFIG_FILE_NOTE_RE.findall(text))
 
 
+# Fraction of a documented diagnostic's words that must be covered by a single
+# source string literal for it to count as "found in the source".
+DIAG_MATCH_THRESHOLD = 0.6
+
+
+def pod_diagnostics(text):
+    """Return the raw text of each `=item` under a pod's DIAGNOSTICS section.
+    Items that are wholly a single B<...> bold span are section/category
+    headings (e.g. bptracker's "B<Normal operation>"), not message strings, and
+    are skipped."""
+    m = re.search(r"(?ms)^=head1[ \t]+DIAGNOSTICS\b(.*?)(?=^=head1[ \t]|\Z)",
+                  text)
+    if not m:
+        return []
+    items = re.findall(r"(?m)^=item[ \t]+(.*\S)[ \t]*$", m.group(1))
+    return [d for d in items if not re.fullmatch(r"B<[^>]*>", d.strip())]
+
+
+def source_error_strings(text):
+    """Return the set of C string literals in a source file, joining
+    backslash-newline continuations so multi-line errmsgs stay intact."""
+    text = _strip_c_comments(text)
+    text = text.replace("\\\n", "")          # join line continuations
+    out = set()
+    for s in re.findall(r'"((?:[^"\\]|\\.)*)"', text):
+        out.add(re.sub(r"\\.", " ", s))      # collapse \n, \t, \" ... to space
+    return out
+
+
+def _words(s):
+    """Lower-cased word list; apostrophes are dropped first so contractions
+    ("can't") stay a single token rather than splitting into "can" + "t"."""
+    s = s.lower().replace("'", "").replace("’", "")
+    return re.findall(r"[a-z0-9]+", s)
+
+
+def _diag_tokens(s, progname):
+    """Word set of a diagnostic, with I<...> placeholders and the leading
+    program-name token removed."""
+    s = re.sub(r"I<[^>]*>", " ", s)          # drop variable placeholders
+    s = re.sub(r"[A-Z]<([^>]*)>", r"\1", s)  # unwrap other B<>/C<> wrappers
+    return {t for t in _words(s) if t != progname}
+
+
+def diagnostic_is_documented(diag_tokens, src_token_sets):
+    """True if some source string covers at least DIAG_MATCH_THRESHOLD of the
+    diagnostic's words."""
+    if not diag_tokens:
+        return True                          # nothing distinctive to match
+    best = max((len(diag_tokens & s) for s in src_token_sets), default=0)
+    return best / len(diag_tokens) >= DIAG_MATCH_THRESHOLD
+
+
 # --------------------------------------------------------------------------- #
 # Driver                                                                      #
 # --------------------------------------------------------------------------- #
@@ -540,6 +605,82 @@ def collect_findings(root):
                     findings.append(
                         f"[adminrc] {rel}: config-file note names '{named}' but "
                         f"{name} reads '{expected}'")
+
+    # 7: pod1 DIAGNOSTICS vs source error strings.
+    #
+    # NOTE: this check is ONE-DIRECTIONAL (pod -> source). It verifies that each
+    # documented diagnostic corresponds to a real source string, catching
+    # fictional/stale/misattributed entries. It does NOT check completeness:
+    # source error strings (putErrmsg/putSysErrmsg/writeMemo) that are missing
+    # from the pod's DIAGNOSTICS section are NOT flagged. ION pods intentionally
+    # summarize ("...a variety of other diagnostics may also be reported."), so a
+    # strict source -> pod completeness check would be very noisy.
+    # TODO: optionally add a soft, report-only completeness mode that lists
+    # undocumented operator-facing source strings per program (advisory, not a
+    # CI failure) so a human can pick the relevant ones to document.
+    #
+    # A program's diagnostics may be emitted by its own .c OR by library code it
+    # links, so the corpus is the program's top-level module plus the shared
+    # ici/ foundation - NOT the global tree, which would mask genuine copy-paste
+    # bugs (an lgagent message that really lives in an unrelated module). Test
+    # directories are kept OUT of the bulk corpus so one test program's strings
+    # cannot mask a sibling's bug, but a program's *own* source is always
+    # included even when it lives under test/.
+    SKIP_DIRS = {"tests", "test", "arch-rtems", "build"}
+    module_c = {}                  # module -> [rel .c paths] (no test scaffolding)
+    prog_paths = {}                # basename -> [rel .c paths] (incl. test progs)
+    for dirpath, _dirs, files in os.walk(root):
+        parts = set(dirpath.split(os.sep))
+        if "arch-rtems" in parts or "build" in parts:
+            continue
+        reldir = os.path.relpath(dirpath, root)
+        module = "" if reldir == "." else reldir.split(os.sep)[0]
+        in_test = bool(SKIP_DIRS & parts)
+        for fn in files:
+            if not fn.endswith(".c"):
+                continue
+            rel = os.path.relpath(os.path.join(dirpath, fn), root)
+            prog_paths.setdefault(fn[:-2], []).append(rel)
+            if not in_test:
+                module_c.setdefault(module, []).append(rel)
+
+    module_tokens = {}             # module -> [token set per source literal]
+    def tokens_for(module):
+        if module not in module_tokens:
+            sets = []
+            for sc in set(module_c.get(module, []) + module_c.get("ici", [])):
+                for lit in source_error_strings(read(root, sc)):
+                    sets.append(set(_words(lit)))
+            module_tokens[module] = sets
+        return module_tokens[module]
+
+    for dirpath, _dirs, files in os.walk(root):
+        if os.sep + "pod1" not in dirpath + os.sep:
+            continue
+        module = os.path.relpath(dirpath, root).split(os.sep)[0]
+        in_module = set(module_c.get(module, []))
+        for fn in sorted(files):
+            if not fn.endswith(".pod"):
+                continue
+            name = fn[:-4]
+            if name not in prog_paths:         # no <name>.c -> not a program
+                continue
+            rel = os.path.relpath(os.path.join(dirpath, fn), root)
+            diags = pod_diagnostics(read(root, rel))
+            if not diags:
+                continue
+            src_tokens = list(tokens_for(module))
+            for sc in prog_paths[name]:        # always fold in the program's own
+                if sc in in_module:            # source (test programs aren't yet)
+                    continue
+                for lit in source_error_strings(read(root, sc)):
+                    src_tokens.append(set(_words(lit)))
+            for d in diags:
+                if not diagnostic_is_documented(_diag_tokens(d, name),
+                                                src_tokens):
+                    findings.append(
+                        f"[diag] {rel}: documented diagnostic not found in "
+                        f"source: \"{d}\"")
 
     return sorted(set(findings))
 

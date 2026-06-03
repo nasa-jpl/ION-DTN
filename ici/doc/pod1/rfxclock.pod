@@ -69,19 +69,13 @@ The following diagnostics may be issued to the B<ion.log> log file:
 
 B<ionadmin> has not yet initialized the ION database.
 
-=item Can't apply ranges.
+=item Failed handling event.
 
-An unrecoverable database error was encountered.  B<rfxclock> terminates.
+An RFX timeline event (contact or range start/stop) could not be applied
+because an unrecoverable database error was encountered.  B<rfxclock>
+terminates.
 
-=item Can't apply contacts.
-
-An unrecoverable database error was encountered.  B<rfxclock> terminates.
-
-=item Can't purge ranges.
-
-An unrecoverable database error was encountered.  B<rfxclock> terminates.
-
-=item Can't purge contacts.
+=item Can't do ION 1Hz updates.
 
 An unrecoverable database error was encountered.  B<rfxclock> terminates.
 

@@ -96,10 +96,6 @@ B<bpadmin> has not yet initialized BP operations.
 
 An unrecoverable database error was encountered.  B<bpclock> terminates.
 
-=item Can't adjust throttles.
-
-An unrecoverable database error was encountered.  B<bpclock> terminates.
-
 =back
 
 =head1 BUGS

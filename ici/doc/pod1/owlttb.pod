@@ -106,7 +106,7 @@ The program terminates.
 
 The program terminates.
 
-=item owlttb fgets failed
+=item owlttb igets failed
 
 The program terminates.
 

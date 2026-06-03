@@ -113,10 +113,6 @@ System error.  Check ION log; correct the problem and restart BIBE.
 
 System error.  Check ION log; correct the problem and restart BIBE.
 
-=item Can't get outbound space for BPDU.
-
-System error.  Check ION log; correct the problem and restart BIBE.
-
 =item Can't send encapsulated bundle.
 
 System error.  Check ION log; correct the problem and restart BIBE.
