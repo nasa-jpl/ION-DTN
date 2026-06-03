@@ -183,6 +183,8 @@ payload length");
 	PUTS("\tr\tRun another admin program");
 	PUTS("\t   r '<admin command>'");
 	PUTS("\ts\tStart");
+	PUTS("\tt\tStartup-test");
+	PUTS("\t   t [p [<timeout>]]");
 	PUTS("\tx\tStop");
 	PUTS("\t   {s|x}");
 	PUTS("\t   {s|x} scheme <scheme name>");

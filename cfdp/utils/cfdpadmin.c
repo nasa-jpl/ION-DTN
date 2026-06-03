@@ -113,6 +113,8 @@ static void	printUsage(void)
 	PUTS("\t   s '<UTA command>'");
 	PUTS("\t   s 'bputa'              - Start bputa only");
 	PUTS("\t   s 'bputa proxy'        - Start bputa with bpcpd proxy daemon");
+	PUTS("\tt\tStartup-test");
+	PUTS("\t   t [p [<timeout>]]");
 	PUTS("\tx\tStop");
 	PUTS("\t   x");
 	PUTS("\tw\tWatch CFDP activity");

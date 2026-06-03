@@ -121,6 +121,8 @@ See man(5) for ltprc.");
 	PUTS("\ts\tStart");
 	PUTS("\t   s ['<LSI command>']");
 	PUTS("\t   s span <engine ID>");
+	PUTS("\tt\tStartup-test");
+	PUTS("\t   t [p [<timeout>]]");
 	PUTS("\tx\tStop");
 	PUTS("\t   x");
 	PUTS("\t   x span <engine ID>");

@@ -102,6 +102,10 @@ combine with B<e 1> command to log the version number at startup.
 The B<help> command.  This will display a listing of the commands and their
 formats.  It is the same as the B<?> command.
 
+=item B<q>
+
+The B<quit> command.  Terminates the program immediately.
+
 =back
 
 =head1 PLAN COMMANDS

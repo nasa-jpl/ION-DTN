@@ -192,6 +192,8 @@ in bytes per second> [confidence in occurrence]");
 	PUTS("\t   r '<command>'");
 	PUTS("\ts\tStart");
 	PUTS("\t   s");
+	PUTS("\tt\tStartup-test");
+	PUTS("\t   t [p [<timeout>]]");
 	PUTS("\tx\tStop");
 	PUTS("\t   x");
 	PUTS("\tw\tWatch - Enable auto-launch of monitoring daemons");
