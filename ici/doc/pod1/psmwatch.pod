@@ -15,7 +15,7 @@ B<psmwatch> B<-d> [ I<interval_minutes> [ I<percent_threshold> [ I<warn_pct> [ I
 For I<count> interations, B<psmwatch> sleeps I<interval> seconds and then
 invokes the psm_print_trace() function (see psm(3)) to report on PSM dynamic
 memory management activity in the PSM-managed shared memory partition
-identified by I<shared_memory_key> (hexidecimal or decimal) during that interval.
+identified by I<shared_memory_key> (hexadecimal or decimal) during that interval.
 If the optional B<verbose> parameter is specified, the printed PSM activity trace will be
 verbose as described in psm(3).
 

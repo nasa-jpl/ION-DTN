@@ -6,7 +6,7 @@ ionrc - ION node management commands file
 
 ION node management commands are passed to B<ionadmin> either in a file of
 text lines or interactively at B<ionadmin>'s command prompt (:).  Commands
-are interpreted line-by line, with exactly one command per line.  The formats
+are interpreted line-by-line, with exactly one command per line.  The formats
 and effects of the ION node management commands are described below.
 
 =head1 TIME REPRESENTATION
@@ -92,7 +92,7 @@ i.e., an offset beyond the current reference time.
 The B<region> command.  This is used to select the region to which
 all ensuing "contact" operations (until this execution of ionadmin
 terminates, or until the next B<region> command is processed) pertain.
-A B<region> is an arbitarily managed set of nodes that customarily are able
+A B<region> is an arbitrarily managed set of nodes that customarily are able
 to use contact graph routing to compute forwarding routes among themselves,
 and which consequently share a common contact plan.  As such, there is a
 one-to-one correspondence between regions and contact plans, so in

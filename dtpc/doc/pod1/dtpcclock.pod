@@ -78,7 +78,7 @@ An unrecoverable database error was encountered.  B<dtpcclock> terminates.
 
 An unrecoverable database error was encountered.  B<dtpcclock> terminates.
 
-=item Could not scan outbound Adus
+=item Could not scan outbound ADUs
 
 An unrecoverable database error was encountered.  B<dtpcclock> terminates.
 

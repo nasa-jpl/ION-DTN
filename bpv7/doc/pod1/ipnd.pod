@@ -72,7 +72,7 @@ transmissions.  Time interval is expressed in seconds.  Default is 7.
 
 =item B<m interval broadcast> I<interval>
 
-Broadcastcast interval.  This command sets the beacon messages period on
+Broadcast interval.  This command sets the beacon messages period on
 broadcast transmissions.  Time interval is expressed in seconds.  Default is 11.
 
 =item B<m multicast ttl> I<ttl>
@@ -109,7 +109,7 @@ listen for incoming beacons; a default port number is used.  The address can
 be an unicast, a multicast or a broadcast address.  If a multicast address is
 provided all the configured unicast addresses will listen for multicast packets
 in that group.  If a broadcast address is provided all the unicast
-addresses will listen for broadcasted packets.
+addresses will listen for broadcast packets.
 
 =item B<a destination> I<destination_socket_spec>
 
@@ -126,7 +126,7 @@ ION node.
 
 =head1 EXAMPLES
 
-m scvdef 128 FooRouter Seed:SeedVal BaseWeight:WeightVal RootHash:bytes
+m svcdef 128 FooRouter Seed:SeedVal BaseWeight:WeightVal RootHash:bytes
 
 Defines a new service called FooRouter comprising 3 elements.  SeedVal
 and WeightVal are user defined services that must be already defined.

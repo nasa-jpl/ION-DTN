@@ -10,7 +10,7 @@ B<amsmib> I<application_name> I<authority_name> I<role_name> I<continuum_name> I
 
 B<amsmib> is a utility program that announces relatively brief Management
 Information Base (MIB) updates to a select population of AMS modules.  Because
-B<amsd> processes may run AAMS modules in background threads, and because a
+B<amsd> processes may run AMS modules in background threads, and because a
 single MIB is shared in common among all threads of any process, B<amsmib> may
 update the MIBs used by registrars and/or configuration servers as well.
 
@@ -27,7 +27,7 @@ registers in the role "amsmib"; if this role is not defined in the (initial)
 MIB loaded by B<amsmib> at registration time, then registration fails and
 B<amsmib> terminates.
 
-B<amsmib> then reads into a memory buffer up to 4095 bytes of MIB update
+B<amsmib> then reads into a memory buffer up to 4096 bytes of MIB update
 text from the file identified by I<file_name>.  The MIB update text must
 conform to amsxml(5) or amsrc(5) syntax, depending on whether or not the
 intended recipient modules were configured with the --with-expat option.

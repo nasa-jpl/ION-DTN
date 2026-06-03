@@ -6,7 +6,7 @@ cfdprc - CCSDS File Delivery Protocol management commands file
 
 CFDP management commands are passed to B<cfdpadmin> either in a file of
 text lines or interactively at B<cfdpadmin>'s command prompt (:).  Commands
-are interpreted line-by line, with exactly one command per line.  The formats
+are interpreted line-by-line, with exactly one command per line.  The formats
 and effects of the CFDP management commands are described below.
 
 =head1 COMMANDS
@@ -124,7 +124,7 @@ The B<manage event queue limit> command.  This command establishes the
 maximum number of unread service indications (CFDP "events") that may be
 queued up for delivery at any time.  When the events queue length exceeds
 this figure, events are simply deleted (in decreasing age order, oldest
-first) until the the limit is no longer exceeded.  Default value is 20.
+first) until the limit is no longer exceeded.  Default value is 20.
 
 =item B<m maxtrnbr> I<max_transaction_number>
 

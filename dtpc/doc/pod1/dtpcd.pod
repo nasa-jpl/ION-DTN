@@ -12,7 +12,7 @@ B<dtpcd> is a background "daemon" task that manages the reception and
 processing of DTPC protocol data units.  It receives the payloads
 of bundles destined for the "ipn"-scheme endpoint whose node identifier is the
 identifier of the local node and whose service number is the DTPC_RECV_SVC_NBR
-(129 as of the time of this writeng).
+(129 as of the time of this writing).
 
 DTPC protocol data units are of two types: application data units (ADUs,
 i.e., aggregations of application data items) and acknowledgments.  Each

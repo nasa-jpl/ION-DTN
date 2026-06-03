@@ -19,7 +19,7 @@ and a registrar for the root unit of the indicated venture (which may
 both be instantiated in a single B<amsd> daemon task) must be running
 in order for B<ramsgate> to commence operations.
 
-B<ramsgate> with communicate with other RAMS gateway modules in other
+B<ramsgate> will communicate with other RAMS gateway modules in other
 continua by means of the RAMS network protocol noted in the RAMS gateway
 endpoint ID for the local continuum, as identified (explicitly or implicitly)
 in the MIB.

@@ -6,7 +6,7 @@ ltpsecrc - LTP security policy management commands file
 
 LTP security policy management commands are passed to B<ltpsecadmin> either
 in a file of text lines or interactively at B<ltpsecadmin>'s command prompt
-(:).  Commands are interpreted line-by line, with exactly one command per
+(:).  Commands are interpreted line-by-line, with exactly one command per
 line.  The formats and effects of the LTP security policy management commands
 are described below.
 

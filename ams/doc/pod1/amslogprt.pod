@@ -9,7 +9,7 @@ B<amslogprt>
 =head1 DESCRIPTION
 
 B<amslogprt> simply reads AMS activity log messages from standard input
-(nominally written by B<amslog> and prints them.  When the content of a
+(nominally written by B<amslog>) and prints them.  When the content of a
 logged message is judged not to be an ASCII text string, the content is
 printed in hexadecimal.
 

@@ -6,7 +6,7 @@ bssprc - Bundle Streaming Service Protocol management commands file
 
 BSSP management commands are passed to B<bsspadmin> either in a file of
 text lines or interactively at B<bsspadmin>'s command prompt (:).  Commands
-are interpreted line-by line, with exactly one command per line.  The formats
+are interpreted line-by-line, with exactly one command per line.  The formats
 and effects of the BSSP management commands are described below.
 
 =head1 COMMANDS

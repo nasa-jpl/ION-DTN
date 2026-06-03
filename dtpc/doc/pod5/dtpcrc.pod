@@ -6,7 +6,7 @@ dtpcrc - Delay-Tolerant Payload Conditioning management commands file
 
 DTPC management commands are passed to B<dtpcadmin> either in a file of
 text lines or interactively at B<dtpcadmin>'s command prompt (:).  Commands
-are interpreted line-by line, with exactly one command per line.  The formats
+are interpreted line-by-line, with exactly one command per line.  The formats
 and effects of the DTPC management commands are described below.
 
 =head1 COMMANDS

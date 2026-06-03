@@ -11,7 +11,7 @@ B<recvfile> I<own_endpoint_ID> [I<-o|--overwrite>] [I<key_file_path | literal_ke
 B<recvfile> is intended to serve as the counterpart to B<sendfile>.  It
 uses bp_receive() to receive bundles containing the file content.  The content
 of each bundle is written to a file and named using data extracted from
-the metadata header.  The program's default behavior auto-encrements file
+the metadata header.  The program's default behavior auto-increments file
 names but this behavior can be disabled with the -o (or --overwrite) flag.
 
 Additionally, if used with ION-NASA Baseline, B<recvfile> allows for
@@ -19,7 +19,7 @@ the decryption of encrypted files sent by B<sendfile>. To enable decryption use
 the path to a valid HMAC key or a literal key value.
 
 Note: decryption requires a suitable cryptographic library and interface (which is
-avaiable with the ITAR controlled ION NASA Baseline).
+available with the ITAR controlled ION NASA Baseline).
 
 The maximum receivable file content size is limited to 10% of the ION
 working memory (wmSize).  Files exceeding this limit will be rejected.

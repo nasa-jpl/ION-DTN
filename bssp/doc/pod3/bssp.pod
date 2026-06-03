@@ -48,7 +48,7 @@ transmission of Bundle Protocol data, identified by client ID = 1.
 
 =item int bssp_attach(void)
 
-Attaches the application to BSSP functionality on the lcoal computer.  Returns
+Attaches the application to BSSP functionality on the local computer.  Returns
 0 on success, -1 on any error.
 
 =item void bssp_detach(void)

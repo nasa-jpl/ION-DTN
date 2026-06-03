@@ -1,6 +1,6 @@
 =head1 NAME
 
-ams - CCSDS Asynchronous Message Service(AMS) communications library
+ams - CCSDS Asynchronous Message Service (AMS) communications library
 
 =head1 SYNOPSIS
 
@@ -255,7 +255,7 @@ Returns 0 on success.  On any error, sets I<module> to NULL and returns -1.
 
 =item int ams_unregister(AmsModule module)
 
-Reverses the operation of ams_unregister(), destroying I<module>.  Returns
+Reverses the operation of ams_register(), destroying I<module>.  Returns
 0 on success, -1 on any error.
 
 =item int ams_invite(AmsModule module, int roleNbr, short continuumNbr,
@@ -267,7 +267,7 @@ identified by I<subjectNbr>.
 
 The invitation is extended only to modules registered in the role identified
 by I<roleNbr> (where 0 indicates "all roles"), operating in the continuum
-identifed by I<continuumNbr> (where 0 indicates "all continua"), and
+identified by I<continuumNbr> (where 0 indicates "all continua"), and
 registered within the unit identified by I<unitNbr> (where 0 indicates
 the venture's root unit) or any of that unit's subunits.  These parameters
 define the "domain" of the invitation.
@@ -336,12 +336,12 @@ Returns 0 on success, -1 on any error.
 int moduleNbr, short subjectNbr, int priority, unsigned char flowLabel,
 int contentLength, char *content, int context, int term, AmsEvent *event)
 
-Sends a message exactly is described above for ams_send(), but additionally
+Sends a message exactly as described above for ams_send(), but additionally
 suspends the delivery and processing of newly received messages until either
 (a) a "reply" message sent in response to this message is received or (b) the
 time interval indicated by I<term>, in seconds, expires.  The event (reply or
 timeout) that ends the suspension of processing is provided in I<event> (as
-if from ams_get_event() when the function returns.
+if from ams_get_event()) when the function returns.
 
 If I<term> is AMS_BLOCKING then the timeout interval is indefinite; only
 reception of a reply message enables the function to return.  If I<term> is
@@ -353,7 +353,7 @@ Returns 0 on success, -1 on any error.
 =item int ams_reply(AmsModule module, AmsEvent msg, short subjectNbr,
 int priority, unsigned char flowLabel, int contentLength, char *content)
 
-Sends a message exactly is described above for ams_send(), except that the
+Sends a message exactly as described above for ams_send(), except that the
 destination of the message is the sender of the message identified by I<msg>
 and the "context" value included in the message is the context that was
 provided in I<msg>.  This message is identified as a "reply" message that
@@ -366,10 +366,10 @@ Returns 0 on success, -1 on any error.
 int unitNbr, short subjectNbr, int priority, unsigned char flowLabel,
 int contentLength, char *content, int context)
 
-Sends a message exactly is described above for ams_send(), except that one
+Sends a message exactly as described above for ams_send(), except that one
 copy of the message is sent to every module in the domain of this function
 (role, continuum, unit) whose invitation for messages on this subject is
-itself characterized by a domain that includes the the sending module, rather
+itself characterized by a domain that includes the sending module, rather
 than to any specific module.
 
 Returns 0 on success, -1 on any error.
@@ -423,7 +423,7 @@ be called when the event type of I<event> is known to be NOTICE_EVT.
 
 Note that different fields will be populated depending on the nature of the
 notice in I<event>.  I<state> will be set to AmsRegistrationState,
-AmsInvitationState, or AmsSubscription state depending on whether the
+AmsInvitationState, or AmsSubscriptionState depending on whether the
 notice pertains to a change in module registration, a change in invitations,
 or a change in subscriptions.  I<change> will be set to AmsStateBegins or
 AmsStateEnds depending on whether the notice pertains to the initiation or

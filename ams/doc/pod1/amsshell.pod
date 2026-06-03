@@ -18,7 +18,7 @@ continuum and a registrar for the indicated unit of the indicated venture
 (which may both be instantiated in a single B<amsd> daemon task) must be
 running in order for B<amsshell> to run.
 
-B<amsshell> runs as two threads: a background thread that receives watches
+B<amsshell> runs as two threads: a background thread that watches
 for AMS configuration events (including shutdown), together with a foreground
 thread that acquires operating parameters and message content in lines of
 console input to control the issuance of messages.

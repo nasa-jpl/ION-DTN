@@ -6,7 +6,7 @@ bprc - Bundle Protocol management commands file
 
 Bundle Protocol management commands are passed to B<bpadmin> either in a file of
 text lines or interactively at B<bpadmin>'s command prompt (:).  Commands
-are interpreted line-by line, with exactly one command per line.  The formats
+are interpreted line-by-line, with exactly one command per line.  The formats
 and effects of the Bundle Protocol management commands are described below.
 
 =head1 GENERAL COMMANDS
@@ -67,7 +67,7 @@ event that all acquisition is into a file.
 The B<manage primary CRC type for source bundle> command.  This command sets
 the CRC type for the primary block in every locally sourced bundle.  CRC types
 are indicated by '0' for no CRC applied, '1' for CRC16, and '2' for CRC32.  See
-the Bundle Protocol specficiation for detailed definition of the CRC types.  The
+the Bundle Protocol specification for detailed definition of the CRC types.  The
 default value is 1 (CRC16).  Primary CRC types for bundles being relayed will
 preserve the original setting at the source node, not impacted by these settings.
 
@@ -76,7 +76,7 @@ preserve the original setting at the source node, not impacted by these settings
 The B<manage payload CRC type for source bundle> command.  This command sets
 the CRC type for the payload block in every locally sourced bundle.  CRC types
 are indicated by '0' for no CRC applied, '1' for CRC16, and '2' for CRC32.  See
-the Bundle Protocol specficiation for detailed definition of the CRC types.  The
+the Bundle Protocol specification for detailed definition of the CRC types.  The
 default value is 1 (CRC16).  Payload CRC types for bundles being relayed will
 preserve the original setting at the source node, not impacted by these settings.
 

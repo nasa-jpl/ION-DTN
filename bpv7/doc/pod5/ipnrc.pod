@@ -6,7 +6,7 @@ ipnrc - IPN scheme configuration commands file
 
 IPN scheme configuration commands are passed to B<ipnadmin> either in a file of
 text lines or interactively at B<ipnadmin>'s command prompt (:).  Commands
-are interpreted line-by line, with exactly one command per line.
+are interpreted line-by-line, with exactly one command per line.
 
 IPN scheme configuration commands (a) establish egress plans for direct
 transmission to neighboring nodes that are members of endpoints identified

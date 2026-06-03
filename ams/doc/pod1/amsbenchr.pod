@@ -10,7 +10,7 @@ B<amsbenchr>
 
 B<amsbenchr> is a test program that simply subscribes to subject "bench"
 and receives messages published by B<amsbenchs> until all messages in the
-test - as indicated by the count of remaining messages, in in the first
+test - as indicated by the count of remaining messages, in the first
 four bytes of each message - have been received.  Then it stops receiving
 messages, calculates and prints performance statistics, and terminates.
 
