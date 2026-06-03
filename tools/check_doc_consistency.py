@@ -29,6 +29,12 @@ Checks performed
 4. pod1_synopsis  (pod1 structure)
    Every section-1 man page must contain a `=head1 SYNOPSIS` block.
 
+5. cross_references  (pod <-> pod)
+   Every `name(section)` man-page reference (e.g. in SEE ALSO) must resolve to a
+   pod in the repo at that section, or be a known external/system man page
+   (EXTERNAL_MANPAGES). Catches broken refs (no such page) and wrong-section
+   refs (page exists but in a different section).
+
 POD / source conventions encoded here
 -------------------------------------
 * Commands are documented as `=item B<X...>`; the command code is the first char.
@@ -114,6 +120,28 @@ POD3_API = {
 
 # pod1 man pages to skip in the SYNOPSIS structure check (handled elsewhere).
 POD1_SYNOPSIS_SKIP = {"bpsh", "bpshd"}
+
+# System / third-party man pages legitimately referenced by ION pods (i.e. not
+# expected to have a pod in this repo). "name(section)" form. The cross-reference
+# check flags any name(section) reference that neither resolves to a repo pod nor
+# appears here.
+EXTERNAL_MANPAGES = {
+    # libc / POSIX
+    "creat(2)", "open(2)", "socket(2)", "time(2)", "getcwd(3)", "getrandom(2)",
+    "strcat(3)", "strcmp(3)", "strcpy(3)", "strlen(3)", "string(3)",
+    "arc4random_buf(3)",
+    # platform-specific RNG / crypto
+    "BCryptGenRandom(3)", "SecRandomCopyBytes(3)",
+    # common CLI tools / other sections
+    "base64(1)", "hostname(1)", "time(1)", "dot(1)", "ping(8)", "random(4)",
+}
+
+# ION modules that exist in the source tree but ship no POD man page. A
+# cross-reference to one of these is intentional, not broken, so it is not
+# flagged (until/unless a man page is written for it).
+INTERNAL_NO_MANPAGE = {
+    "sptrace(3)",  # ici/library/sptrace.c, ici/include/sptrace.h
+}
 
 BASELINE_FILE = "tools/doc_consistency_baseline.json"
 
@@ -359,6 +387,20 @@ def pod_has_synopsis(text):
     return "=head1 SYNOPSIS" in text
 
 
+# A man-page cross-reference: name(section), e.g. "ipnadmin(1)" or "bp(3)". The
+# name must abut '(' (so prose like "step (1)" or "(2 hours)" is not matched).
+CROSSREF_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_.]*)\((\d)\)")
+
+
+def pod_cross_references(text):
+    """Return the set of (name, section) man-page cross-references in a pod,
+    after stripping B<>/I<> formatting wrappers and POD verbatim (indented
+    code) paragraphs, in which "func(2)" is a call argument, not a man ref."""
+    text = re.sub(r"(?m)^[ \t]+.*$", "", text)
+    text = re.sub(r"[A-Z]<([^>]*)>", r"\1", text)
+    return set(CROSSREF_RE.findall(text))
+
+
 # --------------------------------------------------------------------------- #
 # Driver                                                                      #
 # --------------------------------------------------------------------------- #
@@ -431,6 +473,37 @@ def collect_findings(root):
             rel = os.path.relpath(os.path.join(dirpath, fn), root)
             if not pod_has_synopsis(read(root, rel)):
                 findings.append(f"[pod1] {rel}: missing '=head1 SYNOPSIS' section")
+
+    # 5: man-page cross-references
+    all_pods = []
+    for dirpath, _dirs, files in os.walk(root):
+        if os.sep + "doc" + os.sep + "pod" not in dirpath + os.sep:
+            continue
+        for fn in files:
+            if fn.endswith(".pod"):
+                all_pods.append(os.path.relpath(os.path.join(dirpath, fn), root))
+    # inventory: which (name, section) pages exist, and which names exist anywhere
+    avail_ns, avail_name = set(), set()
+    for rel in all_pods:
+        name = os.path.basename(rel)[:-4]
+        avail_name.add(name)
+        m = re.search(r"[\\/]pod(\d)[\\/]", rel)
+        if m:
+            avail_ns.add((name, m.group(1)))
+    for rel in sorted(all_pods):
+        for name, sec in sorted(pod_cross_references(read(root, rel))):
+            tag = f"{name}({sec})"
+            if (name, sec) in avail_ns or tag in EXTERNAL_MANPAGES \
+                    or tag in INTERNAL_NO_MANPAGE:
+                continue
+            if name in avail_name:
+                findings.append(
+                    f"[xref] {rel}: '{tag}' refers to an existing page at the "
+                    f"wrong section")
+            else:
+                findings.append(
+                    f"[xref] {rel}: '{tag}' has no matching pod (broken "
+                    f"cross-reference)")
 
     return sorted(set(findings))
 

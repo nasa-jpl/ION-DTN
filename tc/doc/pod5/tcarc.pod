@@ -154,4 +154,4 @@ selected application.
 
 =head1 SEE ALSO
 
-tcaadmin(1), dtka(3)
+tcaadmin(1), dtka(1)
