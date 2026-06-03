@@ -224,6 +224,17 @@ Neither condition is anomalous.
 The B<help> command.  This will display a listing of the commands and their
 formats.  It is the same as the B<?> command.
 
+=item B<q>
+
+The B<quit> command.  Terminates the program immediately.
+
+=item B<t> [ B<p> [I<timeout>] ]
+
+The startup-test command.  Reports whether the BP agent is started and sets
+the program's exit code accordingly.  With B<p> ("poll") it waits up to
+I<timeout> seconds (a built-in default if omitted) for startup before giving
+up.
+
 =back
 
 =head1 SCHEME COMMANDS

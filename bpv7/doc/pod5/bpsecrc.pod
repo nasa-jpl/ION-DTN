@@ -149,6 +149,10 @@ defined in the system.
 The B<help> command.  This will display a listing of the commands and their
 formats.  It is the same as the B<?> command.
 
+=item B<q>
+
+The B<quit> command.  Terminates the program immediately.
+
 =back
 
 =head1 SEE ALSO
