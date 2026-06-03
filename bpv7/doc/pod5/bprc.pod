@@ -111,6 +111,11 @@ B<orangebook>  CCSDS Orange Book mode.  Enables Compressed Bundle Reporting
            - Generates and processes CRS (Compressed Reporting Signals)
            - Tracks bundles under custody for potential retransmission
 
+           The full set of Orange Book configuration commands is:
+           B<m srmode>, B<m cbraggr>, B<m cbrretx>, B<m crebexpliciteid>,
+           B<a/d/l cbraccept>, B<a/d/l custodyreq>, B<m crsmaxlog>,
+           B<l crslog>.
+
 The default mode is B<none>.
 
 =item B<m srmode> { traditional | compressed | both }
@@ -280,6 +285,50 @@ command has no effect.
 
 The B<list custody-request policy> command.  Prints all destination EIDs
 currently in the auto custody-request list, or B<(none)> if the list is empty.
+
+=item B<m crsmaxlog> I<count>
+
+The B<manage CRS log size> command.  Sets the maximum number of received
+Compressed Reporting Signal (CRS) records to retain in the persistent CRS
+history log.  When the limit is reached, the oldest entry is discarded to
+make room for each new record.  A value of B<0> means the log is unbounded.
+The default is 100.
+
+CRS records capture the time a CRS was received, the sender's EID, the
+status code, and the number of bundle sequence entries covered.
+
+This command requires B<m custodymode orangebook> to be effective.
+
+=item B<l crslog> [I<eid>]
+
+The B<list CRS history> command.  Prints received Compressed Reporting
+Signal records from the persistent log, newest first.  Each record shows:
+
+=over 4
+
+=item *
+
+Timestamp at which the CRS bundle arrived at this node.
+
+=item *
+
+Sender EID -- the node that generated and transmitted the CRS.
+
+=item *
+
+Status code -- the event type reported for the covered bundles:
+1 = received, 2 = forwarded, 3 = delivered, 4 = deleted.
+
+=item *
+
+Bundle count -- number of bundle sequence entries covered by the record.
+
+=back
+
+If the optional I<eid> argument is supplied, only records from that sender
+EID are printed.
+
+This command requires B<m custodymode orangebook> to be effective.
 
 =item B<m bsl> I<local_ipn_eid> I<key_reg_file_path> I<policy_config_file_path>
 

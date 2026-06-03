@@ -1,0 +1,2 @@
+## Route to Node 2; CGR routes Node 3 traffic via Node 2
+a plan 2 udp/127.0.0.1:4602

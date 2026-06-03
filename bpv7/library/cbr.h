@@ -204,6 +204,19 @@ typedef struct {
 } CtebBlk;
 
 /*
+ * One entry in the received-CRS history log.
+ * One record is created per status-code per received CRS signal.
+ * Stored persistently in CbrDb.crsHistory.
+ */
+typedef struct {
+	time_t		receivedAt;	/* Wall-clock time of reception */
+	Object		senderEid;	/* SDR string (0 if sender unknown) */
+	int		statusCode;	/* CBR_STATUS_* value */
+	uvast		bundleCount;	/* Sum of bundleLen per entry;
+					   range-array entries counted as 1 */
+} ReceivedCrsRecord;
+
+/*
  * Information about a bundle under custody.
  * Used for listing and monitoring custody bundles.
  */
@@ -402,14 +415,40 @@ extern int		cbr_processTimeouts(Sdr sdr);
 
 /**
  * Handle received CRS admin record.
+ * Decodes the CBOR map, logs each status entry, stores a ReceivedCrsRecord
+ * in CbrDb.crsHistory, and increments crsSignalsRecv.
  *
  * @param sdr		SDR handle
  * @param adminRecord	Raw admin record content
  * @param length	Length of admin record
+ * @param senderEid	Source EID of the bundle carrying this CRS (may be NULL)
  * @return		0 on success, -1 on error
  */
 extern int		cbr_handleCrs(Sdr sdr, unsigned char *adminRecord,
-				int length);
+				int length, const char *senderEid);
+
+/*	CRS History							*/
+
+/**
+ * Return the SDR list Object for the CRS reception history log.
+ * Caller walks the list (each element is a ReceivedCrsRecord in SDR) and
+ * prints or processes entries.  Must be called inside a transaction.
+ *
+ * @param sdr		SDR handle
+ * @return		SDR list Object, or 0 on error
+ */
+extern Object		cbr_getCrsHistoryList(Sdr sdr);
+
+/**
+ * Set the maximum number of entries in the CRS reception history log.
+ * When the limit is exceeded, the oldest entry is evicted.
+ * A value of 0 means the log is unbounded.
+ *
+ * @param sdr		SDR handle
+ * @param max		New maximum (0 = unlimited)
+ * @return		0 on success, -1 on error
+ */
+extern int		cbr_setCrsHistoryMax(Sdr sdr, unsigned int max);
 
 /**
  * Handle received CCS admin record.

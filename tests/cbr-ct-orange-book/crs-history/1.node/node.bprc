@@ -1,0 +1,14 @@
+## Node 1: source/report-to — sends bundle with del flag; receives CRS from Node 2
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.0 x
+a endpoint ipn:1.1 x
+a endpoint ipn:1.2 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4601 udpcli
+a outduct udp 127.0.0.1:4602 udpclo
+r 'ipnadmin node.ipnrc'
+m custodymode orangebook
+m srmode compressed
+m cbraggr 1 1 2
+s

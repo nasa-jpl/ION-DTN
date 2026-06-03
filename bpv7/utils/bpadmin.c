@@ -527,6 +527,77 @@ static void	listCustodyReq(int tokenCount, char **tokens)
 	sdr_exit_xn(sdr);
 }
 
+static void	listCrsLog(int tokenCount, char **tokens)
+{
+	Sdr			sdr = getIonsdr();
+	Object			list;
+	Object			elt;
+	Object			recObj;
+	ReceivedCrsRecord	rec;
+	char			eidBuf[SDRSTRING_BUFSZ];
+	char			timeBuf[32];
+	struct tm		*tm;
+	time_t			t;
+	char			line[256];
+	const char		*filterEid;
+	int			printed = 0;
+
+	filterEid = (tokenCount >= 3) ? tokens[2] : NULL;
+
+	CHKVOID(sdr_begin_xn(sdr));
+	list = cbr_getCrsHistoryList(sdr);
+	if (list == 0 || sdr_list_length(sdr, list) == 0)
+	{
+		printText("CRS history: (none)");
+		sdr_exit_xn(sdr);
+		return;
+	}
+
+	/*	Walk newest-first (from list tail).			*/
+	for (elt = sdr_list_last(sdr, list); elt;
+			elt = sdr_list_prev(sdr, elt))
+	{
+		recObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &rec, recObj, sizeof(ReceivedCrsRecord));
+
+		if (rec.senderEid)
+		{
+			if (sdr_string_read(sdr, eidBuf, rec.senderEid) < 0)
+			{
+				istrcpy(eidBuf, "?", sizeof eidBuf);
+			}
+		}
+		else
+		{
+			istrcpy(eidBuf, "(unknown)", sizeof eidBuf);
+		}
+
+		if (filterEid && *filterEid
+				&& strcmp(eidBuf, filterEid) != 0)
+		{
+			continue;
+		}
+
+		t = rec.receivedAt;
+		tm = gmtime(&t);
+		strftime(timeBuf, sizeof timeBuf, "%Y-%m-%dT%H:%M:%SZ", tm);
+		isprintf(line, sizeof line,
+				"  %s  from %-40s  status=%d  bundles=%llu",
+				timeBuf, eidBuf,
+				rec.statusCode,
+				(unsigned long long) rec.bundleCount);
+		printText(line);
+		printed = 1;
+	}
+
+	if (!printed)
+	{
+		printText("CRS history: (none matching filter)");
+	}
+
+	sdr_exit_xn(sdr);
+}
+
 static void	executeAdd(int tokenCount, char **tokens)
 {
 	char		*script;
@@ -1601,6 +1672,12 @@ static void	executeList(int tokenCount, char **tokens)
 		return;
 	}
 
+	if (strcmp(tokens[1], "crslog") == 0)
+	{
+		listCrsLog(tokenCount, tokens);
+		return;
+	}
+
 	SYNTAX_ERROR;
 }
 
@@ -1997,6 +2074,28 @@ static void	manageCbrRetx(int tokenCount, char **tokens)
 	}
 }
 
+static void	manageCrsMaxLog(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	unsigned int	max;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	max = (unsigned int) atoi(tokens[2]);
+	if (cbr_setCrsHistoryMax(sdr, max) < 0)
+	{
+		putErrmsg("Can't set CRS history max.", NULL);
+	}
+	else
+	{
+		printText("CRS history max set.");
+	}
+}
+
 static void	executeManage(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -2064,6 +2163,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "cbrretx") == 0)
 	{
 		manageCbrRetx(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "crsmaxlog") == 0)
+	{
+		manageCrsMaxLog(tokenCount, tokens);
 		return;
 	}
 

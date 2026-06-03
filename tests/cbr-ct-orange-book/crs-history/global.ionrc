@@ -1,0 +1,11 @@
+## Shared contact plan: Node 1 <-> Node 2 only.
+## Node 1 additionally loads cgr-hint.ionrc for path 1->2->3.
+## Node 2 must NOT have 2->3 contacts so it abandons with SrNoKnownRoute.
+
+m horizon +0
+
+a range +0 +600 1 2 1
+a range +0 +600 2 1 1
+
+a contact +0 +600 1 2 100000
+a contact +0 +600 2 1 100000
