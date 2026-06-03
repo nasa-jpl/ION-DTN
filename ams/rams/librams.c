@@ -657,18 +657,27 @@ static void *_bpManagerThread(void *args)
 
 	while (!shutdown_flag)
 	{
+		int queue_processed = 0;
+
 		/* 1. Block until a bundle arrives or bp_interrupt() is called. */
 		if (bp_receive(gWay->sap, &dlv, BP_BLOCKING) < 0)
 		{
 			putErrmsg("RAMS bundle reception failed.", NULL);
-			g_ramsgate_interrupted = 1; /* Signal main thread */
-			continue;
+			if (ion_atomic_get(&gWay->final_shutdown))
+			{
+				break; /* Normal shutdown initiated by KillGateway */
+			}
+			/* The SAP was violently destroyed by the system. Drop dead immediately. */
+			exit(0);
 		}
 
-		/* 2. After waking up, ALWAYS drain the send queue first.
-		 * This handles messages that were enqueued while we were
-		 * receiving, and services the wake-up from bp_interrupt(). */
+		/* 2. After waking up, ALWAYS drain the send queue first. */
 		pthread_mutex_lock(&gWay->bpQueueMutex);
+		if (lyst_length(gWay->bpSendQueue) > 0)
+		{
+			queue_processed = 1;
+		}
+
 		while ((elt = lyst_first(gWay->bpSendQueue)) != NULL)
 		{
 			outRpdu = (BpOutboundRpdu *) lyst_data(elt);
@@ -691,14 +700,48 @@ static void *_bpManagerThread(void *args)
 		/* 3. Now process the result of the bp_receive() call. */
 		if (dlv.result == BpEndpointStopped)
 		{
-			/* This was likely a planned interruption to send, or
-			 * the start of shutdown. The loop condition will
-			 * handle shutdown. Otherwise, just loop. */
 			bp_release_delivery(&dlv, 1);
-		}
 
-		if (dlv.result == BpPayloadPresent)
+			if (ion_atomic_get(&gWay->final_shutdown))
+			{
+				break; /* Normal shutdown initiated by KillGateway */
+			}
+
+			if (!queue_processed)
+			{
+				/* We awoke to a stopped endpoint, but had no queued bundles
+				 * and weren't told to shut down by KillGateway. This means BP
+				 * was terminated externally (e.g., bpadmin stopped).
+				 * * Attempting a graceful TerminateGateway() here will hang in
+				 * ams_unregister(), but we MUST free the PSM lists before exiting
+				 * to prevent shared memory leaks across daemon restarts. */
+
+				putErrmsg("BP endpoint stopped externally. Expedited PSM cleanup.", NULL);
+
+				pthread_mutex_lock(&gWay->gwayStateMutex);
+
+				/* Destroy the PSM-allocated Lysts. The private heap payloads
+				 * (MTAKE) will be reclaimed by the OS on exit. */
+				if (gWay->petitionSet) lyst_destroy(gWay->petitionSet);
+				if (gWay->registerSet) lyst_destroy(gWay->registerSet);
+				if (gWay->invitationSet) lyst_destroy(gWay->invitationSet);
+				if (gWay->ramsNeighbors) lyst_destroy(gWay->ramsNeighbors);
+				if (gWay->declaredNeighbors) lyst_destroy(gWay->declaredNeighbors);
+
+				pthread_mutex_unlock(&gWay->gwayStateMutex);
+
+				/* Clean up the BP send queue (also in PSM) */
+				pthread_mutex_lock(&gWay->bpQueueMutex);
+				if (gWay->bpSendQueue) lyst_destroy(gWay->bpSendQueue);
+				pthread_mutex_unlock(&gWay->bpQueueMutex);
+
+				/* The PSM is now clean. Safe to drop. */
+				exit(0);
+			}
+		}
+		else if (dlv.result == BpPayloadPresent)
 		{
+			/* Process the incoming bundle */
 			if (sdr_begin_xn(sdr) < 0)
 			{
 				putErrmsg("Can't start transaction for bundle.", NULL);
