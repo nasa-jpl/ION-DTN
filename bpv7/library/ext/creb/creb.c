@@ -98,6 +98,15 @@ static unsigned char	mapSrrToCrebFlags(unsigned int bundleProcFlags)
 		crebFlags |= CREB_REQUEST_DELETION;
 	}
 
+	/*	If custody is requested, also request custody-event CRS.
+	 *	BP_CT_REQUESTED sits below the SRR window so check it
+	 *	directly on bundleProcFlags (not via SRR_FLAGS shift).	*/
+	if (bundleProcFlags & BP_CT_REQUESTED)
+	{
+		crebFlags |= CREB_REQUEST_CUSTODY_ACCEPT
+				| CREB_REQUEST_CUSTODY_REFUSE;
+	}
+
 	return crebFlags;
 }
 
@@ -129,12 +138,14 @@ int	creb_offer(ExtensionBlock *blk, Bundle *bundle)
 		return 0;
 	}
 
-	/*	Check if any status reports are requested.		*/
+	/*	Check if any status reports or custody events are requested.
+	 *	BP_CT_REQUESTED sits below the SRR window (bit 6), so check
+	 *	it directly on bundleProcFlags.				*/
 
 	srrFlags = SRR_FLAGS(bundle->bundleProcFlags);
-	if (srrFlags == 0)
+	if (srrFlags == 0 && !(bundle->bundleProcFlags & BP_CT_REQUESTED))
 	{
-		/*	No status reports requested, no CREB needed.	*/
+		/*	Nothing to report, no CREB needed.		*/
 		return 0;
 	}
 
@@ -604,5 +615,20 @@ int	creb_getReportInfo(ExtensionBlock *blk, uvast *seqId, uvast *seqNum)
 	sdr_read(sdr, (char *) &scratch, blk->object, sizeof(CrebScratchpad));
 	*seqId = scratch.seqId;
 	*seqNum = scratch.seqNum;
+	return 0;
+}
+
+int	creb_getRequestFlags(ExtensionBlock *blk, unsigned char *requestFlags)
+{
+	Sdr		sdr = getIonsdr();
+	CrebScratchpad	scratch;
+
+	if (blk == NULL || blk->object == 0 || requestFlags == NULL)
+	{
+		return -1;
+	}
+
+	sdr_read(sdr, (char *) &scratch, blk->object, sizeof(CrebScratchpad));
+	*requestFlags = scratch.requestFlags;
 	return 0;
 }

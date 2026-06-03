@@ -1,0 +1,13 @@
+## Node 2: custodian/destination — accepts custody, generates custody-event CRS
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:2.0 x
+a endpoint ipn:2.1 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4612 udpcli
+a outduct udp 127.0.0.1:4611 udpclo
+r 'ipnadmin node.ipnrc'
+m custodymode orangebook
+m srmode compressed
+m cbraggr 1 1 2
+s

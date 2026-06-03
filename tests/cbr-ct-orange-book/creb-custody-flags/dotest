@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# creb-custody-flags: CREB custody-event flag wiring regression test
+#
+# Verifies (G3):
+#   - When a bundle is sent with custody transfer requested AND srmode
+#     compressed, the CREB block includes CREB_REQUEST_CUSTODY_ACCEPT (bit 4)
+#     and CREB_REQUEST_CUSTODY_REFUSE (bit 5) in its requestFlags.
+#   - When Node 2 accepts custody of the bundle, it generates a CRS with
+#     status=4 (CBR_STATUS_CUSTODY_ACCEPTED) and sends it to Node 1's
+#     report-to EID (ipn:1.0).
+#   - The custody-accepted CRS appears in 'l crslog' at Node 1 with
+#     status=4 and sender ipn:2.0.
+#
+# Topology: Node 1 (source) -> Node 2 (custodian/destination)
+#           CRS status=4 flows back: Node 2 -> Node 1 (ipn:1.0)
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+echo "=== CREB Custody-Event Flag Wiring Test (G3) ==="
+echo "Topology: Node 1 (source) -> Node 2 (custodian/destination)"
+echo ""
+
+./cleanup
+
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+test_result() {
+    if [ $1 -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+echo "Starting ION nodes..."
+for node in 1 2; do
+    cd "$TESTDIR/${node}.node"
+    chmod +x ionstart
+    ./ionstart > ion_startup.log 2>&1
+    sleep 2
+done
+
+NODE_COUNT=$(pgrep -f "rfxclock" | wc -l)
+if [ "$NODE_COUNT" -lt 2 ]; then
+    echo "ERROR: Not all ION nodes started. Found $NODE_COUNT rfxclock processes."
+    exit 1
+fi
+echo "Both nodes started successfully."
+echo ""
+
+# ---------------------------------------------------------------
+echo "--- Phase 1: Send bundle with custody + compressed reporting ---"
+
+# Start a receiver on Node 2 so the bundle is actually delivered
+cd "$TESTDIR/2.node"
+bpsink ipn:2.1 > bpsink_output.txt 2>&1 &
+SINK_PID=$!
+sleep 1
+
+# Send from Node 1: custody requested, srmode is already compressed,
+# report-to defaults to ipn:1.0 (the source admin EID used by bpsource)
+cd "$TESTDIR/1.node"
+# qos 1.1 = custody-requested, normal priority
+# report-to is ipn:1.0 so the custody CRS is delivered to the admin endpoint
+bptrace -msg "G3-CUSTODY-TEST" -ttl 60 -qos 1.1 ipn:1.2 ipn:2.1 ipn:1.0 > /dev/null 2>&1
+echo "  Bundle sent from Node 1 to ipn:2.1 with custody request, report-to ipn:1.0."
+
+echo "Waiting for custody acceptance and CRS to arrive at Node 1..."
+sleep 10
+
+kill $SINK_PID 2>/dev/null
+wait $SINK_PID 2>/dev/null
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 1: Custody-accepted CRS received at Node 1 ---"
+
+cd "$TESTDIR/1.node"
+STATS=$(cbrcustodytest -l 2>/dev/null)
+CRS_RECV=$(echo "$STATS" | grep "CRS Signals Recv" | awk '{print $NF}')
+CRS_RECV=${CRS_RECV:-0}
+echo "  CRS signals received at Node 1: $CRS_RECV"
+
+if [ "$CRS_RECV" -gt 0 ]; then
+    test_result 0 "At least one CRS received at Node 1"
+else
+    test_result 1 "No CRS received at Node 1"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 2: l crslog shows status=4 (custody accepted) ---"
+
+CRSLOG=$(echo 'l crslog' | bpadmin 2>/dev/null)
+echo "  bpadmin l crslog output:"
+echo "$CRSLOG" | sed 's/^/    /'
+
+if echo "$CRSLOG" | grep -Fq 'status=4'; then
+    test_result 0 "Custody-accepted CRS (status=4) present in crslog"
+else
+    test_result 1 "No status=4 entry in crslog"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 3: Sender EID is ipn:2.0 ---"
+
+if echo "$CRSLOG" | grep -Eq 'status=4.*ipn:2\.0|ipn:2\.0.*status=4'; then
+    test_result 0 "status=4 entry has sender ipn:2.0"
+else
+    # Check if ipn:2.0 appears in any crslog line (looser check)
+    if echo "$CRSLOG" | grep 'status=4' | grep -Fq 'ipn:2.0'; then
+        test_result 0 "status=4 entry has sender ipn:2.0"
+    else
+        test_result 1 "Sender EID ipn:2.0 not found in status=4 crslog entry"
+    fi
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 4: No custody-refused CRS (status=5) since custody was accepted ---"
+
+if echo "$CRSLOG" | grep -Fq 'status=5'; then
+    test_result 1 "Unexpected custody-refused CRS (status=5) present"
+else
+    test_result 0 "No spurious custody-refused CRS (status=5)"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Error Check ---"
+for node in 1 2; do
+    ERR=$(grep -c '\[!' "$TESTDIR/${node}.node/ion.log" 2>/dev/null || true)
+    ERR=${ERR:-0}
+    if [ "$ERR" -gt 0 ]; then
+        echo "  ${node}.node: $ERR error(s)"
+        grep '\[!' "$TESTDIR/${node}.node/ion.log" | head -5 | sed 's/^/    /'
+    else
+        echo "  ${node}.node: no errors"
+    fi
+    test_result "$ERR" "No ION errors at Node $node"
+done
+
+echo ""
+echo "========================================="
+echo "SUMMARY: $TESTS_PASSED passed, $TESTS_FAILED failed"
+echo "========================================="
+
+[ $TESTS_FAILED -eq 0 ]

@@ -20,6 +20,7 @@
 #include "bei.h"
 #include "cteb.h"
 #include "cbr.h"
+#include "creb.h"
 
 /*	Block processing flags for CTEB per Orange Book.
  *	Bit 0 (0x01): Block must be replicated in every fragment
@@ -337,6 +338,52 @@ int	cteb_copy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 
 /*	*	*	Processing Callbacks	*	*	*	*/
 
+/*
+ * If the bundle has a CREB block with flagBit set in requestFlags,
+ * generate a CRS for the given statusCode.  Silently skips if the
+ * CREB block is absent or the flag is not set.
+ */
+static int	sendCustodyCrsIfRequested(Sdr sdr, Bundle *bundle,
+			int statusCode, unsigned char flagBit)
+{
+	Object		crebElt;
+	ExtensionBlock	crebBlk;
+	uvast		seqId;
+	uvast		seqNum;
+	unsigned char	requestFlags;
+	CrebBlk		creb;
+
+	crebElt = findExtensionBlock(bundle, CBR_BLOCK_TYPE_CREB, 0);
+	if (crebElt == 0)
+	{
+		return 0;
+	}
+
+	sdr_read(sdr, (char *) &crebBlk, sdr_list_data(sdr, crebElt),
+			sizeof(ExtensionBlock));
+
+	if (creb_getReportInfo(&crebBlk, &seqId, &seqNum) < 0)
+	{
+		return 0;
+	}
+
+	if (creb_getRequestFlags(&crebBlk, &requestFlags) < 0)
+	{
+		return 0;
+	}
+
+	if (!(requestFlags & flagBit))
+	{
+		return 0;
+	}
+
+	memset(&creb, 0, sizeof(CrebBlk));
+	creb.seqId = seqId;
+	creb.seqNum = seqNum;
+
+	return cbr_reportStatus(sdr, bundle, statusCode, &creb);
+}
+
 int	cteb_processOnFwd(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 {
 	(void) blk;
@@ -429,6 +476,15 @@ int	cteb_processOnAccept(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 				return -1;
 			}
 
+			if (sendCustodyCrsIfRequested(sdr, bundle,
+					CBR_STATUS_CUSTODY_REFUSED,
+					CREB_REQUEST_CUSTODY_REFUSE) < 0)
+			{
+				putErrmsg("CTEB: custody-refused CRS failed.",
+						NULL);
+				/*	Not fatal; refusal already sent.	*/
+			}
+
 			return 0;
 		}
 	}
@@ -444,6 +500,14 @@ int	cteb_processOnAccept(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	{
 		putErrmsg("CTEB: custody acceptance failed.", NULL);
 		return -1;
+	}
+
+	if (sendCustodyCrsIfRequested(sdr, bundle,
+			CBR_STATUS_CUSTODY_ACCEPTED,
+			CREB_REQUEST_CUSTODY_ACCEPT) < 0)
+	{
+		putErrmsg("CTEB: custody-accepted CRS failed.", NULL);
+		/*	Not fatal; acceptance already sent.		*/
 	}
 
 	/*	If bundleAddr == 0, this is destination delivery.
