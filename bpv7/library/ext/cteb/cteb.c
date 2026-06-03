@@ -352,6 +352,7 @@ static int	sendCustodyCrsIfRequested(Sdr sdr, Bundle *bundle,
 	uvast		seqNum;
 	unsigned char	requestFlags;
 	CrebBlk		creb;
+	char		crebReportToEid[MAX_EID_LEN];
 
 	crebElt = findExtensionBlock(bundle, CBR_BLOCK_TYPE_CREB, 0);
 	if (crebElt == 0)
@@ -380,6 +381,14 @@ static int	sendCustodyCrsIfRequested(Sdr sdr, Bundle *bundle,
 	memset(&creb, 0, sizeof(CrebBlk));
 	creb.seqId = seqId;
 	creb.seqNum = seqNum;
+	creb.sourceEid = NULL;
+	creb.reportToEid = NULL;
+	if (creb_getReportToEid(&crebBlk, crebReportToEid,
+			sizeof(crebReportToEid)) == 0
+			&& crebReportToEid[0] != '\0')
+	{
+		creb.reportToEid = crebReportToEid;
+	}
 
 	return cbr_reportStatus(sdr, bundle, statusCode, &creb);
 }

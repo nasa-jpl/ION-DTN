@@ -10519,6 +10519,7 @@ static int	sendCompressedStatusRpt(Sdr sdr, Bundle *bundle)
 	uvast		seqId;
 	uvast		seqNum;
 	CrebBlk		creb;
+	char		crebReportToEid[MAX_EID_LEN];
 	int		flags;
 
 	/*	Source node should not generate CRS for its own bundles.
@@ -10554,14 +10555,19 @@ static int	sendCompressedStatusRpt(Sdr sdr, Bundle *bundle)
 		return 0;	/*	Not fatal, just skip CRS.	*/
 	}
 
-	/*	Build CrebBlk structure for cbr_reportStatus().
-	 *	EIDs are NULL; cbr_reportStatus uses bundle's EIDs.	*/
+	/*	Build CrebBlk structure for cbr_reportStatus().		*/
 
 	memset(&creb, 0, sizeof(CrebBlk));
 	creb.seqId = seqId;
 	creb.seqNum = seqNum;
 	creb.sourceEid = NULL;
 	creb.reportToEid = NULL;
+	if (creb_getReportToEid(&crebBlk, crebReportToEid,
+			sizeof(crebReportToEid)) == 0
+			&& crebReportToEid[0] != '\0')
+	{
+		creb.reportToEid = crebReportToEid;
+	}
 
 	/*	Send CRS for each status flag that's set.
 	 *	Map BPv7 status flags to CBR status codes.		*/

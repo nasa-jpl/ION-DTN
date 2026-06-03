@@ -1,0 +1,16 @@
+## Node 2: destination that receives bundles from Node 1.
+## Processes the CREB block's reportToEid (ipn:3.0) and sends
+## the delivery CRS to Node 3, NOT to the bundle's reportTo (ipn:1.0).
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:2.0 x
+a endpoint ipn:2.1 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4634 udpcli
+a outduct udp 127.0.0.1:4633 udpclo
+a outduct udp 127.0.0.1:4635 udpclo
+m custodymode orangebook
+m srmode compressed
+m cbraggr 1 1 2
+r 'ipnadmin node.ipnrc'
+s

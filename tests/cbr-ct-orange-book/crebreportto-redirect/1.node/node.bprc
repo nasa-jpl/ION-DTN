@@ -1,0 +1,16 @@
+## Node 1: source node with CREB report-to redirected to Node 3 (ipn:3.0).
+## Without this override, Node 2 would send CRS to the bundle's reportTo
+## (ipn:1.0).  With it, CRS goes to ipn:3.0 instead.
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.0 x
+a endpoint ipn:1.2 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4633 udpcli
+a outduct udp 127.0.0.1:4634 udpclo
+m custodymode orangebook
+m srmode compressed
+m cbraggr 1 1 2
+m crebreportto ipn:3.0
+r 'ipnadmin node.ipnrc'
+s

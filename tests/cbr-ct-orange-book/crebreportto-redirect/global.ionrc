@@ -1,0 +1,11 @@
+## Global contact plan for crebreportto-redirect test
+## Node 1 (source) -> Node 2 (destination)
+## Node 2 -> Node 3 (CRS redirect target)
+## Node 2 -> Node 1 (CCS feedback)
+
+a contact +0 +600 1 2 100000
+a contact +0 +600 2 1 100000
+a contact +0 +600 2 3 100000
+a contact +0 +600 3 2 100000
+a range +0 +600 1 2 1
+a range +0 +600 2 3 1

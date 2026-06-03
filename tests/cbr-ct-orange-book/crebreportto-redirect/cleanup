@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+cd "$TESTDIR/1.node"
+killm f
+cd "$TESTDIR/2.node"
+killm f
+cd "$TESTDIR/3.node"
+killm f
+rm -f "$TESTDIR/ion_nodes"
+rm -f "$TESTDIR/1.node/ion.log"
+rm -f "$TESTDIR/2.node/ion.log"
+rm -f "$TESTDIR/3.node/ion.log"
+rm -f "$TESTDIR/2.node/bpsink.out"

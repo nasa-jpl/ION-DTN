@@ -59,6 +59,9 @@ typedef struct {
 	/* Explicit CREB source EID flag (for testing/interoperability) */
 	unsigned int	crebExplicitEid;	/* 1 = include sourceEid in CREB */
 
+	/* Default CREB report-to EID override ("" = use bundle's reportTo) */
+	char		crebDefaultReportToEid[MAX_EID_LEN];
+
 	/* Statistics counters (for verification/debugging) */
 	unsigned int	ccsAcceptSent;		/* CCS acceptance signals sent */
 	unsigned int	ccsRefuseSent;		/* CCS refusal signals sent */
