@@ -407,6 +407,32 @@ int	cteb_processOnAccept(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 		}
 	}
 
+	/*	Whitelist check: if either whitelist is non-empty the
+	 *	custodian/source EID must appear in it.			*/
+	{
+		char	*srcEid = NULL;
+		int	accepted;
+
+		readEid(&bundle->id.source, &srcEid);
+		accepted = cbr_isCustodyAccepted(sdr, ctebData.custodianEid,
+				srcEid);
+		MRELEASE(srcEid);
+		if (!accepted)
+		{
+			writeMemoNote("[i] CTEB: Custody refused by policy, custodian",
+					ctebData.custodianEid ?
+					ctebData.custodianEid : "(null)");
+			if (cbr_refuseCustody(sdr, bundle, &ctebData,
+					CbrRefusePolicy) < 0)
+			{
+				putErrmsg("CTEB: custody refusal failed.", NULL);
+				return -1;
+			}
+
+			return 0;
+		}
+	}
+
 	/*	Accept custody - this will:
 	 *	1. Send CCS acceptance to previous custodian
 	 *	2. Add bundle to local custody tracking (if not destination) */
