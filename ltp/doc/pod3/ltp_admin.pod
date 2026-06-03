@@ -259,7 +259,7 @@ Remove all LTP spans. Stops LSO processes and removes all configured spans.
 Useful for runtime reconfiguration or cleanup.
 
 Spans with pending data (segments, sessions) will be skipped.
-For complete shutdown, use ltp_stop() + ionTerminate(1) instead.
+For complete shutdown, use ltp_stop() + ionTerminate() (see ion(3)) instead.
 
 Returns the number of spans successfully removed (>= 0), or -1 on fatal error.
 
@@ -277,7 +277,7 @@ Example:
 Remove all LTP seats. Stops LSI processes and removes all configured seats.
 Useful for runtime reconfiguration or cleanup.
 
-For complete shutdown, use ltp_stop() + ionTerminate(1) instead.
+For complete shutdown, use ltp_stop() + ionTerminate() (see ion(3)) instead.
 
 Returns the number of seats successfully removed (>= 0), or -1 on fatal error.
 

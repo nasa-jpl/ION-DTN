@@ -65,4 +65,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-tcaadmin(1), tc(3), tcauthrc(5)
+tcaadmin(1), tc(3), tcarc(5)

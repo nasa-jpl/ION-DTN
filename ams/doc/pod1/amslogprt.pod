@@ -43,4 +43,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-amsrc(5)
+amslog(1), amsrc(5)

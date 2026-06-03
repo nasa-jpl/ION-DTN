@@ -989,7 +989,7 @@ debugger to examine its state.
 
 =item void sm_TaskDelay(int seconds)
 
-Same as snooze(3).
+Same as snooze().
 
 =item void sm_TaskYield( )
 
