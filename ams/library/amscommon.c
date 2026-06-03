@@ -305,22 +305,19 @@ void	eraseVenture(Venture *venture)
 	}
 
 	LystElt elt;
+	LystElt nextElt;
 
-	for(elt = lyst_first(venture->msgspace_lyst); elt; elt = lyst_next(elt))
+	for(elt = lyst_first(venture->msgspace_lyst); elt; elt = nextElt)
 	{
-		{
-			/* need to clean the msgspace's contents first */
-			eraseMsgspace(venture, (Subject *) lyst_data(elt));
-
-			/* then we can safely delete the lyst element */
-			lyst_delete(elt);
-		}
+		nextElt = lyst_next(elt);
+		eraseMsgspace(venture, (Subject *) lyst_data(elt));
+		lyst_delete(elt);
 	}
 
-	(_mib(NULL))->ventures[venture->nbr] = NULL;
-	MRELEASE(venture);
-	unlockMib();
-}
+		(_mib(NULL))->ventures[venture->nbr] = NULL;
+		MRELEASE(venture);
+		unlockMib();
+	}
 
 static void	eraseMib(AmsMib *mib)
 {
