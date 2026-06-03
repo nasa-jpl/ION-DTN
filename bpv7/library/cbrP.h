@@ -42,6 +42,10 @@ typedef struct {
 	/* Auto custody-request policy (empty = no auto-request) */
 	Object		custodyReqDests;	  /* SDR list of SDR strings */
 
+	/* CRS reception history (ring buffer) */
+	Object		crsHistory;		/* SDR list of ReceivedCrsRecord */
+	unsigned int	crsHistoryMax;		/* Ring limit; 0 = unlimited */
+
 	/* Configuration */
 	unsigned int	crsAggregateLimit;	/* Max bundles before CRS */
 	unsigned int	ccsAggregateLimit;	/* Max bundles before CCS */

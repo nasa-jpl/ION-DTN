@@ -13460,7 +13460,8 @@ failed.", NULL);
 			break;
 
 		case CBR_ADMIN_RECORD_CRS:
-			if (cbr_handleCrs(sdr, cursor, unparsedBytes) < 0)
+			if (cbr_handleCrs(sdr, cursor, unparsedBytes,
+					dlv.bundleSourceEid) < 0)
 			{
 				putErrmsg("CBR reporting signal (CRS) handler \
 failed.", NULL);

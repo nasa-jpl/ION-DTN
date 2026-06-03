@@ -1,0 +1,163 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# crs-history: CRS reception history log regression test
+#
+# Verifies:
+#   - After receiving a CRS, 'l crslog' shows at least one entry
+#   - The entry reflects the correct status code (3 = deletion)
+#   - The sender EID (ipn:2.0) appears in the log output
+#   - 'l crslog <eid>' filters by sender EID correctly
+#   - 'm crsmaxlog <n>' sets the limit without error
+#
+# Topology:
+#   Node 1 (source, ipn:1.x) -> Node 2 (relay) -x-> Node 3 (unreachable)
+#   CRS deletion flows back:    Node 2 -> Node 1 (report-to ipn:1.0)
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+echo "=== CRS History Log Test ==="
+echo "Topology: Node 1 (source) -> Node 2 (relay, no route to Node 3)"
+echo ""
+
+./cleanup
+
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+test_result() {
+    if [ $1 -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+echo "Starting ION nodes..."
+for node in 1 2; do
+    cd "$TESTDIR/${node}.node"
+    chmod +x ionstart
+    ./ionstart > ion_startup.log 2>&1
+    sleep 2
+done
+
+NODE_COUNT=$(pgrep -f "rfxclock" | wc -l)
+if [ "$NODE_COUNT" -lt 2 ]; then
+    echo "ERROR: Not all ION nodes started. Found $NODE_COUNT rfxclock processes."
+    exit 1
+fi
+echo "Both nodes started successfully."
+echo ""
+
+# ---------------------------------------------------------------
+echo "--- Phase 1: Trigger a deletion CRS ---"
+
+cd "$TESTDIR/1.node"
+bptrace -msg "CRS-HIST-TEST" -ttl 60 -flags del ipn:1.2 ipn:3.1 ipn:1.0 \
+    > trace_output.txt 2>&1
+echo "  Bundle sent to ipn:3.1 (unreachable) with del-report flag."
+
+echo "Waiting for deletion CRS to arrive at Node 1..."
+sleep 8
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 1: l crslog shows at least one entry ---"
+
+cd "$TESTDIR/1.node"
+CRSLOG=$(echo 'l crslog' | bpadmin 2>/dev/null)
+echo "  bpadmin l crslog output:"
+echo "$CRSLOG" | sed 's/^/    /'
+
+if echo "$CRSLOG" | grep -Eq 'status=[0-9]'; then
+    test_result 0 "l crslog shows at least one CRS entry"
+else
+    test_result 1 "l crslog shows no entries"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 2: Entry contains status=3 (deletion) ---"
+
+if echo "$CRSLOG" | grep -Fq 'status=3'; then
+    test_result 0 "Deletion status code (status=3) present in crslog"
+else
+    test_result 1 "Deletion status code not found in crslog output"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 3: Sender EID (ipn:2.0) present in log ---"
+
+if echo "$CRSLOG" | grep -Fq 'ipn:2.0'; then
+    test_result 0 "Sender EID ipn:2.0 present in crslog"
+else
+    test_result 1 "Sender EID ipn:2.0 not found in crslog output"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 4: l crslog <eid> filter matches sender ---"
+
+FILTERED=$(echo 'l crslog ipn:2.0' | bpadmin 2>/dev/null)
+echo "  bpadmin l crslog ipn:2.0 output:"
+echo "$FILTERED" | sed 's/^/    /'
+
+if echo "$FILTERED" | grep -Eq 'status=[0-9]'; then
+    test_result 0 "Filtered l crslog ipn:2.0 shows entries"
+else
+    test_result 1 "Filtered l crslog ipn:2.0 shows no entries"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 5: l crslog <wrong-eid> filter returns none ---"
+
+FILTERED2=$(echo 'l crslog ipn:99.0' | bpadmin 2>/dev/null)
+echo "  bpadmin l crslog ipn:99.0 output:"
+echo "$FILTERED2" | sed 's/^/    /'
+
+if echo "$FILTERED2" | grep -Fq '(none'; then
+    test_result 0 "Filtered l crslog ipn:99.0 correctly shows none"
+else
+    test_result 1 "Filtered l crslog ipn:99.0 did not return none"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 6: m crsmaxlog sets limit without error ---"
+
+MAX_OUT=$(echo 'm crsmaxlog 200' | bpadmin 2>/dev/null)
+echo "  bpadmin m crsmaxlog 200 output: '$MAX_OUT'"
+
+if echo "$MAX_OUT" | grep -Fiq 'set'; then
+    test_result 0 "m crsmaxlog 200 accepted"
+else
+    test_result 1 "m crsmaxlog 200 did not confirm acceptance"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Error Check ---"
+for node in 1 2; do
+    ERR=$(grep -c '\[!' "$TESTDIR/${node}.node/ion.log" 2>/dev/null || true)
+    ERR=${ERR:-0}
+    if [ "$ERR" -gt 0 ]; then
+        echo "  ${node}.node: $ERR error(s)"
+        grep '\[!' "$TESTDIR/${node}.node/ion.log" | head -5 | sed 's/^/    /'
+    else
+        echo "  ${node}.node: no errors"
+    fi
+    test_result "$ERR" "No ION errors at Node $node"
+done
+
+echo ""
+echo "========================================="
+echo "SUMMARY: $TESTS_PASSED passed, $TESTS_FAILED failed"
+echo "========================================="
+
+[ $TESTS_FAILED -eq 0 ]

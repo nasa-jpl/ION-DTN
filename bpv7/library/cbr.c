@@ -102,6 +102,8 @@ int	cbr_initialize(Sdr sdr)
 		cbrBuf.custodyAcceptByCustodian = sdr_list_create(sdr);
 		cbrBuf.custodyAcceptBySource = sdr_list_create(sdr);
 		cbrBuf.custodyReqDests = sdr_list_create(sdr);
+		cbrBuf.crsHistory = sdr_list_create(sdr);
+		cbrBuf.crsHistoryMax = 100;
 
 		/*	Default configuration			*/
 		cbrBuf.crsAggregateLimit = 10;
@@ -2875,28 +2877,44 @@ int	cbr_releaseCustody(Sdr sdr, char *sourceEid, uvast seqId,
 	return 0;
 }
 
-int	cbr_handleCrs(Sdr sdr, unsigned char *adminRecord, int length)
+int	cbr_handleCrs(Sdr sdr, unsigned char *adminRecord, int length,
+		const char *senderEid)
 {
-	unsigned char	*cursor = adminRecord;
-	unsigned int	unparsedBytes = length;
-	uvast		mapLen;
-	uvast		statusCode;
-	uvast		arrayLen;
-	uvast		seqId;
-	uvast		seqNumStart;
-	uvast		bundleLen;
-	uvast		*rangeArray;
-	int		rangeCount;
-	char		*sourceEid;
-	char		*seqDestEid;
-	uvast		i;
+	unsigned char		*cursor = adminRecord;
+	unsigned int		unparsedBytes = length;
+	uvast			mapLen;
+	uvast			statusCode;
+	uvast			arrayLen;
+	uvast			seqId;
+	uvast			seqNumStart;
+	uvast			bundleLen;
+	uvast			*rangeArray;
+	int			rangeCount;
+	char			*sourceEid;
+	char			*seqDestEid;
+	uvast			i;
+	uvast			bundleCount;
+	Object			cbrDbObj;
+	CbrDb			cbrDb;
+	ReceivedCrsRecord	rec;
+	Object			recObj;
+	Object			firstElt;
+	Object			firstObj;
+	ReceivedCrsRecord	oldest;
 
 	/*	CRS content format (after stripping admin record header):
 	 *	{ status-reason => [Bundle-Sequence, ...], ... }	*/
 
-	/*	Start transaction for SDR operations (statistics update). */
-
 	CHKERR(sdr_begin_xn(sdr));
+
+	cbrDbObj = getCbrDbObject();
+	if (cbrDbObj == 0)
+	{
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
+
+	sdr_read(sdr, (char *) &cbrDb, cbrDbObj, sizeof(CbrDb));
 
 	/*	Decode map						*/
 	mapLen = 0;
@@ -2929,6 +2947,8 @@ int	cbr_handleCrs(Sdr sdr, unsigned char *adminRecord, int length)
 			return -1;
 		}
 
+		bundleCount = 0;
+
 		/*	Decode each Bundle-Sequence			*/
 		while (arrayLen > 0)
 		{
@@ -2942,7 +2962,6 @@ int	cbr_handleCrs(Sdr sdr, unsigned char *adminRecord, int length)
 				return -1;
 			}
 
-			/*	Log received CRS info			*/
 			writeMemoNote("[i] CRS received: status",
 					itoa(statusCode));
 			if (rangeCount > 0)
@@ -2951,10 +2970,8 @@ int	cbr_handleCrs(Sdr sdr, unsigned char *adminRecord, int length)
 						itoa(rangeCount));
 			}
 
-			/*	For now, just log. Future: could track
-			 *	for end-to-end acknowledgment.		*/
+			bundleCount += (bundleLen > 0 ? bundleLen : 1);
 
-			/*	Clean up				*/
 			if (rangeArray)
 			{
 				MRELEASE(rangeArray);
@@ -2972,23 +2989,80 @@ int	cbr_handleCrs(Sdr sdr, unsigned char *adminRecord, int length)
 
 			arrayLen--;
 		}
+
+		/*	Store one history record per status-code entry.	*/
+		if (cbrDb.crsHistory)
+		{
+			memset(&rec, 0, sizeof(ReceivedCrsRecord));
+			rec.receivedAt = getCtime();
+			if (senderEid && *senderEid)
+			{
+				char	senderBuf[SDRSTRING_BUFSZ];
+
+				istrcpy(senderBuf, senderEid, sizeof senderBuf);
+				rec.senderEid = sdr_string_create(sdr, senderBuf);
+			}
+			else
+			{
+				rec.senderEid = 0;
+			}
+			rec.statusCode = (int) statusCode;
+			rec.bundleCount = bundleCount;
+
+			recObj = sdr_malloc(sdr, sizeof(ReceivedCrsRecord));
+			if (recObj == 0)
+			{
+				if (rec.senderEid)
+				{
+					sdr_free(sdr, rec.senderEid);
+				}
+			}
+			else
+			{
+				sdr_write(sdr, recObj, (char *) &rec,
+						sizeof(ReceivedCrsRecord));
+				if (sdr_list_insert_last(sdr, cbrDb.crsHistory,
+						recObj) == 0)
+				{
+					sdr_free(sdr, recObj);
+					if (rec.senderEid)
+					{
+						sdr_free(sdr, rec.senderEid);
+					}
+				}
+				else if (cbrDb.crsHistoryMax > 0
+					&& sdr_list_length(sdr, cbrDb.crsHistory)
+						> (long) cbrDb.crsHistoryMax)
+				{
+					/*	Evict oldest entry.	*/
+					firstElt = sdr_list_first(sdr,
+							cbrDb.crsHistory);
+					if (firstElt)
+					{
+						firstObj = sdr_list_data(sdr,
+								firstElt);
+						sdr_read(sdr, (char *) &oldest,
+							firstObj,
+							sizeof(ReceivedCrsRecord));
+						if (oldest.senderEid)
+						{
+							sdr_free(sdr,
+								oldest.senderEid);
+						}
+
+						sdr_free(sdr, firstObj);
+						sdr_list_delete(sdr, firstElt,
+								NULL, NULL);
+					}
+				}
+			}
+		}
 	}
 
 	/*	Increment CRS received counter.				*/
-	{
-		Object	cbrDbObj = getCbrDbObject();
-
-		if (cbrDbObj)
-		{
-			CbrDb	cbrDb;
-
-			sdr_stage(sdr, (char *) &cbrDb, cbrDbObj,
-					sizeof(CbrDb));
-			cbrDb.crsSignalsRecv++;
-			sdr_write(sdr, cbrDbObj, (char *) &cbrDb,
-					sizeof(CbrDb));
-		}
-	}
+	sdr_stage(sdr, (char *) &cbrDb, cbrDbObj, sizeof(CbrDb));
+	cbrDb.crsSignalsRecv++;
+	sdr_write(sdr, cbrDbObj, (char *) &cbrDb, sizeof(CbrDb));
 
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -2997,6 +3071,44 @@ int	cbr_handleCrs(Sdr sdr, unsigned char *adminRecord, int length)
 	}
 
 	return 0;
+}
+
+int	cbr_setCrsHistoryMax(Sdr sdr, unsigned int max)
+{
+	Object	cbrDbObj;
+	CbrDb	cbrDb;
+
+	CHKERR(sdr);
+	cbrDbObj = getCbrDbObject();
+	CHKERR(cbrDbObj);
+
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &cbrDb, cbrDbObj, sizeof(CbrDb));
+	cbrDb.crsHistoryMax = max;
+	sdr_write(sdr, cbrDbObj, (char *) &cbrDb, sizeof(CbrDb));
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't set CRS history max.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+Object	cbr_getCrsHistoryList(Sdr sdr)
+{
+	Object	cbrDbObj;
+	CbrDb	cbrDb;
+
+	cbrDbObj = getCbrDbObject();
+	if (cbrDbObj == 0)
+	{
+		return 0;
+	}
+
+	sdr_read(sdr, (char *) &cbrDb, cbrDbObj, sizeof(CbrDb));
+	return cbrDb.crsHistory;
 }
 
 int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
