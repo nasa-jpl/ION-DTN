@@ -1,0 +1,18 @@
+## Node 1: custody sender with RETX_SIGNAL strategy.
+## Sends 3 bundles with a shared seqId to Node 2 (as final destination).
+## Node 2 refuses custody via whitelist, sends CCS(refused, seqNums 0-2)
+## back to Node 1.  Node 1 retransmits via RETX_SIGNAL, exercising the
+## cbr_handleCcs inner retransmit loop whose variable shadowing was fixed in G6.
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.0 x
+a endpoint ipn:1.2 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4621 udpcli
+a outduct udp 127.0.0.1:4622 udpclo
+r 'ipnadmin node.ipnrc'
+m custodymode orangebook
+m srmode compressed
+m cbraggr 1 1 2
+m cbrretx signal 0 1
+s

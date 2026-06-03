@@ -1,0 +1,145 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# ccs-retransmit-range-array: CCS retransmit loop variable fix (G6)
+#
+# Verifies (G6):
+#   In cbr_handleCcs, when retransmitStrategy == CBR_RETX_SIGNAL, two inner
+#   retransmit loops reused the outer map-level loop variable 'i' as their
+#   own counter.  The contiguous-range path used
+#   'for (i = 0; i < bundleLen; i++)' and the range-array path used a nested
+#   'for (i = 0; i < rangeLen; i++)'.  Both were renamed to 'k' so the outer
+#   'for (i = 0; i < mapLen; i++)' is not corrupted.
+#
+# This test exercises the CONTIGUOUS retransmit path (bundleLen > 1) by
+# batching 3 refused bundles into one CCS and verifying that all 3 are
+# retransmitted.  The range-array path is covered by the same variable rename
+# but requires synthetic CCS injection to test directly; it is validated by
+# code inspection.
+#
+# Topology: Node 1 (source, RETX_SIGNAL) -> Node 2 (final destination)
+#   Node 2 has a non-empty custody-accept whitelist that excludes ipn:1.2,
+#   so every incoming custody bundle from Node 1 is refused.
+#   Node 2 cbraggr CCS-limit=3 batches all 3 refused seqNums into one CCS
+#   signal (seqNums 0, 1, 2, bundleLen=3), which Node 1 processes with
+#   RETX_SIGNAL, retransmitting all 3.
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+echo "=== CCS Retransmit Loop Variable Fix Test (G6) ==="
+echo "Topology: Node 1 (RETX_SIGNAL) -> Node 2 (custody refused via whitelist)"
+echo ""
+
+./cleanup
+
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+test_result() {
+    if [ $1 -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+echo "Starting ION nodes..."
+for node in 1 2; do
+    cd "$TESTDIR/${node}.node"
+    chmod +x ionstart
+    ./ionstart > ion_startup.log 2>&1
+    sleep 2
+done
+
+NODE_COUNT=$(pgrep -f "rfxclock" | wc -l)
+if [ "$NODE_COUNT" -lt 2 ]; then
+    echo "ERROR: Not all ION nodes started. Found $NODE_COUNT rfxclock processes."
+    exit 1
+fi
+echo "Both nodes started successfully."
+echo ""
+
+# ---------------------------------------------------------------
+echo "--- Phase 1: Send 3 custody bundles from Node 1 to Node 2 ---"
+echo "  Node 2 will refuse custody (whitelist excludes ipn:1.2)"
+
+cd "$TESTDIR/1.node"
+
+# seqId=1 forces all three bundles to share one counter: seqNums 0, 1, 2
+bptrace -seqid 1 -msg "G6-B1" -ttl 60 -qos 1.1 ipn:1.2 ipn:2.1 ipn:1.0 > /dev/null 2>&1
+bptrace -seqid 1 -msg "G6-B2" -ttl 60 -qos 1.1 ipn:1.2 ipn:2.1 ipn:1.0 > /dev/null 2>&1
+bptrace -seqid 1 -msg "G6-B3" -ttl 60 -qos 1.1 ipn:1.2 ipn:2.1 ipn:1.0 > /dev/null 2>&1
+
+echo "  3 bundles sent from Node 1."
+echo "  Waiting for CCS refusal and RETX_SIGNAL to fire..."
+sleep 20
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 1: Signal-triggered retransmit fired at Node 1 ---"
+
+RETX_COUNT=$(grep -c 'CBR: Signal-triggered retransmit' \
+    "$TESTDIR/1.node/ion.log" 2>/dev/null)
+RETX_COUNT=${RETX_COUNT:-0}
+echo "  Signal-triggered retransmit count: $RETX_COUNT"
+
+if [ "$RETX_COUNT" -ge 3 ]; then
+    test_result 0 "Signal-triggered retransmit fired for all refused bundles ($RETX_COUNT events)"
+else
+    test_result 1 "Expected >= 3 signal-triggered retransmits (one per refused bundle), got $RETX_COUNT"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 2: Custody refused CCS received at Node 1 ---"
+
+if grep -Fq 'CCS: Custody refused by next hop' "$TESTDIR/1.node/ion.log" 2>/dev/null; then
+    test_result 0 "Custody-refused CCS processed at Node 1"
+else
+    test_result 1 "No custody-refused CCS seen at Node 1"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 3: No CCS parse errors at either node ---"
+
+CCS_ERRORS=0
+for node in 1.node 2.node; do
+    ERR=$(grep -Fc '[?] CCS' "$TESTDIR/$node/ion.log" 2>/dev/null)
+    ERR=${ERR:-0}
+    if [ "$ERR" -gt 0 ]; then
+        CCS_ERRORS=$((CCS_ERRORS + ERR))
+        echo "  $node: $ERR CCS error(s)"
+        grep -F '[?] CCS' "$TESTDIR/$node/ion.log" | head -5 | sed 's/^/    /'
+    else
+        echo "  $node: no CCS errors"
+    fi
+done
+test_result $CCS_ERRORS "No CCS parse errors"
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 4: No ION errors at either node ---"
+
+for node in 1 2; do
+    ERR=$(grep -c '\[!' "$TESTDIR/${node}.node/ion.log" 2>/dev/null)
+    ERR=${ERR:-0}
+    if [ "$ERR" -gt 0 ]; then
+        echo "  ${node}.node: $ERR error(s)"
+        grep '\[!' "$TESTDIR/${node}.node/ion.log" | head -5 | sed 's/^/    /'
+    else
+        echo "  ${node}.node: no errors"
+    fi
+    test_result "$ERR" "No ION errors at Node $node"
+done
+
+echo ""
+echo "========================================="
+echo "SUMMARY: $TESTS_PASSED passed, $TESTS_FAILED failed"
+echo "========================================="
+
+[ $TESTS_FAILED -eq 0 ]

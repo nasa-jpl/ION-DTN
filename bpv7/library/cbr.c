@@ -3127,6 +3127,7 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 	char		*seqDestEid;
 	uvast		i;
 	uvast		j;
+	uvast		k;
 	uvast		rangeStart;
 	uvast		rangeLen;
 	CbrDb		*cbrConstants;
@@ -3155,22 +3156,18 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 	/*	Process each disposition entry				*/
 	for (i = 0; i < mapLen; i++)
 	{
-		/*	Key: disposition code (signed integer)
-		 *	CBOR signed int: positive = unsigned, negative = -1-n
-		 *	We need to handle this specially.		*/
+		/*	Key: disposition code (signed integer).
+		 *	Orange Book encodes 1=accepted, -1=refused.
+		 *	Must use cbor_decode_signed_int to handle both
+		 *	CBOR major type 0 (positive) and type 1 (negative).	*/
 
-		/*	For simplicity, decode as unsigned first.	*/
-		if (cbor_decode_integer((uvast *)&disposition, CborAny, &cursor,
+		if (cbor_decode_signed_int(&disposition, &cursor,
 				&unparsedBytes) < 1)
 		{
 			writeMemo("[?] CCS: Can't decode disposition.");
 			sdr_cancel_xn(sdr);
 			return -1;
 		}
-
-		/*	CBOR negative int encoding: if major type 1,
-		 *	value is -1-n. For now we just check the value.
-		 *	Disposition 1 = accepted, -1 = refused.		*/
 
 		/*	Value: array of Bundle-Sequence			*/
 		arrayLen = 0;
@@ -3283,13 +3280,13 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 
 					if (rangeArray == NULL)
 					{
-						for (i = 0; i < bundleLen; i++)
+						for (k = 0; k < bundleLen; k++)
 						{
 							custodyElt =
 							cbr_findCustodyBundle(
 								sdr, sourceEid,
 								seqId,
-								seqNumStart + i);
+								seqNumStart + k);
 							if (custodyElt == 0)
 							{
 								continue;
@@ -3329,14 +3326,14 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 							rangeLen = rangeArray[j];
 							if ((j % 2) == 0) /* included */
 							{
-								for (i = 0; i < rangeLen;
-										i++)
+								for (k = 0; k < rangeLen;
+										k++)
 								{
 									custodyElt =
 									cbr_findCustodyBundle(
 										sdr, sourceEid,
 										seqId,
-										rangeStart + i);
+										rangeStart + k);
 									if (custodyElt == 0)
 									{
 										continue;
