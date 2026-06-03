@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+export ION_NODE_LIST_DIR=$PWD
+killm f
+rm -f ion_nodes
+rm -f */ion.log */*.txt

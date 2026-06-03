@@ -101,4 +101,16 @@ extern void	creb_clear(AcqExtBlock *);
 extern int	creb_getReportInfo(ExtensionBlock *blk, uvast *seqId,
 			uvast *seqNum);
 
+/**
+ * Extract CREB status report request flags from extension block.
+ * Used by custody handlers to check for custody-event CRS requests
+ * (CREB_REQUEST_CUSTODY_ACCEPT, CREB_REQUEST_CUSTODY_REFUSE).
+ *
+ * @param blk		The CREB extension block
+ * @param requestFlags	Output: request flag byte
+ * @return		0 on success, -1 on error
+ */
+extern int	creb_getRequestFlags(ExtensionBlock *blk,
+			unsigned char *requestFlags);
+
 #endif /* _CREB_H_ */
