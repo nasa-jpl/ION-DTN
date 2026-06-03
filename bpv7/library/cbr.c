@@ -101,6 +101,7 @@ int	cbr_initialize(Sdr sdr)
 		cbrBuf.custodyBundles = sdr_list_create(sdr);
 		cbrBuf.custodyAcceptByCustodian = sdr_list_create(sdr);
 		cbrBuf.custodyAcceptBySource = sdr_list_create(sdr);
+		cbrBuf.custodyReqDests = sdr_list_create(sdr);
 
 		/*	Default configuration			*/
 		cbrBuf.crsAggregateLimit = 10;
@@ -2551,6 +2552,147 @@ int	cbr_removeCustodyAccept(Sdr sdr, int forCustodian, const char *eid)
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't remove CBR accept entry.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+/*	*	Auto Custody-Request Policy				*/
+
+int	cbr_isCustodyRequired(Sdr sdr, const char *destEid)
+{
+	Object	cbrDbObj;
+	CbrDb	cbrDb;
+	Object	elt;
+	Object	obj;
+	char	buf[SDRSTRING_BUFSZ];
+
+	CHKZERO(sdr);
+	CHKZERO(destEid);
+	cbrDbObj = getCbrDbObject();
+	if (cbrDbObj == 0)
+	{
+		return 0;
+	}
+
+	sdr_read(sdr, (char *) &cbrDb, cbrDbObj, sizeof(CbrDb));
+	if (cbrDb.custodyReqDests == 0
+			|| sdr_list_length(sdr, cbrDb.custodyReqDests) == 0)
+	{
+		return 0;	/* empty list = no auto-request policy */
+	}
+
+	for (elt = sdr_list_first(sdr, cbrDb.custodyReqDests); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		obj = sdr_list_data(sdr, elt);
+		if (sdr_string_read(sdr, buf, obj) >= 0
+				&& strcmp(buf, destEid) == 0)
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+Object	cbr_getCustodyReqList(Sdr sdr)
+{
+	Object	cbrDbObj;
+	CbrDb	cbrDb;
+
+	cbrDbObj = getCbrDbObject();
+	if (cbrDbObj == 0)
+	{
+		return 0;
+	}
+
+	sdr_read(sdr, (char *) &cbrDb, cbrDbObj, sizeof(CbrDb));
+	return cbrDb.custodyReqDests;
+}
+
+int	cbr_addCustodyReq(Sdr sdr, const char *eid)
+{
+	Object	cbrDbObj;
+	CbrDb	cbrDb;
+	Object	elt;
+	Object	obj;
+	char	buf[SDRSTRING_BUFSZ];
+
+	CHKERR(sdr);
+	CHKERR(eid);
+	cbrDbObj = getCbrDbObject();
+	CHKERR(cbrDbObj);
+
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &cbrDb, cbrDbObj, sizeof(CbrDb));
+
+	/*	Reject duplicates.					*/
+	for (elt = sdr_list_first(sdr, cbrDb.custodyReqDests); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		obj = sdr_list_data(sdr, elt);
+		if (sdr_string_read(sdr, buf, obj) >= 0
+				&& strcmp(buf, eid) == 0)
+		{
+			sdr_exit_xn(sdr);
+			return 0;	/* already present */
+		}
+	}
+
+	istrcpy(buf, eid, sizeof buf);
+	obj = sdr_string_create(sdr, buf);
+	if (obj == 0
+			|| sdr_list_insert_last(sdr, cbrDb.custodyReqDests,
+			obj) == 0)
+	{
+		sdr_cancel_xn(sdr);
+		putErrmsg("Can't add custody-req entry.", NULL);
+		return -1;
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't add custody-req entry.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+int	cbr_removeCustodyReq(Sdr sdr, const char *eid)
+{
+	Object	cbrDbObj;
+	CbrDb	cbrDb;
+	Object	elt;
+	Object	obj;
+	char	buf[SDRSTRING_BUFSZ];
+
+	CHKERR(sdr);
+	CHKERR(eid);
+	cbrDbObj = getCbrDbObject();
+	CHKERR(cbrDbObj);
+
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &cbrDb, cbrDbObj, sizeof(CbrDb));
+
+	for (elt = sdr_list_first(sdr, cbrDb.custodyReqDests); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		obj = sdr_list_data(sdr, elt);
+		if (sdr_string_read(sdr, buf, obj) >= 0
+				&& strcmp(buf, eid) == 0)
+		{
+			sdr_free(sdr, obj);
+			sdr_list_delete(sdr, elt, NULL, NULL);
+			break;
+		}
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't remove custody-req entry.", NULL);
 		return -1;
 	}
 

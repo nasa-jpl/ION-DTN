@@ -1,0 +1,149 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# custody-auto-request: CBR auto custody-request policy regression test
+#
+# Verifies that the custodyreq destination list triggers automatic custody
+# transfer even when the sending application does not request it explicitly.
+#
+#   Node 2 has:  a custodyreq ipn:1.1  in its bprc
+#   Node 2 sends a bundle to ipn:1.1 using bpsource, which passes
+#   NoCustodyRequested.  The auto-policy should promote the bundle to
+#   SourceCustodyRequired, causing a CTEB to be attached.
+#   Node 1 accepts custody and sends CCS acceptance back to Node 2.
+#
+#   Phase 1 (policy active): verify custody accepted at Node 1 and
+#     released at Node 2 (CCS acceptance received).
+#
+#   Phase 2 (policy removed): remove ipn:1.1 from Node 2 custodyreq list,
+#     send another bundle; verify no CTEB attached (no custody accepted).
+#
+# Topology: Node 2 (sender, custodyreq policy) -> Node 1 (destination)
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+echo "=== Auto Custody-Request Policy Test ==="
+echo "Topology: Node 2 (sender, custodyreq ipn:1.1) -> Node 1 (destination)"
+echo ""
+
+./cleanup
+
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+test_result() {
+    if [ $1 -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+echo "Starting ION nodes..."
+for node in 1 2; do
+    cd "$TESTDIR/${node}.node"
+    chmod +x ionstart
+    ./ionstart > ion_startup.log 2>&1
+    sleep 2
+done
+
+NODE_COUNT=$(pgrep -f "rfxclock" | wc -l | tr -d ' ')
+if [ "$NODE_COUNT" -lt 2 ]; then
+    echo "ERROR: Nodes did not start. Found $NODE_COUNT rfxclock processes."
+    exit 1
+fi
+echo "Both nodes started."
+echo ""
+
+# ---------------------------------------------------------------
+echo "--- Phase 1: Policy active (custodyreq ipn:1.1 in Node 2 bprc) ---"
+
+# Verify custodyreq list is visible via l custodyreq
+cd "$TESTDIR/2.node"
+WL_OUT=$(echo 'l custodyreq' | bpadmin 2>/dev/null)
+if echo "$WL_OUT" | grep -Fq 'ipn:1.1'; then
+    test_result 0 "custodyreq entry ipn:1.1 visible via l custodyreq"
+else
+    test_result 1 "custodyreq entry ipn:1.1 not found in l custodyreq output"
+fi
+
+# Send a bundle using bpsource (NoCustodyRequested path)
+bpsource ipn:1.1 "custody-auto-request-test" > /dev/null 2>&1
+echo "  Bundle sent from Node 2 to ipn:1.1 via bpsource."
+
+sleep 5
+
+# Node 1 should have accepted custody (CTEB was auto-attached by policy)
+cd "$TESTDIR/1.node"
+if grep -Fq 'CTEB: Accepting custody' ion.log 2>/dev/null; then
+    test_result 0 "Node 1 accepted custody (auto-requested by policy)"
+else
+    test_result 1 "No custody acceptance at Node 1 within 5 seconds"
+fi
+
+# Node 2 should have received CCS acceptance (custody released)
+cd "$TESTDIR/2.node"
+if grep -Fq 'Custody released' ion.log 2>/dev/null || \
+   grep -Fq 'CCS: Custody accepted' ion.log 2>/dev/null; then
+    test_result 0 "Node 2 received CCS acceptance (custody released)"
+else
+    test_result 1 "No CCS acceptance received at Node 2 within 5 seconds"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Phase 2: Policy removed (d custodyreq ipn:1.1) ---"
+
+cd "$TESTDIR/2.node"
+echo 'd custodyreq ipn:1.1' | bpadmin > /dev/null 2>&1
+echo "  Removed ipn:1.1 from Node 2 custodyreq list."
+
+# Verify list is now empty
+WL_OUT=$(echo 'l custodyreq' | bpadmin 2>/dev/null)
+if echo "$WL_OUT" | grep -Fq '(none)'; then
+    test_result 0 "custodyreq list empty after deletion"
+else
+    test_result 1 "custodyreq list not empty after deletion"
+fi
+
+# Truncate Node 1 log to make acceptance check unambiguous
+> "$TESTDIR/1.node/ion.log"
+
+bpsource ipn:1.1 "custody-auto-request-no-policy" > /dev/null 2>&1
+echo "  Bundle sent from Node 2 to ipn:1.1 via bpsource (no policy)."
+
+sleep 5
+
+# Node 1 should NOT have accepted custody this time
+cd "$TESTDIR/1.node"
+if grep -Fq 'CTEB: Accepting custody' ion.log 2>/dev/null; then
+    test_result 1 "Unexpected custody acceptance (policy was removed)"
+else
+    test_result 0 "No custody acceptance after policy removal (correct)"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Error Check ---"
+for node in 1 2; do
+    ERR=$(grep -c '\[!' "$TESTDIR/${node}.node/ion.log" 2>/dev/null || true)
+    ERR=${ERR:-0}
+    if [ "$ERR" -gt 0 ]; then
+        echo "  ${node}.node: $ERR error(s)"
+        grep '\[!' "$TESTDIR/${node}.node/ion.log" | head -5 | sed 's/^/    /'
+    else
+        echo "  ${node}.node: no errors"
+    fi
+    test_result "$ERR" "No ION errors at Node $node"
+done
+
+echo ""
+echo "========================================="
+echo "SUMMARY: $TESTS_PASSED passed, $TESTS_FAILED failed"
+echo "========================================="
+
+[ $TESTS_FAILED -eq 0 ]

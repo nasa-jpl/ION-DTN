@@ -39,6 +39,9 @@ typedef struct {
 	Object		custodyAcceptByCustodian; /* SDR list of SDR strings */
 	Object		custodyAcceptBySource;	  /* SDR list of SDR strings */
 
+	/* Auto custody-request policy (empty = no auto-request) */
+	Object		custodyReqDests;	  /* SDR list of SDR strings */
+
 	/* Configuration */
 	unsigned int	crsAggregateLimit;	/* Max bundles before CRS */
 	unsigned int	ccsAggregateLimit;	/* Max bundles before CCS */

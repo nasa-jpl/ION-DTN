@@ -1,0 +1,5 @@
+wmKey 65351
+sdrName ion1custodyreq
+wmSize 5000000
+configFlags 1
+heapWords 10000000
