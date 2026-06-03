@@ -1449,13 +1449,13 @@ char* bpsec_scv_smListPrint(PsmPartition wm, sc_Def *sc_def, Lyst vals)
 		return NULL;
 	}
 
-	/* Step 1: Walk through the list... */
 	for(elt = lyst_first(vals); elt; elt = lyst_next(elt))
 	{
 		cur_val = (sc_value *)lyst_data(elt);
 		cur_idx = bpsec_scvm_byIdIdxFind(scvm, cur_val->scValId, cur_val->scValType);
-		tmp_array[i++] =scvm[cur_idx].scValToStr(wm, cur_val);
-		size += strlen(tmp_array[i++]);
+		tmp_array[i] =scvm[cur_idx].scValToStr(wm, cur_val);
+		size += strlen(tmp_array[i]);
+		i++;
 	}
 
 	return bpsec_scutl_strFromStrsCreate(tmp_array, size, num_items);
