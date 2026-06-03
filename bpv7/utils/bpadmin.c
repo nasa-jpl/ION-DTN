@@ -151,6 +151,14 @@ payload length");
 	PUTS("\t   d cbraccept { custodian | source } <eid>");
 	PUTS("\t      Remove EID from custody acceptance whitelist");
 	PUTS("\t   l cbraccept");
+	PUTS("\t   a custodyreq <eid>");
+	PUTS("\t      Add destination EID to auto custody-request policy list");
+	PUTS("\t      Bundles sent to this EID will have custody transfer requested");
+	PUTS("\t      automatically, even if the application does not request it");
+	PUTS("\t   d custodyreq <eid>");
+	PUTS("\t      Remove destination EID from auto custody-request policy list");
+	PUTS("\t   l custodyreq");
+	PUTS("\t      List all destination EIDs in the auto custody-request policy list");
 	PUTS("\tr\tRun another admin program");
 	PUTS("\t   r '<admin command>'");
 	PUTS("\ts\tStart");
@@ -445,6 +453,80 @@ static void	listCbrAccept(int tokenCount, char **tokens)
 	sdr_exit_xn(sdr);
 }
 
+static void	addCustodyReq(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	if (cbr_addCustodyReq(sdr, tokens[2]) < 0)
+	{
+		putErrmsg("Can't add custody-req entry.", tokens[2]);
+	}
+	else
+	{
+		printText("Custody-req entry added.");
+	}
+}
+
+static void	deleteCustodyReq(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	if (cbr_removeCustodyReq(sdr, tokens[2]) < 0)
+	{
+		putErrmsg("Can't remove custody-req entry.", tokens[2]);
+	}
+	else
+	{
+		printText("Custody-req entry removed.");
+	}
+}
+
+static void	listCustodyReq(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+	Object	list;
+	Object	elt;
+	Object	obj;
+	char	buf[SDRSTRING_BUFSZ];
+
+	(void) tokenCount;
+	(void) tokens;
+
+	CHKVOID(sdr_begin_xn(sdr));
+	list = cbr_getCustodyReqList(sdr);
+	if (list == 0 || sdr_list_length(sdr, list) == 0)
+	{
+		printText("Custody-req list: (none)");
+	}
+	else
+	{
+		printText("Custody-req destinations:");
+		for (elt = sdr_list_first(sdr, list); elt;
+				elt = sdr_list_next(sdr, elt))
+		{
+			obj = sdr_list_data(sdr, elt);
+			if (sdr_string_read(sdr, buf, obj) >= 0)
+			{
+				printText(buf);
+			}
+		}
+	}
+
+	sdr_exit_xn(sdr);
+}
+
 static void	executeAdd(int tokenCount, char **tokens)
 {
 	char		*script;
@@ -615,6 +697,12 @@ static void	executeAdd(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "cbraccept") == 0)
 	{
 		addCbrAccept(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "custodyreq") == 0)
+	{
+		addCustodyReq(tokenCount, tokens);
 		return;
 	}
 
@@ -830,6 +918,12 @@ static void	executeDelete(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "cbraccept") == 0)
 	{
 		deleteCbrAccept(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "custodyreq") == 0)
+	{
+		deleteCustodyReq(tokenCount, tokens);
 		return;
 	}
 
@@ -1498,6 +1592,12 @@ static void	executeList(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "cbraccept") == 0)
 	{
 		listCbrAccept(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "custodyreq") == 0)
+	{
+		listCustodyReq(tokenCount, tokens);
 		return;
 	}
 

@@ -252,6 +252,35 @@ The B<list CBR acceptance whitelist> command.  Prints the current custody
 acceptance whitelist for both dimensions.  An entry of B<(all)> indicates
 that the list for that dimension is empty and all EIDs are accepted.
 
+=item B<a custodyreq> I<eid>
+
+The B<add custody-request policy entry> command.  Adds I<eid> to the
+auto custody-request destination list.  When Orange Book custody mode is
+active and a bundle is sent to a destination EID that appears in this list,
+custody transfer is requested automatically even if the sending application
+did not request it.  The list accepts exact EID matches only.
+
+An empty list (the default) means no auto-request policy is active and
+custody transfer is only requested when the application explicitly asks for it.
+
+Example -- automatically request custody for all bundles sent to node 3's
+admin endpoint:
+
+    a custodyreq ipn:3.0
+
+This command requires B<m custodymode orangebook> to be effective.
+
+=item B<d custodyreq> I<eid>
+
+The B<delete custody-request policy entry> command.  Removes I<eid> from
+the auto custody-request destination list.  If I<eid> is not present the
+command has no effect.
+
+=item B<l custodyreq>
+
+The B<list custody-request policy> command.  Prints all destination EIDs
+currently in the auto custody-request list, or B<(none)> if the list is empty.
+
 =item B<m bsl> I<local_ipn_eid> I<key_reg_file_path> I<policy_config_file_path>
 
 The B<manage BPSec library configuration> command.  This command sets the

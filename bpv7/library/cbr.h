@@ -322,6 +322,21 @@ extern int		cbr_isCustodyAccepted(Sdr sdr,
 					const char *custodianEid,
 					const char *sourceEid);
 
+/*	Auto Custody-Request Policy					*/
+
+/**
+ * Returns 1 if custody transfer should be automatically requested for
+ * bundles destined to destEid, 0 otherwise.
+ * An empty custodyReqDests list means no auto-request policy is active.
+ */
+extern int		cbr_isCustodyRequired(Sdr sdr, const char *destEid);
+
+/** Returns the SDR list Object for the custody-request destination list. */
+extern Object		cbr_getCustodyReqList(Sdr sdr);
+
+extern int		cbr_addCustodyReq(Sdr sdr, const char *eid);
+extern int		cbr_removeCustodyReq(Sdr sdr, const char *eid);
+
 /**
  * Accept custody of a bundle.
  * Adds bundle to custody tracking and queues acceptance signal.

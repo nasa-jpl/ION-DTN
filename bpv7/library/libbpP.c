@@ -6831,6 +6831,18 @@ when asking for status reports.");
 		bundle.ancillaryData.cbrSeqId = ancillaryData->cbrSeqId;
 	}
 
+	/*	Auto custody-request policy: promote to SourceCustodyRequired
+	 *	if destination is on the custodyreq list and Orange Book
+	 *	custody mode is active.					*/
+
+	if (custodySwitch == NoCustodyRequested
+	&& cbr_getCustodyMode(sdr) == BP_CUSTODY_ORANGEBOOK
+	&& destEidString != NULL
+	&& cbr_isCustodyRequired(sdr, destEidString))
+	{
+		custodySwitch = SourceCustodyRequired;
+	}
+
 	if (custodySwitch != NoCustodyRequested)
 	{
 		/*	Custody transfer is only provided by

@@ -1,0 +1,11 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.0 x
+a endpoint ipn:1.1 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4571 udpcli
+a outduct udp 127.0.0.1:4572 udpclo
+r 'ipnadmin node.ipnrc'
+m custodymode orangebook
+m cbraggr 1 1 2
+s
