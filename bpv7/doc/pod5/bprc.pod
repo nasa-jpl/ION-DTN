@@ -204,7 +204,7 @@ The B<add CBR acceptance whitelist entry> command.  This command adds an
 EID to the custody acceptance whitelist for the specified dimension.
 
 B<custodian>  The I<eid> is matched against the custodian EID in the CTEB
-              block — that is, the node currently holding custody and
+              block -- that is, the node currently holding custody and
               requesting this node to take it over.
 
 B<source>     The I<eid> is matched against the bundle's original source EID.
@@ -230,11 +230,11 @@ an entry in that list or custody will be refused with a CCS refusal signal.
 
 Both lists empty (the default) means accept custody from anyone.
 
-Example — accept custody only from node 3 acting as custodian:
+Example -- accept custody only from node 3 acting as custodian:
 
     a cbraccept custodian ipn:3.0
 
-Example — accept custody only for bundles sourced from a specific endpoint:
+Example -- accept custody only for bundles sourced from a specific endpoint:
 
     a cbraccept source ipn:5.1
 
