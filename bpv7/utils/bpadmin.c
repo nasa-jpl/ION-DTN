@@ -159,6 +159,15 @@ payload length");
 	PUTS("\t      Remove destination EID from auto custody-request policy list");
 	PUTS("\t   l custodyreq");
 	PUTS("\t      List all destination EIDs in the auto custody-request policy list");
+	PUTS("\t   l crslog [<sender-eid>]");
+	PUTS("\t      List received CRS history log, newest first");
+	PUTS("\t      Optional sender-eid filters output to entries from that node");
+	PUTS("\t   l custodybundle");
+	PUTS("\t      List all bundles currently held in custody tracking");
+	PUTS("\t      Shows seqId, seqNum, dest EID, acceptance time, last transmit, retransmit count");
+	PUTS("\t   i custodybundle <sourceEid> <seqId> <seqNum>");
+	PUTS("\t      Report custody status of a specific bundle");
+	PUTS("\t      Status: pending (awaiting CCS) or not-found (released or not tracked)");
 	PUTS("\tr\tRun another admin program");
 	PUTS("\t   r '<admin command>'");
 	PUTS("\ts\tStart");
@@ -596,6 +605,107 @@ static void	listCrsLog(int tokenCount, char **tokens)
 	}
 
 	sdr_exit_xn(sdr);
+}
+
+static void	printCustodyBundle(CbrCustodyInfo *info, void *userData)
+{
+	char		acceptBuf[32];
+	char		xmitBuf[32];
+	struct tm	*tm;
+	time_t		t;
+	char		line[320];
+
+	(void) userData;
+
+	t = info->custodyAccepted;
+	tm = gmtime(&t);
+	strftime(acceptBuf, sizeof acceptBuf, "%Y-%m-%dT%H:%M:%SZ", tm);
+	t = info->lastTransmit;
+	if (t == 0)
+	{
+		istrcpy(xmitBuf, "(never)", sizeof xmitBuf);
+	}
+	else
+	{
+		tm = gmtime(&t);
+		strftime(xmitBuf, sizeof xmitBuf, "%Y-%m-%dT%H:%M:%SZ", tm);
+	}
+
+	isprintf(line, sizeof line,
+			"  seqId=%-6llu seqNum=%-6llu dest=%-40s accepted=%s lastXmit=%s retx=%d",
+			(unsigned long long) info->seqId,
+			(unsigned long long) info->seqNum,
+			info->destEid, acceptBuf, xmitBuf,
+			info->retransmitCount);
+	printText(line);
+}
+
+static void	listCustodyBundles(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+	int	count;
+	char	summary[64];
+
+	(void) tokenCount;
+	(void) tokens;
+
+	count = cbr_listCustodyBundles(sdr, printCustodyBundle, NULL);
+	if (count < 0)
+	{
+		putErrmsg("Can't list custody bundles.", NULL);
+		return;
+	}
+
+	if (count == 0)
+	{
+		printText("Custody bundles: (none)");
+		return;
+	}
+
+	isprintf(summary, sizeof summary, "Custody bundles: %d total", count);
+	printText(summary);
+}
+
+static void	infoCustodyBundle(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	uvast		seqId;
+	uvast		seqNum;
+	int		status;
+	const char	*statusName;
+	char		line[256];
+
+	if (tokenCount != 5)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	seqId = strtouvast(tokens[3]);
+	seqNum = strtouvast(tokens[4]);
+	status = cbr_getCustodyStatus(sdr, tokens[2], seqId, seqNum);
+	switch (status)
+	{
+	case CBR_CUSTODY_STATUS_PENDING:
+		statusName = "pending";
+		break;
+
+	case CBR_CUSTODY_STATUS_NOT_FOUND:
+		statusName = "not-found (released or never tracked)";
+		break;
+
+	default:
+		statusName = "unknown";
+		break;
+	}
+
+	isprintf(line, sizeof line,
+			"Custody status for %s seqId=%llu seqNum=%llu: %s",
+			tokens[2],
+			(unsigned long long) seqId,
+			(unsigned long long) seqNum,
+			statusName);
+	printText(line);
 }
 
 static void	executeAdd(int tokenCount, char **tokens)
@@ -1361,6 +1471,12 @@ static void	executeInfo(int tokenCount, char **tokens)
 		return;
 	}
 
+	if (strcmp(tokens[1], "custodybundle") == 0)
+	{
+		infoCustodyBundle(tokenCount, tokens);
+		return;
+	}
+
 	SYNTAX_ERROR;
 }
 
@@ -1675,6 +1791,12 @@ static void	executeList(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "crslog") == 0)
 	{
 		listCrsLog(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "custodybundle") == 0)
+	{
+		listCustodyBundles(tokenCount, tokens);
 		return;
 	}
 

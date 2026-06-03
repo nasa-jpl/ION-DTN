@@ -114,7 +114,7 @@ B<orangebook>  CCSDS Orange Book mode.  Enables Compressed Bundle Reporting
            The full set of Orange Book configuration commands is:
            B<m srmode>, B<m cbraggr>, B<m cbrretx>, B<m crebexpliciteid>,
            B<a/d/l cbraccept>, B<a/d/l custodyreq>, B<m crsmaxlog>,
-           B<l crslog>.
+           B<l crslog>, B<l custodybundle>, B<i custodybundle>.
 
 The default mode is B<none>.
 
@@ -327,6 +327,50 @@ Bundle count -- number of bundle sequence entries covered by the record.
 
 If the optional I<eid> argument is supplied, only records from that sender
 EID are printed.
+
+This command requires B<m custodymode orangebook> to be effective.
+
+=item B<l custodybundle>
+
+The B<list custody bundles> command.  Lists every bundle currently held
+in custody tracking on this node -- that is, bundles for which this node
+accepted custody and has not yet received a CCS acceptance signal from the
+next hop.
+
+For each entry, the output shows the sequence identifier (B<seqId>),
+sequence number (B<seqNum>), next-custodian destination EID, the time custody
+was accepted, the time of the last retransmission (or B<(never)> if the
+bundle has not been retransmitted), and the number of retransmissions
+performed so far.
+
+This command is most useful when B<m cbrretx none> is in effect, because
+refused bundles remain in tracking pending manual retransmission.  With
+B<m cbrretx signal>, bundles are quickly re-forwarded on refusal and may
+drain before this command is run.
+
+This command requires B<m custodymode orangebook> to be effective.
+
+=item B<i custodybundle> I<source_eid> I<seqId> I<seqNum>
+
+The B<info custody bundle> command.  Reports the current custody status of
+the specific bundle identified by I<source_eid>, I<seqId>, and I<seqNum>.
+
+The status is either:
+
+=over 4
+
+=item B<pending>
+
+The bundle is in custody tracking; this node is holding it and waiting for
+a CCS acceptance signal from the next hop.
+
+=item B<not-found>
+
+The bundle is not in custody tracking.  This means it was either released
+after a CCS acceptance was received, was never custody-tracked, or has
+already expired.
+
+=back
 
 This command requires B<m custodymode orangebook> to be effective.
 
