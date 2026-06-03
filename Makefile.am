@@ -1216,6 +1216,8 @@ bpextra = \
 	bpv7/doc/pod1/bprecvtest.pod \
 	bpv7/doc/pod1/bpsecadmin.pod \
 	bpv7/doc/pod1/bpsendfile.pod \
+	bpv7/doc/pod1/bpsh.pod \
+	bpv7/doc/pod1/bpshd.pod \
 	bpv7/doc/pod1/bpsendtest.pod \
 	bpv7/doc/pod1/bpsink.pod \
 	bpv7/doc/pod1/bpsource.pod \
@@ -1306,6 +1308,8 @@ bpmans = \
 	bpv7/doc/bprecvtest.1 \
 	bpv7/doc/bpsecadmin.1 \
 	bpv7/doc/bpsendfile.1 \
+	bpv7/doc/bpsh.1 \
+	bpv7/doc/bpshd.1 \
 	bpv7/doc/bpsendtest.1 \
 	bpv7/doc/bpsink.1 \
 	bpv7/doc/bpsource.1 \

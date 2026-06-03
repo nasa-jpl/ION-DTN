@@ -1,0 +1,137 @@
+=head1 NAME
+
+bpsh - Bundle Protocol remote shell client
+
+=head1 SYNOPSIS
+
+B<bpsh> B<-h> I<remoteEID> B<-l> I<localEID> [B<-c> I<command>]
+
+B<bpsh> I<localEID> I<remoteEID>
+
+=head1 DESCRIPTION
+
+B<bpsh> is an SSH-like remote shell client that runs commands on a remote
+node over Bundle Protocol version 7.  It connects to a B<bpshd> daemon
+listening on I<remoteEID>, which executes the submitted commands in a
+persistent B</bin/sh> and returns standard output, standard error, and the
+exit code in separate bundles.  Replies are delivered to I<localEID>, which
+B<bpsh> opens as its own endpoint.
+
+Because the transport is the Bundle Protocol, B<bpsh> tolerates long delays
+and link disruptions: a command and its output are carried in
+store-and-forward bundles rather than over a continuous connection.
+
+By default B<bpsh> runs an interactive read-eval-print loop (REPL).  The
+prompt shows the working directory of the remote shell, and because a single
+B</bin/sh> persists for the whole session, B<cd>, environment variables, and
+shell functions carry over from one command to the next.  The REPL supports
+in-line editing (left/right/home/end/delete), command history on the up and
+down arrow keys, and a B<history> builtin.  Typing B<exit> closes the session
+and leaves the REPL.
+
+With B<-c>, B<bpsh> runs a single I<command> in one-shot mode and exits with
+the remote command's exit code.  If standard input is not a terminal it is
+forwarded to the remote command as bundles, allowing input to be piped to the
+remote shell.
+
+The positional form B<bpsh> I<localEID> I<remoteEID> is accepted as a
+backward-compatible shorthand for B<-l> I<localEID> B<-h> I<remoteEID> and
+always runs the interactive REPL.
+
+B<bpsh> terminates on the SIGINT signal (^C at the prompt).
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+In REPL mode, B<bpsh> terminated normally.  In one-shot mode (B<-c>), the
+remote command exited with status 0.
+
+=item I<n>
+
+In one-shot mode, B<bpsh> exits with the exit code I<n> of the remote
+command.  A value of "1" may also indicate a local BP transmit/receive
+failure, loss of the local ION node, or an error reported by B<bpshd>;
+details are noted on standard error and in the B<ion.log> log file.
+
+=back
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-h> I<remoteEID>
+
+Endpoint ID of the remote B<bpshd> daemon.  Mandatory.
+
+=item B<-l> I<localEID>
+
+Local endpoint ID on which B<bpsh> receives replies.  Mandatory.
+
+=item B<-c> I<command>
+
+Run I<command> as a single one-shot request, then exit with the remote
+command's exit code.  Standard input is forwarded if it is not a terminal.
+Without B<-c>, B<bpsh> runs an interactive REPL.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+=over 4
+
+=item NO_COLOR, TERM
+
+If NO_COLOR is set, or TERM indicates a non-capable terminal, B<bpsh>
+suppresses colored output.
+
+=back
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to standard error or to the
+B<ion.log> log file:
+
+=over 4
+
+=item bpsh: bp_attach failed.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item bpsh: can't open local endpoint.
+
+Another application has already opened I<localEID>.  Terminate that
+application and rerun, or choose a different local endpoint.
+
+=item bpsh: failed to send INIT
+
+=item bpsh: failed to receive INIT_ACK
+
+B<bpsh> could not establish a session with the remote B<bpshd>.  Verify that
+the daemon is running on I<remoteEID> and that a contact/route exists between
+the two nodes.
+
+=item bpsh: server error: ...
+
+The remote B<bpshd> reported an out-of-band error for the session.
+
+=item bpsh: lost the local ION node
+
+The local ION node was torn down while B<bpsh> was attached.  This is
+reported as a clean exit rather than a core dump.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
+
+=head1 SEE ALSO
+
+bpshd(1), bpchat(1), bp(3)
