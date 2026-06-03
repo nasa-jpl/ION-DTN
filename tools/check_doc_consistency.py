@@ -35,6 +35,13 @@ Checks performed
    (EXTERNAL_MANPAGES). Catches broken refs (no such page) and wrong-section
    refs (page exists but in a different section).
 
+6. admin_rc_pairing  (pod1 admin page <-> its own rc file)
+   An admin program page `<X>admin.pod` reads its own config file `<X>rc`
+   (strip "admin", append "rc": ionsecadmin->ionsecrc, bpadmin->bprc, ...). The
+   dos2unix DIAGNOSTICS boilerplate ("If you edit the <name> file ... before
+   presenting it to <X>admin") must therefore name `<X>rc`; any other name is a
+   copy-paste slip (e.g. the security admins inheriting "ionrc" from ionadmin).
+
 POD / source conventions encoded here
 -------------------------------------
 * Commands are documented as `=item B<X...>`; the command code is the first char.
@@ -401,6 +408,19 @@ def pod_cross_references(text):
     return set(CROSSREF_RE.findall(text))
 
 
+# The dos2unix DIAGNOSTICS boilerplate in admin man pages: "... If you edit the
+# <name> file on a Windows machine ...". The named file is the program's own
+# input config file.
+CONFIG_FILE_NOTE_RE = re.compile(r"edit the ([A-Za-z0-9_]+) file\b")
+
+
+def admin_config_file_refs(text):
+    """Return the set of config-file names named in an admin page's dos2unix
+    'edit the <name> file' DIAGNOSTICS boilerplate (B<>/I<> wrappers stripped)."""
+    text = re.sub(r"[A-Z]<([^>]*)>", r"\1", text)
+    return set(CONFIG_FILE_NOTE_RE.findall(text))
+
+
 # --------------------------------------------------------------------------- #
 # Driver                                                                      #
 # --------------------------------------------------------------------------- #
@@ -504,6 +524,22 @@ def collect_findings(root):
                 findings.append(
                     f"[xref] {rel}: '{tag}' has no matching pod (broken "
                     f"cross-reference)")
+
+    # 6: admin program page <-> its own rc config file
+    for dirpath, _dirs, files in os.walk(root):
+        if os.sep + "pod1" not in dirpath + os.sep:
+            continue
+        for fn in sorted(files):
+            if not fn.endswith("admin.pod"):
+                continue
+            name = fn[:-4]                          # e.g. "ionsecadmin"
+            expected = name[:-len("admin")] + "rc"  # -> "ionsecrc"
+            rel = os.path.relpath(os.path.join(dirpath, fn), root)
+            for named in sorted(admin_config_file_refs(read(root, rel))):
+                if named != expected:
+                    findings.append(
+                        f"[adminrc] {rel}: config-file note names '{named}' but "
+                        f"{name} reads '{expected}'")
 
     return sorted(set(findings))
 
