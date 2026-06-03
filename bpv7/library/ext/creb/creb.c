@@ -23,7 +23,7 @@
 #include "bpP.h"
 #include "bei.h"
 #include "creb.h"
-#include "cbr.h"
+#include "cbrP.h"
 
 /*	Block processing flags for CREB per Orange Book.
  *	Bit 0 (0x01): Block must be replicated in every fragment
@@ -205,6 +205,38 @@ int	creb_offer(ExtensionBlock *blk, Bundle *bundle)
 
 	MRELEASE(destEidStr);
 	MRELEASE(sourceEidStr);
+
+	/*	Apply CREB report-to EID override if configured.
+	 *	This sets element 4 (arrayLen=5), directing relay and
+	 *	destination nodes to send CRS to the overridden EID
+	 *	rather than the bundle's reportTo field.
+	 *	Element 3 (sourceEid) is required when arrayLen=5.	*/
+
+	{
+		CbrDb	*cbrConst = getCbrConstants();
+
+		if (cbrConst != NULL
+				&& cbrConst->crebDefaultReportToEid[0] != '\0')
+		{
+			if (scratch.sourceEid[0] == '\0')
+			{
+				char	*eidStr;
+
+				readEid(&bundle->id.source, &eidStr);
+				if (eidStr != NULL)
+				{
+					istrcpy(scratch.sourceEid, eidStr,
+							MAX_EID_LEN);
+					MRELEASE(eidStr);
+				}
+			}
+
+			istrcpy(scratch.reportToEid,
+					cbrConst->crebDefaultReportToEid,
+					MAX_EID_LEN);
+			scratch.arrayLen = 5;
+		}
+	}
 
 	/*	Store scratchpad in SDR for later serialization.	*/
 
@@ -630,5 +662,27 @@ int	creb_getRequestFlags(ExtensionBlock *blk, unsigned char *requestFlags)
 
 	sdr_read(sdr, (char *) &scratch, blk->object, sizeof(CrebScratchpad));
 	*requestFlags = scratch.requestFlags;
+	return 0;
+}
+
+int	creb_getReportToEid(ExtensionBlock *blk, char *buf, size_t bufLen)
+{
+	Sdr		sdr = getIonsdr();
+	CrebScratchpad	scratch;
+
+	CHKERR(buf);
+	CHKERR(bufLen > 0);
+	buf[0] = '\0';
+	if (blk == NULL || blk->object == 0)
+	{
+		return 0;
+	}
+
+	sdr_read(sdr, (char *) &scratch, blk->object, sizeof(CrebScratchpad));
+	if (scratch.arrayLen >= 5 && scratch.reportToEid[0] != '\0')
+	{
+		istrcpy(buf, scratch.reportToEid, bufLen);
+	}
+
 	return 0;
 }

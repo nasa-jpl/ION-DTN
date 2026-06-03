@@ -113,4 +113,17 @@ extern int	creb_getReportInfo(ExtensionBlock *blk, uvast *seqId,
 extern int	creb_getRequestFlags(ExtensionBlock *blk,
 			unsigned char *requestFlags);
 
+/**
+ * Extract CREB report-to EID override from extension block (element 4).
+ * Copies the overridden report-to EID into buf, or sets buf[0]='\0' if
+ * element 4 is absent (arrayLen < 5) or empty.
+ *
+ * @param blk		The CREB extension block
+ * @param buf		Output buffer for the EID string
+ * @param bufLen	Size of buf (should be MAX_EID_LEN)
+ * @return		0 on success, -1 on error
+ */
+extern int	creb_getReportToEid(ExtensionBlock *blk, char *buf,
+			size_t bufLen);
+
 #endif /* _CREB_H_ */

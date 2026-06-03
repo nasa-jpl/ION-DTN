@@ -143,6 +143,13 @@ payload length");
 	PUTS("\t      Max retransmissions: 0 means unlimited");
 	PUTS("\t   m crebexpliciteid { 0 | 1 }");
 	PUTS("\t      Include explicit source EID in CREB blocks (default: 0)");
+	PUTS("\t   m crebreportto <eid> | -");
+	PUTS("\t      Set or clear the default CREB report-to EID override");
+	PUTS("\t      When set, all outgoing CREB blocks carry this EID as element 4");
+	PUTS("\t      (arrayLen=5), directing relay/destination nodes to send CRS");
+	PUTS("\t      to <eid> instead of the bundle's reportTo field.");
+	PUTS("\t      Use '-' to clear the override (revert to bundle's reportTo).");
+	PUTS("\t      'l crebreportto' shows the current override.");
 	PUTS("\t   a cbraccept { custodian | source } <eid>");
 	PUTS("\t      Add EID to custody acceptance whitelist");
 	PUTS("\t      custodian: match on the node requesting custody (CTEB custodian EID)");
@@ -706,6 +713,61 @@ static void	infoCustodyBundle(int tokenCount, char **tokens)
 			(unsigned long long) seqNum,
 			statusName);
 	printText(line);
+}
+
+static void	manageCrebReportTo(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+	char	buf[MAX_EID_LEN];
+	char	line[MAX_EID_LEN + 40];
+
+	if (tokenCount == 2)
+	{
+		if (cbr_getCrebReportTo(sdr, buf, sizeof buf) < 0)
+		{
+			putErrmsg("Can't read CREB report-to override.", NULL);
+			return;
+		}
+
+		if (buf[0] == '\0')
+		{
+			printText("CREB default report-to: (none -- use bundle's reportTo)");
+		}
+		else
+		{
+			isprintf(line, sizeof line,
+					"CREB default report-to: %s", buf);
+			printText(line);
+		}
+
+		return;
+	}
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	if (strcmp(tokens[2], "-") == 0)
+	{
+		if (cbr_setCrebReportTo(sdr, NULL) < 0)
+		{
+			putErrmsg("Can't clear CREB report-to override.", NULL);
+			return;
+		}
+
+		printText("CREB report-to override cleared.");
+		return;
+	}
+
+	if (cbr_setCrebReportTo(sdr, tokens[2]) < 0)
+	{
+		putErrmsg("Can't set CREB report-to override.", tokens[2]);
+		return;
+	}
+
+	printText("CREB report-to override set.");
 }
 
 static void	executeAdd(int tokenCount, char **tokens)
@@ -1800,6 +1862,12 @@ static void	executeList(int tokenCount, char **tokens)
 		return;
 	}
 
+	if (strcmp(tokens[1], "crebreportto") == 0)
+	{
+		manageCrebReportTo(2, tokens);
+		return;
+	}
+
 	SYNTAX_ERROR;
 }
 
@@ -2291,6 +2359,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "crsmaxlog") == 0)
 	{
 		manageCrsMaxLog(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "crebreportto") == 0)
+	{
+		manageCrebReportTo(tokenCount, tokens);
 		return;
 	}
 

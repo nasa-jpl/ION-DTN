@@ -234,6 +234,55 @@ int	cbr_setCrebExplicitEid(Sdr sdr, int enable)
 	return 0;
 }
 
+int	cbr_getCrebReportTo(Sdr sdr, char *buf, size_t bufLen)
+{
+	Object	cbrDbObj;
+	CbrDb	cbrBuf;
+
+	CHKERR(sdr);
+	CHKERR(buf);
+	CHKERR(bufLen > 0);
+	cbrDbObj = _cbrDbObject(NULL);
+	CHKERR(cbrDbObj);
+
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &cbrBuf, cbrDbObj, sizeof(CbrDb));
+	sdr_exit_xn(sdr);
+	istrcpy(buf, cbrBuf.crebDefaultReportToEid, bufLen);
+	return 0;
+}
+
+int	cbr_setCrebReportTo(Sdr sdr, const char *eid)
+{
+	Object	cbrDbObj;
+	CbrDb	cbrBuf;
+
+	CHKERR(sdr);
+	cbrDbObj = _cbrDbObject(NULL);
+	CHKERR(cbrDbObj);
+
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &cbrBuf, cbrDbObj, sizeof(CbrDb));
+	if (eid == NULL || *eid == '\0')
+	{
+		cbrBuf.crebDefaultReportToEid[0] = '\0';
+	}
+	else
+	{
+		istrcpy(cbrBuf.crebDefaultReportToEid, eid,
+				sizeof cbrBuf.crebDefaultReportToEid);
+	}
+
+	sdr_write(sdr, cbrDbObj, (char *) &cbrBuf, sizeof(CbrDb));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't update CREB report-to override.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
 int	cbr_configureRetransmission(Sdr sdr, int strategy,
 		unsigned int intervalSec, unsigned int maxRetransmissions)
 {

@@ -1,0 +1,15 @@
+## Node 3: CRS collection node.
+## Receives CRS signals from Node 2 at ipn:3.0 (admin endpoint).
+## ipnadminep processes them and logs "CRS received" events.
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:3.0 x
+a endpoint ipn:3.1 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4635 udpcli
+a outduct udp 127.0.0.1:4634 udpclo
+m custodymode orangebook
+m srmode compressed
+m cbraggr 1 1 2
+r 'ipnadmin node.ipnrc'
+s

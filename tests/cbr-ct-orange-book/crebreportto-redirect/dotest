@@ -1,0 +1,155 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# crebreportto-redirect: CREB report-to EID override via m crebreportto (G4)
+#
+# Verifies (G4):
+#   The 'm crebreportto <eid>' bpadmin command sets CbrDb.crebDefaultReportToEid,
+#   which creb_offer embeds as element 4 (arrayLen=5) in all outgoing CREB blocks.
+#   Relay and destination nodes honor this field, sending their CRS signals to
+#   the overridden EID rather than the bundle's primary reportTo field.
+#
+# Topology:
+#   Node 1 (source) -> Node 2 (destination)
+#   Node 1 sets: m crebreportto ipn:3.0
+#   Node 2 generates delivery CRS to ipn:3.0 (Node 3), NOT to ipn:1.0
+#
+# This test verifies:
+#   1. 'm crebreportto ipn:3.0' persists and is visible via 'l crebreportto'
+#   2. Node 3's ion.log shows CRS received (CRS was redirected there)
+#   3. Node 1's ion.log does NOT show CRS received (redirected away)
+#   4. 'm crebreportto -' clears the override
+#   5. No ION errors at any node
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+echo "=== CREB Report-To Override Test (G4) ==="
+echo "Topology: Node 1 (crebreportto=ipn:3.0) -> Node 2 -> CRS to Node 3"
+echo ""
+
+./cleanup
+
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+test_result() {
+    if [ $1 -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+echo "Starting ION nodes..."
+for node in 1 2 3; do
+    cd "$TESTDIR/${node}.node"
+    chmod +x ionstart
+    ./ionstart > ion_startup.log 2>&1
+    sleep 2
+done
+
+NODE_COUNT=$(pgrep -f "rfxclock" | wc -l)
+if [ "$NODE_COUNT" -lt 3 ]; then
+    echo "ERROR: Not all ION nodes started. Found $NODE_COUNT rfxclock processes."
+    exit 1
+fi
+echo "All three nodes started successfully."
+echo ""
+
+# ---------------------------------------------------------------
+echo "--- Test 1: m crebreportto persists and is visible via l crebreportto ---"
+
+cd "$TESTDIR/1.node"
+LIST_OUT=$(echo 'l crebreportto' | bpadmin 2>/dev/null)
+echo "  l crebreportto output: $LIST_OUT"
+
+if echo "$LIST_OUT" | grep -Fq 'ipn:3.0'; then
+    test_result 0 "m crebreportto ipn:3.0 persisted and visible via l crebreportto"
+else
+    test_result 1 "m crebreportto ipn:3.0 not visible in l crebreportto output"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Phase 2: Send bundle from Node 1 to Node 2 with delivery report ---"
+
+# A delivery status report only fires when the bundle is actually delivered
+# to an application, so Node 2 must have a receiver listening on ipn:2.1.
+# Without it the bundle is discarded (endpoint disposition 'x') and no CRS
+# is ever generated.
+cd "$TESTDIR/2.node"
+bpsink ipn:2.1 > bpsink.out 2>&1 &
+BPSINK_PID=$!
+sleep 1
+
+cd "$TESTDIR/1.node"
+bptrace -seqid 1 -msg "G4-B1" -ttl 60 -qos 0.1 -flags dlv ipn:1.2 ipn:2.1 ipn:1.0 > /dev/null 2>&1
+echo "  Bundle sent (delivery report requested, reportTo=ipn:1.0)."
+echo "  CREB override directs Node 2's CRS to ipn:3.0 instead."
+echo "  Waiting for delivery and CRS generation..."
+sleep 10
+
+kill "$BPSINK_PID" 2>/dev/null
+wait "$BPSINK_PID" 2>/dev/null
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 2: CRS received at Node 3 (the redirect target) ---"
+
+if grep -Fq '[i] CRS received:' "$TESTDIR/3.node/ion.log" 2>/dev/null; then
+    test_result 0 "CRS received at Node 3 (redirect worked)"
+else
+    test_result 1 "No CRS received at Node 3 (redirect may not have worked)"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 3: CRS NOT received at Node 1 (redirected away from reportTo) ---"
+
+if grep -Fq '[i] CRS received:' "$TESTDIR/1.node/ion.log" 2>/dev/null; then
+    test_result 1 "CRS received at Node 1 -- should have been redirected to Node 3"
+else
+    test_result 0 "CRS NOT received at Node 1 (correctly redirected to Node 3)"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 4: m crebreportto - clears the override ---"
+
+cd "$TESTDIR/1.node"
+echo 'm crebreportto -' | bpadmin > /dev/null 2>&1
+LIST_OUT=$(echo 'l crebreportto' | bpadmin 2>/dev/null)
+echo "  l crebreportto after clear: $LIST_OUT"
+
+if echo "$LIST_OUT" | grep -Fq 'none'; then
+    test_result 0 "m crebreportto - cleared the override"
+else
+    test_result 1 "Override not cleared after m crebreportto -"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 5: No ION errors at any node ---"
+
+for node in 1 2 3; do
+    ERR=$(grep -c '\[!' "$TESTDIR/${node}.node/ion.log" 2>/dev/null)
+    ERR=${ERR:-0}
+    if [ "$ERR" -gt 0 ]; then
+        echo "  ${node}.node: $ERR error(s)"
+        grep '\[!' "$TESTDIR/${node}.node/ion.log" | head -5 | sed 's/^/    /'
+    else
+        echo "  ${node}.node: no errors"
+    fi
+    test_result "$ERR" "No ION errors at Node $node"
+done
+
+echo ""
+echo "========================================="
+echo "SUMMARY: $TESTS_PASSED passed, $TESTS_FAILED failed"
+echo "========================================="
+
+[ $TESTS_FAILED -eq 0 ]
