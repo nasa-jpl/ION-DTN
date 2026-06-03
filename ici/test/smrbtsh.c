@@ -69,8 +69,8 @@ static int	compareNodes(PsmPartition partition, PsmAddress nodeData,
 	/* Parameter intentionally unused. */
 	(void)partition;
 
-	unsigned long nd = (unsigned long) nodeData;
-	unsigned long db = *((unsigned long *) dataBuffer);
+	uaddr nd = (uaddr) nodeData;
+	uaddr db = *((uaddr *) dataBuffer);
 	if (nd < db) return -1;
 	if (nd > db) return 1;
 	return 0;
