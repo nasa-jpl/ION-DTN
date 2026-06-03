@@ -1,0 +1,16 @@
+## Node 1: source node with manual retransmit (RETX_NONE).
+## Sends custody bundles; refused CCS from Node 2 leaves bundles
+## in custody tracking for query via l custodybundle / i custodybundle.
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.0 x
+a endpoint ipn:1.2 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4625 udpcli
+a outduct udp 127.0.0.1:4626 udpclo
+r 'ipnadmin node.ipnrc'
+m custodymode orangebook
+m srmode compressed
+m cbraggr 1 1 2
+m cbrretx none 0 0
+s

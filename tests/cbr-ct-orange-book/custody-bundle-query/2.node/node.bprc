@@ -1,0 +1,18 @@
+## Node 2: destination that refuses custody from Node 1.
+## cbraccept whitelist (custodian ipn:99.0) excludes ipn:1.0, so all
+## incoming custody requests from Node 1 are refused via CCS.
+## This keeps bundles in Node 1's custody tracking list so the
+## l custodybundle / i custodybundle commands can be exercised.
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:2.0 x
+a endpoint ipn:2.1 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4626 udpcli
+a outduct udp 127.0.0.1:4625 udpclo
+r 'ipnadmin node.ipnrc'
+m custodymode orangebook
+m srmode compressed
+m cbraggr 1 1 2
+a cbraccept custodian ipn:99.0
+s
