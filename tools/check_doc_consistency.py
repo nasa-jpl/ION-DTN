@@ -1,0 +1,505 @@
+#!/usr/bin/env python3
+"""
+check_doc_consistency.py - POD documentation vs. implementation checker for ION-DTN.
+
+This tool detects drift between the POD man-page sources (doc/pod{1,3,5}/*.pod)
+and the C implementation. It encodes the conventions ION uses so the comparison
+can run unattended (e.g. in CI).
+
+Checks performed
+----------------
+1. admin_commands   (pod5 <-> admin .c)
+   Top-level command-letter parity. Documented commands appear as
+   `=item B<X ...>` in the *rc.pod file; implemented commands are the labels of
+   the main dispatch switch (`switch (*(tokens[0]))`, or `switch (cmdCode[0])`
+   in bpsecadmin). The command "letter" is the first character inside `B<...>`.
+   This catches both undocumented commands (in code, not in doc) and documented
+   commands that are not implemented (in doc, not in code - e.g. an advertised
+   echo command with no handler).
+
+2. manage_subcommands  (pod5 <-> admin .c)
+   `m` sub-command parity: `=item B<m foo>` vs `strcmp(tokens[1], "foo")` inside
+   the `executeManage` function.
+
+3. pod3_api  (pod3 <-> header(s))
+   API function parity. Documented functions are the identifier just before the
+   first `(` on an `=item` line; implemented functions are the names declared by
+   `extern` prototypes or `#define name(...)` macros in the configured header(s).
+
+4. pod1_synopsis  (pod1 structure)
+   Every section-1 man page must contain a `=head1 SYNOPSIS` block.
+
+POD / source conventions encoded here
+-------------------------------------
+* Commands are documented as `=item B<X...>`; the command code is the first char.
+  Descriptive `=item B<Capitalized Word>` headings (e.g. biberc's `B<Plan>`) are
+  NOT commands and are ignored (command codes are a single lowercase letter,
+  digit, or punctuation symbol followed by whitespace or `>`).
+* "Watch" sub-characters (a/b/c/y/z/~/!/# ... under the `w` command) and echo
+  states (`0`/`1` under `e`) live in NESTED switches, so brace-depth tracking of
+  the main dispatch switch excludes them automatically - they are not top-level
+  commands and are not flagged.
+* Some public functions are exposed as macros (`#define sdr_malloc(...)`) and are
+  split across several headers (e.g. cfdp.h + cfdpops.h, or the sdr*.h family);
+  pod3 entries therefore map to a *list* of headers.
+* C string/char literals and comments are skipped while scanning so braces and
+  `case` labels inside them never confuse the parser.
+
+Baseline
+--------
+Known, accepted discrepancies are stored in tools/doc_consistency_baseline.json.
+The check fails (exit 1) only on findings that are NOT in the baseline, so CI
+catches *new* drift while tolerating the pre-existing gaps. Regenerate after an
+intentional change with `--update-baseline`.
+
+Usage
+-----
+    python3 tools/check_doc_consistency.py            # check (CI mode)
+    python3 tools/check_doc_consistency.py --all      # list every finding
+    python3 tools/check_doc_consistency.py --update-baseline
+    python3 tools/check_doc_consistency.py --root /path/to/ion
+"""
+
+import argparse
+import json
+import os
+import re
+import sys
+
+# --------------------------------------------------------------------------- #
+# Configuration                                                               #
+# --------------------------------------------------------------------------- #
+
+# pod5 admin config-reference  <->  admin source
+ADMIN_PAIRS = [
+    ("ici/doc/pod5/ionrc.pod",     "ici/utils/ionadmin.c"),
+    ("ici/doc/pod5/ionsecrc.pod",  "ici/utils/ionsecadmin.c"),
+    ("bpv7/doc/pod5/bprc.pod",     "bpv7/utils/bpadmin.c"),
+    ("bpv7/doc/pod5/bpsecrc.pod",  "bpv7/utils/bpsecadmin.c"),
+    ("bpv7/doc/pod5/ipnrc.pod",    "bpv7/ipn/ipnadmin.c"),
+    ("bpv7/doc/pod5/dtn2rc.pod",   "bpv7/dtn2/dtn2admin.c"),
+    ("bpv7/doc/pod5/biberc.pod",   "bpv7/bibe/bibeadmin.c"),
+    ("ltp/doc/pod5/ltprc.pod",     "ltp/utils/ltpadmin.c"),
+    ("ltp/doc/pod5/ltpsecrc.pod",  "ltp/utils/ltpsecadmin.c"),
+    ("cfdp/doc/pod5/cfdprc.pod",   "cfdp/utils/cfdpadmin.c"),
+    ("dtpc/doc/pod5/dtpcrc.pod",   "dtpc/utils/dtpcadmin.c"),
+    ("bssp/doc/pod5/bssprc.pod",   "bssp/utils/bsspadmin.c"),
+]
+
+# pod3 API reference  ->  header(s) declaring the documented functions
+POD3_API = {
+    "ici/doc/pod3/ion.pod":       ["ici/include/ion.h"],
+    "ici/doc/pod3/zco.pod":       ["ici/include/zco.h"],
+    "ici/doc/pod3/psm.pod":       ["ici/include/psm.h"],
+    "ici/doc/pod3/lyst.pod":      ["ici/include/lyst.h"],
+    "ici/doc/pod3/llcv.pod":      ["ici/include/llcv.h"],
+    "ici/doc/pod3/smlist.pod":    ["ici/include/smlist.h"],
+    "ici/doc/pod3/smrbt.pod":     ["ici/include/smrbt.h"],
+    "ici/doc/pod3/memmgr.pod":    ["ici/include/memmgr.h"],
+    "ici/doc/pod3/sdr.pod":       ["ici/include/sdr.h", "ici/include/sdrxn.h",
+                                   "ici/include/sdrmgt.h"],
+    "ici/doc/pod3/sdrlist.pod":   ["ici/include/sdrlist.h"],
+    "ici/doc/pod3/sdrtable.pod":  ["ici/include/sdrtable.h"],
+    "ici/doc/pod3/sdrstring.pod": ["ici/include/sdrstring.h"],
+    "ici/doc/pod3/sdrhash.pod":   ["ici/include/sdrhash.h"],
+    "ltp/doc/pod3/ltp.pod":       ["ltp/include/ltp.h"],
+    "ltp/doc/pod3/sda.pod":       ["ltp/include/sda.h"],
+    "bpv7/doc/pod3/bp.pod":       ["bpv7/include/bp.h"],
+    "cfdp/doc/pod3/cfdp.pod":     ["cfdp/include/cfdp.h", "cfdp/include/cfdpops.h"],
+    "dgr/doc/pod3/dgr.pod":       ["dgr/include/dgr.h"],
+    "bssp/doc/pod3/bssp.pod":     ["bssp/include/bssp.h"],
+    "dtpc/doc/pod3/dtpc.pod":     ["dtpc/include/dtpc.h"],
+    "bss/doc/pod3/bss.pod":       ["bss/include/bss.h"],
+}
+
+# pod1 man pages to skip in the SYNOPSIS structure check (handled elsewhere).
+POD1_SYNOPSIS_SKIP = {"bpsh", "bpshd"}
+
+BASELINE_FILE = "tools/doc_consistency_baseline.json"
+
+DISPATCH_SWITCH_RE = re.compile(
+    r"switch\s*\(\s*\*?\(?\s*(?:tokens\[0\]|cmdCode\[0\]|line\[0\])\s*\)?\s*\)"
+)
+
+
+# --------------------------------------------------------------------------- #
+# Low-level C scanning (literal/comment aware)                                #
+# --------------------------------------------------------------------------- #
+
+def _block_after(text, open_idx):
+    """Given the index of a '{', return (start, end) spanning the balanced
+    block, skipping braces inside strings, char literals and comments.
+    `end` is the index just past the matching '}'. Returns None on imbalance."""
+    i = open_idx
+    n = len(text)
+    depth = 0
+    while i < n:
+        c = text[i]
+        two = text[i:i + 2]
+        if two == "//":
+            j = text.find("\n", i)
+            i = n if j < 0 else j
+            continue
+        if two == "/*":
+            j = text.find("*/", i + 2)
+            i = n if j < 0 else j + 2
+            continue
+        if c == '"' or c == "'":
+            i = _skip_literal(text, i)
+            continue
+        if c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                return (open_idx, i + 1)
+        i += 1
+    return None
+
+
+def _skip_literal(text, i):
+    """`i` points at an opening quote; return index just past the closing quote."""
+    quote = text[i]
+    i += 1
+    n = len(text)
+    while i < n:
+        if text[i] == "\\":
+            i += 2
+            continue
+        if text[i] == quote:
+            return i + 1
+        i += 1
+    return n
+
+
+def top_level_case_letters(src):
+    """Return the set of `case 'X':` letters that sit directly inside a command
+    dispatch switch (brace depth 1), ignoring nested switches (watch chars, echo
+    states), strings and comments. Some admins dispatch in two stages (e.g.
+    bpsecadmin maps the code to an enum in one switch and acts on it in another),
+    so the result is the union over every `switch (*(tokens[0]))`-style switch."""
+    letters = set()
+    for m in DISPATCH_SWITCH_RE.finditer(src):
+        open_idx = src.find("{", m.end())
+        if open_idx < 0:
+            continue
+        block = _block_after(src, open_idx)
+        if block:
+            letters |= _cases_at_depth1(src, block)
+    return letters
+
+
+def _cases_at_depth1(src, block):
+    start, end = block
+    letters = set()
+    i = start
+    depth = 0
+    last_word = ""
+    cur = ""
+    while i < end:
+        c = src[i]
+        two = src[i:i + 2]
+        if two == "//":
+            j = src.find("\n", i)
+            i = end if j < 0 else min(j, end)
+            continue
+        if two == "/*":
+            j = src.find("*/", i + 2)
+            i = end if j < 0 else min(j + 2, end)
+            continue
+        if c == '"':
+            i = _skip_literal(src, i)
+            cur = ""
+            continue
+        if c == "'":
+            # char literal; record as a case label if at depth 1 after `case`
+            nxt = _skip_literal(src, i)
+            literal = src[i + 1:nxt - 1]
+            if last_word == "case" and depth == 1 and literal:
+                # decode a couple of common escapes; command codes are printable
+                val = literal
+                if val.startswith("\\") and len(val) >= 2:
+                    val = {"\\n": "\n", "\\t": "\t", "\\\\": "\\",
+                           "\\'": "'", "\\0": "\0"}.get(val, val[1:])
+                letters.add(val)
+            cur = ""
+            i = nxt
+            continue
+        if c == "{":
+            depth += 1
+            cur = ""
+        elif c == "}":
+            depth -= 1
+            cur = ""
+        elif c.isalnum() or c == "_":
+            cur += c
+        else:
+            if cur:
+                last_word = cur
+                cur = ""
+        i += 1
+    return letters
+
+
+def manage_subcommands_in_src(src):
+    """Return the set of `m` sub-commands: strings passed as the second arg of
+    strcmp(tokens[1], "...") inside the executeManage function."""
+    m = re.search(r"\bexecuteManage\s*\([^)]*\)", src)
+    if not m:
+        return set()
+    open_idx = src.find("{", m.end())
+    if open_idx < 0:
+        return set()
+    block = _block_after(src, open_idx)
+    if not block:
+        return set()
+    body = src[block[0]:block[1]]
+    return set(re.findall(r'strcmp\(\s*tokens\[1\]\s*,\s*"([^"]+)"\s*\)', body))
+
+
+def _strip_c_comments(text):
+    text = re.sub(r"/\*.*?\*/", " ", text, flags=re.S)
+    text = re.sub(r"//[^\n]*", " ", text)
+    return text
+
+
+# C keywords that can appear as `word(` but are not function names.
+_C_KEYWORDS = {"if", "for", "while", "switch", "sizeof", "return", "do",
+               "else", "case", "defined", "typedef"}
+
+
+def header_functions(text):
+    """Return the set of function names declared in a header: function-like
+    `#define name(...)` macros plus C prototypes (the identifier just before the
+    first '(' of each ';'-terminated declaration). Comments are stripped first so
+    banner text (e.g. "Copyright (c)") is not mistaken for a declaration. ION
+    headers declare some functions with `extern` and some without, and expose
+    others only as macros, so all three forms are covered."""
+    text = _strip_c_comments(text)
+    names = set()
+    # function-like macros: name immediately followed by '(' (no space, per C)
+    for m in re.finditer(r"^\s*#\s*define\s+([A-Za-z_]\w*)\(", text, re.M):
+        names.add(m.group(1))
+    # drop every preprocessor directive (including '\'-continued macro bodies)
+    # so macro bodies don't bleed into the following declaration.
+    code = re.sub(r"(?m)^[ \t]*#(?:[^\n]*\\\n)*[^\n]*$", " ", text)
+    # prototypes: per ';'-terminated chunk, the identifier before the first '('
+    for chunk in code.split(";"):
+        if "(" not in chunk:
+            continue
+        fm = re.search(r"([A-Za-z_]\w*)\s*\(", chunk)
+        if fm and fm.group(1) not in _C_KEYWORDS:
+            names.add(fm.group(1))
+    return names
+
+
+def namespace_prefixes(names):
+    """Derive the module namespace prefixes from a set of documented function
+    names, used to filter the 'declared but undocumented' direction down to the
+    pod's own namespace (e.g. bp_, sdr_list..., or the camelCase 'ion' run)."""
+    prefixes = set()
+    for n in names:
+        if "_" in n:
+            prefixes.add(n.split("_", 1)[0] + "_")
+        else:
+            m = re.match(r"[a-z]+", n)
+            if m:
+                prefixes.add(m.group(0))
+    return prefixes
+
+
+# --------------------------------------------------------------------------- #
+# POD parsing                                                                 #
+# --------------------------------------------------------------------------- #
+
+# A command item: =item B<X...> where X is a single command code.
+POD_CMD_RE = re.compile(r"^=item\s+B<\s*([a-z0-9?#@!^~&$])(?:\s|>|$)", re.M)
+POD_M_SUB_RE = re.compile(r"^=item\s+B<m\s+([a-z][a-z0-9_-]*)>", re.M)
+
+
+def pod_command_letters(text):
+    return set(POD_CMD_RE.findall(text))
+
+
+def pod_manage_subcommands(text):
+    return set(POD_M_SUB_RE.findall(text))
+
+
+def pod_api_functions(text):
+    """Function names documented in a pod3 file: the identifier just before the
+    first '(' of each `=item` that looks like a C prototype. A prototype's
+    parentheses balance and the (possibly multi-line) item ends in ')', e.g.
+    `=item int bssRun(char *bssName, ...\\n   char *buffer, ...)`. Prose items
+    such as `=item Bundle Status Report (BSR) messages` end in text, not ')',
+    and are ignored."""
+    names = set()
+    lines = text.splitlines()
+    i, n = 0, len(lines)
+    while i < n:
+        line = lines[i]
+        if line.startswith("=item") and "(" in line:
+            buf, j = line, i
+            while buf.count("(") > buf.count(")") and j + 1 < n:
+                j += 1
+                buf += " " + lines[j].strip()
+            if buf.rstrip().endswith(")"):
+                head = buf.split("(", 1)[0]
+                # a prototype has no space between name and '(' (unlike prose
+                # such as "... SDR application (VxWorks)")
+                fm = re.search(r"([A-Za-z_]\w*)$", head)
+                if fm:
+                    names.add(fm.group(1))
+            i = j + 1
+            continue
+        i += 1
+    return names
+
+
+def pod_has_synopsis(text):
+    return "=head1 SYNOPSIS" in text
+
+
+# --------------------------------------------------------------------------- #
+# Driver                                                                      #
+# --------------------------------------------------------------------------- #
+
+def read(root, rel):
+    path = os.path.join(root, rel)
+    with open(path, "r", encoding="utf-8", errors="replace") as fh:
+        return fh.read()
+
+
+def collect_findings(root):
+    """Return a sorted list of finding strings (stable keys for baselining)."""
+    findings = []
+
+    def missing(rel):
+        return not os.path.exists(os.path.join(root, rel))
+
+    # 1 + 2: admin command and manage-subcommand parity
+    for pod, src in ADMIN_PAIRS:
+        if missing(pod) or missing(src):
+            findings.append(f"[admin] MISSING FILE: {pod} or {src}")
+            continue
+        ptext, stext = read(root, pod), read(root, src)
+        doc_cmds, code_cmds = pod_command_letters(ptext), top_level_case_letters(stext)
+        for c in sorted(code_cmds - doc_cmds):
+            findings.append(f"[admin] {pod}: command '{c}' implemented but undocumented")
+        for c in sorted(doc_cmds - code_cmds):
+            findings.append(f"[admin] {pod}: command '{c}' documented but not implemented")
+
+        doc_m, code_m = pod_manage_subcommands(ptext), manage_subcommands_in_src(stext)
+        for s in sorted(code_m - doc_m):
+            findings.append(f"[manage] {pod}: 'm {s}' implemented but undocumented")
+        for s in sorted(doc_m - code_m):
+            findings.append(f"[manage] {pod}: 'm {s}' documented but not implemented")
+
+    # 3: pod3 API parity
+    for pod, headers in sorted(POD3_API.items()):
+        if missing(pod):
+            findings.append(f"[api] MISSING FILE: {pod}")
+            continue
+        doc = pod_api_functions(read(root, pod))
+        hdr = set()
+        for h in headers:
+            if missing(h):
+                findings.append(f"[api] MISSING HEADER: {h} (for {pod})")
+                continue
+            hdr |= header_functions(read(root, h))
+        for f in sorted(doc - hdr):
+            findings.append(f"[api] {pod}: '{f}' documented but not declared in header(s)")
+        # Reverse direction: only flag real functions in this pod's namespace,
+        # excluding ALL-CAPS constants/macros.
+        prefixes = namespace_prefixes(doc)
+        for f in sorted(hdr - doc):
+            if f == f.upper():
+                continue
+            if prefixes and not any(f.startswith(p) for p in prefixes):
+                continue
+            findings.append(f"[api] {pod}: '{f}' declared in header(s) but undocumented")
+
+    # 4: pod1 SYNOPSIS presence
+    for dirpath, _dirs, files in os.walk(root):
+        if os.sep + "pod1" not in dirpath + os.sep:
+            continue
+        for fn in sorted(files):
+            if not fn.endswith(".pod"):
+                continue
+            name = fn[:-4]
+            if name in POD1_SYNOPSIS_SKIP:
+                continue
+            rel = os.path.relpath(os.path.join(dirpath, fn), root)
+            if not pod_has_synopsis(read(root, rel)):
+                findings.append(f"[pod1] {rel}: missing '=head1 SYNOPSIS' section")
+
+    return sorted(set(findings))
+
+
+def find_root(explicit):
+    if explicit:
+        return os.path.abspath(explicit)
+    here = os.path.dirname(os.path.abspath(__file__))
+    root = os.path.dirname(here)  # tools/ -> repo root
+    if os.path.isdir(os.path.join(root, "ici")):
+        return root
+    return os.getcwd()
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--root", help="ION-DTN repository root (default: auto-detect)")
+    ap.add_argument("--update-baseline", action="store_true",
+                    help="write current findings to the baseline and exit 0")
+    ap.add_argument("--all", action="store_true",
+                    help="print every finding, including baselined ones")
+    args = ap.parse_args()
+
+    root = find_root(args.root)
+    findings = collect_findings(root)
+    baseline_path = os.path.join(root, BASELINE_FILE)
+
+    if args.update_baseline:
+        with open(baseline_path, "w", encoding="utf-8") as fh:
+            json.dump(findings, fh, indent=2)
+            fh.write("\n")
+        print(f"Wrote {len(findings)} findings to {BASELINE_FILE}")
+        return 0
+
+    baseline = []
+    if os.path.exists(baseline_path):
+        with open(baseline_path, "r", encoding="utf-8") as fh:
+            baseline = json.load(fh)
+    baseline_set = set(baseline)
+
+    new = [f for f in findings if f not in baseline_set]
+    stale = [f for f in baseline if f not in set(findings)]
+
+    if args.all:
+        print(f"All findings ({len(findings)}):")
+        for f in findings:
+            tag = " " if f in baseline_set else "*"
+            print(f"  {tag} {f}")
+        print()
+
+    if stale:
+        print(f"NOTE: {len(stale)} baselined finding(s) no longer present "
+              f"(run --update-baseline to prune):")
+        for f in stale:
+            print(f"  - {f}")
+        print()
+
+    if new:
+        print(f"FAIL: {len(new)} new doc/code inconsistency(ies):")
+        for f in new:
+            print(f"  + {f}")
+        print("\nIf these are intentional, update docs/code or refresh the "
+              "baseline with --update-baseline.")
+        return 1
+
+    print(f"OK: {len(findings)} known finding(s), no new drift.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
