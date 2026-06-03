@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# custody-accept-whitelist: CBR custody acceptance whitelist regression test
+#
+# Verifies that the cbraccept custodian/source whitelist is enforced:
+#   Phase 1 (refusal): Node 1 starts with whitelist {custodian: ipn:9.0}.
+#     Node 2 sends a custody bundle to Node 1.  Node 1 refuses because
+#     ipn:2.0 (Node 2's admin EID) is not on the whitelist.
+#
+#   Phase 2 (acceptance): ipn:2.0 is added to Node 1's custodian whitelist
+#     via bpadmin.  Node 2 sends another custody bundle.  Node 1 accepts.
+#
+# Topology: Node 2 (sender) -> Node 1 (receiver, destination)
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+echo "=== Custody Acceptance Whitelist Test ==="
+echo "Topology: Node 2 (sender) -> Node 1 (destination, whitelist enforced)"
+echo ""
+
+./cleanup
+
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+test_result() {
+    if [ $1 -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+echo "Starting ION nodes..."
+for node in 1 2; do
+    cd "$TESTDIR/${node}.node"
+    ./ionstart > ion_startup.log 2>&1
+    sleep 2
+done
+
+NODE_COUNT=$(pgrep -x "rfxclock" | wc -l)
+if [ "$NODE_COUNT" -lt 2 ]; then
+    echo "ERROR: Nodes did not start. Found $NODE_COUNT rfxclock processes."
+    exit 1
+fi
+echo "Both nodes started."
+echo ""
+
+# ---------------------------------------------------------------
+echo "--- Phase 1: Refusal (ipn:2.0 not on custodian whitelist) ---"
+
+cd "$TESTDIR/2.node"
+bpdriver -1 ipn:2.2 ipn:1.1 -1000 t600 > /dev/null 2>&1
+echo "  Bundle sent from Node 2 to ipn:1.1."
+
+sleep 5
+
+cd "$TESTDIR/1.node"
+if grep -Fq 'Custody refused by policy' ion.log 2>/dev/null; then
+    test_result 0 "Node 1 refused custody (ipn:2.0 not whitelisted)"
+else
+    test_result 1 "No refusal seen at Node 1 within 5 seconds"
+fi
+
+# Also verify Node 1 did NOT log acceptance for this bundle
+if grep -Fq 'CTEB: Accepting custody' ion.log 2>/dev/null; then
+    test_result 1 "Unexpected custody acceptance during refusal phase"
+else
+    test_result 0 "No spurious acceptance during refusal phase"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Phase 2: Acceptance (adding ipn:2.0 to custodian whitelist) ---"
+
+cd "$TESTDIR/1.node"
+echo 'a cbraccept custodian ipn:2.0' | bpadmin > /dev/null 2>&1
+echo "  Added ipn:2.0 to Node 1 custodian whitelist."
+
+# Verify whitelist shows both entries
+WL_OUT=$(echo 'l cbraccept' | bpadmin 2>/dev/null)
+if echo "$WL_OUT" | grep -Fq 'ipn:2.0'; then
+    test_result 0 "Whitelist entry ipn:2.0 visible via l cbraccept"
+else
+    test_result 1 "Whitelist entry ipn:2.0 not found in l cbraccept output"
+fi
+
+cd "$TESTDIR/2.node"
+bpdriver -1 ipn:2.2 ipn:1.1 -1000 t600 > /dev/null 2>&1
+echo "  Bundle sent from Node 2 to ipn:1.1."
+
+sleep 5
+
+cd "$TESTDIR/1.node"
+if grep -Fq 'CTEB: Accepting custody' ion.log 2>/dev/null; then
+    test_result 0 "Node 1 accepted custody (ipn:2.0 whitelisted)"
+else
+    test_result 1 "No custody acceptance seen at Node 1 within 5 seconds"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Error Check ---"
+for node in 1 2; do
+    ERR=$(grep -c '\[!' "$TESTDIR/${node}.node/ion.log" 2>/dev/null || true)
+    ERR=${ERR:-0}
+    if [ "$ERR" -gt 0 ]; then
+        echo "  ${node}.node: $ERR error(s)"
+        grep '\[!' "$TESTDIR/${node}.node/ion.log" | head -5 | sed 's/^/    /'
+    else
+        echo "  ${node}.node: no errors"
+    fi
+    test_result "$ERR" "No ION errors at Node $node"
+done
+
+echo ""
+echo "========================================="
+echo "SUMMARY: $TESTS_PASSED passed, $TESTS_FAILED failed"
+echo "========================================="
+
+[ $TESTS_FAILED -eq 0 ]
