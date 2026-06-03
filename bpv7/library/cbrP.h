@@ -35,6 +35,10 @@ typedef struct {
 	Object		pendingCcs;		/* SDR list: PendingSignal for CCS */
 	Object		custodyBundles;		/* SDR list: CustodyBundle */
 
+	/* Custody acceptance whitelist (empty = accept from anyone) */
+	Object		custodyAcceptByCustodian; /* SDR list of SDR strings */
+	Object		custodyAcceptBySource;	  /* SDR list of SDR strings */
+
 	/* Configuration */
 	unsigned int	crsAggregateLimit;	/* Max bundles before CRS */
 	unsigned int	ccsAggregateLimit;	/* Max bundles before CCS */

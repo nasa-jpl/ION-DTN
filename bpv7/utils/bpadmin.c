@@ -136,10 +136,21 @@ payload length");
 	PUTS("\t   m cbraggr <CRS limit> <CCS limit> <timeout seconds>");
 	PUTS("\t      Aggregate limits: max bundles before sending signal (0=immediate)");
 	PUTS("\t      Timeout: max seconds to wait before sending aggregated signal");
-	PUTS("\t   m cbrretx <strategy: none|timer> <interval seconds> <max retransmissions>");
+	PUTS("\t   m cbrretx <strategy: none|timer|signal> <interval seconds> <max retransmissions>");
 	PUTS("\t      Strategy none: no automatic retransmission (default)");
 	PUTS("\t      Strategy timer: retransmit after interval if no custody acceptance received");
+	PUTS("\t      Strategy signal: retransmit immediately on custody refusal CCS");
 	PUTS("\t      Max retransmissions: 0 means unlimited");
+	PUTS("\t   m crebexpliciteid { 0 | 1 }");
+	PUTS("\t      Include explicit source EID in CREB blocks (default: 0)");
+	PUTS("\t   a cbraccept { custodian | source } <eid>");
+	PUTS("\t      Add EID to custody acceptance whitelist");
+	PUTS("\t      custodian: match on the node requesting custody (CTEB custodian EID)");
+	PUTS("\t      source: match on the bundle's original source EID");
+	PUTS("\t      Empty whitelist means accept from anyone (default)");
+	PUTS("\t   d cbraccept { custodian | source } <eid>");
+	PUTS("\t      Remove EID from custody acceptance whitelist");
+	PUTS("\t   l cbraccept");
 	PUTS("\tr\tRun another admin program");
 	PUTS("\t   r '<admin command>'");
 	PUTS("\ts\tStart");
@@ -323,6 +334,117 @@ static void	executeStop(int tokenCount, char **tokens)
 	SYNTAX_ERROR;
 }
 
+static void	addCbrAccept(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+	int	forCustodian;
+
+	if (tokenCount != 4)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	if (strcmp(tokens[2], "custodian") == 0)
+	{
+		forCustodian = 1;
+	}
+	else if (strcmp(tokens[2], "source") == 0)
+	{
+		forCustodian = 0;
+	}
+	else
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	if (cbr_addCustodyAccept(sdr, forCustodian, tokens[3]) < 0)
+	{
+		putErrmsg("Can't add CBR accept entry.", tokens[3]);
+	}
+	else
+	{
+		printText("CBR accept entry added.");
+	}
+}
+
+static void	deleteCbrAccept(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+	int	forCustodian;
+
+	if (tokenCount != 4)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	if (strcmp(tokens[2], "custodian") == 0)
+	{
+		forCustodian = 1;
+	}
+	else if (strcmp(tokens[2], "source") == 0)
+	{
+		forCustodian = 0;
+	}
+	else
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	if (cbr_removeCustodyAccept(sdr, forCustodian, tokens[3]) < 0)
+	{
+		putErrmsg("Can't remove CBR accept entry.", tokens[3]);
+	}
+	else
+	{
+		printText("CBR accept entry removed.");
+	}
+}
+
+static void	printCbrAcceptList(Sdr sdr, Object list, char *label)
+{
+	Object	elt;
+	Object	obj;
+	char	buf[SDRSTRING_BUFSZ];
+
+	if (list == 0 || sdr_list_length(sdr, list) == 0)
+	{
+		isprintf(buf, sizeof buf, "%s (all)", label);
+		printText(buf);
+		return;
+	}
+
+	printText(label);
+	for (elt = sdr_list_first(sdr, list); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		obj = sdr_list_data(sdr, elt);
+		if (sdr_string_read(sdr, buf, obj) >= 0)
+		{
+			printText(buf);
+		}
+	}
+}
+
+static void	listCbrAccept(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+	Object	list;
+
+	(void) tokenCount;
+	(void) tokens;
+
+	CHKVOID(sdr_begin_xn(sdr));
+	list = cbr_getCustodyAcceptList(sdr, 1);
+	printCbrAcceptList(sdr, list, "Accept by custodian:");
+	list = cbr_getCustodyAcceptList(sdr, 0);
+	printCbrAcceptList(sdr, list, "Accept by source:   ");
+	sdr_exit_xn(sdr);
+}
+
 static void	executeAdd(int tokenCount, char **tokens)
 {
 	char		*script;
@@ -487,6 +609,12 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 
 		attachPlanDuct(tokens[2], vduct->outductElt);
+		return;
+	}
+
+	if (strcmp(tokens[1], "cbraccept") == 0)
+	{
+		addCbrAccept(tokenCount, tokens);
 		return;
 	}
 
@@ -696,6 +824,12 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 
 		detachPlanDuct(vduct->outductElt);
+		return;
+	}
+
+	if (strcmp(tokens[1], "cbraccept") == 0)
+	{
+		deleteCbrAccept(tokenCount, tokens);
 		return;
 	}
 
@@ -1361,6 +1495,12 @@ static void	executeList(int tokenCount, char **tokens)
 		return;
 	}
 
+	if (strcmp(tokens[1], "cbraccept") == 0)
+	{
+		listCbrAccept(tokenCount, tokens);
+		return;
+	}
+
 	SYNTAX_ERROR;
 }
 
@@ -1733,9 +1873,13 @@ static void	manageCbrRetx(int tokenCount, char **tokens)
 	{
 		strategy = CBR_RETX_TIMER;
 	}
+	else if (strcmp(tokens[2], "signal") == 0)
+	{
+		strategy = CBR_RETX_SIGNAL;
+	}
 	else
 	{
-		printText("[?] Unknown retransmission strategy; use 'none' or 'timer'.");
+		printText("[?] Unknown retransmission strategy; use 'none', 'timer', or 'signal'.");
 		return;
 	}
 

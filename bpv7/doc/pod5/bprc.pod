@@ -164,6 +164,94 @@ The default values are 10 for both limits and 5 seconds for timeout.
 
 This command requires B<m custodymode orangebook> to be effective.
 
+=item B<m cbrretx> { none | timer | signal } I<interval_seconds> I<max_retransmissions>
+
+The B<manage CBR retransmission> command.  This command configures the
+retransmission strategy used when custody of a bundle is not acknowledged
+by the next-hop custodian.
+
+B<none>    No automatic retransmission is performed.  This is the default.
+
+B<timer>   Retransmit the bundle after I<interval_seconds> if no CCS
+           acceptance has been received.  The B<bpclock> daemon drives
+           these timer checks.
+
+B<signal>  Retransmit the bundle immediately when a CCS refusal is received
+           for it.  The retransmission is triggered in B<ipnadminep> when
+           the CCS is processed.
+
+I<interval_seconds> is used by the B<timer> strategy to set the polling
+interval; it is ignored by other strategies.
+
+I<max_retransmissions> limits how many retransmit attempts are made per
+bundle.  A value of 0 means unlimited.
+
+This command requires B<m custodymode orangebook> to be effective.
+
+=item B<m crebexpliciteid> { 0 | 1 }
+
+The B<manage CREB explicit EID> command.  When set to 1, the source EID is
+included explicitly in CREB (Compressed Reporting Extension Block) blocks
+rather than being omitted and implied from the bundle's primary block.  The
+default is 0 (omit).  Setting this to 1 may be needed for interoperability
+with implementations that require the explicit field.
+
+This command requires B<m custodymode orangebook> to be effective.
+
+=item B<a cbraccept> { custodian | source } I<eid>
+
+The B<add CBR acceptance whitelist entry> command.  This command adds an
+EID to the custody acceptance whitelist for the specified dimension.
+
+B<custodian>  The I<eid> is matched against the custodian EID in the CTEB
+              block — that is, the node currently holding custody and
+              requesting this node to take it over.
+
+B<source>     The I<eid> is matched against the bundle's original source EID.
+
+Both dimensions are checked independently:
+
+=over 4
+
+=item *
+
+If the custodian whitelist is empty, any custodian EID is accepted.
+
+=item *
+
+If the source whitelist is empty, any source EID is accepted.
+
+=item *
+
+If either whitelist is non-empty, an incoming custody request must match
+an entry in that list or custody will be refused with a CCS refusal signal.
+
+=back
+
+Both lists empty (the default) means accept custody from anyone.
+
+Example — accept custody only from node 3 acting as custodian:
+
+    a cbraccept custodian ipn:3.0
+
+Example — accept custody only for bundles sourced from a specific endpoint:
+
+    a cbraccept source ipn:5.1
+
+This command requires B<m custodymode orangebook> to be effective.
+
+=item B<d cbraccept> { custodian | source } I<eid>
+
+The B<delete CBR acceptance whitelist entry> command.  Removes the specified
+EID from the custody acceptance whitelist for the given dimension.  If the
+EID is not present, the command has no effect.
+
+=item B<l cbraccept>
+
+The B<list CBR acceptance whitelist> command.  Prints the current custody
+acceptance whitelist for both dimensions.  An entry of B<(all)> indicates
+that the list for that dimension is empty and all EIDs are accepted.
+
 =item B<m bsl> I<local_ipn_eid> I<key_reg_file_path> I<policy_config_file_path>
 
 The B<manage BPSec library configuration> command.  This command sets the

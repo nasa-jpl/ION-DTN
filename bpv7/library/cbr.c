@@ -99,6 +99,8 @@ int	cbr_initialize(Sdr sdr)
 		cbrBuf.pendingCrs = sdr_list_create(sdr);
 		cbrBuf.pendingCcs = sdr_list_create(sdr);
 		cbrBuf.custodyBundles = sdr_list_create(sdr);
+		cbrBuf.custodyAcceptByCustodian = sdr_list_create(sdr);
+		cbrBuf.custodyAcceptBySource = sdr_list_create(sdr);
 
 		/*	Default configuration			*/
 		cbrBuf.crsAggregateLimit = 10;
@@ -1508,6 +1510,32 @@ int	cbr_processTimeouts(Sdr sdr)
 	return count;
 }
 
+int	cbr_doRetransmit(Sdr sdr, CustodyBundle *cb, Object cbElt)
+{
+	Object	cbObj;
+
+	CHKERR(cb);
+	CHKERR(cbElt);
+
+	if (cb->bundleObj == 0)
+	{
+		return 0;	/*	Bundle already expired; skip.	*/
+	}
+
+	cbObj = sdr_list_data(sdr, cbElt);
+	cb->lastTransmit = getCtime();
+	cb->retransmitCount++;
+	sdr_write(sdr, cbObj, (char *) cb, sizeof(CustodyBundle));
+
+	if (bpReforwardBundle(cb->bundleObj) < 0)
+	{
+		putErrmsg("CBR: Failed to reforward bundle.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
 /*	Maximum buffer size for CRS/CCS encoding.			*/
 #define CBR_MAX_SIGNAL_SIZE	8192
 
@@ -2362,6 +2390,173 @@ static int	queueCcs(Sdr sdr, char *destEid, char *sourceEid,
 	return 0;
 }
 
+/*	*	Custody Acceptance Whitelist	*	*	*	*/
+
+static int	acceptListContains(Sdr sdr, Object list, const char *eid)
+{
+	Object	elt;
+	Object	obj;
+	char	buf[SDRSTRING_BUFSZ];
+
+	if (list == 0 || sdr_list_length(sdr, list) == 0)
+	{
+		return 1;	/* empty list = accept all */
+	}
+
+	for (elt = sdr_list_first(sdr, list); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		obj = sdr_list_data(sdr, elt);
+		if (sdr_string_read(sdr, buf, obj) >= 0
+				&& strcmp(buf, eid) == 0)
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+int	cbr_isCustodyAccepted(Sdr sdr, const char *custodianEid,
+		const char *sourceEid)
+{
+	Object	cbrDbObj;
+	CbrDb	cbrDb;
+
+	CHKZERO(sdr);
+	cbrDbObj = getCbrDbObject();
+	if (cbrDbObj == 0)
+	{
+		return 1;	/* no DB yet — accept (safe fallback) */
+	}
+
+	sdr_read(sdr, (char *) &cbrDb, cbrDbObj, sizeof(CbrDb));
+
+	if (custodianEid != NULL
+			&& !acceptListContains(sdr,
+			cbrDb.custodyAcceptByCustodian, custodianEid))
+	{
+		return 0;
+	}
+
+	if (sourceEid != NULL
+			&& !acceptListContains(sdr,
+			cbrDb.custodyAcceptBySource, sourceEid))
+	{
+		return 0;
+	}
+
+	return 1;
+}
+
+Object	cbr_getCustodyAcceptList(Sdr sdr, int forCustodian)
+{
+	Object	cbrDbObj;
+	CbrDb	cbrDb;
+
+	cbrDbObj = getCbrDbObject();
+	if (cbrDbObj == 0)
+	{
+		return 0;
+	}
+
+	sdr_read(sdr, (char *) &cbrDb, cbrDbObj, sizeof(CbrDb));
+	return forCustodian ? cbrDb.custodyAcceptByCustodian
+			: cbrDb.custodyAcceptBySource;
+}
+
+int	cbr_addCustodyAccept(Sdr sdr, int forCustodian, const char *eid)
+{
+	Object	cbrDbObj;
+	CbrDb	cbrDb;
+	Object	list;
+	Object	elt;
+	Object	obj;
+	char	buf[SDRSTRING_BUFSZ];
+
+	CHKERR(sdr);
+	CHKERR(eid);
+	cbrDbObj = getCbrDbObject();
+	CHKERR(cbrDbObj);
+
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &cbrDb, cbrDbObj, sizeof(CbrDb));
+	list = forCustodian ? cbrDb.custodyAcceptByCustodian
+			: cbrDb.custodyAcceptBySource;
+
+	/*	Reject duplicates.					*/
+	for (elt = sdr_list_first(sdr, list); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		obj = sdr_list_data(sdr, elt);
+		if (sdr_string_read(sdr, buf, obj) >= 0
+				&& strcmp(buf, eid) == 0)
+		{
+			sdr_exit_xn(sdr);
+			return 0;	/* already present */
+		}
+	}
+
+	/*	Copy to non-const buffer; sdr_string_create takes char *.*/
+	istrcpy(buf, eid, sizeof buf);
+	obj = sdr_string_create(sdr, buf);
+	if (obj == 0 || sdr_list_insert_last(sdr, list, obj) == 0)
+	{
+		sdr_cancel_xn(sdr);
+		putErrmsg("Can't add CBR accept entry.", NULL);
+		return -1;
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't add CBR accept entry.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+int	cbr_removeCustodyAccept(Sdr sdr, int forCustodian, const char *eid)
+{
+	Object	cbrDbObj;
+	CbrDb	cbrDb;
+	Object	list;
+	Object	elt;
+	Object	obj;
+	char	buf[SDRSTRING_BUFSZ];
+
+	CHKERR(sdr);
+	CHKERR(eid);
+	cbrDbObj = getCbrDbObject();
+	CHKERR(cbrDbObj);
+
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &cbrDb, cbrDbObj, sizeof(CbrDb));
+	list = forCustodian ? cbrDb.custodyAcceptByCustodian
+			: cbrDb.custodyAcceptBySource;
+
+	for (elt = sdr_list_first(sdr, list); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		obj = sdr_list_data(sdr, elt);
+		if (sdr_string_read(sdr, buf, obj) >= 0
+				&& strcmp(buf, eid) == 0)
+		{
+			sdr_free(sdr, obj);
+			sdr_list_delete(sdr, elt, NULL, NULL);
+			break;
+		}
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't remove CBR accept entry.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
 int	cbr_acceptCustody(Sdr sdr, Bundle *bundle, Object bundleAddr,
 		CtebBlk *cteb)
 {
@@ -2680,11 +2875,14 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 	uvast		j;
 	uvast		rangeStart;
 	uvast		rangeLen;
+	CbrDb		*cbrConstants;
 
 	/*	CCS content format (after stripping admin record header):
 	 *	{ disposition => [Bundle-Sequence, ...], ... }
 	 *
 	 *	Disposition is SIGNED: 1=accepted, -1=refused		*/
+
+	cbrConstants = getCbrConstants();
 
 	/*	Start transaction for SDR operations (custody release,
 	 *	statistics updates).					*/
@@ -2821,9 +3019,107 @@ int	cbr_handleCcs(Sdr sdr, unsigned char *adminRecord, int length)
 					}
 				}
 
-				/*	TODO: Trigger retransmission based
-				 *	on configured strategy.		*/
-			}
+				/*	CBR_RETX_SIGNAL: reforward refused
+				 *	bundles immediately.		*/
+				if (cbrConstants->retransmitStrategy
+						== CBR_RETX_SIGNAL)
+				{
+					Object		custodyElt;
+					CustodyBundle	retxCb;
+
+					if (rangeArray == NULL)
+					{
+						for (i = 0; i < bundleLen; i++)
+						{
+							custodyElt =
+							cbr_findCustodyBundle(
+								sdr, sourceEid,
+								seqId,
+								seqNumStart + i);
+							if (custodyElt == 0)
+							{
+								continue;
+							}
+
+							sdr_stage(sdr,
+								(char *) &retxCb,
+								sdr_list_data(sdr,
+								custodyElt),
+								sizeof(CustodyBundle));
+							if (cbrConstants->maxRetransmissions > 0
+							&& (unsigned int) retxCb.retransmitCount
+									>= cbrConstants->maxRetransmissions)
+							{
+								continue;
+							}
+
+							if (cbr_doRetransmit(sdr,
+									&retxCb,
+									custodyElt)
+									< 0)
+							{
+								sdr_cancel_xn(sdr);
+								return -1;
+							}
+
+							writeMemoNote("[i] CBR: Signal-triggered retransmit, count",
+								itoa(retxCb.retransmitCount));
+						}
+					}
+					else
+					{
+						rangeStart = seqNumStart;
+						for (j = 0; j < (uvast)rangeCount;
+								j++)
+						{
+							rangeLen = rangeArray[j];
+							if ((j % 2) == 0) /* included */
+							{
+								for (i = 0; i < rangeLen;
+										i++)
+								{
+									custodyElt =
+									cbr_findCustodyBundle(
+										sdr, sourceEid,
+										seqId,
+										rangeStart + i);
+									if (custodyElt == 0)
+									{
+										continue;
+									}
+
+									sdr_stage(sdr,
+										(char *) &retxCb,
+										sdr_list_data(sdr,
+										custodyElt),
+										sizeof(CustodyBundle));
+									if (cbrConstants->maxRetransmissions > 0
+									&& (unsigned int) retxCb.retransmitCount
+											>= cbrConstants->maxRetransmissions)
+									{
+										continue;
+									}
+
+									if (cbr_doRetransmit(
+											sdr,
+											&retxCb,
+											custodyElt)
+											< 0)
+									{
+										sdr_cancel_xn(sdr);
+										return -1;
+									}
+
+									writeMemoNote("[i] CBR: Signal-triggered retransmit, count",
+										itoa(retxCb.retransmitCount));
+								}
+							}
+
+							rangeStart += rangeLen;
+						}
+					}
+				}
+			}		/*	end custody refused	*/
 
 			/*	Clean up				*/
 			if (rangeArray)

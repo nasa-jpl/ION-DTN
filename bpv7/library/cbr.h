@@ -297,6 +297,32 @@ extern int		cbr_reportStatus(Sdr sdr, Bundle *bundle,
 /*	Custody Transfer (CCS)						*/
 
 /**
+ * Custody acceptance whitelist management.
+ *
+ * When forCustodian=1 the custodian-EID list is affected;
+ * when forCustodian=0 the source-EID list is affected.
+ * An empty list means "accept from anyone" for that dimension.
+ * Both dimensions must pass for custody to be accepted.
+ */
+
+/** Returns the SDR list Object for the given whitelist dimension. */
+extern Object		cbr_getCustodyAcceptList(Sdr sdr, int forCustodian);
+
+extern int		cbr_addCustodyAccept(Sdr sdr, int forCustodian,
+					const char *eid);
+extern int		cbr_removeCustodyAccept(Sdr sdr, int forCustodian,
+					const char *eid);
+
+/**
+ * Returns 1 if custody should be accepted from this custodian/source pair,
+ * 0 if it should be refused.  Either EID may be NULL (that dimension is
+ * skipped).
+ */
+extern int		cbr_isCustodyAccepted(Sdr sdr,
+					const char *custodianEid,
+					const char *sourceEid);
+
+/**
  * Accept custody of a bundle.
  * Adds bundle to custody tracking and queues acceptance signal.
  *
