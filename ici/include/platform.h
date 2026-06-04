@@ -1000,6 +1000,8 @@ extern int			qualifyFileName(char *fileName, char *buffer,
 					int buflen);
 extern void			findToken(char **cursorPtr, char **token);
 extern int			platform_parse_uvast(const char *nptr, uvast *result);
+extern int 			platform_parse_int(const char *nptr, int *result);
+
 
 #include "platform_sm.h"
 
