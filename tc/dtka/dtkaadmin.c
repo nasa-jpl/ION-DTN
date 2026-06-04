@@ -123,7 +123,16 @@ static void managekeyType(int tokenCount, char **tokens)
 		return;
 	}
 
-	newkeySize = atoi(tokens[3]);
+	uvast parsed_size;
+	if (platform_parse_uvast(tokens[3], &parsed_size) < 0 || parsed_size > UINT_MAX)
+	{
+		char errMsg[256];
+		isprintf(errMsg, sizeof(errMsg), "[?] Invalid key size. (Got: %s)", tokens[3]);
+		printText(errMsg);
+		return;
+	}
+	newkeySize = (unsigned int)parsed_size;
+
 	if (newkeySize % 8 != 0)
 	{
 		putErrmsg("Key size is invalid.", tokens[2]);
@@ -183,7 +192,14 @@ static void manageInterval(int tokenCount, char **tokens)
 		return;
 	}
 
-	newInterval = atoi(tokens[2]);
+	if (platform_parse_int(tokens[2], &newInterval) < 0)
+	{
+		char errMsg[256];
+		isprintf(errMsg, sizeof(errMsg), "[?] Invalid interval. (Got: %s)", tokens[2]);
+		printText(errMsg);
+		return;
+	}
+
 	if (newInterval < 60)
 	{
 		putErrmsg("interval invalid.", tokens[2]);
@@ -213,7 +229,13 @@ static void manageLeadTime(int tokenCount, char **tokens)
 		return;
 	}
 
-	newLeadTime = atoi(tokens[2]);
+	if (platform_parse_int(tokens[2], &newLeadTime) < 0)
+	{
+		char errMsg[256];
+		isprintf(errMsg, sizeof(errMsg), "[?] Invalid leadtime. (Got: %s)", tokens[2]);
+		printText(errMsg);
+		return;
+	}
 	if (newLeadTime < 20)
 	{
 		putErrmsg("leadtime invalid.", tokens[2]);
