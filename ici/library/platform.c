@@ -2324,39 +2324,39 @@ int platform_parse_uvast(const char *nptr, uvast *result)
 {
 	const char *s = nptr;
 	char *endptr;
-	
-	if (s == NULL || *s == '\0') 
+	uvast temp_val;
+
+	if (s == NULL || *s == '\0')
 	{
 		return -1;
 	}
 
-	/* Skip leading whitespace */
-	while (isspace((unsigned char)*s)) 
+	while (isspace((unsigned char)*s))
 	{
 		s++;
 	}
 
-	/* Prevent POSIX strtoul's negative wrapping behavior */
-	if (*s == '-') 
+	/* Reject negative numbers for unsigned parsing */
+	if (*s == '-')
 	{
 		return -1;
 	}
 
 	errno = 0;
 
-	/* Respect ION's architectural typing for vast/uvast */
-#if (!LONG_LONG_OKAY) || (SPACE_ORDER >= 3)
-	*result = (uvast) strtoul(s, &endptr, 0);
-#else
-	*result = (uvast) strtoull(s, &endptr, 0);
-#endif
+	#if (!LONG_LONG_OKAY) || (SPACE_ORDER >= 3)
+	temp_val = (uvast) strtoul(s, &endptr, 0);
+	#else
+	temp_val = (uvast) strtoull(s, &endptr, 0);
+	#endif
 
-	/* Fail on no conversion, out of range, or trailing garbage */
-	if (endptr == s || errno == ERANGE || *endptr != '\0') 
+	/* Defensive check: do not modify *result on any error path */
+	if (endptr == s || errno == ERANGE || *endptr != '\0')
 	{
 		return -1;
 	}
 
+	*result = temp_val;
 	return 0;
 }
 
