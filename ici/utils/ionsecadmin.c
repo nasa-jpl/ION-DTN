@@ -135,7 +135,10 @@ static void	executeAdd(int tokenCount, char **tokens)
 	char		*cursor;
 	int		i;
 	char		buf[3];
-	unsigned int		val;
+	unsigned int	val;
+	uvast		parsed_uvast;
+	int		parsed_int;
+	char		errMsg[256];
 
 	if (tokenCount < 2)
 	{
@@ -155,8 +158,13 @@ static void	executeAdd(int tokenCount, char **tokens)
 		/* Support FIFO syntax: a key <name> <file> <length> */
 		else if (tokenCount == 5)
 		{
-			int len = atoi(tokens[4]);
-			sec_addKey(tokens[2], tokens[3], len);
+			if (platform_parse_int(tokens[4], &parsed_int) < 0)
+			{
+				isprintf(errMsg, sizeof(errMsg), "[?] Invalid key length: %s", tokens[4]);
+				printText(errMsg);
+				return;
+			}
+			sec_addKey(tokens[2], tokens[3], parsed_int);
 			return;
 		}
 		else
@@ -175,9 +183,31 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 
 		fqnn = getFqn(tokens[2]);
-		effectiveTime = strtoul(tokens[3], NULL, 0);
-		assertionTime = strtoul(tokens[4], NULL, 0);
-		datLen = atoi(tokens[5]);
+
+		if (platform_parse_uvast(tokens[3], &parsed_uvast) < 0)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid effective time: %s", tokens[3]);
+			printText(errMsg);
+			return;
+		}
+		effectiveTime = (time_t) parsed_uvast;
+
+		if (platform_parse_uvast(tokens[4], &parsed_uvast) < 0)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid assertion time: %s", tokens[4]);
+			printText(errMsg);
+			return;
+		}
+		assertionTime = (time_t) parsed_uvast;
+
+		if (platform_parse_int(tokens[5], &parsed_int) < 0 || parsed_int < 0)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid key length: %s", tokens[5]);
+			printText(errMsg);
+			return;
+		}
+		datLen = (unsigned short) parsed_int;
+
 		if (datLen > sizeof(datValue))
 		{
 			printText("datLen out of range.");
@@ -185,7 +215,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 
 		cursor = tokens[6];
-		if (strlen(cursor) != (datLen * 2))
+		if (strlen(cursor) != (size_t)(datLen * 2))
 		{
 			SYNTAX_ERROR;
 			return;
@@ -215,6 +245,9 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 static void executeChange(int tokenCount, char **tokens)
 {
+	int	parsed_int;
+	char	errMsg[256];
+
 	if (tokenCount < 2)
 	{
 		printText("Change what?");
@@ -233,8 +266,13 @@ static void executeChange(int tokenCount, char **tokens)
 		/* Support FIFO syntax: c key <name> <file> <length> */
 		else if (tokenCount == 5)
 		{
-			int len = atoi(tokens[4]);
-			sec_updateKey(tokens[2], tokens[3], len);
+			if (platform_parse_int(tokens[4], &parsed_int) < 0)
+			{
+				isprintf(errMsg, sizeof(errMsg), "[?] Invalid key length: %s", tokens[4]);
+				printText(errMsg);
+				return;
+			}
+			sec_updateKey(tokens[2], tokens[3], parsed_int);
 			return;
 		}
 		else
@@ -251,6 +289,8 @@ static void	executeDelete(int tokenCount, char **tokens)
 {
 	uvast	fqnn;
 	time_t	effectiveTime;
+	uvast	parsed_uvast;
+	char	errMsg[256];
 
 	if (tokenCount < 3)
 	{
@@ -279,7 +319,15 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 
 		fqnn = getFqn(tokens[2]);
-		effectiveTime = strtoul(tokens[3], NULL, 0);
+
+		if (platform_parse_uvast(tokens[3], &parsed_uvast) < 0)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid effective time: %s", tokens[3]);
+			printText(errMsg);
+			return;
+		}
+		effectiveTime = (time_t) parsed_uvast;
+
 		sec_removePublicKey(fqnn, effectiveTime);
 		return;
 	}
@@ -352,6 +400,8 @@ static void	executeInfo(int tokenCount, char **tokens)
 	Object		elt;
 	uvast		fqnn;
 	time_t		effectiveTime;
+	uvast		parsed_uvast;
+	char		errMsg[256];
 
 	if (tokenCount < 2)
 	{
@@ -392,7 +442,16 @@ static void	executeInfo(int tokenCount, char **tokens)
 
 		CHKVOID(sdr_begin_xn(sdr));
 		fqnn = getFqn(tokens[2]);
-		effectiveTime = strtoul(tokens[3], NULL, 0);
+
+		if (platform_parse_uvast(tokens[3], &parsed_uvast) < 0)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid effective time: %s", tokens[3]);
+			printText(errMsg);
+			sdr_exit_xn(sdr); /* Safely close transaction before returning */
+			return;
+		}
+		effectiveTime = (time_t) parsed_uvast;
+
 		sec_findPublicKey(fqnn, effectiveTime, &addr, &elt);
 		if (elt == 0)
 		{
