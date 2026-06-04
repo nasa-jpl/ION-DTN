@@ -462,9 +462,15 @@ void writeMemoToIonLog(char *text)
  *    - Everything here must be async-signal-safe: no malloc, no stdio,
  *      no locks.  We pre-resolve the log path at install time, then use
  *      open()/write()/backtrace_symbols_fd(), all of which are safe.
+ *    - Disabled under AddressSanitizer: ASan installs its own SIGSEGV/
+ *      SIGBUS handlers at startup and produces a far more precise report
+ *      than backtrace().  Installing ours via sigaction() at attach would
+ *      override ASan's handler (we install later) and suppress its report,
+ *      which is exactly what masked the real fault during the #1048 ASan
+ *      run.  Let ASan own signal handling when built with it.
  *-------------------------------------------------------*/
 #if defined(HAVE_BACKTRACE) && defined(HAVE_BACKTRACE_SYMBOLS) \
-		&& !defined(solaris)
+		&& !defined(solaris) && !defined(__SANITIZE_ADDRESS__)
 #include <execinfo.h>
 
 #define	ION_CRASH_MAX_FRAMES	(100)
