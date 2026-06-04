@@ -113,6 +113,8 @@ indication characters, e.g., df{].  See man(5) for bssprc.");
 static void	initializeBssp(int tokenCount, char **tokens)
 {
 	unsigned int	estMaxNbrOfSessions;
+	uvast		parsed_sessions;
+	char		errMsg[256];
 
 	if (tokenCount != 2)
 	{
@@ -120,7 +122,16 @@ static void	initializeBssp(int tokenCount, char **tokens)
 		return;
 	}
 
-	estMaxNbrOfSessions = strtol(tokens[1], NULL, 0);
+	if (platform_parse_uvast(tokens[1], &parsed_sessions) < 0
+		|| parsed_sessions > UINT_MAX)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid max sessions: %s", tokens[1]);
+		printText(errMsg);
+		return;
+	}
+	estMaxNbrOfSessions = (unsigned int) parsed_sessions;
+
 	if (ionAttach() < 0)
 	{
 		putErrmsg("bssppadmin can't attach to ION.", NULL);
@@ -149,6 +160,8 @@ static void	executeAdd(int tokenCount, char **tokens)
 	uvast	engineId;
 	int	qTime = 1;			/*	Default.	*/
 	int	purge = 0;			/*	Default.	*/
+	uvast	p_maxExp, p_maxImp;
+	char	errMsg[256];
 
 	if (tokenCount < 2)
 	{
@@ -173,7 +186,14 @@ static void	executeAdd(int tokenCount, char **tokens)
 		switch (tokenCount)
 		{
 		case 8:
-			qTime = strtol(tokens[7], NULL, 0);
+			if (platform_parse_int(tokens[7], &qTime) < 0)
+			{
+				isprintf(errMsg, sizeof(errMsg),
+						"[?] Invalid qTime: %s", tokens[7]);
+				printText(errMsg);
+				return;
+			}
+
 			if (qTime < 0)
 			{
 				purge = 1;
@@ -191,9 +211,32 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 
 		engineId = getFqn(tokens[2]);
-		oK(addBsspSpan(engineId, strtol(tokens[3], NULL, 0),
-			strtol(tokens[4], NULL, 0), tokens[5],
-			tokens[6], (unsigned int) qTime, purge));
+
+		if (platform_parse_uvast(tokens[3], &p_maxExp) < 0
+			|| p_maxExp > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg),
+					"[?] Invalid maxExportSessions: %s", tokens[3]);
+			printText(errMsg);
+			return;
+		}
+
+		if (platform_parse_uvast(tokens[4], &p_maxImp) < 0
+			|| p_maxImp > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg),
+					"[?] Invalid maxImportSessions: %s", tokens[4]);
+			printText(errMsg);
+			return;
+		}
+
+		oK(addBsspSpan(engineId,
+				(unsigned int) p_maxExp,
+				(unsigned int) p_maxImp,
+				tokens[5],
+				tokens[6],
+				(unsigned int) qTime,
+				purge));
 		return;
 	}
 
@@ -202,9 +245,11 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 static void	executeChange(int tokenCount, char **tokens)
 {
-		uvast	engineId;
+	uvast	engineId;
 	int	qTime = 1;			/*	Default.	*/
 	int	purge = 0;			/*	Default.	*/
+	uvast	p_maxExp, p_maxImp;
+	char	errMsg[256];
 
 	if (tokenCount < 2)
 	{
@@ -218,7 +263,14 @@ static void	executeChange(int tokenCount, char **tokens)
 		switch (tokenCount)
 		{
 		case 8:
-			qTime = strtol(tokens[7], NULL, 0);
+			if (platform_parse_int(tokens[7], &qTime) < 0)
+			{
+				isprintf(errMsg, sizeof(errMsg),
+						"[?] Invalid qTime: %s", tokens[7]);
+				printText(errMsg);
+				return;
+			}
+
 			if (qTime < 0)
 			{
 				purge = 1;
@@ -236,9 +288,32 @@ static void	executeChange(int tokenCount, char **tokens)
 		}
 
 		engineId = getFqn(tokens[2]);
-		oK(updateBsspSpan(engineId, strtol(tokens[3], NULL, 0),
-			strtol(tokens[4], NULL, 0), tokens[5],
-			tokens[6], (unsigned int) qTime, purge));
+
+		if (platform_parse_uvast(tokens[3], &p_maxExp) < 0
+			|| p_maxExp > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg),
+					"[?] Invalid maxExportSessions: %s", tokens[3]);
+			printText(errMsg);
+			return;
+		}
+
+		if (platform_parse_uvast(tokens[4], &p_maxImp) < 0
+			|| p_maxImp > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg),
+					"[?] Invalid maxImportSessions: %s", tokens[4]);
+			printText(errMsg);
+			return;
+		}
+
+		oK(updateBsspSpan(engineId,
+				(unsigned int) p_maxExp,
+				(unsigned int) p_maxImp,
+				tokens[5],
+				tokens[6],
+				(unsigned int) qTime,
+				purge));
 		return;
 	}
 
@@ -507,6 +582,7 @@ static void	manageOwnqtime(int tokenCount, char **tokens)
 	Object	bsspdbObj = getBsspDbObject();
 	BsspDB	bsspdb;
 	int	newOwnQtime;
+	char	errMsg[256];
 
 	if (tokenCount != 3)
 	{
@@ -514,7 +590,14 @@ static void	manageOwnqtime(int tokenCount, char **tokens)
 		return;
 	}
 
-	newOwnQtime = strtol(tokens[2], NULL, 0);
+	if (platform_parse_int(tokens[2], &newOwnQtime) < 0)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid own Q time: %s", tokens[2]);
+		printText(errMsg);
+		return;
+	}
+
 	if (newOwnQtime < 0)
 	{
 		putErrmsg("Own Q time invalid.", tokens[2]);
