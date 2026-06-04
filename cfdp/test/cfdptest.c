@@ -1401,7 +1401,8 @@ static void	resetFileNames(int tokenCount, char **tokens,
 static void	setClassOfService(int tokenCount, char **tokens,
 			BpUtParms *utParms)
 {
-	unsigned long	priority;
+	uvast		parsed_priority;
+	char		errMsg[256];
 
 	if (tokenCount != 2)
 	{
@@ -1410,13 +1411,22 @@ static void	setClassOfService(int tokenCount, char **tokens,
 		return;
 	}
 
-	priority = strtoul(tokens[1], NULL, 0);
-	utParms->classOfService = priority;
+	if (platform_parse_uvast(tokens[1], &parsed_priority) < 0
+		|| parsed_priority > ULONG_MAX)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid priority: %s", tokens[1]);
+		printText(errMsg);
+		return;
+	}
+
+	utParms->classOfService = (unsigned long) parsed_priority;
 }
 
 static void	setOrdinal(int tokenCount, char **tokens, BpUtParms *utParms)
 {
-	unsigned long	ordinal;
+	uvast		parsed_ordinal;
+	char		errMsg[256];
 
 	if (tokenCount != 2)
 	{
@@ -1425,13 +1435,23 @@ static void	setOrdinal(int tokenCount, char **tokens, BpUtParms *utParms)
 		return;
 	}
 
-	ordinal = strtoul(tokens[1], NULL, 0);
-	utParms->ancillaryData.ordinal = ordinal;
+	if (platform_parse_uvast(tokens[1], &parsed_ordinal) < 0
+		|| parsed_ordinal > ULONG_MAX)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid ordinal: %s", tokens[1]);
+		printText(errMsg);
+		return;
+	}
+
+	utParms->ancillaryData.ordinal = (unsigned long) parsed_ordinal;
 }
 
 static void	setMode(int tokenCount, char **tokens, BpUtParms *utParms)
 {
 	unsigned long	mode;
+	uvast		parsed_mode;
+	char		errMsg[256];
 
 	if (tokenCount != 2)
 	{
@@ -1440,7 +1460,17 @@ static void	setMode(int tokenCount, char **tokens, BpUtParms *utParms)
 		return;
 	}
 
-	mode = strtoul(tokens[1], NULL, 0);
+	if (platform_parse_uvast(tokens[1], &parsed_mode) < 0
+		|| parsed_mode > ULONG_MAX)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid mode: %s", tokens[1]);
+		printText(errMsg);
+		return;
+	}
+
+	mode = (unsigned long) parsed_mode;
+
 	if (mode & 0x01)	/*	Unreliable.			*/
 	{
 		utParms->ancillaryData.flags |= BP_BEST_EFFORT;
@@ -1461,7 +1491,8 @@ static void	setMode(int tokenCount, char **tokens, BpUtParms *utParms)
 
 static void	setCtInterval(int tokenCount, char **tokens, BpUtParms *utParms)
 {
-	unsigned long	interval;
+	uvast		parsed_interval;
+	char		errMsg[256];
 
 	if (tokenCount != 2)
 	{
@@ -1470,13 +1501,23 @@ static void	setCtInterval(int tokenCount, char **tokens, BpUtParms *utParms)
 		return;
 	}
 
-	interval = strtoul(tokens[1], NULL, 0);
-	utParms->ctInterval = interval;
+	if (platform_parse_uvast(tokens[1], &parsed_interval) < 0
+		|| parsed_interval > ULONG_MAX)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid interval: %s", tokens[1]);
+		printText(errMsg);
+		return;
+	}
+
+	utParms->ctInterval = (unsigned long) parsed_interval;
 }
 
 static void	setClosure(int tokenCount, char **tokens, CfdpReqParms *parms)
 {
 	unsigned long	latency;
+	uvast		parsed_latency;
+	char		errMsg[256];
 
 	if (tokenCount != 2)
 	{
@@ -1484,13 +1525,24 @@ static void	setClosure(int tokenCount, char **tokens, CfdpReqParms *parms)
 		return;
 	}
 
-	latency = strtoul(tokens[1], NULL, 0);
+	if (platform_parse_uvast(tokens[1], &parsed_latency) < 0
+	|| parsed_latency > ULONG_MAX)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid closure latency: %s", tokens[1]);
+		printText(errMsg);
+		return;
+	}
+
+	latency = (unsigned long) parsed_latency;
 	parms->closureLatency = latency;
 }
 
 static void	setSegMd(int tokenCount, char **tokens, CfdpReqParms *parms)
 {
 	unsigned long	setting;
+	uvast		parsed_setting;
+	char		errMsg[256];
 
 	if (tokenCount != 2)
 	{
@@ -1498,7 +1550,16 @@ static void	setSegMd(int tokenCount, char **tokens, CfdpReqParms *parms)
 		return;
 	}
 
-	setting = strtoul(tokens[1], NULL, 0);
+	if (platform_parse_uvast(tokens[1], &parsed_setting) < 0
+	|| parsed_setting > ULONG_MAX)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid segment metadata mode: %s", tokens[1]);
+		printText(errMsg);
+		return;
+	}
+
+	setting = (unsigned long) parsed_setting;
 	parms->segMetadataFn = (setting == 0) ? NULL : noteSegmentTime;
 }
 
@@ -1572,7 +1633,8 @@ static void	setSrrFlags(int tokenCount, char **tokens, BpUtParms *utParms)
 static void	setCriticality(int tokenCount, char **tokens,
 			BpUtParms *utParms)
 {
-	unsigned long	criticality;
+	uvast		parsed_crit;
+	char		errMsg[256];
 
 	if (tokenCount != 2)
 	{
@@ -1580,8 +1642,16 @@ static void	setCriticality(int tokenCount, char **tokens,
 		return;
 	}
 
-	criticality = (strtoul(tokens[1], NULL, 0) == 0 ? 0 : 1);
-	if (criticality == 1)
+	if (platform_parse_uvast(tokens[1], &parsed_crit) < 0
+		|| parsed_crit > ULONG_MAX)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid criticality: %s", tokens[1]);
+		printText(errMsg);
+		return;
+	}
+
+	if (parsed_crit != 0)
 	{
 		utParms->ancillaryData.flags |= BP_MINIMUM_LATENCY;
 	}
@@ -1593,7 +1663,8 @@ static void	setCriticality(int tokenCount, char **tokens,
 
 static void	setTTL(int tokenCount, char **tokens, BpUtParms *utParms)
 {
-	unsigned long	TTL;
+	uvast		parsed_TTL;
+	char		errMsg[256];
 
 	if (tokenCount != 2)
 	{
@@ -1601,8 +1672,16 @@ static void	setTTL(int tokenCount, char **tokens, BpUtParms *utParms)
 		return;
 	}
 
-	TTL = strtoul(tokens[1], NULL, 0);
-	utParms->lifespan = TTL;
+	if (platform_parse_uvast(tokens[1], &parsed_TTL) < 0
+		|| parsed_TTL > ULONG_MAX)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid TTL: %s", tokens[1]);
+		printText(errMsg);
+		return;
+	}
+
+	utParms->lifespan = (unsigned long) parsed_TTL;
 }
 
 static void	addMsgToUser(int tokenCount, char **tokens,
@@ -1626,9 +1705,11 @@ static void	addMsgToUser(int tokenCount, char **tokens,
 static void	addFilestoreRequest(int tokenCount, char **tokens,
 			MetadataList *fsRequests)
 {
+	int		parsed_action;
 	CfdpAction	action;
 	char		*firstPathName = NULL;
 	char		*secondPathName = NULL;
+	char		errMsg[256];
 
 	switch (tokenCount)
 	{
@@ -1639,7 +1720,15 @@ static void	addFilestoreRequest(int tokenCount, char **tokens,
 
 		case 3:
 			firstPathName = tokens[2];
-			action = atoi(tokens[1]);
+			if (platform_parse_int(tokens[1], &parsed_action) < 0)
+			{
+				isprintf(errMsg, sizeof(errMsg),
+						"[?] Invalid action code: %s",
+						tokens[1]);
+				printText(errMsg);
+				return;
+			}
+			action = (CfdpAction) parsed_action;
 			break;
 
 		default:
