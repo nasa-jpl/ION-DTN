@@ -121,9 +121,9 @@ static void	printUsage(void)
 	PUTS("\t   # <comment text>");
 }
 
-static void	executeAdd(int tokenCount, char **tokens)
+static void     executeAdd(int tokenCount, char **tokens)
 {
-	char	*keyName = "";
+	char    *keyName = "";
 
 	if (tokenCount < 2)
 	{
@@ -133,27 +133,10 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "ltprecvauthrule") == 0)
 	{
-		switch (tokenCount)
-		{
-		case 5:
-			keyName = tokens[4];
-			break;
+		int     engineId;
+		uvast   cipherNbr;
+		char    errMsg[256];
 
-		case 4:
-			keyName = _omitted();
-			break;
-
-		default:
-			SYNTAX_ERROR;
-		}
-
-		sec_addLtpRecvAuthRule(atoi(tokens[2]), atouc(tokens[3]),
-				keyName);
-		return;
-	}
-
-	if (strcmp(tokens[1], "ltpxmitauthrule") == 0)
-	{
 		switch (tokenCount)
 		{
 		case 5:
@@ -169,8 +152,66 @@ static void	executeAdd(int tokenCount, char **tokens)
 			return;
 		}
 
-		sec_addLtpXmitAuthRule(atoi(tokens[2]), atouc(tokens[3]),
-				keyName);
+		if (platform_parse_int(tokens[2], &engineId) < 0)
+		{
+			isprintf(errMsg, sizeof(errMsg),
+					"[?] Invalid engine ID: %s", tokens[2]);
+			printText(errMsg);
+			return;
+		}
+
+		if (platform_parse_uvast(tokens[3], &cipherNbr) < 0
+			|| cipherNbr > UCHAR_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg),
+					"[?] Invalid ciphersuite number: %s", tokens[3]);
+			printText(errMsg);
+			return;
+		}
+
+		sec_addLtpRecvAuthRule(engineId, (unsigned char) cipherNbr, keyName);
+		return;
+	}
+
+	if (strcmp(tokens[1], "ltpxmitauthrule") == 0)
+	{
+		int     engineId;
+		uvast   cipherNbr;
+		char    errMsg[256];
+
+		switch (tokenCount)
+		{
+		case 5:
+			keyName = tokens[4];
+			break;
+
+		case 4:
+			keyName = _omitted();
+			break;
+
+		default:
+			SYNTAX_ERROR;
+			return;
+		}
+
+		if (platform_parse_int(tokens[2], &engineId) < 0)
+		{
+			isprintf(errMsg, sizeof(errMsg),
+					"[?] Invalid engine ID: %s", tokens[2]);
+			printText(errMsg);
+			return;
+		}
+
+		if (platform_parse_uvast(tokens[3], &cipherNbr) < 0
+			|| cipherNbr > UCHAR_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg),
+					"[?] Invalid ciphersuite number: %s", tokens[3]);
+			printText(errMsg);
+			return;
+		}
+
+		sec_addLtpXmitAuthRule(engineId, (unsigned char) cipherNbr, keyName);
 		return;
 	}
 
