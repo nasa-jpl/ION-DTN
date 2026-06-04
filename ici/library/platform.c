@@ -2360,6 +2360,47 @@ int platform_parse_uvast(const char *nptr, uvast *result)
 	return 0;
 }
 
+/*
+* Parses a string into a signed integer with strict POSIX validation.
+* Enforces architecture-specific integer boundaries (INT_MIN to INT_MAX),
+* catches overflow/underflow, and rejects trailing garbage.
+* Returns 0 on success, -1 on failure.
+*/
+int platform_parse_int(const char *nptr, int *result)
+{
+	const char *s = nptr;
+	char *endptr;
+	long temp_val;
+
+	if (s == NULL || *s == '\0')
+	{
+		return -1;
+	}
+
+	while (isspace((unsigned char)*s))
+	{
+		s++;
+	}
+
+	errno = 0;
+	temp_val = strtol(s, &endptr, 0);
+
+	/* Defensive check: do not modify *result on any error path */
+	if (endptr == s || errno == ERANGE || *endptr != '\0')
+	{
+		return -1;
+	}
+
+	/* Enforce strict 32-bit bounds before assignment */
+	if (temp_val < INT_MIN || temp_val > INT_MAX)
+	{
+		return -1;
+	}
+
+	*result = (int)temp_val;
+	return 0;
+}
+
 #ifdef ION_NO_DNS
 unsigned int	getAddressOfHost()
 {
