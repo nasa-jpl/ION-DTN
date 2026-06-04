@@ -169,6 +169,8 @@ static void	infoProfile(int tokenCount, char **tokens)
 	PsmAddress	elt;
 	PsmPartition	wm = getIonwm();
 	unsigned int	profileID;
+	uvast		parsed_profileID;
+	char		errMsg[256];
 
 	if (tokenCount != 3)
 	{
@@ -176,7 +178,16 @@ static void	infoProfile(int tokenCount, char **tokens)
 		return;
 	}
 
-	profileID = atoi(tokens[2]);
+	if (platform_parse_uvast(tokens[2], &parsed_profileID) < 0
+		|| parsed_profileID > UINT_MAX)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid profileID: %s", tokens[2]);
+		printText(errMsg);
+		return;
+	}
+	profileID = (unsigned int) parsed_profileID;
+
 	for (elt = sm_list_first(wm, vdb->profiles); elt;
 			elt = sm_list_next(wm, elt))
 	{
@@ -206,17 +217,65 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "profile") == 0)
 	{
+		uvast	p_id, p_maxRtx, p_aggrSize, p_aggrTime, p_ttl;
+		char	errMsg[256];
+
 		if (tokenCount != 10 && tokenCount != 9)
 		{
 			SYNTAX_ERROR;
 			return;
 		}
 
-		oK(addProfile(strtol(tokens[2], NULL, 0),
-				strtol(tokens[3], NULL, 0),
-				strtol(tokens[4], NULL, 0),
-				strtol(tokens[5], NULL, 0),
-				strtol(tokens[6], NULL, 0),
+		if (platform_parse_uvast(tokens[2], &p_id) < 0
+			|| p_id > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg),
+					"[?] Invalid profileID: %s", tokens[2]);
+			printText(errMsg);
+			return;
+		}
+
+		if (platform_parse_uvast(tokens[3], &p_maxRtx) < 0
+			|| p_maxRtx > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg),
+					"[?] Invalid maxRtx: %s", tokens[3]);
+			printText(errMsg);
+			return;
+		}
+
+		if (platform_parse_uvast(tokens[4], &p_aggrSize) < 0
+			|| p_aggrSize > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg),
+					"[?] Invalid aggrSizeLimit: %s", tokens[4]);
+			printText(errMsg);
+			return;
+		}
+
+		if (platform_parse_uvast(tokens[5], &p_aggrTime) < 0
+			|| p_aggrTime > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg),
+					"[?] Invalid aggrTimeLimit: %s", tokens[5]);
+			printText(errMsg);
+			return;
+		}
+
+		if (platform_parse_uvast(tokens[6], &p_ttl) < 0
+			|| p_ttl > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg),
+					"[?] Invalid ttl: %s", tokens[6]);
+			printText(errMsg);
+			return;
+		}
+
+		oK(addProfile((unsigned int) p_id,
+				(unsigned int) p_maxRtx,
+				(unsigned int) p_aggrSize,
+				(unsigned int) p_aggrTime,
+				(unsigned int) p_ttl,
 				tokens[7], tokens[8], tokens[9]));
 		return;
 	}
@@ -234,13 +293,25 @@ static void	executeDelete(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "profile") == 0)
 	{
+		uvast	parsed_profileID;
+		char	errMsg[256];
+
 		if (tokenCount != 3)
 		{
 			SYNTAX_ERROR;
 			return;
 		}
 
-		oK(removeProfile(strtol(tokens[2], NULL, 0)));
+		if (platform_parse_uvast(tokens[2], &parsed_profileID) < 0
+			|| parsed_profileID > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg),
+					"[?] Invalid profileID: %s", tokens[2]);
+			printText(errMsg);
+			return;
+		}
+
+		oK(removeProfile((unsigned int) parsed_profileID));
 		return;
 	}
 
