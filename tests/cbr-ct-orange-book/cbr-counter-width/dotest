@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# cbr-counter-width: configurable sequence-counter wraparound width (G5)
+#
+# Verifies (G5):
+#   The 'm cbrcounterwidth { 16 | 32 | 64 }' bpadmin command sets
+#   CbrDb.counterMaxValue, which cbr_createSeqCounter applies to every new
+#   BundleSeqCounter. 'l cbrcounterwidth' reports the current value. Before
+#   this command all counters used CBR_COUNTER_MAX_64BIT unconditionally.
+#
+# Topology: single node (this is a pure configuration command).
+#
+# This test verifies:
+#   1. Width set at startup (m cbrcounterwidth 16) is visible via l
+#   2. Runtime change to 32-bit takes effect
+#   3. Runtime change to 64-bit takes effect
+#   4. An invalid width is rejected and leaves the value unchanged
+#   5. No ION errors
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+echo "=== CBR Counter Width Test (G5) ==="
+echo ""
+
+./cleanup
+
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+test_result() {
+    if [ $1 -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+echo "Starting ION node..."
+cd "$TESTDIR/1.node"
+chmod +x ionstart
+./ionstart > ion_startup.log 2>&1
+sleep 2
+
+if [ "$(pgrep -f rfxclock | wc -l)" -lt 1 ]; then
+    echo "ERROR: ION node did not start."
+    exit 1
+fi
+echo "Node started."
+echo ""
+
+# ---------------------------------------------------------------
+echo "--- Test 1: startup width (m cbrcounterwidth 16) visible via l ---"
+
+cd "$TESTDIR/1.node"
+OUT=$(echo 'l cbrcounterwidth' | bpadmin 2>/dev/null)
+echo "  l cbrcounterwidth: $OUT"
+if echo "$OUT" | grep -Fq '16-bit' && echo "$OUT" | grep -Fq '65535'; then
+    test_result 0 "startup width is 16-bit (max 65535)"
+else
+    test_result 1 "startup width not reported as 16-bit"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 2: runtime change to 32-bit ---"
+
+echo 'm cbrcounterwidth 32' | bpadmin > /dev/null 2>&1
+OUT=$(echo 'l cbrcounterwidth' | bpadmin 2>/dev/null)
+echo "  l cbrcounterwidth: $OUT"
+if echo "$OUT" | grep -Fq '32-bit' && echo "$OUT" | grep -Fq '4294967295'; then
+    test_result 0 "width changed to 32-bit (max 4294967295)"
+else
+    test_result 1 "width not reported as 32-bit"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 3: runtime change to 64-bit ---"
+
+echo 'm cbrcounterwidth 64' | bpadmin > /dev/null 2>&1
+OUT=$(echo 'l cbrcounterwidth' | bpadmin 2>/dev/null)
+echo "  l cbrcounterwidth: $OUT"
+if echo "$OUT" | grep -Fq '64-bit'; then
+    test_result 0 "width changed to 64-bit"
+else
+    test_result 1 "width not reported as 64-bit"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 4: invalid width rejected, value unchanged ---"
+
+echo 'm cbrcounterwidth 99' | bpadmin > /dev/null 2>&1
+OUT=$(echo 'l cbrcounterwidth' | bpadmin 2>/dev/null)
+echo "  l cbrcounterwidth after invalid set: $OUT"
+if echo "$OUT" | grep -Fq '64-bit'; then
+    test_result 0 "invalid width rejected; still 64-bit"
+else
+    test_result 1 "invalid width altered the configured value"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 5: no ION errors ---"
+
+ERR=$(grep -c '\[!' "$TESTDIR/1.node/ion.log" 2>/dev/null)
+ERR=${ERR:-0}
+if [ "$ERR" -gt 0 ]; then
+    echo "  1.node: $ERR error(s)"
+    grep '\[!' "$TESTDIR/1.node/ion.log" | head -5 | sed 's/^/    /'
+fi
+test_result "$ERR" "No ION errors at Node 1"
+
+echo ""
+echo "========================================="
+echo "SUMMARY: $TESTS_PASSED passed, $TESTS_FAILED failed"
+echo "========================================="
+
+[ $TESTS_FAILED -eq 0 ]

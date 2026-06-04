@@ -1,0 +1,14 @@
+## Single node exercising the m/l cbrcounterwidth command (G5).
+## Starts with a 16-bit sequence-counter wraparound width set at startup;
+## the test then changes it at runtime and verifies l cbrcounterwidth.
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.0 x
+a endpoint ipn:1.2 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4643 udpcli
+m custodymode orangebook
+m srmode compressed
+m cbraggr 1 1 2
+m cbrcounterwidth 16
+s
