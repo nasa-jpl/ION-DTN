@@ -464,7 +464,7 @@ success, -1 on any error.
 =item void ams_remove_event_mgr(AmsModule module)
 
 Terminates the background thread established to process events queued for
-this module.  Returns 0 on success, -1 on any error.
+this module.
 
 =item int ams_get_module_nbr(AmsModule module)
 
@@ -479,7 +479,7 @@ registered, or -1 on any error.
 =item Lyst ams_list_msgspaces(AmsModule module)
 
 Returns a dynamically allocated linked list of all message spaces identified
-in the MIB for this module, or -1 on any error.  See lyst(3) for operations
+in the MIB for this module, or NULL on any error.  See lyst(3) for operations
 that can be performed on the returned linked list.
 
 =item int ams_get_continuum_nbr(void)
@@ -533,21 +533,21 @@ on any error.
 =item char *ams_lookup_unit_name(AmsModule module, int unitNbr)
 
 Returns the name of the unit identified by I<unitNbr>, in
-the venture within which this module is registered, or -1 on any error.
+the venture within which this module is registered, or NULL on any error.
 
 =item char *ams_lookup_role_name(AmsModule module, int roleNbr)
 
 Returns the name of the role identified by I<roleNbr>, in
-the venture within which this module is registered, or -1 on any error.
+the venture within which this module is registered, or NULL on any error.
 
 =item char *ams_lookup_subject_name(AmsModule module, short subjectNbr)
 
 Returns the name of the subject identified by I<subjectNbr>, in
-the venture within which this module is registered, or -1 on any error.
+the venture within which this module is registered, or NULL on any error.
 
 =item char *ams_lookup_continuum_name(AmsModule module, short continuumNbr)
 
-Returns the name of the continuum identified by I<continuumNbr>, or -1
+Returns the name of the continuum identified by I<continuumNbr>, or NULL
 on any error.
 
 =back

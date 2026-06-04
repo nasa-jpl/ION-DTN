@@ -39,7 +39,7 @@ or more items of AMS configuration information in the MIB.
 For a discussion of the recognized control elements and configuration elements
 of the MIB initialization file, see the amsrc(5) man page.  B<NOTE>, though,
 that all elements of an XML-based MIB initialization file B<must> be
-sub-elements of a single sub-element of the XML extension type B<ams_load_mib>
+sub-elements of a single sub-element of the XML extension type B<ams_mib_load>
 in order for the file to be parsed successfully by expat.
 
 =head1 EXAMPLE
