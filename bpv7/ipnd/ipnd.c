@@ -399,25 +399,38 @@ static int	configService(int tokenCount, char** tokens)
 	int		i, j;
 	char		*p;
 	IpndTagChild	*tagChild;
+	uvast		parsed_id;
+	int		parsed_len;
+	unsigned char	id;
+	char		errMsg[256];
 
 	CHKCTX(ctx);
 
 	/* first token contains tag id */
-
-	unsigned char id = (unsigned char) atoi(tokens[0]);
+	if (platform_parse_uvast(tokens[0], &parsed_id) < 0 || parsed_id > 255)
+	{
+		isprintf(errMsg, sizeof(errMsg), "[?] Invalid tag id. Must be 0-255: %s", tokens[0]);
+		printText(errMsg);
+		return -1;
+	}
+	id = (unsigned char) parsed_id;
 
 	ctx->tags[id].number = id;
 
 	/* second token contains tag name */
-
 	istrcpy(ctx->tags[id].name, tokens[1], IPND_MAX_TAG_NAME_LENGTH + 1);
 
 	/* third token contains "fixed", "variable", "explicit"
 	 * or "param1name:param1type" */
-
 	if (strcmp(tokens[2], "fixed") == 0 && tokenCount == 4)
 	{
-		ctx->tags[id].lengthType = (signed char) atoi(tokens[3]);
+		if (platform_parse_int(tokens[3], &parsed_len) < 0)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid fixed length: %s", tokens[3]);
+			printText(errMsg);
+			return -1;
+		}
+		ctx->tags[id].lengthType = parsed_len;
 	}
 	else if (strcmp(tokens[2], "variable") == 0 && tokenCount == 3)
 	{
@@ -432,7 +445,6 @@ static int	configService(int tokenCount, char** tokens)
 		ctx->tags[id].lengthType = 0;
 
 		/* process all "paramXname:paramXtype" */
-
 		for (i = 2; i < tokenCount; i++)
 		{
 			p = strchr(tokens[i], ':');
@@ -442,7 +454,6 @@ static int	configService(int tokenCount, char** tokens)
 			}
 
 			/* find tag with tag name "paramXtype" */
-
 			for (j = 0; j < 256; j++)
 			{
 				if (strncmp(ctx->tags[j].name, p + 1,
@@ -899,6 +910,9 @@ static int	executeConfigure(int tokenCount, char **tokens)
 	char	buffer[80], *p;
 	long	intervalValue;
 	IPNDCtx	*ctx = getIPNDCtx();
+	uvast	parsed_uvast;
+	int	parsed_int;
+	char	errMsg[256];
 
 	if (tokenCount < 2)
 	{
@@ -910,7 +924,6 @@ static int	executeConfigure(int tokenCount, char **tokens)
 	{
 		/* this check eliminates possibility of having white
 		 * space in eid						*/
-
 		if (tokenCount != 3)
 		{
 			printText("Specified EID is empty or contains white \
@@ -952,7 +965,14 @@ ASCII values");
 	{
 		TOKENCHK(3);
 
-		ctx->port = strtol(tokens[2], NULL, 10);
+		if (platform_parse_uvast(tokens[2], &parsed_uvast) < 0 || parsed_uvast > 65535)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid port. Must be 0-65535: %s", tokens[2]);
+			printText(errMsg);
+			return -1;
+		}
+		ctx->port = (unsigned short) parsed_uvast;
+
 		isprintf(buffer, sizeof buffer, "[i] Port: %d.", ctx->port);
 		printText(buffer);
 
@@ -965,18 +985,28 @@ ASCII values");
 
 		if (strcmp(tokens[2], "period") == 0)
 		{
-			ctx->announcePeriod = strtol(tokens[3], NULL, 10);
+			if (platform_parse_int(tokens[3], &parsed_int) < 0 || parsed_int < 0)
+			{
+				isprintf(errMsg, sizeof(errMsg), "[?] Invalid announce period: %s", tokens[3]);
+				printText(errMsg);
+				return -1;
+			}
+			ctx->announcePeriod = parsed_int;
 
 			printText("[i] Period announced.");
-
 			return 0;
 		}
 		else if (strcmp(tokens[2], "eid") == 0)
 		{
-			ctx->announceEid = strtol(tokens[3], NULL, 10);
+			if (platform_parse_int(tokens[3], &parsed_int) < 0 || (parsed_int != 0 && parsed_int != 1))
+			{
+				isprintf(errMsg, sizeof(errMsg), "[?] Invalid announce eid flag. Must be 0 or 1: %s", tokens[3]);
+				printText(errMsg);
+				return -1;
+			}
+			ctx->announceEid = parsed_int;
 
 			printText("[i] Eid announced.");
-
 			return 0;
 		}
 
@@ -988,18 +1018,13 @@ ASCII values");
 	{
 		TOKENCHK(4);
 
-		/* interval must be non-negative integer without
-		 * extra characters, e.g. "3s" is invalid		*/
-
-		p = buffer;
-		intervalValue = strtol(tokens[3], &p, 10);
-		if (*p != '\0' || intervalValue < 0)
+		if (platform_parse_int(tokens[3], &parsed_int) < 0 || parsed_int < 0)
 		{
-			isprintf(buffer, sizeof buffer, "Invalid interval \
-(beacon period) value: %s", tokens[3]);
-			printText(buffer);
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid interval (beacon period) value: %s", tokens[3]);
+			printText(errMsg);
 			return -1;
 		}
+		intervalValue = (long) parsed_int;
 
 		if (strcmp(tokens[2], "unicast") == 0)
 		{
@@ -1045,7 +1070,14 @@ ASCII values");
 
 		if (strcmp(tokens[2], "ttl") == 0)
 		{
-			ctx->multicastTTL = strtol(tokens[3], NULL, 10);
+			if (platform_parse_uvast(tokens[3], &parsed_uvast) < 0 || parsed_uvast > 255)
+			{
+				isprintf(errMsg, sizeof(errMsg), "[?] Invalid multicast TTL. Must be 0-255: %s", tokens[3]);
+				printText(errMsg);
+				return -1;
+			}
+			ctx->multicastTTL = (unsigned char) parsed_uvast;
+
 			isprintf(buffer, sizeof buffer,
 				"[i] Multicast TTL: %d.", ctx->multicastTTL);
 			printText(buffer);
