@@ -137,6 +137,8 @@ indication characters, e.g., df{].  See man(5) for ltprc.");
 static void	initializeLtp(int tokenCount, char **tokens)
 {
 	unsigned int	estMaxNbrOfSessions;
+	uvast		parsed_sessions;
+	char		errMsg[256];
 
 	/*	For backward compatibility, if second argument is
 	 *	provided it is simply ignored.				*/
@@ -152,8 +154,18 @@ static void	initializeLtp(int tokenCount, char **tokens)
 		return;
 	}
 
-	estMaxNbrOfSessions = strtol(tokens[1], NULL, 0);
+	if (platform_parse_uvast(tokens[1], &parsed_sessions) < 0
+		|| parsed_sessions > UINT_MAX)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid max sessions: %s", tokens[1]);
+		printText(errMsg);
+		return;
+	}
+	estMaxNbrOfSessions = (unsigned int) parsed_sessions;
+
 	if (ionAttach() < 0)
+// ...
 	{
 		putErrmsg("ltpadmin can't attach to ION.", NULL);
 		return;
@@ -239,9 +251,13 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "span") == 0)
 	{
-		/*	Temporary patch for backward compatibility
-		 *	in configuration files.  Ditch tokens [4] and
-		 *	[6], which were maximum block sizes.		*/
+		/* Hoisted declarations for POSIX/C90 compatibility */
+		uvast p_maxExp, p_maxImp, p_maxSeg, p_aggrSize, p_aggrTime;
+		char errMsg[256];
+
+		/* Temporary patch for backward compatibility
+		* in configuration files.  Ditch tokens [4] and
+		* [6], which were maximum block sizes.            */
 
 		if (tokenCount > 10)
 		{
@@ -258,19 +274,26 @@ static void	executeAdd(int tokenCount, char **tokens)
 			tokenCount -= 2;
 		}
 
-		/*	End of temporary patch.				*/
+		/* End of temporary patch.                         */
 
 		switch (tokenCount)
 		{
 		case 10:
-			qTime = strtol(tokens[9], NULL, 0);
+			if (platform_parse_int(tokens[9], &qTime) < 0)
+			{
+				isprintf(errMsg, sizeof(errMsg),
+						"[?] Invalid qTime: %s", tokens[9]);
+				printText(errMsg);
+				return;
+			}
+
 			if (qTime < 0)
 			{
 				purge = 1;
 				qTime = 0 - qTime;
 			}
 
-			/*	Intentional fall-through to next case.	*/
+			/* Intentional fall-through to next case.  */
 
 		case 9:
 			break;
@@ -281,23 +304,60 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 
 		engineId = getFqn(tokens[2]);
-		oK(addSpan(engineId, strtol(tokens[3], NULL, 0),
-				strtol(tokens[4], NULL, 0),
-				strtol(tokens[5], NULL, 0),
-				strtol(tokens[6], NULL, 0),
-				strtol(tokens[7], NULL, 0),
-				tokens[8], (unsigned int) qTime, purge));
+
+		if (platform_parse_uvast(tokens[3], &p_maxExp) < 0 || p_maxExp > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid maxExportSessions: %s", tokens[3]);
+			printText(errMsg);
+			return;
+		}
+
+		if (platform_parse_uvast(tokens[4], &p_maxImp) < 0 || p_maxImp > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid maxImportSessions: %s", tokens[4]);
+			printText(errMsg);
+			return;
+		}
+
+		if (platform_parse_uvast(tokens[5], &p_maxSeg) < 0 || p_maxSeg > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid maxSegmentSize: %s", tokens[5]);
+			printText(errMsg);
+			return;
+		}
+
+		if (platform_parse_uvast(tokens[6], &p_aggrSize) < 0 || p_aggrSize > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid aggrSizeLimit: %s", tokens[6]);
+			printText(errMsg);
+			return;
+		}
+
+		if (platform_parse_uvast(tokens[7], &p_aggrTime) < 0 || p_aggrTime > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid aggrTimeLimit: %s", tokens[7]);
+			printText(errMsg);
+			return;
+		}
+
+		oK(addSpan(engineId,
+				(unsigned int) p_maxExp,
+				(unsigned int) p_maxImp,
+				(unsigned int) p_maxSeg,
+				(unsigned int) p_aggrSize,
+				(unsigned int) p_aggrTime,
+				tokens[8],
+				(unsigned int) qTime,
+				purge));
 		return;
 	}
-
-	SYNTAX_ERROR;
 }
 
 static void	executeChange(int tokenCount, char **tokens)
 {
 	uvast	engineId;
-	int	qTime = 1;			/*	Default.	*/
-	int	purge = 0;			/*	Default.	*/
+	int	qTime = 1;			/* Default.        */
+	int	purge = 0;			/* Default.        */
 
 	if (tokenCount < 2)
 	{
@@ -307,9 +367,13 @@ static void	executeChange(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "span") == 0)
 	{
-		/*	Temporary patch for backward compatibility
-		 *	in configuration files.  Ditch tokens [4] and
-		 *	[6], which were maximum block sizes.		*/
+		/* Hoisted declarations for POSIX/C90 compatibility */
+		uvast p_maxExp, p_maxImp, p_maxSeg, p_aggrSize, p_aggrTime;
+		char errMsg[256];
+
+		/* Temporary patch for backward compatibility
+		* in configuration files.  Ditch tokens [4] and
+		* [6], which were maximum block sizes.            */
 
 		if (tokenCount > 10)
 		{
@@ -326,19 +390,26 @@ static void	executeChange(int tokenCount, char **tokens)
 			tokenCount -= 2;
 		}
 
-		/*	End of temporary patch.				*/
+		/* End of temporary patch.                         */
 
 		switch (tokenCount)
 		{
 		case 10:
-			qTime = strtol(tokens[9], NULL, 0);
+			if (platform_parse_int(tokens[9], &qTime) < 0)
+			{
+				isprintf(errMsg, sizeof(errMsg),
+						"[?] Invalid qTime: %s", tokens[9]);
+				printText(errMsg);
+				return;
+			}
+
 			if (qTime < 0)
 			{
 				purge = 1;
 				qTime = 0 - qTime;
 			}
 
-			/*	Intentional fall-through to next case.	*/
+			/* Intentional fall-through to next case.  */
 
 		case 9:
 			break;
@@ -349,12 +420,51 @@ static void	executeChange(int tokenCount, char **tokens)
 		}
 
 		engineId = getFqn(tokens[2]);
-		oK(updateSpan(engineId, strtol(tokens[3], NULL, 0),
-				strtol(tokens[4], NULL, 0),
-				strtol(tokens[5], NULL, 0),
-				strtol(tokens[6], NULL, 0),
-				strtol(tokens[7], NULL, 0),
-				tokens[8], (unsigned int) qTime, purge));
+
+		if (platform_parse_uvast(tokens[3], &p_maxExp) < 0 || p_maxExp > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid maxExportSessions: %s", tokens[3]);
+			printText(errMsg);
+			return;
+		}
+
+		if (platform_parse_uvast(tokens[4], &p_maxImp) < 0 || p_maxImp > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid maxImportSessions: %s", tokens[4]);
+			printText(errMsg);
+			return;
+		}
+
+		if (platform_parse_uvast(tokens[5], &p_maxSeg) < 0 || p_maxSeg > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid maxSegmentSize: %s", tokens[5]);
+			printText(errMsg);
+			return;
+		}
+
+		if (platform_parse_uvast(tokens[6], &p_aggrSize) < 0 || p_aggrSize > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid aggrSizeLimit: %s", tokens[6]);
+			printText(errMsg);
+			return;
+		}
+
+		if (platform_parse_uvast(tokens[7], &p_aggrTime) < 0 || p_aggrTime > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid aggrTimeLimit: %s", tokens[7]);
+			printText(errMsg);
+			return;
+		}
+
+		oK(updateSpan(engineId,
+				(unsigned int) p_maxExp,
+				(unsigned int) p_maxImp,
+				(unsigned int) p_maxSeg,
+				(unsigned int) p_aggrSize,
+				(unsigned int) p_aggrTime,
+				tokens[8],
+				(unsigned int) qTime,
+				purge));
 		return;
 	}
 
@@ -619,6 +729,8 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 	Object		ltpdbObj = getLtpDbObject();
 	LtpDB		ltpdb;
 	unsigned int	heapmax;
+	uvast		parsed_heapmax;
+	char		errMsg[256];
 
 	if (tokenCount != 3)
 	{
@@ -626,7 +738,16 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 		return;
 	}
 
-	heapmax = strtoul(tokens[2], NULL, 0);
+	if (platform_parse_uvast(tokens[2], &parsed_heapmax) < 0
+		|| parsed_heapmax > UINT_MAX)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid heapmax: %s", tokens[2]);
+		printText(errMsg);
+		return;
+	}
+	heapmax = (unsigned int) parsed_heapmax;
+
 	if (heapmax < 560 || heapmax > LTP_MAX_HEAP_LIMIT)
 	{
 		writeMemoNote("[?] heapmax must be at least 560 and no more than 65536", tokens[2]);
@@ -703,6 +824,7 @@ static void	manageOwnqtime(int tokenCount, char **tokens)
 	Object	ltpdbObj = getLtpDbObject();
 	LtpDB	ltpdb;
 	int	newOwnQtime;
+	char	errMsg[256];
 
 	if (tokenCount != 3)
 	{
@@ -710,7 +832,14 @@ static void	manageOwnqtime(int tokenCount, char **tokens)
 		return;
 	}
 
-	newOwnQtime = strtol(tokens[2], NULL, 0);
+	if (platform_parse_int(tokens[2], &newOwnQtime) < 0)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid own Q time: %s", tokens[2]);
+		printText(errMsg);
+		return;
+	}
+
 	if (newOwnQtime < 0)
 	{
 		writeMemoNote("Own Q time invalid", tokens[2]);
@@ -803,7 +932,19 @@ static void	manageMaxRetries(int tokenCount, char **tokens)
 		return;
 	}
 
-	newMaxRetries = strtoul(tokens[2], NULL, 0);
+	uvast	parsed_retries;
+	char	errMsg[256];
+
+	if (platform_parse_uvast(tokens[2], &parsed_retries) < 0
+		|| parsed_retries > UINT_MAX)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid maxRetries: %s", tokens[2]);
+		printText(errMsg);
+		return;
+	}
+	newMaxRetries = (unsigned int) parsed_retries;
+
 	if (newMaxRetries < 3)
 	{
 		writeMemoNote("[?] maxRetries must be >= 3", tokens[2]);
@@ -914,7 +1055,19 @@ static void	manageMaxRetriesXmit(int tokenCount, char **tokens)
 		return;
 	}
 
-	newMaxRetries = strtoul(tokens[2], NULL, 0);
+	uvast	parsed_retries;
+	char	errMsg[256];
+
+	if (platform_parse_uvast(tokens[2], &parsed_retries) < 0
+		|| parsed_retries > UINT_MAX)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid maxRetriesXmit: %s", tokens[2]);
+		printText(errMsg);
+		return;
+	}
+	newMaxRetries = (unsigned int) parsed_retries;
+
 	if (newMaxRetries < 3)
 	{
 		writeMemoNote("[?] maxRetries must be >= 3", tokens[2]);
@@ -972,7 +1125,19 @@ static void	manageMaxRetriesRecv(int tokenCount, char **tokens)
 		return;
 	}
 
-	newMaxRetries = strtoul(tokens[2], NULL, 0);
+	uvast	parsed_retries;
+	char	errMsg[256];
+
+	if (platform_parse_uvast(tokens[2], &parsed_retries) < 0
+		|| parsed_retries > UINT_MAX)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid maxRetriesRecv: %s", tokens[2]);
+		printText(errMsg);
+		return;
+	}
+	newMaxRetries = (unsigned int) parsed_retries;
+
 	if (newMaxRetries < 3)
 	{
 		writeMemoNote("[?] maxRetries must be >= 3", tokens[2]);
@@ -1132,7 +1297,19 @@ static void	manageSpanMaxRetries(int tokenCount, char **tokens)
 	}
 
 	engineId = getFqn(tokens[2]);
-	newMaxRetries = strtoul(tokens[4], NULL, 0);
+	uvast	parsed_retries;
+	char	errMsg[256];
+
+	if (platform_parse_uvast(tokens[4], &parsed_retries) < 0
+		|| parsed_retries > UINT_MAX)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid span maxretries: %s", tokens[4]);
+		printText(errMsg);
+		return;
+	}
+	newMaxRetries = (unsigned int) parsed_retries;
+
 	if (newMaxRetries < 3)
 	{
 		writeMemoNote("[?] maxretries must be at least 3", tokens[4]);
@@ -1184,7 +1361,19 @@ static void	manageSpanMaxRetriesXmit(int tokenCount, char **tokens)
 	}
 
 	engineId = getFqn(tokens[2]);
-	newMaxRetriesXmit = strtoul(tokens[4], NULL, 0);
+	uvast	parsed_retries;
+	char	errMsg[256];
+
+	if (platform_parse_uvast(tokens[4], &parsed_retries) < 0
+		|| parsed_retries > UINT_MAX)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid span maxretriesxmit: %s", tokens[4]);
+		printText(errMsg);
+		return;
+	}
+	newMaxRetriesXmit = (unsigned int) parsed_retries;
+
 	if (newMaxRetriesXmit < 3)
 	{
 		writeMemoNote("[?] maxretriesxmit must be at least 3", tokens[4]);
@@ -1236,7 +1425,19 @@ static void	manageSpanMaxRetriesRecv(int tokenCount, char **tokens)
 	}
 
 	engineId = getFqn(tokens[2]);
-	newMaxRetriesRecv = strtoul(tokens[4], NULL, 0);
+	uvast	parsed_retries;
+	char	errMsg[256];
+
+	if (platform_parse_uvast(tokens[4], &parsed_retries) < 0
+		|| parsed_retries > UINT_MAX)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid span maxretriesrecv: %s", tokens[4]);
+		printText(errMsg);
+		return;
+	}
+	newMaxRetriesRecv = (unsigned int) parsed_retries;
+
 	if (newMaxRetriesRecv < 3)
 	{
 		writeMemoNote("[?] maxretriesrecv must be at least 3", tokens[4]);
@@ -1449,7 +1650,18 @@ static void	manageSpanInactivityLimit(int tokenCount, char **tokens)
 	}
 
 	engineId = getFqn(tokens[2]);
-	newLimit = strtoul(tokens[4], NULL, 0);
+	uvast	parsed_limit;
+	char	errMsg[256];
+
+	if (platform_parse_uvast(tokens[4], &parsed_limit) < 0
+		|| parsed_limit > UINT_MAX)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid inactivity limit: %s", tokens[4]);
+		printText(errMsg);
+		return;
+	}
+	newLimit = (unsigned int) parsed_limit;
 
 	/*	Find the span by engineId.				*/
 
@@ -1493,7 +1705,19 @@ static void	manageMaxBacklog(int tokenCount, char **tokens)
 		return;
 	}
 
-	maxBacklog = strtoul(tokens[2], NULL, 0);
+	uvast	parsed_backlog;
+	char	errMsg[256];
+
+	if (platform_parse_uvast(tokens[2], &parsed_backlog) < 0
+		|| parsed_backlog > UINT_MAX)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid maxBacklog: %s", tokens[2]);
+		printText(errMsg);
+		return;
+	}
+	maxBacklog = (unsigned int) parsed_backlog;
+
 	if (maxBacklog < 2)
 	{
 		writeMemoNote("[?] maxbacklog must be at least 2", tokens[2]);
@@ -1887,8 +2111,11 @@ static int	processLine(char *line, int lineLength, int *checkNeeded,
 							return 0;
 						}
 
-						engineId = strtoul(tokens[2],
-								NULL, 0);
+						if (platform_parse_uvast(tokens[2], &engineId) < 0)
+						{
+							printText("[?] Invalid engine ID.");
+							return 0;
+						}
 						oK(ltpStartSpan(engineId));
 						return 0;
 					}
@@ -1937,8 +2164,11 @@ up, abandoned.");
 							return 0;
 						}
 
-						engineId = strtoul(tokens[2],
-								NULL, 0);
+						if (platform_parse_uvast(tokens[2], &engineId) < 0)
+						{
+							printText("[?] Invalid engine ID.");
+							return 0;
+						}
 						ltpStopSpan(engineId);
 						return 0;
 					}
