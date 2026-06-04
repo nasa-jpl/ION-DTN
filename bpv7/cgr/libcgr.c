@@ -217,6 +217,33 @@ void	cgr_clear_vdb(CgrVdb *vdb)
 
 #if !UNIBO_CGR
 
+/*	Validate that a PsmAddress lies within the working-memory
+ *	partition (mirrors psa()'s bounds check) without dereferencing
+ *	it.  CGR uses this to detect a stale/recycled route or hops
+ *	handle (#1048) before passing it to sm_list_first(), which would
+ *	otherwise fault in lockSmlist() reading a wild list pointer.	*/
+
+static int	cgrHandleValid(PsmPartition ionwm, PsmAddress addr)
+{
+	void	*ptr;
+
+	if (addr == 0)
+	{
+		return 0;
+	}
+
+	ptr = psp(ionwm, addr);		/*	NULL if below the heap.	*/
+	if (ptr == NULL)
+	{
+		return 0;
+	}
+
+	/*	psa() returns 0 if ptr is outside the partition's upper
+	 *	bound; a valid handle round-trips back to itself.	*/
+
+	return (psa(ionwm, ptr) == addr);
+}
+
 static int	disabledRoute(PsmPartition ionwm, PsmAddress routeElt,
 			PsmAddress *routeAddr, CgrRoute **route)
 {
@@ -224,6 +251,51 @@ static int	disabledRoute(PsmPartition ionwm, PsmAddress routeElt,
 
 	*routeAddr = sm_list_data(ionwm, routeElt);
 	*route = (CgrRoute *) psp(ionwm, *routeAddr);
+
+	/*	Defensive + self-diagnosing (#1048).  A use-after-free in
+	 *	the route-list bookkeeping can leave an element pointing at
+	 *	a freed/recycled CgrRoute, so *routeAddr or (*route)->hops
+	 *	can be a stale handle.  If we passed such a handle to
+	 *	sm_list_first() below it would assert on a NULL list or --
+	 *	worse -- SIGSEGV in lockSmlist() on a wild list pointer,
+	 *	orphaning the SDR lock and cascading the node.  Validate the
+	 *	handles first; if bad, log enough to pin the missed unlink
+	 *	(the core/ASan evidence we may not get again), drop just
+	 *	this list element (not removeRoute -- the route memory is
+	 *	suspect and may be shared/already-freed), and treat the
+	 *	route as disabled.  The short-circuit order guarantees we
+	 *	never dereference *route until *routeAddr is known valid.	*/
+
+	if (!cgrHandleValid(ionwm, *routeAddr)
+	|| (*route)->hops == 0
+	|| !cgrHandleValid(ionwm, (*route)->hops))
+	{
+		char		dbg[256];
+		PsmAddress	refElt = 0;
+		PsmAddress	hops = 0;
+		PsmAddress	listAddr = sm_list_list(ionwm, routeElt);
+
+		if (cgrHandleValid(ionwm, *routeAddr))
+		{
+			/*	Route struct is readable; capture its
+			 *	(possibly garbage) cross-references.	*/
+
+			refElt = (*route)->referenceElt;
+			hops = (*route)->hops;
+		}
+
+		isprintf(dbg, sizeof dbg, "[?] CGR: dropping malformed route \
+(#1048): routeElt=" UVAST_FIELDSPEC " routeAddr=" UVAST_FIELDSPEC " hops=" \
+UVAST_FIELDSPEC " referenceElt=" UVAST_FIELDSPEC " list=" UVAST_FIELDSPEC ".",
+				(uvast) routeElt, (uvast) *routeAddr,
+				(uvast) hops, (uvast) refElt, (uvast) listAddr);
+		writeMemo(dbg);
+
+		sm_list_delete(ionwm, routeElt, NULL, NULL);
+		*route = NULL;
+		return 1;
+	}
+
 	for (elt = sm_list_first(ionwm, (*route)->hops); elt;
 				elt = sm_list_next(ionwm, elt))
 	{
@@ -979,6 +1051,7 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 	PsmAddress	rootPathContactAddr;
 	int		result;
 	PsmAddress	newRouteAddr;
+	PsmAddress	citation;
 	CgrRoute	*newRoute;
 
 //puts("*** Computing a spur route. ***");
@@ -1165,10 +1238,37 @@ excluded edge.", NULL);
 		contactAddr = sm_list_data(ionwm, contactElt);
 		contact = (IonCXref *) psp(ionwm, contactAddr);
 		TRACE(CgrHop, contact->fromFqnn, contact->toFqnn);
-		if (sm_list_insert_first(ionwm, newRoute->hops, contactAddr)
-				== 0)
+		citation = sm_list_insert_first(ionwm, newRoute->hops,
+				contactAddr);
+		if (citation == 0)
 		{
 			putErrmsg("Can't prepend trunk to spur route.", NULL);
+			return -1;
+		}
+
+		/*	Cross-reference this hop with the contact it cites,
+		 *	exactly as the Dijkstra backtrack does (#1048).
+		 *	Register the new hop element in the contact's
+		 *	citations list so that deleteContact() zeroes it
+		 *	when the contact is purged; otherwise a purged trunk
+		 *	contact leaves a stale pointer in this spur route's
+		 *	hops list.					*/
+
+		if (contact->citations == 0)
+		{
+			contact->citations = sm_list_create_unlocked(ionwm);
+			if (contact->citations == 0)
+			{
+				putErrmsg("Can't create citation list for spur \
+hop.", NULL);
+				return -1;
+			}
+		}
+
+		if (sm_list_insert_last(ionwm, contact->citations, citation)
+				== 0)
+		{
+			putErrmsg("Can't cross-reference spur hop.", NULL);
 			return -1;
 		}
 
