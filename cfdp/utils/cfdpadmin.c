@@ -157,6 +157,8 @@ static void	executeAdd(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
 	uvast	entityNbr;
+	uvast	parsed_rtt, parsed_inCk, parsed_outCk;
+	char	errMsg[256];
 
 	if (tokenCount < 2)
 	{
@@ -172,12 +174,33 @@ static void	executeAdd(int tokenCount, char **tokens)
 			return;
 		}
 
+		if (platform_parse_uvast(tokens[5], &parsed_rtt) < 0 || parsed_rtt > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid rtt: %s", tokens[5]);
+			printText(errMsg);
+			return;
+		}
+
+		if (platform_parse_uvast(tokens[6], &parsed_inCk) < 0 || parsed_inCk > 255)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid incstype: %s", tokens[6]);
+			printText(errMsg);
+			return;
+		}
+
+		if (platform_parse_uvast(tokens[7], &parsed_outCk) < 0 || parsed_outCk > 255)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid outcstype: %s", tokens[7]);
+			printText(errMsg);
+			return;
+		}
+
 		CHKVOID(sdr_begin_xn(sdr));
 		entityNbr = getFqn(tokens[2]);
 		oK(addEntity(entityNbr, tokens[3], tokens[4],
-				strtol(tokens[5], NULL, 0),
-				strtol(tokens[6], NULL, 0),
-				strtol(tokens[7], NULL, 0)));
+				(unsigned int) parsed_rtt,
+				(unsigned char) parsed_inCk,
+				(unsigned char) parsed_outCk));
 		oK(sdr_end_xn(sdr));
 		return;
 	}
@@ -189,6 +212,8 @@ static void	executeChange(int tokenCount, char **tokens)
 {
 	Sdr	sdr = getIonsdr();
 	uvast	entityNbr;
+	uvast	parsed_rtt, parsed_inCk, parsed_outCk;
+	char	errMsg[256];
 
 	if (tokenCount < 2)
 	{
@@ -204,12 +229,33 @@ static void	executeChange(int tokenCount, char **tokens)
 			return;
 		}
 
+		if (platform_parse_uvast(tokens[5], &parsed_rtt) < 0 || parsed_rtt > UINT_MAX)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid rtt: %s", tokens[5]);
+			printText(errMsg);
+			return;
+		}
+
+		if (platform_parse_uvast(tokens[6], &parsed_inCk) < 0 || parsed_inCk > 255)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid incstype: %s", tokens[6]);
+			printText(errMsg);
+			return;
+		}
+
+		if (platform_parse_uvast(tokens[7], &parsed_outCk) < 0 || parsed_outCk > 255)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid outcstype: %s", tokens[7]);
+			printText(errMsg);
+			return;
+		}
+
 		CHKVOID(sdr_begin_xn(sdr));
 		entityNbr = getFqn(tokens[2]);
 		oK(changeEntity(entityNbr, tokens[3], tokens[4],
-				strtol(tokens[5], NULL, 0),
-				strtol(tokens[6], NULL, 0),
-				strtol(tokens[7], NULL, 0)));
+				(unsigned int) parsed_rtt,
+				(unsigned char) parsed_inCk,
+				(unsigned char) parsed_outCk));
 		oK(sdr_end_xn(sdr));
 		return;
 	}
@@ -558,8 +604,7 @@ static void	manageDiscard(int tokenCount, char **tokens)
 		return;
 	}
 
-	newDiscard = atoi(tokens[2]);
-	if (newDiscard != 0 && newDiscard != 1)
+	if (platform_parse_int(tokens[2], &newDiscard) < 0 || (newDiscard != 0 && newDiscard != 1))
 	{
 		putErrmsg("discardIncompleteFile switch invalid.", tokens[2]);
 		return;
@@ -588,8 +633,7 @@ static void	manageRequirecrc(int tokenCount, char **tokens)
 		return;
 	}
 
-	newRequirecrc = atoi(tokens[2]);
-	if (newRequirecrc != 0 && newRequirecrc != 1)
+	if (platform_parse_int(tokens[2], &newRequirecrc) < 0 || (newRequirecrc != 0 && newRequirecrc != 1))
 	{
 		putErrmsg("crcRequired switch invalid.", tokens[2]);
 		return;
@@ -610,8 +654,8 @@ static void	manageFillchar(int tokenCount, char **tokens)
 	Sdr	sdr = getIonsdr();
 	Object	cfdpdbObj = getCfdpDbObject();
 	CfdpDB	cfdpdb;
-	int	newFillchar;
-	char	*trailing;
+	uvast	parsed_val;
+	char	errMsg[256];
 
 	if (tokenCount != 3)
 	{
@@ -619,16 +663,16 @@ static void	manageFillchar(int tokenCount, char **tokens)
 		return;
 	}
 
-	newFillchar = strtol(tokens[2], &trailing, 16);
-	if (*trailing != '\0')
+	if (platform_parse_uvast(tokens[2], &parsed_val) < 0 || parsed_val > 255)
 	{
-		putErrmsg("fillCharacter invalid.", tokens[2]);
+		isprintf(errMsg, sizeof(errMsg), "[?] Invalid fillCharacter (must be 0-255 or hex): %s", tokens[2]);
+		printText(errMsg);
 		return;
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &cfdpdb, cfdpdbObj, sizeof(CfdpDB));
-	cfdpdb.fillCharacter = newFillchar;
+	cfdpdb.fillCharacter = (unsigned char) parsed_val;
 	sdr_write(sdr, cfdpdbObj, (char *) &cfdpdb, sizeof(CfdpDB));
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -649,8 +693,7 @@ static void	manageCkperiod(int tokenCount, char **tokens)
 		return;
 	}
 
-	newCkperiod = atoi(tokens[2]);
-	if (newCkperiod < 1)
+	if (platform_parse_int(tokens[2], &newCkperiod) < 0 || newCkperiod < 1)
 	{
 		putErrmsg("checkTimerPeriod invalid.", tokens[2]);
 		return;
@@ -679,8 +722,7 @@ static void	manageMaxtimeouts(int tokenCount, char **tokens)
 		return;
 	}
 
-	newMaxtimeouts = atoi(tokens[2]);
-	if (newMaxtimeouts < 0)
+	if (platform_parse_int(tokens[2], &newMaxtimeouts) < 0 || newMaxtimeouts < 0)
 	{
 		putErrmsg("checkTimeoutLimit invalid.", tokens[2]);
 		return;
@@ -709,8 +751,7 @@ static void	manageMaxevents(int tokenCount, char **tokens)
 		return;
 	}
 
-	newMaxevents = atoi(tokens[2]);
-	if (newMaxevents < 0)
+	if (platform_parse_int(tokens[2], &newMaxevents) < 0 || newMaxevents < 0)
 	{
 		putErrmsg("eventQueueLimit invalid.", tokens[2]);
 		return;
@@ -739,8 +780,7 @@ static void	manageMaxtrnbr(int tokenCount, char **tokens)
 		return;
 	}
 
-	newMaxtrnbr = atoi(tokens[2]);
-	if (newMaxtrnbr < 0)
+	if (platform_parse_int(tokens[2], &newMaxtrnbr) < 0 || newMaxtrnbr < 0)
 	{
 		putErrmsg("maxTransactionNbr invalid.", tokens[2]);
 		return;
@@ -769,8 +809,7 @@ static void	manageSegsize(int tokenCount, char **tokens)
 		return;
 	}
 
-	newSegsize = atoi(tokens[2]);
-	if (newSegsize < 0)
+	if (platform_parse_int(tokens[2], &newSegsize) < 0 || newSegsize < 0)
 	{
 		putErrmsg("maxFileDataLength invalid.", tokens[2]);
 		return;
@@ -799,8 +838,7 @@ static void	manageInactivity(int tokenCount, char **tokens)
 		return;
 	}
 
-	newLimit = atoi(tokens[2]);
-	if (newLimit < 0)
+	if (platform_parse_int(tokens[2], &newLimit) < 0 || newLimit < 0)
 	{
 		putErrmsg("transactionInactivityLimit invalid.", tokens[2]);
 		return;
@@ -819,6 +857,7 @@ static void	manageInactivity(int tokenCount, char **tokens)
 static void	manageThrottle(int tokenCount, char **tokens)
 {
 	uvast	newThrottle;
+	char	errMsg[256];
 
 	if (tokenCount != 3)
 	{
@@ -826,7 +865,12 @@ static void	manageThrottle(int tokenCount, char **tokens)
 		return;
 	}
 
-	newThrottle = strtouvast(tokens[2]);
+	if (platform_parse_uvast(tokens[2], &newThrottle) < 0)
+	{
+		isprintf(errMsg, sizeof(errMsg), "[?] Invalid throttle rate: %s", tokens[2]);
+		printText(errMsg);
+		return;
+	}
 
 	if (cfdp_set_throttle(newThrottle) < 0)
 	{
@@ -1206,7 +1250,13 @@ transactions; refusing to stop.  Use 'x f' to force.");
 				}
 				else
 				{
-					max = atoi(tokens[2]) * 4;
+					int parsed_max;
+					if (platform_parse_int(tokens[2], &parsed_max) < 0 || parsed_max < 0)
+					{
+						printText("[?] Invalid timeout.");
+						return 0;
+					}
+					max = parsed_max * 4;
 				}
 			}
 			else
