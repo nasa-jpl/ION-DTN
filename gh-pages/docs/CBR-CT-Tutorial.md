@@ -104,46 +104,44 @@ When an application sends a bundle with custody transfer requested, ION automati
 
 ### Monitoring Custody Status
 
-Use the `cbrcustodytest` utility to monitor custody transfer status:
+Custody and reporting state is inspected directly through `bpadmin`, so no
+extra tooling is required. Pipe the list/info commands into `bpadmin`:
 
 ```bash
-# List all bundles currently in custody
-cbrcustodytest -l
+# List every bundle this node is currently holding in custody
+echo 'l custodybundle' | bpadmin
 ```
 
-This displays:
-- Bundles currently held in custody
-- CBR/CT statistics including CCS signals sent/received
+Each entry shows the sequence identifier (`seqId`), sequence number
+(`seqNum`), the next-custodian destination EID, the time custody was
+accepted, the time of the last retransmission (or `(never)`), and the
+retransmit count:
 
-Example output:
 ```
-cbrcustodytest: Listing bundles in custody...
-  [0] destEid=ipn:2.1 seqId=0 seqNum=1
-       custodyAccepted=1706400000 lastTransmit=1706400000 retransmitCount=0
-cbrcustodytest: 1 bundle(s) in custody.
-
-CBR/CT Statistics:
-  CCS Accept Sent:     5
-  CCS Refuse Sent:     0
-  CCS Accept Received: 3
-  CCS Refuse Received: 0
-  Custody Originated:  5
-  Custody Accepted:    2
-  Custody Released:    3
-  CRS Signals Sent:    0
-  CRS Signals Recv:    0
+: bundle seqId=0 seqNum=1 dest=ipn:2.1 accepted=1706400000 lastRetx=(never) retxCount=0
 ```
 
-### Understanding the Statistics
+To check one specific bundle:
 
-- **CCS Accept Sent**: Number of custody acceptance signals sent to prior custodians
-- **CCS Refuse Sent**: Number of custody refusal signals sent
-- **CCS Accept Received**: Number of custody acceptances received from next-hop custodians
-- **CCS Refuse Received**: Number of custody refusals received
-- **Custody Originated**: Bundles originated at this node with custody transfer
-- **Custody Accepted**: Bundles received from other nodes with custody accepted
-- **Custody Released**: Bundles released after receiving CCS acceptance
-- **CRS Signals Sent/Recv**: Compressed Reporting Signals sent and received
+```bash
+# Reports "pending" (held, awaiting next-hop CCS) or "not-found"
+echo 'i custodybundle ipn:1.2 0 1' | bpadmin
+```
+
+`l custodybundle` is most informative when `m cbrretx none` is set, since
+refused bundles then remain in tracking; with `m cbrretx signal` they are
+re-forwarded on refusal and may drain before you look.
+
+To review received Compressed Reporting Signals:
+
+```bash
+# Newest first; add an EID argument to filter by sender
+echo 'l crslog' | bpadmin
+```
+
+> The legacy `cbrcustodytest` utility can also list custody bundles and print
+> aggregate statistics, but it is a developer test tool; the `bpadmin`
+> commands above are the supported operational interface.
 
 ### Using bptrace with CRS
 
@@ -233,11 +231,11 @@ s
 
 3. Verify custody transfer on each node:
    ```bash
-   # On Node 1 (should show custody released after CCS received)
-   cbrcustodytest -l
+   # On Node 1 (custody is released once Node 2's CCS acceptance arrives)
+   echo 'l custodybundle' | bpadmin
 
-   # On Node 2 (should show intermediate custody handling)
-   cbrcustodytest -l
+   # On Node 2 (shows intermediate custody handling)
+   echo 'l custodybundle' | bpadmin
    ```
 
 ## Heterogeneous Networks
@@ -259,16 +257,122 @@ For a node that should NOT participate in CBR/CT but should forward bundles tran
 
 The node will still forward bundles with CTEB/CREB blocks to the next hop.
 
-## Manual Retransmission
+## Retransmission Strategy
 
-The current implementation uses manual (command-based) retransmission. If custody signals are not received within expected timeframes, you can trigger retransmission:
+When a next-hop custodian does not acknowledge custody, the node's behavior
+is governed by `m cbrretx`:
 
-```bash
-# Test mode with retransmission enabled
-cbrcustodytest ipn:2.1 -r -t30
+```
+m cbrretx { none | timer | signal } <interval_seconds> <max_retransmissions>
 ```
 
-This sends a test bundle and, if custody is not released within 30 seconds, triggers manual retransmission of all bundles in custody.
+- **none** (default) — no automatic retransmission. Bundles stay in custody
+  tracking and can be inspected with `l custodybundle`.
+- **timer** — the `bpclock` daemon re-forwards a bundle after
+  `interval_seconds` if no CCS acceptance has arrived.
+- **signal** — a bundle is re-forwarded immediately when a CCS *refusal* is
+  received for it.
+
+`max_retransmissions` caps attempts per bundle (0 = unlimited). For example,
+retransmit every 30 s up to 5 times:
+
+```
+m cbrretx timer 30 5
+```
+
+## Command Reference
+
+All CBR/CT options are `bpadmin` commands: `m` (manage/set), `l` (list/show),
+`a` (add), `d` (delete), and `i` (info). They may be placed in a node's
+`bprc` file (processed at startup) or piped into a running node with
+`echo '<command>' | bpadmin`. Unless noted otherwise, every command below
+requires `m custodymode orangebook` to be in effect.
+
+> **Startup vs. runtime:** Most commands take effect immediately. The two
+> exceptions are noted in their entries: `m crebreportto` and
+> `m cbrcounterwidth` are read by long-running daemons from a cached snapshot
+> and are best set in the `bprc` file (a runtime change is reliably picked up
+> only after the BP daemons restart). `m cbraggr` *is* honored at runtime.
+
+### Mode and reporting
+
+| Command | Description |
+|---------|-------------|
+| `m custodymode { none \| bibe \| orangebook }` | Selects the custody transfer mode. `orangebook` enables CBR/CT; `none` (default) disables it; `bibe` is reserved. This is the master switch for everything below. |
+| `m srmode { traditional \| compressed \| both }` | Selects the status-report format generated by this node: classic BPv7 status reports, Compressed Reporting Signals (CRS), or both. CRS-based reporting (`compressed` or `both`) is required for the CREB commands. |
+
+### Signal aggregation
+
+`m cbraggr <crs_limit> <ccs_limit> <timeout_seconds>`
+
+Aggregates multiple status/custody events into one administrative bundle. A
+signal is transmitted when its bundle-entry count reaches the limit, or when
+`timeout_seconds` elapses since aggregation began — whichever comes first. A
+limit of 0 means "send immediately". Defaults: 10, 10, 5. **Effective at
+runtime.**
+
+```
+m cbraggr 1 1 2       # testing: send almost immediately
+m cbraggr 50 50 15    # production: batch up to 50 entries, flush every 15 s
+```
+
+`l cbraggr` — display the current CRS limit, CCS limit, and timeout.
+
+### Retransmission
+
+`m cbrretx { none | timer | signal } <interval_seconds> <max_retransmissions>`
+
+Controls re-forwarding when custody is not acknowledged. See
+[Retransmission Strategy](#retransmission-strategy) above. Defaults: `none`,
+60, 3.
+
+### CREB (Compressed Reporting Extension Block) options
+
+| Command | Description |
+|---------|-------------|
+| `m crebexpliciteid { 0 \| 1 }` | When `1`, the source EID is written explicitly into CREB blocks instead of being implied from the primary block. Default `0`. Set `1` only for peers that require the explicit field. |
+| `m crebreportto <eid> \| -` | Redirects every CRS generated for this node's bundles to `<eid>` (carried as CREB element 4) instead of each bundle's `reportTo`. Use `-` to clear. Useful for a dedicated monitoring station. Requires `m srmode compressed` or `both`. Best set in `bprc` (see startup-vs-runtime note). |
+| `l crebreportto` | Show the current report-to override (or "none"). |
+| `m cbrcounterwidth { 16 \| 32 \| 64 }` | Sets the wraparound width (bits) of new bundle sequence counters, for interoperability with constrained peers (Orange Book §3.2.9). Applies to counters created afterward; existing counters keep their width. Default 64. Best set in `bprc`. |
+| `l cbrcounterwidth` | Show the current counter width and its maximum value. |
+
+### Custody-acceptance whitelist
+
+Controls which incoming custody requests this node will accept. The two
+dimensions are checked independently; an empty list for a dimension means
+"accept any". If a non-empty list does not match, custody is refused with a
+CCS refusal.
+
+| Command | Description |
+|---------|-------------|
+| `a cbraccept { custodian \| source } <eid>` | Add an EID to the whitelist. `custodian` matches the node currently holding custody (CTEB custodian EID); `source` matches the bundle's original source EID. |
+| `d cbraccept { custodian \| source } <eid>` | Remove a whitelist entry. |
+| `l cbraccept` | List both whitelists; `(all)` means that dimension accepts everyone. |
+
+```
+a cbraccept custodian ipn:3.0   # only take custody from node 3
+a cbraccept source ipn:5.1      # only for bundles sourced at ipn:5.1
+```
+
+### Auto custody-request policy
+
+Requests custody transfer automatically for bundles sent to listed
+destinations, even when the sending application did not ask for it.
+
+| Command | Description |
+|---------|-------------|
+| `a custodyreq <eid>` | Add a destination EID to the auto custody-request list (exact match). |
+| `d custodyreq <eid>` | Remove a destination EID. |
+| `l custodyreq` | List all auto-request destinations, or `(none)`. |
+
+### Monitoring and history
+
+| Command | Description |
+|---------|-------------|
+| `l custodybundle` | List all bundles currently held in custody tracking (seqId, seqNum, next-custodian EID, accept time, last-retransmit time, retransmit count). |
+| `i custodybundle <source_eid> <seqId> <seqNum>` | Report one bundle's custody status: `pending` or `not-found`. |
+| `m crsmaxlog <count>` | Set the max number of received-CRS records kept in the persistent history log; `0` = unbounded. Default 100. |
+| `l crslog [<eid>]` | Print received CRS records, newest first (timestamp, sender EID, status code [1=received, 2=forwarded, 3=delivered, 4=deleted], bundle count). Optional `<eid>` filters by sender. |
 
 ## Troubleshooting
 
@@ -297,7 +401,8 @@ This sends a test bundle and, if custody is not released within 30 seconds, trig
 
 If signals seem delayed:
 1. Reduce aggregation limits for testing: `m cbraggr 1 1 2`
-2. Check for pending signals with `cbrcustodytest -l`
+2. Check current limits with `echo 'l cbraggr' | bpadmin`
+3. Check for pending custody bundles with `echo 'l custodybundle' | bpadmin`
 
 ## Performance Considerations
 
@@ -330,9 +435,9 @@ And two administrative record types:
 
 ## See Also
 
-- [bprc(5)](./Man-Page-Introduction.md) - Bundle Protocol configuration commands
-- [cbrcustodytest(1)](./Man-Page-Introduction.md) - Custody transfer test utility
+- [bprc(5)](./Man-Page-Introduction.md) - Bundle Protocol configuration commands (full CBR/CT command syntax)
 - [bptrace(1)](./Man-Page-Introduction.md) - Bundle Protocol trace utility
+- [cbrcustodytest(1)](./Man-Page-Introduction.md) - Developer test utility for custody transfer
 - CCSDS Orange Book "Compressed Bundle Status Reporting and Custody Signaling" specification
 
 ## Summary
@@ -340,8 +445,11 @@ And two administrative record types:
 CBR/CT provides efficient status reporting and reliable custody-based delivery for DTN networks. Key configuration steps:
 
 1. Enable custody mode: `m custodymode orangebook`
-2. Configure aggregation: `m cbraggr <crs_limit> <ccs_limit> <timeout>`
-3. Monitor with: `cbrcustodytest -l`
-4. Test with: `bptrace` (for CRS) or `cbrcustodytest` (for custody transfer)
+2. Choose report format: `m srmode compressed`
+3. Configure aggregation: `m cbraggr <crs_limit> <ccs_limit> <timeout>`
+4. Monitor with: `echo 'l custodybundle' | bpadmin` and `echo 'l crslog' | bpadmin`
+5. Test with: `bptrace` (delivery/CRS) and `bpsource`/`bpsink`
+
+See the [Command Reference](#command-reference) above for every option.
 
 For questions or issues, see the [ION GitHub repository](https://github.com/nasa-jpl/ION-DTN).
