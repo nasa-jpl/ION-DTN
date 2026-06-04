@@ -1,6 +1,6 @@
 =head1 NAME
 
-ams - CCSDS Asynchronous Message Service(AMS) communications library
+ams - CCSDS Asynchronous Message Service (AMS) communications library
 
 =head1 SYNOPSIS
 
@@ -254,7 +254,7 @@ Returns 0 on success.  On any error, sets I<module> to NULL and returns -1.
 
 =item int ams_unregister(AmsModule module)
 
-Reverses the operation of ams_unregister(), destroying I<module>.  Returns
+Reverses the operation of ams_register(), destroying I<module>.  Returns
 0 on success, -1 on any error.
 
 =item int ams_invite(AmsModule module, int roleNbr, short continuumNbr,
@@ -335,12 +335,12 @@ Returns 0 on success, -1 on any error.
 int moduleNbr, short subjectNbr, int priority, unsigned char flowLabel,
 int contentLength, char *content, int context, int term, AmsEvent *event)
 
-Sends a message exactly is described above for ams_send(), but additionally
+Sends a message exactly as described above for ams_send(), but additionally
 suspends the delivery and processing of newly received messages until either
 (a) a "reply" message sent in response to this message is received or (b) the
 time interval indicated by I<term>, in seconds, expires.  The event (reply or
 timeout) that ends the suspension of processing is provided in I<event> (as
-if from ams_get_event() when the function returns.
+if from ams_get_event()) when the function returns.
 
 If I<term> is AMS_BLOCKING then the timeout interval is indefinite; only
 reception of a reply message enables the function to return.  If I<term> is
@@ -352,7 +352,7 @@ Returns 0 on success, -1 on any error.
 =item int ams_reply(AmsModule module, AmsEvent msg, short subjectNbr,
 int priority, unsigned char flowLabel, int contentLength, char *content)
 
-Sends a message exactly is described above for ams_send(), except that the
+Sends a message exactly as described above for ams_send(), except that the
 destination of the message is the sender of the message identified by I<msg>
 and the "context" value included in the message is the context that was
 provided in I<msg>.  This message is identified as a "reply" message that
@@ -365,7 +365,7 @@ Returns 0 on success, -1 on any error.
 int unitNbr, short subjectNbr, int priority, unsigned char flowLabel,
 int contentLength, char *content, int context)
 
-Sends a message exactly is described above for ams_send(), except that one
+Sends a message exactly as described above for ams_send(), except that one
 copy of the message is sent to every module in the domain of this function
 (role, continuum, unit) whose invitation for messages on this subject is
 itself characterized by a domain that includes the sending module, rather
@@ -422,7 +422,7 @@ be called when the event type of I<event> is known to be NOTICE_EVT.
 
 Note that different fields will be populated depending on the nature of the
 notice in I<event>.  I<state> will be set to AmsRegistrationState,
-AmsInvitationState, or AmsSubscription state depending on whether the
+AmsInvitationState, or AmsSubscriptionState depending on whether the
 notice pertains to a change in module registration, a change in invitations,
 or a change in subscriptions.  I<change> will be set to AmsStateBegins or
 AmsStateEnds depending on whether the notice pertains to the initiation or
@@ -463,7 +463,7 @@ success, -1 on any error.
 =item void ams_remove_event_mgr(AmsModule module)
 
 Terminates the background thread established to process events queued for
-this module.  Returns 0 on success, -1 on any error.
+this module.
 
 =item int ams_get_module_nbr(AmsModule module)
 
@@ -478,7 +478,7 @@ registered, or -1 on any error.
 =item Lyst ams_list_msgspaces(AmsModule module)
 
 Returns a dynamically allocated linked list of all message spaces identified
-in the MIB for this module, or -1 on any error.  See lyst(3) for operations
+in the MIB for this module, or NULL on any error.  See lyst(3) for operations
 that can be performed on the returned linked list.
 
 =item int ams_get_continuum_nbr(void)
@@ -532,21 +532,21 @@ on any error.
 =item char *ams_lookup_unit_name(AmsModule module, int unitNbr)
 
 Returns the name of the unit identified by I<unitNbr>, in
-the venture within which this module is registered, or -1 on any error.
+the venture within which this module is registered, or NULL on any error.
 
 =item char *ams_lookup_role_name(AmsModule module, int roleNbr)
 
 Returns the name of the role identified by I<roleNbr>, in
-the venture within which this module is registered, or -1 on any error.
+the venture within which this module is registered, or NULL on any error.
 
 =item char *ams_lookup_subject_name(AmsModule module, short subjectNbr)
 
 Returns the name of the subject identified by I<subjectNbr>, in
-the venture within which this module is registered, or -1 on any error.
+the venture within which this module is registered, or NULL on any error.
 
 =item char *ams_lookup_continuum_name(AmsModule module, short continuumNbr)
 
-Returns the name of the continuum identified by I<continuumNbr>, or -1
+Returns the name of the continuum identified by I<continuumNbr>, or NULL
 on any error.
 
 =back

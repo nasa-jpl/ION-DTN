@@ -5,9 +5,10 @@ petition.log - Remote AMS petition log
 =head1 DESCRIPTION
 
 The Remote AMS daemon B<ramsgate> records all "petitions" (requests for data
-on behalf of AMS modules in other continua) in a file named B<petition.log>.
+on behalf of AMS modules in other continua) in a file whose name is the
+venture number followed by B<.petition.log> (e.g., B<1.petition.log>).
 At startup, the B<ramsgate> daemon automatically reads and processes all
-petitions in the B<petition.log> file just as if they were received in real
+petitions in the petition log file just as if they were received in real
 time, to re-establish the petition state that was in effect at the time the
 B<ramsgate> daemon shut down.  Note that this means that you can cause
 petitions to be, in effect, "pre-received" by simply editing this file

@@ -46,7 +46,7 @@ No environment variables apply.
 
 =head1 DIAGNOSTICS
 
-=over
+=over 4
 
 =item amssub can't register.
 

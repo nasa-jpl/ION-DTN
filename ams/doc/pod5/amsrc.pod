@@ -311,11 +311,6 @@ Identifies the role.
 
 Identifies the role.
 
-=item authname
-
-Identifies the authority under which the venture operates, distinguishing
-this venture from all other ventures that address the same application.
-
 =item pubkey
 
 This is the name of the public key used for validating the digital
