@@ -1,0 +1,17 @@
+## Node 2: destination. Delivers the bundle to a bpsink on ipn:2.1, which
+## generates a delivery CRS back to the bundle's reportTo (ipn:1.0).
+## Starts with a high aggregate limit and a long (1 hour) timeout so the CRS
+## stays pending; the test then lowers the timeout at runtime and expects
+## bpclock to flush the pending CRS (verifying runtime configurability).
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:2.0 x
+a endpoint ipn:2.1 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4652 udpcli
+a outduct udp 127.0.0.1:4651 udpclo
+m custodymode orangebook
+m srmode compressed
+m cbraggr 100 100 3600
+r 'ipnadmin node.ipnrc'
+s

@@ -1,0 +1,13 @@
+## Node 1: source. Sends a delivery-report bundle to Node 2 and is the
+## bundle's reportTo (ipn:1.0), where Node 2's CRS is expected to arrive.
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.0 x
+a endpoint ipn:1.2 x
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4651 udpcli
+a outduct udp 127.0.0.1:4652 udpclo
+m custodymode orangebook
+m srmode compressed
+r 'ipnadmin node.ipnrc'
+s

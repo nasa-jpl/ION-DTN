@@ -112,7 +112,7 @@ B<orangebook>  CCSDS Orange Book mode.  Enables Compressed Bundle Reporting
            - Tracks bundles under custody for potential retransmission
 
            The full set of Orange Book configuration commands is:
-           B<m srmode>, B<m cbraggr>, B<m cbrretx>, B<m crebexpliciteid>,
+           B<m srmode>, B<m/l cbraggr>, B<m cbrretx>, B<m crebexpliciteid>,
            B<a/d/l cbraccept>, B<a/d/l custodyreq>, B<m crsmaxlog>,
            B<l crslog>, B<l custodybundle>, B<i custodybundle>,
            B<m/l crebreportto>, B<m/l cbrcounterwidth>.
@@ -167,6 +167,12 @@ For production use, higher limits reduce overhead:
     m cbraggr 100 50 30
 
 The default values are 10 for both limits and 5 seconds for timeout.
+
+This command takes effect immediately on a running node -- the limit and
+timeout checks (including the periodic timeout sweep performed by B<bpclock>)
+read the live values -- so it need not be issued only at startup.
+
+B<l cbraggr> displays the current CRS limit, CCS limit, and timeout.
 
 This command requires B<m custodymode orangebook> to be effective.
 
