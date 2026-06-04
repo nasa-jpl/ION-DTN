@@ -749,6 +749,7 @@ static void	executeBrief(int tokenCount, char **tokens)
 static void	manageUtcDelta(int tokenCount, char **tokens)
 {
 	int	newDelta;
+	char	errMsg[256];
 
 	if (tokenCount != 3)
 	{
@@ -756,7 +757,14 @@ static void	manageUtcDelta(int tokenCount, char **tokens)
 		return;
 	}
 
-	newDelta = atoi(tokens[2]);
+	if (platform_parse_int(tokens[2], &newDelta) < 0)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid UTC delta: %s", tokens[2]);
+		printText(errMsg);
+		return;
+	}
+
 	CHKVOID(setDeltaFromUTC(newDelta) == 0);
 }
 
@@ -766,6 +774,7 @@ static void	manageClockError(int tokenCount, char **tokens)
 	Object	iondbObj = getIonDbObject();
 	IonDB	iondb;
 	int	newMaxClockError;
+	char	errMsg[256];
 
 	if (tokenCount != 3)
 	{
@@ -773,7 +782,14 @@ static void	manageClockError(int tokenCount, char **tokens)
 		return;
 	}
 
-	newMaxClockError = atoi(tokens[2]);
+	if (platform_parse_int(tokens[2], &newMaxClockError) < 0)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid clock error: %s", tokens[2]);
+		printText(errMsg);
+		return;
+	}
+
 	if (newMaxClockError < 0 || newMaxClockError > 60)
 	{
 		putErrmsg("Maximum clock error out of range (0-60).", NULL);
@@ -797,6 +813,7 @@ static void	manageClockSync(int tokenCount, char **tokens)
 	IonDB	iondb;
 	int	newSyncVal;
 	char	buffer[128];
+	char	errMsg[256];
 
 	if (tokenCount < 2 || tokenCount > 3)
 	{
@@ -806,7 +823,15 @@ static void	manageClockSync(int tokenCount, char **tokens)
 
 	if (tokenCount == 3)
 	{
-		newSyncVal = atoi(tokens[2]);
+		if (platform_parse_int(tokens[2], &newSyncVal) < 0)
+		{
+			isprintf(errMsg, sizeof(errMsg),
+					"[?] Invalid clock sync flag: %s",
+					tokens[2]);
+			printText(errMsg);
+			return;
+		}
+
 		sdr = getIonsdr();
 		iondbObj = getIonDbObject();
 		CHKVOID(sdr_begin_xn(sdr));
@@ -830,6 +855,7 @@ static void	manageProduction(int tokenCount, char **tokens)
 	Object	iondbObj = getIonDbObject();
 	IonDB	iondb;
 	int	newRate;
+	char	errMsg[256];
 
 	if (tokenCount != 3)
 	{
@@ -837,7 +863,14 @@ static void	manageProduction(int tokenCount, char **tokens)
 		return;
 	}
 
-	newRate = atoi(tokens[2]);
+	if (platform_parse_int(tokens[2], &newRate) < 0)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid production rate: %s", tokens[2]);
+		printText(errMsg);
+		return;
+	}
+
 	if (newRate < 0)
 	{
 		newRate = -1;			/*	Not metered.	*/
@@ -861,6 +894,7 @@ static void	manageConsumption(int tokenCount, char **tokens)
 	Object	iondbObj = getIonDbObject();
 	IonDB	iondb;
 	int	newRate;
+	char	errMsg[256];
 
 	if (tokenCount != 3)
 	{
@@ -868,7 +902,14 @@ static void	manageConsumption(int tokenCount, char **tokens)
 		return;
 	}
 
-	newRate = atoi(tokens[2]);
+	if (platform_parse_int(tokens[2], &newRate) < 0)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid consumption rate: %s", tokens[2]);
+		printText(errMsg);
+		return;
+	}
+
 	if (newRate < 0)
 	{
 		newRate = -1;			/*	Not metered.	*/
@@ -990,6 +1031,8 @@ static void	manageSearch(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
 	unsigned int	newLimit;
+	uvast		parsed_limit;
+	char		errMsg[256];
 
 	if (tokenCount != 3)
 	{
@@ -997,7 +1040,16 @@ static void	manageSearch(int tokenCount, char **tokens)
 		return;
 	}
 
-	newLimit = atoi(tokens[2]);
+	if (platform_parse_uvast(tokens[2], &parsed_limit) < 0
+		|| parsed_limit > UINT_MAX)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid search limit: %s", tokens[2]);
+		printText(errMsg);
+		return;
+	}
+	newLimit = (unsigned int) parsed_limit;
+
 	sdr_set_search_limit(sdr, newLimit);
 }
 
@@ -1126,6 +1178,7 @@ static void	manageMemProtect(int tokenCount, char **tokens)
 {
 	int	heapPct;
 	int	wmPct;
+	char	errMsg[256];
 
 	if (tokenCount != 4)
 	{
@@ -1133,8 +1186,23 @@ static void	manageMemProtect(int tokenCount, char **tokens)
 		return;
 	}
 
-	heapPct = atoi(tokens[2]);
-	wmPct = atoi(tokens[3]);
+	if (platform_parse_int(tokens[2], &heapPct) < 0)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid heap percent: %s", tokens[2]);
+		printText(errMsg);
+		return;
+	}
+
+	if (platform_parse_int(tokens[3], &wmPct) < 0)
+	{
+		isprintf(errMsg, sizeof(errMsg),
+				"[?] Invalid working memory percent: %s",
+				tokens[3]);
+		printText(errMsg);
+		return;
+	}
+
 	oK(ionSetMemProtect(heapPct, wmPct));
 }
 
