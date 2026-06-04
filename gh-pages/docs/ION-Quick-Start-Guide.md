@@ -168,6 +168,39 @@ as it uses dynamic memory allocation. See the
 [ION Deployment Guide](ION-Deployment-Guide.md#input_history-configure-option---enable-commandline-history)
 for details.
 
+#### AddressSanitizer build (`--enable-asan`)
+
+For debugging memory errors (heap corruption, use-after-free, wild/NULL
+dereferences) during development or stress testing, ION can be built with
+[AddressSanitizer](https://github.com/google/sanitizers/wiki/AddressSanitizer):
+
+`./configure --enable-asan CFLAGS='-O1 -g'`
+
+This adds `-fsanitize=address` to the compile and link flags. **It is a
+debug/diagnostic build only** (roughly 2× CPU and 3× memory overhead) and is
+**not for flight builds**. The ASan runtime library must be installed first
+(`libasan`; on RHEL/Oracle Linux `sudo dnf install -y libasan`).
+
+Recommendations and caveats:
+
+- **Pass `CFLAGS='-O1 -g'`.** ION's default `-O2` inlines heavily and makes
+  crash backtraces (core/gdb) misleading; `-O1` keeps stacks trustworthy while
+  staying much faster than `-O0`. Because `CFLAGS` is applied after the build's
+  own flags, a plain `--enable-asan` would otherwise still compile at `-O2`.
+- ION is **multi-process** (daemons are spawned), so export `ASAN_OPTIONS`
+  before starting ION. Set `log_path=<dir>/asan` so each process writes its
+  report to `<dir>/asan.<pid>` (daemon stderr is otherwise hard to capture), and
+  `detect_leaks=0` to suppress leak-checker noise from ION's long-lived daemons
+  and shared-memory pools. Example:
+  `export ASAN_OPTIONS="log_path=/var/log/ion-asan/asan:detect_leaks=0:abort_on_error=1"`
+- ION's working memory (PSM) and SDR heap are **custom shared-memory allocators
+  that ASan does not instrument**, so a use-after-free of an object *inside*
+  those regions may not be reported as `heap-use-after-free`; ASan will still
+  catch the resulting invalid dereference. For allocations within PSM, use ION's
+  own `PSM_TRACE`/`sptrace` facility.
+- When built with ASan, ION's in-process fatal-signal handler is automatically
+  disabled so that AddressSanitizer owns crash reporting.
+
 To introduce customized build flags, you can add them via the `./configure` in this manner:
 
 `./configure CFLAGS="<string of compiler options>"`
