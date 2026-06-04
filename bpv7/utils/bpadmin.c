@@ -136,6 +136,7 @@ payload length");
 	PUTS("\t   m cbraggr <CRS limit> <CCS limit> <timeout seconds>");
 	PUTS("\t      Aggregate limits: max bundles before sending signal (0=immediate)");
 	PUTS("\t      Timeout: max seconds to wait before sending aggregated signal");
+	PUTS("\t      Takes effect at runtime; 'l cbraggr' shows current limits.");
 	PUTS("\t   m cbrretx <strategy: none|timer|signal> <interval seconds> <max retransmissions>");
 	PUTS("\t      Strategy none: no automatic retransmission (default)");
 	PUTS("\t      Strategy timer: retransmit after interval if no custody acceptance received");
@@ -838,6 +839,50 @@ static void	manageCbrCounterWidth(int tokenCount, char **tokens)
 	else
 	{
 		printText("CBR counter width set.");
+	}
+}
+
+static void	manageCbrAggr(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	unsigned int	crsLimit;
+	unsigned int	ccsLimit;
+	unsigned int	timeout;
+	char		line[128];
+
+	if (tokenCount == 2)
+	{
+		crsLimit = ccsLimit = timeout = 0;
+		if (cbr_getConfig(sdr, &crsLimit, &ccsLimit, &timeout) < 0)
+		{
+			putErrmsg("Can't read CBR aggregate config.", NULL);
+			return;
+		}
+
+		isprintf(line, sizeof line, "CBR aggregate config: CRS limit %u, "
+				"CCS limit %u, timeout %u s",
+				crsLimit, ccsLimit, timeout);
+		printText(line);
+		return;
+	}
+
+	if (tokenCount != 5)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	crsLimit = atoi(tokens[2]);
+	ccsLimit = atoi(tokens[3]);
+	timeout = atoi(tokens[4]);
+
+	if (cbr_configure(sdr, crsLimit, ccsLimit, timeout) < 0)
+	{
+		putErrmsg("Can't set CBR aggregate config.", NULL);
+	}
+	else
+	{
+		printText("CBR aggregate config set.");
 	}
 }
 
@@ -1945,6 +1990,12 @@ static void	executeList(int tokenCount, char **tokens)
 		return;
 	}
 
+	if (strcmp(tokens[1], "cbraggr") == 0)
+	{
+		manageCbrAggr(2, tokens);
+		return;
+	}
+
 	SYNTAX_ERROR;
 }
 
@@ -2266,33 +2317,6 @@ static void	manageCrebExplicitEid(int tokenCount, char **tokens)
 	else
 	{
 		printText("CREB explicit EID mode set.");
-	}
-}
-
-static void	manageCbrAggr(int tokenCount, char **tokens)
-{
-	Sdr		sdr = getIonsdr();
-	unsigned int	crsLimit;
-	unsigned int	ccsLimit;
-	unsigned int	timeout;
-
-	if (tokenCount != 5)
-	{
-		SYNTAX_ERROR;
-		return;
-	}
-
-	crsLimit = atoi(tokens[2]);
-	ccsLimit = atoi(tokens[3]);
-	timeout = atoi(tokens[4]);
-
-	if (cbr_configure(sdr, crsLimit, ccsLimit, timeout) < 0)
-	{
-		putErrmsg("Can't set CBR aggregate config.", NULL);
-	}
-	else
-	{
-		printText("CBR aggregate config set.");
 	}
 }
 

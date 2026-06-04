@@ -364,25 +364,32 @@ int	cbr_getConfig(Sdr sdr, unsigned int *crsAggregateLimit,
 		unsigned int *ccsAggregateLimit,
 		unsigned int *aggregateTimeoutSec)
 {
-	CbrDb	*cbrConstants;
+	Object	cbrDbObj;
+	CbrDb	cbrBuf;
 
-	(void) sdr;	/*	Needed for interface consistency.	*/
-	cbrConstants = _cbrConstants();
-	CHKERR(cbrConstants);
+	CHKERR(sdr);
+	cbrDbObj = _cbrDbObject(NULL);
+	CHKERR(cbrDbObj);
+
+	/*	Read straight from the SDR rather than the cached snapshot
+	 *	so the reported limits reflect any runtime "m cbraggr".	*/
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &cbrBuf, cbrDbObj, sizeof(CbrDb));
+	sdr_exit_xn(sdr);
 
 	if (crsAggregateLimit)
 	{
-		*crsAggregateLimit = cbrConstants->crsAggregateLimit;
+		*crsAggregateLimit = cbrBuf.crsAggregateLimit;
 	}
 
 	if (ccsAggregateLimit)
 	{
-		*ccsAggregateLimit = cbrConstants->ccsAggregateLimit;
+		*ccsAggregateLimit = cbrBuf.ccsAggregateLimit;
 	}
 
 	if (aggregateTimeoutSec)
 	{
-		*aggregateTimeoutSec = cbrConstants->aggregateTimeoutSec;
+		*aggregateTimeoutSec = cbrBuf.aggregateTimeoutSec;
 	}
 
 	return 0;
@@ -1480,9 +1487,43 @@ int	cbr_flushSignals(Sdr sdr, int signalType)
 	return count;
 }
 
+/*	Reads the aggregation limits straight from the SDR rather than the
+ *	cached _cbrConstants() snapshot, so that a runtime "m cbraggr" change
+ *	takes effect in already-running daemons (notably bpclock, which caches
+ *	its snapshot at startup).  Must be called within an SDR transaction;
+ *	any output pointer may be NULL.					*/
+static void	cbr_liveAggregateConfig(Sdr sdr, unsigned int *crsLimit,
+			unsigned int *ccsLimit, unsigned int *timeoutSec)
+{
+	Object	cbrDbObj = _cbrDbObject(NULL);
+	CbrDb	cbrBuf;
+
+	if (cbrDbObj == 0)
+	{
+		return;
+	}
+
+	sdr_read(sdr, (char *) &cbrBuf, cbrDbObj, sizeof(CbrDb));
+	if (crsLimit)
+	{
+		*crsLimit = cbrBuf.crsAggregateLimit;
+	}
+
+	if (ccsLimit)
+	{
+		*ccsLimit = cbrBuf.ccsAggregateLimit;
+	}
+
+	if (timeoutSec)
+	{
+		*timeoutSec = cbrBuf.aggregateTimeoutSec;
+	}
+}
+
 int	cbr_processTimeouts(Sdr sdr)
 {
 	CbrDb		*cbrConstants;
+	unsigned int	timeoutSec;
 	time_t		now;
 	Object		elt;
 	Object		nextElt;
@@ -1504,6 +1545,10 @@ int	cbr_processTimeouts(Sdr sdr)
 
 	CHKERR(sdr_begin_xn(sdr));
 
+	/*	Use the live timeout so a runtime "m cbraggr" is honored.	*/
+	timeoutSec = cbrConstants->aggregateTimeoutSec;
+	cbr_liveAggregateConfig(sdr, NULL, NULL, &timeoutSec);
+
 	/*	Check CRS timeouts					*/
 	for (elt = sdr_list_first(sdr, cbrConstants->pendingCrs);
 			elt; elt = nextElt)
@@ -1513,8 +1558,7 @@ int	cbr_processTimeouts(Sdr sdr)
 		sdr_read(sdr, (char *) &signal, signalObj,
 				sizeof(PendingSignal));
 
-		if (now - signal.aggregateStart >=
-				(time_t) cbrConstants->aggregateTimeoutSec)
+		if (now - signal.aggregateStart >= (time_t) timeoutSec)
 		{
 			if (cbr_transmitSignal(sdr, elt) == 0)
 			{
@@ -1532,8 +1576,7 @@ int	cbr_processTimeouts(Sdr sdr)
 		sdr_read(sdr, (char *) &signal, signalObj,
 				sizeof(PendingSignal));
 
-		if (now - signal.aggregateStart >=
-				(time_t) cbrConstants->aggregateTimeoutSec)
+		if (now - signal.aggregateStart >= (time_t) timeoutSec)
 		{
 			if (cbr_transmitSignal(sdr, elt) == 0)
 			{
@@ -2039,7 +2082,7 @@ int	cbr_reportStatus(Sdr sdr, Bundle *bundle, int statusReason,
 	uvast		seqId;
 	uvast		seqNum;
 	Object		signalElt;
-	CbrDb		*cbrConstants;
+	unsigned int	crsAggregateLimit;
 	PendingSignal	signal;
 	Object		signalObj;
 	int		mustFreeReportTo = 0;
@@ -2151,13 +2194,15 @@ int	cbr_reportStatus(Sdr sdr, Bundle *bundle, int statusReason,
 		return -1;
 	}
 
-	/*	Check if aggregation limit reached			*/
-	cbrConstants = _cbrConstants();
+	/*	Check if aggregation limit reached.  Read the limit live so a
+	 *	runtime "m cbraggr" is honored without a restart.		*/
+	crsAggregateLimit = 0;
+	cbr_liveAggregateConfig(sdr, &crsAggregateLimit, NULL, NULL);
 	signalObj = sdr_list_data(sdr, signalElt);
 	sdr_read(sdr, (char *) &signal, signalObj, sizeof(PendingSignal));
 
-	if (cbrConstants->crsAggregateLimit > 0 &&
-			signal.bundleCount >= cbrConstants->crsAggregateLimit)
+	if (crsAggregateLimit > 0 &&
+			signal.bundleCount >= crsAggregateLimit)
 	{
 		if (cbr_transmitSignal(sdr, signalElt) < 0)
 		{
@@ -2434,6 +2479,7 @@ static int	queueCcs(Sdr sdr, char *destEid, char *sourceEid,
 	Object		signalElt;
 	CbrDb		*cbrConstants;
 	PendingSignal	signal;
+	unsigned int	ccsAggregateLimit;
 	char		msgBuf[256];
 
 	cbrConstants = getCbrConstants();
@@ -2465,16 +2511,19 @@ static int	queueCcs(Sdr sdr, char *destEid, char *sourceEid,
 		return -1;
 	}
 
-	/*	Check if we should transmit immediately.		*/
+	/*	Check if we should transmit immediately.  Read the limit live
+	 *	so a runtime "m cbraggr" is honored without a restart.		*/
+	ccsAggregateLimit = cbrConstants->ccsAggregateLimit;
+	cbr_liveAggregateConfig(sdr, NULL, &ccsAggregateLimit, NULL);
 	sdr_read(sdr, (char *) &signal,
 			sdr_list_data(sdr, signalElt), sizeof(PendingSignal));
 
 	isprintf(msgBuf, sizeof(msgBuf),
 			"[i] CBR: CCS bundleCount=%u limit=%u",
-			signal.bundleCount, cbrConstants->ccsAggregateLimit);
+			signal.bundleCount, ccsAggregateLimit);
 	writeMemo(msgBuf);
 
-	if (signal.bundleCount >= cbrConstants->ccsAggregateLimit)
+	if (signal.bundleCount >= ccsAggregateLimit)
 	{
 		writeMemo("[i] CBR: Aggregate limit reached, transmitting CCS now.");
 		if (cbr_transmitSignal(sdr, signalElt) < 0)

@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+trap 'killm f' EXIT
+#
+# cbr-aggr-runtime: aggregation limits configurable at runtime (G8)
+#
+# Verifies (G8):
+#   'm cbraggr' takes effect in already-running daemons, not only at startup.
+#   The aggregation decision points (cbr_processTimeouts in bpclock, and the
+#   CRS/CCS limit checks) read the limits live from the SDR rather than from
+#   the per-process cached snapshot.
+#
+# Topology:
+#   Node 1 (source) -> Node 2 (delivers to bpsink, generates delivery CRS
+#   back to ipn:1.0).
+#
+# Method:
+#   Node 2 starts with 'm cbraggr 100 100 3600' (high limit, 1 hour timeout)
+#   so a generated CRS is queued but not transmitted. After delivery we
+#   confirm the CRS has NOT yet reached Node 1, then at runtime set
+#   'm cbraggr 100 100 1' on Node 2. bpclock's periodic timeout sweep must
+#   pick up the new 1 second timeout and flush the pending CRS to Node 1.
+#
+# This test verifies:
+#   1. l cbraggr reflects the startup configuration
+#   2. CRS is NOT delivered while the timeout is long (pending)
+#   3. Runtime 'm cbraggr' is visible via l cbraggr
+#   4. After lowering the timeout at runtime, the pending CRS is flushed and
+#      arrives at Node 1 (the core runtime-configurability assertion)
+#   5. No ION errors
+#
+
+TESTDIR=$(cd "$(dirname "$0")" && pwd)
+export ION_NODE_LIST_DIR="$TESTDIR"
+
+echo "=== CBR Aggregation Runtime Reconfiguration Test (G8) ==="
+echo ""
+
+./cleanup
+
+TESTS_PASSED=0
+TESTS_FAILED=0
+
+test_result() {
+    if [ $1 -eq 0 ]; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        echo "  PASS: $2"
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        echo "  FAIL: $2"
+    fi
+}
+
+echo "Starting ION nodes..."
+for node in 1 2; do
+    cd "$TESTDIR/${node}.node"
+    chmod +x ionstart
+    ./ionstart > ion_startup.log 2>&1
+    sleep 2
+done
+
+if [ "$(pgrep -f rfxclock | wc -l)" -lt 2 ]; then
+    echo "ERROR: Not all ION nodes started."
+    exit 1
+fi
+echo "Both nodes started."
+echo ""
+
+# ---------------------------------------------------------------
+echo "--- Test 1: l cbraggr reflects startup config (timeout 3600) ---"
+
+cd "$TESTDIR/2.node"
+OUT=$(echo 'l cbraggr' | bpadmin 2>/dev/null)
+echo "  l cbraggr: $OUT"
+if echo "$OUT" | grep -Fq 'timeout 3600'; then
+    test_result 0 "startup aggregate config visible (timeout 3600 s)"
+else
+    test_result 1 "startup aggregate config not reported correctly"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Phase: deliver a bundle so Node 2 generates a (pending) CRS ---"
+
+cd "$TESTDIR/2.node"
+bpsink ipn:2.1 > bpsink.out 2>&1 &
+BPSINK_PID=$!
+sleep 1
+
+cd "$TESTDIR/1.node"
+bptrace -seqid 1 -msg "G8-B1" -ttl 60 -qos 0.1 -flags dlv ipn:1.2 ipn:2.1 ipn:1.0 > /dev/null 2>&1
+echo "  Bundle sent (delivery report requested, reportTo=ipn:1.0)."
+sleep 6
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 2: CRS not yet delivered (still aggregating, timeout 3600) ---"
+
+if grep -Fq '[i] CRS received:' "$TESTDIR/1.node/ion.log" 2>/dev/null; then
+    test_result 1 "CRS arrived too early -- aggregation timeout not honored"
+else
+    test_result 0 "CRS correctly held pending under long timeout"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 3: runtime 'm cbraggr 100 100 1' visible via l cbraggr ---"
+
+cd "$TESTDIR/2.node"
+echo 'm cbraggr 100 100 1' | bpadmin > /dev/null 2>&1
+OUT=$(echo 'l cbraggr' | bpadmin 2>/dev/null)
+echo "  l cbraggr: $OUT"
+if echo "$OUT" | grep -Fq 'timeout 1 s'; then
+    test_result 0 "runtime aggregate config visible (timeout 1 s)"
+else
+    test_result 1 "runtime aggregate config not updated"
+fi
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 4: pending CRS flushed after runtime timeout change ---"
+echo "  Waiting for bpclock to honor the new 1 s timeout..."
+sleep 6
+
+if grep -Fq '[i] CRS received:' "$TESTDIR/1.node/ion.log" 2>/dev/null; then
+    test_result 0 "CRS flushed and delivered after runtime reconfiguration"
+else
+    test_result 1 "CRS never delivered -- runtime cbraggr change not honored"
+fi
+
+kill "$BPSINK_PID" 2>/dev/null
+wait "$BPSINK_PID" 2>/dev/null
+
+# ---------------------------------------------------------------
+echo ""
+echo "--- Test 5: No ION errors at any node ---"
+
+for node in 1 2; do
+    ERR=$(grep -c '\[!' "$TESTDIR/${node}.node/ion.log" 2>/dev/null)
+    ERR=${ERR:-0}
+    if [ "$ERR" -gt 0 ]; then
+        echo "  ${node}.node: $ERR error(s)"
+        grep '\[!' "$TESTDIR/${node}.node/ion.log" | head -5 | sed 's/^/    /'
+    fi
+    test_result "$ERR" "No ION errors at Node $node"
+done
+
+echo ""
+echo "========================================="
+echo "SUMMARY: $TESTS_PASSED passed, $TESTS_FAILED failed"
+echo "========================================="
+
+[ $TESTS_FAILED -eq 0 ]
