@@ -108,6 +108,8 @@ static void	executeAdd(int tokenCount, char **tokens)
 	unsigned int	nominalRate = 0;
 	char		*viaEid = NULL;
 	char		*ductExpression = NULL;
+	uvast		parsed_rate;
+	char		errMsg[256];
 
 	if (tokenCount < 2)
 	{
@@ -127,7 +129,14 @@ static void	executeAdd(int tokenCount, char **tokens)
 		{
 			if (isdigit((unsigned char) tokens[5][0]))
 			{
-				nominalRate = atoi(tokens[5]);
+				if (platform_parse_uvast(tokens[5], &parsed_rate) < 0 || parsed_rate > UINT_MAX)
+				{
+					isprintf(errMsg, sizeof(errMsg), "[?] Invalid xmit rate: %s", tokens[5]);
+					printText(errMsg);
+					return;
+				}
+				nominalRate = (unsigned int) parsed_rate;
+
 				if (parseDirective(tokens[3], tokens[4],
 					&viaEid, &ductExpression) == 0)
 				{
@@ -137,7 +146,14 @@ static void	executeAdd(int tokenCount, char **tokens)
 			}
 			else
 			{
-				nominalRate = atoi(tokens[3]);
+				if (platform_parse_uvast(tokens[3], &parsed_rate) < 0 || parsed_rate > UINT_MAX)
+				{
+					isprintf(errMsg, sizeof(errMsg), "[?] Invalid xmit rate: %s", tokens[3]);
+					printText(errMsg);
+					return;
+				}
+				nominalRate = (unsigned int) parsed_rate;
+
 				if (parseDirective(tokens[4], tokens[5],
 					&viaEid, &ductExpression) == 0)
 				{
@@ -159,7 +175,13 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 		if (tokenCount == 4)
 		{
-			nominalRate = atoi(tokens[3]);
+			if (platform_parse_uvast(tokens[3], &parsed_rate) < 0 || parsed_rate > UINT_MAX)
+			{
+				isprintf(errMsg, sizeof(errMsg), "[?] Invalid xmit rate: %s", tokens[3]);
+				printText(errMsg);
+				return;
+			}
+			nominalRate = (unsigned int) parsed_rate;
 		}
 
 		dtn2_addPlan(tokens[2], nominalRate);
@@ -185,6 +207,8 @@ static void	executeChange(int tokenCount, char **tokens)
 	int		rateChanged = 0;
 	char		*viaEid = NULL;
 	char		*ductExpression = NULL;
+	uvast		parsed_rate;
+	char		errMsg[256];
 
 	if (tokenCount < 2)
 	{
@@ -204,8 +228,15 @@ static void	executeChange(int tokenCount, char **tokens)
 		{
 			if (isdigit((unsigned char) tokens[5][0]))
 			{
-				nominalRate = atoi(tokens[5]);
+				if (platform_parse_uvast(tokens[5], &parsed_rate) < 0 || parsed_rate > UINT_MAX)
+				{
+					isprintf(errMsg, sizeof(errMsg), "[?] Invalid xmit rate: %s", tokens[5]);
+					printText(errMsg);
+					return;
+				}
+				nominalRate = (unsigned int) parsed_rate;
 				rateChanged = 1;
+
 				if (parseDirective(tokens[3], tokens[4],
 					&viaEid, &ductExpression) == 0)
 				{
@@ -215,8 +246,15 @@ static void	executeChange(int tokenCount, char **tokens)
 			}
 			else
 			{
-				nominalRate = atoi(tokens[3]);
+				if (platform_parse_uvast(tokens[3], &parsed_rate) < 0 || parsed_rate > UINT_MAX)
+				{
+					isprintf(errMsg, sizeof(errMsg), "[?] Invalid xmit rate: %s", tokens[3]);
+					printText(errMsg);
+					return;
+				}
+				nominalRate = (unsigned int) parsed_rate;
 				rateChanged = 1;
+
 				if (parseDirective(tokens[4], tokens[5],
 					&viaEid, &ductExpression) == 0)
 				{
@@ -238,7 +276,13 @@ static void	executeChange(int tokenCount, char **tokens)
 
 		if (tokenCount == 4)
 		{
-			nominalRate = atoi(tokens[3]);
+			if (platform_parse_uvast(tokens[3], &parsed_rate) < 0 || parsed_rate > UINT_MAX)
+			{
+				isprintf(errMsg, sizeof(errMsg), "[?] Invalid xmit rate: %s", tokens[3]);
+				printText(errMsg);
+				return;
+			}
+			nominalRate = (unsigned int) parsed_rate;
 			rateChanged = 1;
 		}
 
