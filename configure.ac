@@ -801,6 +801,26 @@ AC_ARG_ENABLE([core-file-needed],
   esac],
   [CORE_FILE_NEEDED=yes])
 
+#
+# AddressSanitizer build (diagnostics for memory errors, e.g. the silent
+# SIGSEGV in #1047).  Adds -fsanitize=address to both compile and link
+# flags.  Off by default; intended for stress/debug runs, not production.
+# Note: ION's PSM/SDR custom shared-memory allocators are not instrumented,
+# but wild/NULL-pointer dereferences and stack overflow are caught.
+#
+AC_ARG_ENABLE([asan],
+  [AS_HELP_STRING([--enable-asan],[Build with AddressSanitizer (-fsanitize=address); for debugging only])],
+  [case "${enableval}" in
+    yes)
+      AM_CFLAGS="$AM_CFLAGS -fsanitize=address -fno-omit-frame-pointer -g"
+      AM_LDFLAGS="$AM_LDFLAGS -fsanitize=address"
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -fsanitize=address -fno-omit-frame-pointer -g"
+      AC_MSG_NOTICE([AddressSanitizer enabled (-fsanitize=address)]);;
+    no) ;;
+    *) AC_MSG_ERROR([bad value ${enableval} for --enable-asan]);;
+  esac],
+  [])
+
 AC_ARG_ENABLE([sysctl-check], AS_HELP_STRING([--disable-sysctl-check],[Disable checking sysctl configuration on OSX and FreeBSD]),
               [], [enable_sysctl_check=yes])
 

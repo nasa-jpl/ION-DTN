@@ -450,9 +450,139 @@ void writeMemoToIonLog(char *text)
 	unlockResource(&logFileLock);
 }
 
+/*-------------------------------------------------------
+ *  Fatal-signal crash handler (#1047 instrumentation)
+ *    - ION daemons install handlers only for SIGTERM, so a SIGSEGV/
+ *      SIGBUS/etc. takes the default disposition: it may drop a core,
+ *      but nothing writes a stack to ion.log -- the crash is "silent".
+ *      (See #1047: ipnfw died mid-transaction with no trace.)
+ *    - These handlers write an async-signal-safe backtrace to ion.log
+ *      and stderr, then restore the default disposition and re-raise so
+ *      a core is still produced when the OS allows it.
+ *    - Everything here must be async-signal-safe: no malloc, no stdio,
+ *      no locks.  We pre-resolve the log path at install time, then use
+ *      open()/write()/backtrace_symbols_fd(), all of which are safe.
+ *-------------------------------------------------------*/
+#if defined(HAVE_BACKTRACE) && defined(HAVE_BACKTRACE_SYMBOLS) \
+		&& !defined(solaris)
+#include <execinfo.h>
+
+#define	ION_CRASH_MAX_FRAMES	(100)
+
+static char	ionCrashLogPath[264] = "";
+
+/*	write() a literal string (length known at compile time).		*/
+#define	ION_SAFE_WRITE(fd, s)	oK(write((fd), (s), sizeof(s) - 1))
+
+static void	ionSafeWriteInt(int fd, int n)
+{
+	char		buf[16];
+	int		i = sizeof buf;
+	unsigned int	v;
+
+	if (n < 0)
+	{
+		ION_SAFE_WRITE(fd, "-");
+		v = (unsigned int) (-n);
+	}
+	else
+	{
+		v = (unsigned int) n;
+	}
+
+	if (v == 0)
+	{
+		ION_SAFE_WRITE(fd, "0");
+		return;
+	}
+
+	while (v != 0 && i > 0)
+	{
+		buf[--i] = (char) ('0' + (v % 10));
+		v /= 10;
+	}
+
+	oK(write(fd, buf + i, (size_t) (sizeof buf - i)));
+}
+
+static void	ionDumpTraceToFd(int fd, int sig, void **frames, int count)
+{
+	ION_SAFE_WRITE(fd, "\n[CRASH] ION caught fatal signal ");
+	ionSafeWriteInt(fd, sig);
+	ION_SAFE_WRITE(fd, " in pid ");
+	ionSafeWriteInt(fd, (int) getpid());
+	ION_SAFE_WRITE(fd, "; stack trace follows:\n");
+	backtrace_symbols_fd(frames, count, fd);
+	ION_SAFE_WRITE(fd, "[CRASH] end of stack trace.\n");
+}
+
+static void	ionCrashHandler(int sig)
+{
+	void	*frames[ION_CRASH_MAX_FRAMES];
+	int	count;
+	int	fd;
+
+	count = backtrace(frames, ION_CRASH_MAX_FRAMES);
+
+	if (ionCrashLogPath[0] != '\0')
+	{
+		fd = open(ionCrashLogPath, O_WRONLY | O_APPEND | O_CREAT, 0666);
+		if (fd >= 0)
+		{
+			ionDumpTraceToFd(fd, sig, frames, count);
+			close(fd);
+		}
+	}
+
+	ionDumpTraceToFd(STDERR_FILENO, sig, frames, count);
+
+	/*	Restore default disposition and re-raise so the OS can
+	 *	produce a core (when ulimit / core_pattern allow it).	*/
+
+	oK(signal(sig, SIG_DFL));
+	oK(raise(sig));
+}
+
+static void	ionInstallCrashHandlers(void)
+{
+	static int		installed = 0;
+	struct sigaction	sa;
+	int			fatalSignals[] =
+					{ SIGSEGV, SIGBUS, SIGFPE, SIGILL };
+	size_t			i;
+
+	if (installed)
+	{
+		return;
+	}
+
+	installed = 1;
+
+	/*	Pre-resolve the log path so the handler need not build it.	*/
+
+	isprintf(ionCrashLogPath, sizeof ionCrashLogPath, "%.255s%cion.log",
+			getIonWorkingDirectory(), ION_PATH_DELIMITER);
+
+	memset((char *) &sa, 0, sizeof sa);
+	sa.sa_handler = ionCrashHandler;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	for (i = 0; i < sizeof fatalSignals / sizeof fatalSignals[0]; i++)
+	{
+		oK(sigaction(fatalSignals[i], &sa, NULL));
+	}
+}
+#else
+static void	ionInstallCrashHandlers(void)
+{
+	return;		/*	No backtrace support on this platform.	*/
+}
+#endif
+
 static void	ionRedirectMemos(void)
 {
 	setLogger(writeMemoToIonLog);
+	ionInstallCrashHandlers();
 }
 #endif
 

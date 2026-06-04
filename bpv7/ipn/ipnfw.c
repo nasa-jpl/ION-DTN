@@ -100,6 +100,37 @@ static void	shutDown(int signum)
 	sm_SemEnd(_ipnfwSemaphore(NULL));
 }
 
+/*	#1047 instrumentation.  ipnfw was observed to exit silently while
+ *	holding the SDR lock mid-transaction (no stack, no core).  These
+ *	breadcrumbs make the next occurrence legible: the atexit reporter
+ *	prints a stack and the last bundle being forwarded if ipnfw leaves
+ *	by any path other than the normal forwarder shutdown, and the main
+ *	loop logs any transaction that holds the lock abnormally long.	*/
+
+#ifndef	IPNFW_SLOW_HOLD_USEC
+#define	IPNFW_SLOW_HOLD_USEC	(50000)		/*	50 ms.		*/
+#endif
+
+static int		ipnfwShutdownClean = 0;
+static uvast		ipnfwCurrentDest = 0;
+static unsigned int	ipnfwCurrentSize = 0;
+
+static void	ipnfwReportExit(void)
+{
+	if (ipnfwShutdownClean)
+	{
+		return;		/*	Normal forwarder shutdown.	*/
+	}
+
+	writeMemoNote("[?] ipnfw is exiting via an UNEXPECTED path (not the \
+normal forwarder shutdown); last bundle forwarded was to destination node",
+			uvasttoa(ipnfwCurrentDest));
+	writeMemoNote("[?] ipnfw last forwarded bundle payload size (bytes)",
+			itoa((int) ipnfwCurrentSize));
+	printStackTrace();
+	writeErrmsgMemos();
+}
+
 /*		CGR override functions.					*/
 
 static int	applyRoutingOverride(Bundle *bundle, Object bundleObj,
@@ -1219,11 +1250,18 @@ int	main(void)
 	Bundle		bundle;
 	Object		ovrdAddr;
 	IpnOverride	ovrd;
+	struct timeval	xnStart;
+	struct timeval	xnEnd;
 
 	if (bpAttach() < 0)
 	{
 		putErrmsg("ipnfw can't attach to BP.", NULL);
 		return 1;
+	}
+
+	if (atexit(ipnfwReportExit) != 0)
+	{
+		writeMemo("[?] ipnfw couldn't register exit reporter.");
 	}
 
 	if (ipnInit() < 0)
@@ -1281,6 +1319,15 @@ int	main(void)
 		bundleAddr = (Object) sdr_list_data(sdr, elt);
 		sdr_stage(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 
+		/*	Breadcrumb (#1047): record the bundle now being
+		 *	forwarded and when its transaction began, so an
+		 *	unexpected exit or an abnormally long lock hold can
+		 *	be attributed to a specific bundle/operation.	*/
+
+		ipnfwCurrentDest = bundle.destination.ssp.ipn.fqnn;
+		ipnfwCurrentSize = (unsigned int) bundle.payload.length;
+		getCurrentTime(&xnStart);
+
 		/*	Note any applicable overrides for routing
 		 *	and/or class of service.			*/
 
@@ -1332,6 +1379,28 @@ int	main(void)
 			running = 0;	/*	Terminate loop.		*/
 		}
 
+		/*	Breadcrumb (#1047): flag any transaction that held
+		 *	the SDR lock abnormally long (the incident showed a
+		 *	179 ms hold just before the silent death).		*/
+
+		getCurrentTime(&xnEnd);
+		{
+			long	heldUsec;
+
+			heldUsec = ((long) (xnEnd.tv_sec - xnStart.tv_sec))
+					* 1000000L
+					+ (xnEnd.tv_usec - xnStart.tv_usec);
+			if (heldUsec >= IPNFW_SLOW_HOLD_USEC)
+			{
+				char	hbuf[160];
+
+				isprintf(hbuf, sizeof hbuf, "[?] ipnfw slow \
+forwarding hold: dest node " UVAST_FIELDSPEC ", payload %u bytes, held SDR \
+lock %ld us.", ipnfwCurrentDest, ipnfwCurrentSize, heldUsec);
+				writeMemo(hbuf);
+			}
+		}
+
 		/*	Make sure other tasks have a chance to run.	*/
 
 		sm_TaskYield();
@@ -1339,6 +1408,7 @@ int	main(void)
 
 	closeCgr();
 	writeErrmsgMemos();
+	ipnfwShutdownClean = 1;	/*	Normal exit; suppress exit report.	*/
 	writeMemo("[i] ipnfw forwarder has ended.");
 	ionDetach();
 	return 0;
