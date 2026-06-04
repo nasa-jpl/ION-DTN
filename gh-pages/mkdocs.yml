@@ -69,6 +69,7 @@ nav:
       - Configuration Tools Overview: Configuration-Tools-Overview.md
       - ionrun Setup Utility: ionrun.md
       - Basic Configuration Tutorial: Basic-Configuration-File-Tutorial.md
+      - CBR/CT (Orange Book) Tutorial: CBR-CT-Tutorial.md
       - Configuration Templates: ION-Config-File-Templates.md
       - BPSec Configuration Example: BpSec-Configuration-Examples.md
       - BSL Build & Install Guide: BSL-Build-Install-Guide.md
