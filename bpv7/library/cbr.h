@@ -516,6 +516,27 @@ extern int		cbr_getCrebReportTo(Sdr sdr, char *buf, size_t bufLen);
 extern int		cbr_setCrebReportTo(Sdr sdr, const char *eid);
 
 /**
+ * Get the sequence-counter wraparound max value applied to new counters.
+ * Returns CBR_COUNTER_MAX_64BIT when unset.
+ *
+ * @return		Configured max value (CBR_COUNTER_MAX_{16,32,64}BIT)
+ */
+extern uvast		cbr_getCounterMaxValue(void);
+
+/**
+ * Set the sequence-counter wraparound max value applied to new counters.
+ * Per Orange Book Section 3.2.9, counters may use 16/32/64-bit maximums for
+ * interoperability with constrained peers.  Existing counters keep the value
+ * they were created with; the new value applies to counters created after
+ * this call.
+ *
+ * @param sdr		SDR handle
+ * @param maxValue	One of CBR_COUNTER_MAX_{16,32,64}BIT
+ * @return		0 on success, -1 on error (including invalid value)
+ */
+extern int		cbr_setCounterMaxValue(Sdr sdr, uvast maxValue);
+
+/**
  * Configure custody retransmission strategy.
  * Per Orange Book, three strategies are supported:
  *   - CBR_RETX_NONE (default): Manual retransmission via command only

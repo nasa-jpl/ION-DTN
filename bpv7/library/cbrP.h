@@ -51,6 +51,10 @@ typedef struct {
 	unsigned int	ccsAggregateLimit;	/* Max bundles before CCS */
 	unsigned int	aggregateTimeoutSec;	/* Seconds before forced send */
 
+	/* Sequence-counter wraparound width applied to new counters.
+	 * One of CBR_COUNTER_MAX_{16,32,64}BIT; 0 => treat as 64-bit. */
+	uvast		counterMaxValue;
+
 	/* Retransmission strategy configuration */
 	int		retransmitStrategy;	/* CBR_RETX_* */
 	unsigned int	retransmitIntervalSec;	/* Timer interval */

@@ -150,6 +150,10 @@ payload length");
 	PUTS("\t      to <eid> instead of the bundle's reportTo field.");
 	PUTS("\t      Use '-' to clear the override (revert to bundle's reportTo).");
 	PUTS("\t      'l crebreportto' shows the current override.");
+	PUTS("\t   m cbrcounterwidth { 16 | 32 | 64 }");
+	PUTS("\t      Set the sequence-counter wraparound width (bits) for new");
+	PUTS("\t      counters, for interoperability with constrained peers.");
+	PUTS("\t      Default 64. 'l cbrcounterwidth' shows the current value.");
 	PUTS("\t   a cbraccept { custodian | source } <eid>");
 	PUTS("\t      Add EID to custody acceptance whitelist");
 	PUTS("\t      custodian: match on the node requesting custody (CTEB custodian EID)");
@@ -768,6 +772,73 @@ static void	manageCrebReportTo(int tokenCount, char **tokens)
 	}
 
 	printText("CREB report-to override set.");
+}
+
+static void	manageCbrCounterWidth(int tokenCount, char **tokens)
+{
+	Sdr	sdr = getIonsdr();
+	uvast	maxValue;
+	int	width;
+	char	line[80];
+
+	if (tokenCount == 2)
+	{
+		maxValue = cbr_getCounterMaxValue();
+		switch (maxValue)
+		{
+		case CBR_COUNTER_MAX_16BIT:
+			width = 16;
+			break;
+
+		case CBR_COUNTER_MAX_32BIT:
+			width = 32;
+			break;
+
+		default:
+			width = 64;
+		}
+
+		isprintf(line, sizeof line,
+				"CBR counter width: %d-bit (max " UVAST_FIELDSPEC ")",
+				width, maxValue);
+		printText(line);
+		return;
+	}
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	width = atoi(tokens[2]);
+	switch (width)
+	{
+	case 16:
+		maxValue = CBR_COUNTER_MAX_16BIT;
+		break;
+
+	case 32:
+		maxValue = CBR_COUNTER_MAX_32BIT;
+		break;
+
+	case 64:
+		maxValue = CBR_COUNTER_MAX_64BIT;
+		break;
+
+	default:
+		printText("[?] Unknown counter width; use '16', '32', or '64'.");
+		return;
+	}
+
+	if (cbr_setCounterMaxValue(sdr, maxValue) < 0)
+	{
+		putErrmsg("Can't set CBR counter width.", NULL);
+	}
+	else
+	{
+		printText("CBR counter width set.");
+	}
 }
 
 static void	executeAdd(int tokenCount, char **tokens)
@@ -1868,6 +1939,12 @@ static void	executeList(int tokenCount, char **tokens)
 		return;
 	}
 
+	if (strcmp(tokens[1], "cbrcounterwidth") == 0)
+	{
+		manageCbrCounterWidth(2, tokens);
+		return;
+	}
+
 	SYNTAX_ERROR;
 }
 
@@ -2365,6 +2442,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "crebreportto") == 0)
 	{
 		manageCrebReportTo(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "cbrcounterwidth") == 0)
+	{
+		manageCbrCounterWidth(tokenCount, tokens);
 		return;
 	}
 

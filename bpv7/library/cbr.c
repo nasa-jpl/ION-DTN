@@ -109,6 +109,7 @@ int	cbr_initialize(Sdr sdr)
 		cbrBuf.crsAggregateLimit = 10;
 		cbrBuf.ccsAggregateLimit = 10;
 		cbrBuf.aggregateTimeoutSec = 5;
+		cbrBuf.counterMaxValue = CBR_COUNTER_MAX_64BIT;
 		cbrBuf.retransmitStrategy = CBR_RETX_NONE;
 		cbrBuf.retransmitIntervalSec = 60;
 		cbrBuf.maxRetransmissions = 3;
@@ -277,6 +278,49 @@ int	cbr_setCrebReportTo(Sdr sdr, const char *eid)
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't update CREB report-to override.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+uvast	cbr_getCounterMaxValue(void)
+{
+	CbrDb	*cbrConstants = getCbrConstants();
+
+	if (cbrConstants == NULL || cbrConstants->counterMaxValue == 0)
+	{
+		return CBR_COUNTER_MAX_64BIT;
+	}
+
+	return cbrConstants->counterMaxValue;
+}
+
+int	cbr_setCounterMaxValue(Sdr sdr, uvast maxValue)
+{
+	Object	cbrDbObj;
+	CbrDb	cbrBuf;
+
+	CHKERR(sdr);
+
+	if (maxValue != CBR_COUNTER_MAX_16BIT
+	&& maxValue != CBR_COUNTER_MAX_32BIT
+	&& maxValue != CBR_COUNTER_MAX_64BIT)
+	{
+		putErrmsg("Invalid counter max value.", NULL);
+		return -1;
+	}
+
+	cbrDbObj = _cbrDbObject(NULL);
+	CHKERR(cbrDbObj);
+
+	CHKERR(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &cbrBuf, cbrDbObj, sizeof(CbrDb));
+	cbrBuf.counterMaxValue = maxValue;
+	sdr_write(sdr, cbrDbObj, (char *) &cbrBuf, sizeof(CbrDb));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't update counter max value.", NULL);
 		return -1;
 	}
 
@@ -649,7 +693,8 @@ Object	cbr_createSeqCounter(Sdr sdr, char *sourceEid, char *destEid,
 	}
 
 	counter.nextSeqNum = 0;
-	counter.counterMaxValue = CBR_COUNTER_MAX_64BIT;
+	counter.counterMaxValue = cbrConstants->counterMaxValue ?
+			cbrConstants->counterMaxValue : CBR_COUNTER_MAX_64BIT;
 	counter.forCustody = forCustody;
 	counter.lastUsed = getCtime();
 

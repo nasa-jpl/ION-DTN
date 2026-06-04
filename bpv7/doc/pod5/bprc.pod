@@ -115,7 +115,7 @@ B<orangebook>  CCSDS Orange Book mode.  Enables Compressed Bundle Reporting
            B<m srmode>, B<m cbraggr>, B<m cbrretx>, B<m crebexpliciteid>,
            B<a/d/l cbraccept>, B<a/d/l custodyreq>, B<m crsmaxlog>,
            B<l crslog>, B<l custodybundle>, B<i custodybundle>,
-           B<m/l crebreportto>.
+           B<m/l crebreportto>, B<m/l cbrcounterwidth>.
 
 The default mode is B<none>.
 
@@ -229,6 +229,21 @@ argument) displays the current override.
 
 This command requires B<m srmode compressed> or B<m srmode both> to be
 effective.
+
+=item B<m cbrcounterwidth> { 16 | 32 | 64 }
+
+The B<manage CBR counter width> command.  Sets the wraparound width, in
+bits, of the bundle sequence-number counters created by this node.  Per
+CCSDS Orange Book Section 3.2.9 a counter may wrap at a 16-, 32-, or
+64-bit maximum; matching a constrained peer's counter width is required
+for End-to-End Gap Detection to work across the link.
+
+The width applies to sequence counters B<created after> the command is
+processed; counters already in existence keep the width they were created
+with.  The default is 64-bit.
+
+B<l cbrcounterwidth> (or B<m cbrcounterwidth> with no additional argument)
+displays the current width and its corresponding maximum value.
 
 =item B<a cbraccept> { custodian | source } I<eid>
 
