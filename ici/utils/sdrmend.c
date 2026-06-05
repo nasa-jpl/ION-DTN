@@ -36,8 +36,12 @@ int	main(int argc, char **argv)
 	int		logKey;
 	char		*pathName;
 	char		*restartCmd = NULL;
+	int		parsed_int;
+	uvast		parsed_uvast;
+	char		errMsg[256];
 
-	if (argc < 6)
+	/* Command name + 7 required arguments = 8 minimum arguments */
+	if (argc < 8)
 	{
 		PUTS("Usage: sdrmend <sdr name> <config flags> <heap words> \
 <heap key, e.g. -1> <log size> <log key> <pathName> [<restartCmd>]");
@@ -45,11 +49,47 @@ int	main(int argc, char **argv)
 	}
 
 	sdrName = argv[1];
-	configFlags = strtol(argv[2], NULL, 0);
-	heapWords = strtol(argv[3], NULL, 0);
-	heapKey = strtol(argv[4], NULL, 0);
-	logSize = strtol(argv[5], NULL, 0);
-	logKey = strtol(argv[6], NULL, 0);
+
+	if (platform_parse_int(argv[2], &parsed_int) < 0 || parsed_int < 0)
+	{
+		isprintf(errMsg, sizeof(errMsg), "[?] Invalid config flags. Must be >= 0: %s", argv[2]);
+		PUTS(errMsg);
+		return 1;
+	}
+	configFlags = parsed_int;
+
+	if (platform_parse_uvast(argv[3], &parsed_uvast) < 0)
+	{
+		isprintf(errMsg, sizeof(errMsg), "[?] Invalid heap words. Must be >= 0: %s", argv[3]);
+		PUTS(errMsg);
+		return 1;
+	}
+	heapWords = (long) parsed_uvast;
+
+	if (platform_parse_int(argv[4], &parsed_int) < 0)
+	{
+		isprintf(errMsg, sizeof(errMsg), "[?] Invalid heap key: %s", argv[4]);
+		PUTS(errMsg);
+		return 1;
+	}
+	heapKey = parsed_int;
+
+	if (platform_parse_int(argv[5], &parsed_int) < 0 || parsed_int < 0)
+	{
+		isprintf(errMsg, sizeof(errMsg), "[?] Invalid log size. Must be >= 0: %s", argv[5]);
+		PUTS(errMsg);
+		return 1;
+	}
+	logSize = parsed_int;
+
+	if (platform_parse_int(argv[6], &parsed_int) < 0)
+	{
+		isprintf(errMsg, sizeof(errMsg), "[?] Invalid log key: %s", argv[6]);
+		PUTS(errMsg);
+		return 1;
+	}
+	logKey = parsed_int;
+
 	pathName = argv[7];
 	if (argc == 9)
 	{
