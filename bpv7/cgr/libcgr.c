@@ -2237,6 +2237,27 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 	return 1;
 }
 
+/*	Bounds on a single forwarding decision's CGR route computation
+ *	(#1048).  Without these, when no usable route exists for a bundle
+ *	the selection loop below keeps invoking Yen's spur expansion until
+ *	the entire route space over the contact plan is enumerated -- a
+ *	single call was observed holding the SDR write lock for 44.88 s,
+ *	starving every other daemon waiting on sdr_begin_xn.  The time
+ *	budget bounds the operational harm (lock-hold duration); the
+ *	computed-route cap is a deterministic backstop in case the wall
+ *	clock is stepped backward (which would otherwise disable the time
+ *	check).  On either bound we stop and use the best route found so
+ *	far (if any); otherwise the bundle falls through to limbo and is
+ *	retried later -- it is never dropped.  Both are overridable.	*/
+
+#ifndef	CGR_MAX_COMPUTE_USEC
+#define	CGR_MAX_COMPUTE_USEC	(250000)	/*	250 ms.		*/
+#endif
+
+#ifndef	CGR_MAX_ROUTES_PER_BUNDLE
+#define	CGR_MAX_ROUTES_PER_BUNDLE	(100)	/*	Routes computed.*/
+#endif
+
 static int	loadBestRoutesList(IonNode *terminusNode, uvast viaNodeNbr,
 			Bundle *bundle, Lyst excludedNodes, CgrTrace *trace,
 			Lyst bestRoutes, time_t currentTime, time_t deadline,
@@ -2244,14 +2265,38 @@ static int	loadBestRoutesList(IonNode *terminusNode, uvast viaNodeNbr,
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	elt;
+	struct timeval	startTime;
+	struct timeval	now;
+	long		elapsedUsec;
+	unsigned int	routesComputed = 0;
 
 	/*	Perform route selection outer loop until the list
 	 *	of best routes contains the single best route for
 	 *	transmission of this bundle.				*/
 
+	getCurrentTime(&startTime);
 	elt = sm_list_first(ionwm, routingObj->selectedRoutes);
 	while (1)
 	{
+		/*	Bound the lock-hold time of this decision (#1048).
+		 *	The check covers both walking cached routes and
+		 *	(re)computing new ones.				*/
+
+		getCurrentTime(&now);
+		elapsedUsec = ((long) (now.tv_sec - startTime.tv_sec))
+				* 1000000L + (now.tv_usec - startTime.tv_usec);
+		if (elapsedUsec >= CGR_MAX_COMPUTE_USEC)
+		{
+			char	cbuf[160];
+
+			isprintf(cbuf, sizeof cbuf, "[?] CGR: route compute \
+time-bounded for dest node " UVAST_FIELDSPEC " after %ld us (%u routes \
+computed); %d candidate(s) so far.", (uvast) terminusNode->fqnn, elapsedUsec,
+					routesComputed, (int) lyst_length(bestRoutes));
+			writeMemo(cbuf);
+			return 0;
+		}
+
 		switch (checkRoute(terminusNode, viaNodeNbr, &elt, bundle,
 				excludedNodes, trace, bestRoutes, currentTime,
 				deadline))
@@ -2267,7 +2312,20 @@ static int	loadBestRoutesList(IonNode *terminusNode, uvast viaNodeNbr,
 			if (lyst_length(bestRoutes) == 0)
 			{
 				/*	No candidate; force computation
-				 *	of another selected route.	*/
+				 *	of another selected route -- the
+				 *	unbounded path, so cap it (#1048).*/
+
+				routesComputed++;
+				if (routesComputed >= CGR_MAX_ROUTES_PER_BUNDLE)
+				{
+					char	cbuf[160];
+
+					isprintf(cbuf, sizeof cbuf, "[?] CGR: \
+route compute count-bounded for dest node " UVAST_FIELDSPEC " at %u routes; no \
+usable route found -> limbo.", (uvast) terminusNode->fqnn, routesComputed);
+					writeMemo(cbuf);
+					return 0;
+				}
 
 				continue;
 			}
