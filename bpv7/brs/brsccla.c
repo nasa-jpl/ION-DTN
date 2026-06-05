@@ -253,6 +253,8 @@ int	main(int argc, char *argv[])
 	BpAncillaryData		ancillaryData;
 	unsigned int		bundleLength;
 	int			bytesSent;
+	int			parsed_int;
+	char			errMsg[256];
 
 	if (ductName == NULL)
 	{
@@ -270,7 +272,15 @@ number>");
 
 	underscore = cursor;
 	ductNbrString = underscore + 1;
-	ductNbr = atoi(ductNbrString);
+
+	if (platform_parse_int(ductNbrString, &parsed_int) < 0 || parsed_int < 0)
+	{
+		isprintf(errMsg, sizeof(errMsg), "[?] Invalid duct number. Must be >= 0: %s", ductNbrString);
+		PUTS(errMsg);
+		return 1;
+	}
+	ductNbr = parsed_int;
+
 	if (bpAttach() < 0)
 	{
 		putErrmsg("brsccla can't attach to BP.", NULL);
