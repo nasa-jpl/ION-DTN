@@ -5,9 +5,12 @@
 
 #include <bsp.h>
 #include <rtems.h>
+#include <rtems/version.h>	/* rtems_version()			*/
 #include <rtems/error.h>
 #include <rtems/shell.h>
+#include <rtems/libio.h>
 #include <assert.h>
+#include <inttypes.h>
 #include <sysexits.h>
 #include <sys/time.h>
 #include <rtems/bsd/bsd.h>
@@ -23,15 +26,172 @@
 #include "ltpnm.h"
 #ifndef NASA_PROTECTED_FLIGHT_CODE
 #include "cfdp.h"
+#include "cfdpP.h"
+#include "bputa.h"
+#include <fcntl.h>
+#include <unistd.h>
+#endif
+#ifdef ENABLE_AMS
+#include <pthread.h>
+#include "ams.h"
 #endif
 
 
-#define	ION_NODE_NBR	19
+#define	ION_NODE_NBR	((uvast) 19)
 
 /*
  * Note: EnqueueBundle is an enum value in BpRecvRule, not a function.
  * We use it directly in add_endpoint() calls below.
  */
+
+/*
+ *  Memory / footprint diagnostics
+ *
+ *  Section sizes come from linker-emitted symbols, which differ by BSP
+ *  family: the modern aarch64 / riscv RTEMS linker scripts expose
+ *  ready-made bsp_section_*_size symbols, while the classic SPARC
+ *  (leon3) linkcmds instead exposes section begin/end addresses, from
+ *  which printBinaryFootprint() derives the sizes.  All are declared
+ *  weak so a BSP that lacks them yields 0 rather than a link failure.
+ */
+#if defined(__sparc__)
+extern char text_start[]    __attribute__((weak));	/* .text begin	*/
+extern char _rodata_start[] __attribute__((weak));	/* .rodata begin	*/
+extern char _etext[]        __attribute__((weak));	/* .rodata end	*/
+extern char _data_start[]   __attribute__((weak));	/* .data begin	*/
+extern char _edata[]        __attribute__((weak));	/* .data end	*/
+extern char __bss_start[]   __attribute__((weak));	/* .bss begin	*/
+extern char _end[]          __attribute__((weak));	/* .bss end	*/
+#else
+extern char bsp_section_text_size[]   __attribute__((weak));
+extern char bsp_section_rodata_size[] __attribute__((weak));
+extern char bsp_section_data_size[]   __attribute__((weak));
+extern char bsp_section_bss_size[]    __attribute__((weak));
+#endif
+
+/*	IS_ENABLED(flag) -> 1 if 'flag' is #defined (the build passes
+ *	-Dflag for enabled options and omits it otherwise), 0 if not.
+ *	Lets printBuildInfo() report each compile flag on a single line.
+ *	(Same technique as the Linux kernel's IS_ENABLED.)		*/
+#define ARG_PLACEHOLDER_1		0,
+#define TAKE_SECOND(ignored, val, ...)	val
+#define IS_ENABLED__(arg1_or_junk)	TAKE_SECOND(arg1_or_junk 1, 0)
+#define IS_ENABLED_(flag)		IS_ENABLED__(ARG_PLACEHOLDER_##flag)
+#define IS_ENABLED(flag)		IS_ENABLED_(flag)
+
+/*	CPU architecture string, taken from the compiler's own target
+ *	predefined macros (so it always matches what we are built for).	*/
+#if defined(__aarch64__)
+#define ION_CPU_ARCH			"aarch64"
+#elif defined(__sparc__)
+#define ION_CPU_ARCH			"sparc"
+#elif defined(__riscv) && (__riscv_xlen == 64)
+#define ION_CPU_ARCH			"riscv64"
+#elif defined(__riscv)
+#define ION_CPU_ARCH			"riscv32"
+#elif defined(__x86_64__)
+#define ION_CPU_ARCH			"x86_64"
+#else
+#define ION_CPU_ARCH			"unknown-arch"
+#endif
+
+/*	RTEMS BSP name, from <bsp.h>'s RTEMS_BSP token (e.g. a53_lp64_qemu,
+ *	leon3).  VNSTRING() (from ion.h) turns the token into a string.	*/
+#ifdef RTEMS_BSP
+#define ION_BSP_NAME			VNSTRING(RTEMS_BSP)
+#else
+#define ION_BSP_NAME			"unknown-bsp"
+#endif
+
+static void	printBuildInfo(void)
+{
+	printf("=== ION on RTEMS %s -- BSP %s (%s) ===\n",
+			rtems_version(), ION_BSP_NAME, ION_CPU_ARCH);
+	printf("  Built                      : %s %s\n", __DATE__, __TIME__);
+	printf("  Compiler                   : %s\n", __VERSION__);
+	puts("=== Active compile flags ===");
+	printf("  ENABLE_BSSP                : %d\n", IS_ENABLED(ENABLE_BSSP));
+	printf("  ENABLE_DGR                 : %d\n", IS_ENABLED(ENABLE_DGR));
+	printf("  ENABLE_TCPCL               : %d\n", IS_ENABLED(ENABLE_TCPCL));
+	printf("  ENABLE_CFDP                : %d\n", IS_ENABLED(ENABLE_CFDP));
+	printf("  ENABLE_AMS                 : %d\n", IS_ENABLED(ENABLE_AMS));
+	printf("  NASA_PROTECTED_FLIGHT_CODE : %d\n",
+			IS_ENABLED(NASA_PROTECTED_FLIGHT_CODE));
+	printf("  ION_NODE_NBR               : " UVAST_FIELDSPEC "\n",
+			(uvast) ION_NODE_NBR);
+}
+
+static void	printBinaryFootprint(void)
+{
+#if defined(__sparc__)
+	uintptr_t text   = (uintptr_t) _rodata_start - (uintptr_t) text_start;
+	uintptr_t rodata = (uintptr_t) _etext        - (uintptr_t) _rodata_start;
+	uintptr_t data   = (uintptr_t) _edata        - (uintptr_t) _data_start;
+	uintptr_t bss    = (uintptr_t) _end          - (uintptr_t) __bss_start;
+#else
+	uintptr_t text   = (uintptr_t) bsp_section_text_size;
+	uintptr_t rodata = (uintptr_t) bsp_section_rodata_size;
+	uintptr_t data   = (uintptr_t) bsp_section_data_size;
+	uintptr_t bss    = (uintptr_t) bsp_section_bss_size;
+#endif
+	uintptr_t rom    = text + rodata + data;
+	uintptr_t sram   = data + bss;
+
+	puts("=== ION binary footprint (link-time) ===");
+	puts("Note: libbsd takes ~1.6MB / ION minimal ~1.0MB / Kernel etc take 0.3MB ROM");
+	puts("");
+	printf("  .text   (code)         : %10" PRIuPTR " B  (%7.2f KiB)\n",
+			text,   text   / 1024.0);
+	printf("  .rodata (const data)   : %10" PRIuPTR " B  (%7.2f KiB)\n",
+			rodata, rodata / 1024.0);
+	printf("  .data   (init RAM)     : %10" PRIuPTR " B  (%7.2f KiB)\n",
+			data,   data   / 1024.0);
+	printf("  .bss    (uninit RAM)   : %10" PRIuPTR " B  (%7.2f KiB)\n",
+			bss,    bss    / 1024.0);
+	printf("  ROM footprint (t+r+d)  : %10" PRIuPTR " B  (%7.2f KiB)\n",
+			rom,    rom    / 1024.0);
+	printf("  Static RAM    (d+b)    : %10" PRIuPTR " B  (%7.2f KiB)\n",
+			sram,   sram   / 1024.0);
+	if (text == 0 && rodata == 0 && data == 0 && bss == 0)
+	{
+		puts("  (BSP did not provide bsp_section_*_size symbols)");
+	}
+}
+
+static void	printRuntimeMemory(const char *checkpoint)
+{
+	Heap_Information_block	wksp;
+
+	printf("=== Runtime memory [%s] ===\n", checkpoint);
+
+	/*
+	 *  RTEMS workspace is the relevant allocation pool for comparing
+	 *  flag combinations - it holds tasks, semaphores, message queues,
+	 *  and other kernel objects that scale with the protocols compiled
+	 *  in.  The newlib C heap (mallinfo / malloc_info) is not provided
+	 *  by RTEMS 6's libc on this BSP, so we omit it.
+	 */
+	if (rtems_workspace_get_information(&wksp))
+	{
+		uintptr_t used    = (uintptr_t) wksp.Used.total;
+		uintptr_t freeb   = (uintptr_t) wksp.Free.total;
+		uintptr_t largest = (uintptr_t) wksp.Free.largest;
+		uintptr_t total   = used + freeb;
+
+		printf("  Workspace used         : %10" PRIuPTR
+				" B  (%7.2f KiB)\n", used, used / 1024.0);
+		printf("  Workspace free         : %10" PRIuPTR
+				" B  (%7.2f KiB)\n", freeb, freeb / 1024.0);
+		printf("  Workspace largest free : %10" PRIuPTR
+				" B  (%7.2f KiB)\n", largest, largest / 1024.0);
+		printf("  Workspace total        : %10" PRIuPTR
+				" B  (%7.2f KiB)\n", total, total / 1024.0);
+	}
+	else
+	{
+		puts("  RTEMS workspace : <unavailable>");
+	}
+}
 
 static void	initNetwork()
 {
@@ -46,7 +206,17 @@ static void	initNetwork()
 
 	/* Configure loopback interface (lo0) */
 	exit_code = rtems_bsd_ifconfig_lo0();
-	assert(exit_code == EX_OK);
+	assert(exit_code == 0);
+
+	/*	Set the host name to the loopback address so that AMS host
+	 *	resolution (getNameOfHost / getAddressOfHost, used by the
+	 *	test MIB's config-server endpoint and the DGR transport
+	 *	service) resolves numerically to 127.0.0.1 -- there is no
+	 *	DNS resolver on this BSP.				*/
+	if (sethostname("127.0.0.1", strlen("127.0.0.1")) != 0)
+	{
+		puts("[?] Warning: sethostname(127.0.0.1) failed.");
+	}
 
 	puts("Network initialization complete (loopback interface ready).");
 }
@@ -94,16 +264,20 @@ static int	startDTN()
 	/*	Set up ION parameters for RTEMS 6.1 64-bit ARM		*/
 	memset(&parms, 0, sizeof(IonParms));
 	parms.wmKey = 0;			/* Auto-allocate private memory */
-	parms.wmSize = 2000000;			/* 2 MB for UDP/TCP buffers */
+	/*	4 MB: AMS over DGR opens ~8 SAPs at ~222 KB each (dests[256]
+	 *	+ two 64 KB buffers); the 1 MB BP/LTP/CFDP base is too small.
+	 * 	Without AMS compiled in, the rest runs fine with <1MB
+	 */
+	parms.wmSize = 4000000;
 	parms.wmAddress = NULL;
 	istrcpy(parms.sdrName, "ion", sizeof(parms.sdrName));
-	parms.sdrWmSize = 2000000;		/* 2 MB for UDP/TCP buffers */
+	parms.sdrWmSize = 1000000;
 	parms.configFlags = SDR_IN_DRAM | SDR_BOUNDED;
-	parms.heapWords = 2000000;		/* 2 MB for UDP/TCP buffers */
+	parms.heapWords = 1000000;
 	parms.heapKey = SM_NO_KEY;		/* Auto-allocate */
 	parms.logSize = 0;
 	parms.logKey = SM_NO_KEY;
-	istrcpy(parms.pathName, "/ion", sizeof(parms.pathName));
+	istrcpy(parms.pathName, "/", sizeof(parms.pathName));
 
 	if (ionInitialize(&parms, nodenbr) < 0)
 	{
@@ -427,11 +601,368 @@ static void	testLoopback(const char *label, const char *payload,
 	puts(cmd);
 }
 
+#ifndef NASA_PROTECTED_FLIGHT_CODE
+
+#define	CFDP_SRC_PATH	"/cfdp_src.dat"
+#define	CFDP_DST_PATH	"/cfdp_dst.dat"
+#define	CFDP_PAYLOAD	"Hello, world via CFDP."
+
+/*	Bring CFDP up: cfdpInit creates SDR state, cfdpAttach wires this
+ *	process to it, cfdpStart spawns cfdpclock and the BP UT-adapter
+ *	(bputa) via pseudoshell.  bputa ships CFDP PDUs as bundles to
+ *	endpoint ipn:N.64 (already provisioned in startDTN).		*/
+static int	startCfdp(void)
+{
+	int	count;
+
+	if (cfdpInit() < 0)
+	{
+		writeMemo("[?] CFDP init failed.");
+		return -1;
+	}
+
+	if (cfdpAttach() < 0)
+	{
+		writeMemo("[?] CFDP attach failed.");
+		return -1;
+	}
+
+	if (cfdpStart("bputa") < 0)
+	{
+		writeMemo("[?] CFDP start failed.");
+		return -1;
+	}
+
+	for (count = 5; cfdp_entity_is_started() == 0; count--)
+	{
+		if (count == 0)
+		{
+			writeMemo("[?] CFDP entity did not come up.");
+			return -1;
+		}
+		snooze(1);
+	}
+
+	puts("CFDP entity is running (bputa UTA active).");
+	return 0;
+}
+
+static int	writeSourceFile(void)
+{
+	int	fd;
+	int	len = (int) strlen(CFDP_PAYLOAD);
+
+	puts("Opening CFDP source file...");
+	fflush(stdout);
+	fd = iopen(CFDP_SRC_PATH, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	if (fd < 0)
+	{
+		putSysErrmsg("Can't create CFDP source file", CFDP_SRC_PATH);
+		return -1;
+	}
+
+	puts("Writing CFDP source file...");
+	fflush(stdout);
+	if (write(fd, CFDP_PAYLOAD, len) != len)
+	{
+		close(fd);
+		writeMemo("[?] Short write to CFDP source file.");
+		return -1;
+	}
+
+	close(fd);
+	puts("CFDP source file written.");
+	return 0;
+}
+
+static int	verifyDestFile(void)
+{
+	int	fd;
+	int	len = (int) strlen(CFDP_PAYLOAD);
+	char	buf[64];
+	int	got;
+
+	fd = iopen(CFDP_DST_PATH, O_RDONLY, 0);
+	if (fd < 0)
+	{
+		return -1;	/*	Not delivered yet.		*/
+	}
+
+	got = read(fd, buf, sizeof buf - 1);
+	close(fd);
+	if (got != len)
+	{
+		return -1;
+	}
+
+	buf[got] = '\0';
+	return memcmp(buf, CFDP_PAYLOAD, len) == 0 ? 0 : -1;
+}
+
+static void	testCfdp(void)
+{
+	BpUtParms		utParms;
+	CfdpNumber		destEntity;
+	CfdpTransactionId	tid;
+	int			count;
+
+	puts("Starting CFDP loopback test.");
+	if (startCfdp() < 0)
+	{
+		return;
+	}
+
+	/*	Create the CFDP source file on the IMFS root filesystem.	*/
+	if (writeSourceFile() < 0)
+	{
+		return;
+	}
+
+	memset(&utParms, 0, sizeof utParms);
+	utParms.lifespan = 300;			/*	300 sec TTL.	*/
+	utParms.classOfService = BP_STD_PRIORITY;
+	utParms.custodySwitch = NoCustodyRequested;
+	cfdp_compress_number(&destEntity, (uvast) ION_NODE_NBR);
+
+	puts("Issuing cfdp_put...");
+	fflush(stdout);
+	if (cfdp_put(&destEntity, sizeof utParms,
+			(unsigned char *) &utParms,
+			CFDP_SRC_PATH, CFDP_DST_PATH,
+			NULL, NULL, NULL, 0, NULL,
+			0, 0, 0, &tid) < 0)
+	{
+		writeMemo("[?] cfdp_put failed.");
+		return;
+	}
+	puts("cfdp_put accepted.");
+	fflush(stdout);
+
+	/*	Poll the destination path; loopback over LTP/UDP on
+	 *	a single QEMU CPU finishes well under a second, but
+	 *	allow up to 10 s for slow simulator builds.		*/
+	for (count = 0; count < 10; count++)
+	{
+		snooze(1);
+		if (verifyDestFile() == 0)
+		{
+			puts("CFDP delivered: '" CFDP_PAYLOAD "'");
+			puts("CFDP loopback test ended.");
+			return;
+		}
+	}
+
+	writeMemo("[?] CFDP destination file did not arrive.");
+	puts("CFDP loopback test ended.");
+}
+#endif
+
+#ifdef ENABLE_AMS
+
+#define	AMS_SUBJECT_TEXT	1
+#define	AMS_PAYLOAD		"Hello, world via AMS."
+
+/*	Single-process AMS loopback demo (the multi-process amshello.c
+ *	adapted to threads).  amsd provides the config server + registrar;
+ *	a catcher module invites subject 1 ("text") and a pitcher module
+ *	publishes one message to it over the DGR transport service.	*/
+
+static volatile int	amsCatchDone;
+static volatile int	amsCatchOk;
+
+static void	*amsCatcher(void *arg)
+{
+	AmsModule	me;
+	AmsEvent	evt;
+	short		cn, sn;
+	int		zn, nn, len, ct, pr;
+	unsigned char	fl;
+	AmsMsgType	mt;
+	char		*txt;
+
+	(void) arg;
+	if (ams_register("@", NULL, "amsdemo", "test", "", "catch", &me) < 0)
+	{
+		writeMemo("[?] AMS catcher can't register.");
+		amsCatchDone = 1;
+		return NULL;
+	}
+
+	/*	Invite subject 1 from any role/unit/continuum.		*/
+	if (ams_invite(me, 0, 0, 0, AMS_SUBJECT_TEXT, 8, 0,
+			AmsArrivalOrder, AmsAssured) < 0)
+	{
+		writeMemo("[?] AMS catcher can't invite subject 1.");
+		ams_unregister(me);
+		amsCatchDone = 1;
+		return NULL;
+	}
+
+	puts("AMS catcher registered; waiting for message...");
+	fflush(stdout);
+
+	while (1)
+	{
+		if (ams_get_event(me, AMS_BLOCKING, &evt) < 0)
+		{
+			break;
+		}
+
+		if (ams_get_event_type(evt) == AMS_MSG_EVT)
+		{
+			ams_parse_msg(evt, &cn, &zn, &nn, &sn, &len, &txt,
+					&ct, &mt, &pr, &fl);
+			printf("AMS catcher received: '%s'\n", txt);
+			fflush(stdout);
+			if (strcmp(txt, AMS_PAYLOAD) == 0)
+			{
+				amsCatchOk = 1;
+			}
+
+			ams_recycle_event(evt);
+			break;
+		}
+
+		ams_recycle_event(evt);
+	}
+
+	ams_unregister(me);
+	amsCatchDone = 1;
+	return NULL;
+}
+
+static void	*amsPitcher(void *arg)
+{
+	AmsModule	me;
+	AmsEvent	evt;
+	AmsStateType	state;
+	AmsChangeType	change;
+	short		sn, dcn;
+	int		zn, nn, rn, dzn, pr;
+	unsigned char	fl;
+	AmsSequence	sequence;
+	AmsDiligence	diligence;
+	int		textlen = strlen(AMS_PAYLOAD) + 1;
+
+	(void) arg;
+	if (ams_register("@", NULL, "amsdemo", "test", "", "pitch", &me) < 0)
+	{
+		writeMemo("[?] AMS pitcher can't register.");
+		return NULL;
+	}
+
+	while (1)
+	{
+		if (ams_get_event(me, AMS_BLOCKING, &evt) < 0)
+		{
+			break;
+		}
+
+		ams_parse_notice(evt, &state, &change, &zn, &nn, &rn, &dcn,
+				&dzn, &sn, &pr, &fl, &sequence, &diligence);
+		ams_recycle_event(evt);
+
+		/*	Send once the catcher's invitation on subject 1
+		 *	has propagated to us.				*/
+		if (state == AmsInvitationState && sn == AMS_SUBJECT_TEXT)
+		{
+			printf("AMS pitcher sending:  '%s'\n", AMS_PAYLOAD);
+			fflush(stdout);
+			ams_send(me, -1, zn, nn, AMS_SUBJECT_TEXT, 0, 0,
+					textlen, AMS_PAYLOAD, 0);
+			break;
+		}
+	}
+
+	snooze(1);		/*	Let the message drain.		*/
+	ams_unregister(me);
+	return NULL;
+}
+
+static int	spawnAmsThread(pthread_t *thread, void *(*fn)(void *))
+{
+	pthread_attr_t	attr;
+	int		result;
+
+	/*	AMS registration walks a deep call chain; give each
+	 *	module thread a generous stack to avoid overflow.	*/
+	if (pthread_attr_init(&attr) != 0)
+	{
+		return -1;
+	}
+
+	oK(pthread_attr_setstacksize(&attr, 64 * 1024));
+	result = pthread_create(thread, &attr, fn, NULL);
+	oK(pthread_attr_destroy(&attr));
+	return result == 0 ? 0 : -1;
+}
+
+static void	testAms(void)
+{
+	pthread_t	catchThread;
+	pthread_t	pitchThread;
+	int		count;
+
+	puts("Starting AMS pitch/catch loopback test.");
+
+	/*	Start the config server + registrar using the built-in
+	 *	test MIB ("@", DGR primary transport).  The '' argument
+	 *	is the (empty) root unit name, which makes the registrar
+	 *	required.						*/
+	pseudoshell("amsd @ @ amsdemo test ''");
+	snooze(3);		/*	Allow CS + RS to come up.	*/
+
+	amsCatchDone = 0;
+	amsCatchOk = 0;
+
+	if (spawnAmsThread(&catchThread, amsCatcher) < 0)
+	{
+		writeMemo("[?] Can't spawn AMS catcher thread.");
+		puts("AMS loopback test ended.");
+		return;
+	}
+
+	snooze(2);		/*	Let the catcher invite first.	*/
+
+	if (spawnAmsThread(&pitchThread, amsPitcher) < 0)
+	{
+		writeMemo("[?] Can't spawn AMS pitcher thread.");
+		oK(pthread_join(catchThread, NULL));
+		puts("AMS loopback test ended.");
+		return;
+	}
+
+	oK(pthread_join(pitchThread, NULL));
+
+	for (count = 0; count < 10 && amsCatchDone == 0; count++)
+	{
+		snooze(1);
+	}
+
+	oK(pthread_join(catchThread, NULL));
+
+	if (amsCatchOk)
+	{
+		puts("AMS delivered: '" AMS_PAYLOAD "'");
+	}
+	else
+	{
+		writeMemo("[?] AMS message not delivered.");
+	}
+
+	puts("AMS loopback test ended.");
+}
+#endif	/* ENABLE_AMS */
+
 static int	stopDTN(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 			saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 #ifndef NASA_PROTECTED_FLIGHT_CODE
-	/*	CFDP is excluded in this minimal BP/LTP port			*/
+	if (cfdp_entity_is_started())
+	{
+		puts("Stopping CFDP...");
+		cfdpStop();
+	}
 #endif
 
 	/*	Stop BP (void function, no return value to check)		*/
@@ -475,12 +1006,16 @@ static int	stopDTN(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 
 rtems_task	Init(rtems_task_argument ignored)
 {
-	puts("=== ION RTEMS 6.1 ARM64 Port - Minimal BP/LTP ===");
+	printBuildInfo();
+	printBinaryFootprint();
+
+	printRuntimeMemory("after boot, before init");
 
 	/* Initialize system clock to prevent timestamp corruption */
 	initClock();
 
-	/* Initialize BSD networking stack for UDP support */
+
+	/* Initialize the networking stack (libbsd loopback) for UDP support */
 	initNetwork();
 
 	puts("Starting ION with public API (no config files)...");
@@ -513,6 +1048,16 @@ rtems_task	Init(rtems_task_argument ignored)
 
 	testLoopback("TCP", "Hello, world via TCPCL.", 2);
 	snooze(3);
+#endif
+
+#ifndef NASA_PROTECTED_FLIGHT_CODE
+	testCfdp();
+	snooze(2);
+#endif
+
+#ifdef ENABLE_AMS
+	testAms();
+	snooze(2);
 #endif
 
 	/*	Check statistics one more time after longer delay		*/
@@ -561,6 +1106,22 @@ void	showUtcDelta()
 
 #define	CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
+/*
+ * SPARC (LEON3) has a separate FPU register file; tasks that touch the
+ * FPU without the RTEMS_FLOATING_POINT attribute trap with
+ * INTERNAL_ERROR_ILLEGAL_USE_OF_FLOATING_POINT_UNIT.
+ */
+#define	CONFIGURE_INIT_TASK_ATTRIBUTES \
+	(RTEMS_DEFAULT_ATTRIBUTES | RTEMS_FLOATING_POINT)
+
+/*	The Init task runs the entire ION bring-up (startDTN) synchronously
+ *	on its own stack, through a deep ION-admin call chain with large
+ *	stack locals.  This overflows the RTEMS default minimum init-task
+ * 	stack and silently clobbers adjacent memory -- in particular the
+ * 	task's libio root location, after which every filesystem op
+ * 	(stat/open/...) returns ENXIO.	*/
+#define	CONFIGURE_INIT_TASK_STACK_SIZE	(128 * 1024)
+
 /*	Resource limits - adjusted for minimal BP/LTP port	*/
 /*	Use unlimited objects for libbsd compatibility		*/
 #define	CONFIGURE_UNLIMITED_OBJECTS
@@ -574,12 +1135,16 @@ void	showUtcDelta()
 #ifndef CONFIGURE_TICKS_PER_TIMESLICE
 #define	CONFIGURE_TICKS_PER_TIMESLICE				10
 #endif
-#define CONFIGURE_MAXIMUM_FILE_DESCRIPTORS			40
+#define CONFIGURE_MAXIMUM_FILE_DESCRIPTORS			64
 #define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
 
-#define CONFIGURE_MAXIMUM_POSIX_THREADS				40
+/*	AMS with the DGR adds a lot of threads to the build
+ * 	These caps must stay >= the platform_sm.c
+ * 	MAX_POSIX_TASKS (100) set in the wscript.
+ * 	Without AMS/DGR the values of 40/100 are sufficient for the test */
+#define CONFIGURE_MAXIMUM_POSIX_THREADS				128
 /*	POSIX mutexes and condition variables config removed in RTEMS 6	*/
-#define CONFIGURE_MAXIMUM_POSIX_SEMAPHORES			100
+#define CONFIGURE_MAXIMUM_POSIX_SEMAPHORES			256
 #define CONFIGURE_MAXIMUM_POSIX_MESSAGE_QUEUES			10
 
 #define	CONFIGURE_STACK_CHECKER_ON
