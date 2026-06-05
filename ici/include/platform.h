@@ -468,7 +468,13 @@ typedef int			socklen_t;
 #undef	UNIX_TASKS
 #define POSIX_TASKS
 
-typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
+/*
+ * Args are pointer-sized (saddr), not int: pseudoshell passes task argument
+ * string pointers through here, and on 64-bit RTEMS targets (e.g. riscv rv64,
+ * aarch64) int would truncate them.
+ */
+typedef void (*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr, saddr,
+		saddr, saddr);
 
 #ifndef PRIVATE_SYMTAB
 #define PRIVATE_SYMTAB
