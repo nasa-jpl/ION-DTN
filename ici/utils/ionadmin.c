@@ -247,8 +247,10 @@ static void executeAdd(int tokenCount, char **tokens)
 	unsigned int	xmitRate;
 	float		confidence;
 	unsigned int	owlt;
-	uvast parsed_xmitRate;
-	uvast parsed_owlt;
+	uvast		parsed_xmitRate;
+	uvast		parsed_owlt;
+	double		parsed_double;
+	char		errMsg[256];
 
 	if (tokenCount < 2)
 	{
@@ -259,7 +261,14 @@ static void executeAdd(int tokenCount, char **tokens)
 	switch (tokenCount)
 	{
 	case 8:
-		confidence = atof(tokens[7]);
+		if (platform_parse_double(tokens[7], &parsed_double) < 0)
+		{
+			isprintf(errMsg, sizeof(errMsg),
+					"[?] Invalid confidence: %s", tokens[7]);
+			printText(errMsg);
+			return;
+		}
+		confidence = (float) parsed_double;
 		break;
 
 	case 7:
@@ -360,7 +369,6 @@ than start time and earlier than 19 January 2038.");
 
 			if (platform_parse_uvast(tokens[6], &parsed_xmitRate) < 0 || parsed_xmitRate > UINT_MAX)
 			{
-				char errMsg[256];
 				isprintf(errMsg, sizeof(errMsg), "[?] Invalid transmit rate: must be a positive integer within bounds. (Got: %s)", tokens[6]);
 				printText(errMsg);
 				return;
@@ -391,7 +399,6 @@ time and earlier than 19 January 2038.");
 
 		if (platform_parse_uvast(tokens[6], &parsed_owlt) < 0 || parsed_owlt > UINT_MAX)
 		{
-			char errMsg[256];
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid OWLT: must be a positive integer within bounds. (Got: %s)", tokens[6]);
 			printText(errMsg);
 			return;
@@ -415,6 +422,8 @@ static void executeChange(int tokenCount, char **tokens)
 	unsigned int	xmitRate;
 	float		confidence;
 	uvast		parsed_xmitRate;
+	double		parsed_double;
+	char		errMsg[256];
 
 	if (tokenCount < 2)
 	{
@@ -431,7 +440,14 @@ static void executeChange(int tokenCount, char **tokens)
 	switch (tokenCount)
 	{
 	case 7:
-		confidence = atof(tokens[6]);
+		if (platform_parse_double(tokens[6], &parsed_double) < 0)
+		{
+			isprintf(errMsg, sizeof(errMsg),
+					"[?] Invalid confidence: %s", tokens[6]);
+			printText(errMsg);
+			return;
+		}
+		confidence = (float) parsed_double;
 		break;
 
 	case 6:
@@ -456,7 +472,6 @@ static void executeChange(int tokenCount, char **tokens)
 
 	if (platform_parse_uvast(tokens[5], &parsed_xmitRate) < 0 || parsed_xmitRate > UINT_MAX)
 	{
-		char errMsg[256];
 		isprintf(errMsg, sizeof(errMsg), "[?] Invalid transmit rate: must be a positive integer within bounds. (Got: %s)", tokens[5]);
 		printText(errMsg);
 		return;
@@ -937,16 +952,46 @@ static void	manageOccupancy(int tokenCount, char **tokens, ZcoAcct acct)
 	double	fileLimit;
 	double	maxHeapLimit;
 	double	heapLimit;
+	uvast	parsed_uvast;
+	char	errMsg[256];
 
 	switch (tokenCount)
 	{
 	case 4:
-		newFileLimit = strtovast(tokens[3]);
+		if (strcmp(tokens[3], "-1") == 0)
+		{
+			newFileLimit = -1;
+		}
+		else
+		{
+			if (platform_parse_uvast(tokens[3], &parsed_uvast) < 0)
+			{
+				isprintf(errMsg, sizeof(errMsg),
+						"[?] Invalid ZCO file occupancy limit: %s", tokens[3]);
+				printText(errMsg);
+				return;
+			}
+			newFileLimit = (vast) parsed_uvast;
+		}
 
 		/* FALLTHROUGH */
 
 	case 3:
-		newHeapLimit = strtovast(tokens[2]);
+		if (strcmp(tokens[2], "-1") == 0)
+		{
+			newHeapLimit = -1;
+		}
+		else
+		{
+			if (platform_parse_uvast(tokens[2], &parsed_uvast) < 0)
+			{
+				isprintf(errMsg, sizeof(errMsg),
+						"[?] Invalid ZCO heap occupancy limit: %s", tokens[2]);
+				printText(errMsg);
+				return;
+			}
+			newHeapLimit = (vast) parsed_uvast;
+		}
 		break;
 
 	default:
@@ -1448,6 +1493,8 @@ static int	processLine(char *line, int lineLength, int *rc)
 	uvast		regionNbr;
 	int		max = 0;
 	int		count = 0;
+	int		parsed_int;
+	uvast		parsed_uvast;
 
 	/* Parameter intentionally unused. */
 	(void)lineLength;
@@ -1600,13 +1647,13 @@ no time.");
 			}
 			else
 			{
-				regionNbr = strtouvast(tokens[1]);
-				if (regionNbr == 0)
+				if (platform_parse_uvast(tokens[1], &parsed_uvast) < 0 || parsed_uvast == 0)
 				{
-					printText("[?] Region nbr can't be zero.");
+					printText("[?] Region nbr can't be zero or invalid.");
 				}
 				else
 				{
+					regionNbr = parsed_uvast;
 					oK(_regionNbr(&regionNbr));
 				}
 			}
@@ -1699,7 +1746,12 @@ no time.");
 				}
 				else
 				{
-					max = atoi(tokens[2]) * 4;
+					if (platform_parse_int(tokens[2], &parsed_int) < 0 || parsed_int < 0)
+					{
+						printText("[?] Invalid timeout value.");
+						return 0;
+					}
+					max = parsed_int * 4;
 				}
 			}
 			else
