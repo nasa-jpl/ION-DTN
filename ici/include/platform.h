@@ -1001,7 +1001,7 @@ extern int			qualifyFileName(char *fileName, char *buffer,
 extern void			findToken(char **cursorPtr, char **token);
 extern int			platform_parse_uvast(const char *nptr, uvast *result);
 extern int 			platform_parse_int(const char *nptr, int *result);
-extern int			platform_parse_double(const char *str, double *out_val);
+extern int			platform_parse_double(const char *str, double *result);
 
 #include "platform_sm.h"
 

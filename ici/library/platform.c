@@ -2407,12 +2407,12 @@ int platform_parse_int(const char *nptr, int *result)
  * NaN, Infinity, and invalid trailing characters.
  * Returns 0 on success, -1 on failure.
  */
-int platform_parse_double(const char *str, double *out_val)
+int platform_parse_double(const char *str, double *result)
 {
 	char	*endptr;
 	double	temp_val;
 
-	if (str == NULL || out_val == NULL)
+	if (str == NULL || result == NULL)
 	{
 		return -1;
 	}
@@ -2461,7 +2461,7 @@ int platform_parse_double(const char *str, double *out_val)
 		return -1; /* Invalid characters left over (e.g., "3.14abc") */
 	}
 
-	*out_val = temp_val;
+	*result = temp_val;
 	return 0;
 }
 
