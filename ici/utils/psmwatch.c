@@ -463,13 +463,54 @@ above threshold (default: 60)");
 int psmwatch(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5, saddr a6,
 		saddr a7, saddr a8, saddr a9, saddr a10)
 {
-	int   memKey = a1 ? strtol((char *) a1, NULL, 0) : 0;
-	int   memSize = a2 ? strtol((char *) a2, NULL, 0) : 0;
+	int   memKey = 0;
+	int   memSize = 0;
 	char *partitionName = (char *) a3;
-	int   interval = a4 ? strtol((char *) a4, NULL, 0) : 0;
-	int   count = a5 ? strtol((char *) a5, NULL, 0) : 0;
+	int   interval = 0;
+	int   count = 0;
 	int   verbose = a6 ? 1 : 0;
 	int   noTrace = 0;
+	int   parsed_int;
+
+	if (a1)
+	{
+		if (platform_parse_int((char *) a1, &parsed_int) < 0)
+		{
+			PUTS("[?] Invalid memKey.");
+			return 1;
+		}
+		memKey = parsed_int;
+	}
+
+	if (a2)
+	{
+		if (platform_parse_int((char *) a2, &parsed_int) < 0)
+		{
+			PUTS("[?] Invalid memSize.");
+			return 1;
+		}
+		memSize = parsed_int;
+	}
+
+	if (a4)
+	{
+		if (platform_parse_int((char *) a4, &parsed_int) < 0)
+		{
+			PUTS("[?] Invalid interval.");
+			return 1;
+		}
+		interval = parsed_int;
+	}
+
+	if (a5)
+	{
+		if (platform_parse_int((char *) a5, &parsed_int) < 0)
+		{
+			PUTS("[?] Invalid count.");
+			return 1;
+		}
+		count = parsed_int;
+	}
 
 	if (interval <= 0)
 	{
@@ -498,6 +539,9 @@ int main(int argc, char **argv)
 	Object	iondbObj;
 	IonDB	iondb;
 	size_t	traceShmSize = 0;
+	int	parsed_int;
+	uvast	parsed_uvast;
+	char	errMsg[256];
 
 	/*	Check for help request.					*/
 
@@ -527,7 +571,14 @@ int main(int argc, char **argv)
 
 		if (argIdx < argc && argv[argIdx][0] != '-')
 		{
-			intervalMinutes = strtol(argv[argIdx], NULL, 0);
+			if (platform_parse_int(argv[argIdx], &parsed_int) < 0)
+			{
+				isprintf(errMsg, sizeof(errMsg), "[?] Invalid interval_minutes: %s", argv[argIdx]);
+				PUTS(errMsg);
+				return 1;
+			}
+			intervalMinutes = parsed_int;
+
 			if (intervalMinutes < 1)
 			{
 				intervalMinutes = DEFAULT_REPORT_INTERVAL_MIN;
@@ -560,7 +611,14 @@ int main(int argc, char **argv)
 
 		if (argIdx < argc && argv[argIdx][0] != '-')
 		{
-			warnCadenceSec = strtol(argv[argIdx], NULL, 0);
+			if (platform_parse_int(argv[argIdx], &parsed_int) < 0)
+			{
+				isprintf(errMsg, sizeof(errMsg), "[?] Invalid warn_cadence_sec: %s", argv[argIdx]);
+				PUTS(errMsg);
+				return 1;
+			}
+			warnCadenceSec = parsed_int;
+
 			if (warnCadenceSec < 1)
 			{
 				warnCadenceSec = DEFAULT_WARN_CADENCE_SEC;
@@ -573,8 +631,22 @@ int main(int argc, char **argv)
 
 		if (argIdx + 2 < argc)
 		{
-			memKey = strtol(argv[argIdx], NULL, 0);
-			memSize = strtol(argv[argIdx + 1], NULL, 0);
+			if (platform_parse_int(argv[argIdx], &parsed_int) < 0)
+			{
+				isprintf(errMsg, sizeof(errMsg), "[?] Invalid memKey: %s", argv[argIdx]);
+				PUTS(errMsg);
+				return 1;
+			}
+			memKey = parsed_int;
+
+			if (platform_parse_uvast(argv[argIdx + 1], &parsed_uvast) < 0)
+			{
+				isprintf(errMsg, sizeof(errMsg), "[?] Invalid memSize. Must be >= 0: %s", argv[argIdx + 1]);
+				PUTS(errMsg);
+				return 1;
+			}
+			memSize = (long) parsed_uvast;
+
 			partitionName = argv[argIdx + 2];
 		}
 		else
@@ -628,17 +700,46 @@ to ION.", NULL);
 		{
 			/*	Legacy mode with explicit parameters.	*/
 
-			memKey = strtol(argv[1], NULL, 0);
-			memSize = strtol(argv[2], NULL, 0);
+			if (platform_parse_int(argv[1], &parsed_int) < 0)
+			{
+				isprintf(errMsg, sizeof(errMsg), "[?] Invalid memKey: %s", argv[1]);
+				PUTS(errMsg);
+				return 1;
+			}
+			memKey = parsed_int;
+
+			if (platform_parse_uvast(argv[2], &parsed_uvast) < 0)
+			{
+				isprintf(errMsg, sizeof(errMsg), "[?] Invalid memSize. Must be >= 0: %s", argv[2]);
+				PUTS(errMsg);
+				return 1;
+			}
+			memSize = (long) parsed_uvast;
+
 			partitionName = argv[3];
-			interval = strtol(argv[4], NULL, 0);
+
+			if (platform_parse_int(argv[4], &parsed_int) < 0)
+			{
+				isprintf(errMsg, sizeof(errMsg), "[?] Invalid interval: %s", argv[4]);
+				PUTS(errMsg);
+				return 1;
+			}
+			interval = parsed_int;
+
 			if (interval <= 0)
 			{
 				noTrace = 1;
 				interval = -interval;
 			}
 
-			count = strtol(argv[5], NULL, 0);
+			if (platform_parse_int(argv[5], &parsed_int) < 0)
+			{
+				isprintf(errMsg, sizeof(errMsg), "[?] Invalid count: %s", argv[5]);
+				PUTS(errMsg);
+				return 1;
+			}
+			count = parsed_int;
+
 			if (count < 1)
 			{
 				count = 1;
@@ -689,7 +790,14 @@ to ION.", NULL);
 
 	if (argc > 1)
 	{
-		interval = strtol(argv[1], NULL, 0);
+		if (platform_parse_int(argv[1], &parsed_int) < 0)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid interval: %s", argv[1]);
+			PUTS(errMsg);
+			return 1;
+		}
+		interval = parsed_int;
+
 		if (interval <= 0)
 		{
 			noTrace = 1;
@@ -699,7 +807,14 @@ to ION.", NULL);
 
 	if (argc > 2)
 	{
-		count = strtol(argv[2], NULL, 0);
+		if (platform_parse_int(argv[2], &parsed_int) < 0)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid count: %s", argv[2]);
+			PUTS(errMsg);
+			return 1;
+		}
+		count = parsed_int;
+
 		if (count < 1)
 		{
 			count = 1;
