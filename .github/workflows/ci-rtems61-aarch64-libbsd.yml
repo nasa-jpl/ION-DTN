@@ -203,7 +203,7 @@ jobs:
 
       - name: Verify test results
         id: verify
-        if: ${{ steps.build.outputs.build_failed == 'false' && steps.test.outputs.test_failed == 'false' }}
+        if: ${{ steps.build.outputs.build_failed != 'true' && steps.test.outputs.test_failed != 'true' }}
         run: .github/scripts/rtems-verify-qemu-output.sh --qemu-output=rtems-test-output/qemu-output.txt --report-output=rtems-test-output/verification-report.txt
 
       - name: Create test summary
