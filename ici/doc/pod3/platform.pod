@@ -236,6 +236,37 @@ contributing to a numeric value, to a B<vast> integer and returns that integer.
 
 Same as strtovast() except the result is an unsigned B<vast> integer value.
 
+=item int platform_parse_uvast(const char *string, uvast *result)
+
+Parses a string into an unsigned B<vast> integer with strict POSIX validation.
+Unlike standard string conversion functions, this utility protects against
+two's complement negative wrapping by explicitly rejecting negative inputs,
+prevents LP64/ILP32 truncation vulnerabilities by respecting architecture-specific
+bounds, and catches trailing garbage characters. If the string is successfully
+parsed and passes all boundary checks, the resulting integer is stored in
+I<*result> and the function returns 0. On any parsing failure, out-of-bounds
+error, or trailing garbage detection, the function returns -1.
+
+=item int platform_parse_int(const char *string, int *result)
+
+Parses a string into a standard signed C integer with strict validation.
+Similar to platform_parse_uvast(), this function strictly enforces the
+architectural limits of the integer data type (INT_MAX and INT_MIN) to
+prevent overflow and underflow vulnerabilities while aggressively catching
+trailing garbage characters. Returns 0 on successful parsing and assignment
+to I<*result>, and returns -1 on any failure.
+
+=item int platform_parse_double(const char *str, double *result)
+
+Safely parses a string into a double-precision floating-point number.
+This function provides strict validation by utilizing strtod() while
+actively catching overflow and underflow conditions via ERANGE. It
+explicitly rejects NaN (Not-a-Number) and Infinity values, making it
+safe for command-line inputs where real numeric values are required.
+It also validates the entire string by checking for and rejecting any
+invalid trailing garbage characters. Returns 0 on successful parsing
+and assignment to I<*result>, and returns -1 on any failure.
+
 =item void findToken(char **cursorPtr, char **token)
 
 Locates the next non-whitespace lexical token in a character array, starting
