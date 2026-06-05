@@ -2361,11 +2361,11 @@ int platform_parse_uvast(const char *nptr, uvast *result)
 }
 
 /*
-* Parses a string into a signed integer with strict POSIX validation.
-* Enforces architecture-specific integer boundaries (INT_MIN to INT_MAX),
-* catches overflow/underflow, and rejects trailing garbage.
-* Returns 0 on success, -1 on failure.
-*/
+ * Parses a string into a signed integer with strict POSIX validation.
+ * Enforces architecture-specific integer boundaries (INT_MIN to INT_MAX),
+ * catches overflow/underflow, and rejects trailing garbage.
+ * Returns 0 on success, -1 on failure.
+ */
 int platform_parse_int(const char *nptr, int *result)
 {
 	const char *s = nptr;
@@ -2398,6 +2398,70 @@ int platform_parse_int(const char *nptr, int *result)
 	}
 
 	*result = (int)temp_val;
+	return 0;
+}
+
+/*
+ * platform_parse_double
+ * Safely parses a string into a double, catching overflows, underflows,
+ * NaN, Infinity, and invalid trailing characters.
+ * Returns 0 on success, -1 on failure.
+ */
+int platform_parse_double(const char *str, double *out_val)
+{
+	char	*endptr;
+	double	temp_val;
+
+	if (str == NULL || out_val == NULL)
+	{
+		return -1;
+	}
+
+	/* Skip leading whitespace to ensure strict trailing character checks work */
+	while (isspace((unsigned char)*str))
+	{
+		str++;
+	}
+
+	if (*str == '\0')
+	{
+		return -1; /* Empty string */
+	}
+
+	/* Reset errno before the call to accurately detect ERANGE */
+	errno = 0;
+	temp_val = strtod(str, &endptr);
+
+	/* Check for fundamental parsing failure (no digits found) */
+	if (str == endptr)
+	{
+		return -1;
+	}
+
+	/* Check for overflow (HUGE_VAL/-HUGE_VAL) or underflow (0.0) */
+	if (errno == ERANGE)
+	{
+		return -1;
+	}
+
+	/* Explicitly reject NaN and Infinity if they aren't valid CLI states */
+	if (isnan(temp_val) || isinf(temp_val))
+	{
+		return -1;
+	}
+
+	/* Ensure there is no trailing garbage (ignoring trailing whitespace) */
+	while (isspace((unsigned char)*endptr))
+	{
+		endptr++;
+	}
+
+	if (*endptr != '\0')
+	{
+		return -1; /* Invalid characters left over (e.g., "3.14abc") */
+	}
+
+	*out_val = temp_val;
 	return 0;
 }
 
