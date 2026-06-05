@@ -2258,6 +2258,20 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 #define	CGR_MAX_ROUTES_PER_BUNDLE	(100)	/*	Routes computed.*/
 #endif
 
+/*	Negative-result cache TTL (#1048): when a forwarding decision
+ *	finds no usable route to a destination, defer re-enumerating that
+ *	destination's route space for this many seconds.  Repeated bundles
+ *	to a currently-unroutable destination then go straight to limbo
+ *	instead of each paying a full (bounded) CGR computation, which is
+ *	what produced the multi-second SDR-lock-hold storms.  A contact-
+ *	plan change clears the cache (cgr_clear_vdb wipes the routing
+ *	object); the short TTL bounds how long a newly-usable route (e.g.
+ *	from a contact that just became active) waits to be discovered.	*/
+
+#ifndef	CGR_NEG_CACHE_SECS
+#define	CGR_NEG_CACHE_SECS	(1)
+#endif
+
 static int	loadBestRoutesList(IonNode *terminusNode, uvast viaNodeNbr,
 			Bundle *bundle, Lyst excludedNodes, CgrTrace *trace,
 			Lyst bestRoutes, time_t currentTime, time_t deadline,
@@ -2582,6 +2596,21 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 	}
 	else
 	{
+		/*	Negative-result cache (#1048): if a recent decision
+		 *	found no usable route to this destination and the
+		 *	contact plan hasn't changed since (a change wipes
+		 *	this routing object), skip the costly re-enumeration
+		 *	and let the bundle wait in limbo.  Return a non-zero
+		 *	potential so the caller keeps it in limbo and retries
+		 *	rather than abandoning it.			*/
+
+		if (routingObj->computeDeferredUntil != 0
+		&& currentTime < routingObj->computeDeferredUntil)
+		{
+			TRACE(CgrNoRoute);
+			return 1;
+		}
+
 		if (loadBestRoutesList(terminusNode, 0, bundle,
 				excludedNodes, trace, bestRoutes,
 				currentTime, deadline, routingObj) < 0)
@@ -2589,6 +2618,18 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 			putErrmsg("Can't find best route to destination.",
 					utoa(terminusNode->fqnn));
 			return -1;
+		}
+
+		/*	Update the negative-result cache for next time.	*/
+
+		if (lyst_length(bestRoutes) == 0)
+		{
+			routingObj->computeDeferredUntil = currentTime
+					+ CGR_NEG_CACHE_SECS;
+		}
+		else
+		{
+			routingObj->computeDeferredUntil = 0;
 		}
 	}
 
