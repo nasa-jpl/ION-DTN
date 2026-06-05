@@ -206,25 +206,36 @@ static int	run_psmshell(short partitionSize)
 }
 
 #if defined (ION_LWT)
-int	psmshell(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+int     psmshell(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-	short	partitionSize = a1;
+	short   partitionSize = a1;
 #else
-int	main(int argc, char **argv)
+int     main(int argc, char **argv)
 {
-	short	partitionSize;
+	short   partitionSize = 0;
+#endif
+	int     parsed_int;
+	char    errMsg[256];
 
+#ifndef ION_LWT
 	if (argc < 2)
 	{
-		puts("Usage: psmshell <partition size in kilobytes>");
+		PUTS("Usage: psmshell <partition size in kilobytes>");
 		return 0;
 	}
 
-	partitionSize = atoi(argv[1]);
+	if (platform_parse_int(argv[1], &parsed_int) < 0 || parsed_int <= 0 || parsed_int > 32767)
+	{
+		isprintf(errMsg, sizeof(errMsg), "[?] Invalid partition size. Must be 1-32767: %s", argv[1]);
+		PUTS(errMsg);
+		return 0;
+	}
+	partitionSize = (short) parsed_int;
 #endif
+
 #ifdef NON_INTERACTIVE
-	return 0;	/*	No stdin/stdout, can't be interactive.	*/
+	return 0;       /* No stdin/stdout, can't be interactive.  */
 #endif
 	return run_psmshell(partitionSize);
 }
