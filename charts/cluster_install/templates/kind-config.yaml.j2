@@ -2,6 +2,15 @@ kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
   - role: control-plane
+    extraPortMappings:
+      # Map host port 8080 to the internal NodePort 32000
+      - containerPort: 32000
+        hostPort: 8080
+        protocol: TCP
+      - containerPort: 32300
+        hostPort: 8081
+        protocol: TCP
+{% if config in ['rhel8', 'rhel9'] %}
     extraMounts:
       # Mount RHEL entitlements from host for building RHEL images
       - hostPath: /etc/pki/entitlement
@@ -16,6 +25,7 @@ nodes:
         containerPath: /etc/yum.repos.d
         readOnly: true
         propagation: HostToContainer
+{% endif %}
 networking:
   disableDefaultCNI: false  # Use default kindnetd CNI for IP masquerade
   kubeProxyMode: "nftables"  # Use nftables mode for kube-proxy

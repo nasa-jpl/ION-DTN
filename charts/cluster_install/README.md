@@ -1,6 +1,8 @@
 # ARC Deployment
 
-This directory contains Ansible automation for deploying Actions Runner Controller (ARC) to a kind Kubernetes cluster.
+This directory contains Ansible automation
+for deploying Actions Runner Controller (ARC)
+to a kind Kubernetes cluster.
 
 ## Prerequisites
 
@@ -28,10 +30,9 @@ This directory contains Ansible automation for deploying Actions Runner Controll
   - `kubectl`: Kubernetes command-line tool
   - `helm`: Kubernetes package manager
 
-## Configuration Files
+## Configuration File
 
 - **secrets.local.yaml** (required): Image registry credentials and secrets
-- **kind-config.yaml** (required for RHEL configs): Kind cluster configuration with RHEL entitlement mounts
 
 ## Usage
 
@@ -40,21 +41,24 @@ Run the playbook and select your configuration when prompted:
 ```bash
 # Deploy with ol8 configuration
 cd /ion_tests/ion-ios-dev/charts
-ansible-playbook cluster_install/deploy-runners.yml
+ansible-playbook -i localhost, cluster_install/deploy-runners.yml
 # Enter: ol8
 
 # Deploy with rhel8 configuration
-ansible-playbook cluster_install/deploy-runners.yml
+ansible-playbook -i localhost, cluster_install/deploy-runners.yml
 # Enter: rhel8
 
 # Deploy with rhel9 configuration
-ansible-playbook cluster_install/deploy-runners.yml
+ansible-playbook -i localhost, cluster_install/deploy-runners.yml
 # Enter: rhel9
 ```
 
 ### Configuration Options
 
-- **ol8**: Oracle Linux 8 - Enables runnerScaleSet (U22), runnerScaleSet2 (OL8), runnerScaleSet3 (OL9), runnerScaleSet6 (U24)
+- **ol8**: Oracle Linux 8 - Enables runnerScaleSet (U22),
+  runnerScaleSet2 (OL8),
+  runnerScaleSet3 (OL9),
+  runnerScaleSet6 (U24)
   - Deploys 5 pods: 1 controller + 4 listeners
   - Does not require kind-config.yaml
 
@@ -68,15 +72,21 @@ ansible-playbook cluster_install/deploy-runners.yml
 
 ## How It Works
 
-1. **Prerequisites Validation**: Checks for required files and validates configuration
+1. **Prerequisites Validation**: Checks for required files
+   and validates configuration
 2. **Systemd Management**: Detects and stops arc.service if running
 3. **Cluster Recreation**: Deletes existing kind cluster and creates new one
-4. **Values Generation**: Generates `arc/values.yaml` from `templates/values.yaml.j2` based on selected configuration
+4. **Values Generation**: Generates `arc/values.yaml`
+   from [`templates/values.yaml.j2`](templates/values.yaml.j2)
+   based on selected configuration
 5. **Helm Deployment**: Deploys ARC chart with generated values and secrets
 6. **Validation**: Waits for pods to become ready and displays status
 7. **Service Restart**: Restarts arc.service if it was initially running
 
-**Note**: `charts/arc/values.yaml` is generated from the template and should not be edited manually. The template `charts/templates/values.yaml.j2` is the source of truth.
+**Note**: `charts/arc/values.yaml` is generated from the template
+and should not be edited manually.
+The template [`charts/templates/values.yaml.j2`](templates/values.yaml.j2)
+is the source of truth.
 
 ## Troubleshooting
 

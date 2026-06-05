@@ -22,33 +22,25 @@
   ansible.builtin.debug:
     msg: "{{ 'Existing cluster deleted' if cluster_delete.rc == 0 else 'No existing cluster found' }}"
 
-- name: Create kind cluster without config (ol8)
-  ansible.builtin.command:
-    cmd: kind create cluster
-  when: config == "ol8"
-  register: cluster_create_ol8
-  failed_when: cluster_create_ol8.rc != 0
-  changed_when: false
+- name: Generate kind config from template
+  ansible.builtin.template:
+    src: kind-config.yaml.j2
+    dest: "{{ charts_path }}/kind-config.yaml"
+    mode: "0644"
 
-- name: Create kind cluster with config (rhel8/rhel9)
+- name: Create kind cluster
   ansible.builtin.command:
     cmd: kind create cluster --config kind-config.yaml
     chdir: "{{ charts_path }}"
-  when: config in ['rhel8', 'rhel9']
-  register: cluster_create_rhel
-  failed_when: cluster_create_rhel.rc != 0
+  register: cluster_create
+  failed_when: cluster_create.rc != 0
   changed_when: false
 
 - name: Display cluster creation result
   ansible.builtin.debug:
     msg: |
       ✓ Kind cluster created successfully for {{ config }} configuration.
-      {%- set output_lines =
-            cluster_create_ol8.stderr_lines | default(['No output available'])
-            if config == 'ol8' else
-            cluster_create_rhel.stderr_lines | default(['No output available'])
-      -%}
-      {% for line in output_lines %}
+      {% for line in cluster_create.stderr_lines | default(['No output available']) %}
       {{ line }}
       {% endfor %}
 
@@ -83,3 +75,13 @@
       {% for node in node_ready_result.resources %}
       - {{ node.metadata.name }}: {{ node.status.conditions | selectattr('type', 'equalto', 'Ready') | first | attr('status') }}
       {% endfor %}
+
+- name: Remove LoadBalancer exclusion label from control plane node
+  kubernetes.core.k8s:
+    state: patched
+    kind: Node
+    name: kind-control-plane
+    definition:
+      metadata:
+        labels:
+          node.kubernetes.io/exclude-from-external-load-balancers: null
