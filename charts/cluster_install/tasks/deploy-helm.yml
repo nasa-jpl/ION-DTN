@@ -30,6 +30,166 @@
   ansible.builtin.debug:
     msg: "✓ values.yaml generated successfully for {{ config }} configuration"
 
+- name: Add Headlamp Helm repository
+  kubernetes.core.helm_repository:
+    name: headlamp
+    repo_url: "https://kubernetes-sigs.github.io/headlamp/"
+
+- name: Deploy Headlamp Helm chart
+  kubernetes.core.helm:
+    name: headlamp
+    chart_ref: headlamp/headlamp
+    release_namespace: kube-system
+    wait: true
+    release_values:
+      service:
+        type: NodePort
+        nodePort: 32000
+  register: headlamp_result
+
+- name: Check if Headlamp deployment failed
+  ansible.builtin.fail:
+    msg: "❌ Headlamp deployment failed: {{ headlamp_result.stderr | default('Unknown error') }}"
+  when: headlamp_result.failed | default(false)
+
+- name: Display Headlamp deployment result
+  ansible.builtin.debug:
+    msg: >-
+      ✓ Headlamp deployed successfully to the headlamp namespace.
+      Status: {{ 'Created' if headlamp_result.status is defined and headlamp_result.status == 201 else 'Updated' }}
+
+- name: Add metrics-server Helm repository
+  kubernetes.core.helm_repository:
+    name: metrics-server
+    repo_url: "https://kubernetes-sigs.github.io/metrics-server/"
+
+- name: Deploy metrics-server Helm chart
+  kubernetes.core.helm:
+    name: metrics-server
+    chart_ref: metrics-server/metrics-server
+    release_namespace: kube-system
+    wait: true
+    release_values:
+      args:
+        - "--kubelet-insecure-tls"
+  register: metrics_result
+
+- name: Display metrics-server deployment result
+  ansible.builtin.debug:
+    msg: >-
+      ✓ metrics-server deployed successfully to the kube-system namespace.
+      Status: {{ 'Created' if metrics_result.status is defined and metrics_result.status == 201 else 'Updated' }}
+
+- name: Create Headlamp admin ServiceAccount
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: headlamp-admin
+        namespace: kube-system
+
+- name: Create ClusterRoleBinding for Headlamp admin
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: headlamp-admin-binding
+      subjects:
+        - kind: ServiceAccount
+          name: headlamp-admin
+          namespace: kube-system
+      roleRef:
+        kind: ClusterRole
+        name: cluster-admin
+        apiGroup: rbac.authorization.k8s.io
+
+- name: Create long-lived token Secret for Headlamp admin
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: headlamp-admin-token
+        namespace: kube-system
+        annotations:
+          kubernetes.io/service-account.name: headlamp-admin
+      type: kubernetes.io/service-account-token
+
+- name: Fetch the populated token Secret
+  kubernetes.core.k8s_info:
+    kind: Secret
+    name: headlamp-admin-token
+    namespace: kube-system
+  register: headlamp_secret
+  until: >
+    headlamp_secret.resources | length > 0 and
+    headlamp_secret.resources[0].data is defined and
+    headlamp_secret.resources[0].data.token is defined
+  retries: 5
+  delay: 2
+
+- name: Record Headlamp token in ARA
+  ara_record:
+    key: "headlamp_admin_token"
+    value: "{{ headlamp_secret.resources[0].data.token | b64decode }}"
+    type: text
+
+- name: Add Prometheus helm repository
+  kubernetes.core.helm_repository:
+    name: prometheus
+    repo_url: https://prometheus-community.github.io/helm-charts
+
+- name: Install Prometheus Chart
+  kubernetes.core.helm:
+    name: prometheus
+    chart_ref: prometheus/kube-prometheus-stack
+    create_namespace: true
+    release_namespace: monitoring
+    wait: true
+    release_values:
+      grafana:
+        service:
+          type: NodePort
+          nodePort: 32300
+
+- name: Fetch Grafana admin password Secret
+  kubernetes.core.k8s_info:
+    kind: Secret
+    name: prometheus-grafana
+    namespace: monitoring
+  register: grafana_secret
+  until: >
+    grafana_secret.resources | length > 0 and
+    grafana_secret.resources[0].data is defined and
+    grafana_secret.resources[0].data['admin-password'] is defined
+  retries: 5
+  delay: 2
+
+- name: Record Grafana admin password in ARA
+  ara_record:
+    key: "grafana_admin_password"
+    value: "{{ grafana_secret.resources[0].data['admin-password'] | b64decode }}"
+    type: text
+
+- name: Import ARC Dashboard to Grafana via ConfigMap
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: arc-grafana-dashboard
+        namespace: monitoring
+        labels:
+          grafana_dashboard: "1"
+      data:
+        arc-dashboard.json: "{{ lookup('file', 'dashboard.json') }}"
+
 - name: Deploy ARC Helm chart
   kubernetes.core.helm:
     name: arc
@@ -41,10 +201,49 @@
       - "{{ charts_path }}/arc/secrets.local.yaml"
   register: helm_result
 
-- name: Check if Helm deployment failed
-  ansible.builtin.fail:
-    msg: "❌ Helm deployment failed: {{ helm_result.stderr | default('Unknown error') }}"
-  when: helm_result.failed | default(false)
+- name: Create PodMonitor for ARC Controller
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: monitoring.coreos.com/v1
+      kind: PodMonitor
+      metadata:
+        name: arc-controller-monitor
+        namespace: arc-systems
+        labels:
+          release: prometheus
+      spec:
+        namespaceSelector:
+          matchNames:
+            - arc-systems
+        selector:
+          matchLabels:
+            app.kubernetes.io/name: gha-rs
+        podMetricsEndpoints:
+          - path: /metrics
+            targetPort: 8081
+
+- name: Create PodMonitor for ARC Listeners
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: monitoring.coreos.com/v1
+      kind: PodMonitor
+      metadata:
+        name: arc-listener-monitor
+        namespace: arc-systems
+        labels:
+          release: prometheus
+      spec:
+        namespaceSelector:
+          matchNames:
+            - arc-systems
+        selector:
+          matchLabels:
+            arc-metrics: "scrape"
+        podMetricsEndpoints:
+          - path: /metrics
+            targetPort: 8081
 
 - name: Display Helm deployment result
   ansible.builtin.debug:
@@ -53,4 +252,3 @@
       Status: {{ 'Created' if helm_result.status is defined and helm_result.status == 201 else 'Updated' }}
       {{ 'Release name: ' + helm_result.release_name if helm_result.release_name is defined else '' }}
       {{ 'Revision: ' + helm_result.release_revision | string if helm_result.release_revision is defined else '' }}
-      {{ helm_result.warnings | join('\n') if helm_result.warnings is defined and helm_result.warnings | length > 0 else 'No warnings.' }}

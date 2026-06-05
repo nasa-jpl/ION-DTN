@@ -48,6 +48,10 @@ gha-runner-scale-set-controller:
   namespaceOverride: arc-systems
   serviceAccount:
     name: arc-gha-rs-controller
+  metrics:
+    controllerManagerAddr: ":8081"
+    listenerAddr: ":8081"
+    listenerEndpoint: "/metrics"
 
 gha-runner-scale-set:
   namespaceOverride: arc-runners
