@@ -873,8 +873,7 @@ static void	manageMaxBER(int tokenCount, char **tokens)
 		return;
 	}
 
-	newMaxBER = atof(tokens[2]);
-	if (newMaxBER < 0.0)
+	if (platform_parse_double(tokens[2], &newMaxBER) < 0 || newMaxBER < 0.0)
 	{
 		writeMemoNote("Max BER invalid", tokens[2]);
 		return;
@@ -993,6 +992,7 @@ static void	manageMaxSegLossRate(int tokenCount, char **tokens)
 	LtpVdb		*vdb = getLtpVdb();
 	LtpDB		ltpdb;
 	float		newLossRate;
+	double		parsed_double;
 	PsmAddress	elt;
 	LtpVspan	*vspan;
 
@@ -1002,13 +1002,14 @@ static void	manageMaxSegLossRate(int tokenCount, char **tokens)
 		return;
 	}
 
-	newLossRate = atof(tokens[2]);
-	if (newLossRate < 0.0 || newLossRate >= 1.0)
+	if (platform_parse_double(tokens[2], &parsed_double) < 0
+		|| parsed_double < 0.0 || parsed_double >= 1.0)
 	{
 		writeMemoNote("[?] maxSegmentLossRate must be [0.0, 0.99]",
 				tokens[2]);
 		return;
 	}
+	newLossRate = (float) parsed_double;
 
 	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
@@ -1180,6 +1181,7 @@ static void	manageMaxSegLossRateXmit(int tokenCount, char **tokens)
 	LtpVdb		*vdb = getLtpVdb();
 	LtpDB		ltpdb;
 	float		newLossRate;
+	double		parsed_double;
 	PsmAddress	elt;
 	LtpVspan	*vspan;
 
@@ -1189,13 +1191,14 @@ static void	manageMaxSegLossRateXmit(int tokenCount, char **tokens)
 		return;
 	}
 
-	newLossRate = atof(tokens[2]);
-	if (newLossRate < 0.0 || newLossRate >= 1.0)
+	if (platform_parse_double(tokens[2], &parsed_double) < 0
+		|| parsed_double < 0.0 || parsed_double >= 1.0)
 	{
 		writeMemoNote("[?] maxSegmentLossRate must be [0.0, 0.99]",
 				tokens[2]);
 		return;
 	}
+	newLossRate = (float) parsed_double;
 
 	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
@@ -1233,6 +1236,7 @@ static void	manageMaxSegLossRateRecv(int tokenCount, char **tokens)
 	LtpVdb		*vdb = getLtpVdb();
 	LtpDB		ltpdb;
 	float		newLossRate;
+	double		parsed_double;
 	PsmAddress	elt;
 	LtpVspan	*vspan;
 
@@ -1242,13 +1246,14 @@ static void	manageMaxSegLossRateRecv(int tokenCount, char **tokens)
 		return;
 	}
 
-	newLossRate = atof(tokens[2]);
-	if (newLossRate < 0.0 || newLossRate >= 1.0)
+	if (platform_parse_double(tokens[2], &parsed_double) < 0
+		|| parsed_double < 0.0 || parsed_double >= 1.0)
 	{
 		writeMemoNote("[?] maxSegmentLossRate must be [0.0, 0.99]",
 				tokens[2]);
 		return;
 	}
+	newLossRate = (float) parsed_double;
 
 	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &ltpdb, ltpdbObj, sizeof(LtpDB));
@@ -1480,6 +1485,7 @@ static void	manageSpanMaxSegLossRate(int tokenCount, char **tokens)
 	LtpVspan	*vspan;
 	uvast		engineId;
 	float		newLossRate;
+	double		parsed_double;
 	int		found = 0;
 
 	if (tokenCount != 5)
@@ -1489,13 +1495,15 @@ static void	manageSpanMaxSegLossRate(int tokenCount, char **tokens)
 	}
 
 	engineId = getFqn(tokens[2]);
-	newLossRate = atof(tokens[4]);
-	if (newLossRate < 0.0 || newLossRate >= 1.0)
+
+	if (platform_parse_double(tokens[4], &parsed_double) < 0
+		|| parsed_double < 0.0 || parsed_double >= 1.0)
 	{
 		writeMemoNote("[?] maxseglossrate must be in [0.0, 0.99]",
 				tokens[4]);
 		return;
 	}
+	newLossRate = (float) parsed_double;
 
 	/*	Find the span by engineId.				*/
 
@@ -1533,6 +1541,7 @@ static void	manageSpanMaxSegLossRateXmit(int tokenCount, char **tokens)
 	LtpVspan	*vspan;
 	uvast		engineId;
 	float		newLossRateXmit;
+	double		parsed_double;
 	int		found = 0;
 
 	if (tokenCount != 5)
@@ -1542,13 +1551,15 @@ static void	manageSpanMaxSegLossRateXmit(int tokenCount, char **tokens)
 	}
 
 	engineId = getFqn(tokens[2]);
-	newLossRateXmit = atof(tokens[4]);
-	if (newLossRateXmit < 0.0 || newLossRateXmit >= 1.0)
+
+	if (platform_parse_double(tokens[4], &parsed_double) < 0
+		|| parsed_double < 0.0 || parsed_double >= 1.0)
 	{
 		writeMemoNote("[?] maxseglossratexmit must be in [0.0, 0.99]",
 				tokens[4]);
 		return;
 	}
+	newLossRateXmit = (float) parsed_double;
 
 	/*	Find the span by engineId.				*/
 
@@ -1586,6 +1597,7 @@ static void	manageSpanMaxSegLossRateRecv(int tokenCount, char **tokens)
 	LtpVspan	*vspan;
 	uvast		engineId;
 	float		newLossRateRecv;
+	double		parsed_double;
 	int		found = 0;
 
 	if (tokenCount != 5)
@@ -1595,13 +1607,15 @@ static void	manageSpanMaxSegLossRateRecv(int tokenCount, char **tokens)
 	}
 
 	engineId = getFqn(tokens[2]);
-	newLossRateRecv = atof(tokens[4]);
-	if (newLossRateRecv < 0.0 || newLossRateRecv >= 1.0)
+
+	if (platform_parse_double(tokens[4], &parsed_double) < 0
+		|| parsed_double < 0.0 || parsed_double >= 1.0)
 	{
 		writeMemoNote("[?] maxseglossraterecv must be in [0.0, 0.99]",
 				tokens[4]);
 		return;
 	}
+	newLossRateRecv = (float) parsed_double;
 
 	/*	Find the span by engineId.				*/
 
@@ -2255,7 +2269,13 @@ up, abandoned.");
 				}
 				else
 				{
-					max = atoi(tokens[2]) * 4;
+					int parsed_int;
+					if (platform_parse_int(tokens[2], &parsed_int) < 0 || parsed_int < 0)
+					{
+						printText("[?] Invalid timeout value.");
+						return 0;
+					}
+					max = parsed_int * 4;
 				}
 			}
 			else
