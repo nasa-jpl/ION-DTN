@@ -11,26 +11,77 @@
 #include "platform.h"
 
 #if defined (ION_LWT)
-int	bpcancel(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+int     bpcancel(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-	char		*sourceEid = (char *) a1;
-	uvast		creationMsec = a2;
-	unsigned int	creationCount = a3;
-	unsigned int	fragmentOffset = a4;
-	unsigned int	fragmentLength = a5;
+	char            *sourceEid = (char *) a1;
+	uvast           creationMsec = a2;
+	unsigned int    creationCount = a3;
+	unsigned int    fragmentOffset = a4;
+	unsigned int    fragmentLength = a5;
 #else
-int	main(int argc, char **argv)
+int     main(int argc, char **argv)
 {
-	char		*sourceEid = argc > 1 ? argv[1] : NULL;
-	uvast		creationMsec = argc > 2 ? strtouvast(argv[2]) : 0;
-	unsigned int	creationCount = argc > 3 ? atoi(argv[3]) : 0;
-	unsigned int	fragmentOffset = argc > 4 ? atoi(argv[4]) : 0;
-	unsigned int	fragmentLength = argc > 5 ? atoi(argv[5]) : 0;
+	char            *sourceEid = NULL;
+	uvast           creationMsec = 0;
+	unsigned int    creationCount = 0;
+	unsigned int    fragmentOffset = 0;
+	unsigned int    fragmentLength = 0;
 #endif
-	Sdr		sdr;
-	BpTimestamp	creationTime;
-	Object		bundleObj;
+	Sdr             sdr;
+	BpTimestamp     creationTime;
+	Object          bundleObj;
+	int             parsed_int;
+	uvast           parsed_uvast;
+	char            errMsg[256];
+
+#ifndef ION_LWT
+	sourceEid = argc > 1 ? argv[1] : NULL;
+
+	if (argc > 2)
+	{
+		if (platform_parse_uvast(argv[2], &parsed_uvast) < 0)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid creation seconds: %s", argv[2]);
+			PUTS(errMsg);
+			return 0;
+		}
+		creationMsec = parsed_uvast;
+	}
+
+	if (argc > 3)
+	{
+		if (platform_parse_int(argv[3], &parsed_int) < 0 || parsed_int < 0)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid creation count. Must be >= 0: %s", argv[3]);
+			PUTS(errMsg);
+			return 0;
+		}
+		creationCount = (unsigned int) parsed_int;
+	}
+
+	if (argc > 4)
+	{
+		if (platform_parse_int(argv[4], &parsed_int) < 0 || parsed_int < 0)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid fragment offset. Must be >= 0: %s", argv[4]);
+			PUTS(errMsg);
+			return 0;
+		}
+		fragmentOffset = (unsigned int) parsed_int;
+	}
+
+	if (argc > 5)
+	{
+		if (platform_parse_int(argv[5], &parsed_int) < 0 || parsed_int < 0)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid fragment length. Must be >= 0: %s", argv[5]);
+			PUTS(errMsg);
+			return 0;
+		}
+		fragmentLength = (unsigned int) parsed_int;
+	}
+#endif
 
 	if (sourceEid == NULL || creationMsec == 0)
 	{
