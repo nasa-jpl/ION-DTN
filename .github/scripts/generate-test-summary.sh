@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 # Usage: generate-test-summary.sh --platform <arc|solaris> [--artifact-pattern <pattern>]
 # Parses test results to generate a GitHub Actions step summary and determine overall test status.
 
