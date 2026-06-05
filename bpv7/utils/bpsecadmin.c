@@ -820,6 +820,9 @@ static int bpsec_admin_json_getActions(jsonObject job, uint8_t *actionMask, BpSe
 	char parmStr[64+1];
 	int numParm = 0;
 	int curAct = 0;
+	int parsed_int;
+	uvast parsed_uvast;
+	char hexStr[67]; /* 64 + "0x" + null terminator */
 
 	/*
 	 * Get the index of the start of the actions array. All key-value searches
@@ -852,11 +855,17 @@ static int bpsec_admin_json_getActions(jsonObject job, uint8_t *actionMask, BpSe
 		/* Process the action based on its enumeration. */
 		switch (curAct)
 		{
-		/* If this is a report action, reas in the reason code to report. */
+		/* If this is a report action, read in the reason code to report. */
 		case BSLACT_REPORT_REASON_CODE:
 			if(bpsec_admin_json_getTypedValue(job, start, start+1, JSMN_PRIMITIVE, KNS_REASON_CODE, 64, parmStr, &start) > 0)
 			{
-				parms[parmIdx++].asReason.reasonCode = atoi(parmStr);
+				if (platform_parse_int(parmStr, &parsed_int) < 0 || parsed_int < 0 || parsed_int > 255)
+				{
+					isprintf(gUserText, USER_TEXT_LEN, "Invalid reason code. Must be 0-255: %s", parmStr);
+					bpsec_admin_printText(gUserText);
+					return -1;
+				}
+				parms[parmIdx++].asReason.reasonCode = (uint8_t) parsed_int;
 			}
 			else
 			{
@@ -873,12 +882,36 @@ static int bpsec_admin_json_getActions(jsonObject job, uint8_t *actionMask, BpSe
 			numParm = 0;
 			if(bpsec_admin_json_getTypedValue(job, start, start+3, JSMN_PRIMITIVE, KNS_MASK, 64, parmStr, NULL) > 0)
 			{
-				parms[parmIdx].asOverride.mask = (uint64_t) strtol(parmStr, NULL, 16);
+				if (parmStr[0] != '0' || (parmStr[1] != 'x' && parmStr[1] != 'X')) {
+					isprintf(hexStr, sizeof(hexStr), "0x%s", parmStr);
+				} else {
+					istrcpy(hexStr, parmStr, sizeof(hexStr));
+				}
+
+				if (platform_parse_uvast(hexStr, &parsed_uvast) < 0)
+				{
+					isprintf(gUserText, USER_TEXT_LEN, "Invalid override mask: %s", parmStr);
+					bpsec_admin_printText(gUserText);
+					return -1;
+				}
+				parms[parmIdx].asOverride.mask = (uint64_t) parsed_uvast;
 				numParm++;
 			}
 			if(bpsec_admin_json_getTypedValue(job, start, start+3, JSMN_PRIMITIVE, KNS_NEW_VALUE, 64, parmStr, NULL) > 0)
 			{
-				parms[parmIdx].asOverride.val = (uint64_t) strtol(parmStr, NULL, 16);
+				if (parmStr[0] != '0' || (parmStr[1] != 'x' && parmStr[1] != 'X')) {
+					isprintf(hexStr, sizeof(hexStr), "0x%s", parmStr);
+				} else {
+					istrcpy(hexStr, parmStr, sizeof(hexStr));
+				}
+
+				if (platform_parse_uvast(hexStr, &parsed_uvast) < 0)
+				{
+					isprintf(gUserText, USER_TEXT_LEN, "Invalid override value: %s", parmStr);
+					bpsec_admin_printText(gUserText);
+					return -1;
+				}
+				parms[parmIdx].asOverride.val = (uint64_t) parsed_uvast;
 				numParm++;
 			}
 			if(numParm != 2)
@@ -934,6 +967,7 @@ static int bpsec_admin_json_getScId(jsonObject job, int *sc_id)
 	int input_sc_id = BPSEC_UNSUPPORTED_SC;
 	char sc_id_num[NUM_STR_LEN];
 	char sc_id_str[JSON_VAL_LEN];
+	int parsed_int;
 
 	/* sc_id will default to unsupported (out of range).
 	 * If this function returns -1, the initialized sc_id will not be used. */
@@ -969,7 +1003,13 @@ static int bpsec_admin_json_getScId(jsonObject job, int *sc_id)
 	}
 	else if (result > 0)
 	{
-		input_sc_id = atoi(sc_id_num);
+		if (platform_parse_int(sc_id_num, &parsed_int) < 0 || parsed_int < 0)
+		{
+			isprintf(gUserText, USER_TEXT_LEN, "Invalid security context ID: %s", sc_id_num);
+			bpsec_admin_printText(gUserText);
+			return -1;
+		}
+		input_sc_id = parsed_int;
 
 		/* Lookup the provided SC ID to determine if it has a valid security context associated */
 		if (bpsec_sci_defFind(input_sc_id, NULL) == 1)
@@ -1025,6 +1065,7 @@ static int bpsec_admin_json_getFilterCriteria(jsonObject job, char *bsrc, char *
 	char num_str[NUM_STR_LEN];
 	char role_str[SEC_ROLE_LEN];
 	char svc_str[JSON_VAL_LEN];
+	int parsed_int;
 
 	*role = 0;
 	*type = -1;
@@ -1056,7 +1097,13 @@ static int bpsec_admin_json_getFilterCriteria(jsonObject job, char *bsrc, char *
 	}
 	else if (result > 0)
 	{
-		*type = atoi(num_str);
+		if (platform_parse_int(num_str, &parsed_int) < 0 || parsed_int < 0)
+		{
+			isprintf(gUserText, USER_TEXT_LEN, "Invalid target block type: %s", num_str);
+			bpsec_admin_printText(gUserText);
+			return 0;
+		}
+		*type = parsed_int;
 	}
 
 	/*
@@ -1286,6 +1333,8 @@ static PsmAddress bpsec_admin_json_getSecCtxtParms(jsonObject job, sc_Def *secCt
 static int bpsec_admin_json_getRuleId(jsonObject job, uint16_t *ruleId)
 {
 	char id[RULE_ID_LEN];
+	int parsed_int;
+
 	memset(id, '\0', sizeof(id));
 
 	*ruleId = 0;
@@ -1298,7 +1347,14 @@ static int bpsec_admin_json_getRuleId(jsonObject job, uint16_t *ruleId)
 		}
 	}
 
-	*ruleId= atoi(id);
+	if (platform_parse_int(id, &parsed_int) < 0 || parsed_int < 0 || parsed_int > 65535)
+	{
+		isprintf(gUserText, USER_TEXT_LEN, "Invalid rule ID. Must be 0-65535: %s", id);
+		bpsec_admin_printText(gUserText);
+		return 0;
+	}
+
+	*ruleId= (uint16_t) parsed_int;
 	return 1;
 }
 
@@ -1998,6 +2054,7 @@ static int bpsec_admin_json_getFindCriteria(jsonObject job, int start, int *type
 	char tmp_str[JSON_VAL_LEN];
 	int result = 0;
 	int sc_id = 0;
+	int parsed_int;
 
 	CHKZERO(tag);
 
@@ -2036,7 +2093,20 @@ static int bpsec_admin_json_getFindCriteria(jsonObject job, int start, int *type
 
 	/* Search for block type. A value of -1 indicates that the type was not provided. */
 	result = bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_PRIMITIVE, KNS_TGT, JSON_VAL_LEN, tmp_str, NULL);
-	tag->type = (result > 0) ? atoi(tmp_str) : -1;
+	if (result > 0)
+	{
+		if (platform_parse_int(tmp_str, &parsed_int) < 0 || parsed_int < 0)
+		{
+			isprintf(gUserText, USER_TEXT_LEN, "Invalid target block type: %s", tmp_str);
+			bpsec_admin_printText(gUserText);
+			return 0;
+		}
+		tag->type = parsed_int;
+	}
+	else
+	{
+		tag->type = -1;
+	}
 
 	/* Role can be a string or primitive value. */
 	if((result = bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_PRIMITIVE, KNS_ROLE, JSON_VAL_LEN, tmp_str, NULL)) <= 0)
