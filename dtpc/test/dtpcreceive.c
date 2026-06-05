@@ -108,7 +108,7 @@ int	dtpcreceive(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 #else
 int	main(int argc, char **argv)
 {
-	int		topicID = (argc > 1 ? atoi(argv[1]) : 0);
+	int		topicID = 0;
 #endif
 	DtpcSAP		sap;
 	DtpcDelivery	dlv;
@@ -118,6 +118,21 @@ int	main(int argc, char **argv)
 	pthread_t	printThread;
 	time_t		endTime;
 	int 		interval;
+	int		parsed_int;
+	char		errMsg[256];
+
+#ifndef ION_LWT
+	if (argc > 1)
+	{
+		if (platform_parse_int(argv[1], &parsed_int) < 0 || parsed_int <= 0)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid topic ID. Must be > 0: %s", argv[1]);
+			PUTS(errMsg);
+			return 0;
+		}
+		topicID = parsed_int;
+	}
+#endif
 
 	if (topicID == 0)
 	{
