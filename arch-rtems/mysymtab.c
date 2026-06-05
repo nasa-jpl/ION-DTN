@@ -52,14 +52,16 @@ extern int	tcpbso(int, int, int, int, int, int, int, int, int, int);
 extern int	tcpcli(int, int, int, int, int, int, int, int, int, int);
 extern int	tcpclo(int, int, int, int, int, int, int, int, int, int);
 #endif
-/* AMS excluded for minimal BP/LTP port */
+#ifdef ENABLE_AMS
+extern int	amsd(int, int, int, int, int, int, int, int, int, int);
+#endif
+/* RAMS/test/util AMS programs excluded for minimal port */
 /*extern int	ramsgate(int, int, int, int, int, int, int, int, int, int);
 extern int	amsshell(int, int, int, int, int, int, int, int, int, int);
 extern int	amslog(int, int, int, int, int, int, int, int, int, int);
 extern int	amslogprt(int, int, int, int, int, int, int, int, int, int);
 extern int	amsmib(int, int, int, int, int, int, int, int, int, int);
-extern int	amsstop(int, int, int, int, int, int, int, int, int, int);
-extern int	amsd(int, int, int, int, int, int, int, int, int, int);*/
+extern int	amsstop(int, int, int, int, int, int, int, int, int, int);*/
 #ifndef NASA_PROTECTED_FLIGHT_CODE
 extern int	cfdpadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	cfdpclock(int, int, int, int, int, int, int, int, int, int);
@@ -123,14 +125,16 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "tcpcli",	(FUNCPTR) tcpcli,	ICI_PRIORITY,	32768 },
 		{ "tcpclo",	(FUNCPTR) tcpclo,	ICI_PRIORITY,	32768 },
 #endif
-		/* AMS excluded for minimal BP/LTP port */
+#ifdef ENABLE_AMS
+		{ "amsd",	(FUNCPTR) amsd,		ICI_PRIORITY,	25576 },
+#endif
+		/* RAMS/test/util AMS programs excluded for minimal port */
 		/*{ "ramsgate",	(FUNCPTR) ramsgate,	ICI_PRIORITY,	25576 },
 		{ "amsshell",	(FUNCPTR) amsshell,	ICI_PRIORITY,	25576 },
 		{ "amslog",	(FUNCPTR) amslog,	ICI_PRIORITY,	25576 },
 		{ "amslogprt",	(FUNCPTR) amslogprt,	ICI_PRIORITY,	25576 },
 		{ "amsmib",	(FUNCPTR) amsmib,	ICI_PRIORITY,	25576 },
-		{ "amsstop",	(FUNCPTR) amsstop,	ICI_PRIORITY,	25576 },
-		{ "amsd",	(FUNCPTR) amsd,		ICI_PRIORITY,	25576 },*/
+		{ "amsstop",	(FUNCPTR) amsstop,	ICI_PRIORITY,	25576 },*/
 #ifndef NASA_PROTECTED_FLIGHT_CODE
 		{ "cfdpadmin",	(FUNCPTR) cfdpadmin,	ICI_PRIORITY,	24576 },
 		{ "cfdpclock",	(FUNCPTR) cfdpclock,	ICI_PRIORITY,	24576 },
