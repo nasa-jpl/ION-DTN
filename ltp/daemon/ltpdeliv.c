@@ -241,6 +241,40 @@ int	main(void)
 			continue;
 		}
 
+		/*	The deliverable still matches, but the import
+		 *	session it refers to may have been canceled and
+		 *	torn down by another LTP task while we were waiting
+		 *	for ZCO space: the SDR lock was released over that
+		 *	interval, so sessionObj sampled in the first
+		 *	transaction can now be a freed session record.  A
+		 *	freed record's segment lists have already been
+		 *	destroyed by clearImportSession(), so reusing the
+		 *	stale handle here and walking those lists below reads
+		 *	freed SDR space and trips the SDR boundaries/integrity
+		 *	guard.  Re-resolve the session under the reacquired
+		 *	lock and discard the deliverable if it is gone.		*/
+
+		findSpan(sourceEngineId, &vspan, &vspanElt);
+		if (vspanElt != 0)
+		{
+			getImportSession(vspan, sessionNbr, &vsession,
+					&sessionObj);
+		}
+
+		if (vspanElt == 0 || sessionObj == 0)
+		{
+			sdr_free(sdr, delivObj);
+			sdr_list_delete(sdr, elt, NULL, NULL);
+			ionShred(ticket);		/*	Cancel.	*/
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("LTP delivery failed.", NULL);
+				break;
+			}
+
+			continue;
+		}
+
 		sdr_stage(sdr, (char *) &sessionBuf, sessionObj,
 				sizeof(LtpImportSession));
 		svcDataObject = zco_create(sdr, 0, 0, 0, 0, ZcoInbound);
