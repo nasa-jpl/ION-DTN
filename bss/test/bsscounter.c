@@ -1,17 +1,17 @@
 /*
- *	bsscounter.c:	A test application that demonstrates the
- *			functionality of BSS API.  It receives and
- *			processes a stream of bundles.
- *
- *	Adapted from bsscounter.c, written by Sotiris-Angelos Lenas,
- *	Democritus University of Thrace.
- *
- *	Copyright (c) 2012, California Institute of Technology.
- *
- *	All rights reserved.
- *
- *	Author: Scott Burleigh
- */
+*	bsscounter.c:	A test application that demonstrates the
+*			functionality of BSS API.  It receives and
+*			processes a stream of bundles.
+*
+*	Adapted from bsscounter.c, written by Sotiris-Angelos Lenas,
+*	Democritus University of Thrace.
+*
+*	Copyright (c) 2012, California Institute of Technology.
+*
+*	All rights reserved.
+*
+*	Author: Scott Burleigh
+*/
 
 #include "bsstest.h"
 
@@ -42,9 +42,9 @@ static int	display(time_t sec, unsigned long count, char *buf,
 	}
 
 	/*  Debugging only: we check realtime bundles are in-order.
-	 *  BSS callback for realtime bundles already perform this
-	 *  check.
-	 *  Such check can be turned-off to reduce overhead.     */
+	*  BSS callback for realtime bundles already perform this
+	*  check.
+	*  Such check can be turned-off to reduce overhead.     */
 	if (sec < prevSec)
 	{
 		writeMemoNote("[?] bsscounter: Real-time stream out of order, prev bundle time second",
@@ -90,18 +90,18 @@ static int	checkReceptionStatus(char *buffer, int limit, long playback_wait)
 	long		bytesRead;
 
 	/* This function performs a database read.
-	 * NOTE: it reads "forward" and will not
-	 * pick up any delayed bundled. Therefore
-	 * to make sure *all* bundles are read,
-	 * the "playback_wait" should be set
-	 * sufficiently long. */
+	* NOTE: it reads "forward" and will not
+	* pick up any delayed bundled. Therefore
+	* to make sure *all* bundles are read,
+	* the "playback_wait" should be set
+	* sufficiently long. */
 
 	/* reset nav data structure */
 	memset((char *) &nav, 0, sizeof nav);
 
 	/* Wait for initial data arrival, we
-	 * assume database is empty, otherwise
-	 * we will pick up previous data stream. */
+	* assume database is empty, otherwise
+	* we will pick up previous data stream. */
 	if (bundleSec == 0)
 	{
 		puts("Waiting for stream...");
@@ -121,7 +121,7 @@ static int	checkReceptionStatus(char *buffer, int limit, long playback_wait)
 	}
 
 	/* Now we reset nav in case the first arrival is
-	 * not the actual first bundle in the stream */
+	* not the actual first bundle in the stream */
 	if (bssSeek(&nav, 0, &bundleSec, &bundleCount) < 0)
 	{
 		writeMemo("[?] BSS database is missing data...");
@@ -182,34 +182,67 @@ static int	checkReceptionStatus(char *buffer, int limit, long playback_wait)
 }
 
 #if defined (ION_LWT)
-int	bsscounter(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+int     bsscounter(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-	int 	limit = strtol((char *) a1, NULL, 0);
-	char	*bssName = (char *) a2;
-	char	*path = (char *) a3;
-	char	*eid = (char *) a4;
-	int	cmdFile = fileno(stdin);
-	char	*buffer;
-	int	result;
-	long playback_wait = strtol((char *) a5, NULL, 0);
+	int     limit = 0;
+	char    *bssName = (char *) a2;
+	char    *path = (char *) a3;
+	char    *eid = (char *) a4;
+	int     cmdFile = fileno(stdin);
+	char    *buffer;
+	int     result;
+	long    playback_wait = 5;
 #else
-int	main(int argc, char **argv)
+int     main(int argc, char **argv)
 {
-	int 	limit=0;
-	char	*bssName = NULL;
-	char	*path = NULL;
-	char	*eid = NULL;
-	char	*buffer;
-	int	result;
-	int recv_count = 0;
-	long playback_wait = 5;
+	int     limit = 0;
+	char    *bssName = NULL;
+	char    *path = NULL;
+	char    *eid = NULL;
+	char    *buffer;
+	int     result;
+	long    playback_wait = 5;
+#endif
+	int     recv_count = 0;
+	int     parsed_int;
+	char    errMsg[256];
 
+#if defined (ION_LWT)
+	/* Tell compiler we aren't using cmdFile (legacy dead code) */
+	(void) cmdFile;
+
+	if (a1)
+	{
+		if (platform_parse_int((char *) a1, &parsed_int) < 0 || parsed_int < 1)
+		{
+			PUTS("[?] Invalid limit. Must be >= 1.");
+			return 1;
+		}
+		limit = parsed_int;
+	}
+
+	if (a5)
+	{
+		if (platform_parse_int((char *) a5, &parsed_int) < 0 || parsed_int < 0)
+		{
+			PUTS("[?] Invalid playback delay. Must be >= 0.");
+			return 1;
+		}
+		playback_wait = (long) parsed_int;
+	}
+#else
 	if (argc > 6) argc = 6;
 	switch (argc)
 	{
 	case 6:
-		playback_wait = strtol(argv[5], NULL, 0);
+		if (platform_parse_int(argv[5], &parsed_int) < 0 || parsed_int < 0)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid playback delay. Must be >= 0: %s", argv[5]);
+			PUTS(errMsg);
+			return 1;
+		}
+		playback_wait = (long) parsed_int;
 		/* FALLTHROUGH */
 
 	case 5:
@@ -225,12 +258,19 @@ int	main(int argc, char **argv)
 		/* FALLTHROUGH */
 
 	case 2:
-		limit = strtol(argv[1], NULL, 0);
+		if (platform_parse_int(argv[1], &parsed_int) < 0 || parsed_int < 1)
+		{
+			isprintf(errMsg, sizeof(errMsg), "[?] Invalid limit. Must be >= 1: %s", argv[1]);
+			PUTS(errMsg);
+			return 1;
+		}
+		limit = parsed_int;
 		/* FALLTHROUGH */
 
 	default:
 		break;
 	}
+#endif
 
 	if (bssName == NULL)
 	{
@@ -244,22 +284,22 @@ int	main(int argc, char **argv)
 
 	if (eid == NULL || limit < 1)
 	{
-		puts("Usage: bsscounter <number of bundles to receive> <BSS \
+		PUTS("Usage: bsscounter <number of bundles to receive> <BSS \
 database name> <path for BSS database files> <own endpoint ID> \
 <optional: playback delay in seconds> - adding playback delay allows \
 for complete accounting of out-or-order delivery, default 5 seconds.");
 		fflush(stdout);
 		return 1;
 	}
-#endif
+
 	/*
-	 * ********************************************************
-	 * In order for the BSS receiving thread to work properly,
-	 * the receiving application must always allocate a buffer
-	 * of a certain size and provide its address and its length
-	 * to bssRun or bssStart function.
-	 * ********************************************************
-	 */
+	* ********************************************************
+	* In order for the BSS receiving thread to work properly,
+	* the receiving application must always allocate a buffer
+	* of a certain size and provide its address and its length
+	* to bssRun or bssStart function.
+	* ********************************************************
+	*/
 
 	buffer = calloc(2 * RCV_LENGTH, sizeof(char));
 	if (buffer == NULL)
@@ -285,13 +325,13 @@ for complete accounting of out-or-order delivery, default 5 seconds.");
 		case -1:
 			puts("bss test failed.");
 			fflush(stdout);
-			result = 1;		/*	Failed.		*/
+			result = 1;		/* Failed.         */
 			break;
 
 		case 0:
 			puts("reception no complete yet...");
 			fflush(stdout);
-			continue;		/*	Not done yet.	*/
+			continue;		/* Not done yet.   */
 
 		default:
 			/* in-order real-time reception reported by display */
@@ -301,11 +341,11 @@ for complete accounting of out-or-order delivery, default 5 seconds.");
 					recv_count);
 			puts("bss test succeeded.");
 			fflush(stdout);
-			result = 0;		/*	Succeeded.	*/
-			break;			/*	Out of switch.	*/
+			result = 0;		/* Succeeded.      */
+			break;			/* Out of switch.  */
 		}
 
-		break;				/*	Out of loop.	*/
+		break;				/* Out of loop.    */
 	}
 
 	oK(bssExit());
