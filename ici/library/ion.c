@@ -477,8 +477,15 @@ void writeMemoToIonLog(char *text)
 
 static char	ionCrashLogPath[264] = "";
 
-/*	write() a literal string (length known at compile time).		*/
-#define	ION_SAFE_WRITE(fd, s)	oK(write((fd), (s), sizeof(s) - 1))
+/*	write() a literal string (length known at compile time).	*/
+/*	A (void) cast does not silence write()'s warn_unused_result	*/
+/*	attribute, so consume the result through a variable instead.	*/
+#define	ION_SAFE_WRITE(fd, s)						\
+	do								\
+	{								\
+		ssize_t	wrote_ = write((fd), (s), sizeof(s) - 1);	\
+		(void) wrote_;						\
+	} while (0)
 
 static void	ionSafeWriteInt(int fd, int n)
 {
@@ -508,7 +515,8 @@ static void	ionSafeWriteInt(int fd, int n)
 		v /= 10;
 	}
 
-	oK(write(fd, buf + i, (size_t) (sizeof buf - i)));
+	ssize_t	wrote = write(fd, buf + i, (size_t) (sizeof buf - i));
+	(void) wrote;
 }
 
 static void	ionDumpTraceToFd(int fd, int sig, void **frames, int count)
