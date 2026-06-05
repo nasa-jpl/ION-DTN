@@ -104,6 +104,9 @@ static int	processLine(PsmPartition partition, PsmAddress rbt, char *line,
 	PsmAddress		next;
 	unsigned long		prevdata;
 	char			*memo = "";
+	int			parsed_int;
+	uvast			parsed_uvast;
+	char			errMsg[256];
 
 	/* Parameter intentionally unused. */
 	(void)lineLength;
@@ -162,7 +165,14 @@ static int	processLine(PsmPartition partition, PsmAddress rbt, char *line,
 			}
 			else
 			{
-				seed = strtol(tokens[1], NULL, 0);
+				if (platform_parse_uvast(tokens[1], &parsed_uvast) < 0)
+				{
+					isprintf(errMsg, sizeof(errMsg), "[?] Invalid seed: %s", tokens[1]);
+					PUTS(errMsg);
+					return 0;
+				}
+				seed = (unsigned int) parsed_uvast;
+
 				if (seed == 0)
 				{
 					seed = time(NULL);
@@ -179,7 +189,14 @@ static int	processLine(PsmPartition partition, PsmAddress rbt, char *line,
 			}
 			else
 			{
-				count = strtol(tokens[1], NULL, 0);
+				if (platform_parse_int(tokens[1], &parsed_int) < 0 || parsed_int < 0)
+				{
+					isprintf(errMsg, sizeof(errMsg), "[?] Invalid count. Must be >= 0: %s", tokens[1]);
+					PUTS(errMsg);
+					return 0;
+				}
+				count = (unsigned int) parsed_int;
+
 				if (count == 0)
 				{
 					count = 1;
@@ -210,7 +227,14 @@ if (treeBroken(partition, rbt)) PUTS("Tree is broken.");
 			}
 			else
 			{
-				data = strtol(tokens[1], NULL, 0);
+				if (platform_parse_uvast(tokens[1], &parsed_uvast) < 0)
+				{
+					isprintf(errMsg, sizeof(errMsg), "[?] Invalid insert value: %s", tokens[1]);
+					PUTS(errMsg);
+					return 0;
+				}
+				data = (unsigned long) parsed_uvast;
+
 				if (sm_rbt_insert(partition, rbt, data,
 						compareNodes, &data) == 0)
 				{
@@ -230,7 +254,14 @@ if (treeBroken(partition, rbt)) PUTS("Tree is broken.");
 			}
 			else
 			{
-				data = strtol(tokens[1], NULL, 0);
+				if (platform_parse_uvast(tokens[1], &parsed_uvast) < 0)
+				{
+					isprintf(errMsg, sizeof(errMsg), "[?] Invalid find value: %s", tokens[1]);
+					PUTS(errMsg);
+					return 0;
+				}
+				data = (unsigned long) parsed_uvast;
+
 				node = sm_rbt_search(partition, rbt,
 						compareNodes, &data, &next);
 				PUTMEMO("Node address", utoa(node));
@@ -246,7 +277,14 @@ if (treeBroken(partition, rbt)) PUTS("Tree is broken.");
 			}
 			else
 			{
-				data = strtol(tokens[1], NULL, 0);
+				if (platform_parse_uvast(tokens[1], &parsed_uvast) < 0)
+				{
+					isprintf(errMsg, sizeof(errMsg), "[?] Invalid delete value: %s", tokens[1]);
+					PUTS(errMsg);
+					return 0;
+				}
+				data = (unsigned long) parsed_uvast;
+
 				node = sm_rbt_search(partition, rbt,
 						compareNodes, &data, NULL);
 				if (node == 0)
