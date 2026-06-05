@@ -23,12 +23,16 @@ static int	run_psmshell(short partitionSize)
 	PsmPartition	partition = NULL;
 	char		line[256];
 	int		len;
-	int		count;
 	int		cmdFile;
 	char		command;
 	PsmUsageSummary	summary;
 	int		cell;
 	unsigned int	size;
+	char		*cursor;
+	char		*tokens[3];
+	int		tokenCount;
+	int		parsed_int;
+	uvast		parsed_uvast;
 
 	if (sm_ipc_init() < 0)
 	{
@@ -81,8 +85,66 @@ static int	run_psmshell(short partitionSize)
 			continue;
 		}
 
-		count = sscanf(line, "%c %d %u", &command, &cell, &size);
-		switch (count)
+		/*	Tokenize the input line safely.			*/
+		tokenCount = 0;
+		cursor = line;
+		while (*cursor != '\0' && tokenCount < 3)
+		{
+			while (isspace((unsigned char) *cursor))
+			{
+				cursor++;
+			}
+
+			if (*cursor == '\0')
+			{
+				break;
+			}
+
+			tokens[tokenCount] = cursor;
+			tokenCount++;
+
+			while (*cursor != '\0' && !isspace((unsigned char) *cursor))
+			{
+				cursor++;
+			}
+
+			if (*cursor != '\0')
+			{
+				*cursor = '\0';
+				cursor++;
+			}
+		}
+
+		if (tokenCount == 0)
+		{
+			continue;
+		}
+
+		/*	Extract and validate parameters.		*/
+		command = tokens[0][0];
+
+		if (tokenCount > 1)
+		{
+			if (platform_parse_int(tokens[1], &parsed_int) < 0)
+			{
+				puts("psmshell: invalid cell number format.");
+				continue;
+			}
+			cell = parsed_int;
+		}
+
+		if (tokenCount > 2)
+		{
+			if (platform_parse_uvast(tokens[2], &parsed_uvast) < 0
+				|| parsed_uvast > UINT_MAX)
+			{
+				puts("psmshell: invalid size format or overflow.");
+				continue;
+			}
+			size = (unsigned int) parsed_uvast;
+		}
+
+		switch (tokenCount)
 		{
 		case 1:
 			switch (command)
