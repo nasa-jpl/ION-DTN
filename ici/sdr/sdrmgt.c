@@ -1183,6 +1183,28 @@ void	_sdrfree(Sdr sdrv, Object object, PutSrc src)
 				sdrv->currentSourceFileName,
 				sdrv->currentSourceFileLine);
 #endif
+		/*	"Can't free arbitrary space" is the symptom of any
+		 *	double-free / use-after-free / pointer-into-the-
+		 *	middle-of-something bug in the caller, and the
+		 *	following crashXn aborts the SDR transaction.
+		 *	Log the offending address, caller (when invoked
+		 *	via the Sdr_free macro that records file/line) and
+		 *	a stack trace so the cascade can be diagnosed
+		 *	without re-running under instrumentation.	*/
+
+		{
+			char	msg[256];
+
+			isprintf(msg, sizeof msg,
+				"[?] sdr_free invalid object: addr="
+				ADDR_FIELDSPEC " src=%d caller=%s:%d",
+				(Address)addr, (int)src,
+				sdrv->currentSourceFileName ?
+					sdrv->currentSourceFileName : "?",
+				sdrv->currentSourceFileLine);
+			writeMemo(msg);
+			printStackTrace();
+		}
 		putErrmsg("Can't free arbitrary space.", NULL);
 		crashXn(sdrv);
 		return;
