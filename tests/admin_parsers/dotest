@@ -1,0 +1,346 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# ION Administrative Parser Regression Suite
+# ==============================================================================
+#
+# This harness validates the strict string-to-numeric coercion hardening
+# implemented across the administrative CLI suite. It ensures that malformed
+# inputs (e.g., negative bounds, architectural overflows, and trailing garbage)
+# are securely caught by the underlying platform parsing utilities rather than
+# failing open, wrapping, or triggering unhandled assertions in legacy logic.
+#
+# Specifically, this suite exercises the bounds-checking, type-validation,
+# and garbage-rejection logic of the following targeted functions:
+#   - platform_parse_int()
+#   - platform_parse_uvast()
+#   - platform_parse_double()
+#
+# Execution: Generates, loads, and cleans up temporary .rc configurations
+# within an isolated, single-node execution environment.
+# ==============================================================================
+
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+# Clean up temporary configuration files and tear down the dummy node.
+cleanup() {
+    echo -e "\n--- INITIATING TEARDOWN ---"
+    # 1. Graceful shutdown
+    ionstop
+
+    # 2. Catch any daemons that ignored the stop signal
+    for daemon in ionadmin ltpadmin bpadmin ipnadmin cfdpadmin dtpcadmin ionsecadmin bpsecadmin; do
+        pkill -x "$daemon" 2>/dev/null
+    done
+
+    # 3. Explicitly nuke the IPC memory
+    echo -e "\n--- FORCING IPC CLEANUP ---"
+    killm f
+
+    rm -f test_*.ionconfig test_*.rc test_*.ionrc
+    rm -f ./ion_nodes
+
+
+    # 4. Handle the log file LAST so shutdown messages don't recreate it
+    if [ $RETVAL -eq 0 ]; then
+        rm -f ion.log
+    else
+        echo -e "\nTest suite failed. Leaving ion.log in place for debugging."
+    fi
+}
+
+trap 'cleanup' EXIT
+
+echo "Starting temporary ION node for parser testing..."
+
+# Create a known-good .ionconfig to allow the node to boot
+echo "wmSize 5000000" > test_good.ionconfig
+cat <<EOF > test_boot.ionrc
+1 1 test_good.ionconfig
+s
+EOF
+
+ionadmin test_boot.ionrc > /dev/null 2>&1
+sleep 1
+
+# Initialize supporting sub-systems
+echo "1 32" > test_ltp_boot.rc
+ltpadmin test_ltp_boot.rc > /dev/null 2>&1
+sleep 1
+
+echo "1" > test_generic_boot.rc
+bpadmin test_generic_boot.rc > /dev/null 2>&1
+ipnadmin test_generic_boot.rc > /dev/null 2>&1
+cfdpadmin test_generic_boot.rc > /dev/null 2>&1
+dtpcadmin test_generic_boot.rc > /dev/null 2>&1
+ionsecadmin test_generic_boot.rc > /dev/null 2>&1
+
+# Boot BPSec and add a dummy es_ref to prevent the legacy radix assertion bug
+echo "1" > test_bpsec_boot.rc
+echo 'a { "event_set": { "es_ref": "test", "desc": "dummy" } }' >> test_bpsec_boot.rc
+bpsecadmin test_bpsec_boot.rc > /dev/null 2>&1
+
+# Boot BSSP
+echo "1 32" > test_bssp_boot.rc
+bsspadmin test_bssp_boot.rc > /dev/null 2>&1
+
+# Boot DTKA
+echo "1" > test_dtka_boot.rc
+dtkaadmin test_dtka_boot.rc > /dev/null 2>&1
+
+sleep 1
+
+# --- TEST HARNESS FUNCTION ---
+# Args: <Utility Name> <Config File Name> <Command to Test> <Expected Error> <Test Description>
+run_file_test() {
+    local util="$1"
+    local filename="$2"
+    local cmd="$3"
+    local expected_err="$4"
+    local desc="$5"
+
+    echo "$cmd" > "$filename"
+
+    # Flush log prior to test to guarantee isolation
+    > ion.log
+
+    local output
+    output=$("$util" "$filename" 2>&1)
+
+    if echo "$output" | grep -Fq "$expected_err" || grep -Fq "$expected_err" ion.log 2>/dev/null; then
+        echo "Okay: $desc"
+        rm -f "$filename"
+        return 0
+    else
+        echo "Error: $desc"
+        echo "       Expected to catch: '$expected_err'"
+        echo "       Command executed:  $cmd"
+        RETVAL=1
+        return 1
+    fi
+}
+
+echo ""
+echo "Running parser regression tests..."
+
+# ==========================================
+# BIBEADMIN
+# ==========================================
+run_file_test "bibeadmin" "test_bibe_bsr.rc" \
+    "a bcla ipn:1.1 1 2 foo 86400 1 1 1 0" \
+    "Invalid bsrFlags" \
+    "bibeadmin rejected trailing garbage in bsrFlags." || exit $RETVAL
+
+run_file_test "bibeadmin" "test_bibe_life.rc" \
+    "a bcla ipn:1.1 1 2 ipn:2.1 128 86400foo 1 1 0" \
+    "Invalid lifespan" \
+    "bibeadmin rejected trailing garbage in lifespan." || exit $RETVAL
+
+# ==========================================
+# BPSECADMIN
+# ==========================================
+# Using 'd' (delete) to bypass legacy Radix assertion bug during dummy execution
+run_file_test "bpsecadmin" "test_bpsec_rule.rc" \
+    'd { "policyrule": { "rule_id": 70000 } }' \
+    "Invalid rule ID" \
+    "bpsecadmin rejected out-of-bounds policy rule ID." || exit $RETVAL
+
+# ==========================================
+# BSSPADMIN
+# ==========================================
+run_file_test "bsspadmin" "test_bssp_sessions.rc" \
+    "1 -5" \
+    "Invalid max sessions" \
+    "bsspadmin rejected negative max sessions." || exit $RETVAL
+
+run_file_test "bsspadmin" "test_bssp_qtime.rc" \
+    "m ownqtime foo" \
+    "Invalid own Q time" \
+    "bsspadmin rejected trailing garbage in ownqtime." || exit $RETVAL
+
+# ==========================================
+# CFDPADMIN
+# ==========================================
+run_file_test "cfdpadmin" "test_cfdp_rtt.rc" \
+    "a entity 1 bp ipn:1.1 4294967296 1 1" \
+    "Invalid rtt" \
+    "cfdpadmin rejected architectural overflow in RTT." || exit $RETVAL
+
+run_file_test "cfdpadmin" "test_cfdp_fill.rc" \
+    "m fillchar 256" \
+    "Invalid fillCharacter" \
+    "cfdpadmin rejected out-of-bounds fill character." || exit $RETVAL
+
+# ==========================================
+# DTKAADMIN
+# ==========================================
+run_file_test "dtkaadmin" "test_dtka_keysize.rc" \
+    "m keytype aes foo" \
+    "Invalid key size" \
+    "dtkaadmin rejected trailing garbage in key size." || exit $RETVAL
+
+run_file_test "dtkaadmin" "test_dtka_interval.rc" \
+    "m interval 500foo" \
+    "Invalid interval" \
+    "dtkaadmin rejected trailing garbage in interval." || exit $RETVAL
+
+# ==========================================
+# DTN2ADMIN
+# ==========================================
+run_file_test "dtn2admin" "test_dtn2_xmit.rc" \
+    "a plan node1 x ipn/1 -1" \
+    "Invalid xmit rate" \
+    "dtn2admin rejected negative xmit rate." || exit $RETVAL
+
+# ==========================================
+# DTPCADMIN
+# ==========================================
+run_file_test "dtpcadmin" "test_dtpc_rtx.rc" \
+    "a profile 1 -5 1000 1000 86400 0.0 ipn:2.1" \
+    "Invalid maxRtx" \
+    "dtpcadmin rejected negative max retransmissions." || exit $RETVAL
+
+run_file_test "dtpcadmin" "test_dtpc_profile.rc" \
+    "a profile foo 2 3 4 5 1.1 ipn:2.1" \
+    "Invalid profileID" \
+    "dtpcadmin rejected trailing garbage in profileID." || exit $RETVAL
+
+run_file_test "dtpcadmin" "test_dtpc_aggr.rc" \
+    "a profile 1 2 3 foo 5 1.1 ipn:2.1" \
+    "Invalid aggrTimeLimit" \
+    "dtpcadmin rejected trailing garbage in aggrTimeLimit." || exit $RETVAL
+
+# ==========================================
+# IONADMIN
+# ==========================================
+run_file_test "ionadmin" "test_neg_xmit.rc" \
+    "a contact +1 +3600 1 2 -1 1.0" \
+    "Invalid transmit rate" \
+    "ionadmin rejected negative xmitRate." || exit $RETVAL
+
+run_file_test "ionadmin" "test_garbage_xmit.rc" \
+    "a contact +1 +3600 1 2 500foo 1.0" \
+    "Invalid transmit rate" \
+    "ionadmin rejected trailing garbage in xmitRate." || exit $RETVAL
+
+run_file_test "ionadmin" "test_nan_conf.rc" \
+    "a contact +1 +3600 1 2 5000 NaN" \
+    "Invalid confidence" \
+    "ionadmin rejected NaN in confidence." || exit $RETVAL
+
+run_file_test "ionadmin" "test_overflow_owlt.rc" \
+    "a range +1 +3600 1 2 4294967296" \
+    "Invalid OWLT" \
+    "ionadmin rejected architectural overflow in OWLT." || exit $RETVAL
+
+run_file_test "ionadmin" "test_ion_utc.rc" \
+    "m utcdelta foo" \
+    "Invalid UTC delta" \
+    "ionadmin rejected trailing garbage in utcdelta." || exit $RETVAL
+
+run_file_test "ionadmin" "test_ion_clock.rc" \
+    "m clockerr 99999999999999999999" \
+    "Invalid clock error" \
+    "ionadmin rejected architectural overflow in clockerr." || exit $RETVAL
+
+run_file_test "ionadmin" "test_ion_wm.rc" \
+    "m memprotect 50 foo" \
+    "Invalid working memory percent" \
+    "ionadmin rejected trailing garbage in working memory percent." || exit $RETVAL
+
+# ==========================================
+# IONSECADMIN
+# ==========================================
+run_file_test "ionsecadmin" "test_sec_time.rc" \
+    "a pubkey 1 1000foo 2000 32 0123456789ABCDEF" \
+    "Invalid effective time" \
+    "ionsecadmin rejected trailing garbage in timestamp." || exit $RETVAL
+
+run_file_test "ionsecadmin" "test_ionsec_keylen.rc" \
+    "a key mykey mykeyfile foo" \
+    "Invalid key length" \
+    "ionsecadmin rejected trailing garbage in key length." || exit $RETVAL
+
+# ==========================================
+# IPNADMIN
+# ==========================================
+run_file_test "ipnadmin" "test_ipn_xmit.rc" \
+    "a plan 1 ipn/1 4294967296" \
+    "Invalid xmit rate" \
+    "ipnadmin rejected architectural overflow in xmit rate." || exit $RETVAL
+
+run_file_test "ipnadmin" "test_ipn_prio.rc" \
+    "a cosovrd 1 2 3 256 0" \
+    "Invalid priority (0-255)" \
+    "ipnadmin rejected out-of-bounds priority in CoS override." || exit $RETVAL
+
+# ==========================================
+# IPND
+# ==========================================
+run_file_test "ipnd" "test_ipnd_tag.rc" \
+    "1
+m svcdef foo name child:fixed" \
+    "Invalid tag id" \
+    "ipnd rejected trailing garbage in tag id." || exit $RETVAL
+
+run_file_test "ipnd" "test_ipnd_ttl.rc" \
+    "1
+m multicast ttl 300" \
+    "Invalid multicast TTL" \
+    "ipnd rejected out-of-bounds multicast TTL (> 255)." || exit $RETVAL
+
+# ==========================================
+# LTPADMIN
+# ==========================================
+run_file_test "ltpadmin" "test_neg_retries.rc" \
+    "m maxretries -5" \
+    "Invalid maxRetries" \
+    "ltpadmin rejected negative default maxRetries." || exit $RETVAL
+
+run_file_test "ltpadmin" "test_bounds_segloss.rc" \
+    "m maxseglossrate 1.5" \
+    "maxSegmentLossRate must be [0.0, 0.99]" \
+    "ltpadmin rejected out-of-bounds maxSegmentLossRate." || exit $RETVAL
+
+run_file_test "ltpadmin" "test_ltp_aggr.rc" \
+    "a span 1 32 32 1024 4294967296 1 'udplso'" \
+    "Invalid aggrSizeLimit" \
+    "ltpadmin rejected architectural overflow in aggrSizeLimit." || exit $RETVAL
+
+run_file_test "ltpadmin" "test_ltp_heap.rc" \
+    "m heapmax foo" \
+    "Invalid heapmax" \
+    "ltpadmin rejected trailing garbage in heapmax." || exit $RETVAL
+
+run_file_test "ltpadmin" "test_ltp_qtime.rc" \
+    "m ownqtime 500foo" \
+    "Invalid own Q time" \
+    "ltpadmin rejected trailing garbage in ownQtime." || exit $RETVAL
+
+run_file_test "ltpadmin" "test_ltp_span_rtx.rc" \
+    "m span 1 maxretriesxmit foo" \
+    "Invalid span maxretriesxmit" \
+    "ltpadmin rejected trailing garbage in span maxretriesxmit." || exit $RETVAL
+
+run_file_test "ltpadmin" "test_ltp_backlog.rc" \
+    "m maxbacklog foo" \
+    "Invalid maxBacklog" \
+    "ltpadmin rejected trailing garbage in maxBacklog." || exit $RETVAL
+
+# ==========================================
+# LTPSECADMIN
+# ==========================================
+run_file_test "ltpsecadmin" "test_ltpsec_engine.rc" \
+    "a ltprecvauthrule foo 1 keyname" \
+    "Invalid engine ID" \
+    "ltpsecadmin rejected trailing garbage in engine ID." || exit $RETVAL
+
+run_file_test "ltpsecadmin" "test_ltpsec_cipher.rc" \
+    "a ltpxmitauthrule 1 foo keyname" \
+    "Invalid ciphersuite number" \
+    "ltpsecadmin rejected trailing garbage in ciphersuite number." || exit $RETVAL
+
+echo ""
+echo "Parser regression test completed."
+exit $RETVAL
