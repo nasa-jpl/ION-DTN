@@ -177,21 +177,21 @@ static void	executeAdd(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[5], &parsed_rtt) < 0 || parsed_rtt > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid rtt: %s", tokens[5]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
 		if (platform_parse_uvast(tokens[6], &parsed_inCk) < 0 || parsed_inCk > 255)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid incstype: %s", tokens[6]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
 		if (platform_parse_uvast(tokens[7], &parsed_outCk) < 0 || parsed_outCk > 255)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid outcstype: %s", tokens[7]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
@@ -232,21 +232,21 @@ static void	executeChange(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[5], &parsed_rtt) < 0 || parsed_rtt > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid rtt: %s", tokens[5]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
 		if (platform_parse_uvast(tokens[6], &parsed_inCk) < 0 || parsed_inCk > 255)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid incstype: %s", tokens[6]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
 		if (platform_parse_uvast(tokens[7], &parsed_outCk) < 0 || parsed_outCk > 255)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid outcstype: %s", tokens[7]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
@@ -666,7 +666,7 @@ static void	manageFillchar(int tokenCount, char **tokens)
 	if (platform_parse_uvast(tokens[2], &parsed_val) < 0 || parsed_val > 255)
 	{
 		isprintf(errMsg, sizeof(errMsg), "[?] Invalid fillCharacter (must be 0-255 or hex): %s", tokens[2]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 
@@ -868,7 +868,7 @@ static void	manageThrottle(int tokenCount, char **tokens)
 	if (platform_parse_uvast(tokens[2], &newThrottle) < 0)
 	{
 		isprintf(errMsg, sizeof(errMsg), "[?] Invalid throttle rate: %s", tokens[2]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 

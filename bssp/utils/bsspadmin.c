@@ -127,7 +127,7 @@ static void	initializeBssp(int tokenCount, char **tokens)
 	{
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid max sessions: %s", tokens[1]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 	estMaxNbrOfSessions = (unsigned int) parsed_sessions;
@@ -190,7 +190,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 			{
 				isprintf(errMsg, sizeof(errMsg),
 						"[?] Invalid qTime: %s", tokens[7]);
-				printText(errMsg);
+				PUTS(errMsg); writeMemo(errMsg);
 				return;
 			}
 
@@ -217,7 +217,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		{
 			isprintf(errMsg, sizeof(errMsg),
 					"[?] Invalid maxExportSessions: %s", tokens[3]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
@@ -226,7 +226,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		{
 			isprintf(errMsg, sizeof(errMsg),
 					"[?] Invalid maxImportSessions: %s", tokens[4]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
@@ -267,7 +267,7 @@ static void	executeChange(int tokenCount, char **tokens)
 			{
 				isprintf(errMsg, sizeof(errMsg),
 						"[?] Invalid qTime: %s", tokens[7]);
-				printText(errMsg);
+				PUTS(errMsg); writeMemo(errMsg);
 				return;
 			}
 
@@ -294,7 +294,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		{
 			isprintf(errMsg, sizeof(errMsg),
 					"[?] Invalid maxExportSessions: %s", tokens[3]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
@@ -303,7 +303,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		{
 			isprintf(errMsg, sizeof(errMsg),
 					"[?] Invalid maxImportSessions: %s", tokens[4]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
@@ -594,7 +594,7 @@ static void	manageOwnqtime(int tokenCount, char **tokens)
 	{
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid own Q time: %s", tokens[2]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 

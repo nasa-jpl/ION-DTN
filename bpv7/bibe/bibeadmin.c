@@ -133,7 +133,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 			if (platform_parse_uvast(tokens[11], &parsed_uvast) < 0 || parsed_uvast > UINT_MAX)
 			{
 				isprintf(errMsg, sizeof(errMsg), "[?] Invalid label: %s", tokens[11]);
-				printText(errMsg);
+				PUTS(errMsg); writeMemo(errMsg);
 				return;
 			}
 			label = (unsigned int) parsed_uvast;
@@ -151,7 +151,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[3], &parsed_uvast) < 0 || parsed_uvast > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid fwdLatency: %s", tokens[3]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		fwdLatency = (unsigned int) parsed_uvast;
@@ -159,7 +159,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[4], &parsed_uvast) < 0 || parsed_uvast > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid rtnLatency: %s", tokens[4]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		rtnLatency = (unsigned int) parsed_uvast;
@@ -167,7 +167,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[6], &parsed_uvast) < 0 || parsed_uvast > 255)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid bsrFlags: %s", tokens[6]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		bsrFlags = (unsigned char) parsed_uvast;
@@ -175,7 +175,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		if (platform_parse_int(tokens[7], &parsed_int) < 0)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid lifespan: %s", tokens[7]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		lifespan = parsed_int;
@@ -183,7 +183,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[8], &parsed_uvast) < 0 || parsed_uvast > 255)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid priority: %s", tokens[8]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		priority = (unsigned char) parsed_uvast;
@@ -191,7 +191,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[9], &parsed_uvast) < 0 || parsed_uvast > 255)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid ordinal: %s", tokens[9]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		ordinal = (unsigned char) parsed_uvast;
@@ -199,7 +199,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[10], &parsed_uvast) < 0 || parsed_uvast > 255)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid qosFlags: %s", tokens[10]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		qosFlags = (unsigned char) parsed_uvast;
@@ -241,7 +241,7 @@ static void	executeChange(int tokenCount, char **tokens)
 			if (platform_parse_uvast(tokens[11], &parsed_uvast) < 0 || parsed_uvast > UINT_MAX)
 			{
 				isprintf(errMsg, sizeof(errMsg), "[?] Invalid label: %s", tokens[11]);
-				printText(errMsg);
+				PUTS(errMsg); writeMemo(errMsg);
 				return;
 			}
 			label = (unsigned int) parsed_uvast;
@@ -259,7 +259,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[3], &parsed_uvast) < 0 || parsed_uvast > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid fwdLatency: %s", tokens[3]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		fwdLatency = (unsigned int) parsed_uvast;
@@ -267,7 +267,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[4], &parsed_uvast) < 0 || parsed_uvast > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid rtnLatency: %s", tokens[4]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		rtnLatency = (unsigned int) parsed_uvast;
@@ -275,7 +275,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[6], &parsed_uvast) < 0 || parsed_uvast > 255)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid bsrFlags: %s", tokens[6]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		bsrFlags = (unsigned char) parsed_uvast;
@@ -283,7 +283,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		if (platform_parse_int(tokens[7], &parsed_int) < 0)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid lifespan: %s", tokens[7]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		lifespan = parsed_int;
@@ -291,7 +291,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[8], &parsed_uvast) < 0 || parsed_uvast > 255)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid priority: %s", tokens[8]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		priority = (unsigned char) parsed_uvast;
@@ -299,7 +299,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[9], &parsed_uvast) < 0 || parsed_uvast > 255)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid ordinal: %s", tokens[9]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		ordinal = (unsigned char) parsed_uvast;
@@ -307,7 +307,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[10], &parsed_uvast) < 0 || parsed_uvast > 255)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid qosFlags: %s", tokens[10]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		qosFlags = (unsigned char) parsed_uvast;

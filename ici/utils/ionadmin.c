@@ -265,7 +265,7 @@ static void executeAdd(int tokenCount, char **tokens)
 		{
 			isprintf(errMsg, sizeof(errMsg),
 					"[?] Invalid confidence: %s", tokens[7]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		confidence = (float) parsed_double;
@@ -370,7 +370,7 @@ than start time and earlier than 19 January 2038.");
 			if (platform_parse_uvast(tokens[6], &parsed_xmitRate) < 0 || parsed_xmitRate > UINT_MAX)
 			{
 				isprintf(errMsg, sizeof(errMsg), "[?] Invalid transmit rate: must be a positive integer within bounds. (Got: %s)", tokens[6]);
-				printText(errMsg);
+				PUTS(errMsg); writeMemo(errMsg);
 				return;
 			}
 			xmitRate = (unsigned int)parsed_xmitRate;
@@ -400,7 +400,7 @@ time and earlier than 19 January 2038.");
 		if (platform_parse_uvast(tokens[6], &parsed_owlt) < 0 || parsed_owlt > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid OWLT: must be a positive integer within bounds. (Got: %s)", tokens[6]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		owlt = (unsigned int)parsed_owlt;
@@ -444,7 +444,7 @@ static void executeChange(int tokenCount, char **tokens)
 		{
 			isprintf(errMsg, sizeof(errMsg),
 					"[?] Invalid confidence: %s", tokens[6]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		confidence = (float) parsed_double;
@@ -473,7 +473,7 @@ static void executeChange(int tokenCount, char **tokens)
 	if (platform_parse_uvast(tokens[5], &parsed_xmitRate) < 0 || parsed_xmitRate > UINT_MAX)
 	{
 		isprintf(errMsg, sizeof(errMsg), "[?] Invalid transmit rate: must be a positive integer within bounds. (Got: %s)", tokens[5]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 	xmitRate = (unsigned int)parsed_xmitRate;
@@ -776,7 +776,7 @@ static void	manageUtcDelta(int tokenCount, char **tokens)
 	{
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid UTC delta: %s", tokens[2]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 
@@ -801,7 +801,7 @@ static void	manageClockError(int tokenCount, char **tokens)
 	{
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid clock error: %s", tokens[2]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 
@@ -843,7 +843,7 @@ static void	manageClockSync(int tokenCount, char **tokens)
 			isprintf(errMsg, sizeof(errMsg),
 					"[?] Invalid clock sync flag: %s",
 					tokens[2]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
@@ -882,7 +882,7 @@ static void	manageProduction(int tokenCount, char **tokens)
 	{
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid production rate: %s", tokens[2]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 
@@ -921,7 +921,7 @@ static void	manageConsumption(int tokenCount, char **tokens)
 	{
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid consumption rate: %s", tokens[2]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 
@@ -968,7 +968,7 @@ static void	manageOccupancy(int tokenCount, char **tokens, ZcoAcct acct)
 			{
 				isprintf(errMsg, sizeof(errMsg),
 						"[?] Invalid ZCO file occupancy limit: %s", tokens[3]);
-				printText(errMsg);
+				PUTS(errMsg); writeMemo(errMsg);
 				return;
 			}
 			newFileLimit = (vast) parsed_uvast;
@@ -987,7 +987,7 @@ static void	manageOccupancy(int tokenCount, char **tokens, ZcoAcct acct)
 			{
 				isprintf(errMsg, sizeof(errMsg),
 						"[?] Invalid ZCO heap occupancy limit: %s", tokens[2]);
-				printText(errMsg);
+				PUTS(errMsg); writeMemo(errMsg);
 				return;
 			}
 			newHeapLimit = (vast) parsed_uvast;
@@ -1090,7 +1090,7 @@ static void	manageSearch(int tokenCount, char **tokens)
 	{
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid search limit: %s", tokens[2]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 	newLimit = (unsigned int) parsed_limit;
@@ -1235,7 +1235,7 @@ static void	manageMemProtect(int tokenCount, char **tokens)
 	{
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid heap percent: %s", tokens[2]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 
@@ -1244,7 +1244,7 @@ static void	manageMemProtect(int tokenCount, char **tokens)
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid working memory percent: %s",
 				tokens[3]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 
