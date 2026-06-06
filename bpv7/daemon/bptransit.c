@@ -182,7 +182,18 @@ int	main(void)
 			bundle.transitElt = 0;
 			sdr_write(sdr, bundleAddr, (char *) &bundle,
 					sizeof(Bundle));
-			sdr_exit_xn(sdr);
+			/*	This error path modified the SDR (removed the
+			 *	bundle from transit), so the transaction must be
+			 *	committed.  sdr_exit_xn here would cancel it,
+			 *	which corrupts the lock on a non-reversible SDR
+			 *	(configFlags=1) and cascades the daemon line.	*/
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't commit discard of bad transit \
+bundle.", NULL);
+				mtp.running = 0;
+			}
+
 			continue;
 		}
 
@@ -203,7 +214,16 @@ int	main(void)
 			bundle.transitElt = 0;
 			sdr_write(sdr, bundleAddr, (char *) &bundle,
 					sizeof(Bundle));
-			sdr_exit_xn(sdr);
+			/*	Commit the removal; sdr_exit_xn would cancel a
+			 *	modified transaction and corrupt the lock on a
+			 *	non-reversible SDR (#1051/#1052 cascade).	*/
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't commit discard of bad transit \
+bundle.", NULL);
+				mtp.running = 0;
+			}
+
 			continue;
 		}
 
@@ -294,7 +314,16 @@ int	main(void)
 			bundle.transitElt = 0;
 			sdr_write(sdr, bundleAddr, (char *) &bundle,
 					sizeof(Bundle));
-			sdr_exit_xn(sdr);
+			/*	Commit the removal; sdr_exit_xn would cancel a
+			 *	modified transaction and corrupt the lock on a
+			 *	non-reversible SDR (#1051/#1052 cascade).	*/
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Can't commit discard of bad transit \
+bundle.", NULL);
+				mtp.running = 0;
+			}
+
 			ionShred(ticket);		/*	Cancel.	*/
 			continue;
 		}

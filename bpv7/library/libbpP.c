@@ -3079,8 +3079,19 @@ incomplete bundle.", NULL);
 	/*	Check for any remaining constraints on deletion.	*/
 
 	if (bundle.fragmentElt || bundle.dlvQueueElt || bundle.fwdQueueElt
-	|| bundle.planXmitElt || bundle.ductXmitElt || bundle.detained)
+	|| bundle.planXmitElt || bundle.ductXmitElt || bundle.detained
+	|| bundle.transitElt)
 	{
+		/*	transitElt: the bundle is still queued in db->transit
+		 *	awaiting bptransit.  Destroying it here (on the
+		 *	conditional path, e.g. custody release) would free
+		 *	the SDR object while it is still linked from the
+		 *	transit list, leaving a dangling pointer that
+		 *	bptransit later reads as a garbage bundle.  Defer
+		 *	destruction until bptransit dequeues it (which clears
+		 *	transitElt); TTL expiry takes the unconditional path,
+		 *	which force-removes the transit reference.	*/
+
 		return 0;	/*	Can't destroy bundle yet.	*/
 	}
 
