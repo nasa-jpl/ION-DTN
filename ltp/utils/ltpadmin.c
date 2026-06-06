@@ -159,7 +159,7 @@ static void	initializeLtp(int tokenCount, char **tokens)
 	{
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid max sessions: %s", tokens[1]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 	estMaxNbrOfSessions = (unsigned int) parsed_sessions;
@@ -283,7 +283,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 			{
 				isprintf(errMsg, sizeof(errMsg),
 						"[?] Invalid qTime: %s", tokens[9]);
-				printText(errMsg);
+				PUTS(errMsg); writeMemo(errMsg);
 				return;
 			}
 
@@ -308,35 +308,35 @@ static void	executeAdd(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[3], &p_maxExp) < 0 || p_maxExp > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid maxExportSessions: %s", tokens[3]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
 		if (platform_parse_uvast(tokens[4], &p_maxImp) < 0 || p_maxImp > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid maxImportSessions: %s", tokens[4]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
 		if (platform_parse_uvast(tokens[5], &p_maxSeg) < 0 || p_maxSeg > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid maxSegmentSize: %s", tokens[5]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
 		if (platform_parse_uvast(tokens[6], &p_aggrSize) < 0 || p_aggrSize > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid aggrSizeLimit: %s", tokens[6]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
 		if (platform_parse_uvast(tokens[7], &p_aggrTime) < 0 || p_aggrTime > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid aggrTimeLimit: %s", tokens[7]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
@@ -399,7 +399,7 @@ static void	executeChange(int tokenCount, char **tokens)
 			{
 				isprintf(errMsg, sizeof(errMsg),
 						"[?] Invalid qTime: %s", tokens[9]);
-				printText(errMsg);
+				PUTS(errMsg); writeMemo(errMsg);
 				return;
 			}
 
@@ -424,35 +424,35 @@ static void	executeChange(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[3], &p_maxExp) < 0 || p_maxExp > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid maxExportSessions: %s", tokens[3]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
 		if (platform_parse_uvast(tokens[4], &p_maxImp) < 0 || p_maxImp > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid maxImportSessions: %s", tokens[4]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
 		if (platform_parse_uvast(tokens[5], &p_maxSeg) < 0 || p_maxSeg > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid maxSegmentSize: %s", tokens[5]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
 		if (platform_parse_uvast(tokens[6], &p_aggrSize) < 0 || p_aggrSize > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid aggrSizeLimit: %s", tokens[6]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
 		if (platform_parse_uvast(tokens[7], &p_aggrTime) < 0 || p_aggrTime > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid aggrTimeLimit: %s", tokens[7]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
@@ -743,7 +743,7 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 	{
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid heapmax: %s", tokens[2]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 	heapmax = (unsigned int) parsed_heapmax;
@@ -836,7 +836,7 @@ static void	manageOwnqtime(int tokenCount, char **tokens)
 	{
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid own Q time: %s", tokens[2]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 
@@ -939,7 +939,7 @@ static void	manageMaxRetries(int tokenCount, char **tokens)
 	{
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid maxRetries: %s", tokens[2]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 	newMaxRetries = (unsigned int) parsed_retries;
@@ -1064,7 +1064,7 @@ static void	manageMaxRetriesXmit(int tokenCount, char **tokens)
 	{
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid maxRetriesXmit: %s", tokens[2]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 	newMaxRetries = (unsigned int) parsed_retries;
@@ -1134,7 +1134,7 @@ static void	manageMaxRetriesRecv(int tokenCount, char **tokens)
 	{
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid maxRetriesRecv: %s", tokens[2]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 	newMaxRetries = (unsigned int) parsed_retries;
@@ -1310,7 +1310,7 @@ static void	manageSpanMaxRetries(int tokenCount, char **tokens)
 	{
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid span maxretries: %s", tokens[4]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 	newMaxRetries = (unsigned int) parsed_retries;
@@ -1374,7 +1374,7 @@ static void	manageSpanMaxRetriesXmit(int tokenCount, char **tokens)
 	{
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid span maxretriesxmit: %s", tokens[4]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 	newMaxRetriesXmit = (unsigned int) parsed_retries;
@@ -1438,7 +1438,7 @@ static void	manageSpanMaxRetriesRecv(int tokenCount, char **tokens)
 	{
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid span maxretriesrecv: %s", tokens[4]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 	newMaxRetriesRecv = (unsigned int) parsed_retries;
@@ -1672,7 +1672,7 @@ static void	manageSpanInactivityLimit(int tokenCount, char **tokens)
 	{
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid inactivity limit: %s", tokens[4]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 	newLimit = (unsigned int) parsed_limit;
@@ -1727,7 +1727,7 @@ static void	manageMaxBacklog(int tokenCount, char **tokens)
 	{
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid maxBacklog: %s", tokens[2]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 	maxBacklog = (unsigned int) parsed_backlog;

@@ -161,7 +161,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 			if (platform_parse_int(tokens[4], &parsed_int) < 0)
 			{
 				isprintf(errMsg, sizeof(errMsg), "[?] Invalid key length: %s", tokens[4]);
-				printText(errMsg);
+				PUTS(errMsg); writeMemo(errMsg);
 				return;
 			}
 			sec_addKey(tokens[2], tokens[3], parsed_int);
@@ -187,7 +187,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[3], &parsed_uvast) < 0)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid effective time: %s", tokens[3]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		effectiveTime = (time_t) parsed_uvast;
@@ -195,7 +195,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[4], &parsed_uvast) < 0)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid assertion time: %s", tokens[4]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		assertionTime = (time_t) parsed_uvast;
@@ -203,7 +203,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		if (platform_parse_int(tokens[5], &parsed_int) < 0 || parsed_int < 0)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid key length: %s", tokens[5]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		datLen = (unsigned short) parsed_int;
@@ -269,7 +269,7 @@ static void executeChange(int tokenCount, char **tokens)
 			if (platform_parse_int(tokens[4], &parsed_int) < 0)
 			{
 				isprintf(errMsg, sizeof(errMsg), "[?] Invalid key length: %s", tokens[4]);
-				printText(errMsg);
+				PUTS(errMsg); writeMemo(errMsg);
 				return;
 			}
 			sec_updateKey(tokens[2], tokens[3], parsed_int);
@@ -323,7 +323,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[3], &parsed_uvast) < 0)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid effective time: %s", tokens[3]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		effectiveTime = (time_t) parsed_uvast;
@@ -446,7 +446,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[3], &parsed_uvast) < 0)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid effective time: %s", tokens[3]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			sdr_exit_xn(sdr); /* Safely close transaction before returning */
 			return;
 		}

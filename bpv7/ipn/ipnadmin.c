@@ -152,7 +152,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 				if (platform_parse_uvast(tokens[4], &parsed_uvast) < 0 || parsed_uvast > UINT_MAX)
 				{
 					isprintf(errMsg, sizeof(errMsg), "[?] Invalid xmit rate: %s", tokens[4]);
-					printText(errMsg);
+					PUTS(errMsg); writeMemo(errMsg);
 					return;
 				}
 				nominalRate = (unsigned int) parsed_uvast;
@@ -200,7 +200,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[2], &parsed_uvast) < 0 || parsed_uvast > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid data label: %s", tokens[2]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		dataLabel = (unsigned int) parsed_uvast;
@@ -235,7 +235,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 			if (platform_parse_int(tokens[7], &parsed_int) < 0)
 			{
 				isprintf(errMsg, sizeof(errMsg), "[?] Invalid QoS flags: %s", tokens[7]);
-				printText(errMsg);
+				PUTS(errMsg); writeMemo(errMsg);
 				return;
 			}
 			flags = parsed_int;
@@ -258,7 +258,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[2], &parsed_uvast) < 0 || parsed_uvast > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid data label: %s", tokens[2]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		dataLabel = (unsigned int) parsed_uvast;
@@ -283,7 +283,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[5], &parsed_uvast) < 0 || parsed_uvast > 255)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid priority (0-255): %s", tokens[5]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		priority = (unsigned char) parsed_uvast;
@@ -291,7 +291,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[6], &parsed_uvast) < 0 || parsed_uvast > 255)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid ordinal (0-255): %s", tokens[6]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		ordinal = (unsigned char) parsed_uvast;
@@ -339,7 +339,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[3], &parsed_uvast) < 0 || parsed_uvast > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid xmit rate: %s", tokens[3]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		nominalRate = (unsigned int) parsed_uvast;
@@ -383,7 +383,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[2], &parsed_uvast) < 0 || parsed_uvast > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid data label: %s", tokens[2]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		dataLabel = (unsigned int) parsed_uvast;
@@ -418,7 +418,7 @@ static void	executeChange(int tokenCount, char **tokens)
 			if (platform_parse_int(tokens[7], &parsed_int) < 0)
 			{
 				isprintf(errMsg, sizeof(errMsg), "[?] Invalid QoS flags: %s", tokens[7]);
-				printText(errMsg);
+				PUTS(errMsg); writeMemo(errMsg);
 				return;
 			}
 			flags = parsed_int;
@@ -442,7 +442,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[2], &parsed_uvast) < 0 || parsed_uvast > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid data label: %s", tokens[2]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		dataLabel = (unsigned int) parsed_uvast;
@@ -467,7 +467,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[5], &parsed_uvast) < 0 || parsed_uvast > 255)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid priority (0-255): %s", tokens[5]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		priority = (unsigned char) parsed_uvast;
@@ -475,7 +475,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[6], &parsed_uvast) < 0 || parsed_uvast > 255)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid ordinal (0-255): %s", tokens[6]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		ordinal = (unsigned char) parsed_uvast;
@@ -540,7 +540,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 		if (platform_parse_uvast(tokens[2], &parsed_uvast) < 0 || parsed_uvast > UINT_MAX)
 		{
 			isprintf(errMsg, sizeof(errMsg), "[?] Invalid data label: %s", tokens[2]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 		dataLabel = (unsigned int) parsed_uvast;

@@ -183,7 +183,7 @@ static void	infoProfile(int tokenCount, char **tokens)
 	{
 		isprintf(errMsg, sizeof(errMsg),
 				"[?] Invalid profileID: %s", tokens[2]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 	profileID = (unsigned int) parsed_profileID;
@@ -231,7 +231,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		{
 			isprintf(errMsg, sizeof(errMsg),
 					"[?] Invalid profileID: %s", tokens[2]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
@@ -240,7 +240,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		{
 			isprintf(errMsg, sizeof(errMsg),
 					"[?] Invalid maxRtx: %s", tokens[3]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
@@ -249,7 +249,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		{
 			isprintf(errMsg, sizeof(errMsg),
 					"[?] Invalid aggrSizeLimit: %s", tokens[4]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
@@ -258,7 +258,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		{
 			isprintf(errMsg, sizeof(errMsg),
 					"[?] Invalid aggrTimeLimit: %s", tokens[5]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
@@ -267,7 +267,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		{
 			isprintf(errMsg, sizeof(errMsg),
 					"[?] Invalid ttl: %s", tokens[6]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
@@ -307,7 +307,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 		{
 			isprintf(errMsg, sizeof(errMsg),
 					"[?] Invalid profileID: %s", tokens[2]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 

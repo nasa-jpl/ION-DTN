@@ -132,7 +132,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 				if (platform_parse_uvast(tokens[5], &parsed_rate) < 0 || parsed_rate > UINT_MAX)
 				{
 					isprintf(errMsg, sizeof(errMsg), "[?] Invalid xmit rate: %s", tokens[5]);
-					printText(errMsg);
+					PUTS(errMsg); writeMemo(errMsg);
 					return;
 				}
 				nominalRate = (unsigned int) parsed_rate;
@@ -149,7 +149,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 				if (platform_parse_uvast(tokens[3], &parsed_rate) < 0 || parsed_rate > UINT_MAX)
 				{
 					isprintf(errMsg, sizeof(errMsg), "[?] Invalid xmit rate: %s", tokens[3]);
-					printText(errMsg);
+					PUTS(errMsg); writeMemo(errMsg);
 					return;
 				}
 				nominalRate = (unsigned int) parsed_rate;
@@ -178,7 +178,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 			if (platform_parse_uvast(tokens[3], &parsed_rate) < 0 || parsed_rate > UINT_MAX)
 			{
 				isprintf(errMsg, sizeof(errMsg), "[?] Invalid xmit rate: %s", tokens[3]);
-				printText(errMsg);
+				PUTS(errMsg); writeMemo(errMsg);
 				return;
 			}
 			nominalRate = (unsigned int) parsed_rate;
@@ -231,7 +231,7 @@ static void	executeChange(int tokenCount, char **tokens)
 				if (platform_parse_uvast(tokens[5], &parsed_rate) < 0 || parsed_rate > UINT_MAX)
 				{
 					isprintf(errMsg, sizeof(errMsg), "[?] Invalid xmit rate: %s", tokens[5]);
-					printText(errMsg);
+					PUTS(errMsg); writeMemo(errMsg);
 					return;
 				}
 				nominalRate = (unsigned int) parsed_rate;
@@ -249,7 +249,7 @@ static void	executeChange(int tokenCount, char **tokens)
 				if (platform_parse_uvast(tokens[3], &parsed_rate) < 0 || parsed_rate > UINT_MAX)
 				{
 					isprintf(errMsg, sizeof(errMsg), "[?] Invalid xmit rate: %s", tokens[3]);
-					printText(errMsg);
+					PUTS(errMsg); writeMemo(errMsg);
 					return;
 				}
 				nominalRate = (unsigned int) parsed_rate;
@@ -279,7 +279,7 @@ static void	executeChange(int tokenCount, char **tokens)
 			if (platform_parse_uvast(tokens[3], &parsed_rate) < 0 || parsed_rate > UINT_MAX)
 			{
 				isprintf(errMsg, sizeof(errMsg), "[?] Invalid xmit rate: %s", tokens[3]);
-				printText(errMsg);
+				PUTS(errMsg); writeMemo(errMsg);
 				return;
 			}
 			nominalRate = (unsigned int) parsed_rate;

@@ -128,7 +128,7 @@ static void managekeyType(int tokenCount, char **tokens)
 	{
 		char errMsg[256];
 		isprintf(errMsg, sizeof(errMsg), "[?] Invalid key size. (Got: %s)", tokens[3]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 	newkeySize = (unsigned int)parsed_size;
@@ -196,7 +196,7 @@ static void manageInterval(int tokenCount, char **tokens)
 	{
 		char errMsg[256];
 		isprintf(errMsg, sizeof(errMsg), "[?] Invalid interval. (Got: %s)", tokens[2]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 
@@ -233,7 +233,7 @@ static void manageLeadTime(int tokenCount, char **tokens)
 	{
 		char errMsg[256];
 		isprintf(errMsg, sizeof(errMsg), "[?] Invalid leadtime. (Got: %s)", tokens[2]);
-		printText(errMsg);
+		PUTS(errMsg); writeMemo(errMsg);
 		return;
 	}
 	if (newLeadTime < 20)

@@ -862,7 +862,7 @@ static int bpsec_admin_json_getActions(jsonObject job, uint8_t *actionMask, BpSe
 				if (platform_parse_int(parmStr, &parsed_int) < 0 || parsed_int < 0 || parsed_int > 255)
 				{
 					isprintf(gUserText, USER_TEXT_LEN, "Invalid reason code. Must be 0-255: %s", parmStr);
-					bpsec_admin_printText(gUserText);
+					PUTS(gUserText); writeMemo(gUserText);
 					return -1;
 				}
 				parms[parmIdx++].asReason.reasonCode = (uint8_t) parsed_int;
@@ -891,7 +891,7 @@ static int bpsec_admin_json_getActions(jsonObject job, uint8_t *actionMask, BpSe
 				if (platform_parse_uvast(hexStr, &parsed_uvast) < 0)
 				{
 					isprintf(gUserText, USER_TEXT_LEN, "Invalid override mask: %s", parmStr);
-					bpsec_admin_printText(gUserText);
+					PUTS(gUserText); writeMemo(gUserText);
 					return -1;
 				}
 				parms[parmIdx].asOverride.mask = (uint64_t) parsed_uvast;
@@ -908,7 +908,7 @@ static int bpsec_admin_json_getActions(jsonObject job, uint8_t *actionMask, BpSe
 				if (platform_parse_uvast(hexStr, &parsed_uvast) < 0)
 				{
 					isprintf(gUserText, USER_TEXT_LEN, "Invalid override value: %s", parmStr);
-					bpsec_admin_printText(gUserText);
+					PUTS(gUserText); writeMemo(gUserText);
 					return -1;
 				}
 				parms[parmIdx].asOverride.val = (uint64_t) parsed_uvast;
@@ -1006,7 +1006,7 @@ static int bpsec_admin_json_getScId(jsonObject job, int *sc_id)
 		if (platform_parse_int(sc_id_num, &parsed_int) < 0 || parsed_int < 0)
 		{
 			isprintf(gUserText, USER_TEXT_LEN, "Invalid security context ID: %s", sc_id_num);
-			bpsec_admin_printText(gUserText);
+			PUTS(gUserText); writeMemo(gUserText);
 			return -1;
 		}
 		input_sc_id = parsed_int;
@@ -1100,7 +1100,7 @@ static int bpsec_admin_json_getFilterCriteria(jsonObject job, char *bsrc, char *
 		if (platform_parse_int(num_str, &parsed_int) < 0 || parsed_int < 0)
 		{
 			isprintf(gUserText, USER_TEXT_LEN, "Invalid target block type: %s", num_str);
-			bpsec_admin_printText(gUserText);
+			PUTS(gUserText); writeMemo(gUserText);
 			return 0;
 		}
 		*type = parsed_int;
@@ -1350,7 +1350,7 @@ static int bpsec_admin_json_getRuleId(jsonObject job, uint16_t *ruleId)
 	if (platform_parse_int(id, &parsed_int) < 0 || parsed_int < 0 || parsed_int > 65535)
 	{
 		isprintf(gUserText, USER_TEXT_LEN, "Invalid rule ID. Must be 0-65535: %s", id);
-		bpsec_admin_printText(gUserText);
+		PUTS(gUserText); writeMemo(gUserText);
 		return 0;
 	}
 
@@ -2098,7 +2098,7 @@ static int bpsec_admin_json_getFindCriteria(jsonObject job, int start, int *type
 		if (platform_parse_int(tmp_str, &parsed_int) < 0 || parsed_int < 0)
 		{
 			isprintf(gUserText, USER_TEXT_LEN, "Invalid target block type: %s", tmp_str);
-			bpsec_admin_printText(gUserText);
+			PUTS(gUserText); writeMemo(gUserText);
 			return 0;
 		}
 		tag->type = parsed_int;

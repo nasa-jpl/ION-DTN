@@ -156,7 +156,7 @@ static void     executeAdd(int tokenCount, char **tokens)
 		{
 			isprintf(errMsg, sizeof(errMsg),
 					"[?] Invalid engine ID: %s", tokens[2]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
@@ -165,7 +165,7 @@ static void     executeAdd(int tokenCount, char **tokens)
 		{
 			isprintf(errMsg, sizeof(errMsg),
 					"[?] Invalid ciphersuite number: %s", tokens[3]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
@@ -198,7 +198,7 @@ static void     executeAdd(int tokenCount, char **tokens)
 		{
 			isprintf(errMsg, sizeof(errMsg),
 					"[?] Invalid engine ID: %s", tokens[2]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
@@ -207,7 +207,7 @@ static void     executeAdd(int tokenCount, char **tokens)
 		{
 			isprintf(errMsg, sizeof(errMsg),
 					"[?] Invalid ciphersuite number: %s", tokens[3]);
-			printText(errMsg);
+			PUTS(errMsg); writeMemo(errMsg);
 			return;
 		}
 
