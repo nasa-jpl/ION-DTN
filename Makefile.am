@@ -1179,6 +1179,7 @@ bpnoinst = \
 	bpv7/dccp/dccpcla.h \
 	bpv7/dtn2/dtn2fw.h \
 	bpv7/ipn/ipnfw.h \
+	bpv7/ipn/cbdedup.h \
 	bpv7/ipnd/ipndP.h \
 	bpv7/library/bpP.h \
 	bpv7/ltp/ltpcla.h \
@@ -1588,7 +1589,7 @@ ipnadminep_SOURCES = bpv7/ipn/ipnadminep.c
 ipnadminep_LDADD = libici.la $(bplib)
 ipnadminep_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-ipnfw_SOURCES = bpv7/ipn/ipnfw.c
+ipnfw_SOURCES = bpv7/ipn/ipnfw.c bpv7/ipn/cbdedup.c
 ipnfw_LDADD = libici.la $(bplib)
 ipnfw_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 

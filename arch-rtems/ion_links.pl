@@ -154,6 +154,7 @@ bpv7/utils/hmackeys.c
 bpv7/dtn2/dtn2fw.c
 bpv7/dtn2/dtn2adminep.c
 bpv7/ipn/ipnfw.c
+bpv7/ipn/cbdedup.c
 bpv7/ipn/ipnadminep.c
 bpv7/ipnd/ipnd.c
 bpv7/ipnd/helper.c

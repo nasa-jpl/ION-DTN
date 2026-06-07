@@ -184,6 +184,7 @@ def build(bld):
         'lgagent.c',
         'ipnadmin.c',
         'ipnfw.c',
+        'cbdedup.c',
         'ipnadminep.c',
         'ltpcli.c',
         'ltpclo.c',

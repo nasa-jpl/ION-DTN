@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+cd "$(dirname "$0")"
+killm 2>/dev/null || true
+rm -f ion_nodes /tmp/dedup_diamond_payload.bin
+for d in [0-9]*.ipn.ltp; do
+    rm -f "$d"/start.log "$d"/bpcounter.log "$d"/ion.log "$d"/*.pid
+done

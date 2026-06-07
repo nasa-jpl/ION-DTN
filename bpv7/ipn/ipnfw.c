@@ -13,6 +13,7 @@
 #include "ipnfw.h"
 #include "bei.h"	/* For findExtensionBlock */
 #include "cbr.h"	/* For CBR_BLOCK_TYPE_CTEB */
+#include "cbdedup.h"	/* Critical-bundle forward duplication guard. */
 
 #ifdef	ION_BANDWIDTH_RESERVED
 #define	MANAGE_OVERBOOKING	0
@@ -634,6 +635,7 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 	CgrRoute	*route;
 	Bundle		newBundle;
 	Object		newBundleObj;
+	int		enqueued = 0;
 
 	/*	Enqueue the bundle on the plan for the entry node of
 	 *	EACH identified best route.				*/
@@ -676,9 +678,16 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 			lyst_destroy(bestRoutes);
 			return -1;
 		}
+
+		enqueued = 1;
 	}
 
 	lyst_destroy(bestRoutes);
+	if (enqueued)
+	{
+		oK(cbdedup_record(bundle));
+	}
+
 	if (bundle->dlvConfidence >= MIN_NET_DELIVERY_CONFIDENCE
 	|| bundle->id.source.ssp.ipn.fqnn
 			== bundle->destination.ssp.ipn.fqnn)
@@ -1062,6 +1071,19 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 	CgrTrace	*trace = NULL;
 #endif
 
+	/*	Critical-bundle de-duplication (Layer 1): if this node has
+	 *	already forwarded a copy of this critical bundle, drop the
+	 *	duplicate here, before any routing/cloning/migration, so it
+	 *	never coexists with the sibling copy in the forward/transmit
+	 *	path.  cbdedup_seen() is a no-op for non-critical bundles.
+	 *	There is no "duplicate" status-report reason code, so use the
+	 *	generic "no additional information" reason (BP_REASON_NONE).	*/
+
+	if (cbdedup_seen(bundle))
+	{
+		return bpAbandon(bundleObj, bundle, BP_REASON_NONE);
+	}
+
 	elt = sdr_list_first(sdr, bundle->stations);
 	if (elt == 0)
 	{
@@ -1271,6 +1293,13 @@ int	main(void)
 	}
 
 	cgr_start();
+	if (cbdedup_init() < 0)
+	{
+		putErrmsg("ipnfw can't init critical-bundle dedup table.",
+				NULL);
+		return 1;
+	}
+
 	findScheme("ipn", &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
 	{
@@ -1407,6 +1436,7 @@ lock %ld us.", ipnfwCurrentDest, ipnfwCurrentSize, heldUsec);
 	}
 
 	closeCgr();
+	cbdedup_shutdown();
 	writeErrmsgMemos();
 	ipnfwShutdownClean = 1;	/*	Normal exit; suppress exit report.	*/
 	writeMemo("[i] ipnfw forwarder has ended.");

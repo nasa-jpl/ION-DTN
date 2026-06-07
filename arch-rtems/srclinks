@@ -166,6 +166,8 @@ ln -s ../bpv7/ipn/ipnadmin.c
 ln -s ../bpv7/ipn/libipnfw.c
 ln -s ../bpv7/ipn/ipnfw.c
 ln -s ../bpv7/ipn/ipnfw.h
+ln -s ../bpv7/ipn/cbdedup.c
+ln -s ../bpv7/ipn/cbdedup.h
 ln -s ../bpv7/ipn/ipnadminep.c
 
 # bpv7/ipnd - not included

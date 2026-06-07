@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# Verifies that the cbdedup module deduplicates a critical
+# (BP_MINIMUM_LATENCY) bundle on a diamond+tail topology:
+#
+#       B (2)
+#      /     \
+#     A (1)   D (4) --- E (5)
+#      \     /
+#       C (3)
+#
+# A sends ONE critical bundle to E.  D receives the bundle twice
+# (via B and via C); without dedup it would forward two copies to E,
+# with dedup it forwards exactly one.  Pass criterion: bpcounter at E
+# reports exactly 1 received bundle.
+set -u
+cd "$(dirname "$0")"
+
+NODES=5
+DEST=$NODES
+PAYLOAD=/tmp/dedup_diamond_payload.bin
+
+echo "=== critical-bundle dedup test (diamond+tail, ${NODES} nodes) ==="
+
+killm
+
+dd if=/dev/zero of="$PAYLOAD" bs=1 count=64 2>/dev/null
+
+export ION_NODE_LIST_DIR=$PWD
+rm -f ion_nodes
+echo "Starting nodes ..."
+for i in $(seq 1 "$NODES"); do
+    (cd "$i.ipn.ltp" && ./ionstart) >"$i.ipn.ltp/start.log" 2>&1 &
+done
+echo "Nodes started"
+sleep 3
+
+# Counter on E.  Allow up to 5 to make a regression visible (we expect 1).
+(cd "$DEST.ipn.ltp" && bpcounter "ipn:$DEST.1" 5 >bpcounter.log 2>&1 &)
+COUNTER_PID=$!
+sleep 1
+
+# Send ONE critical bundle: custody=0 prio=1 ord=0 unrel=0 critical=1
+(cd 1.ipn.ltp && bpsendfile "ipn:1.1" "ipn:$DEST.1" "$PAYLOAD" 0.1.0.0.1)
+
+SLEEP=4
+echo "sleeping ${SLEEP}s for propagation ..."
+sleep "$SLEEP"
+
+kill "$COUNTER_PID" 2>/dev/null || true
+sleep 1
+
+RECEIVED=$(grep -Eo 'Bundles received: *[0-9]+' "$DEST.ipn.ltp/bpcounter.log" | tail -1 | awk '{print $NF}')
+RECEIVED=${RECEIVED:-0}
+
+echo
+echo "=== result ==="
+echo "delivered replicas at ipn:$DEST.1 : $RECEIVED  (expected 1)"
+
+killm
+
+if [ "$RECEIVED" = "1" ]; then
+    echo "PASS"
+    exit 0
+else
+    echo "FAIL: expected exactly 1 delivery, got $RECEIVED"
+    exit 1
+fi
