@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Verifies that the cbdedup module deduplicates a critical
+# Verifies that the cbdedup module de-duplicates a critical
 # (BP_MINIMUM_LATENCY) bundle on a diamond+tail topology:
 #
 #       B (2)
@@ -8,60 +8,123 @@
 #      \     /
 #       C (3)
 #
-# A sends ONE critical bundle to E.  D receives the bundle twice
-# (via B and via C); without dedup it would forward two copies to E,
-# with dedup it forwards exactly one.  Pass criterion: bpcounter at E
-# reports exactly 1 received bundle.
+# A floods ONE critical bundle toward E.  It is forwarded over BOTH disjoint
+# paths, so relay D receives two copies (one via B, one via C).  cbdedup must
+# forward exactly one of them onward to E.
+#
+# The de-duplication is asserted AT D, where it happens:
+#   - B and C each transmit their copy   (B.fwd >= 1, C.fwd >= 1)
+#   - D receives both copies             (D.rcv == 2)
+#   - D forwards exactly one             (D.fwd == 1)   <-- the dedup proof
+# Measuring at E would be wrong: BP would suppress a duplicate on delivery, so
+# E shows 1 whether or not D de-duplicated.
+#
+# Bundle delivery uses the UDP convergence layer (no LTP sessions/timeouts).
+# Because UDP is fire-and-forget, every node must be fully up before A
+# transmits, or a datagram to an un-bound induct is silently dropped; we gate
+# on system_up to guarantee that.
 set -u
 cd "$(dirname "$0")"
 
 NODES=5
-DEST=$NODES
+SRC=1
+DEST=5
+SYSUP=../../../system_up
 PAYLOAD=/tmp/dedup_diamond_payload.bin
 
-echo "=== critical-bundle dedup test (diamond+tail, ${NODES} nodes) ==="
+echo "=== critical-bundle dedup test (diamond+tail, ${NODES} nodes, UDP) ==="
 
-killm
+killm f
 
 dd if=/dev/zero of="$PAYLOAD" bs=1 count=64 2>/dev/null
 
 export ION_NODE_LIST_DIR=$PWD
 rm -f ion_nodes
-echo "Starting nodes ..."
-for i in $(seq 1 "$NODES"); do
-    (cd "$i.ipn.ltp" && ./ionstart) >"$i.ipn.ltp/start.log" 2>&1 &
-done
-echo "Nodes started"
-sleep 3
 
-# Counter on E.  Allow up to 5 to make a regression visible (we expect 1).
-(cd "$DEST.ipn.ltp" && bpcounter "ipn:$DEST.1" 5 >bpcounter.log 2>&1 &)
-COUNTER_PID=$!
-sleep 1
+# Refresh BP statistics on a node and print the "(+)" (total) count for a
+# tally type (rcv/fwd/dlv) from that node's ion.log.
+snapshot() {
+    for n in $(seq 1 "$NODES"); do (cd "$n.ipn.udp" && bpstats) >/dev/null 2>&1; done
+    sleep 2
+}
+plus() {  # $1 = node number, $2 = tally type
+    grep -aE "\[x\] $2 " "$1.ipn.udp/ion.log" 2>/dev/null | tail -1 \
+        | sed -E 's/.*\(\+\) ([0-9]+).*/\1/'
+}
+
+dump_diagnostics() {
+    echo "=== DIAGNOSTICS ==="
+    for n in $(seq 1 "$NODES"); do
+        echo "----- node $n start.log -----"; cat "$n.ipn.udp/start.log" 2>/dev/null
+        echo "----- node $n ion.log (tail 40) -----"; tail -40 "$n.ipn.udp/ion.log" 2>/dev/null
+    done
+}
+
+# Start each node and verify it is fully up (ion + bp) BEFORE starting the
+# next.  Starting them sequentially avoids concurrent ionadmin runs racing on
+# the shared ion_nodes file (which can leave a node mis-registered and break
+# forwarding), and guarantees no node transmits before all peers' udpcli
+# inducts are bound (UDP is fire-and-forget).
+echo "Starting nodes sequentially ..."
+for n in $(seq 1 "$NODES"); do
+    echo "  starting node $n ..."
+    (cd "$n.ipn.udp" && ./ionstart) >"$n.ipn.udp/start.log" 2>&1
+    ( cd "$n.ipn.udp" && "$SYSUP" -i "p 45" -b "p 45" ) >/dev/null 2>&1
+    if [ $? -ne 2 ]; then
+        echo "FAIL: node $n did not come up"
+        dump_diagnostics
+        killm f
+        exit 1
+    fi
+    echo "  node $n up."
+done
+echo "All nodes up."
 
 # Send ONE critical bundle: custody=0 prio=1 ord=0 unrel=0 critical=1
-(cd 1.ipn.ltp && bpsendfile "ipn:1.1" "ipn:$DEST.1" "$PAYLOAD" 0.1.0.0.1)
+(cd "$SRC.ipn.udp" && bpsendfile "ipn:$SRC.1" "ipn:$DEST.1" "$PAYLOAD" 0.1.0.0.1)
 
-SLEEP=4
-echo "sleeping ${SLEEP}s for propagation ..."
-sleep "$SLEEP"
+# Wait (up to ~120s) for both flooded copies to reach D (rcv == 2), then a
+# short grace for D to forward / abandon, before sampling the final tallies.
+# End-to-end forwarding on a slow/loaded runner (e.g. Solaris) can take ~40-80s
+# even over UDP, so the window must comfortably exceed that; it breaks early as
+# soon as both copies arrive.
+Drcv=0
+for i in $(seq 1 120); do
+    (cd 4.ipn.udp && bpstats) >/dev/null 2>&1
+    sleep 1
+    Drcv=$(plus 4 rcv); Drcv=${Drcv:-0}
+    [ "$Drcv" -ge 2 ] && break
+done
+sleep 2
+snapshot
 
-kill "$COUNTER_PID" 2>/dev/null || true
-sleep 1
-
-RECEIVED=$(grep -Eo 'Bundles received: *[0-9]+' "$DEST.ipn.ltp/bpcounter.log" | tail -1 | awk '{print $NF}')
-RECEIVED=${RECEIVED:-0}
+Bfwd=$(plus 2 fwd); Bfwd=${Bfwd:-0}
+Cfwd=$(plus 3 fwd); Cfwd=${Cfwd:-0}
+Drcv=$(plus 4 rcv); Drcv=${Drcv:-0}
+Dfwd=$(plus 4 fwd); Dfwd=${Dfwd:-0}
+Edlv=$(plus 5 dlv); Edlv=${Edlv:-0}
 
 echo
-echo "=== result ==="
-echo "delivered replicas at ipn:$DEST.1 : $RECEIVED  (expected 1)"
+echo "=== evidence ==="
+echo "A(1) fwd=$(plus 1 fwd)"
+echo "B(2) fwd=$Bfwd     C(3) fwd=$Cfwd     (both paths must transmit to D)"
+echo "D(4) rcv=$Drcv fwd=$Dfwd               (dedup: received 2, forwarded 1)"
+echo "E(5) dlv=$Edlv"
 
-killm
+ok=1
+[ "$Bfwd" -ge 1 ] || { echo "FAIL: B did not transmit its copy to D"; ok=0; }
+[ "$Cfwd" -ge 1 ] || { echo "FAIL: C did not transmit its copy to D"; ok=0; }
+[ "$Drcv" = "2" ] || { echo "FAIL: D did not receive both copies (rcv=$Drcv)"; ok=0; }
+[ "$Dfwd" = "1" ] || { echo "FAIL: D did not de-duplicate (fwd=$Dfwd, expected 1)"; ok=0; }
 
-if [ "$RECEIVED" = "1" ]; then
-    echo "PASS"
+[ "$ok" -ne 1 ] && dump_diagnostics
+
+killm f
+
+if [ "$ok" -eq 1 ]; then
+    echo "PASS: D received 2 copies and forwarded exactly 1 (de-duplicated)"
     exit 0
 else
-    echo "FAIL: expected exactly 1 delivery, got $RECEIVED"
+    echo "FAIL"
     exit 1
 fi

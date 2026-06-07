@@ -3,9 +3,9 @@ a scheme ipn 'ipnfw' 'ipnadminep'
 a endpoint ipn:5.0 q
 a endpoint ipn:5.1 q
 a endpoint ipn:5.2 q
-a protocol ltp 1400 100
-a induct ltp 5 ltpcli
-a outduct ltp 4 ltpclo
+a protocol udp 1400 100
+a induct udp 127.0.0.1:2205 udpcli
+a outduct udp 127.0.0.1:2204 udpclo
 r 'ipnadmin node.ipnrc'
 w 1
 s

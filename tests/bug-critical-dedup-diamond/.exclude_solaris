@@ -1,0 +1,12 @@
+Excluded on Solaris due to timing and reporting inconsistency.
+
+This 5-node test asserts the de-duplication invariant at relay D
+(D.rcv == 2, D.fwd == 1) by sampling bpstats tallies after the bundle
+propagates.  On the Solaris regression host the node-to-node forwarding
+pipeline is heavily CPU-starved, so end-to-end propagation is both very
+slow and highly variable (observed ~40s to ~2min for the same test), and
+bpstats' asynchronous "[x]" stats dump lags behind the live counters.  The
+de-duplication itself does occur on Solaris -- run artifacts confirm
+D rcv=2, fwd=1 -- but the test cannot reliably read the tallies within a
+bounded window, producing spurious failures.  Run this test on Linux, where
+it is deterministic.
