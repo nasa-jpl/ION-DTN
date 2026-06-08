@@ -528,6 +528,8 @@ Copies length characters from the memory location given by from to a location in
 
 The following APIs manage transactions by implementing a critical section in which SDR content cannot be modified.
 
+> **Design note — reliability vs. overhead.** Transactions are the mechanism behind ION's *State Persistence and Restart Survivability* principle (see the [ION Design and API Overview](./ION-Design-and-API-Overview.md#basic-philosophy)). By wrapping each modification of persistent state in a transaction that is committed to the SDR heap — which may be backed by non-volatile storage — ION ensures that protocol state and in-transit data can be recovered after an unplanned reset or power cycle. This guarantee is not free: every transaction adds storage I/O and transaction-management cost on the data path, and transactions are single-threaded (a task in `sdr_begin_xn` is suspended until prior transactions complete). This is a deliberate trade-off — ION favors recoverability over peak throughput, which is the appropriate choice for long-delay, intermittently-connected links where losing in-flight data on a restart would be costly or unrecoverable. Applications on the BP service data path should keep transactions short and avoid unnecessary `sdr_write`/`sdr_stage` calls to minimize this overhead.
+
 ### Header
 
 ```c
