@@ -2567,7 +2567,6 @@ void	_sdrput(const char *file, int line, Sdr sdrv, Address into, char *from,
 		size_t length, PutSrc src)
 {
 	SdrState	*sdr;
-	Address		to;
 	uaddr		logEntryControl[2];
 	char		*buffer;
 	size_t		logOffset;
@@ -2607,8 +2606,7 @@ void	_sdrput(const char *file, int line, Sdr sdrv, Address into, char *from,
 #endif
 		return;		/*	No longer transaction owner.	*/
 	}
-	to = into + length;
-	if (to > sdr->dsSize)
+	if (length > sdr->dsSize || into > sdr->dsSize - length)
 	{
 		_putErrmsg(file, line, _violationMsg(), "write");
 		crashXn(sdrv);
@@ -2754,7 +2752,6 @@ void	Sdr_write(const char *file, int line, Sdr sdrv, Address into,
 void	_sdrfetch(Sdr sdrv, char *into, Address from, size_t length)
 {
 	SdrState	*sdr;
-	Address		to;
 	ssize_t		bytesRead; /* Added for safe read() check. */
 #ifdef SDR_PERF_INSTRUMENTATION
 	struct timeval	perfStart;
@@ -2771,8 +2768,7 @@ void	_sdrfetch(Sdr sdrv, char *into, Address from, size_t length)
 	memset(into, 0, length);		/*	Default value.	*/
 	sdr = sdrv->sdr;
 	CHKVOID(sdr);
-	to = from + length;
-	if (to > sdr->dsSize)
+	if (length > sdr->dsSize || from > sdr->dsSize - length)
 	{
 		putErrmsg(_violationMsg(), "read");
 		crashXn(sdrv);			/*	Releases SDR.	*/
