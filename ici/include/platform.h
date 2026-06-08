@@ -333,12 +333,6 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #endif
 #define ERROR			(-1)
 
-#ifdef __GNUC__
-#define UNUSED			__attribute__((unused))
-#else
-#define UNUSED
-#endif
-
 /* Feature Test for Thread-Local Storage Support */
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__)
 	#include <threads.h>

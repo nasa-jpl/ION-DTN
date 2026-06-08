@@ -242,6 +242,16 @@ int	main(int argc, char *argv[])
 		return -1;
 	}
 
+	/* Call provider initialization function if present. */
+	typedef void (*init_func_t)(void);
+	init_func_t init_func;
+	void *init_sym = dlsym(funcHandle, "file_provider_init");
+	memcpy(&init_func, &init_sym, sizeof(init_sym));
+	if (init_func)
+	{
+		init_func();
+	}
+
 	if (vduct->cliPid != ERROR && vduct->cliPid != sm_TaskIdSelf())
 	{
 		putErrmsg("CLI task is already started for this duct.",
@@ -307,10 +317,17 @@ int	main(int argc, char *argv[])
 	/* Finalize the file receiver */
 	cfg.finalize_receiver();
 
-	if (funcHandle != NULL)
+	/* Call provider cleanup function if present. */
+	typedef void (*cleanup_func_t)(void);
+	cleanup_func_t cleanup_func;
+	void	      *cleanup_sym = dlsym(funcHandle, "file_provider_cleanup");
+	memcpy(&cleanup_func, &cleanup_sym, sizeof(cleanup_sym));
+	if (cleanup_func)
 	{
-		dlclose(funcHandle);
+		cleanup_func();
 	}
+
+	dlclose(funcHandle);
 
 	writeErrmsgMemos();
 	writeMemo("[i] filecli duct has ended.");

@@ -201,6 +201,16 @@ int	main(int argc, char *argv[])
 
 	openSPPFunctions(&rtp,funcHandle);
 
+	/* Call provider initialization function if present. */
+	typedef void (*init_func_t)(void);
+	init_func_t init_func;
+	void *init_sym = dlsym(funcHandle, "spp_provider_init");
+	memcpy(&init_func, &init_sym, sizeof(init_sym));
+	if (init_func)
+	{
+		init_func();
+	}
+
 	if (vduct->cliPid != ERROR && vduct->cliPid != sm_TaskIdSelf())
 	{
 		putErrmsg("CLI task is already started for this duct.",
@@ -249,6 +259,18 @@ int	main(int argc, char *argv[])
 	rtp.running = 0;
 
 	pthread_join(receiverThread, NULL);
+
+	/* Call provider cleanup function if present. */
+	typedef void (*cleanup_func_t)(void);
+	cleanup_func_t cleanup_func;
+	void	      *cleanup_sym = dlsym(funcHandle, "spp_provider_cleanup");
+	memcpy(&cleanup_func, &cleanup_sym, sizeof(cleanup_sym));
+	if (cleanup_func)
+	{
+		cleanup_func();
+	}
+
+	dlclose(funcHandle);
 
 	writeErrmsgMemos();
 	writeMemo("[i] sppcli duct has ended.");

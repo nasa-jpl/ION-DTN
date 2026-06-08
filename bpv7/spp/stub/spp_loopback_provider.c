@@ -380,10 +380,10 @@ static void handle_shutdown_signal(int signum)
 }
 
 /*
- * Constructor function - set up signal handlers when library is loaded
+ * Initialization function - called by sppcli/sppclo after dlopen.
+ * Sets up signal handlers for graceful shutdown.
  */
-__attribute__((constructor))
-static void setup(void)
+void spp_provider_init(void)
 {
 	struct sigaction sa;
 	sa.sa_handler = handle_shutdown_signal;
@@ -394,10 +394,10 @@ static void setup(void)
 }
 
 /*
- * Cleanup function - called when library is unloaded
+ * Cleanup function - called by sppcli/sppclo before dlclose.
+ * Closes file descriptors and removes FIFO.
  */
-__attribute__((destructor))
-static void cleanup(void)
+void spp_provider_cleanup(void)
 {
 	shutdown_requested = 1;
 	if (write_fd >= 0)

@@ -54,10 +54,10 @@ static void handle_shutdown_signal(int signum)
 }
 
 /*
- * Constructor function - set up signal handlers when library is loaded
+ * Initialization function - called by filecli/fileclo after dlopen.
+ * Sets up signal handlers for graceful shutdown.
  */
-__attribute__((constructor))
-static void setup(void)
+void file_provider_init(void)
 {
 	struct sigaction sa;
 	sa.sa_handler = handle_shutdown_signal;
@@ -65,6 +65,25 @@ static void setup(void)
 	sa.sa_flags = 0;
 	sigaction(SIGTERM, &sa, NULL);
 	sigaction(SIGINT, &sa, NULL);
+}
+
+/*
+ * Cleanup function - called by filecli/fileclo before dlclose.
+ * Closes any open file handles.
+ */
+void file_provider_cleanup(void)
+{
+	shutdown_requested = 1;
+	if (output_file)
+	{
+		fclose(output_file);
+		output_file = NULL;
+	}
+	if (input_file)
+	{
+		fclose(input_file);
+		input_file = NULL;
+	}
 }
 
 /*

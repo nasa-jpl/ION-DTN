@@ -132,6 +132,16 @@ int	main(int argc, char *argv[])
 		return -1;
 	}
 
+	/* Call provider initialization function if present. */
+	typedef void (*init_func_t)(void);
+	init_func_t init_func;
+	void *init_sym = dlsym(funcHandle, "spp_provider_init");
+	memcpy(&init_func, &init_sym, sizeof(init_sym));
+	if (init_func)
+	{
+		init_func();
+	}
+
 	parsed_count = sscanf(spacePacketConfigStr,"%d%*[,]%d%*[,]%d%*[,]%d",&apid,&seq_count,&packet_type,&sec_header_flag);
 
 	if (parsed_count != 4 || parsed_count == 0)
@@ -269,10 +279,18 @@ int	main(int argc, char *argv[])
 	// Call the finalize function pointer after the loop ends.
 	sppcfg->finalize_sender();
 
-	if (funcHandle != NULL)
+	/* Call provider cleanup function if present. */
+	typedef void (*cleanup_func_t)(void);
+	cleanup_func_t cleanup_func;
+	void	      *cleanup_sym = dlsym(funcHandle, "spp_provider_cleanup");
+	memcpy(&cleanup_func, &cleanup_sym, sizeof(cleanup_sym));
+	if (cleanup_func)
 	{
-		dlclose(funcHandle);
+		cleanup_func();
 	}
+
+	dlclose(funcHandle);
+
 	writeErrmsgMemos();
 	writeMemo("[i] sppclo duct has ended.");
 	MRELEASE(buffer);

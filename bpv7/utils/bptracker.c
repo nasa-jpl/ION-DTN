@@ -87,40 +87,6 @@ void signalHandler(int sig)
 
 /*	Helper functions for status reports	*/
 
-__attribute__((unused))
-static char* getReasonCodeText(unsigned char reasonCode)
-{
-	switch (reasonCode)
-	{
-	case 0:
-		return "No additional information";
-	case 1:
-		return "Lifetime expired";
-	case 2:
-		return "Forwarded over unidirectional link";
-	case 3:
-		return "Transmission canceled";
-	case 4:
-		return "Depleted storage";
-	case 5:
-		return "Destination endpoint ID unavailable";
-	case 6:
-		return "No known route to destination";
-	case 7:
-		return "No timely contact with next node";
-	case 8:
-		return "Block unintelligible";
-	case 9:
-		return "Hop limit exceeded";
-	case 10:
-		return "Traffic pared";
-	case 11:
-		return "Block unsupported";
-	default:
-		return "Unknown reason";
-	}
-}
-
 static void initializeConfig(BundleTracker *tracker, char *sourceEid, char *destEid)
 {
 	memset(tracker->sourceEid, 0, sizeof(tracker->sourceEid));
