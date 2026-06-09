@@ -8405,8 +8405,13 @@ uvast	computeBufferCrc(BpCrcType crcType, unsigned char *buffer,
 			memset(buffer + (bytesToProcess - bytesToMask), 0, 2);
 		}
 
+#ifdef ENABLE_HIGH_SPEED
+		crc16 = ion_CRC16_1021_X25_slice((char *) buffer,
+				bytesToProcess, crc16);
+#else
 		crc16 = ion_CRC16_1021_X25((char *) buffer, bytesToProcess,
 				crc16);
+#endif
 		if (bytesToMask > 0)
 		{
 			insertedCrc16 = htons(crc16);
@@ -11123,8 +11128,13 @@ void	serializePrimaryBlock(Bundle *bundle, unsigned char **cursor,
 		crc16 = 0;
 		oK(cbor_encode_byte_string((unsigned char *) &crc16, 2,
 				cursor));
+#ifdef ENABLE_HIGH_SPEED
+		crc16 = ion_CRC16_1021_X25_slice((char *) startOfPrimaryBlock,
+					*cursor - startOfPrimaryBlock, 0);
+#else
 		crc16 = ion_CRC16_1021_X25((char *) startOfPrimaryBlock,
 					*cursor - startOfPrimaryBlock, 0);
+#endif
 		crc16 = htons(crc16);
 		memcpy((*cursor) - 2, (char *) &crc16, 2);
 	}

@@ -20,6 +20,9 @@ extern "C" {
 extern uint16_t ion_CRC16_1021_X25(const char *data, uint32_t dLen,
 			uint16_t crc);
 #ifdef ENABLE_HIGH_SPEED
+extern uint16_t ion_CRC16_1021_X25_slice(const char *data, uint32_t dLen,
+			uint16_t crc);
+
 extern uint32_t ion_CRC32_1EDC6F41_C_slice(const char *data, uint32_t dLen,
 			uint32_t crc);
 

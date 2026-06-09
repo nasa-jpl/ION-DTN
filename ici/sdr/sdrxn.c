@@ -2765,11 +2765,11 @@ void	_sdrfetch(Sdr sdrv, char *into, Address from, size_t length)
 	CHKVOID(length > 0);
 	CHKVOID(sdrv);
 	CHKVOID(into);
-	memset(into, 0, length);		/*	Default value.	*/
 	sdr = sdrv->sdr;
 	CHKVOID(sdr);
 	if (length > sdr->dsSize || from > sdr->dsSize - length)
 	{
+		memset(into, 0, length);	/*	Default value.	*/
 		putErrmsg(_violationMsg(), "read");
 		crashXn(sdrv);			/*	Releases SDR.	*/
 		return;
@@ -2784,6 +2784,7 @@ void	_sdrfetch(Sdr sdrv, char *into, Address from, size_t length)
 	}
 	else
 	{
+		memset(into, 0, length);	/*	Default value.	*/
 		if (sdr->configFlags & SDR_IN_FILE)
 		{
 			/* --- Start of corrected block --- */
