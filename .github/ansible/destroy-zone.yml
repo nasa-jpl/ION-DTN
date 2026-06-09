@@ -25,9 +25,22 @@
       loop: "{{ job_indexes }}"
       failed_when: false
 
-    - name: Ensure job-specific results staging directories are cleaned
+    - name: Ensure job-specific results directories are cleaned
       ansible.builtin.file:
-        path: "{{ zone_staging_dir }}/results-{{ item }}"
+        path: "/var/tmp/ci-results/{{ run_id }}-{{ item }}"
+        state: absent
+      loop: "{{ job_indexes }}"
+      failed_when: false
+
+    - name: Ensure run-specific artifacts directory is cleaned
+      ansible.builtin.file:
+        path: "/var/tmp/ci-artifacts/{{ run_id }}"
+        state: absent
+      failed_when: false
+
+    - name: Ensure run-specific script is cleaned
+      ansible.builtin.file:
+        path: "/home/github-runner/{{ run_id }}-{{ item }}.sh"
         state: absent
       loop: "{{ job_indexes }}"
       failed_when: false

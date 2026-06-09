@@ -6,7 +6,7 @@
 
   vars:
     run_id: "{{ run_id | mandatory }}"
-    base_dir: "/home/github-runner/ion-gh-test-dir"
+    base_dir: "{{ lookup('env', 'VM_WORK_DIR') }}"
     build_dir: "{{ base_dir }}/ion-ios-dev"
     tarball_name: "ion-build-{{ run_id }}.tar.gz"
 
