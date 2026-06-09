@@ -117,7 +117,7 @@ for dir in ${ARTIFACT_PATTERN}; do
         else
             # Arc: extract runner and batch from artifact name
             # Expected pattern: test-results-arc-runner-set-{os_name}-{timestamp}-batch-{N}
-            # where {timestamp} is YYYYMMDD-HHMMSS and {os_name} is u20, u22, ol8, etc.
+            # where {timestamp} is YYYYMMDD-HHMMSS and {os_name} is u22, u24, ol8, etc.
             BASENAME=$(basename "$dir")
 
             # Extract runner OS name (strip "arc-runner-set-" prefix to get just the OS name)

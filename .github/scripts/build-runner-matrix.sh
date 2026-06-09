@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Usage: build-runner-matrix.sh --ubuntu_20=true --ubuntu_22=false ...
+# Usage: build-runner-matrix.sh --ubuntu_22=true --ubuntu_24=false ...
 # Builds JSON array of enabled arc runners for GitHub Actions matrix
 
 set -euo pipefail

@@ -5,16 +5,19 @@ This directory contains Ansible automation for deploying Actions Runner Controll
 ## Prerequisites
 
 - **Ansible**: Version 2.14 or later
+
   ```bash
   ansible --version
   ```
 
 - **Python Kubernetes Library**: Required for kubernetes.core collection
+
   ```bash
   pip install kubernetes
   ```
 
 - **Ansible Galaxy Collections**: Ansible collections for cluster setup
+
   ```bash
   ansible-galaxy collection install kubernetes.core
   ansible-galaxy collection install containers.podman
@@ -51,7 +54,7 @@ ansible-playbook cluster_install/deploy-runners.yml
 
 ### Configuration Options
 
-- **ol8**: Oracle Linux 8 - Enables runnerScaleSet (U22), runnerScaleSet2 (OL8), runnerScaleSet3 (OL9), runnerScaleSet6 (U20)
+- **ol8**: Oracle Linux 8 - Enables runnerScaleSet (U22), runnerScaleSet2 (OL8), runnerScaleSet3 (OL9), runnerScaleSet6 (U24)
   - Deploys 5 pods: 1 controller + 4 listeners
   - Does not require kind-config.yaml
 
@@ -78,6 +81,7 @@ ansible-playbook cluster_install/deploy-runners.yml
 ## Troubleshooting
 
 **Validation fails for missing secrets.local.yaml:**
+
 ```bash
 # Create the secrets file
 cp charts/arc/secrets.local.yaml.example charts/arc/secrets.local.yaml
@@ -85,6 +89,7 @@ cp charts/arc/secrets.local.yaml.example charts/arc/secrets.local.yaml
 ```
 
 **Pods not becoming ready:**
+
 ```bash
 # Check pod status
 kubectl get pods -n arc-systems

@@ -8,8 +8,8 @@ for GitHub Actions matrix strategy.
 **Usage:**
 
 ```bash
-build-runner-matrix.sh --ubuntu_20=<bool> \
-  --ubuntu_22=<bool> \
+build-runner-matrix.sh --ubuntu_22=<bool> \
+  --ubuntu_24=<bool> \
   --oracle_linux_8=<bool> \
   --oracle_linux_9=<bool> \
   --rhel_8=<bool> \
@@ -18,10 +18,10 @@ build-runner-matrix.sh --ubuntu_20=<bool> \
 
 **Parameters:**
 
-- `--ubuntu_20=<bool>` (optional, default: false):
-  Include Ubuntu 20.04 runner (u20)
 - `--ubuntu_22=<bool>` (optional, default: false):
   Include Ubuntu 22.04 runner (u22)
+- `--ubuntu_24=<bool>` (optional, default: false):
+  Include Ubuntu 24.04 runner (u24)
 - `--oracle_linux_8=<bool>` (optional, default: false):
   Include Oracle Linux 8 runner (ol8)
 - `--oracle_linux_9=<bool>` (optional, default: false):
@@ -33,7 +33,7 @@ build-runner-matrix.sh --ubuntu_20=<bool> \
 
 **Output (to stdout):**
 
-- JSON array of runner short names (e.g., `["u20","u22","ol9"]`)
+- JSON array of runner short names (e.g., `["u22","u24","ol9"]`)
 
 **Exit Codes:**
 

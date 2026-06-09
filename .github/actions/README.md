@@ -84,7 +84,7 @@ to distribute tests based on git history.
 
 **Inputs:**
 
-- `context` (optional): Status context name (e.g., "ci/arc-runner-set-u20").
+- `context` (optional): Status context name (e.g., "ci/arc-runner-set-u22").
   Use this OR status_payload, not both.
 - `state` (optional): Status state (success, failure, error, pending).
   Required when context is provided.
@@ -97,7 +97,7 @@ to distribute tests based on git history.
 
 ```json
 {
-  "ci/arc-runner-set-u20": "success",
+  "ci/arc-runner-set-u22": "success",
   "ci/arc-runner-set-ol8": "failure"
 }
 ```
