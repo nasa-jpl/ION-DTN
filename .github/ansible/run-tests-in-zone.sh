@@ -58,9 +58,8 @@ if ! [[ "$JOB_INDEX" =~ ^[0-9]+$ ]]; then
 fi
 
 ZONE_NAME="ci-zone-${RUN_ID}-${JOB_INDEX}"
-# Use explicit path since this script runs with sudo (HOME=/root)
-ARTIFACT_TARBALL="/home/github-runner/ci-artifacts/${RUN_ID}/ion-build-${RUN_ID}.tar.gz"
-RESULTS_DIR="/home/github-runner/ci-results/${RUN_ID}-${JOB_INDEX}"
+RESULTS_DIR="/var/tmp/ci-results/${RUN_ID}-${JOB_INDEX}"
+WORKSPACE_DIR="var/tmp/ion-gh-workspace/ion-ios-dev"
 
 echo "Gathering zone information for $ZONE_NAME..."
 # Dynamically get the zone's root path using zoneadm
@@ -72,16 +71,26 @@ if [ -z "$ZONE_PATH" ]; then
 fi
 
 echo "Deploying artifact to zone..."
+# Dynamically locate the tarball to bypass rsync directory nesting quirks
+ARTIFACT_TARBALL=$(find "/var/tmp/ci-artifacts/${RUN_ID}" -name "ion-build-*.tar.gz" -type f 2>/dev/null | head -n 1)
+
+if [ -z "$ARTIFACT_TARBALL" ]; then
+    echo "Error: Could not find the ion-build tarball!"
+    echo "Checked /var/tmp/ci-artifacts/${RUN_ID}"
+    exit 1
+fi
+
+echo "Found artifact at: $ARTIFACT_TARBALL"
 cp "$ARTIFACT_TARBALL" "${ZONE_PATH}/root/tmp/ion-build.tar.gz"
 
 echo "Extracting and installing ION in zone..."
 zlogin "$ZONE_NAME" "export PATH=/usr/local/bin:/usr/bin:/usr/sbin:\$PATH && \
-  mkdir -p /root/ion-build && \
-  gtar -xzf /tmp/ion-build.tar.gz -C /root/ion-build && \
-  cd /root/ion-build && \
-  find . -name '*.la' -exec gsed -i 's|/home/github-runner/[^/]*/ion-ios-dev|/root/ion-build|g' {} + && \
-  gsed -i 's|/home/github-runner/[^/]*/ion-ios-dev|/root/ion-build|g' libtool && \
-  find . -name '*.pc' -exec gsed -i 's|/home/github-runner/[^/]*/ion-ios-dev|/root/ion-build|g' {} + && \
+  echo '=== Setting up env & extracting ===' && \
+  export LD_LIBRARY_PATH=/usr/local/lib:\$LD_LIBRARY_PATH && \
+  mkdir -p /${WORKSPACE_DIR} && \
+  gtar -xzf /tmp/ion-build.tar.gz -C /${WORKSPACE_DIR} && \
+  cd /${WORKSPACE_DIR} && \
+  echo '=== Running gmake install ===' && \
   gmake install"
 
 echo "Verifying zone hostname..."
@@ -130,7 +139,7 @@ fi
 # Execute tests with PATH explicitly set for the Python venv and ION binaries
 zlogin "$ZONE_NAME" "export PATH=/root/ion_dev/bin:/usr/local/bin:/usr/bin:/usr/sbin:\$PATH && \
   export VIRTUAL_ENV=/root/ion_dev && \
-  cd /root/ion-build/tests && \
+  cd /${WORKSPACE_DIR}/tests && \
   ${ENV_EXPORT_CMD}./runtests $TEST_LIST"
 TEST_EXIT_CODE=$?
 
@@ -141,8 +150,8 @@ echo "Collecting results to $RESULTS_DIR..."
 mkdir -p "$RESULTS_DIR"
 
 # Collect progress file
-if [ -f "${ZONE_PATH}/root/root/ion-build/tests/progress" ]; then
-    cp "${ZONE_PATH}/root/root/ion-build/tests/progress" "${RESULTS_DIR}/progress-batch-${BATCH_NUM}.txt"
+if [ -f "${ZONE_PATH}/root/${WORKSPACE_DIR}/tests/progress" ]; then
+    cp "${ZONE_PATH}/root/${WORKSPACE_DIR}/tests/progress" "${RESULTS_DIR}/progress-batch-${BATCH_NUM}.txt"
 fi
 
 # Collect ION log files (preserving directory structure)
@@ -150,8 +159,8 @@ LOGS_DIR="${RESULTS_DIR}/ion-logs-job-${JOB_INDEX}"
 mkdir -p "$LOGS_DIR"
 
 # Find all ion.log files from the entire ion-build directory
-find "${ZONE_PATH}/root/root/ion-build" -name "ion.log" -type f 2>/dev/null | while read -r log_file; do
-    rel_path=${log_file//"${ZONE_PATH}/root/root/ion-build/"/}
+find "${ZONE_PATH}/root/${WORKSPACE_DIR}" -name "ion.log" -type f 2>/dev/null | while read -r log_file; do
+    rel_path=${log_file//"${ZONE_PATH}/root/${WORKSPACE_DIR}/"/}
     target_dir="$LOGS_DIR/$(dirname "$rel_path")"
     mkdir -p "$target_dir"
     cp "$log_file" "$target_dir/"
@@ -162,8 +171,8 @@ DIAGNOSTICS_DIR="${RESULTS_DIR}/diagnostics-job-${JOB_INDEX}"
 mkdir -p "$DIAGNOSTICS_DIR"
 
 # Find ion-system.log files in entire directory
-find "${ZONE_PATH}/root/root/ion-build" -name "ion-system.log" -type f 2>/dev/null | while read -r log_file; do
-    rel_path=${log_file//"${ZONE_PATH}/root/root/ion-build/"/}
+find "${ZONE_PATH}/root/${WORKSPACE_DIR}" -name "ion-system.log" -type f 2>/dev/null | while read -r log_file; do
+    rel_path=${log_file//"${ZONE_PATH}/root/${WORKSPACE_DIR}/"/}
     rel_path="${rel_path%/ion-system.log}"
     unique_name=$(echo "$rel_path" | tr '/' '-')
     cp "$log_file" "$DIAGNOSTICS_DIR/${unique_name}-ion-system.log"

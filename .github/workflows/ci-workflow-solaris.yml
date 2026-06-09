@@ -83,7 +83,7 @@ on:
         default: ""
 
 env:
-  VM_WORK_DIR: ~/ion-gh-test-dir
+  VM_WORK_DIR: /var/tmp/ion-gh-workspace
   PYTHON_VERSION: "3.11.15"
 
 jobs:
@@ -176,7 +176,8 @@ jobs:
         run: |
           ssh github-runner@$VM_IP '
             export MAKE_CMD=gmake
-            cd ~/ion-gh-test-dir/ion-ios-dev
+
+            cd ${{ env.VM_WORK_DIR }}/ion-ios-dev
             sh .github/scripts/compile-and-buildcheck.sh
           ' > compile-and-buildcheck.log 2> >(tee -a compile-and-buildcheck.log >&2)
 
