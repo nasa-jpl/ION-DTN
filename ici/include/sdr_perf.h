@@ -49,6 +49,9 @@ typedef struct
 	unsigned long	xnCount;
 	unsigned long	totalXnTimeUs;
 	unsigned long	maxXnTimeUs;
+	unsigned long	totalLockAcquireUs;	/*	Time blocked on lock.	*/
+	unsigned long	lockAcquireCount;	/*	Lock acquisitions.	*/
+	unsigned long	maxLockAcquireUs;	/*	Worst single acquire.	*/
 	char		maxXnFile[SDR_PERF_FILENAME_LEN];	/*	Caller of max xn.	*/
 	int		maxXnLine;
 	unsigned long	maxXnCallerCount;	/*	Xn count for max-time caller.	*/
