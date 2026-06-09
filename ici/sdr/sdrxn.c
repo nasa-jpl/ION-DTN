@@ -550,6 +550,9 @@ static void	formatLockOwner(const SdrLockOwner *owner, uint64_t nowUs,
 static int	lockSdr(Sdr sdrv)
 {
 	SdrState	*sdr = sdrv->sdr;
+#ifdef SDR_PERF_INSTRUMENTATION
+	uint64_t	acqStart = monotonicMicrosecondsCommon();
+#endif
 #ifdef ION_HAVE_ROBUST_MUTEX
 	int		result;
 
@@ -621,6 +624,25 @@ profile must be reloaded.", NULL);
 	if (sm_SemEnded(sdr->sdrSemaphore))
 	{
 		return -1;
+	}
+#endif
+
+	/*	Lock now held (or semaphore taken): fold this acquisition's
+	 *	latency into the shared perf counters.  Safe to write the
+	 *	counters here without a separate guard because we hold the
+	 *	transaction lock, so acquisitions are serialized.	*/
+
+#ifdef SDR_PERF_INSTRUMENTATION
+	{
+		unsigned long	acqUs = (unsigned long)
+				(monotonicMicrosecondsCommon() - acqStart);
+
+		sdr->perfCounters.totalLockAcquireUs += acqUs;
+		sdr->perfCounters.lockAcquireCount++;
+		if (acqUs > sdr->perfCounters.maxLockAcquireUs)
+		{
+			sdr->perfCounters.maxLockAcquireUs = acqUs;
+		}
 	}
 #endif
 

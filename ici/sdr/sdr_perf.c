@@ -225,6 +225,33 @@ Run 'killm' and restart ION.");
 			"        max xn time (us): %15lu",
 			counters->maxXnTimeUs);
 	writeMemo(buf);
+	isprintf(buf, sizeof(buf),
+			"    lock acquisitions: %15lu",
+			counters->lockAcquireCount);
+	writeMemo(buf);
+	isprintf(buf, sizeof(buf),
+			"   avg lock acq (us): %15lu",
+			(counters->lockAcquireCount > 0) ?
+			(counters->totalLockAcquireUs
+			 / counters->lockAcquireCount) : 0);
+	writeMemo(buf);
+	isprintf(buf, sizeof(buf),
+			"   max lock acq (us): %15lu",
+			counters->maxLockAcquireUs);
+	writeMemo(buf);
+	/*	xn timer starts AFTER the lock is taken, so totalXnTimeUs is
+	 *	lock-HOLD time and totalLockAcquireUs is the separate wait-to-
+	 *	acquire time.  This ratio = fraction of per-transaction time
+	 *	spent waiting for the lock (contention) vs. doing the work.	*/
+
+	isprintf(buf, sizeof(buf),
+			" lock wait %% of total: %14.1f%%",
+			((counters->totalLockAcquireUs + counters->totalXnTimeUs)
+			 > 0) ?
+			(100.0 * counters->totalLockAcquireUs
+			 / (counters->totalLockAcquireUs
+			    + counters->totalXnTimeUs)) : 0.0);
+	writeMemo(buf);
 	if (counters->maxXnFile[0] != '\0')
 	{
 		isprintf(buf, sizeof(buf),
