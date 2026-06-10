@@ -97,6 +97,9 @@ typedef struct
 
 /*	listingOptions bit values for cfdp_rls_extended().		*/
 #define CFDP_DIRLIST_OPTION_STATUS_BYTES	0x01
+#define CFDP_DIRLIST_OPTION_RECURSIVE		0x02
+#define CFDP_DIRLIST_VALID_OPTIONS		\
+	(CFDP_DIRLIST_OPTION_STATUS_BYTES | CFDP_DIRLIST_OPTION_RECURSIVE)
 
 /*	Per-entry status bit values in a v2 manifest.			*/
 #define CFDP_DIRENT_NAME_TRUNCATED	0x01
@@ -124,13 +127,13 @@ extern int	cfdp_rls(CfdpNumber	*respondentEntityNbr,
 			CfdpTransactionId *transactionId);
 
 /*	cfdp_rls_extended() is identical to cfdp_rls() except that
- *	listingOptions may be used to request the v2 directory
- *	listing format.  Currently the only defined option bit is
- *	CFDP_DIRLIST_OPTION_STATUS_BYTES, which causes each manifest
- *	entry to be prefixed with a one-byte status flag and a
- *	one-byte type indicator, and causes the response to carry an
- *	"incomplete" flag indicating whether the responder dropped
- *	any entries.						*/
+ *	listingOptions may be used to request extended directory
+ *	listing behavior.  CFDP_DIRLIST_OPTION_STATUS_BYTES causes
+ *	each manifest entry to be prefixed with a one-byte status
+ *	flag and a one-byte type indicator, and causes the response
+ *	to carry an "incomplete" flag indicating whether the
+ *	responder dropped any entries.  CFDP_DIRLIST_OPTION_RECURSIVE
+ *	requests a manifest for the subtree rooted at directoryName.	*/
 
 extern int	cfdp_rls_extended(CfdpNumber *respondentEntityNbr,
 			unsigned int	utParmsLength,

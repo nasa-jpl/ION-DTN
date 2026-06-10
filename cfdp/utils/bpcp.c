@@ -10,7 +10,11 @@
 
 char * remote_path(char *cp);
 int is_dir(char *cp);
+static int open_remote_listing(char *host, char *dir,
+		unsigned int listingOptions);
 int open_remote_dir(char *host, char *dir);
+static int open_remote_dir_legacy(char *host, char *dir);
+int open_remote_tree(char *host, char *dir);
 char* read_remote_dir(int dir, int index, char* buf, int size);
 int read_remote_dir_v2(int dir, int index, BpcpDirEntry *out);
 int close_remote_dir(int dir);
@@ -31,6 +35,11 @@ void usage(void);
 void version(void);
 void print_parsed(struct transfer* t);
 void exit_nicely(int val);
+static int safe_remote_entry_name(const char *name);
+static int build_child_transfer(struct transfer *child, struct transfer *parent,
+		const char *entryName);
+static void copy_remote_tree_legacy(struct transfer *t, int dir);
+static void copy_remote_tree_v2(struct transfer *t, int dir);
 void prog_start_cpy(struct transfer *t);
 void prog_end_cpy(struct transfer *t);
 void prog_start_dir(struct transfer *t);
@@ -47,6 +56,7 @@ int showprogress = 1;		/* Set to zero to disable progress meter */
 int debug = 0;			/*Set to non-zero to enable debug output. */
 int iamrecursive;		/*Copy Recursively*/
 int follow_symlinks = 0;	/*-F: follow symlinks during -r*/
+int forcelegacydirlist = 0;	/*-x: force legacy remote traversal*/
 
 /*Set to 1 if Target is a Directory*/
 int targetshouldbedirectory = 0;
@@ -176,7 +186,7 @@ int main(int argc, char **argv)
 	ion_cfdp_init();
 
 	/*Parse commandline options*/
-	while ((ch = getopt(argc, argv, "dqrFL:C:S:v")) != -1)
+	while ((ch = getopt(argc, argv, "dqrxFL:C:S:v")) != -1)
 	{
 		switch (ch)
 		{
@@ -199,6 +209,10 @@ int main(int argc, char **argv)
 			case 'q':
 				/*Quiet*/
 				showprogress = 0;
+				break;
+			case 'x':
+				/*Force legacy remote directory traversal*/
+				forcelegacydirlist = 1;
 				break;
 			case 'L':
 				/*Lifetime*/
@@ -418,7 +432,8 @@ int is_dir(char *cp)
  * Returns a handle to the directory (>0) on success.
  * Note: This function my sleep an arbitrary amount of time while the
  * directory information is being fetched from the remote host.*/
-int open_remote_dir(char *host, char *dir)
+static int open_remote_listing(char *host, char *dir,
+		unsigned int listingOptions)
 {
 	int res;
 	uvast entityId;
@@ -459,6 +474,7 @@ int open_remote_dir(char *host, char *dir)
 	}
 
 	unlink(template);	/*	Just need name, not the file.	*/
+	oK(close(tempfd));
 	tmp = template;
 	strncpy(tmp_files[hndl], tmp, 255);
 
@@ -476,25 +492,40 @@ int open_remote_dir(char *host, char *dir)
 	dbgprintf(3, "Dir: %s\n", dir);
 	dbgprintf(3, "Tmp: %s\n", tmp);
 
-	/*Make request.  Opt in to the v2 format so we can detect
-	 *incomplete listings and per-entry types.  Old responders
-	 *ignore the trailing options byte and reply with the legacy
-	 *format; the receiver thread distinguishes them by the
-	 *response message type (17 vs 19).*/
+	/*Make request.  Opt in to requested extensions when asked.
+	 *Old responders ignore the trailing options byte and reply
+	 *with the legacy format; the receiver thread distinguishes
+	 *responses by message type (17 vs 19).*/
 	current_wait_status=dir_req;
 	dirlist_was_v2 = 0;
 	dirlist_incomplete = 0;
-	res = cfdp_rls_extended(&(parms.destinationEntityNbr),
-			sizeof(BpUtParms),
-			(unsigned char *) &(parms.utParms),
-			NULL,
-			NULL, 0,
-			parms.faultHandlers, 0, NULL, 0,
-			parms.msgsToUser,
-			parms.fsRequests,
-			&dirlst,
-			CFDP_DIRLIST_OPTION_STATUS_BYTES,
-			&(parms.transactionId));
+	if (listingOptions == 0)
+	{
+		res = cfdp_rls(&(parms.destinationEntityNbr),
+				sizeof(BpUtParms),
+				(unsigned char *) &(parms.utParms),
+				NULL,
+				NULL, 0,
+				parms.faultHandlers, 0, NULL, 0,
+				parms.msgsToUser,
+				parms.fsRequests,
+				&dirlst,
+				&(parms.transactionId));
+	}
+	else
+	{
+		res = cfdp_rls_extended(&(parms.destinationEntityNbr),
+				sizeof(BpUtParms),
+				(unsigned char *) &(parms.utParms),
+				NULL,
+				NULL, 0,
+				parms.faultHandlers, 0, NULL, 0,
+				parms.msgsToUser,
+				parms.fsRequests,
+				&dirlst,
+				listingOptions,
+				&(parms.transactionId));
+	}
 
 	/*Handle Error*/
 	if (res<0)
@@ -545,15 +576,32 @@ int open_remote_dir(char *host, char *dir)
 	return -2;
 }
 
+int open_remote_dir(char *host, char *dir)
+{
+	return open_remote_listing(host, dir, CFDP_DIRLIST_OPTION_STATUS_BYTES);
+}
+
+static int open_remote_dir_legacy(char *host, char *dir)
+{
+	return open_remote_listing(host, dir, 0);
+}
+
+int open_remote_tree(char *host, char *dir)
+{
+	return open_remote_listing(host, dir,
+			CFDP_DIRLIST_OPTION_STATUS_BYTES
+			| CFDP_DIRLIST_OPTION_RECURSIVE);
+}
+
 /*Takes a given directory handle and returns the index(th) directory entry
  * (filename) in buf (upto size characters). Returns buf on success
  * and null on error.*/
 char* read_remote_dir(int dir, int index, char* buf, int size){
 	static
 	int fd;
+	int i;
 	char c;
 	int eof=0;
-	int i=0;
 
 	/*Sanity Checks*/
 	if (buf==NULL || dir<0 || dir >= NUM_TMP_FILES)
@@ -744,7 +792,7 @@ int read_remote_dir_v2(int dir, int index, BpcpDirEntry *out)
  * error and 0 on success.*/
 int close_remote_dir(int dir)
 {
-	if (dir <= 0 || dir >= NUM_TMP_FILES)
+	if (dir < 0 || dir >= NUM_TMP_FILES)
 	{
 		return -1;
 	}
@@ -757,6 +805,201 @@ int close_remote_dir(int dir)
 	memset(tmp_files[dir],0,255);
 
 	return 0;
+}
+
+static int safe_remote_entry_name(const char *name)
+{
+	const char	*cursor;
+	const char	*segmentStart;
+	int		segmentLength;
+	int		sawSeparator = 0;
+
+	if (name == NULL || *name == '\0' || *name == '/' || *name == '\\')
+	{
+		return 0;
+	}
+
+	segmentStart = name;
+	for (cursor = name; ; cursor++)
+	{
+		if (*cursor == '/' || *cursor == '\\' || *cursor == '\0')
+		{
+			segmentLength = cursor - segmentStart;
+			if (segmentLength == 0)
+			{
+				return (*cursor == '\0' && sawSeparator);
+			}
+
+			if ((segmentLength == 1 && segmentStart[0] == '.')
+			|| (segmentLength == 2 && segmentStart[0] == '.'
+					&& segmentStart[1] == '.'))
+			{
+				return 0;
+			}
+
+			if (*cursor == '\0')
+			{
+				return 1;
+			}
+
+			sawSeparator = 1;
+			segmentStart = cursor + 1;
+		}
+	}
+}
+
+static int build_child_transfer(struct transfer *child, struct transfer *parent,
+		const char *entryName)
+{
+	char	work[1024];
+
+	if (!safe_remote_entry_name(entryName))
+	{
+		dbgprintf(0, "bpcp: skipping unsafe remote entry name %s\n",
+				(entryName ? entryName : "(null)"));
+		non_regular_skipped++;
+		return -1;
+	}
+
+	if (strlen(parent->sfile) + 1 + strlen(entryName) >= 255)
+	{
+		dbgprintf(0, "bpcp: %s/%s: name too long\n", parent->sfile,
+				entryName);
+		return -1;
+	}
+
+	if (strlen(parent->dfile) + 1 + strlen(entryName) >= 255)
+	{
+		dbgprintf(0, "bpcp: %s/%s: name too long\n", parent->dfile,
+				entryName);
+		return -1;
+	}
+
+	memset(work, 0, sizeof work);
+	snprintf(work, sizeof work, "%s/%s", parent->sfile, entryName);
+	istrcpy(child->sfile, work, 255);
+	snprintf(child->shost, 255, "%.254s", parent->shost);
+	memset(work, 0, sizeof work);
+	snprintf(work, sizeof work, "%s/%s", parent->dfile, entryName);
+	istrcpy(child->dfile, work, 255);
+	snprintf(child->dhost, 255, "%.254s", parent->dhost);
+	child->type = parent->type;
+	return 0;
+}
+
+static void copy_remote_tree_legacy(struct transfer *t, int dir)
+{
+	struct transfer	tt;
+	char		buff[256];
+	int		i;
+
+	for (i = 0; read_remote_dir(dir, i, buff, sizeof buff) != NULL; i++)
+	{
+		if (!strcmp(buff, ".") || !strcmp(buff, ".."))
+		{
+			continue;
+		}
+
+		if (build_child_transfer(&tt, t, buff) < 0)
+		{
+			continue;
+		}
+
+		manage_src(&tt);
+	}
+}
+
+static void copy_remote_tree_v2(struct transfer *t, int dir)
+{
+	struct transfer	tt;
+	BpcpDirEntry	entry;
+	const char	*entryName;
+	size_t		entryLen;
+	int		i;
+	int		rc;
+
+	for (i = 0; ; i++)
+	{
+		rc = read_remote_dir_v2(dir, i, &entry);
+		if (rc != 0)
+		{
+			break;
+		}
+
+		entryName = entry.name;
+		entryLen = strlen(entryName);
+		if (entryLen == 0)
+		{
+			continue;
+		}
+
+		if (!safe_remote_entry_name(entryName))
+		{
+			dbgprintf(0, "bpcp: skipping unsafe remote entry name %s\n",
+					entryName);
+			non_regular_skipped++;
+			continue;
+		}
+
+		if (entry.status & CFDP_DIRENT_NAME_TRUNCATED)
+		{
+			dbgprintf(0, "bpcp: skipping unreliable entry in %s: "
+					"name truncated by remote\n", t->sfile);
+			truncated_entries_skipped++;
+			continue;
+		}
+
+		if (entry.type == CFDP_DIRENT_DIRECTORY)
+		{
+			if (entryName[entryLen - 1] == '/')
+			{
+				continue;	/* Recursive manifest marker. */
+			}
+
+			/* Flat V2 response from a responder that ignored
+			 * the recursive option; fall back for this subtree. */
+			if (build_child_transfer(&tt, t, entryName) == 0)
+			{
+				manage_src(&tt);
+			}
+
+			continue;
+		}
+
+		if (entry.type == CFDP_DIRENT_SYMLINK)
+		{
+			if (!follow_symlinks)
+			{
+				dbgprintf(0, "bpcp: skipping symlink %s/%s "
+						"(use -F to follow)\n",
+						t->sfile, entryName);
+				symlinks_skipped++;
+				continue;
+			}
+
+			if (build_child_transfer(&tt, t, entryName) == 0)
+			{
+				manage_src(&tt);
+			}
+
+			continue;
+		}
+
+		if (entry.type == CFDP_DIRENT_OTHER
+		|| entry.type == CFDP_DIRENT_UNKNOWN)
+		{
+			dbgprintf(0, "bpcp: skipping non-regular entry %s/%s "
+					"(type=%u)\n", t->sfile, entryName,
+					(unsigned) entry.type);
+			non_regular_skipped++;
+			continue;
+		}
+
+		if (build_child_transfer(&tt, t, entryName) == 0)
+		{
+			manage_dest(&tt);
+		}
+	}
 }
 
 /*Copies files to the (targ) remote directory. Takes argc, argv
@@ -1331,7 +1574,6 @@ void manage_src(struct transfer *t)
 	struct stat statbuf;
 	int dir;
 	char buff[256];
-	int i=0;
 
 	if (t==NULL)
 	{
@@ -1427,108 +1669,34 @@ void manage_src(struct transfer *t)
 	{
 		/*Source is remote*/
 		prog_start_dir(t);
-		dir=open_remote_dir(t->shost, t->sfile);
+		if (iamrecursive && !forcelegacydirlist)
+		{
+			dir = open_remote_tree(t->shost, t->sfile);
+		}
+		else if (iamrecursive && forcelegacydirlist)
+		{
+			dir = open_remote_dir_legacy(t->shost, t->sfile);
+		}
+		else
+		{
+			dir = open_remote_dir(t->shost, t->sfile);
+		}
+
 		if (dir>=0)
 		{
 			prog_end_dir(t);
 			/*Source is directory*/
 			if (iamrecursive)
 			{
-				int		v2 = dirlist_was_v2;
-				BpcpDirEntry	v2entry;
-				const char	*entryName;
-				unsigned char	entryType;
-				unsigned char	entryStatus;
-				int		rc;
-
-				/*Loop over directory copying all files in it.
-				 *Use the v2 reader if the responder gave us a
-				 *v2 manifest; otherwise fall back to the
-				 *legacy name-only reader (today's behavior).*/
-				for (i=0; ; i++)
+				if (!forcelegacydirlist && dirlist_was_v2)
 				{
-					if (v2)
-					{
-						rc = read_remote_dir_v2(dir, i, &v2entry);
-						if (rc != 0)
-						{
-							break;
-						}
-						entryName = v2entry.name;
-						entryType = v2entry.type;
-						entryStatus = v2entry.status;
-					}
-					else
-					{
-						if (read_remote_dir(dir, i, buff, 256) == NULL)
-						{
-							break;
-						}
-						entryName = buff;
-						entryType = CFDP_DIRENT_UNKNOWN;
-						entryStatus = 0;
-					}
-
-					if (!strcmp(entryName, ".") || !strcmp(entryName, ".."))
-					{
-						continue;
-					}
-					if (strlen(t->sfile) + 1 + strlen(entryName) >= 255)
-					{
-						dbgprintf(0,"bpcp: %s/%s: name too long\n",t->sfile, entryName);
-						continue;
-					}
-
-					/*Per-entry classification (v2 only;
-					 *for legacy responses, type is UNKNOWN
-					 *and we fall through to the existing
-					 *manage_src round-trip).*/
-					if (v2)
-					{
-						if (entryStatus & CFDP_DIRENT_NAME_TRUNCATED)
-						{
-							dbgprintf(0, "bpcp: skipping unreliable "
-								"entry in %s: name truncated by "
-								"remote\n", t->sfile);
-							truncated_entries_skipped++;
-							continue;
-						}
-
-						if (entryType == CFDP_DIRENT_SYMLINK
-								&& !follow_symlinks)
-						{
-							dbgprintf(0, "bpcp: skipping symlink %s/%s "
-								"(use -F to follow)\n",
-								t->sfile, entryName);
-							symlinks_skipped++;
-							continue;
-						}
-
-						if (entryType == CFDP_DIRENT_OTHER
-								|| entryType == CFDP_DIRENT_UNKNOWN)
-						{
-							dbgprintf(0, "bpcp: skipping non-regular "
-								"entry %s/%s (type=%u)\n",
-								t->sfile, entryName,
-								(unsigned) entryType);
-							non_regular_skipped++;
-							continue;
-						}
-					}
-
-					/*Update both source and destination so that recursive copy works*/
-					memset(work, 0, sizeof work);
-					snprintf(work, sizeof work, "%s/%s", t->sfile, entryName);
-					istrcpy(tt.sfile, work, 255);
-					snprintf(tt.shost, 255, "%.254s", t->shost);
-					memset(work, 0, sizeof work);
-					snprintf(work, sizeof work, "%s/%s", t->dfile, entryName);
-					istrcpy(tt.dfile, work, 255);
-					snprintf(tt.dhost, 255, "%.254s", t->dhost);
-					tt.type=t->type;
-
-					manage_src(&tt);
+					copy_remote_tree_v2(t, dir);
 				}
+				else
+				{
+					copy_remote_tree_legacy(t, dir);
+				}
+
 				close_remote_dir(dir);
 			}
 			else
@@ -1964,8 +2132,9 @@ void dbgprintf(int level, const char *fmt, ...)
 /*Print Command usage to stderr and exit*/
 void usage(void)
 {
-	(void) fprintf(stderr, "usage: bpcp [-dqrF | -v] [-L Bundle Lifetime] [-C custody on/off]\n"
+	(void) fprintf(stderr, "usage: bpcp [-dqrxF | -v] [-L Bundle Lifetime] [-C custody on/off]\n"
 			"	[-S Class of Service] [host1:]file1 ... [host2:]file2\n"
+			"	-x  force legacy iterative traversal for recursive remote copies\n"
 			"	-F  follow symlinks during recursive copy\n");
 	exit(1);
 }

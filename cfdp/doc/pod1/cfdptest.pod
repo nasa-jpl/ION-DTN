@@ -331,13 +331,17 @@ B<Example Usage:>
   x /tmp/*.log       # List all .log files in /tmp
   x *.txt            # List .txt files in current directory
 
-=item B<L> <remote directory path> <local temp filename>
+=item B<L> [B<-r>] <remote directory path> <local temp filename>
 
 The B<list remote directory> command (ION extension).  This command requests
 a directory listing from the remote CFDP entity specified by the most recent
 B<d> command.  The directory contents will be stored in the specified local
 temporary file.  Upon successful completion, the directory contents are
 automatically displayed.
+
+If B<-r> is supplied, the request asks the remote node for a recursive
+directory manifest rooted at the specified path.  Directory entries in that
+manifest are identified by a trailing C</>.
 
 B<IMPORTANT:> This feature requires the remote CFDP entity to support the
 ION directory listing extension.  The remote node must be running either
@@ -350,6 +354,7 @@ B<Example Usage:>
 
   d 2                           # Set destination entity
   L /etc /tmp/etc_listing.txt   # Request /etc directory listing
+  L -r /etc /tmp/etc_tree.txt   # Request recursive /etc manifest
   # Directory contents will be auto-displayed upon completion
 
 =item B<D> <local directory listing filename>

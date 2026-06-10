@@ -358,15 +358,20 @@ the wire (a stream of NUL-terminated entry names).
 =item int cfdp_rls_extended(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength, unsigned char *utParms, char *sourceFileName, char *destFileName, CfdpReaderFn readerFn, CfdpHandler *faultHandlers, unsigned int flowLabelLength, unsigned char *flowLabel, unsigned int closureLatency, MetadataList messagesToUser, MetadataList filestoreRequests, CfdpDirListTask *dirListTask, unsigned int listingOptions, CfdpTransactionId *transactionId)
 
 Same as B<cfdp_rls> except that I<listingOptions> may be used to request
-the v2 directory listing format.  Currently the only defined option bit
-is C<CFDP_DIRLIST_OPTION_STATUS_BYTES>; when set, the responder produces
-a manifest in which each entry is prefixed with a one-byte status flag
-and a one-byte type indicator (one of C<CFDP_DIRENT_REGULAR>,
-C<CFDP_DIRENT_DIRECTORY>, C<CFDP_DIRENT_SYMLINK>, C<CFDP_DIRENT_OTHER>,
-or C<CFDP_DIRENT_UNKNOWN>), and the response carries an "incomplete"
-flag indicating whether the responder dropped any entries.
+extended directory listing behavior.  C<CFDP_DIRLIST_OPTION_STATUS_BYTES>
+causes the responder to produce a v2 manifest in which each entry is
+prefixed with a one-byte status flag and a one-byte type indicator (one
+of C<CFDP_DIRENT_REGULAR>, C<CFDP_DIRENT_DIRECTORY>,
+C<CFDP_DIRENT_SYMLINK>, C<CFDP_DIRENT_OTHER>, or
+C<CFDP_DIRENT_UNKNOWN>), and the response carries an "incomplete" flag
+indicating whether the responder dropped any entries.
 
-The v2 request is wire-compatible with old responders: an old responder
+C<CFDP_DIRLIST_OPTION_RECURSIVE> requests a manifest for the subtree
+rooted at I<dirListTask-E<gt>directoryName>.  Directory entries in a
+recursive manifest are identified by a trailing C</>.  The status-byte
+and recursive options may be combined.
+
+Extended requests are wire-compatible with old responders: an old responder
 ignores the trailing options byte and replies with a legacy (type 17)
 response, so a new requestor that calls B<cfdp_rls_extended> against an
 old responder gracefully sees a legacy manifest.

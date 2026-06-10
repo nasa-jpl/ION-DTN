@@ -1090,9 +1090,9 @@ int	cfdp_get(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
  *
  *	Request (CfdpDirectoryListingRequest = 16):
  *	  [dirNameLen][dirName...][destFileNameLen][destFileName...]
- *	  [options byte] -- optional, v2 only.  Old parsers stop
- *	  after destFileName and never see it; new parsers detect
- *	  it as a trailing byte and use it to enable v2 behavior.
+ *	  [options byte] -- optional.  Old parsers stop after
+ *	  destFileName and never see it; new parsers detect it as a
+ *	  trailing byte and use it to enable extended behavior.
  *
  *	Response (CfdpDirectoryListingResponse = 17, legacy):
  *	  [responseCode][dirNameLen][dirName][destFileNameLen][destFileName]
@@ -1108,7 +1108,22 @@ int	cfdp_get(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength,
  *	  Stream of records [status byte][type byte][name][NUL].
  *	  status: bitfield, currently only CFDP_DIRENT_NAME_TRUNCATED.
  *	  type:   one of CFDP_DIRENT_REGULAR/DIRECTORY/SYMLINK/OTHER/UNKNOWN.
+ *
+ *	Recursive listings contain relative paths rooted at directoryName.
+ *	Directory entries are identified by a trailing '/'.
  */
+
+#define CFDP_DIRLIST_MAX_RECURSION_DEPTH	64
+#define CFDP_DIRLIST_MAX_RECURSIVE_ENTRIES	65535
+#define CFDP_DIRLIST_MAX_MANIFEST_BYTES		1048576
+
+typedef struct
+{
+	unsigned int	entries;
+	unsigned int	bytesWritten;
+	int		incomplete;
+	int		limitReached;
+} DirListingBuildState;
 
 void	parseDirectoryListingRequest(char *text, int bytesRemaining,
 		CfdpUserOpsData *opsData)
@@ -1400,25 +1415,212 @@ static unsigned char	classifyDirEntry(const char *fullPath)
 #endif
 }
 
-static int	writeListingRecordV2(int listing, unsigned char status,
-			unsigned char type, const char *name, int nameLen)
+static int	recordManifestBytes(DirListingBuildState *state,
+			unsigned int recordLength)
 {
-	unsigned char	header[2];
-
-	header[0] = status;
-	header[1] = type;
-	if (write(listing, header, 2) != 2)
+	if (state->limitReached)
 	{
-		return -1;
+		return 0;
 	}
 
-	/*	Write name plus its terminating NUL.			*/
+	if (state->entries >= CFDP_DIRLIST_MAX_RECURSIVE_ENTRIES
+	|| state->bytesWritten + recordLength
+			> CFDP_DIRLIST_MAX_MANIFEST_BYTES)
+	{
+		state->incomplete = 1;
+		state->limitReached = 1;
+		putErrmsg("Directory listing limit reached.", NULL);
+		return 0;
+	}
+
+	state->entries++;
+	state->bytesWritten += recordLength;
+	return 1;
+}
+
+static int	writeListingRecord(int listing, char *listingFileName, int useV2,
+			unsigned char status, unsigned char type,
+			const char *name, int nameLen,
+			DirListingBuildState *state)
+{
+	unsigned char	header[2];
+	unsigned int	recordLength;
+
+	recordLength = nameLen + 1 + (useV2 ? 2 : 0);
+	if (recordManifestBytes(state, recordLength) == 0)
+	{
+		return 0;
+	}
+
+	if (useV2)
+	{
+		header[0] = status;
+		header[1] = type;
+		if (write(listing, header, 2) != 2)
+		{
+			putSysErrmsg("Listing write failed", listingFileName);
+			state->incomplete = 1;
+			state->limitReached = 1;
+			return 0;
+		}
+	}
 
 	if (write(listing, name, nameLen + 1) != (nameLen + 1))
 	{
-		return -1;
+		putSysErrmsg("Listing write failed", listingFileName);
+		state->incomplete = 1;
+		state->limitReached = 1;
+		return 0;
 	}
 
+	return 1;
+}
+
+static int	makeChildPath(char *buffer, size_t bufferSize, const char *parent,
+			const char *child)
+{
+	int	length;
+
+	length = snprintf(buffer, bufferSize, "%s/%s", parent, child);
+	return (length >= 0 && (size_t) length < bufferSize);
+}
+
+static int	makeRelativeName(char *buffer, size_t bufferSize,
+			const char *prefix, const char *name)
+{
+	int	length;
+
+	if (prefix[0] == '\0')
+	{
+		length = snprintf(buffer, bufferSize, "%s", name);
+	}
+	else
+	{
+		length = snprintf(buffer, bufferSize, "%s/%s", prefix, name);
+	}
+
+	return (length >= 0 && (size_t) length < bufferSize);
+}
+
+static int	writeRecursiveListing(int listing, char *listingFileName,
+			const char *directoryName, const char *entryPrefix,
+			unsigned int depth, int useV2,
+			DirListingBuildState *state)
+{
+	DIR		*dir;
+	struct dirent	*entry;
+	char		childPath[CFDP_DIRLIST_MAX_NAME + 256 + 2];
+	char		childName[CFDP_DIRLIST_MAX_NAME + 1];
+	char		dirName[CFDP_DIRLIST_MAX_NAME + 2];
+	int		nameLen;
+	int		dirNameLen;
+	unsigned char	type;
+
+	if (state->limitReached)
+	{
+		return 0;
+	}
+
+	if (depth >= CFDP_DIRLIST_MAX_RECURSION_DEPTH)
+	{
+		state->incomplete = 1;
+		state->limitReached = 1;
+		putErrmsg("Directory listing recursion limit reached.",
+				directoryName);
+		return 0;
+	}
+
+	dir = opendir(directoryName);
+	if (dir == NULL)
+	{
+		state->incomplete = 1;
+		putSysErrmsg("Skipping unreadable directory", directoryName);
+		return 0;
+	}
+
+	while ((entry = readdir(dir)) != NULL)
+	{
+		if (state->limitReached)
+		{
+			break;
+		}
+
+		if (strcmp(entry->d_name, ".") == 0
+		|| strcmp(entry->d_name, "..") == 0)
+		{
+			continue;
+		}
+
+		if (!makeRelativeName(childName, sizeof childName,
+				entryPrefix, entry->d_name))
+		{
+			putErrmsg("Skipping over-length recursive entry name",
+					entry->d_name);
+			state->incomplete = 1;
+			continue;
+		}
+
+		nameLen = strlen(childName);
+		if (!useV2 && nameLen > 255)
+		{
+			putErrmsg("Skipping over-length recursive entry name "
+					"(legacy format cannot signal)",
+					childName);
+			state->incomplete = 1;
+			continue;
+		}
+
+		if (!makeChildPath(childPath, sizeof childPath, directoryName,
+				entry->d_name))
+		{
+			putErrmsg("Skipping over-length recursive entry path",
+					childName);
+			state->incomplete = 1;
+			continue;
+		}
+
+		type = classifyDirEntry(childPath);
+		if (type == CFDP_DIRENT_DIRECTORY)
+		{
+			dirNameLen = snprintf(dirName, sizeof dirName, "%s/",
+					childName);
+			if (dirNameLen < 0
+			|| (size_t) dirNameLen >= sizeof dirName)
+			{
+				putErrmsg("Skipping over-length recursive "
+						"directory name", childName);
+				state->incomplete = 1;
+				continue;
+			}
+
+			if (!useV2 && dirNameLen > 255)
+			{
+				putErrmsg("Skipping over-length recursive "
+						"directory name (legacy format "
+						"cannot signal)", childName);
+				state->incomplete = 1;
+				continue;
+			}
+
+			if (writeListingRecord(listing, listingFileName, useV2,
+					0, type, dirName, dirNameLen,
+					state) == 0)
+			{
+				continue;
+			}
+
+			writeRecursiveListing(listing, listingFileName,
+					childPath, childName, depth + 1,
+					useV2, state);
+		}
+		else
+		{
+			writeListingRecord(listing, listingFileName, useV2,
+					0, type, childName, nameLen, state);
+		}
+	}
+
+	closedir(dir);
 	return 0;
 }
 
@@ -1430,14 +1632,24 @@ int	handleDirectoryListingRequest(CfdpUserOpsData *opsData)
 	struct dirent	*entry;
 	int		nameLen;
 	char		fullPath[CFDP_DIRLIST_MAX_NAME + 256 + 2];
+	DirListingBuildState	state;
 	int		incomplete = 0;
 	int		useV2 = ((opsData->directoryListingOptions
 				& CFDP_DIRLIST_OPTION_STATUS_BYTES) != 0);
+	int		useRecursive = ((opsData->directoryListingOptions
+				& CFDP_DIRLIST_OPTION_RECURSIVE) != 0);
 	unsigned char	type;
 
 	if (strlen(opsData->directoryName) == 0
 	|| strlen(opsData->directoryDestFileName) == 0)
 	{
+		return sendDirectoryListingResponse(opsData, -1, NULL, 0);
+	}
+
+	if (opsData->directoryListingOptions & ~CFDP_DIRLIST_VALID_OPTIONS)
+	{
+		putErrmsg("Unsupported directory listing option bits.",
+				itoa(opsData->directoryListingOptions));
 		return sendDirectoryListingResponse(opsData, -1, NULL, 0);
 	}
 
@@ -1460,88 +1672,98 @@ int	handleDirectoryListingRequest(CfdpUserOpsData *opsData)
 		return -1;
 	}
 
-	while ((entry = readdir(dir)) != NULL)
+	memset((char *) &state, 0, sizeof state);
+
+	if (useRecursive)
 	{
-		/*	Skip "." and ".." in both formats.		*/
-
-		if (strcmp(entry->d_name, ".") == 0
-		|| strcmp(entry->d_name, "..") == 0)
+		closedir(dir);
+		writeRecursiveListing(listing, listingFileName,
+				opsData->directoryName, "", 0, useV2, &state);
+		incomplete = state.incomplete;
+	}
+	else
+	{
+		while ((entry = readdir(dir)) != NULL)
 		{
-			continue;
-		}
+			/*	Skip "." and ".." in both formats.	*/
 
-		nameLen = strlen(entry->d_name);
-
-		if (useV2)
-		{
-			/*	Drop entries we cannot fully convey.
-			 *	Truncating a name produces something
-			 *	that looks like a real fetchable
-			 *	filename but is not -- silent
-			 *	corruption.  Drop and signal via
-			 *	the listing-level incomplete flag
-			 *	instead.				*/
-
-			if (nameLen > CFDP_DIRLIST_MAX_NAME)
+			if (strcmp(entry->d_name, ".") == 0
+			|| strcmp(entry->d_name, "..") == 0)
 			{
-				putErrmsg("Skipping over-length entry name",
+				continue;
+			}
+
+			nameLen = strlen(entry->d_name);
+
+			if (useV2)
+			{
+				/*	Drop entries we cannot fully convey.
+				 *	Truncating a name produces something
+				 *	that looks like a real fetchable
+				 *	filename but is not -- silent
+				 *	corruption.  Drop and signal via
+				 *	the listing-level incomplete flag
+				 *	instead.			*/
+
+				if (nameLen > CFDP_DIRLIST_MAX_NAME)
+				{
+					putErrmsg("Skipping over-length entry name",
+							entry->d_name);
+					incomplete = 1;
+					continue;
+				}
+
+				/*	Build full path for stat.  Length is
+				 *	already bounded: directoryName <= 255
+				 *	(per cfdp_rls_extended check) and
+				 *	nameLen <= CFDP_DIRLIST_MAX_NAME (511).
+				 *	fullPath is sized to hold both plus
+				 *	separator and NUL.		*/
+
+				isprintf(fullPath, sizeof fullPath, "%s/%s",
+						opsData->directoryName,
 						entry->d_name);
-				incomplete = 1;
-				continue;
+
+				type = classifyDirEntry(fullPath);
+
+				if (writeListingRecord(listing, listingFileName,
+						1, 0, type, entry->d_name,
+						nameLen, &state) == 0)
+				{
+					incomplete = 1;
+				}
 			}
-
-			/*	Build full path for stat.  Length is
-			 *	already bounded: directoryName <= 255
-			 *	(per cfdp_rls_extended check) and
-			 *	nameLen <= CFDP_DIRLIST_MAX_NAME (511).
-			 *	fullPath is sized to hold both plus
-			 *	separator and NUL.			*/
-
-			isprintf(fullPath, sizeof fullPath, "%s/%s",
-					opsData->directoryName,
-					entry->d_name);
-
-			type = classifyDirEntry(fullPath);
-
-			if (writeListingRecordV2(listing, 0, type,
-					entry->d_name, nameLen) < 0)
+			else
 			{
-				putSysErrmsg("Listing write failed",
-						listingFileName);
-				incomplete = 1;
-				continue;
+				/*	Legacy format: stream of NUL-terminated
+				 *	names.  Drop over-length names rather
+				 *	than silently truncating them; truncation
+				 *	produces a name that looks fetchable but
+				 *	does not match any real file.		*/
+
+				if (nameLen > 255)
+				{
+					putErrmsg("Skipping over-length entry name "
+							"(legacy format cannot signal)",
+							entry->d_name);
+					incomplete = 1;
+					continue;
+				}
+
+				if (writeListingRecord(listing, listingFileName,
+						0, 0, CFDP_DIRENT_UNKNOWN,
+						entry->d_name, nameLen,
+						&state) == 0)
+				{
+					incomplete = 1;
+				}
 			}
 		}
-		else
-		{
-			/*	Legacy format: stream of NUL-terminated
-			 *	names.  Drop over-length names rather
-			 *	than silently truncating them; truncation
-			 *	produces a name that looks fetchable but
-			 *	does not match any real file.		*/
 
-			if (nameLen > 255)
-			{
-				putErrmsg("Skipping over-length entry name "
-						"(legacy format cannot signal)",
-						entry->d_name);
-				incomplete = 1;
-				continue;
-			}
-
-			if (write(listing, entry->d_name, nameLen + 1)
-					!= (nameLen + 1))
-			{
-				putSysErrmsg("Can't write directory listing file",
-						listingFileName);
-				incomplete = 1;
-				continue;
-			}
-		}
+		closedir(dir);
 	}
 
 	close(listing);
-	closedir(dir);
 	return sendDirectoryListingResponse(opsData, 0, listingFileName,
 			incomplete);
 }
@@ -1583,7 +1805,7 @@ int	cfdp_rls_extended(CfdpNumber *respondentEntityNbr,
 	CHKERR(directoryNameLen > 0 && directoryNameLen < 256);
 	destFileNameLen = strlen(task->destFileName);
 	CHKERR(destFileNameLen > 0 && destFileNameLen < 256);
-	CHKERR((listingOptions & ~CFDP_DIRLIST_OPTION_STATUS_BYTES) == 0);
+	CHKERR((listingOptions & ~CFDP_DIRLIST_VALID_OPTIONS) == 0);
 	CHKERR(transactionId);
 	CHKERR(sdr_begin_xn(sdr));
 
