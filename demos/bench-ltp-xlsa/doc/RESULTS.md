@@ -205,6 +205,107 @@ workload completes in 39 seconds at 37 Mbps.
   smoke-test environment; for "what throughput does the substrate
   deliver?" use a bare-metal host of the target platform.
 
+## CRC16 fast path (`--enable-high-speed`)
+
+ION's default bundle CRC type is CRC-16 (X.25) on both the primary and
+payload blocks, so every bundle pays a CRC-16 pass on transmit
+(`serializePrimaryBlock`) and on receive (`computeBufferCrc`, including
+the chunked payload path in `computeZcoCrc`). The `--enable-high-speed`
+build swaps the byte-at-a-time `ion_CRC16_1021_X25` for a slice-by-8
+table variant `ion_CRC16_1021_X25_slice` (8 bytes per iteration). The
+output is bit-identical — only the implementation changes — so on-wire
+CRCs and `tests/crc_relay` are unaffected.
+
+The comparison was run in two environments: a **Docker container**
+(linuxkit, Linux aarch64, on the Apple M4 Max) and **native macOS**
+(Apple M4 Max, bare metal; ION built/installed to a user prefix). The
+container figures are virtualization-bounded; native macOS shows the
+substrate's true ceiling. The *relative* CRC speedup is the portable
+result; absolute Mbps depend on the environment. (`bpcounter` Mbps; both
+builds verified clean via `nm` for the `ion_CRC16_1021_X25_slice`
+symbol.)
+
+### CRC-16 primitive in isolation (1 MB buffer)
+
+| environment | byte-wise | slice-8 | speedup |
+|---|---:|---:|---:|
+| Docker container (aarch64) | 594 MB/s | 3043 MB/s | **5.12×** |
+| macOS native (M4 Max) | 591 MB/s | 2858 MB/s | **4.84×** |
+
+Both produce CRC `0xcf77` (`match=YES`) — bit-identical.
+
+### End-to-end sweep — Docker container (linuxkit aarch64 on M4)
+
+| Bundle | 64K: byte | 64K: slice | Δ | 1M: byte | 1M: slice | Δ |
+|---:|---:|---:|---:|---:|---:|---:|
+| 5 MB | 523.8 | 683.5 | +30.5 % | 556.8 | 787.5 | +41.4 % |
+| 1 MB | 582.7 | 709.9 | +21.8 % | 580.2 | 794.5 | +37.0 % |
+| 500 KB | 547.1 | 643.4 | +17.6 % | 566.6 | 761.0 | +34.3 % |
+| 200 KB | 475.4 | 517.8 | +8.9 % | 477.9 | 606.9 | +27.0 % |
+| 63 KB | 341.8 | 375.0 | +9.7 % | 305.7 | 370.0 | +21.0 % |
+| 20 KB | 181.5 | 192.5 | +6.1 % | 157.2 | 170.1 | +8.2 % |
+| 10 KB | 106.9 | 106.1 | −0.8 % | 91.4 | 94.6 | +3.5 % |
+| 5 KB | 57.2 | 56.2 | −1.8 % | 52.3 | 54.0 | +3.1 % |
+| 1 KB | TIMEOUT | — | — | TIMEOUT | — | — |
+
+### End-to-end sweep — macOS native (Apple M4 Max, bare metal)
+
+| Bundle | 64K: byte | 64K: slice | Δ | 1M: byte | 1M: slice | Δ |
+|---:|---:|---:|---:|---:|---:|---:|
+| 5 MB | 2309.6 | 3628.3 | **+57.1 %** | 2359.1 | 4685.2 | **+98.6 %** |
+| 1 MB | 2005.9 | 3172.6 | **+58.2 %** | 2483.1 | 4378.7 | **+76.3 %** |
+| 500 KB | 1839.1 | 2810.6 | +52.8 % | 2074.5 | 3322.0 | +60.1 % |
+| 200 KB | 1367.3 | 1562.6 | +14.3 % | 1720.8 | 2706.4 | +57.3 % |
+| 63 KB | 975.3 | 1170.9 | +20.1 % | 1238.0 | 1688.7 | +36.4 % |
+| 20 KB | 547.9 | 639.5 | +16.7 % | 599.7 | 679.0 | +13.2 % |
+| 10 KB | 328.6 | 354.1 | +7.8 % | 337.9 | 357.7 | +5.9 % |
+| 5 KB | 181.2 | 192.2 | +6.1 % | 179.9 | 183.8 | +2.2 % |
+| 1 KB | 40.3 | 40.7 | +1.0 % | 36.9 | 37.1 | +0.5 % |
+
+(64K / 1M = 64 KB / 1 MB LTP segments. Totals per bundle row match the
+bundle-size sweep above: 1 GB for ≥ 1 MB, 500 MB at 500 KB, 200 MB
+below. Native completes the 1 KB row; the container times it out.)
+
+### What the two environments show
+
+**The gain tracks bundle size and segment size, exactly as a per-byte
+cost should.** CRC-16 covers the whole payload, so its share of
+per-bundle work grows with bundle size — and grows further with larger
+LTP segments, which strip per-segment overhead and leave CRC a bigger
+slice of what remains. It fades to the small-bundle floor (≤ 5–10 KB),
+where per-bundle BP/LTP/SDR overhead — not CRC — sets the ceiling.
+
+**The faster the substrate, the more CRC matters.** The CRC primitive is
+~5× faster in both environments (5.12× container, 4.84× native), but the
+*end-to-end* lift is far larger on native macOS — up to **+99 %** at
+5 MB / 1 MB segments — than in the container (up to +41 %).
+Virtualization overhead dilutes CRC's share of the container's critical
+path; on bare metal CRC is a much larger fraction of a much shorter
+pipeline, so shrinking it ~5× moves the end-to-end number much more. The
+primitive speedup is the portable invariant; how much surfaces
+end-to-end depends on how fast everything else runs.
+
+**Why not the full ~5× end-to-end, even natively.** CRC is still only
+one stage of a serial pipeline (BP serialization, LTP
+segmentation/reassembly, ZCO, shm ring copies, SDR transactions), and
+send-side and receive-side CRC run in separate processes. Default
+(flag-off) builds are unchanged. (Single run per cell; the integer-second
+`SUMMARY` is coarser — these are the precise `bpcounter` figures.)
+
+**Build note.** This comparison requires a clean rebuild between configs:
+`--enable-high-speed` is delivered as an `AM_CFLAGS -D` (not in
+`config.h`), so a timestamp-based `make` will *not* recompile `crc.c`
+after a bare reconfigure — it silently reuses the stale object and both
+passes run identical code (this exact mistake produced a false "no
+difference" on the first attempt). Every byte-wise/slice column here was
+produced from `make clean && ./configure [--enable-high-speed] && make`,
+verified by `nm`-ing libici for the `ion_CRC16_1021_X25_slice` symbol
+(present only in the high-speed build). The native macOS build was
+configured with `CFLAGS="-g -O2 -Wno-error"` to get past an unrelated
+`-Wsign-compare` error in `bpv7/library/cbr.c` that clang flags under
+`-Werror` (gcc/Linux does not); that is a build-portability issue in
+the CBR code, independent of these CRC results.
+
 ## Cross-platform 1 MB bundle / 1 MB segment comparison
 
 The same bench-ltp-xlsa workload — bundle size 1 MB, `maxSegmentSize`
