@@ -1147,17 +1147,15 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 		}
 	}
 
-	if (ionRegionOf(fqnn, 0, &regionNbr) < 0)
-	{
-		/*	Terminus node is not in any region that
-		 *	the local node is in.  Send via passageway(s).	*/
-		writeMemo("[?] IRF is not implemented.");
-	}
-	else
-	{
-		/*	Destination node resides in a region in which
-		 *	the local node resides.  Consult contact plan.	*/
+	/*	If the terminus node resides in a region in which the
+	 *	local node also resides, consult the contact plan (CGR)
+	 *	to compute a route.  Inter-regional forwarding (routing
+	 *	across region boundaries via passageways) is not
+	 *	implemented, so a terminus in an unknown region simply
+	 *	falls through to direct neighbor delivery below.	*/
 
+	if (ionRegionOf(fqnn, 0, &regionNbr) >= 0)
+	{
 		if (tryCGR(bundle, bundleObj, node, getCtime(), trace, 0))
 		{
 			putErrmsg("CGR failed.", NULL);
