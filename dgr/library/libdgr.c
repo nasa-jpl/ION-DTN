@@ -530,7 +530,8 @@ static void	losePendingResend(DgrSAP *sap, DgrRecord rec)
 	pthread_mutex_unlock(&sap->pendingResendsMutex);
 }
 
-static void	removeRecord(DgrSAP *sap, DgrRecord rec, LystElt arqElt)
+static void	removeRecord(DgrSAP *sap, DgrRecord rec, LystElt arqElt,
+			int *needSignal)
 {
 	/*	Any pendingResendsElt for this record has already
 	 *	been deleted.						*/
@@ -563,9 +564,17 @@ static void	removeRecord(DgrSAP *sap, DgrRecord rec, LystElt arqElt)
 				? (old_backlog - deduction) : 0;
 		if (new_backlog <= MAX_BACKLOG)
 		{
-			pthread_mutex_lock(&sap->sapMutex);
-			pthread_cond_signal(&sap->sapCV);
-			pthread_mutex_unlock(&sap->sapMutex);
+			/*	Defer the dgr_send() wakeup to the caller.
+			 *	removeRecord runs with bucket->mutex held,
+			 *	but the lock hierarchy (see dgr_send) requires
+			 *	sapMutex be taken BEFORE bucket->mutex.  Taking
+			 *	sapMutex here, under bucket->mutex, inverts that
+			 *	order and deadlocks against a concurrent
+			 *	dgr_send() that holds sapMutex and is waiting
+			 *	for bucket->mutex.  arq() fires the signal once
+			 *	it has released bucket->mutex.			*/
+
+			*needSignal = 1;
 		}
 	}
 }
@@ -999,7 +1008,7 @@ tracePredictedResends = dest->predictedResends;
 }
 
 static int	handleRpt(DgrSAP *sap, DgrRecord rec, LystElt arqElt,
-			DgrDest *dest, int destIdx)
+			DgrDest *dest, int destIdx, int *needSignal)
 {
 #if DGRDEBUG
 appliedAcks++;
@@ -1026,7 +1035,7 @@ appliedAcks++;
 
 	/*	Remove record from database; it won't be sent again.	*/
 
-	removeRecord(sap, rec, arqElt);
+	removeRecord(sap, rec, arqElt, needSignal);
 
 	/*	If application doesn't want to be notified of delivery
 	 *	success for this record, just erase it and return.	*/
@@ -1075,7 +1084,7 @@ static int	insertSendReq(DgrSAP *sap, DgrRecord rec)
 }
 
 static int	handleTimeout(DgrSAP *sap, DgrRecord rec, LystElt arqElt,
-			DgrDest *dest, int destIdx)
+			DgrDest *dest, int destIdx, int *needSignal)
 {
 	int	maxTransmissions = 0;
 	int	i;
@@ -1168,7 +1177,7 @@ tracePredictedResends = dest->predictedResends;
 		/*	Remove record from database; it won't be
 		 *	sent again.					*/
 
-		removeRecord(sap, rec, arqElt);
+		removeRecord(sap, rec, arqElt, needSignal);
 		if (_watching())
 		{
 			iwatch('{');
@@ -1218,6 +1227,7 @@ static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
 	DgrDest		*dest;
 	int		destIdx;
 	int		result;
+	int		needSignal = 0;
 
 	bucket = sap->buckets + (sessionNbr & DGR_SESNBR_MASK);
 	pthread_mutex_lock(&bucket->mutex);
@@ -1326,15 +1336,30 @@ static int	arq(DgrSAP *sap, uvast engineId, unsigned int sessionNbr,
 	dest = findDest(sap, rec->portNbr, rec->ipAddress, &destIdx);
 	if (op == DgrHandleRpt)
 	{
-		result = handleRpt(sap, rec, elt, dest, destIdx);
+		result = handleRpt(sap, rec, elt, dest, destIdx, &needSignal);
 	}
 	else
 	{
-		result = handleTimeout(sap, rec, elt, dest, destIdx);
+		result = handleTimeout(sap, rec, elt, dest, destIdx,
+				&needSignal);
 	}
 
 	pthread_mutex_unlock(&sap->destsMutex);
 	pthread_mutex_unlock(&bucket->mutex);
+
+	/*	Backlog dropped below the limit while servicing this
+	 *	record, so wake any dgr_send() blocked on backpressure.
+	 *	We do this only now, AFTER releasing bucket->mutex, to
+	 *	honor the sapMutex -> bucket->mutex lock ordering and
+	 *	avoid deadlocking against a concurrent dgr_send().	*/
+
+	if (needSignal)
+	{
+		pthread_mutex_lock(&sap->sapMutex);
+		pthread_cond_signal(&sap->sapCV);
+		pthread_mutex_unlock(&sap->sapMutex);
+	}
+
 	return result;
 }
 
