@@ -49,27 +49,6 @@ rm -f ./ion_nodes
 
 ./ionstart
 
-echo "Generating CGR visualization data with cgrfetch..."
-echo "This creates JSON files for use with contrib/cgr-viewer tool."
-
-echo "  Generating cgr_to_node5.json (node 9 -> node 5)..."
-if cgrfetch -d ltp:9 -e 86400 -o cgr_to_node5.json 5 2>cgrfetch_error.log; then
-    rm -f cgrfetch_error.log
-else
-    echo "    Warning: cgrfetch failed for node 5. See cgrfetch_error.log for details."
-fi
-
-echo "  Generating cgr_to_node6.json (node 9 -> node 6)..."
-if cgrfetch -d ltp:9 -e 86400 -o cgr_to_node6.json 6 2>cgrfetch_error.log; then
-    rm -f cgrfetch_error.log
-else
-    echo "    Warning: cgrfetch failed for node 6. See cgrfetch_error.log for details."
-fi
-
-echo "CGR JSON files generated successfully."
-echo "To visualize: open contrib/cgr-viewer/cgr-viewer.html and load the JSON files."
-echo ""
-
 echo "Sending bundle with 10-second lifetime from ipn:9.1 to ipn:6.1."
 # Send a bundle destined for (nonexistent) node 6 with lifetime = 10.
 echo "Should be put into limbo: no current route, but might be opportunistic."
@@ -115,6 +94,33 @@ echo "Contact has terminated.  Verifying results..."
 # Verify bundle was forwarded.
 RETVAL=0
 
+# The 'fwd' tally must reach 3 (or 4) for this scenario.  Two timing
+# subtleties make a one-shot grep after the fixed sleeps above unreliable:
+#
+#   1. The "[x]" stat lines are written to ion.log only when bpclock
+#      emits them (on contact start/end events), not on a fixed timer, so
+#      we must force a fresh dump with bpstats rather than depend on
+#      catching an event-driven one.
+#   2. When the short-lifetime bundle stays in limbo (its forwarding is
+#      only opportunistic), 'fwd' does not reach 3 until the reforwarded
+#      120-second bundle is finally forwarded as the 9<->6 contact opens
+#      at t+90s -- later than the fixed sleeps above.
+#
+# So force a dump and poll, breaking out as soon as the expected count
+# appears, up to a generous timeout that comfortably spans the t+90s
+# contact opening.
+i=0
+while [ $i -lt 30 ]
+do
+    bpstats
+    sleep 2
+    if grep fwd ion.log | grep -qE "\(\+\) 3 9|\(\+\) 4 12"
+    then
+        break
+    fi
+    i=`expr $i + 1`
+done
+
 echo "Checking ion.log for 'src' message '(+) 3 9'..."
 COUNT=`grep src ion.log | grep "(+) 3 9" | wc -l`
 if [ $COUNT -gt 0 ]
@@ -157,6 +163,24 @@ then
 else
     echo "ERROR: Bundle not reforwarded."
     RETVAL=1
+fi
+
+# Generate CGR visualization data (diagnostic only).  This is run AFTER
+# the forwarding checks: cgrfetch's run time is variable, and when it ran
+# before the bundles were sourced it shifted the sends later relative to
+# the fixed contact schedule (the 9<->5 contact ends at t+60s), which
+# intermittently squeezed the reforwarding window and made the test flaky.
+echo "Generating CGR visualization data with cgrfetch..."
+echo "This creates JSON files for use with contrib/cgr-viewer tool."
+if cgrfetch -d ltp:9 -e 86400 -o cgr_to_node5.json 5 2>cgrfetch_error.log; then
+    rm -f cgrfetch_error.log
+else
+    echo "    Warning: cgrfetch failed for node 5. See cgrfetch_error.log for details."
+fi
+if cgrfetch -d ltp:9 -e 86400 -o cgr_to_node6.json 6 2>cgrfetch_error.log; then
+    rm -f cgrfetch_error.log
+else
+    echo "    Warning: cgrfetch failed for node 6. See cgrfetch_error.log for details."
 fi
 
 # Shut down ION processes.
