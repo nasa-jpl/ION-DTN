@@ -17,6 +17,7 @@ AC_CONFIG_SRCDIR([ici/include/ion.h])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
+m4_pattern_forbid([^PKG_])
 
 ## -----checking wsl type------------------------------------------------------------------- ##
 virtual_device_name=`uname -r`;
