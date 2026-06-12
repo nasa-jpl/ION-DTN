@@ -8,10 +8,6 @@
 AC_PREREQ([2.60])
 AC_INIT([ion],[4.1.4],[https://github.com/nasa-jpl/ION-DTN/issues])
 
-#  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
-#  all of the portability warnings introduced by autoconf v2.69 and
-#  automake v1.12.
-#AM_INIT_AUTOMAKE([subdir-objects -Wall -Werror foreign])
 AM_INIT_AUTOMAKE([subdir-objects -Wall foreign])
 
 # some source file that will ensure that you are in the right directory.
