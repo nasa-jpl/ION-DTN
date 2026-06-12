@@ -1,0 +1,70 @@
+{
+  "Mdat": [{
+      "name": "name",
+      "type": "STR",
+      "value": "sys",
+      "description": "The human-readable name of the ADM."
+    },
+    {
+      "name": "namespace",
+      "type": "STR",
+      "value": "DTN/sys",
+      "description": "The namespace of the ADM."
+    },
+    {
+      "name": "version",
+      "type": "STR",
+      "value": "v0.0",
+      "description": "The version of the ADM."
+    },
+    {
+      "name": "organization",
+      "type": "STR",
+      "value": "JHUAPL",
+      "description": "The name of the issuing organization of the ADM."
+    }
+  ],
+  "Edd": [
+    {"name": "num_cpus", "type": "UINT", "description": "Number of CPUs currently online."},
+    {"name": "load_1min", "type": "REAL64", "description": "1 minute load average."},
+    {"name": "load_5min", "type": "REAL64", "description": "5 minute load average."},
+    {"name": "load_15min", "type": "REAL64", "description": "15 minute load average."},
+    {"name": "cpu_util_pct", "type": "REAL64", "description": "Overall CPU utilization, in percent, measured since the previous query."},
+    {"name": "mem_total_kb", "type": "UVAST", "description": "Total physical memory, in KiB."},
+    {"name": "mem_free_kb", "type": "UVAST", "description": "Free physical memory, in KiB."},
+    {"name": "mem_used_kb", "type": "UVAST", "description": "Used physical memory, in KiB."},
+    {"name": "swap_total_kb", "type": "UVAST", "description": "Total swap space, in KiB."},
+    {"name": "swap_free_kb", "type": "UVAST", "description": "Free swap space, in KiB."},
+    {"name": "disk_total_kb", "type": "UVAST", "description": "Total space of the root filesystem, in KiB."},
+    {"name": "disk_free_kb", "type": "UVAST", "description": "Free space of the root filesystem, in KiB."},
+    {"name": "disk_used_kb", "type": "UVAST", "description": "Used space of the root filesystem, in KiB."},
+    {"name": "open_files", "type": "UVAST", "description": "Number of open file handles on the host."},
+    {"name": "max_files", "type": "UVAST", "description": "Maximum number of open file handles allowed on the host."},
+    {"name": "num_procs", "type": "UINT", "description": "Number of processes/threads on the host."},
+    {"name": "uptime_sec", "type": "UVAST", "description": "Seconds elapsed since the host booted."}
+  ],
+  "Rptt": [{
+    "name": "full_report",
+    "definition": [
+      {"ns": "DTN/sys", "nm": "mdat.name"},
+      {"ns": "DTN/sys", "nm": "edd.num_cpus"},
+      {"ns": "DTN/sys", "nm": "edd.load_1min"},
+      {"ns": "DTN/sys", "nm": "edd.load_5min"},
+      {"ns": "DTN/sys", "nm": "edd.load_15min"},
+      {"ns": "DTN/sys", "nm": "edd.cpu_util_pct"},
+      {"ns": "DTN/sys", "nm": "edd.mem_total_kb"},
+      {"ns": "DTN/sys", "nm": "edd.mem_free_kb"},
+      {"ns": "DTN/sys", "nm": "edd.mem_used_kb"},
+      {"ns": "DTN/sys", "nm": "edd.swap_total_kb"},
+      {"ns": "DTN/sys", "nm": "edd.swap_free_kb"},
+      {"ns": "DTN/sys", "nm": "edd.disk_total_kb"},
+      {"ns": "DTN/sys", "nm": "edd.disk_free_kb"},
+      {"ns": "DTN/sys", "nm": "edd.disk_used_kb"},
+      {"ns": "DTN/sys", "nm": "edd.open_files"},
+      {"ns": "DTN/sys", "nm": "edd.max_files"},
+      {"ns": "DTN/sys", "nm": "edd.num_procs"},
+      {"ns": "DTN/sys", "nm": "edd.uptime_sec"}
+    ],
+    "description": "All host system statistics."
+  }]
+}

@@ -11,6 +11,7 @@
 #include "adm_ltp_agent.h"
 #include "adm_ion_bp_admin.h"
 #include "adm_bpsec.h"
+#include "adm_sys.h"
 
 /******************************************************************************
  *
@@ -50,6 +51,7 @@ void adm_init(void)
 	dtn_ltp_agent_init();
 	dtn_ion_bpadmin_init();
 	dtn_bpsec_init();
+	dtn_sys_init();
 
 #endif
 	AMP_DEBUG_EXIT("adm_init","->.", NULL);

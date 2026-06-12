@@ -2080,7 +2080,9 @@ nm_agent_ADM_SOURCES = \
 	nm/agent/adm_ion_ltp_admin_impl.c \
 	nm/agent/adm_ion_ltp_admin_agent.c \
 	nm/agent/adm_ltp_agent_impl.c \
-	nm/agent/adm_ltp_agent_agent.c
+	nm/agent/adm_ltp_agent_agent.c \
+	nm/agent/adm_sys_impl.c \
+	nm/agent/adm_sys_agent.c
 
 nm_mgr_ADM_SOURCES = \
 	bpv7/adm/adm_bp_agent_mgr.c \
@@ -2091,7 +2093,8 @@ nm_mgr_ADM_SOURCES = \
 	nm/mgr/adm_ionsec_admin_mgr.c \
 	nm/mgr/adm_ion_ipn_admin_mgr.c \
 	nm/mgr/adm_ion_ltp_admin_mgr.c \
-	nm/mgr/adm_ltp_agent_mgr.c
+	nm/mgr/adm_ltp_agent_mgr.c \
+	nm/mgr/adm_sys_mgr.c
 
 nmextra = \
 	nm/doc/pod1/nm_agent.pod \
