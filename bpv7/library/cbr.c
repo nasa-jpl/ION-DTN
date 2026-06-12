@@ -3208,7 +3208,7 @@ int	cbr_handleCrs(Sdr sdr, unsigned char *adminRecord, int length,
 				}
 				else if (cbrDb.crsHistoryMax > 0
 					&& sdr_list_length(sdr, cbrDb.crsHistory)
-						> (size_t) cbrDb.crsHistoryMax)
+						> cbrDb.crsHistoryMax)
 				{
 					/*	Evict oldest entry.	*/
 					firstElt = sdr_list_first(sdr,
