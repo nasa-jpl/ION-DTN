@@ -7,34 +7,6 @@
 	Copyright (c) 2005, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-
-	Modified by Sky DeBaun
-	Jet Propulsion Laboratory 2023
-
-	Modifications address the following issues:
-
-	1.) Allow for SANA range of ipn-scheme fully-qualified node numbers
-		in the gateway IDs corresponding to (and implicitly
-		identifying) message spaces.  Note that continuum number
-		function as ION node identifiers (FQNNs) when and only when
-		ION is initialized from within AMS.
-
-		Modifications include switching arrays and for-loops
-		using the MAX_CONTIN_NBR to use ici's lyst.
-
-	2.) Modified loadMib() to align with documentation. The 'test MIB' is
-		now initialized and loaded using '@' character (as specified
-		in man pages).
-
-		Additional modifications include removal of nested (redundant) checks
-		for the NULL argument (as relates to the MIB filename). This update
-		provides a more clearly delineated path for the desired functionality
-		(i.e. consolidating the parameter check to a single logical location)
-
-	3.) Resolution of multiple TSan data race and thread safety issues.
-
-	4.) Fixed conditional compilation error when building with NOEXPAT.
-
 */
 
 #include <stdint.h> /* For uintptr_t */
