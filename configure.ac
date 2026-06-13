@@ -9,6 +9,7 @@ AC_PREREQ([2.69])
 AC_INIT([ion],[4.1.4],[https://github.com/nasa-jpl/ION-DTN/issues])
 
 AM_INIT_AUTOMAKE([1.16 subdir-objects -Wall foreign])
+AM_SILENT_RULES([yes])
 
 # some source file that will ensure that you are in the right directory.
 AC_CONFIG_SRCDIR([ici/include/ion.h])
