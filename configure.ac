@@ -365,8 +365,7 @@ AM_CONDITIONAL(ENABLE_TC, test "x$ENABLE_TC" = "xyes")
 AC_ARG_ENABLE(
   ams-industrial,
   [AS_HELP_STRING([--enable-ams-industrial],[enable AMS_INDUSTRIAL])],
-  [AM_CFLAGS="$AM_CFLAGS -DAMS_INDUSTRIAL"
-   AGS="$PKG_CONFIG_CFLAGS -DAMS_INDUSTRIAL"],
+  [AM_CFLAGS="$AM_CFLAGS -DAMS_INDUSTRIAL"],
   [])
 
 #
