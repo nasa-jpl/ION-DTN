@@ -20,7 +20,9 @@ autoreconf -fi
 echo "Running configure..."
 # EXTRA_CONFIGURE_FLAGS allows workflows to pass OS-specific flags (like CFLAGS for ARC)
 # shellcheck disable=SC2086
-./configure --enable-crypto-mbedtls --enable-bpsec-debugging $EXTRA_CONFIGURE_FLAGS
+./configure --enable-crypto-mbedtls --enable-bpsec-debugging \
+    --disable-silent-rules \
+    $EXTRA_CONFIGURE_FLAGS
 
 echo "Running ${MAKE_CMD} all..."
 $MAKE_CMD -j"$(nproc)" all

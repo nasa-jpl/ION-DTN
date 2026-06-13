@@ -187,6 +187,7 @@ jobs:
             autoreconf -fi
             ./configure ac_cv_c11=${{ steps.cflags.outputs.ac_cv_c11 }} \
                 --enable-crypto-mbedtls --enable-bpsec-debugging \
+                --disable-silent-rules \
                 CFLAGS="${{ steps.cflags.outputs.cflags }}"
             make all buildcheck
           } > compile-and-buildcheck.log 2> >(tee -a compile-and-buildcheck.log >&2)
@@ -583,7 +584,9 @@ jobs:
 
                   progress \"Running configure with ac_cv_c11=\$TIER_AC_CV_C11 CFLAGS=\$TIER_CFLAGS\"
                   ./configure ac_cv_c11=\"\$TIER_AC_CV_C11\" \
-                      --enable-bpsec-debugging CFLAGS=\"\$TIER_CFLAGS\"
+                      --enable-bpsec-debugging \
+                      --disable-silent-rules \
+                      CFLAGS=\"\$TIER_CFLAGS\"
 
                   progress \"Building ION (make -j\$(nproc) all buildcheck)\"
                   make -j\"\$(nproc)\" all buildcheck > /dev/null

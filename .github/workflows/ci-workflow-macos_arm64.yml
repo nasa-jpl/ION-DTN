@@ -79,7 +79,8 @@ jobs:
             export DYLD_LIBRARY_PATH=/usr/local/lib:$DYLD_LIBRARY_PATH
             export PRESERVE_TEST_LOGS="0"
             autoreconf -fi
-            ./configure --enable-bpsec-debugging  # mbedtls deactivated
+            # Mbed TLS deactivated
+            ./configure --enable-bpsec-debugging --disable-silent-rules
             make -j4
             sudo make install
             make buildcheck
