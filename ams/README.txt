@@ -31,7 +31,7 @@ software or related materials to foreign countries or providing
 access to foreign persons.
 *******************************************************************
 Note regarding the use of XML configuration files with AMS:
-by default ION is built with the -DNOEXPAT option to account for
+by default ION is built with the --without-expat option to account for
 operating environments that lack the expat XML parsing library
 (for example VxWorks 5.4).
 

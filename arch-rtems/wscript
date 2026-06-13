@@ -74,7 +74,6 @@ def build(bld):
         'NO_PSM_TRACE',
         'NO_PROXY',
         'NO_DIRLIST',
-        'NOEXPAT',
         'UDPTS',
         'TCPTS',
         'DGRTS',

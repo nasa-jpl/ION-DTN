@@ -9,10 +9,15 @@
 	acknowledged.
 */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdint.h> /* For uintptr_t */
 #include "amscommon.h"
-#ifndef NOEXPAT
-#include "expat.h"
+
+#ifdef HAVE_EXPAT
+#include <expat.h>
 #endif
 
 typedef enum
@@ -26,7 +31,7 @@ typedef enum
 
 typedef struct
 {
-#ifdef NOEXPAT
+#ifndef HAVE_EXPAT
 	int		lineNbr;
 #else
 	XML_Parser	parser;
@@ -151,7 +156,7 @@ static int	loadTestMib(void)
 static void	noteLoadError(LoadMibState *state, char *text)
 {
 	char		buf[256];
-#ifdef NOEXPAT
+#ifndef HAVE_EXPAT
 	isprintf(buf, sizeof buf, "[?] MIB load error at line %d of file: %s",
 			state->lineNbr, text);
 #else
@@ -1260,7 +1265,7 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 	}
 }
 
-#ifdef NOEXPAT
+#ifndef HAVE_EXPAT
 static void		startElement(LoadMibState *state, const char *name,
 				const char **atts)
 {
@@ -1495,7 +1500,7 @@ static void	handle_msgspace_end(LoadMibState *state)
 	}
 }
 
-#ifdef NOEXPAT
+#ifndef HAVE_EXPAT
 static void		endElement(LoadMibState	*state, const char *name)
 {
 #else
@@ -1603,7 +1608,7 @@ static void XMLCALL	endElement(void *userData, const char *name)
 	return;
 }
 
-#ifdef NOEXPAT
+#ifndef HAVE_EXPAT
 #define MAX_ATTRIBUTES		20
 
 static int	rcParse(LoadMibState *state, char *buf, size_t length)
@@ -1844,7 +1849,7 @@ int	updateMib(char *mibSource)
 	}
 
 	lockMib();
-#ifdef NOEXPAT
+#ifndef HAVE_EXPAT
 	result = loadMibFromRcSource(mibSource);
 #else
 	result = loadMibFromXmlSource(mibSource);
@@ -1874,7 +1879,7 @@ AmsMib	*loadMib(char *mibSource)
 	if (mibSource == NULL)
 	{
 		/* Use default file name based on parsing library in use. */
-#ifdef NOEXPAT
+#ifndef HAVE_EXPAT
 		sourceToUse = "mib.amsrc";
 		result = loadMibFromRcSource(sourceToUse);
 #else
@@ -1890,7 +1895,7 @@ AmsMib	*loadMib(char *mibSource)
 	else
 	{
 		/* load the specified MIB */
-#ifdef NOEXPAT
+#ifndef HAVE_EXPAT
 		result = loadMibFromRcSource(mibSource);
 #else
 		result = loadMibFromXmlSource(mibSource);

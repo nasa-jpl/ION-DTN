@@ -2294,7 +2294,7 @@ libams_la_SOURCES += \
 endif
 
 libams_la_LDFLAGS = -static
-libams_la_CFLAGS = $(amscflags) $(AM_CFLAGS)
+libams_la_CFLAGS = $(amscflags) $(AM_CFLAGS) $(EXPAT_CFLAGS)
 libams_la_LIBADD = $(EXPAT_LIBS) $(bplib) $(amsdgrlib) libici.la $(secryptlib)
 
 # --- Utility Programs --- #

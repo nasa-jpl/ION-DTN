@@ -186,15 +186,16 @@ simple but less powerful configuration statements as described in the amsrc(5)
 man page.  The B<amsxml> alternative requires that the B<expat> XML parsing
 system be installed; the B<amsrc> alternative was developed to simplify
 deployment of AMS in environments in which B<expat> is not readily supported.
-Selection of the configuration file format is a compile-time decision,
-implemented by setting (or not setting) the -DNOEXPAT compiler option.
+Selection of the configuration file format is a configure-time decision,
+implemented by setting (or not setting) the --with-expat configure option.
 
 The path name of the applicable configuration file may be passed as a
 command-line parameter to B<amsd> and as a registration function parameter
 by any AMS application program.  Note, though, that B<ramsgate> and the
 AMS test and utility programs included in ION always assume that the
 configuration file resides in the current working directory and that it is
-named "mib.amsrc" if AMS was built with -DNOEXPAT, "amsmib.xml" otherwise.
+named "mib.amsrc" if AMS was built using --without-expat (default),
+"amsmib.xml" otherwise.
 
 The transport services that are made available to AMS communicating entities
 are declared by the transportServiceLoaders array in the libams.c source

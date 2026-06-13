@@ -558,32 +558,32 @@ priority-2 traffic.
 
 ### Configuring the "ams" module
 
-Defining the following macros, by setting parameters that are provided
-to the C compiler (for example, -DNOEXPAT or -DAMS_INDUSTRIAL), will
-alter the functionality of AMS as noted below.
+The following options in the `configure` script
+will alter the functionality of AMS as noted below.
 
-`NOEXPAT`
+`--with-expat`
 
-Setting this option adapts AMS to expect MIB information to be presented
-to it in "amsrc" syntax (see the amsrc(5) man page) rather than in XML
-syntax (as described in the amsxml(5) man page), normally because the
-expat XML interpretation system is not installed. Note that the default
-syntax for AMS MIB information is now amsrc syntax so the -DNOEXPAT
-switch is rarely needed.
+Setting this option adapts AMS to expect MIB information
+to be presented to it in XML syntax (see the amsxml(5) man page)
+rather than in "amsrc" syntax (as described in the amsrc(5) man page).
+This option requires the Expat XML parser library.
 
-`AMS_INDUSTRIAL`
+`--enable-ams-industrial`
 
-Setting this option adapts AMS to an "industrial" rather than
-safety-critical model for memory management. By default, the memory
-acquired for message transmission and reception buffers in AMS is
-allocated from limited ION working memory, which is fixed at ION
-start-up time; this limits the rate at which AMS messages may be
-originated and acquired. When -DAMS_INDUSTRIAL is set at compile time,
-the memory acquired for message transmission and reception buffers in
-AMS is allocated from system memory, using the familiar malloc() and
-free() functions; this enables much higher message traffic rates on
-machines with abundant system memory where flight software constraints
-on dynamic system memory allocation are not applicable.
+Setting this option adapts AMS to an "industrial"
+rather than safety-critical model for memory management.
+By default, the memory acquired for message transmission
+and reception buffers in AMS is allocated from limited ION working memory,
+which is fixed at ION start-up time;
+this limits the rate at which AMS messages may be originated and acquired.
+When the `--enable-ams-industrial` option is used,
+the memory acquired for message transmission and reception buffers in AMS
+is allocated from system memory,
+using the familiar malloc() and free() functions;
+this enables much higher message traffic rates on machines
+with abundant system memory
+where flight software constraints on dynamic system memory allocation
+are not applicable.
 
 ### Configuring the "cfdp" module
 

@@ -714,17 +714,10 @@ AM_CONDITIONAL([ENABLE_GCOV], [test "x$gcov" = "xyes"])
 #
 AC_ARG_WITH([expat],
   [AS_HELP_STRING([--with-expat], [Turn on libexpat requirements])],
-  [expat=yes;],
-  [])
-if test "x$expat" = "xyes" ; then
-  echo "Build against libexpat... yes"
-else
-  echo "Build against libexpat... no"
-  CFLAGS="$CFLAGS -DNOEXPAT"
-  PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DNOEXPAT"
-fi
-AM_CONDITIONAL([ENABLE_EXPAT], [test "x$expat" = "xyes"])
-
+  [AS_CASE(["$withval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${withval} for --with-expat])])],
+  [with_expat=no])
 
 #
 # If valgrind is present, allow special MTAKE/MRELEASE valgrind tutors.
@@ -915,12 +908,10 @@ AM_CONDITIONAL([TCPCL_LOW_CYCLE], [test "x$TCPCL_LOW_CYCLE" = "xyes"])
 # Check for libraries.
 ORIGCFLAGS="$CFLAGS"
 CFLAGS="$AM_CFLAGS $CFLAGS"
-AC_CHECK_LIB(
-  [expat],
-  [XML_GetCurrentLineNumber],
-  [AC_SUBST([EXPAT_LIBS], ["-lexpat"])],
-  [AM_COND_IF([ENABLE_EXPAT], AC_MSG_ERROR([You need to install the libexpat1-dev library to build with expat.]), AC_MSG_WARN([If you wish to use XML configuration files for AMS you will need to compile against the Expat XML development libraries.  To do this install the libexpat1-dev library then recompile ION using the "./configure --with-expat" flag.]) )]
-)
+
+AS_IF([test "x$with_expat" != "xno"],
+  [PKG_CHECK_MODULES([EXPAT], [expat],
+                     [AC_DEFINE([HAVE_EXPAT], [1], [Use expat])])])
 
 AC_CHECK_LIB(
   [pthread],

@@ -1815,9 +1815,9 @@ Attributes:
  The following two-step build procedure provides an example of how this works (note that the default path for installed ION library files (Linux) is used: /usr/local/lib/):
 
 ```bash
-gcc -g -Wall -Werror -Dlinux -DUDPTS -DTCPTS -DDGRTS -DNOEXPAT -fPIC -DSPACE_ORDER=3 -I../library -I../include -I../rams -I/usr/local/include -c your_module_name.c
+gcc -g -Wall -Werror -Dlinux -DUDPTS -DTCPTS -DDGRTS -fPIC -DSPACE_ORDER=3 -I../library -I../include -I../rams -I/usr/local/include -c your_module_name.c
 
-gcc -g -Wall -Werror -Dlinux -DUDPTS -DTCPTS -DDGRTS -DNOEXPAT -fPIC -DSPACE_ORDER=3 -I../library -I../include -I../rams -I/usr/local/include -o your_module_name your_module_name.o -L./lib -L/usr/local/lib -lams -ldgr -lici -lpthread -lm*
+gcc -g -Wall -Werror -Dlinux -DUDPTS -DTCPTS -DDGRTS -fPIC -DSPACE_ORDER=3 -I../library -I../include -I../rams -I/usr/local/include -o your_module_name your_module_name.o -L./lib -L/usr/local/lib -lams -ldgr -lici -lpthread -lm*
 ```
 ## Running the Application
 

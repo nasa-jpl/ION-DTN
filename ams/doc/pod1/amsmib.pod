@@ -30,7 +30,7 @@ B<amsmib> terminates.
 B<amsmib> then reads into a memory buffer up to 4095 bytes of MIB update
 text from the file identified by I<file_name>.  The MIB update text must
 conform to amsxml(5) or amsrc(5) syntax, depending on whether or not the
-intended recipient modules were compiled with the -DNOEXPAT option.
+intended recipient modules were configured with the --with-expat option.
 
 B<amsmib> then "announces" (see ams_announce() in ams(3)) the contents of the
 memory buffer to all modules of this same venture (identified by

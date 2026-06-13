@@ -3302,24 +3302,23 @@ presented to AMS is as documented in the "amsrc" man page. Alternatively
 it is possible to use an XML-based syntax as documented in the "amsxml"
 man page. To use the XML-based syntax instead, be sure that the "expat"
 XML interpretation system is installed and pass the argument
-"\--with-expat" to "./configure" when building ION.
+`--with-expat` to `./configure` when building ION.
 
-Defining the following macros, by setting parameters that are provided
-to the C compiler (for example, DAMS_INDUSTRIAL), will alter the
-functionality of AMS as noted below.
-
-`AMS_INDUSTRIAL`
-
-Setting this option adapts AMS to an "industrial" rather than
-safety-critical model for memory management. By default, the memory
-acquired for message transmission and reception buffers in AMS is
-allocated from limited ION working memory, which is fixed at ION
-start-up time; this limits the rate at which AMS messages may be
-originated and acquired. When -DAMS_INDUSTRIAL is set at compile time,
-the memory acquired for message transmission and reception buffers in
-AMS is allocated from system memory, using the familiar malloc() and
-free() functions; this enables much higher message traffic rates on
-machines with abundant system memory.
+Additionally, the `--enable-ams-industrial` option to `./configure`
+adapts AMS to an "industrial" rather than safety-critical model
+for memory management.
+By default, the memory acquired for message transmission
+and reception buffers in AMS is allocated from limited ION working memory,
+which is fixed at ION start-up time;
+this limits the rate at which AMS messages may be originated and acquired.
+When the `--enable-ams-industrial` option is used,
+the memory acquired for message transmission and reception buffers in AMS
+is allocated from system memory,
+using the familiar malloc() and free() functions;
+this enables much higher message traffic rates on machines
+with abundant system memory
+where flight software constraints on dynamic system memory allocation
+are not applicable.
 
 #### Building AMS
 

@@ -14,8 +14,8 @@ or both.
 
 If I<MIB_source_name> is specified, it must name a MIB initialization file
 in the correct format for B<amsd>, either amsrc(5) or amsxml(5), depending on
-whether or not -DNOEXPAT was set at compile time.  Otherwise B<@> is required;
-in this case, the built-in default MIB is loaded.
+whether or not the --with-expat option was used at configure time.  Otherwise
+B<@> is required; in this case, the built-in default MIB is loaded.
 
 If this B<amsd> task is B<NOT> to run as a configuration server then the
 second command-line argument must be a '.' character.  Otherwise the second
