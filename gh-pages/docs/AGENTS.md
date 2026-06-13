@@ -72,7 +72,7 @@ ION uses a **multi-process architecture** with layered services where components
 - `bssp/` - Bundle Streaming Service Protocol
 - `dgr/` - Datagram Retransmission (UDP-like with reliability)
 - `nm/` - Network Management
-- `tc/` - Trusted Collective / DTKA (delay-tolerant key adminstration)
+- `tc/` - Trusted Collective / DTKA (Delay-Tolerant Key Administration)
 
 ## Key Concepts
 
