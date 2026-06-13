@@ -365,11 +365,9 @@ AM_CONDITIONAL(ENABLE_TC, test "x$ENABLE_TC" = "xyes")
 AC_ARG_ENABLE(
   ams-industrial,
   [AS_HELP_STRING([--enable-ams-industrial],[enable AMS_INDUSTRIAL])],
-  [ENABLE_AMS_INDUSTRIAL=yes
-   AM_CFLAGS="$AM_CFLAGS -DAMS_INDUSTRIAL"
+  [AM_CFLAGS="$AM_CFLAGS -DAMS_INDUSTRIAL"
    AGS="$PKG_CONFIG_CFLAGS -DAMS_INDUSTRIAL"],
-  [ENABLE_AMS_INDUSTRIAL=no])
-AM_CONDITIONAL(ENABLE_AMS_INDUSTRIAL, test "x$ENABLE_AMS_INDUSTRIAL" = "xyes")
+  [])
 
 #
 # allow the user running configure to enable the enhanced watch character option
