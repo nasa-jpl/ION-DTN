@@ -158,7 +158,7 @@ else
 fi
 
 # Check bundle statistics
-if grep -q "xmt from.*: .*(1) [1-9]" rtems-test-output/qemu-output.txt; then
+if grep -q "xmt from.*: .*(1) [1-9]" "$QEMU_OUTPUT"; then
     echo "✓ Bundle transmission statistics present"
     echo "[PASS] Bundle transmission statistics present" >> "$REPORT_OUTPUT"
 else
@@ -167,12 +167,46 @@ else
     VERIFICATION_FAILED=true
 fi
 
-if grep -q "rcv from.*: .*(1) [1-9]" rtems-test-output/qemu-output.txt; then
+if grep -q "rcv from.*: .*(1) [1-9]" "$QEMU_OUTPUT"; then
     echo "✓ Bundle reception statistics present"
     echo "[PASS] Bundle reception statistics present" >> "$REPORT_OUTPUT"
 else
     echo "✗ Bundle reception statistics not found"
     echo "[FAIL] Bundle reception statistics incorrect" >> "$REPORT_OUTPUT"
+    VERIFICATION_FAILED=true
+fi
+
+# Multi-test scenarios: the RTEMS test now exercises TCP/TCPCL, CFDP, and
+# AMS in addition to the baseline UDP/LTP loopback.  Verify each of the
+# added scenarios so the externalized verifier covers the full set.
+
+# Check: TCP/TCPCL loopback scenario exercised
+if grep -q "Starting TCP loopback test." "$QEMU_OUTPUT"; then
+    echo "✓ TCP/TCPCL loopback scenario ran"
+    echo "[PASS] TCP/TCPCL loopback scenario ran" >> "$REPORT_OUTPUT"
+else
+    echo "✗ TCP/TCPCL loopback scenario not found"
+    echo "[FAIL] TCP/TCPCL loopback scenario not found" >> "$REPORT_OUTPUT"
+    VERIFICATION_FAILED=true
+fi
+
+# Check: CFDP loopback delivered
+if grep -q "CFDP delivered:" "$QEMU_OUTPUT"; then
+    echo "✓ CFDP loopback delivered"
+    echo "[PASS] CFDP loopback delivered" >> "$REPORT_OUTPUT"
+else
+    echo "✗ CFDP loopback delivery not found"
+    echo "[FAIL] CFDP loopback delivery not found" >> "$REPORT_OUTPUT"
+    VERIFICATION_FAILED=true
+fi
+
+# Check: AMS loopback delivered
+if grep -q "AMS delivered:" "$QEMU_OUTPUT"; then
+    echo "✓ AMS loopback delivered"
+    echo "[PASS] AMS loopback delivered" >> "$REPORT_OUTPUT"
+else
+    echo "✗ AMS loopback delivery not found"
+    echo "[FAIL] AMS loopback delivery not found" >> "$REPORT_OUTPUT"
     VERIFICATION_FAILED=true
 fi
 
