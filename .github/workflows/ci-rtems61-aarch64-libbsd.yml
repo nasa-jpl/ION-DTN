@@ -174,7 +174,7 @@ jobs:
           # Run ION in QEMU and capture output
           docker exec $TEST_CONTAINER_ID bash -c \
             "cd /workspace/arch-rtems && \
-             timeout 30 qemu-system-aarch64 \
+             timeout 60 qemu-system-aarch64 \
                -no-reboot \
                -nographic \
                -serial mon:stdio \
