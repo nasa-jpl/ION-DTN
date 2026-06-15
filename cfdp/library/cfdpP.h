@@ -281,6 +281,7 @@ typedef struct
 	int		bpcpdPid;	/* For stopping the BPCP daemon. */
 	int		clockPid;	/* For stopping cfdpclock. */
 	int		watching;	/* Activity watch. */
+	int		stopping;	/* CFDP teardown in progress. */
 
 	/*	Producer-consumer synchronization for event queue.
 	 *	eventMutex protects access to the event queue.
