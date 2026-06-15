@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 trap 'killm f' EXIT
 #
 # Nate Richard
@@ -18,7 +18,7 @@ exit_stat=$?
 if [ $exit_stat -ne 0 ]; then
     echo "Error running AES test"
     ./cleanup
-    exit
+    exit "$exit_stat"
 fi
 ./cleanup
 
@@ -31,7 +31,7 @@ if [ "$fullSuite" ]; then
         echo "Error running ECDSA test"
         sed -i 's/ecdsa/aes/g' node.dtkarc
         ./cleanup
-        exit
+        exit "$exit_stat"
     fi
     ./cleanup
 
@@ -43,7 +43,7 @@ if [ "$fullSuite" ]; then
         echo "Error running HMAC test"
         sed -i 's/hmac/aes/g' node.dtkarc
         ./cleanup
-        exit
+        exit "$exit_stat"
     fi
     killm
 
@@ -52,3 +52,4 @@ if [ "$fullSuite" ]; then
 fi
 
 echo "Tests finished"
+exit 0
