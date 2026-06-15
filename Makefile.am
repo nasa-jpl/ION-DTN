@@ -225,7 +225,7 @@ distclean-local:
 
 # clean-local refers to existing documents.
 CLEAN_LOCAL_DEPS = iciclean-local ltpclean-local bpclean-local amsclean-local \
-	cfdpclean-local restartclean-local bssclean-local
+	cfdpclean-local restartclean-local bssclean-local nmclean-local
 
 if ENABLE_BSL
 bsl-clean-local:
@@ -2208,6 +2208,9 @@ nmextra = \
 nmmans = \
 	nm/doc/nm_agent.1 \
 	nm/doc/nm_mgr.1
+
+nmclean-local:
+	rm -f $(top_builddir)/nm/doc/*.1
 
 libampAgentADM_la_SOURCES = $(nm_agent_ADM_SOURCES)
 libampAgentADM_la_CFLAGS = -I$(srcdir)/nm -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR) -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE)
