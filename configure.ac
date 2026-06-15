@@ -903,7 +903,6 @@ AC_ARG_ENABLE(
 if test "x$TCPCL_LOW_CYCLE" = "xyes" ; then
   echo "Enabling TCPCL_LOW_CYCLE... yes"
 fi
-AM_CONDITIONAL([TCPCL_LOW_CYCLE], [test "x$TCPCL_LOW_CYCLE" = "xyes"])
 
 # Check for libraries.
 ORIGCFLAGS="$CFLAGS"
