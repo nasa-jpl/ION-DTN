@@ -13,14 +13,26 @@ AM_CFLAGS += \
 	-include config.h \
 	-I$(srcdir)/ici/include \
 	-I$(srcdir)/ltp/include \
-	-I$(srcdir)/dgr/include \
 	-I$(srcdir)/$(BP_DIR)/include \
-	-I$(srcdir)/tc/include \
 	-I$(srcdir)/bss/include \
-	-I$(srcdir)/dtpc/include \
-	-I$(srcdir)/bssp/include \
 	-I$(srcdir)/ams/include \
 	-I$(srcdir)/cfdp/include
+
+if ENABLE_DGR
+AM_CFLAGS += -I$(srcdir)/dgr/include
+endif
+
+if ENABLE_TC
+AM_CFLAGS += -I$(srcdir)/tc/include
+endif
+
+if ENABLE_BSSP
+AM_CFLAGS += -I$(srcdir)/bssp/include
+endif
+
+if ENABLE_DTPC
+AM_CFLAGS += -I$(srcdir)/dtpc/include
+endif
 
 if SOLARIS_STUDIO_CC
 AM_CFLAGS += \
@@ -212,21 +224,50 @@ distclean-local:
 
 
 # clean-local refers to existing documents.
-if ENABLE_BSL
-clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local \
-	     amsclean-local cfdpclean-local restartclean-local tcclean-local bsl-clean-local
-	@rm -f .build_finished
-	@rm -f ion.pc
+CLEAN_LOCAL_DEPS = iciclean-local ltpclean-local bpclean-local amsclean-local \
+	cfdpclean-local restartclean-local bssclean-local
 
+if ENABLE_BSL
 bsl-clean-local:
 	@echo "Cleaning BSL build artifacts..."
 	@cd $(srcdir)/external/BSL && ./build.sh clean || true
-else
-clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local \
-	     amsclean-local cfdpclean-local restartclean-local tcclean-local
+CLEAN_LOCAL_DEPS += bsl-clean-local
+endif
+
+if ENABLE_DGR
+dgrclean-local:
+	rm -f $(top_builddir)/dgr/doc/*.1
+	rm -f $(top_builddir)/dgr/doc/*.3
+CLEAN_LOCAL_DEPS += dgrclean-local
+endif
+
+if ENABLE_TC
+tcclean-local:
+	rm -f $(top_builddir)/tc/doc/*.1
+	rm -f $(top_builddir)/tc/doc/*.3
+	rm -f $(top_builddir)/tc/doc/*.5
+CLEAN_LOCAL_DEPS += tcclean-local
+endif
+
+if ENABLE_BSSP
+bsspclean-local:
+	rm -f $(top_builddir)/bssp/doc/*.1
+	rm -f $(top_builddir)/bssp/doc/*.3
+	rm -f $(top_builddir)/bssp/doc/*.5
+CLEAN_LOCAL_DEPS += bsspclean-local
+endif
+
+if ENABLE_DTPC
+dtpcclean-local:
+	rm -f $(top_builddir)/dtpc/doc/*.1
+	rm -f $(top_builddir)/dtpc/doc/*.3
+	rm -f $(top_builddir)/dtpc/doc/*.5
+CLEAN_LOCAL_DEPS += dtpcclean-local
+endif
+
+clean-local: $(CLEAN_LOCAL_DEPS)
 	@rm -f .build_finished
 	@rm -f ion.pc
-endif # end ENABLE_BSL
 
 build-man-directories:
 	mkdir -p $(top_builddir)/ici/doc
@@ -695,8 +736,20 @@ psmwatch_SOURCES = ici/utils/psmwatch.c
 psmwatch_LDADD = libici.la -lm
 psmwatch_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
+if ENABLE_BSSP
+    ionwatchbssplib = libbssp.la
+else
+    ionwatchbssplib =
+endif
+
+if ENABLE_DTPC
+    ionwatchdtpclib = libdtpc.la
+else
+    ionwatchdtpclib =
+endif
+
 ionwatch_SOURCES = ici/utils/ionwatch.c
-ionwatch_LDADD = libici.la libltp.la $(bplib) libcfdp.la libdtpc.la libbssp.la -lm
+ionwatch_LDADD = libici.la libltp.la $(bplib) libcfdp.la $(ionwatchdtpclib) $(ionwatchbssplib) -lm
 ionwatch_CFLAGS = $(icicflags) $(AM_CFLAGS) -I$(srcdir)/ltp/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/cfdp/library -I$(srcdir)/dtpc/library -I$(srcdir)/bssp/library
 
 sdrmend_SOURCES = ici/utils/sdrmend.c
@@ -1028,10 +1081,6 @@ dgrmans = \
 	dgr/doc/dgr2file.1 \
 	dgr/doc/file2dgr.1 \
 	dgr/doc/dgr.3
-
-dgrclean-local:
-	rm -f $(top_builddir)/dgr/doc/*.1
-	rm -f $(top_builddir)/dgr/doc/*.3
 
 # -- Libraries --- #
 
@@ -1893,6 +1942,8 @@ endif
 #
 ############################
 
+if ENABLE_TC
+
 # Define pod2man stuff
 tcPODM1 = pod2man -s 1 -c "TC executables"
 tcPODM3 = pod2man -s 3 -c "TC library functions"
@@ -1957,11 +2008,6 @@ tcmans = \
 	tc/doc/dtkarc.5 \
 	tc/doc/tcarc.5 \
 	tc/doc/tccrc.5
-
-tcclean-local:
-	rm -f $(top_builddir)/tc/doc/*.1
-	rm -f $(top_builddir)/tc/doc/*.3
-	rm -f $(top_builddir)/tc/doc/*.5
 
 # -- Libraries --- #
 
@@ -2056,6 +2102,8 @@ tcc_CFLAGS = $(tccflags) $(AM_CFLAGS)
 tccadmin_SOURCES = tc/client/tccadmin.c
 tccadmin_LDADD = libici.la $(tclib) $(bplib) -lm
 tccadmin_CFLAGS = $(tccflags) $(AM_CFLAGS)
+
+endif # ENABLE_TC
 
 ############################
 #
@@ -2583,11 +2631,6 @@ bsspmans = \
 	bssp/doc/bssp.3 \
 	bssp/doc/bssprc.5
 
-bsspclean-local:
-	rm -f $(top_builddir)/bssp/doc/*.1
-	rm -f $(top_builddir)/bssp/doc/*.3
-	rm -f $(top_builddir)/bssp/doc/*.5
-
 # --- Libraries --- #
 
 libbssp_la_SOURCES = \
@@ -2643,6 +2686,8 @@ endif # ENABLE_BSSP
 #
 ##############
 
+if ENABLE_DTPC
+
 # Define pod2man stuff
 dtpcPODM1 = pod2man -s 1 -c "DTPC executables"
 dtpcPODM3 = pod2man -s 3 -c "DTPC library functions"
@@ -2684,11 +2729,6 @@ dtpcmans = \
 	dtpc/doc/dtpc.3 \
 	dtpc/doc/dtpcrc.5
 
-dtpcclean-local:
-	rm -f $(top_builddir)/dtpc/doc/*.1
-	rm -f $(top_builddir)/dtpc/doc/*.3
-	rm -f $(top_builddir)/dtpc/doc/*.5
-
 # --- Libraries --- #
 
 libdtpc_la_SOURCES = \
@@ -2724,6 +2764,7 @@ dtpcd_SOURCES = dtpc/daemon/dtpcd.c
 dtpcd_LDADD = libdtpc.la libici.la $(bplib)
 dtpcd_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 
+endif # ENABLE_DTPC
 
 ##########################
 #
