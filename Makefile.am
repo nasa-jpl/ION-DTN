@@ -1159,7 +1159,6 @@ bpbin = \
 	brsccla \
 	brsscla \
 	cgrfetch \
-	cpsd \
 	dtn2admin \
 	dtn2adminep \
 	dtn2fw \
@@ -1193,6 +1192,7 @@ bpbin = \
 
 if ENABLE_IMC
 bpbin += \
+	cpsd \
 	imcadminep \
 	imcfw
 endif # end ENABLE_IMC
@@ -1285,7 +1285,6 @@ bpextra = \
 	bpv7/doc/pod1/brsccla.pod \
 	bpv7/doc/pod1/brsscla.pod \
 	bpv7/doc/pod1/cgrfetch.pod \
-	bpv7/doc/pod1/cpsd.pod \
 	bpv7/doc/pod1/dccpcli.pod \
 	bpv7/doc/pod1/dccpclo.pod \
 	bpv7/doc/pod1/dgrcli.pod \
@@ -1339,6 +1338,7 @@ bpextra = \
 
 if ENABLE_IMC
 bpextra += \
+	bpv7/doc/pod1/cpsd.pod \
 	bpv7/doc/pod1/imcfw.pod
 endif # end ENABLE_IMC
 
@@ -1375,7 +1375,6 @@ bpmans = \
 	bpv7/doc/brsccla.1 \
 	bpv7/doc/brsscla.1 \
 	bpv7/doc/cgrfetch.1 \
-	bpv7/doc/cpsd.1 \
 	bpv7/doc/dccpcli.1 \
 	bpv7/doc/dccpclo.1 \
 	bpv7/doc/dgrcli.1 \
@@ -1420,6 +1419,7 @@ bpmans = \
 
 if ENABLE_IMC
 bpmans += \
+	bpv7/doc/cpsd.1 \
 	bpv7/doc/imcfw.1
 endif # end ENABLE_IMC
 
@@ -1881,9 +1881,11 @@ bptransit_SOURCES = bpv7/daemon/bptransit.c
 bptransit_LDADD = libici.la $(bplib)
 bptransit_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
+if ENABLE_IMC
 cpsd_SOURCES = bpv7/daemon/cpsd.c
 cpsd_LDADD = libici.la $(bplib)
 cpsd_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+endif
 
 ############################
 #
