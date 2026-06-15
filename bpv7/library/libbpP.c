@@ -31,8 +31,11 @@
 
 /*	Interfaces to other BP-related components of ION	*	*/
 
-#include "imcfw.h"
 #include "saga.h"
+
+#ifdef ENABLE_IMC
+#include "imcfw.h"
+#endif
 
 #if USING_BSL
 /*	State of BPSec library instance.				*/
@@ -654,9 +657,11 @@ static int	raiseScheme(Object schemeElt, BpVdb *bpvdb)
 
 	switch (vscheme->codeNumber)
 	{
+#ifdef ENABLE_IMC
 	case imc:
 		istrcpy(vscheme->adminEid, "imc:0.0", sizeof vscheme->adminEid);
 		break;
+#endif
 
 	case ipn:
 		putFqn(nbrBuf, getOwnFqnn());
@@ -3283,10 +3288,12 @@ too long", admAppCmd);
 		schemeBuf.codeNumber = ipn;
 		schemeBuf.bclas = sdr_list_create(sdr);
 	}
+#ifdef ENABLE_IMC
 	else if (strcmp(schemeName, "imc") == 0)
 	{
 		schemeBuf.codeNumber = imc;
 	}
+#endif
 
 	addr = sdr_malloc(sdr, sizeof(Scheme));
 	if (addr)
@@ -3592,6 +3599,7 @@ void	findEndpoint(char *schemeName, MetaEid *meid, VScheme *vscheme,
 	*vpointElt = elt;
 }
 
+#ifdef ENABLE_IMC
 static int	addEndpoint_IMC(VScheme *vscheme, char *eid)
 {
 	MetaEid		metaEid;
@@ -3627,6 +3635,7 @@ static int	addEndpoint_IMC(VScheme *vscheme, char *eid)
 	clearMetaEid(&metaEid);
 	return result;
 }
+#endif /* ENABLE_IMC */
 
 int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 {
@@ -3736,11 +3745,13 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	}
 
 	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
+#ifdef ENABLE_IMC
 	if (addEndpoint_IMC(vscheme, eid) < 0)
 	{
 		clearMetaEid(&metaEid);
 		return -1;
 	}
+#endif
 
 	clearMetaEid(&metaEid);
 	return 1;
@@ -3800,6 +3811,7 @@ int	updateEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	return 1;
 }
 
+#ifdef ENABLE_IMC
 static int	removeEndpoint_IMC(VScheme *vscheme, char *eid)
 {
 	MetaEid		metaEid;
@@ -3822,6 +3834,7 @@ static int	removeEndpoint_IMC(VScheme *vscheme, char *eid)
 	clearMetaEid(&metaEid);
 	return result;
 }
+#endif /* ENABLE_IMC */
 
 int	removeEndpoint(char *eid)
 {
@@ -3896,10 +3909,12 @@ int	removeEndpoint(char *eid)
 		return -1;
 	}
 
+#ifdef ENABLE_IMC
 	if (removeEndpoint_IMC(vscheme, eid) < 0)
 	{
 		return -1;
 	}
+#endif
 
 	return 1;
 }
@@ -5769,8 +5784,6 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
-	Object		elt;
-	uvast		fqnn;
 
 	CHKERR(oldBundle && newBundle && newBundleObj);
 	if (oldBundle->payload.content == 0)
@@ -5895,6 +5908,7 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 		}
 	}
 
+#ifdef ENABLE_IMC
 	/*	Copy IMC multicast destinations list as needed.		*/
 
 	if (oldBundle->destinations)
@@ -5906,10 +5920,10 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 			return -1;
 		}
 
-		for (elt = sdr_list_first(sdr, oldBundle->destinations); elt;
-				elt = sdr_list_next(sdr, elt))
+		for (Object elt = sdr_list_first(sdr, oldBundle->destinations);
+				elt; elt = sdr_list_next(sdr, elt))
 		{
-			fqnn = (uvast) sdr_list_data(sdr, elt);
+			uvast fqnn = (uvast) sdr_list_data(sdr, elt);
 			if (sdr_list_insert_last(sdr, newBundle->destinations,
 					fqnn) == 0)
 			{
@@ -5918,6 +5932,14 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 			}
 		}
 	}
+#else /* !ENABLE_IMC */
+	/*
+	 * The memcpy at the top of bpClone aliased oldBundle's destinations
+	 * list handle. With the IMC deep-copy compiled out, clear it so the
+	 * clone does not share -- and later double-free -- the parent's list.
+	 */
+	newBundle->destinations = 0;
+#endif /* ENABLE_IMC */
 
 	/*	Copy extension blocks.					*/
 
@@ -6912,11 +6934,13 @@ void	lookUpEndpoint(EndpointId *eid, VScheme *vscheme, VEndpoint **vpoint)
 				eid->ssp.ipn.serviceNbr);
 		break;
 
+#ifdef ENABLE_IMC
 	case imc:
 		putFqn(nbrBuf, eid->ssp.imc.fqgn);
 		isprintf(nssBuf, sizeof nssBuf, "%s.%u", nbrBuf,
 				eid->ssp.imc.serviceNbr);
 		break;
+#endif
 
 	default:
 		putErrmsg("Unknown endpoint scheme.", itoa(eid->schemeCodeNbr));
@@ -7904,8 +7928,6 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 	unsigned long	nodeNbr = 0;
 	uvast		fqnn = 0;
 	unsigned long	serviceNbr;
-	unsigned long	groupNbr = 0;
-	uvast		fqgn = 0;
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	elt;
@@ -8106,7 +8128,11 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 
 		break;
 
+#ifdef ENABLE_IMC
 	case imc:
+	{
+		uvast	      fqgn = 0;
+		unsigned long groupNbr = 0;
 		arrayLength = 0;	/*	Decode array of 2 or 3.	*/
 		length = cbor_decode_array_open(&arrayLength, cursor,
 				bytesRemaining);
@@ -8213,6 +8239,8 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 		}
 
 		break;
+	}
+#endif /* ENABLE_IMC */
 
 	default:
 		writeMemo("[?] Can't decode endpoint ID.");
@@ -10787,7 +10815,6 @@ int	serializeEid(EndpointId *eid, unsigned char *buffer)
 	char		*nss;
 	unsigned long	allocatorNbr;
 	unsigned long	nodeNbr;
-	unsigned long	groupNbr;
 
 	uvtemp = 2;
 	oK(cbor_encode_array_open(uvtemp, &cursor));
@@ -10841,11 +10868,12 @@ int	serializeEid(EndpointId *eid, unsigned char *buffer)
 		oK(cbor_encode_integer(uvtemp, &cursor));
 		break;
 
+#ifdef ENABLE_IMC
 	case imc:
 		allocatorNbr = (eid->ssp.imc.fqgn >> 32) & 0xffffffff;
 		if (allocatorNbr > 0)
 		{
-			groupNbr = eid->ssp.imc.fqgn & 0xffffffff;
+			unsigned long groupNbr = eid->ssp.imc.fqgn & 0xffffffff;
 			uvtemp = 3;
 			oK(cbor_encode_array_open(uvtemp, &cursor));
 			uvtemp = allocatorNbr;
@@ -10864,6 +10892,7 @@ int	serializeEid(EndpointId *eid, unsigned char *buffer)
 		uvtemp = eid->ssp.imc.serviceNbr;
 		oK(cbor_encode_integer(uvtemp, &cursor));
 		break;
+#endif /* ENABLE_IMC */
 
 	default:
 		putErrmsg("Can't serialize EID, unknown scheme",
@@ -13337,6 +13366,7 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 
 			break;			/*	Out of switch.	*/
 
+#ifdef ENABLE_IMC
 		case BP_MULTICAST_BRIEFING:
 			if (imcHandleBriefing(&dlv, cursor, unparsedBytes) < 0)
 			{
@@ -13346,6 +13376,7 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 			}
 
 			break;
+#endif
 
 		case BP_SAGA_MESSAGE:
 			if (saga_receive(&dlv, cursor, unparsedBytes) < 0)

@@ -30,7 +30,9 @@ extern int	bpclm(int, int, int, int, int, int, int, int, int, int);
 extern int	bpstats(int, int, int, int, int, int, int, int, int, int);
 extern int	bplist(int, int, int, int, int, int, int, int, int, int);
 extern int	bptrace(int, int, int, int, int, int, int, int, int, int);
+#ifdef ENABLE_IMC
 extern int	cpsd(int, int, int, int, int, int, int, int, int, int);
+#endif
 extern int	ltpcli(int, int, int, int, int, int, int, int, int, int);
 extern int	ltpclo(int, int, int, int, int, int, int, int, int, int);
 extern int	bibeclo(int, int, int, int, int, int, int, int, int, int);
@@ -65,8 +67,10 @@ extern int	amsstop(int, int, int, int, int, int, int, int, int, int);*/
 extern int	cfdpadmin(int, int, int, int, int, int, int, int, int, int);
 extern int	cfdpclock(int, int, int, int, int, int, int, int, int, int);
 extern int	bputa(int, int, int, int, int, int, int, int, int, int);
+#ifdef ENABLE_IMC
 extern int	imcfw(int, int, int, int, int, int, int, int, int, int);
 extern int	imcadminep(int, int, int, int, int, int, int, int, int, int);
+#endif
 
 
 typedef struct
@@ -101,7 +105,9 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "bpstats",	(FUNCPTR) bpstats,	ICI_PRIORITY,	4096  },
 		{ "bplist",	(FUNCPTR) bplist,	ICI_PRIORITY,	4096  },
 		{ "bptrace",	(FUNCPTR) bptrace,	ICI_PRIORITY,	4096  },
+#ifdef ENABLE_IMC
 		{ "cpsd",	(FUNCPTR) cpsd,		ICI_PRIORITY,	32768 },
+#endif
 		{ "ltpcli",	(FUNCPTR) ltpcli,	ICI_PRIORITY,	32768 },
 		{ "ltpclo",	(FUNCPTR) ltpclo,	ICI_PRIORITY,	32768 },
 		{ "bibeclo",	(FUNCPTR) bibeclo,	ICI_PRIORITY,	32768 },
@@ -136,8 +142,10 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "cfdpadmin",	(FUNCPTR) cfdpadmin,	ICI_PRIORITY,	24576 },
 		{ "cfdpclock",	(FUNCPTR) cfdpclock,	ICI_PRIORITY,	24576 },
 		{ "bputa",	(FUNCPTR) bputa,	ICI_PRIORITY,	24576 },
+#ifdef ENABLE_IMC
 		{ "imcadminep",	(FUNCPTR) imcadminep,	ICI_PRIORITY,	32768 },
 		{ "imcfw",	(FUNCPTR) imcfw,	ICI_PRIORITY,	65536 }
+#endif
 	};
 
 	static int	numSymbols = sizeof symbols / sizeof(SymTabEntry);

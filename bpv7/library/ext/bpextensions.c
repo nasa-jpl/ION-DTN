@@ -17,7 +17,9 @@
 #include "bae.h"
 #include "hcb.h"
 #include "snw.h"
+#ifdef ENABLE_IMC
 #include "imc.h"
+#endif
 #include "creb.h"
 #include "cteb.h"
 #if RGREB
@@ -185,6 +187,7 @@ static ExtensionDef	extensionDefs[] =
 				0,
 				0
 		},
+#ifdef ENABLE_IMC
 		{ "imc", ImcDestinationsBlk,
 				imc_offer,
 				imc_serialize,
@@ -203,6 +206,7 @@ static ExtensionDef	extensionDefs[] =
 				imc_record,
 				imc_clear
 		},
+#endif
 #if RGREB
 		{ "rgr", RGRBlk,
 				rgr_offer,

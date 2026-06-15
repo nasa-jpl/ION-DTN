@@ -372,7 +372,6 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 {
 	unsigned long	allocatorNbr;
 	unsigned long	nodeNbr;
-	unsigned long	groupNbr;
 
 	/*	parseEidString is a Boolean function, returning 1 if
 	 *	the EID string was successfully parsed.			*/
@@ -484,7 +483,10 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 
 		return 1;
 
+#ifdef ENABLE_IMC
 	case imc:
+	{
+		unsigned long groupNbr;
 		if (sscanf(metaEid->nss, "%lu.%lu.%lu", &allocatorNbr,
 			&groupNbr, &(metaEid->serviceNbr)) == 3)
 		{
@@ -502,6 +504,8 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 		}
 
 		return 1;
+	}
+#endif
 
 	default:
 		writeMemoNote("[?] URI for this scheme not parseable",
@@ -610,10 +614,12 @@ int	recordEid(EndpointId *eid, MetaEid *meid, EidMode mode)
 		eid->ssp.ipn.serviceNbr = meid->serviceNbr;
 		return 0;
 
+#ifdef ENABLE_IMC
 	case imc:
 		eid->ssp.imc.fqgn = meid->elementNbr;
 		eid->ssp.imc.serviceNbr = meid->serviceNbr;
 		return 0;
+#endif
 
 	default:
 		putErrmsg("Can't record EID, unknown URI scheme",
@@ -793,6 +799,7 @@ static void	readIpnEid(IpnSSP *ssp, char **buffer)
 	*buffer = eidString;
 }
 
+#ifdef ENABLE_IMC
 static void	readImcEid(ImcSSP *ssp, char **buffer)
 {
 	char		*eidString;
@@ -823,6 +830,7 @@ static void	readImcEid(ImcSSP *ssp, char **buffer)
 			ssp->serviceNbr);
 	*buffer = eidString;
 }
+#endif
 
 void	readEid(EndpointId *eid, char **buffer)
 {
@@ -838,9 +846,11 @@ void	readEid(EndpointId *eid, char **buffer)
 		readIpnEid(&(eid->ssp.ipn), buffer);
 		break;
 
+#ifdef ENABLE_IMC
 	case imc:
 		readImcEid(&(eid->ssp.imc), buffer);
 		break;
+#endif
 
 	default:
 		break;
