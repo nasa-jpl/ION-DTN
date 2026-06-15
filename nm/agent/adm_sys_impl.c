@@ -61,6 +61,40 @@ static uvast adm_sys_mem_kb(unsigned long val, unsigned int unit)
 }
 
 /*
+ * Memory available for new allocations, in KiB.  sysinfo(2)'s freeram counts
+ * only wholly-unused pages, ignoring the page cache and other reclaimable
+ * memory, and so badly underestimates the RAM an application can actually
+ * obtain.  Prefer the kernel's own MemAvailable estimate from /proc/meminfo
+ * (already reported in KiB); the caller falls back to freeram only when this
+ * fails (kernels older than 3.14 do not publish MemAvailable).
+ */
+static int adm_sys_mem_avail_kb(uvast *kb)
+{
+	FILE  *fp;
+	char   line[128];
+	uvast  value;
+
+	if ((fp = fopen("/proc/meminfo", "r")) == NULL)
+	{
+		return 0;
+	}
+
+	while (fgets(line, sizeof(line), fp) != NULL)
+	{
+		if (sscanf(line, "MemAvailable: " UVAST_FIELDSPEC " kB",
+				&value) == 1)
+		{
+			fclose(fp);
+			*kb = value;
+			return 1;
+		}
+	}
+
+	fclose(fp);
+	return 0;
+}
+
+/*
  * Sample overall CPU utilization since the previous call by differencing the
  * aggregate jiffy counters in /proc/stat.  The first sample after start-up has
  * no prior reference and reports 0.0.
@@ -467,8 +501,13 @@ tnv_t *dtn_sys_get_mem_free_kb(tnvc_t *parms)
 	 */
 #ifdef ADM_SYS_LINUX
 	struct sysinfo si;
+	uvast avail;
 
-	if (sysinfo(&si) == 0)
+	if (adm_sys_mem_avail_kb(&avail))
+	{
+		result = tnv_from_uvast(avail);
+	}
+	else if (sysinfo(&si) == 0)
 	{
 		result = tnv_from_uvast(adm_sys_mem_kb(si.freeram, si.mem_unit));
 	}
@@ -497,11 +536,21 @@ tnv_t *dtn_sys_get_mem_used_kb(tnvc_t *parms)
 	 */
 #ifdef ADM_SYS_LINUX
 	struct sysinfo si;
+	uvast avail;
 
 	if (sysinfo(&si) == 0)
 	{
-		result = tnv_from_uvast(adm_sys_mem_kb(si.totalram - si.freeram,
-				si.mem_unit));
+		uvast total = adm_sys_mem_kb(si.totalram, si.mem_unit);
+
+		if (adm_sys_mem_avail_kb(&avail) && avail <= total)
+		{
+			result = tnv_from_uvast(total - avail);
+		}
+		else
+		{
+			result = tnv_from_uvast(adm_sys_mem_kb(
+					si.totalram - si.freeram, si.mem_unit));
+		}
 	}
 #endif
 	/*
