@@ -102,37 +102,37 @@ void dtn_sys_init_edd(void)
 	adm_add_edd(id, NULL);
 	meta_add_edd(AMP_TYPE_REAL64, id, ADM_ENUM_DTN_SYS, "cpu_util_pct", "Overall CPU utilization, in percent, measured since the previous query.");
 
-	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_MEM_TOTAL_KB);
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_MEM_TOTAL_BYTES);
 	adm_add_edd(id, NULL);
-	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_SYS, "mem_total_kb", "Total physical memory, in KiB.");
+	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_SYS, "mem_total_bytes", "Total physical memory, in bytes.");
 
-	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_MEM_FREE_KB);
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_MEM_FREE_BYTES);
 	adm_add_edd(id, NULL);
-	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_SYS, "mem_free_kb", "Free physical memory, in KiB.");
+	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_SYS, "mem_free_bytes", "Free physical memory, in bytes.");
 
-	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_MEM_USED_KB);
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_MEM_USED_BYTES);
 	adm_add_edd(id, NULL);
-	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_SYS, "mem_used_kb", "Used physical memory, in KiB.");
+	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_SYS, "mem_used_bytes", "Used physical memory, in bytes.");
 
-	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_SWAP_TOTAL_KB);
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_SWAP_TOTAL_BYTES);
 	adm_add_edd(id, NULL);
-	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_SYS, "swap_total_kb", "Total swap space, in KiB.");
+	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_SYS, "swap_total_bytes", "Total swap space, in bytes.");
 
-	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_SWAP_FREE_KB);
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_SWAP_FREE_BYTES);
 	adm_add_edd(id, NULL);
-	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_SYS, "swap_free_kb", "Free swap space, in KiB.");
+	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_SYS, "swap_free_bytes", "Free swap space, in bytes.");
 
-	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_DISK_TOTAL_KB);
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_DISK_TOTAL_BYTES);
 	adm_add_edd(id, NULL);
-	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_SYS, "disk_total_kb", "Total space of the root filesystem, in KiB.");
+	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_SYS, "disk_total_bytes", "Total space of the root filesystem, in bytes.");
 
-	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_DISK_FREE_KB);
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_DISK_FREE_BYTES);
 	adm_add_edd(id, NULL);
-	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_SYS, "disk_free_kb", "Free space of the root filesystem, in KiB.");
+	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_SYS, "disk_free_bytes", "Free space of the root filesystem, in bytes.");
 
-	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_DISK_USED_KB);
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_DISK_USED_BYTES);
 	adm_add_edd(id, NULL);
-	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_SYS, "disk_used_kb", "Used space of the root filesystem, in KiB.");
+	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_SYS, "disk_used_bytes", "Used space of the root filesystem, in bytes.");
 
 	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_OPEN_FILES);
 	adm_add_edd(id, NULL);
@@ -184,14 +184,14 @@ void dtn_sys_init_rpttpl(void)
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_LOAD_5MIN));
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_LOAD_15MIN));
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_CPU_UTIL_PCT));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_MEM_TOTAL_KB));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_MEM_FREE_KB));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_MEM_USED_KB));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_SWAP_TOTAL_KB));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_SWAP_FREE_KB));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_DISK_TOTAL_KB));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_DISK_FREE_KB));
-	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_DISK_USED_KB));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_MEM_TOTAL_BYTES));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_MEM_FREE_BYTES));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_MEM_USED_BYTES));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_SWAP_TOTAL_BYTES));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_SWAP_FREE_BYTES));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_DISK_TOTAL_BYTES));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_DISK_FREE_BYTES));
+	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_DISK_USED_BYTES));
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_OPEN_FILES));
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_MAX_FILES));
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_sys_idx[ADM_EDD_IDX], DTN_SYS_EDD_NUM_PROCS));

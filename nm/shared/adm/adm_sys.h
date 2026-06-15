@@ -74,17 +74,18 @@ extern "C" {
  * |load_15min           |15 minute load average.               |REAL64 |
  * |cpu_util_pct         |Overall CPU utilization, in percent,  |       |
  * |                     |measured since the previous query.    |REAL64 |
- * |mem_total_kb         |Total physical memory, in KiB.        |UVAST  |
- * |mem_free_kb          |Free physical memory, in KiB.         |UVAST  |
- * |mem_used_kb          |Used physical memory, in KiB.         |UVAST  |
- * |swap_total_kb        |Total swap space, in KiB.             |UVAST  |
- * |swap_free_kb         |Free swap space, in KiB.              |UVAST  |
- * |disk_total_kb        |Total space of the root filesystem, in|       |
- * |                     | KiB.                                 |UVAST  |
- * |disk_free_kb         |Free space of the root filesystem, in |       |
- * |                     |KiB (available to unprivileged users).|UVAST  |
- * |disk_used_kb         |Used space of the root filesystem, in |       |
- * |                     |KiB.                                  |UVAST  |
+ * |mem_total_bytes      |Total physical memory, in bytes.      |UVAST  |
+ * |mem_free_bytes       |Free physical memory, in bytes.       |UVAST  |
+ * |mem_used_bytes       |Used physical memory, in bytes.       |UVAST  |
+ * |swap_total_bytes     |Total swap space, in bytes.           |UVAST  |
+ * |swap_free_bytes      |Free swap space, in bytes.            |UVAST  |
+ * |disk_total_bytes     |Total space of the root filesystem, in|       |
+ * |                     | bytes.                               |UVAST  |
+ * |disk_free_bytes      |Free space of the root filesystem, in |       |
+ * |                     |bytes (available to unprivileged      |       |
+ * |                     |users).                               |UVAST  |
+ * |disk_used_bytes      |Used space of the root filesystem, in |       |
+ * |                     |bytes.                                |UVAST  |
  * |open_files           |Number of open file handles on the    |       |
  * |                     |host.                                 |UVAST  |
  * |max_files            |Maximum number of open file handles   |       |
@@ -99,14 +100,14 @@ extern "C" {
 #define DTN_SYS_EDD_LOAD_5MIN 0x02
 #define DTN_SYS_EDD_LOAD_15MIN 0x03
 #define DTN_SYS_EDD_CPU_UTIL_PCT 0x04
-#define DTN_SYS_EDD_MEM_TOTAL_KB 0x05
-#define DTN_SYS_EDD_MEM_FREE_KB 0x06
-#define DTN_SYS_EDD_MEM_USED_KB 0x07
-#define DTN_SYS_EDD_SWAP_TOTAL_KB 0x08
-#define DTN_SYS_EDD_SWAP_FREE_KB 0x09
-#define DTN_SYS_EDD_DISK_TOTAL_KB 0x0a
-#define DTN_SYS_EDD_DISK_FREE_KB 0x0b
-#define DTN_SYS_EDD_DISK_USED_KB 0x0c
+#define DTN_SYS_EDD_MEM_TOTAL_BYTES 0x05
+#define DTN_SYS_EDD_MEM_FREE_BYTES 0x06
+#define DTN_SYS_EDD_MEM_USED_BYTES 0x07
+#define DTN_SYS_EDD_SWAP_TOTAL_BYTES 0x08
+#define DTN_SYS_EDD_SWAP_FREE_BYTES 0x09
+#define DTN_SYS_EDD_DISK_TOTAL_BYTES 0x0a
+#define DTN_SYS_EDD_DISK_FREE_BYTES 0x0b
+#define DTN_SYS_EDD_DISK_USED_BYTES 0x0c
 #define DTN_SYS_EDD_OPEN_FILES 0x0d
 #define DTN_SYS_EDD_MAX_FILES 0x0e
 #define DTN_SYS_EDD_NUM_PROCS 0x0f

@@ -54,21 +54,21 @@
 /* Root filesystem queried for disk statistics. */
 #define ADM_SYS_DISK_PATH "/"
 
-/* Convert a sysinfo memory quantity into KiB, accounting for mem_unit. */
-static uvast adm_sys_mem_kb(unsigned long val, unsigned int unit)
+/* Convert a sysinfo memory quantity into bytes, accounting for mem_unit. */
+static uvast adm_sys_mem_bytes(unsigned long val, unsigned int unit)
 {
-	return ((uvast) val * (unit ? unit : 1)) / 1024;
+	return (uvast) val * (unit ? unit : 1);
 }
 
 /*
- * Memory available for new allocations, in KiB.  sysinfo(2)'s freeram counts
+ * Memory available for new allocations, in bytes.  sysinfo(2)'s freeram counts
  * only wholly-unused pages, ignoring the page cache and other reclaimable
  * memory, and so badly underestimates the RAM an application can actually
  * obtain.  Prefer the kernel's own MemAvailable estimate from /proc/meminfo
- * (already reported in KiB); the caller falls back to freeram only when this
- * fails (kernels older than 3.14 do not publish MemAvailable).
+ * (reported in KiB, converted to bytes here); the caller falls back to freeram
+ * only when this fails (kernels older than 3.14 do not publish MemAvailable).
  */
-static int adm_sys_mem_avail_kb(uvast *kb)
+static int adm_sys_mem_avail_bytes(uvast *bytes)
 {
 	FILE  *fp;
 	char   line[128];
@@ -85,7 +85,7 @@ static int adm_sys_mem_avail_kb(uvast *kb)
 				&value) == 1)
 		{
 			fclose(fp);
-			*kb = value;
+			*bytes = value * 1024;
 			return 1;
 		}
 	}
@@ -196,7 +196,7 @@ static int adm_sys_file_handles(uvast *open_files, uvast *max_files)
 typedef enum { ADM_SYS_DISK_TOTAL, ADM_SYS_DISK_FREE, ADM_SYS_DISK_USED }
 		AdmSysDiskField;
 
-static int adm_sys_disk_kb(AdmSysDiskField field, uvast *kb)
+static int adm_sys_disk_bytes(AdmSysDiskField field, uvast *bytes)
 {
 	struct statvfs	vfs;
 	uvast		bsize;
@@ -211,15 +211,15 @@ static int adm_sys_disk_kb(AdmSysDiskField field, uvast *kb)
 	switch (field)
 	{
 	case ADM_SYS_DISK_TOTAL:
-		*kb = ((uvast) vfs.f_blocks * bsize) / 1024;
+		*bytes = (uvast) vfs.f_blocks * bsize;
 		break;
 
 	case ADM_SYS_DISK_FREE:
-		*kb = ((uvast) vfs.f_bavail * bsize) / 1024;
+		*bytes = (uvast) vfs.f_bavail * bsize;
 		break;
 
 	case ADM_SYS_DISK_USED:
-		*kb = ((uvast) (vfs.f_blocks - vfs.f_bfree) * bsize) / 1024;
+		*bytes = (uvast) (vfs.f_blocks - vfs.f_bfree) * bsize;
 		break;
 
 	default:
@@ -457,16 +457,16 @@ tnv_t *dtn_sys_get_cpu_util_pct(tnvc_t *parms)
 
 
 /*
- * Total physical memory, in KiB.
+ * Total physical memory, in bytes.
  */
-tnv_t *dtn_sys_get_mem_total_kb(tnvc_t *parms)
+tnv_t *dtn_sys_get_mem_total_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/* Parameter intentionally unused. */
 	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION get_mem_total_kb BODY
+	 * |START CUSTOM FUNCTION get_mem_total_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 #ifdef ADM_SYS_LINUX
@@ -474,12 +474,12 @@ tnv_t *dtn_sys_get_mem_total_kb(tnvc_t *parms)
 
 	if (sysinfo(&si) == 0)
 	{
-		result = tnv_from_uvast(adm_sys_mem_kb(si.totalram, si.mem_unit));
+		result = tnv_from_uvast(adm_sys_mem_bytes(si.totalram, si.mem_unit));
 	}
 #endif
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION get_mem_total_kb BODY
+	 * |STOP CUSTOM FUNCTION get_mem_total_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -487,34 +487,34 @@ tnv_t *dtn_sys_get_mem_total_kb(tnvc_t *parms)
 
 
 /*
- * Free physical memory, in KiB.
+ * Free physical memory, in bytes.
  */
-tnv_t *dtn_sys_get_mem_free_kb(tnvc_t *parms)
+tnv_t *dtn_sys_get_mem_free_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/* Parameter intentionally unused. */
 	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION get_mem_free_kb BODY
+	 * |START CUSTOM FUNCTION get_mem_free_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 #ifdef ADM_SYS_LINUX
 	struct sysinfo si;
 	uvast avail;
 
-	if (adm_sys_mem_avail_kb(&avail))
+	if (adm_sys_mem_avail_bytes(&avail))
 	{
 		result = tnv_from_uvast(avail);
 	}
 	else if (sysinfo(&si) == 0)
 	{
-		result = tnv_from_uvast(adm_sys_mem_kb(si.freeram, si.mem_unit));
+		result = tnv_from_uvast(adm_sys_mem_bytes(si.freeram, si.mem_unit));
 	}
 #endif
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION get_mem_free_kb BODY
+	 * |STOP CUSTOM FUNCTION get_mem_free_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -522,16 +522,16 @@ tnv_t *dtn_sys_get_mem_free_kb(tnvc_t *parms)
 
 
 /*
- * Used physical memory, in KiB.
+ * Used physical memory, in bytes.
  */
-tnv_t *dtn_sys_get_mem_used_kb(tnvc_t *parms)
+tnv_t *dtn_sys_get_mem_used_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/* Parameter intentionally unused. */
 	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION get_mem_used_kb BODY
+	 * |START CUSTOM FUNCTION get_mem_used_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 #ifdef ADM_SYS_LINUX
@@ -540,22 +540,22 @@ tnv_t *dtn_sys_get_mem_used_kb(tnvc_t *parms)
 
 	if (sysinfo(&si) == 0)
 	{
-		uvast total = adm_sys_mem_kb(si.totalram, si.mem_unit);
+		uvast total = adm_sys_mem_bytes(si.totalram, si.mem_unit);
 
-		if (adm_sys_mem_avail_kb(&avail) && avail <= total)
+		if (adm_sys_mem_avail_bytes(&avail) && avail <= total)
 		{
 			result = tnv_from_uvast(total - avail);
 		}
 		else
 		{
-			result = tnv_from_uvast(adm_sys_mem_kb(
+			result = tnv_from_uvast(adm_sys_mem_bytes(
 					si.totalram - si.freeram, si.mem_unit));
 		}
 	}
 #endif
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION get_mem_used_kb BODY
+	 * |STOP CUSTOM FUNCTION get_mem_used_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -563,16 +563,16 @@ tnv_t *dtn_sys_get_mem_used_kb(tnvc_t *parms)
 
 
 /*
- * Total swap space, in KiB.
+ * Total swap space, in bytes.
  */
-tnv_t *dtn_sys_get_swap_total_kb(tnvc_t *parms)
+tnv_t *dtn_sys_get_swap_total_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/* Parameter intentionally unused. */
 	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION get_swap_total_kb BODY
+	 * |START CUSTOM FUNCTION get_swap_total_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 #ifdef ADM_SYS_LINUX
@@ -580,12 +580,12 @@ tnv_t *dtn_sys_get_swap_total_kb(tnvc_t *parms)
 
 	if (sysinfo(&si) == 0)
 	{
-		result = tnv_from_uvast(adm_sys_mem_kb(si.totalswap, si.mem_unit));
+		result = tnv_from_uvast(adm_sys_mem_bytes(si.totalswap, si.mem_unit));
 	}
 #endif
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION get_swap_total_kb BODY
+	 * |STOP CUSTOM FUNCTION get_swap_total_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -593,16 +593,16 @@ tnv_t *dtn_sys_get_swap_total_kb(tnvc_t *parms)
 
 
 /*
- * Free swap space, in KiB.
+ * Free swap space, in bytes.
  */
-tnv_t *dtn_sys_get_swap_free_kb(tnvc_t *parms)
+tnv_t *dtn_sys_get_swap_free_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/* Parameter intentionally unused. */
 	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION get_swap_free_kb BODY
+	 * |START CUSTOM FUNCTION get_swap_free_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 #ifdef ADM_SYS_LINUX
@@ -610,12 +610,12 @@ tnv_t *dtn_sys_get_swap_free_kb(tnvc_t *parms)
 
 	if (sysinfo(&si) == 0)
 	{
-		result = tnv_from_uvast(adm_sys_mem_kb(si.freeswap, si.mem_unit));
+		result = tnv_from_uvast(adm_sys_mem_bytes(si.freeswap, si.mem_unit));
 	}
 #endif
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION get_swap_free_kb BODY
+	 * |STOP CUSTOM FUNCTION get_swap_free_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -623,29 +623,29 @@ tnv_t *dtn_sys_get_swap_free_kb(tnvc_t *parms)
 
 
 /*
- * Total space of the root filesystem, in KiB.
+ * Total space of the root filesystem, in bytes.
  */
-tnv_t *dtn_sys_get_disk_total_kb(tnvc_t *parms)
+tnv_t *dtn_sys_get_disk_total_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/* Parameter intentionally unused. */
 	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION get_disk_total_kb BODY
+	 * |START CUSTOM FUNCTION get_disk_total_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 #ifdef ADM_SYS_LINUX
-	uvast kb = 0;
+	uvast bytes = 0;
 
-	if (adm_sys_disk_kb(ADM_SYS_DISK_TOTAL, &kb))
+	if (adm_sys_disk_bytes(ADM_SYS_DISK_TOTAL, &bytes))
 	{
-		result = tnv_from_uvast(kb);
+		result = tnv_from_uvast(bytes);
 	}
 #endif
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION get_disk_total_kb BODY
+	 * |STOP CUSTOM FUNCTION get_disk_total_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -653,29 +653,29 @@ tnv_t *dtn_sys_get_disk_total_kb(tnvc_t *parms)
 
 
 /*
- * Free space of the root filesystem, in KiB.
+ * Free space of the root filesystem, in bytes.
  */
-tnv_t *dtn_sys_get_disk_free_kb(tnvc_t *parms)
+tnv_t *dtn_sys_get_disk_free_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/* Parameter intentionally unused. */
 	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION get_disk_free_kb BODY
+	 * |START CUSTOM FUNCTION get_disk_free_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 #ifdef ADM_SYS_LINUX
-	uvast kb = 0;
+	uvast bytes = 0;
 
-	if (adm_sys_disk_kb(ADM_SYS_DISK_FREE, &kb))
+	if (adm_sys_disk_bytes(ADM_SYS_DISK_FREE, &bytes))
 	{
-		result = tnv_from_uvast(kb);
+		result = tnv_from_uvast(bytes);
 	}
 #endif
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION get_disk_free_kb BODY
+	 * |STOP CUSTOM FUNCTION get_disk_free_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
@@ -683,29 +683,29 @@ tnv_t *dtn_sys_get_disk_free_kb(tnvc_t *parms)
 
 
 /*
- * Used space of the root filesystem, in KiB.
+ * Used space of the root filesystem, in bytes.
  */
-tnv_t *dtn_sys_get_disk_used_kb(tnvc_t *parms)
+tnv_t *dtn_sys_get_disk_used_bytes(tnvc_t *parms)
 {
 	tnv_t *result = NULL;
 	/* Parameter intentionally unused. */
 	(void)parms;
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |START CUSTOM FUNCTION get_disk_used_kb BODY
+	 * |START CUSTOM FUNCTION get_disk_used_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 #ifdef ADM_SYS_LINUX
-	uvast kb = 0;
+	uvast bytes = 0;
 
-	if (adm_sys_disk_kb(ADM_SYS_DISK_USED, &kb))
+	if (adm_sys_disk_bytes(ADM_SYS_DISK_USED, &bytes))
 	{
-		result = tnv_from_uvast(kb);
+		result = tnv_from_uvast(bytes);
 	}
 #endif
 	/*
 	 * +-------------------------------------------------------------------------+
-	 * |STOP CUSTOM FUNCTION get_disk_used_kb BODY
+	 * |STOP CUSTOM FUNCTION get_disk_used_bytes BODY
 	 * +-------------------------------------------------------------------------+
 	 */
 	return result;
