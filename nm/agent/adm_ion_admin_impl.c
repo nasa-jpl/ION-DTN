@@ -720,6 +720,103 @@ tnv_t *dtn_ion_ionadmin_get_version(tnvc_t *parms)
 }
 
 
+/* Free space is the small-pool, large-pool and never-allocated regions. */
+static void ionadmin_wm_usage(uvast *total, uvast *freeSpace)
+{
+	PsmUsageSummary	summary;
+
+	*total = 0;
+	*freeSpace = 0;
+	if (getIonwm() == NULL)
+	{
+		return;
+	}
+
+	psm_usage(getIonwm(), &summary);
+	*total = (uvast) summary.partitionSize;
+	*freeSpace = (uvast) (summary.smallPoolFree + summary.largePoolFree
+			+ summary.unusedSize);
+}
+
+static void ionadmin_heap_usage(uvast *total, uvast *freeSpace)
+{
+	Sdr		sdr = getIonsdr();
+	SdrUsageSummary	summary;
+
+	*total = 0;
+	*freeSpace = 0;
+	if (sdr == NULL || sdr_begin_xn(sdr) < 0)
+	{
+		return;
+	}
+
+	sdr_usage(sdr, &summary);
+	sdr_exit_xn(sdr);
+	*total = (uvast) summary.heapSize;
+	*freeSpace = (uvast) (summary.smallPoolFree + summary.largePoolFree
+			+ summary.unusedSize);
+}
+
+tnv_t *dtn_ion_ionadmin_get_working_memory_total(tnvc_t *parms)
+{
+	uvast	total;
+	uvast	freeSpace;
+
+	(void)parms;
+	ionadmin_wm_usage(&total, &freeSpace);
+	return tnv_from_uvast(total);
+}
+
+tnv_t *dtn_ion_ionadmin_get_working_memory_free(tnvc_t *parms)
+{
+	uvast	total;
+	uvast	freeSpace;
+
+	(void)parms;
+	ionadmin_wm_usage(&total, &freeSpace);
+	return tnv_from_uvast(freeSpace);
+}
+
+tnv_t *dtn_ion_ionadmin_get_working_memory_used(tnvc_t *parms)
+{
+	uvast	total;
+	uvast	freeSpace;
+
+	(void)parms;
+	ionadmin_wm_usage(&total, &freeSpace);
+	return tnv_from_uvast(total - freeSpace);
+}
+
+tnv_t *dtn_ion_ionadmin_get_heap_total(tnvc_t *parms)
+{
+	uvast	total;
+	uvast	freeSpace;
+
+	(void)parms;
+	ionadmin_heap_usage(&total, &freeSpace);
+	return tnv_from_uvast(total);
+}
+
+tnv_t *dtn_ion_ionadmin_get_heap_free(tnvc_t *parms)
+{
+	uvast	total;
+	uvast	freeSpace;
+
+	(void)parms;
+	ionadmin_heap_usage(&total, &freeSpace);
+	return tnv_from_uvast(freeSpace);
+}
+
+tnv_t *dtn_ion_ionadmin_get_heap_used(tnvc_t *parms)
+{
+	uvast	total;
+	uvast	freeSpace;
+
+	(void)parms;
+	ionadmin_heap_usage(&total, &freeSpace);
+	return tnv_from_uvast(total - freeSpace);
+}
+
 
 /* Control Functions */
 

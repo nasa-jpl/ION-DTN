@@ -76,6 +76,12 @@ tnv_t *dtn_ion_ionadmin_get_production_rate(tnvc_t *parms);
 tnv_t *dtn_ion_ionadmin_get_ref_time(tnvc_t *parms);
 tnv_t *dtn_ion_ionadmin_get_time_delta(tnvc_t *parms);
 tnv_t *dtn_ion_ionadmin_get_version(tnvc_t *parms);
+tnv_t *dtn_ion_ionadmin_get_working_memory_total(tnvc_t *parms);
+tnv_t *dtn_ion_ionadmin_get_working_memory_free(tnvc_t *parms);
+tnv_t *dtn_ion_ionadmin_get_working_memory_used(tnvc_t *parms);
+tnv_t *dtn_ion_ionadmin_get_heap_total(tnvc_t *parms);
+tnv_t *dtn_ion_ionadmin_get_heap_free(tnvc_t *parms);
+tnv_t *dtn_ion_ionadmin_get_heap_used(tnvc_t *parms);
 
 
 /* Control Functions */
