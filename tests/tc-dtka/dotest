@@ -23,32 +23,43 @@ fi
 ./cleanup
 
 if [ "$fullSuite" ]; then
-    sed -i 's/aes/ecdsa/g' node.dtkarc
+    sed 's/aes/ecdsa/g' node.dtkarc >node.dtkarc.tmp &&
+        mv node.dtkarc.tmp node.dtkarc || {
+        echo "Failed to update node.dtkarc to ECDSA" >&2
+        exit 1
+    }
     echo "Running test for ECDSA key type..."
     ./runtest
     exit_stat=$?
     if [ $exit_stat -ne 0 ]; then
         echo "Error running ECDSA test"
-        sed -i 's/ecdsa/aes/g' node.dtkarc
+        sed 's/ecdsa/aes/g' node.dtkarc >node.dtkarc.tmp &&
+            mv node.dtkarc.tmp node.dtkarc
         ./cleanup
         exit "$exit_stat"
     fi
     ./cleanup
 
-    sed -i 's/ecdsa/hmac/g' node.dtkarc
+    sed 's/ecdsa/hmac/g' node.dtkarc >node.dtkarc.tmp &&
+        mv node.dtkarc.tmp node.dtkarc || {
+        echo "Failed to update node.dtkarc to HMAC" >&2
+        exit 1
+    }
     echo "Running test for HMAC key type..."
     ./runtest
     exit_stat=$?
     if [ $exit_stat -ne 0 ]; then
         echo "Error running HMAC test"
-        sed -i 's/hmac/aes/g' node.dtkarc
+        sed 's/hmac/aes/g' node.dtkarc >node.dtkarc.tmp &&
+            mv node.dtkarc.tmp node.dtkarc
         ./cleanup
         exit "$exit_stat"
     fi
     killm
 
     # Return to orignal state
-    sed -i 's/hmac/aes/g' node.dtkarc
+    sed 's/hmac/aes/g' node.dtkarc >node.dtkarc.tmp &&
+        mv node.dtkarc.tmp node.dtkarc
 fi
 
 echo "Tests finished"

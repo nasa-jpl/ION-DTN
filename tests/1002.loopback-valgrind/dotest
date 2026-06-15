@@ -60,7 +60,21 @@ export AWKSCRIPT="$IONDIR/ionstart_valgrind.awk"
 trap 'rm "$AWKSCRIPT"; echo "Cleaned up $AWKSCRIPT"; killm f' EXIT
 
 # Apply the sed patch to inject libtool and valgrind
-sed -i 's|if (0 != system(programs\[x\] " iontemprun")) {|valgrind_cmd = "libtool --mode=execute valgrind --suppressions=valgrind.suppressions.ionstart --quiet --log-file=out.valgrind." programs[x] ".%p --num-callers=25 --tool=memcheck --trace-children=yes --leak-check=full "; if (0 != system(valgrind_cmd programs[x] " iontemprun")) {|' "${AWKSCRIPT}"
+valgrind_str="valgrind_cmd = \"libtool --mode=execute valgrind \
+--suppressions=valgrind.suppressions.ionstart \
+--quiet \
+--log-file=out.valgrind.\" programs[x] \".%p \
+--num-callers=25 \
+--tool=memcheck \
+--trace-children=yes \
+--leak-check=full \"; \
+if (0 != system(valgrind_cmd programs[x] \" iontemprun\")) {"
+sed "s|if (0 != system(programs\[x\] \" iontemprun\")) {|${valgrind_str}|" \
+    "${AWKSCRIPT}" >"${AWKSCRIPT}.tmp" &&
+    mv "${AWKSCRIPT}.tmp" "${AWKSCRIPT}" || {
+    echo "Failed to inject libtool and valgrind into awk script" >&2
+    exit 1
+}
 
 $IONDIR/ionstart -I $CONFIGFILES
 
