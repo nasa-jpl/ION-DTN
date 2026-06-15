@@ -67,11 +67,11 @@ sleep 3
 echo ""
 echo "Watch characters should be 'abcdefg'."
 
-echo "Sending bundle with 120-second lifetime from ipn:9.1 to ipn:6.1."
+echo "Sending bundle with 180-second lifetime from ipn:9.1 to ipn:6.1."
 # Send a bundle destined for (nonexistent) node 6 with lifetime = 120.
 echo "Should be forwarded and transmitted, but never acknowledged."
 echo "So reforwarded upon reaching retransmission limit."
-bptrace ipn:9.1 ipn:6.1 dtn:none 120 0.1 "Hi"
+bptrace ipn:9.1 ipn:6.1 dtn:none 180 0.1 "Hi"
 sleep 1
 echo ""
 echo "Watch characters should be 'abcdefg'."
@@ -85,7 +85,7 @@ echo "Watch characters should be '=g=g!=g=g=g=g!'."
 # Wait for contact to terminate.
 echo "Note: new dynamic computation of retransmission limits affects"
 echo "session cancellation behavior."
-echo "Reforwarding the 120-second bundle; session canceled at end of contact."
+echo "Reforwarding the 180-second bundle; session canceled at end of contact."
 echo "Waiting for contact to terminate..."
 sleep 35
 echo ""
@@ -103,14 +103,18 @@ RETVAL=0
 #      catching an event-driven one.
 #   2. When the short-lifetime bundle stays in limbo (its forwarding is
 #      only opportunistic), 'fwd' does not reach 3 until the reforwarded
-#      120-second bundle is finally forwarded as the 9<->6 contact opens
+#      180-second bundle is finally forwarded as the 9<->6 contact opens
 #      at t+90s -- later than the fixed sleeps above.
 #
 # So force a dump and poll, breaking out as soon as the expected count
 # appears, up to a generous timeout that comfortably spans the t+90s
-# contact opening.
+# contact opening.  The reforwarded bundle is given a 180s (not 120s)
+# lifetime so that, on a heavily loaded host where the limbo-release of
+# the bundle lags well past the contact opening, it still forwards before
+# expiring -- the original 120s left only a ~35s window after t+90 and
+# flaked when the node ran behind real time.
 i=0
-while [ $i -lt 30 ]
+while [ $i -lt 55 ]
 do
     bpstats
     sleep 2
