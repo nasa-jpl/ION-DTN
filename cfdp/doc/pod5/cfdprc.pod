@@ -176,10 +176,14 @@ Examples:
   m throttle 10000000    # Limit to 10 Mbps
   m throttle 0           # Disable throttle (unlimited)
 
-=item B<x>
+=item B<x> [ B<f> ]
 
 The B<stop> command.  This command stops the UT-layer service task for
-the local CFDP engine.
+the local CFDP engine.  By default the command is refused if any CFDP
+transactions are still active (inbound or outbound), to prevent
+disrupting transfers that are in progress; append B<f> (or B<-f>) to
+force the stop regardless.  (Node shutdown via C<cfdpadmin .> always
+stops CFDP unconditionally.)
 
 =item B<w> { 0 | 1  | <activity_spec> }
 

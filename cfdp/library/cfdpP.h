@@ -344,6 +344,7 @@ extern void		cfdpRaiseVdb(void);
 extern int		_cfdpStart(char *utiCmd);
 #define cfdpStop()	_cfdpStop()
 extern void		_cfdpStop(void);
+extern int		cfdpHasActiveTransactions(void);
 extern int		cfdpAttach(void);
 extern void		cfdpDetach(void);
 

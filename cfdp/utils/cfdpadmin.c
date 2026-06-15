@@ -1116,7 +1116,21 @@ command.");
 		case 'x':
 			if (attachToCfdp() == 0)
 			{
-				cfdpStop();
+				if (tokenCount > 1
+				&& (strcmp(tokens[1], "-f") == 0
+					|| strcmp(tokens[1], "f") == 0))
+				{
+					cfdpStop();	/*	Forced.	*/
+				}
+				else if (cfdpHasActiveTransactions())
+				{
+					printText("[?] CFDP has active \
+transactions; refusing to stop.  Use 'x f' to force.");
+				}
+				else
+				{
+					cfdpStop();
+				}
 			}
 
 			return 0;

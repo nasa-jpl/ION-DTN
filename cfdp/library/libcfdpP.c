@@ -946,6 +946,50 @@ to SIGTERM, sending SIGKILL");
 	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
 }
 
+int	cfdpHasActiveTransactions(void)
+{
+	Sdr	sdr = getIonsdr();
+	Object	dbobj = getCfdpDbObject();
+	CfdpDB	db;
+	Object	elt;
+	Entity	entity;
+	int	active = 0;
+
+	if (dbobj == 0)
+	{
+		return 0;	/*	CFDP not initialized.		*/
+	}
+
+	CHKZERO(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &db, dbobj, sizeof(CfdpDB));
+
+	/*	Outbound transactions originated by this entity.	*/
+
+	if (sdr_list_length(sdr, db.outboundFdus) > 0)
+	{
+		active = 1;
+	}
+	else
+	{
+		/*	Inbound transactions are tracked per remote entity.	*/
+
+		for (elt = sdr_list_first(sdr, db.entities); elt;
+				elt = sdr_list_next(sdr, elt))
+		{
+			sdr_read(sdr, (char *) &entity,
+					sdr_list_data(sdr, elt), sizeof(Entity));
+			if (sdr_list_length(sdr, entity.inboundFdus) > 0)
+			{
+				active = 1;
+				break;
+			}
+		}
+	}
+
+	sdr_exit_xn(sdr);
+	return active;
+}
+
 int	cfdpAttach(void)
 {
 	Object		cfdpdbObject = _cfdpdbObject(NULL);
