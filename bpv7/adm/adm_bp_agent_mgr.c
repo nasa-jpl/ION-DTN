@@ -207,6 +207,54 @@ void dtn_bp_agent_init_edd(void)
 	meta = meta_add_edd(AMP_TYPE_UINT, id, ADM_ENUM_DTN_BP_AGENT, "endpoint_policy", "Does the endpoint abandon on fail (0=no)");
 
 	meta_add_parm(meta, "endpoint_name", AMP_TYPE_STR);
+
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BUNDLES_SOURCED);
+	adm_add_edd(id, NULL);
+	meta_add_edd(AMP_TYPE_UINT, id, ADM_ENUM_DTN_BP_AGENT, "bundles_sourced", "Number of bundles sourced by this node.");
+
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BYTES_SOURCED);
+	adm_add_edd(id, NULL);
+	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_BP_AGENT, "bytes_sourced", "Number of bytes sourced by this node.");
+
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BUNDLES_FORWARDED);
+	adm_add_edd(id, NULL);
+	meta_add_edd(AMP_TYPE_UINT, id, ADM_ENUM_DTN_BP_AGENT, "bundles_forwarded", "Number of bundles forwarded by this node.");
+
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BYTES_FORWARDED);
+	adm_add_edd(id, NULL);
+	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_BP_AGENT, "bytes_forwarded", "Number of bytes forwarded by this node.");
+
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BUNDLES_TRANSMITTED);
+	adm_add_edd(id, NULL);
+	meta_add_edd(AMP_TYPE_UINT, id, ADM_ENUM_DTN_BP_AGENT, "bundles_transmitted", "Number of bundles transmitted by this node.");
+
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BYTES_TRANSMITTED);
+	adm_add_edd(id, NULL);
+	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_BP_AGENT, "bytes_transmitted", "Number of bytes transmitted by this node.");
+
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BUNDLES_RECEIVED);
+	adm_add_edd(id, NULL);
+	meta_add_edd(AMP_TYPE_UINT, id, ADM_ENUM_DTN_BP_AGENT, "bundles_received", "Number of bundles received by this node.");
+
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BYTES_RECEIVED);
+	adm_add_edd(id, NULL);
+	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_BP_AGENT, "bytes_received", "Number of bytes received by this node.");
+
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BUNDLES_DELIVERED);
+	adm_add_edd(id, NULL);
+	meta_add_edd(AMP_TYPE_UINT, id, ADM_ENUM_DTN_BP_AGENT, "bundles_delivered", "Number of bundles delivered to endpoints on this node.");
+
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BYTES_DELIVERED);
+	adm_add_edd(id, NULL);
+	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_BP_AGENT, "bytes_delivered", "Number of bytes delivered to endpoints on this node.");
+
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BUNDLES_EXPIRED);
+	adm_add_edd(id, NULL);
+	meta_add_edd(AMP_TYPE_UINT, id, ADM_ENUM_DTN_BP_AGENT, "bundles_expired", "Number of bundles expired on this node.");
+
+	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BYTES_EXPIRED);
+	adm_add_edd(id, NULL);
+	meta_add_edd(AMP_TYPE_UVAST, id, ADM_ENUM_DTN_BP_AGENT, "bytes_expired", "Number of bytes expired on this node.");
 }
 
 void dtn_bp_agent_init_op(void)
