@@ -281,11 +281,14 @@ esac
 # Disable installation messaging
 #
 AC_ARG_ENABLE([install-messages],
-  [AS_HELP_STRING([--disable-install-messages], [disable extraneous messages on install])],
-  [enable_install_messages=$enableval],
+  [AS_HELP_STRING([--disable-install-messages],
+                  [disable extraneous messages on install])],
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-install-messages])])],
   [enable_install_messages=yes])
-
-AM_CONDITIONAL([ENABLE_INSTALL_MESSAGES], [test "$enable_install_messages" = yes])
+AM_CONDITIONAL([ENABLE_INSTALL_MESSAGES],
+               [test "x$enable_install_messages" != xno])
 
 #
 # ION will build BPv7 only
@@ -300,255 +303,297 @@ BP_DIR="bpv7"
 AC_SUBST([BP_DIR])
 echo "Building ION with BP version 7"
 AM_CONDITIONAL(BUILD_BPv7, test x$BUILD_BPv7 = xtrue)
+
 #
 # allow the user running configure to disable IMC
 #
-AC_ARG_ENABLE(
-  imc,
-  [AS_HELP_STRING([--disable-imc],[disable Interplanetary Multicast])],
-  [],
-  [AM_CFLAGS="$AM_CFLAGS -DENABLE_IMC"
-   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DENABLE_IMC"
-   ENABLE_IMC=yes])
-AM_CONDITIONAL(ENABLE_IMC, test "x$ENABLE_IMC" = "xyes")
-
-#
-# allow the user running configure to disable DGR
-#
-AC_ARG_ENABLE(
-  dgr,
-  [AS_HELP_STRING([--disable-dgr],[disable DGR convergence layer])],
-  [],
-  [AM_CFLAGS="$AM_CFLAGS -DENABLE_DGR"
-   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DENABLE_DGR"
-   ENABLE_DGR=yes])
-AM_CONDITIONAL(ENABLE_DGR, test "x$ENABLE_DGR" = "xyes")
-
-#
-# allow the user running configure to disable BSSP
-#
-AC_ARG_ENABLE(
-  bssp,
-  [AS_HELP_STRING([--disable-bssp],[disable BSSP convergence layer])],
-  [],
-  [AM_CFLAGS="$AM_CFLAGS -DENABLE_BSSP"
-   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DENABLE_BSSP"
-   ENABLE_BSSP=yes])
-AM_CONDITIONAL(ENABLE_BSSP, test "x$ENABLE_BSSP" = "xyes")
-
-#
-# allow the user running configure to disable DTPC
-#
-AC_ARG_ENABLE(
-  dtpc,
-  [AS_HELP_STRING([--disable-dtpc],[disable DTPC protocol])],
-  [],
-  [AM_CFLAGS="$AM_CFLAGS -DENABLE_DTPC"
-   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DENABLE_DTPC"
-   ENABLE_DTPC=yes])
-AM_CONDITIONAL(ENABLE_DTPC, test "x$ENABLE_DTPC" = "xyes")
+AC_ARG_ENABLE([imc],
+  [AS_HELP_STRING([--disable-imc], [disable Interplanetary Multicast])],
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-imc])])],
+  [enable_imc=yes])
 
 #
 # allow the user running configure to disable TC (Trusted Collective TCA/TCC)
 #
-AC_ARG_ENABLE(
-  tc,
-  [AS_HELP_STRING([--disable-tc],[disable Trusted Collective (TCA/TCC)])],
-  [],
+AC_ARG_ENABLE([tc],
+  [AS_HELP_STRING([--disable-tc], [disable Trusted Collective (TCA/TCC)])],
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-tc])])],
+  [enable_tc=yes])
+
+AS_IF([test "x$enable_imc" != xno],
+  [AM_CFLAGS="$AM_CFLAGS -DENABLE_IMC"
+   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DENABLE_IMC"])
+AM_CONDITIONAL([ENABLE_IMC], [test "x$enable_imc" != xno])
+
+AS_IF([test "x$enable_tc" != xno],
   [AM_CFLAGS="$AM_CFLAGS -DENABLE_TC"
-   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DENABLE_TC"
-   ENABLE_TC=yes])
-AM_CONDITIONAL(ENABLE_TC, test "x$ENABLE_TC" = "xyes")
+   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DENABLE_TC"])
+AM_CONDITIONAL([ENABLE_TC], [test "x$enable_tc" != xno])
+
+#
+# allow the user running configure to disable DGR
+#
+AC_ARG_ENABLE([dgr],
+  [AS_HELP_STRING([--disable-dgr], [disable DGR convergence layer])],
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-dgr])])],
+  [enable_dgr=yes])
+AS_IF([test "x$enable_dgr" != xno],
+  [AM_CFLAGS="$AM_CFLAGS -DENABLE_DGR"
+   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DENABLE_DGR"])
+AM_CONDITIONAL([ENABLE_DGR], [test "x$enable_dgr" != xno])
+
+#
+# allow the user running configure to disable BSSP
+#
+AC_ARG_ENABLE([bssp],
+  [AS_HELP_STRING([--disable-bssp], [disable BSSP convergence layer])],
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-bssp])])],
+  [enable_bssp=yes])
+AS_IF([test "x$enable_bssp" != xno],
+  [AM_CFLAGS="$AM_CFLAGS -DENABLE_BSSP"
+   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DENABLE_BSSP"])
+AM_CONDITIONAL([ENABLE_BSSP], [test "x$enable_bssp" != xno])
+
+#
+# allow the user running configure to disable DTPC
+#
+AC_ARG_ENABLE([dtpc],
+  [AS_HELP_STRING([--disable-dtpc], [disable DTPC protocol])],
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-dtpc])])],
+  [enable_dtpc=yes])
+AS_IF([test "x$enable_dtpc" != xno],
+  [AM_CFLAGS="$AM_CFLAGS -DENABLE_DTPC"
+   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DENABLE_DTPC"])
+AM_CONDITIONAL([ENABLE_DTPC], [test "x$enable_dtpc" != xno])
 
 #
 # allow the user running configure to enable AMS_INDUSTRIAL
 #
-AC_ARG_ENABLE(
-  ams-industrial,
-  [AS_HELP_STRING([--enable-ams-industrial],[enable AMS_INDUSTRIAL])],
-  [AM_CFLAGS="$AM_CFLAGS -DAMS_INDUSTRIAL"],
-  [])
+AC_ARG_ENABLE([ams-industrial],
+  [AS_HELP_STRING([--enable-ams-industrial], [enable AMS_INDUSTRIAL])],
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-ams-industrial])])],
+  [enable_ams_industrial=no])
+AS_IF([test "x$enable_ams_industrial" = xyes],
+  [AM_CFLAGS="$AM_CFLAGS -DAMS_INDUSTRIAL"])
 
 #
 # allow the user running configure to enable the enhanced watch character option
 #
-AC_ARG_ENABLE(
-  ewchar,
-  [AS_HELP_STRING([--enable-ewchar],[enable enhanced watch characters])],
-  [ENABLE_EWCHAR=yes
-   AM_CFLAGS="$AM_CFLAGS -DEWCHAR"
-   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DEWCHAR"],
-  [ENABLE_EWCHAR=no])
-AM_CONDITIONAL(ENABLE_EWCHAR, test "x$ENABLE_EWCHAR" = "xyes")
+AC_ARG_ENABLE([ewchar],
+  [AS_HELP_STRING([--enable-ewchar], [enable enhanced watch characters])],
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-ewchar])])],
+  [enable_ewchar=no])
+AS_IF([test "x$enable_ewchar" = xyes],
+  [AM_CFLAGS="$AM_CFLAGS -DEWCHAR"
+   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DEWCHAR"])
+AM_CONDITIONAL([ENABLE_EWCHAR], [test "x$enable_ewchar" = xyes])
 
 #
 # allow the user running configure to enable the command line history option
 # Uses bundled linenoise library (BSD-2-Clause)
 #
-AC_ARG_ENABLE(
-  commandline-history,
-  [AS_HELP_STRING([--enable-commandline-history],[enable command line history using bundled linenoise])],
-  [ENABLE_CMD_HIST=yes
-   AM_CFLAGS="$AM_CFLAGS -DINPUT_HISTORY"
-   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DINPUT_HISTORY"
-   echo "Command line history enabled (using bundled linenoise)."
-  ],
-  [ENABLE_CMD_HIST=no
-   echo "Command line history disabled."
-  ])
-AM_CONDITIONAL(ENABLE_CMD_HIST, test "x$ENABLE_CMD_HIST" = "xyes")
+AC_ARG_ENABLE([commandline-history],
+  [AS_HELP_STRING([--enable-commandline-history],
+                  [enable command line history using bundled linenoise])],
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-commandline-history])])],
+  [enable_commandline_history=no])
+AS_IF([test "x$enable_commandline_history" = xyes],
+  [AM_CFLAGS="$AM_CFLAGS -DINPUT_HISTORY"
+   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DINPUT_HISTORY"])
+AM_CONDITIONAL([ENABLE_CMD_HIST],
+               [test "x$enable_commandline_history" = xyes])
 
 #
 # allow the user running configure to enable high-speed ION
 #
-AC_ARG_ENABLE(
-  high-speed,
-  [AS_HELP_STRING([--enable-high-speed],[Enable high-speed ION, increases memory usage.])],
+AC_ARG_ENABLE([high-speed],
+  [AS_HELP_STRING([--enable-high-speed],
+                  [Enable high-speed ION, increases memory usage.])],
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-high-speed])])],
+  [enable_high_speed=no])
+AS_IF([test "x$enable_high_speed" = xyes],
   [AM_CFLAGS="$AM_CFLAGS -DENABLE_HIGH_SPEED"
-   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DENABLE_HIGH_SPEED"
-   ENABLE_HIGH_SPEED=yes],
-  [])
-AM_CONDITIONAL(ENABLE_HIGH_SPEED, test x$ENABLE_HIGH_SPEED = xyes)
+   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DENABLE_HIGH_SPEED"])
+AM_CONDITIONAL([ENABLE_HIGH_SPEED], [test "x$enable_high_speed" = xyes])
 
 #
 # allow the user running configure to enable LTP UDP multisend (sendmmsg batching)
 #
-AC_ARG_ENABLE(
-  ltp-udp-multisend,
-  [AS_HELP_STRING([--enable-ltp-udp-multisend],[Enable LTP UDP multisend (sendmmsg batching, Linux only)])],
+AC_ARG_ENABLE([ltp-udp-multisend],
+  [AS_HELP_STRING([--enable-ltp-udp-multisend],
+                  [Enable LTP UDP multisend (sendmmsg batching, Linux only)])],
+  [AS_CASE(["${enableval}"],
+     [yes],
+     [AS_IF([test "x$PLATFORM" != xlinux],
+            [AC_MSG_ERROR([--enable-ltp-udp-multisend requires Linux.])])],
+     [no],
+     [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-ltp-udp-multisend])])],
+  [enable_ltp_udp_multisend=no])
+AS_IF([test "x$enable_ltp_udp_multisend" = xyes],
   [AM_CFLAGS="$AM_CFLAGS -DUDP_MULTISEND"
-   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DUDP_MULTISEND"
-   ENABLE_LTP_UDP_MULTISEND=yes],
-  [])
-AM_CONDITIONAL(ENABLE_LTP_UDP_MULTISEND, test x$ENABLE_LTP_UDP_MULTISEND = xyes)
+   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DUDP_MULTISEND"])
+AM_CONDITIONAL([ENABLE_LTP_UDP_MULTISEND],
+               [test "x$enable_ltp_udp_multisend" = xyes])
 
 #
 # allow the user running configure to enable SDR performance instrumentation
 #
-AC_ARG_ENABLE(
-  sdr-perf,
-  [AS_HELP_STRING([--enable-sdr-perf],[Enable SDR transaction performance instrumentation])],
+AC_ARG_ENABLE([sdr-perf],
+  [AS_HELP_STRING([--enable-sdr-perf],
+                  [Enable SDR transaction performance instrumentation])],
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-sdr-perf])])],
+  [enable_sdr_perf=no])
+AS_IF([test "x$enable_sdr_perf" = xyes],
   [AM_CFLAGS="$AM_CFLAGS -DSDR_PERF_INSTRUMENTATION"
-   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DSDR_PERF_INSTRUMENTATION"
-   ENABLE_SDR_PERF=yes],
-  [])
-AM_CONDITIONAL(ENABLE_SDR_PERF, test x$ENABLE_SDR_PERF = xyes)
+   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DSDR_PERF_INSTRUMENTATION"])
+AM_CONDITIONAL([ENABLE_SDR_PERF], [test "x$enable_sdr_perf" = xyes])
 
 #
 # allow the user running configure to force the use of Posix Named Semaphores over the
 # otherwise recommended system. This might not produce a running system on some platforms
-AC_ARG_ENABLE(
-  force-posix-named-semaphores,
-  [AS_HELP_STRING([--enable-force-posix-named-semaphores],[Force the use of Posix Named Semaphores, which are faster then SVR4, but might not work on this platform])],
+AC_ARG_ENABLE([force-posix-named-semaphores],
+  [AS_HELP_STRING([--enable-force-posix-named-semaphores],
+     [Force the use of Posix Named Semaphores,
+      which are faster than SVR4,
+      but might not work on this platform])],
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} \
+for --enable-force-posix-named-semaphores])])],
+  [enable_force_posix_named_semaphores=no])
+AS_IF([test "x$enable_force_posix_named_semaphores" = xyes],
   [AM_CFLAGS="$AM_CFLAGS -DFORCE_POSIX_NAMED_SEMAPHORES"
-   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DFORCE_POSIX_NAMED_SEMAPHORES"
-   ENABLE_FORCE_POSIX_NAMED_SEMAPHORES=yes],
-  [])
+   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DFORCE_POSIX_NAMED_SEMAPHORES"])
+AM_CONDITIONAL([ENABLE_FORCE_POSIX_NAMED_SEMAPHORES],
+               [test "x$enable_force_posix_named_semaphores" = xyes])
 
 #
 # allow the user running configure to force the use of SVR4 Semaphores over the
 # otherwise recommended system. They are supported on all process-based platforms
-AC_ARG_ENABLE(
-  force-svr4-semaphores,
-  [AS_HELP_STRING([--enable-force-svr4-semaphores],[Force the use of SVR4 Semaphores, which are supported on most platforms, but might be slower])],
+AC_ARG_ENABLE([force-svr4-semaphores],
+  [AS_HELP_STRING([--enable-force-svr4-semaphores],
+     [Force the use of SVR4 Semaphores,
+      which are supported on most platforms,
+      but might be slower])],
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} \
+for --enable-force-svr4-semaphores])])],
+  [enable_force_svr4_semaphores=no])
+AS_IF([test "x$enable_force_svr4_semaphores" = xyes],
   [AM_CFLAGS="$AM_CFLAGS -DFORCE_SVR4_SEMAPHORES"
-   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DFORCE_SVR4_SEMAPHORES"
-   ENABLE_FORCE_SVR4_SEMAPHORES=yes],
-  [])
+   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DFORCE_SVR4_SEMAPHORES"])
+AM_CONDITIONAL([ENABLE_FORCE_SVR4_SEMAPHORES],
+               [test "x$enable_force_svr4_semaphores" = xyes])
 
 # Set up conditional for POSIX Named Semaphores
 # By default (on Linux, FreeBSD, macOS, Solaris), POSIX Named Semaphores are used
 # unless --enable-force-svr4-semaphores was specified
 AM_CONDITIONAL([USING_POSIX_NAMED_SEMAPHORES],
-  [test x$ENABLE_FORCE_SVR4_SEMAPHORES != xyes])
+  [test "x$enable_force_svr4_semaphores" != xyes])
 
 #
 # allow the user running configure to enable bpsec debugging
 #
-AC_ARG_ENABLE(
-  bpsec-debugging,
-  [AS_HELP_STRING([--enable-bpsec-debugging],[Enable bpsec debugging. Defaults to level 4, use "--enable-bpsec-debugging=num" to choose level.])],
-  [case "${enableval}" in
-    1) echo "BPSEC Debugging enabled. Using level 1."
-      AM_CFLAGS="$AM_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=1 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=1 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
-      ENABLE_BPSEC_DEBUGGING=yes;;
-    2) echo "BPSEC Debugging enabled. Using level 2."
-      AM_CFLAGS="$AM_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=2 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=2 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
-      ENABLE_BPSEC_DEBUGGING=yes;;
-    3) echo "BPSEC Debugging enabled. Using level 3."
-      AM_CFLAGS="$AM_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=3 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=3 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
-      ENABLE_BPSEC_DEBUGGING=yes;;
-    4) echo "BPSEC Debugging enabled. Using level 4."
-      AM_CFLAGS="$AM_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=4 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=4 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
-      ENABLE_BPSEC_DEBUGGING=yes;;
-    *) echo "BPSEC Debugging enabled. Defaulting to level 4."
-      AM_CFLAGS="$AM_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=4 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
-      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=4 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
-      ENABLE_BPSEC_DEBUGGING=yes;;
-    esac],
-  [])
+AC_ARG_ENABLE([bpsec-debugging],
+  [AS_HELP_STRING([--enable-bpsec-debugging],
+     [Enable bpsec debugging (levels 1-4).
+      If level is omitted,
+      defaults to level 4. @<:@default=no@:>@])],
+  [AS_CASE(["$enableval"],
+     [no], [],
+     [1|2|3|4], [bpsec_lvl="$enableval"],
+     [yes|*],
+     [bpsec_lvl=4
+      AS_IF([test "x$enableval" != xyes],
+        [AC_MSG_WARN([invalid bpsec debugging level '$enableval'; \
+defaulting to level 4])])])],
+  [enable_bpsec_debugging=no])
+
+AS_IF([test "x$enable_bpsec_debugging" != xno],
+  [echo "BPSEC Debugging enabled. Using level $bpsec_lvl."
+   bpsec_flags="-DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=$bpsec_lvl"
+   bpsec_flags="$bpsec_flags -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1"
+   bpsec_flags="$bpsec_flags -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
+   AM_CFLAGS="$AM_CFLAGS $bpsec_flags"
+   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS $bpsec_flags"])
 
 #
 # allow the user running configure to enable UniBo CGR
 #
-AC_ARG_ENABLE(
-  unibo-cgr,
+AC_ARG_ENABLE([unibo-cgr],
   [AS_HELP_STRING([--enable-unibo-cgr], [enable University of Bologna CGR])],
-  [
-    if test "$BUILD_BPv7" == "true" ; then
-      # Check if bpv7/cgr/Unibo-CGR directory exists and is non-empty
-      AC_MSG_CHECKING([for Unibo-CGR directory under bpv7/cgr])
-      if test -d "$srcdir/bpv7/cgr/Unibo-CGR" && ls "$srcdir/bpv7/cgr/Unibo-CGR"/* >/dev/null 2>&1; then
-        AC_MSG_RESULT([yes])
-        UNIBO_CGR=yes
-        AC_DEFINE([UNIBO_CGR],[1],[Define to 1 to build Unibo-CGR])
-        PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DUNIBO_CGR"
-        echo "Building ION with UniBo CGR code"
-      else
-        AC_MSG_RESULT([no])
-        AC_MSG_ERROR([Unibo-CGR is not installed, please see the unibo-cgr module under /contrib folder for installation instructions.])
-      fi
-    else
-        echo "ERROR: UniBo CGR is not available with BP version 6"
-        AC_DEFINE([UNIBO_CGR],[0],[Define to 1 to build Unibo-CGR])
-        exit 1
-    fi
-  ],
-  [UNIBO_CGR=no
-   AC_DEFINE([UNIBO_CGR],[0],[Define to 1 to build Unibo-CGR])])
-AM_CONDITIONAL(UNIBO_CGR, test "x$UNIBO_CGR" = "xyes")
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-unibo-cgr])])],
+  [enable_unibo_cgr=no])
+AS_IF([test "x$enable_unibo_cgr" = xyes],
+  [# Check if bpv7/cgr/Unibo-CGR directory exists and is non-empty
+   AC_MSG_CHECKING([for Unibo-CGR directory under bpv7/cgr])
+   AS_IF([test -d "$srcdir/bpv7/cgr/Unibo-CGR" &&] \
+         [ls "$srcdir/bpv7/cgr/Unibo-CGR"/* >/dev/null 2>&1],
+     [AC_MSG_RESULT([yes])
+      AC_DEFINE([UNIBO_CGR], [1], [Define to 1 to build Unibo-CGR])
+      PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DUNIBO_CGR"
+      AC_MSG_NOTICE([Building ION with UniBo CGR code])],
+     [AC_MSG_RESULT([no])
+      AC_MSG_ERROR([Unibo-CGR is not installed, please see the unibo-cgr \
+  module under /contrib folder for installation instructions.])])],
+  [AC_DEFINE([UNIBO_CGR],[0],[Define to 1 to build Unibo-CGR])])
+AM_CONDITIONAL([UNIBO_CGR], [test "x$enable_unibo_cgr" = xyes])
 
 #
 # allow the user running configure to disable manpage creation
 #
-AC_ARG_ENABLE(
-  manpages,
+AC_ARG_ENABLE([manpages],
   [AS_HELP_STRING([--disable-manpages],[disable manpage creation])],
-  [],
-  [AM_CFLAGS="$AM_CFLAGS -DENABLE_MANPAGES"
-   ENABLE_MANPAGES=yes])
-AM_CONDITIONAL(ENABLE_MANPAGES, test "x$ENABLE_MANPAGES" = "xyes")
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-manpages])])],
+  [enable_man_pages=yes])
+AS_IF([test "x$enable_man_pages" != xno],
+      [AM_CFLAGS="$AM_CFLAGS -DENABLE_MANPAGES"])
+AM_CONDITIONAL([ENABLE_MANPAGES], [test "x$enable_man_pages" != xno])
 
 #
 # Allow user to enable crypto
 #
 # To Enable crypto, use "./configure --enable-crypto-mbedtls"
-AC_ARG_ENABLE(
-  crypto-mbedtls,
+AC_ARG_ENABLE([crypto-mbedtls],
   [AS_HELP_STRING([--enable-crypto-mbedtls],[Turn on cryptography using MBEDTLS])],
-  [CRYPTO_MBEDTLS=true
-   AM_CFLAGS="$AM_CFLAGS -DMBEDTLS_CRYPTO_SUITES"
-   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DMBEDTLS_CRYPTO_SUITES"],
-  [echo "MBEDTLS Crypto disabled, building with NULL SUITES."
-   CRYPTO_MBEDTLS=false
-   AM_CFLAGS="$AM_CFLAGS -DNULL_CRYPTO_SUITES"
-   PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DNULL_CRYPTO_SUITES"])
-
-AM_CONDITIONAL([CRYPTO_MBEDTLS], [test "x$CRYPTO_MBEDTLS" = "xtrue"])
+  [AS_CASE(["$enableval"],
+     [yes], [CRYPTO_MBEDTLS=true],
+     [no], [CRYPTO_MBEDTLS=false],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-crypto-mbedtls])])],
+  [CRYPTO_MBEDTLS=false])
+AS_IF([test "x$CRYPTO_MBEDTLS" = xtrue],
+      [AM_CFLAGS="$AM_CFLAGS -DMBEDTLS_CRYPTO_SUITES"
+       PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DMBEDTLS_CRYPTO_SUITES"],
+      [AC_MSG_NOTICE([Mbed TLS Crypto disabled, building with NULL SUITES.])
+       AM_CFLAGS="$AM_CFLAGS -DNULL_CRYPTO_SUITES"
+       PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DNULL_CRYPTO_SUITES"])
+AM_CONDITIONAL([CRYPTO_MBEDTLS], [test "x$CRYPTO_MBEDTLS" = xtrue])
 
 if test x$CRYPTO_MBEDTLS = xtrue; then
   echo "------------------------------------------"
@@ -586,9 +631,14 @@ fi
 # Allow user to enable BSL (Bundle Protocol Security Library)
 #
 # To Enable BSL, use "./configure --enable-bsl"
-AC_ARG_ENABLE(
-  bsl,
+AC_ARG_ENABLE([bsl],
   [AS_HELP_STRING([--enable-bsl],[Turn on BPSec using external BSL library])],
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-bsl])])],
+  [enable_bsl=no])
+
+AS_IF([test "x$enable_bsl" = xyes],
   [
     # Check if external/BSL directory exists
     AC_MSG_CHECKING([for BSL submodule at external/BSL])
@@ -686,7 +736,12 @@ fi
 # Control whether AMS debugging info is printed.
 #
 AC_ARG_ENABLE([ams-debug],
-  AS_HELP_STRING([--enable-ams-debug], [Enable AMS debugging info])
+  [AS_HELP_STRING([--enable-ams-debug], [Enable AMS debugging info])],
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-ams-debug])])],
+  [enable_ams_debug=no])
+AS_IF([test "x$enable_ams_debug" = xyes],
   [AC_DEFINE([AMSDEBUG], 1, [Enable AMS debugging info])
    PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DAMSDEBUG"])
 
@@ -696,8 +751,10 @@ AC_ARG_ENABLE([ams-debug],
 #
 AC_ARG_WITH([gcov],
   [AS_HELP_STRING([--with-gcov], [Turn on code coverage instrumentation])],
-  [gcov=yes;],
-  [])
+  [AS_CASE(["$withval"],
+     [yes|no], [gcov="${withval}"],
+     [AC_MSG_ERROR([bad value ${withval} for --with-gcov])])],
+  [gcov=no])
 if test "x$gcov" = "xyes" ; then
   echo "Instrument code for gcov coverage analysis... yes"
   CFLAGS="$CFLAGS -g -O0 -fprofile-arcs -ftest-coverage"
@@ -722,8 +779,13 @@ AC_ARG_WITH([expat],
 #
 # If valgrind is present, allow special MTAKE/MRELEASE valgrind tutors.
 #
-AC_ARG_ENABLE([valgrind], AS_HELP_STRING([--enable-valgrind],[Enable valgrind debugging [default=check]]),
-              [enable_valgrind=yes], [enable_valgrind=check])
+AC_ARG_ENABLE([valgrind],
+  [AS_HELP_STRING([--enable-valgrind],
+     [Enable valgrind debugging @<:@default=check@:>@])],
+  [AS_CASE(["$enableval"],
+     [yes|no|check], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-valgrind])])],
+  [enable_valgrind=check])
 
 if test "x$enable_valgrind" != xno; then
   AC_CHECK_HEADER(valgrind/valgrind.h,
@@ -815,8 +877,13 @@ AC_ARG_ENABLE([asan],
   esac],
   [])
 
-AC_ARG_ENABLE([sysctl-check], AS_HELP_STRING([--disable-sysctl-check],[Disable checking sysctl configuration on OSX and FreeBSD]),
-              [], [enable_sysctl_check=yes])
+AC_ARG_ENABLE([sysctl-check],
+  [AS_HELP_STRING([--disable-sysctl-check],
+     [Disable checking sysctl configuration on macOS and FreeBSD])],
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-sysctl-check])])],
+  [enable_sysctl_check=yes])
 
 if test "x$enable_sysctl_check" = xyes; then
   echo "checking sysctl configuration..."
@@ -836,9 +903,11 @@ test -z "$AMP_VERSION" && AMP_VERSION=8
 AC_SUBST([AMP_VERSION])
 
 AC_ARG_WITH([mysql],
-  [AS_HELP_STRING([--with-mysql], [Enable MYSQL support for NM MGR])],
-  [mysql=yes;],
-  [])
+  [AS_HELP_STRING([--with-mysql], [Enable MySQL support for NM MGR])],
+  [AS_CASE(["$withval"],
+     [yes|no], [mysql="${withval}"],
+     [AC_MSG_ERROR([bad value ${withval} for --with-mysql])])],
+  [mysql=no])
 if test "x$mysql" = "xyes" ; then
   echo "Build against libmysql... yes"
   CFLAGS="$CFLAGS -DHAVE_MYSQL"
@@ -850,8 +919,10 @@ AM_CONDITIONAL([ENABLE_MYSQL], [test "x$mysql" = "xyes"])
 
 AC_ARG_WITH([ncurses],
   [AS_HELP_STRING([--with-ncurses], [Enable NCURSES support for NM MGR])],
-  [ncurses=yes;],
-  [])
+  [AS_CASE(["$withval"],
+     [yes|no], [ncurses="${withval}"],
+     [AC_MSG_ERROR([bad value ${withval} for --with-ncurses])])],
+  [ncurses=no])
 if test "x$ncurses" = "xyes" ; then
   echo "Build against libncurses... yes"
   CFLAGS="$CFLAGS -DUSE_NCURSES"
@@ -892,17 +963,17 @@ AC_SUBST([XLSA_LIBS])
 #
 # allow the user running configure to choose the TCPCL_LOW_CYCLE option
 #
-AC_ARG_ENABLE(
-  tcpcl-low-cycle,
-  [AS_HELP_STRING([--enable-tcpcl-low-cycle],[enable TCPCL_LOW_CYCLE option])],
+AC_ARG_ENABLE([tcpcl-low-cycle],
+  [AS_HELP_STRING([--enable-tcpcl-low-cycle], [enable TCPCL_LOW_CYCLE option])],
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-tcpcl-low-cycle])])],
+  [enable_tcpcl_low_cycle=no])
+AS_IF([test "x$enable_tcpcl_low_cycle" = xyes],
   [AM_CFLAGS="$AM_CFLAGS -DTCPCL_LOW_CYCLE"
    PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DTCPCL_LOW_CYCLE"
-   TCPCL_LOW_CYCLE=yes],
-  []
+   AC_MSG_NOTICE([Enabling TCPCL_LOW_CYCLE... yes])]
 )
-if test "x$TCPCL_LOW_CYCLE" = "xyes" ; then
-  echo "Enabling TCPCL_LOW_CYCLE... yes"
-fi
 
 # Check for libraries.
 ORIGCFLAGS="$CFLAGS"
@@ -943,7 +1014,9 @@ AC_ARG_ENABLE([robust-sdr-lock],
   [AS_HELP_STRING([--disable-robust-sdr-lock],
      [Do not use a robust pthread mutex for the SDR transaction lock,
       even where supported; fall back to the legacy semaphore.])],
-  [enable_robust_sdr_lock="$enableval"],
+  [AS_CASE(["$enableval"],
+     [yes|no], [],
+     [AC_MSG_ERROR([bad value ${enableval} for --enable-robust-sdr-lock])])],
   [enable_robust_sdr_lock="yes"])
 
 AC_CACHE_CHECK([whether $CC supports robust process-shared mutexes],
@@ -1210,13 +1283,13 @@ ION Configuration Summary
     Native ION BPSec:                        ${NATIVE_BPSEC_STATUS}
 
   Optional Convergence Layers:
-    DGR (Datagram Retransmission):           ${ENABLE_DGR:-no}
-    BSSP (Bundle Streaming Service):         ${ENABLE_BSSP:-no}
-    IMC (Interplanetary Multicast):          ${ENABLE_IMC:-no}
+    DGR (Datagram Retransmission):           ${enable_dgr:-no}
+    BSSP (Bundle Streaming Service):         ${enable_bssp:-no}
+    IMC (Interplanetary Multicast):          ${enable_imc:-no}
 
   Optional Protocols:
-    DTPC (Delay Tolerant Payload Conditioning): ${ENABLE_DTPC:-no}
-    TC (Trusted Collective TCA/TCC):            ${ENABLE_TC:-no}
+    DTPC (Delay Tolerant Payload Conditioning): ${enable_dtpc:-no}
+    TC (Trusted Collective TCA/TCC):            ${enable_tc:-no}
 
   Security:
     Crypto Library:                          ${CRYPTO_MBEDTLS:-no (NULL suites)}
