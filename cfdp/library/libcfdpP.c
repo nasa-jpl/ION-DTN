@@ -686,6 +686,8 @@ int _cfdpStart(char *utaCmd)
 	int	 startBpcpd = 0;
 	char	*actualUtaCmd = utaCmd;
 
+	cfdpvdb->stopping = 0;	/*	Clear any prior teardown state.	*/
+
 	/* Check if utaCmd contains proxy directive */
 	if (utaCmd)
 	{
@@ -783,6 +785,13 @@ void	_cfdpStop(void)		/*	Reverses cfdpStart.		*/
 	/*	Tell all CFDP processes to stop.			*/
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+
+	/*	Mark teardown in progress before ending the event
+	 *	semaphores, so concurrent producers (createFDU, inbound
+	 *	PDU handling, cfdpclock) decline new work rather than
+	 *	operating on a semaphore that is about to be ended.	*/
+
+	cfdpvdb->stopping = 1;
 
 	/*	Disable blocking ZCO buffer space access.		*/
 
@@ -3048,6 +3057,15 @@ int	enqueueCfdpEvent(CfdpEvent *event)
 
 	CHKERR(ionLocked());
 	CHKERR(event);
+
+	/*	If CFDP is tearing down, the event semaphores may already
+	 *	be ended; decline cleanly rather than operating on them.	*/
+
+	if (cfdpvdb->stopping)
+	{
+		return -1;
+	}
+
 	eventObj = sdr_malloc(sdr, sizeof(CfdpEvent));
 	if (eventObj == 0)
 	{

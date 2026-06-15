@@ -1201,6 +1201,18 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	fdu.closureLatency = closureLatency;
 	CHKZERO(sdr_begin_xn(sdr));
 
+	/*	If CFDP is tearing down, decline before modifying the SDR
+	 *	so we never leave an orphaned transaction that a stopping
+	 *	engine cannot reverse.					*/
+
+	if (vdb->stopping)
+	{
+		sdr_exit_xn(sdr);
+		writeMemoNote("[?] CFDP is stopping, can't send FDU.",
+				sourceFileName);
+		return 0;
+	}
+
 	/*	We build the FDU in SDR heap space, so we check here
 	 *	to make sure there's a good chance that this will
 	 *	succeed.  This is completely separate from the
