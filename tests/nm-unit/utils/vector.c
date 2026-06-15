@@ -169,6 +169,70 @@ void test_vecstring(void)
 	// NOTE: We depend on valgrind analysis to confirm that all resources have really been freed.
 }
 
+/* Test FIFO eviction via vec_pop_front on a stack-mode vector.
+ * This mirrors how nm_mgr_rx evicts the oldest report/table from a full
+ * agent vector: pop the oldest (front) entry, then push the newest.
+ * Values are static string pointers with a NULL delete_fn, so nothing
+ * here needs to be freed.
+ */
+void test_vec_pop_front(void)
+{
+	vector_t vec;
+	int rtv;
+	char *v0 = "v0", *v1 = "v1", *v2 = "v2", *v3 = "v3", *v4 = "v4";
+	char *ptr;
+
+	vec = vec_create(0, NULL, NULL, NULL, VEC_FLAG_AS_STACK, &rtv);
+	TEST_ASSERT_EQUAL_INT(VEC_OK, rtv);
+
+	// pop_front on an empty vector must fail and return NULL.
+	ptr = vec_pop_front(&vec, &rtv);
+	TEST_ASSERT_EQUAL_INT(VEC_FAIL, rtv);
+	TEST_ASSERT_NULL(ptr);
+
+	// Push four entries; index 0 is oldest, the top is newest.
+	TEST_ASSERT_EQUAL_INT(VEC_OK, vec_push(&vec, v0));
+	TEST_ASSERT_EQUAL_INT(VEC_OK, vec_push(&vec, v1));
+	TEST_ASSERT_EQUAL_INT(VEC_OK, vec_push(&vec, v2));
+	TEST_ASSERT_EQUAL_INT(VEC_OK, vec_push(&vec, v3));
+	TEST_ASSERT_EQUAL_INT(4, vec_num_entries(vec));
+
+	// pop_front returns the oldest (v0) and shifts the rest down.
+	ptr = vec_pop_front(&vec, &rtv);
+	TEST_ASSERT_EQUAL_INT(VEC_OK, rtv);
+	TEST_ASSERT_EQUAL_STRING(v0, ptr);
+	TEST_ASSERT_EQUAL_INT(3, vec_num_entries(vec));
+	TEST_ASSERT_EQUAL_STRING(v1, vec_at(&vec, 0));
+	TEST_ASSERT_EQUAL_STRING(v2, vec_at(&vec, 1));
+	TEST_ASSERT_EQUAL_STRING(v3, vec_at(&vec, 2));
+
+	// next_idx must track the shift: a new push lands contiguously on top.
+	TEST_ASSERT_EQUAL_INT(VEC_OK, vec_push(&vec, v4));
+	TEST_ASSERT_EQUAL_INT(4, vec_num_entries(vec));
+	TEST_ASSERT_EQUAL_STRING(v4, vec_at(&vec, 3));
+
+	// vec_pop (top) still returns the newest, confirming order is intact.
+	ptr = vec_pop(&vec, &rtv);
+	TEST_ASSERT_EQUAL_INT(VEC_OK, rtv);
+	TEST_ASSERT_EQUAL_STRING(v4, ptr);
+
+	// Drain from the front and confirm FIFO order: v1, v2, v3.
+	ptr = vec_pop_front(&vec, &rtv);
+	TEST_ASSERT_EQUAL_STRING(v1, ptr);
+	ptr = vec_pop_front(&vec, &rtv);
+	TEST_ASSERT_EQUAL_STRING(v2, ptr);
+	ptr = vec_pop_front(&vec, &rtv);
+	TEST_ASSERT_EQUAL_STRING(v3, ptr);
+	TEST_ASSERT_EQUAL_INT(0, vec_num_entries(vec));
+
+	// Empty again: pop_front fails cleanly.
+	ptr = vec_pop_front(&vec, &rtv);
+	TEST_ASSERT_EQUAL_INT(VEC_FAIL, rtv);
+	TEST_ASSERT_NULL(ptr);
+
+	vec_release(&vec, 0);
+}
+
 void test_vecuvast(void)
 {
 	// Create a vector
@@ -198,6 +262,7 @@ int main(void)
 
 	RUN_TEST(test_create_basic);
 	RUN_TEST(test_vecstring);
+	RUN_TEST(test_vec_pop_front);
 	RUN_TEST(test_vecuvast);
 	// TODO: Test a stack VECTOR (str is no longer a stack).  Including vec_del, vec_set
 	/*
