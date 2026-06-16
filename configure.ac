@@ -512,6 +512,11 @@ AS_IF([test "x$enable_force_svr4_semaphores" = xyes],
 AM_CONDITIONAL([ENABLE_FORCE_SVR4_SEMAPHORES],
                [test "x$enable_force_svr4_semaphores" = xyes])
 
+AS_IF([test "x$enable_force_posix_named_semaphores" = xyes &&] \
+      [test "x$enable_force_svr4_semaphores" = xyes],
+  [AC_MSG_ERROR([cannot force both POSIX named semaphores \
+and SVR4 semaphores simultaneously.])])
+
 # Set up conditional for POSIX Named Semaphores
 # By default (on Linux, FreeBSD, macOS, Solaris), POSIX Named Semaphores are used
 # unless --enable-force-svr4-semaphores was specified
