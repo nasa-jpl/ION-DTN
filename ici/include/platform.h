@@ -999,6 +999,30 @@ extern int			fullyQualified(char *fileName);
 extern int			qualifyFileName(char *fileName, char *buffer,
 					int buflen);
 extern void			findToken(char **cursorPtr, char **token);
+
+/*
+ * Safe string-to-numeric parsers for configuration/CLI inputs.
+ *
+ * Each returns 0 on success and -1 on any error (NULL/empty input,
+ * trailing garbage, ERANGE, or out-of-range for the destination type);
+ * on error *result is left unmodified, so callers MUST check the return
+ * value before using *result.
+ *
+ * Convention for narrower or unsigned destinations (unsigned int, short,
+ * uint8_t, etc.): there is intentionally no per-type parser.  Parse into
+ * the widest matching type, then bounds-check against the destination's
+ * limit BEFORE downcasting, e.g.
+ *
+ *     uvast v;
+ *     if (platform_parse_uvast(tok, &v) < 0 || v > UINT_MAX) { ...error... }
+ *     duct->xmitRate = (unsigned int) v;
+ *
+ * This is the remediation pattern for CodeSonar "Coercion Alters Value"
+ * findings at ION configuration inputs (see
+ * https://github.com/nasa-jpl/ion-ios-dev/issues/526): convert with a
+ * range-aware utility and reject values that cannot be represented in the
+ * destination type, rather than silently truncating.
+ */
 extern int			platform_parse_uvast(const char *nptr, uvast *result);
 extern int 			platform_parse_int(const char *nptr, int *result);
 extern int			platform_parse_double(const char *str, double *result);
