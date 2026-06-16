@@ -6,7 +6,8 @@
 
 AC_PREREQ([2.69])
 
-AC_INIT([ion],[4.1.4],[https://github.com/nasa-jpl/ION-DTN/issues])
+AC_INIT([ION], [4.1.4], [https://github.com/nasa-jpl/ION-DTN/issues], [],
+        [https://github.com/nasa-jpl/ION-DTN])
 
 AM_INIT_AUTOMAKE([1.16 subdir-objects -Wall foreign])
 AM_SILENT_RULES([yes])
