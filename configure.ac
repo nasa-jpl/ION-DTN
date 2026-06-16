@@ -324,6 +324,11 @@ AC_ARG_ENABLE([tc],
      [AC_MSG_ERROR([bad value ${enableval} for --enable-tc])])],
   [enable_tc=yes])
 
+AS_IF([test "x$enable_tc" != xno && test "x$enable_imc" = xno],
+  [AC_MSG_ERROR(
+    [Invalid configuration: Trusted Collective (--enable-tc) \
+cannot function without Interplanetary Multicast (--enable-imc).])])
+
 AS_IF([test "x$enable_imc" != xno],
   [AM_CFLAGS="$AM_CFLAGS -DENABLE_IMC"
    PKG_CONFIG_CFLAGS="$PKG_CONFIG_CFLAGS -DENABLE_IMC"])
