@@ -84,7 +84,8 @@ sleep 3
 ../../../system_up -i "p 30" -l "p 30" -b "p 30" 2.ipn.ltp
 if [ $? -ne 3 ]; then
     echo "Error: Node 2 failed to start properly"
-    ./cleanup
+    # Preserve logs on failure (runtests handles cleanup; killm trap stops ION).
+    # ./cleanup
     exit 1
 fi
 cd ..
@@ -97,7 +98,8 @@ sleep 3
 ../../../system_up -i "p 30" -l "p 30" -b "p 30" 3.ipn.ltp
 if [ $? -ne 3 ]; then
     echo "Error: Node 3 failed to start properly"
-    ./cleanup
+    # Preserve logs on failure (see note above).
+    # ./cleanup
     exit 1
 fi
 cd ..
@@ -152,8 +154,10 @@ if [ $RETVAL -ne 0 ]; then
 fi
 
 echo ""
-echo "Cleaning up..."
-./cleanup
+# End-of-test cleanup removed: runtests runs ./cleanup after a pass (unless
+# PRESERVE_TEST_LOGS=1) and preserves logs on failure; the initial ./cleanup
+# above gives a clean slate for manual runs.
+# ./cleanup
 
 echo ""
 if [ $RETVAL -eq 0 ]; then

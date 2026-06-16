@@ -121,6 +121,8 @@ else
 fi
 
 echo -e "\nStopping ION..."
-./cleanup
+# End-of-test cleanup removed so logs survive failures; runtests cleans on
+# pass and the initial ./cleanup above gives a clean slate for manual runs.
+# ./cleanup
 echo -e "...test terminated.\n"
 exit $RETVAL
