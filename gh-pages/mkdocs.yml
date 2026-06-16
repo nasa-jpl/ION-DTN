@@ -104,6 +104,7 @@ nav:
   - Topics:
       - SDR Reversibility: topics/deep-dive-sdr-reversibility.md
       - LTP UDP Multisend & Tuning: topics/ltp-udp-multisend-tuning.md
+      - LTP Performance: topics/LTP-Performance.md
       - CFDP SW Architecture: CFDP-SW-Architecture.md
       - Contact Graph Events and LTP: Contact-Graph-Events-and-LTP.md
       - Knowledge Base, Issues & Patches: Known-Issues.md
