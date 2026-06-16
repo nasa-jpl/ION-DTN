@@ -33,7 +33,9 @@ echo "Verifying nodes..."
 if [ $? -ne 3 ]; then
     echo "FAIL: Node 1 failed to start"
     RETVAL=1
-    ./cleanup
+    # Don't scrub artifacts on failure; runtests preserves logs for
+    # debugging and the EXIT trap (killm f) still stops ION.
+    # ./cleanup
     exit $RETVAL
 fi
 
@@ -41,7 +43,8 @@ fi
 if [ $? -ne 3 ]; then
     echo "FAIL: Node 2 failed to start"
     RETVAL=1
-    ./cleanup
+    # Don't scrub artifacts on failure (see note above).
+    # ./cleanup
     exit $RETVAL
 fi
 

@@ -279,6 +279,8 @@ fi
 
 echo -e "\nStopping ION..."
 cd ..
-./cleanup
+# End-of-test cleanup removed so logs survive failures; runtests cleans on
+# pass and the initial ./cleanup above gives a clean slate for manual runs.
+# ./cleanup
 
 exit $RETVAL

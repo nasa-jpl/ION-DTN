@@ -95,7 +95,9 @@ RUNTEST_STATUS=$?
 if [ $RUNTEST_STATUS -eq 2 ]; then
     echo "SKIP: runtest.py skipped (exit code 2)"
     cat runtest.log
-    ./cleanup
+    # Don't scrub artifacts here; killm trap stops ION and runtests cleans
+    # before the next test. (Initial ./cleanup above gives a manual-run slate.)
+    # ./cleanup
     exit 2
 fi
 
