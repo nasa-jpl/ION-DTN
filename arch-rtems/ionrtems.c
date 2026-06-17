@@ -25,8 +25,7 @@
 #include "cfdp.h"
 #endif
 
-
-#define	ION_NODE_NBR	19
+#define ION_NODE_NBR	  ((uvast) 19)
 
 /*
  * Note: EnqueueBundle is an enum value in BpRecvRule, not a function.
