@@ -12,6 +12,29 @@
 
 ION open source comes with an Excel spreadsheet to help users configure the LTP protocol to optimize performance based on each user's unique use case.
 
+> **ION 4.2 note — `maxber` is deprecated.** This tool was written around the
+> `m maxber` (maximum bit-error-rate) command, which ION 4.2 has **deprecated**
+> in favor of setting the segment loss rate and retry count directly:
+> `m maxseglossrate` and `m maxretries` (unified-mode defaults
+> `maxSegmentLossRate = 0.01`, `maxRetries = 5`; split mode adds per-direction
+> variants). The good news is that the tool already computes the quantity the
+> new commands need: the **Segment Error Rate** on the *Link* worksheet
+> (`ser_ccsds(...)`). Until the spreadsheet is retargeted (see
+> `doc/ION-LTP-config-tool-maxber-migration.md`), use it like this:
+>
+> - Set **`m maxseglossrate`** to the *Link* worksheet's **Segment Error Rate**
+>   value — **not** the maxBER value. (The maxBER cell is the same number run
+>   through a BER conversion only the old `m maxber` command needed; the *Main*
+>   sheet then converts it back, which is why it carries the note "this should be
+>   approximately the same as the segment error rate.")
+> - Set **`m maxretries`** to the number of retransmission attempts you want
+>   (the unified-mode default is 5). To reproduce the engine's legacy behavior,
+>   use `max(3, ceil( log(1e-6) / log(segment_loss_rate) ))`.
+> - **Re-run the tool whenever you change the segment size.** Under `maxber` the
+>   loss rate auto-scaled with segment size; `m maxseglossrate` sets it
+>   *absolutely*, so a value computed for one segment size is stale if you later
+>   change `maxSegmentSize` in the `a span` command.
+
 ION's implementation of LTP is challenging to configure: there are a lot
 of configuration parameters to set, because the design is intended to
 support a very wide variety of deployment scenarios that are optimized
@@ -124,13 +147,15 @@ engine.
 
 ### Global Parameters
 
-`Maximum bit error rate` is the maximum bit error rate that the LTP
+`Maximum bit error rate` (the `m maxber` parameter — **deprecated in ION 4.2**,
+see the note in the Introduction) is the maximum bit error rate that the LTP
 should provide for in computing the maximum number of transmission
 efforts to initiate in the course of transmitting a given block. (Note
 that this computation is also sensitive to data segment size and to the
 size of the block that is to be transmitted.) The default value is
 .000001, i.e., 10^-6^, one uncorrected (but detected) bit error per
-million bits transmitted.
+million bits transmitted. In ION 4.2 this is replaced by `m maxseglossrate`
+(set directly to the *Link* worksheet's segment error rate) and `m maxretries`.
 
 The `size` - estimated size of an LTP report segment in bytes - may vary
 slightly depending on the sizes of the session numbers in use. 25 bytes
@@ -328,14 +353,18 @@ cells:
   space link frame losses.
 - `Segment Error Rate Computation \[computed\]` -- this is the LTP
   segment error rate derived from the frame error rate and the segment
-  and CCSDS frame size selections.
-- `*maxBER* Computation \[computed\]` -- this is the computed
-  *maxBER* parameter for LTP. The *maxBER* parameter is what LTP uses
-  to estimate segment error rate, which in turn will affect how LTP
+  and CCSDS frame size selections. **In ION 4.2 this is the value to use
+  for `m maxseglossrate`** — it is the segment loss rate the new commands
+  consume directly.
+- `*maxBER* Computation \[computed\]` -- **deprecated in ION 4.2** (it
+  feeds the deprecated `m maxber` command). This is the computed
+  *maxBER* parameter for LTP. The *maxBER* parameter is what LTP used
+  to estimate segment error rate, which in turn affected how LTP
   handles handshaking failure and repeated retransmission requests. To
   properly operate LTP, the maxBER value provided must result in the
   same segment error rate as one expects to encounter in real space
-  link.
+  link — which is exactly why the **Segment Error Rate** above is the
+  better quantity to configure directly via `m maxseglossrate`.
 - `Ethernet Error Rate Computation \[computed\]` -- this is the
   recommended setting for using laboratory Ethernet frame error
   software/hardware to simulate space link loss. This value is
