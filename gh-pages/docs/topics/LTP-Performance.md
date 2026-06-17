@@ -10,7 +10,8 @@ All numbers are illustrative of ION's software pipeline on the hardware noted;
 they bound the *shape* of LTP performance, not a portable ceiling. For
 link-specific (long-delay, lossy space-link) configuration, use the **LTP
 Configuration Tool** spreadsheet shipped with each ION release rather than these
-loopback/benchmark numbers.
+loopback/benchmark numbers — but see the note under *See also* on its
+dependence on the now-deprecated `maxber` parameter.
 
 ## The mental model: two regimes
 
@@ -147,5 +148,17 @@ Guide history) established the durable trends that still hold:
 - `ltp/xlsa/doc/DESIGN.md` — the xlsa shared-memory link service design.
 - [LTP UDP multisend tuning](ltp-udp-multisend-tuning.md) — `UDP_MULTISEND`
   configuration that underlies the UDP numbers above.
-- The **LTP Configuration Tool** spreadsheet (shipped with each ION release) —
-  for computing LTP settings for a specific link's delay/bandwidth/error rate.
+- The **LTP Configuration Tool** spreadsheet
+  (`doc/ION-LTP-configuration_tool.xlsm`, shipped with each ION release) — for
+  computing LTP settings for a specific link's delay/bandwidth/error rate.
+  **Note:** this tool is built around the `m maxber` (maximum bit-error-rate)
+  parameter, which ION 4.2 has **deprecated** in favor of setting the segment
+  loss rate and retry count directly (`m maxseglossrate` / `m maxretries`;
+  unified-mode defaults are `maxSegmentLossRate = 0.01` and `maxRetries = 5`).
+  Until the spreadsheet is updated, use its computed **segment error rate**
+  (from the *Link* worksheet) as the `m maxseglossrate` value — that is the
+  quantity the tool derives internally before it converts to maxBER — rather
+  than feeding the maxBER output to the deprecated `m maxber` command. Note also
+  that with `m maxseglossrate` the loss rate is set *directly* and no longer
+  tracks the segment size automatically (as it did under maxber), so it must be
+  recomputed if the segment size changes.
