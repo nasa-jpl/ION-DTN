@@ -42,7 +42,7 @@ BraceWrapping:
   SplitEmptyRecord: true
 BracedInitializerIndentWidth: 8
 BreakAdjacentStringLiterals: true
-BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeBinaryOperators: None
 BreakBeforeBraces: Custom
 BreakBeforeTernaryOperators: false
 BreakStringLiterals: false
