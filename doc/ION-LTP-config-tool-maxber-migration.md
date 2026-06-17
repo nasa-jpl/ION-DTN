@@ -5,9 +5,16 @@ configuration as a **maxBER** (bit-error-rate) value, intended for the
 deprecated `m maxber` command. ION 4.2 replaces `maxber` with the segment loss
 rate and retry count set **directly** — `m maxseglossrate` and `m maxretries`
 (unified-mode defaults `maxSegmentLossRate = 0.01`, `maxRetries = 5`; split mode
-adds per-direction variants). This note specifies the precise cell/VBA edits to
-retarget the spreadsheet. It is a spec, not an applied change (the workbook is
-binary + VBA).
+adds per-direction variants). This note records the precise edits, **now applied**
+to `doc/ION-LTP-configuration_tool.xlsm`: the cell/formula/label changes were made
+directly in the OOXML parts; the VBA (`vbaProject.bin`), conditional formatting,
+embedded drawing/image, and all untouched cells were preserved byte-for-byte, and
+the stale `calcChain` cache was dropped with `fullCalcOnLoad="1"` so Excel
+recomputes on open. The maxBER cell was kept (relabeled "legacy") for reference;
+no VBA was changed. **Verification limit:** the result was validated structurally
+(well-formed XML, preserved parts, formulas read back correctly) but not opened in
+Excel here — open it once to confirm it recalculates without a repair prompt and
+to let it rebuild the calc cache.
 
 ## Why this is small, not a rewrite
 
