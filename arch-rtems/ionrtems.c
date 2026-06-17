@@ -26,6 +26,8 @@
 #endif
 
 #define ION_NODE_NBR	  ((uvast) 19)
+#define LTP_ENGINE_STR	  "19"		   /* must match ION_NODE_NBR */
+#define TEST_LTP_DUCT	  "127.0.0.1:1113" /* udplsi / udplso */
 
 /*
  * Note: EnqueueBundle is an enum value in BpRecvRule, not a function.
@@ -181,13 +183,14 @@ static int	startDTN()
 	/*	Add LTP span using UDP for loopback		*/
 	/* add_span(engine_id, max_export_sessions, max_import_sessions, max_segment_size,
 	            aggr_size_limit, aggr_time_limit, lso_command, queuing_latency, purge_enabled) */
-	if (add_span(nodenbr, 100, 100, 1400, 10000, 1, "udplso 127.0.0.1:1113", 1, 0) < 0)
+	if (add_span(nodenbr, 100, 100, 1400, 10000, 1, "udplso " TEST_LTP_DUCT,
+			    1, 0) < 0)
 	{
 		writeMemo("[?] Failed to add LTP span.");
 		return -1;
 	}
 
-	if (add_seat("udplsi 127.0.0.1:1113") < 0)
+	if (add_seat("udplsi " TEST_LTP_DUCT) < 0)
 	{
 		writeMemo("[?] Failed to add LTP seat.");
 		return -1;
@@ -283,13 +286,13 @@ static int	startDTN()
 	}
 
 	/*	Add LTP convergence layer adapters				*/
-	if (add_induct("ltp", "19", "ltpcli") < 0)
+	if (add_induct("ltp", LTP_ENGINE_STR, "ltpcli") < 0)
 	{
 		writeMemo("[?] Failed to add LTP induct.");
 		return -1;
 	}
 
-	if (add_outduct("ltp", "19", "ltpclo", 0) < 0)
+	if (add_outduct("ltp", LTP_ENGINE_STR, "ltpclo", 0) < 0)
 	{
 		writeMemo("[?] Failed to add LTP outduct.");
 		return -1;
@@ -302,7 +305,7 @@ static int	startDTN()
 		return -1;
 	}
 
-	if (add_planduct("ipn:19.0", "ltp", "19") < 0)
+	if (add_planduct("ipn:19.0", "ltp", LTP_ENGINE_STR) < 0)
 	{
 		writeMemo("[?] Failed to add planduct.");
 		return -1;
