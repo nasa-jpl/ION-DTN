@@ -357,8 +357,6 @@ if __name__ == "__main__":
     # Don't allow 0 runners and we cannot exceed 7 runners
     if args.runners < 1:
         RUNNER_COUNT = 1
-    elif args.runners > 7:
-        RUNNER_COUNT = 7
     else:
         RUNNER_COUNT = args.runners
 
