@@ -375,41 +375,41 @@ int	sendSegmentByUDP(int linkSocket, char *from, int length,
 int	udplso(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-	char		*endpointSpec = (char *) a1;
-	uvast		remoteEngineId = a3 != 0 ? getFqn((char *) a3) :
-					(a2 != 0 ? getFqn((char *) a2) : 0);
+	char *endpointSpec = (char *) a1;
+	uvast remoteEngineId = a3 != 0 ? getFqn((char *) a3) :
+					 (a2 != 0 ? getFqn((char *) a2) : 0);
 #else
 int	main(int argc, char *argv[])
 {
-	char		*endpointSpec = argc > 1 ? argv[1] : NULL;
-	uvast		remoteEngineId = argc > 3 ? getFqn(argv[3]) :
-					(argc > 2 ? getFqn(argv[2]) : 0);
+	char *endpointSpec = argc > 1 ? argv[1] : NULL;
+	uvast remoteEngineId = argc > 3 ? getFqn(argv[3]) :
+					  (argc > 2 ? getFqn(argv[2]) : 0);
 #endif
-	Sdr			sdr;
-	LtpVspan		*vspan;
-	PsmAddress		vspanElt;
-	char			peerAddrStr[INET6_ADDRSTRLEN + 10];
-	char			localAddrStr[INET6_ADDRSTRLEN + 10];
-	static udp_ReceiverThreadParms rtp;  /* Don't create on main's stack */
-	pthread_t		receiverThread;
-	int			segmentLength;
-	char			*segment;
-	int			bytesSent;
-	int			fd;
-	char			quit = '\0';
+	Sdr			       sdr;
+	LtpVspan		      *vspan;
+	PsmAddress		       vspanElt;
+	char			       peerAddrStr[INET6_ADDRSTRLEN + 10];
+	char			       localAddrStr[INET6_ADDRSTRLEN + 10];
+	static udp_ReceiverThreadParms rtp; /* Don't create on main's stack */
+	pthread_t		       receiverThread;
+	int			       segmentLength;
+	char			      *segment;
+	int			       bytesSent;
+	int			       fd;
+	char			       quit = '\0';
 #ifdef UDP_MULTISEND
-	Object			spanObj;
-	LtpSpan			spanBuf;
-	unsigned int		batchLimit;
-	char			*buffers;
-	char			*buffer;
-	struct iovec		*iovecs;
-	struct iovec		*iovec;
-	struct mmsghdr		*msgs;
-	struct mmsghdr		*msg;
-	unsigned int		batchLength;
+	Object		spanObj;
+	LtpSpan		spanBuf;
+	unsigned int	batchLimit;
+	char	       *buffers;
+	char	       *buffer;
+	struct iovec   *iovecs;
+	struct iovec   *iovec;
+	struct mmsghdr *msgs;
+	struct mmsghdr *msg;
+	unsigned int	batchLength;
 #endif
-	TokenBucketState	tb;
+	TokenBucketState tb;
 
 	/* Initialize the mutex.  */
 
