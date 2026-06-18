@@ -5,6 +5,10 @@ permissions:
   statuses: write
   pull-requests: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
     # Adding labeled/unlabeled ensures the workflow re-evaluates if you add the label later

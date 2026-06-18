@@ -5,10 +5,6 @@ permissions:
   statuses: write
   pull-requests: read
 
-concurrency:
-  group: arc-ion-tests
-  cancel-in-progress: false
-
 on:
   workflow_call:
     inputs:
