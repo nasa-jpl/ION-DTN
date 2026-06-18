@@ -62,7 +62,7 @@
         label: "Cloning zone {{ item.job_index }}"
       register: zone_clone_jobs
       changed_when: true
-      async: "{{ zone_clone_timeout }}"
+      async: "{{ zone_boot_timeout }}"
       poll: 0
 
     - name: Wait for all clones to complete
