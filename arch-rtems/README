@@ -1,63 +1,96 @@
-## Notes for RTEMS 6.1 ARM64 port of ION 4.1.5 with BPv7
+## ION on RTEMS 6.1 ARM64
 
-Last Updated: 11/7/2025, JPL ION Development Team
+Last Updated: 2026-06-18
 
-This port is a **minimal BP/LTP implementation** targeting RTEMS 6.1 on 64-bit ARM (AArch64) platforms with libbsd networking support. It represents a significant modernization of the previous RTEMS 5.1 port with the following key changes:
+This is a **minimal BP/LTP implementation** of ION 4.1.4+
+targeting RTEMS 6.1 on 64-bit ARM (AArch64) platforms
+with libbsd networking support.
 
-> **Important:** This port is provided as a **template/example** for users to adapt to their specific RTEMS BSP and target hardware. The build succeeds with the `a53_lp64_qemu` BSP and has been verified to execute successfully in QEMU emulation. Users should customize `ionrtems.c`, memory configurations, and build settings for their target platform.
+> **Important:** This port is provided as a **template/example**
+> for users to adapt to their specific RTEMS BSP and target hardware.
+> The build succeeds with the `a53_lp64_qemu` BSP
+> and has been verified to execute successfully in QEMU emulation.
+> Users should customize `ionrtems.c`, memory configurations,
+> and build settings for their target platform.
 
-### Major Changes from RTEMS 5.1 Port
+### Current Status
 
-* **RTEMS 6.1**: Upgraded from RTEMS 5.1 with API compatibility updates
-* **64-bit ARM (AArch64)**: Migrated from 32-bit SPARC (erc32) to 64-bit ARM (a53_lp64_qemu)
-* **libbsd Networking**: Built against BSP with RTEMS libbsd for full TCP/IP stack support
-* **ION Admin Public API**: Uses modern programmatic configuration (no config files required)
-* **SPACE_ORDER=3**: Updated for 64-bit pointer addressing
-* **Conditional Compilation**: Modular build system with optional DGR and BSSP support
+**FULLY OPERATIONAL - End-to-End Bundle Transmission Verified**
+
+- ✅ Successfully builds with RTEMS 6.1 + libbsd
+- ✅ Minimal configuration (BP + LTP only) compiles cleanly
+- ✅ Successfully executes in QEMU (ARM Virtual Platform with GICv3)
+- ✅ RTEMS BSD networking stack initialized and functional
+- ✅ UDP services running (udplso/udplsi bound to 127.0.0.1:1113)
+- ✅ All 15 ION daemons running including critical ipnfw forwarder
+- ✅ **Bundle transmission COMPLETE** -
+     Full end-to-end delivery verified over UDP loopback
+- ✅ **LTP segments transmitted and received** - 90 bytes transferred successfully
+- ✅ **Payload delivery verified** -
+     "Hello, world." received at destination endpoint
+
+The port has been successfully tested and verified in QEMU emulation
+with RTEMS libbsd networking.
+All critical issues resolved including system clock initialization,
+daemon spawn limits (MAX_SPAWNS increased to 32),
+and bundle forwarding.
+
+### Key Changes from Previous RTEMS Ports
+
+* **RTEMS 6.1**: Modern RTEMS release with updated APIs
+* **64-bit ARM (AArch64)**: Targeting `a53_lp64_qemu` BSP
+* **libbsd Networking**: Full TCP/IP stack support via RTEMS libbsd
+* **ION Admin Public API**: Programmatic configuration (no config files required)
+* **SPACE_ORDER=3**: 64-bit pointer addressing
+* **Conditional Compilation**:
+  Modular build system with optional DGR and BSSP support
 * **Minimal Feature Set**: BP + LTP core (optional AMS, BSS, DGR, BSSP, CFDP)
-* **Memory Configuration**: Increased heap and workspace sizes for 64-bit
+* **Increased Memory**: Heap and workspace sizes optimized for 64-bit
 
 ### Module Configuration
 
-The build system supports conditional inclusion of modules via flags in `wscript`:
+The build system supports conditional inclusion of modules
+via flags in `wscript`:
 
 **Currently Disabled (Minimal Configuration):**
-* **DGR** (Datagram Retransmission) - Set `ENABLE_DGR = 0` (convergence layer excluded)
-* **BSSP** (Bundle Streaming Service Protocol) - Set `ENABLE_BSSP = 0` (convergence layer excluded)
-* **CFDP** (CCSDS File Delivery Protocol) - Set `ION_OPEN_SOURCE = 0` (excluded via `NASA_PROTECTED_FLIGHT_CODE`)
+* **DGR** (Datagram Retransmission) - Set `ENABLE_DGR = 0`
+* **BSSP** (Bundle Streaming Service Protocol) - Set `ENABLE_BSSP = 0`
 
 **Always Excluded:**
-* **AMS/RAMS** (Asynchronous Message Service) - Not built
-* **BSS** (Bundle Streaming Service) - Not built
-* **NM** (Network Management) - Not built
+* **AMS/RAMS** (Asynchronous Message Service)
+* **BSS** (Bundle Streaming Service)
+* **NM** (Network Management)
 
 **Included in Minimal Build:**
 * **ICI** (Interplanetary Communication Infrastructure) - Core library
 * **LTP** (Licklider Transmission Protocol) - Transport protocol
 * **BP** (Bundle Protocol v7) - Bundle layer with IPN routing
+* **CFDP** (CCSDS File Delivery Protocol)
 
 To enable optional modules, edit `arch-rtems/wscript`:
 ```python
 ENABLE_DGR = 1    # Enable DGR convergence layer
 ENABLE_BSSP = 1   # Enable BSSP convergence layer
-ION_OPEN_SOURCE = 1  # Enable CFDP
 ```
 
 ### Transport Layer
 
-* **LTP over UDP Sockets**: Uses `udplso`/`udplsi` via RTEMS libbsd (127.0.0.1:1113 loopback)
+* **LTP over UDP Sockets**:
+  Uses `udplso`/`udplsi` via RTEMS libbsd (127.0.0.1:1113 loopback)
 * **RTEMS libbsd Networking**: Full BSD socket API with initialized TCP/IP stack
-* **Network Initialization**: Automatic BSD networking stack and loopback interface (lo0) setup
+* **Network Initialization**:
+  Automatic BSD networking stack and loopback interface (lo0) setup
 * **Conditional Convergence Layers**: DGR and BSSP can be enabled as needed
-* **Current status**: FULLY OPERATIONAL - Complete end-to-end bundle transmission verified over UDP loopback
+* **Current status**:
+  FULLY OPERATIONAL - Complete end-to-end bundle transmission verified
 
 ### Prerequisites
 
 **RTEMS Environment:**
 - RTEMS Version: 6.1 (or later 6.x)
 - Target Architecture: `aarch64-rtems6`
-- BSP: `aarch64/a53_lp64_qemu`
-- Required BSP Options: `--enable-networking`, `--enable-libbsd`
+- BSP: `aarch64/a53_lp64_qemu` (or adapt to your BSP)
+- Required BSP Options: POSIX API (default), `--enable-libbsd`
 - Toolchain Installation: `/opt/rtems/6` (recommended) or custom path
 
 **Building the RTEMS BSP:**
@@ -112,7 +145,8 @@ export RTEMS_PREFIX=/opt/rtems/6
 - rtems-libbsd (for networking support)
 - QEMU AArch64 emulator (qemu-system-aarch64) for testing
 
-Refer to [RTEMS 6 documentation](https://docs.rtems.org/branches/master/) for complete installation instructions.
+Refer to [RTEMS 6 documentation](https://docs.rtems.org/branches/master/)
+for complete installation instructions.
 
 ### Building the Port
 
@@ -135,7 +169,9 @@ Refer to [RTEMS 6 documentation](https://docs.rtems.org/branches/master/) for co
 * `libbp.a`: 2.0 MB (BP library)
 * Build time: ~1.5 seconds (116 compilation units)
 
-**Note:** With `ENABLE_DGR=0` and `ENABLE_BSSP=0`, the DGR and BSSP libraries are not built, resulting in a smaller binary size.
+**Note:** With `ENABLE_DGR=0` and `ENABLE_BSSP=0`,
+the DGR and BSSP libraries are not built,
+resulting in a smaller binary size.
 
 **Verifying rtems-libbsd Installation:**
 
@@ -159,7 +195,9 @@ The ION build system automatically links against rtems-libbsd. The `wscript` inc
 lib=['m', 'rtemscpu', 'rtemsbsp']  # Math library + RTEMS core libraries
 ```
 
-For applications using networking features (UDP/TCP convergence layers), ensure libbsd is available. The build system uses the BSP's installed libraries which include libbsd.
+For applications using networking features (UDP/TCP convergence layers),
+ensure libbsd is available.
+The build system uses the BSP's installed libraries which include libbsd.
 
 ### Configuration Details
 
@@ -174,7 +212,8 @@ For applications using networking features (UDP/TCP convergence layers), ensure 
 * Node Number: 19
 * Loopback: 127.0.0.1:1113 (UDP via RTEMS libbsd)
 * LTP span: node 19 to node 19 via UDP sockets (`udplso`/`udplsi`)
-* IPN scheme with endpoints: ipn:19.0, ipn:19.1, ipn:19.2, ipn:19.64, ipn:19.65, ipn:19.126, ipn:19.127
+* IPN scheme with endpoints: ipn:19.0, ipn:19.1, ipn:19.2, ipn:19.64, ipn:19.65,
+  ipn:19.126, ipn:19.127
 
 **RTEMS Resource Limits:**
 * Unlimited objects enabled (`CONFIGURE_UNLIMITED_OBJECTS`)
@@ -191,8 +230,9 @@ The port includes a built-in loopback test in `ionrtems.c` that:
 3. Runs `bpsource` and `bpsink` for a simple bundle transfer
 4. Cleanly shuts down all services
 
-**Runtime Testing Status:**
-The port has been successfully tested in QEMU with the following configuration:
+**Runtime Testing:**
+
+Run in QEMU with the following configuration:
 
 ```bash
 qemu-system-aarch64 \
@@ -205,36 +245,41 @@ qemu-system-aarch64 \
     -kernel build/aarch64-rtems6-a53_lp64_qemu/ion.exe
 ```
 
-The application successfully:
-- Initializes RTEMS BSD networking stack (libbsd)
-- Configures loopback interface (lo0) with link state UP
-- Initializes ION with the public API
-- Starts all BP/LTP services (rfxclock, ltpclock, ltpdeliv, ltpmeter, udplso, udplsi, bpclock, bptransit)
-- UDP services bind to 127.0.0.1:1113 successfully
-- Executes the loopback test (bundle sourcing verified)
-- Begins clean shutdown
-
-**Current Status:** Network stack fully initialized, UDP services running. Bundle transmission through LTP/UDP layer in progress (debugging ongoing).
-
 **Key QEMU Parameters:**
-- `-machine virt,gic-version=3` - ARM Virtual Platform with GICv3 interrupt controller (required)
+- `-machine virt,gic-version=3` -
+  ARM Virtual Platform with GICv3 interrupt controller (required)
 - `-cpu cortex-a53` - Emulate ARM Cortex-A53 processor
 - `-m 4096` - 4GB RAM allocation
 - `-serial mon:stdio` - Serial console output
 
+The application successfully:
+- Initializes RTEMS BSD networking stack (libbsd)
+- Configures loopback interface (lo0) with link state UP
+- Initializes ION with the public API
+- Starts all BP/LTP services
+  (rfxclock, ltpclock, ltpdeliv, ltpmeter, udplso, udplsi, bpclock, bptransit)
+- UDP services bind to 127.0.0.1:1113 successfully
+- Executes the loopback test with verified bundle delivery
+- Performs clean shutdown
+
 **Reference Output:**
 
-A complete execution output with detailed header information is provided in `ion-qemu-output.txt`. This file includes:
+A complete execution output with detailed header information
+is provided in `ion-qemu-output.txt`.
+This file includes:
 - Full QEMU command for standalone and Docker execution
 - Explanation of all QEMU parameters
 - Complete console output from a successful run
 - List of all services that should start
 - Known warnings and their meanings
 
-Users can compare their execution output against this reference to verify correct operation.
+Users can compare their execution output against this reference
+to verify correct operation.
 
-**For Users Adapting This Port:**
-When porting to your specific BSP and hardware, the expected initialization sequence is:
+**Expected Initialization Sequence:**
+
+When porting to your specific BSP and hardware,
+the expected initialization sequence is:
 ```
 === ION RTEMS 6.1 ARM64 Port - Minimal BP/LTP ===
 Starting ION with public API (no config files)...
@@ -252,24 +297,22 @@ Stopping ION...
 Verify your port by checking:
 - ION initialization completes without errors
 - LTP and BP services start successfully
-- Bundle transfer via POSIX message queues works
+- Bundle transfer works correctly
 - Clean shutdown without memory leaks
 
 ### Architecture Notes
 
 **Public API vs Config Files:**
 
-The RTEMS 5.1 port used configuration files (`.ionrc`, `.ltprc`, `.bprc`) which required:
-* File I/O operations
-* Text parsing
-* POSIX shell execution (`pseudoshell`)
-
-The RTEMS 6.1 port uses the ION Admin Public API which provides:
+This port uses the ION Admin Public API which provides:
 * Direct C function calls (`ionInitialize`, `add_span`, `add_endpoint`, etc.)
 * No filesystem dependencies
 * Better error handling
 * Easier integration with RTEMS applications
 * More suitable for embedded systems
+
+This eliminates the need for configuration files (`.ionrc`, `.ltprc`, `.bprc`)
+which require file I/O, text parsing, and POSIX shell execution.
 
 **Build System:**
 
@@ -279,9 +322,11 @@ Uses WAF (Waf build system) with rtems_waf integration:
 * Optional libraries: `libdgr.a`, `libbssp.a`, `libcfdp.a` (when enabled)
 * Links into single RTEMS executable: `ion.exe`
 * Symbol table (`mysymtab.c`) for dynamic task spawning with conditional exports
-* Conditional compilation via preprocessor defines (`ENABLE_DGR`, `ENABLE_BSSP`, `NASA_PROTECTED_FLIGHT_CODE`)
+* Conditional compilation via preprocessor defines
+  (`ENABLE_DGR`, `ENABLE_BSSP`, `NASA_PROTECTED_FLIGHT_CODE`)
 
 **Conditional Compilation:**
+
 The build system uses preprocessor guards to exclude unused modules:
 * Source files conditionally added to build based on flags
 * Symbol table entries wrapped with `#ifdef ENABLE_BSSP` guards
@@ -290,40 +335,73 @@ The build system uses preprocessor guards to exclude unused modules:
 
 ### Known Limitations
 
-* **Template port** - Provided as reference for adaptation to user's specific BSP and hardware
-* Loopback only (127.0.0.1 via libbsd, no real network interfaces configured yet)
+* **Template port** -
+  Provided as reference for adaptation to user's specific BSP and hardware
+* Loopback only (127.0.0.1 via libbsd, no real network interfaces configured)
 * No CFDP file transfer capability (excluded by default)
 * No AMS multicast support (not built)
-* DGR and BSSP convergence layers excluded by default (can be enabled via wscript flags)
-* CFDP excluded by default (can be enabled via ION_OPEN_SOURCE flag)
+* DGR and BSSP convergence layers excluded by default
+  (can be enabled via wscript flags)
 
-### Current Status (November 2025)
+### Adapting to Your Platform
 
-**FULLY OPERATIONAL - End-to-End Bundle Transmission Verified**
+When porting to your specific BSP and hardware:
 
-**Successfully builds with RTEMS 6.1 + libbsd**
-**Minimal configuration (BP + LTP only) compiles cleanly**
-**Conditional compilation system implemented**
-**Binary size optimized by excluding unused modules**
-**Successfully executes in QEMU** - Verified with ARM Virtual Platform (virt machine with GICv3)
-**RTEMS BSD networking stack initialized** - libbsd fully functional
-**UDP services running** - udplso/udplsi bound to 127.0.0.1:1113
-**Loopback interface operational** - lo0 link state UP
-**All 15 ION daemons running** - Including critical ipnfw bundle forwarder
-**Bundle transmission COMPLETE** - Full end-to-end delivery verified over UDP loopback
-**LTP segments transmitted and received** - 90 bytes transferred successfully
-**Payload delivery verified** - "Hello, world." received at destination endpoint
+1. **Adapt Build Configuration**: Update `wscript` with your RTEMS BSP settings
+2. **Modify `ionrtems.c`**: Customize for your hardware platform requirements
+3. **Adjust Memory**: Configure memory allocations and resource limits as needed
+4. **Initialize System Clock**: Ensure proper clock initialization for your platform
+5. **Set MAX_SPAWNS**: Ensure it's set to 32 or higher for full daemon support
+6. **Network Configuration**: Configure actual network interfaces beyond loopback
+7. **Test on Target**:
+   Verify operation on your target hardware or properly configured emulator
 
-**Execution Status:**
-The port has been successfully tested and verified in QEMU emulation with RTEMS libbsd networking. All critical issues resolved including system clock initialization, daemon spawn limits (MAX_SPAWNS increased to 32), and bundle forwarding. The application demonstrates complete BPv7 functionality with LTP over UDP sockets. Bundle sourcing, transmission, reception, and delivery all verified with statistics showing successful end-to-end data flow.
+### Key Implementation Details
 
-**This port serves as a template/example** for users to adapt to their own BSP and target hardware. The port has been verified to run successfully in QEMU emulation with full networking functionality. Users should:
-1. Adapt the build configuration to their specific RTEMS BSP
-2. Modify `ionrtems.c` for their hardware platform requirements
-3. Adjust memory configurations and resource limits as needed
-4. Initialize system clock appropriately for their platform
-5. Ensure MAX_SPAWNS is set to 32 or higher for full daemon support
-6. Test on their target hardware or properly configured emulator
+**Complete UDP Networking Integration:**
+
+The port successfully integrates RTEMS libbsd networking:
+
+**Network Stack Initialization:**
+- Added `USING_RTEMS_LIBBSD` build flag
+  to conditionally exclude socket stubs
+- Implemented network initialization with `rtems_bsd_initialize()`
+  and `rtems_bsd_ifconfig_lo0()`
+- Configured RTEMS with unlimited objects and unified work areas
+  for libbsd compatibility
+- Increased ION memory allocations to 500KB for UDP buffer support
+  (65KB per buffer)
+- Modified library link order to properly resolve dependencies
+  (rtemscpu, rtemsbsp, bsd, m)
+
+**System Clock Initialization:**
+- Implemented `initClock()` using `rtems_clock_set()` to initialize to current date
+- Prevents corrupted bundle timestamps from default time (January 1, 1988)
+- Enables proper bundle forwarding logic with valid timestamps
+
+**Daemon Spawn Limit Resolution:**
+- Increased MAX_SPAWNS to 32 (from default 8)
+  to support ION's 15+ concurrent daemons
+- Added missing daemon symbols to `mysymtab.c` (cpsd, bplist, bptrace)
+- Enhanced error messages to display failing daemon names for debugging
+
+**End-to-End Verification:**
+- Bundle sourcing: SUCCESSFUL (1 bundle, 13 bytes)
+- Bundle forwarding: SUCCESSFUL (ipnfw routing to LTP outduct)
+- LTP transmission: SUCCESSFUL (1 segment, 90 bytes transmitted)
+- LTP reception: SUCCESSFUL (1 segment, 90 bytes received)
+- Bundle delivery: SUCCESSFUL ("Hello, world." payload delivered to endpoint)
+
+**Key Files Modified:**
+- `wscript`: Added `USING_RTEMS_LIBBSD` and `MAX_SPAWNS=32` defines
+- `ionrtems.c`: Added `initClock()` and `initNetwork()` functions
+- `mysymtab.c`: Added cpsd, bplist, bptrace to symbol table
+- `rtems_stubs.c`: Conditional exclusion of socket stubs with libbsd
+- `../ici/library/platform_sm.c`: Enhanced error messages with task names
+
+**Documentation:**
+- `UDP-NETWORK-STATUS.md`: Complete integration status and technical details
+- `ion-qemu-output-udp-success.txt`: Successful test output
 
 ### Future Enhancements
 
@@ -334,182 +412,3 @@ The port has been successfully tested and verified in QEMU emulation with RTEMS 
 * Enable DGR/BSSP for additional protocol support as needed
 * Performance benchmarking and optimization
 * Test with hardware-accelerated cryptography
-
-### Recent Implementation Work (November 2025)
-
-**Complete UDP Networking Integration - SUCCESSFUL:**
-
-**Phase 1: RTEMS libbsd Network Stack**
-- Added `USING_RTEMS_LIBBSD` build flag to conditionally exclude socket stubs
-- Implemented network initialization with `rtems_bsd_initialize()` and `rtems_bsd_ifconfig_lo0()`
-- Configured RTEMS with unlimited objects and unified work areas for libbsd compatibility
-- Increased ION memory allocations to 500KB for UDP buffer support (65KB per buffer)
-- Modified library link order to properly resolve dependencies (rtemscpu, rtemsbsp, bsd, m)
-- Successfully initialized BSD networking stack and loopback interface in QEMU
-
-**Phase 2: System Clock Initialization**
-- Problem: RTEMS boots with default time January 1, 1988, causing corrupted bundle timestamps
-- Solution: Implemented `initClock()` using `rtems_clock_set()` to initialize to current date
-- Result: Bundle timestamps now valid, enabling proper bundle forwarding logic
-
-**Phase 3: Daemon Spawn Limit Resolution**
-- Problem: Default MAX_SPAWNS=8 insufficient for ION's 15+ concurrent daemons
-- Failed daemons: bptransit, ipnfw (critical), ipnadminep, bpclm, ltpcli, ltpclo, lgagent
-- Solution: Increased MAX_SPAWNS to 32 via compile-time define in wscript
-- Added cpsd to symbol table (mysymtab.c) to eliminate spawn error
-- Enhanced error messages to display failing daemon names for debugging
-- Result: All 15 ION daemons now start successfully, including critical ipnfw forwarder
-
-**Phase 4: End-to-End Verification**
-- Bundle sourcing: SUCCESSFUL (1 bundle, 13 bytes)
-- Bundle forwarding: SUCCESSFUL (ipnfw routing to LTP outduct)
-- LTP transmission: SUCCESSFUL (1 segment, 90 bytes transmitted)
-- LTP reception: SUCCESSFUL (1 segment, 90 bytes received)
-- Bundle delivery: SUCCESSFUL ("Hello, world." payload delivered to endpoint)
-- Statistics: All counters show expected values (src=1, fwd=1, xmt=1, rcv=1)
-
-**Key Files Modified:**
-- [wscript](wscript): Added USING_RTEMS_LIBBSD and MAX_SPAWNS=32 defines
-- [ionrtems.c](ionrtems.c): Added initClock() and initNetwork() functions
-- [mysymtab.c](mysymtab.c): Added cpsd, bplist, bptrace to symbol table
-- [rtems_stubs.c](rtems_stubs.c): Conditional exclusion of socket stubs with libbsd
-- [platform_sm.c](../ici/library/platform_sm.c): Enhanced error messages with task names
-
-**Documentation:**
-- [UDP-NETWORK-STATUS.md](UDP-NETWORK-STATUS.md): Complete integration status and technical details
-- [ion-qemu-output-udp-success.txt](ion-qemu-output-udp-success.txt): Successful test output
-
-**Result: ION RTEMS 6.1 ARM64 Port FULLY OPERATIONAL with UDP Networking**
-
----
-
-## Archive: Notes for RTEMS 5.1 port of ION 4.1.2
-
-This section preserved for historical reference. See above for current RTEMS 6.1 ARM64 port.
-
-This port followed the basic features scope and approach of previous ION 3.6 port with the following changes:
-
-* Updates to RTEMS 5.1 release
-* Updates port from BPv6 to BPv7
-* Updates RTEMS build system from `make` to `waf`, builds individual libraries
-* Target: sparc/erc32 (32-bit system)
-* Does not include CFDP and NM modules
-
----
-
-
-
-
-
-
-
-
-
-## Archive: Notes for RTEMS 4.10.2 port of ION 3.6
-
-The RTEMS port of ION in this directory is just a demo template from which
-real RTEMS ION-based systems can be cloned and adapted.  To develop an RTEMS
-ION-based system modeled on this template you will want to modify the RTEMS
-linkcmds file to reflect the actual memory resources provided, modify
-ionrtems.c considerably (or develop an entirely new Init module that does
-the same general things; in particular, upgrade the RTEMS configuration
-definitions as needed), develop new software that uses ION for communications,
-modify the Makefile accordingly (possibly adding to the list of MANAGERS), etc.
-
-A step-by-step procedure for demo'ing ION on RTEMS follows.
-
-First construct the RTEMS development environment:
-
-1.	Use the Yum Instructions at
-
-	http://www.rtems.com/wiki/index.php/APT/Yum_Repository
-
-to download and install the pre-built RTEMS development tools.  Install the
-appropriate rpm, then use yum install to install the tools.
-
-This ION RTEMS port was done on a 32-bit Fedora 20 host system using rtems
-branch 4.10.2, selecting the SPARC "sis" simulator as the target system; this
-is similar to the approach taken in the Quick Start example at
-
-	http://www.rtems.com/wiki/index.php/Quick_Start
-
-For the balance of this README, SPARC "sis" for RTEMS 4.10.2 will be assumed;
-substitute other version, system, or bsp as appropriate.
-
-2.	Make development directories:
-
-	$(HOME)/rtems
-	$(HOME)/rtems/archive
-	$(HOME)/rtems/tools
-	$(HOME)/rtems/tools/build
-
-3.	Use the links in the Getting Started manual from the appropriate online
-documentation library (http://www.rtems.com/onlinedocs/releases) to download
-the RTEMS source code and the examples into $(HOME)/rtems/archive.
-
-4.	Continue following the instructions in the on-line manual for
-installing the operating system.  This entails adding
-
-	export PATH=/opt/rtems-4.10/bin:${PATH}
-
-to ~/.bash_profile before doing anything.
-
-Test the tools as explained in the online manual.
-
-Then, in rtems/tools/build, enter the following commands to build RTEMS:
-
-	../rtems-4.10.2/configure --target=sparc-rtems4.10 --enable-rtemsbsp=sis --prefix=/opt/rtems-4.10/
-	make all install
-
-5.	Test the RTEMS development environment.  First add
-
-	export RTEMS_MAKEFILE_PATH=/opt/rtems-4.10/sparc-rtems4.10/sis
-
-to ~/.bash_profile (and be sure (!) to source ~/.bash_profile in any window in
-which you plan to build any RTEMS application).
-
-Then unpack the sample applications and build hello_world_c described in
-the online manual.  The compiled application can be run from the Linux
-command line by entering
-
-	sparc-rtems4.10-run `find . -name hello.exe`
-
-Alternatively, to run and debug the application within gdb, enter
-
-	sparc-rtems4.10-gdb `find . -name hello.exe`
-
-and enter the following commands at the gdb prompt:
-
-	tar sim
-	load
-	r
-
-6.	Now build and run the ION RTEMS demo application.  First cd into
-ion/arch-rtems and enter the following commands to populate the directory
-with symbolic links to the ION C source files and build the ion.exe executable:
-
-	./srclinks
-	make
-
-Then use the following command to run the demo.
-
-	sparc-rtems4.10-run `find . -name ion.exe`
-
-The ION daemons will start running and a test execution of bpsource will
-send a loopback bundle via LTP to bpsink, which will print the text in the
-bundle payload.
-
-The ION RTEMS Makefile is configured to optimize the resulting executable.
-To see the actual size of the executable (with the debugging information
-inserted by the compiler removed):
-
-$ cd o-optimize
-$ cp ion.exe stripped.ion.exe
-$ sparc-rtems4.10-strip stripped.ion.exe
-$ ls -l stripped.ion.exe
-$ sparc-rtems4.10-size stripped.ion.exe
-
-Optimization can make source-level debugging more difficult, because key
-variables may be held in registers rather than in memory.  To disable
-optimization, remove the "-O2" parameter from the CFLAGS variable in the
-Makefile and rebuild.
