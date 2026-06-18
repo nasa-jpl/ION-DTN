@@ -16,18 +16,9 @@
 
 #include "udpbsa.h"
 
-#if defined(__linux__) || defined(RTEMS)
-
-#define IPHDR_SIZE	(sizeof(struct iphdr) + sizeof(struct udphdr))
-
-#else
-
-#include "netinet/ip_var.h"
-#include "netinet/udp_var.h"
-
-#define IPHDR_SIZE	(sizeof(struct udpiphdr))
-
-#endif
+#define IPV4_HDR_SIZE	  20
+#define UDP_HDR_SIZE	  8
+#define UDP_IPV4_HDR_SIZE (IPV4_HDR_SIZE + UDP_HDR_SIZE)
 
 static sm_SemId		udpbsoSemaphore(sm_SemId *semid)
 {
@@ -435,7 +426,8 @@ compatibility, but it is ignored.");
 			timeCostPerByte = 0.0;
 		}
 
-		totalCostSecs = timeCostPerByte * (IPHDR_SIZE + blockLength);
+		totalCostSecs = timeCostPerByte *
+				(UDP_IPV4_HDR_SIZE + blockLength);
 		totalCost = totalCostSecs * 1000000.0;	/*	usec.	*/
 		if (totalCost > currentPaid)
 		{

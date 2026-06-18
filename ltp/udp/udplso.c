@@ -18,19 +18,11 @@
 
 #include "ion_atomic.h"
 
-#if defined(__linux__)
-
-#define IPHDR_SIZE	(sizeof(struct iphdr) + sizeof(struct udphdr))
-
-#else
-
-#include "netinet/ip_var.h"
-#include "netinet/udp_var.h"
-
-#define IPHDR_SIZE	(sizeof(struct udpiphdr))
-
-#endif 		/* end of if defined(__linux__) */
-
+#define IPV4_HDR_SIZE	  20
+#define IPV6_HDR_SIZE	  40
+#define UDP_HDR_SIZE	  8
+#define UDP_IPV4_HDR_SIZE (IPV4_HDR_SIZE + UDP_HDR_SIZE)
+#define UDP_IPV6_HDR_SIZE (IPV6_HDR_SIZE + UDP_HDR_SIZE)
 
 /* Macro definitions for DNS retry and re-resolution */
 #ifndef UDPLSO_DNS_RETRY_COUNT
@@ -160,8 +152,8 @@ static void	applyTokenBucket(TokenBucketState *tb, int bytesSent)
 }
 
 #ifdef UDP_MULTISEND
-static int	sendBatch(int linkSocket, struct mmsghdr *msgs,
-			unsigned int batchLength)
+static int sendBatch(int linkSocket, struct mmsghdr *msgs,
+		unsigned int batchLength, int hdrSize)
 {
 	int		totalBytesSent = 0;
 	int		bytesSent;
@@ -238,7 +230,7 @@ static int	sendBatch(int linkSocket, struct mmsghdr *msgs,
 		bytesSent = msgs[i].msg_len;
 		if (bytesSent > 0)
 		{
-			totalBytesSent += (IPHDR_SIZE + bytesSent);
+			totalBytesSent += (hdrSize + bytesSent);
 		}
 	}
 
@@ -396,6 +388,7 @@ int	main(int argc, char *argv[])
 	char			      *segment;
 	int			       bytesSent;
 	int			       fd;
+	int			       hdrSize = UDP_IPV4_HDR_SIZE;
 	char			       quit = '\0';
 #ifdef UDP_MULTISEND
 	Object		spanObj;
@@ -497,6 +490,7 @@ int	main(int argc, char *argv[])
 	}
 	else if (rtp.peer_addr.family == AF_INET6)
 	{
+		hdrSize = UDP_IPV6_HDR_SIZE;
 		struct sockaddr_in6 *sin6 = (struct sockaddr_in6*)&rtp.peer_addr.addr;
 		if (sin6->sin6_port == 0)
 		{
@@ -730,7 +724,8 @@ int	main(int argc, char *argv[])
 				if (batchLength > 0)
 				{
 					bytesSent = sendBatch(rtp.linkSocket,
-							msgs, batchLength);
+							msgs, batchLength,
+							hdrSize);
 					if (bytesSent < 0)
 					{
 						putErrmsg("Failed sending \
@@ -787,8 +782,8 @@ segment batch.", NULL);
 		buffer += spanBuf.maxSegmentSize;
 		if (batchLength >= batchLimit)
 		{
-			bytesSent = sendBatch(rtp.linkSocket, msgs,
-					batchLength);
+			bytesSent = sendBatch(rtp.linkSocket, msgs, batchLength,
+					hdrSize);
 			if (bytesSent < 0)
 			{
 				putErrmsg("Failed sending segment batch.",
@@ -919,7 +914,7 @@ segment batch.", NULL);
 			continue;
 		}
 
-		bytesSent += IPHDR_SIZE;
+		bytesSent += hdrSize;
 		applyTokenBucket(&tb, bytesSent);
 
 		/*	Let other tasks run.				*/
