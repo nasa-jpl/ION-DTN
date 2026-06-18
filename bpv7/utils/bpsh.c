@@ -16,6 +16,7 @@
 #include <bp.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <poll.h>
 #include <termios.h>
 #include "bpsh_proto.h"
 
@@ -868,7 +869,34 @@ static void *stdinForwarder(void *arg)
 
 	while (running)
 	{
-		ssize_t n = read(STDIN_FILENO, buf, sizeof(buf));
+		struct pollfd pfd;
+		ssize_t       n;
+		int           pr;
+
+		/*	Poll with a short timeout rather than blocking in
+		 *	read(), so that when the remote command exits the
+		 *	main thread can clear `running` and we notice it and
+		 *	stop, instead of blocking until our stdin is closed.	*/
+		pfd.fd = STDIN_FILENO;
+		pfd.events = POLLIN;
+		pfd.revents = 0;
+		pr = poll(&pfd, 1, 200);
+		if (pr == 0)		/*	Timeout: re-check running.	*/
+		{
+			continue;
+		}
+
+		if (pr < 0)
+		{
+			if (errno == EINTR)
+			{
+				continue;
+			}
+
+			break;
+		}
+
+		n = read(STDIN_FILENO, buf, sizeof(buf));
 
 		if (n < 0)
 		{
@@ -1051,6 +1079,10 @@ int main(int argc, char **argv)
 
 		if (forwarderStarted)
 		{
+			/*	The remote command has exited; stop forwarding
+			 *	stdin so we don't block waiting for our stdin
+			 *	to be closed.				*/
+			running = 0;
 			pthread_join(forwarder, NULL);
 		}
 	}
