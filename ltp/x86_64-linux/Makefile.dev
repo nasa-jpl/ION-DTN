@@ -6,6 +6,7 @@ DAEMON = ../daemon
 UDP = ../udp
 SDA = ../sda
 TEST = ../test
+XLSA = ../xlsa
 ICI_LIB = ../../ici/x86_64-linux/lib
 
 # OPT = -O -D__linux__
@@ -21,11 +22,12 @@ PUBINCLS = \
 LTPINCLS = \
 	$(API)/ltpP.h \
 	$(API)/ltpsec.h \
-	$(UDP)/udplsa.h
+	$(UDP)/udplsa.h \
+	$(XLSA)/xlsa.h
 
-RUNTIMES = ltpadmin ltpsecadmin ltpstats ltpclock ltpdeliv ltpmeter udplsi udplso ltpdriver ltpcounter sdatest
+RUNTIMES = ltpadmin ltpsecadmin ltpstats ltpclock ltpdeliv ltpmeter udplsi udplso ltpdriver ltpcounter sdatest xlsi xlso
 
-ALL = check libltp.so $(RUNTIMES)
+ALL = check libltp.so libxlsa.so $(RUNTIMES)
 
 all:		$(ALL)
 
@@ -109,12 +111,35 @@ udplso:		udplso.o libltp.so libudplsa.o
 		$(CC) -o udplso udplso.o libudplsa.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
 		cp udplso ./bin
 
+xlsi:		xlsi.o libltp.so libxlsa.so
+		$(CC) -o xlsi xlsi.o -L./lib -L$(ROOT)/lib -lxlsa -lltp -lici -lpthread -lm
+		cp xlsi ./bin
+
+xlsi.o:		$(XLSA)/xlsi.c
+		$(CC) -I$(XLSA) -c $(XLSA)/xlsi.c
+
+xlso:		xlso.o libltp.so libxlsa.so
+		$(CC) -o xlso xlso.o -L./lib -L$(ROOT)/lib -lxlsa -lltp -lici -lpthread -lm
+		cp xlso ./bin
+
+xlso.o:		$(XLSA)/xlso.c
+		$(CC) -I$(XLSA) -c $(XLSA)/xlso.c
 
 #	-	-	Libraries	-	-	-	-	-
 
 libltp.so:	libltp.o libltpP.o ltpsec.o ltpei.o auth.o libltpnm.o libsda.o
 		$(LD) -o libltp.so libltp.o libltpP.o ltpsec.o ltpei.o auth.o libltpnm.o libsda.o
 		cp libltp.so ./lib
+
+libxlsa.so:	libxlsa.o xport_shm.o libltp.so
+		$(LD) -o libxlsa.so libxlsa.o xport_shm.o -L./lib -L$(ICI_LIB) -lltp -lici -lpthread -lm
+		cp libxlsa.so ./lib
+
+libxlsa.o:	$(XLSA)/libxlsa.c
+		$(CC) -I$(XLSA) -c $(XLSA)/libxlsa.c
+
+xport_shm.o:	$(XLSA)/xport_shm.c
+		$(CC) -I$(XLSA) -c $(XLSA)/xport_shm.c
 
 #	-	-	Object modules	-	-	-	-	-
 

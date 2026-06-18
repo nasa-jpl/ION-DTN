@@ -51,6 +51,7 @@ IPND = ../ipnd
 SAGA = ../saga
 BPSEC = ../bpsec
 METADATA = ../metadata
+FILE = ../file
 BSL = ../bsl
 UNIBO_CGR = 0
 # UNIBO_CGR = 1
@@ -121,7 +122,7 @@ endif
 
 LBP = -lbp $(LBSL)
 
-RUNTIMES_BASE = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpsendtest bprecvtest bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo sppcli sppclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat imcfw imcadminep bsspcli bsspclo bibeclo bibeadmin bpnmtest ipnd cgrfetch bpcrash bpcrash_hard bpinspect cpsd sendfile recvfile bptracker
+RUNTIMES_BASE = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpsendtest bprecvtest bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo sppcli sppclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat imcfw imcadminep bsspcli bsspclo bibeclo bibeadmin bpnmtest ipnd cgrfetch bpcrash bpcrash_hard bpinspect cpsd sendfile recvfile bptracker bpwatch filecli fileclo
 
 ifeq ($(USING_BSL),1)
 RUNTIMES = $(RUNTIMES_BASE)
@@ -252,6 +253,10 @@ bptracker:	bptracker.o $(BPLIBS)
 		$(CC) -o bptracker bptracker.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bptracker ./bin
 
+bpwatch:	bpwatch.o $(BPLIBS)
+		$(CC) -o bpwatch bpwatch.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp bpwatch ./bin
+
 bpinspect:	bpinspect.o bpinspect_data.o bpinspect_filter.o bpinspect_ops.o $(BPLIBS)
 		$(CC) -o bpinspect bpinspect.o bpinspect_data.o bpinspect_filter.o bpinspect_ops.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpinspect ./bin
@@ -262,8 +267,8 @@ bpcrash_hard:	bpcrash_hard.o $(BPLIBS)
 
 #	-	-	IPN executables	-	-	-	-	-
 
-ipnfw:		ipnfw.o $(BPLIBS) libbp.so libcgr.so
-		$(CC) -o ipnfw ipnfw.o -L./lib -L$(ROOT)/lib -lcgr $(LBP) -lici -lpthread -lm
+ipnfw:		ipnfw.o cbdedup.o $(BPLIBS) libbp.so libcgr.so
+		$(CC) -o ipnfw ipnfw.o cbdedup.o -L./lib -L$(ROOT)/lib -lcgr $(LBP) -lici -lpthread -lm
 		cp ipnfw ./bin
 
 ipnadminep:	ipnadminep.o $(BPLIBS) libbp.so
@@ -309,6 +314,16 @@ tcpcli:		tcpcli.o $(BPLIBS)
 tcpclo:		tcpclo.o $(BPLIBS)
 		$(CC) -o tcpclo tcpclo.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp tcpclo ./bin
+
+#	-	-	File CLA executables	-	-	-	-
+
+filecli:	filecli.o libfilecla.o $(BPLIBS)
+		$(CC) -o filecli filecli.o libfilecla.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp filecli ./bin
+
+fileclo:	fileclo.o libfilecla.o $(BPLIBS)
+		$(CC) -o fileclo fileclo.o libfilecla.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp fileclo ./bin
 
 #	-	-	STCP executables	-	-	-	-
 
@@ -596,6 +611,9 @@ endif
 		$(CC) -c $<
 
 %.o:		$(BIBE)/%.c
+		$(CC) -c $<
+
+%.o:		$(FILE)/%.c
 		$(CC) -c $<
 
 %.o:		$(API)/ext/snw/%.c

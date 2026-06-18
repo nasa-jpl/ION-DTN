@@ -45,7 +45,8 @@ LIBICIOBJS = \
 	sdrlist.o \
 	sdrtable.o \
 	sdrhash.o \
-	sdrcatlg.o
+	sdrcatlg.o \
+	ion_atomic.o
 
 PUBINCLS = \
 	$(INCL)/llcv.h \
