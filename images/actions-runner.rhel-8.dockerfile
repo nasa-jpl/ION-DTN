@@ -15,8 +15,8 @@ ARG DOCKER_GROUP_GID=121
 # Install EPEL and build dependencies
 # Use --enablerepo to access CodeReady Builder packages without permanently modifying config
 RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm \
-    && dnf update -y \
     && dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo \
+    && dnf update -y \
     && dnf install -y --enablerepo=codeready-builder-for-rhel-8-x86_64-rpms \
     git \
     jq \
@@ -182,7 +182,7 @@ RUN pyenv install 3.11.15 && pyenv global 3.11.15 \
 RUN if [ ! -z "${PIP_INDEX}" ]; then \
     /home/runner/.pyenv/versions/3.11.15/bin/python3 -m pip install --no-cache-dir --upgrade pip && \
     /home/runner/.pyenv/versions/3.11.15/bin/python3 -m pip install --no-cache-dir bespokebpv7==0.4.1 -i "${PIP_INDEX}" && \
-    /home/runner/.pyenv/versions/3.11.15/bin/python3 -m pip install ansible; \
+    /home/runner/.pyenv/versions/3.11.15/bin/python3 -m pip install --no-cache-dir ansible; \
     else \
     echo "bespokebpv7 not open-source yet 🙁"; \
     fi
