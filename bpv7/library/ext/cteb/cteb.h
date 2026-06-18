@@ -2,8 +2,8 @@
  *	cteb.h:		definitions supporting implementation of
  *			the Custody Transfer Extension Block (CTEB).
  *
- *	Per CCSDS Orange Book Draft K: Compressed Bundle Status
- *	Reporting and Custody Signaling.
+ *	Per CCSDS 734.6-O-1: Custody Transfer and Compressed Bundle
+ *	Status Reporting (Experimental Specification, Issue 1, June 2026).
  *
  *	Copyright (c) 2026, California Institute of Technology.
  *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship

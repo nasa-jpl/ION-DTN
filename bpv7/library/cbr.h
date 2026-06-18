@@ -2,8 +2,9 @@
  *	cbr.h:		Public API for Compressed Bundle Reporting (CBR)
  *			and Custody Transfer (CT) for BPv7.
  *
- *	Based on CCSDS Orange Book Draft K: Compressed Bundle Status
- *	Reporting and Custody Signaling (August 2025).
+ *	Based on CCSDS 734.6-O-1: Custody Transfer and Compressed
+ *	Bundle Status Reporting (Experimental Specification, Issue 1,
+ *	June 2026).
  *
  *	Copyright (c) 2026, California Institute of Technology.
  *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
@@ -51,16 +52,11 @@ extern "C" {
 /*	*	*	Status Reason Codes (CRS)	*	*	*/
 
 /*
- * Status reason codes for CRS.
+ * Status reason codes for CRS, per CCSDS 734.6-O-1 Section 5.2.3.
  *
- * IMPORTANT COMPLIANCE NOTE: These values follow the NORMATIVE text in
- * Orange Book Section 5.2.3, NOT the CDDL in informative Annex E.
- * There is a conflict in the spec:
- *   - Section 5.2.3 (normative): 4=Custody Acceptance, 5=Custody Rejection
- *   - Annex E CDDL (informative): 4=Reassembly, 5=Custody Accept, 6=Custody Reject
- *
- * This implementation follows the normative text. Interoperability testing
- * with other implementations should verify which interpretation they use.
+ * Issue 1 removed the "reassembly" reason that existed in the earlier
+ * draft and shifted custody acceptance/rejection down to codes 4 and 5;
+ * codes above 6 are reserved for future use.
  */
 #define CBR_STATUS_RECEIVED		0	/* Bundle was received */
 #define CBR_STATUS_FORWARDED		1	/* Bundle was forwarded */

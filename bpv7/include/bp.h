@@ -510,7 +510,7 @@ extern char		*_nullEid(void);
 
 /*	String <-> CBOR-structured EID wrappers; the structured form
  *	is the RFC 9171 / RFC 9758 [uri-code, SSP] used by primary-block
- *	EIDs and (per CCSDS Orange Book Draft K Annex E) by every EID
+ *	EIDs and (per CCSDS 734.6-O-1 Annex E) by every EID
  *	field in CTEB, CREB, and Compressed Custody / Reporting Signal
  *	Bundle Sequences.  serializeEidString returns bytes written or
  *	-1; acquireEidString returns bytes consumed, 0 on malformed

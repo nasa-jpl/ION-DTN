@@ -2,8 +2,9 @@
  *	cbr.c:		Core implementation of Compressed Bundle Reporting
  *			(CBR) and Custody Transfer (CT) for BPv7.
  *
- *	Based on CCSDS Orange Book Draft K: Compressed Bundle Status
- *	Reporting and Custody Signaling (August 2025).
+ *	Based on CCSDS 734.6-O-1: Custody Transfer and Compressed
+ *	Bundle Status Reporting (Experimental Specification, Issue 1,
+ *	June 2026).
  *
  *	Copyright (c) 2026, California Institute of Technology.
  *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
