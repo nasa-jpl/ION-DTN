@@ -3,8 +3,8 @@
  *			functions for the Custody Transfer Extension
  *			Block (CTEB).
  *
- *	Per CCSDS Orange Book Draft K: Compressed Bundle Status
- *	Reporting and Custody Signaling.
+ *	Per CCSDS 734.6-O-1: Custody Transfer and Compressed Bundle
+ *	Status Reporting (Experimental Specification, Issue 1, June 2026).
  *
  *	CTEB block structure (CBOR array, always 3 elements):
  *	  [seq_num, seq_id, custodian_eid]
@@ -208,7 +208,7 @@ int	cteb_serialize(ExtensionBlock *blk, Bundle *bundle)
 	/*	Serialize CTEB to CBOR: [seq_num, seq_id, blk_source]
 	 *	where blk_source is an `eid` -- the same RFC 9171 /
 	 *	RFC 9758 [uri-code, SSP] structure used by primary-block
-	 *	EIDs (Orange Book Draft K, Annex E).			*/
+	 *	EIDs (CCSDS 734.6-O-1, Annex E).			*/
 
 	cursor = dataBuffer;
 

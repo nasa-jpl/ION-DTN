@@ -3,8 +3,8 @@
  *			functions for the Compressed Reporting Extension
  *			Block (CREB).
  *
- *	Per CCSDS Orange Book Draft K: Compressed Bundle Status
- *	Reporting and Custody Signaling.
+ *	Per CCSDS 734.6-O-1: Custody Transfer and Compressed Bundle
+ *	Status Reporting (Experimental Specification, Issue 1, June 2026).
  *
  *	CREB block structure (CBOR array, variable length 1-5):
  *	  [seq_num]                                          - len 1

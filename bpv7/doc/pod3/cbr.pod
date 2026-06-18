@@ -267,8 +267,9 @@ bpadmin(1), cbrcustodytest(1), bptrace(1), bp(3), bprc(5)
 
 =head1 NOTES
 
-This implementation follows the CCSDS Orange Book Draft K specification
-"Compressed Bundle Status Reporting and Custody Signaling" (August 2025).
+This implementation follows CCSDS 734.6-O-1, "Custody Transfer and
+Compressed Bundle Status Reporting" (Experimental Specification, Issue 1,
+June 2026).
 
 The current implementation uses manual (command-based) retransmission only.
 Per the Orange Book, implementations may choose between timer-based,
