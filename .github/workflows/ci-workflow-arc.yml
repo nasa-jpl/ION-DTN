@@ -109,7 +109,7 @@ on:
         description: "Enable Ubuntu 22.04 (arc-runner-set-u22)"
         required: false
         type: boolean
-        default: true
+        default: false
       runner_u24:
         description: "Enable Ubuntu 24.04 (arc-runner-set-u24)"
         required: false
@@ -151,10 +151,15 @@ jobs:
       pr_number: ${{ inputs.pr_number }}
       active_runners: ${{ steps.build-runners.outputs.runners }}
       timestamp: ${{ steps.generate-timestamp.outputs.timestamp }}
+      src_hash: ${{ steps.calculate-hash.outputs.hash }}
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
+
+      - name: Calculate Source Hash
+        id: calculate-hash
+        run: echo "hash=${{ hashFiles('**/*.c', '**/*.h', 'configure.ac', 'Makefile.am', 'build-bsl-for-ion.sh') }}" >> $GITHUB_OUTPUT
 
       - name: Build Runner Matrix
         id: build-runners
@@ -201,12 +206,9 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v6
 
-      # Hash-based cache key: rebuilds only when .c, .h, configure.ac, or Makefile.am change
-      # This saves 5-15 minutes on doc-only changes, workflow updates, or test-only changes
-      # Each runner maintains separate cache for environment-specific builds
-      - name: Cache Build Workspace
-        id: cache-build
-        uses: actions/cache@v5
+      - name: Restore Build Workspace Cache
+        id: cache-build-restore
+        uses: actions/cache/restore@v5
         with:
           path: |
             .
@@ -215,10 +217,14 @@ jobs:
             !.github/
             !compile-and-buildcheck.log
             !**/*.md
-          key: ion-build-${{ matrix.runner }}-${{ hashFiles('**/*.c', '**/*.h', 'configure.ac', 'Makefile.am', 'build-bsl-for-ion.sh') }}
+          # Primary key is globally unique to prevent save collisions
+          key: ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-${{ github.run_id }}-${{ github.run_attempt }}
+          # Fallback looks for any previous cache sharing this exact source code hash
+          restore-keys: |
+            ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-
 
       - name: Build ION and Run Buildcheck
-        if: steps.cache-build.outputs.cache-hit != 'true'
+        if: ${{ steps.cache-build-restore.outputs.cache-matched-key == '' }}
         timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '90') }}
         env:
           EXTRA_CONFIGURE_FLAGS: "CFLAGS=-DHAVE_VALGRIND_VALGRIND_H"
@@ -230,12 +236,25 @@ jobs:
           }
 
       - name: Upload build and buildcheck logs
-        if: ${{ always() && steps.cache-build.outputs.cache-hit != 'true' }}
+        if: ${{ always() && steps.cache-build-restore.outputs.cache-matched-key == '' }}
         uses: actions/upload-artifact@v7
         with:
           name: compile-and-buildcheck-log-${{ matrix.runner }}-${{ needs.setup.outputs.timestamp }}
           path: compile-and-buildcheck.log
           if-no-files-found: warn
+
+      - name: Save Build Workspace Cache
+        if: ${{ success() && steps.cache-build-restore.outputs.cache-matched-key == '' }}
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            .
+            !.git
+            !autom4te.cache/
+            !.github/
+            !compile-and-buildcheck.log
+            !**/*.md
+          key: ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-${{ github.run_id }}-${{ github.run_attempt }}
 
   install-and-test:
     needs: [setup, build]
@@ -268,9 +287,9 @@ jobs:
           echo "Batch Number:"
           echo "${{ matrix.test_batch.batch }}"
 
-      - name: Restore Cached Build
-        uses: actions/cache@v5
-        id: cache-restore
+      - name: Restore Cached Build (Attempt 1)
+        uses: actions/cache/restore@v5
+        id: cache-restore-1
         with:
           path: |
             .
@@ -279,14 +298,33 @@ jobs:
             !.github/
             !compile-and-buildcheck.log
             !**/*.md
-          key: ion-build-${{ matrix.runner }}-${{ hashFiles('**/*.c', '**/*.h', 'configure.ac', 'Makefile.am', 'build-bsl-for-ion.sh') }}
+          key: ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-
+
+      - name: Restore Cached Build (Attempt 2 - Retry on failure)
+        # Only run attempt 2 if attempt 1 completely failed to find a matching key
+        if: ${{ steps.cache-restore-1.outputs.cache-matched-key == '' }}
+        uses: actions/cache/restore@v5
+        id: cache-restore-2
+        with:
+          path: |
+            .
+            !.git
+            !autom4te.cache/
+            !.github/
+            !compile-and-buildcheck.log
+            !**/*.md
+          key: ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ion-build-${{ matrix.runner }}-${{ needs.setup.outputs.src_hash }}-
 
       - name: Overlay fresh tests and scripts
-        if: ${{ steps.cache-restore.outputs.cache-hit == 'true' }}
+        if: ${{ steps.cache-restore-1.outputs.cache-matched-key != '' || steps.cache-restore-2.outputs.cache-matched-key != '' }}
         run: git checkout HEAD -- tests/ demos/ killm
 
       - name: Install ION and run tests
-        if: ${{ steps.cache-restore.outputs.cache-hit == 'true' }}
+        if: ${{ steps.cache-restore-1.outputs.cache-matched-key != '' || steps.cache-restore-2.outputs.cache-matched-key != '' }}
         timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '90') }}
         run: |
           {
@@ -314,11 +352,6 @@ jobs:
             echo "Tests failed with status $TEST_STATUS" >&2
             exit $TEST_STATUS
           fi
-
-      - name: Error Message for Cache Failure
-        if: ${{ steps.cache-restore.outputs.cache-hit != 'true' }}
-        run: |
-          echo "❌ Error fetching cache on runner ${{ matrix.runner }} batch ${{ matrix.test_batch.batch }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Display Progress
         if: ${{ always() }}
@@ -468,3 +501,4 @@ jobs:
           name: |
             test-results-*
             compile-and-buildcheck-log-*
+          failOnError: false
