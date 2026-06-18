@@ -33,6 +33,9 @@ a endpoint ipn:1.502 q
 a endpoint ipn:1.503 q
 a endpoint ipn:1.504 q
 a endpoint ipn:1.505 q
+a endpoint ipn:1.513 q
+a endpoint ipn:1.514 q
+a endpoint ipn:1.515 q
 
 a protocol udp 1400 100
 a induct   udp 127.0.0.1:4556 udpcli
