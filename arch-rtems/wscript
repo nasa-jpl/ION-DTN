@@ -4,31 +4,37 @@
 #
 from __future__ import print_function
 
-rtems_version = "6"
+rtems_version = '6'
 
 try:
     import rtems_waf.rtems as rtems
 except:
     print('error: no rtems_waf git submodule')
     import sys
+
     sys.exit(1)
 
+
 def init(ctx):
-    rtems.init(ctx, version = rtems_version, long_commands = True)
+    rtems.init(ctx, version=rtems_version, long_commands=True)
+
 
 def bsp_configure(conf, arch_bsp):
     # Add BSP specific configuration checks
     pass
 
+
 def options(opt):
     rtems.options(opt)
 
+
 def configure(conf):
-    rtems.configure(conf, bsp_configure = bsp_configure)
+    rtems.configure(conf, bsp_configure=bsp_configure)
+
 
 def build(bld):
     # Excluding CFDP by seting open source = 0
-    ION_OPEN_SOURCE=0
+    ION_OPEN_SOURCE = 0
 
     # Excluding non-core parts for minimal RTEMS configuration
     # Set to 1 to enable these convergence layers
@@ -36,7 +42,7 @@ def build(bld):
     ENABLE_BSSP = 0
     ENABLE_TCPCL = 1
 
-    iondefines=[
+    iondefines = [
         'RTEMS',
         'BP_EXTENDED',
         'CRYPTO',
@@ -56,7 +62,7 @@ def build(bld):
         'LONG_LONG_OKAY=1',
         'PRIVATE_SYMTAB',
         'USING_RTEMS_LIBBSD',
-        'MAX_SPAWNS=32'
+        'MAX_SPAWNS=32',
     ]
 
     # Check for inclusion of CFDP
@@ -65,17 +71,17 @@ def build(bld):
     #   which excludes CFDP code from compilation
 
     if ION_OPEN_SOURCE == 0:
-        iondefines+=['NASA_PROTECTED_FLIGHT_CODE']
+        iondefines += ['NASA_PROTECTED_FLIGHT_CODE']
 
     # Add conditional defines for DGR and BSSP
     if ENABLE_DGR == 1:
-        iondefines+=['ENABLE_DGR']
+        iondefines += ['ENABLE_DGR']
 
     if ENABLE_BSSP == 1:
-        iondefines+=['ENABLE_BSSP']
+        iondefines += ['ENABLE_BSSP']
 
     if ENABLE_TCPCL == 1:
-        iondefines+=['ENABLE_TCPCL']
+        iondefines += ['ENABLE_TCPCL']
 
     # Not including the following
     # -DION_NO_DNS
@@ -84,7 +90,7 @@ def build(bld):
     # Not buidling with CFDP
     # -DNASA_PROTECTED_FLIGHT_CODE
 
-    ionflags='-g -Wall -Werror -Wno-unused-variable'
+    ionflags = '-g -Wall -Werror -Wno-unused-variable'
 
     icisources = [
         'rfxclock.c',
@@ -101,10 +107,10 @@ def build(bld):
         'ionexit.c',
         'bpadmin.c',
         'bpsecadmin.c',
-        'rtems_stubs.c'   # RTEMS pthread_kill and pause stubs
+        'rtems_stubs.c',  # RTEMS pthread_kill and pause stubs
     ]
 
-    iciinclude=[
+    iciinclude = [
         '../ici/include',
         '../ici/library',
         '../ici/crypto',
@@ -113,10 +119,10 @@ def build(bld):
         '../ici/test',
         '../ici/sdr',
         '../ici/libbloom-master',
-        '../ici/libbloom-master/murmur2'
+        '../ici/libbloom-master/murmur2',
     ]
 
-    icilibsources=[
+    icilibsources = [
         'bulk.c',
         'cbor.c',
         'crc.c',
@@ -143,43 +149,37 @@ def build(bld):
         'sdrmgt.c',
         'sdrstring.c',
         'sdrlist.c',
-        'sdrtable.c'
+        'sdrtable.c',
     ]
 
-    ltpsource=[
-	    'ltpclock.c',
-	    'ltpdeliv.c',
-	    'ltpmeter.c',
-	    'udplsi.c',
-	    'udplso.c',
-	    'ltpadmin.c',
-	    'ltpsecadmin.c'
+    ltpsource = [
+        'ltpclock.c',
+        'ltpdeliv.c',
+        'ltpmeter.c',
+        'udplsi.c',
+        'udplso.c',
+        'ltpadmin.c',
+        'ltpsecadmin.c',
     ]
 
-    ltpinclude=[
-        '../ltp/include',
-        '../ltp/library',
-        '../ltp/library/ext'
-    ]
+    ltpinclude = ['../ltp/include', '../ltp/library', '../ltp/library/ext']
 
-    ltplibsources=[
+    ltplibsources = [
         'libltp.c',
         'libltpnm.c',
         'libltpP.c',
         'ltpei.c',
         'ltpsec.c',
         'libsda.c',
-        'libudplsa.c'
+        'libudplsa.c',
     ]
 
     # not included in port
-    ltpudplsasources=[
+    ltpudplsasources = []
 
-    ]
-
-    bpsources=[
-	    'bpclock.c',
-	    'bptransit.c',
+    bpsources = [
+        'bpclock.c',
+        'bptransit.c',
         'bpclm.c',
         'bpstats.c',
         'bptrace.c',
@@ -195,7 +195,7 @@ def build(bld):
         'bibeadmin.c',
         'bibeclo.c',
         'imcadminep.c',
-        'imcfw.c'
+        'imcfw.c',
     ]
 
     # Conditionally add DGR convergence layer sources
@@ -210,49 +210,49 @@ def build(bld):
     if ENABLE_TCPCL == 1:
         bpsources += ['tcpcli.c', 'tcpclo.c']
 
-    bplibsources=[
+    bplibsources = [
         'bpsec_instr.c',
-        'bpsec_policy.c' ,
+        'bpsec_policy.c',
         'bpsec_policy_eventset.c',
-        'bpsec_policy_event.c' ,
-        'bpsec_policy_rule.c' ,
-        'ion_test_sc.c' ,
-        'bib_hmac_sha2_sc.c' ,
-        'bcb_aes_gcm_sc.c' ,
-        'rfc9173_utils.c' ,
-        'sc_util.c' ,
-        'sci.c' ,
-        'sci_valmap.c' ,
-        'sc_value.c' ,
-        'bpsec_util.c' ,
-        'bpsec_asb.c' ,
-        'bibe.c' ,
-        'libbp.c' ,
-        'libbpP.c' ,
-        'libbpnm.c' ,
+        'bpsec_policy_event.c',
+        'bpsec_policy_rule.c',
+        'ion_test_sc.c',
+        'bib_hmac_sha2_sc.c',
+        'bcb_aes_gcm_sc.c',
+        'rfc9173_utils.c',
+        'sc_util.c',
+        'sci.c',
+        'sci_valmap.c',
+        'sc_value.c',
+        'bpsec_util.c',
+        'bpsec_asb.c',
+        'bibe.c',
+        'libbp.c',
+        'libbpP.c',
+        'libbpnm.c',
         'libimcfw.c',
         'imc.c',
-        'eureka.c' ,
-        'bei.c' ,
-        'bae.c' ,
-        'bpq.c' ,
-        'bcb.c' ,
-        'bib.c' ,
+        'eureka.c',
+        'bei.c',
+        'bae.c',
+        'bpq.c',
+        'bcb.c',
+        'bib.c',
         'hcb.c',
-        'meb.c' ,
-        'pnb.c' ,
-        'snw.c' ,
+        'meb.c',
+        'pnb.c',
+        'snw.c',
         'cbr.c',
         'cteb.c',
         'creb.c',
-        'libipnfw.c' ,
-        'saga.c' ,
-        'bloom.c' ,
+        'libipnfw.c',
+        'saga.c',
+        'bloom.c',
         'MurmurHash2.c',
-        'libcgr.c'
+        'libcgr.c',
     ]
 
-    bpinclude=[
+    bpinclude = [
         './',
         '../bpv7/include',
         '../bpv7/bpsec/sci',
@@ -278,11 +278,11 @@ def build(bld):
         '../bpv7/library/ext/pnb',
         '../bpv7/library/ext/bpq',
         '../bpv7/library/ext/imc',
-        '../bpv7/utils'
+        '../bpv7/utils',
     ]
 
     # nm and adm are not used, list not vetted
-    nmsource=[
+    nmsource = [
         'adm.c',
         'adm_agent.c',
         'adm_bp.c',
@@ -310,67 +310,36 @@ def build(bld):
         'adm_agent_impl.c',
         'adm_bp_impl.c',
         'adm_sbsp_impl.c',
-        'nmagent.c'
+        'nmagent.c',
     ]
 
-    bsssources=[
-        'bsscounter.c',
-        'bssdriver.c'
-    ]
+    bsssources = ['bsscounter.c', 'bssdriver.c']
 
-    bsslibsources=[
-        'libbss.c',
-        'libbssP.c'
-    ]
+    bsslibsources = ['libbss.c', 'libbssP.c']
 
-    bssinclude=[
-        './',
-        '../bss/include'
-    ]
+    bssinclude = ['./', '../bss/include']
 
-    bsspsources=[
+    bsspsources = [
         'bsspclock.c',
         'bsspadmin.c',
         'udpbsi.c',
         'udpbso.c',
         'libtcpbsa.c',
         'tcpbsi.c',
-        'tcpbso.c'
+        'tcpbso.c',
     ]
 
-    bsspinclude=[
-        './',
-        '../bssp/include',
-        '../bssp/library'
-    ]
+    bsspinclude = ['./', '../bssp/include', '../bssp/library']
 
-    bssplibsources=[
-        'libbssp.c',
-	    'libbsspP.c'
-    ]
+    bssplibsources = ['libbssp.c', 'libbsspP.c']
 
-    cfdpsources=[
-        'bputa.c',
-        'cfdpclock.c',
-        'cfdpadmin.c',
-        'bpcp.c',
-        'bpcpd.c'
-    ]
+    cfdpsources = ['bputa.c', 'cfdpclock.c', 'cfdpadmin.c', 'bpcp.c', 'bpcpd.c']
 
-    cfdplibsources=[
-        'libcfdp.c',
-        'libcfdpP.c',
-        'libcfdpops.c'
-    ]
+    cfdplibsources = ['libcfdp.c', 'libcfdpP.c', 'libcfdpops.c']
 
-    cfdpinclude=[
-        './',
-        '../cfdp/include',
-        '../cfdp/library',
-        '../cfdp/utils'
-    ]
+    cfdpinclude = ['./', '../cfdp/include', '../cfdp/library', '../cfdp/utils']
 
-    amssources=[
+    amssources = [
         'amsd.c',
         'librams.c',
         'ramscommon.c',
@@ -379,45 +348,31 @@ def build(bld):
         'amslog.c',
         'amslogprt.c',
         'amsmib.c',
-        'amsstop.c'
+        'amsstop.c',
     ]
     # marshal.c is part of libams.c
 
-    amslibsources=[
+    amslibsources = [
         'amscommon.c',
         'crypt.c',
         'dgrts.c',
         'libams.c',
         'loadmib.c',
         'tcpts.c',
-        'udpts.c'
+        'udpts.c',
     ]
 
-    amsinclude=[
-        './',
-        '../ams/include',
-        '../ams/rams'
-    ]
+    amsinclude = ['./', '../ams/include', '../ams/rams']
 
-    dgrlibsources=[
-        'libdgr.c'
-    ]
+    dgrlibsources = ['libdgr.c']
 
-    dgrinclude=[
-        './',
-        '../dgr/include'
-    ]
+    dgrinclude = ['./', '../dgr/include']
 
-    testsources=[
-        'bpsource.c',
-        'bpsink.c',
-        'bpcrash.c'
-    ]
+    testsources = ['bpsource.c', 'bpsink.c', 'bpcrash.c']
 
     # Minimal BP/LTP port - excluding AMS, BSS
     # DGR and BSSP conditionally included based on ENABLE_DGR and ENABLE_BSSP flags
-    csrcs = ['ionrtems.c'] + icisources + ltpsource \
-    + bpsources + testsources
+    csrcs = ['ionrtems.c'] + icisources + ltpsource + bpsources + testsources
 
     # Conditionally add BSSP daemon and admin sources
     if ENABLE_BSSP == 1:
@@ -455,16 +410,16 @@ def build(bld):
         source=icilibsources,
         includes=iciinclude,
         defines=iondefines,
-        use=['m']
+        use=['m'],
     )
 
     bld.stlib(
         target='ltp',
-        cflags= ionflags,
+        cflags=ionflags,
         source=ltplibsources,
-        includes=ltpinclude+iciinclude,
+        includes=ltpinclude + iciinclude,
         defines=iondefines,
-        use=['ici','m']
+        use=['ici', 'm'],
     )
 
     # Not building libudplsa.la, not used for this port
@@ -473,22 +428,22 @@ def build(bld):
     if ENABLE_DGR == 1:
         bld.stlib(
             target='dgr',
-            cflags= ionflags,
+            cflags=ionflags,
             source=dgrlibsources,
-            includes=dgrinclude+iciinclude,
+            includes=dgrinclude + iciinclude,
             defines=iondefines,
-            use=['ici','m']
+            use=['ici', 'm'],
         )
 
     # Conditionally build BSSP library
     if ENABLE_BSSP == 1:
         bld.stlib(
             target='bssp',
-            cflags= ionflags,
+            cflags=ionflags,
             source=bssplibsources,
-            includes=bsspinclude+iciinclude,
+            includes=bsspinclude + iciinclude,
             defines=iondefines,
-            use=['ici','m']
+            use=['ici', 'm'],
         )
 
     # Build BP library with conditional DGR and BSSP dependencies
@@ -505,11 +460,11 @@ def build(bld):
 
     bld.stlib(
         target='bp',
-        cflags= ionflags,
+        cflags=ionflags,
         source=bplibsources,
         includes=bp_includes,
         defines=iondefines,
-        use=bp_use
+        use=bp_use,
     )
 
     # AMS and BSS libraries excluded for minimal port
@@ -517,11 +472,11 @@ def build(bld):
     if ION_OPEN_SOURCE == 1:
         bld.stlib(
             target='cfdp',
-            cflags= ionflags,
+            cflags=ionflags,
             source=cfdplibsources,
-            includes=iciinclude+bpinclude+cfdpinclude,
+            includes=iciinclude + bpinclude + cfdpinclude,
             defines=iondefines,
-            use=['ici','bp','m']
+            use=['ici', 'bp', 'm'],
         )
 
     # Minimal BP/LTP port - only required libraries
@@ -539,12 +494,18 @@ def build(bld):
 
     # Note: RTEMS pthread functions are in rtemscpu library
 
-    bld(features = 'c cprogram',
-        target = 'ion.exe',
-        cflags = ionflags,
-        source = csrcs,
-        includes = includes,
-        defines = iondefines,
+    bld(
+        features='c cprogram',
+        target='ion.exe',
+        cflags=ionflags,
+        source=csrcs,
+        includes=includes,
+        defines=iondefines,
         use=libuse,
-        lib=['rtemscpu', 'rtemsbsp', 'bsd', 'm']  # RTEMS core, BSD networking, and Math libraries (order matters)
+        lib=[
+            'rtemscpu',
+            'rtemsbsp',
+            'bsd',
+            'm',
+        ],  # RTEMS core, BSD networking, and Math libraries (order matters)
     )
