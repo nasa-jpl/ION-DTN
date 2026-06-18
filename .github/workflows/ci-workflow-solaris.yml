@@ -92,9 +92,14 @@ jobs:
     outputs:
       matrix: ${{ steps.generate.outputs.matrix }}
       count: ${{ steps.generate.outputs.count }}
+      src_hash: ${{ steps.calculate-hash.outputs.hash }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+
+      - name: Calculate Source Hash
+        id: calculate-hash
+        run: echo "hash=${{ hashFiles('**/*.c', '**/*.h', 'configure.ac', 'Makefile.am', 'build-bsl-for-ion.sh') }}" >> $GITHUB_OUTPUT
 
       - name: Generate test distribution matrix
         id: generate
@@ -111,15 +116,17 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v6
 
-      - name: Cache Solaris Build Artifact
-        id: cache-build
-        uses: actions/cache@v5
+      - name: Restore Solaris Build Artifact Cache
+        id: cache-build-restore
+        uses: actions/cache/restore@v5
         with:
           path: ion-build-solaris.tar.gz
-          key: solaris-build-${{ hashFiles('**/*.c', '**/*.h', 'configure.ac', 'Makefile.am', 'build-bsl-for-ion.sh') }}
+          key: solaris-build-${{ needs.generate-matrix.outputs.src_hash }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            solaris-build-${{ needs.generate-matrix.outputs.src_hash }}-
 
       - name: Setup Solaris SSH Configuration
-        if: ${{ steps.cache-build.outputs.cache-hit != 'true' }}
+        if: ${{ steps.cache-build-restore.outputs.cache-matched-key == '' }}
         uses: ./.github/actions/setup-solaris-ssh
         with:
           ssh_key: ${{ secrets.SOLARIS_SSH_KEY }}
@@ -127,7 +134,7 @@ jobs:
           host_2_ip: ${{ secrets.SOLARIS_HOST_2_IP }}
 
       - name: Display Runner Host OS and Arch
-        if: ${{ steps.cache-build.outputs.cache-hit != 'true' }}
+        if: ${{ steps.cache-build-restore.outputs.cache-matched-key == '' }}
         run: |
           cat /etc/os-release
           echo "Arch:"
@@ -136,7 +143,7 @@ jobs:
           id
 
       - name: Set environment variable to an available VM
-        if: ${{ steps.cache-build.outputs.cache-hit != 'true' }}
+        if: ${{ steps.cache-build-restore.outputs.cache-matched-key == '' }}
         run: |
           if [ "${{ needs.validate-vms.outputs.dsoc3_available }}" == "true" ]; then
             echo "Selected dsoc4 for the build process."
@@ -150,7 +157,7 @@ jobs:
           fi
 
       - name: Copy code to Solaris VM
-        if: ${{ steps.cache-build.outputs.cache-hit != 'true' }}
+        if: ${{ steps.cache-build-restore.outputs.cache-matched-key == '' }}
         run: |
           cd .github/ansible
           /home/runner/.pyenv/versions/${{ env.PYTHON_VERSION }}/bin/ansible-playbook copy-code.yml \
@@ -164,7 +171,7 @@ jobs:
         run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
 
       - name: Run build and buildcheck, capture stdout
-        if: ${{ steps.cache-build.outputs.cache-hit != 'true' }}
+        if: ${{ steps.cache-build-restore.outputs.cache-matched-key == '' }}
         timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || 90 ) }}
         run: |
           ssh github-runner@$VM_IP '
@@ -181,7 +188,7 @@ jobs:
           fi
 
       - name: Process artifact and clean up VM
-        if: ${{ always() && steps.cache-build.outputs.cache-hit != 'true' }}
+        if: ${{ steps.cache-build-restore.outputs.cache-matched-key == '' }}
         env:
           # Explicitly point to the config file so Ansible knows to use github-runner
           ANSIBLE_CONFIG: .github/ansible/ansible.cfg
@@ -190,11 +197,18 @@ jobs:
             -e "run_id=${{ github.run_id }}"
 
       - name: Format artifact for caching
-        if: ${{ steps.cache-build.outputs.cache-hit != 'true' }}
+        if: ${{ steps.cache-build-restore.outputs.cache-matched-key == '' }}
         run: cp ion-build-${{ github.run_id }}.tar.gz ion-build-solaris.tar.gz
 
+      - name: Save Solaris Build Artifact Cache
+        if: ${{ success() && steps.cache-build-restore.outputs.cache-matched-key == '' }}
+        uses: actions/cache/save@v5
+        with:
+          path: ion-build-solaris.tar.gz
+          key: solaris-build-${{ needs.generate-matrix.outputs.src_hash }}-${{ github.run_id }}-${{ github.run_attempt }}
+
       - name: Restore run-specific artifact from cache
-        if: ${{ steps.cache-build.outputs.cache-hit == 'true' }}
+        if: ${{ steps.cache-build-restore.outputs.cache-matched-key != '' }}
         run: cp ion-build-solaris.tar.gz ion-build-${{ github.run_id }}.tar.gz
 
       - name: Upload build artifact
@@ -205,7 +219,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload compile and buildcheck log
-        if: ${{ always() && steps.cache-build.outputs.cache-hit != 'true' }}
+        if: ${{ steps.cache-build-restore.outputs.cache-matched-key == '' }}
         uses: actions/upload-artifact@v7
         with:
           name: compile-and-buildcheck-log-solaris-${{ steps.timestamp.outputs.timestamp }}
