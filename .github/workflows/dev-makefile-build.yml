@@ -1,0 +1,274 @@
+name: Development Makefile Build Test
+
+permissions:
+  contents: read
+  statuses: write
+  pull-requests: write
+  checks: write
+
+on:
+  pull_request:
+    paths:
+      - '**.dev'
+      - '**/Makefile.dev'
+      - 'enable_manual_build.sh'
+      - '**.c'
+      - '**.h'
+      - '.github/workflows/dev-makefile-build.yml'
+
+  push:
+    branches:
+      - 'update-*-makefile*'
+      - 'fix-*-makefile*'
+
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to test (leave empty to use current branch)'
+        required: false
+        type: string
+        default: ""
+      ref:
+        description: 'Git ref to checkout (branch/tag/commit, leave empty for default)'
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  dev-makefile-build:
+    name: Build with Development Makefiles
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Determine checkout ref
+        id: determine-ref
+        run: |
+          if [ -n "${{ inputs.pr_number }}" ]; then
+            echo "Fetching PR #${{ inputs.pr_number }}"
+            echo "ref=refs/pull/${{ inputs.pr_number }}/merge" >> $GITHUB_OUTPUT
+            echo "pr_number=${{ inputs.pr_number }}" >> $GITHUB_OUTPUT
+          elif [ -n "${{ inputs.ref }}" ]; then
+            echo "Using provided ref: ${{ inputs.ref }}"
+            echo "ref=${{ inputs.ref }}" >> $GITHUB_OUTPUT
+            echo "pr_number=" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "Using PR merge ref"
+            echo "ref=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
+            echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+          else
+            echo "Using current branch ref"
+            echo "ref=${{ github.ref }}" >> $GITHUB_OUTPUT
+            echo "pr_number=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.determine-ref.outputs.ref }}
+          fetch-depth: 1
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            gcc \
+            g++ \
+            make \
+            automake \
+            autoconf \
+            libtool \
+            pkg-config
+
+      - name: Set PR context
+        id: pr-context
+        run: |
+          PR_NUM="${{ steps.determine-ref.outputs.pr_number }}"
+          if [ -z "$PR_NUM" ] && [ "${{ github.event_name }}" = "pull_request" ]; then
+            PR_NUM="${{ github.event.pull_request.number }}"
+          fi
+
+          if [ -n "$PR_NUM" ]; then
+            echo "pr_number=$PR_NUM" >> $GITHUB_OUTPUT
+            echo "has_pr=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_pr=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Report build start
+        if: steps.pr-context.outputs.has_pr == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ steps.pr-context.outputs.pr_number }},
+              body: `## 🔨 Development Makefile Build Started
+
+              **Workflow:** ${context.workflow}
+              **Run:** ${context.runNumber}
+              **Commit:** ${context.sha.substring(0, 7)}
+
+              Testing development Makefile build (make.dev system)...
+              [View workflow run →](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+            });
+
+      - name: Enable development Makefiles
+        id: enable-dev-makefiles
+        run: |
+          echo "Running enable_manual_build.sh to copy Makefile.dev files..."
+          ./enable_manual_build.sh
+
+          echo "Verifying Makefile.dev files were copied..."
+          if [ ! -f "ici/x86_64-linux/Makefile" ]; then
+            echo "ERROR: ICI Makefile not created"
+            exit 1
+          fi
+          if [ ! -f "bpv7/x86_64-linux/Makefile" ]; then
+            echo "ERROR: BPv7 Makefile not created"
+            exit 1
+          fi
+          if [ ! -f "ltp/x86_64-linux/Makefile" ]; then
+            echo "ERROR: LTP Makefile not created"
+            exit 1
+          fi
+
+          echo "✓ All Makefile.dev files copied successfully"
+
+      - name: Build ION with development Makefiles
+        id: build
+        run: |
+          echo "Building ION with development Makefiles..."
+          echo "Using parallel build with $(nproc) cores"
+
+          # Capture build output and count warnings/errors
+          make -j$(nproc) 2>&1 | tee build.log
+
+          BUILD_STATUS=${PIPESTATUS[0]}
+
+          # Count warnings (excluding -Werror references)
+          WARNINGS=$(grep -i "warning:" build.log | grep -v "Werror" | wc -l || echo "0")
+
+          # Count errors (excluding expected error references)
+          ERRORS=$(grep -i "error:" build.log | grep -v "Werror" | wc -l || echo "0")
+
+          echo "warnings=$WARNINGS" >> $GITHUB_OUTPUT
+          echo "errors=$ERRORS" >> $GITHUB_OUTPUT
+
+          if [ $BUILD_STATUS -ne 0 ]; then
+            echo "❌ Build failed with status $BUILD_STATUS"
+            echo "build_status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "✓ Build succeeded"
+            echo "build_status=success" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Verify key binaries
+        id: verify
+        if: success()
+        run: |
+          echo "Verifying key binaries were built..."
+
+          MISSING_BINS=""
+
+          # Check ICI binaries
+          for bin in ionadmin ionsecadmin; do
+            if [ ! -f "ici/x86_64-linux/bin/$bin" ]; then
+              MISSING_BINS="$MISSING_BINS ici/$bin"
+            fi
+          done
+
+          # Check LTP binaries
+          for bin in ltpadmin ltpclock udplsi udplso xlsi xlso; do
+            if [ ! -f "ltp/x86_64-linux/bin/$bin" ]; then
+              MISSING_BINS="$MISSING_BINS ltp/$bin"
+            fi
+          done
+
+          # Check BPv7 binaries
+          for bin in bpadmin bpclock ipnfw bpsource bpsink bpwatch filecli fileclo; do
+            if [ ! -f "bpv7/x86_64-linux/bin/$bin" ]; then
+              MISSING_BINS="$MISSING_BINS bpv7/$bin"
+            fi
+          done
+
+          # Check libraries
+          for lib in ici/x86_64-linux/lib/libici.so ltp/x86_64-linux/lib/libltp.so ltp/x86_64-linux/lib/libxlsa.so bpv7/x86_64-linux/lib/libbp.so; do
+            if [ ! -f "$lib" ]; then
+              MISSING_BINS="$MISSING_BINS $lib"
+            fi
+          done
+
+          if [ -n "$MISSING_BINS" ]; then
+            echo "❌ Missing binaries/libraries:$MISSING_BINS"
+            echo "verification_status=failed" >> $GITHUB_OUTPUT
+            echo "missing_binaries=$MISSING_BINS" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "✓ All key binaries and libraries verified"
+            echo "verification_status=success" >> $GITHUB_OUTPUT
+            echo "missing_binaries=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Report build results
+        if: always() && steps.pr-context.outputs.has_pr == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const buildStatus = '${{ steps.build.outputs.build_status }}';
+            const verifyStatus = '${{ steps.verify.outputs.verification_status }}';
+            const warnings = '${{ steps.build.outputs.warnings }}';
+            const errors = '${{ steps.build.outputs.errors }}';
+            const missingBins = '${{ steps.verify.outputs.missing_binaries }}';
+
+            let statusIcon = '✅';
+            let statusText = 'Success';
+            let details = '';
+
+            if (buildStatus === 'failed') {
+              statusIcon = '❌';
+              statusText = 'Build Failed';
+              details = `\n\n**Errors:** ${errors}\n**Warnings:** ${warnings}\n\nThe development Makefile build failed. Check the workflow logs for details.`;
+            } else if (verifyStatus === 'failed') {
+              statusIcon = '⚠️';
+              statusText = 'Verification Failed';
+              details = `\n\n**Missing binaries/libraries:**\n\`\`\`\n${missingBins}\n\`\`\`\n\nBuild completed but some expected outputs are missing.`;
+            } else {
+              details = `\n\n**Build Statistics:**\n- Warnings: ${warnings}\n- Errors: ${errors}\n\nAll key binaries and libraries verified successfully.`;
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ steps.pr-context.outputs.pr_number }},
+              body: `## ${statusIcon} Development Makefile Build ${statusText}
+
+              **Workflow:** ${context.workflow}
+              **Run:** ${context.runNumber}
+              **Commit:** ${context.sha.substring(0, 7)}${details}
+
+              [View full workflow run →](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+            });
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dev-makefile-build-log
+          path: build.log
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Set workflow status
+        if: always()
+        run: |
+          if [ "${{ steps.build.outputs.build_status }}" = "failed" ] || [ "${{ steps.verify.outputs.verification_status }}" = "failed" ]; then
+            echo "Workflow failed"
+            exit 1
+          else
+            echo "Workflow succeeded"
+            exit 0
+          fi
