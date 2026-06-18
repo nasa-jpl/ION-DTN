@@ -86,36 +86,32 @@ jobs:
     outputs:
       matrix: ${{ steps.build-matrix.outputs.matrix }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
       - name: Build OS Matrix
         id: build-matrix
         run: |
-          # Use bash string manipulation to build the array (avoids needing jq)
-          MATRIX="["
-
-          # Default to true on push events (when inputs are null/empty)
-          if [ "${{ github.event_name == 'push' || inputs.runner_u22 == true }}" == "true" ]; then MATRIX="$MATRIX\"ubuntu-22\","; fi
-          if [ "${{ github.event_name == 'push' || inputs.runner_u24 == true }}" == "true" ]; then MATRIX="$MATRIX\"ubuntu-24\","; fi
-          if [ "${{ github.event_name == 'push' || inputs.runner_ol8 == true }}" == "true" ]; then MATRIX="$MATRIX\"oraclelinux-8\","; fi
-          if [ "${{ github.event_name == 'push' || inputs.runner_ol9 == true }}" == "true" ]; then MATRIX="$MATRIX\"oraclelinux-9\","; fi
-
-          # Strip the trailing comma and close the array bracket
-          MATRIX="${MATRIX%,}]"
-
-          # If nothing was selected, output an empty valid JSON array
-          if [ "$MATRIX" == "]" ]; then MATRIX="[]"; fi
+          chmod +x build-runner-matrix.sh
+          MATRIX=$(./build-runner-matrix.sh \
+            --ubuntu_20=${{ github.event_name == 'push' || inputs.runner_u22 == true }} \
+            --ubuntu_22=${{ github.event_name == 'push' || inputs.runner_u24 == true }} \
+            --oracle_linux_8=${{ github.event_name == 'push' || inputs.runner_ol8 == true }} \
+            --oracle_linux_9=${{ github.event_name == 'push' || inputs.runner_ol9 == true }} \
+            --rhel_8=${{ github.event_name == 'push' || inputs.runner_rhel8 == true }} \
+            --rhel_9=${{ github.event_name == 'push' || inputs.runner_rhel9 == true }})
 
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
 
-  build-and-push-ol8:
-    name: Build and Push ${{ matrix.os_image }}
+  build-and-push:
+    name: Build and Push ${{ matrix.runner }}
     needs: setup
-    if: ${{ needs.setup.outputs.matrix != '[]' }}
-    runs-on: arc-runner-set-ol8
+    runs-on: arc-runner-set-${{ matrix.runner }}
 
     strategy:
       fail-fast: false
       matrix:
-        os_image: ${{ fromJSON(needs.setup.outputs.matrix) }}
+        runner: ${{ fromJSON(needs.setup.outputs.matrix) }}
 
     steps:
       - name: Checkout repository
@@ -127,87 +123,31 @@ jobs:
         run: |
           echo "${{ env.REGISTRY_PASSWORD }}" | sudo buildah login ${{ env.REGISTRY_ADDRESS }} --username "${{ env.REGISTRY_NAMESPACE }}" --password-stdin
 
+      - name: Set Image Variables
+        id: vars
+        run: |
+          case "${{ matrix.runner }}" in
+            u20)   echo "os_image=ubuntu-22" >> $GITHUB_OUTPUT; echo "target=buildah-build" >> $GITHUB_OUTPUT ;;
+            u22)   echo "os_image=ubuntu-24" >> $GITHUB_OUTPUT; echo "target=buildah-build" >> $GITHUB_OUTPUT ;;
+            ol8)   echo "os_image=oraclelinux-8" >> $GITHUB_OUTPUT; echo "target=buildah-build" >> $GITHUB_OUTPUT ;;
+            ol9)   echo "os_image=oraclelinux-9" >> $GITHUB_OUTPUT; echo "target=buildah-build" >> $GITHUB_OUTPUT ;;
+            rhel8) echo "os_image=rhel-8" >> $GITHUB_OUTPUT; echo "target=buildah-build-rhel" >> $GITHUB_OUTPUT ;;
+            rhel9) echo "os_image=rhel-9" >> $GITHUB_OUTPUT; echo "target=buildah-build-rhel" >> $GITHUB_OUTPUT ;;
+          esac
+
       - name: Build the container image
         run: |
           cd images && \
-          make buildah-build \
+          make ${{ steps.vars.outputs.target }} \
             PIP_INDEX=${{ env.PIP_INDEX }} \
-            OS_IMAGE=${{ matrix.os_image }} \
+            OS_IMAGE=${{ steps.vars.outputs.os_image }} \
             DEFAULT_RUNNER_NAME=${{ env.REGISTRY_ADDRESS }}/${{ env.REGISTRY_NAMESPACE }}/ion-runner-images
 
       - name: Push the container image
         run: |
           cd images && \
           make buildah-push \
-            OS_IMAGE=${{ matrix.os_image }} \
-            DEFAULT_RUNNER_NAME=${{ env.REGISTRY_ADDRESS }}/${{ env.REGISTRY_NAMESPACE }}/ion-runner-images
-
-      - name: Buildah Logout
-        if: ${{ always() }}
-        run: sudo buildah logout ${{ env.REGISTRY_ADDRESS }}
-
-  build-and-push-rhel8:
-    name: Build and Push RHEL 8
-    runs-on: arc-runner-set-rhel8
-    if: ${{ github.event_name == 'push' || inputs.runner_rhel8 == true }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          submodules: recursive
-
-      - name: Login to container registry
-        run: |
-          echo "${{ env.REGISTRY_PASSWORD }}" | sudo buildah login ${{ env.REGISTRY_ADDRESS }} --username "${{ env.REGISTRY_NAMESPACE }}" --password-stdin
-
-      - name: Build the container image
-        run: |
-          cd images && \
-          make buildah-build-rhel \
-            PIP_INDEX=${{ env.PIP_INDEX }} \
-            OS_IMAGE=rhel-8 \
-            DEFAULT_RUNNER_NAME=${{ env.REGISTRY_ADDRESS }}/${{ env.REGISTRY_NAMESPACE }}/ion-runner-images
-
-      - name: Push the container image
-        run: |
-          cd images && \
-          make buildah-push \
-            OS_IMAGE=rhel-8 \
-            DEFAULT_RUNNER_NAME=${{ env.REGISTRY_ADDRESS }}/${{ env.REGISTRY_NAMESPACE }}/ion-runner-images
-
-      - name: Buildah Logout
-        if: ${{ always() }}
-        run: sudo buildah logout ${{ env.REGISTRY_ADDRESS }}
-
-  build-and-push-rhel9:
-    name: Build and Push RHEL 9
-    runs-on: arc-runner-set-rhel9
-    if: ${{ github.event_name == 'push' || inputs.runner_rhel9 == true }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          submodules: recursive
-
-      - name: Login to container registry
-        run: |
-          echo "${{ env.REGISTRY_PASSWORD }}" | sudo buildah login ${{ env.REGISTRY_ADDRESS }} --username "${{ env.REGISTRY_NAMESPACE }}" --password-stdin
-
-      - name: Build the container image
-        run: |
-          cd images && \
-          make buildah-build-rhel \
-            PIP_INDEX=${{ env.PIP_INDEX }} \
-            OS_IMAGE=rhel-9 \
-            DEFAULT_RUNNER_NAME=${{ env.REGISTRY_ADDRESS }}/${{ env.REGISTRY_NAMESPACE }}/ion-runner-images
-
-      - name: Push the container image
-        run: |
-          cd images && \
-          make buildah-push \
-            OS_IMAGE=rhel-9 \
+            OS_IMAGE=${{ steps.vars.outputs.os_image }} \
             DEFAULT_RUNNER_NAME=${{ env.REGISTRY_ADDRESS }}/${{ env.REGISTRY_NAMESPACE }}/ion-runner-images
 
       - name: Buildah Logout
