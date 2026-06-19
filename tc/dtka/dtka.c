@@ -443,9 +443,9 @@ static int	generateKeyPair(BpSAP sap, DtkaDB *db, char *keyType,
 		}
 	}
 
-	/* * SINGLE EXIT POINT
-	 * Strict Flight Rule: Cryptographic material MUST be explicitly zeroized
-	 * before releasing memory to the heap. Size is tracked dynamically.
+	/*
+	 * Cryptographic material MUST be explicitly zeroized
+	 * before releasing memory to the heap.
 	 */
 	if (pubKeyBuf != NULL)
 	{
