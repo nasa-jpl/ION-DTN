@@ -730,7 +730,15 @@ static int run_listen_bptrace(char *listenEid)
 	signal(SIGABRT, sighandler);
 	signal(SIGINT, sighandler);
 	signal(SIGTERM, sighandler);
-	reports = (statusReport **)malloc(sizeof(statusReport)*128);
+	signal(SIGTERM, sighandler);
+
+	/* Allocate and zero-initialize pointer array. Strict NULL check enforced. */
+	reports = (statusReport **)calloc(128, sizeof(statusReport *));
+	if (reports == NULL)
+	{
+		putErrmsg("run_listen_bptrace: failed to allocate reports array. Out of memory.", NULL);
+		exit(EXIT_FAILURE);
+	}
 
 	printDBG(1, "running listen-only mode\n");
 
