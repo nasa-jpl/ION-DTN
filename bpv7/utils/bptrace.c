@@ -730,14 +730,12 @@ static int run_listen_bptrace(char *listenEid)
 	signal(SIGABRT, sighandler);
 	signal(SIGINT, sighandler);
 	signal(SIGTERM, sighandler);
-	signal(SIGTERM, sighandler);
 
-	/* Allocate and zero-initialize pointer array. Strict NULL check enforced. */
+	/* Corrected allocation with sizeof(statusReport *) and calloc */
 	reports = (statusReport **)calloc(128, sizeof(statusReport *));
 	if (reports == NULL)
 	{
-		putErrmsg("run_listen_bptrace: failed to allocate reports array. Out of memory.", NULL);
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	printDBG(1, "running listen-only mode\n");
@@ -755,27 +753,29 @@ static int run_listen_bptrace(char *listenEid)
 	unsigned int   buflen;
 	unsigned char *buffer;
 	uvast	       uvtemp;
-
 	int rpt_rval = 0;
 
 	if (bp_attach() < 0)
 	{
 		printf("Can't attach to BP.\n");
+		free(reports);
 		return 0;
 	}
 
-	if(bp_open(listenEid, &state.sap) < 0){
+	if(bp_open(listenEid, &state.sap) < 0)
+	{
 		printf("can't open endpoint %s\n", listenEid);
+		free(reports);
 		return -1;
 	}
 	oK(_bptestState(&state));
 	sdr = bp_get_sdr();
-
 	printf("Listening for status reports on %s (Ctrl+C to stop)...\n", listenEid);
 	fflush(stdout);
 
 	/* Listen indefinitely until interrupted or 128 reports received */
-	while(state.running && !stopRequested && n_rpts < 128){
+	while(state.running && !stopRequested && n_rpts < 128)
+	{
 		if (bp_receive(state.sap, &dlv, BP_NONBLOCKING) < 0)
 		{
 			printf("Bundle reception failed, continuing\n");
@@ -792,30 +792,27 @@ static int run_listen_bptrace(char *listenEid)
 				state.running = 0;
 				continue;	/*	Loop exits below.	*/
 			default:
-				/*	Nothing ready in non-blocking mode:
-				 *	yield briefly instead of spinning, so
+				/*	Nothing ready in non-blocking mode: yield
+				 *	briefly instead of spinning, so
 				 *	we are not repeatedly taking and
 				 *	releasing the SDR transaction lock.	*/
 				microsnooze(10000);
 				continue;
 		}
 
-		/* only accept admin bundles */
 		if (dlv.adminRecord == 0)
 		{
 			bp_release_delivery(&dlv, 1);
 			continue;
 		}
 
-		/*	Read and strip off the admin record header	*/
 		printDBG(2, "checking sdr and pulling admin header...\n");
 		CHKERR(sdr_begin_xn(sdr));
 
 		recordLen = zco_source_data_length(sdr, dlv.adu);
 		printDBG(2, "data length: " UVAST_FIELDSPEC "\n", recordLen);
 		zco_start_receiving(dlv.adu, &reader);
-		bytesToParse = zco_receive_source(sdr, &reader, 10,
-				(char *) headerBuf);
+		bytesToParse = zco_receive_source(sdr, &reader, 10, (char *) headerBuf);
 		if (bytesToParse < 2)
 		{
 			printf("Can't receive admin record header.\n");
@@ -826,7 +823,7 @@ static int run_listen_bptrace(char *listenEid)
 
 		cursor = headerBuf;
 		unparsedBytes = bytesToParse;
-		uvtemp = 2;	/*	Decode array of size 2.		*/
+		uvtemp = 2;
 		if (cbor_decode_array_open(&uvtemp, &cursor, &unparsedBytes) < 1)
 		{
 			printf("Can't decode admin record array.\n");
@@ -835,8 +832,7 @@ static int run_listen_bptrace(char *listenEid)
 			continue;
 		}
 
-		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
-					&unparsedBytes) < 1)
+		if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 		{
 			printf("Can't decode admin record type.\n");
 			oK(sdr_end_xn(sdr));
@@ -845,13 +841,8 @@ static int run_listen_bptrace(char *listenEid)
 		}
 
 		adminRecType = uvtemp;
-
-		/*	Now strip off the admin record header, leaving
-		 *	just the admin record content.			*/
-
 		headerLen = cursor - headerBuf;
-		zco_delimit_source(sdr, dlv.adu, headerLen,
-				recordLen - headerLen);
+		zco_delimit_source(sdr, dlv.adu, headerLen, recordLen - headerLen);
 		zco_strip(sdr, dlv.adu);
 		if (sdr_end_xn(sdr) < 0)
 		{
@@ -861,17 +852,13 @@ static int run_listen_bptrace(char *listenEid)
 			continue;
 		}
 
-		/* Accept status reports (type 1) and CRS (type 14) */
-		if (adminRecType != BP_STATUS_REPORT &&
-				adminRecType != CBR_ADMIN_RECORD_CRS)
+		if (adminRecType != BP_STATUS_REPORT && adminRecType != CBR_ADMIN_RECORD_CRS)
 		{
-			printDBG(2, "Ignoring admin record type %d.\n",
-					adminRecType);
+			printDBG(2, "Ignoring admin record type %d.\n", adminRecType);
 			bp_release_delivery(&dlv, 0);
 			continue;
 		}
 
-		/*	Read the entire admin record into memory buffer.	*/
 		printDBG(1, "Received admin bundle (type %d)...\n", adminRecType);
 		CHKERR(sdr_begin_xn(sdr));
 		buflen = zco_source_data_length(sdr, dlv.adu);
@@ -884,8 +871,7 @@ static int run_listen_bptrace(char *listenEid)
 		}
 
 		zco_start_receiving(dlv.adu, &reader);
-		bytesToParse = zco_receive_source(sdr, &reader, buflen,
-				(char *) buffer);
+		bytesToParse = zco_receive_source(sdr, &reader, buflen, (char *) buffer);
 		if (bytesToParse < 0)
 		{
 			printf("Can't receive admin record.\n");
@@ -896,20 +882,14 @@ static int run_listen_bptrace(char *listenEid)
 		}
 
 		oK(sdr_end_xn(sdr));
-
 		cursor = buffer;
 		unparsedBytes = bytesToParse;
 
-		/*	Handle based on admin record type		*/
 		if (adminRecType == BP_STATUS_REPORT)
 		{
 			printDBG(1, "handling traditional status report...\n");
-			reports[n_rpts] = malloc(sizeof(*reports[n_rpts]));
-			printDBG(3, "report pointer after malloc: %p\n", (void *)reports[n_rpts]);
+			reports[n_rpts] = calloc(1, sizeof(statusReport));
 			rpt_rval = handleStatusRpt(&dlv, cursor, unparsedBytes, reports[n_rpts]);
-			printDBG(3, "\n"UVAST_FIELDSPEC"\n", reports[n_rpts]->creationTime);
-
-			/* Print the report immediately (real-time display) */
 			if (rpt_rval >= 0)
 			{
 				print(reports[n_rpts]);
@@ -919,20 +899,17 @@ static int run_listen_bptrace(char *listenEid)
 			{
 				printf("Status report handler failed.\n");
 			}
+			freeStatusReport(reports[n_rpts]);
+			reports[n_rpts] = NULL;
+			n_rpts++;
 		}
-		else /* CBR_ADMIN_RECORD_CRS */
+		else
 		{
 			unsigned int crsReportsCreated = 0;
-			printDBG(1, "handling CRS (compressed status report)...\n");
-
-			/*	CRS may contain multiple bundle status reports.
-			 *	Allocate temp array for them.			*/
 			statusReport *crsReports[128];
 			memset(crsReports, 0, sizeof(crsReports));
 
-			rpt_rval = handleCrsReport(&dlv, cursor, unparsedBytes,
-					crsReports, 128, &crsReportsCreated);
-
+			rpt_rval = handleCrsReport(&dlv, cursor, unparsedBytes, crsReports, 128, &crsReportsCreated);
 			if (rpt_rval >= 0)
 			{
 				for (unsigned int j = 0; j < crsReportsCreated; j++)
@@ -944,26 +921,21 @@ static int run_listen_bptrace(char *listenEid)
 						freeStatusReport(crsReports[j]);
 					}
 				}
-				printDBG(1, "CRS: displayed %u reports\n", crsReportsCreated);
 			}
 			else
 			{
 				printf("CRS handler failed.\n");
 			}
-
-			/*	For CRS, don't increment n_rpts for each
-			 *	individual report; skip directly to cleanup. */
+			/* CRS Clean Sweep */
+			for (unsigned int j = 0; j < crsReportsCreated; j++)
+			{
+				if (crsReports[j]) freeStatusReport(crsReports[j]);
+			}
 			MRELEASE(buffer);
 			bp_release_delivery(&dlv, 1);
 			continue;
 		}
 
-		/* Free the report immediately since we already printed it */
-		freeStatusReport(reports[n_rpts]);
-		reports[n_rpts] = NULL;
-
-		n_rpts++;
-		printDBG(2, "report handler returned %d\n", rpt_rval);
 		MRELEASE(buffer);
 		bp_release_delivery(&dlv, 1);
 	}
@@ -973,7 +945,6 @@ static int run_listen_bptrace(char *listenEid)
 		printf("\nReport limit (128) reached. Exiting.\n");
 	}
 
-	/* Cleanup */
 	free(reports);
 	bp_close(state.sap);
 	bp_detach();
@@ -982,20 +953,25 @@ static int run_listen_bptrace(char *listenEid)
 
 static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 			int ttl, char *classOfService, char *trace, char *flagString,
-			int rtt, uvast seqId){
-	signal(SIGABRT, sighandler); // ensure that quit and interrupt signals still output trace as of that moment.
+			int rtt, uvast seqId)
+{
+	signal(SIGABRT, sighandler);
 	signal(SIGINT, sighandler);
 	signal(SIGTERM, sighandler);
-	reports = (statusReport **)malloc(sizeof(statusReport)*128); // allow storage of up to 128 reports.
-
-	printDBG(1, "running new code for terminal summary\n");
-
-	int result = run_bptrace(ownEid, destEid, traceEid, ttl, classOfService, trace, flagString, seqId);
-	if(result != 0){
-		printf("running bptrace unsuccessful, err code %d\n", result);
-		return result;
+	reports = (statusReport **)calloc(128, sizeof(statusReport *));
+	if (reports == NULL)
+	{
+		return -1;
 	}
 
+	printDBG(1, "running new code for terminal summary\n");
+	int result = run_bptrace(ownEid, destEid, traceEid, ttl, classOfService, trace, flagString, seqId);
+	if(result != 0)
+	{
+		printf("running bptrace unsuccessful, err code %d\n", result);
+		free(reports);
+		return result;
+	}
 
 	Sdr	       sdr;
 	BpDelivery     dlv;
@@ -1010,35 +986,35 @@ static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 	unsigned int   buflen;
 	unsigned char *buffer;
 	uvast	       uvtemp;
-
-	int rpt_rval = 0;
-
 	struct timeval timeoutTime;
 	struct timeval curTime;
 
-
 	getCurrentTime(&timeoutTime);
 	curTime = timeoutTime;
-	if (!(rtt > 0)) rtt = ttl*2;// allow <ttl> seconds for travel of the packet sent and the returning status reports.
+	if (!(rtt > 0)) rtt = ttl*2;
 	timeoutTime.tv_sec += rtt;
-	printDBG(2, "current time: %lld timeouttime: %lld\n", (long long)curTime.tv_sec, (long long)timeoutTime.tv_sec);
 
 	if (bp_attach() < 0)
 	{
 		printf("Can't attach to BP.\n");
+		free(reports);
 		return 0;
 	}
 
-	if(bp_open(traceEid, &state.sap) < 0){
+	if(bp_open(traceEid, &state.sap) < 0)
+	{
 		printf("can't open endpoint %s\n", traceEid);
+		free(reports);
 		return -1;
 	}
 	oK(_bptestState(&state));
 	sdr = bp_get_sdr();
 
 	while(state.running && !stopRequested
-			&& curTime.tv_sec < timeoutTime.tv_sec && n_rpts < 128){
+			&& curTime.tv_sec < timeoutTime.tv_sec && n_rpts < 128)
+	{
 		getCurrentTime(&curTime); // update the current time
+
 		if (bp_receive(state.sap, &dlv, BP_NONBLOCKING) < 0)
 		{
 			printf("Bundle reception failed, continuing\n");
@@ -1047,41 +1023,32 @@ static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 
 		switch (dlv.result)
 		{
-		case BpPayloadPresent:
-			printDBG(1, "recieved packet with payload\n");
-			break;
-		case BpEndpointStopped:
-			printf("endpoint has been stopped\n");
-			state.running = 0;
-			continue;	/*	Loop exits below.	*/
-		default:
-			/*	Nothing ready in non-blocking mode: yield
-			 *	briefly instead of spinning on the SDR lock.	*/
-			microsnooze(10000);
-			continue;
+			case BpPayloadPresent:
+				printDBG(1, "received packet with payload\n");
+				break;
+			case BpEndpointStopped:
+				printf("endpoint has been stopped\n");
+				state.running = 0;
+				continue;	/*	Loop exits below.	*/
+			default:
+				/*	Nothing ready in non-blocking mode: yield
+				 *	briefly instead of spinning on the SDR lock.	*/
+				microsnooze(10000);
+				continue;
 		}
 
-		/* only accept admin bundles */
 		if (dlv.adminRecord == 0)
 		{
 			bp_release_delivery(&dlv, 1);
 			continue;
 		}
 
-		/*	Read and strip off the admin record header:
-		*	array open (1 byte), record type code (up to
-		*	9 bytes).					*/
-		printDBG(2, "checking sdr and pulling admin header...\n");
 		CHKERR(sdr_begin_xn(sdr));
-
 		recordLen = zco_source_data_length(sdr, dlv.adu);
-		printDBG(2, "data length: " UVAST_FIELDSPEC "\n", recordLen);
 		zco_start_receiving(dlv.adu, &reader);
-		bytesToParse = zco_receive_source(sdr, &reader, 10,
-				(char *) headerBuf);
+		bytesToParse = zco_receive_source(sdr, &reader, 10, (char *) headerBuf);
 		if (bytesToParse < 2)
 		{
-			printf("Can't receive admin record header.\n");
 			oK(sdr_end_xn(sdr));
 			bp_release_delivery(&dlv, 1);
 			continue;
@@ -1089,138 +1056,90 @@ static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 
 		cursor = headerBuf;
 		unparsedBytes = bytesToParse;
-		uvtemp = 2;	/*	Decode array of size 2.		*/
-		if (cbor_decode_array_open(&uvtemp, &cursor, &unparsedBytes)
-				< 1)
+		uvtemp = 2;
+		if (cbor_decode_array_open(&uvtemp, &cursor, &unparsedBytes) < 1 ||
+			cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 		{
-			printf("[?] Can't decode admin record array open.\n");
 			oK(sdr_end_xn(sdr));
 			bp_release_delivery(&dlv, 1);
 			continue;
 		}
-
-		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
-				&unparsedBytes) < 1)
-		{
-			printf("[?] Can't decode admin record type.\n");
-			oK(sdr_end_xn(sdr));
-			bp_release_delivery(&dlv, 1);
-			continue;
-		}
-
 		adminRecType = uvtemp;
 
-		/*	Now strip off the admin record header, leaving
-		 *	just the admin record content.			*/
-
 		headerLen = cursor - headerBuf;
-		zco_delimit_source(sdr, dlv.adu, headerLen,
-				recordLen - headerLen);
+		zco_delimit_source(sdr, dlv.adu, headerLen, recordLen - headerLen);
 		zco_strip(sdr, dlv.adu);
 		if (sdr_end_xn(sdr) < 0)
 		{
-			printf("Can't strip admin record.\n");
 			oK(sdr_exit_xn(sdr));
 			bp_release_delivery(&dlv, 1);
 			continue;
 		}
 
-		/* Accept status reports (type 1) and CRS (type 14) */
-		if (adminRecType != BP_STATUS_REPORT &&
-				adminRecType != CBR_ADMIN_RECORD_CRS)
+		if (adminRecType != BP_STATUS_REPORT && adminRecType != CBR_ADMIN_RECORD_CRS)
 		{
 			bp_release_delivery(&dlv, 0);
 			continue;
 		}
 
-		/*	read the entire admin record into memory buffer.	*/
-		printDBG(1, "Received admin bundle (type %d)...\n", adminRecType);
 		CHKERR(sdr_begin_xn(sdr));
 		buflen = zco_source_data_length(sdr, dlv.adu);
-
 		if ((buffer = MTAKE(buflen)) == NULL)
 		{
-			printf("Can't handle admin record.\n");
 			bp_release_delivery(&dlv, 1);
 			continue;
 		}
-
 		zco_start_receiving(dlv.adu, &reader);
-		bytesToParse = zco_receive_source(sdr, &reader, buflen,
-				(char *) buffer);
+		bytesToParse = zco_receive_source(sdr, &reader, buflen, (char *) buffer);
+		oK(sdr_end_xn(sdr));
+
 		if (bytesToParse < 0)
 		{
-			printf("Can't receive admin record.\n");
 			MRELEASE(buffer);
-			oK(sdr_end_xn(sdr));
 			bp_release_delivery(&dlv, 1);
 			continue;
 		}
 
-		oK(sdr_end_xn(sdr));
-		cursor = buffer;
-		unparsedBytes = bytesToParse;
-
-		/*	Handle based on admin record type		*/
 		if (adminRecType == BP_STATUS_REPORT)
 		{
-			printDBG(1, "handling traditional status report...\n");
-			reports[n_rpts] = malloc(sizeof(*reports[n_rpts]));
-			printDBG(3, "report pointer after malloc: %p\n", (void *)reports[n_rpts]);
-			rpt_rval = handleStatusRpt(&dlv, cursor, unparsedBytes, reports[n_rpts]);
-			printDBG(3, "\n"UVAST_FIELDSPEC"\n", reports[n_rpts]->creationTime);
-			n_rpts++;
-			printDBG(2, "report handler returned %d\n", rpt_rval);
-			MRELEASE(buffer);
-			bp_release_delivery(&dlv, 1);
-			if (rpt_rval < 0)
+			reports[n_rpts] = calloc(1, sizeof(statusReport));
+			if (handleStatusRpt(&dlv, buffer, bytesToParse, reports[n_rpts]) < 0)
 			{
 				printf("Status report handler failed.\n");
 			}
-		}
-		else /* CBR_ADMIN_RECORD_CRS */
-		{
-			unsigned int crsReportsCreated = 0;
-			printDBG(1, "handling CRS (compressed status report)...\n");
-
-			/*	CRS may contain multiple bundle status reports.
-			 *	Store them in the reports array.		*/
-			statusReport *crsReports[128];
-			memset(crsReports, 0, sizeof(crsReports));
-
-			rpt_rval = handleCrsReport(&dlv, cursor, unparsedBytes,
-					crsReports, 128 - n_rpts, &crsReportsCreated);
-
-			if (rpt_rval >= 0)
-			{
-				/*	Copy CRS reports to main reports array.	*/
-				for (unsigned int j = 0; j < crsReportsCreated && n_rpts < 128; j++)
-				{
-					reports[n_rpts] = crsReports[j];
-					n_rpts++;
-				}
-				printDBG(1, "CRS: stored %u reports\n", crsReportsCreated);
-			}
 			else
 			{
-				printf("CRS handler failed.\n");
-				/*	Clean up any partially created reports.	*/
-				for (unsigned int j = 0; j < crsReportsCreated; j++)
-				{
-					if (crsReports[j])
-					{
-						freeStatusReport(crsReports[j]);
-					}
-				}
+				n_rpts++;
 			}
-			MRELEASE(buffer);
-			bp_release_delivery(&dlv, 1);
 		}
+		else
+		{
+			unsigned int crsReportsCreated = 0;
+			statusReport *crsReports[128];
+			memset(crsReports, 0, sizeof(crsReports));
+			handleCrsReport(&dlv, buffer, bytesToParse, crsReports, 128 - n_rpts, &crsReportsCreated);
+
+			for (unsigned int j = 0; j < crsReportsCreated && n_rpts < 128; j++)
+			{
+				reports[n_rpts] = crsReports[j];
+				n_rpts++;
+				crsReports[j] = NULL;
+			}
+			/* CRS Clean Sweep */
+			for (unsigned int j = 0; j < crsReportsCreated; j++)
+			{
+				if (crsReports[j]) freeStatusReport(crsReports[j]);
+			}
+		}
+		MRELEASE(buffer);
+		bp_release_delivery(&dlv, 1);
 	}
+
 	print_reports();
+	free(reports);
 	bp_close(state.sap);
 	bp_detach();
-	return(0);
+	return 0;
 }
 
 static void
