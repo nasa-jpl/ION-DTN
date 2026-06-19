@@ -35,6 +35,14 @@ def configure(conf):
 def build(bld):
     # Excluding CFDP by seting open source = 0
     ION_OPEN_SOURCE = 0
+    # note: 64 bit riscv is also only named "riscv"
+    arch64 = {'aarch64', 'x86_64', 'riscv64', 'powerpc64', 'riscv'}
+    _arch = bld.env.RTEMS_ARCH
+    if isinstance(_arch, list):
+        _arch = _arch[0] if _arch else ''
+    space_order = 3 if _arch in arch64 else 2
+    is_64bit = _arch in arch64
+    long_long_okay = 1
 
     # Excluding non-core parts for minimal RTEMS configuration
     # Set to 1 to enable these convergence layers
@@ -58,8 +66,8 @@ def build(bld):
         'UDPTS',
         'TCPTS',
         'DGRTS',
-        'SPACE_ORDER=3',
-        'LONG_LONG_OKAY=1',
+        'SPACE_ORDER=%d' % space_order,
+        'LONG_LONG_OKAY=%d' % long_long_okay,
         'PRIVATE_SYMTAB',
         'USING_RTEMS_LIBBSD',
         'MAX_SPAWNS=32',
