@@ -5,14 +5,18 @@ permissions:
   statuses: write
   pull-requests: read
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 on:
   pull_request:
-    # Adding labeled/unlabeled ensures the workflow re-evaluates if you add the label later
-    types: [opened, synchronize, reopened, labeled, unlabeled]
+    types:
+      [
+        opened,
+        synchronize,
+        reopened,
+        labeled,
+        unlabeled,
+        converted_to_draft,
+        ready_for_review,
+      ]
     branches: ["integration"]
   workflow_dispatch:
     inputs:
@@ -31,7 +35,7 @@ jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      needs-tests: ${{ steps.filter.outputs.relevant_changes }}
+      needs-tests: ${{ steps.final-needs-tests.outputs.needs_tests }}
       tests-subset: ${{ steps.determine-tests.outputs.tests_to_run }}
       pr-number: ${{ github.event.pull_request.number }}
     steps:
@@ -56,6 +60,19 @@ jobs:
               - 'tests/**'
               - 'demos/**'
               - 'killm'
+
+      - name: Set final needs-tests
+        id: final-needs-tests
+        run: |
+          NEEDS_TESTS="${{ steps.filter.outputs.relevant_changes }}"
+
+          # Force tests to skip if the PR is currently marked as a draft
+          if [ "${{ github.event.pull_request.draft }}" == "true" ]; then
+            echo "Draft status detected. Forcing tests to skip."
+            NEEDS_TESTS="false"
+          fi
+
+          echo "needs_tests=$NEEDS_TESTS" >> $GITHUB_OUTPUT
 
       - name: Determine Test Subset
         id: determine-tests
@@ -183,6 +200,6 @@ jobs:
                 sha: pr.head.sha,
                 state: 'success',
                 context: statusContext,
-                description: 'Tests bypassed (no relevant files changed)'
+                description: 'Tests bypassed (Draft PR or no relevant files changed)'
               });
             }
