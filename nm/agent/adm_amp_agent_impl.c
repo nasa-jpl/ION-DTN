@@ -77,19 +77,44 @@ int amp_agent_build_ari_table(tbl_t *table, rhht_t *ht)
 int adm_agent_op_prep(uint8_t num, tnv_t **lval, tnv_t **rval, vector_t *stack)
 {
 	int success = AMP_OK;
+	tnv_t *tmp;
 
-	if(num > 0)
+	/* If 2 operands, the first pop goes to rval */
+	if(num > 1)
 	{
-		*rval = vec_pop(stack, &success);
-	}
-	else
-	{
-		*lval = vec_pop(stack, &success);
+		tmp = vec_pop(stack, &success);
+		if (rval != NULL)
+		{
+			*rval = tmp;
+		}
+		else
+		{
+			putErrmsg("adm_agent_op_prep: rval is NULL, "
+				"discarding popped TNV.", NULL);
+			if (tmp != NULL)
+			{
+				tnv_release(tmp, 1);
+			}
+		}
 	}
 
-	if((success == VEC_OK) && (num > 1))
+	/* If 1 or 2 operands, the next pop goes to lval */
+	if((success == VEC_OK || success == AMP_OK) && (num > 0))
 	{
-		*lval = vec_pop(stack, &success);
+		tmp = vec_pop(stack, &success);
+		if (lval != NULL)
+		{
+			*lval = tmp;
+		}
+		else
+		{
+			putErrmsg("adm_agent_op_prep: lval is NULL, "
+				"discarding popped TNV.", NULL);
+			if (tmp != NULL)
+			{
+				tnv_release(tmp, 1);
+			}
+		}
 	}
 
 	return success;
