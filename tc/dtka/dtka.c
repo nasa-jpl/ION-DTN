@@ -232,165 +232,236 @@ static int	generateKeyPair(BpSAP sap, DtkaDB *db, char *keyType,
 	time_t	currentTime = getCtime();
 	Sdr	sdr = getIonsdr();
 	time_t	effectiveTime;
+	int status = 0; /* Track execution state for single exit point */
+	int pubBufAllocSize = keySize;
+	int privBufAllocSize = keySize;
 
-	/* Parameter intentionally unused. */
 	(void)keyType;
 
 #ifdef CRYPTO_SOFTWARE_INSTALLED
-	int	result;
-	// char test[5];
-
-#else /*	For regression testing only.			*/
+	int	result = -1;
+#else
 	int	key;
 #endif
 	unsigned char	*pubKeyBuf = malloc(keySize);
-	unsigned short	publicKeyLen;
-	unsigned char	*publicKey;
+	unsigned short	publicKeyLen = 0;
+	unsigned char	*publicKey = NULL;
+
 	unsigned char	*privKeyBuf = malloc(keySize);
-	unsigned short	privateKeyLen;
-	unsigned char	*privateKey;
+	unsigned short	privateKeyLen = 0;
+	unsigned char	*privateKey = NULL;
+
 	char		recordBuffer[TC_MAX_REC];
 	int		recordLen;
-	SdrObject	extent;
-	SdrObject	bundleZco;
+	SdrObject 	extent = 0;
+	SdrObject 	bundleZco = 0;
 	char		destEid[32];
 	SdrObject	newBundle;
 
-	effectiveTime = currentTime + db->effectiveLeadTime;
+	/* Enforce strict memory availability before proceeding */
+	if (pubKeyBuf == NULL || privKeyBuf == NULL)
+	{
+		putErrmsg("Can't allocate initial key buffers.", NULL);
+		status = -1;
+	}
+
+	if (status == 0)
+	{
+		effectiveTime = currentTime + db->effectiveLeadTime;
+
 #ifdef CRYPTO_SOFTWARE_INSTALLED
-	if (strcmp(keyType, "hmac") == 0)
-	{
-		result = generateHMACKey(keySize, pubKeyBuf);
-	}
-
-	else if (strcmp(keyType, "aes") == 0)
-	{
-		result = generateAESKey(keySize, pubKeyBuf);
-	}
-
-	else if (strcmp(keyType, "ecdsa") == 0)
-	{
-		result = generateECDSAKey(keySize, pubKeyBuf, privKeyBuf);
-	}
-
-	else
-	{
-		putErrmsg("Unrecognized key type.", keyType);
-		return -1;
-	}
-
-	if (result != 0)
-	{
-		putErrmsg("Error generating key.", NULL);
-		return -1;
-	}
-
-	publicKeyLen = keySize;
-	publicKey = pubKeyBuf;
-
-	if (strcmp(keyType, "ecdsa") != 0)
-	{
-		privKeyBuf = realloc(privKeyBuf, db->keySize);
-		pubKeyBuf = pubKeyBuf;
-	}
-
-	privateKeyLen = keySize;
-	privateKey = privKeyBuf;
-
-	sdr_exit_xn(sdr);
-#else /*	For regression testing only.			*/
-	{
-		uvast	ownFqnn = getOwnFqnn();
-
-		if (ownFqnn == 0)
+		if (strcmp(keyType, "hmac") == 0)
 		{
-			ownFqnn = 1;
+			result = generateHMACKey(keySize, pubKeyBuf);
+		}
+		else if (strcmp(keyType, "aes") == 0)
+		{
+			result = generateAESKey(keySize, pubKeyBuf);
+		}
+		else if (strcmp(keyType, "ecdsa") == 0)
+		{
+			result = generateECDSAKey(keySize, pubKeyBuf, privKeyBuf);
+		}
+		else
+		{
+			putErrmsg("Unrecognized key type.", keyType);
+			status = -1;
 		}
 
-		srand((unsigned int)currentTime / ownFqnn);
-	}
-	key = rand();
-	memcpy(pubKeyBuf, (char *)&key, sizeof key);
-	publicKey = pubKeyBuf;
-	publicKeyLen = sizeof key;
-	srand((unsigned int)key);
-	key = rand();
-	memcpy(privKeyBuf, (char *)&key, sizeof key);
-	privateKey = privKeyBuf;
-	privateKeyLen = sizeof key;
+		if (status == 0 && result != 0)
+		{
+			putErrmsg("Error generating key.", NULL);
+			status = -1;
+		}
+
+		if (status == 0)
+		{
+			publicKeyLen = keySize;
+			publicKey = pubKeyBuf;
+
+			if (strcmp(keyType, "ecdsa") != 0)
+			{
+				if (db->keySize == 0)
+				{
+					putErrmsg("Configured key size is zero.", NULL);
+					status = -1;
+				}
+				else
+				{
+					unsigned char *newPriv = realloc(privKeyBuf, db->keySize);
+					if (newPriv == NULL)
+					{
+						putErrmsg("Error reallocating privKeyBuf.", NULL);
+						status = -1;
+					}
+					else
+					{
+						privKeyBuf = newPriv;
+						privBufAllocSize = db->keySize;
+					}
+				}
+			}
+
+			if (status == 0)
+			{
+				privateKeyLen = keySize;
+				privateKey = privKeyBuf;
+				sdr_exit_xn(sdr);
+			}
+		}
+#else
+		{
+			uvast	ownFqnn = getOwnFqnn();
+
+			if (ownFqnn == 0)
+			{
+				ownFqnn = 1;
+			}
+
+			srand((unsigned int)currentTime / ownFqnn);
+			key = rand();
+			memcpy(pubKeyBuf, (char *)&key, sizeof key);
+			publicKey = pubKeyBuf;
+			publicKeyLen = sizeof key;
+			srand((unsigned int)key);
+			key = rand();
+			memcpy(privKeyBuf, (char *)&key, sizeof key);
+			privateKey = privKeyBuf;
+			privateKeyLen = sizeof key;
+		}
 #endif
-	/*	Store public and private keys locally.			*/
-	if (sec_addOwnPublicKey(effectiveTime, publicKeyLen, publicKey) < 0)
-	{
-		putErrmsg("Can't add own public key.", NULL);
-		return -1;
 	}
 
-	if (sec_addPrivateKey(effectiveTime, privateKeyLen, privateKey) < 0)
+	if (status == 0 && sec_addOwnPublicKey(effectiveTime, publicKeyLen, publicKey) < 0)
 	{
 		putErrmsg("Can't add own public key.", NULL);
-		return -1;
+		status = -1;
 	}
 
-	/*	Write "add public key" command to dtka.ionsecrc file.	*/
-	if (writeAddPubKeyCmd(effectiveTime, publicKeyLen, publicKey) < 0)
+	if (status == 0 && sec_addPrivateKey(effectiveTime, privateKeyLen, privateKey) < 0)
+	{
+		putErrmsg("Can't add own private key.", NULL);
+		status = -1;
+	}
+
+	if (status == 0 && writeAddPubKeyCmd(effectiveTime, publicKeyLen, publicKey) < 0)
 	{
 		putErrmsg("Can't write command to add node public key.", NULL);
-		return -1;
+		status = -1;
 	}
 
-	if (sap == NULL) /*	Initial key generation.		*/
+	if (status == 0)
 	{
+		if (sap == NULL)
+		{
 #if TC_DEBUG
-		writeMemo("dtka: recorded initial keys.");
+			writeMemo("dtka: recorded initial keys.");
 #endif
-		return 0; /*	No publication of this key.	*/
-	}
+		}
+		else
+		{
+			recordLen = tc_serialize(recordBuffer, sizeof recordBuffer,
+					 getOwnFqnn(), effectiveTime, currentTime,
+					 publicKeyLen, publicKey);
+			if (recordLen < 0)
+			{
+				putErrmsg("Can't serialize key declaration record.", NULL);
+				status = -1;
+			}
 
-	/*	Publish new public key declaration record.		*/
+			if (status == 0)
+			{
+				if (sdr_begin_xn(sdr) < 0)
+				{
+					putErrmsg("Can't start SDR transaction.", NULL);
+					status = -1;
+				}
+				else
+				{
+					extent = sdr_malloc(sdr, recordLen);
+					if (extent)
+					{
+						sdr_write(sdr, extent, (char *)recordBuffer, recordLen);
+					}
 
-	recordLen = tc_serialize(recordBuffer, sizeof recordBuffer,
-			 getOwnFqnn(), effectiveTime, currentTime,
-			 publicKeyLen, publicKey);
-	if (recordLen < 0)
-	{
-		putErrmsg("Can't serialize key declaration record.", NULL);
-		return -1;
-	}
+					if (sdr_end_xn(sdr) < 0)
+					{
+						putErrmsg("Can't create ZCO extent.", NULL);
+						status = -1;
+					}
+				}
+			}
 
-	CHKERR(sdr_begin_xn(sdr));
-	extent = sdr_malloc(sdr, recordLen);
-	if (extent)
-	{
-		sdr_write(sdr, extent, (char *)recordBuffer, recordLen);
-	}
+			if (status == 0)
+			{
+				bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, recordLen,
+					BP_STD_PRIORITY, 0, ZcoOutbound, NULL);
+				if (bundleZco == 0 || bundleZco == (SdrObject)-1) /* <-- Fixed upstream cast */
+				{
+					putErrmsg("Can't create ZCO.", NULL);
+					status = -1;
+				}
+			}
 
-	if (sdr_end_xn(sdr) < 0)
-	{
-		putErrmsg("Can't create ZCO extent.", NULL);
-		return -1;
-	}
+			if (status == 0)
+			{
+				isprintf(destEid, sizeof destEid, "imc:%d.0", DTKA_DECLARE);
+				if (bp_send(sap, destEid, NULL, 432000, BP_STD_PRIORITY,
+					NoCustodyRequested, 0, 0, NULL, bundleZco, &newBundle) < 1)
+				{
+					putErrmsg("Can't publish key declaration bundle.", NULL);
+					status = -1;
+				}
+			}
 
-	bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, recordLen,
-		BP_STD_PRIORITY, 0, ZcoOutbound, NULL);
-	if (bundleZco == 0 || bundleZco == (SdrObject)-1)
-	{
-		putErrmsg("Can't create ZCO.", NULL);
-		return -1;
-	}
-
-	isprintf(destEid, sizeof destEid, "imc:%d.0", DTKA_DECLARE);
-	if (bp_send(sap, destEid, NULL, 432000, BP_STD_PRIORITY,
-		NoCustodyRequested, 0, 0, NULL, bundleZco, &newBundle) < 1)
-	{
-		putErrmsg("Can't publish key declaration bundle.", NULL);
-		return -1;
-	}
-
+			if (status == 0)
+			{
 #if TC_DEBUG
-	writeMemo("dtka: published key declaration bundle.");
+				writeMemo("dtka: published key declaration bundle.");
 #endif
-	return 0;
+			}
+		}
+	}
+
+	/* * SINGLE EXIT POINT
+	 * Strict Flight Rule: Cryptographic material MUST be explicitly zeroized
+	 * before releasing memory to the heap. Size is tracked dynamically.
+	 */
+	if (pubKeyBuf != NULL)
+	{
+		memset(pubKeyBuf, 0, pubBufAllocSize);
+		free(pubKeyBuf);
+		pubKeyBuf = NULL;
+	}
+
+	if (privKeyBuf != NULL)
+	{
+		memset(privKeyBuf, 0, privBufAllocSize);
+		free(privKeyBuf);
+		privKeyBuf = NULL;
+	}
+
+	return status;
 }
 
 static void	*generateKeys(void *parm)
