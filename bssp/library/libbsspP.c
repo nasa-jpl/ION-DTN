@@ -1571,6 +1571,7 @@ int	bsspAttachClient(unsigned int clientSvcId)
 {
 	Sdr		sdr = getIonsdr();
 	BsspVclient	*client;
+	BsspVdb		*vdb;
 
 	if (clientSvcId > MAX_BSSP_CLIENT_NBR)
 	{
@@ -1579,7 +1580,14 @@ int	bsspAttachClient(unsigned int clientSvcId)
 	}
 
 	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
-	client = (_bsspvdb(NULL))->clients + clientSvcId;
+	vdb = _bsspvdb(NULL);
+	if (vdb == NULL)
+	{
+		sdr_exit_xn(sdr);
+		putErrmsg("BSSP vdb not initialized.", NULL);
+		return -1;
+	}
+	client = vdb->clients + clientSvcId;
 	if (client->pid != ERROR)
 	{
 		if (sm_TaskExists(client->pid))
@@ -1610,6 +1618,7 @@ void	bsspDetachClient(unsigned int clientSvcId)
 {
 	Sdr		sdr = getIonsdr();
 	BsspVclient	*client;
+	BsspVdb		*vdb;
 
 	if (clientSvcId > MAX_BSSP_CLIENT_NBR)
 	{
@@ -1617,7 +1626,14 @@ void	bsspDetachClient(unsigned int clientSvcId)
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
-	client = (_bsspvdb(NULL))->clients + clientSvcId;
+	vdb = _bsspvdb(NULL);
+	if (vdb == NULL)
+	{
+		sdr_exit_xn(sdr);
+		putErrmsg("BSSP vdb not initialized.", NULL);
+		return;
+	}
+	client = vdb->clients + clientSvcId;
 	if (client->pid != sm_TaskIdSelf())
 	{
 		sdr_exit_xn(sdr);
