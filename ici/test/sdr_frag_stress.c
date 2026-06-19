@@ -164,7 +164,11 @@ static int	runStress(Sdr sdr, const Knobs *k)
 
 	if (k->searchLimit > 0)
 	{
-		CHKERR(sdr_begin_xn(sdr));
+		if (sdr_begin_xn(sdr) < 0)
+		{
+			free(live);
+			return -1;
+		}
 		sdr_set_search_limit(sdr, (unsigned) k->searchLimit);
 		sdr_end_xn(sdr);
 	}
@@ -182,7 +186,11 @@ static int	runStress(Sdr sdr, const Knobs *k)
 			unsigned long	idx = ((unsigned long) rand())
 					% liveCount;
 
-			CHKERR(sdr_begin_xn(sdr));
+			if (sdr_begin_xn(sdr) < 0)
+			{
+				free(live);
+				return -1;
+			}
 			sdr_free(sdr, live[idx].obj);
 			sdr_end_xn(sdr);
 
@@ -197,7 +205,11 @@ static int	runStress(Sdr sdr, const Knobs *k)
 			size_t	  sz = pickSize(k);
 			SdrObject obj;
 
-			CHKERR(sdr_begin_xn(sdr));
+			if (sdr_begin_xn(sdr) < 0)
+			{
+				free(live);
+				return -1;
+			}
 			obj = sdr_malloc(sdr, sz);
 			sdr_end_xn(sdr);
 
@@ -213,7 +225,11 @@ static int	runStress(Sdr sdr, const Knobs *k)
 
 					idx = ((unsigned long) rand())
 						% liveCount;
-					CHKERR(sdr_begin_xn(sdr));
+					if (sdr_begin_xn(sdr) < 0)
+					{
+						free(live);
+						return -1;
+					}
 					sdr_free(sdr, live[idx].obj);
 					sdr_end_xn(sdr);
 					live[idx] = live[liveCount - 1];
@@ -241,10 +257,13 @@ static int	runStress(Sdr sdr, const Knobs *k)
 	{
 		SdrUsageSummary	usage;
 		int		frag;
-
 		snapshot(sdr, i - 1, allocs, frees, allocFails);
 
-		CHKERR(sdr_begin_xn(sdr));
+		if (sdr_begin_xn(sdr) < 0)
+		{
+			free(live);
+			return -1;
+		}
 		sdr_usage(sdr, &usage);
 		sdr_exit_xn(sdr);
 
@@ -265,7 +284,11 @@ static int	runStress(Sdr sdr, const Knobs *k)
 	while (liveCount > 0)
 	{
 		liveCount--;
-		CHKERR(sdr_begin_xn(sdr));
+		if (sdr_begin_xn(sdr) < 0)
+		{
+			free(live);
+			return -1;
+		}
 		sdr_free(sdr, live[liveCount].obj);
 		sdr_end_xn(sdr);
 	}
