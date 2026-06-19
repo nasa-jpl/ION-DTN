@@ -38,6 +38,7 @@ agent_autologging_cfg_t agent_log_cfg = {
 	0, // Log Parsed Report on receipt
 	0, // Log Parsed tables on Receipt
 	50, // Number of reports per file before rotation
+	100, // Max rotated log files to retain per agent (0 = unlimited)
 	0, // Create discrete sub-folders per agent
 	"." // root log directory will be the working directory mgr started from as default
 };
@@ -64,6 +65,9 @@ agent_autologging_cfg_t agent_log_cfg = {
  **  08/29/15  E. Birrane      Don't print error message on duplicate agent
  **  10/06/18  E. Birrane      Update to AMP v0.5 (JHU/APL)
  *****************************************************************************/
+
+static int  agent_next_log_num(agent_t *agent);
+static void agent_prune_logs(agent_t *agent, int newest);
 
 int agent_add(eid_t id)
 {
@@ -93,9 +97,151 @@ int agent_add(eid_t id)
 		return AMP_FAIL;
 	}
 
+	if (agent_log_cfg.enabled)
+	{
+		/*	Resume numbering after any files left by a prior run
+		 *	so we open a fresh file rather than appending to an
+		 *	existing one.					*/
+		agent->log_file_num = agent_next_log_num(agent);
+	}
+
 	agent_rotate_log(agent, 1);
 
 	return AMP_OK;
+}
+
+/*	Builds the directory holding this agent's log files and the filename
+ *	prefix preceding the "<n>.log" suffix.  In per-agent-directory mode the
+ *	files live in <dir>/<eid>/ as "<n>.log" (empty prefix); otherwise they
+ *	share <dir> as "<eid>_<n>.log".						*/
+static void agent_log_dir(agent_t *agent, char *dirpath, size_t dlen,
+		char *prefix, size_t plen)
+{
+	if (agent_log_cfg.agent_dirs)
+	{
+		snprintf(dirpath, dlen, "%s/%s", agent_log_cfg.dir,
+				agent->eid.name);
+		prefix[0] = '\0';
+	}
+	else
+	{
+		snprintf(dirpath, dlen, "%s", agent_log_cfg.dir);
+		snprintf(prefix, plen, "%s_", agent->eid.name);
+	}
+}
+
+/*	Returns the rotation number encoded in a "<prefix><n>.log" filename,
+ *	or -1 if the name is not one of this agent's log files.			*/
+static int agent_log_num(const char *name, const char *prefix)
+{
+	size_t      plen = strlen(prefix);
+	const char *p = name;
+	char       *end;
+	long        n;
+
+	if (strncmp(p, prefix, plen) != 0)
+	{
+		return -1;
+	}
+
+	p += plen;
+	if (*p < '0' || *p > '9')
+	{
+		return -1;
+	}
+
+	n = strtol(p, &end, 10);
+	if (strcmp(end, ".log") != 0)
+	{
+		return -1;	/*	Not an "<n>.log" file.			*/
+	}
+
+	return (int) n;
+}
+
+/*	Scans the log directory for this agent's existing files and returns the
+ *	next file number to use (highest found + 1, or 0 if none).  This lets a
+ *	restarted Manager resume the rotation sequence.				*/
+static int agent_next_log_num(agent_t *agent)
+{
+	char           dirpath[128];
+	char           prefix[64];
+	DIR           *dir;
+	struct dirent *entry;
+	int            highest = -1;
+
+	agent_log_dir(agent, dirpath, sizeof(dirpath), prefix, sizeof(prefix));
+
+	dir = opendir(dirpath);
+	if (dir == NULL)
+	{
+		return 0;	/*	No prior files yet.			*/
+	}
+
+	while ((entry = readdir(dir)) != NULL)
+	{
+		int n = agent_log_num(entry->d_name, prefix);
+
+		if (n > highest)
+		{
+			highest = n;
+		}
+	}
+
+	closedir(dir);
+	return highest + 1;
+}
+
+/*	Enforces retention: keeps at most max_files of this agent's log files by
+ *	deleting any whose rotation number is more than max_files behind the one
+ *	just created (`newest`).  						*/
+static void agent_prune_logs(agent_t *agent, int newest)
+{
+	char           dirpath[128];
+	char           prefix[64];
+	char           fn[512];
+	int            oldest_kept;
+	DIR           *dir;
+	struct dirent *entry;
+
+	if (agent_log_cfg.max_files <= 0)
+	{
+		return;		/*	Unlimited.				*/
+	}
+
+	oldest_kept = newest - agent_log_cfg.max_files + 1;
+	if (oldest_kept <= 0)
+	{
+		return;		/*	Nothing old enough to drop yet.		*/
+	}
+
+	agent_log_dir(agent, dirpath, sizeof(dirpath), prefix, sizeof(prefix));
+
+	dir = opendir(dirpath);
+	if (dir == NULL)
+	{
+		return;
+	}
+
+	while ((entry = readdir(dir)) != NULL)
+	{
+		int n = agent_log_num(entry->d_name, prefix);
+
+		if (n < 0 || n >= oldest_kept)
+		{
+			continue;	/*	Not a log file, or still kept.	*/
+		}
+
+		snprintf(fn, sizeof(fn), "%s/%s", dirpath, entry->d_name);
+		if (unlink(fn) != 0 && errno != ENOENT)
+		{
+			AMP_DEBUG_WARN("agent_prune_logs",
+				"Failed to prune old log file (%s) for agent %s",
+				fn, agent->eid.name);
+		}
+	}
+
+	closedir(dir);
 }
 
 void agent_rotate_log(agent_t *agent, int force)
@@ -147,6 +293,7 @@ void agent_rotate_log(agent_t *agent, int force)
 		agent->log_fd = fopen(fn, "a");
 		if (agent->log_fd != NULL) {
 			agent->log_fd_cnt = 0;
+			agent_prune_logs(agent, agent->log_file_num);
 			agent->log_file_num++;
 		} else {
 		  AMP_DEBUG_ERR("agent_rotate_log", "Failed to open report log file (%s) for agent %s", fn, agent->eid.name);

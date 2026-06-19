@@ -337,10 +337,11 @@ char* mgr_parse_args(int argc, char* argv[])
 
 			{"log-dir", required_argument, 0,'D'},
 			{"log-limit", required_argument, 0,'L'},
+			{"log-max-files", required_argument, 0,'N'},
 			{"automator", required_argument, 0,'a'},
 			{"help", required_argument, 0,'h'},
 		};
-	while ((c = getopt_long(argc, argv, "ldL:D:rtTRaAjJs:u:p:S:", long_options, &option_index)) != -1)
+	while ((c = getopt_long(argc, argv, "ldL:N:D:rtTRaAjJs:u:p:S:", long_options, &option_index)) != -1)
 	{
 		switch (c)
 		{
@@ -391,6 +392,9 @@ char* mgr_parse_args(int argc, char* argv[])
 		case 'L':
 			agent_log_cfg.limit = atoi(optarg);
 			break;
+		case 'N':
+			agent_log_cfg.max_files = atoi(optarg);
+			break;
 		case 'a':
 		case 'A':
 			mgr_ui_mode = MGR_UI_AUTOMATOR;
@@ -434,6 +438,7 @@ void mgr_print_usage(void)
 	printf("           If logging is not enabled, the following have no affect until enabled in UI\n");
 	printf("-d       Log each agent to a different directory\n");
 	printf("-L #      Specify maximum number of entries (reports+tables) per file before rotating\n");
+	printf("-N #      Max rotated log files to retain per agent (default 100, 0 = unlimited)\n");
 	printf("-D DIR   NM logs will be placed in this directory\n");
 	printf("-r       Log all received reports to file in text format (as shown in UI)\n");
 	printf("-t       Log all received tables to file in text format (as shown in UI)\n");
