@@ -768,6 +768,13 @@ int	cbor_decode_byte_string(unsigned char *value, uvast *size,
 		return 0;
 	}
 
+	if (stringLength > *bytesBuffered)
+	{
+		writeMemoNote("[?] CBOR byte string exceeds buffered input",
+				itoa(stringLength));
+		return 0;
+	}
+
 	/*	Cursor has been advanced to the beginning of the
 	 *	text string at this point.				*/
 
@@ -826,6 +833,13 @@ int	cbor_decode_text_string(char *value, uvast *size,
 	if (stringLength > *size)
 	{
 		writeMemoNote("[?] CBOR text string too long",
+				itoa(stringLength));
+		return 0;
+	}
+
+	if (stringLength > *bytesBuffered)
+	{
+		writeMemoNote("[?] CBOR text string exceeds buffered input",
 				itoa(stringLength));
 		return 0;
 	}

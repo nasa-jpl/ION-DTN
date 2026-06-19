@@ -470,6 +470,7 @@ icibin = \
 	robust_lock_recovery_test \
 	psm_robust_recovery_test \
 	ipc_lock_recovery_test \
+	cbor_oob_test \
 	sdrcancel \
 	sdr_frag_stress \
 	sdrmend \
@@ -747,6 +748,10 @@ psm_robust_recovery_test_CFLAGS = $(icicflags) $(AM_CFLAGS)
 ipc_lock_recovery_test_SOURCES = ici/test/ipc_lock_recovery_test.c
 ipc_lock_recovery_test_LDADD = libici.la -lm
 ipc_lock_recovery_test_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
+cbor_oob_test_SOURCES = ici/test/cbor_oob_test.c
+cbor_oob_test_LDADD = libici.la -lm
+cbor_oob_test_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 sdrcancel_SOURCES = ici/test/sdrcancel.c
 sdrcancel_LDADD = libici.la -lm

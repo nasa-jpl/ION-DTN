@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+#
+# cbor-oob-read - regression test for VDP-2945.
+#
+# Runs the standalone cbor_oob_test binary, which exercises the real
+# ICI CBOR string decoders (cbor_decode_text_string /
+# cbor_decode_byte_string) with truncated inputs whose declared length
+# exceeds the bytes actually buffered.  The decoders must reject such
+# inputs instead of reading past the end of the receive buffer (CWE-125)
+# and underflowing the unsigned bytes-buffered counter (CWE-191).
+#
+# The harness heap-allocates each input to exactly its on-the-wire size,
+# so an AddressSanitizer build aborts on the over-read should the bounds
+# check ever regress.  A normal build verifies the decoders return 0 and
+# that well-formed strings still decode.
+#
+trap 'killm f >/dev/null 2>&1' EXIT
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify the ICI CBOR string decoders reject a string whose"
+echo "         declared length exceeds the buffered input, preventing an"
+echo "         out-of-bounds read and unsigned underflow (VDP-2945)."
+echo
+echo "OUTPUT:  Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+
+if ! command -v cbor_oob_test >/dev/null 2>&1; then
+    echo "FAIL: cbor_oob_test not on PATH"
+    exit 1
+fi
+
+cbor_oob_test
+RC=$?
+
+if [ "$RC" -eq 0 ]; then
+    echo "cbor-oob-read: PASSED"
+    exit 0
+fi
+
+echo "cbor-oob-read: FAILED (exit=$RC)"
+exit 1
