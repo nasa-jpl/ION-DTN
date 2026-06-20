@@ -98,7 +98,17 @@ def build(bld):
     # Not buidling with CFDP
     # -DNASA_PROTECTED_FLIGHT_CODE
 
-    ionflags = '-g -Wall -Werror -Wno-unused-variable'
+    # -Wno-error=shift-count-overflow: libbp.c parseEidString shifts an
+    # `unsigned long` by 32; harmless on LP64 (aarch64) but on 32-bit
+    # SPARC the shift width equals the type width, which GCC flags.
+    # -Wno-error=overflow: cbr.h compile-time constants assume 64-bit
+    # uvast and overflow when uvast is downgraded to `long` on 32-bit.
+    # Demoting these to warnings keeps -Werror useful elsewhere.
+    ionflags = (
+        '-g -Wall -Werror -Wno-unused-variable'
+        ' -Wno-error=shift-count-overflow'
+        ' -Wno-error=overflow'
+    )
 
     icisources = [
         'rfxclock.c',
