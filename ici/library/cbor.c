@@ -768,19 +768,27 @@ int	cbor_decode_byte_string(unsigned char *value, uvast *size,
 		return 0;
 	}
 
-	if (stringLength > *bytesBuffered)
-	{
-		writeMemoNote("[?] CBOR byte string exceeds buffered input",
-				itoa(stringLength));
-		return 0;
-	}
-
 	/*	Cursor has been advanced to the beginning of the
 	 *	text string at this point.				*/
 
 	*size = stringLength;
 	if (value)	/*	Okay to copy bytes into buffer.		*/
 	{
+		/*	Only when copying do we read stringLength bytes
+		 *	from the input buffer, so the bounds check against
+		 *	buffered input applies only here.  Callers that pass
+		 *	a NULL destination are merely decoding the string's
+		 *	length; the content is not in this buffer (e.g. it is
+		 *	streamed from a ZCO), so stringLength legitimately
+		 *	exceeds *bytesBuffered in that case.			*/
+
+		if (stringLength > *bytesBuffered)
+		{
+			writeMemoNote("[?] CBOR byte string exceeds buffered "
+					"input", itoa(stringLength));
+			return 0;
+		}
+
 		memcpy(value, *cursor, stringLength);
 		*cursor += stringLength;
 		*bytesBuffered -= stringLength;
@@ -837,19 +845,27 @@ int	cbor_decode_text_string(char *value, uvast *size,
 		return 0;
 	}
 
-	if (stringLength > *bytesBuffered)
-	{
-		writeMemoNote("[?] CBOR text string exceeds buffered input",
-				itoa(stringLength));
-		return 0;
-	}
-
 	/*	Cursor has been advanced to the beginning of the
 	 *	text string at this point.				*/
 
 	*size = stringLength;
 	if (value)	/*	Okay to copy bytes into buffer.		*/
 	{
+		/*	Only when copying do we read stringLength bytes
+		 *	from the input buffer, so the bounds check against
+		 *	buffered input applies only here.  Callers that pass
+		 *	a NULL destination are merely decoding the string's
+		 *	length; the content is not in this buffer (e.g. it is
+		 *	streamed from a ZCO), so stringLength legitimately
+		 *	exceeds *bytesBuffered in that case.			*/
+
+		if (stringLength > *bytesBuffered)
+		{
+			writeMemoNote("[?] CBOR text string exceeds buffered "
+					"input", itoa(stringLength));
+			return 0;
+		}
+
 		memcpy(value, *cursor, stringLength);
 		*cursor += stringLength;
 		*bytesBuffered -= stringLength;
