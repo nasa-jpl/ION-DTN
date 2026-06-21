@@ -16,11 +16,6 @@ on:
       - '**.h'
       - '.github/workflows/dev-makefile-build.yml'
 
-  push:
-    branches:
-      - 'update-*-makefile*'
-      - 'fix-*-makefile*'
-
   workflow_dispatch:
     inputs:
       pr_number:
