@@ -21,6 +21,7 @@
 #include "sdrP.h"
 #include "lyst.h"
 #include "sdrxn.h"
+#include <sys/uio.h>
 
 #ifndef SDR_SEMKEY
 #define SDR_SEMKEY	(0xeee0)
@@ -2528,16 +2529,28 @@ int	sdrBoundaryViolated(SdrView *sdrv, Address offset, size_t length)
 
 #endif
 
-static int	writeToLog(const char *file, int line, Sdr sdrv, char *from,
-			size_t length)
+/*	writevToLog appends one log entry, assembled from several
+ *	non-contiguous segments, to the transaction log. 		*/
+
+static int	writevToLog(const char *file, int line, Sdr sdrv,
+			const struct iovec *iov, int iovcnt)
 {
 	SdrState	*sdr = sdrv->sdr;
-	ssize_t		bytesWritten; /* Added for safe write() check. */
+	size_t		length = 0;
+	int		i;
+
+	for (i = 0; i < iovcnt; i++)
+	{
+		length += iov[i].iov_len;
+	}
 
 	if (sdr->logSize == 0)		/*	Log is in file.		*/
 	{
-		bytesWritten = write(sdrv->logfile, from, length);
-		if (bytesWritten < 0 || (size_t)bytesWritten != length)
+		ssize_t	bytesWritten;
+
+		bytesWritten = pwritev(sdrv->logfile, iov, iovcnt,
+				(off_t) sdr->logLength);
+		if (bytesWritten < 0 || (size_t) bytesWritten != length)
 		{
 			_putSysErrmsg(file, line, "Can't write log entry",
 					itoa(length));
@@ -2546,6 +2559,8 @@ static int	writeToLog(const char *file, int line, Sdr sdrv, char *from,
 	}
 	else				/*	Log is in memory.	*/
 	{
+		char	*cursor;
+
 		if (sdr->logLength + length > sdr->logSize)
 		{
 			char buf[256];
@@ -2557,16 +2572,21 @@ SDR: %s  logSize: %lu logLength: %lu length: %lu depth: %d", sdr->name,
 			return -1;
 		}
 
-		memcpy(sdrv->logsm + sdr->logLength, (char *) from, length);
+		cursor = sdrv->logsm + sdr->logLength;
+		for (i = 0; i < iovcnt; i++)
+		{
+			memcpy(cursor, iov[i].iov_base, iov[i].iov_len);
+			cursor += iov[i].iov_len;
+		}
 	}
 
 	sdr->logLength += length;
-	if ( sdr->logLength > sdr->maxLogLength )
+	if (sdr->logLength > sdr->maxLogLength)
 	{
 		sdr->maxLogLength = sdr->logLength;
 	}
 
-	return length;
+	return 0;
 }
 
 void	_sdrput(const char *file, int line, Sdr sdrv, Address into, char *from,
@@ -2634,30 +2654,28 @@ void	_sdrput(const char *file, int line, Sdr sdrv, Address into, char *from,
 #endif
 	if (sdr->configFlags & SDR_REVERSIBLE)
 	{
+		struct iovec	iov[2];
+
 		logOffset = sdr->logLength;	/*	Before writing.	*/
 		logEntryControl[0] = into;
 		logEntryControl[1] = length;
-		if (writeToLog(file, line, sdrv, (char *) logEntryControl,
-				sizeof logEntryControl) < 0)
-		{
-			_putSysErrmsg(file, line, "Can't write logEntryControl",
-					NULL);
-			crashXn(sdrv);
-			return;
-		}
+
+		/*	A log entry is the control header followed by the
+		 *	pre-image of the affected bytes; gather both into
+		 *	one vectored append.  For an in-DRAM dataspace the
+		 *	pre-image is taken straight from shared memory; for
+		 *	a file-only dataspace it is first read into a
+		 *	scratch buffer.					*/
+
+		buffer = NULL;
+		iov[0].iov_base = logEntryControl;
+		iov[0].iov_len = sizeof logEntryControl;
 
 		if (sdr->configFlags & SDR_IN_DRAM)
 		{
-			if (writeToLog(file, line, sdrv, sdrv->dssm + into,
-					length) < 0)
-			{
-				_putSysErrmsg(file, line, "Can't write log \
-entry", itoa(length));
-				crashXn(sdrv);
-				return;
-			}
+			iov[1].iov_base = sdrv->dssm + into;
 		}
-		else	/*	Dataspace is only in file.		*/
+		else	/*	Read pre-image from dataspace file.	*/
 		{
 			buffer = MTAKE(length);
 			if (buffer == NULL)
@@ -2678,15 +2696,24 @@ log entry.", itoa(length));
 				return;
 			}
 
-			if (writeToLog(file, line, sdrv, buffer, length) < 0)
+			iov[1].iov_base = buffer;
+		}
+
+		iov[1].iov_len = length;
+
+		if (writevToLog(file, line, sdrv, iov, 2) < 0)
+		{
+			if (buffer)
 			{
 				MRELEASE(buffer);
-				_putSysErrmsg(file, line, "Can't write log \
-entry", itoa(length));
-				crashXn(sdrv);
-				return;
 			}
 
+			crashXn(sdrv);
+			return;
+		}
+
+		if (buffer)
+		{
 			MRELEASE(buffer);
 		}
 
