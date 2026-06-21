@@ -849,13 +849,7 @@ static int  readFromLog(int logfile, char *logsm, size_t offset,
 	{
 		ssize_t bytesRead;
 
-		if (lseek(logfile, offset, SEEK_SET) < 0)
-		{
-			putSysErrmsg("Can't seek in log file", itoa(offset));
-			return -1;
-		}
-
-		bytesRead = read(logfile, into, length);
+		bytesRead = pread(logfile, into, length, offset);
 
 		/* Check for read error (-1) first, then for a partial read. */
 		if (bytesRead < 0 || (size_t)bytesRead < length)
@@ -924,13 +918,9 @@ static int	reverseTransaction(SdrState *sdr, int logfile, char *logsm,
 
 			if (dsfile != -1)
 			{
-				if (lseek(dsfile, logEntryControl[0], SEEK_SET) < 0)
-				{
-					putSysErrmsg("Can't seek in dataspace file", NULL);
-					return -1;
-				}
-
-				bytesWritten = write(dsfile, dssm + logEntryControl[0], length);
+				bytesWritten = pwrite(dsfile,
+						dssm + logEntryControl[0],
+						length, logEntryControl[0]);
 				if (bytesWritten < 0 || (size_t)bytesWritten < length)
 				{
 					putSysErrmsg("Can't reverse log entry", NULL);
@@ -959,14 +949,8 @@ static int	reverseTransaction(SdrState *sdr, int logfile, char *logsm,
 					return -1;
 				}
 
-				if (lseek(dsfile, logEntryControl[0], SEEK_SET) < 0)
-				{
-					putSysErrmsg("Can't seek in dataspace file", NULL);
-					MRELEASE(buf);
-					return -1;
-				}
-
-				bytesWritten = write(dsfile, buf, length);
+				bytesWritten = pwrite(dsfile, buf, length,
+						logEntryControl[0]);
 				if (bytesWritten < 0 || (size_t)bytesWritten < length)
 				{
 					putSysErrmsg("Can't reverse log entry", NULL);
@@ -2684,16 +2668,7 @@ log entry.", itoa(length));
 				return;
 			}
 
-			if (lseek(sdrv->dsfile, into, SEEK_SET) < 0)
-			{
-				MRELEASE(buffer);
-				_putSysErrmsg(file, line, "Can't seek to read old data",
-						itoa(length));
-				crashXn(sdrv);
-				return;
-			}
-
-			bytesRead = read(sdrv->dsfile, buffer, length);
+			bytesRead = pread(sdrv->dsfile, buffer, length, into);
 			if (bytesRead < 0 || (size_t)bytesRead < length)
 			{
 				MRELEASE(buffer);
@@ -2729,15 +2704,11 @@ entry.", NULL);
 
 	if (sdr->configFlags & SDR_IN_FILE)
 	{
-		if (lseek(sdrv->dsfile, into, SEEK_SET) < 0)
-		{
-			_putSysErrmsg(file, line, "Can't seek to write to dataspace",
-					itoa(length));
-			crashXn(sdrv);
-			return;
-		}
+		/*	Single positioned write: avoids the separate
+		 *	lseek syscall on every scattered field update,
+		 *	which dominates the file-backed write path.	*/
 
-		bytesWritten = write(sdrv->dsfile, from, length);
+		bytesWritten = pwrite(sdrv->dsfile, from, length, into);
 		if (bytesWritten < 0 || (size_t)bytesWritten < length)
 		{
 			_putSysErrmsg(file, line, "Can't write to dataspace",
@@ -2809,15 +2780,10 @@ void	_sdrfetch(Sdr sdrv, char *into, Address from, size_t length)
 		memset(into, 0, length);	/*	Default value.	*/
 		if (sdr->configFlags & SDR_IN_FILE)
 		{
-			/* --- Start of corrected block --- */
-			if (lseek(sdrv->dsfile, from, SEEK_SET) < 0)
-			{
-				putSysErrmsg("Dataspace seek failed", itoa(from));
-				crashXn(sdrv);  /* Releases SDR.   */
-				return;
-			}
+			/*	Single positioned read: avoids the separate
+			 *	lseek syscall on every file-backed fetch.	*/
 
-			bytesRead = read(sdrv->dsfile, into, length);
+			bytesRead = pread(sdrv->dsfile, into, length, from);
 			if (bytesRead < 0 || (size_t)bytesRead < length)
 			{
 				putSysErrmsg("Dataspace read failed",
