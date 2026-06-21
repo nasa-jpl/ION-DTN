@@ -98,7 +98,7 @@ jobs:
 
       - name: Report build start
         if: steps.pr-context.outputs.has_pr == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             await github.rest.issues.createComment({
