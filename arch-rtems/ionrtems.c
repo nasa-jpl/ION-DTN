@@ -583,6 +583,15 @@ void	showUtcDelta()
 #define CONFIGURE_INIT_TASK_ATTRIBUTES \
 	(RTEMS_DEFAULT_ATTRIBUTES | RTEMS_FLOATING_POINT)
 
+/*
+ * The init task runs the entire ION bring-up (startDTN) synchronously on its
+ * own stack, through a deep ION-admin call chain with large stack locals.
+ * This overflows the RTEMS default minimum init task stack and silently
+ * clobbers adjacent memory -- in particular the task's libio root location,
+ * after which every filesystem op (stat/open/...) returns ENXIO.
+ */
+#define CONFIGURE_INIT_TASK_STACK_SIZE (128 * 1024)
+
 /*	Resource limits - adjusted for minimal BP/LTP port	*/
 /*	Use unlimited objects for libbsd compatibility		*/
 #define	CONFIGURE_UNLIMITED_OBJECTS
