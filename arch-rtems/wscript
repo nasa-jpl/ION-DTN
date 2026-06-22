@@ -1,6 +1,8 @@
 #
-# Hello World Program Waf script
-# Adopted for ION BPv7 port to RTEMS 6.1 (ARM64 aarch64/a53_lp64_qemu)
+# Waf script for the ION BPv7 RTEMS port.
+# Supported BSPs (verified under QEMU):
+#   * aarch64/a53_lp64_qemu  (64-bit ARM, ARMv8-A virt machine)
+#   * sparc/leon3            (Gaisler LEON3, SPARC V8)
 #
 from __future__ import print_function
 
