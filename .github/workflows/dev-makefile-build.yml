@@ -63,19 +63,6 @@ jobs:
           ref: ${{ steps.determine-ref.outputs.ref }}
           fetch-depth: 1
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            gcc \
-            g++ \
-            make \
-            automake \
-            autoconf \
-            libtool \
-            pkg-config
-
       - name: Set PR context
         id: pr-context
         run: |
