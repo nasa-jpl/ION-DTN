@@ -33,8 +33,6 @@ def configure(conf):
 
 
 def build(bld):
-    # Excluding CFDP by seting open source = 0
-    ION_OPEN_SOURCE = 0
     # note: 64 bit riscv is also only named "riscv"
     arch64 = {'aarch64', 'x86_64', 'riscv64', 'powerpc64', 'riscv'}
     _arch = bld.env.RTEMS_ARCH
@@ -73,14 +71,6 @@ def build(bld):
         'MAX_SPAWNS=32',
     ]
 
-    # Check for inclusion of CFDP
-    #   Currently CFDP is not included (ION_OPEN_SOURCE=0)
-    #   When ION_OPEN_SOURCE=0, NASA_PROTECTED_FLIGHT_CODE is defined
-    #   which excludes CFDP code from compilation
-
-    if ION_OPEN_SOURCE == 0:
-        iondefines += ['NASA_PROTECTED_FLIGHT_CODE']
-
     # Add conditional defines for DGR and BSSP
     if ENABLE_DGR == 1:
         iondefines += ['ENABLE_DGR']
@@ -95,8 +85,6 @@ def build(bld):
     # -DION_NO_DNS
     # Not building with nm
     # -DAGENT_ROLE
-    # Not buidling with CFDP
-    # -DNASA_PROTECTED_FLIGHT_CODE
 
     # -Wno-error=shift-count-overflow: libbp.c parseEidString shifts an
     # `unsigned long` by 32; harmless on LP64 (aarch64) but on 32-bit
@@ -351,7 +339,7 @@ def build(bld):
 
     bssplibsources = ['libbssp.c', 'libbsspP.c']
 
-    cfdpsources = ['bputa.c', 'cfdpclock.c', 'cfdpadmin.c', 'bpcp.c', 'bpcpd.c']
+    cfdpsources = ['bputa.c', 'cfdpclock.c', 'cfdpadmin.c']
 
     cfdplibsources = ['libcfdp.c', 'libcfdpP.c', 'libcfdpops.c']
 
@@ -390,25 +378,17 @@ def build(bld):
 
     # Minimal BP/LTP port - excluding AMS, BSS
     # DGR and BSSP conditionally included based on ENABLE_DGR and ENABLE_BSSP flags
-    csrcs = ['ionrtems.c'] + icisources + ltpsource + bpsources + testsources
+    csrcs = (
+        ['ionrtems.c'] + icisources + ltpsource + bpsources + testsources + cfdpsources
+    )
 
     # Conditionally add BSSP daemon and admin sources
     if ENABLE_BSSP == 1:
         csrcs += bsspsources
 
-    if ION_OPEN_SOURCE == 1:
-        csrcs += cfdpsources
-
-    # cfdpsources - not compiled into final executable,
-    #      building CFDP library was okay but have issue
-    #      building the final executable with WAF in RTEMS 5.1
-    #      complain of unknown type in header files.
-    #      To be fixed in future release. Current demo does
-    #      require NM and CFDP functionalities
-
     # Minimal BP/LTP port - excluding AMS, BSS
     # DGR and BSSP conditionally included based on flags
-    includes = ['./'] + iciinclude + ltpinclude + bpinclude
+    includes = ['./'] + iciinclude + ltpinclude + bpinclude + cfdpinclude
 
     # Conditionally add DGR include paths
     if ENABLE_DGR == 1:
@@ -417,9 +397,6 @@ def build(bld):
     # Conditionally add BSSP include paths
     if ENABLE_BSSP == 1:
         includes += bsspinclude
-
-    if ION_OPEN_SOURCE == 1:
-        includes += cfdpinclude
 
     rtems.build(bld)
     bld.stlib(
@@ -487,18 +464,17 @@ def build(bld):
 
     # AMS and BSS libraries excluded for minimal port
 
-    if ION_OPEN_SOURCE == 1:
-        bld.stlib(
-            target='cfdp',
-            cflags=ionflags,
-            source=cfdplibsources,
-            includes=iciinclude + bpinclude + cfdpinclude,
-            defines=iondefines,
-            use=['ici', 'bp', 'm'],
-        )
+    bld.stlib(
+        target='cfdp',
+        cflags=ionflags,
+        source=cfdplibsources,
+        includes=iciinclude + bpinclude + cfdpinclude,
+        defines=iondefines,
+        use=['ici', 'bp', 'm'],
+    )
 
     # Minimal BP/LTP port - only required libraries
-    libuse = ['ici', 'bp', 'ltp', 'm']
+    libuse = ['ici', 'bp', 'ltp', 'cfdp', 'm']
 
     # Conditionally add DGR and BSSP to linked libraries
     if ENABLE_DGR == 1:
@@ -506,9 +482,6 @@ def build(bld):
 
     if ENABLE_BSSP == 1:
         libuse.insert(-1, 'bssp')  # Insert before 'm'
-
-    if ION_OPEN_SOURCE == 1:
-        libuse.insert(-1, 'cfdp')  # Insert before 'm'
 
     # Note: RTEMS pthread functions are in rtemscpu library
 
