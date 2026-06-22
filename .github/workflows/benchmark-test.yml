@@ -61,6 +61,52 @@ jobs:
         id: timestamp
         run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
 
+      - name: Calculate Source Hash
+        id: calculate-hash
+        run: echo "hash=${{ hashFiles('**/*.c', '**/*.h', 'configure.ac', 'Makefile.am', 'build-bsl-for-ion.sh') }}" >> $GITHUB_OUTPUT
+
+      - name: Restore Build Workspace Cache
+        id: cache-build-restore
+        uses: actions/cache/restore@v5
+        with:
+          path: |
+            .
+            !.git
+            !autom4te.cache/
+            !.github/
+            !benchmark.log
+            !**/*.md
+          key: ion-benchmark-build-arc-runner-set-u22-${{ steps.calculate-hash.outputs.hash }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ion-benchmark-build-arc-runner-set-u22-${{ steps.calculate-hash.outputs.hash }}-
+
+      - name: Build ION
+        if: ${{ steps.cache-build-restore.outputs.cache-matched-key == '' }}
+        run: |
+          {
+            echo "Starting build at $(date)"
+            autoreconf -fi
+            ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
+            make all buildcheck
+          } > benchmark.log 2> >(tee -a benchmark.log >&2)
+
+      - name: Save Build Workspace Cache
+        if: ${{ success() && steps.cache-build-restore.outputs.cache-matched-key == '' }}
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            .
+            !.git
+            !autom4te.cache/
+            !.github/
+            !benchmark.log
+            !**/*.md
+          key: ion-benchmark-build-arc-runner-set-u22-${{ steps.calculate-hash.outputs.hash }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Overlay fresh tests and scripts
+        if: ${{ steps.cache-build-restore.outputs.cache-matched-key != '' }}
+        run: git checkout HEAD -- tests/ demos/ killm
+
       - name: Install and run benchmark
         timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || '60') }}
         run: |
@@ -70,11 +116,10 @@ jobs:
             echo "USER is set to: $USER"
             export ION_RUN_EXPERT="yes"
             export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-            autoreconf -fi
-            ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
-            make all buildcheck
+
             sudo make install
             sudo ldconfig
+
             if [ -n "${{ inputs.tests_to_run }}" ]; then
               if [ "${{ inputs.force_update }}" == "true" ]; then
                 echo "Force updating benchmarks for: ${{ inputs.tests_to_run }}"
@@ -88,7 +133,7 @@ jobs:
               fi
               ./tests/benchmark.py
             fi
-          } > benchmark.log 2> >(tee -a benchmark.log >&2)
+          } >> benchmark.log 2> >(tee -a benchmark.log >&2)
 
           TEST_STATUS=$?
 
