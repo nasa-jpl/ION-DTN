@@ -8,7 +8,6 @@
 ./srcremove
 
 # pull in fresh sources
-ION_OPEN_SOURCE=1
 CRYPTO=crypto/NULL_SUITES
 BULK=bulk/STUB_BULK
 

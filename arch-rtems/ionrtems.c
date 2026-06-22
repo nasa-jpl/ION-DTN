@@ -21,9 +21,11 @@
 #include "ltp_admin.h"
 #include "bp_admin.h"
 #include "ltpnm.h"
-#ifndef NASA_PROTECTED_FLIGHT_CODE
 #include "cfdp.h"
-#endif
+#include "cfdpP.h"
+#include "bputa.h"
+#include <fcntl.h>
+#include <unistd.h>
 
 #define ION_NODE_NBR	  ((uvast) 19)
 #define LTP_ENGINE_STR	  "19"		   /* must match ION_NODE_NBR */
@@ -363,10 +365,6 @@ static int	startDTN()
 	pseudoshell("lgagent ipn:19.127");
 	snooze(1);
 
-#ifndef NASA_PROTECTED_FLIGHT_CODE
-	/*	CFDP is excluded in this minimal BP/LTP port			*/
-#endif
-
 	puts("ION startup complete.");
 	return 0;
 }
@@ -436,16 +434,170 @@ static void testLoopback(const char *label, const char *payload,
 	puts(buf);
 }
 
+#define CFDP_SRC_PATH "/cfdp_src.dat"
+#define CFDP_DST_PATH "/cfdp_dst.dat"
+#define CFDP_PAYLOAD  "Hello, world via CFDP."
 
-	puts("Loopback test ended.");
+/*
+ * Bring CFDP up: cfdpInit creates SDR state, cfdpAttach wires this process to
+ * it, cfdpStart spawns cfdpclock and the BP UT-adapter (bputa) via
+ * pseudoshell.  bputa ships CFDP PDUs as bundles to endpoint ipn:N.64 (already
+ * provisioned in startDTN).
+ */
+static int startCfdp(void)
+{
+	int count;
+
+	if (cfdpInit() < 0)
+	{
+		writeMemo("[?] CFDP init failed.");
+		return -1;
+	}
+
+	if (cfdpAttach() < 0)
+	{
+		writeMemo("[?] CFDP attach failed.");
+		return -1;
+	}
+
+	if (cfdpStart("bputa") < 0)
+	{
+		writeMemo("[?] CFDP start failed.");
+		return -1;
+	}
+
+	for (count = 5; cfdp_entity_is_started() == 0; count--)
+	{
+		if (count == 0)
+		{
+			writeMemo("[?] CFDP entity did not come up.");
+			return -1;
+		}
+		snooze(1);
+	}
+
+	puts("CFDP entity is running (bputa UTA active).");
+	return 0;
+}
+
+static int writeSourceFile(void)
+{
+	int fd;
+	int len = (int) strlen(CFDP_PAYLOAD);
+
+	puts("Opening CFDP source file...");
+	fflush(stdout);
+	fd = iopen(CFDP_SRC_PATH, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	if (fd < 0)
+	{
+		putSysErrmsg("Can't create CFDP source file", CFDP_SRC_PATH);
+		return -1;
+	}
+
+	puts("Writing CFDP source file...");
+	fflush(stdout);
+	if (write(fd, CFDP_PAYLOAD, len) != len)
+	{
+		close(fd);
+		writeMemo("[?] Short write to CFDP source file.");
+		return -1;
+	}
+
+	close(fd);
+	puts("CFDP source file written.");
+	return 0;
+}
+
+static int verifyDestFile(void)
+{
+	int  fd;
+	int  len = (int) strlen(CFDP_PAYLOAD);
+	char buf[64];
+	int  got;
+
+	fd = iopen(CFDP_DST_PATH, O_RDONLY, 0);
+	if (fd < 0)
+	{
+		return -1; /* Not delivered yet. */
+	}
+
+	got = read(fd, buf, sizeof buf - 1);
+	close(fd);
+	if (got != len)
+	{
+		return -1;
+	}
+
+	buf[got] = '\0';
+	return memcmp(buf, CFDP_PAYLOAD, len) == 0 ? 0 : -1;
+}
+
+static void testCfdp(void)
+{
+	BpUtParms	  utParms;
+	CfdpNumber	  destEntity;
+	CfdpTransactionId tid;
+	int		  count;
+
+	puts("Starting CFDP loopback test.");
+	if (startCfdp() < 0)
+	{
+		return;
+	}
+
+	/* Create the CFDP source file on the IMFS root filesystem. */
+	if (writeSourceFile() < 0)
+	{
+		return;
+	}
+
+	memset(&utParms, 0, sizeof utParms);
+	utParms.lifespan = 300; /* 300 sec TTL. */
+	utParms.classOfService = BP_STD_PRIORITY;
+	utParms.custodySwitch = NoCustodyRequested;
+	cfdp_compress_number(&destEntity, ION_NODE_NBR);
+
+	puts("Issuing cfdp_put...");
+	fflush(stdout);
+	if (cfdp_put(&destEntity, sizeof utParms, (unsigned char *) &utParms,
+			    CFDP_SRC_PATH, CFDP_DST_PATH, NULL, NULL, NULL, 0,
+			    NULL, 0, 0, 0, &tid)
+			< 0)
+	{
+		writeMemo("[?] cfdp_put failed.");
+		return;
+	}
+	puts("cfdp_put accepted.");
+	fflush(stdout);
+
+	/*
+	 * Poll the destination path; loopback over LTP/UDP on a single QEMU
+	 * CPU finishes well under a second, but allow up to 10 s for slow
+	 * simulator builds.
+	 */
+	for (count = 0; count < 10; count++)
+	{
+		snooze(1);
+		if (verifyDestFile() == 0)
+		{
+			puts("CFDP delivered: '" CFDP_PAYLOAD "'");
+			puts("CFDP loopback test ended.");
+			return;
+		}
+	}
+
+	writeMemo("[?] CFDP destination file did not arrive.");
+	puts("CFDP loopback test ended.");
 }
 
 static int	stopDTN(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 			saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-#ifndef NASA_PROTECTED_FLIGHT_CODE
-	/*	CFDP is excluded in this minimal BP/LTP port			*/
-#endif
+	if (cfdp_entity_is_started())
+	{
+		puts("Stopping CFDP...");
+		cfdpStop();
+	}
 
 	/*	Stop BP (void function, no return value to check)		*/
 
@@ -528,6 +680,9 @@ rtems_task	Init(rtems_task_argument ignored)
 	testLoopback("TCP", "Hello, world via TCPCL.", TEST_ENDPOINT_TCP);
 	snooze(3);
 #endif
+
+	testCfdp();
+	snooze(2);
 
 	/*	Check statistics one more time after longer delay		*/
 	puts("Final statistics check:");
