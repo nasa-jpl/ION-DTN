@@ -32,7 +32,7 @@ on:
 jobs:
   dev-makefile-build:
     name: Build with Development Makefiles
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set-rhel9
     timeout-minutes: 30
 
     steps:
