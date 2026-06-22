@@ -5,8 +5,10 @@
 
 #include <bsp.h>
 #include <rtems.h>
+#include <rtems/version.h>
 #include <rtems/error.h>
 #include <rtems/shell.h>
+#include <rtems/libio.h>
 #include <assert.h>
 #include <inttypes.h>
 #include <sys/time.h>
@@ -42,6 +44,168 @@
  * Note: EnqueueBundle is an enum value in BpRecvRule, not a function.
  * We use it directly in add_endpoint() calls below.
  */
+
+/*
+ * Memory / footprint diagnostics
+ *
+ * Section sizes come from linker-emitted symbols, which differ by BSP family:
+ * the modern aarch64 / riscv RTEMS linker scripts expose ready-made
+ * bsp_section_*_size symbols, while the classic SPARC (leon3) linkcmds instead
+ * exposes section begin/end addresses, from which printBinaryFootprint()
+ * derives the sizes.  Architectures without these symbols fall back to zero
+ * via the #else branch in printBinaryFootprint().
+ */
+#if defined(__sparc__) || defined(__x86_64__)
+extern char text_start[];    /* .text begin */
+extern char _rodata_start[]; /* .rodata begin */
+extern char _etext[];	     /* .rodata end */
+extern char _data_start[];   /* .data begin */
+extern char _edata[];	     /* .data end */
+extern char __bss_start[];   /* .bss begin */
+extern char _end[];	     /* .bss end */
+#elif defined(__aarch64__) || defined(__riscv)
+extern char bsp_section_text_size[];
+extern char bsp_section_rodata_size[];
+extern char bsp_section_data_size[];
+extern char bsp_section_bss_size[];
+#endif
+
+/*
+ * IS_ENABLED(flag) -> 1 if 'flag' is #defined (the build passes
+ * -Dflag for enabled options and omits it otherwise), 0 if not.
+ * Lets printBuildInfo() report each compile flag on a single line.
+ * (Same technique as the Linux kernel's IS_ENABLED.)
+ */
+#define ARG_PLACEHOLDER_1	       0,
+#define TAKE_SECOND(ignored, val, ...) val
+#define IS_ENABLED__(arg1_or_junk)     TAKE_SECOND(arg1_or_junk 1, 0)
+#define IS_ENABLED_(flag)	       IS_ENABLED__(ARG_PLACEHOLDER_##flag)
+#define IS_ENABLED(flag)	       IS_ENABLED_(flag)
+
+/*
+ * CPU architecture string, taken from the compiler's own target predefined
+ * macros (so it always matches what we are built for).
+ */
+#if defined(__aarch64__)
+#define ION_CPU_ARCH "aarch64"
+#elif defined(__sparc__)
+#define ION_CPU_ARCH "sparc"
+#elif defined(__riscv) && (__riscv_xlen == 64)
+#define ION_CPU_ARCH "riscv64"
+#elif defined(__riscv)
+#define ION_CPU_ARCH "riscv32"
+#elif defined(__x86_64__)
+#define ION_CPU_ARCH "x86_64"
+#else
+#define ION_CPU_ARCH "unknown-arch"
+#endif
+
+/*
+ * RTEMS BSP name, from <bsp.h>'s RTEMS_BSP token (e.g. a53_lp64_qemu, leon3).
+ * VNSTRING() (from ion.h) turns the token into a string.
+ */
+#ifdef RTEMS_BSP
+#define ION_BSP_NAME VNSTRING(RTEMS_BSP)
+#else
+#define ION_BSP_NAME "unknown-bsp"
+#endif
+
+static void printBuildInfo(void)
+{
+	printf("=== ION on RTEMS %s -- BSP %s (%s) ===\n", rtems_version(),
+			ION_BSP_NAME, ION_CPU_ARCH);
+	printf("  Built                      : %s %s\n", __DATE__, __TIME__);
+	printf("  Compiler                   : %s\n", __VERSION__);
+	puts("=== Active compile flags ===");
+	printf("  ENABLE_BSSP                : %d\n", IS_ENABLED(ENABLE_BSSP));
+	printf("  ENABLE_DGR                 : %d\n", IS_ENABLED(ENABLE_DGR));
+	printf("  ENABLE_TCPCL               : %d\n", IS_ENABLED(ENABLE_TCPCL));
+	printf("  ENABLE_CFDP                : %d\n", IS_ENABLED(ENABLE_CFDP));
+	printf("  ENABLE_AMS                 : %d\n", IS_ENABLED(ENABLE_AMS));
+	printf("  ION_NODE_NBR               : " UVAST_FIELDSPEC "\n",
+			ION_NODE_NBR);
+}
+
+static void printBinaryFootprint(void)
+{
+#if defined(__sparc__) || defined(__x86_64__)
+	uintptr_t text = (uintptr_t) _rodata_start - (uintptr_t) text_start;
+	uintptr_t rodata = (uintptr_t) _etext - (uintptr_t) _rodata_start;
+	uintptr_t data = (uintptr_t) _edata - (uintptr_t) _data_start;
+	uintptr_t bss = (uintptr_t) _end - (uintptr_t) __bss_start;
+#elif defined(__aarch64__) || defined(__riscv)
+	uintptr_t text = (uintptr_t) bsp_section_text_size;
+	uintptr_t rodata = (uintptr_t) bsp_section_rodata_size;
+	uintptr_t data = (uintptr_t) bsp_section_data_size;
+	uintptr_t bss = (uintptr_t) bsp_section_bss_size;
+#else
+	uintptr_t text = 0;
+	uintptr_t rodata = 0;
+	uintptr_t data = 0;
+	uintptr_t bss = 0;
+#endif
+	uintptr_t rom = text + rodata + data;
+	uintptr_t sram = data + bss;
+
+	puts("=== ION binary footprint (link-time) ===");
+	puts("Note: libbsd takes ~1.6MB / ION minimal ~1.0MB / Kernel etc take 0.3MB ROM");
+	puts("");
+	printf("  .text   (code)         : %10" PRIuPTR " B  (%7.2f KiB)\n",
+			text, text / 1024.0);
+	printf("  .rodata (const data)   : %10" PRIuPTR " B  (%7.2f KiB)\n",
+			rodata, rodata / 1024.0);
+	printf("  .data   (init RAM)     : %10" PRIuPTR " B  (%7.2f KiB)\n",
+			data, data / 1024.0);
+	printf("  .bss    (uninit RAM)   : %10" PRIuPTR " B  (%7.2f KiB)\n",
+			bss, bss / 1024.0);
+	printf("  ROM footprint (t+r+d)  : %10" PRIuPTR " B  (%7.2f KiB)\n",
+			rom, rom / 1024.0);
+	printf("  Static RAM    (d+b)    : %10" PRIuPTR " B  (%7.2f KiB)\n",
+			sram, sram / 1024.0);
+	if (text == 0 && rodata == 0 && data == 0 && bss == 0)
+	{
+		puts("  (BSP did not provide bsp_section_*_size symbols)");
+	}
+}
+
+static void printRuntimeMemory(const char *checkpoint)
+{
+	Heap_Information_block wksp;
+
+	printf("=== Runtime memory [%s] ===\n", checkpoint);
+
+	/*
+	 * RTEMS workspace is the relevant allocation pool for comparing flag
+	 * combinations - it holds tasks, semaphores, message queues, and other
+	 * kernel objects that scale with the protocols compiled in.  The
+	 * newlib C heap (mallinfo / malloc_info) is not provided by RTEMS 6's
+	 * libc on the aarch64/a53_lp64_qemu BSP, so we omit it.
+	 */
+	if (rtems_workspace_get_information(&wksp))
+	{
+		uintptr_t used = (uintptr_t) wksp.Used.total;
+		uintptr_t freeb = (uintptr_t) wksp.Free.total;
+		uintptr_t largest = (uintptr_t) wksp.Free.largest;
+		uintptr_t total = used + freeb;
+
+		printf("  Workspace used         : %10" PRIuPTR
+		       " B  (%7.2f KiB)\n",
+				used, used / 1024.0);
+		printf("  Workspace free         : %10" PRIuPTR
+		       " B  (%7.2f KiB)\n",
+				freeb, freeb / 1024.0);
+		printf("  Workspace largest free : %10" PRIuPTR
+		       " B  (%7.2f KiB)\n",
+				largest, largest / 1024.0);
+		printf("  Workspace total        : %10" PRIuPTR
+		       " B  (%7.2f KiB)\n",
+				total, total / 1024.0);
+	}
+	else
+	{
+		puts("  RTEMS workspace : <unavailable>");
+	}
+}
 
 static void	initNetwork()
 {
@@ -865,7 +1029,10 @@ static int	stopDTN(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 
 rtems_task	Init(rtems_task_argument ignored)
 {
-	puts("=== ION RTEMS 6.1 ARM64 Port - Minimal BP/LTP ===");
+	printBuildInfo();
+	printBinaryFootprint();
+
+	printRuntimeMemory("after boot, before init");
 
 	/* Initialize system clock to prevent timestamp corruption */
 	initClock();
