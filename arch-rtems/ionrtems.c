@@ -575,6 +575,14 @@ void	showUtcDelta()
 
 #define	CONFIGURE_RTEMS_INIT_TASKS_TABLE
 
+/*
+ * SPARC (LEON3) has a separate FPU register file; tasks that touch the
+ * FPU without the RTEMS_FLOATING_POINT attribute trap with
+ * INTERNAL_ERROR_ILLEGAL_USE_OF_FLOATING_POINT_UNIT.
+ */
+#define CONFIGURE_INIT_TASK_ATTRIBUTES \
+	(RTEMS_DEFAULT_ATTRIBUTES | RTEMS_FLOATING_POINT)
+
 /*	Resource limits - adjusted for minimal BP/LTP port	*/
 /*	Use unlimited objects for libbsd compatibility		*/
 #define	CONFIGURE_UNLIMITED_OBJECTS
