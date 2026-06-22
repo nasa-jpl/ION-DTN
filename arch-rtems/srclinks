@@ -39,6 +39,7 @@ ln -s ../ici/library/symtab.c .
 ln -s ../ici/crypto/csi_debug.h .
 ln -s ../ici/$CRYPTO/csi.c .
 ln -s ../ici/$CRYPTO/crypto.c .
+ln -s ../ici/$CRYPTO/secrypt.c .
 ln -s ../ici/$BULK/bulk.c .
 
 # ici/libbloom-master
@@ -427,18 +428,18 @@ ln -s ../ltp/utils/ltpsecadmin.c .
 #           for data transfer within
 #           a single host only
 
-# ams/library - EXCLUDED for minimal BP/LTP port
-#ln -s ../ams/library/amscommon.h .
-#ln -s ../ams/library/amscommon.c .
-#ln -s ../ams/library/amsP.h .
-#ln -s ../ams/library/amsd.c .
-#ln -s ../ams/library/crypt.c .
-#ln -s ../ams/library/marshal.c .
-#ln -s ../ams/library/libams.c .
-#ln -s ../ams/library/loadmib.c .
-#ln -s ../ams/library/dgrts.c .
-#ln -s ../ams/library/tcpts.c .
-#ln -s ../ams/library/udpts.c .
+# ams/library - core AMS (RAMS/test/utils still excluded)
+ln -s ../ams/library/amscommon.h .
+ln -s ../ams/library/amscommon.c .
+ln -s ../ams/library/amsP.h .
+ln -s ../ams/library/amsd.c .
+ln -s ../ams/library/crypt.c .
+ln -s ../ams/library/marshal.c .
+ln -s ../ams/library/libams.c .
+ln -s ../ams/library/loadmib.c .
+ln -s ../ams/library/dgrts.c .
+ln -s ../ams/library/tcpts.c .
+ln -s ../ams/library/udpts.c .
 #ln -s ../ams/library/vmqts.c .
 
 # ams/rams - EXCLUDED for minimal BP/LTP port

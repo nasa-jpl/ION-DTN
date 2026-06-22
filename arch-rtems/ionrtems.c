@@ -26,6 +26,10 @@
 #include "bputa.h"
 #include <fcntl.h>
 #include <unistd.h>
+#ifdef ENABLE_AMS
+#include <pthread.h>
+#include "ams.h"
+#endif
 
 #define ION_NODE_NBR	  ((uvast) 19)
 #define LTP_ENGINE_STR	  "19"		   /* must match ION_NODE_NBR */
@@ -53,6 +57,17 @@ static void	initNetwork()
 	/* Configure loopback interface (lo0) */
 	exit_code = rtems_bsd_ifconfig_lo0();
 	assert(exit_code == 0);
+
+	/*
+	 * Set the host name to the loopback address so that AMS host
+	 * resolution (getNameOfHost / getAddressOfHost, used by the test MIB's
+	 * config-server endpoint and the DGR transport service) resolves
+	 * numerically to 127.0.0.1 -- there is no DNS resolver on this BSP.
+	 */
+	if (sethostname("127.0.0.1", strlen("127.0.0.1")) != 0)
+	{
+		puts("[?] Warning: sethostname(127.0.0.1) failed.");
+	}
 
 	puts("Network initialization complete (loopback interface ready).");
 }
@@ -100,12 +115,17 @@ static int	startDTN()
 	/*	Set up ION parameters for RTEMS 6.1 64-bit ARM		*/
 	memset(&parms, 0, sizeof(IonParms));
 	parms.wmKey = 0;			/* Auto-allocate private memory */
-	parms.wmSize = 2000000;			/* 2 MB for UDP/TCP buffers */
+	/*
+	 * 4 MB: AMS over DGR opens ~8 SAPs at ~222 KB each (dests[256]
+	 * + two 64 KB buffers); the 1 MB BP/LTP/CFDP base is too small.
+	 * Without AMS compiled in, the rest runs fine with <1MB
+	 */
+	parms.wmSize = 4000000;
 	parms.wmAddress = NULL;
 	istrcpy(parms.sdrName, "ion", sizeof(parms.sdrName));
-	parms.sdrWmSize = 2000000;		/* 2 MB for UDP/TCP buffers */
+	parms.sdrWmSize = 1000000;
 	parms.configFlags = SDR_IN_DRAM | SDR_BOUNDED;
-	parms.heapWords = 2000000;		/* 2 MB for UDP/TCP buffers */
+	parms.heapWords = 1000000;
 	parms.heapKey = SM_NO_KEY;		/* Auto-allocate */
 	parms.logSize = 0;
 	parms.logKey = SM_NO_KEY;
@@ -590,6 +610,211 @@ static void testCfdp(void)
 	puts("CFDP loopback test ended.");
 }
 
+#ifdef ENABLE_AMS
+
+#define AMS_SUBJECT_TEXT 1
+#define AMS_PAYLOAD	 "Hello, world via AMS."
+
+/*
+ * Single-process AMS loopback demo (the multi-process amshello.c adapted to
+ * threads).  amsd provides the config server + registrar; a catcher module
+ * invites subject 1 ("text") and a pitcher module publishes one message to it
+ * over the DGR transport service.
+ */
+
+static volatile int amsCatchDone;
+static volatile int amsCatchOk;
+
+static void *amsCatcher(void *arg)
+{
+	AmsModule     me;
+	AmsEvent      evt;
+	short	      cn, sn;
+	int	      zn, nn, len, ct, pr;
+	unsigned char fl;
+	AmsMsgType    mt;
+	char	     *txt;
+
+	(void) arg;
+	if (ams_register("@", NULL, "amsdemo", "test", "", "catch", &me) < 0)
+	{
+		writeMemo("[?] AMS catcher can't register.");
+		amsCatchDone = 1;
+		return NULL;
+	}
+
+	/* Invite subject 1 from any role/unit/continuum. */
+	if (ams_invite(me, 0, 0, 0, AMS_SUBJECT_TEXT, 8, 0, AmsArrivalOrder,
+			    AmsAssured)
+			< 0)
+	{
+		writeMemo("[?] AMS catcher can't invite subject 1.");
+		ams_unregister(me);
+		amsCatchDone = 1;
+		return NULL;
+	}
+
+	puts("AMS catcher registered; waiting for message...");
+	fflush(stdout);
+
+	while (1)
+	{
+		if (ams_get_event(me, AMS_BLOCKING, &evt) < 0)
+		{
+			break;
+		}
+
+		if (ams_get_event_type(evt) == AMS_MSG_EVT)
+		{
+			ams_parse_msg(evt, &cn, &zn, &nn, &sn, &len, &txt, &ct,
+					&mt, &pr, &fl);
+			printf("AMS catcher received: '%s'\n", txt);
+			fflush(stdout);
+			if (strcmp(txt, AMS_PAYLOAD) == 0)
+			{
+				amsCatchOk = 1;
+			}
+
+			ams_recycle_event(evt);
+			break;
+		}
+
+		ams_recycle_event(evt);
+	}
+
+	ams_unregister(me);
+	amsCatchDone = 1;
+	return NULL;
+}
+
+static void *amsPitcher(void *arg)
+{
+	AmsModule     me;
+	AmsEvent      evt;
+	AmsStateType  state;
+	AmsChangeType change;
+	short	      sn, dcn;
+	int	      zn, nn, rn, dzn, pr;
+	unsigned char fl;
+	AmsSequence   sequence;
+	AmsDiligence  diligence;
+	int	      textlen = strlen(AMS_PAYLOAD) + 1;
+
+	(void) arg;
+	if (ams_register("@", NULL, "amsdemo", "test", "", "pitch", &me) < 0)
+	{
+		writeMemo("[?] AMS pitcher can't register.");
+		return NULL;
+	}
+
+	while (1)
+	{
+		if (ams_get_event(me, AMS_BLOCKING, &evt) < 0)
+		{
+			break;
+		}
+
+		ams_parse_notice(evt, &state, &change, &zn, &nn, &rn, &dcn,
+				&dzn, &sn, &pr, &fl, &sequence, &diligence);
+		ams_recycle_event(evt);
+
+		/*
+		 * Send once the catcher's invitation on subject 1 has
+		 * propagated to us.
+		 */
+		if (state == AmsInvitationState && sn == AMS_SUBJECT_TEXT)
+		{
+			printf("AMS pitcher sending:  '%s'\n", AMS_PAYLOAD);
+			fflush(stdout);
+			ams_send(me, -1, zn, nn, AMS_SUBJECT_TEXT, 0, 0,
+					textlen, AMS_PAYLOAD, 0);
+			break;
+		}
+	}
+
+	snooze(1); /* Let the message drain. */
+	ams_unregister(me);
+	return NULL;
+}
+
+static int spawnAmsThread(pthread_t *thread, void *(*fn)(void *) )
+{
+	pthread_attr_t attr;
+	int	       result;
+
+	/*
+	 * AMS registration walks a deep call chain; give each module thread a
+	 * generous stack to avoid overflow.
+	 */
+	if (pthread_attr_init(&attr) != 0)
+	{
+		return -1;
+	}
+
+	oK(pthread_attr_setstacksize(&attr, 64 * 1024));
+	result = pthread_create(thread, &attr, fn, NULL);
+	oK(pthread_attr_destroy(&attr));
+	return result == 0 ? 0 : -1;
+}
+
+static void testAms(void)
+{
+	pthread_t catchThread;
+	pthread_t pitchThread;
+	int	  count;
+
+	puts("Starting AMS pitch/catch loopback test.");
+
+	/*
+	 * Start the config server + registrar using the built-in test MIB
+	 * ("@", DGR primary transport).  The '' argument is the (empty) root
+	 * unit name, which makes the registrar required.
+	 */
+	pseudoshell("amsd @ @ amsdemo test ''");
+	snooze(3); /* Allow CS + RS to come up. */
+
+	amsCatchDone = 0;
+	amsCatchOk = 0;
+
+	if (spawnAmsThread(&catchThread, amsCatcher) < 0)
+	{
+		writeMemo("[?] Can't spawn AMS catcher thread.");
+		puts("AMS loopback test ended.");
+		return;
+	}
+
+	snooze(2); /* Let the catcher invite first. */
+
+	if (spawnAmsThread(&pitchThread, amsPitcher) < 0)
+	{
+		writeMemo("[?] Can't spawn AMS pitcher thread.");
+		oK(pthread_join(catchThread, NULL));
+		puts("AMS loopback test ended.");
+		return;
+	}
+
+	oK(pthread_join(pitchThread, NULL));
+
+	for (count = 0; count < 10 && amsCatchDone == 0; count++)
+	{
+		snooze(1);
+	}
+
+	oK(pthread_join(catchThread, NULL));
+
+	if (amsCatchOk)
+	{
+		puts("AMS delivered: '" AMS_PAYLOAD "'");
+	}
+	else
+	{
+		writeMemo("[?] AMS message not delivered.");
+	}
+
+	puts("AMS loopback test ended.");
+}
+#endif /* ENABLE_AMS */
+
 static int	stopDTN(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 			saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
@@ -684,6 +909,11 @@ rtems_task	Init(rtems_task_argument ignored)
 	testCfdp();
 	snooze(2);
 
+#ifdef ENABLE_AMS
+	testAms();
+	snooze(2);
+#endif
+
 	/*	Check statistics one more time after longer delay		*/
 	puts("Final statistics check:");
 	pseudoshell("bpstats");
@@ -763,7 +993,12 @@ void	showUtcDelta()
 #define CONFIGURE_MAXIMUM_FILE_DESCRIPTORS			40
 #define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
 
-#define CONFIGURE_MAXIMUM_POSIX_THREADS				40
+/*
+ * AMS with the DGR adds a lot of threads to the build.
+ * These caps must stay >= the platform_sm.c MAX_POSIX_TASKS (100) set in the
+ * wscript. Without AMS/DGR the values of 40/100 are sufficient for the test
+ */
+#define CONFIGURE_MAXIMUM_POSIX_THREADS				128
 /*	POSIX mutexes and condition variables config removed in RTEMS 6	*/
 #define CONFIGURE_MAXIMUM_POSIX_SEMAPHORES			100
 #define CONFIGURE_MAXIMUM_POSIX_MESSAGE_QUEUES			10
