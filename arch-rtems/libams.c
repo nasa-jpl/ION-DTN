@@ -1,0 +1,1 @@
+../ams/library/libams.c
