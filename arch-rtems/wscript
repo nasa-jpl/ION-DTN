@@ -44,8 +44,14 @@ def build(bld):
 
     # Excluding non-core parts for minimal RTEMS configuration
     # Set to 1 to enable these convergence layers
-    ENABLE_DGR = 0
-    ENABLE_BSSP = 0
+    # ! Note: libbsd takes ~1.6MB / ION minimal ~1.0MB / Kernel etc take 0.3MB ROM
+    # note about ROM usage addded by each added module:
+    # dgr ~ no added ROM usage
+    # tcpcl ~ 40KiB
+    # bssp ~ 75KiB
+
+    ENABLE_DGR = 1
+    ENABLE_BSSP = 1
     ENABLE_TCPCL = 1
 
     iondefines = [
