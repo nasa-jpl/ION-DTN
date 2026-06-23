@@ -9,6 +9,8 @@ RUNNER_VERSION ?= 2.337.0
 RUNNER_CONTAINER_HOOKS_VERSION ?= 0.8.1
 DOCKER_VERSION ?= 29.8.0
 DOCKER_COMPOSE_VERSION ?= v2.40.3
+ARC_VERSION ?= $(shell grep -oP '(?<=appVersion: ")[0-9.]+' ../charts/arc/Chart.yaml)
+PYTHON_VERSION ?= 3.11.15
 PIP_INDEX ?= ""
 
 # Handle target platform variants.
@@ -30,6 +32,8 @@ docker-build:
 	  --build-arg DOCKER_VERSION=${DOCKER_VERSION} \
 	  --build-arg DOCKER_COMPOSE_VERSION=${DOCKER_COMPOSE_VERSION} \
 	  --build-arg PIP_INDEX=${PIP_INDEX} \
+	  --build-arg PYTHON_VERSION=${PYTHON_VERSION} \
+	  --build-arg ARC_VERSION=${ARC_VERSION} \
 	  --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
 	  --build-arg REV=$(shell git rev-parse --short HEAD) \
 	  -f actions-runner.${OS_IMAGE}.dockerfile \
@@ -45,6 +49,8 @@ buildah-build:
 	  --build-arg DOCKER_VERSION=${DOCKER_VERSION} \
 	  --build-arg DOCKER_COMPOSE_VERSION=${DOCKER_COMPOSE_VERSION} \
 	  --build-arg PIP_INDEX=${PIP_INDEX} \
+	  --build-arg PYTHON_VERSION=${PYTHON_VERSION} \
+	  --build-arg ARC_VERSION=${ARC_VERSION} \
 	  --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
 	  --build-arg REV=$(shell git rev-parse --short HEAD) \
 	  -f actions-runner.${OS_IMAGE}.dockerfile \
@@ -62,6 +68,8 @@ buildah-build-rhel:
 	  --build-arg DOCKER_VERSION=${DOCKER_VERSION} \
 	  --build-arg DOCKER_COMPOSE_VERSION=${DOCKER_COMPOSE_VERSION} \
 	  --build-arg PIP_INDEX=${PIP_INDEX} \
+	  --build-arg PYTHON_VERSION=${PYTHON_VERSION} \
+	  --build-arg ARC_VERSION=${ARC_VERSION} \
 	  --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
 	  --build-arg REV=$(shell git rev-parse --short HEAD) \
 	  -f actions-runner.${OS_IMAGE}.dockerfile \

@@ -11,6 +11,8 @@ ARG DOCKER_COMPOSE_VERSION=v2.38.2
 ARG DUMB_INIT_VERSION=1.2.5
 ARG RUNNER_USER_UID=1001
 ARG DOCKER_GROUP_GID=121
+ARG ARC_VERSION=0.14.2
+ARG PYTHON_VERSION=3.11.15
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y --no-install-recommends \
@@ -57,6 +59,7 @@ RUN apt-get update -y --no-install-recommends \
     liblzma-dev \
     wget \
     gh \
+    git-lfs \
     && rm -rf /var/lib/apt/lists/*
 
 RUN export PATH="${HOME}/.local/bin:${PATH}"
@@ -73,11 +76,6 @@ RUN curl -fLo mbedtls-2.28.10.tar.bz2 "https://github.com/Mbed-TLS/mbedtls/relea
     && strip /usr/local/lib/libmbedx509.so* \
     && cd .. \
     && rm -rf mbedtls-2.28.10/ mbedtls-2.28.10.tar.bz2
-
-# Download latest git-lfs version
-RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash && \
-    apt-get install -y --no-install-recommends git-lfs && \
-    rm -rf /var/lib/apt/lists/*
 
 RUN adduser --disabled-password --gecos "" --uid $RUNNER_USER_UID runner \
     && groupadd docker --gid $DOCKER_GROUP_GID \
@@ -144,14 +142,16 @@ RUN export ARCH=$(echo "${TARGETPLATFORM}" | cut -d / -f2) \
 
 # We place the scripts in `/usr/bin` so that users who extend this image can
 # override them with scripts of the same name placed in `/usr/local/bin`.
-COPY --chmod=755 actions-runner-controller/runner/entrypoint.sh actions-runner-controller/runner/startup.sh actions-runner-controller/runner/logger.sh actions-runner-controller/runner/graceful-stop.sh actions-runner-controller/runner/update-status /usr/bin/
-
-# Copy the docker shim which propagates the docker MTU to underlying networks
-# to replace the docker binary in the PATH.
-COPY actions-runner-controller/runner/docker-shim.sh /usr/local/bin/docker
-
-# Configure hooks folder structure.
-COPY actions-runner-controller/runner/hooks /etc/arc/hooks/
+RUN mkdir -p /tmp/arc \
+    && curl -fL -o arc.tar.gz "https://github.com/actions/actions-runner-controller/archive/refs/tags/v${ARC_VERSION}.tar.gz" \
+    && tar -xzf arc.tar.gz -C /tmp/arc --strip-components=1 \
+    && cd /tmp/arc/runner \
+    && install -m 755 entrypoint.sh startup.sh logger.sh graceful-stop.sh update-status /usr/bin/ \
+    && install -m 755 docker-shim.sh /usr/local/bin/docker \
+    && mkdir -p /etc/arc/hooks \
+    && cp -r hooks/* /etc/arc/hooks/ \
+    && cd / \
+    && rm -rf arc.tar.gz /tmp/arc
 
 RUN chmod -R 777 /opt /usr/share
 
@@ -163,15 +163,16 @@ ENV PATH="${PYENV_ROOT}/shims:${PYENV_ROOT}/bin:/home/runner/.local/bin/:${PATH}
 RUN echo 'eval "$(pyenv init - bash)"' >> ~/.bashrc && echo 'eval "$(pyenv init - bash)"' >> ~/.profile
 
 # Install python and clear out sources/cache to save space
-RUN pyenv install 3.11.15 && pyenv global 3.11.15 \
+RUN pyenv install ${PYTHON_VERSION} && pyenv global ${PYTHON_VERSION} \
     && rm -rf /home/runner/.pyenv/cache/* \
     && rm -rf /home/runner/.pyenv/sources/* \
     && find /home/runner/.pyenv -type d -name "__pycache__" -exec rm -rf {} +
 
-RUN if [ ! -z "${PIP_INDEX}" ]; then \
-    /home/runner/.pyenv/versions/3.11.15/bin/python3 -m pip install --no-cache-dir --upgrade pip && \
-    /home/runner/.pyenv/versions/3.11.15/bin/python3 -m pip install --no-cache-dir bespokebpv7==0.4.1 -i "${PIP_INDEX}" && \
-    /home/runner/.pyenv/versions/3.11.15/bin/python3 -m pip install --no-cache-dir ansible; \
+COPY requirements.txt /tmp/requirements.txt
+RUN /home/runner/.pyenv/versions/${PYTHON_VERSION}/bin/python3 -m pip install --no-cache-dir -r /tmp/requirements.txt \
+    && rm /tmp/requirements.txt \
+    && if [ ! -z "${PIP_INDEX}" ]; then \
+    /home/runner/.pyenv/versions/${PYTHON_VERSION}/bin/python3 -m pip install --no-cache-dir bespokebpv7==0.4.1 -i "${PIP_INDEX}"; \
     else \
     echo "bespokebpv7 not open-source yet 🙁"; \
     fi
