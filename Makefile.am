@@ -2717,6 +2717,10 @@ restartbin = ionrestart ionexit
 # --- Utility Programs --- #
 
 ionexit_SOURCES = restart/utils/ionexit.c
+ionexit_CPPFLAGS = -I$(srcdir)/cfdp/library
+if ENABLE_BSSP
+ionexit_CPPFLAGS += -I$(srcdir)/bssp/library
+endif
 ionexit_LDADD = libltp.la $(ionexitbssplib) libcfdp.la $(ionexitdtpclib) $(ionexittclib) libici.la -lm $(bplib)
 ionexit_CFLAGS = $(icicflags) $(AM_CFLAGS) -I$(srcdir)/dtpc/include -I$(srcdir)/dtpc/library -I$(srcdir)/tc/include -I$(srcdir)/tc/authority -I$(srcdir)/tc/client
 
