@@ -102,6 +102,7 @@ We start with the simplest configuration where a single user has full control ov
 * `automake`
 * `autoconf`
 * `libtool`
+* `pkg-config`
 * `bash` - (optional) Many scripts are written for bash shell; having bash installed in the system will ensure these scripts execute predictably.
 * `python3` - (optional) Python is used for some BPSec regression tests but is not strictly required to build and run ION.
 * `sudo` - (optional) While sudo privilege is required during the last step of a nominal installation on Linux to execute the shared library update. However, it is not strictly required to use ION if it is installed in a directory owned by the user with a properly updated library and execution paths.

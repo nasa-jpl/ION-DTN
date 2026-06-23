@@ -54,10 +54,11 @@ The recommended method to install ION on most Linux-based systems is to use the 
 - `m4`
 - `gcc`
 - `make`
+- `pkg-config`
 
 Depending on the Linux distribution, the package names may differ. To install packages on Debian-based systems, run:
 
-`sudo apt-get update && sudo apt-get install automake autoconf libtool m4 gcc make`
+`sudo apt-get update && sudo apt-get install automake autoconf libtool m4 gcc make pkg-config`
 
 To verify the installation, run:
 
@@ -72,6 +73,8 @@ To verify the installation, run:
 `gcc --version`
 
 `make --version`
+
+`pkg-config --version`
 
 to check for proper installation.
 
