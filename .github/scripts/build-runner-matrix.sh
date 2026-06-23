@@ -43,10 +43,10 @@ done
 # Build JSON array of enabled runners
 runners=()
 
-[[ "$ubuntu_22" == "true" ]] && runners+=("u22-v2")
+[[ "$ubuntu_22" == "true" ]] && runners+=("u22")
 [[ "$ubuntu_24" == "true" ]] && runners+=("u24")
-[[ "$oracle_linux_8" == "true" ]] && runners+=("ol8-v2")
-[[ "$oracle_linux_9" == "true" ]] && runners+=("ol9-v2")
+[[ "$oracle_linux_8" == "true" ]] && runners+=("ol8")
+[[ "$oracle_linux_9" == "true" ]] && runners+=("ol9")
 [[ "$rhel_8" == "true" ]] && runners+=("rhel8")
 [[ "$rhel_9" == "true" ]] && runners+=("rhel9")
 
