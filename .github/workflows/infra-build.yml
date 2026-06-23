@@ -8,6 +8,7 @@ on:
     branches: ["integration"]
     paths:
       - "images/**"
+
   workflow_dispatch:
     inputs:
       runner_u22:
@@ -92,8 +93,7 @@ jobs:
       - name: Build OS Matrix
         id: build-matrix
         run: |
-          chmod +x build-runner-matrix.sh
-          MATRIX=$(./build-runner-matrix.sh \
+          MATRIX=$(bash .github/scripts/build-runner-matrix.sh \
             --ubuntu_20=${{ github.event_name == 'push' || inputs.runner_u22 == true }} \
             --ubuntu_22=${{ github.event_name == 'push' || inputs.runner_u24 == true }} \
             --oracle_linux_8=${{ github.event_name == 'push' || inputs.runner_ol8 == true }} \
