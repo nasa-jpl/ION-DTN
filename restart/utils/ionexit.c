@@ -14,12 +14,12 @@
 
 #ifdef ENABLE_BSSP
 #include "bssp.h"
-#include "bssp/library/bsspP.h"
+#include "bsspP.h"
 #endif
 
 #ifndef NASA_PROTECTED_FLIGHT_CODE
 #include "cfdp.h"
-#include "cfdp/library/cfdpP.h"
+#include "cfdpP.h"
 #endif
 
 #ifdef ENABLE_DTPC
