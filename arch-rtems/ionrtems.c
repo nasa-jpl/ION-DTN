@@ -8,7 +8,7 @@
 #include <rtems/error.h>
 #include <rtems/shell.h>
 #include <assert.h>
-#include <sysexits.h>
+#include <inttypes.h>
 #include <sys/time.h>
 #include <rtems/bsd/bsd.h>
 #include "platform.h"
@@ -46,7 +46,7 @@ static void	initNetwork()
 
 	/* Configure loopback interface (lo0) */
 	exit_code = rtems_bsd_ifconfig_lo0();
-	assert(exit_code == EX_OK);
+	assert(exit_code == 0);
 
 	puts("Network initialization complete (loopback interface ready).");
 }
