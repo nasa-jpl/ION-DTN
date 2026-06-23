@@ -274,6 +274,7 @@ For ION 4.1.1, 4.1.2 and 4.1.3:
   - If you used the automake system and want to revert to the development Makefiles, you should first run `make clean` and `make uninstall` to completely remove ION from the system because the two compilation method builds organizes shared libraries differently. Then you can either run `git stash` to restore the old Makefiles or simply pull a fresh copy of the code from the repo.
 - The development Makefiles, as they are, provide only the default compilation options - similar to running `./configure` with no arguments. If you need to set specific compiler flags, you need to modify the Makefiles directly or pass an `ADD_FLAGS` argument to the `make all` command.
 - The default directory for installation is `/usr/local/`, which usually requires sudo privilege. To override the installation prefix, change the value of `OPT` in the top-level Makefile of each package.
+- **The development Makefiles cannot reliably support parallel builds. Always build serially with `make all` — do not pass `-j`/`--jobs`.** The hierarchy does not declare complete inter-target/inter-module dependencies, so under parallel make a library and an executable that links it can build out of order, producing intermittent link failures (for example `cannot find -ltc` or `cannot find -lcfdp`). If you need a parallel build, use the automake system (`./configure && make -j`), which is the supported path for parallelism.
 
 To build using the development Makefiles, cd to the ION root directory and run:
 

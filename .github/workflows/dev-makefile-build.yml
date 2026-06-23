@@ -123,10 +123,15 @@ jobs:
         id: build
         run: |
           echo "Building ION with development Makefiles..."
-          echo "Using parallel build with $(nproc) cores"
+          # The development Makefiles do not declare complete inter-target
+          # dependencies and cannot reliably build in parallel (libraries and
+          # the executables that link them can build out of order under -j,
+          # causing intermittent 'cannot find -lxxx' link failures). Build
+          # serially; the automake system is the supported path for -j builds.
+          echo "Building serially (development Makefiles are not parallel-safe)"
 
           # Capture build output and count warnings/errors
-          make -j$(nproc) 2>&1 | tee build.log
+          make 2>&1 | tee build.log
 
           BUILD_STATUS=${PIPESTATUS[0]}
 
