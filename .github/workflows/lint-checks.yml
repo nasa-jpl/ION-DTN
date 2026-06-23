@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Run ansible-lint
-        uses: ansible/ansible-lint@5fac056c45595896c973fbde871f01f6cb14d74c
+        uses: ansible/ansible-lint@5fac056c45595896c973fbde871f01f6cb14d74c # v26.4.0
         with:
           args: "charts/cluster_install/ .github/ansible"
 
@@ -41,6 +41,7 @@ jobs:
     name: KICS Security Scan
     runs-on: arc-runner-set-ol9
     env:
+      # renovate: datasource=github-releases depName=Checkmarx/kics
       KICS_VERSION: v2.1.20
     steps:
       - name: Checkout repository
@@ -87,7 +88,7 @@ jobs:
 
       - name: Upload SARIF file for GitHub Security
         if: always()
-        uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13
+        uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13 # v4.35.1
         with:
           sarif_file: kics-results/results.sarif
         continue-on-error: true

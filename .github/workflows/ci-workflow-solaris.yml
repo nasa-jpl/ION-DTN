@@ -107,6 +107,7 @@ on:
 
 env:
   VM_WORK_DIR: /var/tmp/ion-gh-workspace
+  # renovate: datasource=python-version depName=python
   PYTHON_VERSION: "3.11.15"
 
 jobs:
@@ -378,7 +379,7 @@ jobs:
             -v
 
       - name: Copy artifact to VM
-        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         with:
           timeout_seconds: 600
           max_attempts: 3
@@ -433,7 +434,7 @@ jobs:
 
       - name: Use Ansible playbook to collect results
         if: always()
-        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         with:
           timeout_seconds: 300
           max_attempts: 3
@@ -535,7 +536,7 @@ jobs:
         # Only delete intermediate artifacts if workflow completed normally
         # Skip cleanup if workflow was cancelled or failed to preserve debugging artifacts
         if: success()
-        uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118
+        uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118 # v6.0.0
         with:
           name: |
             test-results-solaris-*

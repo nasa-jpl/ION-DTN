@@ -19,6 +19,8 @@
       - rhel9
       - rtems
     charts_path: "{{ playbook_dir }}/.."
+    # renovate: datasource=npm depName=renovate
+    renovate_version: "43.239"
 
   vars_prompt:
     - name: config

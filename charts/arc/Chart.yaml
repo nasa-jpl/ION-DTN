@@ -3,6 +3,7 @@ name: arc
 description: GitHub Actions Runner Controller deployment with controller and runner scale set
 type: application
 version: 0.2.0
+# renovate: datasource=github-releases depName=actions/actions-runner-controller
 appVersion: "0.14.2"
 
 dependencies:

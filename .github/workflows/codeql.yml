@@ -69,15 +69,15 @@ jobs:
           clean: true
           # clear workspace after
 
-      # Add any setup steps before running the `github/codeql-action/init` action.
-      # This includes steps like installing compilers or runtimes (`actions/setup-node`
-      # or others). This is typically only required for manual builds.
-      # - name: Setup runtime (example)
-      #   uses: actions/setup-example@v1
+      # Suppress overlay warning for c-cpp
+      - name: Disable Overlay for C/C++
+        if: matrix.language == 'c-cpp'
+        shell: bash
+        run: echo "CODEQL_OVERLAY_DATABASE_MODE=none" >> $GITHUB_ENV
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@c10b8064de6f491fea524254123dbe5e09572f13
+        uses: github/codeql-action/init@c10b8064de6f491fea524254123dbe5e09572f13 # v4.35.1
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
@@ -104,6 +104,6 @@ jobs:
           make buildcheck
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@c10b8064de6f491fea524254123dbe5e09572f13
+        uses: github/codeql-action/analyze@c10b8064de6f491fea524254123dbe5e09572f13 # v4.35.1
         with:
           category: "/language:${{matrix.language}}"
