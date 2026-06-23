@@ -88,7 +88,7 @@ env:
 
 jobs:
   generate-matrix:
-    runs-on: arc-runner-set-ol9-v2
+    runs-on: arc-runner-set-ol9
     outputs:
       matrix: ${{ steps.generate.outputs.matrix }}
       count: ${{ steps.generate.outputs.count }}
@@ -111,7 +111,7 @@ jobs:
 
   build-ion:
     needs: [validate-vms, generate-matrix]
-    runs-on: arc-runner-set-ol9-v2
+    runs-on: arc-runner-set-ol9
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
@@ -228,7 +228,7 @@ jobs:
 
   validate-vms:
     name: Validate VM Connectivity
-    runs-on: arc-runner-set-ol9-v2
+    runs-on: arc-runner-set-ol9
     outputs:
       dsoc3_available: ${{ steps.check-dsoc3.outputs.available }}
       dsoc4_available: ${{ steps.check-dsoc4.outputs.available }}
@@ -281,7 +281,7 @@ jobs:
   create-zones:
     name: Create Zones (${{ matrix.vm }})
     needs: [generate-matrix, validate-vms]
-    runs-on: arc-runner-set-ol9-v2
+    runs-on: arc-runner-set-ol9
     strategy:
       fail-fast: false
       matrix:
@@ -329,7 +329,7 @@ jobs:
       fail-fast: false
       matrix:
         test_batch: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
-    runs-on: arc-runner-set-ol9-v2
+    runs-on: arc-runner-set-ol9
     timeout-minutes: ${{ fromJSON(inputs.timeout_minutes || 90 ) }}
     steps:
       - name: Checkout code
@@ -424,7 +424,7 @@ jobs:
     # Note: if: always() runs when dependencies fail/succeed but NOT when workflow is cancelled
     # The cleanup step uses if: success() to preserve artifacts when this job is skipped
     if: always()
-    runs-on: arc-runner-set-ol9-v2
+    runs-on: arc-runner-set-ol9
 
     steps:
       - name: Checkout code
@@ -500,7 +500,7 @@ jobs:
     needs: [generate-matrix, create-zones, test-parallel, validate-vms]
     # Run even if tests fail, but only if we actually created zones
     if: ${{ always() && needs.create-zones.result != 'skipped' }}
-    runs-on: arc-runner-set-ol9-v2
+    runs-on: arc-runner-set-ol9
     strategy:
       fail-fast: false
       matrix:
