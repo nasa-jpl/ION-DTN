@@ -1608,6 +1608,36 @@ static void	destroySdr(SdrState *sdr)
 	sm_SemGive(lock);
 }
 
+/*	Conservative default size for a DRAM-only heap's in-memory
+ *	reversibility log.  The log only ever holds a single open
+ *	transaction's logged volume, so it is bounded by a fraction of the
+ *	heap, clamped to a floor/ceiling and never exceeding the heap
+ *	itself.  Tune via an explicit logSize informed by 'sdr_stats'
+ *	maxLogLength.							*/
+static size_t	defaultMemoryLogSize(size_t heapWords)
+{
+	size_t	heapSize = heapWords * WORD_SIZE;
+	size_t	v = heapSize / ION_LOG_AUTO_DIVISOR;
+
+	if (v < ION_LOG_AUTO_FLOOR)	v = ION_LOG_AUTO_FLOOR;
+	if (v > ION_LOG_AUTO_CEIL)	v = ION_LOG_AUTO_CEIL;
+	if (v > heapSize)		v = heapSize;
+	return v;
+}
+
+/*	Must run before the stored-profile comparison and the memory-vs-file
+ *	branch, and only for reversible SDRs (the caller has already forced
+ *	logSize 0 for the non-reversible case).				*/
+static size_t	resolveAutoLogSize(int configFlags, size_t heapWords)
+{
+	if (configFlags & SDR_IN_FILE)
+	{
+		return 0;		/*	Durable heap -> file log.	*/
+	}
+
+	return defaultMemoryLogSize(heapWords);	/*	DRAM-only -> memory.	*/
+}
+
 int	sdr_load_profile(char *name, int configFlags, size_t heapWords,
 		int heapKey, size_t logSize, int logKey, char *pathName,
 		char *restartCmd)
@@ -1657,6 +1687,10 @@ SDR heap data, the heap MUST be resident in memory.", itoa(configFlags));
 	{
 		logSize = 0;
 		logKey = SM_NO_KEY;
+	}
+	else if (logSize == ION_LOGSIZE_AUTO)
+	{
+		logSize = resolveAutoLogSize(configFlags, heapWords);
 	}
 
 	for (elt = sm_list_first(sdrwm, sch->sdrs); elt;
@@ -1831,6 +1865,24 @@ in file and transaction reversibility", sdr->pathName);
 				return -1;
 			}
 		}
+
+		/*	Make the (now tier-coupled) log choice visible.	*/
+
+		if (sdr->logSize > 0)
+		{
+			isprintf(logfilename, sizeof logfilename, "[i] SDR \
+'%s' reversibility log: memory, %lu bytes. Override with 'logSize' in \
+.ionconfig; monitor headroom with 'sdrwatch -s'.", name,
+					(unsigned long) sdr->logSize);
+		}
+		else
+		{
+			isprintf(logfilename, sizeof logfilename, "[i] SDR \
+'%s' reversibility log: file (reboot-durable). Set 'logSize' > 0 in .ionconfig \
+for an in-memory log.", name);
+		}
+
+		writeMemo(logfilename);
 	}
 
 	if (sdr->configFlags & SDR_IN_FILE)
@@ -1948,6 +2000,10 @@ int	sdr_reload_profile(char *name, int configFlags, size_t heapWords,
 	{
 		logSize = 0;
 		logKey = SM_NO_KEY;
+	}
+	else if (logSize == ION_LOGSIZE_AUTO)
+	{
+		logSize = resolveAutoLogSize(configFlags, heapWords);
 	}
 
 	for (elt = sm_list_first(sdrwm, sch->sdrs); elt;
@@ -2585,12 +2641,14 @@ static int	writeToLog(const char *file, int line, Sdr sdrv, char *from,
 	{
 		if (sdr->logLength + length > sdr->logSize)
 		{
-			char buf[256];
-			isprintf(buf, sizeof(buf), "Log max size exceeded. \
-SDR: %s  logSize: %lu logLength: %lu length: %lu depth: %d",
-					sdr->name, (unsigned long) sdr->logSize,
+			char buf[320];
+			isprintf(buf, sizeof(buf), "Log max size exceeded \
+(SDR '%s', logSize %lu, logLength %lu, needed %lu, depth %d). Increase \
+'logSize' in .ionconfig (observed max via 'sdrwatch -s'), or set 'logSize 0' \
+for an unbounded file log.", sdr->name, (unsigned long) sdr->logSize,
 					(unsigned long) sdr->logLength,
-					(unsigned long) length, sdr->xnDepth);
+					(unsigned long) (sdr->logLength + length),
+					sdr->xnDepth);
 			_putErrmsg(file, line, buf, NULL);
 			return -1;
 		}

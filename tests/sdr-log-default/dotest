@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+#
+# sdr-log-default - heap-tier-coupled default for the SDR reversibility log.
+#
+# Runs the standalone sdr_logmode_test binary, which loads private SDRs
+# (no ION attach) and verifies that:
+#   * a DRAM-only heap with an unspecified logSize auto-selects an
+#     in-memory (shm) reversibility log (no .sdrlog file),
+#   * an SDR_IN_FILE heap auto-selects a reboot-durable file log,
+#   * an explicit logSize (including 0 => file) still overrides the auto
+#     default,
+#   * reverseTransaction restores a committed object from the shm log, and
+#   * an undersized memory log fails loud and fully reverses, leaving no
+#     heap corruption.
+#
+# The binary's exit code is passed through to the harness: 0 PASS,
+# 1 FAIL, 2 SKIP (build lacks ION_LOGSIZE_AUTO support).
+#
+trap 'killm f >/dev/null 2>&1' EXIT
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify the reversibility log's persistence tier tracks the"
+echo "         heap tier by default (DRAM-only => memory, SDR_IN_FILE =>"
+echo "         file), that an explicit logSize overrides it, and that the"
+echo "         memory log reverses correctly and fails loud on overflow."
+echo
+echo "OUTPUT:  Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+
+if ! command -v sdr_logmode_test >/dev/null 2>&1; then
+    echo "FAIL: sdr_logmode_test not on PATH"
+    exit 1
+fi
+
+# Run with this directory as the SDR work area so the .sdr/.sdrlog
+# artifacts land locally and are removed by ./cleanup.
+sdr_logmode_test .
+RC=$?
+
+case "$RC" in
+0) echo "sdr-log-default: PASSED" ;;
+2) echo "sdr-log-default: SKIPPED (build lacks ION_LOGSIZE_AUTO)" ;;
+*) echo "sdr-log-default: FAILED (exit=$RC)" ;;
+esac
+
+exit $RC

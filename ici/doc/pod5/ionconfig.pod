@@ -119,11 +119,49 @@ default value is 250000 words (1 million bytes on a 32-bit computer).
 
 =item logSize
 
-This is the number of bytes of shared memory to use for ION's SDR transaction
-log.  If zero (the default), the transaction log is written to a file rather
-than to memory.  If the log is to be implemented in shared memory and no
-I<logKey> is specified, a block of shared memory of this size will be allocated
-(e.g., by malloc()) at the time the node is created.
+This controls the location and size of ION's SDR transaction (write-ahead
+reversibility) log, which makes SDR transactions reversible when SDR_REVERSIBLE
+is set in I<configFlags>.  Three settings are possible:
+
+=over 4
+
+=item I<unspecified> (the default)
+
+The log location is selected automatically to match the persistence tier of
+the SDR heap.  If the heap is file-backed (SDR_IN_FILE), the log is written to
+a file as well, so that it survives a reboot along with the heap.  If the heap
+is DRAM-only (the common case), the log is placed in shared memory: this still
+survives a process crash -- the only failure from which a DRAM-only heap can
+recover, since a reboot leaves no heap to reverse against -- while avoiding a
+file-write system call on every logged SDR update.  The auto-selected memory
+log size is one eighth of the heap size, clamped to a minimum of 1 MiB and a
+maximum of 64 MiB, and never larger than the heap itself; for the default heap
+size this works out to the 1 MiB minimum.  (These bounds are the compile-time
+constants ION_LOG_AUTO_DIVISOR, ION_LOG_AUTO_FLOOR, and ION_LOG_AUTO_CEIL in
+sdrxn.h.)
+
+=item B<0>
+
+The transaction log is written to a file, regardless of the heap tier.  This
+is the historical behavior, retained as an explicit override -- for example to
+keep an unbounded, file-system-limited log (see the size note below).
+
+=item I<N> (greater than zero)
+
+The transaction log is implemented in a block of shared memory of exactly I<N>
+bytes.  If no I<logKey> is specified, a block of shared memory of this size
+will be allocated (e.g., by malloc()) at the time the node is created.
+
+=back
+
+A memory log is fixed in size: if the undo records for a single open
+transaction ever exceed I<logSize>, that transaction fails and is reversed
+(a file log instead grows until the file system fills).  If a node's
+transactions can be large, size the memory log accordingly.  The high-water
+mark is reported as the maximum transaction log length by B<sdr_stats> (and by
+B<sdrwatch -s>); B<sdrwatch -r> resets it before a measurement window.  A
+common practice is to set I<logSize> explicitly to roughly twice the observed
+maximum.
 
 =item logKey
 

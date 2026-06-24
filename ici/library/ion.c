@@ -1919,7 +1919,8 @@ int	readIonParms(char *configFileName, IonParms *parms)
 	parms->configFlags = SDR_IN_DRAM | SDR_REVERSIBLE | SDR_BOUNDED;
 	parms->heapWords = 250000;
 	parms->heapKey = SM_NO_KEY;
-	parms->logSize = 0;		/*	Log is in file.		*/
+	parms->logSize = ION_LOGSIZE_AUTO;	/*	Tier-coupled; resolved
+						 *	in sdr_load_profile().	*/
 	parms->logKey = SM_NO_KEY;
 	istrcpy(parms->pathName, "/tmp", sizeof parms->pathName);
 
@@ -2195,8 +2196,17 @@ void	printIonParms(IonParms *parms)
 	isprintf(buffer, sizeof buffer, "heapKey:         %d",
 			parms->heapKey);
 	writeMemo(buffer);
-	isprintf(buffer, sizeof buffer, "logSize:         " UVAST_FIELDSPEC,
-			(uvast) parms->logSize);
+	if (parms->logSize == ION_LOGSIZE_AUTO)
+	{
+		isprintf(buffer, sizeof buffer, "logSize:         %s",
+				"auto (tier-coupled)");
+	}
+	else
+	{
+		isprintf(buffer, sizeof buffer, "logSize:         " UVAST_FIELDSPEC,
+				(uvast) parms->logSize);
+	}
+
 	writeMemo(buffer);
 	isprintf(buffer, sizeof buffer, "logKey:          %d",
 			parms->logKey);

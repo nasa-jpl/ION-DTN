@@ -497,6 +497,7 @@ icibin = \
 	rfxclock \
 	sdr2file \
 	reversibility_correctness_test \
+	sdr_logmode_test \
 	robust_lock_recovery_test \
 	psm_robust_recovery_test \
 	ipc_lock_recovery_test \
@@ -772,6 +773,10 @@ sdr2file_CFLAGS = $(icicflags) $(AM_CFLAGS)
 reversibility_correctness_test_SOURCES = ici/test/reversibility_correctness_test.c
 reversibility_correctness_test_LDADD = libici.la -lm
 reversibility_correctness_test_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
+sdr_logmode_test_SOURCES = ici/test/sdr_logmode_test.c
+sdr_logmode_test_LDADD = libici.la -lm
+sdr_logmode_test_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 robust_lock_recovery_test_SOURCES = ici/test/robust_lock_recovery_test.c
 robust_lock_recovery_test_LDADD = libici.la -lm

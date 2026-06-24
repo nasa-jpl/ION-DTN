@@ -38,6 +38,22 @@ typedef struct sdrv_str	*Sdr;	/*	Local view of an SDR.		*/
 #define	SDR_REVERSIBLE	4	/*	Transactions may be reversed.	*/
 #define	SDR_BOUNDED	8	/*	Object boundaries defended.	*/
 
+/*	Reversibility-log location default.  A logSize of ION_LOGSIZE_AUTO
+ *	tells sdr_load_profile() to couple the log's persistence tier to
+ *	the heap's tier: a file-backed heap (SDR_IN_FILE) gets a durable
+ *	file log; a DRAM-only heap gets a fast, fixed-size memory log sized
+ *	by defaultMemoryLogSize().  An explicit logSize (including 0, which
+ *	selects a file log) always overrides AUTO.			*/
+#define	ION_LOGSIZE_AUTO	((size_t) -1)
+
+/*	Auto memory-log sizing bounds.
+ *	The log must hold the largest single transaction's logged volume,
+ *	never more than the heap itself; these are conservative starting
+ *	points and may be tuned per workload via an explicit logSize.	*/
+#define	ION_LOG_AUTO_FLOOR	(1  * 1024 * 1024)	/*	1 MiB	*/
+#define	ION_LOG_AUTO_CEIL	(64 * 1024 * 1024)	/*	64 MiB	*/
+#define	ION_LOG_AUTO_DIVISOR	(8)
+
 /*		SDR system administration functions.			*/
 
 #define sdr_initialize(wmSize, wmPtr, wmKey, wmName)	Sdr_initialize(wmSize, \
