@@ -535,6 +535,21 @@ int	patchExtensionBlocks(Bundle *bundle)
 			continue;
 		}
 
+		/*	The Quality of Service block is an ION-private block
+		 *	asserting the source's class of service; only the
+		 *	node that sources a bundle should add it.  Do NOT
+		 *	patch it into a bundle that is merely in transit
+		 *	(this function runs only on the forwarding path, via
+		 *	bptransit's initiateBundleForwarding()).  A QoS block
+		 *	that is already present on the arriving bundle is
+		 *	untouched here -- it is preserved and re-serialized
+		 *	by the normal acquire/record/dequeue path.		*/
+
+		if (spec->type == QualityOfServiceBlk)
+		{
+			continue;
+		}
+
 		if (def->offer != NULL
 		&& findExtensionBlock(bundle, spec->type, spec->tag) == 0)
 		{
