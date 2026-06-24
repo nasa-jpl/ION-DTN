@@ -127,8 +127,8 @@ jobs:
         id: vars
         run: |
           case "${{ matrix.runner }}" in
-            u20)   echo "os_image=ubuntu-22" >> $GITHUB_OUTPUT; echo "target=buildah-build" >> $GITHUB_OUTPUT ;;
-            u22)   echo "os_image=ubuntu-24" >> $GITHUB_OUTPUT; echo "target=buildah-build" >> $GITHUB_OUTPUT ;;
+            u22)   echo "os_image=ubuntu-22" >> $GITHUB_OUTPUT; echo "target=buildah-build" >> $GITHUB_OUTPUT ;;
+            u24)   echo "os_image=ubuntu-24" >> $GITHUB_OUTPUT; echo "target=buildah-build" >> $GITHUB_OUTPUT ;;
             ol8)   echo "os_image=oraclelinux-8" >> $GITHUB_OUTPUT; echo "target=buildah-build" >> $GITHUB_OUTPUT ;;
             ol9)   echo "os_image=oraclelinux-9" >> $GITHUB_OUTPUT; echo "target=buildah-build" >> $GITHUB_OUTPUT ;;
             rhel8) echo "os_image=rhel-8" >> $GITHUB_OUTPUT; echo "target=buildah-build-rhel" >> $GITHUB_OUTPUT ;;
