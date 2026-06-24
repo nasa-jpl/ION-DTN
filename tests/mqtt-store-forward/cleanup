@@ -1,0 +1,9 @@
+#!/bin/bash
+# Cleanup script for MQTT store-and-forward test
+pkill -9 -f "mqttcli" 2>/dev/null
+pkill -9 -f "mqttclo" 2>/dev/null
+pkill -f "mosquitto.*19834" 2>/dev/null
+killm
+rm -f ./config/loopback_runtime.bprc
+rm -f ./config/loopback_runtime.ipnrc
+rm -f ./config/nostart_runtime.bprc

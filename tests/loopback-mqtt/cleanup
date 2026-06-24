@@ -1,0 +1,8 @@
+#!/bin/bash
+# Cleanup script for MQTT CLA loopback test
+pkill -9 -f "mqttcli" 2>/dev/null
+pkill -9 -f "mqttclo" 2>/dev/null
+pkill -f "mosquitto.*19833" 2>/dev/null
+killm
+rm -f ./config/loopback_runtime.bprc
+rm -f ./config/loopback_runtime.ipnrc

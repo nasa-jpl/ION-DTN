@@ -1,0 +1,151 @@
+=head1 NAME
+
+mqttclo - DTN MQTT convergence layer output task
+
+=head1 SYNOPSIS
+
+B<mqttclo> I<host>:I<port>/I<suffix> [B<-u> I<username>] [B<-p> I<password>]
+[B<-t>] [B<-c> I<cafile>] [B<-C> I<capath>] [B<-k> I<keystore>]
+[B<-K> I<keypassword>]
+
+=head1 DESCRIPTION
+
+B<mqttclo> is a background "daemon" task that transmits bundles via an
+MQTT broker.  It publishes each outbound bundle to the topic
+C<ion/bundles/>I<suffix> using QoS 1 (at-least-once delivery).
+
+The duct name format is I<host>:I<port>/I<suffix>, where I<host> and
+I<port> identify the MQTT broker and I<suffix> is a node-specific
+identifier used to construct the publish topic (typically identifying
+the remote node).
+
+MQTT messages are inherently length-delimited, so no additional framing
+is applied; the raw bundle bytes are sent as the MQTT message payload.
+
+Persistent MQTT sessions (C<cleansession=0>) are used.  On connection
+failure, the daemon retries with exponential backoff (1 second up to
+30 seconds).
+
+B<mqttclo> is spawned automatically by B<bpadmin> in response to the 's'
+(START) command that starts operation of the Bundle Protocol; the text
+of the command that is used to spawn the task must be provided at the
+time the "mqtt" convergence layer protocol is added to the BP database.
+The convergence layer output task is terminated by B<bpadmin> in
+response to an 'x' (STOP) command.
+
+B<mqttclo> requires the Eclipse Paho MQTT C client library
+(libpaho-mqtt3c).  For TLS support, the library must have been built
+with OpenSSL (libpaho-mqtt3cs).
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-u> I<username>
+
+MQTT username for broker authentication.
+
+=item B<-p> I<password>
+
+MQTT password for broker authentication.
+
+=item B<-t>
+
+Enable TLS.  The connection URI scheme changes from C<tcp://> to
+C<ssl://>.  If any of B<-c>, B<-C>, or B<-k> is specified, TLS is
+enabled automatically.
+
+=item B<-c> I<cafile>
+
+Path to a PEM file containing trusted CA certificates for server
+certificate verification.  Implies B<-t>.
+
+=item B<-C> I<capath>
+
+Path to a directory containing CA certificates in PEM format (hashed
+with C<c_rehash>).  Implies B<-t>.
+
+=item B<-k> I<keystore>
+
+Path to a PEM file containing the client certificate and private key
+for mutual TLS authentication.  Implies B<-t>.
+
+=item B<-K> I<keypassword>
+
+Password to decrypt the client private key if it is encrypted.
+
+=back
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<mqttclo> terminated normally, for reasons noted in the B<ion.log> file.
+
+=item "1"
+
+B<mqttclo> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart B<mqttclo>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item mqttclo can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item No such mqtt duct.
+
+No mqtt outduct matching the duct name has been added to the BP database.
+Use B<bpadmin> to stop the mqtt convergence-layer protocol, add the
+outduct, and then restart the mqtt protocol.
+
+=item mqttclo: can't connect to MQTT broker.
+
+The MQTT broker is not reachable.  Check that the broker is running and
+the host/port are correct.  The daemon will attempt to reconnect with
+exponential backoff.
+
+=back
+
+=head1 EXAMPLES
+
+Plain TCP connection:
+
+    a outduct mqtt broker.local:1883/node2 mqttclo
+
+With username/password authentication:
+
+    a outduct mqtt broker.local:1883/node2 'mqttclo -u ionuser -p secret'
+
+With TLS (server certificate verification only):
+
+    a outduct mqtt broker.local:8883/node2 'mqttclo -c /etc/mqtt/ca.pem'
+
+With mutual TLS authentication:
+
+    a outduct mqtt broker.local:8883/node2 'mqttclo -c /etc/mqtt/ca.pem -k /etc/mqtt/client.pem'
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
+
+=head1 SEE ALSO
+
+bpadmin(1), mqttcli(1), bprc(5)

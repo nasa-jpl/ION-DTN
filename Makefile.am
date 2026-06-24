@@ -1177,6 +1177,12 @@ bpbin += \
 	bsspclo
 endif # end ENABLE_BSSP
 
+if ENABLE_MQTT
+bpbin += \
+	mqttcli \
+	mqttclo
+endif # end ENABLE_MQTT
+
 bplib = \
 	libbp.la \
 	libcgr.la \
@@ -1211,6 +1217,7 @@ bpnoinst = \
 	bpv7/saga/saga.h \
 	bpv7/spp/sppcla.h \
 	bpv7/epp/eppcla.h \
+	bpv7/mqtt/mqttcla.h \
 	bpv7/stcp/stcpcla.h \
 	bpv7/udp/udpcla.h
 
@@ -1265,6 +1272,8 @@ bpextra = \
 	bpv7/doc/pod1/eppclo.pod \
 	bpv7/doc/pod1/filecli.pod \
 	bpv7/doc/pod1/fileclo.pod \
+	bpv7/doc/pod1/mqttcli.pod \
+	bpv7/doc/pod1/mqttclo.pod \
 	bpv7/doc/pod1/hmackeys.pod \
 	bpv7/doc/pod1/ipnadmin.pod \
 	bpv7/doc/pod1/ipnadminep.pod \
@@ -1355,6 +1364,8 @@ bpmans = \
 	bpv7/doc/eppclo.1 \
 	bpv7/doc/filecli.1 \
 	bpv7/doc/fileclo.1 \
+	bpv7/doc/mqttcli.1 \
+	bpv7/doc/mqttclo.1 \
 	bpv7/doc/hmackeys.1 \
 	bpv7/doc/ipnadmin.1 \
 	bpv7/doc/ipnadminep.1 \
@@ -1709,6 +1720,18 @@ filecli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 fileclo_SOURCES = bpv7/file/fileclo.c bpv7/file/libfilecla.c
 fileclo_LDADD = libici.la $(bplib) $(LIBS)
 fileclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+# --- MQTT CLA Executables --- #
+
+if ENABLE_MQTT
+mqttcli_SOURCES = bpv7/mqtt/mqttcli.c
+mqttcli_LDADD = libici.la $(bplib) $(PTHREAD_LIBS) $(MQTT_LIBS) $(LIBS)
+mqttcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+mqttclo_SOURCES = bpv7/mqtt/mqttclo.c
+mqttclo_LDADD = libici.la $(bplib) $(MQTT_LIBS) $(LIBS)
+mqttclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+endif # end ENABLE_MQTT
 
 # --- BIBE Executables --- #
 

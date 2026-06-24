@@ -1,0 +1,273 @@
+#!/usr/bin/env bash
+#
+# MQTT CLA Store-and-Forward Test
+#
+# Verifies that bundles sent while the MQTT subscriber (mqttcli) is
+# offline are queued by the broker and delivered when the subscriber
+# reconnects.  This exercises the persistent session (cleansession=0)
+# and QoS 1 store-and-forward semantics.
+#
+# Test sequence:
+#   1. Start broker + ION with MQTT CLAs → establish persistent session
+#   2. Kill mqttcli (subscriber goes offline)
+#   3. Send bundles via mqttclo (publisher writes to broker)
+#   4. Restart mqttcli (subscriber reconnects, broker drains queue)
+#   5. Verify all bundles arrive
+#
+# Prerequisites:
+#   - ION built with --with-paho-mqtt
+#   - mosquitto (broker) installed and available in PATH
+#
+# Copyright (c) 2026, California Institute of Technology.
+# ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
+#
+
+# documentation boilerplate
+CONFIGFILES=" \
+./config/loopback.ionrc \
+./config/loopback.bprc \
+./config/loopback.ipnrc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing MQTT CLA store-and-forward (offline subscriber)."
+echo
+echo "CONFIG: Custom loopback configuration: "
+echo
+for N in $CONFIGFILES
+do
+    echo "$N:"
+    cat $N
+    echo "# EOF"
+    echo
+done
+echo "OUTPUT: Sends bundles while subscriber is offline, verifies delivery"
+echo "        after subscriber reconnects."
+echo
+echo "########################################"
+
+FAIL=0
+
+# --- Check prerequisites ---
+
+if ! command -v mqttcli >/dev/null 2>&1; then
+    echo "SKIP: mqttcli not found. Build ION with --with-paho-mqtt."
+    exit 2
+fi
+
+if ! command -v mqttclo >/dev/null 2>&1; then
+    echo "SKIP: mqttclo not found. Build ION with --with-paho-mqtt."
+    exit 2
+fi
+
+if ! command -v mosquitto >/dev/null 2>&1; then
+    echo "SKIP: mosquitto broker not found. Install mosquitto."
+    exit 2
+fi
+
+# Use a non-standard port to avoid conflicts
+MQTT_PORT=19834
+BROKER="127.0.0.1:${MQTT_PORT}"
+
+echo "Killing old ION..."
+killm
+pkill -9 -f "mqttcli" 2>/dev/null
+pkill -9 -f "mqttclo" 2>/dev/null
+pkill -f "mosquitto.*${MQTT_PORT}" 2>/dev/null
+./cleanup 2>/dev/null
+sleep 1
+
+rm -f ion.log testfile2
+
+# --- Start mosquitto broker ---
+
+echo "Starting mosquitto broker on port ${MQTT_PORT}..."
+mosquitto -p ${MQTT_PORT} -d 2>/dev/null
+sleep 1
+
+if ! mosquitto_pub -h 127.0.0.1 -p ${MQTT_PORT} -t "ion/test" -m "ping" 2>/dev/null; then
+    echo "SKIP: Could not connect to mosquitto broker on port ${MQTT_PORT}."
+    pkill -f "mosquitto.*${MQTT_PORT}" 2>/dev/null
+    exit 2
+fi
+echo "Mosquitto broker is running on port ${MQTT_PORT}."
+
+# --- Generate runtime configs ---
+
+CONFIGDIR="./config"
+sed -e "s|BROKER|${BROKER}|g" \
+    "${CONFIGDIR}/loopback.bprc" > "${CONFIGDIR}/loopback_runtime.bprc"
+sed -e "s|BROKER|${BROKER}|g" \
+    "${CONFIGDIR}/loopback.ipnrc" > "${CONFIGDIR}/loopback_runtime.ipnrc"
+sed -i "s|config/loopback.ipnrc|config/loopback_runtime.ipnrc|g" \
+    "${CONFIGDIR}/loopback_runtime.bprc"
+
+# --- Phase 1: Start ION fully to establish persistent MQTT session ---
+
+echo ""
+echo "=== Phase 1: Establish persistent MQTT session ==="
+echo "Starting ION with MQTT CLAs..."
+ionadmin "${CONFIGDIR}/loopback.ionrc"
+sleep 1
+bpadmin "${CONFIGDIR}/loopback_runtime.bprc"
+
+echo "Waiting for MQTT CLAs to start..."
+for i in 1 2 3 4 5 6 7 8 9 10; do
+    if pgrep -f "mqttcli" > /dev/null && pgrep -f "mqttclo" > /dev/null; then
+        echo "MQTT CLAs are running."
+        break
+    fi
+    echo "  Waiting... ($i)"
+    sleep 1
+done
+sleep 2
+
+if ! pgrep -f "mqttcli" > /dev/null || ! pgrep -f "mqttclo" > /dev/null; then
+    echo "ERROR: MQTT CLAs did not start."
+    echo "ion.log contents:"
+    cat ion.log 2>/dev/null
+    pkill -f "mosquitto.*${MQTT_PORT}" 2>/dev/null
+    ionstop
+    killm
+    exit 1
+fi
+
+# Send a test bundle to verify the session works
+echo "Sending initial test bundle to establish session..."
+bpsink ipn:1.1 > testfile2 &
+BPSINK_PID=$!
+sleep 1
+
+bpsource ipn:1.1 "session establishment ping"
+sleep 3
+
+if grep -q "session establishment ping" testfile2; then
+    echo "Initial bundle received — session is established."
+else
+    echo "ERROR: Initial bundle not received. MQTT CLA not working."
+    echo "ion.log tail:"
+    tail -20 ion.log 2>/dev/null
+    kill $BPSINK_PID 2>/dev/null
+    wait $BPSINK_PID 2>/dev/null
+    pkill -f "mosquitto.*${MQTT_PORT}" 2>/dev/null
+    ionstop
+    killm
+    exit 1
+fi
+
+kill $BPSINK_PID 2>/dev/null
+wait $BPSINK_PID 2>/dev/null
+rm -f testfile2
+
+# --- Phase 2: Stop subscriber via bpadmin, send bundles while offline ---
+
+echo ""
+echo "=== Phase 2: Subscriber goes offline, send bundles ==="
+echo "Stopping mqttcli induct via bpadmin..."
+echo "x induct mqtt ${BROKER}/node1" | bpadmin
+sleep 3
+
+if pgrep -f "mqttcli" > /dev/null; then
+    echo "WARNING: mqttcli still running after stop, force killing..."
+    pkill -9 -f "mqttcli" 2>/dev/null
+    sleep 1
+fi
+echo "mqttcli stopped. Bundles will now queue at broker."
+
+echo "Sending bundles while subscriber is offline..."
+bpsource ipn:1.1 "store-forward message 1"
+sleep 1
+bpsource ipn:1.1 "store-forward message 2"
+sleep 1
+bpsource ipn:1.1 "store-forward message 3"
+sleep 2
+
+echo "Bundles sent. They should be queued at the MQTT broker."
+
+# --- Phase 3: Restart subscriber, verify queued bundles arrive ---
+
+echo ""
+echo "=== Phase 3: Subscriber reconnects, verify delivery ==="
+echo "Starting bpsink..."
+bpsink ipn:1.1 > testfile2 &
+BPSINK_PID=$!
+sleep 1
+
+echo "Restarting mqttcli induct via bpadmin..."
+echo "s induct mqtt ${BROKER}/node1" | bpadmin
+sleep 3
+
+# Verify mqttcli restarted
+if ! pgrep -f "mqttcli" > /dev/null; then
+    echo "ERROR: mqttcli did not restart."
+    FAIL=1
+fi
+
+# Wait for queued bundles to be delivered
+echo "Waiting for queued bundles to be delivered..."
+sleep 8
+
+echo ""
+echo "=== Checking results ==="
+RECEIVED=0
+
+if grep -q "store-forward message 1" testfile2; then
+    echo "  Message 1: RECEIVED"
+    RECEIVED=$((RECEIVED + 1))
+else
+    echo "  Message 1: MISSING"
+fi
+
+if grep -q "store-forward message 2" testfile2; then
+    echo "  Message 2: RECEIVED"
+    RECEIVED=$((RECEIVED + 1))
+else
+    echo "  Message 2: MISSING"
+fi
+
+if grep -q "store-forward message 3" testfile2; then
+    echo "  Message 3: RECEIVED"
+    RECEIVED=$((RECEIVED + 1))
+else
+    echo "  Message 3: MISSING"
+fi
+
+if [ $RECEIVED -eq 3 ]; then
+    echo ""
+    echo "SUCCESS: All 3 queued bundles delivered after subscriber reconnect!"
+else
+    echo ""
+    echo "ERROR: Only ${RECEIVED}/3 bundles delivered."
+    echo "Received content:"
+    cat testfile2
+    echo ""
+    echo "ion.log tail:"
+    tail -30 ion.log 2>/dev/null
+    FAIL=1
+fi
+
+# --- Cleanup ---
+
+echo ""
+echo "=== Cleanup ==="
+kill $BPSINK_PID 2>/dev/null
+wait $BPSINK_PID 2>/dev/null
+
+pkill -9 -f "mqttcli" 2>/dev/null
+pkill -9 -f "mqttclo" 2>/dev/null
+sleep 1
+
+ionstop
+sleep 1
+killm
+
+pkill -f "mosquitto.*${MQTT_PORT}" 2>/dev/null
+
+rm -f testfile2
+rm -f "${CONFIGDIR}/loopback_runtime.bprc"
+rm -f "${CONFIGDIR}/loopback_runtime.ipnrc"
+rm -f "${CONFIGDIR}/nostart_runtime.bprc"
+
+exit $FAIL

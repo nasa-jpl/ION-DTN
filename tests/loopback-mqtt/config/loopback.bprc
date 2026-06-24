@@ -1,0 +1,27 @@
+# bprc configuration file for the MQTT CLA loopback test.
+# Command: % bpadmin loopback.bprc
+
+# Initialization command (command 1).
+1
+
+# Add an EID scheme.
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+# Add endpoints.
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+
+# Add the mqtt protocol.
+a protocol mqtt 262144 0
+
+# Add an induct. (subscribe to loopback topic)
+a induct mqtt BROKER/node1 mqttcli
+
+# Add an outduct. (publish to loopback topic)
+a outduct mqtt BROKER/node1 mqttclo
+
+# Run ipnadmin to configure egress plans
+r 'ipnadmin config/loopback.ipnrc'
+
+# Start the daemons
+s

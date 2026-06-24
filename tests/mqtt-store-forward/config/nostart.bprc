@@ -1,0 +1,27 @@
+# bprc configuration file for MQTT store-and-forward test.
+# Same as loopback.bprc but without starting daemons (no 's' command).
+# Used to configure the node without starting the CLI, so bundles
+# queue at the broker while the subscriber is offline.
+# Command: % bpadmin nostart.bprc
+
+# Initialization command (command 1).
+1
+
+# Add an EID scheme.
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+# Add endpoints.
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+
+# Add the mqtt protocol.
+a protocol mqtt 262144 0
+
+# Add an induct. (subscribe to loopback topic)
+a induct mqtt BROKER/node1 mqttcli
+
+# Add an outduct. (publish to loopback topic)
+a outduct mqtt BROKER/node1 mqttclo
+
+# Run ipnadmin to configure egress plans
+r 'ipnadmin config/loopback.ipnrc'

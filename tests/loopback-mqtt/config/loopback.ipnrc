@@ -1,0 +1,6 @@
+# ipnrc configuration file for the MQTT CLA loopback test.
+# Command: % ipnadmin loopback.ipnrc
+
+# Add an egress plan.
+# Bundles to node 1 go via mqtt outduct
+a plan 1 mqtt/BROKER/node1

@@ -1,0 +1,149 @@
+=head1 NAME
+
+mqttcli - DTN MQTT convergence layer input task
+
+=head1 SYNOPSIS
+
+B<mqttcli> I<host>:I<port>/I<suffix> [B<-u> I<username>] [B<-p> I<password>]
+[B<-t>] [B<-c> I<cafile>] [B<-C> I<capath>] [B<-k> I<keystore>]
+[B<-K> I<keypassword>]
+
+=head1 DESCRIPTION
+
+B<mqttcli> is a background "daemon" task that receives bundles via an
+MQTT broker.  It subscribes to the topic C<ion/bundles/>I<suffix> using
+QoS 1 (at-least-once delivery) and acquires each received message as a
+bundle.
+
+The duct name format is I<host>:I<port>/I<suffix>, where I<host> and
+I<port> identify the MQTT broker and I<suffix> is a node-specific
+identifier used to construct the subscription topic.
+
+Persistent MQTT sessions (C<cleansession=0>) are used so that the broker
+queues messages for the subscriber while it is offline.  The client ID
+is deterministic, derived from the duct name suffix, so that session
+state is recovered across restarts.
+
+B<mqttcli> is spawned automatically by B<bpadmin> in response to the 's'
+(START) command that starts operation of the Bundle Protocol; the text
+of the command that is used to spawn the task must be provided at the
+time the "mqtt" convergence layer protocol is added to the BP database.
+The convergence layer input task is terminated by B<bpadmin> in
+response to an 'x' (STOP) command.
+
+B<mqttcli> requires the Eclipse Paho MQTT C client library
+(libpaho-mqtt3c).  For TLS support, the library must have been built
+with OpenSSL (libpaho-mqtt3cs).
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-u> I<username>
+
+MQTT username for broker authentication.
+
+=item B<-p> I<password>
+
+MQTT password for broker authentication.
+
+=item B<-t>
+
+Enable TLS.  The connection URI scheme changes from C<tcp://> to
+C<ssl://>.  If any of B<-c>, B<-C>, or B<-k> is specified, TLS is
+enabled automatically.
+
+=item B<-c> I<cafile>
+
+Path to a PEM file containing trusted CA certificates for server
+certificate verification.  Implies B<-t>.
+
+=item B<-C> I<capath>
+
+Path to a directory containing CA certificates in PEM format (hashed
+with C<c_rehash>).  Implies B<-t>.
+
+=item B<-k> I<keystore>
+
+Path to a PEM file containing the client certificate and private key
+for mutual TLS authentication.  Implies B<-t>.
+
+=item B<-K> I<keypassword>
+
+Password to decrypt the client private key if it is encrypted.
+
+=back
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<mqttcli> terminated normally, for reasons noted in the B<ion.log> file.
+
+=item "1"
+
+B<mqttcli> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart B<mqttcli>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item mqttcli can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item No such mqtt duct.
+
+No mqtt induct matching the duct name has been added to the BP database.
+Use B<bpadmin> to stop the mqtt convergence-layer protocol, add the
+induct, and then restart the mqtt protocol.
+
+=item mqttcli: can't connect to MQTT broker.
+
+The MQTT broker is not reachable.  Check that the broker is running and
+the host/port are correct.  The receiver thread will attempt to reconnect
+with exponential backoff.
+
+=back
+
+=head1 EXAMPLES
+
+Plain TCP connection:
+
+    a induct mqtt broker.local:1883/node1 mqttcli
+
+With username/password authentication:
+
+    a induct mqtt broker.local:1883/node1 'mqttcli -u ionuser -p secret'
+
+With TLS (server certificate verification only):
+
+    a induct mqtt broker.local:8883/node1 'mqttcli -c /etc/mqtt/ca.pem'
+
+With mutual TLS authentication:
+
+    a induct mqtt broker.local:8883/node1 'mqttcli -c /etc/mqtt/ca.pem -k /etc/mqtt/client.pem'
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
+
+=head1 SEE ALSO
+
+bpadmin(1), mqttclo(1), bprc(5)
