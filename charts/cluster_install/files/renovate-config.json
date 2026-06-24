@@ -1,0 +1,260 @@
+{
+    "platform": "github",
+    "autodiscover": false,
+    "configMigration": true,
+    "onboarding": true,
+    "onboardingConfig": {
+        "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+        "description": "Update ION Test Infrastructure dependencies one weekends between 10PM & 5AM",
+        "timezone": "America/Los_Angeles",
+        "schedule": [
+            "* 22-23,0-4 * * 0,6"
+        ],
+        "minimumReleaseAge": "7 days",
+        "extends": [
+            "config:recommended",
+            "docker:pinDigests",
+            "helpers:pinGitHubActionDigests",
+            ":configMigration",
+            ":pinDevDependencies",
+            "abandonments:recommended",
+            ":maintainLockFilesWeekly",
+            ":semanticCommitsDisabled"
+        ],
+        "baseBranches": [
+            "integration"
+        ],
+        "branchPrefix": "renovate-",
+        "packageRules": [
+            {
+                "matchPackageNames": [
+                    "*"
+                ],
+                "labels": [
+                    "dependencies"
+                ]
+            },
+            {
+                "matchManagers": [
+                    "github-actions"
+                ],
+                "matchUpdateTypes": [
+                    "minor",
+                    "patch",
+                    "pin",
+                    "digest",
+                    "pinDigest"
+                ],
+                "groupName": "GitHub Actions Dependencies",
+                "commitMessagePrefix": "GitHub Actions:"
+            },
+            {
+                "matchManagers": [
+                    "github-actions"
+                ],
+                "matchUpdateTypes": [
+                    "major"
+                ],
+                "groupName": "Major GitHub Actions",
+                "commitMessagePrefix": "GitHub Actions:"
+            },
+            {
+                "matchDepNames": [
+                    "renovate",
+                    "Checkmarx/kics",
+                    "perl"
+                ],
+                "matchUpdateTypes": [
+                    "minor",
+                    "patch",
+                    "pin",
+                    "digest",
+                    "pinDigest"
+                ],
+                "groupName": "GitHub Actions Dependencies",
+                "commitMessagePrefix": "GitHub Actions:"
+            },
+            {
+                "matchDepNames": [
+                    "actions/runner",
+                    "actions/runner-container-hook"
+                ],
+                "matchUpdateTypes": [
+                    "minor",
+                    "patch",
+                    "pin",
+                    "digest",
+                    "pinDigest"
+                ],
+                "groupName": "GitHub Runner Core Dependencies",
+                "commitMessagePrefix": "Runner:"
+            },
+            {
+                "matchDepNames": [
+                    "moby/moby",
+                    "docker/compose",
+                    "Yelp/dumb-init",
+                    "oraclelinux",
+                    "ubuntu"
+                ],
+                "matchDepPatterns": [
+                    "ubi",
+                    "rhel"
+                ],
+                "matchUpdateTypes": [
+                    "minor",
+                    "patch",
+                    "pin",
+                    "digest",
+                    "pinDigest"
+                ],
+                "groupName": "Container Ecosystem Tools",
+                "commitMessagePrefix": "Docker:"
+            },
+            {
+                "matchDepNames": [
+                    "oraclelinux",
+                    "ubuntu"
+                ],
+                "matchDepPatterns": [
+                    "ubi",
+                    "rhel"
+                ],
+                "matchUpdateTypes": [
+                    "major"
+                ],
+                "enabled": false
+            },
+            {
+                "matchManagers": [
+                    "kubernetes"
+                ],
+                "matchUpdateTypes": [
+                    "minor",
+                    "patch",
+                    "pin",
+                    "digest",
+                    "pinDigest"
+                ],
+                "groupName": "Container Ecosystem Tools",
+                "commitMessagePrefix": "Docker:"
+            },
+            {
+                "matchManagers": [
+                    "kubernetes"
+                ],
+                "matchUpdateTypes": [
+                    "major"
+                ],
+                "commitMessagePrefix": "Docker:"
+            },
+            {
+                "matchManagers": [
+                    "pip_requirements"
+                ],
+                "matchUpdateTypes": [
+                    "minor",
+                    "patch",
+                    "pin",
+                    "digest",
+                    "pinDigest"
+                ],
+                "groupName": "Python Environment Tools",
+                "commitMessagePrefix": "requirements.txt:"
+            },
+            {
+                "matchDepNames": [
+                    "python",
+                    "pyenv/pyenv"
+                ],
+                "matchUpdateTypes": [
+                    "minor",
+                    "patch",
+                    "pin",
+                    "digest",
+                    "pinDigest"
+                ],
+                "groupName": "Python Environment Tools",
+                "commitMessagePrefix": "Python:"
+            },
+            {
+                "matchDepNames": [
+                    "python"
+                ],
+                "matchUpdateTypes": [
+                    "minor",
+                    "major"
+                ],
+                "enabled": false
+            },
+            {
+                "matchManagers": [
+                    "cpanfile"
+                ],
+                "matchUpdateTypes": [
+                    "minor",
+                    "patch",
+                    "pin",
+                    "digest",
+                    "pinDigest"
+                ],
+                "groupName": "Perl Dependencies",
+                "commitMessagePrefix": "cpanfile:"
+            },
+            {
+                "matchManagers": [
+                    "cpanfile"
+                ],
+                "matchUpdateTypes": [
+                    "major"
+                ],
+                "commitMessagePrefix": "cpanfile:"
+            },
+            {
+                "matchDepNames": [
+                    "actions/actions-runner-controller",
+                    "gha-runner-scale-set-controller",
+                    "gha-runner-scale-set"
+                ],
+                "matchUpdateTypes": [
+                    "minor",
+                    "patch",
+                    "pin",
+                    "digest",
+                    "pinDigest"
+                ],
+                "groupName": "ARC Infrastructure",
+                "commitMessagePrefix": "ARC:"
+            },
+            {
+                "matchManagers": [
+                    "helmv3",
+                    "dockerfile"
+                ],
+                "matchUpdateTypes": [
+                    "minor",
+                    "patch",
+                    "pin",
+                    "digest",
+                    "pinDigest"
+                ],
+                "groupName": "ARC Infrastructure",
+                "commitMessagePrefix": "ARC:"
+            }
+        ],
+        "customManagers": [
+            {
+                "customType": "regex",
+                "fileMatch": [
+                    "(^|/)Makefile$",
+                    "(^|/|\\.)Dockerfile$",
+                    "\\.dockerfile$",
+                    "\\.ya?ml$"
+                ],
+                "matchStrings": [
+                    "#\\s*renovate:\\s*datasource=(?<datasource>[^\\s]+)\\s+depName=(?<depName>[^\\s]+)(?:\\s+versioning=(?<versioning>[^\\s]+))?\\s*\\r?\\n(?:[A-Za-z0-9_\\-]+(?:\\s*\\??=|:)\\s*)\"?(?<currentValue>[^\"\\s\\n]+)\"?"
+                ]
+            }
+        ]
+    }
+}

@@ -5,4 +5,4 @@ metadata:
   namespace: arc-runners
 type: Opaque
 stringData:
-  github_token: {{ .Values.githubToken }}
+  github_token: "{{ .Values.githubToken }}"

@@ -9,6 +9,12 @@
     msg: "Required secrets file arc/secrets.local.yaml not found"
   when: not secrets_file.stat.exists
 
+- name: Load local secrets into Ansible runtime
+  ansible.builtin.include_vars:
+    file: "{{ charts_path }}/arc/secrets.local.yaml"
+    name: arc_secrets
+  when: config == 'rhel8'
+
 - name: Check Kubernetes cluster accessibility
   kubernetes.core.k8s_info:
     kind: Node
@@ -30,10 +36,21 @@
   ansible.builtin.debug:
     msg: "✓ values.yaml generated successfully for {{ config }} configuration"
 
-- name: Add Headlamp Helm repository
+- name: Add all required Helm repositories
   kubernetes.core.helm_repository:
-    name: headlamp
-    repo_url: "https://kubernetes-sigs.github.io/headlamp/"
+    name: "{{ item.name }}"
+    repo_url: "{{ item.repo_url }}"
+  loop:
+    - name: headlamp
+      repo_url: "https://kubernetes-sigs.github.io/headlamp/"
+    - name: metrics-server
+      repo_url: "https://kubernetes-sigs.github.io/metrics-server/"
+    - name: prometheus
+      repo_url: "https://prometheus-community.github.io/helm-charts"
+    - name: mogenius
+      repo_url: "https://helm.mogenius.com/public"
+      install_repo: "{{ config == 'rhel8' }}"
+  when: item.install_repo | default(true) | bool
 
 - name: Deploy Headlamp Helm chart
   kubernetes.core.helm:
@@ -57,11 +74,6 @@
     msg: >-
       ✓ Headlamp deployed successfully to the headlamp namespace.
       Status: {{ 'Created' if headlamp_result.status is defined and headlamp_result.status == 201 else 'Updated' }}
-
-- name: Add metrics-server Helm repository
-  kubernetes.core.helm_repository:
-    name: metrics-server
-    repo_url: "https://kubernetes-sigs.github.io/metrics-server/"
 
 - name: Deploy metrics-server Helm chart
   kubernetes.core.helm:
@@ -139,11 +151,6 @@
     value: "{{ headlamp_secret.resources[0].data.token | b64decode }}"
     type: text
 
-- name: Add Prometheus helm repository
-  kubernetes.core.helm_repository:
-    name: prometheus
-    repo_url: https://prometheus-community.github.io/helm-charts
-
 - name: Install Prometheus Chart
   kubernetes.core.helm:
     name: prometheus
@@ -189,6 +196,115 @@
           grafana_dashboard: "1"
       data:
         arc-dashboard.json: "{{ lookup('file', 'dashboard.json') }}"
+
+- name: Create renovate-operator namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: renovate-operator
+  when: config == 'rhel8'
+
+- name: Deploy Renovate ConfigMap natively via Ansible
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: renovate-config
+        namespace: renovate-operator
+      data:
+        config.json: "{{ lookup('file', 'renovate-config.json') }}"
+  when: config == 'rhel8'
+
+- name: Deploy Renovate Operator Helm chart
+  kubernetes.core.helm:
+    name: renovate-operator
+    chart_ref: mogenius/renovate-operator
+    release_namespace: renovate-operator
+    create_namespace: true
+    wait: true
+    release_values:
+      valkey:
+        enabled: true
+        auth:
+          enabled: false
+      config:
+        logStorage:
+          mode: valkey
+      metrics:
+        enabled: true
+        serviceMonitor:
+          enabled: true
+        dashboard:
+          enabled: true
+          namespace: monitoring
+      extraManifests:
+        - |
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: renovate-env
+            namespace: renovate-operator
+          type: Opaque
+          stringData:
+            RENOVATE_TOKEN: "{{ arc_secrets.githubToken }}"
+        - |
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: renovate-operator-ui-nodeport
+            namespace: renovate-operator
+          spec:
+            type: NodePort
+            ports:
+              - port: 8081
+                targetPort: 8081
+                nodePort: 32050
+                protocol: TCP
+            selector:
+              app: renovate-operator-renovate-operator
+  no_log: true
+  when: config == 'rhel8'
+
+- name: Deploy RenovateJob Custom Resource
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: renovate-operator.mogenius.com/v1alpha1
+      kind: RenovateJob
+      metadata:
+        name: renovate-job
+        namespace: renovate-operator
+      spec:
+        schedule: "@hourly"
+        parallelism: 1
+        discoveryFilters:
+          - "{{ arc_secrets.renovateTargetRepo }}"
+        provider:
+          name: github
+        secretRef: renovate-env
+        image: "renovate/renovate:{{ renovate_version | default('latest') }}"
+        extraVolumes:
+          - name: config-volume
+            configMap:
+              name: renovate-config
+        extraVolumeMounts:
+          - name: config-volume
+            mountPath: /usr/src/app/config.json
+            subPath: config.json
+        extraEnv:
+          - name: RENOVATE_CONFIG_FILE
+            value: /usr/src/app/config.json
+  when: config == 'rhel8'
+
+- name: Display Renovate Operator deployment result
+  ansible.builtin.debug:
+    msg: "✓ Renovate Operator and RenovateJob deployed successfully to the renovate-operator namespace."
+  when: config == 'rhel8'
 
 - name: Deploy ARC Helm chart
   kubernetes.core.helm:
