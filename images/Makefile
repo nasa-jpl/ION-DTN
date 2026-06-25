@@ -33,6 +33,8 @@ endif
 
 docker-build:
 	${DOCKER} build \
+	  --squash \
+	  --build-arg BASE_OS_IMAGE=${DEFAULT_RUNNER_NAME}:base-${OS_IMAGE} \
 	  --build-arg TARGETPLATFORM=${TARGETPLATFORM} \
 	  --build-arg RUNNER_VERSION=${RUNNER_VERSION} \
 	  --build-arg RUNNER_CONTAINER_HOOKS_VERSION=${RUNNER_CONTAINER_HOOKS_VERSION} \
@@ -43,13 +45,33 @@ docker-build:
 	  --build-arg UV_VERSION=${UV_VERSION} \
 	  --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
 	  --build-arg REV=$(shell git rev-parse --short HEAD) \
-	  -f actions-runner.${OS_IMAGE}.dockerfile \
+	  -f actions-runner.universal.dockerfile \
 	  -t ${DEFAULT_RUNNER_NAME}:${OS_IMAGE} .
+
+docker-build-base:
+	${DOCKER} build \
+	  --squash \
+	  --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
+	  --build-arg REV=$(shell git rev-parse --short HEAD) \
+	  -f base.${OS_IMAGE}.dockerfile \
+	  -t ${DEFAULT_RUNNER_NAME}:base-${OS_IMAGE} .
+
+buildah-build-base:
+	${BUILDAH} bud \
+	  --isolation=chroot \
+	  --storage-driver=vfs \
+	  --squash \
+	  --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
+	  --build-arg REV=$(shell git rev-parse --short HEAD) \
+	  -f base.${OS_IMAGE}.dockerfile \
+	  -t ${DEFAULT_RUNNER_NAME}:base-${OS_IMAGE} .
 
 buildah-build:
 	${BUILDAH} bud \
 	  --isolation=chroot \
 	  --storage-driver=vfs \
+	  --squash \
+	  --build-arg BASE_OS_IMAGE=${DEFAULT_RUNNER_NAME}:base-${OS_IMAGE} \
 	  --build-arg TARGETPLATFORM=${TARGETPLATFORM} \
 	  --build-arg RUNNER_VERSION=${RUNNER_VERSION} \
 	  --build-arg RUNNER_CONTAINER_HOOKS_VERSION=${RUNNER_CONTAINER_HOOKS_VERSION} \
@@ -60,8 +82,20 @@ buildah-build:
 	  --build-arg UV_VERSION=${UV_VERSION} \
 	  --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
 	  --build-arg REV=$(shell git rev-parse --short HEAD) \
-	  -f actions-runner.${OS_IMAGE}.dockerfile \
+	  -f actions-runner.universal.dockerfile \
 	  -t ${DEFAULT_RUNNER_NAME}:${OS_IMAGE} .
+
+buildah-build-base-rhel:
+	${BUILDAH} bud \
+	  --isolation=chroot \
+	  --storage-driver=vfs \
+	  --volume /etc/pki/entitlement:/etc/pki/entitlement:ro \
+	  --volume /etc/rhsm:/etc/rhsm:ro \
+	  --squash \
+	  --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
+	  --build-arg REV=$(shell git rev-parse --short HEAD) \
+	  -f base.${OS_IMAGE}.dockerfile \
+	  -t ${DEFAULT_RUNNER_NAME}:base-${OS_IMAGE} .
 
 buildah-build-rhel:
 	${BUILDAH} bud \
@@ -69,6 +103,8 @@ buildah-build-rhel:
 	  --storage-driver=vfs \
 	  --volume /etc/pki/entitlement:/etc/pki/entitlement:ro \
 	  --volume /etc/rhsm:/etc/rhsm:ro \
+	  --squash \
+	  --build-arg BASE_OS_IMAGE=${DEFAULT_RUNNER_NAME}:base-${OS_IMAGE} \
 	  --build-arg TARGETPLATFORM=${TARGETPLATFORM} \
 	  --build-arg RUNNER_VERSION=${RUNNER_VERSION} \
 	  --build-arg RUNNER_CONTAINER_HOOKS_VERSION=${RUNNER_CONTAINER_HOOKS_VERSION} \
@@ -79,7 +115,7 @@ buildah-build-rhel:
 	  --build-arg UV_VERSION=${UV_VERSION} \
 	  --build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
 	  --build-arg REV=$(shell git rev-parse --short HEAD) \
-	  -f actions-runner.${OS_IMAGE}.dockerfile \
+	  -f actions-runner.universal.dockerfile \
 	  -t ${DEFAULT_RUNNER_NAME}:${OS_IMAGE} .
 
 docker-push:
@@ -87,3 +123,6 @@ docker-push:
 
 buildah-push:
 	${BUILDAH} push --storage-driver=vfs "${DEFAULT_RUNNER_NAME}:${OS_IMAGE}"
+
+buildah-push-base:
+	${BUILDAH} push --storage-driver=vfs "${DEFAULT_RUNNER_NAME}:base-${OS_IMAGE}"
