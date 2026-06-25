@@ -71,24 +71,83 @@ static void	eraseListElt(SmListElt *elt)
 	return;
 }
 
+/*	#1048: read list->lock into a local once and bounds-check before
+	dispatching to sm_SemTake/sm_SemGive.  A stale SmList handle whose
+	backing block has been Psm_freed and recycled can carry a lock
+	value that is neither SM_SEM_NONE nor a valid sem index; passing
+	such a value to sm_SemTake/sm_SemGive would trip an assertion
+	(platform_sm.c:CHKERR(i >= 0)) and abort the calling daemon mid-
+	transaction, orphaning the SDR lock and cascading the node.  Refuse
+	rather than assert: log enough to identify the corruption and let
+	the caller (e.g. sm_list_first) return 0 / propagate ERROR, so the
+	bad handle is treated as an empty/disabled list.		*/
 static int	lockSmlist(SmList *list)
 {
-	if (list->lock == SM_SEM_NONE)
+	sm_SemId	lock = list->lock;	/*	single load	*/
+
+	if (lock == SM_SEM_NONE)
 	{
 		return 0;
 	}
 
-	return sm_SemTake(list->lock);
+	if (lock < 0 || lock >= SEM_NSEMS_MAX)
+	{
+		putErrmsg("smlist: lock field out of range, refusing "
+				"sm_SemTake (likely UAF/recycled list block)",
+				itoa(lock));
+		return ERROR;
+	}
+
+	return sm_SemTake(lock);
 }
 
 static void	unlockSmlist(SmList *list)
 {
-	if (list->lock == SM_SEM_NONE)
+	sm_SemId	lock = list->lock;	/*	single load	*/
+
+	if (lock == SM_SEM_NONE)
 	{
 		return;
 	}
 
-	sm_SemGive(list->lock);
+	if (lock < 0 || lock >= SEM_NSEMS_MAX)
+	{
+		putErrmsg("smlist: lock field out of range, skipping "
+				"sm_SemGive (likely UAF/recycled list block)",
+				itoa(lock));
+		return;
+	}
+
+	sm_SemGive(lock);
+}
+
+int	sm_list_header_sane(PsmPartition partition, PsmAddress list)
+{
+	SmList		*listBuffer;
+	sm_SemId	lock;
+
+	if (partition == NULL || list == 0)
+	{
+		return 0;
+	}
+
+	listBuffer = (SmList *) psp(partition, list);
+	if (listBuffer == NULL)
+	{
+		return 0;
+	}
+
+	lock = listBuffer->lock;		/*	single load	*/
+	if (lock == SM_SEM_NONE)
+	{
+		return 1;			/*	unlocked variant */
+	}
+
+	/*	A locked sm_list must carry a sem index in [0, SEM_NSEMS_MAX).
+		Anything else means the SmList block has been freed and the
+		bytes at offset (lock) are whatever the recycler wrote.	*/
+
+	return (lock >= 0 && lock < SEM_NSEMS_MAX);
 }
 
 PsmAddress	Sm_list_create(const char *fileName, int lineNbr,
