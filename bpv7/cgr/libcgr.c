@@ -244,6 +244,27 @@ static int	cgrHandleValid(PsmPartition ionwm, PsmAddress addr)
 	return (psa(ionwm, ptr) == addr);
 }
 
+/*	Stronger validator for a PsmAddress that should refer to an
+ *	SmList.  cgrHandleValid only checks address bounds + round-trip
+ *	but doesn't look at the bytes -- a Psm_freed SmList block that's
+ *	been recycled keeps a valid-looking address while its header
+ *	contents are garbage.  cgrSmListValid additionally checks that
+ *	the SmList header still looks like one (lock field is either the
+ *	unlocked sentinel or a valid sem index).  Without this, a stale
+ *	hops handle slips past the disabledRoute guard and trips an
+ *	assertion in sm_SemTake -> aborts ipnfw -> drops the SDR
+ *	transaction and degrades the node (#1048).			*/
+
+static int	cgrSmListValid(PsmPartition ionwm, PsmAddress listAddr)
+{
+	if (!cgrHandleValid(ionwm, listAddr))
+	{
+		return 0;
+	}
+
+	return sm_list_header_sane(ionwm, listAddr);
+}
+
 static int	disabledRoute(PsmPartition ionwm, PsmAddress routeElt,
 			PsmAddress *routeAddr, CgrRoute **route)
 {
@@ -268,7 +289,7 @@ static int	disabledRoute(PsmPartition ionwm, PsmAddress routeElt,
 
 	if (!cgrHandleValid(ionwm, *routeAddr)
 	|| (*route)->hops == 0
-	|| !cgrHandleValid(ionwm, (*route)->hops))
+	|| !cgrSmListValid(ionwm, (*route)->hops))
 	{
 		char		dbg[256];
 		PsmAddress	refElt = 0;

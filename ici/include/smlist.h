@@ -106,6 +106,16 @@ extern PsmAddress	sm_list_list(PsmPartition partition, PsmAddress elt);
 extern PsmAddress	sm_list_data(PsmPartition partition, PsmAddress elt);
 extern PsmAddress	sm_list_data_set(PsmPartition partition, PsmAddress elt,
 				PsmAddress data);
+
+/*	Returns 1 if the SmList header at 'list' is structurally sane
+	(lock field is either SM_SEM_NONE or a valid sem index), 0
+	otherwise.  Does not take the list's lock and does not assert.
+	Use as a UAF / recycled-block guard for handles whose address
+	round-trips through psp/psa but whose backing memory may have
+	been Psm_freed and reused (#1048).				*/
+extern int		sm_list_header_sane(PsmPartition partition,
+				PsmAddress list);
+
 #ifdef __cplusplus
 }
 #endif
